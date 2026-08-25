@@ -143,6 +143,25 @@ agrégé au niveau de la compagnie entière, pas par ligne — la descente au ni
 d'observation de `methode.md`) demandera une source supplémentaire (véhicules/stations), à explorer
 en phase 2.
 
+## ParameterisedAI — le paramètre atteint bien l'IA et change le résultat
+
+[`ParameterisedAI`](https://github.com/michalc/ParameterisedAI) (commit
+`74662403e0764329112dc78e5b279d7f1b5fd510`, fixé dans `ai/ParameterisedAI/`) est un bus AI dont le
+seul paramètre, `maximum_buses`, est déclaré dans `info.nut` (`AddSetting`) et importé via
+`import("pathfinder.road", "RoadPathFinder", 4)` — nécessite la librairie
+`bananas_ai_library('5046524f', 'Pathfinder.Road')`. Usage confirmé sur le propre test de
+régression du dépôt (`local_folder` + cette seule librairie, sans les deux autres mentionnées dans
+son README qui ne sont pas nécessaires en pratique).
+
+**Vérification** (`sweeps/phase0_parameterised_ai_check.py`) : même graine (42), deux valeurs de
+`maximum_buses` (1 et 8), 2 ans de jeu. Le paramètre brut (`experiment['ais'][0][1]`) est bien
+`(('maximum_buses', 1),)` / `(('maximum_buses', 8),)` dans chaque run — il arrive donc jusqu'à
+l'expérience. Les deux trajectoires `money` sont identiques jusqu'au premier achat de véhicules
+(1950-04-01, 78794 vs 44265 — la version à 8 bus dépense nettement plus en achat initial, cohérent),
+puis divergent tout le reste de la partie : **83911 vs 69076 en fin de run**, sur une carte et une
+graine strictement identiques. Le paramètre atteint donc bien l'IA et change effectivement le
+résultat. Détail complet dans `docs/phase0_parameterised_ai_check.json`.
+
 ## Checklist de sortie de phase 0
 
 - [x] Dépôt git initialisé, versions figées dans `requirements.txt`

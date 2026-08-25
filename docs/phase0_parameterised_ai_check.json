@@ -1,0 +1,582 @@
+{
+  "1": [
+    {
+      "maximum_buses": 1,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          1
+        ]
+      ],
+      "seed": 42,
+      "date": "1950-02-01",
+      "money": 99808
+    },
+    {
+      "maximum_buses": 1,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          1
+        ]
+      ],
+      "seed": 42,
+      "date": "1950-03-01",
+      "money": 99616
+    },
+    {
+      "maximum_buses": 1,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          1
+        ]
+      ],
+      "seed": 42,
+      "date": "1950-04-01",
+      "money": 78794
+    },
+    {
+      "maximum_buses": 1,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          1
+        ]
+      ],
+      "seed": 42,
+      "date": "1950-05-01",
+      "money": 78567
+    },
+    {
+      "maximum_buses": 1,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          1
+        ]
+      ],
+      "seed": 42,
+      "date": "1950-06-01",
+      "money": 78339
+    },
+    {
+      "maximum_buses": 1,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          1
+        ]
+      ],
+      "seed": 42,
+      "date": "1950-07-01",
+      "money": 78113
+    },
+    {
+      "maximum_buses": 1,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          1
+        ]
+      ],
+      "seed": 42,
+      "date": "1950-08-01",
+      "money": 78584
+    },
+    {
+      "maximum_buses": 1,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          1
+        ]
+      ],
+      "seed": 42,
+      "date": "1950-09-01",
+      "money": 79062
+    },
+    {
+      "maximum_buses": 1,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          1
+        ]
+      ],
+      "seed": 42,
+      "date": "1950-10-01",
+      "money": 78836
+    },
+    {
+      "maximum_buses": 1,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          1
+        ]
+      ],
+      "seed": 42,
+      "date": "1950-11-01",
+      "money": 79316
+    },
+    {
+      "maximum_buses": 1,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          1
+        ]
+      ],
+      "seed": 42,
+      "date": "1950-12-01",
+      "money": 79795
+    },
+    {
+      "maximum_buses": 1,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          1
+        ]
+      ],
+      "seed": 42,
+      "date": "1951-01-01",
+      "money": 80276
+    },
+    {
+      "maximum_buses": 1,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          1
+        ]
+      ],
+      "seed": 42,
+      "date": "1951-02-01",
+      "money": 80047
+    },
+    {
+      "maximum_buses": 1,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          1
+        ]
+      ],
+      "seed": 42,
+      "date": "1951-03-01",
+      "money": 80529
+    },
+    {
+      "maximum_buses": 1,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          1
+        ]
+      ],
+      "seed": 42,
+      "date": "1951-04-01",
+      "money": 81009
+    },
+    {
+      "maximum_buses": 1,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          1
+        ]
+      ],
+      "seed": 42,
+      "date": "1951-05-01",
+      "money": 81490
+    },
+    {
+      "maximum_buses": 1,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          1
+        ]
+      ],
+      "seed": 42,
+      "date": "1951-06-01",
+      "money": 81967
+    },
+    {
+      "maximum_buses": 1,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          1
+        ]
+      ],
+      "seed": 42,
+      "date": "1951-07-01",
+      "money": 81741
+    },
+    {
+      "maximum_buses": 1,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          1
+        ]
+      ],
+      "seed": 42,
+      "date": "1951-08-01",
+      "money": 82219
+    },
+    {
+      "maximum_buses": 1,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          1
+        ]
+      ],
+      "seed": 42,
+      "date": "1951-09-01",
+      "money": 82699
+    },
+    {
+      "maximum_buses": 1,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          1
+        ]
+      ],
+      "seed": 42,
+      "date": "1951-10-01",
+      "money": 83180
+    },
+    {
+      "maximum_buses": 1,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          1
+        ]
+      ],
+      "seed": 42,
+      "date": "1951-11-01",
+      "money": 82952
+    },
+    {
+      "maximum_buses": 1,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          1
+        ]
+      ],
+      "seed": 42,
+      "date": "1951-12-01",
+      "money": 83433
+    },
+    {
+      "maximum_buses": 1,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          1
+        ]
+      ],
+      "seed": 42,
+      "date": "1952-01-01",
+      "money": 83911
+    }
+  ],
+  "8": [
+    {
+      "maximum_buses": 8,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          8
+        ]
+      ],
+      "seed": 42,
+      "date": "1950-02-01",
+      "money": 99808
+    },
+    {
+      "maximum_buses": 8,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          8
+        ]
+      ],
+      "seed": 42,
+      "date": "1950-03-01",
+      "money": 99616
+    },
+    {
+      "maximum_buses": 8,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          8
+        ]
+      ],
+      "seed": 42,
+      "date": "1950-04-01",
+      "money": 44265
+    },
+    {
+      "maximum_buses": 8,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          8
+        ]
+      ],
+      "seed": 42,
+      "date": "1950-05-01",
+      "money": 43793
+    },
+    {
+      "maximum_buses": 8,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          8
+        ]
+      ],
+      "seed": 42,
+      "date": "1950-06-01",
+      "money": 44089
+    },
+    {
+      "maximum_buses": 8,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          8
+        ]
+      ],
+      "seed": 42,
+      "date": "1950-07-01",
+      "money": 44506
+    },
+    {
+      "maximum_buses": 8,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          8
+        ]
+      ],
+      "seed": 42,
+      "date": "1950-08-01",
+      "money": 45870
+    },
+    {
+      "maximum_buses": 8,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          8
+        ]
+      ],
+      "seed": 42,
+      "date": "1950-09-01",
+      "money": 46201
+    },
+    {
+      "maximum_buses": 8,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          8
+        ]
+      ],
+      "seed": 42,
+      "date": "1950-10-01",
+      "money": 48075
+    },
+    {
+      "maximum_buses": 8,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          8
+        ]
+      ],
+      "seed": 42,
+      "date": "1950-11-01",
+      "money": 49647
+    },
+    {
+      "maximum_buses": 8,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          8
+        ]
+      ],
+      "seed": 42,
+      "date": "1950-12-01",
+      "money": 52069
+    },
+    {
+      "maximum_buses": 8,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          8
+        ]
+      ],
+      "seed": 42,
+      "date": "1951-01-01",
+      "money": 53962
+    },
+    {
+      "maximum_buses": 8,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          8
+        ]
+      ],
+      "seed": 42,
+      "date": "1951-02-01",
+      "money": 53866
+    },
+    {
+      "maximum_buses": 8,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          8
+        ]
+      ],
+      "seed": 42,
+      "date": "1951-03-01",
+      "money": 56364
+    },
+    {
+      "maximum_buses": 8,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          8
+        ]
+      ],
+      "seed": 42,
+      "date": "1951-04-01",
+      "money": 58006
+    },
+    {
+      "maximum_buses": 8,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          8
+        ]
+      ],
+      "seed": 42,
+      "date": "1951-05-01",
+      "money": 59265
+    },
+    {
+      "maximum_buses": 8,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          8
+        ]
+      ],
+      "seed": 42,
+      "date": "1951-06-01",
+      "money": 60993
+    },
+    {
+      "maximum_buses": 8,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          8
+        ]
+      ],
+      "seed": 42,
+      "date": "1951-07-01",
+      "money": 62300
+    },
+    {
+      "maximum_buses": 8,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          8
+        ]
+      ],
+      "seed": 42,
+      "date": "1951-08-01",
+      "money": 63908
+    },
+    {
+      "maximum_buses": 8,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          8
+        ]
+      ],
+      "seed": 42,
+      "date": "1951-09-01",
+      "money": 64943
+    },
+    {
+      "maximum_buses": 8,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          8
+        ]
+      ],
+      "seed": 42,
+      "date": "1951-10-01",
+      "money": 65043
+    },
+    {
+      "maximum_buses": 8,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          8
+        ]
+      ],
+      "seed": 42,
+      "date": "1951-11-01",
+      "money": 67796
+    },
+    {
+      "maximum_buses": 8,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          8
+        ]
+      ],
+      "seed": 42,
+      "date": "1951-12-01",
+      "money": 68829
+    },
+    {
+      "maximum_buses": 8,
+      "ai_params_raw": [
+        [
+          "maximum_buses",
+          8
+        ]
+      ],
+      "seed": 42,
+      "date": "1952-01-01",
+      "money": 69076
+    }
+  ]
+}
