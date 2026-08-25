@@ -233,18 +233,26 @@ console) : `docs/methode.md`, section **IA (Phase 2 — préparatoire)**.
 
 ## Prochaines étapes
 
-- [ ] Lancer une campagne multi-graines avec `TrainLineAI` pour mesurer le taux d'échec réel
-      (terrain/pathfinder) une fois l'argent neutralisé
-- [ ] Descendre `old_economy` (company-level) au niveau ligne : source à identifier parmi les
-      chunks véhicules/stations (`VEHS`/`STNN`/`ORDR`) pour attribuer un profit par ligne
+- [x] Lancer une campagne multi-graines avec `TrainLineAI` pour mesurer le taux d'échec réel
+      (terrain/pathfinder) une fois l'argent neutralisé — `sweeps/phase2_trainline_run.py`,
+      12 tentatives : 5 construites, 3 échecs, 4 encore en construction au-delà de 3 ans
+- [x] Descendre `old_economy` (company-level) au niveau ligne : `VEHS.<id>.train[0].common[0]`
+      expose `profit_this_year`/`profit_last_year` par véhicule de tête — `profit_ligne` calculé
+      et testé (`sweeps/phase2_profit_ligne.py`)
 - [ ] Construire le jeu de données du modèle hurdle (classifieur constructible + régression
-      profit conditionnelle, voir `docs/methode.md`)
+      profit conditionnelle, voir `docs/methode.md`) — les briques existent (panneaux, `VEHS`,
+      `profit_ligne`), pas encore assemblées en jeu de données d'entraînement
 - [ ] Alerte mémoire Netdata sur le conteneur — toujours pas faite (Netdata non déployé sur ce VPS)
-- [ ] Traiter le confondant matériel × date de construction avant tout entraînement (voir
-      `docs/methode.md`)
+- [~] Traiter le confondant matériel × date de construction avant tout entraînement —
+      `engine_rank` casse une partie de la corrélation, mais le catalogue réel en 1950 ne compte
+      que 3 moteurs (voir `docs/methode.md`) : à revisiter si le confondant reste visible
 - [ ] Orchestrateur multi-lignes par partie (plusieurs instances de `TrainLineAI` avec des rangs
       différents dans la même expérience) : à écrire pour diviser le coût par observation, avec la
-      contrainte villes disjointes / distance minimale entre lignes (voir `docs/methode.md`)
+      contrainte villes disjointes / distance minimale entre lignes (voir `docs/methode.md`) —
+      **le principal morceau qui manque encore**
+- [ ] Revoir l'amortissement de `profit_ligne` : voie/gares amorties sur la durée de vie du
+      matériel roulant par simplicité, alors qu'elles ont normalement un horizon plus long (voir
+      `docs/methode.md`)
 
 ## Checklist de sortie de phase 0
 
