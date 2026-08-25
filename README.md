@@ -186,16 +186,17 @@ une erreur Python immédiate plutôt que d'être avalée silencieusement par Ope
 
 Emprunte le maximum au premier tick (`AICompany.SetLoanAmount(AICompany.GetMaxLoanAmount())`) —
 supprime le manque d'argent comme cause d'échec possible ; un échec ne peut plus venir que du
-terrain/pathfinder. Pose **deux panneaux** (`AISign.BuildSign`) à chaque tentative : un statut
+terrain/pathfinder. Pose **trois panneaux** (`AISign.BuildSign`) à chaque tentative : un statut
 (`TRLN|<line_index>|<stage>|<raison_courte>|<construits>/<demandés>`) et, dès que les villes sont
-choisies, un détail (`TRLN|<line_index>|T<town_a>-<town_b>|D<distance>|C<coût>` — paire de villes,
-distance à vol d'oiseau, coût de construction mesuré par `AIAccounting`). Canal confirmé
-fonctionnel via le chunk `SIGN` du savegame (texte + position + owner). Les raisons d'échec sont
-abrégées (`REASON_CODES` dans `main.nut`) car `AISign.BuildSign` refuse silencieusement tout texte
-au-delà de 31 caractères — bug trouvé en durcissant ce format : la quasi-totalité des panneaux
-d'échec de l'ancien format (raison en toutes lettres) dépassaient déjà cette limite et ne se
-posaient donc probablement jamais. Détail complet, y compris un second bug de portée Squirrel
-trouvé en corrigeant celui-ci, dans `docs/methode.md`.
+choisies, un détail (`TRLN|<line_index>|T<town_a>-<town_b>|D<distance>|C<coût_total>` — paire de
+villes, distance à vol d'oiseau, coût de construction total mesuré par `AIAccounting`) et un coût
+véhicules (`TRLN|<line_index>|V<coût>` — la part infrastructure se déduit côté Python par
+soustraction). Canal confirmé fonctionnel via le chunk `SIGN` du savegame (texte + position +
+owner). Les raisons d'échec sont abrégées (`REASON_CODES` dans `main.nut`) car `AISign.BuildSign`
+refuse silencieusement tout texte au-delà de 31 caractères — bug trouvé en durcissant ce format :
+la quasi-totalité des panneaux d'échec de l'ancien format (raison en toutes lettres) dépassaient
+déjà cette limite et ne se posaient donc probablement jamais. Détail complet, y compris un second
+bug de portée Squirrel trouvé en corrigeant celui-ci, dans `docs/methode.md`.
 
 `sweeps/debug_ai.py` : lance le binaire OpenTTD en direct (hors OpenTTDLab) avec `-d script=4`
 pour voir la sortie `AILog` — le seul moyen trouvé de déboguer un script Squirrel qui échoue
@@ -209,7 +210,7 @@ filtré dans `docs/phase2_vehs_explore.json`. Détail, y compris la nuance profi
 (hors voie/gares/infrastructure) vs coût de construction, dans `docs/methode.md`.
 
 `sweeps/phase2_trainline_run.py` : première campagne de bout en bout (12 tentatives, 4 graines ×
-3 combinaisons de rangs, 3 ans de jeu), vérifie que les deux panneaux se lisent correctement via
+3 combinaisons de rangs, 3 ans de jeu), vérifie que les trois panneaux se lisent correctement via
 le chunk `SIGN` sur un vrai batch (pas un cas isolé), et calcule `profit_ligne` pour chaque ligne
 construite (voir ci-dessous). Résultats bruts dans `docs/phase2_trainline_run.json`, visualisation
 (jauges + nuage distance/coût + barres de profit par ligne + table complète) dans
@@ -218,11 +219,17 @@ construite (voir ci-dessous). Résultats bruts dans `docs/phase2_trainline_run.j
 lente est réelle, pas un artefact (voir `docs/methode.md`).
 
 `sweeps/phase2_profit_ligne.py` : valide `profit_ligne = Σ(profit_this_year des véhicules de
-tête de la ligne) − amortissement(coût de construction)` sur 3 parties isolées avant de l'intégrer
-à la campagne ci-dessus, en assemblant le profit d'exploitation (`VEHS`) et le coût de
-construction (panneau de détail). Amortissement sur `max_age` du matériel (déjà présent dans le
-savegame, pas une durée inventée) — simplification assumée (amortit voie et gares sur la durée de
-vie du matériel roulant, plus courte que la leur) documentée dans `docs/methode.md`.
+tête de la ligne) − amortissement(coût véhicules) − amortissement(coût infrastructure)` sur 3
+parties isolées avant de l'intégrer à la campagne ci-dessus, en assemblant le profit
+d'exploitation (`VEHS`), le coût de construction total et la part véhicules (panneaux). Coût
+véhicules amorti sur `max_age` du matériel (donnée du jeu) ; coût infrastructure (déduit par
+soustraction) amorti sur `INFRA_LIFE_YEARS = 30`, hypothèse assumée et documentée dans
+`docs/methode.md` — OpenTTD ne modélise aucune durée de vie pour la voie/les gares, contrairement
+au matériel roulant. Décision explicite de séparer les deux plutôt que d'amortir tout sur
+`max_age` (version précédente) : **piège trouvé en l'implémentant** — `AIAccounting` ne s'imbrique
+pas (un second `AIAccounting` ouvert pendant qu'un premier est encore actif ne repart pas de zéro,
+il reflète le même cumul que le premier), corrigé en mesurant le coût véhicules par différence sur
+le même `AIAccounting`, avant/après l'achat des trains — détail dans `docs/methode.md`.
 `AICompany.GetBankBalance` avant/après essayé pour le coût de construction et rejeté : pollué par
 les intérêts du prêt maximal emprunté au premier tick (`GetBankBalance` dérive de 2100 sur ~27
 jours sans aucune construction, `AIAccounting.GetCosts()` rapporte correctement 0 sur la même
@@ -239,20 +246,21 @@ console) : `docs/methode.md`, section **IA (Phase 2 — préparatoire)**.
 - [x] Descendre `old_economy` (company-level) au niveau ligne : `VEHS.<id>.train[0].common[0]`
       expose `profit_this_year`/`profit_last_year` par véhicule de tête — `profit_ligne` calculé
       et testé (`sweeps/phase2_profit_ligne.py`)
+- [x] Revoir l'amortissement de `profit_ligne` : coût véhicules et coût infrastructure séparés,
+      chacun amorti sur son propre horizon (`max_age` pour le matériel, 30 ans assumés pour
+      l'infrastructure — voir `docs/methode.md`)
 - [ ] Construire le jeu de données du modèle hurdle (classifieur constructible + régression
       profit conditionnelle, voir `docs/methode.md`) — les briques existent (panneaux, `VEHS`,
-      `profit_ligne`), pas encore assemblées en jeu de données d'entraînement
-- [ ] Alerte mémoire Netdata sur le conteneur — toujours pas faite (Netdata non déployé sur ce VPS)
-- [~] Traiter le confondant matériel × date de construction avant tout entraînement —
-      `engine_rank` casse une partie de la corrélation, mais le catalogue réel en 1950 ne compte
-      que 3 moteurs (voir `docs/methode.md`) : à revisiter si le confondant reste visible
+      `profit_ligne`), pas encore assemblées en jeu de données d'entraînement — **prochaine étape**
 - [ ] Orchestrateur multi-lignes par partie (plusieurs instances de `TrainLineAI` avec des rangs
       différents dans la même expérience) : à écrire pour diviser le coût par observation, avec la
       contrainte villes disjointes / distance minimale entre lignes (voir `docs/methode.md`) —
-      **le principal morceau qui manque encore**
-- [ ] Revoir l'amortissement de `profit_ligne` : voie/gares amorties sur la durée de vie du
-      matériel roulant par simplicité, alors qu'elles ont normalement un horizon plus long (voir
-      `docs/methode.md`)
+      pas engagé pour l'instant, la campagne actuelle (une ligne par partie) suffit à avancer sur
+      le point ci-dessus
+
+**Explicitement hors scope pour la suite du projet** (décision utilisateur) : le confondant
+matériel × date de construction (3 moteurs jugés suffisants pour les tests actuels) et l'alerte
+mémoire Netdata sur le conteneur.
 
 ## Checklist de sortie de phase 0
 

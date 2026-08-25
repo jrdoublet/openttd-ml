@@ -290,14 +290,41 @@ initial était le bon.
 **Cible ligne-level, deuxième étage : `profit_ligne = Σ(profit véhicules de la ligne) −
 amortissement(coût de construction)`.** Assemble les deux morceaux vérifiés ci-dessus (profit
 d'exploitation par véhicule de tête, coût de construction du panneau de détail) en une seule
-métrique comparable à un profit annuel complet, capital inclus. Horizon d'amortissement : l'âge
-maximal du matériel (`VEHS.<id>.train[0].common[0].max_age`, en jours de jeu, converti en années)
-plutôt qu'une durée arbitraire — c'est la seule durée de vie déjà présente dans le savegame, pas
-une hypothèse ajoutée. `amortissement_annuel = coût_construction / max_age_en_années` ;
-`profit_ligne = Σ profit_this_year (véhicules de tête) − amortissement_annuel`. Implémenté et
-testé sur des parties réelles dans `sweeps/phase2_profit_ligne.py` — résultats dans
-`docs/phase2_profit_ligne.json`. **Simplification assumée, pas cachée** : ceci amortit tout le
-coût de construction (voie + gares + dépôt + véhicules) sur la durée de vie du matériel roulant,
-alors que la voie/les gares ont normalement une durée de vie propre bien plus longue — un choix
-plus rigoureux séparerait les deux composantes avec des horizons différents ; reporté tant que le
-signe et l'ordre de grandeur du résultat n'appellent pas cette finesse.
+métrique comparable à un profit annuel complet, capital inclus. Implémenté et testé sur des
+parties réelles dans `sweeps/phase2_profit_ligne.py` — résultats dans
+`docs/phase2_profit_ligne.json`.
+
+**Piège vérifié en séparant infrastructure et véhicules : `AIAccounting` ne s'imbrique PAS.**
+Première version : amortir tout le coût de construction (voie + gares + dépôt + véhicules) sur
+l'âge maximal du matériel roulant — simplification assumée et documentée ici (le matériel roulant
+a un `max_age` connu du jeu, l'infrastructure non). Décision utilisateur : séparer les deux
+composantes et leur donner chacune leur propre horizon d'amortissement plutôt que de partager
+celui du matériel. Premier essai d'implémentation : ouvrir un second `AIAccounting()` juste avant
+l'achat des véhicules (étape 7), en gardant le premier (`this.costs`, ouvert à l'étape 4) actif en
+parallèle pour mesurer l'infrastructure. **Cassé, vérifié empiriquement avant de le livrer** (IA
+de test jetable, `sweeps/debug_ai.py`) : deux segments de voie construits l'un après l'autre,
+coûts 90 puis 360. Le premier `AIAccounting` (ouvert avant les deux) affiche correctement 90 puis
+450 (90+360, cumulatif). Le second, ouvert *entre les deux* segments, aurait dû isoler le coût du
+second segment seul (360) — il affiche **450**, exactement la même valeur que le premier. Un
+`AIAccounting` ouvert pendant qu'un autre est encore en vie ne démarre pas à zéro : il reflète le
+même cumul depuis l'ouverture du plus ancien, pas son propre coût isolé. Si livré tel quel,
+`vehicle_cost` aurait été quasiment égal à `construction_cost` en entier, et `infra_cost` (déduit
+par soustraction) proche de zéro — silencieusement faux, sans aucune erreur pour le signaler.
+**Corrigé** en abandonnant le second `AIAccounting` : `vehicle_cost` se lit par différence sur le
+*même* `this.costs`, avant et après l'étape 7 (`GetCosts()` appelé aux deux instants, la
+différence est le coût des achats de véhicules). `infra_cost` se déduit côté Python par
+soustraction (`construction_cost − vehicle_cost`), sans panneau dédié.
+
+**Format des panneaux, complété (trois panneaux au lieu de deux) :** un troisième panneau
+`TRLN|<line_index>|V<vehicle_cost>` s'ajoute au statut et au détail, posé dans les mêmes
+conditions que le détail (villes choisies), toujours présent (à 0 si l'échec précède l'achat de
+véhicules) pour simplifier le parsing côté Python — les trois panneaux coexistent toujours
+ensemble, ou aucun des trois.
+
+**Amortissement à deux horizons, séparés :** `vehicle_cost / max_age_matériel_en_années`
+(inchangé, horizon tiré du jeu) plus `infra_cost / INFRA_LIFE_YEARS`, où `INFRA_LIFE_YEARS` est
+une **hypothèse explicite fixée à 30 ans** (horizon courant pour de l'infrastructure ferroviaire
+dans la vraie vie ; OpenTTD ne modélise aucune durée de vie ou dépréciation pour la voie/les gares
+— rien à en tirer empiriquement, contrairement à `max_age`) — voir `INFRA_LIFE_YEARS` dans
+`sweeps/phase2_profit_ligne.py`/`phase2_trainline_run.py`. `profit_ligne = Σ profit_this_year
+(véhicules de tête) − vehicle_cost/max_age_années − infra_cost/INFRA_LIFE_YEARS`.

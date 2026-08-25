@@ -71,13 +71,27 @@ function TrainLineAI::_code()
 }
 
 /* Panneau de detail : paire de villes (IDs AITown, joignables au chunk CITY) et cout de
- * construction (AIAccounting, voir plus haut). Uniquement pose si les villes ont ete choisies --
- * absent pour les echecs qui precedent le choix des villes (no_rail_type_available,
+ * construction total (AIAccounting, voir plus haut). Uniquement pose si les villes ont ete
+ * choisies -- absent pour les echecs qui precedent le choix des villes (no_rail_type_available,
  * not_enough_towns, town_rank_*). */
 function TrainLineAI::_codeDetail()
 {
   return "TRLN|" + this.state.line_index + "|T" + this.state.town_a + "-" + this.state.town_b +
       "|D" + this.state.distance_straight + "|C" + this.state.construction_cost;
+}
+
+/* Panneau de cout vehicules : part du cout total (ci-dessus) depensee en achat de materiel
+ * roulant, isolee par difference sur this.costs avant/apres l'etape 7 (voir le commentaire a
+ * cet endroit -- PAS un second AIAcconting, qui ne s'isole pas). La part infrastructure (voie,
+ * ponts/tunnels, gares, depot) se deduit cote Python par soustraction (construction_cost -
+ * vehicle_cost) -- pas la peine d'un panneau de plus pour une soustraction. Separer les deux
+ * est necessaire pour amortir chacune sur son propre horizon : le materiel roulant a un max_age
+ * connu du jeu, l'infrastructure n'a pas d'equivalent (voir docs/methode.md). Vaut 0 et se pose
+ * quand meme (a 0) si l'echec survient avant l'achat de vehicules -- simplifie le parsing cote
+ * Python (les trois panneaux coexistent toujours, ou aucun des trois). */
+function TrainLineAI::_codeVehicleCost()
+{
+  return "TRLN|" + this.state.line_index + "|V" + this.state.vehicle_cost;
 }
 
 function TrainLineAI::_reportAll()
@@ -86,6 +100,7 @@ function TrainLineAI::_reportAll()
   this._report(this._code());
   if (this.state.town_a != null && this.state.town_b != null) {
     this._report(this._codeDetail());
+    this._report(this._codeVehicleCost());
   }
 }
 
@@ -127,6 +142,7 @@ function TrainLineAI::Start()
     wagons_per_train = null,
     built_trains = 0,
     construction_cost = 0,
+    vehicle_cost = 0, // sous-ensemble de construction_cost -- voir _codeVehicleCost()
     failure_reason = null,
   };
 
@@ -377,6 +393,14 @@ function TrainLineAI::Start()
   wagons.KeepValue(1);
   local wagonId = wagons.IsEmpty() ? null : wagons.Begin();
 
+  /* Isole le cout des achats de vehicules de celui de l'infrastructure (voie/ponts/tunnels/
+   * gares/depot, etapes 4-5) par difference sur this.costs, PAS par un second AIAccounting
+   * imbrique : verifie empiriquement qu'un AIAccounting ouvert pendant qu'un autre est encore
+   * en vie ne demarre PAS a zero -- il reflete le meme cumul depuis l'ouverture du premier
+   * (deux segments de voie construits l'un apres l'autre, cout 90 puis +360 ; le second
+   * AIAccounting, ouvert juste avant le second segment, affichait 450 -- le cumul total depuis
+   * le premier -- pas 360, son propre cout isole). Piege reel, evite ici. Voir docs/methode.md. */
+  local costBeforeVehicles = this.costs.GetCosts();
   local builtTrains = 0;
   for (local i = 0; i < this.state.requested_trains; i++) {
     local train = AIVehicle.BuildVehicle(depotTile, engineId);
@@ -398,6 +422,7 @@ function TrainLineAI::Start()
     builtTrains++;
   }
   this.state.built_trains = builtTrains;
+  this.state.vehicle_cost = this.costs.GetCosts() - costBeforeVehicles;
   this.state.stage = (builtTrains == this.state.requested_trains) ? "success" : "partial";
   this._reportAll();
 

@@ -8,11 +8,15 @@ de bout en bout du format de panneau revise, sur un vrai batch.
 Calcule aussi profit_ligne pour chaque ligne construite (meme logique que
 sweeps/phase2_profit_ligne.py, dupliquee ici plutot qu'importee -- chaque script sweeps/ reste
 autonome par convention de ce depot) : DAYS est passe de 365 a 365*3 par rapport a la premiere
-version de ce script pour laisser le temps a profit_this_year de s'accumuler.
+version de ce script pour laisser le temps a profit_this_year de s'accumuler. Amortissement a
+deux horizons (vehicules sur max_age, infrastructure sur INFRA_LIFE_YEARS) -- voir
+docs/methode.md pour le piege AIAccounting trouve et evite en separant les deux couts.
 """
 import json
 import re
 from openttdlab import run_experiments, bananas_ai_library, local_folder
+
+INFRA_LIFE_YEARS = 30  # hypothese assumee, documentee dans docs/methode.md (voir phase2_profit_ligne.py)
 
 OPENTTD_CONFIG = """
 [difficulty]
@@ -48,6 +52,7 @@ RUNS = [
 
 STATUS_RE = re.compile(r"^TRLN\|(\d+)\|(\w+)\|(\w+)\|(\d+)/(\d+)$")
 DETAIL_RE = re.compile(r"^TRLN\|(\d+)\|T(\d+)-(\d+)\|D(\d+)\|C(-?\d+)$")
+VEHICLE_COST_RE = re.compile(r"^TRLN\|(\d+)\|V(-?\d+)$")
 
 
 def line_profit(chunks, owner=0):
@@ -130,6 +135,7 @@ if __name__ == "__main__":
         r = by_seed_line[idx]
         status = None
         detail = None
+        vehicle_cost = None
         for s in r["signs"]:
             m = STATUS_RE.match(s)
             if m:
@@ -138,6 +144,10 @@ if __name__ == "__main__":
             m = DETAIL_RE.match(s)
             if m:
                 detail = m.groups()
+                continue
+            m = VEHICLE_COST_RE.match(s)
+            if m:
+                vehicle_cost = int(m.group(2))
         rec = {
             "line_index": idx,
             "seed": r["seed"],
@@ -157,11 +167,18 @@ if __name__ == "__main__":
                 "town_b": int(detail[2]),
                 "distance": int(detail[3]),
                 "cost": int(detail[4]),
+                "vehicle_cost": vehicle_cost,
             })
             veh = r["veh_summary"]
-            if veh is not None and veh["avg_max_age_years"] > 0:
-                amortization = rec["cost"] / veh["avg_max_age_years"]
+            if vehicle_cost is not None and veh is not None and veh["avg_max_age_years"] > 0:
+                infra_cost = rec["cost"] - vehicle_cost
+                vehicle_amortization = vehicle_cost / veh["avg_max_age_years"]
+                infra_amortization = infra_cost / INFRA_LIFE_YEARS
+                amortization = vehicle_amortization + infra_amortization
                 rec.update(veh)
+                rec["infra_cost"] = infra_cost
+                rec["vehicle_amortization_annual"] = round(vehicle_amortization)
+                rec["infra_amortization_annual"] = round(infra_amortization)
                 rec["amortization_annual"] = round(amortization)
                 rec["profit_ligne"] = round(veh["sum_profit_this_year"] - amortization)
         records.append(rec)

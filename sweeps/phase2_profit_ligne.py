@@ -1,17 +1,26 @@
 """profit_ligne = somme(profit des vehicules de la ligne) - amortissement(cout de construction).
 
-Assemble les deux morceaux verifies separement :
+Assemble trois morceaux verifies separement :
 - profit d'exploitation par vehicule (VEHS.<id>.train[0].common[0].profit_this_year, vehicule de
   tete du consist seulement -- voir sweeps/phase2_vehs_explore.py et docs/methode.md),
-- cout de construction (panneau de detail TRLN|<idx>|T<a>-<b>|D<dist>|C<cout>, mesure par
-  AIAccounting cote AI -- voir ai/TrainLineAI/main.nut).
+- cout de construction total (panneau de detail TRLN|<idx>|T<a>-<b>|D<dist>|C<cout>, mesure par
+  AIAccounting cote AI -- voir ai/TrainLineAI/main.nut),
+- part vehicules de ce cout (panneau TRLN|<idx>|V<cout>, mesuree par difference sur le meme
+  AIAccounting avant/apres l'achat des vehicules -- PAS par un second AIAccounting imbrique, qui
+  ne s'isole pas -- voir docs/methode.md pour le piege trouve et evite).
 
-Horizon d'amortissement : max_age du materiel (deja present dans le savegame, pas une duree
-arbitraire ajoutee). Voir docs/methode.md pour la discussion de cette simplification.
+Deux horizons d'amortissement, separes : le materiel roulant a un max_age connu du jeu (deja
+present dans le savegame, pas une duree arbitraire) ; l'infrastructure (voie/gares/depot) n'a pas
+d'equivalent -- OpenTTD ne modelise aucune duree de vie pour elle -- d'ou INFRA_LIFE_YEARS,
+hypothese explicite documentee dans docs/methode.md plutot que dissimulee dans le calcul.
 """
 import json
 import re
 from openttdlab import run_experiments, bananas_ai_library, local_folder
+
+INFRA_LIFE_YEARS = 30  # hypothese assumee (horizon courant pour de l'infra ferroviaire dans la
+                        # vraie vie) -- OpenTTD ne donne aucune duree de vie a amortir pour la
+                        # voie/les gares/le depot, contrairement au materiel roulant (max_age).
 
 OPENTTD_CONFIG = """
 [difficulty]
@@ -30,6 +39,7 @@ map_y = 8
 DAYS = 365 * 3  # meme fenetre que phase2_vehs_explore.py : assez pour un profit_this_year lisible
 
 DETAIL_RE = re.compile(r"^TRLN\|(\d+)\|T(\d+)-(\d+)\|D(\d+)\|C(-?\d+)$")
+VEHICLE_COST_RE = re.compile(r"^TRLN\|(\d+)\|V(-?\d+)$")
 
 # (seed, town_a_rank, town_b_rank, engine_rank, num_trains, wagons_per_train, line_index)
 RUNS = [
@@ -109,7 +119,7 @@ if __name__ == "__main__":
     records = []
     for idx in sorted(by_line):
         r = by_line[idx]
-        construction_cost = None
+        construction_cost = vehicle_cost = None
         town_a = town_b = distance = None
         for s in r["signs"]:
             m = DETAIL_RE.match(s)
@@ -117,17 +127,28 @@ if __name__ == "__main__":
                 town_a, town_b, distance, construction_cost = (
                     int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5)),
                 )
+                continue
+            m = VEHICLE_COST_RE.match(s)
+            if m:
+                vehicle_cost = int(m.group(2))
 
         rec = {
             "line_index": idx,
             "seed": r["seed"],
             "construction_cost": construction_cost,
+            "vehicle_cost": vehicle_cost,
             "town_a": town_a, "town_b": town_b, "distance": distance,
         }
         veh = r["veh_summary"]
-        if construction_cost is not None and veh is not None and veh["avg_max_age_years"] > 0:
-            amortization = construction_cost / veh["avg_max_age_years"]
+        if construction_cost is not None and vehicle_cost is not None and veh is not None and veh["avg_max_age_years"] > 0:
+            infra_cost = construction_cost - vehicle_cost
+            vehicle_amortization = vehicle_cost / veh["avg_max_age_years"]
+            infra_amortization = infra_cost / INFRA_LIFE_YEARS
+            amortization = vehicle_amortization + infra_amortization
             rec.update(veh)
+            rec["infra_cost"] = infra_cost
+            rec["vehicle_amortization_annual"] = round(vehicle_amortization)
+            rec["infra_amortization_annual"] = round(infra_amortization)
             rec["amortization_annual"] = round(amortization)
             rec["profit_ligne"] = round(veh["sum_profit_this_year"] - amortization)
         records.append(rec)
@@ -136,12 +157,15 @@ if __name__ == "__main__":
     for rec in records:
         print(
             f"line={rec['line_index']} seed={rec['seed']} towns={rec.get('town_a')}-{rec.get('town_b')} "
-            f"dist={rec.get('distance')} construction_cost={rec.get('construction_cost')}"
+            f"dist={rec.get('distance')} construction_cost={rec.get('construction_cost')} "
+            f"vehicle_cost={rec.get('vehicle_cost')} infra_cost={rec.get('infra_cost')}"
         )
         if "profit_ligne" in rec:
             print(
                 f"    n_lead_vehicles={rec['n_lead_vehicles']} sum_profit_this_year={rec['sum_profit_this_year']} "
-                f"avg_max_age_years={rec['avg_max_age_years']} amortization_annual={rec['amortization_annual']}"
+                f"avg_max_age_years={rec['avg_max_age_years']} "
+                f"vehicle_amortization_annual={rec['vehicle_amortization_annual']} "
+                f"infra_amortization_annual={rec['infra_amortization_annual']} (/{INFRA_LIFE_YEARS}y)"
             )
             print(f"    -> profit_ligne = {rec['sum_profit_this_year']} - {rec['amortization_annual']} = {rec['profit_ligne']}")
         else:
