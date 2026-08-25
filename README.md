@@ -64,7 +64,7 @@ proprement, ex. via `socket-proxy` comme les autres outils d'observabilité de c
 
 ```bash
 MACHINE=vps python sweeps/phase0_timing.py   # coût unitaire, point d'inflexion du parallélisme
-python sweeps/phase0_plot.py                 # graphique money x date sur 10 graines
+python sweeps/phase0_plot.py                 # graphique company_value x date sur 10 graines
 ```
 
 ### Résultats — VPS (4 CPU hôte, conteneur `--cpus=3`), `days = 365 * 10`, batch fixe de 24 graines
@@ -106,28 +106,35 @@ mesure, `docs/phase0_laptop.json`, le calcul de `ratio_sharding` et le test de d
 inter-machines (section 5) ne s'appliquent pas — VPS seul pour l'instant. À reprendre si une
 seconde machine est ajoutée au projet.
 
-Le graphique produit (`docs/phase0_money_vs_date.html`, données brutes dans
-`docs/phase0_money_vs_date.csv`) trace `money` par mois sur 10 graines (300–309), IA trAIns,
-4 ans de jeu (généré avant le passage à `days = 365 * 10`), `max_workers=3`. Pas encore régénéré
-avec la nouvelle durée — c'est ce graphique qui a révélé le problème de métrique ci-dessous.
+Graphique produit : `docs/phase0_company_value_vs_date.html` (données brutes dans
+`docs/phase0_company_value_vs_date.csv`), `company_value` par trimestre sur 10 graines (300–309),
+IA trAIns, 10 ans de jeu, `max_workers=3`. 39 trimestres par graine, de 1950-01-01 à 1959-07-01.
+
+*Première version du graphique (`docs/phase0_money_vs_date.html`, `money` brut, 4 ans de jeu,
+conservée pour référence) : c'est elle qui a révélé le problème ci-dessous.*
 
 ## Le capital brut est un mauvais indicateur de succès
 
-Sur ce graphique, les graines 300 et 304 culminent à ~400 k puis retombent à ~3 400. Inspection du
-chunk `PLYR` complet (`sweeps/phase0_explore.py`) : `money` ne tient pas compte de `current_loan`.
-Exemple concret tiré du run : `money=289299` avec `current_loan=300000` → trésorerie nette réelle
-**négative** (-10 701) alors que `money` seul a l'air positif. Une IA qui emprunte gonfle `money`
-sans avoir rien construit ; quand elle rembourse (ou se fait rappeler le prêt), `money` s'effondre
-sans que ça reflète un échec économique réel.
+Sur le graphique `money`, les graines 300 et 304 culminent à ~400 k puis retombent à ~3 400.
+Inspection du chunk `PLYR` complet (`sweeps/phase0_explore.py`) : `money` ne tient pas compte de
+`current_loan`. Exemple concret tiré du run : `money=289299` avec `current_loan=300000` →
+trésorerie nette réelle **négative** (-10 701) alors que `money` seul a l'air positif. Une IA qui
+emprunte gonfle `money` sans avoir rien construit ; quand elle rembourse (ou se fait rappeler le
+prêt), `money` s'effondre sans que ça reflète un échec économique réel.
 
-**La bonne source : `old_economy`, pas `money`.** Confirmé par inspection directe
+**La bonne source : `old_economy.company_value`, pas `money`.** Confirmé par inspection directe
 (`sweeps/phase0_explore3.py`) : `PLYR.<company>.old_economy` est une liste de trimestres clos
 (index 0 = le plus récent) avec `income`, `expenses`, `company_value`, `delivered_cargo`,
 `performance_history`. `company_value` est net de l'emprunt (un prêt déplace de la dette vers du
-cash, ne bouge pas la valeur d'entreprise) et `income`/`expenses` trimestriels donnent le profit
-directement, sans le dériver d'un delta de trésorerie. `len(old_economy)` sert de clé de trimestre
-stable pour reconstituer la série complète depuis les savegames mensuels sans dépendre de la
-profondeur de l'historique glissant (détail du protocole dans `docs/methode.md`).
+cash, ne bouge pas la valeur d'entreprise) — le graphique regénéré avec `company_value` ne montre
+plus les pics/chutes brutaux de la version `money`.
+
+**Piège vérifié en la construisant : la clé de dédup.** Un premier essai dédupliquait sur
+`(seed, len(old_economy))` — `old_economy` est une fenêtre glissante plafonnée à 24 entrées (6 ans),
+`len()` se bloque à 24 après coup, donc cet essai tronquait silencieusement toutes les séries à 6 ans
+sur des parties de 10 ans, sans erreur. Corrigé dans `sweeps/phase0_plot.py` en dédupliquant sur la
+date calendaire réelle du trimestre clos (déduite de la date du savegame), robuste quelle que soit
+la profondeur de la fenêtre glissante. Détail dans `docs/methode.md`.
 
 `docs/methode.md` fixait déjà la métrique sur le **profit** (pas le capital brut) — cette
 observation confirme que c'était le bon choix, précise la source exacte à utiliser en phase 2, et
@@ -147,7 +154,7 @@ en phase 2.
 - [ ] Déterminisme inter-machines — non applicable, une seule machine pour l'instant
 - [x] MD5 de trAIns noté et épinglé (`c4c069dc797674e545411b59867ad0c2`)
 - [x] `docs/methode.md` rédigé
-- [x] Un graphique money × date sur 10 graines, commité — premier résultat
+- [x] Un graphique company_value × date sur 10 graines, commité — premier résultat
 - [x] Inflation désactivée et figée explicitement (`inflation = false`)
 - [x] Config OpenTTD figée (map, année de départ, villes, industries)
 - [x] Source de métrique fiable identifiée (`old_economy`, trimestriel, net de l'emprunt)

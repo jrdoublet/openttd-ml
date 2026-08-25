@@ -19,11 +19,17 @@ le monde, la conjoncture et la concurrence.
 **Source du profit — `old_economy`, pas un delta de `money`.** Le chunk `PLYR.<company>.old_economy`
 est une liste de trimestres clos, index 0 = le plus récent, avec les champs `income`, `expenses`,
 `company_value`, `delivered_cargo`, `performance_history` (confirmé par inspection directe du
-savegame, `sweeps/phase0_explore.py` et `phase0_explore3.py`). `len(old_economy)` augmente de 1
-tous les 3 mois et sert de clé de trimestre stable : à chaque savegame mensuel, prendre
-`old_economy[0]` et dédupliquer sur `(seed, len(old_economy))` reconstitue la série trimestrielle
-complète sans dépendre de la profondeur de l'historique glissant — chaque trimestre est capturé dès
-son apparition en position 0, bien avant une éventuelle éviction.
+savegame, `sweeps/phase0_explore.py` et `phase0_explore3.py`).
+
+**Piège vérifié en pratique : `len(old_economy)` n'est PAS une clé de trimestre fiable.** Le tableau
+est une fenêtre glissante plafonnée à 24 entrées (6 ans) : `len()` augmente de 1 par trimestre
+jusqu'à 24, puis reste bloqué à 24 pour le reste de la partie. Un premier essai de dédup sur
+`(seed, len(old_economy))` a silencieusement tronqué toutes les séries à 6 ans sur des parties de
+10 ans (perte muette des trimestres 25 à ~40, aucune erreur levée). Correctif retenu dans
+`sweeps/phase0_plot.py` : dédupliquer sur la **date calendaire réelle** du trimestre clos, déduite
+de la date du savegame (`old_economy[0]` correspond toujours au trimestre précédant celui de la
+date du savegame — voir `closed_quarter_start()`), pas sur la profondeur du tableau. Robuste
+indépendamment de la taille de la fenêtre glissante.
 
 `money` seul est écarté comme indicateur : il inclut `current_loan`, donc un emprunt gonfle `money`
 sans rien construire, et son remboursement le fait chuter sans échec économique réel (exemple mesuré :
