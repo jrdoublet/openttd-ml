@@ -546,20 +546,47 @@ rond près du départ, vitesse non nulle (jusqu'à 84), sans jamais progresser v
 chargement complet observé (40/40, bug 4 "résolu" plus haut) n'a jamais pu déboucher sur une
 livraison parce que le train n'atteint jamais la seconde gare, point final.
 
-**Hypothèse la plus probable, non testée (à faire en premier au prochain tour) : le dépôt,
-raccordé sur `tiles[1]` pour corriger le bug 2 (voie garantie connectée), crée une jonction en Y
-juste après la gare A — sans signal pour la désambiguïser, un train OpenTTD peut hésiter/boucler
-sur ce type de jonction plutôt que de s'engager franchement sur la voie principale.** Ce serait un
-effet de bord du correctif du bug 2 lui-même : fixer le raccordement du dépôt a rendu les trains
-capables de bouger (`last_station_visited` valide, confirmé), mais a introduit une jonction que la
-navigation du train ne franchit pas proprement. Pistes de correctif pour la prochaine session,
-aucune essayée : éloigner le dépôt de la jonction immédiate (le placer plus loin sur la voie
-plutôt qu'adjacent à `tiles[1]`), ou poser un signal simple à la jonction.
+**Hypothèse de la jonction sans signal — testée, pas confirmée.** Quatre variantes de placement du
+dépôt essayées, chacune vérifiée empiriquement sur le même cas de test (graine 42, `A0/B1/E0`,
+`num_trains=1`), en traçant la position du train mois par mois sur 2 ans :
+
+1. **Dépôt sur `tiles[1]`, ordre d'offset fixe (l'état issu du tour précédent).** Le train atteint
+   la gare A (`last_station_visited=0`), se déplace à vitesse réelle, oscille dans un rayon
+   limité (~6 tuiles) sans jamais atteindre la gare B (à 63 tuiles). **Meilleur résultat obtenu.**
+2. **Dépôt déplacé plus loin sur la voie** (`tiles[5]` au lieu de `tiles[1]`) : même oscillation,
+   mais centrée sur le nouveau point d'ancrage — élimine l'hypothèse « adjacent à la gare »
+   spécifiquement, sans rien résoudre.
+3. **Signal PBS posé sur la jonction dépôt/voie** (`AIRail.BuildSignal`, `SIGNALTYPE_PBS`) :
+   résultat **strictement identique** à la variante 1, au tick près. Élimine l'hypothèse
+   « absence de signal ».
+4. **`vehicle_breakdowns = 0`** dans la config (élimine tout service automatique en dépôt,
+   confirmé sans effet lui non plus, même résultat que la variante 1.
+
+**Cause réelle trouvée par inspection directe des coordonnées de la voie** (`AIMap.GetTileX/Y`
+des 10 premières tuiles loggé) : `tiles[1]` est un **virage**, pas une section droite (la voie va
+plein ouest de `tiles[0]` à `tiles[1]`, puis plein sud de `tiles[1]` à `tiles[2]`). Le premier
+offset essayé, `(0,1)`, tombe alors exactement sur `tiles[2]` — démolir puis construire le dépôt
+dessus écrase une tuile de la voie principale elle-même, coupant la ligne en cul-de-sac juste
+après le départ. **Un bug réel, confirmé** — mais le corriger (en excluant les candidats déjà
+présents dans `tiles[]`, ou en ancrant le dépôt sur la première section droite trouvée, ou en
+n'essayant que les deux offsets perpendiculaires à l'axe réel de la voie à cet endroit) **fait
+régresser** le résultat sur ce cas de test : le train ne rejoint alors plus **aucune** gare, pas
+même la première — pire que l'état de départ. Testé avec trois formulations différentes du
+correctif, même régression à chaque fois. **Conclusion contre-intuitive mais reproductible : la
+collision dépôt/voie repérée est un vrai défaut, mais ce n'est pas (ou pas seule) la cause du
+blocage de navigation.** Un autre mécanisme, non identifié, est à l'œuvre — la version actuelle du
+code (celle qui atteint au moins la gare A) a été conservée comme la plus fonctionnelle trouvée à
+ce jour, sans revendiquer d'avoir compris ni résolu le problème de fond.
 
 **Bilan honnête** : `OF_FULL_LOAD_ANY` (patron trAIns, symétrique) reste le choix retenu dans le
 code — c'est une amélioration réelle et vérifiée par rapport à `OF_NONE` (chargement désormais
-possible, jamais observé avant cette session), même si elle ne suffit pas seule à résoudre le
-bug 4. Le blocage résiduel est maintenant caractérisé précisément (navigation, pas chargement) et
-la piste la plus probable identifiée (jonction dépôt/voie sans signal), mais pas corrigée dans
-cette session — le sujet a débordé largement du cadre initial (« regarder trAIns/AdmiralAI pour
-des indices »). `profit_ligne` reste donc à ce stade un pur coût de roulement.
+possible, jamais observé avant cette session). Le blocage de navigation, lui, a résisté à sept
+hypothèses testées dans l'ordre (asymétrie des flags, patron AdmiralAI, position du dépôt ×2,
+signal, désactivation du service automatique, collision dépôt/voie) — chacune vérifiée
+empiriquement, aucune n'a résolu le symptôme, et corriger le seul vrai bug confirmé parmi elles
+(la collision dépôt/voie) régresse le résultat. Le sujet a largement débordé du cadre initial
+(« regarder trAIns/AdmiralAI pour des indices ») sans aboutir. `profit_ligne` reste à ce stade un
+pur coût de roulement. **Recommandation pour la suite** : ce problème mérite un accès visuel réel
+au jeu (capture d'écran ou observation directe en jeu de la voie/du train autour du dépôt) plutôt
+que d'autres itérations à l'aveugle sur des coordonnées seules — l'inspection de coordonnées a
+permis de trouver un vrai bug (la collision), mais pas LE bug qui bloque la navigation.

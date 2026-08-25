@@ -236,19 +236,24 @@ franc près sur trois graines/distances différentes — impossible par hasard) 
    divisé par un facteur ~31 sur le cas de test.
 
 **Un quatrième problème, creusé sur suggestion externe (inspection du code source de trAIns et
-d'AdmiralAI, `docs/methode.md`), partiellement résolu.** Cause du chargement à zéro identifiée :
-les ordres utilisaient `AIOrder.OF_NONE`, qui ne force aucune attente — un train reparaît quasi
-toujours à vide sur une ligne neuve à faible fréquentation. Corrigé avec `OF_FULL_LOAD_ANY`
-(patron trAIns) : **vérifié empiriquement, les wagons chargent désormais à pleine capacité**
-(40/40, confirmé via `cargo.action_counts`) — une première pour ce squelette. Mais le revenu reste
-à zéro : en traçant la position du train tick par tick, il ne quitte **jamais** le voisinage
-immédiat du dépôt (zone de 4×2 tuiles) même après des années, alors que la gare de destination est
-à des dizaines de tuiles — un problème de **navigation du train**, pas de chargement. Hypothèse la
-plus probable, non corrigée : le dépôt (raccordé sur `tiles[1]` pour corriger le bug 2) crée une
-jonction en Y juste après la gare de départ, sans signal pour la désambiguïser. Plusieurs patrons
-de flags d'ordre testés (aucun, symétrique façon trAIns, asymétrique façon AdmiralAI) donnent
-tous le même résultat — confirme que le blocage n'est pas dans les flags. Détail complet dans
-`docs/methode.md`.
+d'AdmiralAI), partiellement résolu.** Cause du chargement à zéro identifiée : les ordres
+utilisaient `AIOrder.OF_NONE`, qui ne force aucune attente — un train reparaît quasi toujours à
+vide sur une ligne neuve à faible fréquentation. Corrigé avec `OF_FULL_LOAD_ANY` (patron trAIns) :
+**vérifié empiriquement, les wagons chargent désormais à pleine capacité** (40/40, confirmé via
+`cargo.action_counts`) — une première pour ce squelette. Mais le revenu reste à zéro : en traçant
+la position du train tick par tick, il ne quitte **jamais** le voisinage immédiat du dépôt même
+après des années, alors que la gare de destination est à des dizaines de tuiles — un problème de
+**navigation du train**, pas de chargement.
+
+**Sept hypothèses testées pour ce blocage de navigation, aucune ne le résout** (détail et
+vérifications empiriques dans `docs/methode.md`) : patron de flags d'ordre symétrique (trAIns) ou
+asymétrique (AdmiralAI), position du dépôt éloignée de la gare, signal PBS sur la jonction,
+service automatique désactivé. Une collision réelle a été trouvée en cours de route (le premier
+offset de placement du dépôt tombait parfois exactement sur la voie principale elle-même, la
+coupant en cul-de-sac) — **corriger cette collision fait régresser le résultat** (le train ne
+rejoint alors plus aucune gare), donc ce n'est pas la cause principale non plus. Le code retenu
+est la version la plus fonctionnelle trouvée (le train atteint au moins la première gare), sans
+revendiquer d'avoir compris le blocage. `profit_ligne` reste donc un pur coût de roulement.
 
 `sweeps/phase2_profit_ligne.py` : valide `profit_ligne = Σ(profit_last_year des véhicules de
 tête de la ligne) − amortissement(coût véhicules) − amortissement(coût infrastructure)` sur 3
@@ -285,11 +290,12 @@ console) : `docs/methode.md`, section **IA (Phase 2 — préparatoire)**.
       l'infrastructure — voir `docs/methode.md`)
 - [ ] **Corriger la navigation du train vers la gare d'arrivée, toujours bloquée.** Le chargement
       de cargo (zéro auparavant) est résolu (`OF_FULL_LOAD_ANY`, wagons à pleine capacité
-      confirmé) mais le train ne quitte jamais le voisinage du dépôt — hypothèse la plus probable :
-      jonction dépôt/voie sans signal après la correction du bug 2. À essayer en premier : éloigner
-      le dépôt de la jonction immédiate, ou poser un signal simple. Voir `docs/methode.md`, bug 4.
-      **Bloquant pour tout signal de rentabilité réel** — `profit_ligne` ne reflète pour l'instant
-      que des coûts de roulement.
+      confirmé) mais le train ne quitte jamais le voisinage du dépôt. Sept hypothèses testées
+      (flags d'ordre, position du dépôt ×2, signal PBS, service automatique, collision dépôt/voie)
+      **toutes écartées empiriquement** — voir `docs/methode.md`, bug 4. Recommandation : accès
+      visuel réel au jeu (capture d'écran / observation directe) plutôt que d'autres itérations à
+      l'aveugle sur des coordonnées. **Bloquant pour tout signal de rentabilité réel** —
+      `profit_ligne` ne reflète pour l'instant que des coûts de roulement.
 - [ ] Construire le jeu de données du modèle hurdle (classifieur constructible + régression
       profit conditionnelle, voir `docs/methode.md`) — les briques existent (panneaux, `VEHS`,
       `profit_ligne`) et l'étage 1 (constructible/non) est déjà exploitable ; l'étage 2 (régression

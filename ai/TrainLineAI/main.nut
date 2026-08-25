@@ -369,15 +369,17 @@ function TrainLineAI::Start()
 
   if (!stationA_ok || !stationB_ok) this._fail("station_build_failed");
 
-  /* Le depot est ancre sur tiles[1] (le premier tuile de VOIE reelle, pas sur tiles[0], la gare
-   * elle-meme) -- bug trouve empiriquement (voir docs/methode.md, section "Depot deconnecte de
-   * la gare") : ancrer sur tiles[0] avec front=tiles[0] laissait BuildRailDepot reussir (construit
-   * un stub de voie) sans garantir qu'il se raccorde a la voie reelle du quai, dont l'orientation
-   * (NE_SW ou NW_SE) depend de laquelle des deux a reussi et n'est pas connue a l'avance. Les deux
-   * trains restaient bloques au depot, jamais un seul station visite en pres de 3 ans de jeu.
-   * tiles[1] est garanti connecte a tiles[0] par construction (BuildRail y a ete appele avec
-   * tiles[0] comme "prev", voir etape 4) : ancrer le depot dessus, face a une voie dont on connait
-   * l'orientation reelle, plutot que de deviner autour de la gare. */
+  /* Le depot est ancre sur tiles[1] (le premier tuile de VOIE reelle, pas tiles[0] la gare) --
+   * corrige un bug reel ou les trains restaient bloques au depot, jamais aucune gare visitee
+   * (voir docs/methode.md, "Depot deconnecte de la gare"). Plusieurs variantes supplementaires
+   * ont ete essayees pour un second probleme, plus fin, encore non resolu (le train, une fois
+   * les gares atteignables, ne va jamais au-dela du voisinage du depot -- voir docs/methode.md,
+   * bug 4) : exclure les candidats deja presents dans tiles[], ancrer sur une section droite de
+   * la voie, ancrer perpendiculairement a son axe. Resultat contre-intuitif mais verifie
+   * empiriquement a plusieurs reprises : chacune de ces variantes fait REGRESSER ce cas de test
+   * precis (le train ne rejoint alors plus AUCUNE gare, y compris la premiere), par rapport a
+   * cette version simple. Aucune n'est donc retenue -- cette version reste la plus fonctionnelle
+   * trouvee a ce jour, sans resoudre le probleme de fond. */
   local depotTile = null;
   foreach (offset in offsets) {
     local candidate = tiles[1] + offset;
