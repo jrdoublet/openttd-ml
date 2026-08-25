@@ -162,6 +162,42 @@ puis divergent tout le reste de la partie : **83911 vs 69076 en fin de run**, su
 graine strictement identiques. Le paramètre atteint donc bien l'IA et change effectivement le
 résultat. Détail complet dans `docs/phase0_parameterised_ai_check.json`.
 
+## TrainLineAI (Phase 2 — préparatoire)
+
+`ai/TrainLineAI/` : squelette fonctionnel et testé de bout en bout, construit une ligne de train
+entre les deux villes les plus peuplées en année 1. Deux paramètres (`num_trains`,
+`wagons_per_train`), déclarés dans `src/trainlineai_schema.py` — source unique qui génère
+`info.nut` **et** construit les `ai_params` Python (`make_ai_params(**valeurs)`), pour qu'un
+typo ou une valeur hors bornes lève une erreur Python immédiate plutôt que d'être avalée
+silencieusement par OpenTTD. Régénérer `info.nut` après modif du schéma : `python
+src/trainlineai_schema.py`.
+
+Emprunte le maximum au premier tick (`AICompany.SetLoanAmount(AICompany.GetMaxLoanAmount())`) —
+supprime le manque d'argent comme cause d'échec possible ; un échec ne peut plus venir que du
+terrain/pathfinder. Pose un panneau (`AISign.BuildSign`) à chaque tentative avec un code compact
+`TRLN|<stage>|<raison>|<construits>/<demandés>` — canal confirmé fonctionnel via le chunk `SIGN`
+du savegame (texte + position + owner), après un faux négatif initial dû à un temps de jeu trop
+court pour que l'IA démarre.
+
+`sweeps/debug_ai.py` : lance le binaire OpenTTD en direct (hors OpenTTDLab) avec `-d script=4`
+pour voir la sortie `AILog` — le seul moyen trouvé de déboguer un script Squirrel qui échoue
+silencieusement. A servi à trouver et corriger 5 bugs (voir `docs/methode.md`, section IA).
+
+Détails complets, bugs trouvés/corrigés, et ce qui a été testé et rejeté (`Save()`, sortie
+console) : `docs/methode.md`, section **IA (Phase 2 — préparatoire)**.
+
+## Prochaines étapes
+
+- [ ] Lancer une campagne multi-graines avec `TrainLineAI` pour mesurer le taux d'échec réel
+      (terrain/pathfinder) une fois l'argent neutralisé
+- [ ] Descendre `old_economy` (company-level) au niveau ligne : source à identifier parmi les
+      chunks véhicules/stations (`VEHS`/`STNN`/`ORDR`) pour attribuer un profit par ligne
+- [ ] Construire le jeu de données du modèle hurdle (classifieur constructible + régression
+      profit conditionnelle, voir `docs/methode.md`)
+- [ ] Alerte mémoire Netdata sur le conteneur — toujours pas faite (Netdata non déployé sur ce VPS)
+- [ ] Traiter le confondant matériel × date de construction avant tout entraînement (voir
+      `docs/methode.md`)
+
 ## Checklist de sortie de phase 0
 
 - [x] Dépôt git initialisé, versions figées dans `requirements.txt`
