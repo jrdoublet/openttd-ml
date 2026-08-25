@@ -15,6 +15,7 @@
   --status-serious:  #ec835a;
   --status-critical: #d03b3b;
   --series-1: #2a78d6;
+  --diverging-neg: #e34948;
 }
 @media (prefers-color-scheme: dark) {
   :root:where(:not([data-theme="light"])) .viz-root {
@@ -28,6 +29,7 @@
     --axis:           #383835;
     --border:         rgba(255,255,255,0.10);
     --series-1: #3987e5;
+    --diverging-neg: #e66767;
   }
 }
 :root[data-theme="dark"] .viz-root {
@@ -41,6 +43,7 @@
   --axis:           #383835;
   --border:         rgba(255,255,255,0.10);
   --series-1: #3987e5;
+  --diverging-neg: #e66767;
 }
 
 * { box-sizing: border-box; }
@@ -85,6 +88,11 @@ svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
 .axis-title { fill: var(--text-secondary); font-size: 12px; }
 .pt { stroke: var(--surface-1); stroke-width: 2; cursor: pointer; }
 .pt-hit { fill: transparent; cursor: pointer; }
+.bar { cursor: pointer; }
+.bar-hit { fill: transparent; cursor: pointer; }
+.bar-label { fill: var(--text-secondary); font-size: 11px; font-variant-numeric: tabular-nums; }
+.bar-row-label { fill: var(--text-secondary); font-size: 11.5px; }
+.zero-line { stroke: var(--axis); stroke-width: 1; }
 
 #tooltip {
   position: fixed; pointer-events: none; z-index: 50;
@@ -133,32 +141,45 @@ table.results tr:last-child td { border-bottom: none; }
     <h1>TrainLineAI — first campaign run</h1>
     <p class="subtitle">
       12 attempts, 4 seeds × 3 rank combinations each, run through the revised sign format
-      (<code>town_a_rank</code>/<code>town_b_rank</code>/<code>engine_rank</code>/<code>line_index</code>).
-      Every value below was read back from the savegame's <code>SIGN</code> chunk via OpenTTDLab —
-      not from AI log output — to confirm the two-panel format (status + detail) actually lands in
-      the data, at the 31-character limit that silently broke the old one-panel format.
+      (<code>town_a_rank</code>/<code>town_b_rank</code>/<code>engine_rank</code>/<code>line_index</code>),
+      simulated for 3 in-game years. Construction status/cost was read back from the savegame's
+      <code>SIGN</code> chunk (not AI log output — confirms the two-panel format actually lands in
+      the data, at the 31-character limit that silently broke the old one-panel format);
+      <code>profit_ligne</code> for each built line was assembled from <code>VEHS</code>
+      (operating profit of the lead vehicles) minus construction cost amortized over the
+      rolling stock's own <code>max_age</code>.
     </p>
 
     <div class="tiles">
       <div class="tile"><div class="label">Attempts</div><div class="value" id="t-total">—</div><div class="sub">4 seeds × 3 rank combos</div></div>
       <div class="tile good"><div class="label"><span class="dot"></span>Built</div><div class="value" id="t-success">—</div><div class="sub" id="t-success-sub"></div></div>
       <div class="tile critical"><div class="label"><span class="dot"></span>Failed</div><div class="value" id="t-failed">—</div><div class="sub" id="t-failed-sub"></div></div>
-      <div class="tile warning"><div class="label"><span class="dot"></span>No result yet</div><div class="value" id="t-pending">—</div><div class="sub">still building past the 365-day window</div></div>
+      <div class="tile warning"><div class="label"><span class="dot"></span>No result yet</div><div class="value" id="t-pending">—</div><div class="sub">still building past the 3-year window</div></div>
     </div>
 
     <div class="card">
       <h2>Distance vs. construction cost</h2>
-      <p class="caption">
+      <p class="caption" id="scatter-caption">
         Straight-line distance between the two chosen towns (known before pathfinding) against
         total construction cost (<code>AIAccounting</code>, track through vehicles). Log scale on
-        cost — it spans three orders of magnitude across 7 resolved attempts. Only attempts with a
-        detail sign are plotted; the 5 timed-out attempts have no cost/distance reading yet.
+        cost — it spans orders of magnitude. Only attempts with a detail sign are plotted; the
+        still-pending attempts have no cost/distance reading yet.
       </p>
       <div class="legend">
         <span class="item"><span class="swatch" style="background:var(--status-good)"></span>Built</span>
         <span class="item"><span class="swatch" style="background:var(--status-critical)"></span>Failed</span>
       </div>
       <svg class="chart" id="scatter" viewBox="0 0 860 360" preserveAspectRatio="xMidYMid meet"></svg>
+    </div>
+
+    <div class="card">
+      <h2>Profit per line</h2>
+      <p class="caption" id="profit-caption">
+        <code>profit_ligne</code> = Σ(<code>profit_this_year</code> of the lead vehicles) −
+        (construction cost ÷ the rolling stock's <code>max_age</code> in years). Only the 5 built
+        lines have vehicles to sum; failed and pending attempts aren't plotted.
+      </p>
+      <svg class="chart" id="profitbar" viewBox="0 0 860 220" preserveAspectRatio="xMidYMid meet"></svg>
     </div>
 
     <div class="card">
@@ -170,6 +191,7 @@ table.results tr:last-child td { border-bottom: none; }
             <tr>
               <th>Line</th><th>Seed</th><th>Ranks (A/B/E)</th><th>Consist</th>
               <th>Status</th><th>Towns</th><th class="num">Dist</th><th class="num">Cost</th>
+              <th class="num">Profit</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -181,7 +203,7 @@ table.results tr:last-child td { border-bottom: none; }
 <div id="tooltip"></div>
 
 <script>
-const DATA = [{"line_index":0,"seed":42,"ai_params":{"num_trains":2,"wagons_per_train":2,"town_a_rank":0,"town_b_rank":1,"engine_rank":0,"line_index":0},"raw_signs":["TRLN|0|success|OK|2/2","TRLN|0|T17-6|D63|C1962335"],"stage":"success","reason":"OK","built":2,"requested":2,"town_a":17,"town_b":6,"distance":63,"cost":1962335},{"line_index":1,"seed":42,"ai_params":{"num_trains":2,"wagons_per_train":2,"town_a_rank":2,"town_b_rank":8,"engine_rank":1,"line_index":1},"raw_signs":["TRLN|1|success|OK|2/2","TRLN|1|T19-16|D77|C3728244"],"stage":"success","reason":"OK","built":2,"requested":2,"town_a":19,"town_b":16,"distance":77,"cost":3728244},{"line_index":2,"seed":42,"ai_params":{"num_trains":1,"wagons_per_train":1,"town_a_rank":0,"town_b_rank":15,"engine_rank":2,"line_index":2},"raw_signs":[]},{"line_index":3,"seed":100,"ai_params":{"num_trains":2,"wagons_per_train":2,"town_a_rank":0,"town_b_rank":1,"engine_rank":0,"line_index":3},"raw_signs":[]},{"line_index":4,"seed":100,"ai_params":{"num_trains":2,"wagons_per_train":2,"town_a_rank":3,"town_b_rank":9,"engine_rank":1,"line_index":4},"raw_signs":["TRLN|4|success|OK|2/2","TRLN|4|T4-24|D88|C14987563"],"stage":"success","reason":"OK","built":2,"requested":2,"town_a":4,"town_b":24,"distance":88,"cost":14987563},{"line_index":5,"seed":100,"ai_params":{"num_trains":1,"wagons_per_train":1,"town_a_rank":5,"town_b_rank":12,"engine_rank":2,"line_index":5},"raw_signs":[]},{"line_index":6,"seed":7,"ai_params":{"num_trains":2,"wagons_per_train":2,"town_a_rank":0,"town_b_rank":1,"engine_rank":0,"line_index":6},"raw_signs":[]},{"line_index":7,"seed":7,"ai_params":{"num_trains":2,"wagons_per_train":2,"town_a_rank":1,"town_b_rank":6,"engine_rank":1,"line_index":7},"raw_signs":["TRLN|7|success|OK|2/2","TRLN|7|T18-4|D33|C2011508"],"stage":"success","reason":"OK","built":2,"requested":2,"town_a":18,"town_b":4,"distance":33,"cost":2011508},{"line_index":8,"seed":7,"ai_params":{"num_trains":1,"wagons_per_train":1,"town_a_rank":4,"town_b_rank":14,"engine_rank":2,"line_index":8},"raw_signs":["TRLN|8|failed|NOPATH|0/1","TRLN|8|T21-23|D119|C270"],"stage":"failed","reason":"NOPATH","built":0,"requested":1,"town_a":21,"town_b":23,"distance":119,"cost":270},{"line_index":9,"seed":999,"ai_params":{"num_trains":2,"wagons_per_train":2,"town_a_rank":0,"town_b_rank":1,"engine_rank":0,"line_index":9},"raw_signs":["TRLN|9|failed|STNFAIL|0/2","TRLN|9|T1-18|D106|C7679820"],"stage":"failed","reason":"STNFAIL","built":0,"requested":2,"town_a":1,"town_b":18,"distance":106,"cost":7679820},{"line_index":10,"seed":999,"ai_params":{"num_trains":2,"wagons_per_train":2,"town_a_rank":2,"town_b_rank":10,"engine_rank":1,"line_index":10},"raw_signs":[]},{"line_index":11,"seed":999,"ai_params":{"num_trains":3,"wagons_per_train":1,"town_a_rank":0,"town_b_rank":13,"engine_rank":2,"line_index":11},"raw_signs":["TRLN|11|failed|STNFAIL|0/3","TRLN|11|T1-4|D85|C10605477"],"stage":"failed","reason":"STNFAIL","built":0,"requested":3,"town_a":1,"town_b":4,"distance":85,"cost":10605477}];
+const DATA = [{"line_index":0,"seed":42,"ai_params":{"num_trains":2,"wagons_per_train":2,"town_a_rank":0,"town_b_rank":1,"engine_rank":0,"line_index":0},"raw_signs":["TRLN|0|success|OK|2/2","TRLN|0|T17-6|D63|C1962335"],"stage":"success","reason":"OK","built":2,"requested":2,"town_a":17,"town_b":6,"distance":63,"cost":1962335,"n_lead_vehicles":2,"sum_profit_this_year":-1078700,"avg_max_age_years":20.05,"amortization_annual":97872,"profit_ligne":-1176572},{"line_index":1,"seed":42,"ai_params":{"num_trains":2,"wagons_per_train":2,"town_a_rank":2,"town_b_rank":8,"engine_rank":1,"line_index":1},"raw_signs":["TRLN|1|success|OK|2/2","TRLN|1|T19-16|D77|C3728244"],"stage":"success","reason":"OK","built":2,"requested":2,"town_a":19,"town_b":16,"distance":77,"cost":3728244,"n_lead_vehicles":2,"sum_profit_this_year":-924600,"avg_max_age_years":21.06,"amortization_annual":177030,"profit_ligne":-1101630},{"line_index":2,"seed":42,"ai_params":{"num_trains":1,"wagons_per_train":1,"town_a_rank":0,"town_b_rank":15,"engine_rank":2,"line_index":2},"raw_signs":["TRLN|2|success|OK|1/1","TRLN|2|T17-11|D133|C24562229"],"stage":"success","reason":"OK","built":1,"requested":1,"town_a":17,"town_b":11,"distance":133,"cost":24562229,"n_lead_vehicles":1,"sum_profit_this_year":-192625,"avg_max_age_years":15.04,"amortization_annual":1633127,"profit_ligne":-1825752},{"line_index":3,"seed":100,"ai_params":{"num_trains":2,"wagons_per_train":2,"town_a_rank":0,"town_b_rank":1,"engine_rank":0,"line_index":3},"raw_signs":[]},{"line_index":4,"seed":100,"ai_params":{"num_trains":2,"wagons_per_train":2,"town_a_rank":3,"town_b_rank":9,"engine_rank":1,"line_index":4},"raw_signs":["TRLN|4|success|OK|2/2","TRLN|4|T4-24|D88|C14987563"],"stage":"success","reason":"OK","built":2,"requested":2,"town_a":4,"town_b":24,"distance":88,"cost":14987563,"n_lead_vehicles":2,"sum_profit_this_year":-924600,"avg_max_age_years":21.06,"amortization_annual":711660,"profit_ligne":-1636260},{"line_index":5,"seed":100,"ai_params":{"num_trains":1,"wagons_per_train":1,"town_a_rank":5,"town_b_rank":12,"engine_rank":2,"line_index":5},"raw_signs":[]},{"line_index":6,"seed":7,"ai_params":{"num_trains":2,"wagons_per_train":2,"town_a_rank":0,"town_b_rank":1,"engine_rank":0,"line_index":6},"raw_signs":[]},{"line_index":7,"seed":7,"ai_params":{"num_trains":2,"wagons_per_train":2,"town_a_rank":1,"town_b_rank":6,"engine_rank":1,"line_index":7},"raw_signs":["TRLN|7|success|OK|2/2","TRLN|7|T18-4|D33|C2011508"],"stage":"success","reason":"OK","built":2,"requested":2,"town_a":18,"town_b":4,"distance":33,"cost":2011508,"n_lead_vehicles":2,"sum_profit_this_year":-924600,"avg_max_age_years":21.06,"amortization_annual":95513,"profit_ligne":-1020113},{"line_index":8,"seed":7,"ai_params":{"num_trains":1,"wagons_per_train":1,"town_a_rank":4,"town_b_rank":14,"engine_rank":2,"line_index":8},"raw_signs":["TRLN|8|failed|NOPATH|0/1","TRLN|8|T21-23|D119|C270"],"stage":"failed","reason":"NOPATH","built":0,"requested":1,"town_a":21,"town_b":23,"distance":119,"cost":270},{"line_index":9,"seed":999,"ai_params":{"num_trains":2,"wagons_per_train":2,"town_a_rank":0,"town_b_rank":1,"engine_rank":0,"line_index":9},"raw_signs":["TRLN|9|failed|STNFAIL|0/2","TRLN|9|T1-18|D106|C7679820"],"stage":"failed","reason":"STNFAIL","built":0,"requested":2,"town_a":1,"town_b":18,"distance":106,"cost":7679820},{"line_index":10,"seed":999,"ai_params":{"num_trains":2,"wagons_per_train":2,"town_a_rank":2,"town_b_rank":10,"engine_rank":1,"line_index":10},"raw_signs":[]},{"line_index":11,"seed":999,"ai_params":{"num_trains":3,"wagons_per_train":1,"town_a_rank":0,"town_b_rank":13,"engine_rank":2,"line_index":11},"raw_signs":["TRLN|11|failed|STNFAIL|0/3","TRLN|11|T1-4|D85|C10605477"],"stage":"failed","reason":"STNFAIL","built":0,"requested":3,"town_a":1,"town_b":4,"distance":85,"cost":10605477}];
 
 const REASON_LABEL = {
   OK: "—",
@@ -200,9 +222,11 @@ const REASON_LABEL = {
 
 function fmtCost(c) {
   if (c == null) return "—";
-  if (c >= 1000000) return "£" + (c / 1000000).toFixed(1) + "M";
-  if (c >= 1000) return "£" + Math.round(c / 1000) + "K";
-  return "£" + c;
+  const sign = c < 0 ? "-" : "";
+  const a = Math.abs(c);
+  if (a >= 1000000) return sign + "£" + (a / 1000000).toFixed(1) + "M";
+  if (a >= 1000) return sign + "£" + Math.round(a / 1000) + "K";
+  return sign + "£" + a;
 }
 
 function classify(rec) {
@@ -233,6 +257,12 @@ const M = { l: 64, r: 24, t: 16, b: 40 };
 const plotW = W - M.l - M.r, plotH = H - M.t - M.b;
 
 const points = DATA.filter(r => r.distance != null && r.cost != null && r.cost > 0);
+document.getElementById("scatter-caption").innerHTML =
+  'Straight-line distance between the two chosen towns (known before pathfinding) against ' +
+  'total construction cost (<code>AIAccounting</code>, track through vehicles). Log scale on ' +
+  'cost — it spans orders of magnitude across ' + points.length + ' resolved attempts. Only ' +
+  'attempts with a detail sign are plotted; the ' + nPending + ' still-pending attempts have no ' +
+  'cost/distance reading yet.';
 const xMax = Math.ceil(Math.max(...points.map(p => p.distance)) / 20) * 20 + 20;
 const yMin = 100, yMax = 100000000; // 1e2 .. 1e8, covers 270..15M with margin
 
@@ -303,6 +333,84 @@ points.forEach(rec => {
   hit.addEventListener("mouseleave", hide);
 });
 
+// ---- profit bar chart ----
+const barSvg = document.getElementById("profitbar");
+const profitLines = DATA.filter(r => r.profit_ligne != null).sort((a, b) => b.profit_ligne - a.profit_ligne);
+
+if (profitLines.length > 0) {
+  const BW = 860, BH = 220;
+  const BM = { l: 190, r: 90, t: 12, b: 12 };
+  const barPlotW = BW - BM.l - BM.r;
+  const rowH = (BH - BM.t - BM.b) / profitLines.length;
+  const barThick = Math.min(22, rowH * 0.6);
+
+  const vals = profitLines.map(r => r.profit_ligne);
+  const bMin = Math.min(0, ...vals) * 1.1;
+  const bMax = Math.max(0, ...vals) * 1.15 || 1; // headroom for the label past a zero/positive bar
+  function bx(v) { return BM.l + ((v - bMin) / (bMax - bMin)) * barPlotW; }
+  const zeroX = bx(0);
+
+  barSvg.appendChild(el("line", {
+    class: "zero-line", x1: zeroX, x2: zeroX, y1: BM.t - 4, y2: BH - BM.b + 4,
+  }));
+
+  profitLines.forEach((rec, i) => {
+    const cy = BM.t + rowH * i + rowH / 2;
+    const v = rec.profit_ligne;
+    const x0 = Math.min(zeroX, bx(v)), x1 = Math.max(zeroX, bx(v));
+    const color = v >= 0 ? "var(--series-1)" : "var(--diverging-neg)";
+
+    const rowLabel = el("text", { class: "bar-row-label", x: BM.l - 12, y: cy + 4, "text-anchor": "end" });
+    rowLabel.textContent = "Line " + rec.line_index + " (seed " + rec.seed + ")";
+    barSvg.appendChild(rowLabel);
+
+    const bar = el("rect", {
+      class: "bar", x: x0, y: cy - barThick / 2, width: Math.max(1, x1 - x0), height: barThick,
+      rx: 4, fill: color,
+    });
+    barSvg.appendChild(bar);
+
+    const hit = el("rect", {
+      class: "bar-hit", x: BM.l, y: cy - rowH / 2, width: barPlotW, height: rowH,
+    });
+    barSvg.appendChild(hit);
+
+    const label = el("text", {
+      class: "bar-label", x: bx(v) + (v >= 0 ? 8 : -8), y: cy + 4,
+      "text-anchor": v >= 0 ? "start" : "end",
+    });
+    label.textContent = fmtCost(v);
+    barSvg.appendChild(label);
+
+    function show(evt) {
+      tooltip.innerHTML =
+        '<div class="t-title">Line ' + rec.line_index + ' — seed ' + rec.seed + '</div>' +
+        '<div class="t-row">operating profit <b>' + fmtCost(rec.sum_profit_this_year) + '</b></div>' +
+        '<div class="t-row">amortization/yr <b>-' + fmtCost(rec.amortization_annual) + '</b> (over ' + rec.avg_max_age_years + 'y)</div>' +
+        '<div class="t-row">profit_ligne <b>' + fmtCost(v) + '</b></div>';
+      tooltip.style.left = evt.clientX + "px";
+      tooltip.style.top = evt.clientY + "px";
+      tooltip.classList.add("show");
+    }
+    function hide() { tooltip.classList.remove("show"); }
+    hit.addEventListener("mousemove", show);
+    hit.addEventListener("mouseenter", show);
+    hit.addEventListener("mouseleave", hide);
+  });
+
+  const median = vals.slice().sort((a, b) => a - b)[Math.floor(vals.length / 2)];
+  document.getElementById("profit-caption").innerHTML =
+    '<code>profit_ligne</code> = &Sigma;(<code>profit_this_year</code> of the lead vehicles) &minus; ' +
+    '(construction cost &divide; the rolling stock\'s <code>max_age</code> in years). Only the ' +
+    profitLines.length + ' built lines have vehicles to sum; failed and pending attempts aren\'t ' +
+    'plotted. Median across built lines: <b style="color:var(--text-primary)">' + fmtCost(median) + '</b> — ' +
+    'all negative here, consistent with the known <code>platform_length=1</code> loading limitation.';
+} else {
+  barSvg.replaceWith(Object.assign(document.createElement("p"), {
+    className: "caption", textContent: "No built line has vehicle profit data yet.",
+  }));
+}
+
 // ---- table ----
 const tbody = document.querySelector("#results-table tbody");
 DATA.forEach(rec => {
@@ -321,7 +429,8 @@ DATA.forEach(rec => {
     '<td>' + statusHtml + '</td>' +
     '<td class="mono">' + (rec.town_a != null ? rec.town_a + '–' + rec.town_b : '<span class="dim">—</span>') + '</td>' +
     '<td class="num mono">' + (rec.distance != null ? rec.distance : '<span class="dim">—</span>') + '</td>' +
-    '<td class="num mono">' + (rec.cost != null ? fmtCost(rec.cost) : '<span class="dim">—</span>') + '</td>';
+    '<td class="num mono">' + (rec.cost != null ? fmtCost(rec.cost) : '<span class="dim">—</span>') + '</td>' +
+    '<td class="num mono">' + (rec.profit_ligne != null ? fmtCost(rec.profit_ligne) : '<span class="dim">—</span>') + '</td>';
   tbody.appendChild(tr);
 });
 </script>
