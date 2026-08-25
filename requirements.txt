@@ -1,0 +1,4 @@
+OpenTTDLab==0.0.75
+pandas==2.2.2
+pyarrow==16.1.0
+plotly==5.22.0
