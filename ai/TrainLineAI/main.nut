@@ -342,50 +342,97 @@ function TrainLineAI::Start()
    * station_build_failed devrait augmenter, pour de vraies raisons de terrain cette fois (bonne
    * nouvelle pour la variance de l'etage 1 du modele hurdle). */
   local platformLength = (this.state.wagons_per_train + 2) / 2 + 1; // ceil((1+wagons)/2)+1, division entiere
-  /* platformLength passe en parametre, pas capture comme upvalue : verifie empiriquement que ce
-   * closure imbrique ne voit pas les locals de Start() declares avant lui (meme symptome que
-   * REASON_CODES plus haut -- "the index 'platformLength' does not exist" a l'execution -- mais
-   * cette fois entre deux locals du meme Start(), pas entre fichier et methode de classe). */
-  local buildStation = function(tile, platformLength) {
-    /* BuildRailStation n'auto-nettoie pas la tuile (contrairement a BuildRail) : un arbre
-     * ou autre debris suffit a la faire echouer avec ERR_AREA_NOT_CLEAR. Avec platform_length>1,
-     * la gare peut s'etendre dans une des deux directions selon l'orientation retenue -- on
-     * degage les deux empreintes candidates par avance pour ne pas confondre un STNFAIL du a des
-     * debris (evitable) avec un STNFAIL du a un manque de place reel (celui qu'on veut voir). */
+  /* buildStation choisissait l'orientation en essayant NE_SW puis NW_SE, en gardant la premiere
+   * qui reussit -- "reussir" ne veut dire que "terrain plat et degage", pas "correspond a la
+   * direction reelle de la voie qui part de cette tuile" (tiles[0]->tiles[1] pour la gare A,
+   * tiles[len-1]->tiles[len-2] pour la gare B). Meme famille de bug que le depot (bug 4, voir
+   * docs/methode.md) : une orientation choisie sans rapport avec la voie reelle. Avec
+   * platform_length=1 (avant cette session) ca ne pouvait pas se voir (rien a etendre) ; devenu
+   * possible depuis que platform_length>1 (bug 1 de cette session). Corrige en derivant la
+   * direction depuis le voisin reel sur la voie plutot qu'en essayant les deux au hasard --
+   * proposition testee suite a une revue externe. Un STNFAIL sur la seule direction correcte est
+   * un vrai signal de terrain, pas une raison d'essayer l'autre orientation en secours. */
+  /* getStationDirection() inline dans buildStation, pas en closure separee : un closure imbrique
+   * ne peut pas en appeler un autre declare dans le meme Start() (meme regle que plus haut). */
+  local buildStation = function(tile, neighbor, platformLength, tiles) {
+    local dx = AIMap.GetTileX(neighbor) - AIMap.GetTileX(tile);
+    local dy = AIMap.GetTileY(neighbor) - AIMap.GetTileY(tile);
+    local direction = AIRail.RAILTRACK_INVALID;
+    local unitStep = 0;
+    local towardPositive = false;
+    if (dx != 0) { direction = AIRail.RAILTRACK_NE_SW; unitStep = AIMap.GetTileIndex(1, 0); towardPositive = (dx > 0); }
+    else if (dy != 0) { direction = AIRail.RAILTRACK_NW_SE; unitStep = AIMap.GetTileIndex(0, 1); towardPositive = (dy > 0); }
+    if (direction == AIRail.RAILTRACK_INVALID) return false;
+    /* BuildRailStation etend TOUJOURS la plateforme dans la direction POSITIVE de l'axe choisi
+     * depuis "tile" -- verifie empiriquement (IA de test jetable) : platform_length=3 sur
+     * RAILTRACK_NE_SW occupe tile, tile+1, tile+2, jamais tile-1/tile-2. C'est le vrai bug qui
+     * cassait cette fonction (pas le demolish comme suppose d'abord) : quand le voisin est du
+     * cote NEGATIF (ex. tiles[1] a l'ouest de tiles[0]), "tile" doit etre l'EXTREMITE de la
+     * plateforme, pas son origine -- sinon la gare s'etend a l'oppose de la voie et ne s'y
+     * raccorde jamais (`ERR_AREA_NOT_CLEAR` observe meme sur des tuiles deja validees, parce que
+     * la plateforme reelle etait ailleurs que celle qu'on degageait). */
+    local anchor = towardPositive ? tile : (tile - unitStep * (platformLength - 1));
+    /* BuildRailStation n'auto-nettoie pas la tuile (contrairement a BuildRail) : un arbre ou
+     * autre debris suffit a la faire echouer avec ERR_AREA_NOT_CLEAR. Demolir INCONDITIONNELLEMENT
+     * toute l'emprise, y compris les tuiles deja sur tiles[] (donc deja de la voie construite) --
+     * contrairement a l'hypothese testee d'abord ("ne rien demolir sur une tuile deja sur la
+     * voie"), verifie empiriquement que c'etait le vrai bug ici : AITile.DemolishTile() retire
+     * bien une voie existante (teste isolement : ok=true, la tuile redevient buildable=true,
+     * railTile passe a false) -- ne PAS demolir laissait la tuile intermediaire du quai avec sa
+     * voie simple dessus, jamais "propre" pour BuildRailStation, d'ou ERR_AREA_NOT_CLEAR meme sur
+     * un quai de 2 tuiles ne touchant aucun terrain nouveau. Sans risque pour la continuite de la
+     * voie : la tuile de gare qui la remplace reste connectee (contrairement au depot, qui lui
+     * garde l'exclusion -- voir plus bas). */
     for (local i = 0; i < platformLength; i++) {
-      local alongX = tile + AIMap.GetTileIndex(i, 0);
-      local alongY = tile + AIMap.GetTileIndex(0, i);
-      if (AIMap.IsValidTile(alongX)) AITile.DemolishTile(alongX);
-      if (AIMap.IsValidTile(alongY)) AITile.DemolishTile(alongY);
+      local t = anchor + unitStep * i;
+      if (AIMap.IsValidTile(t)) AITile.DemolishTile(t);
     }
-    return AIRail.BuildRailStation(tile, AIRail.RAILTRACK_NE_SW, 1, platformLength, AIStation.STATION_NEW)
-        || AIRail.BuildRailStation(tile, AIRail.RAILTRACK_NW_SE, 1, platformLength, AIStation.STATION_NEW);
+    return AIRail.BuildRailStation(anchor, direction, 1, platformLength, AIStation.STATION_NEW);
   };
 
-  local stationA_ok = buildStation(tiles[0], platformLength);
-  local stationB_ok = buildStation(tiles[tiles.len() - 1], platformLength);
+  local stationA_ok = buildStation(tiles[0], tiles[1], platformLength, tiles);
+  local stationB_ok = buildStation(tiles[tiles.len() - 1], tiles[tiles.len() - 2], platformLength, tiles);
   this.state.station_a_tile = stationA_ok ? tiles[0] : null;
   this.state.station_b_tile = stationB_ok ? tiles[tiles.len() - 1] : null;
 
   if (!stationA_ok || !stationB_ok) this._fail("station_build_failed");
 
-  /* Le depot est ancre sur tiles[1] (le premier tuile de VOIE reelle, pas tiles[0] la gare) --
-   * corrige un bug reel ou les trains restaient bloques au depot, jamais aucune gare visitee
-   * (voir docs/methode.md, "Depot deconnecte de la gare"). Plusieurs variantes supplementaires
-   * ont ete essayees pour un second probleme, plus fin, encore non resolu (le train, une fois
-   * les gares atteignables, ne va jamais au-dela du voisinage du depot -- voir docs/methode.md,
-   * bug 4) : exclure les candidats deja presents dans tiles[], ancrer sur une section droite de
-   * la voie, ancrer perpendiculairement a son axe. Resultat contre-intuitif mais verifie
-   * empiriquement a plusieurs reprises : chacune de ces variantes fait REGRESSER ce cas de test
-   * precis (le train ne rejoint alors plus AUCUNE gare, y compris la premiere), par rapport a
-   * cette version simple. Aucune n'est donc retenue -- cette version reste la plus fonctionnelle
-   * trouvee a ce jour, sans resoudre le probleme de fond. */
+  /* Le depot s'ancre sur le premier tuile de tiles[] qui n'est PAS absorbee par la gare A --
+   * plus forcement tiles[1] : avec la gare desormais etendue dans la bonne direction (correction
+   * ci-dessus), elle peut avaler tiles[1] (et au-dela) comme partie de son quai. Ancrer le depot
+   * dessus recree exactement le bug "depot sur une tuile de gare" deja corrige une fois (voir
+   * docs/methode.md, "Depot deconnecte de la gare") -- confirme empiriquement (train de nouveau
+   * bloque, aucune gare jamais visitee). On interroge l'etat reel du jeu (IsRailStationTile)
+   * plutot que de recalculer l'emprise de la gare en parallele -- plus simple et ca ne peut pas
+   * diverger. */
+  local depotAnchorIndex = 1;
+  while (depotAnchorIndex < tiles.len() - 1 && AIRail.IsRailStationTile(tiles[depotAnchorIndex])) {
+    depotAnchorIndex++;
+  }
+  local depotAnchor = tiles[depotAnchorIndex];
+  /* L'exclusion des candidats deja presents dans tiles[] (evite d'ecraser la voie principale --
+   * vrai bug distinct, confirme) avait ete essayee seule au tour precedent et faisait regresser
+   * le cas de test ; reessayee ici combinee a la correction de l'orientation de la gare
+   * (proposition d'une revue externe), les deux bugs pouvant se masquer l'un l'autre. Rayon de
+   * recherche etendu (offsets a distance 2) en secours, pour ne pas echouer juste parce que les
+   * 4 voisins immediats sont tous sur la voie ou indisponibles. */
+  local depotOffsets = [
+    AIMap.GetTileIndex(1, 0), AIMap.GetTileIndex(-1, 0),
+    AIMap.GetTileIndex(0, 1), AIMap.GetTileIndex(0, -1),
+    AIMap.GetTileIndex(2, 0), AIMap.GetTileIndex(-2, 0),
+    AIMap.GetTileIndex(0, 2), AIMap.GetTileIndex(0, -2),
+  ];
   local depotTile = null;
-  foreach (offset in offsets) {
-    local candidate = tiles[1] + offset;
+  foreach (offset in depotOffsets) {
+    local candidate = depotAnchor + offset;
     if (!AIMap.IsValidTile(candidate)) continue;
+    local onRoute = false;
+    foreach (routeTile in tiles) {
+      if (routeTile == candidate) { onRoute = true; break; }
+    }
+    if (onRoute) continue;
     AITile.DemolishTile(candidate);
-    if (AIRail.BuildRailDepot(candidate, tiles[1])) {
+    if (AIRail.BuildRailDepot(candidate, depotAnchor)) {
       depotTile = candidate;
       break;
     }
