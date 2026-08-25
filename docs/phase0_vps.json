@@ -2,26 +2,27 @@
   "machine": "vps",
   "platform": "Linux-6.17.0-41-generic-x86_64-with-glibc2.41",
   "cpu_count": 4,
+  "batch_size": 24,
   "runs": {
     "1": {
-      "wallclock_s": 34.9,
-      "s_per_game": 34.9,
-      "rows": 119
+      "wallclock_s": 884.1,
+      "s_per_game": 36.8,
+      "rows": 2856
     },
     "2": {
-      "wallclock_s": 34.7,
-      "s_per_game": 17.4,
-      "rows": 238
+      "wallclock_s": 448.2,
+      "s_per_game": 18.7,
+      "rows": 2856
     },
     "3": {
-      "wallclock_s": 38.6,
-      "s_per_game": 12.9,
-      "rows": 357
+      "wallclock_s": 306.2,
+      "s_per_game": 12.8,
+      "rows": 2856
     },
     "4": {
-      "wallclock_s": 50.5,
-      "s_per_game": 12.6,
-      "rows": 476
+      "wallclock_s": 319.6,
+      "s_per_game": 13.3,
+      "rows": 2856
     }
   }
 }

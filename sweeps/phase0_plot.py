@@ -7,6 +7,20 @@ DAYS = 365 * 10  # révisé après phase0_vps.json #1 : plus rapide que prévu
 TRAINS_MD5 = "c4c069dc797674e545411b59867ad0c2"  # ai/54524149, trAIns 2.1, GPL v2 — figé pour reproductibilité
 SEEDS = range(300, 310)  # 10 graines
 
+OPENTTD_CONFIG = """
+[difficulty]
+number_towns = 2
+industry_density = 4
+
+[economy]
+inflation = false
+
+[game_creation]
+starting_year = 1950
+map_x = 8
+map_y = 8
+"""
+
 
 def keep_money_series(row):
     """Un point par savegame mensuel : construit la trajectoire money x date."""
@@ -27,6 +41,7 @@ if __name__ == "__main__":
             {
                 "seed": seed,
                 "days": DAYS,
+                "openttd_config": OPENTTD_CONFIG,
                 "ais": (bananas_ai("54524149", "trAIns", ai_params=(), md5=TRAINS_MD5),),
             }
             for seed in SEEDS

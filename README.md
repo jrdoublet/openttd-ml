@@ -12,6 +12,7 @@ construction, sans simuler la partie ? Voir `docs/methode.md` pour le protocole 
 | Python | 3.12 | Testé par le projet (3.8.2 minimum) |
 | IA de calibration | trAIns, `unique_id='54524149'` | IA de référence utilisée dans les exemples |
 | Durée de partie | `days = 365 * 10` | Révisé après la 1ère calibration (`s_per_game` plus bas que prévu) : 10 ans de jeu au lieu des 4 ans de l'exemple officiel |
+| Config OpenTTD | voir `OPENTTD_CONFIG` dans `sweeps/phase0_*.py` | `inflation=false`, `map_x`/`map_y=8`, `starting_year=1950`, `number_towns=2`, `industry_density=4` — figés pour ne pas dépendre d'un défaut qui changerait entre deux versions |
 
 **Note sur la version.** La documentation d'OpenTTDLab se contredit : la section *Compatibility*
 annonce le support des branches 12, 13 et 15+, tandis que l'avertissement sur `run_experiments`
@@ -66,31 +67,36 @@ MACHINE=vps python sweeps/phase0_timing.py   # coût unitaire, point d'inflexion
 python sweeps/phase0_plot.py                 # graphique money x date sur 10 graines
 ```
 
-### Résultats — VPS (4 CPU hôte, conteneur `--cpus=3`), `days = 365 * 10`
+### Résultats — VPS (4 CPU hôte, conteneur `--cpus=3`), `days = 365 * 10`, batch fixe de 24 graines
+
+Chaque niveau de worker exécute le **même batch de 24 graines** (`sweeps/phase0_timing.py`,
+`BATCH_SEEDS`) — mesure du vrai coût marginal du parallélisme, pas de l'artefact "on lance
+`workers` parties pour `workers` workers" (qui gardait le wallclock artificiellement plat).
 
 | workers | wallclock (s) | s/partie | rows |
 |---|---|---|---|
-| 1 | 34.9 | 34.9 | 119 |
-| 2 | 34.7 | 17.4 | 238 |
-| 3 | 38.6 | 12.9 | 357 |
-| 4 | 50.5 | 12.6 | 476 |
+| 1 | 884.1 | 36.8 | 2856 |
+| 2 | 448.2 | 18.7 | 2856 |
+| 3 | 306.2 | 12.8 | 2856 |
+| 4 | 319.6 | 13.3 | 2856 |
 
-**Point d'inflexion : `max_workers=3`.** Passer à 4 workers ne gagne quasi rien sur `s_per_game`
-(12.6 vs 12.9) alors que le wallclock grimpe nettement (50.5 vs 38.6) — même conclusion qu'avec des
-parties à 4 ans, cohérent avec la limite `--cpus=3` du conteneur. `max_workers=3` retenu pour la
-production sur ce VPS.
+**Point d'inflexion : `max_workers=3`.** Sur un batch fixe, 4 workers est **strictement pire** que 3
+(wallclock 319.6 vs 306.2, `s_per_game` 13.3 vs 12.8) — cohérent avec la limite `--cpus=3` du
+conteneur, mais démontré cette fois sur un vrai volume de travail plutôt que déduit d'un design de
+mesure qui gonflait le nombre de parties avec le nombre de workers. `max_workers=3` confirmé pour
+la production sur ce VPS.
 
-*Mesure précédente (`days = 365 * 4 + 1`, conservée pour référence) : 12.9 / 6.4 / 4.3 / 4.3 s par
-partie pour 1/2/3/4 workers — le rapport de croissance du coût par partie (~x3 pour x2.5 de durée
-de jeu) n'est pas strictement linéaire avec `days`, à garder en tête si la durée est encore ajustée.*
+*Mesures précédentes, design "N parties pour N workers" (non fiables pour le scaling, conservées
+pour mémoire) : 4 ans → 12.9/6.4/4.3/4.3 s ; 10 ans → 34.9/17.4/12.9/12.6 s, pour 1/2/3/4 workers.*
 
-**Granularité temporelle.** 119 lignes par partie de 10 ans ≈ un savegame par mois (`autosave=monthly,
-keep_all_autosave=true` sur les versions OpenTTD 12–13.x). Granularité mensuelle, pas annuelle.
+**Granularité temporelle.** ~119 lignes par partie de 10 ans ≈ un savegame par mois (`autosave=monthly,
+keep_all_autosave=true` sur les versions OpenTTD 12–13.x). Granularité mensuelle pour les savegames,
+**trimestrielle** pour les données économiques exploitables (`old_economy`, voir plus bas).
 
-**Débit de production (VPS, s_per_game_optimal = 12.9s à 3 workers) :**
+**Débit de production (VPS, s_per_game_optimal = 12.8s à 3 workers) :**
 
 ```
-parties_par_jour_vps = 24 * 3600 / 12.9 ≈ 6 700 parties/jour
+parties_par_jour_vps = 24 * 3600 / 12.8 ≈ 6 750 parties/jour
 ```
 
 ### Laptop / sharding — non applicable
@@ -114,12 +120,21 @@ Exemple concret tiré du run : `money=289299` avec `current_loan=300000` → tr�
 sans avoir rien construit ; quand elle rembourse (ou se fait rappeler le prêt), `money` s'effondre
 sans que ça reflète un échec économique réel.
 
-Champs disponibles dans le chunk `PLYR` utiles pour une métrique plus robuste :
-`current_loan`, `cur_economy.income` / `cur_economy.expenses` / `cur_economy.company_value` /
-`cur_economy.performance_history`, `months_of_bankruptcy`. `docs/methode.md` fixait déjà la
-métrique sur le **profit annuel moyen** (pas le capital brut) — cette observation confirme que
-c'était le bon choix, et écarte `money` seul comme feature ou comme proxy de succès pour la suite
-du projet.
+**La bonne source : `old_economy`, pas `money`.** Confirmé par inspection directe
+(`sweeps/phase0_explore3.py`) : `PLYR.<company>.old_economy` est une liste de trimestres clos
+(index 0 = le plus récent) avec `income`, `expenses`, `company_value`, `delivered_cargo`,
+`performance_history`. `company_value` est net de l'emprunt (un prêt déplace de la dette vers du
+cash, ne bouge pas la valeur d'entreprise) et `income`/`expenses` trimestriels donnent le profit
+directement, sans le dériver d'un delta de trésorerie. `len(old_economy)` sert de clé de trimestre
+stable pour reconstituer la série complète depuis les savegames mensuels sans dépendre de la
+profondeur de l'historique glissant (détail du protocole dans `docs/methode.md`).
+
+`docs/methode.md` fixait déjà la métrique sur le **profit** (pas le capital brut) — cette
+observation confirme que c'était le bon choix, précise la source exacte à utiliser en phase 2, et
+écarte `money` seul comme feature ou comme proxy de succès. Reste non résolu : `old_economy` est
+agrégé au niveau de la compagnie entière, pas par ligne — la descente au niveau ligne (l'unité
+d'observation de `methode.md`) demandera une source supplémentaire (véhicules/stations), à explorer
+en phase 2.
 
 ## Checklist de sortie de phase 0
 
@@ -133,3 +148,7 @@ du projet.
 - [x] MD5 de trAIns noté et épinglé (`c4c069dc797674e545411b59867ad0c2`)
 - [x] `docs/methode.md` rédigé
 - [x] Un graphique money × date sur 10 graines, commité — premier résultat
+- [x] Inflation désactivée et figée explicitement (`inflation = false`)
+- [x] Config OpenTTD figée (map, année de départ, villes, industries)
+- [x] Source de métrique fiable identifiée (`old_economy`, trimestriel, net de l'emprunt)
+- [x] Mesure de scaling refaite sur batch fixe (coût marginal réel, pas un artefact de design)
