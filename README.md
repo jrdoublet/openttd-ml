@@ -235,13 +235,20 @@ franc près sur trois graines/distances différentes — impossible par hasard) 
    Corrigé en ouvrant `this.costs` après le pathfinding. Effet sur les lignes réussies : coût
    divisé par un facteur ~31 sur le cas de test.
 
-**Un quatrième problème reste non résolu** : même les deux premiers bugs corrigés, les wagons
-finissent toujours avec zéro cargo chargé (`cargo.packets=[]`, y compris sur 10 ans avec un seul
-train, sans risque de blocage multi-trains) alors que jusqu'à 290 passagers s'accumulent parfois en
-gare. Cause non identifiée — le revenu de chaque ligne reste donc ~nul, et `profit_ligne` ne
-reflète pour l'instant que des coûts de roulement, pas une vraie rentabilité. Signaux/blocs
-absents du script (`AISignal`/`AIRail.BuildSignal` : aucun appel) écartés comme cause suffisante à
-eux seuls (le symptôme persiste avec `num_trains=1`).
+**Un quatrième problème, creusé sur suggestion externe (inspection du code source de trAIns et
+d'AdmiralAI, `docs/methode.md`), partiellement résolu.** Cause du chargement à zéro identifiée :
+les ordres utilisaient `AIOrder.OF_NONE`, qui ne force aucune attente — un train reparaît quasi
+toujours à vide sur une ligne neuve à faible fréquentation. Corrigé avec `OF_FULL_LOAD_ANY`
+(patron trAIns) : **vérifié empiriquement, les wagons chargent désormais à pleine capacité**
+(40/40, confirmé via `cargo.action_counts`) — une première pour ce squelette. Mais le revenu reste
+à zéro : en traçant la position du train tick par tick, il ne quitte **jamais** le voisinage
+immédiat du dépôt (zone de 4×2 tuiles) même après des années, alors que la gare de destination est
+à des dizaines de tuiles — un problème de **navigation du train**, pas de chargement. Hypothèse la
+plus probable, non corrigée : le dépôt (raccordé sur `tiles[1]` pour corriger le bug 2) crée une
+jonction en Y juste après la gare de départ, sans signal pour la désambiguïser. Plusieurs patrons
+de flags d'ordre testés (aucun, symétrique façon trAIns, asymétrique façon AdmiralAI) donnent
+tous le même résultat — confirme que le blocage n'est pas dans les flags. Détail complet dans
+`docs/methode.md`.
 
 `sweeps/phase2_profit_ligne.py` : valide `profit_ligne = Σ(profit_last_year des véhicules de
 tête de la ligne) − amortissement(coût véhicules) − amortissement(coût infrastructure)` sur 3
@@ -276,11 +283,13 @@ console) : `docs/methode.md`, section **IA (Phase 2 — préparatoire)**.
 - [x] Revoir l'amortissement de `profit_ligne` : coût véhicules et coût infrastructure séparés,
       chacun amorti sur son propre horizon (`max_age` pour le matériel, 30 ans assumés pour
       l'infrastructure — voir `docs/methode.md`)
-- [ ] **Corriger le chargement de cargo, toujours à zéro** : deux bugs trouvés et corrigés (quai
-      trop court, dépôt mal raccordé) n'ont pas suffi — les wagons finissent toujours à
-      `cargo.packets=[]` malgré des passagers qui s'accumulent en gare (jusqu'à 290 observés).
-      Cause non identifiée (voir `docs/methode.md`, bug 4). **Bloquant pour tout signal de
-      rentabilité réel** — `profit_ligne` ne reflète pour l'instant que des coûts de roulement.
+- [ ] **Corriger la navigation du train vers la gare d'arrivée, toujours bloquée.** Le chargement
+      de cargo (zéro auparavant) est résolu (`OF_FULL_LOAD_ANY`, wagons à pleine capacité
+      confirmé) mais le train ne quitte jamais le voisinage du dépôt — hypothèse la plus probable :
+      jonction dépôt/voie sans signal après la correction du bug 2. À essayer en premier : éloigner
+      le dépôt de la jonction immédiate, ou poser un signal simple. Voir `docs/methode.md`, bug 4.
+      **Bloquant pour tout signal de rentabilité réel** — `profit_ligne` ne reflète pour l'instant
+      que des coûts de roulement.
 - [ ] Construire le jeu de données du modèle hurdle (classifieur constructible + régression
       profit conditionnelle, voir `docs/methode.md`) — les briques existent (panneaux, `VEHS`,
       `profit_ligne`) et l'étage 1 (constructible/non) est déjà exploitable ; l'étage 2 (régression

@@ -473,3 +473,93 @@ retenue** : allonger la fenêtre de la campagne à 6 ans (`DAYS = 365 * 6` dans
 `phase2_trainline_run.py`) — sachant qu'un budget encore plus long resterait insuffisant pour les
 pires cas (7,4 ans observé sur un seul exemple) ; certaines lignes resteront probablement encore
 sans panneau même à 6 ans, ce qui est attendu et pas un signe d'échec du diagnostic.
+
+---
+
+## Bug 4, repris : indices trouvés dans trAIns, un flag d'ordre corrigé, un mystère qui reste
+
+Sur suggestion explicite (« regarde l'IA trAIns ou AdmiralAI pour mieux comprendre la construction
+de gares et de lignes de trains, et leur exploitation »), le code source de trAIns a été extrait
+directement du cache local OpenTTDLab (`~/.cache/OpenTTDLab/.../bananas/54524149-trAIns-2.1.tar`,
+déjà téléchargé pour la calibration de phase 0 — pas de nouveau téléchargement nécessaire) plutôt
+que recherché en ligne, où le lien fourni (wiki `Development/Script/RailPathfinder`) ne documente
+que l'algorithme de recherche de chemin, pas l'exploitation d'une ligne une fois construite.
+
+**Indice trouvé : les ordres de trAIns portent `AIOF_FULL_LOAD_ANY`, les nôtres `OF_NONE`.**
+(`railroad/railroad_manager/railroad_route/town_town_railroad_route.nut`,
+`railroad_route.nut::SetTrainOrders`). `AIOrder.OF_FULL_LOAD_ANY` existe bien dans l'API v13 utilisée
+ici (`AIOrder.OF_FULL_LOAD_ANY = 96`, vérifié empiriquement). `OF_NONE` ne force aucune attente :
+le train marque un arrêt par défaut (~74 ticks observés, ~1 jour) et repart que du cargo soit
+disponible ou non — sur une ligne neuve à faible fréquentation, il repart quasiment toujours à vide.
+**Corrigé** : `AIOrder.OF_FULL_LOAD_ANY` sur les deux arrêts. **Effet vérifié empiriquement,
+décisif** : les wagons, qui affichaient `cargo.packets=[]` en permanence dans *tous* les tests
+précédents (jusqu'à 20 ans de jeu, un seul train), atteignent maintenant leur pleine capacité
+(`cargo_cap=40`, confirmé par `cargo.action_counts` dans `VEHS` sur les deux wagons). C'est la
+première fois, toutes tentatives confondues, qu'un wagon de `TrainLineAI` transporte du cargo.
+
+**Deuxième indice, qui a fait fausse route puis a été corrigé : `OF_UNLOAD`.** trAIns combine
+`AIOF_FULL_LOAD_ANY | AIOF_UNLOAD` sur ses deux arrêts ville-à-ville ; `OF_UNLOAD` ajouté par
+symétrie. Wagons pleins confirmés (comme ci-dessus), mais **`income` restait à 0** après 20 ans.
+Recherche sur le wiki OpenTTD (le lien fourni par la review ne couvrait pas ce point ; recherche
+élargie) : *« When the train has the order to unload at a station then it won't be paid »* — `OF_UNLOAD`
+signifie explicitement que **ce véhicule n'est pas payé** ; c'est une sémantique de *feeder service*
+(un premier véhicule dépose le cargo, un second complète le trajet et touche le paiement). Sans
+second véhicule, le cargo est simplement déposé, jamais vendu. **`OF_UNLOAD` retiré** — le
+déchargement par défaut (sans flag transfer/unload explicite) paie directement ce qui correspond à
+l'acceptation de la gare, le bon choix pour une navette simple à deux gares sans correspondance.
+
+**État actuel, non résolu : même sans `OF_UNLOAD`, `income` reste à 0 malgré des wagons pleins
+(40/40 confirmé) sur 5 ans de jeu.** Pistes testées et écartées une par une, chacune vérifiée
+empiriquement plutôt que supposée :
+- Mode de distribution du cargo (`[linkgraph] distribution_pax`) : testé en `manual` (valeur `0`,
+  confirmée appliquée via le chunk `PATS` du savegame) — même symptôme.
+- `AIVehicle.RefitVehicle` explicite sur le wagon après achat (trAIns le fait systématiquement,
+  même quand le cargo par défaut correspond déjà) — testé, même symptôme, retiré (n'apportait rien).
+- Zone de chalandise / distance gare-ville, blocage multi-trains, raccordement dépôt/voie : déjà
+  écartés au tour précédent (voir bug 4 ci-dessus).
+- `cargo.action_counts` des deux wagons affiche `[0, 0, 40, 0]` de façon constante, avec ou sans
+  `OF_UNLOAD`, en mode `manual` comme dans la configuration par défaut — l'indice 2 (40 unités)
+  correspond vraisemblablement à `MTA_TRANSFER` dans l'énumération interne d'OpenTTD (à confirmer
+  contre le code source du jeu, pas accessible depuis cet environnement), pas à `MTA_DELIVER` —
+  mais retirer `OF_UNLOAD` n'a pas changé cette répartition, ce qui contredit l'explication la plus
+  simple et indique qu'un autre mécanisme, non identifié, est à l'œuvre.
+
+**Troisième indice, décisif celui-là : AdmiralAI utilise un patron asymétrique, pas symétrique.**
+Code source cloné directement depuis `github.com/Yexo/AdmiralAI` (`rail/trainline.nut`, fonction
+qui construit chaque train) : contrairement à trAIns (symétrique, `FULL_LOAD_ANY` aux deux arrêts),
+AdmiralAI pose `OF_FULL_LOAD_ANY | OF_NON_STOP_INTERMEDIATE` à l'aller et
+`OF_UNLOAD | OF_NO_LOAD | OF_NON_STOP_INTERMEDIATE` au retour — chargement complet dans un sens,
+déchargement forcé sans rechargement dans l'autre. **Testé, même résultat exact** que tous les
+essais précédents (mêmes ID de paquets de cargo, `1962-...` non atteint, `income` toujours à 0) —
+ce qui a orienté l'investigation vers autre chose que les flags d'ordre : si trois patrons de
+flags différents (aucun, symétrique, asymétrique) donnent tous exactement le même résultat, les
+flags ne sont probablement pas la variable en jeu.
+
+**La vraie cause, trouvée en traçant la position du train tick par tick sur 2 ans (pas seulement
+un instantané final) : le train ne quitte jamais le voisinage immédiat du dépôt.** Chaque
+instantané mensuel du chunk `VEHS` montre `last_station_visited=0` (gare A) et
+`cur_real_order_index=1` (en route vers la gare B, `dest=1`) — mais la tuile du train reste
+confinée à une zone de 4×2 tuiles autour de la gare A/du dépôt (`x:200-203, y:105-106`) du premier
+au dernier instantané, alors que la gare B se trouve à 63 tuiles de distance. Le train tourne en
+rond près du départ, vitesse non nulle (jusqu'à 84), sans jamais progresser vers la destination.
+**Ce n'est donc pas un problème de chargement de cargo mais de navigation du train lui-même** — le
+chargement complet observé (40/40, bug 4 "résolu" plus haut) n'a jamais pu déboucher sur une
+livraison parce que le train n'atteint jamais la seconde gare, point final.
+
+**Hypothèse la plus probable, non testée (à faire en premier au prochain tour) : le dépôt,
+raccordé sur `tiles[1]` pour corriger le bug 2 (voie garantie connectée), crée une jonction en Y
+juste après la gare A — sans signal pour la désambiguïser, un train OpenTTD peut hésiter/boucler
+sur ce type de jonction plutôt que de s'engager franchement sur la voie principale.** Ce serait un
+effet de bord du correctif du bug 2 lui-même : fixer le raccordement du dépôt a rendu les trains
+capables de bouger (`last_station_visited` valide, confirmé), mais a introduit une jonction que la
+navigation du train ne franchit pas proprement. Pistes de correctif pour la prochaine session,
+aucune essayée : éloigner le dépôt de la jonction immédiate (le placer plus loin sur la voie
+plutôt qu'adjacent à `tiles[1]`), ou poser un signal simple à la jonction.
+
+**Bilan honnête** : `OF_FULL_LOAD_ANY` (patron trAIns, symétrique) reste le choix retenu dans le
+code — c'est une amélioration réelle et vérifiée par rapport à `OF_NONE` (chargement désormais
+possible, jamais observé avant cette session), même si elle ne suffit pas seule à résoudre le
+bug 4. Le blocage résiduel est maintenant caractérisé précisément (navigation, pas chargement) et
+la piste la plus probable identifiée (jonction dépôt/voie sans signal), mais pas corrigée dans
+cette session — le sujet a débordé largement du cadre initial (« regarder trAIns/AdmiralAI pour
+des indices »). `profit_ligne` reste donc à ce stade un pur coût de roulement.

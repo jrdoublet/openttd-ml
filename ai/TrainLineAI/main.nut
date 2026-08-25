@@ -455,8 +455,16 @@ function TrainLineAI::Start()
         }
       }
     }
-    AIOrder.AppendOrder(train, tiles[0], AIOrder.OF_NONE);
-    AIOrder.AppendOrder(train, tiles[tiles.len() - 1], AIOrder.OF_NONE);
+    /* OF_FULL_LOAD_ANY sur les deux arrets (patron trAIns) : verifie empiriquement que ca charge
+     * bien les wagons a plein (contrairement a OF_NONE, qui ne force aucune attente et repart
+     * systematiquement a vide sur une ligne neuve a faible frequentation). Le blocage restant
+     * (income toujours nul) n'est PAS un probleme de flags d'ordre -- teste et ecarte, y compris
+     * le patron asymetrique d'AdmiralAI (FULL_LOAD_ANY a l'aller, UNLOAD|NO_LOAD au retour) : le
+     * vrai probleme est que le train ne quitte jamais le voisinage immediat du depot (voir
+     * docs/methode.md, bug 4 -- probablement le depot lui-meme, place sur une jonction sans
+     * signal apres la correction du bug 2). */
+    AIOrder.AppendOrder(train, tiles[0], AIOrder.OF_FULL_LOAD_ANY);
+    AIOrder.AppendOrder(train, tiles[tiles.len() - 1], AIOrder.OF_FULL_LOAD_ANY);
     AIVehicle.StartStopVehicle(train);
     builtTrains++;
   }
