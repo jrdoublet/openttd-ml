@@ -352,9 +352,48 @@ function TrainLineAI::Start()
    * direction depuis le voisin reel sur la voie plutot qu'en essayant les deux au hasard --
    * proposition testee suite a une revue externe. Un STNFAIL sur la seule direction correcte est
    * un vrai signal de terrain, pas une raison d'essayer l'autre orientation en secours. */
+  /* Une gare ne peut porter que de la voie DROITE dans son orientation -- si le chemin tourne
+   * avant platformLength tuiles, etendre le quai jusque-la avale la tuile de virage et rend la
+   * suite du trajet physiquement inateignable (bug racine trouve empiriquement : construction
+   * "reussie", TRLN|...|OK, mais le train reste fige sur une seule tuile, meme moteur d'avaries
+   * et service auto desactives -- voir docs/methode.md). straightRunLength() mesure la portion
+   * reellement rectiligne de tiles[] a partir de startIdx (en avancant de step, +1 pour la gare
+   * A, -1 pour la gare B) et plafonne le quai a cette longueur au lieu d'extrapoler au hasard. */
+  /* Mesure la portion rectiligne COMPLETE (non plafonnee) a partir de startIdx, et signale si
+   * elle s'arrete a cause d'un vrai virage (par opposition a la fin du trajet). Piege d'un
+   * premier essai (retire) : plafonner directement a desiredLength cachait le cas ou le virage
+   * tombe pile sur la derniere tuile mesuree -- ex. tiles[0]->tiles[1] est un pas plein, mais
+   * tiles[1]->tiles[2] tourne : un quai de longueur 2 (tiles[0..1]) semble "rectiligne" par
+   * construction, mais avale quand meme tiles[1], qui EST le pivot du virage, cassant la suite
+   * du trajet exactement comme avant. Il faut donc une tuile de plus, non incluse dans le quai,
+   * pour confirmer que la voie continue tout droit APRES le quai -- d'ou "hitBend" ci-dessous et
+   * le "-1" applique dans buildStation quand ce cas se presente. */
+  local straightRunLength = function(tiles, startIdx, step) {
+    local n = tiles.len();
+    local otherIdx = startIdx + step;
+    if (otherIdx < 0 || otherIdx >= n) return [1, false];
+    local baseDelta = tiles[otherIdx] - tiles[startIdx];
+    local len = 1;
+    local idx = startIdx;
+    local hitBend = false;
+    while (true) {
+      local nextIdx = idx + step;
+      if (nextIdx < 0 || nextIdx >= n) break;
+      if (tiles[nextIdx] - tiles[idx] != baseDelta) { hitBend = true; break; }
+      idx = nextIdx;
+      len++;
+    }
+    return [len, hitBend];
+  };
+
   /* getStationDirection() inline dans buildStation, pas en closure separee : un closure imbrique
    * ne peut pas en appeler un autre declare dans le meme Start() (meme regle que plus haut). */
-  local buildStation = function(tile, neighbor, platformLength, tiles) {
+  local buildStation = function(tiles, startIdx, step, desiredLength, straightRunLength) {
+    local n = tiles.len();
+    local otherIdx = startIdx + step;
+    if (otherIdx < 0 || otherIdx >= n) return false;
+    local tile = tiles[startIdx];
+    local neighbor = tiles[otherIdx];
     local dx = AIMap.GetTileX(neighbor) - AIMap.GetTileX(tile);
     local dy = AIMap.GetTileY(neighbor) - AIMap.GetTileY(tile);
     local direction = AIRail.RAILTRACK_INVALID;
@@ -363,6 +402,18 @@ function TrainLineAI::Start()
     if (dx != 0) { direction = AIRail.RAILTRACK_NE_SW; unitStep = AIMap.GetTileIndex(1, 0); towardPositive = (dx > 0); }
     else if (dy != 0) { direction = AIRail.RAILTRACK_NW_SE; unitStep = AIMap.GetTileIndex(0, 1); towardPositive = (dy > 0); }
     if (direction == AIRail.RAILTRACK_INVALID) return false;
+
+    local run = straightRunLength(tiles, startIdx, step);
+    local rawRun = run[0];
+    local hitBend = run[1];
+    /* Si le tronçon rectiligne s'arrete a un vrai virage (hitBend), la derniere tuile mesuree
+     * EST ce virage -- on la reserve comme simple raccord, hors du quai (voir commentaire
+     * ci-dessus). S'il s'arrete parce qu'on a atteint le bout du trajet (l'autre gare), rien a
+     * reserver : il n'y a rien a raccorder au-dela. */
+    local platformLength = hitBend ? (rawRun - 1) : rawRun;
+    if (platformLength > desiredLength) platformLength = desiredLength;
+    if (platformLength < 2) return false; // virage trop proche : pas de quai droit possible ici
+
     /* BuildRailStation etend TOUJOURS la plateforme dans la direction POSITIVE de l'axe choisi
      * depuis "tile" -- verifie empiriquement (IA de test jetable) : platform_length=3 sur
      * RAILTRACK_NE_SW occupe tile, tile+1, tile+2, jamais tile-1/tile-2. C'est le vrai bug qui
@@ -381,8 +432,9 @@ function TrainLineAI::Start()
      * railTile passe a false) -- ne PAS demolir laissait la tuile intermediaire du quai avec sa
      * voie simple dessus, jamais "propre" pour BuildRailStation, d'ou ERR_AREA_NOT_CLEAR meme sur
      * un quai de 2 tuiles ne touchant aucun terrain nouveau. Sans risque pour la continuite de la
-     * voie : la tuile de gare qui la remplace reste connectee (contrairement au depot, qui lui
-     * garde l'exclusion -- voir plus bas). */
+     * voie, PUISQUE l'emprise est desormais garantie rectiligne (straightRunLength ci-dessus) : la
+     * tuile de gare qui la remplace reste connectee (contrairement au depot, qui lui garde
+     * l'exclusion -- voir plus bas). */
     for (local i = 0; i < platformLength; i++) {
       local t = anchor + unitStep * i;
       if (AIMap.IsValidTile(t)) AITile.DemolishTile(t);
@@ -390,8 +442,8 @@ function TrainLineAI::Start()
     return AIRail.BuildRailStation(anchor, direction, 1, platformLength, AIStation.STATION_NEW);
   };
 
-  local stationA_ok = buildStation(tiles[0], tiles[1], platformLength, tiles);
-  local stationB_ok = buildStation(tiles[tiles.len() - 1], tiles[tiles.len() - 2], platformLength, tiles);
+  local stationA_ok = buildStation(tiles, 0, 1, platformLength, straightRunLength);
+  local stationB_ok = buildStation(tiles, tiles.len() - 1, -1, platformLength, straightRunLength);
   this.state.station_a_tile = stationA_ok ? tiles[0] : null;
   this.state.station_b_tile = stationB_ok ? tiles[tiles.len() - 1] : null;
 
