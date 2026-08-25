@@ -56,3 +56,56 @@ locomotives disponibles évoluent (déblocages par date). « Modèle de matérie
 construction » seront donc corrélés. Le split par graine ne neutralise pas ce confondant — il
 faudra soit inclure la date comme feature, soit contraindre les constructions à une fenêtre
 temporelle courte.
+
+---
+
+## IA (Phase 2 — préparatoire)
+
+**Déclaration des paramètres `info.nut` — vérifié empiriquement, pas supposé** (voir
+`ai/ParameterisedAI/`) :
+- Un paramètre supplémentaire non déclaré, ou un typo sur le nom d'un paramètre déclaré, est
+  **ignoré silencieusement** : pas d'erreur, pas de warning. Un typo sur le nom réel d'un paramètre
+  fait retomber silencieusement sur sa valeur par défaut (`custom_value` dans `info.nut`).
+- Une valeur hors `[min_value, max_value]` est **clampée silencieusement** à la borne. Une valeur
+  proche/au-dessus d'INT32_MAX déborde en entier signé et peut retomber très en dessous de
+  `min_value`, clampée à 0 sans erreur.
+- → Ne jamais faire confiance à `ai_params` côté Python : toujours vérifier `AIPL.settings` (chunk
+  du savegame) dans les résultats pour confirmer que chaque paramètre a bien la valeur voulue.
+
+**Comment savoir ce qu'une IA a construit — canaux testés un par un :**
+- `Save()`/`Load()` : **ne remonte pas** via OpenTTDLab. Vérifié en écrivant un marqueur distinctif
+  dans `Save()` et en cherchant sa présence dans tous les chunks parsés — absent. `AIPL` n'expose
+  que l'écho des réglages déclarés (`settings`), jamais le contenu retourné par `Save()`.
+- `AILog.Info(...)` / sortie console : **absente par défaut**. `row['output']` existe dans le
+  résultat brut de `run_experiments` (avant `result_processor`), mais OpenTTD ne produit aucune
+  sortie console en mode headless sans un flag `-d` explicite, qu'`run_experiments` ne permet pas
+  de passer.
+- `AISign.BuildSign(...)` : construit dans le jeu mais **n'apparaît pas non plus** dans le chunk
+  `SIGN` parsé — testé et vérifié vide.
+- **Ce qui marche** : les chunks de vérité-terrain du savegame — `VEHS` (filtré par `owner` +
+  liste `train`/`roadveh` non vide), `STNN`, `DEPT`, `ORDR` — donnent le compte exact de ce qui a
+  été construit (véhicules, moteur, cargo, gares, dépôt, ordres), sans rien inventer. Comparer à
+  `AIPL.settings` (demandé) permet de détecter une construction partielle (ex. mesuré :
+  `num_trains=50` demandés, 17 réellement construits, faute d'argent).
+- **Angle mort persistant** : un échec pathfinder (aucune route trouvée) et un échec financier total
+  (aucun train acheté) produisent tous les deux "0 construit" — strictement indiscernables l'un de
+  l'autre sans un canal de sortie que je n'ai pas trouvé de moyen de faire fonctionner via
+  OpenTTDLab. `TrainLineAI` maintient un état structuré interne (`this.state`, retourné par `Save()`)
+  qui documente la cause exacte si vous inspectez le savegame par un autre moyen plus tard.
+
+**`ai/TrainLineAI/`** : squelette fonctionnel (testé de bout en bout via `run_experiments`), deux
+paramètres (`num_trains`, `wagons_per_train`), construit une ligne entre les deux villes les plus
+peuplées la première année. Bugs rencontrés et corrigés pendant le développement, tous trouvés en
+lançant le binaire OpenTTD directement avec `-d script=4` (le seul moyen d'obtenir la sortie
+`AILog` en dehors d'OpenTTDLab) :
+- `AITown.GetLocation()` renvoie le centre-ville (occupé par des bâtiments) : impossible d'y
+  construire du rail contrairement à la route. Il faut chercher une tuile constructible à proximité.
+- `RailPathFinder.InitializePath` attend des paires `[tuile, tuile_précédente]` pour établir une
+  direction d'entrée ; utiliser deux fois la même tuile produit un triplet dégénéré et casse la
+  recherche dès le premier pas.
+- Le chemin retourné peut contenir un aller-retour sur une même tuile (artefact du pathfinder avec
+  plusieurs directions d'entrée candidates) — à ignorer, pas à traiter comme un échec.
+- `AIRail.BuildRailStation` n'auto-nettoie pas la tuile (contrairement à `AIRail.BuildRail`) : un
+  `AITile.DemolishTile()` explicite est nécessaire avant.
+- Une locomotive ne transporte pas elle-même de cargo (seuls les wagons le font) : filtrer les
+  locomotives par `CanRefitCargo` élimine tout le catalogue.
