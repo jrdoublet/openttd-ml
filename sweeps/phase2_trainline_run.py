@@ -1,9 +1,9 @@
-"""Petite campagne de demonstration pour TrainLineAI : plusieurs graines, plusieurs combinaisons
-de rangs (villes/moteur), pour verifier que les deux panneaux (statut + detail) se posent
-correctement et que les champs (line_index, paire de villes, distance, cout) sont bien lisibles
-via le chunk SIGN d'OpenTTDLab -- pas seulement AILog. Pas encore l'orchestrateur multi-lignes-
-par-partie (chaque experience ci-dessous est une partie/compagnie separee) : juste une verification
-de bout en bout du format de panneau revise, sur un vrai batch.
+"""Campagne de demonstration pour TrainLineAI : plusieurs graines, plusieurs combinaisons de
+moteur/materiel, pour verifier que les deux panneaux (statut + detail) se posent correctement et
+que les champs (line_index, paire de villes, distance, cout) sont bien lisibles via le chunk SIGN
+d'OpenTTDLab -- pas seulement AILog. Pas encore l'orchestrateur multi-lignes-par-partie (chaque
+experience ci-dessous est une partie/compagnie separee) : juste une verification de bout en bout
+du format de panneau revise, sur un vrai batch.
 
 Calcule aussi profit_ligne pour chaque ligne construite (meme logique que
 sweeps/phase2_profit_ligne.py, dupliquee ici plutot qu'importee -- chaque script sweeps/ reste
@@ -13,11 +13,17 @@ evite en separant les deux couts, et pour un second piege AIAccounting distinct 
 cout de construction par l'exploration interne du pathfinder, corrige en ouvrant this.costs apres
 le pathfinding plutot qu'avant -- ai/TrainLineAI/main.nut).
 
-Re-baseline complet apres trois corrections dans ai/TrainLineAI/main.nut (longueur de quai,
-raccordement depot/voie, contamination AIAccounting -- toutes documentees dans docs/methode.md) :
-DAYS passe a 365*6 (6 ans) -- un cas NOPATH observe en debug a mis ~7,4 ans (200 000 ticks) a se
-resoudre, donc certaines lignes resteront probablement encore sans panneau meme a 6 ans ; c'est
-attendu, pas un bug (voir la section "Lignes sans panneau" de docs/methode.md).
+Re-baseline complet apres la refonte du choix de paire de villes et de la construction gare/depot
+dans ai/TrainLineAI/main.nut (selection automatique par score population*population/distance avec
+pre-verification de pathfinding avant toute construction, gares orientees selon la voie reelle,
+raccordement depot verifie tuile par tuile via AIRail.AreTilesConnected -- voir les commits
+88a788f/4613ef3 et [[trainlineai-construction-bugs]]). `town_a_rank`/`town_b_rank` ne sont plus
+lus par l'IA (le choix de paire est desormais entierement automatique) : la variation entre runs
+porte maintenant sur la graine (topographie/villes differentes -- le vrai test de la nouvelle
+selection automatique de paire) plutot que sur un rang de ville qui n'a plus d'effet. DAYS revient
+a 365*10, la duree de partie decidee en Phase 0 (voir README.md) -- le raccourci a 6 ans du
+re-baseline precedent n'a plus lieu d'etre puisque les bugs de navigation qui le motivaient sont
+censes etre corriges ; ce run sert justement a le confirmer sur un horizon complet.
 """
 import json
 import re
@@ -39,22 +45,29 @@ map_x = 8
 map_y = 8
 """
 
-DAYS = 365 * 6  # re-baseline -- voir docstring du module
+DAYS = 365 * 10  # duree de partie Phase 0 -- voir docstring du module
 
-# (seed, town_a_rank, town_b_rank, engine_rank, num_trains, wagons_per_train)
+# (seed, engine_rank, num_trains, wagons_per_train) -- town_a_rank/town_b_rank retires : plus lus
+# par l'IA depuis la selection automatique de paire de villes (voir docstring du module).
 RUNS = [
-    (42, 0, 1, 0, 2, 2),
-    (42, 2, 8, 1, 2, 2),
-    (42, 0, 15, 2, 1, 1),
-    (100, 0, 1, 0, 2, 2),
-    (100, 3, 9, 1, 2, 2),
-    (100, 5, 12, 2, 1, 1),
-    (7, 0, 1, 0, 2, 2),
-    (7, 1, 6, 1, 2, 2),
-    (7, 4, 14, 2, 1, 1),
-    (999, 0, 1, 0, 2, 2),
-    (999, 2, 10, 1, 2, 2),
-    (999, 0, 13, 2, 3, 1),
+    (42, 0, 2, 2),
+    (42, 1, 2, 2),
+    (42, 2, 1, 1),
+    (100, 0, 2, 2),
+    (100, 1, 2, 2),
+    (100, 2, 1, 1),
+    (7, 0, 2, 2),
+    (7, 1, 2, 2),
+    (7, 2, 1, 1),
+    (999, 0, 2, 2),
+    (999, 1, 2, 2),
+    (999, 2, 1, 1),
+    (2026, 0, 2, 2),
+    (2026, 1, 2, 2),
+    (2026, 2, 1, 1),
+    (555, 0, 2, 2),
+    (555, 1, 2, 2),
+    (555, 2, 1, 1),
 ]
 
 STATUS_RE = re.compile(r"^TRLN\|(\d+)\|(\w+)\|(\w+)\|(\d+)/(\d+)$")
@@ -119,15 +132,13 @@ if __name__ == "__main__":
                         ai_params=(
                             ("num_trains", num_trains),
                             ("wagons_per_train", wagons_per_train),
-                            ("town_a_rank", town_a_rank),
-                            ("town_b_rank", town_b_rank),
                             ("engine_rank", engine_rank),
                             ("line_index", i),
                         ),
                     ),
                 ),
             }
-            for i, (seed, town_a_rank, town_b_rank, engine_rank, num_trains, wagons_per_train) in enumerate(RUNS)
+            for i, (seed, engine_rank, num_trains, wagons_per_train) in enumerate(RUNS)
         ),
     )
 
@@ -197,7 +208,7 @@ if __name__ == "__main__":
         p = rec["ai_params"]
         print(
             f"line={rec['line_index']:2d} seed={rec['seed']:4d} "
-            f"ranks=(A{p['town_a_rank']},B{p['town_b_rank']},E{p['engine_rank']}) "
+            f"engine_rank={p['engine_rank']} "
             f"trains={p['num_trains']}x{p['wagons_per_train']}w -> "
             f"{rec.get('stage','?'):8s} {rec.get('reason','?'):8s} "
             f"{rec.get('built','?')}/{rec.get('requested','?')}  "

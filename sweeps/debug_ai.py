@@ -89,7 +89,7 @@ def main():
     cmd = [binary, "-g", "-G", seed, "-snull", "-mnull", f"-vnull:ticks={ticks}",
            "-c", "openttdlab.cfg", "-d", "script=4"]
     print("running:", cmd)
-    result = subprocess.run(cmd, cwd=run, capture_output=True, text=True, timeout=60)
+    result = subprocess.run(cmd, cwd=run, capture_output=True, text=True, timeout=300)
     print("=== STDOUT+STDERR ===")
     print(result.stdout)
     print(result.stderr)

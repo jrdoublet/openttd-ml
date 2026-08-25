@@ -30,15 +30,19 @@ import("pathfinder.rail", "RailPathFinder", 1);
 ::REASON_CODES <- {
   no_rail_type_available = "NORAIL",
   not_enough_towns = "NOTOWN",
+  no_suitable_town_pair = "NOPAIR",
+  no_viable_town_pair = "NOVIABLE",
   town_rank_out_of_range = "TWNOOR",
   town_rank_same_town = "TWNDUP",
   no_buildable_tile_near_town = "NOTILE",
   no_path_found = "NOPATH",
+  path_search_limit = "PATHLIM",
   track_build_failed = "TRKFAIL",
   station_build_failed = "STNFAIL",
   depot_build_failed = "DEPFAIL",
   no_engine_available = "NOENG",
   engine_rank_out_of_range = "ENGOOR",
+  train_order_failed = "ORDFAIL",
 };
 
 class TrainLineAI extends AIController
@@ -114,6 +118,114 @@ function TrainLineAI::_fail(reason)
   }
 }
 
+function TrainLineAI::_makeStationPlans(center, radius, length, maxPlans)
+{
+  local plans = [];
+  local axes = [
+    [AIRail.RAILTRACK_NE_SW, AIMap.GetTileIndex(1, 0)],
+    [AIRail.RAILTRACK_NW_SE, AIMap.GetTileIndex(0, 1)],
+  ];
+  for (local r = 0; r <= radius && plans.len() < maxPlans; r++) {
+    for (local dx = -r; dx <= r && plans.len() < maxPlans; dx++) {
+      for (local dy = -r; dy <= r && plans.len() < maxPlans; dy++) {
+        if (abs(dx) != r && abs(dy) != r) continue;
+        local base = center + AIMap.GetTileIndex(dx, dy);
+        if (!AIMap.IsValidTile(base)) continue;
+        foreach (axis in axes) {
+          for (local sign = -1; sign <= 1; sign += 2) {
+            local step = axis[1];
+            local anchor = sign > 0 ? base : base - step * (length - 1);
+            local stationExit = sign > 0 ? anchor + step * (length - 1) : anchor;
+            local lead = sign > 0 ? stationExit + step : stationExit - step;
+            local usable = AIMap.IsValidTile(lead) && AITile.IsBuildable(lead) &&
+                AITile.GetSlope(lead) == AITile.SLOPE_FLAT;
+            for (local i = 0; i < length && usable; i++) {
+              local platformTile = anchor + step * i;
+              usable = AIMap.IsValidTile(platformTile) && AITile.IsBuildable(platformTile) &&
+                  AITile.GetSlope(platformTile) == AITile.SLOPE_FLAT;
+            }
+            if (usable) {
+              plans.push({ anchor = anchor, station_exit = stationExit, lead = lead,
+                  direction = axis[0], step = step });
+              if (plans.len() >= maxPlans) break;
+            }
+          }
+          if (plans.len() >= maxPlans) break;
+        }
+      }
+    }
+  }
+  return plans;
+}
+
+/* Retourne soit une raison d'echec, soit le chemin et les plans de gare retenus. Les epreuves
+ * sont volontairement sans effet sur la carte : elles permettent de passer a la paire suivante
+ * avant d'avoir pose une gare ou un rail qu'il faudrait ensuite demolir.
+ *
+ * Une version precedente relancait un A* complet pour chacune des 24 combinaisons de quais. Sur
+ * une paire non joignable, la meme grande region inaccessible etait alors exploree jusqu'a 24
+ * fois, ce qui bloquait des parties entieres. RailPathFinder sait gerer nativement plusieurs
+ * sources et buts : une seule recherche multi-source/multi-but couvre toutes les geometries.
+ * `deadlineTick` reste une ceinture de securite entre deux appels FindPath ; il ne peut pas
+ * interrompre un appel individuel pathologique, mais la multiplication par 24 est supprimee. */
+function TrainLineAI::_preflightPair(townA, townB, platformLength, deadlineTick)
+{
+  local plansA = this._makeStationPlans(AITown.GetLocation(townA), 30, platformLength, 12);
+  local plansB = this._makeStationPlans(AITown.GetLocation(townB), 30, platformLength, 12);
+  if (plansA.len() == 0 || plansB.len() == 0) return "no_buildable_tile_near_town";
+
+  local sources = [];
+  local goals = [];
+  /* La bibliotheque construit la chaine source comme node[1] -> node[0], puis ajoute goal[1]
+   * apres goal[0]. Le chemin reconstruit doit donc etre : sortieA -> leadA -> ... -> leadB ->
+   * sortieB. `leadA` est le vrai depart de l'A*, avec `station_exit` comme case precedente. */
+  foreach (plan in plansA) sources.push([plan.lead, plan.station_exit]);
+  foreach (plan in plansB) goals.push([plan.lead, plan.station_exit]);
+
+  local pathfinder = RailPathFinder();
+  pathfinder.cost.max_cost = 200000;
+  pathfinder.InitializePath(sources, goals);
+  local path = false;
+  local iterationsLeft = 30000;
+  while (path == false && iterationsLeft > 0 && AIController.GetTick() < deadlineTick) {
+    path = pathfinder.FindPath(50);
+    iterationsLeft -= 50;
+    this.Sleep(1);
+  }
+  if (path == false) return "path_search_limit";
+  if (path == null) return "no_path_found";
+
+  local tiles = [];
+  local node = path;
+  while (node != null) {
+    tiles.push(node.GetTile());
+    node = node.GetParent();
+  }
+  tiles.reverse();
+  local simplifiedTiles = [];
+  foreach (tile in tiles) {
+    if (simplifiedTiles.len() >= 2 && simplifiedTiles[simplifiedTiles.len() - 2] == tile) {
+      simplifiedTiles.pop();
+      continue;
+    }
+    if (simplifiedTiles.len() == 0 || simplifiedTiles[simplifiedTiles.len() - 1] != tile) {
+      simplifiedTiles.push(tile);
+    }
+  }
+  if (simplifiedTiles.len() < 3) return "no_path_found";
+
+  local selectedPlanA = null;
+  local selectedPlanB = null;
+  foreach (plan in plansA) {
+    if (plan.station_exit == simplifiedTiles[0]) { selectedPlanA = plan; break; }
+  }
+  foreach (plan in plansB) {
+    if (plan.station_exit == simplifiedTiles[simplifiedTiles.len() - 1]) { selectedPlanB = plan; break; }
+  }
+  if (selectedPlanA == null || selectedPlanB == null) return "no_path_found";
+  return { tiles = simplifiedTiles, plans_a = [selectedPlanA], plans_b = [selectedPlanB] };
+}
+
 function TrainLineAI::Start()
 {
   this.state = {
@@ -174,35 +286,102 @@ function TrainLineAI::Start()
   AIRail.SetCurrentRailType(railType);
   this.state.rail_type = railType;
 
-  /* 2. Choisir deux villes par rang de population (0 = la plus peuplee). `number_towns` dans
-   * openttd.cfg est une densite (2 = normale), pas un nombre de villes : logge une fois pour
-   * borner les rangs valides sur cette carte (voir docs/methode.md). */
-  local nth = function(list, rank) {
-    local item = list.Begin();
-    for (local i = 0; i < rank; i++) item = list.Next();
-    return item;
-  };
-
+  /* 2. Choisir la meilleure paire de villes. Plutot qu'un rang arbitraire dans la liste des
+   * populations, le score favorise naturellement deux grandes villes proches :
+   * population_A * population_B / distance. */
   local townList = AITownList();
   townList.Valuate(AITown.GetPopulation);
-  townList.Sort(AIList.SORT_BY_VALUE, false);
   local townCount = townList.Count();
   AILog.Info("Town count on this map: " + townCount);
   if (townCount < 2) this._fail("not_enough_towns");
 
-  local townARank = AIController.GetSetting("town_a_rank");
-  local townBRank = AIController.GetSetting("town_b_rank");
-  if (townARank >= townCount || townBRank >= townCount) this._fail("town_rank_out_of_range");
-  if (townARank == townBRank) this._fail("town_rank_same_town");
+  local minPopulation = 500;
+  local minDistance = 20;
+  local maxDistance = 150;
+  local platformLengthForEstimate = (this.state.wagons_per_train + 2) / 2 + 1;
+  local trackCost = AIRail.GetBuildCost(railType, AIRail.BT_TRACK);
+  local stationCost = AIRail.GetBuildCost(railType, AIRail.BT_STATION);
+  local depotCost = AIRail.GetBuildCost(railType, AIRail.BT_DEPOT);
+  local availableMoney = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  local candidates = [];
+  foreach (town, population in townList) candidates.push(town);
 
-  local townA = nth(townList, townARank);
-  local townB = nth(townList, townBRank);
+  local strictPairs = [];
+  local fallbackPairs = [];
+  for (local i = 0; i < candidates.len() - 1; i++) {
+    local candidateA = candidates[i];
+    local locCandidateA = AITown.GetLocation(candidateA);
+    local populationA = AITown.GetPopulation(candidateA);
+    for (local j = i + 1; j < candidates.len(); j++) {
+      local candidateB = candidates[j];
+      local distance = sqrt(AIMap.DistanceSquare(locCandidateA, AITown.GetLocation(candidateB)).tofloat()).tointeger();
+      if (distance < minDistance || distance > maxDistance) continue;
+
+      /* Estimation volontairement prudente : deux fois le cout de voie droite couvre les
+       * virages, le terrassement et une partie des ponts, puis on ajoute gares et depot. */
+      local estimatedCost = (distance + 2) * trackCost * 2 +
+          2 * platformLengthForEstimate * stationCost + depotCost;
+      if (estimatedCost > availableMoney) continue;
+
+      local populationB = AITown.GetPopulation(candidateB);
+      local score = populationA.tofloat() * populationB.tofloat() / distance.tofloat();
+      local pair = { town_a = candidateA, town_b = candidateB, score = score };
+      if (populationA >= minPopulation && populationB >= minPopulation) strictPairs.push(pair);
+      else fallbackPairs.push(pair);
+    }
+  }
+  local pairs = strictPairs;
+  if (pairs.len() == 0) {
+    pairs = fallbackPairs;
+    if (pairs.len() > 0) AILog.Warning("No pair reaches population " + minPopulation + "; using best viable fallback");
+  }
+  if (pairs.len() == 0) this._fail("no_suitable_town_pair");
+
+  /* Une paire bien notee peut etre bloquee par la topographie. On les essaie dans l'ordre du
+   * score et on ne choisit la ligne qu'apres une pre-verification sans construction. */
+  local townA = null;
+  local townB = null;
+  local bestScore = -1.0;
+  local selectedPreflight = null;
+  local attemptedPairs = 0;
+  local maxPairAttempts = 12;
+  /* Budget de recherche global (voir commentaire dans _preflightPair() pour le bug de fond) :
+   * 1500 jours (~74 ticks/jour), soit environ 40% d'une partie de 10 ans, laisse le reste de la
+   * partie pour construire et faire rouler la ligne assez longtemps pour un signal de profit
+   * exploitable, meme si le preflight epuise tout son budget sans trouver de paire viable. */
+  local preflightDeadline = AIController.GetTick() + 1500 * 74;
+  while (pairs.len() > 0 && attemptedPairs < maxPairAttempts && townA == null &&
+      AIController.GetTick() < preflightDeadline) {
+    local bestIndex = 0;
+    for (local i = 1; i < pairs.len(); i++) {
+      if (pairs[i].score > pairs[bestIndex].score) bestIndex = i;
+    }
+    local pair = pairs.remove(bestIndex);
+    attemptedPairs++;
+    this.lastKnownTile = AITown.GetLocation(pair.town_a);
+    this._report("TRLN|TRY|" + attemptedPairs + "|T" + pair.town_a + "-" + pair.town_b);
+    local preflight = this._preflightPair(pair.town_a, pair.town_b, platformLengthForEstimate,
+        preflightDeadline);
+    if (typeof(preflight) != "string") {
+      townA = pair.town_a;
+      townB = pair.town_b;
+      bestScore = pair.score;
+      selectedPreflight = preflight;
+    } else {
+      AILog.Warning("Skipping town pair " + pair.town_a + "-" + pair.town_b + ": " + preflight);
+      this._report("TRLN|SKIP|" + attemptedPairs + "|" + ::REASON_CODES[preflight]);
+    }
+  }
+  if (townA == null || townB == null) this._fail("no_viable_town_pair");
+  if (attemptedPairs > 1) AILog.Info("Selected pair after " + attemptedPairs + " preflight attempts");
+
   this.state.town_a = townA;
   this.state.town_a_name = AITown.GetName(townA);
   this.state.town_b = townB;
   this.state.town_b_name = AITown.GetName(townB);
   this.lastKnownTile = AITown.GetLocation(townA);
-  AILog.Info("Connecting " + AITown.GetName(townA) + " to " + AITown.GetName(townB));
+  AILog.Info("Connecting " + AITown.GetName(townA) + " to " + AITown.GetName(townB) +
+      " score=" + bestScore);
 
   /* Distance a vol d'oiseau (euclidienne) entre les deux centre-villes -- connue avant tout
    * pathfinding, contrairement a path_length. C'est la feature de distance legitime (verifie
@@ -211,58 +390,25 @@ function TrainLineAI::Start()
   local locB = AITown.GetLocation(townB);
   this.state.distance_straight = sqrt(AIMap.DistanceSquare(locA, locB).tofloat()).tointeger();
 
-  /* AITown.GetLocation() renvoie le centre-ville, occupe par des batiments : impossible d'y
-   * construire du rail (contrairement a la route, qui peut se raccorder a la voirie
-   * existante). On cherche la tuile constructible et plate la plus proche du centre-ville. */
-  local findBuildableNear = function(center, maxRadius) {
-    for (local r = 0; r <= maxRadius; r++) {
-      for (local dx = -r; dx <= r; dx++) {
-        for (local dy = -r; dy <= r; dy++) {
-          if (abs(dx) != r && abs(dy) != r) continue; // contour du carre uniquement
-          local t = center + AIMap.GetTileIndex(dx, dy);
-          if (AIMap.IsValidTile(t) && AITile.IsBuildable(t) && AITile.GetSlope(t) == AITile.SLOPE_FLAT) {
-            return t;
-          }
-        }
-      }
-    }
-    return null;
-  };
-
-  local tileA = findBuildableNear(AITown.GetLocation(townA), 20);
-  local tileB = findBuildableNear(AITown.GetLocation(townB), 20);
-  if (tileA == null || tileB == null) this._fail("no_buildable_tile_near_town");
-  this.lastKnownTile = tileA;
-
-  /* 3. Chercher un chemin.
-   * IMPORTANT : InitializePath attend des paires [tuile, tuile_precedente] pour etablir
-   * une direction d'entree. Utiliser deux fois la meme tuile est degenere : le tout premier
-   * pas du pathfinder tenterait de construire un rail dont l'origine ET le milieu sont la
-   * meme tuile, ce qui echoue systematiquement (verifie en lisant le code source du
-   * pathfinder). On propose donc les 4 directions d'entree possibles a chaque bout, et on
-   * laisse le pathfinder choisir celle qui marche. */
-  local offsets = [AIMap.GetTileIndex(0, 1), AIMap.GetTileIndex(0, -1),
-                    AIMap.GetTileIndex(1, 0), AIMap.GetTileIndex(-1, 0)];
-  local sources = [];
-  local goals = [];
-  foreach (offset in offsets) {
-    if (AIMap.IsValidTile(tileA - offset)) sources.push([tileA, tileA - offset]);
-    if (AIMap.IsValidTile(tileB - offset)) goals.push([tileB, tileB - offset]);
+  /* 3. Planifier plusieurs sorties de gare valides AVANT le pathfinding. La version precedente
+   * ne proposait qu'une orientation deduite du centre des villes. Si la case juste devant ce
+   * quai etait occupee (arbre, route, maison, bord de carte), RailPathFinder ne pouvait meme
+   * pas commencer et signalait NOPATH, alors qu'une sortie a 90 degres etait libre.
+   *
+   * Chaque plan contient une emprise complete de quai, plate et constructible, ainsi que sa
+  * case de raccordement. Le chemin trouve choisira donc une vraie paire de gares constructible,
+  * sans sacrifier l'alignement des quais avec leurs rails. */
+  local platformLength = (this.state.wagons_per_train + 2) / 2 + 1;
+  this.lastKnownTile = locA;
+  local stationPlansA = selectedPreflight.plans_a;
+  local stationPlansB = selectedPreflight.plans_b;
+  if (stationPlansA.len() == 0 || stationPlansB.len() == 0) {
+    this._fail("no_buildable_tile_near_town");
   }
 
-  local pathfinder = RailPathFinder();
-  pathfinder.cost.max_cost = 200000;
-  pathfinder.InitializePath(sources, goals);
-
-  local path = false;
-  local iterations_left = 100000; // borne dure : n'attend pas indefiniment si aucun chemin n'existe
-  while (path == false && iterations_left > 0) {
-    path = pathfinder.FindPath(200);
-    iterations_left -= 200;
-    this.Sleep(1);
-  }
-
-  if (path == null || path == false) this._fail("no_path_found");
+  /* Reutiliser les cases validees durant la pre-verification empeche une seconde recherche,
+   * ou une reconstruction differente, de produire NOPATH apres un TRY reussi. */
+  local tiles = selectedPreflight.tiles;
   this.state.path_found = true;
 
   /* Demarre la mesure du cout de construction ICI, apres le pathfinding, pas avant -- bug trouve
@@ -280,20 +426,48 @@ function TrainLineAI::Start()
    * (VEHS.profit_this_year, hors voie/gares/entretien -- voir docs/methode.md). */
   this.costs = AIAccounting();
 
-  /* Reconstitue la liste de tuiles, de tileA vers tileB */
-  local tiles = [];
-  local node = path;
-  while (node != null) {
-    tiles.push(node.GetTile());
-    node = node.GetParent();
-  }
-  tiles.reverse();
   this.state.path_length = tiles.len();
+
+  /* Le premier et le dernier noeud identifient sans ambiguite les deux plans retenus par le
+   * pathfinder. On construit ensuite exactement ces quais, pas une orientation supposee. */
+  local stationPlanA = null;
+  local stationPlanB = null;
+  foreach (plan in stationPlansA) {
+    if (plan.station_exit == tiles[0]) { stationPlanA = plan; break; }
+  }
+  foreach (plan in stationPlansB) {
+    if (plan.station_exit == tiles[tiles.len() - 1]) { stationPlanB = plan; break; }
+  }
+  if (stationPlanA == null || stationPlanB == null) this._fail("no_path_found");
+
+  local stationAAnchor = stationPlanA.anchor;
+  local stationAExit = stationPlanA.station_exit;
+  local stationAStep = stationPlanA.step;
+  local stationADirection = stationPlanA.direction;
+  local stationBAnchor = stationPlanB.anchor;
+  local stationBExit = stationPlanB.station_exit;
+  local stationBStep = stationPlanB.step;
+  local stationBDirection = stationPlanB.direction;
 
   /* 4. Construire la voie. Triplets (prev, cur, next) comme l'exige AIRail.BuildRail ;
    * pont/tunnel quand deux tuiles consecutives ne sont pas adjacentes. */
+  /* Les quais sont poses avant la voie. L'itineraire part de la sortie du quai A et se termine
+   * sur la tuile juste devant le quai B. */
+  for (local i = 0; i < platformLength; i++) {
+    AITile.DemolishTile(stationAAnchor + stationAStep * i);
+    AITile.DemolishTile(stationBAnchor + stationBStep * i);
+  }
+  local stationA_ok = AIRail.BuildRailStation(stationAAnchor, stationADirection, 1, platformLength, AIStation.STATION_NEW);
+  local stationB_ok = AIRail.BuildRailStation(stationBAnchor, stationBDirection, 1, platformLength, AIStation.STATION_NEW);
+  this.state.station_a_tile = stationA_ok ? stationAExit : null;
+  this.state.station_b_tile = stationB_ok ? stationBExit : null;
+  if (!stationA_ok || !stationB_ok) this._fail("station_build_failed");
+
   local built = 0;
   local failed = 0;
+  if (tiles.len() < 3) this._fail("no_path_found");
+  /* Les premiere et derniere cases sont les sorties des deux quais. La voie nouvelle est posee
+   * uniquement sur les cases intermediaires, avec les quais comme voisins aux deux extremites. */
   for (local i = 1; i < tiles.len() - 1; i++) {
     local prev = tiles[i - 1];
     local cur = tiles[i];
@@ -328,164 +502,77 @@ function TrainLineAI::Start()
   this.state.track_tiles_built = built;
   this.state.track_tiles_failed = failed;
 
-  if (failed > 0) this._fail("track_build_failed");
-
-  /* 5. Construire une gare a chaque bout, un depot pres du depart */
-  /* platform_length etait fixe a 1 : avec platform_length=1, seule la locomotive tient sur le
-   * quai (verifie empiriquement -- voir docs/methode.md). Les wagons restent hors quai en
-   * permanence, donc ne chargent jamais de passagers : profit_this_year/profit_last_year des
-   * locomotives etait alors un pur cout de roulement (meme moteur x meme nombre de vehicules x
-   * meme duree = meme montant, quelle que soit la ligne -- confondu, pas un signal de ligne).
-   * Longueur calculee depuis wagons_per_train a la place : un convoi de (1+wagons_per_train)
-   * unites occupe environ la moitie de ce nombre de tuiles en pratique, +1 de marge. Consequence
-   * acceptee : une gare plus longue a une emprise plus grande, donc plus difficile a placer --
-   * station_build_failed devrait augmenter, pour de vraies raisons de terrain cette fois (bonne
-   * nouvelle pour la variance de l'etage 1 du modele hurdle). */
-  local platformLength = (this.state.wagons_per_train + 2) / 2 + 1; // ceil((1+wagons)/2)+1, division entiere
-  /* buildStation choisissait l'orientation en essayant NE_SW puis NW_SE, en gardant la premiere
-   * qui reussit -- "reussir" ne veut dire que "terrain plat et degage", pas "correspond a la
-   * direction reelle de la voie qui part de cette tuile" (tiles[0]->tiles[1] pour la gare A,
-   * tiles[len-1]->tiles[len-2] pour la gare B). Meme famille de bug que le depot (bug 4, voir
-   * docs/methode.md) : une orientation choisie sans rapport avec la voie reelle. Avec
-   * platform_length=1 (avant cette session) ca ne pouvait pas se voir (rien a etendre) ; devenu
-   * possible depuis que platform_length>1 (bug 1 de cette session). Corrige en derivant la
-   * direction depuis le voisin reel sur la voie plutot qu'en essayant les deux au hasard --
-   * proposition testee suite a une revue externe. Un STNFAIL sur la seule direction correcte est
-   * un vrai signal de terrain, pas une raison d'essayer l'autre orientation en secours. */
-  /* Une gare ne peut porter que de la voie DROITE dans son orientation -- si le chemin tourne
-   * avant platformLength tuiles, etendre le quai jusque-la avale la tuile de virage et rend la
-   * suite du trajet physiquement inateignable (bug racine trouve empiriquement : construction
-   * "reussie", TRLN|...|OK, mais le train reste fige sur une seule tuile, meme moteur d'avaries
-   * et service auto desactives -- voir docs/methode.md). straightRunLength() mesure la portion
-   * reellement rectiligne de tiles[] a partir de startIdx (en avancant de step, +1 pour la gare
-   * A, -1 pour la gare B) et plafonne le quai a cette longueur au lieu d'extrapoler au hasard. */
-  /* Mesure la portion rectiligne COMPLETE (non plafonnee) a partir de startIdx, et signale si
-   * elle s'arrete a cause d'un vrai virage (par opposition a la fin du trajet). Piege d'un
-   * premier essai (retire) : plafonner directement a desiredLength cachait le cas ou le virage
-   * tombe pile sur la derniere tuile mesuree -- ex. tiles[0]->tiles[1] est un pas plein, mais
-   * tiles[1]->tiles[2] tourne : un quai de longueur 2 (tiles[0..1]) semble "rectiligne" par
-   * construction, mais avale quand meme tiles[1], qui EST le pivot du virage, cassant la suite
-   * du trajet exactement comme avant. Il faut donc une tuile de plus, non incluse dans le quai,
-   * pour confirmer que la voie continue tout droit APRES le quai -- d'ou "hitBend" ci-dessous et
-   * le "-1" applique dans buildStation quand ce cas se presente. */
-  local straightRunLength = function(tiles, startIdx, step) {
-    local n = tiles.len();
-    local otherIdx = startIdx + step;
-    if (otherIdx < 0 || otherIdx >= n) return [1, false];
-    local baseDelta = tiles[otherIdx] - tiles[startIdx];
-    local len = 1;
-    local idx = startIdx;
-    local hitBend = false;
-    while (true) {
-      local nextIdx = idx + step;
-      if (nextIdx < 0 || nextIdx >= n) break;
-      if (tiles[nextIdx] - tiles[idx] != baseDelta) { hitBend = true; break; }
-      idx = nextIdx;
-      len++;
-    }
-    return [len, hitBend];
-  };
-
-  /* getStationDirection() inline dans buildStation, pas en closure separee : un closure imbrique
-   * ne peut pas en appeler un autre declare dans le meme Start() (meme regle que plus haut). */
-  local buildStation = function(tiles, startIdx, step, desiredLength, straightRunLength) {
-    local n = tiles.len();
-    local otherIdx = startIdx + step;
-    if (otherIdx < 0 || otherIdx >= n) return false;
-    local tile = tiles[startIdx];
-    local neighbor = tiles[otherIdx];
-    local dx = AIMap.GetTileX(neighbor) - AIMap.GetTileX(tile);
-    local dy = AIMap.GetTileY(neighbor) - AIMap.GetTileY(tile);
-    local direction = AIRail.RAILTRACK_INVALID;
-    local unitStep = 0;
-    local towardPositive = false;
-    if (dx != 0) { direction = AIRail.RAILTRACK_NE_SW; unitStep = AIMap.GetTileIndex(1, 0); towardPositive = (dx > 0); }
-    else if (dy != 0) { direction = AIRail.RAILTRACK_NW_SE; unitStep = AIMap.GetTileIndex(0, 1); towardPositive = (dy > 0); }
-    if (direction == AIRail.RAILTRACK_INVALID) return false;
-
-    local run = straightRunLength(tiles, startIdx, step);
-    local rawRun = run[0];
-    local hitBend = run[1];
-    /* Si le tronçon rectiligne s'arrete a un vrai virage (hitBend), la derniere tuile mesuree
-     * EST ce virage -- on la reserve comme simple raccord, hors du quai (voir commentaire
-     * ci-dessus). S'il s'arrete parce qu'on a atteint le bout du trajet (l'autre gare), rien a
-     * reserver : il n'y a rien a raccorder au-dela. */
-    local platformLength = hitBend ? (rawRun - 1) : rawRun;
-    if (platformLength > desiredLength) platformLength = desiredLength;
-    if (platformLength < 2) return false; // virage trop proche : pas de quai droit possible ici
-
-    /* BuildRailStation etend TOUJOURS la plateforme dans la direction POSITIVE de l'axe choisi
-     * depuis "tile" -- verifie empiriquement (IA de test jetable) : platform_length=3 sur
-     * RAILTRACK_NE_SW occupe tile, tile+1, tile+2, jamais tile-1/tile-2. C'est le vrai bug qui
-     * cassait cette fonction (pas le demolish comme suppose d'abord) : quand le voisin est du
-     * cote NEGATIF (ex. tiles[1] a l'ouest de tiles[0]), "tile" doit etre l'EXTREMITE de la
-     * plateforme, pas son origine -- sinon la gare s'etend a l'oppose de la voie et ne s'y
-     * raccorde jamais (`ERR_AREA_NOT_CLEAR` observe meme sur des tuiles deja validees, parce que
-     * la plateforme reelle etait ailleurs que celle qu'on degageait). */
-    local anchor = towardPositive ? tile : (tile - unitStep * (platformLength - 1));
-    /* BuildRailStation n'auto-nettoie pas la tuile (contrairement a BuildRail) : un arbre ou
-     * autre debris suffit a la faire echouer avec ERR_AREA_NOT_CLEAR. Demolir INCONDITIONNELLEMENT
-     * toute l'emprise, y compris les tuiles deja sur tiles[] (donc deja de la voie construite) --
-     * contrairement a l'hypothese testee d'abord ("ne rien demolir sur une tuile deja sur la
-     * voie"), verifie empiriquement que c'etait le vrai bug ici : AITile.DemolishTile() retire
-     * bien une voie existante (teste isolement : ok=true, la tuile redevient buildable=true,
-     * railTile passe a false) -- ne PAS demolir laissait la tuile intermediaire du quai avec sa
-     * voie simple dessus, jamais "propre" pour BuildRailStation, d'ou ERR_AREA_NOT_CLEAR meme sur
-     * un quai de 2 tuiles ne touchant aucun terrain nouveau. Sans risque pour la continuite de la
-     * voie, PUISQUE l'emprise est desormais garantie rectiligne (straightRunLength ci-dessus) : la
-     * tuile de gare qui la remplace reste connectee (contrairement au depot, qui lui garde
-     * l'exclusion -- voir plus bas). */
-    for (local i = 0; i < platformLength; i++) {
-      local t = anchor + unitStep * i;
-      if (AIMap.IsValidTile(t)) AITile.DemolishTile(t);
-    }
-    return AIRail.BuildRailStation(anchor, direction, 1, platformLength, AIStation.STATION_NEW);
-  };
-
-  local stationA_ok = buildStation(tiles, 0, 1, platformLength, straightRunLength);
-  local stationB_ok = buildStation(tiles, tiles.len() - 1, -1, platformLength, straightRunLength);
-  this.state.station_a_tile = stationA_ok ? tiles[0] : null;
-  this.state.station_b_tile = stationB_ok ? tiles[tiles.len() - 1] : null;
-
-  if (!stationA_ok || !stationB_ok) this._fail("station_build_failed");
-
-  /* Le depot s'ancre sur le premier tuile de tiles[] qui n'est PAS absorbee par la gare A --
-   * plus forcement tiles[1] : avec la gare desormais etendue dans la bonne direction (correction
-   * ci-dessus), elle peut avaler tiles[1] (et au-dela) comme partie de son quai. Ancrer le depot
-   * dessus recree exactement le bug "depot sur une tuile de gare" deja corrige une fois (voir
-   * docs/methode.md, "Depot deconnecte de la gare") -- confirme empiriquement (train de nouveau
-   * bloque, aucune gare jamais visitee). On interroge l'etat reel du jeu (IsRailStationTile)
-   * plutot que de recalculer l'emprise de la gare en parallele -- plus simple et ca ne peut pas
-   * diverger. */
-  local depotAnchorIndex = 1;
-  while (depotAnchorIndex < tiles.len() - 1 && AIRail.IsRailStationTile(tiles[depotAnchorIndex])) {
-    depotAnchorIndex++;
+  local startNext = tiles[2];
+  if (failed > 0 ||
+      !AIRail.AreTilesConnected(stationAExit, tiles[1], startNext) ||
+      !AIRail.AreTilesConnected(tiles[tiles.len() - 3], tiles[tiles.len() - 2], stationBExit)) {
+    this._fail("track_build_failed");
   }
-  local depotAnchor = tiles[depotAnchorIndex];
-  /* L'exclusion des candidats deja presents dans tiles[] (evite d'ecraser la voie principale --
-   * vrai bug distinct, confirme) avait ete essayee seule au tour precedent et faisait regresser
-   * le cas de test ; reessayee ici combinee a la correction de l'orientation de la gare
-   * (proposition d'une revue externe), les deux bugs pouvant se masquer l'un l'autre. Rayon de
-   * recherche etendu (offsets a distance 2) en secours, pour ne pas echouer juste parce que les
-   * 4 voisins immediats sont tous sur la voie ou indisponibles. */
+
+  /* 5. Construire le depot pres du depart. Les deux gares sont deja posees et raccordees. */
+
+  /* Nous posons d'abord l'aiguillage, puis le batiment : BuildRailDepot() ne cree pas
+   * lui-meme les rails de raccordement. Le controle de connectivite ci-dessous conserve la
+   * ligne principale, y compris lorsque le raccordement est place apres un virage. */
   local depotOffsets = [
     AIMap.GetTileIndex(1, 0), AIMap.GetTileIndex(-1, 0),
     AIMap.GetTileIndex(0, 1), AIMap.GetTileIndex(0, -1),
-    AIMap.GetTileIndex(2, 0), AIMap.GetTileIndex(-2, 0),
-    AIMap.GetTileIndex(0, 2), AIMap.GetTileIndex(0, -2),
   ];
   local depotTile = null;
-  foreach (offset in depotOffsets) {
-    local candidate = depotAnchor + offset;
-    if (!AIMap.IsValidTile(candidate)) continue;
-    local onRoute = false;
-    foreach (routeTile in tiles) {
-      if (routeTile == candidate) { onRoute = true; break; }
-    }
-    if (onRoute) continue;
-    AITile.DemolishTile(candidate);
-    if (AIRail.BuildRailDepot(candidate, depotAnchor)) {
+  /* tiles[0] est la sortie du quai A. On commence sur la premiere voie ordinaire : le quai reste
+   * intact et l'aiguillage du depot ne se trouve pas dans la gare. */
+  for (local anchorIndex = 1; anchorIndex < tiles.len() - 1 && depotTile == null; anchorIndex++) {
+    local depotAnchor = tiles[anchorIndex];
+    if (AIRail.IsRailStationTile(depotAnchor) || !AIRail.IsRailTile(depotAnchor)) continue;
+
+    local stationSide = tiles[anchorIndex - 1]; // cote de la gare A
+    local lineSide = tiles[anchorIndex + 1];    // cote de la gare B
+    if (AIMap.DistanceManhattan(stationSide, depotAnchor) != 1 ||
+        AIMap.DistanceManhattan(lineSide, depotAnchor) != 1) continue;
+
+    /* Cette voie existait avant la pose du depot. La reposer est sans effet si elle est deja
+     * presente et rend l'intention explicite : l'aiguillage doit conserver la ligne A <-> B. */
+    AIRail.BuildRail(stationSide, depotAnchor, lineSide);
+    if (!AIRail.AreTilesConnected(stationSide, depotAnchor, lineSide)) continue;
+
+    foreach (offset in depotOffsets) {
+      local candidate = depotAnchor + offset;
+      if (!AIMap.IsValidTile(candidate)) continue;
+      if (AIRail.IsRailStationTile(candidate) || AIRail.IsRailDepotTile(candidate)) continue;
+
+      local onRoute = false;
+      foreach (routeTile in tiles) {
+        if (routeTile == candidate) { onRoute = true; break; }
+      }
+      if (onRoute) continue;
+
+      /* La case est liberee, puis l'aiguillage est construit AVANT le depot. Ce dernier ne
+       * peut etre construit de facon fiable que lorsque sa sortie a deja une voie en face. */
+      AITile.DemolishTile(candidate);
+      {
+        local testMode = AITestMode();
+        if (!AIRail.BuildRailDepot(candidate, depotAnchor)) continue;
+      }
+      AIRail.BuildRail(stationSide, depotAnchor, candidate);
+      local depotToA = AIRail.AreTilesConnected(stationSide, depotAnchor, candidate);
+      local aToB = AIRail.AreTilesConnected(stationSide, depotAnchor, lineSide);
+      if (!depotToA || !aToB) {
+        AIRail.RemoveRail(stationSide, depotAnchor, candidate);
+        AIRail.BuildRail(stationSide, depotAnchor, lineSide);
+        continue;
+      }
+
+      local builtDepot = AIRail.BuildRailDepot(candidate, depotAnchor);
+      if (!builtDepot || AIRail.GetRailDepotFrontTile(candidate) != depotAnchor) {
+        AILog.Warning("Could not build depot at " + candidate + "; trying another junction");
+        if (builtDepot) AITile.DemolishTile(candidate);
+        AIRail.RemoveRail(stationSide, depotAnchor, candidate);
+        AIRail.BuildRail(stationSide, depotAnchor, lineSide);
+        continue;
+      }
+
       depotTile = candidate;
+      AILog.Info("Connected depot " + depotTile + " through rail tile " + depotAnchor);
       break;
     }
   }
@@ -518,7 +605,8 @@ function TrainLineAI::Start()
   if (engineCount == 0) this._fail("no_engine_available");
   local engineRank = AIController.GetSetting("engine_rank");
   if (engineRank >= engineCount) this._fail("engine_rank_out_of_range");
-  local engineId = nth(engines, engineRank);
+  local engineId = engines.Begin();
+  for (local i = 0; i < engineRank; i++) engineId = engines.Next();
   this.state.engine_id = engineId;
   this.state.engine_name = AIEngine.GetName(engineId);
   AILog.Info("Chosen engine: " + this.state.engine_name);
@@ -564,8 +652,13 @@ function TrainLineAI::Start()
      * vrai probleme est que le train ne quitte jamais le voisinage immediat du depot (voir
      * docs/methode.md, bug 4 -- probablement le depot lui-meme, place sur une jonction sans
      * signal apres la correction du bug 2). */
-    AIOrder.AppendOrder(train, tiles[0], AIOrder.OF_FULL_LOAD_ANY);
-    AIOrder.AppendOrder(train, tiles[tiles.len() - 1], AIOrder.OF_FULL_LOAD_ANY);
+    local orderA_ok = AIOrder.AppendOrder(train, stationAExit, AIOrder.OF_FULL_LOAD_ANY);
+    local orderB_ok = AIOrder.AppendOrder(train, stationBExit, AIOrder.OF_FULL_LOAD_ANY);
+    if (!orderA_ok || !orderB_ok || AIOrder.GetOrderCount(train) != 2) {
+      AILog.Error("Train orders failed: A=" + orderA_ok + " B=" + orderB_ok +
+          " count=" + AIOrder.GetOrderCount(train));
+      this._fail("train_order_failed");
+    }
     AIVehicle.StartStopVehicle(train);
     builtTrains++;
   }
