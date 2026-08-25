@@ -165,23 +165,56 @@ résultat. Détail complet dans `docs/phase0_parameterised_ai_check.json`.
 ## TrainLineAI (Phase 2 — préparatoire)
 
 `ai/TrainLineAI/` : squelette fonctionnel et testé de bout en bout, construit une ligne de train
-entre les deux villes les plus peuplées en année 1. Deux paramètres (`num_trains`,
-`wagons_per_train`), déclarés dans `src/trainlineai_schema.py` — source unique qui génère
-`info.nut` **et** construit les `ai_params` Python (`make_ai_params(**valeurs)`), pour qu'un
-typo ou une valeur hors bornes lève une erreur Python immédiate plutôt que d'être avalée
-silencieusement par OpenTTD. Régénérer `info.nut` après modif du schéma : `python
-src/trainlineai_schema.py`.
+entre deux villes choisies par rang de population, en année 1. Six paramètres déclarés dans
+`src/trainlineai_schema.py` — source unique qui génère `info.nut` **et** construit les
+`ai_params` Python (`make_ai_params(**valeurs)`), pour qu'un typo ou une valeur hors bornes lève
+une erreur Python immédiate plutôt que d'être avalée silencieusement par OpenTTD. Régénérer
+`info.nut` après modif du schéma : `python src/trainlineai_schema.py`.
+
+- `num_trains`, `wagons_per_train` : nombre de rames et de wagons par rame.
+- `town_a_rank`, `town_b_rank` (0-15, défauts 0/1) : rang dans la liste des villes triée par
+  population, au lieu de toujours prendre les deux plus peuplées — fait varier distance et terrain
+  d'une observation à l'autre pour une même graine. Bornes vérifiées empiriquement (23 à 30 villes
+  observées sur la carte figée, `number_towns=2` étant une densité, pas un nombre — voir
+  `docs/methode.md`).
+- `engine_rank` (0-2, défaut 0) : rang dans la liste des moteurs triée par vitesse, au lieu de
+  toujours prendre le plus rapide — casse la colinéarité totale entre matériel et date de
+  construction. Seuls 3 moteurs rail sont disponibles en 1950 avec l'OpenGFX de base, d'où la borne.
+- `line_index` (0-19, défaut 0) : identifiant de tentative, échoïsé dans le panneau de statut —
+  rattache un panneau à une tentative précise dès qu'il y en a plusieurs dans la même partie.
+- `cargo_index` : pas encore ajouté, prévu une fois les rangs ci-dessus stabilisés.
 
 Emprunte le maximum au premier tick (`AICompany.SetLoanAmount(AICompany.GetMaxLoanAmount())`) —
 supprime le manque d'argent comme cause d'échec possible ; un échec ne peut plus venir que du
-terrain/pathfinder. Pose un panneau (`AISign.BuildSign`) à chaque tentative avec un code compact
-`TRLN|<stage>|<raison>|<construits>/<demandés>` — canal confirmé fonctionnel via le chunk `SIGN`
-du savegame (texte + position + owner), après un faux négatif initial dû à un temps de jeu trop
-court pour que l'IA démarre.
+terrain/pathfinder. Pose **deux panneaux** (`AISign.BuildSign`) à chaque tentative : un statut
+(`TRLN|<line_index>|<stage>|<raison_courte>|<construits>/<demandés>`) et, dès que les villes sont
+choisies, un détail (`TRLN|<line_index>|T<town_a>-<town_b>|D<distance>|C<coût>` — paire de villes,
+distance à vol d'oiseau, coût de construction mesuré par `AIAccounting`). Canal confirmé
+fonctionnel via le chunk `SIGN` du savegame (texte + position + owner). Les raisons d'échec sont
+abrégées (`REASON_CODES` dans `main.nut`) car `AISign.BuildSign` refuse silencieusement tout texte
+au-delà de 31 caractères — bug trouvé en durcissant ce format : la quasi-totalité des panneaux
+d'échec de l'ancien format (raison en toutes lettres) dépassaient déjà cette limite et ne se
+posaient donc probablement jamais. Détail complet, y compris un second bug de portée Squirrel
+trouvé en corrigeant celui-ci, dans `docs/methode.md`.
 
 `sweeps/debug_ai.py` : lance le binaire OpenTTD en direct (hors OpenTTDLab) avec `-d script=4`
 pour voir la sortie `AILog` — le seul moyen trouvé de déboguer un script Squirrel qui échoue
-silencieusement. A servi à trouver et corriger 5 bugs (voir `docs/methode.md`, section IA).
+silencieusement. A servi à trouver et corriger plusieurs bugs (voir `docs/methode.md`, section IA).
+
+`sweeps/phase2_vehs_explore.py` : vérifie que `VEHS.<id>.train[0].common[0]` expose bien
+`profit_this_year`/`profit_last_year` (uniquement sur le véhicule de tête de chaque train — les
+wagons ont ces champs à 0), avant d'investir dans une cible de profit ligne-level construite en
+sommant ces champs par ligne (`old_economy` est company-level, non exploitable tel quel). Dump
+filtré dans `docs/phase2_vehs_explore.json`. Détail, y compris la nuance profit d'exploitation
+(hors voie/gares/infrastructure) vs coût de construction, dans `docs/methode.md`.
+
+`sweeps/phase2_trainline_run.py` : première campagne de bout en bout (12 tentatives, 4 graines ×
+3 combinaisons de rangs), vérifie que les deux panneaux se lisent correctement via le chunk `SIGN`
+sur un vrai batch (pas un cas isolé). Résultats bruts dans `docs/phase2_trainline_run.json`,
+visualisation (jauges + nuage distance/coût + table complète) dans
+`docs/phase2_trainline_run.html`. 4 lignes construites, 3 échecs (1 `no_path_found`, 2
+`station_build_failed`), 5 encore en construction au-delà des 365 jours de jeu accordés — la
+queue lente est réelle, pas un artefact (voir `docs/methode.md`).
 
 Détails complets, bugs trouvés/corrigés, et ce qui a été testé et rejeté (`Save()`, sortie
 console) : `docs/methode.md`, section **IA (Phase 2 — préparatoire)**.
@@ -197,6 +230,9 @@ console) : `docs/methode.md`, section **IA (Phase 2 — préparatoire)**.
 - [ ] Alerte mémoire Netdata sur le conteneur — toujours pas faite (Netdata non déployé sur ce VPS)
 - [ ] Traiter le confondant matériel × date de construction avant tout entraînement (voir
       `docs/methode.md`)
+- [ ] Orchestrateur multi-lignes par partie (plusieurs instances de `TrainLineAI` avec des rangs
+      différents dans la même expérience) : à écrire pour diviser le coût par observation, avec la
+      contrainte villes disjointes / distance minimale entre lignes (voir `docs/methode.md`)
 
 ## Checklist de sortie de phase 0
 

@@ -1,0 +1,235 @@
+[
+  {
+    "line_index": 0,
+    "seed": 42,
+    "ai_params": {
+      "num_trains": 2,
+      "wagons_per_train": 2,
+      "town_a_rank": 0,
+      "town_b_rank": 1,
+      "engine_rank": 0,
+      "line_index": 0
+    },
+    "raw_signs": [
+      "TRLN|0|success|OK|2/2",
+      "TRLN|0|T17-6|D63|C1962335"
+    ],
+    "stage": "success",
+    "reason": "OK",
+    "built": 2,
+    "requested": 2,
+    "town_a": 17,
+    "town_b": 6,
+    "distance": 63,
+    "cost": 1962335
+  },
+  {
+    "line_index": 1,
+    "seed": 42,
+    "ai_params": {
+      "num_trains": 2,
+      "wagons_per_train": 2,
+      "town_a_rank": 2,
+      "town_b_rank": 8,
+      "engine_rank": 1,
+      "line_index": 1
+    },
+    "raw_signs": [
+      "TRLN|1|success|OK|2/2",
+      "TRLN|1|T19-16|D77|C3728244"
+    ],
+    "stage": "success",
+    "reason": "OK",
+    "built": 2,
+    "requested": 2,
+    "town_a": 19,
+    "town_b": 16,
+    "distance": 77,
+    "cost": 3728244
+  },
+  {
+    "line_index": 2,
+    "seed": 42,
+    "ai_params": {
+      "num_trains": 1,
+      "wagons_per_train": 1,
+      "town_a_rank": 0,
+      "town_b_rank": 15,
+      "engine_rank": 2,
+      "line_index": 2
+    },
+    "raw_signs": []
+  },
+  {
+    "line_index": 3,
+    "seed": 100,
+    "ai_params": {
+      "num_trains": 2,
+      "wagons_per_train": 2,
+      "town_a_rank": 0,
+      "town_b_rank": 1,
+      "engine_rank": 0,
+      "line_index": 3
+    },
+    "raw_signs": []
+  },
+  {
+    "line_index": 4,
+    "seed": 100,
+    "ai_params": {
+      "num_trains": 2,
+      "wagons_per_train": 2,
+      "town_a_rank": 3,
+      "town_b_rank": 9,
+      "engine_rank": 1,
+      "line_index": 4
+    },
+    "raw_signs": [
+      "TRLN|4|success|OK|2/2",
+      "TRLN|4|T4-24|D88|C14987563"
+    ],
+    "stage": "success",
+    "reason": "OK",
+    "built": 2,
+    "requested": 2,
+    "town_a": 4,
+    "town_b": 24,
+    "distance": 88,
+    "cost": 14987563
+  },
+  {
+    "line_index": 5,
+    "seed": 100,
+    "ai_params": {
+      "num_trains": 1,
+      "wagons_per_train": 1,
+      "town_a_rank": 5,
+      "town_b_rank": 12,
+      "engine_rank": 2,
+      "line_index": 5
+    },
+    "raw_signs": []
+  },
+  {
+    "line_index": 6,
+    "seed": 7,
+    "ai_params": {
+      "num_trains": 2,
+      "wagons_per_train": 2,
+      "town_a_rank": 0,
+      "town_b_rank": 1,
+      "engine_rank": 0,
+      "line_index": 6
+    },
+    "raw_signs": []
+  },
+  {
+    "line_index": 7,
+    "seed": 7,
+    "ai_params": {
+      "num_trains": 2,
+      "wagons_per_train": 2,
+      "town_a_rank": 1,
+      "town_b_rank": 6,
+      "engine_rank": 1,
+      "line_index": 7
+    },
+    "raw_signs": [
+      "TRLN|7|success|OK|2/2",
+      "TRLN|7|T18-4|D33|C2011508"
+    ],
+    "stage": "success",
+    "reason": "OK",
+    "built": 2,
+    "requested": 2,
+    "town_a": 18,
+    "town_b": 4,
+    "distance": 33,
+    "cost": 2011508
+  },
+  {
+    "line_index": 8,
+    "seed": 7,
+    "ai_params": {
+      "num_trains": 1,
+      "wagons_per_train": 1,
+      "town_a_rank": 4,
+      "town_b_rank": 14,
+      "engine_rank": 2,
+      "line_index": 8
+    },
+    "raw_signs": [
+      "TRLN|8|failed|NOPATH|0/1",
+      "TRLN|8|T21-23|D119|C270"
+    ],
+    "stage": "failed",
+    "reason": "NOPATH",
+    "built": 0,
+    "requested": 1,
+    "town_a": 21,
+    "town_b": 23,
+    "distance": 119,
+    "cost": 270
+  },
+  {
+    "line_index": 9,
+    "seed": 999,
+    "ai_params": {
+      "num_trains": 2,
+      "wagons_per_train": 2,
+      "town_a_rank": 0,
+      "town_b_rank": 1,
+      "engine_rank": 0,
+      "line_index": 9
+    },
+    "raw_signs": [
+      "TRLN|9|failed|STNFAIL|0/2",
+      "TRLN|9|T1-18|D106|C7679820"
+    ],
+    "stage": "failed",
+    "reason": "STNFAIL",
+    "built": 0,
+    "requested": 2,
+    "town_a": 1,
+    "town_b": 18,
+    "distance": 106,
+    "cost": 7679820
+  },
+  {
+    "line_index": 10,
+    "seed": 999,
+    "ai_params": {
+      "num_trains": 2,
+      "wagons_per_train": 2,
+      "town_a_rank": 2,
+      "town_b_rank": 10,
+      "engine_rank": 1,
+      "line_index": 10
+    },
+    "raw_signs": []
+  },
+  {
+    "line_index": 11,
+    "seed": 999,
+    "ai_params": {
+      "num_trains": 3,
+      "wagons_per_train": 1,
+      "town_a_rank": 0,
+      "town_b_rank": 13,
+      "engine_rank": 2,
+      "line_index": 11
+    },
+    "raw_signs": [
+      "TRLN|11|failed|STNFAIL|0/3",
+      "TRLN|11|T1-4|D85|C10605477"
+    ],
+    "stage": "failed",
+    "reason": "STNFAIL",
+    "built": 0,
+    "requested": 3,
+    "town_a": 1,
+    "town_b": 4,
+    "distance": 85,
+    "cost": 10605477
+  }
+]

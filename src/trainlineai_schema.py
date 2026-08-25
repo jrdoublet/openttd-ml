@@ -7,7 +7,7 @@ par OpenTTD a l'execution (verifie empiriquement, voir docs/methode.md).
 META = {
     "class_name": "TrainLineAI",
     "author": "openttd-ml",
-    "description": "Builds a single train line between the two largest towns in year 1, then idles.",
+    "description": "Builds a single train line between two towns, chosen by population rank, in year 1, then idles.",
     "version": 1,
     "date": "2026-08-25",
     "short_name": "TRLN",
@@ -22,6 +22,22 @@ PARAMS = {
     "wagons_per_train": {
         "min": 1, "max": 10, "default": 2,
         "description": "Number of wagons per train (excluding the engine)",
+    },
+    "town_a_rank": {
+        "min": 0, "max": 15, "default": 0,
+        "description": "Rank of town A in the population-sorted town list (0 = largest)",
+    },
+    "town_b_rank": {
+        "min": 0, "max": 15, "default": 1,
+        "description": "Rank of town B in the population-sorted town list (0 = largest)",
+    },
+    "engine_rank": {
+        "min": 0, "max": 2, "default": 0,
+        "description": "Rank of the engine in the speed-sorted engine list (0 = fastest)",
+    },
+    "line_index": {
+        "min": 0, "max": 19, "default": 0,
+        "description": "Index of this line/attempt within the game, echoed in the status sign",
     },
 }
 

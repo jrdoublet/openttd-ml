@@ -138,3 +138,136 @@ lançant le binaire OpenTTD directement avec `-d script=4` (le seul moyen d'obte
   `AITile.DemolishTile()` explicite est nécessaire avant.
 - Une locomotive ne transporte pas elle-même de cargo (seuls les wagons le font) : filtrer les
   locomotives par `CanRefitCargo` élimine tout le catalogue.
+
+**Rangs paramétrés (`town_a_rank`, `town_b_rank`, `engine_rank`) — passer d'une ligne par graine à
+des dizaines.** Avec `Begin()`/`Next()` fixes, chaque graine ne produisait qu'une seule
+observation (toujours les deux villes les plus peuplées, toujours le moteur le plus rapide) : pas
+de variation de distance/terrain à l'intérieur d'une graine, et le matériel parfaitement déterminé
+par la date (confondant total avec `AIEngine.GetMaxSpeed`, voir plus haut). Trois nouveaux
+paramètres dans `src/trainlineai_schema.py::PARAMS`, consommés par `main.nut` via
+`AIController.GetSetting` :
+- `town_a_rank`/`town_b_rank` : index (0 = premier) dans la liste des villes triée par population
+  décroissante, au lieu de `Begin()`/`Next()`. Rejet explicite (`town_rank_same_town`) si les deux
+  rangs coïncident, et (`town_rank_out_of_range`) si un rang dépasse le nombre de villes réellement
+  présent sur la carte — deux raisons d'échec distinctes du terrain/pathfinder, pour ne pas polluer
+  le signal du classifieur.
+- `engine_rank` : index dans la liste des moteurs rail non-wagon, constructibles, triée par
+  vitesse décroissante, au lieu de `Begin()`. Même garde `engine_rank_out_of_range`.
+- `cargo_index` : pas encore ajouté, prévu une fois ces trois-là stabilisés.
+
+**Bornes vérifiées empiriquement, pas devinées** (`sweeps/debug_ai.py`, config figée de
+`sweeps/phase0_timing.py`, carte 256×256, `number_towns=2`) :
+- `AITown.GetTownList().Count()` loggée une fois par run : 23 à 30 villes selon la graine (12
+  graines testées, seeds 1-10/42/100/999). Confirme que `number_towns=2` dans `openttd.cfg` est
+  une densité ("normale"), pas un nombre de villes — à ne jamais reconfondre. `town_a_rank`/
+  `town_b_rank` bornés à `[0, 15]` dans `PARAMS` : marge de sécurité sous le minimum observé (23),
+  pour que le clamp silencieux d'OpenTTD (voir plus haut, "Déclaration des paramètres") ne
+  transforme jamais un rang demandé en un rang inatteignable sur cette carte.
+- Moteurs rail non-wagon constructibles disponibles à la toute première année (1950), avec le seul
+  OpenGFX de base (pas de NewGRF supplémentaire) : **3 seulement** (`Kirby Paul Tank`, `Chaney
+  'Jubilee'`, `Ginzu 'A4'`, tous à vapeur). `engine_rank` borné à `[0, 2]` en conséquence — le
+  catalogue réel au démarrage est étroit, ce qui limite mécaniquement de combien `engine_rank`
+  peut casser la colinéarité matériel × date en début de partie (à garder en tête si le confondant
+  reste visible malgré ce paramètre).
+
+**Contrainte à respecter pour la campagne multi-lignes (pas encore implémentée) : villes
+disjointes entre lignes d'une même partie, et distance minimale entre lignes.** L'idée du
+« bénéfice collatéral » (diviser le coût par observation en construisant plusieurs lignes
+disjointes dans la même partie plutôt qu'une ligne par graine) n'a pas encore d'orchestrateur —
+`main.nut` reste une IA à une seule ligne par instance de compagnie. Quand cet orchestrateur sera
+écrit (un script dans `sweeps/`, probablement plusieurs instances de `TrainLineAI` avec des
+`ai_params` différents dans la même expérience), il devra choisir des combinaisons de rangs telles
+que les paires de villes ne se recouvrent pas entre lignes et restent séparées d'une distance
+minimale — sans quoi deux lignes concurrentes sur les mêmes villes se cannibaliseraient les
+passagers, ce qui fausserait `company_value` par ligne indépendamment de la qualité de chaque
+ligne. La corrélation intra-partie (même monde, même conjoncture) reste couverte par le split par
+graine, pas par cette contrainte.
+
+**Bug trouvé en préparant l'attribution multi-lignes : les panneaux d'échec ne se posaient
+probablement jamais.** `AISign.BuildSign` accepte au plus **31 caractères** — vérifié
+empiriquement par recherche binaire (`sweeps/debug_ai.py` + une IA de test jetable) : 31 passe, 32
+échoue avec `ERR_PRECONDITION_STRING_TOO_LONG`, **silencieusement** (pas d'exception Squirrel, pas
+de sortie `-d script=4`, aucune entrée dans le chunk `SIGN`). Le format d'origine
+(`TRLN|<stage>|<raison>|<construits>/<demandés>`) dépassait déjà cette limite à lui seul pour
+presque toutes les raisons d'échec (ex. `TRLN|failed|no_buildable_tile_near_town|0/1` = 43
+caractères) — seul `no_path_found` passait de justesse (29). Le seul panneau garanti de se poser
+jusqu'ici était donc `TRLN|success|n/a|<n>/<n>` : tous les échecs de terrain/pathfinder,
+c'est-à-dire le signal principal du classifieur constructible/non-constructible, étaient
+vraisemblablement muets. Non détecté plus tôt car `AILog.Info(code)` s'exécute inconditionnellement
+juste après `BuildSign` — la sortie `-d script=4` semblait donc confirmer que « le panneau a été
+posé », alors qu'elle ne prouve que l'exécution de la ligne, pas le succès de `BuildSign` (dont le
+retour n'était jamais vérifié). Corrigé par une table `REASON_CODES` (raison → code ≤ 7 caractères,
+légende ci-dessous), et reconfirmé cette fois par lecture directe du chunk `SIGN` (pas seulement
+`AILog`), sur un cas d'échec précoce (`town_rank_same_town`) et un cas de succès.
+
+**Deuxième bug trouvé en écrivant `REASON_CODES` : une `local` de fichier n'est pas visible depuis
+les méthodes `TrainLineAI::méthode()`.** Chaque `function TrainLineAI::x() { ... }` est compilée
+comme une affectation de haut niveau indépendante ; un `local REASON_CODES = {...}` placé plus haut
+dans le fichier n'est pas capturé par leur fermeture (contrairement aux fonctions imbriquées dans
+`Start()`, ex. `nth`, qui elles fonctionnent normalement). Erreur obtenue à l'exécution : `the
+index 'REASON_CODES' does not exist` — le script meurt, sans panneau ni log au-delà de ce point.
+Corrigé en déclarant `::REASON_CODES <- {...}` (slot de la table racine, visible partout) au lieu
+de `local`.
+
+**Format des panneaux, révisé (deux panneaux par tentative au lieu d'un) :**
+- Panneau de statut, toujours posé : `TRLN|<line_index>|<stage>|<raison_courte>|<construits>/<demandés>`.
+  `line_index` (nouveau paramètre `PARAMS`, 0 par défaut) sert à rattacher un panneau à une
+  tentative précise dès qu'il y en a plusieurs dans la même partie — nécessaire dès que
+  l'orchestrateur multi-lignes ci-dessus existera. Légende `REASON_CODES` (`ai/TrainLineAI/main.nut`) :
+  `NORAIL`=no_rail_type_available, `NOTOWN`=not_enough_towns, `TWNOOR`=town_rank_out_of_range,
+  `TWNDUP`=town_rank_same_town, `NOTILE`=no_buildable_tile_near_town, `NOPATH`=no_path_found,
+  `TRKFAIL`=track_build_failed, `STNFAIL`=station_build_failed, `DEPFAIL`=depot_build_failed,
+  `NOENG`=no_engine_available, `ENGOOR`=engine_rank_out_of_range, `OK`=succès/pas d'échec.
+- Panneau de détail, posé seulement si les villes ont été choisies (absent pour les 4 raisons
+  d'échec qui précèdent le choix des villes) : `TRLN|<line_index>|T<town_a>-<town_b>|D<distance>|C<coût>`.
+  `town_a`/`town_b` sont les IDs `AITown` bruts (joignables au chunk `CITY`). `distance` est la
+  distance à vol d'oiseau (euclidienne, `sqrt(AIMap.DistanceSquare(...))` — `sqrt()` et
+  `DistanceSquare` confirmés disponibles côté Squirrel) entre les deux centre-villes, connue avant
+  tout pathfinding. `coût` est mesuré par `AIAccounting`, démarré juste après le choix des villes
+  et lu à chaque rapport (succès ou échec) : couvre voie, ponts/tunnels, gares, dépôt et achats de
+  véhicules — tout le capital dépensé pour cette tentative.
+- Les deux panneaux sont posés à la même tuile (`AISign.BuildSign` accepte plusieurs panneaux par
+  tuile, confirmé empiriquement) ; vérifié bout en bout par lecture du chunk `SIGN` complet, pas
+  seulement `AILog` (voir les deux bugs ci-dessus).
+
+**Fuite de feature identifiée : `path_length` n'est pas une caractéristique connue avant
+tentative.** C'est un résultat du pathfinder (nombre de tuiles du chemin *trouvé*), disponible
+seulement après une recherche réussie — l'utiliser comme feature d'entrée d'un modèle de
+constructibilité ou de profit fuiterait de l'information sur l'issue même qu'on cherche à prédire.
+Toujours calculé et gardé dans `Save()` à titre de diagnostic (non lu par OpenTTDLab de toute façon,
+voir plus haut), mais commenté explicitement dans `main.nut` pour ne pas le confondre avec
+`distance_straight` (distance à vol d'oiseau entre les deux villes choisies, connue dès le choix des
+villes, donc légitime comme feature).
+
+**Cible ligne-level : `VEHS.<id>.train[0].common[0].profit_this_year`/`profit_last_year` existent,
+vérifié empiriquement — pas encore exploité.** `old_economy` (`PLYR`) est company-level, inutilisable
+tel quel pour une cible par ligne (déjà noté plus haut). Vérification directe du chunk `VEHS` d'une
+partie avec `TrainLineAI` (`sweeps/phase2_vehs_explore.py`, dump complet dans
+`docs/phase2_vehs_explore.json`) :
+- `profit_this_year`/`profit_last_year` sont bien présents, mais uniquement sur l'enregistrement du
+  **véhicule de tête** (la locomotive) de chaque train — les wagons du même consist ont ces deux
+  champs à 0. Cohérent avec la comptabilité de profit d'OpenTTD, qui l'attribue au véhicule de tête
+  du consist plutôt qu'à chaque unité. Pour sommer le profit d'une ligne : ne garder que les
+  véhicules `type=0` (train) dont `common[0].unitnumber != 0` (les wagons ont `unitnumber=0` dans
+  ce dump), pas la totalité des entrées `VEHS`.
+- **Cette cible est un profit d'exploitation** (income − coûts de fonctionnement), **hors voie,
+  gares et entretien d'infrastructure** — c'est la nuance à ne pas perdre en la nommant : elle
+  répond le mieux à « cette ligne, une fois construite, est-elle rentable à exploiter ? », pas à
+  « ce projet de ligne, capital de construction inclus, est-il rentable ? ». D'où le panneau de
+  coût de construction ci-dessus, à faire remonter et sommer séparément si la deuxième question
+  est celle qui compte.
+- Paire de gares d'une ligne, retrouvable via `ORDR` : chaque véhicule porte un pointeur `orders`
+  (index dans `ORDR`) vers le premier maillon de sa liste d'ordres ; chaque nœud `ORDR` porte
+  `dest` (ID de gare, chunk `STNN`) et `next` (maillon suivant du même véhicule). Un instantané ne
+  donne que la gare de la commande *courante* (`current_order.dest`) — retrouver la paire complète
+  demande de suivre la chaîne depuis `orders`, pas de lire un seul champ. **Non implémenté** : avec
+  une seule ligne par compagnie aujourd'hui, grouper par `owner` suffit à attribuer les véhicules à
+  « la » ligne de cette compagnie ; le chaînage `ORDR` ne devient nécessaire que lorsqu'une même
+  compagnie (ou plusieurs lignes à distinguer autrement que par `owner`) construit plusieurs lignes
+  disjointes dans la même partie — reporté à ce moment-là, pas engagé maintenant.
+- Ordre de grandeur observé (3 ans de jeu, 1 seule ligne, squelette non optimisé) :
+  `profit_this_year` très négatif (environ -540 000) sur chaque locomotive, plausible et cohérent
+  avec l'accumulation de coûts de fonctionnement sur ~1095 jours sans revenu confirmé pour ce
+  squelette (limitation `platform_length=1` déjà documentée plus haut) — pas un signe d'erreur
+  d'échelle par rapport à `old_economy`/`money` (aucune incohérence d'unité détectée), juste une
+  ligne-jouet qui perd probablement de l'argent en l'état.
