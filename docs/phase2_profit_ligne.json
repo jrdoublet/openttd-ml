@@ -1,0 +1,41 @@
+[
+  {
+    "line_index": 0,
+    "seed": 42,
+    "construction_cost": 1962335,
+    "town_a": 17,
+    "town_b": 6,
+    "distance": 63,
+    "n_lead_vehicles": 2,
+    "sum_profit_this_year": -1078700,
+    "avg_max_age_years": 20.05,
+    "amortization_annual": 97872,
+    "profit_ligne": -1176572
+  },
+  {
+    "line_index": 1,
+    "seed": 7,
+    "construction_cost": 2011508,
+    "town_a": 18,
+    "town_b": 4,
+    "distance": 33,
+    "n_lead_vehicles": 2,
+    "sum_profit_this_year": -924600,
+    "avg_max_age_years": 21.06,
+    "amortization_annual": 95513,
+    "profit_ligne": -1020113
+  },
+  {
+    "line_index": 2,
+    "seed": 100,
+    "construction_cost": 14987563,
+    "town_a": 4,
+    "town_b": 24,
+    "distance": 88,
+    "n_lead_vehicles": 2,
+    "sum_profit_this_year": -924600,
+    "avg_max_age_years": 21.06,
+    "amortization_annual": 711660,
+    "profit_ligne": -1636260
+  }
+]

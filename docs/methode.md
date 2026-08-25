@@ -271,3 +271,33 @@ partie avec `TrainLineAI` (`sweeps/phase2_vehs_explore.py`, dump complet dans
   squelette (limitation `platform_length=1` déjà documentée plus haut) — pas un signe d'erreur
   d'échelle par rapport à `old_economy`/`money` (aucune incohérence d'unité détectée), juste une
   ligne-jouet qui perd probablement de l'argent en l'état.
+
+**`AICompany.GetBankBalance` avant/après essayé pour le coût de construction, rejeté : pollué par
+les intérêts du prêt.** `TrainLineAI` emprunte le maximum au tout premier tick (voir plus haut) ;
+`GetBankBalance` baisse donc aussi sous l'effet des intérêts courus, indépendamment de toute
+construction. Vérifié empiriquement avec une IA de test jetable (`sweeps/debug_ai.py`) : sur une
+fenêtre d'environ 27 jours de jeu (`Sleep(2000)`) **sans aucune action de construction**,
+`GetBankBalance` chute de **2100** pendant qu'`AIAccounting.GetCosts()`, ouvert sur la même
+fenêtre, rapporte correctement **0**. Sur une fenêtre avec construction réelle (quelques
+`DemolishTile`), les deux méthodes concordent exactement (`bankDelta` = `AIAccounting.GetCosts()`
+= 1155) — la divergence n'apparaît que lorsque du temps s'écoule sans dépense, ce qui est
+justement le cas pendant une recherche de chemin longue ou une construction étalée sur plusieurs
+tuiles. `AIAccounting` (déjà utilisé, voir plus haut) reste donc la seule mesure fiable : il ne
+compte que le coût des actions effectuées dans sa portée, insensible aux intérêts ou à toute autre
+variation passive du solde. Aucun changement de code nécessaire — confirme simplement que le choix
+initial était le bon.
+
+**Cible ligne-level, deuxième étage : `profit_ligne = Σ(profit véhicules de la ligne) −
+amortissement(coût de construction)`.** Assemble les deux morceaux vérifiés ci-dessus (profit
+d'exploitation par véhicule de tête, coût de construction du panneau de détail) en une seule
+métrique comparable à un profit annuel complet, capital inclus. Horizon d'amortissement : l'âge
+maximal du matériel (`VEHS.<id>.train[0].common[0].max_age`, en jours de jeu, converti en années)
+plutôt qu'une durée arbitraire — c'est la seule durée de vie déjà présente dans le savegame, pas
+une hypothèse ajoutée. `amortissement_annuel = coût_construction / max_age_en_années` ;
+`profit_ligne = Σ profit_this_year (véhicules de tête) − amortissement_annuel`. Implémenté et
+testé sur des parties réelles dans `sweeps/phase2_profit_ligne.py` — résultats dans
+`docs/phase2_profit_ligne.json`. **Simplification assumée, pas cachée** : ceci amortit tout le
+coût de construction (voie + gares + dépôt + véhicules) sur la durée de vie du matériel roulant,
+alors que la voie/les gares ont normalement une durée de vie propre bien plus longue — un choix
+plus rigoureux séparerait les deux composantes avec des horizons différents ; reporté tant que le
+signe et l'ordre de grandeur du résultat n'appellent pas cette finesse.

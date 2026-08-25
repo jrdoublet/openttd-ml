@@ -216,6 +216,16 @@ visualisation (jauges + nuage distance/coût + table complète) dans
 `station_build_failed`), 5 encore en construction au-delà des 365 jours de jeu accordés — la
 queue lente est réelle, pas un artefact (voir `docs/methode.md`).
 
+`sweeps/phase2_profit_ligne.py` : calcule `profit_ligne = Σ(profit_this_year des véhicules de
+tête de la ligne) − amortissement(coût de construction)`, en assemblant le profit d'exploitation
+(`VEHS`) et le coût de construction (panneau de détail). Amortissement sur `max_age` du matériel
+(déjà présent dans le savegame, pas une durée inventée) — simplification assumée (amortit voie et
+gares sur la durée de vie du matériel roulant, plus courte que la leur) documentée dans
+`docs/methode.md`. `AICompany.GetBankBalance` avant/après essayé pour le coût de construction et
+rejeté : pollué par les intérêts du prêt maximal emprunté au premier tick (`GetBankBalance` dérive
+de 2100 sur ~27 jours sans aucune construction, `AIAccounting.GetCosts()` rapporte correctement 0
+sur la même fenêtre) — détail dans `docs/methode.md`. Résultats dans `docs/phase2_profit_ligne.json`.
+
 Détails complets, bugs trouvés/corrigés, et ce qui a été testé et rejeté (`Save()`, sortie
 console) : `docs/methode.md`, section **IA (Phase 2 — préparatoire)**.
 
