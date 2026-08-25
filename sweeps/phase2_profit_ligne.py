@@ -1,8 +1,12 @@
 """profit_ligne = somme(profit des vehicules de la ligne) - amortissement(cout de construction).
 
 Assemble trois morceaux verifies separement :
-- profit d'exploitation par vehicule (VEHS.<id>.train[0].common[0].profit_this_year, vehicule de
-  tete du consist seulement -- voir sweeps/phase2_vehs_explore.py et docs/methode.md),
+- profit d'exploitation par vehicule (VEHS.<id>.train[0].common[0].profit_last_year, vehicule de
+  tete du consist seulement -- voir sweeps/phase2_vehs_explore.py et docs/methode.md).
+  profit_last_year, pas profit_this_year : ce dernier couvre l'annee EN COURS au moment de la
+  sauvegarde (potentiellement partielle si la sauvegarde tombe en milieu d'annee), alors que
+  amortization_annual est une figure annuelle complete -- comparer les deux melangerait des
+  unites de duree differentes. profit_last_year est toujours une annee complete par construction.
 - cout de construction total (panneau de detail TRLN|<idx>|T<a>-<b>|D<dist>|C<cout>, mesure par
   AIAccounting cote AI -- voir ai/TrainLineAI/main.nut),
 - part vehicules de ce cout (panneau TRLN|<idx>|V<cout>, mesuree par difference sur le meme
@@ -36,7 +40,7 @@ map_x = 8
 map_y = 8
 """
 
-DAYS = 365 * 3  # meme fenetre que phase2_vehs_explore.py : assez pour un profit_this_year lisible
+DAYS = 365 * 3  # meme fenetre que phase2_vehs_explore.py : assez pour un profit_last_year lisible
 
 DETAIL_RE = re.compile(r"^TRLN\|(\d+)\|T(\d+)-(\d+)\|D(\d+)\|C(-?\d+)$")
 VEHICLE_COST_RE = re.compile(r"^TRLN\|(\d+)\|V(-?\d+)$")
@@ -50,8 +54,9 @@ RUNS = [
 
 
 def line_profit(chunks, owner):
-    """Somme profit_this_year des vehicules de tete (unitnumber != 0) de cette compagnie, et
-    l'age max moyen du materiel (annees) pour l'amortissement."""
+    """Somme profit_last_year (annee complete, voir docstring du module) des vehicules de tete
+    (unitnumber != 0) de cette compagnie, et l'age max moyen du materiel (annees) pour
+    l'amortissement."""
     vehs = chunks.get("VEHS", {})
     total_profit = 0
     max_ages_days = []
@@ -62,7 +67,7 @@ def line_profit(chunks, owner):
         common = v["train"][0]["common"][0]
         if common["owner"] != owner or common["unitnumber"] == 0:
             continue
-        total_profit += common["profit_this_year"]
+        total_profit += common["profit_last_year"]
         max_ages_days.append(common["max_age"])
         n_lead += 1
     if n_lead == 0:
@@ -70,7 +75,7 @@ def line_profit(chunks, owner):
     avg_max_age_years = (sum(max_ages_days) / len(max_ages_days)) / 365.0
     return {
         "n_lead_vehicles": n_lead,
-        "sum_profit_this_year": total_profit,
+        "sum_profit_last_year": total_profit,
         "avg_max_age_years": round(avg_max_age_years, 2),
     }
 
@@ -150,7 +155,7 @@ if __name__ == "__main__":
             rec["vehicle_amortization_annual"] = round(vehicle_amortization)
             rec["infra_amortization_annual"] = round(infra_amortization)
             rec["amortization_annual"] = round(amortization)
-            rec["profit_ligne"] = round(veh["sum_profit_this_year"] - amortization)
+            rec["profit_ligne"] = round(veh["sum_profit_last_year"] - amortization)
         records.append(rec)
 
     print(f"{len(records)} lignes\n")
@@ -162,12 +167,12 @@ if __name__ == "__main__":
         )
         if "profit_ligne" in rec:
             print(
-                f"    n_lead_vehicles={rec['n_lead_vehicles']} sum_profit_this_year={rec['sum_profit_this_year']} "
+                f"    n_lead_vehicles={rec['n_lead_vehicles']} sum_profit_last_year={rec['sum_profit_last_year']} "
                 f"avg_max_age_years={rec['avg_max_age_years']} "
                 f"vehicle_amortization_annual={rec['vehicle_amortization_annual']} "
                 f"infra_amortization_annual={rec['infra_amortization_annual']} (/{INFRA_LIFE_YEARS}y)"
             )
-            print(f"    -> profit_ligne = {rec['sum_profit_this_year']} - {rec['amortization_annual']} = {rec['profit_ligne']}")
+            print(f"    -> profit_ligne = {rec['sum_profit_last_year']} - {rec['amortization_annual']} = {rec['profit_ligne']}")
         else:
             print("    (donnees incompletes -- pas de profit_ligne calculable)")
 

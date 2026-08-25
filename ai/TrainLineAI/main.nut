@@ -211,11 +211,6 @@ function TrainLineAI::Start()
   local locB = AITown.GetLocation(townB);
   this.state.distance_straight = sqrt(AIMap.DistanceSquare(locA, locB).tofloat()).tointeger();
 
-  /* Demarre la mesure du cout de construction ici : tout ce qui suit (voie, ponts/tunnels,
-   * gares, depot, vehicules) est une depense en capital, a distinguer du profit d'exploitation
-   * des vehicules (VEHS.profit_this_year, hors voie/gares/entretien -- voir docs/methode.md). */
-  this.costs = AIAccounting();
-
   /* AITown.GetLocation() renvoie le centre-ville, occupe par des batiments : impossible d'y
    * construire du rail (contrairement a la route, qui peut se raccorder a la voirie
    * existante). On cherche la tuile constructible et plate la plus proche du centre-ville. */
@@ -270,6 +265,21 @@ function TrainLineAI::Start()
   if (path == null || path == false) this._fail("no_path_found");
   this.state.path_found = true;
 
+  /* Demarre la mesure du cout de construction ICI, apres le pathfinding, pas avant -- bug trouve
+   * empiriquement : un echec no_path_found rapportait parfois un cout de plusieurs dizaines de
+   * millions alors qu'aucune construction n'a lieu avant cet echec (aucune commande de jeu emise
+   * pendant la recherche de chemin). RailPathFinder explore des candidats de pont/tunnel en
+   * evaluant leur cout (voir AIBridgeList_Length/GetMaxSpeed plus bas, meme technique) -- tout
+   * porte a croire que ces evaluations, faites en AITestMode par la librairie, se retrouvaient
+   * comptees dans this.costs simplement parce qu'il etait deja ouvert (meme mecanisme que le
+   * piege AIAccounting documente dans docs/methode.md : un accounting ouvert pendant qu'une
+   * activite de cout se produit ailleurs en capte le cumul, imbrique ou non). Ouvrir this.costs
+   * seulement une fois le chemin trouve evite toute contamination par l'exploration du
+   * pathfinder -- tout ce qui suit (voie, ponts/tunnels, gares, depot, vehicules) est la seule
+   * depense en capital reelle, a distinguer du profit d'exploitation des vehicules
+   * (VEHS.profit_this_year, hors voie/gares/entretien -- voir docs/methode.md). */
+  this.costs = AIAccounting();
+
   /* Reconstitue la liste de tuiles, de tileA vers tileB */
   local tiles = [];
   local node = path;
@@ -321,30 +331,59 @@ function TrainLineAI::Start()
   if (failed > 0) this._fail("track_build_failed");
 
   /* 5. Construire une gare a chaque bout, un depot pres du depart */
-  /* platform_length=1 : pas de garantie qu'un couloir de plusieurs tuiles soit degage
-   * autour de la tuile choisie. Un train plus long que 1 case chargera moins bien
-   * (limitation connue de ce squelette, pas un bug — a ameliorer si besoin). */
-  local buildStation = function(tile) {
+  /* platform_length etait fixe a 1 : avec platform_length=1, seule la locomotive tient sur le
+   * quai (verifie empiriquement -- voir docs/methode.md). Les wagons restent hors quai en
+   * permanence, donc ne chargent jamais de passagers : profit_this_year/profit_last_year des
+   * locomotives etait alors un pur cout de roulement (meme moteur x meme nombre de vehicules x
+   * meme duree = meme montant, quelle que soit la ligne -- confondu, pas un signal de ligne).
+   * Longueur calculee depuis wagons_per_train a la place : un convoi de (1+wagons_per_train)
+   * unites occupe environ la moitie de ce nombre de tuiles en pratique, +1 de marge. Consequence
+   * acceptee : une gare plus longue a une emprise plus grande, donc plus difficile a placer --
+   * station_build_failed devrait augmenter, pour de vraies raisons de terrain cette fois (bonne
+   * nouvelle pour la variance de l'etage 1 du modele hurdle). */
+  local platformLength = (this.state.wagons_per_train + 2) / 2 + 1; // ceil((1+wagons)/2)+1, division entiere
+  /* platformLength passe en parametre, pas capture comme upvalue : verifie empiriquement que ce
+   * closure imbrique ne voit pas les locals de Start() declares avant lui (meme symptome que
+   * REASON_CODES plus haut -- "the index 'platformLength' does not exist" a l'execution -- mais
+   * cette fois entre deux locals du meme Start(), pas entre fichier et methode de classe). */
+  local buildStation = function(tile, platformLength) {
     /* BuildRailStation n'auto-nettoie pas la tuile (contrairement a BuildRail) : un arbre
-     * ou autre debris suffit a la faire echouer avec ERR_AREA_NOT_CLEAR. */
-    AITile.DemolishTile(tile);
-    return AIRail.BuildRailStation(tile, AIRail.RAILTRACK_NE_SW, 1, 1, AIStation.STATION_NEW)
-        || AIRail.BuildRailStation(tile, AIRail.RAILTRACK_NW_SE, 1, 1, AIStation.STATION_NEW);
+     * ou autre debris suffit a la faire echouer avec ERR_AREA_NOT_CLEAR. Avec platform_length>1,
+     * la gare peut s'etendre dans une des deux directions selon l'orientation retenue -- on
+     * degage les deux empreintes candidates par avance pour ne pas confondre un STNFAIL du a des
+     * debris (evitable) avec un STNFAIL du a un manque de place reel (celui qu'on veut voir). */
+    for (local i = 0; i < platformLength; i++) {
+      local alongX = tile + AIMap.GetTileIndex(i, 0);
+      local alongY = tile + AIMap.GetTileIndex(0, i);
+      if (AIMap.IsValidTile(alongX)) AITile.DemolishTile(alongX);
+      if (AIMap.IsValidTile(alongY)) AITile.DemolishTile(alongY);
+    }
+    return AIRail.BuildRailStation(tile, AIRail.RAILTRACK_NE_SW, 1, platformLength, AIStation.STATION_NEW)
+        || AIRail.BuildRailStation(tile, AIRail.RAILTRACK_NW_SE, 1, platformLength, AIStation.STATION_NEW);
   };
 
-  local stationA_ok = buildStation(tiles[0]);
-  local stationB_ok = buildStation(tiles[tiles.len() - 1]);
+  local stationA_ok = buildStation(tiles[0], platformLength);
+  local stationB_ok = buildStation(tiles[tiles.len() - 1], platformLength);
   this.state.station_a_tile = stationA_ok ? tiles[0] : null;
   this.state.station_b_tile = stationB_ok ? tiles[tiles.len() - 1] : null;
 
   if (!stationA_ok || !stationB_ok) this._fail("station_build_failed");
 
+  /* Le depot est ancre sur tiles[1] (le premier tuile de VOIE reelle, pas sur tiles[0], la gare
+   * elle-meme) -- bug trouve empiriquement (voir docs/methode.md, section "Depot deconnecte de
+   * la gare") : ancrer sur tiles[0] avec front=tiles[0] laissait BuildRailDepot reussir (construit
+   * un stub de voie) sans garantir qu'il se raccorde a la voie reelle du quai, dont l'orientation
+   * (NE_SW ou NW_SE) depend de laquelle des deux a reussi et n'est pas connue a l'avance. Les deux
+   * trains restaient bloques au depot, jamais un seul station visite en pres de 3 ans de jeu.
+   * tiles[1] est garanti connecte a tiles[0] par construction (BuildRail y a ete appele avec
+   * tiles[0] comme "prev", voir etape 4) : ancrer le depot dessus, face a une voie dont on connait
+   * l'orientation reelle, plutot que de deviner autour de la gare. */
   local depotTile = null;
   foreach (offset in offsets) {
-    local candidate = tiles[0] + offset;
+    local candidate = tiles[1] + offset;
     if (!AIMap.IsValidTile(candidate)) continue;
     AITile.DemolishTile(candidate);
-    if (AIRail.BuildRailDepot(candidate, tiles[0])) {
+    if (AIRail.BuildRailDepot(candidate, tiles[1])) {
       depotTile = candidate;
       break;
     }

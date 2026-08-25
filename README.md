@@ -209,24 +209,51 @@ sommant ces champs par ligne (`old_economy` est company-level, non exploitable t
 filtré dans `docs/phase2_vehs_explore.json`. Détail, y compris la nuance profit d'exploitation
 (hors voie/gares/infrastructure) vs coût de construction, dans `docs/methode.md`.
 
-`sweeps/phase2_trainline_run.py` : première campagne de bout en bout (12 tentatives, 4 graines ×
-3 combinaisons de rangs, 3 ans de jeu), vérifie que les trois panneaux se lisent correctement via
-le chunk `SIGN` sur un vrai batch (pas un cas isolé), et calcule `profit_ligne` pour chaque ligne
-construite (voir ci-dessous). Résultats bruts dans `docs/phase2_trainline_run.json`, visualisation
-(jauges + nuage distance/coût + barres de profit par ligne + table complète) dans
-`docs/phase2_trainline_run.html`. 5 lignes construites, 3 échecs (1 `no_path_found`, 2
-`station_build_failed`), 4 encore en construction au-delà des 3 ans de jeu accordés — la queue
-lente est réelle, pas un artefact (voir `docs/methode.md`).
+`sweeps/phase2_trainline_run.py` : campagne de bout en bout (12 tentatives, 4 graines × 3
+combinaisons de rangs, **re-baselinée sur 6 ans** après la correction de trois bugs réels — voir
+plus bas), vérifie que les trois panneaux se lisent correctement via le chunk `SIGN` sur un vrai
+batch (pas un cas isolé), et calcule `profit_ligne` pour chaque ligne construite (voir ci-dessous).
+Résultats bruts dans `docs/phase2_trainline_run.json`, visualisation (jauges + nuage distance/coût
++ barres de profit par ligne + table complète) dans `docs/phase2_trainline_run.html`. À 6 ans, les
+12 tentatives sont toutes résolues (0 en attente) : 6 lignes construites, 6 échecs (4
+`no_path_found`, 2 `station_build_failed`).
 
-`sweeps/phase2_profit_ligne.py` : valide `profit_ligne = Σ(profit_this_year des véhicules de
+**Trois bugs réels trouvés en creusant un signal suspect** (`sum_profit_this_year` identique au
+franc près sur trois graines/distances différentes — impossible par hasard) et corrigés dans
+`ai/TrainLineAI/main.nut`, détail complet et vérifications empiriques dans `docs/methode.md` :
+1. **Quai d'une seule tuile** : seule la locomotive tenait dessus, les wagons (qui seuls
+   transportent du cargo) restaient hors quai en permanence — `platform_length` calculé depuis
+   `wagons_per_train` à la place. Bug de portée Squirrel trouvé en l'implémentant (même famille
+   que celui de `REASON_CODES`, cette fois entre deux `local` du même `Start()`).
+2. **Dépôt raccordé à la mauvaise tuile** : ancré sur la gare elle-même avec une orientation
+   arbitraire, sans rapport avec l'axe réel du quai — les deux trains restaient bloqués au dépôt à
+   vie (`last_station_visited` jamais renseigné, vérifié empiriquement). Ancré sur `tiles[1]` (la
+   première tuile de voie réelle) à la place.
+3. **Coût de construction contaminé par l'exploration du pathfinder** : `AIAccounting` ouvert
+   avant la recherche de chemin captait les évaluations de coût de pont/tunnel du pathfinder
+   (jamais construits) — un échec `no_path_found` rapportait un coût de plus de 55 millions.
+   Corrigé en ouvrant `this.costs` après le pathfinding. Effet sur les lignes réussies : coût
+   divisé par un facteur ~31 sur le cas de test.
+
+**Un quatrième problème reste non résolu** : même les deux premiers bugs corrigés, les wagons
+finissent toujours avec zéro cargo chargé (`cargo.packets=[]`, y compris sur 10 ans avec un seul
+train, sans risque de blocage multi-trains) alors que jusqu'à 290 passagers s'accumulent parfois en
+gare. Cause non identifiée — le revenu de chaque ligne reste donc ~nul, et `profit_ligne` ne
+reflète pour l'instant que des coûts de roulement, pas une vraie rentabilité. Signaux/blocs
+absents du script (`AISignal`/`AIRail.BuildSignal` : aucun appel) écartés comme cause suffisante à
+eux seuls (le symptôme persiste avec `num_trains=1`).
+
+`sweeps/phase2_profit_ligne.py` : valide `profit_ligne = Σ(profit_last_year des véhicules de
 tête de la ligne) − amortissement(coût véhicules) − amortissement(coût infrastructure)` sur 3
 parties isolées avant de l'intégrer à la campagne ci-dessus, en assemblant le profit
-d'exploitation (`VEHS`), le coût de construction total et la part véhicules (panneaux). Coût
-véhicules amorti sur `max_age` du matériel (donnée du jeu) ; coût infrastructure (déduit par
-soustraction) amorti sur `INFRA_LIFE_YEARS = 30`, hypothèse assumée et documentée dans
-`docs/methode.md` — OpenTTD ne modélise aucune durée de vie pour la voie/les gares, contrairement
-au matériel roulant. Décision explicite de séparer les deux plutôt que d'amortir tout sur
-`max_age` (version précédente) : **piège trouvé en l'implémentant** — `AIAccounting` ne s'imbrique
+d'exploitation (`VEHS`), le coût de construction total et la part véhicules (panneaux).
+`profit_last_year` (année complète) plutôt que `profit_this_year` (potentiellement partielle,
+mauvaise unité face à un amortissement annuel). Coût véhicules amorti sur `max_age` du matériel
+(donnée du jeu) ; coût infrastructure (déduit par soustraction) amorti sur `INFRA_LIFE_YEARS = 30`,
+hypothèse assumée et documentée dans `docs/methode.md` — OpenTTD ne modélise aucune durée de vie
+pour la voie/les gares, contrairement au matériel roulant. Décision explicite de séparer les deux
+plutôt que d'amortir tout sur `max_age` (version précédente) : **piège trouvé en l'implémentant** —
+`AIAccounting` ne s'imbrique
 pas (un second `AIAccounting` ouvert pendant qu'un premier est encore actif ne repart pas de zéro,
 il reflète le même cumul que le premier), corrigé en mesurant le coût véhicules par différence sur
 le même `AIAccounting`, avant/après l'achat des trains — détail dans `docs/methode.md`.
@@ -242,21 +269,27 @@ console) : `docs/methode.md`, section **IA (Phase 2 — préparatoire)**.
 
 - [x] Lancer une campagne multi-graines avec `TrainLineAI` pour mesurer le taux d'échec réel
       (terrain/pathfinder) une fois l'argent neutralisé — `sweeps/phase2_trainline_run.py`,
-      12 tentatives : 5 construites, 3 échecs, 4 encore en construction au-delà de 3 ans
+      12 tentatives, re-baselinée sur 6 ans : 6 construites, 6 échecs, 0 en attente
 - [x] Descendre `old_economy` (company-level) au niveau ligne : `VEHS.<id>.train[0].common[0]`
       expose `profit_this_year`/`profit_last_year` par véhicule de tête — `profit_ligne` calculé
       et testé (`sweeps/phase2_profit_ligne.py`)
 - [x] Revoir l'amortissement de `profit_ligne` : coût véhicules et coût infrastructure séparés,
       chacun amorti sur son propre horizon (`max_age` pour le matériel, 30 ans assumés pour
       l'infrastructure — voir `docs/methode.md`)
+- [ ] **Corriger le chargement de cargo, toujours à zéro** : deux bugs trouvés et corrigés (quai
+      trop court, dépôt mal raccordé) n'ont pas suffi — les wagons finissent toujours à
+      `cargo.packets=[]` malgré des passagers qui s'accumulent en gare (jusqu'à 290 observés).
+      Cause non identifiée (voir `docs/methode.md`, bug 4). **Bloquant pour tout signal de
+      rentabilité réel** — `profit_ligne` ne reflète pour l'instant que des coûts de roulement.
 - [ ] Construire le jeu de données du modèle hurdle (classifieur constructible + régression
       profit conditionnelle, voir `docs/methode.md`) — les briques existent (panneaux, `VEHS`,
-      `profit_ligne`), pas encore assemblées en jeu de données d'entraînement — **prochaine étape**
+      `profit_ligne`) et l'étage 1 (constructible/non) est déjà exploitable ; l'étage 2 (régression
+      profit) attend la résolution du bug de chargement ci-dessus
 - [ ] Orchestrateur multi-lignes par partie (plusieurs instances de `TrainLineAI` avec des rangs
       différents dans la même expérience) : à écrire pour diviser le coût par observation, avec la
       contrainte villes disjointes / distance minimale entre lignes (voir `docs/methode.md`) —
       pas engagé pour l'instant, la campagne actuelle (une ligne par partie) suffit à avancer sur
-      le point ci-dessus
+      les points ci-dessus
 
 **Explicitement hors scope pour la suite du projet** (décision utilisateur) : le confondant
 matériel × date de construction (3 moteurs jugés suffisants pour les tests actuels) et l'alerte

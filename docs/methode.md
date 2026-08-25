@@ -326,5 +326,150 @@ ensemble, ou aucun des trois.
 une **hypothèse explicite fixée à 30 ans** (horizon courant pour de l'infrastructure ferroviaire
 dans la vraie vie ; OpenTTD ne modélise aucune durée de vie ou dépréciation pour la voie/les gares
 — rien à en tirer empiriquement, contrairement à `max_age`) — voir `INFRA_LIFE_YEARS` dans
-`sweeps/phase2_profit_ligne.py`/`phase2_trainline_run.py`. `profit_ligne = Σ profit_this_year
-(véhicules de tête) − vehicle_cost/max_age_années − infra_cost/INFRA_LIFE_YEARS`.
+`sweeps/phase2_profit_ligne.py`/`phase2_trainline_run.py`. `profit_ligne = Σ profit_last_year
+(véhicules de tête) − vehicle_cost/max_age_années − infra_cost/INFRA_LIFE_YEARS` — `profit_last_year`
+et pas `profit_this_year`, voir plus bas ("Unité manquante").
+
+---
+
+## Quatre bugs réels trouvés en creusant un signal suspect (2026-08-25, revue externe)
+
+Un examen des trois premières valeurs de `sum_profit_this_year` de la campagne
+(`docs/phase2_trainline_run.json`) a révélé une anomalie : trois lignes de graines et distances
+différentes (77, 88, 33 tuiles) donnaient **exactement** -924600, au franc près. Une coïncidence
+à ce niveau de précision n'existe pas — c'est le signe d'une variable confondue à 100 %, pas d'un
+signal de ligne. L'anomalie suivait `engine_rank` et rien d'autre. Investigation menée en suivant
+la piste jusqu'au bout plutôt que de s'arrêter à la première explication plausible ; quatre bugs
+réels trouvés, tous vérifiés empiriquement avant d'être corrigés dans `ai/TrainLineAI/main.nut`.
+
+### Bug 1 — quai d'une seule tuile : les wagons restaient hors quai
+
+`platform_length` était fixé à `1` (limitation déjà notée dans le code, mais jamais quantifiée).
+Avec un convoi de 1 locomotive + N wagons, seule la locomotive tient sur un quai d'1 tuile — les
+wagons (qui sont les seuls à transporter du cargo, voir plus haut) restent physiquement hors
+quai en permanence. **Vérifié empiriquement** (`sweeps/debug_ai.py` + inspection directe du
+savegame) : sur 3 ans, les deux wagons d'une ligne construite affichaient `cargo_cap=40` (capacité
+réelle) mais `cargo.packets=[]` (jamais rien chargé) en permanence, alors que
+`AITile.GetCargoProduction`/`GetCargoAcceptance` autour de la gare étaient tous les deux non nuls
+(la ville produit et accepte bien des passagers à cet endroit — ce n'était donc pas un problème de
+zone de chalandise). `profit_this_year`/`profit_last_year` des locomotives n'étaient donc qu'un
+pur coût de roulement : même moteur × même nombre de véhicules × même durée écoulée = même
+montant, quelle que soit la ligne — exactement le signal repéré.
+
+**Corrigé** : `platformLength = ceil((1 + wagons_per_train) / 2) + 1` (un convoi de N unités
+occupe environ N/2 tuiles en pratique, +1 de marge), passé en 4ᵉ argument de
+`AIRail.BuildRailStation` pour les deux gares. Conséquence acceptée : une gare plus longue a une
+emprise plus grande, donc plus difficile à placer — `station_build_failed` devrait augmenter, pour
+de vraies raisons de terrain cette fois (bonne nouvelle pour la variance de l'étage 1 du modèle
+hurdle, mais rend les anciens taux d'échec, ex. graine 999, non comparables aux nouveaux — d'où le
+re-baseline complet de la campagne).
+
+**Bug de portée Squirrel trouvé en l'implémentant, même famille que celui déjà documenté pour
+`REASON_CODES` :** passer `platformLength` (une `local` de `Start()`) à `buildStation` (une
+fonction imbriquée `local buildStation = function(tile) {...}` définie plus loin dans le même
+`Start()`) échouait avec `the index 'platformLength' does not exist` — un closure imbriqué ne
+capture pas les locals de sa fonction englobante dans cet environnement, même entre deux locals du
+*même* `Start()` (pas seulement entre fichier et méthode de classe, comme observé la première
+fois). **Règle générale retenue : ne jamais compter sur la capture de closure dans ce dépôt —
+passer explicitement tout ce dont une fonction imbriquée a besoin en paramètre.** Corrigé en
+ajoutant `platformLength` comme second paramètre de `buildStation`.
+
+### Bug 2 — dépôt raccordé à la mauvaise tuile, trains bloqués à vie
+
+Le quai plus long **n'a pas suffi** : après correction, les wagons restaient encore à
+`cargo.packets=[]`. Inspection de `VEHS` pour les deux locomotives : `last_station_visited=65535`
+(`INVALID_STATION` — **jamais visité aucune gare**, en ~1020 jours de jeu chacune), `tile=27337`
+identique à `DEPT[0].xy` (le dépôt), immobiles depuis leur construction. Les deux trains n'avaient
+jamais quitté le dépôt.
+
+**Cause : le dépôt était construit adjacent à la tuile de la gare elle-même**
+(`AIRail.BuildRailDepot(candidate, tiles[0])`, `tiles[0]` = tuile de la gare A), avec une
+orientation choisie arbitrairement (le premier offset `(0,1)` qui réussissait), sans rapport avec
+l'orientation réelle du quai (`NE_SW` ou `NW_SE`, dont on ne sait pas à l'avance laquelle a
+réussi). Une gare (contrairement à une tuile de voie ordinaire) n'accepte pas un raccordement
+perpendiculaire à son propre axe — le dépôt se retrouvait construit avec un aiguillage qui ne
+menait nulle part.
+
+**Corrigé** : le dépôt est maintenant ancré sur `tiles[1]` (la première tuile de **voie réelle**,
+garantie connectée à `tiles[0]` par construction — `BuildRail` y a été appelé avec `tiles[0]`
+comme tuile précédente à l'étape 4), avec `front=tiles[1]`. Une tuile de voie ordinaire accepte un
+raccordement/aiguillage depuis n'importe laquelle de ses directions valides, contrairement à une
+gare. **Vérifié empiriquement** : après correction, `last_station_visited` passe de `65535` à `0`
+(gare valide), `cur_real_order_index` avance (le train complète ses arrêts et passe à l'ordre
+suivant) — les deux trains bougent et visitent effectivement les gares, ce qui n'arrivait jamais
+avant.
+
+### Bug 3 — le coût de construction comptait l'exploration du pathfinder, pas juste la construction
+
+Effet de bord découvert en creusant les lignes sans panneau (voir plus bas) : une tentative en
+échec `no_path_found` — donc *avant toute commande de construction* — rapportait un coût de
+**55 856 940**. `no_path_found` se déclenche immédiatement après la boucle de recherche de chemin,
+avant la voie, les gares, le dépôt ou les véhicules : ce coût ne pouvait provenir d'aucune
+construction réelle.
+
+**Cause** : `this.costs = AIAccounting()` était ouvert *avant* la recherche de chemin (pour
+englober toute dépense de l'étape 3 à l'étape 7). `RailPathFinder` évalue des candidats de
+pont/tunnel pendant sa recherche (probablement en `AITestMode`, pour connaître leur coût sans les
+construire réellement) — ces évaluations, bien que jamais suivies d'une construction effective, se
+retrouvaient comptées dans `this.costs`, pour la même raison de fond que le piège déjà documenté
+plus haut : **un `AIAccounting` ouvert capte tout ce qui se passe dans sa portée temporelle, y
+compris une activité de coût produite par du code qu'on n'a pas écrit soi-même** (ici, l'intérieur
+d'une librairie tierce), pas seulement nos propres appels de construction.
+
+**Corrigé** : `this.costs = AIAccounting()` est maintenant ouvert **après** `path_found = true`,
+une fois le chemin trouvé — plus aucune activité du pathfinder ne peut être comptée.
+**Vérifié empiriquement** : le même cas `no_path_found` rapporte maintenant `C0` (au lieu de
+55 856 940). Effet de bord sur les lignes *réussies* : le coût de la ligne de test (graine 42,
+`A0/B1/E0`) est passé de **1 964 441 à 62 241** — un facteur ~31. **Toutes les données de coût de
+la campagne précédente (`docs/phase2_trainline_run.json`, `docs/phase2_profit_ligne.json`,
+la visualisation) étaient gonflées par ce bug et ont été regénérées.**
+
+### Bug 4 (non résolu) — le chargement de cargo reste à zéro même avec les trois corrections ci-dessus
+
+Après les corrections 1 et 2, un test dédié (graine 42, `A0/B1/E0`, **1 seul train** — pour
+exclure tout risque d'auto-blocage entre deux trains sur voie unique sans signaux, voir plus bas)
+montre `AITile.GetCargoProduction` non nul et `STNN.goods[0].max_waiting_cargo` atteignant **290**
+à un moment donné (des passagers s'accumulent bien en gare) — mais `cargo.packets=[]` sur les
+wagons reste **vrai après 10 ans de jeu**, même avec un seul train, sans concurrence possible.
+Cause non identifiée : ni le quai, ni le dépôt, ni la zone de chalandise, ni un conflit
+multi-trains (`num_trains=1` exclut ce dernier) n'expliquent ce symptôme. Piste écartée en
+passant : **absence totale de signaux** (`AISignal`/`AIRail.BuildSignal` : aucun appel dans tout
+`main.nut`) — confirmée comme un risque réel de blocage mutuel pour `num_trains≥2` sur une voie
+unique (un train immobile à `cur_speed=0` près du dépôt observé avec `num_trains=2`, absent avec
+`num_trains=1`), mais insuffisante à elle seule pour expliquer le symptôme à `num_trains=1`.
+**Reporté** : creusé jusqu'à la limite raisonnable de cette session : les données de profit restent
+donc `revenu ≈ 0` (uniquement des coûts de roulement) même après les corrections 1-3, tant que ce
+quatrième problème n'est pas résolu. `profit_ligne` continue d'être calculé et affiché — c'est
+maintenant un chiffre honnête (les trois biais identifiés sont corrigés), mais qui ne reflète pas
+encore une ligne rentable en l'état, puisque le revenu lui-même reste nul.
+
+### Unité manquante : `profit_last_year` remplace `profit_this_year`
+
+`profit_this_year` couvre l'année **en cours** au moment de la sauvegarde — partielle si la
+sauvegarde tombe en milieu d'année civile — alors que `amortization_annual` est une figure
+annuelle complète. Comparer les deux mélangeait deux unités de durée différentes.
+`profit_last_year` est toujours une année complète par construction (le dernier trimestre clos,
+composé sur 4 trimestres). `sweeps/phase2_profit_ligne.py` et `phase2_trainline_run.py` sommaient
+`profit_this_year` ; corrigé pour sommer `profit_last_year` (champ renommé `sum_profit_last_year`
+dans les deux scripts et les JSON produits).
+
+### Lignes sans panneau : diagnostiquées, pas juste supposées lentes
+
+Sur les 12 tentatives de la campagne, 4 n'avaient produit aucun panneau même après 3 ans de jeu.
+Hypothèse à vérifier : censure corrélée au terrain (donc biaisante), pas du hasard. Une des quatre
+(graine 100, `A0/B1/E0`) a été relancée en direct (`sweeps/debug_ai.py`, `-d script=4`) avec un
+budget de ticks croissant : toujours aucun panneau à 5 000 ticks (~68 jours, cohérent avec 3 ans de
+budget de campagne), résolu à **200 000 ticks (~2703 jours, ~7,4 ans)** avec `NOPATH` — un vrai
+échec de recherche de chemin, pas un blocage. La recherche de chemin elle-même reste bornée
+(`iterations_left`, ~500 itérations de boucle max côté script) — le temps réel consommé vient du
+budget CPU/opcode qu'OpenTTD alloue au script par tick : une carte où le chemin est difficile à
+écarter (beaucoup de candidats à explorer avant d'épuiser l'espace de recherche) fait consommer un
+nombre de *ticks réels* largement supérieur au nombre d'itérations de notre propre boucle. **Confirme
+l'hypothèse de départ** : ces échecs sont corrélés à la difficulté réelle du terrain, pas des
+artefacts aléatoires d'instrumentation — les censurer silencieusement biaiserait le classifieur de
+l'étage 1 vers les cartes faciles. Les 3 autres lignes silencieuses n'ont pas été testées
+individuellement (par souci de temps) mais partagent vraisemblablement la même cause. **Mitigation
+retenue** : allonger la fenêtre de la campagne à 6 ans (`DAYS = 365 * 6` dans
+`phase2_trainline_run.py`) — sachant qu'un budget encore plus long resterait insuffisant pour les
+pires cas (7,4 ans observé sur un seul exemple) ; certaines lignes resteront probablement encore
+sans panneau même à 6 ans, ce qui est attendu et pas un signe d'échec du diagnostic.

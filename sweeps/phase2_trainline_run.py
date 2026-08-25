@@ -7,10 +7,17 @@ de bout en bout du format de panneau revise, sur un vrai batch.
 
 Calcule aussi profit_ligne pour chaque ligne construite (meme logique que
 sweeps/phase2_profit_ligne.py, dupliquee ici plutot qu'importee -- chaque script sweeps/ reste
-autonome par convention de ce depot) : DAYS est passe de 365 a 365*3 par rapport a la premiere
-version de ce script pour laisser le temps a profit_this_year de s'accumuler. Amortissement a
-deux horizons (vehicules sur max_age, infrastructure sur INFRA_LIFE_YEARS) -- voir
-docs/methode.md pour le piege AIAccounting trouve et evite en separant les deux couts.
+autonome par convention de ce depot). Amortissement a deux horizons (vehicules sur max_age,
+infrastructure sur INFRA_LIFE_YEARS) -- voir docs/methode.md pour le piege AIAccounting trouve et
+evite en separant les deux couts, et pour un second piege AIAccounting distinct (contamination du
+cout de construction par l'exploration interne du pathfinder, corrige en ouvrant this.costs apres
+le pathfinding plutot qu'avant -- ai/TrainLineAI/main.nut).
+
+Re-baseline complet apres trois corrections dans ai/TrainLineAI/main.nut (longueur de quai,
+raccordement depot/voie, contamination AIAccounting -- toutes documentees dans docs/methode.md) :
+DAYS passe a 365*6 (6 ans) -- un cas NOPATH observe en debug a mis ~7,4 ans (200 000 ticks) a se
+resoudre, donc certaines lignes resteront probablement encore sans panneau meme a 6 ans ; c'est
+attendu, pas un bug (voir la section "Lignes sans panneau" de docs/methode.md).
 """
 import json
 import re
@@ -32,7 +39,7 @@ map_x = 8
 map_y = 8
 """
 
-DAYS = 365 * 3  # assez pour profit_this_year (365 suffisait pour le seul statut de construction)
+DAYS = 365 * 6  # re-baseline -- voir docstring du module
 
 # (seed, town_a_rank, town_b_rank, engine_rank, num_trains, wagons_per_train)
 RUNS = [
@@ -56,8 +63,10 @@ VEHICLE_COST_RE = re.compile(r"^TRLN\|(\d+)\|V(-?\d+)$")
 
 
 def line_profit(chunks, owner=0):
-    """Somme profit_this_year des vehicules de tete (unitnumber != 0) de cette compagnie, et
-    l'age max moyen du materiel (annees) pour l'amortissement -- voir phase2_profit_ligne.py."""
+    """Somme profit_last_year (annee complete -- profit_this_year serait partielle si la
+    sauvegarde tombe en milieu d'annee, alors que amortization_annual est une figure annuelle
+    complete) des vehicules de tete (unitnumber != 0) de cette compagnie, et l'age max moyen du
+    materiel (annees) pour l'amortissement -- voir phase2_profit_ligne.py."""
     vehs = chunks.get("VEHS", {})
     total_profit = 0
     max_ages_days = []
@@ -67,13 +76,13 @@ def line_profit(chunks, owner=0):
         common = v["train"][0]["common"][0]
         if common["owner"] != owner or common["unitnumber"] == 0:
             continue
-        total_profit += common["profit_this_year"]
+        total_profit += common["profit_last_year"]
         max_ages_days.append(common["max_age"])
     if not max_ages_days:
         return None
     return {
         "n_lead_vehicles": len(max_ages_days),
-        "sum_profit_this_year": total_profit,
+        "sum_profit_last_year": total_profit,
         "avg_max_age_years": round((sum(max_ages_days) / len(max_ages_days)) / 365.0, 2),
     }
 
@@ -180,7 +189,7 @@ if __name__ == "__main__":
                 rec["vehicle_amortization_annual"] = round(vehicle_amortization)
                 rec["infra_amortization_annual"] = round(infra_amortization)
                 rec["amortization_annual"] = round(amortization)
-                rec["profit_ligne"] = round(veh["sum_profit_this_year"] - amortization)
+                rec["profit_ligne"] = round(veh["sum_profit_last_year"] - amortization)
         records.append(rec)
 
     print(f"{len(records)} lignes / {len(results)} savegames captures\n")

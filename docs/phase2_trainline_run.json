@@ -12,7 +12,7 @@
     },
     "raw_signs": [
       "TRLN|0|success|OK|2/2",
-      "TRLN|0|T17-6|D63|C1962335",
+      "TRLN|0|T17-6|D63|C62241",
       "TRLN|0|V50318"
     ],
     "stage": "success",
@@ -22,16 +22,16 @@
     "town_a": 17,
     "town_b": 6,
     "distance": 63,
-    "cost": 1962335,
+    "cost": 62241,
     "vehicle_cost": 50318,
     "n_lead_vehicles": 2,
-    "sum_profit_this_year": -1078700,
+    "sum_profit_last_year": -1175300,
     "avg_max_age_years": 20.05,
-    "infra_cost": 1912017,
+    "infra_cost": 11923,
     "vehicle_amortization_annual": 2510,
-    "infra_amortization_annual": 63734,
-    "amortization_annual": 66244,
-    "profit_ligne": -1144944
+    "infra_amortization_annual": 397,
+    "amortization_annual": 2907,
+    "profit_ligne": -1178207
   },
   {
     "line_index": 1,
@@ -46,7 +46,7 @@
     },
     "raw_signs": [
       "TRLN|1|success|OK|2/2",
-      "TRLN|1|T19-16|D77|C3728244",
+      "TRLN|1|T19-16|D77|C53388",
       "TRLN|1|V36256"
     ],
     "stage": "success",
@@ -56,16 +56,16 @@
     "town_a": 19,
     "town_b": 16,
     "distance": 77,
-    "cost": 3728244,
+    "cost": 53388,
     "vehicle_cost": 36256,
     "n_lead_vehicles": 2,
-    "sum_profit_this_year": -924600,
+    "sum_profit_last_year": -1007400,
     "avg_max_age_years": 21.06,
-    "infra_cost": 3691988,
+    "infra_cost": 17132,
     "vehicle_amortization_annual": 1722,
-    "infra_amortization_annual": 123066,
-    "amortization_annual": 124788,
-    "profit_ligne": -1049388
+    "infra_amortization_annual": 571,
+    "amortization_annual": 2293,
+    "profit_ligne": -1009693
   },
   {
     "line_index": 2,
@@ -80,7 +80,7 @@
     },
     "raw_signs": [
       "TRLN|2|success|OK|1/1",
-      "TRLN|2|T17-11|D133|C24562229",
+      "TRLN|2|T17-11|D133|C44723",
       "TRLN|2|V9650"
     ],
     "stage": "success",
@@ -90,16 +90,16 @@
     "town_a": 17,
     "town_b": 11,
     "distance": 133,
-    "cost": 24562229,
+    "cost": 44723,
     "vehicle_cost": 9650,
     "n_lead_vehicles": 1,
-    "sum_profit_this_year": -192625,
+    "sum_profit_last_year": -209875,
     "avg_max_age_years": 15.04,
-    "infra_cost": 24552579,
+    "infra_cost": 35073,
     "vehicle_amortization_annual": 642,
-    "infra_amortization_annual": 818419,
-    "amortization_annual": 819061,
-    "profit_ligne": -1011686
+    "infra_amortization_annual": 1169,
+    "amortization_annual": 1811,
+    "profit_ligne": -211686
   },
   {
     "line_index": 3,
@@ -112,7 +112,20 @@
       "engine_rank": 0,
       "line_index": 3
     },
-    "raw_signs": []
+    "raw_signs": [
+      "TRLN|3|failed|NOPATH|0/2",
+      "TRLN|3|T2-1|D122|C0",
+      "TRLN|3|V0"
+    ],
+    "stage": "failed",
+    "reason": "NOPATH",
+    "built": 0,
+    "requested": 2,
+    "town_a": 2,
+    "town_b": 1,
+    "distance": 122,
+    "cost": 0,
+    "vehicle_cost": 0
   },
   {
     "line_index": 4,
@@ -127,7 +140,7 @@
     },
     "raw_signs": [
       "TRLN|4|success|OK|2/2",
-      "TRLN|4|T4-24|D88|C14987563",
+      "TRLN|4|T4-24|D88|C61139",
       "TRLN|4|V36256"
     ],
     "stage": "success",
@@ -137,16 +150,16 @@
     "town_a": 4,
     "town_b": 24,
     "distance": 88,
-    "cost": 14987563,
+    "cost": 61139,
     "vehicle_cost": 36256,
     "n_lead_vehicles": 2,
-    "sum_profit_this_year": -924600,
+    "sum_profit_last_year": -1007400,
     "avg_max_age_years": 21.06,
-    "infra_cost": 14951307,
+    "infra_cost": 24883,
     "vehicle_amortization_annual": 1722,
-    "infra_amortization_annual": 498377,
-    "amortization_annual": 500098,
-    "profit_ligne": -1424698
+    "infra_amortization_annual": 829,
+    "amortization_annual": 2551,
+    "profit_ligne": -1009951
   },
   {
     "line_index": 5,
@@ -159,7 +172,28 @@
       "engine_rank": 2,
       "line_index": 5
     },
-    "raw_signs": []
+    "raw_signs": [
+      "TRLN|5|success|OK|1/1",
+      "TRLN|5|T0-9|D145|C57169",
+      "TRLN|5|V9650"
+    ],
+    "stage": "success",
+    "reason": "OK",
+    "built": 1,
+    "requested": 1,
+    "town_a": 0,
+    "town_b": 9,
+    "distance": 145,
+    "cost": 57169,
+    "vehicle_cost": 9650,
+    "n_lead_vehicles": 1,
+    "sum_profit_last_year": -209875,
+    "avg_max_age_years": 15.04,
+    "infra_cost": 47519,
+    "vehicle_amortization_annual": 642,
+    "infra_amortization_annual": 1584,
+    "amortization_annual": 2226,
+    "profit_ligne": -212101
   },
   {
     "line_index": 6,
@@ -172,7 +206,20 @@
       "engine_rank": 0,
       "line_index": 6
     },
-    "raw_signs": []
+    "raw_signs": [
+      "TRLN|6|failed|NOPATH|0/2",
+      "TRLN|6|T15-18|D175|C0",
+      "TRLN|6|V0"
+    ],
+    "stage": "failed",
+    "reason": "NOPATH",
+    "built": 0,
+    "requested": 2,
+    "town_a": 15,
+    "town_b": 18,
+    "distance": 175,
+    "cost": 0,
+    "vehicle_cost": 0
   },
   {
     "line_index": 7,
@@ -187,7 +234,7 @@
     },
     "raw_signs": [
       "TRLN|7|success|OK|2/2",
-      "TRLN|7|T18-4|D33|C2011508",
+      "TRLN|7|T18-4|D33|C45132",
       "TRLN|7|V36256"
     ],
     "stage": "success",
@@ -197,16 +244,16 @@
     "town_a": 18,
     "town_b": 4,
     "distance": 33,
-    "cost": 2011508,
+    "cost": 45132,
     "vehicle_cost": 36256,
     "n_lead_vehicles": 2,
-    "sum_profit_this_year": -924600,
+    "sum_profit_last_year": -1007400,
     "avg_max_age_years": 21.06,
-    "infra_cost": 1975252,
+    "infra_cost": 8876,
     "vehicle_amortization_annual": 1722,
-    "infra_amortization_annual": 65842,
-    "amortization_annual": 67563,
-    "profit_ligne": -992163
+    "infra_amortization_annual": 296,
+    "amortization_annual": 2017,
+    "profit_ligne": -1009417
   },
   {
     "line_index": 8,
@@ -221,7 +268,7 @@
     },
     "raw_signs": [
       "TRLN|8|failed|NOPATH|0/1",
-      "TRLN|8|T21-23|D119|C270",
+      "TRLN|8|T21-23|D119|C0",
       "TRLN|8|V0"
     ],
     "stage": "failed",
@@ -231,7 +278,7 @@
     "town_a": 21,
     "town_b": 23,
     "distance": 119,
-    "cost": 270,
+    "cost": 0,
     "vehicle_cost": 0
   },
   {
@@ -247,7 +294,7 @@
     },
     "raw_signs": [
       "TRLN|9|failed|STNFAIL|0/2",
-      "TRLN|9|T1-18|D106|C7679820",
+      "TRLN|9|T1-18|D106|C20319",
       "TRLN|9|V0"
     ],
     "stage": "failed",
@@ -257,7 +304,7 @@
     "town_a": 1,
     "town_b": 18,
     "distance": 106,
-    "cost": 7679820,
+    "cost": 20319,
     "vehicle_cost": 0
   },
   {
@@ -271,7 +318,20 @@
       "engine_rank": 1,
       "line_index": 10
     },
-    "raw_signs": []
+    "raw_signs": [
+      "TRLN|10|failed|NOPATH|0/2",
+      "TRLN|10|T0-21|D232|C0",
+      "TRLN|10|V0"
+    ],
+    "stage": "failed",
+    "reason": "NOPATH",
+    "built": 0,
+    "requested": 2,
+    "town_a": 0,
+    "town_b": 21,
+    "distance": 232,
+    "cost": 0,
+    "vehicle_cost": 0
   },
   {
     "line_index": 11,
@@ -286,7 +346,7 @@
     },
     "raw_signs": [
       "TRLN|11|failed|STNFAIL|0/3",
-      "TRLN|11|T1-4|D85|C10605477",
+      "TRLN|11|T1-4|D85|C14511",
       "TRLN|11|V0"
     ],
     "stage": "failed",
@@ -296,7 +356,7 @@
     "town_a": 1,
     "town_b": 4,
     "distance": 85,
-    "cost": 10605477,
+    "cost": 14511,
     "vehicle_cost": 0
   }
 ]
