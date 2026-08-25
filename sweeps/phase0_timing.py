@@ -2,7 +2,7 @@ import json, os, platform, time
 from openttdlab import run_experiments, bananas_ai
 
 MACHINE = os.environ.get("MACHINE", "unknown")
-DAYS = 365 * 4 + 1
+DAYS = 365 * 10  # révisé après phase0_vps.json #1 : plus rapide que prévu
 TRAINS_MD5 = "c4c069dc797674e545411b59867ad0c2"  # ai/54524149, trAIns 2.1, GPL v2 — figé pour reproductibilité
 
 def keep_last_only(row):

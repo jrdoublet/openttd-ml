@@ -11,7 +11,7 @@ construction, sans simuler la partie ? Voir `docs/methode.md` pour le protocole 
 | OpenGFX | `7.1` | Version appariée à 13.4 dans les exemples de référence |
 | Python | 3.12 | Testé par le projet (3.8.2 minimum) |
 | IA de calibration | trAIns, `unique_id='54524149'` | IA de référence utilisée dans les exemples |
-| Durée de partie | `days = 365 * 4 + 1` | 4 ans de jeu, valeur de l'exemple officiel |
+| Durée de partie | `days = 365 * 10` | Révisé après la 1ère calibration (`s_per_game` plus bas que prévu) : 10 ans de jeu au lieu des 4 ans de l'exemple officiel |
 
 **Note sur la version.** La documentation d'OpenTTDLab se contredit : la section *Compatibility*
 annonce le support des branches 12, 13 et 15+, tandis que l'avertissement sur `run_experiments`
@@ -66,28 +66,31 @@ MACHINE=vps python sweeps/phase0_timing.py   # coût unitaire, point d'inflexion
 python sweeps/phase0_plot.py                 # graphique money x date sur 10 graines
 ```
 
-### Résultats — VPS (4 CPU hôte, conteneur `--cpus=3`)
+### Résultats — VPS (4 CPU hôte, conteneur `--cpus=3`), `days = 365 * 10`
 
 | workers | wallclock (s) | s/partie | rows |
 |---|---|---|---|
-| 1 | 12.9 | 12.9 | 47 |
-| 2 | 12.8 | 6.4 | 94 |
-| 3 | 13.0 | 4.3 | 141 |
-| 4 | 17.0 | 4.3 | 188 |
+| 1 | 34.9 | 34.9 | 119 |
+| 2 | 34.7 | 17.4 | 238 |
+| 3 | 38.6 | 12.9 | 357 |
+| 4 | 50.5 | 12.6 | 476 |
 
-**Point d'inflexion : `max_workers=3`.** Au-delà (4 workers dans un conteneur `--cpus=3`), le
-wallclock augmente sans que `s_per_game` ne s'améliore — cohérent avec la limite CPU du conteneur
-et la recommandation de garder un cœur pour le reste de la stack. `max_workers=3` retenu pour la
+**Point d'inflexion : `max_workers=3`.** Passer à 4 workers ne gagne quasi rien sur `s_per_game`
+(12.6 vs 12.9) alors que le wallclock grimpe nettement (50.5 vs 38.6) — même conclusion qu'avec des
+parties à 4 ans, cohérent avec la limite `--cpus=3` du conteneur. `max_workers=3` retenu pour la
 production sur ce VPS.
 
-**Granularité temporelle.** 47 lignes par partie de 4 ans = un savegame par mois (OpenTTD est
-configuré en `autosave=monthly, keep_all_autosave=true` pour les versions 12–13.x). La granularité
-disponible est donc mensuelle, pas annuelle.
+*Mesure précédente (`days = 365 * 4 + 1`, conservée pour référence) : 12.9 / 6.4 / 4.3 / 4.3 s par
+partie pour 1/2/3/4 workers — le rapport de croissance du coût par partie (~x3 pour x2.5 de durée
+de jeu) n'est pas strictement linéaire avec `days`, à garder en tête si la durée est encore ajustée.*
 
-**Débit de production (VPS, s_per_game_optimal = 4.3s à 3 workers) :**
+**Granularité temporelle.** 119 lignes par partie de 10 ans ≈ un savegame par mois (`autosave=monthly,
+keep_all_autosave=true` sur les versions OpenTTD 12–13.x). Granularité mensuelle, pas annuelle.
+
+**Débit de production (VPS, s_per_game_optimal = 12.9s à 3 workers) :**
 
 ```
-parties_par_jour_vps = 24 * 3600 / 4.3 ≈ 20 090 parties/jour
+parties_par_jour_vps = 24 * 3600 / 12.9 ≈ 6 700 parties/jour
 ```
 
 ### Laptop / sharding — non applicable
@@ -99,7 +102,24 @@ seconde machine est ajoutée au projet.
 
 Le graphique produit (`docs/phase0_money_vs_date.html`, données brutes dans
 `docs/phase0_money_vs_date.csv`) trace `money` par mois sur 10 graines (300–309), IA trAIns,
-4 ans de jeu, `max_workers=3`.
+4 ans de jeu (généré avant le passage à `days = 365 * 10`), `max_workers=3`. Pas encore régénéré
+avec la nouvelle durée — c'est ce graphique qui a révélé le problème de métrique ci-dessous.
+
+## Le capital brut est un mauvais indicateur de succès
+
+Sur ce graphique, les graines 300 et 304 culminent à ~400 k puis retombent à ~3 400. Inspection du
+chunk `PLYR` complet (`sweeps/phase0_explore.py`) : `money` ne tient pas compte de `current_loan`.
+Exemple concret tiré du run : `money=289299` avec `current_loan=300000` → trésorerie nette réelle
+**négative** (-10 701) alors que `money` seul a l'air positif. Une IA qui emprunte gonfle `money`
+sans avoir rien construit ; quand elle rembourse (ou se fait rappeler le prêt), `money` s'effondre
+sans que ça reflète un échec économique réel.
+
+Champs disponibles dans le chunk `PLYR` utiles pour une métrique plus robuste :
+`current_loan`, `cur_economy.income` / `cur_economy.expenses` / `cur_economy.company_value` /
+`cur_economy.performance_history`, `months_of_bankruptcy`. `docs/methode.md` fixait déjà la
+métrique sur le **profit annuel moyen** (pas le capital brut) — cette observation confirme que
+c'était le bon choix, et écarte `money` seul comme feature ou comme proxy de succès pour la suite
+du projet.
 
 ## Checklist de sortie de phase 0
 

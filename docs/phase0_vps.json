@@ -4,24 +4,24 @@
   "cpu_count": 4,
   "runs": {
     "1": {
-      "wallclock_s": 12.9,
-      "s_per_game": 12.9,
-      "rows": 47
+      "wallclock_s": 34.9,
+      "s_per_game": 34.9,
+      "rows": 119
     },
     "2": {
-      "wallclock_s": 12.8,
-      "s_per_game": 6.4,
-      "rows": 94
+      "wallclock_s": 34.7,
+      "s_per_game": 17.4,
+      "rows": 238
     },
     "3": {
-      "wallclock_s": 13.0,
-      "s_per_game": 4.3,
-      "rows": 141
+      "wallclock_s": 38.6,
+      "s_per_game": 12.9,
+      "rows": 357
     },
     "4": {
-      "wallclock_s": 17.0,
-      "s_per_game": 4.3,
-      "rows": 188
+      "wallclock_s": 50.5,
+      "s_per_game": 12.6,
+      "rows": 476
     }
   }
 }
