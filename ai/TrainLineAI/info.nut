@@ -1,7 +1,7 @@
 class TrainLineAIInfo extends AIInfo {
   function GetAuthor()      { return "openttd-ml"; }
   function GetName()        { return "TrainLineAI"; }
-  function GetDescription() { return "Builds a single train line between the two largest towns in year 1, then idles. Designed for phase-2 experiments, not competition."; }
+  function GetDescription() { return "Builds a single train line between the two largest towns in year 1, then idles."; }
   function GetVersion()     { return 1; }
   function GetDate()        { return "2026-08-25"; }
   function CreateInstance() { return "TrainLineAI"; }

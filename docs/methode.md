@@ -1,16 +1,30 @@
 **Question.** Peut-on prédire le profit d'une ligne ferroviaire à partir de ses caractéristiques
 de construction, sans simuler la partie ?
 
-**Unité d'observation.** Une ligne construite (couple villes × cargo × matériel × nombre de rames).
+**Unité d'observation.** Une tentative de ligne (couple villes × cargo × matériel × nombre de
+rames) — construite ou non. Les tentatives ratées ne sont pas jetées : voir modèle hurdle ci-dessous.
 
-**Métrique.** MAE sur le profit annuel moyen.
+**Modèle.** Hurdle à deux étages, pour traiter la censure honnêtement plutôt que la masquer :
+1. **Classifieur** — cette ligne est-elle constructible ? Entraîné sur *toutes* les tentatives,
+   réussies ou non (le signal vient du panneau posé par l'IA à chaque tentative, voir plus bas).
+2. **Régression** — profit conditionnel à la construction réussie. Entraînée uniquement sur les
+   lignes effectivement construites.
 
-**Baseline.** Profit médian du jeu d'entraînement.
+**Métrique.**
+- Étage 1 (classifieur) : F1 sur constructible / non constructible.
+- Étage 2 (régression) : MAE sur `company_value` (ou le profit trimestriel `old_economy`, voir
+  section VPS ci-dessus), conditionnel à la construction — pas le capital brut (`money`).
+
+**Baseline.**
+- Étage 1 : taux de base (proportion de lignes constructibles dans le jeu d'entraînement).
+- Étage 2 : `company_value` médiane des lignes construites dans le jeu d'entraînement.
 
 **Protocole de split.** Par graine, jamais par ligne : deux lignes d'une même partie partagent
 le monde, la conjoncture et la concurrence.
 
-**Critère de réussite.** Battre la baseline de 20 % en MAE, sur des graines jamais vues.
+**Critère de réussite.**
+- Étage 1 : battre le taux de base en F1 (marge à fixer avant de voir les résultats).
+- Étage 2 : battre la baseline de 20 % en MAE, sur des graines jamais vues.
 
 ---
 
@@ -80,18 +94,33 @@ temporelle courte.
   résultat brut de `run_experiments` (avant `result_processor`), mais OpenTTD ne produit aucune
   sortie console en mode headless sans un flag `-d` explicite, qu'`run_experiments` ne permet pas
   de passer.
-- `AISign.BuildSign(...)` : construit dans le jeu mais **n'apparaît pas non plus** dans le chunk
-  `SIGN` parsé — testé et vérifié vide.
-- **Ce qui marche** : les chunks de vérité-terrain du savegame — `VEHS` (filtré par `owner` +
-  liste `train`/`roadveh` non vide), `STNN`, `DEPT`, `ORDR` — donnent le compte exact de ce qui a
-  été construit (véhicules, moteur, cargo, gares, dépôt, ordres), sans rien inventer. Comparer à
-  `AIPL.settings` (demandé) permet de détecter une construction partielle (ex. mesuré :
-  `num_trains=50` demandés, 17 réellement construits, faute d'argent).
-- **Angle mort persistant** : un échec pathfinder (aucune route trouvée) et un échec financier total
-  (aucun train acheté) produisent tous les deux "0 construit" — strictement indiscernables l'un de
-  l'autre sans un canal de sortie que je n'ai pas trouvé de moyen de faire fonctionner via
-  OpenTTDLab. `TrainLineAI` maintient un état structuré interne (`this.state`, retourné par `Save()`)
-  qui documente la cause exacte si vous inspectez le savegame par un autre moyen plus tard.
+- `AISign.BuildSign(...)` : **fonctionne**, corrigé après un premier faux négatif. Le premier essai
+  (jours=40) ne laissait pas assez de temps simulé à l'IA pour même démarrer — verifié en direct
+  avec le binaire OpenTTD : sur 200 ticks (~2.7 jours) aucune sortie IA du tout, sur 8000 ticks
+  (~108 jours) l'IA s'exécute normalement. Une fois cette confusion levée, le chunk `SIGN` expose
+  bien `name` (texte), `x`/`y`/`z` (position) et `owner` — confirmé par `run_experiments`, pas
+  seulement en direct. C'est le canal retenu : un panneau posé à chaque tentative, texte compact
+  `TRLN|<stage>|<raison>|<construits>/<demandés>` (ex. `TRLN|success|n/a|2/2`), positionné sur la
+  meilleure tuile connue au moment de l'échec (dépôt > tuile de départ > centre-ville > centre carte).
+- Les chunks de vérité-terrain (`VEHS` filtré par `owner`, `STNN`, `DEPT`, `ORDR`) restent utiles en
+  complément pour le détail fin (moteur, cargo, nombre exact de wagons) et pour détecter une
+  construction partielle en comparant à `AIPL.settings` (ex. mesuré : `num_trains=50` demandés,
+  17 réellement construits, faute d'argent — avant le correctif de l'emprunt max, voir plus bas).
+
+**Angle mort pathfinder vs argent — supprimé par construction.** `TrainLineAI` emprunte le
+maximum (`AICompany.SetLoanAmount(AICompany.GetMaxLoanAmount())`) au tout premier tick, avant toute
+construction. Un échec ne peut donc plus venir du manque d'argent (dans la limite de ce que
+`max_loan` permet sur cette carte/ces paramètres) — seul le terrain ou le pathfinder peuvent encore
+faire échouer une tentative. `company_value` (net de l'emprunt) reste la cible : le remboursement du
+prêt ne pollue rien.
+
+**Déclaration des paramètres générée depuis un schéma unique — plus de typo possible par
+construction.** `src/trainlineai_schema.py` définit `PARAMS` (nom, min, max, défaut, description)
+une seule fois ; `render_info_nut()` génère `info.nut` depuis ce dict, `make_ai_params(**values)`
+construit le tuple `ai_params` pour Python. Un nom de paramètre inconnu ou une valeur hors bornes
+lève une `ValueError` **immédiate côté Python**, avant même de lancer OpenTTD — testé :
+`make_ai_params(num_tarins=5)` (typo) et `make_ai_params(num_trains=999)` (hors bornes) lèvent
+tous les deux, avec le message listant les paramètres réellement déclarés / les bornes réelles.
 
 **`ai/TrainLineAI/`** : squelette fonctionnel (testé de bout en bout via `run_experiments`), deux
 paramètres (`num_trains`, `wagons_per_train`), construit une ligne entre les deux villes les plus

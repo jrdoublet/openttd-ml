@@ -2,24 +2,43 @@ import("pathfinder.rail", "RailPathFinder", 1);
 
 /*
  * NOTE SUR Save() :
- * L'etat structure ci-dessous est ecrit pour documenter ce que l'IA a fait, et rester
- * disponible si vous inspectez le savegame par un autre moyen plus tard (ou une future
- * version d'OpenTTDLab qui exposerait les donnees AI). A la date d'ecriture (verifie
- * empiriquement), OpenTTDLab NE LIT PAS cette donnee : son parseur n'expose que l'echo
- * des reglages declares (chunk AIPL.settings), pas le contenu de Save(). Le vrai canal
- * exploitable aujourd'hui est le savegame lui-meme : chunks VEHS/STNN/DEPT/ORDR filtres
- * par owner, compares a AIPL.settings (demande vs construit).
+ * L'etat structure ci-dessous documente ce que l'IA a fait, et reste disponible si vous
+ * inspectez le savegame par un autre moyen plus tard. A la date d'ecriture (verifie
+ * empiriquement), OpenTTDLab NE LIT PAS cette donnee : son parseur n'expose que l'echo des
+ * reglages declares (chunk AIPL.settings), pas le contenu de Save().
+ *
+ * CANAL REEL : un panneau (AISign.BuildSign) est pose a chaque tentative, avec un code de
+ * resultat compact en texte. Verifie empiriquement : le chunk SIGN du savegame expose bien
+ * name/x/y/owner via OpenTTDLab (contrairement a Save(), AILog et — a tord souponne au debut —
+ * AISign : le premier essai avait juste tourne trop peu de jours pour que l'IA demarre).
+ * Complete par les chunks VEHS/STNN/DEPT/ORDR filtres par owner pour le detail construit.
  */
 
 class TrainLineAI extends AIController
 {
   state = null;
+  lastKnownTile = null;
 }
 
-function TrainLineAI::_sleepForever()
+function TrainLineAI::_report(code)
+{
+  local tile = this.lastKnownTile;
+  if (tile == null) tile = AIMap.GetTileIndex(AIMap.GetMapSizeX() / 2, AIMap.GetMapSizeY() / 2);
+  AISign.BuildSign(tile, code);
+  AILog.Info(code);
+}
+
+function TrainLineAI::_code()
 {
   local reason = this.state.failure_reason == null ? "n/a" : this.state.failure_reason;
-  AILog.Info("Stage=" + this.state.stage + " reason=" + reason);
+  return "TRLN|" + this.state.stage + "|" + reason + "|" + this.state.built_trains + "/" + this.state.requested_trains;
+}
+
+function TrainLineAI::_fail(reason)
+{
+  this.state.stage = "failed";
+  this.state.failure_reason = reason;
+  this._report(this._code());
   while (true) {
     this.Sleep(50);
   }
@@ -60,18 +79,19 @@ function TrainLineAI::Start()
   };
   AILog.Info("Chosen company name: " + setName());
 
+  /* Emprunte le maximum des le premier tick, avant toute construction. Objectif : supprimer
+   * le manque d'argent comme cause d'echec possible, pour qu'un echec ne puisse plus venir
+   * que du terrain ou du pathfinder -- les deux causes qui donnaient la meme signature a zero
+   * (0 construit) sont ainsi reduites a une seule. Le remboursement ne pollue pas la cible :
+   * on mesure company_value, qui est net de l'emprunt (voir docs/methode.md). */
+  AICompany.SetLoanAmount(AICompany.GetMaxLoanAmount());
+
   this.state.requested_trains = AIController.GetSetting("num_trains");
   this.state.wagons_per_train = AIController.GetSetting("wagons_per_train");
 
   /* 1. Choisir un type de rail (le premier disponible) */
   local railTypes = AIRailTypeList();
-  if (railTypes.IsEmpty()) {
-    this.state.stage = "failed";
-    this.state.failure_reason = "no_rail_type_available";
-    AILog.Error("No rail type available");
-    this._sleepForever();
-    return;
-  }
+  if (railTypes.IsEmpty()) this._fail("no_rail_type_available");
   local railType = railTypes.Begin();
   AIRail.SetCurrentRailType(railType);
   this.state.rail_type = railType;
@@ -80,19 +100,14 @@ function TrainLineAI::Start()
   local townList = AITownList();
   townList.Valuate(AITown.GetPopulation);
   townList.Sort(AIList.SORT_BY_VALUE, false);
-  if (townList.Count() < 2) {
-    this.state.stage = "failed";
-    this.state.failure_reason = "not_enough_towns";
-    AILog.Error("Not enough towns");
-    this._sleepForever();
-    return;
-  }
+  if (townList.Count() < 2) this._fail("not_enough_towns");
   local townA = townList.Begin();
   local townB = townList.Next();
   this.state.town_a = townA;
   this.state.town_a_name = AITown.GetName(townA);
   this.state.town_b = townB;
   this.state.town_b_name = AITown.GetName(townB);
+  this.lastKnownTile = AITown.GetLocation(townA);
   AILog.Info("Connecting " + AITown.GetName(townA) + " to " + AITown.GetName(townB));
 
   /* AITown.GetLocation() renvoie le centre-ville, occupe par des batiments : impossible d'y
@@ -115,13 +130,8 @@ function TrainLineAI::Start()
 
   local tileA = findBuildableNear(AITown.GetLocation(townA), 20);
   local tileB = findBuildableNear(AITown.GetLocation(townB), 20);
-  if (tileA == null || tileB == null) {
-    this.state.stage = "failed";
-    this.state.failure_reason = "no_buildable_tile_near_town";
-    AILog.Error("No buildable flat tile found near a town");
-    this._sleepForever();
-    return;
-  }
+  if (tileA == null || tileB == null) this._fail("no_buildable_tile_near_town");
+  this.lastKnownTile = tileA;
 
   /* 3. Chercher un chemin.
    * IMPORTANT : InitializePath attend des paires [tuile, tuile_precedente] pour etablir
@@ -151,13 +161,7 @@ function TrainLineAI::Start()
     this.Sleep(1);
   }
 
-  if (path == null || path == false) {
-    this.state.stage = "failed";
-    this.state.failure_reason = "no_path_found";
-    AILog.Error("No rail path found between " + this.state.town_a_name + " and " + this.state.town_b_name);
-    this._sleepForever();
-    return;
-  }
+  if (path == null || path == false) this._fail("no_path_found");
   this.state.path_found = true;
 
   /* Reconstitue la liste de tuiles, de tileA vers tileB */
@@ -203,18 +207,12 @@ function TrainLineAI::Start()
       ok = AIRail.BuildRail(prev, cur, next);
     }
 
-    if (ok) built++; else { failed++; AILog.Error("Track fail at i=" + i + " prev=" + prev + " cur=" + cur + " next=" + next + " d1=" + AIMap.DistanceManhattan(prev,cur) + " d2=" + AIMap.DistanceManhattan(cur,next)); }
+    if (ok) built++; else { failed++; AILog.Error("Track fail at i=" + i + " prev=" + prev + " cur=" + cur + " next=" + next); }
   }
   this.state.track_tiles_built = built;
   this.state.track_tiles_failed = failed;
 
-  if (failed > 0) {
-    this.state.stage = "failed";
-    this.state.failure_reason = "track_build_failed";
-    AILog.Error("Track build failed on " + failed + " tile(s)");
-    this._sleepForever();
-    return;
-  }
+  if (failed > 0) this._fail("track_build_failed");
 
   /* 5. Construire une gare a chaque bout, un depot pres du depart */
   /* platform_length=1 : pas de garantie qu'un couloir de plusieurs tuiles soit degage
@@ -229,19 +227,11 @@ function TrainLineAI::Start()
   };
 
   local stationA_ok = buildStation(tiles[0]);
-  if (!stationA_ok) AILog.Error("Station A failed at tile " + tiles[0] + ": " + AIError.GetLastErrorString());
   local stationB_ok = buildStation(tiles[tiles.len() - 1]);
-  if (!stationB_ok) AILog.Error("Station B failed at tile " + tiles[tiles.len() - 1] + ": " + AIError.GetLastErrorString());
   this.state.station_a_tile = stationA_ok ? tiles[0] : null;
   this.state.station_b_tile = stationB_ok ? tiles[tiles.len() - 1] : null;
 
-  if (!stationA_ok || !stationB_ok) {
-    this.state.stage = "failed";
-    this.state.failure_reason = "station_build_failed";
-    AILog.Error("Station build failed");
-    this._sleepForever();
-    return;
-  }
+  if (!stationA_ok || !stationB_ok) this._fail("station_build_failed");
 
   local depotTile = null;
   foreach (offset in offsets) {
@@ -251,19 +241,12 @@ function TrainLineAI::Start()
     if (AIRail.BuildRailDepot(candidate, tiles[0])) {
       depotTile = candidate;
       break;
-    } else {
-      AILog.Error("Depot candidate " + candidate + " failed: " + AIError.GetLastErrorString());
     }
   }
   this.state.depot_tile = depotTile;
+  if (depotTile != null) this.lastKnownTile = depotTile;
 
-  if (depotTile == null) {
-    this.state.stage = "failed";
-    this.state.failure_reason = "depot_build_failed";
-    AILog.Error("Depot build failed");
-    this._sleepForever();
-    return;
-  }
+  if (depotTile == null) this._fail("depot_build_failed");
 
   /* 6. Choisir un cargo passager et le meilleur moteur disponible pour ce cargo */
   local passengerCargo = null;
@@ -285,13 +268,7 @@ function TrainLineAI::Start()
   engines.Valuate(AIEngine.GetMaxSpeed);
   engines.Sort(AIList.SORT_BY_VALUE, false);
 
-  if (engines.IsEmpty()) {
-    this.state.stage = "failed";
-    this.state.failure_reason = "no_engine_available";
-    AILog.Error("No suitable engine available");
-    this._sleepForever();
-    return;
-  }
+  if (engines.IsEmpty()) this._fail("no_engine_available");
   local engineId = engines.Begin();
   this.state.engine_id = engineId;
   this.state.engine_name = AIEngine.GetName(engineId);
@@ -329,9 +306,11 @@ function TrainLineAI::Start()
   }
   this.state.built_trains = builtTrains;
   this.state.stage = (builtTrains == this.state.requested_trains) ? "success" : "partial";
-  AILog.Info("Built " + builtTrains + "/" + this.state.requested_trains + " trains");
+  this._report(this._code());
 
-  this._sleepForever();
+  while (true) {
+    this.Sleep(50);
+  }
 }
 
 function TrainLineAI::Save()
