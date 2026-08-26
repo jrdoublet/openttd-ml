@@ -103,7 +103,11 @@ function TrainLineAI::_codeVehicleCost()
 
 /* Features connues avant le pathfinder : populations courantes des deux villes et distance
  * euclidienne. CITY ne serialise pas la population dans OpenTTD 13.4. Avec deux populations a
- * six chiffres, "TRLN|99|P999999-999999|D999" fait 27 caracteres, sous la limite de 31. */
+ * six chiffres, "TRLN|99|P999999-999999|D999" fait 27 caracteres, sous la limite de 31.
+ * Poste depuis _reportAll() (donc apres la premiere mutation de carte pour une ligne construite,
+ * ou immediatement a l'echec sinon) -- PAS immediatement apres le choix de paire comme en v1, pour
+ * ne pas ajouter de DoCommand avant la barriere. Voir le commentaire dans Start() a l'endroit ou
+ * town_a_population/town_b_population sont ecrits dans this.state. */
 function TrainLineAI::_codePairFeatures(populationA, populationB, distance)
 {
   return "TRLN|" + this.state.line_index + "|P" + populationA + "-" + populationB + "|D" + distance;
@@ -120,6 +124,115 @@ function TrainLineAI::_codeBarrier()
       (this.state.barrier_met ? "M" : "O");
 }
 
+/* Panneau distance Manhattan + cout estime : les deux connus des la paire choisie (avant le
+ * pathfinder). Manhattan complete distance_straight (l'ecart entre les deux est un indice de
+ * detour impose par le terrain) ; estimatedCost est deja calcule par l'IA pour filtrer les paires
+ * inabordables (voir la boucle de construction de `pairs`), donc gratuit a exposer. Pire cas
+ * mesure empiriquement (sweeps/debug_ai.py) : Manhattan <= ~212 (distance_straight <= 150 aux
+ * bornes actuelles), cout estime <= disponibilites de depart (300000 mesure, banque+emprunt max).
+ * "TRLN|99|M999|X999999" fait 21 caracteres, sous la limite de 31. */
+function TrainLineAI::_codeDistCost()
+{
+  return "TRLN|" + this.state.line_index + "|M" + this.state.distance_manhattan +
+      "|X" + this.state.estimated_cost;
+}
+
+/* Panneau specs moteur (vitesse, capacite WAGON, puissance) -- voir le commentaire sur
+ * this.state.wagon_capacity dans Start() pour pourquoi c'est la capacite du wagon et non celle
+ * (toujours -1) de la locomotive. Pire cas mesure empiriquement sur le jeu de moteurs 1970
+ * (sweeps/debug_ai.py, stable sur 5 graines) : vitesse <= 160, capacite wagon <= 40, puissance
+ * <= 3600 -- "TRLN|99|E999-999-9999" fait 22 caracteres, sous la limite de 31. */
+function TrainLineAI::_codeEngineSpecs()
+{
+  return "TRLN|" + this.state.line_index + "|E" + this.state.engine_max_speed +
+      "-" + this.state.wagon_capacity + "-" + this.state.engine_power;
+}
+
+/* Panneau cout moteur (prix d'achat, cout de roulement). Pire cas mesure empiriquement : prix
+ * <= 30468, cout de roulement <= 2531 sur le jeu de moteurs 1970. "TRLN|99|F99999-9999" fait 20
+ * caracteres, sous la limite de 31. */
+function TrainLineAI::_codeEngineCost()
+{
+  return "TRLN|" + this.state.line_index + "|F" + this.state.engine_price +
+      "-" + this.state.engine_running_cost;
+}
+
+/* Panneau distance gare<->centre-ville, pour les deux gares -- voir le commentaire sur
+ * this.state.station_a_town_dist dans Start(). Pire cas : _makeStationPlans() cherche dans un
+ * rayon 30 (Manhattan <= 60) avec une emprise de quai qui peut deporter l'ancre de jusqu'a
+ * platformLength-1 tuiles de plus (<=6 avec wagons_per_train max=10), donc <= 66. "TRLN|99|SA99-SB99"
+ * fait 17 caracteres au pire cas realiste ; largement sous 31 meme avec une marge a 3 chiffres. */
+function TrainLineAI::_codeStationDist()
+{
+  return "TRLN|" + this.state.line_index + "|SA" + this.state.station_a_town_dist +
+      "-SB" + this.state.station_b_town_dist;
+}
+
+/* Panneaux production/acceptation de cargo dans la zone de chalandise de chaque gare -- un
+ * panneau par gare (deux panneaux au lieu d'un pour rester sous la limite de 31 caracteres avec
+ * de la marge). Pire cas mesure empiriquement pres d'un centre-ville a rayon 4 (sweeps/debug_ai.py,
+ * 5 graines) : production <= 29, acceptation <= 251 -- "TRLN|99|GA9999-9999" fait 19 caracteres
+ * meme avec une marge a 4 chiffres. */
+function TrainLineAI::_codeCargoA()
+{
+  return "TRLN|" + this.state.line_index + "|GA" + this.state.station_a_cargo_prod +
+      "-" + this.state.station_a_cargo_acc;
+}
+
+function TrainLineAI::_codeCargoB()
+{
+  return "TRLN|" + this.state.line_index + "|GB" + this.state.station_b_cargo_prod +
+      "-" + this.state.station_b_cargo_acc;
+}
+
+/* Panneau terrain : denivele (max height - min height echantillonnes), tuiles d'eau, tuiles non
+ * constructibles sur la ligne droite entre les deux centre-villes (PAS le vrai chemin du
+ * pathfinder -- ca, c'est un resultat de construction, donc une fuite). Pire cas mesure
+ * empiriquement (terrain plutot plat sur cette configuration de carte, denivele <= 7 observe) ;
+ * eau/non-constructible bornes par distance_straight <= 150. "TRLN|99|H99|W999|U999" fait 22
+ * caracteres, sous la limite de 31. */
+function TrainLineAI::_codeTerrain()
+{
+  return "TRLN|" + this.state.line_index + "|H" + this.state.terrain_dh +
+      "|W" + this.state.terrain_water + "|U" + this.state.terrain_unbuildable;
+}
+
+/* Echantillonne la ligne DROITE entre les deux centres-villes (pas le vrai chemin du pathfinder,
+ * qui est un resultat -- voir docs/phase3_ml.md 3.2). Un point par tuile de distance_straight
+ * (borne a [minDistance, maxDistance] = [20,150] par construction des paires) : cout pur en
+ * opcodes Squirrel, aucun DoCommand, donc aucun cout de tick tant que ca reste sous le budget
+ * d'opcodes du VM avant suspension forcee (~10000) -- d'ou un scan 1D le long de la droite plutot
+ * qu'un balayage de zone 2D, qui couterait bien plus cher. Verifie empiriquement (smoke-test) que
+ * le preflight ne s'allonge pas au point de repousser la barriere. */
+function TrainLineAI::_scanTerrain(locA, locB, samples)
+{
+  local xA = AIMap.GetTileX(locA);
+  local yA = AIMap.GetTileY(locA);
+  local xB = AIMap.GetTileX(locB);
+  local yB = AIMap.GetTileY(locB);
+  local steps = samples < 1 ? 1 : samples;
+  local maxH = null;
+  local minH = null;
+  local water = 0;
+  local unbuildable = 0;
+  local lastTile = null;
+  for (local i = 0; i <= steps; i++) {
+    local t = i.tofloat() / steps.tofloat();
+    local x = (xA + (xB - xA).tofloat() * t + 0.5).tointeger();
+    local y = (yA + (yB - yA).tofloat() * t + 0.5).tointeger();
+    local tile = AIMap.GetTileIndex(x, y);
+    if (!AIMap.IsValidTile(tile) || tile == lastTile) continue;
+    lastTile = tile;
+    local tMax = AITile.GetMaxHeight(tile);
+    local tMin = AITile.GetMinHeight(tile);
+    if (maxH == null || tMax > maxH) maxH = tMax;
+    if (minH == null || tMin < minH) minH = tMin;
+    if (AITile.IsWaterTile(tile)) water++;
+    if (!AITile.IsBuildable(tile)) unbuildable++;
+  }
+  return { dh = (maxH == null ? 0 : maxH - minH), water = water, unbuildable = unbuildable };
+}
+
 function TrainLineAI::_reportAll()
 {
   if (this.costs != null) this.state.construction_cost = this.costs.GetCosts();
@@ -127,7 +240,24 @@ function TrainLineAI::_reportAll()
   if (this.state.town_a != null && this.state.town_b != null) {
     this._report(this._codeDetail());
     this._report(this._codeVehicleCost());
+    /* Panneau population/distance -- deplace ici depuis un envoi immediat avant preflight (voir
+     * le commentaire dans Start() a l'endroit ou town_a/town_b sont maintenant assignes) : meme
+     * raison de cout de tick que les nouveaux panneaux ci-dessous. */
+    this._report(this._codePairFeatures(this.state.town_a_population, this.state.town_b_population,
+        this.state.distance_straight));
+    this._report(this._codeDistCost());
+    this._report(this._codeEngineSpecs());
+    this._report(this._codeEngineCost());
     if (this.state.first_mutation_tick != null) this._report(this._codeBarrier());
+    /* Ces quatre panneaux exigent un preflight reussi (plans de quai + chemin) : absents pour un
+     * echec avant ce stade (NOPATH/PATHLIM/NOTILE), presents pour tout le reste (TRKFAIL/STNFAIL/
+     * DEPFAIL/ORDFAIL/success/partial), exactement comme this.state.path_found. */
+    if (this.state.path_found) {
+      this._report(this._codeStationDist());
+      this._report(this._codeCargoA());
+      this._report(this._codeCargoB());
+      this._report(this._codeTerrain());
+    }
   }
 }
 
@@ -282,6 +412,27 @@ function TrainLineAI::Start()
     town_b = null,
     town_b_name = null,
     distance_straight = 0,
+    distance_manhattan = 0,
+    estimated_cost = 0,
+    town_a_population = 0,
+    town_b_population = 0,
+    // Backlog d'enrichissement (docs/phase3_ml.md 3.2) -- captures pendant le preflight,
+    // postees en differe depuis _reportAll(). Restent a leur valeur par defaut si le preflight
+    // echoue avant le stade ou elles deviennent connues (voir gates dans _reportAll()).
+    station_a_town_dist = 0,
+    station_b_town_dist = 0,
+    station_a_cargo_prod = 0,
+    station_a_cargo_acc = 0,
+    station_b_cargo_prod = 0,
+    station_b_cargo_acc = 0,
+    terrain_dh = 0,
+    terrain_water = 0,
+    terrain_unbuildable = 0,
+    engine_max_speed = 0,
+    engine_power = 0,
+    engine_price = 0,
+    engine_running_cost = 0,
+    wagon_capacity = 0,
     rail_type = null,
     path_found = false,
     path_length = 0, // diagnostic seulement -- NE PAS utiliser comme feature : resultat du
@@ -410,7 +561,10 @@ function TrainLineAI::Start()
         continue;
       }
       local score = populationA.tofloat() * populationB.tofloat() / distance.tofloat();
-      local pair = { town_a = candidateA, town_b = candidateB, score = score };
+      /* estimated_cost est deja calcule ci-dessus pour le filtre d'abordabilite -- conserve sur
+       * la paire pour pouvoir etre republie plus tard comme feature (voir _codeDistCost()) sans
+       * le recalculer. */
+      local pair = { town_a = candidateA, town_b = candidateB, score = score, estimated_cost = estimatedCost };
       pairs.push(pair);
     }
   }
@@ -443,13 +597,77 @@ function TrainLineAI::Start()
   local townA = selectedPair.town_a;
   local townB = selectedPair.town_b;
   local bestScore = selectedPair.score;
-  this.lastKnownTile = AITown.GetLocation(townA);
-  local populationA = AITown.GetPopulation(townA);
-  local populationB = AITown.GetPopulation(townB);
-  local selectedDistance = sqrt(AIMap.DistanceSquare(AITown.GetLocation(townA),
-      AITown.GetLocation(townB)).tofloat()).tointeger();
+  local locA = AITown.GetLocation(townA);
+  local locB = AITown.GetLocation(townB);
+  this.lastKnownTile = locA;
+
+  /* Toutes les features qui ne dependent que de la paire retenue (pas du pathfinding) sont
+   * capturees ICI, tout de suite dans this.state -- population, distance (vol d'oiseau et
+   * Manhattan), identifiants/noms de ville, cout estime. Rien n'est poste ici (aucun DoCommand,
+   * donc aucun cout de tick) : la publication est differee dans _reportAll() (voir plus bas et le
+   * panneau de barriere existant, qui suit deja ce patron). Ecrire ces champs AVANT l'appel a
+   * _preflightPair() -- et non apres, comme le faisait la version precedente -- est deliberement
+   * different de v1 : ca fait survivre ces features a un echec de preflight (NOPATH/PATHLIM), qui
+   * est la plus grosse part de la classe negative (82% des echecs, voir docs/phase2_hurdle_dataset.md).
+   * En v1, seul le panneau population contournait deja ce probleme en etant poste immediatement,
+   * avant meme d'entrer dans cette fonction ; le placer dans _reportAll() sans avancer aussi
+   * town_a/town_b aurait fait regresser sa disponibilite sur NOPATH/PATHLIM. */
+  this.state.town_a = townA;
+  this.state.town_a_name = AITown.GetName(townA);
+  this.state.town_b = townB;
+  this.state.town_b_name = AITown.GetName(townB);
+  this.state.town_a_population = AITown.GetPopulation(townA);
+  this.state.town_b_population = AITown.GetPopulation(townB);
+  /* Distance a vol d'oiseau (euclidienne) entre les deux centre-villes -- connue avant tout
+   * pathfinding, contrairement a path_length. C'est la feature de distance legitime (verifie
+   * empiriquement que sqrt() et AIMap.DistanceSquare() sont bien disponibles cote Squirrel). */
+  this.state.distance_straight = sqrt(AIMap.DistanceSquare(locA, locB).tofloat()).tointeger();
+  this.state.distance_manhattan = AIMap.DistanceManhattan(locA, locB);
+  this.state.estimated_cost = selectedPair.estimated_cost;
+
+  /* Specs du moteur/wagon choisis -- lecture pure (AIEngineList/AIEngine.Get*, verifiees
+   * empiriquement disponibles avec cette signature via sweeps/debug_ai.py), aucun DoCommand,
+   * donc sans cout de tick. Le choix ne depend que de la date de partie, du cargo passager et de
+   * engine_rank -- pas du resultat du preflight -- donc deja connu ici. Duplique volontairement
+   * le meme calcul que l'etape 6 plus bas (qui achete reellement le moteur) plutot que de
+   * restructurer le code existant : ca laisse l'ordre d'echec NOENG/ENGOOR de l'etape 6 intact.
+   * Si aucun moteur ne correspond (rang hors plage), les champs restent a leur valeur initiale
+   * (0) -- l'etape 6 produira alors le vrai echec ENGOOR/NOENG en temps voulu. */
+  local earlyPassengerCargo = null;
+  foreach (cargo, dummy in AICargoList()) {
+    if (AICargo.GetTownEffect(cargo) == AICargo.TE_PASSENGERS) { earlyPassengerCargo = cargo; break; }
+  }
+  local earlyEngines = AIEngineList(AIVehicle.VT_RAIL);
+  earlyEngines.Valuate(AIEngine.IsWagon);
+  earlyEngines.KeepValue(0);
+  earlyEngines.Valuate(AIEngine.IsBuildable);
+  earlyEngines.KeepValue(1);
+  earlyEngines.Valuate(AIEngine.GetMaxSpeed);
+  earlyEngines.Sort(AIList.SORT_BY_VALUE, false);
+  local earlyEngineRank = AIController.GetSetting("engine_rank");
+  if (earlyEngineRank < earlyEngines.Count()) {
+    local earlyEngineId = earlyEngines.Begin();
+    for (local i = 0; i < earlyEngineRank; i++) earlyEngineId = earlyEngines.Next();
+    this.state.engine_max_speed = AIEngine.GetMaxSpeed(earlyEngineId);
+    this.state.engine_power = AIEngine.GetPower(earlyEngineId);
+    this.state.engine_price = AIEngine.GetPrice(earlyEngineId);
+    this.state.engine_running_cost = AIEngine.GetRunningCost(earlyEngineId);
+
+    /* Capacite du WAGON, pas de la locomotive : AIEngine.GetCapacity() sur une locomotive rend
+     * -1 (verifie empiriquement), seuls les wagons transportent du cargo dans ce depot (voir le
+     * commentaire "Une locomotive ne transporte pas elle-meme..." plus bas). C'est la valeur dont
+     * le cote Python a besoin pour calculer num_trains * wagons_per_train * capacite_wagon. */
+    local earlyWagons = AIEngineList(AIVehicle.VT_RAIL);
+    earlyWagons.Valuate(AIEngine.CanRefitCargo, earlyPassengerCargo);
+    earlyWagons.KeepValue(1);
+    earlyWagons.Valuate(AIEngine.IsBuildable);
+    earlyWagons.KeepValue(1);
+    earlyWagons.Valuate(AIEngine.IsWagon);
+    earlyWagons.KeepValue(1);
+    this.state.wagon_capacity = earlyWagons.IsEmpty() ? 0 : AIEngine.GetCapacity(earlyWagons.Begin());
+  }
+
   this._report("TRLN|TRY|" + pairRank + "|T" + townA + "-" + townB);
-  this._report(this._codePairFeatures(populationA, populationB, selectedDistance));
   /* Budget de recherche (voir commentaire dans _preflightPair() pour le bug de fond) : 1500
    * jours (~74 ticks/jour), soit environ 40% d'une partie de 10 ans, laisse le reste de la
    * partie pour construire et faire rouler la ligne assez longtemps pour un signal de profit
@@ -459,20 +677,9 @@ function TrainLineAI::Start()
       preflightDeadline);
   if (typeof(selectedPreflight) == "string") this._fail(selectedPreflight);
 
-  this.state.town_a = townA;
-  this.state.town_a_name = AITown.GetName(townA);
-  this.state.town_b = townB;
-  this.state.town_b_name = AITown.GetName(townB);
-  this.lastKnownTile = AITown.GetLocation(townA);
+  this.lastKnownTile = locA;
   AILog.Info("Connecting " + AITown.GetName(townA) + " to " + AITown.GetName(townB) +
       " score=" + bestScore);
-
-  /* Distance a vol d'oiseau (euclidienne) entre les deux centre-villes -- connue avant tout
-   * pathfinding, contrairement a path_length. C'est la feature de distance legitime (verifie
-   * empiriquement que sqrt() et AIMap.DistanceSquare() sont bien disponibles cote Squirrel). */
-  local locA = AITown.GetLocation(townA);
-  local locB = AITown.GetLocation(townB);
-  this.state.distance_straight = sqrt(AIMap.DistanceSquare(locA, locB).tofloat()).tointeger();
 
   /* 3. Planifier plusieurs sorties de gare valides AVANT le pathfinding. La version precedente
    * ne proposait qu'une orientation deduite du centre des villes. Si la case juste devant ce
@@ -494,6 +701,41 @@ function TrainLineAI::Start()
    * ou une reconstruction differente, de produire NOPATH apres un TRY reussi. */
   local tiles = selectedPreflight.tiles;
   this.state.path_found = true;
+
+  /* Features de gare/terrain -- connues des que le preflight a reussi (plans de quai retenus +
+   * chemin), donc AVANT toute mutation de carte. Capturees ici dans this.state, mais POSTEES plus
+   * tard (voir _reportAll(), gate sur this.state.path_found) : chaque panneau supplementaire ici
+   * serait un DoCommand de plus avant la barriere, ce qui reduirait la marge de 1084 ticks
+   * mesuree (voir docs/phase3_ml.md 3.0bis) -- meme raison que le panneau de barriere existant.
+   * plans_a/plans_b sont des listes a un seul element (voir _preflightPair()) : c'est exactement
+   * le plan qui sera construit plus bas. */
+  local planA = stationPlansA[0];
+  local planB = stationPlansB[0];
+  this.state.station_a_town_dist = AIMap.DistanceManhattan(planA.anchor, locA);
+  this.state.station_b_town_dist = AIMap.DistanceManhattan(planB.anchor, locB);
+
+  /* Zone de chalandise : AITile.GetCargoProduction/GetCargoAcceptance(tile, cargo, width, height,
+   * radius) prennent le coin de coordonnees minimales du rectangle -- verifie empiriquement que
+   * `anchor` (pas `station_exit`) est toujours ce coin, puisque _makeStationPlans() construit
+   * toujours les tuiles du quai comme anchor + step*i avec step un vecteur unitaire positif (donc
+   * anchor est toujours le coin nord/ouest, quel que soit le signe utilise pour le placement).
+   * CATCHMENT_RADIUS=4 : rayon de chalandise vanilla par defaut d'une gare ferroviaire (sans
+   * newGRF de gares ni "improved catchment"), confirme par sweeps/debug_ai.py (production/
+   * acceptation non nulles et plausibles autour d'un centre-ville avec ce rayon). */
+  local CATCHMENT_RADIUS = 4;
+  local widthA = (planA.direction == AIRail.RAILTRACK_NE_SW) ? platformLength : 1;
+  local heightA = (planA.direction == AIRail.RAILTRACK_NE_SW) ? 1 : platformLength;
+  local widthB = (planB.direction == AIRail.RAILTRACK_NE_SW) ? platformLength : 1;
+  local heightB = (planB.direction == AIRail.RAILTRACK_NE_SW) ? 1 : platformLength;
+  this.state.station_a_cargo_prod = AITile.GetCargoProduction(planA.anchor, earlyPassengerCargo, widthA, heightA, CATCHMENT_RADIUS);
+  this.state.station_a_cargo_acc = AITile.GetCargoAcceptance(planA.anchor, earlyPassengerCargo, widthA, heightA, CATCHMENT_RADIUS);
+  this.state.station_b_cargo_prod = AITile.GetCargoProduction(planB.anchor, earlyPassengerCargo, widthB, heightB, CATCHMENT_RADIUS);
+  this.state.station_b_cargo_acc = AITile.GetCargoAcceptance(planB.anchor, earlyPassengerCargo, widthB, heightB, CATCHMENT_RADIUS);
+
+  local terrain = this._scanTerrain(locA, locB, this.state.distance_straight);
+  this.state.terrain_dh = terrain.dh;
+  this.state.terrain_water = terrain.water;
+  this.state.terrain_unbuildable = terrain.unbuildable;
 
   /* Demarre la mesure du cout de construction ICI, apres le pathfinding, pas avant -- bug trouve
    * empiriquement : un echec no_path_found rapportait parfois un cout de plusieurs dizaines de
