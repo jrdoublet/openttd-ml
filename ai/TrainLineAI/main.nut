@@ -31,6 +31,7 @@ import("pathfinder.rail", "RailPathFinder", 1);
   no_rail_type_available = "NORAIL",
   not_enough_towns = "NOTOWN",
   no_suitable_town_pair = "NOPAIR",
+  no_pair_meets_population_floor = "MINPOP",
   no_viable_town_pair = "NOVIABLE",
   town_rank_out_of_range = "TWNOOR",
   town_rank_same_town = "TWNDUP",
@@ -332,6 +333,9 @@ function TrainLineAI::Start()
   AILog.Info("Town count on this map: " + townCount);
   if (townCount < 2) this._fail("not_enough_towns");
 
+  /* Seuil dur : le diagnostic Phase 0 (2026-08-26) observe une mediane ~700 dans la config
+   * revisee, mais encore une queue importante sous 500. Garder 500 filtre les petites villes sans
+   * jeter la majorite du pool; aucune paire sous ce seuil n'est plus acceptee en repli. */
   local minPopulation = 500;
   local minDistance = 20;
   local maxDistance = 150;
@@ -355,9 +359,9 @@ function TrainLineAI::Start()
     townServed[town] <- this._isTownServed(town, DISJOINT_CHECK_RADIUS);
   }
 
-  local strictPairs = [];
-  local fallbackPairs = [];
+  local pairs = [];
   local disjointSkipped = 0;
+  local populationSkipped = 0;
   for (local i = 0; i < candidates.len() - 1; i++) {
     local candidateA = candidates[i];
     if (townServed[candidateA]) { disjointSkipped++; continue; }
@@ -376,18 +380,17 @@ function TrainLineAI::Start()
       if (estimatedCost > availableMoney) continue;
 
       local populationB = AITown.GetPopulation(candidateB);
+      if (populationA < minPopulation || populationB < minPopulation) {
+        populationSkipped++;
+        continue;
+      }
       local score = populationA.tofloat() * populationB.tofloat() / distance.tofloat();
       local pair = { town_a = candidateA, town_b = candidateB, score = score };
-      if (populationA >= minPopulation && populationB >= minPopulation) strictPairs.push(pair);
-      else fallbackPairs.push(pair);
+      pairs.push(pair);
     }
   }
-  local pairs = strictPairs;
   if (pairs.len() == 0) {
-    pairs = fallbackPairs;
-    if (pairs.len() > 0) AILog.Warning("No pair reaches population " + minPopulation + "; using best viable fallback");
-  }
-  if (pairs.len() == 0) {
+    if (populationSkipped > 0) this._fail("no_pair_meets_population_floor");
     if (disjointSkipped > 0) this._fail("no_disjoint_town_pair");
     this._fail("no_suitable_town_pair");
   }

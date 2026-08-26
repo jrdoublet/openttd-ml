@@ -8,14 +8,15 @@ SEEDS = range(300, 310)  # 10 graines
 
 OPENTTD_CONFIG = """
 [difficulty]
-number_towns = 2
+number_towns = 3
 industry_density = 4
 
 [economy]
 inflation = false
+town_growth_rate = 2
 
 [game_creation]
-starting_year = 1950
+starting_year = 1970
 map_x = 8
 map_y = 8
 """

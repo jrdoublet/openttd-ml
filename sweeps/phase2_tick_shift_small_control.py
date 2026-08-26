@@ -18,6 +18,9 @@ from openttdlab import bananas_ai_library, local_folder, run_experiments
 
 INFRA_LIFE_YEARS = 30  # hypothese documentee dans docs/methode.md
 
+# Configuration historique volontairement épinglée : docs/phase2_tick_shift_small_control.json
+# a été produit en 1950/densité 2. La config révisée pour les nouveaux travaux est documentée
+# dans la table des décisions figées du README.md et la note de révision de docs/methode.md.
 OPENTTD_CONFIG = """
 [difficulty]
 number_towns = 2

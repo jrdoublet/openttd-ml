@@ -11,14 +11,15 @@ BATCH_SEEDS = list(range(1000, 1024))  # 24 graines fixes : même batch à chaqu
 # inflation était déjà à false par défaut sur cette build, mais on le fixe explicitement quand même.
 OPENTTD_CONFIG = """
 [difficulty]
-number_towns = 2
+number_towns = 3
 industry_density = 4
 
 [economy]
 inflation = false
+town_growth_rate = 2
 
 [game_creation]
-starting_year = 1950
+starting_year = 1970
 map_x = 8
 map_y = 8
 """

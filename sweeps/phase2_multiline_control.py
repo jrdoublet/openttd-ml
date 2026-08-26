@@ -39,6 +39,9 @@ from openttdlab import run_experiments, bananas_ai_library, local_folder
 
 INFRA_LIFE_YEARS = 30  # hypothese assumee, documentee dans docs/methode.md (voir phase2_profit_ligne.py)
 
+# Configuration historique volontairement épinglée : docs/phase2_multiline_control.json et
+# docs/phase2_multiline_verify.json ont été produits en 1950/densité 2. La config révisée
+# pour les nouveaux travaux est documentée dans README.md et la note de révision de docs/methode.md.
 OPENTTD_CONFIG = """
 [difficulty]
 number_towns = 2

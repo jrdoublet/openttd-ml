@@ -62,10 +62,12 @@ l'inflation compose sérieusement et confondrait la date avec la qualité écono
 modèle entraîné dessus apprendrait à lire l'année plutôt que la ligne. Négligeable à 4 ans, plus à 10.
 
 **Autres paramètres figés dans `openttd_config`** (pour ne pas dépendre d'un défaut qui changerait
-entre deux versions) : `map_x`/`map_y = 8` (256×256), `starting_year = 1950`, `number_towns = 2`,
-`industry_density = 4`.
+entre deux versions) : depuis la révision 2026-08-26, `map_x`/`map_y = 8` (256×256),
+`starting_year = 1970`, `number_towns = 3`, `industry_density = 4` et `town_growth_rate = 2`.
+`inflation = false` reste inchangé. Les résultats antérieurs sous 1950/densité 2 sont historiques,
+pas comparables aux futures cartes (détail de la révision en fin de document).
 
-**Confondant à traiter en phase 2 : catalogue de matériel × date.** Sur 10 ans à partir de 1950, les
+**Confondant à traiter en phase 2 : catalogue de matériel × date.** Sur 10 ans à partir de 1970, les
 locomotives disponibles évoluent (déblocages par date). « Modèle de matériel » et « date de
 construction » seront donc corrélés. Le split par graine ne neutralise pas ce confondant — il
 faudra soit inclure la date comme feature, soit contraindre les constructions à une fenêtre
@@ -155,20 +157,14 @@ paramètres dans `src/trainlineai_schema.py::PARAMS`, consommés par `main.nut` 
   vitesse décroissante, au lieu de `Begin()`. Même garde `engine_rank_out_of_range`.
 - `cargo_index` : pas encore ajouté, prévu une fois ces trois-là stabilisés.
 
-**Bornes vérifiées empiriquement, pas devinées** (`sweeps/debug_ai.py`, config figée de
-`sweeps/phase0_timing.py`, carte 256×256, `number_towns=2`) :
-- `AITown.GetTownList().Count()` loggée une fois par run : 23 à 30 villes selon la graine (12
-  graines testées, seeds 1-10/42/100/999). Confirme que `number_towns=2` dans `openttd.cfg` est
-  une densité ("normale"), pas un nombre de villes — à ne jamais reconfondre. `town_a_rank`/
-  `town_b_rank` bornés à `[0, 15]` dans `PARAMS` : marge de sécurité sous le minimum observé (23),
-  pour que le clamp silencieux d'OpenTTD (voir plus haut, "Déclaration des paramètres") ne
-  transforme jamais un rang demandé en un rang inatteignable sur cette carte.
-- Moteurs rail non-wagon constructibles disponibles à la toute première année (1950), avec le seul
-  OpenGFX de base (pas de NewGRF supplémentaire) : **3 seulement** (`Kirby Paul Tank`, `Chaney
-  'Jubilee'`, `Ginzu 'A4'`, tous à vapeur). `engine_rank` borné à `[0, 2]` en conséquence — le
-  catalogue réel au démarrage est étroit, ce qui limite mécaniquement de combien `engine_rank`
-  peut casser la colinéarité matériel × date en début de partie (à garder en tête si le confondant
-  reste visible malgré ce paramètre).
+**Bornes vérifiées empiriquement, pas devinées.** Historique avant la révision : la carte 256×256
+`number_towns=2` donnait 23 à 30 villes selon 12 graines. Le diagnostic 2026-08-26 sous la nouvelle
+config 256×256/`number_towns=3`/1970 observe 46 à 52 villes sur huit graines : `number_towns` est
+une densité, pas un nombre exact. `town_a_rank`/`town_b_rank` restent bornés à `[0, 15]`, avec une
+marge large sous le nouveau minimum observé 46. Les 3 moteurs vapeur observés au démarrage 1950
+(`Kirby Paul Tank`, `Chaney 'Jubilee'`, `Ginzu 'A4'`) expliquent historiquement la borne
+`engine_rank=[0,2]`; elle reste volontairement conservatrice à 1970 en attendant un re-sondage du
+catalogue de cette nouvelle année de départ.
 
 **Orchestrateur multi-lignes par partie — implémenté, avec contrainte de villes disjointes
 (2026-08-26).** Voir la sous-section dédiée plus bas (« Cannibalisation multi-lignes ») pour le
@@ -215,6 +211,7 @@ de `local`.
   `PATHLIM`=path_search_limit, `TRKFAIL`=track_build_failed, `STNFAIL`=station_build_failed,
   `DEPFAIL`=depot_build_failed, `NOENG`=no_engine_available, `ENGOOR`=engine_rank_out_of_range,
   `PAIROOR`=pair_rank_out_of_range (2026-08-26, voir gradient de difficulté `pair_rank` plus bas),
+  `MINPOP`=no_pair_meets_population_floor (2026-08-26, seuil dur, voir note finale),
   `NODISJ`=no_disjoint_town_pair (2026-08-26, voir contrainte villes disjointes plus bas),
   `OK`=succès/pas d'échec.
 - Panneau de détail, posé seulement si les villes ont été choisies (absent pour les 4 raisons
@@ -776,3 +773,48 @@ et donc la fenêtre calendaire de `profit_last_year`, est exactement la même au
 profits non monotones allant de -564114 à +104920. Aucun plateau ni périodicité visible sur ces
 sept échantillons : le profil est erratique, ce qui soutient une sensibilité chaotique au timing
 (compatible avec l'hypothèse RNG), sans permettre encore de prouver le mécanisme interne précis.
+
+**Distribution des villes, révision de configuration et seuil population dur (2026-08-26).**
+Diagnostic `sweeps/phase0_town_distribution.py` : huit graines (1-7, 42), cartes 256×256 et
+instantanés IA au démarrage puis les 1959-11-04..05 / 1979-11-04..07 / 1999-11-04..07, juste avant
+la fin fixe des parties de dix ans. Le chunk `CITY` 13.4 a été inspecté directement dans un vrai savegame : il ne
+contient pas de champ population. La sonde temporaire a donc écrit `AITown.GetPopulation` dans des
+panneaux `SIGN`, canal déjà validé; les nombres bruts et les histogrammes sont dans
+`docs/phase0_town_distribution.json`.
+
+Vérification 13.4 par génération puis relecture de `openttd.cfg` : `number_towns` accepte 0..4 et
+clamp 5/6 à 4; **4 est le mode `custom_town_number`**, pas « très dense » (son défaut généré 1
+avait effectivement produit une ville). Les valeurs custom 1, 50, 75, 100, 255 et 256 persistent.
+Le même cfg généré expose bien `[economy] town_growth_rate = 2`.
+
+| Configuration | villes/graine (méd.) | pop. départ min/méd./max | pop. fin min/méd./max | croissance méd./ville |
+|---|---:|---|---|---:|
+| 1950, densité 2 (historique) | 26 | 63 / 664 / 3240 | 111 / 721 / 3073 | +45 |
+| 1950, densité 3 | 49 | 63 / 685 / 3240 | 77 / 737 / 3181 | +47 |
+| 1950, custom 75 | 75 | 61 / 626 / 3662 | 100 / 672 / 3583 | +50 |
+| 1970, densité 2 | 26 | 61 / 705 / 3745 | 108 / 781 / 4327 | +55 |
+| 1990, densité 2 | 26 | 104 / 752 / 4607 | 74 / 874 / 4055 | +34 |
+| 1970, densité 3 | 49 | 61 / 699 / 3745 | 26 / 773 / 4311 | +47 |
+
+Conclusion diagnostique : l'hypothèse « presque toutes les villes font ~300 » est réfutée (médiane
+historique 664; 85/207 villes dans 500-999, 49 au-dessus de 1000), mais la croissance autonome est
+faible et hétérogène sur dix ans (médiane +45, avec des villes qui régressent). La densité 3 double
+le pool de villes sans hausser artificiellement la taille typique; le départ 1970 apporte un gain de
+médiane modeste. **Décision figée révisée pour les futures cartes** : `number_towns=3`,
+`starting_year=1970`, `town_growth_rate=2` explicitement, `industry_density=4`, `inflation=false`
+et `map_x`/`map_y=8` inchangés. Aucun réglage de croissance non mesuré n'est ajouté. Cette rupture
+de distribution rend tous les `docs/phase2_*.json` existants (1950/densité 2) **non comparables**
+aux futures campagnes : ils sont conservés comme historique, jamais réécrits.
+
+Enfin `TrainLineAI` applique maintenant réellement le plancher `minPopulation=500` :
+`fallbackPairs` a été supprimé, une paire sous le seuil est exclue et l'absence de paire restante
+échoue avec le nouveau code `MINPOP` (`no_pair_meets_population_floor`), distinct de `NOPAIR`
+(aucune paire géométrique/financière convenable). Le seuil 500 est conservé, non relevé : les
+mesures révisées ont une médiane proche de 700 mais gardent une masse importante dans 500-999;
+monter le seuil couperait ce coeur du pool sans preuve de gain. Smoke test `debug_ai.py` sous la
+nouvelle config, graine 42/pair_rank 0 : succès 2/2, T24-16, distance 21, coût 55495,
+`vehicle_cost` 47974 — le durcissement n'a donc pas cassé ce cas normal. Recommandation suivante :
+re-baseliner puis relancer les campagnes Phase 2 sous cette nouvelle configuration; ne pas mélanger
+ces futures observations aux JSON historiques.
+
+Les scripts de contrôle/investigation historiques `phase2_tick_shift_control.py`, `phase2_tick_shift_small_control.py`, `phase2_tick_shift_sweep.py`, `phase2_determinism_control.py` et `phase2_multiline_control.py` restent explicitement épinglés à 1950/densité 2 (sans `town_growth_rate`) pour garder leurs tableaux publiés reproductibles ; les scripts orientés nouvelles campagnes utilisent la configuration révisée.

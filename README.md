@@ -12,7 +12,7 @@ construction, sans simuler la partie ? Voir `docs/methode.md` pour le protocole 
 | Python | 3.12 | Testé par le projet (3.8.2 minimum) |
 | IA de calibration | trAIns, `unique_id='54524149'` | IA de référence utilisée dans les exemples |
 | Durée de partie | `days = 365 * 10` | Révisé après la 1ère calibration (`s_per_game` plus bas que prévu) : 10 ans de jeu au lieu des 4 ans de l'exemple officiel |
-| Config OpenTTD | voir `OPENTTD_CONFIG` dans `sweeps/phase0_*.py` | `inflation=false`, `map_x`/`map_y=8`, `starting_year=1950`, `number_towns=2`, `industry_density=4` — figés pour ne pas dépendre d'un défaut qui changerait entre deux versions |
+| Config OpenTTD | voir `OPENTTD_CONFIG` dans `sweeps/phase0_*.py` | Révisée le 2026-08-26 après `phase0_town_distribution` : `inflation=false`, `town_growth_rate=2`, `map_x`/`map_y=8`, `starting_year=1970`, `number_towns=3`, `industry_density=4` — figés explicitement pour les futures cartes |
 
 **Note sur la version.** La documentation d'OpenTTDLab se contredit : la section *Compatibility*
 annonce le support des branches 12, 13 et 15+, tandis que l'avertissement sur `run_experiments`
@@ -174,12 +174,13 @@ une erreur Python immédiate plutôt que d'être avalée silencieusement par Ope
 - `num_trains`, `wagons_per_train` : nombre de rames et de wagons par rame.
 - `town_a_rank`, `town_b_rank` (0-15, défauts 0/1) : rang dans la liste des villes triée par
   population, au lieu de toujours prendre les deux plus peuplées — fait varier distance et terrain
-  d'une observation à l'autre pour une même graine. Bornes vérifiées empiriquement (23 à 30 villes
-  observées sur la carte figée, `number_towns=2` étant une densité, pas un nombre — voir
-  `docs/methode.md`).
+  d'une observation à l'autre pour une même graine. La config figée révisée (`number_towns=3`)
+  produit 46 à 52 villes sur les huit graines diagnostiquées ; `number_towns` reste une densité,
+  pas un nombre exact (voir `docs/methode.md`).
 - `engine_rank` (0-2, défaut 0) : rang dans la liste des moteurs triée par vitesse, au lieu de
   toujours prendre le plus rapide — casse la colinéarité totale entre matériel et date de
-  construction. Seuls 3 moteurs rail sont disponibles en 1950 avec l'OpenGFX de base, d'où la borne.
+  construction. La borne vient de l'ancien démarrage 1950 (3 moteurs observés) ; à 1970 elle reste
+  conservatrice et le catalogue complet devra être re-sondé avant de l'élargir.
 - `line_index` (0-19, défaut 0) : identifiant de tentative, échoïsé dans le panneau de statut —
   rattache un panneau à une tentative précise dès qu'il y en a plusieurs dans la même partie.
 - `cargo_index` : pas encore ajouté, prévu une fois les rangs ci-dessus stabilisés.
