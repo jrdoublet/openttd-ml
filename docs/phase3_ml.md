@@ -189,10 +189,52 @@ Interdit (ce sont des résultats, pas des causes) :
 Le point sur la longueur de chemin mérite toujours son paragraphe dans le README : c'est exactement
 le genre de fuite qui gonfle un R² et qu'un jury cherche.
 
-**[NOUVEAU] Note sur `engine_rank`.** Sa borne `[0,2]` est héritée du démarrage 1950, où seuls 3
-moteurs étaient constructibles. En 1970 il y en a **8 à 9** (mesuré). La borne reste valide mais
-conservatrice — l'élargir ajouterait de la variation matériel réelle, à faire avant la campagne
-finale si on veut que le modèle voie autre chose que trois locomotives.
+**[FAIT] Note sur `engine_rank`.** Sa borne `[0,2]` était héritée du démarrage 1950, où seuls 3
+moteurs étaient constructibles. Élargie à `[0,6]` — mesurée sur les 50 graines de la campagne v1 :
+le rang 7 sort de la plage réelle sur 6 graines (moins de 8 moteurs constructibles) et produit
+alors `ENGOOR`, un échec de configuration qui pollue la classe négative.
+
+### Backlog d'enrichissement des features — **[À FAIRE]**
+
+Le jeu de données v1 (`data/phase2_hurdle_v1.csv`) n'émet que **7 features** : `pair_rank`,
+`engine_rank`, `num_trains`, `wagons_per_train`, `town_a_population`, `town_b_population`,
+`distance_straight`. Tout le reste de la liste « autorisé » ci-dessus reste à produire.
+
+**Coût commun à tous ces items : c'est l'IA qui doit émettre ces valeurs, donc chaque
+enrichissement impose de relancer la campagne (~4 h de wallclock pour 1000 lignes).** Il vaut donc
+mieux les regrouper en une seule passe plutôt que de les ajouter un par un.
+
+| Priorité | Feature | Justification |
+|---|---|---|
+| **Haute** | Bloc topographique : dénivelé, tuiles d'eau, tuiles non constructibles sur le trajet direct | **82 % des échecs sont des `PATHLIM`**, donc topographiques. Le modèle n'a actuellement *rien* sur le terrain et doit deviner le relief depuis `pair_rank` et la distance. C'est le manque le plus coûteux. |
+| **Haute** | Caractéristiques du moteur : vitesse max, capacité, prix, coût de roulement, puissance | `engine_rank` n'est qu'un index ordinal — le modèle sait que 3 est plus lent que 2, pas de combien. Probablement déterminant pour l'étage 2 (profit). |
+| Moyenne | Capacité totale du convoi | Dérivable une fois la capacité moteur/wagon connue ; résume `num_trains × wagons × capacité`. |
+| Moyenne | Distance de Manhattan | Complète `distance_straight` ; l'écart entre les deux est un indice de détour imposé par le terrain. |
+| Basse | Coût de construction **estimé** | L'IA le calcule déjà avant de construire (`estimatedCost`) mais ne l'émet pas. Quasi gratuit à ajouter. |
+| Basse | Croissance des villes | **Effet mesuré faible** : +45 habitants médian par ville sur dix ans, hétérogène, certaines régressent. À n'ajouter que dans une passe groupée, pas pour elle-même. **Piège de fuite, voir ci-dessous.** |
+| Nulle en l'état | Date de construction, type de cargo | Constants dans le design actuel (1970, passagers) : features inutiles tant qu'on ne les fait pas varier. |
+
+**Avertissement de fuite sur la croissance des villes.** La population *au moment de la
+construction* est une feature légitime (déjà présente). La croissance **réalisée pendant la partie**
+n'en est pas une : elle est postérieure à la décision, et surtout **endogène** — une ville bien
+desservie grandit, donc la ligne cause en partie la croissance qui la nourrit (voir 3.7). L'utiliser
+comme entrée reviendrait à prédire le profit avec une conséquence du profit. Si on veut capter une
+dynamique de croissance, la seule forme admissible est une **tendance antérieure à la construction**
+(ex. évolution de population sur l'année précédant la pose), qui elle est bien pré-connue.
+
+**Stratégie recommandée : modéliser d'abord avec les 7 features actuelles, enrichir ensuite.**
+Trois raisons : ça respecte l'ordre « sans sauter d'étape » de 3.5 ; ça coûte des minutes contre
+4 h ; et surtout ça transforme l'enrichissement en **ablation propre** (« +X points de F1 apportés
+par les features de terrain »), résultat bien plus intéressant à présenter qu'un modèle qui les
+aurait eues d'emblée. C'est aussi le test direct de l'hypothèse CNN de 3.6.
+
+### Dettes mineures de l'assemblage 3.1 — **[À FAIRE]**
+
+- `AIPL.settings` n'est pas utilisé comme contrôle anti-clamping (le tableau de sources de 3.1 le
+  prévoyait). Les paramètres reçus ne sont donc pas vérifiés contre les paramètres demandés.
+- `old_economy` n'est pas récupéré comme contrôle de cohérence au niveau compagnie.
+- Sortie en CSV et non en Parquet — écart assumé et documenté (1000 lignes, aucune colonne
+  imbriquée, inspectable directement), à revoir si le volume augmente d'un ordre de grandeur.
 
 ---
 
