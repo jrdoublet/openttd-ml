@@ -52,7 +52,12 @@ class TrainLineAIInfo extends AIInfo {
     AddSetting({
       name = "engine_rank",
       description = "Rank of the engine in the speed-sorted engine list (0 = fastest)",
-      min_value = 0, max_value = 2,
+      /* Borne 6 et non 7 : mesuree sur les 50 graines de la campagne
+       * phase2_hurdle_dataset_v1 (2026-08-26). Le rang 7 sort de la plage reelle sur 6 graines
+       * (moins de 8 moteurs constructibles a cette date/carte) et produit alors ENGOOR, un echec
+       * de configuration qui pollue la classe negative du classifieur. Aucun ENGOOR observe au
+       * rang <= 6 sur ces 50 graines. */
+      min_value = 0, max_value = 6,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = 0

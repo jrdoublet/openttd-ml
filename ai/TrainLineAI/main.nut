@@ -101,6 +101,14 @@ function TrainLineAI::_codeVehicleCost()
   return "TRLN|" + this.state.line_index + "|V" + this.state.vehicle_cost;
 }
 
+/* Features connues avant le pathfinder : populations courantes des deux villes et distance
+ * euclidienne. CITY ne serialise pas la population dans OpenTTD 13.4. Avec deux populations a
+ * six chiffres, "TRLN|99|P999999-999999|D999" fait 27 caracteres, sous la limite de 31. */
+function TrainLineAI::_codePairFeatures(populationA, populationB, distance)
+{
+  return "TRLN|" + this.state.line_index + "|P" + populationA + "-" + populationB + "|D" + distance;
+}
+
 /* Panneau de barriere : tick de la premiere commande de construction (le premier
  * DemolishTile) et M=barriere atteinte / O=preflight deja au-dela. Il est pose seulement apres
  * cette commande pour ne pas ajouter lui-meme un DoCommand avant le tick mesure. Meme avec un
@@ -436,7 +444,12 @@ function TrainLineAI::Start()
   local townB = selectedPair.town_b;
   local bestScore = selectedPair.score;
   this.lastKnownTile = AITown.GetLocation(townA);
+  local populationA = AITown.GetPopulation(townA);
+  local populationB = AITown.GetPopulation(townB);
+  local selectedDistance = sqrt(AIMap.DistanceSquare(AITown.GetLocation(townA),
+      AITown.GetLocation(townB)).tofloat()).tointeger();
   this._report("TRLN|TRY|" + pairRank + "|T" + townA + "-" + townB);
+  this._report(this._codePairFeatures(populationA, populationB, selectedDistance));
   /* Budget de recherche (voir commentaire dans _preflightPair() pour le bug de fond) : 1500
    * jours (~74 ticks/jour), soit environ 40% d'une partie de 10 ans, laisse le reste de la
    * partie pour construire et faire rouler la ligne assez longtemps pour un signal de profit
