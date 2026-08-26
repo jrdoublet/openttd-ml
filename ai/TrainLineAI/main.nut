@@ -35,6 +35,7 @@ import("pathfinder.rail", "RailPathFinder", 1);
   town_rank_out_of_range = "TWNOOR",
   town_rank_same_town = "TWNDUP",
   pair_rank_out_of_range = "PAIROOR",
+  no_disjoint_town_pair = "NODISJ",
   no_buildable_tile_near_town = "NOTILE",
   no_path_found = "NOPATH",
   path_search_limit = "PATHLIM",
@@ -117,6 +118,28 @@ function TrainLineAI::_fail(reason)
   while (true) {
     this.Sleep(50);
   }
+}
+
+/* Detecte si une ville a deja une gare rail, quel que soit le proprietaire -- AIRail.IsRailStationTile
+ * est une requete d'etat de tuile globale (non filtree par compagnie), deja utilisee deux fois plus
+ * bas dans ce fichier pour le placement du depot (recherche "IsRailStationTile"). AIStationList()/
+ * AISignList(), elles, sont filtrees sur la compagnie appelante -- inutilisables pour voir ce qu'une
+ * AUTRE compagnie a construit dans la meme partie. Un scan de tuiles est donc la seule facon de
+ * detecter une ville deja desservie par une AUTRE instance de TrainLineAI (voir contrainte villes
+ * disjointes dans Start()). Limite connue et acceptee : centre sur AITown.GetLocation, pas sur les
+ * tuiles reelles de la gare -- si deux villes candidates sont proches, la gare d'une ville C peut
+ * apparaitre dans le rayon d'une ville B et la faire percevoir a tort comme deja desservie. */
+function TrainLineAI::_isTownServed(townID, radius)
+{
+  local center = AITown.GetLocation(townID);
+  for (local dx = -radius; dx <= radius; dx++) {
+    for (local dy = -radius; dy <= radius; dy++) {
+      local tile = center + AIMap.GetTileIndex(dx, dy);
+      if (!AIMap.IsValidTile(tile)) continue;
+      if (AIRail.IsRailStationTile(tile)) return true;
+    }
+  }
+  return false;
 }
 
 function TrainLineAI::_makeStationPlans(center, radius, length, maxPlans)
@@ -280,6 +303,19 @@ function TrainLineAI::Start()
   this.state.wagons_per_train = AIController.GetSetting("wagons_per_train");
   this.state.line_index = AIController.GetSetting("line_index");
 
+  /* Echelonnement des demarrages -- necessaire pour que la compagnie N voie les gares deja
+   * posees par les compagnies 0..N-1 avant de choisir sa propre paire (contrainte villes
+   * disjointes plus bas). line_index sert de cle d'ordonnancement -- deja concu pour ca (voir
+   * son commentaire plus haut, "pour quand plusieurs instances de TrainLineAI tourneront dans
+   * la meme experience"). La compagnie line_index=0 ne subit aucun delai : elle construit dans
+   * les memes conditions temporelles qu'en partie isolee, ce qui garde ce point de reference
+   * comparable entre parties a N compagnies differentes.
+   * STAGGER_TICKS=6000 (~81 jours/compagnie) est une estimation de depart, pas encore confirmee
+   * empiriquement -- voir docs/methode.md pour la bissection prevue via sweeps/debug_ai.py. */
+  local STAGGER_TICKS = 6000;
+  local staggerDelay = this.state.line_index * STAGGER_TICKS;
+  if (staggerDelay > 0) this.Sleep(staggerDelay);
+
   /* 1. Choisir un type de rail (le premier disponible) */
   local railTypes = AIRailTypeList();
   if (railTypes.IsEmpty()) this._fail("no_rail_type_available");
@@ -307,14 +343,29 @@ function TrainLineAI::Start()
   local candidates = [];
   foreach (town, population in townList) candidates.push(town);
 
+  /* Contrainte villes disjointes (dure, pas un reglage) : une ville deja desservie par une
+   * AUTRE compagnie de la meme partie (voir _isTownServed() plus haut) ne peut plus etre
+   * choisie par celle-ci. Precalcule une seule fois par ville (pas par paire) -- un scan
+   * rayon x candidates^2 serait sinon refait a chaque paire. DISJOINT_CHECK_RADIUS=40 (rayon 30
+   * de _makeStationPlans + marge) est une estimation de depart, pas encore confirmee
+   * empiriquement -- voir docs/methode.md. */
+  local DISJOINT_CHECK_RADIUS = 40;
+  local townServed = {};
+  foreach (town in candidates) {
+    townServed[town] <- this._isTownServed(town, DISJOINT_CHECK_RADIUS);
+  }
+
   local strictPairs = [];
   local fallbackPairs = [];
+  local disjointSkipped = 0;
   for (local i = 0; i < candidates.len() - 1; i++) {
     local candidateA = candidates[i];
+    if (townServed[candidateA]) { disjointSkipped++; continue; }
     local locCandidateA = AITown.GetLocation(candidateA);
     local populationA = AITown.GetPopulation(candidateA);
     for (local j = i + 1; j < candidates.len(); j++) {
       local candidateB = candidates[j];
+      if (townServed[candidateB]) { disjointSkipped++; continue; }
       local distance = sqrt(AIMap.DistanceSquare(locCandidateA, AITown.GetLocation(candidateB)).tofloat()).tointeger();
       if (distance < minDistance || distance > maxDistance) continue;
 
@@ -336,7 +387,10 @@ function TrainLineAI::Start()
     pairs = fallbackPairs;
     if (pairs.len() > 0) AILog.Warning("No pair reaches population " + minPopulation + "; using best viable fallback");
   }
-  if (pairs.len() == 0) this._fail("no_suitable_town_pair");
+  if (pairs.len() == 0) {
+    if (disjointSkipped > 0) this._fail("no_disjoint_town_pair");
+    this._fail("no_suitable_town_pair");
+  }
 
   /* Une paire bien notee peut etre bloquee par la topographie. La version precedente essayait
    * les paires dans l'ordre du score jusqu'a en trouver une viable (jusqu'a 12 essais) : un

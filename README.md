@@ -277,6 +277,51 @@ fenêtre) — détail dans `docs/methode.md`. Résultats dans `docs/phase2_profi
 Détails complets, bugs trouvés/corrigés, et ce qui a été testé et rejeté (`Save()`, sortie
 console) : `docs/methode.md`, section **IA (Phase 2 — préparatoire)**.
 
+## Cannibalisation multi-lignes : le coût réel de l'absence de contrainte de villes disjointes
+
+Question de départ : une même ligne (graine 42, paire de villes T6-2, coût de construction
+identique) donne un profit d'exploitation très différent d'une campagne à l'autre — est-ce que
+plusieurs lignes IA partagent la même partie et se disputent les mêmes passagers ? Vérifié en
+lisant directement le code source d'OpenTTDLab : jusqu'ici, non — chaque expérience tourne dans
+son propre processus OpenTTD isolé (une compagnie, une partie). Mais OpenTTDLab sait très bien
+démarrer plusieurs compagnies IA dans **une seule partie partagée** si on le lui demande — un
+mécanisme jamais utilisé dans ce dépôt avant `sweeps/phase2_multiline_control.py`.
+
+**Mesuré avant de corriger quoi que ce soit** : même graine, même ligne de référence
+(`pair_rank=0`, toujours la paire T6-2, coût de construction inchangé à la livre près), 1 puis 5
+puis 15 compagnies IA construisant chacune leur propre ligne dans la même partie.
+
+| Compagnies dans la partie | Profit de la ligne de référence | vs isolée |
+|---|---|---|
+| 1 (isolée) | -154 257 | — |
+| 5 | -278 673 | 81 % pire |
+| 15 | -690 833 | 348 % pire |
+
+La cannibalisation est réelle, forte, et monotone avec le nombre de lignes concurrentes — pas une
+hypothèse.
+
+**Correctif** : contrainte dure dans `ai/TrainLineAI/main.nut` — une ville déjà desservie par une
+autre compagnie de la même partie (détectée en scannant les tuiles autour de son centre à la
+recherche d'une gare rail, tous propriétaires confondus) est exclue des paires candidates avant
+toute sélection. Les démarrages sont échelonnés (`line_index` fixe l'ordre) pour que chaque
+compagnie voie bien ce que les précédentes ont déjà construit.
+
+**Re-mesuré après le correctif** :
+
+| Compagnies dans la partie | Profit de la ligne de référence |
+|---|---|
+| 1 (isolée) | -247 186 |
+| 15 | -49 298 |
+
+La dégradation massive et monotone disparaît — à 15 compagnies dans la même partie, la ligne de
+référence n'est plus écrasée par la concurrence (ses deux villes ne sont jamais réutilisées).
+Effet secondaire observé, conforme à l'attente : le nombre de lignes constructibles par partie
+plafonne vite une fois les villes disjointes épuisées (`n_villes/2` est un ordre de grandeur
+théorique ; en pratique, avec les filtres population/distance/coût déjà en place, le plafond réel
+est atteint plus tôt). Détail complet, limites connues, et un mystère de profit séparé et non
+résolu (la comparaison N=1 avant/après correctif n'est elle-même pas stable, pour une raison
+encore non identifiée) : `docs/methode.md`.
+
 ## Prochaines étapes
 
 - [x] Lancer une campagne multi-graines avec `TrainLineAI` pour mesurer le taux d'échec réel
@@ -300,11 +345,10 @@ console) : `docs/methode.md`, section **IA (Phase 2 — préparatoire)**.
       profit conditionnelle, voir `docs/methode.md`) — les briques existent (panneaux, `VEHS`,
       `profit_ligne`) et l'étage 1 (constructible/non) est déjà exploitable ; l'étage 2 (régression
       profit) attend la résolution du bug de chargement ci-dessus
-- [ ] Orchestrateur multi-lignes par partie (plusieurs instances de `TrainLineAI` avec des rangs
-      différents dans la même expérience) : à écrire pour diviser le coût par observation, avec la
-      contrainte villes disjointes / distance minimale entre lignes (voir `docs/methode.md`) —
-      pas engagé pour l'instant, la campagne actuelle (une ligne par partie) suffit à avancer sur
-      les points ci-dessus
+- [x] Orchestrateur multi-lignes par partie (plusieurs instances de `TrainLineAI` dans la même
+      expérience), avec contrainte de villes disjointes — voir section **Cannibalisation
+      multi-lignes** ci-dessous et `docs/methode.md`. Distance minimale entre lignes : toujours
+      pas traitée, piste future.
 
 **Explicitement hors scope pour la suite du projet** (décision utilisateur) : le confondant
 matériel × date de construction (3 moteurs jugés suffisants pour les tests actuels) et l'alerte

@@ -170,18 +170,14 @@ paramètres dans `src/trainlineai_schema.py::PARAMS`, consommés par `main.nut` 
   peut casser la colinéarité matériel × date en début de partie (à garder en tête si le confondant
   reste visible malgré ce paramètre).
 
-**Contrainte à respecter pour la campagne multi-lignes (pas encore implémentée) : villes
-disjointes entre lignes d'une même partie, et distance minimale entre lignes.** L'idée du
-« bénéfice collatéral » (diviser le coût par observation en construisant plusieurs lignes
-disjointes dans la même partie plutôt qu'une ligne par graine) n'a pas encore d'orchestrateur —
-`main.nut` reste une IA à une seule ligne par instance de compagnie. Quand cet orchestrateur sera
-écrit (un script dans `sweeps/`, probablement plusieurs instances de `TrainLineAI` avec des
-`ai_params` différents dans la même expérience), il devra choisir des combinaisons de rangs telles
-que les paires de villes ne se recouvrent pas entre lignes et restent séparées d'une distance
-minimale — sans quoi deux lignes concurrentes sur les mêmes villes se cannibaliseraient les
-passagers, ce qui fausserait `company_value` par ligne indépendamment de la qualité de chaque
-ligne. La corrélation intra-partie (même monde, même conjoncture) reste couverte par le split par
-graine, pas par cette contrainte.
+**Orchestrateur multi-lignes par partie — implémenté, avec contrainte de villes disjointes
+(2026-08-26).** Voir la sous-section dédiée plus bas (« Cannibalisation multi-lignes ») pour le
+détail complet : mécanisme, chiffres de contrôle, limites connues. Note historique : ce passage
+disait auparavant que l'idée n'avait « pas encore d'orchestrateur » et listait deux contraintes à
+respecter (villes disjointes + distance minimale entre lignes) — seule la première a été
+implémentée (demande explicite de l'utilisateur) ; la **distance minimale entre lignes** reste
+une piste future, non traitée. La corrélation intra-partie (même monde, même conjoncture) reste
+couverte par le split par graine, pas par la contrainte villes disjointes.
 
 **Bug trouvé en préparant l'attribution multi-lignes : les panneaux d'échec ne se posaient
 probablement jamais.** `AISign.BuildSign` accepte au plus **31 caractères** — vérifié
@@ -216,8 +212,11 @@ de `local`.
   l'orchestrateur multi-lignes ci-dessus existera. Légende `REASON_CODES` (`ai/TrainLineAI/main.nut`) :
   `NORAIL`=no_rail_type_available, `NOTOWN`=not_enough_towns, `TWNOOR`=town_rank_out_of_range,
   `TWNDUP`=town_rank_same_town, `NOTILE`=no_buildable_tile_near_town, `NOPATH`=no_path_found,
-  `TRKFAIL`=track_build_failed, `STNFAIL`=station_build_failed, `DEPFAIL`=depot_build_failed,
-  `NOENG`=no_engine_available, `ENGOOR`=engine_rank_out_of_range, `OK`=succès/pas d'échec.
+  `PATHLIM`=path_search_limit, `TRKFAIL`=track_build_failed, `STNFAIL`=station_build_failed,
+  `DEPFAIL`=depot_build_failed, `NOENG`=no_engine_available, `ENGOOR`=engine_rank_out_of_range,
+  `PAIROOR`=pair_rank_out_of_range (2026-08-26, voir gradient de difficulté `pair_rank` plus bas),
+  `NODISJ`=no_disjoint_town_pair (2026-08-26, voir contrainte villes disjointes plus bas),
+  `OK`=succès/pas d'échec.
 - Panneau de détail, posé seulement si les villes ont été choisies (absent pour les 4 raisons
   d'échec qui précèdent le choix des villes) : `TRLN|<line_index>|T<town_a>-<town_b>|D<distance>|C<coût>`.
   `town_a`/`town_b` sont les IDs `AITown` bruts (joignables au chunk `CITY`). `distance` est la
@@ -590,3 +589,111 @@ pur coût de roulement. **Recommandation pour la suite** : ce problème mérite 
 au jeu (capture d'écran ou observation directe en jeu de la voie/du train autour du dépôt) plutôt
 que d'autres itérations à l'aveugle sur des coordonnées seules — l'inspection de coordonnées a
 permis de trouver un vrai bug (la collision), mais pas LE bug qui bloque la navigation.
+
+## Sélection de paire par rang, orchestrateur multi-lignes, cannibalisation (2026-08-26)
+
+**`pair_rank` — gradient de difficulté contrôlé sur le choix de paire.** La sélection de paire
+(score `population_a*population_b/distance`, inchangée) ne se contente plus d'essayer les paires
+dans l'ordre du score jusqu'à en trouver une viable (jusqu'à 12 essais, repli automatique sur la
+paire suivante en cas d'échec) : toutes les paires candidates sont triées par score décroissant et
+la paire au rang `pair_rank` (nouveau paramètre d'IA, 0-99, 0 = meilleur score) est tentée seule,
+sans repli. Un échec à un rang donné est donc un vrai point de donnée sur la difficulté de ce rang
+plutôt qu'un échec masqué. Banc `sweeps/phase2_pair_rank_run.py` (100 lignes, 5 graines × 20 rangs
+échantillonnés par une loi géométrique pour densifier les petits rangs) : taux de succès net par
+tranche de rang — **0-4 : 100 % (24/24) · 5-9 : 83 % (19/23) · 10-19 : 82 % (28/34) · 20-59 : 53 %
+(10/19)**. Gradient confirmé, contrôlé par un seul paramètre.
+
+**Orchestrateur multi-lignes par partie, avec contrainte de villes disjointes.** Question de
+départ : la paire T6-2/graine 42/`pair_rank`=0 a un coût de construction et un matériel roulant
+identiques entre deux campagnes différentes, mais un profit d'exploitation très différent
+(+64216 puis -152360) — est-ce que plusieurs lignes partagent la même partie et se cannibalisent
+les passagers ? Réponse, confirmée par lecture directe du code source d'OpenTTDLab
+(`run_experiments`/`_run_experiment`) : non, jusqu'ici — chaque dico d'expérience tourne dans son
+propre processus OpenTTD isolé (une compagnie, une partie), tant qu'il ne contient qu'une seule
+entrée `local_folder(...)` dans son tuple `ais` (le cas de tous les bancs `sweeps/` avant celui-ci).
+Mais le mécanisme existe bel et bien côté OpenTTDLab : plusieurs entrées `local_folder(...)` dans
+UN MÊME dico démarrent bien plusieurs compagnies IA simultanées dans une seule partie partagée —
+exactement l'« orchestrateur multi-lignes » anticipé plus haut mais jamais construit, et déjà
+préparé côté `main.nut` (boucle anti-collision de nom de compagnie, champ `line_index`).
+
+Décision : construire cet orchestrateur maintenant, mesurer d'abord la cannibalisation brute, puis
+corriger avec une contrainte dure. Nouveau script `sweeps/phase2_multiline_control.py` (même
+graine 42, même config, `pair_rank`/`line_index`=0..N-1 pour N compagnies simultanées ;
+`pair_rank`=0/`line_index`=0 est le point de référence fixe présent dans toutes les tailles).
+
+**Mesure brute (avant correctif, `docs/phase2_multiline_control.json`)** — `profit_ligne` de la
+ligne `pair_rank`=0 (toujours T6-2, coût 41520, inchangé) selon le nombre de compagnies
+simultanées dans la même partie :
+
+| N compagnies | profit_ligne (pair_rank=0) | delta vs N=1 |
+|---|---|---|
+| 1 (isolé) | -154 257 | — |
+| 5 | -278 673 | -124 416 (+81 %) |
+| 15 | -690 833 | -536 576 (+348 %) |
+
+Dégradation nette et monotone avec le nombre de compagnies partageant la partie — la
+cannibalisation est réelle et mesurable, pas une hypothèse. Effet secondaire observé (attendu,
+sans échelonnement des démarrages à ce stade) : de vraies collisions de construction, ex. deux
+compagnies tentant de bâtir près de la même ville (ville 8, `STNFAIL` à coût quasi nul).
+
+**Correctif implémenté (`ai/TrainLineAI/main.nut`)** :
+- `TrainLineAI::_isTownServed(townID, radius)` : scanne un rayon de tuiles autour du centre-ville
+  (`AITown.GetLocation`) à la recherche d'une gare rail (`AIRail.IsRailStationTile`, requête
+  d'état de tuile globale, non filtrée par compagnie — déjà utilisée pour le placement du dépôt).
+  `AIStationList()`/`AISignList()` sont, elles, filtrées sur la compagnie appelante : inutilisables
+  pour voir ce qu'une AUTRE compagnie a construit dans la même partie. Un scan de tuiles est la
+  seule vraie option pour une détection cross-compagnie depuis une instance IA en cours
+  d'exécution. `DISJOINT_CHECK_RADIUS`=40 (rayon 30 de `_makeStationPlans` + marge).
+- Contrainte dure : toute ville déjà desservie est exclue des paires candidates *avant* le tri par
+  score/`pair_rank` — `pair_rank`=0 reste « la meilleure paire encore disponible ». Nouveau code
+  d'échec `NODISJ` si le filtre épuise toutes les paires.
+- Échelonnement des démarrages (`STAGGER_TICKS`=6000, ~81 jours/compagnie) : sans lui, toutes les
+  compagnies choisiraient leur paire au même tick, avant que quiconque n'ait rien construit, et le
+  filtre serait inutile. `line_index` sert de clé d'ordonnancement (compagnie `line_index`=0 sans
+  délai, comparable à une partie isolée). Valeur vérifiée par bissection via `sweeps/debug_ai.py`
+  avant le run réel : une ligne facile (`pair_rank`=0) se termine en ~1700-1800 ticks pour cette
+  graine — 6000 laisse une marge ×3 confortable, sans être re-calibré pour des rangs plus
+  difficiles (voir limites ci-dessous).
+- **Limite connue et acceptée, pas un bug à chasser** : le scan est centré sur le centre-ville
+  candidat, pas sur les tuiles réelles de sa propre gare — deux villes candidates proches peuvent
+  se parasiter (la gare d'une ville C dans le rayon d'une ville B fait percevoir B comme déjà
+  desservie). Pas de cas observé dans les vérifications de cette session, mais pas exclu sur
+  d'autres cartes.
+
+**Vérification après correctif (`docs/phase2_multiline_verify.json`, N=1 et 15 seulement — les
+deux extrêmes suffisent)** :
+
+| N compagnies | profit_ligne (pair_rank=0) |
+|---|---|
+| 1 (isolé) | -247 186 |
+| 15 | -49 298 |
+
+La dégradation massive et monotone a disparu : à N=15, `pair_rank`=0 n'est plus écrasé par la
+concurrence (villes 6/2 jamais réutilisées par les 14 autres compagnies, confirmé). Chiffre à
+lire avec prudence, pas comme une identité parfaite entre N=1 et N=15 — voir le mystère non résolu
+ci-dessous, qui affecte aussi la comparaison N=1 avant/après correctif. Confirmation du
+plafonnement annoncé : sur ~23 villes pour cette graine, les compagnies `line_index`=5 à 11
+échouent en `PAIROOR` (plus aucune paire disjointe disponible) une fois ~4-5 lignes construites —
+`n_villes/2` reste un ordre de grandeur théorique, le plafond réel observé est plus bas une fois
+les filtres distance/population/coût appliqués en plus de la contrainte disjointe. Trois
+compagnies (`line_index`=12-14) n'ont posté aucun panneau dans le savegame final capturé — piste
+non éclaircie, pas creusée davantage (compagnies tardives dans un ordre d'échelonnement déjà
+poussé à N=15, comportement à surveiller plutôt qu'à corriger à l'aveugle).
+
+**Mystère séparé, non résolu, à ne pas confondre avec la cannibalisation ci-dessus.** La même
+paire T6-2/graine 42/`pair_rank`=0, construction et matériel roulant strictement identiques (coût
+41520-41535, `vehicle_cost` 36256, `avg_max_age_years` 21.06), donne un profit d'exploitation
+différent à chaque changement de code de `main.nut`, même quand ce changement ne modifie rien à
+CE QUI est construit : +64216 (avant la refonte `pair_rank`) → -152360 (après, scan linéaire
+remplacé par un tri complet) → -247186 (après l'ajout de la contrainte villes disjointes, qui pour
+`line_index`=0 seul ne devrait rien changer en pratique — aucune ville servie, aucun délai). Trois
+versions de code, trois profits différents, pour une construction identique au tick de coût près.
+Hypothèse non vérifiée : le calcul supplémentaire exécuté avant la première `DoCommand` (tri
+complet, puis pré-calcul `townServed` sur ~23 villes) décale le tick auquel elle se déclenche, ce
+qui suffit à faire diverger toute la simulation RNG-dépendante (passagers, croissance des villes)
+sur les 10 années suivantes malgré une ligne construite à l'identique. Implication méthodologique
+sérieuse si confirmée : `profit_ligne` n'est comparable qu'*à l'intérieur* d'une même version de
+`main.nut`, jamais entre deux versions, même fonctionnellement équivalentes pour ce qui est
+construit. Pas encore vérifié empiriquement (nécessiterait d'instrumenter les ticks autour de la
+sélection de paire et de la première commande de jeu, ancien code vs nouveau, même graine) —
+reporté, pas résolu.
