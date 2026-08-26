@@ -206,13 +206,24 @@ mieux les regrouper en une seule passe plutôt que de les ajouter un par un.
 
 | Priorité | Feature | Justification |
 |---|---|---|
+| **Haute** | Distance gare↔centre-ville, pour les deux gares | `_makeStationPlans` cherche un emplacement plat **jusqu'à 30 tuiles** du centre (`main.nut` l. 218-219) et retient le premier viable : selon le relief, une gare atterrit à 2 tuiles du centre ou à 25. La zone de chalandise étant locale, c'est un déterminant de **premier ordre** du remplissage. Absent du jeu v1. |
+| **Haute** | Production/acceptation de la zone de chalandise (`AITile.GetCargoProduction` / `GetCargoAcceptance` autour de la gare retenue) | Mesure **directe** de « combien de passagers cette gare peut capter », préférable au proxy géométrique ci-dessus. Ces deux appels ont déjà servi au débogage du bug de chargement (`docs/methode.md`), donc l'API est connue et disponible. |
 | **Haute** | Bloc topographique : dénivelé, tuiles d'eau, tuiles non constructibles sur le trajet direct | **82 % des échecs sont des `PATHLIM`**, donc topographiques. Le modèle n'a actuellement *rien* sur le terrain et doit deviner le relief depuis `pair_rank` et la distance. C'est le manque le plus coûteux. |
 | **Haute** | Caractéristiques du moteur : vitesse max, capacité, prix, coût de roulement, puissance | `engine_rank` n'est qu'un index ordinal — le modèle sait que 3 est plus lent que 2, pas de combien. Probablement déterminant pour l'étage 2 (profit). |
-| Moyenne | Capacité totale du convoi | Dérivable une fois la capacité moteur/wagon connue ; résume `num_trains × wagons × capacité`. |
+| **Haute** | Capacité totale du convoi en passagers | `num_trains × wagons_per_train × capacité d'un wagon`. Le remplissage est un rapport **demande/capacité** : sans la capacité en valeur absolue, ce rapport est inobservable. Feature dérivée à privilégier sur les propriétés moteur prises isolément. |
 | Moyenne | Distance de Manhattan | Complète `distance_straight` ; l'écart entre les deux est un indice de détour imposé par le terrain. |
 | Basse | Coût de construction **estimé** | L'IA le calcule déjà avant de construire (`estimatedCost`) mais ne l'émet pas. Quasi gratuit à ajouter. |
 | Basse | Croissance des villes | **Effet mesuré faible** : +45 habitants médian par ville sur dix ans, hétérogène, certaines régressent. À n'ajouter que dans une passe groupée, pas pour elle-même. **Piège de fuite, voir ci-dessous.** |
 | Nulle en l'état | Date de construction, type de cargo | Constants dans le design actuel (1970, passagers) : features inutiles tant qu'on ne les fait pas varier. |
+
+**Pourquoi la proximité de gare n'est pas du bruit — et pourquoi son absence coûte cher.** Elle
+est systématique et parfaitement connue avant de construire : l'IA choisit sa tuile de gare pendant
+le preflight et pourrait l'émettre gratuitement. Laissée dehors, elle reproduit exactement la
+pathologie que la barrière de preflight vient d'éliminer (3.0bis) : deux lignes aux features
+identiques — mêmes populations, même distance — mais aux gares placées différemment donnent des
+profits très différents. Le modèle voit alors des entrées identiques avec des cibles
+contradictoires, et cette erreur est irréductible pour lui. Différence avec le chaos de timing :
+cette cause-ci est **mesurable**, donc supprimable.
 
 **Avertissement de fuite sur la croissance des villes.** La population *au moment de la
 construction* est une feature légitime (déjà présente). La croissance **réalisée pendant la partie**
