@@ -163,8 +163,10 @@ config 256×256/`number_towns=3`/1970 observe 46 à 52 villes sur huit graines :
 une densité, pas un nombre exact. `town_a_rank`/`town_b_rank` restent bornés à `[0, 15]`, avec une
 marge large sous le nouveau minimum observé 46. Les 3 moteurs vapeur observés au démarrage 1950
 (`Kirby Paul Tank`, `Chaney 'Jubilee'`, `Ginzu 'A4'`) expliquent historiquement la borne
-`engine_rank=[0,2]`; elle reste volontairement conservatrice à 1970 en attendant un re-sondage du
-catalogue de cette nouvelle année de départ.
+`engine_rank=[0,2]`. Le re-sondage réel de `sweeps/phase0_pair_eligibility.py` à 1970/densité 3
+trouve **8 moteurs rail constructibles non-wagon** dans 7 graines et 9 dans la graine 5 : la borne
+reste donc conservatrice (et valide), mais le catalogue et son ordre par vitesse ont bien rompu
+avec 1950. Les coûts et les `engine_rank` 1970 ne sont pas comparables aux campagnes historiques.
 
 **Orchestrateur multi-lignes par partie — implémenté, avec contrainte de villes disjointes
 (2026-08-26).** Voir la sous-section dédiée plus bas (« Cannibalisation multi-lignes ») pour le
@@ -657,6 +659,13 @@ compagnies tentant de bâtir près de la même ville (ville 8, `STNFAIL` à coû
   desservie). Pas de cas observé dans les vérifications de cette session, mais pas exclu sur
   d'autres cartes.
 
+**Confondant non mesuré — croissance endogène et voisinage.** Une ligne rentable dessert ses
+villes, donc contribue elle-même à la croissance démographique qui nourrit sa demande et son
+profit futur : c'est une boucle de rétroaction, pas une feature exogène. De plus, deux lignes
+peuvent stimuler des villes proches même si elles ne partagent aucune ville. La contrainte de
+villes disjointes évite les terminus communs, **pas** ces effets de croissance entre voisins; ce
+confondant reste à mesurer avant d'interpréter une expérience multi-lignes comme indépendante.
+
 **Vérification après correctif (`docs/phase2_multiline_verify.json`, N=1 et 15 seulement — les
 deux extrêmes suffisent)** :
 
@@ -818,3 +827,83 @@ re-baseliner puis relancer les campagnes Phase 2 sous cette nouvelle configurati
 ces futures observations aux JSON historiques.
 
 Les scripts de contrôle/investigation historiques `phase2_tick_shift_control.py`, `phase2_tick_shift_small_control.py`, `phase2_tick_shift_sweep.py`, `phase2_determinism_control.py` et `phase2_multiline_control.py` restent explicitement épinglés à 1950/densité 2 (sans `town_growth_rate`) pour garder leurs tableaux publiés reproductibles ; les scripts orientés nouvelles campagnes utilisent la configuration révisée.
+
+**Éligibilité des paires après le seuil dur, et balayage de délais sous la nouvelle config
+(2026-08-26).** Deux risques soulevés après la révision de configuration, tous deux mesurés.
+
+*Risque 1 — le seuil population coupe-t-il la plage de `pair_rank` ?* En excluant les villes sous
+500 on supprime le bas du classement gravitaire, donc potentiellement les couples lointains entre
+petites villes qui fournissaient la classe négative du gradient `pair_rank`. Comptage par étage de
+filtre (`sweeps/phase0_pair_eligibility.py`, `docs/phase0_pair_eligibility.json`, sonde SIGN
+reproduisant les constantes de `main.nut`, sans construction), 8 graines par configuration,
+médianes :
+
+| Étage | 1950 / densité 2 | 1970 / densité 3 |
+|---|---:|---:|
+| toutes paires | 325 | 1176 |
+| après filtre distance | 213 | 750 |
+| après estimation de coût | 213 | 750 |
+| après seuil population 500 | 92 | 321 |
+| **plafond `pair_rank` utilisable** | **91** (48 à 148) | **320** (255 à 450) |
+
+Le seuil coupe bien environ 57 % des paires restantes — dans les deux configurations — mais le
+pool élargi de la densité 3 sur-compense très largement : le plafond de rang utilisable est
+multiplié par ~3,5 (médiane 91 → 320, minimum 48 → 255). **La crainte d'un écrasement de la plage
+de `pair_rank` est donc écartée.** Réserve explicite : ce comptage établit que la *plage* survit,
+pas que la *classe négative* survit — le taux d'échec réel aux rangs élevés sous la nouvelle
+configuration n'est pas mesuré ici et demanderait une vraie campagne.
+
+*Risque 2 — l'amplitude de timing s'effondre-t-elle avec des villes plus grandes ?* Le test
+décisif : rejouer le balayage `Sleep(0/25/50/75/100/150/200)` sous la nouvelle configuration, sur
+**trois lignes différentes** (une ligne unique pourrait se trouver par hasard dans un régime
+marginal). `sweeps/phase2_tick_shift_sweep_v2.py`, `docs/phase2_tick_shift_sweep_v2.json` :
+
+| Ligne (rang 0) | amplitude `profit_ligne` |
+|---|---:|
+| graine 42 | 1 219 072 |
+| graine 1 | 1 583 360 |
+| graine 7 | 968 704 |
+| *(rappel 1950/densité 2, `phase2_tick_shift_sweep.json`)* | *667 136* |
+
+**L'amplitude ne s'effondre pas : elle est environ multipliée par 1,8 en valeur absolue**, sur
+trois lignes indépendantes. La construction reste identique à l'intérieur de chaque balayage
+(coût constant, à une exception de +15 sur la graine 1 entre les délais 75 et 100).
+
+*Le ratio, et un piège de comparaison à ne pas reproduire.* La grandeur à surveiller est
+`amplitude du balayage / étendue des profits entre lignes réellement différentes`, calculée à
+l'intérieur d'une même configuration (les recettes et les coûts de 1970 ne sont pas ceux de 1950).
+Mais il faut aussi que le **design du dénominateur** soit le même des deux côtés, sans quoi la
+comparaison avant/après est faussée : le dénominateur « nouvelle config » ne couvre que les rangs
+0 et 5 (10 lignes, étendue 6 534 864), alors que le dénominateur historique disponible couvre
+toute la campagne `pair_rank` (81 lignes, rangs 0 à 59, étendue 9 972 386, échecs et profits
+négatifs inclus). Comparer 667 136/9 972 386 = **0,067** à 0,148–0,242 laisserait croire à une
+dégradation qui n'est qu'un artefact de design. En restreignant le dénominateur historique aux
+mêmes rangs 0 et 5 (9 lignes exploitables, étendue 4 082 567) :
+
+| Configuration | dénominateur (rangs 0/5) | ratio |
+|---|---:|---:|
+| 1950 / densité 2 | 4 082 567 | **0,163** |
+| 1970 / densité 3 | 6 534 864 | **0,148 à 0,242** (médiane 0,187) |
+
+**À design comparable, le ratio est inchangé** — l'ancien tombe à l'intérieur de la plage du
+nouveau. La taille des villes n'était donc pas la cause du bruit de timing : ni l'amplitude
+absolue (qui augmente), ni l'amplitude relative (qui stagne autour d'un cinquième) ne s'améliorent
+avec des villes plus grandes et des profits plus élevés. **Conclusion opérationnelle** :
+l'hypothèse chaotique tient, et la cible n'est pas modélisable à l'échelle de l'essai individuel —
+il faudra répéter chaque configuration et modéliser la moyenne plutôt que le tirage unique. Le
+plancher d'erreur d'un modèle entraîné sur des essais uniques reste de l'ordre du million sur
+`profit_ligne`.
+
+**Faisabilité de la construction en pause — non (2026-08-26).** Détail complet dans
+`docs/pause_feasibility_findings.md`. Vérifié contre le binaire 13.4 : un `pause` posé avant
+`start_ai` empêche `Start()` d'être ordonnancé du tout (1000 ticks, aucune sortie) — la pause fige
+aussi le scheduler IA, donc « mettre en pause, tout construire, relancer » est structurellement
+impossible depuis une IA. Trois précisions utiles au passage : le `Sleep(1)` entre constructions
+n'est pas une convention mais une contrainte du moteur (toute `DoCommand` réelle suspend le script
+jusqu'au tick IA suivant, deux commandes réelles dans le même tick sont impossibles) ; la phase de
+construction de `TrainLineAI` est déjà courte et exactement reproductible (38 ticks entre première
+et dernière commande, identique sur trois répétitions) ; en revanche la première mutation n'arrive
+qu'au tick 392, soit 391 ticks de preflight. **C'est le preflight, pas la construction, qui est la
+fenêtre temporelle variable à normaliser.** Le tick de départ absolu, lui, est bien fixable :
+`Start()` démarre au tick IA 1 dans trois configurations très différentes, sans réglage de délai
+pertinent en 13.4.

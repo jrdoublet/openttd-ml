@@ -14,6 +14,12 @@ construction, sans simuler la partie ? Voir `docs/methode.md` pour le protocole 
 | Durée de partie | `days = 365 * 10` | Révisé après la 1ère calibration (`s_per_game` plus bas que prévu) : 10 ans de jeu au lieu des 4 ans de l'exemple officiel |
 | Config OpenTTD | voir `OPENTTD_CONFIG` dans `sweeps/phase0_*.py` | Révisée le 2026-08-26 après `phase0_town_distribution` : `inflation=false`, `town_growth_rate=2`, `map_x`/`map_y=8`, `starting_year=1970`, `number_towns=3`, `industry_density=4` — figés explicitement pour les futures cartes |
 
+**Rupture de campagne à 1970.** Le catalogue ferroviaire de 1970 n'est pas celui de 1950 : il
+contient des moteurs plus rapides, plus chers et plus nombreux. `engine_rank` ne désigne donc pas
+les mêmes locomotives et les coûts de construction ne sont pas directement comparables. Les JSON
+antérieurs en 1950/densité 2 restent des artefacts historiques; les mesures 1970/densité 3 forment
+une campagne distincte et ne doivent pas être mélangées avec elles.
+
 **Note sur la version.** La documentation d'OpenTTDLab se contredit : la section *Compatibility*
 annonce le support des branches 12, 13 et 15+, tandis que l'avertissement sur `run_experiments`
 indique que 13.4 est la dernière version connue pour fonctionner. La branche 14.x n'est supportée
@@ -179,8 +185,10 @@ une erreur Python immédiate plutôt que d'être avalée silencieusement par Ope
   pas un nombre exact (voir `docs/methode.md`).
 - `engine_rank` (0-2, défaut 0) : rang dans la liste des moteurs triée par vitesse, au lieu de
   toujours prendre le plus rapide — casse la colinéarité totale entre matériel et date de
-  construction. La borne vient de l'ancien démarrage 1950 (3 moteurs observés) ; à 1970 elle reste
-  conservatrice et le catalogue complet devra être re-sondé avant de l'élargir.
+  construction. La borne vient de l'ancien démarrage 1950 (3 moteurs observés). Re-sondage réel à
+  1970/densité 3 : **8 moteurs rail constructibles non-wagon** (9 sur la graine 5) — la borne reste
+  donc valide mais conservatrice, et le catalogue comme son ordre par vitesse ont bien rompu avec
+  1950 (voir la rupture de campagne ci-dessus).
 - `line_index` (0-19, défaut 0) : identifiant de tentative, échoïsé dans le panneau de statut —
   rattache un panneau à une tentative précise dès qu'il y en a plusieurs dans la même partie.
 - `cargo_index` : pas encore ajouté, prévu une fois les rangs ci-dessus stabilisés.
@@ -322,6 +330,35 @@ théorique ; en pratique, avec les filtres population/distance/coût déjà en p
 est atteint plus tôt). Détail complet, limites connues, et un mystère de profit séparé et non
 résolu (la comparaison N=1 avant/après correctif n'est elle-même pas stable, pour une raison
 encore non identifiée) : `docs/methode.md`.
+
+## Le plancher d'erreur : ce que le modèle ne pourra jamais expliquer
+
+Sur une **même ligne**, construction rigoureusement identique, en ne changeant que le décalage de
+timing de l'IA (un `Sleep` de 0 à 200 ticks avant qu'elle n'agisse), `profit_ligne` varie de plus
+d'un million. Deux observations aux features identiques, séparées d'un million sur la cible :
+aucune régression ne peut prédire les deux. C'est le plancher d'erreur du projet.
+
+L'hypothèse naturelle était que des villes trop petites rendaient chaque ligne dépendante d'une
+poignée de passagers. Elle a été testée : configuration révisée (densité 3, départ 1970, villes
+plus grandes et profits plus élevés), même balayage de délais, sur trois lignes différentes.
+
+| | 1950 / densité 2 | 1970 / densité 3 |
+|---|---:|---:|
+| amplitude du balayage | 667 136 | 968 704 à 1 583 360 |
+| ratio amplitude / étendue entre lignes réelles¹ | 0,163 | 0,148 à 0,242 |
+
+¹ *À design de dénominateur comparable des deux côtés (rangs 0 et 5). Comparer au dénominateur
+historique complet donnerait 0,067 et laisserait croire à tort à une dégradation — artefact de
+design, pas signal.*
+
+**L'amplitude ne s'effondre pas, elle augmente ; le ratio ne bouge pas.** La taille des villes
+n'était donc pas la cause. Le bruit de timing représente environ un cinquième de l'écart entre
+deux lignes réellement différentes, avant comme après. Conséquence méthodologique assumée : la
+cible n'est pas modélisable à l'échelle de l'essai individuel — il faudra **répéter chaque
+configuration et modéliser la moyenne** plutôt que le tirage unique.
+
+Détail, contrôles successifs et faisabilité d'une construction « en pause » (impossible : la pause
+fige aussi l'ordonnanceur d'IA) dans `docs/methode.md` et `docs/pause_feasibility_findings.md`.
 
 ## Prochaines étapes
 

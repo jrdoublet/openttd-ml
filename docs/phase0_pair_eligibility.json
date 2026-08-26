@@ -1,0 +1,476 @@
+{
+  "method": "SIGN probe reproducing current main.nut constants/estimate; no construction",
+  "selection_order_in_main_nut": [
+    "disjoint",
+    "distance",
+    "affordability",
+    "population_floor"
+  ],
+  "reported_comparable_filter_sequence": [
+    "all_pairs",
+    "after_distance",
+    "after_affordability",
+    "after_population_floor"
+  ],
+  "disjoint_note": "In each isolated one-company game, no towns are served at selection, so this filter removes zero pairs and is reported separately.",
+  "configs": {
+    "old_d2_y1950": {
+      "number_towns": 2,
+      "starting_year": 1950,
+      "town_growth_rate": 2
+    },
+    "new_d3_y1970": {
+      "number_towns": 3,
+      "starting_year": 1970,
+      "town_growth_rate": 2
+    }
+  },
+  "seeds": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    42
+  ],
+  "records": [
+    {
+      "config_name": "old_d2_y1950",
+      "seed": 1,
+      "capture_date": "1950-12-01",
+      "all_pairs": 351,
+      "after_distance": 236,
+      "after_affordability": 236,
+      "after_population_floor": 113,
+      "disjoint_removed_single_company": 0,
+      "after_disjoint_single_company": 113,
+      "usable_pair_rank_ceiling": 112,
+      "buildable_non_wagon_rail_engines": 3
+    },
+    {
+      "config_name": "old_d2_y1950",
+      "seed": 2,
+      "capture_date": "1950-12-01",
+      "all_pairs": 325,
+      "after_distance": 187,
+      "after_affordability": 187,
+      "after_population_floor": 70,
+      "disjoint_removed_single_company": 0,
+      "after_disjoint_single_company": 70,
+      "usable_pair_rank_ceiling": 69,
+      "buildable_non_wagon_rail_engines": 3
+    },
+    {
+      "config_name": "old_d2_y1950",
+      "seed": 3,
+      "capture_date": "1950-12-01",
+      "all_pairs": 406,
+      "after_distance": 280,
+      "after_affordability": 280,
+      "after_population_floor": 135,
+      "disjoint_removed_single_company": 0,
+      "after_disjoint_single_company": 135,
+      "usable_pair_rank_ceiling": 134,
+      "buildable_non_wagon_rail_engines": 3
+    },
+    {
+      "config_name": "old_d2_y1950",
+      "seed": 4,
+      "capture_date": "1950-12-01",
+      "all_pairs": 406,
+      "after_distance": 249,
+      "after_affordability": 249,
+      "after_population_floor": 88,
+      "disjoint_removed_single_company": 0,
+      "after_disjoint_single_company": 88,
+      "usable_pair_rank_ceiling": 87,
+      "buildable_non_wagon_rail_engines": 3
+    },
+    {
+      "config_name": "old_d2_y1950",
+      "seed": 5,
+      "capture_date": "1950-12-01",
+      "all_pairs": 325,
+      "after_distance": 227,
+      "after_affordability": 227,
+      "after_population_floor": 149,
+      "disjoint_removed_single_company": 0,
+      "after_disjoint_single_company": 149,
+      "usable_pair_rank_ceiling": 148,
+      "buildable_non_wagon_rail_engines": 3
+    },
+    {
+      "config_name": "old_d2_y1950",
+      "seed": 6,
+      "capture_date": "1950-12-01",
+      "all_pairs": 253,
+      "after_distance": 175,
+      "after_affordability": 175,
+      "after_population_floor": 54,
+      "disjoint_removed_single_company": 0,
+      "after_disjoint_single_company": 54,
+      "usable_pair_rank_ceiling": 53,
+      "buildable_non_wagon_rail_engines": 3
+    },
+    {
+      "config_name": "old_d2_y1950",
+      "seed": 7,
+      "capture_date": "1950-12-01",
+      "all_pairs": 276,
+      "after_distance": 199,
+      "after_affordability": 199,
+      "after_population_floor": 96,
+      "disjoint_removed_single_company": 0,
+      "after_disjoint_single_company": 96,
+      "usable_pair_rank_ceiling": 95,
+      "buildable_non_wagon_rail_engines": 3
+    },
+    {
+      "config_name": "old_d2_y1950",
+      "seed": 42,
+      "capture_date": "1950-12-01",
+      "all_pairs": 253,
+      "after_distance": 159,
+      "after_affordability": 159,
+      "after_population_floor": 49,
+      "disjoint_removed_single_company": 0,
+      "after_disjoint_single_company": 49,
+      "usable_pair_rank_ceiling": 48,
+      "buildable_non_wagon_rail_engines": 3
+    },
+    {
+      "config_name": "new_d3_y1970",
+      "seed": 1,
+      "capture_date": "1970-12-01",
+      "all_pairs": 1225,
+      "after_distance": 765,
+      "after_affordability": 765,
+      "after_population_floor": 451,
+      "disjoint_removed_single_company": 0,
+      "after_disjoint_single_company": 451,
+      "usable_pair_rank_ceiling": 450,
+      "buildable_non_wagon_rail_engines": 8
+    },
+    {
+      "config_name": "new_d3_y1970",
+      "seed": 2,
+      "capture_date": "1970-12-01",
+      "all_pairs": 1176,
+      "after_distance": 738,
+      "after_affordability": 738,
+      "after_population_floor": 298,
+      "disjoint_removed_single_company": 0,
+      "after_disjoint_single_company": 298,
+      "usable_pair_rank_ceiling": 297,
+      "buildable_non_wagon_rail_engines": 8
+    },
+    {
+      "config_name": "new_d3_y1970",
+      "seed": 3,
+      "capture_date": "1970-12-01",
+      "all_pairs": 1326,
+      "after_distance": 856,
+      "after_affordability": 856,
+      "after_population_floor": 326,
+      "disjoint_removed_single_company": 0,
+      "after_disjoint_single_company": 326,
+      "usable_pair_rank_ceiling": 325,
+      "buildable_non_wagon_rail_engines": 8
+    },
+    {
+      "config_name": "new_d3_y1970",
+      "seed": 4,
+      "capture_date": "1970-12-01",
+      "all_pairs": 1326,
+      "after_distance": 873,
+      "after_affordability": 873,
+      "after_population_floor": 404,
+      "disjoint_removed_single_company": 0,
+      "after_disjoint_single_company": 404,
+      "usable_pair_rank_ceiling": 403,
+      "buildable_non_wagon_rail_engines": 8
+    },
+    {
+      "config_name": "new_d3_y1970",
+      "seed": 5,
+      "capture_date": "1970-12-01",
+      "all_pairs": 1176,
+      "after_distance": 763,
+      "after_affordability": 763,
+      "after_population_floor": 322,
+      "disjoint_removed_single_company": 0,
+      "after_disjoint_single_company": 322,
+      "usable_pair_rank_ceiling": 321,
+      "buildable_non_wagon_rail_engines": 9
+    },
+    {
+      "config_name": "new_d3_y1970",
+      "seed": 6,
+      "capture_date": "1970-12-01",
+      "all_pairs": 1035,
+      "after_distance": 632,
+      "after_affordability": 632,
+      "after_population_floor": 317,
+      "disjoint_removed_single_company": 0,
+      "after_disjoint_single_company": 317,
+      "usable_pair_rank_ceiling": 316,
+      "buildable_non_wagon_rail_engines": 8
+    },
+    {
+      "config_name": "new_d3_y1970",
+      "seed": 7,
+      "capture_date": "1970-12-01",
+      "all_pairs": 1081,
+      "after_distance": 653,
+      "after_affordability": 653,
+      "after_population_floor": 256,
+      "disjoint_removed_single_company": 0,
+      "after_disjoint_single_company": 256,
+      "usable_pair_rank_ceiling": 255,
+      "buildable_non_wagon_rail_engines": 8
+    },
+    {
+      "config_name": "new_d3_y1970",
+      "seed": 42,
+      "capture_date": "1970-12-01",
+      "all_pairs": 1035,
+      "after_distance": 712,
+      "after_affordability": 712,
+      "after_population_floor": 321,
+      "disjoint_removed_single_company": 0,
+      "after_disjoint_single_company": 321,
+      "usable_pair_rank_ceiling": 320,
+      "buildable_non_wagon_rail_engines": 8
+    }
+  ],
+  "negative_class_constructibility_probe_new_config": {
+    "design": "Current production AI, isolated 10-year games: 8 seeds x ranks 20, 40, 59.",
+    "records": [
+      {
+        "seed": 1,
+        "pair_rank": 20,
+        "capture_date": "1979-12-01",
+        "stage": "success",
+        "reason": "OK",
+        "built": 2,
+        "requested": 2
+      },
+      {
+        "seed": 1,
+        "pair_rank": 40,
+        "capture_date": "1979-12-01",
+        "stage": "success",
+        "reason": "OK",
+        "built": 2,
+        "requested": 2
+      },
+      {
+        "seed": 1,
+        "pair_rank": 59,
+        "capture_date": "1979-12-01",
+        "stage": "success",
+        "reason": "OK",
+        "built": 2,
+        "requested": 2
+      },
+      {
+        "seed": 2,
+        "pair_rank": 20,
+        "capture_date": "1979-12-01",
+        "stage": "success",
+        "reason": "OK",
+        "built": 2,
+        "requested": 2
+      },
+      {
+        "seed": 2,
+        "pair_rank": 40,
+        "capture_date": "1979-12-01",
+        "stage": "failed",
+        "reason": "PATHLIM",
+        "built": 0,
+        "requested": 2
+      },
+      {
+        "seed": 2,
+        "pair_rank": 59,
+        "capture_date": "1979-12-01",
+        "stage": "failed",
+        "reason": "PATHLIM",
+        "built": 0,
+        "requested": 2
+      },
+      {
+        "seed": 3,
+        "pair_rank": 20,
+        "capture_date": "1979-12-01",
+        "stage": "success",
+        "reason": "OK",
+        "built": 2,
+        "requested": 2
+      },
+      {
+        "seed": 3,
+        "pair_rank": 40,
+        "capture_date": "1979-12-01",
+        "stage": "success",
+        "reason": "OK",
+        "built": 2,
+        "requested": 2
+      },
+      {
+        "seed": 3,
+        "pair_rank": 59,
+        "capture_date": "1979-12-01",
+        "stage": "success",
+        "reason": "OK",
+        "built": 2,
+        "requested": 2
+      },
+      {
+        "seed": 4,
+        "pair_rank": 20,
+        "capture_date": "1979-12-01",
+        "stage": "success",
+        "reason": "OK",
+        "built": 2,
+        "requested": 2
+      },
+      {
+        "seed": 4,
+        "pair_rank": 40,
+        "capture_date": "1979-12-01",
+        "stage": "success",
+        "reason": "OK",
+        "built": 2,
+        "requested": 2
+      },
+      {
+        "seed": 4,
+        "pair_rank": 59,
+        "capture_date": "1979-12-01",
+        "stage": "success",
+        "reason": "OK",
+        "built": 2,
+        "requested": 2
+      },
+      {
+        "seed": 5,
+        "pair_rank": 20,
+        "capture_date": "1979-12-01",
+        "stage": "success",
+        "reason": "OK",
+        "built": 2,
+        "requested": 2
+      },
+      {
+        "seed": 5,
+        "pair_rank": 40,
+        "capture_date": "1979-12-01",
+        "stage": "success",
+        "reason": "OK",
+        "built": 2,
+        "requested": 2
+      },
+      {
+        "seed": 5,
+        "pair_rank": 59,
+        "capture_date": "1979-12-01",
+        "stage": "failed",
+        "reason": "TRKFAIL",
+        "built": 0,
+        "requested": 2
+      },
+      {
+        "seed": 6,
+        "pair_rank": 20,
+        "capture_date": "1979-12-01",
+        "stage": "success",
+        "reason": "OK",
+        "built": 2,
+        "requested": 2
+      },
+      {
+        "seed": 6,
+        "pair_rank": 40,
+        "capture_date": "1979-12-01",
+        "stage": "failed",
+        "reason": "PATHLIM",
+        "built": 0,
+        "requested": 2
+      },
+      {
+        "seed": 6,
+        "pair_rank": 59,
+        "capture_date": "1979-12-01",
+        "stage": "success",
+        "reason": "OK",
+        "built": 2,
+        "requested": 2
+      },
+      {
+        "seed": 7,
+        "pair_rank": 20,
+        "capture_date": "1979-12-01",
+        "stage": "success",
+        "reason": "OK",
+        "built": 2,
+        "requested": 2
+      },
+      {
+        "seed": 7,
+        "pair_rank": 40,
+        "capture_date": "1979-12-01",
+        "stage": "success",
+        "reason": "OK",
+        "built": 2,
+        "requested": 2
+      },
+      {
+        "seed": 7,
+        "pair_rank": 59,
+        "capture_date": "1979-12-01",
+        "stage": "failed",
+        "reason": "PATHLIM",
+        "built": 0,
+        "requested": 2
+      },
+      {
+        "seed": 42,
+        "pair_rank": 20,
+        "capture_date": "1979-12-01",
+        "stage": "success",
+        "reason": "OK",
+        "built": 2,
+        "requested": 2
+      },
+      {
+        "seed": 42,
+        "pair_rank": 40,
+        "capture_date": "1979-12-01",
+        "stage": "success",
+        "reason": "OK",
+        "built": 2,
+        "requested": 2
+      },
+      {
+        "seed": 42,
+        "pair_rank": 59,
+        "capture_date": "1979-12-01",
+        "stage": "failed",
+        "reason": "PATHLIM",
+        "built": 0,
+        "requested": 2
+      }
+    ],
+    "success_count": 18,
+    "failure_count": 6,
+    "failure_reasons": {
+      "PATHLIM": 5,
+      "TRKFAIL": 1
+    },
+    "verdict": "The negative class survives: high ranks are addressable and include real non-success outcomes under the new configuration."
+  }
+}
