@@ -751,3 +751,28 @@ timing ; il ne permet toujours pas d'attribuer avec certitude le mécanisme à u
 qu'à une autre dynamique temporelle. L'écart n'est manifestement pas supposable proportionnel à la
 taille du délai (le contrôle `Sleep(6000)` avait un delta plus faible) ; aucun essai bonus à 10 ticks
 n'a été lancé.
+
+**Balayage fin du décalage et contrôle date/âge (`docs/phase2_tick_shift_sweep.json`,
+2026-08-26).** Sept parties isolées ont balayé `Sleep(0,25,50,75,100,150,200)` ; le point 0 emploie
+l'IA de production, les autres une copie `/tmp` avec un réglage scratch `debug_delay_ticks`. Le
+smoke test du point 200 confirme T6-2. Les sept constructions sont strictement identiques dans les
+champs observés : T6-2, distance 20, coût 41535, `vehicle_cost` 36256, deux trains et
+`avg_max_age_years` 21.06. Le témoin 0 reproduit encore -245288/-247186 exactement.
+
+| Sleep (ticks) | `sum_profit_last_year` | `profit_ligne` | date capture | âges des motrices (jours) |
+|---:|---:|---:|---|---|
+| 0 | -245288 | -247186 | 1959-12-01 | 3598, 3598 |
+| 25 | -74536 | -76434 | 1959-12-01 | 3597, 3596 |
+| 50 | -262696 | -264594 | 1959-12-01 | 3595, 3595 |
+| 75 | -125992 | -127890 | 1959-12-01 | 3594, 3594 |
+| 100 | -497704 | -499602 | 1959-12-01 | 3593, 3592 |
+| 150 | -562216 | -564114 | 1959-12-01 | 3590, 3590 |
+| 200 | 104920 | 103022 | 1959-12-01 | 3587, 3587 |
+
+Le champ `VEHS...common.age` est bien présent : les dates de construction dérivées vont seulement
+du 1950-01-24 au 1950-02-04, soit 11 jours sur une partie de près de dix ans. La date de capture,
+et donc la fenêtre calendaire de `profit_last_year`, est exactement la même aux sept points. Cet
+âge/date varie donc légèrement et de façon monotone avec le délai, mais ne peut pas expliquer des
+profits non monotones allant de -564114 à +104920. Aucun plateau ni périodicité visible sur ces
+sept échantillons : le profil est erratique, ce qui soutient une sensibilité chaotique au timing
+(compatible avec l'hypothèse RNG), sans permettre encore de prouver le mécanisme interne précis.
