@@ -697,3 +697,21 @@ sérieuse si confirmée : `profit_ligne` n'est comparable qu'*à l'intérieur* d
 construit. Pas encore vérifié empiriquement (nécessiterait d'instrumenter les ticks autour de la
 sélection de paire et de la première commande de jeu, ancien code vs nouveau, même graine) —
 reporté, pas résolu.
+
+**Contrôle isolé du décalage de ticks (`docs/phase2_tick_shift_control.json`, 2026-08-26).** Deux
+parties à une seule compagnie, graine 42/configuration inchangée, `pair_rank`=0 : seul
+`line_index` varie entre 0 et 1. La seconde exécute donc le `Sleep(6000)` déjà présent dans
+`Start()` avant la sélection/construction. Le smoke test AILog (`sweeps/debug_ai.py`) confirme que
+les deux choisissent bien T6-2 ; il a fallu donner 100000 ticks au cas différé (pas encore réveillé
+à 10000) pour observer sa sélection et sa construction.
+
+Le résultat à 10 ans garde la même paire T6-2, distance 20, 2/2 trains, `vehicle_cost` 36256 et
+`avg_max_age_years` 21.06. En revanche, le coût de construction n'est **pas** byte-identique :
+41535 (`line_index`=0) contre 41550 (`line_index`=1). Les profits divergent de -245288 à -269864
+pour `sum_profit_last_year`, et de -247186 à -271762 pour `profit_ligne`, soit -24576 (-9,9 %)
+dans les deux cas. L'amortissement annuel arrondi est identique (1898) : les $15 de coût ne peuvent
+pas expliquer ce delta de profit. Le contrôle **soutient** donc une sensibilité de la trajectoire
+économique au moment de démarrage, mais ne valide pas encore la formulation la plus forte « grand
+écart malgré construction byte-identique », puisque ce coût a lui-même bougé. Il faut conserver la
+prudence méthodologique sur les comparaisons inter-versions et, pour une preuve stricte, isoler un
+décalage qui préserve aussi tous les champs de construction mesurés.
