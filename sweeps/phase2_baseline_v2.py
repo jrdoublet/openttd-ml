@@ -110,6 +110,8 @@ if __name__ == "__main__":
              ("num_trains", 2), ("wagons_per_train", 2), ("engine_rank", 1),
              ("pair_rank", rank), ("line_index", index), ("stagger_slot", 0))),)}
         for index, (seed, rank) in enumerate(runs))
+    if any(len(experiment["ais"]) != 1 for experiment in experiments):
+        raise RuntimeError("Baseline invariant violated: each experiment must contain exactly one AI/company")
     results = run_experiments(
         openttd_version="13.4", opengfx_version="7.1", max_workers=3, result_processor=keep_row,
         ai_libraries=(bananas_ai_library("5046524c", "Pathfinder.Rail"),), experiments=experiments)

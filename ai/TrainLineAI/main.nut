@@ -525,10 +525,10 @@ function TrainLineAI::Start()
    * AI, tout en conservant l'ecart de STAGGER_TICKS entre compagnies : le slot N construit a
    * BARRIER_BASE + N*STAGGER_TICKS. Ainsi N-1 a au moins 6000-38 ticks pour poser ses gares
    * avant la selection/construction de N, donc _isTownServed() garde son ordre de visibilite.
-   * BARRIER_BASE=5000 est choisi sur la distribution 1970/256x256 de
-   * sweeps/phase2_preflight_distribution.py (max observe 4397 au tick absolu, marge 603). Le
-   * script de mesure cree une copie /tmp avec zero afin d'observer le preflight non masque. */
-  local BARRIER_BASE = 5000;
+   * BARRIER_BASE=11000 est la correction apres la distribution etendue 1970/256x256
+   * (rangs 0..150 : max observe 9916, marge 1084). Le script de mesure cree une copie /tmp avec
+   * zero afin d'observer le preflight non masque. */
+  local BARRIER_BASE = 11000;
   local barrierTarget = BARRIER_BASE + this.state.stagger_slot * STAGGER_TICKS;
   local beforeBarrier = AIController.GetTick();
   this.state.barrier_met = beforeBarrier <= barrierTarget;

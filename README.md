@@ -360,9 +360,10 @@ deux lignes réellement différentes, avant comme après.
 La construction elle-même était déjà reproductible au tick près (38 ticks). La fenêtre variable
 était le **preflight** — sélection de paire et pathfinding — mesuré sur 30 routes à 678 ticks au
 minimum, 957 en médiane, 4397 au maximum. D'où une **barrière** : une fois tout le preflight
-terminé et avant de toucher la moindre tuile, l'IA attend jusqu'au tick absolu 5000 (100 % de ces
-30 routes initiales couvertes, 603 ticks de marge, coût ~1,5 % de la partie). En
-multi-compagnies la cible reste échelonnée (`5000 + stagger_slot × 6000`) pour préserver l'ordre
+terminé et avant de toucher la moindre tuile, l'IA attend jusqu'au tick absolu 11000. La première
+estimation à 5000 était limitée aux rangs 0..40; la mesure 0..150 (86 mutations) atteint 9916,
+donc 11000 les couvre avec 1084 ticks de marge (~4,1 % de la partie). En multi-compagnies la cible
+reste échelonnée (`11000 + stagger_slot × 6000`) pour préserver l'ordre
 de visibilité dont dépend la contrainte de villes disjointes ; `line_index` reste seulement
 l'identifiant affiché, afin que les campagnes isolées ne soient jamais retardées par leur numéro.
 
@@ -379,18 +380,16 @@ au timing passe du million à zéro.
 
 Deux réserves assumées. Normaliser *quand* la construction démarre ne rend pas la simulation
 insensible au timing absolu : cela rend les runs comparables entre eux, rien de plus. Et puisque
-la construction se produit maintenant au tick 5000 et non vers 950, **les valeurs de profit
-changent** (graine 42 : +1 719 409 avant, −353 423 après) : c'est une nouvelle rupture de
+la construction se produit maintenant au tick 11000 et non vers 950, **les valeurs de profit
+changent** (graine 42 : +1 719 409 avant, +1 352 050 après) : c'est une nouvelle rupture de
 campagne, au même titre que 1950 → 1970. Chaque ligne signale désormais dans ses panneaux si elle
 a respecté la barrière (`M`) ou l'a dépassée (`O`) — une ligne `O` n'est pas comparable aux
 autres.
 
-La baseline fraîche `docs/phase2_baseline_v2.json` est la première campagne à cible
-temporellement reproductible : 100 lignes isolées, 75 construites / 25 échecs (19 `PATHLIM`, 6
+La baseline fraîche `docs/phase2_baseline_v3.json` est la première campagne à cible
+temporellement reproductible sur tout son domaine échantillonné : 100 lignes isolées, 75 construites / 25 échecs (19 `PATHLIM`, 6
 `TRKFAIL`). Les buckets 0–24, 25–49, 50–74 et 75–120 réussissent à 88 %, 88 %, 68 % et 56 %.
-Parmi les lignes bâties, 58 sont normalisées (`M`) et 17 dépassent la barrière (`O`) : seules les
-M forment la nouvelle cible comparable (`profit_ligne` médian 2 571 170; min/max −1 094 394 /
-8 955 582). Les O restent visibles dans le JSON, mais ne doivent pas être mélangées aux M.
+Les 75 lignes bâties sont normalisées (`M`; 0 `O`) et forment la nouvelle cible comparable.
 
 Détail, contrôles successifs et faisabilité d'une construction « en pause » (impossible : la pause
 fige aussi l'ordonnanceur d'IA) dans `docs/methode.md` et `docs/pause_feasibility_findings.md`.

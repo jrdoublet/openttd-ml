@@ -920,16 +920,18 @@ dont des rangs élevés, config 1970/densité 3) : tick de première mutation **
 p90 2806, max 4397**. Les 391 ticks du sondage précédent étaient donc un cas particulièrement
 favorable, pas un ordre de grandeur représentatif.
 
-*Cible retenue : `BARRIER_BASE = 5000`* — couvre **100 %** de l'échantillon avec 603 ticks de
-marge sur le maximum observé, pour un coût d'environ 54 jours de jeu sur une partie de 3650 jours
-(~1,5 % de la fenêtre d'exploitation). Le compromis est explicite : plus bas, certaines lignes
-dépasseraient la barrière et ne seraient pas normalisées ; plus haut, on ampute la fenêtre qui
-produit `profit_last_year`.
+*Correction de couverture (2026-08-26).* Le « 100 % » ci-dessus ne portait que sur les rangs
+0/1/5/10/20/40; la baseline 0..110 a révélé des O jusqu'au tick 9916. La distribution étendue
+(`phase2_preflight_distribution_v2`, 110 lignes, rangs 0..150) mesure 86 premières mutations :
+min 678, médiane 1930,5, p90 7703, max 9916. `BARRIER_BASE = 11000` couvre donc 86/86 (100 %)
+avec 1084 ticks de marge, au coût d'environ 149 jours, soit ~4,1 % des 3650 jours. Le coût est
+acceptable : v3 récupère les 17 succès O perdus par v2. Une ligne au-delà reste signalée O et ne
+doit jamais être mélangée aux M.
 
 *Interaction avec l'échelonnement multi-compagnies.* Une barrière absolue identique pour toutes
 les compagnies détruirait l'ordonnancement dont dépend `_isTownServed()` (la compagnie N doit voir
 les gares de 0..N−1). La cible reste donc échelonnée :
-`barrierTarget = BARRIER_BASE + line_index * STAGGER_TICKS`. La compagnie N−1 termine ses 38 ticks
+`barrierTarget = BARRIER_BASE + stagger_slot * STAGGER_TICKS`. La compagnie N−1 termine ses 38 ticks
 de construction à `cible+38`, alors que N ne commence son preflight que 6000 ticks plus tard —
 l'ordre de visibilité est préservé par construction.
 
@@ -968,8 +970,8 @@ mesuré ici.
 jeux isolés il valait 0..99, mais le stagger/barrière le multipliait par 6000. Sur ~270100 ticks
 en dix ans, l'index 45 dormait déjà 270000 ticks avant son preflight. Le paramètre est scindé :
 `line_index` identifie seulement les panneaux; `stagger_slot` ordonnance les compagnies. Les
-jeux isolés passent slot 0; le smoke test multi slots 0/1 a construit deux paires distinctes aux
-ticks M=5000/11000.
+jeux isolés passent slot 0; avec la cible relevée, les slots multi 0/1 visent désormais les ticks
+M=11000/17000.
 
 La sonde 5-graines donne 3/5 succès aux rangs 50 et 100, 4/5 à 200 (quatre O), 1/5 à 300, 0/5 à
 400. `phase2_baseline_v2` échantillonne donc 5 graines × 20 rangs 0..110 : succès par buckets
@@ -977,3 +979,7 @@ La sonde 5-graines donne 3/5 succès aux rangs 50 et 100, 4/5 à 200 (quatre O),
 6 TRKFAIL), 63 M, 18 O, 19 sans mutation. Les 58 succès M, seuls comparables, ont
 `profit_ligne` min/Q1/médiane/moyenne/Q3/max = -1 094 394 / 324 113 / 2 571 170 / 2 475 704 /
 4 408 062 / 8 955 582; les 17 succès O sont explicitement exclus de cette cible.
+
+La reprise identique avec 11000 (`phase2_baseline_v3`) donne les mêmes 75/25 succès/échecs
+(19 PATHLIM, 6 TRKFAIL) et les mêmes taux 88 %/88 %/68 %/56 %, mais **81 M, 0 O, 19 sans mutation** :
+les 75 lignes bâties sont toutes normalisées.

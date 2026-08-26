@@ -1,0 +1,1576 @@
+{
+  "design": {
+    "seeds": [
+      42,
+      1,
+      7,
+      100,
+      2026
+    ],
+    "ranks": [
+      0,
+      5,
+      10,
+      15,
+      20,
+      25,
+      30,
+      35,
+      40,
+      45,
+      50,
+      55,
+      60,
+      65,
+      70,
+      75,
+      80,
+      90,
+      100,
+      110,
+      120,
+      150
+    ],
+    "barrier_base_in_scratch": 0
+  },
+  "summary": {
+    "attempted": 110,
+    "reached_first_mutation": 86,
+    "min_first_mutation_tick": 678,
+    "median_first_mutation_tick": 1930.5,
+    "p90_nearest_rank": 7703,
+    "max_first_mutation_tick": 9916
+  },
+  "records": [
+    {
+      "seed": 1,
+      "pair_rank": 0,
+      "raw_signs": [
+        "TRLN|TRY|0|T11-48",
+        "TRLN|22|success|OK|2/2",
+        "TRLN|22|T11-48|D21|C55098",
+        "TRLN|22|V47974",
+        "TRLN|22|B965|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 965,
+      "preflight_elapsed_ticks": 964
+    },
+    {
+      "seed": 1,
+      "pair_rank": 5,
+      "raw_signs": [
+        "TRLN|TRY|5|T4-41",
+        "TRLN|23|success|OK|2/2",
+        "TRLN|23|T4-41|D58|C63700",
+        "TRLN|23|V47974",
+        "TRLN|23|B4397|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 4397,
+      "preflight_elapsed_ticks": 4396
+    },
+    {
+      "seed": 1,
+      "pair_rank": 10,
+      "raw_signs": [
+        "TRLN|TRY|10|T4-14",
+        "TRLN|24|success|OK|2/2",
+        "TRLN|24|T4-14|D41|C58485",
+        "TRLN|24|V47974",
+        "TRLN|24|B756|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 756,
+      "preflight_elapsed_ticks": 755
+    },
+    {
+      "seed": 1,
+      "pair_rank": 15,
+      "raw_signs": [
+        "TRLN|TRY|15|T43-23",
+        "TRLN|25|success|OK|2/2",
+        "TRLN|25|T43-23|D39|C57826",
+        "TRLN|25|V47974",
+        "TRLN|25|B1025|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 1025,
+      "preflight_elapsed_ticks": 1024
+    },
+    {
+      "seed": 1,
+      "pair_rank": 20,
+      "raw_signs": [
+        "TRLN|TRY|20|T11-14",
+        "TRLN|26|success|OK|2/2",
+        "TRLN|26|T11-14|D70|C70830",
+        "TRLN|26|V47974",
+        "TRLN|26|B2943|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 2943,
+      "preflight_elapsed_ticks": 2942
+    },
+    {
+      "seed": 1,
+      "pair_rank": 25,
+      "raw_signs": [
+        "TRLN|TRY|25|T29-14",
+        "TRLN|27|success|OK|2/2",
+        "TRLN|27|T29-14|D40|C58520",
+        "TRLN|27|V47974",
+        "TRLN|27|B1248|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 1248,
+      "preflight_elapsed_ticks": 1247
+    },
+    {
+      "seed": 1,
+      "pair_rank": 30,
+      "raw_signs": [
+        "TRLN|TRY|30|T43-15",
+        "TRLN|28|success|OK|2/2",
+        "TRLN|28|T43-15|D36|C74093",
+        "TRLN|28|V47974",
+        "TRLN|28|B1216|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 1216,
+      "preflight_elapsed_ticks": 1215
+    },
+    {
+      "seed": 1,
+      "pair_rank": 35,
+      "raw_signs": [
+        "TRLN|TRY|35|T41-14",
+        "TRLN|29|success|OK|2/2",
+        "TRLN|29|T41-14|D56|C60842",
+        "TRLN|29|V47974",
+        "TRLN|29|B1093|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 1093,
+      "preflight_elapsed_ticks": 1092
+    },
+    {
+      "seed": 1,
+      "pair_rank": 40,
+      "raw_signs": [
+        "TRLN|TRY|40|T11-17",
+        "TRLN|30|success|OK|2/2",
+        "TRLN|30|T11-17|D88|C76251",
+        "TRLN|30|V47974",
+        "TRLN|30|B2663|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 2663,
+      "preflight_elapsed_ticks": 2662
+    },
+    {
+      "seed": 1,
+      "pair_rank": 45,
+      "raw_signs": [
+        "TRLN|TRY|45|T11-21",
+        "TRLN|31|success|OK|2/2",
+        "TRLN|31|T11-21|D110|C97439",
+        "TRLN|31|V47974",
+        "TRLN|31|B5322|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 5322,
+      "preflight_elapsed_ticks": 5321
+    },
+    {
+      "seed": 1,
+      "pair_rank": 50,
+      "raw_signs": [
+        "TRLN|TRY|50|T21-17",
+        "TRLN|32|success|OK|2/2",
+        "TRLN|32|T21-17|D40|C57436",
+        "TRLN|32|V47974",
+        "TRLN|32|B1181|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 1181,
+      "preflight_elapsed_ticks": 1180
+    },
+    {
+      "seed": 1,
+      "pair_rank": 55,
+      "raw_signs": [
+        "TRLN|TRY|55|T4-44",
+        "TRLN|33|success|OK|2/2",
+        "TRLN|33|T4-44|D56|C61944",
+        "TRLN|33|V47974",
+        "TRLN|33|B1938|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 1938,
+      "preflight_elapsed_ticks": 1937
+    },
+    {
+      "seed": 1,
+      "pair_rank": 60,
+      "raw_signs": [
+        "TRLN|TRY|60|T43-47",
+        "TRLN|34|success|OK|2/2",
+        "TRLN|34|T43-47|D56|C83094",
+        "TRLN|34|V47974",
+        "TRLN|34|B2842|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 2842,
+      "preflight_elapsed_ticks": 2841
+    },
+    {
+      "seed": 1,
+      "pair_rank": 65,
+      "raw_signs": [
+        "TRLN|TRY|65|T43-8",
+        "TRLN|35|success|OK|2/2",
+        "TRLN|35|T43-8|D140|C86462",
+        "TRLN|35|V47974",
+        "TRLN|35|B9916|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 9916,
+      "preflight_elapsed_ticks": 9915
+    },
+    {
+      "seed": 1,
+      "pair_rank": 70,
+      "raw_signs": [
+        "TRLN|TRY|70|T33-12",
+        "TRLN|36|success|OK|2/2",
+        "TRLN|36|T33-12|D79|C71052",
+        "TRLN|36|V47974",
+        "TRLN|36|B8121|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 8121,
+      "preflight_elapsed_ticks": 8120
+    },
+    {
+      "seed": 1,
+      "pair_rank": 75,
+      "raw_signs": [
+        "TRLN|TRY|75|T11-35",
+        "TRLN|37|failed|PATHLIM|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PATHLIM"
+    },
+    {
+      "seed": 1,
+      "pair_rank": 80,
+      "raw_signs": [
+        "TRLN|TRY|80|T43-14",
+        "TRLN|38|success|OK|2/2",
+        "TRLN|38|T43-14|D119|C91497",
+        "TRLN|38|V47974",
+        "TRLN|38|B6112|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 6112,
+      "preflight_elapsed_ticks": 6111
+    },
+    {
+      "seed": 1,
+      "pair_rank": 90,
+      "raw_signs": [
+        "TRLN|TRY|90|T4-1",
+        "TRLN|39|success|OK|2/2",
+        "TRLN|39|T4-1|D101|C78911",
+        "TRLN|39|V47974",
+        "TRLN|39|B8073|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 8073,
+      "preflight_elapsed_ticks": 8072
+    },
+    {
+      "seed": 1,
+      "pair_rank": 100,
+      "raw_signs": [
+        "TRLN|TRY|100|T0-25",
+        "TRLN|40|success|OK|2/2",
+        "TRLN|40|T0-25|D85|C81565",
+        "TRLN|40|V47974",
+        "TRLN|40|B2848|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 2848,
+      "preflight_elapsed_ticks": 2847
+    },
+    {
+      "seed": 1,
+      "pair_rank": 110,
+      "raw_signs": [
+        "TRLN|TRY|110|T29-39",
+        "TRLN|41|success|OK|2/2",
+        "TRLN|41|T29-39|D54|C60082",
+        "TRLN|41|V47974",
+        "TRLN|41|B2685|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 2685,
+      "preflight_elapsed_ticks": 2684
+    },
+    {
+      "seed": 1,
+      "pair_rank": 120,
+      "raw_signs": [
+        "TRLN|TRY|120|T22-10",
+        "TRLN|42|success|OK|2/2",
+        "TRLN|42|T22-10|D44|C62430",
+        "TRLN|42|V47974",
+        "TRLN|42|B3950|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 3950,
+      "preflight_elapsed_ticks": 3949
+    },
+    {
+      "seed": 1,
+      "pair_rank": 150,
+      "raw_signs": [
+        "TRLN|TRY|150|T0-10",
+        "TRLN|43|success|OK|2/2",
+        "TRLN|43|T0-10|D82|C77315",
+        "TRLN|43|V47974",
+        "TRLN|43|B2059|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 2059,
+      "preflight_elapsed_ticks": 2058
+    },
+    {
+      "seed": 7,
+      "pair_rank": 0,
+      "raw_signs": [
+        "TRLN|TRY|0|T31-13",
+        "TRLN|44|success|OK|2/2",
+        "TRLN|44|T31-13|D21|C58581",
+        "TRLN|44|V47974",
+        "TRLN|44|B678|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 678,
+      "preflight_elapsed_ticks": 677
+    },
+    {
+      "seed": 7,
+      "pair_rank": 5,
+      "raw_signs": [
+        "TRLN|TRY|5|T16-46",
+        "TRLN|45|success|OK|2/2",
+        "TRLN|45|T16-46|D85|C67408",
+        "TRLN|45|V47974",
+        "TRLN|45|B2807|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 2807,
+      "preflight_elapsed_ticks": 2806
+    },
+    {
+      "seed": 7,
+      "pair_rank": 10,
+      "raw_signs": [
+        "TRLN|TRY|10|T16-41",
+        "TRLN|46|success|OK|2/2",
+        "TRLN|46|T16-41|D66|C76511",
+        "TRLN|46|V47974",
+        "TRLN|46|B2049|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 2049,
+      "preflight_elapsed_ticks": 2048
+    },
+    {
+      "seed": 7,
+      "pair_rank": 15,
+      "raw_signs": [
+        "TRLN|TRY|15|T3-23",
+        "TRLN|47|success|OK|2/2",
+        "TRLN|47|T3-23|D24|C54955",
+        "TRLN|47|V47974",
+        "TRLN|47|B999|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 999,
+      "preflight_elapsed_ticks": 998
+    },
+    {
+      "seed": 7,
+      "pair_rank": 20,
+      "raw_signs": [
+        "TRLN|TRY|20|T16-38",
+        "TRLN|48|success|OK|2/2",
+        "TRLN|48|T16-38|D59|C63821",
+        "TRLN|48|V47974",
+        "TRLN|48|B1943|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 1943,
+      "preflight_elapsed_ticks": 1942
+    },
+    {
+      "seed": 7,
+      "pair_rank": 25,
+      "raw_signs": [
+        "TRLN|TRY|25|T31-0",
+        "TRLN|49|success|OK|2/2",
+        "TRLN|49|T31-0|D87|C76338",
+        "TRLN|49|V47974",
+        "TRLN|49|B8361|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 8361,
+      "preflight_elapsed_ticks": 8360
+    },
+    {
+      "seed": 7,
+      "pair_rank": 30,
+      "raw_signs": [
+        "TRLN|TRY|30|T16-19",
+        "TRLN|50|success|OK|2/2",
+        "TRLN|50|T16-19|D119|C85154",
+        "TRLN|50|V47974",
+        "TRLN|50|B6348|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 6348,
+      "preflight_elapsed_ticks": 6347
+    },
+    {
+      "seed": 7,
+      "pair_rank": 35,
+      "raw_signs": [
+        "TRLN|TRY|35|T43-4",
+        "TRLN|51|success|OK|2/2",
+        "TRLN|51|T43-4|D21|C53692",
+        "TRLN|51|V47974",
+        "TRLN|51|B737|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 737,
+      "preflight_elapsed_ticks": 736
+    },
+    {
+      "seed": 7,
+      "pair_rank": 40,
+      "raw_signs": [
+        "TRLN|TRY|40|T43-25",
+        "TRLN|52|success|OK|2/2",
+        "TRLN|52|T43-25|D33|C57947",
+        "TRLN|52|V47974",
+        "TRLN|52|B949|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 949,
+      "preflight_elapsed_ticks": 948
+    },
+    {
+      "seed": 7,
+      "pair_rank": 45,
+      "raw_signs": [
+        "TRLN|TRY|45|T46-41",
+        "TRLN|53|failed|PATHLIM|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PATHLIM"
+    },
+    {
+      "seed": 7,
+      "pair_rank": 50,
+      "raw_signs": [
+        "TRLN|TRY|50|T7-42",
+        "TRLN|54|success|OK|2/2",
+        "TRLN|54|T7-42|D29|C56989",
+        "TRLN|54|V47974",
+        "TRLN|54|B779|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 779,
+      "preflight_elapsed_ticks": 778
+    },
+    {
+      "seed": 7,
+      "pair_rank": 55,
+      "raw_signs": [
+        "TRLN|TRY|55|T7-1",
+        "TRLN|55|success|OK|2/2",
+        "TRLN|55|T7-1|D21|C53969",
+        "TRLN|55|V47974",
+        "TRLN|55|B706|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 706,
+      "preflight_elapsed_ticks": 705
+    },
+    {
+      "seed": 7,
+      "pair_rank": 60,
+      "raw_signs": [
+        "TRLN|TRY|60|T5-29",
+        "TRLN|56|success|OK|2/2",
+        "TRLN|56|T5-29|D27|C54380",
+        "TRLN|56|V47974",
+        "TRLN|56|B684|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 684,
+      "preflight_elapsed_ticks": 683
+    },
+    {
+      "seed": 7,
+      "pair_rank": 65,
+      "raw_signs": [
+        "TRLN|TRY|65|T46-7",
+        "TRLN|57|success|OK|2/2",
+        "TRLN|57|T46-7|D100|C76402",
+        "TRLN|57|V47974",
+        "TRLN|57|B4827|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 4827,
+      "preflight_elapsed_ticks": 4826
+    },
+    {
+      "seed": 7,
+      "pair_rank": 70,
+      "raw_signs": [
+        "TRLN|TRY|70|T25-4",
+        "TRLN|58|success|OK|2/2",
+        "TRLN|58|T25-4|D26|C55436",
+        "TRLN|58|V47974",
+        "TRLN|58|B697|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 697,
+      "preflight_elapsed_ticks": 696
+    },
+    {
+      "seed": 7,
+      "pair_rank": 75,
+      "raw_signs": [
+        "TRLN|TRY|75|T13-45",
+        "TRLN|59|success|OK|2/2",
+        "TRLN|59|T13-45|D44|C61212",
+        "TRLN|59|V47974",
+        "TRLN|59|B859|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 859,
+      "preflight_elapsed_ticks": 858
+    },
+    {
+      "seed": 7,
+      "pair_rank": 80,
+      "raw_signs": [
+        "TRLN|TRY|80|T46-45",
+        "TRLN|60|failed|PATHLIM|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PATHLIM"
+    },
+    {
+      "seed": 7,
+      "pair_rank": 90,
+      "raw_signs": [
+        "TRLN|TRY|90|T46-9",
+        "TRLN|61|failed|PATHLIM|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PATHLIM"
+    },
+    {
+      "seed": 7,
+      "pair_rank": 100,
+      "raw_signs": [
+        "TRLN|TRY|100|T31-22",
+        "TRLN|62|failed|PATHLIM|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PATHLIM"
+    },
+    {
+      "seed": 7,
+      "pair_rank": 110,
+      "raw_signs": [
+        "TRLN|TRY|110|T31-25",
+        "TRLN|63|failed|PATHLIM|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PATHLIM"
+    },
+    {
+      "seed": 7,
+      "pair_rank": 120,
+      "raw_signs": [
+        "TRLN|TRY|120|T43-40",
+        "TRLN|64|success|OK|2/2",
+        "TRLN|64|T43-40|D81|C66713",
+        "TRLN|64|V47974",
+        "TRLN|64|B4074|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 4074,
+      "preflight_elapsed_ticks": 4073
+    },
+    {
+      "seed": 7,
+      "pair_rank": 150,
+      "raw_signs": [
+        "TRLN|TRY|150|T43-45",
+        "TRLN|65|success|OK|2/2",
+        "TRLN|65|T43-45|D78|C68962",
+        "TRLN|65|V47974",
+        "TRLN|65|B5568|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 5568,
+      "preflight_elapsed_ticks": 5567
+    },
+    {
+      "seed": 42,
+      "pair_rank": 0,
+      "raw_signs": [
+        "TRLN|TRY|0|T24-16",
+        "TRLN|0|success|OK|2/2",
+        "TRLN|0|T24-16|D21|C55495",
+        "TRLN|0|V47974",
+        "TRLN|0|B747|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 747,
+      "preflight_elapsed_ticks": 746
+    },
+    {
+      "seed": 42,
+      "pair_rank": 5,
+      "raw_signs": [
+        "TRLN|TRY|5|T23-24",
+        "TRLN|1|success|OK|2/2",
+        "TRLN|1|T23-24|D47|C59296",
+        "TRLN|1|V47974",
+        "TRLN|1|B1109|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 1109,
+      "preflight_elapsed_ticks": 1108
+    },
+    {
+      "seed": 42,
+      "pair_rank": 10,
+      "raw_signs": [
+        "TRLN|TRY|10|T35-7",
+        "TRLN|2|success|OK|2/2",
+        "TRLN|2|T35-7|D37|C57520",
+        "TRLN|2|V47974",
+        "TRLN|2|B848|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 848,
+      "preflight_elapsed_ticks": 847
+    },
+    {
+      "seed": 42,
+      "pair_rank": 15,
+      "raw_signs": [
+        "TRLN|TRY|15|T23-19",
+        "TRLN|3|success|OK|2/2",
+        "TRLN|3|T23-19|D27|C57347",
+        "TRLN|3|V47974",
+        "TRLN|3|B903|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 903,
+      "preflight_elapsed_ticks": 902
+    },
+    {
+      "seed": 42,
+      "pair_rank": 20,
+      "raw_signs": [
+        "TRLN|TRY|20|T18-19",
+        "TRLN|4|success|OK|2/2",
+        "TRLN|4|T18-19|D37|C62162",
+        "TRLN|4|V47974",
+        "TRLN|4|B1083|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 1083,
+      "preflight_elapsed_ticks": 1082
+    },
+    {
+      "seed": 42,
+      "pair_rank": 25,
+      "raw_signs": [
+        "TRLN|TRY|25|T23-27",
+        "TRLN|5|success|OK|2/2",
+        "TRLN|5|T23-27|D63|C64571",
+        "TRLN|5|V47974",
+        "TRLN|5|B6350|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 6350,
+      "preflight_elapsed_ticks": 6349
+    },
+    {
+      "seed": 42,
+      "pair_rank": 30,
+      "raw_signs": [
+        "TRLN|TRY|30|T23-14",
+        "TRLN|6|success|OK|2/2",
+        "TRLN|6|T23-14|D101|C76222",
+        "TRLN|6|V47974",
+        "TRLN|6|B9797|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 9797,
+      "preflight_elapsed_ticks": 9796
+    },
+    {
+      "seed": 42,
+      "pair_rank": 35,
+      "raw_signs": [
+        "TRLN|TRY|35|T24-27",
+        "TRLN|7|success|OK|2/2",
+        "TRLN|7|T24-27|D72|C64902",
+        "TRLN|7|V47974",
+        "TRLN|7|B5527|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 5527,
+      "preflight_elapsed_ticks": 5526
+    },
+    {
+      "seed": 42,
+      "pair_rank": 40,
+      "raw_signs": [
+        "TRLN|TRY|40|T35-36",
+        "TRLN|8|success|OK|2/2",
+        "TRLN|8|T35-36|D92|C69299",
+        "TRLN|8|V47974",
+        "TRLN|8|B1050|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 1050,
+      "preflight_elapsed_ticks": 1049
+    },
+    {
+      "seed": 42,
+      "pair_rank": 45,
+      "raw_signs": [
+        "TRLN|TRY|45|T27-7",
+        "TRLN|9|success|OK|2/2",
+        "TRLN|9|T27-7|D49|C59448",
+        "TRLN|9|V47974",
+        "TRLN|9|B1112|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 1112,
+      "preflight_elapsed_ticks": 1111
+    },
+    {
+      "seed": 42,
+      "pair_rank": 50,
+      "raw_signs": [
+        "TRLN|TRY|50|T35-20",
+        "TRLN|10|success|OK|2/2",
+        "TRLN|10|T35-20|D58|C71023",
+        "TRLN|10|V47974",
+        "TRLN|10|B2605|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 2605,
+      "preflight_elapsed_ticks": 2604
+    },
+    {
+      "seed": 42,
+      "pair_rank": 55,
+      "raw_signs": [
+        "TRLN|TRY|55|T35-8",
+        "TRLN|11|success|OK|2/2",
+        "TRLN|11|T35-8|D76|C65191",
+        "TRLN|11|V47974",
+        "TRLN|11|B6429|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 6429,
+      "preflight_elapsed_ticks": 6428
+    },
+    {
+      "seed": 42,
+      "pair_rank": 60,
+      "raw_signs": [
+        "TRLN|TRY|60|T35-40",
+        "TRLN|12|failed|PATHLIM|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PATHLIM"
+    },
+    {
+      "seed": 42,
+      "pair_rank": 65,
+      "raw_signs": [
+        "TRLN|TRY|65|T18-32",
+        "TRLN|13|failed|PATHLIM|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PATHLIM"
+    },
+    {
+      "seed": 42,
+      "pair_rank": 70,
+      "raw_signs": [
+        "TRLN|TRY|70|T14-16",
+        "TRLN|14|failed|PATHLIM|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PATHLIM"
+    },
+    {
+      "seed": 42,
+      "pair_rank": 75,
+      "raw_signs": [
+        "TRLN|TRY|75|T18-5",
+        "TRLN|15|success|OK|2/2",
+        "TRLN|15|T18-5|D61|C80000",
+        "TRLN|15|V47974",
+        "TRLN|15|B1553|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 1553,
+      "preflight_elapsed_ticks": 1552
+    },
+    {
+      "seed": 42,
+      "pair_rank": 80,
+      "raw_signs": [
+        "TRLN|TRY|80|T15-33",
+        "TRLN|16|success|OK|2/2",
+        "TRLN|16|T15-33|D52|C73013",
+        "TRLN|16|V47974",
+        "TRLN|16|B1804|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 1804,
+      "preflight_elapsed_ticks": 1803
+    },
+    {
+      "seed": 42,
+      "pair_rank": 90,
+      "raw_signs": [
+        "TRLN|TRY|90|T35-19",
+        "TRLN|17|success|OK|2/2",
+        "TRLN|17|T35-19|D73|C71305",
+        "TRLN|17|V47974",
+        "TRLN|17|B1816|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 1816,
+      "preflight_elapsed_ticks": 1815
+    },
+    {
+      "seed": 42,
+      "pair_rank": 100,
+      "raw_signs": [
+        "TRLN|TRY|100|T14-27",
+        "TRLN|18|failed|PATHLIM|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PATHLIM"
+    },
+    {
+      "seed": 42,
+      "pair_rank": 110,
+      "raw_signs": [
+        "TRLN|TRY|110|T23-41",
+        "TRLN|19|failed|PATHLIM|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PATHLIM"
+    },
+    {
+      "seed": 42,
+      "pair_rank": 120,
+      "raw_signs": [
+        "TRLN|TRY|120|T18-13",
+        "TRLN|20|failed|PATHLIM|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PATHLIM"
+    },
+    {
+      "seed": 42,
+      "pair_rank": 150,
+      "raw_signs": [
+        "TRLN|TRY|150|T9-17",
+        "TRLN|21|failed|PATHLIM|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PATHLIM"
+    },
+    {
+      "seed": 100,
+      "pair_rank": 0,
+      "raw_signs": [
+        "TRLN|TRY|0|T21-25",
+        "TRLN|66|success|OK|2/2",
+        "TRLN|66|T21-25|D24|C53783",
+        "TRLN|66|V47974",
+        "TRLN|66|B726|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 726,
+      "preflight_elapsed_ticks": 725
+    },
+    {
+      "seed": 100,
+      "pair_rank": 5,
+      "raw_signs": [
+        "TRLN|TRY|5|T32-49",
+        "TRLN|67|success|OK|2/2",
+        "TRLN|67|T32-49|D22|C54119",
+        "TRLN|67|V47974",
+        "TRLN|67|B731|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 731,
+      "preflight_elapsed_ticks": 730
+    },
+    {
+      "seed": 100,
+      "pair_rank": 10,
+      "raw_signs": [
+        "TRLN|TRY|10|T44-4",
+        "TRLN|68|success|OK|2/2",
+        "TRLN|68|T44-4|D71|C66720",
+        "TRLN|68|V47974",
+        "TRLN|68|B3016|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 3016,
+      "preflight_elapsed_ticks": 3015
+    },
+    {
+      "seed": 100,
+      "pair_rank": 15,
+      "raw_signs": [
+        "TRLN|TRY|15|T32-46",
+        "TRLN|69|success|OK|2/2",
+        "TRLN|69|T32-46|D102|C70939",
+        "TRLN|69|V47974",
+        "TRLN|69|B7958|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 7958,
+      "preflight_elapsed_ticks": 7957
+    },
+    {
+      "seed": 100,
+      "pair_rank": 20,
+      "raw_signs": [
+        "TRLN|TRY|20|T32-37",
+        "TRLN|70|failed|TRKFAIL|0/2",
+        "TRLN|70|T32-37|D27|C6945",
+        "TRLN|70|V0",
+        "TRLN|70|B1262|O"
+      ],
+      "stage": "failed",
+      "reason": "TRKFAIL",
+      "first_mutation_tick": 1262,
+      "preflight_elapsed_ticks": 1261
+    },
+    {
+      "seed": 100,
+      "pair_rank": 25,
+      "raw_signs": [
+        "TRLN|TRY|25|T6-25",
+        "TRLN|71|failed|PATHLIM|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PATHLIM"
+    },
+    {
+      "seed": 100,
+      "pair_rank": 30,
+      "raw_signs": [
+        "TRLN|TRY|30|T21-43",
+        "TRLN|72|success|OK|2/2",
+        "TRLN|72|T21-43|D46|C58154",
+        "TRLN|72|V47974",
+        "TRLN|72|B816|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 816,
+      "preflight_elapsed_ticks": 815
+    },
+    {
+      "seed": 100,
+      "pair_rank": 35,
+      "raw_signs": [
+        "TRLN|TRY|35|T25-24",
+        "TRLN|73|success|OK|2/2",
+        "TRLN|73|T25-24|D26|C54283",
+        "TRLN|73|V47974",
+        "TRLN|73|B743|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 743,
+      "preflight_elapsed_ticks": 742
+    },
+    {
+      "seed": 100,
+      "pair_rank": 40,
+      "raw_signs": [
+        "TRLN|TRY|40|T46-23",
+        "TRLN|74|success|OK|2/2",
+        "TRLN|74|T46-23|D61|C61242",
+        "TRLN|74|V47974",
+        "TRLN|74|B1045|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 1045,
+      "preflight_elapsed_ticks": 1044
+    },
+    {
+      "seed": 100,
+      "pair_rank": 45,
+      "raw_signs": [
+        "TRLN|TRY|45|T26-15",
+        "TRLN|75|success|OK|2/2",
+        "TRLN|75|T26-15|D36|C68624",
+        "TRLN|75|V47974",
+        "TRLN|75|B7227|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 7227,
+      "preflight_elapsed_ticks": 7226
+    },
+    {
+      "seed": 100,
+      "pair_rank": 50,
+      "raw_signs": [
+        "TRLN|TRY|50|T26-8",
+        "TRLN|76|failed|TRKFAIL|0/2",
+        "TRLN|76|T26-8|D25|C15384",
+        "TRLN|76|V0",
+        "TRLN|76|B4835|O"
+      ],
+      "stage": "failed",
+      "reason": "TRKFAIL",
+      "first_mutation_tick": 4835,
+      "preflight_elapsed_ticks": 4834
+    },
+    {
+      "seed": 100,
+      "pair_rank": 55,
+      "raw_signs": [
+        "TRLN|TRY|55|T32-19",
+        "TRLN|77|success|OK|2/2",
+        "TRLN|77|T32-19|D106|C81566",
+        "TRLN|77|V47974",
+        "TRLN|77|B7703|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 7703,
+      "preflight_elapsed_ticks": 7702
+    },
+    {
+      "seed": 100,
+      "pair_rank": 60,
+      "raw_signs": [
+        "TRLN|TRY|60|T39-14",
+        "TRLN|78|success|OK|2/2",
+        "TRLN|78|T39-14|D78|C76229",
+        "TRLN|78|V47974",
+        "TRLN|78|B2689|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 2689,
+      "preflight_elapsed_ticks": 2688
+    },
+    {
+      "seed": 100,
+      "pair_rank": 65,
+      "raw_signs": [
+        "TRLN|TRY|65|T21-8",
+        "TRLN|79|success|OK|2/2",
+        "TRLN|79|T21-8|D42|C60929",
+        "TRLN|79|V47974",
+        "TRLN|79|B1934|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 1934,
+      "preflight_elapsed_ticks": 1933
+    },
+    {
+      "seed": 100,
+      "pair_rank": 70,
+      "raw_signs": [
+        "TRLN|TRY|70|T25-8",
+        "TRLN|80|success|OK|2/2",
+        "TRLN|80|T25-8|D44|C60142",
+        "TRLN|80|V47974",
+        "TRLN|80|B1927|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 1927,
+      "preflight_elapsed_ticks": 1926
+    },
+    {
+      "seed": 100,
+      "pair_rank": 75,
+      "raw_signs": [
+        "TRLN|TRY|75|T6-43",
+        "TRLN|81|success|OK|2/2",
+        "TRLN|81|T6-43|D96|C70580",
+        "TRLN|81|V47974",
+        "TRLN|81|B7731|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 7731,
+      "preflight_elapsed_ticks": 7730
+    },
+    {
+      "seed": 100,
+      "pair_rank": 80,
+      "raw_signs": [
+        "TRLN|TRY|80|T21-0",
+        "TRLN|82|failed|PATHLIM|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PATHLIM"
+    },
+    {
+      "seed": 100,
+      "pair_rank": 90,
+      "raw_signs": [
+        "TRLN|TRY|90|T21-23",
+        "TRLN|83|failed|PATHLIM|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PATHLIM"
+    },
+    {
+      "seed": 100,
+      "pair_rank": 100,
+      "raw_signs": [
+        "TRLN|TRY|100|T26-19",
+        "TRLN|84|success|OK|2/2",
+        "TRLN|84|T26-19|D94|C82187",
+        "TRLN|84|V47974",
+        "TRLN|84|B6890|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 6890,
+      "preflight_elapsed_ticks": 6889
+    },
+    {
+      "seed": 100,
+      "pair_rank": 110,
+      "raw_signs": [
+        "TRLN|TRY|110|T4-41",
+        "TRLN|85|failed|TRKFAIL|0/2",
+        "TRLN|85|T4-41|D131|C31742",
+        "TRLN|85|V0",
+        "TRLN|85|B8574|O"
+      ],
+      "stage": "failed",
+      "reason": "TRKFAIL",
+      "first_mutation_tick": 8574,
+      "preflight_elapsed_ticks": 8573
+    },
+    {
+      "seed": 100,
+      "pair_rank": 120,
+      "raw_signs": [
+        "TRLN|TRY|120|T39-19",
+        "TRLN|86|failed|PATHLIM|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PATHLIM"
+    },
+    {
+      "seed": 100,
+      "pair_rank": 150,
+      "raw_signs": [
+        "TRLN|TRY|150|T19-27",
+        "TRLN|87|success|OK|2/2",
+        "TRLN|87|T19-27|D68|C66266",
+        "TRLN|87|V47974",
+        "TRLN|87|B4169|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 4169,
+      "preflight_elapsed_ticks": 4168
+    },
+    {
+      "seed": 2026,
+      "pair_rank": 0,
+      "raw_signs": [
+        "TRLN|TRY|0|T26-10",
+        "TRLN|88|success|OK|2/2",
+        "TRLN|88|T26-10|D24|C53947",
+        "TRLN|88|V47974",
+        "TRLN|88|B707|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 707,
+      "preflight_elapsed_ticks": 706
+    },
+    {
+      "seed": 2026,
+      "pair_rank": 5,
+      "raw_signs": [
+        "TRLN|TRY|5|T40-23",
+        "TRLN|89|success|OK|2/2",
+        "TRLN|89|T40-23|D21|C59722",
+        "TRLN|89|V47974",
+        "TRLN|89|B725|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 725,
+      "preflight_elapsed_ticks": 724
+    },
+    {
+      "seed": 2026,
+      "pair_rank": 10,
+      "raw_signs": [
+        "TRLN|TRY|10|T10-5",
+        "TRLN|90|success|OK|2/2",
+        "TRLN|90|T10-5|D29|C55202",
+        "TRLN|90|V47974",
+        "TRLN|90|B829|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 829,
+      "preflight_elapsed_ticks": 828
+    },
+    {
+      "seed": 2026,
+      "pair_rank": 15,
+      "raw_signs": [
+        "TRLN|TRY|15|T10-40",
+        "TRLN|91|success|OK|2/2",
+        "TRLN|91|T10-40|D42|C65734",
+        "TRLN|91|V47974",
+        "TRLN|91|B1370|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 1370,
+      "preflight_elapsed_ticks": 1369
+    },
+    {
+      "seed": 2026,
+      "pair_rank": 20,
+      "raw_signs": [
+        "TRLN|TRY|20|T26-25",
+        "TRLN|92|success|OK|2/2",
+        "TRLN|92|T26-25|D67|C59357",
+        "TRLN|92|V47974",
+        "TRLN|92|B740|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 740,
+      "preflight_elapsed_ticks": 739
+    },
+    {
+      "seed": 2026,
+      "pair_rank": 25,
+      "raw_signs": [
+        "TRLN|TRY|25|T22-35",
+        "TRLN|93|failed|PATHLIM|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PATHLIM"
+    },
+    {
+      "seed": 2026,
+      "pair_rank": 30,
+      "raw_signs": [
+        "TRLN|TRY|30|T36-13",
+        "TRLN|94|success|OK|2/2",
+        "TRLN|94|T36-13|D43|C57018",
+        "TRLN|94|V47974",
+        "TRLN|94|B1031|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 1031,
+      "preflight_elapsed_ticks": 1030
+    },
+    {
+      "seed": 2026,
+      "pair_rank": 35,
+      "raw_signs": [
+        "TRLN|TRY|35|T15-2",
+        "TRLN|95|success|OK|2/2",
+        "TRLN|95|T15-2|D60|C63668",
+        "TRLN|95|V47974",
+        "TRLN|95|B1633|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 1633,
+      "preflight_elapsed_ticks": 1632
+    },
+    {
+      "seed": 2026,
+      "pair_rank": 40,
+      "raw_signs": [
+        "TRLN|TRY|40|T15-7",
+        "TRLN|96|success|OK|2/2",
+        "TRLN|96|T15-7|D49|C59745",
+        "TRLN|96|V47974",
+        "TRLN|96|B786|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 786,
+      "preflight_elapsed_ticks": 785
+    },
+    {
+      "seed": 2026,
+      "pair_rank": 45,
+      "raw_signs": [
+        "TRLN|TRY|45|T22-6",
+        "TRLN|97|success|OK|2/2",
+        "TRLN|97|T22-6|D59|C77265",
+        "TRLN|97|V47974",
+        "TRLN|97|B2267|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 2267,
+      "preflight_elapsed_ticks": 2266
+    },
+    {
+      "seed": 2026,
+      "pair_rank": 50,
+      "raw_signs": [
+        "TRLN|TRY|50|T22-40",
+        "TRLN|98|failed|PATHLIM|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PATHLIM"
+    },
+    {
+      "seed": 2026,
+      "pair_rank": 55,
+      "raw_signs": [
+        "TRLN|TRY|55|T23-28",
+        "TRLN|99|success|OK|2/2",
+        "TRLN|99|T23-28|D44|C73234",
+        "TRLN|99|V47974",
+        "TRLN|99|B1494|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 1494,
+      "preflight_elapsed_ticks": 1493
+    },
+    {
+      "seed": 2026,
+      "pair_rank": 60,
+      "raw_signs": [
+        "TRLN|TRY|60|T40-16",
+        "TRLN|99|success|OK|2/2",
+        "TRLN|99|T40-16|D80|C75136",
+        "TRLN|99|V47974",
+        "TRLN|99|B3062|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 3062,
+      "preflight_elapsed_ticks": 3061
+    },
+    {
+      "seed": 2026,
+      "pair_rank": 65,
+      "raw_signs": [
+        "TRLN|TRY|65|T35-10",
+        "TRLN|99|failed|PATHLIM|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PATHLIM"
+    },
+    {
+      "seed": 2026,
+      "pair_rank": 70,
+      "raw_signs": [
+        "TRLN|TRY|70|T22-23",
+        "TRLN|99|failed|PATHLIM|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PATHLIM"
+    },
+    {
+      "seed": 2026,
+      "pair_rank": 75,
+      "raw_signs": [
+        "TRLN|TRY|75|T15-17",
+        "TRLN|99|success|OK|2/2",
+        "TRLN|99|T15-17|D69|C63227",
+        "TRLN|99|V47974",
+        "TRLN|99|B2438|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 2438,
+      "preflight_elapsed_ticks": 2437
+    },
+    {
+      "seed": 2026,
+      "pair_rank": 80,
+      "raw_signs": [
+        "TRLN|TRY|80|T22-17",
+        "TRLN|99|success|OK|2/2",
+        "TRLN|99|T22-17|D89|C82995",
+        "TRLN|99|V47974",
+        "TRLN|99|B6363|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 6363,
+      "preflight_elapsed_ticks": 6362
+    },
+    {
+      "seed": 2026,
+      "pair_rank": 90,
+      "raw_signs": [
+        "TRLN|TRY|90|T35-6",
+        "TRLN|99|failed|PATHLIM|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PATHLIM"
+    },
+    {
+      "seed": 2026,
+      "pair_rank": 100,
+      "raw_signs": [
+        "TRLN|TRY|100|T23-7",
+        "TRLN|99|success|OK|2/2",
+        "TRLN|99|T23-7|D60|C77248",
+        "TRLN|99|V47974",
+        "TRLN|99|B1184|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 1184,
+      "preflight_elapsed_ticks": 1183
+    },
+    {
+      "seed": 2026,
+      "pair_rank": 110,
+      "raw_signs": [
+        "TRLN|TRY|110|T5-0",
+        "TRLN|99|success|OK|2/2",
+        "TRLN|99|T5-0|D61|C64703",
+        "TRLN|99|V47974",
+        "TRLN|99|B2111|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 2111,
+      "preflight_elapsed_ticks": 2110
+    },
+    {
+      "seed": 2026,
+      "pair_rank": 120,
+      "raw_signs": [
+        "TRLN|TRY|120|T16-42",
+        "TRLN|99|failed|PATHLIM|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PATHLIM"
+    },
+    {
+      "seed": 2026,
+      "pair_rank": 150,
+      "raw_signs": [
+        "TRLN|TRY|150|T40-24",
+        "TRLN|99|failed|PATHLIM|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PATHLIM"
+    }
+  ]
+}
