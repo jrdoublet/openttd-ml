@@ -1,0 +1,583 @@
+{
+  "config": {
+    "number_towns": 3,
+    "starting_year": 1970,
+    "town_growth_rate": 2,
+    "industry_density": 4,
+    "inflation": false,
+    "map": "256x256"
+  },
+  "design": {
+    "seeds": [
+      42,
+      1,
+      7,
+      100,
+      2026
+    ],
+    "pair_ranks": [
+      0,
+      1,
+      5,
+      10,
+      20,
+      40
+    ],
+    "barrier_base_in_scratch": 0,
+    "rationale": "Five maps times ranks 0, 1, 5, 10, 20 and 40; high ranks intentionally sample the expensive/failing tail."
+  },
+  "summary": {
+    "attempted": 30,
+    "reached_first_mutation": 30,
+    "preflight_failed_before_mutation": 0,
+    "successful_preflight_elapsed_ticks": {
+      "min": 677,
+      "median": 956.0,
+      "p90_nearest_rank": 2806,
+      "max": 4396,
+      "definition": "first_mutation_tick - Start_tick (Start_tick=1); p90 uses ceil(0.90*n) nearest-rank"
+    }
+  },
+  "records": [
+    {
+      "route_id": "seed100_rank0",
+      "seed": 100,
+      "pair_rank": 0,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|0|T21-25",
+        "TRLN|0|success|OK|2/2",
+        "TRLN|0|T21-25|D24|C53783",
+        "TRLN|0|V47974",
+        "TRLN|0|B726|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 726,
+      "preflight_elapsed_ticks": 725,
+      "barrier_flag": "O"
+    },
+    {
+      "route_id": "seed100_rank1",
+      "seed": 100,
+      "pair_rank": 1,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|1|T46-39",
+        "TRLN|0|success|OK|2/2",
+        "TRLN|0|T46-39|D25|C58218",
+        "TRLN|0|V47974",
+        "TRLN|0|B990|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 990,
+      "preflight_elapsed_ticks": 989,
+      "barrier_flag": "O"
+    },
+    {
+      "route_id": "seed100_rank10",
+      "seed": 100,
+      "pair_rank": 10,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|10|T44-4",
+        "TRLN|0|success|OK|2/2",
+        "TRLN|0|T44-4|D71|C66720",
+        "TRLN|0|V47974",
+        "TRLN|0|B3016|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 3016,
+      "preflight_elapsed_ticks": 3015,
+      "barrier_flag": "O"
+    },
+    {
+      "route_id": "seed100_rank20",
+      "seed": 100,
+      "pair_rank": 20,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|20|T32-37",
+        "TRLN|0|failed|TRKFAIL|0/2",
+        "TRLN|0|T32-37|D27|C6945",
+        "TRLN|0|V0",
+        "TRLN|0|B1262|O"
+      ],
+      "stage": "failed",
+      "reason": "TRKFAIL",
+      "first_mutation_tick": 1262,
+      "preflight_elapsed_ticks": 1261,
+      "barrier_flag": "O"
+    },
+    {
+      "route_id": "seed100_rank40",
+      "seed": 100,
+      "pair_rank": 40,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|40|T46-23",
+        "TRLN|0|success|OK|2/2",
+        "TRLN|0|T46-23|D61|C61242",
+        "TRLN|0|V47974",
+        "TRLN|0|B1045|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 1045,
+      "preflight_elapsed_ticks": 1044,
+      "barrier_flag": "O"
+    },
+    {
+      "route_id": "seed100_rank5",
+      "seed": 100,
+      "pair_rank": 5,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|5|T32-49",
+        "TRLN|0|success|OK|2/2",
+        "TRLN|0|T32-49|D22|C54119",
+        "TRLN|0|V47974",
+        "TRLN|0|B731|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 731,
+      "preflight_elapsed_ticks": 730,
+      "barrier_flag": "O"
+    },
+    {
+      "route_id": "seed1_rank0",
+      "seed": 1,
+      "pair_rank": 0,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|0|T11-48",
+        "TRLN|0|success|OK|2/2",
+        "TRLN|0|T11-48|D21|C55098",
+        "TRLN|0|V47974",
+        "TRLN|0|B965|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 965,
+      "preflight_elapsed_ticks": 964,
+      "barrier_flag": "O"
+    },
+    {
+      "route_id": "seed1_rank1",
+      "seed": 1,
+      "pair_rank": 1,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|1|T11-43",
+        "TRLN|0|success|OK|2/2",
+        "TRLN|0|T11-43|D50|C61045",
+        "TRLN|0|V47974",
+        "TRLN|0|B851|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 851,
+      "preflight_elapsed_ticks": 850,
+      "barrier_flag": "O"
+    },
+    {
+      "route_id": "seed1_rank10",
+      "seed": 1,
+      "pair_rank": 10,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|10|T4-14",
+        "TRLN|0|success|OK|2/2",
+        "TRLN|0|T4-14|D41|C58485",
+        "TRLN|0|V47974",
+        "TRLN|0|B756|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 756,
+      "preflight_elapsed_ticks": 755,
+      "barrier_flag": "O"
+    },
+    {
+      "route_id": "seed1_rank20",
+      "seed": 1,
+      "pair_rank": 20,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|20|T11-14",
+        "TRLN|0|success|OK|2/2",
+        "TRLN|0|T11-14|D70|C70830",
+        "TRLN|0|V47974",
+        "TRLN|0|B2943|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 2943,
+      "preflight_elapsed_ticks": 2942,
+      "barrier_flag": "O"
+    },
+    {
+      "route_id": "seed1_rank40",
+      "seed": 1,
+      "pair_rank": 40,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|40|T11-17",
+        "TRLN|0|success|OK|2/2",
+        "TRLN|0|T11-17|D88|C76251",
+        "TRLN|0|V47974",
+        "TRLN|0|B2663|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 2663,
+      "preflight_elapsed_ticks": 2662,
+      "barrier_flag": "O"
+    },
+    {
+      "route_id": "seed1_rank5",
+      "seed": 1,
+      "pair_rank": 5,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|5|T4-41",
+        "TRLN|0|success|OK|2/2",
+        "TRLN|0|T4-41|D58|C63700",
+        "TRLN|0|V47974",
+        "TRLN|0|B4397|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 4397,
+      "preflight_elapsed_ticks": 4396,
+      "barrier_flag": "O"
+    },
+    {
+      "route_id": "seed2026_rank0",
+      "seed": 2026,
+      "pair_rank": 0,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|0|T26-10",
+        "TRLN|0|success|OK|2/2",
+        "TRLN|0|T26-10|D24|C53947",
+        "TRLN|0|V47974",
+        "TRLN|0|B707|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 707,
+      "preflight_elapsed_ticks": 706,
+      "barrier_flag": "O"
+    },
+    {
+      "route_id": "seed2026_rank1",
+      "seed": 2026,
+      "pair_rank": 1,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|1|T36-2",
+        "TRLN|0|success|OK|2/2",
+        "TRLN|0|T36-2|D21|C53910",
+        "TRLN|0|V47974",
+        "TRLN|0|B690|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 690,
+      "preflight_elapsed_ticks": 689,
+      "barrier_flag": "O"
+    },
+    {
+      "route_id": "seed2026_rank10",
+      "seed": 2026,
+      "pair_rank": 10,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|10|T10-5",
+        "TRLN|0|success|OK|2/2",
+        "TRLN|0|T10-5|D29|C55202",
+        "TRLN|0|V47974",
+        "TRLN|0|B829|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 829,
+      "preflight_elapsed_ticks": 828,
+      "barrier_flag": "O"
+    },
+    {
+      "route_id": "seed2026_rank20",
+      "seed": 2026,
+      "pair_rank": 20,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|20|T26-25",
+        "TRLN|0|success|OK|2/2",
+        "TRLN|0|T26-25|D67|C59357",
+        "TRLN|0|V47974",
+        "TRLN|0|B740|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 740,
+      "preflight_elapsed_ticks": 739,
+      "barrier_flag": "O"
+    },
+    {
+      "route_id": "seed2026_rank40",
+      "seed": 2026,
+      "pair_rank": 40,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|40|T15-7",
+        "TRLN|0|success|OK|2/2",
+        "TRLN|0|T15-7|D49|C59745",
+        "TRLN|0|V47974",
+        "TRLN|0|B786|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 786,
+      "preflight_elapsed_ticks": 785,
+      "barrier_flag": "O"
+    },
+    {
+      "route_id": "seed2026_rank5",
+      "seed": 2026,
+      "pair_rank": 5,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|5|T40-23",
+        "TRLN|0|success|OK|2/2",
+        "TRLN|0|T40-23|D21|C59722",
+        "TRLN|0|V47974",
+        "TRLN|0|B725|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 725,
+      "preflight_elapsed_ticks": 724,
+      "barrier_flag": "O"
+    },
+    {
+      "route_id": "seed42_rank0",
+      "seed": 42,
+      "pair_rank": 0,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|0|T24-16",
+        "TRLN|0|success|OK|2/2",
+        "TRLN|0|T24-16|D21|C55495",
+        "TRLN|0|V47974",
+        "TRLN|0|B747|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 747,
+      "preflight_elapsed_ticks": 746,
+      "barrier_flag": "O"
+    },
+    {
+      "route_id": "seed42_rank1",
+      "seed": 42,
+      "pair_rank": 1,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|1|T35-14",
+        "TRLN|0|success|OK|2/2",
+        "TRLN|0|T35-14|D55|C58946",
+        "TRLN|0|V47974",
+        "TRLN|0|B1259|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 1259,
+      "preflight_elapsed_ticks": 1258,
+      "barrier_flag": "O"
+    },
+    {
+      "route_id": "seed42_rank10",
+      "seed": 42,
+      "pair_rank": 10,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|10|T35-7",
+        "TRLN|0|success|OK|2/2",
+        "TRLN|0|T35-7|D37|C57520",
+        "TRLN|0|V47974",
+        "TRLN|0|B848|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 848,
+      "preflight_elapsed_ticks": 847,
+      "barrier_flag": "O"
+    },
+    {
+      "route_id": "seed42_rank20",
+      "seed": 42,
+      "pair_rank": 20,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|20|T18-19",
+        "TRLN|0|success|OK|2/2",
+        "TRLN|0|T18-19|D37|C62162",
+        "TRLN|0|V47974",
+        "TRLN|0|B1083|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 1083,
+      "preflight_elapsed_ticks": 1082,
+      "barrier_flag": "O"
+    },
+    {
+      "route_id": "seed42_rank40",
+      "seed": 42,
+      "pair_rank": 40,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|40|T35-36",
+        "TRLN|0|success|OK|2/2",
+        "TRLN|0|T35-36|D92|C69299",
+        "TRLN|0|V47974",
+        "TRLN|0|B1050|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 1050,
+      "preflight_elapsed_ticks": 1049,
+      "barrier_flag": "O"
+    },
+    {
+      "route_id": "seed42_rank5",
+      "seed": 42,
+      "pair_rank": 5,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|5|T23-24",
+        "TRLN|0|success|OK|2/2",
+        "TRLN|0|T23-24|D47|C59296",
+        "TRLN|0|V47974",
+        "TRLN|0|B1109|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 1109,
+      "preflight_elapsed_ticks": 1108,
+      "barrier_flag": "O"
+    },
+    {
+      "route_id": "seed7_rank0",
+      "seed": 7,
+      "pair_rank": 0,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|0|T31-13",
+        "TRLN|0|success|OK|2/2",
+        "TRLN|0|T31-13|D21|C58581",
+        "TRLN|0|V47974",
+        "TRLN|0|B678|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 678,
+      "preflight_elapsed_ticks": 677,
+      "barrier_flag": "O"
+    },
+    {
+      "route_id": "seed7_rank1",
+      "seed": 7,
+      "pair_rank": 1,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|1|T46-38",
+        "TRLN|0|success|OK|2/2",
+        "TRLN|0|T46-38|D26|C53857",
+        "TRLN|0|V47974",
+        "TRLN|0|B701|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 701,
+      "preflight_elapsed_ticks": 700,
+      "barrier_flag": "O"
+    },
+    {
+      "route_id": "seed7_rank10",
+      "seed": 7,
+      "pair_rank": 10,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|10|T16-41",
+        "TRLN|0|success|OK|2/2",
+        "TRLN|0|T16-41|D66|C76511",
+        "TRLN|0|V47974",
+        "TRLN|0|B2049|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 2049,
+      "preflight_elapsed_ticks": 2048,
+      "barrier_flag": "O"
+    },
+    {
+      "route_id": "seed7_rank20",
+      "seed": 7,
+      "pair_rank": 20,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|20|T16-38",
+        "TRLN|0|success|OK|2/2",
+        "TRLN|0|T16-38|D59|C63821",
+        "TRLN|0|V47974",
+        "TRLN|0|B1943|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 1943,
+      "preflight_elapsed_ticks": 1942,
+      "barrier_flag": "O"
+    },
+    {
+      "route_id": "seed7_rank40",
+      "seed": 7,
+      "pair_rank": 40,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|40|T43-25",
+        "TRLN|0|success|OK|2/2",
+        "TRLN|0|T43-25|D33|C57947",
+        "TRLN|0|V47974",
+        "TRLN|0|B949|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 949,
+      "preflight_elapsed_ticks": 948,
+      "barrier_flag": "O"
+    },
+    {
+      "route_id": "seed7_rank5",
+      "seed": 7,
+      "pair_rank": 5,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|5|T16-46",
+        "TRLN|0|success|OK|2/2",
+        "TRLN|0|T16-46|D85|C67408",
+        "TRLN|0|V47974",
+        "TRLN|0|B2807|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "first_mutation_tick": 2807,
+      "preflight_elapsed_ticks": 2806,
+      "barrier_flag": "O"
+    }
+  ]
+}

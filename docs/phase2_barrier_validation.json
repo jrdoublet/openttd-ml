@@ -1,0 +1,1069 @@
+{
+  "config": {
+    "number_towns": 3,
+    "starting_year": 1970,
+    "town_growth_rate": 2,
+    "industry_density": 4,
+    "inflation": false,
+    "map": "256x256"
+  },
+  "delays": [
+    0,
+    25,
+    50,
+    75,
+    100,
+    150,
+    200
+  ],
+  "design": "Current production AI copied to /tmp; scratch-only delay executes before all production Start work, while production stagger and barrier remain active.",
+  "historical_baseline_source": "docs/phase2_tick_shift_sweep_v2.json",
+  "sweeps": [
+    {
+      "route_id": "seed42_rank0",
+      "seed": 42,
+      "pair_rank": 0,
+      "records": [
+        {
+          "seed": 42,
+          "capture_date": "1979-12-01",
+          "pair_rank": 0,
+          "ai_params": {
+            "num_trains": 2,
+            "wagons_per_train": 2,
+            "engine_rank": 1,
+            "pair_rank": 0,
+            "line_index": 0,
+            "debug_delay_ticks": 0
+          },
+          "raw_signs": [
+            "TRLN|TRY|0|T24-16",
+            "TRLN|0|success|OK|2/2",
+            "TRLN|0|T24-16|D21|C55495",
+            "TRLN|0|V47974",
+            "TRLN|0|B5000|M"
+          ],
+          "stage": "success",
+          "reason": "OK",
+          "built": 2,
+          "requested": 2,
+          "first_mutation_tick": 5000,
+          "barrier_flag": "M",
+          "town_a": 24,
+          "town_b": 16,
+          "distance": 21,
+          "cost": 55495,
+          "vehicle_cost": 47974,
+          "n_lead_vehicles": 2,
+          "sum_profit_last_year": -350998,
+          "avg_max_age_years": 22.06,
+          "lead_vehicle_age_field_available": true,
+          "lead_vehicle_ages_days": [
+            3348,
+            3348
+          ],
+          "infra_cost": 7521,
+          "amortization_annual": 2425,
+          "profit_ligne": -353423,
+          "lead_vehicle_build_dates": [
+            "1970-10-01",
+            "1970-10-01"
+          ],
+          "delay_ticks": 0
+        },
+        {
+          "seed": 42,
+          "capture_date": "1979-12-01",
+          "pair_rank": 0,
+          "ai_params": {
+            "num_trains": 2,
+            "wagons_per_train": 2,
+            "engine_rank": 1,
+            "pair_rank": 0,
+            "line_index": 0,
+            "debug_delay_ticks": 25
+          },
+          "raw_signs": [
+            "TRLN|TRY|0|T24-16",
+            "TRLN|0|success|OK|2/2",
+            "TRLN|0|T24-16|D21|C55495",
+            "TRLN|0|V47974",
+            "TRLN|0|B5000|M"
+          ],
+          "stage": "success",
+          "reason": "OK",
+          "built": 2,
+          "requested": 2,
+          "first_mutation_tick": 5000,
+          "barrier_flag": "M",
+          "town_a": 24,
+          "town_b": 16,
+          "distance": 21,
+          "cost": 55495,
+          "vehicle_cost": 47974,
+          "n_lead_vehicles": 2,
+          "sum_profit_last_year": -350998,
+          "avg_max_age_years": 22.06,
+          "lead_vehicle_age_field_available": true,
+          "lead_vehicle_ages_days": [
+            3348,
+            3348
+          ],
+          "infra_cost": 7521,
+          "amortization_annual": 2425,
+          "profit_ligne": -353423,
+          "lead_vehicle_build_dates": [
+            "1970-10-01",
+            "1970-10-01"
+          ],
+          "delay_ticks": 25
+        },
+        {
+          "seed": 42,
+          "capture_date": "1979-12-01",
+          "pair_rank": 0,
+          "ai_params": {
+            "num_trains": 2,
+            "wagons_per_train": 2,
+            "engine_rank": 1,
+            "pair_rank": 0,
+            "line_index": 0,
+            "debug_delay_ticks": 50
+          },
+          "raw_signs": [
+            "TRLN|TRY|0|T24-16",
+            "TRLN|0|success|OK|2/2",
+            "TRLN|0|T24-16|D21|C55495",
+            "TRLN|0|V47974",
+            "TRLN|0|B5000|M"
+          ],
+          "stage": "success",
+          "reason": "OK",
+          "built": 2,
+          "requested": 2,
+          "first_mutation_tick": 5000,
+          "barrier_flag": "M",
+          "town_a": 24,
+          "town_b": 16,
+          "distance": 21,
+          "cost": 55495,
+          "vehicle_cost": 47974,
+          "n_lead_vehicles": 2,
+          "sum_profit_last_year": -350998,
+          "avg_max_age_years": 22.06,
+          "lead_vehicle_age_field_available": true,
+          "lead_vehicle_ages_days": [
+            3348,
+            3348
+          ],
+          "infra_cost": 7521,
+          "amortization_annual": 2425,
+          "profit_ligne": -353423,
+          "lead_vehicle_build_dates": [
+            "1970-10-01",
+            "1970-10-01"
+          ],
+          "delay_ticks": 50
+        },
+        {
+          "seed": 42,
+          "capture_date": "1979-12-01",
+          "pair_rank": 0,
+          "ai_params": {
+            "num_trains": 2,
+            "wagons_per_train": 2,
+            "engine_rank": 1,
+            "pair_rank": 0,
+            "line_index": 0,
+            "debug_delay_ticks": 75
+          },
+          "raw_signs": [
+            "TRLN|TRY|0|T24-16",
+            "TRLN|0|success|OK|2/2",
+            "TRLN|0|T24-16|D21|C55495",
+            "TRLN|0|V47974",
+            "TRLN|0|B5000|M"
+          ],
+          "stage": "success",
+          "reason": "OK",
+          "built": 2,
+          "requested": 2,
+          "first_mutation_tick": 5000,
+          "barrier_flag": "M",
+          "town_a": 24,
+          "town_b": 16,
+          "distance": 21,
+          "cost": 55495,
+          "vehicle_cost": 47974,
+          "n_lead_vehicles": 2,
+          "sum_profit_last_year": -350998,
+          "avg_max_age_years": 22.06,
+          "lead_vehicle_age_field_available": true,
+          "lead_vehicle_ages_days": [
+            3348,
+            3348
+          ],
+          "infra_cost": 7521,
+          "amortization_annual": 2425,
+          "profit_ligne": -353423,
+          "lead_vehicle_build_dates": [
+            "1970-10-01",
+            "1970-10-01"
+          ],
+          "delay_ticks": 75
+        },
+        {
+          "seed": 42,
+          "capture_date": "1979-12-01",
+          "pair_rank": 0,
+          "ai_params": {
+            "num_trains": 2,
+            "wagons_per_train": 2,
+            "engine_rank": 1,
+            "pair_rank": 0,
+            "line_index": 0,
+            "debug_delay_ticks": 100
+          },
+          "raw_signs": [
+            "TRLN|TRY|0|T24-16",
+            "TRLN|0|success|OK|2/2",
+            "TRLN|0|T24-16|D21|C55495",
+            "TRLN|0|V47974",
+            "TRLN|0|B5000|M"
+          ],
+          "stage": "success",
+          "reason": "OK",
+          "built": 2,
+          "requested": 2,
+          "first_mutation_tick": 5000,
+          "barrier_flag": "M",
+          "town_a": 24,
+          "town_b": 16,
+          "distance": 21,
+          "cost": 55495,
+          "vehicle_cost": 47974,
+          "n_lead_vehicles": 2,
+          "sum_profit_last_year": -350998,
+          "avg_max_age_years": 22.06,
+          "lead_vehicle_age_field_available": true,
+          "lead_vehicle_ages_days": [
+            3348,
+            3348
+          ],
+          "infra_cost": 7521,
+          "amortization_annual": 2425,
+          "profit_ligne": -353423,
+          "lead_vehicle_build_dates": [
+            "1970-10-01",
+            "1970-10-01"
+          ],
+          "delay_ticks": 100
+        },
+        {
+          "seed": 42,
+          "capture_date": "1979-12-01",
+          "pair_rank": 0,
+          "ai_params": {
+            "num_trains": 2,
+            "wagons_per_train": 2,
+            "engine_rank": 1,
+            "pair_rank": 0,
+            "line_index": 0,
+            "debug_delay_ticks": 150
+          },
+          "raw_signs": [
+            "TRLN|TRY|0|T24-16",
+            "TRLN|0|success|OK|2/2",
+            "TRLN|0|T24-16|D21|C55495",
+            "TRLN|0|V47974",
+            "TRLN|0|B5000|M"
+          ],
+          "stage": "success",
+          "reason": "OK",
+          "built": 2,
+          "requested": 2,
+          "first_mutation_tick": 5000,
+          "barrier_flag": "M",
+          "town_a": 24,
+          "town_b": 16,
+          "distance": 21,
+          "cost": 55495,
+          "vehicle_cost": 47974,
+          "n_lead_vehicles": 2,
+          "sum_profit_last_year": -350998,
+          "avg_max_age_years": 22.06,
+          "lead_vehicle_age_field_available": true,
+          "lead_vehicle_ages_days": [
+            3348,
+            3348
+          ],
+          "infra_cost": 7521,
+          "amortization_annual": 2425,
+          "profit_ligne": -353423,
+          "lead_vehicle_build_dates": [
+            "1970-10-01",
+            "1970-10-01"
+          ],
+          "delay_ticks": 150
+        },
+        {
+          "seed": 42,
+          "capture_date": "1979-12-01",
+          "pair_rank": 0,
+          "ai_params": {
+            "num_trains": 2,
+            "wagons_per_train": 2,
+            "engine_rank": 1,
+            "pair_rank": 0,
+            "line_index": 0,
+            "debug_delay_ticks": 200
+          },
+          "raw_signs": [
+            "TRLN|TRY|0|T24-16",
+            "TRLN|0|success|OK|2/2",
+            "TRLN|0|T24-16|D21|C55495",
+            "TRLN|0|V47974",
+            "TRLN|0|B5000|M"
+          ],
+          "stage": "success",
+          "reason": "OK",
+          "built": 2,
+          "requested": 2,
+          "first_mutation_tick": 5000,
+          "barrier_flag": "M",
+          "town_a": 24,
+          "town_b": 16,
+          "distance": 21,
+          "cost": 55495,
+          "vehicle_cost": 47974,
+          "n_lead_vehicles": 2,
+          "sum_profit_last_year": -350998,
+          "avg_max_age_years": 22.06,
+          "lead_vehicle_age_field_available": true,
+          "lead_vehicle_ages_days": [
+            3348,
+            3348
+          ],
+          "infra_cost": 7521,
+          "amortization_annual": 2425,
+          "profit_ligne": -353423,
+          "lead_vehicle_build_dates": [
+            "1970-10-01",
+            "1970-10-01"
+          ],
+          "delay_ticks": 200
+        }
+      ],
+      "amplitude": 0,
+      "profit_min": -353423,
+      "profit_max": -353423,
+      "first_mutation_ticks": [
+        5000
+      ],
+      "barrier_flags": [
+        "M"
+      ],
+      "normalized": true,
+      "historical_v2_amplitude": 1219072
+    },
+    {
+      "route_id": "seed1_rank0",
+      "seed": 1,
+      "pair_rank": 0,
+      "records": [
+        {
+          "seed": 1,
+          "capture_date": "1979-12-01",
+          "pair_rank": 0,
+          "ai_params": {
+            "num_trains": 2,
+            "wagons_per_train": 2,
+            "engine_rank": 1,
+            "pair_rank": 0,
+            "line_index": 0,
+            "debug_delay_ticks": 0
+          },
+          "raw_signs": [
+            "TRLN|TRY|0|T11-48",
+            "TRLN|0|success|OK|2/2",
+            "TRLN|0|T11-48|D21|C55128",
+            "TRLN|0|V47974",
+            "TRLN|0|B5000|M"
+          ],
+          "stage": "success",
+          "reason": "OK",
+          "built": 2,
+          "requested": 2,
+          "first_mutation_tick": 5000,
+          "barrier_flag": "M",
+          "town_a": 11,
+          "town_b": 48,
+          "distance": 21,
+          "cost": 55128,
+          "vehicle_cost": 47974,
+          "n_lead_vehicles": 2,
+          "sum_profit_last_year": 678378,
+          "avg_max_age_years": 22.06,
+          "lead_vehicle_age_field_available": true,
+          "lead_vehicle_ages_days": [
+            3349,
+            3348
+          ],
+          "infra_cost": 7154,
+          "amortization_annual": 2413,
+          "profit_ligne": 675965,
+          "lead_vehicle_build_dates": [
+            "1970-09-30",
+            "1970-10-01"
+          ],
+          "delay_ticks": 0
+        },
+        {
+          "seed": 1,
+          "capture_date": "1979-12-01",
+          "pair_rank": 0,
+          "ai_params": {
+            "num_trains": 2,
+            "wagons_per_train": 2,
+            "engine_rank": 1,
+            "pair_rank": 0,
+            "line_index": 0,
+            "debug_delay_ticks": 25
+          },
+          "raw_signs": [
+            "TRLN|TRY|0|T11-48",
+            "TRLN|0|success|OK|2/2",
+            "TRLN|0|T11-48|D21|C55128",
+            "TRLN|0|V47974",
+            "TRLN|0|B5000|M"
+          ],
+          "stage": "success",
+          "reason": "OK",
+          "built": 2,
+          "requested": 2,
+          "first_mutation_tick": 5000,
+          "barrier_flag": "M",
+          "town_a": 11,
+          "town_b": 48,
+          "distance": 21,
+          "cost": 55128,
+          "vehicle_cost": 47974,
+          "n_lead_vehicles": 2,
+          "sum_profit_last_year": 678378,
+          "avg_max_age_years": 22.06,
+          "lead_vehicle_age_field_available": true,
+          "lead_vehicle_ages_days": [
+            3349,
+            3348
+          ],
+          "infra_cost": 7154,
+          "amortization_annual": 2413,
+          "profit_ligne": 675965,
+          "lead_vehicle_build_dates": [
+            "1970-09-30",
+            "1970-10-01"
+          ],
+          "delay_ticks": 25
+        },
+        {
+          "seed": 1,
+          "capture_date": "1979-12-01",
+          "pair_rank": 0,
+          "ai_params": {
+            "num_trains": 2,
+            "wagons_per_train": 2,
+            "engine_rank": 1,
+            "pair_rank": 0,
+            "line_index": 0,
+            "debug_delay_ticks": 50
+          },
+          "raw_signs": [
+            "TRLN|TRY|0|T11-48",
+            "TRLN|0|success|OK|2/2",
+            "TRLN|0|T11-48|D21|C55128",
+            "TRLN|0|V47974",
+            "TRLN|0|B5000|M"
+          ],
+          "stage": "success",
+          "reason": "OK",
+          "built": 2,
+          "requested": 2,
+          "first_mutation_tick": 5000,
+          "barrier_flag": "M",
+          "town_a": 11,
+          "town_b": 48,
+          "distance": 21,
+          "cost": 55128,
+          "vehicle_cost": 47974,
+          "n_lead_vehicles": 2,
+          "sum_profit_last_year": 678378,
+          "avg_max_age_years": 22.06,
+          "lead_vehicle_age_field_available": true,
+          "lead_vehicle_ages_days": [
+            3349,
+            3348
+          ],
+          "infra_cost": 7154,
+          "amortization_annual": 2413,
+          "profit_ligne": 675965,
+          "lead_vehicle_build_dates": [
+            "1970-09-30",
+            "1970-10-01"
+          ],
+          "delay_ticks": 50
+        },
+        {
+          "seed": 1,
+          "capture_date": "1979-12-01",
+          "pair_rank": 0,
+          "ai_params": {
+            "num_trains": 2,
+            "wagons_per_train": 2,
+            "engine_rank": 1,
+            "pair_rank": 0,
+            "line_index": 0,
+            "debug_delay_ticks": 75
+          },
+          "raw_signs": [
+            "TRLN|TRY|0|T11-48",
+            "TRLN|0|success|OK|2/2",
+            "TRLN|0|T11-48|D21|C55128",
+            "TRLN|0|V47974",
+            "TRLN|0|B5000|M"
+          ],
+          "stage": "success",
+          "reason": "OK",
+          "built": 2,
+          "requested": 2,
+          "first_mutation_tick": 5000,
+          "barrier_flag": "M",
+          "town_a": 11,
+          "town_b": 48,
+          "distance": 21,
+          "cost": 55128,
+          "vehicle_cost": 47974,
+          "n_lead_vehicles": 2,
+          "sum_profit_last_year": 678378,
+          "avg_max_age_years": 22.06,
+          "lead_vehicle_age_field_available": true,
+          "lead_vehicle_ages_days": [
+            3349,
+            3348
+          ],
+          "infra_cost": 7154,
+          "amortization_annual": 2413,
+          "profit_ligne": 675965,
+          "lead_vehicle_build_dates": [
+            "1970-09-30",
+            "1970-10-01"
+          ],
+          "delay_ticks": 75
+        },
+        {
+          "seed": 1,
+          "capture_date": "1979-12-01",
+          "pair_rank": 0,
+          "ai_params": {
+            "num_trains": 2,
+            "wagons_per_train": 2,
+            "engine_rank": 1,
+            "pair_rank": 0,
+            "line_index": 0,
+            "debug_delay_ticks": 100
+          },
+          "raw_signs": [
+            "TRLN|TRY|0|T11-48",
+            "TRLN|0|success|OK|2/2",
+            "TRLN|0|T11-48|D21|C55128",
+            "TRLN|0|V47974",
+            "TRLN|0|B5000|M"
+          ],
+          "stage": "success",
+          "reason": "OK",
+          "built": 2,
+          "requested": 2,
+          "first_mutation_tick": 5000,
+          "barrier_flag": "M",
+          "town_a": 11,
+          "town_b": 48,
+          "distance": 21,
+          "cost": 55128,
+          "vehicle_cost": 47974,
+          "n_lead_vehicles": 2,
+          "sum_profit_last_year": 678378,
+          "avg_max_age_years": 22.06,
+          "lead_vehicle_age_field_available": true,
+          "lead_vehicle_ages_days": [
+            3349,
+            3348
+          ],
+          "infra_cost": 7154,
+          "amortization_annual": 2413,
+          "profit_ligne": 675965,
+          "lead_vehicle_build_dates": [
+            "1970-09-30",
+            "1970-10-01"
+          ],
+          "delay_ticks": 100
+        },
+        {
+          "seed": 1,
+          "capture_date": "1979-12-01",
+          "pair_rank": 0,
+          "ai_params": {
+            "num_trains": 2,
+            "wagons_per_train": 2,
+            "engine_rank": 1,
+            "pair_rank": 0,
+            "line_index": 0,
+            "debug_delay_ticks": 150
+          },
+          "raw_signs": [
+            "TRLN|TRY|0|T11-48",
+            "TRLN|0|success|OK|2/2",
+            "TRLN|0|T11-48|D21|C55128",
+            "TRLN|0|V47974",
+            "TRLN|0|B5000|M"
+          ],
+          "stage": "success",
+          "reason": "OK",
+          "built": 2,
+          "requested": 2,
+          "first_mutation_tick": 5000,
+          "barrier_flag": "M",
+          "town_a": 11,
+          "town_b": 48,
+          "distance": 21,
+          "cost": 55128,
+          "vehicle_cost": 47974,
+          "n_lead_vehicles": 2,
+          "sum_profit_last_year": 678378,
+          "avg_max_age_years": 22.06,
+          "lead_vehicle_age_field_available": true,
+          "lead_vehicle_ages_days": [
+            3349,
+            3348
+          ],
+          "infra_cost": 7154,
+          "amortization_annual": 2413,
+          "profit_ligne": 675965,
+          "lead_vehicle_build_dates": [
+            "1970-09-30",
+            "1970-10-01"
+          ],
+          "delay_ticks": 150
+        },
+        {
+          "seed": 1,
+          "capture_date": "1979-12-01",
+          "pair_rank": 0,
+          "ai_params": {
+            "num_trains": 2,
+            "wagons_per_train": 2,
+            "engine_rank": 1,
+            "pair_rank": 0,
+            "line_index": 0,
+            "debug_delay_ticks": 200
+          },
+          "raw_signs": [
+            "TRLN|TRY|0|T11-48",
+            "TRLN|0|success|OK|2/2",
+            "TRLN|0|T11-48|D21|C55128",
+            "TRLN|0|V47974",
+            "TRLN|0|B5000|M"
+          ],
+          "stage": "success",
+          "reason": "OK",
+          "built": 2,
+          "requested": 2,
+          "first_mutation_tick": 5000,
+          "barrier_flag": "M",
+          "town_a": 11,
+          "town_b": 48,
+          "distance": 21,
+          "cost": 55128,
+          "vehicle_cost": 47974,
+          "n_lead_vehicles": 2,
+          "sum_profit_last_year": 678378,
+          "avg_max_age_years": 22.06,
+          "lead_vehicle_age_field_available": true,
+          "lead_vehicle_ages_days": [
+            3349,
+            3348
+          ],
+          "infra_cost": 7154,
+          "amortization_annual": 2413,
+          "profit_ligne": 675965,
+          "lead_vehicle_build_dates": [
+            "1970-09-30",
+            "1970-10-01"
+          ],
+          "delay_ticks": 200
+        }
+      ],
+      "amplitude": 0,
+      "profit_min": 675965,
+      "profit_max": 675965,
+      "first_mutation_ticks": [
+        5000
+      ],
+      "barrier_flags": [
+        "M"
+      ],
+      "normalized": true,
+      "historical_v2_amplitude": 1583360
+    },
+    {
+      "route_id": "seed7_rank0",
+      "seed": 7,
+      "pair_rank": 0,
+      "records": [
+        {
+          "seed": 7,
+          "capture_date": "1979-12-01",
+          "pair_rank": 0,
+          "ai_params": {
+            "num_trains": 2,
+            "wagons_per_train": 2,
+            "engine_rank": 1,
+            "pair_rank": 0,
+            "line_index": 0,
+            "debug_delay_ticks": 0
+          },
+          "raw_signs": [
+            "TRLN|TRY|0|T31-13",
+            "TRLN|0|success|OK|2/2",
+            "TRLN|0|T31-13|D21|C58566",
+            "TRLN|0|V47974",
+            "TRLN|0|B5000|M"
+          ],
+          "stage": "success",
+          "reason": "OK",
+          "built": 2,
+          "requested": 2,
+          "first_mutation_tick": 5000,
+          "barrier_flag": "M",
+          "town_a": 31,
+          "town_b": 13,
+          "distance": 21,
+          "cost": 58566,
+          "vehicle_cost": 47974,
+          "n_lead_vehicles": 2,
+          "sum_profit_last_year": 855274,
+          "avg_max_age_years": 22.06,
+          "lead_vehicle_age_field_available": true,
+          "lead_vehicle_ages_days": [
+            3349,
+            3348
+          ],
+          "infra_cost": 10592,
+          "amortization_annual": 2528,
+          "profit_ligne": 852746,
+          "lead_vehicle_build_dates": [
+            "1970-09-30",
+            "1970-10-01"
+          ],
+          "delay_ticks": 0
+        },
+        {
+          "seed": 7,
+          "capture_date": "1979-12-01",
+          "pair_rank": 0,
+          "ai_params": {
+            "num_trains": 2,
+            "wagons_per_train": 2,
+            "engine_rank": 1,
+            "pair_rank": 0,
+            "line_index": 0,
+            "debug_delay_ticks": 25
+          },
+          "raw_signs": [
+            "TRLN|TRY|0|T31-13",
+            "TRLN|0|success|OK|2/2",
+            "TRLN|0|T31-13|D21|C58566",
+            "TRLN|0|V47974",
+            "TRLN|0|B5000|M"
+          ],
+          "stage": "success",
+          "reason": "OK",
+          "built": 2,
+          "requested": 2,
+          "first_mutation_tick": 5000,
+          "barrier_flag": "M",
+          "town_a": 31,
+          "town_b": 13,
+          "distance": 21,
+          "cost": 58566,
+          "vehicle_cost": 47974,
+          "n_lead_vehicles": 2,
+          "sum_profit_last_year": 855274,
+          "avg_max_age_years": 22.06,
+          "lead_vehicle_age_field_available": true,
+          "lead_vehicle_ages_days": [
+            3349,
+            3348
+          ],
+          "infra_cost": 10592,
+          "amortization_annual": 2528,
+          "profit_ligne": 852746,
+          "lead_vehicle_build_dates": [
+            "1970-09-30",
+            "1970-10-01"
+          ],
+          "delay_ticks": 25
+        },
+        {
+          "seed": 7,
+          "capture_date": "1979-12-01",
+          "pair_rank": 0,
+          "ai_params": {
+            "num_trains": 2,
+            "wagons_per_train": 2,
+            "engine_rank": 1,
+            "pair_rank": 0,
+            "line_index": 0,
+            "debug_delay_ticks": 50
+          },
+          "raw_signs": [
+            "TRLN|TRY|0|T31-13",
+            "TRLN|0|success|OK|2/2",
+            "TRLN|0|T31-13|D21|C58566",
+            "TRLN|0|V47974",
+            "TRLN|0|B5000|M"
+          ],
+          "stage": "success",
+          "reason": "OK",
+          "built": 2,
+          "requested": 2,
+          "first_mutation_tick": 5000,
+          "barrier_flag": "M",
+          "town_a": 31,
+          "town_b": 13,
+          "distance": 21,
+          "cost": 58566,
+          "vehicle_cost": 47974,
+          "n_lead_vehicles": 2,
+          "sum_profit_last_year": 855274,
+          "avg_max_age_years": 22.06,
+          "lead_vehicle_age_field_available": true,
+          "lead_vehicle_ages_days": [
+            3349,
+            3348
+          ],
+          "infra_cost": 10592,
+          "amortization_annual": 2528,
+          "profit_ligne": 852746,
+          "lead_vehicle_build_dates": [
+            "1970-09-30",
+            "1970-10-01"
+          ],
+          "delay_ticks": 50
+        },
+        {
+          "seed": 7,
+          "capture_date": "1979-12-01",
+          "pair_rank": 0,
+          "ai_params": {
+            "num_trains": 2,
+            "wagons_per_train": 2,
+            "engine_rank": 1,
+            "pair_rank": 0,
+            "line_index": 0,
+            "debug_delay_ticks": 75
+          },
+          "raw_signs": [
+            "TRLN|TRY|0|T31-13",
+            "TRLN|0|success|OK|2/2",
+            "TRLN|0|T31-13|D21|C58566",
+            "TRLN|0|V47974",
+            "TRLN|0|B5000|M"
+          ],
+          "stage": "success",
+          "reason": "OK",
+          "built": 2,
+          "requested": 2,
+          "first_mutation_tick": 5000,
+          "barrier_flag": "M",
+          "town_a": 31,
+          "town_b": 13,
+          "distance": 21,
+          "cost": 58566,
+          "vehicle_cost": 47974,
+          "n_lead_vehicles": 2,
+          "sum_profit_last_year": 855274,
+          "avg_max_age_years": 22.06,
+          "lead_vehicle_age_field_available": true,
+          "lead_vehicle_ages_days": [
+            3349,
+            3348
+          ],
+          "infra_cost": 10592,
+          "amortization_annual": 2528,
+          "profit_ligne": 852746,
+          "lead_vehicle_build_dates": [
+            "1970-09-30",
+            "1970-10-01"
+          ],
+          "delay_ticks": 75
+        },
+        {
+          "seed": 7,
+          "capture_date": "1979-12-01",
+          "pair_rank": 0,
+          "ai_params": {
+            "num_trains": 2,
+            "wagons_per_train": 2,
+            "engine_rank": 1,
+            "pair_rank": 0,
+            "line_index": 0,
+            "debug_delay_ticks": 100
+          },
+          "raw_signs": [
+            "TRLN|TRY|0|T31-13",
+            "TRLN|0|success|OK|2/2",
+            "TRLN|0|T31-13|D21|C58566",
+            "TRLN|0|V47974",
+            "TRLN|0|B5000|M"
+          ],
+          "stage": "success",
+          "reason": "OK",
+          "built": 2,
+          "requested": 2,
+          "first_mutation_tick": 5000,
+          "barrier_flag": "M",
+          "town_a": 31,
+          "town_b": 13,
+          "distance": 21,
+          "cost": 58566,
+          "vehicle_cost": 47974,
+          "n_lead_vehicles": 2,
+          "sum_profit_last_year": 855274,
+          "avg_max_age_years": 22.06,
+          "lead_vehicle_age_field_available": true,
+          "lead_vehicle_ages_days": [
+            3349,
+            3348
+          ],
+          "infra_cost": 10592,
+          "amortization_annual": 2528,
+          "profit_ligne": 852746,
+          "lead_vehicle_build_dates": [
+            "1970-09-30",
+            "1970-10-01"
+          ],
+          "delay_ticks": 100
+        },
+        {
+          "seed": 7,
+          "capture_date": "1979-12-01",
+          "pair_rank": 0,
+          "ai_params": {
+            "num_trains": 2,
+            "wagons_per_train": 2,
+            "engine_rank": 1,
+            "pair_rank": 0,
+            "line_index": 0,
+            "debug_delay_ticks": 150
+          },
+          "raw_signs": [
+            "TRLN|TRY|0|T31-13",
+            "TRLN|0|success|OK|2/2",
+            "TRLN|0|T31-13|D21|C58566",
+            "TRLN|0|V47974",
+            "TRLN|0|B5000|M"
+          ],
+          "stage": "success",
+          "reason": "OK",
+          "built": 2,
+          "requested": 2,
+          "first_mutation_tick": 5000,
+          "barrier_flag": "M",
+          "town_a": 31,
+          "town_b": 13,
+          "distance": 21,
+          "cost": 58566,
+          "vehicle_cost": 47974,
+          "n_lead_vehicles": 2,
+          "sum_profit_last_year": 855274,
+          "avg_max_age_years": 22.06,
+          "lead_vehicle_age_field_available": true,
+          "lead_vehicle_ages_days": [
+            3349,
+            3348
+          ],
+          "infra_cost": 10592,
+          "amortization_annual": 2528,
+          "profit_ligne": 852746,
+          "lead_vehicle_build_dates": [
+            "1970-09-30",
+            "1970-10-01"
+          ],
+          "delay_ticks": 150
+        },
+        {
+          "seed": 7,
+          "capture_date": "1979-12-01",
+          "pair_rank": 0,
+          "ai_params": {
+            "num_trains": 2,
+            "wagons_per_train": 2,
+            "engine_rank": 1,
+            "pair_rank": 0,
+            "line_index": 0,
+            "debug_delay_ticks": 200
+          },
+          "raw_signs": [
+            "TRLN|TRY|0|T31-13",
+            "TRLN|0|success|OK|2/2",
+            "TRLN|0|T31-13|D21|C58566",
+            "TRLN|0|V47974",
+            "TRLN|0|B5000|M"
+          ],
+          "stage": "success",
+          "reason": "OK",
+          "built": 2,
+          "requested": 2,
+          "first_mutation_tick": 5000,
+          "barrier_flag": "M",
+          "town_a": 31,
+          "town_b": 13,
+          "distance": 21,
+          "cost": 58566,
+          "vehicle_cost": 47974,
+          "n_lead_vehicles": 2,
+          "sum_profit_last_year": 855274,
+          "avg_max_age_years": 22.06,
+          "lead_vehicle_age_field_available": true,
+          "lead_vehicle_ages_days": [
+            3349,
+            3348
+          ],
+          "infra_cost": 10592,
+          "amortization_annual": 2528,
+          "profit_ligne": 852746,
+          "lead_vehicle_build_dates": [
+            "1970-09-30",
+            "1970-10-01"
+          ],
+          "delay_ticks": 200
+        }
+      ],
+      "amplitude": 0,
+      "profit_min": 852746,
+      "profit_max": 852746,
+      "first_mutation_ticks": [
+        5000
+      ],
+      "barrier_flags": [
+        "M"
+      ],
+      "normalized": true,
+      "historical_v2_amplitude": 968704
+    }
+  ],
+  "verdict": {
+    "all_barrier_normalized": true,
+    "all_profit_amplitudes_zero": true,
+    "conclusion": "Barrier absorbed every tested delay; the sweep no longer changes profit_ligne."
+  }
+}

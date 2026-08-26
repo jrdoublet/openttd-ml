@@ -907,3 +907,59 @@ qu'au tick 392, soit 391 ticks de preflight. **C'est le preflight, pas la constr
 fenêtre temporelle variable à normaliser.** Le tick de départ absolu, lui, est bien fixable :
 `Start()` démarre au tick IA 1 dans trois configurations très différentes, sans réglage de délai
 pertinent en 13.4.
+
+**Normalisation du preflight par barrière de ticks (2026-08-26).** La construction étant déjà
+reproductible au tick près (38 ticks, voir plus haut), la fenêtre variable restante est le
+preflight — sélection de paire puis pathfinding — avant la première modification de la carte.
+L'idée : attendre après le preflight jusqu'à un tick cible fixe, pour que la première commande de
+construction tombe toujours au même tick absolu.
+
+*Distribution mesurée d'abord* (`sweeps/phase2_preflight_distribution.py`,
+`docs/phase2_preflight_distribution.json`, 30 routes, plusieurs graines × plusieurs `pair_rank`
+dont des rangs élevés, config 1970/densité 3) : tick de première mutation **min 678, médiane 957,
+p90 2806, max 4397**. Les 391 ticks du sondage précédent étaient donc un cas particulièrement
+favorable, pas un ordre de grandeur représentatif.
+
+*Cible retenue : `BARRIER_BASE = 5000`* — couvre **100 %** de l'échantillon avec 603 ticks de
+marge sur le maximum observé, pour un coût d'environ 54 jours de jeu sur une partie de 3650 jours
+(~1,5 % de la fenêtre d'exploitation). Le compromis est explicite : plus bas, certaines lignes
+dépasseraient la barrière et ne seraient pas normalisées ; plus haut, on ampute la fenêtre qui
+produit `profit_last_year`.
+
+*Interaction avec l'échelonnement multi-compagnies.* Une barrière absolue identique pour toutes
+les compagnies détruirait l'ordonnancement dont dépend `_isTownServed()` (la compagnie N doit voir
+les gares de 0..N−1). La cible reste donc échelonnée :
+`barrierTarget = BARRIER_BASE + line_index * STAGGER_TICKS`. La compagnie N−1 termine ses 38 ticks
+de construction à `cible+38`, alors que N ne commence son preflight que 6000 ticks plus tard —
+l'ordre de visibilité est préservé par construction.
+
+*Traçabilité.* Nouveau panneau `TRLN|<line_index>|B<tick>|M|O` : tick réel de première mutation,
+puis `M` (barrière atteinte) ou `O` (preflight déjà au-delà, ligne **non** normalisée). Posé
+seulement *après* la première mutation, pour ne pas être lui-même une commande qui fausserait le
+tick mesuré. Longueur maximale 20 caractères, sous la limite dure de 31. Une ligne `O` n'est pas
+comparable à une ligne `M` et doit être filtrée ou traitée à part dans toute analyse.
+
+*Validation — le test décisif* (`sweeps/phase2_barrier_validation.py`,
+`docs/phase2_barrier_validation.json`) : même balayage `Sleep(0/25/50/75/100/150/200)` injecté au
+tout début, sur les trois mêmes lignes que `phase2_tick_shift_sweep_v2.json`, barrière active.
+
+| Ligne (rang 0) | amplitude avant barrière | amplitude après barrière |
+|---|---:|---:|
+| graine 42 | 1 219 072 | **0** |
+| graine 1 | 1 583 360 | **0** |
+| graine 7 | 968 704 | **0** |
+
+**Les sept points de délai donnent un `profit_ligne` rigoureusement identique sur chacune des trois
+lignes.** Le délai injecté est intégralement absorbé par la barrière, la première mutation retombe
+au même tick, et la trajectoire économique redevient reproductible. Le plancher d'erreur dû au
+timing passe donc de l'ordre du million à zéro sur ces cas.
+
+*Deux réserves à garder attachées à ce résultat.* D'abord, normaliser le *moment* où la
+construction démarre ne rend pas la simulation insensible au timing absolu : cela rend les runs
+comparables entre eux, rien de plus. Ensuite — conséquence directe — les profits eux-mêmes ont
+changé en valeur, puisque la construction se produit désormais au tick 5000 et non vers 950 (ex.
+graine 42 rang 0 : +1 719 409 avant, −353 423 après). **C'est une nouvelle rupture de campagne** :
+les mesures antérieures à la barrière ne sont pas comparables à celles qui suivront, au même titre
+que la rupture 1950 → 1970. Enfin, la validation porte sur trois lignes de rang 0 toutes
+normalisées (`M`) ; le comportement des lignes qui dépasseraient la barrière (`O`) n'est pas
+mesuré ici.

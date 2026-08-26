@@ -101,6 +101,17 @@ function TrainLineAI::_codeVehicleCost()
   return "TRLN|" + this.state.line_index + "|V" + this.state.vehicle_cost;
 }
 
+/* Panneau de barriere : tick de la premiere commande de construction (le premier
+ * DemolishTile) et M=barriere atteinte / O=preflight deja au-dela. Il est pose seulement apres
+ * cette commande pour ne pas ajouter lui-meme un DoCommand avant le tick mesure. Meme avec un
+ * line_index a deux chiffres et un tick a sept chiffres, "TRLN|99|B1234567|O" ne fait que 20
+ * caracteres, bien sous la limite dure de 31 de AISign.BuildSign. */
+function TrainLineAI::_codeBarrier()
+{
+  return "TRLN|" + this.state.line_index + "|B" + this.state.first_mutation_tick + "|" +
+      (this.state.barrier_met ? "M" : "O");
+}
+
 function TrainLineAI::_reportAll()
 {
   if (this.costs != null) this.state.construction_cost = this.costs.GetCosts();
@@ -108,6 +119,7 @@ function TrainLineAI::_reportAll()
   if (this.state.town_a != null && this.state.town_b != null) {
     this._report(this._codeDetail());
     this._report(this._codeVehicleCost());
+    if (this.state.first_mutation_tick != null) this._report(this._codeBarrier());
   }
 }
 
@@ -280,6 +292,8 @@ function TrainLineAI::Start()
     built_trains = 0,
     construction_cost = 0,
     vehicle_cost = 0, // sous-ensemble de construction_cost -- voir _codeVehicleCost()
+    first_mutation_tick = null,
+    barrier_met = false,
     failure_reason = null,
   };
 
@@ -503,10 +517,25 @@ function TrainLineAI::Start()
   local stationBStep = stationPlanB.step;
   local stationBDirection = stationPlanB.direction;
 
+  /* Barriere de preflight : toutes les preparations (paire, plans de quais et chemin) sont
+   * terminees, mais aucune tuile n'a encore ete modifiee. La cible est ABSOLUE dans le compteur
+   * AI, tout en conservant l'ecart de STAGGER_TICKS entre compagnies : N construit a
+   * BARRIER_BASE + N*STAGGER_TICKS. Ainsi N-1 a au moins 6000-38 ticks pour poser ses gares
+   * avant la selection/construction de N, donc _isTownServed() garde son ordre de visibilite.
+   * BARRIER_BASE=5000 est choisi sur la distribution 1970/256x256 de
+   * sweeps/phase2_preflight_distribution.py (max observe 4397 au tick absolu, marge 603). Le
+   * script de mesure cree une copie /tmp avec zero afin d'observer le preflight non masque. */
+  local BARRIER_BASE = 5000;
+  local barrierTarget = BARRIER_BASE + this.state.line_index * STAGGER_TICKS;
+  local beforeBarrier = AIController.GetTick();
+  this.state.barrier_met = beforeBarrier <= barrierTarget;
+  if (beforeBarrier < barrierTarget) this.Sleep(barrierTarget - beforeBarrier);
+
   /* 4. Construire la voie. Triplets (prev, cur, next) comme l'exige AIRail.BuildRail ;
    * pont/tunnel quand deux tuiles consecutives ne sont pas adjacentes. */
   /* Les quais sont poses avant la voie. L'itineraire part de la sortie du quai A et se termine
    * sur la tuile juste devant le quai B. */
+  this.state.first_mutation_tick = AIController.GetTick();
   for (local i = 0; i < platformLength; i++) {
     AITile.DemolishTile(stationAAnchor + stationAStep * i);
     AITile.DemolishTile(stationBAnchor + stationBStep * i);
