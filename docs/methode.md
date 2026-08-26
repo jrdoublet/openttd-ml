@@ -732,3 +732,22 @@ concurrence de processus comme explication du delta -24576 observé dans le cont
 il renforce donc l'attribution de ce delta à la différence de timing intentionnelle. Il ne permet
 pas à lui seul d'identifier le mécanisme interne exact (RNG partagé, croissance ou autre effet du
 temps écoulé), ni de lever la réserve sur les $15 de coût de construction du contrôle précédent.
+
+**Contrôle de petit décalage fixe (`docs/phase2_tick_shift_small_control.json`, 2026-08-26).**
+Pour isoler un délai bien plus petit sans changer le `STAGGER_TICKS` de production, une copie
+temporaire de l'IA a reçu seulement un `this.Sleep(100)` inconditionnel au point de l'ancien
+échelonnement (et un nom d'enregistrement temporaire distinct, nécessaire pour éviter une
+collision d'archive OpenTTDLab). Le jeu témoin utilise l'IA committée avec les mêmes paramètres,
+dont `line_index`=0. Le smoke test AILog confirme T6-2 et coût 41535 pour la copie avant le run.
+
+Le contrôle est cette fois propre sur tous les champs de construction : les deux jeux donnent
+T6-2, distance 20, coût 41535, `vehicle_cost` 36256 et `avg_max_age_years` 21.06. Le témoin
+reproduit exactement les deux contrôles précédents (`sum_profit_last_year` -245288,
+`profit_ligne` -247186). Malgré cette construction identique, `Sleep(100)` donne respectivement
+-497704 et -499602, soit un écart de -252416 pour les deux cibles. C'est la démonstration stricte
+manquante : un petit décalage temporel seul suffit ici à produire un profit très différent sans
+modifier les métriques de construction observées. Le résultat soutient fortement la sensibilité au
+timing ; il ne permet toujours pas d'attribuer avec certitude le mécanisme à un RNG partagé plutôt
+qu'à une autre dynamique temporelle. L'écart n'est manifestement pas supposable proportionnel à la
+taille du délai (le contrôle `Sleep(6000)` avait un delta plus faible) ; aucun essai bonus à 10 ticks
+n'a été lancé.
