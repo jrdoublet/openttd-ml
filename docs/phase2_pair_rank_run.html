@@ -1,0 +1,414 @@
+<title>TrainLineAI Pair Rank</title>
+<style>
+.viz-root {
+  color-scheme: light;
+  --surface-1:      #fcfcfb;
+  --surface-2:      #f9f9f7;
+  --text-primary:   #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted:     #898781;
+  --grid:           #e1e0d9;
+  --axis:           #c3c2b7;
+  --border:         rgba(11,11,11,0.10);
+  --status-good:     #0ca30c;
+  --status-warning:  #fab219;
+  --status-serious:  #ec835a;
+  --status-critical: #d03b3b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) .viz-root {
+    color-scheme: dark;
+    --surface-1:      #1a1a19;
+    --surface-2:      #0d0d0d;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --grid:           #2c2c2a;
+    --axis:           #383835;
+    --border:         rgba(255,255,255,0.10);
+  }
+}
+:root[data-theme="dark"] .viz-root {
+  color-scheme: dark;
+  --surface-1:      #1a1a19;
+  --surface-2:      #0d0d0d;
+  --text-primary:   #ffffff;
+  --text-secondary: #c3c2b7;
+  --text-muted:     #898781;
+  --grid:           #2c2c2a;
+  --axis:           #383835;
+  --border:         rgba(255,255,255,0.10);
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; }
+.viz-root {
+  background: var(--surface-2);
+  color: var(--text-primary);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  padding: 32px 24px 64px;
+}
+.wrap { max-width: 960px; margin: 0 auto; }
+h1 { font-size: 22px; font-weight: 650; margin: 0 0 4px; }
+.subtitle { color: var(--text-secondary); font-size: 14px; margin: 0 0 28px; max-width: 68ch; line-height: 1.5; }
+.subtitle code { background: var(--surface-1); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: 12.5px; }
+
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 28px; }
+.tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+.tile .label { font-size: 12.5px; color: var(--text-secondary); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+.tile .value { font-size: 28px; font-weight: 650; line-height: 1; }
+.tile .sub { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+.tile .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.tile.good .dot { background: var(--status-good); }
+.tile.critical .dot { background: var(--status-critical); }
+
+.card {
+  background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
+  padding: 20px 22px 16px; margin-bottom: 28px;
+}
+.card h2 { font-size: 15px; font-weight: 650; margin: 0 0 2px; }
+.card .caption { font-size: 12.5px; color: var(--text-secondary); margin: 0 0 16px; line-height: 1.5; max-width: 70ch; }
+
+.legend { display: flex; gap: 18px; align-items: center; margin-bottom: 4px; font-size: 12.5px; color: var(--text-secondary); flex-wrap: wrap; }
+.legend .item { display: flex; align-items: center; gap: 6px; }
+.legend .swatch { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+
+svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
+.gridline { stroke: var(--grid); stroke-width: 1; }
+.gridline-strong { stroke: var(--axis); stroke-width: 1; stroke-dasharray: 3 3; }
+.axis-line { stroke: var(--axis); stroke-width: 1; }
+.axis-label { fill: var(--text-muted); font-size: 11px; }
+.axis-title { fill: var(--text-secondary); font-size: 12px; }
+.bar-hit { fill: transparent; cursor: pointer; }
+.bar-label { fill: var(--text-primary); font-size: 12px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.bar-sub-label { fill: var(--text-muted); font-size: 10.5px; }
+.pt { stroke: var(--surface-1); stroke-width: 1.5; cursor: pointer; }
+.pt-hit { fill: transparent; cursor: pointer; }
+.row-label { fill: var(--text-secondary); font-size: 11.5px; }
+
+#tooltip {
+  position: fixed; pointer-events: none; z-index: 50;
+  background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px 10px; font-size: 12px; line-height: 1.5; color: var(--text-primary);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  opacity: 0; transform: translate(-50%, calc(-100% - 10px)); transition: opacity 0.1s;
+  white-space: nowrap;
+}
+#tooltip.show { opacity: 1; }
+#tooltip .t-title { font-weight: 650; margin-bottom: 3px; }
+#tooltip .t-row { color: var(--text-secondary); }
+#tooltip .t-row b { color: var(--text-primary); font-weight: 600; }
+
+.reasons { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 4px; }
+.reason { font-size: 12.5px; color: var(--text-secondary); }
+.reason b { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.reason code { background: var(--surface-2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: 11.5px; }
+
+table.results { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+table.results th, table.results td {
+  text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+table.results th {
+  color: var(--text-muted); font-weight: 600; font-size: 11px; text-transform: uppercase;
+  letter-spacing: 0.02em; border-bottom: 1px solid var(--axis);
+  position: sticky; top: 0; background: var(--surface-1);
+}
+table.results td.num { text-align: right; }
+table.results tr:last-child td { border-bottom: none; }
+.table-scroll { max-height: 480px; overflow-y: auto; overflow-x: auto; border-radius: 8px; }
+.badge {
+  display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600;
+}
+.badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.badge { color: var(--text-primary); }
+.badge.success::before { background: var(--status-good); }
+.badge.failed::before { background: var(--status-critical); }
+.mono { font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+.dim { color: var(--text-muted); }
+
+@media (max-width: 720px) {
+  .tiles { grid-template-columns: repeat(2, 1fr); }
+  table.results { display: block; overflow-x: auto; }
+}
+</style>
+
+<div class="viz-root">
+  <div class="wrap">
+    <h1>TrainLineAI — pair_rank difficulty gradient</h1>
+    <p class="subtitle">
+      100 attempts, 5 seeds (different maps) × 20 town-pair ranks each. Every candidate town pair
+      on a map is scored (<code>population_a × population_b / distance</code> — the heuristic that
+      already fixed most <code>NOPATH</code> failures) and sorted best-first; <code>pair_rank</code>
+      (new AI parameter) picks that pair directly by index instead of the old auto-retry loop that
+      quietly fell back to the next pair on failure. Rank 0 is always the best-scoring pair. Ranks
+      are sampled from a geometric distribution rather than swept uniformly, so the budget is spent
+      densifying the feasible/infeasible boundary instead of on far-tail pairs almost guaranteed to
+      fail. <code>num_trains=2 / wagons_per_train=2 / engine_rank=1</code> held fixed to isolate
+      this one axis. Each attempt now gets exactly one preflight, no fallback — a failure at a
+      given rank is a real data point about that rank, not hidden by retrying a better pair.
+    </p>
+
+    <div class="tiles">
+      <div class="tile"><div class="label">Attempts</div><div class="value" id="t-total">—</div><div class="sub">5 seeds × 20 pair_rank samples</div></div>
+      <div class="tile good"><div class="label"><span class="dot"></span>Built</div><div class="value" id="t-success">—</div><div class="sub" id="t-success-sub"></div></div>
+      <div class="tile critical"><div class="label"><span class="dot"></span>Failed</div><div class="value" id="t-failed">—</div><div class="sub" id="t-failed-sub"></div></div>
+      <div class="tile"><div class="label">Rank range sampled</div><div class="value" id="t-range">—</div><div class="sub">geometric, dense near 0</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Success rate by pair_rank</h2>
+      <p class="caption" id="bucket-caption">
+        Attempts bucketed by <code>pair_rank</code>, success rate per bucket. This is the gradient
+        the ranking was built to produce: a controllable dial from "almost certainly buildable" to
+        "roughly a coin flip", instead of a single binary constructible/not signal.
+      </p>
+      <svg class="chart" id="bucketbar" viewBox="0 0 860 200" preserveAspectRatio="xMidYMid meet"></svg>
+    </div>
+
+    <div class="card">
+      <h2>Every attempt, by rank and seed</h2>
+      <p class="caption" id="strip-caption">
+        One row per seed (map), one dot per attempt at its <code>pair_rank</code>. Dashed lines
+        mark the bucket boundaries from the chart above. Dot density shows the geometric sampling
+        at work — dense near rank 0, sparse in the tail.
+      </p>
+      <div class="legend">
+        <span class="item"><span class="swatch" style="background:var(--status-good)"></span>Built</span>
+        <span class="item"><span class="swatch" style="background:var(--status-critical)"></span>Failed</span>
+      </div>
+      <svg class="chart" id="strip" viewBox="0 0 860 260" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="reasons" id="reasons"></div>
+    </div>
+
+    <div class="card">
+      <h2>All 100 attempts</h2>
+      <p class="caption">Full detail behind the charts above.</p>
+      <div class="table-scroll">
+        <table class="results" id="results-table">
+          <thead>
+            <tr>
+              <th>Line</th><th>Seed</th><th class="num">Rank</th>
+              <th>Status</th><th>Towns</th><th class="num">Dist</th><th class="num">Cost</th>
+              <th class="num">Profit</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="tooltip"></div>
+
+<script>
+const DATA = [{"line_index":0,"seed":42,"pair_rank":0,"stage":"success","reason":"OK","town_a":6,"town_b":2,"distance":20,"cost":41520,"profit_ligne":-154257},{"line_index":1,"seed":42,"pair_rank":1,"stage":"success","reason":"OK","town_a":8,"town_b":18,"distance":20,"cost":40816,"profit_ligne":-397434},{"line_index":2,"seed":42,"pair_rank":2,"stage":"success","reason":"OK","town_a":17,"town_b":6,"distance":63,"cost":46005,"profit_ligne":1782489},{"line_index":3,"seed":42,"pair_rank":3,"stage":"success","reason":"OK","town_a":8,"town_b":21,"distance":41,"cost":51377,"profit_ligne":2734118},{"line_index":4,"seed":42,"pair_rank":4,"stage":"success","reason":"OK","town_a":17,"town_b":19,"distance":90,"cost":53258,"profit_ligne":1192168},{"line_index":5,"seed":42,"pair_rank":5,"stage":"success","reason":"OK","town_a":8,"town_b":14,"distance":51,"cost":44250,"profit_ligne":-1009388},{"line_index":6,"seed":42,"pair_rank":6,"stage":"success","reason":"OK","town_a":17,"town_b":2,"distance":81,"cost":52938,"profit_ligne":2290930},{"line_index":7,"seed":42,"pair_rank":7,"stage":"success","reason":"OK","town_a":22,"town_b":13,"distance":30,"cost":51262,"profit_ligne":1879082},{"line_index":8,"seed":42,"pair_rank":8,"stage":"failed","reason":"PATHLIM","town_a":null,"town_b":null,"distance":null,"cost":null,"profit_ligne":null},{"line_index":9,"seed":42,"pair_rank":9,"stage":"success","reason":"OK","town_a":6,"town_b":22,"distance":74,"cost":49361,"profit_ligne":1795178},{"line_index":10,"seed":42,"pair_rank":10,"stage":"success","reason":"OK","town_a":14,"town_b":18,"distance":46,"cost":43679,"profit_ligne":106791},{"line_index":11,"seed":42,"pair_rank":12,"stage":"success","reason":"OK","town_a":21,"town_b":18,"distance":59,"cost":52922,"profit_ligne":2186483},{"line_index":12,"seed":42,"pair_rank":13,"stage":"success","reason":"OK","town_a":19,"town_b":16,"distance":77,"cost":51004,"profit_ligne":1050931},{"line_index":13,"seed":42,"pair_rank":14,"stage":"failed","reason":"PATHLIM","town_a":null,"town_b":null,"distance":null,"cost":null,"profit_ligne":null},{"line_index":14,"seed":42,"pair_rank":16,"stage":"success","reason":"OK","town_a":21,"town_b":16,"distance":74,"cost":48702,"profit_ligne":2142080},{"line_index":15,"seed":42,"pair_rank":17,"stage":"success","reason":"OK","town_a":21,"town_b":14,"distance":90,"cost":63665,"profit_ligne":-1010035},{"line_index":16,"seed":42,"pair_rank":19,"stage":"failed","reason":"PATHLIM","town_a":null,"town_b":null,"distance":null,"cost":null,"profit_ligne":null},{"line_index":17,"seed":42,"pair_rank":24,"stage":"success","reason":"OK","town_a":14,"town_b":9,"distance":87,"cost":54374,"profit_ligne":121027},{"line_index":18,"seed":42,"pair_rank":29,"stage":"failed","reason":"PATHLIM","town_a":null,"town_b":null,"distance":null,"cost":null,"profit_ligne":null},{"line_index":19,"seed":42,"pair_rank":43,"stage":"failed","reason":"PATHLIM","town_a":null,"town_b":null,"distance":null,"cost":null,"profit_ligne":null},{"line_index":20,"seed":100,"pair_rank":0,"stage":"success","reason":"OK","town_a":2,"town_b":5,"distance":23,"cost":41221,"profit_ligne":-123783},{"line_index":21,"seed":100,"pair_rank":1,"stage":"success","reason":"OK","town_a":1,"town_b":25,"distance":46,"cost":49249,"profit_ligne":2216813},{"line_index":22,"seed":100,"pair_rank":2,"stage":"success","reason":"OK","town_a":1,"town_b":24,"distance":43,"cost":49715,"profit_ligne":1611614},{"line_index":23,"seed":100,"pair_rank":3,"stage":"success","reason":"OK","town_a":2,"town_b":4,"distance":62,"cost":50814,"profit_ligne":1649977},{"line_index":24,"seed":100,"pair_rank":4,"stage":"success","reason":"OK","town_a":1,"town_b":9,"distance":36,"cost":42385,"profit_ligne":-822958},{"line_index":25,"seed":100,"pair_rank":5,"stage":"failed","reason":"PATHLIM","town_a":null,"town_b":null,"distance":null,"cost":null,"profit_ligne":null},{"line_index":26,"seed":100,"pair_rank":6,"stage":"success","reason":"OK","town_a":1,"town_b":21,"distance":58,"cost":51119,"profit_ligne":8962351},{"line_index":27,"seed":100,"pair_rank":7,"stage":"success","reason":"OK","town_a":2,"town_b":0,"distance":65,"cost":47517,"profit_ligne":1309095},{"line_index":28,"seed":100,"pair_rank":8,"stage":"success","reason":"OK","town_a":20,"town_b":16,"distance":24,"cost":42703,"profit_ligne":880200},{"line_index":29,"seed":100,"pair_rank":9,"stage":"success","reason":"OK","town_a":1,"town_b":12,"distance":52,"cost":48154,"profit_ligne":4635794},{"line_index":30,"seed":100,"pair_rank":11,"stage":"success","reason":"OK","town_a":1,"town_b":3,"distance":104,"cost":54441,"profit_ligne":-473408},{"line_index":31,"seed":100,"pair_rank":14,"stage":"success","reason":"OK","town_a":4,"town_b":13,"distance":34,"cost":42907,"profit_ligne":-846783},{"line_index":32,"seed":100,"pair_rank":15,"stage":"failed","reason":"PATHLIM","town_a":null,"town_b":null,"distance":null,"cost":null,"profit_ligne":null},{"line_index":33,"seed":100,"pair_rank":17,"stage":"success","reason":"OK","town_a":4,"town_b":0,"distance":58,"cost":58551,"profit_ligne":2977591},{"line_index":34,"seed":100,"pair_rank":19,"stage":"success","reason":"OK","town_a":0,"town_b":5,"distance":48,"cost":46048,"profit_ligne":561880},{"line_index":35,"seed":100,"pair_rank":20,"stage":"success","reason":"OK","town_a":3,"town_b":4,"distance":81,"cost":51879,"profit_ligne":1934358},{"line_index":36,"seed":100,"pair_rank":22,"stage":"failed","reason":"PATHLIM","town_a":null,"town_b":null,"distance":null,"cost":null,"profit_ligne":null},{"line_index":37,"seed":100,"pair_rank":23,"stage":"success","reason":"OK","town_a":4,"town_b":5,"distance":65,"cost":49341,"profit_ligne":2627178},{"line_index":38,"seed":100,"pair_rank":26,"stage":"success","reason":"OK","town_a":24,"town_b":9,"distance":44,"cost":47172,"profit_ligne":-1009485},{"line_index":39,"seed":100,"pair_rank":44,"stage":"failed","reason":"PATHLIM","town_a":null,"town_b":null,"distance":null,"cost":null,"profit_ligne":null},{"line_index":40,"seed":7,"pair_rank":0,"stage":"success","reason":"OK","town_a":18,"town_b":4,"distance":33,"cost":45260,"profit_ligne":1150962},{"line_index":41,"seed":7,"pair_rank":1,"stage":"success","reason":"OK","town_a":18,"town_b":21,"distance":39,"cost":44977,"profit_ligne":3741692},{"line_index":42,"seed":7,"pair_rank":2,"stage":"success","reason":"OK","town_a":9,"town_b":11,"distance":42,"cost":44221,"profit_ligne":2272533},{"line_index":43,"seed":7,"pair_rank":3,"stage":"success","reason":"OK","town_a":15,"town_b":22,"distance":34,"cost":44160,"profit_ligne":-803049},{"line_index":44,"seed":7,"pair_rank":4,"stage":"success","reason":"OK","town_a":15,"town_b":1,"distance":53,"cost":47514,"profit_ligne":4627367},{"line_index":45,"seed":7,"pair_rank":5,"stage":"success","reason":"OK","town_a":17,"town_b":21,"distance":54,"cost":47983,"profit_ligne":2872984},{"line_index":46,"seed":7,"pair_rank":6,"stage":"success","reason":"OK","town_a":15,"town_b":20,"distance":55,"cost":54966,"profit_ligne":2665903},{"line_index":47,"seed":7,"pair_rank":7,"stage":"success","reason":"OK","town_a":18,"town_b":17,"distance":77,"cost":53260,"profit_ligne":7063016},{"line_index":48,"seed":7,"pair_rank":8,"stage":"success","reason":"OK","town_a":4,"town_b":13,"distance":32,"cost":43846,"profit_ligne":-571615},{"line_index":49,"seed":7,"pair_rank":9,"stage":"success","reason":"OK","town_a":15,"town_b":17,"distance":101,"cost":56768,"profit_ligne":964979},{"line_index":50,"seed":7,"pair_rank":10,"stage":"failed","reason":"TRKFAIL","town_a":18,"town_b":13,"distance":52,"cost":8689,"profit_ligne":null},{"line_index":51,"seed":7,"pair_rank":11,"stage":"success","reason":"OK","town_a":17,"town_b":13,"distance":45,"cost":47560,"profit_ligne":3599526},{"line_index":52,"seed":7,"pair_rank":12,"stage":"success","reason":"OK","town_a":18,"town_b":8,"distance":57,"cost":50006,"profit_ligne":2750804},{"line_index":53,"seed":7,"pair_rank":14,"stage":"success","reason":"OK","town_a":18,"town_b":19,"distance":38,"cost":42892,"profit_ligne":-1009343},{"line_index":54,"seed":7,"pair_rank":15,"stage":"success","reason":"OK","town_a":17,"town_b":16,"distance":34,"cost":45376,"profit_ligne":574702},{"line_index":55,"seed":7,"pair_rank":17,"stage":"failed","reason":"PATHLIM","town_a":null,"town_b":null,"distance":null,"cost":null,"profit_ligne":null},{"line_index":56,"seed":7,"pair_rank":19,"stage":"failed","reason":"PATHLIM","town_a":null,"town_b":null,"distance":null,"cost":null,"profit_ligne":null},{"line_index":57,"seed":7,"pair_rank":21,"stage":"failed","reason":"PATHLIM","town_a":null,"town_b":null,"distance":null,"cost":null,"profit_ligne":null},{"line_index":58,"seed":7,"pair_rank":23,"stage":"success","reason":"OK","town_a":17,"town_b":0,"distance":61,"cost":54687,"profit_ligne":1658552},{"line_index":59,"seed":7,"pair_rank":27,"stage":"success","reason":"OK","town_a":9,"town_b":23,"distance":58,"cost":47544,"profit_ligne":3873958},{"line_index":60,"seed":999,"pair_rank":0,"stage":"success","reason":"OK","town_a":1,"town_b":9,"distance":29,"cost":44626,"profit_ligne":10247},{"line_index":61,"seed":999,"pair_rank":1,"stage":"success","reason":"OK","town_a":1,"town_b":18,"distance":106,"cost":51259,"profit_ligne":-1009622},{"line_index":62,"seed":999,"pair_rank":2,"stage":"success","reason":"OK","town_a":1,"town_b":10,"distance":84,"cost":49394,"profit_ligne":-224407},{"line_index":63,"seed":999,"pair_rank":3,"stage":"success","reason":"OK","town_a":18,"town_b":17,"distance":41,"cost":45009,"profit_ligne":-890885},{"line_index":64,"seed":999,"pair_rank":4,"stage":"success","reason":"OK","town_a":1,"town_b":22,"distance":101,"cost":50415,"profit_ligne":1014086},{"line_index":65,"seed":999,"pair_rank":5,"stage":"success","reason":"OK","town_a":1,"town_b":21,"distance":64,"cost":45711,"profit_ligne":-142365},{"line_index":66,"seed":999,"pair_rank":6,"stage":"failed","reason":"PATHLIM","town_a":null,"town_b":null,"distance":null,"cost":null,"profit_ligne":null},{"line_index":67,"seed":999,"pair_rank":7,"stage":"success","reason":"OK","town_a":18,"town_b":21,"distance":42,"cost":44256,"profit_ligne":-225260},{"line_index":68,"seed":999,"pair_rank":8,"stage":"success","reason":"OK","town_a":1,"town_b":17,"distance":113,"cost":53547,"profit_ligne":-886818},{"line_index":69,"seed":999,"pair_rank":10,"stage":"success","reason":"OK","town_a":18,"town_b":10,"distance":87,"cost":51813,"profit_ligne":-43752},{"line_index":70,"seed":999,"pair_rank":12,"stage":"success","reason":"OK","town_a":18,"town_b":6,"distance":76,"cost":53101,"profit_ligne":121069},{"line_index":71,"seed":999,"pair_rank":14,"stage":"success","reason":"OK","town_a":1,"town_b":6,"distance":137,"cost":58325,"profit_ligne":1884223},{"line_index":72,"seed":999,"pair_rank":15,"stage":"success","reason":"OK","town_a":22,"town_b":10,"distance":73,"cost":49040,"profit_ligne":541300},{"line_index":73,"seed":999,"pair_rank":17,"stage":"success","reason":"OK","town_a":10,"town_b":17,"distance":60,"cost":46426,"profit_ligne":31691},{"line_index":74,"seed":999,"pair_rank":18,"stage":"success","reason":"OK","town_a":22,"town_b":3,"distance":65,"cost":53081,"profit_ligne":972014},{"line_index":75,"seed":999,"pair_rank":20,"stage":"success","reason":"OK","town_a":0,"town_b":22,"distance":122,"cost":54052,"profit_ligne":3193037},{"line_index":76,"seed":999,"pair_rank":22,"stage":"success","reason":"OK","town_a":10,"town_b":21,"distance":72,"cost":48627,"profit_ligne":670338},{"line_index":77,"seed":999,"pair_rank":33,"stage":"success","reason":"OK","town_a":6,"town_b":21,"distance":94,"cost":55519,"profit_ligne":927388},{"line_index":78,"seed":999,"pair_rank":46,"stage":"failed","reason":"PAIROOR","town_a":null,"town_b":null,"distance":null,"cost":null,"profit_ligne":null},{"line_index":79,"seed":999,"pair_rank":58,"stage":"failed","reason":"PAIROOR","town_a":null,"town_b":null,"distance":null,"cost":null,"profit_ligne":null},{"line_index":80,"seed":2026,"pair_rank":0,"stage":"success","reason":"OK","town_a":16,"town_b":13,"distance":32,"cost":43006,"profit_ligne":1470013},{"line_index":81,"seed":2026,"pair_rank":1,"stage":"success","reason":"OK","town_a":4,"town_b":13,"distance":38,"cost":53439,"profit_ligne":580834},{"line_index":82,"seed":2026,"pair_rank":2,"stage":"success","reason":"OK","town_a":5,"town_b":9,"distance":20,"cost":40501,"profit_ligne":-1009263},{"line_index":83,"seed":2026,"pair_rank":4,"stage":"success","reason":"OK","town_a":11,"town_b":2,"distance":24,"cost":41761,"profit_ligne":670311},{"line_index":84,"seed":2026,"pair_rank":5,"stage":"success","reason":"OK","town_a":16,"town_b":4,"distance":59,"cost":63243,"profit_ligne":3073179},{"line_index":85,"seed":2026,"pair_rank":6,"stage":"success","reason":"OK","town_a":13,"town_b":15,"distance":49,"cost":45367,"profit_ligne":1293551},{"line_index":86,"seed":2026,"pair_rank":8,"stage":"failed","reason":"PATHLIM","town_a":null,"town_b":null,"distance":null,"cost":null,"profit_ligne":null},{"line_index":87,"seed":2026,"pair_rank":9,"stage":"success","reason":"OK","town_a":22,"town_b":5,"distance":41,"cost":48801,"profit_ligne":-132484},{"line_index":88,"seed":2026,"pair_rank":11,"stage":"success","reason":"OK","town_a":16,"town_b":15,"distance":69,"cost":51512,"profit_ligne":2091042},{"line_index":89,"seed":2026,"pair_rank":12,"stage":"success","reason":"OK","town_a":2,"town_b":21,"distance":40,"cost":43386,"profit_ligne":628273},{"line_index":90,"seed":2026,"pair_rank":13,"stage":"success","reason":"OK","town_a":14,"town_b":1,"distance":20,"cost":45214,"profit_ligne":-450828},{"line_index":91,"seed":2026,"pair_rank":14,"stage":"success","reason":"OK","town_a":21,"town_b":9,"distance":40,"cost":52500,"profit_ligne":-1009663},{"line_index":92,"seed":2026,"pair_rank":15,"stage":"success","reason":"OK","town_a":15,"town_b":11,"distance":51,"cost":48101,"profit_ligne":1676180},{"line_index":93,"seed":2026,"pair_rank":16,"stage":"success","reason":"OK","town_a":4,"town_b":15,"distance":78,"cost":50020,"profit_ligne":2632276},{"line_index":94,"seed":2026,"pair_rank":17,"stage":"success","reason":"OK","town_a":16,"town_b":11,"distance":85,"cost":51133,"profit_ligne":180783},{"line_index":95,"seed":2026,"pair_rank":18,"stage":"success","reason":"OK","town_a":22,"town_b":9,"distance":56,"cost":46572,"profit_ligne":-1009465},{"line_index":96,"seed":2026,"pair_rank":19,"stage":"success","reason":"OK","town_a":8,"town_b":14,"distance":63,"cost":48008,"profit_ligne":416919},{"line_index":97,"seed":2026,"pair_rank":20,"stage":"success","reason":"OK","town_a":4,"town_b":3,"distance":50,"cost":44910,"profit_ligne":1906174},{"line_index":98,"seed":2026,"pair_rank":23,"stage":"failed","reason":"PATHLIM","town_a":null,"town_b":null,"distance":null,"cost":null,"profit_ligne":null},{"line_index":99,"seed":2026,"pair_rank":50,"stage":"failed","reason":"PATHLIM","town_a":null,"town_b":null,"distance":null,"cost":null,"profit_ligne":null}];
+
+const REASON_LABEL = {
+  OK: "—",
+  NOPATH: "no path found",
+  PATHLIM: "path search limit hit",
+  TRKFAIL: "track build failed",
+  STNFAIL: "station build failed",
+  DEPFAIL: "depot build failed",
+  PAIROOR: "pair_rank out of range",
+};
+
+function fmtCost(c) {
+  if (c == null) return "—";
+  const sign = c < 0 ? "-" : "";
+  const a = Math.abs(c);
+  if (a >= 1000000) return sign + "£" + (a / 1000000).toFixed(1) + "M";
+  if (a >= 1000) return sign + "£" + Math.round(a / 1000) + "K";
+  return sign + "£" + a;
+}
+
+function el(tag, attrs) {
+  const e = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+
+const isSuccess = r => r.stage === "success";
+const tooltip = document.getElementById("tooltip");
+function showTip(evt, html) {
+  tooltip.innerHTML = html;
+  tooltip.style.left = evt.clientX + "px";
+  tooltip.style.top = evt.clientY + "px";
+  tooltip.classList.add("show");
+}
+function hideTip() { tooltip.classList.remove("show"); }
+
+// ---- tiles ----
+const nSuccess = DATA.filter(isSuccess).length;
+const nFailed = DATA.length - nSuccess;
+document.getElementById("t-total").textContent = DATA.length;
+document.getElementById("t-success").textContent = nSuccess;
+document.getElementById("t-success-sub").textContent = Math.round(100 * nSuccess / DATA.length) + "% overall";
+document.getElementById("t-failed").textContent = nFailed;
+const reasonCounts = {};
+DATA.filter(r => !isSuccess(r)).forEach(r => { reasonCounts[r.reason] = (reasonCounts[r.reason] || 0) + 1; });
+document.getElementById("t-failed-sub").textContent =
+  Object.keys(reasonCounts).map(k => k + " " + reasonCounts[k]).join(", ");
+const ranks = DATA.map(r => r.pair_rank);
+document.getElementById("t-range").textContent = Math.min(...ranks) + "–" + Math.max(...ranks);
+
+// ---- bucket bar chart ----
+const BUCKETS = [
+  { lo: 0, hi: 4, label: "0–4" },
+  { lo: 5, hi: 9, label: "5–9" },
+  { lo: 10, hi: 19, label: "10–19" },
+  { lo: 20, hi: 999, label: "20+" },
+];
+const bucketStats = BUCKETS.map(b => {
+  const sub = DATA.filter(r => r.pair_rank >= b.lo && r.pair_rank <= b.hi);
+  const succ = sub.filter(isSuccess).length;
+  return { ...b, n: sub.length, succ, rate: sub.length ? succ / sub.length : 0 };
+});
+document.getElementById("bucket-caption").innerHTML =
+  'Attempts bucketed by <code>pair_rank</code> (' + bucketStats.map(b => b.label).join(" / ") +
+  '), success rate per bucket. This is the gradient the ranking was built to produce: a ' +
+  'controllable dial from "almost certainly buildable" to "roughly a coin flip", instead of a ' +
+  'single binary constructible/not signal.';
+
+{
+  const svg = document.getElementById("bucketbar");
+  const W = 860, H = 200;
+  const M = { l: 50, r: 24, t: 12, b: 34 };
+  const plotW = W - M.l - M.r, plotH = H - M.t - M.b;
+  const n = bucketStats.length;
+  const gap = 28;
+  const barW = (plotW - gap * (n - 1)) / n;
+
+  [0, 25, 50, 75, 100].forEach(pct => {
+    const y = M.t + plotH - (pct / 100) * plotH;
+    svg.appendChild(el("line", { class: "gridline", x1: M.l, x2: W - M.r, y1: y, y2: y }));
+    const t = el("text", { class: "axis-label", x: M.l - 8, y: y + 4, "text-anchor": "end" });
+    t.textContent = pct + "%";
+    svg.appendChild(t);
+  });
+  svg.appendChild(el("line", { class: "axis-line", x1: M.l, x2: M.l, y1: M.t, y2: H - M.b }));
+
+  bucketStats.forEach((b, i) => {
+    const x = M.l + i * (barW + gap);
+    const barH = b.rate * plotH;
+    const y = M.t + plotH - barH;
+    const bar = el("rect", { class: "bar", x, y, width: barW, height: Math.max(1, barH), rx: 4, fill: "var(--status-good)" });
+    svg.appendChild(bar);
+    const hit = el("rect", { class: "bar-hit", x, y: M.t, width: barW, height: plotH });
+    svg.appendChild(hit);
+
+    const pctLabel = el("text", { class: "bar-label", x: x + barW / 2, y: y - 10, "text-anchor": "middle" });
+    pctLabel.textContent = Math.round(b.rate * 100) + "%";
+    svg.appendChild(pctLabel);
+
+    const nLabel = el("text", { class: "axis-label", x: x + barW / 2, y: H - M.b + 18, "text-anchor": "middle" });
+    nLabel.textContent = "rank " + b.label;
+    svg.appendChild(nLabel);
+    const sub = el("text", { class: "bar-sub-label", x: x + barW / 2, y: H - M.b + 30, "text-anchor": "middle" });
+    sub.textContent = b.succ + "/" + b.n + " built";
+    svg.appendChild(sub);
+
+    hit.addEventListener("mousemove", evt => showTip(evt,
+      '<div class="t-title">pair_rank ' + b.label + '</div>' +
+      '<div class="t-row">success rate <b>' + Math.round(b.rate * 100) + '%</b></div>' +
+      '<div class="t-row">' + b.succ + ' built out of ' + b.n + ' attempts</div>'));
+    hit.addEventListener("mouseenter", evt => showTip(evt,
+      '<div class="t-title">pair_rank ' + b.label + '</div>' +
+      '<div class="t-row">success rate <b>' + Math.round(b.rate * 100) + '%</b></div>' +
+      '<div class="t-row">' + b.succ + ' built out of ' + b.n + ' attempts</div>'));
+    hit.addEventListener("mouseleave", hideTip);
+  });
+}
+
+// ---- strip plot: one row per seed, one dot per attempt ----
+{
+  const svg = document.getElementById("strip");
+  const W = 860, H = 260;
+  const M = { l: 70, r: 24, t: 12, b: 34 };
+  const plotW = W - M.l - M.r, plotH = H - M.t - M.b;
+  const seeds = [...new Set(DATA.map(r => r.seed))];
+  const rowH = plotH / seeds.length;
+  const maxRank = Math.max(...ranks);
+  const xScale = r => M.l + (r / maxRank) * plotW;
+
+  // bucket boundary guides, shared with the bar chart above
+  [4.5, 9.5, 19.5].forEach(b => {
+    const x = xScale(b);
+    svg.appendChild(el("line", { class: "gridline-strong", x1: x, x2: x, y1: M.t, y2: H - M.b }));
+  });
+  [0, 10, 20, 30, 40, 50, 58].forEach(r => {
+    if (r > maxRank) return;
+    const x = xScale(r);
+    const t = el("text", { class: "axis-label", x, y: H - M.b + 18, "text-anchor": "middle" });
+    t.textContent = r;
+    svg.appendChild(t);
+  });
+  svg.appendChild(el("line", { class: "axis-line", x1: M.l, x2: W - M.r, y1: H - M.b, y2: H - M.b }));
+  const xTitle = el("text", { class: "axis-title", x: M.l + plotW / 2, y: H - 2, "text-anchor": "middle" });
+  xTitle.textContent = "pair_rank (0 = best score)";
+  svg.appendChild(xTitle);
+
+  seeds.forEach((seed, i) => {
+    const cy = M.t + rowH * i + rowH / 2;
+    svg.appendChild(el("line", { class: "gridline", x1: M.l, x2: W - M.r, y1: cy, y2: cy }));
+    const label = el("text", { class: "row-label", x: M.l - 10, y: cy + 4, "text-anchor": "end" });
+    label.textContent = "seed " + seed;
+    svg.appendChild(label);
+  });
+
+  DATA.forEach(rec => {
+    const rowIndex = seeds.indexOf(rec.seed);
+    const cx = xScale(rec.pair_rank), cy = M.t + rowH * rowIndex + rowH / 2;
+    const success = isSuccess(rec);
+    const color = success ? "var(--status-good)" : "var(--status-critical)";
+    const dot = el("circle", { class: "pt", cx, cy, r: 5, fill: color });
+    const hit = el("circle", { class: "pt-hit", cx, cy, r: 12 });
+    svg.appendChild(dot);
+    svg.appendChild(hit);
+
+    function show(evt) {
+      showTip(evt,
+        '<div class="t-title">Line ' + rec.line_index + ' — seed ' + rec.seed + ', rank ' + rec.pair_rank + '</div>' +
+        (success
+          ? '<div class="t-row">towns <b>' + rec.town_a + '–' + rec.town_b + '</b>, distance <b>' + rec.distance + '</b> tiles</div>' +
+            '<div class="t-row">cost <b>' + fmtCost(rec.cost) + '</b>, profit_ligne <b>' + fmtCost(rec.profit_ligne) + '</b></div>'
+          : '<div class="t-row">failed: <b>' + (REASON_LABEL[rec.reason] || rec.reason) + '</b></div>'));
+    }
+    hit.addEventListener("mousemove", show);
+    hit.addEventListener("mouseenter", show);
+    hit.addEventListener("mouseleave", hideTip);
+  });
+}
+
+// ---- failure reason chips ----
+{
+  const container = document.getElementById("reasons");
+  Object.keys(reasonCounts).sort((a, b) => reasonCounts[b] - reasonCounts[a]).forEach(reason => {
+    const span = document.createElement("span");
+    span.className = "reason";
+    span.innerHTML = '<b>' + reasonCounts[reason] + '</b> <code>' + reason + '</code> — ' + (REASON_LABEL[reason] || reason);
+    container.appendChild(span);
+  });
+}
+
+// ---- table ----
+const tbody = document.querySelector("#results-table tbody");
+DATA.slice().sort((a, b) => a.seed - b.seed || a.pair_rank - b.pair_rank).forEach(rec => {
+  const success = isSuccess(rec);
+  const tr = document.createElement("tr");
+  const statusHtml = success
+    ? '<span class="badge success">built</span>'
+    : '<span class="badge failed">' + (REASON_LABEL[rec.reason] || rec.reason) + '</span>';
+  tr.innerHTML =
+    '<td>' + rec.line_index + '</td>' +
+    '<td class="mono">' + rec.seed + '</td>' +
+    '<td class="num mono">' + rec.pair_rank + '</td>' +
+    '<td>' + statusHtml + '</td>' +
+    '<td class="mono">' + (rec.town_a != null ? rec.town_a + '–' + rec.town_b : '<span class="dim">—</span>') + '</td>' +
+    '<td class="num mono">' + (rec.distance != null ? rec.distance : '<span class="dim">—</span>') + '</td>' +
+    '<td class="num mono">' + (rec.cost != null ? fmtCost(rec.cost) : '<span class="dim">—</span>') + '</td>' +
+    '<td class="num mono">' + (rec.profit_ligne != null ? fmtCost(rec.profit_ligne) : '<span class="dim">—</span>') + '</td>';
+  tbody.appendChild(tr);
+});
+</script>
