@@ -360,10 +360,11 @@ deux lignes réellement différentes, avant comme après.
 La construction elle-même était déjà reproductible au tick près (38 ticks). La fenêtre variable
 était le **preflight** — sélection de paire et pathfinding — mesuré sur 30 routes à 678 ticks au
 minimum, 957 en médiane, 4397 au maximum. D'où une **barrière** : une fois tout le preflight
-terminé et avant de toucher la moindre tuile, l'IA attend jusqu'au tick absolu 5000 (100 % des
-routes mesurées couvertes, 603 ticks de marge, coût ~1,5 % de la partie). En multi-compagnies la
-cible reste échelonnée (`5000 + line_index × 6000`) pour préserver l'ordre de visibilité dont
-dépend la contrainte de villes disjointes.
+terminé et avant de toucher la moindre tuile, l'IA attend jusqu'au tick absolu 5000 (100 % de ces
+30 routes initiales couvertes, 603 ticks de marge, coût ~1,5 % de la partie). En
+multi-compagnies la cible reste échelonnée (`5000 + stagger_slot × 6000`) pour préserver l'ordre
+de visibilité dont dépend la contrainte de villes disjointes ; `line_index` reste seulement
+l'identifiant affiché, afin que les campagnes isolées ne soient jamais retardées par leur numéro.
 
 Même balayage de délais, barrière active, mêmes trois lignes :
 
@@ -383,6 +384,13 @@ changent** (graine 42 : +1 719 409 avant, −353 423 après) : c'est une nouvell
 campagne, au même titre que 1950 → 1970. Chaque ligne signale désormais dans ses panneaux si elle
 a respecté la barrière (`M`) ou l'a dépassée (`O`) — une ligne `O` n'est pas comparable aux
 autres.
+
+La baseline fraîche `docs/phase2_baseline_v2.json` est la première campagne à cible
+temporellement reproductible : 100 lignes isolées, 75 construites / 25 échecs (19 `PATHLIM`, 6
+`TRKFAIL`). Les buckets 0–24, 25–49, 50–74 et 75–120 réussissent à 88 %, 88 %, 68 % et 56 %.
+Parmi les lignes bâties, 58 sont normalisées (`M`) et 17 dépassent la barrière (`O`) : seules les
+M forment la nouvelle cible comparable (`profit_ligne` médian 2 571 170; min/max −1 094 394 /
+8 955 582). Les O restent visibles dans le JSON, mais ne doivent pas être mélangées aux M.
 
 Détail, contrôles successifs et faisabilité d'une construction « en pause » (impossible : la pause
 fige aussi l'ordonnanceur d'IA) dans `docs/methode.md` et `docs/pause_feasibility_findings.md`.

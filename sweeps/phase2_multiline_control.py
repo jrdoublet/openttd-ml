@@ -131,6 +131,7 @@ if __name__ == "__main__":
                             ("engine_rank", ENGINE_RANK),
                             ("pair_rank", i),
                             ("line_index", i),
+                            ("stagger_slot", i),
                         ),
                     )
                     for i in range(n)

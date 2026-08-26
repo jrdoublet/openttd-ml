@@ -44,7 +44,7 @@ class TrainLineAIInfo extends AIInfo {
     AddSetting({
       name = "pair_rank",
       description = "Rank of the town pair in the score-sorted (population_a*population_b/distance) list, 0 = best",
-      min_value = 0, max_value = 99,
+      min_value = 0, max_value = 500,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = 0
@@ -59,7 +59,15 @@ class TrainLineAIInfo extends AIInfo {
     });
     AddSetting({
       name = "line_index",
-      description = "Index of this line/attempt within the game, echoed in the status sign",
+      description = "Identifier of this line/attempt, echoed in the status sign (does not schedule it)",
+      min_value = 0, max_value = 99,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+    AddSetting({
+      name = "stagger_slot",
+      description = "Multi-company construction order slot; 0 disables stagger in isolated games",
       min_value = 0, max_value = 99,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,

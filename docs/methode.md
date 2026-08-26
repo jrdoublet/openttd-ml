@@ -963,3 +963,17 @@ les mesures antérieures à la barrière ne sont pas comparables à celles qui s
 que la rupture 1950 → 1970. Enfin, la validation porte sur trois lignes de rang 0 toutes
 normalisées (`M`) ; le comportement des lignes qui dépasseraient la barrière (`O`) n'est pas
 mesuré ici.
+
+**Baseline Phase 2 v2 (2026-08-26).** `line_index` était devenu un bug de harness : dans les
+jeux isolés il valait 0..99, mais le stagger/barrière le multipliait par 6000. Sur ~270100 ticks
+en dix ans, l'index 45 dormait déjà 270000 ticks avant son preflight. Le paramètre est scindé :
+`line_index` identifie seulement les panneaux; `stagger_slot` ordonnance les compagnies. Les
+jeux isolés passent slot 0; le smoke test multi slots 0/1 a construit deux paires distinctes aux
+ticks M=5000/11000.
+
+La sonde 5-graines donne 3/5 succès aux rangs 50 et 100, 4/5 à 200 (quatre O), 1/5 à 300, 0/5 à
+400. `phase2_baseline_v2` échantillonne donc 5 graines × 20 rangs 0..110 : succès par buckets
+0-24/25-49/50-74/75-120 = 88 %/88 %/68 %/56 %. Sur 100 lignes : 75 succès, 25 échecs (19 PATHLIM,
+6 TRKFAIL), 63 M, 18 O, 19 sans mutation. Les 58 succès M, seuls comparables, ont
+`profit_ligne` min/Q1/médiane/moyenne/Q3/max = -1 094 394 / 324 113 / 2 571 170 / 2 475 704 /
+4 408 062 / 8 955 582; les 17 succès O sont explicitement exclus de cette cible.

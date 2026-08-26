@@ -1,0 +1,463 @@
+{
+  "config": {
+    "number_towns": 3,
+    "starting_year": 1970,
+    "town_growth_rate": 2,
+    "industry_density": 4,
+    "inflation": false,
+    "map": "256x256"
+  },
+  "design": {
+    "seeds": [
+      42,
+      1,
+      7,
+      100,
+      2026
+    ],
+    "ranks": [
+      50,
+      100,
+      200,
+      300,
+      400
+    ],
+    "stagger_slot": 0,
+    "rationale": "Coarse five-seed probe spanning the old ceiling (59), the prior setting cap (99), and the eligibility-count ceiling around 320."
+  },
+  "by_rank": {
+    "50": {
+      "attempted": 5,
+      "success": 3,
+      "failure_reasons": {
+        "OK": 3,
+        "TRKFAIL": 1,
+        "PATHLIM": 1
+      },
+      "barrier_M": 4,
+      "barrier_O": 0
+    },
+    "100": {
+      "attempted": 5,
+      "success": 3,
+      "failure_reasons": {
+        "OK": 3,
+        "PATHLIM": 2
+      },
+      "barrier_M": 2,
+      "barrier_O": 1
+    },
+    "200": {
+      "attempted": 5,
+      "success": 4,
+      "failure_reasons": {
+        "PATHLIM": 1,
+        "OK": 4
+      },
+      "barrier_M": 0,
+      "barrier_O": 4
+    },
+    "300": {
+      "attempted": 5,
+      "success": 1,
+      "failure_reasons": {
+        "OK": 1,
+        "PAIROOR": 2,
+        "PATHLIM": 2
+      },
+      "barrier_M": 0,
+      "barrier_O": 1
+    },
+    "400": {
+      "attempted": 5,
+      "success": 0,
+      "failure_reasons": {
+        "PATHLIM": 1,
+        "PAIROOR": 4
+      },
+      "barrier_M": 0,
+      "barrier_O": 0
+    }
+  },
+  "records": [
+    {
+      "seed": 1,
+      "pair_rank": 50,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|50|T21-17",
+        "TRLN|5|success|OK|2/2",
+        "TRLN|5|T21-17|D40|C57541",
+        "TRLN|5|V47974",
+        "TRLN|5|B5000|M"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "built": 2,
+      "requested": 2,
+      "first_mutation_tick": 5000,
+      "barrier_flag": "M"
+    },
+    {
+      "seed": 1,
+      "pair_rank": 100,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|100|T0-25",
+        "TRLN|6|success|OK|2/2",
+        "TRLN|6|T0-25|D85|C81580",
+        "TRLN|6|V47974",
+        "TRLN|6|B5000|M"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "built": 2,
+      "requested": 2,
+      "first_mutation_tick": 5000,
+      "barrier_flag": "M"
+    },
+    {
+      "seed": 1,
+      "pair_rank": 200,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|200|T29-13",
+        "TRLN|7|failed|PATHLIM|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PATHLIM",
+      "built": 0,
+      "requested": 2
+    },
+    {
+      "seed": 1,
+      "pair_rank": 300,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|300|T48-45",
+        "TRLN|8|success|OK|2/2",
+        "TRLN|8|T48-45|D86|C95630",
+        "TRLN|8|V47974",
+        "TRLN|8|B5041|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "built": 2,
+      "requested": 2,
+      "first_mutation_tick": 5041,
+      "barrier_flag": "O"
+    },
+    {
+      "seed": 1,
+      "pair_rank": 400,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|400|T1-49",
+        "TRLN|9|failed|PATHLIM|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PATHLIM",
+      "built": 0,
+      "requested": 2
+    },
+    {
+      "seed": 7,
+      "pair_rank": 50,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|50|T7-42",
+        "TRLN|10|success|OK|2/2",
+        "TRLN|10|T7-42|D29|C57079",
+        "TRLN|10|V47974",
+        "TRLN|10|B5000|M"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "built": 2,
+      "requested": 2,
+      "first_mutation_tick": 5000,
+      "barrier_flag": "M"
+    },
+    {
+      "seed": 7,
+      "pair_rank": 100,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|100|T31-22",
+        "TRLN|11|failed|PATHLIM|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PATHLIM",
+      "built": 0,
+      "requested": 2
+    },
+    {
+      "seed": 7,
+      "pair_rank": 200,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|200|T23-40",
+        "TRLN|12|success|OK|2/2",
+        "TRLN|12|T23-40|D107|C76225",
+        "TRLN|12|V47974",
+        "TRLN|12|B7329|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "built": 2,
+      "requested": 2,
+      "first_mutation_tick": 7329,
+      "barrier_flag": "O"
+    },
+    {
+      "seed": 7,
+      "pair_rank": 300,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|13|failed|PAIROOR|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PAIROOR",
+      "built": 0,
+      "requested": 2
+    },
+    {
+      "seed": 7,
+      "pair_rank": 400,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|14|failed|PAIROOR|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PAIROOR",
+      "built": 0,
+      "requested": 2
+    },
+    {
+      "seed": 42,
+      "pair_rank": 50,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|50|T35-20",
+        "TRLN|0|success|OK|2/2",
+        "TRLN|0|T35-20|D58|C71023",
+        "TRLN|0|V47974",
+        "TRLN|0|B5000|M"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "built": 2,
+      "requested": 2,
+      "first_mutation_tick": 5000,
+      "barrier_flag": "M"
+    },
+    {
+      "seed": 42,
+      "pair_rank": 100,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|100|T14-27",
+        "TRLN|1|failed|PATHLIM|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PATHLIM",
+      "built": 0,
+      "requested": 2
+    },
+    {
+      "seed": 42,
+      "pair_rank": 200,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|200|T44-33",
+        "TRLN|2|success|OK|2/2",
+        "TRLN|2|T44-33|D100|C84677",
+        "TRLN|2|V47974",
+        "TRLN|2|B7866|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "built": 2,
+      "requested": 2,
+      "first_mutation_tick": 7866,
+      "barrier_flag": "O"
+    },
+    {
+      "seed": 42,
+      "pair_rank": 300,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|300|T19-0",
+        "TRLN|3|failed|PATHLIM|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PATHLIM",
+      "built": 0,
+      "requested": 2
+    },
+    {
+      "seed": 42,
+      "pair_rank": 400,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|4|failed|PAIROOR|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PAIROOR",
+      "built": 0,
+      "requested": 2
+    },
+    {
+      "seed": 100,
+      "pair_rank": 50,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|50|T26-8",
+        "TRLN|15|failed|TRKFAIL|0/2",
+        "TRLN|15|T26-8|D25|C15399",
+        "TRLN|15|V0",
+        "TRLN|15|B5000|M"
+      ],
+      "stage": "failed",
+      "reason": "TRKFAIL",
+      "built": 0,
+      "requested": 2,
+      "first_mutation_tick": 5000,
+      "barrier_flag": "M"
+    },
+    {
+      "seed": 100,
+      "pair_rank": 100,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|100|T26-19",
+        "TRLN|16|success|OK|2/2",
+        "TRLN|16|T26-19|D94|C82187",
+        "TRLN|16|V47974",
+        "TRLN|16|B6890|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "built": 2,
+      "requested": 2,
+      "first_mutation_tick": 6890,
+      "barrier_flag": "O"
+    },
+    {
+      "seed": 100,
+      "pair_rank": 200,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|200|T0-36",
+        "TRLN|17|success|OK|2/2",
+        "TRLN|17|T0-36|D91|C79408",
+        "TRLN|17|V47974",
+        "TRLN|17|B7149|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "built": 2,
+      "requested": 2,
+      "first_mutation_tick": 7149,
+      "barrier_flag": "O"
+    },
+    {
+      "seed": 100,
+      "pair_rank": 300,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|300|T31-24",
+        "TRLN|18|failed|PATHLIM|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PATHLIM",
+      "built": 0,
+      "requested": 2
+    },
+    {
+      "seed": 100,
+      "pair_rank": 400,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|19|failed|PAIROOR|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PAIROOR",
+      "built": 0,
+      "requested": 2
+    },
+    {
+      "seed": 2026,
+      "pair_rank": 50,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|50|T22-40",
+        "TRLN|20|failed|PATHLIM|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PATHLIM",
+      "built": 0,
+      "requested": 2
+    },
+    {
+      "seed": 2026,
+      "pair_rank": 100,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|100|T23-7",
+        "TRLN|21|success|OK|2/2",
+        "TRLN|21|T23-7|D60|C77278",
+        "TRLN|21|V47974",
+        "TRLN|21|B5000|M"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "built": 2,
+      "requested": 2,
+      "first_mutation_tick": 5000,
+      "barrier_flag": "M"
+    },
+    {
+      "seed": 2026,
+      "pair_rank": 200,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|TRY|200|T16-30",
+        "TRLN|22|success|OK|2/2",
+        "TRLN|22|T16-30|D133|C91984",
+        "TRLN|22|V47974",
+        "TRLN|22|B9805|O"
+      ],
+      "stage": "success",
+      "reason": "OK",
+      "built": 2,
+      "requested": 2,
+      "first_mutation_tick": 9805,
+      "barrier_flag": "O"
+    },
+    {
+      "seed": 2026,
+      "pair_rank": 300,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|23|failed|PAIROOR|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PAIROOR",
+      "built": 0,
+      "requested": 2
+    },
+    {
+      "seed": 2026,
+      "pair_rank": 400,
+      "capture_date": "1979-12-01",
+      "raw_signs": [
+        "TRLN|24|failed|PAIROOR|0/2"
+      ],
+      "stage": "failed",
+      "reason": "PAIROOR",
+      "built": 0,
+      "requested": 2
+    }
+  ]
+}

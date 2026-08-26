@@ -268,6 +268,7 @@ function TrainLineAI::Start()
   this.state = {
     stage = "starting",
     line_index = null,
+    stagger_slot = null,
     town_a = null,
     town_a_name = null,
     town_b = null,
@@ -317,18 +318,20 @@ function TrainLineAI::Start()
   this.state.requested_trains = AIController.GetSetting("num_trains");
   this.state.wagons_per_train = AIController.GetSetting("wagons_per_train");
   this.state.line_index = AIController.GetSetting("line_index");
+  this.state.stagger_slot = AIController.GetSetting("stagger_slot");
 
   /* Echelonnement des demarrages -- necessaire pour que la compagnie N voie les gares deja
    * posees par les compagnies 0..N-1 avant de choisir sa propre paire (contrainte villes
-   * disjointes plus bas). line_index sert de cle d'ordonnancement -- deja concu pour ca (voir
-   * son commentaire plus haut, "pour quand plusieurs instances de TrainLineAI tourneront dans
-   * la meme experience"). La compagnie line_index=0 ne subit aucun delai : elle construit dans
-   * les memes conditions temporelles qu'en partie isolee, ce qui garde ce point de reference
-   * comparable entre parties a N compagnies differentes.
+   * disjointes plus bas). stagger_slot est deliberement distinct de line_index : ce dernier est
+   * seulement l'identifiant echoise dans les panneaux, et peut donc rester 0..99 dans une
+   * campagne de parties isolees sans retarder chacune d'elles. La compagnie stagger_slot=0 ne
+   * subit aucun delai : elle construit dans les memes conditions temporelles qu'en partie
+   * isolee, ce qui garde ce point de reference comparable entre parties a N compagnies
+   * differentes.
    * STAGGER_TICKS=6000 (~81 jours/compagnie) est une estimation de depart, pas encore confirmee
    * empiriquement -- voir docs/methode.md pour la bissection prevue via sweeps/debug_ai.py. */
   local STAGGER_TICKS = 6000;
-  local staggerDelay = this.state.line_index * STAGGER_TICKS;
+  local staggerDelay = this.state.stagger_slot * STAGGER_TICKS;
   if (staggerDelay > 0) this.Sleep(staggerDelay);
 
   /* 1. Choisir un type de rail (le premier disponible) */
@@ -519,14 +522,14 @@ function TrainLineAI::Start()
 
   /* Barriere de preflight : toutes les preparations (paire, plans de quais et chemin) sont
    * terminees, mais aucune tuile n'a encore ete modifiee. La cible est ABSOLUE dans le compteur
-   * AI, tout en conservant l'ecart de STAGGER_TICKS entre compagnies : N construit a
+   * AI, tout en conservant l'ecart de STAGGER_TICKS entre compagnies : le slot N construit a
    * BARRIER_BASE + N*STAGGER_TICKS. Ainsi N-1 a au moins 6000-38 ticks pour poser ses gares
    * avant la selection/construction de N, donc _isTownServed() garde son ordre de visibilite.
    * BARRIER_BASE=5000 est choisi sur la distribution 1970/256x256 de
    * sweeps/phase2_preflight_distribution.py (max observe 4397 au tick absolu, marge 603). Le
    * script de mesure cree une copie /tmp avec zero afin d'observer le preflight non masque. */
   local BARRIER_BASE = 5000;
-  local barrierTarget = BARRIER_BASE + this.state.line_index * STAGGER_TICKS;
+  local barrierTarget = BARRIER_BASE + this.state.stagger_slot * STAGGER_TICKS;
   local beforeBarrier = AIController.GetTick();
   this.state.barrier_met = beforeBarrier <= barrierTarget;
   if (beforeBarrier < barrierTarget) this.Sleep(barrierTarget - beforeBarrier);
