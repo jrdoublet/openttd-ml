@@ -34,6 +34,7 @@ import("pathfinder.rail", "RailPathFinder", 1);
   no_viable_town_pair = "NOVIABLE",
   town_rank_out_of_range = "TWNOOR",
   town_rank_same_town = "TWNDUP",
+  pair_rank_out_of_range = "PAIROOR",
   no_buildable_tile_near_town = "NOTILE",
   no_path_found = "NOPATH",
   path_search_limit = "PATHLIM",
@@ -337,43 +338,39 @@ function TrainLineAI::Start()
   }
   if (pairs.len() == 0) this._fail("no_suitable_town_pair");
 
-  /* Une paire bien notee peut etre bloquee par la topographie. On les essaie dans l'ordre du
-   * score et on ne choisit la ligne qu'apres une pre-verification sans construction. */
-  local townA = null;
-  local townB = null;
-  local bestScore = -1.0;
-  local selectedPreflight = null;
-  local attemptedPairs = 0;
-  local maxPairAttempts = 12;
-  /* Budget de recherche global (voir commentaire dans _preflightPair() pour le bug de fond) :
-   * 1500 jours (~74 ticks/jour), soit environ 40% d'une partie de 10 ans, laisse le reste de la
+  /* Une paire bien notee peut etre bloquee par la topographie. La version precedente essayait
+   * les paires dans l'ordre du score jusqu'a en trouver une viable (jusqu'a 12 essais) : un
+   * echec de preflight etait alors masque par un repli automatique sur la paire suivante, et le
+   * signal de constructibilite ne portait que sur "au moins une paire parmi les 12 meilleures
+   * marche" -- aucun controle sur la difficulte reellement testee.
+   *
+   * On trie maintenant TOUTES les paires candidates par score decroissant et on prend
+   * directement celle au rang `pair_rank` (0 = meilleur score -- la meme paire que l'ancienne
+   * boucle essayait en premier, donc toujours faisable en pratique). Un seul preflight, sans
+   * repli sur une autre paire : un echec au rang N est desormais un vrai point de donnee sur la
+   * difficulte de ce rang plutot qu'une raison de le cacher. `pair_rank` expose ainsi un
+   * gradient de difficulte controle en parametre d'IA, echantillonnable cote Python. */
+  pairs.sort(function(a, b) {
+    if (a.score > b.score) return -1;
+    if (a.score < b.score) return 1;
+    return 0;
+  });
+  local pairRank = AIController.GetSetting("pair_rank");
+  if (pairRank >= pairs.len()) this._fail("pair_rank_out_of_range");
+  local selectedPair = pairs[pairRank];
+  local townA = selectedPair.town_a;
+  local townB = selectedPair.town_b;
+  local bestScore = selectedPair.score;
+  this.lastKnownTile = AITown.GetLocation(townA);
+  this._report("TRLN|TRY|" + pairRank + "|T" + townA + "-" + townB);
+  /* Budget de recherche (voir commentaire dans _preflightPair() pour le bug de fond) : 1500
+   * jours (~74 ticks/jour), soit environ 40% d'une partie de 10 ans, laisse le reste de la
    * partie pour construire et faire rouler la ligne assez longtemps pour un signal de profit
-   * exploitable, meme si le preflight epuise tout son budget sans trouver de paire viable. */
+   * exploitable, meme si le preflight epuise tout son budget. */
   local preflightDeadline = AIController.GetTick() + 1500 * 74;
-  while (pairs.len() > 0 && attemptedPairs < maxPairAttempts && townA == null &&
-      AIController.GetTick() < preflightDeadline) {
-    local bestIndex = 0;
-    for (local i = 1; i < pairs.len(); i++) {
-      if (pairs[i].score > pairs[bestIndex].score) bestIndex = i;
-    }
-    local pair = pairs.remove(bestIndex);
-    attemptedPairs++;
-    this.lastKnownTile = AITown.GetLocation(pair.town_a);
-    this._report("TRLN|TRY|" + attemptedPairs + "|T" + pair.town_a + "-" + pair.town_b);
-    local preflight = this._preflightPair(pair.town_a, pair.town_b, platformLengthForEstimate,
-        preflightDeadline);
-    if (typeof(preflight) != "string") {
-      townA = pair.town_a;
-      townB = pair.town_b;
-      bestScore = pair.score;
-      selectedPreflight = preflight;
-    } else {
-      AILog.Warning("Skipping town pair " + pair.town_a + "-" + pair.town_b + ": " + preflight);
-      this._report("TRLN|SKIP|" + attemptedPairs + "|" + ::REASON_CODES[preflight]);
-    }
-  }
-  if (townA == null || townB == null) this._fail("no_viable_town_pair");
-  if (attemptedPairs > 1) AILog.Info("Selected pair after " + attemptedPairs + " preflight attempts");
+  local selectedPreflight = this._preflightPair(townA, townB, platformLengthForEstimate,
+      preflightDeadline);
+  if (typeof(selectedPreflight) == "string") this._fail(selectedPreflight);
 
   this.state.town_a = townA;
   this.state.town_a_name = AITown.GetName(townA);

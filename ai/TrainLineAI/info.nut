@@ -42,6 +42,14 @@ class TrainLineAIInfo extends AIInfo {
       flags = 0
     });
     AddSetting({
+      name = "pair_rank",
+      description = "Rank of the town pair in the score-sorted (population_a*population_b/distance) list, 0 = best",
+      min_value = 0, max_value = 99,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = 0
+    });
+    AddSetting({
       name = "engine_rank",
       description = "Rank of the engine in the speed-sorted engine list (0 = fastest)",
       min_value = 0, max_value = 2,
@@ -52,7 +60,7 @@ class TrainLineAIInfo extends AIInfo {
     AddSetting({
       name = "line_index",
       description = "Index of this line/attempt within the game, echoed in the status sign",
-      min_value = 0, max_value = 19,
+      min_value = 0, max_value = 99,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = 0
