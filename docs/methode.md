@@ -715,3 +715,20 @@ pas expliquer ce delta de profit. Le contrôle **soutient** donc une sensibilit�
 écart malgré construction byte-identique », puisque ce coût a lui-même bougé. Il faut conserver la
 prudence méthodologique sur les comparaisons inter-versions et, pour une preuve stricte, isoler un
 décalage qui préserve aussi tous les champs de construction mesurés.
+
+**Contrôle de déterminisme intra-batch (`docs/phase2_determinism_control.json`, 2026-08-26).**
+Deux dicos d'expérience distincts mais littéralement identiques (graine 42, une compagnie isolée,
+`num_trains`=2, `wagons_per_train`=2, `engine_rank`=1, `pair_rank`=0 et `line_index`=0) ont été
+lancés dans le même appel `run_experiments()` avec `max_workers`=3. Précaution de parsing :
+OpenTTDLab n'expose pas son index d'expérience dans chaque ligne sauvegardée ; sa source aplati
+toutefois les résultats des `AsyncResult` dans l'ordre des entrées, puis les autosaves triées de
+chaque partie. Le script les scinde selon cet ordre, vérifie cardinalité et dates, et échoue plutôt
+que d'écraser silencieusement un des deux résultats.
+
+Les deux derniers savegames sont byte-identiques sur les champs mesurés : T6-2, distance 20, coût
+41535, `vehicle_cost` 36256, `avg_max_age_years` 21.06, `sum_profit_last_year` -245288 et
+`profit_ligne` -247186 (écarts 0 et 0). Ce contrôle exclut ici un bruit général de relance ou de
+concurrence de processus comme explication du delta -24576 observé dans le contrôle `Sleep(6000)` ;
+il renforce donc l'attribution de ce delta à la différence de timing intentionnelle. Il ne permet
+pas à lui seul d'identifier le mécanisme interne exact (RNG partagé, croissance ou autre effet du
+temps écoulé), ni de lever la réserve sur les $15 de coût de construction du contrôle précédent.

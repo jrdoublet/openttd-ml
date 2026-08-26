@@ -1,0 +1,72 @@
+[
+  {
+    "run_index": 0,
+    "seed": 42,
+    "pair_rank": 0,
+    "ai_params": {
+      "num_trains": 2,
+      "wagons_per_train": 2,
+      "engine_rank": 1,
+      "pair_rank": 0,
+      "line_index": 0
+    },
+    "raw_signs": [
+      "TRLN|TRY|0|T6-2",
+      "TRLN|0|success|OK|2/2",
+      "TRLN|0|T6-2|D20|C41535",
+      "TRLN|0|V36256"
+    ],
+    "stage": "success",
+    "reason": "OK",
+    "built": 2,
+    "requested": 2,
+    "town_a": 6,
+    "town_b": 2,
+    "distance": 20,
+    "cost": 41535,
+    "vehicle_cost": 36256,
+    "n_lead_vehicles": 2,
+    "sum_profit_last_year": -245288,
+    "avg_max_age_years": 21.06,
+    "infra_cost": 5279,
+    "vehicle_amortization_annual": 1722,
+    "infra_amortization_annual": 176,
+    "amortization_annual": 1898,
+    "profit_ligne": -247186
+  },
+  {
+    "run_index": 1,
+    "seed": 42,
+    "pair_rank": 0,
+    "ai_params": {
+      "num_trains": 2,
+      "wagons_per_train": 2,
+      "engine_rank": 1,
+      "pair_rank": 0,
+      "line_index": 0
+    },
+    "raw_signs": [
+      "TRLN|TRY|0|T6-2",
+      "TRLN|0|success|OK|2/2",
+      "TRLN|0|T6-2|D20|C41535",
+      "TRLN|0|V36256"
+    ],
+    "stage": "success",
+    "reason": "OK",
+    "built": 2,
+    "requested": 2,
+    "town_a": 6,
+    "town_b": 2,
+    "distance": 20,
+    "cost": 41535,
+    "vehicle_cost": 36256,
+    "n_lead_vehicles": 2,
+    "sum_profit_last_year": -245288,
+    "avg_max_age_years": 21.06,
+    "infra_cost": 5279,
+    "vehicle_amortization_annual": 1722,
+    "infra_amortization_annual": 176,
+    "amortization_annual": 1898,
+    "profit_ligne": -247186
+  }
+]
