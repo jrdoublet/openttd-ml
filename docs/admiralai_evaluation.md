@@ -16,7 +16,7 @@ construire. Le reste confirme surtout que la sonde A* est le bon niveau de déta
 
 ---
 
-## 1. Ce qu'AdmiralAI construit réellement
+## 1. Pipeline de décision en bref
 
 AdmiralAI n'est pas une IA « villes → train ». Son train relie des **industries** : il classe les
 sources par production non transportée, puis les destinations acceptant le cargo par distance
@@ -41,6 +41,12 @@ RaiseTile/LowerTile **avant** le test de pose (ai/AdmiralAI/rail/railroutebuilde
 Seul TestBuildPath() encapsule BuildPath() dans AITestMode
 (ai/AdmiralAI/rail/railroutebuilder.nut:538-543). Ce n'est donc pas un
 préflight non mutant réutilisable tel quel, même conceptuellement, et ses gares existent déjà.
+
+En bref, sa décision ferroviaire est donc : **choisir une source et une destination de cargo →
+construire/choisir les deux gares et leurs dégagements locaux → A* bidirectionnel de contrôle,
+puis A* long → essayer la pose**. Ni le graphe routier, ni les managers de villes, ni les scores
+de véhicules ne décident qu'une paire de gares de notre type ; ils ne doivent pas être confondus
+avec la partie rail de ce pipeline.
 
 ---
 
@@ -216,6 +222,15 @@ charge de bus/camions (ai/AdmiralAI/stationmanager.nut:215-297). **Redondance : 
 pour notre cible rail ; aucun test. Leur présence ne constitue donc pas une seconde source
 indépendante de features de ville.
 
+### 2.7 Modules route, camion, bus et avion restants — **hors cible**
+
+La lecture des modules restants ne change pas le verdict. `RoadNetwork` appelle le graphe pour
+poser des routes (ai/AdmiralAI/road/roadnetwork.nut:32-94, 111-113), et les managers camion/bus
+raisonnent sur arrêts routiers, routes existantes et capacité de véhicules. Le manager avion
+choisit des aéroports et des avions ; il n'alimente pas `TrainManager` (imports et initialisation
+séparés dans ai/AdmiralAI/main.nut:25-47, 106-119). **Test de redondance : sans objet pour la
+liaison ferroviaire ville→ville. Verdict : aucun candidat retenu.**
+
 ---
 
 ## 3. Ce qui n'a pas d'équivalent chez AAAHogEx
@@ -231,7 +246,9 @@ Son autre apport est plus modeste mais exploitable : il rend visible que l'extr�
 n'est pas un point. Avant l'A*, il y a un petit ensemble orienté de sorties possibles, dont le
 cardinal peut être zéro. AAAHogEx avait déjà motivé l'idée générale de sites de gare faisables ;
 AdmiralAI en fournit la forme la plus parcimonieuse pour notre problème : compter les **issues
-dirigées vers l'autre extrémité**, plutôt que d'ajouter un grand score de gare.
+dirigées vers l'autre extrémité**, plutôt que d'ajouter un grand score de gare. Ce n'est donc pas
+une seconde famille de terrain : c'est le complément local, explicitement orienté, absent des
+mesures de corridor déjà infirmées.
 
 ---
 
@@ -241,8 +258,9 @@ Ne pas lancer de piste « graphe de régions » : elle n'existe pas dans Admiral
 coûts de relief/eau/route ni recopier son test de pose : la sonde A* les agrège déjà, et le builder
 est trop tardif et partiellement mutant.
 
-Faire **un unique essai apparié** de station_site_count et outward_exit_count aux deux bouts, en
-conservant strictement la règle de non-mutation avant le tick 11000. Si ces quelques variables ne
-battent pas la distance hors des mêmes plis, classer définitivement AdmiralAI comme piste de
-mesure : la lecture aura alors fourni une impasse claire, plus la confirmation que l'effort doit
-rester sur l'instrumentation A*.
+Faire **un unique essai apparié** de multiplicité de plans/sites, rayon de recherche nécessaire,
+et `min(outward_exit_count_a, outward_exit_count_b)`, en conservant strictement la règle de
+non-mutation avant le tick 11000. Le minimum — jamais une somme — est nécessaire pour ne pas
+masquer une extrémité bloquée par une autre généreuse. Si cette famille ne bat pas la distance
+hors des mêmes plis, classer définitivement AdmiralAI comme piste de mesure : il n'y a alors
+**rien de neuf à porter** au-delà de l'instrumentation A* déjà retenue.
