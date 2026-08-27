@@ -163,19 +163,119 @@ déjà ~96 % de son budget disponible.** On ne peut pas chercher plus loin sans 
 
 ---
 
+## 5bis. Le pipeline de décision en trois étapes — et la vraie idée à emprunter
+
+*(Ajouté après une seconde passe de lecture, motivée par une vidéo de l'auteur décrivant trois
+étapes : évaluation grossière, évaluation détaillée avec le parcours, puis construction.)*
+
+### Les trois étapes existent, avec une nuance qui compte
+
+**Étape 1 — évaluation grossière.** `CreateRouteCandidates` (`main.nut:1578-1803`) énumère des
+lieux compatibles par cargo, distance et type de véhicule, élimine les productions trop faibles
+(<27), puis appelle `Route.Estimate` ; un candidat est gardé si `estimate.value > 0`. Le score
+n'est **pas** `population × population / distance` comme chez nous : la variable quantitative est
+la **production de cargo attendue** (`main.nut:1690-1767`). Les estimations sont mises en cache sur
+des indices discrétisés de distance et de production (`route.nut:95-125`).
+
+**Étape 2 — détaillée avec le parcours.** `TrainRouteBuilder.BuildRoute` (`trainroute.nut:2885-3045`)
+choisit le train, fait chercher les gares par des factories testées sous `AITestMode`
+(`station.nut:841-889`, `1322-1350`), puis lance le pathfinding. La ligne **peut être abandonnée
+ici** — absence de chemin, échec du builder, pas de dépôt source — avec rollback, et le couple est
+mémorisé dans `ngPathFindPairs` (`trainroute.nut:2868-2881`, `3089-3106`).
+
+> **Nuance importante :** l'étape 2 ne recalcule **pas** la rentabilité à partir du tracé réel.
+> L'estimateur prend `pathDistance = distance` (`estimator.nut:704-716`), c'est-à-dire la distance
+> à vol d'oiseau, et le chemin trouvé part directement à la construction. Le rejet détaillé est un
+> rejet de **faisabilité**, pas un seuil de rentabilité après tracé. Sur ce point notre
+> `estimated_cost` fait exactement la même chose.
+
+**Étape 3 — construction.** Déjà documentée §1. Une différence : **les gares sont construites
+avant le pathfinding** (`BuildExec()` en `AIExecMode`, `trainroute.nut:3015-3045`,
+`station.nut:2268-2283`). Nous ne pouvons pas copier ça — ce serait muter avant la barrière.
+
+**Budget A\*.** `pathFindLimit = 80` (`main.nut:242`), triplé si l'IA est pauvre
+(`trainroute.nut:3063-3064`), puis multiplié par trois dans `FindPath` en blocs de 50 itérations
+(`pathfinder.nut:197-227`). Le garde-fou global est une date limite (~2 ans de jeu), pas un
+compteur d'essais (`main.nut:917-926`, `1047-1050`).
+
+**Il essaie plusieurs candidats.** `RouteCandidates` est une `SortedList` décroissante et `Pop()`
+retire le meilleur restant (`main.nut:4512-4638`, `utils.nut:448-505`) ; la boucle continue après
+un échec (`main.nut:927-965`). **C'est la différence décisionnelle majeure avec nous** :
+`TrainLineAI` trie toutes les paires puis prend exactement `pair_rank`, sans repli — ce qui est
+voulu, c'est un instrument de mesure, pas un joueur.
+
+### `IsLandConnectedForRail` — le pré-filtre bon marché
+
+C'est le vrai butin de cette lecture. Avant l'A\*, après le tri économique
+(`main.nut:1811-1847`), AAAHogEx applique `HgTile.IsLandConnectedForRail` (`tile.nut:484-504`) :
+
+- il suit **une seule ligne Manhattan** entre les deux points ;
+- il lit `AITile.IsSeaTile` case par case ;
+- il échoue si une **séquence maritime CONTIGUË dépasse 13** pour le rail (50 pour la route) ;
+- il n'essaie l'autre sens que si le premier échoue (`tile.nut:496-504`) ;
+- coût `O(D)` au premier appel, `O(1)` ensuite via `landConnectedCache`, table indexée par les deux
+  tuiles mémorisant `[terminé, longueur_max_de_mer]` (`tile.nut:506-527`), sauvegardée avec la
+  partie (`main.nut:4045`, `4141-4143`).
+
+Pas de flood-fill, pas de régions, pas d'A\*. Quelques centaines de lectures de tuiles contre nos
+30 000 itérations. Il produit des faux négatifs (un détour praticable peut être rejeté) et ignore
+pentes, constructibilité, ponts et tunnels : ce n'est pas un test de joignabilité, c'est un test de
+**séparation maritime**.
+
+Seconde heuristique de relief : `GetSlopeLevel` (`tile.nut:717-741`) échantillonne les hauteurs
+**tous les 8 pas** le long d'un corridor Manhattan ; `AdjustTrainScoreBySlope`
+(`utils.nut:1203-1223`) s'en sert pour pénaliser le score, pas pour rejeter.
+
+### Notre feature mesure la mauvaise grandeur
+
+Confirmation indépendante d'une réserve qu'on avait émise sans pouvoir la trancher :
+
+| | ce qu'on mesure | ce qu'AAAHogEx mesure |
+|---|---|---|
+| Grandeur | **total** de tuiles d'eau sur la droite | **plus longue séquence contiguë** de mer |
+| Appel | `AITile.IsWaterTile` | `AITile.IsSeaTile` |
+| Seuil | aucun (feature brute) | **13** pour le rail |
+
+Ce n'est pas un détail : six ruisseaux d'une tuile se franchissent trivialement, une rivière de six
+tuiles beaucoup moins. `corridor_water` mélange les deux, ce qui explique probablement qu'il
+plafonne à **AUC 0,76** alors que l'information physique est disponible. Et leur seuil de 13 face à
+notre plafond de pont de 6 est cohérent : une étendue de 7 à 13 tuiles leur est franchissable, pas
+à nous.
+
+### Les deux features à ajouter
+
+Toutes deux calculables **avant** le pathfinding, donc disponibles sur les `PATHLIM`, pour
+quelques centaines de lectures de tuiles :
+
+1. **`corridor_max_water_run`** — la plus longue séquence d'eau contiguë sur le corridor direct.
+   C'est la grandeur physiquement pertinente : « pontable ou non ».
+2. **`corridor_max_uphill_step`** — équivalent de `GetSlopeLevel` : montée locale maximale
+   échantillonnée toutes les 8 tuiles. Notre `corridor_dh` actuel ne donne que l'amplitude totale
+   entre le point le plus bas et le plus haut du corridor, ce qui ne dit rien de la **raideur**.
+
+C'est l'angle « emprunter une mesure, pas une technique » : aucune ligne de leur code, donc aucune
+exposition GPL v3, et ça sert directement le modèle au lieu d'accélérer l'IA.
+
+---
+
 ## 6. Ce qu'il reste à retenir
 
 | Idée | Verdict |
 |---|---|
+| **Pré-filtre `IsLandConnectedForRail`** (§5bis) | **LA trouvaille** — à transposer en features `corridor_max_water_run` et `corridor_max_uphill_step` |
 | Construction incrémentale | **Inexistante** dans AAAHogEx — l'hypothèse de départ était fausse |
 | Ponts/tunnels en voisins d'A* arbitrés par le coût | **Déjà présent** chez nous via `Pathfinder.Rail` |
-| `RetryToBuild` conservant le préfixe construit | **À retenir** — la meilleure idée transposable, sans risque pour la barrière |
+| `RetryToBuild` conservant le préfixe construit | **À retenir** — sans risque pour la barrière |
+| Dépiler plusieurs candidats jusqu'à épuisement | Non transposable : `pair_rank` est imposé, c'est un instrument de mesure |
+| Gares construites avant le pathfinding | Non transposable : muterait avant la barrière |
+| Réévaluation de rentabilité après tracé | **N'existe pas** — l'estimateur garde `pathDistance = distance`, comme le nôtre |
 | Terrassement pendant la pose | À retenir, mais impose de généraliser la capture de `first_mutation_tick` |
 | Pilotage par budget d'opcodes | **N'existe pas** — il mesure, il ne s'adapte pas |
 
-**Recommandation** : pas de portage, pas d'exposition GPL v3. La seule idée à réimplémenter en
-clean-room est la reprise conservant le préfixe (§2.2). Le reste du gain est ailleurs — dans le
-couple barrière / plafond d'itérations, pas dans la technique de construction.
+**Recommandation** : pas de portage, pas d'exposition GPL v3. Le gain principal n'est pas une
+technique de construction mais **une mesure** — la longueur d'eau contiguë plutôt que le total,
+et la raideur locale plutôt que l'amplitude (§5bis). Idée secondaire à réimplémenter en clean-room
+si besoin : la reprise conservant le préfixe (§2.2).
 
 ---
 
