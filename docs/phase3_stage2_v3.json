@@ -1,0 +1,2779 @@
+{
+  "dataset": {
+    "csv": "data/phase2_hurdle_v3.csv",
+    "rows_before_ok_filter": 1997,
+    "rows_after_ok_filter": 1551,
+    "pairoor_rows_after_ok_filter": 0,
+    "n_seeds": 100,
+    "target": "profit_ligne"
+  },
+  "feature_policy": {
+    "decision_time": "Apres pathfinding, avant la premiere mutation.",
+    "base25_imported_from": "sweeps/phase3_stage2_baseline.py",
+    "base25": [
+      "distance_straight",
+      "distance_manhattan",
+      "pair_rank",
+      "town_a_population",
+      "town_b_population",
+      "num_trains",
+      "wagons_per_train",
+      "convoy_capacity",
+      "engine_rank",
+      "engine_max_speed",
+      "engine_power",
+      "engine_price",
+      "engine_running_cost",
+      "estimated_cost",
+      "station_a_town_dist",
+      "station_b_town_dist",
+      "station_a_cargo_prod",
+      "station_a_cargo_acc",
+      "station_b_cargo_prod",
+      "station_b_cargo_acc",
+      "terrain_dh",
+      "terrain_water",
+      "terrain_unbuildable",
+      "cargo_production_per_convoy_capacity",
+      "cargo_acceptance_per_convoy_capacity"
+    ],
+    "blocks": {
+      "CORRIDOR": [
+        "corridor_dh",
+        "corridor_water",
+        "corridor_unbuildable",
+        "corridor_max_water_run",
+        "corridor_max_uphill_step"
+      ],
+      "GARE_GEO": [
+        "station_radius_a",
+        "station_radius_b",
+        "station_radius_max",
+        "station_outward_a",
+        "station_outward_b",
+        "station_outward_min"
+      ],
+      "SONDE": [
+        "probe_500_closed",
+        "probe_500_frontier",
+        "probe_500_cost",
+        "probe_500_remaining",
+        "probe_500_gained",
+        "probe_500_progress_ratio_ppm",
+        "probe_2000_closed",
+        "probe_2000_frontier",
+        "probe_2000_cost",
+        "probe_2000_remaining",
+        "probe_2000_gained",
+        "probe_2000_progress_ratio_ppm",
+        "probe_5000_closed",
+        "probe_5000_frontier",
+        "probe_5000_cost",
+        "probe_5000_remaining",
+        "probe_5000_gained",
+        "probe_5000_progress_ratio_ppm"
+      ],
+      "PATHCOST": [
+        "pathfinder_iterations_consumed"
+      ]
+    },
+    "excluded_columns_imported_from_baseline": [
+      "attempt_id",
+      "line_index",
+      "town_a",
+      "town_b",
+      "stagger_slot",
+      "wagon_capacity",
+      "built",
+      "stage",
+      "failure_reason",
+      "barrier_flag",
+      "first_mutation_tick",
+      "profit_ligne",
+      "sum_profit_last_year",
+      "amortization_annual",
+      "vehicle_amortization_annual",
+      "infra_amortization_annual",
+      "construction_cost",
+      "infra_cost",
+      "vehicle_cost",
+      "n_lead_vehicles",
+      "avg_max_age_years"
+    ],
+    "runtime_guards_exercised": {
+      "baseline_assert_feature_matrix_safe": "BASE25 controle avec l'assertion stricte importee.",
+      "no_excluded_columns": "Toutes les matrices candidates controlees contre EXCLUDED_COLUMNS importee.",
+      "coverage": "Chaque feature utilisee couvre 1551/1551 lignes construites.",
+      "pairoor": "0 PAIROOR apres restriction aux lignes construites."
+    }
+  },
+  "cross_validation": {
+    "splitter": "GroupKFold",
+    "n_splits": 5,
+    "group_column": "seed",
+    "random_state": 42,
+    "standard_deviation_ddof": 1,
+    "folds": [
+      {
+        "fold": 1,
+        "train_rows": 1239,
+        "validation_rows": 312,
+        "train_seeds": 80,
+        "validation_seeds": 20
+      },
+      {
+        "fold": 2,
+        "train_rows": 1240,
+        "validation_rows": 311,
+        "train_seeds": 80,
+        "validation_seeds": 20
+      },
+      {
+        "fold": 3,
+        "train_rows": 1242,
+        "validation_rows": 309,
+        "train_seeds": 80,
+        "validation_seeds": 20
+      },
+      {
+        "fold": 4,
+        "train_rows": 1243,
+        "validation_rows": 308,
+        "train_seeds": 80,
+        "validation_seeds": 20
+      },
+      {
+        "fold": 5,
+        "train_rows": 1240,
+        "validation_rows": 311,
+        "train_seeds": 80,
+        "validation_seeds": 20
+      }
+    ],
+    "paired_comparison": "Une seule liste de plis est reutilisee pour chaque modele."
+  },
+  "models": {
+    "dummy_median": {
+      "label": "DummyRegressor (mediane du train fold)",
+      "features": [
+        "distance_straight",
+        "distance_manhattan",
+        "pair_rank",
+        "town_a_population",
+        "town_b_population",
+        "num_trains",
+        "wagons_per_train",
+        "convoy_capacity",
+        "engine_rank",
+        "engine_max_speed",
+        "engine_power",
+        "engine_price",
+        "engine_running_cost",
+        "estimated_cost",
+        "station_a_town_dist",
+        "station_b_town_dist",
+        "station_a_cargo_prod",
+        "station_a_cargo_acc",
+        "station_b_cargo_prod",
+        "station_b_cargo_acc",
+        "terrain_dh",
+        "terrain_water",
+        "terrain_unbuildable",
+        "cargo_production_per_convoy_capacity",
+        "cargo_acceptance_per_convoy_capacity"
+      ],
+      "role": "floor",
+      "metrics": {
+        "mae": {
+          "mean": 2055868.1820005334,
+          "std": 111832.1555715022,
+          "folds": [
+            1974649.1955128205,
+            1926744.4485530546,
+            2186500.723300971,
+            2038650.7532467532,
+            2152795.7893890673
+          ]
+        },
+        "r2": {
+          "mean": -0.031738065908251165,
+          "std": 0.015925526160563915,
+          "folds": [
+            -0.009493475210776259,
+            -0.023418964161236788,
+            -0.04274580056314781,
+            -0.0332072452501313,
+            -0.04982484435596368
+          ]
+        }
+      }
+    },
+    "linear_distance_manhattan": {
+      "label": "LinearRegression (distance_manhattan seule)",
+      "features": [
+        "distance_manhattan"
+      ],
+      "role": "control",
+      "metrics": {
+        "mae": {
+          "mean": 1783603.5722698632,
+          "std": 157103.1671957453,
+          "folds": [
+            1649919.770091618,
+            1607232.2239751779,
+            1891764.8644401897,
+            1790561.1962489584,
+            1978539.8065933737
+          ]
+        },
+        "r2": {
+          "mean": 0.21869170403729696,
+          "std": 0.06997990048547566,
+          "folds": [
+            0.2954748643522547,
+            0.25735396778636976,
+            0.2466564003255266,
+            0.17078859749374864,
+            0.12318469022858514
+          ]
+        }
+      }
+    },
+    "ridge_base25": {
+      "label": "Ridge (alpha=1.0, BASE25)",
+      "features": [
+        "distance_straight",
+        "distance_manhattan",
+        "pair_rank",
+        "town_a_population",
+        "town_b_population",
+        "num_trains",
+        "wagons_per_train",
+        "convoy_capacity",
+        "engine_rank",
+        "engine_max_speed",
+        "engine_power",
+        "engine_price",
+        "engine_running_cost",
+        "estimated_cost",
+        "station_a_town_dist",
+        "station_b_town_dist",
+        "station_a_cargo_prod",
+        "station_a_cargo_acc",
+        "station_b_cargo_prod",
+        "station_b_cargo_acc",
+        "terrain_dh",
+        "terrain_water",
+        "terrain_unbuildable",
+        "cargo_production_per_convoy_capacity",
+        "cargo_acceptance_per_convoy_capacity"
+      ],
+      "role": "baseline",
+      "metrics": {
+        "mae": {
+          "mean": 1232099.2776079061,
+          "std": 86099.27106485379,
+          "folds": [
+            1216913.9757555325,
+            1124531.881838445,
+            1299495.31418177,
+            1183042.367923857,
+            1336512.8483399262
+          ]
+        },
+        "r2": {
+          "mean": 0.6159572055760236,
+          "std": 0.011875726158732015,
+          "folds": [
+            0.6168923664502179,
+            0.6335624029558233,
+            0.609025165514846,
+            0.6184561868946581,
+            0.6018499060645728
+          ]
+        }
+      }
+    },
+    "hist_gradient_boosting_base25": {
+      "label": "HistGradientBoostingRegressor (BASE25)",
+      "features": [
+        "distance_straight",
+        "distance_manhattan",
+        "pair_rank",
+        "town_a_population",
+        "town_b_population",
+        "num_trains",
+        "wagons_per_train",
+        "convoy_capacity",
+        "engine_rank",
+        "engine_max_speed",
+        "engine_power",
+        "engine_price",
+        "engine_running_cost",
+        "estimated_cost",
+        "station_a_town_dist",
+        "station_b_town_dist",
+        "station_a_cargo_prod",
+        "station_a_cargo_acc",
+        "station_b_cargo_prod",
+        "station_b_cargo_acc",
+        "terrain_dh",
+        "terrain_water",
+        "terrain_unbuildable",
+        "cargo_production_per_convoy_capacity",
+        "cargo_acceptance_per_convoy_capacity"
+      ],
+      "role": "baseline",
+      "metrics": {
+        "mae": {
+          "mean": 1130175.0636532183,
+          "std": 69609.06110105911,
+          "folds": [
+            1023575.6462235737,
+            1095837.2065369606,
+            1188901.9396847724,
+            1168930.7372733534,
+            1173629.7885474323
+          ]
+        },
+        "r2": {
+          "mean": 0.6583570221330964,
+          "std": 0.03935307702334242,
+          "folds": [
+            0.7095787646276916,
+            0.6232101425266356,
+            0.6489591259084881,
+            0.6216637997137211,
+            0.6883732778889458
+          ]
+        }
+      }
+    },
+    "ridge_base25_corridor": {
+      "label": "Ridge (alpha=1.0, BASE25 + CORRIDOR)",
+      "features": [
+        "distance_straight",
+        "distance_manhattan",
+        "pair_rank",
+        "town_a_population",
+        "town_b_population",
+        "num_trains",
+        "wagons_per_train",
+        "convoy_capacity",
+        "engine_rank",
+        "engine_max_speed",
+        "engine_power",
+        "engine_price",
+        "engine_running_cost",
+        "estimated_cost",
+        "station_a_town_dist",
+        "station_b_town_dist",
+        "station_a_cargo_prod",
+        "station_a_cargo_acc",
+        "station_b_cargo_prod",
+        "station_b_cargo_acc",
+        "terrain_dh",
+        "terrain_water",
+        "terrain_unbuildable",
+        "cargo_production_per_convoy_capacity",
+        "cargo_acceptance_per_convoy_capacity",
+        "corridor_dh",
+        "corridor_water",
+        "corridor_unbuildable",
+        "corridor_max_water_run",
+        "corridor_max_uphill_step"
+      ],
+      "role": "block",
+      "metrics": {
+        "mae": {
+          "mean": 1238252.2050368113,
+          "std": 92812.24653586339,
+          "folds": [
+            1221057.9323085092,
+            1115277.2476523963,
+            1318407.8271447483,
+            1194732.7248226183,
+            1341785.2932557845
+          ]
+        },
+        "r2": {
+          "mean": 0.613873008404071,
+          "std": 0.016126670085973176,
+          "folds": [
+            0.617100845655346,
+            0.6386031843849362,
+            0.5969973837618596,
+            0.6143351898006697,
+            0.6023284384175435
+          ]
+        }
+      }
+    },
+    "ridge_base25_gare_geo": {
+      "label": "Ridge (alpha=1.0, BASE25 + GARE_GEO)",
+      "features": [
+        "distance_straight",
+        "distance_manhattan",
+        "pair_rank",
+        "town_a_population",
+        "town_b_population",
+        "num_trains",
+        "wagons_per_train",
+        "convoy_capacity",
+        "engine_rank",
+        "engine_max_speed",
+        "engine_power",
+        "engine_price",
+        "engine_running_cost",
+        "estimated_cost",
+        "station_a_town_dist",
+        "station_b_town_dist",
+        "station_a_cargo_prod",
+        "station_a_cargo_acc",
+        "station_b_cargo_prod",
+        "station_b_cargo_acc",
+        "terrain_dh",
+        "terrain_water",
+        "terrain_unbuildable",
+        "cargo_production_per_convoy_capacity",
+        "cargo_acceptance_per_convoy_capacity",
+        "station_radius_a",
+        "station_radius_b",
+        "station_radius_max",
+        "station_outward_a",
+        "station_outward_b",
+        "station_outward_min"
+      ],
+      "role": "block",
+      "metrics": {
+        "mae": {
+          "mean": 1217777.8943489133,
+          "std": 76470.37924183503,
+          "folds": [
+            1206368.274641972,
+            1115027.0771245928,
+            1286072.4299602087,
+            1181605.0851494356,
+            1299816.604868358
+          ]
+        },
+        "r2": {
+          "mean": 0.6245801122533731,
+          "std": 0.009556685793025318,
+          "folds": [
+            0.6212963921618752,
+            0.6379751992799082,
+            0.6124843746343909,
+            0.629235224515568,
+            0.6219093706751233
+          ]
+        }
+      }
+    },
+    "ridge_base25_sonde": {
+      "label": "Ridge (alpha=1.0, BASE25 + SONDE)",
+      "features": [
+        "distance_straight",
+        "distance_manhattan",
+        "pair_rank",
+        "town_a_population",
+        "town_b_population",
+        "num_trains",
+        "wagons_per_train",
+        "convoy_capacity",
+        "engine_rank",
+        "engine_max_speed",
+        "engine_power",
+        "engine_price",
+        "engine_running_cost",
+        "estimated_cost",
+        "station_a_town_dist",
+        "station_b_town_dist",
+        "station_a_cargo_prod",
+        "station_a_cargo_acc",
+        "station_b_cargo_prod",
+        "station_b_cargo_acc",
+        "terrain_dh",
+        "terrain_water",
+        "terrain_unbuildable",
+        "cargo_production_per_convoy_capacity",
+        "cargo_acceptance_per_convoy_capacity",
+        "probe_500_closed",
+        "probe_500_frontier",
+        "probe_500_cost",
+        "probe_500_remaining",
+        "probe_500_gained",
+        "probe_500_progress_ratio_ppm",
+        "probe_2000_closed",
+        "probe_2000_frontier",
+        "probe_2000_cost",
+        "probe_2000_remaining",
+        "probe_2000_gained",
+        "probe_2000_progress_ratio_ppm",
+        "probe_5000_closed",
+        "probe_5000_frontier",
+        "probe_5000_cost",
+        "probe_5000_remaining",
+        "probe_5000_gained",
+        "probe_5000_progress_ratio_ppm"
+      ],
+      "role": "block",
+      "metrics": {
+        "mae": {
+          "mean": 1225697.7930271563,
+          "std": 83229.36095612,
+          "folds": [
+            1214866.5026194851,
+            1116015.361133656,
+            1288225.9128628874,
+            1184085.9819252086,
+            1325295.206594543
+          ]
+        },
+        "r2": {
+          "mean": 0.6176601704194088,
+          "std": 0.01426833935926719,
+          "folds": [
+            0.6091037692150016,
+            0.6410978271119925,
+            0.6055945362148162,
+            0.620849254876993,
+            0.6116554646782405
+          ]
+        }
+      }
+    },
+    "ridge_base25_pathcost": {
+      "label": "Ridge (alpha=1.0, BASE25 + PATHCOST)",
+      "features": [
+        "distance_straight",
+        "distance_manhattan",
+        "pair_rank",
+        "town_a_population",
+        "town_b_population",
+        "num_trains",
+        "wagons_per_train",
+        "convoy_capacity",
+        "engine_rank",
+        "engine_max_speed",
+        "engine_power",
+        "engine_price",
+        "engine_running_cost",
+        "estimated_cost",
+        "station_a_town_dist",
+        "station_b_town_dist",
+        "station_a_cargo_prod",
+        "station_a_cargo_acc",
+        "station_b_cargo_prod",
+        "station_b_cargo_acc",
+        "terrain_dh",
+        "terrain_water",
+        "terrain_unbuildable",
+        "cargo_production_per_convoy_capacity",
+        "cargo_acceptance_per_convoy_capacity",
+        "pathfinder_iterations_consumed"
+      ],
+      "role": "block",
+      "metrics": {
+        "mae": {
+          "mean": 1230713.2635687762,
+          "std": 86327.50041879053,
+          "folds": [
+            1215857.4041577461,
+            1122580.708543807,
+            1298937.0696863998,
+            1181472.025602031,
+            1334719.1098538968
+          ]
+        },
+        "r2": {
+          "mean": 0.6154948838305282,
+          "std": 0.014311819503342184,
+          "folds": [
+            0.6165147927720509,
+            0.6355563445566939,
+            0.6093991244701248,
+            0.6195426104875881,
+            0.5964615468661838
+          ]
+        }
+      }
+    },
+    "ridge_base25_winning_blocks": {
+      "label": "Ridge (alpha=1.0, BASE25 + GARE_GEO + SONDE + PATHCOST)",
+      "features": [
+        "distance_straight",
+        "distance_manhattan",
+        "pair_rank",
+        "town_a_population",
+        "town_b_population",
+        "num_trains",
+        "wagons_per_train",
+        "convoy_capacity",
+        "engine_rank",
+        "engine_max_speed",
+        "engine_power",
+        "engine_price",
+        "engine_running_cost",
+        "estimated_cost",
+        "station_a_town_dist",
+        "station_b_town_dist",
+        "station_a_cargo_prod",
+        "station_a_cargo_acc",
+        "station_b_cargo_prod",
+        "station_b_cargo_acc",
+        "terrain_dh",
+        "terrain_water",
+        "terrain_unbuildable",
+        "cargo_production_per_convoy_capacity",
+        "cargo_acceptance_per_convoy_capacity",
+        "station_radius_a",
+        "station_radius_b",
+        "station_radius_max",
+        "station_outward_a",
+        "station_outward_b",
+        "station_outward_min",
+        "probe_500_closed",
+        "probe_500_frontier",
+        "probe_500_cost",
+        "probe_500_remaining",
+        "probe_500_gained",
+        "probe_500_progress_ratio_ppm",
+        "probe_2000_closed",
+        "probe_2000_frontier",
+        "probe_2000_cost",
+        "probe_2000_remaining",
+        "probe_2000_gained",
+        "probe_2000_progress_ratio_ppm",
+        "probe_5000_closed",
+        "probe_5000_frontier",
+        "probe_5000_cost",
+        "probe_5000_remaining",
+        "probe_5000_gained",
+        "probe_5000_progress_ratio_ppm",
+        "pathfinder_iterations_consumed"
+      ],
+      "role": "complete",
+      "metrics": {
+        "mae": {
+          "mean": 1211325.7009371072,
+          "std": 80050.20380046206,
+          "folds": [
+            1207087.9012902959,
+            1103503.0534870413,
+            1283877.8030866026,
+            1168055.290594079,
+            1294104.4562275165
+          ]
+        },
+        "r2": {
+          "mean": 0.6251905534058659,
+          "std": 0.015246856792633249,
+          "folds": [
+            0.6173966091795455,
+            0.6465145199745543,
+            0.6090876659968434,
+            0.635188950446739,
+            0.6177650214316477
+          ]
+        }
+      }
+    },
+    "hist_gradient_boosting_base25_winning_blocks": {
+      "label": "HistGradientBoostingRegressor (BASE25 + GARE_GEO + SONDE + PATHCOST)",
+      "features": [
+        "distance_straight",
+        "distance_manhattan",
+        "pair_rank",
+        "town_a_population",
+        "town_b_population",
+        "num_trains",
+        "wagons_per_train",
+        "convoy_capacity",
+        "engine_rank",
+        "engine_max_speed",
+        "engine_power",
+        "engine_price",
+        "engine_running_cost",
+        "estimated_cost",
+        "station_a_town_dist",
+        "station_b_town_dist",
+        "station_a_cargo_prod",
+        "station_a_cargo_acc",
+        "station_b_cargo_prod",
+        "station_b_cargo_acc",
+        "terrain_dh",
+        "terrain_water",
+        "terrain_unbuildable",
+        "cargo_production_per_convoy_capacity",
+        "cargo_acceptance_per_convoy_capacity",
+        "station_radius_a",
+        "station_radius_b",
+        "station_radius_max",
+        "station_outward_a",
+        "station_outward_b",
+        "station_outward_min",
+        "probe_500_closed",
+        "probe_500_frontier",
+        "probe_500_cost",
+        "probe_500_remaining",
+        "probe_500_gained",
+        "probe_500_progress_ratio_ppm",
+        "probe_2000_closed",
+        "probe_2000_frontier",
+        "probe_2000_cost",
+        "probe_2000_remaining",
+        "probe_2000_gained",
+        "probe_2000_progress_ratio_ppm",
+        "probe_5000_closed",
+        "probe_5000_frontier",
+        "probe_5000_cost",
+        "probe_5000_remaining",
+        "probe_5000_gained",
+        "probe_5000_progress_ratio_ppm",
+        "pathfinder_iterations_consumed"
+      ],
+      "role": "complete",
+      "metrics": {
+        "mae": {
+          "mean": 1126614.1859550155,
+          "std": 80751.08759012396,
+          "folds": [
+            1027389.6853466302,
+            1056247.079253721,
+            1213752.6115209758,
+            1155725.650712987,
+            1179955.9029407636
+          ]
+        },
+        "r2": {
+          "mean": 0.6584178788836117,
+          "std": 0.032274392088576805,
+          "folds": [
+            0.692118921360956,
+            0.645296904041347,
+            0.6298564648427707,
+            0.6306987745987764,
+            0.6941183295742084
+          ]
+        }
+      }
+    }
+  },
+  "paired_mae_deltas_vs_ridge_base25": {
+    "CORRIDOR": {
+      "model_key": "ridge_base25_corridor",
+      "convention": "MAE candidat - MAE BASE25 ; negatif = amelioration du candidat.",
+      "mae_delta_by_fold": [
+        4143.956552976742,
+        -9254.63418604876,
+        18912.512962978333,
+        11690.356898761354,
+        5272.44491585833
+      ],
+      "mean": 6152.9274289052,
+      "std": 10436.406427617609,
+      "improved_folds": 1,
+      "n_folds": 5
+    },
+    "GARE_GEO": {
+      "model_key": "ridge_base25_gare_geo",
+      "convention": "MAE candidat - MAE BASE25 ; negatif = amelioration du candidat.",
+      "mae_delta_by_fold": [
+        -10545.70111356047,
+        -9504.804713852238,
+        -13422.884221561253,
+        -1437.2827744213864,
+        -36696.24347156822
+      ],
+      "mean": -14321.383258992713,
+      "std": 13274.947456524396,
+      "improved_folds": 5,
+      "n_folds": 5
+    },
+    "SONDE": {
+      "model_key": "ridge_base25_sonde",
+      "convention": "MAE candidat - MAE BASE25 ; negatif = amelioration du candidat.",
+      "mae_delta_by_fold": [
+        -2047.473136047367,
+        -8516.520704789087,
+        -11269.401318882592,
+        1043.6140013516415,
+        -11217.641745383153
+      ],
+      "mean": -6401.4845807501115,
+      "std": 5606.965970282912,
+      "improved_folds": 4,
+      "n_folds": 5
+    },
+    "PATHCOST": {
+      "model_key": "ridge_base25_pathcost",
+      "convention": "MAE candidat - MAE BASE25 ; negatif = amelioration du candidat.",
+      "mae_delta_by_fold": [
+        -1056.5715977863874,
+        -1951.1732946380507,
+        -558.2444953701925,
+        -1570.3423218259122,
+        -1793.7384860294405
+      ],
+      "mean": -1386.0140391299967,
+      "std": 573.0086963175717,
+      "improved_folds": 5,
+      "n_folds": 5
+    }
+  },
+  "winning_blocks_by_ridge_mean_mae": [
+    "GARE_GEO",
+    "SONDE",
+    "PATHCOST"
+  ],
+  "complete_model": {
+    "model_keys": [
+      "ridge_base25_winning_blocks",
+      "hist_gradient_boosting_base25_winning_blocks"
+    ],
+    "blocks": [
+      "GARE_GEO",
+      "SONDE",
+      "PATHCOST"
+    ],
+    "features": [
+      "distance_straight",
+      "distance_manhattan",
+      "pair_rank",
+      "town_a_population",
+      "town_b_population",
+      "num_trains",
+      "wagons_per_train",
+      "convoy_capacity",
+      "engine_rank",
+      "engine_max_speed",
+      "engine_power",
+      "engine_price",
+      "engine_running_cost",
+      "estimated_cost",
+      "station_a_town_dist",
+      "station_b_town_dist",
+      "station_a_cargo_prod",
+      "station_a_cargo_acc",
+      "station_b_cargo_prod",
+      "station_b_cargo_acc",
+      "terrain_dh",
+      "terrain_water",
+      "terrain_unbuildable",
+      "cargo_production_per_convoy_capacity",
+      "cargo_acceptance_per_convoy_capacity",
+      "station_radius_a",
+      "station_radius_b",
+      "station_radius_max",
+      "station_outward_a",
+      "station_outward_b",
+      "station_outward_min",
+      "probe_500_closed",
+      "probe_500_frontier",
+      "probe_500_cost",
+      "probe_500_remaining",
+      "probe_500_gained",
+      "probe_500_progress_ratio_ppm",
+      "probe_2000_closed",
+      "probe_2000_frontier",
+      "probe_2000_cost",
+      "probe_2000_remaining",
+      "probe_2000_gained",
+      "probe_2000_progress_ratio_ppm",
+      "probe_5000_closed",
+      "probe_5000_frontier",
+      "probe_5000_cost",
+      "probe_5000_remaining",
+      "probe_5000_gained",
+      "probe_5000_progress_ratio_ppm",
+      "pathfinder_iterations_consumed"
+    ]
+  },
+  "base25_v3_vs_v2": {
+    "ridge": {
+      "v3_mae": {
+        "mean": 1232099.2776079061,
+        "std": 86099.27106485379,
+        "folds": [
+          1216913.9757555325,
+          1124531.881838445,
+          1299495.31418177,
+          1183042.367923857,
+          1336512.8483399262
+        ]
+      },
+      "v2_mae": 1232664,
+      "v3_minus_v2": -564.7223920938559
+    },
+    "hist_gradient_boosting": {
+      "v3_mae": {
+        "mean": 1130175.0636532183,
+        "std": 69609.06110105911,
+        "folds": [
+          1023575.6462235737,
+          1095837.2065369606,
+          1188901.9396847724,
+          1168930.7372733534,
+          1173629.7885474323
+        ]
+      },
+      "v2_mae": 1120212,
+      "v3_minus_v2": 9963.063653218327
+    },
+    "runtime_wiring_range_assertion": "500000 <= MAE moyenne v3 <= 2000000 pour Ridge et boosting."
+  },
+  "validation_permutation_importance": {
+    "ridge_base25": {
+      "scoring": "neg_mean_absolute_error",
+      "interpretation": "Importance positive = hausse de MAE apres permutation.",
+      "n_repeats": 30,
+      "features": [
+        {
+          "feature": "distance_manhattan",
+          "mean": 740320.96002123,
+          "std": 89083.81314353367,
+          "folds": [
+            870056.001809303,
+            715448.5813590867,
+            621976.7215180002,
+            757002.8629507817,
+            737120.6324689782
+          ]
+        },
+        {
+          "feature": "num_trains",
+          "mean": 627363.693496908,
+          "std": 63954.23565775777,
+          "folds": [
+            565127.5648755954,
+            566222.4338393573,
+            619747.7268581692,
+            700322.1144471682,
+            685398.6274642497
+          ]
+        },
+        {
+          "feature": "cargo_acceptance_per_convoy_capacity",
+          "mean": 450198.28532832244,
+          "std": 101536.19689204496,
+          "folds": [
+            361431.16228488315,
+            584653.1637599526,
+            388050.93644629046,
+            533537.7637669886,
+            383318.4003834975
+          ]
+        },
+        {
+          "feature": "station_b_cargo_acc",
+          "mean": 302777.4557370406,
+          "std": 52546.34639199218,
+          "folds": [
+            216977.40353401098,
+            321028.2418653862,
+            310024.79122588394,
+            360122.61743623554,
+            305734.22462368646
+          ]
+        },
+        {
+          "feature": "station_a_cargo_acc",
+          "mean": 299470.9937972958,
+          "std": 61397.58665209122,
+          "folds": [
+            211550.38757538542,
+            330323.22164214926,
+            268192.7214459053,
+            316113.73656116077,
+            371174.90176187805
+          ]
+        },
+        {
+          "feature": "wagons_per_train",
+          "mean": 195799.2358521893,
+          "std": 58814.29607831756,
+          "folds": [
+            152909.03697822042,
+            113717.49478159334,
+            235112.50353194488,
+            233871.09190697322,
+            243386.0520622147
+          ]
+        },
+        {
+          "feature": "distance_straight",
+          "mean": 117037.46203946904,
+          "std": 49672.69529755389,
+          "folds": [
+            163544.47479910232,
+            136581.72599899946,
+            151917.24098576352,
+            89094.0140922186,
+            44049.854321261315
+          ]
+        },
+        {
+          "feature": "engine_running_cost",
+          "mean": 111301.14055017088,
+          "std": 57415.91414078755,
+          "folds": [
+            42445.027654129466,
+            194457.96324142622,
+            124355.17528026733,
+            75424.91137466083,
+            119822.62520037054
+          ]
+        },
+        {
+          "feature": "engine_max_speed",
+          "mean": 96275.09214510859,
+          "std": 58537.72625707939,
+          "folds": [
+            89028.79694452306,
+            194431.53828673798,
+            71842.11710084822,
+            87662.57920865314,
+            38410.42918478053
+          ]
+        },
+        {
+          "feature": "estimated_cost",
+          "mean": 74687.3300423992,
+          "std": 78508.79008111762,
+          "folds": [
+            46516.744724883225,
+            89440.72037743361,
+            203083.23771742434,
+            33746.61083916444,
+            649.3365530903528
+          ]
+        },
+        {
+          "feature": "station_b_town_dist",
+          "mean": 45496.488287022905,
+          "std": 21746.988399219823,
+          "folds": [
+            54890.079541083796,
+            7179.76116473317,
+            54042.76277038524,
+            60913.103953078506,
+            50456.734005833816
+          ]
+        },
+        {
+          "feature": "cargo_production_per_convoy_capacity",
+          "mean": 41899.28702008482,
+          "std": 36261.14361849618,
+          "folds": [
+            -620.1019253185484,
+            13222.541367546004,
+            46217.46017938162,
+            89017.64064253776,
+            61658.89483627727
+          ]
+        },
+        {
+          "feature": "station_a_town_dist",
+          "mean": 38509.826672488896,
+          "std": 13990.291748925063,
+          "folds": [
+            23976.528088903822,
+            51694.24164218404,
+            36726.7258917367,
+            26115.45756451157,
+            54036.180175108355
+          ]
+        },
+        {
+          "feature": "engine_rank",
+          "mean": 17721.6845013863,
+          "std": 21661.738731735997,
+          "folds": [
+            10164.997965931978,
+            55829.041534596465,
+            12581.651828371687,
+            8047.812014944588,
+            1984.9191630867776
+          ]
+        },
+        {
+          "feature": "engine_power",
+          "mean": 14030.760055958575,
+          "std": 6209.999869937283,
+          "folds": [
+            15706.801768796153,
+            19271.25024230779,
+            13359.14533730691,
+            18120.581919746768,
+            3696.0210116352578
+          ]
+        },
+        {
+          "feature": "town_b_population",
+          "mean": 7797.487824743885,
+          "std": 9613.92368417934,
+          "folds": [
+            -7364.6005477361305,
+            9934.643164120545,
+            14119.420538525508,
+            17183.133233873894,
+            5114.842734935608
+          ]
+        },
+        {
+          "feature": "pair_rank",
+          "mean": 5931.648721195663,
+          "std": 7522.83027417953,
+          "folds": [
+            -97.47189282954982,
+            4443.053217633456,
+            1405.7943614411633,
+            18838.146618275074,
+            5068.72130145817
+          ]
+        },
+        {
+          "feature": "terrain_dh",
+          "mean": 3689.565959699971,
+          "std": 3207.879845196401,
+          "folds": [
+            3179.4861717484737,
+            1579.967680369015,
+            2695.6250782747056,
+            9299.94919340425,
+            1692.8016747034078
+          ]
+        },
+        {
+          "feature": "terrain_water",
+          "mean": 0.0,
+          "std": 0.0,
+          "folds": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "feature": "town_a_population",
+          "mean": -117.00662946773843,
+          "std": 1151.7800419187324,
+          "folds": [
+            -2114.9388611370077,
+            -15.169525688312326,
+            453.49936674951266,
+            321.94122869112374,
+            769.6346440459912
+          ]
+        },
+        {
+          "feature": "terrain_unbuildable",
+          "mean": -144.45374310774727,
+          "std": 305.0602557295616,
+          "folds": [
+            11.279636036938367,
+            291.8897943146372,
+            -180.3983885011403,
+            -393.6676567681289,
+            -451.37210062104276
+          ]
+        },
+        {
+          "feature": "station_a_cargo_prod",
+          "mean": -1328.8935398960332,
+          "std": 2335.0827006269237,
+          "folds": [
+            -852.9702129078952,
+            877.4944765531847,
+            -754.0052460629881,
+            -603.7067821969589,
+            -5311.279934865508
+          ]
+        },
+        {
+          "feature": "station_b_cargo_prod",
+          "mean": -1616.4470398749504,
+          "std": 5312.834265875095,
+          "folds": [
+            -2675.8620423569887,
+            -10358.189418690707,
+            527.1852900089696,
+            3063.904371186827,
+            1360.726600477146
+          ]
+        },
+        {
+          "feature": "convoy_capacity",
+          "mean": -1663.744472712679,
+          "std": 5926.36235314431,
+          "folds": [
+            176.70379763780318,
+            -9148.464872287765,
+            152.8849293440658,
+            6185.278103112313,
+            -5685.124321369812
+          ]
+        },
+        {
+          "feature": "engine_price",
+          "mean": -1961.1116379763184,
+          "std": 3243.473533995709,
+          "folds": [
+            -2245.8049257759003,
+            -4274.9489744238945,
+            509.7383205896243,
+            2009.9232178773032,
+            -5804.465828148725
+          ]
+        }
+      ]
+    },
+    "hist_gradient_boosting_base25": {
+      "scoring": "neg_mean_absolute_error",
+      "interpretation": "Importance positive = hausse de MAE apres permutation.",
+      "n_repeats": 30,
+      "features": [
+        {
+          "feature": "distance_manhattan",
+          "mean": 543874.1643755602,
+          "std": 68577.67108209715,
+          "folds": [
+            618742.053608623,
+            453317.53131579555,
+            584547.9071303994,
+            492398.30423391634,
+            570365.0255890671
+          ]
+        },
+        {
+          "feature": "cargo_acceptance_per_convoy_capacity",
+          "mean": 386400.3391501125,
+          "std": 63930.83718121009,
+          "folds": [
+            371401.9230661467,
+            359206.07227247546,
+            387914.62896813435,
+            321432.8295766742,
+            492046.2418671318
+          ]
+        },
+        {
+          "feature": "station_b_cargo_acc",
+          "mean": 183408.54067457028,
+          "std": 19775.6106476083,
+          "folds": [
+            149238.4547465618,
+            192676.72996243337,
+            199439.4781430871,
+            185154.49553395004,
+            190533.54498681903
+          ]
+        },
+        {
+          "feature": "wagons_per_train",
+          "mean": 124766.17389921294,
+          "std": 16557.25912397006,
+          "folds": [
+            144393.16954231483,
+            110650.38639259186,
+            141048.56240245624,
+            111689.89154996534,
+            116048.85960873651
+          ]
+        },
+        {
+          "feature": "station_a_cargo_acc",
+          "mean": 114464.66534546285,
+          "std": 47837.949077560545,
+          "folds": [
+            138366.6262097097,
+            68820.57036166228,
+            136121.43622162857,
+            59597.552852087996,
+            169417.14108222575
+          ]
+        },
+        {
+          "feature": "num_trains",
+          "mean": 77858.67999657593,
+          "std": 27445.328031536632,
+          "folds": [
+            76070.57394890669,
+            71831.99023097054,
+            53376.45407225917,
+            63572.52627466581,
+            124441.85545607744
+          ]
+        },
+        {
+          "feature": "engine_rank",
+          "mean": 67831.60762663982,
+          "std": 17686.97382609623,
+          "folds": [
+            90878.83412326047,
+            54106.33503204826,
+            46758.76858627875,
+            76760.91819635624,
+            70653.18219525534
+          ]
+        },
+        {
+          "feature": "estimated_cost",
+          "mean": 39438.9318628287,
+          "std": 17208.931078729674,
+          "folds": [
+            61577.755776734644,
+            44540.67322629051,
+            43981.52484211628,
+            15100.038933652593,
+            31994.666535349454
+          ]
+        },
+        {
+          "feature": "distance_straight",
+          "mean": 36725.76104648218,
+          "std": 22433.32733545237,
+          "folds": [
+            45883.843778536255,
+            21910.76694537117,
+            70949.81085283043,
+            30514.858283848105,
+            14369.525371824966
+          ]
+        },
+        {
+          "feature": "station_b_town_dist",
+          "mean": 26540.535710958335,
+          "std": 3859.2532845093474,
+          "folds": [
+            31699.583222835972,
+            21717.86024897736,
+            28858.774369837265,
+            25847.132686384317,
+            24579.32802675676
+          ]
+        },
+        {
+          "feature": "station_a_town_dist",
+          "mean": 23990.306488759066,
+          "std": 11240.815632004183,
+          "folds": [
+            25408.366077480652,
+            13020.443377936437,
+            13529.430381298756,
+            27938.95067276881,
+            40054.341934310665
+          ]
+        },
+        {
+          "feature": "town_b_population",
+          "mean": 13759.004163250711,
+          "std": 4529.151617522964,
+          "folds": [
+            16973.281137230457,
+            7883.256062910993,
+            14058.23141322617,
+            10797.830223487395,
+            19082.421979398536
+          ]
+        },
+        {
+          "feature": "engine_price",
+          "mean": 13675.667019310355,
+          "std": 7638.386041550659,
+          "folds": [
+            11460.377670269552,
+            2684.7547738989506,
+            17030.40193567327,
+            13707.927042861213,
+            23494.873673848786
+          ]
+        },
+        {
+          "feature": "town_a_population",
+          "mean": 13391.805876574497,
+          "std": 8882.188550150482,
+          "folds": [
+            8796.605321229114,
+            6050.411046461055,
+            25143.80426459452,
+            20640.7321925161,
+            6327.476558071686
+          ]
+        },
+        {
+          "feature": "station_b_cargo_prod",
+          "mean": 11961.77135753863,
+          "std": 12199.272231886645,
+          "folds": [
+            23032.037708701442,
+            891.704171543289,
+            23638.876848355387,
+            -2410.850524669901,
+            14657.088583762921
+          ]
+        },
+        {
+          "feature": "cargo_production_per_convoy_capacity",
+          "mean": 8104.780826920032,
+          "std": 8677.401858556597,
+          "folds": [
+            5070.678544471281,
+            5276.2071979257125,
+            -3398.6864115834546,
+            17444.12375011073,
+            16131.581053675889
+          ]
+        },
+        {
+          "feature": "station_a_cargo_prod",
+          "mean": 4688.756905949313,
+          "std": 9432.992844868882,
+          "folds": [
+            7203.227693664876,
+            -10251.184550016296,
+            11182.11550213922,
+            13427.261266519898,
+            1882.3646174388628
+          ]
+        },
+        {
+          "feature": "pair_rank",
+          "mean": 4550.472121145945,
+          "std": 6736.232352018412,
+          "folds": [
+            15102.974383719844,
+            -942.3584140327293,
+            5967.796552359437,
+            -1603.1816786190573,
+            4227.12976230223
+          ]
+        },
+        {
+          "feature": "engine_running_cost",
+          "mean": 3049.2704567068654,
+          "std": 3447.3333003287453,
+          "folds": [
+            -353.47567618198616,
+            -588.176356406766,
+            4774.84001958326,
+            7383.860569185865,
+            4029.303727353954
+          ]
+        },
+        {
+          "feature": "terrain_dh",
+          "mean": 2796.664535432109,
+          "std": 1829.384977810759,
+          "folds": [
+            5110.8455734780055,
+            2668.5455635601497,
+            3928.2478486430678,
+            1922.3426468671998,
+            353.34104461212024
+          ]
+        },
+        {
+          "feature": "engine_power",
+          "mean": 1988.2147438808297,
+          "std": 2870.082063107085,
+          "folds": [
+            2265.9018268917844,
+            -2487.771570514476,
+            4983.989117753002,
+            3842.518169080039,
+            1336.4361761938005
+          ]
+        },
+        {
+          "feature": "convoy_capacity",
+          "mean": 937.9331459498993,
+          "std": 4329.948529156301,
+          "folds": [
+            -2714.868144259967,
+            4089.093973949474,
+            6586.120104924884,
+            -3448.5635974376696,
+            177.88339257277548
+          ]
+        },
+        {
+          "feature": "terrain_unbuildable",
+          "mean": 927.9922587064048,
+          "std": 1302.2747701504504,
+          "folds": [
+            2844.320318938202,
+            -184.58359247006786,
+            1024.0560998047235,
+            -376.1631910680871,
+            1332.3316583272535
+          ]
+        },
+        {
+          "feature": "engine_max_speed",
+          "mean": 731.1190738026992,
+          "std": 1334.8221348362997,
+          "folds": [
+            2042.329598522811,
+            -1341.8407474780765,
+            1175.17049426327,
+            233.11284076774027,
+            1546.8231829377512
+          ]
+        },
+        {
+          "feature": "terrain_water",
+          "mean": 0.0,
+          "std": 0.0,
+          "folds": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      ]
+    },
+    "ridge_base25_winning_blocks": {
+      "scoring": "neg_mean_absolute_error",
+      "interpretation": "Importance positive = hausse de MAE apres permutation.",
+      "n_repeats": 30,
+      "features": [
+        {
+          "feature": "distance_manhattan",
+          "mean": 1534670.344426247,
+          "std": 188666.86635567975,
+          "folds": [
+            1870653.2788058205,
+            1464850.3961673665,
+            1470484.8580051947,
+            1440898.1246685046,
+            1426465.064484348
+          ]
+        },
+        {
+          "feature": "num_trains",
+          "mean": 658735.875050999,
+          "std": 52104.429528433,
+          "folds": [
+            614034.7912635088,
+            621303.7574511804,
+            631890.3523661388,
+            693209.334063131,
+            733241.1401110362
+          ]
+        },
+        {
+          "feature": "cargo_acceptance_per_convoy_capacity",
+          "mean": 449223.3770962121,
+          "std": 102576.7119937812,
+          "folds": [
+            362922.4486479775,
+            571459.0201019283,
+            379050.63130346464,
+            550568.8406332643,
+            382115.944794426
+          ]
+        },
+        {
+          "feature": "station_a_cargo_acc",
+          "mean": 316660.16359568975,
+          "std": 62600.91976067251,
+          "folds": [
+            233959.55104944372,
+            355749.2982166367,
+            265181.5986125732,
+            355927.26031882194,
+            372483.10978097306
+          ]
+        },
+        {
+          "feature": "station_b_cargo_acc",
+          "mean": 273629.2833464149,
+          "std": 45383.632930031315,
+          "folds": [
+            213869.26453567334,
+            252373.5805383485,
+            289955.24931285693,
+            336443.09940210823,
+            275505.22294308763
+          ]
+        },
+        {
+          "feature": "distance_straight",
+          "mean": 207718.56236305594,
+          "std": 95702.9270182544,
+          "folds": [
+            244924.49146495396,
+            225038.51305647712,
+            337929.758194838,
+            136949.67768928886,
+            93750.37140972164
+          ]
+        },
+        {
+          "feature": "wagons_per_train",
+          "mean": 205589.0476426622,
+          "std": 49163.078400322906,
+          "folds": [
+            175751.30145773353,
+            137524.26835361178,
+            231496.1002107059,
+            220585.8507606112,
+            262587.71743064857
+          ]
+        },
+        {
+          "feature": "engine_running_cost",
+          "mean": 116489.52057938627,
+          "std": 64829.67154145872,
+          "folds": [
+            57452.83876251362,
+            200472.31250019043,
+            159403.4641570579,
+            49932.77069051163,
+            115186.21678665774
+          ]
+        },
+        {
+          "feature": "probe_2000_remaining",
+          "mean": 113612.04594079763,
+          "std": 38994.203470424596,
+          "folds": [
+            84669.93970695233,
+            88499.1671172421,
+            172243.6658025334,
+            135466.53057605444,
+            87180.92650120595
+          ]
+        },
+        {
+          "feature": "probe_5000_cost",
+          "mean": 95575.8002856661,
+          "std": 57819.98568355208,
+          "folds": [
+            105385.46057851793,
+            142149.4393474724,
+            47449.61795404063,
+            25276.81684472525,
+            157617.66670357436
+          ]
+        },
+        {
+          "feature": "engine_max_speed",
+          "mean": 93866.82147168777,
+          "std": 54335.15757610524,
+          "folds": [
+            110756.22734438567,
+            174694.49934058887,
+            95562.84180244725,
+            48982.755270430585,
+            39337.78360058655
+          ]
+        },
+        {
+          "feature": "probe_2000_closed",
+          "mean": 81696.5135813506,
+          "std": 35167.69880621507,
+          "folds": [
+            117436.36628760726,
+            86922.10878012751,
+            83969.03078693703,
+            96836.87740726018,
+            23318.184644821038
+          ]
+        },
+        {
+          "feature": "probe_500_gained",
+          "mean": 65537.5942254714,
+          "std": 48148.88864020696,
+          "folds": [
+            53308.20655981239,
+            22802.58080194778,
+            19110.023518881015,
+            115301.56077548365,
+            117165.59947123217
+          ]
+        },
+        {
+          "feature": "probe_5000_gained",
+          "mean": 61136.9698655235,
+          "std": 36453.589148074956,
+          "folds": [
+            62111.50336038869,
+            87783.81516705234,
+            35378.14243561919,
+            15825.513765281827,
+            104585.87459927543
+          ]
+        },
+        {
+          "feature": "probe_2000_gained",
+          "mean": 53382.31227782535,
+          "std": 26538.6599131541,
+          "folds": [
+            63211.28528211918,
+            51482.34737620361,
+            72321.1752185916,
+            71550.28750771369,
+            8346.46600449866
+          ]
+        },
+        {
+          "feature": "cargo_production_per_convoy_capacity",
+          "mean": 49016.07072688049,
+          "std": 42623.08159172675,
+          "folds": [
+            197.60744163626805,
+            25061.947574807742,
+            46489.26803987482,
+            113762.64915892099,
+            59568.88141916261
+          ]
+        },
+        {
+          "feature": "probe_500_remaining",
+          "mean": 48566.13219957444,
+          "std": 27332.964928938905,
+          "folds": [
+            77314.83166824865,
+            57843.48598986386,
+            6726.350691053775,
+            63081.8680913785,
+            37864.124557327385
+          ]
+        },
+        {
+          "feature": "station_radius_a",
+          "mean": 43273.71797190177,
+          "std": 27621.44082693229,
+          "folds": [
+            10740.592529153048,
+            64261.10444372778,
+            49673.23120839884,
+            18472.52041754832,
+            73221.14126068087
+          ]
+        },
+        {
+          "feature": "estimated_cost",
+          "mean": 42357.28315446705,
+          "std": 67585.16324291317,
+          "folds": [
+            1994.2564583551914,
+            43118.31191756315,
+            159153.9967846332,
+            6944.237857025062,
+            575.6127547586569
+          ]
+        },
+        {
+          "feature": "probe_500_frontier",
+          "mean": 40754.98800105627,
+          "std": 16886.715873412,
+          "folds": [
+            54107.10383534164,
+            52448.83522431532,
+            48239.11991545924,
+            35455.88465752053,
+            13523.996372644626
+          ]
+        },
+        {
+          "feature": "probe_5000_closed",
+          "mean": 29377.050681706052,
+          "std": 48896.202695026426,
+          "folds": [
+            9444.245657349145,
+            116507.92335560296,
+            3952.3128059633,
+            3230.821807501116,
+            13749.94978211373
+          ]
+        },
+        {
+          "feature": "probe_2000_cost",
+          "mean": 23244.115614873197,
+          "std": 25053.87358055851,
+          "folds": [
+            20452.646487604976,
+            22912.587872165146,
+            65103.796357250176,
+            4315.0369601299835,
+            3436.510397215692
+          ]
+        },
+        {
+          "feature": "engine_power",
+          "mean": 22963.325363360054,
+          "std": 6183.275900089879,
+          "folds": [
+            31977.991915201954,
+            25444.860129439287,
+            22354.759678536117,
+            19232.504709401484,
+            15806.510384221421
+          ]
+        },
+        {
+          "feature": "probe_2000_frontier",
+          "mean": 22910.43453341126,
+          "std": 22838.582607833894,
+          "folds": [
+            50396.36601880934,
+            38267.230146626935,
+            200.34331910101852,
+            26567.92918517942,
+            -879.6960026604123
+          ]
+        },
+        {
+          "feature": "pathfinder_iterations_consumed",
+          "mean": 21716.58549780705,
+          "std": 18234.92725207496,
+          "folds": [
+            15546.967193070015,
+            16943.621520670404,
+            17695.63392216246,
+            5312.339907997428,
+            53084.36494513495
+          ]
+        },
+        {
+          "feature": "engine_rank",
+          "mean": 20553.969432503316,
+          "std": 22389.8992272149,
+          "folds": [
+            -292.68246694804014,
+            51966.73324504708,
+            32451.48532064961,
+            19069.65655919374,
+            -425.34549542580885
+          ]
+        },
+        {
+          "feature": "probe_5000_frontier",
+          "mean": 19425.85798159206,
+          "std": 35983.634766600204,
+          "folds": [
+            9305.610236701446,
+            83485.70129341021,
+            2515.2368463279136,
+            -0.5951329517023017,
+            1823.3366644724506
+          ]
+        },
+        {
+          "feature": "probe_500_cost",
+          "mean": 18587.17963438115,
+          "std": 8937.231737749153,
+          "folds": [
+            13485.35407120226,
+            6262.82554756968,
+            25874.175824861617,
+            19351.177171121955,
+            27962.36555715025
+          ]
+        },
+        {
+          "feature": "town_b_population",
+          "mean": 15520.36702170416,
+          "std": 10558.424348241944,
+          "folds": [
+            -2371.3790037980148,
+            20156.765578374307,
+            25407.827405286975,
+            16541.99383254041,
+            17866.62729611712
+          ]
+        },
+        {
+          "feature": "station_radius_b",
+          "mean": 14762.311034010558,
+          "std": 7730.909291035745,
+          "folds": [
+            9318.803441521106,
+            4161.4843200870555,
+            21087.86081258328,
+            17406.01315868828,
+            21837.39343717307
+          ]
+        },
+        {
+          "feature": "station_b_town_dist",
+          "mean": 12833.810980030554,
+          "std": 11983.966588250165,
+          "folds": [
+            16268.425603284446,
+            -7983.741573231481,
+            18547.805216106593,
+            14889.202565934409,
+            22447.363088058806
+          ]
+        },
+        {
+          "feature": "pair_rank",
+          "mean": 9837.380140704972,
+          "std": 8830.288005431174,
+          "folds": [
+            -176.1587755230333,
+            7766.419548169501,
+            7090.971644659061,
+            23954.156023234744,
+            10551.51226298459
+          ]
+        },
+        {
+          "feature": "terrain_dh",
+          "mean": 7497.275571426912,
+          "std": 3476.57493847574,
+          "folds": [
+            8670.966149458087,
+            7152.470196798933,
+            2951.347771314547,
+            12460.325054168718,
+            6251.268685394277
+          ]
+        },
+        {
+          "feature": "station_outward_b",
+          "mean": 7043.484510499178,
+          "std": 4922.658672940985,
+          "folds": [
+            7381.9955386802785,
+            4317.259393627732,
+            15350.411649613805,
+            5279.662345936514,
+            2888.093624637563
+          ]
+        },
+        {
+          "feature": "probe_500_closed",
+          "mean": 6782.727435273509,
+          "std": 4484.625983530631,
+          "folds": [
+            4382.943294017949,
+            1575.5816487486163,
+            10546.472886902551,
+            12311.488673989661,
+            5097.15067270877
+          ]
+        },
+        {
+          "feature": "station_outward_min",
+          "mean": 6369.954648923575,
+          "std": 9231.025609746548,
+          "folds": [
+            21829.153502137407,
+            -2016.7320916964595,
+            5324.169047240921,
+            879.7377624130264,
+            5833.445024522984
+          ]
+        },
+        {
+          "feature": "probe_5000_remaining",
+          "mean": 4937.791569096794,
+          "std": 10953.9874064213,
+          "folds": [
+            -534.6715382427986,
+            -615.6005943395586,
+            144.26111666820944,
+            1205.6004145719266,
+            24489.36844682619
+          ]
+        },
+        {
+          "feature": "convoy_capacity",
+          "mean": 4039.23677176517,
+          "std": 5321.919254594538,
+          "folds": [
+            6938.63844966904,
+            -2260.9917375832874,
+            6261.795032008101,
+            10085.383299277435,
+            -828.6411845454403
+          ]
+        },
+        {
+          "feature": "station_a_cargo_prod",
+          "mean": 3982.3754076091054,
+          "std": 4738.341673761925,
+          "folds": [
+            6291.821202612467,
+            5460.4082888993435,
+            2606.7578422974407,
+            9000.934610149498,
+            -3448.0449059132175
+          ]
+        },
+        {
+          "feature": "probe_500_progress_ratio_ppm",
+          "mean": 2278.1815812409004,
+          "std": 4503.476181694076,
+          "folds": [
+            4863.031925587007,
+            6820.562612595161,
+            2570.3145257097667,
+            2188.0082983885272,
+            -5051.009456075961
+          ]
+        },
+        {
+          "feature": "station_radius_max",
+          "mean": 1961.5448638531009,
+          "std": 5651.163974103888,
+          "folds": [
+            10926.391374376773,
+            1247.836515578868,
+            -2109.4524193563498,
+            -3411.4325741199777,
+            3154.3814227861894
+          ]
+        },
+        {
+          "feature": "station_outward_a",
+          "mean": 1883.0518978943878,
+          "std": 5302.504416582738,
+          "folds": [
+            -6733.890300065954,
+            3328.1125941015157,
+            7387.243919829411,
+            1226.9981214735578,
+            4206.795154133408
+          ]
+        },
+        {
+          "feature": "station_a_town_dist",
+          "mean": 1376.5809147343366,
+          "std": 3753.778183182587,
+          "folds": [
+            -28.071411392418668,
+            1429.6526779590329,
+            -787.6200086736974,
+            -1530.4727393239737,
+            7799.41605510274
+          ]
+        },
+        {
+          "feature": "probe_5000_progress_ratio_ppm",
+          "mean": 62.048008623709904,
+          "std": 576.1220500693087,
+          "folds": [
+            -689.0104264623097,
+            -205.88591026683181,
+            664.0326301184406,
+            -77.62616831685882,
+            618.7299180461093
+          ]
+        },
+        {
+          "feature": "terrain_water",
+          "mean": 0.0,
+          "std": 0.0,
+          "folds": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "feature": "probe_2000_progress_ratio_ppm",
+          "mean": -240.46865648176518,
+          "std": 2764.367000764142,
+          "folds": [
+            -3621.64889610596,
+            -2411.08163944503,
+            87.59754439328486,
+            2950.907448793389,
+            1791.88225995549
+          ]
+        },
+        {
+          "feature": "town_a_population",
+          "mean": -248.87663985274116,
+          "std": 2028.1454419880956,
+          "folds": [
+            -2437.9373201066473,
+            1485.943897313516,
+            722.9649032278141,
+            1438.2768204441993,
+            -2453.631500142588
+          ]
+        },
+        {
+          "feature": "terrain_unbuildable",
+          "mean": -423.54531145027374,
+          "std": 678.903853206369,
+          "folds": [
+            88.35419290461577,
+            -589.330290624445,
+            459.1403108977169,
+            -937.9273955025012,
+            -1137.9633749267553
+          ]
+        },
+        {
+          "feature": "station_b_cargo_prod",
+          "mean": -956.0431145671677,
+          "std": 6930.338572734366,
+          "folds": [
+            5275.111097898303,
+            -12716.072044986215,
+            1843.5699666326245,
+            -901.0954108686263,
+            1718.2708184880748
+          ]
+        },
+        {
+          "feature": "engine_price",
+          "mean": -1325.0020698196797,
+          "std": 2020.6293359616861,
+          "folds": [
+            1464.1182540493319,
+            -2770.5269277405846,
+            -3634.473108382461,
+            -266.3373218967191,
+            -1417.791245127966
+          ]
+        }
+      ]
+    },
+    "hist_gradient_boosting_base25_winning_blocks": {
+      "scoring": "neg_mean_absolute_error",
+      "interpretation": "Importance positive = hausse de MAE apres permutation.",
+      "n_repeats": 30,
+      "features": [
+        {
+          "feature": "cargo_acceptance_per_convoy_capacity",
+          "mean": 392597.56415858614,
+          "std": 53102.41410419475,
+          "folds": [
+            367379.3739578926,
+            376795.6635387717,
+            368555.18206619204,
+            363083.61737278634,
+            487173.9838572879
+          ]
+        },
+        {
+          "feature": "distance_manhattan",
+          "mean": 324629.3487956404,
+          "std": 62406.91738516265,
+          "folds": [
+            396812.587787744,
+            242161.82750748593,
+            279541.49544144975,
+            351531.17560317635,
+            353099.6576383461
+          ]
+        },
+        {
+          "feature": "station_b_cargo_acc",
+          "mean": 169557.61636681217,
+          "std": 23195.447923846645,
+          "folds": [
+            132351.89666129803,
+            176291.322426159,
+            194440.56865050938,
+            178975.0891300482,
+            165729.2049660462
+          ]
+        },
+        {
+          "feature": "station_a_cargo_acc",
+          "mean": 100499.51830599825,
+          "std": 19917.48100406816,
+          "folds": [
+            96629.56100044698,
+            104908.56283285658,
+            112982.35272395381,
+            68377.99737625405,
+            119599.11759647982
+          ]
+        },
+        {
+          "feature": "wagons_per_train",
+          "mean": 97199.89024495317,
+          "std": 12944.892785996928,
+          "folds": [
+            114716.71004277589,
+            93525.60179285888,
+            105326.47345855781,
+            81601.26352947166,
+            90829.40240110167
+          ]
+        },
+        {
+          "feature": "num_trains",
+          "mean": 84451.24209934959,
+          "std": 16768.068246826213,
+          "folds": [
+            66865.90276067835,
+            81139.39621906019,
+            73899.1015128408,
+            90211.4117795679,
+            110140.39822460068
+          ]
+        },
+        {
+          "feature": "engine_rank",
+          "mean": 68519.30906791621,
+          "std": 20966.20456900053,
+          "folds": [
+            84585.09675529799,
+            64908.220817929614,
+            33677.92855490646,
+            83079.68857999447,
+            76345.61063145255
+          ]
+        },
+        {
+          "feature": "probe_500_remaining",
+          "mean": 38886.11074136172,
+          "std": 27633.352299996648,
+          "folds": [
+            46139.7366592344,
+            5267.1897225027205,
+            55581.73017974994,
+            15917.471489993584,
+            71524.42565532796
+          ]
+        },
+        {
+          "feature": "estimated_cost",
+          "mean": 28553.464602964763,
+          "std": 14404.398058021548,
+          "folds": [
+            32496.36917762162,
+            43872.7706486614,
+            6118.889484939174,
+            36113.6317224627,
+            24165.66198113892
+          ]
+        },
+        {
+          "feature": "station_radius_max",
+          "mean": 25478.85505298441,
+          "std": 19739.14226639642,
+          "folds": [
+            15104.086289152989,
+            20657.533035928827,
+            2615.6888371663636,
+            35003.85084474882,
+            54013.11625792504
+          ]
+        },
+        {
+          "feature": "distance_straight",
+          "mean": 24270.673504536484,
+          "std": 15565.395360777085,
+          "folds": [
+            47067.446210855065,
+            22833.822608104394,
+            26140.44379038938,
+            21984.905821483604,
+            3326.749091849965
+          ]
+        },
+        {
+          "feature": "station_b_cargo_prod",
+          "mean": 14655.473703972297,
+          "std": 5524.815390269021,
+          "folds": [
+            23649.94628214585,
+            9182.980292392942,
+            15440.671492489148,
+            13324.441321314467,
+            11679.32913151908
+          ]
+        },
+        {
+          "feature": "town_b_population",
+          "mean": 11897.759581941784,
+          "std": 4497.848321918468,
+          "folds": [
+            11714.12174189113,
+            10015.30666345311,
+            17898.315860292558,
+            14029.216926713816,
+            5831.836717358309
+          ]
+        },
+        {
+          "feature": "station_b_town_dist",
+          "mean": 11501.100603806452,
+          "std": 4900.3255753202275,
+          "folds": [
+            15271.15439760451,
+            4138.644014872855,
+            16639.68239469609,
+            10598.912733807509,
+            10857.109478051292
+          ]
+        },
+        {
+          "feature": "town_a_population",
+          "mean": 9584.579151637881,
+          "std": 3141.0440427264607,
+          "folds": [
+            5199.747638781947,
+            11968.30901694218,
+            7396.3201707349235,
+            10975.03413211673,
+            12383.484799613632
+          ]
+        },
+        {
+          "feature": "pair_rank",
+          "mean": 7813.888619803061,
+          "std": 7874.535469512539,
+          "folds": [
+            7440.87833508517,
+            -2551.7804816074904,
+            19613.116688071004,
+            7859.304338316371,
+            6707.924219150252
+          ]
+        },
+        {
+          "feature": "engine_power",
+          "mean": 7751.493558444808,
+          "std": 6439.411399707308,
+          "folds": [
+            1294.1508046177448,
+            13428.604633898769,
+            698.1540015243537,
+            14066.736288575432,
+            9269.822063607739
+          ]
+        },
+        {
+          "feature": "probe_2000_remaining",
+          "mean": 7449.491911234986,
+          "std": 7928.292473914972,
+          "folds": [
+            8953.648883503129,
+            2648.7451119275956,
+            13054.942271946775,
+            -3503.793797720146,
+            16093.917086517578
+          ]
+        },
+        {
+          "feature": "engine_price",
+          "mean": 7278.269570466182,
+          "std": 5842.340756605005,
+          "folds": [
+            -1802.5849690342127,
+            11667.348463655511,
+            10285.187508896599,
+            4631.793070961838,
+            11609.603777851173
+          ]
+        },
+        {
+          "feature": "station_a_town_dist",
+          "mean": 5909.687576338981,
+          "std": 2838.7607855655424,
+          "folds": [
+            7869.228575115573,
+            3408.6516340094386,
+            5192.1307304237425,
+            3311.847985994971,
+            9766.57895615118
+          ]
+        },
+        {
+          "feature": "station_radius_b",
+          "mean": 5695.92618306955,
+          "std": 2822.3653780947475,
+          "folds": [
+            4191.078970298967,
+            5585.670411890124,
+            6030.038579605256,
+            10121.534705265976,
+            2551.308248287424
+          ]
+        },
+        {
+          "feature": "engine_running_cost",
+          "mean": 5270.38821749859,
+          "std": 2756.0097583178367,
+          "folds": [
+            8711.441695257357,
+            1212.4682118420255,
+            6262.101103159746,
+            5797.473960576067,
+            4368.4561166577505
+          ]
+        },
+        {
+          "feature": "probe_5000_remaining",
+          "mean": 5006.3625984695,
+          "std": 10871.26088332725,
+          "folds": [
+            17794.935727809214,
+            -12354.317762234985,
+            6682.582206323402,
+            5824.372776947225,
+            7084.240043502642
+          ]
+        },
+        {
+          "feature": "probe_500_frontier",
+          "mean": 3990.9626227033573,
+          "std": 5205.145414666158,
+          "folds": [
+            4013.098917277464,
+            -717.6736602228328,
+            12766.200972424696,
+            1299.0169204524718,
+            2594.1699635849877
+          ]
+        },
+        {
+          "feature": "probe_5000_gained",
+          "mean": 3553.8201234282124,
+          "std": 3809.409237825305,
+          "folds": [
+            2196.4087120406134,
+            8005.724357357862,
+            462.33497927184993,
+            -110.13460263430606,
+            7214.767171105044
+          ]
+        },
+        {
+          "feature": "pathfinder_iterations_consumed",
+          "mean": 2832.3291156871146,
+          "std": 6055.263730545557,
+          "folds": [
+            10821.360755830863,
+            539.3442881578036,
+            7048.223027790672,
+            -4435.071915767443,
+            187.7894224236797
+          ]
+        },
+        {
+          "feature": "station_radius_a",
+          "mean": 2663.248511074339,
+          "std": 7725.422250177279,
+          "folds": [
+            16311.352958475869,
+            -2440.7101017936598,
+            621.0500147871363,
+            153.62932942122376,
+            -1329.0796455188731
+          ]
+        },
+        {
+          "feature": "probe_2000_closed",
+          "mean": 2412.507463744521,
+          "std": 4169.622222636933,
+          "folds": [
+            7326.886420928217,
+            2927.3984933368783,
+            -2721.8827328083726,
+            5324.587537113856,
+            -794.4523998479747
+          ]
+        },
+        {
+          "feature": "probe_2000_cost",
+          "mean": 2051.8107339537423,
+          "std": 4617.773459716336,
+          "folds": [
+            9564.623023906606,
+            -1461.1646688021021,
+            2820.636914146513,
+            -1840.9661577363343,
+            1175.9245582540286
+          ]
+        },
+        {
+          "feature": "engine_max_speed",
+          "mean": 1985.8100227243926,
+          "std": 1347.77901553992,
+          "folds": [
+            3645.976832214196,
+            1447.1884963610753,
+            2747.8504405580848,
+            78.32753005004489,
+            2009.7068144385626
+          ]
+        },
+        {
+          "feature": "probe_500_cost",
+          "mean": 1694.3753418899134,
+          "std": 2852.3381754439433,
+          "folds": [
+            4437.986714438539,
+            -1301.2707932514372,
+            -1486.1682492622563,
+            3278.6067183567834,
+            3542.7223191679377
+          ]
+        },
+        {
+          "feature": "probe_500_gained",
+          "mean": 1582.4422058382554,
+          "std": 3967.421620260697,
+          "folds": [
+            814.02266365221,
+            -2600.538432074637,
+            7270.709895756111,
+            -1260.4678033524735,
+            3688.484705210066
+          ]
+        },
+        {
+          "feature": "probe_5000_closed",
+          "mean": 1484.0444655515557,
+          "std": 2686.0595004365705,
+          "folds": [
+            1664.9854065027127,
+            -2561.8578695902133,
+            4168.355979969143,
+            565.2137053551618,
+            3583.525105520974
+          ]
+        },
+        {
+          "feature": "probe_5000_cost",
+          "mean": 1345.860458014622,
+          "std": 4000.3839308850734,
+          "folds": [
+            6903.707775031674,
+            -4300.445841475642,
+            2010.816128243242,
+            494.8046461110857,
+            1620.4195821627509
+          ]
+        },
+        {
+          "feature": "station_a_cargo_prod",
+          "mean": 1191.425884164139,
+          "std": 4432.742551338614,
+          "folds": [
+            793.0961600313661,
+            1485.3507996774433,
+            1453.0454717317984,
+            7368.654355258386,
+            -5143.017365878301
+          ]
+        },
+        {
+          "feature": "probe_500_progress_ratio_ppm",
+          "mean": 985.1203735685164,
+          "std": 4728.907596079468,
+          "folds": [
+            -6087.062201971173,
+            5599.844395491334,
+            -301.0575060960216,
+            680.110207180446,
+            5033.766973237996
+          ]
+        },
+        {
+          "feature": "cargo_production_per_convoy_capacity",
+          "mean": 931.7877844086297,
+          "std": 4546.820137005404,
+          "folds": [
+            -5808.828560444235,
+            456.01715037385776,
+            -106.29605559347353,
+            4087.873174654801,
+            6030.173213052199
+          ]
+        },
+        {
+          "feature": "convoy_capacity",
+          "mean": 881.488754316167,
+          "std": 3756.8297003558696,
+          "folds": [
+            -1181.7209362444971,
+            7023.991999124037,
+            1002.8190348036121,
+            459.0558422367166,
+            -2896.702168339033
+          ]
+        },
+        {
+          "feature": "terrain_dh",
+          "mean": 512.2894982426608,
+          "std": 2780.9202147223955,
+          "folds": [
+            1321.7104107317243,
+            -781.7353649777127,
+            -3269.2312756726983,
+            1032.187740625736,
+            4258.515980506254
+          ]
+        },
+        {
+          "feature": "terrain_water",
+          "mean": 0.0,
+          "std": 0.0,
+          "folds": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "feature": "probe_2000_gained",
+          "mean": -65.17470866020221,
+          "std": 5627.575625319442,
+          "folds": [
+            7530.4735209854125,
+            -294.6221780616945,
+            -7179.483907124012,
+            -3214.9253323130233,
+            2832.684353212306
+          ]
+        },
+        {
+          "feature": "station_outward_b",
+          "mean": -130.12455890421685,
+          "std": 2778.5995868927907,
+          "folds": [
+            1168.5083832292157,
+            3818.971632425813,
+            -2672.105229809911,
+            -2801.795838211461,
+            -164.20174215474012
+          ]
+        },
+        {
+          "feature": "terrain_unbuildable",
+          "mean": -356.5040619410683,
+          "std": 1200.1494622168993,
+          "folds": [
+            -1744.4637310120045,
+            -1379.9189789969785,
+            -79.05904820637467,
+            244.7240252464001,
+            1176.197423263616
+          ]
+        },
+        {
+          "feature": "probe_2000_frontier",
+          "mean": -969.3815877087811,
+          "std": 5632.553355599128,
+          "folds": [
+            6014.778138275029,
+            -9441.440819388132,
+            -922.3207691846183,
+            1380.1681572999184,
+            -1878.0926455461033
+          ]
+        },
+        {
+          "feature": "station_outward_min",
+          "mean": -1539.9869422164002,
+          "std": 2658.957819801668,
+          "folds": [
+            -553.9775652654547,
+            2037.0274263571093,
+            -1446.3278212523553,
+            -2515.209612184918,
+            -5221.447138736382
+          ]
+        },
+        {
+          "feature": "probe_5000_frontier",
+          "mean": -1757.3517652219925,
+          "std": 4134.912056066908,
+          "folds": [
+            4807.463267509759,
+            -3064.982708492848,
+            -6017.428180739307,
+            -3827.200104361377,
+            -684.6111000261891
+          ]
+        },
+        {
+          "feature": "probe_2000_progress_ratio_ppm",
+          "mean": -2399.957043190363,
+          "std": 2644.7209547882258,
+          "folds": [
+            -1158.4722027746184,
+            -3811.3525870669673,
+            -4296.071136079403,
+            1692.0908109500926,
+            -4425.980100980921
+          ]
+        },
+        {
+          "feature": "station_outward_a",
+          "mean": -2473.3898110168348,
+          "std": 3330.2196619553447,
+          "folds": [
+            -2478.7052010327657,
+            -4638.899166085257,
+            -319.85666061996795,
+            1720.5957836285777,
+            -6650.083810974758
+          ]
+        },
+        {
+          "feature": "probe_5000_progress_ratio_ppm",
+          "mean": -2687.6057101940155,
+          "std": 1694.1563297957607,
+          "folds": [
+            -1071.5075042271171,
+            -2141.838914577888,
+            -3183.523383442499,
+            -1658.1343035485984,
+            -5383.0244451739745
+          ]
+        },
+        {
+          "feature": "probe_500_closed",
+          "mean": -3519.3052955457106,
+          "std": 4519.8340162330505,
+          "folds": [
+            1451.8539041784786,
+            -1196.6028606945533,
+            -1602.7305212575477,
+            -6463.364347303247,
+            -9785.682652651682
+          ]
+        }
+      ]
+    }
+  },
+  "analysis": {
+    "corridor_vs_terrain": "CORRIDOR est en concurrence avec les terrain_* deja dans BASE25, pas en remplacement : Ridge BASE25+CORRIDOR donne +6153 +/- 10436 de MAE, 1 plis sur 5 face a BASE25. Un delta negatif indique donc une information de corridor non deja resumee par terrain_* .",
+    "sonde_cost_at_stage2": "SONDE donne -6401 +/- 5607 de MAE, 4 plis sur 5 face a BASE25. A l'etage 2 la decision est post-pathfinding : la recherche a deja ete payee, donc l'argument de cout qui l'excluait a l'etage 1 ne s'applique pas ici.",
+    "pathcost_profit": {
+      "pearson_correlation_with_profit_ligne": 0.38940663868854847,
+      "paired_ridge_delta": {
+        "model_key": "ridge_base25_pathcost",
+        "convention": "MAE candidat - MAE BASE25 ; negatif = amelioration du candidat.",
+        "mae_delta_by_fold": [
+          -1056.5715977863874,
+          -1951.1732946380507,
+          -558.2444953701925,
+          -1570.3423218259122,
+          -1793.7384860294405
+        ],
+        "mean": -1386.0140391299967,
+        "std": 573.0086963175717,
+        "improved_folds": 5,
+        "n_folds": 5
+      },
+      "commentary": "PATHCOST (pathfinder_iterations_consumed) a une correlation de Pearson +0.389 avec profit_ligne parmi les construites et donne -1386 +/- 573 de MAE, 5 plis sur 5. Il est legitimement connu apres pathfinding; sa forte correlation avec built (-0,699) ne suffit donc pas a elle seule a prouver une valeur pour le profit, que ce delta mesure directement."
+    }
+  }
+}
