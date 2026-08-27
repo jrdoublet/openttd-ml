@@ -197,6 +197,22 @@ function TrainLineAI::_codeTerrain()
       "|W" + this.state.terrain_water + "|U" + this.state.terrain_unbuildable;
 }
 
+/* Panneau terrain du corridor direct centre-ville a centre-ville. Les H/W/U ci-dessus restent
+ * la mesure du chemin retenu par le pathfinder ; ces trois valeurs-ci sont prises avant cet
+ * appel et sont donc aussi presentes pour NOPATH/PATHLIM. */
+function TrainLineAI::_codeCorridorTerrain()
+{
+  return "TRLN|" + this.state.line_index + "|CH" + this.state.corridor_dh +
+      "|CW" + this.state.corridor_water + "|CU" + this.state.corridor_unbuildable;
+}
+
+/* Nombre de paires de villes candidates apres tous les filtres de carte. Il est emis meme si
+ * pair_rank est hors plage, afin que PAIROOR expose le plafond propre a sa graine. */
+function TrainLineAI::_codePairCount()
+{
+  return "TRLN|" + this.state.line_index + "|Q" + this.state.pair_count;
+}
+
 /* Echantillonne la ligne DROITE entre les deux centres-villes (pas le vrai chemin du pathfinder,
  * qui est un resultat -- voir docs/phase3_ml.md 3.2). Un point par tuile de distance_straight
  * (borne a [minDistance, maxDistance] = [20,150] par construction des paires) : cout pur en
@@ -233,10 +249,35 @@ function TrainLineAI::_scanTerrain(locA, locB, samples)
   return { dh = (maxH == null ? 0 : maxH - minH), water = water, unbuildable = unbuildable };
 }
 
+/* Meme mesure, mais sur les tuiles du chemin effectivement retenu. `tiles` est explicitement
+ * passe en parametre : les closures Squirrel de cet environnement ne capturent pas les locales
+ * englobantes. Les extremites de pont/tunnel font partie de la representation du pathfinder ;
+ * le compteur mesure donc le trace que l'IA a effectivement retenu, pas le corridor direct. */
+function TrainLineAI::_scanTerrainTiles(tiles)
+{
+  local maxH = null;
+  local minH = null;
+  local water = 0;
+  local unbuildable = 0;
+  local seen = {};
+  foreach (tile in tiles) {
+    if (!AIMap.IsValidTile(tile) || tile in seen) continue;
+    seen[tile] <- true;
+    local tMax = AITile.GetMaxHeight(tile);
+    local tMin = AITile.GetMinHeight(tile);
+    if (maxH == null || tMax > maxH) maxH = tMax;
+    if (minH == null || tMin < minH) minH = tMin;
+    if (AITile.IsWaterTile(tile)) water++;
+    if (!AITile.IsBuildable(tile)) unbuildable++;
+  }
+  return { dh = (maxH == null ? 0 : maxH - minH), water = water, unbuildable = unbuildable };
+}
+
 function TrainLineAI::_reportAll()
 {
   if (this.costs != null) this.state.construction_cost = this.costs.GetCosts();
   this._report(this._code());
+  if (this.state.pair_count != null) this._report(this._codePairCount());
   if (this.state.town_a != null && this.state.town_b != null) {
     this._report(this._codeDetail());
     this._report(this._codeVehicleCost());
@@ -248,6 +289,10 @@ function TrainLineAI::_reportAll()
     this._report(this._codeDistCost());
     this._report(this._codeEngineSpecs());
     this._report(this._codeEngineCost());
+    /* Mesure pure prise avant _preflightPair(), mais publication differee dans ce flux existant
+     * pour ne pas ajouter de DoCommand avant la barriere. Contrairement aux H/W/U du trace
+     * retenu, elle est disponible aussi pour NOPATH/PATHLIM. */
+    this._report(this._codeCorridorTerrain());
     if (this.state.first_mutation_tick != null) this._report(this._codeBarrier());
     /* Ces quatre panneaux exigent un preflight reussi (plans de quai + chemin) : absents pour un
      * echec avant ce stade (NOPATH/PATHLIM/NOTILE), presents pour tout le reste (TRKFAIL/STNFAIL/
@@ -428,6 +473,10 @@ function TrainLineAI::Start()
     terrain_dh = 0,
     terrain_water = 0,
     terrain_unbuildable = 0,
+    corridor_dh = 0,
+    corridor_water = 0,
+    corridor_unbuildable = 0,
+    pair_count = null,
     engine_max_speed = 0,
     engine_power = 0,
     engine_price = 0,
@@ -574,6 +623,8 @@ function TrainLineAI::Start()
     this._fail("no_suitable_town_pair");
   }
 
+  this.state.pair_count = pairs.len();
+
   /* Une paire bien notee peut etre bloquee par la topographie. La version precedente essayait
    * les paires dans l'ordre du score jusqu'a en trouver une viable (jusqu'a 12 essais) : un
    * echec de preflight etait alors masque par un repli automatique sur la paire suivante, et le
@@ -624,6 +675,15 @@ function TrainLineAI::Start()
   this.state.distance_straight = sqrt(AIMap.DistanceSquare(locA, locB).tofloat()).tointeger();
   this.state.distance_manhattan = AIMap.DistanceManhattan(locA, locB);
   this.state.estimated_cost = selectedPair.estimated_cost;
+
+  /* Le corridor est echantillonne avant le pathfinder et stocke dans l'etat. Cette requete de
+   * carte est pure : aucun panneau n'est encore pose, donc la barriere de premiere mutation ne
+   * bouge pas. _reportAll() l'emettra au meme moment que les autres panneaux, y compris quand
+   * _preflightPair() s'arrete ensuite sur PATHLIM. */
+  local corridorTerrain = this._scanTerrain(locA, locB, this.state.distance_straight);
+  this.state.corridor_dh = corridorTerrain.dh;
+  this.state.corridor_water = corridorTerrain.water;
+  this.state.corridor_unbuildable = corridorTerrain.unbuildable;
 
   /* Specs du moteur/wagon choisis -- lecture pure (AIEngineList/AIEngine.Get*, verifiees
    * empiriquement disponibles avec cette signature via sweeps/debug_ai.py), aucun DoCommand,
@@ -732,7 +792,7 @@ function TrainLineAI::Start()
   this.state.station_b_cargo_prod = AITile.GetCargoProduction(planB.anchor, earlyPassengerCargo, widthB, heightB, CATCHMENT_RADIUS);
   this.state.station_b_cargo_acc = AITile.GetCargoAcceptance(planB.anchor, earlyPassengerCargo, widthB, heightB, CATCHMENT_RADIUS);
 
-  local terrain = this._scanTerrain(locA, locB, this.state.distance_straight);
+  local terrain = this._scanTerrainTiles(tiles);
   this.state.terrain_dh = terrain.dh;
   this.state.terrain_water = terrain.water;
   this.state.terrain_unbuildable = terrain.unbuildable;
