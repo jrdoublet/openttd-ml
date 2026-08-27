@@ -40,6 +40,8 @@ import("pathfinder.rail", "RailPathFinder", 1);
   no_buildable_tile_near_town = "NOTILE",
   no_path_found = "NOPATH",
   path_search_limit = "PATHLIM",
+  preflight_timeout = "TIMEOUT",
+  backtrack_limit = "BACKLIM",
   track_build_failed = "TRKFAIL",
   station_build_failed = "STNFAIL",
   depot_build_failed = "DEPFAIL",
@@ -292,6 +294,8 @@ function TrainLineAI::_codeSegmentedMeasure()
   if (this.state.pathfinder_stop == "found") stop = "F";
   else if (this.state.pathfinder_stop == "iteration_limit") stop = "L";
   else if (this.state.pathfinder_stop == "preflight_deadline") stop = "D";
+  else if (this.state.pathfinder_stop == "backtrack_limit") stop = "B";
+  else if (this.state.pathfinder_stop == "time_window_limit") stop = "W";
   else if (this.state.pathfinder_stop == "open_empty") stop = "E";
   else if (this.state.pathfinder_stop == "no_progress") stop = "N";
   return "TPM|" + this.state.line_index + "|I" + this.state.pathfinder_iterations_consumed +
@@ -363,6 +367,71 @@ function TrainLineAI::_copySegmentTiles(tiles)
   local copied = [];
   foreach (tile in tiles) copied.push(tile);
   return copied;
+}
+
+/* Les types de franchissement locaux ne peuvent pas etre retrouves de facon sure depuis deux
+ * tuiles eloignees : une meme paire peut aussi etre l'entree d'un tunnel naturel. Les conserver
+ * dans le plan evite que la construction decide plus tard un tunnel alors que le preflight avait
+ * valide un pont sous AITestMode. */
+function TrainLineAI::_copySegmentStructures(structures)
+{
+  local copied = [];
+  foreach (structure in structures) {
+    copied.push({ from = structure.from, to = structure.to, kind = structure.kind,
+        length = structure.length });
+  }
+  return copied;
+}
+
+/* Un nouveau segment repart avec un closed set vide. Sans ce garde-fou, il pourrait revenir dans
+ * un ancien prefixe deja planifie et fabriquer une boucle impossible a poser. Les deux dernieres
+ * cases restent autorisees : elles constituent precisement la source directionnelle du segment. */
+function TrainLineAI::_canAppendSegment(prefix, tail)
+{
+  if (prefix == null) return true;
+  local seen = {};
+  for (local i = 0; i < prefix.len() - 2; i++) seen[prefix[i]] <- true;
+  for (local i = 2; i < tail.len(); i++) {
+    if (tail[i] in seen) return false;
+  }
+  return true;
+}
+
+/* AyStar expose sa BinaryHeap a la bibliotheque Rail. Extraire K minima par un petit front
+ * d'indices respecte la propriete de heap sans retirer de noeud. Trier toute la file etait O(n
+ * log n) a chaque segment : sur 1019/90 cela consommait la fenetre avant le prochain FindPath.
+ * Cette version ne cree aucune closure, donc aucune capture implicite de locale Squirrel. */
+function TrainLineAI::_frontierAlternatives(pathfinder, maxAlternatives)
+{
+  local open = pathfinder._pathfinder._open;
+  if (open == null || open.Count() == 0) return [];
+  local nodes = [];
+  local seen = {};
+  local candidates = [0];
+  while (candidates.len() > 0 && nodes.len() < maxAlternatives) {
+    local bestPosition = 0;
+    local bestPriority = open._queue[candidates[0]][1];
+    for (local i = 1; i < candidates.len(); i++) {
+      local priority = open._queue[candidates[i]][1];
+      if (priority < bestPriority) {
+        bestPosition = i;
+        bestPriority = priority;
+      }
+    }
+    local heapIndex = candidates[bestPosition];
+    candidates[bestPosition] = candidates[candidates.len() - 1];
+    candidates.pop();
+    local left = heapIndex * 2 + 1;
+    local right = left + 1;
+    if (left < open.Count()) candidates.push(left);
+    if (right < open.Count()) candidates.push(right);
+    local node = open._queue[heapIndex][0];
+    local key = node.GetTile() + ":" + node.GetDirection();
+    if (key in seen) continue;
+    seen[key] <- true;
+    nodes.push(node);
+  }
+  return nodes;
 }
 
 /* Teste, sans rien construire, les franchissements collineaires qui prolongent le meilleur noeud
@@ -443,25 +512,46 @@ function TrainLineAI::_segmentedPath(sources, goals, destinationCenter, deadline
 {
   local activeSources = sources;
   local prefix = null;
-  local checkpoints = [];
+  local structures = [];
+  /* Chaque entree est un front deja planifie. Elle contient soit le deuxieme meilleur noeud
+   * de la frontiere d'un segment, soit une autre longueur de pont/tunnel. Ainsi open_empty ne
+   * depend plus du hasard d'avoir rencontre un obstacle plus tot. */
+  local alternatives = [];
   local iterationLimit = this.state.pathfinder_iterations_k * 1000;
   local segmentLimit = 2000;
+  local recoverySegmentLimit = 10000;
+  local nextSegmentLimit = segmentLimit;
+  local frontierWidth = 3;
+  local maxBacktracks = 4;
+  local findPathBatch = 50;
+  /* Garde-fou de calendrier : au-dela, les retours arriere ne laissent plus le VM rendre son
+   * resultat avant la fin de partie. Le plafond de comparaison reste iterationLimit=300k; cette
+   * borne transforme proprement ce cout excessif en TIMEOUT au lieu d'un silence. */
+  local timeSafeIterationLimit = 50000;
+  if (iterationLimit < timeSafeIterationLimit) timeSafeIterationLimit = iterationLimit;
 
   while (this.state.pathfinder_iterations_consumed < iterationLimit &&
+      this.state.pathfinder_iterations_consumed < timeSafeIterationLimit &&
       AIController.GetTick() < deadlineTick) {
     this.state.segmented_segments++;
+    local currentSegmentLimit = nextSegmentLimit;
+    nextSegmentLimit = segmentLimit;
     local pathfinder = RailPathFinder();
     pathfinder.cost.max_cost = 200000;
     pathfinder.InitializePath(activeSources, goals);
     local path = false;
     local segmentUsed = 0;
-    while (path == false && segmentUsed < segmentLimit &&
+    while (path == false && segmentUsed < currentSegmentLimit &&
         this.state.pathfinder_iterations_consumed < iterationLimit &&
+        this.state.pathfinder_iterations_consumed < timeSafeIterationLimit &&
         AIController.GetTick() < deadlineTick) {
-      path = pathfinder.FindPath(50);
-      segmentUsed += 50;
-      this.state.pathfinder_iterations_consumed += 50;
-      this.Sleep(1);
+      /* Un FindPath(50) peut monopoliser le VM assez longtemps pour que le jeu se termine avant
+       * le prochain test de deadline. Une iteration par appel garde l'echeance interruptible;
+       * Sleep reste groupe par 50, donc ce changement n'ajoute pas 50 fois plus de ticks. */
+      path = pathfinder.FindPath(1);
+      segmentUsed++;
+      this.state.pathfinder_iterations_consumed++;
+      if (path != false || segmentUsed % findPathBatch == 0) this.Sleep(1);
     }
 
     if (path != false && path != null) {
@@ -469,42 +559,73 @@ function TrainLineAI::_segmentedPath(sources, goals, destinationCenter, deadline
       if (prefix == null) prefix = tail;
       else for (local i = 2; i < tail.len(); i++) prefix.push(tail[i]);
       this.state.pathfinder_stop = "found";
-      return prefix;
+      return { tiles = prefix, structures = structures };
     }
 
     if (path == null) {
-      /* Aucune suite depuis ce front : essayer la longueur suivante du dernier obstacle resolu. */
-      local resumed = false;
-      while (checkpoints.len() > 0 && !resumed) {
-        local checkpoint = checkpoints[checkpoints.len() - 1];
-        if (checkpoint.next < checkpoint.choices.len()) {
-          local choice = checkpoint.choices[checkpoint.next];
-          checkpoint.next++;
-          prefix = this._copySegmentTiles(checkpoint.prefix);
-          prefix.push(choice.to);
-          activeSources = [[choice.to, checkpoint.front]];
-          this.state.segmented_backtracks++;
-          resumed = true;
-        } else {
-          checkpoints.pop();
-        }
+      /* La file locale est vide. Les fronts suivants etaient empiles a chaque coupure, donc ce
+       * retour arriere explore encore la meme carte avec un autre prefixe valide. */
+      if (alternatives.len() > 0 && this.state.segmented_backtracks < maxBacktracks) {
+        local alternative = alternatives.pop();
+        prefix = this._copySegmentTiles(alternative.prefix);
+        structures = this._copySegmentStructures(alternative.structures);
+        activeSources = alternative.sources;
+        this.state.segmented_backtracks++;
+        /* Apres avoir choisi un vrai autre front, lui accorder une fenetre plus longue evite de
+         * recreer dix fois la meme petite frontiere. 10k reste nettement sous les 36.8k+ des
+         * A* classiques qui prouvent ces cas franchissables. */
+        nextSegmentLimit = recoverySegmentLimit;
+        continue;
       }
-      if (resumed) continue;
-      this.state.pathfinder_stop = "open_empty";
-      return "no_path_found";
+      this.state.pathfinder_stop = alternatives.len() > 0 ? "backtrack_limit" : "open_empty";
+      return alternatives.len() > 0 ? "backtrack_limit" : "no_path_found";
     }
 
-    /* Le budget court est atteint : Peek() lit le meilleur noeud sans retirer la frontiere. */
-    local best = pathfinder._pathfinder._open == null ? null : pathfinder._pathfinder._open.Peek();
-    if (best == null) {
-      this.state.pathfinder_stop = "open_empty";
-      return "no_path_found";
+    /* Le budget court est atteint. Chaque RailPathFinder est neuf : son closed set ne survit
+     * jamais ici. On garde donc les K meilleurs noeuds de SA frontiere avant de la jeter. */
+    local frontier = this._frontierAlternatives(pathfinder, frontierWidth * 4);
+    local usable = [];
+    foreach (node in frontier) {
+      local candidateTail = this._segmentTiles(node);
+      if (candidateTail.len() < 3 || !this._canAppendSegment(prefix, candidateTail)) continue;
+      usable.push({ tail = candidateTail });
+      if (usable.len() >= frontierWidth) break;
     }
-    local tail = this._segmentTiles(best);
-    if (tail.len() < 3) {
-      this.state.pathfinder_stop = "no_progress";
-      return "no_path_found";
+    if (usable.len() == 0) {
+      /* Aucun noeud de cette frontiere ne prolonge le plan sans boucle : c'est une impasse de
+       * branche, donc exactement le meme traitement qu'une file vide reelle. */
+      if (alternatives.len() > 0 && this.state.segmented_backtracks < maxBacktracks) {
+        local alternative = alternatives.pop();
+        prefix = this._copySegmentTiles(alternative.prefix);
+        structures = this._copySegmentStructures(alternative.structures);
+        activeSources = alternative.sources;
+        this.state.segmented_backtracks++;
+        nextSegmentLimit = recoverySegmentLimit;
+        continue;
+      }
+      this.state.pathfinder_stop = alternatives.len() > 0 ? "backtrack_limit" : "open_empty";
+      return alternatives.len() > 0 ? "backtrack_limit" : "no_path_found";
     }
+    local tail = usable[0].tail;
+
+    /* Empiler du moins bon au meilleur pour que Pop() essaie immediatement le deuxieme noeud.
+     * Ces alternatives n'utilisent aucune closure : chaque prefixe et chaque source est porte
+     * explicitement dans la table de reprise. */
+    for (local i = usable.len() - 1; i >= 1; i--) {
+      local alternativeTail = usable[i].tail;
+      local alternativePrefix = prefix == null ? this._copySegmentTiles(alternativeTail) :
+          this._copySegmentTiles(prefix);
+      if (prefix != null) {
+        for (local j = 2; j < alternativeTail.len(); j++) alternativePrefix.push(alternativeTail[j]);
+      }
+      if (alternativePrefix.len() < 2) continue;
+      local alternativeFront = alternativePrefix[alternativePrefix.len() - 1];
+      local alternativePrevious = alternativePrefix[alternativePrefix.len() - 2];
+      alternatives.push({ prefix = alternativePrefix,
+          structures = this._copySegmentStructures(structures),
+          sources = [[alternativeFront, alternativePrevious]] });
+    }
+
     if (prefix == null) prefix = tail;
     else for (local i = 2; i < tail.len(); i++) prefix.push(tail[i]);
 
@@ -512,10 +633,19 @@ function TrainLineAI::_segmentedPath(sources, goals, destinationCenter, deadline
     local previous = prefix[prefix.len() - 2];
     local choices = this._localStructureChoices(front, previous, destinationCenter);
     if (choices.len() > 0) {
-      local checkpoint = { prefix = this._copySegmentTiles(prefix), front = front,
-          choices = choices, next = 1 };
-      checkpoints.push(checkpoint);
+      /* Les autres franchissements sont aussi de vrais fronts de reprise. */
+      for (local i = choices.len() - 1; i >= 1; i--) {
+        local alternativePrefix = this._copySegmentTiles(prefix);
+        alternativePrefix.push(choices[i].to);
+        local alternativeStructures = this._copySegmentStructures(structures);
+        alternativeStructures.push({ from = front, to = choices[i].to, kind = choices[i].kind,
+            length = choices[i].length });
+        alternatives.push({ prefix = alternativePrefix, structures = alternativeStructures,
+            sources = [[choices[i].to, front]] });
+      }
       prefix.push(choices[0].to);
+      structures.push({ from = front, to = choices[0].to, kind = choices[0].kind,
+          length = choices[0].length });
       activeSources = [[choices[0].to, front]];
       this.state.segmented_local_choices++;
     } else {
@@ -523,8 +653,15 @@ function TrainLineAI::_segmentedPath(sources, goals, destinationCenter, deadline
     }
   }
 
-  this.state.pathfinder_stop = AIController.GetTick() >= deadlineTick ?
-      "preflight_deadline" : "iteration_limit";
+  if (AIController.GetTick() >= deadlineTick) {
+    this.state.pathfinder_stop = "preflight_deadline";
+    return "preflight_timeout";
+  }
+  if (this.state.pathfinder_iterations_consumed >= timeSafeIterationLimit) {
+    this.state.pathfinder_stop = "time_window_limit";
+    return "preflight_timeout";
+  }
+  this.state.pathfinder_stop = "iteration_limit";
   return "path_search_limit";
 }
 
@@ -797,7 +934,7 @@ function TrainLineAI::_preflightPair(townA, townB, platformLength, deadlineTick)
   local segmented = this._segmentedPath(sources, goals, AITown.GetLocation(townB), deadlineTick);
   this.state.pathfinder_ticks = AIController.GetTick() - pathfinderStartTick;
   if (typeof(segmented) == "string") return segmented;
-  local simplifiedTiles = segmented;
+  local simplifiedTiles = segmented.tiles;
   if (simplifiedTiles.len() < 3) return "no_path_found";
 
   local selectedPlanA = null;
@@ -809,7 +946,8 @@ function TrainLineAI::_preflightPair(townA, townB, platformLength, deadlineTick)
     if (plan.station_exit == simplifiedTiles[simplifiedTiles.len() - 1]) { selectedPlanB = plan; break; }
   }
   if (selectedPlanA == null || selectedPlanB == null) return "no_path_found";
-  return { tiles = simplifiedTiles, plans_a = [selectedPlanA], plans_b = [selectedPlanB] };
+  return { tiles = simplifiedTiles, plans_a = [selectedPlanA], plans_b = [selectedPlanB],
+      structures = segmented.structures };
 }
 
 function TrainLineAI::Start()
@@ -1130,11 +1268,12 @@ function TrainLineAI::Start()
   }
 
   this._report("TRLN|TRY|" + pairRank + "|T" + townA + "-" + townB);
-  /* Budget de recherche (voir commentaire dans _preflightPair() pour le bug de fond) : 1500
-   * jours (~74 ticks/jour), soit environ 40% d'une partie de 10 ans, laisse le reste de la
-   * partie pour construire et faire rouler la ligne assez longtemps pour un signal de profit
-   * exploitable, meme si le preflight epuise tout son budget. */
-  local preflightDeadline = AIController.GetTick() + 1500 * 74;
+  /* Le jeu peut s'arreter pendant un FindPath trop long et ne donne alors aucun dernier hook
+   * Squirrel. La borne utile est donc la barriere elle-meme, pas 1500 jours plus tard : laisser
+   * 250 ticks pour rendre TIMEOUT et poser les panneaux garantit qu'aucun essai ne finit muet.
+   * Les recherches restent non mutantes; un succes attend toujours la barriere exacte ci-dessous. */
+  local preflightDeadline = this.state.barrier_base_k * 1000 +
+      this.state.stagger_slot * STAGGER_TICKS - 250;
   local selectedPreflight = this._preflightPair(townA, townB, platformLengthForEstimate,
       preflightDeadline);
   if (typeof(selectedPreflight) == "string") this._fail(selectedPreflight);
@@ -1162,6 +1301,7 @@ function TrainLineAI::Start()
   /* Reutiliser les cases validees durant la pre-verification empeche une seconde recherche,
    * ou une reconstruction differente, de produire NOPATH apres un TRY reussi. */
   local tiles = selectedPreflight.tiles;
+  local plannedStructures = selectedPreflight.structures;
   this.state.path_found = true;
 
   /* Features de gare/terrain -- connues des que le preflight a reussi (plans de quai retenus +
@@ -1293,8 +1433,18 @@ function TrainLineAI::Start()
        * c'est gere au pas precedent. */
       ok = true;
     } else if (AIMap.DistanceManhattan(cur, next) > 1) {
-      /* next est de l'autre cote d'un pont/tunnel : le construire maintenant. */
-      if (AITunnel.GetOtherTunnelEnd(cur) == next) {
+      /* next est de l'autre cote d'un pont/tunnel : le construire maintenant. Un saut issu
+       * d'une resolution locale porte son type explicite depuis AITestMode; le retrouver avec
+       * GetOtherTunnelEnd() pouvait transformer un pont valide en tunnel au moment de la pose. */
+      local plannedKind = null;
+      foreach (structure in plannedStructures) {
+        if (structure.from == cur && structure.to == next) {
+          plannedKind = structure.kind;
+          break;
+        }
+      }
+      if (plannedKind == "tunnel" ||
+          (plannedKind == null && AITunnel.GetOtherTunnelEnd(cur) == next)) {
         ok = AITunnel.BuildTunnel(AIVehicle.VT_RAIL, cur);
       } else {
         local bridge_list = AIBridgeList_Length(AIMap.DistanceManhattan(cur, next) + 1);

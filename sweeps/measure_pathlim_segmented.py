@@ -90,7 +90,8 @@ def parse(row):
         elif match := WORK.match(sign):
             _, iterations, ticks, stop = match.groups()
             stop_names = {"F": "found", "L": "iteration_limit", "D": "preflight_deadline",
-                          "E": "open_empty", "N": "no_progress", "X": "unknown"}
+                          "B": "backtrack_limit", "E": "open_empty", "N": "no_progress",
+                          "W": "time_window_limit", "X": "unknown"}
             result.update(astar_iterations=int(iterations), pathfinding_ticks=int(ticks),
                           stop_reason=stop_names.get(stop, stop))
         elif match := SEGMENT.match(sign):
@@ -139,9 +140,13 @@ def main():
                         "ai_params": selected[key]["ai_params"], "segmented": measured[key]})
     payload = {"design": {
         "iterations_limit": ITERATION_LIMIT, "days": DAYS, "max_workers": 1,
-        "variant": {"max_cost": 200000, "segment_iterations": 2000, "local_bridge_tunnel_lengths": "3..20 in AITestMode"},
+        "variant": {"max_cost": 200000, "segment_iterations": 2000,
+                    "recovery_segment_iterations": 10000, "frontier_alternatives": 3,
+                    "max_backtracks": 4, "time_safe_iterations": 50000,
+                    "preflight_margin_ticks": 250,
+                    "local_bridge_tunnel_lengths": "3..20 in AITestMode"},
         "pathfinding_ticks": "Ticks from immediately before first segment through final FindPath/Sleep.",
-        "astar_iterations": "Requested FindPath(50) iterations, global cap shared by all segments.",
+        "astar_iterations": "A* iterations, global cap shared by all segments; FindPath(1) is grouped by 50 sleeps.",
     }, "records": records}
     RESULT.write_text(json.dumps(payload, indent=2) + "\n")
     print(json.dumps(payload, indent=2))
