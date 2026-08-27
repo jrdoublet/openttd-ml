@@ -1,10 +1,13 @@
 FROM python:3.12-slim
 
+ARG UID=1000
+ARG GID=1000
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
       unzip tar ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-RUN useradd -m -u 1000 lab
+RUN groupadd -g ${GID} lab && useradd -m -u ${UID} -g ${GID} lab
 USER lab
 WORKDIR /home/lab
 

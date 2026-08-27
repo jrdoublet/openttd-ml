@@ -44,7 +44,10 @@ dans `sweeps/phase0_timing.py` et `sweeps/phase0_plot.py`.)
 ## Installation — VPS (Docker)
 
 ```bash
-docker build -t openttd-lab .
+docker build \
+  --build-arg UID="$(id -u)" \
+  --build-arg GID="$(id -g)" \
+  -t openttd-lab .
 
 docker run --rm -it \
   --name openttd-lab \
@@ -56,6 +59,9 @@ docker run --rm -it \
   openttd-lab bash
 ```
 
+- `--build-arg UID` / `GID` — construit l'utilisateur `lab` avec votre identité hôte pour que
+  les écritures dans le dépôt monté gardent les bonnes permissions, tout en donnant accès à son
+  volume `/home/lab` persistant.
 - `--cpus=3` — laisse un cœur pour Traefik, Netdata et le reste de la stack.
 - `--memory-swap=2g` égal à `--memory` — désactive le swap : le conteneur se fait tuer proprement
   au lieu d'entraîner l'hôte dans une saturation.
