@@ -231,6 +231,65 @@ function TrainLineAI::_codePreflightBudget()
       "|R" + this.state.barrier_base_k;
 }
 
+/* Sondes A* tronquees : elles lisent l'etat de LA recherche en cours, sans jamais retirer un
+ * noeud de la file. `N`=fermes, `F`=frontiere, `C`=cout g du meilleur noeud, `R`=distance de ce
+ * noeud au centre de la ville destination, `G`=progres Manhattan depuis les centres des deux
+ * villes, `Q`=C/G en milli-unites. Trois panneaux par instant restent sous les 31 caracteres,
+ * meme pour line_index a quatre chiffres. -1 est le sentinel explicite pour une sonde non
+ * atteinte (ou une frontiere vide), jamais une mesure a zero. */
+function TrainLineAI::_codePathfinderProbeVolume(probe)
+{
+  return "TRLN|" + this.state.line_index + "|A" + probe.at + "|N" + probe.closed +
+      "|F" + probe.frontier;
+}
+
+function TrainLineAI::_codePathfinderProbeDistance(probe)
+{
+  return "TRLN|" + this.state.line_index + "|A" + probe.at + "|C" + probe.cost +
+      "|R" + probe.remaining;
+}
+
+function TrainLineAI::_codePathfinderProbeRatio(probe)
+{
+  return "TRLN|" + this.state.line_index + "|A" + probe.at + "|G" + probe.gained +
+      "|Q" + probe.progress_ratio_ppm;
+}
+
+function TrainLineAI::_codePathfinderIterationsConsumed()
+{
+  return "TRLN|" + this.state.line_index + "|AP" + this.state.pathfinder_iterations_consumed;
+}
+
+/* Capture apres un FindPath(50) qui a retourne false : AyStar garde alors _open/_closed intacts.
+ * Count() et Peek() de Queue.BinaryHeap v1 sont O(1); AIList.Count() est aussi O(1) dans l'API
+ * OpenTTD. Surtout, Peek() ne devient jamais Pop(), donc la recherche suivante voit exactement
+ * la meme frontiere. */
+function TrainLineAI::_capturePathfinderProbe(pathfinder, destinationCenter, probe)
+{
+  local aystar = pathfinder._pathfinder;
+  probe.iterations = this.state.pathfinder_iterations_consumed;
+  probe.closed = aystar._closed == null ? -1 : aystar._closed.Count();
+  probe.frontier = -1;
+  probe.cost = -1;
+  probe.remaining = -1;
+  probe.gained = -1;
+  probe.progress_ratio_ppm = -1;
+  if (aystar._open == null) return;
+  probe.frontier = aystar._open.Count();
+  if (probe.frontier == 0) return;
+  local best = aystar._open.Peek(); // Peek seulement : Pop() modifierait l'A*.
+  if (best == null) return;
+  probe.cost = best.GetCost();
+  probe.remaining = AIMap.DistanceManhattan(best.GetTile(), destinationCenter);
+  /* Meme reference de destination pour les trois instantanes. distance_manhattan est la distance
+   * centre-ville A -> centre-ville B connue avant le pathfinder; G mesure donc le rapprochement
+   * effectif du meilleur noeud vers le centre B. */
+  probe.gained = this.state.distance_manhattan - probe.remaining;
+  if (probe.gained > 0) {
+    probe.progress_ratio_ppm = (probe.cost * 1000 / probe.gained).tointeger();
+  }
+}
+
 /* Echantillonne la ligne DROITE entre les deux centres-villes (pas le vrai chemin du pathfinder,
  * qui est un resultat -- voir docs/phase3_ml.md 3.2). Un point par tuile de distance_straight
  * (borne a [minDistance, maxDistance] = [20,150] par construction des paires) : cout pur en
@@ -319,6 +378,12 @@ function TrainLineAI::_reportAll()
   if (this.costs != null) this.state.construction_cost = this.costs.GetCosts();
   this._report(this._code());
   this._report(this._codePreflightBudget());
+  this._report(this._codePathfinderIterationsConsumed());
+  foreach (probe in this.state.pathfinder_probes) {
+    this._report(this._codePathfinderProbeVolume(probe));
+    this._report(this._codePathfinderProbeDistance(probe));
+    this._report(this._codePathfinderProbeRatio(probe));
+  }
   if (this.state.pair_count != null) this._report(this._codePairCount());
   if (this.state.town_a != null && this.state.town_b != null) {
     this._report(this._codeDetail());
@@ -450,9 +515,20 @@ function TrainLineAI::_preflightPair(townA, townB, platformLength, deadlineTick)
   pathfinder.InitializePath(sources, goals);
   local path = false;
   local iterationsLeft = this.state.pathfinder_iterations_k * 1000;
+  local nextProbe = 0;
   while (path == false && iterationsLeft > 0 && AIController.GetTick() < deadlineTick) {
     path = pathfinder.FindPath(50);
     iterationsLeft -= 50;
+    this.state.pathfinder_iterations_consumed += 50;
+    /* Une sonde est prise seulement pendant une recherche encore vivante : AyStar nettoie ses
+     * structures des qu'il retourne un chemin ou null. Les sondes non atteintes restent a -1,
+     * tandis que AP publie le budget effectivement passe aux appels FindPath. */
+    if (path == false && nextProbe < this.state.pathfinder_probes.len() &&
+        this.state.pathfinder_iterations_consumed == this.state.pathfinder_probes[nextProbe].at) {
+      this._capturePathfinderProbe(pathfinder, AITown.GetLocation(townB),
+          this.state.pathfinder_probes[nextProbe]);
+      nextProbe++;
+    }
     this.Sleep(1);
   }
   if (path == false) return "path_search_limit";
@@ -545,6 +621,16 @@ function TrainLineAI::Start()
     wagons_per_train = null,
     pathfinder_iterations_k = null,
     barrier_base_k = null,
+    // Etat des trois lectures A*; -1 = instant non atteint / valeur indisponible, jamais zero.
+    pathfinder_iterations_consumed = 0,
+    pathfinder_probes = [
+      { at = 500, iterations = -1, closed = -1, frontier = -1, cost = -1, remaining = -1,
+        gained = -1, progress_ratio_ppm = -1 },
+      { at = 2000, iterations = -1, closed = -1, frontier = -1, cost = -1, remaining = -1,
+        gained = -1, progress_ratio_ppm = -1 },
+      { at = 5000, iterations = -1, closed = -1, frontier = -1, cost = -1, remaining = -1,
+        gained = -1, progress_ratio_ppm = -1 },
+    ],
     built_trains = 0,
     construction_cost = 0,
     vehicle_cost = 0, // sous-ensemble de construction_cost -- voir _codeVehicleCost()

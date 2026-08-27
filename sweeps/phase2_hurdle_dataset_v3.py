@@ -75,6 +75,11 @@ TERRAIN = re.compile(r"^TRLN\|(\d+)\|H(\d+)\|W(\d+)\|U(\d+)$")
 CORRIDOR = re.compile(r"^TRLN\|(\d+)\|CH(\d+)\|CW(\d+)\|CU(\d+)$")
 CORRIDOR_RUNS = re.compile(r"^TRLN\|(\d+)\|CR(\d+)\|CS(\d+)$")
 PAIRCOUNT = re.compile(r"^TRLN\|(\d+)\|Q(\d+)$")
+# A* truncated-search probe.  -1 is the explicit "snapshot not reached / unavailable" sentinel.
+PROBE_ITERATIONS = re.compile(r"^TRLN\|(\d+)\|AP(-?\d+)$")
+PROBE_VOLUME = re.compile(r"^TRLN\|(\d+)\|A(500|2000|5000)\|N(-?\d+)\|F(-?\d+)$")
+PROBE_DISTANCE = re.compile(r"^TRLN\|(\d+)\|A(500|2000|5000)\|C(-?\d+)\|R(-?\d+)$")
+PROBE_RATIO = re.compile(r"^TRLN\|(\d+)\|A(500|2000|5000)\|G(-?\d+)\|Q(-?\d+)$")
 
 FIELDS = (
     "attempt_id", "seed", "line_index", "stagger_slot", "pair_rank", "available_pair_count", "engine_rank",
@@ -86,6 +91,13 @@ FIELDS = (
     "terrain_dh", "terrain_water", "terrain_unbuildable",
     "corridor_dh", "corridor_water", "corridor_unbuildable",
     "corridor_max_water_run", "corridor_max_uphill_step",
+    "pathfinder_iterations_consumed",
+    "probe_500_closed", "probe_500_frontier", "probe_500_cost", "probe_500_remaining",
+    "probe_500_gained", "probe_500_progress_ratio_ppm",
+    "probe_2000_closed", "probe_2000_frontier", "probe_2000_cost", "probe_2000_remaining",
+    "probe_2000_gained", "probe_2000_progress_ratio_ppm",
+    "probe_5000_closed", "probe_5000_frontier", "probe_5000_cost", "probe_5000_remaining",
+    "probe_5000_gained", "probe_5000_progress_ratio_ppm",
     "engine_max_speed", "engine_power", "engine_price", "engine_running_cost", "wagon_capacity",
     "convoy_capacity",
     "built", "stage", "failure_reason", "barrier_flag", "first_mutation_tick",
@@ -105,6 +117,13 @@ FEATURES = (
     "terrain_dh", "terrain_water", "terrain_unbuildable",
     "corridor_dh", "corridor_water", "corridor_unbuildable",
     "corridor_max_water_run", "corridor_max_uphill_step",
+    "pathfinder_iterations_consumed",
+    "probe_500_closed", "probe_500_frontier", "probe_500_cost", "probe_500_remaining",
+    "probe_500_gained", "probe_500_progress_ratio_ppm",
+    "probe_2000_closed", "probe_2000_frontier", "probe_2000_cost", "probe_2000_remaining",
+    "probe_2000_gained", "probe_2000_progress_ratio_ppm",
+    "probe_5000_closed", "probe_5000_frontier", "probe_5000_cost", "probe_5000_remaining",
+    "probe_5000_gained", "probe_5000_progress_ratio_ppm",
     "engine_max_speed", "engine_power", "engine_price", "engine_running_cost",
     "wagon_capacity", "convoy_capacity",
 )
@@ -143,7 +162,8 @@ def veh(chunks):
 
 
 def parse(x):
-    st = dt = bt = pb = pt = dc = es = ec = sd = ca = cb = tr = cr = crr = pc = None
+    st = dt = bt = pb = pt = dc = es = ec = sd = ca = cb = tr = cr = crr = pc = pi = None
+    probes = {at: {} for at in (500, 2000, 5000)}
     vc = None
     for s in x["signs"]:
         if m := STATUS.match(s):
@@ -178,6 +198,17 @@ def parse(x):
             crr = m.groups()
         elif m := PAIRCOUNT.match(s):
             pc = m.groups()
+        elif m := PROBE_ITERATIONS.match(s):
+            pi = m.groups()
+        elif m := PROBE_VOLUME.match(s):
+            _, at, closed, frontier = m.groups()
+            probes[int(at)].update(closed=int(closed), frontier=int(frontier))
+        elif m := PROBE_DISTANCE.match(s):
+            _, at, cost, remaining = m.groups()
+            probes[int(at)].update(cost=int(cost), remaining=int(remaining))
+        elif m := PROBE_RATIO.match(s):
+            _, at, gained, ratio = m.groups()
+            probes[int(at)].update(gained=int(gained), progress_ratio_ppm=int(ratio))
 
     p = x["ai_params"]
     r = {k: None for k in FIELDS}
@@ -224,6 +255,11 @@ def parse(x):
         r.update(corridor_max_water_run=int(crr[1]), corridor_max_uphill_step=int(crr[2]))
     if pc:
         r.update(available_pair_count=int(pc[1]))
+    if pi:
+        r.update(pathfinder_iterations_consumed=int(pi[1]))
+    for at, fields in probes.items():
+        for name, value in fields.items():
+            r[f"probe_{at}_{name}"] = value
 
     if r["construction_cost"] is not None and vc is not None:
         r["infra_cost"] = r["construction_cost"] - vc
