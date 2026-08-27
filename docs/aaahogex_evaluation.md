@@ -258,11 +258,115 @@ exposition GPL v3, et ça sert directement le modèle au lieu d'accélérer l'IA
 
 ---
 
+## 5ter. Inventaire des grandeurs qu'AAAHogEx consulte
+
+*(Troisième passe, motivée par la question « que regarde-t-il exactement dans ses estimations de
+construction ? ». Trié par calculabilité chez nous **avant** le pathfinding — c'est le seul tri qui
+nous serve, puisque tout ce qui n'est connu qu'après le tracé est une fuite pour l'étage 1.)*
+
+### Catégorie I — calculable avant le pathfinding
+
+**Économique**
+| Grandeur | API | Réf. |
+|---|---|---|
+| Production mensuelle source/destination | `AITile.GetCargoProduction` | `place.nut:2327-2344`, `2380-2431` |
+| Acceptation réelle à destination | `AITile.GetCargoAcceptance` | `place.nut:2747-2768`, `2450-2464` |
+| Cargo compatible | listes de cargo | `place.nut:1026-1079` |
+| Capacité / vitesse / traction / prix du moteur | `AIEngine.*` | `estimator.nut:1296-1353`, `1454-1548` |
+| Liquidités, coût théorique de voie, entretien | financier + agrégation réseau | `estimator.nut:549-562`, `route.nut:4149-4169` |
+| Longueur de quai exigée par la rame | `AIGameSettings.GetValue` | `station.nut:1322-1357` |
+
+**Autour des gares — la partie que nous n'exploitons pas du tout**
+| Grandeur | API | Réf. |
+|---|---|---|
+| **Nombre de sites de gare réellement faisables** près de chaque ville | `AITile.IsBuildableRectangle`, `GetMaxHeight`/`GetMinHeight` (amplitude < 3) | `station.nut:1368-1389` |
+| Pré-filtre d'emprise : rectangle constructible, écart de hauteur des coins ≤ 2 | `IsBuildableRectangle`, `GetMaxHeight` | `station.nut:2707-2717` |
+| Faisabilité testée du vrai bâtiment, sans mutation | `AITestMode` + `AIRail.BuildRailStation` | `station.nut:841-890`, `1041-1045` |
+| Score d'orientation de la gare vers l'autre extrémité | `AIMap.GetTileIndex`, `DistanceSquare` | `station.nut:939-957` |
+| Distance entre sorties de quai et autre gare | `AIMap.DistanceManhattan` | `station.nut:1014-1022` |
+| Production/acceptation couvertes par le rectangle de quai | `GetCargoProduction`/`Acceptance` | `station.nut:997-1026` |
+| **Occupation locale des sorties** : rails voisins, propriétaire, gare ou jonction existante | `AITile.GetOwner`, `AICompany.IsMine`, `AIRail.GetRailTracks`, `AIStation.GetStationID` | `station.nut:2019-2028`, `2720-2735` |
+
+**Terrain sur corridor — DÉJÀ ESSAYÉ, DÉJÀ ÉCHOUÉ, ne pas y revenir**
+`IsLandConnectedForRail` (séquence maritime contiguë, seuil 13) → notre `corridor_max_water_run`
+fait **moins bien** que le total d'eau. `GetSlopeLevel` (pente tous les 8 pas) → notre
+`corridor_max_uphill_step` fait **moins bien** que l'amplitude. Ensemble : **−0,0020 d'AUC**,
+1 pli sur 5.
+
+### Catégorie II — connu seulement pendant/après le chemin (fuite pour l'étage 1)
+
+Longueur réelle et ratio détour/Manhattan (`route.nut:3942-3948`) ; composition du tracé — tuiles,
+diagonales, virages serrés, pentes, côtes, croisements de route, ponts, tunnels
+(`pathfinder.nut:504-771`) ; coût A* cumulé `g` (`aystar.nut:229-260`) ; pente réellement subie
+selon le sens de circulation (`pathfinder.nut:675-693`) ; faisabilité du doublement de voie
+(`pathfinder.nut:712-761`).
+
+### Catégorie III — non transposable
+
+Cache d'estimations discrétisées (`route.nut:91-125`) ; production ajustée par correspondances et
+graphe de lignes existantes (`estimator.nut:126-208`) ; entretien réparti sur tout son réseau
+(`route.nut:4149-4169`) ; gares partageables et groupes de stations (`station.nut:1761-1810`) ;
+**mémoire des paires déjà impossibles** (`place.nut:758-785`, `975-1000`) — celle-ci serait de
+surcroît une **fuite temporelle** si on la copiait comme feature.
+
+### La fonction de coût de son pathfinder, pour mémoire
+
+Tuile ordinaire / diagonale / diagonale en mer répétée ; virage ordinaire ; virage serré, virage
+serré du retour, virage serré près du but, demi-tour gauche près du but ; croisement de route
+(`HasTransportType`) ; côte et mer ; **pente pondérée par la traction et la puissance du moteur**
+(`pathfinder.nut:165-180`, `675-693`) ; tunnel et pont avec deux seuils de surcoût chacun ; tuiles
+« dangereuses » fournies par l'appelant. Trois termes sont déclarés mais **inactifs** dans cette
+version : `_cost_crossing_rail`, `_cost_crossing_reverse`, `_cost_under_bridge`.
+
+Son heuristique n'est **pas admissible** : `_Estimate` multiplie le coût octile minimal par 2 puis
+ajoute un biais de guidage (`pathfinder.nut:791-820`), alors que le commentaire d'AyStar exige de
+ne pas surestimer (`aystar.nut:25-31`). C'est un score de recherche pondéré, pas une borne.
+
+---
+
+## 5quater. La sonde de recherche tronquée — la piste retenue
+
+Toutes les mesures du corridor direct ont échoué parce qu'elles tentent de **deviner la difficulté
+du pathfinding sans faire de pathfinding**. Un cas échoue en `PATHLIM` avec une séquence d'eau
+contiguë de 2 : son obstacle est sur le détour, pas sur la droite.
+
+**L'idée** : observer l'état de l'A* à quelques instantanés précoces (500, 2 000, 5 000 itérations)
+et en faire des features. La recherche **se poursuit ensuite normalement** — on n'ajoute aucune
+itération, on lit ce qu'on dépensait déjà.
+
+**Faisabilité vérifiée au source des bibliothèques** (lisibles dans le volume Docker, pas sur
+l'hôte) :
+
+- `Pathfinder.Rail` v1 : `Rail._pathfinder` référence l'objet AyStar (l. 17, 37). Squirrel n'a pas
+  de visibilité privée.
+- **`Graph.AyStar` v4 ne nettoie `_open`/`_closed` que sur terminaison** (`_CleanPath()`) : après
+  un `FindPath()` rendant `false`, l'état est intact.
+- `_open` est un `Queue.BinaryHeap` v1 → **`Peek()`** (sans retirer) et **`Count()`**.
+- `_closed` est une `AIList` → `Count()`.
+- Le nœud rendu expose **`GetTile()`**, **`GetCost()`** (coût cumulé `g`), `GetParent()`.
+
+**Grandeurs mesurables** : tuiles fermées (volume exploré), taille de la frontière, coût cumulé du
+meilleur nœud, distance restante de ce nœud au but, et le rapport entre coût dépensé et distance
+gagnée — la difficulté du détour.
+
+**Pourquoi elle passe le test qui a tué les autres** : toutes les features rejetées étaient
+redondantes avec la distance. Deux trajets de 100 tuiles, l'un en plaine, l'autre coincé par un
+lac, donnent des sondes radicalement différentes à distance identique.
+
+**Réserve** : à 500 itérations, un trajet long peut n'avoir encore rencontré aucun obstacle
+décisif. D'où les instantanés multiples — la *trajectoire* de l'exploration dit plus qu'un point
+isolé. Et une recherche qui se termine avant 500 itérations est en soi le signal le plus fort qui
+soit ; il faut alors une sentinelle non ambiguë, surtout pas 0.
+
+---
+
 ## 6. Ce qu'il reste à retenir
 
 | Idée | Verdict |
 |---|---|
-| **Pré-filtre `IsLandConnectedForRail`** (§5bis) | **LA trouvaille** — à transposer en features `corridor_max_water_run` et `corridor_max_uphill_step` |
+| **Sonde d'A\* tronquée** (§5quater) | **LA piste retenue** — faisabilité vérifiée au source, coût nul, seule grandeur non redondante avec la distance |
+| Sites de gare faisables, occupation des sorties (§5ter, cat. I) | **Inexploité chez nous** — mesures locales aux extrémités, de nature différente du corridor |
+| Pré-filtre `IsLandConnectedForRail` (§5bis) | **ESSAYÉ, ÉCHOUÉ** : `corridor_max_water_run` fait moins bien que le total d'eau ; avec la raideur, −0,0020 d'AUC |
 | Construction incrémentale | **Inexistante** dans AAAHogEx — l'hypothèse de départ était fausse |
 | Ponts/tunnels en voisins d'A* arbitrés par le coût | **Déjà présent** chez nous via `Pathfinder.Rail` |
 | `RetryToBuild` conservant le préfixe construit | **À retenir** — sans risque pour la barrière |
