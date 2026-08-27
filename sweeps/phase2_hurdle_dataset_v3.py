@@ -29,11 +29,14 @@ run's) every time it runs, so a partial run always yields a usable partial datas
 again later to fill in the rest.
 """
 import csv
+import inspect
 import json
 import math
 import os
 import re
+import shutil
 import statistics
+import openttdlab
 from openttdlab import bananas_ai_library, local_folder, run_experiments
 
 CFG = """[difficulty]
@@ -328,6 +331,44 @@ def keep(row):
     return ()
 
 
+_ORIGINAL_RUN_EXPERIMENT = None
+_RUN_EXPERIMENT_SIGNATURE = None
+
+
+def _run_experiment_with_savegame_cleanup(*args, **kwargs):
+    """Evite que les autosaves deja checkpoints occupent le disque jusqu'a la fin du lot."""
+    bound = _RUN_EXPERIMENT_SIGNATURE.bind(*args, **kwargs)
+    bound.apply_defaults()
+    missing = {"run_dir", "i", "final_screenshot_directory"} - bound.arguments.keys()
+    if missing:
+        raise RuntimeError(f"OpenTTDLab _run_experiment signature no longer exposes: {missing}")
+    # OpenTTDLab relit le dernier autosave apres sa boucle lorsqu'une capture finale est demandee.
+    # Cette campagne n'en demande pas : refuser ici evite d'effacer cette dependance amont en silence.
+    assert bound.arguments["final_screenshot_directory"] is None, (
+        "savegame cleanup requires final_screenshot_directory=None"
+    )
+    experiment_dir = os.path.join(bound.arguments["run_dir"], str(bound.arguments["i"]))
+    try:
+        return _ORIGINAL_RUN_EXPERIMENT(*args, **kwargs)
+    finally:
+        # Le parseur et keep() ont deja ecrit le checkpoint avant ce retour ; retenir les autosaves
+        # jusqu'a la fin des 2000 tentatives transformait donc leur valeur transitoire en fuite disque.
+        try:
+            shutil.rmtree(experiment_dir, ignore_errors=True)
+        except BaseException:
+            pass
+
+
+def enable_savegame_cleanup():
+    """Pool pickle cette reference module : l'accroche doit donc etre posee avant sa soumission."""
+    global _ORIGINAL_RUN_EXPERIMENT, _RUN_EXPERIMENT_SIGNATURE
+    if openttdlab._run_experiment is _run_experiment_with_savegame_cleanup:
+        return
+    _ORIGINAL_RUN_EXPERIMENT = openttdlab._run_experiment
+    _RUN_EXPERIMENT_SIGNATURE = inspect.signature(_ORIGINAL_RUN_EXPERIMENT)
+    openttdlab._run_experiment = _run_experiment_with_savegame_cleanup
+
+
 def corr(xs, ys):
     good = [(x, y) for x, y in zip(xs, ys) if x is not None]
     if len(good) < 2:
@@ -422,6 +463,7 @@ if __name__ == "__main__":
         )
         if any(len(e["ais"]) != 1 for e in ex):
             raise RuntimeError("one company per game invariant violated")
+        enable_savegame_cleanup()
         run_experiments(
             openttd_version="13.4", opengfx_version="7.1", max_workers=3,
             result_processor=keep,
