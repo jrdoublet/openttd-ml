@@ -1,0 +1,1388 @@
+{
+  "dataset": {
+    "csv": "data/phase2_hurdle_v2.csv",
+    "rows_before_ok_filter": 2000,
+    "rows_after_ok_filter": 1551,
+    "n_seeds": 100,
+    "target": "profit_ligne",
+    "target_summary": {
+      "min": -1949657.0,
+      "q1": 513731.5,
+      "median": 1998145.0,
+      "q3": 3903006.5,
+      "max": 18552621.0,
+      "mean": 2462745.234042553,
+      "std": 2666928.766747898,
+      "negative_rows": 271
+    }
+  },
+  "feature_policy": {
+    "decision_time": "Apres pathfinding, avant la premiere mutation.",
+    "difference_from_stage1": "Les features de gares et de terrain sont autorisees car connues apres pathfinding mais avant construction.",
+    "base_features_used": [
+      "distance_straight",
+      "distance_manhattan",
+      "pair_rank",
+      "town_a_population",
+      "town_b_population",
+      "num_trains",
+      "wagons_per_train",
+      "convoy_capacity",
+      "engine_rank",
+      "engine_max_speed",
+      "engine_power",
+      "engine_price",
+      "engine_running_cost",
+      "estimated_cost",
+      "station_a_town_dist",
+      "station_b_town_dist",
+      "station_a_cargo_prod",
+      "station_a_cargo_acc",
+      "station_b_cargo_prod",
+      "station_b_cargo_acc",
+      "terrain_dh",
+      "terrain_water",
+      "terrain_unbuildable"
+    ],
+    "derived_features_used": [
+      "cargo_production_per_convoy_capacity",
+      "cargo_acceptance_per_convoy_capacity"
+    ],
+    "derived_feature_rationale": "Production et acceptation totales divisees par convoy_capacity, pour rendre observable un proxy de demande/capacite.",
+    "excluded_columns": [
+      "attempt_id",
+      "line_index",
+      "town_a",
+      "town_b",
+      "stagger_slot",
+      "wagon_capacity",
+      "built",
+      "stage",
+      "failure_reason",
+      "barrier_flag",
+      "first_mutation_tick",
+      "profit_ligne",
+      "sum_profit_last_year",
+      "amortization_annual",
+      "vehicle_amortization_annual",
+      "infra_amortization_annual",
+      "construction_cost",
+      "infra_cost",
+      "vehicle_cost",
+      "n_lead_vehicles",
+      "avg_max_age_years"
+    ],
+    "excluded_columns_present_in_csv": [
+      "attempt_id",
+      "line_index",
+      "town_a",
+      "town_b",
+      "stagger_slot",
+      "wagon_capacity",
+      "built",
+      "stage",
+      "failure_reason",
+      "barrier_flag",
+      "first_mutation_tick",
+      "profit_ligne",
+      "sum_profit_last_year",
+      "amortization_annual",
+      "vehicle_amortization_annual",
+      "infra_amortization_annual",
+      "construction_cost",
+      "infra_cost",
+      "vehicle_cost",
+      "n_lead_vehicles",
+      "avg_max_age_years"
+    ],
+    "runtime_feature_matrix_assertion": "No excluded column and exactly the 23 base plus 2 derived allowed features."
+  },
+  "target_transform": {
+    "raw": "Aucune transformation.",
+    "signed_sqrt": "sign(y) * sqrt(abs(y)), inverse sign(z) * z**2 ; attenue l'asymetrie tout en gardant les 17.5% environ de profits negatifs."
+  },
+  "cross_validation": {
+    "splitter": "GroupKFold",
+    "n_splits": 5,
+    "group_column": "seed",
+    "folds": [
+      {
+        "fold": 1,
+        "train_rows": 1239,
+        "validation_rows": 312,
+        "train_seeds": 80,
+        "validation_seeds": 20
+      },
+      {
+        "fold": 2,
+        "train_rows": 1240,
+        "validation_rows": 311,
+        "train_seeds": 80,
+        "validation_seeds": 20
+      },
+      {
+        "fold": 3,
+        "train_rows": 1242,
+        "validation_rows": 309,
+        "train_seeds": 80,
+        "validation_seeds": 20
+      },
+      {
+        "fold": 4,
+        "train_rows": 1243,
+        "validation_rows": 308,
+        "train_seeds": 80,
+        "validation_seeds": 20
+      },
+      {
+        "fold": 5,
+        "train_rows": 1240,
+        "validation_rows": 311,
+        "train_seeds": 80,
+        "validation_seeds": 20
+      }
+    ],
+    "standard_deviation_ddof": 1
+  },
+  "models": {
+    "dummy_median": {
+      "label": "DummyRegressor (mediane du train fold)",
+      "features": [
+        "distance_straight",
+        "distance_manhattan",
+        "pair_rank",
+        "town_a_population",
+        "town_b_population",
+        "num_trains",
+        "wagons_per_train",
+        "convoy_capacity",
+        "engine_rank",
+        "engine_max_speed",
+        "engine_power",
+        "engine_price",
+        "engine_running_cost",
+        "estimated_cost",
+        "station_a_town_dist",
+        "station_b_town_dist",
+        "station_a_cargo_prod",
+        "station_a_cargo_acc",
+        "station_b_cargo_prod",
+        "station_b_cargo_acc",
+        "terrain_dh",
+        "terrain_water",
+        "terrain_unbuildable",
+        "cargo_production_per_convoy_capacity",
+        "cargo_acceptance_per_convoy_capacity"
+      ],
+      "family": "dummy",
+      "target_transform": "none",
+      "metrics": {
+        "mae": {
+          "mean": 2052034.6824577197,
+          "std": 114714.1816381716,
+          "median": 2038175.3246753246,
+          "folds": [
+            1963130.016025641,
+            1921934.0852090032,
+            2184311.881877023,
+            2038175.3246753246,
+            2152622.104501608
+          ]
+        },
+        "r2": {
+          "mean": -0.031541950359175217,
+          "std": 0.016302005478099523,
+          "median": -0.03313979898511321,
+          "folds": [
+            -0.00879280965637963,
+            -0.022853863975934363,
+            -0.04312488150391203,
+            -0.03313979898511321,
+            -0.049798397674536865
+          ]
+        },
+        "mae_reduction_vs_dummy_median": {
+          "mean": 0.0,
+          "std": 0.0,
+          "median": 0.0,
+          "folds": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    "linear_25_features_raw": {
+      "label": "Regression lineaire (25 features, cible brute)",
+      "features": [
+        "distance_straight",
+        "distance_manhattan",
+        "pair_rank",
+        "town_a_population",
+        "town_b_population",
+        "num_trains",
+        "wagons_per_train",
+        "convoy_capacity",
+        "engine_rank",
+        "engine_max_speed",
+        "engine_power",
+        "engine_price",
+        "engine_running_cost",
+        "estimated_cost",
+        "station_a_town_dist",
+        "station_b_town_dist",
+        "station_a_cargo_prod",
+        "station_a_cargo_acc",
+        "station_b_cargo_prod",
+        "station_b_cargo_acc",
+        "terrain_dh",
+        "terrain_water",
+        "terrain_unbuildable",
+        "cargo_production_per_convoy_capacity",
+        "cargo_acceptance_per_convoy_capacity"
+      ],
+      "family": "linear",
+      "target_transform": "raw",
+      "metrics": {
+        "mae": {
+          "mean": 1233220.9821999518,
+          "std": 93760.90906622348,
+          "median": 1198731.6345010812,
+          "folds": [
+            1198731.6345010812,
+            1120886.4456924968,
+            1321639.0850588623,
+            1185506.740458019,
+            1339341.0052892996
+          ]
+        },
+        "r2": {
+          "mean": 0.6155364673901957,
+          "std": 0.016496078735890967,
+          "median": 0.6174908511885089,
+          "folds": [
+            0.6240633318660883,
+            0.6372504165987207,
+            0.5961076181242451,
+            0.6174908511885089,
+            0.602770119173416
+          ]
+        },
+        "mae_reduction_vs_dummy_median": {
+          "mean": 0.399453724189577,
+          "std": 0.017663797717368545,
+          "median": 0.39494030315709705,
+          "folds": [
+            0.3893773592602314,
+            0.4167924621771799,
+            0.39494030315709705,
+            0.4183489878885337,
+            0.37780950846484296
+          ]
+        }
+      }
+    },
+    "linear_25_features_signed_sqrt": {
+      "label": "Regression lineaire (25 features, cible racine signee)",
+      "features": [
+        "distance_straight",
+        "distance_manhattan",
+        "pair_rank",
+        "town_a_population",
+        "town_b_population",
+        "num_trains",
+        "wagons_per_train",
+        "convoy_capacity",
+        "engine_rank",
+        "engine_max_speed",
+        "engine_power",
+        "engine_price",
+        "engine_running_cost",
+        "estimated_cost",
+        "station_a_town_dist",
+        "station_b_town_dist",
+        "station_a_cargo_prod",
+        "station_a_cargo_acc",
+        "station_b_cargo_prod",
+        "station_b_cargo_acc",
+        "terrain_dh",
+        "terrain_water",
+        "terrain_unbuildable",
+        "cargo_production_per_convoy_capacity",
+        "cargo_acceptance_per_convoy_capacity"
+      ],
+      "family": "linear",
+      "target_transform": "signed_sqrt",
+      "metrics": {
+        "mae": {
+          "mean": 1244313.4024209115,
+          "std": 59022.722356687205,
+          "median": 1236377.1734241024,
+          "folds": [
+            1157893.0355732457,
+            1236377.1734241024,
+            1318376.8548056977,
+            1235592.5065688011,
+            1273327.4417327095
+          ]
+        },
+        "r2": {
+          "mean": 0.5869137761160363,
+          "std": 0.047963797921796884,
+          "median": 0.5851949022608411,
+          "folds": [
+            0.6317629346122466,
+            0.5123918992512303,
+            0.5787194494095173,
+            0.5851949022608411,
+            0.6264996950463468
+          ]
+        },
+        "mae_reduction_vs_dummy_median": {
+          "mean": 0.39311335383945245,
+          "std": 0.021590336534345445,
+          "median": 0.39643378505417914,
+          "folds": [
+            0.4101801581550867,
+            0.35670157320215745,
+            0.39643378505417914,
+            0.3937751617292161,
+            0.4084760910566231
+          ]
+        }
+      }
+    },
+    "ridge_25_features_raw": {
+      "label": "Ridge (alpha=1.0) (25 features, cible brute)",
+      "features": [
+        "distance_straight",
+        "distance_manhattan",
+        "pair_rank",
+        "town_a_population",
+        "town_b_population",
+        "num_trains",
+        "wagons_per_train",
+        "convoy_capacity",
+        "engine_rank",
+        "engine_max_speed",
+        "engine_power",
+        "engine_price",
+        "engine_running_cost",
+        "estimated_cost",
+        "station_a_town_dist",
+        "station_b_town_dist",
+        "station_a_cargo_prod",
+        "station_a_cargo_acc",
+        "station_b_cargo_prod",
+        "station_b_cargo_acc",
+        "terrain_dh",
+        "terrain_water",
+        "terrain_unbuildable",
+        "cargo_production_per_convoy_capacity",
+        "cargo_acceptance_per_convoy_capacity"
+      ],
+      "family": "ridge",
+      "target_transform": "raw",
+      "metrics": {
+        "mae": {
+          "mean": 1232664.3715630206,
+          "std": 93995.60232208906,
+          "median": 1198028.2137165812,
+          "folds": [
+            1198028.2137165812,
+            1119157.4009270973,
+            1320122.3909839338,
+            1186303.1099620408,
+            1339710.7422254495
+          ]
+        },
+        "r2": {
+          "mean": 0.615728149341846,
+          "std": 0.016348959719964962,
+          "median": 0.6175386227402145,
+          "folds": [
+            0.6239419399153965,
+            0.6375616976837579,
+            0.597130364180782,
+            0.6175386227402145,
+            0.6024681221890795
+          ]
+        },
+        "mae_reduction_vs_dummy_median": {
+          "mean": 0.39973168895130684,
+          "std": 0.01774565081743964,
+          "median": 0.3956346609946899,
+          "folds": [
+            0.3897356752040343,
+            0.4176921000881292,
+            0.3956346609946899,
+            0.4179582611957019,
+            0.3776377472739787
+          ]
+        }
+      }
+    },
+    "ridge_25_features_signed_sqrt": {
+      "label": "Ridge (alpha=1.0) (25 features, cible racine signee)",
+      "features": [
+        "distance_straight",
+        "distance_manhattan",
+        "pair_rank",
+        "town_a_population",
+        "town_b_population",
+        "num_trains",
+        "wagons_per_train",
+        "convoy_capacity",
+        "engine_rank",
+        "engine_max_speed",
+        "engine_power",
+        "engine_price",
+        "engine_running_cost",
+        "estimated_cost",
+        "station_a_town_dist",
+        "station_b_town_dist",
+        "station_a_cargo_prod",
+        "station_a_cargo_acc",
+        "station_b_cargo_prod",
+        "station_b_cargo_acc",
+        "terrain_dh",
+        "terrain_water",
+        "terrain_unbuildable",
+        "cargo_production_per_convoy_capacity",
+        "cargo_acceptance_per_convoy_capacity"
+      ],
+      "family": "ridge",
+      "target_transform": "signed_sqrt",
+      "metrics": {
+        "mae": {
+          "mean": 1243713.5039004511,
+          "std": 58133.58265531293,
+          "median": 1235483.8086248895,
+          "folds": [
+            1159034.01496804,
+            1234173.6787821131,
+            1316626.7381244374,
+            1235483.8086248895,
+            1273249.2790027757
+          ]
+        },
+        "r2": {
+          "mean": 0.5872462621297657,
+          "std": 0.04713215378011528,
+          "median": 0.5854911173081188,
+          "folds": [
+            0.6309191564935146,
+            0.5139171957537687,
+            0.579447984108719,
+            0.5854911173081188,
+            0.6264558569847078
+          ]
+        },
+        "mae_reduction_vs_dummy_median": {
+          "mean": 0.39340458521947774,
+          "std": 0.021033432699335098,
+          "median": 0.39723500611412976,
+          "folds": [
+            0.4095989539630668,
+            0.35784807175221034,
+            0.39723500611412976,
+            0.393828492736905,
+            0.4085124015310767
+          ]
+        }
+      }
+    },
+    "hist_gradient_boosting_25_features_raw": {
+      "label": "HistGradientBoostingRegressor (25 features, cible brute)",
+      "features": [
+        "distance_straight",
+        "distance_manhattan",
+        "pair_rank",
+        "town_a_population",
+        "town_b_population",
+        "num_trains",
+        "wagons_per_train",
+        "convoy_capacity",
+        "engine_rank",
+        "engine_max_speed",
+        "engine_power",
+        "engine_price",
+        "engine_running_cost",
+        "estimated_cost",
+        "station_a_town_dist",
+        "station_b_town_dist",
+        "station_a_cargo_prod",
+        "station_a_cargo_acc",
+        "station_b_cargo_prod",
+        "station_b_cargo_acc",
+        "terrain_dh",
+        "terrain_water",
+        "terrain_unbuildable",
+        "cargo_production_per_convoy_capacity",
+        "cargo_acceptance_per_convoy_capacity"
+      ],
+      "family": "hist_gradient_boosting",
+      "target_transform": "raw",
+      "metrics": {
+        "mae": {
+          "mean": 1141290.832653713,
+          "std": 59387.17841679621,
+          "median": 1168683.6273403526,
+          "folds": [
+            1083287.1072055579,
+            1071197.120073079,
+            1189556.3702016727,
+            1168683.6273403526,
+            1193729.938447902
+          ]
+        },
+        "r2": {
+          "mean": 0.6560915498672794,
+          "std": 0.026911159196831222,
+          "median": 0.6468274069879492,
+          "folds": [
+            0.6818678200736369,
+            0.6468274069879492,
+            0.6371543976829765,
+            0.6274289438643665,
+            0.6871791807274674
+          ]
+        },
+        "mae_reduction_vs_dummy_median": {
+          "mean": 0.44365903576787397,
+          "std": 0.010649995747804435,
+          "median": 0.4454530890714402,
+          "folds": [
+            0.4481837176537732,
+            0.4426462757922366,
+            0.455409101570485,
+            0.42660299475143504,
+            0.4454530890714402
+          ]
+        }
+      }
+    },
+    "hist_gradient_boosting_25_features_signed_sqrt": {
+      "label": "HistGradientBoostingRegressor (25 features, cible racine signee)",
+      "features": [
+        "distance_straight",
+        "distance_manhattan",
+        "pair_rank",
+        "town_a_population",
+        "town_b_population",
+        "num_trains",
+        "wagons_per_train",
+        "convoy_capacity",
+        "engine_rank",
+        "engine_max_speed",
+        "engine_power",
+        "engine_price",
+        "engine_running_cost",
+        "estimated_cost",
+        "station_a_town_dist",
+        "station_b_town_dist",
+        "station_a_cargo_prod",
+        "station_a_cargo_acc",
+        "station_b_cargo_prod",
+        "station_b_cargo_acc",
+        "terrain_dh",
+        "terrain_water",
+        "terrain_unbuildable",
+        "cargo_production_per_convoy_capacity",
+        "cargo_acceptance_per_convoy_capacity"
+      ],
+      "family": "hist_gradient_boosting",
+      "target_transform": "signed_sqrt",
+      "metrics": {
+        "mae": {
+          "mean": 1112502.679915762,
+          "std": 75470.979676005,
+          "median": 1156816.924050547,
+          "folds": [
+            994634.4241989652,
+            1078782.3573093142,
+            1161906.3136396953,
+            1156816.924050547,
+            1170373.3803802875
+          ]
+        },
+        "r2": {
+          "mean": 0.662747125751909,
+          "std": 0.039286511976654025,
+          "median": 0.6492044340038591,
+          "folds": [
+            0.7177079167698923,
+            0.6492044340038591,
+            0.6395081072445123,
+            0.6200098843036328,
+            0.6873052864376485
+          ]
+        },
+        "mae_reduction_vs_dummy_median": {
+          "mean": 0.4577676661586481,
+          "std": 0.02439075795700239,
+          "median": 0.4563033716262699,
+          "folds": [
+            0.49334256209244676,
+            0.43869960702008126,
+            0.468067576210204,
+            0.4324252138442386,
+            0.4563033716262699
+          ]
+        }
+      }
+    },
+    "linear_distance_manhattan_raw": {
+      "label": "Regression lineaire (distance_manhattan seule, cible brute)",
+      "features": [
+        "distance_manhattan"
+      ],
+      "family": "linear",
+      "target_transform": "raw",
+      "metrics": {
+        "mae": {
+          "mean": 1781392.7273771758,
+          "std": 158031.4836386093,
+          "median": 1790061.7523165233,
+          "folds": [
+            1638513.9617776042,
+            1610960.0878992465,
+            1889241.841129253,
+            1790061.7523165233,
+            1978185.9937632529
+          ]
+        },
+        "r2": {
+          "mean": 0.2182514118119893,
+          "std": 0.06952100094112303,
+          "median": 0.24628709056677567,
+          "folds": [
+            0.2953033124376302,
+            0.25530154003961314,
+            0.24628709056677567,
+            0.1710090941645056,
+            0.1233560218514218
+          ]
+        },
+        "mae_reduction_vs_dummy_median": {
+          "mean": 0.1330024949542233,
+          "std": 0.034308375848352085,
+          "median": 0.1350860393133101,
+          "folds": [
+            0.16535637048901242,
+            0.16180263397323502,
+            0.1350860393133101,
+            0.12173318426290192,
+            0.08103424673265713
+          ]
+        }
+      }
+    },
+    "linear_distance_manhattan_signed_sqrt": {
+      "label": "Regression lineaire (distance_manhattan seule, cible racine signee)",
+      "features": [
+        "distance_manhattan"
+      ],
+      "family": "linear",
+      "target_transform": "signed_sqrt",
+      "metrics": {
+        "mae": {
+          "mean": 1875272.8086368307,
+          "std": 174076.7175892045,
+          "median": 1924429.892611765,
+          "folds": [
+            1712793.4613410155,
+            1695863.2457089378,
+            1924429.892611765,
+            1928469.2393528544,
+            2114808.2041695816
+          ]
+        },
+        "r2": {
+          "mean": 0.10703112267777622,
+          "std": 0.10331696438900988,
+          "median": 0.1610087139606684,
+          "folds": [
+            0.19731793525763341,
+            0.18613277135203055,
+            0.1610087139606684,
+            0.009994326295146072,
+            -0.019298133476597368
+          ]
+        },
+        "mae_reduction_vs_dummy_median": {
+          "mean": 0.08710289971524669,
+          "std": 0.048794983288619975,
+          "median": 0.11762673925182043,
+          "folds": [
+            0.12751909075866108,
+            0.11762673925182043,
+            0.1189765946069643,
+            0.05382563707562593,
+            0.01756643688316173
+          ]
+        }
+      }
+    },
+    "ridge_distance_manhattan_raw": {
+      "label": "Ridge (alpha=1.0) (distance_manhattan seule, cible brute)",
+      "features": [
+        "distance_manhattan"
+      ],
+      "family": "ridge",
+      "target_transform": "raw",
+      "metrics": {
+        "mae": {
+          "mean": 1781420.1886373446,
+          "std": 157979.1803411922,
+          "median": 1790072.4810838483,
+          "folds": [
+            1638630.4771259255,
+            1610999.0951679975,
+            1889288.6977300772,
+            1790072.4810838483,
+            1978110.1920788737
+          ]
+        },
+        "r2": {
+          "mean": 0.21825243086172633,
+          "std": 0.06946313559227885,
+          "median": 0.24625029368346474,
+          "folds": [
+            0.29522488128586744,
+            0.25529712242270186,
+            0.24625029368346474,
+            0.1710717034222986,
+            0.12341815349429897
+          ]
+        },
+        "mae_reduction_vs_dummy_median": {
+          "mean": 0.13298826508493505,
+          "std": 0.03427689805796208,
+          "median": 0.13506458788908215,
+          "folds": [
+            0.16529701866444135,
+            0.16178233813215948,
+            0.13506458788908215,
+            0.12172792035493729,
+            0.08106946038405494
+          ]
+        }
+      }
+    },
+    "ridge_distance_manhattan_signed_sqrt": {
+      "label": "Ridge (alpha=1.0) (distance_manhattan seule, cible racine signee)",
+      "features": [
+        "distance_manhattan"
+      ],
+      "family": "ridge",
+      "target_transform": "signed_sqrt",
+      "metrics": {
+        "mae": {
+          "mean": 1875286.7916874692,
+          "std": 174011.12975672726,
+          "median": 1924492.5577293863,
+          "folds": [
+            1712840.8968342922,
+            1695956.6499269381,
+            1924492.5577293863,
+            1928427.856857894,
+            2114715.997088835
+          ]
+        },
+        "r2": {
+          "mean": 0.10700412735507822,
+          "std": 0.10322469367159987,
+          "median": 0.1608897660520925,
+          "folds": [
+            0.19721019699380193,
+            0.18607186681115817,
+            0.1608897660520925,
+            0.01006638906328039,
+            -0.019217582144941847
+          ]
+        },
+        "mae_reduction_vs_dummy_median": {
+          "mean": 0.0870952372110347,
+          "std": 0.04875897347686424,
+          "median": 0.11757814017721158,
+          "folds": [
+            0.1274949275637176,
+            0.11757814017721158,
+            0.11894790588437787,
+            0.05384594077298677,
+            0.017609271656879644
+          ]
+        }
+      }
+    },
+    "hist_gradient_boosting_distance_manhattan_raw": {
+      "label": "HistGradientBoostingRegressor (distance_manhattan seule, cible brute)",
+      "features": [
+        "distance_manhattan"
+      ],
+      "family": "hist_gradient_boosting",
+      "target_transform": "raw",
+      "metrics": {
+        "mae": {
+          "mean": 1876638.5330607563,
+          "std": 183597.01589399762,
+          "median": 1825551.178243245,
+          "folds": [
+            1742214.2492721225,
+            1677366.0183935848,
+            2054665.8319498147,
+            1825551.178243245,
+            2083395.3874450151
+          ]
+        },
+        "r2": {
+          "mean": 0.11995337388398353,
+          "std": 0.040601345120863594,
+          "median": 0.13676337917168413,
+          "folds": [
+            0.1521657341375242,
+            0.15036248535948993,
+            0.10467398780755677,
+            0.13676337917168413,
+            0.0558012829436626
+          ]
+        },
+        "mae_reduction_vs_dummy_median": {
+          "mean": 0.08712335754331668,
+          "std": 0.03982409208041094,
+          "median": 0.10432083239254697,
+          "folds": [
+            0.11253241759339139,
+            0.12725101693007468,
+            0.05935326864394508,
+            0.10432083239254697,
+            0.032159252156625295
+          ]
+        }
+      }
+    },
+    "hist_gradient_boosting_distance_manhattan_signed_sqrt": {
+      "label": "HistGradientBoostingRegressor (distance_manhattan seule, cible racine signee)",
+      "features": [
+        "distance_manhattan"
+      ],
+      "family": "hist_gradient_boosting",
+      "target_transform": "signed_sqrt",
+      "metrics": {
+        "mae": {
+          "mean": 1910135.930624316,
+          "std": 189446.6554530009,
+          "median": 1862369.0903990234,
+          "folds": [
+            1787757.9257428867,
+            1690166.552385836,
+            2075018.442426285,
+            1862369.0903990234,
+            2135367.6421675496
+          ]
+        },
+        "r2": {
+          "mean": 0.041959249323086964,
+          "std": 0.04885164127130931,
+          "median": 0.04324607743134057,
+          "folds": [
+            0.06458188627035255,
+            0.10888223548355147,
+            0.0111809644341484,
+            0.04324607743134057,
+            -0.018094917003958155
+          ]
+        },
+        "mae_reduction_vs_dummy_median": {
+          "mean": 0.07084631009105839,
+          "std": 0.043111870470149465,
+          "median": 0.08625667877924414,
+          "folds": [
+            0.0893328963701524,
+            0.12059078123793376,
+            0.05003563838915703,
+            0.08625667877924414,
+            0.008015555678804631
+          ]
+        }
+      }
+    }
+  },
+  "best_full_model_by_mean_mae": {
+    "key": "hist_gradient_boosting_25_features_signed_sqrt",
+    "label": "HistGradientBoostingRegressor (25 features, cible racine signee)"
+  },
+  "best_distance_manhattan_control_by_mean_mae": {
+    "key": "linear_distance_manhattan_raw",
+    "label": "Regression lineaire (distance_manhattan seule, cible brute)"
+  },
+  "validation_permutation_importance": {
+    "model_key": "hist_gradient_boosting_25_features_signed_sqrt",
+    "scoring": "neg_mean_absolute_error",
+    "interpretation": "Importance positive = hausse de MAE apres permutation.",
+    "n_repeats": 30,
+    "features": [
+      {
+        "feature": "distance_manhattan",
+        "mean": 509523.6723452878,
+        "std": 93856.34825761832,
+        "folds": [
+          592749.8243075899,
+          348336.0916869782,
+          525743.6982224102,
+          531479.8279554866,
+          549308.9195539741
+        ]
+      },
+      {
+        "feature": "cargo_acceptance_per_convoy_capacity",
+        "mean": 371481.17798277584,
+        "std": 68283.74742145257,
+        "folds": [
+          368363.6461069942,
+          320529.5700577421,
+          429341.23606093216,
+          289930.4508418456,
+          449240.9868463653
+        ]
+      },
+      {
+        "feature": "station_b_cargo_acc",
+        "mean": 211456.3617545188,
+        "std": 37442.32881370566,
+        "folds": [
+          154680.81031023475,
+          238510.9453719715,
+          245576.30563253866,
+          224723.80855890352,
+          193789.9388989455
+        ]
+      },
+      {
+        "feature": "station_a_cargo_acc",
+        "mean": 140521.7596901991,
+        "std": 45587.94469087936,
+        "folds": [
+          139473.2920631984,
+          123141.72827928823,
+          168759.68273332444,
+          75765.6261050639,
+          195468.46927012064
+        ]
+      },
+      {
+        "feature": "num_trains",
+        "mean": 100965.52362446337,
+        "std": 17161.004952723528,
+        "folds": [
+          121909.93346538379,
+          96619.21568629488,
+          75000.55243404259,
+          106742.76323863234,
+          104555.15329796325
+        ]
+      },
+      {
+        "feature": "wagons_per_train",
+        "mean": 100277.05639794974,
+        "std": 33136.84323104095,
+        "folds": [
+          116799.10870465971,
+          94788.43346072065,
+          143740.274351816,
+          54119.67771687241,
+          91937.78775567994
+        ]
+      },
+      {
+        "feature": "engine_rank",
+        "mean": 64706.466385206826,
+        "std": 26185.520704675062,
+        "folds": [
+          97071.8427116641,
+          25679.44140261532,
+          75468.02207510403,
+          67549.5699314166,
+          57763.455805234065
+        ]
+      },
+      {
+        "feature": "estimated_cost",
+        "mean": 50437.030719812945,
+        "std": 14480.0365343005,
+        "folds": [
+          74716.0506502667,
+          38193.15739326023,
+          45547.14158111618,
+          51857.60844238048,
+          41871.195532041136
+        ]
+      },
+      {
+        "feature": "station_a_town_dist",
+        "mean": 33071.933464589696,
+        "std": 9596.187485664615,
+        "folds": [
+          20477.393029455805,
+          25423.10919325868,
+          39533.89763454927,
+          37270.0685779628,
+          42655.19888772195
+        ]
+      },
+      {
+        "feature": "distance_straight",
+        "mean": 32830.29417469556,
+        "std": 18506.593303411075,
+        "folds": [
+          49459.308399785295,
+          15128.44342254564,
+          50316.620028565674,
+          37654.73212902397,
+          11592.366893557211
+        ]
+      },
+      {
+        "feature": "town_b_population",
+        "mean": 15918.162269573086,
+        "std": 13079.217105328964,
+        "folds": [
+          26665.538891454158,
+          1761.976383647144,
+          32407.66413507672,
+          11712.77271624799,
+          7042.85922143942
+        ]
+      },
+      {
+        "feature": "station_b_town_dist",
+        "mean": 15545.280959033738,
+        "std": 19349.455793843583,
+        "folds": [
+          33613.115509100964,
+          -11733.296579718008,
+          24896.75341775017,
+          2444.5981030482567,
+          28505.234344987315
+        ]
+      },
+      {
+        "feature": "town_a_population",
+        "mean": 15370.041551349914,
+        "std": 15321.963132473807,
+        "folds": [
+          7206.95940951034,
+          -410.7906701736695,
+          34068.70223596553,
+          6591.27841411004,
+          29394.058367337326
+        ]
+      },
+      {
+        "feature": "station_b_cargo_prod",
+        "mean": 13563.58679695309,
+        "std": 15822.070156220436,
+        "folds": [
+          40782.69625204858,
+          11017.478175410519,
+          9917.925530610366,
+          -82.46840083633239,
+          6182.302427532307
+        ]
+      },
+      {
+        "feature": "cargo_production_per_convoy_capacity",
+        "mean": 11847.826654344437,
+        "std": 6006.187009480178,
+        "folds": [
+          2043.814790005136,
+          17015.35185369752,
+          13318.760587609706,
+          10756.5465917937,
+          16104.659448616121
+        ]
+      },
+      {
+        "feature": "pair_rank",
+        "mean": 9250.24035422956,
+        "std": 12801.874964141492,
+        "folds": [
+          22652.892158016806,
+          -904.7670771979882,
+          16176.903085613545,
+          -7521.515030164272,
+          15847.688634879702
+        ]
+      },
+      {
+        "feature": "engine_price",
+        "mean": 8468.934178795962,
+        "std": 6587.320826519771,
+        "folds": [
+          -200.20644886957015,
+          5216.744520136551,
+          13112.257359672245,
+          7647.259419182106,
+          16568.616043858477
+        ]
+      },
+      {
+        "feature": "engine_running_cost",
+        "mean": 6425.621451106179,
+        "std": 2960.489116319733,
+        "folds": [
+          7158.707846118918,
+          9247.243737988088,
+          2056.9111695276183,
+          4942.90184669587,
+          8722.342655200402
+        ]
+      },
+      {
+        "feature": "station_a_cargo_prod",
+        "mean": 3508.0489251295307,
+        "std": 7377.727003238987,
+        "folds": [
+          11963.453804390803,
+          751.0633676120235,
+          10311.977188141294,
+          -80.3448793915566,
+          -5405.904855104908
+        ]
+      },
+      {
+        "feature": "terrain_dh",
+        "mean": 3279.602246277014,
+        "std": 8773.870919402076,
+        "folds": [
+          -4869.119313615324,
+          14835.199071868881,
+          6731.400405873769,
+          5873.310920848131,
+          -6172.779853590384
+        ]
+      },
+      {
+        "feature": "terrain_unbuildable",
+        "mean": 2530.213417121863,
+        "std": 10607.911401153246,
+        "folds": [
+          5695.650900341536,
+          7968.102279122671,
+          4407.047856653707,
+          -15977.894614897661,
+          10558.160664389065
+        ]
+      },
+      {
+        "feature": "convoy_capacity",
+        "mean": 2275.9794880217814,
+        "std": 4843.451022811378,
+        "folds": [
+          8463.746685960563,
+          3133.9041006205293,
+          4948.747950721043,
+          -2112.2690097507943,
+          -3054.232287442436
+        ]
+      },
+      {
+        "feature": "engine_power",
+        "mean": 1314.1385273574494,
+        "std": 1421.7905679165924,
+        "folds": [
+          1981.2432362625764,
+          -234.29966428270563,
+          1922.5350053133754,
+          -104.3641229460404,
+          3005.5781824400415
+        ]
+      },
+      {
+        "feature": "engine_max_speed",
+        "mean": -411.4135879184041,
+        "std": 2894.460870425506,
+        "folds": [
+          -776.5419470737532,
+          -5220.198202126264,
+          2241.687772361391,
+          986.2771685435281,
+          711.707268703077
+        ]
+      },
+      {
+        "feature": "terrain_water",
+        "mean": -2533.826920365254,
+        "std": 9752.039257198647,
+        "folds": [
+          3866.1910448938647,
+          4245.7651502640765,
+          -15502.337443447788,
+          -10553.965529214645,
+          5275.212175678221
+        ]
+      }
+    ]
+  },
+  "hypothesis_demand_capacity_ratios": {
+    "evaluated_on_model_key": "hist_gradient_boosting_25_features_signed_sqrt",
+    "ablation_features": [
+      "distance_straight",
+      "distance_manhattan",
+      "pair_rank",
+      "town_a_population",
+      "town_b_population",
+      "num_trains",
+      "wagons_per_train",
+      "convoy_capacity",
+      "engine_rank",
+      "engine_max_speed",
+      "engine_power",
+      "engine_price",
+      "engine_running_cost",
+      "estimated_cost",
+      "station_a_town_dist",
+      "station_b_town_dist",
+      "station_a_cargo_prod",
+      "station_a_cargo_acc",
+      "station_b_cargo_prod",
+      "station_b_cargo_acc",
+      "terrain_dh",
+      "terrain_water",
+      "terrain_unbuildable"
+    ],
+    "full_model_mae": {
+      "mean": 1112502.679915762,
+      "std": 75470.979676005,
+      "median": 1156816.924050547,
+      "folds": [
+        994634.4241989652,
+        1078782.3573093142,
+        1161906.3136396953,
+        1156816.924050547,
+        1170373.3803802875
+      ]
+    },
+    "without_ratios_mae": {
+      "mean": 1134722.769505307,
+      "std": 52335.04564836752,
+      "median": 1162067.836591975,
+      "folds": [
+        1060846.0600666911,
+        1098888.0184714536,
+        1181991.4554663033,
+        1169820.4769301126,
+        1162067.836591975
+      ]
+    },
+    "mae_gain_by_fold_without_minus_with_ratios": [
+      66211.63586772594,
+      20105.661162139382,
+      20085.141826607985,
+      13003.552879565628,
+      -8305.543788312469
+    ],
+    "mae_gain": {
+      "mean": 22220.089589545292,
+      "std": 27207.736930495477,
+      "median": 20085.141826607985,
+      "folds": [
+        66211.63586772594,
+        20105.661162139382,
+        20085.141826607985,
+        13003.552879565628,
+        -8305.543788312469
+      ]
+    },
+    "relative_mae_gain_vs_without_ratios": {
+      "mean": 0.020334326214982885,
+      "std": 0.025623394932955876,
+      "median": 0.016992628613109784,
+      "folds": [
+        0.0624139904554705,
+        0.018296369442726505,
+        0.016992628613109784,
+        0.011115853360414794,
+        -0.007147210796807131
+      ]
+    },
+    "without_ratios_r2": {
+      "mean": 0.6549080556349665,
+      "std": 0.027030224858540126,
+      "median": 0.6550168754278116,
+      "folds": [
+        0.682396146157183,
+        0.6416805951399347,
+        0.6550168754278116,
+        0.6169928978765904,
+        0.6784537635733128
+      ]
+    }
+  },
+  "hypothesis_full_features_vs_distance_manhattan": {
+    "full_model_key": "hist_gradient_boosting_25_features_signed_sqrt",
+    "control_model_key": "linear_distance_manhattan_raw",
+    "full_model_mae": {
+      "mean": 1112502.679915762,
+      "std": 75470.979676005,
+      "median": 1156816.924050547,
+      "folds": [
+        994634.4241989652,
+        1078782.3573093142,
+        1161906.3136396953,
+        1156816.924050547,
+        1170373.3803802875
+      ]
+    },
+    "control_mae": {
+      "mean": 1781392.7273771758,
+      "std": 158031.4836386093,
+      "median": 1790061.7523165233,
+      "folds": [
+        1638513.9617776042,
+        1610960.0878992465,
+        1889241.841129253,
+        1790061.7523165233,
+        1978185.9937632529
+      ]
+    },
+    "mae_gain_by_fold_control_minus_full": [
+      643879.537578639,
+      532177.7305899323,
+      727335.5274895576,
+      633244.8282659764,
+      807812.6133829653
+    ],
+    "mae_gain": {
+      "mean": 668890.0474614141,
+      "std": 104045.32461673074,
+      "median": 643879.537578639,
+      "folds": [
+        643879.537578639,
+        532177.7305899323,
+        727335.5274895576,
+        633244.8282659764,
+        807812.6133829653
+      ]
+    },
+    "relative_mae_gain_vs_control": {
+      "mean": 0.37408358487874155,
+      "std": 0.031529077595445286,
+      "median": 0.38498804740361287,
+      "folds": [
+        0.3929655484168727,
+        0.33034817844799147,
+        0.38498804740361287,
+        0.35375585643707136,
+        0.40836029368815935
+      ]
+    },
+    "better_folds": 5,
+    "n_folds": 5,
+    "interpretation": "Un gain positif signifie que le modele complet a une MAE plus faible."
+  }
+}
