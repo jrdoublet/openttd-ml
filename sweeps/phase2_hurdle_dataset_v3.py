@@ -62,6 +62,7 @@ STATUS = re.compile(r"^TRLN\|(\d+)\|(\w+)\|(\w+)\|(\d+)/(\d+)$")
 DETAIL = re.compile(r"^TRLN\|(\d+)\|T(\d+)-(\d+)\|D(\d+)\|C(-?\d+)$")
 VEH = re.compile(r"^TRLN\|(\d+)\|V(-?\d+)$")
 BARRIER = re.compile(r"^TRLN\|(\d+)\|B(\d+)\|([MO])$")
+PREFLIGHT_BUDGET = re.compile(r"^TRLN\|(\d+)\|I(\d+)\|R(\d+)$")
 PAIR = re.compile(r"^TRLN\|(\d+)\|P(\d+)-(\d+)\|D(\d+)$")
 # Nouveaux panneaux (docs/phase3_ml.md 3.2 backlog) -- voir ai/TrainLineAI/main.nut _code*().
 DISTCOST = re.compile(r"^TRLN\|(\d+)\|M(\d+)\|X(-?\d+)$")
@@ -76,7 +77,7 @@ PAIRCOUNT = re.compile(r"^TRLN\|(\d+)\|Q(\d+)$")
 
 FIELDS = (
     "attempt_id", "seed", "line_index", "stagger_slot", "pair_rank", "available_pair_count", "engine_rank",
-    "num_trains", "wagons_per_train",
+    "num_trains", "wagons_per_train", "pathfinder_iterations_k", "barrier_base_k",
     "town_a", "town_b", "town_a_population", "town_b_population",
     "distance_straight", "distance_manhattan", "estimated_cost",
     "station_a_town_dist", "station_b_town_dist",
@@ -114,6 +115,8 @@ def params(seed_i, rank_i, attempt):
         ("pair_rank", RANKS[rank_i]),
         ("line_index", attempt),
         ("stagger_slot", 0),
+        ("pathfinder_iterations_k", 30),
+        ("barrier_base_k", 11),
     )
 
 
@@ -137,7 +140,7 @@ def veh(chunks):
 
 
 def parse(x):
-    st = dt = bt = pt = dc = es = ec = sd = ca = cb = tr = cr = pc = None
+    st = dt = bt = pb = pt = dc = es = ec = sd = ca = cb = tr = cr = pc = None
     vc = None
     for s in x["signs"]:
         if m := STATUS.match(s):
@@ -148,6 +151,8 @@ def parse(x):
             vc = int(m.group(2))
         elif m := BARRIER.match(s):
             bt = m.groups()
+        elif m := PREFLIGHT_BUDGET.match(s):
+            pb = m.groups()
         elif m := PAIR.match(s):
             pt = m.groups()
         elif m := DISTCOST.match(s):
@@ -176,6 +181,10 @@ def parse(x):
         line_index=p["line_index"], stagger_slot=p["stagger_slot"],
         pair_rank=p["pair_rank"], engine_rank=p["engine_rank"],
         num_trains=p["num_trains"], wagons_per_train=p["wagons_per_train"],
+        # Les checkpoints v3 existants ont ete produits avant le panneau, avec les constantes
+        # historiques : les annoter explicitement 30/11 permet de les consolider sans ambiguite.
+        pathfinder_iterations_k=p.get("pathfinder_iterations_k", 30),
+        barrier_base_k=p.get("barrier_base_k", 11),
         built=False,
     )
     if st:
@@ -188,6 +197,8 @@ def parse(x):
                  construction_cost=int(dt[4]), vehicle_cost=vc)
     if bt:
         r.update(first_mutation_tick=int(bt[1]), barrier_flag=bt[2])
+    if pb:
+        r.update(pathfinder_iterations_k=int(pb[1]), barrier_base_k=int(pb[2]))
     if dc:
         r.update(distance_manhattan=int(dc[1]), estimated_cost=int(dc[2]))
     if es:

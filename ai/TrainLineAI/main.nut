@@ -213,6 +213,16 @@ function TrainLineAI::_codePairCount()
   return "TRLN|" + this.state.line_index + "|Q" + this.state.pair_count;
 }
 
+/* Reglages de preflight, en milliers. Avec line_index a deux chiffres, les bornes declarees
+ * I<=300 et R<=60 donnent "TRLN|99|I300|R60" (17 caracteres), sous les 31 acceptes par
+ * AISign.BuildSign. Les publier dans les panneaux rend chaque ligne de campagne tracable sans
+ * ajouter de DoCommand avant la barriere. */
+function TrainLineAI::_codePreflightBudget()
+{
+  return "TRLN|" + this.state.line_index + "|I" + this.state.pathfinder_iterations_k +
+      "|R" + this.state.barrier_base_k;
+}
+
 /* Echantillonne la ligne DROITE entre les deux centres-villes (pas le vrai chemin du pathfinder,
  * qui est un resultat -- voir docs/phase3_ml.md 3.2). Un point par tuile de distance_straight
  * (borne a [minDistance, maxDistance] = [20,150] par construction des paires) : cout pur en
@@ -277,6 +287,7 @@ function TrainLineAI::_reportAll()
 {
   if (this.costs != null) this.state.construction_cost = this.costs.GetCosts();
   this._report(this._code());
+  this._report(this._codePreflightBudget());
   if (this.state.pair_count != null) this._report(this._codePairCount());
   if (this.state.town_a != null && this.state.town_b != null) {
     this._report(this._codeDetail());
@@ -406,7 +417,7 @@ function TrainLineAI::_preflightPair(townA, townB, platformLength, deadlineTick)
   pathfinder.cost.max_cost = 200000;
   pathfinder.InitializePath(sources, goals);
   local path = false;
-  local iterationsLeft = 30000;
+  local iterationsLeft = this.state.pathfinder_iterations_k * 1000;
   while (path == false && iterationsLeft > 0 && AIController.GetTick() < deadlineTick) {
     path = pathfinder.FindPath(50);
     iterationsLeft -= 50;
@@ -498,6 +509,8 @@ function TrainLineAI::Start()
     cargo_id = null,
     requested_trains = null,
     wagons_per_train = null,
+    pathfinder_iterations_k = null,
+    barrier_base_k = null,
     built_trains = 0,
     construction_cost = 0,
     vehicle_cost = 0, // sous-ensemble de construction_cost -- voir _codeVehicleCost()
@@ -527,6 +540,8 @@ function TrainLineAI::Start()
   this.state.wagons_per_train = AIController.GetSetting("wagons_per_train");
   this.state.line_index = AIController.GetSetting("line_index");
   this.state.stagger_slot = AIController.GetSetting("stagger_slot");
+  this.state.pathfinder_iterations_k = AIController.GetSetting("pathfinder_iterations_k");
+  this.state.barrier_base_k = AIController.GetSetting("barrier_base_k");
 
   /* Echelonnement des demarrages -- necessaire pour que la compagnie N voie les gares deja
    * posees par les compagnies 0..N-1 avant de choisir sa propre paire (contrainte villes
@@ -840,11 +855,17 @@ function TrainLineAI::Start()
    * AI, tout en conservant l'ecart de STAGGER_TICKS entre compagnies : le slot N construit a
    * BARRIER_BASE + N*STAGGER_TICKS. Ainsi N-1 a au moins 6000-38 ticks pour poser ses gares
    * avant la selection/construction de N, donc _isTownServed() garde son ordre de visibilite.
-   * BARRIER_BASE=11000 est la correction apres la distribution etendue 1970/256x256
-   * (rangs 0..150 : max observe 9916, marge 1084). Le script de mesure cree une copie /tmp avec
-   * zero afin d'observer le preflight non masque. */
-  local BARRIER_BASE = 11000;
-  local barrierTarget = BARRIER_BASE + this.state.stagger_slot * STAGGER_TICKS;
+   * Le budget A* et cette barriere DOIVENT bouger ensemble : une iteration coute environ 2700
+   * opcodes pour un budget VM d'environ 10000/tick, soit 3,7 iterations/tick. Les 30000
+   * iterations historiques prennent donc 7337 a 10519 ticks et saturent environ 96 % de
+   * BARRIER_BASE=11000. Augmenter seulement le budget ferait passer barrier_flag a O et casserait
+   * silencieusement la comparabilite des lignes (2000/2000 M dans la campagne v2). Diagnostic des
+   * 9 pires PATHLIM charges en eau : tous franchissables, mais 41200 a 89350 iterations et jusqu'a
+   * 27858 ticks; une campagne qui les vise doit donc employer environ 90000 iterations et une
+   * barriere vers 33000. Les reglages sont en milliers : defauts 30/11 reproduisent exactement
+   * les constantes historiques 30000/11000. */
+  local barrierBase = this.state.barrier_base_k * 1000;
+  local barrierTarget = barrierBase + this.state.stagger_slot * STAGGER_TICKS;
   local beforeBarrier = AIController.GetTick();
   this.state.barrier_met = beforeBarrier <= barrierTarget;
   if (beforeBarrier < barrierTarget) this.Sleep(barrierTarget - beforeBarrier);
