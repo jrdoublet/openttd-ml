@@ -51,6 +51,21 @@ pouvoir varier fortement à distance_straight constante. « Passe » ne signifie
 c'est seulement le droit d'être considérée. Les coûts sont des ordres de grandeur d'appels API,
 pas une mesure exécutée ici.
 
+### 2.0 Le « valuator » n'est pas un score composite — **aucun candidat**
+
+**Lu dans le code.** Utils_Valuator.Valuate() est uniquement un adaptateur : il appelle une
+fonction fournie pour chaque élément d'une liste et y inscrit l'entier retourné
+(ai/AdmiralAI/utils/valuator.nut:71-108). Ses trois valuators génériques sont constant, identité
+et distance Manhattan plus aléa (ai/AdmiralAI/utils/valuator.nut:110-123). Il n'y a donc pas de
+score caché à décomposer. Le seul score ferroviaire rencontré est bien le valuator local de
+§2.2 : distance vers l'autre industrie, bruit borné, et bonus de sortie libre
+(ai/AdmiralAI/rail/trainmanager.nut:496-510).
+
+**Redondance avec la distance : sans objet pour l'utilitaire ; échec pour son valuator générique.**
+DistancePlusRandom ne contient que la distance et du bruit. Le bonus d'issue libre, lui, est
+traité séparément en §2.2 car il passe le filtre. **Verdict : ne rien tester sous le nom
+« valuator ».**
+
 ### 2.1 Rang de voisin et détour via un troisième point — **passe le filtre, mais à classer**
 
 **Lu dans le code.** CreateSpanningTree() ne découvre aucune composante du sol. Pour chaque
@@ -87,7 +102,7 @@ de dégagement 4×2 ou 2×4 à au moins une extrémité
 ai/AdmiralAI/rail/trainmanager.nut:542-568). Il rejette aussi les emplacements dont
 l'aire ne peut être nivelée : rectangle constructible, écart de hauteur maximal 2, puis essais de
 terrassement sous AITestMode (ai/AdmiralAI/utils/tile.nut:133-177 ; appel
-trainmanager.nut:574-580). Enfin son valuator préfère la gare proche de l'autre industrie et
+ai/AdmiralAI/rail/trainmanager.nut:574-580). Enfin son valuator préfère la gare proche de l'autre industrie et
 retire 20 au score lorsqu'une sortie du bon côté est libre
 (ai/AdmiralAI/rail/trainmanager.nut:496-510,
 ai/AdmiralAI/rail/trainmanager.nut:582-597).

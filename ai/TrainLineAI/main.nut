@@ -168,6 +168,27 @@ function TrainLineAI::_codeStationDist()
       "-SB" + this.state.station_b_town_dist;
 }
 
+/* Multiplicite des sorties locales de gare. `SP` est le nombre de plans retenus et `SR` le
+ * dernier rayon effectivement visite par la boucle bornee de _makeStationPlans(). Ce dernier
+ * distingue donc une ville qui atteint les 12 plans au rayon 3 d'une qui ne les atteint qu'au
+ * rayon 28, sans elargir ni reparcourir la recherche. `SO` compte les sorties vers l'autre
+ * centre-ville, `SN` est volontairement leur MIN (un seul bout bloque reste visible), et `RX`
+ * est le MAX des rayons (le bout le plus difficile). Avec index=99, plans/outward<=12 et
+ * rayon<=30 : "TRLN|99|SO12-12|SN12|RX30" fait 28 caracteres, sous la limite de 31. */
+function TrainLineAI::_codeStationPlans()
+{
+  return "TRLN|" + this.state.line_index + "|SP" + this.state.station_plans_a +
+      "-" + this.state.station_plans_b + "|SR" + this.state.station_radius_a +
+      "-" + this.state.station_radius_b;
+}
+
+function TrainLineAI::_codeStationOutward()
+{
+  return "TRLN|" + this.state.line_index + "|SO" + this.state.station_outward_a +
+      "-" + this.state.station_outward_b + "|SN" + this.state.station_outward_min +
+      "|RX" + this.state.station_radius_max;
+}
+
 /* Panneaux production/acceptation de cargo dans la zone de chalandise de chaque gare -- un
  * panneau par gare (deux panneaux au lieu d'un pour rester sous la limite de 31 caracteres avec
  * de la marge). Pire cas mesure empiriquement pres d'un centre-ville a rayon 4 (sweeps/debug_ai.py,
@@ -401,6 +422,14 @@ function TrainLineAI::_reportAll()
      * retenu, elle est disponible aussi pour NOPATH/PATHLIM. */
     this._report(this._codeCorridorTerrain());
     this._report(this._codeCorridorTerrainRuns());
+    /* Ces deux panneaux sont poses seulement ici, dans le flux differe existant. Le booleen
+     * distingue explicitement une recherche de plans jamais atteinte (panneaux absents) d'une
+     * recherche executee qui a trouve 0 plan (SP0, rayon 30, sorties 0). Ils sont disponibles
+     * avant le pathfinder et restent donc presents pour PATHLIM. */
+    if (this.state.station_plan_metrics_ready) {
+      this._report(this._codeStationPlans());
+      this._report(this._codeStationOutward());
+    }
     if (this.state.first_mutation_tick != null) this._report(this._codeBarrier());
     /* Ces quatre panneaux exigent un preflight reussi (plans de quai + chemin) : absents pour un
      * echec avant ce stade (NOPATH/PATHLIM/NOTILE), presents pour tout le reste (TRKFAIL/STNFAIL/
@@ -446,14 +475,19 @@ function TrainLineAI::_isTownServed(townID, radius)
   return false;
 }
 
-function TrainLineAI::_makeStationPlans(center, radius, length, maxPlans)
+function TrainLineAI::_makeStationPlans(center, otherCenter, radius, length, maxPlans)
 {
   local plans = [];
+  local reachedRadius = 0;
+  local outward = 0;
+  local towardOtherX = AIMap.GetTileX(otherCenter) - AIMap.GetTileX(center);
+  local towardOtherY = AIMap.GetTileY(otherCenter) - AIMap.GetTileY(center);
   local axes = [
     [AIRail.RAILTRACK_NE_SW, AIMap.GetTileIndex(1, 0)],
     [AIRail.RAILTRACK_NW_SE, AIMap.GetTileIndex(0, 1)],
   ];
   for (local r = 0; r <= radius && plans.len() < maxPlans; r++) {
+    reachedRadius = r;
     for (local dx = -r; dx <= r && plans.len() < maxPlans; dx++) {
       for (local dy = -r; dy <= r && plans.len() < maxPlans; dy++) {
         if (abs(dx) != r && abs(dy) != r) continue;
@@ -473,8 +507,17 @@ function TrainLineAI::_makeStationPlans(center, radius, length, maxPlans)
                   AITile.GetSlope(platformTile) == AITile.SLOPE_FLAT;
             }
             if (usable) {
-              plans.push({ anchor = anchor, station_exit = stationExit, lead = lead,
-                  direction = axis[0], step = step });
+              local plan = { anchor = anchor, station_exit = stationExit, lead = lead,
+                  direction = axis[0], step = step };
+              plans.push(plan);
+              /* Orientation de sortie = lead - station_exit; direction vers l'autre ville =
+               * otherCenter - center. Avec les differences de coordonnees de tuiles, compter
+               * exactement si (lead.x-exit.x)*(other.x-center.x) +
+               * (lead.y-exit.y)*(other.y-center.y) > 0. C'est execute au moment ou ce plan est
+               * deja retenu : aucun second parcours de tuiles ou des plans. */
+              local exitDX = AIMap.GetTileX(plan.lead) - AIMap.GetTileX(plan.station_exit);
+              local exitDY = AIMap.GetTileY(plan.lead) - AIMap.GetTileY(plan.station_exit);
+              if (exitDX * towardOtherX + exitDY * towardOtherY > 0) outward++;
               if (plans.len() >= maxPlans) break;
             }
           }
@@ -483,7 +526,7 @@ function TrainLineAI::_makeStationPlans(center, radius, length, maxPlans)
       }
     }
   }
-  return plans;
+  return { plans = plans, radius = reachedRadius, outward = outward };
 }
 
 /* Retourne soit une raison d'echec, soit le chemin et les plans de gare retenus. Les epreuves
@@ -498,8 +541,26 @@ function TrainLineAI::_makeStationPlans(center, radius, length, maxPlans)
  * interrompre un appel individuel pathologique, mais la multiplication par 24 est supprimee. */
 function TrainLineAI::_preflightPair(townA, townB, platformLength, deadlineTick)
 {
-  local plansA = this._makeStationPlans(AITown.GetLocation(townA), 30, platformLength, 12);
-  local plansB = this._makeStationPlans(AITown.GetLocation(townB), 30, platformLength, 12);
+  local planDataA = this._makeStationPlans(AITown.GetLocation(townA), AITown.GetLocation(townB),
+      30, platformLength, 12);
+  local planDataB = this._makeStationPlans(AITown.GetLocation(townB), AITown.GetLocation(townA),
+      30, platformLength, 12);
+  local plansA = planDataA.plans;
+  local plansB = planDataB.plans;
+  /* Enregistrer immediatement apres les deux boucles, AVANT les sorties NOPATH/PATHLIM : zero
+   * est une mesure reelle (aucun plan), tandis que null/absent signifie que ce stade n'a jamais
+   * ete execute. */
+  this.state.station_plan_metrics_ready = true;
+  this.state.station_plans_a = plansA.len();
+  this.state.station_plans_b = plansB.len();
+  this.state.station_radius_a = planDataA.radius;
+  this.state.station_radius_b = planDataB.radius;
+  this.state.station_outward_a = planDataA.outward;
+  this.state.station_outward_b = planDataB.outward;
+  this.state.station_outward_min = planDataA.outward < planDataB.outward ?
+      planDataA.outward : planDataB.outward;
+  this.state.station_radius_max = planDataA.radius > planDataB.radius ?
+      planDataA.radius : planDataB.radius;
   if (plansA.len() == 0 || plansB.len() == 0) return "no_buildable_tile_near_town";
 
   local sources = [];
@@ -589,6 +650,16 @@ function TrainLineAI::Start()
     station_a_cargo_acc = 0,
     station_b_cargo_prod = 0,
     station_b_cargo_acc = 0,
+    // null + ready=false = plan search never reached; ready=true permits literal zero plans.
+    station_plan_metrics_ready = false,
+    station_plans_a = null,
+    station_plans_b = null,
+    station_radius_a = null,
+    station_radius_b = null,
+    station_outward_a = null,
+    station_outward_b = null,
+    station_outward_min = null,
+    station_radius_max = null,
     terrain_dh = 0,
     terrain_water = 0,
     terrain_unbuildable = 0,

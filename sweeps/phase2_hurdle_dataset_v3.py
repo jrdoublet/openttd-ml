@@ -71,6 +71,8 @@ ENGCOST = re.compile(r"^TRLN\|(\d+)\|F(\d+)-(\d+)$")
 STATIONDIST = re.compile(r"^TRLN\|(\d+)\|SA(\d+)-SB(\d+)$")
 CARGOA = re.compile(r"^TRLN\|(\d+)\|GA(\d+)-(\d+)$")
 CARGOB = re.compile(r"^TRLN\|(\d+)\|GB(\d+)-(\d+)$")
+STATIONPLANS = re.compile(r"^TRLN\|(\d+)\|SP(\d+)-(\d+)\|SR(\d+)-(\d+)$")
+STATIONOUTWARD = re.compile(r"^TRLN\|(\d+)\|SO(\d+)-(\d+)\|SN(\d+)\|RX(\d+)$")
 TERRAIN = re.compile(r"^TRLN\|(\d+)\|H(\d+)\|W(\d+)\|U(\d+)$")
 CORRIDOR = re.compile(r"^TRLN\|(\d+)\|CH(\d+)\|CW(\d+)\|CU(\d+)$")
 CORRIDOR_RUNS = re.compile(r"^TRLN\|(\d+)\|CR(\d+)\|CS(\d+)$")
@@ -88,6 +90,8 @@ FIELDS = (
     "distance_straight", "distance_manhattan", "estimated_cost",
     "station_a_town_dist", "station_b_town_dist",
     "station_a_cargo_prod", "station_a_cargo_acc", "station_b_cargo_prod", "station_b_cargo_acc",
+    "station_plans_a", "station_plans_b", "station_radius_a", "station_radius_b",
+    "station_outward_a", "station_outward_b", "station_outward_min", "station_radius_max",
     "terrain_dh", "terrain_water", "terrain_unbuildable",
     "corridor_dh", "corridor_water", "corridor_unbuildable",
     "corridor_max_water_run", "corridor_max_uphill_step",
@@ -114,6 +118,8 @@ FEATURES = (
     "town_a_population", "town_b_population", "distance_straight", "distance_manhattan",
     "estimated_cost", "station_a_town_dist", "station_b_town_dist",
     "station_a_cargo_prod", "station_a_cargo_acc", "station_b_cargo_prod", "station_b_cargo_acc",
+    "station_plans_a", "station_plans_b", "station_radius_a", "station_radius_b",
+    "station_outward_a", "station_outward_b", "station_outward_min", "station_radius_max",
     "terrain_dh", "terrain_water", "terrain_unbuildable",
     "corridor_dh", "corridor_water", "corridor_unbuildable",
     "corridor_max_water_run", "corridor_max_uphill_step",
@@ -162,7 +168,7 @@ def veh(chunks):
 
 
 def parse(x):
-    st = dt = bt = pb = pt = dc = es = ec = sd = ca = cb = tr = cr = crr = pc = pi = None
+    st = dt = bt = pb = pt = dc = es = ec = sd = ca = cb = sp = so = tr = cr = crr = pc = pi = None
     probes = {at: {} for at in (500, 2000, 5000)}
     vc = None
     for s in x["signs"]:
@@ -190,6 +196,10 @@ def parse(x):
             ca = m.groups()
         elif m := CARGOB.match(s):
             cb = m.groups()
+        elif m := STATIONPLANS.match(s):
+            sp = m.groups()
+        elif m := STATIONOUTWARD.match(s):
+            so = m.groups()
         elif m := TERRAIN.match(s):
             tr = m.groups()
         elif m := CORRIDOR.match(s):
@@ -247,6 +257,12 @@ def parse(x):
         r.update(station_a_cargo_prod=int(ca[1]), station_a_cargo_acc=int(ca[2]))
     if cb:
         r.update(station_b_cargo_prod=int(cb[1]), station_b_cargo_acc=int(cb[2]))
+    if sp:
+        r.update(station_plans_a=int(sp[1]), station_plans_b=int(sp[2]),
+                 station_radius_a=int(sp[3]), station_radius_b=int(sp[4]))
+    if so:
+        r.update(station_outward_a=int(so[1]), station_outward_b=int(so[2]),
+                 station_outward_min=int(so[3]), station_radius_max=int(so[4]))
     if tr:
         r.update(terrain_dh=int(tr[1]), terrain_water=int(tr[2]), terrain_unbuildable=int(tr[3]))
     if cr:
