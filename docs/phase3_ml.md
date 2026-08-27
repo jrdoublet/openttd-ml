@@ -194,7 +194,12 @@ moteurs étaient constructibles. Élargie à `[0,6]` — mesurée sur les 50 gra
 le rang 7 sort de la plage réelle sur 6 graines (moins de 8 moteurs constructibles) et produit
 alors `ENGOOR`, un échec de configuration qui pollue la classe négative.
 
-### Backlog d'enrichissement des features — **[À FAIRE]**
+### Backlog d'enrichissement des features — **[LIVRÉ le 26/08 — mais le bloc terrain est inexploitable, voir 3.3]**
+
+> **Avertissement.** Les items haute priorité ci-dessous ont tous été livrés dans la campagne v2
+> (19 features contre 7 en v1). L'audit de fuite 3.3 montre néanmoins que **les features de terrain
+> et de chalandise sont mesurées après le pathfinding**, donc absentes précisément sur les
+> `PATHLIM` qu'elles devaient expliquer. Lire 3.3 avant de s'appuyer sur ce tableau.
 
 Le jeu de données v1 (`data/phase2_hurdle_v1.csv`) n'émet que **7 features** : `pair_rank`,
 `engine_rank`, `num_trains`, `wagons_per_train`, `town_a_population`, `town_b_population`,
@@ -264,6 +269,39 @@ Avant tout entraînement, une passe systématique :
    Ce n'est pas une fuite (il est connu avant construction) mais c'est une colinéarité forte qui
    peut fausser l'interprétation SHAP en 3.7.
 
+### Résultat de l'audit sur le jeu v2 — **[FAIT le 27/08]**
+
+Sur les 2000 lignes de `data/phase2_hurdle_v2.csv`. **Trois familles, pas une.** La plus grave
+n'est pas détectable par un audit de valeurs manquantes.
+
+| Famille | Colonnes | Symptôme | Verdict |
+|---|---|---|---|
+| **Valeur sentinelle** | `construction_cost`, `infra_cost`, `vehicle_cost` | valent **0 ssi la ligne échoue** ; présentes à 100 % dans toutes les classes | **Fuite.** `construction_cost` seul → AUC 0,9986 ; réintroduit dans le modèle → **AUC 1,0000** |
+| **Post-pathfinding** | `terrain_dh/water/unbuildable`, `station_a/b_{town_dist,cargo_prod,cargo_acc}`, `barrier_flag`, `first_mutation_tick` | `None` **ssi `PATHLIM`** (382/382) | **Fuite par absence.** Indisponibles au moment où l'étage 1 décide |
+| **Post-construction** | `profit_ligne`, `sum_profit_last_year`, `*_amortization_annual`, `n_lead_vehicles`, `avg_max_age_years` | `None` sur tout échec | **Légitimes, étage 2 seulement.** Cible et covariables |
+
+Plus : `stagger_slot` (constante 0) et `wagon_capacity` (constante 40) ; `line_index` est un
+identifiant, pas une feature ; `estimated_cost` est redondant — mesuré
+`= 2862,8 + 224,40 × distance_straight + ~570 × wagons_per_train`, R² 0,9954 contre la seule
+distance. Il ne porte **aucun contenu topographique**, ce qui prouve que l'IA ne pose que du rail
+à plat, et explique mécaniquement les 82 % de `PATHLIM`. Décision : le garder de côté jusqu'à
+l'ajout des ponts et tunnels, où il deviendra un proxy de terrain quasi gratuit.
+
+**Le défaut structurel.** Le bloc topographique était spécifié « sur le trajet direct », justifié
+par « 82 % des échecs sont des PATHLIM, donc topographiques […] c'est le manque le plus coûteux ».
+Il est mesuré **après** le pathfinding : la feature conçue pour expliquer les `PATHLIM` est
+systématiquement absente sur les `PATHLIM`. Preuve dans les panneaux bruts — une tentative
+`PATHLIM` n'en émet que 8 et s'arrête après `F`, un `TRKFAIL` ou un succès en émettent 13.
+
+Correctif retenu : **mesurer le corridor direct avant le pathfinder, émettre au même endroit
+qu'aujourd'hui** (les panneaux sont émis après la première mutation pour ne pas allonger le
+preflight — c'est ce qui garantit `barrier_flag == "M"`, et ça ne doit pas changer).
+
+**Régression annexe.** 3 lignes `PAIROOR` (graine 1089, rangs 160/170/180) : la borne
+`pair_rank ≤ 180` est une constante globale calibrée sur les 50 graines de v1, alors que le nombre
+de paires disponibles dépend de la carte de chaque graine. `consolidate()` ne les filtre pas, donc
+elles polluent la classe négative en `built=False`.
+
 ---
 
 ## 3.4 — Découpage
@@ -304,6 +342,37 @@ mesurés par bucket de rang sur la baseline : **88 % / 88 % / 68 % / 56 %** (ran
 50-74 / 75-120), et la frontière est nette au-delà : 1/5 au rang 300, 0/5 au rang 400. Le design de
 campagne doit viser un équilibre exploitable : un jeu à 95 % de succès rend le taux de base
 imbattable et le classifieur inutile.
+
+### Résultat de la ligne de base étage 1 — **[FAIT le 27/08]**
+
+`sweeps/phase3_stage1_baseline.py`, résultats complets dans `docs/phase3_stage1_baseline.json`.
+1997 lignes (les 3 `PAIROOR` exclues), `GroupKFold(5)` par graine, 12 features pré-construction.
+
+| Modèle | AUC ROC (moy. ± é.-t. sur 5 plis) |
+|---|---|
+| Toujours « construite » | 0,5000 ± 0,0000 |
+| **Régression logistique, `distance_straight` seule** | **0,8546 ± 0,0389** |
+| **Régression logistique, 12 features** | **0,8567 ± 0,0399** |
+| `HistGradientBoostingClassifier`, 12 features | 0,8251 ± 0,0322 |
+
+**Les 11 features supplémentaires apportent +0,0021 d'AUC**, pour un écart-type de 0,0055 et une
+amélioration sur 3 plis sur 5 : c'est du bruit. Trois indices concordants et indépendants :
+
+- le **boosting fait pire** que la régression logistique — quand un modèle plus expressif dégrade
+  le score, il n'y a pas de structure complexe à trouver, seulement 446 échecs à surapprendre ;
+- l'**importance par permutation** (sur les plis de validation) est un désert : `distance_manhattan`
+  0,2446, tout le reste sous 0,025, et quatre features en importance **négative** ;
+- le **bloc moteur ne dit rien même en interaction**, confirmant son AUC univariée de 0,50.
+  Cohérent : le moteur choisi n'influence pas la possibilité de poser des rails.
+
+**Conclusion : l'étage 1 plafonne au niveau de la distance seule.** Le plafond n'est pas un
+problème de modèle mais d'information — il tombera avec le correctif terrain de 3.3, pas avec un
+meilleur classifieur. Ce chiffre est le point de comparaison qui rendra le gain de la v3
+démontrable plutôt que supposé.
+
+Note de métrique : l'AUC prime ici sur le F1 annoncé plus haut, parce que le taux de base est de
+77,6 % — un modèle qui répond « construite » systématiquement affiche 77,6 % de justesse sans rien
+savoir, quand son AUC vaut 0,5000, ce qu'il mérite.
 
 **Étage 2 — régression du profit, conditionnelle à la construction**
 
