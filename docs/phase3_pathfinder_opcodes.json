@@ -1,0 +1,4926 @@
+{
+  "design": {
+    "seeds": [
+      42,
+      1,
+      7,
+      100,
+      2026
+    ],
+    "ranks": [
+      0,
+      5
+    ],
+    "batches": [
+      50,
+      500
+    ],
+    "debug_ticks": 60000,
+    "same_seed_rank_pairs_in_A_and_B": true,
+    "rank_choice": "0 (easy/high-score) and 5 (harder historical preflight cases)"
+  },
+  "batch_50": {
+    "records": [
+      {
+        "seed": 42,
+        "rank": 0,
+        "batch": 50,
+        "findpath_calls": 6,
+        "iterations_used": 300,
+        "outcome": "found",
+        "path_cost": 2280,
+        "tile_count": 26,
+        "tile_sequence": "48735,48734,48733,48732,48988,48987,49243,49242,49498,49497,49753,49752,50008,50007,50263,50262,50261,50517,50516,50772,50771,50770,50769,51025,51024,51280",
+        "calls": [
+          {
+            "call": 1,
+            "before": 2757,
+            "after": 3507,
+            "tick_before": 658,
+            "tick_after": 675
+          },
+          {
+            "call": 2,
+            "before": 9982,
+            "after": 7680,
+            "tick_before": 676,
+            "tick_after": 692
+          },
+          {
+            "call": 3,
+            "before": 9982,
+            "after": 4252,
+            "tick_before": 693,
+            "tick_after": 707
+          },
+          {
+            "call": 4,
+            "before": 9982,
+            "after": 3984,
+            "tick_before": 708,
+            "tick_after": 724
+          },
+          {
+            "call": 5,
+            "before": 9982,
+            "after": 6106,
+            "tick_before": 725,
+            "tick_after": 739
+          },
+          {
+            "call": 6,
+            "before": 9982,
+            "after": 7354,
+            "tick_before": 740,
+            "tick_after": 746
+          }
+        ],
+        "measurable_opcode_costs": [
+          2302,
+          5730,
+          5998,
+          3876,
+          2628
+        ],
+        "crossed_tick_suspensions": 1,
+        "equal_before_after": 0,
+        "pathfinding_tick_span": 89
+      },
+      {
+        "seed": 42,
+        "rank": 5,
+        "batch": 50,
+        "findpath_calls": 30,
+        "iterations_used": 1500,
+        "outcome": "found",
+        "path_cost": 4790,
+        "tile_count": 57,
+        "tile_sequence": "42051,42307,42306,42562,42818,43074,43075,43331,43332,43588,43589,43845,43846,43847,43848,43849,44105,44106,44362,44363,44619,44620,44876,44877,45133,45134,45390,45391,45647,45648,45649,45650,45906,45907,46163,46164,46420,46421,46677,46678,46934,46935,46936,47192,47193,47449,47450,47706,47707,47963,47964,48220,48221,48477,48478,48734,48735",
+        "calls": [
+          {
+            "call": 1,
+            "before": 752,
+            "after": 9041,
+            "tick_before": 657,
+            "tick_after": 669
+          },
+          {
+            "call": 2,
+            "before": 9982,
+            "after": 4271,
+            "tick_before": 670,
+            "tick_after": 685
+          },
+          {
+            "call": 3,
+            "before": 9982,
+            "after": 3856,
+            "tick_before": 686,
+            "tick_after": 700
+          },
+          {
+            "call": 4,
+            "before": 9982,
+            "after": 8303,
+            "tick_before": 701,
+            "tick_after": 716
+          },
+          {
+            "call": 5,
+            "before": 9982,
+            "after": 5033,
+            "tick_before": 717,
+            "tick_after": 731
+          },
+          {
+            "call": 6,
+            "before": 9982,
+            "after": 1850,
+            "tick_before": 732,
+            "tick_after": 745
+          },
+          {
+            "call": 7,
+            "before": 9982,
+            "after": 2508,
+            "tick_before": 746,
+            "tick_after": 758
+          },
+          {
+            "call": 8,
+            "before": 9982,
+            "after": 1381,
+            "tick_before": 759,
+            "tick_after": 773
+          },
+          {
+            "call": 9,
+            "before": 9982,
+            "after": 5917,
+            "tick_before": 774,
+            "tick_after": 788
+          },
+          {
+            "call": 10,
+            "before": 9982,
+            "after": 3764,
+            "tick_before": 789,
+            "tick_after": 801
+          },
+          {
+            "call": 11,
+            "before": 9982,
+            "after": 9762,
+            "tick_before": 802,
+            "tick_after": 814
+          },
+          {
+            "call": 12,
+            "before": 9982,
+            "after": 8998,
+            "tick_before": 815,
+            "tick_after": 830
+          },
+          {
+            "call": 13,
+            "before": 9982,
+            "after": 7261,
+            "tick_before": 831,
+            "tick_after": 847
+          },
+          {
+            "call": 14,
+            "before": 9982,
+            "after": 6629,
+            "tick_before": 848,
+            "tick_after": 864
+          },
+          {
+            "call": 15,
+            "before": 9982,
+            "after": 7566,
+            "tick_before": 865,
+            "tick_after": 882
+          },
+          {
+            "call": 16,
+            "before": 9982,
+            "after": 9545,
+            "tick_before": 883,
+            "tick_after": 899
+          },
+          {
+            "call": 17,
+            "before": 9982,
+            "after": 2084,
+            "tick_before": 900,
+            "tick_after": 916
+          },
+          {
+            "call": 18,
+            "before": 9982,
+            "after": 4107,
+            "tick_before": 917,
+            "tick_after": 930
+          },
+          {
+            "call": 19,
+            "before": 9982,
+            "after": 4293,
+            "tick_before": 931,
+            "tick_after": 948
+          },
+          {
+            "call": 20,
+            "before": 9982,
+            "after": 3037,
+            "tick_before": 949,
+            "tick_after": 965
+          },
+          {
+            "call": 21,
+            "before": 9982,
+            "after": 944,
+            "tick_before": 966,
+            "tick_after": 982
+          },
+          {
+            "call": 22,
+            "before": 9982,
+            "after": 1126,
+            "tick_before": 983,
+            "tick_after": 996
+          },
+          {
+            "call": 23,
+            "before": 9982,
+            "after": 6618,
+            "tick_before": 997,
+            "tick_after": 1009
+          },
+          {
+            "call": 24,
+            "before": 9982,
+            "after": 9544,
+            "tick_before": 1010,
+            "tick_after": 1023
+          },
+          {
+            "call": 25,
+            "before": 9982,
+            "after": 3619,
+            "tick_before": 1024,
+            "tick_after": 1038
+          },
+          {
+            "call": 26,
+            "before": 9982,
+            "after": 3601,
+            "tick_before": 1039,
+            "tick_after": 1056
+          },
+          {
+            "call": 27,
+            "before": 9982,
+            "after": 3441,
+            "tick_before": 1057,
+            "tick_after": 1070
+          },
+          {
+            "call": 28,
+            "before": 9982,
+            "after": 1693,
+            "tick_before": 1071,
+            "tick_after": 1084
+          },
+          {
+            "call": 29,
+            "before": 9982,
+            "after": 2121,
+            "tick_before": 1085,
+            "tick_after": 1097
+          },
+          {
+            "call": 30,
+            "before": 9982,
+            "after": 6693,
+            "tick_before": 1098,
+            "tick_after": 1108
+          }
+        ],
+        "measurable_opcode_costs": [
+          5711,
+          6126,
+          1679,
+          4949,
+          8132,
+          7474,
+          8601,
+          4065,
+          6218,
+          220,
+          984,
+          2721,
+          3353,
+          2416,
+          437,
+          7898,
+          5875,
+          5689,
+          6945,
+          9038,
+          8856,
+          3364,
+          438,
+          6363,
+          6381,
+          6541,
+          8289,
+          7861,
+          3289
+        ],
+        "crossed_tick_suspensions": 1,
+        "equal_before_after": 0,
+        "pathfinding_tick_span": 452
+      },
+      {
+        "seed": 1,
+        "rank": 0,
+        "batch": 50,
+        "findpath_calls": 16,
+        "iterations_used": 800,
+        "outcome": "found",
+        "path_cost": 2470,
+        "tile_count": 25,
+        "tile_sequence": "49307,49051,49050,48794,48793,48537,48536,48280,48279,48023,48022,47766,47510,47254,46998,46742,46486,46230,45974,45718,45462,45206,44950,44694,44695",
+        "calls": [
+          {
+            "call": 1,
+            "before": 3103,
+            "after": 2566,
+            "tick_before": 716,
+            "tick_after": 736
+          },
+          {
+            "call": 2,
+            "before": 9982,
+            "after": 6161,
+            "tick_before": 737,
+            "tick_after": 754
+          },
+          {
+            "call": 3,
+            "before": 9982,
+            "after": 6102,
+            "tick_before": 755,
+            "tick_after": 770
+          },
+          {
+            "call": 4,
+            "before": 9982,
+            "after": 7341,
+            "tick_before": 771,
+            "tick_after": 789
+          },
+          {
+            "call": 5,
+            "before": 9982,
+            "after": 7740,
+            "tick_before": 790,
+            "tick_after": 806
+          },
+          {
+            "call": 6,
+            "before": 9982,
+            "after": 3994,
+            "tick_before": 807,
+            "tick_after": 823
+          },
+          {
+            "call": 7,
+            "before": 9982,
+            "after": 6757,
+            "tick_before": 824,
+            "tick_after": 839
+          },
+          {
+            "call": 8,
+            "before": 9982,
+            "after": 8715,
+            "tick_before": 840,
+            "tick_after": 856
+          },
+          {
+            "call": 9,
+            "before": 9982,
+            "after": 2993,
+            "tick_before": 857,
+            "tick_after": 872
+          },
+          {
+            "call": 10,
+            "before": 9982,
+            "after": 4826,
+            "tick_before": 873,
+            "tick_after": 887
+          },
+          {
+            "call": 11,
+            "before": 9982,
+            "after": 6095,
+            "tick_before": 888,
+            "tick_after": 903
+          },
+          {
+            "call": 12,
+            "before": 9982,
+            "after": 564,
+            "tick_before": 904,
+            "tick_after": 917
+          },
+          {
+            "call": 13,
+            "before": 9982,
+            "after": 8865,
+            "tick_before": 918,
+            "tick_after": 934
+          },
+          {
+            "call": 14,
+            "before": 9982,
+            "after": 4319,
+            "tick_before": 935,
+            "tick_after": 950
+          },
+          {
+            "call": 15,
+            "before": 9982,
+            "after": 7677,
+            "tick_before": 951,
+            "tick_after": 964
+          },
+          {
+            "call": 16,
+            "before": 9982,
+            "after": 8204,
+            "tick_before": 965,
+            "tick_after": 965
+          }
+        ],
+        "measurable_opcode_costs": [
+          537,
+          3821,
+          3880,
+          2641,
+          2242,
+          5988,
+          3225,
+          1267,
+          6989,
+          5156,
+          3887,
+          9418,
+          1117,
+          5663,
+          2305,
+          1778
+        ],
+        "crossed_tick_suspensions": 0,
+        "equal_before_after": 0,
+        "pathfinding_tick_span": 250
+      },
+      {
+        "seed": 1,
+        "rank": 5,
+        "batch": 50,
+        "findpath_calls": 285,
+        "iterations_used": 14250,
+        "outcome": "found",
+        "path_cost": 6910,
+        "tile_count": 77,
+        "tile_sequence": "40258,40259,40515,40516,40772,41028,41284,41540,41796,42052,42308,42564,42820,43076,43332,43588,43844,44100,44356,44612,44868,45124,45380,45636,45892,46148,46404,46660,46916,47172,47428,47684,47940,48196,48452,48708,48964,49220,49476,49732,49731,49987,49986,50242,50241,50497,50496,50752,50751,51007,51006,51262,51261,51517,51516,51772,51771,52027,52026,52282,52281,52537,52536,52792,52791,53047,53046,53302,53301,53557,53556,53812,53811,54067,54066,54065,54064",
+        "calls": [
+          {
+            "call": 1,
+            "before": 5416,
+            "after": 9147,
+            "tick_before": 718,
+            "tick_after": 738
+          },
+          {
+            "call": 2,
+            "before": 9982,
+            "after": 5112,
+            "tick_before": 739,
+            "tick_after": 756
+          },
+          {
+            "call": 3,
+            "before": 9982,
+            "after": 3708,
+            "tick_before": 757,
+            "tick_after": 775
+          },
+          {
+            "call": 4,
+            "before": 9982,
+            "after": 2673,
+            "tick_before": 776,
+            "tick_after": 792
+          },
+          {
+            "call": 5,
+            "before": 9982,
+            "after": 2840,
+            "tick_before": 793,
+            "tick_after": 809
+          },
+          {
+            "call": 6,
+            "before": 9982,
+            "after": 1996,
+            "tick_before": 810,
+            "tick_after": 825
+          },
+          {
+            "call": 7,
+            "before": 9982,
+            "after": 8239,
+            "tick_before": 826,
+            "tick_after": 842
+          },
+          {
+            "call": 8,
+            "before": 9982,
+            "after": 3854,
+            "tick_before": 843,
+            "tick_after": 858
+          },
+          {
+            "call": 9,
+            "before": 9982,
+            "after": 4749,
+            "tick_before": 859,
+            "tick_after": 873
+          },
+          {
+            "call": 10,
+            "before": 9982,
+            "after": 4352,
+            "tick_before": 874,
+            "tick_after": 885
+          },
+          {
+            "call": 11,
+            "before": 9982,
+            "after": 8201,
+            "tick_before": 886,
+            "tick_after": 899
+          },
+          {
+            "call": 12,
+            "before": 9982,
+            "after": 9430,
+            "tick_before": 900,
+            "tick_after": 914
+          },
+          {
+            "call": 13,
+            "before": 9982,
+            "after": 4120,
+            "tick_before": 915,
+            "tick_after": 926
+          },
+          {
+            "call": 14,
+            "before": 9982,
+            "after": 7673,
+            "tick_before": 927,
+            "tick_after": 940
+          },
+          {
+            "call": 15,
+            "before": 9982,
+            "after": 6958,
+            "tick_before": 941,
+            "tick_after": 955
+          },
+          {
+            "call": 16,
+            "before": 9982,
+            "after": 4980,
+            "tick_before": 956,
+            "tick_after": 969
+          },
+          {
+            "call": 17,
+            "before": 9982,
+            "after": 755,
+            "tick_before": 970,
+            "tick_after": 982
+          },
+          {
+            "call": 18,
+            "before": 9982,
+            "after": 8152,
+            "tick_before": 983,
+            "tick_after": 997
+          },
+          {
+            "call": 19,
+            "before": 9982,
+            "after": 5845,
+            "tick_before": 998,
+            "tick_after": 1008
+          },
+          {
+            "call": 20,
+            "before": 9982,
+            "after": 6588,
+            "tick_before": 1009,
+            "tick_after": 1020
+          },
+          {
+            "call": 21,
+            "before": 9982,
+            "after": 7448,
+            "tick_before": 1021,
+            "tick_after": 1029
+          },
+          {
+            "call": 22,
+            "before": 9982,
+            "after": 899,
+            "tick_before": 1030,
+            "tick_after": 1043
+          },
+          {
+            "call": 23,
+            "before": 9982,
+            "after": 8113,
+            "tick_before": 1044,
+            "tick_after": 1059
+          },
+          {
+            "call": 24,
+            "before": 9982,
+            "after": 4867,
+            "tick_before": 1060,
+            "tick_after": 1074
+          },
+          {
+            "call": 25,
+            "before": 9982,
+            "after": 2218,
+            "tick_before": 1075,
+            "tick_after": 1084
+          },
+          {
+            "call": 26,
+            "before": 9982,
+            "after": 7275,
+            "tick_before": 1085,
+            "tick_after": 1099
+          },
+          {
+            "call": 27,
+            "before": 9982,
+            "after": 8712,
+            "tick_before": 1100,
+            "tick_after": 1111
+          },
+          {
+            "call": 28,
+            "before": 9982,
+            "after": 6294,
+            "tick_before": 1112,
+            "tick_after": 1125
+          },
+          {
+            "call": 29,
+            "before": 9982,
+            "after": 8288,
+            "tick_before": 1126,
+            "tick_after": 1137
+          },
+          {
+            "call": 30,
+            "before": 9982,
+            "after": 3565,
+            "tick_before": 1138,
+            "tick_after": 1149
+          },
+          {
+            "call": 31,
+            "before": 9982,
+            "after": 6685,
+            "tick_before": 1150,
+            "tick_after": 1164
+          },
+          {
+            "call": 32,
+            "before": 9982,
+            "after": 9457,
+            "tick_before": 1165,
+            "tick_after": 1179
+          },
+          {
+            "call": 33,
+            "before": 9982,
+            "after": 2108,
+            "tick_before": 1180,
+            "tick_after": 1196
+          },
+          {
+            "call": 34,
+            "before": 9982,
+            "after": 5531,
+            "tick_before": 1197,
+            "tick_after": 1208
+          },
+          {
+            "call": 35,
+            "before": 9982,
+            "after": 732,
+            "tick_before": 1209,
+            "tick_after": 1222
+          },
+          {
+            "call": 36,
+            "before": 9982,
+            "after": 9432,
+            "tick_before": 1223,
+            "tick_after": 1237
+          },
+          {
+            "call": 37,
+            "before": 9982,
+            "after": 7638,
+            "tick_before": 1238,
+            "tick_after": 1248
+          },
+          {
+            "call": 38,
+            "before": 9982,
+            "after": 5265,
+            "tick_before": 1249,
+            "tick_after": 1260
+          },
+          {
+            "call": 39,
+            "before": 9982,
+            "after": 6534,
+            "tick_before": 1261,
+            "tick_after": 1275
+          },
+          {
+            "call": 40,
+            "before": 9982,
+            "after": 5684,
+            "tick_before": 1276,
+            "tick_after": 1289
+          },
+          {
+            "call": 41,
+            "before": 9982,
+            "after": 373,
+            "tick_before": 1290,
+            "tick_after": 1302
+          },
+          {
+            "call": 42,
+            "before": 9982,
+            "after": 4279,
+            "tick_before": 1303,
+            "tick_after": 1315
+          },
+          {
+            "call": 43,
+            "before": 9982,
+            "after": 9523,
+            "tick_before": 1316,
+            "tick_after": 1328
+          },
+          {
+            "call": 44,
+            "before": 9982,
+            "after": 7568,
+            "tick_before": 1329,
+            "tick_after": 1341
+          },
+          {
+            "call": 45,
+            "before": 9982,
+            "after": 9375,
+            "tick_before": 1342,
+            "tick_after": 1355
+          },
+          {
+            "call": 46,
+            "before": 9982,
+            "after": 7004,
+            "tick_before": 1356,
+            "tick_after": 1367
+          },
+          {
+            "call": 47,
+            "before": 9982,
+            "after": 3726,
+            "tick_before": 1368,
+            "tick_after": 1381
+          },
+          {
+            "call": 48,
+            "before": 9982,
+            "after": 6810,
+            "tick_before": 1382,
+            "tick_after": 1394
+          },
+          {
+            "call": 49,
+            "before": 9982,
+            "after": 9550,
+            "tick_before": 1395,
+            "tick_after": 1407
+          },
+          {
+            "call": 50,
+            "before": 9982,
+            "after": 9497,
+            "tick_before": 1408,
+            "tick_after": 1420
+          },
+          {
+            "call": 51,
+            "before": 9982,
+            "after": 3506,
+            "tick_before": 1421,
+            "tick_after": 1430
+          },
+          {
+            "call": 52,
+            "before": 9982,
+            "after": 3129,
+            "tick_before": 1431,
+            "tick_after": 1445
+          },
+          {
+            "call": 53,
+            "before": 9982,
+            "after": 2730,
+            "tick_before": 1446,
+            "tick_after": 1457
+          },
+          {
+            "call": 54,
+            "before": 9982,
+            "after": 3692,
+            "tick_before": 1458,
+            "tick_after": 1475
+          },
+          {
+            "call": 55,
+            "before": 9982,
+            "after": 1467,
+            "tick_before": 1476,
+            "tick_after": 1486
+          },
+          {
+            "call": 56,
+            "before": 9982,
+            "after": 9608,
+            "tick_before": 1487,
+            "tick_after": 1501
+          },
+          {
+            "call": 57,
+            "before": 9982,
+            "after": 4295,
+            "tick_before": 1502,
+            "tick_after": 1515
+          },
+          {
+            "call": 58,
+            "before": 9982,
+            "after": 4091,
+            "tick_before": 1516,
+            "tick_after": 1531
+          },
+          {
+            "call": 59,
+            "before": 9982,
+            "after": 3804,
+            "tick_before": 1532,
+            "tick_after": 1546
+          },
+          {
+            "call": 60,
+            "before": 9982,
+            "after": 354,
+            "tick_before": 1547,
+            "tick_after": 1563
+          },
+          {
+            "call": 61,
+            "before": 9982,
+            "after": 2333,
+            "tick_before": 1564,
+            "tick_after": 1578
+          },
+          {
+            "call": 62,
+            "before": 9982,
+            "after": 3448,
+            "tick_before": 1579,
+            "tick_after": 1590
+          },
+          {
+            "call": 63,
+            "before": 9982,
+            "after": 7233,
+            "tick_before": 1591,
+            "tick_after": 1601
+          },
+          {
+            "call": 64,
+            "before": 9982,
+            "after": 8079,
+            "tick_before": 1602,
+            "tick_after": 1616
+          },
+          {
+            "call": 65,
+            "before": 9982,
+            "after": 4869,
+            "tick_before": 1617,
+            "tick_after": 1631
+          },
+          {
+            "call": 66,
+            "before": 9982,
+            "after": 6867,
+            "tick_before": 1632,
+            "tick_after": 1647
+          },
+          {
+            "call": 67,
+            "before": 9982,
+            "after": 4456,
+            "tick_before": 1648,
+            "tick_after": 1659
+          },
+          {
+            "call": 68,
+            "before": 9982,
+            "after": 3056,
+            "tick_before": 1660,
+            "tick_after": 1672
+          },
+          {
+            "call": 69,
+            "before": 9982,
+            "after": 1462,
+            "tick_before": 1673,
+            "tick_after": 1687
+          },
+          {
+            "call": 70,
+            "before": 9982,
+            "after": 6307,
+            "tick_before": 1688,
+            "tick_after": 1702
+          },
+          {
+            "call": 71,
+            "before": 9982,
+            "after": 9068,
+            "tick_before": 1703,
+            "tick_after": 1718
+          },
+          {
+            "call": 72,
+            "before": 9982,
+            "after": 829,
+            "tick_before": 1719,
+            "tick_after": 1734
+          },
+          {
+            "call": 73,
+            "before": 9982,
+            "after": 7148,
+            "tick_before": 1735,
+            "tick_after": 1748
+          },
+          {
+            "call": 74,
+            "before": 9982,
+            "after": 2846,
+            "tick_before": 1749,
+            "tick_after": 1763
+          },
+          {
+            "call": 75,
+            "before": 9982,
+            "after": 5356,
+            "tick_before": 1764,
+            "tick_after": 1777
+          },
+          {
+            "call": 76,
+            "before": 9982,
+            "after": 2545,
+            "tick_before": 1778,
+            "tick_after": 1789
+          },
+          {
+            "call": 77,
+            "before": 9982,
+            "after": 8756,
+            "tick_before": 1790,
+            "tick_after": 1803
+          },
+          {
+            "call": 78,
+            "before": 9982,
+            "after": 4156,
+            "tick_before": 1804,
+            "tick_after": 1816
+          },
+          {
+            "call": 79,
+            "before": 9982,
+            "after": 9633,
+            "tick_before": 1817,
+            "tick_after": 1826
+          },
+          {
+            "call": 80,
+            "before": 9982,
+            "after": 1117,
+            "tick_before": 1827,
+            "tick_after": 1836
+          },
+          {
+            "call": 81,
+            "before": 9982,
+            "after": 1156,
+            "tick_before": 1837,
+            "tick_after": 1849
+          },
+          {
+            "call": 82,
+            "before": 9982,
+            "after": 6787,
+            "tick_before": 1850,
+            "tick_after": 1862
+          },
+          {
+            "call": 83,
+            "before": 9982,
+            "after": 8767,
+            "tick_before": 1863,
+            "tick_after": 1877
+          },
+          {
+            "call": 84,
+            "before": 9982,
+            "after": 3183,
+            "tick_before": 1878,
+            "tick_after": 1889
+          },
+          {
+            "call": 85,
+            "before": 9982,
+            "after": 4642,
+            "tick_before": 1890,
+            "tick_after": 1901
+          },
+          {
+            "call": 86,
+            "before": 9982,
+            "after": 5875,
+            "tick_before": 1902,
+            "tick_after": 1915
+          },
+          {
+            "call": 87,
+            "before": 9982,
+            "after": 6274,
+            "tick_before": 1916,
+            "tick_after": 1927
+          },
+          {
+            "call": 88,
+            "before": 9982,
+            "after": 6367,
+            "tick_before": 1928,
+            "tick_after": 1937
+          },
+          {
+            "call": 89,
+            "before": 9982,
+            "after": 6681,
+            "tick_before": 1938,
+            "tick_after": 1949
+          },
+          {
+            "call": 90,
+            "before": 9982,
+            "after": 6016,
+            "tick_before": 1950,
+            "tick_after": 1964
+          },
+          {
+            "call": 91,
+            "before": 9982,
+            "after": 3596,
+            "tick_before": 1965,
+            "tick_after": 1977
+          },
+          {
+            "call": 92,
+            "before": 9982,
+            "after": 7754,
+            "tick_before": 1978,
+            "tick_after": 1990
+          },
+          {
+            "call": 93,
+            "before": 9982,
+            "after": 1546,
+            "tick_before": 1991,
+            "tick_after": 1997
+          },
+          {
+            "call": 94,
+            "before": 9982,
+            "after": 101,
+            "tick_before": 1998,
+            "tick_after": 2008
+          },
+          {
+            "call": 95,
+            "before": 9982,
+            "after": 3012,
+            "tick_before": 2009,
+            "tick_after": 2021
+          },
+          {
+            "call": 96,
+            "before": 9982,
+            "after": 696,
+            "tick_before": 2022,
+            "tick_after": 2032
+          },
+          {
+            "call": 97,
+            "before": 9982,
+            "after": 760,
+            "tick_before": 2033,
+            "tick_after": 2044
+          },
+          {
+            "call": 98,
+            "before": 9982,
+            "after": 8082,
+            "tick_before": 2045,
+            "tick_after": 2059
+          },
+          {
+            "call": 99,
+            "before": 9982,
+            "after": 8054,
+            "tick_before": 2060,
+            "tick_after": 2071
+          },
+          {
+            "call": 100,
+            "before": 9982,
+            "after": 5792,
+            "tick_before": 2072,
+            "tick_after": 2083
+          },
+          {
+            "call": 101,
+            "before": 9982,
+            "after": 4631,
+            "tick_before": 2084,
+            "tick_after": 2093
+          },
+          {
+            "call": 102,
+            "before": 9982,
+            "after": 4454,
+            "tick_before": 2094,
+            "tick_after": 2102
+          },
+          {
+            "call": 103,
+            "before": 9982,
+            "after": 9644,
+            "tick_before": 2103,
+            "tick_after": 2116
+          },
+          {
+            "call": 104,
+            "before": 9982,
+            "after": 9859,
+            "tick_before": 2117,
+            "tick_after": 2127
+          },
+          {
+            "call": 105,
+            "before": 9982,
+            "after": 8807,
+            "tick_before": 2128,
+            "tick_after": 2142
+          },
+          {
+            "call": 106,
+            "before": 9982,
+            "after": 8953,
+            "tick_before": 2143,
+            "tick_after": 2156
+          },
+          {
+            "call": 107,
+            "before": 9982,
+            "after": 5998,
+            "tick_before": 2157,
+            "tick_after": 2166
+          },
+          {
+            "call": 108,
+            "before": 9982,
+            "after": 5565,
+            "tick_before": 2167,
+            "tick_after": 2178
+          },
+          {
+            "call": 109,
+            "before": 9982,
+            "after": 3892,
+            "tick_before": 2179,
+            "tick_after": 2190
+          },
+          {
+            "call": 110,
+            "before": 9982,
+            "after": 835,
+            "tick_before": 2191,
+            "tick_after": 2201
+          },
+          {
+            "call": 111,
+            "before": 9982,
+            "after": 1733,
+            "tick_before": 2202,
+            "tick_after": 2214
+          },
+          {
+            "call": 112,
+            "before": 9982,
+            "after": 9431,
+            "tick_before": 2215,
+            "tick_after": 2229
+          },
+          {
+            "call": 113,
+            "before": 9982,
+            "after": 8284,
+            "tick_before": 2230,
+            "tick_after": 2245
+          },
+          {
+            "call": 114,
+            "before": 9982,
+            "after": 495,
+            "tick_before": 2246,
+            "tick_after": 2256
+          },
+          {
+            "call": 115,
+            "before": 9982,
+            "after": 9205,
+            "tick_before": 2257,
+            "tick_after": 2268
+          },
+          {
+            "call": 116,
+            "before": 9982,
+            "after": 4278,
+            "tick_before": 2269,
+            "tick_after": 2279
+          },
+          {
+            "call": 117,
+            "before": 9982,
+            "after": 125,
+            "tick_before": 2280,
+            "tick_after": 2289
+          },
+          {
+            "call": 118,
+            "before": 9982,
+            "after": 1203,
+            "tick_before": 2290,
+            "tick_after": 2303
+          },
+          {
+            "call": 119,
+            "before": 9982,
+            "after": 3826,
+            "tick_before": 2304,
+            "tick_after": 2313
+          },
+          {
+            "call": 120,
+            "before": 9982,
+            "after": 4109,
+            "tick_before": 2314,
+            "tick_after": 2325
+          },
+          {
+            "call": 121,
+            "before": 9982,
+            "after": 625,
+            "tick_before": 2326,
+            "tick_after": 2338
+          },
+          {
+            "call": 122,
+            "before": 9982,
+            "after": 1763,
+            "tick_before": 2339,
+            "tick_after": 2353
+          },
+          {
+            "call": 123,
+            "before": 9982,
+            "after": 8803,
+            "tick_before": 2354,
+            "tick_after": 2365
+          },
+          {
+            "call": 124,
+            "before": 9982,
+            "after": 6031,
+            "tick_before": 2366,
+            "tick_after": 2377
+          },
+          {
+            "call": 125,
+            "before": 9982,
+            "after": 7897,
+            "tick_before": 2378,
+            "tick_after": 2391
+          },
+          {
+            "call": 126,
+            "before": 9982,
+            "after": 3652,
+            "tick_before": 2392,
+            "tick_after": 2402
+          },
+          {
+            "call": 127,
+            "before": 9982,
+            "after": 1189,
+            "tick_before": 2403,
+            "tick_after": 2413
+          },
+          {
+            "call": 128,
+            "before": 9982,
+            "after": 5283,
+            "tick_before": 2414,
+            "tick_after": 2426
+          },
+          {
+            "call": 129,
+            "before": 9982,
+            "after": 9988,
+            "tick_before": 2427,
+            "tick_after": 2439
+          },
+          {
+            "call": 130,
+            "before": 9982,
+            "after": 8015,
+            "tick_before": 2440,
+            "tick_after": 2453
+          },
+          {
+            "call": 131,
+            "before": 9982,
+            "after": 524,
+            "tick_before": 2454,
+            "tick_after": 2465
+          },
+          {
+            "call": 132,
+            "before": 9982,
+            "after": 6688,
+            "tick_before": 2466,
+            "tick_after": 2476
+          },
+          {
+            "call": 133,
+            "before": 9982,
+            "after": 5632,
+            "tick_before": 2477,
+            "tick_after": 2488
+          },
+          {
+            "call": 134,
+            "before": 9982,
+            "after": 203,
+            "tick_before": 2489,
+            "tick_after": 2501
+          },
+          {
+            "call": 135,
+            "before": 9982,
+            "after": 1584,
+            "tick_before": 2502,
+            "tick_after": 2511
+          },
+          {
+            "call": 136,
+            "before": 9982,
+            "after": 4242,
+            "tick_before": 2512,
+            "tick_after": 2524
+          },
+          {
+            "call": 137,
+            "before": 9982,
+            "after": 2041,
+            "tick_before": 2525,
+            "tick_after": 2536
+          },
+          {
+            "call": 138,
+            "before": 9982,
+            "after": 3529,
+            "tick_before": 2537,
+            "tick_after": 2546
+          },
+          {
+            "call": 139,
+            "before": 9982,
+            "after": 3592,
+            "tick_before": 2547,
+            "tick_after": 2559
+          },
+          {
+            "call": 140,
+            "before": 9982,
+            "after": 1817,
+            "tick_before": 2560,
+            "tick_after": 2573
+          },
+          {
+            "call": 141,
+            "before": 9982,
+            "after": 7624,
+            "tick_before": 2574,
+            "tick_after": 2586
+          },
+          {
+            "call": 142,
+            "before": 9982,
+            "after": 389,
+            "tick_before": 2587,
+            "tick_after": 2599
+          },
+          {
+            "call": 143,
+            "before": 9982,
+            "after": 4014,
+            "tick_before": 2600,
+            "tick_after": 2612
+          },
+          {
+            "call": 144,
+            "before": 9982,
+            "after": 60,
+            "tick_before": 2613,
+            "tick_after": 2625
+          },
+          {
+            "call": 145,
+            "before": 9982,
+            "after": 5973,
+            "tick_before": 2626,
+            "tick_after": 2636
+          },
+          {
+            "call": 146,
+            "before": 9982,
+            "after": 3832,
+            "tick_before": 2637,
+            "tick_after": 2648
+          },
+          {
+            "call": 147,
+            "before": 9982,
+            "after": 3976,
+            "tick_before": 2649,
+            "tick_after": 2660
+          },
+          {
+            "call": 148,
+            "before": 9982,
+            "after": 6358,
+            "tick_before": 2661,
+            "tick_after": 2672
+          },
+          {
+            "call": 149,
+            "before": 9982,
+            "after": 5814,
+            "tick_before": 2673,
+            "tick_after": 2683
+          },
+          {
+            "call": 150,
+            "before": 9982,
+            "after": 6336,
+            "tick_before": 2684,
+            "tick_after": 2696
+          },
+          {
+            "call": 151,
+            "before": 9982,
+            "after": 8254,
+            "tick_before": 2697,
+            "tick_after": 2708
+          },
+          {
+            "call": 152,
+            "before": 9982,
+            "after": 2261,
+            "tick_before": 2709,
+            "tick_after": 2718
+          },
+          {
+            "call": 153,
+            "before": 9982,
+            "after": 9475,
+            "tick_before": 2719,
+            "tick_after": 2733
+          },
+          {
+            "call": 154,
+            "before": 9982,
+            "after": 7812,
+            "tick_before": 2734,
+            "tick_after": 2745
+          },
+          {
+            "call": 155,
+            "before": 9982,
+            "after": 2430,
+            "tick_before": 2746,
+            "tick_after": 2759
+          },
+          {
+            "call": 156,
+            "before": 9982,
+            "after": 2419,
+            "tick_before": 2760,
+            "tick_after": 2773
+          },
+          {
+            "call": 157,
+            "before": 9982,
+            "after": 9929,
+            "tick_before": 2774,
+            "tick_after": 2787
+          },
+          {
+            "call": 158,
+            "before": 9982,
+            "after": 2844,
+            "tick_before": 2788,
+            "tick_after": 2802
+          },
+          {
+            "call": 159,
+            "before": 9982,
+            "after": 4603,
+            "tick_before": 2803,
+            "tick_after": 2815
+          },
+          {
+            "call": 160,
+            "before": 9982,
+            "after": 6316,
+            "tick_before": 2816,
+            "tick_after": 2830
+          },
+          {
+            "call": 161,
+            "before": 9982,
+            "after": 9648,
+            "tick_before": 2831,
+            "tick_after": 2842
+          },
+          {
+            "call": 162,
+            "before": 9982,
+            "after": 1677,
+            "tick_before": 2843,
+            "tick_after": 2853
+          },
+          {
+            "call": 163,
+            "before": 9982,
+            "after": 2462,
+            "tick_before": 2854,
+            "tick_after": 2864
+          },
+          {
+            "call": 164,
+            "before": 9982,
+            "after": 7330,
+            "tick_before": 2865,
+            "tick_after": 2877
+          },
+          {
+            "call": 165,
+            "before": 9982,
+            "after": 4056,
+            "tick_before": 2878,
+            "tick_after": 2886
+          },
+          {
+            "call": 166,
+            "before": 9982,
+            "after": 869,
+            "tick_before": 2887,
+            "tick_after": 2898
+          },
+          {
+            "call": 167,
+            "before": 9982,
+            "after": 4523,
+            "tick_before": 2899,
+            "tick_after": 2912
+          },
+          {
+            "call": 168,
+            "before": 9982,
+            "after": 6676,
+            "tick_before": 2913,
+            "tick_after": 2926
+          },
+          {
+            "call": 169,
+            "before": 9982,
+            "after": 678,
+            "tick_before": 2927,
+            "tick_after": 2938
+          },
+          {
+            "call": 170,
+            "before": 9982,
+            "after": 7826,
+            "tick_before": 2939,
+            "tick_after": 2952
+          },
+          {
+            "call": 171,
+            "before": 9982,
+            "after": 1084,
+            "tick_before": 2953,
+            "tick_after": 2964
+          },
+          {
+            "call": 172,
+            "before": 9982,
+            "after": 3420,
+            "tick_before": 2965,
+            "tick_after": 2979
+          },
+          {
+            "call": 173,
+            "before": 9982,
+            "after": 5809,
+            "tick_before": 2980,
+            "tick_after": 2993
+          },
+          {
+            "call": 174,
+            "before": 9982,
+            "after": 6508,
+            "tick_before": 2994,
+            "tick_after": 3004
+          },
+          {
+            "call": 175,
+            "before": 9982,
+            "after": 941,
+            "tick_before": 3005,
+            "tick_after": 3015
+          },
+          {
+            "call": 176,
+            "before": 9982,
+            "after": 404,
+            "tick_before": 3016,
+            "tick_after": 3026
+          },
+          {
+            "call": 177,
+            "before": 9982,
+            "after": 9563,
+            "tick_before": 3027,
+            "tick_after": 3038
+          },
+          {
+            "call": 178,
+            "before": 9982,
+            "after": 1401,
+            "tick_before": 3039,
+            "tick_after": 3049
+          },
+          {
+            "call": 179,
+            "before": 9982,
+            "after": 1708,
+            "tick_before": 3050,
+            "tick_after": 3060
+          },
+          {
+            "call": 180,
+            "before": 9982,
+            "after": 2106,
+            "tick_before": 3061,
+            "tick_after": 3071
+          },
+          {
+            "call": 181,
+            "before": 9982,
+            "after": 546,
+            "tick_before": 3072,
+            "tick_after": 3082
+          },
+          {
+            "call": 182,
+            "before": 9982,
+            "after": 9654,
+            "tick_before": 3083,
+            "tick_after": 3095
+          },
+          {
+            "call": 183,
+            "before": 9982,
+            "after": 6500,
+            "tick_before": 3096,
+            "tick_after": 3108
+          },
+          {
+            "call": 184,
+            "before": 9982,
+            "after": 4973,
+            "tick_before": 3109,
+            "tick_after": 3120
+          },
+          {
+            "call": 185,
+            "before": 9982,
+            "after": 7140,
+            "tick_before": 3121,
+            "tick_after": 3134
+          },
+          {
+            "call": 186,
+            "before": 9982,
+            "after": 8302,
+            "tick_before": 3135,
+            "tick_after": 3149
+          },
+          {
+            "call": 187,
+            "before": 9982,
+            "after": 2625,
+            "tick_before": 3150,
+            "tick_after": 3162
+          },
+          {
+            "call": 188,
+            "before": 9982,
+            "after": 599,
+            "tick_before": 3163,
+            "tick_after": 3173
+          },
+          {
+            "call": 189,
+            "before": 9982,
+            "after": 5834,
+            "tick_before": 3174,
+            "tick_after": 3184
+          },
+          {
+            "call": 190,
+            "before": 9982,
+            "after": 4169,
+            "tick_before": 3185,
+            "tick_after": 3196
+          },
+          {
+            "call": 191,
+            "before": 9982,
+            "after": 4318,
+            "tick_before": 3197,
+            "tick_after": 3210
+          },
+          {
+            "call": 192,
+            "before": 9982,
+            "after": 1352,
+            "tick_before": 3211,
+            "tick_after": 3221
+          },
+          {
+            "call": 193,
+            "before": 9982,
+            "after": 6399,
+            "tick_before": 3222,
+            "tick_after": 3238
+          },
+          {
+            "call": 194,
+            "before": 9982,
+            "after": 5164,
+            "tick_before": 3239,
+            "tick_after": 3252
+          },
+          {
+            "call": 195,
+            "before": 9982,
+            "after": 1369,
+            "tick_before": 3253,
+            "tick_after": 3262
+          },
+          {
+            "call": 196,
+            "before": 9982,
+            "after": 6701,
+            "tick_before": 3263,
+            "tick_after": 3275
+          },
+          {
+            "call": 197,
+            "before": 9982,
+            "after": 5027,
+            "tick_before": 3276,
+            "tick_after": 3286
+          },
+          {
+            "call": 198,
+            "before": 9982,
+            "after": 611,
+            "tick_before": 3287,
+            "tick_after": 3297
+          },
+          {
+            "call": 199,
+            "before": 9982,
+            "after": 150,
+            "tick_before": 3298,
+            "tick_after": 3308
+          },
+          {
+            "call": 200,
+            "before": 9982,
+            "after": 9671,
+            "tick_before": 3309,
+            "tick_after": 3320
+          },
+          {
+            "call": 201,
+            "before": 9982,
+            "after": 6492,
+            "tick_before": 3321,
+            "tick_after": 3334
+          },
+          {
+            "call": 202,
+            "before": 9982,
+            "after": 7012,
+            "tick_before": 3335,
+            "tick_after": 3347
+          },
+          {
+            "call": 203,
+            "before": 9982,
+            "after": 5257,
+            "tick_before": 3348,
+            "tick_after": 3360
+          },
+          {
+            "call": 204,
+            "before": 9982,
+            "after": 8002,
+            "tick_before": 3361,
+            "tick_after": 3373
+          },
+          {
+            "call": 205,
+            "before": 9982,
+            "after": 2927,
+            "tick_before": 3374,
+            "tick_after": 3386
+          },
+          {
+            "call": 206,
+            "before": 9982,
+            "after": 7475,
+            "tick_before": 3387,
+            "tick_after": 3398
+          },
+          {
+            "call": 207,
+            "before": 9982,
+            "after": 117,
+            "tick_before": 3399,
+            "tick_after": 3409
+          },
+          {
+            "call": 208,
+            "before": 9982,
+            "after": 6706,
+            "tick_before": 3410,
+            "tick_after": 3419
+          },
+          {
+            "call": 209,
+            "before": 9982,
+            "after": 1417,
+            "tick_before": 3420,
+            "tick_after": 3432
+          },
+          {
+            "call": 210,
+            "before": 9982,
+            "after": 9393,
+            "tick_before": 3433,
+            "tick_after": 3442
+          },
+          {
+            "call": 211,
+            "before": 9982,
+            "after": 3570,
+            "tick_before": 3443,
+            "tick_after": 3454
+          },
+          {
+            "call": 212,
+            "before": 9982,
+            "after": 5857,
+            "tick_before": 3455,
+            "tick_after": 3468
+          },
+          {
+            "call": 213,
+            "before": 9982,
+            "after": 151,
+            "tick_before": 3469,
+            "tick_after": 3480
+          },
+          {
+            "call": 214,
+            "before": 9982,
+            "after": 565,
+            "tick_before": 3481,
+            "tick_after": 3492
+          },
+          {
+            "call": 215,
+            "before": 9982,
+            "after": 7313,
+            "tick_before": 3493,
+            "tick_after": 3506
+          },
+          {
+            "call": 216,
+            "before": 9982,
+            "after": 3258,
+            "tick_before": 3507,
+            "tick_after": 3519
+          },
+          {
+            "call": 217,
+            "before": 9982,
+            "after": 5235,
+            "tick_before": 3520,
+            "tick_after": 3530
+          },
+          {
+            "call": 218,
+            "before": 9982,
+            "after": 1988,
+            "tick_before": 3531,
+            "tick_after": 3542
+          },
+          {
+            "call": 219,
+            "before": 9982,
+            "after": 1560,
+            "tick_before": 3543,
+            "tick_after": 3552
+          },
+          {
+            "call": 220,
+            "before": 9982,
+            "after": 7762,
+            "tick_before": 3553,
+            "tick_after": 3565
+          },
+          {
+            "call": 221,
+            "before": 9982,
+            "after": 3793,
+            "tick_before": 3566,
+            "tick_after": 3579
+          },
+          {
+            "call": 222,
+            "before": 9982,
+            "after": 2502,
+            "tick_before": 3580,
+            "tick_after": 3589
+          },
+          {
+            "call": 223,
+            "before": 9982,
+            "after": 6851,
+            "tick_before": 3590,
+            "tick_after": 3603
+          },
+          {
+            "call": 224,
+            "before": 9982,
+            "after": 8232,
+            "tick_before": 3604,
+            "tick_after": 3614
+          },
+          {
+            "call": 225,
+            "before": 9982,
+            "after": 1289,
+            "tick_before": 3615,
+            "tick_after": 3625
+          },
+          {
+            "call": 226,
+            "before": 9982,
+            "after": 2982,
+            "tick_before": 3626,
+            "tick_after": 3637
+          },
+          {
+            "call": 227,
+            "before": 9982,
+            "after": 5700,
+            "tick_before": 3638,
+            "tick_after": 3651
+          },
+          {
+            "call": 228,
+            "before": 9982,
+            "after": 5300,
+            "tick_before": 3652,
+            "tick_after": 3664
+          },
+          {
+            "call": 229,
+            "before": 9982,
+            "after": 1867,
+            "tick_before": 3665,
+            "tick_after": 3675
+          },
+          {
+            "call": 230,
+            "before": 9982,
+            "after": 546,
+            "tick_before": 3676,
+            "tick_after": 3685
+          },
+          {
+            "call": 231,
+            "before": 9982,
+            "after": 1095,
+            "tick_before": 3686,
+            "tick_after": 3697
+          },
+          {
+            "call": 232,
+            "before": 9982,
+            "after": 9822,
+            "tick_before": 3698,
+            "tick_after": 3710
+          },
+          {
+            "call": 233,
+            "before": 9982,
+            "after": 8615,
+            "tick_before": 3711,
+            "tick_after": 3723
+          },
+          {
+            "call": 234,
+            "before": 9982,
+            "after": 8222,
+            "tick_before": 3724,
+            "tick_after": 3734
+          },
+          {
+            "call": 235,
+            "before": 9982,
+            "after": 2948,
+            "tick_before": 3735,
+            "tick_after": 3745
+          },
+          {
+            "call": 236,
+            "before": 9982,
+            "after": 1004,
+            "tick_before": 3746,
+            "tick_after": 3760
+          },
+          {
+            "call": 237,
+            "before": 9982,
+            "after": 1479,
+            "tick_before": 3761,
+            "tick_after": 3772
+          },
+          {
+            "call": 238,
+            "before": 9982,
+            "after": 8793,
+            "tick_before": 3773,
+            "tick_after": 3785
+          },
+          {
+            "call": 239,
+            "before": 9982,
+            "after": 1396,
+            "tick_before": 3786,
+            "tick_after": 3796
+          },
+          {
+            "call": 240,
+            "before": 9982,
+            "after": 6081,
+            "tick_before": 3797,
+            "tick_after": 3809
+          },
+          {
+            "call": 241,
+            "before": 9982,
+            "after": 1101,
+            "tick_before": 3810,
+            "tick_after": 3821
+          },
+          {
+            "call": 242,
+            "before": 9982,
+            "after": 5976,
+            "tick_before": 3822,
+            "tick_after": 3835
+          },
+          {
+            "call": 243,
+            "before": 9982,
+            "after": 7355,
+            "tick_before": 3836,
+            "tick_after": 3845
+          },
+          {
+            "call": 244,
+            "before": 9982,
+            "after": 2495,
+            "tick_before": 3846,
+            "tick_after": 3857
+          },
+          {
+            "call": 245,
+            "before": 9982,
+            "after": 9011,
+            "tick_before": 3858,
+            "tick_after": 3871
+          },
+          {
+            "call": 246,
+            "before": 9982,
+            "after": 8657,
+            "tick_before": 3872,
+            "tick_after": 3884
+          },
+          {
+            "call": 247,
+            "before": 9982,
+            "after": 7771,
+            "tick_before": 3885,
+            "tick_after": 3898
+          },
+          {
+            "call": 248,
+            "before": 9982,
+            "after": 5585,
+            "tick_before": 3899,
+            "tick_after": 3911
+          },
+          {
+            "call": 249,
+            "before": 9982,
+            "after": 4682,
+            "tick_before": 3912,
+            "tick_after": 3924
+          },
+          {
+            "call": 250,
+            "before": 9982,
+            "after": 871,
+            "tick_before": 3925,
+            "tick_after": 3936
+          },
+          {
+            "call": 251,
+            "before": 9982,
+            "after": 1585,
+            "tick_before": 3937,
+            "tick_after": 3949
+          },
+          {
+            "call": 252,
+            "before": 9982,
+            "after": 5092,
+            "tick_before": 3950,
+            "tick_after": 3960
+          },
+          {
+            "call": 253,
+            "before": 9982,
+            "after": 8700,
+            "tick_before": 3961,
+            "tick_after": 3972
+          },
+          {
+            "call": 254,
+            "before": 9982,
+            "after": 7199,
+            "tick_before": 3973,
+            "tick_after": 3988
+          },
+          {
+            "call": 255,
+            "before": 9982,
+            "after": 3693,
+            "tick_before": 3989,
+            "tick_after": 3998
+          },
+          {
+            "call": 256,
+            "before": 9982,
+            "after": 8917,
+            "tick_before": 3999,
+            "tick_after": 4013
+          },
+          {
+            "call": 257,
+            "before": 9982,
+            "after": 8065,
+            "tick_before": 4014,
+            "tick_after": 4026
+          },
+          {
+            "call": 258,
+            "before": 9982,
+            "after": 5368,
+            "tick_before": 4027,
+            "tick_after": 4039
+          },
+          {
+            "call": 259,
+            "before": 9982,
+            "after": 9100,
+            "tick_before": 4040,
+            "tick_after": 4053
+          },
+          {
+            "call": 260,
+            "before": 9982,
+            "after": 1453,
+            "tick_before": 4054,
+            "tick_after": 4064
+          },
+          {
+            "call": 261,
+            "before": 9982,
+            "after": 9048,
+            "tick_before": 4065,
+            "tick_after": 4081
+          },
+          {
+            "call": 262,
+            "before": 9982,
+            "after": 707,
+            "tick_before": 4082,
+            "tick_after": 4096
+          },
+          {
+            "call": 263,
+            "before": 9982,
+            "after": 7848,
+            "tick_before": 4097,
+            "tick_after": 4109
+          },
+          {
+            "call": 264,
+            "before": 9982,
+            "after": 8729,
+            "tick_before": 4110,
+            "tick_after": 4122
+          },
+          {
+            "call": 265,
+            "before": 9982,
+            "after": 9586,
+            "tick_before": 4123,
+            "tick_after": 4135
+          },
+          {
+            "call": 266,
+            "before": 9982,
+            "after": 1434,
+            "tick_before": 4136,
+            "tick_after": 4149
+          },
+          {
+            "call": 267,
+            "before": 9982,
+            "after": 3056,
+            "tick_before": 4150,
+            "tick_after": 4161
+          },
+          {
+            "call": 268,
+            "before": 9982,
+            "after": 5678,
+            "tick_before": 4162,
+            "tick_after": 4173
+          },
+          {
+            "call": 269,
+            "before": 9982,
+            "after": 850,
+            "tick_before": 4174,
+            "tick_after": 4186
+          },
+          {
+            "call": 270,
+            "before": 9982,
+            "after": 8456,
+            "tick_before": 4187,
+            "tick_after": 4199
+          },
+          {
+            "call": 271,
+            "before": 9982,
+            "after": 2345,
+            "tick_before": 4200,
+            "tick_after": 4212
+          },
+          {
+            "call": 272,
+            "before": 9982,
+            "after": 4347,
+            "tick_before": 4213,
+            "tick_after": 4224
+          },
+          {
+            "call": 273,
+            "before": 9982,
+            "after": 2249,
+            "tick_before": 4225,
+            "tick_after": 4235
+          },
+          {
+            "call": 274,
+            "before": 9982,
+            "after": 9928,
+            "tick_before": 4236,
+            "tick_after": 4248
+          },
+          {
+            "call": 275,
+            "before": 9982,
+            "after": 5932,
+            "tick_before": 4249,
+            "tick_after": 4260
+          },
+          {
+            "call": 276,
+            "before": 9982,
+            "after": 6060,
+            "tick_before": 4261,
+            "tick_after": 4275
+          },
+          {
+            "call": 277,
+            "before": 9982,
+            "after": 723,
+            "tick_before": 4276,
+            "tick_after": 4290
+          },
+          {
+            "call": 278,
+            "before": 9982,
+            "after": 1497,
+            "tick_before": 4291,
+            "tick_after": 4305
+          },
+          {
+            "call": 279,
+            "before": 9982,
+            "after": 1740,
+            "tick_before": 4306,
+            "tick_after": 4316
+          },
+          {
+            "call": 280,
+            "before": 9982,
+            "after": 2378,
+            "tick_before": 4317,
+            "tick_after": 4330
+          },
+          {
+            "call": 281,
+            "before": 9982,
+            "after": 7648,
+            "tick_before": 4331,
+            "tick_after": 4343
+          },
+          {
+            "call": 282,
+            "before": 9982,
+            "after": 3706,
+            "tick_before": 4344,
+            "tick_after": 4356
+          },
+          {
+            "call": 283,
+            "before": 9982,
+            "after": 1049,
+            "tick_before": 4357,
+            "tick_after": 4373
+          },
+          {
+            "call": 284,
+            "before": 9982,
+            "after": 3394,
+            "tick_before": 4374,
+            "tick_after": 4387
+          },
+          {
+            "call": 285,
+            "before": 9982,
+            "after": 9871,
+            "tick_before": 4388,
+            "tick_after": 4397
+          }
+        ],
+        "measurable_opcode_costs": [
+          4870,
+          6274,
+          7309,
+          7142,
+          7986,
+          1743,
+          6128,
+          5233,
+          5630,
+          1781,
+          552,
+          5862,
+          2309,
+          3024,
+          5002,
+          9227,
+          1830,
+          4137,
+          3394,
+          2534,
+          9083,
+          1869,
+          5115,
+          7764,
+          2707,
+          1270,
+          3688,
+          1694,
+          6417,
+          3297,
+          525,
+          7874,
+          4451,
+          9250,
+          550,
+          2344,
+          4717,
+          3448,
+          4298,
+          9609,
+          5703,
+          459,
+          2414,
+          607,
+          2978,
+          6256,
+          3172,
+          432,
+          485,
+          6476,
+          6853,
+          7252,
+          6290,
+          8515,
+          374,
+          5687,
+          5891,
+          6178,
+          9628,
+          7649,
+          6534,
+          2749,
+          1903,
+          5113,
+          3115,
+          5526,
+          6926,
+          8520,
+          3675,
+          914,
+          9153,
+          2834,
+          7136,
+          4626,
+          7437,
+          1226,
+          5826,
+          349,
+          8865,
+          8826,
+          3195,
+          1215,
+          6799,
+          5340,
+          4107,
+          3708,
+          3615,
+          3301,
+          3966,
+          6386,
+          2228,
+          8436,
+          9881,
+          6970,
+          9286,
+          9222,
+          1900,
+          1928,
+          4190,
+          5351,
+          5528,
+          338,
+          123,
+          1175,
+          1029,
+          3984,
+          4417,
+          6090,
+          9147,
+          8249,
+          551,
+          1698,
+          9487,
+          777,
+          5704,
+          9857,
+          8779,
+          6156,
+          5873,
+          9357,
+          8219,
+          1179,
+          3951,
+          2085,
+          6330,
+          8793,
+          4699,
+          1967,
+          9458,
+          3294,
+          4350,
+          9779,
+          8398,
+          5740,
+          7941,
+          6453,
+          6390,
+          8165,
+          2358,
+          9593,
+          5968,
+          9922,
+          4009,
+          6150,
+          6006,
+          3624,
+          4168,
+          3646,
+          1728,
+          7721,
+          507,
+          2170,
+          7552,
+          7563,
+          53,
+          7138,
+          5379,
+          3666,
+          334,
+          8305,
+          7520,
+          2652,
+          5926,
+          9113,
+          5459,
+          3306,
+          9304,
+          2156,
+          8898,
+          6562,
+          4173,
+          3474,
+          9041,
+          9578,
+          419,
+          8581,
+          8274,
+          7876,
+          9436,
+          328,
+          3482,
+          5009,
+          2842,
+          1680,
+          7357,
+          9383,
+          4148,
+          5813,
+          5664,
+          8630,
+          3583,
+          4818,
+          8613,
+          3281,
+          4955,
+          9371,
+          9832,
+          311,
+          3490,
+          2970,
+          4725,
+          1980,
+          7055,
+          2507,
+          9865,
+          3276,
+          8565,
+          589,
+          6412,
+          4125,
+          9831,
+          9417,
+          2669,
+          6724,
+          4747,
+          7994,
+          8422,
+          2220,
+          6189,
+          7480,
+          3131,
+          1750,
+          8693,
+          7000,
+          4282,
+          4682,
+          8115,
+          9436,
+          8887,
+          160,
+          1367,
+          1760,
+          7034,
+          8978,
+          8503,
+          1189,
+          8586,
+          3901,
+          8881,
+          4006,
+          2627,
+          7487,
+          971,
+          1325,
+          2211,
+          4397,
+          5300,
+          9111,
+          8397,
+          4890,
+          1282,
+          2783,
+          6289,
+          1065,
+          1917,
+          4614,
+          882,
+          8529,
+          934,
+          9275,
+          2134,
+          1253,
+          396,
+          8548,
+          6926,
+          4304,
+          9132,
+          1526,
+          7637,
+          5635,
+          7733,
+          54,
+          4050,
+          3922,
+          9259,
+          8485,
+          8242,
+          7604,
+          2334,
+          6276,
+          8933,
+          6588,
+          111
+        ],
+        "crossed_tick_suspensions": 2,
+        "equal_before_after": 0,
+        "pathfinding_tick_span": 3680
+      },
+      {
+        "seed": 7,
+        "rank": 0,
+        "batch": 50,
+        "findpath_calls": 1,
+        "iterations_used": 50,
+        "outcome": "found",
+        "path_cost": 1420,
+        "tile_count": 19,
+        "tile_sequence": "36761,37017,37016,37272,37271,37527,37526,37782,37781,38037,38036,38292,38291,38547,38546,38802,38801,38800,39056",
+        "calls": [
+          {
+            "call": 1,
+            "before": 4432,
+            "after": 4904,
+            "tick_before": 668,
+            "tick_after": 677
+          }
+        ],
+        "measurable_opcode_costs": [],
+        "crossed_tick_suspensions": 1,
+        "equal_before_after": 0,
+        "pathfinding_tick_span": 10
+      },
+      {
+        "seed": 7,
+        "rank": 5,
+        "batch": 50,
+        "findpath_calls": 143,
+        "iterations_used": 7150,
+        "outcome": "found",
+        "path_cost": 8260,
+        "tile_count": 83,
+        "tile_sequence": "17827,17826,17825,17824,17823,17822,17821,17820,17819,17818,17817,17816,17815,17814,17813,17812,17811,17810,17809,17808,17807,17806,17805,17804,17803,17802,17801,17800,17799,17798,17797,17796,17795,17794,17793,17792,17791,17790,17789,17788,17787,17786,17785,17784,17783,17782,17781,17780,17779,17778,17777,17776,17775,17774,17773,17772,17771,17770,17769,17768,17767,17766,17765,17764,17508,17507,17251,17250,16994,16993,16737,16736,16480,16479,16223,16222,15966,15965,15709,15708,15452,15451,15450",
+        "calls": [
+          {
+            "call": 1,
+            "before": 1718,
+            "after": 2818,
+            "tick_before": 671,
+            "tick_after": 690
+          },
+          {
+            "call": 2,
+            "before": 9982,
+            "after": 3591,
+            "tick_before": 691,
+            "tick_after": 709
+          },
+          {
+            "call": 3,
+            "before": 9982,
+            "after": 619,
+            "tick_before": 710,
+            "tick_after": 726
+          },
+          {
+            "call": 4,
+            "before": 9982,
+            "after": 7465,
+            "tick_before": 727,
+            "tick_after": 740
+          },
+          {
+            "call": 5,
+            "before": 9982,
+            "after": 5495,
+            "tick_before": 741,
+            "tick_after": 756
+          },
+          {
+            "call": 6,
+            "before": 9982,
+            "after": 2984,
+            "tick_before": 757,
+            "tick_after": 764
+          },
+          {
+            "call": 7,
+            "before": 9982,
+            "after": 5313,
+            "tick_before": 765,
+            "tick_after": 779
+          },
+          {
+            "call": 8,
+            "before": 9982,
+            "after": 4022,
+            "tick_before": 780,
+            "tick_after": 796
+          },
+          {
+            "call": 9,
+            "before": 9982,
+            "after": 2863,
+            "tick_before": 797,
+            "tick_after": 814
+          },
+          {
+            "call": 10,
+            "before": 9982,
+            "after": 820,
+            "tick_before": 815,
+            "tick_after": 831
+          },
+          {
+            "call": 11,
+            "before": 9982,
+            "after": 8267,
+            "tick_before": 832,
+            "tick_after": 846
+          },
+          {
+            "call": 12,
+            "before": 9982,
+            "after": 4659,
+            "tick_before": 847,
+            "tick_after": 861
+          },
+          {
+            "call": 13,
+            "before": 9982,
+            "after": 2189,
+            "tick_before": 862,
+            "tick_after": 877
+          },
+          {
+            "call": 14,
+            "before": 9982,
+            "after": 855,
+            "tick_before": 878,
+            "tick_after": 889
+          },
+          {
+            "call": 15,
+            "before": 9982,
+            "after": 7111,
+            "tick_before": 890,
+            "tick_after": 903
+          },
+          {
+            "call": 16,
+            "before": 9982,
+            "after": 6651,
+            "tick_before": 904,
+            "tick_after": 916
+          },
+          {
+            "call": 17,
+            "before": 9982,
+            "after": 1843,
+            "tick_before": 917,
+            "tick_after": 926
+          },
+          {
+            "call": 18,
+            "before": 9982,
+            "after": 6962,
+            "tick_before": 927,
+            "tick_after": 941
+          },
+          {
+            "call": 19,
+            "before": 9982,
+            "after": 3126,
+            "tick_before": 942,
+            "tick_after": 954
+          },
+          {
+            "call": 20,
+            "before": 9982,
+            "after": 393,
+            "tick_before": 955,
+            "tick_after": 966
+          },
+          {
+            "call": 21,
+            "before": 9982,
+            "after": 3224,
+            "tick_before": 967,
+            "tick_after": 981
+          },
+          {
+            "call": 22,
+            "before": 9982,
+            "after": 8384,
+            "tick_before": 982,
+            "tick_after": 1000
+          },
+          {
+            "call": 23,
+            "before": 9982,
+            "after": 8938,
+            "tick_before": 1001,
+            "tick_after": 1017
+          },
+          {
+            "call": 24,
+            "before": 9982,
+            "after": 2521,
+            "tick_before": 1018,
+            "tick_after": 1031
+          },
+          {
+            "call": 25,
+            "before": 9982,
+            "after": 5179,
+            "tick_before": 1032,
+            "tick_after": 1046
+          },
+          {
+            "call": 26,
+            "before": 9982,
+            "after": 4766,
+            "tick_before": 1047,
+            "tick_after": 1061
+          },
+          {
+            "call": 27,
+            "before": 9982,
+            "after": 1971,
+            "tick_before": 1062,
+            "tick_after": 1075
+          },
+          {
+            "call": 28,
+            "before": 9982,
+            "after": 8576,
+            "tick_before": 1076,
+            "tick_after": 1088
+          },
+          {
+            "call": 29,
+            "before": 9982,
+            "after": 5394,
+            "tick_before": 1089,
+            "tick_after": 1105
+          },
+          {
+            "call": 30,
+            "before": 9982,
+            "after": 4492,
+            "tick_before": 1106,
+            "tick_after": 1124
+          },
+          {
+            "call": 31,
+            "before": 9982,
+            "after": 8445,
+            "tick_before": 1125,
+            "tick_after": 1140
+          },
+          {
+            "call": 32,
+            "before": 9982,
+            "after": 5416,
+            "tick_before": 1141,
+            "tick_after": 1153
+          },
+          {
+            "call": 33,
+            "before": 9982,
+            "after": 3566,
+            "tick_before": 1154,
+            "tick_after": 1170
+          },
+          {
+            "call": 34,
+            "before": 9982,
+            "after": 8422,
+            "tick_before": 1171,
+            "tick_after": 1187
+          },
+          {
+            "call": 35,
+            "before": 9982,
+            "after": 3013,
+            "tick_before": 1188,
+            "tick_after": 1207
+          },
+          {
+            "call": 36,
+            "before": 9982,
+            "after": 8453,
+            "tick_before": 1208,
+            "tick_after": 1225
+          },
+          {
+            "call": 37,
+            "before": 9982,
+            "after": 2464,
+            "tick_before": 1226,
+            "tick_after": 1239
+          },
+          {
+            "call": 38,
+            "before": 9982,
+            "after": 9954,
+            "tick_before": 1240,
+            "tick_after": 1254
+          },
+          {
+            "call": 39,
+            "before": 9982,
+            "after": 9570,
+            "tick_before": 1255,
+            "tick_after": 1267
+          },
+          {
+            "call": 40,
+            "before": 9982,
+            "after": 2910,
+            "tick_before": 1268,
+            "tick_after": 1281
+          },
+          {
+            "call": 41,
+            "before": 9982,
+            "after": 2476,
+            "tick_before": 1282,
+            "tick_after": 1293
+          },
+          {
+            "call": 42,
+            "before": 9982,
+            "after": 5843,
+            "tick_before": 1294,
+            "tick_after": 1305
+          },
+          {
+            "call": 43,
+            "before": 9982,
+            "after": 5334,
+            "tick_before": 1306,
+            "tick_after": 1320
+          },
+          {
+            "call": 44,
+            "before": 9982,
+            "after": 2162,
+            "tick_before": 1321,
+            "tick_after": 1337
+          },
+          {
+            "call": 45,
+            "before": 9982,
+            "after": 4383,
+            "tick_before": 1338,
+            "tick_after": 1354
+          },
+          {
+            "call": 46,
+            "before": 9982,
+            "after": 6155,
+            "tick_before": 1355,
+            "tick_after": 1370
+          },
+          {
+            "call": 47,
+            "before": 9982,
+            "after": 7233,
+            "tick_before": 1371,
+            "tick_after": 1385
+          },
+          {
+            "call": 48,
+            "before": 9982,
+            "after": 5555,
+            "tick_before": 1386,
+            "tick_after": 1399
+          },
+          {
+            "call": 49,
+            "before": 9982,
+            "after": 4898,
+            "tick_before": 1400,
+            "tick_after": 1411
+          },
+          {
+            "call": 50,
+            "before": 9982,
+            "after": 7127,
+            "tick_before": 1412,
+            "tick_after": 1425
+          },
+          {
+            "call": 51,
+            "before": 9982,
+            "after": 5354,
+            "tick_before": 1426,
+            "tick_after": 1440
+          },
+          {
+            "call": 52,
+            "before": 9982,
+            "after": 7448,
+            "tick_before": 1441,
+            "tick_after": 1455
+          },
+          {
+            "call": 53,
+            "before": 9982,
+            "after": 4050,
+            "tick_before": 1456,
+            "tick_after": 1469
+          },
+          {
+            "call": 54,
+            "before": 9982,
+            "after": 2641,
+            "tick_before": 1470,
+            "tick_after": 1483
+          },
+          {
+            "call": 55,
+            "before": 9982,
+            "after": 8429,
+            "tick_before": 1484,
+            "tick_after": 1496
+          },
+          {
+            "call": 56,
+            "before": 9982,
+            "after": 7230,
+            "tick_before": 1497,
+            "tick_after": 1508
+          },
+          {
+            "call": 57,
+            "before": 9982,
+            "after": 8628,
+            "tick_before": 1509,
+            "tick_after": 1521
+          },
+          {
+            "call": 58,
+            "before": 9982,
+            "after": 7521,
+            "tick_before": 1522,
+            "tick_after": 1537
+          },
+          {
+            "call": 59,
+            "before": 9982,
+            "after": 9978,
+            "tick_before": 1538,
+            "tick_after": 1552
+          },
+          {
+            "call": 60,
+            "before": 9982,
+            "after": 2315,
+            "tick_before": 1553,
+            "tick_after": 1569
+          },
+          {
+            "call": 61,
+            "before": 9982,
+            "after": 3594,
+            "tick_before": 1570,
+            "tick_after": 1588
+          },
+          {
+            "call": 62,
+            "before": 9982,
+            "after": 1771,
+            "tick_before": 1589,
+            "tick_after": 1604
+          },
+          {
+            "call": 63,
+            "before": 9982,
+            "after": 5371,
+            "tick_before": 1605,
+            "tick_after": 1623
+          },
+          {
+            "call": 64,
+            "before": 9982,
+            "after": 2207,
+            "tick_before": 1624,
+            "tick_after": 1639
+          },
+          {
+            "call": 65,
+            "before": 9982,
+            "after": 5200,
+            "tick_before": 1640,
+            "tick_after": 1658
+          },
+          {
+            "call": 66,
+            "before": 9982,
+            "after": 566,
+            "tick_before": 1659,
+            "tick_after": 1671
+          },
+          {
+            "call": 67,
+            "before": 9982,
+            "after": 3429,
+            "tick_before": 1672,
+            "tick_after": 1681
+          },
+          {
+            "call": 68,
+            "before": 9982,
+            "after": 3906,
+            "tick_before": 1682,
+            "tick_after": 1695
+          },
+          {
+            "call": 69,
+            "before": 9982,
+            "after": 7630,
+            "tick_before": 1696,
+            "tick_after": 1712
+          },
+          {
+            "call": 70,
+            "before": 9982,
+            "after": 700,
+            "tick_before": 1713,
+            "tick_after": 1726
+          },
+          {
+            "call": 71,
+            "before": 9982,
+            "after": 5587,
+            "tick_before": 1727,
+            "tick_after": 1742
+          },
+          {
+            "call": 72,
+            "before": 9982,
+            "after": 668,
+            "tick_before": 1743,
+            "tick_after": 1758
+          },
+          {
+            "call": 73,
+            "before": 9982,
+            "after": 4625,
+            "tick_before": 1759,
+            "tick_after": 1772
+          },
+          {
+            "call": 74,
+            "before": 9982,
+            "after": 2980,
+            "tick_before": 1773,
+            "tick_after": 1785
+          },
+          {
+            "call": 75,
+            "before": 9982,
+            "after": 6261,
+            "tick_before": 1786,
+            "tick_after": 1799
+          },
+          {
+            "call": 76,
+            "before": 9982,
+            "after": 8369,
+            "tick_before": 1800,
+            "tick_after": 1813
+          },
+          {
+            "call": 77,
+            "before": 9982,
+            "after": 747,
+            "tick_before": 1814,
+            "tick_after": 1828
+          },
+          {
+            "call": 78,
+            "before": 9982,
+            "after": 8136,
+            "tick_before": 1829,
+            "tick_after": 1843
+          },
+          {
+            "call": 79,
+            "before": 9982,
+            "after": 9232,
+            "tick_before": 1844,
+            "tick_after": 1859
+          },
+          {
+            "call": 80,
+            "before": 9982,
+            "after": 914,
+            "tick_before": 1860,
+            "tick_after": 1875
+          },
+          {
+            "call": 81,
+            "before": 9982,
+            "after": 5732,
+            "tick_before": 1876,
+            "tick_after": 1892
+          },
+          {
+            "call": 82,
+            "before": 9982,
+            "after": 5904,
+            "tick_before": 1893,
+            "tick_after": 1908
+          },
+          {
+            "call": 83,
+            "before": 9982,
+            "after": 6729,
+            "tick_before": 1909,
+            "tick_after": 1925
+          },
+          {
+            "call": 84,
+            "before": 9982,
+            "after": 3830,
+            "tick_before": 1926,
+            "tick_after": 1942
+          },
+          {
+            "call": 85,
+            "before": 9982,
+            "after": 8598,
+            "tick_before": 1943,
+            "tick_after": 1958
+          },
+          {
+            "call": 86,
+            "before": 9982,
+            "after": 6143,
+            "tick_before": 1959,
+            "tick_after": 1972
+          },
+          {
+            "call": 87,
+            "before": 9982,
+            "after": 9852,
+            "tick_before": 1973,
+            "tick_after": 1991
+          },
+          {
+            "call": 88,
+            "before": 9982,
+            "after": 3873,
+            "tick_before": 1992,
+            "tick_after": 2004
+          },
+          {
+            "call": 89,
+            "before": 9982,
+            "after": 493,
+            "tick_before": 2005,
+            "tick_after": 2022
+          },
+          {
+            "call": 90,
+            "before": 9982,
+            "after": 2665,
+            "tick_before": 2023,
+            "tick_after": 2038
+          },
+          {
+            "call": 91,
+            "before": 9982,
+            "after": 5645,
+            "tick_before": 2039,
+            "tick_after": 2052
+          },
+          {
+            "call": 92,
+            "before": 9982,
+            "after": 5192,
+            "tick_before": 2053,
+            "tick_after": 2067
+          },
+          {
+            "call": 93,
+            "before": 9982,
+            "after": 7302,
+            "tick_before": 2068,
+            "tick_after": 2081
+          },
+          {
+            "call": 94,
+            "before": 9982,
+            "after": 3071,
+            "tick_before": 2082,
+            "tick_after": 2095
+          },
+          {
+            "call": 95,
+            "before": 9982,
+            "after": 404,
+            "tick_before": 2096,
+            "tick_after": 2106
+          },
+          {
+            "call": 96,
+            "before": 9982,
+            "after": 3055,
+            "tick_before": 2107,
+            "tick_after": 2118
+          },
+          {
+            "call": 97,
+            "before": 9982,
+            "after": 1350,
+            "tick_before": 2119,
+            "tick_after": 2133
+          },
+          {
+            "call": 98,
+            "before": 9982,
+            "after": 9365,
+            "tick_before": 2134,
+            "tick_after": 2150
+          },
+          {
+            "call": 99,
+            "before": 9982,
+            "after": 7201,
+            "tick_before": 2151,
+            "tick_after": 2168
+          },
+          {
+            "call": 100,
+            "before": 9982,
+            "after": 3119,
+            "tick_before": 2169,
+            "tick_after": 2182
+          },
+          {
+            "call": 101,
+            "before": 9982,
+            "after": 9722,
+            "tick_before": 2183,
+            "tick_after": 2195
+          },
+          {
+            "call": 102,
+            "before": 9982,
+            "after": 2878,
+            "tick_before": 2196,
+            "tick_after": 2208
+          },
+          {
+            "call": 103,
+            "before": 9982,
+            "after": 6844,
+            "tick_before": 2209,
+            "tick_after": 2225
+          },
+          {
+            "call": 104,
+            "before": 9982,
+            "after": 8468,
+            "tick_before": 2226,
+            "tick_after": 2242
+          },
+          {
+            "call": 105,
+            "before": 9982,
+            "after": 3043,
+            "tick_before": 2243,
+            "tick_after": 2257
+          },
+          {
+            "call": 106,
+            "before": 9982,
+            "after": 2653,
+            "tick_before": 2258,
+            "tick_after": 2270
+          },
+          {
+            "call": 107,
+            "before": 9982,
+            "after": 6020,
+            "tick_before": 2271,
+            "tick_after": 2285
+          },
+          {
+            "call": 108,
+            "before": 9982,
+            "after": 4528,
+            "tick_before": 2286,
+            "tick_after": 2299
+          },
+          {
+            "call": 109,
+            "before": 9982,
+            "after": 1391,
+            "tick_before": 2300,
+            "tick_after": 2315
+          },
+          {
+            "call": 110,
+            "before": 9982,
+            "after": 1464,
+            "tick_before": 2316,
+            "tick_after": 2331
+          },
+          {
+            "call": 111,
+            "before": 9982,
+            "after": 7269,
+            "tick_before": 2332,
+            "tick_after": 2347
+          },
+          {
+            "call": 112,
+            "before": 9982,
+            "after": 6634,
+            "tick_before": 2348,
+            "tick_after": 2362
+          },
+          {
+            "call": 113,
+            "before": 9982,
+            "after": 3923,
+            "tick_before": 2363,
+            "tick_after": 2382
+          },
+          {
+            "call": 114,
+            "before": 9982,
+            "after": 7847,
+            "tick_before": 2383,
+            "tick_after": 2397
+          },
+          {
+            "call": 115,
+            "before": 9982,
+            "after": 7655,
+            "tick_before": 2398,
+            "tick_after": 2411
+          },
+          {
+            "call": 116,
+            "before": 9982,
+            "after": 6943,
+            "tick_before": 2412,
+            "tick_after": 2428
+          },
+          {
+            "call": 117,
+            "before": 9982,
+            "after": 7087,
+            "tick_before": 2429,
+            "tick_after": 2444
+          },
+          {
+            "call": 118,
+            "before": 9982,
+            "after": 9125,
+            "tick_before": 2445,
+            "tick_after": 2460
+          },
+          {
+            "call": 119,
+            "before": 9982,
+            "after": 303,
+            "tick_before": 2461,
+            "tick_after": 2474
+          },
+          {
+            "call": 120,
+            "before": 9982,
+            "after": 4196,
+            "tick_before": 2475,
+            "tick_after": 2491
+          },
+          {
+            "call": 121,
+            "before": 9982,
+            "after": 8508,
+            "tick_before": 2492,
+            "tick_after": 2505
+          },
+          {
+            "call": 122,
+            "before": 9982,
+            "after": 2733,
+            "tick_before": 2506,
+            "tick_after": 2519
+          },
+          {
+            "call": 123,
+            "before": 9982,
+            "after": 1267,
+            "tick_before": 2520,
+            "tick_after": 2535
+          },
+          {
+            "call": 124,
+            "before": 9982,
+            "after": 2326,
+            "tick_before": 2536,
+            "tick_after": 2545
+          },
+          {
+            "call": 125,
+            "before": 9982,
+            "after": 1946,
+            "tick_before": 2546,
+            "tick_after": 2557
+          },
+          {
+            "call": 126,
+            "before": 9982,
+            "after": 7677,
+            "tick_before": 2558,
+            "tick_after": 2569
+          },
+          {
+            "call": 127,
+            "before": 9982,
+            "after": 3265,
+            "tick_before": 2570,
+            "tick_after": 2581
+          },
+          {
+            "call": 128,
+            "before": 9982,
+            "after": 5975,
+            "tick_before": 2582,
+            "tick_after": 2596
+          },
+          {
+            "call": 129,
+            "before": 9982,
+            "after": 9225,
+            "tick_before": 2597,
+            "tick_after": 2610
+          },
+          {
+            "call": 130,
+            "before": 9982,
+            "after": 5015,
+            "tick_before": 2611,
+            "tick_after": 2623
+          },
+          {
+            "call": 131,
+            "before": 9982,
+            "after": 3797,
+            "tick_before": 2624,
+            "tick_after": 2634
+          },
+          {
+            "call": 132,
+            "before": 9982,
+            "after": 9830,
+            "tick_before": 2635,
+            "tick_after": 2649
+          },
+          {
+            "call": 133,
+            "before": 9982,
+            "after": 4309,
+            "tick_before": 2650,
+            "tick_after": 2669
+          },
+          {
+            "call": 134,
+            "before": 9982,
+            "after": 3287,
+            "tick_before": 2670,
+            "tick_after": 2683
+          },
+          {
+            "call": 135,
+            "before": 9982,
+            "after": 119,
+            "tick_before": 2684,
+            "tick_after": 2698
+          },
+          {
+            "call": 136,
+            "before": 9982,
+            "after": 3121,
+            "tick_before": 2699,
+            "tick_after": 2714
+          },
+          {
+            "call": 137,
+            "before": 9982,
+            "after": 5226,
+            "tick_before": 2715,
+            "tick_after": 2730
+          },
+          {
+            "call": 138,
+            "before": 9982,
+            "after": 2848,
+            "tick_before": 2731,
+            "tick_after": 2744
+          },
+          {
+            "call": 139,
+            "before": 9982,
+            "after": 3565,
+            "tick_before": 2745,
+            "tick_after": 2757
+          },
+          {
+            "call": 140,
+            "before": 9982,
+            "after": 5771,
+            "tick_before": 2758,
+            "tick_after": 2772
+          },
+          {
+            "call": 141,
+            "before": 9982,
+            "after": 9352,
+            "tick_before": 2773,
+            "tick_after": 2790
+          },
+          {
+            "call": 142,
+            "before": 9982,
+            "after": 7094,
+            "tick_before": 2791,
+            "tick_after": 2805
+          },
+          {
+            "call": 143,
+            "before": 9982,
+            "after": 1675,
+            "tick_before": 2806,
+            "tick_after": 2807
+          }
+        ],
+        "measurable_opcode_costs": [
+          6391,
+          9363,
+          2517,
+          4487,
+          6998,
+          4669,
+          5960,
+          7119,
+          9162,
+          1715,
+          5323,
+          7793,
+          9127,
+          2871,
+          3331,
+          8139,
+          3020,
+          6856,
+          9589,
+          6758,
+          1598,
+          1044,
+          7461,
+          4803,
+          5216,
+          8011,
+          1406,
+          4588,
+          5490,
+          1537,
+          4566,
+          6416,
+          1560,
+          6969,
+          1529,
+          7518,
+          28,
+          412,
+          7072,
+          7506,
+          4139,
+          4648,
+          7820,
+          5599,
+          3827,
+          2749,
+          4427,
+          5084,
+          2855,
+          4628,
+          2534,
+          5932,
+          7341,
+          1553,
+          2752,
+          1354,
+          2461,
+          4,
+          7667,
+          6388,
+          8211,
+          4611,
+          7775,
+          4782,
+          9416,
+          6553,
+          6076,
+          2352,
+          9282,
+          4395,
+          9314,
+          5357,
+          7002,
+          3721,
+          1613,
+          9235,
+          1846,
+          750,
+          9068,
+          4250,
+          4078,
+          3253,
+          6152,
+          1384,
+          3839,
+          130,
+          6109,
+          9489,
+          7317,
+          4337,
+          4790,
+          2680,
+          6911,
+          9578,
+          6927,
+          8632,
+          617,
+          2781,
+          6863,
+          260,
+          7104,
+          3138,
+          1514,
+          6939,
+          7329,
+          3962,
+          5454,
+          8591,
+          8518,
+          2713,
+          3348,
+          6059,
+          2135,
+          2327,
+          3039,
+          2895,
+          857,
+          9679,
+          5786,
+          1474,
+          7249,
+          8715,
+          7656,
+          8036,
+          2305,
+          6717,
+          4007,
+          757,
+          4967,
+          6185,
+          152,
+          5673,
+          6695,
+          9863,
+          6861,
+          4756,
+          7134,
+          6417,
+          4211,
+          630,
+          2888,
+          8307
+        ],
+        "crossed_tick_suspensions": 1,
+        "equal_before_after": 0,
+        "pathfinding_tick_span": 2137
+      },
+      {
+        "seed": 100,
+        "rank": 0,
+        "batch": 50,
+        "findpath_calls": 1,
+        "iterations_used": 50,
+        "outcome": "found",
+        "path_cost": 1120,
+        "tile_count": 15,
+        "tile_sequence": "12175,12431,12430,12686,12685,12941,12940,13196,13195,13451,13450,13706,13705,13704,13703",
+        "calls": [
+          {
+            "call": 1,
+            "before": 3387,
+            "after": 9134,
+            "tick_before": 717,
+            "tick_after": 726
+          }
+        ],
+        "measurable_opcode_costs": [],
+        "crossed_tick_suspensions": 1,
+        "equal_before_after": 0,
+        "pathfinding_tick_span": 10
+      },
+      {
+        "seed": 100,
+        "rank": 5,
+        "batch": 50,
+        "findpath_calls": 1,
+        "iterations_used": 50,
+        "outcome": "found",
+        "path_cost": 1080,
+        "tile_count": 16,
+        "tile_sequence": "8885,8884,8628,8627,8371,8370,8114,8113,7857,7856,7600,7599,7343,7342,7086,7085",
+        "calls": [
+          {
+            "call": 1,
+            "before": 1233,
+            "after": 5553,
+            "tick_before": 719,
+            "tick_after": 731
+          }
+        ],
+        "measurable_opcode_costs": [],
+        "crossed_tick_suspensions": 1,
+        "equal_before_after": 0,
+        "pathfinding_tick_span": 13
+      },
+      {
+        "seed": 2026,
+        "rank": 0,
+        "batch": 50,
+        "findpath_calls": 2,
+        "iterations_used": 100,
+        "outcome": "found",
+        "path_cost": 1560,
+        "tile_count": 15,
+        "tile_sequence": "22997,22996,23252,23251,23507,23763,24019,24275,24531,24787,25043,25299,25555,25811,26067",
+        "calls": [
+          {
+            "call": 1,
+            "before": 721,
+            "after": 5911,
+            "tick_before": 684,
+            "tick_after": 701
+          },
+          {
+            "call": 2,
+            "before": 9982,
+            "after": 6395,
+            "tick_before": 702,
+            "tick_after": 706
+          }
+        ],
+        "measurable_opcode_costs": [
+          3587
+        ],
+        "crossed_tick_suspensions": 1,
+        "equal_before_after": 0,
+        "pathfinding_tick_span": 23
+      },
+      {
+        "seed": 2026,
+        "rank": 5,
+        "batch": 50,
+        "findpath_calls": 3,
+        "iterations_used": 150,
+        "outcome": "found",
+        "path_cost": 1500,
+        "tile_count": 17,
+        "tile_sequence": "22957,22958,22959,22960,22961,23217,23218,23474,23475,23731,23732,23988,23989,24245,24246,24247,24248",
+        "calls": [
+          {
+            "call": 1,
+            "before": 6665,
+            "after": 1533,
+            "tick_before": 682,
+            "tick_after": 698
+          },
+          {
+            "call": 2,
+            "before": 9982,
+            "after": 2532,
+            "tick_before": 699,
+            "tick_after": 712
+          },
+          {
+            "call": 3,
+            "before": 9982,
+            "after": 6415,
+            "tick_before": 713,
+            "tick_after": 724
+          }
+        ],
+        "measurable_opcode_costs": [
+          5132,
+          7450,
+          3567
+        ],
+        "crossed_tick_suspensions": 0,
+        "equal_before_after": 0,
+        "pathfinding_tick_span": 43
+      }
+    ],
+    "aggregate": {
+      "attempts": 10,
+      "measurable_calls": 479,
+      "opcode_cost_min": 4,
+      "opcode_cost_median": 5084,
+      "opcode_cost_max": 9922,
+      "crossed_tick_suspensions": 9,
+      "total_findpath_calls": 488,
+      "crossed_tick_suspension_rate": 0.018442622950819672,
+      "total_iterations_used": 24400,
+      "total_pathfinding_tick_span": 6707
+    }
+  },
+  "batch_500": {
+    "records": [
+      {
+        "seed": 42,
+        "rank": 0,
+        "batch": 500,
+        "findpath_calls": 1,
+        "iterations_used": 500,
+        "outcome": "found",
+        "path_cost": 2280,
+        "tile_count": 26,
+        "tile_sequence": "48735,48734,48733,48732,48988,48987,49243,49242,49498,49497,49753,49752,50008,50007,50263,50262,50261,50517,50516,50772,50771,50770,50769,51025,51024,51280",
+        "calls": [
+          {
+            "call": 1,
+            "before": 2757,
+            "after": 3276,
+            "tick_before": 658,
+            "tick_after": 743
+          }
+        ],
+        "measurable_opcode_costs": [],
+        "crossed_tick_suspensions": 1,
+        "equal_before_after": 0,
+        "pathfinding_tick_span": 86
+      },
+      {
+        "seed": 42,
+        "rank": 5,
+        "batch": 500,
+        "findpath_calls": 3,
+        "iterations_used": 1500,
+        "outcome": "found",
+        "path_cost": 4790,
+        "tile_count": 57,
+        "tile_sequence": "42051,42307,42306,42562,42818,43074,43075,43331,43332,43588,43589,43845,43846,43847,43848,43849,44105,44106,44362,44363,44619,44620,44876,44877,45133,45134,45390,45391,45647,45648,45649,45650,45906,45907,46163,46164,46420,46421,46677,46678,46934,46935,46936,47192,47193,47449,47450,47706,47707,47963,47964,48220,48221,48477,48478,48734,48735",
+        "calls": [
+          {
+            "call": 1,
+            "before": 752,
+            "after": 6630,
+            "tick_before": 657,
+            "tick_after": 797
+          },
+          {
+            "call": 2,
+            "before": 9982,
+            "after": 3990,
+            "tick_before": 798,
+            "tick_after": 955
+          },
+          {
+            "call": 3,
+            "before": 9982,
+            "after": 106,
+            "tick_before": 956,
+            "tick_after": 1094
+          }
+        ],
+        "measurable_opcode_costs": [
+          5992,
+          9876
+        ],
+        "crossed_tick_suspensions": 1,
+        "equal_before_after": 0,
+        "pathfinding_tick_span": 438
+      },
+      {
+        "seed": 1,
+        "rank": 0,
+        "batch": 500,
+        "findpath_calls": 2,
+        "iterations_used": 1000,
+        "outcome": "found",
+        "path_cost": 2470,
+        "tile_count": 25,
+        "tile_sequence": "49307,49051,49050,48794,48793,48537,48536,48280,48279,48023,48022,47766,47510,47254,46998,46742,46486,46230,45974,45718,45462,45206,44950,44694,44695",
+        "calls": [
+          {
+            "call": 1,
+            "before": 3103,
+            "after": 7902,
+            "tick_before": 716,
+            "tick_after": 882
+          },
+          {
+            "call": 2,
+            "before": 9982,
+            "after": 6117,
+            "tick_before": 883,
+            "tick_after": 957
+          }
+        ],
+        "measurable_opcode_costs": [
+          3865
+        ],
+        "crossed_tick_suspensions": 1,
+        "equal_before_after": 0,
+        "pathfinding_tick_span": 242
+      },
+      {
+        "seed": 1,
+        "rank": 5,
+        "batch": 500,
+        "findpath_calls": 29,
+        "iterations_used": 14500,
+        "outcome": "found",
+        "path_cost": 6910,
+        "tile_count": 77,
+        "tile_sequence": "40258,40259,40515,40516,40772,41028,41284,41540,41796,42052,42308,42564,42820,43076,43332,43588,43844,44100,44356,44612,44868,45124,45380,45636,45892,46148,46404,46660,46916,47172,47428,47684,47940,48196,48452,48708,48964,49220,49476,49732,49731,49987,49986,50242,50241,50497,50496,50752,50751,51007,51006,51262,51261,51517,51516,51772,51771,52027,52026,52282,52281,52537,52536,52792,52791,53047,53046,53302,53301,53557,53556,53812,53811,54067,54066,54065,54064",
+        "calls": [
+          {
+            "call": 1,
+            "before": 5416,
+            "after": 7376,
+            "tick_before": 718,
+            "tick_after": 881
+          },
+          {
+            "call": 2,
+            "before": 9982,
+            "after": 3410,
+            "tick_before": 882,
+            "tick_after": 1010
+          },
+          {
+            "call": 3,
+            "before": 9982,
+            "after": 8386,
+            "tick_before": 1011,
+            "tick_after": 1134
+          },
+          {
+            "call": 4,
+            "before": 9982,
+            "after": 9773,
+            "tick_before": 1135,
+            "tick_after": 1269
+          },
+          {
+            "call": 5,
+            "before": 9982,
+            "after": 8413,
+            "tick_before": 1270,
+            "tick_after": 1394
+          },
+          {
+            "call": 6,
+            "before": 9982,
+            "after": 7381,
+            "tick_before": 1395,
+            "tick_after": 1534
+          },
+          {
+            "call": 7,
+            "before": 9982,
+            "after": 8816,
+            "tick_before": 1535,
+            "tick_after": 1669
+          },
+          {
+            "call": 8,
+            "before": 9982,
+            "after": 2161,
+            "tick_before": 1670,
+            "tick_after": 1798
+          },
+          {
+            "call": 9,
+            "before": 9982,
+            "after": 6455,
+            "tick_before": 1799,
+            "tick_after": 1921
+          },
+          {
+            "call": 10,
+            "before": 9982,
+            "after": 99,
+            "tick_before": 1922,
+            "tick_after": 2036
+          },
+          {
+            "call": 11,
+            "before": 9982,
+            "after": 3346,
+            "tick_before": 2037,
+            "tick_after": 2148
+          },
+          {
+            "call": 12,
+            "before": 9982,
+            "after": 3395,
+            "tick_before": 2149,
+            "tick_after": 2268
+          },
+          {
+            "call": 13,
+            "before": 9982,
+            "after": 3953,
+            "tick_before": 2269,
+            "tick_after": 2391
+          },
+          {
+            "call": 14,
+            "before": 9982,
+            "after": 557,
+            "tick_before": 2392,
+            "tick_after": 2508
+          },
+          {
+            "call": 15,
+            "before": 9982,
+            "after": 5082,
+            "tick_before": 2509,
+            "tick_after": 2627
+          },
+          {
+            "call": 16,
+            "before": 9982,
+            "after": 7050,
+            "tick_before": 2628,
+            "tick_after": 2756
+          },
+          {
+            "call": 17,
+            "before": 9982,
+            "after": 6451,
+            "tick_before": 2757,
+            "tick_after": 2874
+          },
+          {
+            "call": 18,
+            "before": 9982,
+            "after": 3649,
+            "tick_before": 2875,
+            "tick_after": 2990
+          },
+          {
+            "call": 19,
+            "before": 9982,
+            "after": 1049,
+            "tick_before": 2991,
+            "tick_after": 3110
+          },
+          {
+            "call": 20,
+            "before": 9982,
+            "after": 1468,
+            "tick_before": 3111,
+            "tick_after": 3230
+          },
+          {
+            "call": 21,
+            "before": 9982,
+            "after": 5505,
+            "tick_before": 3231,
+            "tick_after": 3347
+          },
+          {
+            "call": 22,
+            "before": 9982,
+            "after": 7964,
+            "tick_before": 3348,
+            "tick_after": 3467
+          },
+          {
+            "call": 23,
+            "before": 9982,
+            "after": 9767,
+            "tick_before": 3468,
+            "tick_after": 3584
+          },
+          {
+            "call": 24,
+            "before": 9982,
+            "after": 162,
+            "tick_before": 3585,
+            "tick_after": 3703
+          },
+          {
+            "call": 25,
+            "before": 9982,
+            "after": 4211,
+            "tick_before": 3704,
+            "tick_after": 3825
+          },
+          {
+            "call": 26,
+            "before": 9982,
+            "after": 9879,
+            "tick_before": 3826,
+            "tick_after": 3948
+          },
+          {
+            "call": 27,
+            "before": 9982,
+            "after": 6099,
+            "tick_before": 3949,
+            "tick_after": 4078
+          },
+          {
+            "call": 28,
+            "before": 9982,
+            "after": 7904,
+            "tick_before": 4079,
+            "tick_after": 4206
+          },
+          {
+            "call": 29,
+            "before": 9982,
+            "after": 5982,
+            "tick_before": 4207,
+            "tick_after": 4271
+          }
+        ],
+        "measurable_opcode_costs": [
+          6572,
+          1596,
+          209,
+          1569,
+          2601,
+          1166,
+          7821,
+          3527,
+          9883,
+          6636,
+          6587,
+          6029,
+          9425,
+          4900,
+          2932,
+          3531,
+          6333,
+          8933,
+          8514,
+          4477,
+          2018,
+          215,
+          9820,
+          5771,
+          103,
+          3883,
+          2078,
+          4000
+        ],
+        "crossed_tick_suspensions": 1,
+        "equal_before_after": 0,
+        "pathfinding_tick_span": 3554
+      },
+      {
+        "seed": 7,
+        "rank": 0,
+        "batch": 500,
+        "findpath_calls": 1,
+        "iterations_used": 500,
+        "outcome": "found",
+        "path_cost": 1420,
+        "tile_count": 19,
+        "tile_sequence": "36761,37017,37016,37272,37271,37527,37526,37782,37781,38037,38036,38292,38291,38547,38546,38802,38801,38800,39056",
+        "calls": [
+          {
+            "call": 1,
+            "before": 4432,
+            "after": 4904,
+            "tick_before": 668,
+            "tick_after": 677
+          }
+        ],
+        "measurable_opcode_costs": [],
+        "crossed_tick_suspensions": 1,
+        "equal_before_after": 0,
+        "pathfinding_tick_span": 10
+      },
+      {
+        "seed": 7,
+        "rank": 5,
+        "batch": 500,
+        "findpath_calls": 15,
+        "iterations_used": 7500,
+        "outcome": "found",
+        "path_cost": 8260,
+        "tile_count": 83,
+        "tile_sequence": "17827,17826,17825,17824,17823,17822,17821,17820,17819,17818,17817,17816,17815,17814,17813,17812,17811,17810,17809,17808,17807,17806,17805,17804,17803,17802,17801,17800,17799,17798,17797,17796,17795,17794,17793,17792,17791,17790,17789,17788,17787,17786,17785,17784,17783,17782,17781,17780,17779,17778,17777,17776,17775,17774,17773,17772,17771,17770,17769,17768,17767,17766,17765,17764,17508,17507,17251,17250,16994,16993,16737,16736,16480,16479,16223,16222,15966,15965,15709,15708,15452,15451,15450",
+        "calls": [
+          {
+            "call": 1,
+            "before": 1718,
+            "after": 6695,
+            "tick_before": 671,
+            "tick_after": 828
+          },
+          {
+            "call": 2,
+            "before": 9982,
+            "after": 2762,
+            "tick_before": 829,
+            "tick_after": 959
+          },
+          {
+            "call": 3,
+            "before": 9982,
+            "after": 4152,
+            "tick_before": 960,
+            "tick_after": 1112
+          },
+          {
+            "call": 4,
+            "before": 9982,
+            "after": 2921,
+            "tick_before": 1113,
+            "tick_after": 1263
+          },
+          {
+            "call": 5,
+            "before": 9982,
+            "after": 1873,
+            "tick_before": 1264,
+            "tick_after": 1402
+          },
+          {
+            "call": 6,
+            "before": 9982,
+            "after": 4302,
+            "tick_before": 1403,
+            "tick_after": 1540
+          },
+          {
+            "call": 7,
+            "before": 9982,
+            "after": 5079,
+            "tick_before": 1541,
+            "tick_after": 1694
+          },
+          {
+            "call": 8,
+            "before": 9982,
+            "after": 8225,
+            "tick_before": 1695,
+            "tick_after": 1839
+          },
+          {
+            "call": 9,
+            "before": 9982,
+            "after": 4526,
+            "tick_before": 1840,
+            "tick_after": 1997
+          },
+          {
+            "call": 10,
+            "before": 9982,
+            "after": 6410,
+            "tick_before": 1998,
+            "tick_after": 2137
+          },
+          {
+            "call": 11,
+            "before": 9982,
+            "after": 7717,
+            "tick_before": 2138,
+            "tick_after": 2282
+          },
+          {
+            "call": 12,
+            "before": 9982,
+            "after": 1690,
+            "tick_before": 2283,
+            "tick_after": 2436
+          },
+          {
+            "call": 13,
+            "before": 9982,
+            "after": 8643,
+            "tick_before": 2437,
+            "tick_after": 2564
+          },
+          {
+            "call": 14,
+            "before": 9982,
+            "after": 2579,
+            "tick_before": 2565,
+            "tick_after": 2709
+          },
+          {
+            "call": 15,
+            "before": 9982,
+            "after": 8278,
+            "tick_before": 2710,
+            "tick_after": 2743
+          }
+        ],
+        "measurable_opcode_costs": [
+          7220,
+          5830,
+          7061,
+          8109,
+          5680,
+          4903,
+          1757,
+          5456,
+          3572,
+          2265,
+          8292,
+          1339,
+          7403,
+          1704
+        ],
+        "crossed_tick_suspensions": 1,
+        "equal_before_after": 0,
+        "pathfinding_tick_span": 2073
+      },
+      {
+        "seed": 100,
+        "rank": 0,
+        "batch": 500,
+        "findpath_calls": 1,
+        "iterations_used": 500,
+        "outcome": "found",
+        "path_cost": 1120,
+        "tile_count": 15,
+        "tile_sequence": "12175,12431,12430,12686,12685,12941,12940,13196,13195,13451,13450,13706,13705,13704,13703",
+        "calls": [
+          {
+            "call": 1,
+            "before": 3387,
+            "after": 9134,
+            "tick_before": 717,
+            "tick_after": 726
+          }
+        ],
+        "measurable_opcode_costs": [],
+        "crossed_tick_suspensions": 1,
+        "equal_before_after": 0,
+        "pathfinding_tick_span": 10
+      },
+      {
+        "seed": 100,
+        "rank": 5,
+        "batch": 500,
+        "findpath_calls": 1,
+        "iterations_used": 500,
+        "outcome": "found",
+        "path_cost": 1080,
+        "tile_count": 16,
+        "tile_sequence": "8885,8884,8628,8627,8371,8370,8114,8113,7857,7856,7600,7599,7343,7342,7086,7085",
+        "calls": [
+          {
+            "call": 1,
+            "before": 1233,
+            "after": 5553,
+            "tick_before": 719,
+            "tick_after": 731
+          }
+        ],
+        "measurable_opcode_costs": [],
+        "crossed_tick_suspensions": 1,
+        "equal_before_after": 0,
+        "pathfinding_tick_span": 13
+      },
+      {
+        "seed": 2026,
+        "rank": 0,
+        "batch": 500,
+        "findpath_calls": 1,
+        "iterations_used": 500,
+        "outcome": "found",
+        "path_cost": 1560,
+        "tile_count": 15,
+        "tile_sequence": "22997,22996,23252,23251,23507,23763,24019,24275,24531,24787,25043,25299,25555,25811,26067",
+        "calls": [
+          {
+            "call": 1,
+            "before": 721,
+            "after": 2385,
+            "tick_before": 684,
+            "tick_after": 705
+          }
+        ],
+        "measurable_opcode_costs": [],
+        "crossed_tick_suspensions": 1,
+        "equal_before_after": 0,
+        "pathfinding_tick_span": 22
+      },
+      {
+        "seed": 2026,
+        "rank": 5,
+        "batch": 500,
+        "findpath_calls": 1,
+        "iterations_used": 500,
+        "outcome": "found",
+        "path_cost": 1500,
+        "tile_count": 17,
+        "tile_sequence": "22957,22958,22959,22960,22961,23217,23218,23474,23475,23731,23732,23988,23989,24245,24246,24247,24248",
+        "calls": [
+          {
+            "call": 1,
+            "before": 6665,
+            "after": 637,
+            "tick_before": 682,
+            "tick_after": 723
+          }
+        ],
+        "measurable_opcode_costs": [
+          6028
+        ],
+        "crossed_tick_suspensions": 0,
+        "equal_before_after": 0,
+        "pathfinding_tick_span": 42
+      }
+    ],
+    "aggregate": {
+      "attempts": 10,
+      "measurable_calls": 46,
+      "opcode_cost_min": 103,
+      "opcode_cost_median": 5179.5,
+      "opcode_cost_max": 9883,
+      "crossed_tick_suspensions": 9,
+      "total_findpath_calls": 55,
+      "crossed_tick_suspension_rate": 0.16363636363636364,
+      "total_iterations_used": 27500,
+      "total_pathfinding_tick_span": 6490
+    }
+  },
+  "comparisons_batch500_to_batch50": [
+    {
+      "seed": 42,
+      "rank": 0,
+      "same_path": true,
+      "batch50": {
+        "outcome": "found",
+        "path_cost": 2280,
+        "tile_count": 26,
+        "findpath_calls": 6,
+        "iterations_used": 300
+      },
+      "batch500": {
+        "outcome": "found",
+        "path_cost": 2280,
+        "tile_count": 26,
+        "findpath_calls": 1,
+        "iterations_used": 500
+      }
+    },
+    {
+      "seed": 42,
+      "rank": 5,
+      "same_path": true,
+      "batch50": {
+        "outcome": "found",
+        "path_cost": 4790,
+        "tile_count": 57,
+        "findpath_calls": 30,
+        "iterations_used": 1500
+      },
+      "batch500": {
+        "outcome": "found",
+        "path_cost": 4790,
+        "tile_count": 57,
+        "findpath_calls": 3,
+        "iterations_used": 1500
+      }
+    },
+    {
+      "seed": 1,
+      "rank": 0,
+      "same_path": true,
+      "batch50": {
+        "outcome": "found",
+        "path_cost": 2470,
+        "tile_count": 25,
+        "findpath_calls": 16,
+        "iterations_used": 800
+      },
+      "batch500": {
+        "outcome": "found",
+        "path_cost": 2470,
+        "tile_count": 25,
+        "findpath_calls": 2,
+        "iterations_used": 1000
+      }
+    },
+    {
+      "seed": 1,
+      "rank": 5,
+      "same_path": true,
+      "batch50": {
+        "outcome": "found",
+        "path_cost": 6910,
+        "tile_count": 77,
+        "findpath_calls": 285,
+        "iterations_used": 14250
+      },
+      "batch500": {
+        "outcome": "found",
+        "path_cost": 6910,
+        "tile_count": 77,
+        "findpath_calls": 29,
+        "iterations_used": 14500
+      }
+    },
+    {
+      "seed": 7,
+      "rank": 0,
+      "same_path": true,
+      "batch50": {
+        "outcome": "found",
+        "path_cost": 1420,
+        "tile_count": 19,
+        "findpath_calls": 1,
+        "iterations_used": 50
+      },
+      "batch500": {
+        "outcome": "found",
+        "path_cost": 1420,
+        "tile_count": 19,
+        "findpath_calls": 1,
+        "iterations_used": 500
+      }
+    },
+    {
+      "seed": 7,
+      "rank": 5,
+      "same_path": true,
+      "batch50": {
+        "outcome": "found",
+        "path_cost": 8260,
+        "tile_count": 83,
+        "findpath_calls": 143,
+        "iterations_used": 7150
+      },
+      "batch500": {
+        "outcome": "found",
+        "path_cost": 8260,
+        "tile_count": 83,
+        "findpath_calls": 15,
+        "iterations_used": 7500
+      }
+    },
+    {
+      "seed": 100,
+      "rank": 0,
+      "same_path": true,
+      "batch50": {
+        "outcome": "found",
+        "path_cost": 1120,
+        "tile_count": 15,
+        "findpath_calls": 1,
+        "iterations_used": 50
+      },
+      "batch500": {
+        "outcome": "found",
+        "path_cost": 1120,
+        "tile_count": 15,
+        "findpath_calls": 1,
+        "iterations_used": 500
+      }
+    },
+    {
+      "seed": 100,
+      "rank": 5,
+      "same_path": true,
+      "batch50": {
+        "outcome": "found",
+        "path_cost": 1080,
+        "tile_count": 16,
+        "findpath_calls": 1,
+        "iterations_used": 50
+      },
+      "batch500": {
+        "outcome": "found",
+        "path_cost": 1080,
+        "tile_count": 16,
+        "findpath_calls": 1,
+        "iterations_used": 500
+      }
+    },
+    {
+      "seed": 2026,
+      "rank": 0,
+      "same_path": true,
+      "batch50": {
+        "outcome": "found",
+        "path_cost": 1560,
+        "tile_count": 15,
+        "findpath_calls": 2,
+        "iterations_used": 100
+      },
+      "batch500": {
+        "outcome": "found",
+        "path_cost": 1560,
+        "tile_count": 15,
+        "findpath_calls": 1,
+        "iterations_used": 500
+      }
+    },
+    {
+      "seed": 2026,
+      "rank": 5,
+      "same_path": true,
+      "batch50": {
+        "outcome": "found",
+        "path_cost": 1500,
+        "tile_count": 17,
+        "findpath_calls": 3,
+        "iterations_used": 150
+      },
+      "batch500": {
+        "outcome": "found",
+        "path_cost": 1500,
+        "tile_count": 17,
+        "findpath_calls": 1,
+        "iterations_used": 500
+      }
+    }
+  ],
+  "comparisons_all_paths_identical": true,
+  "findpath_call_reduction_factor_50_to_500": 8.872727272727273
+}

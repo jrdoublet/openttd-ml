@@ -2,3 +2,10 @@ data/
 __pycache__/
 .venv/
 *.png
+
+# IA tierce de reference, lue pour comparaison seulement (GPL v3, Rei Ishibashi).
+# Volontairement NON versionnee : la copier ici rendrait le depot derive de la GPL v3.
+ai/AAAHogEx-115/
+
+# Copies scratch de main.nut patchees a la volee par les scripts de mesure : regenerables.
+sweeps/*_scratch_*/
