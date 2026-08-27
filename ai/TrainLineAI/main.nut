@@ -206,6 +206,14 @@ function TrainLineAI::_codeCorridorTerrain()
       "|CW" + this.state.corridor_water + "|CU" + this.state.corridor_unbuildable;
 }
 
+/* Complements locaux du corridor direct. Panneau separe : ajouter ces deux valeurs a CH/CW/CU
+ * depasserait les 31 caracteres acceptes par AISign.BuildSign dans le pire cas. */
+function TrainLineAI::_codeCorridorTerrainRuns()
+{
+  return "TRLN|" + this.state.line_index + "|CR" + this.state.corridor_max_water_run +
+      "|CS" + this.state.corridor_max_uphill_step;
+}
+
 /* Nombre de paires de villes candidates apres tous les filtres de carte. Il est emis meme si
  * pair_rank est hors plage, afin que PAIROOR expose le plafond propre a sa graine. */
 function TrainLineAI::_codePairCount()
@@ -241,6 +249,10 @@ function TrainLineAI::_scanTerrain(locA, locB, samples)
   local minH = null;
   local water = 0;
   local unbuildable = 0;
+  local waterRun = 0;
+  local maxWaterRun = 0;
+  local lastSlopeSampleH = null;
+  local maxUphillStep = 0;
   local lastTile = null;
   for (local i = 0; i <= steps; i++) {
     local t = i.tofloat() / steps.tofloat();
@@ -253,10 +265,29 @@ function TrainLineAI::_scanTerrain(locA, locB, samples)
     local tMin = AITile.GetMinHeight(tile);
     if (maxH == null || tMax > maxH) maxH = tMax;
     if (minH == null || tMin < minH) minH = tMin;
-    if (AITile.IsWaterTile(tile)) water++;
+    if (AITile.IsWaterTile(tile)) {
+      water++;
+      waterRun++;
+      if (waterRun > maxWaterRun) maxWaterRun = waterRun;
+    } else {
+      waterRun = 0;
+    }
     if (!AITile.IsBuildable(tile)) unbuildable++;
+
+    /* Cette boucle est deja echantillonnee a une position par tuile. On reutilise ces memes
+     * lectures de hauteur aux positions 0, 8, 16... et a l'arrivee : aucun second parcours.
+     * Si `samples` est inferieur a 8, les deux extremites deviennent les deux points de mesure,
+     * ce qui donne la montee reelle sur le court corridor au lieu d'un faux zero. */
+    if (i % 8 == 0 || i == steps) {
+      if (lastSlopeSampleH != null && tMax > lastSlopeSampleH) {
+        local uphill = tMax - lastSlopeSampleH;
+        if (uphill > maxUphillStep) maxUphillStep = uphill;
+      }
+      lastSlopeSampleH = tMax;
+    }
   }
-  return { dh = (maxH == null ? 0 : maxH - minH), water = water, unbuildable = unbuildable };
+  return { dh = (maxH == null ? 0 : maxH - minH), water = water, unbuildable = unbuildable,
+      max_water_run = maxWaterRun, max_uphill_step = maxUphillStep };
 }
 
 /* Meme mesure, mais sur les tuiles du chemin effectivement retenu. `tiles` est explicitement
@@ -304,6 +335,7 @@ function TrainLineAI::_reportAll()
      * pour ne pas ajouter de DoCommand avant la barriere. Contrairement aux H/W/U du trace
      * retenu, elle est disponible aussi pour NOPATH/PATHLIM. */
     this._report(this._codeCorridorTerrain());
+    this._report(this._codeCorridorTerrainRuns());
     if (this.state.first_mutation_tick != null) this._report(this._codeBarrier());
     /* Ces quatre panneaux exigent un preflight reussi (plans de quai + chemin) : absents pour un
      * echec avant ce stade (NOPATH/PATHLIM/NOTILE), presents pour tout le reste (TRKFAIL/STNFAIL/
@@ -487,6 +519,8 @@ function TrainLineAI::Start()
     corridor_dh = 0,
     corridor_water = 0,
     corridor_unbuildable = 0,
+    corridor_max_water_run = 0,
+    corridor_max_uphill_step = 0,
     pair_count = null,
     engine_max_speed = 0,
     engine_power = 0,
@@ -699,6 +733,8 @@ function TrainLineAI::Start()
   this.state.corridor_dh = corridorTerrain.dh;
   this.state.corridor_water = corridorTerrain.water;
   this.state.corridor_unbuildable = corridorTerrain.unbuildable;
+  this.state.corridor_max_water_run = corridorTerrain.max_water_run;
+  this.state.corridor_max_uphill_step = corridorTerrain.max_uphill_step;
 
   /* Specs du moteur/wagon choisis -- lecture pure (AIEngineList/AIEngine.Get*, verifiees
    * empiriquement disponibles avec cette signature via sweeps/debug_ai.py), aucun DoCommand,

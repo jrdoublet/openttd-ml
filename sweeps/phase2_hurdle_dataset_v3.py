@@ -73,6 +73,7 @@ CARGOA = re.compile(r"^TRLN\|(\d+)\|GA(\d+)-(\d+)$")
 CARGOB = re.compile(r"^TRLN\|(\d+)\|GB(\d+)-(\d+)$")
 TERRAIN = re.compile(r"^TRLN\|(\d+)\|H(\d+)\|W(\d+)\|U(\d+)$")
 CORRIDOR = re.compile(r"^TRLN\|(\d+)\|CH(\d+)\|CW(\d+)\|CU(\d+)$")
+CORRIDOR_RUNS = re.compile(r"^TRLN\|(\d+)\|CR(\d+)\|CS(\d+)$")
 PAIRCOUNT = re.compile(r"^TRLN\|(\d+)\|Q(\d+)$")
 
 FIELDS = (
@@ -84,6 +85,7 @@ FIELDS = (
     "station_a_cargo_prod", "station_a_cargo_acc", "station_b_cargo_prod", "station_b_cargo_acc",
     "terrain_dh", "terrain_water", "terrain_unbuildable",
     "corridor_dh", "corridor_water", "corridor_unbuildable",
+    "corridor_max_water_run", "corridor_max_uphill_step",
     "engine_max_speed", "engine_power", "engine_price", "engine_running_cost", "wagon_capacity",
     "convoy_capacity",
     "built", "stage", "failure_reason", "barrier_flag", "first_mutation_tick",
@@ -102,6 +104,7 @@ FEATURES = (
     "station_a_cargo_prod", "station_a_cargo_acc", "station_b_cargo_prod", "station_b_cargo_acc",
     "terrain_dh", "terrain_water", "terrain_unbuildable",
     "corridor_dh", "corridor_water", "corridor_unbuildable",
+    "corridor_max_water_run", "corridor_max_uphill_step",
     "engine_max_speed", "engine_power", "engine_price", "engine_running_cost",
     "wagon_capacity", "convoy_capacity",
 )
@@ -140,7 +143,7 @@ def veh(chunks):
 
 
 def parse(x):
-    st = dt = bt = pb = pt = dc = es = ec = sd = ca = cb = tr = cr = pc = None
+    st = dt = bt = pb = pt = dc = es = ec = sd = ca = cb = tr = cr = crr = pc = None
     vc = None
     for s in x["signs"]:
         if m := STATUS.match(s):
@@ -171,6 +174,8 @@ def parse(x):
             tr = m.groups()
         elif m := CORRIDOR.match(s):
             cr = m.groups()
+        elif m := CORRIDOR_RUNS.match(s):
+            crr = m.groups()
         elif m := PAIRCOUNT.match(s):
             pc = m.groups()
 
@@ -215,6 +220,8 @@ def parse(x):
         r.update(terrain_dh=int(tr[1]), terrain_water=int(tr[2]), terrain_unbuildable=int(tr[3]))
     if cr:
         r.update(corridor_dh=int(cr[1]), corridor_water=int(cr[2]), corridor_unbuildable=int(cr[3]))
+    if crr:
+        r.update(corridor_max_water_run=int(crr[1]), corridor_max_uphill_step=int(crr[2]))
     if pc:
         r.update(available_pair_count=int(pc[1]))
 
