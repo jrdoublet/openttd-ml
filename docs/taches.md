@@ -71,8 +71,19 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
    correctif), emprunt remboursé. Détail dans `docs/opexai_croissance.md` §6, y compris le
    rattrapage du cycle annuel qui remplace la fausse piste du plafond `AISign`.
 
-**Nouvelle priorité de fait** : l'item 2 (verrouillage de ville) devient le prochain morceau de
-code — nécessite d'abord une mesure (croissance des villes desservies stagne-t-elle réellement ?)
+4. 🔴 **L'emprunt n'est pas remboursé sur 3 graines / 20 — mode d'échec découvert le 2026-08-29
+   par le banc multi-graines, invisible sur la graine 42.** Les graines 100 et 4096 finissent
+   20 ans au plafond de **300 000** d'emprunt, la graine 8675309 à 90 000 — et ce sont exactement
+   les trois pires parties de la campagne (`company_value` 719 619 / 933 323 / 1 372 258, notes
+   **194-206** contre ~430 ailleurs). Ce n'est pas une nuance mais un régime d'échec qualitatif.
+   Le remboursement avait été déclaré corrigé par `44e0b14` sur la seule graine 42, où il tombe
+   bien à zéro : c'est précisément le biais que le banc mono-graine masquait. À diagnostiquer
+   avant l'item 2 — trois parties sur vingt qui ne décollent pas pèsent plus lourd que le
+   verrouillage de ville. Données dans `docs/bench_v2.json`.
+
+**Nouvelle priorité de fait** : l'item 4 (emprunt non remboursé sur 3 graines) passe devant, étant
+un échec mesuré et non une hypothèse. L'item 2 (verrouillage de ville) vient ensuite — il nécessite
+de toute façon d'abord une mesure (croissance des villes desservies stagne-t-elle réellement ?)
 avant tout changement de code.
 
 ---
@@ -142,13 +153,47 @@ Reprend le §8 de `docs/mecanique_jeu.md`, complété.
 
 ## 5. Banc
 
-- **Porter le banc de 10 à 20 ans.** Toute l'évolution multimodale arrive après 1980 : aéroport
-  METROPOLITAN (1980), COMMUTER (1983), parc routier +83 %, parc avion +38 %. Un banc à 10 ans
-  mesure une partie où le rail est presque le seul mode qui progresse — ce qui nous désavantage
-  précisément là où on veut se distinguer.
-- 🔴 **Augmenter le nombre de graines, pas les répétitions — DEVENU BLOQUANT (2026-08-28).**
+- ✅ **Banc multi-graines construit et exécuté (2026-08-29)** — `sweeps/bench_v2.py`,
+  résultats dans `docs/bench_v2.json` : 20 graines × 20 ans, OpexAI et AAAHogEx (campagne
+  interrompue volontairement avant AdmiralAI et trAIns, jugées obsolètes). Le script apporte la
+  notion d'**arm** (une IA OU une variante paramétrée d'OpexAI via `ai_params`, ex.
+  `OpexAI[pathfinder_sleep_ticks=1]`), le nettoyage des sauvegardes, un checkpoint `.jsonl`, les
+  stats de dispersion et les **comparaisons appariées par graine**. Les deux items ci-dessous
+  (20 ans, 20 graines) sont absorbés par lui.
+
+  | arm | company_value | CV | SE | note | CV |
+  |---|---:|---:|---:|---:|---:|
+  | OpexAI | 2 527 171 | 32,6 % | 7,30 % | 408 | 20,4 % |
+  | AAAHogEx | 225 430 986 | 16,2 % | 3,62 % | 897 | 0,5 % |
+
+  **Quatre acquis, dont trois corrigent ce qui était écrit ici :**
+  1. ❌ **Le n=20 ne donne PAS 5,9 %.** Cette projection supposait un CV de 26 % ; le CV réel
+     d'OpexAI est **32,6 %**, donc **7,30 %** d'erreur-type. La différence de deux moyennes
+     indépendantes porte ~10,3 % de SE : il faudrait un effet de **~21 %** pour trancher à 2σ.
+     **La lecture appariée n'est donc pas un raffinement mais le seul chemin praticable.**
+  2. **Deux métriques, deux usages.** `performance_history` est **saturée chez AAAHogEx**
+     (897, CV 0,5 %) : inutilisable pour se comparer à lui, où seule `company_value` parle. Mais
+     elle est **moins bruitée que `company_value` chez nous** (20,4 % contre 32,6 %) : c'est la
+     bonne métrique pour opposer deux variantes d'OpexAI entre elles.
+  3. ❌ **Porter le banc à 20 ans nous dessert**, contrairement à l'argument ci-dessous. L'écart
+     avec AAAHogEx passe de ~19× à 10 ans (banc v1) à **88× à 20 ans**. L'allongement ne révèle pas
+     notre multimodalité, il révèle notre plafonnement pendant qu'il compose. On garde 20 ans (la
+     mesure est plus honnête), mais sans en attendre un avantage.
+  4. **La graine 42 est 14e sur 20** (2 336 785 pour une médiane de 2 740 070) ; l'écart
+     meilleure/pire graine est de **5,5×**. Toutes les décisions antérieures ont été prises sur une
+     graine sous la médiane.
+
+  **Prochaine campagne évidente** : `OpexAI` contre `OpexAI[pathfinder_sleep_ticks=1]` sur les
+  mêmes 20 graines, en lecture appariée — la décision que la graine 42 n'a jamais pu trancher
+  (~25 min, les 20 parties OpexAI ayant pris 11 minutes).
+
+- ⚪ *(absorbé par le banc v2)* **Porter le banc de 10 à 20 ans.** Toute l'évolution multimodale
+  arrive après 1980 : aéroport METROPOLITAN (1980), COMMUTER (1983), parc routier +83 %, parc
+  avion +38 %. Un banc à 10 ans mesure une partie où le rail est presque le seul mode qui
+  progresse. ⚠️ Argument **retourné par la mesure**, voir le point 3 ci-dessus.
+- ⚪ *(absorbé par le banc v2)* **Augmenter le nombre de graines, pas les répétitions.**
   Bruit intra-graine 4,1 % contre dispersion inter-graines de 26 %. Erreur-type de la moyenne à
-  n=5 : 11,8 % ; à n=20 : 5,9 %.
+  n=5 : 11,8 % ; à n=20 : 5,9 % — ⚠️ **chiffre réfuté**, la vraie SE à n=20 est 7,30 %.
 
   **Pourquoi c'est désormais un préalable et plus une amélioration.** Trois changements *sans aucun
   effet décisionnel* ont produit le même jour des écarts pluri-lignes sur la graine 42 :

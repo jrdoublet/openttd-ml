@@ -1,0 +1,419 @@
+"""Banc multi-graines de la campagne OpenTTDLab.
+
+Chaque arm joue seule sur les memes graines et la meme configuration. La lecture decisive est la
+comparaison appairee : pour une graine donnee, la difficulte de carte touche les deux arms. La
+soustraire avant de calculer la moyenne retire donc une grande part de la dispersion inter-graines,
+alors que la difference de deux moyennes independantes la conserve.
+
+OpenTTD 15.3 obligatoire, et c'est la seule version possible :
+  - AAAHogEx declare GetAPIVersion() = "14", donc il exige OpenTTD >= 14 ;
+  - OpenTTDLab 0.0.75 (openttdlab.py:195-204) ne supporte que 12 <= major < 14 (mode autosave)
+    et major >= 15 (mode console-script) -- la 14.x leve une exception.
+Le binaire >= 15 exige libgomp1 et libglib2.0-0, ajoutes au Dockerfile.
+
+Metrique : PLYR[0]["old_economy"][0] donne company_value et performance_history (le score
+officiel 0-1000) de la DERNIERE ANNEE CLOTUREE. cur_economy a company_value = 0 : ne pas
+l'utiliser. max_loan est parse en -9223372036854775808 a cette version : champ ininterpretable.
+"""
+import argparse
+import inspect
+import json
+import math
+import os
+from pathlib import Path
+import re
+import shutil
+import statistics
+
+import openttdlab
+from openttdlab import bananas_ai, bananas_ai_library, local_folder, run_experiments
+
+ROOT = Path("/work")
+OPENTTD_VERSION, OPENGFX_VERSION = "15.3", "7.1"
+TRAINS_MD5 = "c4c069dc797674e545411b59867ad0c2"  # identique aux scripts phase0
+YEARS = 20
+SEEDS = (
+    42, 100, 7, 999, 2026,
+    1, 17, 73, 314, 512, 1024, 1337, 4096, 8191, 12345,
+    54321, 65537, 123456, 424242, 8675309,
+)
+MAX_WORKERS = 3
+DEFAULT_ARMS = ("OpexAI", "AAAHogEx", "AdmiralAI", "trAIns")
+
+# Configuration gelee du projet (voir docs/methode.md) : carte 256x256, depart 1970.
+CFG = """[difficulty]
+number_towns = 3
+industry_density = 4
+[economy]
+inflation = false
+town_growth_rate = 2
+[game_creation]
+starting_year = 1970
+map_x = 8
+map_y = 8
+"""
+
+# keep() est execute dans les workers. La valeur est fixee avant la creation du Pool, puis heritee
+# par fork : ainsi chaque sauvegarde est durable avant que run_experiments() ne rende sa liste.
+CHECKPOINT_PATH = None
+
+
+def parse_opex_variant(name):
+    """Retourne les parametres d'une variante OpexAI explicitee sur la ligne de commande."""
+    match = re.fullmatch(r"OpexAI\[(.*)\]", name)
+    if not match:
+        return None
+    text = match.group(1)
+    if not text:
+        raise ValueError("une variante OpexAI doit declarer au moins un reglage")
+    params = []
+    seen = set()
+    for assignment in text.split(","):
+        if "=" not in assignment:
+            raise ValueError(f"reglage OpexAI invalide: {assignment}")
+        key, raw_value = assignment.split("=", 1)
+        if key in seen:
+            raise ValueError(f"reglage OpexAI duplique: {key}")
+        seen.add(key)
+        try:
+            value = int(raw_value)
+        except ValueError as error:
+            raise ValueError(f"valeur OpexAI invalide: {assignment}") from error
+        if key == "debug_signs":
+            # Les AISign sont la seule instrumentation recuperee par OpenTTDLab.
+            if value != 1:
+                raise ValueError("debug_signs doit rester a 1")
+        elif key == "pathfinder_sleep_ticks":
+            if not 0 <= value <= 10:
+                raise ValueError("pathfinder_sleep_ticks doit etre entre 0 et 10")
+        else:
+            raise ValueError(f"reglage OpexAI inconnu: {key}")
+        params.append((key, value))
+    return tuple(params)
+
+
+def build_arms(names):
+    """Construit les arms demandes, y compris les variantes parametrees de notre IA."""
+    arms = {}
+    for name in names:
+        if name in arms:
+            raise ValueError(f"arm duplique: {name}")
+        opex_params = parse_opex_variant(name)
+        if name == "OpexAI" or opex_params is not None:
+            arms[name] = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", opex_params or ())
+        elif name == "trAIns":
+            arms[name] = bananas_ai("54524149", "trAIns", ai_params=(), md5=TRAINS_MD5)
+        elif name == "AdmiralAI":
+            arms[name] = local_folder(str(ROOT / "ai" / "AdmiralAI"), "AdmiralAI", ())
+        elif name == "AAAHogEx":
+            arms[name] = local_folder(str(ROOT / "ai" / "AAAHogEx-115"), "AAAHogEx", ())
+        else:
+            raise ValueError(f"arm inconnu: {name}")
+    return arms
+
+
+def arm_notes():
+    """Conserve pres des declarations les deux corrections locales necessaires a AdmiralAI."""
+    # Les trois adversaires sont hors depot (.gitignore) : on les execute, sans lire ni copier leur
+    # code dans notre IA. Deux reparations ont ete necessaires cote AdmiralAI, toutes deux dans
+    # notre copie locale :
+    #   - `version.nut` manquait (fichier genere par son Makefile via `hg id`, donc jamais clone) ;
+    #     sans lui `info.nut` ne compile pas et AUCUNE compagnie n'est creee -- l'echec est
+    #     silencieux dans les chunks, il ne se voit que dans `row["output"]`.
+    #   - il importe `queue.fibonacci_heap` version 2, or BaNaNaS ne publie plus que la 3 ;
+    #     l'import a ete passe a 3 dans notre copie.
+    return None
+
+
+def append_checkpoint(record):
+    """Ajoute une ligne complete sans reecrire le checkpoint partage par les workers."""
+    if CHECKPOINT_PATH is None:
+        raise RuntimeError("checkpoint non configure")
+    encoded = (json.dumps(record, separators=(",", ":")) + "\n").encode("utf-8")
+    # O_APPEND evite que deux workers ecrivent au meme offset. Une ligne est petite et ecrite en
+    # un appel : un crash laisse au pire sa derniere ligne incomplete, qu'une relecture ligne a ligne ignore.
+    fd = os.open(CHECKPOINT_PATH, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
+    try:
+        os.write(fd, encoded)
+    finally:
+        os.close(fd)
+
+
+def keep(row):
+    """Une ligne par sauvegarde mensuelle, persistee immediatement pour survivre a un crash."""
+    chunks = row["chunks"]
+    player = chunks.get("PLYR", {}).get(0) or chunks.get("PLYR", {}).get("0")
+    closed = (player or {}).get("old_economy") or []
+    last_closed = closed[0] if closed else {}
+    record = {
+        "run": row["experiment"]["bench_run"],
+        "date": str(row["date"]),
+        "company_value": last_closed.get("company_value"),
+        "performance_history": last_closed.get("performance_history"),
+        "income_last_year": last_closed.get("income"),
+        "expenses_last_year": last_closed.get("expenses"),
+        "money": (player or {}).get("money"),
+        "current_loan": (player or {}).get("current_loan"),
+        "months_of_bankruptcy": (player or {}).get("months_of_bankruptcy"),
+        "n_vehicles": len(chunks.get("VEHS", {})),
+        "n_stations": len(chunks.get("STNN", {})),
+        # L'echec de chargement d'une IA est silencieux dans PLYR ; ce log reste donc disponible
+        # dans le resume final pour le controle explicite de row["output"].
+        "openttd_output": row.get("output"),
+    }
+    append_checkpoint(record)
+    return (record,)
+
+
+_ORIGINAL_RUN_EXPERIMENT = None
+_RUN_EXPERIMENT_SIGNATURE = None
+
+
+def _run_experiment_with_savegame_cleanup(*args, **kwargs):
+    """Evite que les sauvegardes deja parsees occupent le disque jusqu'a la fin du lot."""
+    bound = _RUN_EXPERIMENT_SIGNATURE.bind(*args, **kwargs)
+    bound.apply_defaults()
+    missing = {"run_dir", "i", "final_screenshot_directory"} - bound.arguments.keys()
+    if missing:
+        raise RuntimeError(f"OpenTTDLab _run_experiment signature no longer exposes: {missing}")
+    # OpenTTDLab relit le dernier autosave pour une capture finale. Ce banc n'en demande pas :
+    # refuser ce cas evite d'effacer une dependance amont en silence.
+    assert bound.arguments["final_screenshot_directory"] is None, (
+        "savegame cleanup requires final_screenshot_directory=None"
+    )
+    experiment_dir = os.path.join(bound.arguments["run_dir"], str(bound.arguments["i"]))
+    try:
+        return _ORIGINAL_RUN_EXPERIMENT(*args, **kwargs)
+    finally:
+        # Ne jamais effacer run_dir : il contient les binaires et OpenGFX partages par les essais.
+        try:
+            shutil.rmtree(experiment_dir, ignore_errors=True)
+        except BaseException:
+            pass
+
+
+def enable_savegame_cleanup():
+    """Pool pickle cette reference module : l'accroche doit etre posee avant sa soumission."""
+    global _ORIGINAL_RUN_EXPERIMENT, _RUN_EXPERIMENT_SIGNATURE
+    if openttdlab._run_experiment is _run_experiment_with_savegame_cleanup:
+        return
+    _ORIGINAL_RUN_EXPERIMENT = openttdlab._run_experiment
+    _RUN_EXPERIMENT_SIGNATURE = inspect.signature(_ORIGINAL_RUN_EXPERIMENT)
+    openttdlab._run_experiment = _run_experiment_with_savegame_cleanup
+
+
+def experiments(arms, seeds, years, repeats):
+    """Une partie isolee par (arm, graine, repetition)."""
+    return [
+        {
+            "seed": seed,
+            "days": 365 * years,
+            "openttd_config": CFG,
+            "ais": (arms[name],),
+            "bench_run": [name, seed, repeat],
+        }
+        for name in arms
+        for seed in seeds
+        for repeat in range(repeats)
+    ]
+
+
+def summarise(rows):
+    """Retient le dernier etat de chaque partie, apres qu'une annee soit cloturee."""
+    by_run = {}
+    for row in rows:
+        key = tuple(row["run"])
+        by_run.setdefault(key, []).append(row)
+    summary = []
+    for key, series in sorted(by_run.items(), key=lambda item: str(item[0])):
+        series.sort(key=lambda row: row["date"])
+        final = series[-1]
+        summary.append({
+            "arm": key[0], "seed": key[1], "repeat": key[2],
+            "last_date": final["date"],
+            "company_value": final["company_value"],
+            "performance_history": final["performance_history"],
+            "income_last_year": final["income_last_year"],
+            "money": final["money"], "current_loan": final["current_loan"],
+            "n_vehicles": final["n_vehicles"], "n_stations": final["n_stations"],
+            "months_of_bankruptcy": final["months_of_bankruptcy"],
+            "n_savegames": len(series),
+            "openttd_output": final["openttd_output"],
+        })
+    return summary
+
+
+def number(value):
+    """Evite les NaN JSON et garde les sorties stables pour les petits echantillons."""
+    return None if value is None else round(value, 6)
+
+
+def dispersion(values):
+    """Statistiques descriptives demandees pour un arm et une metrique."""
+    values = [value for value in values if value is not None]
+    count = len(values)
+    if not count:
+        return {
+            "n": 0, "mean": None, "median": None, "standard_deviation": None,
+            "standard_error": None, "standard_error_percent": None,
+            "coefficient_of_variation_percent": None,
+        }
+    mean = statistics.mean(values)
+    standard_deviation = statistics.stdev(values) if count > 1 else None
+    standard_error = standard_deviation / math.sqrt(count) if standard_deviation is not None else None
+    coefficient = (100 * standard_deviation / mean) if standard_deviation is not None and mean else None
+    return {
+        "n": count,
+        "mean": number(mean),
+        "median": number(statistics.median(values)),
+        "standard_deviation": number(standard_deviation),
+        "standard_error": number(standard_error),
+        "standard_error_percent": number(100 * standard_error / mean if standard_error is not None and mean else None),
+        "coefficient_of_variation_percent": number(coefficient),
+    }
+
+
+def arm_statistics(summary, arm_names):
+    """Calcule la dispersion sans melanger les arms."""
+    return {
+        arm: {
+            "company_value": dispersion([r["company_value"] for r in summary if r["arm"] == arm]),
+            "performance_history": dispersion(
+                [r["performance_history"] for r in summary if r["arm"] == arm]
+            ),
+        }
+        for arm in arm_names
+    }
+
+
+def paired_comparisons(summary, arm_names):
+    """Compare les moyennes de differences par graine, et non deux moyennes independantes."""
+    per_seed = {}
+    for arm in arm_names:
+        for seed in {record["seed"] for record in summary if record["arm"] == arm}:
+            records = [record for record in summary if record["arm"] == arm and record["seed"] == seed]
+            per_seed[arm, seed] = {
+                metric: statistics.mean([record[metric] for record in records if record[metric] is not None])
+                if any(record[metric] is not None for record in records) else None
+                for metric in ("company_value", "performance_history")
+            }
+    comparisons = []
+    for index, arm_a in enumerate(arm_names):
+        for arm_b in arm_names[index + 1:]:
+            shared_seeds = sorted(
+                seed for arm, seed in per_seed if arm == arm_a and (arm_b, seed) in per_seed
+            )
+            metrics = {}
+            for metric in ("company_value", "performance_history"):
+                pairs = [
+                    (per_seed[arm_a, seed][metric], per_seed[arm_b, seed][metric])
+                    for seed in shared_seeds
+                    if per_seed[arm_a, seed][metric] is not None
+                    and per_seed[arm_b, seed][metric] is not None
+                ]
+                differences = [a - b for a, b in pairs]
+                count = len(differences)
+                mean_difference = statistics.mean(differences) if differences else None
+                standard_deviation = statistics.stdev(differences) if count > 1 else None
+                standard_error = (
+                    standard_deviation / math.sqrt(count) if standard_deviation is not None else None
+                )
+                baseline = statistics.mean([b for _, b in pairs]) if pairs else None
+                metrics[metric] = {
+                    "n": count,
+                    "mean_difference": number(mean_difference),
+                    # Le pourcentage rapporte la moyenne des differences a la moyenne de B.
+                    "mean_difference_percent": number(
+                        100 * mean_difference / baseline if baseline else None
+                    ),
+                    "standard_deviation": number(standard_deviation),
+                    "standard_error": number(standard_error),
+                    "arm_a_beats_arm_b": sum(difference > 0 for difference in differences),
+                }
+            comparisons.append({
+                "arm_a": arm_a,
+                "arm_b": arm_b,
+                "shared_seeds": shared_seeds,
+                "metrics": metrics,
+            })
+    return comparisons
+
+
+def write_json_atomically(path, payload):
+    """Le JSON final est toujours complet, meme si le processus tombe pendant son ecriture."""
+    temporary = path.with_name(f"{path.name}.tmp{os.getpid()}")
+    temporary.write_text(json.dumps(payload, indent=1) + "\n")
+    os.replace(temporary, path)
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--arms", nargs="+", default=list(DEFAULT_ARMS), help="arms ou variantes OpexAI[cle=valeur]")
+    parser.add_argument("--seeds", nargs="+", type=int, default=list(SEEDS), help="graines OpenTTD")
+    parser.add_argument("--years", type=int, default=YEARS, help="duree de chaque partie")
+    parser.add_argument("--out", type=Path, default=Path("docs/bench_v2.json"), help="JSON final")
+    parser.add_argument("--max-workers", type=int, default=MAX_WORKERS, help="taille du Pool")
+    parser.add_argument("--repeats", type=int, default=1, help="repetitions par arm et graine")
+    args = parser.parse_args()
+    if args.years <= 0 or args.max_workers <= 0 or args.repeats <= 0:
+        parser.error("--years, --max-workers et --repeats doivent etre strictement positifs")
+    if len(set(args.seeds)) != len(args.seeds):
+        parser.error("--seeds ne doit pas contenir de doublon")
+    try:
+        args.built_arms = build_arms(args.arms)
+    except ValueError as error:
+        parser.error(str(error))
+    return args
+
+
+def main():
+    global CHECKPOINT_PATH
+    arm_notes()
+    args = parse_args()
+    out = args.out
+    out.parent.mkdir(parents=True, exist_ok=True)
+    CHECKPOINT_PATH = out.with_suffix(".jsonl")
+    enable_savegame_cleanup()
+    rows = list(run_experiments(
+        openttd_version=OPENTTD_VERSION,
+        opengfx_version=OPENGFX_VERSION,
+        max_workers=args.max_workers,
+        result_processor=keep,
+        experiments=experiments(args.built_arms, args.seeds, args.years, args.repeats),
+        ai_libraries=(
+            bananas_ai_library("51554648", "Queue.FibonacciHeap"),
+            bananas_ai_library("5046524c", "Pathfinder.Rail"),
+        ),
+    ))
+    summary = summarise(rows)
+    payload = {
+        "openttd_version": OPENTTD_VERSION,
+        "opengfx_version": OPENGFX_VERSION,
+        "years": args.years,
+        "seeds": args.seeds,
+        "arms": args.arms,
+        "repeats": args.repeats,
+        "openttd_config": CFG,
+        "metric": "PLYR[0].old_economy[0] : company_value et performance_history (0-1000)",
+        "paired_reading": (
+            "mean(A(seed) - B(seed)); les paires annulent la difficulte inter-graines partagee"
+        ),
+        "checkpoint": str(CHECKPOINT_PATH),
+        "summary": summary,
+        "statistics": arm_statistics(summary, args.arms),
+        "paired_comparisons": paired_comparisons(summary, args.arms),
+        "series": [{key: value for key, value in row.items() if key != "openttd_output"} for row in rows],
+    }
+    write_json_atomically(out, payload)
+    for record in summary:
+        print(
+            f"{record['arm']:>36} seed={record['seed']:<8} rep={record['repeat']} "
+            f"value={record['company_value']} rating={record['performance_history']} "
+            f"veh={record['n_vehicles']} st={record['n_stations']}"
+        )
+    print("checkpoint", CHECKPOINT_PATH)
+    print("ecrit", out)
+
+
+if __name__ == "__main__":
+    main()

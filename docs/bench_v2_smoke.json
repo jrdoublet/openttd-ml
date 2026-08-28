@@ -1,0 +1,2600 @@
+{
+ "openttd_version": "15.3",
+ "opengfx_version": "7.1",
+ "years": 3,
+ "seeds": [
+  42,
+  100
+ ],
+ "arms": [
+  "OpexAI",
+  "AAAHogEx"
+ ],
+ "repeats": 1,
+ "openttd_config": "[difficulty]\nnumber_towns = 3\nindustry_density = 4\n[economy]\ninflation = false\ntown_growth_rate = 2\n[game_creation]\nstarting_year = 1970\nmap_x = 8\nmap_y = 8\n",
+ "metric": "PLYR[0].old_economy[0] : company_value et performance_history (0-1000)",
+ "paired_reading": "mean(A(seed) - B(seed)); les paires annulent la difficulte inter-graines partagee",
+ "checkpoint": "docs/bench_v2_smoke.jsonl",
+ "summary": [
+  {
+   "arm": "AAAHogEx",
+   "seed": 100,
+   "repeat": 0,
+   "last_date": "1972-12-01",
+   "company_value": 3396262,
+   "performance_history": 647,
+   "income_last_year": 715922,
+   "money": 359398,
+   "current_loan": 0,
+   "n_vehicles": 348,
+   "n_stations": 112,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 36,
+   "openttd_output": ""
+  },
+  {
+   "arm": "AAAHogEx",
+   "seed": 42,
+   "repeat": 0,
+   "last_date": "1972-12-01",
+   "company_value": 5178746,
+   "performance_history": 812,
+   "income_last_year": 1070309,
+   "money": 1126071,
+   "current_loan": 0,
+   "n_vehicles": 358,
+   "n_stations": 135,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 36,
+   "openttd_output": ""
+  },
+  {
+   "arm": "OpexAI",
+   "seed": 100,
+   "repeat": 0,
+   "last_date": "1972-12-01",
+   "company_value": 153206,
+   "performance_history": 175,
+   "income_last_year": 20954,
+   "money": 216558,
+   "current_loan": 300000,
+   "n_vehicles": 40,
+   "n_stations": 4,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 36,
+   "openttd_output": ""
+  },
+  {
+   "arm": "OpexAI",
+   "seed": 42,
+   "repeat": 0,
+   "last_date": "1972-12-01",
+   "company_value": 154341,
+   "performance_history": 106,
+   "income_last_year": 20205,
+   "money": 235320,
+   "current_loan": 300000,
+   "n_vehicles": 46,
+   "n_stations": 6,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 36,
+   "openttd_output": ""
+  }
+ ],
+ "statistics": {
+  "OpexAI": {
+   "company_value": {
+    "n": 2,
+    "mean": 153773.5,
+    "median": 153773.5,
+    "standard_deviation": 802.566197,
+    "standard_error": 567.5,
+    "coefficient_of_variation_percent": 0.521915
+   },
+   "performance_history": {
+    "n": 2,
+    "mean": 140.5,
+    "median": 140.5,
+    "standard_deviation": 48.790368,
+    "standard_error": 34.5,
+    "coefficient_of_variation_percent": 34.72624
+   }
+  },
+  "AAAHogEx": {
+   "company_value": {
+    "n": 2,
+    "mean": 4287504,
+    "median": 4287504.0,
+    "standard_deviation": 1260406.523757,
+    "standard_error": 891242.0,
+    "coefficient_of_variation_percent": 29.397209
+   },
+   "performance_history": {
+    "n": 2,
+    "mean": 729.5,
+    "median": 729.5,
+    "standard_deviation": 116.672619,
+    "standard_error": 82.5,
+    "coefficient_of_variation_percent": 15.993505
+   }
+  }
+ },
+ "paired_comparisons": [
+  {
+   "arm_a": "OpexAI",
+   "arm_b": "AAAHogEx",
+   "shared_seeds": [
+    42,
+    100
+   ],
+   "metrics": {
+    "company_value": {
+     "n": 2,
+     "mean_difference": -4133730.5,
+     "mean_difference_percent": -96.413449,
+     "standard_deviation": 1259603.95756,
+     "standard_error": 890674.5,
+     "arm_a_beats_arm_b": 0
+    },
+    "performance_history": {
+     "n": 2,
+     "mean_difference": -589,
+     "mean_difference_percent": -80.740233,
+     "standard_deviation": 165.462987,
+     "standard_error": 117.0,
+     "arm_a_beats_arm_b": 0
+    }
+   }
+  }
+ ],
+ "series": [
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1970-01-01",
+   "company_value": null,
+   "performance_history": null,
+   "income_last_year": null,
+   "expenses_last_year": null,
+   "money": 100000,
+   "current_loan": 100000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 8,
+   "n_stations": 0
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1970-02-01",
+   "company_value": null,
+   "performance_history": null,
+   "income_last_year": null,
+   "expenses_last_year": null,
+   "money": 102074,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 28,
+   "n_stations": 4
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1970-03-01",
+   "company_value": null,
+   "performance_history": null,
+   "income_last_year": null,
+   "expenses_last_year": null,
+   "money": 100512,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 28,
+   "n_stations": 4
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1970-04-01",
+   "company_value": null,
+   "performance_history": null,
+   "income_last_year": null,
+   "expenses_last_year": null,
+   "money": 111505,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 28,
+   "n_stations": 4
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1970-05-01",
+   "company_value": 24307,
+   "performance_history": 42,
+   "income_last_year": 12665,
+   "expenses_last_year": -4052,
+   "money": 120724,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 28,
+   "n_stations": 4
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1970-06-01",
+   "company_value": 24307,
+   "performance_history": 42,
+   "income_last_year": 12665,
+   "expenses_last_year": -4052,
+   "money": 134737,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 28,
+   "n_stations": 4
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1970-07-01",
+   "company_value": 24307,
+   "performance_history": 42,
+   "income_last_year": 12665,
+   "expenses_last_year": -4052,
+   "money": 140288,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 28,
+   "n_stations": 4
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1970-08-01",
+   "company_value": 44179,
+   "performance_history": 71,
+   "income_last_year": 33726,
+   "expenses_last_year": -4868,
+   "money": 151128,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 34,
+   "n_stations": 4
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1970-09-01",
+   "company_value": 44179,
+   "performance_history": 71,
+   "income_last_year": 33726,
+   "expenses_last_year": -4868,
+   "money": 154015,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 28,
+   "n_stations": 4
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1970-10-01",
+   "company_value": 44179,
+   "performance_history": 71,
+   "income_last_year": 33726,
+   "expenses_last_year": -4868,
+   "money": 164492,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 41,
+   "n_stations": 4
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1970-11-01",
+   "company_value": 60411,
+   "performance_history": 79,
+   "income_last_year": 29184,
+   "expenses_last_year": -4905,
+   "money": 169929,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 28,
+   "n_stations": 4
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1970-12-01",
+   "company_value": 60411,
+   "performance_history": 79,
+   "income_last_year": 29184,
+   "expenses_last_year": -4905,
+   "money": 179768,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 28,
+   "n_stations": 4
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1971-01-01",
+   "company_value": 60411,
+   "performance_history": 79,
+   "income_last_year": 29184,
+   "expenses_last_year": -4905,
+   "money": 192567,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 28,
+   "n_stations": 4
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1971-02-01",
+   "company_value": 80147,
+   "performance_history": 89,
+   "income_last_year": 33055,
+   "expenses_last_year": -4905,
+   "money": 195579,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 31,
+   "n_stations": 4
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1971-03-01",
+   "company_value": 80147,
+   "performance_history": 89,
+   "income_last_year": 33055,
+   "expenses_last_year": -4905,
+   "money": 110453,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 46,
+   "n_stations": 6
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1971-04-01",
+   "company_value": 80147,
+   "performance_history": 89,
+   "income_last_year": 33055,
+   "expenses_last_year": -4905,
+   "money": 114809,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 46,
+   "n_stations": 6
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1971-05-01",
+   "company_value": 116270,
+   "performance_history": 94,
+   "income_last_year": 18757,
+   "expenses_last_year": -5550,
+   "money": 126183,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 46,
+   "n_stations": 6
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1971-06-01",
+   "company_value": 116270,
+   "performance_history": 94,
+   "income_last_year": 18757,
+   "expenses_last_year": -5550,
+   "money": 129694,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 48,
+   "n_stations": 6
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1971-07-01",
+   "company_value": 116270,
+   "performance_history": 94,
+   "income_last_year": 18757,
+   "expenses_last_year": -5550,
+   "money": 139579,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 51,
+   "n_stations": 6
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1971-08-01",
+   "company_value": 129162,
+   "performance_history": 104,
+   "income_last_year": 31308,
+   "expenses_last_year": -6463,
+   "money": 143263,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 46,
+   "n_stations": 6
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1971-09-01",
+   "company_value": 129162,
+   "performance_history": 104,
+   "income_last_year": 31308,
+   "expenses_last_year": -6463,
+   "money": 148676,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 57,
+   "n_stations": 6
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1971-10-01",
+   "company_value": 129162,
+   "performance_history": 104,
+   "income_last_year": 31308,
+   "expenses_last_year": -6463,
+   "money": 154388,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 46,
+   "n_stations": 6
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1971-11-01",
+   "company_value": 131798,
+   "performance_history": 101,
+   "income_last_year": 21400,
+   "expenses_last_year": -6516,
+   "money": 161321,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 46,
+   "n_stations": 6
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1971-12-01",
+   "company_value": 131798,
+   "performance_history": 101,
+   "income_last_year": 21400,
+   "expenses_last_year": -6516,
+   "money": 170139,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 53,
+   "n_stations": 6
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1972-01-01",
+   "company_value": 131798,
+   "performance_history": 101,
+   "income_last_year": 21400,
+   "expenses_last_year": -6516,
+   "money": 171074,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 53,
+   "n_stations": 6
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1972-02-01",
+   "company_value": 137589,
+   "performance_history": 101,
+   "income_last_year": 23278,
+   "expenses_last_year": -6517,
+   "money": 180083,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 47,
+   "n_stations": 6
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1972-03-01",
+   "company_value": 137589,
+   "performance_history": 101,
+   "income_last_year": 23278,
+   "expenses_last_year": -6517,
+   "money": 186250,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 46,
+   "n_stations": 6
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1972-04-01",
+   "company_value": 137589,
+   "performance_history": 101,
+   "income_last_year": 23278,
+   "expenses_last_year": -6517,
+   "money": 189174,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 51,
+   "n_stations": 6
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1972-05-01",
+   "company_value": 144715,
+   "performance_history": 105,
+   "income_last_year": 24638,
+   "expenses_last_year": -6463,
+   "money": 194288,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 46,
+   "n_stations": 6
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1972-06-01",
+   "company_value": 144715,
+   "performance_history": 105,
+   "income_last_year": 24638,
+   "expenses_last_year": -6463,
+   "money": 200809,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 51,
+   "n_stations": 6
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1972-07-01",
+   "company_value": 144715,
+   "performance_history": 105,
+   "income_last_year": 24638,
+   "expenses_last_year": -6463,
+   "money": 205009,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 49,
+   "n_stations": 6
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1972-08-01",
+   "company_value": 150751,
+   "performance_history": 104,
+   "income_last_year": 22372,
+   "expenses_last_year": -6462,
+   "money": 212323,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 46,
+   "n_stations": 6
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1972-09-01",
+   "company_value": 150751,
+   "performance_history": 104,
+   "income_last_year": 22372,
+   "expenses_last_year": -6462,
+   "money": 217029,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 59,
+   "n_stations": 6
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1972-10-01",
+   "company_value": 150751,
+   "performance_history": 104,
+   "income_last_year": 22372,
+   "expenses_last_year": -6462,
+   "money": 218622,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 57,
+   "n_stations": 6
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1972-11-01",
+   "company_value": 154341,
+   "performance_history": 106,
+   "income_last_year": 20205,
+   "expenses_last_year": -6517,
+   "money": 226809,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 46,
+   "n_stations": 6
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1972-12-01",
+   "company_value": 154341,
+   "performance_history": 106,
+   "income_last_year": 20205,
+   "expenses_last_year": -6517,
+   "money": 235320,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 46,
+   "n_stations": 6
+  },
+  {
+   "run": [
+    "OpexAI",
+    100,
+    0
+   ],
+   "date": "1970-01-01",
+   "company_value": null,
+   "performance_history": null,
+   "income_last_year": null,
+   "expenses_last_year": null,
+   "money": 100000,
+   "current_loan": 100000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 2,
+   "n_stations": 0
+  },
+  {
+   "run": [
+    "OpexAI",
+    100,
+    0
+   ],
+   "date": "1970-02-01",
+   "company_value": null,
+   "performance_history": null,
+   "income_last_year": null,
+   "expenses_last_year": null,
+   "money": 202980,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 4,
+   "n_stations": 2
+  },
+  {
+   "run": [
+    "OpexAI",
+    100,
+    0
+   ],
+   "date": "1970-03-01",
+   "company_value": null,
+   "performance_history": null,
+   "income_last_year": null,
+   "expenses_last_year": null,
+   "money": 201909,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 4,
+   "n_stations": 2
+  },
+  {
+   "run": [
+    "OpexAI",
+    100,
+    0
+   ],
+   "date": "1970-04-01",
+   "company_value": null,
+   "performance_history": null,
+   "income_last_year": null,
+   "expenses_last_year": null,
+   "money": 207613,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 4,
+   "n_stations": 2
+  },
+  {
+   "run": [
+    "OpexAI",
+    100,
+    0
+   ],
+   "date": "1970-05-01",
+   "company_value": 1363,
+   "performance_history": 24,
+   "income_last_year": 6833,
+   "expenses_last_year": -2685,
+   "money": 213024,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 4,
+   "n_stations": 2
+  },
+  {
+   "run": [
+    "OpexAI",
+    100,
+    0
+   ],
+   "date": "1970-06-01",
+   "company_value": 1363,
+   "performance_history": 24,
+   "income_last_year": 6833,
+   "expenses_last_year": -2685,
+   "money": 218853,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 4,
+   "n_stations": 2
+  },
+  {
+   "run": [
+    "OpexAI",
+    100,
+    0
+   ],
+   "date": "1970-07-01",
+   "company_value": 1363,
+   "performance_history": 24,
+   "income_last_year": 6833,
+   "expenses_last_year": -2685,
+   "money": 232256,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 4,
+   "n_stations": 2
+  },
+  {
+   "run": [
+    "OpexAI",
+    100,
+    0
+   ],
+   "date": "1970-08-01",
+   "company_value": 21941,
+   "performance_history": 50,
+   "income_last_year": 27992,
+   "expenses_last_year": -3274,
+   "money": 237342,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 4,
+   "n_stations": 2
+  },
+  {
+   "run": [
+    "OpexAI",
+    100,
+    0
+   ],
+   "date": "1970-09-01",
+   "company_value": 21941,
+   "performance_history": 50,
+   "income_last_year": 27992,
+   "expenses_last_year": -3274,
+   "money": 241097,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 4,
+   "n_stations": 2
+  },
+  {
+   "run": [
+    "OpexAI",
+    100,
+    0
+   ],
+   "date": "1970-10-01",
+   "company_value": 21941,
+   "performance_history": 50,
+   "income_last_year": 27992,
+   "expenses_last_year": -3274,
+   "money": 245642,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 4,
+   "n_stations": 2
+  },
+  {
+   "run": [
+    "OpexAI",
+    100,
+    0
+   ],
+   "date": "1970-11-01",
+   "company_value": 31768,
+   "performance_history": 53,
+   "income_last_year": 16754,
+   "expenses_last_year": -3293,
+   "money": 248958,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 4,
+   "n_stations": 2
+  },
+  {
+   "run": [
+    "OpexAI",
+    100,
+    0
+   ],
+   "date": "1970-12-01",
+   "company_value": 31768,
+   "performance_history": 53,
+   "income_last_year": 16754,
+   "expenses_last_year": -3293,
+   "money": 255829,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 4,
+   "n_stations": 2
+  },
+  {
+   "run": [
+    "OpexAI",
+    100,
+    0
+   ],
+   "date": "1971-01-01",
+   "company_value": 31768,
+   "performance_history": 53,
+   "income_last_year": 16754,
+   "expenses_last_year": -3293,
+   "money": 258501,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 4,
+   "n_stations": 2
+  },
+  {
+   "run": [
+    "OpexAI",
+    100,
+    0
+   ],
+   "date": "1971-02-01",
+   "company_value": 40914,
+   "performance_history": 56,
+   "income_last_year": 16227,
+   "expenses_last_year": -3293,
+   "money": 262046,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 4,
+   "n_stations": 2
+  },
+  {
+   "run": [
+    "OpexAI",
+    100,
+    0
+   ],
+   "date": "1971-03-01",
+   "company_value": 40914,
+   "performance_history": 56,
+   "income_last_year": 16227,
+   "expenses_last_year": -3293,
+   "money": 265062,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 4,
+   "n_stations": 2
+  },
+  {
+   "run": [
+    "OpexAI",
+    100,
+    0
+   ],
+   "date": "1971-04-01",
+   "company_value": 40914,
+   "performance_history": 56,
+   "income_last_year": 16227,
+   "expenses_last_year": -3293,
+   "money": 108676,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 36,
+   "n_stations": 4
+  },
+  {
+   "run": [
+    "OpexAI",
+    100,
+    0
+   ],
+   "date": "1971-05-01",
+   "company_value": 122866,
+   "performance_history": 57,
+   "income_last_year": 17755,
+   "expenses_last_year": -3282,
+   "money": 105040,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 40,
+   "n_stations": 4
+  },
+  {
+   "run": [
+    "OpexAI",
+    100,
+    0
+   ],
+   "date": "1971-06-01",
+   "company_value": 122866,
+   "performance_history": 57,
+   "income_last_year": 17755,
+   "expenses_last_year": -3282,
+   "money": 113744,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 40,
+   "n_stations": 4
+  },
+  {
+   "run": [
+    "OpexAI",
+    100,
+    0
+   ],
+   "date": "1971-07-01",
+   "company_value": 122866,
+   "performance_history": 57,
+   "income_last_year": 17755,
+   "expenses_last_year": -3282,
+   "money": 113357,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 40,
+   "n_stations": 4
+  },
+  {
+   "run": [
+    "OpexAI",
+    100,
+    0
+   ],
+   "date": "1971-08-01",
+   "company_value": 121098,
+   "performance_history": 64,
+   "income_last_year": 15333,
+   "expenses_last_year": -6453,
+   "money": 123723,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 44,
+   "n_stations": 4
+  },
+  {
+   "run": [
+    "OpexAI",
+    100,
+    0
+   ],
+   "date": "1971-09-01",
+   "company_value": 121098,
+   "performance_history": 64,
+   "income_last_year": 15333,
+   "expenses_last_year": -6453,
+   "money": 130955,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 40,
+   "n_stations": 4
+  },
+  {
+   "run": [
+    "OpexAI",
+    100,
+    0
+   ],
+   "date": "1971-10-01",
+   "company_value": 121098,
+   "performance_history": 64,
+   "income_last_year": 15333,
+   "expenses_last_year": -6453,
+   "money": 131125,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 40,
+   "n_stations": 4
+  },
+  {
+   "run": [
+    "OpexAI",
+    100,
+    0
+   ],
+   "date": "1971-11-01",
+   "company_value": 125852,
+   "performance_history": 66,
+   "income_last_year": 24360,
+   "expenses_last_year": -6517,
+   "money": 139566,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 40,
+   "n_stations": 4
+  },
+  {
+   "run": [
+    "OpexAI",
+    100,
+    0
+   ],
+   "date": "1971-12-01",
+   "company_value": 125852,
+   "performance_history": 66,
+   "income_last_year": 24360,
+   "expenses_last_year": -6517,
+   "money": 139605,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 40,
+   "n_stations": 4
+  },
+  {
+   "run": [
+    "OpexAI",
+    100,
+    0
+   ],
+   "date": "1972-01-01",
+   "company_value": 125852,
+   "performance_history": 66,
+   "income_last_year": 24360,
+   "expenses_last_year": -6517,
+   "money": 146173,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 41,
+   "n_stations": 4
+  },
+  {
+   "run": [
+    "OpexAI",
+    100,
+    0
+   ],
+   "date": "1972-02-01",
+   "company_value": 129135,
+   "performance_history": 67,
+   "income_last_year": 21640,
+   "expenses_last_year": -6517,
+   "money": 156879,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 41,
+   "n_stations": 4
+  },
+  {
+   "run": [
+    "OpexAI",
+    100,
+    0
+   ],
+   "date": "1972-03-01",
+   "company_value": 129135,
+   "performance_history": 67,
+   "income_last_year": 21640,
+   "expenses_last_year": -6517,
+   "money": 164129,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 40,
+   "n_stations": 4
+  },
+  {
+   "run": [
+    "OpexAI",
+    100,
+    0
+   ],
+   "date": "1972-04-01",
+   "company_value": 129135,
+   "performance_history": 67,
+   "income_last_year": 21640,
+   "expenses_last_year": -6517,
+   "money": 168467,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 40,
+   "n_stations": 4
+  },
+  {
+   "run": [
+    "OpexAI",
+    100,
+    0
+   ],
+   "date": "1972-05-01",
+   "company_value": 139644,
+   "performance_history": 172,
+   "income_last_year": 28831,
+   "expenses_last_year": -6462,
+   "money": 174973,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 40,
+   "n_stations": 4
+  },
+  {
+   "run": [
+    "OpexAI",
+    100,
+    0
+   ],
+   "date": "1972-06-01",
+   "company_value": 139644,
+   "performance_history": 172,
+   "income_last_year": 28831,
+   "expenses_last_year": -6462,
+   "money": 181790,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 40,
+   "n_stations": 4
+  },
+  {
+   "run": [
+    "OpexAI",
+    100,
+    0
+   ],
+   "date": "1972-07-01",
+   "company_value": 139644,
+   "performance_history": 172,
+   "income_last_year": 28831,
+   "expenses_last_year": -6462,
+   "money": 189560,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 40,
+   "n_stations": 4
+  },
+  {
+   "run": [
+    "OpexAI",
+    100,
+    0
+   ],
+   "date": "1972-08-01",
+   "company_value": 149637,
+   "performance_history": 174,
+   "income_last_year": 27630,
+   "expenses_last_year": -6462,
+   "money": 196367,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 40,
+   "n_stations": 4
+  },
+  {
+   "run": [
+    "OpexAI",
+    100,
+    0
+   ],
+   "date": "1972-09-01",
+   "company_value": 149637,
+   "performance_history": 174,
+   "income_last_year": 27630,
+   "expenses_last_year": -6462,
+   "money": 196096,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 40,
+   "n_stations": 4
+  },
+  {
+   "run": [
+    "OpexAI",
+    100,
+    0
+   ],
+   "date": "1972-10-01",
+   "company_value": 149637,
+   "performance_history": 174,
+   "income_last_year": 27630,
+   "expenses_last_year": -6462,
+   "money": 203922,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 40,
+   "n_stations": 4
+  },
+  {
+   "run": [
+    "OpexAI",
+    100,
+    0
+   ],
+   "date": "1972-11-01",
+   "company_value": 153206,
+   "performance_history": 175,
+   "income_last_year": 20954,
+   "expenses_last_year": -6517,
+   "money": 210668,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 40,
+   "n_stations": 4
+  },
+  {
+   "run": [
+    "OpexAI",
+    100,
+    0
+   ],
+   "date": "1972-12-01",
+   "company_value": 153206,
+   "performance_history": 175,
+   "income_last_year": 20954,
+   "expenses_last_year": -6517,
+   "money": 216558,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 40,
+   "n_stations": 4
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    42,
+    0
+   ],
+   "date": "1970-01-01",
+   "company_value": null,
+   "performance_history": null,
+   "income_last_year": null,
+   "expenses_last_year": null,
+   "money": 100000,
+   "current_loan": 100000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 8,
+   "n_stations": 0
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    42,
+    0
+   ],
+   "date": "1970-02-01",
+   "company_value": null,
+   "performance_history": null,
+   "income_last_year": null,
+   "expenses_last_year": null,
+   "money": 19423,
+   "current_loan": 20000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 8,
+   "n_stations": 0
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    42,
+    0
+   ],
+   "date": "1970-03-01",
+   "company_value": null,
+   "performance_history": null,
+   "income_last_year": null,
+   "expenses_last_year": null,
+   "money": 23676,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 16,
+   "n_stations": 6
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    42,
+    0
+   ],
+   "date": "1970-04-01",
+   "company_value": null,
+   "performance_history": null,
+   "income_last_year": null,
+   "expenses_last_year": null,
+   "money": 21087,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 16,
+   "n_stations": 6
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    42,
+    0
+   ],
+   "date": "1970-05-01",
+   "company_value": 1,
+   "performance_history": 10,
+   "income_last_year": 0,
+   "expenses_last_year": -3108,
+   "money": 20090,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 18,
+   "n_stations": 6
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    42,
+    0
+   ],
+   "date": "1970-06-01",
+   "company_value": 1,
+   "performance_history": 10,
+   "income_last_year": 0,
+   "expenses_last_year": -3108,
+   "money": 22209,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 20,
+   "n_stations": 8
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    42,
+    0
+   ],
+   "date": "1970-07-01",
+   "company_value": 1,
+   "performance_history": 10,
+   "income_last_year": 0,
+   "expenses_last_year": -3108,
+   "money": 2296,
+   "current_loan": 290000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 24,
+   "n_stations": 8
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    42,
+    0
+   ],
+   "date": "1970-08-01",
+   "company_value": 190806,
+   "performance_history": 149,
+   "income_last_year": 199833,
+   "expenses_last_year": -9735,
+   "money": 619,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 26,
+   "n_stations": 10
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    42,
+    0
+   ],
+   "date": "1970-09-01",
+   "company_value": 190806,
+   "performance_history": 149,
+   "income_last_year": 199833,
+   "expenses_last_year": -9735,
+   "money": 10289,
+   "current_loan": 290000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 30,
+   "n_stations": 12
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    42,
+    0
+   ],
+   "date": "1970-10-01",
+   "company_value": 190806,
+   "performance_history": 149,
+   "income_last_year": 199833,
+   "expenses_last_year": -9735,
+   "money": 84113,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 34,
+   "n_stations": 13
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    42,
+    0
+   ],
+   "date": "1970-11-01",
+   "company_value": 541603,
+   "performance_history": 203,
+   "income_last_year": 373497,
+   "expenses_last_year": -16611,
+   "money": 36664,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 42,
+   "n_stations": 15
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    42,
+    0
+   ],
+   "date": "1970-12-01",
+   "company_value": 541603,
+   "performance_history": 203,
+   "income_last_year": 373497,
+   "expenses_last_year": -16611,
+   "money": 86289,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 48,
+   "n_stations": 18
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    42,
+    0
+   ],
+   "date": "1971-01-01",
+   "company_value": 541603,
+   "performance_history": 203,
+   "income_last_year": 373497,
+   "expenses_last_year": -16611,
+   "money": 82791,
+   "current_loan": 210000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 56,
+   "n_stations": 22
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    42,
+    0
+   ],
+   "date": "1971-02-01",
+   "company_value": 1002272,
+   "performance_history": 295,
+   "income_last_year": 560063,
+   "expenses_last_year": -27302,
+   "money": 47101,
+   "current_loan": 240000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 66,
+   "n_stations": 27
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    42,
+    0
+   ],
+   "date": "1971-03-01",
+   "company_value": 1002272,
+   "performance_history": 295,
+   "income_last_year": 560063,
+   "expenses_last_year": -27302,
+   "money": 10309,
+   "current_loan": 200000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 79,
+   "n_stations": 29
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    42,
+    0
+   ],
+   "date": "1971-04-01",
+   "company_value": 1002272,
+   "performance_history": 295,
+   "income_last_year": 560063,
+   "expenses_last_year": -27302,
+   "money": 57234,
+   "current_loan": 40000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 87,
+   "n_stations": 32
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    42,
+    0
+   ],
+   "date": "1971-05-01",
+   "company_value": 1511428,
+   "performance_history": 419,
+   "income_last_year": 597938,
+   "expenses_last_year": -37210,
+   "money": 53321,
+   "current_loan": 130000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 103,
+   "n_stations": 43
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    42,
+    0
+   ],
+   "date": "1971-06-01",
+   "company_value": 1511428,
+   "performance_history": 419,
+   "income_last_year": 597938,
+   "expenses_last_year": -37210,
+   "money": 9543,
+   "current_loan": 30000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 126,
+   "n_stations": 57
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    42,
+    0
+   ],
+   "date": "1971-07-01",
+   "company_value": 1511428,
+   "performance_history": 419,
+   "income_last_year": 597938,
+   "expenses_last_year": -37210,
+   "money": 67909,
+   "current_loan": 0,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 143,
+   "n_stations": 65
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    42,
+    0
+   ],
+   "date": "1971-08-01",
+   "company_value": 2223107,
+   "performance_history": 494,
+   "income_last_year": 677417,
+   "expenses_last_year": -43490,
+   "money": 234881,
+   "current_loan": 0,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 169,
+   "n_stations": 78
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    42,
+    0
+   ],
+   "date": "1971-09-01",
+   "company_value": 2223107,
+   "performance_history": 494,
+   "income_last_year": 677417,
+   "expenses_last_year": -43490,
+   "money": 310006,
+   "current_loan": 0,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 183,
+   "n_stations": 82
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    42,
+    0
+   ],
+   "date": "1971-10-01",
+   "company_value": 2223107,
+   "performance_history": 494,
+   "income_last_year": 677417,
+   "expenses_last_year": -43490,
+   "money": 589017,
+   "current_loan": 0,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 171,
+   "n_stations": 82
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    42,
+    0
+   ],
+   "date": "1971-11-01",
+   "company_value": 2836303,
+   "performance_history": 535,
+   "income_last_year": 760547,
+   "expenses_last_year": -49697,
+   "money": 671102,
+   "current_loan": 0,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 188,
+   "n_stations": 84
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    42,
+    0
+   ],
+   "date": "1971-12-01",
+   "company_value": 2836303,
+   "performance_history": 535,
+   "income_last_year": 760547,
+   "expenses_last_year": -49697,
+   "money": 569745,
+   "current_loan": 0,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 201,
+   "n_stations": 90
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    42,
+    0
+   ],
+   "date": "1972-01-01",
+   "company_value": 2836303,
+   "performance_history": 535,
+   "income_last_year": 760547,
+   "expenses_last_year": -49697,
+   "money": 529514,
+   "current_loan": 0,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 202,
+   "n_stations": 90
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    42,
+    0
+   ],
+   "date": "1972-02-01",
+   "company_value": 3070790,
+   "performance_history": 581,
+   "income_last_year": 978592,
+   "expenses_last_year": -58296,
+   "money": 541748,
+   "current_loan": 0,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 207,
+   "n_stations": 94
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    42,
+    0
+   ],
+   "date": "1972-03-01",
+   "company_value": 3070790,
+   "performance_history": 581,
+   "income_last_year": 978592,
+   "expenses_last_year": -58296,
+   "money": 531506,
+   "current_loan": 0,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 244,
+   "n_stations": 96
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    42,
+    0
+   ],
+   "date": "1972-04-01",
+   "company_value": 3070790,
+   "performance_history": 581,
+   "income_last_year": 978592,
+   "expenses_last_year": -58296,
+   "money": 663356,
+   "current_loan": 0,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 242,
+   "n_stations": 106
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    42,
+    0
+   ],
+   "date": "1972-05-01",
+   "company_value": 3915182,
+   "performance_history": 749,
+   "income_last_year": 933940,
+   "expenses_last_year": -67164,
+   "money": 797297,
+   "current_loan": 0,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 244,
+   "n_stations": 107
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    42,
+    0
+   ],
+   "date": "1972-06-01",
+   "company_value": 3915182,
+   "performance_history": 749,
+   "income_last_year": 933940,
+   "expenses_last_year": -67164,
+   "money": 544375,
+   "current_loan": 0,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 276,
+   "n_stations": 113
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    42,
+    0
+   ],
+   "date": "1972-07-01",
+   "company_value": 3915182,
+   "performance_history": 749,
+   "income_last_year": 933940,
+   "expenses_last_year": -67164,
+   "money": 608139,
+   "current_loan": 0,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 294,
+   "n_stations": 122
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    42,
+    0
+   ],
+   "date": "1972-08-01",
+   "company_value": 4630807,
+   "performance_history": 788,
+   "income_last_year": 1002785,
+   "expenses_last_year": -82054,
+   "money": 493268,
+   "current_loan": 0,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 293,
+   "n_stations": 127
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    42,
+    0
+   ],
+   "date": "1972-09-01",
+   "company_value": 4630807,
+   "performance_history": 788,
+   "income_last_year": 1002785,
+   "expenses_last_year": -82054,
+   "money": 560557,
+   "current_loan": 0,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 340,
+   "n_stations": 128
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    42,
+    0
+   ],
+   "date": "1972-10-01",
+   "company_value": 4630807,
+   "performance_history": 788,
+   "income_last_year": 1002785,
+   "expenses_last_year": -82054,
+   "money": 820809,
+   "current_loan": 0,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 325,
+   "n_stations": 129
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    42,
+    0
+   ],
+   "date": "1972-11-01",
+   "company_value": 5178746,
+   "performance_history": 812,
+   "income_last_year": 1070309,
+   "expenses_last_year": -92363,
+   "money": 942456,
+   "current_loan": 0,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 357,
+   "n_stations": 129
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    42,
+    0
+   ],
+   "date": "1972-12-01",
+   "company_value": 5178746,
+   "performance_history": 812,
+   "income_last_year": 1070309,
+   "expenses_last_year": -92363,
+   "money": 1126071,
+   "current_loan": 0,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 358,
+   "n_stations": 135
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    100,
+    0
+   ],
+   "date": "1970-01-01",
+   "company_value": null,
+   "performance_history": null,
+   "income_last_year": null,
+   "expenses_last_year": null,
+   "money": 100000,
+   "current_loan": 100000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 2,
+   "n_stations": 0
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    100,
+    0
+   ],
+   "date": "1970-02-01",
+   "company_value": null,
+   "performance_history": null,
+   "income_last_year": null,
+   "expenses_last_year": null,
+   "money": 19423,
+   "current_loan": 20000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 2,
+   "n_stations": 0
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    100,
+    0
+   ],
+   "date": "1970-03-01",
+   "company_value": null,
+   "performance_history": null,
+   "income_last_year": null,
+   "expenses_last_year": null,
+   "money": 30204,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 10,
+   "n_stations": 6
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    100,
+    0
+   ],
+   "date": "1970-04-01",
+   "company_value": null,
+   "performance_history": null,
+   "income_last_year": null,
+   "expenses_last_year": null,
+   "money": 27844,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 10,
+   "n_stations": 6
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    100,
+    0
+   ],
+   "date": "1970-05-01",
+   "company_value": 1,
+   "performance_history": 10,
+   "income_last_year": 0,
+   "expenses_last_year": -2828,
+   "money": 4590,
+   "current_loan": 280000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 12,
+   "n_stations": 6
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    100,
+    0
+   ],
+   "date": "1970-06-01",
+   "company_value": 1,
+   "performance_history": 10,
+   "income_last_year": 0,
+   "expenses_last_year": -2828,
+   "money": 21242,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 14,
+   "n_stations": 6
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    100,
+    0
+   ],
+   "date": "1970-07-01",
+   "company_value": 1,
+   "performance_history": 10,
+   "income_last_year": 0,
+   "expenses_last_year": -2828,
+   "money": 48246,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 14,
+   "n_stations": 8
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    100,
+    0
+   ],
+   "date": "1970-08-01",
+   "company_value": 116488,
+   "performance_history": 145,
+   "income_last_year": 141291,
+   "expenses_last_year": -8515,
+   "money": 23561,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 17,
+   "n_stations": 8
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    100,
+    0
+   ],
+   "date": "1970-09-01",
+   "company_value": 116488,
+   "performance_history": 145,
+   "income_last_year": 141291,
+   "expenses_last_year": -8515,
+   "money": 30399,
+   "current_loan": 290000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 20,
+   "n_stations": 10
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    100,
+    0
+   ],
+   "date": "1970-10-01",
+   "company_value": 116488,
+   "performance_history": 145,
+   "income_last_year": 141291,
+   "expenses_last_year": -8515,
+   "money": 12277,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 22,
+   "n_stations": 11
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    100,
+    0
+   ],
+   "date": "1970-11-01",
+   "company_value": 260997,
+   "performance_history": 177,
+   "income_last_year": 184684,
+   "expenses_last_year": -12485,
+   "money": 6261,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 28,
+   "n_stations": 13
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    100,
+    0
+   ],
+   "date": "1970-12-01",
+   "company_value": 260997,
+   "performance_history": 177,
+   "income_last_year": 184684,
+   "expenses_last_year": -12485,
+   "money": 29301,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 30,
+   "n_stations": 15
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    100,
+    0
+   ],
+   "date": "1971-01-01",
+   "company_value": 260997,
+   "performance_history": 177,
+   "income_last_year": 184684,
+   "expenses_last_year": -12485,
+   "money": 69769,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 32,
+   "n_stations": 16
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    100,
+    0
+   ],
+   "date": "1971-02-01",
+   "company_value": 577172,
+   "performance_history": 232,
+   "income_last_year": 368117,
+   "expenses_last_year": -18435,
+   "money": 45268,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 40,
+   "n_stations": 18
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    100,
+    0
+   ],
+   "date": "1971-03-01",
+   "company_value": 577172,
+   "performance_history": 232,
+   "income_last_year": 368117,
+   "expenses_last_year": -18435,
+   "money": 26808,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 40,
+   "n_stations": 22
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    100,
+    0
+   ],
+   "date": "1971-04-01",
+   "company_value": 577172,
+   "performance_history": 232,
+   "income_last_year": 368117,
+   "expenses_last_year": -18435,
+   "money": 40120,
+   "current_loan": 240000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 44,
+   "n_stations": 24
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    100,
+    0
+   ],
+   "date": "1971-05-01",
+   "company_value": 883952,
+   "performance_history": 293,
+   "income_last_year": 385914,
+   "expenses_last_year": -24663,
+   "money": 76213,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 58,
+   "n_stations": 26
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    100,
+    0
+   ],
+   "date": "1971-06-01",
+   "company_value": 883952,
+   "performance_history": 293,
+   "income_last_year": 385914,
+   "expenses_last_year": -24663,
+   "money": 17803,
+   "current_loan": 220000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 73,
+   "n_stations": 28
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    100,
+    0
+   ],
+   "date": "1971-07-01",
+   "company_value": 883952,
+   "performance_history": 293,
+   "income_last_year": 385914,
+   "expenses_last_year": -24663,
+   "money": 18278,
+   "current_loan": 190000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 92,
+   "n_stations": 30
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    100,
+    0
+   ],
+   "date": "1971-08-01",
+   "company_value": 1211050,
+   "performance_history": 343,
+   "income_last_year": 417629,
+   "expenses_last_year": -30756,
+   "money": 48507,
+   "current_loan": 290000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 100,
+   "n_stations": 34
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    100,
+    0
+   ],
+   "date": "1971-09-01",
+   "company_value": 1211050,
+   "performance_history": 343,
+   "income_last_year": 417629,
+   "expenses_last_year": -30756,
+   "money": 47054,
+   "current_loan": 260000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 124,
+   "n_stations": 38
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    100,
+    0
+   ],
+   "date": "1971-10-01",
+   "company_value": 1211050,
+   "performance_history": 343,
+   "income_last_year": 417629,
+   "expenses_last_year": -30756,
+   "money": 59306,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 130,
+   "n_stations": 41
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    100,
+    0
+   ],
+   "date": "1971-11-01",
+   "company_value": 1647824,
+   "performance_history": 401,
+   "income_last_year": 531893,
+   "expenses_last_year": -39340,
+   "money": 118811,
+   "current_loan": 220000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 127,
+   "n_stations": 43
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    100,
+    0
+   ],
+   "date": "1971-12-01",
+   "company_value": 1647824,
+   "performance_history": 401,
+   "income_last_year": 531893,
+   "expenses_last_year": -39340,
+   "money": 13466,
+   "current_loan": 50000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 161,
+   "n_stations": 50
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    100,
+    0
+   ],
+   "date": "1972-01-01",
+   "company_value": 1647824,
+   "performance_history": 401,
+   "income_last_year": 531893,
+   "expenses_last_year": -39340,
+   "money": 146270,
+   "current_loan": 0,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 145,
+   "n_stations": 52
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    100,
+    0
+   ],
+   "date": "1972-02-01",
+   "company_value": 2118476,
+   "performance_history": 504,
+   "income_last_year": 690840,
+   "expenses_last_year": -45916,
+   "money": 331243,
+   "current_loan": 0,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 171,
+   "n_stations": 54
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    100,
+    0
+   ],
+   "date": "1972-03-01",
+   "company_value": 2118476,
+   "performance_history": 504,
+   "income_last_year": 690840,
+   "expenses_last_year": -45916,
+   "money": 292118,
+   "current_loan": 0,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 193,
+   "n_stations": 60
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    100,
+    0
+   ],
+   "date": "1972-04-01",
+   "company_value": 2118476,
+   "performance_history": 504,
+   "income_last_year": 690840,
+   "expenses_last_year": -45916,
+   "money": 450114,
+   "current_loan": 0,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 193,
+   "n_stations": 66
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    100,
+    0
+   ],
+   "date": "1972-05-01",
+   "company_value": 2706236,
+   "performance_history": 673,
+   "income_last_year": 686485,
+   "expenses_last_year": -48297,
+   "money": 344829,
+   "current_loan": 0,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 203,
+   "n_stations": 70
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    100,
+    0
+   ],
+   "date": "1972-06-01",
+   "company_value": 2706236,
+   "performance_history": 673,
+   "income_last_year": 686485,
+   "expenses_last_year": -48297,
+   "money": 356845,
+   "current_loan": 0,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 227,
+   "n_stations": 76
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    100,
+    0
+   ],
+   "date": "1972-07-01",
+   "company_value": 2706236,
+   "performance_history": 673,
+   "income_last_year": 686485,
+   "expenses_last_year": -48297,
+   "money": 287501,
+   "current_loan": 0,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 258,
+   "n_stations": 82
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    100,
+    0
+   ],
+   "date": "1972-08-01",
+   "company_value": 2888527,
+   "performance_history": 702,
+   "income_last_year": 628676,
+   "expenses_last_year": -53159,
+   "money": 400029,
+   "current_loan": 0,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 265,
+   "n_stations": 90
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    100,
+    0
+   ],
+   "date": "1972-09-01",
+   "company_value": 2888527,
+   "performance_history": 702,
+   "income_last_year": 628676,
+   "expenses_last_year": -53159,
+   "money": 275059,
+   "current_loan": 0,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 268,
+   "n_stations": 96
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    100,
+    0
+   ],
+   "date": "1972-10-01",
+   "company_value": 2888527,
+   "performance_history": 702,
+   "income_last_year": 628676,
+   "expenses_last_year": -53159,
+   "money": 256141,
+   "current_loan": 0,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 306,
+   "n_stations": 100
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    100,
+    0
+   ],
+   "date": "1972-11-01",
+   "company_value": 3396262,
+   "performance_history": 647,
+   "income_last_year": 715922,
+   "expenses_last_year": -65139,
+   "money": 393265,
+   "current_loan": 0,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 305,
+   "n_stations": 104
+  },
+  {
+   "run": [
+    "AAAHogEx",
+    100,
+    0
+   ],
+   "date": "1972-12-01",
+   "company_value": 3396262,
+   "performance_history": 647,
+   "income_last_year": 715922,
+   "expenses_last_year": -65139,
+   "money": 359398,
+   "current_loan": 0,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 348,
+   "n_stations": 112
+  }
+ ]
+}
