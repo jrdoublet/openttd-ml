@@ -3,6 +3,16 @@
 Peut-on prédire le profit d'une ligne ferroviaire à partir de ses caractéristiques de
 construction, sans simuler la partie ? Voir `docs/methode.md` pour le protocole complet.
 
+## OpexAI
+
+`ai/OpexAI/` est l'IA de production actuelle, ciblée sur OpenTTD 15.3 / API NoAI 15. Elle
+construit des lignes ferroviaires ainsi qu'une première liaison aérienne et une première liaison
+maritime de passagers. La conception, les invariants de rollback et les validations sont décrits
+dans [`docs/opexai_multimodal.md`](docs/opexai_multimodal.md).
+
+Les versions et règles de la section Phase 0 ci-dessous restent celles de la campagne historique
+de calibration ; elles ne définissent pas la cible d'exécution d'OpexAI.
+
 ## Décisions figées (Phase 0)
 
 | Élément | Valeur | Raison |

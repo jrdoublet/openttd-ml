@@ -25,6 +25,8 @@ require("catalog.nut");
 require("economy.nut");
 require("candidates.nut");
 require("builder_rail.nut");
+require("builder_air.nut");
+require("builder_water.nut");
 
 /* Distance minimale entre une nouvelle extremite et une gare deja posee par nous. Evite de
  * redesservir la meme ville et de se cannibaliser -- meme motif que la contrainte de villes
@@ -45,6 +47,8 @@ class OpexAI extends AIController {
   _catalog = null;
   _startTick = 0;
   _lines = null;        // [{stationA, stationB, cargo, predicted, iterations, trains, ...}]
+  _airBuilt = false;
+  _waterBuilt = false;
 
   constructor()
   {
@@ -55,9 +59,78 @@ class OpexAI extends AIController {
 
   function Start();
   function _tooClose(candidate);
+  function _tryBuildAir(year);
+  function _tryBuildWater(year);
   function _tryBuild(ranked, year);
   function _reportYear(year, ranked);
   function _reportLines(year);
+}
+
+/* Un seul avion suffit pour cette premiere liaison. Le scan des vehicules empeche un doublon apres
+ * rechargement, ou si l'etat transitoire de l'IA a ete perdu. */
+function OpexAI::_tryBuildAir(year)
+{
+  if (this._airBuilt || this._catalog.airport == null || this._catalog.plane == null) return;
+  local vehicles = AIVehicleList();
+  for (local v = vehicles.Begin(); !vehicles.IsEnd(); v = vehicles.Next()) {
+    if (AIVehicle.GetVehicleType(v) == AIVehicle.VT_AIR) {
+      this._airBuilt = true;
+      return;
+    }
+  }
+
+  this._budget.begin();
+  local plan = OpexAirPlans(this._catalog);
+  local planOps = this._budget.end("build_air_plans");
+  if (plan == null) return;
+
+  local capital = 2 * this._catalog.airport.price + this._catalog.plane.price;
+  local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  if (money < capital + CASH_RESERVE + AIR_CAPITAL_MARGIN) return;
+
+  local result = OpexBuildAirRoute(this._catalog, this._budget, plan);
+  local anchor = AIMap.GetTileIndex(1, 1);
+  AISign.BuildSign(anchor, "OA|" + year + "|" + plan.distance + "|" + planOps + "|" + result.reason);
+  if (result.error != 0) AISign.BuildSign(anchor, "OE|A|" + result.error);
+  if (!result.ok) return;
+
+  this._airBuilt = true;
+  this._lines.append({
+    stationA = result.stationA, stationB = result.stationB, cargo = this._catalog.paxCargo,
+    predicted = 0, iterations = 0, trains = 1, distance = plan.distance, year = year,
+    mode = "air", vehicle = result.vehicle,
+  });
+}
+
+/* Une seule route v1 ; le scan apres rechargement empeche tout doublon maritime. */
+function OpexAI::_tryBuildWater(year)
+{
+  if (this._waterBuilt || this._catalog.ships.len() == 0 || this._catalog.paxCargo < 0) return;
+  local vehicles = AIVehicleList();
+  for (local v = vehicles.Begin(); !vehicles.IsEnd(); v = vehicles.Next()) {
+    if (AIVehicle.GetVehicleType(v) == AIVehicle.VT_WATER) {
+      this._waterBuilt = true;
+      return;
+    }
+  }
+  this._budget.begin();
+  local plan = OpexWaterPlans(this._catalog);
+  local planOps = this._budget.end("build_water_plans");
+  if (plan == null) return;
+  local capital = 2 * this._catalog.costDock + this._catalog.costWaterDepot + this._catalog.maxShipPrice;
+  local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  if (money < capital + CASH_RESERVE + WATER_CAPITAL_MARGIN) return;
+  local result = OpexBuildWaterRoute(this._catalog, this._budget, plan);
+  local anchor = AIMap.GetTileIndex(1, 1);
+  if (result.ok) AISign.BuildSign(anchor, "OM|W|" + year + "|" + plan.distance + "|" + planOps);
+  else AISign.BuildSign(anchor, "ON|W|" + result.reason + "|" + result.error);
+  if (!result.ok) return;
+  this._waterBuilt = true;
+  this._lines.append({
+    stationA = result.dockA, stationB = result.dockB, cargo = this._catalog.paxCargo,
+    predicted = 0, iterations = 0, trains = 1, distance = plan.distance, year = year,
+    mode = "water", vehicle = result.vehicle,
+  });
 }
 
 /* Une extremite deja desservie par nous ne merite pas un second raccordement. */
@@ -157,7 +230,9 @@ function OpexAI::_reportYear(year, ranked)
   /* Le poste qui domine tout le reste : la recherche de chemin et la construction. */
   local buildOps = this._budget.get("build_plans") + this._budget.get("build_search")
                  + this._budget.get("build_stations") + this._budget.get("build_track")
-                 + this._budget.get("build_trains");
+                 + this._budget.get("build_trains") + this._budget.get("build_water_plans")
+                 + this._budget.get("build_docks") + this._budget.get("build_water_depot")
+                 + this._budget.get("build_ships");
   AISign.BuildSign(anchor, "OW|" + year + "|" + buildOps + "|" + this._lines.len());
 
   if (best != null) {
@@ -194,6 +269,8 @@ function OpexAI::Start()
       local ranked = OpexBuildCandidates(this._catalog, this._budget);
       this._reportYear(year, ranked);
       this._reportLines(year);
+      this._tryBuildAir(year);
+      this._tryBuildWater(year);
       this._tryBuild(ranked, year);
     }
     AIController.Sleep(74 * 10);

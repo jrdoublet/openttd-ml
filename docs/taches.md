@@ -92,13 +92,16 @@ Reprend le §8 de `docs/mecanique_jeu.md`, complété.
 
 ## 6. Modes de transport, dans l'ordre décidé
 
-1. **Rail** — étage 3 ci-dessus.
-2. **Avion** — aucun pathfinding, donc le meilleur profit par opcode. ⚠️ Son avantage n'est **pas**
-   la vitesse : il vole au quart de sa vitesse affichée.
-3. **Route** — et pas seulement comme mode de transport : une desserte légère suffit à déclencher
-   la croissance d'une ville (une unité de cargo par 50 jours, jusqu'à 5 gares), pour un coût en
-   opcodes sans commune mesure avec le rail.
-4. **Bateau** — en dernier.
+1. ✅ **Rail** — étage 3 ci-dessus.
+2. ✅ **Avion** — une liaison passagers entre deux grandes villes, validée sous OpenTTD 15.3.
+   Aucun pathfinding ; son avantage n'est toutefois **pas** la vitesse : il vole au quart de sa
+   vitesse affichée.
+3. ✅ **Bateau** — une liaison passagers entre deux grandes villes côtières, avec validation
+   bornée du graphe d'eau et dépôt construit sur la même composante. Voir
+   `docs/opexai_multimodal.md`.
+4. **Route** — prochain mode. Une desserte légère suffit aussi à déclencher la croissance d'une
+   ville (une unité de cargo par 50 jours, jusqu'à 5 gares), pour un coût en opcodes sans commune
+   mesure avec le rail.
 
 Ne pas oublier deux composantes gratuites de la note de compagnie : **emprunt à zéro** (5 %) et
 **8 types de cargo par trimestre** (5 %) — cette dernière plaide contre une IA 100 % passagers.

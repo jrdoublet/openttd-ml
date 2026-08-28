@@ -24,6 +24,14 @@ class OpexCatalog {
   costTrackPerTile = 0;
   costStation = 0;
 
+  airport = null;      // {type, width, height, coverage, price, maintenance} ou null
+  plane = null;        // {id, capacity, speed, price, runningCost, maxOrderDistance} ou null
+
+  ships = null;        // [{id, capacity, speed, price, runningCost, maxOrderDistance}]
+  maxShipPrice = 0;
+  costDock = 0;
+  costWaterDepot = 0;
+
   constructor()
   {
     this.towns = [];
@@ -32,6 +40,7 @@ class OpexCatalog {
     this.acceptors = {};
     this.cargos = [];
     this.wagonByCargo = {};
+    this.ships = [];
   }
 
   function refresh(budget, year);
@@ -39,6 +48,8 @@ class OpexCatalog {
   function _refreshTowns();
   function _refreshIndustries();
   function _refreshRail();
+  function _refreshAir();
+  function _refreshWater();
   function _cargoArray(list);
 }
 
@@ -98,6 +109,78 @@ function OpexCatalog::_refreshRail()
         };
       }
     }
+  }
+}
+
+/* Le premier aeroport est volontairement simple : LARGE tant qu'il est disponible (c'est le cas
+ * du vanilla 1970), sinon SMALL puis COMMUTER. Une piste courte ne recoit jamais un gros avion.
+ * On choisit, pour le type d'aeroport retenu, l'appareil passagers refittable le plus capacitaire. */
+function OpexCatalog::_refreshAir()
+{
+  this.airport = null;
+  this.plane = null;
+  if (this.paxCargo < 0) return;
+
+  local airportTypes = [
+    { type = AIAirport.AT_LARGE, allowBig = true },
+    { type = AIAirport.AT_SMALL, allowBig = false },
+    { type = AIAirport.AT_COMMUTER, allowBig = false },
+  ];
+  local engines = AIEngineList(AIVehicle.VT_AIR);
+  foreach (choice in airportTypes) {
+    if (!AIAirport.IsValidAirportType(choice.type)) continue;
+    local best = null;
+    for (local e = engines.Begin(); !engines.IsEnd(); e = engines.Next()) {
+      if (!AIEngine.IsBuildable(e)) continue;
+      if (!AIEngine.CanRefitCargo(e, this.paxCargo)) continue;
+      local planeType = AIEngine.GetPlaneType(e);
+      if (planeType != AIAirport.PT_SMALL_PLANE && planeType != AIAirport.PT_BIG_PLANE) continue;
+      if (planeType == AIAirport.PT_BIG_PLANE && !choice.allowBig) continue;
+      local capacity = AIEngine.GetCapacity(e);
+      local speed = AIEngine.GetMaxSpeed(e);
+      if (capacity <= 0) continue;
+      if (best == null || capacity > best.capacity ||
+          (capacity == best.capacity && speed > best.speed)) {
+        best = {
+          id = e, capacity = capacity, speed = speed, price = AIEngine.GetPrice(e),
+          runningCost = AIEngine.GetRunningCost(e),
+          maxOrderDistance = AIEngine.GetMaximumOrderDistance(e),
+        };
+      }
+    }
+    if (best == null) continue;
+    this.airport = {
+      type = choice.type,
+      width = AIAirport.GetAirportWidth(choice.type),
+      height = AIAirport.GetAirportHeight(choice.type),
+      coverage = AIAirport.GetAirportCoverageRadius(choice.type),
+      price = AIAirport.GetPrice(choice.type),
+      maintenance = AIAirport.GetMonthlyMaintenanceCost(choice.type),
+    };
+    this.plane = best;
+    return;
+  }
+}
+
+/* Coques refittables : la capacite reelle depend du depot et du GRF. */
+function OpexCatalog::_refreshWater()
+{
+  this.ships = [];
+  this.maxShipPrice = 0;
+  this.costDock = AIMarine.GetBuildCost(AIMarine.BT_DOCK);
+  this.costWaterDepot = AIMarine.GetBuildCost(AIMarine.BT_DEPOT);
+  if (this.paxCargo < 0) return;
+  local engines = AIEngineList(AIVehicle.VT_WATER);
+  for (local e = engines.Begin(); !engines.IsEnd(); e = engines.Next()) {
+    if (!AIEngine.IsBuildable(e)) continue;
+    if (!AIEngine.CanRefitCargo(e, this.paxCargo)) continue;
+    local capacity = AIEngine.GetCapacity(e);
+    local speed = AIEngine.GetMaxSpeed(e);
+    local ship = { id = e, capacity = capacity, speed = speed, price = AIEngine.GetPrice(e),
+                   runningCost = AIEngine.GetRunningCost(e),
+                   maxOrderDistance = AIEngine.GetMaximumOrderDistance(e) };
+    this.ships.append(ship);
+    if (ship.price > this.maxShipPrice) this.maxShipPrice = ship.price;
   }
 }
 
@@ -184,4 +267,12 @@ function OpexCatalog::refresh(budget, year)
   budget.begin();
   this._refreshRail();
   budget.end("cat_rail");
+
+  budget.begin();
+  this._refreshAir();
+  budget.end("cat_air");
+
+  budget.begin();
+  this._refreshWater();
+  budget.end("cat_water");
 }
