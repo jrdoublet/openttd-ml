@@ -61,13 +61,29 @@ const CASH_RESERVE = 50000;
  * dort ne rapporte rien -- autant reduire l'emprunt. Valeur decidee par l'utilisateur. */
 const LOAN_REPAY_FLOOR = 1000000;
 
+/* Ligne fret morte (2026-08-28) : une industrie source qui ferme NE garantit PAS l'effondrement --
+ * la gare peut recuperer une industrie voisine du meme cargo (ligne 4, campagne 20 ans, restee
+ * rentable malgre srcAlive=0). Le diagnostic se fie donc TOUJOURS a la performance REELLE
+ * (note de gare et revenu implicite), jamais a srcAlive seul, ET exige DEUX annees CONSECUTIVES
+ * de confirmation pour exclure un accroc transitoire -- cf. OpexAI::_reportLines. */
+const DEAD_STREAK_THRESHOLD = 2;
+
 class OpexAI extends AIController {
   _budget = null;
   _catalog = null;
   _startTick = 0;
-  _lines = null;        // [{stationA, stationB, cargo, predicted, iterations, trains, ...}]
+  _lines = null;        // [{stationA, stationB, cargo, predicted, iterations, trains, lineId, ...
+                         //   deadStreak, scrapping, scrapVehicles (fret uniquement, cf.
+                         //   _reportLines / _scrapDeadLines)}]
   _airBuilt = false;
   _waterBuilt = false;
+  /* Identite stable des lignes pour les panneaux (2026-08-28) : this._lines.len() n'est plus un
+   * identifiant valide des que _scrapDeadLines peut retirer un element -- Array.remove() DECALE
+   * tous les indices suivants, donc un panneau IA|5|... loggue une annee peut, apres un retrait,
+   * pointer sur une ligne totalement differente l'annee suivante (collision mesuree sur la
+   * premiere execution : l'indice 5 melangeait une ligne fret morte 1977-1979 et une ligne saine
+   * qui avait glisse dans ce slot). _nextLineId ne recule jamais, contrairement a _lines.len(). */
+  _nextLineId = 0;
 
   constructor()
   {
@@ -83,6 +99,7 @@ class OpexAI extends AIController {
   function _tryBuild(ranked, year);
   function _reportYear(year, ranked);
   function _reportLines(year);
+  function _scrapDeadLines(year);
 }
 
 /* Un seul avion suffit pour cette premiere liaison. Le scan des vehicules empeche un doublon apres
@@ -123,7 +140,9 @@ function OpexAI::_tryBuildAir(year)
     cargo = this._catalog.paxCargo,
     predicted = 0, iterations = 0, trains = 1, distance = plan.distance, year = year,
     mode = "air", vehicle = result.vehicle,
+    lineId = this._nextLineId,
   });
+  this._nextLineId++;
 }
 
 /* Une seule route v1 ; le scan apres rechargement empeche tout doublon maritime. */
@@ -157,7 +176,9 @@ function OpexAI::_tryBuildWater(year)
     cargo = this._catalog.paxCargo,
     predicted = 0, iterations = 0, trains = 1, distance = plan.distance, year = year,
     mode = "water", vehicle = result.vehicle,
+    lineId = this._nextLineId,
   });
+  this._nextLineId++;
 }
 
 /* Une extremite deja desservie par nous ne merite pas un second raccordement.
@@ -238,9 +259,14 @@ function OpexAI::_tryBuild(ranked, year)
 
     local result = OpexBuildLine(this._catalog, this._budget, candidate, alternativeRatio, deadline);
 
-    AISign.BuildSign(anchor, "OR|" + this._lines.len() + "|" + candidate.distance
+    /* idx = this._nextLineId, pas this._lines.len() : depuis que _scrapDeadLines peut retirer un
+     * element (et donc decaler tous les indices suivants), la longueur du tableau n'est plus un
+     * identifiant stable -- cf. commentaire sur _nextLineId. _nextLineId ne recule jamais et
+     * n'avance que sur un succes, exactement comme le faisait _lines.len() avant que le retrait
+     * n'existe. */
+    AISign.BuildSign(anchor, "OR|" + this._nextLineId + "|" + candidate.distance
                              + "|" + result.iterations + "|" + result.reason);
-    if (result.error != 0) AISign.BuildSign(anchor, "OV|" + this._lines.len() + "|" + result.error);
+    if (result.error != 0) AISign.BuildSign(anchor, "OV|" + this._nextLineId + "|" + result.error);
     if (result.diag != null) {
       AISign.BuildSign(anchor, "OG|" + result.diag.railtype + "|" + result.diag.isDepot
                                + "|" + result.diag.buildable + "|" + result.diag.canRun);
@@ -251,7 +277,7 @@ function OpexAI::_tryBuild(ranked, year)
 
     if (result.ok) {
       nBuilt++;
-      local idx = this._lines.len();
+      local idx = this._nextLineId;
       /* Predit-vs-reel (etage 1) : le detail du calcul au moment de la construction, pour pouvoir
        * le comparer plus tard a la mesure reelle (_reportLines). Un sign par grandeur : jamais
        * plus de 2 valeurs numeriques par nom pour rester sous la limite silencieuse de 31
@@ -284,7 +310,14 @@ function OpexAI::_tryBuild(ranked, year)
         kind = candidate.kind,
         srcIndustry = (candidate.kind == "freight") ? AIIndustry.GetIndustryID(candidate.src) : -1,
         dstIndustry = (candidate.kind == "freight") ? AIIndustry.GetIndustryID(candidate.dst) : -1,
+        /* Ligne morte (2026-08-28) : deadStreak/scrapping/scrapVehicles n'ont de sens que pour le
+         * fret (cf. _reportLines et _scrapDeadLines) mais sont initialises ici pour toutes les
+         * lignes rail -- inoffensif pour le pax, dont deadStreak reste a 0 pour toujours faute de
+         * srcIndustry valide. */
+        deadStreak = 0, scrapping = false, scrapVehicles = [],
+        lineId = idx,
       });
+      this._nextLineId++;
     } else {
       nAttemptFailed++;
     }
@@ -318,7 +351,9 @@ function OpexAI::_reportLines(year)
     local ratingA = AIStation.GetCargoRating(stationA, line.cargo);
     local ratingB = AIStation.IsValidStation(stationB)
         ? AIStation.GetCargoRating(stationB, line.cargo) : -1;
-    AISign.BuildSign(anchor, "OY|" + i + "|" + year + "|" + ratingA + "|" + ratingB);
+    /* line.lineId, pas i : identite stable qui survit a un retrait de _lines par _scrapDeadLines
+     * (cf. commentaire sur _nextLineId). Toutes les lignes rail/avion/bateau en ont une. */
+    AISign.BuildSign(anchor, "OY|" + line.lineId + "|" + year + "|" + ratingA + "|" + ratingB);
 
     /* Profit reel (deja mesure), plus le detail qui manquait : combien de convois roulent
      * VRAIMENT (vs. le trains predit dans _tryBuild), leur cout de fonctionnement reel, et le
@@ -346,14 +381,14 @@ function OpexAI::_reportLines(year)
         local order = AIOrder.ResolveOrderPosition(v, AIOrder.ORDER_CURRENT);
         local speed = AIVehicle.GetCurrentSpeed(v);
         local load = AIVehicle.GetCargoLoad(v, line.cargo);
-        AISign.BuildSign(anchor, "VS|" + i + "|" + year + "|" + diagSlot + "|" + state + "|" + order);
-        AISign.BuildSign(anchor, "VL|" + i + "|" + year + "|" + diagSlot + "|" + speed + "|" + load);
+        AISign.BuildSign(anchor, "VS|" + line.lineId + "|" + year + "|" + diagSlot + "|" + state + "|" + order);
+        AISign.BuildSign(anchor, "VL|" + line.lineId + "|" + year + "|" + diagSlot + "|" + speed + "|" + load);
         diagSlot++;
       }
     }
-    AISign.BuildSign(anchor, "OZ|" + i + "|" + year + "|" + profit);
-    AISign.BuildSign(anchor, "OU|" + i + "|" + year + "|" + vehCount + "|" + runCost);
-    AISign.BuildSign(anchor, "OO|" + i + "|" + year + "|" + (profit + runCost));
+    AISign.BuildSign(anchor, "OZ|" + line.lineId + "|" + year + "|" + profit);
+    AISign.BuildSign(anchor, "OU|" + line.lineId + "|" + year + "|" + vehCount + "|" + runCost);
+    AISign.BuildSign(anchor, "OO|" + line.lineId + "|" + year + "|" + (profit + runCost));
 
     /* Les deux industries sont-elles encore valides ? Et l'industrie source produit-elle encore ?
      * Depart le blocage "train coince" (hypothese 2) de la fermeture d'industrie (hypothese 1). */
@@ -361,8 +396,88 @@ function OpexAI::_reportLines(year)
       local srcAlive = AIIndustry.IsValidIndustry(line.srcIndustry) ? 1 : 0;
       local dstAlive = AIIndustry.IsValidIndustry(line.dstIndustry) ? 1 : 0;
       local srcProd = srcAlive ? AIIndustry.GetLastMonthProduction(line.srcIndustry, line.cargo) : -1;
-      AISign.BuildSign(anchor, "IA|" + i + "|" + year + "|" + srcAlive + "|" + dstAlive + "|" + srcProd);
+      AISign.BuildSign(anchor, "IA|" + line.lineId + "|" + year + "|" + srcAlive + "|" + dstAlive + "|" + srcProd);
+
+      /* Detection ligne morte : srcAlive=0 seul ne suffit PAS (cf. commentaire DEAD_STREAK_THRESHOLD
+       * -- une gare peut recuperer une industrie voisine). srcSuffering couvre aussi l'industrie
+       * encore ouverte mais a production nulle, meme consequence pour la ligne qu'une fermeture.
+       * collapsed exige EN PLUS la preuve REELLE, mesuree ici meme : note de gare a -1 (aucun
+       * cargo jamais vu) ET revenu implicite (profit + cout de fonctionnement) nul ou negatif,
+       * c'est-a-dire rien transporte du tout cette annee. deadStreak ne compte que les annees
+       * CONSECUTIVES ou les trois tiennent ensemble ; un seul manque et le compteur retombe a 0. */
+      local srcSuffering = (!srcAlive) || (srcProd == 0);
+      local collapsed = srcSuffering && ratingA <= 0 && (profit + runCost) <= 0;
+      line.deadStreak = collapsed ? line.deadStreak + 1 : 0;
+      if (line.deadStreak > 0) {
+        AISign.BuildSign(anchor, "DL|" + year + "|" + line.lineId + "|" + line.deadStreak);
+      }
     }
+  }
+}
+
+/* Remediation ligne morte (2026-08-28) : une fois deadStreak >= DEAD_STREAK_THRESHOLD confirme
+ * par _reportLines, on arrete l'hemorragie de cout de fonctionnement en vendant les convois --
+ * mais AIVehicle.SellVehicle exige un convoi a l'arret DANS un depot (verifie sur la doc API
+ * ai-api/classAIVehicle.html le 2026-08-28 : precondition "the vehicle must be stopped in the
+ * depot", exception ERR_VEHICLE_NOT_IN_DEPOT sinon). La vente est donc etalee sur plusieurs
+ * annees, au meme rythme annuel que le reste du cycle : l'annee ou le seuil est franchi on
+ * envoie chaque convoi au depot (SendVehicleToDepot) et on fige la liste de leurs IDs sur la
+ * ligne (scrapVehicles) -- PAS une reinterrogation par gare chaque annee, pour ne pas dependre
+ * de savoir si l'ordre "aller au depot" fait toujours apparaitre le convoi dans
+ * AIVehicleList_Station. Les annees suivantes, on verifie IsStoppedInDepot() sur cette liste figee
+ * et on vend (SellVehicle) ce qui est arrive ; quand elle est vide, la ligne est retiree de
+ * _lines -- ce qui l'arrete d'etre rapportee chaque annee ET libere stationA/stationB/originA/
+ * originB du filet _tooClose, pour qu'une ligne neuve et proche ne soit plus bloquee par un
+ * cadavre. Les gares et voies physiques ne sont PAS demolies : une fois hors de _lines elles ne
+ * bloquent plus rien (le seul frein etait la presence dans _lines), et demolir ajoute un risque
+ * (note d'autorite locale, infrastructure partagee) pour un gain nul ici. */
+function OpexAI::_scrapDeadLines(year)
+{
+  local anchor = AIMap.GetTileIndex(1, 1);
+  local toRemove = [];
+
+  for (local i = 0; i < this._lines.len(); i++) {
+    local line = this._lines[i];
+    if (!("deadStreak" in line)) continue;  // pax/avion/bateau : jamais candidates
+
+    if (!line.scrapping && line.deadStreak >= DEAD_STREAK_THRESHOLD) {
+      line.scrapping = true;
+      local stationA = AIStation.GetStationID(line.stationA);
+      local ids = [];
+      if (AIStation.IsValidStation(stationA)) {
+        local vehicles = AIVehicleList_Station(stationA);
+        for (local v = vehicles.Begin(); !vehicles.IsEnd(); v = vehicles.Next()) {
+          if (AIVehicle.GetVehicleType(v) != AIVehicle.VT_RAIL) continue;
+          AIVehicle.SendVehicleToDepot(v);
+          ids.append(v);
+        }
+      }
+      line.scrapVehicles = ids;
+      AISign.BuildSign(anchor, "DL|" + year + "|" + line.lineId + "|2");
+    }
+
+    if (line.scrapping) {
+      local remaining = [];
+      foreach (v in line.scrapVehicles) {
+        if (!AIVehicle.IsValidVehicle(v)) continue;  // deja vendu ou detruit
+        if (AIVehicle.IsStoppedInDepot(v)) {
+          AIVehicle.SellVehicle(v);
+        } else {
+          remaining.append(v);
+        }
+      }
+      line.scrapVehicles = remaining;
+      if (remaining.len() == 0) {
+        toRemove.append(i);  // i = position physique dans _lines, pour le retrait -- pas le sign
+        AISign.BuildSign(anchor, "DL|" + year + "|" + line.lineId + "|3");
+      }
+    }
+  }
+
+  /* Retrait du plus grand indice au plus petit pour ne jamais invalider un indice pas encore
+   * traite dans toRemove. */
+  for (local k = toRemove.len() - 1; k >= 0; k--) {
+    this._lines.remove(toRemove[k]);
   }
 }
 
@@ -449,6 +564,7 @@ function OpexAI::Start()
       local ranked = OpexBuildCandidates(this._catalog, this._budget);
       this._reportYear(year, ranked);
       this._reportLines(year);
+      this._scrapDeadLines(year);
       this._tryBuildAir(year);
       this._tryBuildWater(year);
       this._tryBuild(ranked, year);
