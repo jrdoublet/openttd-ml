@@ -6,14 +6,14 @@
   "openttd_config": "[difficulty]\nnumber_towns = 3\nindustry_density = 4\n[economy]\ninflation = false\ntown_growth_rate = 2\n[game_creation]\nstarting_year = 1970\nmap_x = 8\nmap_y = 8\n",
   "n_savegames": 240,
   "final_date": "1989-12-01",
-  "final_company_value": 2245285,
-  "final_performance_history": 394,
-  "final_money": 2177215,
-  "final_current_loan": 300000,
-  "final_n_vehicles": 309,
-  "final_n_stations": 28,
-  "n_rail_lines_ok": 12,
-  "n_rail_attempts_total": 12,
+  "final_company_value": 2233591,
+  "final_performance_history": 436,
+  "final_money": 1771691,
+  "final_current_loan": 0,
+  "final_n_vehicles": 330,
+  "final_n_stations": 32,
+  "n_rail_lines_ok": 13,
+  "n_rail_attempts_total": 13,
   "n_rail_attempts_failed": 0,
   "rail_attempts": [
     {
@@ -87,6 +87,12 @@
       "distance": 37,
       "iterations": 300,
       "reason": "OK"
+    },
+    {
+      "idx": 13,
+      "distance": 32,
+      "iterations": 50,
+      "reason": "OK"
     }
   ],
   "air_attempts": [
@@ -117,15 +123,15 @@
       },
       "actual_last_year": 1989,
       "actual": {
-        "ratingA": 60,
+        "ratingA": 58,
         "ratingB": -1,
-        "profit": 38994,
+        "profit": 36138,
         "vehCount": 3,
         "runCost": 6396,
-        "revenue": 45390,
+        "revenue": 42534,
         "srcAlive": 1,
         "dstAlive": 1,
-        "srcProd": 324
+        "srcProd": 306
       },
       "actual_series": {
         "1971": {
@@ -316,26 +322,26 @@
           "srcProd": 306
         },
         "1988": {
-          "ratingA": 60,
+          "ratingA": 61,
           "ratingB": -1,
-          "profit": 36037,
+          "profit": 35233,
           "vehCount": 3,
           "runCost": 6396,
-          "revenue": 42433,
+          "revenue": 41629,
           "srcAlive": 1,
           "dstAlive": 1,
-          "srcProd": 324
+          "srcProd": 306
         },
         "1989": {
-          "ratingA": 60,
+          "ratingA": 58,
           "ratingB": -1,
-          "profit": 38994,
+          "profit": 36138,
           "vehCount": 3,
           "runCost": 6396,
-          "revenue": 45390,
+          "revenue": 42534,
           "srcAlive": 1,
           "dstAlive": 1,
-          "srcProd": 324
+          "srcProd": 306
         }
       }
     },
@@ -357,12 +363,12 @@
       },
       "actual_last_year": 1989,
       "actual": {
-        "ratingA": 69,
+        "ratingA": 70,
         "ratingB": -1,
-        "profit": 36363,
+        "profit": 34579,
         "vehCount": 3,
         "runCost": 6396,
-        "revenue": 42759,
+        "revenue": 40975,
         "srcAlive": 1,
         "dstAlive": 1,
         "srcProd": 216
@@ -545,23 +551,23 @@
           "srcProd": 207
         },
         "1988": {
-          "ratingA": 68,
+          "ratingA": 71,
           "ratingB": -1,
-          "profit": 31089,
+          "profit": 31978,
           "vehCount": 3,
           "runCost": 6396,
-          "revenue": 37485,
+          "revenue": 38374,
           "srcAlive": 1,
           "dstAlive": 1,
-          "srcProd": 234
+          "srcProd": 207
         },
         "1989": {
-          "ratingA": 69,
+          "ratingA": 70,
           "ratingB": -1,
-          "profit": 36363,
+          "profit": 34579,
           "vehCount": 3,
           "runCost": 6396,
-          "revenue": 42759,
+          "revenue": 40975,
           "srcAlive": 1,
           "dstAlive": 1,
           "srcProd": 216
@@ -586,15 +592,15 @@
       },
       "actual_last_year": 1989,
       "actual": {
-        "ratingA": 74,
+        "ratingA": 71,
         "ratingB": -1,
-        "profit": 13328,
+        "profit": 11930,
         "vehCount": 3,
         "runCost": 6396,
-        "revenue": 19724,
+        "revenue": 18326,
         "srcAlive": 1,
         "dstAlive": 1,
-        "srcProd": 108
+        "srcProd": 99
       },
       "actual_series": {
         "1973": {
@@ -774,15 +780,15 @@
           "srcProd": 88
         },
         "1989": {
-          "ratingA": 74,
+          "ratingA": 71,
           "ratingB": -1,
-          "profit": 13328,
+          "profit": 11930,
           "vehCount": 3,
           "runCost": 6396,
-          "revenue": 19724,
+          "revenue": 18326,
           "srcAlive": 1,
           "dstAlive": 1,
-          "srcProd": 108
+          "srcProd": 99
         }
       }
     },
@@ -804,7 +810,7 @@
       },
       "actual_last_year": 1989,
       "actual": {
-        "ratingA": 74,
+        "ratingA": 73,
         "ratingB": -1,
         "profit": 3061,
         "vehCount": 6,
@@ -812,7 +818,7 @@
         "revenue": 15853,
         "srcAlive": 1,
         "dstAlive": 1,
-        "srcProd": 117
+        "srcProd": 108
       },
       "actual_series": {
         "1975": {
@@ -970,7 +976,7 @@
           "srcProd": 72
         },
         "1989": {
-          "ratingA": 74,
+          "ratingA": 73,
           "ratingB": -1,
           "profit": 3061,
           "vehCount": 6,
@@ -978,7 +984,7 @@
           "revenue": 15853,
           "srcAlive": 1,
           "dstAlive": 1,
-          "srcProd": 117
+          "srcProd": 108
         }
       }
     },
@@ -1185,12 +1191,12 @@
       },
       "actual_last_year": 1989,
       "actual": {
-        "ratingA": 54,
+        "ratingA": 59,
         "ratingB": -1,
-        "profit": 44266,
+        "profit": 31958,
         "vehCount": 6,
         "runCost": 12792,
-        "revenue": 57058,
+        "revenue": 44750,
         "srcAlive": 0,
         "dstAlive": 0,
         "srcProd": -1
@@ -1307,23 +1313,23 @@
           "srcProd": -1
         },
         "1988": {
-          "ratingA": 54,
+          "ratingA": 55,
           "ratingB": -1,
-          "profit": 46641,
+          "profit": 45699,
           "vehCount": 6,
           "runCost": 12792,
-          "revenue": 59433,
+          "revenue": 58491,
           "srcAlive": 0,
           "dstAlive": 0,
           "srcProd": -1
         },
         "1989": {
-          "ratingA": 54,
+          "ratingA": 59,
           "ratingB": -1,
-          "profit": 44266,
+          "profit": 31958,
           "vehCount": 6,
           "runCost": 12792,
-          "revenue": 57058,
+          "revenue": 44750,
           "srcAlive": 0,
           "dstAlive": 0,
           "srcProd": -1
@@ -1350,13 +1356,13 @@
       "actual": {
         "ratingA": 74,
         "ratingB": -1,
-        "profit": 6700,
+        "profit": 6719,
         "vehCount": 4,
         "runCost": 8528,
-        "revenue": 15228,
+        "revenue": 15247,
         "srcAlive": 1,
         "dstAlive": 1,
-        "srcProd": 108
+        "srcProd": 117
       },
       "actual_series": {
         "1979": {
@@ -1461,24 +1467,24 @@
         "1988": {
           "ratingA": 74,
           "ratingB": -1,
-          "profit": 6615,
+          "profit": 12429,
           "vehCount": 4,
           "runCost": 8528,
-          "revenue": 15143,
+          "revenue": 20957,
           "srcAlive": 1,
           "dstAlive": 1,
-          "srcProd": 108
+          "srcProd": 117
         },
         "1989": {
           "ratingA": 74,
           "ratingB": -1,
-          "profit": 6700,
+          "profit": 6719,
           "vehCount": 4,
           "runCost": 8528,
-          "revenue": 15228,
+          "revenue": 15247,
           "srcAlive": 1,
           "dstAlive": 1,
-          "srcProd": 108
+          "srcProd": 117
         }
       }
     },
@@ -1500,12 +1506,12 @@
       },
       "actual_last_year": 1989,
       "actual": {
-        "ratingA": 56,
-        "ratingB": 59,
-        "profit": 67744,
+        "ratingA": 57,
+        "ratingB": 61,
+        "profit": 55719,
         "vehCount": 5,
         "runCost": 14470,
-        "revenue": 82214
+        "revenue": 70189
       },
       "actual_series": {
         "1980": {
@@ -1573,20 +1579,20 @@
           "revenue": 56898
         },
         "1988": {
-          "ratingA": 60,
-          "ratingB": 61,
-          "profit": 44020,
+          "ratingA": 59,
+          "ratingB": 62,
+          "profit": 41306,
           "vehCount": 5,
           "runCost": 14470,
-          "revenue": 58490
+          "revenue": 55776
         },
         "1989": {
-          "ratingA": 56,
-          "ratingB": 59,
-          "profit": 67744,
+          "ratingA": 57,
+          "ratingB": 61,
+          "profit": 55719,
           "vehCount": 5,
           "runCost": 14470,
-          "revenue": 82214
+          "revenue": 70189
         }
       }
     },
@@ -1608,12 +1614,12 @@
       },
       "actual_last_year": 1989,
       "actual": {
-        "ratingA": 61,
-        "ratingB": 64,
-        "profit": 11198,
+        "ratingA": 60,
+        "ratingB": 65,
+        "profit": 11453,
         "vehCount": 4,
         "runCost": 11576,
-        "revenue": 22774
+        "revenue": 23029
       },
       "actual_series": {
         "1982": {
@@ -1665,20 +1671,20 @@
           "revenue": 26240
         },
         "1988": {
-          "ratingA": 65,
-          "ratingB": 61,
-          "profit": 13450,
+          "ratingA": 61,
+          "ratingB": 65,
+          "profit": 13598,
           "vehCount": 4,
           "runCost": 11576,
-          "revenue": 25026
+          "revenue": 25174
         },
         "1989": {
-          "ratingA": 61,
-          "ratingB": 64,
-          "profit": 11198,
+          "ratingA": 60,
+          "ratingB": 65,
+          "profit": 11453,
           "vehCount": 4,
           "runCost": 11576,
-          "revenue": 22774
+          "revenue": 23029
         }
       }
     },
@@ -1700,12 +1706,12 @@
       },
       "actual_last_year": 1989,
       "actual": {
-        "ratingA": 67,
+        "ratingA": 68,
         "ratingB": 61,
-        "profit": 17229,
+        "profit": 15229,
         "vehCount": 2,
         "runCost": 5788,
-        "revenue": 23017
+        "revenue": 21017
       },
       "actual_series": {
         "1983": {
@@ -1749,20 +1755,20 @@
           "revenue": 17653
         },
         "1988": {
-          "ratingA": 67,
-          "ratingB": 63,
-          "profit": 13219,
+          "ratingA": 72,
+          "ratingB": 62,
+          "profit": 12105,
           "vehCount": 2,
           "runCost": 5788,
-          "revenue": 19007
+          "revenue": 17893
         },
         "1989": {
-          "ratingA": 67,
+          "ratingA": 68,
           "ratingB": 61,
-          "profit": 17229,
+          "profit": 15229,
           "vehCount": 2,
           "runCost": 5788,
-          "revenue": 23017
+          "revenue": 21017
         }
       }
     },
@@ -1784,15 +1790,15 @@
       },
       "actual_last_year": 1989,
       "actual": {
-        "ratingA": 72,
+        "ratingA": 64,
         "ratingB": -1,
-        "profit": 5336,
+        "profit": 5809,
         "vehCount": 4,
         "runCost": 11576,
-        "revenue": 16912,
+        "revenue": 17385,
         "srcAlive": 1,
         "dstAlive": 1,
-        "srcProd": 70
+        "srcProd": 36
       },
       "actual_series": {
         "1984": {
@@ -1840,26 +1846,26 @@
           "srcProd": 70
         },
         "1988": {
-          "ratingA": 71,
+          "ratingA": 64,
           "ratingB": -1,
-          "profit": 1352,
+          "profit": 6919,
           "vehCount": 4,
           "runCost": 11576,
-          "revenue": 12928,
+          "revenue": 18495,
           "srcAlive": 1,
           "dstAlive": 1,
           "srcProd": 36
         },
         "1989": {
-          "ratingA": 72,
+          "ratingA": 64,
           "ratingB": -1,
-          "profit": 5336,
+          "profit": 5809,
           "vehCount": 4,
           "runCost": 11576,
-          "revenue": 16912,
+          "revenue": 17385,
           "srcAlive": 1,
           "dstAlive": 1,
-          "srcProd": 70
+          "srcProd": 36
         }
       }
     },
@@ -1881,38 +1887,80 @@
       },
       "actual_last_year": 1989,
       "actual": {
-        "ratingA": 82,
-        "ratingB": 78,
-        "profit": 21916,
+        "ratingA": 79,
+        "ratingB": 81,
+        "profit": 20771,
         "vehCount": 2,
         "runCost": 5788,
-        "revenue": 27704,
+        "revenue": 26559,
         "srcAlive": 1,
         "dstAlive": 1,
         "srcProd": 50
       },
       "actual_series": {
         "1988": {
-          "ratingA": 85,
-          "ratingB": 82,
-          "profit": 16821,
+          "ratingA": 82,
+          "ratingB": 84,
+          "profit": 17955,
           "vehCount": 2,
           "runCost": 5788,
-          "revenue": 22609,
+          "revenue": 23743,
           "srcAlive": 1,
           "dstAlive": 1,
           "srcProd": 40
         },
         "1989": {
-          "ratingA": 82,
-          "ratingB": 78,
-          "profit": 21916,
+          "ratingA": 79,
+          "ratingB": 81,
+          "profit": 20771,
           "vehCount": 2,
           "runCost": 5788,
-          "revenue": 27704,
+          "revenue": 26559,
           "srcAlive": 1,
           "dstAlive": 1,
           "srcProd": 50
+        }
+      }
+    },
+    {
+      "line_index": 13,
+      "distance": 32,
+      "iterations": 50,
+      "reason": "OK",
+      "predicted": {
+        "revenueAnnual": 9996,
+        "runningAnnual": 5788,
+        "amortAnnual": 3028,
+        "carried": 49,
+        "trains": 2,
+        "oneWayDays": 6,
+        "kind": "freight",
+        "monthly": 99,
+        "profitAnnual": 1180
+      },
+      "actual_last_year": 1989,
+      "actual": {
+        "ratingA": -1,
+        "ratingB": -1,
+        "profit": -5147,
+        "vehCount": 2,
+        "runCost": 5788,
+        "revenue": 641,
+        "srcAlive": 0,
+        "dstAlive": 1,
+        "srcProd": -1
+      },
+      "actual_series": {
+        "1989": {
+          "ratingA": -1,
+          "ratingB": -1,
+          "profit": -5147,
+          "vehCount": 2,
+          "runCost": 5788,
+          "revenue": 641,
+          "srcAlive": 0,
+          "dstAlive": 1,
+          "srcProd": -1
         }
       }
     }
@@ -2082,21 +2130,21 @@
     },
     "1988": {
       "towns": 42,
-      "industries": 44,
-      "ranked_all": 113,
-      "cand_rank_ops": 234865,
+      "industries": 43,
+      "ranked_all": 103,
+      "cand_rank_ops": 233744,
       "utilisation_permille": 121,
       "buildOps": 144509616,
       "lines_len_start_of_year": 13
     },
     "1989": {
       "towns": 42,
-      "industries": 44,
-      "ranked_all": 118,
-      "cand_rank_ops": 245943,
+      "industries": 42,
+      "ranked_all": 119,
+      "cand_rank_ops": 245039,
       "utilisation_permille": 115,
-      "buildOps": 144627760,
-      "lines_len_start_of_year": 13
+      "buildOps": 145322183,
+      "lines_len_start_of_year": 14
     }
   },
   "financial_series": [
@@ -3647,378 +3695,378 @@
     {
       "date": "1986-02-01",
       "company_value": 1496615,
-      "money": 1250226,
-      "current_loan": 300000,
+      "money": 1020226,
+      "current_loan": 70000,
       "n_vehicles": 312,
       "n_stations": 26
     },
     {
       "date": "1986-03-01",
       "company_value": 1496615,
-      "money": 1254316,
-      "current_loan": 300000,
+      "money": 1024699,
+      "current_loan": 70000,
       "n_vehicles": 289,
       "n_stations": 26
     },
     {
       "date": "1986-04-01",
       "company_value": 1496615,
-      "money": 1279319,
-      "current_loan": 300000,
+      "money": 1050085,
+      "current_loan": 70000,
       "n_vehicles": 289,
       "n_stations": 26
     },
     {
       "date": "1986-05-01",
-      "company_value": 1542996,
-      "money": 1301724,
-      "current_loan": 300000,
+      "company_value": 1543762,
+      "money": 1072874,
+      "current_loan": 70000,
       "n_vehicles": 322,
       "n_stations": 26
     },
     {
       "date": "1986-06-01",
-      "company_value": 1542996,
-      "money": 1316055,
-      "current_loan": 300000,
+      "company_value": 1543762,
+      "money": 1087588,
+      "current_loan": 70000,
       "n_vehicles": 292,
       "n_stations": 26
     },
     {
       "date": "1986-07-01",
-      "company_value": 1542996,
-      "money": 1340745,
-      "current_loan": 300000,
+      "company_value": 1543762,
+      "money": 1112661,
+      "current_loan": 70000,
       "n_vehicles": 312,
       "n_stations": 26
     },
     {
       "date": "1986-08-01",
-      "company_value": 1585454,
-      "money": 1369624,
-      "current_loan": 300000,
+      "company_value": 1587370,
+      "money": 1141924,
+      "current_loan": 70000,
       "n_vehicles": 300,
       "n_stations": 26
     },
     {
       "date": "1986-09-01",
-      "company_value": 1585454,
-      "money": 1381532,
-      "current_loan": 300000,
+      "company_value": 1587370,
+      "money": 1154215,
+      "current_loan": 70000,
       "n_vehicles": 316,
       "n_stations": 26
     },
     {
       "date": "1986-10-01",
-      "company_value": 1585454,
-      "money": 1394475,
-      "current_loan": 300000,
+      "company_value": 1587370,
+      "money": 1167541,
+      "current_loan": 70000,
       "n_vehicles": 301,
       "n_stations": 26
     },
     {
       "date": "1986-11-01",
-      "company_value": 1621243,
-      "money": 1416016,
-      "current_loan": 300000,
+      "company_value": 1624309,
+      "money": 1189466,
+      "current_loan": 70000,
       "n_vehicles": 293,
       "n_stations": 26
     },
     {
       "date": "1986-12-01",
-      "company_value": 1621243,
-      "money": 1441314,
-      "current_loan": 300000,
+      "company_value": 1624309,
+      "money": 1215147,
+      "current_loan": 70000,
       "n_vehicles": 318,
       "n_stations": 26
     },
     {
       "date": "1987-01-01",
-      "company_value": 1621243,
-      "money": 1459784,
-      "current_loan": 300000,
+      "company_value": 1624309,
+      "money": 1234000,
+      "current_loan": 70000,
       "n_vehicles": 298,
       "n_stations": 26
     },
     {
       "date": "1987-02-01",
-      "company_value": 1668734,
-      "money": 1474568,
-      "current_loan": 300000,
-      "n_vehicles": 293,
+      "company_value": 1672950,
+      "money": 1249378,
+      "current_loan": 70000,
+      "n_vehicles": 291,
       "n_stations": 28
     },
     {
       "date": "1987-03-01",
-      "company_value": 1668734,
-      "money": 1415972,
-      "current_loan": 300000,
-      "n_vehicles": 310,
+      "company_value": 1672950,
+      "money": 1120895,
+      "current_loan": 0,
+      "n_vehicles": 307,
       "n_stations": 28
     },
     {
       "date": "1987-04-01",
-      "company_value": 1668734,
-      "money": 1433090,
-      "current_loan": 300000,
-      "n_vehicles": 309,
+      "company_value": 1672950,
+      "money": 1137862,
+      "current_loan": 0,
+      "n_vehicles": 307,
       "n_stations": 28
     },
     {
       "date": "1987-05-01",
-      "company_value": 1720874,
-      "money": 1451214,
-      "current_loan": 300000,
-      "n_vehicles": 330,
-      "n_stations": 28
-    },
-    {
-      "date": "1987-06-01",
-      "company_value": 1720874,
-      "money": 1486064,
-      "current_loan": 300000,
-      "n_vehicles": 317,
-      "n_stations": 28
-    },
-    {
-      "date": "1987-07-01",
-      "company_value": 1720874,
-      "money": 1503777,
-      "current_loan": 300000,
-      "n_vehicles": 320,
-      "n_stations": 28
-    },
-    {
-      "date": "1987-08-01",
-      "company_value": 1771855,
-      "money": 1521304,
-      "current_loan": 300000,
-      "n_vehicles": 312,
-      "n_stations": 28
-    },
-    {
-      "date": "1987-09-01",
-      "company_value": 1771855,
-      "money": 1539253,
-      "current_loan": 300000,
-      "n_vehicles": 324,
-      "n_stations": 28
-    },
-    {
-      "date": "1987-10-01",
-      "company_value": 1771855,
-      "money": 1563004,
-      "current_loan": 300000,
+      "company_value": 1725646,
+      "money": 1156730,
+      "current_loan": 0,
       "n_vehicles": 319,
       "n_stations": 28
     },
     {
-      "date": "1987-11-01",
-      "company_value": 1811298,
-      "money": 1589648,
-      "current_loan": 300000,
-      "n_vehicles": 333,
+      "date": "1987-06-01",
+      "company_value": 1725646,
+      "money": 1200385,
+      "current_loan": 0,
+      "n_vehicles": 313,
       "n_stations": 28
     },
     {
-      "date": "1987-12-01",
-      "company_value": 1811298,
-      "money": 1600700,
-      "current_loan": 300000,
-      "n_vehicles": 312,
-      "n_stations": 28
-    },
-    {
-      "date": "1988-01-01",
-      "company_value": 1811298,
-      "money": 1619256,
-      "current_loan": 300000,
-      "n_vehicles": 318,
-      "n_stations": 28
-    },
-    {
-      "date": "1988-02-01",
-      "company_value": 1849526,
-      "money": 1654102,
-      "current_loan": 300000,
-      "n_vehicles": 330,
-      "n_stations": 28
-    },
-    {
-      "date": "1988-03-01",
-      "company_value": 1849526,
-      "money": 1667257,
-      "current_loan": 300000,
-      "n_vehicles": 325,
-      "n_stations": 28
-    },
-    {
-      "date": "1988-04-01",
-      "company_value": 1849526,
-      "money": 1706764,
-      "current_loan": 300000,
-      "n_vehicles": 343,
-      "n_stations": 28
-    },
-    {
-      "date": "1988-05-01",
-      "company_value": 1919652,
-      "money": 1724271,
-      "current_loan": 300000,
-      "n_vehicles": 317,
-      "n_stations": 28
-    },
-    {
-      "date": "1988-06-01",
-      "company_value": 1919652,
-      "money": 1736842,
-      "current_loan": 300000,
-      "n_vehicles": 324,
-      "n_stations": 28
-    },
-    {
-      "date": "1988-07-01",
-      "company_value": 1919652,
-      "money": 1770636,
-      "current_loan": 300000,
-      "n_vehicles": 345,
-      "n_stations": 28
-    },
-    {
-      "date": "1988-08-01",
-      "company_value": 1967491,
-      "money": 1796964,
-      "current_loan": 300000,
-      "n_vehicles": 310,
-      "n_stations": 28
-    },
-    {
-      "date": "1988-09-01",
-      "company_value": 1967491,
-      "money": 1807329,
-      "current_loan": 300000,
-      "n_vehicles": 304,
-      "n_stations": 28
-    },
-    {
-      "date": "1988-10-01",
-      "company_value": 1967491,
-      "money": 1840227,
-      "current_loan": 300000,
-      "n_vehicles": 317,
-      "n_stations": 28
-    },
-    {
-      "date": "1988-11-01",
-      "company_value": 2021780,
-      "money": 1870956,
-      "current_loan": 300000,
-      "n_vehicles": 314,
-      "n_stations": 28
-    },
-    {
-      "date": "1988-12-01",
-      "company_value": 2021780,
-      "money": 1894455,
-      "current_loan": 300000,
-      "n_vehicles": 343,
-      "n_stations": 28
-    },
-    {
-      "date": "1989-01-01",
-      "company_value": 2021780,
-      "money": 1910419,
-      "current_loan": 300000,
-      "n_vehicles": 322,
-      "n_stations": 28
-    },
-    {
-      "date": "1989-02-01",
-      "company_value": 2077384,
-      "money": 1937681,
-      "current_loan": 300000,
-      "n_vehicles": 318,
-      "n_stations": 28
-    },
-    {
-      "date": "1989-03-01",
-      "company_value": 2077384,
-      "money": 1962696,
-      "current_loan": 300000,
-      "n_vehicles": 318,
-      "n_stations": 28
-    },
-    {
-      "date": "1989-04-01",
-      "company_value": 2077384,
-      "money": 1982112,
-      "current_loan": 300000,
-      "n_vehicles": 306,
-      "n_stations": 28
-    },
-    {
-      "date": "1989-05-01",
-      "company_value": 2135575,
-      "money": 2010056,
-      "current_loan": 300000,
-      "n_vehicles": 324,
-      "n_stations": 28
-    },
-    {
-      "date": "1989-06-01",
-      "company_value": 2135575,
-      "money": 2036177,
-      "current_loan": 300000,
+      "date": "1987-07-01",
+      "company_value": 1725646,
+      "money": 1212070,
+      "current_loan": 0,
       "n_vehicles": 305,
       "n_stations": 28
     },
     {
-      "date": "1989-07-01",
-      "company_value": 2135575,
-      "money": 2054953,
-      "current_loan": 300000,
+      "date": "1987-08-01",
+      "company_value": 1780148,
+      "money": 1239293,
+      "current_loan": 0,
+      "n_vehicles": 303,
+      "n_stations": 28
+    },
+    {
+      "date": "1987-09-01",
+      "company_value": 1780148,
+      "money": 1261563,
+      "current_loan": 0,
       "n_vehicles": 347,
       "n_stations": 28
     },
     {
-      "date": "1989-08-01",
-      "company_value": 2194874,
-      "money": 2085780,
-      "current_loan": 300000,
-      "n_vehicles": 322,
+      "date": "1987-10-01",
+      "company_value": 1780148,
+      "money": 1272651,
+      "current_loan": 0,
+      "n_vehicles": 309,
       "n_stations": 28
+    },
+    {
+      "date": "1987-11-01",
+      "company_value": 1820945,
+      "money": 1309856,
+      "current_loan": 0,
+      "n_vehicles": 356,
+      "n_stations": 28
+    },
+    {
+      "date": "1987-12-01",
+      "company_value": 1820945,
+      "money": 1320908,
+      "current_loan": 0,
+      "n_vehicles": 308,
+      "n_stations": 28
+    },
+    {
+      "date": "1988-01-01",
+      "company_value": 1820945,
+      "money": 1337845,
+      "current_loan": 0,
+      "n_vehicles": 326,
+      "n_stations": 28
+    },
+    {
+      "date": "1988-02-01",
+      "company_value": 1868115,
+      "money": 1370122,
+      "current_loan": 0,
+      "n_vehicles": 335,
+      "n_stations": 28
+    },
+    {
+      "date": "1988-03-01",
+      "company_value": 1868115,
+      "money": 1309488,
+      "current_loan": 0,
+      "n_vehicles": 327,
+      "n_stations": 30
+    },
+    {
+      "date": "1988-04-01",
+      "company_value": 1868115,
+      "money": 1337722,
+      "current_loan": 0,
+      "n_vehicles": 327,
+      "n_stations": 30
+    },
+    {
+      "date": "1988-05-01",
+      "company_value": 1941615,
+      "money": 1352860,
+      "current_loan": 0,
+      "n_vehicles": 329,
+      "n_stations": 30
+    },
+    {
+      "date": "1988-06-01",
+      "company_value": 1941615,
+      "money": 1372382,
+      "current_loan": 0,
+      "n_vehicles": 318,
+      "n_stations": 31
+    },
+    {
+      "date": "1988-07-01",
+      "company_value": 1941615,
+      "money": 1402038,
+      "current_loan": 0,
+      "n_vehicles": 344,
+      "n_stations": 31
+    },
+    {
+      "date": "1988-08-01",
+      "company_value": 1986237,
+      "money": 1421189,
+      "current_loan": 0,
+      "n_vehicles": 344,
+      "n_stations": 31
+    },
+    {
+      "date": "1988-09-01",
+      "company_value": 1986237,
+      "money": 1443232,
+      "current_loan": 0,
+      "n_vehicles": 343,
+      "n_stations": 31
+    },
+    {
+      "date": "1988-10-01",
+      "company_value": 1986237,
+      "money": 1454355,
+      "current_loan": 0,
+      "n_vehicles": 324,
+      "n_stations": 31
+    },
+    {
+      "date": "1988-11-01",
+      "company_value": 2019526,
+      "money": 1485149,
+      "current_loan": 0,
+      "n_vehicles": 349,
+      "n_stations": 31
+    },
+    {
+      "date": "1988-12-01",
+      "company_value": 2019526,
+      "money": 1496006,
+      "current_loan": 0,
+      "n_vehicles": 326,
+      "n_stations": 31
+    },
+    {
+      "date": "1989-01-01",
+      "company_value": 2019526,
+      "money": 1516647,
+      "current_loan": 0,
+      "n_vehicles": 353,
+      "n_stations": 31
+    },
+    {
+      "date": "1989-02-01",
+      "company_value": 2063992,
+      "money": 1543567,
+      "current_loan": 0,
+      "n_vehicles": 354,
+      "n_stations": 31
+    },
+    {
+      "date": "1989-03-01",
+      "company_value": 2063992,
+      "money": 1571400,
+      "current_loan": 0,
+      "n_vehicles": 352,
+      "n_stations": 31
+    },
+    {
+      "date": "1989-04-01",
+      "company_value": 2063992,
+      "money": 1590969,
+      "current_loan": 0,
+      "n_vehicles": 318,
+      "n_stations": 31
+    },
+    {
+      "date": "1989-05-01",
+      "company_value": 2121660,
+      "money": 1615755,
+      "current_loan": 0,
+      "n_vehicles": 345,
+      "n_stations": 31
+    },
+    {
+      "date": "1989-06-01",
+      "company_value": 2121660,
+      "money": 1630180,
+      "current_loan": 0,
+      "n_vehicles": 332,
+      "n_stations": 31
+    },
+    {
+      "date": "1989-07-01",
+      "company_value": 2121660,
+      "money": 1648984,
+      "current_loan": 0,
+      "n_vehicles": 330,
+      "n_stations": 31
+    },
+    {
+      "date": "1989-08-01",
+      "company_value": 2163190,
+      "money": 1679804,
+      "current_loan": 0,
+      "n_vehicles": 341,
+      "n_stations": 31
     },
     {
       "date": "1989-09-01",
-      "company_value": 2194874,
-      "money": 2094837,
-      "current_loan": 300000,
-      "n_vehicles": 322,
-      "n_stations": 28
+      "company_value": 2163190,
+      "money": 1716925,
+      "current_loan": 0,
+      "n_vehicles": 337,
+      "n_stations": 31
     },
     {
       "date": "1989-10-01",
-      "company_value": 2194874,
-      "money": 2117785,
-      "current_loan": 300000,
-      "n_vehicles": 317,
-      "n_stations": 28
+      "company_value": 2163190,
+      "money": 1734689,
+      "current_loan": 0,
+      "n_vehicles": 337,
+      "n_stations": 31
     },
     {
       "date": "1989-11-01",
-      "company_value": 2245285,
-      "money": 2147849,
-      "current_loan": 300000,
-      "n_vehicles": 309,
-      "n_stations": 28
+      "company_value": 2233591,
+      "money": 1754900,
+      "current_loan": 0,
+      "n_vehicles": 354,
+      "n_stations": 32
     },
     {
       "date": "1989-12-01",
-      "company_value": 2245285,
-      "money": 2177215,
-      "current_loan": 300000,
-      "n_vehicles": 309,
-      "n_stations": 28
+      "company_value": 2233591,
+      "money": 1771691,
+      "current_loan": 0,
+      "n_vehicles": 330,
+      "n_stations": 32
     }
   ],
   "raw_signs_final": [
@@ -5391,6 +5439,7 @@
     "IA|11|1986|1|1|72",
     "GT|1986|20|20|0|0|0|0",
     "GN|1986|20|0",
+    "LR|1986|230000|70000",
     "OX|1987|42|44|104",
     "OC|1987|20952|69206|25773",
     "OP|1987|2515013|478400",
@@ -5513,41 +5562,42 @@
     "PK|12|F|50",
     "GT|1987|20|19|0|1|0|0",
     "GN|1987|19|0",
-    "OX|1988|42|44|113",
-    "OC|1988|22116|72923|27251",
-    "OP|1988|2653692|502526",
-    "OS|1988|234865|121",
+    "LR|1987|70000|0",
+    "OX|1988|42|43|103",
+    "OC|1988|22116|72828|27251",
+    "OP|1988|2653446|500755",
+    "OS|1988|233744|121",
     "OW|1988|144509616|13",
-    "OB|1988|36|324|40823",
-    "OE|1988|2|39844|60454",
-    "OD|1988|40823|17218|5338|5106",
+    "OB|1988|36|306|38057",
+    "OE|1988|2|37144|60454",
+    "OD|1988|38057|19974|4239|4756",
     "OL|1988|200|75|285",
-    "OY|0|1988|35|29",
+    "OY|0|1988|35|28",
     "OZ|0|1988|0",
     "OU|0|1988|0|0",
     "OO|0|1988|0",
-    "OY|1|1988|60|-1",
+    "OY|1|1988|61|-1",
     "VS|1|1988|0|0|1",
     "VL|1|1988|0|0|150",
     "VS|1|1988|1|0|1",
     "VL|1|1988|1|0|150",
     "VS|1|1988|2|0|1",
-    "VL|1|1988|2|101|150",
-    "OZ|1|1988|36037",
+    "VL|1|1988|2|139|150",
+    "OZ|1|1988|35233",
     "OU|1|1988|3|6396",
-    "OO|1|1988|42433",
-    "IA|1|1988|1|1|324",
-    "OY|2|1988|68|-1",
+    "OO|1|1988|41629",
+    "IA|1|1988|1|1|306",
+    "OY|2|1988|71|-1",
     "VS|2|1988|0|0|1",
     "VL|2|1988|0|0|150",
-    "VS|2|1988|1|3|0",
-    "VL|2|1988|1|0|41",
-    "VS|2|1988|2|0|1",
-    "VL|2|1988|2|0|150",
-    "OZ|2|1988|31089",
+    "VS|2|1988|1|0|1",
+    "VL|2|1988|1|0|150",
+    "VS|2|1988|2|0|0",
+    "VL|2|1988|2|108|0",
+    "OZ|2|1988|31978",
     "OU|2|1988|3|6396",
-    "OO|2|1988|37485",
-    "IA|2|1988|1|1|234",
+    "OO|2|1988|38374",
+    "IA|2|1988|1|1|207",
     "OY|3|1988|73|-1",
     "VS|3|1988|0|0|1",
     "VL|3|1988|0|0|150",
@@ -5581,119 +5631,126 @@
     "OU|5|1988|4|8528",
     "OO|5|1988|0",
     "IA|5|1988|0|1|-1",
-    "OY|6|1988|54|-1",
+    "OY|6|1988|55|-1",
     "VS|6|1988|0|0|1",
     "VL|6|1988|0|0|150",
-    "VS|6|1988|1|0|1",
-    "VL|6|1988|1|0|150",
-    "VS|6|1988|2|0|0",
-    "VL|6|1988|2|160|0",
-    "OZ|6|1988|46641",
+    "VS|6|1988|1|0|0",
+    "VL|6|1988|1|160|0",
+    "VS|6|1988|2|0|1",
+    "VL|6|1988|2|0|150",
+    "OZ|6|1988|45699",
     "OU|6|1988|6|12792",
-    "OO|6|1988|59433",
+    "OO|6|1988|58491",
     "IA|6|1988|0|0|-1",
     "OY|7|1988|74|-1",
     "VS|7|1988|0|0|1",
     "VL|7|1988|0|0|150",
     "VS|7|1988|1|0|1",
     "VL|7|1988|1|0|150",
-    "VS|7|1988|2|3|0",
-    "VL|7|1988|2|0|100",
-    "OZ|7|1988|6615",
+    "VS|7|1988|2|0|1",
+    "VL|7|1988|2|160|150",
+    "OZ|7|1988|12429",
     "OU|7|1988|4|8528",
-    "OO|7|1988|15143",
-    "IA|7|1988|1|1|108",
-    "OY|8|1988|60|61",
-    "OZ|8|1988|44020",
+    "OO|7|1988|20957",
+    "IA|7|1988|1|1|117",
+    "OY|8|1988|59|62",
+    "OZ|8|1988|41306",
     "OU|8|1988|5|14470",
-    "OO|8|1988|58490",
-    "OY|9|1988|65|61",
-    "OZ|9|1988|13450",
+    "OO|8|1988|55776",
+    "OY|9|1988|61|65",
+    "OZ|9|1988|13598",
     "OU|9|1988|4|11576",
-    "OO|9|1988|25026",
-    "OY|10|1988|67|63",
-    "OZ|10|1988|13219",
+    "OO|9|1988|25174",
+    "OY|10|1988|72|62",
+    "OZ|10|1988|12105",
     "OU|10|1988|2|5788",
-    "OO|10|1988|19007",
-    "OY|11|1988|71|-1",
+    "OO|10|1988|17893",
+    "OY|11|1988|64|-1",
     "VS|11|1988|0|0|1",
     "VL|11|1988|0|0|23",
-    "VS|11|1988|1|0|1",
-    "VL|11|1988|1|0|150",
+    "VS|11|1988|1|3|1",
+    "VL|11|1988|1|0|18",
     "VS|11|1988|2|0|1",
-    "VL|11|1988|2|175|27",
-    "OZ|11|1988|1352",
+    "VL|11|1988|2|0|44",
+    "OZ|11|1988|6919",
     "OU|11|1988|4|11576",
-    "OO|11|1988|12928",
+    "OO|11|1988|18495",
     "IA|11|1988|1|1|36",
-    "OY|12|1988|85|82",
-    "VS|12|1988|0|0|1",
-    "VL|12|1988|0|193|25",
+    "OY|12|1988|82|84",
+    "VS|12|1988|0|0|0",
+    "VL|12|1988|0|192|34",
     "VS|12|1988|1|0|1",
     "VL|12|1988|1|0|17",
-    "OZ|12|1988|16821",
+    "OZ|12|1988|17955",
     "OU|12|1988|2|5788",
-    "OO|12|1988|22609",
+    "OO|12|1988|23743",
     "IA|12|1988|1|1|40",
-    "GT|1988|20|20|0|0|0|0",
-    "GN|1988|20|0",
-    "OX|1989|42|44|118",
-    "OC|1989|23280|76640|28729",
-    "OP|1989|2793644|526015",
-    "OS|1989|245943|115",
-    "OW|1989|144627760|13",
-    "OB|1989|36|324|40823",
-    "OE|1989|2|39844|60454",
-    "OD|1989|40823|17218|5338|5106",
+    "OR|13|32|50|OK",
+    "OF|13|9996",
+    "OJ|13|5788",
+    "OK|13|3028",
+    "OQ|13|49|2",
+    "OT|13|6",
+    "PK|13|F|99",
+    "GT|1988|20|19|0|1|0|0",
+    "GN|1988|19|0",
+    "OX|1989|42|42|119",
+    "OC|1989|23280|76345|28729",
+    "OP|1989|2793698|522417",
+    "OS|1989|245039|115",
+    "OW|1989|145322183|14",
+    "OB|1989|36|306|38057",
+    "OE|1989|2|37144|60454",
+    "OD|1989|38057|16023|3478|4756",
     "OL|1989|200|75|285",
-    "OY|0|1989|35|29",
+    "OY|0|1989|29|34",
     "OZ|0|1989|0",
     "OU|0|1989|0|0",
     "OO|0|1989|0",
-    "OY|1|1989|60|-1",
+    "OY|1|1989|58|-1",
     "VS|1|1989|0|0|1",
     "VL|1|1989|0|0|150",
     "VS|1|1989|1|0|1",
     "VL|1|1989|1|0|150",
-    "VS|1|1989|2|3|1",
-    "VL|1|1989|2|0|75",
-    "OZ|1|1989|38994",
+    "VS|1|1989|2|3|0",
+    "VL|1|1989|2|0|65",
+    "OZ|1|1989|36138",
     "OU|1|1989|3|6396",
-    "OO|1|1989|45390",
-    "IA|1|1989|1|1|324",
-    "OY|2|1989|69|-1",
-    "VS|2|1989|0|3|0",
-    "VL|2|1989|0|0|149",
+    "OO|1|1989|42534",
+    "IA|1|1989|1|1|306",
+    "OY|2|1989|70|-1",
+    "VS|2|1989|0|0|1",
+    "VL|2|1989|0|0|150",
     "VS|2|1989|1|0|1",
     "VL|2|1989|1|0|150",
     "VS|2|1989|2|0|1",
-    "VL|2|1989|2|0|150",
-    "OZ|2|1989|36363",
+    "VL|2|1989|2|88|150",
+    "OZ|2|1989|34579",
     "OU|2|1989|3|6396",
-    "OO|2|1989|42759",
+    "OO|2|1989|40975",
     "IA|2|1989|1|1|216",
-    "OY|3|1989|74|-1",
+    "OY|3|1989|71|-1",
     "VS|3|1989|0|0|1",
     "VL|3|1989|0|0|150",
-    "VS|3|1989|1|0|1",
-    "VL|3|1989|1|0|150",
-    "VS|3|1989|2|3|0",
-    "VL|3|1989|2|0|89",
-    "OZ|3|1989|13328",
+    "VS|3|1989|1|0|0",
+    "VL|3|1989|1|106|0",
+    "VS|3|1989|2|0|1",
+    "VL|3|1989|2|0|150",
+    "OZ|3|1989|11930",
     "OU|3|1989|3|6396",
-    "OO|3|1989|19724",
-    "IA|3|1989|1|1|108",
-    "OY|4|1989|74|-1",
+    "OO|3|1989|18326",
+    "IA|3|1989|1|1|99",
+    "OY|4|1989|73|-1",
     "VS|4|1989|0|0|1",
     "VL|4|1989|0|0|150",
     "VS|4|1989|1|0|1",
     "VL|4|1989|1|0|150",
     "VS|4|1989|2|0|1",
-    "VL|4|1989|2|160|150",
+    "VL|4|1989|2|159|150",
     "OZ|4|1989|3061",
     "OU|4|1989|6|12792",
     "OO|4|1989|15853",
-    "IA|4|1989|1|1|117",
+    "IA|4|1989|1|1|108",
     "OY|5|1989|-1|-1",
     "VS|5|1989|0|0|0",
     "VL|5|1989|0|0|0",
@@ -5705,16 +5762,16 @@
     "OU|5|1989|4|8528",
     "OO|5|1989|-24",
     "IA|5|1989|0|1|-1",
-    "OY|6|1989|54|-1",
+    "OY|6|1989|59|-1",
     "VS|6|1989|0|0|1",
     "VL|6|1989|0|0|150",
     "VS|6|1989|1|0|1",
-    "VL|6|1989|1|61|150",
+    "VL|6|1989|1|0|150",
     "VS|6|1989|2|0|1",
     "VL|6|1989|2|0|150",
-    "OZ|6|1989|44266",
+    "OZ|6|1989|31958",
     "OU|6|1989|6|12792",
-    "OO|6|1989|57058",
+    "OO|6|1989|44750",
     "IA|6|1989|0|0|-1",
     "OY|7|1989|74|-1",
     "VS|7|1989|0|0|1",
@@ -5723,42 +5780,51 @@
     "VL|7|1989|1|0|150",
     "VS|7|1989|2|0|1",
     "VL|7|1989|2|0|150",
-    "OZ|7|1989|6700",
+    "OZ|7|1989|6719",
     "OU|7|1989|4|8528",
-    "OO|7|1989|15228",
-    "IA|7|1989|1|1|108",
-    "OY|8|1989|56|59",
-    "OZ|8|1989|67744",
+    "OO|7|1989|15247",
+    "IA|7|1989|1|1|117",
+    "OY|8|1989|57|61",
+    "OZ|8|1989|55719",
     "OU|8|1989|5|14470",
-    "OO|8|1989|82214",
-    "OY|9|1989|61|64",
-    "OZ|9|1989|11198",
+    "OO|8|1989|70189",
+    "OY|9|1989|60|65",
+    "OZ|9|1989|11453",
     "OU|9|1989|4|11576",
-    "OO|9|1989|22774",
-    "OY|10|1989|67|61",
-    "OZ|10|1989|17229",
+    "OO|9|1989|23029",
+    "OY|10|1989|68|61",
+    "OZ|10|1989|15229",
     "OU|10|1989|2|5788",
-    "OO|10|1989|23017",
-    "OY|11|1989|72|-1",
+    "OO|10|1989|21017",
+    "OY|11|1989|64|-1",
     "VS|11|1989|0|0|1",
-    "VL|11|1989|0|0|23",
+    "VL|11|1989|0|25|23",
     "VS|11|1989|1|0|1",
-    "VL|11|1989|1|0|150",
-    "VS|11|1989|2|3|0",
-    "VL|11|1989|2|0|45",
-    "OZ|11|1989|5336",
+    "VL|11|1989|1|0|23",
+    "VS|11|1989|2|0|1",
+    "VL|11|1989|2|0|44",
+    "OZ|11|1989|5809",
     "OU|11|1989|4|11576",
-    "OO|11|1989|16912",
-    "IA|11|1989|1|1|70",
-    "OY|12|1989|82|78",
-    "VS|12|1989|0|0|1",
-    "VL|12|1989|0|50|16",
+    "OO|11|1989|17385",
+    "IA|11|1989|1|1|36",
+    "OY|12|1989|79|81",
+    "VS|12|1989|0|0|0",
+    "VL|12|1989|0|100|17",
     "VS|12|1989|1|0|1",
-    "VL|12|1989|1|0|17",
-    "OZ|12|1989|21916",
+    "VL|12|1989|1|0|25",
+    "OZ|12|1989|20771",
     "OU|12|1989|2|5788",
-    "OO|12|1989|27704",
+    "OO|12|1989|26559",
     "IA|12|1989|1|1|50",
+    "OY|13|1989|-1|-1",
+    "VS|13|1989|0|0|0",
+    "VL|13|1989|0|0|0",
+    "VS|13|1989|1|3|0",
+    "VL|13|1989|1|0|0",
+    "OZ|13|1989|-5147",
+    "OU|13|1989|2|5788",
+    "OO|13|1989|641",
+    "IA|13|1989|0|1|-1",
     "GT|1989|20|20|0|0|0|0",
     "GN|1989|20|0"
   ]

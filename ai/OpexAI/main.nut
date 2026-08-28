@@ -56,6 +56,11 @@ const BUILD_TICK_MARGIN = 3000;
  * plus ni renouveler ses vehicules ni saisir une occasion, et la valeur d'entreprise tombe a 1. */
 const CASH_RESERVE = 50000;
 
+/* Seuil de remboursement d'emprunt : sous ce plancher de tresorerie on ne rembourse pas, un
+ * emprunt a 5 % coute bien moins qu'une ligne manquee faute de cash. Au-dessus, l'argent qui
+ * dort ne rapporte rien -- autant reduire l'emprunt. Valeur decidee par l'utilisateur. */
+const LOAN_REPAY_FLOOR = 1000000;
+
 class OpexAI extends AIController {
   _budget = null;
   _catalog = null;
@@ -399,6 +404,32 @@ function OpexAI::_reportYear(year, ranked)
   }
 }
 
+/* Remboursement annuel : une fois la tresorerie confortablement au-dessus du plancher, on
+ * rembourse le maximum d'emprunt qui laisse encore ce plancher disponible pour l'annee
+ * suivante. SetLoanAmount exige un multiple de GetLoanInterval() ; on arrondit donc le nouvel
+ * emprunt VERS LE HAUT (jamais vers le bas, ce qui rembourserait plus que permis et pourrait
+ * passer sous le plancher). Aucune reprise automatique d'emprunt n'existe ailleurs dans le
+ * fichier (grep confirme le 2026-08-28) : rembourser ici ne sera donc pas annule au tick suivant. */
+function OpexAI::_tryRepayLoan(year)
+{
+  local loan = AICompany.GetLoanAmount();
+  if (loan <= 0) return;
+
+  local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  if (cash <= LOAN_REPAY_FLOOR) return;
+
+  local interval = AICompany.GetLoanInterval();
+  local minNewLoan = loan - (cash - LOAN_REPAY_FLOOR);
+  if (minNewLoan < 0) minNewLoan = 0;
+  local newLoan = ((minNewLoan + interval - 1) / interval) * interval;
+  if (newLoan >= loan) return;  // moins d'un palier remboursable : pas la peine
+
+  local repaid = loan - newLoan;
+  AICompany.SetLoanAmount(newLoan);
+  local anchor = AIMap.GetTileIndex(1, 1);
+  AISign.BuildSign(anchor, "LR|" + year + "|" + repaid + "|" + newLoan);
+}
+
 function OpexAI::Start()
 {
   AICompany.SetName("OpexAI");
@@ -421,6 +452,7 @@ function OpexAI::Start()
       this._tryBuildAir(year);
       this._tryBuildWater(year);
       this._tryBuild(ranked, year);
+      this._tryRepayLoan(year);
     }
     AIController.Sleep(74 * 10);
   }
