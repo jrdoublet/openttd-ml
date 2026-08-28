@@ -146,8 +146,25 @@ Reprend le §8 de `docs/mecanique_jeu.md`, complété.
   METROPOLITAN (1980), COMMUTER (1983), parc routier +83 %, parc avion +38 %. Un banc à 10 ans
   mesure une partie où le rail est presque le seul mode qui progresse — ce qui nous désavantage
   précisément là où on veut se distinguer.
-- **Augmenter le nombre de graines, pas les répétitions** : bruit intra-graine 4,1 % contre
-  dispersion inter-graines de 26 %. Erreur-type de la moyenne à n=5 : 11,8 % ; à n=20 : 5,9 %.
+- 🔴 **Augmenter le nombre de graines, pas les répétitions — DEVENU BLOQUANT (2026-08-28).**
+  Bruit intra-graine 4,1 % contre dispersion inter-graines de 26 %. Erreur-type de la moyenne à
+  n=5 : 11,8 % ; à n=20 : 5,9 %.
+
+  **Pourquoi c'est désormais un préalable et plus une amélioration.** Trois changements *sans aucun
+  effet décisionnel* ont produit le même jour des écarts pluri-lignes sur la graine 42 :
+  1. la liaison route, qui coûte 0,04 % des opcodes de la campagne (§6.4) ;
+  2. le franchissement d'une année de calendrier (`docs/opexai_croissance.md` §6) ;
+  3. le simple fait d'interposer un appel de fonction (`OpexSign`) devant les 57 panneaux —
+     **3 lignes rail perdues, 16 → 13**, alors qu'aucune décision de l'IA ne change.
+
+  Toute perturbation du rythme d'opcodes déplace les frontières de ticks, donc *quand* les choses
+  arrivent, et la trajectoire entière diverge. **Une graine unique ne distingue donc pas un vrai
+  gain d'un déplacement de trajectoire**, y compris pour des écarts de 16 %. Conséquence pratique :
+  tant que le banc multi-graines n'existe pas, aucune décision de conception ne peut être tranchée
+  par la campagne graine 42 seule — ni le défaut de `pathfinder_sleep_ticks`, ni la réactivation du
+  mode route, ni le coût réel du mode route pour le rail (§6.4).
+  ⚠️ Corollaire de méthode : « reproduit deux fois à l'identique » ne prouve rien ici — la
+  plateforme est déterministe, donc même graine ⇒ même résultat.
 - Le **face à face** dans une partie partagée, aux jalons seulement (décidé le 2026-08-28).
 - ✅ **Hypothèse d'un plafond `AISign` réfutée (2026-08-28).** Ni la tuile `(1,1)` ni le nombre
   de signs de la campagne ne sont en cause : `CmdPlaceSign` ne peut échouer ici que par nom de

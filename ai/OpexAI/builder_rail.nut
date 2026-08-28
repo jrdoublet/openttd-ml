@@ -121,10 +121,15 @@ function OpexSearchPath(plansA, plansB, iterationBudget, deadlineTick)
 
   local path = false;
   local spent = 0;
+  /* 0 par defaut = aucun bridage : AAAHogEx ne dort PAS entre ses chunks (verifie dans son
+   * source, cf. info.nut::pathfinder_sleep_ticks), donc le Sleep(1) inconditionnel qui etait ici
+   * etait un handicap que nous seuls payions face a lui. Reglable pour rendre la main plus
+   * souvent dans une partie avec des humains. */
+  local sleepTicks = AIController.GetSetting("pathfinder_sleep_ticks");
   while (path == false && spent < iterationBudget && AIController.GetTick() < deadlineTick) {
     path = pathfinder.FindPath(PATH_CHUNK);
     spent += PATH_CHUNK;
-    AIController.Sleep(1);
+    if (sleepTicks > 0) AIController.Sleep(sleepTicks);
   }
 
   /* Codes courts : un nom de panneau accepte au plus 31 caracteres et echoue SILENCIEUSEMENT

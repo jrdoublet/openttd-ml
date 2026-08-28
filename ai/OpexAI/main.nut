@@ -23,6 +23,21 @@ import("pathfinder.rail", "RailPathFinder", 1);
 /* Declare avant les require() : catalog.nut consulte ce drapeau dans son cycle annuel. */
 ROAD_BUILD_ENABLED <- false;
 
+/* Panneaux de diagnostic : lu UNE fois depuis le reglage dans Start(), pas a chaque appel (57
+ * panneaux par an, GetSetting a chaque fois serait du gaspillage d'opcodes pour une valeur qui ne
+ * change jamais en cours de partie). Defaut vrai : voir info.nut::debug_signs -- toute
+ * l'instrumentation de sweeps/*.py passe par ces panneaux, AILog.Info n'etant pas capture par
+ * OpenTTDLab. On ne les coupe que pour une partie avec des humains. */
+DEBUG_SIGNS <- true;
+
+/* Unique point de passage vers AISign.BuildSign : permet de tout couper d'un reglage sans
+ * conditionner 57 appels un par un. Meme signature que l'appel d'origine. */
+function OpexSign(anchor, name)
+{
+  if (!DEBUG_SIGNS) return;
+  AISign.BuildSign(anchor, name);
+}
+
 require("budget.nut");
 require("catalog.nut");
 require("economy.nut");
@@ -170,8 +185,8 @@ function OpexAI::_tryBuildAir(year)
 
   local result = OpexBuildAirRoute(this._catalog, this._budget, plan);
   local anchor = AIMap.GetTileIndex(1, 1);
-  AISign.BuildSign(anchor, "OA|" + year + "|" + plan.distance + "|" + planOps + "|" + result.reason);
-  if (result.error != 0) AISign.BuildSign(anchor, "OE|A|" + result.error);
+  OpexSign(anchor, "OA|" + year + "|" + plan.distance + "|" + planOps + "|" + result.reason);
+  if (result.error != 0) OpexSign(anchor, "OE|A|" + result.error);
   if (!result.ok) return;
 
   this._airBuilt = true;
@@ -209,8 +224,8 @@ function OpexAI::_tryBuildWater(year)
   if (money < capital + CASH_RESERVE + WATER_CAPITAL_MARGIN) return;
   local result = OpexBuildWaterRoute(this._catalog, this._budget, plan);
   local anchor = AIMap.GetTileIndex(1, 1);
-  if (result.ok) AISign.BuildSign(anchor, "OM|W|" + year + "|" + plan.distance + "|" + planOps);
-  else AISign.BuildSign(anchor, "ON|W|" + result.reason + "|" + result.error);
+  if (result.ok) OpexSign(anchor, "OM|W|" + year + "|" + plan.distance + "|" + planOps);
+  else OpexSign(anchor, "ON|W|" + result.reason + "|" + result.error);
   if (!result.ok) return;
   this._waterBuilt = true;
   this._lines.append({
@@ -253,15 +268,15 @@ function OpexAI::_tryBuildRoad(year)
   local result = OpexBuildRoadRoute(this._catalog, this._budget, plan);
   local anchor = AIMap.GetTileIndex(1, 1);
   if (!result.ok) {
-    AISign.BuildSign(anchor, "OE|R|" + result.reason + "|" + result.error);
+    OpexSign(anchor, "OE|R|" + result.reason + "|" + result.error);
     return;
   }
   local idx = this._nextLineId;
   /* Le pire nom est OM|R|99|999|999|999|25|999999 : 31 caracteres, plafond inclus. */
-  AISign.BuildSign(anchor, "OM|R|" + (year % 100) + "|" + idx + "|" + plan.townA.id + "|"
+  OpexSign(anchor, "OM|R|" + (year % 100) + "|" + idx + "|" + plan.townA.id + "|"
                            + plan.townB.id + "|" + plan.distance + "|" + planOps);
-  AISign.BuildSign(anchor, "OC|R|" + idx + "|" + result.cost + "|" + plan.routeDistance);
-  AISign.BuildSign(anchor, "OV|R|" + idx + "|" + result.vehicle + "|" + result.capacity);
+  OpexSign(anchor, "OC|R|" + idx + "|" + result.cost + "|" + plan.routeDistance);
+  OpexSign(anchor, "OV|R|" + idx + "|" + result.vehicle + "|" + result.capacity);
   this._roadBuilt = true;
   /* Contrairement aux lignes rail, le bus court ne rejoint pas _lines : OpexOriginServed et
    * _tooClose ne doivent jamais en deduire qu'une ville est verrouillee pour une liaison rail
@@ -279,10 +294,10 @@ function OpexAI::_tryBuildRoad(year)
   /* Geometrie brute (2026-08-28), UNE fois : tuile + facade des deux arrets et du depot, pour
    * reconstruire offline (tile = y*mapSizeX+x, carte 256x256) si le bus boucle pres d'un point
    * particulier plutot que d'atteindre stopA. */
-  AISign.BuildSign(anchor, "RT|" + idx + "|sA|" + plan.stopA.tile + "|" + plan.stopA.front);
-  AISign.BuildSign(anchor, "RT|" + idx + "|sB|" + plan.stopB.tile + "|" + plan.stopB.front);
-  AISign.BuildSign(anchor, "RT|" + idx + "|dp|" + plan.depot.tile + "|" + plan.depot.front);
-  AISign.BuildSign(anchor, "RT|" + idx + "|sh|" + plan.shape);
+  OpexSign(anchor, "RT|" + idx + "|sA|" + plan.stopA.tile + "|" + plan.stopA.front);
+  OpexSign(anchor, "RT|" + idx + "|sB|" + plan.stopB.tile + "|" + plan.stopB.front);
+  OpexSign(anchor, "RT|" + idx + "|dp|" + plan.depot.tile + "|" + plan.depot.front);
+  OpexSign(anchor, "RT|" + idx + "|sh|" + plan.shape);
 }
 
 /* Une extremite deja desservie par nous ne merite pas un second raccordement.
@@ -362,7 +377,7 @@ function OpexAI::_tryBuild(ranked, year)
     local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
     if (money < candidate.capital + CASH_RESERVE) {  // classement decroissant
       nCashBlocked++;
-      AISign.BuildSign(anchor, "GC|" + year + "|" + money + "|" + candidate.capital);
+      OpexSign(anchor, "GC|" + year + "|" + money + "|" + candidate.capital);
       break;
     }
 
@@ -385,16 +400,16 @@ function OpexAI::_tryBuild(ranked, year)
      * n'avance que sur un succes, exactement comme le faisait _lines.len() avant que le retrait
      * n'existe. */
     local rankPacked = i * TOP_K + best.len();
-    AISign.BuildSign(anchor, "OR|" + (year % 100) + "|" + this._nextLineId + "|" + rankPacked
+    OpexSign(anchor, "OR|" + (year % 100) + "|" + this._nextLineId + "|" + rankPacked
                              + "|" + budgetInfo.path + alternativeSource
                              + OpexAttemptReasonCode(result.reason) + "|" + iterationBudget
                              + "|" + result.iterations);
-    if (result.error != 0) AISign.BuildSign(anchor, "OV|" + this._nextLineId + "|" + result.error);
+    if (result.error != 0) OpexSign(anchor, "OV|" + this._nextLineId + "|" + result.error);
     if (result.diag != null) {
-      AISign.BuildSign(anchor, "OG|" + result.diag.railtype + "|" + result.diag.isDepot
+      OpexSign(anchor, "OG|" + result.diag.railtype + "|" + result.diag.isDepot
                                + "|" + result.diag.buildable + "|" + result.diag.canRun);
-      AISign.BuildSign(anchor, "OH|" + result.diag.price + "|" + result.diag.cash);
-      AISign.BuildSign(anchor, "OI|" + result.diag.engineRail + "|" + result.diag.depotRail
+      OpexSign(anchor, "OH|" + result.diag.price + "|" + result.diag.cash);
+      OpexSign(anchor, "OI|" + result.diag.engineRail + "|" + result.diag.depotRail
                                + "|" + result.diag.vehType + "|" + result.diag.testOk);
     }
 
@@ -405,16 +420,16 @@ function OpexAI::_tryBuild(ranked, year)
        * le comparer plus tard a la mesure reelle (_reportLines). Un sign par grandeur : jamais
        * plus de 2 valeurs numeriques par nom pour rester sous la limite silencieuse de 31
        * caracteres meme quand i et les valeurs sont a leur maximum plausible. */
-      AISign.BuildSign(anchor, "OF|" + idx + "|" + candidate.revenueAnnual);
-      AISign.BuildSign(anchor, "OJ|" + idx + "|" + candidate.runningAnnual);
-      AISign.BuildSign(anchor, "OK|" + idx + "|" + candidate.amortAnnual);
-      AISign.BuildSign(anchor, "OQ|" + idx + "|" + candidate.carried + "|" + candidate.trains);
+      OpexSign(anchor, "OF|" + idx + "|" + candidate.revenueAnnual);
+      OpexSign(anchor, "OJ|" + idx + "|" + candidate.runningAnnual);
+      OpexSign(anchor, "OK|" + idx + "|" + candidate.amortAnnual);
+      OpexSign(anchor, "OQ|" + idx + "|" + candidate.carried + "|" + candidate.trains);
       /* La distance quitte OR (panneau deja plein) et rejoint ce panneau de succes existant. */
-      AISign.BuildSign(anchor, "OT|" + idx + "|" + candidate.oneWayDays + "|" + candidate.distance);
+      OpexSign(anchor, "OT|" + idx + "|" + candidate.oneWayDays + "|" + candidate.distance);
       /* pax vs freight, et la production mensuelle BRUTE utilisee comme entree : pour trancher si
        * le residu du gap vient de la ville entiere comptee au lieu du seul rayon de la gare
        * (candidates.nut le signale deja comme biais non calibre sur les paires de villes). */
-      AISign.BuildSign(anchor, "PK|" + idx + "|" + (candidate.kind == "pax" ? "P" : "F")
+      OpexSign(anchor, "PK|" + idx + "|" + (candidate.kind == "pax" ? "P" : "F")
                                + "|" + candidate.monthly);
 
       /* Diagnostic effondrement fret (2026-08-28) : garder de quoi verifier, annee apres annee,
@@ -457,7 +472,7 @@ function OpexAI::_tryBuild(ranked, year)
   /* Repartition des rejets _tooClose : proche (probable meme ville) vs lointain (probable ville
    * DIFFERENTE, simple voisine -- signe que MIN_SEPARATION est trop grossier plutot que trop
    * grand). */
-  AISign.BuildSign(anchor, "GN|" + year + "|" + nTooCloseNear + "|" + nTooCloseFar);
+  OpexSign(anchor, "GN|" + year + "|" + nTooCloseNear + "|" + nTooCloseFar);
 }
 
 /* Le releve qui permet de calibrer l'etage 1 : pour chaque ligne, la note de gare REELLE (on
@@ -477,7 +492,7 @@ function OpexAI::_reportLines(year)
         ? AIStation.GetCargoRating(stationB, line.cargo) : -1;
     /* line.lineId, pas i : identite stable qui survit a un retrait de _lines par _scrapDeadLines
      * (cf. commentaire sur _nextLineId). Toutes les lignes rail/avion/bateau en ont une. */
-    AISign.BuildSign(anchor, "OY|" + line.lineId + "|" + year + "|" + ratingA + "|" + ratingB);
+    OpexSign(anchor, "OY|" + line.lineId + "|" + year + "|" + ratingA + "|" + ratingB);
 
     /* Profit reel (deja mesure), plus le detail qui manquait : combien de convois roulent
      * VRAIMENT (vs. le trains predit dans _tryBuild), leur cout de fonctionnement reel, et le
@@ -505,14 +520,14 @@ function OpexAI::_reportLines(year)
         local order = AIOrder.ResolveOrderPosition(v, AIOrder.ORDER_CURRENT);
         local speed = AIVehicle.GetCurrentSpeed(v);
         local load = AIVehicle.GetCargoLoad(v, line.cargo);
-        AISign.BuildSign(anchor, "VS|" + line.lineId + "|" + year + "|" + diagSlot + "|" + state + "|" + order);
-        AISign.BuildSign(anchor, "VL|" + line.lineId + "|" + year + "|" + diagSlot + "|" + speed + "|" + load);
+        OpexSign(anchor, "VS|" + line.lineId + "|" + year + "|" + diagSlot + "|" + state + "|" + order);
+        OpexSign(anchor, "VL|" + line.lineId + "|" + year + "|" + diagSlot + "|" + speed + "|" + load);
         diagSlot++;
       }
     }
-    AISign.BuildSign(anchor, "OZ|" + line.lineId + "|" + year + "|" + profit);
-    AISign.BuildSign(anchor, "OU|" + line.lineId + "|" + year + "|" + vehCount + "|" + runCost);
-    AISign.BuildSign(anchor, "OO|" + line.lineId + "|" + year + "|" + (profit + runCost));
+    OpexSign(anchor, "OZ|" + line.lineId + "|" + year + "|" + profit);
+    OpexSign(anchor, "OU|" + line.lineId + "|" + year + "|" + vehCount + "|" + runCost);
+    OpexSign(anchor, "OO|" + line.lineId + "|" + year + "|" + (profit + runCost));
 
     /* Les deux industries sont-elles encore valides ? Et l'industrie source produit-elle encore ?
      * Depart le blocage "train coince" (hypothese 2) de la fermeture d'industrie (hypothese 1). */
@@ -520,7 +535,7 @@ function OpexAI::_reportLines(year)
       local srcAlive = AIIndustry.IsValidIndustry(line.srcIndustry) ? 1 : 0;
       local dstAlive = AIIndustry.IsValidIndustry(line.dstIndustry) ? 1 : 0;
       local srcProd = srcAlive ? AIIndustry.GetLastMonthProduction(line.srcIndustry, line.cargo) : -1;
-      AISign.BuildSign(anchor, "IA|" + line.lineId + "|" + year + "|" + srcAlive + "|" + dstAlive + "|" + srcProd);
+      OpexSign(anchor, "IA|" + line.lineId + "|" + year + "|" + srcAlive + "|" + dstAlive + "|" + srcProd);
 
       /* Detection ligne morte : srcAlive=0 seul ne suffit PAS (cf. commentaire DEAD_STREAK_THRESHOLD
        * -- une gare peut recuperer une industrie voisine). srcSuffering couvre aussi l'industrie
@@ -533,7 +548,7 @@ function OpexAI::_reportLines(year)
       local collapsed = srcSuffering && ratingA <= 0 && (profit + runCost) <= 0;
       line.deadStreak = collapsed ? line.deadStreak + 1 : 0;
       if (line.deadStreak > 0) {
-        AISign.BuildSign(anchor, "DL|" + year + "|" + line.lineId + "|" + line.deadStreak);
+        OpexSign(anchor, "DL|" + year + "|" + line.lineId + "|" + line.deadStreak);
       }
     }
   }
@@ -577,44 +592,44 @@ function OpexAI::_reportRoad(year)
   local yy = year % 100;
 
   if (!AIVehicle.IsValidVehicle(d.vehicle)) {
-    AISign.BuildSign(anchor, "RX|" + yy);
+    OpexSign(anchor, "RX|" + yy);
     return;
   }
 
   local state = AIVehicle.GetState(d.vehicle);
   local order = AIOrder.ResolveOrderPosition(d.vehicle, AIOrder.ORDER_CURRENT);
   local load = AIVehicle.GetCargoLoad(d.vehicle, d.cargo);
-  AISign.BuildSign(anchor, "RS|" + yy + "|" + state + "|" + order + "|" + load);
+  OpexSign(anchor, "RS|" + yy + "|" + state + "|" + order + "|" + load);
   /* Vitesse REELLE (2026-08-28) : RL fige d'une annee sur l'autre laisse deux lectures possibles
    * -- vehicule bloque (vitesse ~0) ou boucle si lente qu'un an ne suffit pas a en sortir (vitesse
    * non nulle mais faible). GetCurrentSpeed tranche. */
   local speed = AIVehicle.GetCurrentSpeed(d.vehicle);
-  AISign.BuildSign(anchor, "RV|" + yy + "|" + speed);
+  OpexSign(anchor, "RV|" + yy + "|" + speed);
 
   local loc = AIVehicle.GetLocation(d.vehicle);
   local distA = AIMap.DistanceManhattan(loc, d.stopA);
   local distB = AIMap.DistanceManhattan(loc, d.stopB);
-  AISign.BuildSign(anchor, "RD|" + yy + "|" + distA + "|" + distB);
+  OpexSign(anchor, "RD|" + yy + "|" + distA + "|" + distB);
   /* Position brute (2026-08-28) : RD frozen 3 annees de suite a la meme distance de stopA est
    * ambigu (boucle courte qui repasserait par hasard au meme point chaque relevé annuel, vs
    * vehicule reellement bloque). RL compare la tuile EXACTE d'une annee sur l'autre. */
-  AISign.BuildSign(anchor, "RL|" + yy + "|" + loc);
+  OpexSign(anchor, "RL|" + yy + "|" + loc);
 
   if (AIStation.IsValidStation(d.stationA) && AIStation.IsValidStation(d.stationB)) {
     local ratingA = AIStation.GetCargoRating(d.stationA, d.cargo);
     local ratingB = AIStation.GetCargoRating(d.stationB, d.cargo);
-    AISign.BuildSign(anchor, "RY|" + yy + "|" + ratingA + "|" + ratingB);
+    OpexSign(anchor, "RY|" + yy + "|" + ratingA + "|" + ratingB);
 
     local waitA = AIStation.GetCargoWaiting(d.stationA, d.cargo);
     local waitB = AIStation.GetCargoWaiting(d.stationB, d.cargo);
-    AISign.BuildSign(anchor, "RW|" + yy + "|" + waitA + "|" + waitB);
+    OpexSign(anchor, "RW|" + yy + "|" + waitA + "|" + waitB);
 
     /* Reprend EXACTEMENT le test de production utilise a la construction (OpexRoadStopSites,
      * meme tuile, meme rayon) pour savoir si la sonde de placement reste valide dans la duree,
      * ou si elle etait deja un faux positif au moment de la construction. */
     local prodA = AITile.GetCargoProduction(d.stopA, d.cargo, 1, 1, d.coverage);
     local prodB = AITile.GetCargoProduction(d.stopB, d.cargo, 1, 1, d.coverage);
-    AISign.BuildSign(anchor, "RP|" + yy + "|" + prodA + "|" + prodB);
+    OpexSign(anchor, "RP|" + yy + "|" + prodA + "|" + prodB);
   }
 }
 
@@ -640,7 +655,7 @@ function OpexAI::_scrapDeadLines(year)
         }
       }
       line.scrapVehicles = ids;
-      AISign.BuildSign(anchor, "DL|" + year + "|" + line.lineId + "|2");
+      OpexSign(anchor, "DL|" + year + "|" + line.lineId + "|2");
     }
 
     if (line.scrapping) {
@@ -656,7 +671,7 @@ function OpexAI::_scrapDeadLines(year)
       line.scrapVehicles = remaining;
       if (remaining.len() == 0) {
         toRemove.append(i);  // i = position physique dans _lines, pour le retrait -- pas le sign
-        AISign.BuildSign(anchor, "DL|" + year + "|" + line.lineId + "|3");
+        OpexSign(anchor, "DL|" + year + "|" + line.lineId + "|3");
       }
     }
   }
@@ -673,14 +688,14 @@ function OpexAI::_reportYear(year, ranked)
   local anchor = AIMap.GetTileIndex(1, 1);
   local best = ranked.best.len() > 0 ? ranked.best[0] : null;
 
-  AISign.BuildSign(anchor, "OX|" + year + "|" + this._catalog.towns.len()
+  OpexSign(anchor, "OX|" + year + "|" + this._catalog.towns.len()
                            + "|" + this._catalog.industries.len() + "|" + ranked.all);
-  AISign.BuildSign(anchor, "OC|" + year + "|" + this._budget.get("cat_towns")
+  OpexSign(anchor, "OC|" + year + "|" + this._budget.get("cat_towns")
                            + "|" + this._budget.get("cat_industries")
                            + "|" + this._budget.get("cat_rail"));
-  AISign.BuildSign(anchor, "OP|" + year + "|" + this._budget.get("cand_pax")
+  OpexSign(anchor, "OP|" + year + "|" + this._budget.get("cand_pax")
                            + "|" + this._budget.get("cand_freight"));
-  AISign.BuildSign(anchor, "OS|" + year + "|" + this._budget.get("cand_rank")
+  OpexSign(anchor, "OS|" + year + "|" + this._budget.get("cand_rank")
                            + "|" + this._budget.utilisationPerMille(this._startTick));
 
   /* Le poste qui domine tout le reste : la recherche de chemin et la construction. */
@@ -689,18 +704,18 @@ function OpexAI::_reportYear(year, ranked)
                  + this._budget.get("build_trains") + this._budget.get("build_water_plans")
                  + this._budget.get("build_docks") + this._budget.get("build_water_depot")
                  + this._budget.get("build_ships");
-  AISign.BuildSign(anchor, "OW|" + year + "|" + buildOps + "|" + this._lines.len());
+  OpexSign(anchor, "OW|" + year + "|" + buildOps + "|" + this._lines.len());
 
   if (best != null) {
-    AISign.BuildSign(anchor, "OB|" + year + "|" + best.distance
+    OpexSign(anchor, "OB|" + year + "|" + best.distance
                              + "|" + best.monthly + "|" + best.ratio);
-    AISign.BuildSign(anchor, "OE|" + year + "|" + best.trains
+    OpexSign(anchor, "OE|" + year + "|" + best.trains
                              + "|" + best.profitAnnual + "|" + best.capital);
   }
-  AISign.BuildSign(anchor, "OD|" + year + "|" + ranked.bands[0] + "|" + ranked.bands[1]
+  OpexSign(anchor, "OD|" + year + "|" + ranked.bands[0] + "|" + ranked.bands[1]
                            + "|" + ranked.bands[2] + "|" + ranked.bands[3]);
   if (this._catalog.loco != null) {
-    AISign.BuildSign(anchor, "OL|" + year + "|" + this._catalog.loco.speed
+    OpexSign(anchor, "OL|" + year + "|" + this._catalog.loco.speed
                              + "|" + this._catalog.costTrackPerTile
                              + "|" + this._catalog.costStation);
   }
@@ -729,13 +744,17 @@ function OpexAI::_tryRepayLoan(year)
   local repaid = loan - newLoan;
   AICompany.SetLoanAmount(newLoan);
   local anchor = AIMap.GetTileIndex(1, 1);
-  AISign.BuildSign(anchor, "LR|" + year + "|" + repaid + "|" + newLoan);
+  OpexSign(anchor, "LR|" + year + "|" + repaid + "|" + newLoan);
 }
 
 function OpexAI::Start()
 {
   AICompany.SetName("OpexAI");
   this._startTick = AIController.GetTick();
+
+  /* Lu une seule fois : le reglage ne change pas en cours de partie, et OpexSign est appele des
+   * dizaines de fois par an. Un GetSetting par appel serait du gaspillage pur. */
+  DEBUG_SIGNS = AIController.GetSetting("debug_signs") != 0;
 
   /* L'emprunt maximal des le depart : la note de compagnie recompense l'emprunt a zero (5 %),
    * mais une ligne non construite faute de tresorerie coute bien davantage. Le remboursement
@@ -784,7 +803,7 @@ function OpexAI::Start()
       local blockEndTick = AIController.GetTick();
       local anchor = AIMap.GetTileIndex(1, 1);
       local skippedMarker = skippedYears > 0 ? skippedYears + "C" : "0";
-      AISign.BuildSign(anchor, "YT|" + (year % 100) + "|" + blockStartTick + "|" + blockEndTick
+      OpexSign(anchor, "YT|" + (year % 100) + "|" + blockStartTick + "|" + blockEndTick
                                + "|" + tryBuildTicks + "|" + skippedMarker);
     }
 
@@ -800,17 +819,17 @@ function OpexAI::Start()
           local qSpeed = AIVehicle.GetCurrentSpeed(this._roadDiag.vehicle);
           local qLoc = AIVehicle.GetLocation(this._roadDiag.vehicle);
           local qDistA = AIMap.DistanceManhattan(qLoc, this._roadDiag.stopA);
-          AISign.BuildSign(qAnchor, "RQ|" + this._roadSampleCount + "|" + qSpeed + "|" + qDistA);
+          OpexSign(qAnchor, "RQ|" + this._roadSampleCount + "|" + qSpeed + "|" + qDistA);
           /* La destination REELLE de l'ordre courant (2026-08-28) : le cycle vitesse qui remonte
            * a zero puis redescend toutes les ~5 semaines dans RQ evoque un aller-retour depot
            * plutot qu'une avance vers stopA/stopB -- ceci le prouve ou l'ecarte directement. */
           local qDest = AIOrder.GetOrderDestination(this._roadDiag.vehicle, AIOrder.ORDER_CURRENT);
-          AISign.BuildSign(qAnchor, "RE|" + this._roadSampleCount + "|" + qDest);
+          OpexSign(qAnchor, "RE|" + this._roadSampleCount + "|" + qDest);
           /* Fait binaire (2026-08-28) : litteralement gare DANS le depot, ou non -- pour trancher
            * entre "les lectures de vitesse sont un artefact, le bus n'a jamais quitte le depot" et
            * "il roule vraiment mais ne progresse jamais". */
           local qParked = AIVehicle.IsStoppedInDepot(this._roadDiag.vehicle) ? 1 : 0;
-          AISign.BuildSign(qAnchor, "RI|" + this._roadSampleCount + "|" + qParked);
+          OpexSign(qAnchor, "RI|" + this._roadSampleCount + "|" + qParked);
         }
       }
     }
