@@ -176,21 +176,40 @@ annuel suivant ; aucun seuil d'arrêt nouveau n'est introduit. Après correction
 les cinq derniers rangs gardent les mêmes résultats et les agrégats restent 17 lignes,
 `company_value` 2 716 098, emprunt 0, `performance_history` 503.
 
-**Effet de bord découvert, sans rapport avec ce correctif : un plafond d'instrumentation.** Tous
-les signs de diagnostic sont posés sur la même tuile `(1,1)`, jamais nettoyés
-(`AISign.BuildSign`, aucun `RemoveSign` nulle part dans le code). Sur la mesure intermédiaire
-(exclusion d'origine seule), le rapport annuel (`OX`/`OW`/`OS`) s'est arrêté silencieusement après
-1985 — 4 années sur 20 sans visibilité, alors que la construction continuait normalement derrière
-(vérifié via le chunk `PLYR`, indépendant des signs). Sur la mesure finale (avec `MIN_RATIO`), une
-seule année (1984) manque au lieu de quatre. Cause exacte non identifiée — pas un plafond fixe
-évident (le nombre total de signs à l'arrêt variait d'une mesure à l'autre), mais un risque latent
-sur toute campagne assez longue ou productive. À traiter séparément si une campagne future en a
-besoin.
+**Hypothèse du plafond de panneaux réfutée ; vrai défaut du cycle annuel (2026-08-28).** Il
+n'existe pas de limite par tuile : `CmdPlaceSign` n'utilise la tuile que pour les coordonnées. Ses
+deux échecs sont le nom de 32 caractères ou plus et le pool global épuisé ; ce dernier vaut 64 000,
+très au-dessus des 1 400 à 2 149 signs de ces campagnes. Surtout, le trou est au milieu : 1984 est
+absent mais 1985-1989 sont présents dans les trois mesures conservées. Un plafond de pool serait
+monotone. L'ancienne explication « seule l'observabilité est perdue » est donc fausse.
+
+La sonde `YT` remplace le panneau annuel `GT` (pas de commande de panneau supplémentaire) et donne
+la preuve directe. En baseline, le bloc étiqueté 1983 commence au tick **88 142**, finit à
+**104 707**, dure **16 565 ticks** et ne dépasse donc pas 27 010 (il lui manque 10 445). Mais les
+ticks de `AIController` ne suivent pas l'arithmétique 365 × 74 supposée ici : ce bloc franchit
+bien le calendrier jusqu'en 1985. `_tryBuild` en consomme **16 356 ticks (98,7 %)**, contre 209
+pour le reste. Le bloc suivant porte `YT|85|...|1` : une année civile, **1984**, a été franchie
+sans être exécutée. Dans l'ancien code, aucun rapport de ligne, rebut, remboursement, catalogue
+ni classement annuels ne s'exécutait pour elle ; seul le `_tryBuild` du cycle 1983 pouvait encore
+continuer pendant ce temps, sans nouveau cycle de construction propre à 1984.
+
+Le correctif rattrape, à l'entrée du cycle 1985, les opérations encore valides sur l'état réel
+présent : rapport des lignes, traitement des lignes mortes et remboursement. Il ne rejoue pas une
+construction ni un classement historiques, dont les candidats, l'argent et le monde ont déjà
+changé ; le catalogue est rafraîchi une fois pour l'année courante. Le marqueur `YT|85|...|1C`
+prouve ce rattrapage : 1984 reste une année calendaire franchie, mais il n'y a plus d'année
+**non traitée**. Même campagne : 16 lignes, `company_value` **2 787 970**, emprunt 0,
+`performance_history` 521.
 
 ## 7. Pistes écartées
 
 Hypothèses testées puis rejetées par la mesure, ou décisions de conception prises et non retenues,
 consignées ici pour ne pas les reproposer sans nouvelle donnée.
+
+- **Borner A* à la frontière calendaire pour empêcher tout franchissement.** Testé graine 42/20
+  ans : plus aucune année franchie, mais 14 lignes, `company_value` **2 413 212** (-11,2 %),
+  emprunt 0 et `performance_history` 433. Cela coupe des recherches rentables plutôt que de
+  traiter le travail annuel retardé ; écarté au profit du rattrapage sans reconstruction passée.
 
 - **La fermeture d'industrie source comme cause SEULE de l'effondrement fret initial (§2).** Avant
   diagnostic sur l'état réel des convois, c'était l'hypothèse la plus probable (le catalogue perd

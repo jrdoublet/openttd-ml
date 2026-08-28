@@ -67,8 +67,8 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
    épuisées, l'IA s'engageait sur des candidats marginaux qu'un `TOP_K` engorgé bloquait
    *accidentellement* avant. Ajout d'un plancher `MIN_RATIO = 500` (profit/1000 itérations) qui
    corrige : **17 lignes** (contre 15), `company_value` **2 716 098** (+12,5 % vs avant tout
-   correctif), emprunt remboursé. Détail dans `docs/opexai_croissance.md` §6, y compris un effet
-   de bord découvert (plafond d'instrumentation des `AISign`, sans rapport avec ce correctif).
+   correctif), emprunt remboursé. Détail dans `docs/opexai_croissance.md` §6, y compris le
+   rattrapage du cycle annuel qui remplace la fausse piste du plafond `AISign`.
 
 **Nouvelle priorité de fait** : l'item 2 (verrouillage de ville) devient le prochain morceau de
 code — nécessite d'abord une mesure (croissance des villes desservies stagne-t-elle réellement ?)
@@ -148,14 +148,15 @@ Reprend le §8 de `docs/mecanique_jeu.md`, complété.
 - **Augmenter le nombre de graines, pas les répétitions** : bruit intra-graine 4,1 % contre
   dispersion inter-graines de 26 %. Erreur-type de la moyenne à n=5 : 11,8 % ; à n=20 : 5,9 %.
 - Le **face à face** dans une partie partagée, aux jalons seulement (décidé le 2026-08-28).
-- **Plafond d'instrumentation `AISign` découvert (2026-08-28), non expliqué.** Tous les signs de
-  diagnostic d'`OpexAI` sont posés sur la même tuile `(1,1)`, jamais nettoyés. Sur une campagne
-  20 ans/graine 42, le rapport annuel (`OX`/`OW`/`OS`) s'est arrêté silencieusement 4 années avant
-  la fin dans une mesure, 1 seule dans une autre — sans lien apparent avec le nombre total de
-  signs déjà posés (pas un plafond fixe évident). La construction elle-même continue derrière
-  (vérifié via le chunk `PLYR`, indépendant des signs) : seule l'observabilité est perdue. Risque
-  latent pour tout banc porté à 20 ans (point ci-dessus) sur une IA qui construit beaucoup. Détail
-  dans `docs/opexai_croissance.md` §6.
+- ✅ **Hypothèse d'un plafond `AISign` réfutée (2026-08-28).** Ni la tuile `(1,1)` ni le nombre
+  de signs de la campagne ne sont en cause : `CmdPlaceSign` ne peut échouer ici que par nom de
+  32 caractères ou plus, ou par pool global de 64 000 entrées, très au-dessus des ~2 000 signs.
+  Le trou non monotone (1984 absent, 1985-1989 présents) vient du cycle annuel de `Start()` qui
+  franchit une année pendant `_tryBuild` puis fixe directement `lastYear` à l'année courante.
+  Ce n'était pas une perte d'observabilité : les tâches annuelles ne s'exécutaient pas (seul le
+  `_tryBuild` déjà lancé pouvait continuer). Le rattrapage exécute désormais rapport des lignes,
+  traitement des lignes mortes et remboursement pour chaque année franchie ; détail et mesure
+  directe dans `docs/opexai_croissance.md` §6.
 - Élucider le **non-déterminisme propre à AAAHogEx** (la plateforme, elle, est déterministe).
   🔶 Mécanisme confirmé par lecture de source (pas encore de test A/B, donc la causalité sur le
   non-déterminisme reste ouverte) :
