@@ -83,6 +83,11 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly)
     carried = economics.carried,
     capital = economics.capital,
     profitAnnual = economics.profitAnnual,
+    /* Detail du calcul, garde pour l'instrumentation predit-vs-reel (cf. main.nut). */
+    revenueAnnual = economics.revenueAnnual,
+    runningAnnual = economics.runningAnnual,
+    amortAnnual = economics.amortAnnual,
+    oneWayDays = economics.oneWayDays,
     iterations = iterations,
     /* Le classement interne : profit annuel attendu par millier d'iterations d'A* attendues.
      * On divise par les iterations et non par les opcodes : c'est le meme classement (2700
@@ -112,6 +117,18 @@ function OpexTopK(all, k)
   return best;
 }
 
+/* Part de la production TOTALE d'une ville qui tombe dans le rayon de couverture d'UNE gare.
+ * CALIBRE le 2026-08-28 (meme mesure que STATION_RATING_PCT ci-dessus) : en isolant le facteur
+ * note de gare (mesure separement via AIStation.GetCargoRating), le residu -- production reelle
+ * ayant atteint la gare divisee par AITown.GetLastMonthProduction -- vaut 8 a 37 % selon la
+ * ligne, moyenne 22 % sur 9 lignes pax reelles. C'etait le biais deja signale, non calibre, dans
+ * le commentaire precedent : AITown.GetLastMonthProduction porte sur la ville ENTIERE, une gare
+ * n'en couvre qu'un rayon local. Domine le gap x10 predit/reel bien plus que STATION_RATING_PCT
+ * (~1,4x seulement) : voir docs/opex_predict_vs_actual.json.
+ * Ne s'applique QU'aux paires de villes : une industrie produit depuis une seule tuile, elle n'a
+ * pas cette dilution geometrique -- non mesure ici, donc non touche. */
+const TOWN_CATCHMENT_SHARE_PCT = 22;
+
 /* Paires de villes pour les passagers. */
 function OpexPaxCandidates(catalog, out)
 {
@@ -126,11 +143,10 @@ function OpexPaxCandidates(catalog, out)
   for (local a = 0; a < n; a++) {
     for (local b = a + 1; b < n; b++) {
       /* Une ligne dessert les deux sens, et chaque sens transporte la production de SON
-       * origine : le debit utile est la somme, pas le minimum.
-       * ⚠️ Deux biais opposes subsistent, non calibres : GetLastMonthProduction porte sur la
-       * ville ENTIERE alors qu'une gare n'en couvre qu'une fraction (surestimation), et on
-       * ignore la croissance de la ville que la desserte provoque (sous-estimation). */
-      local monthly = produced[a] + produced[b];
+       * origine : le debit utile est la somme, pas le minimum. On ignore encore la croissance de
+       * la ville que la desserte provoque (sous-estimation non calibree, plus petite que le
+       * facteur ci-dessus d'apres la mesure). */
+      local monthly = ((produced[a] + produced[b]) * TOWN_CATCHMENT_SHARE_PCT) / 100;
       local candidate = OpexMakeCandidate(catalog, "pax", cargo, towns[a].tile, towns[b].tile, monthly);
       if (candidate != null) out.append(candidate);
     }

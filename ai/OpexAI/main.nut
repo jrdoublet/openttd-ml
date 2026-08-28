@@ -177,10 +177,29 @@ function OpexAI::_tryBuild(ranked, year)
     }
 
     if (result.ok) {
+      local idx = this._lines.len();
+      /* Predit-vs-reel (etage 1) : le detail du calcul au moment de la construction, pour pouvoir
+       * le comparer plus tard a la mesure reelle (_reportLines). Un sign par grandeur : jamais
+       * plus de 2 valeurs numeriques par nom pour rester sous la limite silencieuse de 31
+       * caracteres meme quand i et les valeurs sont a leur maximum plausible. */
+      AISign.BuildSign(anchor, "OF|" + idx + "|" + candidate.revenueAnnual);
+      AISign.BuildSign(anchor, "OJ|" + idx + "|" + candidate.runningAnnual);
+      AISign.BuildSign(anchor, "OK|" + idx + "|" + candidate.amortAnnual);
+      AISign.BuildSign(anchor, "OQ|" + idx + "|" + candidate.carried + "|" + candidate.trains);
+      AISign.BuildSign(anchor, "OT|" + idx + "|" + candidate.oneWayDays);
+      /* pax vs freight, et la production mensuelle BRUTE utilisee comme entree : pour trancher si
+       * le residu du gap vient de la ville entiere comptee au lieu du seul rayon de la gare
+       * (candidates.nut le signale deja comme biais non calibre sur les paires de villes). */
+      AISign.BuildSign(anchor, "PK|" + idx + "|" + (candidate.kind == "pax" ? "P" : "F")
+                               + "|" + candidate.monthly);
+
       this._lines.append({
         stationA = result.stationA, stationB = result.stationB, cargo = candidate.cargo,
         predicted = candidate.profitAnnual, iterations = result.iterations,
         trains = result.trains, distance = candidate.distance, year = year,
+        predRevenue = candidate.revenueAnnual, predRunning = candidate.runningAnnual,
+        predAmort = candidate.amortAnnual, predCarried = candidate.carried,
+        predTrains = candidate.trains, predOneWayDays = candidate.oneWayDays,
       });
     }
   }
@@ -203,12 +222,24 @@ function OpexAI::_reportLines(year)
         ? AIStation.GetCargoRating(stationB, line.cargo) : -1;
     AISign.BuildSign(anchor, "OY|" + i + "|" + year + "|" + ratingA + "|" + ratingB);
 
+    /* Profit reel (deja mesure), plus le detail qui manquait : combien de convois roulent
+     * VRAIMENT (vs. le trains predit dans _tryBuild), leur cout de fonctionnement reel, et le
+     * revenu reel implicite (profit + cout de fonctionnement, puisque GetProfitLastYear n'est
+     * pas decompose par l'API). C'est ce qui permet de departager "note de gare fausse" de
+     * "cout de fonctionnement fausse" de "convois manquants" comme cause du 10x. */
     local profit = 0;
+    local runCost = 0;
+    local vehCount = 0;
     local vehicles = AIVehicleList_Station(stationA);
     for (local v = vehicles.Begin(); !vehicles.IsEnd(); v = vehicles.Next()) {
+      if (AIVehicle.GetVehicleType(v) != AIVehicle.VT_RAIL) continue;
       profit += AIVehicle.GetProfitLastYear(v);
+      runCost += AIVehicle.GetRunningCost(v);
+      vehCount++;
     }
     AISign.BuildSign(anchor, "OZ|" + i + "|" + year + "|" + profit);
+    AISign.BuildSign(anchor, "OU|" + i + "|" + year + "|" + vehCount + "|" + runCost);
+    AISign.BuildSign(anchor, "OO|" + i + "|" + year + "|" + (profit + runCost));
   }
 }
 

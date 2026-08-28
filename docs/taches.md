@@ -46,14 +46,34 @@ hypothèses de pertinence, pas des résumés.
 
 ## 3. Calibrations en attente
 
-- **Le modèle économique** (`economy.nut`) : niveau ~10× trop bas, et son classement préfère la
-  bande 25-45 tuiles là où la campagne place l'optimum en 45-70. **Bloqué** par la mesure de volume
-  de l'étage 3.
+- ✅ **Le modèle économique, volet PASSAGERS** (`economy.nut`/`candidates.nut`) : mesuré et corrigé
+  le 2026-08-28 sur 9 lignes pax réelles (2 campagnes de 10 ans, graine 42, 15.3) — voir
+  `docs/opex_predict_vs_actual.json` et `sweeps/opex_predict_vs_actual.py`. Le gap ~10x se
+  décompose en `STATION_RATING_PCT` trop optimiste (75 supposé contre ~53 mesuré, facteur ~1,4x
+  seulement) ET, dominant, `AITown.GetLastMonthProduction` compté sur la ville ENTIÈRE alors
+  qu'une gare n'en capte qu'un rayon local (facteur ~4,5x résiduel, mesuré 8-37 % selon la ligne).
+  Corrigé par `STATION_RATING_PCT = 50` et un nouveau `TOWN_CATCHMENT_SHARE_PCT = 22` appliqué
+  uniquement aux paires de villes dans `OpexPaxCandidates`. Vérification in-sample sur les 9
+  lignes : ratio prédit/réel resserré de 3,75-17,3x à 0,55-2,54x (moyenne ~1,18x contre ~8x avant).
+- ⚠️ **NOUVEAU, hors périmètre de cette tâche** : le run de vérification post-correctif n'a
+  construit QUE des lignes fret (le correctif déclasse maintenant correctement le pax face au
+  fret, qui n'était pas touché). Deux constats sur ces 3 lignes fret, non résolus :
+  1. leur écart prédit/réel reste ~4-6x même après `STATION_RATING_PCT` seul (le fret n'a pas le
+     biais ville-entière du pax, donc `TOWN_CATCHMENT_SHARE_PCT` ne s'y applique pas — mais un
+     autre facteur, non identifié, y joue un rôle comparable) ;
+  2. les 3 lignes fret ont vu leur note de gare tomber à -1 (donc revenu nul, perte sèche = le
+     coût de fonctionnement) au bout de 1 à 3 ans — la piste la plus probable est la fermeture de
+     l'industrie source (`cat_industries` recule de 47 à 44 sur les 10 ans du run) plutôt qu'un
+     starvation lié à `OF_FULL_LOAD_ANY`, mais ce n'est pas tranché. À mesurer avant de construire
+     du fret avec confiance.
 - **Le modèle de coût A\*** (`candidates.nut`, table de nœuds) : ajusté sous OpenTTD 13.4 avec le
   pathfinder de `TrainLineAI`. La forme se transporte, les coefficients doivent être réajustés sur
   `OpexAI` sous 15.3.
-- **Les trois constantes marquées HYPOTHÈSE** : `SPEED_EFFICIENCY_PCT = 70`,
-  `STATION_RATING_PCT = 75`, `WAGONS_PER_TRAIN = 5`.
+- **Constantes HYPOTHÈSE restantes** : `SPEED_EFFICIENCY_PCT = 70` et `WAGONS_PER_TRAIN = 5` —
+  ni l'une ni l'autre n'a été isolée par la mesure ci-dessus (le nombre de trains prédit a toujours
+  matché le nombre réel exactement sur les 9 lignes, mais c'est la contrainte de fréquence
+  `TARGET_HEADWAY_DAYS` qui dominait à chaque fois, jamais la capacité — `WAGONS_PER_TRAIN` reste
+  donc non testé).
 
 ---
 

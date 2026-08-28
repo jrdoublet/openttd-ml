@@ -21,11 +21,12 @@
  * 111 a courbure 2 -- docs/mecanique_jeu.md §2), auxquels s'ajoutent acceleration et arrets. */
 const SPEED_EFFICIENCY_PCT = 70;
 
-/* Note de gare supposee en regime etabli, en pourcent. HYPOTHESE a calibrer.
- * Ordre de grandeur derive du bareme (§3) : vehicule neuf 33 + ramassage frequent 130 + peu de
- * cargo en attente 40, sur 255, soit ~80 % avant le bonus de vitesse et sans statue. On retient
- * 75 % pour tenir compte de la montee en regime (2 points par 2,5 jours, donc ~2 mois). */
-const STATION_RATING_PCT = 75;
+/* Note de gare supposee en regime etabli, en pourcent.
+ * CALIBRE le 2026-08-28 sur 9 lignes pax reelles (2 campagnes de 10 ans, graine 42, OpenTTD
+ * 15.3) : AIStation.GetCargoRating() mesure en regime etabli donne 49-55 par ligne (moyenne
+ * 52,8), tres loin des 75 supposes ici avant. Voir docs/opex_predict_vs_actual.json et le rapport
+ * de la tache "predit vs reel" pour le detail ligne par ligne. */
+const STATION_RATING_PCT = 50;
 
 /* Intervalle cible entre deux ramassages, en jours. Vient du bareme : la tranche la mieux notee
  * est "moins de 15 s" de temps reel, soit ~6,8 jours de jeu a 74 ticks/jour. */
