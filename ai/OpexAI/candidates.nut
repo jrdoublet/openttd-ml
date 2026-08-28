@@ -20,6 +20,22 @@ const MAX_DISTANCE = 200;
 /* Nombre de candidats retenus en tete de classement. Au-dela, on ne consomme jamais. */
 const TOP_K = 20;
 
+/* Plancher de ratio (profit annuel attendu par millier d'iterations). Mesure du 2026-08-28,
+ * graine 42/20 ans, apres l'exclusion d'origine ci-dessous (OpexOriginServed) : une fois les
+ * bonnes origines epuisees, le TOP_K se remplit de candidats de moins en moins bons plutot que de
+ * rester vide -- et certains, lointains, ont un ratio predit ecrase (15, 218, 275) bien en dessous
+ * du plancher empirique observe sur cette meme campagne AVANT la correction (1278, jamais franchi
+ * a la baisse quand le classement avait assez de bons candidats pour ne jamais descendre aussi
+ * bas). Sans ce plancher, l'exclusion d'origine seule degradait le resultat (company_value
+ * 2 067 089 contre 2 413 587 avant, emprunt non rembourse) en laissant l'IA s'engager sur ces
+ * candidats marginaux -- avec MIN_RATIO=500, meme graine/duree : 17 lignes (contre 15),
+ * company_value 2 716 098 (+12,5 % vs avant tout correctif), emprunt rembourse. Ce plancher ne
+ * remplace pas la politique d'abandon en cours de construction (backlog S7, non faite) : il coupe
+ * les candidats structurellement mauvais AVANT la tentative, pas ceux dont le cout reel derape en
+ * cours de route (observe separement : une tentative a 70 tuiles a consomme 60 000 iterations pour
+ * un profit predit de 3 149 avant d'etre abandonnee, cf. docs/opexai_croissance.md). */
+const MIN_RATIO = 500;
+
 /* Etage 2 : le cout, AJUSTE sur la campagne v3 (1997 lignes reelles, OpenTTD 13.4).
  *
  * La grandeur utile n'est pas "iterations d'une tentative" mais "iterations par ligne REUSSIE",
@@ -72,6 +88,11 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly)
   if (economics.profitAnnual <= 0) return null;
 
   local iterations = OpexRailIterations(distance);
+  local ratio = (economics.profitAnnual * 1000) / iterations;
+  /* Sous MIN_RATIO, le candidat coute structurellement plus qu'il ne rapporte compare au reste du
+   * classement -- ne merite pas d'occuper une place dans le TOP_K meme s'il est techniquement
+   * profitable (economics.profitAnnual > 0 ne suffit pas, voir MIN_RATIO ci-dessus). */
+  if (ratio < MIN_RATIO) return null;
   return {
     kind = kind,            // "pax" ou "freight"
     cargo = cargo,
@@ -92,8 +113,9 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly)
     /* Le classement interne : profit annuel attendu par millier d'iterations d'A* attendues.
      * On divise par les iterations et non par les opcodes : c'est le meme classement (2700
      * opcodes par iteration, un facteur constant) mais les entiers restent petits et la valeur
-     * est directement comparable au "profit par iteration" mesure sur les campagnes. */
-    ratio = (economics.profitAnnual * 1000) / iterations,
+     * est directement comparable au "profit par iteration" mesure sur les campagnes. Deja calcule
+     * ci-dessus pour le test MIN_RATIO -- repris tel quel, pas recalcule. */
+    ratio = ratio,
   };
 }
 
@@ -117,6 +139,28 @@ function OpexTopK(all, k)
   return best;
 }
 
+/* Exclusion a la GENERATION plutot qu'au FILTRAGE (2026-08-28). Mesure sur graine 42/20 ans
+ * (docs/opex_full_campaign_20y.json) : les stalles restants de la campagne sont 20/20 candidats du
+ * TOP_K rejetes par _tooClose (main.nut) pour la MEME raison -- une origine deja desservie, jamais
+ * une proximite physique (near=20/far=0 a chaque annee bloquee). Le classement n'a alors aucune
+ * chance de contenir un candidat constructible : TOP_K entier gaspille sur des origines mortes.
+ * Exclure ici, avant OpexMakeCandidate, libere le TOP_K pour des candidats reellement
+ * constructibles et evite le calcul economique (OpexLineEconomics) sur un candidat deja perdu.
+ * Duplique deliberement le test ORIGIN_SEPARATION de _tooClose (meme rayon, meme regle "un seul
+ * raccordement par origine") plutot que de changer sa signature : ORIGIN_SEPARATION reste une
+ * const globale definie dans main.nut, visible ici car require()d avant toute execution (les
+ * fonctions de ce fichier ne s'executent qu'apres que main.nut a fini de se charger). _tooClose
+ * reste utile pour son second test, MIN_SEPARATION, qui depend de la gare BATIE et ne peut pas se
+ * calculer a la generation. */
+function OpexOriginServed(lines, tile)
+{
+  foreach (line in lines) {
+    if (AIMap.DistanceManhattan(tile, line.originA) < ORIGIN_SEPARATION) return true;
+    if (AIMap.DistanceManhattan(tile, line.originB) < ORIGIN_SEPARATION) return true;
+  }
+  return false;
+}
+
 /* Part de la production TOTALE d'une ville qui tombe dans le rayon de couverture d'UNE gare.
  * CALIBRE le 2026-08-28 (meme mesure que STATION_RATING_PCT ci-dessus) : en isolant le facteur
  * note de gare (mesure separement via AIStation.GetCargoRating), le residu -- production reelle
@@ -130,7 +174,7 @@ function OpexTopK(all, k)
 const TOWN_CATCHMENT_SHARE_PCT = 22;
 
 /* Paires de villes pour les passagers. */
-function OpexPaxCandidates(catalog, out)
+function OpexPaxCandidates(catalog, lines, out)
 {
   local cargo = catalog.paxCargo;
   if (cargo < 0) return;
@@ -141,7 +185,9 @@ function OpexPaxCandidates(catalog, out)
     produced.append(AITown.GetLastMonthProduction(towns[i].id, cargo));
   }
   for (local a = 0; a < n; a++) {
+    if (OpexOriginServed(lines, towns[a].tile)) continue;
     for (local b = a + 1; b < n; b++) {
+      if (OpexOriginServed(lines, towns[b].tile)) continue;
       /* Une ligne dessert les deux sens, et chaque sens transporte la production de SON
        * origine : le debit utile est la somme, pas le minimum. On ignore encore la croissance de
        * la ville que la desserte provoque (sous-estimation non calibree, plus petite que le
@@ -155,7 +201,7 @@ function OpexPaxCandidates(catalog, out)
 
 /* Industries : on n'apparie que des couples producteur/accepteur du MEME cargo, ce qui garde
  * l'etage 1 lineaire en nombre d'industries plutot que quadratique sur tout le catalogue. */
-function OpexFreightCandidates(catalog, out)
+function OpexFreightCandidates(catalog, lines, out)
 {
   local industries = catalog.industries;
   foreach (cargo, sources in catalog.producers) {
@@ -163,10 +209,12 @@ function OpexFreightCandidates(catalog, out)
     local sinks = catalog.acceptors[cargo];
     foreach (si in sources) {
       local source = industries[si];
+      if (OpexOriginServed(lines, source.tile)) continue;
       local monthly = AIIndustry.GetLastMonthProduction(source.id, cargo);
       if (monthly <= 0) continue;
       foreach (di in sinks) {
         if (di == si) continue;
+        if (OpexOriginServed(lines, industries[di].tile)) continue;
         local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile, industries[di].tile, monthly);
         if (candidate != null) out.append(candidate);
       }
@@ -174,17 +222,19 @@ function OpexFreightCandidates(catalog, out)
   }
 }
 
-/* Construit et classe tous les candidats. Rend la liste triee par rapport decroissant. */
-function OpexBuildCandidates(catalog, budget)
+/* Construit et classe tous les candidats. Rend la liste triee par rapport decroissant.
+ * `lines` (this._lines de main.nut) sert a exclure les origines deja desservies avant meme de
+ * calculer un candidat -- voir OpexOriginServed ci-dessus. */
+function OpexBuildCandidates(catalog, budget, lines)
 {
   local all = [];
 
   budget.begin();
-  OpexPaxCandidates(catalog, all);
+  OpexPaxCandidates(catalog, lines, all);
   budget.end("cand_pax");
 
   budget.begin();
-  OpexFreightCandidates(catalog, all);
+  OpexFreightCandidates(catalog, lines, all);
   budget.end("cand_freight");
 
   budget.begin();

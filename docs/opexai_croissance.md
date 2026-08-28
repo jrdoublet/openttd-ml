@@ -3,10 +3,10 @@
 Session du 2026-08-28, après la mise en place de l'étage 3 (construction) et du multimodal
 (`docs/opexai_multimodal.md`). Point de départ : sur une campagne graine 42, `ai/OpexAI/`
 s'arrêtait à 3 lignes ferroviaires, ne remboursait jamais son emprunt de 300 000 et terminait avec
-`company_value = 1`. Cinq correctifs successifs, chacun mesuré en jeu avant et après, ont porté la
-même campagne à 15 lignes et une valeur de compagnie de 2 413 587. Ce document décrit ce qui a été
-changé, comment chaque changement a été vérifié, et — à la demande explicite du suivi de projet —
-les pistes qui ont été envisagées puis écartées, avec la mesure qui a tranché.
+`company_value = 1`. Six correctifs successifs, chacun mesuré en jeu avant et après, ont porté la
+même campagne à 17 lignes et une valeur de compagnie de 2 716 098 (§6). Ce document décrit ce qui a
+été changé, comment chaque changement a été vérifié, et — à la demande explicite du suivi de
+projet — les pistes qui ont été envisagées puis écartées, avec la mesure qui a tranché.
 
 ## 1. Le modèle économique passagers surestimait le profit d'un facteur ~8
 
@@ -42,7 +42,7 @@ pas touché. Vérifié graine 42/10 ans : 3→8 lignes fret construites, note st
 (avant : -1 dès l'an 2), revenu ~18-28k/an soutenu (avant : 0). Commit `abd641b`.
 
 **Correction du 2026-08-28 (après-coup) : le correctif ci-dessus suffisait aussi à fermer l'écart
-prédit/réel.** §8 affirmait un écart fret résiduel de « ~4-6x » non identifié. Cette affirmation
+prédit/réel.** §9 affirmait un écart fret résiduel de « ~4-6x » non identifié. Cette affirmation
 n'était appuyée par aucune mesure citée dans ce document — en la creusant, la mesure existait déjà
 mais n'avait jamais été exploitée : `sweeps/opex_freight_postfix.py` avait tourné (graine 42,
 10 ans, code complet post-tous-correctifs) et écrit
@@ -67,7 +67,7 @@ ses années observées :
 deux lignes à 1 an de données (ratios 2,39 et 1,82) sont un effet de fenêtre courte, pas un facteur
 manquant : une ligne neuve ou en fin de vie n'a pas eu le temps de stabiliser sa note ni sa
 production source. **`STATION_RATING_PCT = 50` (calibré sur le pax) tient donc aussi pour le fret**,
-sans facteur correctif propre — la piste « facteur fret non identifié » de §8 est écartée, pas
+sans facteur correctif propre — la piste « facteur fret non identifié » de §9 est écartée, pas
 juste non trouvée. Donnée source : `docs/opex_predict_vs_actual_postfix_freight_v2.json`, déjà
 présente dans le dépôt depuis `abd641b`.
 
@@ -110,7 +110,7 @@ revenu nul, indéfiniment.
 
 Détection : `srcAlive=0` (`AIIndustry.IsValidIndustry`) seul ne suffit PAS — une gare peut rester
 alimentée par une industrie voisine du même cargo après la fermeture de celle d'origine et rester
-pleinement rentable (voir §6, piste écartée). Le diagnostic exige donc la preuve réelle mesurée
+pleinement rentable (voir §7, piste écartée). Le diagnostic exige donc la preuve réelle mesurée
 chaque année (note de gare ≤0 ET revenu implicite `profit + coût de fonctionnement` ≤0) en plus de
 la source défaillante, confirmée **2 années consécutives** (`DEAD_STREAK_THRESHOLD=2`) pour écarter
 un accroc transitoire.
@@ -129,7 +129,57 @@ deux lignes différentes recevaient parfois le même numéro d'une année sur l'
 `line.lineId`. Vérifié sans effet sur la partie elle-même (résultat identique avant/après ce
 correctif de diagnostic seul). Commit `e884358`.
 
-## 6. Pistes écartées
+## 6. `TOP_K` saturé par des origines déjà servies
+
+Item 3 du backlog (`docs/taches.md` §2), traité le 2026-08-28. Baseline préservée dans
+`docs/opex_full_campaign_20y_before_topk_fix.json` (avant tout correctif de cette section) ;
+`docs/opex_full_campaign_20y.json` reflète l'état final (exclusion d'origine + `MIN_RATIO`).
+Sur la campagne graine 42/20 ans,
+les stalles de croissance (12 lignes bloquées 3 ans, 1984-1986) étaient mesurées comme 20/20
+candidats du `TOP_K` rejetés par `_tooClose` pour la MÊME raison — une origine déjà desservie,
+jamais une proximité physique. Le classement n'avait alors aucune chance de contenir un candidat
+constructible : `TOP_K` entier gaspillé sur des origines mortes, sans qu'aucune place ne soit
+jamais réévaluée.
+
+**Premier correctif, insuffisant seul.** Exclure les origines déjà servies à la génération plutôt
+qu'au filtrage (`OpexOriginServed` dans `candidates.nut`, appliqué dans `OpexPaxCandidates` et
+`OpexFreightCandidates` avant même de calculer l'économie d'un candidat) fait bien son travail :
+14 lignes dès 1985 contre 12 avant, la fenêtre de stalle raccourcie. Mais vérifié seul (même
+graine/durée) : `company_value` **2 067 089** contre **2 413 587** avant (-14 %), emprunt **non
+remboursé**. En creusant : une fois les bonnes origines épuisées, l'IA descend vers des candidats
+à profit prédit quasi nul (685, 3 149) au lieu de laisser le `TOP_K` vide — dont une tentative à
+70 tuiles **abandonnée après 60 000 itérations gaspillées** pour un profit prédit de seulement
+3 149. L'ancien engorgement du `TOP_K` protégeait donc *accidentellement* contre ces candidats
+marginaux, sans que ce soit une protection voulue.
+
+**Second correctif : plancher de ratio.** `MIN_RATIO = 500` dans `OpexMakeCandidate` (profit
+annuel par millier d'itérations), sous lequel un candidat est rejeté même s'il est techniquement
+profitable. Choisi pour couper les trois candidats manifestement pathologiques de la mesure
+ci-dessus (ratios 15, 218, 275) sans toucher au plancher empirique de la campagne AVANT tout
+correctif (1278, jamais franchi à la baisse quand le classement avait assez de bons candidats).
+Vérifié, même graine/durée : **17 lignes** (contre 15 avant tout correctif), `company_value`
+**2 716 098** (+12,5 % vs avant), emprunt remboursé, `performance_history` 503 contre 424. Les 2
+échecs de construction restants sont des `STNFAIL` bon marché (3 600 et 4 200 itérations), pas une
+nouvelle dérive coûteuse.
+
+**Limite assumée, pas résolue ici.** Le plancher de ratio empêche de s'engager sur un candidat
+structurellement mauvais, mais ne protège pas contre un candidat au ratio *prédit* correct dont le
+coût réel dérape en cours de construction (le cas à 60 000 itérations ci-dessus avait un ratio
+prédit de 573, dans la zone acceptée) — c'est le rôle de la politique d'abandon en cours de
+recherche, encore non faite (`docs/taches.md` §7).
+
+**Effet de bord découvert, sans rapport avec ce correctif : un plafond d'instrumentation.** Tous
+les signs de diagnostic sont posés sur la même tuile `(1,1)`, jamais nettoyés
+(`AISign.BuildSign`, aucun `RemoveSign` nulle part dans le code). Sur la mesure intermédiaire
+(exclusion d'origine seule), le rapport annuel (`OX`/`OW`/`OS`) s'est arrêté silencieusement après
+1985 — 4 années sur 20 sans visibilité, alors que la construction continuait normalement derrière
+(vérifié via le chunk `PLYR`, indépendant des signs). Sur la mesure finale (avec `MIN_RATIO`), une
+seule année (1984) manque au lieu de quatre. Cause exacte non identifiée — pas un plafond fixe
+évident (le nombre total de signs à l'arrêt variait d'une mesure à l'autre), mais un risque latent
+sur toute campagne assez longue ou productive. À traiter séparément si une campagne future en a
+besoin.
+
+## 7. Pistes écartées
 
 Hypothèses testées puis rejetées par la mesure, ou décisions de conception prises et non retenues,
 consignées ici pour ne pas les reproposer sans nouvelle donnée.
@@ -163,7 +213,7 @@ consignées ici pour ne pas les reproposer sans nouvelle donnée.
   ligne retirée de `_lines`, elle ne bloque plus rien (`_tooClose` n'itère que sur `_lines`) ; la
   démolition ajoute un risque (note d'autorité locale, infrastructure partagée) pour un gain nul.
 
-## 7. Validation reproductible
+## 8. Validation reproductible
 
 Configuration commune à toutes les mesures de ce document : OpenTTD 15.3, OpenGFX 7.1, carte
 256×256, graine 42, année 1970, inflation désactivée. Harnais : `sweeps/opex_full_campaign.py`
@@ -176,9 +226,11 @@ Configuration commune à toutes les mesures de ce document : OpenTTD 15.3, OpenG
 | Après §1-§2, 20 ans | 12 | 2 245 285 | 300 000 |
 | Après §3 (`MIN_SEPARATION`), 20 ans | 12 | 2 245 285 | 300 000 |
 | Après §4 (emprunt), 20 ans | 13 | 2 233 591 | **0** |
-| Après §5 (lignes mortes), 20 ans | **15** | **2 413 587** | 0 |
+| Après §5 (lignes mortes), 20 ans | 15 | 2 413 587 | 0 |
+| Après §6, exclusion d'origine SEULE, 20 ans | 15 | 2 067 089 (régression) | 300 000 |
+| Après §6, + `MIN_RATIO`, 20 ans | **17** | **2 716 098** | 0 |
 
-## 8. Limites actuelles
+## 9. Limites actuelles
 
 - ~~L'écart prédit/réel du fret reste ~4-6x~~ — **retiré (2026-08-28)** : mesuré sans fondement
   cité, contredit par `docs/opex_predict_vs_actual_postfix_freight_v2.json` (généré mais non

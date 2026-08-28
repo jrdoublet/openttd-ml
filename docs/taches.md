@@ -42,9 +42,10 @@ hypothèses de pertinence, pas des résumés.
 
 **Tout l'ancien blocage capital est résolu (session du 2026-08-28)** : pax (`b09f23e`), fret
 (`abd641b`), `MIN_SEPARATION`/`ORIGIN_SEPARATION` (`5433518`), remboursement d'emprunt (`44e0b14`),
-détection et vente des lignes fret mortes (`e884358`). Graine 42/20 ans : 3 lignes bloquées →
-**15 lignes**, `company_value` 1 → **2 413 587**, emprunt à **0**. Détail dans
-[[opexai_squelette]].
+détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + plancher de ratio
+(`candidates.nut`, ce jour). Graine 42/20 ans : 3 lignes bloquées → **17 lignes**, `company_value`
+1 → **2 716 098**, emprunt à **0**. Détail dans [[opexai_squelette]] et
+`docs/opexai_croissance.md` §6.
 
 **Ce qui reste, par ordre d'impact mesuré :**
 
@@ -59,14 +60,19 @@ détection et vente des lignes fret mortes (`e884358`). Graine 42/20 ans : 3 lig
    Détail dans `docs/opexai_croissance.md` §2 et §8.
 2. **Ne pas enfermer la ville dans nos propres voies** — reporté faute de mesure : vérifier
    d'abord si la croissance des villes desservies stagne réellement (`docs/mecanique_jeu.md` §5).
-3. **Origines épuisées dans la fenêtre `TOP_K`** : les stalles restants de la campagne 20 ans sont
-   désormais mesurés comme une saturation réelle des candidats disponibles (`_tooClose` à
-   `near=20/far=0`), pas un seuil mal réglé. À traiter dans `candidates.nut` (`TOP_K` plus large,
-   ou exclusion des origines déjà servies à la génération plutôt qu'au filtrage).
+3. ✅ **Origines épuisées dans la fenêtre `TOP_K` : résolu (2026-08-28), en deux temps.** Exclusion
+   des origines déjà servies à la génération (`OpexOriginServed` dans `candidates.nut`) plutôt
+   qu'au filtrage — mais **seule, cette exclusion dégradait le résultat** (`company_value`
+   2 067 089 contre 2 413 587 avant, emprunt non remboursé) : une fois les bonnes origines
+   épuisées, l'IA s'engageait sur des candidats marginaux qu'un `TOP_K` engorgé bloquait
+   *accidentellement* avant. Ajout d'un plancher `MIN_RATIO = 500` (profit/1000 itérations) qui
+   corrige : **17 lignes** (contre 15), `company_value` **2 716 098** (+12,5 % vs avant tout
+   correctif), emprunt remboursé. Détail dans `docs/opexai_croissance.md` §6, y compris un effet
+   de bord découvert (plafond d'instrumentation des `AISign`, sans rapport avec ce correctif).
 
-**Nouvelle priorité de fait, après le retrait de l'item 1** : l'item 2 (verrouillage de ville) ou
-l'item 3 (`TOP_K`) devient le prochain morceau de code — l'item 3 a un plan d'action déjà écrit,
-l'item 2 nécessite d'abord une mesure.
+**Nouvelle priorité de fait** : l'item 2 (verrouillage de ville) devient le prochain morceau de
+code — nécessite d'abord une mesure (croissance des villes desservies stagne-t-elle réellement ?)
+avant tout changement de code.
 
 ---
 
@@ -142,6 +148,14 @@ Reprend le §8 de `docs/mecanique_jeu.md`, complété.
 - **Augmenter le nombre de graines, pas les répétitions** : bruit intra-graine 4,1 % contre
   dispersion inter-graines de 26 %. Erreur-type de la moyenne à n=5 : 11,8 % ; à n=20 : 5,9 %.
 - Le **face à face** dans une partie partagée, aux jalons seulement (décidé le 2026-08-28).
+- **Plafond d'instrumentation `AISign` découvert (2026-08-28), non expliqué.** Tous les signs de
+  diagnostic d'`OpexAI` sont posés sur la même tuile `(1,1)`, jamais nettoyés. Sur une campagne
+  20 ans/graine 42, le rapport annuel (`OX`/`OW`/`OS`) s'est arrêté silencieusement 4 années avant
+  la fin dans une mesure, 1 seule dans une autre — sans lien apparent avec le nombre total de
+  signs déjà posés (pas un plafond fixe évident). La construction elle-même continue derrière
+  (vérifié via le chunk `PLYR`, indépendant des signs) : seule l'observabilité est perdue. Risque
+  latent pour tout banc porté à 20 ans (point ci-dessus) sur une IA qui construit beaucoup. Détail
+  dans `docs/opexai_croissance.md` §6.
 - Élucider le **non-déterminisme propre à AAAHogEx** (la plateforme, elle, est déterministe).
   🔶 Mécanisme confirmé par lecture de source (pas encore de test A/B, donc la causalité sur le
   non-déterminisme reste ouverte) :
@@ -183,7 +197,11 @@ Ne pas oublier deux composantes gratuites de la note de compagnie : **emprunt à
   était déjà payée pour zéro profit ; ~145 M récupérables estimés, soit 453 par itération contre
   156 en moyenne.
 - **La politique d'abandon** : couper une recherche quand son rendement marginal attendu passe sous
-  le rapport du meilleur candidat non essayé. Évaluable hors ligne sur les données v3.
+  le rapport du meilleur candidat non essayé. Évaluable hors ligne sur les données v3. Motivation
+  concrète mesurée sur `OpexAI` le 2026-08-28 : une tentative fret à 70 tuiles, ratio prédit correct
+  (573, dans la zone acceptée par `MIN_RATIO`), a consommé **60 000 itérations pour rien** avant
+  d'être abandonnée — `MIN_RATIO` (§2 ci-dessus) ne protège pas contre ce cas, seul un abandon en
+  cours de recherche le peut. Détail dans `docs/opexai_croissance.md` §6.
 
 ---
 

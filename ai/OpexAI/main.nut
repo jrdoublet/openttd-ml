@@ -192,7 +192,13 @@ function OpexAI::_tryBuildWater(year)
  *     trop proches, meme pour deux origines differentes -- le vrai risque de cannibalisation.
  *
  * Rend -1 si aucun conflit, sinon la plus petite distance Manhattan trouvee parmi les deux
- * tests (0..MIN_SEPARATION-1, l'un ou l'autre seuil selon quel test a matche). */
+ * tests (0..MIN_SEPARATION-1, l'un ou l'autre seuil selon quel test a matche).
+ *
+ * Depuis le 2026-08-28, le test 1 (identite d'origine) est DEJA applique en amont, a la
+ * generation (OpexOriginServed dans candidates.nut) -- un candidat qui reutilise une origine
+ * servie n'atteint plus jamais le TOP_K, donc plus jamais ce test-ci. Cette fonction reste
+ * l'unique verification pour le test 2 (MIN_SEPARATION), qui depend de la gare BATIE et ne peut
+ * pas se calculer avant la tentative de construction. */
 function OpexAI::_tooClose(candidate)
 {
   local worst = -1;
@@ -561,7 +567,7 @@ function OpexAI::Start()
     if (year != lastYear) {
       lastYear = year;
       this._catalog.refresh(this._budget, year);
-      local ranked = OpexBuildCandidates(this._catalog, this._budget);
+      local ranked = OpexBuildCandidates(this._catalog, this._budget, this._lines);
       this._reportYear(year, ranked);
       this._reportLines(year);
       this._scrapDeadLines(year);
