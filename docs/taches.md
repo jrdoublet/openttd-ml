@@ -28,19 +28,22 @@ hypothèses de pertinence, pas des résumés.
 **✅ Étage 3 fait** (`ai/OpexAI/builder_rail.nut`, 2026-08-28) : 3 lignes sur 3 construites en
 10 ans, 56 véhicules. Comptabilité d'opcodes branchée, rollback sur échec, réserve de trésorerie.
 
-**Ce qui vient maintenant, par ordre d'impact mesuré :**
+**Tout l'ancien blocage capital est résolu (session du 2026-08-28)** : pax (`b09f23e`), fret
+(`abd641b`), `MIN_SEPARATION`/`ORIGIN_SEPARATION` (`5433518`), remboursement d'emprunt (`44e0b14`),
+détection et vente des lignes fret mortes (`e884358`). Graine 42/20 ans : 3 lignes bloquées →
+**15 lignes**, `company_value` 1 → **2 413 587**, emprunt à **0**. Détail dans
+[[opexai_squelette]].
 
-1. **Rendre les lignes rentables.** Profit réel ~4 000/an par ligne contre ~40 000 prédits, et
-   l'IA s'arrête à 3 lignes sans jamais rembourser son emprunt. `company_value = 1` : dernière du
-   banc. **Le goulot n'est plus le calcul mais le capital** — l'utilisation du budget d'opcodes est
-   tombée à 12 ‰.
-2. **Calibrer `STATION_RATING_PCT`** : mesuré 22-82, typiquement ~50, contre 75 supposé.
-3. **Comprendre la sur-estimation d'un facteur 10** de l'étage 1 (volume capté ? revenu unitaire ?
-   frais réels ?). L'instrument existe désormais : notes de gare et profit réel par ligne.
-4. **Ne pas enfermer la ville dans nos propres voies** — reporté faute de mesure : vérifier
+**Ce qui reste, par ordre d'impact mesuré :**
+
+1. **Écart prédit/réel du fret encore ~4-6x**, indépendant de la fermeture d'industrie (déjà
+   traitée) — voir §3 ci-dessous, non résolu.
+2. **Ne pas enfermer la ville dans nos propres voies** — reporté faute de mesure : vérifier
    d'abord si la croissance des villes desservies stagne réellement (`docs/mecanique_jeu.md` §5).
-5. **Desserrer `MIN_SEPARATION = 15`** — à évaluer : il peut être responsable de l'arrêt à 3 lignes
-   autant que la trésorerie.
+3. **Origines épuisées dans la fenêtre `TOP_K`** : les stalles restants de la campagne 20 ans sont
+   désormais mesurés comme une saturation réelle des candidats disponibles (`_tooClose` à
+   `near=20/far=0`), pas un seuil mal réglé. À traiter dans `candidates.nut` (`TOP_K` plus large,
+   ou exclusion des origines déjà servies à la génération plutôt qu'au filtrage).
 
 ---
 
@@ -55,17 +58,18 @@ hypothèses de pertinence, pas des résumés.
   Corrigé par `STATION_RATING_PCT = 50` et un nouveau `TOWN_CATCHMENT_SHARE_PCT = 22` appliqué
   uniquement aux paires de villes dans `OpexPaxCandidates`. Vérification in-sample sur les 9
   lignes : ratio prédit/réel resserré de 3,75-17,3x à 0,55-2,54x (moyenne ~1,18x contre ~8x avant).
-- ⚠️ **NOUVEAU, hors périmètre de cette tâche** : le run de vérification post-correctif n'a
-  construit QUE des lignes fret (le correctif déclasse maintenant correctement le pax face au
-  fret, qui n'était pas touché). Deux constats sur ces 3 lignes fret, non résolus :
-  1. leur écart prédit/réel reste ~4-6x même après `STATION_RATING_PCT` seul (le fret n'a pas le
-     biais ville-entière du pax, donc `TOWN_CATCHMENT_SHARE_PCT` ne s'y applique pas — mais un
-     autre facteur, non identifié, y joue un rôle comparable) ;
-  2. les 3 lignes fret ont vu leur note de gare tomber à -1 (donc revenu nul, perte sèche = le
-     coût de fonctionnement) au bout de 1 à 3 ans — la piste la plus probable est la fermeture de
-     l'industrie source (`cat_industries` recule de 47 à 44 sur les 10 ans du run) plutôt qu'un
-     starvation lié à `OF_FULL_LOAD_ANY`, mais ce n'est pas tranché. À mesurer avant de construire
-     du fret avec confiance.
+- ✅ **Note de gare fret à -1 : résolu, DEUX causes distinctes démêlées.**
+  1. **Train coincé** (`abd641b`, 2026-08-28) : `OF_FULL_LOAD_ANY` aux deux arrêts bloquait le
+     convoi au puits fret (structurellement à sens unique) sur une gare à une voie. Corrigé par
+     `OF_NONE` au puits.
+  2. **Fermeture d'industrie source** (`e884358`, 2026-08-28) : confirmée réelle sur certaines
+     lignes (via `AIIndustry.IsValidIndustry`, pas déduite), mais PAS systématique — une gare peut
+     rester rentable via une industrie voisine du même cargo (`srcAlive=0` n'implique pas la mort).
+     Détection sur performance réelle (note + revenu, 2 ans consécutifs) puis vente des convois une
+     fois le seuil confirmé.
+- ⚠️ **Reste ouvert** : l'écart prédit/réel du fret reste ~4-6x même après `STATION_RATING_PCT`
+  seul (le fret n'a pas le biais ville-entière du pax, donc `TOWN_CATCHMENT_SHARE_PCT` ne s'y
+  applique pas — un autre facteur, non identifié, y joue un rôle comparable). Non mesuré.
 - **Le modèle de coût A\*** (`candidates.nut`, table de nœuds) : ajusté sous OpenTTD 13.4 avec le
   pathfinder de `TrainLineAI`. La forme se transporte, les coefficients doivent être réajustés sur
   `OpexAI` sous 15.3.
