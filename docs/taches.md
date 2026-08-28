@@ -183,9 +183,13 @@ Reprend le §8 de `docs/mecanique_jeu.md`, complété.
      meilleure/pire graine est de **5,5×**. Toutes les décisions antérieures ont été prises sur une
      graine sous la médiane.
 
-  **Prochaine campagne évidente** : `OpexAI` contre `OpexAI[pathfinder_sleep_ticks=1]` sur les
-  mêmes 20 graines, en lecture appariée — la décision que la graine 42 n'a jamais pu trancher
-  (~25 min, les 20 parties OpexAI ayant pris 11 minutes).
+  ⚪ **`pathfinder_sleep_ticks` ne sera PAS mesuré au banc — décision arrêtée le 2026-08-29, ne pas
+  rouvrir.** Le défaut reste 0. Le banc sait pourtant l'opposer (`OpexAI[pathfinder_sleep_ticks=1]`),
+  mais le Sleep est **strictement dominé** : le moteur suspend déjà le script dès qu'il épuise son
+  budget d'opcodes du tick, donc `Sleep(n)` n'achète aucun opcode supplémentaire plus tard — il
+  fait seulement qu'OpexAI ne fait rien pendant n ticks pendant qu'un adversaire continue. Il n'y a
+  aucun mécanisme par lequel il puisse aider ; le 13-contre-13 de la graine 42 était du bruit de
+  trajectoire. Raisonnement écrit à côté du réglage dans `ai/OpexAI/info.nut`.
 
 - ⚪ *(absorbé par le banc v2)* **Porter le banc de 10 à 20 ans.** Toute l'évolution multimodale
   arrive après 1980 : aéroport METROPOLITAN (1980), COMMUTER (1983), parc routier +83 %, parc

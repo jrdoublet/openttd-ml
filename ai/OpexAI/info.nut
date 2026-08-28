@@ -50,8 +50,16 @@ class OpexAI extends AIInfo {
      * sans changer aucune decision, a suffi a faire perdre 3 lignes. Toute perturbation du rythme
      * d'opcodes deplace les frontieres de ticks et fait diverger la trajectoire. Avec une erreur-
      * type de 11,8 % a 5 graines (docs/taches.md S5), une graine unique ne peut pas trancher un
-     * ecart de cet ordre. D'ou un defaut choisi par principe et non par la mesure : trancher pour
-     * de bon demande le banc multi-graines.
+     * ecart de cet ordre.
+     *
+     * DECISION ARRETEE LE 2026-08-29, NE PAS ROUVRIR. Le defaut reste 0 et ne sera PAS mesure au
+     * banc multi-graines, alors meme que le banc existe desormais (sweeps/bench_v2.py sait opposer
+     * OpexAI a OpexAI[pathfinder_sleep_ticks=1]). Raison : le Sleep est strictement domine, il n'y
+     * a aucun mecanisme par lequel il puisse aider. Le moteur suspend deja le script des qu'il
+     * epuise son budget d'opcodes du tick, donc Sleep(n) n'achete aucun opcode supplementaire plus
+     * tard -- il fait seulement qu'OpexAI ne fait rien pendant n ticks pendant qu'un adversaire
+     * continue. Le 13-contre-13 de la graine 42 etait du bruit de trajectoire, pas un signal.
+     * Depenser 25 minutes de banc a le confirmer serait payer pour une conclusion connue.
      * Mettre 1 (ou plus) pour rendre la main plus souvent dans une partie avec des humains. */
     AddSetting({
       name = "pathfinder_sleep_ticks",
