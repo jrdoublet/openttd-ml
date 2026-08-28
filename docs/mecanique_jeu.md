@@ -125,9 +125,12 @@ cycle**, sauf événement.
 >    contredit l'intuition « un train long = plus de capacité ».
 > 2. **Sous-servir est doublement puni** : le cargo s'accumule (jusqu'à −35 %) *et* le délai de
 >    ramassage s'allonge. La dégradation est auto-renforçante.
-> 3. **La note monte lentement** (2 points / 2,5 jours ⇒ il faut ~2 mois pour aller de 0 à 100 %).
->    Une ligne neuve ne capte donc pas sa production nominale avant plusieurs mois — le revenu
->    attendu doit être escompté au démarrage.
+> 3. **La note monte (ou descend) lentement** (2 points / 2,5 jours). Correction depuis §8.4 : une
+>    gare neuve démarre en fait à **175/255 (~69 %)**, pas à 0 — le premier ramassage capté n'a
+>    donc rien à rattraper depuis zéro, seulement l'écart entre 175 et sa cible réelle (souvent en
+>    dessous, d'où une note qui *descend* au début plutôt que monte). Un écart de 50 points prend
+>    ~2 mois à se résorber, dans un sens comme dans l'autre. Le revenu attendu doit quand même être
+>    escompté au démarrage, mais depuis 69 %, pas depuis 0.
 > 4. **Renouveler les véhicules a une valeur mesurable** : 13 % pour du neuf contre 4 % à 2 ans.
 > 5. La note plafonne bien en dessous de 100 % sans statue et sans vitesse : c'est un plafond
 >    structurel à modéliser, pas un détail.
@@ -294,10 +297,140 @@ Construire une gare exige une note de seulement **−200** (donc quasi toujours 
 
 ## 8. Ce qui reste à vérifier dans le jeu plutôt que sur le wiki
 
-1. ⚙️ Le réglage `plane_speed` réellement actif dans notre config (le quart est le défaut).
-2. ⚙️ Économie lisse ou TTD classique dans notre config gelée — les probabilités de §4 en dépendent.
+1. ✅ Le réglage `plane_speed` réellement actif dans notre config : `4` (le défaut, non surchargé),
+   vérifié dans l'`openttdlab.cfg` généré par un run `OpexAI` réel du 2026-08-28
+   (`starting_year = 1970`, config figée) — pas supposé.
+2. ✅ Économie lisse ou TTD classique dans notre config gelée : `economy.type = 1` = `ET_SMOOTH`
+   (économie lisse), le défaut, non surchargé — vérifié dans l'`openttdlab.cfg` du 2026-08-28.
+   Les probabilités de §4 restent donc à recalibrer sur ce régime, pas sur le régime `ORIGINAL`.
+   À ne pas confondre avec `difficulty.economy` (= `false`, recessions désactivées), un réglage
+   distinct malgré le nom qui prête à confusion.
 3. Le **rendement de vitesse effectif** d'un train (vitesse réelle / vitesse catalogue), à mesurer :
    c'est ce qui rend `TILES_PER_DAY` honnête.
-4. La **courbe de montée de la note de gare** sur une ligne neuve, pour escompter correctement le
-   revenu des premiers mois.
+4. ✅🔶 La **courbe de montée de la note de gare** sur une ligne neuve, lue dans `station_cmd.cpp`
+   (`UpdateStationRating`) et `station_base.h` de la source 13.4 disponible localement — **pas
+   encore confirmée inchangée en 15.3**, mécanique ancienne donc probablement stable, mais non
+   revérifiée sur la bonne version :
+   - Une gare (par type de cargo) démarre à `INITIAL_STATION_RATING = 175` (sur 255, ~69 %) —
+     **pas à 0**. Pas de montée à faire tant qu'aucun ramassage n'a encore eu lieu pour ce cargo.
+   - La note ne se met à jour que tous les `STATION_RATING_TICKS = 185` ticks, soit `185/74 ≈
+     2,5 jours` (`DAY_TICKS = 74`) — confirme le chiffre déjà noté dans le backlog.
+   - Une fois le premier ramassage enregistré (`HasRating()` devient vrai), chaque cycle de
+     2,5 jours recalcule une note cible (vitesse du dernier véhicule, délai entre ramassages,
+     cargo en attente, statue en ville, âge du véhicule) puis ne déplace la note réelle que de
+     **±2 points maximum vers cette cible**, bornée à [0, 255].
+   - Conséquence chiffrable : un écart de ~50 points entre la note de départ (175) et une cible
+     stable prend `50/2 × 2,5 ≈ 62,5 jours ≈ 2 mois` à se résorber — cohérent avec le « ~2 mois
+     annoncés » déjà noté, mais dérivé ici de la formule plutôt que rappelé de mémoire.
 5. ❓ La formule chiffrée de croissance des villes, absente du wiki.
+
+---
+
+## 9. Tips de joueur — ce qui transpose à une IA
+
+**Source** : [wiki OpenTTD, *Manual/Tips*](https://wiki.openttd.org/en/Manual/Tips), lu le
+2026-08-28 (lecture demandée en section 1 du backlog). La page mélange raccourcis UI pour un
+joueur humain (sans objet pour une IA NoAI) et heuristiques de conception transposables. Seules
+ces dernières sont détaillées ici ; les raccourcis purement UI sont listés en fin de section pour
+mémoire, sans développement.
+
+- **Ordres partagés (`Ctrl`+clic)** — un groupe de véhicules peut partager le même jeu d'ordres, une
+  modification s'appliquant à tous à la fois. Côté API NoAI : `AIOrder.ShareOrders(vehicle_id,
+  main_vehicle_id)`. ❓ Non exploité par `OpexAI` aujourd'hui — chaque véhicule reçoit ses ordres
+  individuellement à la construction. Pertinent surtout si l'IA doit un jour *modifier* les ordres
+  d'une ligne existante (ex. ajouter un arrêt) : partager les ordres évite de reparcourir chaque
+  véhicule un par un.
+- **Boucles de gare routière** — une gare routière en ville fonctionne mieux insérée dans une
+  boucle (le véhicule peut refaire un tour plutôt que s'égarer si la gare est pleine). À retenir
+  pour le mode **Route** (prochain mode, section 6) au moment de dessiner le placement des arrêts.
+- **Mise à niveau des ponts** — remplacer un pont ancien par un modèle plus résistant/rapide évite
+  de brider un train rapide. ❓ Pas mesuré : `OpexAI` ne revisite pas l'infrastructure existante
+  après construction (voir [[ponts_tunnels_v3]] — `estimated_cost` gardé pour plus tard). À
+  reconsidérer si des trains plus rapides sont introduits en cours de partie sur une ligne déjà
+  construite avec un pont ancien.
+- **Équilibre entre gares desservant une même industrie** — éviter d'assécher une industrie avec
+  plusieurs types de transport si cela retire du volume à une route longue-distance plus rentable.
+  Rejoint directement l'item 2.3 du backlog (« ne pas enfermer la ville dans nos propres voies ») —
+  même logique appliquée à une industrie plutôt qu'à une ville : deux lignes d'`OpexAI` desservant
+  la même source de cargo peuvent se cannibaliser plutôt que s'additionner. Non mesuré.
+- **Distance et vitesse comme leviers de profit** — déjà couvert en détail sections 1 et 2 de ce
+  document ; la page tips ne fait que confirmer, sans détail chiffré supplémentaire.
+- **Relations avec la ville** et **plantation d'arbres pour la note** — déjà couverts section 7
+  (barème exact de la note d'autorité locale) ; la tip confirme l'idée déjà notée dans le backlog
+  (section 9, « planter des arbres pour augmenter la réputation »), sans rien y ajouter.
+- **Virages larges plutôt qu'à 90°** — déjà couvert section 2 : un virage à 90° bride un train rail
+  à 61 km/h contre 111 km/h à courbure 2. La tip confirme sans nouveau chiffre.
+- **Canaux pseudo** — déjà dans la liste de lecture en attente (section 1), pas encore évalué en
+  détail ; la tip ne fait que la signaler comme « technique peu coûteuse », sans chiffrer le coût
+  réel en opcodes ou en argent.
+- **Un aéroport diffuse mieux son influence qu'une gare ferroviaire pour la génération de
+  passagers/courrier.** ❓ Affirmation du wiki, pas vérifiée dans le code ni mesurée en jeu. Si
+  confirmée, argument de plus (au-delà du gain d'`opexai_multimodal`) pour préférer l'avion sur les
+  liaisons visant la croissance d'une ville plutôt que le rail seul — à croiser avec l'idée
+  « contribuer à la croissance d'une ville avec des stations de bus/camions » (section 9 du
+  backlog) une fois le mode Route construit.
+- **Maintenance d'infrastructure** — pertinente seulement si `infrastructure_maintenance` est actif.
+  ✅ Vérifié : `infrastructure_maintenance = false` dans notre `openttdlab.cfg` (2026-08-28) — donc
+  **sans objet pour `OpexAI`** aujourd'hui. À reconsidérer seulement si la config gelée change.
+- **Note de gare : véhicules rapides, ramassages fréquents, peu de cargo en attente, statue en
+  ville.** Déjà couvert en détail et de façon chiffrée section 3 — la tip ajoute une précision
+  absente de notre lecture initiale : une bonne note **augmente aussi la production de
+  l'industrie** desservie (pas seulement le volume capté). ❓ Non vérifié dans le code
+  (`station_cmd.cpp` ne suffit pas à trancher, ce serait plutôt côté `industry_cmd.cpp`) — à
+  creuser si l'écart fret ~4-6x (item 2.1 du backlog) n'est toujours pas expliqué après les pistes
+  déjà en cours.
+
+**Raccourcis UI sans objet pour une IA** (mentionnés pour mémoire, non développés) : aperçu de coût
+avant construction (`Shift`), transparence des arbres/bâtiments (`x`), pose de signaux par glisser
+(`Ctrl`+glisser court).
+
+---
+
+## 10. Industries — ce qui nourrit l'étage 1 fret
+
+**Source** : [wiki OpenTTD, *Manual/Industries*](https://wiki.openttd.org/en/Manual/Industries), lu
+le 2026-08-28 (lecture demandée en section 1 du backlog).
+
+Notre config gelée est en climat **`temperate`** (vérifié dans l'`openttdlab.cfg`, cohérent avec
+`landscape = temperate`) : seules les **13 industries tempérées** s'appliquent — Coal Mine, Forest,
+Iron Ore Mine, Oil Wells, Oil Rig, Farm, Factory, Steel Mill, Sawmill, Oil Refinery, Power Station,
+Bank. Les listes sub-arctique/tropicale/toyland du wiki ne nous concernent pas.
+
+**Chaînes tempérées** (primaire → cargo → secondaire → cargo…) :
+
+| primaire | cargo | secondaire | cargo | tertiaire |
+|---|---|---|---|---|
+| Coal Mine | Coal | Power Station | — | — |
+| Forest | Wood | Sawmill | Goods | — |
+| Iron Ore Mine | Iron Ore | Steel Mill | Steel | Factory → Goods |
+| Farm | Grain, Livestock | Factory | Goods | — |
+| Oil Wells / Oil Rig | Oil | Oil Refinery | Goods | — |
+| — | Valuables | Bank | Valuables | — |
+
+> **Ce qui ne change rien pour OpexAI.** `catalog.nut:230-231` interroge déjà
+> `AIIndustryType.GetProducedCargo`/`GetAcceptedCargo` **dynamiquement** au lieu de coder cette
+> table en dur — donc `OpexFreightCandidates` (`candidates.nut:158-174`) apparie déjà tout couple
+> producteur/accepteur du même cargo sans avoir besoin de connaître la topologie ci-dessus. Cette
+> table sert surtout à **comprendre** ce que le code découvre au runtime, pas à changer le code.
+
+> **Ce qui est nouveau et potentiellement actionnable.**
+> 1. **« La croissance d'une industrie primaire dépend du pourcentage de sa production transportée
+>    au loin. Plus on en transporte, plus vite elle croît en moyenne à long terme. »** C'est un
+>    mécanisme distinct de la croissance des villes déjà notée comme volontairement ignorée
+>    (`candidates.nut:146-148`, commentaire « on ignore encore la croissance de la ville »). Ici
+>    c'est la croissance de la **source fret** elle-même, jamais mentionnée dans le code. ❓ Piste
+>    non vérifiée à rapprocher de l'écart prédit/réel du fret encore ~4-6x (backlog section 2.1,
+>    3) : `OpexFreightCandidates` prend un instantané `GetLastMonthProduction` figé au moment du
+>    scan, alors que bien desservir une source ferait *croître* sa production ensuite — dans le
+>    sens qui **agrandit** l'écart avec le temps si le prédit reste sous-estimé, ou qui
+>    l'expliquerait à l'inverse si le prédit se révèle surestimé (le sens de l'écart n'a pas été
+>    tranché ici, seulement le mécanisme candidat).
+> 2. **« Pendant une récession, la production primaire est réduite de moitié. »** ✅ Sans objet chez
+>    nous : `difficulty.economy = false` (recessions désactivées), déjà vérifié section 8.2. Ce
+>    n'est donc pas une source de variance à modéliser dans notre config gelée.
+> 3. **Financement d'industries secondaires/tertiaires et prospection d'industries primaires** —
+>    deux leviers de jeu qu'`OpexAI` n'utilise pas du tout aujourd'hui (aucune trace de
+>    `AIIndustry.BuildIndustry` ou équivalent dans le code). Financer une usine pourrait créer
+>    artificiellement un débouché pour une source déjà desservie mais sous-exploitée faute
+>    d'accepteur proche. Non chiffré, non priorisé — à ajouter aux idées de fonctionnalités
+>    (section 9 du backlog) si jugé pertinent.

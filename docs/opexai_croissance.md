@@ -41,6 +41,36 @@ Corrigé : le puits fret reçoit `AIOrder.OF_NONE`, la source garde `OF_FULL_LOA
 pas touché. Vérifié graine 42/10 ans : 3→8 lignes fret construites, note stable 58-84 sur 9 ans
 (avant : -1 dès l'an 2), revenu ~18-28k/an soutenu (avant : 0). Commit `abd641b`.
 
+**Correction du 2026-08-28 (après-coup) : le correctif ci-dessus suffisait aussi à fermer l'écart
+prédit/réel.** §8 affirmait un écart fret résiduel de « ~4-6x » non identifié. Cette affirmation
+n'était appuyée par aucune mesure citée dans ce document — en la creusant, la mesure existait déjà
+mais n'avait jamais été exploitée : `sweeps/opex_freight_postfix.py` avait tourné (graine 42,
+10 ans, code complet post-tous-correctifs) et écrit
+`docs/opex_predict_vs_actual_postfix_freight_v2.json`, commis dans `abd641b` en même temps que le
+correctif lui-même — la donnée était disponible dès ce commit, simplement jamais recroisée avec
+l'affirmation « ~4-6x » écrite ensuite dans `9c5e39f`.
+
+Sur les 8 lignes fret de cette mesure, 5 ont ≥3 ans de données stables (ratingA sain, industrie
+source vivante) ; les 3 autres n'ont qu'1-2 ans (ligne neuve ou industrie sur le point de fermer —
+bruit de bord de fenêtre, pas un biais de modèle). En moyennant le revenu réel par ligne sur toutes
+ses années observées :
+
+| ligne | années | revenu prédit | revenu réel moyen | ratio prédit/réel |
+|---|---|---|---|---|
+| 1 | 9 | 20 400 | 23 037 | 0,89 |
+| 2 | 8 | 21 600 | 25 135 | 0,86 |
+| 3 | 7 | 18 144 | 22 877 | 0,79 |
+| 4 | 5 | 66 552 | 51 229 | 1,30 |
+| 5 | 3 | 45 900 | 43 882 | 1,05 |
+
+**Ratio sur les lignes stables : moyenne 0,98, médiane 0,89, géométrique 0,96 — pas 4-6x, ~1x.** Les
+deux lignes à 1 an de données (ratios 2,39 et 1,82) sont un effet de fenêtre courte, pas un facteur
+manquant : une ligne neuve ou en fin de vie n'a pas eu le temps de stabiliser sa note ni sa
+production source. **`STATION_RATING_PCT = 50` (calibré sur le pax) tient donc aussi pour le fret**,
+sans facteur correctif propre — la piste « facteur fret non identifié » de §8 est écartée, pas
+juste non trouvée. Donnée source : `docs/opex_predict_vs_actual_postfix_freight_v2.json`, déjà
+présente dans le dépôt depuis `abd641b`.
+
 ## 3. `MIN_SEPARATION` bloquait la croissance sur de faux positifs
 
 Une fois pax et fret rentables, une campagne complète (`sweeps/opex_full_campaign.py`) a montré
@@ -150,9 +180,10 @@ Configuration commune à toutes les mesures de ce document : OpenTTD 15.3, OpenG
 
 ## 8. Limites actuelles
 
-- L'écart prédit/réel du fret reste ~4-6x même après `STATION_RATING_PCT` seul — un facteur propre
-  au fret, non identifié, non mesuré (`TOWN_CATCHMENT_SHARE_PCT` ne s'y applique pas par
-  construction, voir §6).
+- ~~L'écart prédit/réel du fret reste ~4-6x~~ — **retiré (2026-08-28)** : mesuré sans fondement
+  cité, contredit par `docs/opex_predict_vs_actual_postfix_freight_v2.json` (généré mais non
+  exploité avant cette relecture) qui donne un ratio ~1x sur les lignes stables. Voir la
+  correction détaillée en fin de §2.
 - Les stalles restants de la campagne 20 ans sont désormais mesurés comme une saturation réelle des
   origines disponibles dans la fenêtre `TOP_K` (`_tooClose` reste `near=20/far=0` à chaque fois),
   pas un seuil mal réglé — à traiter dans `candidates.nut` (`TOP_K` plus large, ou exclusion des

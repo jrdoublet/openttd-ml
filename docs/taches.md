@@ -12,13 +12,25 @@ conception**, avec ce qui est vérifié et ce qui ne l'est pas.
 
 | page | ce qu'on espère en tirer |
 |---|---|
-| [Manual/Tips](https://wiki.openttd.org/en/Manual/Tips) | heuristiques de joueur transposables en règles d'allocation |
-| [Manual/Industries](https://wiki.openttd.org/en/Manual/Industries) | chaînes de production, cargos acceptés/produits par type — nourrit directement l'étage 1 fret |
 | [Community/Pseudo canals](https://wiki.openttd.org/en/Community/Pseudo%20canals) | technique de terrain sur l'eau ; à évaluer surtout pour son coût en opcodes |
 | [transporttycoon.net/rail1](https://www.transporttycoon.net/rail1) … [rail6](https://www.transporttycoon.net/rail6) | série sur la construction ferroviaire : signalisation, débit, tracés |
 | [transporttycoon.net/junctions](https://www.transporttycoon.net/junctions) | conception de jonctions — pertinent dès qu'`OpexAI` aura plusieurs lignes qui se croisent |
 
-⚠️ Le contenu de ces pages n'a **pas** été lu : les colonnes « ce qu'on espère » sont des
+✅ **[Manual/Tips](https://wiki.openttd.org/en/Manual/Tips) lue et intégrée (2026-08-28)** — voir
+`docs/mecanique_jeu.md` §9. La plupart des heuristiques utiles étaient déjà couvertes ailleurs dans
+le document (note de gare §3, note d'autorité §7, vitesse/virages §2) ; l'apport net : ordres
+partagés (`AIOrder.ShareOrders`, non exploité), boucles de gare routière pour le futur mode Route,
+et une piste non vérifiée sur les avions qui diffuseraient mieux leur influence que le rail.
+
+✅ **[Manual/Industries](https://wiki.openttd.org/en/Manual/Industries) lue et intégrée
+(2026-08-28)** — voir `docs/mecanique_jeu.md` §10. La table des chaînes de production ne change
+rien au code : `catalog.nut` interroge déjà l'API dynamiquement plutôt que coder les chaînes en
+dur. L'apport net, deux pistes non vérifiées : (1) la croissance d'une industrie source dépend du
+% de sa production transportée — mécanisme jamais modélisé, à rapprocher de l'écart fret ~4-6x
+encore ouvert (§3) ; (2) `difficulty.economy = false` confirme que la réduction de moitié de la
+production primaire en récession est **sans objet** chez nous.
+
+⚠️ Le contenu des pages restantes n'a **pas** été lu : les colonnes « ce qu'on espère » sont des
 hypothèses de pertinence, pas des résumés.
 
 ---
@@ -36,14 +48,25 @@ détection et vente des lignes fret mortes (`e884358`). Graine 42/20 ans : 3 lig
 
 **Ce qui reste, par ordre d'impact mesuré :**
 
-1. **Écart prédit/réel du fret encore ~4-6x**, indépendant de la fermeture d'industrie (déjà
-   traitée) — voir §3 ci-dessous, non résolu.
+1. ✅ **Écart prédit/réel du fret : retiré, c'était une fausse alerte (2026-08-28).** L'affirmation
+   « ~4-6x » n'était appuyée par aucune donnée citée dans `docs/opexai_croissance.md`. En creusant :
+   la mesure existait déjà, commise dans `abd641b` en même temps que le correctif du puits fret
+   (`docs/opex_predict_vs_actual_postfix_freight_v2.json`), simplement jamais recroisée avec
+   l'affirmation écrite ensuite. Sur les 5 lignes fret à ≥3 ans de données stables : ratio
+   prédit/réel moyen **0,98** (0,79-1,30) — `STATION_RATING_PCT = 50` calibré sur le pax tient
+   aussi pour le fret, sans facteur correctif propre. Les 2 ratios à 1,8-2,4x observés sont des
+   lignes à 1 an de données (ligne neuve ou industrie en fin de vie), pas un biais de modèle.
+   Détail dans `docs/opexai_croissance.md` §2 et §8.
 2. **Ne pas enfermer la ville dans nos propres voies** — reporté faute de mesure : vérifier
    d'abord si la croissance des villes desservies stagne réellement (`docs/mecanique_jeu.md` §5).
 3. **Origines épuisées dans la fenêtre `TOP_K`** : les stalles restants de la campagne 20 ans sont
    désormais mesurés comme une saturation réelle des candidats disponibles (`_tooClose` à
    `near=20/far=0`), pas un seuil mal réglé. À traiter dans `candidates.nut` (`TOP_K` plus large,
    ou exclusion des origines déjà servies à la génération plutôt qu'au filtrage).
+
+**Nouvelle priorité de fait, après le retrait de l'item 1** : l'item 2 (verrouillage de ville) ou
+l'item 3 (`TOP_K`) devient le prochain morceau de code — l'item 3 a un plan d'action déjà écrit,
+l'item 2 nécessite d'abord une mesure.
 
 ---
 
@@ -67,9 +90,12 @@ détection et vente des lignes fret mortes (`e884358`). Graine 42/20 ans : 3 lig
      rester rentable via une industrie voisine du même cargo (`srcAlive=0` n'implique pas la mort).
      Détection sur performance réelle (note + revenu, 2 ans consécutifs) puis vente des convois une
      fois le seuil confirmé.
-- ⚠️ **Reste ouvert** : l'écart prédit/réel du fret reste ~4-6x même après `STATION_RATING_PCT`
-  seul (le fret n'a pas le biais ville-entière du pax, donc `TOWN_CATCHMENT_SHARE_PCT` ne s'y
-  applique pas — un autre facteur, non identifié, y joue un rôle comparable). Non mesuré.
+- ✅ **Le modèle économique, volet FRET** : le « reste ouvert ~4-6x » précédemment noté ici est
+  **retiré (2026-08-28)**, faute de fondement — `docs/opex_predict_vs_actual_postfix_freight_v2.json`
+  (commis dans `abd641b`, jamais recroisé avec l'affirmation avant cette relecture) donne un ratio
+  prédit/réel moyen de **0,98** sur les 5 lignes fret à ≥3 ans de données stables.
+  `STATION_RATING_PCT = 50` (calibré sur le pax) tient donc aussi pour le fret, sans facteur
+  correctif propre à identifier. Détail dans `docs/opexai_croissance.md` §2 et §8.
 - **Le modèle de coût A\*** (`candidates.nut`, table de nœuds) : ajusté sous OpenTTD 13.4 avec le
   pathfinder de `TrainLineAI`. La forme se transporte, les coefficients doivent être réajustés sur
   `OpexAI` sous 15.3.
@@ -85,13 +111,20 @@ détection et vente des lignes fret mortes (`e884358`). Graine 42/20 ans : 3 lig
 
 Reprend le §8 de `docs/mecanique_jeu.md`, complété.
 
-1. Le réglage `plane_speed` réellement actif (le quart est le défaut).
-2. Économie « lisse » ou TTD classique dans notre config gelée — les probabilités de changement de
-   production en dépendent.
+1. ✅ Le réglage `plane_speed` réellement actif : `4`, le défaut, non surchargé — vérifié dans
+   l'`openttdlab.cfg` d'un run `OpexAI` réel du 2026-08-28, pas supposé.
+2. ✅ Économie « lisse » (`economy.type = 1` = `ET_SMOOTH`) confirmée dans notre config gelée, le
+   défaut, non surchargé — vérifié dans l'`openttdlab.cfg` du 2026-08-28. À distinguer de
+   `difficulty.economy` (recessions, réglage différent malgré le nom). Les probabilités de
+   changement de production restent à recalibrer sur ce régime précis.
 3. Le **rendement de vitesse effectif** d'un train (vitesse réelle / vitesse catalogue), sachant
    que le bridage en courbe descend à 61 km/h sur un virage à 90°.
-4. La **courbe de montée de la note d'une gare neuve** (2 points par 2,5 jours ⇒ ~2 mois annoncés),
-   pour escompter correctement le revenu des premiers mois.
+4. ✅🔶 La **courbe de montée de la note d'une gare neuve**, dérivée de la source 13.4
+   (`UpdateStationRating` dans `station_cmd.cpp`) — départ à `175/255` (pas 0), mise à jour tous
+   les 2,5 jours (`185/74` ticks), pas de ±2 points vers la cible calculée une fois le premier
+   ramassage enregistré ; ~2 mois pour résorber un écart de 50 points. Détail dans
+   `docs/mecanique_jeu.md` §8.4. **Pas encore confirmé inchangé en 15.3** — lu sur la seule source
+   locale disponible (13.4).
 5. Le **barème croissance de ville / nombre de gares actives** : absent du wiki, présent dans le
    source (`town_cmd.cpp`, `UpdateTownGrowRate`) — à mesurer, pas à recopier de mémoire.
 6. **Sonde de catalogue de 1950 à 2000** (`ai/CatalogProbe/`, changer `starting_year` et la durée) :
@@ -110,7 +143,19 @@ Reprend le §8 de `docs/mecanique_jeu.md`, complété.
   dispersion inter-graines de 26 %. Erreur-type de la moyenne à n=5 : 11,8 % ; à n=20 : 5,9 %.
 - Le **face à face** dans une partie partagée, aux jalons seulement (décidé le 2026-08-28).
 - Élucider le **non-déterminisme propre à AAAHogEx** (la plateforme, elle, est déterministe).
-  Hypothèse non testée : le `save` mensuel appelle son `Save()`, lourd et auto-instrumenté.
+  🔶 Mécanisme confirmé par lecture de source (pas encore de test A/B, donc la causalité sur le
+  non-déterminisme reste ouverte) :
+  - `openttdlab.py:376-393` (mode `console-script`, celui utilisé en 15.3) programme un `save`
+    console à chaque mois de jeu via des scripts `.scr` — ce n'est pas l'autosave du moteur
+    (`autosave = off` dans notre `openttdlab.cfg`), mais un déclenchement externe mensuel.
+  - Chaque `save` console appelle `Save()` d'AAAHogEx (`main.nut:4032-4105`), qui sérialise des
+    caches volumineux (`landConnectedCache`, `cargoVtDistanceValues`, `estimateTable`, toutes les
+    statics de route) ET s'auto-instrumente : un `AIController.GetOpsTillSuspend()` avant/après
+    chaque sous-`Save()` plus un `HgLog.Info(...)` de concaténation de chaîne à chaque étape.
+  - Donc l'hypothèse est confirmée **mécaniquement plausible** (travail réel et non trivial
+    déclenché chaque mois, hors du chemin de décision normal de l'IA) mais pas encore **prouvée
+    causale** : reste à faire tourner deux campagnes identiques avec/sans le `save` mensuel
+    (ou avec logging désactivé) et comparer la dispersion.
 
 ---
 
@@ -147,4 +192,25 @@ Ne pas oublier deux composantes gratuites de la note de compagnie : **emprunt à
 - ✅ **Session du 2026-08-28 committée** en 5 commits (`a227281` banc/15.3, `f6095de` sonde de
   catalogue, `212c532` mécanique du jeu, `826a6fa` OpexAI, `ee3e370` cette liste). Historique local
   uniquement : le dépôt n'a **aucun remote**.
-- `README.md` et `docs/methode.md` ne mentionnent ni la bascule vers 15.3, ni `OpexAI`.
+- ✅ `README.md` mentionnait déjà OpexAI/15.3 ; `docs/methode.md` a reçu une note en tête renvoyant
+  vers le `README.md` (2026-08-28) — le corps du document reste volontairement celui de la
+  campagne 13.4, il décrit un protocole historique.
+
+---
+
+## 9. Idées de fonctionnalités à évaluer (notées le 2026-08-28, pas encore priorisées)
+
+- **Agrandir une gare existante** quand le stock d'un cargo déjà exploité devient trop important
+  (capacité insuffisante face à la production captée).
+- **Gérer les jonctions de rails** — pertinent dès qu'`OpexAI` a plusieurs lignes qui se croisent ;
+  voir aussi la lecture en attente sur les jonctions en section 1.
+- **Gérer des voies aller-retour** (double voie) pour permettre plusieurs trains simultanés sur le
+  même parcours, plutôt qu'une seule voie à sens unique par ligne.
+- **Gérer une file d'attente de tâches** (queue) plutôt que le déroulement actuel, pour ordonnancer
+  les constructions/décisions.
+- **Contribuer à la croissance d'une ville via des stations de bus/camions** (jusqu'à 5 gares,
+  une unité de cargo par 50 jours) — recoupe le mode Route déjà prévu en section 6, mais posé ici
+  comme objectif de croissance plutôt que comme mode de transport en soi.
+- **Planter des arbres pour augmenter la réputation** (note de compagnie) — déjà identifié dans
+  `docs/mecanique_jeu.md` comme le levier de rattrapage bon marché si la note stagne à cause du
+  terrassement/destruction de bâtiments.

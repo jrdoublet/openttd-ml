@@ -1,6 +1,10 @@
 **Question.** Peut-on prédire le profit d'une ligne ferroviaire à partir de ses caractéristiques
 de construction, sans simuler la partie ?
 
+*Ce document décrit le protocole de la campagne historique de calibration, sous OpenTTD 13.4.
+L'IA de production actuelle, `OpexAI`, cible OpenTTD 15.3 / API NoAI 15 et n'est pas définie ici —
+voir le `README.md`, section OpexAI.*
+
 **Unité d'observation.** Une tentative de ligne (couple villes × cargo × matériel × nombre de
 rames) — construite ou non. Les tentatives ratées ne sont pas jetées : voir modèle hurdle ci-dessous.
 
