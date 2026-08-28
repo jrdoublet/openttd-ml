@@ -232,3 +232,13 @@ Ne pas oublier deux composantes gratuites de la note de compagnie : **emprunt à
 - **Planter des arbres pour augmenter la réputation** (note de compagnie) — déjà identifié dans
   `docs/mecanique_jeu.md` comme le levier de rattrapage bon marché si la note stagne à cause du
   terrassement/destruction de bâtiments.
+- **Budget de construction d'une ligne proportionnel au cash** (idée notée le 2026-08-28) : plafonner
+  à ~90 % de la trésorerie disponible plutôt qu'à une valeur fixe, pour que le plafond suive la
+  compagnie au lieu de la brider quand elle est riche.
+  ⚠️ **Vérification faite : la valeur fixe de 200 000 soupçonnée existe bien, mais ce n'est pas un
+  budget en argent.** C'est `PATHFINDER_MAX_COST` (`builder_rail.nut:24`), un plafond de *coût A\**
+  (unités de pathfinding), sans rapport avec la trésorerie. Côté argent, `_tryBuild`
+  (`main.nut:255`) compare déjà `GetBankBalance` au `candidate.capital` calculé par ligne, moins
+  `CASH_RESERVE = 50 000` — donc déjà proportionnel au cash, pas un plafond fixe. L'idée reste
+  évaluable, mais sur les bons paramètres : soit rendre `CASH_RESERVE` proportionnel (au lieu de
+  50 000 fixes), soit revoir `PATHFINDER_MAX_COST` — deux choses distinctes, à ne pas confondre.
