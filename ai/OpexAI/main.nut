@@ -365,10 +365,9 @@ function OpexAI::_tryBuild(ranked, year)
   /* Sommaire annuel du goulot : combien de candidats classes ont ete rejetes par _tooClose,
    * combien par la reserve de tresorerie (dont l'"break" laisse le reste du classement
    * inexplore -- nUnreached compte ceux-la a part pour ne pas les confondre avec un rejet). */
-  local nUnreached = best.len() - (nTooClose + nCashBlocked + nBuilt + nAttemptFailed);
-  AISign.BuildSign(anchor, "GT|" + year + "|" + best.len() + "|" + nTooClose
-                           + "|" + nCashBlocked + "|" + nBuilt + "|" + nUnreached
-                           + "|" + nAttemptFailed);
+  /* YT, pose dans Start() apres _tryRepayLoan(), remplace le panneau GT : la mesure ne doit pas
+   * ajouter une commande de panneau annuelle au scenario de reference. Les compteurs GT ne sont
+   * pas consommes par le banc. */
   /* Repartition des rejets _tooClose : proche (probable meme ville) vs lointain (probable ville
    * DIFFERENTE, simple voisine -- signe que MIN_SEPARATION est trop grossier plutot que trop
    * grand). */
