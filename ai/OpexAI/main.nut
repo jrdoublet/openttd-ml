@@ -598,6 +598,13 @@ function OpexAI::Start()
   while (true) {
     local year = AIDate.GetYear(AIDate.GetCurrentDate());
     if (year != lastYear) {
+      /* Mesure directe du cycle annuel. YT|aa|debut|fin|tryBuild|saut : aa est l'annee
+       * modulo 100 ; saut compte les annees civiles sautees depuis le dernier cycle. Le pire
+       * nom de la campagne est YT|99|999999|999999|999999|99 : 29 caracteres. Un seul panneau
+       * par cycle, pose APRES le travail, suffit : fin-debut est la duree totale et le reste
+       * (total - tryBuild) couvre catalogue, candidats, rapports, entretien et emprunt. */
+      local blockStartTick = AIController.GetTick();
+      local skippedYears = (lastYear < 0) ? 0 : year - lastYear - 1;
       lastYear = year;
       this._catalog.refresh(this._budget, year);
       local ranked = OpexBuildCandidates(this._catalog, this._budget, this._lines);
@@ -606,8 +613,14 @@ function OpexAI::Start()
       this._scrapDeadLines(year);
       this._tryBuildAir(year);
       this._tryBuildWater(year);
+      local buildStartTick = AIController.GetTick();
       this._tryBuild(ranked, year);
+      local tryBuildTicks = AIController.GetTick() - buildStartTick;
       this._tryRepayLoan(year);
+      local blockEndTick = AIController.GetTick();
+      local anchor = AIMap.GetTileIndex(1, 1);
+      AISign.BuildSign(anchor, "YT|" + (year % 100) + "|" + blockStartTick + "|" + blockEndTick
+                               + "|" + tryBuildTicks + "|" + skippedYears);
     }
     AIController.Sleep(74 * 10);
   }

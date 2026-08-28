@@ -58,6 +58,7 @@ RE_OS = re.compile(r"^OS\|(\d+)\|(\d+)\|(\d+)$")          # year, cand_rank opco
 RE_OA = re.compile(r"^OA\|(\d+)\|(\d+)\|(\d+)\|(\w+)$")   # air attempt: year, distance, planOps, reason
 RE_OM = re.compile(r"^OM\|W\|(\d+)\|(\d+)\|(\d+)$")       # water success: year, distance, planOps
 RE_ON = re.compile(r"^ON\|W\|(\w+)\|(-?\d+)$")            # water failure: reason, error
+RE_YT = re.compile(r"^YT\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
 
 TOP_K = 20  # Doit rester synchronise avec ai/OpexAI/candidates.nut, pour decoder rang20.
 REASON_CODES = {
@@ -206,6 +207,30 @@ def parse_yearly(all_signs):
     return dict(sorted(by_year.items()))
 
 
+def parse_annual_blocks(all_signs):
+    """Mesure YT posee apres chaque bloc annuel termine.
+
+    Le code AI encode l'annee sur deux chiffres (la campagne commence en 1970) pour respecter
+    les 31 caracteres. skipped_years_before est explicite, et non infere de l'absence d'un sign.
+    """
+    blocks = []
+    for sign in all_signs:
+        if m := RE_YT.match(sign):
+            year = 1900 + int(m.group(1))
+            start_tick, end_tick, try_build_ticks, skipped = map(int, m.groups()[1:])
+            duration = end_tick - start_tick
+            blocks.append({
+                "year": year,
+                "start_tick": start_tick,
+                "end_tick": end_tick,
+                "duration_ticks": duration,
+                "try_build_ticks": try_build_ticks,
+                "other_ticks": duration - try_build_ticks,
+                "skipped_years_before": skipped,
+            })
+    return blocks
+
+
 def parse_air_water(all_signs):
     air, water = [], []
     for sign in all_signs:
@@ -239,6 +264,9 @@ def main():
     lines = parse_lines(final["signs"])
     attempts = parse_attempts(final["signs"])
     yearly = parse_yearly(final["signs"])
+    annual_blocks = parse_annual_blocks(final["signs"])
+    skipped_years = [missed for block in annual_blocks for missed in
+                     range(block["year"] - block["skipped_years_before"], block["year"])]
     air, water = parse_air_water(final["signs"])
 
     n_rail_ok = sum(1 for l in lines if l["reason"] == "OK")
@@ -279,6 +307,8 @@ def main():
         "water_attempts": water,
         "lines": lines,
         "yearly": yearly,
+        "annual_blocks": annual_blocks,
+        "skipped_years": skipped_years,
         "financial_series": financial_series,
         "raw_signs_final": final["signs"],
     }
@@ -290,6 +320,7 @@ def main():
     print(f"company_value final: {final['company_value']}  performance_history: {final['performance_history']}")
     print(f"money: {final['money']}  current_loan: {final['current_loan']}")
     print(f"n_vehicles: {final['n_vehicles']}  n_stations: {final['n_stations']}")
+    print(f"annees sautees: {skipped_years}")
     print("ecrit", result_path)
 
 
