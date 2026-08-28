@@ -49,7 +49,7 @@ RE_OZ = re.compile(r"^OZ\|(\d+)\|(\d+)\|(-?\d+)$")
 RE_OU = re.compile(r"^OU\|(\d+)\|(\d+)\|(\d+)\|(-?\d+)$")
 RE_OO = re.compile(r"^OO\|(\d+)\|(\d+)\|(-?\d+)$")
 RE_OR = re.compile(r"^OR\|(\d+)\|(\d+)\|(\d+)\|(\w+)$")  # historique avant mesure abandon
-RE_OR_BUDGET = re.compile(r"^OR\|(\d{2})\|(\d+)\|(\d+)\|([ZFCN][SL][KADPLHMSTERVXY])\|(\d+)\|(\d+)$")
+RE_OR_BUDGET = re.compile(r"^OR\|(\d{2})\|(\d+)\|(\d+)\|([ZFCN][SL][KADPLHMSTERVX])\|(\d+)\|(\d+)$")
 RE_PK = re.compile(r"^PK\|(\d+)\|([PF])\|(\d+)$")
 RE_IA = re.compile(r"^IA\|(\d+)\|(\d+)\|(-?\d)\|(-?\d)\|(-?\d+)$")
 RE_OX = re.compile(r"^OX\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")   # year, towns, industries, ranked.all
@@ -58,13 +58,13 @@ RE_OS = re.compile(r"^OS\|(\d+)\|(\d+)\|(\d+)$")          # year, cand_rank opco
 RE_OA = re.compile(r"^OA\|(\d+)\|(\d+)\|(\d+)\|(\w+)$")   # air attempt: year, distance, planOps, reason
 RE_OM = re.compile(r"^OM\|W\|(\d+)\|(\d+)\|(\d+)$")       # water success: year, distance, planOps
 RE_ON = re.compile(r"^ON\|W\|(\w+)\|(-?\d+)$")            # water failure: reason, error
-RE_YT = re.compile(r"^YT\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
+RE_YT = re.compile(r"^YT\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)(C)?$")
 
 TOP_K = 20  # Doit rester synchronise avec ai/OpexAI/candidates.nut, pour decoder rang20.
 REASON_CODES = {
     "K": "OK", "A": "ABND", "D": "DEAD", "P": "NOPA", "L": "NOPLAN",
     "H": "SHORT", "M": "NOMATCH", "S": "STNFAIL", "T": "TRKFAIL",
-    "E": "DEPFAIL", "R": "ORDFAIL", "V": "NOTRAIN", "Y": "YEAR", "X": "UNKNOWN",
+    "E": "DEPFAIL", "R": "ORDFAIL", "V": "NOTRAIN", "X": "UNKNOWN",
 }
 
 
@@ -217,7 +217,8 @@ def parse_annual_blocks(all_signs):
     for sign in all_signs:
         if m := RE_YT.match(sign):
             year = 1900 + int(m.group(1))
-            start_tick, end_tick, try_build_ticks, skipped = map(int, m.groups()[1:])
+            start_tick, end_tick, try_build_ticks, skipped = map(int, m.groups()[1:5])
+            caught_up = skipped if m.group(6) == "C" else 0
             duration = end_tick - start_tick
             blocks.append({
                 "year": year,
@@ -226,7 +227,9 @@ def parse_annual_blocks(all_signs):
                 "duration_ticks": duration,
                 "try_build_ticks": try_build_ticks,
                 "other_ticks": duration - try_build_ticks,
-                "skipped_years_before": skipped,
+                "calendar_years_crossed_before": skipped,
+                "caught_up_years": caught_up,
+                "skipped_years_before": skipped - caught_up,
             })
     return blocks
 
@@ -265,6 +268,8 @@ def main():
     attempts = parse_attempts(final["signs"])
     yearly = parse_yearly(final["signs"])
     annual_blocks = parse_annual_blocks(final["signs"])
+    calendar_years_crossed = [missed for block in annual_blocks for missed in
+                              range(block["year"] - block["calendar_years_crossed_before"], block["year"])]
     skipped_years = [missed for block in annual_blocks for missed in
                      range(block["year"] - block["skipped_years_before"], block["year"])]
     air, water = parse_air_water(final["signs"])
@@ -308,6 +313,7 @@ def main():
         "lines": lines,
         "yearly": yearly,
         "annual_blocks": annual_blocks,
+        "calendar_years_crossed": calendar_years_crossed,
         "skipped_years": skipped_years,
         "financial_series": financial_series,
         "raw_signs_final": final["signs"],
@@ -320,7 +326,7 @@ def main():
     print(f"company_value final: {final['company_value']}  performance_history: {final['performance_history']}")
     print(f"money: {final['money']}  current_loan: {final['current_loan']}")
     print(f"n_vehicles: {final['n_vehicles']}  n_stations: {final['n_stations']}")
-    print(f"annees sautees: {skipped_years}")
+    print(f"annees franchies: {calendar_years_crossed}  non rattrapees: {skipped_years}")
     print("ecrit", result_path)
 
 

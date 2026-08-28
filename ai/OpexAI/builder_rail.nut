@@ -106,7 +106,7 @@ function OpexStationPlans(center, otherCenter, radius, length, maxPlans)
 /* Recherche de chemin sous budget d'iterations. Rend une table avec le chemin brut et le compte
  * d'iterations reellement consommees -- ce compte est le DENOMINATEUR du classement, il doit etre
  * mesure, pas estime. */
-function OpexSearchPath(plansA, plansB, iterationBudget, deadlineTick, cycleYear)
+function OpexSearchPath(plansA, plansB, iterationBudget, deadlineTick)
 {
   local sources = [];
   local goals = [];
@@ -121,11 +121,7 @@ function OpexSearchPath(plansA, plansB, iterationBudget, deadlineTick, cycleYear
 
   local path = false;
   local spent = 0;
-  /* Une recherche ne peut pas consommer l'annee suivante : le cycle Start() doit alors rapporter,
-   * entretenir et reclasser avant toute nouvelle tentative. La borne est calendaire, pas un
-   * nouveau budget d'opcodes. */
-  while (path == false && spent < iterationBudget && AIController.GetTick() < deadlineTick &&
-         AIDate.GetYear(AIDate.GetCurrentDate()) == cycleYear) {
+  while (path == false && spent < iterationBudget && AIController.GetTick() < deadlineTick) {
     path = pathfinder.FindPath(PATH_CHUNK);
     spent += PATH_CHUNK;
     AIController.Sleep(1);
@@ -133,13 +129,9 @@ function OpexSearchPath(plansA, plansB, iterationBudget, deadlineTick, cycleYear
 
   /* Codes courts : un nom de panneau accepte au plus 31 caracteres et echoue SILENCIEUSEMENT
    * au-dela (verifie sur TrainLineAI). ABND = budget d'iterations epuise, c'est-a-dire l'arret
-   * optimal qui a joue ; DEAD = fenetre de temps epuisee ; YEAR = frontiere annuelle atteinte ;
-   * NOPA = file vide, aucun chemin. */
+   * optimal qui a joue ; DEAD = fenetre de temps epuisee ; NOPA = file vide, aucun chemin. */
   local stop = "OK";
-  if (path == false) {
-    if (AIDate.GetYear(AIDate.GetCurrentDate()) != cycleYear) stop = "YEAR";
-    else stop = (AIController.GetTick() >= deadlineTick) ? "DEAD" : "ABND";
-  }
+  if (path == false) stop = (AIController.GetTick() >= deadlineTick) ? "DEAD" : "ABND";
   else if (path == null) stop = "NOPA";
   return { path = path, iterations = spent, stop = stop };
 }
@@ -338,7 +330,7 @@ function OpexBuildTrains(catalog, cargo, kind, depotTile, exitA, exitB, wanted)
 }
 
 /* Construit une ligne complete. Rend une table de resultat, jamais d'exception. */
-function OpexBuildLine(catalog, budget, candidate, iterationBudget, deadlineTick, cycleYear)
+function OpexBuildLine(catalog, budget, candidate, iterationBudget, deadlineTick)
 {
   local result = { ok = false, reason = "", iterations = 0, opcodes = 0, error = 0, diag = null,
                    trains = 0, stationA = null, stationB = null, depot = null };
@@ -352,7 +344,7 @@ function OpexBuildLine(catalog, budget, candidate, iterationBudget, deadlineTick
   if (plansA.len() == 0 || plansB.len() == 0) { result.reason = "NOPLAN"; return result; }
 
   budget.begin();
-  local search = OpexSearchPath(plansA, plansB, iterationBudget, deadlineTick, cycleYear);
+  local search = OpexSearchPath(plansA, plansB, iterationBudget, deadlineTick);
   result.opcodes += budget.end("build_search");
   result.iterations = search.iterations;
   if (search.path == false || search.path == null) { result.reason = search.stop; return result; }

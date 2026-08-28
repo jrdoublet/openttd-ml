@@ -118,7 +118,6 @@ function OpexAttemptReasonCode(reason)
   if (reason == "DEPFAIL") return "E";
   if (reason == "ORDFAIL") return "R";
   if (reason == "NOTRAIN") return "V";
-  if (reason == "YEAR") return "Y";
   return "X";
 }
 
@@ -288,7 +287,7 @@ function OpexAI::_tryBuild(ranked, year)
     local iterationBudget = budgetInfo.budget;
     local deadline = AIController.GetTick() + iterationBudget / 3 + BUILD_TICK_MARGIN;
 
-    local result = OpexBuildLine(this._catalog, this._budget, candidate, iterationBudget, deadline, year);
+    local result = OpexBuildLine(this._catalog, this._budget, candidate, iterationBudget, deadline);
 
     /* Instrumentation d'une tentative, sans ajouter de panneau :
      * OR|aa|id|rang20|PSR|budget|iterations
@@ -362,9 +361,6 @@ function OpexAI::_tryBuild(ranked, year)
       nAttemptFailed++;
     }
 
-    /* OpexSearchPath coupe a la frontiere annuelle. Ne pas commencer un autre candidat dans
-     * l'annee deja entamee : Start() executera d'abord le cycle annuel complet. */
-    if (AIDate.GetYear(AIDate.GetCurrentDate()) != year) break;
   }
 
   /* Sommaire annuel du goulot : combien de candidats classes ont ete rejetes par _tooClose,
@@ -602,13 +598,26 @@ function OpexAI::Start()
   while (true) {
     local year = AIDate.GetYear(AIDate.GetCurrentDate());
     if (year != lastYear) {
-      /* Mesure directe du cycle annuel. YT|aa|debut|fin|tryBuild|saut : aa est l'annee
-       * modulo 100 ; saut compte les annees civiles sautees depuis le dernier cycle. Le pire
-       * nom de la campagne est YT|99|999999|999999|999999|99 : 29 caracteres. Un seul panneau
-       * par cycle, pose APRES le travail, suffit : fin-debut est la duree totale et le reste
-       * (total - tryBuild) couvre catalogue, candidats, rapports, entretien et emprunt. */
+      /* Mesure directe du cycle annuel. YT|aa|debut|fin|tryBuild|saut[C] : aa est l'annee
+       * modulo 100 ; saut compte les annees civiles sautees depuis le dernier cycle et C prouve
+       * leur rattrapage. Le pire nom est YT|99|999999|999999|999999|99C : 30 caracteres. Un seul
+       * panneau par cycle, pose APRES le travail, suffit : fin-debut est la duree totale et le
+       * reste (total - tryBuild) couvre catalogue, candidats, rapports, entretien et emprunt. */
       local blockStartTick = AIController.GetTick();
       local skippedYears = (lastYear < 0) ? 0 : year - lastYear - 1;
+      /* Un cycle de construction ne se rejoue jamais retroactivement : ses candidats, son argent
+       * et le monde ont deja evolue. En revanche les rapports de lignes, le rebut des lignes
+       * mortes et le remboursement restent des decisions valides au moment du rattrapage. Les
+       * executer pour chaque annee manquee empeche qu'une annee complete soit totalement ignoree.
+       * Le catalogue est ensuite rafraichi une seule fois, a son etat reel courant, avant le
+       * classement et la construction de l'annee courante. */
+      if (lastYear >= 0) {
+        for (local missedYear = lastYear + 1; missedYear < year; missedYear++) {
+          this._reportLines(missedYear);
+          this._scrapDeadLines(missedYear);
+          this._tryRepayLoan(missedYear);
+        }
+      }
       lastYear = year;
       this._catalog.refresh(this._budget, year);
       local ranked = OpexBuildCandidates(this._catalog, this._budget, this._lines);
@@ -623,8 +632,9 @@ function OpexAI::Start()
       this._tryRepayLoan(year);
       local blockEndTick = AIController.GetTick();
       local anchor = AIMap.GetTileIndex(1, 1);
+      local skippedMarker = skippedYears > 0 ? skippedYears + "C" : "0";
       AISign.BuildSign(anchor, "YT|" + (year % 100) + "|" + blockStartTick + "|" + blockEndTick
-                               + "|" + tryBuildTicks + "|" + skippedYears);
+                               + "|" + tryBuildTicks + "|" + skippedMarker);
     }
     AIController.Sleep(74 * 10);
   }
