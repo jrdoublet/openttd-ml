@@ -49,7 +49,7 @@ RE_OZ = re.compile(r"^OZ\|(\d+)\|(\d+)\|(-?\d+)$")
 RE_OU = re.compile(r"^OU\|(\d+)\|(\d+)\|(\d+)\|(-?\d+)$")
 RE_OO = re.compile(r"^OO\|(\d+)\|(\d+)\|(-?\d+)$")
 RE_OR = re.compile(r"^OR\|(\d+)\|(\d+)\|(\d+)\|(\w+)$")  # historique avant mesure abandon
-RE_OR_BUDGET = re.compile(r"^OR\|(\d{2})\|(\d+)\|(\d+)\|([ZFCN][SL][KADPLHMSTERVX])\|(\d+)\|(\d+)$")
+RE_OR_BUDGET = re.compile(r"^OR\|(\d{2})\|(\d+)\|(\d+)\|([ZFCN][SL][KADPLHMSTERVXY])\|(\d+)\|(\d+)$")
 RE_PK = re.compile(r"^PK\|(\d+)\|([PF])\|(\d+)$")
 RE_IA = re.compile(r"^IA\|(\d+)\|(\d+)\|(-?\d)\|(-?\d)\|(-?\d+)$")
 RE_OX = re.compile(r"^OX\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")   # year, towns, industries, ranked.all
@@ -64,7 +64,7 @@ TOP_K = 20  # Doit rester synchronise avec ai/OpexAI/candidates.nut, pour decode
 REASON_CODES = {
     "K": "OK", "A": "ABND", "D": "DEAD", "P": "NOPA", "L": "NOPLAN",
     "H": "SHORT", "M": "NOMATCH", "S": "STNFAIL", "T": "TRKFAIL",
-    "E": "DEPFAIL", "R": "ORDFAIL", "V": "NOTRAIN", "X": "UNKNOWN",
+    "E": "DEPFAIL", "R": "ORDFAIL", "V": "NOTRAIN", "Y": "YEAR", "X": "UNKNOWN",
 }
 
 

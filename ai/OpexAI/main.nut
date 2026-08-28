@@ -118,6 +118,7 @@ function OpexAttemptReasonCode(reason)
   if (reason == "DEPFAIL") return "E";
   if (reason == "ORDFAIL") return "R";
   if (reason == "NOTRAIN") return "V";
+  if (reason == "YEAR") return "Y";
   return "X";
 }
 
@@ -287,7 +288,7 @@ function OpexAI::_tryBuild(ranked, year)
     local iterationBudget = budgetInfo.budget;
     local deadline = AIController.GetTick() + iterationBudget / 3 + BUILD_TICK_MARGIN;
 
-    local result = OpexBuildLine(this._catalog, this._budget, candidate, iterationBudget, deadline);
+    local result = OpexBuildLine(this._catalog, this._budget, candidate, iterationBudget, deadline, year);
 
     /* Instrumentation d'une tentative, sans ajouter de panneau :
      * OR|aa|id|rang20|PSR|budget|iterations
@@ -360,6 +361,10 @@ function OpexAI::_tryBuild(ranked, year)
     } else {
       nAttemptFailed++;
     }
+
+    /* OpexSearchPath coupe a la frontiere annuelle. Ne pas commencer un autre candidat dans
+     * l'annee deja entamee : Start() executera d'abord le cycle annuel complet. */
+    if (AIDate.GetYear(AIDate.GetCurrentDate()) != year) break;
   }
 
   /* Sommaire annuel du goulot : combien de candidats classes ont ete rejetes par _tooClose,
