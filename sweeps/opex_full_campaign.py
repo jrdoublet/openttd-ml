@@ -58,6 +58,10 @@ RE_OS = re.compile(r"^OS\|(\d+)\|(\d+)\|(\d+)$")          # year, cand_rank opco
 RE_OA = re.compile(r"^OA\|(\d+)\|(\d+)\|(\d+)\|(\w+)$")   # air attempt: year, distance, planOps, reason
 RE_OM = re.compile(r"^OM\|W\|(\d+)\|(\d+)\|(\d+)$")       # water success: year, distance, planOps
 RE_ON = re.compile(r"^ON\|W\|(\w+)\|(-?\d+)$")            # water failure: reason, error
+RE_OM_ROAD = re.compile(r"^OM\|R\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
+RE_OC_ROAD = re.compile(r"^OC\|R\|(\d+)\|(-?\d+)\|(\d+)$")
+RE_OV_ROAD = re.compile(r"^OV\|R\|(\d+)\|(\d+)\|(\d+)$")
+RE_OE_ROAD = re.compile(r"^OE\|R\|(\w+)\|(-?\d+)$")
 RE_YT = re.compile(r"^YT\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)(C)?$")
 
 TOP_K = 20  # Doit rester synchronise avec ai/OpexAI/candidates.nut, pour decoder rang20.
@@ -100,6 +104,7 @@ def parse_lines(all_signs):
     predicted = {}
     actual_series = {}
     built = {}
+    road_built = {}
 
     for sign in all_signs:
         if m := RE_OF.match(sign):
@@ -145,6 +150,11 @@ def parse_lines(all_signs):
             idx = int(m.group(1))
             predicted.setdefault(idx, {})["kind"] = "pax" if m.group(2) == "P" else "freight"
             predicted[idx]["monthly"] = int(m.group(3))
+        elif m := RE_OM_ROAD.match(sign):
+            idx = int(m.group(2))
+            road_built[idx] = {"year": 1900 + int(m.group(1)), "town_a": int(m.group(3)),
+                               "town_b": int(m.group(4)), "distance": int(m.group(5)),
+                               "plan_ops": int(m.group(6))}
 
     lines = []
     for idx in sorted(built):
@@ -155,10 +165,30 @@ def parse_lines(all_signs):
         last = years.get(last_year, {}) if last_year is not None else {}
         lines.append({
             "line_index": idx,
+            "mode": "rail",
             "distance": built[idx].get("distance", pred.get("distance")),
             "iterations": built[idx]["iterations"],
             "reason": built[idx]["reason"],
             "predicted": pred,
+            "actual_last_year": last_year,
+            "actual": last,
+            "actual_series": years,
+        })
+    for idx in sorted(road_built):
+        years = actual_series.get(idx, {})
+        last_year = max(years) if years else None
+        last = years.get(last_year, {}) if last_year is not None else {}
+        lines.append({
+            "line_index": idx,
+            "mode": "road",
+            "distance": road_built[idx]["distance"],
+            "town_a": road_built[idx]["town_a"],
+            "town_b": road_built[idx]["town_b"],
+            "year_built": road_built[idx]["year"],
+            "plan_ops": road_built[idx]["plan_ops"],
+            "iterations": 0,
+            "reason": "OK",
+            "predicted": {},
             "actual_last_year": last_year,
             "actual": last,
             "actual_series": years,
@@ -234,8 +264,9 @@ def parse_annual_blocks(all_signs):
     return blocks
 
 
-def parse_air_water(all_signs):
-    air, water = [], []
+def parse_multimodal(all_signs):
+    air, water, road = [], [], []
+    road_costs, road_vehicles = {}, {}
     for sign in all_signs:
         if m := RE_OA.match(sign):
             air.append({"year": int(m.group(1)), "distance": int(m.group(2)),
@@ -245,7 +276,22 @@ def parse_air_water(all_signs):
                           "planOps": int(m.group(3))})
         elif m := RE_ON.match(sign):
             water.append({"ok": False, "reason": m.group(1), "error": int(m.group(2))})
-    return air, water
+        elif m := RE_OM_ROAD.match(sign):
+            road.append({"ok": True, "year": 1900 + int(m.group(1)), "line_index": int(m.group(2)),
+                         "town_a": int(m.group(3)), "town_b": int(m.group(4)),
+                         "distance": int(m.group(5)), "plan_ops": int(m.group(6))})
+        elif m := RE_OC_ROAD.match(sign):
+            road_costs[int(m.group(1))] = {"cost": int(m.group(2)), "route_distance": int(m.group(3))}
+        elif m := RE_OV_ROAD.match(sign):
+            road_vehicles[int(m.group(1))] = {"vehicle": int(m.group(2)), "capacity": int(m.group(3))}
+        elif m := RE_OE_ROAD.match(sign):
+            road.append({"ok": False, "reason": m.group(1), "error": int(m.group(2))})
+    for item in road:
+        if not item["ok"]:
+            continue
+        item.update(road_costs.get(item["line_index"], {}))
+        item.update(road_vehicles.get(item["line_index"], {}))
+    return air, water, road
 
 
 def main():
@@ -272,9 +318,9 @@ def main():
                               range(block["year"] - block["calendar_years_crossed_before"], block["year"])]
     skipped_years = [missed for block in annual_blocks for missed in
                      range(block["year"] - block["skipped_years_before"], block["year"])]
-    air, water = parse_air_water(final["signs"])
+    air, water, road = parse_multimodal(final["signs"])
 
-    n_rail_ok = sum(1 for l in lines if l["reason"] == "OK")
+    n_rail_ok = sum(1 for l in lines if l["mode"] == "rail" and l["reason"] == "OK")
     n_rail_failed_attempts = sum(1 for a in attempts if a["reason"] != "OK")
     abandoned = [a for a in attempts if a["reason"] == "ABND"]
     abandoned_no_alternative = [a for a in abandoned if a.get("budget_path") == "Z"]
@@ -310,6 +356,7 @@ def main():
         "rail_attempts": attempts,
         "air_attempts": air,
         "water_attempts": water,
+        "road_attempts": road,
         "lines": lines,
         "yearly": yearly,
         "annual_blocks": annual_blocks,
@@ -323,6 +370,7 @@ def main():
     print(f"lignes rail OK: {n_rail_ok}  (tentatives totales: {len(attempts)}, echouees: {n_rail_failed_attempts})")
     print(f"avion: {len(air)} tentative(s) {air}")
     print(f"bateau: {len(water)} tentative(s) {water}")
+    print(f"route: {len(road)} tentative(s) {road}")
     print(f"company_value final: {final['company_value']}  performance_history: {final['performance_history']}")
     print(f"money: {final['money']}  current_loan: {final['current_loan']}")
     print(f"n_vehicles: {final['n_vehicles']}  n_stations: {final['n_stations']}")

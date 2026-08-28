@@ -20,6 +20,9 @@
 
 import("pathfinder.rail", "RailPathFinder", 1);
 
+/* Declare avant les require() : catalog.nut consulte ce drapeau dans son cycle annuel. */
+ROAD_BUILD_ENABLED <- false;
+
 require("budget.nut");
 require("catalog.nut");
 require("economy.nut");
@@ -27,6 +30,7 @@ require("candidates.nut");
 require("builder_rail.nut");
 require("builder_air.nut");
 require("builder_water.nut");
+require("builder_road.nut");
 
 /* Filet physique : deux gares reellement posees trop pres l'une de l'autre partagent leur bassin
  * de desserte, MEME si ce sont deux villes/industries differentes. Un rayon de couverture de gare
@@ -56,6 +60,12 @@ const BUILD_TICK_MARGIN = 3000;
  * plus ni renouveler ses vehicules ni saisir une occasion, et la valeur d'entreprise tombe a 1. */
 const CASH_RESERVE = 50000;
 
+/* Route v1 : le constructeur et son rollback sont conserves, mais la campagne gelee graine 42 a
+ * mesure une liaison de 23 tuiles a -599/-601 par an pendant 19 ans (notes d'arret -1) et une
+ * valeur finale de 1 749 226 contre 2 787 970 sans route. La transaction n'est donc PAS allouee
+ * tant qu'un protocole a demontre une desserte routiere rentable. Start garde l'appel conditionnel
+ * a _tryBuildRoad : reactivation localisee a ce seul drapeau, sans debit sur la baseline. */
+
 /* Seuil de remboursement d'emprunt : sous ce plancher de tresorerie on ne rembourse pas, un
  * emprunt a 5 % coute bien moins qu'une ligne manquee faute de cash. Au-dessus, l'argent qui
  * dort ne rapporte rien -- autant reduire l'emprunt. Valeur decidee par l'utilisateur. */
@@ -77,6 +87,7 @@ class OpexAI extends AIController {
                          //   _reportLines / _scrapDeadLines)}]
   _airBuilt = false;
   _waterBuilt = false;
+  _roadBuilt = false;
   /* Identite stable des lignes pour les panneaux (2026-08-28) : this._lines.len() n'est plus un
    * identifiant valide des que _scrapDeadLines peut retirer un element -- Array.remove() DECALE
    * tous les indices suivants, donc un panneau IA|5|... loggue une annee peut, apres un retrait,
@@ -96,6 +107,7 @@ class OpexAI extends AIController {
   function _tooClose(candidate);
   function _tryBuildAir(year);
   function _tryBuildWater(year);
+  function _tryBuildRoad(year);
   function _tryBuild(ranked, year);
   function _reportYear(year, ranked);
   function _reportLines(year);
@@ -197,6 +209,50 @@ function OpexAI::_tryBuildWater(year)
     mode = "water", vehicle = result.vehicle,
     lineId = this._nextLineId,
   });
+  this._nextLineId++;
+}
+
+/* Une seule liaison bus v1. Le scan est volontairement aussi large que ceux de l'air/de l'eau :
+ * OpexAI ne construit aucun autre vehicule routier, donc tout VT_ROAD qui nous appartient suffit
+ * a reconnaitre la transaction apres rechargement et a eviter un doublon. */
+function OpexAI::_tryBuildRoad(year)
+{
+  if (!ROAD_BUILD_ENABLED) return;
+  if (this._roadBuilt || this._catalog.roadBuses.len() == 0 || this._catalog.paxCargo < 0) return;
+  local vehicles = AIVehicleList();
+  for (local v = vehicles.Begin(); !vehicles.IsEnd(); v = vehicles.Next()) {
+    if (AIVehicle.GetVehicleType(v) == AIVehicle.VT_ROAD) {
+      this._roadBuilt = true;
+      return;
+    }
+  }
+
+  this._budget.begin();
+  local plan = OpexRoadPlans(this._catalog);
+  local planOps = this._budget.end("build_road_plans");
+  if (plan == null) return;
+  local capital = plan.routeDistance * this._catalog.costRoadPerTile
+                + 2 * this._catalog.costRoadStation + this._catalog.costRoadDepot
+                + this._catalog.maxRoadBusPrice;
+  local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  if (money < capital + CASH_RESERVE + ROAD_CAPITAL_MARGIN) return;
+
+  local result = OpexBuildRoadRoute(this._catalog, this._budget, plan);
+  local anchor = AIMap.GetTileIndex(1, 1);
+  if (!result.ok) {
+    AISign.BuildSign(anchor, "OE|R|" + result.reason + "|" + result.error);
+    return;
+  }
+  local idx = this._nextLineId;
+  /* Le pire nom est OM|R|99|999|999|999|25|999999 : 31 caracteres, plafond inclus. */
+  AISign.BuildSign(anchor, "OM|R|" + (year % 100) + "|" + idx + "|" + plan.townA.id + "|"
+                           + plan.townB.id + "|" + plan.distance + "|" + planOps);
+  AISign.BuildSign(anchor, "OC|R|" + idx + "|" + result.cost + "|" + plan.routeDistance);
+  AISign.BuildSign(anchor, "OV|R|" + idx + "|" + result.vehicle + "|" + result.capacity);
+  this._roadBuilt = true;
+  /* Contrairement aux lignes rail, le bus court ne rejoint pas _lines : OpexOriginServed et
+   * _tooClose ne doivent jamais en deduire qu'une ville est verrouillee pour une liaison rail
+   * interurbaine. Son unicite est assuree par _roadBuilt et par le scan VT_ROAD. */
   this._nextLineId++;
 }
 
@@ -626,6 +682,7 @@ function OpexAI::Start()
       this._scrapDeadLines(year);
       this._tryBuildAir(year);
       this._tryBuildWater(year);
+      if (ROAD_BUILD_ENABLED) this._tryBuildRoad(year);
       local buildStartTick = AIController.GetTick();
       this._tryBuild(ranked, year);
       local tryBuildTicks = AIController.GetTick() - buildStartTick;

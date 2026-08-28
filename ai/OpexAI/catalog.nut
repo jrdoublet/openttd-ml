@@ -32,6 +32,13 @@ class OpexCatalog {
   costDock = 0;
   costWaterDepot = 0;
 
+  roadType = -1;       // route normale (pas tram), ou -1 si indisponible
+  roadBuses = null;    // [{id, capacity, speed, price, runningCost, roadType}]
+  maxRoadBusPrice = 0;
+  costRoadPerTile = 0;
+  costRoadStation = 0;
+  costRoadDepot = 0;
+
   constructor()
   {
     this.towns = [];
@@ -41,6 +48,7 @@ class OpexCatalog {
     this.cargos = [];
     this.wagonByCargo = {};
     this.ships = [];
+    this.roadBuses = [];
   }
 
   function refresh(budget, year);
@@ -50,6 +58,7 @@ class OpexCatalog {
   function _refreshRail();
   function _refreshAir();
   function _refreshWater();
+  function _refreshRoad();
   function _cargoArray(list);
 }
 
@@ -184,6 +193,42 @@ function OpexCatalog::_refreshWater()
   }
 }
 
+/* Route : l'equivalent du piege CanRunOnRail/HasPowerOnRail existe bien. Un vehicule peut etre
+ * compatible avec un type de route sans y avoir de puissance ; le catalogue exige les deux, puis
+ * CanRefitCargo (ou le cargo deja configure) avant de le proposer au constructeur. La capacite
+ * apres refit reste verifiee dans builder_road.nut, car un NewGRF peut la changer selon le depot. */
+function OpexCatalog::_refreshRoad()
+{
+  this.roadType = -1;
+  this.roadBuses = [];
+  this.maxRoadBusPrice = 0;
+  this.costRoadPerTile = 0;
+  this.costRoadStation = 0;
+  this.costRoadDepot = 0;
+  if (!AIRoad.IsRoadTypeAvailable(AIRoad.ROADTYPE_ROAD)) return;
+  this.roadType = AIRoad.ROADTYPE_ROAD;
+  AIRoad.SetCurrentRoadType(this.roadType);
+  this.costRoadPerTile = AIRoad.GetBuildCost(this.roadType, AIRoad.BT_ROAD);
+  this.costRoadStation = AIRoad.GetBuildCost(this.roadType, AIRoad.BT_BUS_STOP);
+  this.costRoadDepot = AIRoad.GetBuildCost(this.roadType, AIRoad.BT_DEPOT);
+  if (this.paxCargo < 0) return;
+  local engines = AIEngineList(AIVehicle.VT_ROAD);
+  for (local e = engines.Begin(); !engines.IsEnd(); e = engines.Next()) {
+    if (!AIEngine.IsBuildable(e)) continue;
+    if (!AIEngine.CanRunOnRoad(e, this.roadType)) continue;
+    if (!AIEngine.HasPowerOnRoad(e, this.roadType)) continue;
+    local cargo = AIEngine.GetCargoType(e);
+    if (cargo != this.paxCargo && !AIEngine.CanRefitCargo(e, this.paxCargo)) continue;
+    local capacity = AIEngine.GetCapacity(e);
+    if (capacity <= 0) continue;
+    local bus = { id = e, capacity = capacity, speed = AIEngine.GetMaxSpeed(e),
+                  price = AIEngine.GetPrice(e), runningCost = AIEngine.GetRunningCost(e),
+                  roadType = AIEngine.GetRoadType(e) };
+    this.roadBuses.append(bus);
+    if (bus.price > this.maxRoadBusPrice) this.maxRoadBusPrice = bus.price;
+  }
+}
+
 function OpexCatalog::_refreshCargos()
 {
   this.cargos = [];
@@ -275,4 +320,13 @@ function OpexCatalog::refresh(budget, year)
   budget.begin();
   this._refreshWater();
   budget.end("cat_water");
+
+  /* La route v1 est codee mais desactivee par la mesure de campagne (main.nut). Ne pas lui
+   * consacrer de debit annuel tant que sa transaction n'est pas candidate : le catalogue rail
+   * valide reste ainsi le chemin exact de la baseline. */
+  if (ROAD_BUILD_ENABLED) {
+    budget.begin();
+    this._refreshRoad();
+    budget.end("cat_road");
+  }
 }
