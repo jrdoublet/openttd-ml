@@ -434,3 +434,96 @@ Bank. Les listes sub-arctique/tropicale/toyland du wiki ne nous concernent pas.
 >    artificiellement un débouché pour une source déjà desservie mais sous-exploitée faute
 >    d'accepteur proche. Non chiffré, non priorisé — à ajouter aux idées de fonctionnalités
 >    (section 9 du backlog) si jugé pertinent.
+
+---
+
+## 11. Véhicules routiers, arrêts de bus et aires de chargement
+
+**Sources** : [Manual/Tutorial/Buses](https://wiki.openttd.org/en/Manual/Tutorial/Buses),
+[Manual/Building stations and loading bays](https://wiki.openttd.org/en/Manual/Building%20stations%20and%20loading%20bays),
+[Manual/Road vehicles](https://wiki.openttd.org/en/Manual/Road%20vehicles), lues le 2026-08-28.
+
+⚠️ **Ces trois pages sont décevantes** : essentiellement du tutoriel d'interface (« cliquez ici,
+puis là »). Elles ne donnent **ni** taille d'aire de couverture d'un arrêt, **ni** règle
+d'étalement de gare, **ni** condition d'acceptation de cargo, **ni** vitesse ou fiabilité chiffrée,
+**ni** restriction sur les véhicules articulés, **ni** rien sur les sens uniques ou les types de
+route. La page « Building stations and loading bays » ne distingue même pas les arrêts traversants
+des arrêts en cul-de-sac. Tout cela reste donc à mesurer dans le jeu, pas à citer.
+
+### La seule règle dure, et elle innocente notre code
+
+> « Les bus ont besoin d'**arrêts de bus**, pas d'aires de chargement. » Les camions, l'inverse.
+
+C'est une contrainte de type, pas une préférence : un bus ne chargera jamais sur une aire de
+chargement pour camions. ✅ **Vérifié dans notre code** : `builder_road.nut` appelle bien
+`AIRoad.BuildRoadStation(..., AIRoad.ROADVEHTYPE_BUS, ...)` aux deux extrémités
+(lignes 115, 274, 285). **Cette piste est donc écartée** comme cause du non-chargement de la
+liaison bus mesurée (notes d'arrêts à −1, recettes quasi nulles — voir
+`docs/opexai_multimodal.md`).
+
+### Ce que les pages apprennent quand même
+
+- **Six orientations d'arrêt** : quatre culs-de-sac posés *à côté* d'une route, et deux
+  traversants posés *sur* une route existante. L'entrée doit faire face à la route ; quand
+  l'orientation est bonne, le jeu prolonge lui-même la route jusqu'à l'arrêt. ❓ La page ne dit pas
+  ce qui se passe si l'orientation est mauvaise (échec de construction, ou arrêt construit mais
+  inaccessible — la seconde hypothèse serait exactement notre symptôme).
+- **Un véhicule neuf démarre à l'arrêt** (`Stopped`) : le tutoriel insiste sur le fait qu'il faut
+  cliquer la barre d'état pour le lancer. ❓ À vérifier côté API : `AIVehicle.BuildVehicle` suivi
+  de `AIVehicle.StartStopVehicle` — un convoi jamais démarré produirait exactement une note à −1 et
+  zéro recette.
+- **Ordres** : `Go To` gare A puis `Go To` gare B, la boucle se referme d'elle-même.
+- **Le dépôt** doit être proche d'un arrêt mais n'a aucune contrainte de voisinage de maisons.
+- **Le wiki lui-même prévient qu'une courte liaison bus « ne sera probablement pas très
+  rentable »**, faute de distance et de volume. À prendre au sérieux : c'est cohérent avec notre
+  mesure (600 de coûts annuels contre des recettes quasi nulles), et cela plaide pour que la route
+  serve la **croissance de ville** (§5) plutôt que le profit direct de la ligne.
+- **Regrouper plusieurs arrêts en UNE gare** (`Ctrl`+clic) est présenté comme le vrai levier de
+  volume : l'exemple cité passe de 1 000-2 000 à **8 000-10 000 passagers par mois**. ❓ Chiffre du
+  wiki, non vérifié, mais l'ordre de grandeur (×5) justifierait à lui seul de tester le
+  regroupement avant de conclure quoi que ce soit sur la rentabilité du bus.
+
+### Le plafond de deux véhicules par arrêt — la contrainte que les autres pages taisaient
+
+**Source complémentaire** : [Manual/Loading Bays](https://wiki.openttd.org/en/Manual/Loading%20Bays),
+lue le 2026-08-28. Nettement plus substantielle que les trois précédentes.
+
+> **Un arrêt de bus n'accueille au plus que DEUX bus à la fois.** Idem pour une aire de chargement
+> camions : deux camions au maximum.
+
+Les véhicules excédentaires **font la queue sur la route** devant l'arrêt, ce que le wiki reconnaît
+comme une source de blocages de circulation « quasi inévitables ». Rien ne limite en revanche le
+nombre de véhicules *affectés* à un arrêt : le jeu laisse donc volontiers construire une flotte qui
+s'auto-congestionne.
+
+Le **multistop** est la réponse prévue : plusieurs arrêts partageant le même nom et le même cargo
+forment une seule gare logique, et les véhicules se répartissent entre les emplacements au lieu de
+s'entasser. L'extension est bornée par l'**étalement maximal de gare** (⚙️ réglage de partie), avec
+un message d'erreur au-delà. Les **arrêts traversants** sont cités comme la disposition la plus
+efficace, sans que la page en détaille la mécanique. ❓
+
+> **Conséquences pour OpexAI.**
+> - **Le dimensionnement d'une ligne bus n'est pas libre** : au-delà de 2 bus par arrêt, ajouter un
+>   véhicule dégrade la ligne au lieu de l'améliorer. Le modèle de `economy.nut` calcule pourtant
+>   un nombre de convois à partir de la seule contrainte de fréquence (`TARGET_HEADWAY_DAYS`), sans
+>   aucun plafond de quai — transposé tel quel à la route, **il peut prescrire une flotte qui se
+>   bloque elle-même**. C'est un argument de plus pour ne pas réutiliser le modèle rail sans le
+>   revalider (limite déjà signalée par Codex).
+> - **La congestion est un mode d'échec propre à la route**, absent du rail dans notre code (une
+>   ligne rail à voie unique a ses propres blocages, mais pas ce plafond de deux). Un bus coincé
+>   dans une file n'est pas détecté par notre surveillance de lignes mortes, qui ne couvre que le
+>   fret.
+> - **Le multistop est la voie de croissance**, pas l'ajout de véhicules sur un arrêt unique — et
+>   il recoupe exactement le plafond de 5 gares actives pour la croissance de ville (§5).
+- **Les véhicules routiers ne se percutent jamais entre eux** ; le seul risque de destruction est
+  un train à un passage à niveau. Une IA routière n'a donc pas à gérer de conflit de circulation,
+  contrairement au rail — un argument de coût en opcodes en faveur de la route.
+
+> **Conséquences pour OpexAI.**
+> 1. **Le type d'arrêt n'est pas la cause du non-chargement** — écarté par lecture du code.
+>    Les deux suspects restants, par ordre de vraisemblance : un véhicule jamais démarré, et un
+>    arrêt mal orienté donc non raccordé à la route.
+> 2. **Le regroupement d'arrêts (`Ctrl`+clic, `AIStation.STATION_JOIN_ADJACENT`) est la piste de
+>    volume à tester** avant de juger la rentabilité du bus.
+> 3. **Ne pas attendre du bus un profit de ligne** : le wiki l'annonce lui-même. Sa valeur est
+>    ailleurs — croissance de ville (§5) et cargos supplémentaires pour la note de compagnie (§6).

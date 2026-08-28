@@ -26,9 +26,10 @@ et une piste non vérifiée sur les avions qui diffuseraient mieux leur influenc
 (2026-08-28)** — voir `docs/mecanique_jeu.md` §10. La table des chaînes de production ne change
 rien au code : `catalog.nut` interroge déjà l'API dynamiquement plutôt que coder les chaînes en
 dur. L'apport net, deux pistes non vérifiées : (1) la croissance d'une industrie source dépend du
-% de sa production transportée — mécanisme jamais modélisé, à rapprocher de l'écart fret ~4-6x
-encore ouvert (§3) ; (2) `difficulty.economy = false` confirme que la réduction de moitié de la
-production primaire en récession est **sans objet** chez nous.
+% de sa production transportée — mécanisme jamais modélisé, et **toujours pas mesuré** (la mention
+d'un « écart fret ~4-6x » qui figurait ici était périmée : cet écart a été réfuté le même jour,
+voir §3) ; (2) `difficulty.economy = false` confirme que la réduction de moitié de la production
+primaire en récession est **sans objet** chez nous.
 
 ⚠️ Le contenu des pages restantes n'a **pas** été lu : les colonnes « ce qu'on espère » sont des
 hypothèses de pertinence, pas des résumés.
@@ -186,12 +187,24 @@ Reprend le §8 de `docs/mecanique_jeu.md`, complété.
 4. ✅🔶 **Route** — constructeur transactionnel (deux arrêts, dépôt, bus, rollback, garde
    anti-doublon) ajouté le 2026-08-28, mais **désactivé** après mesure. Le trace Manhattan borné
    évite `Pathfinder.Road` (171 356 opcodes contre 696 794 mesurés pour l'A* sur la sonde courte),
-   et la liaison 27–33 (23 tuiles) construit bien pour 10 092. Elle ne charge pourtant pas :
-   profit −588 puis −599/−601 par an, notes d'arrêt −1, et campagne 20 ans à 1 749 226 contre
-   baseline 2 787 970. `ROAD_BUILD_ENABLED = false` conserve le code sans sacrifier le banc.
+   et la liaison 27–33 (23 tuiles) construit bien pour 10 092. **Elle ne charge pourtant personne** :
+   profit −588 puis −599/−601 par an, notes d'arrêt à **−1** — la signature d'un cargo jamais
+   ramassé, exactement comme le bug fret d'`abd641b`. C'est LE symptôme à expliquer.
+   ⚠️ **La campagne route active finit à 1 749 226 contre 2 787 970, mais cet écart n'est PAS
+   attribuable à la liaison** (vérifié le 2026-08-28) : elle coûte 171 356 opcodes, soit **0,04 %**
+   des 436 M de la campagne, et 10 092 d'argent — et le run avec route consomme au total *moins*
+   d'opcodes (231 M contre 436 M), il construit moins, il n'est pas étranglé. C'est une divergence
+   de trajectoire sur graine unique : deux arrêts de bus changent l'état du monde dès 1972 et tout
+   diverge ensuite. On ne peut pas séparer « le bus nuit » de « cette trajectoire est moins bonne ».
+   `ROAD_BUILD_ENABLED = false` conserve le code sans sacrifier le banc.
    La croissance (une unité / 50 jours / cinq gares) reste un effet de bord non mesuré et non
    poursuivi ici ; avant toute réactivation, expliquer le non-chargement et mesurer plusieurs
    paires avec une économie routière propre.
+   **Suspects du non-chargement, par vraisemblance** (voir `docs/mecanique_jeu.md` §11) : (1) bus
+   jamais démarré — un véhicule neuf naît `Stopped`, il faut `AIVehicle.StartStopVehicle` ;
+   (2) arrêt mal orienté donc non raccordé à la route. Le type d'arrêt est **écarté** : le code
+   passe bien `ROADVEHTYPE_BUS`. À vérifier aussi avant de dimensionner : **un arrêt n'accueille
+   que 2 bus**, au-delà ils font la queue sur la route — `economy.nut` ignore ce plafond.
 
 Ne pas oublier deux composantes gratuites de la note de compagnie : **emprunt à zéro** (5 %) et
 **8 types de cargo par trimestre** (5 %) — cette dernière plaide contre une IA 100 % passagers.
