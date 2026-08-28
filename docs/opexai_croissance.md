@@ -1,0 +1,165 @@
+# OpexAI : croissance et rentabilité
+
+Session du 2026-08-28, après la mise en place de l'étage 3 (construction) et du multimodal
+(`docs/opexai_multimodal.md`). Point de départ : sur une campagne graine 42, `ai/OpexAI/`
+s'arrêtait à 3 lignes ferroviaires, ne remboursait jamais son emprunt de 300 000 et terminait avec
+`company_value = 1`. Cinq correctifs successifs, chacun mesuré en jeu avant et après, ont porté la
+même campagne à 15 lignes et une valeur de compagnie de 2 413 587. Ce document décrit ce qui a été
+changé, comment chaque changement a été vérifié, et — à la demande explicite du suivi de projet —
+les pistes qui ont été envisagées puis écartées, avec la mesure qui a tranché.
+
+## 1. Le modèle économique passagers surestimait le profit d'un facteur ~8
+
+`economy.nut::OpexLineEconomics` prédit un profit annuel avant construction. Mesuré sur 9 lignes
+pax réelles (2 campagnes de 10 ans, graine 42) : convois et coût de fonctionnement prédits
+correspondaient exactement au réel — tout l'écart était dans le revenu. Décomposé en isolant
+chaque facteur séparément :
+
+- `STATION_RATING_PCT` supposait 75, mesuré ~53 (`AIStation.GetCargoRating` en régime établi) :
+  facteur **~1,4x** seulement.
+- **Dominant** : `AITown.GetLastMonthProduction` compte la production de la ville ENTIÈRE, alors
+  qu'une gare n'en capte qu'un rayon local. Résidu mesuré 8-37 % (moyenne 22 %) : facteur **~4,5x**.
+
+Corrigé par `STATION_RATING_PCT = 50` et un nouveau `TOWN_CATCHMENT_SHARE_PCT = 22` dans
+`candidates.nut`, appliqué uniquement aux paires de villes (`OpexPaxCandidates`) — pas au fret, une
+industrie produisant depuis une seule tuile sans cette dilution géométrique. Vérifié in-sample sur
+les 9 lignes : ratio prédit/réel resserré de ~8x à ~1,18x. Commit `b09f23e`.
+
+## 2. Le fret restait bloqué à plein chargement au puits
+
+Le run de vérification du correctif pax n'a construit que du fret (le pax est désormais
+correctement déclassé). Les 3 lignes fret ont vu leur note de gare tomber à -1 en 1 à 3 ans.
+
+Diagnostic sur l'état réel des convois (`AIVehicle.GetState`, `AIOrder.ResolveOrderPosition`,
+`AIVehicle.GetCargoLoad`) : `OpexFreightCandidates` n'apparie qu'un producteur à un accepteur du
+MÊME cargo — la ligne fret est structurellement à sens unique. Mais `OpexBuildTrains` posait
+`AIOrder.OF_FULL_LOAD_ANY` aux deux arrêts pour toute ligne, hérité du pax bidirectionnel. Un
+convoi arrivant au puits attendait un plein chargement de retour qui n'existe jamais, restait
+bloqué en `VS_AT_STATION`, et bouchait la gare à une seule voie pour les convois suivants.
+
+Corrigé : le puits fret reçoit `AIOrder.OF_NONE`, la source garde `OF_FULL_LOAD_ANY`, le pax n'est
+pas touché. Vérifié graine 42/10 ans : 3→8 lignes fret construites, note stable 58-84 sur 9 ans
+(avant : -1 dès l'an 2), revenu ~18-28k/an soutenu (avant : 0). Commit `abd641b`.
+
+## 3. `MIN_SEPARATION` bloquait la croissance sur de faux positifs
+
+Une fois pax et fret rentables, une campagne complète (`sweeps/opex_full_campaign.py`) a montré
+l'IA passer de 3 à 8 (10 ans) puis 12 (20 ans) lignes — le capital n'était plus le mur — mais avec
+des stalles de plusieurs années malgré une trésorerie très supérieure au capital de n'importe quel
+candidat. Direct measurement (signs `GT`/`GC`/`GN`, pas de déduction par élimination) a montré deux
+verrous distincts et séquentiels :
+
+- **1970-1977 : trésorerie.** Un rejet cash par an, `break` confirmé sur manque de capital réel.
+- **1980-1989 : `_tooClose`.** La trésorerie n'est plus jamais la raison (`nCashBlocked=0` chaque
+  année), mais `_tooClose` rejette les 20/20 meilleurs candidats sur 6 des 10 années. **84 % de ces
+  rejets sont à distance <5 de la MÊME origine déjà servie**, pas une ville voisine différente.
+
+Cause : `_tooClose` comparait l'origine du candidat à la **gare bâtie** d'une ligne existante — un
+proxy bruité par `STATION_SEARCH_RADIUS=30` (la gare peut finir loin de la ville qu'elle sert).
+Corrigé en deux tests distincts : `ORIGIN_SEPARATION=3` sur la tuile catalogue stable (identité
+réelle, précis) et `MIN_SEPARATION` abaissé 15→10 comme filet physique entre deux gares bâties
+différentes. Vérifié graine 42/20 ans, reproduit deux fois à l'identique : 11→12 lignes, valeur
+1 139 315→2 245 285, aucun échec de construction introduit. Commit `5433518`.
+
+## 4. L'emprunt n'était jamais remboursé
+
+Un seul appel de prêt existait dans tout le code : `AICompany.SetLoanAmount(GetMaxLoanAmount())`
+au démarrage. Aucune logique de remboursement. Ajouté `OpexAI::_tryRepayLoan`, appelé une fois par
+an après les tentatives de construction (elles ont priorité sur le cash de l'année) : au-dessus de
+`LOAN_REPAY_FLOOR = 1 000 000` de trésorerie, rembourse le maximum qui laisse ce plancher, arrondi
+vers le HAUT au palier `AICompany.GetLoanInterval()` (arrondir vers le bas rembourserait plus que
+permis). Vérifié graine 42/20 ans : emprunt 300 000→0 (atteint en 1987, jamais repris), lignes
+12→13 (le remboursement, placé après les constructions, ne les a jamais privées de cash).
+Commit `44e0b14`.
+
+## 5. Les lignes fret mortes n'étaient ni détectées ni remplacées
+
+Certaines lignes fret meurent quand leur industrie source ferme — un événement de jeu normal. Sans
+détection, leurs convois continuent de rouler à vide, payant leur coût de fonctionnement pour un
+revenu nul, indéfiniment.
+
+Détection : `srcAlive=0` (`AIIndustry.IsValidIndustry`) seul ne suffit PAS — une gare peut rester
+alimentée par une industrie voisine du même cargo après la fermeture de celle d'origine et rester
+pleinement rentable (voir §6, piste écartée). Le diagnostic exige donc la preuve réelle mesurée
+chaque année (note de gare ≤0 ET revenu implicite `profit + coût de fonctionnement` ≤0) en plus de
+la source défaillante, confirmée **2 années consécutives** (`DEAD_STREAK_THRESHOLD=2`) pour écarter
+un accroc transitoire.
+
+Remédiation étalée sur plusieurs années car `AIVehicle.SellVehicle` exige un convoi arrêté en
+dépôt : l'année du seuil, chaque convoi est envoyé au dépôt (`AIVehicle.SendVehicleToDepot`) et ses
+IDs figés sur la ligne ; les années suivantes, les convois arrivés sont vendus un par un. La ligne
+quitte le suivi (`_lines`) une fois tous vendus — ce qui la libère du filet `_tooClose` sans
+démolir gares ni voies (inutile une fois hors de `_lines`, et risque de note d'autorité locale pour
+un gain nul).
+
+Bug de diagnostic trouvé et corrigé au passage : `Array.remove()` décale tous les indices suivants,
+donc l'indice de boucle n'était plus un identifiant stable dès qu'une ligne pouvait être retirée —
+deux lignes différentes recevaient parfois le même numéro d'une année sur l'autre. Ajouté
+`_nextLineId` (monotone, jamais réutilisé) ; tous les signs de diagnostic utilisent désormais
+`line.lineId`. Vérifié sans effet sur la partie elle-même (résultat identique avant/après ce
+correctif de diagnostic seul). Commit `e884358`.
+
+## 6. Pistes écartées
+
+Hypothèses testées puis rejetées par la mesure, ou décisions de conception prises et non retenues,
+consignées ici pour ne pas les reproposer sans nouvelle donnée.
+
+- **La fermeture d'industrie source comme cause SEULE de l'effondrement fret initial (§2).** Avant
+  diagnostic sur l'état réel des convois, c'était l'hypothèse la plus probable (le catalogue perd
+  des industries au fil du temps). Écartée : les deux industries des 3 lignes concernées restaient
+  valides et productives tout du long (`IA|...|1|1|prod>0`) — la vraie cause était le train coincé
+  par `OF_FULL_LOAD_ANY`.
+- **`srcAlive=0` comme critère unique de ligne fret morte (§5).** Testé implicitement en
+  envisageant de scrapper dès la fermeture de l'industrie source ; écarté avant implémentation
+  grâce à la donnée de la campagne 20 ans : une ligne (dist. 83) avait `srcAlive=0` en continu de
+  1978 à 1989 tout en restant rentable (note 55-75, profit réel 18-52k/an) — une industrie voisine
+  du même cargo, dans le rayon de couverture de la gare, avait pris le relais. Un critère basé sur
+  `srcAlive` seul aurait vendu une ligne saine.
+- **La trésorerie comme cause des stalles 1980-1989 (§3).** L'hypothèse de départ ("`MIN_SEPARATION`
+  peut être responsable de l'arrêt à 3 lignes autant que la trésorerie") laissait la question
+  ouverte entre les deux causes. Tranchée par mesure directe : `nCashBlocked=0` chaque année de
+  cette période, donc la trésorerie n'y jouait aucun rôle — tout le blocage venait de `_tooClose`.
+- **Abaisser `MIN_SEPARATION` seul, sans distinguer identité d'origine et proximité physique
+  (§3).** Le diagnostic (84 % des rejets à distance <5, donc de la même origine, contre 16 % à
+  distance 5-14, donc une ville réellement différente) montrait qu'un seuil unique plus bas aurait
+  réduit les faux positifs à distance 5-14 mais serait resté vulnérable au bruit de
+  `STATION_SEARCH_RADIUS=30` sur l'identité d'origine. Remplacé par deux tests séparés plutôt qu'un
+  seul seuil recalibré.
+- **`TOWN_CATCHMENT_SHARE_PCT` appliqué au fret (§1).** Envisagé pour cohérence avec le pax, écarté
+  par construction : une industrie produit depuis une seule tuile, sans la dilution géométrique
+  d'une ville entière captée par une seule gare. Non mesuré côté fret — voir limites ci-dessous.
+- **Démolir gares et voies des lignes fret mortes (§5).** Envisagé comme remédiation plus complète
+  que la simple vente des convois. Écarté par raisonnement plutôt que par mesure : une fois la
+  ligne retirée de `_lines`, elle ne bloque plus rien (`_tooClose` n'itère que sur `_lines`) ; la
+  démolition ajoute un risque (note d'autorité locale, infrastructure partagée) pour un gain nul.
+
+## 7. Validation reproductible
+
+Configuration commune à toutes les mesures de ce document : OpenTTD 15.3, OpenGFX 7.1, carte
+256×256, graine 42, année 1970, inflation désactivée. Harnais : `sweeps/opex_full_campaign.py`
+(mesures agrégées, financières et de construction) et les harnais spécifiques à chaque correctif
+(`sweeps/opex_predict_vs_actual.py`, `sweeps/opex_freight_diag.py`, `sweeps/opex_freight_postfix.py`).
+
+| Étape | Lignes rail | `company_value` | Emprunt final |
+|---|---|---|---|
+| Avant (documenté, 10 ans) | 3 (bloqué) | 1 | 300 000 (jamais remboursé) |
+| Après §1-§2, 20 ans | 12 | 2 245 285 | 300 000 |
+| Après §3 (`MIN_SEPARATION`), 20 ans | 12 | 2 245 285 | 300 000 |
+| Après §4 (emprunt), 20 ans | 13 | 2 233 591 | **0** |
+| Après §5 (lignes mortes), 20 ans | **15** | **2 413 587** | 0 |
+
+## 8. Limites actuelles
+
+- L'écart prédit/réel du fret reste ~4-6x même après `STATION_RATING_PCT` seul — un facteur propre
+  au fret, non identifié, non mesuré (`TOWN_CATCHMENT_SHARE_PCT` ne s'y applique pas par
+  construction, voir §6).
+- Les stalles restants de la campagne 20 ans sont désormais mesurés comme une saturation réelle des
+  origines disponibles dans la fenêtre `TOP_K` (`_tooClose` reste `near=20/far=0` à chaque fois),
+  pas un seuil mal réglé — à traiter dans `candidates.nut` (`TOP_K` plus large, ou exclusion des
+  origines déjà servies à la génération plutôt qu'au filtrage), non fait ici par choix de
+  périmètre.
+- La détection de ligne morte (§5) ne couvre que le fret (`srcIndustry`/`dstIndustry` n'existent
+  que sur les candidats fret) ; une ligne pax ou multimodale qui deviendrait durablement
+  déficitaire pour une autre raison n'est pas détectée.
+- Pas de logique de remplacement pour une ligne fret morte scrappée — l'emplacement libéré n'est
+  saisi que si un candidat ultérieur le trouve dans son propre classement, pas proactivement.
