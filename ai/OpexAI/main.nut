@@ -193,6 +193,9 @@ function OpexAI::_tryBuild(ranked, year)
       AISign.BuildSign(anchor, "PK|" + idx + "|" + (candidate.kind == "pax" ? "P" : "F")
                                + "|" + candidate.monthly);
 
+      /* Diagnostic effondrement fret (2026-08-28) : garder de quoi verifier, annee apres annee,
+       * si les DEUX industries d'une ligne fret restent valides -- sans ca on ne peut pas
+       * departager "industrie fermee" de "train coince" comme cause de la note -1. */
       this._lines.append({
         stationA = result.stationA, stationB = result.stationB, cargo = candidate.cargo,
         predicted = candidate.profitAnnual, iterations = result.iterations,
@@ -200,6 +203,9 @@ function OpexAI::_tryBuild(ranked, year)
         predRevenue = candidate.revenueAnnual, predRunning = candidate.runningAnnual,
         predAmort = candidate.amortAnnual, predCarried = candidate.carried,
         predTrains = candidate.trains, predOneWayDays = candidate.oneWayDays,
+        kind = candidate.kind,
+        srcIndustry = (candidate.kind == "freight") ? AIIndustry.GetIndustryID(candidate.src) : -1,
+        dstIndustry = (candidate.kind == "freight") ? AIIndustry.GetIndustryID(candidate.dst) : -1,
       });
     }
   }
@@ -230,16 +236,41 @@ function OpexAI::_reportLines(year)
     local profit = 0;
     local runCost = 0;
     local vehCount = 0;
+    local isFreight = ("kind" in line) && line.kind == "freight";
+    local diagSlot = 0;
     local vehicles = AIVehicleList_Station(stationA);
     for (local v = vehicles.Begin(); !vehicles.IsEnd(); v = vehicles.Next()) {
       if (AIVehicle.GetVehicleType(v) != AIVehicle.VT_RAIL) continue;
       profit += AIVehicle.GetProfitLastYear(v);
       runCost += AIVehicle.GetRunningCost(v);
       vehCount++;
+      /* Diagnostic effondrement fret : etat REEL de CHAQUE convoi (pas juste le premier -- une
+       * gare a UNE seule voie, donc un convoi bloque au puits peut faire la queue derriere les
+       * autres, qui rendraient "en marche, vitesse 0" sans etre eux-memes la cause). L'ordre
+       * courant (0 = source, 1 = puits), l'etat, la vitesse et le chargement du cargo de la
+       * ligne. Limite a 3 convois (MAX_TRAINS le permet toujours ici en pratique). */
+      if (isFreight && diagSlot < 3) {
+        local state = AIVehicle.GetState(v);
+        local order = AIOrder.ResolveOrderPosition(v, AIOrder.ORDER_CURRENT);
+        local speed = AIVehicle.GetCurrentSpeed(v);
+        local load = AIVehicle.GetCargoLoad(v, line.cargo);
+        AISign.BuildSign(anchor, "VS|" + i + "|" + year + "|" + diagSlot + "|" + state + "|" + order);
+        AISign.BuildSign(anchor, "VL|" + i + "|" + year + "|" + diagSlot + "|" + speed + "|" + load);
+        diagSlot++;
+      }
     }
     AISign.BuildSign(anchor, "OZ|" + i + "|" + year + "|" + profit);
     AISign.BuildSign(anchor, "OU|" + i + "|" + year + "|" + vehCount + "|" + runCost);
     AISign.BuildSign(anchor, "OO|" + i + "|" + year + "|" + (profit + runCost));
+
+    /* Les deux industries sont-elles encore valides ? Et l'industrie source produit-elle encore ?
+     * Depart le blocage "train coince" (hypothese 2) de la fermeture d'industrie (hypothese 1). */
+    if (isFreight) {
+      local srcAlive = AIIndustry.IsValidIndustry(line.srcIndustry) ? 1 : 0;
+      local dstAlive = AIIndustry.IsValidIndustry(line.dstIndustry) ? 1 : 0;
+      local srcProd = srcAlive ? AIIndustry.GetLastMonthProduction(line.srcIndustry, line.cargo) : -1;
+      AISign.BuildSign(anchor, "IA|" + i + "|" + year + "|" + srcAlive + "|" + dstAlive + "|" + srcProd);
+    }
   }
 }
 
