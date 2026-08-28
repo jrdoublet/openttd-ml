@@ -1,0 +1,287 @@
+{
+  "openttd_version": "15.3",
+  "opengfx_version": "7.1",
+  "seed": 42,
+  "years": 1,
+  "openttd_config": "[difficulty]\nnumber_towns = 3\nindustry_density = 4\n[economy]\ninflation = false\ntown_growth_rate = 2\n[game_creation]\nstarting_year = 1970\nmap_x = 8\nmap_y = 8\n",
+  "n_savegames": 13,
+  "final_date": "1971-01-01",
+  "final_company_value": 60588,
+  "final_performance_history": 78,
+  "final_money": 170867,
+  "final_current_loan": 300000,
+  "final_n_vehicles": 31,
+  "final_n_stations": 6,
+  "n_rail_lines_ok": 1,
+  "n_rail_attempts_total": 1,
+  "n_rail_attempts_failed": 0,
+  "n_rail_attempts_last_ranked": 0,
+  "n_rail_attempts_zero_alternative": 0,
+  "n_rail_attempts_abandoned": 0,
+  "abandoned_iterations": 0,
+  "n_rail_attempts_abandoned_zero_alternative": 0,
+  "abandoned_iterations_zero_alternative": 0,
+  "n_rail_attempts_abandoned_hard_cap": 0,
+  "abandoned_iterations_hard_cap": 0,
+  "rail_attempts": [
+    {
+      "year": 1970,
+      "idx": 2,
+      "rank": 0,
+      "ranked_len": 20,
+      "budget_path": "N",
+      "alternative_source": "S",
+      "reason": "OK",
+      "iteration_budget": 8424,
+      "iterations": 250
+    }
+  ],
+  "air_attempts": [
+    {
+      "year": 1970,
+      "distance": 102,
+      "planOps": 175402,
+      "reason": "OK"
+    }
+  ],
+  "water_attempts": [],
+  "road_attempts": [
+    {
+      "ok": true,
+      "year": 1970,
+      "line_index": 1,
+      "town_a": 27,
+      "town_b": 33,
+      "distance": 23,
+      "plan_ops": 177288,
+      "cost": 10092,
+      "route_distance": 24,
+      "vehicle": 10,
+      "capacity": 35
+    }
+  ],
+  "lines": [
+    {
+      "line_index": 2,
+      "mode": "rail",
+      "distance": 36,
+      "iterations": 250,
+      "reason": "OK",
+      "predicted": {
+        "revenueAnnual": 20400,
+        "runningAnnual": 6396,
+        "amortAnnual": 3688,
+        "carried": 68,
+        "trains": 3,
+        "oneWayDays": 8,
+        "distance": 36,
+        "kind": "freight",
+        "monthly": 136,
+        "profitAnnual": 10316
+      },
+      "actual_last_year": null,
+      "actual": {},
+      "actual_series": {}
+    },
+    {
+      "line_index": 1,
+      "mode": "road",
+      "distance": 23,
+      "town_a": 27,
+      "town_b": 33,
+      "year_built": 1970,
+      "plan_ops": 177288,
+      "iterations": 0,
+      "reason": "OK",
+      "predicted": {},
+      "actual_last_year": null,
+      "actual": {},
+      "actual_series": {}
+    }
+  ],
+  "yearly": {
+    "1970": {
+      "towns": 42,
+      "industries": 47,
+      "ranked_all": 31,
+      "cand_rank_ops": 2855,
+      "utilisation_permille": 828,
+      "buildOps": 0,
+      "lines_len_start_of_year": 0
+    }
+  },
+  "annual_blocks": [
+    {
+      "year": 1970,
+      "start_tick": 3,
+      "end_tick": 284,
+      "duration_ticks": 281,
+      "try_build_ticks": 166,
+      "other_ticks": 115,
+      "calendar_years_crossed_before": 0,
+      "caught_up_years": 0,
+      "skipped_years_before": 0
+    }
+  ],
+  "calendar_years_crossed": [],
+  "skipped_years": [],
+  "financial_series": [
+    {
+      "date": "1970-01-01",
+      "company_value": null,
+      "money": 100000,
+      "current_loan": 100000,
+      "n_vehicles": 8,
+      "n_stations": 0
+    },
+    {
+      "date": "1970-02-01",
+      "company_value": null,
+      "money": 92014,
+      "current_loan": 300000,
+      "n_vehicles": 29,
+      "n_stations": 6
+    },
+    {
+      "date": "1970-03-01",
+      "company_value": null,
+      "money": 90407,
+      "current_loan": 300000,
+      "n_vehicles": 40,
+      "n_stations": 6
+    },
+    {
+      "date": "1970-04-01",
+      "company_value": null,
+      "money": 101349,
+      "current_loan": 300000,
+      "n_vehicles": 29,
+      "n_stations": 6
+    },
+    {
+      "date": "1970-05-01",
+      "company_value": 27583,
+      "money": 109498,
+      "current_loan": 300000,
+      "n_vehicles": 29,
+      "n_stations": 6
+    },
+    {
+      "date": "1970-06-01",
+      "company_value": 27583,
+      "money": 123413,
+      "current_loan": 300000,
+      "n_vehicles": 29,
+      "n_stations": 6
+    },
+    {
+      "date": "1970-07-01",
+      "company_value": 27583,
+      "money": 128734,
+      "current_loan": 300000,
+      "n_vehicles": 29,
+      "n_stations": 6
+    },
+    {
+      "date": "1970-08-01",
+      "company_value": 45840,
+      "money": 139053,
+      "current_loan": 300000,
+      "n_vehicles": 35,
+      "n_stations": 6
+    },
+    {
+      "date": "1970-09-01",
+      "company_value": 45840,
+      "money": 142326,
+      "current_loan": 300000,
+      "n_vehicles": 29,
+      "n_stations": 6
+    },
+    {
+      "date": "1970-10-01",
+      "company_value": 45840,
+      "money": 152078,
+      "current_loan": 300000,
+      "n_vehicles": 29,
+      "n_stations": 6
+    },
+    {
+      "date": "1970-11-01",
+      "company_value": 60588,
+      "money": 158214,
+      "current_loan": 300000,
+      "n_vehicles": 29,
+      "n_stations": 6
+    },
+    {
+      "date": "1970-12-01",
+      "company_value": 60588,
+      "money": 167696,
+      "current_loan": 300000,
+      "n_vehicles": 29,
+      "n_stations": 6
+    },
+    {
+      "date": "1971-01-01",
+      "company_value": 60588,
+      "money": 170867,
+      "current_loan": 300000,
+      "n_vehicles": 31,
+      "n_stations": 6
+    }
+  ],
+  "raw_signs_final": [
+    "OX|1970|42|47|31",
+    "OC|1970|1164|3801|1458",
+    "OP|1970|144000|26789",
+    "OS|1970|2855|828",
+    "OW|1970|0|0",
+    "OB|1970|36|136|10569",
+    "OE|1970|3|10316|82014",
+    "OD|1970|10569|4898|4692|1775",
+    "OL|1970|160|75|285",
+    "OA|1970|102|175402|OK",
+    "OM|R|70|1|27|33|23|177288",
+    "OC|R|1|10092|24",
+    "OV|R|1|10|35",
+    "RT|1|sA|6967|6966",
+    "RT|1|sB|12344|12600",
+    "RT|1|dp|7991|7990",
+    "RT|1|sh|1",
+    "OR|70|2|20|NSK|8424|250",
+    "OF|2|20400",
+    "OJ|2|6396",
+    "OK|2|3688",
+    "OQ|2|68|3",
+    "OT|2|8|36",
+    "PK|2|F|136",
+    "GC|1970|92596|164283",
+    "GN|1970|1|0",
+    "YT|70|3|284|166|0",
+    "RQ|1|15|4",
+    "RE|1|6967",
+    "RI|1|0",
+    "RQ|2|28|4",
+    "RE|2|6967",
+    "RI|2|0",
+    "RQ|3|37|4",
+    "RE|3|6967",
+    "RI|3|0",
+    "RQ|4|43|4",
+    "RE|4|6967",
+    "RI|4|0",
+    "RQ|5|20|4",
+    "RE|5|6967",
+    "RI|5|0",
+    "RQ|6|31|4",
+    "RE|6|6967",
+    "RI|6|0",
+    "RQ|7|39|4",
+    "RE|7|6967",
+    "RI|7|0",
+    "RQ|8|0|4",
+    "RE|8|6967",
+    "RI|8|0"
+  ]
+}

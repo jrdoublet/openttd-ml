@@ -14,6 +14,7 @@ const ROAD_MAX_STOPS_PER_TOWN = 8;
 const ROAD_SITE_SEARCH_RADIUS = 16;
 const ROAD_MAX_SITE_PROBES = 48;
 const ROAD_CAPITAL_MARGIN = 25000;
+const ROAD_DEPOT_MIN_STOP_DISTANCE = 3;
 
 function OpexRoadInMap(x, y)
 {
@@ -133,6 +134,23 @@ function OpexRoadIsForbidden(tile, stopA, stopB)
   return tile == stopA.tile || tile == stopB.tile;
 }
 
+/* Bug mesure le 2026-08-28 (docs/opex_bus_diag_*.json, signs RT/RL/RQ) : sur la paire 27<->33,
+ * siteA.front == (54,27), siteA.tile == (55,27), et le trace horizontal siteA.front -> corner
+ * (56,27) marche PRECISEMENT sur siteA.tile au passage. AITestMode/BuildRoad valident cette case
+ * comme route plate ordinaire (rien n'y est encore construit), mais BuildRoadStation la remplace
+ * ensuite par un arret NON traversant (cul-de-sac, entree/sortie par la seule facade) -- la
+ * continuite du trace vers l'autre arret est donc coupee exactement au point le plus critique.
+ * Mesure : le bus ne depasse jamais l'ordre 0 (rating -1 4 ans durant, RW=0, jamais AT_STATION).
+ * Le filet : aucune tuile du trace (hors les deux facades, qui sont TOUJOURS des tuiles OK) ne
+ * doit coincider avec le corps d'un des deux arrets. */
+function OpexRoadTraceHitsStop(trace, stopTile)
+{
+  foreach (edge in trace) {
+    if (edge.from == stopTile || edge.to == stopTile) return true;
+  }
+  return false;
+}
+
 /* Le depot est decide sur le L planifie mais pose apres lui. Il n'est pas construit dans une
  * boucle de gare : deux arrets simples suffisent a l'increment, la boucle est une amelioration de
  * capacite a mesurer plus tard, pas un pretexte a ajouter des stations. */
@@ -140,11 +158,25 @@ function OpexRoadFindDepot(trace, stopA, stopB)
 {
   local offsets = [[1, 0], [-1, 0], [0, 1], [0, -1]];
   local seen = {};
+  /* Experience du 2026-08-28 (cf. docs/opex_bus_diag_*.json) : chercher a partir de la fin du trace
+   * (cote siteB) plutot que du debut echoue purement et simplement (DEPOT, aucun site
+   * constructible sur toute cette moitie) -- le terrain degage n'existe qu'aux abords immediats
+   * des arrets, pas au milieu du trace. Le depot doit donc rester cherche depuis le debut. */
   foreach (edge in trace) {
     local fronts = [edge.from, edge.to];
     foreach (front in fronts) {
       if (front in seen) continue;
       seen.rawset(front, true);
+      /* Mesure du 2026-08-28 : meme apres avoir evite que le trace ne traverse le CORPS d'un
+       * arret (OpexRoadTraceHitsStop), la premiere facade du trace est TOUJOURS siteA.front (le
+       * trace commence toujours la), donc sans ce filet le depot s'y accroche systematiquement --
+       * meme facade que l'arret, puis a 1 seule tuile d'elle une fois ce cas exclu. Le bus ne
+       * chargeait toujours rien apres 4 ans dans les deux configurations (rating -1, RW=0
+       * constant, ordre bloque sur stopA, campagne graine 42 -- docs/opex_bus_diag_*.json). Le
+       * trace a 24 tuiles de facades candidates ; ROAD_DEPOT_MIN_STOP_DISTANCE ecarte tout le
+       * voisinage immediat des deux arrets, pas seulement leur facade exacte. */
+      if (AIMap.DistanceManhattan(front, stopA.front) < ROAD_DEPOT_MIN_STOP_DISTANCE) continue;
+      if (AIMap.DistanceManhattan(front, stopB.front) < ROAD_DEPOT_MIN_STOP_DISTANCE) continue;
       local x = AIMap.GetTileX(front);
       local y = AIMap.GetTileY(front);
       foreach (offset in offsets) {
@@ -192,12 +224,16 @@ function OpexRoadPlans(catalog)
         for (local shape = 0; shape < 2; shape++) {
           local trace = OpexRoadTrace(siteA.front, siteB.front, shape == 0);
           if (trace.len() == 0 || trace.len() > ROAD_MAX_TRACE_TILES) continue;
+          /* cf. commentaire sur OpexRoadTraceHitsStop : le trace ne doit jamais retraverser le
+           * corps d'un des deux arrets qu'il relie, sous peine d'etre coupe une fois l'arret
+           * construit par-dessus. */
+          if (OpexRoadTraceHitsStop(trace, siteA.tile) || OpexRoadTraceHitsStop(trace, siteB.tile)) continue;
           if (!OpexRoadTraceBuildable(trace)) continue;
           local depot = OpexRoadFindDepot(trace, siteA, siteB);
           if (depot == null) continue;
           return { townA = pair.townA, townB = pair.townB, stopA = siteA, stopB = siteB,
                    trace = trace, depot = depot, distance = pair.distance,
-                   routeDistance = trace.len() };
+                   routeDistance = trace.len(), shape = shape };
         }
       }
     }

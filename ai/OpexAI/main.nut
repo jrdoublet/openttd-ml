@@ -88,6 +88,18 @@ class OpexAI extends AIController {
   _airBuilt = false;
   _waterBuilt = false;
   _roadBuilt = false;
+  /* Diagnostic bus (2026-08-28) : le bus routier ne rejoint jamais _lines (cf. commentaire dans
+   * _tryBuildRoad), donc _reportLines ne le voit jamais. _roadDiag garde juste assez pour le
+   * mesurer chaque annee sans toucher a _tooClose/_lines : vehicule, station IDs, cargo, et les
+   * tuiles de facade (front) du depot et des deux arrets pour tester la connectivite reelle. */
+  _roadDiag = null;
+  /* Echantillon hebdomadaire du bus (2026-08-28), en plus du rapport annuel _reportRoad : deux
+   * releves annuels consecutifs a la MEME tuile (RL fige) laissent planer le doute entre
+   * "bloque" et "boucle si lente qu'un an ne suffit pas a en sortir". Borne a 40 echantillons
+   * (~280 jours a raison d'un par semaine) pour ne jamais s'emballer si le diagnostic tourne
+   * plus longtemps que prevu. */
+  _roadSampleTick = -1;
+  _roadSampleCount = 0;
   /* Identite stable des lignes pour les panneaux (2026-08-28) : this._lines.len() n'est plus un
    * identifiant valide des que _scrapDeadLines peut retirer un element -- Array.remove() DECALE
    * tous les indices suivants, donc un panneau IA|5|... loggue une annee peut, apres un retrait,
@@ -111,6 +123,7 @@ class OpexAI extends AIController {
   function _tryBuild(ranked, year);
   function _reportYear(year, ranked);
   function _reportLines(year);
+  function _reportRoad(year);
   function _scrapDeadLines(year);
 }
 
@@ -254,6 +267,22 @@ function OpexAI::_tryBuildRoad(year)
    * _tooClose ne doivent jamais en deduire qu'une ville est verrouillee pour une liaison rail
    * interurbaine. Son unicite est assuree par _roadBuilt et par le scan VT_ROAD. */
   this._nextLineId++;
+
+  /* Diagnostic de non-chargement (2026-08-28) : garde de quoi mesurer le bus chaque annee dans
+   * _reportRoad, hors de _lines. */
+  this._roadDiag = {
+    vehicle = result.vehicle, cargo = this._catalog.paxCargo,
+    stationA = result.stationA, stationB = result.stationB,
+    stopA = result.stopA, stopB = result.stopB,
+    coverage = AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP),
+  };
+  /* Geometrie brute (2026-08-28), UNE fois : tuile + facade des deux arrets et du depot, pour
+   * reconstruire offline (tile = y*mapSizeX+x, carte 256x256) si le bus boucle pres d'un point
+   * particulier plutot que d'atteindre stopA. */
+  AISign.BuildSign(anchor, "RT|" + idx + "|sA|" + plan.stopA.tile + "|" + plan.stopA.front);
+  AISign.BuildSign(anchor, "RT|" + idx + "|sB|" + plan.stopB.tile + "|" + plan.stopB.front);
+  AISign.BuildSign(anchor, "RT|" + idx + "|dp|" + plan.depot.tile + "|" + plan.depot.front);
+  AISign.BuildSign(anchor, "RT|" + idx + "|sh|" + plan.shape);
 }
 
 /* Une extremite deja desservie par nous ne merite pas un second raccordement.
@@ -526,6 +555,69 @@ function OpexAI::_reportLines(year)
  * cadavre. Les gares et voies physiques ne sont PAS demolies : une fois hors de _lines elles ne
  * bloquent plus rien (le seul frein etait la presence dans _lines), et demolir ajoute un risque
  * (note d'autorite locale, infrastructure partagee) pour un gain nul ici. */
+
+/* Diagnostic bus (2026-08-28) : mesure REELLE annuelle de l'unique liaison routiere, en dehors de
+ * _lines/_reportLines (cf. commentaire sur _roadDiag). But : departager "le bus n'atteint jamais
+ * ses arrets" de "les arrets n'ont aucun bassin" -- decisif via RW (cargo en attente en gare).
+ * Panneaux, valeurs max plausibles pour rester sous 31 caracteres :
+ *   RS|aa|etat|ordre|charge   -- etat/ordre/charge du vehicule (GetState, ResolveOrderPosition,
+ *                                GetCargoLoad) ; "RS|99|9|9|999" = 13 caracteres.
+ *   RD|aa|distA|distB         -- distance Manhattan REELLE du vehicule aux deux arrets, pour
+ *                                savoir s'il a seulement quitte le depot ; jusqu'a 5 chiffres
+ *                                chacun sur une carte 256x256 -- "RD|99|99999|99999" = 18.
+ *   RY|aa|ratingA|ratingB     -- note de gare (-1 si HasCargoRating faux) ; "RY|99|-1|-1" = 11.
+ *   RW|aa|waitA|waitB         -- passagers en ATTENTE aux deux arrets (GetCargoWaiting), avant
+ *                                tout chargement -- "RW|99|9999|9999" = 16.
+ */
+function OpexAI::_reportRoad(year)
+{
+  if (this._roadDiag == null) return;
+  local d = this._roadDiag;
+  local anchor = AIMap.GetTileIndex(1, 1);
+  local yy = year % 100;
+
+  if (!AIVehicle.IsValidVehicle(d.vehicle)) {
+    AISign.BuildSign(anchor, "RX|" + yy);
+    return;
+  }
+
+  local state = AIVehicle.GetState(d.vehicle);
+  local order = AIOrder.ResolveOrderPosition(d.vehicle, AIOrder.ORDER_CURRENT);
+  local load = AIVehicle.GetCargoLoad(d.vehicle, d.cargo);
+  AISign.BuildSign(anchor, "RS|" + yy + "|" + state + "|" + order + "|" + load);
+  /* Vitesse REELLE (2026-08-28) : RL fige d'une annee sur l'autre laisse deux lectures possibles
+   * -- vehicule bloque (vitesse ~0) ou boucle si lente qu'un an ne suffit pas a en sortir (vitesse
+   * non nulle mais faible). GetCurrentSpeed tranche. */
+  local speed = AIVehicle.GetCurrentSpeed(d.vehicle);
+  AISign.BuildSign(anchor, "RV|" + yy + "|" + speed);
+
+  local loc = AIVehicle.GetLocation(d.vehicle);
+  local distA = AIMap.DistanceManhattan(loc, d.stopA);
+  local distB = AIMap.DistanceManhattan(loc, d.stopB);
+  AISign.BuildSign(anchor, "RD|" + yy + "|" + distA + "|" + distB);
+  /* Position brute (2026-08-28) : RD frozen 3 annees de suite a la meme distance de stopA est
+   * ambigu (boucle courte qui repasserait par hasard au meme point chaque relevé annuel, vs
+   * vehicule reellement bloque). RL compare la tuile EXACTE d'une annee sur l'autre. */
+  AISign.BuildSign(anchor, "RL|" + yy + "|" + loc);
+
+  if (AIStation.IsValidStation(d.stationA) && AIStation.IsValidStation(d.stationB)) {
+    local ratingA = AIStation.GetCargoRating(d.stationA, d.cargo);
+    local ratingB = AIStation.GetCargoRating(d.stationB, d.cargo);
+    AISign.BuildSign(anchor, "RY|" + yy + "|" + ratingA + "|" + ratingB);
+
+    local waitA = AIStation.GetCargoWaiting(d.stationA, d.cargo);
+    local waitB = AIStation.GetCargoWaiting(d.stationB, d.cargo);
+    AISign.BuildSign(anchor, "RW|" + yy + "|" + waitA + "|" + waitB);
+
+    /* Reprend EXACTEMENT le test de production utilise a la construction (OpexRoadStopSites,
+     * meme tuile, meme rayon) pour savoir si la sonde de placement reste valide dans la duree,
+     * ou si elle etait deja un faux positif au moment de la construction. */
+    local prodA = AITile.GetCargoProduction(d.stopA, d.cargo, 1, 1, d.coverage);
+    local prodB = AITile.GetCargoProduction(d.stopB, d.cargo, 1, 1, d.coverage);
+    AISign.BuildSign(anchor, "RP|" + yy + "|" + prodA + "|" + prodB);
+  }
+}
+
 function OpexAI::_scrapDeadLines(year)
 {
   local anchor = AIMap.GetTileIndex(1, 1);
@@ -670,6 +762,7 @@ function OpexAI::Start()
       if (lastYear >= 0) {
         for (local missedYear = lastYear + 1; missedYear < year; missedYear++) {
           this._reportLines(missedYear);
+          this._reportRoad(missedYear);
           this._scrapDeadLines(missedYear);
           this._tryRepayLoan(missedYear);
         }
@@ -679,6 +772,7 @@ function OpexAI::Start()
       local ranked = OpexBuildCandidates(this._catalog, this._budget, this._lines);
       this._reportYear(year, ranked);
       this._reportLines(year);
+      this._reportRoad(year);
       this._scrapDeadLines(year);
       this._tryBuildAir(year);
       this._tryBuildWater(year);
@@ -693,6 +787,34 @@ function OpexAI::Start()
       AISign.BuildSign(anchor, "YT|" + (year % 100) + "|" + blockStartTick + "|" + blockEndTick
                                + "|" + tryBuildTicks + "|" + skippedMarker);
     }
+
+    /* Echantillon trimestriel du bus, cf. commentaire sur _roadSampleTick. RQ|q|vitesse|distA :
+     * "RQ|40|255|510" = 14 caracteres, tres sous le plafond. */
+    if (this._roadDiag != null && this._roadSampleCount < 40) {
+      local nowTick = AIController.GetTick();
+      if (nowTick - this._roadSampleTick >= 74 * 7) {
+        this._roadSampleTick = nowTick;
+        this._roadSampleCount++;
+        if (AIVehicle.IsValidVehicle(this._roadDiag.vehicle)) {
+          local qAnchor = AIMap.GetTileIndex(1, 1);
+          local qSpeed = AIVehicle.GetCurrentSpeed(this._roadDiag.vehicle);
+          local qLoc = AIVehicle.GetLocation(this._roadDiag.vehicle);
+          local qDistA = AIMap.DistanceManhattan(qLoc, this._roadDiag.stopA);
+          AISign.BuildSign(qAnchor, "RQ|" + this._roadSampleCount + "|" + qSpeed + "|" + qDistA);
+          /* La destination REELLE de l'ordre courant (2026-08-28) : le cycle vitesse qui remonte
+           * a zero puis redescend toutes les ~5 semaines dans RQ evoque un aller-retour depot
+           * plutot qu'une avance vers stopA/stopB -- ceci le prouve ou l'ecarte directement. */
+          local qDest = AIOrder.GetOrderDestination(this._roadDiag.vehicle, AIOrder.ORDER_CURRENT);
+          AISign.BuildSign(qAnchor, "RE|" + this._roadSampleCount + "|" + qDest);
+          /* Fait binaire (2026-08-28) : litteralement gare DANS le depot, ou non -- pour trancher
+           * entre "les lectures de vitesse sont un artefact, le bus n'a jamais quitte le depot" et
+           * "il roule vraiment mais ne progresse jamais". */
+          local qParked = AIVehicle.IsStoppedInDepot(this._roadDiag.vehicle) ? 1 : 0;
+          AISign.BuildSign(qAnchor, "RI|" + this._roadSampleCount + "|" + qParked);
+        }
+      }
+    }
+
     AIController.Sleep(74 * 10);
   }
 }
