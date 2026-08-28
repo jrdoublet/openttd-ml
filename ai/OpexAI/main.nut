@@ -28,10 +28,24 @@ require("builder_rail.nut");
 require("builder_air.nut");
 require("builder_water.nut");
 
-/* Distance minimale entre une nouvelle extremite et une gare deja posee par nous. Evite de
- * redesservir la meme ville et de se cannibaliser -- meme motif que la contrainte de villes
- * disjointes de TrainLineAI, mais sur nos propres gares uniquement. */
-const MIN_SEPARATION = 15;
+/* Filet physique : deux gares reellement posees trop pres l'une de l'autre partagent leur bassin
+ * de desserte, MEME si ce sont deux villes/industries differentes. Un rayon de couverture de gare
+ * "petite" standard est ~4 tuiles ; MIN_SEPARATION couvre le double (dos-a-dos) plus une marge.
+ * Abaisse de 15 a 10 le 2026-08-28 : mesure sur graine 42/20 ans, 84 % des rejets _tooClose
+ * etaient a distance <5 de la MEME origine deja servie (couverts desormais par ORIGIN_SEPARATION
+ * ci-dessous, avec precision, pas par ce filet) ; les 16 % restants, a distance 5-14, rejetaient
+ * une ville VOISINE mais DIFFERENTE -- un faux positif du au seuil de 15, bien au-dela de tout
+ * recouvrement de bassin plausible. Voir docs/opex_full_campaign_20y.json (signs GT/GN). */
+const MIN_SEPARATION = 10;
+
+/* Identite d'origine : candidate.src/dst est TOUJOURS la tuile exacte du catalogue (ville ou
+ * industrie), stable d'une annee sur l'autre -- une reutilisation reelle de la MEME origine tombe
+ * donc a distance 0 quel que soit l'endroit ou la gare a fini par etre posee (jusqu'a
+ * STATION_SEARCH_RADIUS = 30 tuiles plus loin, builder_rail.nut). C'est la vraie protection
+ * "pas de second raccordement sur une extremite deja servie" -- MIN_SEPARATION comparait a tort
+ * l'origine du candidat a la gare BATIE d'une ligne existante, un proxy bruite par cet ecart de
+ * recherche. La petite marge n'est qu'une precaution, pas le mecanisme principal. */
+const ORIGIN_SEPARATION = 3;
 
 /* Fenetre de temps accordee a une tentative, en plus du budget d'iterations. A ~3,7 iterations
  * par tick, N iterations demandent ~N/3,7 ticks ; la marge couvre la pose elle-meme. */
@@ -96,7 +110,12 @@ function OpexAI::_tryBuildAir(year)
 
   this._airBuilt = true;
   this._lines.append({
-    stationA = result.stationA, stationB = result.stationB, cargo = this._catalog.paxCargo,
+    stationA = result.stationA, stationB = result.stationB,
+    /* Pas de notion d'origine distincte pour l'avion (une seule liaison jamais dupliquee, gardee
+     * par _airBuilt) -- la gare batie sert de repli pour que _tooClose n'ait pas a distinguer les
+     * modes. */
+    originA = result.stationA, originB = result.stationB,
+    cargo = this._catalog.paxCargo,
     predicted = 0, iterations = 0, trains = 1, distance = plan.distance, year = year,
     mode = "air", vehicle = result.vehicle,
   });
@@ -127,22 +146,51 @@ function OpexAI::_tryBuildWater(year)
   if (!result.ok) return;
   this._waterBuilt = true;
   this._lines.append({
-    stationA = result.dockA, stationB = result.dockB, cargo = this._catalog.paxCargo,
+    stationA = result.dockA, stationB = result.dockB,
+    /* Idem avion : pas de notion d'origine distincte, repli sur le quai bati. */
+    originA = result.dockA, originB = result.dockB,
+    cargo = this._catalog.paxCargo,
     predicted = 0, iterations = 0, trains = 1, distance = plan.distance, year = year,
     mode = "water", vehicle = result.vehicle,
   });
 }
 
-/* Une extremite deja desservie par nous ne merite pas un second raccordement. */
+/* Une extremite deja desservie par nous ne merite pas un second raccordement.
+ *
+ * Deux tests distincts, mesure du 2026-08-28 a l'appui (docs/opex_full_campaign_20y.json,
+ * signs GT/GN) :
+ *  1. Identite d'origine (ORIGIN_SEPARATION, serre) : la MEME ville/industrie deja servie, quel
+ *     que soit l'endroit ou sa gare a fini par etre posee. C'etait 84 % des rejets sous l'ancien
+ *     test unique -- desormais couvert avec precision, pas par une distance bruitee.
+ *  2. Filet physique (MIN_SEPARATION, plus large mais abaisse) : deux gares BATIES reellement
+ *     trop proches, meme pour deux origines differentes -- le vrai risque de cannibalisation.
+ *
+ * Rend -1 si aucun conflit, sinon la plus petite distance Manhattan trouvee parmi les deux
+ * tests (0..MIN_SEPARATION-1, l'un ou l'autre seuil selon quel test a matche). */
 function OpexAI::_tooClose(candidate)
 {
+  local worst = -1;
   foreach (line in this._lines) {
-    if (AIMap.DistanceManhattan(candidate.src, line.stationA) < MIN_SEPARATION) return true;
-    if (AIMap.DistanceManhattan(candidate.src, line.stationB) < MIN_SEPARATION) return true;
-    if (AIMap.DistanceManhattan(candidate.dst, line.stationA) < MIN_SEPARATION) return true;
-    if (AIMap.DistanceManhattan(candidate.dst, line.stationB) < MIN_SEPARATION) return true;
+    local d;
+    d = AIMap.DistanceManhattan(candidate.src, line.originA);
+    if (d < ORIGIN_SEPARATION && (worst < 0 || d < worst)) worst = d;
+    d = AIMap.DistanceManhattan(candidate.src, line.originB);
+    if (d < ORIGIN_SEPARATION && (worst < 0 || d < worst)) worst = d;
+    d = AIMap.DistanceManhattan(candidate.dst, line.originA);
+    if (d < ORIGIN_SEPARATION && (worst < 0 || d < worst)) worst = d;
+    d = AIMap.DistanceManhattan(candidate.dst, line.originB);
+    if (d < ORIGIN_SEPARATION && (worst < 0 || d < worst)) worst = d;
+
+    d = AIMap.DistanceManhattan(candidate.src, line.stationA);
+    if (d < MIN_SEPARATION && (worst < 0 || d < worst)) worst = d;
+    d = AIMap.DistanceManhattan(candidate.src, line.stationB);
+    if (d < MIN_SEPARATION && (worst < 0 || d < worst)) worst = d;
+    d = AIMap.DistanceManhattan(candidate.dst, line.stationA);
+    if (d < MIN_SEPARATION && (worst < 0 || d < worst)) worst = d;
+    d = AIMap.DistanceManhattan(candidate.dst, line.stationB);
+    if (d < MIN_SEPARATION && (worst < 0 || d < worst)) worst = d;
   }
-  return false;
+  return worst;
 }
 
 /* Le coeur de l'allocation : on descend le classement tant qu'il reste de l'argent, et chaque
@@ -152,12 +200,32 @@ function OpexAI::_tryBuild(ranked, year)
 {
   local best = ranked.best;
   local anchor = AIMap.GetTileIndex(1, 1);
+
+  /* Diagnostic goulot (2026-08-28) : _tooClose et la reserve de tresorerie rejettent tous deux
+   * des candidats, mais rien ne comptait lequel des deux domine -- l'hypothese MIN_SEPARATION
+   * n'etait deduite que par elimination. Ces compteurs le mesurent directement. */
+  local nTooClose = 0;
+  local nTooCloseNear = 0;   // distance 0..4 : origine reutilisee (ORIGIN_SEPARATION) ou gare tres proche
+  local nTooCloseFar = 0;    // distance 5..MIN_SEPARATION-1 : filet physique seul (ORIGIN_SEPARATION=3 exclu)
+  local nCashBlocked = 0;
+  local nBuilt = 0;
+  local nAttemptFailed = 0;  // ni tooClose ni cash, mais result.ok == false (pathfinding, etc.)
+
   for (local i = 0; i < best.len(); i++) {
     local candidate = best[i];
-    if (this._tooClose(candidate)) continue;
+    local tooCloseDist = this._tooClose(candidate);
+    if (tooCloseDist >= 0) {
+      nTooClose++;
+      if (tooCloseDist < 5) nTooCloseNear++; else nTooCloseFar++;
+      continue;
+    }
 
     local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-    if (money < candidate.capital + CASH_RESERVE) break;  // classement decroissant
+    if (money < candidate.capital + CASH_RESERVE) {  // classement decroissant
+      nCashBlocked++;
+      AISign.BuildSign(anchor, "GC|" + year + "|" + money + "|" + candidate.capital);
+      break;
+    }
 
     local alternativeRatio = (i + 1 < best.len()) ? best[i + 1].ratio : 0;
     local iterationBudget = OpexIterationBudget(candidate.profitAnnual, alternativeRatio);
@@ -177,6 +245,7 @@ function OpexAI::_tryBuild(ranked, year)
     }
 
     if (result.ok) {
+      nBuilt++;
       local idx = this._lines.len();
       /* Predit-vs-reel (etage 1) : le detail du calcul au moment de la construction, pour pouvoir
        * le comparer plus tard a la mesure reelle (_reportLines). Un sign par grandeur : jamais
@@ -197,7 +266,11 @@ function OpexAI::_tryBuild(ranked, year)
        * si les DEUX industries d'une ligne fret restent valides -- sans ca on ne peut pas
        * departager "industrie fermee" de "train coince" comme cause de la note -1. */
       this._lines.append({
-        stationA = result.stationA, stationB = result.stationB, cargo = candidate.cargo,
+        stationA = result.stationA, stationB = result.stationB,
+        /* Identite d'origine (ville ou industrie) pour _tooClose -- cf. commentaire sur
+         * ORIGIN_SEPARATION : la tuile exacte du candidat, pas la gare batie. */
+        originA = candidate.src, originB = candidate.dst,
+        cargo = candidate.cargo,
         predicted = candidate.profitAnnual, iterations = result.iterations,
         trains = result.trains, distance = candidate.distance, year = year,
         predRevenue = candidate.revenueAnnual, predRunning = candidate.runningAnnual,
@@ -207,8 +280,22 @@ function OpexAI::_tryBuild(ranked, year)
         srcIndustry = (candidate.kind == "freight") ? AIIndustry.GetIndustryID(candidate.src) : -1,
         dstIndustry = (candidate.kind == "freight") ? AIIndustry.GetIndustryID(candidate.dst) : -1,
       });
+    } else {
+      nAttemptFailed++;
     }
   }
+
+  /* Sommaire annuel du goulot : combien de candidats classes ont ete rejetes par _tooClose,
+   * combien par la reserve de tresorerie (dont l'"break" laisse le reste du classement
+   * inexplore -- nUnreached compte ceux-la a part pour ne pas les confondre avec un rejet). */
+  local nUnreached = best.len() - (nTooClose + nCashBlocked + nBuilt + nAttemptFailed);
+  AISign.BuildSign(anchor, "GT|" + year + "|" + best.len() + "|" + nTooClose
+                           + "|" + nCashBlocked + "|" + nBuilt + "|" + nUnreached
+                           + "|" + nAttemptFailed);
+  /* Repartition des rejets _tooClose : proche (probable meme ville) vs lointain (probable ville
+   * DIFFERENTE, simple voisine -- signe que MIN_SEPARATION est trop grossier plutot que trop
+   * grand). */
+  AISign.BuildSign(anchor, "GN|" + year + "|" + nTooCloseNear + "|" + nTooCloseFar);
 }
 
 /* Le releve qui permet de calibrer l'etage 1 : pour chaque ligne, la note de gare REELLE (on
