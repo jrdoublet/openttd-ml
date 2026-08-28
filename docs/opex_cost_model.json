@@ -1,0 +1,98 @@
+{
+ "source": "data/phase2_hurdle_v3.csv, 1997 lignes, OpenTTD 13.4, TrainLineAI",
+ "grandeur": "iterations_par_succes = iterations_moyennes / P(construite) ; absorbe l'echec",
+ "loi_de_puissance": "iterations_par_succes ~ 0.0674 * d^2.67 (ecart 0.82-1.15x aux noeuds)",
+ "noeuds_utilises_par_l_ia": {
+  "distance": [
+   23,
+   33,
+   48,
+   63,
+   81,
+   105,
+   150
+  ],
+  "iterations": [
+   371,
+   673,
+   2188,
+   4066,
+   7745,
+   15308,
+   53951
+  ]
+ },
+ "reserve": "13.4 + pathfinder de TrainLineAI. La forme se transporte, les coefficients devront etre reajustes sur OpexAI sous 15.3.",
+ "table": [
+  {
+   "bucket": "(0, 25]",
+   "n": 20,
+   "dist_med": 23.5,
+   "it_mean": 352.5,
+   "p_built": 0.95,
+   "profit_med": -296626.0,
+   "it_par_succes": 371.0526315789,
+   "profit_par_it": -799.4175886525
+  },
+  {
+   "bucket": "(25, 40]",
+   "n": 209,
+   "dist_med": 33.0,
+   "it_mean": 627.5119617225,
+   "p_built": 0.9330143541,
+   "profit_med": 242756.0,
+   "it_par_succes": 672.5641025641,
+   "profit_par_it": 360.9410598551
+  },
+  {
+   "bucket": "(40, 55]",
+   "n": 239,
+   "dist_med": 48.0,
+   "it_mean": 2114.8535564854,
+   "p_built": 0.9665271967,
+   "profit_med": 1210233.0,
+   "it_par_succes": 2188.0952380952,
+   "profit_par_it": 553.0988683351
+  },
+  {
+   "bucket": "(55, 70]",
+   "n": 226,
+   "dist_med": 63.0,
+   "it_mean": 3922.1238938053,
+   "p_built": 0.9646017699,
+   "profit_med": 1852540.5,
+   "it_par_succes": 4066.0550458716,
+   "profit_par_it": 455.6112691787
+  },
+  {
+   "bucket": "(70, 90]",
+   "n": 284,
+   "dist_med": 81.0,
+   "it_mean": 7363.5563380282,
+   "p_built": 0.9507042254,
+   "profit_med": 2243244.5,
+   "it_par_succes": 7745.3703703704,
+   "profit_par_it": 289.623916318
+  },
+  {
+   "bucket": "(90, 120]",
+   "n": 367,
+   "dist_med": 105.0,
+   "it_mean": 13514.1689373297,
+   "p_built": 0.8828337875,
+   "profit_med": 3091994.5,
+   "it_par_succes": 15307.7160493827,
+   "profit_par_it": 201.989277174
+  },
+  {
+   "bucket": "(120, 400]",
+   "n": 652,
+   "dist_med": 150.0,
+   "it_mean": 24327.5306748466,
+   "p_built": 0.4509202454,
+   "profit_med": 4008691.5,
+   "it_par_succes": 53950.8503401361,
+   "profit_par_it": 74.3026564869
+  }
+ ]
+}
