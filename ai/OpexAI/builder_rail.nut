@@ -47,7 +47,8 @@ const ATTEMPT_FLOOR = 2000;
  * l'alternative des que :
  *     profit * 1000 / (depense + reste_minimal) < ratio_alternative
  * d'ou le budget maximal ci-dessous. Aucune constante magique : le seuil est le rapport du
- * candidat suivant. Si aucun candidat ne suit, on se rabat sur le plafond dur.
+ * candidat suivant. Pour le dernier, l'appelant fournit MIN_RATIO, le plus petit rapport encore
+ * acceptable au prochain classement annuel. Le cas <=0 reste seulement un garde-fou defensif.
  */
 function OpexIterationBudget(profitAnnual, alternativeRatio)
 {

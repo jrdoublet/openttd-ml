@@ -162,11 +162,19 @@ Vérifié, même graine/durée : **17 lignes** (contre 15 avant tout correctif),
 échecs de construction restants sont des `STNFAIL` bon marché (3 600 et 4 200 itérations), pas une
 nouvelle dérive coûteuse.
 
-**Limite assumée, pas résolue ici.** Le plancher de ratio empêche de s'engager sur un candidat
-structurellement mauvais, mais ne protège pas contre un candidat au ratio *prédit* correct dont le
-coût réel dérape en cours de construction (le cas à 60 000 itérations ci-dessus avait un ratio
-prédit de 573, dans la zone acceptée) — c'est le rôle de la politique d'abandon en cours de
-recherche, encore non faite (`docs/taches.md` §7).
+**Politique d'abandon, trou du dernier rang corrigé (2026-08-28).** La politique en cours de
+recherche avait bien sa forme fermée dans `OpexIterationBudget`, mais le dernier candidat recevait
+`alternativeRatio = 0`, donc systématiquement `HARD_ITERATION_CAP = 60 000`. Une instrumentation
+compacte du panneau `OR` (sans panneau supplémentaire) a tranché sur la campagne figée
+graine 42/20 ans : ce chemin `Z` a concerné **5 tentatives**, pour **15 500 itérations réellement
+consommées**, mais **0 ABND / 0 itération abandonnée**. Le plafond atteint via un suivant réel
+(`C`) a concerné 3 tentatives, 57 700 itérations, et lui aussi 0 ABND. La campagne de référence
+ne permet donc d'attribuer le vieux cas ABND à 60 000 ni à `Z` ni à `C` : il a été mesuré avant
+cette instrumentation. Le dernier candidat compare désormais son rendement à `MIN_RATIO`, déjà le
+plus petit rapport accepté par la génération, soit le coût d'opportunité d'attendre le classement
+annuel suivant ; aucun seuil d'arrêt nouveau n'est introduit. Après correction, `Z` tombe à 0,
+les cinq derniers rangs gardent les mêmes résultats et les agrégats restent 17 lignes,
+`company_value` 2 716 098, emprunt 0, `performance_history` 503.
 
 **Effet de bord découvert, sans rapport avec ce correctif : un plafond d'instrumentation.** Tous
 les signs de diagnostic sont posés sur la même tuile `(1,1)`, jamais nettoyés

@@ -196,12 +196,14 @@ Ne pas oublier deux composantes gratuites de la note de compagnie : **emprunt à
 - **La reprise sur préfixe façon `RetryToBuild`**, en clean-room : 64 `TRKFAIL` dont la recherche
   était déjà payée pour zéro profit ; ~145 M récupérables estimés, soit 453 par itération contre
   156 en moyenne.
-- **La politique d'abandon** : couper une recherche quand son rendement marginal attendu passe sous
-  le rapport du meilleur candidat non essayé. Évaluable hors ligne sur les données v3. Motivation
-  concrète mesurée sur `OpexAI` le 2026-08-28 : une tentative fret à 70 tuiles, ratio prédit correct
-  (573, dans la zone acceptée par `MIN_RATIO`), a consommé **60 000 itérations pour rien** avant
-  d'être abandonnée — `MIN_RATIO` (§2 ci-dessus) ne protège pas contre ce cas, seul un abandon en
-  cours de recherche le peut. Détail dans `docs/opexai_croissance.md` §6.
+- ✅ **La politique d'abandon** : la forme fermée coupe une recherche lorsque son rendement
+  marginal attendu passe sous le rapport du meilleur candidat non essayé. Le trou du dernier rang
+  (absence de suivant = budget maximal) est corrigé : son alternative est `MIN_RATIO`, rapport
+  minimal déjà acceptable au prochain classement annuel, pas une constante nouvelle. Campagne
+  instrumentée graine 42/20 ans : 5 derniers candidats passaient auparavant par le chemin zéro,
+  mais 0 tentative ABND ; le vieux ABND à 60 000, antérieur à l'instrumentation, ne peut donc pas
+  être attribué rétrospectivement à ce chemin plutôt qu'au plafond. Détail dans
+  `docs/opexai_croissance.md` §6.
 
 ---
 

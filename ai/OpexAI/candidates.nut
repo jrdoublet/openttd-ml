@@ -30,10 +30,11 @@ const TOP_K = 20;
  * 2 067 089 contre 2 413 587 avant, emprunt non rembourse) en laissant l'IA s'engager sur ces
  * candidats marginaux -- avec MIN_RATIO=500, meme graine/duree : 17 lignes (contre 15),
  * company_value 2 716 098 (+12,5 % vs avant tout correctif), emprunt rembourse. Ce plancher ne
- * remplace pas la politique d'abandon en cours de construction (backlog S7, non faite) : il coupe
- * les candidats structurellement mauvais AVANT la tentative, pas ceux dont le cout reel derape en
- * cours de route (observe separement : une tentative a 70 tuiles a consomme 60 000 iterations pour
- * un profit predit de 3 149 avant d'etre abandonnee, cf. docs/opexai_croissance.md). */
+ * remplace pas la politique d'abandon : il coupe les candidats structurellement mauvais AVANT la
+ * tentative, pas ceux dont le cout reel derape en cours de route (observe separement : une
+ * tentative a 70 tuiles a consomme 60 000 iterations pour un profit predit de 3 149 avant d'etre
+ * abandonnee, cf. docs/opexai_croissance.md). Il sert aussi de cout d'opportunite du dernier
+ * candidat : attendre le classement annuel suivant vaut au moins ce rapport acceptable. */
 const MIN_RATIO = 500;
 
 /* Etage 2 : le cout, AJUSTE sur la campagne v3 (1997 lignes reelles, OpenTTD 13.4).

@@ -246,7 +246,10 @@ function OpexAI::_tooClose(candidate)
 
 /* Le coeur de l'allocation : on descend le classement tant qu'il reste de l'argent, et chaque
  * tentative recoit un budget d'iterations egal a ce qu'il faut pour continuer a battre le
- * candidat SUIVANT. Le seuil d'abandon n'est donc pas une constante : c'est l'alternative. */
+ * candidat SUIVANT. Pour le dernier, l'alternative reelle n'est pas l'absence de travail : c'est
+ * attendre le prochain rafraichissement annuel et son classement. MIN_RATIO est precisement le
+ * plus petit rapport acceptable dans ce classement ; il remplace donc le suivant absent, sans
+ * introduire de seuil propre a l'arret. */
 function OpexAI::_tryBuild(ranked, year)
 {
   local best = ranked.best;
@@ -279,7 +282,7 @@ function OpexAI::_tryBuild(ranked, year)
     }
 
     local alternativeSource = (i + 1 < best.len()) ? "S" : "L";
-    local alternativeRatio = (alternativeSource == "S") ? best[i + 1].ratio : 0;
+    local alternativeRatio = (alternativeSource == "S") ? best[i + 1].ratio : MIN_RATIO;
     local budgetInfo = OpexIterationBudget(candidate.profitAnnual, alternativeRatio);
     local iterationBudget = budgetInfo.budget;
     local deadline = AIController.GetTick() + iterationBudget / 3 + BUILD_TICK_MARGIN;
