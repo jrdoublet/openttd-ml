@@ -1,6 +1,6 @@
-# OpexAI multimodale : avion et bateau
+# OpexAI multimodale : avion, bateau et route
 
-Implémentation du 2026-08-28, ciblée sur **OpenTTD 15.3 / API NoAI 15**. Ces deux modes
+Implémentation du 2026-08-28, ciblée sur **OpenTTD 15.3 / API NoAI 15**. Ces trois modes
 complètent le constructeur ferroviaire sans réutiliser son modèle de coût A* : ils ont leur
 propre catalogue, leur planification bornée, leur garde de trésorerie et leur transaction de
 construction.
@@ -11,12 +11,74 @@ construction.
 
 1. au plus une liaison aérienne de passagers ;
 2. au plus une liaison maritime de passagers ;
-3. les candidats ferroviaires classés par profit attendu / coût de recherche.
+3. une liaison bus passagers, seulement si `ROAD_BUILD_ENABLED` est réactivé après mesure ;
+4. les candidats ferroviaires classés par profit attendu / coût de recherche.
 
 Après un rechargement, OpexAI recherche les véhicules `VT_AIR` et `VT_WATER` déjà présents
 avant de construire. Cela empêche les doublons même si l'état en mémoire de l'IA a été perdu.
-Les liaisons réussies rejoignent `_lines`, ce qui permet de réutiliser le reporting des stations,
-du profit des véhicules et la protection contre la cannibalisation des lignes ferroviaires.
+Les liaisons aérienne et maritime réussies rejoignent `_lines`, ce qui permet de réutiliser le
+reporting des stations, du profit des véhicules et la protection contre la cannibalisation des
+lignes ferroviaires. La route est explicitement à part (voir ci-dessous).
+
+## Liaison routière : constructeur validé, activation refusée par la mesure
+
+`builder_road.nut` implémente une transaction pour **un bus entre deux villes distantes de 5 à
+25 tuiles** (trace concret plafonné à 32 tuiles pour la marge des arrêts). Elle choisit les paires
+par population, cherche des arrêts bordant une route municipale et ayant des producteurs de
+passagers dans leur vraie empreinte (`AITile.GetCargoProduction`), puis essaie seulement les deux
+tracés en L. Chaque arête est prévalidée sous `AITestMode`, construite avec `AIRoad.BuildRoad`, et
+contrôlée par `AIRoad.AreRoadTilesConnected` ; le dépôt et les arrêts sont ensuite vérifiés par
+leur tuile frontale API (`GetRoadDepotFrontTile` / `GetRoadStationFrontTile`). Ces deux objets ne
+sont pas des `IsRoadTile`, donc `AreRoadTilesConnected(objet, front)` ne convient pas à leur
+interface, contrairement aux arêtes du tracé.
+
+Le catalogue pose explicitement `ROADTYPE_ROAD`, ses coûts (tuile, arrêt, dépôt) et les bus
+constructibles. Un moteur est gardé seulement s'il peut **et a de la puissance** sur cette route,
+et s'il porte déjà les passagers ou peut les refitter. La capacité réellement refittée est relue
+dans le dépôt avant achat.
+
+Le rollback inverse strictement : bus, dépôt, arrêt B, arrêt A, puis les seules arêtes que la
+transaction avait ajoutées. Une route municipale préexistante n'est jamais supprimée. Les ordres
+`OF_NONE` sont vérifiés (exactement deux) avant le démarrage.
+
+### Choix de pathfinding et coût mesuré
+
+`Pathfinder.Road` est disponible (`5046524f`, version 4), mais n'est **pas importé** par OpexAI et
+donc n'ajoute aucune dépendance au harnais. Sur la graine 42, la sonde de la paire la plus proche
+(villes 38–22, 20 tuiles) a mesuré **696 794 opcodes** pour `RoadPathFinder` (500 itérations, chemin
+de 17 nœuds). Le premier contrôle d'un L Manhattan coûtait 121 opcodes mais coupait un obstacle
+depuis les centres : ce n'était pas une solution constructive. Le plan réellement validé par les
+arrêts et les `AITestMode` coûte **171 356 opcodes** — 17,1 ticks d'exécution contre 69,7 — sans A*.
+Il est borné et ne tente ni pont, ni tunnel, ni boucle de gares. C'est le meilleur choix mesuré
+pour une seule liaison de 5–25 tuiles ; l'A* et les extensions pont/tunnel sont écartés pour leur
+coût, pas supposés inutiles universellement.
+
+### Résultat économique : ne pas activer
+
+La transaction a été vérifiée en jeu sur les villes **27 (57,25)** et **33 (58,47)**, distantes de
+23 tuiles (trace 24), avec un bus passagers de 35 places. Coût réellement débité : **10 092**.
+Elle a bien construit deux arrêts, un dépôt et le véhicule, mais son profit réel est resté
+**−588** en 1971 puis entre **−599 et −601/an** de 1972 à 1989 (coût de fonctionnement 600/an,
+recettes entre −1 et 12 ; notes passagers des deux arrêts toujours −1).
+
+La campagne active de 20 ans tombe à 12 lignes rail, `company_value` **1 749 226**, emprunt 0 et
+`performance_history` 389, contre la baseline 16 lignes, **2 787 970**, 0 et 521. Le constructeur
+reste donc dans le dépôt, mais `ROAD_BUILD_ENABLED = false` : la branche correspondante de
+`Start()` n'appelle `_tryBuildRoad(year)` que lors d'une réactivation explicite. Le
+rafraîchissement route est lui aussi sauté tant que le mode est inactif, afin de préserver le débit
+de la baseline validée.
+
+Cette décision ne réutilise pas `OpexLineEconomics` : ses paramètres (note de gare 50 %, part de
+ville 22 %, fréquence cible et économie de convoi) sont calibrés pour le rail. Leur transposition
+au bus n'a **pas** été vérifiée. `GetCargoProduction` ne compte que les producteurs dans le bassin,
+pas le débit réellement collecté ; même après ce filtre, la recette observée ci-dessus reste nulle
+en pratique. Il faut expliquer cette absence de chargement et mesurer une famille de paires avant
+de proposer une réactivation.
+
+La route ne participe volontairement ni à `OpexOriginServed` ni à `_tooClose` : un bus local peut
+desservir une ville déjà reliée par rail, et ne doit pas interdire son train interurbain. Sa
+proximité est contrôlée localement par le test de construction OpenTTD ; il n'existe en outre
+qu'une transaction routière, gardée par `_roadBuilt` et par scan des `VT_ROAD` au rechargement.
 
 ## Liaison aérienne
 
@@ -108,6 +170,7 @@ l'état courant du véhicule dans `VEHS`.
 ## Limites actuelles
 
 - une seule liaison de chaque mode ;
+- route v1 désactivée après mesure négative ;
 - passagers uniquement pour l'air et l'eau ;
 - classement encore heuristique, sans modèle de profit multimodal calibré ;
 - aucun canal, écluse ou bouée ; une paire sans composante d'eau naturelle commune est ignorée ;

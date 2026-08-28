@@ -183,9 +183,15 @@ Reprend le §8 de `docs/mecanique_jeu.md`, complété.
 3. ✅ **Bateau** — une liaison passagers entre deux grandes villes côtières, avec validation
    bornée du graphe d'eau et dépôt construit sur la même composante. Voir
    `docs/opexai_multimodal.md`.
-4. **Route** — prochain mode. Une desserte légère suffit aussi à déclencher la croissance d'une
-   ville (une unité de cargo par 50 jours, jusqu'à 5 gares), pour un coût en opcodes sans commune
-   mesure avec le rail.
+4. ✅🔶 **Route** — constructeur transactionnel (deux arrêts, dépôt, bus, rollback, garde
+   anti-doublon) ajouté le 2026-08-28, mais **désactivé** après mesure. Le trace Manhattan borné
+   évite `Pathfinder.Road` (171 356 opcodes contre 696 794 mesurés pour l'A* sur la sonde courte),
+   et la liaison 27–33 (23 tuiles) construit bien pour 10 092. Elle ne charge pourtant pas :
+   profit −588 puis −599/−601 par an, notes d'arrêt −1, et campagne 20 ans à 1 749 226 contre
+   baseline 2 787 970. `ROAD_BUILD_ENABLED = false` conserve le code sans sacrifier le banc.
+   La croissance (une unité / 50 jours / cinq gares) reste un effet de bord non mesuré et non
+   poursuivi ici ; avant toute réactivation, expliquer le non-chargement et mesurer plusieurs
+   paires avec une économie routière propre.
 
 Ne pas oublier deux composantes gratuites de la note de compagnie : **emprunt à zéro** (5 %) et
 **8 types de cargo par trimestre** (5 %) — cette dernière plaide contre une IA 100 % passagers.
