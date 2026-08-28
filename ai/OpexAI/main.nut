@@ -102,6 +102,25 @@ class OpexAI extends AIController {
   function _scrapDeadLines(year);
 }
 
+/* Code d'arret compact pour OR. Le panneau contient deja beaucoup de mesures ; un seul caractere
+ * garde le nom sous le plafond silencieux de 31 caracteres. */
+function OpexAttemptReasonCode(reason)
+{
+  if (reason == "OK") return "K";
+  if (reason == "ABND") return "A";
+  if (reason == "DEAD") return "D";
+  if (reason == "NOPA") return "P";
+  if (reason == "NOPLAN") return "L";
+  if (reason == "SHORT") return "H";
+  if (reason == "NOMATCH") return "M";
+  if (reason == "STNFAIL") return "S";
+  if (reason == "TRKFAIL") return "T";
+  if (reason == "DEPFAIL") return "E";
+  if (reason == "ORDFAIL") return "R";
+  if (reason == "NOTRAIN") return "V";
+  return "X";
+}
+
 /* Un seul avion suffit pour cette premiere liaison. Le scan des vehicules empeche un doublon apres
  * rechargement, ou si l'etat transitoire de l'IA a ete perdu. */
 function OpexAI::_tryBuildAir(year)
@@ -259,19 +278,29 @@ function OpexAI::_tryBuild(ranked, year)
       break;
     }
 
-    local alternativeRatio = (i + 1 < best.len()) ? best[i + 1].ratio : 0;
-    local iterationBudget = OpexIterationBudget(candidate.profitAnnual, alternativeRatio);
+    local alternativeSource = (i + 1 < best.len()) ? "S" : "L";
+    local alternativeRatio = (alternativeSource == "S") ? best[i + 1].ratio : 0;
+    local budgetInfo = OpexIterationBudget(candidate.profitAnnual, alternativeRatio);
+    local iterationBudget = budgetInfo.budget;
     local deadline = AIController.GetTick() + iterationBudget / 3 + BUILD_TICK_MARGIN;
 
-    local result = OpexBuildLine(this._catalog, this._budget, candidate, alternativeRatio, deadline);
+    local result = OpexBuildLine(this._catalog, this._budget, candidate, iterationBudget, deadline);
 
-    /* idx = this._nextLineId, pas this._lines.len() : depuis que _scrapDeadLines peut retirer un
+    /* Instrumentation d'une tentative, sans ajouter de panneau :
+     * OR|aa|id|rang20|PSR|budget|iterations
+     * aa = annee modulo 100 ; rang20 = rang * TOP_K + longueur (reversible, 1..400) ;
+     * PSR = chemin de budget (Z/F/C/N), source (S=suivant, L=dernier), raison compacte.
+     * Le pire nom de la campagne est OR|99|999|400|ZLA|60000|60000 : 29 caracteres.
+     * idx = this._nextLineId, pas this._lines.len() : depuis que _scrapDeadLines peut retirer un
      * element (et donc decaler tous les indices suivants), la longueur du tableau n'est plus un
      * identifiant stable -- cf. commentaire sur _nextLineId. _nextLineId ne recule jamais et
      * n'avance que sur un succes, exactement comme le faisait _lines.len() avant que le retrait
      * n'existe. */
-    AISign.BuildSign(anchor, "OR|" + this._nextLineId + "|" + candidate.distance
-                             + "|" + result.iterations + "|" + result.reason);
+    local rankPacked = i * TOP_K + best.len();
+    AISign.BuildSign(anchor, "OR|" + (year % 100) + "|" + this._nextLineId + "|" + rankPacked
+                             + "|" + budgetInfo.path + alternativeSource
+                             + OpexAttemptReasonCode(result.reason) + "|" + iterationBudget
+                             + "|" + result.iterations);
     if (result.error != 0) AISign.BuildSign(anchor, "OV|" + this._nextLineId + "|" + result.error);
     if (result.diag != null) {
       AISign.BuildSign(anchor, "OG|" + result.diag.railtype + "|" + result.diag.isDepot
@@ -292,7 +321,8 @@ function OpexAI::_tryBuild(ranked, year)
       AISign.BuildSign(anchor, "OJ|" + idx + "|" + candidate.runningAnnual);
       AISign.BuildSign(anchor, "OK|" + idx + "|" + candidate.amortAnnual);
       AISign.BuildSign(anchor, "OQ|" + idx + "|" + candidate.carried + "|" + candidate.trains);
-      AISign.BuildSign(anchor, "OT|" + idx + "|" + candidate.oneWayDays);
+      /* La distance quitte OR (panneau deja plein) et rejoint ce panneau de succes existant. */
+      AISign.BuildSign(anchor, "OT|" + idx + "|" + candidate.oneWayDays + "|" + candidate.distance);
       /* pax vs freight, et la production mensuelle BRUTE utilisee comme entree : pour trancher si
        * le residu du gap vient de la ville entiere comptee au lieu du seul rayon de la gare
        * (candidates.nut le signale deja comme biais non calibre sur les paires de villes). */

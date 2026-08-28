@@ -43,12 +43,13 @@ RE_OF = re.compile(r"^OF\|(\d+)\|(-?\d+)$")
 RE_OJ = re.compile(r"^OJ\|(\d+)\|(-?\d+)$")
 RE_OK = re.compile(r"^OK\|(\d+)\|(-?\d+)$")
 RE_OQ = re.compile(r"^OQ\|(\d+)\|(-?\d+)\|(\d+)$")
-RE_OT = re.compile(r"^OT\|(\d+)\|(-?\d+)$")
+RE_OT = re.compile(r"^OT\|(\d+)\|(-?\d+)(?:\|(\d+))?$")
 RE_OY = re.compile(r"^OY\|(\d+)\|(\d+)\|(-?\d+)\|(-?\d+)$")
 RE_OZ = re.compile(r"^OZ\|(\d+)\|(\d+)\|(-?\d+)$")
 RE_OU = re.compile(r"^OU\|(\d+)\|(\d+)\|(\d+)\|(-?\d+)$")
 RE_OO = re.compile(r"^OO\|(\d+)\|(\d+)\|(-?\d+)$")
-RE_OR = re.compile(r"^OR\|(\d+)\|(\d+)\|(\d+)\|(\w+)$")
+RE_OR = re.compile(r"^OR\|(\d+)\|(\d+)\|(\d+)\|(\w+)$")  # historique avant mesure abandon
+RE_OR_BUDGET = re.compile(r"^OR\|(\d{2})\|(\d+)\|(\d+)\|([ZFCN][SL][KADPLHMSTERVX])\|(\d+)\|(\d+)$")
 RE_PK = re.compile(r"^PK\|(\d+)\|([PF])\|(\d+)$")
 RE_IA = re.compile(r"^IA\|(\d+)\|(\d+)\|(-?\d)\|(-?\d)\|(-?\d+)$")
 RE_OX = re.compile(r"^OX\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")   # year, towns, industries, ranked.all
@@ -57,6 +58,22 @@ RE_OS = re.compile(r"^OS\|(\d+)\|(\d+)\|(\d+)$")          # year, cand_rank opco
 RE_OA = re.compile(r"^OA\|(\d+)\|(\d+)\|(\d+)\|(\w+)$")   # air attempt: year, distance, planOps, reason
 RE_OM = re.compile(r"^OM\|W\|(\d+)\|(\d+)\|(\d+)$")       # water success: year, distance, planOps
 RE_ON = re.compile(r"^ON\|W\|(\w+)\|(-?\d+)$")            # water failure: reason, error
+
+TOP_K = 20  # Doit rester synchronise avec ai/OpexAI/candidates.nut, pour decoder rang20.
+REASON_CODES = {
+    "K": "OK", "A": "ABND", "D": "DEAD", "P": "NOPA", "L": "NOPLAN",
+    "H": "SHORT", "M": "NOMATCH", "S": "STNFAIL", "T": "TRKFAIL",
+    "E": "DEPFAIL", "R": "ORDFAIL", "V": "NOTRAIN", "X": "UNKNOWN",
+}
+
+
+def unpack_rank(packed):
+    """Inverse rang * TOP_K + longueur, range 0..TOP_K-1 et longueur 1..TOP_K."""
+    rank = (packed - 1) // TOP_K
+    length = packed - rank * TOP_K
+    if not (0 <= rank < TOP_K and 1 <= length <= TOP_K):
+        raise ValueError(f"rang20 invalide: {packed}")
+    return rank, length
 
 
 def keep(row):
@@ -96,6 +113,8 @@ def parse_lines(all_signs):
             predicted[idx]["trains"] = int(m.group(3))
         elif m := RE_OT.match(sign):
             idx = int(m.group(1)); predicted.setdefault(idx, {})["oneWayDays"] = int(m.group(2))
+            if m.group(3) is not None:
+                predicted[idx]["distance"] = int(m.group(3))
         elif m := RE_OY.match(sign):
             idx, year = int(m.group(1)), int(m.group(2))
             actual_series.setdefault(idx, {}).setdefault(year, {})["ratingA"] = int(m.group(3))
@@ -118,6 +137,9 @@ def parse_lines(all_signs):
             idx = int(m.group(1))
             built.setdefault(idx, {"distance": int(m.group(2)), "iterations": int(m.group(3)),
                                     "reason": m.group(4)})
+        elif m := RE_OR_BUDGET.match(sign):
+            idx = int(m.group(2))
+            built.setdefault(idx, {"iterations": int(m.group(6)), "reason": REASON_CODES[m.group(4)[2]]})
         elif m := RE_PK.match(sign):
             idx = int(m.group(1))
             predicted.setdefault(idx, {})["kind"] = "pax" if m.group(2) == "P" else "freight"
@@ -132,7 +154,7 @@ def parse_lines(all_signs):
         last = years.get(last_year, {}) if last_year is not None else {}
         lines.append({
             "line_index": idx,
-            "distance": built[idx]["distance"],
+            "distance": built[idx].get("distance", pred.get("distance")),
             "iterations": built[idx]["iterations"],
             "reason": built[idx]["reason"],
             "predicted": pred,
@@ -149,7 +171,15 @@ def parse_attempts(all_signs):
     break) qui ne generent aucun sign."""
     attempts = []
     for sign in all_signs:
-        if m := RE_OR.match(sign):
+        if m := RE_OR_BUDGET.match(sign):
+            rank, ranked_len = unpack_rank(int(m.group(3)))
+            mode = m.group(4)
+            attempts.append({"year": 1900 + int(m.group(1)), "idx": int(m.group(2)),
+                             "rank": rank, "ranked_len": ranked_len,
+                             "budget_path": mode[0], "alternative_source": mode[1],
+                             "reason": REASON_CODES[mode[2]], "iteration_budget": int(m.group(5)),
+                             "iterations": int(m.group(6))})
+        elif m := RE_OR.match(sign):
             attempts.append({"idx": int(m.group(1)), "distance": int(m.group(2)),
                               "iterations": int(m.group(3)), "reason": m.group(4)})
     return attempts
@@ -213,6 +243,9 @@ def main():
 
     n_rail_ok = sum(1 for l in lines if l["reason"] == "OK")
     n_rail_failed_attempts = sum(1 for a in attempts if a["reason"] != "OK")
+    abandoned = [a for a in attempts if a["reason"] == "ABND"]
+    abandoned_no_alternative = [a for a in abandoned if a.get("budget_path") == "Z"]
+    abandoned_hard_cap = [a for a in abandoned if a.get("budget_path") == "C"]
 
     # Serie temporelle courte (une ligne par sauvegarde) pour la trajectoire company_value/loan.
     financial_series = [{
@@ -233,6 +266,13 @@ def main():
         "n_rail_lines_ok": n_rail_ok,
         "n_rail_attempts_total": len(attempts),
         "n_rail_attempts_failed": n_rail_failed_attempts,
+        "n_rail_attempts_no_alternative": sum(1 for a in attempts if a.get("budget_path") == "Z"),
+        "n_rail_attempts_abandoned": len(abandoned),
+        "abandoned_iterations": sum(a["iterations"] for a in abandoned),
+        "n_rail_attempts_abandoned_no_alternative": len(abandoned_no_alternative),
+        "abandoned_iterations_no_alternative": sum(a["iterations"] for a in abandoned_no_alternative),
+        "n_rail_attempts_abandoned_hard_cap": len(abandoned_hard_cap),
+        "abandoned_iterations_hard_cap": sum(a["iterations"] for a in abandoned_hard_cap),
         "rail_attempts": attempts,
         "air_attempts": air,
         "water_attempts": water,

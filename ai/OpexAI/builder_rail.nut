@@ -51,11 +51,13 @@ const ATTEMPT_FLOOR = 2000;
  */
 function OpexIterationBudget(profitAnnual, alternativeRatio)
 {
-  if (alternativeRatio <= 0) return HARD_ITERATION_CAP;
+  /* Le chemin est retourne avec le budget pour l'instrumentation : Z = pas d'alternative,
+   * F = plancher de tentative, C = plafond dur, N = forme fermee non bornee. */
+  if (alternativeRatio <= 0) return { budget = HARD_ITERATION_CAP, path = "Z" };
   local budget = ATTEMPT_MULTIPLIER * (profitAnnual * 1000) / alternativeRatio;
-  if (budget < ATTEMPT_FLOOR) budget = ATTEMPT_FLOOR;
-  if (budget > HARD_ITERATION_CAP) budget = HARD_ITERATION_CAP;
-  return budget;
+  if (budget < ATTEMPT_FLOOR) return { budget = ATTEMPT_FLOOR, path = "F" };
+  if (budget > HARD_ITERATION_CAP) return { budget = HARD_ITERATION_CAP, path = "C" };
+  return { budget = budget, path = "N" };
 }
 
 /* Plans de quai autour d'un centre, orientes vers l'autre extremite.
@@ -327,7 +329,7 @@ function OpexBuildTrains(catalog, cargo, kind, depotTile, exitA, exitB, wanted)
 }
 
 /* Construit une ligne complete. Rend une table de resultat, jamais d'exception. */
-function OpexBuildLine(catalog, budget, candidate, alternativeRatio, deadlineTick)
+function OpexBuildLine(catalog, budget, candidate, iterationBudget, deadlineTick)
 {
   local result = { ok = false, reason = "", iterations = 0, opcodes = 0, error = 0, diag = null,
                    trains = 0, stationA = null, stationB = null, depot = null };
@@ -339,8 +341,6 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, deadlineTic
                                   STATION_SEARCH_RADIUS, PLATFORM_LENGTH, MAX_STATION_PLANS);
   result.opcodes += budget.end("build_plans");
   if (plansA.len() == 0 || plansB.len() == 0) { result.reason = "NOPLAN"; return result; }
-
-  local iterationBudget = OpexIterationBudget(candidate.profitAnnual, alternativeRatio);
 
   budget.begin();
   local search = OpexSearchPath(plansA, plansB, iterationBudget, deadlineTick);
