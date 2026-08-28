@@ -111,9 +111,16 @@ function OpexRoadStopSites(town, cargo)
            * une sortie a travers les maisons depuis le centre de ville, et reserve nos appels
            * BuildRoad aux seules cases interurbaines manquantes. */
           if (!AIRoad.IsRoadTile(front)) continue;
+          /* Bug jumeau de celui du depot (2026-08-28, cf. commentaire sur OpexRoadFindDepot) :
+           * CmdBuildRoadStop ne construit/verifie rien sur "front" non plus (station_cmd.cpp,
+           * CheckFlatLandRoadStop ne regarde QUE la tuile de l'arret). Rien ne garantit que la
+           * route municipale existante a deja le bit tourne vers l'arret. Teste donc aussi
+           * BuildRoad(front, tile) : c'est le raccord que OpexBuildRoadRoute devra poser pour de
+           * vrai avant de batir l'arret. */
           local ok = false;
           { local test = AITestMode();
-            ok = AIRoad.BuildRoadStation(tile, front, AIRoad.ROADVEHTYPE_BUS, AIStation.STATION_NEW); }
+            ok = AIRoad.BuildRoad(front, tile) &&
+                 AIRoad.BuildRoadStation(tile, front, AIRoad.ROADVEHTYPE_BUS, AIStation.STATION_NEW); }
           probes++;
           if (ok) {
             local site = { tile = tile, front = front, producers = producers };
@@ -153,7 +160,19 @@ function OpexRoadTraceHitsStop(trace, stopTile)
 
 /* Le depot est decide sur le L planifie mais pose apres lui. Il n'est pas construit dans une
  * boucle de gare : deux arrets simples suffisent a l'increment, la boucle est une amelioration de
- * capacite a mesurer plus tard, pas un pretexte a ajouter des stations. */
+ * capacite a mesurer plus tard, pas un pretexte a ajouter des stations.
+ *
+ * Bug racine du bus fige (2026-08-28, prouve dans le source du jeu, road_cmd.cpp:1151 /
+ * script_road.cpp:524) : CmdBuildRoadDepot ne construit QUE sur sa propre tuile ; il ne touche
+ * jamais "front". AIRoad.BuildRoadDepot(tile, front) se contente de calculer une DiagDirection a
+ * partir de la geometrie tile/front et de la passer a cette commande -- "front" ne recoit donc
+ * JAMAIS le bit de route perpendiculaire dont le depot a besoin, sauf si quelque chose d'autre l'a
+ * deja construit. Comme "front" est ici toujours l'interieur d'un segment DROIT du trace, seuls
+ * les deux bits dans l'axe du trace y existent (poses par OpexRoadBuildTrace) -- jamais le bit
+ * perpendiculaire vers le depot. D'ou la mesure : bus fige EXACTEMENT sur la tuile du depot (RL),
+ * vitesse qui oscille sans jamais avancer (RV/RQ) -- il ne peut litteralement pas monter sur
+ * "front", quel que soit le nombre d'annees. Chaque site candidat doit donc AUSSI poser ce bit
+ * manquant avec BuildRoad(front, tile) avant BuildRoadDepot -- cf. OpexBuildRoadRoute. */
 function OpexRoadFindDepot(trace, stopA, stopB)
 {
   local offsets = [[1, 0], [-1, 0], [0, 1], [0, -1]];
@@ -185,8 +204,12 @@ function OpexRoadFindDepot(trace, stopA, stopB)
         if (!OpexRoadInMap(x2, y2)) continue;
         local tile = AIMap.GetTileIndex(x2, y2);
         if (OpexRoadIsForbidden(tile, stopA, stopB)) continue;
+        /* Les deux commandes doivent passer sous AITestMode : BuildRoad(front, tile) prouve que le
+         * raccord manquant (cf. commentaire ci-dessus) est constructible, BuildRoadDepot(tile,
+         * front) que le depot lui-meme l'est. Ni l'une ni l'autre seule ne suffit. */
         local ok = false;
-        { local test = AITestMode(); ok = AIRoad.BuildRoadDepot(tile, front); }
+        { local test = AITestMode();
+          ok = AIRoad.BuildRoad(front, tile) && AIRoad.BuildRoadDepot(tile, front); }
         if (ok) return { tile = tile, front = front };
       }
     }
@@ -307,21 +330,36 @@ function OpexBuildRoadRoute(catalog, budget, plan)
   result.opcodes = budget.end("build_roads");
 
   budget.begin();
-  local okA = AIRoad.BuildRoadStation(plan.stopA.tile, plan.stopA.front, AIRoad.ROADVEHTYPE_BUS,
-                                      AIStation.STATION_NEW);
-  /* Les arrets normaux, comme les depots, ne sont pas des IsRoadTile. Le predicat par arete
-   * AreRoadTilesConnected couvre le L ; l'API expose GetRoadStationFrontTile pour l'interface
-   * specifique de l'arret. */
+  /* Meme bug que le depot (cf. commentaire sur OpexRoadFindDepot et sur OpexRoadStopSites) :
+   * CmdBuildRoadStop ne pose ni ne verifie rien sur "front". Le raccord doit donc etre construit
+   * explicitement AVANT l'arret, pendant que la tuile de l'arret est encore une route ordinaire
+   * clairable -- CMD_LANDSCAPE_CLEAR interne de CmdBuildRoadStop la remplace ensuite, "front"
+   * garde le bit. Chaque arete n'est ajoutee a `added` que si elle est reellement connectee. */
+  local stubOkA = AIRoad.BuildRoad(plan.stopA.front, plan.stopA.tile);
+  local stubConnectedA = AIRoad.AreRoadTilesConnected(plan.stopA.front, plan.stopA.tile);
+  if (stubConnectedA) added.append({ from = plan.stopA.front, to = plan.stopA.tile });
+  local okA = stubConnectedA && AIRoad.BuildRoadStation(plan.stopA.tile, plan.stopA.front,
+                                                        AIRoad.ROADVEHTYPE_BUS, AIStation.STATION_NEW);
+  /* Bout en bout : GetRoadStationFrontTile, comme GetRoadDepotFrontTile, n'est que la geometrie
+   * DECLAREE (station + offset), jamais une preuve de connexion reelle. Contrairement a ce que
+   * supposait un commentaire precedent, AreRoadTilesConnected gere correctement les tuiles
+   * MP_STATION (GetAnyRoadBits en fait un cas explicite, verifie dans road_map.cpp) : c'est donc le
+   * seul predicat qui prouve que l'arret est reellement raccorde a "front", pas seulement pose. */
   if (okA && AIRoad.IsRoadStationTile(plan.stopA.tile) &&
-      AIRoad.GetRoadStationFrontTile(plan.stopA.tile) == plan.stopA.front) stopA = plan.stopA.tile;
+      AIRoad.GetRoadStationFrontTile(plan.stopA.tile) == plan.stopA.front &&
+      AIRoad.AreRoadTilesConnected(plan.stopA.tile, plan.stopA.front)) stopA = plan.stopA.tile;
   if (stopA == null) {
     result.error = AIError.GetLastError(); result.opcodes += budget.end("build_road_stops");
     OpexRoadRollback(null, null, null, null, added); result.reason = "ASTOP"; return result;
   }
-  local okB = AIRoad.BuildRoadStation(plan.stopB.tile, plan.stopB.front, AIRoad.ROADVEHTYPE_BUS,
-                                      AIStation.STATION_NEW);
+  local stubOkB = AIRoad.BuildRoad(plan.stopB.front, plan.stopB.tile);
+  local stubConnectedB = AIRoad.AreRoadTilesConnected(plan.stopB.front, plan.stopB.tile);
+  if (stubConnectedB) added.append({ from = plan.stopB.front, to = plan.stopB.tile });
+  local okB = stubConnectedB && AIRoad.BuildRoadStation(plan.stopB.tile, plan.stopB.front,
+                                                        AIRoad.ROADVEHTYPE_BUS, AIStation.STATION_NEW);
   if (okB && AIRoad.IsRoadStationTile(plan.stopB.tile) &&
-      AIRoad.GetRoadStationFrontTile(plan.stopB.tile) == plan.stopB.front) stopB = plan.stopB.tile;
+      AIRoad.GetRoadStationFrontTile(plan.stopB.tile) == plan.stopB.front &&
+      AIRoad.AreRoadTilesConnected(plan.stopB.tile, plan.stopB.front)) stopB = plan.stopB.tile;
   result.opcodes += budget.end("build_road_stops");
   if (stopB == null) {
     result.error = AIError.GetLastError(); OpexRoadRollback(stopA, null, null, null, added);
@@ -334,13 +372,28 @@ function OpexBuildRoadRoute(catalog, budget, plan)
   }
 
   budget.begin();
-  local depotOk = AIRoad.BuildRoadDepot(plan.depot.tile, plan.depot.front);
-  /* Un depot n'est pas une tuile `IsRoadTile` (contrairement a l'arret), donc
-   * AreRoadTilesConnected(depot, front) est faux malgre une entree valide. La connexion de tout
-   * le trace est deja verifiee arete par arete avec AreRoadTilesConnected ; pour l'interface du
-   * depot, GetRoadDepotFrontTile est le predicat fonctionnel specifique de l'API. */
+  /* Le vrai bug (2026-08-28, prouve dans road_cmd.cpp:1151/script_road.cpp:524, cf. commentaire
+   * sur OpexRoadFindDepot) : CmdBuildRoadDepot ne construit RIEN sur "front", seulement sur sa
+   * propre tuile. Sans ce raccord explicite, "front" ne recoit jamais le bit de route
+   * perpendiculaire vers le depot -- le bus reste physiquement incapable de monter dessus (mesure :
+   * RL fige exactement sur la tuile du depot, RV/RQ oscillent sans avancer). Ce BuildRoad pose ce
+   * bit manquant AVANT le depot, pendant que la tuile du depot est encore une route ordinaire
+   * clairable ; BuildRoadDepot la remplace ensuite (CMD_LANDSCAPE_CLEAR interne), "front" garde le
+   * bit. L'arete est ajoutee a `added` (donc demontee par le rollback) des qu'elle est reellement
+   * connectee -- avant meme de savoir si le depot suivra. */
+  local stubOk = AIRoad.BuildRoad(plan.depot.front, plan.depot.tile);
+  local stubConnected = AIRoad.AreRoadTilesConnected(plan.depot.front, plan.depot.tile);
+  if (stubConnected) added.append({ from = plan.depot.front, to = plan.depot.tile });
+  local depotOk = stubConnected && AIRoad.BuildRoadDepot(plan.depot.tile, plan.depot.front);
+  /* Comme pour le rail : un "reussi" de l'API n'est jamais une preuve de connexion. Contrairement a
+   * ce que supposait un commentaire precedent, AreRoadTilesConnected gere correctement le cas
+   * ROAD_TILE_DEPOT (GetAnyRoadBits renvoie DiagDirToRoadBits(GetRoadDepotDirection(tile)), verifie
+   * dans road_map.cpp) : c'est donc le seul predicat qui prouve que le depot est reellement
+   * raccorde au trace, pas seulement pose avec la bonne geometrie declaree
+   * (IsRoadDepotTile/GetRoadDepotFrontTile). */
   if (depotOk && AIRoad.IsRoadDepotTile(plan.depot.tile) &&
-      AIRoad.GetRoadDepotFrontTile(plan.depot.tile) == plan.depot.front) depot = plan.depot.tile;
+      AIRoad.GetRoadDepotFrontTile(plan.depot.tile) == plan.depot.front &&
+      AIRoad.AreRoadTilesConnected(plan.depot.tile, plan.depot.front)) depot = plan.depot.tile;
   result.opcodes += budget.end("build_road_depot");
   if (depot == null) {
     result.error = AIError.GetLastError(); OpexRoadRollback(stopA, stopB, null, null, added);
