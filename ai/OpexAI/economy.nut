@@ -16,11 +16,6 @@
  *    pas, on lui passe un nombre de jours honnete.
  */
 
-/* Rendement de vitesse : vitesse effective / vitesse catalogue. HYPOTHESE a calibrer.
- * Justification : le bridage en courbe est severe (61 km/h sur un virage a 90 degres, contre
- * 111 a courbure 2 -- docs/mecanique_jeu.md §2), auxquels s'ajoutent acceleration et arrets. */
-const SPEED_EFFICIENCY_PCT = 70;
-
 /* Note de gare supposee en regime etabli, en pourcent.
  * CALIBRE le 2026-08-28 sur 9 lignes pax reelles (2 campagnes de 10 ans, graine 42, OpenTTD
  * 15.3) : AIStation.GetCargoRating() mesure en regime etabli donne 49-55 par ligne (moyenne
@@ -32,7 +27,6 @@ const STATION_RATING_PCT = 50;
  * est "moins de 15 s" de temps reel, soit ~6,8 jours de jeu a 74 ticks/jour. */
 const TARGET_HEADWAY_DAYS = 7;
 
-const WAGONS_PER_TRAIN = 5;
 const MAX_TRAINS = 8;
 
 /* Duree d'amortissement de l'infrastructure, en annees. Convention deja utilisee par les
@@ -42,7 +36,9 @@ const INFRA_LIFE_YEARS = 30;
 function OpexCeilDiv(a, b)
 {
   if (b <= 0) return 0;
-  return (a + b - 1) / b;
+  local quotient = a.tofloat() / b;
+  local floor = quotient.tointeger();
+  return floor < quotient ? floor + 1 : floor;
 }
 
 /* 🔴 TRAJETS CHARGES PAR MOIS -- corrige le 2026-08-29 (docs/mecanique_jeu.md S1 ter).
@@ -70,71 +66,202 @@ function OpexCeilDiv(a, b)
 function OpexLoadedTripsPerMonth(oneWayDays, roundTripDays, bidirectional)
 {
   local legDays = bidirectional ? oneWayDays : roundTripDays;
-  local trips = OpexCeilDiv(30, legDays);
-  return trips < 1 ? 1 : trips;
+  if (legDays <= 0) return 0;
+  /* 30 / duree, sans plafond : ceil(30 / legDays) etait favorable de 1,20x a 1,63x sur les
+   * 155 lignes mesurees (mediane 1,27x). Une fraction est une capacite MENSUELLE moyenne, pas un
+   * demi-convoi a construire ; les arrondis ne reviennent qu'au nombre entier de convois. */
+  return 30.0 / legDays;
 }
 
-/* Economie complete d'une ligne rail. `kind` vaut "pax" (bidirectionnel) ou "freight" (sens
- * unique) -- cf. OpexLoadedTripsPerMonth. Rend null si le materiel manque. */
-function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind)
+/* Le bareme du jeu donne 130 / 95 / 50 / 25 points de ramassage sous 6,8 / 13,5 / 27 / 47 jours
+ * (docs/mecanique_jeu.md section 3). STATION_RATING_PCT = 50 a ete calibre sur des lignes dont le
+ * headway cible etait 7 jours, donc dans la tranche 95. Les autres facteurs observes a ce regime
+ * valent 50 % * 255 - 95 = 32,5 points ; on les conserve et on ne fait varier QUE le facteur que
+ * le nombre de convois change reellement. Ce n'est pas une nouvelle constante calibree : c'est la
+ * decomposition algebrique du 50 % deja mesure et du bareme documente.
+ *
+ * Elle rend visible le conflit que l'ancien `max(headway, volume)` cachait : ajouter une locomotive
+ * raccourcit le headway et augmente le cargo capte, mais coute son capital et son entretien. */
+function OpexPickupRatingPoints(headwayDays)
 {
-  if (catalog.loco == null) return null;
+  if (headwayDays < 6.8) return 130;
+  if (headwayDays < 13.5) return 95;
+  if (headwayDays < 27.0) return 50;
+  if (headwayDays < 47.0) return 25;
+  return 0;
+}
+
+function OpexStationRatingForHeadway(headwayDays)
+{
+  local otherPoints = STATION_RATING_PCT * 255.0 / 100.0 - 95.0;
+  local rating = 100.0 * (otherPoints + OpexPickupRatingPoints(headwayDays)) / 255.0;
+  if (rating < 0) return 0;
+  if (rating > 100) return 100;
+  return rating;
+}
+
+/* Economie complete d'une ligne rail. `fixedPlatformLength` vaut 0 au classement : on peut alors
+ * choisir la rame jusqu'au maximum du jeu, puis lui donner le quai voulu avec sa marge. Apres la
+ * recherche de site, il vaut le quai reellement trouvable : wagons, locomotive, capital et profit
+ * sont alors recalcules sur cette longueur, jamais sur le souhait initial. */
+function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPlatformLength = 0)
+{
   if (!(cargo in catalog.wagonByCargo)) return null;
+  if (!(cargo in catalog.locoByCargoWagons)) return null;
   local wagon = catalog.wagonByCargo[cargo];
-  local loco = catalog.loco;
 
-  local effectiveSpeed = (loco.speed * SPEED_EFFICIENCY_PCT) / 100;
+  /* Les wagons et la locomotive sont couples. Le maximum de jeu ne sert ici qu'a trouver la rame
+   * cible ; son quai voulu est derive plus bas de cette rame et de sa marge. Cela n'autorise PAS a
+   * rabougrir chaque rame a un wagon parce que le headway a deja achete 3 a 5 locomotives. On
+   * dimensionne d'abord UNE rame pour emporter l'offre au regime calibre de 50 %,
+   * puis seulement on arbitre le nombre de rames. Ainsi une ligne de 36 tuiles qui offrait 68
+   * unites/mois avec 1,9 trajet charge par mois demande ceil(68/(30*1,9)) = 2 wagons, pas le wagon
+   * unique produit par la formule ancienne qui le divisait d'abord par ses 3 trains.
+   *
+   * La seconde boucle est bornee par MAX_TRAINS = 8, deja plafond de gare du modele. Elle ne boucle
+   * jamais sur les moteurs : pour chaque nombre de rames elle compare le revenu de la note issue du
+   * bareme au capital et au cout courant. Le gagnant est le profit maximal, et l'egalite garde moins
+   * de trains parce qu'ils n'apportent alors aucun point de note ni cargo supplementaire. */
+  local choices = catalog.locoByCargoWagons[cargo];
+  local maxWagons = choices.len();
+  /* Le cache catalogue va jusqu'a station_spread ; une longueur imposee apres recherche doit
+   * couper cette table a la meme capacite nominale que OpexBuildTrains. */
+  if (fixedPlatformLength > 0) {
+    local platformMaxWagons = OpexRailNominalMaxWagons(fixedPlatformLength);
+    if (platformMaxWagons < maxWagons) maxWagons = platformMaxWagons;
+  }
+  if (maxWagons < 1) return null;
+  local referenceLoco = choices[maxWagons - 1];
+  if (referenceLoco == null) return null;
+
+  local referenceSpeed = OpexRailEffectiveSpeed(referenceLoco, wagon, maxWagons, distance);
+  if (referenceSpeed < 1) return null;
+  local referenceOneWayDays = distance.tofloat() / (0.036 * referenceSpeed);
+  if (referenceOneWayDays < 1) referenceOneWayDays = 1;
+  local referenceRoundTripDays = 2 * referenceOneWayDays;
+  local referenceTrips = OpexLoadedTripsPerMonth(referenceOneWayDays, referenceRoundTripDays,
+                                                  kind == "pax");
+  local calibrationOffered = (monthlyUnits * STATION_RATING_PCT) / 100.0;
+  if (calibrationOffered <= 0) return null;
+  local wagons = OpexCeilDiv(calibrationOffered, wagon.capacity * referenceTrips);
+  if (wagons < 1) wagons = 1;
+  if (wagons > maxWagons) wagons = maxWagons;
+
+  local loco = choices[wagons - 1];
+  if (loco == null) return null;
+  local effectiveSpeed = OpexRailEffectiveSpeed(loco, wagon, wagons, distance);
   if (effectiveSpeed < 1) return null;
-
-  /* 100 km/h ~ 3,6 tuiles/jour  =>  jours = distance / (0,036 * vitesse). */
-  local oneWayDays = (distance * 1000) / (36 * effectiveSpeed);
+  local oneWayDays = distance.tofloat() / (0.036 * effectiveSpeed);
   if (oneWayDays < 1) oneWayDays = 1;
   local roundTripDays = 2 * oneWayDays;
-
-  /* Cargo reellement capte : la note de gare est un multiplicateur, pas un detail. */
-  local offered = (monthlyUnits * STATION_RATING_PCT) / 100;
-  if (offered <= 0) return null;
-
-  /* Nombre de convois : le maximum de ce qu'exige la FREQUENCE et de ce qu'exige la CAPACITE.
-   * La contrainte de frequence est celle qui tient la note de gare en haut du bareme. */
-  local trainsForHeadway = OpexCeilDiv(roundTripDays, TARGET_HEADWAY_DAYS);
-  local perTrain = WAGONS_PER_TRAIN * wagon.capacity;
-  /* Trajets CHARGES, pas aller-retours : deux par cycle pour le pax, un pour le fret. La contrainte
-   * de FREQUENCE ci-dessus reste sur l'aller-retour -- une gare n'est visitee qu'une fois par
-   * cycle, quel que soit le nombre de sens charges. */
   local tripsPerMonth = OpexLoadedTripsPerMonth(oneWayDays, roundTripDays, kind == "pax");
-  local trainsForVolume = OpexCeilDiv(offered, perTrain * tripsPerMonth);
 
-  local trains = trainsForHeadway > trainsForVolume ? trainsForHeadway : trainsForVolume;
-  if (trains < 1) trains = 1;
-  if (trains > MAX_TRAINS) trains = MAX_TRAINS;
+  /* La locomotive de la rame deja remplie peut modifier le cycle ; une correction referme ce
+   * couplage sans reintroduire les trains dans le denominateur des wagons. */
+  local correctedWagons = OpexCeilDiv(calibrationOffered, wagon.capacity * tripsPerMonth);
+  if (correctedWagons < 1) correctedWagons = 1;
+  if (correctedWagons > maxWagons) correctedWagons = maxWagons;
+  if (correctedWagons != wagons) {
+    wagons = correctedWagons;
+    loco = choices[wagons - 1];
+    if (loco == null) return null;
+    effectiveSpeed = OpexRailEffectiveSpeed(loco, wagon, wagons, distance);
+    if (effectiveSpeed < 1) return null;
+    oneWayDays = distance.tofloat() / (0.036 * effectiveSpeed);
+    if (oneWayDays < 1) oneWayDays = 1;
+    roundTripDays = 2 * oneWayDays;
+    tripsPerMonth = OpexLoadedTripsPerMonth(oneWayDays, roundTripDays, kind == "pax");
+  }
 
-  local monthlyCapacity = trains * perTrain * tripsPerMonth;
-  local carried = offered < monthlyCapacity ? offered : monthlyCapacity;
+  local perTrain = wagons * wagon.capacity;
+  /* Le modele de cycle conserve les jours fractionnaires, mais l'API de revenu et le moteur
+   * comptent des jours calendaires entiers. Arrondir vers le haut evite de crediter un trajet de
+   * 4,01 jours du tarif de 4 jours ; c'est un choix discret impose par l'API, pas un rendement. */
+  local incomeDays = OpexCeilDiv(oneWayDays, 1);
 
-  local revenueAnnual = 12 * carried * AICargo.GetCargoIncome(cargo, distance, oneWayDays);
-
-  /* Capital immobilise. La voie est comptee sur la distance Manhattan : c'est une borne basse,
-   * le trace reel est plus long (detour). */
-  local vehicleCost = trains * (loco.price + WAGONS_PER_TRAIN * wagon.price);
-  local infraCost = distance * catalog.costTrackPerTile + 2 * catalog.costStation;
-
+  /* Au classement, la rame cible choisit son quai : 1 tuile = 2 wagons vanilla de 8/16 et la
+   * marge de 2 wagons ajoute donc la plus petite croissance geometrique non nulle. Apres le site,
+   * `fixedPlatformLength` ecrase ce souhait. Le capital compte ainsi 2 quais de la longueur qui
+   * sera effectivement posee, pas `station.station_spread` lu a 12. */
+  local platformLength = fixedPlatformLength > 0
+      ? fixedPlatformLength
+      : OpexRailWantedPlatformLength(wagons, catalog.platformLength);
+  local infraCost = distance * catalog.costTrackPerTile + 2 * platformLength * catalog.costStation;
   local locoLife = loco.ageYears > 0 ? loco.ageYears : 20;
-  local amortAnnual = vehicleCost / locoLife + infraCost / INFRA_LIFE_YEARS;
-  local runningAnnual = trains * loco.runningCost;
-
-  local profitAnnual = revenueAnnual - runningAnnual - amortAnnual;
+  local best = null;
+  for (local trains = 1; trains <= MAX_TRAINS; trains++) {
+    local headwayDays = roundTripDays / trains;
+    local stationRating = OpexStationRatingForHeadway(headwayDays);
+    local offered = monthlyUnits * stationRating / 100.0;
+    local monthlyCapacity = trains * perTrain * tripsPerMonth;
+    local carried = (offered < monthlyCapacity ? offered : monthlyCapacity).tointeger();
+    local revenueAnnual = (12 * carried * AICargo.GetCargoIncome(cargo, distance, incomeDays)).tointeger();
+    local vehicleCost = trains * (loco.price + wagons * wagon.price);
+    local amortAnnual = vehicleCost / locoLife + infraCost / INFRA_LIFE_YEARS;
+    local runningAnnual = trains * loco.runningCost;
+    local profitAnnual = revenueAnnual - runningAnnual - amortAnnual;
+    if (best == null || profitAnnual > best.profitAnnual) {
+      best = { trains = trains, headwayDays = headwayDays, stationRating = stationRating,
+               offered = offered, monthlyCapacity = monthlyCapacity, carried = carried,
+               revenueAnnual = revenueAnnual, vehicleCost = vehicleCost, amortAnnual = amortAnnual,
+               runningAnnual = runningAnnual, profitAnnual = profitAnnual };
+    }
+  }
+  if (best == null) return null;
+  local trainsForHeadway = OpexCeilDiv(roundTripDays, TARGET_HEADWAY_DAYS);
+  local trainsForVolume = OpexCeilDiv(best.offered, perTrain * tripsPerMonth);
 
   return {
     oneWayDays = oneWayDays,
-    trains = trains,
-    carried = carried,
-    revenueAnnual = revenueAnnual,
-    runningAnnual = runningAnnual,
-    amortAnnual = amortAnnual,
-    capital = vehicleCost + infraCost,
-    profitAnnual = profitAnnual,
+    incomeDays = incomeDays,
+    trains = best.trains,
+    wagons = wagons,
+    perTrain = perTrain,
+    platformLength = platformLength,
+    loco = loco,
+    effectiveSpeed = effectiveSpeed,
+    tripsPerMonth = tripsPerMonth,
+    headwayDays = best.headwayDays,
+    stationRating = best.stationRating,
+    offered = best.offered,
+    monthlyCapacity = best.monthlyCapacity,
+    trainsForHeadway = trainsForHeadway,
+    trainsForVolume = trainsForVolume,
+    carried = best.carried,
+    revenueAnnual = best.revenueAnnual,
+    runningAnnual = best.runningAnnual,
+    amortAnnual = best.amortAnnual,
+    capital = best.vehicleCost + infraCost,
+    profitAnnual = best.profitAnnual,
   };
+}
+
+/* Le candidat est cree avec l'economie du quai voulu, puis devient le contrat du quai trouve.
+ * Cette copie explicite empeche le cas dangereux "quai court, wagons longs, capital long" : tous
+ * les champs qui alimentent construction, panneaux, classement local et suivi de ligne changent
+ * ensemble apres la seconde evaluation. */
+function OpexApplyRailEconomics(candidate, economics)
+{
+  candidate.oneWayDays = economics.oneWayDays;
+  candidate.trains = economics.trains;
+  candidate.wagons = economics.wagons;
+  candidate.perTrain = economics.perTrain;
+  candidate.platformLength = economics.platformLength;
+  candidate.loco = economics.loco;
+  candidate.effectiveSpeed = economics.effectiveSpeed;
+  candidate.tripsPerMonth = economics.tripsPerMonth;
+  candidate.headwayDays = economics.headwayDays;
+  candidate.stationRating = economics.stationRating;
+  candidate.offered = economics.offered;
+  candidate.monthlyCapacity = economics.monthlyCapacity;
+  candidate.trainsForHeadway = economics.trainsForHeadway;
+  candidate.trainsForVolume = economics.trainsForVolume;
+  candidate.carried = economics.carried;
+  candidate.revenueAnnual = economics.revenueAnnual;
+  candidate.runningAnnual = economics.runningAnnual;
+  candidate.amortAnnual = economics.amortAnnual;
+  candidate.capital = economics.capital;
+  candidate.profitAnnual = economics.profitAnnual;
 }
 
 /* --- Economie d'une ligne ROUTIERE (2026-08-29) --------------------------------------------
@@ -195,8 +322,13 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
 
   local monthlyCapacity = vehicles * engine.capacity * tripsPerMonth;
   local carried = offered < monthlyCapacity ? offered : monthlyCapacity;
+  /* OpexLoadedTripsPerMonth est aussi partage par la route. Sa capacite moyenne peut etre
+   * fractionnaire depuis la suppression du ceil favorable ; les cargaisons et les panneaux restent
+   * entiers, donc on ne credite jamais 28,57 unites qui n'existent pas dans le moteur. */
+  carried = carried.tointeger();
 
-  local revenueAnnual = 12 * carried * AICargo.GetCargoIncome(cargo, distance, oneWayDays);
+  local incomeDays = OpexCeilDiv(oneWayDays, 1);
+  local revenueAnnual = (12 * carried * AICargo.GetCargoIncome(cargo, distance, incomeDays)).tointeger();
 
   /* Capital : le trace lui-meme (le L de Manhattan, donc `distance` tuiles), les deux arrets et le
    * depot. La borne est basse pour la meme raison que sur le rail -- les tuiles de route deja
