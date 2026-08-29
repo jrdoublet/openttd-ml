@@ -146,6 +146,46 @@ qu'ensuite.
 
 ---
 
+## 0 bis. ✅ Traction dimensionnée — FAIT et fusionné (2026-08-29, `4a8e15e`)
+
+Répond à l'item ci-dessus (« l'étage 1 s'effondre avec la distance ») par la cause structurelle :
+la locomotive était **toujours la plus rapide** sans égard à ce qu'elle tracte, `WAGONS_PER_TRAIN`
+était **figé à 5**, et le nombre de wagons n'était jamais dimensionné sur production × temps de
+cycle. Les trois décisions sont maintenant calculées, et `SPEED_EFFICIENCY_PCT = 70` — abattement
+forfaitaire jamais calibré — est remplacé par un modèle de vitesse réellement atteinte
+(puissance, poids, effort de traction).
+
+**Deux bugs mesurés corrigés au passage :**
+- `OpexCeilDiv(30, legDays)` surestimait les trajets par mois de **1,27× en médiane** (155 lignes) ;
+- `_tryBuild` faisait `break` sur la trésorerie alors que le classement porte sur le **rapport**,
+  pas sur le **capital** — un candidat abordable moins bien classé n'était jamais examiné.
+
+**Banc apparié 20 graines × 20 ans** (`docs/bench_traction_new.json` contre
+`docs/bench_traction_base.json`) :
+
+| | résultat |
+|---|---|
+| `company_value` | +7,7 %, t = 0,98, 14/20 — **sous le plancher, non établi** |
+| `performance_history` | +10,9 %, t = 2,13, 12/20 — **non établi** |
+| véhicules | **−44,8 %**, t = −8,41, p < 0,0001 |
+| gares | **+31,1 %**, t = 6,08, p = 0,0001 |
+| minimum sur 20 graines | 280 081 → **1 787 268 (×6,4)** |
+| coefficient de variation | 0,41 → **0,28** |
+| médiane | 2 569 706 → 2 234 065 (**−13 %**) |
+
+⚠️ **Fusionné sur la correction de bugs et la robustesse, pas sur un gain de performance.** Ne pas
+citer le +7,7 % comme un résultat acquis.
+
+**Ce qui reste explicitement non établi, et devient le prochain travail :**
+
+1. 🔴 **`NOPLAN` tient encore ~la moitié des tentatives.** Le quai suit désormais la rame, mais la
+   recherche de site échoue toujours une fois sur deux. C'est le premier plafond de croissance.
+2. **Le repli sur quai plus court n'a été exercé par aucune construction réussie** (`PD` : 0 repli
+   observé). Le chemin est écrit et relu, jamais éprouvé — donc non validé.
+3. La jointure n'est vérifiée qu'à la lecture, `station_join` restant à 0.
+
+---
+
 ## 1 bis. Mode route : ouvert, mesuré, et ce qui reste (2026-08-29)
 
 **✅ Adopté au banc apparié** (`docs/bench_v2_road.json`, 20 graines × 20 ans) :
