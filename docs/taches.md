@@ -77,14 +77,77 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
    les trois pires parties de la campagne (`company_value` 719 619 / 933 323 / 1 372 258, notes
    **194-206** contre ~430 ailleurs). Ce n'est pas une nuance mais un régime d'échec qualitatif.
    Le remboursement avait été déclaré corrigé par `44e0b14` sur la seule graine 42, où il tombe
-   bien à zéro : c'est précisément le biais que le banc mono-graine masquait. À diagnostiquer
-   avant l'item 2 — trois parties sur vingt qui ne décollent pas pèsent plus lourd que le
-   verrouillage de ville. Données dans `docs/bench_v2.json`.
+   bien à zéro : c'est précisément le biais que le banc mono-graine masquait.
 
-**Nouvelle priorité de fait** : l'item 4 (emprunt non remboursé sur 3 graines) passe devant, étant
-un échec mesuré et non une hypothèse. L'item 2 (verrouillage de ville) vient ensuite — il nécessite
-de toute façon d'abord une mesure (croissance des villes desservies stagne-t-elle réellement ?)
-avant tout changement de code.
+   🔴 **Reformulé le 2026-08-29 par le re-baselinage (§8), et c'est plus grave que décrit
+   ci-dessus.** En rejouant les mêmes 20 graines sur un arbre dont **aucune décision ne change**
+   (seul le profil d'opcodes bouge), l'échec passe de **3 graines à 6**, et surtout **la liste
+   change presque entièrement** :
+
+   | | graines à emprunt non remboursé à 20 ans |
+   |---|---|
+   | avant | 100 (300 k), 4096 (300 k), 8675309 (90 k) |
+   | après | 1 (300 k), 100 (80 k), 1024 (300 k), 65537 (180 k), 123456 (300 k), 8675309 (300 k) |
+
+   La graine 4096 s'en échappe complètement (300 k → 0) pendant que quatre autres y tombent. **Ce
+   n'est donc pas une propriété de la carte mais une instabilité latente de la trajectoire** : il
+   n'y a pas « trois mauvaises graines » à diagnostiquer, il y a un régime dans lequel *n'importe
+   quelle* partie peut basculer, et qui touche 15 à 30 % d'entre elles. Toute analyse qui part des
+   graines nommément (« qu'y a-t-il de particulier sur 100 et 4096 ? ») est donc une impasse : la
+   cause est dans la règle, pas dans la carte. `LOAN_REPAY_FLOOR = 1 000 000` reste le suspect —
+   une compagnie qui ne franchit jamais le seuil ne rembourse jamais — mais il faut le tester comme
+   une règle, pas expliquer trois cas.
+
+   Ce résultat pèse aussi sur le §5 : les graines en échec portent une grande part de la
+   dispersion (moyenne 1 248 532 contre 2 907 102 pour les saines), donc **corriger l'emprunt
+   resserrerait le banc lui-même** et abaisserait le plancher de détection de tout ce qui vient
+   après. Données dans `docs/bench_v2.json`.
+
+5. ⚪ **Régler `MIN_SEPARATION` : piste ÉCARTÉE le 2026-08-29, alors même que la mesure la
+   désigne comme le verrou.** L'investigation de plafonnement (`docs/opexai_plafonnement.md`) a
+   établi que le vivier ne meurt pas au classement mais à `_tooClose` : sur la graine 999, arrêtée
+   en 1981, **les 19 candidats de 1989 sont tous rejetés — 1 par réutilisation d'origine et 18 par
+   le filet physique seul**. La carte n'est pourtant pas épuisée (37 à 39 villes non desservies sur
+   39 à 45). `MIN_RATIO` n'écarte que 2,7 % des paires et `TOP_K` n'en écarte aucune : les deux
+   suspects initiaux sont faux.
+
+   **Pourquoi on ne règle pas le seuil pour autant.** `MIN_SEPARATION` ne garde pas contre une
+   collision de voies mais contre la **cannibalisation de bassin** (`main.nut:50`) : deux gares trop
+   proches partagent leur zone de captation. L'agrandissement de gare et les jonctions (§9) ne
+   suppriment pas ce recouvrement — il reste physiquement là — mais ils changent **l'action
+   disponible face à lui**. Aujourd'hui « trop proche » n'a qu'une sortie possible : renoncer. Avec
+   le raccordement, la même détection devient un aiguillage — se brancher sur la gare existante
+   plutôt que d'en poser une seconde. Le test survit, sa branche de sortie change : `return null`
+   devient `join`.
+
+   Calibrer le seuil maintenant serait donc régler une constante dont la sémantique va changer :
+   travail perdu, et pire, un seuil relâché à l'avance **masquerait** le gain de l'agrandissement en
+   ayant déjà ouvert le vivier par un autre moyen. Ne pas passer de banc apparié `MIN_SEPARATION`
+   avant que §9 ne soit tranché.
+
+6. 🔴 **La politique d'abandon coûte plus que tout le reste de la construction.** Mesure du
+   2026-08-29 sur 4 graines : 52 lignes bâties en 57 tentatives, mais les **5 abandons absorbent
+   56,5 % des opcodes de construction** — 182 M chacun contre 13,5 M pour une réussite, soit
+   **13,5×**, tous au plafond dur de 60 000 itérations. Ceci ne contredit pas le §7 (la forme
+   fermée du rendement marginal est bien en place) : c'est le **plafond dur** qui mord, pas la règle
+   d'arrêt anticipé. À traiter avec l'item 4 — les deux sont indépendants de l'architecture de §9,
+   donc ni l'un ni l'autre ne sera invalidé par l'agrandissement de gare.
+
+7. 🔵 **Le biais de sélection du modèle de profit** (relevé le 2026-08-29, non mesuré). 45,2 % des
+   4 216 paires sont rejetées pour « profit prédit ≤ 0 », mais le modèle qui rend ce verdict n'a été
+   calibré que sur les lignes **qui ont passé le filtre** (`docs/opex_predict_vs_actual.json`,
+   `..._postfix_freight_v2.json`). Si le modèle sous-estime systématiquement une famille de paires,
+   elles sont rejetées et n'entrent jamais dans la calibration qui l'aurait révélé. On ne peut donc
+   **pas** conclure que ces 1 905 paires sont réellement non rentables. Vérifiable à coût borné :
+   forcer la construction d'un échantillon de paires rejetées et comparer prédit/réel sur elles.
+
+**Priorité de fait, révisée le 2026-08-29** : les items **4** (emprunt non remboursé sur 3 graines)
+et **6** (plafond d'abandon) passent devant — ce sont deux échecs mesurés, et surtout les deux seuls
+qui soient **orthogonaux à l'architecture de §9** : leur gain survivra à l'arrivée de
+l'agrandissement de gare et des jonctions. L'item 5 (`MIN_SEPARATION`) est explicitement gelé
+derrière §9. L'item 7 (biais de sélection) est une mesure, pas un changement de code, et peut
+s'intercaler. L'item 2 (verrouillage de ville) reste dernier — il exige lui aussi d'abord une
+mesure (la croissance des villes desservies stagne-t-elle réellement ?).
 
 ---
 
@@ -163,14 +226,25 @@ Reprend le §8 de `docs/mecanique_jeu.md`, complété.
 
   | arm | company_value | CV | SE | note | CV |
   |---|---:|---:|---:|---:|---:|
-  | OpexAI | 2 527 171 | 32,6 % | 7,30 % | 408 | 20,4 % |
+  | OpexAI *(re-baseliné le 2026-08-29)* | 2 409 531 | 48,8 % | 10,9 % | 396 | 27,6 % |
+  | OpexAI *(mesure d'origine, archivée)* | 2 527 171 | 32,6 % | 7,30 % | 408 | 20,4 % |
   | AAAHogEx | 225 430 986 | 16,2 % | 3,62 % | 897 | 0,5 % |
 
+  ⚠️ Les deux lignes OpexAI mesurent le **même comportement** sur les **mêmes graines** : seul le
+  profil d'opcodes diffère (§8). L'écart entre elles n'est pas significatif en lecture appariée
+  (t = −0,60) — mais il chiffre le **bruit de trajectoire irréductible**, et c'est lui qui fixe le
+  plancher de détection du banc : **~15 % sur `company_value`, ~12 % sur `performance_history`**.
+
   **Quatre acquis, dont trois corrigent ce qui était écrit ici :**
-  1. ❌ **Le n=20 ne donne PAS 5,9 %.** Cette projection supposait un CV de 26 % ; le CV réel
-     d'OpexAI est **32,6 %**, donc **7,30 %** d'erreur-type. La différence de deux moyennes
-     indépendantes porte ~10,3 % de SE : il faudrait un effet de **~21 %** pour trancher à 2σ.
+  1. ❌ **Le n=20 ne donne PAS 5,9 %.** Cette projection supposait un CV de 26 % ; le CV mesuré
+     d'OpexAI était **32,6 %** (48,8 % après re-baselinage), donc 7,30 % à 10,9 % d'erreur-type.
+     La différence de deux moyennes indépendantes porte ~10,3 % à ~13,1 % de SE : il faudrait un
+     effet de **~21 % à ~26 %** pour trancher à 2σ.
      **La lecture appariée n'est donc pas un raffinement mais le seul chemin praticable.**
+     🔶 **Précisé le 2026-08-29 par le re-baselinage** : l'appariement marche, mais ne divise la SE
+     que par ~1,7 (13,1 % → 7,70 %). Il ne rend pas le banc sensible, il le rend *praticable* — le
+     plus petit effet décelable reste ~15 % sur `company_value`, ~12 % sur `performance_history`.
+     Un correctif qui gagne 8 % restera invisible à n=20.
   2. **Deux métriques, deux usages.** `performance_history` est **saturée chez AAAHogEx**
      (897, CV 0,5 %) : inutilisable pour se comparer à lui, où seule `company_value` parle. Mais
      elle est **moins bruitée que `company_value` chez nous** (20,4 % contre 32,6 %) : c'est la
@@ -301,15 +375,93 @@ Ne pas oublier deux composantes gratuites de la note de compagnie : **emprunt à
 - ✅ `README.md` mentionnait déjà OpexAI/15.3 ; `docs/methode.md` a reçu une note en tête renvoyant
   vers le `README.md` (2026-08-28) — le corps du document reste volontairement celui de la
   campagne 13.4, il décrit un protocole historique.
+- ✅ **Re-baseliner le bras `OpexAI` du banc après l'instrumentation de plafonnement — FAIT le
+  2026-08-29** (résultat en fin d'item). Le diff non commité dans `ai/OpexAI/` — celui qui a produit
+  `docs/opexai_plafonnement.md` — contient trois choses :
+  1. les **compteurs de rejet** (`candidates.nut`, table `stats` passée en paramètre à travers
+     `OpexMakeCandidate`/`OpexPaxCandidates`/`OpexFreightCandidates`, ressortie par
+     `OpexBuildCandidates`, déversée dans les panneaux annuels `CG`/`CR`/`CD`/`CE`/`CK`) — sans
+     eux, `ranked.all` dit combien de candidats survivent mais pas pourquoi les autres meurent ;
+  2. trois **panneaux** dans `main.nut` : `PM|` pour les lignes avion/bateau (elles n'en avaient
+     aucun), `PC|` pour le label cargo, et `OB|A|` qui porte le coût réel en opcodes d'une
+     tentative — `OR` est déjà à 31 caractères pile, d'où le panneau compagnon ;
+  3. une **vraie correction de bug** dans `_reportLines` : la boucle sur les véhicules filtrait en
+     dur sur `AIVehicle.VT_RAIL`, donc les lignes avion et bateau rapportaient un profit de **0**
+     depuis leur création (2026-08-28). Le `vehicleType` est maintenant déduit de `line.mode`.
+     Aucune décision n'en dépend : `deadStreak` est le seul retour de `_reportLines` vers le
+     comportement, et il est verrouillé derrière `isFreight`.
+
+  **Le jeu de candidats produit est identique** (vérifié ligne à ligne : `served[a] || served[b]`
+  est équivalent aux deux `continue` d'origine, et le `if (monthly <= 0) continue;` du fret est
+  compensé à l'intérieur d'`OpexMakeCandidate`). **Mais le profil d'opcodes ne l'est pas**, et de
+  signe inconnu : côté pax `OpexOriginServed` est sorti des boucles imbriquées (O(n²) → O(n),
+  ~1 000 appels → 45, une économie), côté fret toutes les industries sont évaluées d'avance et
+  `OpexMakeCandidate` est appelée même à `monthly = 0` (un surcoût) ; les compteurs eux-mêmes sont
+  du bruit (~8 400 incréments/an, ~0,02 % du budget annuel). Comme un décalage d'opcodes déplace
+  les frontières de tick, la trajectoire diverge : **`docs/bench_v2.json` n'est plus la baseline de
+  l'arbre courant.**
+
+  **Fait** : 20 graines × 20 ans rejouées sur le seul bras `OpexAI`
+  (`docs/bench_v2_opex_rebaseline.json`), fusionnées dans `docs/bench_v2.json` — `AAAHogEx` est
+  conservé tel quel, il n'a pas bougé. Statistiques et comparaisons appariées recalculées par les
+  fonctions de `sweeps/bench_v2.py` elles-mêmes. L'ancien bras est archivé dans le bloc
+  `rebaseline.previous_opexai` du même fichier (stats + les 20 valeurs par graine).
+
+  **Trois résultats, dont deux inattendus :**
+
+  1. ✅ **L'instrumentation est bien neutre en décision.** Différence appariée sur `company_value`
+     **−117 640** pour une SE de **194 709**, soit **t = −0,60** — non significatif ; 9 graines sur
+     20 s'améliorent. Sur `performance_history`, t = −0,50. Rien ne permet de dire que le diff
+     dégrade l'IA, ce qui était l'hypothèse à écarter.
+  2. **L'appariement fonctionne, mais le plancher de détection reste haut.** La différence de deux
+     moyennes indépendantes porterait ici ~13,1 % de SE ; l'appariement la ramène à **7,70 %** sur
+     `company_value` — un facteur 1,7, pas davantage. Conséquence chiffrée : **le plus petit effet
+     décelable à 2σ est ~15 % sur `company_value` et ~12 % sur `performance_history`**
+     (SE appariée 5,79 %). Ceci confirme le point 2 du §5 par une seconde voie :
+     `performance_history` est la bonne métrique pour opposer deux variantes d'OpexAI.
+  3. 🔴 **La dispersion a doublé et le mode d'échec s'est déplacé** — voir §2.4, que ce résultat
+     reformule entièrement. CV de `company_value` **32,6 % → 48,8 %** (~2σ, l'erreur-type d'un CV
+     à n=20 valant ~7,9 points : suggestif, pas concluant à lui seul).
 
 ---
 
-## 9. Idées de fonctionnalités à évaluer (notées le 2026-08-28, pas encore priorisées)
+## 9. Idées de fonctionnalités à évaluer (notées le 2026-08-28)
 
-- **Agrandir une gare existante** quand le stock d'un cargo déjà exploité devient trop important
-  (capacité insuffisante face à la production captée).
-- **Gérer les jonctions de rails** — pertinent dès qu'`OpexAI` a plusieurs lignes qui se croisent ;
-  voir aussi la lecture en attente sur les jonctions en section 1.
+🔴 **Les deux premières ne sont plus des idées : la mesure du 2026-08-29 les a chiffrées, et elles
+commandent désormais §2.5.** Le plafonnement d'OpexAI n'est pas un défaut de classement, c'est un
+**mur géométrique** : l'IA se mure elle-même. Chaque gare bâtie interdit un disque de
+`MIN_SEPARATION = 10` tuiles autour d'elle, et comme les villes et industries sont exactement là où
+elle a déjà bâti, elle épuise l'espace admissible bien avant d'épuiser la carte — sur la graine 999,
+**18 des 19 derniers candidats sont tués par ce seul filet**, avec 37 à 39 villes encore non
+desservies. Détail dans `docs/opexai_plafonnement.md`.
+
+Ces candidats-là ne sont pas du rebut à filtrer plus finement : ce sont **les meilleurs candidats
+qui restent**. Ils sont proches d'une infrastructure déjà payée, donc leur coût marginal de
+construction est le plus bas de tout le vivier — un raccordement sur gare existante coûte une
+fraction du pathfinding d'une ligne neuve. Sous le principe « l'opcode est une ressource »
+([[philosophie_opcodes_ressource]]), c'est exactement ce qu'on veut acheter. D'où l'ordre : ces deux
+items d'abord, le réglage de `MIN_SEPARATION` jamais (§2.5).
+
+- 🔴 **Agrandir une gare existante** — deux motifs désormais, dont le second est le plus lourd :
+  (a) le motif d'origine, le stock d'un cargo déjà exploité qui dépasse la capacité captée ;
+  (b) **le raccordement** — transformer le rejet `_tooClose` en jonction sur la gare voisine.
+  C'est (b) qui débloque le vivier chiffré ci-dessus.
+- 🔴 **Gérer les jonctions de rails** — condition technique de (b) : sans jonction, deux lignes ne
+  peuvent pas partager une gare. Pertinent aussi dès qu'`OpexAI` a plusieurs lignes qui se croisent ;
+  voir la lecture en attente sur les jonctions en §1.
+
+**Périmètre de mode, vérifié le 2026-08-29** : `_tooClose` n'est appelé qu'à `main.nut:374`, dans
+`_tryBuild` — **le filet ne filtre que le rail**. L'avion et le bateau ne le subissent pas (une
+liaison unique chacun, gardée par `_airBuilt`/`_waterBuilt`) mais **l'alimentent** : ils rejoignent
+`_lines` avec `originA = originB = ` la gare bâtie (`main.nut:194`, `232`), donc un aéroport ou un
+quai bloque bel et bien le rail sur 10 tuiles. Le bus, lui, est délibérément tenu **hors** de
+`_lines` (`main.nut:284`) : totalement transparent au filet, dans les deux sens.
+
+**Corollaire** : un mode qui ne consomme pas d'espace admissible ferroviaire contourne le mur par
+construction. Lever le plafond « une seule liaison » du mode route rendrait les villes murées pour
+le rail à nouveau desservables. À traiter comme une hypothèse et non comme un plan — le bus roule
+depuis le 2026-08-28 mais son non-chargement n'est toujours pas expliqué (§6.4) et sa rentabilité
+n'a jamais été mesurée sur une partie complète.
 - **Gérer des voies aller-retour** (double voie) pour permettre plusieurs trains simultanés sur le
   même parcours, plutôt qu'une seule voie à sens unique par ligne.
 - **Gérer une file d'attente de tâches** (queue) plutôt que le déroulement actuel, pour ordonnancer
