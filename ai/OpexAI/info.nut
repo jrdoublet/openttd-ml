@@ -146,16 +146,17 @@ class OpexAI extends AIInfo {
      *
      * CE QUE 1 FAIT. OpexMakeCandidate range les PROBE_STASH_K=12 paires les moins negatives
      * (plus proches de 0) sans les livrer au TOP_K. Apres _tryBuild, au plus UNE de ces
-     * paires est force-construite, si tropClose et le capital le laissent, avec le budget
-     * ATTEMPT_FLOOR que la forme fermee rend sur un profit negatif. PX marque la ligne
-     * pour qu'elle ne contamine pas la calibration du modele sur les lignes classees.
+     * paires est force-construite, si tropClose et le capital le laissent. Le budget est
+     * HARD_ITERATION_CAP (alternativeRatio 0, chemin Z) : le premier sondage a 2 000
+     * itérations (MIN_RATIO -> plancher) a abandonne 48/52 tentatives, mediane 123 tuiles.
+     * PX marque la ligne pour qu'elle ne contamine pas la calibration des lignes classees.
      *
-     * POURQUOI CE N'EST PAS UN CHANGEMENT DE POLITIQUE. 45,2 % des 4 216 paires meurent
-     * a profit<=0 (docs/opexai_plafonnement.md), mais le modele n'a ete calibre que sur
-     * celles qui passent. On ne peut pas conclure que ces 1 905 paires sont vraiment
-     * non rentables sans en construire un echantillon. 0 reproduit le classement
-     * historique EXACT ; 1 est le bras de mesure. Ne PAS retuner OpexLineEconomics
-     * ni MIN_RATIO dans le meme pas. OpexAI[probe_negative=1] rallume. */
+     * POURQUOI CE N'EST PAS UN CHANGEMENT DE POLITIQUE. Le filtre profit<=0 n'a ete
+     * calibre que sur les paires qui passent. Le premier sondage a montre que le pax
+     * 60-75 tuiles rejete rapporte 10-20 k/an (n=4) ; le long, qui est le volume, etait
+     * censure par le plancher. 0 reproduit le classement historique EXACT ; 1 est le
+     * bras de mesure. Ne PAS retuner OpexLineEconomics ni MIN_RATIO dans le meme pas.
+     * OpexAI[probe_negative=1] rallume. */
     AddSetting({
       name = "probe_negative",
       description = "Force-build one leftover-cash rail pair rejected for predicted profit <= 0, once per year: 1 = measure selection bias, 0 = historical ranking (default)",

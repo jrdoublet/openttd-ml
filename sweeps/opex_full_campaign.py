@@ -227,6 +227,7 @@ def parse_lines(all_signs):
     road_cost = {}
     join_marks = {}
     probe_built = {}
+    probe_pn = {}
 
     for sign in all_signs:
         if m := RE_OF.match(sign):
@@ -315,14 +316,16 @@ def parse_lines(all_signs):
         elif m := RE_PX.match(sign):
             probe_built[int(m.group(1))] = True
         elif m := RE_PN.match(sign):
-            idx = int(m.group(2))
-            pred = predicted.setdefault(idx, {})
-            pred["probe"] = True
-            pred["rankingProfit"] = int(m.group(3))
-            pred["rankingDistance"] = int(m.group(4))
-            pred["probeReason"] = m.group(5)
-            pred["probeIterations"] = int(m.group(6))
-            pred["probeYear"] = 1900 + int(m.group(1))
+            # Un ABND reutilise _nextLineId : ne pas coller ce PN sur la ligne classee
+            # qui reprendra le meme idx. Seulement PX (succes) autorise le merge.
+            probe_pn[int(m.group(2))] = {
+                "probe": True,
+                "rankingProfit": int(m.group(3)),
+                "rankingDistance": int(m.group(4)),
+                "probeReason": m.group(5),
+                "probeIterations": int(m.group(6)),
+                "probeYear": 1900 + int(m.group(1)),
+            }
         elif m := RE_PM.match(sign):
             idx = int(m.group(1))
             multimodal_built[idx] = {
@@ -333,6 +336,10 @@ def parse_lines(all_signs):
             idx = int(m.group(2))
             road_cost[idx] = {"year": 1900 + int(m.group(1)), "attempt": int(m.group(3)),
                               "cost": int(m.group(4)), "vehicles": int(m.group(5))}
+
+    for idx, fields in probe_pn.items():
+        if idx in probe_built:
+            predicted.setdefault(idx, {}).update(fields)
 
     lines = []
     for idx in sorted(built):
@@ -499,6 +506,30 @@ def summarise_probe_negative(runs):
         return [row for row in actuals if (row.get(key) or 0) > 0]
     ok_attempts = [item for item in attempts if item["reason"] == "OK"]
     abnd_attempts = [item for item in attempts if item["reason"] == "ABND"]
+    attempt_bands = []
+    for lo, hi in ((0, 50), (50, 75), (75, 100), (100, 201)):
+        if lo == 0:
+            in_band = [item for item in attempts if item["distance"] <= hi]
+        else:
+            in_band = [item for item in attempts if lo < item["distance"] <= hi]
+        ok = [item for item in in_band if item["reason"] == "OK"]
+        built = [row for row in actuals
+                 if row.get("distance") is not None
+                 and ((row["distance"] <= hi) if lo == 0 else lo < row["distance"] <= hi)]
+        pos2 = [row for row in built if (row.get("actual_profit_second") or 0) > 0]
+        pos_last = [row for row in built if (row.get("actual_profit_last") or 0) > 0]
+        attempt_bands.append({
+            "lo": lo, "hi": hi, "n": len(in_band), "n_ok": len(ok),
+            "n_abnd": sum(1 for item in in_band if item["reason"] == "ABND"),
+            "median_predicted": _median([item["ranking_profit"] for item in in_band]),
+            "n_with_actual": len(built),
+            "n_positive_second": len(pos2),
+            "n_positive_last": len(pos_last),
+            "median_actual_second": _median([row["actual_profit_second"] for row in built
+                                             if row.get("actual_profit_second") is not None]),
+            "median_actual_last": _median([row["actual_profit_last"] for row in built
+                                           if row.get("actual_profit_last") is not None]),
+        })
     return {
         "population": population,
         "n_funnel_years": len(funnels),
@@ -529,6 +560,7 @@ def summarise_probe_negative(runs):
                                               if row.get("actual_profit_last") is not None]),
         "median_predicted_of_ok": _median([row["predicted"] for row in actuals
                                            if row.get("predicted") is not None]),
+        "attempt_bands": attempt_bands,
         "lines": actuals,
     }
 
@@ -1021,8 +1053,14 @@ def main():
           f"pax={pop.get('n_pax')} frt={pop.get('n_freight')} near={pop.get('n_near')}")
     print(f"  bandes: {pop.get('bands')}  raisons: {probe.get('reasons')}")
     print(f"  median predit (tries): {probe.get('median_ranking_profit_tried')}  "
-          f"median reel: {probe.get('median_actual_profit')}  "
-          f"median dist: {probe.get('median_distance_tried')}")
+          f"median reel 2e: {probe.get('median_actual_profit_second')}  "
+          f"median dist tries/ok/abnd: {probe.get('median_distance_tried')}/"
+          f"{probe.get('median_distance_ok')}/{probe.get('median_distance_abnd')}")
+    for band in probe.get("attempt_bands") or []:
+        print(f"  {band['lo']:3}-{band['hi']:<3} n={band['n']:3} OK={band['n_ok']} "
+              f"ABND={band['n_abnd']} actuals={band['n_with_actual']} "
+              f">0 2e={band['n_positive_second']} last={band['n_positive_last']} "
+              f"med_pred={band['median_predicted']} med_last={band['median_actual_last']}")
     print("ecrit", result_path)
 
 

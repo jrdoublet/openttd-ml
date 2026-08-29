@@ -542,9 +542,37 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
    volume (57 % des rejets >100 tuiles). n=4 n'est pas un retuning.
 
    ⚠️ **Défaut 0.** `OpexAI[probe_negative=1]` rallume. Ne pas recalibrer
-   `OpexLineEconomics` ni baisser le filtre `profit≤0` sur cet échantillon. Suite :
-   un second sondage à budget d'itérations assez grand pour le long (>75 tuiles),
-   **puis seulement** un retuning pax.
+   `OpexLineEconomics` ni baisser le filtre `profit≤0` sur cet échantillon.
+
+   ✅ **Suite : même sondage, plafond dur 40 000** (2026-08-30, soir).
+   `alternativeRatio = 0` → chemin Z, `HARD_ITERATION_CAP`. Aucun paramètre
+   ajouté à `OpexBuildLine` : le classement ne change pas d'opcodes.
+   5 graines × 20 ans (`docs/opex_probe_negative_hardcap_20y_5seeds.json`) :
+
+   | | plancher 2 000 | plafond 40 000 |
+   |---|---:|---:|
+   | tentatives | 52 | 29 |
+   | OK / ABND | 4 / 48 | **20 / 8** |
+   | médiane dist. tentées | 123 | 120 |
+   | médiane dist. OK / ABND | 65,5 / 124,5 | **94,5 / 163,5** |
+
+   | bande | n | OK | last year > 0 | médiane last |
+   |---|---:|---:|---:|---:|
+   | ≤50 | 2 | 2 | **2/2** | 12 737 |
+   | 50–75 | 4 | 4 | **4/4** | 17 231 |
+   | 75–100 | 6 | 5 | **5/5** | 11 980 |
+   | >100 | 17 | 9 | **3/8** | **0** |
+
+   **≤100 tuiles : 11/11 rentables** en dernière année, pax, prédit ~−40. Le n=4
+   du plancher se reproduit et s'étend. **>100 tuiles : médiane 0**, 3/8 > 0
+   (123, 163, 164 tuiles à +15–28 k ; 109 et une 123 à 0 ; 160 à −2 132).
+   Deux 146 tuiles n'ont qu'une année partielle. Les 8 ABND restants sont
+   du très long (110–195 tuiles) au plafond.
+
+   ⚠️ **Ne pas lever `profit≤0` globalement** : ce serait réadmettre le long
+   qui ne paie pas, le piège du vivier. Un retuning, s'il vient, est borné
+   au pax ≤100 tuiles à prédit légèrement négatif, réglage défaut 0, banc
+   apparié. Défaut `probe_negative` **0**.
 
 9. 🔴 **Les suites de la tranche v1 du raccordement de gare** (commité, défaut `station_join=0`).
    Le quai parallèle joint au même `StationID` avec sa propre entrée est en place et contourne à
@@ -586,14 +614,14 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
       Le spread n'est **pas** débloqué : joindre plus, sur un terme qui ne paie pas, recréerait
       le banc vivier.
 
-**Priorité de fait, révisée le 2026-08-30 (soir)** : plus d'échec qualitatif du mode route.
-Distance A\* ✅. Recalibrage conjoint des nœuds ✅ mesuré, **défaut 0**. Item 7 ✅ mesuré,
-**défaut 0** : le pax 60–75 tuiles rejeté pour `profit≤0` est réellement rentable (n=4),
-mais 48/52 sondages ABND à 2 000 itérations (médiane 123 tuiles). `station_join`,
+**Priorité de fait, révisée le 2026-08-30 (nuit)** : plus d'échec qualitatif du mode route.
+Distance A\* ✅. Recalibrage conjoint des nœuds ✅ mesuré, **défaut 0**. Item 7 ✅ mesuré
+aux deux budgets, **défaut 0**. Le pax ≤100 tuiles rejeté pour `profit≤0` est
+rentable (11/11) ; au-delà de 100 tuiles la médiane réelle est 0. `station_join`,
 `basin_share`, `reborrow`, `origin_sitable`, `astar_cost`, `probe_negative` restent à 0.
-Le **spread** n'est pas la suite. La tête est la **suite de l'item 7** : refaire le
-sondage avec un budget d'itérations qui atteint le long, **avant** tout retuning pax.
-n=4 du court n'est pas une calibration.
+Le **spread** n'est pas la suite. La tête est un **retuning pax borné** : admettre
+les paires pax ≤100 tuiles à profit prédit légèrement négatif, réglage défaut 0,
+banc apparié n=20. Ne pas lever le filtre sur le long.
 
 *Priorité précédente, conservée pour la trace* : ~~l'item **7**~~ (✅ mesuré, défaut 0) était
 la tête le matin. ~~l'item **4**~~ (✅ fait) et l'item **6** (plafond d'abandon) passaient

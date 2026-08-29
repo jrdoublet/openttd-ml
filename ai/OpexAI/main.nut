@@ -926,14 +926,19 @@ function OpexAI::_tryBuild(ranked, year)
 
 /* Item 7 : au plus UNE tentative rail par an sur une paire que le modele a rejetee
  * (profit predit <= 0). Le classement n'en a jamais vu : stash des moins negatives,
- * hors TOP_K. On ne joint pas, on n'emprunte pas. Le budget d'iterations retombe
- * sur ATTEMPT_FLOOR parce que le profit est negatif (forme fermee sinon negative).
+ * hors TOP_K. On ne joint pas, on n'emprunte pas.
+ *
+ * Budget : alternativeRatio 0, chemin Z, HARD_ITERATION_CAP (40 000). Le premier
+ * sondage (docs/opex_probe_negative_20y_5seeds.json) passait MIN_RATIO et tombait
+ * au plancher 2000 : 48/52 ABND, mediane 123 tuiles. Le volume des rejets est le
+ * long ; 2000 ne le mesure pas. 0 n'ajoute aucun parametre a OpexBuildLine, donc
+ * le chemin d'opcodes du classement reste intact.
  *
  * Panneaux, tous gates par probe_negative donc absents du defaut :
  *  PQ|aa|stash|close|cash|tried  -- entonnoir annuel
  *  PN|aa|id|profit|dist|R|iter   -- la tentative, profit AU CLASSEMENT (celui du rejet)
  *  PX|id                         -- la ligne batie est un probe, pas un candidat classe
- * Pire PN|99|999|-999999|200|A|2000 : 27 caracteres. */
+ * Pire PN|99|999|-999999|200|A|40000 : 29 caracteres. */
 function OpexAI::_tryProbeNegative(ranked, year)
 {
   local anchor = AIMap.GetTileIndex(1, 1);
@@ -967,9 +972,9 @@ function OpexAI::_tryProbeNegative(ranked, year)
 
     local rankingProfit = candidate.profitAnnual;
     local rankingDistance = candidate.distance;
-    /* MIN_RATIO : OpexIterationBudget(profit negatif) rend ATTEMPT_FLOOR, chemin F.
-     * join = null : on mesure la paire rejetee, pas une jointure. Pas de reemprunt. */
-    local result = OpexBuildLine(this._catalog, this._budget, candidate, MIN_RATIO, null,
+    /* alternativeRatio 0 : chemin Z, HARD_ITERATION_CAP. join = null : on mesure
+     * la paire rejetee, pas une jointure. Pas de reemprunt. */
+    local result = OpexBuildLine(this._catalog, this._budget, candidate, 0, null,
                                  CASH_RESERVE);
     /* Un seul OpexBuildLine par an : le sondage de site est deja un cout d'opcodes. */
     tried = 1;

@@ -265,9 +265,9 @@ function OpexStashNegative(stats, kind, cargo, srcTile, dstTile, monthly, origin
     runningAnnual = economics.runningAnnual,
     amortAnnual = economics.amortAnnual,
     oneWayDays = economics.oneWayDays,
-    /* Inutilise pour le budget : OpexIterationBudget recoit le profit negatif et
-     * retombe sur ATTEMPT_FLOOR. ratio = 0 pour qu'un probe ne puisse jamais gagner
-     * un TOP_K s'il fuyait dans `all`. */
+    /* Inutilise pour le budget : _tryProbeNegative passe alternativeRatio 0
+     * (chemin Z, HARD_ITERATION_CAP). ratio = 0 pour qu'un probe ne puisse jamais
+     * gagner un TOP_K s'il fuyait dans `all`. */
     iterations = 0,
     ratio = 0,
     probe = true,
