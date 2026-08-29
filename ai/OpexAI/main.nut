@@ -9,9 +9,14 @@
  *
  * Quatre etages :
  *   0  catalog.nut       -- villes, industries, cargos, materiel roulant (rafraichi chaque annee)
- *   1  economy.nut       -- profit annuel attendu d'une ligne
+ *   1  economy.nut       -- profit annuel attendu d'une ligne (rail ET route)
  *   2  candidates.nut    -- cout en iterations d'A* attendu, et le classement par rapport
  *   3  builder_rail.nut  -- construction, sous budget d'iterations calcule par l'arret optimal
+ *
+ * Plus trois constructeurs secondaires, chacun avec son propre classement ou sa propre unicite :
+ * builder_air.nut et builder_water.nut (une liaison passagers chacun), et builder_road.nut, qui
+ * est le seul a batir plusieurs lignes par an -- des petites lignes courtes, bus entre villes et
+ * surtout CAMIONS pour le fret, dans la bande de 5 a 25 tuiles que le rail refuse.
  *
  * Instrumentation : AILog.Info n'apparait PAS dans la sortie capturee par OpenTTDLab (verifie le
  * 2026-08-28), et un nom de panneau echoue SILENCIEUSEMENT au-dela de 31 caracteres. D'ou des
@@ -20,8 +25,11 @@
 
 import("pathfinder.rail", "RailPathFinder", 1);
 
-/* Declare avant les require() : catalog.nut consulte ce drapeau dans son cycle annuel. */
-ROAD_BUILD_ENABLED <- false;
+/* Declare avant les require() : catalog.nut consulte ce drapeau dans son cycle annuel. Repli
+ * actif jusqu'a la lecture unique de road_mode dans Start(), comme les autres reglages de
+ * decision. Le defaut vrai est celui de info.nut ; 0 reconstitue la baseline sans route, dont le
+ * chemin d'opcodes reste alors EXACTEMENT celui des campagnes anterieures. */
+ROAD_BUILD_ENABLED <- true;
 
 /* Panneaux de diagnostic : lu UNE fois depuis le reglage dans Start(), pas a chaque appel (57
  * panneaux par an, GetSetting a chaque fois serait du gaspillage d'opcodes pour une valeur qui ne
@@ -75,11 +83,22 @@ const BUILD_TICK_MARGIN = 3000;
  * plus ni renouveler ses vehicules ni saisir une occasion, et la valeur d'entreprise tombe a 1. */
 const CASH_RESERVE = 50000;
 
-/* Route v1 : le constructeur et son rollback sont conserves, mais la campagne gelee graine 42 a
- * mesure une liaison de 23 tuiles a -599/-601 par an pendant 19 ans (notes d'arret -1) et une
- * valeur finale de 1 749 226 contre 2 787 970 sans route. La transaction n'est donc PAS allouee
- * tant qu'un protocole a demontre une desserte routiere rentable. Start garde l'appel conditionnel
- * a _tryBuildRoad : reactivation localisee a ce seul drapeau, sans debit sur la baseline. */
+/* Phase routiere (2026-08-29). La v1 batissait UNE liaison bus passagers et restait desactivee :
+ * sur la graine gelee elle mesurait -599/an pendant 19 ans, mais avec des notes d'arret a -1,
+ * c'est-a-dire un bus qui n'a jamais charge un seul passager -- le chiffre condamnait un BUG, pas
+ * un mode. Le bug est corrige (bit de route perpendiculaire absent des facades) et le mode devient
+ * une phase a part entiere : autant de petites lignes courtes que le classement en propose, et
+ * surtout du FRET, camions industrie->industrie et industrie->ville, la ou la v1 ne savait faire
+ * que du passager.
+ *
+ * Deux plafonds annuels, tous deux ARBITRAIRES et a trancher au banc :
+ *  - le nombre de lignes neuves, parce que chaque ligne immobilise de la tresorerie que le rail --
+ *    qui vaut un ordre de grandeur de plus par ligne -- servira l'annee suivante ;
+ *  - le nombre de TENTATIVES, parce qu'un plan qui echoue coute quand meme ses sondes de site et
+ *    ses validations d'aretes. Sans lui, une annee ou aucun candidat n'est constructible paierait
+ *    le plan des douze. */
+const ROAD_MAX_NEW_LINES_PER_YEAR = 3;
+const ROAD_MAX_ATTEMPTS_PER_YEAR = 6;
 
 /* Seuil de remboursement d'emprunt : sous ce plancher de tresorerie on ne rembourse pas, un
  * emprunt a 5 % coute bien moins qu'une ligne manquee faute de cash. Au-dessus, l'argent qui
@@ -126,19 +145,10 @@ class OpexAI extends AIController {
   _abandonedPairs = null;
   _airBuilt = false;
   _waterBuilt = false;
-  _roadBuilt = false;
-  /* Diagnostic bus (2026-08-28) : le bus routier ne rejoint jamais _lines (cf. commentaire dans
-   * _tryBuildRoad), donc _reportLines ne le voit jamais. _roadDiag garde juste assez pour le
-   * mesurer chaque annee sans toucher a _tooClose/_lines : vehicule, station IDs, cargo, et les
-   * tuiles de facade (front) du depot et des deux arrets pour tester la connectivite reelle. */
-  _roadDiag = null;
-  /* Echantillon hebdomadaire du bus (2026-08-28), en plus du rapport annuel _reportRoad : deux
-   * releves annuels consecutifs a la MEME tuile (RL fige) laissent planer le doute entre
-   * "bloque" et "boucle si lente qu'un an ne suffit pas a en sortir". Borne a 40 echantillons
-   * (~280 jours a raison d'un par semaine) pour ne jamais s'emballer si le diagnostic tourne
-   * plus longtemps que prevu. */
-  _roadSampleTick = -1;
-  _roadSampleCount = 0;
+  /* Le diagnostic mono-bus (_roadDiag, _reportRoad, echantillon trimestriel RQ/RE/RI) a ete retire
+   * le 2026-08-29 : il servait a trouver pourquoi UNE liaison ne chargeait rien, la reponse est
+   * connue et documentee (builder_road.nut), et les lignes routieres rejoignent desormais _lines,
+   * donc _reportLines les mesure comme les autres avec OY/OZ/OU/OO. */
   /* Identite stable des lignes pour les panneaux (2026-08-28) : this._lines.len() n'est plus un
    * identifiant valide des que _scrapDeadLines peut retirer un element -- Array.remove() DECALE
    * tous les indices suivants, donc un panneau IA|5|... loggue une annee peut, apres un retrait,
@@ -159,11 +169,10 @@ class OpexAI extends AIController {
   function _tooClose(candidate);
   function _tryBuildAir(year);
   function _tryBuildWater(year);
-  function _tryBuildRoad(year);
+  function _tryBuildRoads(year);
   function _tryBuild(ranked, year);
   function _reportYear(year, ranked);
   function _reportLines(year);
-  function _reportRoad(year);
   function _scrapDeadLines(year);
 }
 
@@ -189,14 +198,48 @@ function OpexAttemptReasonCode(reason)
 
 /* Le station_id est l'identite de bassin, pas la tuile de quai : deux lignes raccordees ont des
  * sorties differentes mais le meme ID. Un ancien etat sauvegarde sans la liste vehicles retombe
- * prudemment sur la requete par gare ; les nouvelles lignes n'utilisent jamais ce repli ambigu. */
+ * prudemment sur la requete par gare ; les nouvelles lignes rail n'utilisent jamais ce repli
+ * ambigu.
+ *
+ * 🔴 EXCEPTION ROUTE (2026-08-29), et c'est une correction, pas une commodite. Mesure, campagne
+ * 20 ans graine 42 : trois lignes routieres sur quatre finissaient a vehCount = 0 alors que leur
+ * gare gardait une note de 48 a 60 -- et l'une d'elles est repassee de 0 a 1 vehicule d'une annee
+ * sur l'autre, ce qu'aucune disparition ne peut expliquer. La liste figee a la construction est
+ * donc FAUSSE des qu'un vehicule est remplace : le renouvellement automatique detruit l'ancien
+ * identifiant et en cree un neuf, et OpenTTD RECYCLE les identifiants liberes -- une liste figee
+ * finit par ne plus rien designer, ou pire par designer le vehicule d'une autre ligne.
+ *
+ * La raison qui imposait la liste figee cote rail ne s'applique pas ici : un arret routier est
+ * toujours pose en STATION_NEW et n'est jamais joint a un autre, donc AIVehicleList_Station rend
+ * exactement les vehicules de CETTE ligne. C'est la seule source de verite qui survit au
+ * renouvellement. */
 function OpexLineVehicleIds(line, stationId)
 {
+  if (("mode" in line) && line.mode == "road") {
+    local roadIds = [];
+    local roadVehicles = AIVehicleList_Station(stationId);
+    for (local v = roadVehicles.Begin(); !roadVehicles.IsEnd(); v = roadVehicles.Next()) {
+      roadIds.append(v);
+    }
+    return roadIds;
+  }
   if ("vehicles" in line) return line.vehicles;
   local ids = [];
   local vehicles = AIVehicleList_Station(stationId);
   for (local v = vehicles.Begin(); !vehicles.IsEnd(); v = vehicles.Next()) ids.append(v);
   return ids;
+}
+
+/* Le type de vehicule se deduit du mode de la ligne, et d'un seul endroit : _reportLines et
+ * _scrapDeadLines le demandaient chacun de leur cote, le second en le codant en dur a VT_RAIL --
+ * ce qui aurait laisse une ligne routiere morte rouler pour toujours. */
+function OpexLineVehicleType(line)
+{
+  if (!("mode" in line)) return AIVehicle.VT_RAIL;
+  if (line.mode == "air") return AIVehicle.VT_AIR;
+  if (line.mode == "water") return AIVehicle.VT_WATER;
+  if (line.mode == "road") return AIVehicle.VT_ROAD;
+  return AIVehicle.VT_RAIL;
 }
 
 function OpexLineStationId(line, end)
@@ -352,64 +395,136 @@ function OpexAI::_tryBuildWater(year)
   this._nextLineId++;
 }
 
-/* Une seule liaison bus v1. Le scan est volontairement aussi large que ceux de l'air/de l'eau :
- * OpexAI ne construit aucun autre vehicule routier, donc tout VT_ROAD qui nous appartient suffit
- * a reconnaitre la transaction apres rechargement et a eviter un doublon. */
-function OpexAI::_tryBuildRoad(year)
+/* La phase routiere : autant de petites lignes courtes que le classement en propose, dans la
+ * limite des deux plafonds annuels ci-dessus.
+ *
+ * Elle tourne APRES _tryBuild, et c'est une decision, pas un detail d'ordonnancement. Les deux
+ * modes ne se disputent jamais la meme PAIRE (leurs bandes de distance sont disjointes : le rail
+ * commence ou la route s'arrete, a 25 tuiles) mais ils se disputent les memes ORIGINES et la meme
+ * tresorerie. Le rail vaut un ordre de grandeur de plus par ligne : il choisit donc en premier, et
+ * la route prend ce qui reste -- des villes et des industries qu'aucune ligne rail n'a retenues,
+ * avec l'argent qui dort une fois la reserve rail respectee. C'est aussi ce qui garde la baseline
+ * rail lisible au banc : a road_mode = 0 il ne se passe litteralement rien de plus.
+ *
+ * Le classement est recalcule ICI et non dans le cycle annuel : les lignes rail de l'annee
+ * viennent d'entrer dans _lines, et leurs origines doivent etre exclues avant que la route ne
+ * choisisse. */
+function OpexAI::_tryBuildRoads(year)
 {
-  if (!ROAD_BUILD_ENABLED) return;
-  if (this._roadBuilt || this._catalog.roadBuses.len() == 0 || this._catalog.paxCargo < 0) return;
-  local vehicles = AIVehicleList();
-  for (local v = vehicles.Begin(); !vehicles.IsEnd(); v = vehicles.Next()) {
-    if (AIVehicle.GetVehicleType(v) == AIVehicle.VT_ROAD) {
-      this._roadBuilt = true;
-      return;
-    }
-  }
-
-  this._budget.begin();
-  local plan = OpexRoadPlans(this._catalog);
-  local planOps = this._budget.end("build_road_plans");
-  if (plan == null) return;
-  local capital = plan.routeDistance * this._catalog.costRoadPerTile
-                + 2 * this._catalog.costRoadStation + this._catalog.costRoadDepot
-                + this._catalog.maxRoadBusPrice;
-  local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  if (money < capital + CASH_RESERVE + ROAD_CAPITAL_MARGIN) return;
-
-  local result = OpexBuildRoadRoute(this._catalog, this._budget, plan);
+  if (!ROAD_BUILD_ENABLED || this._catalog.roadType < 0) return;
   local anchor = AIMap.GetTileIndex(1, 1);
-  if (!result.ok) {
-    OpexSign(anchor, "OE|R|" + result.reason + "|" + result.error);
-    return;
-  }
-  local idx = this._nextLineId;
-  /* Le pire nom est OM|R|99|999|999|999|25|999999 : 31 caracteres, plafond inclus. */
-  OpexSign(anchor, "OM|R|" + (year % 100) + "|" + idx + "|" + plan.townA.id + "|"
-                           + plan.townB.id + "|" + plan.distance + "|" + planOps);
-  OpexSign(anchor, "OC|R|" + idx + "|" + result.cost + "|" + plan.routeDistance);
-  OpexSign(anchor, "OV|R|" + idx + "|" + result.vehicle + "|" + result.capacity);
-  this._roadBuilt = true;
-  /* Contrairement aux lignes rail, le bus court ne rejoint pas _lines : OpexOriginServed et
-   * _tooClose ne doivent jamais en deduire qu'une ville est verrouillee pour une liaison rail
-   * interurbaine. Son unicite est assuree par _roadBuilt et par le scan VT_ROAD. */
-  this._nextLineId++;
+  local ranked = OpexBuildRoadCandidates(this._catalog, this._budget, this._lines);
+  local best = ranked.best;
+  local attempts = 0;
+  local builtCount = 0;
+  local yy = year % 100;
 
-  /* Diagnostic de non-chargement (2026-08-28) : garde de quoi mesurer le bus chaque annee dans
-   * _reportRoad, hors de _lines. */
-  this._roadDiag = {
-    vehicle = result.vehicle, cargo = this._catalog.paxCargo,
-    stationA = result.stationA, stationB = result.stationB,
-    stopA = result.stopA, stopB = result.stopB,
-    coverage = AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP),
-  };
-  /* Geometrie brute (2026-08-28), UNE fois : tuile + facade des deux arrets et du depot, pour
-   * reconstruire offline (tile = y*mapSizeX+x, carte 256x256) si le bus boucle pres d'un point
-   * particulier plutot que d'atteindre stopA. */
-  OpexSign(anchor, "RT|" + idx + "|sA|" + plan.stopA.tile + "|" + plan.stopA.front);
-  OpexSign(anchor, "RT|" + idx + "|sB|" + plan.stopB.tile + "|" + plan.stopB.front);
-  OpexSign(anchor, "RT|" + idx + "|dp|" + plan.depot.tile + "|" + plan.depot.front);
-  OpexSign(anchor, "RT|" + idx + "|sh|" + plan.shape);
+  for (local i = 0; i < best.len(); i++) {
+    if (builtCount >= ROAD_MAX_NEW_LINES_PER_YEAR) break;
+    if (attempts >= ROAD_MAX_ATTEMPTS_PER_YEAR) break;
+    local candidate = best[i];
+    /* Le classement a ete etabli avant la premiere construction de cette boucle : une ligne batie
+     * il y a deux tours a pu prendre l'une des deux extremites de ce candidat. Sans cette
+     * reverification, deux lignes routieres de la meme annee se poseraient sur la meme ville. */
+    if (OpexOriginServed(this._lines, candidate.src, true)) continue;
+    if (OpexOriginServed(this._lines, candidate.dst, true)) continue;
+
+    local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+    if (money < candidate.capital + CASH_RESERVE + ROAD_CAPITAL_MARGIN) break;
+
+    attempts++;
+    this._budget.begin();
+    local planning = OpexRoadPlanFor(this._catalog, candidate);
+    local planOps = this._budget.end("build_road_plans");
+    local plan = planning.plan;
+    local idx = this._nextLineId;
+    if (plan == null) {
+      /* "RA|99|999|6|TRACEX|0" = 20 caracteres, sous le plafond silencieux de 31. Deux choses y
+       * comptent. La RAISON porte l'etape qui a bute (SITEA, SITEB, TRACEX, DEPOTX) plutot qu'un
+       * "pas de plan" indifferencie : chacune appelle un correctif different. Et le rang de la
+       * tentative DANS L'ANNEE est indispensable, parce que _nextLineId n'avance que sur un succes
+       * -- sans lui, toutes les tentatives echouees d'une annee partageraient un identifiant, leurs
+       * panneaux de cout RB seraient indistinguables, et le depouillement compterait plusieurs fois
+       * les memes opcodes. */
+      OpexSign(anchor, "RA|" + yy + "|" + idx + "|" + attempts + "|" + planning.reason + "|0");
+      OpexSign(anchor, "RB|" + yy + "|" + idx + "|" + attempts + "|" + planOps + "|0");
+      continue;
+    }
+    local result = OpexBuildRoadRoute(this._catalog, this._budget, plan, candidate);
+    /* Le cout REEL d'une tentative, plan et construction separes : c'est la mesure qui manque pour
+     * calibrer ROAD_PLAN_ITERATIONS_BASE (candidates.nut), donc pour pouvoir un jour comparer un
+     * candidat routier a un candidat rail dans un seul classement. */
+    OpexSign(anchor, "RB|" + yy + "|" + idx + "|" + attempts + "|" + planOps
+                             + "|" + result.opcodes);
+    if (!result.ok) {
+      OpexSign(anchor, "RA|" + yy + "|" + idx + "|" + attempts + "|" + result.reason
+                               + "|" + result.error);
+      continue;
+    }
+
+    builtCount++;
+    /* Memes panneaux de prediction que le rail, et volontairement : ils sont indexes par lineId
+     * dans un espace de numerotation commun, donc sweeps/opex_full_campaign.py croise deja
+     * predit et reel sans rien savoir du mode. PM porte le mode et la distance, RC le cout paye et
+     * la flotte reellement obtenue (un clone peut echouer sans faire echouer la ligne). */
+    OpexSign(anchor, "OF|" + idx + "|" + candidate.revenueAnnual);
+    OpexSign(anchor, "OJ|" + idx + "|" + candidate.runningAnnual);
+    OpexSign(anchor, "OK|" + idx + "|" + candidate.amortAnnual);
+    OpexSign(anchor, "OQ|" + idx + "|" + candidate.carried + "|" + candidate.trains);
+    OpexSign(anchor, "OT|" + idx + "|" + candidate.oneWayDays + "|" + candidate.distance);
+    OpexSign(anchor, "PK|" + idx + "|" + (candidate.kind == "pax" ? "P" : "F")
+                             + "|" + candidate.monthly);
+    OpexSign(anchor, "PC|" + idx + "|" + AICargo.GetCargoLabel(candidate.cargo));
+    OpexSign(anchor, "PM|" + idx + "|R|" + candidate.distance + "|"
+                             + AICargo.GetCargoLabel(candidate.cargo));
+    /* "RC|99|999|6|999999|2" = 20 caracteres. L'annee et le rang de la tentative y figurent pour
+     * apparier ce succes a son panneau RB de cout, indexe par ce meme triplet. */
+    OpexSign(anchor, "RC|" + yy + "|" + idx + "|" + attempts + "|" + result.cost
+                             + "|" + result.vehicles.len());
+
+    /* La ligne routiere rejoint _lines comme les autres : elle est ainsi rapportee chaque annee
+     * (_reportLines) et mise au rebut si elle meurt (_scrapDeadLines), sans code parallele. Le
+     * champ mode = "road" est ce qui la retire des deux filets rail -- OpexOriginServed appele
+     * avec includeRoad = false, et _tooClose -- pour qu'une desserte de bus de 12 tuiles ne
+     * verrouille jamais une ville contre une liaison rail interurbaine. */
+    this._lines.append({
+      stationA = result.stopA, stationB = result.stopB,
+      originA = candidate.src, originB = candidate.dst,
+      cargo = candidate.cargo,
+      predicted = candidate.profitAnnual, iterations = candidate.iterations,
+      trains = result.vehicles.len(), distance = candidate.distance, year = year,
+      predRevenue = candidate.revenueAnnual, predRunning = candidate.runningAnnual,
+      predAmort = candidate.amortAnnual, predCarried = candidate.carried,
+      predTrains = candidate.trains, predOneWayDays = candidate.oneWayDays,
+      /* Pas de champ `vehicles` ici, DELIBEREMENT : une liste figee ne survit pas au
+       * renouvellement automatique, qui detruit l'identifiant et le fait recycler par le moteur
+       * (cf. OpexLineVehicleIds). Une ligne routiere interroge toujours sa gare. */
+      mode = "road", kind = candidate.kind,
+      /* Une extremite de ville n'est pas une industrie : GetIndustryID y rendrait un identifiant
+       * invalide, que _reportLines rapporterait comme une industrie fermee. Seule une extremite
+       * reellement industrielle (townId < 0 dans le candidat) est interrogee. */
+      srcIndustry = (candidate.kind == "freight" && candidate.srcTown < 0)
+                    ? AIIndustry.GetIndustryID(candidate.src) : -1,
+      dstIndustry = (candidate.kind == "freight" && candidate.dstTown < 0)
+                    ? AIIndustry.GetIndustryID(candidate.dst) : -1,
+      deadStreak = 0, scrapping = false, scrapVehicles = [],
+      lineId = idx,
+    });
+    this._nextLineId++;
+  }
+
+  /* "RN|99|999|9|9|999999" = 20 caracteres : candidats classes, tentatives, lignes baties, et le
+   * cout en opcodes de la GENERATION de candidats. Le denominateur qui manquait a la v1 -- sans
+   * lui, zero ligne routiere une annee donnee ne distingue pas "aucun candidat" de "six plans en
+   * echec" -- plus le prix paye les annees ou la phase ne batit rien du tout. */
+  OpexSign(anchor, "RN|" + yy + "|" + ranked.all + "|" + attempts + "|" + builtCount
+                           + "|" + ranked.opcodes);
+  /* "RS|99|9999|9999|999" = 19 caracteres. RN dit combien de candidats ont SURVECU ; RS dit ce que
+   * le vivier contenait avant filtrage et ce que le plancher de profit a coupe. Sans lui, "quatre
+   * candidats classes" ne distingue pas une carte pauvre en paires courtes d'un plancher trop
+   * haut -- et le plancher, lui, est arbitraire (cf. ROAD_MIN_PROFIT_ANNUAL). */
+  OpexSign(anchor, "RS|" + yy + "|" + ranked.stats.pairsInBand + "|"
+                           + ranked.stats.profitTooLow + "|" + ranked.stats.accepted);
 }
 
 /* Une extremite deja desservie par nous ne merite pas un second raccordement.
@@ -435,6 +550,11 @@ function OpexAI::_tooClose(candidate)
 {
   local origin = -1;
   foreach (line in this._lines) {
+    /* Les lignes routieres partagent ce tableau depuis le 2026-08-29 mais sont invisibles aux deux
+     * filets rail, origine comme filet physique : une desserte routiere de 12 tuiles n'epuise pas
+     * une ville, et son arret (rayon 3) ne cannibalise pas le bassin d'une gare rail. Les laisser
+     * ici rejetterait des candidats rail bien plus rentables au profit de bus. */
+    if (("mode" in line) && line.mode == "road") continue;
     local d;
     d = AIMap.DistanceManhattan(candidate.src, line.originA);
     origin = OpexRememberClosest(d, ORIGIN_SEPARATION, origin);
@@ -451,6 +571,7 @@ function OpexAI::_tooClose(candidate)
   local conflicts = [];
   local entries = [["A", candidate.src], ["B", candidate.dst]];
   foreach (line in this._lines) {
+    if (("mode" in line) && line.mode == "road") continue;   // cf. commentaire ci-dessus
     foreach (lineEnd in ["A", "B"]) {
       local stationId = OpexLineStationId(line, lineEnd);
       if (stationId < 0) continue;
@@ -681,9 +802,7 @@ function OpexAI::_reportLines(year)
     local runCost = 0;
     local vehCount = 0;
     local isFreight = ("kind" in line) && line.kind == "freight";
-    local vehicleType = AIVehicle.VT_RAIL;
-    if ("mode" in line && line.mode == "air") vehicleType = AIVehicle.VT_AIR;
-    else if ("mode" in line && line.mode == "water") vehicleType = AIVehicle.VT_WATER;
+    local vehicleType = OpexLineVehicleType(line);
     local diagSlot = 0;
     /* Une gare jointe possede un seul StationID : AIVehicleList_Station melangerait les lignes.
      * La liste figee a la construction est l'attribution correcte ; le helper ne consulte la gare
@@ -729,8 +848,17 @@ function OpexAI::_reportLines(year)
        * cargo jamais vu) ET revenu implicite (profit + cout de fonctionnement) nul ou negatif,
        * c'est-a-dire rien transporte du tout cette annee. deadStreak ne compte que les annees
        * CONSECUTIVES ou les trois tiennent ensemble ; un seul manque et le compteur retombe a 0. */
+      /* 🔴 CORRIGE LE 2026-08-29. La condition exigeait AUSSI ratingA <= 0, et cette clause etait
+       * fausse : une gare CONSERVE sa derniere note quand plus rien n'y passe. Mesure, campagne
+       * 20 ans graine 42 : la ligne routiere OIL_ a perdu son industrie source en 1979 et a roule
+       * ONZE ANS a -842 par an sans jamais etre mise au rebut, note de gare figee a 67 tout du
+       * long. Le revenu implicite (profit + cout de fonctionnement) suffit et ne ment pas : a zero,
+       * la ligne n'a rien transporte de l'annee, quelle que soit la note affichee. La prudence
+       * reste assuree par les deux autres conditions -- l'industrie source en souffrance, et
+       * DEAD_STREAK_THRESHOLD annees CONSECUTIVES.
+       * ⚠️ Comme le renouvellement automatique, ce correctif touche AUSSI les lignes rail. */
       local srcSuffering = (!srcAlive) || (srcProd == 0);
-      local collapsed = srcSuffering && ratingA <= 0 && (profit + runCost) <= 0;
+      local collapsed = srcSuffering && (profit + runCost) <= 0;
       line.deadStreak = collapsed ? line.deadStreak + 1 : 0;
       if (line.deadStreak > 0) {
         OpexSign(anchor, "DL|" + year + "|" + line.lineId + "|" + line.deadStreak);
@@ -756,68 +884,6 @@ function OpexAI::_reportLines(year)
  * bloquent plus rien (le seul frein etait la presence dans _lines), et demolir ajoute un risque
  * (note d'autorite locale, infrastructure partagee) pour un gain nul ici. */
 
-/* Diagnostic bus (2026-08-28) : mesure REELLE annuelle de l'unique liaison routiere, en dehors de
- * _lines/_reportLines (cf. commentaire sur _roadDiag). But : departager "le bus n'atteint jamais
- * ses arrets" de "les arrets n'ont aucun bassin" -- decisif via RW (cargo en attente en gare).
- * Panneaux, valeurs max plausibles pour rester sous 31 caracteres :
- *   RS|aa|etat|ordre|charge   -- etat/ordre/charge du vehicule (GetState, ResolveOrderPosition,
- *                                GetCargoLoad) ; "RS|99|9|9|999" = 13 caracteres.
- *   RD|aa|distA|distB         -- distance Manhattan REELLE du vehicule aux deux arrets, pour
- *                                savoir s'il a seulement quitte le depot ; jusqu'a 5 chiffres
- *                                chacun sur une carte 256x256 -- "RD|99|99999|99999" = 18.
- *   RY|aa|ratingA|ratingB     -- note de gare (-1 si HasCargoRating faux) ; "RY|99|-1|-1" = 11.
- *   RW|aa|waitA|waitB         -- passagers en ATTENTE aux deux arrets (GetCargoWaiting), avant
- *                                tout chargement -- "RW|99|9999|9999" = 16.
- */
-function OpexAI::_reportRoad(year)
-{
-  if (this._roadDiag == null) return;
-  local d = this._roadDiag;
-  local anchor = AIMap.GetTileIndex(1, 1);
-  local yy = year % 100;
-
-  if (!AIVehicle.IsValidVehicle(d.vehicle)) {
-    OpexSign(anchor, "RX|" + yy);
-    return;
-  }
-
-  local state = AIVehicle.GetState(d.vehicle);
-  local order = AIOrder.ResolveOrderPosition(d.vehicle, AIOrder.ORDER_CURRENT);
-  local load = AIVehicle.GetCargoLoad(d.vehicle, d.cargo);
-  OpexSign(anchor, "RS|" + yy + "|" + state + "|" + order + "|" + load);
-  /* Vitesse REELLE (2026-08-28) : RL fige d'une annee sur l'autre laisse deux lectures possibles
-   * -- vehicule bloque (vitesse ~0) ou boucle si lente qu'un an ne suffit pas a en sortir (vitesse
-   * non nulle mais faible). GetCurrentSpeed tranche. */
-  local speed = AIVehicle.GetCurrentSpeed(d.vehicle);
-  OpexSign(anchor, "RV|" + yy + "|" + speed);
-
-  local loc = AIVehicle.GetLocation(d.vehicle);
-  local distA = AIMap.DistanceManhattan(loc, d.stopA);
-  local distB = AIMap.DistanceManhattan(loc, d.stopB);
-  OpexSign(anchor, "RD|" + yy + "|" + distA + "|" + distB);
-  /* Position brute (2026-08-28) : RD frozen 3 annees de suite a la meme distance de stopA est
-   * ambigu (boucle courte qui repasserait par hasard au meme point chaque relevé annuel, vs
-   * vehicule reellement bloque). RL compare la tuile EXACTE d'une annee sur l'autre. */
-  OpexSign(anchor, "RL|" + yy + "|" + loc);
-
-  if (AIStation.IsValidStation(d.stationA) && AIStation.IsValidStation(d.stationB)) {
-    local ratingA = AIStation.GetCargoRating(d.stationA, d.cargo);
-    local ratingB = AIStation.GetCargoRating(d.stationB, d.cargo);
-    OpexSign(anchor, "RY|" + yy + "|" + ratingA + "|" + ratingB);
-
-    local waitA = AIStation.GetCargoWaiting(d.stationA, d.cargo);
-    local waitB = AIStation.GetCargoWaiting(d.stationB, d.cargo);
-    OpexSign(anchor, "RW|" + yy + "|" + waitA + "|" + waitB);
-
-    /* Reprend EXACTEMENT le test de production utilise a la construction (OpexRoadStopSites,
-     * meme tuile, meme rayon) pour savoir si la sonde de placement reste valide dans la duree,
-     * ou si elle etait deja un faux positif au moment de la construction. */
-    local prodA = AITile.GetCargoProduction(d.stopA, d.cargo, 1, 1, d.coverage);
-    local prodB = AITile.GetCargoProduction(d.stopB, d.cargo, 1, 1, d.coverage);
-    OpexSign(anchor, "RP|" + yy + "|" + prodA + "|" + prodB);
-  }
-}
-
 function OpexAI::_scrapDeadLines(year)
 {
   local anchor = AIMap.GetTileIndex(1, 1);
@@ -831,11 +897,12 @@ function OpexAI::_scrapDeadLines(year)
       line.scrapping = true;
       local stationA = AIStation.GetStationID(line.stationA);
       local ids = [];
+      local vehicleType = OpexLineVehicleType(line);
       if (AIStation.IsValidStation(stationA)) {
         local vehicles = OpexLineVehicleIds(line, stationA);
         foreach (v in vehicles) {
           if (!AIVehicle.IsValidVehicle(v)) continue;
-          if (AIVehicle.GetVehicleType(v) != AIVehicle.VT_RAIL) continue;
+          if (AIVehicle.GetVehicleType(v) != vehicleType) continue;
           AIVehicle.SendVehicleToDepot(v);
           ids.append(v);
         }
@@ -965,6 +1032,26 @@ function OpexAI::Start()
   HARD_ITERATION_CAP = AIController.GetSetting("pathfinder_hard_cap_k") * 1000;
   ABANDON_MEMORY = AIController.GetSetting("abandon_memory") != 0;
   STATION_JOIN = AIController.GetSetting("station_join") != 0;
+  /* Lu ici comme les autres reglages de decision : catalog.refresh le consulte des le premier
+   * cycle annuel, qui a lieu apres Start(). */
+  ROAD_BUILD_ENABLED = AIController.GetSetting("road_mode") != 0;
+
+  /* 🔴 RENOUVELLEMENT AUTOMATIQUE (2026-08-29). Mesure : campagne 20 ans, graine 42 -- trois des
+   * quatre lignes ROUTIERES finissent la partie avec vehCount = 0 et un profit de zero, alors que
+   * leurs gares gardent une note de 48 a 60 et que l'industrie source produit toujours. Elles ne
+   * sont pas mortes economiquement : leurs vehicules ont atteint l'age maximal et ont disparu, et
+   * rien dans le code n'en rebatit. Un camion vit ~12 ans quand une locomotive en vit 20 a 30 --
+   * d'ou un mode d'echec qui ne se voyait pas tant que l'IA ne roulait qu'en rail sur 20 ans, mais
+   * qui amputait la ligne routiere du tiers de sa vie utile.
+   *
+   * ⚠️ Ce reglage vaut pour TOUTE la compagnie, rail compris : ce n'est donc PAS un morceau du mode
+   * route, et il ne doit pas etre attribue a lui au banc. Les mois negatifs veulent dire "avant"
+   * l'age maximal ; -6 laisse au vehicule le temps de rejoindre le depot de sa ligne. Le plancher
+   * de tresorerie reprend CASH_RESERVE, pour que le renouvellement ne puisse pas vider la caisse
+   * que la construction protege. */
+  AICompany.SetAutoRenewStatus(true);
+  AICompany.SetAutoRenewMonths(-6);
+  AICompany.SetAutoRenewMoney(CASH_RESERVE);
 
   /* L'emprunt maximal des le depart : la note de compagnie recompense l'emprunt a zero (5 %),
    * mais une ligne non construite faute de tresorerie coute bien davantage. Le remboursement
@@ -996,7 +1083,6 @@ function OpexAI::Start()
       if (lastYear >= 0) {
         for (local missedYear = lastYear + 1; missedYear < year; missedYear++) {
           this._reportLines(missedYear);
-          this._reportRoad(missedYear);
           this._scrapDeadLines(missedYear);
           this._tryRepayLoan(missedYear);
         }
@@ -1006,47 +1092,22 @@ function OpexAI::Start()
       local ranked = OpexBuildCandidates(this._catalog, this._budget, this._lines);
       this._reportYear(year, ranked);
       this._reportLines(year);
-      this._reportRoad(year);
       this._scrapDeadLines(year);
       this._tryBuildAir(year);
       this._tryBuildWater(year);
-      if (ROAD_BUILD_ENABLED) this._tryBuildRoad(year);
       local buildStartTick = AIController.GetTick();
       this._tryBuild(ranked, year);
       local tryBuildTicks = AIController.GetTick() - buildStartTick;
+      /* APRES le rail, et delibere : cf. le commentaire en tete de _tryBuildRoads. YT continue de
+       * ne mesurer que _tryBuild, pour que la duree du cycle rail reste comparable aux campagnes
+       * anterieures ; le cout de la phase routiere se lit sur ses propres panneaux RB. */
+      this._tryBuildRoads(year);
       this._tryRepayLoan(year);
       local blockEndTick = AIController.GetTick();
       local anchor = AIMap.GetTileIndex(1, 1);
       local skippedMarker = skippedYears > 0 ? skippedYears + "C" : "0";
       OpexSign(anchor, "YT|" + (year % 100) + "|" + blockStartTick + "|" + blockEndTick
                                + "|" + tryBuildTicks + "|" + skippedMarker);
-    }
-
-    /* Echantillon trimestriel du bus, cf. commentaire sur _roadSampleTick. RQ|q|vitesse|distA :
-     * "RQ|40|255|510" = 14 caracteres, tres sous le plafond. */
-    if (this._roadDiag != null && this._roadSampleCount < 40) {
-      local nowTick = AIController.GetTick();
-      if (nowTick - this._roadSampleTick >= 74 * 7) {
-        this._roadSampleTick = nowTick;
-        this._roadSampleCount++;
-        if (AIVehicle.IsValidVehicle(this._roadDiag.vehicle)) {
-          local qAnchor = AIMap.GetTileIndex(1, 1);
-          local qSpeed = AIVehicle.GetCurrentSpeed(this._roadDiag.vehicle);
-          local qLoc = AIVehicle.GetLocation(this._roadDiag.vehicle);
-          local qDistA = AIMap.DistanceManhattan(qLoc, this._roadDiag.stopA);
-          OpexSign(qAnchor, "RQ|" + this._roadSampleCount + "|" + qSpeed + "|" + qDistA);
-          /* La destination REELLE de l'ordre courant (2026-08-28) : le cycle vitesse qui remonte
-           * a zero puis redescend toutes les ~5 semaines dans RQ evoque un aller-retour depot
-           * plutot qu'une avance vers stopA/stopB -- ceci le prouve ou l'ecarte directement. */
-          local qDest = AIOrder.GetOrderDestination(this._roadDiag.vehicle, AIOrder.ORDER_CURRENT);
-          OpexSign(qAnchor, "RE|" + this._roadSampleCount + "|" + qDest);
-          /* Fait binaire (2026-08-28) : litteralement gare DANS le depot, ou non -- pour trancher
-           * entre "les lectures de vitesse sont un artefact, le bus n'a jamais quitte le depot" et
-           * "il roule vraiment mais ne progresse jamais". */
-          local qParked = AIVehicle.IsStoppedInDepot(this._roadDiag.vehicle) ? 1 : 0;
-          OpexSign(qAnchor, "RI|" + this._roadSampleCount + "|" + qParked);
-        }
-      }
     }
 
     AIController.Sleep(74 * 10);

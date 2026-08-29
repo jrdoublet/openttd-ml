@@ -51,7 +51,7 @@ RE_OR_BUDGET = re.compile(r"^OR\|(\d{2})\|(\d+)\|(\d+)\|([ZFCN][SL][KADPLHMJSTER
 RE_OB_ATTEMPT = re.compile(r"^OB\|A\|(\d{2})\|(\d+)\|(\d+)\|(\d+)$")
 RE_PK = re.compile(r"^PK\|(\d+)\|([PF])\|(\d+)$")
 RE_PC = re.compile(r"^PC\|(\d+)\|(.+)$")
-RE_PM = re.compile(r"^PM\|(\d+)\|([AW])\|(\d+)\|(.+)$")
+RE_PM = re.compile(r"^PM\|(\d+)\|([AWR])\|(\d+)\|(.+)$")
 RE_IA = re.compile(r"^IA\|(\d+)\|(\d+)\|(-?\d)\|(-?\d)\|(-?\d+)$")
 RE_OX = re.compile(r"^OX\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")   # year, towns, industries, ranked.all
 RE_OW = re.compile(r"^OW\|(\d+)\|(\d+)\|(\d+)$")          # year, buildOps, lines.len() (as of start of year)
@@ -76,10 +76,16 @@ LOAN_REPAY_FLOOR = 1000000
 RE_OA = re.compile(r"^OA\|(\d+)\|(\d+)\|(\d+)\|(\w+)$")   # air attempt: year, distance, planOps, reason
 RE_OM = re.compile(r"^OM\|W\|(\d+)\|(\d+)\|(\d+)$")       # water success: year, distance, planOps
 RE_ON = re.compile(r"^ON\|W\|(\w+)\|(-?\d+)$")            # water failure: reason, error
-RE_OM_ROAD = re.compile(r"^OM\|R\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
-RE_OC_ROAD = re.compile(r"^OC\|R\|(\d+)\|(-?\d+)\|(\d+)$")
-RE_OV_ROAD = re.compile(r"^OV\|R\|(\d+)\|(\d+)\|(\d+)$")
-RE_OE_ROAD = re.compile(r"^OE\|R\|(\w+)\|(-?\d+)$")
+# Phase routiere multi-lignes (2026-08-29). Les panneaux de la liaison bus unique (OM|R, OC|R,
+# OV|R, OE|R, et tout le diagnostic RT/RS/RD/RY/RW/RP/RQ/RE/RI/RL/RV/RX) ont ete retires de l'IA
+# en meme temps que ce diagnostic : une ligne routiere rejoint maintenant _lines, donc elle est
+# decrite par les MEMES panneaux que le rail (OF/OJ/OK/OQ/OT/PK/PC predits, OY/OZ/OU/OO reels) et
+# n'a plus besoin que d'un marqueur de mode.
+RE_RC_ROAD = re.compile(r"^RC\|(\d{2})\|(\d+)\|(\d+)\|(-?\d+)\|(\d+)$")   # annee, id, essai, cout, vehicules
+RE_RA_ROAD = re.compile(r"^RA\|(\d{2})\|(\d+)\|(\d+)\|(\w+)\|(-?\d+)$")  # tentative echouee
+RE_RB_ROAD = re.compile(r"^RB\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")   # opcodes plan / construction
+RE_RN_ROAD = re.compile(r"^RN\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")  # classes/tentatives/baties/opcodes
+RE_RS_ROAD = re.compile(r"^RS\|(\d{2})\|(\d+)\|(\d+)\|(\d+)$")  # paires en bande / coupees / acceptees
 RE_YT = re.compile(r"^YT\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)(C)?$")
 
 TOP_K = 20  # Doit rester synchronise avec ai/OpexAI/candidates.nut, pour decoder rang20.
@@ -126,7 +132,7 @@ def parse_lines(all_signs):
     actual_series = {}
     built = {}
     multimodal_built = {}
-    road_built = {}
+    road_cost = {}
 
     for sign in all_signs:
         if m := RE_OF.match(sign):
@@ -180,14 +186,13 @@ def parse_lines(all_signs):
         elif m := RE_PM.match(sign):
             idx = int(m.group(1))
             multimodal_built[idx] = {
-                "mode": "air" if m.group(2) == "A" else "water",
+                "mode": {"A": "air", "W": "water", "R": "road"}[m.group(2)],
                 "distance": int(m.group(3)), "cargo_label": m.group(4),
             }
-        elif m := RE_OM_ROAD.match(sign):
+        elif m := RE_RC_ROAD.match(sign):
             idx = int(m.group(2))
-            road_built[idx] = {"year": 1900 + int(m.group(1)), "town_a": int(m.group(3)),
-                               "town_b": int(m.group(4)), "distance": int(m.group(5)),
-                               "plan_ops": int(m.group(6))}
+            road_cost[idx] = {"year": 1900 + int(m.group(1)), "attempt": int(m.group(3)),
+                              "cost": int(m.group(4)), "vehicles": int(m.group(5))}
 
     lines = []
     for idx in sorted(built):
@@ -212,36 +217,32 @@ def parse_lines(all_signs):
         last_year = max(years) if years else None
         last = years.get(last_year, {}) if last_year is not None else {}
         item = multimodal_built[idx]
-        lines.append({
+        # Une ligne routiere porte le meme bloc predit qu'une ligne rail (PK/PC/OF/OJ/OK/OQ/OT) ;
+        # l'avion et le bateau, eux, n'en emettent aucun -- d'ou le repli sur ce que PM contient.
+        pred = predicted.get(idx)
+        if pred is None:
+            pred = {"kind": "pax", "cargo_label": item["cargo_label"]}
+        else:
+            pred = dict(pred)
+            pred["profitAnnual"] = (pred.get("revenueAnnual", 0) - pred.get("runningAnnual", 0)
+                                    - pred.get("amortAnnual", 0))
+        entry = {
             "line_index": idx,
             "mode": item["mode"],
             "distance": item["distance"],
             "iterations": 0,
             "reason": "OK",
-            "predicted": {"kind": "pax", "cargo_label": item["cargo_label"]},
+            "predicted": pred,
             "actual_last_year": last_year,
             "actual": last,
             "actual_series": years,
-        })
-    for idx in sorted(road_built):
-        years = actual_series.get(idx, {})
-        last_year = max(years) if years else None
-        last = years.get(last_year, {}) if last_year is not None else {}
-        lines.append({
-            "line_index": idx,
-            "mode": "road",
-            "distance": road_built[idx]["distance"],
-            "town_a": road_built[idx]["town_a"],
-            "town_b": road_built[idx]["town_b"],
-            "year_built": road_built[idx]["year"],
-            "plan_ops": road_built[idx]["plan_ops"],
-            "iterations": 0,
-            "reason": "OK",
-            "predicted": {},
-            "actual_last_year": last_year,
-            "actual": last,
-            "actual_series": years,
-        })
+        }
+        if idx in road_cost:
+            entry["year_built"] = road_cost[idx]["year"]
+            entry["attempt"] = road_cost[idx]["attempt"]
+            entry["cost"] = road_cost[idx]["cost"]
+            entry["vehicles_built"] = road_cost[idx]["vehicles"]
+        lines.append(entry)
     return lines
 
 
@@ -317,6 +318,17 @@ def parse_yearly(all_signs):
         elif m := RE_GM.match(sign):
             y = int(m.group(1)); d = by_year.setdefault(y, {})
             d["candidates_skipped_abandon_memory"] = int(m.group(2))
+        elif m := RE_RN_ROAD.match(sign):
+            y = 1900 + int(m.group(1)); d = by_year.setdefault(y, {})
+            d["road_candidates_ranked"] = int(m.group(2))
+            d["road_attempts"] = int(m.group(3))
+            d["road_lines_built"] = int(m.group(4))
+            d["road_candidate_opcodes"] = int(m.group(5))
+        elif m := RE_RS_ROAD.match(sign):
+            y = 1900 + int(m.group(1)); d = by_year.setdefault(y, {})
+            d["road_pairs_in_band"] = int(m.group(2))
+            d["road_pairs_profit_too_low"] = int(m.group(3))
+            d["road_candidates_accepted"] = int(m.group(4))
         elif m := RE_OB_JOIN.match(sign):
             y = int(m.group(1)); d = by_year.setdefault(y, {})
             d["station_join_attempts"] = int(m.group(2))
@@ -404,7 +416,7 @@ def parse_annual_blocks(all_signs):
 
 def parse_multimodal(all_signs):
     air, water, road = [], [], []
-    road_costs, road_vehicles = {}, {}
+    road_costs = {}
     for sign in all_signs:
         if m := RE_OA.match(sign):
             air.append({"year": int(m.group(1)), "distance": int(m.group(2)),
@@ -414,22 +426,22 @@ def parse_multimodal(all_signs):
                           "planOps": int(m.group(3))})
         elif m := RE_ON.match(sign):
             water.append({"ok": False, "reason": m.group(1), "error": int(m.group(2))})
-        elif m := RE_OM_ROAD.match(sign):
-            road.append({"ok": True, "year": 1900 + int(m.group(1)), "line_index": int(m.group(2)),
-                         "town_a": int(m.group(3)), "town_b": int(m.group(4)),
-                         "distance": int(m.group(5)), "plan_ops": int(m.group(6))})
-        elif m := RE_OC_ROAD.match(sign):
-            road_costs[int(m.group(1))] = {"cost": int(m.group(2)), "route_distance": int(m.group(3))}
-        elif m := RE_OV_ROAD.match(sign):
-            road_vehicles[int(m.group(1))] = {"vehicle": int(m.group(2)), "capacity": int(m.group(3))}
-        elif m := RE_OE_ROAD.match(sign):
-            road.append({"ok": False, "reason": m.group(1), "error": int(m.group(2))})
+        elif m := RE_RA_ROAD.match(sign):
+            # Une tentative routiere echouee. RA porte l'identifiant que la ligne AURAIT eu :
+            # _nextLineId n'avance que sur un succes, donc plusieurs echecs peuvent partager un
+            # meme numero, et le succes suivant le reutilise. C'est une trace de tentative, pas
+            # une cle -- ne pas s'en servir pour indexer une ligne.
+            road.append({"ok": False, "year": 1900 + int(m.group(1)),
+                         "line_index": int(m.group(2)), "attempt": int(m.group(3)),
+                         "reason": m.group(4), "error": int(m.group(5))})
+        elif m := RE_RB_ROAD.match(sign):
+            road_costs[(int(m.group(1)), int(m.group(2)), int(m.group(3)))] = {
+                "plan_ops": int(m.group(4)), "build_ops": int(m.group(5))}
     for item in road:
-        if not item["ok"]:
-            continue
-        item.update(road_costs.get(item["line_index"], {}))
-        item.update(road_vehicles.get(item["line_index"], {}))
-    return air, water, road
+        item.update(road_costs.get((item["year"] % 100, item["line_index"], item["attempt"]), {}))
+    # road_costs sort aussi de la fonction : les tentatives REUSSIES sont reconstituees plus tard
+    # depuis PM/RC (parse_lines), et doivent pouvoir retrouver leur cout en opcodes par (annee, id).
+    return air, water, road, road_costs
 
 
 def make_run_payload(rows, seed, years):
@@ -445,7 +457,22 @@ def make_run_payload(rows, seed, years):
                               range(block["year"] - block["calendar_years_crossed_before"], block["year"])]
     skipped_years = [missed for block in annual_blocks for missed in
                      range(block["year"] - block["skipped_years_before"], block["year"])]
-    air, water, road = parse_multimodal(final["signs"])
+    air, water, road, road_ops = parse_multimodal(final["signs"])
+    # Les succes routiers sont decrits par PM/RC dans parse_lines ; on les reinjecte dans
+    # road_attempts pour que la liste raconte l'annee entiere, echecs ET reussites.
+    for line in lines:
+        if line["mode"] != "road":
+            continue
+        year_built = line.get("year_built")
+        item = {"ok": True, "year": year_built, "line_index": line["line_index"],
+                "attempt": line.get("attempt"),
+                "distance": line["distance"], "cost": line.get("cost"),
+                "vehicles": line.get("vehicles_built"),
+                "kind": line["predicted"].get("kind"),
+                "cargo_label": line["predicted"].get("cargo_label")}
+        if year_built is not None:
+            item.update(road_ops.get((year_built % 100, line["line_index"], item["attempt"]), {}))
+        road.append(item)
     cash_blocks, dead_lines, loan_repayments, loan_view_rows = parse_events(final["signs"])
 
     n_rail_ok = sum(1 for line in lines if line["mode"] == "rail" and line["reason"] == "OK")
@@ -486,6 +513,14 @@ def make_run_payload(rows, seed, years):
         "n_station_join_attempts": sum(row.get("station_join_attempts", 0) for row in yearly.values()),
         "n_station_join_built": sum(row.get("station_join_built", 0) for row in yearly.values()),
         "n_station_join_failed": sum(row.get("station_join_failed", 0) for row in yearly.values()),
+        "n_road_lines_ok": sum(1 for line in lines if line["mode"] == "road"),
+        "n_road_freight_lines_ok": sum(
+            1 for line in lines
+            if line["mode"] == "road" and line["predicted"].get("kind") == "freight"),
+        "n_road_attempts": sum(row.get("road_attempts", 0) for row in yearly.values()),
+        "n_road_attempts_failed": sum(1 for item in road if not item["ok"]),
+        "road_plan_opcodes": sum(item.get("plan_ops", 0) for item in road),
+        "road_build_opcodes": sum(item.get("build_ops", 0) for item in road),
         "rail_attempts": attempts, "air_attempts": air, "water_attempts": water,
         "road_attempts": road, "cash_blocks": cash_blocks, "dead_line_events": dead_lines,
         "loan_repayments": loan_repayments, "loan_view": loan_view_rows,

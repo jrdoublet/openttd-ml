@@ -2,15 +2,15 @@ class OpexAI extends AIInfo {
   function GetAuthor()      { return "openttd-ml"; }
   function GetName()        { return "OpexAI"; }
   function GetDescription() { return "IA qui traite les opcodes comme une ressource de jeu : chaque candidat porte un profit attendu ET un cout en opcodes attendu, et le budget va au meilleur rapport."; }
-  function GetVersion()     { return 3; }
-  function GetDate()        { return "2026-08-28"; }
+  function GetVersion()     { return 4; }
+  function GetDate()        { return "2026-08-29"; }
   function CreateInstance() { return "OpexAI"; }
   function GetShortName()   { return "OPEX"; }
   function GetAPIVersion()  { return "15"; }
 
   /* Les reglages debug_signs et pathfinder_sleep_ticks existent pour NE PAS POLLUER une partie
    * partagee avec des joueurs humains (loan_repay_floor_k, pathfinder_hard_cap_k,
-   * abandon_memory et station_join, eux, sont des parametres de conception exposes au banc,
+   * abandon_memory, station_join et road_mode, eux, sont des parametres de conception exposes au banc,
    * pas des bridages).
    * Entre IA, la regle est l'inverse : jouer a armes egales,
    * donc ne jamais s'auto-handicaper face a un adversaire qui ne se bride pas. Un handicap non intentionnel
@@ -124,6 +124,58 @@ class OpexAI extends AIInfo {
     AddSetting({
       name = "station_join",
       description = "Reuse one compatible nearby OpexAI rail station with a dedicated platform: 1 = enabled, 0 = historical too-close rejection",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* Mode route. Defaut 1 depuis le 2026-08-29, et c'est un changement de politique, pas un
+     * reglage de confort.
+     *
+     * CE QUE LA MESURE QUI L'AVAIT DESACTIVE DISAIT VRAIMENT. La v1 batissait une seule liaison
+     * bus et rendait -599/an pendant 19 ans sur la graine gelee. Mais les deux notes d'arret y
+     * etaient a -1 tout du long : le bus n'a jamais charge un seul passager. Le chiffre condamnait
+     * donc un BUG -- le bit de route perpendiculaire absent des facades, cf. builder_road.nut --
+     * et non la rentabilite d'une desserte routiere. Ce bug est corrige, et la comparaison
+     * "9 lignes rail contre 16" qui accompagnait ce verdict etait de toute facon non attribuable :
+     * une seule graine, un ecart bien sous le plancher de detection du banc (~15 % sur
+     * company_value, docs/taches.md S5).
+     *
+     * CE QUE LE MODE FAIT MAINTENANT, ET POURQUOI C'EST UN AUTRE PARI. Ce n'est plus une liaison
+     * passagers unique mais une phase annuelle qui bâtit jusqu'a ROAD_MAX_NEW_LINES_PER_YEAR
+     * petites lignes, dont -- c'est l'essentiel -- des lignes de FRET par camion, industrie vers
+     * industrie et industrie vers ville. Le pari tient en une phrase : sur 5 a 25 tuiles, un
+     * camion n'a ni voie, ni signaux, ni gare, donc son capital est d'un ordre de grandeur sous
+     * celui du rail, et la bande de distance ou le rail perd de l'argent (MIN_DISTANCE = 25, une
+     * mesure) peut lui etre rentable. Le wiki previent qu'une courte liaison BUS "ne sera
+     * probablement pas tres rentable" (docs/mecanique_jeu.md S11) -- il ne dit rien de tel du
+     * fret, et notre plancher ROAD_MIN_PROFIT_ANNUAL laisse justement passer le second en coupant
+     * le premier quand il est marginal.
+     *
+     * VERDICT DU BANC APPARIE (docs/bench_v2_road.json, 20 graines x 20 ans, OpexAI contre
+     * OpexAI[road_mode=0]) : ADOPTE, sur la metrique que le projet a designee comme la bonne entre
+     * variantes d'OpexAI.
+     *   - performance_history : +36,6 points appariés (+9,3 %), t = 2,03, la route gagne sur
+     *     16 graines sur 20. Test des signes bilateral : p = 0,012. C'est la lecture decisive --
+     *     performance_history est moins bruitee que company_value chez nous (CV 31 % contre 45 %
+     *     sur ce banc), cf. docs/taches.md S5.
+     *   - company_value : +232 433 (+9,6 %) mais t = 1,50 et 13 graines sur 20 seulement. NON
+     *     concluant, et entierement otage d'une seule graine -- voir ci-dessous.
+     *
+     * 🔴 LE PRIX A CONNAITRE : une graine sur vingt (8675309) passe de 1 460 136 a **1**, c'est-a-
+     * dire a l'insolvabilite, quand la route est active. Sa trajectoire diverge des 1974 : la
+     * valeur s'erode de 165 793 a 55 691 en cinq ans pendant que le bras sans route grimpe, la
+     * tresorerie finit collee au plancher CASH_RESERVE, et l'emprunt n'est jamais rembourse (sur
+     * les DEUX bras -- cette graine appartient deja au regime d'echec d'emprunt connu). Mecanisme
+     * NON etabli ; l'hypothese a tester est que la phase routiere consomme la tresorerie marginale
+     * qui aurait finance la ligne rail suivante, et qu'une compagnie pauvre n'amorce alors jamais
+     * sa composition. Ce n'est pas une raison de couper le mode -- 16 graines sur 20 gagnent -- mais
+     * c'en est une de garder ce reglage, et de mesurer un plancher de tresorerie propre a la route
+     * avant de considerer l'affaire close. */
+    AddSetting({
+      name = "road_mode",
+      description = "Build short road lines (bus town-town, and truck freight industry-industry / industry-town): 1 = enabled, 0 = rail-only baseline",
       min_value = 0, max_value = 1,
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,

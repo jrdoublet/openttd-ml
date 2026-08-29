@@ -45,8 +45,38 @@ function OpexCeilDiv(a, b)
   return (a + b - 1) / b;
 }
 
-/* Economie complete d'une ligne rail. Rend null si le materiel manque. */
-function OpexLineEconomics(catalog, cargo, distance, monthlyUnits)
+/* 🔴 TRAJETS CHARGES PAR MOIS -- corrige le 2026-08-29 (docs/mecanique_jeu.md S1 ter).
+ *
+ * La grandeur utile n'est pas "aller-retours par mois" mais "trajets CHARGES par mois", et les deux
+ * ne coincident que pour le fret :
+ *
+ *   - une ligne PASSAGERS ville <-> ville est BIDIRECTIONNELLE. Chaque ville produit pour l'autre,
+ *     donc le vehicule est charge a l'aller ET au retour : DEUX trajets payants par aller-retour ;
+ *   - une ligne de FRET est a SENS UNIQUE par construction -- OpexFreightCandidates n'apparie qu'un
+ *     producteur a un accepteur du MEME cargo, et l'accepteur ne produit pas ce cargo. Le retour se
+ *     fait a vide : UN seul trajet payant par aller-retour. C'est la meme asymetrie qui impose
+ *     OF_NONE au puits (un convoi qui attend un chargement de retour inexistant reste bloque pour
+ *     toujours, mesure du 2026-08-28).
+ *
+ * LE DEFAUT CORRIGE : le modele comptait deja la demande des DEUX villes pour le passager
+ * (monthly = production_A + production_B) mais ne lui accordait qu'un seul trajet charge par
+ * aller-retour, comme au fret. Les deux cotes de l'equation etaient incoherents. Effet, et il faut
+ * savoir lequel mord quand : la flotte demandee etait TOUJOURS doublee sur une ligne passagers
+ * (donc cout de fonctionnement et capital surestimes, profit sous-estime, bons candidats ecartes) ;
+ * le tonnage, lui, n'etait sous-estime que sur les lignes limitees par la CAPACITE et non par la
+ * demande.
+ *
+ * Le fret est inchange au bit pres : legDays y vaut roundTripDays, exactement l'ancien calcul. */
+function OpexLoadedTripsPerMonth(oneWayDays, roundTripDays, bidirectional)
+{
+  local legDays = bidirectional ? oneWayDays : roundTripDays;
+  local trips = OpexCeilDiv(30, legDays);
+  return trips < 1 ? 1 : trips;
+}
+
+/* Economie complete d'une ligne rail. `kind` vaut "pax" (bidirectionnel) ou "freight" (sens
+ * unique) -- cf. OpexLoadedTripsPerMonth. Rend null si le materiel manque. */
+function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind)
 {
   if (catalog.loco == null) return null;
   if (!(cargo in catalog.wagonByCargo)) return null;
@@ -69,8 +99,10 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits)
    * La contrainte de frequence est celle qui tient la note de gare en haut du bareme. */
   local trainsForHeadway = OpexCeilDiv(roundTripDays, TARGET_HEADWAY_DAYS);
   local perTrain = WAGONS_PER_TRAIN * wagon.capacity;
-  local tripsPerMonth = OpexCeilDiv(30, roundTripDays);
-  if (tripsPerMonth < 1) tripsPerMonth = 1;
+  /* Trajets CHARGES, pas aller-retours : deux par cycle pour le pax, un pour le fret. La contrainte
+   * de FREQUENCE ci-dessus reste sur l'aller-retour -- une gare n'est visitee qu'une fois par
+   * cycle, quel que soit le nombre de sens charges. */
+  local tripsPerMonth = OpexLoadedTripsPerMonth(oneWayDays, roundTripDays, kind == "pax");
   local trainsForVolume = OpexCeilDiv(offered, perTrain * tripsPerMonth);
 
   local trains = trainsForHeadway > trainsForVolume ? trainsForHeadway : trainsForVolume;
@@ -102,5 +134,91 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits)
     amortAnnual = amortAnnual,
     capital = vehicleCost + infraCost,
     profitAnnual = profitAnnual,
+  };
+}
+
+/* --- Economie d'une ligne ROUTIERE (2026-08-29) --------------------------------------------
+ *
+ * Le modele rail ci-dessus n'est PAS transposable tel quel, pour trois raisons mesurees ou
+ * documentees, et chacune donne une constante propre :
+ *
+ *  1. Le plafond de quai. docs/mecanique_jeu.md S11 : "un arret de bus n'accueille au plus que
+ *     DEUX bus a la fois", idem pour une aire de chargement camion. Au-dela les vehicules font la
+ *     queue SUR LA ROUTE et se bloquent. Le modele rail ne connait que MAX_TRAINS = 8 et
+ *     prescrirait donc une flotte auto-congestionnee. MAX_ROAD_VEHICLES = 2 est la traduction
+ *     directe de la regle du jeu, pas une precaution. Le levier de volume est le multistop
+ *     (AIStation.STATION_JOIN_ADJACENT), pas le vehicule supplementaire -- non implemente ici.
+ *  2. Le rendement de vitesse. Un vehicule routier traverse des villes, s'arrete a chaque
+ *     extremite et suit un trace en L (deux angles droits par sens) sur des distances ou
+ *     l'acceleration compte proportionnellement bien plus que sur une ligne rail de 50 tuiles.
+ *     60 % est une HYPOTHESE, plus severe que les 70 % du rail, a recalibrer sur la premiere
+ *     campagne qui produira des lignes routieres reelles (le releve annuel OY/OZ/OU/OO les couvre
+ *     deja, cf. _reportLines).
+ *  3. La duree de trajet reelle suit le TRACE, pas la distance a vol d'oiseau. Ici les deux
+ *     coincident : le trace est un L de Manhattan, dont la longueur EST la distance Manhattan
+ *     entre les deux facades. C'est la seule raison pour laquelle on peut reutiliser la meme
+ *     formule jours = distance / (0,036 * vitesse) sans facteur de detour.
+ */
+const ROAD_SPEED_EFFICIENCY_PCT = 60;
+const MAX_ROAD_VEHICLES = 2;
+
+/* Economie complete d'une ligne routiere. Rend null si le materiel manque pour ce cargo.
+ * `engine` vient de catalog.roadEngineByCargo[cargo] ; sa capacite est celle du cargo d'origine
+ * (approximation assumee au classement, cf. catalog.nut) -- le constructeur relit la vraie
+ * capacite apres refit depuis le depot. */
+function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, kind)
+{
+  if (engine == null) return null;
+  local effectiveSpeed = (engine.speed * ROAD_SPEED_EFFICIENCY_PCT) / 100;
+  if (effectiveSpeed < 1) return null;
+
+  local oneWayDays = (distance * 1000) / (36 * effectiveSpeed);
+  if (oneWayDays < 1) oneWayDays = 1;
+  local roundTripDays = 2 * oneWayDays;
+
+  local offered = (monthlyUnits * STATION_RATING_PCT) / 100;
+  if (offered <= 0) return null;
+
+  /* Meme arbitrage que le rail : le maximum de ce qu'exige la FREQUENCE et de ce qu'exige la
+   * CAPACITE -- puis le plafond de quai tranche, et il est bas. Sur une ligne courte la contrainte
+   * de frequence rend presque toujours 1 : c'est voulu, un seul vehicule qui repasse souvent tient
+   * la note de gare mieux que deux qui se genent au meme arret. */
+  local vehiclesForHeadway = OpexCeilDiv(roundTripDays, TARGET_HEADWAY_DAYS);
+  /* Meme lecture qu'au rail : un bus ville <-> ville est charge dans les deux sens, un camion
+   * revient a vide -- cf. OpexLoadedTripsPerMonth. */
+  local tripsPerMonth = OpexLoadedTripsPerMonth(oneWayDays, roundTripDays, kind == "pax");
+  local vehiclesForVolume = OpexCeilDiv(offered, engine.capacity * tripsPerMonth);
+
+  local vehicles = vehiclesForHeadway > vehiclesForVolume ? vehiclesForHeadway : vehiclesForVolume;
+  if (vehicles < 1) vehicles = 1;
+  if (vehicles > MAX_ROAD_VEHICLES) vehicles = MAX_ROAD_VEHICLES;
+
+  local monthlyCapacity = vehicles * engine.capacity * tripsPerMonth;
+  local carried = offered < monthlyCapacity ? offered : monthlyCapacity;
+
+  local revenueAnnual = 12 * carried * AICargo.GetCargoIncome(cargo, distance, oneWayDays);
+
+  /* Capital : le trace lui-meme (le L de Manhattan, donc `distance` tuiles), les deux arrets et le
+   * depot. La borne est basse pour la meme raison que sur le rail -- les tuiles de route deja
+   * presentes ne sont pas payees, ce qui joue en notre defaveur dans le classement, jamais en
+   * notre faveur. */
+  local stopCost = AICargo.HasCargoClass(cargo, AICargo.CC_PASSENGERS)
+      ? catalog.costRoadBusStop : catalog.costRoadTruckStop;
+  local vehicleCost = vehicles * engine.price;
+  local infraCost = distance * catalog.costRoadPerTile + 2 * stopCost + catalog.costRoadDepot;
+
+  local life = engine.ageYears > 0 ? engine.ageYears : 12;
+  local amortAnnual = vehicleCost / life + infraCost / INFRA_LIFE_YEARS;
+  local runningAnnual = vehicles * engine.runningCost;
+
+  return {
+    oneWayDays = oneWayDays,
+    trains = vehicles,            // meme nom que le rail : _tryBuild/_reportLines sont communs
+    carried = carried,
+    revenueAnnual = revenueAnnual,
+    runningAnnual = runningAnnual,
+    amortAnnual = amortAnnual,
+    capital = vehicleCost + infraCost,
+    profitAnnual = revenueAnnual - runningAnnual - amortAnnual,
   };
 }

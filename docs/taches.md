@@ -36,6 +36,59 @@ hypothèses de pertinence, pas des résumés.
 
 ---
 
+## 1 bis. Mode route : ouvert, mesuré, et ce qui reste (2026-08-29)
+
+**✅ Adopté au banc apparié** (`docs/bench_v2_road.json`, 20 graines × 20 ans) :
+`performance_history` **+9,3 %, t = 2,03, 16 graines sur 20, test des signes p = 0,012**.
+`company_value` +9,6 % mais t = 1,50 seulement, et otage d'une graine — voir le point 0 ci-dessous.
+
+**Fait.** Le mode route n'est plus une liaison bus unique et désactivée : c'est une phase annuelle
+qui bâtit jusqu'à 3 petites lignes courtes, dont du **fret par camion** (industrie → industrie et
+industrie → ville). Réglage `road_mode`, défaut 1. Tout le détail — les trois familles de
+candidats, les trois décisions d'allocation, les **quatre bugs** que la mise en service a révélés,
+et la mesure — est dans **`docs/opexai_route.md`**.
+
+⚠️ **Deux correctifs embarqués ne sont PAS du mode route** et ne doivent pas lui être attribués au
+banc : le **renouvellement automatique** des véhicules, et la **détection de ligne morte** qui
+exigeait à tort `ratingA <= 0` (une gare conserve sa dernière note quand plus rien n'y passe — une
+ligne a roulé onze ans à perte sans être ferraillée). Les deux touchent aussi le rail.
+
+**Ce qui reste, par impact estimé** (détail et justification dans `docs/opexai_route.md` §7) :
+
+0. 🔴 **La route peut couler une compagnie pauvre — une graine sur vingt.** La graine 8675309 tombe
+   de 1 460 136 à **1** avec la route active. Divergence dès 1974, trésorerie collée au plancher
+   `CASH_RESERVE` sur les six dernières années, emprunt jamais remboursé **sur les deux bras**
+   (cette graine appartient déjà au régime d'échec d'emprunt de l'item 4). Mécanisme **non établi** ;
+   hypothèse : la phase routière mange la trésorerie marginale qui aurait financé la ligne rail
+   suivante. Deux garde-fous à opposer au banc — un plancher de trésorerie propre à la route, ou une
+   route interdite tant que l'emprunt n'est pas soldé. **C'est l'item de tête du mode route** : il
+   vaut plus que tout gain marginal, parce qu'il transforme une mauvaise partie en partie perdue.
+
+1. **Le plancher `ROAD_MIN_PROFIT_ANNUAL` coupe des lignes pax qui rapportent dix fois la
+   prédiction.** La seule ligne pax bâtie était prédite à 1 031 et a rendu 7 000 à 11 700 par an.
+   Cause probable : `TOWN_CATCHMENT_SHARE_PCT = 22` est calibré sur des **gares rail**. Se mesure
+   exactement comme le premier calibrage (`sweeps/opex_predict_vs_actual.py`). C'est n = 1 : à
+   mesurer, pas à recalibrer sur ce seul cas.
+2. **`SITEA`/`SITEB` dominent les échecs de plan** (36 sur 40) : aucun site d'arrêt valide autour de
+   l'extrémité. Le rayon n'est pas le levier ; les suspects sont l'exigence de platitude de la
+   façade et `ROAD_MAX_SITE_PROBES`.
+3. **Un seul classement pour tous les modes.** `ROAD_PLAN_ITERATIONS_BASE` est non calibré et ne
+   sert qu'à ordonner les candidats routiers entre eux. Le panneau `RB` mesure désormais le coût
+   réel de chaque tentative — la calibration qui rendrait la comparaison inter-modes possible est
+   donc à portée, et c'est ce que la philosophie du projet demande.
+4. **Multistop** (`AIStation.STATION_JOIN_ADJACENT`) : seul levier de volume par ligne, le plafond
+   de deux véhicules par arrêt étant une règle du jeu.
+5. **Une ligne routière peut perdre toute sa flotte et rester debout.** Observé une fois (graine 42,
+   20 ans) : une ligne bus passe de 2 à 1 puis 0 véhicule en deux ans, notes de gare s'effondrant de
+   54 à −1, et elle ne se reconstitue jamais — alors que son infrastructure est payée et que la
+   ligne rendait 9 000/an. Le renouvellement automatique n'a pas repris la main. **Cause non
+   établie, n = 1** ; le suspect nommé par `docs/mecanique_jeu.md` §11 est le **passage à niveau**
+   (un train est le seul objet qui détruise un véhicule routier), et nos tracés routiers croisent
+   nos propres voies. Le correctif qui couvre toutes les causes est le même : détecter une ligne à
+   zéro véhicule et rebâtir sa flotte, l'infrastructure étant déjà là.
+
+---
+
 ## 2. Le prochain morceau de code
 
 **✅ Étage 3 fait** (`ai/OpexAI/builder_rail.nut`, 2026-08-28) : 3 lignes sur 3 construites en

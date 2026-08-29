@@ -42,6 +42,99 @@ Chaque cargo a ses deux délais. Exemples cités : **passagers = 0 jour rapide /
 > `AICargo.GetCargoIncome(cargo, distance, days)` implémente déjà toute cette formule : on n'a pas
 > à la réimplémenter, mais on doit lui passer un `days` réaliste — voir §2.
 
+### 1 bis. La formule exacte, vérifiée dans le source (2026-08-29)
+
+**Source consultée** : [smart-calculators.net / OpenTTD cargo income
+calculator](https://smart-calculators.net/en-US/tools/openttd-cargo-income-calculator), lue le
+2026-08-29. ✅ **Recoupée ligne à ligne avec le code du jeu** (`src/economy.cpp:977-1023`,
+`GetTransportedGoodsIncome`, et `src/script/api/script_cargo.cpp:73-77`) : la page est **exacte**.
+C'est la première source du projet qui donne la formule sous forme fermée plutôt qu'en prose.
+
+```
+I = ⌊ D · T · A · P / 2²¹ ⌋
+
+D  distance de Manhattan entre les tuiles-noms des deux gares
+A  quantité livrée
+P  cs->current_payment du cargo (3 185 passagers, 5 916 charbon, 6 144 biens, tempéré)
+T  facteur de temps, entier de 31 à 255 :
+
+      tp = clamp(jours_calendaires · 2 / 5, 0, 255)     (1 « jour wiki » = 2,5 jours de jeu)
+      a  = max(tp − d₁, 0)
+      T  = max(255 − a − max(a − d₂, 0), 31)
+```
+
+`2²¹` vient du `BigMulS(..., 21)` du source. Les deux pentes de §1 sont donc **−1 puis −2 points sur
+255**, soit −0,39 % puis −0,78 % par « jour wiki » — le « −0,4 % » du wiki est cette pente-là, et le
+plancher `T = 31` est le plafond de **−88 %**.
+
+⚠️ **Le facteur additionnel `31 / (x + 32)` mentionné en §1 n'existe pas dans le source de la 15.3.**
+Le plancher est un simple `max(..., 31)`. Ce point du wiki est soit périmé, soit une lecture fautive.
+
+Seuils par cargo (tempéré), `d₁` / `d₂` : passagers **0 / 24**, charbon 7 / 255, biens — / 33,
+grain — / 44, courrier — / 110, bétail — / 22, valeurs 1 / 32, bois 5 005 — / 255, acier — / 255,
+pétrole — / 255. Un `d₂ = 255` veut dire qu'un cargo lourd ne franchit en pratique jamais la seconde
+pente.
+
+**Trois réserves que la page énonce et que nous devons garder en tête :**
+
+1. **Les NewGRF de cargo (FIRS, ECS, YETI) remplacent tout.** Le source confirme : un cargo qui
+   déclare `CBM_CARGO_PROFIT_CALC` court-circuite la formule entière. Sans objet dans notre config
+   gelée, mais toute campagne sous NewGRF invaliderait l'étage 1.
+2. **`P` est `current_payment`, donc indexé sur l'inflation.** ⚙️ Notre config a `inflation = false`,
+   le terme est neutralisé — la page donne les valeurs de base 1950.
+3. **`D` est la distance entre les GARES BÂTIES**, pas entre la ville et l'industrie visées.
+   OpexAI passe à `GetCargoIncome` la distance entre les tuiles du CATALOGUE. Pour la route l'écart
+   est petit (l'arrêt reste dans le rayon de recherche : 16 tuiles en ville, 5 sur une industrie),
+   mais pour le rail `STATION_SEARCH_RADIUS = 30` autorise un écart bien plus grand. **Biais connu,
+   non mesuré**, et il joue dans les deux sens.
+
+> **Ce que la formule confirme de nos choix.** Le revenu est **linéaire en distance** et
+> **décroissant en temps** : à vitesse donnée, `D · T(D/v)` monte puis retombe, ce qui donne bien un
+> optimum de distance intermédiaire — le même que celui mesuré empiriquement à 48-63 tuiles
+> (`docs/opex_cost_model.json`). Les deux lectures, l'analytique et la mesure, concordent.
+>
+> Et pour les passagers, `d₁ = 0` veut dire qu'**il n'y a pas de palier plat** : chaque tranche de
+> 2,5 jours coûte un point de `T` dès le départ. C'est pourquoi une desserte routière **courte** de
+> passagers est bonne alors qu'une longue serait mauvaise.
+
+### 1 ter. 🔴 Aller ET retour pour les passagers, retour à vide pour le fret
+
+La page ne traite que d'**une livraison** : elle ne dit rien du cycle d'un véhicule. C'est à nous de
+le modéliser, et **nous le faisions à moitié** (corrigé le 2026-08-29, `economy.nut`).
+
+|  | sens du flux | trajets **chargés** par aller-retour |
+|---|---|---|
+| passagers, ville ↔ ville | **bidirectionnel** — chaque ville produit pour l'autre | **2** |
+| fret, producteur → accepteur | **une seule direction** — l'accepteur ne produit pas ce cargo | **1** |
+
+Le fret est structurellement à sens unique dans OpexAI : `OpexFreightCandidates` et
+`OpexRoadFreightCandidates` n'apparient qu'un producteur à un accepteur du **même** cargo. C'est
+déjà la raison pour laquelle le puits reçoit `OF_NONE` et non `OF_FULL_LOAD_ANY` — un convoi qui
+attend un chargement de retour inexistant reste bloqué pour toujours (mesuré le 2026-08-28).
+
+**Le défaut** : le modèle comptait la demande des **deux** villes pour le passager
+(`monthly = production_A + production_B`) mais ne lui accordait qu'**un seul trajet chargé par
+aller-retour**, exactement comme au fret. Les deux côtés de l'équation étaient donc incohérents.
+
+Conséquences, et il faut être précis sur laquelle mord quand :
+
+- **Toujours** : `trainsForVolume` demande **deux fois trop de véhicules** pour une ligne passagers.
+  Coût de fonctionnement et capital immobilisé sont surestimés d'autant, donc le profit attendu est
+  sous-estimé et de bons candidats passagers sont écartés avant même d'être tentés.
+- **Seulement si la ligne est limitée par la CAPACITÉ** (`carried = monthlyCapacity < offered`) :
+  le tonnage transporté, donc le revenu, est sous-estimé d'un facteur 2.
+
+⚠️ **Ce défaut n'explique PAS l'écart ×10 observé sur la ligne bus passagers** de
+`docs/opexai_route.md` §6 : cette ligne était limitée par la **demande** (`carried = offered = 33`),
+pas par la capacité, donc le facteur 2 n'y mordait pas. Son écart vient d'ailleurs — très
+probablement de `TOWN_CATCHMENT_SHARE_PCT = 22`, calibré sur des **gares rail**. Les deux problèmes
+sont réels et distincts ; ne pas créditer le second au premier.
+
+**Le correctif** (`economy.nut`, rail et route) : la grandeur qui compte n'est pas « aller-retours
+par mois » mais **trajets chargés par mois**. Elle vaut `30 / oneWayDays` pour une ligne
+bidirectionnelle et `30 / roundTripDays` pour une ligne à sens unique. Le fret est inchangé au bit
+près ; seul le passager voit sa capacité doubler.
+
 ---
 
 ## 2. Vitesses et conversion tuiles/jour — **corrige un placeholder d'OpexAI**

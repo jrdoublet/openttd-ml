@@ -93,7 +93,7 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, stat
     return null;
   }
 
-  local economics = OpexLineEconomics(catalog, cargo, distance, monthly);
+  local economics = OpexLineEconomics(catalog, cargo, distance, monthly, kind);
   if (economics == null) {
     stats.economicsUnavailable++;
     return null;
@@ -172,10 +172,18 @@ function OpexTopK(all, k)
  * const globale definie dans main.nut, visible ici car require()d avant toute execution (les
  * fonctions de ce fichier ne s'executent qu'apres que main.nut a fini de se charger). _tooClose
  * reste utile pour son second test, MIN_SEPARATION, qui depend de la gare BATIE et ne peut pas se
- * calculer a la generation. */
-function OpexOriginServed(lines, tile)
+ * calculer a la generation.
+ *
+ * `includeRoad` (2026-08-29) : les lignes ROUTIERES vivent dans le meme tableau _lines que le rail
+ * (pour etre rapportees et mises au rebut par le meme code), mais elles ne doivent PAS verrouiller
+ * une ville pour une liaison rail interurbaine -- une desserte de bus sur 12 tuiles n'epuise pas
+ * une ville, et le rail vaut bien davantage par ligne. Les generateurs rail passent donc false, et
+ * seul le generateur routier passe true : lui doit s'exclure du rail ET de ses propres lignes,
+ * sans quoi il rebatirait chaque annee la meme paire. */
+function OpexOriginServed(lines, tile, includeRoad)
 {
   foreach (line in lines) {
+    if (!includeRoad && ("mode" in line) && line.mode == "road") continue;
     if (AIMap.DistanceManhattan(tile, line.originA) < ORIGIN_SEPARATION) return true;
     if (AIMap.DistanceManhattan(tile, line.originB) < ORIGIN_SEPARATION) return true;
   }
@@ -205,7 +213,7 @@ function OpexPaxCandidates(catalog, lines, out, stats)
   local served = [];
   for (local i = 0; i < n; i++) {
     produced.append(AITown.GetLastMonthProduction(towns[i].id, cargo));
-    local isServed = OpexOriginServed(lines, towns[i].tile);
+    local isServed = OpexOriginServed(lines, towns[i].tile, false);
     served.append(isServed);
     if (isServed) stats.townsServed++; else stats.townsUnserved++;
   }
@@ -235,7 +243,7 @@ function OpexFreightCandidates(catalog, lines, out, stats)
   local industries = catalog.industries;
   local served = [];
   for (local i = 0; i < industries.len(); i++) {
-    local isServed = OpexOriginServed(lines, industries[i].tile);
+    local isServed = OpexOriginServed(lines, industries[i].tile, false);
     served.append(isServed);
     if (isServed) stats.industriesServed++; else stats.industriesUnserved++;
   }
@@ -310,4 +318,242 @@ function OpexBands(all)
     }
   }
   return best;
+}
+
+/* --- Candidats ROUTIERS (2026-08-29) ---------------------------------------------------------
+ *
+ * Creneau volontairement DISJOINT de celui du rail : 5 a 25 tuiles, la bande que MIN_DISTANCE = 25
+ * refuse structurellement au rail parce que le profit median y est negatif POUR LE RAIL (une gare,
+ * une voie et une locomotive ne s'amortissent pas sur 15 tuiles). Un camion, lui, n'a ni voie ni
+ * signaux : son capital est d'un ordre de grandeur en dessous, donc le meme volume sur la meme
+ * distance peut le rentabiliser. Les deux modes ne se disputent donc jamais la meme PAIRE ; ils
+ * peuvent en revanche se disputer la meme ORIGINE, et c'est le rail qui sert en premier
+ * (main.nut : _tryBuildRoads est appele APRES _tryBuild, et exclut toute origine deja servie).
+ *
+ * Trois familles de candidats, la deuxieme et la troisieme etant l'objet meme de la manoeuvre --
+ * "des petites lignes courtes avec du cargo" :
+ *   1. ville <-> ville, passagers (l'ancienne liaison bus v1, desormais une famille parmi trois) ;
+ *   2. industrie -> industrie, un cargo produit par l'une et accepte par l'autre ;
+ *   3. industrie -> ville, pour les cargos qu'une ville accepte (biens, nourriture...) -- la
+ *      famille la plus dense sur nos cartes, parce que les villes sont nombreuses et proches des
+ *      industries de transformation, la ou deux industries appariables sont rarement voisines.
+ */
+const ROAD_MIN_DISTANCE = 5;
+const ROAD_MAX_DISTANCE = 25;
+
+/* Le classement routier est SEPARE de celui du rail (TOP_K), et plus court : une tentative
+ * routiere est bornee et bon marche, mais chaque ligne consomme de la tresorerie et un couple
+ * d'origines. Douze candidats couvrent largement les ROAD_MAX_NEW_LINES_PER_YEAR retenus. */
+const ROAD_TOP_K = 12;
+
+/* Plancher de profit annuel attendu. Ce n'est PAS l'equivalent de MIN_RATIO (un cout d'opportunite
+ * en opcodes) mais un cout d'opportunite en TRESORERIE et en origines : une ligne routiere qui
+ * rapporte quelques centaines par an immobilise une ville ou une industrie que le rail aurait pu
+ * prendre, et ajoute un vehicule a surveiller. Valeur ARBITRAIRE, choisie a l'ordre de grandeur du
+ * profit d'une liaison bus courte sur une petite ville (~1 500/an au modele) : elle laisse passer
+ * le fret, qui la depasse d'un ou deux ordres de grandeur, et coupe la desserte passagers la plus
+ * marginale. A trancher au banc, pas par le raisonnement. */
+const ROAD_MIN_PROFIT_ANNUAL = 1000;
+
+/* Seuil d'acceptation d'une ville pour un cargo. AITile.GetCargoAcceptance rend une acceptation en
+ * huitiemes d'unite ; le moteur exige 8 (une unite pleine) pour livrer quoi que ce soit. En dessous
+ * la gare accepterait le cargo a l'affichage sans que la livraison paie. */
+const ROAD_ACCEPTANCE_MIN = 8;
+
+/* Cout en "iterations equivalentes" d'une tentative routiere, pour rester dans la meme unite que
+ * le rail (1 iteration ~ 2 700 opcodes).
+ *
+ * ⚠️ NON CALIBRE. La seule mesure disponible est indirecte : 171 356 opcodes pour le balayage
+ * complet de toutes les paires de la carte par la v1 (docs/opexai_mode_route), soit ~63 iterations
+ * pour un travail bien plus large que le plan d'UNE paire fait ici. La forme (une base plus la
+ * longueur du trace, qui borne le nombre d'aretes revalidees sous AITestMode) est defendable, les
+ * coefficients ne le sont pas. Consequence assumee : ce nombre ne sert QU'A classer les candidats
+ * routiers ENTRE EUX, jamais a les comparer au rail -- une comparaison inter-modes exigerait
+ * d'abord de mesurer le cout reel d'un plan routier, ce que le panneau RB pose desormais chaque
+ * tentative (main.nut) pour permettre cette calibration. */
+const ROAD_PLAN_ITERATIONS_BASE = 20;
+
+function OpexRoadIterations(distance)
+{
+  return ROAD_PLAN_ITERATIONS_BASE + distance;
+}
+
+/* Un candidat routier porte les memes champs que son homologue rail (le constructeur de ligne, le
+ * rapport annuel et la mise au rebut sont communs), plus ce qu'il faut pour retrouver les sites
+ * d'arret : le role de chaque extremite (ville ou industrie) et, pour une ville, son identifiant. */
+function OpexMakeRoadCandidate(catalog, kind, cargo, src, dst, srcTown, dstTown, distance,
+                               monthly, stats)
+{
+  local engine = (cargo in catalog.roadEngineByCargo) ? catalog.roadEngineByCargo[cargo] : null;
+  if (engine == null) {
+    stats.noEngine++;
+    return null;
+  }
+  local economics = OpexRoadLineEconomics(catalog, cargo, distance, monthly, engine, kind);
+  if (economics == null) {
+    stats.economicsUnavailable++;
+    return null;
+  }
+  if (economics.profitAnnual < ROAD_MIN_PROFIT_ANNUAL) {
+    stats.profitTooLow++;
+    return null;
+  }
+  local iterations = OpexRoadIterations(distance);
+  stats.accepted++;
+  return {
+    mode = "road",
+    kind = kind,
+    cargo = cargo,
+    src = src,
+    dst = dst,
+    /* -1 = extremite industrielle : le site d'arret se cherche dans un petit rayon autour de la
+     * tuile de l'industrie. Un identifiant de ville >= 0 contraint au contraire la recherche a
+     * rester dans cette ville (AITile.GetClosestTown), comme le faisait la v1. */
+    srcTown = srcTown,
+    dstTown = dstTown,
+    distance = distance,
+    monthly = monthly,
+    engine = engine,
+    trains = economics.trains,
+    carried = economics.carried,
+    capital = economics.capital,
+    profitAnnual = economics.profitAnnual,
+    revenueAnnual = economics.revenueAnnual,
+    runningAnnual = economics.runningAnnual,
+    amortAnnual = economics.amortAnnual,
+    oneWayDays = economics.oneWayDays,
+    iterations = iterations,
+    ratio = (economics.profitAnnual * 1000) / iterations,
+  };
+}
+
+/* Famille 1 : ville <-> ville, passagers. */
+function OpexRoadPaxCandidates(catalog, lines, out, stats)
+{
+  local cargo = catalog.paxCargo;
+  if (cargo < 0 || !(cargo in catalog.roadEngineByCargo)) return;
+  local towns = catalog.towns;
+  local n = towns.len();
+  local produced = [];
+  local served = [];
+  for (local i = 0; i < n; i++) {
+    produced.append(AITown.GetLastMonthProduction(towns[i].id, cargo));
+    served.append(OpexOriginServed(lines, towns[i].tile, true));
+  }
+  for (local a = 0; a < n; a++) {
+    if (served[a]) continue;
+    for (local b = a + 1; b < n; b++) {
+      if (served[b]) continue;
+      local distance = AIMap.DistanceManhattan(towns[a].tile, towns[b].tile);
+      if (distance < ROAD_MIN_DISTANCE || distance > ROAD_MAX_DISTANCE) continue;
+      stats.pairsInBand++;
+      /* Meme lecture que le rail : les deux sens transportent chacun la production de LEUR
+       * origine, donc le debit utile est la somme, corrigee de la part du bassin d'une seule gare
+       * (TOWN_CATCHMENT_SHARE_PCT, calibre sur des lignes reelles). */
+      local monthly = ((produced[a] + produced[b]) * TOWN_CATCHMENT_SHARE_PCT) / 100;
+      if (monthly <= 0) { stats.noMonthly++; continue; }
+      local candidate = OpexMakeRoadCandidate(catalog, "pax", cargo, towns[a].tile, towns[b].tile,
+                                              towns[a].id, towns[b].id, distance, monthly, stats);
+      if (candidate != null) out.append(candidate);
+    }
+  }
+}
+
+/* Familles 2 et 3 : industrie -> industrie, et industrie -> ville.
+ *
+ * Le sens est ORIENTE (un producteur vers un accepteur) : contrairement au pax, rien ne revient.
+ * C'est exactement la lecon du fret rail du 2026-08-28 -- poser OF_FULL_LOAD_ANY au puits d'une
+ * ligne a sens unique y bloquait le convoi pour toujours -- et builder_road.nut applique la meme
+ * regle aux camions.
+ *
+ * Aucune dilution de bassin n'est appliquee au producteur : une industrie produit depuis une seule
+ * tuile, elle n'a pas la dilution geometrique d'une ville (cf. TOWN_CATCHMENT_SHARE_PCT). */
+function OpexRoadFreightCandidates(catalog, lines, out, stats)
+{
+  local industries = catalog.industries;
+  local towns = catalog.towns;
+  local servedIndustry = [];
+  for (local i = 0; i < industries.len(); i++) {
+    servedIndustry.append(OpexOriginServed(lines, industries[i].tile, true));
+  }
+  local servedTown = [];
+  for (local i = 0; i < towns.len(); i++) {
+    servedTown.append(OpexOriginServed(lines, towns[i].tile, true));
+  }
+
+  /* L'acceptation d'une ville ne depend que du couple (ville, cargo) : la calculer une fois par
+   * couple, et non par paire industrie-ville, evite de repayer AITile.GetCargoAcceptance pour
+   * chaque producteur du meme cargo. Cle chaine plutot que table imbriquee : une seule table. */
+  local acceptanceCache = {};
+  /* Rayon d'une aire de chargement : c'est bien l'empreinte de la gare qu'on projette de poser,
+   * pas un rayon arbitraire autour du centre administratif. Lu une fois, il ne change jamais. */
+  local truckCoverage = AIStation.GetCoverageRadius(AIStation.STATION_TRUCK_STOP);
+
+  foreach (cargo, sources in catalog.producers) {
+    if (!(cargo in catalog.roadEngineByCargo)) { stats.noEngine++; continue; }
+    /* Les passagers sont traites par la famille 1 : les inclure ici apparierait une industrie a
+     * une ville pour un cargo qu'aucune industrie ne produit utilement en volume. */
+    if (cargo == catalog.paxCargo) continue;
+    local sinks = (cargo in catalog.acceptors) ? catalog.acceptors[cargo] : [];
+
+    foreach (si in sources) {
+      if (servedIndustry[si]) continue;
+      local source = industries[si];
+      local monthly = AIIndustry.GetLastMonthProduction(source.id, cargo);
+      if (monthly <= 0) { stats.noMonthly++; continue; }
+
+      foreach (di in sinks) {
+        if (di == si || servedIndustry[di]) continue;
+        local distance = AIMap.DistanceManhattan(source.tile, industries[di].tile);
+        if (distance < ROAD_MIN_DISTANCE || distance > ROAD_MAX_DISTANCE) continue;
+        stats.pairsInBand++;
+        local candidate = OpexMakeRoadCandidate(catalog, "freight", cargo, source.tile,
+                                                industries[di].tile, -1, -1, distance, monthly,
+                                                stats);
+        if (candidate != null) out.append(candidate);
+      }
+
+      for (local t = 0; t < towns.len(); t++) {
+        if (servedTown[t]) continue;
+        local distance = AIMap.DistanceManhattan(source.tile, towns[t].tile);
+        if (distance < ROAD_MIN_DISTANCE || distance > ROAD_MAX_DISTANCE) continue;
+        local key = t + "|" + cargo;
+        local acceptance;
+        if (key in acceptanceCache) {
+          acceptance = acceptanceCache[key];
+        } else {
+          acceptance = AITile.GetCargoAcceptance(towns[t].tile, cargo, 1, 1, truckCoverage);
+          acceptanceCache.rawset(key, acceptance);
+        }
+        if (acceptance < ROAD_ACCEPTANCE_MIN) { stats.townRejected++; continue; }
+        stats.pairsInBand++;
+        local candidate = OpexMakeRoadCandidate(catalog, "freight", cargo, source.tile,
+                                                towns[t].tile, -1, towns[t].id, distance, monthly,
+                                                stats);
+        if (candidate != null) out.append(candidate);
+      }
+    }
+  }
+}
+
+/* Classement routier complet. Rendu a part de celui du rail : les deux ne partagent ni leur unite
+ * de cout (cf. ROAD_PLAN_ITERATIONS_BASE) ni leur phase de construction. */
+function OpexBuildRoadCandidates(catalog, budget, lines)
+{
+  local all = [];
+  local stats = {
+    pairsInBand = 0, noMonthly = 0, noEngine = 0, townRejected = 0,
+    economicsUnavailable = 0, profitTooLow = 0, accepted = 0,
+  };
+  if (catalog.roadType < 0) return { all = 0, best = [], stats = stats, opcodes = 0 };
+
+  budget.begin();
+  OpexRoadPaxCandidates(catalog, lines, all, stats);
+  OpexRoadFreightCandidates(catalog, lines, all, stats);
+  local ops = budget.end("cand_road");
+
+  /* Le cout de CETTE annee, pas le cumul : budget.get() totalise depuis le debut de la partie, et
+   * c'est le debit annuel qui dit si la generation routiere merite sa place. Il est paye meme les
+   * annees ou rien n'est bati, donc le panneau RN le porte sans condition (main.nut). */
+  return { all = all.len(), best = OpexTopK(all, ROAD_TOP_K), stats = stats, opcodes = ops };
 }

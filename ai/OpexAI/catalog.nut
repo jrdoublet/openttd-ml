@@ -32,11 +32,16 @@ class OpexCatalog {
   costDock = 0;
   costWaterDepot = 0;
 
-  roadType = -1;       // route normale (pas tram), ou -1 si indisponible
-  roadBuses = null;    // [{id, capacity, speed, price, runningCost, roadType}]
-  maxRoadBusPrice = 0;
+  roadType = -1;              // route normale (pas tram), ou -1 si indisponible
+  /* cargo -> {id, capacity, speed, price, runningCost, ageYears}. Un SEUL vehicule retenu par
+   * cargo (le plus capacitaire), bus comme camion : le choix du type d'arret ne se deduit pas du
+   * moteur mais du cargo (CC_PASSENGERS => arret de bus, sinon aire de chargement), cf.
+   * docs/mecanique_jeu.md S11 -- un bus ne chargera JAMAIS sur une aire de chargement camion. */
+  roadEngineByCargo = null;
+  maxRoadVehiclePrice = 0;
   costRoadPerTile = 0;
-  costRoadStation = 0;
+  costRoadBusStop = 0;
+  costRoadTruckStop = 0;
   costRoadDepot = 0;
 
   constructor()
@@ -48,7 +53,7 @@ class OpexCatalog {
     this.cargos = [];
     this.wagonByCargo = {};
     this.ships = [];
-    this.roadBuses = [];
+    this.roadEngineByCargo = {};
   }
 
   function refresh(budget, year);
@@ -196,36 +201,74 @@ function OpexCatalog::_refreshWater()
 /* Route : l'equivalent du piege CanRunOnRail/HasPowerOnRail existe bien. Un vehicule peut etre
  * compatible avec un type de route sans y avoir de puissance ; le catalogue exige les deux, puis
  * CanRefitCargo (ou le cargo deja configure) avant de le proposer au constructeur. La capacite
- * apres refit reste verifiee dans builder_road.nut, car un NewGRF peut la changer selon le depot. */
+ * apres refit reste verifiee dans builder_road.nut, car un NewGRF peut la changer selon le depot.
+ *
+ * Depuis le 2026-08-29 le catalogue ne connait plus "les bus" mais UN vehicule par cargo, bus ou
+ * camion : le mode route ne construit plus une liaison passagers unique mais autant de petites
+ * lignes que le classement en propose, dont des lignes de fret (voir candidates.nut,
+ * OpexRoadCandidates). Le cout des DEUX types d'arret est releve, car le type est impose par le
+ * cargo, pas choisi.
+ *
+ * ⚠️ Vehicules articules ECARTES : ils ne peuvent pas utiliser un arret en cul-de-sac, et c'est la
+ * seule disposition que builder_road.nut sait poser (les arrets traversants ont ete mesures puis
+ * abandonnes -- 912 232 opcodes pour aucun gain, cf. docs/opexai_mode_route et le commentaire en
+ * tete de builder_road.nut). Les laisser entrer donnerait un moteur que le depot accepte de
+ * construire et que l'arret refuse de charger. */
 function OpexCatalog::_refreshRoad()
 {
   this.roadType = -1;
-  this.roadBuses = [];
-  this.maxRoadBusPrice = 0;
+  this.roadEngineByCargo = {};
+  this.maxRoadVehiclePrice = 0;
   this.costRoadPerTile = 0;
-  this.costRoadStation = 0;
+  this.costRoadBusStop = 0;
+  this.costRoadTruckStop = 0;
   this.costRoadDepot = 0;
   if (!AIRoad.IsRoadTypeAvailable(AIRoad.ROADTYPE_ROAD)) return;
   this.roadType = AIRoad.ROADTYPE_ROAD;
   AIRoad.SetCurrentRoadType(this.roadType);
   this.costRoadPerTile = AIRoad.GetBuildCost(this.roadType, AIRoad.BT_ROAD);
-  this.costRoadStation = AIRoad.GetBuildCost(this.roadType, AIRoad.BT_BUS_STOP);
+  this.costRoadBusStop = AIRoad.GetBuildCost(this.roadType, AIRoad.BT_BUS_STOP);
+  this.costRoadTruckStop = AIRoad.GetBuildCost(this.roadType, AIRoad.BT_TRUCK_STOP);
   this.costRoadDepot = AIRoad.GetBuildCost(this.roadType, AIRoad.BT_DEPOT);
-  if (this.paxCargo < 0) return;
+
+  /* Deux passes plutot qu'une boucle imbriquee sur AIEngineList : les predicats chers
+   * (IsBuildable, CanRunOnRoad, HasPowerOnRoad, IsArticulated) sont evalues UNE fois par moteur,
+   * et seul CanRefitCargo -- le seul qui depende du cargo -- est repaye pour chaque paire. Sur le
+   * parc mesure (12 a 22 moteurs routiers en 20 ans, docs/catalogue_churn.json) et une douzaine de
+   * cargos, cela reste tres en dessous du budget annuel du catalogue. */
+  local usable = [];
   local engines = AIEngineList(AIVehicle.VT_ROAD);
   for (local e = engines.Begin(); !engines.IsEnd(); e = engines.Next()) {
     if (!AIEngine.IsBuildable(e)) continue;
     if (!AIEngine.CanRunOnRoad(e, this.roadType)) continue;
     if (!AIEngine.HasPowerOnRoad(e, this.roadType)) continue;
-    local cargo = AIEngine.GetCargoType(e);
-    if (cargo != this.paxCargo && !AIEngine.CanRefitCargo(e, this.paxCargo)) continue;
+    if (AIEngine.IsArticulated(e)) continue;
     local capacity = AIEngine.GetCapacity(e);
     if (capacity <= 0) continue;
-    local bus = { id = e, capacity = capacity, speed = AIEngine.GetMaxSpeed(e),
-                  price = AIEngine.GetPrice(e), runningCost = AIEngine.GetRunningCost(e),
-                  roadType = AIEngine.GetRoadType(e) };
-    this.roadBuses.append(bus);
-    if (bus.price > this.maxRoadBusPrice) this.maxRoadBusPrice = bus.price;
+    usable.append({
+      id = e, defaultCargo = AIEngine.GetCargoType(e), capacity = capacity,
+      speed = AIEngine.GetMaxSpeed(e), price = AIEngine.GetPrice(e),
+      runningCost = AIEngine.GetRunningCost(e),
+      /* GetMaxAge rend des jours, comme pour la locomotive. */
+      ageYears = AIEngine.GetMaxAge(e) / 365,
+    });
+  }
+
+  foreach (cargo in this.cargos) {
+    local best = null;
+    foreach (engine in usable) {
+      if (engine.defaultCargo != cargo && !AIEngine.CanRefitCargo(engine.id, cargo)) continue;
+      /* capacity est celle du cargo D'ORIGINE : apres refit elle peut changer (le GRF decide).
+       * C'est une approximation assumee pour le CLASSEMENT ; la valeur qui sert au dimensionnement
+       * reel est relue depuis le depot par GetBuildWithRefitCapacity dans builder_road.nut. */
+      if (best == null || engine.capacity > best.capacity ||
+          (engine.capacity == best.capacity && engine.speed > best.speed)) {
+        best = engine;
+      }
+    }
+    if (best == null) continue;
+    this.roadEngineByCargo.rawset(cargo, best);
+    if (best.price > this.maxRoadVehiclePrice) this.maxRoadVehiclePrice = best.price;
   }
 }
 
@@ -321,9 +364,9 @@ function OpexCatalog::refresh(budget, year)
   this._refreshWater();
   budget.end("cat_water");
 
-  /* La route v1 est codee mais desactivee par la mesure de campagne (main.nut). Ne pas lui
-   * consacrer de debit annuel tant que sa transaction n'est pas candidate : le catalogue rail
-   * valide reste ainsi le chemin exact de la baseline. */
+  /* Le catalogue route n'est rafraichi que si le mode est actif : a road_mode = 0, le chemin
+   * d'opcodes de la baseline rail reste EXACTEMENT celui des campagnes anterieures, ce qui rend le
+   * banc apparie lisible (une trajectoire ne diverge que par une decision, pas par un debit). */
   if (ROAD_BUILD_ENABLED) {
     budget.begin();
     this._refreshRoad();
