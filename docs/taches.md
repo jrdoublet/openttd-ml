@@ -513,13 +513,38 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
    trajectoire déjà documentée. **Retirer cette graine ne change pas la conclusion** — tous les
    |t| tombent alors sous 0,54.
 
-7. 🔵 **Le biais de sélection du modèle de profit** (relevé le 2026-08-29, non mesuré). 45,2 % des
-   4 216 paires sont rejetées pour « profit prédit ≤ 0 », mais le modèle qui rend ce verdict n'a été
-   calibré que sur les lignes **qui ont passé le filtre** (`docs/opex_predict_vs_actual.json`,
-   `..._postfix_freight_v2.json`). Si le modèle sous-estime systématiquement une famille de paires,
-   elles sont rejetées et n'entrent jamais dans la calibration qui l'aurait révélé. On ne peut donc
-   **pas** conclure que ces 1 905 paires sont réellement non rentables. Vérifiable à coût borné :
-   forcer la construction d'un échantillon de paires rejetées et comparer prédit/réel sur elles.
+7. ✅ **Le biais de sélection du modèle de profit : mesuré, défaut 0** (2026-08-30).
+   Réglage `probe_negative` : après `_tryBuild`, au plus une paire rail rejetée pour
+   profit prédit ≤ 0 est force-construite sur le cash restant, budget `ATTEMPT_FLOOR`.
+   PX marque la ligne ; elle ne contamine pas la calibration des lignes classées.
+   5 graines × 20 ans (`docs/opex_probe_negative_20y_5seeds.json`) :
+
+   | | |
+   |---|---|
+   | paires-années `profit≤0` | 14 001, dont **13 918 pax** et 83 fret |
+   | bandes | 2 010 / 1 987 / 1 998 / **8 006 >100 tuiles** |
+   | « presque admis » (prédit > −1000) | 5 546 |
+   | tentatives | 52 (médiane prédit **−39,5**, médiane **123 tuiles**) |
+   | issues | **48 ABND**, 4 OK |
+   | OK : distance | 63, 64, 67, 73 (médiane 65,5) — le court du stash |
+   | OK : prédit | −146, −143, −16, −39 |
+   | OK : profit réel, 2e année | 22 798 / −53 / 20 436 / 13 695 — **3/4 > 0** |
+   | OK : profit réel, dernière année | **4/4 > 0**, médiane 18 972 |
+
+   Le 45,2 % de `docs/opexai_plafonnement.md` est **périmé** (avant traction) : en 1989
+   sur les 4 graines d'origine, `profit≤0` = 608 / 4 217 = **14,4 %**, toujours presque
+   tout du pax. L'origine déjà desservie est devenue le premier filtre (62 %).
+
+   **Ce que ça tranche.** On ne peut plus conclure que les paires rejetées sont
+   réellement non rentables. Les 4 qui passent A\* à 2 000 itérations (60–75 tuiles,
+   pax) rapportent 10–20 k/an pour un prédit ~−100. **Ce que ça ne tranche pas :**
+   48/52 ABND, médiane 123 tuiles — `ATTEMPT_FLOOR` censure le long, qui est le
+   volume (57 % des rejets >100 tuiles). n=4 n'est pas un retuning.
+
+   ⚠️ **Défaut 0.** `OpexAI[probe_negative=1]` rallume. Ne pas recalibrer
+   `OpexLineEconomics` ni baisser le filtre `profit≤0` sur cet échantillon. Suite :
+   un second sondage à budget d'itérations assez grand pour le long (>75 tuiles),
+   **puis seulement** un retuning pax.
 
 9. 🔴 **Les suites de la tranche v1 du raccordement de gare** (commité, défaut `station_join=0`).
    Le quai parallèle joint au même `StationID` avec sa propre entrée est en place et contourne à
@@ -561,20 +586,21 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
       Le spread n'est **pas** débloqué : joindre plus, sur un terme qui ne paie pas, recréerait
       le banc vivier.
 
-**Priorité de fait, révisée le 2026-08-30** : plus d'échec qualitatif du mode route.
-Distance A\* ✅. Recalibrage conjoint des nœuds ✅ mesuré, **défaut 0** (moins de gares,
-t = −3,23 ; valeur sous le plancher). `station_join`, `basin_share`, `reborrow`,
-`origin_sitable`, `astar_cost` restent à 0. Le **spread** n'est pas la suite. La tête
-est l'item **7** (biais de sélection du modèle de profit) : 45 % des paires sont
-rejetées pour « profit ≤ 0 » par un modèle calibré seulement sur celles qui passent.
+**Priorité de fait, révisée le 2026-08-30 (soir)** : plus d'échec qualitatif du mode route.
+Distance A\* ✅. Recalibrage conjoint des nœuds ✅ mesuré, **défaut 0**. Item 7 ✅ mesuré,
+**défaut 0** : le pax 60–75 tuiles rejeté pour `profit≤0` est réellement rentable (n=4),
+mais 48/52 sondages ABND à 2 000 itérations (médiane 123 tuiles). `station_join`,
+`basin_share`, `reborrow`, `origin_sitable`, `astar_cost`, `probe_negative` restent à 0.
+Le **spread** n'est pas la suite. La tête est la **suite de l'item 7** : refaire le
+sondage avec un budget d'itérations qui atteint le long, **avant** tout retuning pax.
+n=4 du court n'est pas une calibration.
 
-*Priorité précédente, conservée pour la trace* : ~~l'item **4**~~ (✅ fait) et l'item **6**
-(plafond d'abandon) passaient devant — ce sont deux échecs mesurés, et surtout les deux seuls
-qui soient **orthogonaux à l'architecture de §9** : leur gain survivra à l'arrivée de
-l'agrandissement de gare et des jonctions. L'item 5 (`MIN_SEPARATION`) est explicitement gelé
-derrière §9. L'item 7 (biais de sélection) est une mesure, pas un changement de code, et peut
-s'intercaler. L'item 2 (verrouillage de ville) reste dernier — il exige lui aussi d'abord une
-mesure (la croissance des villes desservies stagne-t-elle réellement ?).
+*Priorité précédente, conservée pour la trace* : ~~l'item **7**~~ (✅ mesuré, défaut 0) était
+la tête le matin. ~~l'item **4**~~ (✅ fait) et l'item **6** (plafond d'abandon) passaient
+devant — ce sont deux échecs mesurés, et surtout les deux seuls qui soient **orthogonaux à
+l'architecture de §9**. L'item 5 (`MIN_SEPARATION`) est explicitement gelé derrière §9.
+L'item 2 (verrouillage de ville) reste dernier — il exige lui aussi d'abord une mesure
+(la croissance des villes desservies stagne-t-elle réellement ?).
 
 ---
 

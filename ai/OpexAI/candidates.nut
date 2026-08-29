@@ -37,6 +37,16 @@ const TOP_K = 20;
  * candidat : attendre le classement annuel suivant vaut au moins ce rapport acceptable. */
 const MIN_RATIO = 500;
 
+/* Item 7 : echantillon des paires rejetees pour profit predit <= 0. Les moins negatives
+ * d'abord -- si celles-la sont vraiment non rentables, le filtre est calibre ; si elles
+ * rapportent, le modele sous-estime une famille que la calibration n'a jamais vue.
+ * 12 tiennent dans leftover-cash : tropClose et le capital en eliment encore. */
+const PROBE_STASH_K = 12;
+/* "Presque admis" : predit > -1000. L'echelle du plancher MIN_RATIO * iterations/1000
+ * pour une ligne courte (~500*310/1000 = 155) est plus petite ; -1000 reste du meme
+ * ordre qu'une ligne mediocre, pas un gouffre d'amortissement. */
+const PROBE_NEAR_ZERO = -1000;
+
 /* Etage 2 : le cout, AJUSTE sur la campagne v3 (1997 lignes reelles, OpenTTD 13.4).
  *
  * La grandeur utile n'est pas "iterations d'une tentative" mais "iterations par ligne REUSSIE",
@@ -145,9 +155,13 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
     stats.economicsUnavailable++;
     return null;
   }
-  /* Un candidat dont le profit annuel attendu est negatif ne merite AUCUN opcode. */
+  /* Un candidat dont le profit annuel attendu est negatif ne merite AUCUN opcode.
+   * Derriere probe_negative=1, on le range quand meme : le classement n'en voit rien,
+   * _tryProbeNegative en force-construit au plus un par an sur le cash restant. */
   if (economics.profitAnnual <= 0) {
     stats.profitNonPositive++;
+    if (PROBE_NEGATIVE) OpexStashNegative(stats, kind, cargo, srcTile, dstTile, monthly,
+                                          originServed, distance, economics);
     return null;
   }
 
@@ -201,6 +215,67 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
      * ci-dessus pour le test MIN_RATIO -- repris tel quel, pas recalcule. */
     ratio = ratio,
   };
+}
+
+/* Histogramme de TOUTES les paires a profit <= 0, plus les PROBE_STASH_K moins negatives.
+ * Appele seulement si probe_negative = 1 : a 0, OpexMakeCandidate rend null comme avant
+ * et le classement ne paie aucune de ces recopies. */
+function OpexStashNegative(stats, kind, cargo, srcTile, dstTile, monthly, originServed,
+                           distance, economics)
+{
+  if (kind == "pax") stats.negPax++; else stats.negFreight++;
+  if (distance < 50) stats.negBand50++;
+  else if (distance < 75) stats.negBand75++;
+  else if (distance < 100) stats.negBand100++;
+  else stats.negBand200++;
+  if (economics.profitAnnual > PROBE_NEAR_ZERO) stats.negNear++;
+  stats.negSum += economics.profitAnnual;
+  if (stats.profitNonPositive == 1 || economics.profitAnnual < stats.negMin) {
+    stats.negMin = economics.profitAnnual;
+  }
+
+  local profit = economics.profitAnnual;
+  local stash = stats.negativeStash;
+  if (stash.len() >= PROBE_STASH_K && profit <= stash[stash.len() - 1].profitAnnual) return;
+  local candidate = {
+    kind = kind,
+    cargo = cargo,
+    originServed = originServed,
+    src = srcTile,
+    dst = dstTile,
+    distance = distance,
+    monthly = monthly,
+    trains = economics.trains,
+    wagons = economics.wagons,
+    perTrain = economics.perTrain,
+    platformLength = economics.platformLength,
+    loco = economics.loco,
+    effectiveSpeed = economics.effectiveSpeed,
+    tripsPerMonth = economics.tripsPerMonth,
+    headwayDays = economics.headwayDays,
+    stationRating = economics.stationRating,
+    offered = economics.offered,
+    monthlyCapacity = economics.monthlyCapacity,
+    trainsForHeadway = economics.trainsForHeadway,
+    trainsForVolume = economics.trainsForVolume,
+    carried = economics.carried,
+    capital = economics.capital,
+    profitAnnual = profit,
+    revenueAnnual = economics.revenueAnnual,
+    runningAnnual = economics.runningAnnual,
+    amortAnnual = economics.amortAnnual,
+    oneWayDays = economics.oneWayDays,
+    /* Inutilise pour le budget : OpexIterationBudget recoit le profit negatif et
+     * retombe sur ATTEMPT_FLOOR. ratio = 0 pour qu'un probe ne puisse jamais gagner
+     * un TOP_K s'il fuyait dans `all`. */
+    iterations = 0,
+    ratio = 0,
+    probe = true,
+  };
+  local pos = stash.len();
+  while (pos > 0 && stash[pos - 1].profitAnnual < profit) pos--;
+  stash.insert(pos, candidate);
+  if (stash.len() > PROBE_STASH_K) stash.pop();
 }
 
 /* Ne garder que les K meilleurs, sans trier les autres.
@@ -482,6 +557,20 @@ function OpexBuildCandidates(catalog, budget, lines)
     distanceShort = 0, distanceLong = 0, economicsUnavailable = 0,
     profitNonPositive = 0, ratioTooLow = 0, accepted = 0, topKOmitted = 0,
   };
+  /* Slots de l'item 7 : `<-` seulement a probe_negative=1. A 0, la table de stats
+   * est bit a bit celle d'avant ce commit, et OpexMakeCandidate ne les touche pas. */
+  if (PROBE_NEGATIVE) {
+    stats.negativeStash <- [];
+    stats.negBand50 <- 0;
+    stats.negBand75 <- 0;
+    stats.negBand100 <- 0;
+    stats.negBand200 <- 0;
+    stats.negPax <- 0;
+    stats.negFreight <- 0;
+    stats.negNear <- 0;
+    stats.negSum <- 0;
+    stats.negMin <- 0;
+  }
 
   budget.begin();
   OpexPaxCandidates(catalog, lines, all, stats);

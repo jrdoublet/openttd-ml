@@ -103,6 +103,12 @@ RE_RN_ROAD = re.compile(r"^RN\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")  # classes
 RE_RS_ROAD = re.compile(r"^RS\|(\d{2})\|(\d+)\|(\d+)\|(\d+)$")  # paires en bande / coupees / acceptees
 RE_RF_ROAD = re.compile(r"^RF\|(\d+)\|(\d+)\|(\d+)\|(.+)$")  # year, id, added, after|reason
 RE_YT = re.compile(r"^YT\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)(C)?$")
+# Item 7 : sondage des paires a profit predit <= 0. Absents si probe_negative = 0.
+RE_PN = re.compile(r"^PN\|(\d{2})\|(\d+)\|(-?\d+)\|(\d+)\|([A-Z])\|(\d+)$")
+RE_PX = re.compile(r"^PX\|(\d+)$")
+RE_PQ = re.compile(r"^PQ\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|([01])$")
+RE_NH = re.compile(r"^NH\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
+RE_NM = re.compile(r"^NM\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(-?\d+)$")
 
 TOP_K = 20  # Doit rester synchronise avec ai/OpexAI/candidates.nut, pour decoder rang20.
 REASON_CODES = {
@@ -220,6 +226,7 @@ def parse_lines(all_signs):
     multimodal_built = {}
     road_cost = {}
     join_marks = {}
+    probe_built = {}
 
     for sign in all_signs:
         if m := RE_OF.match(sign):
@@ -305,6 +312,17 @@ def parse_lines(all_signs):
                                            "origin_served": m.group(3) == "1"}
         elif m := RE_PC.match(sign):
             predicted.setdefault(int(m.group(1)), {})["cargo_label"] = m.group(2)
+        elif m := RE_PX.match(sign):
+            probe_built[int(m.group(1))] = True
+        elif m := RE_PN.match(sign):
+            idx = int(m.group(2))
+            pred = predicted.setdefault(idx, {})
+            pred["probe"] = True
+            pred["rankingProfit"] = int(m.group(3))
+            pred["rankingDistance"] = int(m.group(4))
+            pred["probeReason"] = m.group(5)
+            pred["probeIterations"] = int(m.group(6))
+            pred["probeYear"] = 1900 + int(m.group(1))
         elif m := RE_PM.match(sign):
             idx = int(m.group(1))
             multimodal_built[idx] = {
@@ -334,6 +352,30 @@ def parse_lines(all_signs):
             # se lire comme "ligne non jointe, origine libre" -- c'est "non mesure".
             "joined_end": mark.get("joined_end"),
             "origin_served": mark.get("origin_served"),
+            "predicted": pred,
+            "actual_last_year": last_year,
+            "actual": last,
+            "actual_series": years,
+        })
+    for idx in sorted(probe_built):
+        if idx in built:
+            # Un probe ne pose pas OR : collision impossible avec une ligne classee.
+            continue
+        pred = dict(predicted.get(idx, {}))
+        pred["profitAnnual"] = (pred.get("revenueAnnual", 0) - pred.get("runningAnnual", 0)
+                                - pred.get("amortAnnual", 0))
+        years = actual_series.get(idx, {})
+        last_year = max(years) if years else None
+        last = years.get(last_year, {}) if last_year is not None else {}
+        lines.append({
+            "line_index": idx,
+            "mode": "rail",
+            "probe": True,
+            "distance": pred.get("rankingDistance") or pred.get("distance"),
+            "iterations": pred.get("probeIterations"),
+            "reason": REASON_CODES.get(pred.get("probeReason"), pred.get("probeReason")),
+            "year_built": pred.get("probeYear"),
+            "ranking_profit": pred.get("rankingProfit"),
             "predicted": pred,
             "actual_last_year": last_year,
             "actual": last,
@@ -371,6 +413,124 @@ def parse_lines(all_signs):
             entry["vehicles_built"] = road_cost[idx]["vehicles"]
         lines.append(entry)
     return lines
+
+
+def parse_probes(all_signs):
+    """Toutes les tentatives PN, reussies ou non -- le denominateur de l'item 7."""
+    attempts = []
+    for sign in all_signs:
+        if m := RE_PN.match(sign):
+            attempts.append({
+                "year": 1900 + int(m.group(1)),
+                "idx": int(m.group(2)),
+                "ranking_profit": int(m.group(3)),
+                "distance": int(m.group(4)),
+                "reason": REASON_CODES.get(m.group(5), m.group(5)),
+                "iterations": int(m.group(6)),
+            })
+    return attempts
+
+
+def summarise_probe_negative(runs):
+    """Predit (rejet) vs reel (force-construit) : le biais de selection de l'etage 1."""
+    yearly_rows = [row for run in runs for row in (run.get("yearly") or {}).values()]
+    attempts = [item for run in runs for item in run.get("probe_attempts") or []]
+    lines = []
+    for run in runs:
+        for line in run.get("lines") or []:
+            if line.get("probe"):
+                row = dict(line)
+                row["_seed"] = run.get("seed")
+                lines.append(row)
+    funnels = [row for row in yearly_rows if "probe_tried" in row]
+    bands = {
+        "lt50": sum(row.get("neg_band50") or 0 for row in yearly_rows),
+        "50_75": sum(row.get("neg_band75") or 0 for row in yearly_rows),
+        "75_100": sum(row.get("neg_band100") or 0 for row in yearly_rows),
+        "gt100": sum(row.get("neg_band200") or 0 for row in yearly_rows),
+    }
+    population = {
+        "n_profit_non_positive": sum(row.get("candidate_profit_non_positive") or 0
+                                     for row in yearly_rows),
+        "n_pax": sum(row.get("neg_pax") or 0 for row in yearly_rows),
+        "n_freight": sum(row.get("neg_freight") or 0 for row in yearly_rows),
+        "n_near": sum(row.get("neg_near") or 0 for row in yearly_rows),
+        "bands": bands,
+        "mean_predicted": _median([row["neg_mean_profit"] for row in yearly_rows
+                                   if row.get("neg_mean_profit") is not None]),
+    }
+    reasons = {}
+    for item in attempts:
+        reasons[item["reason"]] = reasons.get(item["reason"], 0) + 1
+    actuals = []
+    for line in lines:
+        series = line.get("actual_series") or {}
+        if not series:
+            continue
+        years = sorted(int(y) for y in series)
+        first = series[years[0]] if years[0] in series else series[str(years[0])]
+        second = None
+        if len(years) >= 2:
+            y2 = years[1]
+            second = series[y2] if y2 in series else series[str(y2)]
+        last_year = years[-1]
+        last = series[last_year] if last_year in series else series[str(last_year)]
+        pred = line.get("ranking_profit")
+        if pred is None:
+            pred = (line.get("predicted") or {}).get("rankingProfit")
+        actuals.append({
+            "seed": line.get("_seed"),
+            "line_index": line["line_index"],
+            "distance": line.get("distance"),
+            "kind": (line.get("predicted") or {}).get("kind"),
+            "cargo": (line.get("predicted") or {}).get("cargo_label"),
+            "year_built": line.get("year_built"),
+            "first_year": years[0],
+            "predicted": pred,
+            "actual_profit": first.get("profit"),
+            "actual_revenue": first.get("revenue"),
+            "actual_profit_second": None if second is None else second.get("profit"),
+            "actual_profit_last": last.get("profit"),
+            "vehicles": first.get("vehCount"),
+            "rating_a": first.get("ratingA"),
+            "rating_b": first.get("ratingB"),
+        })
+    def _pos(key):
+        return [row for row in actuals if (row.get(key) or 0) > 0]
+    ok_attempts = [item for item in attempts if item["reason"] == "OK"]
+    abnd_attempts = [item for item in attempts if item["reason"] == "ABND"]
+    return {
+        "population": population,
+        "n_funnel_years": len(funnels),
+        "n_stash_offered": sum(row.get("probe_stash") or 0 for row in funnels),
+        "n_skip_close": sum(row.get("probe_skip_close") or 0 for row in funnels),
+        "n_skip_cash": sum(row.get("probe_skip_cash") or 0 for row in funnels),
+        "n_tried": sum(row.get("probe_tried") or 0 for row in funnels),
+        "n_attempts": len(attempts),
+        "reasons": reasons,
+        "n_ok": len(ok_attempts),
+        "n_abnd": len(abnd_attempts),
+        "median_ranking_profit_tried": _median([item["ranking_profit"] for item in attempts]),
+        "median_distance_tried": _median([item["distance"] for item in attempts]),
+        "median_distance_ok": _median([item["distance"] for item in ok_attempts]),
+        "median_distance_abnd": _median([item["distance"] for item in abnd_attempts]),
+        "n_lines_with_actual": len(actuals),
+        "n_actual_profit_positive": len(_pos("actual_profit")),
+        "n_actual_profit_positive_second": len(_pos("actual_profit_second")),
+        "n_actual_profit_positive_last": len(_pos("actual_profit_last")),
+        "p_actual_positive": (round(len(_pos("actual_profit")) / len(actuals), 4) if actuals else None),
+        "p_actual_positive_second": (round(len(_pos("actual_profit_second")) / len(actuals), 4)
+                                     if actuals else None),
+        "median_actual_profit": _median([row["actual_profit"] for row in actuals
+                                         if row.get("actual_profit") is not None]),
+        "median_actual_profit_second": _median([row["actual_profit_second"] for row in actuals
+                                                if row.get("actual_profit_second") is not None]),
+        "median_actual_profit_last": _median([row["actual_profit_last"] for row in actuals
+                                              if row.get("actual_profit_last") is not None]),
+        "median_predicted_of_ok": _median([row["predicted"] for row in actuals
+                                           if row.get("predicted") is not None]),
+        "lines": actuals,
+    }
 
 
 def parse_attempts(all_signs):
@@ -488,6 +648,24 @@ def parse_yearly(all_signs):
             y = int(m.group(1)); d = by_year.setdefault(y, {})
             d["candidate_pairs_join_impossible"] = int(m.group(2))
             d["candidate_pairs_one_served"] = int(m.group(3))
+        elif m := RE_NH.match(sign):
+            y = 1900 + int(m.group(1)); d = by_year.setdefault(y, {})
+            d["neg_band50"] = int(m.group(2))
+            d["neg_band75"] = int(m.group(3))
+            d["neg_band100"] = int(m.group(4))
+            d["neg_band200"] = int(m.group(5))
+        elif m := RE_NM.match(sign):
+            y = 1900 + int(m.group(1)); d = by_year.setdefault(y, {})
+            d["neg_pax"] = int(m.group(2))
+            d["neg_freight"] = int(m.group(3))
+            d["neg_near"] = int(m.group(4))
+            d["neg_mean_profit"] = int(m.group(5))
+        elif m := RE_PQ.match(sign):
+            y = 1900 + int(m.group(1)); d = by_year.setdefault(y, {})
+            d["probe_stash"] = int(m.group(2))
+            d["probe_skip_close"] = int(m.group(3))
+            d["probe_skip_cash"] = int(m.group(4))
+            d["probe_tried"] = int(m.group(5))
     return dict(sorted(by_year.items()))
 
 
@@ -642,8 +820,10 @@ def make_run_payload(rows, seed, years):
         road.append(item)
     cash_blocks, dead_lines, loan_repayments, loan_draws, road_refleets, loan_view_rows = parse_events(
         final["signs"])
+    probe_attempts = parse_probes(final["signs"])
 
-    n_rail_ok = sum(1 for line in lines if line["mode"] == "rail" and line["reason"] == "OK")
+    n_rail_ok = sum(1 for line in lines
+                    if line["mode"] == "rail" and line["reason"] == "OK" and not line.get("probe"))
     n_rail_failed_attempts = sum(1 for attempt in attempts if attempt["reason"] != "OK")
     abandoned = [attempt for attempt in attempts if attempt["reason"] == "ABND"]
     abandoned_no_alternative = [attempt for attempt in abandoned if attempt.get("budget_path") == "Z"]
@@ -705,6 +885,10 @@ def make_run_payload(rows, seed, years):
         "road_refleets": road_refleets,
         "n_road_refleets": sum(1 for event in road_refleets if event["added"] > 0),
         "n_road_refleet_vehicles": sum(event["added"] for event in road_refleets),
+        "probe_attempts": probe_attempts,
+        "n_probe_attempts": len(probe_attempts),
+        "n_probe_ok": sum(1 for item in probe_attempts if item["reason"] == "OK"),
+        "n_probe_lines": sum(1 for line in lines if line.get("probe")),
         "loan_view": loan_view_rows,
         "lines": lines, "yearly": yearly,
         "annual_blocks": annual_blocks, "calendar_years_crossed": calendar_years_crossed,
@@ -780,12 +964,14 @@ def main():
         "years": args.years, "seeds": args.seeds, "openttd_config": CFG,
         "ai_settings": {key: value for key, value in args.ai_settings},
         "attempt_distance": summarise_attempt_distance(all_attempts),
+        "probe_negative": summarise_probe_negative(runs),
         "instrumentation_added": ["CG", "CR", "CD", "CE", "CK", "PC", "PM", "OB|A", "GM", "OB|J",
                                   "CJ", "OB|S", "PJ", "OL traction", "PL longueur rame", "PT arbitrage",
                                   "PD quai voulu-vs-bati", "PD repli pente",
                                   "OR SITEA/SITEB/SITEAB/ECON", "PS site clear/cargo/cmd",
                                   "GL reemprunt", "RF reconstitution flotte route",
-                                  "OB|A distance"],
+                                  "OB|A distance",
+                                  "PN/PX/PQ/NH/NM sondage profit<=0"],
         "runs": runs,
     }
     result_path.write_text(json.dumps(payload, indent=2))
@@ -808,6 +994,8 @@ def main():
         print(f"road_ok: {run['n_road_lines_ok']}  refleets: {run.get('n_road_refleets', 0)}"
               f" veh+={run.get('n_road_refleet_vehicles', 0)}")
         dist = run.get("attempt_distance") or {}
+        print(f"sondages profit<=0: {run.get('n_probe_attempts', 0)}  "
+              f"OK={run.get('n_probe_ok', 0)}  lignes={run.get('n_probe_lines', 0)}")
         print(f"tentatives avec distance: {dist.get('n_with_distance')}/"
               f"{dist.get('n_attempts')}  OK={dist.get('n_ok')} ABND={dist.get('n_abnd')}")
         for band in dist.get("bands") or []:
@@ -821,6 +1009,20 @@ def main():
     for band in dist.get("bands") or []:
         print(f"  {band['lo']:3}-{band['hi']:<3} n={band['n']:3} p_ok={band['p_ok']} "
               f"ABND={band['n_abnd']} ratio_ok={band['median_ratio_ok']}")
+    probe = payload.get("probe_negative") or {}
+    pop = probe.get("population") or {}
+    print(f"=== sondage profit<=0 toutes graines: tries={probe.get('n_tried')} "
+          f"OK={probe.get('n_ok')} ABND={probe.get('n_abnd')} "
+          f"actuals={probe.get('n_lines_with_actual')} "
+          f"profit>0 1re={probe.get('n_actual_profit_positive')} "
+          f"2e={probe.get('n_actual_profit_positive_second')} "
+          f"last={probe.get('n_actual_profit_positive_last')} ===")
+    print(f"  population CE profit<=0: {pop.get('n_profit_non_positive')}  "
+          f"pax={pop.get('n_pax')} frt={pop.get('n_freight')} near={pop.get('n_near')}")
+    print(f"  bandes: {pop.get('bands')}  raisons: {probe.get('reasons')}")
+    print(f"  median predit (tries): {probe.get('median_ranking_profit_tried')}  "
+          f"median reel: {probe.get('median_actual_profit')}  "
+          f"median dist: {probe.get('median_distance_tried')}")
     print("ecrit", result_path)
 
 

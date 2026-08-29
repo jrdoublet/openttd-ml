@@ -10,7 +10,7 @@ class OpexAI extends AIInfo {
 
   /* Les reglages debug_signs et pathfinder_sleep_ticks existent pour NE PAS POLLUER une partie
    * partagee avec des joueurs humains (loan_repay_floor_k, pathfinder_hard_cap_k,
-   * abandon_memory, station_join, origin_sitable, basin_share, reborrow, road_mode, road_refleet et astar_cost, eux, sont des parametres de conception exposes au banc,
+   * abandon_memory, station_join, origin_sitable, basin_share, reborrow, road_mode, road_refleet, astar_cost et probe_negative, eux, sont des parametres de conception exposes au banc,
    * pas des bridages).
    * Entre IA, la regle est l'inverse : jouer a armes egales,
    * donc ne jamais s'auto-handicaper face a un adversaire qui ne se bride pas. Un handicap non intentionnel
@@ -136,6 +136,29 @@ class OpexAI extends AIInfo {
     AddSetting({
       name = "astar_cost",
       description = "A* cost knots: 0 = OpenTTD 13.4 TrainLineAI table (control), 1 = amortized iterations per success under 15.3 (227 attempts)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* Sondage des paires rejetees pour profit predit <= 0. Defaut 0 : MESURE, pas un classement.
+     *
+     * CE QUE 1 FAIT. OpexMakeCandidate range les PROBE_STASH_K=12 paires les moins negatives
+     * (plus proches de 0) sans les livrer au TOP_K. Apres _tryBuild, au plus UNE de ces
+     * paires est force-construite, si tropClose et le capital le laissent, avec le budget
+     * ATTEMPT_FLOOR que la forme fermee rend sur un profit negatif. PX marque la ligne
+     * pour qu'elle ne contamine pas la calibration du modele sur les lignes classees.
+     *
+     * POURQUOI CE N'EST PAS UN CHANGEMENT DE POLITIQUE. 45,2 % des 4 216 paires meurent
+     * a profit<=0 (docs/opexai_plafonnement.md), mais le modele n'a ete calibre que sur
+     * celles qui passent. On ne peut pas conclure que ces 1 905 paires sont vraiment
+     * non rentables sans en construire un echantillon. 0 reproduit le classement
+     * historique EXACT ; 1 est le bras de mesure. Ne PAS retuner OpexLineEconomics
+     * ni MIN_RATIO dans le meme pas. OpexAI[probe_negative=1] rallume. */
+    AddSetting({
+      name = "probe_negative",
+      description = "Force-build one leftover-cash rail pair rejected for predicted profit <= 0, once per year: 1 = measure selection bias, 0 = historical ranking (default)",
       min_value = 0, max_value = 1,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,

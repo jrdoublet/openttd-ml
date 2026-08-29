@@ -155,6 +155,12 @@ ROAD_REFLEET <- true;
  * 0 tirage). Sans lui, _tryRepayLoan reste a sens unique. */
 REBORROW <- false;
 
+/* Item 7 : forcer la construction d'un echantillon de paires rejetees pour profit
+ * predit <= 0. Repli FAUX jusqu'a la lecture unique de probe_negative dans Start().
+ * Defaut 0 : ce n'est PAS un changement de classement. 1 ne batit qu'apres _tryBuild,
+ * au plus une tentative rail par an, sur le cash que le TOP_K n'a pas pris. */
+PROBE_NEGATIVE <- false;
+
 /* Ligne fret morte (2026-08-28) : une industrie source qui ferme NE garantit PAS l'effondrement --
  * la gare peut recuperer une industrie voisine du meme cargo (ligne 4, campagne 20 ans, restee
  * rentable malgre srcAlive=0). Le diagnostic se fie donc TOUJOURS a la performance REELLE
@@ -200,6 +206,7 @@ class OpexAI extends AIController {
   function _tryBuildWater(year);
   function _tryBuildRoads(year);
   function _tryBuild(ranked, year);
+  function _tryProbeNegative(ranked, year);
   function _reportYear(year, ranked);
   function _reportLines(year);
   function _scrapDeadLines(year);
@@ -917,6 +924,128 @@ function OpexAI::_tryBuild(ranked, year)
                                       + "|" + best.len());
 }
 
+/* Item 7 : au plus UNE tentative rail par an sur une paire que le modele a rejetee
+ * (profit predit <= 0). Le classement n'en a jamais vu : stash des moins negatives,
+ * hors TOP_K. On ne joint pas, on n'emprunte pas. Le budget d'iterations retombe
+ * sur ATTEMPT_FLOOR parce que le profit est negatif (forme fermee sinon negative).
+ *
+ * Panneaux, tous gates par probe_negative donc absents du defaut :
+ *  PQ|aa|stash|close|cash|tried  -- entonnoir annuel
+ *  PN|aa|id|profit|dist|R|iter   -- la tentative, profit AU CLASSEMENT (celui du rejet)
+ *  PX|id                         -- la ligne batie est un probe, pas un candidat classe
+ * Pire PN|99|999|-999999|200|A|2000 : 27 caracteres. */
+function OpexAI::_tryProbeNegative(ranked, year)
+{
+  local anchor = AIMap.GetTileIndex(1, 1);
+  local stats = ranked.stats;
+  local stash = stats.negativeStash;
+  local nClose = 0;
+  local nCash = 0;
+  local tried = 0;
+
+  for (local i = 0; i < stash.len() && tried == 0; i++) {
+    local candidate = stash[i];
+    local abandonedKey = null;
+    if (ABANDON_MEMORY) {
+      abandonedKey = OpexAbandonedPairKey(candidate);
+      if (abandonedKey in this._abandonedPairs) {
+        nClose++;
+        continue;
+      }
+    }
+    local close = this._tooClose(candidate);
+    if (close.hard >= 0 || close.blocking >= 0) {
+      nClose++;
+      continue;
+    }
+    local need = candidate.capital + CASH_RESERVE;
+    local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+    if (money < need) {
+      nCash++;
+      continue;
+    }
+
+    local rankingProfit = candidate.profitAnnual;
+    local rankingDistance = candidate.distance;
+    /* MIN_RATIO : OpexIterationBudget(profit negatif) rend ATTEMPT_FLOOR, chemin F.
+     * join = null : on mesure la paire rejetee, pas une jointure. Pas de reemprunt. */
+    local result = OpexBuildLine(this._catalog, this._budget, candidate, MIN_RATIO, null,
+                                 CASH_RESERVE);
+    /* Un seul OpexBuildLine par an : le sondage de site est deja un cout d'opcodes. */
+    tried = 1;
+    if (result.reason == "CASH") {
+      nCash++;
+      break;
+    }
+    local idx = this._nextLineId;
+    OpexSign(anchor, "PN|" + (year % 100) + "|" + idx + "|" + rankingProfit + "|"
+                             + rankingDistance + "|" + OpexAttemptReasonCode(result.reason)
+                             + "|" + result.iterations);
+    if (result.reason == "SITEA" || result.reason == "SITEB" || result.reason == "SITEAB") {
+      OpexSign(anchor, "PS|" + (year % 100) + "|" + idx + "|1|" + result.siteClear + "|"
+                              + result.siteCargo + "|" + result.siteCmd + "|"
+                              + result.siteKind);
+    }
+    if (!result.ok) {
+      if (ABANDON_MEMORY && result.reason == "ABND") {
+        this._abandonedPairs[abandonedKey] <- true;
+      }
+      break;
+    }
+
+    OpexSign(anchor, "PX|" + idx);
+    OpexSign(anchor, "OF|" + idx + "|" + candidate.revenueAnnual);
+    OpexSign(anchor, "OJ|" + idx + "|" + candidate.runningAnnual);
+    OpexSign(anchor, "OK|" + idx + "|" + candidate.amortAnnual);
+    OpexSign(anchor, "OQ|" + idx + "|" + candidate.carried + "|" + candidate.trains
+                            + "|" + candidate.wagons + "|" + candidate.perTrain);
+    OpexSign(anchor, "PT|" + idx + "|" + candidate.offered.tointeger() + "|"
+                            + candidate.monthlyCapacity.tointeger() + "|"
+                            + candidate.headwayDays.tointeger() + "|"
+                            + candidate.stationRating.tointeger() + "|"
+                            + candidate.trainsForHeadway);
+    OpexSign(anchor, "OT|" + idx + "|" + candidate.oneWayDays.tointeger() + "|"
+                            + candidate.distance + "|" + candidate.platformLength + "|"
+                            + candidate.effectiveSpeed.tointeger());
+    OpexSign(anchor, "OL|" + idx + "|" + candidate.loco.id + "|" + candidate.loco.speed
+                            + "|" + candidate.effectiveSpeed.tointeger() + "|"
+                            + candidate.loco.power + "|" + candidate.loco.tractiveEffort);
+    OpexSign(anchor, "PL|" + idx + "|" + result.platformLength + "|" + result.wagons
+                            + "|" + result.trainLength + "|" + result.locoLength
+                            + "|" + result.wagonLength);
+    OpexSign(anchor, "PD|" + idx + "|" + result.wantedPlatformLength + "|"
+                            + result.platformLength + "|" + result.plansA + "|"
+                            + result.plansB + "|" + result.slopeRelaxed);
+    OpexSign(anchor, "PK|" + idx + "|" + (candidate.kind == "pax" ? "P" : "F")
+                             + "|" + candidate.monthly);
+    OpexSign(anchor, "PC|" + idx + "|" + AICargo.GetCargoLabel(candidate.cargo));
+    this._lines.append({
+      stationA = result.stationA, stationB = result.stationB,
+      originA = candidate.src, originB = candidate.dst,
+      cargo = candidate.cargo,
+      predicted = rankingProfit, iterations = result.iterations,
+      trains = result.trains, distance = candidate.distance, year = year,
+      predRevenue = candidate.revenueAnnual, predRunning = candidate.runningAnnual,
+      predAmort = candidate.amortAnnual, predCarried = candidate.carried,
+      predTrains = candidate.trains, predOneWayDays = candidate.oneWayDays,
+      wagons = candidate.wagons, platformLength = candidate.platformLength,
+      loco = candidate.loco, effectiveSpeed = candidate.effectiveSpeed,
+      headwayDays = candidate.headwayDays, stationRating = candidate.stationRating,
+      vehicles = result.vehicles, platformA = result.platformA, platformB = result.platformB,
+      kind = candidate.kind,
+      srcIndustry = (candidate.kind == "freight") ? AIIndustry.GetIndustryID(candidate.src) : -1,
+      dstIndustry = (candidate.kind == "freight") ? AIIndustry.GetIndustryID(candidate.dst) : -1,
+      deadStreak = 0, scrapping = false, scrapVehicles = [],
+      lineId = idx,
+      probe = true,
+    });
+    this._nextLineId++;
+  }
+
+  OpexSign(anchor, "PQ|" + (year % 100) + "|" + stash.len() + "|" + nClose + "|"
+                           + nCash + "|" + tried);
+}
+
 /* Le releve qui permet de calibrer l'etage 1 : pour chaque ligne, la note de gare REELLE (on
  * suppose STATION_RATING_PCT = 75) et le profit REEL des vehicules (on a predit profitAnnual).
  * C'est exactement la mesure qui manquait a la campagne v3. */
@@ -1154,6 +1283,17 @@ function OpexAI::_reportYear(year, ranked)
   OpexSign(anchor, "CE|" + year + "|" + stats.economicsUnavailable + "|"
                            + stats.profitNonPositive + "|" + stats.ratioTooLow);
   OpexSign(anchor, "CK|" + year + "|" + stats.accepted + "|" + stats.topKOmitted);
+  /* Item 7 : population des rejets profit<=0, pas seulement le compte CE.
+   * NH|aa|n50|n75|n100|n200  bandes de distance ; NM|aa|pax|frt|near|mean.
+   * Pire NM|99|9999|9999|9999|-999999 : 28 caracteres. Gate : a 0, zero panneau. */
+  if (PROBE_NEGATIVE) {
+    local mean = 0;
+    if (stats.profitNonPositive > 0) mean = stats.negSum / stats.profitNonPositive;
+    OpexSign(anchor, "NH|" + (year % 100) + "|" + stats.negBand50 + "|" + stats.negBand75
+                             + "|" + stats.negBand100 + "|" + stats.negBand200);
+    OpexSign(anchor, "NM|" + (year % 100) + "|" + stats.negPax + "|" + stats.negFreight
+                             + "|" + stats.negNear + "|" + mean);
+  }
 
   if (best != null) {
     OpexSign(anchor, "OB|" + year + "|" + best.distance
@@ -1259,6 +1399,7 @@ function OpexAI::Start()
   ROAD_BUILD_ENABLED = AIController.GetSetting("road_mode") != 0;
   ROAD_REFLEET = AIController.GetSetting("road_refleet") != 0;
   ASTAR_COST_V2 = AIController.GetSetting("astar_cost") != 0;
+  PROBE_NEGATIVE = AIController.GetSetting("probe_negative") != 0;
 
   /* 🔴 RENOUVELLEMENT AUTOMATIQUE (2026-08-29). Mesure : campagne 20 ans, graine 42 -- trois des
    * quatre lignes ROUTIERES finissent la partie avec vehCount = 0 et un profit de zero, alors que
@@ -1324,6 +1465,10 @@ function OpexAI::Start()
       local buildStartTick = AIController.GetTick();
       this._tryBuild(ranked, year);
       local tryBuildTicks = AIController.GetTick() - buildStartTick;
+      /* Item 7 : APRES le classement, AVANT la route. Le cash restant est celui que le
+       * TOP_K n'a pas voulu ; la route ne le dispute pas encore. Hors YT : a 0, un seul
+       * test, et la duree _tryBuild reste comparable aux campagnes anterieures. */
+      if (PROBE_NEGATIVE) this._tryProbeNegative(ranked, year);
       /* APRES le rail, et delibere : cf. le commentaire en tete de _tryBuildRoads. YT continue de
        * ne mesurer que _tryBuild, pour que la duree du cycle rail reste comparable aux campagnes
        * anterieures ; le cout de la phase routiere se lit sur ses propres panneaux RB. */
