@@ -36,6 +36,55 @@ hypothèses de pertinence, pas des résumés.
 
 ---
 
+## 0. 🔴 L'ITEM DE TÊTE : le vivier de candidats s'éteint, et il emporte `station_join` avec lui
+
+Mesuré le 2026-08-29 sur la campagne 20 ans, graine 42 (`docs/opex_road_20y_42.json`), et c'est le
+plus gros écart mesurable dont nous disposions — bien devant tout gain marginal.
+
+| période | candidats classés / an | lignes rail / an | ce qui bloque |
+|---|---|---|---|
+| 1970-1980 | 13 à 35 | ~1 | la **trésorerie** (`GC` posé onze années de suite) |
+| 1982-1989 | **0 à 3** | ~0,75 | le **vivier** : 213 à 242 paires/an rejetées « origine déjà servie » |
+
+**Le fait.** À partir de 1982, `OpexOriginServed` écarte **213 à 242 paires par an** à la
+génération, et il ne reste plus que 0 à 3 candidats classés. La règle « un seul raccordement par
+origine » a consommé la carte. Huit années produisent six lignes.
+
+**Et la conséquence qu'on n'avait pas vue : `station_join` ne peut pas fonctionner.** La
+fonctionnalité, commitée le matin du 2026-08-29 (`154409b`, `e39685a`), devait précisément
+récupérer ce vivier en offrant un quai joint plutôt qu'un rejet. Elle mesure **0 tentative en
+20 ans**. La cause n'est plus un mystère — elle est structurelle : `OpexOriginServed` supprime le
+candidat **à la génération**, donc bien avant que `_tooClose` ait l'occasion de proposer une
+jointure. `OpexFindStationJoin` n'est atteignable que dans une bande étroite (une extrémité à plus
+de `ORIGIN_SEPARATION = 3` de toute origine servie mais à moins de `MIN_SEPARATION = 10` d'une gare
+bâtie), et cette bande est presque vide en pratique.
+
+Deux règles écrites le même jour se neutralisent. **Remplace l'ancien item « instrumenter le refus
+de jointure »** : il n'y a plus rien à instrumenter, le refus a lieu un étage plus haut.
+
+**Ce qu'il faut faire, dans l'ordre :**
+
+1. Laisser passer à la génération les candidats dont une extrémité est servie **quand l'autre ne
+   l'est pas**, et laisser `_tooClose` / `OpexFindStationJoin` trancher — c'est-à-dire rendre à la
+   règle son rôle de filet et non de guillotine.
+2. Mesurer au banc apparié, `station_join` étant déjà réglable (`station_join=0` fournit le bras de
+   contrôle). ⚠️ Le plancher de détection est de ~12 % sur `performance_history` ; si l'effet est
+   plus petit, lire une métrique directe — nombre de lignes bâties après la 12e année.
+
+⚠️ **Ce que ce diagnostic dit AUSSI, et qu'il ne faut pas confondre avec l'item ci-dessus.** Le mur
+de trésorerie des onze premières années n'est **pas** l'absence de réemprunt notée dans `info.nut` :
+sur ces onze années **l'emprunt est déjà au maximum**. C'est le plafond d'emprunt lui-même face au
+prix d'une ligne rail (82 000 à 240 000 pour 87 000 à 264 000 en caisse). La croissance précoce est
+donc fixée par les bénéfices non distribués, et le seul levier est **la ligne bon marché** — ce qui
+explique après coup pourquoi le mode route gagne au banc. Une hypothèse s'en déduit, **non
+mesurée** : `_tryBuild` fait `break` sur la trésorerie en invoquant le « classement décroissant »,
+or le classement est sur le **rapport**, pas sur le capital — un candidat moins bien classé mais
+abordable n'est jamais examiné. Le préalable est d'instrumenter `candidate.capital` du `TOP_K` au
+moment du `break` ; le correctif (`continue` borné plutôt que `break`) ne vaut d'être écrit
+qu'ensuite.
+
+---
+
 ## 1 bis. Mode route : ouvert, mesuré, et ce qui reste (2026-08-29)
 
 **✅ Adopté au banc apparié** (`docs/bench_v2_road.json`, 20 graines × 20 ans) :
