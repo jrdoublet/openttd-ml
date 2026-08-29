@@ -131,15 +131,24 @@ ABANDON_MEMORY <- true;
 /* Raccordement de gare : repli actif jusqu'a la lecture unique de station_join dans Start().
  * Commande AUSSI la relaxation d'origine a la generation (candidates.nut) : les deux moities du
  * meme mecanisme partagent un seul reglage, sans quoi le bras de controle du banc ne reproduirait
- * pas le comportement historique. Repli FAUX depuis le 2026-08-29 : le mecanisme fait bien batir
- * l'IA (+37,2 % de vehicules, 18/20 graines) mais ne paie pas (company_value -0,3 %) tant que la
- * prediction d'un candidat a jointure reste sur-estimee -- tout le verdict est dans info.nut. */
+ * pas le comportement historique. Repli FAUX depuis le 2026-08-29 : deux bancs (vivier, puis
+ * post-traction) montrent un effet de construction sans valeur. Tout le verdict est dans info.nut. */
 STATION_JOIN <- false;
 
 /* Filtre d'origine sitable : repli FAUX jusqu'a la lecture unique de origin_sitable dans
  * Start(). Defaut 0 apres banc apparie (pas d'effet etabli) ; 1 ecarte du TOP_K les sources
  * fret sans tuile de terre dans le bassin. Le classement a 0 est celui d'avant le filtre. */
 ORIGIN_SITABLE <- false;
+
+/* Partage de bassin : repli FAUX jusqu'a la lecture unique de basin_share dans Start().
+ * Defaut 0 apres banc apparie : le partage declasse les jointures sans porter de valeur.
+ * Inerte si station_join = 0. */
+BASIN_SHARE <- false;
+
+/* Reemprunt a la demande : repli FAUX jusqu'a la lecture unique de reborrow dans Start().
+ * Defaut 0, non mesure. 1 tire le palier manquant (jamais le maximum) quand un candidat
+ * depasserait la tresorerie. Sans lui, _tryRepayLoan est a sens unique. */
+REBORROW <- false;
 
 /* Ligne fret morte (2026-08-28) : une industrie source qui ferme NE garantit PAS l'effondrement --
  * la gare peut recuperer une industrie voisine du meme cargo (ligne 4, campagne 20 ans, restee
@@ -350,8 +359,12 @@ function OpexAI::_tryBuildAir(year)
   if (plan == null) return;
 
   local capital = 2 * this._catalog.airport.price + this._catalog.plane.price;
+  local need = capital + CASH_RESERVE + AIR_CAPITAL_MARGIN;
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  if (money < capital + CASH_RESERVE + AIR_CAPITAL_MARGIN) return;
+  if (money < need) {
+    if (REBORROW) money = OpexTryReborrow(need, money);
+    if (money < need) return;
+  }
 
   local result = OpexBuildAirRoute(this._catalog, this._budget, plan);
   local anchor = AIMap.GetTileIndex(1, 1);
@@ -392,8 +405,12 @@ function OpexAI::_tryBuildWater(year)
   local planOps = this._budget.end("build_water_plans");
   if (plan == null) return;
   local capital = 2 * this._catalog.costDock + this._catalog.costWaterDepot + this._catalog.maxShipPrice;
+  local need = capital + CASH_RESERVE + WATER_CAPITAL_MARGIN;
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  if (money < capital + CASH_RESERVE + WATER_CAPITAL_MARGIN) return;
+  if (money < need) {
+    if (REBORROW) money = OpexTryReborrow(need, money);
+    if (money < need) return;
+  }
   local result = OpexBuildWaterRoute(this._catalog, this._budget, plan);
   local anchor = AIMap.GetTileIndex(1, 1);
   if (result.ok) OpexSign(anchor, "OM|W|" + year + "|" + plan.distance + "|" + planOps);
@@ -448,8 +465,12 @@ function OpexAI::_tryBuildRoads(year)
     if (OpexOriginServed(this._lines, candidate.src, true)) continue;
     if (OpexOriginServed(this._lines, candidate.dst, true)) continue;
 
+    local need = candidate.capital + CASH_RESERVE + ROAD_CAPITAL_MARGIN;
     local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-    if (money < candidate.capital + CASH_RESERVE + ROAD_CAPITAL_MARGIN) break;
+    if (money < need) {
+      if (REBORROW) money = OpexTryReborrow(need, money);
+      if (money < need) break;
+    }
 
     attempts++;
     this._budget.begin();
@@ -685,14 +706,18 @@ function OpexAI::_tryBuild(ranked, year)
       }
     }
 
+    local need = candidate.capital + CASH_RESERVE;
     local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-    if (money < candidate.capital + CASH_RESERVE) {
-      nCashBlocked++;
-      OpexSign(anchor, "GC|" + year + "|" + money + "|" + candidate.capital);
-      /* Le ratio trie le profit/iteration, pas le capital. Continuer est donc la seule facon de
-       * chercher une ligne financable plus bas ; CASH_CANDIDATE_SCAN_LIMIT borne ce parcours a la
-       * taille deja plafonnee du TOP_K. */
-      continue;
+    if (money < need) {
+      if (REBORROW) money = OpexTryReborrow(need, money);
+      if (money < need) {
+        nCashBlocked++;
+        OpexSign(anchor, "GC|" + year + "|" + money + "|" + candidate.capital);
+        /* Le ratio trie le profit/iteration, pas le capital. Continuer est donc la seule facon de
+         * chercher une ligne financable plus bas ; CASH_CANDIDATE_SCAN_LIMIT borne ce parcours a la
+         * taille deja plafonnee du TOP_K. */
+        continue;
+      }
     }
 
     local alternativeSource = (i + 1 < best.len()) ? "S" : "L";
@@ -703,6 +728,8 @@ function OpexAI::_tryBuild(ranked, year)
      * longue. OpexBuildLine a alors recalcule le capital avant toute demolition. Ce rejet reste
      * financier, pas un echec de plan ou de voie, et le classement continue comme ci-dessus. */
     if (result.reason == "CASH") {
+      /* OpexBuildLine a deja tente le reemprunt sur le capital recalcule. S'il ressort CASH,
+       * le plafond d'emprunt n'y suffisait pas : meme continue que ci-dessus. */
       nCashBlocked++;
       OpexSign(anchor, "GC|" + year + "|" + result.money + "|" + result.capital);
       continue;
@@ -1103,12 +1130,47 @@ function OpexAI::_reportYear(year, ranked)
   }
 }
 
+/* Tire le palier d'emprunt manquant pour atteindre `need`, jamais le maximum. Appeler seulement
+ * quand REBORROW est vrai ET que money < need : le chemin historique (reborrow=0) ne paie alors
+ * ni GetLoanAmount ni cette fonction.
+ *
+ * Arrondi VERS LE HAUT au palier GetLoanInterval(), puis bride a GetMaxLoanAmount() -- le
+ * symetrique de _tryRepayLoan, qui arrondit aussi vers le haut pour ne pas passer sous son
+ * plancher. Pose GL seulement sur un tirage reel : GL|year|drew|newLoan|ok (ok=1 si le solde
+ * couvre need). Pire nom GL|1999|9999999|9999999|0 = 26 caracteres. */
+function OpexTryReborrow(need, money)
+{
+  local loan = AICompany.GetLoanAmount();
+  local maxLoan = AICompany.GetMaxLoanAmount();
+  if (loan >= maxLoan) return money;
+  local interval = AICompany.GetLoanInterval();
+  if (interval <= 0) return money;
+
+  local gap = need - money;
+  if (gap <= 0) return money;
+  local target = loan + gap;
+  if (target > maxLoan) target = maxLoan;
+  local newLoan = ((target + interval - 1) / interval) * interval;
+  if (newLoan > maxLoan) newLoan = (maxLoan / interval) * interval;
+  if (newLoan <= loan) return money;
+
+  AICompany.SetLoanAmount(newLoan);
+  local after = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  local drew = after - money;
+  if (drew <= 0) return after;
+  local covered = after >= need ? 1 : 0;
+  OpexSign(AIMap.GetTileIndex(1, 1),
+           "GL|" + AIDate.GetYear(AIDate.GetCurrentDate()) + "|" + drew + "|" + newLoan
+                 + "|" + covered);
+  return after;
+}
+
 /* Remboursement annuel : une fois la tresorerie confortablement au-dessus du plancher, on
  * rembourse le maximum d'emprunt qui laisse encore ce plancher disponible pour l'annee
  * suivante. SetLoanAmount exige un multiple de GetLoanInterval() ; on arrondit donc le nouvel
  * emprunt VERS LE HAUT (jamais vers le bas, ce qui rembourserait plus que permis et pourrait
- * passer sous le plancher). Aucune reprise automatique d'emprunt n'existe ailleurs dans le
- * fichier (grep confirme le 2026-08-28) : rembourser ici ne sera donc pas annule au tick suivant. */
+ * passer sous le plancher). Le reemprunt a la demande (OpexTryReborrow, derriere reborrow)
+ * est le pendant : sans lui ce remboursement est a sens unique. */
 function OpexAI::_tryRepayLoan(year)
 {
   local loan = AICompany.GetLoanAmount();
@@ -1150,6 +1212,8 @@ function OpexAI::Start()
   ABANDON_MEMORY = AIController.GetSetting("abandon_memory") != 0;
   STATION_JOIN = AIController.GetSetting("station_join") != 0;
   ORIGIN_SITABLE = AIController.GetSetting("origin_sitable") != 0;
+  BASIN_SHARE = AIController.GetSetting("basin_share") != 0;
+  REBORROW = AIController.GetSetting("reborrow") != 0;
   /* Lu ici comme les autres reglages de decision : catalog.refresh le consulte des le premier
    * cycle annuel, qui a lieu apres Start(). */
   ROAD_BUILD_ENABLED = AIController.GetSetting("road_mode") != 0;

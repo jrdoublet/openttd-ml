@@ -300,6 +300,28 @@ function OpexOriginJoinable(service, kind, cargo, end)
                             { line = service.line, end = end, lineEnd = service.lineEnd });
 }
 
+/* Combien de lignes RAIL utilisent deja ce StationID pour ce cargo. Les modes avec un champ
+ * `mode` (air, eau, route) n'ont pas de quai rail a partager. */
+function OpexStationCargoLineCount(lines, stationId, cargo)
+{
+  if (stationId < 0) return 0;
+  local n = 0;
+  foreach (line in lines) {
+    if (("mode" in line)) continue;
+    if (!("cargo" in line) || line.cargo != cargo) continue;
+    if (OpexLineStationId(line, "A") == stationId || OpexLineStationId(line, "B") == stationId) n++;
+  }
+  return n;
+}
+
+/* La part du nouvel arrivant : 1/(n+1) de la production de CETTE extremite, n = lignes deja
+ * la. n = 0 (StationID invalide) laisse le montant intact. */
+function OpexShareBasin(amount, lines, stationId, cargo)
+{
+  local n = OpexStationCargoLineCount(lines, stationId, cargo);
+  return amount / (n + 1);
+}
+
 /* Part de la production TOTALE d'une ville qui tombe dans le rayon de couverture d'UNE gare.
  * CALIBRE le 2026-08-28 (meme mesure que STATION_RATING_PCT ci-dessus) : en isolant le facteur
  * note de gare (mesure separement via AIStation.GetCargoRating), le residu -- production reelle
@@ -353,7 +375,14 @@ function OpexPaxCandidates(catalog, lines, out, stats)
        * origine : le debit utile est la somme, pas le minimum. On ignore encore la croissance de
        * la ville que la desserte provoque (sous-estimation non calibree, plus petite que le
        * facteur ci-dessus d'apres la mesure). */
-      local monthly = ((produced[a] + produced[b]) * TOWN_CATCHMENT_SHARE_PCT) / 100;
+      local prodA = produced[a];
+      local prodB = produced[b];
+      /* basin_share : la ville DEJA servie n'offre plus sa production entiere. Ce n'est PAS le
+       * double comptage mesure (et ecarte) ci-dessous : c'est le partage de stock une fois le
+       * StationID joint, docs/taches.md §2.9.3. */
+      if (BASIN_SHARE && sa != null) prodA = OpexShareBasin(prodA, lines, sa.stationId, cargo);
+      if (BASIN_SHARE && sb != null) prodB = OpexShareBasin(prodB, lines, sb.stationId, cargo);
+      local monthly = ((prodA + prodB) * TOWN_CATCHMENT_SHARE_PCT) / 100;
       /* BIAIS MESURE, ET CE N'EST PAS LUI LE COUPABLE (2026-08-29, sweeps/opex_join_bias.py sur
        * 10 graines x 20 ans, 155 lignes). Quand `originServed` est vrai, la ville servie voit deja
        * une partie de sa production partir par la ligne existante et ce calcul la compte une
@@ -389,10 +418,14 @@ function OpexFreightCandidates(catalog, lines, out, stats)
     foreach (si in sources) {
       local source = industries[si];
       local monthly = AIIndustry.GetLastMonthProduction(source.id, cargo);
+      local ss = served[si];
+      /* Source seulement : le puits n'a pas de production a partager. */
+      if (BASIN_SHARE && ss != null) {
+        monthly = OpexShareBasin(monthly, lines, ss.stationId, cargo);
+      }
       foreach (di in sinks) {
         if (di == si) continue;
         stats.pairsTotal++;
-        local ss = served[si];
         local sd = served[di];
         /* Meme regle qu'en pax ci-dessus, roles compris : la source est l'extremite "A" du
          * candidat a naitre, le puits l'extremite "B". */

@@ -48,7 +48,9 @@ Repris du rail, avec trois écarts, chacun justifié :
 - **`MAX_ROAD_VEHICLES = 2`.** Un arrêt n'accueille que deux véhicules à la fois ; au-delà ils font
   la queue sur la route et se bloquent (`docs/mecanique_jeu.md` §11). Ce n'est pas une précaution,
   c'est la règle du jeu. Le levier de volume est le **multistop**, non implémenté.
-- **`ROAD_SPEED_EFFICIENCY_PCT = 60`** contre 70 au rail. Hypothèse, non calibrée.
+- **`ROAD_SPEED_EFFICIENCY_PCT = 60`.** Hypothèse, non calibrée. Le rail n'a plus d'abattement
+  forfaitaire (`SPEED_EFFICIENCY_PCT` a été remplacé par la traction dimensionnée) ; la route
+  n'a pas encore ce modèle.
 - **La durée de trajet suit le tracé**, et ici tracé et distance Manhattan coïncident (le tracé est
   un L de Manhattan), ce qui autorise la même formule sans facteur de détour.
 

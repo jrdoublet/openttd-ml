@@ -115,18 +115,37 @@ pas plus de valeur ».
 
 **Ce qu'il faut faire, dans l'ordre :**
 
-1. 🔴 **Recalibrer `OpexLineEconomics` en distance**, c'est le vrai item de tête et il déborde
-   largement la jointure : il fausse **tout** le classement, `MIN_RATIO` compris, puisque le
-   plancher a été calibré sur une population majoritairement courte. Les données sont déjà là
-   (`docs/opex_join_bias.json`, 155 lignes avec prédit, réel, distance, époque, type).
-2. Une fois l'étage 1 honnête en distance, **rejouer le banc apparié `station_join`** : l'effet de
-   construction (+37,2 %, t = 5,94, p = 0,0004) est énorme et solide ; s'il se met à porter de la
-   valeur, l'item est gagné sans rien changer d'autre.
+1. ✅ **Recalibrer `OpexLineEconomics` en distance** — fait par la traction (§0 bis, `4a8e15e`) :
+   quai, wagons, loco et vitesse réelle, plus le `ceil` des trajets. Ce n'est pas un facteur
+   empirique en distance (écarté). Sur la graine 42 après traction, `profit réel / prédit` (année
+   2) ne tombe plus à 0,00 au-delà de 100 tuiles (médianes 2,40 / 1,49 / 0,89 / 0,72, n petit).
+   Le classement n'est plus celui du banc vivier.
+2. ✅ **Rejouer le banc apparié `station_join` sur cet étage 1** — fait
+   (`docs/bench_join_after_traction.json`, paire
+   `docs/bench_join_after_traction_paired.json`). Même v1, `origin_sitable=0`.
+
+   | métrique | delta | t | graines | verdict |
+   |---|---|---|---|---|
+   | `n_vehicles` | **+23,6 %** | **3,50** | **17/20** | l'IA bâtit encore plus |
+   | `n_stations` | **−11,9 %** | **−3,61** | 4/20 | moins de gares (réemploi) |
+   | `company_value` | +5,9 % | 0,96 | 11/20 | sous le plancher (~15 %) |
+   | `performance_history` | +4,3 % | 1,34 | 12/20 | sous le plancher (~12 %) |
+   | emprunt résiduel | 1 → 0 | | | petit plus |
+   | minimum | 1,68 M → 1,27 M | | | le plancher recule |
+   | CV | 0,31 → 0,36 | | | plus dispersé |
+
+   L'effet de construction **survit à la traction** (un peu plus petit qu'à +37,2 %, t = 5,94,
+   mais toujours massif). Moins de gares pour plus de véhicules : c'est le mécanisme de la
+   jointure, pas un bug. **La valeur ne passe toujours pas le plancher.** La graine 42 recule
+   de 18 %. ⚠️ **Défaut `station_join` reste 0.** Le partage de bassin (§2.9.3) est mesuré et
+   ne paie pas davantage. Le spread n'est pas la suite.
 3. Seulement ensuite, le **rendement des jointures** : `NOPLAN` en tue 68 sur 82, mais à
    32 280 opcodes et zéro itération d'A\*, soit 0,4 % du budget — c'est un levier de rendement,
-   pas d'économie.
+   pas d'économie. AAAHogEx cherche dans l'enveloppe `station_spread` du groupe, pas un parallèle
+   collé ; 68/82 `NOPLAN` est exactement « pas de parallèle libre ».
 4. ⚠️ Ne **pas** corriger `monthly` pour une origine servie sur la foi du chiffre brut : c'est le
-   piège que cette mesure vient de désamorcer.
+   piège que cette mesure vient de désamorcer. Le partage de stock **une fois la gare jointe**
+   (plusieurs lignes, même `StationID`) est un autre terme, lui encore ouvert (§2.9.3).
 
 ⚠️ **Effet de bord à ne pas attribuer au mode route :** le rail affamé reprend la trésorerie, et
 les lignes routières passent de 6 à 3 sur la graine 42. Le +9,3 % du mode route a été mesuré avec
@@ -202,8 +221,12 @@ citer le +7,7 % comme un résultat acquis.
    d'avant. Le mécanisme (ne plus brûler ~14 M d'opcodes) n'est établi que sur la graine 42 ;
    `bench_v2` ne lit pas les `NOPLAN`.
 2. **Le repli sur quai plus court n'a été exercé par aucune construction réussie** (`PD` : 0 repli
-   observé). Le chemin est écrit et relu, jamais éprouvé — donc non validé.
-3. La jointure n'est vérifiée qu'à la lecture, `station_join` restant à 0.
+   observé, traction v3 et sitable, 20+19 lignes). Les quais voulus sont déjà 2 ou 3 tuiles ;
+   les échecs restants après `origin_sitable` sont `ABND`/`TRKFAIL` (site trouvé). Ce n'est pas
+   un levier de croissance — laisser jusqu'à ce qu'un `PD` montre un raccourcissement.
+3. ✅ **`station_join` : v1 en place, défaut 0.** Banc post-traction : construction sans
+   valeur. `basin_share` mesuré ensuite : véhicules nuls, gares +12,9 %, valeur sous le
+   plancher. Les deux défauts restent 0. Note AAAHogEx : `docs/aaahogex_rail_join.md`.
 
 ---
 
@@ -369,16 +392,19 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
    abaisser le plancher ne change littéralement rien — le correctif ne touche que les parties qu'il
    vise.
 
-   ⚠️ **Reste 1 graine (42) à 230 000** : une compagnie trop pauvre pour dégager même 300 000 de
-   disponible. Descendre plus bas passerait sous le coût de la plus grosse ligne ; le vrai correctif
-   pour ce cas est l'item 8 ci-dessous.
+   ⚠️ **Reste 1 graine (42) à 230 000 SUR CE BANC.** Sur l'arbre courant elle solde tout en 1975
+   (`docs/opex_reborrow_20y_42.json`). Descendre le plancher sous 300 passerait sous le coût de
+   la plus grosse ligne ; l'item 8 (réemprunt) ne paie pas : le trou est vide.
 
-8. 🔵 **Rien dans le code ne réemprunte** (relevé le 2026-08-29 en corrigeant l'item 4, non traité).
-   `AICompany.SetLoanAmount` n'est appelé qu'au démarrage (au maximum, `main.nut:788`) et pour
-   rembourser (`main.nut:771`). Une compagnie qui se désendette puis rencontre un candidat plus cher
-   que sa trésorerie **ne peut pas reprendre l'emprunt** — elle renonce simplement à la ligne. C'est
-   borné tant que le plancher couvre la plus grosse ligne observée (248 106 < 300 000), mais c'est
-   un angle mort réel, et c'est la seule voie propre pour la graine 42 qui reste endettée.
+8. ✅ **Réemprunt à la demande : écrit, mesuré, défaut 0 — le trou est vide** (2026-08-29, nuit).
+   `OpexTryReborrow` tire le palier manquant aux quatre portes de cash, derrière `reborrow`.
+   5 graines × 20 ans (`docs/opex_reborrow_20y_42.json`, `docs/opex_reborrow_20y_4seeds.json`) :
+   **412 `GC`, 0 tirage `GL`, 0 `GC` avec de l'emprunt encore disponible.** Tous les blocages
+   cash sont des années où l'emprunt est déjà au plafond 300 000. Dès que le remboursement
+   commence, plus aucun `GC`. Le mur n'est pas l'absence de réemprunt, c'est le plafond
+   d'emprunt lui-même (mur n° 1). Pas de banc apparié n=20 : ce serait mesurer un mécanisme
+   inerte. Le code reste ; `OpexAI[reborrow=1]` rallume. La graine 42 à 230 000 d'emprunt
+   résiduel du banc `loan_repay_floor` est **périmée** sur cet arbre : elle solde tout en 1975.
 
 5. ⚪ **Régler `MIN_SEPARATION` : piste ÉCARTÉE le 2026-08-29, alors même que la mesure la
    désigne comme le verrou.** L'investigation de plafonnement (`docs/opexai_plafonnement.md`) a
@@ -477,10 +503,12 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
    **pas** conclure que ces 1 905 paires sont réellement non rentables. Vérifiable à coût borné :
    forcer la construction d'un échantillon de paires rejetées et comparer prédit/réel sur elles.
 
-9. 🔴 **Les suites de la tranche v1 du raccordement de gare** (§9(b) livré le 2026-08-29, non
-   commité). Le quai parallèle joint au même `StationID` avec sa propre entrée est en place et
-   contourne à la fois la question des jonctions et le blocage sur voie unique ; note de conception
-   dans `docs/opexai_raccordement_gare.md`. Trois suites, dans cet ordre :
+9. 🔴 **Les suites de la tranche v1 du raccordement de gare** (commité, défaut `station_join=0`).
+   Le quai parallèle joint au même `StationID` avec sa propre entrée est en place et contourne à
+   la fois la question des jonctions et le blocage sur voie unique ; note de conception dans
+   `docs/opexai_raccordement_gare.md`. Le banc vivier a dit non ; le banc post-traction aussi
+   pour la valeur (§0.2), malgré un effet de construction toujours solide. Trois suites, dans
+   cet ordre :
 
    1. 🔴 **Instrumenter le REFUS de jointure — le plus urgent.** `OpexFindStationJoin` rend `null`
       sans dire laquelle des trois conditions a tué le candidat : gare logique unique (plusieurs
@@ -497,16 +525,30 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
       dans la mémoire des paires : le candidat revient l'année suivante repayer la même recherche.
       Hypothèse, pas un fait mesuré : le compteur `OB|J|` et le code de raison `J` la trancheront
       dès la première campagne.
-   3. **Le profit prédit d'une ligne jointe est surestimé.** Il est calculé pour une gare neuve
-      captant seule son bassin, alors que sur une gare partagée les convois des deux lignes puisent
-      dans le même stock. Le modèle économique ne connaît pas ce partage.
+   3. ✅ **Le profit prédit d'une ligne jointe — `basin_share` mesuré, défaut 0.** La production
+      de l'extrémité jointe est divisée par (n+1). Banc apparié 20 graines × 20 ans
+      (`docs/bench_basin_share.json`, paire `docs/bench_basin_share_paired.json`), les deux
+      bras à `station_join=1` :
 
-**Priorité de fait, révisée le 2026-08-29 (soir)** : les items **4** et **6** sont ✅ faits ; la
-tête de liste est désormais l'item **9.1** — instrumenter le refus de jointure — parce qu'il est
-petit, qu'il conditionne toute décision sur §9, et que le banc en cours ne peut pas y répondre (il
-ne lit que les sauvegardes). Viennent ensuite l'item **9.2** (`JOINPATH`), puis le modèle de coût
-A\* du §3, dont le désaccord de forme est maintenant chiffré. L'item **8** (réemprunt) reste le
-seul correctif propre pour la graine 42.
+      | métrique | delta | t | graines | verdict |
+      |---|---|---|---|---|
+      | `company_value` | +5,5 % | 0,89 | 11/20 | sous le plancher (~15 %) |
+      | `performance_history` | +3,8 % | 1,11 | 11/20 | sous le plancher (~12 %) |
+      | véhicules | +0,2 % | 0,04 | 12/20 | **nul** — pas moins de trains |
+      | gares | **+12,9 %** | **3,67** | **15/20** | les jointures sont déclassées |
+
+      Ce n'est pas « moins de trains sur un bassin partagé ». C'est un **autre classement** :
+      les candidats à jointure reculent, l'IA repose des gares neuves, les véhicules du bras
+      join restent. Graine 42 : tentatives 228 → 40, véhicules 221 → 238. ⚠️ **Défaut 0.**
+      Le spread n'est **pas** débloqué : joindre plus, sur un terme qui ne paie pas, recréerait
+      le banc vivier.
+
+**Priorité de fait, révisée le 2026-08-29 (nuit)** : `station_join` et `basin_share` sont ✅
+mesurés, **ni l'un ni l'autre ne paie**, défauts 0. L'item **8** (réemprunt) est ✅ écrit et
+mesuré : **le trou est vide** (412 `GC` à emprunt max, 0 tirage). Le **spread** n'est pas la
+suite. 9.1 et 9.2 n'informent qu'un réglage éteint. La tête redevient le mode route
+**item 0** (la graine qui coule) — seul échec qualitatif encore ouvert. `origin_sitable`,
+`station_join`, `basin_share` et `reborrow` restent à 0.
 
 *Priorité précédente, conservée pour la trace* : ~~l'item **4**~~ (✅ fait) et l'item **6**
 (plafond d'abandon) passaient devant — ce sont deux échecs mesurés, et surtout les deux seuls
@@ -573,11 +615,9 @@ mesure (la croissance des villes desservies stagne-t-elle réellement ?).
      d'autant et divise donc tous les budgets d'autant. Sans re-dérivation conjointe du
      multiplicateur, on reproduit l'échec mesuré du 2026-08-28 : « 60 tentatives sur 5 ans, budgets
      de 50 à 400 itérations, zéro ligne construite ».
-- **Constantes HYPOTHÈSE restantes** : `SPEED_EFFICIENCY_PCT = 70` et `WAGONS_PER_TRAIN = 5` —
-  ni l'une ni l'autre n'a été isolée par la mesure ci-dessus (le nombre de trains prédit a toujours
-  matché le nombre réel exactement sur les 9 lignes, mais c'est la contrainte de fréquence
-  `TARGET_HEADWAY_DAYS` qui dominait à chaque fois, jamais la capacité — `WAGONS_PER_TRAIN` reste
-  donc non testé).
+- ✅ **Constantes HYPOTHÈSE `SPEED_EFFICIENCY_PCT = 70` et `WAGONS_PER_TRAIN = 5`** : remplacées
+  le 2026-08-29 par la traction dimensionnée (`4a8e15e`). `ROAD_SPEED_EFFICIENCY_PCT = 60` reste
+  une hypothèse du mode route (`docs/opexai_route.md`).
 
 ---
 
@@ -816,12 +856,9 @@ Ne pas oublier deux composantes gratuites de la note de compagnie : **emprunt à
      reformule entièrement. CV de `company_value` **32,6 % → 48,8 %** (~2σ, l'erreur-type d'un CV
      à n=20 valant ~7,9 points : suggestif, pas concluant à lui seul).
 
-- 🔴 **Committer la session du 2026-08-29 (seconde moitié) — RIEN n'est commité.** L'arbre porte
-  le plafond d'abandon (`pathfinder_hard_cap_k`, `abandon_memory`), la tranche v1 du raccordement
-  de gare (`station_join`), `docs/opexai_raccordement_gare.md`, et l'extension de la liste blanche
-  de `parse_opex_variant` dans `sweeps/bench_v2.py` sans laquelle aucun bras paramétré avec les
-  trois nouveaux réglages n'est acceptable en ligne de commande. À découper en commits séparés :
-  les deux lots sont indépendants et le banc les oppose comme tels.
+- ✅ **Committer la session du 2026-08-29 (seconde moitié)** — le plafond d'abandon et le
+  raccordement v1 sont dans `154409b` / `e39685a` / `8b50f12`. Join après traction,
+  `basin_share` et `reborrow` suivent : trois mesures, trois défauts à 0.
 
 - 🔴 **Re-baseliner à nouveau : deux durcissements sont INCONDITIONNELS.** La passe du raccordement
   a introduit deux changements qui s'appliquent à toutes les lignes, y compris avec
@@ -837,12 +874,9 @@ Ne pas oublier deux composantes gratuites de la note de compagnie : **emprunt à
   bras du banc les portent, la comparaison appariée reste valide. **Mais `docs/bench_v2.json` et
   `docs/opexai_plafonnement_mesure.json` ne sont plus des références** pour l'arbre courant.
 
-- **Corriger le chemin cité dans `docs/opexai_raccordement_gare.md`** : la note dit avoir vérifié
-  `src/script/api/script_rail.hpp`, or le `src/` du dépôt ne contient que du Python — les en-têtes
-  de l'API sont ailleurs sur la machine. La vérification elle-même est juste (`BuildRailStation`
-  accepte bien un `StationID` valide, `@pre station_id == STATION_NEW || STATION_JOIN_ADJACENT ||
-  IsValidStation(station_id)`, et `STATION_NEW = 0xFFFD` vient de `script_basestation.hpp`) ; seul
-  le chemin publié induirait un lecteur en erreur.
+- ✅ **Chemin d'API dans `docs/opexai_raccordement_gare.md`** : la note citait
+  `src/script/api/script_rail.hpp` comme s'il était dans ce dépôt. Corrigé : le `src/` d'ici
+  n'est que du Python ; les `@pre` restent ceux des en-têtes NoAI 15.
 
 ---
 

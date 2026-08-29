@@ -10,7 +10,7 @@ class OpexAI extends AIInfo {
 
   /* Les reglages debug_signs et pathfinder_sleep_ticks existent pour NE PAS POLLUER une partie
    * partagee avec des joueurs humains (loan_repay_floor_k, pathfinder_hard_cap_k,
-   * abandon_memory, station_join, origin_sitable et road_mode, eux, sont des parametres de conception exposes au banc,
+   * abandon_memory, station_join, origin_sitable, basin_share, reborrow et road_mode, eux, sont des parametres de conception exposes au banc,
    * pas des bridages).
    * Entre IA, la regle est l'inverse : jouer a armes egales,
    * donc ne jamais s'auto-handicaper face a un adversaire qui ne se bride pas. Un handicap non intentionnel
@@ -56,11 +56,10 @@ class OpexAI extends AIInfo {
      * La courbe est plate entre 300 et 500 (meme annee de deblocage sur 4 graines sur 6), et
      * descendre a 200 passerait sous le cout de la plus grosse ligne : 300 est le genou.
      *
-     * /!\ RISQUE A NE PAS OUBLIER en abaissant ce seuil : rien dans le code ne REEMPRUNTE.
-     * SetLoanAmount n'est appele qu'au demarrage (au maximum) et pour rembourser. Une compagnie
-     * qui se desendette puis rencontre un candidat plus cher que sa tresorerie ne peut pas
-     * reprendre l'emprunt -- elle renonce simplement a la ligne. C'est borne (le plancher couvre
-     * la plus grosse ligne observee) mais c'est un vrai angle mort, a traiter separement.
+     * /!\ LE REEMPRUNT N'EST PLUS ABSENT, il est derriere le reglage `reborrow` (defaut 0).
+     * Sans lui, rembourser ici reste a sens unique : une compagnie desendettee qui rencontre
+     * un candidat plus cher que sa tresorerie renonce a la ligne. Le plancher 300 couvre la
+     * plus grosse ligne observee (248 106) donc le trou est borne tant que reborrow reste a 0.
      *
      * VERDICT DU BANC APPARIE (docs/bench_v2_emprunt.json, 20 graines x 20 ans, OpexAI contre
      * OpexAI[loan_repay_floor_k=300]) : adopte.
@@ -76,9 +75,10 @@ class OpexAI extends AIInfo {
      *   - Preuve que le changement est chirurgical : sur 4 graines (17, 999, 2026, 8675309) les
      *     deux bras sont BIT A BIT identiques -- la ou la tresorerie franchissait le million d'un
      *     coup, abaisser le plancher ne change litteralement rien.
-     *   - Reste 1 graine (42) a 230 000 : une compagnie trop pauvre pour degager meme 300 000 de
-     *     disponible. Descendre plus bas passerait sous le cout de la plus grosse ligne ; le vrai
-     *     correctif pour ce cas est le reemprunt manquant ci-dessus. */
+     *   - Reste 1 graine (42) a 230 000 SUR CE BANC. Sur l'arbre courant elle solde tout en 1975
+     *     (docs/opex_reborrow_20y_42.json). Descendre le plancher sous 300 passerait sous le
+     *     cout de la plus grosse ligne ; `reborrow` (ci-dessous) ne paie pas : le trou
+     *     "desendetter puis manquer d'argent" est vide. */
     AddSetting({
       name = "loan_repay_floor_k",
       description = "Cash floor below which the loan is not repaid, in thousands: 300 = measured default, 1000 = pre-2026-08-29 behaviour",
@@ -87,6 +87,35 @@ class OpexAI extends AIInfo {
       custom_value = 300,
       step_size = 50,
       flags = 0
+    });
+
+    /* Reemprunt a la demande. Defaut 0 DEPUIS LE 2026-08-29, apres mesure : le trou est vide.
+     *
+     * CE QUE 1 FAIT. Quand un candidat (rail, route, air, eau) depasse cash + CASH_RESERVE,
+     * on tire le palier d'emprunt manquant -- arrondi vers le haut a GetLoanInterval(), bride
+     * a GetMaxLoanAmount() -- jamais le maximum d'un coup. Le chemin ou la tresorerie suffisait
+     * deja ne paie aucun appel d'emprunt. Panneau GL|year|drew|newLoan|ok sur un tirage reel.
+     *
+     * POURQUOI CE N'EST PAS "remettre l'emprunt au max chaque annee". L'emprunt a zero vaut 5 %
+     * de la note de compagnie, et un emprunt qui dort coute 4 % : emprunter plus que le candidat
+     * en cours paierait de l'interet pour de l'argent qui ne construit pas. Le remboursement
+     * annuel (_tryRepayLoan) et ce tirage sont le meme levier, dans les deux sens.
+     *
+     * VERDICT (5 graines x 20 ans, docs/opex_reborrow_20y_42.json et
+     * docs/opex_reborrow_20y_4seeds.json) : 412 GC, 0 tirage, 0 GC avec de l'emprunt encore
+     * disponible. Tous les blocages cash sont des annees ou l'emprunt est DEJA au plafond
+     * (300 000). Des que le remboursement commence, plus aucun GC. Le mur n'est pas l'absence
+     * de reemprunt, c'est le plafond d'emprunt lui-meme -- deja nomme au mur n deg 1. Un banc
+     * apparie n=20 mesurerait le bruit d'un mecanisme inerte : on ne le lance pas.
+     * OpexAI[reborrow=1] rallume. Le code reste : le trou se rouvrirait si le plancher
+     * descendait sous le prix d'une ligne. */
+    AddSetting({
+      name = "reborrow",
+      description = "Borrow the missing loan step when a candidate exceeds cash: 1 = enabled, 0 = historical one-way repay (unmeasured default)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
     });
 
     /* Plafond absolu du pathfinder, EN MILLIERS d'iterations. La campagne 2026-08-29 (4 graines
@@ -123,22 +152,23 @@ class OpexAI extends AIInfo {
      * generation : a 0, une paire dont une seule extremite est servie est ecartee comme avant,
      * donc 0 reste le comportement historique EXACT et le bras de controle du banc apparie.
      *
-     * DEFAUT REPASSE A 0 LE 2026-08-29, APRES MESURE. Le mecanisme marche : le vivier ne s'eteint
-     * plus (graine 42, candidats classes 1984-89 de 0-3 a 4-28), les jointures ont lieu, et le
-     * banc apparie sur 20 graines x 20 ans (docs/bench_v2_vivier.json) montre +37,2 % de vehicules,
-     * t = 5,94, 18 graines sur 20, p = 0,0004. L'IA batit BEAUCOUP plus.
+     * DEFAUT 0 DEPUIS LE 2026-08-29, CONFIRME APRES TRACTION. Le mecanisme marche : le vivier ne
+     * s'eteint plus, les jointures ont lieu. Deux bancs apparies, 20 graines x 20 ans :
+     *   - avant traction (docs/bench_v2_vivier.json) : vehicules +37,2 %, t = 5,94, 18/20 ;
+     *     company_value -0,3 %, t = -0,03 ;
+     *   - apres traction (docs/bench_join_after_traction.json) : vehicules +23,6 %, t = 3,50,
+     *     17/20 ; gares -11,9 %, t = -3,61 (reemploi du StationID) ; company_value +5,9 %,
+     *     t = 0,96, 11/20 -- sous le plancher ~15 %. Sans la graine 1337 (+132 %) il reste
+     *     +1,6 %, t = 0,34. On construit plus, sur moins de gares, pour la meme valeur.
      *
-     * Mais ca ne paie pas : company_value -0,3 % (t = -0,03, 9/20), performance_history +6,5 %
-     * (t = 1,45, 11/20, sous le plancher de detection de ~12 %), variance explosee (de -54,8 % a
-     * +330,5 % selon la graine) et emprunt non rembourse sur 4 graines contre 2. On construit plus
-     * pour la meme valeur, en immobilisant plus de capital.
+     * CE QUI N'EST PAS LA CAUSE. Le double comptage de monthly a une origine servie a ete mesure
+     * (docs/opex_join_bias.json) et, une fois type, distance et epoque neutralises, son intervalle
+     * contient 1. Corriger monthly sur ce chiffre brut serait le piege deja desamorce.
      *
-     * LA CAUSE NOMMEE, non encore corrigee : OpexPaxCandidates/OpexFreightCandidates predisent le
-     * debit d'une extremite DEJA servie avec sa production ENTIERE, en ignorant ce que la ligne
-     * existante en prelevait deja (commentaire "BIAIS CONNU" dans candidates.nut). Un candidat a
-     * jointure est donc sur-estime d'un facteur inconnu, et MIN_RATIO -- calibre sur des candidats
-     * non joints -- ne le rattrape pas. Remettre le defaut a 1 demande d'avoir mesure ce facteur
-     * (protocole sweeps/opex_predict_vs_actual.py sur les lignes jointes), pas avant. */
+     * SUITE : basin_share a ete mesure, defaut 0, et ne paie pas (les jointures sont
+     * declassees, l'IA repose des gares neuves). Le spread n'est PAS la suite : il
+     * convertirait des NOPLAN en jointures sur un classement qui ne paie pas.
+     * docs/aaahogex_rail_join.md reste la note d'idees, pas un plan. */
     AddSetting({
       name = "station_join",
       description = "Reuse one compatible nearby OpexAI rail station with a dedicated platform: 1 = enabled, 0 = historical too-close rejection",
@@ -165,6 +195,29 @@ class OpexAI extends AIInfo {
     AddSetting({
       name = "origin_sitable",
       description = "Drop rail candidates whose source has no land tile seeing the cargo: 1 = enabled, 0 = historical ranking (measured default)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* Partage de bassin sur une gare jointe. Defaut 0 DEPUIS LE 2026-08-29, apres banc apparie.
+     *
+     * CE QUE 1 FAIT. Quand une extremite du candidat reutilise un StationID deja a nous, la
+     * production de CETTE extremite est divisee par (lignes rail deja sur ce StationID pour ce
+     * cargo + 1). Le dest fret n'est PAS divise. Inerte si station_join = 0.
+     *
+     * VERDICT (docs/bench_basin_share.json, paire docs/bench_basin_share_paired.json, 20 graines
+     * x 20 ans, les deux bras a station_join=1) : pas d'effet etabli en valeur.
+     * company_value +5,5 % (t = 0,89, 11/20), performance_history +3,8 % (t = 1,11), sous le
+     * plancher. Les vehicules ne bougent pas (+0,2 %, t = 0,04). Les gares REBONDISSENT
+     * (+12,9 %, t = 3,67, 15/20) : le partage declasse les jointures, l'IA repose des gares
+     * neuves. Ce n'est pas "moins de trains sur un bassin partage", c'est un autre classement.
+     * Graine 42 : tentatives de jointure 228 -> 40, mais vehicules 221 -> 238. 0 reste le bras
+     * join du banc post-traction. */
+    AddSetting({
+      name = "basin_share",
+      description = "Split a joined station's production across rail lines on that StationID: 1 = enabled, 0 = count the catchment as if the station were new (measured default)",
       min_value = 0, max_value = 1,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,

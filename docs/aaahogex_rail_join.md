@@ -4,6 +4,11 @@ Lu dans `ai/AAAHogEx-115/` (surtout `station.nut`, plus `place.nut` et `trainrou
 méthode seulement** : rien de ce fichier n'est à recopier. OpexAI a déjà une tranche v1
 (`docs/opexai_raccordement_gare.md`) qui n'emprunte presque rien de ce modèle.
 
+**Quand s'en servir.** La v1 OpexAI a été retestée après traction (construction +23,6 % de
+véhicules, valeur nulle) **et** après partage de bassin (`docs/bench_basin_share_paired.json`) :
+valeur toujours sous le plancher, véhicules nuls, gares +12,9 %. Le spread convertirait des
+`NOPLAN` en jointures sur ce classement-là. Ne pas l'allumer tant que la v1 ne paie pas.
+
 AAAHogEx ne « raccorde » pas une ligne à une gare comme un repli après un rejet `_tooClose`. La
 jointure est **un mode de placement** : on cherche un nouveau quai **dans l'enveloppe d'une gare
 logique déjà à nous**, et on le construit avec le même identifiant de gare.
@@ -26,8 +31,9 @@ Conséquences :
   exportent déjà ce cargo**. Joindre une gare occupée, c'est en prendre une part, pas tout.
 - Un groupe **virtuel** (aucun quai encore posé) n'est pas une jointure.
 
-OpexAI v1 n'a pas ce compte : le profit d'une ligne jointe est calculé comme si la gare était
-neuve et seule sur son bassin (`docs/taches.md` §2.9.3).
+OpexAI a maintenant ce compte, derrière `basin_share` (défaut 0) : production de l'extrémité
+jointe divisée par (n+1). **Mesuré, et ça ne paie pas** (`docs/bench_basin_share_paired.json`) :
+les jointures sont déclassées, l'IA repose des gares neuves, les véhicules ne baissent pas.
 
 ---
 
@@ -151,15 +157,15 @@ d'industrie et drapeau source, pas seulement `BuildRailStation`.
 | Déclencheur | filet `_tooClose` / `MIN_SEPARATION` | placement au lieu, avant le pathfinder |
 | Géométrie | un quai parallèle, même longueur | tout ancrage dans le spread du groupe |
 | Voie | chemin dédié, rejet si un rail existant est touché | sorties de quai libres de notre rail |
-| Économie | profit de gare neuve | offre du groupe **divisée** par les exportateurs |
+| Économie | gare neuve par défaut ; `basin_share=1` → 1/(n+1), mesuré, n'a pas payé | offre du groupe **divisée** par les exportateurs |
 | Cargo | kind + cargo + rôle fret | groupe déjà producteur/accepteur ; interdiction d'importer un export |
 | Réglage jeu | ignoré | `distant_join_stations` change l'API **et** la zone de recherche |
 | Défaut projet | `station_join = 0` (le banc n'a pas payé) | toujours, c'est comme ça qu'il pose les gares |
 
 Pistes **utiles** si on rouvre la jointure, sans reprendre leur usine à scores :
 
-1. Traiter le groupe / `StationID` comme bassin partagé, et **diviser** `monthly` (ou le carried)
-   par les lignes déjà dessus — c'est le trou nommé au §2.9.3.
+1. ~~Traiter le groupe / `StationID` comme bassin partagé, et **diviser** `monthly` par les
+   lignes déjà dessus~~ — **fait** (`basin_share`), mesuré, défaut 0, ne paie pas (§2.9.3).
 2. Chercher dans le spread, pas seulement les deux translatés. Le banc join a tué 68/82 en
    `NOPLAN` : beaucoup de ces échecs sont « pas de parallèle libre », pas « pas de gare
    joignable ».

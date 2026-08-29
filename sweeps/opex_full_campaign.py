@@ -81,6 +81,7 @@ RE_CJ = re.compile(r"^CJ\|(\d+)\|(\d+)\|(\d+)$")
 RE_GC = re.compile(r"^GC\|(\d+)\|(-?\d+)\|(\d+)$")
 RE_DL = re.compile(r"^DL\|(\d+)\|(\d+)\|(\d+)$")
 RE_LR = re.compile(r"^LR\|(\d+)\|(\d+)\|(\d+)$")
+RE_GL = re.compile(r"^GL\|(\d+)\|(\d+)\|(\d+)\|([01])$")  # reemprunt : year, drew, newLoan, covered
 RE_LF = re.compile(r"^LF\|(\d{2})\|(-?\d+)\|(\d+)$")   # ce que _tryRepayLoan VOIT (creux annuel)
 RE_LB = re.compile(r"^LB\|(\d{2})\|(-?\d+)$")            # tresorerie au SOMMET, avant depense
 
@@ -416,7 +417,7 @@ def parse_yearly(all_signs):
 
 def parse_events(all_signs):
     """Retient les evenements rares qui expliquent les variations de parc et d'emprunt."""
-    cash_blocks, dead_lines, loan_repayments = [], [], []
+    cash_blocks, dead_lines, loan_repayments, loan_draws = [], [], [], []
     seen_at_repay, seen_before_block = {}, {}
     for sign in all_signs:
         if m := RE_GC.match(sign):
@@ -428,12 +429,16 @@ def parse_events(all_signs):
         elif m := RE_LR.match(sign):
             loan_repayments.append({"year": int(m.group(1)), "repaid": int(m.group(2)),
                                     "new_loan": int(m.group(3))})
+        elif m := RE_GL.match(sign):
+            loan_draws.append({"year": int(m.group(1)), "drew": int(m.group(2)),
+                               "new_loan": int(m.group(3)), "covered": int(m.group(4))})
         elif m := RE_LF.match(sign):
             seen_at_repay[int(m.group(1))] = {"cash": int(m.group(2)), "loan": int(m.group(3))}
         elif m := RE_LB.match(sign):
             seen_before_block[int(m.group(1))] = int(m.group(2))
 
-    return cash_blocks, dead_lines, loan_repayments, loan_view(seen_at_repay, seen_before_block)
+    return (cash_blocks, dead_lines, loan_repayments, loan_draws,
+            loan_view(seen_at_repay, seen_before_block))
 
 
 def loan_view(seen_at_repay, seen_before_block):
@@ -550,7 +555,8 @@ def make_run_payload(rows, seed, years):
         if year_built is not None:
             item.update(road_ops.get((year_built % 100, line["line_index"], item["attempt"]), {}))
         road.append(item)
-    cash_blocks, dead_lines, loan_repayments, loan_view_rows = parse_events(final["signs"])
+    cash_blocks, dead_lines, loan_repayments, loan_draws, loan_view_rows = parse_events(
+        final["signs"])
 
     n_rail_ok = sum(1 for line in lines if line["mode"] == "rail" and line["reason"] == "OK")
     n_rail_failed_attempts = sum(1 for attempt in attempts if attempt["reason"] != "OK")
@@ -607,7 +613,10 @@ def make_run_payload(rows, seed, years):
         "road_build_opcodes": sum(item.get("build_ops", 0) for item in road),
         "rail_attempts": attempts, "air_attempts": air, "water_attempts": water,
         "road_attempts": road, "cash_blocks": cash_blocks, "dead_line_events": dead_lines,
-        "loan_repayments": loan_repayments, "loan_view": loan_view_rows,
+        "loan_repayments": loan_repayments, "loan_draws": loan_draws,
+        "n_loan_draws": len(loan_draws),
+        "n_loan_draws_covered": sum(1 for draw in loan_draws if draw["covered"]),
+        "loan_view": loan_view_rows,
         "lines": lines, "yearly": yearly,
         "annual_blocks": annual_blocks, "calendar_years_crossed": calendar_years_crossed,
         "skipped_years": skipped_years, "financial_series": financial_series,
@@ -683,7 +692,8 @@ def main():
         "instrumentation_added": ["CG", "CR", "CD", "CE", "CK", "PC", "PM", "OB|A", "GM", "OB|J",
                                   "CJ", "OB|S", "PJ", "OL traction", "PL longueur rame", "PT arbitrage",
                                   "PD quai voulu-vs-bati", "PD repli pente",
-                                  "OR SITEA/SITEB/SITEAB/ECON", "PS site clear/cargo/cmd"],
+                                  "OR SITEA/SITEB/SITEAB/ECON", "PS site clear/cargo/cmd",
+                                  "GL reemprunt"],
         "runs": runs,
     }
     result_path.write_text(json.dumps(payload, indent=2))

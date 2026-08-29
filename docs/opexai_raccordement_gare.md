@@ -1,11 +1,24 @@
 # OpexAI — raccordement à une gare existante (tranche v1)
 
+**État au 2026-08-29 (nuit).** Le code est dans `master`, commandé par `station_join`, **défaut 0**.
+Le banc vivier (`docs/bench_v2_vivier.json`) : +37,2 % de véhicules (t = 5,94), valeur nulle. Rejeu
+après traction (`docs/bench_join_after_traction.json`, paire
+`docs/bench_join_after_traction_paired.json`) : véhicules **+23,6 %, t = 3,50, 17/20** ; gares
+**−11,9 %, t = −3,61** (réemploi) ; `company_value` +5,9 %, t = 0,96, sous le plancher. **La
+construction survit, la valeur non.** `origin_sitable=0` sur les deux bras.
+
+Le partage de bassin (`basin_share`) est mesuré et **ne paie pas**
+(`docs/bench_basin_share_paired.json`) : valeur sous le plancher, véhicules nuls, gares
++12,9 % (t = 3,67) — les jointures sont déclassées, pas allégées. Défaut 0. AAAHogEx joint
+autrement (groupe + spread). Idées : `docs/aaahogex_rail_join.md`. Le spread n'est pas la
+suite tant que la v1 ne paie pas.
+
 ## Décision
 
 Quand le seul obstacle est le filet physique `MIN_SEPARATION`, OpexAI peut raccorder **une** extrémité d'une nouvelle ligne rail à une gare rail OpexAI existante. Le seuil reste inchangé et l'identité d'origine (`ORIGIN_SEPARATION`) reste un rejet : une même ville ou industrie ne gagne rien à être servie deux fois.
 
 L'API le permet : `AIRail.BuildRailStation(tile, direction, num_platforms,
-platform_length, station_id)` accepte un `station_id` valide, donc un quai construit à côté du quai existant rejoint la même gare. Cette conclusion est vérifiée dans `src/script/api/script_rail.hpp` et `script_rail.cpp` : l'appel transmet explicitement l'identifiant à la commande de construction. Le coût est un quai neuf de 1 x 4 plus son nettoyage éventuel, mais ni la première gare complète ni son choix de site ; surtout, une seule extrémité doit encore être cherchée et bâtie.
+platform_length, station_id)` accepte un `station_id` valide, donc un quai construit à côté du quai existant rejoint la même gare. Cette conclusion est vérifiée dans les en-têtes NoAI 15 (`script_rail.hpp` : `@pre station_id == STATION_NEW || STATION_JOIN_ADJACENT || IsValidStation(station_id)` ; `STATION_NEW = 0xFFFD` dans `script_basestation.hpp`). Le `src/` de *ce* dépôt n'est que du Python — ces en-têtes vivent dans le source OpenTTD, pas ici. L'appel transmet l'identifiant à la commande de construction. Le coût est un quai neuf de 1 x 4 plus son nettoyage éventuel, mais ni la première gare complète ni son choix de site ; surtout, une seule extrémité doit encore être cherchée et bâtie.
 
 ## Quai et voie
 

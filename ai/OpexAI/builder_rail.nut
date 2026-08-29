@@ -651,7 +651,11 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, join, cashR
   if (economics == null) { result.reason = "ECON"; return result; }
   result.capital = economics.capital;
   result.money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  if (result.money < result.capital + cashReserve) { result.reason = "CASH"; return result; }
+  local need = result.capital + cashReserve;
+  if (result.money < need) {
+    if (REBORROW) result.money = OpexTryReborrow(need, result.money);
+    if (result.money < need) { result.reason = "CASH"; return result; }
+  }
   OpexApplyRailEconomics(candidate, economics);
   result.wagons = candidate.wagons;
   result.budgetInfo = OpexIterationBudget(candidate.profitAnnual, alternativeRatio);
