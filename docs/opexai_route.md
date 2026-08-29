@@ -125,7 +125,7 @@ production stable) : `STATION_RATING_PCT = 50`, calibré sur le rail, tient auss
 Coût : ~15 000 opcodes par plan, ~300 000 par construction, ~60 000 par an pour la génération de
 candidats. Négligeable devant les ~270 M d'opcodes annuels.
 
-## 6 bis. 🔴 Le verdict du banc apparié (`docs/bench_v2_road.json`)
+## 6 bis. Le verdict du banc apparié (`docs/bench_v2_road.json`)
 
 20 graines × 20 ans, `OpexAI` contre `OpexAI[road_mode=0]`. Les deux bras portent le
 renouvellement automatique et le correctif de ligne morte : le banc isole donc **le mode route
@@ -144,21 +144,23 @@ hasard qu'une fois sur cent.
 `company_value` va dans le même sens (+9,6 %) mais ne tranche pas, et pour une raison identifiable
 plutôt que par bruit diffus :
 
-> 🔴 **Une graine sur vingt paie très cher.** La graine 8675309 tombe de 1 460 136 à **1** —
-> l'insolvabilité — quand la route est active. Sa trajectoire diverge dès 1974 : la valeur s'érode
-> de 165 793 à 55 691 en cinq ans pendant que le bras sans route grimpe régulièrement, la trésorerie
-> finit collée au plancher `CASH_RESERVE` (35 000 à 48 000 les six dernières années), et l'emprunt
-> n'est jamais remboursé — **sur les deux bras** : cette graine appartient déjà au régime d'échec
-> d'emprunt connu du backlog. À elle seule elle retire 73 000 à l'écart moyen ; sans elle, la route
-> gagne +13 % sur 13 graines de 19.
+> 🔴 **Une graine sur vingt payait très cher — et ça ne survit pas à la traction.** Sur
+> `docs/bench_v2_road.json`, 8675309 tombait de 1 460 136 à **1**. C'était la seule insolvabilité
+> du banc. Divergence 1974 (165 793) → 1975 (104 677) pendant que le bras sans route restait à
+> 155 000, puis érosion jusqu'à `company_value = 1` en 1985, cash collé à `CASH_RESERVE`.
 >
-> **Mécanisme non établi.** L'hypothèse à tester est que la phase routière consomme la trésorerie
-> marginale qui aurait financé la ligne rail suivante, et qu'une compagnie pauvre n'amorce alors
-> jamais sa composition. Le garde-fou naturel serait un plancher de trésorerie propre à la route,
-> plus haut que `CASH_RESERVE`, ou une route interdite tant que l'emprunt n'est pas remboursé.
-> **À mesurer, pas à supposer.**
+> Sur l'arbre courant (`docs/bench_road_8675309.json`, 20 ans, même graine) : **2 368 267** avec
+> la route contre **2 282 217** sans, emprunt 0, `months_of_bankruptcy` 0. Identiques au
+> 1er janvier 1971. Campagne parallèle : **0 tentative routière** — des candidats sont classés
+> (2 à 4/an en 1970-75) mais le `break` cash de `_tryBuildRoads` les coupe, et après le
+> remboursement de 1976 `ROAD_MIN_PROFIT_ANNUAL` prend le relais. L'hypothèse « la route mange
+> le cash du prochain rail » décrivait le `break` d'avant traction sur le classement rail ; le
+> `continue` borné a fermé le trou. **Pas de garde-fou à écrire.** Le +9,3 % d'adoption n'a pas
+> été rejoué après traction.
 
 ## 7. Ce qui reste ouvert, par impact estimé
+
+L'item 0 (la graine qui coulait) est **fermé**, voir §6 bis. Le prochain est le 5.
 
 1. **Le plancher `ROAD_MIN_PROFIT_ANNUAL = 1000` coupe des lignes pax qui rapportent 10 000.** La
    seule ligne pax bâtie était prédite à 1 031 et a rendu 7 000 à 11 700 par an. La cause probable
@@ -176,11 +178,13 @@ plutôt que par bruit diffus :
    philosophie du projet demande.
 4. **Le multistop** (`AIStation.STATION_JOIN_ADJACENT`) est le seul levier de volume par ligne, le
    plafond de deux véhicules par arrêt étant une règle du jeu.
-5. **Rebâtir la flotte d'une ligne tombée à zéro véhicule.** Vu une fois : une ligne bus perd ses
-   deux véhicules en deux ans et ne se reconstitue jamais, notes de gare de 54 à −1, alors qu'elle
-   rendait 9 000/an et que ses arrêts, sa route et son dépôt sont payés. Cause non établie (n = 1) ;
-   le suspect est le **passage à niveau** avec nos propres voies — un train est le seul objet qui
-   détruise un véhicule routier (`docs/mecanique_jeu.md` §11).
+5. 🔴 **Rebâtir la flotte d'une ligne tombée à zéro véhicule.** **Tête du mode route.** Vu une
+   fois : une ligne bus perd ses deux véhicules en deux ans et ne se reconstitue jamais, notes de
+   gare de 54 à −1, alors qu'elle rendait 9 000/an et que ses arrêts, sa route et son dépôt sont
+   payés. Cause non établie (n = 1) ; le suspect est le **passage à niveau** avec nos propres
+   voies — un train est le seul objet qui détruise un véhicule routier
+   (`docs/mecanique_jeu.md` §11). Le correctif qui couvre toutes les causes est le même :
+   détecter une ligne à zéro véhicule et rebâtir sa flotte, l'infrastructure étant déjà là.
 
 ## 8. Les pistes déjà écartées par la mesure — ne pas les reproposer
 

@@ -249,14 +249,25 @@ ligne a roulé onze ans à perte sans être ferraillée). Les deux touchent auss
 
 **Ce qui reste, par impact estimé** (détail et justification dans `docs/opexai_route.md` §7) :
 
-0. 🔴 **La route peut couler une compagnie pauvre — une graine sur vingt.** La graine 8675309 tombe
-   de 1 460 136 à **1** avec la route active. Divergence dès 1974, trésorerie collée au plancher
-   `CASH_RESERVE` sur les six dernières années, emprunt jamais remboursé **sur les deux bras**
-   (cette graine appartient déjà au régime d'échec d'emprunt de l'item 4). Mécanisme **non établi** ;
-   hypothèse : la phase routière mange la trésorerie marginale qui aurait financé la ligne rail
-   suivante. Deux garde-fous à opposer au banc — un plancher de trésorerie propre à la route, ou une
-   route interdite tant que l'emprunt n'est pas soldé. **C'est l'item de tête du mode route** : il
-   vaut plus que tout gain marginal, parce qu'il transforme une mauvaise partie en partie perdue.
+0. ✅ **La graine qui coulait ne coule plus** (2026-08-29, nuit). Sur `docs/bench_v2_road.json`
+   (pré-traction), 8675309 était la **seule** insolvabilité : 1 460 136 → **1**, divergence 1974-75,
+   cash collé à `CASH_RESERVE` de 1984 à 1989. Sur l'arbre courant (`docs/bench_road_8675309.json`,
+   même graine, 20 ans, `OpexAI` contre `OpexAI[road_mode=0]`) :
+
+   | | route ON | route OFF |
+   |---|---:|---:|
+   | `company_value` | **2 368 267** | 2 282 217 |
+   | `performance_history` | 429 | 446 |
+   | emprunt | 0 | 0 |
+   | `months_of_bankruptcy` | 0 | 0 |
+
+   Les deux bras sont **identiques au 1er janvier 1971**, puis divergent par opcodes, et
+   **composent tous les deux**. Aucune insolvabilité dans les bancs post-traction (join, sitable,
+   traction, basin_share). Campagne `docs/opex_reborrow_20y_4seeds.json` : 0 ligne routière, 0
+   tentative — des candidats sont classés (2 à 4/an en 1970-75) mais le `break` cash les coupe,
+   et après le remboursement de 1976 le plancher `ROAD_MIN_PROFIT_ANNUAL` prend le relais.
+   L'hypothèse « la route mange le cash du prochain rail » décrivait le `break` d'avant traction
+   sur le classement rail ; le `continue` borné a fermé le trou. **Pas de garde-fou à écrire.**
 
 1. **Le plancher `ROAD_MIN_PROFIT_ANNUAL` coupe des lignes pax qui rapportent dix fois la
    prédiction.** La seule ligne pax bâtie était prédite à 1 031 et a rendu 7 000 à 11 700 par an.
@@ -543,12 +554,12 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
       Le spread n'est **pas** débloqué : joindre plus, sur un terme qui ne paie pas, recréerait
       le banc vivier.
 
-**Priorité de fait, révisée le 2026-08-29 (nuit)** : `station_join` et `basin_share` sont ✅
-mesurés, **ni l'un ni l'autre ne paie**, défauts 0. L'item **8** (réemprunt) est ✅ écrit et
-mesuré : **le trou est vide** (412 `GC` à emprunt max, 0 tirage). Le **spread** n'est pas la
-suite. 9.1 et 9.2 n'informent qu'un réglage éteint. La tête redevient le mode route
-**item 0** (la graine qui coule) — seul échec qualitatif encore ouvert. `origin_sitable`,
-`station_join`, `basin_share` et `reborrow` restent à 0.
+**Priorité de fait, révisée le 2026-08-29 (nuit)** : `station_join`, `basin_share`, `reborrow`
+et le mode route **item 0** sont ✅ mesurés. Les trois premiers ne paient pas (défauts 0) ; la
+graine qui coulait ne coule plus (pas de garde-fou). Le **spread** n'est pas la suite. 9.1 et
+9.2 n'informent qu'un réglage éteint. La tête passe au mode route **item 5** — une ligne
+routière à zéro véhicule qui ne se reconstitue jamais (n = 1, cause non établie, l'infrastructure
+est déjà payée). `origin_sitable`, `station_join`, `basin_share` et `reborrow` restent à 0.
 
 *Priorité précédente, conservée pour la trace* : ~~l'item **4**~~ (✅ fait) et l'item **6**
 (plafond d'abandon) passaient devant — ce sont deux échecs mesurés, et surtout les deux seuls

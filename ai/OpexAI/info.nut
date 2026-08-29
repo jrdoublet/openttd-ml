@@ -257,16 +257,13 @@ class OpexAI extends AIInfo {
      *   - company_value : +232 433 (+9,6 %) mais t = 1,50 et 13 graines sur 20 seulement. NON
      *     concluant, et entierement otage d'une seule graine -- voir ci-dessous.
      *
-     * 🔴 LE PRIX A CONNAITRE : une graine sur vingt (8675309) passe de 1 460 136 a **1**, c'est-a-
-     * dire a l'insolvabilite, quand la route est active. Sa trajectoire diverge des 1974 : la
-     * valeur s'erode de 165 793 a 55 691 en cinq ans pendant que le bras sans route grimpe, la
-     * tresorerie finit collee au plancher CASH_RESERVE, et l'emprunt n'est jamais rembourse (sur
-     * les DEUX bras -- cette graine appartient deja au regime d'echec d'emprunt connu). Mecanisme
-     * NON etabli ; l'hypothese a tester est que la phase routiere consomme la tresorerie marginale
-     * qui aurait finance la ligne rail suivante, et qu'une compagnie pauvre n'amorce alors jamais
-     * sa composition. Ce n'est pas une raison de couper le mode -- 16 graines sur 20 gagnent -- mais
-     * c'en est une de garder ce reglage, et de mesurer un plancher de tresorerie propre a la route
-     * avant de considerer l'affaire close. */
+     * 🔴 LE PRIX A CONNAITRE ETAIT une graine sur vingt (8675309) a 1, sur le banc d'adoption
+     * (docs/bench_v2_road.json, pre-traction). SUR L'ARBRE COURANT ce n'est plus vrai
+     * (docs/bench_road_8675309.json) : 2 368 267 contre 2 282 217 a road_mode=0, emprunt 0,
+     * months_of_bankruptcy 0. Les deux bras sont identiques au 1er janvier 1971. Campagne
+     * 20 ans : 0 tentative routiere -- le continue-not-break de la traction laisse le rail
+     * prendre le cash residual, le break cash de la route ne s'exerce plus. Pas de garde-fou
+     * a ecrire. Le +9,3 % d'adoption n'a PAS ete rejoue apres traction. */
     AddSetting({
       name = "road_mode",
       description = "Build short road lines (bus town-town, and truck freight industry-industry / industry-town): 1 = enabled, 0 = rail-only baseline",
