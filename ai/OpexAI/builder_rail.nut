@@ -16,8 +16,9 @@
  * une constante. Voir OpexIterationBudget().
  */
 
-/* Longueur de quai : ceil((1 + wagons) / 2) + 1, formule de TrainLineAI. */
-const PLATFORM_LENGTH = 4;
+/* La longueur n'est PAS une constante : catalog.nut lit `station.station_spread` chaque annee,
+ * puis OpexStationPlans appelle le vrai BuildRailStation sous AITestMode avant de proposer un
+ * plan. Le jeu, et non une valeur supposee, reste donc l'autorite sur le maximum utilisable. */
 const STATION_SEARCH_RADIUS = 30;
 const MAX_STATION_PLANS = 12;
 const PATH_CHUNK = 50;
@@ -63,7 +64,31 @@ function OpexIterationBudget(profitAnnual, alternativeRatio)
 
 /* Plans de quai autour d'un centre, orientes vers l'autre extremite.
  * Porte de TrainLineAI::_makeStationPlans. */
-function OpexStationPlans(center, otherCenter, radius, length, maxPlans)
+/* Une gare rail peut etre parfaitement plate, acceptee par BuildRailStation et pourtant ne servir
+ * AUCUN cargo : le smoke traction 42 a construit ainsi 5 lignes fret a note -1 permanente. Les
+ * trois trains etaient en VS_AT_STATION a l'ordre source, vitesse et chargement nuls, alors que
+ * l'industrie produisait encore 135 unites/mois. La commande et la voie etaient donc innocente ;
+ * l'empreinte du quai etait hors du bassin de l'industrie.
+ *
+ * GetCargoProduction/Acceptance est la sonde exacte deja utilisee par builder_road.nut. On la
+ * consulte pour chacune des `length` tuiles : une seule partie de gare dans le rayon suffit au
+ * moteur. 8 est le seuil documente de l'acceptation complete (en huitiemes), pas un rendement
+ * suppose. Ce preflight epargne une voie, un depot et 1 a 8 locomotives a une ligne qui ne pourra
+ * jamais charger. */
+function OpexRailPlatformCargoValue(anchor, step, length, cargo, coverage, wantProduction)
+{
+  local best = 0;
+  for (local i = 0; i < length; i++) {
+    local tile = anchor + step * i;
+    local value = wantProduction
+        ? AITile.GetCargoProduction(tile, cargo, 1, 1, coverage)
+        : AITile.GetCargoAcceptance(tile, cargo, 1, 1, coverage);
+    if (value > best) best = value;
+  }
+  return best;
+}
+
+function OpexStationPlans(center, otherCenter, radius, length, maxPlans, cargo, coverage, wantProduction)
 {
   local plans = [];
   local axes = [
@@ -90,8 +115,22 @@ function OpexStationPlans(center, otherCenter, radius, length, maxPlans)
                   AITile.GetSlope(platformTile) == AITile.SLOPE_FLAT;
             }
             if (usable) {
-              plans.push({ anchor = anchor, station_exit = stationExit, lead = lead,
-                           direction = axis[0], step = step });
+              local cargoValue = OpexRailPlatformCargoValue(anchor, step, length, cargo, coverage,
+                                                             wantProduction);
+              if (wantProduction ? (cargoValue <= 0) : (cargoValue < 8)) continue;
+              /* Le rectangle plat ne prouve pas que la commande respecte le station_spread ou les
+               * regles de gare. Ce test est au plus MAX_STATION_PLANS * 2 commandes par tentative
+               * (24 avec le plafond deja mesure), tres petit devant les milliers d'iterations A* ;
+               * il evite de lancer A* vers un quai que le moteur refuserait apres coup. */
+              local stationOk = false;
+              {
+                local probe = AITestMode();
+                stationOk = AIRail.BuildRailStation(anchor, axis[0], 1, length, AIStation.STATION_NEW);
+              }
+              if (stationOk) {
+                plans.push({ anchor = anchor, station_exit = stationExit, lead = lead,
+                             direction = axis[0], step = step, length = length, cargoValue = cargoValue });
+              }
               if (plans.len() >= maxPlans) break;
             }
           }
@@ -115,17 +154,18 @@ function OpexStationPlans(center, otherCenter, radius, length, maxPlans)
  * pathfinder une entree dediee sans avoir a raccorder la voie ancienne. */
 function OpexJoinPlatformPlans(platform, stationId)
 {
+  local length = platform.length;
   local plans = [];
   local sideways = platform.direction == AIRail.RAILTRACK_NE_SW
       ? AIMap.GetTileIndex(0, 1) : AIMap.GetTileIndex(1, 0);
   for (local side = -1; side <= 1; side += 2) {
     local anchor = platform.anchor + sideways * side;
     for (local farExit = 0; farExit <= 1; farExit++) {
-      local stationExit = farExit != 0 ? anchor + platform.step * (PLATFORM_LENGTH - 1) : anchor;
+      local stationExit = farExit != 0 ? anchor + platform.step * (length - 1) : anchor;
       local lead = farExit != 0 ? stationExit + platform.step : stationExit - platform.step;
       local usable = AIMap.IsValidTile(lead) && AITile.IsBuildable(lead) &&
           AITile.GetSlope(lead) == AITile.SLOPE_FLAT;
-      for (local i = 0; i < PLATFORM_LENGTH && usable; i++) {
+      for (local i = 0; i < length && usable; i++) {
         local tile = anchor + platform.step * i;
         usable = AIMap.IsValidTile(tile) && AITile.IsBuildable(tile) &&
             AITile.GetSlope(tile) == AITile.SLOPE_FLAT;
@@ -138,15 +178,57 @@ function OpexJoinPlatformPlans(platform, stationId)
       local joins = false;
       {
         local probe = AITestMode();
-        joins = AIRail.BuildRailStation(anchor, platform.direction, 1, PLATFORM_LENGTH, stationId);
+        joins = AIRail.BuildRailStation(anchor, platform.direction, 1, length, stationId);
       }
       if (joins) {
         plans.push({ anchor = anchor, station_exit = stationExit, lead = lead,
-                     direction = platform.direction, step = platform.step });
+                     direction = platform.direction, step = platform.step, length = length });
       }
     }
   }
   return plans;
+}
+
+/* Cherche les deux extremites a la meme longueur, du quai economiquement voulu vers le plancher
+ * d'une locomotive et un wagon. Le test de chaque longueur reste exactement celui de
+ * OpexStationPlans : plat, constructible, cargo dans le rayon et BuildRailStation en AITest.
+ * Une longueur plus courte est donc un vrai plan constructible, pas une approximation geometrique.
+ *
+ * Le quai joint est l'exception necessaire : il doit reprendre la longueur du quai existant pour
+ * rester parallele et servir la meme gare. Il ne peut pas se raccourcir sans casser cet alignement;
+ * l'autre extremite est alors cherchee a cette longueur precise. */
+function OpexRailPlatformPlans(catalog, candidate, join)
+{
+  local joinA = join != null && join.candidateEnd == "A";
+  if (join != null) {
+    local length = join.platform.length;
+    local plansA = joinA
+        ? OpexJoinPlatformPlans(join.platform, join.stationId)
+        : OpexStationPlans(candidate.src, candidate.dst, STATION_SEARCH_RADIUS, length,
+                           MAX_STATION_PLANS, candidate.cargo, catalog.railCoverage, true);
+    local plansB = !joinA
+        ? OpexJoinPlatformPlans(join.platform, join.stationId)
+        : OpexStationPlans(candidate.dst, candidate.src, STATION_SEARCH_RADIUS, length,
+                           MAX_STATION_PLANS, candidate.cargo, catalog.railCoverage,
+                           candidate.kind == "pax");
+    if (plansA.len() == 0 || plansB.len() == 0) return null;
+    return { plansA = plansA, plansB = plansB, length = length, joinA = joinA };
+  }
+
+  local floor = OpexRailMinimumPlatformLength();
+  local wanted = candidate.platformLength;
+  if (wanted > catalog.platformLength) wanted = catalog.platformLength;
+  for (local length = wanted; length >= floor; length--) {
+    local plansA = OpexStationPlans(candidate.src, candidate.dst, STATION_SEARCH_RADIUS, length,
+                                    MAX_STATION_PLANS, candidate.cargo, catalog.railCoverage, true);
+    if (plansA.len() == 0) continue;
+    local plansB = OpexStationPlans(candidate.dst, candidate.src, STATION_SEARCH_RADIUS, length,
+                                    MAX_STATION_PLANS, candidate.cargo, catalog.railCoverage,
+                                    candidate.kind == "pax");
+    if (plansB.len() == 0) continue;
+    return { plansA = plansA, plansB = plansB, length = length, joinA = false };
+  }
+  return null;
 }
 
 /* Recherche de chemin sous budget d'iterations. Rend une table avec le chemin brut et le compte
@@ -342,9 +424,11 @@ function OpexRollback(tiles, planA, planB, depot, vehicles)
     }
   }
   if (depot != null) AITile.DemolishTile(depot);
-  for (local i = 0; i < PLATFORM_LENGTH; i++) {
-    if (planA != null) AITile.DemolishTile(planA.anchor + planA.step * i);
-    if (planB != null) AITile.DemolishTile(planB.anchor + planB.step * i);
+  if (planA != null) {
+    for (local i = 0; i < planA.length; i++) AITile.DemolishTile(planA.anchor + planA.step * i);
+  }
+  if (planB != null) {
+    for (local i = 0; i < planB.length; i++) AITile.DemolishTile(planB.anchor + planB.step * i);
   }
   if (tiles == null) return;
   for (local i = 1; i < tiles.len() - 1; i++) {
@@ -352,7 +436,7 @@ function OpexRollback(tiles, planA, planB, depot, vehicles)
   }
 }
 
-function OpexBuildTrains(catalog, cargo, kind, depotTile, exitA, exitB, wanted)
+function OpexBuildTrains(catalog, cargo, kind, depotTile, exitA, exitB, wanted, loco, wagons, platformLength)
 {
   local wagon = catalog.wagonByCargo[cargo];
   local built = 0;
@@ -360,6 +444,19 @@ function OpexBuildTrains(catalog, cargo, kind, depotTile, exitA, exitB, wanted)
   local rollbackVehicles = [];  // tete ET wagons isoles : cleanup atomique si MoveWagon echoue
   local lastError = 0;
   local diag = null;
+  local measuredLength = 0;
+  local measuredLocoLength = 0;
+  local measuredWagonLength = 0;
+  /* OpexRailNominalMaxWagons(p) = 2*p-1 donne, avec les mesures vanilla 8/16 + 8/16,
+   * 8 + (2*p-1)*8 = p*16. Le constructeur applique exactement cette limite, puis mesure chaque
+   * vehicule reel pour que ni une locomotive ni un wagon NewGRF plus long ne rende le modele plus
+   * optimiste que le quai bati. */
+  local nominalMaxWagons = OpexRailNominalMaxWagons(platformLength);
+  local trainLengthLimit = platformLength * 16;
+  if (wagons < 1 || wagons > nominalMaxWagons || trainLengthLimit < 1) {
+    return { built = 0, vehicles = vehicles, rollbackVehicles = rollbackVehicles,
+             failed = true, failure = "LENGTH", error = 0, diag = diag };
+  }
   /* OF_FULL_LOAD_ANY aux deux arrets : verifie empiriquement sur TrainLineAI que OF_NONE fait
    * repartir a vide sur une ligne neuve a faible frequentation -- vrai pour les PAIRES DE VILLES
    * (pax), ou chaque bout produit ET accepte le cargo, donc chaque leg peut se remplir.
@@ -377,25 +474,25 @@ function OpexBuildTrains(catalog, cargo, kind, depotTile, exitA, exitB, wanted)
    * seule la source continue de le faire. */
   local flagsB = (kind == "freight") ? AIOrder.OF_NONE : AIOrder.OF_FULL_LOAD_ANY;
   for (local i = 0; i < wanted; i++) {
-    local train = AIVehicle.BuildVehicle(depotTile, catalog.loco.id);
+    local train = AIVehicle.BuildVehicle(depotTile, loco.id);
     if (!AIVehicle.IsValidVehicle(train)) {
       lastError = AIError.GetLastError();
       /* Diagnostic minimal au moment exact de l'echec : c'est moins cher que de deviner. */
       local testOk = 0;
       {
         local probe = AITestMode();
-        testOk = AIVehicle.BuildVehicle(depotTile, catalog.loco.id) != null ? 1 : 0;
+        testOk = AIVehicle.BuildVehicle(depotTile, loco.id) != null ? 1 : 0;
       }
       diag = {
         railtype = AIRail.GetCurrentRailType(),
         isDepot = AIRail.IsRailDepotTile(depotTile) ? 1 : 0,
-        buildable = AIEngine.IsBuildable(catalog.loco.id) ? 1 : 0,
-        canRun = AIEngine.CanRunOnRail(catalog.loco.id, AIRail.GetCurrentRailType()) ? 1 : 0,
-        price = catalog.loco.price,
+        buildable = AIEngine.IsBuildable(loco.id) ? 1 : 0,
+        canRun = AIEngine.CanRunOnRail(loco.id, AIRail.GetCurrentRailType()) ? 1 : 0,
+        price = loco.price,
         cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF),
-        engineRail = AIEngine.GetRailType(catalog.loco.id),
+        engineRail = AIEngine.GetRailType(loco.id),
         depotRail = AIRail.GetRailType(depotTile),
-        vehType = AIEngine.GetVehicleType(catalog.loco.id),
+        vehType = AIEngine.GetVehicleType(loco.id),
         testOk = testOk,
       };
       /* Le chemin et les convois deja poses ont une valeur : apres le premier train, garder une
@@ -411,13 +508,38 @@ function OpexBuildTrains(catalog, cargo, kind, depotTile, exitA, exitB, wanted)
      * rollback, au lieu de laisser un depot impossible a demolir. */
     vehicles.append(train);
     rollbackVehicles.append(train);
-    for (local w = 0; w < WAGONS_PER_TRAIN; w++) {
+    local trainLength = AIVehicle.GetLength(train);
+    measuredLocoLength = trainLength;
+    for (local w = 0; w < wagons; w++) {
       local car = AIVehicle.BuildVehicle(depotTile, wagon.id);
       if (AIVehicle.IsValidVehicle(car)) {
         rollbackVehicles.append(car);
-        AIVehicle.MoveWagon(car, 0, train, 0);
+        local carLength = AIVehicle.GetLength(car);
+        measuredWagonLength = carLength;
+        /* Aucune longueur par moteur n'existe dans NoAI 15.3 : cette mesure porte donc sur les
+         * vehicules reels, dans l'unite du moteur (1/16 de tuile). Elle verifie la formule qui a
+         * donne `wagons` AVANT de lancer le train ; un NewGRF plus long ne peut pas deborder
+         * silencieusement du quai. */
+        if (trainLength + carLength > trainLengthLimit) {
+          return { built = built, vehicles = vehicles, rollbackVehicles = rollbackVehicles,
+                   failed = true, failure = "LENGTH", error = 0, diag = diag, trainLength = trainLength,
+                   locoLength = measuredLocoLength, wagonLength = measuredWagonLength };
+        }
+        if (!AIVehicle.MoveWagon(car, 0, train, 0)) {
+          return { built = built, vehicles = vehicles, rollbackVehicles = rollbackVehicles,
+                   failed = true, failure = "WAGON", error = AIError.GetLastError(), diag = diag,
+                   trainLength = trainLength, locoLength = measuredLocoLength,
+                   wagonLength = measuredWagonLength };
+        }
+        trainLength += carLength;
+      } else {
+        return { built = built, vehicles = vehicles, rollbackVehicles = rollbackVehicles,
+                 failed = true, failure = "WAGON", error = AIError.GetLastError(), diag = diag,
+                 trainLength = trainLength, locoLength = measuredLocoLength,
+                 wagonLength = measuredWagonLength };
       }
     }
+    measuredLength = trainLength;
     local okA = AIOrder.AppendOrder(train, exitA, AIOrder.OF_FULL_LOAD_ANY);
     local okB = AIOrder.AppendOrder(train, exitB, flagsB);
     if (!okA || !okB || AIOrder.GetOrderCount(train) != 2) {
@@ -429,31 +551,52 @@ function OpexBuildTrains(catalog, cargo, kind, depotTile, exitA, exitB, wanted)
   /* Pas de train lance avant que la transaction entiere soit certaine : voir OpexRollback. */
   foreach (train in vehicles) AIVehicle.StartStopVehicle(train);
   return { built = built, vehicles = vehicles, rollbackVehicles = rollbackVehicles,
-           failed = false, failure = "", error = lastError, diag = diag };
+           failed = false, failure = "", error = lastError, diag = diag, trainLength = measuredLength,
+           locoLength = measuredLocoLength, wagonLength = measuredWagonLength };
 }
 
 /* Construit une ligne complete. Rend une table de resultat, jamais d'exception. */
-function OpexBuildLine(catalog, budget, candidate, iterationBudget, deadlineTick, join)
+function OpexBuildLine(catalog, budget, candidate, alternativeRatio, join, cashReserve)
 {
   local result = { ok = false, reason = "", iterations = 0, opcodes = 0, error = 0, diag = null,
                    trains = 0, vehicles = [], stationA = null, stationB = null, depot = null,
-                   platformA = null, platformB = null };
+                   platformA = null, platformB = null, trainLength = 0, wagons = candidate.wagons,
+                   platformLength = candidate.platformLength, locoLength = 0, wagonLength = 0,
+                   wantedPlatformLength = candidate.platformLength, plansA = 0, plansB = 0,
+                   capital = candidate.capital, money = 0,
+                   budgetInfo = OpexIterationBudget(candidate.profitAnnual, alternativeRatio),
+                   iterationBudget = 0 };
+  result.iterationBudget = result.budgetInfo.budget;
 
   budget.begin();
-  local joinA = join != null && join.candidateEnd == "A";
-  local plansA = joinA
-      ? OpexJoinPlatformPlans(join.platform, join.stationId)
-      : OpexStationPlans(candidate.src, candidate.dst,
-                          STATION_SEARCH_RADIUS, PLATFORM_LENGTH, MAX_STATION_PLANS);
-  local plansB = !joinA && join != null
-      ? OpexJoinPlatformPlans(join.platform, join.stationId)
-      : OpexStationPlans(candidate.dst, candidate.src,
-                          STATION_SEARCH_RADIUS, PLATFORM_LENGTH, MAX_STATION_PLANS);
+  local platformPlans = OpexRailPlatformPlans(catalog, candidate, join);
   result.opcodes += budget.end("build_plans");
-  if (plansA.len() == 0 || plansB.len() == 0) { result.reason = "NOPLAN"; return result; }
+  if (platformPlans == null) { result.reason = "NOPLAN"; return result; }
+  local plansA = platformPlans.plansA;
+  local plansB = platformPlans.plansB;
+  local joinA = platformPlans.joinA;
+  result.platformLength = platformPlans.length;
+  result.plansA = plansA.len();
+  result.plansB = plansB.len();
+
+  /* La recherche a choisi le plus long site faisable. Refaire l'economie AVANT demolition est
+   * obligatoire : un repli de 5 a 3 tuiles peut enlever des wagons, changer la locomotive et le
+   * nombre de rames. Le second controle de cash couvre aussi une jointure existante plus longue
+   * que le quai initialement souhaite. */
+  local economics = OpexLineEconomics(catalog, candidate.cargo, candidate.distance,
+                                      candidate.monthly, candidate.kind, result.platformLength);
+  if (economics == null) { result.reason = "NOPLAN"; return result; }
+  result.capital = economics.capital;
+  result.money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  if (result.money < result.capital + cashReserve) { result.reason = "CASH"; return result; }
+  OpexApplyRailEconomics(candidate, economics);
+  result.wagons = candidate.wagons;
+  result.budgetInfo = OpexIterationBudget(candidate.profitAnnual, alternativeRatio);
+  result.iterationBudget = result.budgetInfo.budget;
 
   budget.begin();
-  local search = OpexSearchPath(plansA, plansB, iterationBudget, deadlineTick);
+  local deadlineTick = AIController.GetTick() + result.iterationBudget / 3 + BUILD_TICK_MARGIN;
+  local search = OpexSearchPath(plansA, plansB, result.iterationBudget, deadlineTick);
   result.opcodes += budget.end("build_search");
   result.iterations = search.iterations;
   if (search.path == false || search.path == null) { result.reason = search.stop; return result; }
@@ -466,13 +609,15 @@ function OpexBuildLine(catalog, budget, candidate, iterationBudget, deadlineTick
   if (join != null && !OpexJoinPathIsDedicated(tiles)) { result.reason = "JOINPATH"; return result; }
 
   budget.begin();
-  for (local i = 0; i < PLATFORM_LENGTH; i++) {
+  for (local i = 0; i < planA.length; i++) {
     AITile.DemolishTile(planA.anchor + planA.step * i);
+  }
+  for (local i = 0; i < planB.length; i++) {
     AITile.DemolishTile(planB.anchor + planB.step * i);
   }
-  local okA = AIRail.BuildRailStation(planA.anchor, planA.direction, 1, PLATFORM_LENGTH,
+  local okA = AIRail.BuildRailStation(planA.anchor, planA.direction, 1, planA.length,
                                       joinA ? join.stationId : AIStation.STATION_NEW);
-  local okB = AIRail.BuildRailStation(planB.anchor, planB.direction, 1, PLATFORM_LENGTH,
+  local okB = AIRail.BuildRailStation(planB.anchor, planB.direction, 1, planB.length,
                                       !joinA && join != null ? join.stationId : AIStation.STATION_NEW);
   local joinedA = !joinA || AIStation.GetStationID(planA.anchor) == join.stationId;
   local joinedB = joinA || join == null || AIStation.GetStationID(planB.anchor) == join.stationId;
@@ -500,7 +645,8 @@ function OpexBuildLine(catalog, budget, candidate, iterationBudget, deadlineTick
 
   budget.begin();
   local trains = OpexBuildTrains(catalog, candidate.cargo, candidate.kind, depot,
-                                 planA.station_exit, planB.station_exit, candidate.trains);
+                                 planA.station_exit, planB.station_exit, candidate.trains, candidate.loco,
+                                 candidate.wagons, candidate.platformLength);
   result.opcodes += budget.end("build_trains");
   result.error = trains.error;
   result.diag = trains.diag;
@@ -516,13 +662,18 @@ function OpexBuildLine(catalog, budget, candidate, iterationBudget, deadlineTick
   result.ok = true;
   result.reason = "OK";
   result.trains = trains.built;
+  result.trainLength = trains.trainLength;
+  result.locoLength = trains.locoLength;
+  result.wagonLength = trains.wagonLength;
   result.vehicles = trains.vehicles;
   result.stationA = planA.station_exit;
   result.stationB = planB.station_exit;
   result.depot = depot;
   /* La geometrie d'origine est gardee pour pouvoir ajouter le prochain quai sans deviner une
    * gare etrangere. Ce sont les seules tuiles preexistantes que la tranche v1 sait reutiliser. */
-  result.platformA = { anchor = planA.anchor, direction = planA.direction, step = planA.step };
-  result.platformB = { anchor = planB.anchor, direction = planB.direction, step = planB.step };
+  result.platformA = { anchor = planA.anchor, direction = planA.direction, step = planA.step,
+                       length = planA.length };
+  result.platformB = { anchor = planB.anchor, direction = planB.direction, step = planB.step,
+                       length = planB.length };
   return result;
 }

@@ -83,6 +83,13 @@ const BUILD_TICK_MARGIN = 3000;
  * plus ni renouveler ses vehicules ni saisir une occasion, et la valeur d'entreprise tombe a 1. */
 const CASH_RESERVE = 50000;
 
+/* Le classement ne contient que TOP_K = 20 candidats. Le plafond de continuation est exactement
+ * cette borne existante, pas un second seuil arbitraire : une annee sans argent examine au plus
+ * 20 candidats, donc au plus 20 appels de solde et de _tooClose, sans lancer A* avant le test de
+ * cash. L'ancien break en examinait 1 ; parcourir les 19 restants est le cout borne qui rend enfin
+ * visible un candidat moins rentable par iteration mais financable en capital. */
+CASH_CANDIDATE_SCAN_LIMIT <- TOP_K;
+
 /* Phase routiere (2026-08-29). La v1 batissait UNE liaison bus passagers et restait desactivee :
  * sur la graine gelee elle mesurait -599/an pendant 19 ans, mais avec des notes d'arret a -1,
  * c'est-a-dire un bus qui n'a jamais charge un seul passager -- le chiffre condamnait un BUG, pas
@@ -639,7 +646,7 @@ function OpexAI::_tryBuild(ranked, year)
   local nJoinFailed = 0;
   local nOriginServedRanked = 0;   // candidats du TOP_K qui n'existent QUE grace a la jointure
 
-  for (local i = 0; i < best.len(); i++) {
+  for (local i = 0; i < best.len() && i < CASH_CANDIDATE_SCAN_LIMIT; i++) {
     local candidate = best[i];
     local abandonedKey = null;
     if (ABANDON_MEMORY) {
@@ -670,21 +677,30 @@ function OpexAI::_tryBuild(ranked, year)
     }
 
     local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-    if (money < candidate.capital + CASH_RESERVE) {  // classement decroissant
+    if (money < candidate.capital + CASH_RESERVE) {
       nCashBlocked++;
       OpexSign(anchor, "GC|" + year + "|" + money + "|" + candidate.capital);
-      break;
+      /* Le ratio trie le profit/iteration, pas le capital. Continuer est donc la seule facon de
+       * chercher une ligne financable plus bas ; CASH_CANDIDATE_SCAN_LIMIT borne ce parcours a la
+       * taille deja plafonnee du TOP_K. */
+      continue;
     }
 
     local alternativeSource = (i + 1 < best.len()) ? "S" : "L";
     local alternativeRatio = (alternativeSource == "S") ? best[i + 1].ratio : MIN_RATIO;
-    local budgetInfo = OpexIterationBudget(candidate.profitAnnual, alternativeRatio);
-    local iterationBudget = budgetInfo.budget;
-    local deadline = AIController.GetTick() + iterationBudget / 3 + BUILD_TICK_MARGIN;
-
+    local result = OpexBuildLine(this._catalog, this._budget, candidate, alternativeRatio, join,
+                                 CASH_RESERVE);
+    /* La longueur retenue peut etre plus courte que le souhait, ou celle d'un quai joint plus
+     * longue. OpexBuildLine a alors recalcule le capital avant toute demolition. Ce rejet reste
+     * financier, pas un echec de plan ou de voie, et le classement continue comme ci-dessus. */
+    if (result.reason == "CASH") {
+      nCashBlocked++;
+      OpexSign(anchor, "GC|" + year + "|" + result.money + "|" + result.capital);
+      continue;
+    }
     if (join != null) nJoinAttempts++;
-    local result = OpexBuildLine(this._catalog, this._budget, candidate, iterationBudget, deadline,
-                                 join);
+    local budgetInfo = result.budgetInfo;
+    local iterationBudget = result.iterationBudget;
 
     /* Instrumentation d'une tentative, sans ajouter de panneau :
      * OR|aa|id|rang20|PSR|budget|iterations
@@ -719,15 +735,43 @@ function OpexAI::_tryBuild(ranked, year)
       if (join != null) nJoinBuilt++;
       local idx = this._nextLineId;
       /* Predit-vs-reel (etage 1) : le detail du calcul au moment de la construction, pour pouvoir
-       * le comparer plus tard a la mesure reelle (_reportLines). Un sign par grandeur : jamais
-       * plus de 2 valeurs numeriques par nom pour rester sous la limite silencieuse de 31
-       * caracteres meme quand i et les valeurs sont a leur maximum plausible. */
+       * le comparer plus tard a la mesure reelle (_reportLines). Les dimensions traction ajoutent
+       * trois panneaux courts plutot qu'un nom trop long : OQ reste sous 31 caracteres avec debit,
+       * flotte, wagons et capacite ; OT porte le temps, la distance, le quai et la vitesse ; PL
+       * confronte enfin le quai et les wagons attendus a la longueur AIVehicle.GetLength mesuree. */
       OpexSign(anchor, "OF|" + idx + "|" + candidate.revenueAnnual);
       OpexSign(anchor, "OJ|" + idx + "|" + candidate.runningAnnual);
       OpexSign(anchor, "OK|" + idx + "|" + candidate.amortAnnual);
-      OpexSign(anchor, "OQ|" + idx + "|" + candidate.carried + "|" + candidate.trains);
+      OpexSign(anchor, "OQ|" + idx + "|" + candidate.carried + "|" + candidate.trains
+                              + "|" + candidate.wagons + "|" + candidate.perTrain);
+      /* Arbitrage visible : offre apres note, capacite, intervalle finalement choisi, note estimee,
+       * puis nombre que le headway de 7 jours aurait impose. Sans ce panneau, un train long unique
+       * et trois trains courts auraient le meme OQ et la correction resterait inverifiable. */
+      OpexSign(anchor, "PT|" + idx + "|" + candidate.offered.tointeger() + "|"
+                              + candidate.monthlyCapacity.tointeger() + "|"
+                              + candidate.headwayDays.tointeger() + "|"
+                              + candidate.stationRating.tointeger() + "|"
+                              + candidate.trainsForHeadway);
       /* La distance quitte OR (panneau deja plein) et rejoint ce panneau de succes existant. */
-      OpexSign(anchor, "OT|" + idx + "|" + candidate.oneWayDays + "|" + candidate.distance);
+      OpexSign(anchor, "OT|" + idx + "|" + candidate.oneWayDays.tointeger() + "|" + candidate.distance
+                              + "|" + candidate.platformLength + "|" + candidate.effectiveSpeed.tointeger());
+      /* L'ancienne politique ne gardait que la locomotive catalogue la plus rapide (160 km/h en
+       * 1970), sans masse, puissance ni effort de traction. Ce panneau expose maintenant la locomotive
+       * REELLEMENT attelee a cette
+       * charge : identifiant, plafond catalogue, vitesse traction, puissance et effort de traction. */
+      OpexSign(anchor, "OL|" + idx + "|" + candidate.loco.id + "|" + candidate.loco.speed
+                              + "|" + candidate.effectiveSpeed.tointeger() + "|" + candidate.loco.power
+                              + "|" + candidate.loco.tractiveEffort);
+      OpexSign(anchor, "PL|" + idx + "|" + result.platformLength + "|" + result.wagons
+                              + "|" + result.trainLength + "|" + result.locoLength
+                              + "|" + result.wagonLength);
+      /* PD rend le repli controle lisible : quai voulu, quai finalement bati, puis nombre de
+       * plans utilisables aux deux extremites a cette longueur. Les deux derniers champs restent
+       * plafonnes a MAX_STATION_PLANS = 12 ; ils mesurent le choix donne a A*, pas le terrain de
+       * toute la carte. */
+      OpexSign(anchor, "PD|" + idx + "|" + result.wantedPlatformLength + "|"
+                              + result.platformLength + "|" + result.plansA + "|"
+                              + result.plansB);
       /* pax vs freight, et la production mensuelle BRUTE utilisee comme entree : pour trancher si
        * le residu du gap vient de la ville entiere comptee au lieu du seul rayon de la gare
        * (candidates.nut le signale deja comme biais non calibre sur les paires de villes). */
@@ -766,6 +810,9 @@ function OpexAI::_tryBuild(ranked, year)
         predRevenue = candidate.revenueAnnual, predRunning = candidate.runningAnnual,
         predAmort = candidate.amortAnnual, predCarried = candidate.carried,
         predTrains = candidate.trains, predOneWayDays = candidate.oneWayDays,
+        wagons = candidate.wagons, platformLength = candidate.platformLength,
+        loco = candidate.loco, effectiveSpeed = candidate.effectiveSpeed,
+        headwayDays = candidate.headwayDays, stationRating = candidate.stationRating,
         /* La liste est l'identite de la ligne, pas une requete par StationID : sur une gare
          * jointe, celle-ci verrait aussi les convois de la voisine (rapport et rebut doivent les
          * laisser intacts). Les plans rendent le prochain quai adjacent deterministe. */
@@ -794,9 +841,9 @@ function OpexAI::_tryBuild(ranked, year)
 
   }
 
-  /* Sommaire annuel du goulot : combien de candidats classes ont ete rejetes par _tooClose,
-   * combien par la reserve de tresorerie (dont l'"break" laisse le reste du classement
-   * inexplore -- nUnreached compte ceux-la a part pour ne pas les confondre avec un rejet). */
+  /* Sommaire annuel du goulot : _tooClose est publie ci-dessous ; chaque rejet de tresorerie est
+   * deja publie par GC avec son solde et son capital. Il n'y a plus de suffixe inexplore : le
+   * continue parcourt la borne CASH_CANDIDATE_SCAN_LIMIT. */
   /* YT, pose dans Start() apres _tryRepayLoan(), remplace le panneau GT : la mesure ne doit pas
    * ajouter une commande de panneau annuelle au scenario de reference. Les compteurs GT ne sont
    * pas consommes par le banc. */

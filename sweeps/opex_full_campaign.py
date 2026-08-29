@@ -40,8 +40,13 @@ map_y = 8
 RE_OF = re.compile(r"^OF\|(\d+)\|(-?\d+)$")
 RE_OJ = re.compile(r"^OJ\|(\d+)\|(-?\d+)$")
 RE_OK = re.compile(r"^OK\|(\d+)\|(-?\d+)$")
-RE_OQ = re.compile(r"^OQ\|(\d+)\|(-?\d+)\|(\d+)$")
-RE_OT = re.compile(r"^OT\|(\d+)\|(-?\d+)(?:\|(\d+))?$")
+RE_OQ = re.compile(r"^OQ\|(\d+)\|(-?\d+)\|(\d+)(?:\|(\d+)\|(\d+))?$")
+RE_OT = re.compile(r"^OT\|(\d+)\|(-?\d+)(?:\|(\d+)(?:\|(\d+)\|(\d+))?)?$")
+RE_OL_TRACTION = re.compile(r"^OL\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
+RE_PL = re.compile(r"^PL\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
+RE_PT = re.compile(r"^PT\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
+RE_PG = re.compile(r"^PG\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
+RE_PD = re.compile(r"^PD\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
 RE_OY = re.compile(r"^OY\|(\d+)\|(\d+)\|(-?\d+)\|(-?\d+)$")
 RE_OZ = re.compile(r"^OZ\|(\d+)\|(\d+)\|(-?\d+)$")
 RE_OU = re.compile(r"^OU\|(\d+)\|(\d+)\|(\d+)\|(-?\d+)$")
@@ -154,10 +159,40 @@ def parse_lines(all_signs):
             idx = int(m.group(1))
             predicted.setdefault(idx, {})["carried"] = int(m.group(2))
             predicted[idx]["trains"] = int(m.group(3))
+            if m.group(4) is not None:
+                predicted[idx]["wagons"] = int(m.group(4))
+                predicted[idx]["perTrain"] = int(m.group(5))
         elif m := RE_OT.match(sign):
             idx = int(m.group(1)); predicted.setdefault(idx, {})["oneWayDays"] = int(m.group(2))
             if m.group(3) is not None:
                 predicted[idx]["distance"] = int(m.group(3))
+            if m.group(4) is not None:
+                predicted[idx]["platformLength"] = int(m.group(4))
+                predicted[idx]["effectiveSpeed"] = int(m.group(5))
+        elif m := RE_OL_TRACTION.match(sign):
+            idx = int(m.group(1)); pred = predicted.setdefault(idx, {})
+            pred["locoId"] = int(m.group(2)); pred["locoCatalogSpeed"] = int(m.group(3))
+            pred["effectiveSpeed"] = int(m.group(4)); pred["locoPower"] = int(m.group(5))
+            pred["locoTractiveEffort"] = int(m.group(6))
+        elif m := RE_PL.match(sign):
+            idx = int(m.group(1)); pred = predicted.setdefault(idx, {})
+            pred["builtPlatformLength"] = int(m.group(2)); pred["builtWagons"] = int(m.group(3))
+            pred["trainLength16"] = int(m.group(4))
+            pred["locoLength16"] = int(m.group(5)); pred["wagonLength16"] = int(m.group(6))
+        elif m := RE_PT.match(sign):
+            idx = int(m.group(1)); pred = predicted.setdefault(idx, {})
+            pred["offered"] = int(m.group(2)); pred["monthlyCapacity"] = int(m.group(3))
+            pred["headwayDays"] = int(m.group(4)); pred["stationRating"] = int(m.group(5))
+            pred["trainsForHeadway"] = int(m.group(6))
+        elif m := RE_PG.match(sign):
+            idx = int(m.group(1)); pred = predicted.setdefault(idx, {})
+            pred["plansA12"] = int(m.group(2)); pred["plansA4"] = int(m.group(3))
+            pred["plansB12"] = int(m.group(4)); pred["plansB4"] = int(m.group(5))
+        elif m := RE_PD.match(sign):
+            idx = int(m.group(1)); pred = predicted.setdefault(idx, {})
+            pred["wantedPlatformLength"] = int(m.group(2))
+            pred["builtPlatformLength"] = int(m.group(3))
+            pred["plansA"] = int(m.group(4)); pred["plansB"] = int(m.group(5))
         elif m := RE_OY.match(sign):
             idx, year = int(m.group(1)), int(m.group(2))
             actual_series.setdefault(idx, {}).setdefault(year, {})["ratingA"] = int(m.group(3))
@@ -622,7 +657,8 @@ def main():
         "years": args.years, "seeds": args.seeds, "openttd_config": CFG,
         "ai_settings": {key: value for key, value in args.ai_settings},
         "instrumentation_added": ["CG", "CR", "CD", "CE", "CK", "PC", "PM", "OB|A", "GM", "OB|J",
-                                  "CJ", "OB|S", "PJ"],
+                                  "CJ", "OB|S", "PJ", "OL traction", "PL longueur rame", "PT arbitrage",
+                                  "PD quai voulu-vs-bati"],
         "runs": runs,
     }
     result_path.write_text(json.dumps(payload, indent=2))

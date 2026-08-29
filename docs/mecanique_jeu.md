@@ -165,6 +165,43 @@ près ; seul le passager voit sa capacité doubler.
 > philosophie : **zéro pathfinding, zéro infrastructure linéaire**. À dire précisément, sinon on
 > justifie la bonne décision par la mauvaise raison.
 
+### 2 bis. Traction réaliste du train — modèle retenu pour OpexAI (2026-08-29)
+
+**Source vérifiée** : OpenTTD 15.3, `src/ground_vehicle.cpp` et `src/train_cmd.cpp`, avec les
+unités publiques de `AIEngine.GetPower` (hp), `GetWeight` (tonnes),
+`GetMaxTractiveEffort` (kN) et `AICargo.GetWeight` (tonnes). Le moteur agrège bien la puissance et
+la masse de **tout le convoi chargé** avant de calculer son accélération ; une locomotive n'est donc
+pas une vitesse catalogue indépendante de ses wagons.
+
+Sur rail normal et plat, pour une vitesse `v` en km/h-ish, le moteur calcule :
+
+```
+F(v) = min(TE * 1000, puissance_hp * 746 * 18 / (5 * v))
+R(v) = masse * (10 + 15 * (512 + v) / 512) + trainee(v)
+a(v) = (F(v) - R(v)) / (masse * 4)
+```
+
+`10` est la résistance des essieux et `15` le roulement ; ce sont les deux termes du source. La
+traînée dépend aussi du nombre d'éléments. Pour les véhicules de base (notre partie gelée, sans
+NewGRF), le jeu dérive son coefficient de la vitesse maximale ; OpexAI reproduit cette branche.
+Pour un cargo fret, le moteur multiplie en plus le poids du cargo par le réglage
+`vehicle.freight_trains` ; l'IA le lit également. Les wagons sont donc évalués à
+`poids à vide + AICargo.GetWeight(capacité)`, pas à vide.
+
+OpexAI cherche la vitesse de croisière où `F > R`, puis intègre l'accélération depuis et vers les
+deux gares. Il en résulte une vitesse moyenne de trajet utilisée pour les jours, les passages par
+mois et le revenu. Ce remplacement supprime le précédent facteur fixe de 70 % : puissance, effort
+de traction, masse du wagon plein, nombre de wagons, vitesse du wagon et distance changent tous le
+résultat.
+
+**Ce que ce modèle ne sait pas avant A*.** La géométrie du futur tracé n'existe pas encore : on ne
+peut donc pas compter les pentes, ponts, tunnels ou virages sans faire fuiter le résultat du
+pathfinding dans le classement. Les plafonds du moteur restent 61 km/h pour un angle droit et
+111 km/h pour une courbure 2, mais OpexAI n'invente pas une proportion de virages pour les appliquer
+à toutes les lignes. L'hypothèse « rail plat, sans fraction de virages mesurée » doit être validée
+sur le prochain banc apparié ; elle est plus explicite que l'ancien 70 %, mais ce n'est pas une
+mesure de vitesse moyenne.
+
 ---
 
 ## 3. La note de gare — le multiplicateur oublié de notre estimateur
