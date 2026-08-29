@@ -308,11 +308,17 @@ function OpexPaxCandidates(catalog, lines, out, stats)
        * la ville que la desserte provoque (sous-estimation non calibree, plus petite que le
        * facteur ci-dessus d'apres la mesure). */
       local monthly = ((produced[a] + produced[b]) * TOWN_CATCHMENT_SHARE_PCT) / 100;
-      /* BIAIS CONNU, NON CALIBRE (2026-08-29) : quand `originServed` est vrai, la ville servie voit
-       * deja une partie de sa production partir par la ligne existante, et ce calcul la compte une
-       * seconde fois en entier. La prediction d'un candidat a jointure est donc SUR-estimee d'un
-       * facteur inconnu -- c'est la premiere chose a mesurer sur les lignes jointes que cette
-       * tranche fera naitre (meme protocole que sweeps/opex_predict_vs_actual.py). */
+      /* BIAIS MESURE, ET CE N'EST PAS LUI LE COUPABLE (2026-08-29, sweeps/opex_join_bias.py sur
+       * 10 graines x 20 ans, 155 lignes). Quand `originServed` est vrai, la ville servie voit deja
+       * une partie de sa production partir par la ligne existante et ce calcul la compte une
+       * seconde fois : le rapport brut reel/predit semblait donner x1,53. Mais les lignes a origine
+       * servie sont aussi plus LONGUES (mediane 84 tuiles contre 47) et plus TARDIVES (1981 contre
+       * 1975). Une fois type, distance et epoque neutralises ensemble, il ne reste que x0,81, IC
+       * 95 % [0,63 ; 1,03] -- l'intervalle contient 1. Le double comptage existe peut-etre, il ne
+       * depasse pas le bruit a cet effectif, et il n'explique PAS le verdict du banc.
+       * Ce que la mesure designe a sa place est dans docs/taches.md : le profit reel vaut 1,47 fois
+       * le predit sous 50 tuiles, 0,41 entre 50 et 75, et la MEDIANE tombe a 0,00 au-dela de 100.
+       * Corriger `monthly` ici serait donc traiter le mauvais terme. */
       local candidate = OpexMakeCandidate(catalog, "pax", cargo, towns[a].tile, towns[b].tile,
                                           monthly, originServed, stats);
       if (candidate != null) out.append(candidate);
@@ -358,8 +364,9 @@ function OpexFreightCandidates(catalog, lines, out, stats)
         }
         local originServed = ss != null || sd != null;
         if (originServed) stats.pairsOneServed++;
-        /* Meme sur-estimation qu'en pax quand la SOURCE est deja servie : sa production est
-         * comptee en entier alors qu'une part part deja par la ligne existante. */
+        /* Meme double comptage qu'en pax quand la SOURCE est deja servie -- et meme verdict :
+         * mesure le 2026-08-29, il ne se distingue pas du bruit une fois la distance neutralisee.
+         * Voir le commentaire detaille dans OpexPaxCandidates ci-dessus. */
         local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
                                             industries[di].tile, monthly, originServed, stats);
         if (candidate != null) out.append(candidate);

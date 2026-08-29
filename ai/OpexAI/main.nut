@@ -736,6 +736,21 @@ function OpexAI::_tryBuild(ranked, year)
       /* Le label cargo est stable et tient dans un panneau court; il rend la repartition finale
        * lisible sans devoir deviner le type a partir de son identifiant interne. */
       OpexSign(anchor, "PC|" + idx + "|" + AICargo.GetCargoLabel(candidate.cargo));
+      /* Le marqueur qui manquait pour chiffrer le BIAIS CONNU de candidates.nut (2026-08-29).
+       * nJoinBuilt est un compteur ANNUEL : il dit combien de jointures ont abouti, jamais
+       * LESQUELLES, donc il ne permet pas de comparer le predit au reel ligne par ligne.
+       *  - champ 2 : extremite jointe, "A"/"B", ou "N" si la ligne a bati ses deux gares ;
+       *  - champ 3 : 1 si le CANDIDAT reutilisait une origine deja desservie.
+       * Les deux ne coincident pas : une jointure peut naitre d'un conflit purement PHYSIQUE
+       * (MIN_SEPARATION, une autre origine), et ce cas-la n'a aucun double comptage a corriger.
+       * C'est le champ 3, pas le champ 2, qui isole les lignes suspectes.
+       * Gate sur STATION_JOIN comme GM/CJ/OB : a 0 les deux champs valent "N" et 0 pour toutes
+       * les lignes, donc le panneau ne porterait aucune information et couterait quand meme une
+       * commande par ligne au bras de controle. */
+      if (STATION_JOIN) {
+        OpexSign(anchor, "PJ|" + idx + "|" + (join == null ? "N" : join.candidateEnd)
+                                 + "|" + (candidate.originServed ? 1 : 0));
+      }
 
       /* Diagnostic effondrement fret (2026-08-28) : garder de quoi verifier, annee apres annee,
        * si les DEUX industries d'une ligne fret restent valides -- sans ca on ne peut pas

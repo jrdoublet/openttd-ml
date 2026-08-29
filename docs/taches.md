@@ -72,25 +72,61 @@ graine 42 seule aurait fait manquer (cf. « banc mono-graine insuffisant »).
 ⚠️ **Défaut `station_join` repassé à 0.** Le code, l'instrumentation et la mesure restent ; le
 comportement par défaut ne change pas tant que la cause ci-dessous n'est pas corrigée.
 
-**La cause est nommée, et elle est dans le code** (commentaire `BIAIS CONNU` aux deux sites de
-`candidates.nut`) : quand une extrémité est déjà servie, `monthly` compte sa production **entière**
-et ignore ce que la ligne existante en prélevait déjà. Un candidat à jointure est donc sur-estimé
-d'un facteur inconnu, et `MIN_RATIO` — calibré sur des candidats **non joints** — ne le rattrape
-pas. Le classement se remplit de lignes qui promettent beaucoup et rendent peu.
+**La cause supposée a été mesurée, et ce n'est pas elle** (2026-08-29,
+`sweeps/opex_join_bias.py`, 10 graines × 20 ans, 155 lignes rail,
+`docs/opex_join_factor_20y_10seeds.json` → `docs/opex_join_bias.json`).
+
+Le rapport brut *revenu réel / revenu prédit* semblait donner **×1,53** en défaveur des lignes à
+origine servie (IC 95 % [1,23 ; 2,02]), soit exactement le facteur cherché. C'est une illusion de
+composition : ces lignes sont aussi **plus longues** (distance médiane **84 tuiles contre 47**) et
+**plus tardives** (1981 contre 1975). Une fois type, distance et époque neutralisés **ensemble** :
+
+| terme | effet | IC 95 % |
+|---|---|---|
+| `log(distance)` | ×0,76 | [0,53 ; 1,13] |
+| `origine_servie` | **×0,81** | **[0,63 ; 1,03]** |
+| type `freight` | ×0,97 | [0,70 ; 1,31] |
+| époque (par décennie) | ×0,98 | [0,77 ; 1,22] |
+
+L'intervalle de `origine_servie` **contient 1**. Le double comptage de `monthly` existe peut-être,
+mais il ne dépasse pas le bruit à cet effectif et **n'explique pas le verdict du banc**. Corriger
+`monthly` serait traiter le mauvais terme.
+
+### 🔴 Ce que la mesure désigne à la place : l'étage 1 s'effondre avec la DISTANCE
+
+`profit réel / profit prédit`, première année pleine, toutes lignes confondues :
+
+| distance | rapport médian | n |
+|---|---|---|
+| < 50 tuiles | **1,47** | 62 |
+| 50-75 | 0,41 | 37 |
+| 75-100 | 0,44 | 40 |
+| > 100 | **0,00** | 16 |
+
+Au-delà de 100 tuiles, **la ligne médiane ne dégage aucun profit** — le modèle en promettait un.
+Croisé avec l'époque, les deux effets s'ajoutent : sous 50 tuiles on passe de 1,51 (avant 1980) à
+0,58 (1980+) ; au-delà de 100 tuiles on est à 0,00 dans les deux cas.
+
+**Et c'est l'explication du banc.** Rouvrir le vivier ne fournit pas des jointures courtes et
+rentables : il fournit des lignes **longues**, parce que les extrémités encore libres sont loin.
+La population construite passe d'une médiane de 47 tuiles à 84. L'IA bâtit donc +37 % de véhicules
+sur exactement le segment où `OpexLineEconomics` se trompe le plus — d'où « plus de construction,
+pas plus de valeur ».
 
 **Ce qu'il faut faire, dans l'ordre :**
 
-1. **Mesurer le facteur de sur-estimation** sur les lignes jointes, protocole
-   `sweeps/opex_predict_vs_actual.py` — c'est le préalable de tout le reste, et c'est chiffrable
-   dès maintenant : 10 lignes jointes existent sur la seule graine 42.
-2. Corriger la prédiction d'une extrémité servie, puis **rejouer le même banc apparié**. C'est le
-   test décisif : si le gain de construction (+37 %, 18/20, p = 0,0004 — un effet énorme et solide)
-   se met à porter de la valeur, l'item est gagné.
-3. Accessoirement, **`NOPLAN` tue 68 des 82 jointures** : `OpexJoinPlatformPlans` exige une bande
-   latérale plate et constructible sur toute la longueur du quai, des deux côtés. Le coût du refus
-   est négligeable (32 280 opcodes, 0,4 % du budget de construction, zéro itération d'A\*), donc
-   c'est un levier de **rendement**, pas d'économie — à ne traiter qu'après le point 1, sinon on
-   multiplierait des lignes sur-estimées.
+1. 🔴 **Recalibrer `OpexLineEconomics` en distance**, c'est le vrai item de tête et il déborde
+   largement la jointure : il fausse **tout** le classement, `MIN_RATIO` compris, puisque le
+   plancher a été calibré sur une population majoritairement courte. Les données sont déjà là
+   (`docs/opex_join_bias.json`, 155 lignes avec prédit, réel, distance, époque, type).
+2. Une fois l'étage 1 honnête en distance, **rejouer le banc apparié `station_join`** : l'effet de
+   construction (+37,2 %, t = 5,94, p = 0,0004) est énorme et solide ; s'il se met à porter de la
+   valeur, l'item est gagné sans rien changer d'autre.
+3. Seulement ensuite, le **rendement des jointures** : `NOPLAN` en tue 68 sur 82, mais à
+   32 280 opcodes et zéro itération d'A\*, soit 0,4 % du budget — c'est un levier de rendement,
+   pas d'économie.
+4. ⚠️ Ne **pas** corriger `monthly` pour une origine servie sur la foi du chiffre brut : c'est le
+   piège que cette mesure vient de désamorcer.
 
 ⚠️ **Effet de bord à ne pas attribuer au mode route :** le rail affamé reprend la trésorerie, et
 les lignes routières passent de 6 à 3 sur la graine 42. Le +9,3 % du mode route a été mesuré avec

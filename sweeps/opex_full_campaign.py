@@ -51,6 +51,9 @@ RE_OR_BUDGET = re.compile(r"^OR\|(\d{2})\|(\d+)\|(\d+)\|([ZFCN][SL][KADPLHMJSTER
 RE_OB_ATTEMPT = re.compile(r"^OB\|A\|(\d{2})\|(\d+)\|(\d+)\|(\d+)$")
 RE_PK = re.compile(r"^PK\|(\d+)\|([PF])\|(\d+)$")
 RE_PC = re.compile(r"^PC\|(\d+)\|(.+)$")
+# Marqueur par LIGNE de la tranche jointure (2026-08-29) : extremite jointe ("A"/"B"/"N")
+# et origine deja desservie (0/1). Emis seulement quand station_join = 1.
+RE_PJ = re.compile(r"^PJ\|(\d+)\|([ABN])\|([01])$")
 RE_PM = re.compile(r"^PM\|(\d+)\|([AWR])\|(\d+)\|(.+)$")
 RE_IA = re.compile(r"^IA\|(\d+)\|(\d+)\|(-?\d)\|(-?\d)\|(-?\d+)$")
 RE_OX = re.compile(r"^OX\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")   # year, towns, industries, ranked.all
@@ -138,6 +141,7 @@ def parse_lines(all_signs):
     built = {}
     multimodal_built = {}
     road_cost = {}
+    join_marks = {}
 
     for sign in all_signs:
         if m := RE_OF.match(sign):
@@ -186,6 +190,9 @@ def parse_lines(all_signs):
             idx = int(m.group(1))
             predicted.setdefault(idx, {})["kind"] = "pax" if m.group(2) == "P" else "freight"
             predicted[idx]["monthly"] = int(m.group(3))
+        elif m := RE_PJ.match(sign):
+            join_marks[int(m.group(1))] = {"joined_end": None if m.group(2) == "N" else m.group(2),
+                                           "origin_served": m.group(3) == "1"}
         elif m := RE_PC.match(sign):
             predicted.setdefault(int(m.group(1)), {})["cargo_label"] = m.group(2)
         elif m := RE_PM.match(sign):
@@ -206,12 +213,17 @@ def parse_lines(all_signs):
         years = actual_series.get(idx, {})
         last_year = max(years) if years else None
         last = years.get(last_year, {}) if last_year is not None else {}
+        mark = join_marks.get(idx, {})
         lines.append({
             "line_index": idx,
             "mode": "rail",
             "distance": built[idx].get("distance", pred.get("distance")),
             "iterations": built[idx]["iterations"],
             "reason": built[idx]["reason"],
+            # None quand station_join = 0 : le panneau n'est pas emis, et l'absence ne doit pas
+            # se lire comme "ligne non jointe, origine libre" -- c'est "non mesure".
+            "joined_end": mark.get("joined_end"),
+            "origin_served": mark.get("origin_served"),
             "predicted": pred,
             "actual_last_year": last_year,
             "actual": last,
@@ -551,7 +563,21 @@ def parse_args():
     parser.add_argument("seeds", type=int, nargs="*", default=[42])
     parser.add_argument("--output", type=Path)
     parser.add_argument("--workers", type=int, default=1)
+    # Un reglage OpexAI par occurrence, "cle=valeur". Sert a mesurer un mecanisme que le DEFAUT
+    # desactive -- station_join est passe a 0 le 2026-08-29 apres le verdict du banc, mais il faut
+    # encore pouvoir l'allumer pour chiffrer la sur-estimation des lignes jointes.
+    parser.add_argument("--setting", action="append", default=[], metavar="CLE=VALEUR")
     args = parser.parse_args()
+    settings = []
+    for item in args.setting:
+        if "=" not in item:
+            parser.error(f"--setting attend CLE=VALEUR, recu: {item}")
+        key, _, value = item.partition("=")
+        try:
+            settings.append((key.strip(), int(value)))
+        except ValueError:
+            parser.error(f"--setting attend un entier, recu: {item}")
+    args.ai_settings = tuple(settings)
     if args.years <= 0:
         parser.error("years doit etre positif")
     if not args.seeds:
@@ -574,7 +600,7 @@ def main():
     result_path = result_path_for(args)
     experiments = [{
         "seed": seed, "days": 365 * args.years, "openttd_config": CFG,
-        "ais": (local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", ()),),
+        "ais": (local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", args.ai_settings),),
         "opex_seed": seed,
     } for seed in args.seeds]
     rows = list(run_experiments(
@@ -594,7 +620,9 @@ def main():
     payload = {
         "openttd_version": OPENTTD_VERSION, "opengfx_version": OPENGFX_VERSION,
         "years": args.years, "seeds": args.seeds, "openttd_config": CFG,
-        "instrumentation_added": ["CG", "CR", "CD", "CE", "CK", "PC", "PM", "OB|A", "GM", "OB|J"],
+        "ai_settings": {key: value for key, value in args.ai_settings},
+        "instrumentation_added": ["CG", "CR", "CD", "CE", "CK", "PC", "PM", "OB|A", "GM", "OB|J",
+                                  "CJ", "OB|S", "PJ"],
         "runs": runs,
     }
     result_path.write_text(json.dumps(payload, indent=2))
