@@ -160,7 +160,8 @@ plutôt que par bruit diffus :
 
 ## 7. Ce qui reste ouvert, par impact estimé
 
-L'item 0 (la graine qui coulait) est **fermé**, voir §6 bis. Le prochain est le 5.
+L'item 0 (la graine qui coulait) est **fermé**, voir §6 bis. L'item 5 (flotte à zéro) est
+**fermé**, `road_refleet=1`.
 
 1. **Le plancher `ROAD_MIN_PROFIT_ANNUAL = 1000` coupe des lignes pax qui rapportent 10 000.** La
    seule ligne pax bâtie était prédite à 1 031 et a rendu 7 000 à 11 700 par an. La cause probable
@@ -178,13 +179,12 @@ L'item 0 (la graine qui coulait) est **fermé**, voir §6 bis. Le prochain est l
    philosophie du projet demande.
 4. **Le multistop** (`AIStation.STATION_JOIN_ADJACENT`) est le seul levier de volume par ligne, le
    plafond de deux véhicules par arrêt étant une règle du jeu.
-5. 🔴 **Rebâtir la flotte d'une ligne tombée à zéro véhicule.** **Tête du mode route.** Vu une
-   fois : une ligne bus perd ses deux véhicules en deux ans et ne se reconstitue jamais, notes de
-   gare de 54 à −1, alors qu'elle rendait 9 000/an et que ses arrêts, sa route et son dépôt sont
-   payés. Cause non établie (n = 1) ; le suspect est le **passage à niveau** avec nos propres
-   voies — un train est le seul objet qui détruise un véhicule routier
-   (`docs/mecanique_jeu.md` §11). Le correctif qui couvre toutes les causes est le même :
-   détecter une ligne à zéro véhicule et rebâtir sa flotte, l'infrastructure étant déjà là.
+5. ✅ **Rebâtir la flotte d'une ligne tombée à zéro véhicule.** Réglage `road_refleet`, défaut 1.
+   Le trou n'était pas n = 1 (pax 15 de `opex_road_20y_42.json` : 2→1→0, 9 000/an ; COAL de
+   `opex_join_20y_42.json` : vide huit ans). Sur l'arbre courant (`docs/opex_refleet_20y_4seeds.json`,
+   graine 42) la ligne COAL 15 passe 2→1 en 1982 et 1988 : `RF` ajoute 1 chaque fois, la note
+   revient à 67, **jamais à zéro**. Auto-renouvellement ne suffit pas : il ne remplace pas un
+   véhicule détruit. `OpexAI[road_refleet=0]` rallume l'abandon.
 
 ## 8. Les pistes déjà écartées par la mesure — ne pas les reproposer
 

@@ -145,9 +145,14 @@ ORIGIN_SITABLE <- false;
  * Inerte si station_join = 0. */
 BASIN_SHARE <- false;
 
+/* Reconstitution de flotte routiere : repli ACTIF jusqu'a la lecture unique de road_refleet
+ * dans Start(). Defaut 1 : une ligne a zero vehicule avec l'infrastructure payee est un
+ * bug, pas un choix. 0 reproduit l'abandon silencieux mesure (graine 42, 2->1->0). */
+ROAD_REFLEET <- true;
+
 /* Reemprunt a la demande : repli FAUX jusqu'a la lecture unique de reborrow dans Start().
- * Defaut 0, non mesure. 1 tire le palier manquant (jamais le maximum) quand un candidat
- * depasserait la tresorerie. Sans lui, _tryRepayLoan est a sens unique. */
+ * Defaut 0 : le trou "desendetter puis manquer d'argent" est vide (412 GC a emprunt max,
+ * 0 tirage). Sans lui, _tryRepayLoan reste a sens unique. */
 REBORROW <- false;
 
 /* Ligne fret morte (2026-08-28) : une industrie source qui ferme NE garantit PAS l'effondrement --
@@ -198,6 +203,7 @@ class OpexAI extends AIController {
   function _reportYear(year, ranked);
   function _reportLines(year);
   function _scrapDeadLines(year);
+  function _refleetRoadLines(year);
 }
 
 /* Code d'arret compact pour OR. Le panneau contient deja beaucoup de mesures ; un seul caractere
@@ -539,7 +545,7 @@ function OpexAI::_tryBuildRoads(year)
       /* Pas de champ `vehicles` ici, DELIBEREMENT : une liste figee ne survit pas au
        * renouvellement automatique, qui detruit l'identifiant et le fait recycler par le moteur
        * (cf. OpexLineVehicleIds). Une ligne routiere interroge toujours sa gare. */
-      mode = "road", kind = candidate.kind,
+      mode = "road", kind = candidate.kind, depot = result.depot,
       /* Une extremite de ville n'est pas une industrie : GetIndustryID y rendrait un identifiant
        * invalide, que _reportLines rapporterait comme une industrie fermee. Seule une extremite
        * reellement industrielle (townId < 0 dans le candidat) est interrogee. */
@@ -968,6 +974,9 @@ function OpexAI::_reportLines(year)
     OpexSign(anchor, "OZ|" + line.lineId + "|" + year + "|" + profit);
     OpexSign(anchor, "OU|" + line.lineId + "|" + year + "|" + vehCount + "|" + runCost);
     OpexSign(anchor, "OO|" + line.lineId + "|" + year + "|" + (profit + runCost));
+    /* `<-` : le slot n'existe pas a la construction. `=` leve "the index 'vehCount' does not
+     * exist" et tue le script (mesure 2026-08-29, toutes les graines, des 1971). */
+    line.vehCount <- vehCount;
 
     /* Les deux industries sont-elles encore valides ? Et l'industrie source produit-elle encore ?
      * Depart le blocage "train coince" (hypothese 2) de la fermeture d'industrie (hypothese 1). */
@@ -1069,6 +1078,36 @@ function OpexAI::_scrapDeadLines(year)
    * traite dans toRemove. */
   for (local k = toRemove.len() - 1; k >= 0; k--) {
     this._lines.remove(toRemove[k]);
+  }
+}
+
+/* Une ligne routiere a zero (ou trop peu de) vehicules avec arrets et depot encore la :
+ * l'infrastructure est payee, auto-renouvellement n'a pas suivi. Mesure, plusieurs campagnes
+ * graine 42 : 2 -> 1 -> 0, notes 54 -> -1, plus jamais de reconstitution. On complete jusqu'au
+ * predTrains d'origine, borne par MAX_ROAD_VEHICLES. Avant _tryBuild : un camion sur une route
+ * deja posee rapporte plus, a l'opcode, qu'une ligne neuve. Panneau RF|year|id|added|after
+ * (succes) ou RF|year|id|0|REASON (echec). */
+function OpexAI::_refleetRoadLines(year)
+{
+  if (!ROAD_REFLEET) return;
+  local anchor = AIMap.GetTileIndex(1, 1);
+  for (local i = 0; i < this._lines.len(); i++) {
+    local line = this._lines[i];
+    if (!("mode" in line) || line.mode != "road") continue;
+    if (("scrapping" in line) && line.scrapping) continue;
+    if (("deadStreak" in line) && line.deadStreak > 0) continue;
+    local have = ("vehCount" in line) ? line.vehCount : 0;
+    local target = ("predTrains" in line) ? line.predTrains : (("trains" in line) ? line.trains : 1);
+    if (target < 1) target = 1;
+    if (target > MAX_ROAD_VEHICLES) target = MAX_ROAD_VEHICLES;
+    if (have >= target) continue;
+    local refill = OpexRoadRefleet(this._catalog, line, have, target);
+    if (refill.added > 0) {
+      line.vehCount <- refill.after;
+      if (("trains" in line) && line.trains < refill.after) line.trains = refill.after;
+    }
+    OpexSign(anchor, "RF|" + year + "|" + line.lineId + "|" + refill.added + "|"
+                     + (refill.added > 0 ? refill.after : refill.reason));
   }
 }
 
@@ -1217,6 +1256,7 @@ function OpexAI::Start()
   /* Lu ici comme les autres reglages de decision : catalog.refresh le consulte des le premier
    * cycle annuel, qui a lieu apres Start(). */
   ROAD_BUILD_ENABLED = AIController.GetSetting("road_mode") != 0;
+  ROAD_REFLEET = AIController.GetSetting("road_refleet") != 0;
 
   /* 🔴 RENOUVELLEMENT AUTOMATIQUE (2026-08-29). Mesure : campagne 20 ans, graine 42 -- trois des
    * quatre lignes ROUTIERES finissent la partie avec vehCount = 0 et un profit de zero, alors que
@@ -1266,6 +1306,7 @@ function OpexAI::Start()
         for (local missedYear = lastYear + 1; missedYear < year; missedYear++) {
           this._reportLines(missedYear);
           this._scrapDeadLines(missedYear);
+          this._refleetRoadLines(missedYear);
           this._tryRepayLoan(missedYear);
         }
       }
@@ -1275,6 +1316,7 @@ function OpexAI::Start()
       this._reportYear(year, ranked);
       this._reportLines(year);
       this._scrapDeadLines(year);
+      this._refleetRoadLines(year);
       this._tryBuildAir(year);
       this._tryBuildWater(year);
       local buildStartTick = AIController.GetTick();

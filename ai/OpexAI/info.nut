@@ -10,7 +10,7 @@ class OpexAI extends AIInfo {
 
   /* Les reglages debug_signs et pathfinder_sleep_ticks existent pour NE PAS POLLUER une partie
    * partagee avec des joueurs humains (loan_repay_floor_k, pathfinder_hard_cap_k,
-   * abandon_memory, station_join, origin_sitable, basin_share, reborrow et road_mode, eux, sont des parametres de conception exposes au banc,
+   * abandon_memory, station_join, origin_sitable, basin_share, reborrow, road_mode et road_refleet, eux, sont des parametres de conception exposes au banc,
    * pas des bridages).
    * Entre IA, la regle est l'inverse : jouer a armes egales,
    * donc ne jamais s'auto-handicaper face a un adversaire qui ne se bride pas. Un handicap non intentionnel
@@ -267,6 +267,35 @@ class OpexAI extends AIInfo {
     AddSetting({
       name = "road_mode",
       description = "Build short road lines (bus town-town, and truck freight industry-industry / industry-town): 1 = enabled, 0 = rail-only baseline",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* Reconstitution de flotte routiere. Defaut 1 : c'est un correctif, pas un pari.
+     *
+     * CE QUE 1 FAIT. Apres _reportLines / _scrapDeadLines, une ligne routiere dont vehCount
+     * est sous predTrains (borne a MAX_ROAD_VEHICLES = 2), dont le depot et les arrets
+     * tiennent encore, et qui n'est pas en rebut, recoit les vehicules manquants. S'il en
+     * reste un, clone + ordres partages ; s'il n'en reste aucun, moteur du catalogue +
+     * ordres reconstitues. Avant _tryBuild : l'infrastructure est deja payee.
+     *
+     * POURQUOI CE N'EST PAS DU RENOUVELLEMENT AUTOMATIQUE. SetAutoRenew remplace un vehicule
+     * qui approche de l'age maximal. Il ne remplace pas un vehicule DETRUIT (passage a
+     * niveau : un train est le seul objet qui detruise un vehicule routier) ni un
+     * renouvellement refuse faute de cash au moment T. Une ligne a zero vehicule n'a plus
+     * rien a renouveler.
+     *
+     * MESURE DU TROU, plusieurs campagnes graine 42 : opex_road_20y_42 ligne pax 15
+     * (2 en 1985, 1 en 1986, 0 en 1987-89, 9000/an puis notes 54 -> -1) ;
+     * opex_join_20y_42 COAL 2->1->0 pour 8 ans vides.
+     * VERDICT (docs/opex_refleet_20y_4seeds.json, graine 42, 20 ans) : COAL 15 passe 2->1
+     * en 1982 et 1988 ; RF ajoute 1 chaque fois, rating 22->61 puis 29->67, jamais a zero.
+     * Defaut 1. OpexAI[road_refleet=0] rallume l'abandon silencieux. */
+    AddSetting({
+      name = "road_refleet",
+      description = "Rebuild a road line's fleet when vehicles drop below the original count: 1 = enabled (bugfix default), 0 = leave empty infrastructure idle",
       min_value = 0, max_value = 1,
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,

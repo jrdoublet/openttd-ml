@@ -101,6 +101,7 @@ RE_RA_ROAD = re.compile(r"^RA\|(\d{2})\|(\d+)\|(\d+)\|(\w+)\|(-?\d+)$")  # tenta
 RE_RB_ROAD = re.compile(r"^RB\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")   # opcodes plan / construction
 RE_RN_ROAD = re.compile(r"^RN\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")  # classes/tentatives/baties/opcodes
 RE_RS_ROAD = re.compile(r"^RS\|(\d{2})\|(\d+)\|(\d+)\|(\d+)$")  # paires en bande / coupees / acceptees
+RE_RF_ROAD = re.compile(r"^RF\|(\d+)\|(\d+)\|(\d+)\|(.+)$")  # year, id, added, after|reason
 RE_YT = re.compile(r"^YT\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)(C)?$")
 
 TOP_K = 20  # Doit rester synchronise avec ai/OpexAI/candidates.nut, pour decoder rang20.
@@ -417,7 +418,7 @@ def parse_yearly(all_signs):
 
 def parse_events(all_signs):
     """Retient les evenements rares qui expliquent les variations de parc et d'emprunt."""
-    cash_blocks, dead_lines, loan_repayments, loan_draws = [], [], [], []
+    cash_blocks, dead_lines, loan_repayments, loan_draws, road_refleets = [], [], [], [], []
     seen_at_repay, seen_before_block = {}, {}
     for sign in all_signs:
         if m := RE_GC.match(sign):
@@ -432,12 +433,21 @@ def parse_events(all_signs):
         elif m := RE_GL.match(sign):
             loan_draws.append({"year": int(m.group(1)), "drew": int(m.group(2)),
                                "new_loan": int(m.group(3)), "covered": int(m.group(4))})
+        elif m := RE_RF_ROAD.match(sign):
+            added = int(m.group(3))
+            tail = m.group(4)
+            event = {"year": int(m.group(1)), "line_index": int(m.group(2)), "added": added}
+            if added > 0:
+                event["after"] = int(tail)
+            else:
+                event["reason"] = tail
+            road_refleets.append(event)
         elif m := RE_LF.match(sign):
             seen_at_repay[int(m.group(1))] = {"cash": int(m.group(2)), "loan": int(m.group(3))}
         elif m := RE_LB.match(sign):
             seen_before_block[int(m.group(1))] = int(m.group(2))
 
-    return (cash_blocks, dead_lines, loan_repayments, loan_draws,
+    return (cash_blocks, dead_lines, loan_repayments, loan_draws, road_refleets,
             loan_view(seen_at_repay, seen_before_block))
 
 
@@ -555,7 +565,7 @@ def make_run_payload(rows, seed, years):
         if year_built is not None:
             item.update(road_ops.get((year_built % 100, line["line_index"], item["attempt"]), {}))
         road.append(item)
-    cash_blocks, dead_lines, loan_repayments, loan_draws, loan_view_rows = parse_events(
+    cash_blocks, dead_lines, loan_repayments, loan_draws, road_refleets, loan_view_rows = parse_events(
         final["signs"])
 
     n_rail_ok = sum(1 for line in lines if line["mode"] == "rail" and line["reason"] == "OK")
@@ -616,6 +626,9 @@ def make_run_payload(rows, seed, years):
         "loan_repayments": loan_repayments, "loan_draws": loan_draws,
         "n_loan_draws": len(loan_draws),
         "n_loan_draws_covered": sum(1 for draw in loan_draws if draw["covered"]),
+        "road_refleets": road_refleets,
+        "n_road_refleets": sum(1 for event in road_refleets if event["added"] > 0),
+        "n_road_refleet_vehicles": sum(event["added"] for event in road_refleets),
         "loan_view": loan_view_rows,
         "lines": lines, "yearly": yearly,
         "annual_blocks": annual_blocks, "calendar_years_crossed": calendar_years_crossed,
@@ -693,7 +706,7 @@ def main():
                                   "CJ", "OB|S", "PJ", "OL traction", "PL longueur rame", "PT arbitrage",
                                   "PD quai voulu-vs-bati", "PD repli pente",
                                   "OR SITEA/SITEB/SITEAB/ECON", "PS site clear/cargo/cmd",
-                                  "GL reemprunt"],
+                                  "GL reemprunt", "RF reconstitution flotte route"],
         "runs": runs,
     }
     result_path.write_text(json.dumps(payload, indent=2))
@@ -713,6 +726,8 @@ def main():
               f"performance_history: {run['final_performance_history']}")
         print(f"money: {run['final_money']}  current_loan: {run['final_current_loan']}")
         print(f"n_vehicles: {run['final_n_vehicles']}  n_stations: {run['final_n_stations']}")
+        print(f"road_ok: {run['n_road_lines_ok']}  refleets: {run.get('n_road_refleets', 0)}"
+              f" veh+={run.get('n_road_refleet_vehicles', 0)}")
         print(f"annees franchies: {run['calendar_years_crossed']}  "
               f"non rattrapees: {run['skipped_years']}")
     print("ecrit", result_path)

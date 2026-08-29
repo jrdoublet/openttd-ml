@@ -553,3 +553,92 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
   result.cost = balanceBefore - AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   return result;
 }
+
+/* Reconstitue la flotte d'une ligne routiere dont les vehicules ont disparu (age, destruction
+ * a un passage a niveau, renouvellement qui n'a pas suivi). L'infrastructure est deja payee :
+ * on ne replanifie rien. Si un vehicule reste, on le clone (ordres partages). S'il n'en reste
+ * aucun, on reconstitue moteur + ordres comme a la construction. N'ajoute jamais au-dela de
+ * MAX_ROAD_VEHICLES. Rend { added, after, reason }. */
+function OpexRoadRefleet(catalog, line, have, target)
+{
+  local result = { added = 0, after = have, reason = "OK" };
+  local missing = target - have;
+  if (missing <= 0) { result.reason = "FULL"; return result; }
+  if (!("depot" in line) || line.depot == null || !AIRoad.IsRoadDepotTile(line.depot)) {
+    result.reason = "NODEPT"; return result;
+  }
+  if (!AIRoad.IsRoadStationTile(line.stationA) || !AIRoad.IsRoadStationTile(line.stationB)) {
+    result.reason = "STN"; return result;
+  }
+  AIRoad.SetCurrentRoadType(catalog.roadType);
+
+  local template = null;
+  if (have > 0) {
+    local existing = OpexLineVehicleIds(line, AIStation.GetStationID(line.stationA));
+    foreach (v in existing) {
+      if (AIVehicle.IsValidVehicle(v) && AIVehicle.GetVehicleType(v) == AIVehicle.VT_ROAD) {
+        template = v;
+        break;
+      }
+    }
+  }
+
+  local engine = (line.cargo in catalog.roadEngineByCargo) ? catalog.roadEngineByCargo[line.cargo] : null;
+  local unitPrice = 0;
+  if (template != null) {
+    unitPrice = AIEngine.GetPrice(AIVehicle.GetEngineType(template));
+  } else if (engine != null) {
+    unitPrice = engine.price;
+  } else {
+    result.reason = "NOENG"; return result;
+  }
+  if (unitPrice <= 0) { result.reason = "PRICE"; return result; }
+  local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  local affordable = (money - CASH_RESERVE) / unitPrice;
+  if (affordable < 1) { result.reason = "CASH"; return result; }
+  if (missing > affordable) missing = affordable;
+
+  local built = [];
+  if (template != null) {
+    for (local i = 0; i < missing; i++) {
+      local extra = AIVehicle.CloneVehicle(line.depot, template, true);
+      if (!AIVehicle.IsValidVehicle(extra)) {
+        if (built.len() == 0) { result.reason = "CLONE"; return result; }
+        break;
+      }
+      built.append(extra);
+    }
+  } else {
+    if (OpexRoadRefitCapacity(line.depot, engine, line.cargo) <= 0) {
+      result.reason = "REFIT"; return result;
+    }
+    local first = AIVehicle.BuildVehicleWithRefit(line.depot, engine.id, line.cargo);
+    if (!AIVehicle.IsValidVehicle(first)) { result.reason = "VEH"; return result; }
+    built.append(first);
+    local sourceFlags = (("kind" in line) && line.kind == "freight")
+                        ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE;
+    if (!AIOrder.AppendOrder(first, line.stationA, sourceFlags) ||
+        !AIOrder.AppendOrder(first, line.stationB, AIOrder.OF_NONE) ||
+        AIOrder.GetOrderCount(first) != 2) {
+      AIVehicle.SellVehicle(first);
+      result.reason = "ORDER"; return result;
+    }
+    for (local i = 1; i < missing; i++) {
+      local extra = AIVehicle.CloneVehicle(line.depot, first, true);
+      if (!AIVehicle.IsValidVehicle(extra)) break;
+      built.append(extra);
+    }
+  }
+
+  foreach (v in built) {
+    if (!AIVehicle.StartStopVehicle(v)) {
+      if (AIVehicle.IsStoppedInDepot(v)) AIVehicle.SellVehicle(v);
+      else AIVehicle.SendVehicleToDepot(v);
+    } else {
+      result.added++;
+    }
+  }
+  if (result.added == 0) { result.reason = "START"; return result; }
+  result.after = have + result.added;
+  return result;
+}

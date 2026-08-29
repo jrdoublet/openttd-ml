@@ -283,14 +283,21 @@ ligne a roulé onze ans à perte sans être ferraillée). Les deux touchent auss
    donc à portée, et c'est ce que la philosophie du projet demande.
 4. **Multistop** (`AIStation.STATION_JOIN_ADJACENT`) : seul levier de volume par ligne, le plafond
    de deux véhicules par arrêt étant une règle du jeu.
-5. **Une ligne routière peut perdre toute sa flotte et rester debout.** Observé une fois (graine 42,
-   20 ans) : une ligne bus passe de 2 à 1 puis 0 véhicule en deux ans, notes de gare s'effondrant de
-   54 à −1, et elle ne se reconstitue jamais — alors que son infrastructure est payée et que la
-   ligne rendait 9 000/an. Le renouvellement automatique n'a pas repris la main. **Cause non
-   établie, n = 1** ; le suspect nommé par `docs/mecanique_jeu.md` §11 est le **passage à niveau**
-   (un train est le seul objet qui détruise un véhicule routier), et nos tracés routiers croisent
-   nos propres voies. Le correctif qui couvre toutes les causes est le même : détecter une ligne à
-   zéro véhicule et rebâtir sa flotte, l'infrastructure étant déjà là.
+5. ✅ **Reconstitution de flotte routiere : faite, defaut 1** (2026-08-29, nuit).
+   Le trou n'était pas n = 1 : sur `docs/opex_road_20y_42.json` la ligne pax 15 passe 2→1→0
+   (1985-87, 9 000/an puis notes 54→−1) ; sur `docs/opex_join_20y_42.json` le COAL fait 2→1→0
+   et reste vide **huit ans**. Auto-renouvellement ne couvre pas un véhicule détruit (passage à
+   niveau) ni un renouvellement refusé faute de cash : une ligne à zéro n'a plus rien à renouveler.
+
+   **Ce que 1 fait.** Après `_reportLines` / `_scrapDeadLines`, une ligne routière sous
+   `predTrains` (borné à 2), dépôt et arrêts encore là, pas en rebut, reçoit les véhicules
+   manquants. Un restant → clone ; zéro → moteur du catalogue + ordres. Panneau `RF`.
+   Réglage `road_refleet`, `OpexAI[road_refleet=0]` rallume l'abandon.
+
+   **Mesure** (`docs/opex_refleet_20y_4seeds.json`, graine 42, 20 ans) : ligne COAL 15 bâtie
+   en 1975 à 2 camions. 1982 : 2→1, `RF` ajoute 1, 1983 rating 22→61. 1988 : encore 2→1,
+   `RF` ajoute 1, 1989 rating 29→67. **Jamais à zéro.** La ligne WOOD jumelle (jamais de
+   perte) n'est pas touchée. Les trois autres graines n'avaient pas de ligne routière.
 
 ---
 
@@ -554,12 +561,12 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
       Le spread n'est **pas** débloqué : joindre plus, sur un terme qui ne paie pas, recréerait
       le banc vivier.
 
-**Priorité de fait, révisée le 2026-08-29 (nuit)** : `station_join`, `basin_share`, `reborrow`
-et le mode route **item 0** sont ✅ mesurés. Les trois premiers ne paient pas (défauts 0) ; la
-graine qui coulait ne coule plus (pas de garde-fou). Le **spread** n'est pas la suite. 9.1 et
-9.2 n'informent qu'un réglage éteint. La tête passe au mode route **item 5** — une ligne
-routière à zéro véhicule qui ne se reconstitue jamais (n = 1, cause non établie, l'infrastructure
-est déjà payée). `origin_sitable`, `station_join`, `basin_share` et `reborrow` restent à 0.
+**Priorité de fait, révisée le 2026-08-29 (nuit)** : plus d'échec qualitatif du mode route
+(item 0 ✅, item 5 ✅ `road_refleet=1`). `station_join`, `basin_share`, `reborrow`,
+`origin_sitable` restent à 0. Le **spread** n'est pas la suite. La tête redevient le **modèle
+de coût A\*** (§3) : l'optimum mesuré est au plus court, le commentaire code encore 48-63
+tuiles, et ajuster sans instrumenter la distance sur CHAQUE tentative (y compris les
+abandons) reproduirait le biais de censure du §2.7.
 
 *Priorité précédente, conservée pour la trace* : ~~l'item **4**~~ (✅ fait) et l'item **6**
 (plafond d'abandon) passaient devant — ce sont deux échecs mesurés, et surtout les deux seuls
