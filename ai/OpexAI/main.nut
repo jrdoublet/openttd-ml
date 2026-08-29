@@ -201,6 +201,8 @@ function OpexAI::_tryBuildAir(year)
     mode = "air", vehicle = result.vehicle,
     lineId = this._nextLineId,
   });
+  OpexSign(anchor, "PM|" + this._nextLineId + "|A|" + plan.distance + "|"
+                   + AICargo.GetCargoLabel(this._catalog.paxCargo));
   this._nextLineId++;
 }
 
@@ -237,6 +239,8 @@ function OpexAI::_tryBuildWater(year)
     mode = "water", vehicle = result.vehicle,
     lineId = this._nextLineId,
   });
+  OpexSign(anchor, "PM|" + this._nextLineId + "|W|" + plan.distance + "|"
+                   + AICargo.GetCargoLabel(this._catalog.paxCargo));
   this._nextLineId++;
 }
 
@@ -404,6 +408,10 @@ function OpexAI::_tryBuild(ranked, year)
                              + "|" + budgetInfo.path + alternativeSource
                              + OpexAttemptReasonCode(result.reason) + "|" + iterationBudget
                              + "|" + result.iterations);
+    /* OR est deja au bord du plafond de 31 caracteres; ce panneau compagnon garde le cout reel
+     * de la tentative pour comparer les lignes abouties aux abandons, sans changer son format. */
+    OpexSign(anchor, "OB|A|" + (year % 100) + "|" + this._nextLineId + "|" + rankPacked
+                             + "|" + result.opcodes);
     if (result.error != 0) OpexSign(anchor, "OV|" + this._nextLineId + "|" + result.error);
     if (result.diag != null) {
       OpexSign(anchor, "OG|" + result.diag.railtype + "|" + result.diag.isDepot
@@ -431,6 +439,9 @@ function OpexAI::_tryBuild(ranked, year)
        * (candidates.nut le signale deja comme biais non calibre sur les paires de villes). */
       OpexSign(anchor, "PK|" + idx + "|" + (candidate.kind == "pax" ? "P" : "F")
                                + "|" + candidate.monthly);
+      /* Le label cargo est stable et tient dans un panneau court; il rend la repartition finale
+       * lisible sans devoir deviner le type a partir de son identifiant interne. */
+      OpexSign(anchor, "PC|" + idx + "|" + AICargo.GetCargoLabel(candidate.cargo));
 
       /* Diagnostic effondrement fret (2026-08-28) : garder de quoi verifier, annee apres annee,
        * si les DEUX industries d'une ligne fret restent valides -- sans ca on ne peut pas
@@ -503,10 +514,13 @@ function OpexAI::_reportLines(year)
     local runCost = 0;
     local vehCount = 0;
     local isFreight = ("kind" in line) && line.kind == "freight";
+    local vehicleType = AIVehicle.VT_RAIL;
+    if ("mode" in line && line.mode == "air") vehicleType = AIVehicle.VT_AIR;
+    else if ("mode" in line && line.mode == "water") vehicleType = AIVehicle.VT_WATER;
     local diagSlot = 0;
     local vehicles = AIVehicleList_Station(stationA);
     for (local v = vehicles.Begin(); !vehicles.IsEnd(); v = vehicles.Next()) {
-      if (AIVehicle.GetVehicleType(v) != AIVehicle.VT_RAIL) continue;
+      if (AIVehicle.GetVehicleType(v) != vehicleType) continue;
       profit += AIVehicle.GetProfitLastYear(v);
       runCost += AIVehicle.GetRunningCost(v);
       vehCount++;
@@ -687,6 +701,7 @@ function OpexAI::_reportYear(year, ranked)
 {
   local anchor = AIMap.GetTileIndex(1, 1);
   local best = ranked.best.len() > 0 ? ranked.best[0] : null;
+  local stats = ranked.stats;
 
   OpexSign(anchor, "OX|" + year + "|" + this._catalog.towns.len()
                            + "|" + this._catalog.industries.len() + "|" + ranked.all);
@@ -705,6 +720,17 @@ function OpexAI::_reportYear(year, ranked)
                  + this._budget.get("build_docks") + this._budget.get("build_water_depot")
                  + this._budget.get("build_ships");
   OpexSign(anchor, "OW|" + year + "|" + buildOps + "|" + this._lines.len());
+
+  /* Ces quatre panneaux mesurent les rejets AVANT TOP_K : sans eux, ranked.all ne dit pas si le
+   * vivier est epuise par les origines, les bornes de distance ou le plancher de rendement. */
+  OpexSign(anchor, "CG|" + year + "|" + stats.townsServed + "|" + stats.townsUnserved + "|"
+                           + stats.industriesServed + "|" + stats.industriesUnserved);
+  OpexSign(anchor, "CR|" + year + "|" + stats.pairsTotal + "|" + stats.pairsOriginServed
+                           + "|" + stats.noMonthly);
+  OpexSign(anchor, "CD|" + year + "|" + stats.distanceShort + "|" + stats.distanceLong);
+  OpexSign(anchor, "CE|" + year + "|" + stats.economicsUnavailable + "|"
+                           + stats.profitNonPositive + "|" + stats.ratioTooLow);
+  OpexSign(anchor, "CK|" + year + "|" + stats.accepted + "|" + stats.topKOmitted);
 
   if (best != null) {
     OpexSign(anchor, "OB|" + year + "|" + best.distance

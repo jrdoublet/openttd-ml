@@ -77,23 +77,43 @@ function OpexRailIterations(distance)
   return KNOT_ITERATIONS[last] + slope * (distance - KNOT_DISTANCE[last]);
 }
 
-function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly)
+function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, stats)
 {
-  if (monthly <= 0) return null;
+  if (monthly <= 0) {
+    stats.noMonthly++;
+    return null;
+  }
   local distance = AIMap.DistanceManhattan(srcTile, dstTile);
-  if (distance < MIN_DISTANCE || distance > MAX_DISTANCE) return null;
+  if (distance < MIN_DISTANCE) {
+    stats.distanceShort++;
+    return null;
+  }
+  if (distance > MAX_DISTANCE) {
+    stats.distanceLong++;
+    return null;
+  }
 
   local economics = OpexLineEconomics(catalog, cargo, distance, monthly);
-  if (economics == null) return null;
+  if (economics == null) {
+    stats.economicsUnavailable++;
+    return null;
+  }
   /* Un candidat dont le profit annuel attendu est negatif ne merite AUCUN opcode. */
-  if (economics.profitAnnual <= 0) return null;
+  if (economics.profitAnnual <= 0) {
+    stats.profitNonPositive++;
+    return null;
+  }
 
   local iterations = OpexRailIterations(distance);
   local ratio = (economics.profitAnnual * 1000) / iterations;
   /* Sous MIN_RATIO, le candidat coute structurellement plus qu'il ne rapporte compare au reste du
    * classement -- ne merite pas d'occuper une place dans le TOP_K meme s'il est techniquement
    * profitable (economics.profitAnnual > 0 ne suffit pas, voir MIN_RATIO ci-dessus). */
-  if (ratio < MIN_RATIO) return null;
+  if (ratio < MIN_RATIO) {
+    stats.ratioTooLow++;
+    return null;
+  }
+  stats.accepted++;
   return {
     kind = kind,            // "pax" ou "freight"
     cargo = cargo,
@@ -175,26 +195,34 @@ function OpexOriginServed(lines, tile)
 const TOWN_CATCHMENT_SHARE_PCT = 22;
 
 /* Paires de villes pour les passagers. */
-function OpexPaxCandidates(catalog, lines, out)
+function OpexPaxCandidates(catalog, lines, out, stats)
 {
   local cargo = catalog.paxCargo;
   if (cargo < 0) return;
   local towns = catalog.towns;
   local n = towns.len();
   local produced = [];
+  local served = [];
   for (local i = 0; i < n; i++) {
     produced.append(AITown.GetLastMonthProduction(towns[i].id, cargo));
+    local isServed = OpexOriginServed(lines, towns[i].tile);
+    served.append(isServed);
+    if (isServed) stats.townsServed++; else stats.townsUnserved++;
   }
   for (local a = 0; a < n; a++) {
-    if (OpexOriginServed(lines, towns[a].tile)) continue;
     for (local b = a + 1; b < n; b++) {
-      if (OpexOriginServed(lines, towns[b].tile)) continue;
+      stats.pairsTotal++;
+      if (served[a] || served[b]) {
+        stats.pairsOriginServed++;
+        continue;
+      }
       /* Une ligne dessert les deux sens, et chaque sens transporte la production de SON
        * origine : le debit utile est la somme, pas le minimum. On ignore encore la croissance de
        * la ville que la desserte provoque (sous-estimation non calibree, plus petite que le
        * facteur ci-dessus d'apres la mesure). */
       local monthly = ((produced[a] + produced[b]) * TOWN_CATCHMENT_SHARE_PCT) / 100;
-      local candidate = OpexMakeCandidate(catalog, "pax", cargo, towns[a].tile, towns[b].tile, monthly);
+      local candidate = OpexMakeCandidate(catalog, "pax", cargo, towns[a].tile, towns[b].tile,
+                                          monthly, stats);
       if (candidate != null) out.append(candidate);
     }
   }
@@ -202,21 +230,30 @@ function OpexPaxCandidates(catalog, lines, out)
 
 /* Industries : on n'apparie que des couples producteur/accepteur du MEME cargo, ce qui garde
  * l'etage 1 lineaire en nombre d'industries plutot que quadratique sur tout le catalogue. */
-function OpexFreightCandidates(catalog, lines, out)
+function OpexFreightCandidates(catalog, lines, out, stats)
 {
   local industries = catalog.industries;
+  local served = [];
+  for (local i = 0; i < industries.len(); i++) {
+    local isServed = OpexOriginServed(lines, industries[i].tile);
+    served.append(isServed);
+    if (isServed) stats.industriesServed++; else stats.industriesUnserved++;
+  }
   foreach (cargo, sources in catalog.producers) {
     if (!(cargo in catalog.acceptors)) continue;
     local sinks = catalog.acceptors[cargo];
     foreach (si in sources) {
       local source = industries[si];
-      if (OpexOriginServed(lines, source.tile)) continue;
       local monthly = AIIndustry.GetLastMonthProduction(source.id, cargo);
-      if (monthly <= 0) continue;
       foreach (di in sinks) {
         if (di == si) continue;
-        if (OpexOriginServed(lines, industries[di].tile)) continue;
-        local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile, industries[di].tile, monthly);
+        stats.pairsTotal++;
+        if (served[si] || served[di]) {
+          stats.pairsOriginServed++;
+          continue;
+        }
+        local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
+                                            industries[di].tile, monthly, stats);
         if (candidate != null) out.append(candidate);
       }
     }
@@ -229,20 +266,29 @@ function OpexFreightCandidates(catalog, lines, out)
 function OpexBuildCandidates(catalog, budget, lines)
 {
   local all = [];
+  /* Comptes de rejet : ils se trouvent ici, avant que TOP_K ne masque les candidats restants.
+   * Une table explicite evite une closure imbriquee, non portable dans le Squirrel du scenario. */
+  local stats = {
+    townsServed = 0, townsUnserved = 0, industriesServed = 0, industriesUnserved = 0,
+    pairsTotal = 0, pairsOriginServed = 0, noMonthly = 0,
+    distanceShort = 0, distanceLong = 0, economicsUnavailable = 0,
+    profitNonPositive = 0, ratioTooLow = 0, accepted = 0, topKOmitted = 0,
+  };
 
   budget.begin();
-  OpexPaxCandidates(catalog, lines, all);
+  OpexPaxCandidates(catalog, lines, all, stats);
   budget.end("cand_pax");
 
   budget.begin();
-  OpexFreightCandidates(catalog, lines, all);
+  OpexFreightCandidates(catalog, lines, all, stats);
   budget.end("cand_freight");
 
   budget.begin();
   local best = OpexTopK(all, TOP_K);
   budget.end("cand_rank");
 
-  return { all = all.len(), best = best, bands = OpexBands(all) };
+  stats.topKOmitted = all.len() - best.len();
+  return { all = all.len(), best = best, bands = OpexBands(all), stats = stats };
 }
 
 /* Meilleur rapport atteint dans chaque bande de distance.
