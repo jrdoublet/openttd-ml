@@ -136,6 +136,11 @@ ABANDON_MEMORY <- true;
  * prediction d'un candidat a jointure reste sur-estimee -- tout le verdict est dans info.nut. */
 STATION_JOIN <- false;
 
+/* Filtre d'origine sitable : repli FAUX jusqu'a la lecture unique de origin_sitable dans
+ * Start(). Defaut 0 apres banc apparie (pas d'effet etabli) ; 1 ecarte du TOP_K les sources
+ * fret sans tuile de terre dans le bassin. Le classement a 0 est celui d'avant le filtre. */
+ORIGIN_SITABLE <- false;
+
 /* Ligne fret morte (2026-08-28) : une industrie source qui ferme NE garantit PAS l'effondrement --
  * la gare peut recuperer une industrie voisine du meme cargo (ligne 4, campagne 20 ans, restee
  * rentable malgre srcAlive=0). Le diagnostic se fie donc TOUJOURS a la performance REELLE
@@ -195,6 +200,10 @@ function OpexAttemptReasonCode(reason)
   if (reason == "DEAD") return "D";
   if (reason == "NOPA") return "P";
   if (reason == "NOPLAN") return "L";
+  if (reason == "SITEA") return "B";
+  if (reason == "SITEB") return "C";
+  if (reason == "SITEAB") return "G";
+  if (reason == "ECON") return "F";
   if (reason == "SHORT") return "H";
   if (reason == "NOMATCH") return "M";
   if (reason == "JOINPATH") return "J";
@@ -721,6 +730,14 @@ function OpexAI::_tryBuild(ranked, year)
      * de la tentative pour comparer les lignes abouties aux abandons, sans changer son format. */
     OpexSign(anchor, "OB|A|" + (year % 100) + "|" + this._nextLineId + "|" + rankPacked
                              + "|" + result.opcodes);
+    /* PS decompose SITEA/B/AB : rectangles libres, ceux qui ont du cargo, ceux que
+     * BuildRailStation a acceptes. Le rang packed aligne le panneau sur OR.
+     * `PS|89|21|400|9999|999|9` : 26 caracteres. */
+    if (result.reason == "SITEA" || result.reason == "SITEB" || result.reason == "SITEAB") {
+      OpexSign(anchor, "PS|" + (year % 100) + "|" + this._nextLineId + "|" + rankPacked
+                              + "|" + result.siteClear + "|" + result.siteCargo + "|"
+                              + result.siteCmd + "|" + result.siteKind);
+    }
     if (result.error != 0) OpexSign(anchor, "OV|" + this._nextLineId + "|" + result.error);
     if (result.diag != null) {
       OpexSign(anchor, "OG|" + result.diag.railtype + "|" + result.diag.isDepot
@@ -766,12 +783,12 @@ function OpexAI::_tryBuild(ranked, year)
                               + "|" + result.trainLength + "|" + result.locoLength
                               + "|" + result.wagonLength);
       /* PD rend le repli controle lisible : quai voulu, quai finalement bati, puis nombre de
-       * plans utilisables aux deux extremites a cette longueur. Les deux derniers champs restent
-       * plafonnes a MAX_STATION_PLANS = 12 ; ils mesurent le choix donne a A*, pas le terrain de
-       * toute la carte. */
+       * plans utilisables aux deux extremites a cette longueur, et 1 si le site n'est pas plat.
+       * Les champs plans restent plafonnes a MAX_STATION_PLANS = 12 ; ils mesurent le choix
+       * donne a A*, pas le terrain de toute la carte. `PD|99|12|12|12|12|1` : 22 caracteres. */
       OpexSign(anchor, "PD|" + idx + "|" + result.wantedPlatformLength + "|"
                               + result.platformLength + "|" + result.plansA + "|"
-                              + result.plansB);
+                              + result.plansB + "|" + result.slopeRelaxed);
       /* pax vs freight, et la production mensuelle BRUTE utilisee comme entree : pour trancher si
        * le residu du gap vient de la ville entiere comptee au lieu du seul rayon de la gare
        * (candidates.nut le signale deja comme biais non calibre sur les paires de villes). */
@@ -1132,6 +1149,7 @@ function OpexAI::Start()
   HARD_ITERATION_CAP = AIController.GetSetting("pathfinder_hard_cap_k") * 1000;
   ABANDON_MEMORY = AIController.GetSetting("abandon_memory") != 0;
   STATION_JOIN = AIController.GetSetting("station_join") != 0;
+  ORIGIN_SITABLE = AIController.GetSetting("origin_sitable") != 0;
   /* Lu ici comme les autres reglages de decision : catalog.refresh le consulte des le premier
    * cycle annuel, qui a lieu apres Start(). */
   ROAD_BUILD_ENABLED = AIController.GetSetting("road_mode") != 0;

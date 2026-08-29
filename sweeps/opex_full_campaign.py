@@ -46,13 +46,14 @@ RE_OL_TRACTION = re.compile(r"^OL\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
 RE_PL = re.compile(r"^PL\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
 RE_PT = re.compile(r"^PT\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
 RE_PG = re.compile(r"^PG\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
-RE_PD = re.compile(r"^PD\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
+RE_PD = re.compile(r"^PD\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)(?:\|(\d+))?$")
+RE_PS = re.compile(r"^PS\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)(?:\|([PF]))?$")
 RE_OY = re.compile(r"^OY\|(\d+)\|(\d+)\|(-?\d+)\|(-?\d+)$")
 RE_OZ = re.compile(r"^OZ\|(\d+)\|(\d+)\|(-?\d+)$")
 RE_OU = re.compile(r"^OU\|(\d+)\|(\d+)\|(\d+)\|(-?\d+)$")
 RE_OO = re.compile(r"^OO\|(\d+)\|(\d+)\|(-?\d+)$")
 RE_OR = re.compile(r"^OR\|(\d+)\|(\d+)\|(\d+)\|(\w+)$")  # historique avant mesure abandon
-RE_OR_BUDGET = re.compile(r"^OR\|(\d{2})\|(\d+)\|(\d+)\|([ZFCN][SL][KADPLHMJSTERVX])\|(\d+)\|(\d+)$")
+RE_OR_BUDGET = re.compile(r"^OR\|(\d{2})\|(\d+)\|(\d+)\|([ZFCN][SL][KADPLHMJSTERVXBCGF])\|(\d+)\|(\d+)$")
 RE_OB_ATTEMPT = re.compile(r"^OB\|A\|(\d{2})\|(\d+)\|(\d+)\|(\d+)$")
 RE_PK = re.compile(r"^PK\|(\d+)\|([PF])\|(\d+)$")
 RE_PC = re.compile(r"^PC\|(\d+)\|(.+)$")
@@ -104,6 +105,7 @@ RE_YT = re.compile(r"^YT\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)(C)?$")
 TOP_K = 20  # Doit rester synchronise avec ai/OpexAI/candidates.nut, pour decoder rang20.
 REASON_CODES = {
     "K": "OK", "A": "ABND", "D": "DEAD", "P": "NOPA", "L": "NOPLAN",
+    "B": "SITEA", "C": "SITEB", "G": "SITEAB", "F": "ECON",
     "H": "SHORT", "M": "NOMATCH", "J": "JOINPATH", "S": "STNFAIL", "T": "TRKFAIL",
     "E": "DEPFAIL", "R": "ORDFAIL", "V": "NOTRAIN", "X": "UNKNOWN",
 }
@@ -193,6 +195,8 @@ def parse_lines(all_signs):
             pred["wantedPlatformLength"] = int(m.group(2))
             pred["builtPlatformLength"] = int(m.group(3))
             pred["plansA"] = int(m.group(4)); pred["plansB"] = int(m.group(5))
+            if m.group(6) is not None:
+                pred["slopeRelaxed"] = int(m.group(6))
         elif m := RE_OY.match(sign):
             idx, year = int(m.group(1)), int(m.group(2))
             actual_series.setdefault(idx, {}).setdefault(year, {})["ratingA"] = int(m.group(3))
@@ -304,20 +308,33 @@ def parse_attempts(all_signs):
     break) qui ne generent aucun sign."""
     attempts = []
     opcodes = {}
+    site_stats = {}
     for sign in all_signs:
         if m := RE_OB_ATTEMPT.match(sign):
             opcodes[(int(m.group(1)), int(m.group(2)), int(m.group(3)))] = int(m.group(4))
+        elif m := RE_PS.match(sign):
+            stats = {
+                "n_clear": int(m.group(4)), "n_cargo": int(m.group(5)), "n_cmd": int(m.group(6)),
+            }
+            if m.group(7):
+                stats["kind"] = "pax" if m.group(7) == "P" else "freight"
+            site_stats[(int(m.group(1)), int(m.group(2)), int(m.group(3)))] = stats
     for sign in all_signs:
         if m := RE_OR_BUDGET.match(sign):
             packed = int(m.group(3))
             rank, ranked_len = unpack_rank(packed)
             mode = m.group(4)
-            attempts.append({"year": 1900 + int(m.group(1)), "idx": int(m.group(2)),
-                             "rank": rank, "ranked_len": ranked_len,
-                             "budget_path": mode[0], "alternative_source": mode[1],
-                             "reason": REASON_CODES[mode[2]], "iteration_budget": int(m.group(5)),
-                             "iterations": int(m.group(6)),
-                             "opcodes": opcodes.get((int(m.group(1)), int(m.group(2)), packed))})
+            year_mod, idx = int(m.group(1)), int(m.group(2))
+            item = {"year": 1900 + year_mod, "idx": idx,
+                    "rank": rank, "ranked_len": ranked_len,
+                    "budget_path": mode[0], "alternative_source": mode[1],
+                    "reason": REASON_CODES[mode[2]], "iteration_budget": int(m.group(5)),
+                    "iterations": int(m.group(6)),
+                    "opcodes": opcodes.get((year_mod, idx, packed))}
+            stats = site_stats.get((year_mod, idx, packed))
+            if stats:
+                item.update(stats)
+            attempts.append(item)
         elif m := RE_OR.match(sign):
             attempts.append({"idx": int(m.group(1)), "distance": int(m.group(2)),
                               "iterations": int(m.group(3)), "reason": m.group(4)})
@@ -556,6 +573,13 @@ def make_run_payload(rows, seed, years):
         "final_n_vehicles": final["n_vehicles"], "final_n_stations": final["n_stations"],
         "n_rail_lines_ok": n_rail_ok, "n_rail_attempts_total": len(attempts),
         "n_rail_attempts_failed": n_rail_failed_attempts,
+        "n_rail_attempts_sitea": sum(1 for attempt in attempts if attempt["reason"] == "SITEA"),
+        "n_rail_attempts_siteb": sum(1 for attempt in attempts if attempt["reason"] == "SITEB"),
+        "n_rail_attempts_siteab": sum(1 for attempt in attempts if attempt["reason"] == "SITEAB"),
+        "n_rail_attempts_econ": sum(1 for attempt in attempts if attempt["reason"] == "ECON"),
+        "n_rail_attempts_noplan": sum(1 for attempt in attempts if attempt["reason"] == "NOPLAN"),
+        "n_lines_slope_relaxed": sum(
+            1 for line in lines if line.get("predicted", {}).get("slopeRelaxed")),
         "n_rail_attempts_last_ranked": sum(
             1 for attempt in attempts if attempt.get("alternative_source") == "L"),
         "n_rail_attempts_zero_alternative": sum(
@@ -658,7 +682,8 @@ def main():
         "ai_settings": {key: value for key, value in args.ai_settings},
         "instrumentation_added": ["CG", "CR", "CD", "CE", "CK", "PC", "PM", "OB|A", "GM", "OB|J",
                                   "CJ", "OB|S", "PJ", "OL traction", "PL longueur rame", "PT arbitrage",
-                                  "PD quai voulu-vs-bati"],
+                                  "PD quai voulu-vs-bati", "PD repli pente",
+                                  "OR SITEA/SITEB/SITEAB/ECON", "PS site clear/cargo/cmd"],
         "runs": runs,
     }
     result_path.write_text(json.dumps(payload, indent=2))
@@ -666,6 +691,14 @@ def main():
         print(f"=== {args.years} ans, graine {run['seed']} ===")
         print(f"lignes rail OK: {run['n_rail_lines_ok']}  (tentatives totales: "
               f"{run['n_rail_attempts_total']}, echouees: {run['n_rail_attempts_failed']})")
+        print(f"sites: SITEA={run['n_rail_attempts_sitea']} SITEB={run['n_rail_attempts_siteb']} "
+              f"SITEAB={run['n_rail_attempts_siteab']} ECON={run['n_rail_attempts_econ']} "
+              f"NOPLAN={run['n_rail_attempts_noplan']}  pente={run['n_lines_slope_relaxed']}")
+        for attempt in run["rail_attempts"]:
+            if attempt["reason"] in ("SITEA", "SITEB", "SITEAB") and "n_clear" in attempt:
+                print(f"  {attempt['reason']} {attempt['year']} idx={attempt['idx']} "
+                      f"{attempt.get('kind', '?')} clear={attempt['n_clear']} "
+                      f"cargo={attempt['n_cargo']} cmd={attempt['n_cmd']}")
         print(f"company_value final: {run['final_company_value']}  "
               f"performance_history: {run['final_performance_history']}")
         print(f"money: {run['final_money']}  current_loan: {run['final_current_loan']}")

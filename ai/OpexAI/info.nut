@@ -10,7 +10,7 @@ class OpexAI extends AIInfo {
 
   /* Les reglages debug_signs et pathfinder_sleep_ticks existent pour NE PAS POLLUER une partie
    * partagee avec des joueurs humains (loan_repay_floor_k, pathfinder_hard_cap_k,
-   * abandon_memory, station_join et road_mode, eux, sont des parametres de conception exposes au banc,
+   * abandon_memory, station_join, origin_sitable et road_mode, eux, sont des parametres de conception exposes au banc,
    * pas des bridages).
    * Entre IA, la regle est l'inverse : jouer a armes egales,
    * donc ne jamais s'auto-handicaper face a un adversaire qui ne se bride pas. Un handicap non intentionnel
@@ -142,6 +142,29 @@ class OpexAI extends AIInfo {
     AddSetting({
       name = "station_join",
       description = "Reuse one compatible nearby OpexAI rail station with a dedicated platform: 1 = enabled, 0 = historical too-close rejection",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* Filtre d'origine rail constructible. Defaut 0 DEPUIS LE 2026-08-29, apres banc apparie.
+     *
+     * CE QUE 1 FAIT. Avant le classement, une source fret dont le bassin n'a aucune tuile de
+     * TERRE voyant le cargo (eau, ou le batiment d'industrie lui-meme) n'entre pas au TOP_K.
+     * Mesure graine 42 / 20 ans : 23 NOPLAN / 46 tentatives -> 0, les 14 M d'opcodes par SITEA
+     * disparaissent. Le puits n'est PAS filtre : le couper enlevait des paires urbaines encore
+     * constructibles.
+     *
+     * VERDICT DU BANC APPARIE (docs/bench_noplan_sitable.json contre docs/bench_traction_new.json,
+     * 20 graines x 20 ans) : pas d'effet etabli. company_value +4,0 % (t = 0,50, 11/20),
+     * performance_history +1,9 % (t = 0,85), vehicules -1,1 %. Sous le plancher de detection.
+     * Le minimum recule (1,79 M -> 1,18 M) et le CV passe de 0,28 a 0,34. La graine 42 seule
+     * recule de 28 %. 0 reste le bras historique EXACT du classement ; 1 pour rejouer le
+     * mecanisme sans relire le code. */
+    AddSetting({
+      name = "origin_sitable",
+      description = "Drop rail candidates whose source has no land tile seeing the cargo: 1 = enabled, 0 = historical ranking (measured default)",
       min_value = 0, max_value = 1,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,

@@ -88,7 +88,8 @@ function OpexRailPlatformCargoValue(anchor, step, length, cargo, coverage, wantP
   return best;
 }
 
-function OpexStationPlans(center, otherCenter, radius, length, maxPlans, cargo, coverage, wantProduction)
+function OpexStationPlans(center, otherCenter, radius, length, maxPlans, cargo, coverage,
+                          wantProduction, stats = null)
 {
   local plans = [];
   local axes = [
@@ -115,9 +116,11 @@ function OpexStationPlans(center, otherCenter, radius, length, maxPlans, cargo, 
                   AITile.GetSlope(platformTile) == AITile.SLOPE_FLAT;
             }
             if (usable) {
+              if (stats != null) stats.nClear++;
               local cargoValue = OpexRailPlatformCargoValue(anchor, step, length, cargo, coverage,
                                                              wantProduction);
               if (wantProduction ? (cargoValue <= 0) : (cargoValue < 8)) continue;
+              if (stats != null) stats.nCargo++;
               /* Le rectangle plat ne prouve pas que la commande respecte le station_spread ou les
                * regles de gare. Ce test est au plus MAX_STATION_PLANS * 2 commandes par tentative
                * (24 avec le plafond deja mesure), tres petit devant les milliers d'iterations A* ;
@@ -128,6 +131,7 @@ function OpexStationPlans(center, otherCenter, radius, length, maxPlans, cargo, 
                 stationOk = AIRail.BuildRailStation(anchor, axis[0], 1, length, AIStation.STATION_NEW);
               }
               if (stationOk) {
+                if (stats != null) stats.nCmd++;
                 plans.push({ anchor = anchor, station_exit = stationExit, lead = lead,
                              direction = axis[0], step = step, length = length, cargoValue = cargoValue });
               }
@@ -189,10 +193,41 @@ function OpexJoinPlatformPlans(platform, stationId)
   return plans;
 }
 
+/* Un couple de plans a une longueur donnee. Rend nA/nB meme en echec : c'est ce qui permet de
+ * distinguer SITEA, SITEB et SITEAB, au lieu du seau unique NOPLAN. Les closures Squirrel de
+ * cet environnement ne capturent pas les locaux englobants -- d'ou une fonction libre. */
+function OpexRailTryPlatformLength(catalog, candidate, length, statsA, statsB)
+{
+  local plansA = OpexStationPlans(candidate.src, candidate.dst, STATION_SEARCH_RADIUS, length,
+                                  MAX_STATION_PLANS, candidate.cargo, catalog.railCoverage, true,
+                                  statsA);
+  if (plansA.len() == 0) {
+    return { ok = false, nA = 0, nB = -1, plansA = plansA, plansB = [] };
+  }
+  local plansB = OpexStationPlans(candidate.dst, candidate.src, STATION_SEARCH_RADIUS, length,
+                                  MAX_STATION_PLANS, candidate.cargo, catalog.railCoverage,
+                                  candidate.kind == "pax", statsB);
+  if (plansB.len() == 0) {
+    return { ok = false, nA = plansA.len(), nB = 0, plansA = plansA, plansB = plansB };
+  }
+  return { ok = true, nA = plansA.len(), nB = plansB.len(), plansA = plansA, plansB = plansB };
+}
+
+function OpexRailSiteReason(sawA, sawB)
+{
+  if (!sawA && !sawB) return "SITEAB";
+  if (!sawA) return "SITEA";
+  return "SITEB";
+}
+
 /* Cherche les deux extremites a la meme longueur, du quai economiquement voulu vers le plancher
- * d'une locomotive et un wagon. Le test de chaque longueur reste exactement celui de
- * OpexStationPlans : plat, constructible, cargo dans le rayon et BuildRailStation en AITest.
- * Une longueur plus courte est donc un vrai plan constructible, pas une approximation geometrique.
+ * d'une locomotive et un wagon. Le test de chaque longueur reste celui de OpexStationPlans :
+ * plat, constructible, cargo dans le rayon et BuildRailStation en AITest. Une longueur plus
+ * courte est donc un vrai plan constructible, pas une approximation geometrique.
+ *
+ * Le seau NOPLAN est eclate : SITEA / SITEB / SITEAB. La cause mesuree du 50 % restant n'etait
+ * pas le site search -- c'etaient des origines fret sans tuile de terre dans le bassin
+ * (OpexRailOriginSitable, candidates.nut).
  *
  * Le quai joint est l'exception necessaire : il doit reprendre la longueur du quai existant pour
  * rester parallele et servir la meme gare. Il ne peut pas se raccourcir sans casser cet alignement;
@@ -200,35 +235,51 @@ function OpexJoinPlatformPlans(platform, stationId)
 function OpexRailPlatformPlans(catalog, candidate, join)
 {
   local joinA = join != null && join.candidateEnd == "A";
+  local statsA = { nClear = 0, nCargo = 0, nCmd = 0 };
+  local statsB = { nClear = 0, nCargo = 0, nCmd = 0 };
   if (join != null) {
     local length = join.platform.length;
     local plansA = joinA
         ? OpexJoinPlatformPlans(join.platform, join.stationId)
         : OpexStationPlans(candidate.src, candidate.dst, STATION_SEARCH_RADIUS, length,
-                           MAX_STATION_PLANS, candidate.cargo, catalog.railCoverage, true);
+                           MAX_STATION_PLANS, candidate.cargo, catalog.railCoverage, true,
+                           statsA);
     local plansB = !joinA
         ? OpexJoinPlatformPlans(join.platform, join.stationId)
         : OpexStationPlans(candidate.dst, candidate.src, STATION_SEARCH_RADIUS, length,
                            MAX_STATION_PLANS, candidate.cargo, catalog.railCoverage,
-                           candidate.kind == "pax");
-    if (plansA.len() == 0 || plansB.len() == 0) return null;
-    return { plansA = plansA, plansB = plansB, length = length, joinA = joinA };
+                           candidate.kind == "pax", statsB);
+    if (plansA.len() > 0 && plansB.len() > 0) {
+      return { plansA = plansA, plansB = plansB, length = length, joinA = joinA,
+               slopeRelaxed = 0, reason = "OK", statsA = statsA, statsB = statsB };
+    }
+    return { plansA = null, plansB = null, length = length, joinA = joinA, slopeRelaxed = 0,
+             reason = OpexRailSiteReason(plansA.len() > 0, plansB.len() > 0),
+             statsA = statsA, statsB = statsB };
   }
 
   local floor = OpexRailMinimumPlatformLength();
   local wanted = candidate.platformLength;
   if (wanted > catalog.platformLength) wanted = catalog.platformLength;
+  local sawA = false;
+  local sawB = false;
   for (local length = wanted; length >= floor; length--) {
-    local plansA = OpexStationPlans(candidate.src, candidate.dst, STATION_SEARCH_RADIUS, length,
-                                    MAX_STATION_PLANS, candidate.cargo, catalog.railCoverage, true);
-    if (plansA.len() == 0) continue;
-    local plansB = OpexStationPlans(candidate.dst, candidate.src, STATION_SEARCH_RADIUS, length,
-                                    MAX_STATION_PLANS, candidate.cargo, catalog.railCoverage,
-                                    candidate.kind == "pax");
-    if (plansB.len() == 0) continue;
-    return { plansA = plansA, plansB = plansB, length = length, joinA = false };
+    local found = OpexRailTryPlatformLength(catalog, candidate, length, statsA, statsB);
+    if (found.nA > 0) sawA = true;
+    if (found.nB > 0) sawB = true;
+    if (found.ok) {
+      return { plansA = found.plansA, plansB = found.plansB, length = length, joinA = false,
+               slopeRelaxed = 0, reason = "OK", statsA = statsA, statsB = statsB };
+    }
   }
-  return null;
+  if (!sawA) {
+    local plansB = OpexStationPlans(candidate.dst, candidate.src, STATION_SEARCH_RADIUS, floor,
+                                    MAX_STATION_PLANS, candidate.cargo, catalog.railCoverage,
+                                    candidate.kind == "pax", statsB);
+    if (plansB.len() > 0) sawB = true;
+  }
+  return { plansA = null, plansB = null, length = 0, joinA = false, slopeRelaxed = 0,
+           reason = OpexRailSiteReason(sawA, sawB), statsA = statsA, statsB = statsB };
 }
 
 /* Recherche de chemin sous budget d'iterations. Rend une table avec le chemin brut et le compte
@@ -563,6 +614,8 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, join, cashR
                    platformA = null, platformB = null, trainLength = 0, wagons = candidate.wagons,
                    platformLength = candidate.platformLength, locoLength = 0, wagonLength = 0,
                    wantedPlatformLength = candidate.platformLength, plansA = 0, plansB = 0,
+                   slopeRelaxed = 0, siteClear = 0, siteCargo = 0, siteCmd = 0,
+                   siteKind = candidate.kind == "pax" ? "P" : "F",
                    capital = candidate.capital, money = 0,
                    budgetInfo = OpexIterationBudget(candidate.profitAnnual, alternativeRatio),
                    iterationBudget = 0 };
@@ -571,13 +624,23 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, join, cashR
   budget.begin();
   local platformPlans = OpexRailPlatformPlans(catalog, candidate, join);
   result.opcodes += budget.end("build_plans");
-  if (platformPlans == null) { result.reason = "NOPLAN"; return result; }
+  /* SITEA/SITEB/SITEAB remplacent le seau NOPLAN : sans eux, 23 echecs a iterations=0 ne disent
+   * pas quelle extremite manque, ni si c'est l'economie du quai trouve qui a rendu null. */
+  if (platformPlans.plansA == null || platformPlans.reason != "OK") {
+    result.reason = platformPlans.reason;
+    local stats = platformPlans.reason == "SITEB" ? platformPlans.statsB : platformPlans.statsA;
+    result.siteClear = stats.nClear;
+    result.siteCargo = stats.nCargo;
+    result.siteCmd = stats.nCmd;
+    return result;
+  }
   local plansA = platformPlans.plansA;
   local plansB = platformPlans.plansB;
   local joinA = platformPlans.joinA;
   result.platformLength = platformPlans.length;
   result.plansA = plansA.len();
   result.plansB = plansB.len();
+  result.slopeRelaxed = platformPlans.slopeRelaxed ? 1 : 0;
 
   /* La recherche a choisi le plus long site faisable. Refaire l'economie AVANT demolition est
    * obligatoire : un repli de 5 a 3 tuiles peut enlever des wagons, changer la locomotive et le
@@ -585,7 +648,7 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, join, cashR
    * que le quai initialement souhaite. */
   local economics = OpexLineEconomics(catalog, candidate.cargo, candidate.distance,
                                       candidate.monthly, candidate.kind, result.platformLength);
-  if (economics == null) { result.reason = "NOPLAN"; return result; }
+  if (economics == null) { result.reason = "ECON"; return result; }
   result.capital = economics.capital;
   result.money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   if (result.money < result.capital + cashReserve) { result.reason = "CASH"; return result; }

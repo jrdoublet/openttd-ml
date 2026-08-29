@@ -77,10 +77,44 @@ function OpexRailIterations(distance)
   return KNOT_ITERATIONS[last] + slope * (distance - KNOT_DISTANCE[last]);
 }
 
+/* Une origine rail est constructible s'il existe, dans le bassin, une tuile de TERRE qui voit
+ * le cargo et qui n'est pas le batiment d'industrie lui-meme. Sans ce test, des origines fret
+ * dont tout le bassin est de l'eau (ou du batiment) entraient au TOP_K puis mouraient en SITEA
+ * a ~14 M d'opcodes (mesure 2026-08-29, graine 42 : 7 a 15 SITEA fret, nCargo=0, nCmd=0). */
+function OpexRailOriginSitable(tile, cargo, coverage, wantProduction)
+{
+  local radius = coverage + 3;
+  for (local r = 0; r <= radius; r++) {
+    for (local dx = -r; dx <= r; dx++) {
+      for (local dy = -r; dy <= r; dy++) {
+        if (abs(dx) != r && abs(dy) != r) continue;
+        local t = tile + AIMap.GetTileIndex(dx, dy);
+        if (!AIMap.IsValidTile(t)) continue;
+        if (AITile.IsWaterTile(t)) continue;
+        if (AITile.IsStationTile(t) || AIRail.IsRailTile(t)) continue;
+        local industry = AIIndustry.GetIndustryID(t);
+        if (AIIndustry.IsValidIndustry(industry)) continue;
+        local value = wantProduction
+            ? AITile.GetCargoProduction(t, cargo, 1, 1, coverage)
+            : AITile.GetCargoAcceptance(t, cargo, 1, 1, coverage);
+        if (wantProduction ? (value > 0) : (value >= 8)) return true;
+      }
+    }
+  }
+  return false;
+}
+
 function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, originServed, stats)
 {
   if (monthly <= 0) {
     stats.noMonthly++;
+    return null;
+  }
+  /* Source seulement, et seulement si origin_sitable = 1. Les 7 a 15 SITEA mesures etaient
+   * tous du fret a nCargo=0 cote A. Filtrer aussi le puits enlevait des paires urbaines encore
+   * constructibles. A 0, le classement est celui d'avant le filtre (SITEA reste possible). */
+  if (ORIGIN_SITABLE && !OpexRailOriginSitable(srcTile, cargo, catalog.railCoverage, true)) {
+    stats.unsitable++;
     return null;
   }
   local distance = AIMap.DistanceManhattan(srcTile, dstTile);
@@ -398,7 +432,7 @@ function OpexBuildCandidates(catalog, budget, lines)
   local stats = {
     townsServed = 0, townsUnserved = 0, industriesServed = 0, industriesUnserved = 0,
     pairsTotal = 0, pairsOriginServed = 0, pairsJoinImpossible = 0, pairsOneServed = 0,
-    noMonthly = 0,
+    noMonthly = 0, unsitable = 0,
     distanceShort = 0, distanceLong = 0, economicsUnavailable = 0,
     profitNonPositive = 0, ratioTooLow = 0, accepted = 0, topKOmitted = 0,
   };
