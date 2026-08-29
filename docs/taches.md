@@ -178,8 +178,29 @@ citer le +7,7 % comme un résultat acquis.
 
 **Ce qui reste explicitement non établi, et devient le prochain travail :**
 
-1. 🔴 **`NOPLAN` tient encore ~la moitié des tentatives.** Le quai suit désormais la rame, mais la
-   recherche de site échoue toujours une fois sur deux. C'est le premier plafond de croissance.
+1. 🔶 **`NOPLAN` : cause nommée, filtre derrière `origin_sitable`, défaut 0.** Graine 42 / 20 ans
+   (`docs/opex_traction_v3_20y_42.json` → `docs/opex_noplan_sitable_20y_42.json`) : 23 `NOPLAN`
+   sur 46 tentatives → **0** avec le filtre allumé. Le seau a été éclaté (`SITEA`/`SITEB`/`SITEAB`/
+   `ECON`, panneau `PS`). La pente et la démolition ont été mesurées **inertes** (`nCargo=0`) et
+   retirées. `OpexRailOriginSitable` écarte une source fret sans tuile de terre voyant le cargo.
+
+   **Banc apparié 20 graines × 20 ans** (`docs/bench_noplan_sitable.json` contre
+   `docs/bench_traction_new.json`, paire `docs/bench_noplan_sitable_paired.json`) :
+
+   | métrique | delta | t | graines | verdict |
+   |---|---|---|---|---|
+   | `company_value` | +4,0 % | 0,50 | 11/20 | sous le plancher (~15 %) |
+   | `performance_history` | +1,9 % | 0,85 | 11/20 | sous le plancher (~12 %) |
+   | véhicules | −1,1 % | −0,26 | 8/20 | nul |
+   | emprunt résiduel | 1 → **0** graine | | | petit plus |
+   | minimum | 1 787 268 → 1 184 388 | | | le plancher recule |
+   | CV | 0,28 → 0,34 | | | plus dispersé |
+
+   La graine 42 seule recule de 28 %. L'éventail va de −52 % (424242) à +108 % (12345). **Pas un
+   gain de valeur, pas un gain de robustesse.** ⚠️ **Défaut `origin_sitable` = 0.** Le code et la
+   mesure restent ; `OpexAI[origin_sitable=1]` rallume le filtre. Le classement à 0 est celui
+   d'avant. Le mécanisme (ne plus brûler ~14 M d'opcodes) n'est établi que sur la graine 42 ;
+   `bench_v2` ne lit pas les `NOPLAN`.
 2. **Le repli sur quai plus court n'a été exercé par aucune construction réussie** (`PD` : 0 repli
    observé). Le chemin est écrit et relu, jamais éprouvé — donc non validé.
 3. La jointure n'est vérifiée qu'à la lecture, `station_join` restant à 0.

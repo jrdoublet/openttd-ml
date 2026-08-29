@@ -287,6 +287,9 @@ nous serve, puisque tout ce qui n'est connu qu'après le tracé est une fuite po
 | Production/acceptation couvertes par le rectangle de quai | `GetCargoProduction`/`Acceptance` | `station.nut:997-1026` |
 | **Occupation locale des sorties** : rails voisins, propriétaire, gare ou jonction existante | `AITile.GetOwner`, `AICompany.IsMine`, `AIRail.GetRailTracks`, `AIStation.GetStationID` | `station.nut:2019-2028`, `2720-2735` |
 
+La **jointure rail** n'est pas dans cette table : c'est un mode de placement (groupe + spread),
+pas une grandeur d'étage 1. Note dédiée : `docs/aaahogex_rail_join.md`.
+
 **Terrain sur corridor — DÉJÀ ESSAYÉ, DÉJÀ ÉCHOUÉ, ne pas y revenir**
 `IsLandConnectedForRail` (séquence maritime contiguë, seuil 13) → notre `corridor_max_water_run`
 fait **moins bien** que le total d'eau. `GetSlopeLevel` (pente tous les 8 pas) → notre

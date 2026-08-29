@@ -1,0 +1,101 @@
+{
+  "baseline": "docs/bench_traction_new.json",
+  "new": "docs/bench_noplan_sitable.json",
+  "reading": "sitable minus traction; same 20 seeds x 20 years; detection floor ~15% company_value, ~12% performance_history",
+  "metrics": {
+    "company_value": {
+      "n": 20,
+      "mean_sitable": 2790970.15,
+      "mean_traction": 2684159.5,
+      "median_sitable": 2722933.0,
+      "median_traction": 2489044.0,
+      "min_sitable": 1184388,
+      "min_traction": 1787268,
+      "max_sitable": 4628423,
+      "max_traction": 4233239,
+      "mean_difference": 106810.65,
+      "mean_difference_percent": 3.979296,
+      "t": 0.502822,
+      "sitable_beats_traction": 11
+    },
+    "performance_history": {
+      "n": 20,
+      "mean_sitable": 474.75,
+      "mean_traction": 465.95,
+      "median_sitable": 484.5,
+      "median_traction": 469.5,
+      "min_sitable": 300,
+      "min_traction": 361,
+      "max_sitable": 614,
+      "max_traction": 579,
+      "mean_difference": 8.8,
+      "mean_difference_percent": 1.888615,
+      "t": 0.84938,
+      "sitable_beats_traction": 11
+    },
+    "n_vehicles": {
+      "n": 20,
+      "mean_sitable": 205.55,
+      "mean_traction": 207.8,
+      "median_sitable": 200.0,
+      "median_traction": 216.5,
+      "min_sitable": 157,
+      "min_traction": 157,
+      "max_sitable": 324,
+      "max_traction": 261,
+      "mean_difference": -2.25,
+      "mean_difference_percent": -1.082772,
+      "t": -0.259863,
+      "sitable_beats_traction": 8
+    },
+    "n_stations": {
+      "n": 20,
+      "mean_sitable": 49.25,
+      "mean_traction": 48.5,
+      "median_sitable": 49.0,
+      "median_traction": 49.0,
+      "min_sitable": 40,
+      "min_traction": 40,
+      "max_sitable": 58,
+      "max_traction": 61,
+      "mean_difference": 0.75,
+      "mean_difference_percent": 1.546392,
+      "t": 0.893487,
+      "sitable_beats_traction": 13
+    },
+    "current_loan": {
+      "n": 20,
+      "mean_sitable": 0,
+      "mean_traction": 15000,
+      "median_sitable": 0.0,
+      "median_traction": 0.0,
+      "min_sitable": 0,
+      "min_traction": 0,
+      "max_sitable": 0,
+      "max_traction": 300000,
+      "mean_difference": -15000,
+      "mean_difference_percent": -100.0,
+      "t": -1.0,
+      "sitable_beats_traction": 0
+    },
+    "money": {
+      "n": 20,
+      "mean_sitable": 2409892.6,
+      "mean_traction": 2288497.25,
+      "median_sitable": 2414135.5,
+      "median_traction": 2117979.0,
+      "min_sitable": 854816,
+      "min_traction": 1435359,
+      "max_sitable": 4427506,
+      "max_traction": 3940477,
+      "mean_difference": 121395.35,
+      "mean_difference_percent": 5.304588,
+      "t": 0.519412,
+      "sitable_beats_traction": 11
+    }
+  },
+  "loan_leftover": {
+    "sitable": 0,
+    "traction": 1
+  }
+}
