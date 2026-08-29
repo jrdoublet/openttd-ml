@@ -65,6 +65,12 @@ RE_GN = re.compile(r"^GN\|(\d+)\|(\d+)\|(\d+)$")
 RE_GC = re.compile(r"^GC\|(\d+)\|(-?\d+)\|(\d+)$")
 RE_DL = re.compile(r"^DL\|(\d+)\|(\d+)\|(\d+)$")
 RE_LR = re.compile(r"^LR\|(\d+)\|(\d+)\|(\d+)$")
+RE_LF = re.compile(r"^LF\|(\d{2})\|(-?\d+)\|(\d+)$")   # ce que _tryRepayLoan VOIT (creux annuel)
+RE_LB = re.compile(r"^LB\|(\d{2})\|(-?\d+)$")            # tresorerie au SOMMET, avant depense
+
+# Doit suivre LOAN_REPAY_FLOOR dans ai/OpexAI/main.nut : sert uniquement a etiqueter les annees
+# ou le sommet de tresorerie passait le plancher mais pas le creux.
+LOAN_REPAY_FLOOR = 1000000
 RE_OA = re.compile(r"^OA\|(\d+)\|(\d+)\|(\d+)\|(\w+)$")   # air attempt: year, distance, planOps, reason
 RE_OM = re.compile(r"^OM\|W\|(\d+)\|(\d+)\|(\d+)$")       # water success: year, distance, planOps
 RE_ON = re.compile(r"^ON\|W\|(\w+)\|(-?\d+)$")            # water failure: reason, error
@@ -312,6 +318,7 @@ def parse_yearly(all_signs):
 def parse_events(all_signs):
     """Retient les evenements rares qui expliquent les variations de parc et d'emprunt."""
     cash_blocks, dead_lines, loan_repayments = [], [], []
+    seen_at_repay, seen_before_block = {}, {}
     for sign in all_signs:
         if m := RE_GC.match(sign):
             cash_blocks.append({"year": int(m.group(1)), "cash": int(m.group(2)),
@@ -322,7 +329,40 @@ def parse_events(all_signs):
         elif m := RE_LR.match(sign):
             loan_repayments.append({"year": int(m.group(1)), "repaid": int(m.group(2)),
                                     "new_loan": int(m.group(3))})
-    return cash_blocks, dead_lines, loan_repayments
+        elif m := RE_LF.match(sign):
+            seen_at_repay[int(m.group(1))] = {"cash": int(m.group(2)), "loan": int(m.group(3))}
+        elif m := RE_LB.match(sign):
+            seen_before_block[int(m.group(1))] = int(m.group(2))
+
+    return cash_blocks, dead_lines, loan_repayments, loan_view(seen_at_repay, seen_before_block)
+
+
+def loan_view(seen_at_repay, seen_before_block):
+    """Croise le sommet annuel de tresorerie (LB) et ce que _tryRepayLoan voit (LF).
+
+    _tryRepayLoan est appele APRES _tryBuild : `drained` mesure donc exactement ce que la
+    construction de l'annee retire au remboursement, et `blocked_by_floor_only` isole les annees
+    ou le sommet aurait suffi mais pas le creux.
+    """
+    view = []
+    for year_mod in sorted(set(seen_at_repay) | set(seen_before_block)):
+        at = seen_at_repay.get(year_mod)
+        before = seen_before_block.get(year_mod)
+        row = {
+            "year": 1900 + year_mod if year_mod >= 70 else 2000 + year_mod,
+            "cash_before_block": before,
+            "cash_at_repay": at["cash"] if at else None,
+            "loan_at_repay": at["loan"] if at else None,
+        }
+        if before is not None and at is not None:
+            row["drained_by_build"] = before - at["cash"]
+            row["blocked_by_floor_only"] = bool(
+                at["loan"] > 0
+                and before > LOAN_REPAY_FLOOR
+                and at["cash"] <= LOAN_REPAY_FLOOR
+            )
+        view.append(row)
+    return view
 
 
 def parse_annual_blocks(all_signs):
@@ -396,7 +436,7 @@ def make_run_payload(rows, seed, years):
     skipped_years = [missed for block in annual_blocks for missed in
                      range(block["year"] - block["skipped_years_before"], block["year"])]
     air, water, road = parse_multimodal(final["signs"])
-    cash_blocks, dead_lines, loan_repayments = parse_events(final["signs"])
+    cash_blocks, dead_lines, loan_repayments, loan_view_rows = parse_events(final["signs"])
 
     n_rail_ok = sum(1 for line in lines if line["mode"] == "rail" and line["reason"] == "OK")
     n_rail_failed_attempts = sum(1 for attempt in attempts if attempt["reason"] != "OK")
@@ -433,7 +473,8 @@ def make_run_payload(rows, seed, years):
             attempt["iterations"] for attempt in abandoned_hard_cap),
         "rail_attempts": attempts, "air_attempts": air, "water_attempts": water,
         "road_attempts": road, "cash_blocks": cash_blocks, "dead_line_events": dead_lines,
-        "loan_repayments": loan_repayments, "lines": lines, "yearly": yearly,
+        "loan_repayments": loan_repayments, "loan_view": loan_view_rows,
+        "lines": lines, "yearly": yearly,
         "annual_blocks": annual_blocks, "calendar_years_crossed": calendar_years_crossed,
         "skipped_years": skipped_years, "financial_series": financial_series,
         "raw_signs_final": final["signs"],

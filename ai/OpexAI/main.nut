@@ -83,8 +83,13 @@ const CASH_RESERVE = 50000;
 
 /* Seuil de remboursement d'emprunt : sous ce plancher de tresorerie on ne rembourse pas, un
  * emprunt a 5 % coute bien moins qu'une ligne manquee faute de cash. Au-dessus, l'argent qui
- * dort ne rapporte rien -- autant reduire l'emprunt. Valeur decidee par l'utilisateur. */
-const LOAN_REPAY_FLOOR = 1000000;
+ * dort ne rapporte rien -- autant reduire l'emprunt.
+ *
+ * Devenu reglable le 2026-08-29 pour que le banc puisse l'opposer a lui-meme en une seule
+ * campagne, puis abaisse de 1 000 000 a 300 000 apres verdict de ce banc. La valeur ci-dessous
+ * n'est qu'un repli : Start() la remplace par le reglage. Tout le raisonnement, la mesure qui
+ * condamne l'ancienne valeur et le verdict sont dans info.nut. */
+LOAN_REPAY_FLOOR <- 300000;
 
 /* Ligne fret morte (2026-08-28) : une industrie source qui ferme NE garantit PAS l'effondrement --
  * la gare peut recuperer une industrie voisine du meme cargo (ligne 4, campagne 20 ans, restee
@@ -756,9 +761,13 @@ function OpexAI::_reportYear(year, ranked)
 function OpexAI::_tryRepayLoan(year)
 {
   local loan = AICompany.GetLoanAmount();
-  if (loan <= 0) return;
-
   local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  /* Diagnostic emprunt (2026-08-29) : LR ne se pose qu'en cas de remboursement REUSSI, donc un
+   * emprunt qui ne descend jamais ne laisse aucune trace expliquant pourquoi. LF enregistre
+   * inconditionnellement ce que cette fonction VOIT -- et elle est appelee juste apres _tryBuild,
+   * donc au creux annuel de la tresorerie, pas a son sommet. A recouper avec LB. */
+  OpexSign(AIMap.GetTileIndex(1, 1), "LF|" + (year % 100) + "|" + cash + "|" + loan);
+  if (loan <= 0) return;
   if (cash <= LOAN_REPAY_FLOOR) return;
 
   local interval = AICompany.GetLoanInterval();
@@ -781,6 +790,9 @@ function OpexAI::Start()
   /* Lu une seule fois : le reglage ne change pas en cours de partie, et OpexSign est appele des
    * dizaines de fois par an. Un GetSetting par appel serait du gaspillage pur. */
   DEBUG_SIGNS = AIController.GetSetting("debug_signs") != 0;
+  /* Exprime en milliers dans le reglage : AddSetting ne porte que des entiers, et un pas de
+   * 50 000 sur une plage de 0 a 2 000 000 serait illisible en unites brutes. */
+  LOAN_REPAY_FLOOR = AIController.GetSetting("loan_repay_floor_k") * 1000;
 
   /* L'emprunt maximal des le depart : la note de compagnie recompense l'emprunt a zero (5 %),
    * mais une ligne non construite faute de tresorerie coute bien davantage. Le remboursement
@@ -798,6 +810,11 @@ function OpexAI::Start()
        * reste (total - tryBuild) couvre catalogue, candidats, rapports, entretien et emprunt. */
       local blockStartTick = AIController.GetTick();
       local skippedYears = (lastYear < 0) ? 0 : year - lastYear - 1;
+      /* Tresorerie AVANT toute depense du cycle : c'est le sommet annuel, celui que _tryRepayLoan
+       * ne voit jamais puisqu'il est appele apres _tryBuild. LB - LF mesure donc exactement ce que
+       * la construction retire au remboursement. */
+      OpexSign(AIMap.GetTileIndex(1, 1), "LB|" + (year % 100) + "|"
+               + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
       /* Un cycle de construction ne se rejoue jamais retroactivement : ses candidats, son argent
        * et le monde ont deja evolue. En revanche les rapports de lignes, le rebut des lignes
        * mortes et le remboursement restent des decisions valides au moment du rattrapage. Les

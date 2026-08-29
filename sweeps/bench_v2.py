@@ -86,6 +86,14 @@ def parse_opex_variant(name):
         elif key == "pathfinder_sleep_ticks":
             if not 0 <= value <= 10:
                 raise ValueError("pathfinder_sleep_ticks doit etre entre 0 et 10")
+        elif key == "loan_repay_floor_k":
+            # Bornes et pas repris de ai/OpexAI/info.nut : une valeur hors pas serait acceptee par
+            # argparse puis silencieusement arrondie par le moteur, et le nom de l'arm mentirait
+            # alors sur ce qui a tourne.
+            if not 0 <= value <= 2000:
+                raise ValueError("loan_repay_floor_k doit etre entre 0 et 2000")
+            if value % 50:
+                raise ValueError("loan_repay_floor_k doit etre un multiple de 50 (step_size)")
         else:
             raise ValueError(f"reglage OpexAI inconnu: {key}")
         params.append((key, value))

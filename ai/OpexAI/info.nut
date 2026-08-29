@@ -8,9 +8,10 @@ class OpexAI extends AIInfo {
   function GetShortName()   { return "OPEX"; }
   function GetAPIVersion()  { return "15"; }
 
-  /* Les deux reglages ci-dessous existent pour NE PAS POLLUER une partie partagee avec des
-   * joueurs humains. Entre IA, la regle est l'inverse : jouer a armes egales, donc ne jamais
-   * s'auto-handicaper face a un adversaire qui ne se bride pas. Un handicap non intentionnel
+  /* Les reglages debug_signs et pathfinder_sleep_ticks existent pour NE PAS POLLUER une partie
+   * partagee avec des joueurs humains (loan_repay_floor_k, lui, est un parametre de conception
+   * expose au banc, pas un bridage). Entre IA, la regle est l'inverse : jouer a armes egales,
+   * donc ne jamais s'auto-handicaper face a un adversaire qui ne se bride pas. Un handicap non intentionnel
    * invalide silencieusement le banc (sweeps/bench.py contre AAAHogEx) : l'ecart mesure ne
    * viendrait plus des decisions de l'IA. D'ou les defauts choisis ci-dessous. */
   function GetSettings()
@@ -28,6 +29,62 @@ class OpexAI extends AIInfo {
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       flags = AICONFIG_BOOLEAN
+    });
+
+    /* Plancher de tresorerie sous lequel on ne rembourse pas l'emprunt, EN MILLIERS.
+     *
+     * DEFAUT 300 (= 300 000) DEPUIS LE 2026-08-29, apres mesure au banc apparie -- voir le verdict
+     * en fin de commentaire. Il valait 1000 avant, et c'est ce que reproche la mesure ci-dessous.
+     *
+     * CE QUE LA MESURE DU 2026-08-29 REPROCHE A CETTE VALEUR (docs/opexai_emprunt.json, 6 graines
+     * x 20 ans, panneaux LB/LF) : la tresorerie d'OpexAI reste entre 50 000 et 400 000 pendant
+     * DIX A QUATORZE ANS. Le plancher est donc hors d'atteinte pendant toute la phase de
+     * croissance, et l'emprunt initial de 300 000 court a 5 % sans qu'aucun remboursement ne
+     * puisse seulement etre tente. La regle elle-meme est saine : des que la tresorerie franchit
+     * le million, le remboursement part immediatement et solde tout. C'est le seuil qui est faux,
+     * pas le mecanisme -- et une hypothese concurrente a ete REFUTEE au passage : l'appel place
+     * apres _tryBuild ne bloque rien (0 annee sur les 6 graines ou le sommet annuel passait le
+     * plancher mais pas le creux).
+     *
+     * POURQUOI 300 SERAIT LE BON ORDRE DE GRANDEUR, sur deux mesures independantes : le plus gros
+     * candidat jamais bloque faute de tresorerie coute 248 106 (mediane 136 760), et la
+     * construction d'une annee draine 95 172 en mediane, 183 101 au 90e centile. Un plancher de
+     * 300 000 couvre donc la plus grosse ligne observee, et le controle ayant lieu APRES
+     * _tryBuild, la construction de l'annee est de toute facon deja payee quand il s'applique.
+     * La courbe est plate entre 300 et 500 (meme annee de deblocage sur 4 graines sur 6), et
+     * descendre a 200 passerait sous le cout de la plus grosse ligne : 300 est le genou.
+     *
+     * /!\ RISQUE A NE PAS OUBLIER en abaissant ce seuil : rien dans le code ne REEMPRUNTE.
+     * SetLoanAmount n'est appele qu'au demarrage (au maximum) et pour rembourser. Une compagnie
+     * qui se desendette puis rencontre un candidat plus cher que sa tresorerie ne peut pas
+     * reprendre l'emprunt -- elle renonce simplement a la ligne. C'est borne (le plancher couvre
+     * la plus grosse ligne observee) mais c'est un vrai angle mort, a traiter separement.
+     *
+     * VERDICT DU BANC APPARIE (docs/bench_v2_emprunt.json, 20 graines x 20 ans, OpexAI contre
+     * OpexAI[loan_repay_floor_k=300]) : adopte.
+     *   - Metrique directe, la seule decisive ici : graines a emprunt residuel 3/20 -> 1/20, et
+     *     emprunt total residuel 900 000 -> 230 000. Les graines 100 et 4096 passent de 300 000 a
+     *     zero, et leur NOTE bondit (170 -> 245 et 269 -> 309) alors que leur valeur d'entreprise
+     *     ne bouge quasiment pas -- exactement le comportement attendu, puisque rembourser avec du
+     *     cash est neutre en valeur et ne gagne que l'interet plus la composante "emprunt a zero".
+     *   - Aucun dommage global : company_value appariee t = -0,12 (-0,17 %), performance_history
+     *     t = +1,18 (+1,91 %). Les deux sont sous le plancher de detection du banc (~15 % et ~12 %,
+     *     cf. docs/taches.md S5) : c'etait PREVU, et c'est pourquoi la lecture se fait sur
+     *     current_loan et non sur la valeur.
+     *   - Preuve que le changement est chirurgical : sur 4 graines (17, 999, 2026, 8675309) les
+     *     deux bras sont BIT A BIT identiques -- la ou la tresorerie franchissait le million d'un
+     *     coup, abaisser le plancher ne change litteralement rien.
+     *   - Reste 1 graine (42) a 230 000 : une compagnie trop pauvre pour degager meme 300 000 de
+     *     disponible. Descendre plus bas passerait sous le cout de la plus grosse ligne ; le vrai
+     *     correctif pour ce cas est le reemprunt manquant ci-dessus. */
+    AddSetting({
+      name = "loan_repay_floor_k",
+      description = "Cash floor below which the loan is not repaid, in thousands: 300 = measured default, 1000 = pre-2026-08-29 behaviour",
+      min_value = 0, max_value = 2000,
+      easy_value = 300, medium_value = 300, hard_value = 300,
+      custom_value = 300,
+      step_size = 50,
+      flags = 0
     });
 
     /* Ticks de sommeil apres chaque bloc de PATH_CHUNK (50) iterations d'A*.

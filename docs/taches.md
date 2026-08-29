@@ -71,7 +71,8 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
    correctif), emprunt remboursé. Détail dans `docs/opexai_croissance.md` §6, y compris le
    rattrapage du cycle annuel qui remplace la fausse piste du plafond `AISign`.
 
-4. 🔴 **L'emprunt n'est pas remboursé sur 3 graines / 20 — mode d'échec découvert le 2026-08-29
+4. ✅ **RÉSOLU le 2026-08-29 : `LOAN_REPAY_FLOOR` abaissé de 1 000 000 à 300 000 après banc
+   apparié — voir le verdict en fin d'item.** L'emprunt n'était pas remboursé sur 3 graines / 20 — mode d'échec découvert le 2026-08-29
    par le banc multi-graines, invisible sur la graine 42.** Les graines 100 et 4096 finissent
    20 ans au plafond de **300 000** d'emprunt, la graine 8675309 à 90 000 — et ce sont exactement
    les trois pires parties de la campagne (`company_value` 719 619 / 933 323 / 1 372 258, notes
@@ -102,6 +103,58 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
    dispersion (moyenne 1 248 532 contre 2 907 102 pour les saines), donc **corriger l'emprunt
    resserrerait le banc lui-même** et abaisserait le plancher de détection de tout ce qui vient
    après. Données dans `docs/bench_v2.json`.
+
+   ### Diagnostic (`docs/opexai_emprunt.json`, 6 graines × 20 ans, panneaux `LB`/`LF`)
+
+   ❌ **Une hypothèse réfutée d'abord.** `_tryRepayLoan` est appelé à `main.nut:828`, juste après
+   `_tryBuild`, donc au creux annuel de trésorerie — on pouvait croire que la construction lui
+   volait son argent. **Faux** : `blocked_by_floor_only = 0` sur les six graines, pas une seule
+   année où le sommet passait le plancher mais pas le creux. L'ordre n'est pas en cause.
+
+   ✅ **La cause est le seuil, seul.** La trésorerie d'OpexAI reste entre 50 000 et 400 000 pendant
+   **dix à quatorze ans** : le million n'est atteignable à aucun moment de la phase de croissance.
+   La règle, elle, est saine — dès que la trésorerie franchit le seuil, le remboursement part
+   immédiatement et solde tout (graine 65537 : 1 751 216 en 1981 → zéro). Deux illustrations : la
+   graine 123456 est restée entre 954 017 et 956 875 **cinq années consécutives**, 4,5 % sous le
+   seuil (et ces cinq années sont des années *franchies*, ce qui la relie à l'item 6) ; la graine
+   100 a passé vingt ans à 300 000 d'emprunt sans jamais dépasser 774 797 à un contrôle annuel.
+
+   **Pourquoi 300 000**, sur deux mesures indépendantes : le plus gros candidat jamais bloqué faute
+   de trésorerie coûte **248 106** (médiane 136 760), et la construction annuelle draine 95 172 en
+   médiane, 183 101 au 90e centile. La courbe de déblocage est **plate entre 300 et 500** (même
+   année sur 4 graines / 6) et descendre à 200 passerait sous le prix de la plus grosse ligne :
+   300 est le genou.
+
+   ### Verdict du banc apparié (`docs/bench_v2_emprunt.json`, 20 graines × 20 ans)
+
+   | | plancher 1 M | plancher 300 k |
+   |---|---:|---:|
+   | graines à emprunt résiduel | 3 / 20 | **1 / 20** |
+   | emprunt total résiduel | 900 000 | **230 000** |
+   | `company_value` appariée | — | −0,17 %, t = −0,12 |
+   | `performance_history` appariée | — | +1,91 %, t = +1,18 |
+
+   Les graines 100 et 4096 passent de 300 000 à zéro et leur **note** bondit (170 → 245, 269 → 309)
+   pendant que leur valeur d'entreprise ne bouge quasiment pas — exactement le comportement prévu,
+   rembourser avec du cash étant neutre en valeur et ne gagnant que l'intérêt plus la composante
+   « emprunt à zéro ». Les deux métriques globales restent sous le plancher de détection (~15 % et
+   ~12 %) : **c'était prévu**, d'où la lecture sur `current_loan`.
+
+   🔶 **Preuve que le changement est chirurgical** : sur 4 graines (17, 999, 2026, 8675309) les deux
+   bras sont **bit à bit identiques**. Là où la trésorerie franchissait le million d'un coup,
+   abaisser le plancher ne change littéralement rien — le correctif ne touche que les parties qu'il
+   vise.
+
+   ⚠️ **Reste 1 graine (42) à 230 000** : une compagnie trop pauvre pour dégager même 300 000 de
+   disponible. Descendre plus bas passerait sous le coût de la plus grosse ligne ; le vrai correctif
+   pour ce cas est l'item 8 ci-dessous.
+
+8. 🔵 **Rien dans le code ne réemprunte** (relevé le 2026-08-29 en corrigeant l'item 4, non traité).
+   `AICompany.SetLoanAmount` n'est appelé qu'au démarrage (au maximum, `main.nut:788`) et pour
+   rembourser (`main.nut:771`). Une compagnie qui se désendette puis rencontre un candidat plus cher
+   que sa trésorerie **ne peut pas reprendre l'emprunt** — elle renonce simplement à la ligne. C'est
+   borné tant que le plancher couvre la plus grosse ligne observée (248 106 < 300 000), mais c'est
+   un angle mort réel, et c'est la seule voie propre pour la graine 42 qui reste endettée.
 
 5. ⚪ **Régler `MIN_SEPARATION` : piste ÉCARTÉE le 2026-08-29, alors même que la mesure la
    désigne comme le verrou.** L'investigation de plafonnement (`docs/opexai_plafonnement.md`) a
@@ -141,8 +194,8 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
    **pas** conclure que ces 1 905 paires sont réellement non rentables. Vérifiable à coût borné :
    forcer la construction d'un échantillon de paires rejetées et comparer prédit/réel sur elles.
 
-**Priorité de fait, révisée le 2026-08-29** : les items **4** (emprunt non remboursé sur 3 graines)
-et **6** (plafond d'abandon) passent devant — ce sont deux échecs mesurés, et surtout les deux seuls
+**Priorité de fait, révisée le 2026-08-29** : ~~l'item **4**~~ (✅ fait) et l'item **6**
+(plafond d'abandon) passaient devant — ce sont deux échecs mesurés, et surtout les deux seuls
 qui soient **orthogonaux à l'architecture de §9** : leur gain survivra à l'arrivée de
 l'agrandissement de gare et des jonctions. L'item 5 (`MIN_SEPARATION`) est explicitement gelé
 derrière §9. L'item 7 (biais de sélection) est une mesure, pas un changement de code, et peut
