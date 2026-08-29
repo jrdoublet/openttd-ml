@@ -91,6 +91,22 @@ const CASH_RESERVE = 50000;
  * condamne l'ancienne valeur et le verdict sont dans info.nut. */
 LOAN_REPAY_FLOOR <- 300000;
 
+/* Plafond absolu du pathfinder. Initialisation de repli seulement : Start() le remplace UNE fois
+ * par pathfinder_hard_cap_k. Mesure du 2026-08-29 (4 graines x 20 ans) : 36 600 iterations est le
+ * maximum d'une reussite ; le defaut 40 000 garde 9 % de marge et evite les ABND a 60 000 qui
+ * absorbaient 56,5 % des opcodes de construction. */
+HARD_ITERATION_CAP <- 40000;
+
+/* La memoire est l'autre correctif, independamment des 40 000 iterations. Elle reste un repli
+ * actif jusqu'a la lecture unique de abandon_memory dans Start(), comme les autres reglages de
+ * decision qui ne changent pas pendant une partie. */
+ABANDON_MEMORY <- true;
+
+/* Raccordement de gare : repli actif jusqu'a la lecture unique de station_join dans Start(). Le
+ * defaut vrai rend disponible la seule sortie utile au filet physique ; 0 reconstitue le bras
+ * historique pour le banc apparie. */
+STATION_JOIN <- true;
+
 /* Ligne fret morte (2026-08-28) : une industrie source qui ferme NE garantit PAS l'effondrement --
  * la gare peut recuperer une industrie voisine du meme cargo (ligne 4, campagne 20 ans, restee
  * rentable malgre srcAlive=0). Le diagnostic se fie donc TOUJOURS a la performance REELLE
@@ -105,6 +121,9 @@ class OpexAI extends AIController {
   _lines = null;        // [{stationA, stationB, cargo, predicted, iterations, trains, lineId, ...
                          //   deadStreak, scrapping, scrapVehicles (fret uniquement, cf.
                          //   _reportLines / _scrapDeadLines)}]
+  /* Paires qui ont rendu ABND : table indexee par cle chaine, donc test O(1), et volontairement
+   * petite (quelques abandons par partie) plutot qu'un historique de toutes les tentatives. */
+  _abandonedPairs = null;
   _airBuilt = false;
   _waterBuilt = false;
   _roadBuilt = false;
@@ -133,6 +152,7 @@ class OpexAI extends AIController {
     this._budget = OpexBudget();
     this._catalog = OpexCatalog();
     this._lines = [];
+    this._abandonedPairs = {};
   }
 
   function Start();
@@ -158,12 +178,95 @@ function OpexAttemptReasonCode(reason)
   if (reason == "NOPLAN") return "L";
   if (reason == "SHORT") return "H";
   if (reason == "NOMATCH") return "M";
+  if (reason == "JOINPATH") return "J";
   if (reason == "STNFAIL") return "S";
   if (reason == "TRKFAIL") return "T";
   if (reason == "DEPFAIL") return "E";
   if (reason == "ORDFAIL") return "R";
   if (reason == "NOTRAIN") return "V";
   return "X";
+}
+
+/* Le station_id est l'identite de bassin, pas la tuile de quai : deux lignes raccordees ont des
+ * sorties differentes mais le meme ID. Un ancien etat sauvegarde sans la liste vehicles retombe
+ * prudemment sur la requete par gare ; les nouvelles lignes n'utilisent jamais ce repli ambigu. */
+function OpexLineVehicleIds(line, stationId)
+{
+  if ("vehicles" in line) return line.vehicles;
+  local ids = [];
+  local vehicles = AIVehicleList_Station(stationId);
+  for (local v = vehicles.Begin(); !vehicles.IsEnd(); v = vehicles.Next()) ids.append(v);
+  return ids;
+}
+
+function OpexLineStationId(line, end)
+{
+  local tile = end == "A" ? line.stationA : line.stationB;
+  local stationId = AIStation.GetStationID(tile);
+  return AIStation.IsValidStation(stationId) ? stationId : -1;
+}
+
+function OpexRememberClosest(distance, threshold, closest)
+{
+  return distance < threshold && (closest < 0 || distance < closest) ? distance : closest;
+}
+
+/* Le seul partage autorise dans v1 est une ligne rail dont on a garde le plan de quai. Les autres
+ * modes ont bien le droit de continuer a proteger leur bassin avec MIN_SEPARATION, mais aucune
+ * geometrie rail sure ne peut etre deduite de leur tuile d'aeroport ou de dock. Pour le fret, une
+ * source jointe a un puits ferait accepter localement le cargo qui devait voyager : roles egaux
+ * seulement. */
+function OpexJoinCompatible(candidate, conflict)
+{
+  local line = conflict.line;
+  if (("mode" in line) || !("platformA" in line) || !("platformB" in line)) return false;
+  if (!("kind" in line) || line.kind != candidate.kind || line.cargo != candidate.cargo) return false;
+  if (candidate.kind == "freight" && conflict.end != conflict.lineEnd) return false;
+  return true;
+}
+
+/* Un seul objet gare et une seule extremite candidate peuvent etre court-circuites. Si une autre
+ * gare physique est aussi dans le disque, la ligne neuve lui volerait son bassin : le filet reste
+ * arme. Les doublons de lignes deja jointes ont le meme StationID et sont donc volontairement un
+ * seul conflit logique. */
+function OpexFindStationJoin(candidate, conflicts)
+{
+  if (conflicts.len() == 0) return null;
+  local first = conflicts[0];
+  foreach (conflict in conflicts) {
+    if (conflict.end != first.end || conflict.stationId != first.stationId) return null;
+  }
+  foreach (conflict in conflicts) {
+    if (!OpexJoinCompatible(candidate, conflict)) continue;
+    local platform = conflict.lineEnd == "A" ? conflict.line.platformA : conflict.line.platformB;
+    return { candidateEnd = conflict.end, stationId = conflict.stationId, platform = platform };
+  }
+  return null;
+}
+
+/* Les tuiles candidate.src/dst sont des positions, tandis que les identifiants de ville/industrie
+ * restent stables si le plan de gare evolue. Les deux types actuels ont ces identifiants ; le
+ * repli sur les tuiles garde la fonction sure pour un futur type de candidat. La cle fret reste
+ * orientee (producteur -> accepteur), mais la cle pax normalise les deux villes pour survivre a un
+ * changement de l'ordre de catalog.towns entre deux rafraichissements. */
+function OpexAbandonedPairKey(candidate)
+{
+  local src = candidate.src;
+  local dst = candidate.dst;
+  if (candidate.kind == "pax") {
+    /* catalog.nut garde AITown.GetLocation(t), donc GetClosestTown retrouve ici t a distance 0. */
+    src = AITile.GetClosestTown(candidate.src);
+    dst = AITile.GetClosestTown(candidate.dst);
+    if (src > dst) {
+      local swap = src;
+      src = dst;
+      dst = swap;
+    }
+  } else if (candidate.kind == "freight") {
+    src = AIIndustry.GetIndustryID(candidate.src);
+    dst = AIIndustry.GetIndustryID(candidate.dst);
+  }
+  return candidate.kind + "|" + candidate.cargo + "|" + src + "|" + dst;
 }
 
 /* Un seul avion suffit pour cette premiere liaison. Le scan des vehicules empeche un doublon apres
@@ -203,7 +306,7 @@ function OpexAI::_tryBuildAir(year)
     originA = result.stationA, originB = result.stationB,
     cargo = this._catalog.paxCargo,
     predicted = 0, iterations = 0, trains = 1, distance = plan.distance, year = year,
-    mode = "air", vehicle = result.vehicle,
+    mode = "air", vehicle = result.vehicle, vehicles = [result.vehicle],
     lineId = this._nextLineId,
   });
   OpexSign(anchor, "PM|" + this._nextLineId + "|A|" + plan.distance + "|"
@@ -241,7 +344,7 @@ function OpexAI::_tryBuildWater(year)
     originA = result.dockA, originB = result.dockB,
     cargo = this._catalog.paxCargo,
     predicted = 0, iterations = 0, trains = 1, distance = plan.distance, year = year,
-    mode = "water", vehicle = result.vehicle,
+    mode = "water", vehicle = result.vehicle, vehicles = [result.vehicle],
     lineId = this._nextLineId,
   });
   OpexSign(anchor, "PM|" + this._nextLineId + "|W|" + plan.distance + "|"
@@ -319,8 +422,9 @@ function OpexAI::_tryBuildRoad(year)
  *  2. Filet physique (MIN_SEPARATION, plus large mais abaisse) : deux gares BATIES reellement
  *     trop proches, meme pour deux origines differentes -- le vrai risque de cannibalisation.
  *
- * Rend -1 si aucun conflit, sinon la plus petite distance Manhattan trouvee parmi les deux
- * tests (0..MIN_SEPARATION-1, l'un ou l'autre seuil selon quel test a matche).
+ * Rend les deux conflits SEPARES. L'identite d'origine est toujours un rejet ; le conflit
+ * physique transporte en plus les gares touchees, afin que _tryBuild puisse proposer un quai
+ * joint sans desarmer le filet pour l'autre extremite.
  *
  * Depuis le 2026-08-28, le test 1 (identite d'origine) est DEJA applique en amont, a la
  * generation (OpexOriginServed dans candidates.nut) -- un candidat qui reutilise une origine
@@ -329,28 +433,39 @@ function OpexAI::_tryBuildRoad(year)
  * pas se calculer avant la tentative de construction. */
 function OpexAI::_tooClose(candidate)
 {
-  local worst = -1;
+  local origin = -1;
   foreach (line in this._lines) {
     local d;
     d = AIMap.DistanceManhattan(candidate.src, line.originA);
-    if (d < ORIGIN_SEPARATION && (worst < 0 || d < worst)) worst = d;
+    origin = OpexRememberClosest(d, ORIGIN_SEPARATION, origin);
     d = AIMap.DistanceManhattan(candidate.src, line.originB);
-    if (d < ORIGIN_SEPARATION && (worst < 0 || d < worst)) worst = d;
+    origin = OpexRememberClosest(d, ORIGIN_SEPARATION, origin);
     d = AIMap.DistanceManhattan(candidate.dst, line.originA);
-    if (d < ORIGIN_SEPARATION && (worst < 0 || d < worst)) worst = d;
+    origin = OpexRememberClosest(d, ORIGIN_SEPARATION, origin);
     d = AIMap.DistanceManhattan(candidate.dst, line.originB);
-    if (d < ORIGIN_SEPARATION && (worst < 0 || d < worst)) worst = d;
-
-    d = AIMap.DistanceManhattan(candidate.src, line.stationA);
-    if (d < MIN_SEPARATION && (worst < 0 || d < worst)) worst = d;
-    d = AIMap.DistanceManhattan(candidate.src, line.stationB);
-    if (d < MIN_SEPARATION && (worst < 0 || d < worst)) worst = d;
-    d = AIMap.DistanceManhattan(candidate.dst, line.stationA);
-    if (d < MIN_SEPARATION && (worst < 0 || d < worst)) worst = d;
-    d = AIMap.DistanceManhattan(candidate.dst, line.stationB);
-    if (d < MIN_SEPARATION && (worst < 0 || d < worst)) worst = d;
+    origin = OpexRememberClosest(d, ORIGIN_SEPARATION, origin);
   }
-  return worst;
+  if (origin >= 0) return { origin = origin, physical = -1, conflicts = [] };
+
+  local physical = -1;
+  local conflicts = [];
+  local entries = [["A", candidate.src], ["B", candidate.dst]];
+  foreach (line in this._lines) {
+    foreach (lineEnd in ["A", "B"]) {
+      local stationId = OpexLineStationId(line, lineEnd);
+      if (stationId < 0) continue;
+      local stationTile = lineEnd == "A" ? line.stationA : line.stationB;
+      foreach (entry in entries) {
+        local d = AIMap.DistanceManhattan(entry[1], stationTile);
+        physical = OpexRememberClosest(d, MIN_SEPARATION, physical);
+        if (d < MIN_SEPARATION) {
+          conflicts.append({ end = entry[0], line = line, lineEnd = lineEnd,
+                             stationId = stationId, distance = d });
+        }
+      }
+    }
+  }
+  return { origin = -1, physical = physical, conflicts = conflicts };
 }
 
 /* Le coeur de l'allocation : on descend le classement tant qu'il reste de l'argent, et chaque
@@ -373,14 +488,39 @@ function OpexAI::_tryBuild(ranked, year)
   local nCashBlocked = 0;
   local nBuilt = 0;
   local nAttemptFailed = 0;  // ni tooClose ni cash, mais result.ok == false (pathfinding, etc.)
+  local nAbandonMemory = 0;  // exclu avant _tooClose et cash : compteur separe, jamais un echec
+  local nJoinAttempts = 0;
+  local nJoinBuilt = 0;
+  local nJoinFailed = 0;
 
   for (local i = 0; i < best.len(); i++) {
     local candidate = best[i];
-    local tooCloseDist = this._tooClose(candidate);
+    local abandonedKey = null;
+    if (ABANDON_MEMORY) {
+      abandonedKey = OpexAbandonedPairKey(candidate);
+      if (abandonedKey in this._abandonedPairs) {
+        nAbandonMemory++;
+        continue;
+      }
+    }
+    local close = this._tooClose(candidate);
+    local tooCloseDist = close.origin;
+    local join = null;
     if (tooCloseDist >= 0) {
       nTooClose++;
       if (tooCloseDist < 5) nTooCloseNear++; else nTooCloseFar++;
       continue;
+    }
+    if (close.physical >= 0) {
+      /* Le filet garde la main tant que le candidat ne peut pas reutiliser UNE gare logique avec
+       * un quai rail dedie. Ne pas choisir une autre gare ni une autre extremite ici : ce serait
+       * desarmer MIN_SEPARATION au-dela de l'objet precis de la tranche. */
+      if (STATION_JOIN) join = OpexFindStationJoin(candidate, close.conflicts);
+      if (join == null) {
+        nTooClose++;
+        if (close.physical < 5) nTooCloseNear++; else nTooCloseFar++;
+        continue;
+      }
     }
 
     local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
@@ -396,7 +536,9 @@ function OpexAI::_tryBuild(ranked, year)
     local iterationBudget = budgetInfo.budget;
     local deadline = AIController.GetTick() + iterationBudget / 3 + BUILD_TICK_MARGIN;
 
-    local result = OpexBuildLine(this._catalog, this._budget, candidate, iterationBudget, deadline);
+    if (join != null) nJoinAttempts++;
+    local result = OpexBuildLine(this._catalog, this._budget, candidate, iterationBudget, deadline,
+                                 join);
 
     /* Instrumentation d'une tentative, sans ajouter de panneau :
      * OR|aa|id|rang20|PSR|budget|iterations
@@ -428,6 +570,7 @@ function OpexAI::_tryBuild(ranked, year)
 
     if (result.ok) {
       nBuilt++;
+      if (join != null) nJoinBuilt++;
       local idx = this._nextLineId;
       /* Predit-vs-reel (etage 1) : le detail du calcul au moment de la construction, pour pouvoir
        * le comparer plus tard a la mesure reelle (_reportLines). Un sign par grandeur : jamais
@@ -462,6 +605,10 @@ function OpexAI::_tryBuild(ranked, year)
         predRevenue = candidate.revenueAnnual, predRunning = candidate.runningAnnual,
         predAmort = candidate.amortAnnual, predCarried = candidate.carried,
         predTrains = candidate.trains, predOneWayDays = candidate.oneWayDays,
+        /* La liste est l'identite de la ligne, pas une requete par StationID : sur une gare
+         * jointe, celle-ci verrait aussi les convois de la voisine (rapport et rebut doivent les
+         * laisser intacts). Les plans rendent le prochain quai adjacent deterministe. */
+        vehicles = result.vehicles, platformA = result.platformA, platformB = result.platformB,
         kind = candidate.kind,
         srcIndustry = (candidate.kind == "freight") ? AIIndustry.GetIndustryID(candidate.src) : -1,
         dstIndustry = (candidate.kind == "freight") ? AIIndustry.GetIndustryID(candidate.dst) : -1,
@@ -475,6 +622,13 @@ function OpexAI::_tryBuild(ranked, year)
       this._nextLineId++;
     } else {
       nAttemptFailed++;
+      if (join != null) nJoinFailed++;
+      /* Seulement ABND signifie que le plafond d'iterations a joue. DEAD est le deadline, NOPA
+       * une file vide, et les echecs de construction ne disent rien sur cette paire : les garder
+       * hors memoire preserve leur possibilite de reussir plus tard. */
+      if (ABANDON_MEMORY && result.reason == "ABND") {
+        this._abandonedPairs[abandonedKey] <- true;
+      }
     }
 
   }
@@ -489,6 +643,14 @@ function OpexAI::_tryBuild(ranked, year)
    * DIFFERENTE, simple voisine -- signe que MIN_SEPARATION est trop grossier plutot que trop
    * grand). */
   OpexSign(anchor, "GN|" + year + "|" + nTooCloseNear + "|" + nTooCloseFar);
+  /* GM est separe de OR, deja au plafond de 31 caracteres. Quand la memoire est coupee, ne pas
+   * poser meme ce panneau conserve le bras hard_cap=60/memoire=0 structurellement identique aux
+   * choix anterieurs ; le parseur interprete alors son absence comme zero. */
+  if (ABANDON_MEMORY) OpexSign(anchor, "GM|" + year + "|" + nAbandonMemory);
+  /* OR est sature et GM deja reserve a la memoire : compagnon court, avec essais / succes /
+   * echecs du raccordement. "OB|J|9999|20|20|20" reste largement sous les 31 caracteres. */
+  if (STATION_JOIN) OpexSign(anchor, "OB|J|" + year + "|" + nJoinAttempts + "|" + nJoinBuilt
+                                      + "|" + nJoinFailed);
 }
 
 /* Le releve qui permet de calibrer l'etage 1 : pour chaque ligne, la note de gare REELLE (on
@@ -523,8 +685,12 @@ function OpexAI::_reportLines(year)
     if ("mode" in line && line.mode == "air") vehicleType = AIVehicle.VT_AIR;
     else if ("mode" in line && line.mode == "water") vehicleType = AIVehicle.VT_WATER;
     local diagSlot = 0;
-    local vehicles = AIVehicleList_Station(stationA);
-    for (local v = vehicles.Begin(); !vehicles.IsEnd(); v = vehicles.Next()) {
+    /* Une gare jointe possede un seul StationID : AIVehicleList_Station melangerait les lignes.
+     * La liste figee a la construction est l'attribution correcte ; le helper ne consulte la gare
+     * que pour les etats sauvegardes anterieurs a ce correctif. */
+    local vehicles = OpexLineVehicleIds(line, stationA);
+    foreach (v in vehicles) {
+      if (!AIVehicle.IsValidVehicle(v)) continue;
       if (AIVehicle.GetVehicleType(v) != vehicleType) continue;
       profit += AIVehicle.GetProfitLastYear(v);
       runCost += AIVehicle.GetRunningCost(v);
@@ -580,9 +746,9 @@ function OpexAI::_reportLines(year)
  * depot", exception ERR_VEHICLE_NOT_IN_DEPOT sinon). La vente est donc etalee sur plusieurs
  * annees, au meme rythme annuel que le reste du cycle : l'annee ou le seuil est franchi on
  * envoie chaque convoi au depot (SendVehicleToDepot) et on fige la liste de leurs IDs sur la
- * ligne (scrapVehicles) -- PAS une reinterrogation par gare chaque annee, pour ne pas dependre
- * de savoir si l'ordre "aller au depot" fait toujours apparaitre le convoi dans
- * AIVehicleList_Station. Les annees suivantes, on verifie IsStoppedInDepot() sur cette liste figee
+ * ligne (scrapVehicles), depuis la liste vehicles posee par cette ligne -- PAS une interrogation
+ * par gare qui prendrait les convois du voisin sur un StationID partage. Les annees suivantes, on
+ * verifie IsStoppedInDepot() sur cette liste figee
  * et on vend (SellVehicle) ce qui est arrive ; quand elle est vide, la ligne est retiree de
  * _lines -- ce qui l'arrete d'etre rapportee chaque annee ET libere stationA/stationB/originA/
  * originB du filet _tooClose, pour qu'une ligne neuve et proche ne soit plus bloquee par un
@@ -666,8 +832,9 @@ function OpexAI::_scrapDeadLines(year)
       local stationA = AIStation.GetStationID(line.stationA);
       local ids = [];
       if (AIStation.IsValidStation(stationA)) {
-        local vehicles = AIVehicleList_Station(stationA);
-        for (local v = vehicles.Begin(); !vehicles.IsEnd(); v = vehicles.Next()) {
+        local vehicles = OpexLineVehicleIds(line, stationA);
+        foreach (v in vehicles) {
+          if (!AIVehicle.IsValidVehicle(v)) continue;
           if (AIVehicle.GetVehicleType(v) != AIVehicle.VT_RAIL) continue;
           AIVehicle.SendVehicleToDepot(v);
           ids.append(v);
@@ -793,6 +960,11 @@ function OpexAI::Start()
   /* Exprime en milliers dans le reglage : AddSetting ne porte que des entiers, et un pas de
    * 50 000 sur une plage de 0 a 2 000 000 serait illisible en unites brutes. */
   LOAN_REPAY_FLOOR = AIController.GetSetting("loan_repay_floor_k") * 1000;
+  /* Memes reglages lus UNE fois : OpexIterationBudget et _tryBuild tournent pour chaque candidat,
+   * donc les GetSetting dans ces boucles seraient du debit d'opcodes perdu. */
+  HARD_ITERATION_CAP = AIController.GetSetting("pathfinder_hard_cap_k") * 1000;
+  ABANDON_MEMORY = AIController.GetSetting("abandon_memory") != 0;
+  STATION_JOIN = AIController.GetSetting("station_join") != 0;
 
   /* L'emprunt maximal des le depart : la note de compagnie recompense l'emprunt a zero (5 %),
    * mais une ligne non construite faute de tresorerie coute bien davantage. Le remboursement

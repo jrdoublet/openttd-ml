@@ -9,8 +9,10 @@ class OpexAI extends AIInfo {
   function GetAPIVersion()  { return "15"; }
 
   /* Les reglages debug_signs et pathfinder_sleep_ticks existent pour NE PAS POLLUER une partie
-   * partagee avec des joueurs humains (loan_repay_floor_k, lui, est un parametre de conception
-   * expose au banc, pas un bridage). Entre IA, la regle est l'inverse : jouer a armes egales,
+   * partagee avec des joueurs humains (loan_repay_floor_k, pathfinder_hard_cap_k,
+   * abandon_memory et station_join, eux, sont des parametres de conception exposes au banc,
+   * pas des bridages).
+   * Entre IA, la regle est l'inverse : jouer a armes egales,
    * donc ne jamais s'auto-handicaper face a un adversaire qui ne se bride pas. Un handicap non intentionnel
    * invalide silencieusement le banc (sweeps/bench.py contre AAAHogEx) : l'ecart mesure ne
    * viendrait plus des decisions de l'IA. D'ou les defauts choisis ci-dessous. */
@@ -85,6 +87,47 @@ class OpexAI extends AIInfo {
       custom_value = 300,
       step_size = 50,
       flags = 0
+    });
+
+    /* Plafond absolu du pathfinder, EN MILLIERS d'iterations. La campagne 2026-08-29 (4 graines
+     * x 20 ans) a mesure 52 reussites et 5 ABND : les abandons a 60 000 absorbaient 56,5 % des
+     * opcodes de construction. La plus longue reussite etait a 36 600 iterations ; 40 000 lui
+     * laisse 9 % de marge tout en coupant les recherches qui avaient deja depasse leur cout
+     * d'opportunite. Le reglage conserve 60 comme bras de controle lisible au banc. */
+    AddSetting({
+      name = "pathfinder_hard_cap_k",
+      description = "Hard pathfinder iteration cap, in thousands: 40 = measured default, 60 = pre-2026-08-29 behaviour",
+      min_value = 5, max_value = 100,
+      easy_value = 40, medium_value = 40, hard_value = 40,
+      custom_value = 40,
+      step_size = 5,
+      flags = 0
+    });
+
+    /* Un ABND est seulement l'epuisement du budget d'iterations, pas une ligne construite puis
+     * defectueuse. La meme paire peut sinon revenir au classement l'annee suivante et repayer le
+     * plafond : 4096 l'a fait trois fois dans la mesure du 2026-08-29. La memoire est une petite
+     * table de l'instance, indexee par paire stable, pas une liste balayee. */
+    AddSetting({
+      name = "abandon_memory",
+      description = "Remember rail origin/destination/cargo pairs after ABND: 1 = enabled, 0 = pre-2026-08-29 behaviour",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* Le filet MIN_SEPARATION reste la protection de bassin : 1 ne l'abaisse pas, il remplace
+     * seulement le rejet d'UNE extremite par un quai rail dedie joint a la gare existante. Le
+     * defaut 1 est le comportement vise ; 0 conserve le rejet historique et fournit le bras de
+     * controle exact au banc apparie. */
+    AddSetting({
+      name = "station_join",
+      description = "Reuse one compatible nearby OpexAI rail station with a dedicated platform: 1 = enabled, 0 = historical too-close rejection",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
     });
 
     /* Ticks de sommeil apres chaque bloc de PATH_CHUNK (50) iterations d'A*.

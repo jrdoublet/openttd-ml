@@ -47,7 +47,7 @@ RE_OZ = re.compile(r"^OZ\|(\d+)\|(\d+)\|(-?\d+)$")
 RE_OU = re.compile(r"^OU\|(\d+)\|(\d+)\|(\d+)\|(-?\d+)$")
 RE_OO = re.compile(r"^OO\|(\d+)\|(\d+)\|(-?\d+)$")
 RE_OR = re.compile(r"^OR\|(\d+)\|(\d+)\|(\d+)\|(\w+)$")  # historique avant mesure abandon
-RE_OR_BUDGET = re.compile(r"^OR\|(\d{2})\|(\d+)\|(\d+)\|([ZFCN][SL][KADPLHMSTERVX])\|(\d+)\|(\d+)$")
+RE_OR_BUDGET = re.compile(r"^OR\|(\d{2})\|(\d+)\|(\d+)\|([ZFCN][SL][KADPLHMJSTERVX])\|(\d+)\|(\d+)$")
 RE_OB_ATTEMPT = re.compile(r"^OB\|A\|(\d{2})\|(\d+)\|(\d+)\|(\d+)$")
 RE_PK = re.compile(r"^PK\|(\d+)\|([PF])\|(\d+)$")
 RE_PC = re.compile(r"^PC\|(\d+)\|(.+)$")
@@ -62,6 +62,8 @@ RE_CD = re.compile(r"^CD\|(\d+)\|(\d+)\|(\d+)$")
 RE_CE = re.compile(r"^CE\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
 RE_CK = re.compile(r"^CK\|(\d+)\|(\d+)\|(\d+)$")
 RE_GN = re.compile(r"^GN\|(\d+)\|(\d+)\|(\d+)$")
+RE_GM = re.compile(r"^GM\|(\d+)\|(\d+)$")                 # candidats exclus par memoire ABND
+RE_OB_JOIN = re.compile(r"^OB\|J\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
 RE_GC = re.compile(r"^GC\|(\d+)\|(-?\d+)\|(\d+)$")
 RE_DL = re.compile(r"^DL\|(\d+)\|(\d+)\|(\d+)$")
 RE_LR = re.compile(r"^LR\|(\d+)\|(\d+)\|(\d+)$")
@@ -83,7 +85,7 @@ RE_YT = re.compile(r"^YT\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)(C)?$")
 TOP_K = 20  # Doit rester synchronise avec ai/OpexAI/candidates.nut, pour decoder rang20.
 REASON_CODES = {
     "K": "OK", "A": "ABND", "D": "DEAD", "P": "NOPA", "L": "NOPLAN",
-    "H": "SHORT", "M": "NOMATCH", "S": "STNFAIL", "T": "TRKFAIL",
+    "H": "SHORT", "M": "NOMATCH", "J": "JOINPATH", "S": "STNFAIL", "T": "TRKFAIL",
     "E": "DEPFAIL", "R": "ORDFAIL", "V": "NOTRAIN", "X": "UNKNOWN",
 }
 
@@ -312,6 +314,14 @@ def parse_yearly(all_signs):
         elif m := RE_GN.match(sign):
             y = int(m.group(1)); d = by_year.setdefault(y, {})
             d["too_close_near"] = int(m.group(2)); d["too_close_far"] = int(m.group(3))
+        elif m := RE_GM.match(sign):
+            y = int(m.group(1)); d = by_year.setdefault(y, {})
+            d["candidates_skipped_abandon_memory"] = int(m.group(2))
+        elif m := RE_OB_JOIN.match(sign):
+            y = int(m.group(1)); d = by_year.setdefault(y, {})
+            d["station_join_attempts"] = int(m.group(2))
+            d["station_join_built"] = int(m.group(3))
+            d["station_join_failed"] = int(m.group(4))
     return dict(sorted(by_year.items()))
 
 
@@ -471,6 +481,11 @@ def make_run_payload(rows, seed, years):
         "n_rail_attempts_abandoned_hard_cap": len(abandoned_hard_cap),
         "abandoned_iterations_hard_cap": sum(
             attempt["iterations"] for attempt in abandoned_hard_cap),
+        "n_rail_candidates_skipped_abandon_memory": sum(
+            row.get("candidates_skipped_abandon_memory", 0) for row in yearly.values()),
+        "n_station_join_attempts": sum(row.get("station_join_attempts", 0) for row in yearly.values()),
+        "n_station_join_built": sum(row.get("station_join_built", 0) for row in yearly.values()),
+        "n_station_join_failed": sum(row.get("station_join_failed", 0) for row in yearly.values()),
         "rail_attempts": attempts, "air_attempts": air, "water_attempts": water,
         "road_attempts": road, "cash_blocks": cash_blocks, "dead_line_events": dead_lines,
         "loan_repayments": loan_repayments, "loan_view": loan_view_rows,
@@ -531,7 +546,7 @@ def main():
     payload = {
         "openttd_version": OPENTTD_VERSION, "opengfx_version": OPENGFX_VERSION,
         "years": args.years, "seeds": args.seeds, "openttd_config": CFG,
-        "instrumentation_added": ["CG", "CR", "CD", "CE", "CK", "PC", "PM", "OB|A"],
+        "instrumentation_added": ["CG", "CR", "CD", "CE", "CK", "PC", "PM", "OB|A", "GM", "OB|J"],
         "runs": runs,
     }
     result_path.write_text(json.dumps(payload, indent=2))
