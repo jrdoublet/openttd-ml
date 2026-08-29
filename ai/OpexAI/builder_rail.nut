@@ -28,12 +28,12 @@ const PATHFINDER_MAX_COST = 200000;
  * (4 graines x 20 ans) a trouve 36 600 iterations comme maximum d'une reussite ; 40 000 garde 9 %
  * de marge, alors que les ABND a 60 000 absorbaient 56,5 % des opcodes de construction. */
 
-/* Le budget derive du rapport est AMORTI (il vient de "iterations par ligne REUSSIE", qui inclut
- * deja les tentatives ratees) ; une tentative INDIVIDUELLE en demande plusieurs fois plus, car la
- * distribution est tres asymetrique -- a 30 tuiles la mediane est ~200 iterations pour une moyenne
- * de 352. Couper a la moyenne fait echouer une tentative sur deux ET jette la recherche deja
- * payee. Mesure du 2026-08-28 : sans ce facteur, 60 tentatives sur 5 ans, budgets de 50 a 400
- * iterations, zero ligne construite. */
+/* Le budget derive du rapport est AMORTI (itérations par ligne REUSSIE) ; une tentative
+ * INDIVIDUELLE en demande plus, queue asymetrique. 227 tentatives 15.3 : p95(iter OK) /
+ * amort <= 2,7 sur toutes les bandes, donc 4x couvre la queue. Le plancher 2000 absorbe
+ * le court une fois les noeuds v2 a 310 (4*310=1240 < 2000). Mesure du 2026-08-28 : sans
+ * ce facteur, 60 tentatives sur 5 ans, budgets de 50 a 400, zero ligne. Ne PAS baisser
+ * M en meme temps que les noeuds. */
 const ATTEMPT_MULTIPLIER = 4;
 const ATTEMPT_FLOOR = 2000;
 

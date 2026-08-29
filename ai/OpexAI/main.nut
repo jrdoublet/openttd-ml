@@ -1258,6 +1258,7 @@ function OpexAI::Start()
    * cycle annuel, qui a lieu apres Start(). */
   ROAD_BUILD_ENABLED = AIController.GetSetting("road_mode") != 0;
   ROAD_REFLEET = AIController.GetSetting("road_refleet") != 0;
+  ASTAR_COST_V2 = AIController.GetSetting("astar_cost") != 0;
 
   /* 🔴 RENOUVELLEMENT AUTOMATIQUE (2026-08-29). Mesure : campagne 20 ans, graine 42 -- trois des
    * quatre lignes ROUTIERES finissent la partie avec vehCount = 0 et un profit de zero, alors que

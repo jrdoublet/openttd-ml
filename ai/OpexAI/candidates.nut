@@ -48,38 +48,46 @@ const MIN_RATIO = 500;
  *   distance :    23     33     48     63     81    105     150
  *   iterations:  371    673   2188   4066   7745  15308   53951
  *
- * ⚠️ CES NOEUDS NE SONT PAS RETOUCHES. Le commentaire 13.4 disait que le rapport culminait
- * a 48-63 tuiles et que le classement choisissait donc des lignes MOYENNES. C'est faux sous
- * 15.3 / OpexAI (docs/opex_attempt_distance_20y_5seeds.json, 227 tentatives, toutes avec
- * distance). Optimum mesure : le plus court. Iterations AMORTIES par succes :
- *   <=35 : 308   35-50 : 1 383   50-70 : 5 676   70-105 : 9 797   >105 : 51 900
- * P(OK)  : 0.63          0.49           0.77            0.42            0.17
- * 8 des 12 ABND sont a >105 tuiles. Le modele surestime le court (ratio reel/modele 0.20)
- * et colle vers 70-105 (0.94). Recalibrer les noeuds SANS retoucher ATTEMPT_MULTIPLIER = 4
- * reproduirait l'echec "budgets 50-400, zero ligne". La table reste, le mensonge 48-63 non.
+ * Deux tables, memes abcisses. astar_cost=0 : noeuds 13.4 (TrainLineAI). astar_cost=1 :
+ * iterations AMORTIES par succes, fenetre +/-12 tuiles autour de chaque noeud, 227 tentatives
+ * (docs/opex_attempt_distance_20y_5seeds.json). ATTEMPT_MULTIPLIER reste 4 : p95(iter OK) /
+ * amort <= 2,7 sur toutes les bandes, donc 4x couvre la queue d'une tentative isolee. Le
+ * plancher 2000 absorbe le court (4*310=1240 < 2000). Recalibrer les noeuds SANS ce M
+ * reproduirait "budgets 50-400, zero ligne".
+ *
+ *   distance :                 23    33    48    63    81     105     150
+ *   v1 (13.4) :               371   673  2188  4066  7745   15308   53951
+ *   v2 (amorti 15.3) :        310   690  2500  5400  8200   26000   52000
+ *
+ * v2 est plus cher a 63 (ABND dans 50-70) et surtout a 105 (8 des 12 ABND au-dela).
+ * Le court reste du meme ordre. Le classement a v2 prefere le court, et MIN_RATIO coupe
+ * le long. Banc 20 graines : gares -7,9 % (t = -3,23), valeur sous le plancher. Defaut 0.
  */
 KNOT_DISTANCE <- [23, 33, 48, 63, 81, 105, 150];
-KNOT_ITERATIONS <- [371, 673, 2188, 4066, 7745, 15308, 53951];
+KNOT_ITERATIONS_V1 <- [371, 673, 2188, 4066, 7745, 15308, 53951];
+KNOT_ITERATIONS_V2 <- [310, 690, 2500, 5400, 8200, 26000, 52000];
+ASTAR_COST_V2 <- false;
 
 function OpexRailIterations(distance)
 {
+  local knots = ASTAR_COST_V2 ? KNOT_ITERATIONS_V2 : KNOT_ITERATIONS_V1;
   local n = KNOT_DISTANCE.len();
-  if (distance <= KNOT_DISTANCE[0]) return KNOT_ITERATIONS[0];
+  if (distance <= KNOT_DISTANCE[0]) return knots[0];
   for (local i = 1; i < n; i++) {
     if (distance <= KNOT_DISTANCE[i]) {
       local d0 = KNOT_DISTANCE[i - 1];
       local d1 = KNOT_DISTANCE[i];
-      local v0 = KNOT_ITERATIONS[i - 1];
-      local v1 = KNOT_ITERATIONS[i];
+      local v0 = knots[i - 1];
+      local v1 = knots[i];
       return v0 + ((v1 - v0) * (distance - d0)) / (d1 - d0);
     }
   }
   /* Au-dela du dernier noeud on prolonge la derniere pente : la vraie courbe monte plus vite
    * encore, donc c'est une SOUS-estimation du cout -- prudent dans le mauvais sens, a surveiller. */
   local last = n - 1;
-  local slope = (KNOT_ITERATIONS[last] - KNOT_ITERATIONS[last - 1])
+  local slope = (knots[last] - knots[last - 1])
               / (KNOT_DISTANCE[last] - KNOT_DISTANCE[last - 1]);
-  return KNOT_ITERATIONS[last] + slope * (distance - KNOT_DISTANCE[last]);
+  return knots[last] + slope * (distance - KNOT_DISTANCE[last]);
 }
 
 /* Une origine rail est constructible s'il existe, dans le bassin, une tuile de TERRE qui voit

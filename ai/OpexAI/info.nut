@@ -10,7 +10,7 @@ class OpexAI extends AIInfo {
 
   /* Les reglages debug_signs et pathfinder_sleep_ticks existent pour NE PAS POLLUER une partie
    * partagee avec des joueurs humains (loan_repay_floor_k, pathfinder_hard_cap_k,
-   * abandon_memory, station_join, origin_sitable, basin_share, reborrow, road_mode et road_refleet, eux, sont des parametres de conception exposes au banc,
+   * abandon_memory, station_join, origin_sitable, basin_share, reborrow, road_mode, road_refleet et astar_cost, eux, sont des parametres de conception exposes au banc,
    * pas des bridages).
    * Entre IA, la regle est l'inverse : jouer a armes egales,
    * donc ne jamais s'auto-handicaper face a un adversaire qui ne se bride pas. Un handicap non intentionnel
@@ -112,6 +112,30 @@ class OpexAI extends AIInfo {
     AddSetting({
       name = "reborrow",
       description = "Borrow the missing loan step when a candidate exceeds cash: 1 = enabled, 0 = historical one-way repay (unmeasured default)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* Table de cout A*. Defaut 0 DEPUIS LE 2026-08-30, apres banc apparie.
+     *
+     * CE QUE 1 FAIT. OpexRailIterations lit KNOT_ITERATIONS_V2 : iterations
+     * amorties par succes, fenetre +/-12 tuiles, 227 tentatives sous 15.3
+     * (docs/opex_attempt_distance_20y_5seeds.json). ATTEMPT_MULTIPLIER reste 4 :
+     * p95(iter OK)/amort <= 2,7. Le plancher 2000 absorbe le court.
+     *
+     * 5 graines (docs/opex_astar_cost1_20y_5seeds.json) : on construit encore
+     * (13-20 lignes), mediane 51->47 tuiles, tentatives et ABND baissent.
+     * Le piege "budgets 50-400, zero ligne" est evite.
+     *
+     * VERDICT n=20 (docs/bench_astar_cost.json) : company_value -8,9 %, t = -1,86,
+     * 7/20 -- sous le plancher ~15 %. performance_history -5,3 %, t = -1,81.
+     * Gares -7,9 %, t = -3,23, 4/20 : CA c'est etabli. MIN_RATIO coupe le long
+     * sans le remplacer 1:1 par du court. Defaut 0. OpexAI[astar_cost=1] rallume. */
+    AddSetting({
+      name = "astar_cost",
+      description = "A* cost knots: 0 = OpenTTD 13.4 TrainLineAI table (control), 1 = amortized iterations per success under 15.3 (227 attempts)",
       min_value = 0, max_value = 1,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,

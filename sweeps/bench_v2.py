@@ -100,7 +100,7 @@ def parse_opex_variant(name):
                 raise ValueError("pathfinder_hard_cap_k doit etre entre 5 et 100")
             if value % 5:
                 raise ValueError("pathfinder_hard_cap_k doit etre un multiple de 5 (step_size)")
-        elif key in ("abandon_memory", "station_join", "origin_sitable", "basin_share", "reborrow", "road_mode", "road_refleet"):
+        elif key in ("abandon_memory", "station_join", "origin_sitable", "basin_share", "reborrow", "road_mode", "road_refleet", "astar_cost"):
             if value not in (0, 1):
                 raise ValueError(f"{key} est booleen : 0 ou 1")
         else:

@@ -561,12 +561,12 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
       Le spread n'est **pas** débloqué : joindre plus, sur un terme qui ne paie pas, recréerait
       le banc vivier.
 
-**Priorité de fait, révisée le 2026-08-29 (nuit)** : plus d'échec qualitatif du mode route
-(item 0 ✅, item 5 ✅ `road_refleet=1`). La distance sur chaque tentative A\* est ✅
-(`OB|A`, 227/227). `station_join`, `basin_share`, `reborrow`, `origin_sitable` restent à 0.
-Le **spread** n'est pas la suite. La tête est de **recalibrer conjointement** les nœuds
-d'`OpexRailIterations` et `ATTEMPT_MULTIPLIER = 4` : l'optimum est au plus court, le
-modèle surestime le court d'un facteur 5, et toucher l'un sans l'autre vide les budgets.
+**Priorité de fait, révisée le 2026-08-30** : plus d'échec qualitatif du mode route.
+Distance A\* ✅. Recalibrage conjoint des nœuds ✅ mesuré, **défaut 0** (moins de gares,
+t = −3,23 ; valeur sous le plancher). `station_join`, `basin_share`, `reborrow`,
+`origin_sitable`, `astar_cost` restent à 0. Le **spread** n'est pas la suite. La tête
+est l'item **7** (biais de sélection du modèle de profit) : 45 % des paires sont
+rejetées pour « profit ≤ 0 » par un modèle calibré seulement sur celles qui passent.
 
 *Priorité précédente, conservée pour la trace* : ~~l'item **4**~~ (✅ fait) et l'item **6**
 (plafond d'abandon) passaient devant — ce sont deux échecs mesurés, et surtout les deux seuls
@@ -604,12 +604,10 @@ mesure (la croissance des villes desservies stagne-t-elle réellement ?).
   prédit/réel moyen de **0,98** sur les 5 lignes fret à ≥3 ans de données stables.
   `STATION_RATING_PCT = 50` (calibré sur le pax) tient donc aussi pour le fret, sans facteur
   correctif propre à identifier. Détail dans `docs/opexai_croissance.md` §2 et §8.
-- 🔶 **Le modèle de coût A\*** (`candidates.nut`, table de nœuds) : le **préalable distance**
-  est fait (2026-08-29, nuit). `OB|A` porte la distance de CHAQUE tentative. 5 graines × 20 ans
+- ✅🔶 **Le modèle de coût A\*** (`candidates.nut`) : préalable distance ✅, recalibrage conjoint
+  ✅ mesuré, **défaut `astar_cost=0`**. 5 graines × 20 ans
   (`docs/opex_attempt_distance_20y_5seeds.json`) : **227/227** tentatives avec distance, 101 OK,
-  12 ABND, 111 SITEA/B/AB. Les nœuds 13.4 ne bougent pas — voir le piège `ATTEMPT_MULTIPLIER`
-  plus bas. **Chiffré d'abord sur 52 succès, puis sur 227 tentatives ; le désaccord porte sur
-  la FORME, et la censure le renforçait :**
+  12 ABND, 111 SITEA/B/AB. **Chiffré d'abord sur 52 succès, puis sur 227 tentatives :**
 
   | bande | n | P(OK) | P(OK\|A\*) | SITE | ABND | itér. amorties / succès | ratio réel/modèle |
   |---|---:|---:|---:|---:|---:|---:|---:|
@@ -626,10 +624,24 @@ mesure (la croissance des villes desservies stagne-t-elle réellement ?).
 
   ✅ **Biais de censure : le préalable est fait.** `OB|A` porte la distance. 227/227.
 
-  ⚠️ **`ATTEMPT_MULTIPLIER = 4` reste le piège.** Calibré contre le modèle actuel. Diviser les
-  nœuds par ~5 au court (ratio 0,20) multiplierait tous les ratios et diviserait tous les
-  budgets. Sans re-dérivation conjointe : « 60 tentatives sur 5 ans, budgets de 50 à 400, zéro
-  ligne ». C'est le prochain pas, pas celui-ci.
+  ✅ **Recalibrage conjoint fait, défaut 0** (2026-08-30). Nœuds v2 = itérations amorties
+  (+/−12 tuiles) ; `ATTEMPT_MULTIPLIER` **reste 4** (p95/amort ≤ 2,7). Réglage `astar_cost`.
+
+  5 graines × 20 ans (`docs/opex_astar_cost1_20y_5seeds.json`) : 13–20 lignes, médiane 51→47
+  tuiles, tentatives 227→149, ABND 12→7. Le piège « budgets 50–400, zéro ligne » est évité.
+
+  **Banc apparié 20 graines** (`docs/bench_astar_cost.json`) :
+
+  | métrique | delta | t | graines | verdict |
+  |---|---|---|---|---|
+  | `company_value` | −8,9 % | −1,86 | 7/20 | sous le plancher (~15 %) |
+  | `performance_history` | −5,3 % | −1,81 | 7/20 | sous le plancher (~12 %) |
+  | gares | **−7,9 %** | **−3,23** | 4/20 | **établi** — moins de lignes |
+  | véhicules | −7,6 % | −1,53 | 9/20 | nul |
+
+  MIN_RATIO coupe le long sans le remplacer 1:1 par du court. ⚠️ **Défaut 0.**
+  `OpexAI[astar_cost=1]` rallume. Ne pas baisser MIN_RATIO « pour compenser » sans banc :
+  ce serait le vivier.
 - ✅ **Constantes HYPOTHÈSE `SPEED_EFFICIENCY_PCT = 70` et `WAGONS_PER_TRAIN = 5`** : remplacées
   le 2026-08-29 par la traction dimensionnée (`4a8e15e`). `ROAD_SPEED_EFFICIENCY_PCT = 60` reste
   une hypothèse du mode route (`docs/opexai_route.md`).
