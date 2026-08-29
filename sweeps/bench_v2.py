@@ -94,6 +94,15 @@ def parse_opex_variant(name):
                 raise ValueError("loan_repay_floor_k doit etre entre 0 et 2000")
             if value % 50:
                 raise ValueError("loan_repay_floor_k doit etre un multiple de 50 (step_size)")
+        elif key == "pathfinder_hard_cap_k":
+            # Memes bornes et meme pas que ai/OpexAI/info.nut, pour la raison ci-dessus.
+            if not 5 <= value <= 100:
+                raise ValueError("pathfinder_hard_cap_k doit etre entre 5 et 100")
+            if value % 5:
+                raise ValueError("pathfinder_hard_cap_k doit etre un multiple de 5 (step_size)")
+        elif key in ("abandon_memory", "station_join"):
+            if value not in (0, 1):
+                raise ValueError(f"{key} est booleen : 0 ou 1")
         else:
             raise ValueError(f"reglage OpexAI inconnu: {key}")
         params.append((key, value))
