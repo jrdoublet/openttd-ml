@@ -64,6 +64,11 @@ RE_CK = re.compile(r"^CK\|(\d+)\|(\d+)\|(\d+)$")
 RE_GN = re.compile(r"^GN\|(\d+)\|(\d+)\|(\d+)$")
 RE_GM = re.compile(r"^GM\|(\d+)\|(\d+)$")                 # candidats exclus par memoire ABND
 RE_OB_JOIN = re.compile(r"^OB\|J\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
+# Tranche du 2026-08-29 : part du TOP_K qui n'existe QUE parce qu'une extremite deja servie
+# peut etre reprise par un quai joint (annee, ces candidats, taille du classement).
+RE_OB_SERVED = re.compile(r"^OB\|S\|(\d+)\|(\d+)\|(\d+)$")
+# Devenir des paires a UNE seule extremite servie : irrecuperables / poursuivies.
+RE_CJ = re.compile(r"^CJ\|(\d+)\|(\d+)\|(\d+)$")
 RE_GC = re.compile(r"^GC\|(\d+)\|(-?\d+)\|(\d+)$")
 RE_DL = re.compile(r"^DL\|(\d+)\|(\d+)\|(\d+)$")
 RE_LR = re.compile(r"^LR\|(\d+)\|(\d+)\|(\d+)$")
@@ -334,6 +339,14 @@ def parse_yearly(all_signs):
             d["station_join_attempts"] = int(m.group(2))
             d["station_join_built"] = int(m.group(3))
             d["station_join_failed"] = int(m.group(4))
+        elif m := RE_OB_SERVED.match(sign):
+            y = int(m.group(1)); d = by_year.setdefault(y, {})
+            d["ranked_origin_served"] = int(m.group(2))
+            d["ranked_total"] = int(m.group(3))
+        elif m := RE_CJ.match(sign):
+            y = int(m.group(1)); d = by_year.setdefault(y, {})
+            d["candidate_pairs_join_impossible"] = int(m.group(2))
+            d["candidate_pairs_one_served"] = int(m.group(3))
     return dict(sorted(by_year.items()))
 
 

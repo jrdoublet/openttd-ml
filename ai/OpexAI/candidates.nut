@@ -77,7 +77,7 @@ function OpexRailIterations(distance)
   return KNOT_ITERATIONS[last] + slope * (distance - KNOT_DISTANCE[last]);
 }
 
-function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, stats)
+function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, originServed, stats)
 {
   if (monthly <= 0) {
     stats.noMonthly++;
@@ -117,6 +117,10 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, stat
   return {
     kind = kind,            // "pax" ou "freight"
     cargo = cargo,
+    /* Vrai quand UNE des deux extremites reutilise une origine deja desservie : ce candidat n'est
+     * constructible que si _tooClose lui trouve un quai joint (cf. OpexOriginService ci-dessous).
+     * Sert a l'instrumentation, pas a la decision -- l'autorite reste _tooClose. */
+    originServed = originServed,
     src = srcTile,
     dst = dstTile,
     distance = distance,
@@ -170,9 +174,13 @@ function OpexTopK(all, k)
  * Duplique deliberement le test ORIGIN_SEPARATION de _tooClose (meme rayon, meme regle "un seul
  * raccordement par origine") plutot que de changer sa signature : ORIGIN_SEPARATION reste une
  * const globale definie dans main.nut, visible ici car require()d avant toute execution (les
- * fonctions de ce fichier ne s'executent qu'apres que main.nut a fini de se charger). _tooClose
- * reste utile pour son second test, MIN_SEPARATION, qui depend de la gare BATIE et ne peut pas se
- * calculer a la generation.
+ * fonctions de ce fichier ne s'executent qu'apres que main.nut a fini de se charger).
+ *
+ * ATTENTION, cette exclusion a ete RAMENEE a son noyau le 2026-08-29 : elle ne vaut plus que pour
+ * les paires dont les DEUX extremites sont servies. Une seule extremite servie passe desormais et
+ * doit etre recuperee par un quai joint -- voir OpexOriginService plus bas, qui remplace l'appel
+ * direct a OpexOriginServed dans les deux generateurs. _tooClose redevient l'autorite sur les deux
+ * tests, MIN_SEPARATION comme identite d'origine.
  *
  * `includeRoad` (2026-08-29) : les lignes ROUTIERES vivent dans le meme tableau _lines que le rail
  * (pour etre rapportees et mises au rebut par le meme code), mais elles ne doivent PAS verrouiller
@@ -188,6 +196,62 @@ function OpexOriginServed(lines, tile, includeRoad)
     if (AIMap.DistanceManhattan(tile, line.originB) < ORIGIN_SEPARATION) return true;
   }
   return false;
+}
+
+/* DE LA GUILLOTINE AU FILET (2026-08-29). L'exclusion ci-dessus, ecrite le 2026-08-28, rejetait la
+ * paire des qu'UNE de ses deux extremites etait servie. Mesure sur 20 ans, graine 42
+ * (docs/opex_road_20y_42.json) : a partir de 1982 elle ecarte 213 a 242 paires par an et il ne
+ * reste que 0 a 3 candidats classes -- la regle "un seul raccordement par origine" a consomme la
+ * carte, et huit annees ne produisent que six lignes. Elle emportait aussi station_join, ecrit le
+ * meme jour pour recuperer exactement ce vivier : 0 tentative en 20 ans, parce que le candidat
+ * mourait un etage plus haut, avant que _tooClose puisse proposer un quai joint.
+ *
+ * La regle reste entiere -- on ne pose JAMAIS une seconde gare sur une origine deja servie -- mais
+ * elle cesse d'etre un rejet : une extremite servie doit desormais etre RECUPEREE par un quai
+ * joint, ou le candidat est rejete plus bas par _tooClose. Ce qui reste exclu ici sans appel :
+ *  - les DEUX extremites servies (la ligne neuve doublerait un corridor deja tenu) ;
+ *  - une origine servie par PLUSIEURS gares distinctes : OpexFindStationJoin exige un objet gare
+ *    unique, aucune jointure n'est possible ;
+ *  - une origine dont la ligne ne peut pas etre jointe (mode non rail, autre cargo, autre nature,
+ *    role fret inverse) -- meme test que OpexJoinCompatible, appele ici pour ne pas le dupliquer.
+ *
+ * Ce filtre reste un SUR-ENSEMBLE de la decision reelle : il ignore MIN_SEPARATION et l'arbitrage
+ * "une seule gare, une seule extremite" que seul _tooClose peut faire une fois les gares baties.
+ * Son role est d'eviter de payer OpexLineEconomics pour une jointure structurellement impossible,
+ * pas de trancher a la place de _tooClose. */
+
+/* Etat d'une origine face aux lignes RAIL deja baties. Rend null si elle est libre, sinon la ligne
+ * qui la sert et l'extremite concernee -- ou une table dont `blocked` est vrai quand plusieurs
+ * gares DISTINCTES la servent. Les lignes routieres sont ignorees, comme dans les deux autres
+ * filets rail : une desserte de bus de 12 tuiles n'epuise pas une ville. */
+function OpexOriginService(lines, tile)
+{
+  local found = null;
+  foreach (line in lines) {
+    if (("mode" in line) && line.mode == "road") continue;
+    foreach (lineEnd in ["A", "B"]) {
+      local originTile = lineEnd == "A" ? line.originA : line.originB;
+      if (AIMap.DistanceManhattan(tile, originTile) >= ORIGIN_SEPARATION) continue;
+      local stationId = OpexLineStationId(line, lineEnd);
+      if (found == null) {
+        found = { line = line, lineEnd = lineEnd, stationId = stationId, blocked = false };
+      } else if (found.stationId != stationId) {
+        return { line = null, lineEnd = "", stationId = -1, blocked = true };
+      }
+    }
+  }
+  return found;
+}
+
+/* Une extremite servie merite-t-elle qu'on calcule son economie ? `end` est son role dans le
+ * candidat a naitre ("A" = source/premiere ville, "B" = puits/seconde ville). */
+function OpexOriginJoinable(service, kind, cargo, end)
+{
+  if (service.blocked || service.stationId < 0) return false;
+  /* Meme regle que la jointure elle-meme, sans la recopier : OpexJoinCompatible ne lit que
+   * .kind/.cargo du candidat et .line/.end/.lineEnd du conflit. */
+  return OpexJoinCompatible({ kind = kind, cargo = cargo },
+                            { line = service.line, end = end, lineEnd = service.lineEnd });
 }
 
 /* Part de la production TOTALE d'une ville qui tombe dans le rayon de couverture d'UNE gare.
@@ -213,24 +277,44 @@ function OpexPaxCandidates(catalog, lines, out, stats)
   local served = [];
   for (local i = 0; i < n; i++) {
     produced.append(AITown.GetLastMonthProduction(towns[i].id, cargo));
-    local isServed = OpexOriginServed(lines, towns[i].tile, false);
-    served.append(isServed);
-    if (isServed) stats.townsServed++; else stats.townsUnserved++;
+    local service = OpexOriginService(lines, towns[i].tile);
+    served.append(service);
+    if (service != null) stats.townsServed++; else stats.townsUnserved++;
   }
   for (local a = 0; a < n; a++) {
     for (local b = a + 1; b < n; b++) {
       stats.pairsTotal++;
-      if (served[a] || served[b]) {
+      local sa = served[a];
+      local sb = served[b];
+      /* Les deux extremites servies, ou le bras de controle du banc (station_join = 0) : rejet
+       * sec, exactement comme avant le 2026-08-29. Le compteur garde donc le meme sens dans les
+       * deux bras. */
+      if ((sa != null && sb != null) || (!STATION_JOIN && (sa != null || sb != null))) {
         stats.pairsOriginServed++;
         continue;
       }
+      if (sa != null && !OpexOriginJoinable(sa, "pax", cargo, "A")) {
+        stats.pairsJoinImpossible++;
+        continue;
+      }
+      if (sb != null && !OpexOriginJoinable(sb, "pax", cargo, "B")) {
+        stats.pairsJoinImpossible++;
+        continue;
+      }
+      local originServed = sa != null || sb != null;
+      if (originServed) stats.pairsOneServed++;
       /* Une ligne dessert les deux sens, et chaque sens transporte la production de SON
        * origine : le debit utile est la somme, pas le minimum. On ignore encore la croissance de
        * la ville que la desserte provoque (sous-estimation non calibree, plus petite que le
        * facteur ci-dessus d'apres la mesure). */
       local monthly = ((produced[a] + produced[b]) * TOWN_CATCHMENT_SHARE_PCT) / 100;
+      /* BIAIS CONNU, NON CALIBRE (2026-08-29) : quand `originServed` est vrai, la ville servie voit
+       * deja une partie de sa production partir par la ligne existante, et ce calcul la compte une
+       * seconde fois en entier. La prediction d'un candidat a jointure est donc SUR-estimee d'un
+       * facteur inconnu -- c'est la premiere chose a mesurer sur les lignes jointes que cette
+       * tranche fera naitre (meme protocole que sweeps/opex_predict_vs_actual.py). */
       local candidate = OpexMakeCandidate(catalog, "pax", cargo, towns[a].tile, towns[b].tile,
-                                          monthly, stats);
+                                          monthly, originServed, stats);
       if (candidate != null) out.append(candidate);
     }
   }
@@ -243,9 +327,9 @@ function OpexFreightCandidates(catalog, lines, out, stats)
   local industries = catalog.industries;
   local served = [];
   for (local i = 0; i < industries.len(); i++) {
-    local isServed = OpexOriginServed(lines, industries[i].tile, false);
-    served.append(isServed);
-    if (isServed) stats.industriesServed++; else stats.industriesUnserved++;
+    local service = OpexOriginService(lines, industries[i].tile);
+    served.append(service);
+    if (service != null) stats.industriesServed++; else stats.industriesUnserved++;
   }
   foreach (cargo, sources in catalog.producers) {
     if (!(cargo in catalog.acceptors)) continue;
@@ -256,12 +340,28 @@ function OpexFreightCandidates(catalog, lines, out, stats)
       foreach (di in sinks) {
         if (di == si) continue;
         stats.pairsTotal++;
-        if (served[si] || served[di]) {
+        local ss = served[si];
+        local sd = served[di];
+        /* Meme regle qu'en pax ci-dessus, roles compris : la source est l'extremite "A" du
+         * candidat a naitre, le puits l'extremite "B". */
+        if ((ss != null && sd != null) || (!STATION_JOIN && (ss != null || sd != null))) {
           stats.pairsOriginServed++;
           continue;
         }
+        if (ss != null && !OpexOriginJoinable(ss, "freight", cargo, "A")) {
+          stats.pairsJoinImpossible++;
+          continue;
+        }
+        if (sd != null && !OpexOriginJoinable(sd, "freight", cargo, "B")) {
+          stats.pairsJoinImpossible++;
+          continue;
+        }
+        local originServed = ss != null || sd != null;
+        if (originServed) stats.pairsOneServed++;
+        /* Meme sur-estimation qu'en pax quand la SOURCE est deja servie : sa production est
+         * comptee en entier alors qu'une part part deja par la ligne existante. */
         local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
-                                            industries[di].tile, monthly, stats);
+                                            industries[di].tile, monthly, originServed, stats);
         if (candidate != null) out.append(candidate);
       }
     }
@@ -278,7 +378,8 @@ function OpexBuildCandidates(catalog, budget, lines)
    * Une table explicite evite une closure imbriquee, non portable dans le Squirrel du scenario. */
   local stats = {
     townsServed = 0, townsUnserved = 0, industriesServed = 0, industriesUnserved = 0,
-    pairsTotal = 0, pairsOriginServed = 0, noMonthly = 0,
+    pairsTotal = 0, pairsOriginServed = 0, pairsJoinImpossible = 0, pairsOneServed = 0,
+    noMonthly = 0,
     distanceShort = 0, distanceLong = 0, economicsUnavailable = 0,
     profitNonPositive = 0, ratioTooLow = 0, accepted = 0, topKOmitted = 0,
   };

@@ -118,15 +118,33 @@ class OpexAI extends AIInfo {
     });
 
     /* Le filet MIN_SEPARATION reste la protection de bassin : 1 ne l'abaisse pas, il remplace
-     * seulement le rejet d'UNE extremite par un quai rail dedie joint a la gare existante. Le
-     * defaut 1 est le comportement vise ; 0 conserve le rejet historique et fournit le bras de
-     * controle exact au banc apparie. */
+     * seulement le rejet d'UNE extremite par un quai rail dedie joint a la gare existante. Depuis
+     * le 2026-08-29 (seconde tranche), ce reglage commande AUSSI la relaxation d'origine a la
+     * generation : a 0, une paire dont une seule extremite est servie est ecartee comme avant,
+     * donc 0 reste le comportement historique EXACT et le bras de controle du banc apparie.
+     *
+     * DEFAUT REPASSE A 0 LE 2026-08-29, APRES MESURE. Le mecanisme marche : le vivier ne s'eteint
+     * plus (graine 42, candidats classes 1984-89 de 0-3 a 4-28), les jointures ont lieu, et le
+     * banc apparie sur 20 graines x 20 ans (docs/bench_v2_vivier.json) montre +37,2 % de vehicules,
+     * t = 5,94, 18 graines sur 20, p = 0,0004. L'IA batit BEAUCOUP plus.
+     *
+     * Mais ca ne paie pas : company_value -0,3 % (t = -0,03, 9/20), performance_history +6,5 %
+     * (t = 1,45, 11/20, sous le plancher de detection de ~12 %), variance explosee (de -54,8 % a
+     * +330,5 % selon la graine) et emprunt non rembourse sur 4 graines contre 2. On construit plus
+     * pour la meme valeur, en immobilisant plus de capital.
+     *
+     * LA CAUSE NOMMEE, non encore corrigee : OpexPaxCandidates/OpexFreightCandidates predisent le
+     * debit d'une extremite DEJA servie avec sa production ENTIERE, en ignorant ce que la ligne
+     * existante en prelevait deja (commentaire "BIAIS CONNU" dans candidates.nut). Un candidat a
+     * jointure est donc sur-estime d'un facteur inconnu, et MIN_RATIO -- calibre sur des candidats
+     * non joints -- ne le rattrape pas. Remettre le defaut a 1 demande d'avoir mesure ce facteur
+     * (protocole sweeps/opex_predict_vs_actual.py sur les lignes jointes), pas avant. */
     AddSetting({
       name = "station_join",
       description = "Reuse one compatible nearby OpexAI rail station with a dedicated platform: 1 = enabled, 0 = historical too-close rejection",
       min_value = 0, max_value = 1,
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
 

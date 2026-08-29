@@ -36,40 +36,65 @@ hypothèses de pertinence, pas des résumés.
 
 ---
 
-## 0. 🔴 L'ITEM DE TÊTE : le vivier de candidats s'éteint, et il emporte `station_join` avec lui
+## 0. Le vivier de candidats : rouvert, mesuré, et **il ne paie pas** (2026-08-29, seconde tranche)
 
-Mesuré le 2026-08-29 sur la campagne 20 ans, graine 42 (`docs/opex_road_20y_42.json`), et c'est le
-plus gros écart mesurable dont nous disposions — bien devant tout gain marginal.
+**Fait, et le mécanisme marche.** La règle « un seul raccordement par origine » n'est plus une
+guillotine à la génération : une paire dont **une seule** extrémité est servie passe désormais, et
+c'est `_tooClose` / `OpexFindStationJoin` qui tranche — quai joint, ou rejet. Les deux extrémités
+servies restent coupées sans appel. La règle de fond est intacte : **jamais deux gares à nous sur
+la même origine**. Toute la relaxation est commandée par le réglage `station_join`, donc `0`
+reproduit exactement le comportement d'avant.
 
-| période | candidats classés / an | lignes rail / an | ce qui bloque |
-|---|---|---|---|
-| 1970-1980 | 13 à 35 | ~1 | la **trésorerie** (`GC` posé onze années de suite) |
-| 1982-1989 | **0 à 3** | ~0,75 | le **vivier** : 213 à 242 paires/an rejetées « origine déjà servie » |
+Graine 42, 20 ans (`docs/opex_join_20y_42.json` contre `docs/opex_road_20y_42.json`) :
 
-**Le fait.** À partir de 1982, `OpexOriginServed` écarte **213 à 242 paires par an** à la
-génération, et il ne reste plus que 0 à 3 candidats classés. La règle « un seul raccordement par
-origine » a consommé la carte. Huit années produisent six lignes.
+| | avant | après |
+|---|---|---|
+| candidats classés 1984-89 | 0 à 3 | **4 à 28** |
+| lignes rail | 15 | 23 |
+| `station_join` tentatives / réussies | 0 / 0 | 82 / 10 |
+| `company_value` | 2 391 044 | 3 385 161 |
+| utilisation du budget d'opcodes | ~29 % | ~46,5 % |
 
-**Et la conséquence qu'on n'avait pas vue : `station_join` ne peut pas fonctionner.** La
-fonctionnalité, commitée le matin du 2026-08-29 (`154409b`, `e39685a`), devait précisément
-récupérer ce vivier en offrant un quai joint plutôt qu'un rejet. Elle mesure **0 tentative en
-20 ans**. La cause n'est plus un mystère — elle est structurelle : `OpexOriginServed` supprime le
-candidat **à la génération**, donc bien avant que `_tooClose` ait l'occasion de proposer une
-jointure. `OpexFindStationJoin` n'est atteignable que dans une bande étroite (une extrémité à plus
-de `ORIGIN_SEPARATION = 3` de toute origine servie mais à moins de `MIN_SEPARATION = 10` d'une gare
-bâtie), et cette bande est presque vide en pratique.
+**Et le banc apparié, 20 graines × 20 ans** (`docs/bench_v2_vivier.json`, bras
+`OpexAI[station_join=0]` contre `OpexAI`) **dit non** :
 
-Deux règles écrites le même jour se neutralisent. **Remplace l'ancien item « instrumenter le refus
-de jointure »** : il n'y a plus rien à instrumenter, le refus a lieu un étage plus haut.
+| métrique | delta | t | graines gagnées | verdict |
+|---|---|---|---|---|
+| `n_vehicles` | **+37,2 %** | **5,94** | **18/20** | l'IA bâtit massivement plus |
+| `company_value` | −0,3 % | −0,03 | 9/20 | nul |
+| `performance_history` | +6,5 % | 1,45 | 11/20 | sous le plancher (~12 %) |
+| emprunt non remboursé | 2 → 4 graines | | | dégradé |
+
+La variance explose : de −54,8 % (graine 12345) à +330,5 % (graine 100). **On construit beaucoup
+plus pour la même valeur, en immobilisant plus de capital.** C'est exactement le piège que la
+graine 42 seule aurait fait manquer (cf. « banc mono-graine insuffisant »).
+
+⚠️ **Défaut `station_join` repassé à 0.** Le code, l'instrumentation et la mesure restent ; le
+comportement par défaut ne change pas tant que la cause ci-dessous n'est pas corrigée.
+
+**La cause est nommée, et elle est dans le code** (commentaire `BIAIS CONNU` aux deux sites de
+`candidates.nut`) : quand une extrémité est déjà servie, `monthly` compte sa production **entière**
+et ignore ce que la ligne existante en prélevait déjà. Un candidat à jointure est donc sur-estimé
+d'un facteur inconnu, et `MIN_RATIO` — calibré sur des candidats **non joints** — ne le rattrape
+pas. Le classement se remplit de lignes qui promettent beaucoup et rendent peu.
 
 **Ce qu'il faut faire, dans l'ordre :**
 
-1. Laisser passer à la génération les candidats dont une extrémité est servie **quand l'autre ne
-   l'est pas**, et laisser `_tooClose` / `OpexFindStationJoin` trancher — c'est-à-dire rendre à la
-   règle son rôle de filet et non de guillotine.
-2. Mesurer au banc apparié, `station_join` étant déjà réglable (`station_join=0` fournit le bras de
-   contrôle). ⚠️ Le plancher de détection est de ~12 % sur `performance_history` ; si l'effet est
-   plus petit, lire une métrique directe — nombre de lignes bâties après la 12e année.
+1. **Mesurer le facteur de sur-estimation** sur les lignes jointes, protocole
+   `sweeps/opex_predict_vs_actual.py` — c'est le préalable de tout le reste, et c'est chiffrable
+   dès maintenant : 10 lignes jointes existent sur la seule graine 42.
+2. Corriger la prédiction d'une extrémité servie, puis **rejouer le même banc apparié**. C'est le
+   test décisif : si le gain de construction (+37 %, 18/20, p = 0,0004 — un effet énorme et solide)
+   se met à porter de la valeur, l'item est gagné.
+3. Accessoirement, **`NOPLAN` tue 68 des 82 jointures** : `OpexJoinPlatformPlans` exige une bande
+   latérale plate et constructible sur toute la longueur du quai, des deux côtés. Le coût du refus
+   est négligeable (32 280 opcodes, 0,4 % du budget de construction, zéro itération d'A\*), donc
+   c'est un levier de **rendement**, pas d'économie — à ne traiter qu'après le point 1, sinon on
+   multiplierait des lignes sur-estimées.
+
+⚠️ **Effet de bord à ne pas attribuer au mode route :** le rail affamé reprend la trésorerie, et
+les lignes routières passent de 6 à 3 sur la graine 42. Le +9,3 % du mode route a été mesuré avec
+`station_join` inerte ; il faudra le revérifier si ce réglage repasse à 1.
 
 ⚠️ **Ce que ce diagnostic dit AUSSI, et qu'il ne faut pas confondre avec l'item ci-dessus.** Le mur
 de trésorerie des onze premières années n'est **pas** l'absence de réemprunt notée dans `info.nut` :

@@ -121,10 +121,13 @@ HARD_ITERATION_CAP <- 40000;
  * decision qui ne changent pas pendant une partie. */
 ABANDON_MEMORY <- true;
 
-/* Raccordement de gare : repli actif jusqu'a la lecture unique de station_join dans Start(). Le
- * defaut vrai rend disponible la seule sortie utile au filet physique ; 0 reconstitue le bras
- * historique pour le banc apparie. */
-STATION_JOIN <- true;
+/* Raccordement de gare : repli actif jusqu'a la lecture unique de station_join dans Start().
+ * Commande AUSSI la relaxation d'origine a la generation (candidates.nut) : les deux moities du
+ * meme mecanisme partagent un seul reglage, sans quoi le bras de controle du banc ne reproduirait
+ * pas le comportement historique. Repli FAUX depuis le 2026-08-29 : le mecanisme fait bien batir
+ * l'IA (+37,2 % de vehicules, 18/20 graines) mais ne paie pas (company_value -0,3 %) tant que la
+ * prediction d'un candidat a jointure reste sur-estimee -- tout le verdict est dans info.nut. */
+STATION_JOIN <- false;
 
 /* Ligne fret morte (2026-08-28) : une industrie source qui ferme NE garantit PAS l'effondrement --
  * la gare peut recuperer une industrie voisine du meme cargo (ligne 4, campagne 20 ans, restee
@@ -537,39 +540,60 @@ function OpexAI::_tryBuildRoads(year)
  *  2. Filet physique (MIN_SEPARATION, plus large mais abaisse) : deux gares BATIES reellement
  *     trop proches, meme pour deux origines differentes -- le vrai risque de cannibalisation.
  *
- * Rend les deux conflits SEPARES. L'identite d'origine est toujours un rejet ; le conflit
- * physique transporte en plus les gares touchees, afin que _tryBuild puisse proposer un quai
- * joint sans desarmer le filet pour l'autre extremite.
+ * Rend trois champs :
+ *  - `hard` : distance d'un rejet SANS APPEL, ou -1. Un seul cas depuis le 2026-08-29 -- les DEUX
+ *    extremites reutilisent une origine deja servie, c'est-a-dire un corridor deja tenu.
+ *  - `blocking` : distance du conflit le plus proche qui EXIGE un quai joint, ou -1 si le candidat
+ *    est libre. Reunit les deux tests : une extremite (une seule) sur une origine servie, et le
+ *    filet physique MIN_SEPARATION.
+ *  - `conflicts` : les gares touchees, pour qu'OpexFindStationJoin arbitre. Une entree par couple
+ *    (extremite du candidat, extremite de ligne existante) ; un doublon exact -- meme gare vue par
+ *    les deux tests -- est inoffensif, l'arbitrage ne regarde que `end` et `stationId`.
  *
- * Depuis le 2026-08-28, le test 1 (identite d'origine) est DEJA applique en amont, a la
- * generation (OpexOriginServed dans candidates.nut) -- un candidat qui reutilise une origine
- * servie n'atteint plus jamais le TOP_K, donc plus jamais ce test-ci. Cette fonction reste
- * l'unique verification pour le test 2 (MIN_SEPARATION), qui depend de la gare BATIE et ne peut
- * pas se calculer avant la tentative de construction. */
+ * HISTOIRE, parce que ce point s'est deja retourne une fois. Le 2026-08-28, le test 1 (identite
+ * d'origine) avait ete deplace en amont, a la generation (candidates.nut), pour ne pas gaspiller
+ * le TOP_K ; le 2026-08-29 la mesure a montre que ce deplacement tuait le vivier ENTIER a partir
+ * de 1982 et rendait station_join inatteignable (0 tentative en 20 ans). La generation ne coupe
+ * donc plus que les paires dont les deux bouts sont servis, et le test 1 REVIENT ici -- ou il peut
+ * offrir la jointure au lieu de rejeter. La regle de fond n'a pas bouge : jamais deux gares a nous
+ * sur la meme origine. */
 function OpexAI::_tooClose(candidate)
 {
-  local origin = -1;
+  local entries = [["A", candidate.src], ["B", candidate.dst]];
+  local conflicts = [];
+
+  /* Test 1 : identite d'origine. On distingue les deux extremites du CANDIDAT, parce que "une
+   * seule servie" est desormais recuperable et "les deux servies" ne l'est pas. */
+  local originA = -1;
+  local originB = -1;
   foreach (line in this._lines) {
     /* Les lignes routieres partagent ce tableau depuis le 2026-08-29 mais sont invisibles aux deux
      * filets rail, origine comme filet physique : une desserte routiere de 12 tuiles n'epuise pas
      * une ville, et son arret (rayon 3) ne cannibalise pas le bassin d'une gare rail. Les laisser
      * ici rejetterait des candidats rail bien plus rentables au profit de bus. */
     if (("mode" in line) && line.mode == "road") continue;
-    local d;
-    d = AIMap.DistanceManhattan(candidate.src, line.originA);
-    origin = OpexRememberClosest(d, ORIGIN_SEPARATION, origin);
-    d = AIMap.DistanceManhattan(candidate.src, line.originB);
-    origin = OpexRememberClosest(d, ORIGIN_SEPARATION, origin);
-    d = AIMap.DistanceManhattan(candidate.dst, line.originA);
-    origin = OpexRememberClosest(d, ORIGIN_SEPARATION, origin);
-    d = AIMap.DistanceManhattan(candidate.dst, line.originB);
-    origin = OpexRememberClosest(d, ORIGIN_SEPARATION, origin);
+    foreach (lineEnd in ["A", "B"]) {
+      local originTile = lineEnd == "A" ? line.originA : line.originB;
+      foreach (entry in entries) {
+        local d = AIMap.DistanceManhattan(entry[1], originTile);
+        if (d >= ORIGIN_SEPARATION) continue;
+        if (entry[0] == "A") originA = OpexRememberClosest(d, ORIGIN_SEPARATION, originA);
+        else originB = OpexRememberClosest(d, ORIGIN_SEPARATION, originB);
+        /* Une ligne dont la gare n'est plus valide (ferraillee) ne propose aucune jointure : elle
+         * ne peut pas entrer dans `conflicts`, et l'extremite reste donc bloquante sans issue. */
+        local stationId = OpexLineStationId(line, lineEnd);
+        if (stationId < 0) continue;
+        conflicts.append({ end = entry[0], line = line, lineEnd = lineEnd,
+                           stationId = stationId, distance = d });
+      }
+    }
   }
-  if (origin >= 0) return { origin = origin, physical = -1, conflicts = [] };
+  if (originA >= 0 && originB >= 0) {
+    return { hard = (originA < originB ? originA : originB), blocking = -1, conflicts = [] };
+  }
+  local blocking = originA >= 0 ? originA : originB;
 
-  local physical = -1;
-  local conflicts = [];
-  local entries = [["A", candidate.src], ["B", candidate.dst]];
+  /* Test 2 : filet physique. Depend de la gare BATIE, donc incalculable a la generation. */
   foreach (line in this._lines) {
     if (("mode" in line) && line.mode == "road") continue;   // cf. commentaire ci-dessus
     foreach (lineEnd in ["A", "B"]) {
@@ -578,7 +602,7 @@ function OpexAI::_tooClose(candidate)
       local stationTile = lineEnd == "A" ? line.stationA : line.stationB;
       foreach (entry in entries) {
         local d = AIMap.DistanceManhattan(entry[1], stationTile);
-        physical = OpexRememberClosest(d, MIN_SEPARATION, physical);
+        blocking = OpexRememberClosest(d, MIN_SEPARATION, blocking);
         if (d < MIN_SEPARATION) {
           conflicts.append({ end = entry[0], line = line, lineEnd = lineEnd,
                              stationId = stationId, distance = d });
@@ -586,7 +610,7 @@ function OpexAI::_tooClose(candidate)
       }
     }
   }
-  return { origin = -1, physical = physical, conflicts = conflicts };
+  return { hard = -1, blocking = blocking, conflicts = conflicts };
 }
 
 /* Le coeur de l'allocation : on descend le classement tant qu'il reste de l'argent, et chaque
@@ -613,6 +637,7 @@ function OpexAI::_tryBuild(ranked, year)
   local nJoinAttempts = 0;
   local nJoinBuilt = 0;
   local nJoinFailed = 0;
+  local nOriginServedRanked = 0;   // candidats du TOP_K qui n'existent QUE grace a la jointure
 
   for (local i = 0; i < best.len(); i++) {
     local candidate = best[i];
@@ -624,22 +649,22 @@ function OpexAI::_tryBuild(ranked, year)
         continue;
       }
     }
+    if (candidate.originServed) nOriginServedRanked++;
     local close = this._tooClose(candidate);
-    local tooCloseDist = close.origin;
     local join = null;
-    if (tooCloseDist >= 0) {
+    if (close.hard >= 0) {
       nTooClose++;
-      if (tooCloseDist < 5) nTooCloseNear++; else nTooCloseFar++;
+      if (close.hard < 5) nTooCloseNear++; else nTooCloseFar++;
       continue;
     }
-    if (close.physical >= 0) {
+    if (close.blocking >= 0) {
       /* Le filet garde la main tant que le candidat ne peut pas reutiliser UNE gare logique avec
        * un quai rail dedie. Ne pas choisir une autre gare ni une autre extremite ici : ce serait
        * desarmer MIN_SEPARATION au-dela de l'objet precis de la tranche. */
       if (STATION_JOIN) join = OpexFindStationJoin(candidate, close.conflicts);
       if (join == null) {
         nTooClose++;
-        if (close.physical < 5) nTooCloseNear++; else nTooCloseFar++;
+        if (close.blocking < 5) nTooCloseNear++; else nTooCloseFar++;
         continue;
       }
     }
@@ -772,6 +797,11 @@ function OpexAI::_tryBuild(ranked, year)
    * echecs du raccordement. "OB|J|9999|20|20|20" reste largement sous les 31 caracteres. */
   if (STATION_JOIN) OpexSign(anchor, "OB|J|" + year + "|" + nJoinAttempts + "|" + nJoinBuilt
                                       + "|" + nJoinFailed);
+  /* Combien du classement n'existe QUE parce qu'une extremite servie peut etre reprise : c'est la
+   * mesure directe de la tranche du 2026-08-29, celle qui dit si le vivier est bien rouvert --
+   * independamment du fait que la jointure aboutisse ou non. */
+  if (STATION_JOIN) OpexSign(anchor, "OB|S|" + year + "|" + nOriginServedRanked
+                                      + "|" + best.len());
 }
 
 /* Le releve qui permet de calibrer l'etage 1 : pour chaque ligne, la note de gare REELLE (on
@@ -966,6 +996,14 @@ function OpexAI::_reportYear(year, ranked)
                            + stats.industriesServed + "|" + stats.industriesUnserved);
   OpexSign(anchor, "CR|" + year + "|" + stats.pairsTotal + "|" + stats.pairsOriginServed
                            + "|" + stats.noMonthly);
+  /* Le devenir des paires a UNE seule extremite servie, que la generation ne jette plus depuis le
+   * 2026-08-29 : combien sont irrecuperables (aucune jointure concevable) et combien poursuivent
+   * vers l'etage economique. La somme des deux est ce que l'ancienne regle coupait a l'aveugle.
+   * Gate sur STATION_JOIN comme GM l'est sur ABANDON_MEMORY : le bras de controle du banc ne doit
+   * pas payer une commande de panneau que l'autre bras ne paie pas. Son absence vaut zero. */
+  if (STATION_JOIN) {
+    OpexSign(anchor, "CJ|" + year + "|" + stats.pairsJoinImpossible + "|" + stats.pairsOneServed);
+  }
   OpexSign(anchor, "CD|" + year + "|" + stats.distanceShort + "|" + stats.distanceLong);
   OpexSign(anchor, "CE|" + year + "|" + stats.economicsUnavailable + "|"
                            + stats.profitNonPositive + "|" + stats.ratioTooLow);
