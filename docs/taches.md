@@ -562,11 +562,11 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
       le banc vivier.
 
 **Priorité de fait, révisée le 2026-08-29 (nuit)** : plus d'échec qualitatif du mode route
-(item 0 ✅, item 5 ✅ `road_refleet=1`). `station_join`, `basin_share`, `reborrow`,
-`origin_sitable` restent à 0. Le **spread** n'est pas la suite. La tête redevient le **modèle
-de coût A\*** (§3) : l'optimum mesuré est au plus court, le commentaire code encore 48-63
-tuiles, et ajuster sans instrumenter la distance sur CHAQUE tentative (y compris les
-abandons) reproduirait le biais de censure du §2.7.
+(item 0 ✅, item 5 ✅ `road_refleet=1`). La distance sur chaque tentative A\* est ✅
+(`OB|A`, 227/227). `station_join`, `basin_share`, `reborrow`, `origin_sitable` restent à 0.
+Le **spread** n'est pas la suite. La tête est de **recalibrer conjointement** les nœuds
+d'`OpexRailIterations` et `ATTEMPT_MULTIPLIER = 4` : l'optimum est au plus court, le
+modèle surestime le court d'un facteur 5, et toucher l'un sans l'autre vide les budgets.
 
 *Priorité précédente, conservée pour la trace* : ~~l'item **4**~~ (✅ fait) et l'item **6**
 (plafond d'abandon) passaient devant — ce sont deux échecs mesurés, et surtout les deux seuls
@@ -604,35 +604,32 @@ mesure (la croissance des villes desservies stagne-t-elle réellement ?).
   prédit/réel moyen de **0,98** sur les 5 lignes fret à ≥3 ans de données stables.
   `STATION_RATING_PCT = 50` (calibré sur le pax) tient donc aussi pour le fret, sans facteur
   correctif propre à identifier. Détail dans `docs/opexai_croissance.md` §2 et §8.
-- 🔴 **Le modèle de coût A\*** (`candidates.nut`, table de nœuds) : ajusté sous OpenTTD 13.4 avec
-  le pathfinder de `TrainLineAI`. La forme se transporte, les coefficients doivent être réajustés
-  sur `OpexAI` sous 15.3. **Chiffré le 2026-08-29 sur les 52 lignes rail de la campagne 4 graines,
-  et le désaccord porte sur la FORME, pas seulement sur l'échelle** :
+- 🔶 **Le modèle de coût A\*** (`candidates.nut`, table de nœuds) : le **préalable distance**
+  est fait (2026-08-29, nuit). `OB|A` porte la distance de CHAQUE tentative. 5 graines × 20 ans
+  (`docs/opex_attempt_distance_20y_5seeds.json`) : **227/227** tentatives avec distance, 101 OK,
+  12 ABND, 111 SITEA/B/AB. Les nœuds 13.4 ne bougent pas — voir le piège `ATTEMPT_MULTIPLIER`
+  plus bas. **Chiffré d'abord sur 52 succès, puis sur 227 tentatives ; le désaccord porte sur
+  la FORME, et la censure le renforçait :**
 
-  | bande de distance | n | ratio réel/modèle (médian) | profit réel par 1000 itérations |
-  |---|---:|---:|---:|
-  | ≤ 35 tuiles | 13 | 0,49 | **17 693** |
-  | 35-50 | 17 | 0,42 | 5 003 |
-  | 50-70 | 10 | 0,31 | 5 958 |
-  | 70-105 | 7 | 0,41 | 4 225 |
-  | 105-200 | 5 | 0,79 | 1 257 |
+  | bande | n | P(OK) | P(OK\|A\*) | SITE | ABND | itér. amorties / succès | ratio réel/modèle |
+  |---|---:|---:|---:|---:|---:|---:|---:|
+  | ≤ 35 | 32 | 0,63 | 1,00 | 12 | 0 | **308** | 0,20 |
+  | 35-50 | 59 | 0,49 | 0,94 | 28 | 1 | 1 383 | 0,56 |
+  | 50-70 | 30 | 0,77 | 0,82 | 2 | 3 | 5 676 | 0,66 |
+  | 70-105 | 43 | 0,42 | 1,00 | 25 | 0 | 9 797 | 0,94 |
+  | > 105 | 63 | 0,17 | 0,58 | 44 | **8** | **51 900** | 0,69 |
 
-  **L'optimum mesuré est au plus court**, d'un facteur 3, alors que le commentaire de
-  `candidates.nut` code un optimum à 48-63 tuiles hérité de la campagne 13.4 — c'est ce commentaire
-  qui justifie « le classement par rapport choisit donc des lignes MOYENNES ».
+  Profit réel (1re année) / 1000 itérations des succès : 26 027 / 13 760 / 3 241 / 1 209 / **0**.
+  L'optimum est au plus court. 8 des 12 ABND sont au-delà de 105 tuiles et font exploser le
+  coût amorti (250 900 itérations de succès, 320 000 d'abandons). Le commentaire 13.4 « lignes
+  MOYENNES à 48-63 tuiles » est **retiré** de `candidates.nut`.
 
-  ⚠️ **Deux pièges avant de refaire l'ajustement :**
-  1. **Biais de censure.** La grandeur du modèle est « itérations par ligne RÉUSSIE » =
-     itérations_moyennes / P(construite). Or **les tentatives abandonnées n'enregistrent pas leur
-     distance** : `rail_attempts` ne porte que `iterations`, et seul le tableau `lines` (donc les
-     réussites) a `distance`. P(construite | distance) est donc incalculable sur les données
-     actuelles, et un ajustement sur les seules réussites reproduirait exactement le biais du §2.7.
-     **Instrumenter la distance sur CHAQUE tentative est un préalable**, pas une option.
-  2. **`ATTEMPT_MULTIPLIER = 4` a été calibré contre le modèle actuel.** Le budget vaut
-     `4 × profit × 1000 / ratio_alternatif` ; diviser le modèle par ~2,4 multiplie tous les ratios
-     d'autant et divise donc tous les budgets d'autant. Sans re-dérivation conjointe du
-     multiplicateur, on reproduit l'échec mesuré du 2026-08-28 : « 60 tentatives sur 5 ans, budgets
-     de 50 à 400 itérations, zéro ligne construite ».
+  ✅ **Biais de censure : le préalable est fait.** `OB|A` porte la distance. 227/227.
+
+  ⚠️ **`ATTEMPT_MULTIPLIER = 4` reste le piège.** Calibré contre le modèle actuel. Diviser les
+  nœuds par ~5 au court (ratio 0,20) multiplierait tous les ratios et diviserait tous les
+  budgets. Sans re-dérivation conjointe : « 60 tentatives sur 5 ans, budgets de 50 à 400, zéro
+  ligne ». C'est le prochain pas, pas celui-ci.
 - ✅ **Constantes HYPOTHÈSE `SPEED_EFFICIENCY_PCT = 70` et `WAGONS_PER_TRAIN = 5`** : remplacées
   le 2026-08-29 par la traction dimensionnée (`4a8e15e`). `ROAD_SPEED_EFFICIENCY_PCT = 60` reste
   une hypothèse du mode route (`docs/opexai_route.md`).

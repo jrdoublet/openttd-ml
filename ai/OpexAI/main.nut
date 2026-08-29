@@ -760,9 +760,10 @@ function OpexAI::_tryBuild(ranked, year)
                              + OpexAttemptReasonCode(result.reason) + "|" + iterationBudget
                              + "|" + result.iterations);
     /* OR est deja au bord du plafond de 31 caracteres; ce panneau compagnon garde le cout reel
-     * de la tentative pour comparer les lignes abouties aux abandons, sans changer son format. */
+     * de la tentative, plus la distance -- sans elle, P(construite | distance) est incalculable
+     * (les ABND n'avaient que des iterations). Pire nom OB|A|99|999|400|9999999|200 : 28. */
     OpexSign(anchor, "OB|A|" + (year % 100) + "|" + this._nextLineId + "|" + rankPacked
-                             + "|" + result.opcodes);
+                             + "|" + result.opcodes + "|" + candidate.distance);
     /* PS decompose SITEA/B/AB : rectangles libres, ceux qui ont du cargo, ceux que
      * BuildRailStation a acceptes. Le rang packed aligne le panneau sur OR.
      * `PS|89|21|400|9999|999|9` : 26 caracteres. */

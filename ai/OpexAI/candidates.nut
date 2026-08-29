@@ -40,18 +40,23 @@ const MIN_RATIO = 500;
 /* Etage 2 : le cout, AJUSTE sur la campagne v3 (1997 lignes reelles, OpenTTD 13.4).
  *
  * La grandeur utile n'est pas "iterations d'une tentative" mais "iterations par ligne REUSSIE",
- * qui absorbe l'echec : iterations_moyennes / P(construite). Elle explose bien plus vite que
- * lineairement -- une loi de puissance en d^2,67 l'approche a 0,82-1,15x pres.
+ * qui absorbe l'echec : iterations_moyennes / P(construite).
  *
- * On garde une table de noeuds avec interpolation lineaire plutot que la loi de puissance :
- * exacte aux noeuds, entierement en entiers, aucune fonction mathematique flottante en Squirrel.
+ * On garde une table de noeuds avec interpolation lineaire : exacte aux noeuds, entierement
+ * en entiers, aucune fonction mathematique flottante en Squirrel.
  *
  *   distance :    23     33     48     63     81    105     150
  *   iterations:  371    673   2188   4066   7745  15308   53951
  *
- * Consequence mesuree, et contre-intuitive : le rapport profit/iteration culmine vers 48-63
- * tuiles (553 puis 456), pas au plus court (negatif) ni au plus rentable en valeur absolue
- * (74 seulement a 150 tuiles). Le classement par rapport choisit donc des lignes MOYENNES.
+ * ⚠️ CES NOEUDS NE SONT PAS RETOUCHES. Le commentaire 13.4 disait que le rapport culminait
+ * a 48-63 tuiles et que le classement choisissait donc des lignes MOYENNES. C'est faux sous
+ * 15.3 / OpexAI (docs/opex_attempt_distance_20y_5seeds.json, 227 tentatives, toutes avec
+ * distance). Optimum mesure : le plus court. Iterations AMORTIES par succes :
+ *   <=35 : 308   35-50 : 1 383   50-70 : 5 676   70-105 : 9 797   >105 : 51 900
+ * P(OK)  : 0.63          0.49           0.77            0.42            0.17
+ * 8 des 12 ABND sont a >105 tuiles. Le modele surestime le court (ratio reel/modele 0.20)
+ * et colle vers 70-105 (0.94). Recalibrer les noeuds SANS retoucher ATTEMPT_MULTIPLIER = 4
+ * reproduirait l'echec "budgets 50-400, zero ligne". La table reste, le mensonge 48-63 non.
  */
 KNOT_DISTANCE <- [23, 33, 48, 63, 81, 105, 150];
 KNOT_ITERATIONS <- [371, 673, 2188, 4066, 7745, 15308, 53951];

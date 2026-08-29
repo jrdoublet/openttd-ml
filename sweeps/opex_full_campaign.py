@@ -54,7 +54,7 @@ RE_OU = re.compile(r"^OU\|(\d+)\|(\d+)\|(\d+)\|(-?\d+)$")
 RE_OO = re.compile(r"^OO\|(\d+)\|(\d+)\|(-?\d+)$")
 RE_OR = re.compile(r"^OR\|(\d+)\|(\d+)\|(\d+)\|(\w+)$")  # historique avant mesure abandon
 RE_OR_BUDGET = re.compile(r"^OR\|(\d{2})\|(\d+)\|(\d+)\|([ZFCN][SL][KADPLHMJSTERVXBCGF])\|(\d+)\|(\d+)$")
-RE_OB_ATTEMPT = re.compile(r"^OB\|A\|(\d{2})\|(\d+)\|(\d+)\|(\d+)$")
+RE_OB_ATTEMPT = re.compile(r"^OB\|A\|(\d{2})\|(\d+)\|(\d+)\|(\d+)(?:\|(\d+))?$")
 RE_PK = re.compile(r"^PK\|(\d+)\|([PF])\|(\d+)$")
 RE_PC = re.compile(r"^PC\|(\d+)\|(.+)$")
 # Marqueur par LIGNE de la tranche jointure (2026-08-29) : extremite jointe ("A"/"B"/"N")
@@ -120,6 +120,75 @@ def unpack_rank(packed):
     if not (0 <= rank < TOP_K and 1 <= length <= TOP_K):
         raise ValueError(f"rang20 invalide: {packed}")
     return rank, length
+
+
+# Doit rester aligne sur ai/OpexAI/candidates.nut. Sert a rapporter le ratio reel/modele
+# des tentatives, y compris les echecs, des que OB|A porte la distance.
+KNOT_DISTANCE = (23, 33, 48, 63, 81, 105, 150)
+KNOT_ITERATIONS = (371, 673, 2188, 4066, 7745, 15308, 53951)
+DISTANCE_BANDS = ((0, 35), (35, 50), (50, 70), (70, 105), (105, 201))
+
+
+def opex_rail_iterations(distance):
+    """Interpolation entiere de OpexRailIterations, pour le depouillement Python."""
+    if distance <= KNOT_DISTANCE[0]:
+        return KNOT_ITERATIONS[0]
+    for i in range(1, len(KNOT_DISTANCE)):
+        if distance <= KNOT_DISTANCE[i]:
+            d0, d1 = KNOT_DISTANCE[i - 1], KNOT_DISTANCE[i]
+            v0, v1 = KNOT_ITERATIONS[i - 1], KNOT_ITERATIONS[i]
+            return v0 + ((v1 - v0) * (distance - d0)) // (d1 - d0)
+    last = len(KNOT_DISTANCE) - 1
+    slope = (KNOT_ITERATIONS[last] - KNOT_ITERATIONS[last - 1]) // (
+        KNOT_DISTANCE[last] - KNOT_DISTANCE[last - 1])
+    return KNOT_ITERATIONS[last] + slope * (distance - KNOT_DISTANCE[last])
+
+
+def _median(values):
+    values = sorted(values)
+    if not values:
+        return None
+    mid = len(values) // 2
+    if len(values) % 2:
+        return values[mid]
+    return (values[mid - 1] + values[mid]) / 2
+
+
+def summarise_attempt_distance(attempts):
+    """P(construite | distance) : le denominateur que les seules reussites ne donnent pas."""
+    with_distance = [item for item in attempts if item.get("distance") is not None]
+    bands = []
+    for lo, hi in DISTANCE_BANDS:
+        if lo == 0:
+            in_band = [item for item in with_distance if item["distance"] <= hi]
+        else:
+            in_band = [item for item in with_distance if lo < item["distance"] <= hi]
+        ok = [item for item in in_band if item["reason"] == "OK"]
+        abnd = [item for item in in_band if item["reason"] == "ABND"]
+        site = [item for item in in_band if item["reason"] in ("SITEA", "SITEB", "SITEAB", "ECON", "NOPLAN")]
+        astar = [item for item in in_band if item["reason"] not in ("SITEA", "SITEB", "SITEAB", "ECON", "NOPLAN")]
+        ratios_ok = []
+        for item in ok:
+            predicted = opex_rail_iterations(item["distance"])
+            if predicted > 0:
+                ratios_ok.append(item["iterations"] / predicted)
+        iter_all = sum(item.get("iterations") or 0 for item in in_band)
+        bands.append({
+            "lo": lo, "hi": hi, "n": len(in_band), "n_ok": len(ok), "n_abnd": len(abnd),
+            "n_site": len(site),
+            "p_ok": round(len(ok) / len(in_band), 4) if in_band else None,
+            "p_ok_astar": round(len(ok) / len(astar), 4) if astar else None,
+            "median_iterations_ok": _median([item["iterations"] for item in ok]),
+            "amort_iterations": (iter_all / len(ok)) if ok else None,
+            "median_ratio_ok": _median(ratios_ok),
+        })
+    return {
+        "n_attempts": len(attempts),
+        "n_with_distance": len(with_distance),
+        "n_ok": sum(1 for item in with_distance if item["reason"] == "OK"),
+        "n_abnd": sum(1 for item in with_distance if item["reason"] == "ABND"),
+        "bands": bands,
+    }
 
 
 def keep(row):
@@ -310,10 +379,14 @@ def parse_attempts(all_signs):
     break) qui ne generent aucun sign."""
     attempts = []
     opcodes = {}
+    distances = {}
     site_stats = {}
     for sign in all_signs:
         if m := RE_OB_ATTEMPT.match(sign):
-            opcodes[(int(m.group(1)), int(m.group(2)), int(m.group(3)))] = int(m.group(4))
+            key = (int(m.group(1)), int(m.group(2)), int(m.group(3)))
+            opcodes[key] = int(m.group(4))
+            if m.group(5) is not None:
+                distances[key] = int(m.group(5))
         elif m := RE_PS.match(sign):
             stats = {
                 "n_clear": int(m.group(4)), "n_cargo": int(m.group(5)), "n_cmd": int(m.group(6)),
@@ -327,13 +400,15 @@ def parse_attempts(all_signs):
             rank, ranked_len = unpack_rank(packed)
             mode = m.group(4)
             year_mod, idx = int(m.group(1)), int(m.group(2))
+            key = (year_mod, idx, packed)
             item = {"year": 1900 + year_mod, "idx": idx,
                     "rank": rank, "ranked_len": ranked_len,
                     "budget_path": mode[0], "alternative_source": mode[1],
                     "reason": REASON_CODES[mode[2]], "iteration_budget": int(m.group(5)),
                     "iterations": int(m.group(6)),
-                    "opcodes": opcodes.get((year_mod, idx, packed))}
-            stats = site_stats.get((year_mod, idx, packed))
+                    "opcodes": opcodes.get(key),
+                    "distance": distances.get(key)}
+            stats = site_stats.get(key)
             if stats:
                 item.update(stats)
             attempts.append(item)
@@ -621,6 +696,7 @@ def make_run_payload(rows, seed, years):
         "n_road_attempts_failed": sum(1 for item in road if not item["ok"]),
         "road_plan_opcodes": sum(item.get("plan_ops", 0) for item in road),
         "road_build_opcodes": sum(item.get("build_ops", 0) for item in road),
+        "attempt_distance": summarise_attempt_distance(attempts),
         "rail_attempts": attempts, "air_attempts": air, "water_attempts": water,
         "road_attempts": road, "cash_blocks": cash_blocks, "dead_line_events": dead_lines,
         "loan_repayments": loan_repayments, "loan_draws": loan_draws,
@@ -698,15 +774,18 @@ def main():
         raise RuntimeError(f"aucune sauvegarde pour les graines: {missing}")
 
     runs = [make_run_payload(rows_by_seed[seed], seed, args.years) for seed in args.seeds]
+    all_attempts = [item for run in runs for item in run.get("rail_attempts") or []]
     payload = {
         "openttd_version": OPENTTD_VERSION, "opengfx_version": OPENGFX_VERSION,
         "years": args.years, "seeds": args.seeds, "openttd_config": CFG,
         "ai_settings": {key: value for key, value in args.ai_settings},
+        "attempt_distance": summarise_attempt_distance(all_attempts),
         "instrumentation_added": ["CG", "CR", "CD", "CE", "CK", "PC", "PM", "OB|A", "GM", "OB|J",
                                   "CJ", "OB|S", "PJ", "OL traction", "PL longueur rame", "PT arbitrage",
                                   "PD quai voulu-vs-bati", "PD repli pente",
                                   "OR SITEA/SITEB/SITEAB/ECON", "PS site clear/cargo/cmd",
-                                  "GL reemprunt", "RF reconstitution flotte route"],
+                                  "GL reemprunt", "RF reconstitution flotte route",
+                                  "OB|A distance"],
         "runs": runs,
     }
     result_path.write_text(json.dumps(payload, indent=2))
@@ -728,8 +807,20 @@ def main():
         print(f"n_vehicles: {run['final_n_vehicles']}  n_stations: {run['final_n_stations']}")
         print(f"road_ok: {run['n_road_lines_ok']}  refleets: {run.get('n_road_refleets', 0)}"
               f" veh+={run.get('n_road_refleet_vehicles', 0)}")
+        dist = run.get("attempt_distance") or {}
+        print(f"tentatives avec distance: {dist.get('n_with_distance')}/"
+              f"{dist.get('n_attempts')}  OK={dist.get('n_ok')} ABND={dist.get('n_abnd')}")
+        for band in dist.get("bands") or []:
+            print(f"  {band['lo']:3}-{band['hi']:<3} n={band['n']:3} p_ok={band['p_ok']} "
+                  f"ABND={band['n_abnd']} ratio_ok={band['median_ratio_ok']}")
         print(f"annees franchies: {run['calendar_years_crossed']}  "
               f"non rattrapees: {run['skipped_years']}")
+    dist = payload.get("attempt_distance") or {}
+    print(f"=== distance toutes graines: {dist.get('n_with_distance')}/"
+          f"{dist.get('n_attempts')}  OK={dist.get('n_ok')} ABND={dist.get('n_abnd')} ===")
+    for band in dist.get("bands") or []:
+        print(f"  {band['lo']:3}-{band['hi']:<3} n={band['n']:3} p_ok={band['p_ok']} "
+              f"ABND={band['n_abnd']} ratio_ok={band['median_ratio_ok']}")
     print("ecrit", result_path)
 
 
