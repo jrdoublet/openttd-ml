@@ -178,13 +178,72 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
    ayant déjà ouvert le vivier par un autre moyen. Ne pas passer de banc apparié `MIN_SEPARATION`
    avant que §9 ne soit tranché.
 
-6. 🔴 **La politique d'abandon coûte plus que tout le reste de la construction.** Mesure du
+6. ✅ **IMPLÉMENTÉE le 2026-08-29, non commitée. Banc appairé 3 bras × 20 graines : NON CONCLUANT, voir le verdict en fin d'item.**
+   **La politique d'abandon coûtait plus que tout le reste de la construction.** Mesure du
    2026-08-29 sur 4 graines : 52 lignes bâties en 57 tentatives, mais les **5 abandons absorbent
    56,5 % des opcodes de construction** — 182 M chacun contre 13,5 M pour une réussite, soit
    **13,5×**, tous au plafond dur de 60 000 itérations. Ceci ne contredit pas le §7 (la forme
    fermée du rendement marginal est bien en place) : c'est le **plafond dur** qui mord, pas la règle
    d'arrêt anticipé. À traiter avec l'item 4 — les deux sont indépendants de l'architecture de §9,
    donc ni l'un ni l'autre ne sera invalidé par l'agrandissement de gare.
+
+   **Correctif livré**, en deux réglages indépendants pour que le banc attribue le gain à chacun :
+   `pathfinder_hard_cap_k` (défaut **40**, `60` = bras de contrôle) remplace le `const
+   HARD_ITERATION_CAP` de `builder_rail.nut` ; `abandon_memory` (défaut **1**) mémorise les paires
+   qui ont rendu `ABND` pour ne pas repayer le plafond deux fois. Le second domine le premier :
+   **3 des 5 abandons mesurés étaient le même échec rejoué** (graine 4096, 1978 puis 1981/1983/1986,
+   rang 0 sur `ranked_len` 1), donc la mémoire enlève 60 % des abandons **sans perdre une ligne**,
+   là où aucun réglage du plafond n'y arrive.
+
+   **Le plafond à 40 000 vient de la mesure** : sur les 52 réussites, la plus longue a coûté 36 600
+   itérations et seules 3 dépassent 20 000 (134-168 tuiles, profits prédits 23,8k / 46k / 54k). À
+   40 000 on ne perd aucune réussite in-sample et on coupe ~20 % des itérations ; à 20 000 on
+   économise 48 % mais on perd ces 3 lignes.
+
+   🔴 **Piste ÉCARTÉE — et attention, la première raison publiée était FAUSSE.** Un plafond relatif
+   à la distance (`α × OpexRailIterations(distance)`) est écarté **parce que la dispersion du modèle
+   est trop grande**, pas parce qu'il ne mordrait pas. `KNOT_DISTANCE` vaut `[23, 33, 48, 63, 81,
+   105, 150]`, PAS `[10..70]` — lire `KNOT_ITERATIONS` sans lire `KNOT_DISTANCE` juste à côté fait
+   surestimer le modèle d'un facteur 5 à 10 et mène à la conclusion inverse. Chiffres corrects sur
+   les 52 réussites : ratio réel/modèle **médian 0,41**, étalé de **0,016 à 3,40** (facteur 200). Le
+   modèle prédit un coût moyen amorti, pas la queue d'une tentative isolée : à `α = 2` on perd
+   encore 4 réussites, contre **0 pour le plafond plat à 40 000**.
+
+   ⚠️ **Interaction non anticipée entre les deux réglages, à surveiller au banc.** Le plafond
+   abaissé **crée** des abandons chez les paires qui aboutissaient entre 40 000 et 60 000
+   itérations, et la mémoire rend chacun de ces abandons **définitif** : une paire qui réussissait à
+   45 000 est désormais bannie pour la partie. Si le bras `station_join=0` ressort sous le bras de
+   contrôle, c'est la première suspecte — la réponse serait de ne mémoriser que les abandons
+   atteints à l'ancien plafond, ou de n'interdire qu'une seule re-tentative au lieu de toutes.
+
+   **Validation graine 4096 / 20 ans** (une graine, donc aucune conclusion de valeur) : abandons
+   **4 → 1**, itérations gaspillées **240 000 → 40 000**, années franchies **7 → 0**, 7 candidats
+   écartés par la mémoire. La cadence annuelle est entièrement récupérée, ce qui était l'objet.
+
+   **Verdict du banc (`docs/bench_v2_join.json`, 3 bras × 20 graines × 20 ans, ~25 min) : AUCUN
+   EFFET DÉCELABLE, dans aucune comparaison.** Bras A = contrôle `[60,0,0]`, B = `[40,1,0]`,
+   C = défauts `[40,1,1]`.
+
+   | comparaison | `company_value` | `performance_history` |
+   |---|---|---|
+   | A − B (plafond + mémoire) | +2,06 % · t=+0,31 · 10/20 | +3,62 % · t=+0,80 · 12/20 |
+   | B − C (raccordement) | −2,94 % · t=−0,47 · 11/20 | −1,79 % · t=−0,39 · 12/20 |
+   | A − C (les deux) | −0,94 % · t=−0,16 · 10/20 | +1,77 % · t=+0,49 · 12/20 |
+
+   **C'était le résultat attendu**, pas une infirmation : le plancher de détection est de ~15 % sur
+   `company_value` et ~12 % sur `performance_history` (§8), et les effets observés valent 0,2 à
+   3,6 %. Le banc établit **l'absence de dégât mesurable**, et rien de plus. La justification du
+   correctif repose donc entièrement sur les métriques directes ci-dessus, comme `current_loan`
+   l'avait fait pour l'item 4.
+
+   ⚠️ **Un point aberrant à ne pas surinterpréter, mais à ne pas oublier** : graine 100, bras B,
+   `company_value = 1` avec 121 véhicules, 18 gares, emprunt au plafond de 300 000 et un revenu
+   annuel de 14 207 contre 56 032 au contrôle — une compagnie qui a beaucoup bâti et rien gagné,
+   pas une compagnie inerte. Elle porte à elle seule le CV du bras B (42 % contre 26 % pour A). Le
+   bras C, qui a pourtant le même plafond ET la même mémoire, s'en sort à 919 065 : ce n'est donc
+   pas un effet systématique des deux réglages mais, très probablement, la divergence de
+   trajectoire déjà documentée. **Retirer cette graine ne change pas la conclusion** — tous les
+   |t| tombent alors sous 0,54.
 
 7. 🔵 **Le biais de sélection du modèle de profit** (relevé le 2026-08-29, non mesuré). 45,2 % des
    4 216 paires sont rejetées pour « profit prédit ≤ 0 », mais le modèle qui rend ce verdict n'a été
@@ -194,7 +253,38 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
    **pas** conclure que ces 1 905 paires sont réellement non rentables. Vérifiable à coût borné :
    forcer la construction d'un échantillon de paires rejetées et comparer prédit/réel sur elles.
 
-**Priorité de fait, révisée le 2026-08-29** : ~~l'item **4**~~ (✅ fait) et l'item **6**
+9. 🔴 **Les suites de la tranche v1 du raccordement de gare** (§9(b) livré le 2026-08-29, non
+   commité). Le quai parallèle joint au même `StationID` avec sa propre entrée est en place et
+   contourne à la fois la question des jonctions et le blocage sur voie unique ; note de conception
+   dans `docs/opexai_raccordement_gare.md`. Trois suites, dans cet ordre :
+
+   1. 🔴 **Instrumenter le REFUS de jointure — le plus urgent.** `OpexFindStationJoin` rend `null`
+      sans dire laquelle des trois conditions a tué le candidat : gare logique unique (plusieurs
+      gares dans le disque), même `kind` et même cargo, ou même rôle fret (source avec source,
+      puits avec puits). **Sur la graine 4096, `too_close_far` se déclenche 5 fois (1980, 1981,
+      1983, 1984, 1985) pour 0 tentative de jointure** : le chemin est inerte et on ne sait pas
+      pourquoi. Aucune décision sur §9 n'est informée tant que ce compteur n'existe pas. Et le banc
+      ne peut pas y répondre — il ne lit que les sauvegardes, seul `sweeps/opex_full_campaign.py`
+      décode `OB|J|`.
+   2. **`JOINPATH` brûle l'A\* entier pour rien.** `OpexJoinPathIsDedicated` rejette *après coup*
+      tout chemin dont une case intermédiaire touche un rail existant, mais le pathfinder n'est pas
+      informé de la contrainte — il peut donc router à travers la voie voisine et se faire rejeter
+      une fois la recherche entièrement payée. Et contrairement à `ABND`, `JOINPATH` n'entre pas
+      dans la mémoire des paires : le candidat revient l'année suivante repayer la même recherche.
+      Hypothèse, pas un fait mesuré : le compteur `OB|J|` et le code de raison `J` la trancheront
+      dès la première campagne.
+   3. **Le profit prédit d'une ligne jointe est surestimé.** Il est calculé pour une gare neuve
+      captant seule son bassin, alors que sur une gare partagée les convois des deux lignes puisent
+      dans le même stock. Le modèle économique ne connaît pas ce partage.
+
+**Priorité de fait, révisée le 2026-08-29 (soir)** : les items **4** et **6** sont ✅ faits ; la
+tête de liste est désormais l'item **9.1** — instrumenter le refus de jointure — parce qu'il est
+petit, qu'il conditionne toute décision sur §9, et que le banc en cours ne peut pas y répondre (il
+ne lit que les sauvegardes). Viennent ensuite l'item **9.2** (`JOINPATH`), puis le modèle de coût
+A\* du §3, dont le désaccord de forme est maintenant chiffré. L'item **8** (réemprunt) reste le
+seul correctif propre pour la graine 42.
+
+*Priorité précédente, conservée pour la trace* : ~~l'item **4**~~ (✅ fait) et l'item **6**
 (plafond d'abandon) passaient devant — ce sont deux échecs mesurés, et surtout les deux seuls
 qui soient **orthogonaux à l'architecture de §9** : leur gain survivra à l'arrivée de
 l'agrandissement de gare et des jonctions. L'item 5 (`MIN_SEPARATION`) est explicitement gelé
@@ -230,9 +320,35 @@ mesure (la croissance des villes desservies stagne-t-elle réellement ?).
   prédit/réel moyen de **0,98** sur les 5 lignes fret à ≥3 ans de données stables.
   `STATION_RATING_PCT = 50` (calibré sur le pax) tient donc aussi pour le fret, sans facteur
   correctif propre à identifier. Détail dans `docs/opexai_croissance.md` §2 et §8.
-- **Le modèle de coût A\*** (`candidates.nut`, table de nœuds) : ajusté sous OpenTTD 13.4 avec le
-  pathfinder de `TrainLineAI`. La forme se transporte, les coefficients doivent être réajustés sur
-  `OpexAI` sous 15.3.
+- 🔴 **Le modèle de coût A\*** (`candidates.nut`, table de nœuds) : ajusté sous OpenTTD 13.4 avec
+  le pathfinder de `TrainLineAI`. La forme se transporte, les coefficients doivent être réajustés
+  sur `OpexAI` sous 15.3. **Chiffré le 2026-08-29 sur les 52 lignes rail de la campagne 4 graines,
+  et le désaccord porte sur la FORME, pas seulement sur l'échelle** :
+
+  | bande de distance | n | ratio réel/modèle (médian) | profit réel par 1000 itérations |
+  |---|---:|---:|---:|
+  | ≤ 35 tuiles | 13 | 0,49 | **17 693** |
+  | 35-50 | 17 | 0,42 | 5 003 |
+  | 50-70 | 10 | 0,31 | 5 958 |
+  | 70-105 | 7 | 0,41 | 4 225 |
+  | 105-200 | 5 | 0,79 | 1 257 |
+
+  **L'optimum mesuré est au plus court**, d'un facteur 3, alors que le commentaire de
+  `candidates.nut` code un optimum à 48-63 tuiles hérité de la campagne 13.4 — c'est ce commentaire
+  qui justifie « le classement par rapport choisit donc des lignes MOYENNES ».
+
+  ⚠️ **Deux pièges avant de refaire l'ajustement :**
+  1. **Biais de censure.** La grandeur du modèle est « itérations par ligne RÉUSSIE » =
+     itérations_moyennes / P(construite). Or **les tentatives abandonnées n'enregistrent pas leur
+     distance** : `rail_attempts` ne porte que `iterations`, et seul le tableau `lines` (donc les
+     réussites) a `distance`. P(construite | distance) est donc incalculable sur les données
+     actuelles, et un ajustement sur les seules réussites reproduirait exactement le biais du §2.7.
+     **Instrumenter la distance sur CHAQUE tentative est un préalable**, pas une option.
+  2. **`ATTEMPT_MULTIPLIER = 4` a été calibré contre le modèle actuel.** Le budget vaut
+     `4 × profit × 1000 / ratio_alternatif` ; diviser le modèle par ~2,4 multiplie tous les ratios
+     d'autant et divise donc tous les budgets d'autant. Sans re-dérivation conjointe du
+     multiplicateur, on reproduit l'échec mesuré du 2026-08-28 : « 60 tentatives sur 5 ans, budgets
+     de 50 à 400 itérations, zéro ligne construite ».
 - **Constantes HYPOTHÈSE restantes** : `SPEED_EFFICIENCY_PCT = 70` et `WAGONS_PER_TRAIN = 5` —
   ni l'une ni l'autre n'a été isolée par la mesure ci-dessus (le nombre de trains prédit a toujours
   matché le nombre réel exactement sur les 9 lignes, mais c'est la contrainte de fréquence
@@ -475,6 +591,34 @@ Ne pas oublier deux composantes gratuites de la note de compagnie : **emprunt à
   3. 🔴 **La dispersion a doublé et le mode d'échec s'est déplacé** — voir §2.4, que ce résultat
      reformule entièrement. CV de `company_value` **32,6 % → 48,8 %** (~2σ, l'erreur-type d'un CV
      à n=20 valant ~7,9 points : suggestif, pas concluant à lui seul).
+
+- 🔴 **Committer la session du 2026-08-29 (seconde moitié) — RIEN n'est commité.** L'arbre porte
+  le plafond d'abandon (`pathfinder_hard_cap_k`, `abandon_memory`), la tranche v1 du raccordement
+  de gare (`station_join`), `docs/opexai_raccordement_gare.md`, et l'extension de la liste blanche
+  de `parse_opex_variant` dans `sweeps/bench_v2.py` sans laquelle aucun bras paramétré avec les
+  trois nouveaux réglages n'est acceptable en ligne de commande. À découper en commits séparés :
+  les deux lots sont indépendants et le banc les oppose comme tels.
+
+- 🔴 **Re-baseliner à nouveau : deux durcissements sont INCONDITIONNELS.** La passe du raccordement
+  a introduit deux changements qui s'appliquent à toutes les lignes, y compris avec
+  `station_join=0` :
+  1. `AIRail.AreTilesConnected` est vérifié après **chaque** `BuildRail` dans `OpexBuildTrack`, et
+     `OpexBuildLine` exige `trackFailed == 0` — une ligne auparavant déclarée construite peut donc
+     finir en `TRKFAIL` ;
+  2. `StartStopVehicle` est reporté après toute la boucle de construction, pour qu'un rollback
+     puisse encore vendre une transaction incomplète.
+
+  Les deux sont défendables et cohérents avec la doctrine du projet (« un appel de construction qui
+  renvoie réussi ne prouve PAS que le résultat est fonctionnellement raccordé »). Comme les deux
+  bras du banc les portent, la comparaison appariée reste valide. **Mais `docs/bench_v2.json` et
+  `docs/opexai_plafonnement_mesure.json` ne sont plus des références** pour l'arbre courant.
+
+- **Corriger le chemin cité dans `docs/opexai_raccordement_gare.md`** : la note dit avoir vérifié
+  `src/script/api/script_rail.hpp`, or le `src/` du dépôt ne contient que du Python — les en-têtes
+  de l'API sont ailleurs sur la machine. La vérification elle-même est juste (`BuildRailStation`
+  accepte bien un `StationID` valide, `@pre station_id == STATION_NEW || STATION_JOIN_ADJACENT ||
+  IsValidStation(station_id)`, et `STATION_NEW = 0xFFFD` vient de `script_basestation.hpp`) ; seul
+  le chemin publié induirait un lecteur en erreur.
 
 ---
 
