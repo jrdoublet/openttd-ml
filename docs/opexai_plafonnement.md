@@ -6,8 +6,11 @@ carte 256x256, depart 1970, inflation desactivee.
 
 Cette campagne etablit des mecanismes, pas un gain de performance. Les panneaux ajoutes modifient
 les ticks et peuvent donc modifier le chemin deterministe d'une graine ; ses valeurs finales ne
-sont pas comparables chiffre a chiffre au banc de docs/bench_v2.json. Aucun reglage de production
-n'a ete modifie.
+sont pas comparables chiffre a chiffre au banc. `docs/bench_v2.json` n'est plus
+la reference de l'arbre ; l'arbre courant (avant PBS) est
+`docs/bench_road_current.json`. Aucun reglage de production n'a ete modifie.
+Les totaux 1989 ci-dessous (dont 45,2 % `profit<=0`) sont un mecanisme d'alors ;
+le 45,2 % est marque perime dans `docs/taches.md` item 7.
 
 ## Instrumentation ajoutee et methode
 

@@ -947,6 +947,12 @@ function OpexAI::_tryBuild(ranked, year)
                                  + failure.tracks + "|" + failure.x + "|" + failure.y);
       }
     }
+    /* DT|id|posee|trains|skip : skip 1=join 2=quai 3=chemin 4=voie 5=gare 6=depot 7=cash 8=chevauche 9=court.
+     * Pire nom DT|999|1|2|9 = 12 caracteres. */
+    if (candidate.trains > 1 && (result.ok || result.doubleTrack != 0 || result.doubleSkip != 0)) {
+      OpexSign(anchor, "DT|" + this._nextLineId + "|" + result.doubleTrack + "|"
+                               + result.trains + "|" + result.doubleSkip);
+    }
 
     if (join != null && (result.signalsOk > 0 || result.signalsFail > 0 ||
                          result.signalsSkip > 0 || result.reason == "SIGFAIL")) {

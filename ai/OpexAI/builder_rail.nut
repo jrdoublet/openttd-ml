@@ -301,7 +301,7 @@ function OpexRailPlatformPlans(catalog, candidate, join)
 /* Recherche de chemin sous budget d'iterations. Rend une table avec le chemin brut et le compte
  * d'iterations reellement consommees -- ce compte est le DENOMINATEUR du classement, il doit etre
  * mesure, pas estime. */
-function OpexSearchPath(plansA, plansB, iterationBudget, deadlineTick)
+function OpexSearchPath(plansA, plansB, iterationBudget, deadlineTick, ignoredTiles = null)
 {
   local sources = [];
   local goals = [];
@@ -309,10 +309,13 @@ function OpexSearchPath(plansA, plansB, iterationBudget, deadlineTick)
    * predecesseur virtuel ; a l'arrivee la bibliotheque ajoute goal[1] apres goal[0]. */
   foreach (plan in plansA) sources.push([plan.lead, plan.station_exit]);
   foreach (plan in plansB) goals.push([plan.lead, plan.station_exit]);
+  if (sources.len() == 0 || goals.len() == 0) {
+    return { path = null, iterations = 0, stop = "NOPA" };
+  }
 
   local pathfinder = RailPathFinder();
   pathfinder.cost.max_cost = PATHFINDER_MAX_COST;
-  pathfinder.InitializePath(sources, goals);
+  pathfinder.InitializePath(sources, goals, ignoredTiles == null ? [] : ignoredTiles);
 
   local path = false;
   local spent = 0;
@@ -383,6 +386,113 @@ function OpexJoinPathIsDedicated(tiles)
   return true;
 }
 
+function OpexPlanHitsSet(plan, forbidden)
+{
+  if (plan.lead in forbidden) return true;
+  for (local i = 0; i < plan.length; i++) {
+    if ((plan.anchor + plan.step * i) in forbidden) return true;
+  }
+  return false;
+}
+
+function OpexSameStationEnd(plan, original)
+{
+  return (plan.station_exit != plan.anchor) == (original.station_exit != original.anchor);
+}
+
+/* Deuxieme voie dediee, un train par voie. Jamais deux convois sur les memes tuiles :
+ * le pathfinder ignore la premiere voie, le depot 2 n'y touche pas, et si la pose
+ * echoue on garde la ligne a UN train. skip : 2=pas de quai, 3=pas de chemin, 4=voie,
+ * 5=gare, 6=depot, 7=cash, 8=chevauchement, 9=court. */
+function OpexTryDoubleTrack(catalog, planA, planB, tiles, depot, cashReserve, iterationBudget, deadlineTick)
+{
+  local acc = { ok = false, skip = 2, tiles = null, planA = null, planB = null, depot = null,
+                iterations = 0 };
+  local stationIdA = AIStation.GetStationID(planA.anchor);
+  local stationIdB = AIStation.GetStationID(planB.anchor);
+  if (!AIStation.IsValidStation(stationIdA) || !AIStation.IsValidStation(stationIdB)) return acc;
+
+  local forbidden = {};
+  foreach (tile in tiles) forbidden[tile] <- true;
+  for (local i = 0; i < planA.length; i++) forbidden[planA.anchor + planA.step * i] <- true;
+  for (local i = 0; i < planB.length; i++) forbidden[planB.anchor + planB.step * i] <- true;
+  forbidden[depot] <- true;
+  local depotFront = AIRail.GetRailDepotFrontTile(depot);
+  if (AIMap.IsValidTile(depotFront)) forbidden[depotFront] <- true;
+
+  local dualA = [];
+  foreach (plan in OpexJoinPlatformPlans(planA, stationIdA)) {
+    if (OpexSameStationEnd(plan, planA) && !OpexPlanHitsSet(plan, forbidden)) dualA.append(plan);
+  }
+  local dualB = [];
+  foreach (plan in OpexJoinPlatformPlans(planB, stationIdB)) {
+    if (OpexSameStationEnd(plan, planB) && !OpexPlanHitsSet(plan, forbidden)) dualB.append(plan);
+  }
+  if (dualA.len() == 0 || dualB.len() == 0) return acc;
+
+  local ignored = [];
+  foreach (tile, ignoredVal in forbidden) ignored.append(tile);
+  local search = OpexSearchPath(dualA, dualB, iterationBudget, deadlineTick, ignored);
+  acc.iterations = search.iterations;
+  if (search.path == false || search.path == null) { acc.skip = 3; return acc; }
+
+  local tiles2 = OpexPathTiles(search.path);
+  if (tiles2.len() < 3) { acc.skip = 9; return acc; }
+  local planA2 = OpexMatchPlan(dualA, tiles2[0]);
+  local planB2 = OpexMatchPlan(dualB, tiles2[tiles2.len() - 1]);
+  if (planA2 == null || planB2 == null) { acc.skip = 9; return acc; }
+  if (!OpexJoinPathIsDedicated(tiles2)) { acc.skip = 8; return acc; }
+  for (local i = 1; i < tiles2.len() - 1; i++) {
+    if (tiles2[i] in forbidden) { acc.skip = 8; return acc; }
+  }
+
+  local depotCost = AIRail.GetBuildCost(AIRail.GetCurrentRailType(), AIRail.BT_DEPOT);
+  local extra = tiles2.len() * catalog.costTrackPerTile
+      + (planA2.length + planB2.length) * catalog.costStation + depotCost;
+  if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < extra + cashReserve) {
+    acc.skip = 7;
+    return acc;
+  }
+
+  for (local i = 0; i < planA2.length; i++) AITile.DemolishTile(planA2.anchor + planA2.step * i);
+  for (local i = 0; i < planB2.length; i++) AITile.DemolishTile(planB2.anchor + planB2.step * i);
+  local okA = AIRail.BuildRailStation(planA2.anchor, planA2.direction, 1, planA2.length, stationIdA);
+  local okB = AIRail.BuildRailStation(planB2.anchor, planB2.direction, 1, planB2.length, stationIdB);
+  local joinedA = AIStation.GetStationID(planA2.anchor) == stationIdA;
+  local joinedB = AIStation.GetStationID(planB2.anchor) == stationIdB;
+  if (!okA || !okB || !joinedA || !joinedB) {
+    OpexRollback(null, planA2, planB2, null, null);
+    acc.skip = 5;
+    return acc;
+  }
+
+  local trackFailed = OpexBuildTrack(tiles2);
+  local last = tiles2.len() - 1;
+  local connected = trackFailed == 0 &&
+      AIRail.AreTilesConnected(planA2.station_exit, tiles2[1], tiles2[2]) &&
+      AIRail.AreTilesConnected(tiles2[last - 2], tiles2[last - 1], planB2.station_exit);
+  if (!connected) {
+    OpexRollback(tiles2, planA2, planB2, null, null);
+    acc.skip = 4;
+    return acc;
+  }
+
+  local depot2 = OpexBuildDepot(tiles2, forbidden);
+  if (depot2 == null) {
+    OpexRollback(tiles2, planA2, planB2, null, null);
+    acc.skip = 6;
+    return acc;
+  }
+
+  acc.ok = true;
+  acc.skip = 0;
+  acc.tiles = tiles2;
+  acc.planA = planA2;
+  acc.planB = planB2;
+  acc.depot = depot2;
+  return acc;
+}
+
 /* Pose la voie sur les cases intermediaires. Les extremites sont les sorties de quai. */
 function OpexBuildTrack(tiles)
 {
@@ -422,7 +532,7 @@ function OpexBuildTrack(tiles)
 
 /* Depot pres du depart. On pose l'aiguillage AVANT le batiment et on verifie la connectivite a
  * chaque etape : un appel qui renvoie "reussi" ne prouve pas que le resultat est raccorde. */
-function OpexBuildDepot(tiles)
+function OpexBuildDepot(tiles, forbidden = null)
 {
   local offsets = [
     AIMap.GetTileIndex(1, 0), AIMap.GetTileIndex(-1, 0),
@@ -442,6 +552,7 @@ function OpexBuildDepot(tiles)
     foreach (offset in offsets) {
       local candidate = anchor + offset;
       if (!AIMap.IsValidTile(candidate)) continue;
+      if (forbidden != null && (candidate in forbidden)) continue;
       if (AIRail.IsRailStationTile(candidate) || AIRail.IsRailDepotTile(candidate)) continue;
       local onRoute = false;
       foreach (routeTile in tiles) {
@@ -504,7 +615,7 @@ function OpexRollback(tiles, planA, planB, depot, vehicles)
   }
 }
 
-function OpexBuildTrains(catalog, cargo, kind, depotTile, exitA, exitB, wanted, loco, wagons, platformLength)
+function OpexBuildTrains(catalog, cargo, kind, depotTile, exitA, exitB, wanted, loco, wagons, platformLength, startVehicles = true)
 {
   local wagon = catalog.wagonByCargo[cargo];
   local built = 0;
@@ -616,8 +727,11 @@ function OpexBuildTrains(catalog, cargo, kind, depotTile, exitA, exitB, wanted, 
     }
     built++;
   }
-  /* Pas de train lance avant que la transaction entiere soit certaine : voir OpexRollback. */
-  foreach (train in vehicles) AIVehicle.StartStopVehicle(train);
+  /* Pas de train lance avant que la transaction entiere soit certaine : voir OpexRollback.
+   * La double voie construit un convoi par depot puis les demarre ensemble. */
+  if (startVehicles) {
+    foreach (train in vehicles) AIVehicle.StartStopVehicle(train);
+  }
   return { built = built, vehicles = vehicles, rollbackVehicles = rollbackVehicles,
            failed = false, failure = "", error = lastError, diag = diag, trainLength = measuredLength,
            locoLength = measuredLocoLength, wagonLength = measuredWagonLength };
@@ -676,10 +790,8 @@ function OpexTryBuildSignalEither(tile, a, b)
   return first;
 }
 
-/* Capacity phase 1: signal a single dedicated line before multiple trains are released.
- * Every signal faces an adjacent path tile. Any command failure, or no usable block at all, makes
- * the caller roll the line back before trains exist. Parallel track construction is deliberately
- * deferred until it has a terrain-safe second-path planner. */
+/* Ancien PBS de capacite sur voie unique : conserve pour la lecture, plus appele.
+ * Deux trains sur une voie se rencontrent ; la double voie les separe. */
 function OpexPlaceCapacitySignals(tiles)
 {
   local acc = { ok = 0, fail = 0, segments = 0, failures = [] };
@@ -771,6 +883,7 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, join, cashR
                    signalsOk = 0, signalsFail = 0, signalsSkip = 0, signalJunc = 0,
                    signalFailures = [],
                    capacitySignalsOk = 0, capacitySignalsFail = 0, capacitySignalSegments = 0, capacitySignalFailures = [],
+                   doubleTrack = 0, doubleSkip = 0, doubleTiles = 0, doubleDepot = null,
                    capital = candidate.capital, money = 0,
                    budgetInfo = OpexIterationBudget(candidate.profitAnnual, alternativeRatio),
                    iterationBudget = 0 };
@@ -865,20 +978,34 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, join, cashR
     result.reason = "DEPFAIL"; return result;
   }
 
-  if (candidate.trains > 1) {
-    local capacitySignals = OpexPlaceCapacitySignals(tiles);
-    result.capacitySignalsOk = capacitySignals.ok;
-    result.capacitySignalsFail = capacitySignals.fail;
-    result.capacitySignalSegments = capacitySignals.segments;
-    result.capacitySignalFailures = capacitySignals.failures;
-    /* Capacity protection is transactional: never release multiple trains onto a line whose
-     * blocks could not be established completely. */
-    if (capacitySignals.fail > 0 || capacitySignals.ok == 0) {
-      if (capacitySignals.failures.len() > 0) {
-        result.error = capacitySignals.failures[0].error;
-      }
-      OpexRollback(tiles, planA, planB, depot, null);
-      result.reason = "SIGFAIL"; return result;
+  /* Deux trains sur une seule voie se rencontrent. PBS bidirectionnel n'a pas empeche
+   * le gridlock (bench_after_pbs : -95 % / 0/20). Une deuxieme voie dediee, un train
+   * par voie ; sinon un seul convoi. Pas de double voie sur une jointure v1. */
+  local tiles2 = null;
+  local planA2 = null;
+  local planB2 = null;
+  local depot2 = null;
+  local want = 1;
+  if (candidate.trains > 1 && join != null) {
+    result.doubleSkip = 1;
+  } else if (candidate.trains > 1) {
+    local remain = result.iterationBudget - result.iterations;
+    if (remain < ATTEMPT_FLOOR) remain = ATTEMPT_FLOOR;
+    local dualDeadline = AIController.GetTick() + remain / 3 + BUILD_TICK_MARGIN;
+    local dual = OpexTryDoubleTrack(catalog, planA, planB, tiles, depot, cashReserve,
+                                    remain, dualDeadline);
+    result.iterations += dual.iterations;
+    result.doubleSkip = dual.skip;
+    if (dual.ok) {
+      result.doubleTrack = 1;
+      result.doubleTiles = dual.tiles.len();
+      result.doubleDepot = dual.depot;
+      tiles2 = dual.tiles;
+      planA2 = dual.planA;
+      planB2 = dual.planB;
+      depot2 = dual.depot;
+      want = candidate.trains;
+      if (want > 2) want = 2;
     }
   }
 
@@ -900,16 +1027,36 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, join, cashR
 
   budget.begin();
   local trains = OpexBuildTrains(catalog, candidate.cargo, candidate.kind, depot,
-                                 planA.station_exit, planB.station_exit, candidate.trains, candidate.loco,
-                                 candidate.wagons, candidate.platformLength);
+                                 planA.station_exit, planB.station_exit, 1, candidate.loco,
+                                 candidate.wagons, candidate.platformLength, want == 1);
+  if (!trains.failed && trains.built > 0 && want == 2 && depot2 != null) {
+    local second = OpexBuildTrains(catalog, candidate.cargo, candidate.kind, depot2,
+                                   planA2.station_exit, planB2.station_exit, 1, candidate.loco,
+                                   candidate.wagons, candidate.platformLength, false);
+    if (second.failed || second.built == 0) {
+      foreach (vehicle in trains.rollbackVehicles) {
+        second.rollbackVehicles.append(vehicle);
+      }
+      trains = second;
+    } else {
+      foreach (vehicle in second.vehicles) trains.vehicles.append(vehicle);
+      foreach (vehicle in second.rollbackVehicles) trains.rollbackVehicles.append(vehicle);
+      trains.built += second.built;
+    }
+  }
+  if (!trains.failed && trains.built > 0) {
+    foreach (train in trains.vehicles) AIVehicle.StartStopVehicle(train);
+  }
   result.opcodes += budget.end("build_trains");
   result.error = trains.error;
   result.diag = trains.diag;
   if (trains.failed) {
+    if (tiles2 != null) OpexRollback(tiles2, planA2, planB2, depot2, trains.rollbackVehicles);
     OpexRollback(tiles, planA, planB, depot, trains.rollbackVehicles);
     result.reason = trains.failure == "ORDER" ? "ORDFAIL" : "NOTRAIN"; return result;
   }
   if (trains.built == 0) {
+    if (tiles2 != null) OpexRollback(tiles2, planA2, planB2, depot2, trains.rollbackVehicles);
     OpexRollback(tiles, planA, planB, depot, trains.rollbackVehicles);
     result.reason = "NOTRAIN"; return result;
   }

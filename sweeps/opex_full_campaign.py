@@ -71,6 +71,7 @@ RE_SC = re.compile(r"^SC\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")  # id, ok, fail, segment
 RE_SF = re.compile(r"^SF\|(\d+)\|(\d+)\|(-?\d+)\|(\d+)\|(\d+)\|(\d+)$")
 RE_RX = re.compile(r"^RX\|(\d{2})\|(\d+)\|(\d+)\|(\d+)$")  # yy, id, lost, total
 RE_XC = re.compile(r"^XC\|(\d{2})\|(-?\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
+RE_DT = re.compile(r"^DT\|(\d+)\|([01])\|(\d+)\|(\d+)$")  # id, posed, trains, skip
 RE_PM = re.compile(r"^PM\|(\d+)\|([AWR])\|(\d+)\|(.+)$")
 RE_IA = re.compile(r"^IA\|(\d+)\|(\d+)\|(-?\d)\|(-?\d)\|(-?\d+)$")
 RE_OX = re.compile(r"^OX\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")   # year, towns, industries, ranked.all
@@ -349,6 +350,12 @@ def parse_lines(all_signs):
             predicted[idx]["capacity_signals_ok"] = int(m.group(2))
             predicted[idx]["capacity_signals_fail"] = int(m.group(3))
             predicted[idx]["capacity_signal_segments"] = int(m.group(4))
+        elif m := RE_DT.match(sign):
+            idx = int(m.group(1))
+            predicted.setdefault(idx, {})
+            predicted[idx]["double_track"] = int(m.group(2))
+            predicted[idx]["double_trains"] = int(m.group(3))
+            predicted[idx]["double_skip"] = int(m.group(4))
         elif m := RE_PC.match(sign):
             predicted.setdefault(int(m.group(1)), {})["cargo_label"] = m.group(2)
         elif m := RE_PX.match(sign):
@@ -412,6 +419,8 @@ def parse_lines(all_signs):
             "capacity_signals_ok": pred.get("capacity_signals_ok"),
             "capacity_signals_fail": pred.get("capacity_signals_fail"),
             "capacity_signal_segments": pred.get("capacity_signal_segments"),
+            "double_track": pred.get("double_track"),
+            "double_skip": pred.get("double_skip"),
             "predicted": pred,
             "actual_last_year": last_year,
             "actual": last,
@@ -673,6 +682,7 @@ def parse_safety(all_signs):
     capacity, capacity_failures = [], []
     join, join_skips, join_failures = [], [], []
     unexpected_losses, train_crashes = [], []
+    double_tracks = []
     for sign in all_signs:
         if m := RE_SC.match(sign):
             capacity.append({"line_index": int(m.group(1)), "ok": int(m.group(2)),
@@ -706,6 +716,11 @@ def parse_safety(all_signs):
                 "vehicle": int(m.group(3)), "x": int(m.group(4)),
                 "y": int(m.group(5)), "victims": int(m.group(6)),
             })
+        elif m := RE_DT.match(sign):
+            double_tracks.append({
+                "line_index": int(m.group(1)), "posed": int(m.group(2)),
+                "trains": int(m.group(3)), "skip": int(m.group(4)),
+            })
     return {
         "capacity_signals": capacity,
         "capacity_signal_failures": capacity_failures,
@@ -726,6 +741,10 @@ def parse_safety(all_signs):
         "n_rx_events": len(unexpected_losses),
         "n_unexpected_trains_lost": sum(item["lost"] for item in unexpected_losses),
         "n_train_crashes": len(train_crashes),
+        "double_tracks": double_tracks,
+        "n_double_track_ok": sum(item["posed"] for item in double_tracks),
+        "n_double_track_tried": len(double_tracks),
+        "n_double_track_trains": sum(item["trains"] for item in double_tracks if item["posed"]),
     }
 
 
@@ -1187,6 +1206,10 @@ def make_run_payload(rows, seed, years):
         "n_rx_events": safety["n_rx_events"],
         "n_unexpected_trains_lost": safety["n_unexpected_trains_lost"],
         "n_train_crashes": safety["n_train_crashes"],
+        "n_double_track_ok": safety["n_double_track_ok"],
+        "n_double_track_tried": safety["n_double_track_tried"],
+        "n_double_track_trains": safety["n_double_track_trains"],
+        "double_tracks": safety["double_tracks"],
         "join_signal_failures": safety["join_signal_failures"],
         "capacity_signal_failures": safety["capacity_signal_failures"],
         "unexpected_train_losses": safety["unexpected_train_losses"],
@@ -1328,7 +1351,8 @@ def main():
                                   "SC/SF blocs de capacite et echecs exacts",
                                   "SJ/JF approches de jointure et echecs exacts",
                                   "RX pertes inattendues de trains",
-                                  "XC collisions CRASH_TRAIN"],
+                                  "XC collisions CRASH_TRAIN",
+                                  "DT double voie posee/trains/skip"],
         "runs": runs,
     }
     result_path.write_text(json.dumps(payload, indent=2))
@@ -1427,6 +1451,9 @@ def main():
               f"lost={run.get('n_unexpected_trains_lost', 0)}  "
               f"XC={run.get('n_train_crashes', 0)}  "
               f"SIGFAIL={run.get('n_rail_attempts_sigfail', 0)}")
+        print(f"double voie: ok={run.get('n_double_track_ok', 0)}/"
+              f"{run.get('n_double_track_tried', 0)}  "
+              f"trains={run.get('n_double_track_trains', 0)}")
         print(f"join refuse: multi={run.get('n_join_refuse_multi', 0)}  "
               f"kind={run.get('n_join_refuse_kind', 0)}  "
               f"role={run.get('n_join_refuse_role', 0)}  "
@@ -1463,7 +1490,9 @@ def main():
           f"JF={sum(r.get('n_join_signal_failures', 0) for r in runs)} "
           f"RX={sum(r.get('n_rx_events', 0) for r in runs)} "
           f"XC={sum(r.get('n_train_crashes', 0) for r in runs)} "
-          f"SIGFAIL={sum(r.get('n_rail_attempts_sigfail', 0) for r in runs)} ===")
+          f"SIGFAIL={sum(r.get('n_rail_attempts_sigfail', 0) for r in runs)} "
+          f"DT={sum(r.get('n_double_track_ok', 0) for r in runs)}/"
+          f"{sum(r.get('n_double_track_tried', 0) for r in runs)} ===")
     print(f"=== distance toutes graines: {dist.get('n_with_distance')}/"
           f"{dist.get('n_attempts')}  OK={dist.get('n_ok')} ABND={dist.get('n_abnd')} ===")
     for band in dist.get("bands") or []:

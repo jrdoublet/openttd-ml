@@ -28,9 +28,9 @@ classement, pas de retuning ; l'écart fret ~4-6x est réfuté ; (2)
 et [junctions](https://www.transporttycoon.net/junctions) lus et intégrés (2026-08-30)** — voir
 `docs/mecanique_jeu.md` §12. Série TTD + TTDPatch, pas le wiki 15.3. Apport net : OpexAI *est*
 le point-à-point que la page moque, et `JOINPATH` doit le rester tant que la jointure ne paie
-pas ; PBS sur une ligne dédiée à `trains > 1` (tous les 8 slots, hors gorge de gare) et, si
-`station_join` / `join_place`, sur les approches **simples** d'une jointure — jamais sur
-`TracksOverlap` ; quai déjà calé sur la rame ; les jonctions se résument à trois principes (séparer
+pas ; `trains > 1` exige une **deuxième voie dédiée** (un convoi par chemin, plafond 2), pas
+des PBS sur voie unique ; si `station_join` / `join_place`, PBS sur les approches **simples**
+d'une jointure — jamais sur `TracksOverlap` ; quai déjà calé sur la rame ; les jonctions se résument à trois principes (séparer
 avant de fusionner, sortie avant entrée, train+2 tuiles) — l'index Junctionairy n'est qu'un
 catalogue d'images, on ne copie pas de cloverleaf. Waypoints natifs OpenTTD, utiles seulement
 le jour des branches. Pré-signaux TTDPatch = path signals chez nous.
@@ -658,7 +658,7 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
    Le quai parallèle joint au même `StationID` avec sa propre entrée est en place et contourne à
    la fois la question des jonctions et le blocage sur voie unique ; note de conception dans
    `docs/opexai_raccordement_gare.md`. Le banc vivier a dit non ; le banc post-traction aussi
-   pour la valeur (§0.2), malgré un effet de construction toujours solide. Quatre suites, dans
+   pour la valeur (§0.2), malgré un effet de construction toujours solide. Cinq suites, dans
    cet ordre :
 
    1. ✅ **Instrumenter le REFUS de jointure — fait (2026-08-30).** `OpexFindStationJoin` rend
@@ -710,6 +710,18 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
       `docs/opex_station_junction_baseline_20y_5seeds.json`) : 5 PBS / 11 refus
       → **9 / 0**, 3 skip, 0 `JF`, 0 `SIGFAIL`, 0 `XC`. ⚠️ **Défaut
       `station_join` 0.** Ce n'est pas une jonction de voie. Pas de spread.
+      🔴 **La commande réussit, la valeur non.** 20 graines × 20 ans contre
+      `bench_road_current` (`docs/bench_after_pbs.json`) : −94,9 % / t = −20,9 /
+      0/20. PBS bidirectionnels sur voie unique dédiée. Ne pas en faire une
+      baseline. Remplacé par la double voie (item 9.5).
+   5. ✅ **Double voie v1** (2026-08-30). Deux trains sur une voie se rencontrent.
+      `OpexTryDoubleTrack` : quai parallèle, A* avec `ignored_tiles`, dépôt
+      propre, un convoi par voie, plafond 2. Échec → un train. Pas de PBS de
+      capacité. Pas de double voie sur une jointure. 5 graines × 20 ans
+      (`docs/opex_double_track_20y_5seeds.json`) : **64/92** doubles, 128
+      trains, 0 ligne à deux convois sur une voie, 0 `XC` / `RX`, emprunt 0.
+      Médiane valeur **5,73 M** (5/5 au-dessus de `opex_town_growth_20y_5seeds`).
+      Skip : 17 quai, 9 chemin, 2 voie. Pas un banc n=20.
 
 **Priorité de fait, révisée le 2026-08-30 (join H2)** : H1 et H2 mesurés,
 **aucun ne paie**. Défauts `station_join` / `join_max_distance` / `join_place`
@@ -883,14 +895,30 @@ Le 4 est relu en 15.3 : inchangé.
 
   | arm | company_value | CV | SE | note | CV |
   |---|---:|---:|---:|---:|---:|
-  | OpexAI *(re-baseliné le 2026-08-29)* | 2 409 531 | 48,8 % | 10,9 % | 396 | 27,6 % |
+  | OpexAI *(arbre courant, `bench_road_current`, 2026-08-30)* | **3 125 439** | **22,3 %** | 5,0 % | **530** | 12,0 % |
+  | OpexAI *(re-baseliné le 2026-08-29, `bench_v2`)* | 2 409 531 | 48,8 % | 10,9 % | 396 | 27,6 % |
   | OpexAI *(mesure d'origine, archivée)* | 2 527 171 | 32,6 % | 7,30 % | 408 | 20,4 % |
   | AAAHogEx | 225 430 986 | 16,2 % | 3,62 % | 897 | 0,5 % |
 
-  ⚠️ Les deux lignes OpexAI mesurent le **même comportement** sur les **mêmes graines** : seul le
-  profil d'opcodes diffère (§8). L'écart entre elles n'est pas significatif en lecture appariée
-  (t = −0,60) — mais il chiffre le **bruit de trajectoire irréductible**, et c'est lui qui fixe le
-  plancher de détection du banc : **~15 % sur `company_value`, ~12 % sur `performance_history`**.
+  ⚠️ **`docs/bench_v2.json` n'est plus la référence de l'arbre.** Les durcissements
+  inconditionnels du raccordement (`AreTilesConnected`, `StartStopVehicle`) sont
+  déjà dans `docs/bench_road_current.json` (route ON, défauts, 20×20, emprunt 0,
+  minimum 1,74 M). `docs/opexai_plafonnement_mesure.json` reste un diagnostic de
+  mécanisme ; ses totaux 1989 (dont le 45,2 % `profit≤0`) sont périmés.
+
+  🔴 **HEAD + PBS (`e027037`) n'est pas une baseline.** 20 graines contre
+  `bench_road_current` (`docs/bench_after_pbs.json`) : `company_value` **−94,9 %**,
+  t = **−20,9**, **0/20** ; `performance_history` **−77,7 %**, t = **−25,0**.
+  9 graines à `company_value=1`, 20/20 encore empruntées, 5 insolvables, 0 erreur
+  de script. Les campagnes 5 graines « 148/148, 0 SF » mesuraient la commande,
+  pas la valeur (graine 42 : 3,24 M → **1**). Ne pas fusionner ça dans `bench_v2`.
+
+  ⚠️ Les deux lignes OpexAI *de 2026-08-29* mesurent le **même comportement** sur les **mêmes
+  graines** : seul le profil d'opcodes diffère (§8). L'écart entre elles n'est pas significatif
+  en lecture appariée (t = −0,60) — mais il chiffre le **bruit de trajectoire irréductible**, et
+  c'est lui qui fixe le plancher de détection du banc : **~15 % sur `company_value`, ~12 % sur
+  `performance_history`**. `bench_road_current` n'est plus ce comportement (route, traction,
+  bassin 86). `bench_after_pbs` non plus.
 
   **Quatre acquis, dont trois corrigent ce qui était écrit ici :**
   1. ❌ **Le n=20 ne donne PAS 5,9 %.** Cette projection supposait un CV de 26 % ; le CV mesuré
@@ -1073,19 +1101,14 @@ Ne pas oublier deux composantes gratuites de la note de compagnie : **emprunt à
   raccordement v1 sont dans `154409b` / `e39685a` / `8b50f12`. Join après traction,
   `basin_share` et `reborrow` suivent : trois mesures, trois défauts à 0.
 
-- 🔴 **Re-baseliner à nouveau : deux durcissements sont INCONDITIONNELS.** La passe du raccordement
-  a introduit deux changements qui s'appliquent à toutes les lignes, y compris avec
-  `station_join=0` :
-  1. `AIRail.AreTilesConnected` est vérifié après **chaque** `BuildRail` dans `OpexBuildTrack`, et
-     `OpexBuildLine` exige `trackFailed == 0` — une ligne auparavant déclarée construite peut donc
-     finir en `TRKFAIL` ;
-  2. `StartStopVehicle` est reporté après toute la boucle de construction, pour qu'un rollback
-     puisse encore vendre une transaction incomplète.
-
-  Les deux sont défendables et cohérents avec la doctrine du projet (« un appel de construction qui
-  renvoie réussi ne prouve PAS que le résultat est fonctionnellement raccordé »). Comme les deux
-  bras du banc les portent, la comparaison appariée reste valide. **Mais `docs/bench_v2.json` et
-  `docs/opexai_plafonnement_mesure.json` ne sont plus des références** pour l'arbre courant.
+- ✅ **Re-baseliner les durcissements inconditionnels du raccordement** (2026-08-30).
+  `AreTilesConnected` après chaque `BuildRail` et `StartStopVehicle` reporté s'appliquent
+  aussi à `station_join=0`. Ils sont **déjà** dans l'arbre mesuré par
+  `docs/bench_road_current.json` (20 graines × 20 ans, défauts, route ON) :
+  `company_value` 3,13 M, CV 22 %, note 530, emprunt 0, minimum 1,74 M.
+  `docs/bench_v2.json` (vs AAAHogEx) et `docs/opexai_plafonnement_mesure.json`
+  restent historiques. ⚠️ **Ne pas prendre `docs/bench_after_pbs.json` pour
+  successeur** : c'est le banc HEAD+PBS, 20/20 sous `bench_road_current`, voir §5.
 
 - ✅ **Chemin d'API dans `docs/opexai_raccordement_gare.md`** : la note citait
   `src/script/api/script_rail.hpp` comme s'il était dans ce dépôt. Corrigé : le `src/` d'ici
@@ -1128,8 +1151,8 @@ Les lignes **routières** sont dans `_lines` (rapport, rebut, `RF`) mais
 12 tuiles n'épuise pas une ville. Le plafond v1 « une seule liaison bus » est levé (jusqu'à
 3/an). Le non-chargement de la v1 était la façade du dépôt, pas le type d'arrêt. Rentabilité
 mesurée : `docs/opexai_route.md`, banc PH **+9,3 %**.
-- **Gérer des voies aller-retour** (double voie) pour permettre plusieurs trains simultanés sur le
-  même parcours, plutôt qu'une seule voie à sens unique par ligne.
+- ✅ **Gérer des voies aller-retour** (double voie v1, 2026-08-30). Voir item 9.5.
+  5×20 ans : 64/92, 0 collision, médiane 5,73 M. Pas un banc n=20. Pas sur une jointure.
 - **Gérer une file d'attente de tâches** (queue) plutôt que le déroulement actuel, pour ordonnancer
   les constructions/décisions.
 - **Contribuer à la croissance d'une ville via des stations de bus/camions** (jusqu'à 5 gares,
