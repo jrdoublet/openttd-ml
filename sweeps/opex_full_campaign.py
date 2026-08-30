@@ -100,6 +100,7 @@ RE_ON = re.compile(r"^ON\|W\|(\w+)\|(-?\d+)$")            # water failure: reaso
 # n'a plus besoin que d'un marqueur de mode.
 RE_RC_ROAD = re.compile(r"^RC\|(\d{2})\|(\d+)\|(\d+)\|(-?\d+)\|(\d+)$")   # annee, id, essai, cout, vehicules
 RE_RA_ROAD = re.compile(r"^RA\|(\d{2})\|(\d+)\|(\d+)\|(\w+)\|(-?\d+)$")  # tentative echouee
+RE_RI_ROAD = re.compile(r"^RI\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")  # SITE cargo/buildable/cmd
 RE_RB_ROAD = re.compile(r"^RB\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")   # opcodes plan / construction
 RE_RN_ROAD = re.compile(r"^RN\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")  # classes/tentatives/baties/opcodes
 RE_RS_ROAD = re.compile(r"^RS\|(\d{2})\|(\d+)\|(\d+)\|(\d+)$")  # paires en bande / coupees / acceptees
@@ -814,6 +815,7 @@ def parse_annual_blocks(all_signs):
 def parse_multimodal(all_signs):
     air, water, road = [], [], []
     road_costs = {}
+    road_site = {}
     for sign in all_signs:
         if m := RE_OA.match(sign):
             air.append({"year": int(m.group(1)), "distance": int(m.group(2)),
@@ -831,11 +833,16 @@ def parse_multimodal(all_signs):
             road.append({"ok": False, "year": 1900 + int(m.group(1)),
                          "line_index": int(m.group(2)), "attempt": int(m.group(3)),
                          "reason": m.group(4), "error": int(m.group(5))})
+        elif m := RE_RI_ROAD.match(sign):
+            road_site[(int(m.group(1)), int(m.group(2)), int(m.group(3)))] = {
+                "n_cargo": int(m.group(4)), "n_buildable": int(m.group(5)),
+                "n_cmd": int(m.group(6))}
         elif m := RE_RB_ROAD.match(sign):
             road_costs[(int(m.group(1)), int(m.group(2)), int(m.group(3)))] = {
                 "plan_ops": int(m.group(4)), "build_ops": int(m.group(5))}
     for item in road:
         item.update(road_costs.get((item["year"] % 100, item["line_index"], item["attempt"]), {}))
+        item.update(road_site.get((item["year"] % 100, item["line_index"], item["attempt"]), {}))
     # road_costs sort aussi de la fonction : les tentatives REUSSIES sont reconstituees plus tard
     # depuis PM/RC (parse_lines), et doivent pouvoir retrouver leur cout en opcodes par (annee, id).
     return air, water, road, road_costs
@@ -1034,7 +1041,8 @@ def main():
                                   "PN/PX/PQ/NH/NM sondage profit<=0",
                                   "PE/PY pax_near",
                                   "OB|R refus de jointure",
-                                  "PS join_end A/B/N"],
+                                  "PS join_end A/B/N",
+                                  "RI SITE route cargo/buildable/cmd"],
         "runs": runs,
     }
     result_path.write_text(json.dumps(payload, indent=2))
@@ -1062,6 +1070,14 @@ def main():
         print(f"n_vehicles: {run['final_n_vehicles']}  n_stations: {run['final_n_stations']}")
         print(f"road_ok: {run['n_road_lines_ok']}  refleets: {run.get('n_road_refleets', 0)}"
               f" veh+={run.get('n_road_refleet_vehicles', 0)}")
+        road_fail = [a for a in (run.get("road_attempts") or []) if not a.get("ok")]
+        site = [a for a in road_fail if a.get("reason") in ("SITEA", "SITEB")]
+        print(f"  road SITE={len(site)}/{len(road_fail)} "
+              f"SITEA={sum(1 for a in road_fail if a.get('reason')=='SITEA')} "
+              f"SITEB={sum(1 for a in road_fail if a.get('reason')=='SITEB')} "
+              f"cargo0={sum(1 for a in site if (a.get('n_cargo') or 0)==0)} "
+              f"buildable0={sum(1 for a in site if (a.get('n_buildable') or 0)==0)} "
+              f"cmd>0={sum(1 for a in site if (a.get('n_cmd') or 0)>0)}")
         dist = run.get("attempt_distance") or {}
         print(f"sondages profit<=0: {run.get('n_probe_attempts', 0)}  "
               f"OK={run.get('n_probe_ok', 0)}  lignes={run.get('n_probe_lines', 0)}")

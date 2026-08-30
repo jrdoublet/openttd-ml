@@ -523,6 +523,14 @@ function OpexAI::_tryBuildRoads(year)
        * les memes opcodes. */
       OpexSign(anchor, "RA|" + yy + "|" + idx + "|" + attempts + "|" + planning.reason + "|0");
       OpexSign(anchor, "RB|" + yy + "|" + idx + "|" + attempts + "|" + planOps + "|0");
+      /* SITEA/B : cargo vu / tuiles constructibles plates / commandes acceptees. Sans ca, 48
+       * sondes brulees sur des maisons ne se distinguent pas d'une industrie sans herbe.
+       * "RI|99|999|6|999|99|99" = 22 caracteres. */
+      if ((planning.reason == "SITEA" || planning.reason == "SITEB") && ("site" in planning)) {
+        local s = planning.site;
+        OpexSign(anchor, "RI|" + yy + "|" + idx + "|" + attempts + "|" + s.nCargo + "|"
+                                 + s.nBuildable + "|" + s.nCmd);
+      }
       continue;
     }
     local result = OpexBuildRoadRoute(this._catalog, this._budget, plan, candidate);

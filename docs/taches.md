@@ -280,9 +280,12 @@ ligne a roulé onze ans à perte sans être ferraillée). Les deux touchent auss
    des paires en bande (406/532), 0 pax sur 5 graines.
    ⚠️ **Pas de retuning.** Le 22 % est aussi le rail. Une part de bassin route,
    si elle vient, est une constante propre, défaut 0, banc apparié.
-2. **`SITEA`/`SITEB` dominent les échecs de plan** (36 sur 40) : aucun site d'arrêt valide autour de
-   l'extrémité. Le rayon n'est pas le levier ; les suspects sont l'exigence de platitude de la
-   façade et `ROAD_MAX_SITE_PROBES`.
+2. ✅ **`SITEA`/`SITEB` : on sondait des maisons — FAIT** (2026-08-30).
+   Le cargo est sur le bâtiment ; `BuildRoadStation` n'y marchera pas, et 48 sondes
+   y passent avant l'herbe. Filtre `IsBuildable` + plat sur l'arrêt (comme le rail),
+   façade plate, constructible sauf route déjà là. 5 graines
+   (`docs/opex_road_sitable_20y_5seeds.json`) : SITEA 12→**0**, SITEB 2→**0**,
+   OK 2→**6**. Il reste TRACEX (5). Pas un nouveau réglage.
 3. **Un seul classement pour tous les modes.** `ROAD_PLAN_ITERATIONS_BASE` est non calibré et ne
    sert qu'à ordonner les candidats routiers entre eux. Le panneau `RB` mesure désormais le coût
    réel de chaque tentative — la calibration qui rendrait la comparaison inter-modes possible est
@@ -641,11 +644,11 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
       Le spread n'est **pas** débloqué : joindre plus, sur un terme qui ne paie pas, recréerait
       le banc vivier.
 
-**Priorité de fait, révisée le 2026-08-30 (nuit, route pax)** : item route 1 ✅
-(pax ×3,91, fret calibré, pas de retuning). Rendement join ✅. 9.1 ✅, 9.2 ✅ vide.
-Tous défauts 0. Le **spread** n'est pas la suite. La tête route suivante est
-`SITEA`/`SITEB` des plans d'arrêt. `MIN_SEPARATION` (item 5) reste gelé.
-L'item 2 (verrouillage de ville) reste dernier.
+**Priorité de fait, révisée le 2026-08-30 (nuit, SITE route)** : SITEA/SITEB ✅
+(12+2 → 0, OK 2→6). Item route 1 ✅. Rendement join ✅. 9.1 ✅, 9.2 ✅ vide.
+Le **spread** n'est pas la suite. La tête route suivante est **TRACEX**
+(5/11, le L entre façades) puis le classement inter-modes. `MIN_SEPARATION`
+reste gelé. L'item 2 (verrouillage de ville) reste dernier.
 
 *Priorité précédente, conservée pour la trace* : ~~le rendement join~~ (✅ mesuré,
 défaut 0) était la tête. ~~l'item **9.1**~~ (✅) était la tête. ~~le retuning pax

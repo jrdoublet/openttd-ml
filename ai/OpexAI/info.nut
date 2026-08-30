@@ -345,7 +345,11 @@ class OpexAI extends AIInfo {
      * months_of_bankruptcy 0. Les deux bras sont identiques au 1er janvier 1971. Campagne
      * 20 ans : 0 tentative routiere -- le continue-not-break de la traction laisse le rail
      * prendre le cash residual, le break cash de la route ne s'exerce plus. Pas de garde-fou
-     * a ecrire. Le +9,3 % d'adoption n'a PAS ete rejoue apres traction. */
+     * a ecrire. Le +9,3 % d'adoption n'a PAS ete rejoue apres traction.
+     *
+     * SITEA/B (2026-08-30). OpexRoadSites saute les tuiles non constructibles : 48 sondes
+     * etaient brulees sur des maisons/industries qui ont du cargo. 5 graines : SITE
+     * 14/18 -> 0, OK 2 -> 6 (docs/opex_road_sitable_20y_5seeds.json). */
     AddSetting({
       name = "road_mode",
       description = "Build short road lines (bus town-town, and truck freight industry-industry / industry-town): 1 = enabled, 0 = rail-only baseline",

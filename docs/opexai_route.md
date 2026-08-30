@@ -170,10 +170,11 @@ L'item 0 (la graine qui coulait) est **fermé**, voir §6 bis. L'item 5 (flotte 
    Le plancher coupe 76 % des paires en bande sur l'arbre courant. Ne pas le baisser ni
    monter le 22 — le 22 est aussi le rail. Une part de bassin route, si elle vient, est une
    constante propre, défaut 0, banc apparié.
-2. **`SITEA` / `SITEB` dominent les échecs de plan** (36 sur 40 tentatives échouées) : aucun site
-   d'arrêt valide autour de l'extrémité. Le rayon n'est pas le levier — au-delà du rayon de
-   couverture (3), `GetCargoProduction` rend zéro de toute façon. Les suspects sont l'exigence de
-   platitude de la façade et `ROAD_MAX_SITE_PROBES = 48`.
+2. ✅ **`SITEA` / `SITEB` : on sondait des maisons** (2026-08-30).
+   `GetCargoProduction` est vrai sur le bâtiment, `IsBuildable` non. 48 sondes y passent.
+   Filtre `IsBuildable` + plat, comme `OpexStationPlans`. 5 graines :
+   SITE 14/18 → **0/11**, OK 2 → 6 (`docs/opex_road_sitable_20y_5seeds.json`).
+   Il reste TRACEX. Le rayon et le plafond de sondes n'étaient pas le levier.
 3. **Le classement routier et le classement rail ne sont pas comparables.**
    `ROAD_PLAN_ITERATIONS_BASE` est non calibré et ne sert qu'à ordonner les candidats routiers entre
    eux. Le panneau `RB` mesure désormais le coût réel de chaque tentative, ce qui rend cette

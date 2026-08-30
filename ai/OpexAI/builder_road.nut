@@ -147,6 +147,9 @@ function OpexRoadSites(center, townId, cargo, vehType, coverage, wantProduction,
   local cy = AIMap.GetTileY(center);
   local offsets = [[1, 0], [-1, 0], [0, 1], [0, -1]];
   local probes = 0;
+  local nCargo = 0;
+  local nBuildable = 0;
+  local nCmd = 0;
   for (local r = 0; r <= radius && probes < ROAD_MAX_SITE_PROBES; r++) {
     for (local dx = -r; dx <= r && probes < ROAD_MAX_SITE_PROBES; dx++) {
       for (local dy = -r; dy <= r && probes < ROAD_MAX_SITE_PROBES; dy++) {
@@ -160,6 +163,12 @@ function OpexRoadSites(center, townId, cargo, vehType, coverage, wantProduction,
             ? AITile.GetCargoProduction(tile, cargo, 1, 1, coverage)
             : AITile.GetCargoAcceptance(tile, cargo, 1, 1, coverage);
         if (wantProduction ? (value <= 0) : (value < ROAD_ACCEPTANCE_MIN)) continue;
+        nCargo++;
+        /* CheckFlatLandRoadStop ne regarde QUE la tuile de l'arret. Un batiment d'industrie ou
+         * une maison a du cargo et brule le plafond de 48 sondes : 12 tuiles x 4 facades, et
+         * on n'atteint jamais l'herbe a r = 2. Meme filtre que OpexStationPlans. */
+        if (!AITile.IsBuildable(tile) || !OpexRoadIsFlat(tile)) continue;
+        nBuildable++;
         foreach (offset in offsets) {
           if (probes >= ROAD_MAX_SITE_PROBES) break;
           local fx = x + offset[0];
@@ -167,8 +176,10 @@ function OpexRoadSites(center, townId, cargo, vehType, coverage, wantProduction,
           if (!OpexRoadInMap(fx, fy)) continue;
           local front = AIMap.GetTileIndex(fx, fy);
           /* La facade portera DEUX axes de route : celui du trace et le raccord vers l'arret. Elle
-           * doit donc etre plate -- cf. OpexRoadIsFlat. */
+           * doit donc etre plate -- cf. OpexRoadIsFlat. Une facade deja routiere n'est pas
+           * "buildable" : ne pas l'exiger. */
           if (!OpexRoadIsFlat(front)) continue;
+          if (!AIRoad.IsRoadTile(front) && !AITile.IsBuildable(front)) continue;
           /* Bug jumeau de celui du depot (2026-08-28, cf. commentaire sur OpexRoadFindDepot) :
            * CmdBuildRoadStop ne construit/verifie rien sur "front" non plus (station_cmd.cpp,
            * CheckFlatLandRoadStop ne regarde QUE la tuile de l'arret). Rien ne garantit que la
@@ -181,6 +192,7 @@ function OpexRoadSites(center, townId, cargo, vehType, coverage, wantProduction,
                  AIRoad.BuildRoadStation(tile, front, vehType, AIStation.STATION_NEW); }
           probes++;
           if (!ok) continue;
+          nCmd++;
           local onRoad = AIRoad.IsRoadTile(front);
           /* Le bonus de facade routiere n'est qu'un departage : il ne doit jamais faire passer un
            * site deux fois moins productif devant un autre, d'ou le facteur 2 sur la valeur. */
@@ -194,7 +206,7 @@ function OpexRoadSites(center, townId, cargo, vehType, coverage, wantProduction,
       }
     }
   }
-  return out;
+  return { sites = out, nCargo = nCargo, nBuildable = nBuildable, nCmd = nCmd, probes = probes };
 }
 
 function OpexRoadIsForbidden(tile, stopA, stopB)
@@ -317,12 +329,14 @@ function OpexRoadPlanFor(catalog, candidate)
    * 24 tentatives sans dire lesquelles butaient sur les sites d'arret et lesquelles sur le trace --
    * deux causes qui n'appellent pas du tout le meme correctif (rayon et sondes d'un cote, plafond
    * d'essais et platitude de l'autre). */
-  local sitesA = OpexRoadSites(candidate.src, candidate.srcTown, candidate.cargo, stop.vehType,
-                               coverage, true, radiusA);
-  if (sitesA.len() == 0) return { plan = null, reason = "SITEA" };
-  local sitesB = OpexRoadSites(candidate.dst, candidate.dstTown, candidate.cargo, stop.vehType,
-                               coverage, dstWantsProduction, radiusB);
-  if (sitesB.len() == 0) return { plan = null, reason = "SITEB" };
+  local huntA = OpexRoadSites(candidate.src, candidate.srcTown, candidate.cargo, stop.vehType,
+                              coverage, true, radiusA);
+  local sitesA = huntA.sites;
+  if (sitesA.len() == 0) return { plan = null, reason = "SITEA", site = huntA };
+  local huntB = OpexRoadSites(candidate.dst, candidate.dstTown, candidate.cargo, stop.vehType,
+                              coverage, dstWantsProduction, radiusB);
+  local sitesB = huntB.sites;
+  if (sitesB.len() == 0) return { plan = null, reason = "SITEB", site = huntB };
 
   local trials = 0;
   local noDepot = 0;
