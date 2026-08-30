@@ -28,12 +28,12 @@ classement, pas de retuning ; l'écart fret ~4-6x est réfuté ; (2)
 et [junctions](https://www.transporttycoon.net/junctions) lus et intégrés (2026-08-30)** — voir
 `docs/mecanique_jeu.md` §12. Série TTD + TTDPatch, pas le wiki 15.3. Apport net : OpexAI *est*
 le point-à-point que la page moque, et `JOINPATH` doit le rester tant que la jointure ne paie
-pas ; PBS seulement sur une ligne **jointe** (dépôt + quais, `join_place` / `station_join`),
-les neuves restent sans signal ; quai déjà calé sur la rame ; les jonctions se résument à trois principes (séparer
+pas ; PBS sur une ligne dédiée à `trains > 1` (tous les 8 slots, hors gorge de gare) et, si
+`station_join` / `join_place`, sur les approches **simples** d'une jointure — jamais sur
+`TracksOverlap` ; quai déjà calé sur la rame ; les jonctions se résument à trois principes (séparer
 avant de fusionner, sortie avant entrée, train+2 tuiles) — l'index Junctionairy n'est qu'un
 catalogue d'images, on ne copie pas de cloverleaf. Waypoints natifs OpenTTD, utiles seulement
-le jour des branches. Pré-signaux TTDPatch = path signals chez nous, posés
-seulement sur une ligne jointe (PBS, `join_place` / `station_join`).
+le jour des branches. Pré-signaux TTDPatch = path signals chez nous.
 
 ✅ **[Community/Pseudo canals](https://wiki.openttd.org/en/Community/Pseudo%20canals) lue et
 intégrée (2026-08-30)** — voir `docs/mecanique_jeu.md` §13. Apport net : ce n'est pas un canal,
@@ -175,8 +175,9 @@ pas plus de valeur ».
    (5/5, graine 100 −92 %). Le TOP_K se remplit de H2 (43–143 classés,
    7–14 OK), SITEA explose (spread au quai joint). Moins de véhicules
    **et** moins de valeur. ⚠️ **Pas de banc n=20. Pas de spread.**
-   Signaux : 77 OK / 128 fail / 50 junc — le PBS du dépôt passe, le
-   front de quai vers la gare refuse souvent.
+   Signaux (mesure H2) : 77 OK / 128 fail / 50 junc — le PBS du dépôt passe, le
+   front de quai vers la gare refuse souvent. Placement **périmé** le soir même :
+   plus de signal sur l'aiguillage (item 9.4).
 
 ⚠️ **Effet de bord à ne pas attribuer au mode route :** le rail affamé reprend la trésorerie, et
 les lignes routières passent de 6 à 3 sur la graine 42. Le +9,3 % du mode route a été mesuré avec
@@ -657,7 +658,7 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
    Le quai parallèle joint au même `StationID` avec sa propre entrée est en place et contourne à
    la fois la question des jonctions et le blocage sur voie unique ; note de conception dans
    `docs/opexai_raccordement_gare.md`. Le banc vivier a dit non ; le banc post-traction aussi
-   pour la valeur (§0.2), malgré un effet de construction toujours solide. Trois suites, dans
+   pour la valeur (§0.2), malgré un effet de construction toujours solide. Quatre suites, dans
    cet ordre :
 
    1. ✅ **Instrumenter le REFUS de jointure — fait (2026-08-30).** `OpexFindStationJoin` rend
@@ -695,6 +696,20 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
       join restent. Graine 42 : tentatives 228 → 40, véhicules 221 → 238. ⚠️ **Défaut 0.**
       Le spread n'est **pas** débloqué : joindre plus, sur un terme qui ne paie pas, recréerait
       le banc vivier.
+   4. ✅ **PBS capacité + jointure hors `TracksOverlap`** (2026-08-30). Pas un
+      changement de classement. Lignes `trains > 1` : PBS tous les 8 slots dès le
+      slot 8, `SIGFAIL` avant les convois. Jointure : approches voie simple
+      (gares 2–8, deux côtés du dépôt), jamais la tuile d'aiguillage.
+      `CmdBuildSingleSignal` refuse tout `TracksOverlap` (erreur 2050). Pont /
+      tunnel → `SJ` skip ; commande refusée → `JF` + rollback. Détecteurs `RX`
+      (perte annuelle hors rebut) et `XC` (`CRASH_TRAIN`).
+      Capacité 5×20 ans (`docs/opex_capacity_signal_fix_20y_5seeds.json` contre
+      `docs/opex_capacity_signal_failures_v2_20y_5seeds.json`) : 33 `SF` au slot
+      1 → **148/148**, 0 `SF`, 0 `RX`. Jointure `station_join=1`
+      (`docs/opex_junction_signal_fix_20y_5seeds.json` contre
+      `docs/opex_station_junction_baseline_20y_5seeds.json`) : 5 PBS / 11 refus
+      → **9 / 0**, 3 skip, 0 `JF`, 0 `SIGFAIL`, 0 `XC`. ⚠️ **Défaut
+      `station_join` 0.** Ce n'est pas une jonction de voie. Pas de spread.
 
 **Priorité de fait, révisée le 2026-08-30 (join H2)** : H1 et H2 mesurés,
 **aucun ne paie**. Défauts `station_join` / `join_max_distance` / `join_place`
@@ -1102,7 +1117,8 @@ items d'abord, le réglage de `MIN_SEPARATION` jamais (§2.5).
 - 🔴 **Gérer les jonctions de rails** — condition technique de (b) : sans jonction, deux lignes ne
   peuvent pas partager une gare. Pertinent aussi dès qu'`OpexAI` a plusieurs lignes qui se croisent.
   Lecture faite : `docs/mecanique_jeu.md` §12 — trois principes, pas un cloverleaf ; `JOINPATH`
-  tient tant que la jointure ne paie pas.
+  tient tant que la jointure ne paie pas. PBS de capacité et de jointure posés (item 9.4) :
+  hors gorge, hors aiguillage, fail-closed, `RX`/`XC`. Ce n'est **pas** une fusion de flux.
 
 **Périmètre de mode, vérifié le 2026-08-29, à jour le 2026-08-30** : `_tooClose` ne filtre
 **que le rail**. L'avion et le bateau ne le subissent pas (une liaison unique chacun) mais

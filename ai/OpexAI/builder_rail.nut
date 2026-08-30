@@ -662,9 +662,8 @@ function OpexAccountSignal(built, acc)
   else if (built == 0) acc.fail++;
 }
 
-/* Signaux d'une ligne JOINTE. JOINPATH refuse toujours la voie partagee ;
- * la jonction reelle ici est l'aiguillage depot et la gare a deux quais.
- * Un echec de signal ne rollback pas la ligne. */
+/* Essaie les deux orientations d'un PBS. -1 = emplacement inutilisable (pont, gare, deja pose),
+ * 0 = commande refusee, 1 = pose ou deja present. */
 function OpexTryBuildSignalEither(tile, a, b)
 {
   local first = OpexTryBuildSignal(tile, a);
@@ -677,44 +676,82 @@ function OpexTryBuildSignalEither(tile, a, b)
   return first;
 }
 
+/* Capacity phase 1: signal a single dedicated line before multiple trains are released.
+ * Every signal faces an adjacent path tile. Any command failure, or no usable block at all, makes
+ * the caller roll the line back before trains exist. Parallel track construction is deliberately
+ * deferred until it has a terrain-safe second-path planner. */
+function OpexPlaceCapacitySignals(tiles)
+{
+  local acc = { ok = 0, fail = 0, segments = 0, failures = [] };
+  /* Slot 1 is the station throat: on every measured failure it carried two track pieces and
+   * OpenTTD rejected both signal fronts. Keep periodic blocks clear of that approach and begin
+   * one full block from the terminus. A line with no usable slot is rolled back. */
+  for (local i = 8; i < tiles.len() - 1; i += 8) {
+    local built = OpexTryBuildSignalEither(tiles[i], tiles[i - 1], tiles[i + 1]);
+    if (built == -1) continue;
+    acc.segments++;
+    OpexAccountSignal(built, acc);
+    if (built == 0) {
+      /* `SF` is emitted later with the stable line id. Keep raw geometry here: exact path
+       * slot, last API error, track fan-out, and coordinates make every failure reproducible. */
+      acc.failures.append({ slot = i, error = AIError.GetLastError(),
+                            tracks = OpexTileTrackCount(tiles[i]),
+                            x = AIMap.GetTileX(tiles[i]), y = AIMap.GetTileY(tiles[i]) });
+    }
+  }
+  return acc;
+}
+
+/* Cherche un PBS sur une voie simple en s’éloignant d’une gare ou d’un aiguillage.
+ * OpenTTD 15.3 refuse structurellement les signaux sur TracksOverlap : le filtre trackCount == 1
+ * est donc une precondition moteur, pas une heuristique. */
+function OpexPlacePathApproachSignal(tiles, start, step, minDistance, maxDistance, acc, kind, used)
+{
+  local last = tiles.len() - 1;
+  for (local distance = minDistance; distance <= maxDistance; distance++) {
+    local i = start + step * distance;
+    if (i <= 0 || i >= last) break;
+    local tile = tiles[i];
+    if (tile in used || OpexTileTrackCount(tile) != 1) continue;
+    local built = OpexTryBuildSignalEither(tile, tiles[i - step], tiles[i + step]);
+    if (built == -1) continue;
+    OpexAccountSignal(built, acc);
+    if (built == 1) {
+      used[tile] <- true;
+    } else {
+      acc.failures.append({ kind = kind, slot = i, error = AIError.GetLastError(),
+                            tracks = OpexTileTrackCount(tile),
+                            x = AIMap.GetTileX(tile), y = AIMap.GetTileY(tile) });
+    }
+    return built;
+  }
+  acc.skip++;
+  return -1;
+}
+
 function OpexPlaceJoinSignals(planA, planB, tiles, depot, join)
 {
-  local acc = { ok = 0, fail = 0, junc = 0 };
+  local acc = { ok = 0, fail = 0, skip = 0, junc = 0, failures = [] };
   local last = tiles.len() - 1;
-  /* La voie reelle, pas le lead du plan : A* peut decaler d'une case.
-   * Les deux sens : front=gare echoue souvent, front=voie suivante passe. */
-  if (last >= 2) {
-    OpexAccountSignal(OpexTryBuildSignalEither(tiles[1], tiles[0], tiles[2]), acc);
-    OpexAccountSignal(OpexTryBuildSignalEither(tiles[last - 1], tiles[last], tiles[last - 2]), acc);
-  }
+  local used = {};
 
-  local existing = join.platform;
-  local exit0 = existing.anchor;
-  local exit1 = existing.anchor + existing.step * (existing.length - 1);
-  OpexAccountSignal(OpexTryBuildSignalEither(exit0 - existing.step, exit0, exit0 - existing.step * 2), acc);
-  OpexAccountSignal(OpexTryBuildSignalEither(exit1 + existing.step, exit1, exit1 + existing.step * 2), acc);
+  /* Slot 1 est la gorge de gare et porte souvent deux tracks. Deux tuiles plus loin suffit a
+   * degager un train dont la longueur est bornee par le quai. */
+  OpexPlacePathApproachSignal(tiles, 0, 1, 2, 8, acc, "A", used);
+  OpexPlacePathApproachSignal(tiles, last, -1, 2, 8, acc, "B", used);
 
-  local signaled = {};
-  for (local i = 1; i < last; i++) {
-    if (OpexTileTrackCount(tiles[i]) < 2) continue;
-    acc.junc++;
-    local prev = tiles[i - 1];
-    local next = tiles[i + 1];
-    OpexAccountSignal(OpexTryBuildSignalEither(tiles[i], prev, next), acc);
-    signaled[tiles[i]] <- true;
-  }
+  /* Le depot ajoute un vrai aiguillage a la voie. Les PBS vont sur les deux approches simples,
+   * jamais sur la tuile junc : CmdBuildSingleSignal refuse tout TracksOverlap. */
   if (depot != null) {
     local junc = AIRail.GetRailDepotFrontTile(depot);
-    if (AIMap.IsValidTile(junc) && OpexTileTrackCount(junc) >= 2 && !(junc in signaled)) {
+    local juncIndex = -1;
+    for (local i = 1; i < last; i++) {
+      if (tiles[i] == junc) { juncIndex = i; break; }
+    }
+    if (juncIndex >= 0 && OpexTileTrackCount(junc) >= 2) {
       acc.junc++;
-      local front = tiles[0];
-      for (local i = 1; i < last; i++) {
-        if (tiles[i] == junc) {
-          front = tiles[i - 1];
-          break;
-        }
-      }
-      OpexAccountSignal(OpexTryBuildSignalEither(junc, front, depot), acc);
+      OpexPlacePathApproachSignal(tiles, juncIndex, -1, 1, 8, acc, "L", used);
+      OpexPlacePathApproachSignal(tiles, juncIndex, 1, 1, 8, acc, "R", used);
     }
   }
   return acc;
@@ -731,7 +768,9 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, join, cashR
                    slopeRelaxed = 0, siteClear = 0, siteCargo = 0, siteCmd = 0,
                    siteKind = candidate.kind == "pax" ? "P" : "F",
                    joinEnd = join == null ? "N" : join.candidateEnd,
-                   signalsOk = 0, signalsFail = 0, signalJunc = 0,
+                   signalsOk = 0, signalsFail = 0, signalsSkip = 0, signalJunc = 0,
+                   signalFailures = [],
+                   capacitySignalsOk = 0, capacitySignalsFail = 0, capacitySignalSegments = 0, capacitySignalFailures = [],
                    capital = candidate.capital, money = 0,
                    budgetInfo = OpexIterationBudget(candidate.profitAnnual, alternativeRatio),
                    iterationBudget = 0 };
@@ -826,11 +865,37 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, join, cashR
     result.reason = "DEPFAIL"; return result;
   }
 
+  if (candidate.trains > 1) {
+    local capacitySignals = OpexPlaceCapacitySignals(tiles);
+    result.capacitySignalsOk = capacitySignals.ok;
+    result.capacitySignalsFail = capacitySignals.fail;
+    result.capacitySignalSegments = capacitySignals.segments;
+    result.capacitySignalFailures = capacitySignals.failures;
+    /* Capacity protection is transactional: never release multiple trains onto a line whose
+     * blocks could not be established completely. */
+    if (capacitySignals.fail > 0 || capacitySignals.ok == 0) {
+      if (capacitySignals.failures.len() > 0) {
+        result.error = capacitySignals.failures[0].error;
+      }
+      OpexRollback(tiles, planA, planB, depot, null);
+      result.reason = "SIGFAIL"; return result;
+    }
+  }
+
   if (join != null) {
     local signals = OpexPlaceJoinSignals(planA, planB, tiles, depot, join);
     result.signalsOk = signals.ok;
     result.signalsFail = signals.fail;
+    result.signalsSkip = signals.skip;
     result.signalJunc = signals.junc;
+    result.signalFailures = signals.failures;
+    /* Une commande refusee sur une approche pourtant simple indique une geometrie non sure.
+     * Comme aucun train n’existe encore, le rollback reste atomique. */
+    if (signals.fail > 0) {
+      result.error = signals.failures[0].error;
+      OpexRollback(tiles, planA, planB, depot, null);
+      result.reason = "SIGFAIL"; return result;
+    }
   }
 
   budget.begin();

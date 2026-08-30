@@ -235,6 +235,7 @@ class OpexAI extends AIController {
   function _reportLines(year);
   function _scrapDeadLines(year);
   function _refleetRoadLines(year);
+  function _processEvents();
 }
 
 /* Code d'arret compact pour OR. Le panneau contient deja beaucoup de mesures ; un seul caractere
@@ -256,6 +257,7 @@ function OpexAttemptReasonCode(reason)
   if (reason == "STNFAIL") return "S";
   if (reason == "TRKFAIL") return "T";
   if (reason == "DEPFAIL") return "E";
+  if (reason == "SIGFAIL") return "U";
   if (reason == "ORDFAIL") return "R";
   if (reason == "NOTRAIN") return "V";
   return "X";
@@ -933,6 +935,32 @@ function OpexAI::_tryBuild(ranked, year)
                                + "|" + result.diag.vehType + "|" + result.diag.testOk);
     }
 
+    /* Capacity telemetry is emitted for both success and fail-closed rollback. On failure the
+     * next line id identifies the attempt, just like OR/OB above. */
+    if (candidate.trains > 1 && (result.capacitySignalSegments > 0 ||
+                                 result.capacitySignalFailures.len() > 0 ||
+                                 result.reason == "SIGFAIL")) {
+      OpexSign(anchor, "SC|" + this._nextLineId + "|" + result.capacitySignalsOk + "|"
+                               + result.capacitySignalsFail + "|" + result.capacitySignalSegments);
+      foreach (failure in result.capacitySignalFailures) {
+        OpexSign(anchor, "SF|" + this._nextLineId + "|" + failure.slot + "|" + failure.error + "|"
+                                 + failure.tracks + "|" + failure.x + "|" + failure.y);
+      }
+    }
+
+    if (join != null && (result.signalsOk > 0 || result.signalsFail > 0 ||
+                         result.signalsSkip > 0 || result.reason == "SIGFAIL")) {
+      OpexSign(anchor, "SG|" + this._nextLineId + "|" + result.signalsOk + "|"
+                               + result.signalsFail + "|" + result.signalJunc);
+      OpexSign(anchor, "SJ|" + this._nextLineId + "|" + result.signalsSkip + "|"
+                               + result.signalFailures.len());
+      foreach (failure in result.signalFailures) {
+        OpexSign(anchor, "JF|" + this._nextLineId + "|" + failure.kind + "|" + failure.slot + "|"
+                                 + failure.error + "|" + failure.tracks + "|" + failure.x + "|"
+                                 + failure.y);
+      }
+    }
+
     if (result.ok) {
       nBuilt++;
       if (join != null) nJoinBuilt++;
@@ -1003,10 +1031,6 @@ function OpexAI::_tryBuild(ranked, year)
         OpexSign(anchor, "PJ|" + idx + "|" + (join == null ? "N" : join.candidateEnd)
                                  + "|" + (candidate.originServed ? 1 : 0) + joinHow);
       }
-      if (join != null) {
-        OpexSign(anchor, "SG|" + idx + "|" + result.signalsOk + "|"
-                                 + result.signalsFail + "|" + result.signalJunc);
-      }
       if (isPaxNear) OpexSign(anchor, "PY|" + idx);
 
       /* Diagnostic effondrement fret (2026-08-28) : garder de quoi verifier, annee apres annee,
@@ -1038,6 +1062,7 @@ function OpexAI::_tryBuild(ranked, year)
          * lignes rail -- inoffensif pour le pax, dont deadStreak reste a 0 pour toujours faute de
          * srcIndustry valide. */
         deadStreak = 0, scrapping = false, scrapVehicles = [],
+        lastLiveVehicles = result.trains, suspectedCrashes = 0,
         lineId = idx,
       });
       this._nextLineId++;
@@ -1215,6 +1240,7 @@ function OpexAI::_tryProbeNegative(ranked, year)
       srcIndustry = (candidate.kind == "freight") ? AIIndustry.GetIndustryID(candidate.src) : -1,
       dstIndustry = (candidate.kind == "freight") ? AIIndustry.GetIndustryID(candidate.dst) : -1,
       deadStreak = 0, scrapping = false, scrapVehicles = [],
+      lastLiveVehicles = result.trains, suspectedCrashes = 0,
       lineId = idx,
       probe = true,
     });
@@ -1282,6 +1308,19 @@ function OpexAI::_reportLines(year)
     }
     OpexSign(anchor, "OZ|" + line.lineId + "|" + year + "|" + profit);
     OpexSign(anchor, "OU|" + line.lineId + "|" + year + "|" + vehCount + "|" + runCost);
+    /* Collision/crash detector: an owned train that disappears outside the explicit freight
+     * scrapping path is never silently ignored. RX is an alarm (loss can also be engine-side),
+     * not an unsafe recovery action; no replacement is launched from this path. */
+    if (vehicleType == AIVehicle.VT_RAIL) {
+      local priorLive = ("lastLiveVehicles" in line) ? line.lastLiveVehicles : vehCount;
+      if (!line.scrapping && vehCount < priorLive) {
+        local lost = priorLive - vehCount;
+        local priorCrashes = ("suspectedCrashes" in line) ? line.suspectedCrashes : 0;
+        line.suspectedCrashes <- priorCrashes + lost;
+        OpexSign(anchor, "RX|" + (year % 100) + "|" + line.lineId + "|" + lost + "|" + line.suspectedCrashes);
+      }
+      line.lastLiveVehicles <- vehCount;
+    }
     OpexSign(anchor, "OO|" + line.lineId + "|" + year + "|" + (profit + runCost));
     /* Rendement de vitesse (taches S4.3). Instantane annuel des convois EN MARCHE
      * (vitesse > 0, donc pas a quai). med / cat = rendement vs catalogue ; med / pred
@@ -1627,6 +1666,33 @@ function OpexAI::_tryRepayLoan(year)
   OpexSign(anchor, "LR|" + year + "|" + repaid + "|" + newLoan);
 }
 
+/* Event moteur exact : CRASH_TRAIN est emis dans train_cmd.cpp au moment ou deux trains
+ * entrent en collision. XC garde la ligne, le vehicule, la tuile et les victimes ; RX reste le
+ * filet annuel pour toute disparition sans evenement reconnu. */
+function OpexAI::_processEvents()
+{
+  while (AIEventController.IsEventWaiting()) {
+    local event = AIEventController.GetNextEvent();
+    if (event == null || event.GetEventType() != AIEvent.ET_VEHICLE_CRASHED) continue;
+    local crash = AIEventVehicleCrashed.Convert(event);
+    if (crash == null || crash.GetCrashReason() != AIEventVehicleCrashed.CRASH_TRAIN) continue;
+
+    local vehicle = crash.GetVehicleID();
+    local lineId = -1;
+    foreach (line in this._lines) {
+      if (!("vehicles" in line)) continue;
+      foreach (known in line.vehicles) {
+        if (known == vehicle) { lineId = line.lineId; break; }
+      }
+      if (lineId >= 0) break;
+    }
+    local site = crash.GetCrashSite();
+    OpexSign(AIMap.GetTileIndex(1, 1), "XC|" + (AIDate.GetYear(AIDate.GetCurrentDate()) % 100)
+             + "|" + lineId + "|" + vehicle + "|" + AIMap.GetTileX(site) + "|"
+             + AIMap.GetTileY(site) + "|" + crash.GetVictims());
+  }
+}
+
 function OpexAI::Start()
 {
   AICompany.SetName("OpexAI");
@@ -1683,6 +1749,7 @@ function OpexAI::Start()
 
   local lastYear = -1;
   while (true) {
+    this._processEvents();
     local year = AIDate.GetYear(AIDate.GetCurrentDate());
     if (year != lastYear) {
       /* Mesure directe du cycle annuel. YT|aa|debut|fin|tryBuild|saut[C] : aa est l'annee

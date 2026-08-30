@@ -55,7 +55,7 @@ RE_OZ = re.compile(r"^OZ\|(\d+)\|(\d+)\|(-?\d+)$")
 RE_OU = re.compile(r"^OU\|(\d+)\|(\d+)\|(\d+)\|(-?\d+)$")
 RE_OO = re.compile(r"^OO\|(\d+)\|(\d+)\|(-?\d+)$")
 RE_OR = re.compile(r"^OR\|(\d+)\|(\d+)\|(\d+)\|(\w+)$")  # historique avant mesure abandon
-RE_OR_BUDGET = re.compile(r"^OR\|(\d{2})\|(\d+)\|(\d+)\|([ZFCN][SL][KADPLHMJSTERVXBCGF])\|(\d+)\|(\d+)$")
+RE_OR_BUDGET = re.compile(r"^OR\|(\d{2})\|(\d+)\|(\d+)\|([ZFCN][SL][KADPLHMJSTERVXBCGFU])\|(\d+)\|(\d+)$")
 RE_OB_ATTEMPT = re.compile(r"^OB\|A\|(\d{2})\|(\d+)\|(\d+)\|(\d+)(?:\|(\d+))?$")
 RE_PK = re.compile(r"^PK\|(\d+)\|([PF])\|(\d+)$")
 RE_PC = re.compile(r"^PC\|(\d+)\|(.+)$")
@@ -65,6 +65,12 @@ RE_PC = re.compile(r"^PC\|(\d+)\|(.+)$")
 RE_PJ = re.compile(r"^PJ\|(\d+)\|([ABN])\|([01])(?:\|([PT]))?$")
 RE_PH = re.compile(r"^PH\|(\d{2})\|(\d+)\|(\d+)\|(\d+)$")  # yy, gen, ranked, built
 RE_SG = re.compile(r"^SG\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")  # id, ok, fail, junc
+RE_SJ = re.compile(r"^SJ\|(\d+)\|(\d+)\|(\d+)$")  # id, skip, nfailures
+RE_JF = re.compile(r"^JF\|(\d+)\|([ABLR])\|(\d+)\|(-?\d+)\|(\d+)\|(\d+)\|(\d+)$")
+RE_SC = re.compile(r"^SC\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")  # id, ok, fail, segments
+RE_SF = re.compile(r"^SF\|(\d+)\|(\d+)\|(-?\d+)\|(\d+)\|(\d+)\|(\d+)$")
+RE_RX = re.compile(r"^RX\|(\d{2})\|(\d+)\|(\d+)\|(\d+)$")  # yy, id, lost, total
+RE_XC = re.compile(r"^XC\|(\d{2})\|(-?\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
 RE_PM = re.compile(r"^PM\|(\d+)\|([AWR])\|(\d+)\|(.+)$")
 RE_IA = re.compile(r"^IA\|(\d+)\|(\d+)\|(-?\d)\|(-?\d)\|(-?\d+)$")
 RE_OX = re.compile(r"^OX\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")   # year, towns, industries, ranked.all
@@ -128,7 +134,7 @@ REASON_CODES = {
     "K": "OK", "A": "ABND", "D": "DEAD", "P": "NOPA", "L": "NOPLAN",
     "B": "SITEA", "C": "SITEB", "G": "SITEAB", "F": "ECON",
     "H": "SHORT", "M": "NOMATCH", "J": "JOINPATH", "S": "STNFAIL", "T": "TRKFAIL",
-    "E": "DEPFAIL", "R": "ORDFAIL", "V": "NOTRAIN", "X": "UNKNOWN",
+    "E": "DEPFAIL", "U": "SIGFAIL", "R": "ORDFAIL", "V": "NOTRAIN", "X": "UNKNOWN",
 }
 
 
@@ -332,6 +338,17 @@ def parse_lines(all_signs):
             predicted[idx]["signals_ok"] = int(m.group(2))
             predicted[idx]["signals_fail"] = int(m.group(3))
             predicted[idx]["signal_junc"] = int(m.group(4))
+        elif m := RE_SJ.match(sign):
+            idx = int(m.group(1))
+            predicted.setdefault(idx, {})
+            predicted[idx]["signals_skip"] = int(m.group(2))
+            predicted[idx]["signal_failure_count"] = int(m.group(3))
+        elif m := RE_SC.match(sign):
+            idx = int(m.group(1))
+            predicted.setdefault(idx, {})
+            predicted[idx]["capacity_signals_ok"] = int(m.group(2))
+            predicted[idx]["capacity_signals_fail"] = int(m.group(3))
+            predicted[idx]["capacity_signal_segments"] = int(m.group(4))
         elif m := RE_PC.match(sign):
             predicted.setdefault(int(m.group(1)), {})["cargo_label"] = m.group(2)
         elif m := RE_PX.match(sign):
@@ -390,7 +407,11 @@ def parse_lines(all_signs):
             "place_join": mark.get("place_join"),
             "signals_ok": pred.get("signals_ok"),
             "signals_fail": pred.get("signals_fail"),
+            "signals_skip": pred.get("signals_skip"),
             "signal_junc": pred.get("signal_junc"),
+            "capacity_signals_ok": pred.get("capacity_signals_ok"),
+            "capacity_signals_fail": pred.get("capacity_signals_fail"),
+            "capacity_signal_segments": pred.get("capacity_signal_segments"),
             "predicted": pred,
             "actual_last_year": last_year,
             "actual": last,
@@ -645,6 +666,67 @@ def parse_attempts(all_signs):
             attempts.append({"idx": int(m.group(1)), "distance": int(m.group(2)),
                               "iterations": int(m.group(3)), "reason": m.group(4)})
     return attempts
+
+
+def parse_safety(all_signs):
+    """Signaux de capacite/jointure et detecteurs de collision, y compris les rollbacks SIGFAIL."""
+    capacity, capacity_failures = [], []
+    join, join_skips, join_failures = [], [], []
+    unexpected_losses, train_crashes = [], []
+    for sign in all_signs:
+        if m := RE_SC.match(sign):
+            capacity.append({"line_index": int(m.group(1)), "ok": int(m.group(2)),
+                             "fail": int(m.group(3)), "segments": int(m.group(4))})
+        elif m := RE_SF.match(sign):
+            capacity_failures.append({
+                "line_index": int(m.group(1)), "slot": int(m.group(2)),
+                "error": int(m.group(3)), "tracks": int(m.group(4)),
+                "x": int(m.group(5)), "y": int(m.group(6)),
+            })
+        elif m := RE_SG.match(sign):
+            join.append({"line_index": int(m.group(1)), "ok": int(m.group(2)),
+                         "fail": int(m.group(3)), "junc": int(m.group(4))})
+        elif m := RE_SJ.match(sign):
+            join_skips.append({"line_index": int(m.group(1)), "skip": int(m.group(2)),
+                               "n_failures": int(m.group(3))})
+        elif m := RE_JF.match(sign):
+            join_failures.append({
+                "line_index": int(m.group(1)), "kind": m.group(2), "slot": int(m.group(3)),
+                "error": int(m.group(4)), "tracks": int(m.group(5)),
+                "x": int(m.group(6)), "y": int(m.group(7)),
+            })
+        elif m := RE_RX.match(sign):
+            unexpected_losses.append({
+                "year": 1900 + int(m.group(1)), "line_index": int(m.group(2)),
+                "lost": int(m.group(3)), "total": int(m.group(4)),
+            })
+        elif m := RE_XC.match(sign):
+            train_crashes.append({
+                "year": 1900 + int(m.group(1)), "line_index": int(m.group(2)),
+                "vehicle": int(m.group(3)), "x": int(m.group(4)),
+                "y": int(m.group(5)), "victims": int(m.group(6)),
+            })
+    return {
+        "capacity_signals": capacity,
+        "capacity_signal_failures": capacity_failures,
+        "join_signals": join,
+        "join_signal_skips": join_skips,
+        "join_signal_failures": join_failures,
+        "unexpected_train_losses": unexpected_losses,
+        "train_crashes": train_crashes,
+        "n_capacity_signals_ok": sum(item["ok"] for item in capacity),
+        "n_capacity_signals_fail": sum(item["fail"] for item in capacity),
+        "n_capacity_signal_segments": sum(item["segments"] for item in capacity),
+        "n_capacity_signal_failures": len(capacity_failures),
+        "n_join_signals_ok": sum(item["ok"] for item in join),
+        "n_join_signals_fail": sum(item["fail"] for item in join),
+        "n_join_signal_junc": sum(item["junc"] for item in join),
+        "n_join_signals_skip": sum(item["skip"] for item in join_skips),
+        "n_join_signal_failures": len(join_failures),
+        "n_rx_events": len(unexpected_losses),
+        "n_unexpected_trains_lost": sum(item["lost"] for item in unexpected_losses),
+        "n_train_crashes": len(train_crashes),
+    }
 
 
 def parse_yearly(all_signs):
@@ -1004,6 +1086,7 @@ def make_run_payload(rows, seed, years):
 
     lines = parse_lines(final["signs"])
     attempts = parse_attempts(final["signs"])
+    safety = parse_safety(final["signs"])
     yearly = parse_yearly(final["signs"])
     annual_blocks = parse_annual_blocks(final["signs"])
     calendar_years_crossed = [missed for block in annual_blocks for missed in
@@ -1091,9 +1174,23 @@ def make_run_payload(rows, seed, years):
         "n_place_join_ranked": sum(row.get("place_join_ranked", 0) for row in yearly.values()),
         "n_place_join_built": sum(row.get("place_join_built", 0) for row in yearly.values()),
         "n_place_join_lines": sum(1 for line in lines if line.get("place_join")),
-        "n_join_signals_ok": sum(line.get("signals_ok") or 0 for line in lines),
-        "n_join_signals_fail": sum(line.get("signals_fail") or 0 for line in lines),
-        "n_join_signal_junc": sum(line.get("signal_junc") or 0 for line in lines),
+        "n_rail_attempts_sigfail": sum(1 for attempt in attempts if attempt["reason"] == "SIGFAIL"),
+        "n_join_signals_ok": safety["n_join_signals_ok"],
+        "n_join_signals_fail": safety["n_join_signals_fail"],
+        "n_join_signal_junc": safety["n_join_signal_junc"],
+        "n_join_signals_skip": safety["n_join_signals_skip"],
+        "n_join_signal_failures": safety["n_join_signal_failures"],
+        "n_capacity_signals_ok": safety["n_capacity_signals_ok"],
+        "n_capacity_signals_fail": safety["n_capacity_signals_fail"],
+        "n_capacity_signal_segments": safety["n_capacity_signal_segments"],
+        "n_capacity_signal_failures": safety["n_capacity_signal_failures"],
+        "n_rx_events": safety["n_rx_events"],
+        "n_unexpected_trains_lost": safety["n_unexpected_trains_lost"],
+        "n_train_crashes": safety["n_train_crashes"],
+        "join_signal_failures": safety["join_signal_failures"],
+        "capacity_signal_failures": safety["capacity_signal_failures"],
+        "unexpected_train_losses": safety["unexpected_train_losses"],
+        "train_crashes": safety["train_crashes"],
         "n_road_lines_ok": sum(1 for line in lines if line["mode"] == "road"),
         "n_road_freight_lines_ok": sum(
             1 for line in lines
@@ -1227,7 +1324,11 @@ def main():
                                   "RM multistop nStopsA/nStopsB/veh",
                                   "RV vitesse mediane trains en marche",
                                   "RY vitesse mediane bus/camions en marche",
-                                  "TV pop mediane villes desservies/libres"],
+                                  "TV pop mediane villes desservies/libres",
+                                  "SC/SF blocs de capacite et echecs exacts",
+                                  "SJ/JF approches de jointure et echecs exacts",
+                                  "RX pertes inattendues de trains",
+                                  "XC collisions CRASH_TRAIN"],
         "runs": runs,
     }
     result_path.write_text(json.dumps(payload, indent=2))
@@ -1315,7 +1416,17 @@ def main():
               f"lines={run.get('n_place_join_lines', 0)}")
         print(f"signaux: ok={run.get('n_join_signals_ok', 0)}  "
               f"fail={run.get('n_join_signals_fail', 0)}  "
-              f"junc={run.get('n_join_signal_junc', 0)}")
+              f"skip={run.get('n_join_signals_skip', 0)}  "
+              f"junc={run.get('n_join_signal_junc', 0)}  "
+              f"JF={run.get('n_join_signal_failures', 0)}")
+        print(f"capacite: ok={run.get('n_capacity_signals_ok', 0)}  "
+              f"fail={run.get('n_capacity_signals_fail', 0)}  "
+              f"segments={run.get('n_capacity_signal_segments', 0)}  "
+              f"SF={run.get('n_capacity_signal_failures', 0)}")
+        print(f"crash: RX={run.get('n_rx_events', 0)}  "
+              f"lost={run.get('n_unexpected_trains_lost', 0)}  "
+              f"XC={run.get('n_train_crashes', 0)}  "
+              f"SIGFAIL={run.get('n_rail_attempts_sigfail', 0)}")
         print(f"join refuse: multi={run.get('n_join_refuse_multi', 0)}  "
               f"kind={run.get('n_join_refuse_kind', 0)}  "
               f"role={run.get('n_join_refuse_role', 0)}  "
@@ -1340,7 +1451,19 @@ def main():
           f"JOINPATH={sum(r.get('n_rail_attempts_joinpath', 0) for r in runs)} "
           f"place_ok={sum(r.get('n_place_join_built', 0) for r in runs)} "
           f"sig_ok={sum(r.get('n_join_signals_ok', 0) for r in runs)} "
+          f"sig_fail={sum(r.get('n_join_signals_fail', 0) for r in runs)} "
           f"sig_junc={sum(r.get('n_join_signal_junc', 0) for r in runs)} ===")
+    print(f"=== securite toutes graines: "
+          f"cap_ok={sum(r.get('n_capacity_signals_ok', 0) for r in runs)} "
+          f"cap_fail={sum(r.get('n_capacity_signals_fail', 0) for r in runs)} "
+          f"SF={sum(r.get('n_capacity_signal_failures', 0) for r in runs)} "
+          f"join_ok={sum(r.get('n_join_signals_ok', 0) for r in runs)} "
+          f"join_fail={sum(r.get('n_join_signals_fail', 0) for r in runs)} "
+          f"skip={sum(r.get('n_join_signals_skip', 0) for r in runs)} "
+          f"JF={sum(r.get('n_join_signal_failures', 0) for r in runs)} "
+          f"RX={sum(r.get('n_rx_events', 0) for r in runs)} "
+          f"XC={sum(r.get('n_train_crashes', 0) for r in runs)} "
+          f"SIGFAIL={sum(r.get('n_rail_attempts_sigfail', 0) for r in runs)} ===")
     print(f"=== distance toutes graines: {dist.get('n_with_distance')}/"
           f"{dist.get('n_attempts')}  OK={dist.get('n_ok')} ABND={dist.get('n_abnd')} ===")
     for band in dist.get("bands") or []:

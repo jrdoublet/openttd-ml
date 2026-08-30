@@ -86,7 +86,8 @@ rail OpexAI, origines **libres** dans 25–75 tuiles (cappé par
 `join_max_distance` si > 0). Même `kind` / cargo / rôle fret que la v1.
 L'objet join est attaché à la génération : `_tryBuild` ne repasse pas par
 `_tooClose`. Quai parallèle 1–4, identifiant du primaire. `JOINPATH` inchangé
-(dédié). PBS sur la ligne jointe : quais + aiguillage dépôt.
+(dédié). PBS de jointure : approches voie simple, jamais l'aiguillage
+(mesure H2 ci-dessous encore sur l'ancien placement).
 
 5 graines × 20 ans, `join_place=1` seul
 (`docs/opex_join_place_20y_5seeds.json`) contre `join=0`
@@ -110,5 +111,21 @@ Véhicules 204 → 169. 201 tentatives de jointure, 50 OK, **0 JOINPATH**.
 Le TOP_K se remplit de H2 (jusqu'à 143 classés / an cumulés) qui meurent
 en SITEA au quai joint — le spread, toujours pas la suite. Les jointures
 qui passent **perdent** en an 2. ⚠️ **Défaut 0. Pas de banc n=20. Pas de
-spread.** Signaux : 77 OK / 128 fail / 50 junc (un PBS dépôt par
-jointure ; le front de quai vers la gare refuse souvent).
+spread.** Signaux (mesure H2) : 77 OK / 128 fail / 50 junc (un PBS dépôt par
+jointure ; le front de quai vers la gare refuse souvent). Placement corrigé
+ci-dessous.
+
+## PBS hors aiguillage (2026-08-30)
+
+`CmdBuildSingleSignal` refuse tout `TracksOverlap` (erreur 2050).
+`OpexPlaceJoinSignals` cherche un PBS sur une voie simple : approches de
+gare à 2–8 tuiles et les deux côtés du dépôt, jamais la tuile de croisement.
+Un pont ou un tunnel saute l'emplacement (`SJ`) ; une commande refusée sur
+une voie simple rollback (`JF`, `SIGFAIL`) avant les trains. `JOINPATH`
+inchangé.
+
+Baseline `station_join=1`, `join_max_distance=50`
+(`docs/opex_station_junction_baseline_20y_5seeds.json`) : 4 jointes, 5 PBS /
+11 refus. Après (`docs/opex_junction_signal_fix_20y_5seeds.json`) : 3 jointes,
+**9 / 0**, 3 skip, 0 `JF`, 0 `SIGFAIL`, 0 `RX`, 0 `XC`. Ce n'est pas une
+jonction de voie. ⚠️ **Défaut `station_join` 0.** Pas de spread.

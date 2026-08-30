@@ -746,14 +746,26 @@ fait demi-tour, revient. Utile pour forcer un dépôt.
 
 Les **pré-signaux** TTDPatch (entrée / sortie / combo) : rouges si *toutes* les sorties suivantes
 sont rouges, donc un train n'entre pas dans une gare pleine pour se coller au premier quai. En
-OpenTTD 15, l'équivalent est le **path signal** (PBS), pas ce trio TTDPatch. ❓ Non posé par
-OpexAI.
+OpenTTD 15, l’équivalent est le **path signal** (PBS), pas ce trio TTDPatch ; OpexAI le pose
+désormais sur les lignes à plusieurs trains.
 
-> **Conséquence.** Les lignes neuves (défaut) n'ont toujours **aucun** signal. Sur une jointure
-> (`station_join` ou `join_place`), `OpexPlaceJoinSignals` pose un **PBS** devant chaque quai
-> (nouveau + existant) et sur l'aiguillage dépôt — le premier signal de §12.2, pas un sens
-> unique au milieu. `JOINPATH` refuse toujours la voie partagée. Les lignes dédiées à `trains
-> > 1` sans jointure restent non signalées — ❓ non mesuré.
+> **Conséquence.** Une ligne dédiée à plusieurs trains reçoit désormais des PBS bidirectionnels
+> tous les huit slots de chemin, avant la construction des convois. Le slot 1 est exclu : c’est la
+> gorge de gare, avec deux pièces de voie, et OpenTTD 15.3 y refusait les deux orientations. Si un
+> bloc échoue ou si aucun emplacement n’est utilisable, `OpexBuildLine` annule toute la ligne avant
+> de construire ou démarrer un train (`SIGFAIL`). Sur une jointure (`station_join` ou `join_place`),
+> `OpexPlaceJoinSignals` cherche un PBS sur une **voie simple** — jamais sur l’aiguillage :
+> `CmdBuildSingleSignal` refuse tout `TracksOverlap`. Les quatre recherches sont les approches de
+> gare (2–8 tuiles) et les deux côtés du dépôt. Un pont ou un tunnel saute l’emplacement (`SJ`) ;
+> une commande refusée sur une voie pourtant simple rollback (`JF`, `SIGFAIL`). `JOINPATH` refuse
+> toujours la voie partagée. `SC`/`SF` mesurent les blocs de capacité, `SJ`/`JF` la jointure,
+> `XC` l’événement moteur `CRASH_TRAIN`, et `RX` toute disparition hors mise au rebut. La campagne
+> de capacité `docs/opex_capacity_signal_fix_20y_5seeds.json` a posé 148/148 blocs, sans `SF`,
+> sans `RX` et sans erreur de script (avant : 33 `SF` au slot 1,
+> `docs/opex_capacity_signal_failures_v2_20y_5seeds.json`). Après le déplacement des PBS
+> de jointure hors de l’aiguillage (`docs/opex_junction_signal_fix_20y_5seeds.json`) : 9 PBS
+> posés, 0 commande refusée, 3 emplacements sautés, 0 `JF`, 0 `SIGFAIL`, 0 `RX`, 0 `XC`.
+> La baseline `docs/opex_station_junction_baseline_20y_5seeds.json` avait 5 PBS contre 11 refusés.
 
 ### 12.3 Gares — hors de la ligne principale
 
