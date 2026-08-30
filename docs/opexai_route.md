@@ -52,8 +52,10 @@ Repris du rail, avec trois écarts, chacun justifié :
 - **`ROAD_SPEED_EFFICIENCY_PCT = 60`.** Mesuré le 2026-08-30, **pas retuné**.
   Panneau `RY`, n = 53 (`docs/opex_road_speed_yield.json`). Fret en marche =
   catalogue (1,00) ; pax 0,75. Réel / 60 % : 1,27 pax, 1,71 fret. Instantané,
-  pas un temps de trajet. Le 60 % est pessimiste en croisière, comme le 70 %
-  rail. Pas de modèle de traction route.
+  pas un temps de trajet. Le 60 % est pessimiste en croisière. Le **0,75 pax**
+  est le plafond 3/4 du modèle réaliste sur un L d'axes (`mecanique_jeu.md` §2),
+  pas une raison de retuner. Wiki 37 km-ish/h/jour = modèle original, défaut
+  15.3 = réaliste. Pas de modèle de traction route.
 - **La durée de trajet suit le tracé**, et ici tracé et distance Manhattan coïncident (le tracé est
   un L de Manhattan), ce qui autorise la même formule sans facteur de détour.
 

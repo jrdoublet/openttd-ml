@@ -674,10 +674,11 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
       Le spread n'est **pas** débloqué : joindre plus, sur un terme qui ne paie pas, recréerait
       le banc vivier.
 
-**Priorité de fait, révisée le 2026-08-30 (production industrie)** : barème
-lisse ✅ relu en 15.3, table wiki confirmée, pas de retuning. Note de gare ✅.
-Vitesse route ✅. Croissance de ville ✅. Le **spread** n'est pas la suite.
-`MIN_SEPARATION` reste gelé. L'item 2 reste dernier.
+**Priorité de fait, révisée le 2026-08-30 (accel route)** : wiki 37 km-ish/h/j
+= modèle original, notre défaut 15.3 = réaliste. Pax `RY` 0,75 = plafond 3/4
+du L. Pas de retuning du 60 %. Production industrie ✅. Note de gare ✅.
+Le **spread** n'est pas la suite. `MIN_SEPARATION` reste gelé. L'item 2 reste
+dernier.
 
 *Priorité précédente, conservée pour la trace* : ~~le rendement join~~ (✅ mesuré,
 défaut 0) était la tête. ~~l'item **9.1**~~ (✅) était la tête. ~~le retuning pax
@@ -760,6 +761,11 @@ borné~~ / ~~l'item **7**~~ / ~~l'item **4**~~.
   **1,27** pax, **1,71** fret. Instantané, pas un temps de trajet. Le 60 % est
   pessimiste en croisière, comme le 70 % rail. ⚠️ **Pas de retuning.** Ce n'est
   pas le 3,91 pax (`TOWN_CATCHMENT_SHARE_PCT`). `docs/opexai_route.md`.
+- ✅ **Accélération route 15.3** (2026-08-30). Wiki 37 km-ish/h/jour =
+  `AM_ORIGINAL` (`DoUpdateSpeed(256)`, une fois/tick, unité 0,5).
+  `vehicle.roadveh_acceleration_model` défaut **1 = réaliste**, absent du
+  CFG. Virage d'axe : plafond 3/4. Le 0,75 pax de `RY` est ce plafond sur
+  le L, pas un retuning. Pas de modèle de traction route.
 
 ---
 

@@ -148,7 +148,16 @@ près ; seul le passager voit sa capacité doubler.
 - **Avions : ils volent au quart de leur vitesse affichée** (⚙️ réglable, `plane_speed`, défaut 4).
 - **Trains : la vitesse est bridée par les courbes.** À courbure 0 (virage à 90°) : rail 61 km/h,
   monorail 91, maglev 121. À courbure 2 : 111 / 166 / 221 km/h.
-- Véhicules routiers : accélération de 37 km-ish/h par jour. ❓
+- Véhicules routiers : le wiki cite **37 km-ish/h par jour**. C'est le modèle
+  **original** (`AM_ORIGINAL`) : `DoUpdateSpeed(256)` une fois par tick, vitesse
+  interne en 0,5 km-ish/h → `256/256 × 74 × 0,5 = 37`. ⚙️
+  `vehicle.roadveh_acceleration_model` **défaut 1 = `AM_REALISTIC`**, non
+  surchargé dans notre CFG (comme le rail). **Le 37 ne s'applique pas chez
+  nous.** En réaliste : même `GroundVehicle::GetAcceleration` que le train
+  (aire 6, roulement 75 au lieu de 14/15). Virage axe (`direction` pair) :
+  plafond **3/4** de la vitesse max ; recul 1/2. Notre L de Manhattan est
+  tout en axes. Le pax `RY` 66/88 = **0,75** colle à ce plafond. ⚠️ Pas de
+  modèle de traction route, pas de retuning du 60 %.
 
 > **Conséquence, déjà appliquée.** `TILES_PER_DAY = 2` (PLACEHOLDER dans `candidates.nut`)
 > a été remplacé : le trajet utilise **`0,036 × effectiveSpeed`** (traction, §2 bis).
