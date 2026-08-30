@@ -349,7 +349,10 @@ class OpexAI extends AIInfo {
      *
      * SITEA/B (2026-08-30). OpexRoadSites saute les tuiles non constructibles : 48 sondes
      * etaient brulees sur des maisons/industries qui ont du cargo. 5 graines : SITE
-     * 14/18 -> 0, OK 2 -> 6 (docs/opex_road_sitable_20y_5seeds.json). */
+     * 14/18 -> 0, OK 2 -> 6 (docs/opex_road_sitable_20y_5seeds.json).
+     *
+     * TRACEX (2026-08-30). 32 L (contre 12) et facade vers l'autre bout. nLong=0.
+     * 5 graines : TRACEX 5->2, OK 6->8, pax 2->4 (docs/opex_road_tracex_20y_5seeds.json). */
     AddSetting({
       name = "road_mode",
       description = "Build short road lines (bus town-town, and truck freight industry-industry / industry-town): 1 = enabled, 0 = rail-only baseline",

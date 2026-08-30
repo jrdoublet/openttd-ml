@@ -286,6 +286,12 @@ ligne a roulé onze ans à perte sans être ferraillée). Les deux touchent auss
    façade plate, constructible sauf route déjà là. 5 graines
    (`docs/opex_road_sitable_20y_5seeds.json`) : SITEA 12→**0**, SITEB 2→**0**,
    OK 2→**6**. Il reste TRACEX (5). Pas un nouveau réglage.
+2 bis. ✅ **TRACEX : 32 L et façade vers l'autre bout** (2026-08-30).
+   Le plafond à 12 coupait après 6 paires (classement cargo, pas géométrie).
+   `nLong = 0`. ~½ des L traversaient l'arrêt. 32 essais + bonus de façade
+   tournée vers l'autre extrémité : TRACEX 5→**2**, OK 6→**8**, pax 2→**4**
+   (`docs/opex_road_tracex_20y_5seeds.json`). Les 2 restants sont `nUnb`.
+   Pas Pathfinder.Road.
 3. **Un seul classement pour tous les modes.** `ROAD_PLAN_ITERATIONS_BASE` est non calibré et ne
    sert qu'à ordonner les candidats routiers entre eux. Le panneau `RB` mesure désormais le coût
    réel de chaque tentative — la calibration qui rendrait la comparaison inter-modes possible est
@@ -644,11 +650,12 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
       Le spread n'est **pas** débloqué : joindre plus, sur un terme qui ne paie pas, recréerait
       le banc vivier.
 
-**Priorité de fait, révisée le 2026-08-30 (nuit, SITE route)** : SITEA/SITEB ✅
-(12+2 → 0, OK 2→6). Item route 1 ✅. Rendement join ✅. 9.1 ✅, 9.2 ✅ vide.
-Le **spread** n'est pas la suite. La tête route suivante est **TRACEX**
-(5/11, le L entre façades) puis le classement inter-modes. `MIN_SEPARATION`
-reste gelé. L'item 2 (verrouillage de ville) reste dernier.
+**Priorité de fait, révisée le 2026-08-30 (nuit, TRACEX)** : TRACEX ✅ (5→2,
+OK 6→8, pax 2→4). SITEA/SITEB ✅. Item route 1 ✅. Le **spread** n'est pas
+la suite. La tête route suivante est le **classement inter-modes**
+(`ROAD_PLAN_ITERATIONS_BASE`, panneau `RB`). Les 2 TRACEX restants sont
+`nUnb` — pas Pathfinder.Road. `MIN_SEPARATION` reste gelé. L'item 2 reste
+dernier.
 
 *Priorité précédente, conservée pour la trace* : ~~le rendement join~~ (✅ mesuré,
 défaut 0) était la tête. ~~l'item **9.1**~~ (✅) était la tête. ~~le retuning pax

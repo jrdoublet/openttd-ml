@@ -29,10 +29,11 @@ const ROAD_TOWN_SEARCH_RADIUS = 16;
 const ROAD_INDUSTRY_SEARCH_RADIUS = 5;
 const ROAD_MAX_SITE_PROBES = 48;
 const ROAD_MAX_SITES_PER_END = 4;
-/* Chaque essai revalide jusqu'a ROAD_MAX_TRACE_TILES aretes sous AITestMode : sans ce plafond, un
- * plan pourrait consommer 4 x 4 x 2 = 32 essais, soit un millier de commandes de test pour une
- * seule paire -- exactement le genre de depense que l'etage 2 est cense empecher. */
-const ROAD_MAX_TRACE_TRIALS = 12;
+/* 4 x 4 x 2 = 32 L. Le plafond a 12 (2026-08-29) coupait apres 6 paires de sites : le classement
+ * est le cargo, pas la geometrie, donc les premieres paires sont souvent les plus mal orientees.
+ * 32 essais x 32 aretes reste ~1 000 tests, deja payes par la sonde de site (35-74 k opcodes
+ * mesures sur TRACEX). */
+const ROAD_MAX_TRACE_TRIALS = 32;
 const ROAD_CAPITAL_MARGIN = 25000;
 const ROAD_DEPOT_MIN_STOP_DISTANCE = 3;
 
@@ -140,7 +141,8 @@ function OpexRoadTraceBuildable(trace)
  * facade n'a pas besoin de preexister -- BuildRoad(front, tile) sous AITestMode prouve deja
  * qu'elle est constructible. La preference pour une facade deja routiere reste, mais comme un
  * BONUS de classement (moins de tuiles a payer, aucune demolition), plus comme un filtre. */
-function OpexRoadSites(center, townId, cargo, vehType, coverage, wantProduction, radius)
+function OpexRoadSites(center, townId, cargo, vehType, coverage, wantProduction, radius,
+                       otherCenter)
 {
   local out = [];
   local cx = AIMap.GetTileX(center);
@@ -194,10 +196,18 @@ function OpexRoadSites(center, townId, cargo, vehType, coverage, wantProduction,
           if (!ok) continue;
           nCmd++;
           local onRoad = AIRoad.IsRoadTile(front);
+          /* Facade tournee vers l'autre extremite : le L part du front, pas de l'arret, et
+           * n'a pas a retraverser le corps (mesure TRACEX 2026-08-30 : ~moitie des L etaient
+           * nHit). Le cargo reste le critere dominant (x2). */
+          local toward = 0;
+          if (otherCenter != null &&
+              AIMap.DistanceManhattan(front, otherCenter) < AIMap.DistanceManhattan(tile, otherCenter)) {
+            toward = 2;
+          }
           /* Le bonus de facade routiere n'est qu'un departage : il ne doit jamais faire passer un
            * site deux fois moins productif devant un autre, d'ou le facteur 2 sur la valeur. */
           local site = { tile = tile, front = front, value = value,
-                         score = value * 2 + (onRoad ? 1 : 0) };
+                         score = value * 2 + toward + (onRoad ? 1 : 0) };
           local pos = out.len();
           while (pos > 0 && out[pos - 1].score < site.score) pos--;
           out.insert(pos, site);
@@ -330,30 +340,40 @@ function OpexRoadPlanFor(catalog, candidate)
    * deux causes qui n'appellent pas du tout le meme correctif (rayon et sondes d'un cote, plafond
    * d'essais et platitude de l'autre). */
   local huntA = OpexRoadSites(candidate.src, candidate.srcTown, candidate.cargo, stop.vehType,
-                              coverage, true, radiusA);
+                              coverage, true, radiusA, candidate.dst);
   local sitesA = huntA.sites;
   if (sitesA.len() == 0) return { plan = null, reason = "SITEA", site = huntA };
   local huntB = OpexRoadSites(candidate.dst, candidate.dstTown, candidate.cargo, stop.vehType,
-                              coverage, dstWantsProduction, radiusB);
+                              coverage, dstWantsProduction, radiusB, candidate.src);
   local sitesB = huntB.sites;
   if (sitesB.len() == 0) return { plan = null, reason = "SITEB", site = huntB };
 
   local trials = 0;
+  local nEmpty = 0;
+  local nLong = 0;
+  local nHit = 0;
+  local nUnb = 0;
   local noDepot = 0;
   foreach (siteA in sitesA) {
     foreach (siteB in sitesB) {
       for (local shape = 0; shape < 2; shape++) {
         if (trials >= ROAD_MAX_TRACE_TRIALS) {
-          return { plan = null, reason = noDepot > 0 ? "DEPOTX" : "TRACEX" };
+          return { plan = null, reason = noDepot > 0 ? "DEPOTX" : "TRACEX",
+                   trace = { trials = trials, nEmpty = nEmpty, nLong = nLong, nHit = nHit,
+                             nUnb = nUnb, nNoDepot = noDepot } };
         }
         trials++;
         local trace = OpexRoadTrace(siteA.front, siteB.front, shape == 0);
-        if (trace.len() == 0 || trace.len() > ROAD_MAX_TRACE_TILES) continue;
+        if (trace.len() == 0) { nEmpty++; continue; }
+        if (trace.len() > ROAD_MAX_TRACE_TILES) { nLong++; continue; }
         /* cf. commentaire sur OpexRoadTraceHitsStop : le trace ne doit jamais retraverser le
          * corps d'un des deux arrets qu'il relie, sous peine d'etre coupe une fois l'arret
          * construit par-dessus. */
-        if (OpexRoadTraceHitsStop(trace, siteA.tile) || OpexRoadTraceHitsStop(trace, siteB.tile)) continue;
-        if (!OpexRoadTraceBuildable(trace)) continue;
+        if (OpexRoadTraceHitsStop(trace, siteA.tile) || OpexRoadTraceHitsStop(trace, siteB.tile)) {
+          nHit++;
+          continue;
+        }
+        if (!OpexRoadTraceBuildable(trace)) { nUnb++; continue; }
         local depot = OpexRoadFindDepot(trace, siteA, siteB);
         /* Un trace valide sans depot n'est pas le meme echec qu'aucun trace valide : le premier dit
          * que le terrain autour du trace est bati ou en pente, le second que les deux facades ne se
@@ -366,7 +386,9 @@ function OpexRoadPlanFor(catalog, candidate)
       }
     }
   }
-  return { plan = null, reason = noDepot > 0 ? "DEPOTX" : "TRACEX" };
+  return { plan = null, reason = noDepot > 0 ? "DEPOTX" : "TRACEX",
+           trace = { trials = trials, nEmpty = nEmpty, nLong = nLong, nHit = nHit,
+                     nUnb = nUnb, nNoDepot = noDepot } };
 }
 
 /* La liste added ne contient que les aretes dont la connexion n'existait pas avant notre appel.

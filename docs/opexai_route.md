@@ -175,6 +175,10 @@ L'item 0 (la graine qui coulait) est **fermé**, voir §6 bis. L'item 5 (flotte 
    Filtre `IsBuildable` + plat, comme `OpexStationPlans`. 5 graines :
    SITE 14/18 → **0/11**, OK 2 → 6 (`docs/opex_road_sitable_20y_5seeds.json`).
    Il reste TRACEX. Le rayon et le plafond de sondes n'étaient pas le levier.
+2 bis. ✅ **TRACEX** (2026-08-30). 32 L (plus le plafond à 12) et façade tournée
+   vers l'autre extrémité. `nLong = 0`. TRACEX 5→2, OK 6→8, pax 2→4
+   (`docs/opex_road_tracex_20y_5seeds.json`). Les 2 restants sont un L à travers
+   un bâtiment. Pas Pathfinder.Road.
 3. **Le classement routier et le classement rail ne sont pas comparables.**
    `ROAD_PLAN_ITERATIONS_BASE` est non calibré et ne sert qu'à ordonner les candidats routiers entre
    eux. Le panneau `RB` mesure désormais le coût réel de chaque tentative, ce qui rend cette

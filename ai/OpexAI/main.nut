@@ -531,6 +531,13 @@ function OpexAI::_tryBuildRoads(year)
         OpexSign(anchor, "RI|" + yy + "|" + idx + "|" + attempts + "|" + s.nCargo + "|"
                                  + s.nBuildable + "|" + s.nCmd);
       }
+      /* TRACEX/DEPOTX : essais / L trop long / traverse l'arret / arete refusee.
+       * "RT|99|999|6|32|99|99|99" = 23 caracteres. */
+      if ((planning.reason == "TRACEX" || planning.reason == "DEPOTX") && ("trace" in planning)) {
+        local t = planning.trace;
+        OpexSign(anchor, "RT|" + yy + "|" + idx + "|" + attempts + "|" + t.trials + "|"
+                                 + t.nLong + "|" + t.nHit + "|" + t.nUnb);
+      }
       continue;
     }
     local result = OpexBuildRoadRoute(this._catalog, this._budget, plan, candidate);

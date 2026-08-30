@@ -101,6 +101,7 @@ RE_ON = re.compile(r"^ON\|W\|(\w+)\|(-?\d+)$")            # water failure: reaso
 RE_RC_ROAD = re.compile(r"^RC\|(\d{2})\|(\d+)\|(\d+)\|(-?\d+)\|(\d+)$")   # annee, id, essai, cout, vehicules
 RE_RA_ROAD = re.compile(r"^RA\|(\d{2})\|(\d+)\|(\d+)\|(\w+)\|(-?\d+)$")  # tentative echouee
 RE_RI_ROAD = re.compile(r"^RI\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")  # SITE cargo/buildable/cmd
+RE_RT_ROAD = re.compile(r"^RT\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")  # TRACEX trials/long/hit/unb
 RE_RB_ROAD = re.compile(r"^RB\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")   # opcodes plan / construction
 RE_RN_ROAD = re.compile(r"^RN\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")  # classes/tentatives/baties/opcodes
 RE_RS_ROAD = re.compile(r"^RS\|(\d{2})\|(\d+)\|(\d+)\|(\d+)$")  # paires en bande / coupees / acceptees
@@ -837,6 +838,10 @@ def parse_multimodal(all_signs):
             road_site[(int(m.group(1)), int(m.group(2)), int(m.group(3)))] = {
                 "n_cargo": int(m.group(4)), "n_buildable": int(m.group(5)),
                 "n_cmd": int(m.group(6))}
+        elif m := RE_RT_ROAD.match(sign):
+            road_site[(int(m.group(1)), int(m.group(2)), int(m.group(3)))] = {
+                "n_trials": int(m.group(4)), "n_long": int(m.group(5)),
+                "n_hit": int(m.group(6)), "n_unb": int(m.group(7))}
         elif m := RE_RB_ROAD.match(sign):
             road_costs[(int(m.group(1)), int(m.group(2)), int(m.group(3)))] = {
                 "plan_ops": int(m.group(4)), "build_ops": int(m.group(5))}
@@ -1042,7 +1047,8 @@ def main():
                                   "PE/PY pax_near",
                                   "OB|R refus de jointure",
                                   "PS join_end A/B/N",
-                                  "RI SITE route cargo/buildable/cmd"],
+                                  "RI SITE route cargo/buildable/cmd",
+                                  "RT TRACEX trials/long/hit/unb"],
         "runs": runs,
     }
     result_path.write_text(json.dumps(payload, indent=2))
@@ -1075,9 +1081,14 @@ def main():
         print(f"  road SITE={len(site)}/{len(road_fail)} "
               f"SITEA={sum(1 for a in road_fail if a.get('reason')=='SITEA')} "
               f"SITEB={sum(1 for a in road_fail if a.get('reason')=='SITEB')} "
-              f"cargo0={sum(1 for a in site if (a.get('n_cargo') or 0)==0)} "
-              f"buildable0={sum(1 for a in site if (a.get('n_buildable') or 0)==0)} "
-              f"cmd>0={sum(1 for a in site if (a.get('n_cmd') or 0)>0)}")
+              f"TRACEX={sum(1 for a in road_fail if a.get('reason')=='TRACEX')} "
+              f"DEPOTX={sum(1 for a in road_fail if a.get('reason')=='DEPOTX')}")
+        tracex = [a for a in road_fail if a.get("reason") in ("TRACEX", "DEPOTX")]
+        if tracex:
+            print(f"  TRACEX trials={sum(a.get('n_trials') or 0 for a in tracex)} "
+                  f"long={sum(a.get('n_long') or 0 for a in tracex)} "
+                  f"hit={sum(a.get('n_hit') or 0 for a in tracex)} "
+                  f"unb={sum(a.get('n_unb') or 0 for a in tracex)}")
         dist = run.get("attempt_distance") or {}
         print(f"sondages profit<=0: {run.get('n_probe_attempts', 0)}  "
               f"OK={run.get('n_probe_ok', 0)}  lignes={run.get('n_probe_lines', 0)}")
