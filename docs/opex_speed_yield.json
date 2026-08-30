@@ -1,0 +1,29 @@
+{
+  "source": "docs/opex_speed_yield_20y_5seeds.json",
+  "date": "2026-08-30",
+  "note": "Panneau RV : mediane GetCurrentSpeed des trains en marche (vitesse > 0) vs GetMaxSpeed du moteur et vs effectiveSpeed traction. Instantane annuel, pas un temps de trajet. 5 graines x 20 ans.",
+  "n_moving_line_years": 832,
+  "median_speed": 154.5,
+  "median_catalog": 160,
+  "median_pred": 123,
+  "median_vs_catalog": 0.956,
+  "median_vs_pred": 1.176,
+  "p10_vs_catalog": 0.238,
+  "p90_vs_catalog": 1.0,
+  "share_median_le_61": 0.201,
+  "share_median_ge_150": 0.526,
+  "by_distance": {
+    "0-50": {"n": 405, "median_speed": 143, "vs_catalog": 0.894, "vs_pred": 1.220},
+    "50-75": {"n": 230, "median_speed": 160, "vs_catalog": 1.000, "vs_pred": 1.185},
+    "75-100": {"n": 118, "median_speed": 158, "vs_catalog": 0.959, "vs_pred": 1.175},
+    "100-201": {"n": 79, "median_speed": 160, "vs_catalog": 1.000, "vs_pred": 1.151}
+  },
+  "seeds": {
+    "42": {"n_moving": 154, "vs_catalog": 0.969, "vs_pred": 1.185},
+    "100": {"n_moving": 125, "vs_catalog": 0.931, "vs_pred": 1.151},
+    "999": {"n_moving": 202, "vs_catalog": 0.925, "vs_pred": 1.185},
+    "4096": {"n_moving": 165, "vs_catalog": 0.950, "vs_pred": 1.176},
+    "12345": {"n_moving": 186, "vs_catalog": 0.963, "vs_pred": 1.176}
+  },
+  "verdict": "Le plafond 61 km/h n'est pas le regime median. L'ancien SPEED_EFFICIENCY_PCT=70 etait trop pessimiste. La traction (sans 70 %) est legerement lente (reel/pred 1,18). Ne pas reintroduire un abattement forfaitaire ni inventer une fraction de virages."
+}

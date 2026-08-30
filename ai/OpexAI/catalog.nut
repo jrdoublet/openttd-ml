@@ -130,9 +130,9 @@ function OpexRailAcceleration(loco, wagon, wagons, speed)
  * verifiee de docs/mecanique_jeu.md section 2 : 0.036 tuile/jour par km/h.
  *
  * Les virages, pentes, ponts et temps de chargement restent INCONNUS avant A*. Le source impose
- * pourtant 61 km/h sur un angle droit et 111 a courbure 2 ; aucun pourcentage de virages non mesure
- * ne leur est donc invente ici. Cette limite est documentee comme hypothese a verifier, pas masquee
- * par le precedent SPEED_EFFICIENCY_PCT = 70. */
+ * 61 km/h sur un angle droit et 111 a courbure 2 ; aucun pourcentage de virages n'est invente.
+ * Mesure 2026-08-30 (docs/opex_speed_yield.json, n=832) : mediane reel/catalogue 0,96,
+ * reel/traction 1,18. Le 70 % etait trop pessimiste. Pas de retuning. */
 function OpexRailEffectiveSpeed(loco, wagon, wagons, distance)
 {
   local cruise = OpexRailCruiseSpeed(loco, wagon, wagons);

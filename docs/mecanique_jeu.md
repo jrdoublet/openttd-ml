@@ -199,10 +199,12 @@ résultat.
 **Ce que ce modèle ne sait pas avant A*.** La géométrie du futur tracé n'existe pas encore : on ne
 peut donc pas compter les pentes, ponts, tunnels ou virages sans faire fuiter le résultat du
 pathfinding dans le classement. Les plafonds du moteur restent 61 km/h pour un angle droit et
-111 km/h pour une courbure 2, mais OpexAI n'invente pas une proportion de virages pour les appliquer
-à toutes les lignes. L'hypothèse « rail plat, sans fraction de virages mesurée » doit être validée
-sur le prochain banc apparié ; elle est plus explicite que l'ancien 70 %, mais ce n'est pas une
-mesure de vitesse moyenne.
+111 km/h pour une courbure 2 ; OpexAI n'invente pas une proportion de virages.
+
+✅ **Mesure 2026-08-30** (`docs/opex_speed_yield.json`, panneau `RV`, n = 832) : médiane
+réelle / catalogue **0,96**, réelle / traction **1,18**. 20 % des instantanés ≤ 61 km/h,
+53 % ≥ 150. L'hypothèse « pas de fraction de virages » tient en médiane. L'ancien 70 %
+était trop pessimiste. ⚠️ Pas de retuning.
 
 ---
 
@@ -437,8 +439,11 @@ Construire une gare exige une note de seulement **−200** (donc quasi toujours 
    Les probabilités de §4 restent donc à recalibrer sur ce régime, pas sur le régime `ORIGINAL`.
    À ne pas confondre avec `difficulty.economy` (= `false`, recessions désactivées), un réglage
    distinct malgré le nom qui prête à confusion.
-3. Le **rendement de vitesse effectif** d'un train (vitesse réelle / vitesse catalogue), à mesurer :
-   c'est ce qui rend `TILES_PER_DAY` honnête.
+3. ✅ **Rendement de vitesse effectif** (2026-08-30, `docs/opex_speed_yield.json`) :
+   médiane réelle / catalogue **0,96** (n = 832), réelle / traction **1,18**.
+   Le plafond 61 km/h apparaît (20 % des instantanés) mais n'est pas le régime
+   médian. `TILES_PER_DAY = 2` a déjà été remplacé par `0,036 × effectiveSpeed`.
+   Pas de retuning.
 4. ✅🔶 La **courbe de montée de la note de gare** sur une ligne neuve, lue dans `station_cmd.cpp`
    (`UpdateStationRating`) et `station_base.h` de la source 13.4 disponible localement — **pas
    encore confirmée inchangée en 15.3**, mécanique ancienne donc probablement stable, mais non

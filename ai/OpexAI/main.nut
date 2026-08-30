@@ -284,6 +284,22 @@ function OpexLineVehicleIds(line, stationId)
 /* Le type de vehicule se deduit du mode de la ligne, et d'un seul endroit : _reportLines et
  * _scrapDeadLines le demandaient chacun de leur cote, le second en le codant en dur a VT_RAIL --
  * ce qui aurait laisse une ligne routiere morte rouler pour toujours. */
+function OpexMedianInt(values)
+{
+  local n = values.len();
+  if (n == 0) return 0;
+  for (local i = 1; i < n; i++) {
+    local v = values[i];
+    local j = i;
+    while (j > 0 && values[j - 1] > v) {
+      values[j] = values[j - 1];
+      j--;
+    }
+    values[j] = v;
+  }
+  return values[n / 2];
+}
+
 function OpexLineVehicleType(line)
 {
   if (!("mode" in line)) return AIVehicle.VT_RAIL;
@@ -1198,6 +1214,27 @@ function OpexAI::_reportLines(year)
     OpexSign(anchor, "OZ|" + line.lineId + "|" + year + "|" + profit);
     OpexSign(anchor, "OU|" + line.lineId + "|" + year + "|" + vehCount + "|" + runCost);
     OpexSign(anchor, "OO|" + line.lineId + "|" + year + "|" + (profit + runCost));
+    /* Rendement de vitesse (taches S4.3). Instantane annuel des convois EN MARCHE
+     * (vitesse > 0, donc pas a quai). med / cat = rendement vs catalogue ; med / pred
+     * vs la traction. "RV|99|999|8|999|999|999" = 22 caracteres. Rail seulement. */
+    if (vehicleType == AIVehicle.VT_RAIL) {
+      local moving = [];
+      local catalogs = [];
+      foreach (v in vehicles) {
+        if (!AIVehicle.IsValidVehicle(v)) continue;
+        if (AIVehicle.GetVehicleType(v) != AIVehicle.VT_RAIL) continue;
+        local speed = AIVehicle.GetCurrentSpeed(v);
+        if (speed <= 0) continue;
+        moving.append(speed);
+        catalogs.append(AIEngine.GetMaxSpeed(AIVehicle.GetEngineType(v)));
+      }
+      local pred = ("effectiveSpeed" in line) ? line.effectiveSpeed.tointeger() : 0;
+      local cat = 0;
+      if (catalogs.len() > 0) cat = OpexMedianInt(catalogs);
+      else if (("loco" in line) && line.loco != null && ("speed" in line.loco)) cat = line.loco.speed;
+      OpexSign(anchor, "RV|" + (year % 100) + "|" + line.lineId + "|" + moving.len() + "|"
+                               + OpexMedianInt(moving) + "|" + pred + "|" + cat);
+    }
     /* `<-` : le slot n'existe pas a la construction. `=` leve "the index 'vehCount' does not
      * exist" et tue le script (mesure 2026-08-29, toutes les graines, des 1971). */
     line.vehCount <- vehCount;

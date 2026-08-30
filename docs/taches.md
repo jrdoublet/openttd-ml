@@ -672,11 +672,11 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
       Le spread n'est **pas** débloqué : joindre plus, sur un terme qui ne paie pas, recréerait
       le banc vivier.
 
-**Priorité de fait, révisée le 2026-08-30 (catalogue)** : sonde 1950-2000 ✅.
-Multistop ✅. Classement ✅. TRACEX ✅. `RetryToBuild` : les 64 `TRKFAIL` sont
-TrainLineAI 13.4, ~2/173 chez OpexAI 15.3. Le **spread** n'est pas la suite.
-`MIN_SEPARATION` reste gelé. L'item 2 reste dernier. Mesures ouvertes : vitesse
-réelle (§4.3), croissance de ville (§4.5).
+**Priorité de fait, révisée le 2026-08-30 (vitesse)** : rendement de vitesse ✅
+(0,96 vs catalogue, 1,18 vs traction, pas de retuning). Sonde 1950-2000 ✅.
+Multistop ✅. Classement ✅. TRACEX ✅. `RetryToBuild` : ~2/173. Le **spread**
+n'est pas la suite. `MIN_SEPARATION` reste gelé. L'item 2 reste dernier. Mesure
+ouverte : croissance de ville (§4.5).
 
 *Priorité précédente, conservée pour la trace* : ~~le rendement join~~ (✅ mesuré,
 défaut 0) était la tête. ~~l'item **9.1**~~ (✅) était la tête. ~~le retuning pax
@@ -749,8 +749,10 @@ borné~~ / ~~l'item **7**~~ / ~~l'item **4**~~.
   `OpexAI[astar_cost=1]` rallume. Ne pas baisser MIN_RATIO « pour compenser » sans banc :
   ce serait le vivier.
 - ✅ **Constantes HYPOTHÈSE `SPEED_EFFICIENCY_PCT = 70` et `WAGONS_PER_TRAIN = 5`** : remplacées
-  le 2026-08-29 par la traction dimensionnée (`4a8e15e`). `ROAD_SPEED_EFFICIENCY_PCT = 60` reste
-  une hypothèse du mode route (`docs/opexai_route.md`).
+  le 2026-08-29 par la traction dimensionnée (`4a8e15e`). Rendement réel mesuré le 2026-08-30
+  (§4.3) : 0,96 vs catalogue, 1,18 vs traction — le 70 % était trop pessimiste, pas de
+  retuning. `ROAD_SPEED_EFFICIENCY_PCT = 60` reste une hypothèse du mode route
+  (`docs/opexai_route.md`).
 
 ---
 
@@ -764,8 +766,15 @@ Reprend le §8 de `docs/mecanique_jeu.md`, complété.
    défaut, non surchargé — vérifié dans l'`openttdlab.cfg` du 2026-08-28. À distinguer de
    `difficulty.economy` (recessions, réglage différent malgré le nom). Les probabilités de
    changement de production restent à recalibrer sur ce régime précis.
-3. Le **rendement de vitesse effectif** d'un train (vitesse réelle / vitesse catalogue), sachant
-   que le bridage en courbe descend à 61 km/h sur un virage à 90°.
+3. ✅ **Rendement de vitesse effectif** (2026-08-30). Panneau `RV`, 5 graines × 20 ans
+   (`docs/opex_speed_yield_20y_5seeds.json`, `docs/opex_speed_yield.json`). Instantané
+   annuel des trains **en marche** (vitesse > 0) : n = **832** ligne-années.
+   Médiane réelle **155** contre catalogue **160** (rapport **0,96**) et contre la
+   traction **123** (rapport **1,18**). 20 % des instantanés ont une médiane ≤ 61
+   (le plafond d'angle droit existe) ; 53 % sont ≥ 150. L'ancien `SPEED_EFFICIENCY_PCT
+   = 70` était trop pessimiste. ⚠️ **Pas de retuning.** Ne pas réintroduire un
+   abattement forfaitaire ni inventer une fraction de virages. `ROAD_SPEED_EFFICIENCY_PCT
+   = 60` n'est pas ceci (route, autre constante).
 4. ✅🔶 La **courbe de montée de la note d'une gare neuve**, dérivée de la source 13.4
    (`UpdateStationRating` dans `station_cmd.cpp`) — départ à `175/255` (pas 0), mise à jour tous
    les 2,5 jours (`185/74` ticks), pas de ±2 points vers la cible calculée une fois le premier

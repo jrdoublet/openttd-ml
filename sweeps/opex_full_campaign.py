@@ -49,6 +49,7 @@ RE_PG = re.compile(r"^PG\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
 RE_PD = re.compile(r"^PD\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)(?:\|(\d+))?$")
 RE_PS = re.compile(r"^PS\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)(?:\|([PF]))?(?:\|([ABN]))?$")
 RE_OY = re.compile(r"^OY\|(\d+)\|(\d+)\|(-?\d+)\|(-?\d+)$")
+RE_RV = re.compile(r"^RV\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")  # yy, id, nMoving, med, pred, cat
 RE_OZ = re.compile(r"^OZ\|(\d+)\|(\d+)\|(-?\d+)$")
 RE_OU = re.compile(r"^OU\|(\d+)\|(\d+)\|(\d+)\|(-?\d+)$")
 RE_OO = re.compile(r"^OO\|(\d+)\|(\d+)\|(-?\d+)$")
@@ -732,6 +733,49 @@ def parse_yearly(all_signs):
     return dict(sorted(by_year.items()))
 
 
+def parse_speed_yield(all_signs):
+    """Instantanes RV : vitesse mediane des trains en marche vs traction et catalogue."""
+    samples = []
+    for sign in all_signs:
+        if m := RE_RV.match(sign):
+            n_moving, med, pred, cat = (int(m.group(3)), int(m.group(4)),
+                                        int(m.group(5)), int(m.group(6)))
+            samples.append({
+                "year": 1900 + int(m.group(1)),
+                "line_index": int(m.group(2)),
+                "n_moving": n_moving,
+                "median_speed": med,
+                "pred_speed": pred,
+                "catalog_speed": cat,
+            })
+    moving = [s for s in samples if s["n_moving"] > 0 and s["catalog_speed"] > 0]
+    def ratios(key):
+        out = []
+        for s in moving:
+            denom = s[key]
+            if denom > 0:
+                out.append(s["median_speed"] / denom)
+        return out
+    vs_cat = ratios("catalog_speed")
+    vs_pred = ratios("pred_speed")
+    vs_cat.sort()
+    vs_pred.sort()
+    def mid(vals):
+        return vals[len(vals) // 2] if vals else None
+    return {
+        "n_samples": len(samples),
+        "n_moving": len(moving),
+        "median_vs_catalog": mid(vs_cat),
+        "median_vs_pred": mid(vs_pred),
+        "p10_vs_catalog": vs_cat[len(vs_cat) // 10] if vs_cat else None,
+        "p90_vs_catalog": vs_cat[(9 * len(vs_cat)) // 10] if vs_cat else None,
+        "median_speed": mid(sorted(s["median_speed"] for s in moving)) if moving else None,
+        "median_catalog": mid(sorted(s["catalog_speed"] for s in moving)) if moving else None,
+        "median_pred": mid(sorted(s["pred_speed"] for s in moving)) if moving else None,
+        "samples": samples,
+    }
+
+
 def parse_events(all_signs):
     """Retient les evenements rares qui expliquent les variations de parc et d'emprunt."""
     cash_blocks, dead_lines, loan_repayments, loan_draws, road_refleets = [], [], [], [], []
@@ -897,6 +941,7 @@ def make_run_payload(rows, seed, years):
     cash_blocks, dead_lines, loan_repayments, loan_draws, road_refleets, loan_view_rows = parse_events(
         final["signs"])
     probe_attempts = parse_probes(final["signs"])
+    speed_yield = parse_speed_yield(final["signs"])
 
     n_rail_ok = sum(1 for line in lines
                     if line["mode"] == "rail" and line["reason"] == "OK" and not line.get("probe"))
@@ -983,6 +1028,8 @@ def make_run_payload(rows, seed, years):
         "n_pax_near_tried": sum(row.get("pax_near_tried") or 0 for row in yearly.values()),
         "n_pax_near_ok": sum(1 for line in lines if line.get("pax_near")),
         "loan_view": loan_view_rows,
+        "speed_yield": {k: v for k, v in speed_yield.items() if k != "samples"},
+        "speed_samples": speed_yield["samples"],
         "lines": lines, "yearly": yearly,
         "annual_blocks": annual_blocks, "calendar_years_crossed": calendar_years_crossed,
         "skipped_years": skipped_years, "financial_series": financial_series,
@@ -1070,7 +1117,8 @@ def main():
                                   "PS join_end A/B/N",
                                   "RI SITE route cargo/buildable/cmd",
                                   "RT TRACEX trials/long/hit/unb",
-                                  "RM multistop nStopsA/nStopsB/veh"],
+                                  "RM multistop nStopsA/nStopsB/veh",
+                                  "RV vitesse mediane trains en marche"],
         "runs": runs,
     }
     result_path.write_text(json.dumps(payload, indent=2))
@@ -1092,6 +1140,11 @@ def main():
         cmd = sum(1 for a in site if (a.get("n_cmd") or 0) > 0)
         print(f"  SITE n={len(site)} join_end_fail={join_end} clear0={clear0} "
               f"cmd>0={cmd} JOINPATH={run.get('n_rail_attempts_joinpath', 0)}")
+        sy = run.get("speed_yield") or {}
+        print(f"  vitesse n={sy.get('n_moving')}/{sy.get('n_samples')} "
+              f"med={sy.get('median_speed')} pred={sy.get('median_pred')} "
+              f"cat={sy.get('median_catalog')} "
+              f"med/cat={sy.get('median_vs_catalog')} med/pred={sy.get('median_vs_pred')}")
         print(f"company_value final: {run['final_company_value']}  "
               f"performance_history: {run['final_performance_history']}")
         print(f"money: {run['final_money']}  current_loan: {run['final_current_loan']}")
