@@ -672,11 +672,11 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
       Le spread n'est **pas** débloqué : joindre plus, sur un terme qui ne paie pas, recréerait
       le banc vivier.
 
-**Priorité de fait, révisée le 2026-08-30 (multistop)** : multistop ✅ (mécanisme
-oui, 4 véhicules non, défaut 0). Classement inter-modes ✅. TRACEX ✅.
-SITEA/SITEB ✅. Item route 1 ✅. Le **spread** n'est pas la suite. Plus de tête
-route de construction. Les 2 TRACEX restants sont `nUnb` — pas Pathfinder.Road.
-`MIN_SEPARATION` reste gelé. L'item 2 reste dernier.
+**Priorité de fait, révisée le 2026-08-30 (catalogue)** : sonde 1950-2000 ✅.
+Multistop ✅. Classement ✅. TRACEX ✅. `RetryToBuild` : les 64 `TRKFAIL` sont
+TrainLineAI 13.4, ~2/173 chez OpexAI 15.3. Le **spread** n'est pas la suite.
+`MIN_SEPARATION` reste gelé. L'item 2 reste dernier. Mesures ouvertes : vitesse
+réelle (§4.3), croissance de ville (§4.5).
 
 *Priorité précédente, conservée pour la trace* : ~~le rendement join~~ (✅ mesuré,
 défaut 0) était la tête. ~~l'item **9.1**~~ (✅) était la tête. ~~le retuning pax
@@ -929,9 +929,14 @@ Ne pas oublier deux composantes gratuites de la note de compagnie : **emprunt à
 
 ## 7. Reprises de l'ère `TrainLineAI` encore ouvertes
 
-- **La reprise sur préfixe façon `RetryToBuild`**, en clean-room : 64 `TRKFAIL` dont la recherche
-  était déjà payée pour zéro profit ; ~145 M récupérables estimés, soit 453 par itération contre
-  156 en moyenne.
+- **La reprise sur préfixe façon `RetryToBuild`**, en clean-room.
+  Les **64 `TRKFAIL` / ~145 M** (453 par itération contre 156) sont **TrainLineAI 13.4**,
+  campagne v3 une ligne par compagnie (2026-08-28), pas OpexAI 15.3. Sur l'arbre
+  courant, 5 graines × 20 ans : **2/173** (`docs/opex_road_multistop_20y_5seeds.json`),
+  **2/175** (TRACEX), **3/227** (distance). `abandon_memory` ne retient que `ABND` :
+  graine 4096, 1988, deux tentatives à 69 tuiles (10 000 puis 27 950 itérations).
+  Ce n'est plus le meilleur rendement identifié. Ne pas copier AAAHogEx pour deux
+  échecs par campagne.
 - ✅ **La politique d'abandon** : la forme fermée coupe une recherche lorsque son rendement
   marginal attendu passe sous le rapport du meilleur candidat non essayé. Le trou du dernier rang
   (absence de suivant = budget maximal) est corrigé : son alternative est `MIN_RATIO`, rapport
@@ -1049,18 +1054,14 @@ items d'abord, le réglage de `MIN_SEPARATION` jamais (§2.5).
   Lecture faite : `docs/mecanique_jeu.md` §12 — trois principes, pas un cloverleaf ; `JOINPATH`
   tient tant que la jointure ne paie pas.
 
-**Périmètre de mode, vérifié le 2026-08-29** : `_tooClose` n'est appelé qu'à `main.nut:374`, dans
-`_tryBuild` — **le filet ne filtre que le rail**. L'avion et le bateau ne le subissent pas (une
-liaison unique chacun, gardée par `_airBuilt`/`_waterBuilt`) mais **l'alimentent** : ils rejoignent
-`_lines` avec `originA = originB = ` la gare bâtie (`main.nut:194`, `232`), donc un aéroport ou un
-quai bloque bel et bien le rail sur 10 tuiles. Le bus, lui, est délibérément tenu **hors** de
-`_lines` (`main.nut:284`) : totalement transparent au filet, dans les deux sens.
-
-**Corollaire** : un mode qui ne consomme pas d'espace admissible ferroviaire contourne le mur par
-construction. Lever le plafond « une seule liaison » du mode route rendrait les villes murées pour
-le rail à nouveau desservables. À traiter comme une hypothèse et non comme un plan — le bus roule
-depuis le 2026-08-28 mais son non-chargement n'est toujours pas expliqué (§6.4) et sa rentabilité
-n'a jamais été mesurée sur une partie complète.
+**Périmètre de mode, vérifié le 2026-08-29, à jour le 2026-08-30** : `_tooClose` ne filtre
+**que le rail**. L'avion et le bateau ne le subissent pas (une liaison unique chacun) mais
+**l'alimentent** : ils rejoignent `_lines`, un aéroport ou un quai bloque le rail sur 10 tuiles.
+Les lignes **routières** sont dans `_lines` (rapport, rebut, `RF`) mais
+`OpexOriginServed(..., includeRoad = false)` et `_tooClose` les ignorent : une desserte de
+12 tuiles n'épuise pas une ville. Le plafond v1 « une seule liaison bus » est levé (jusqu'à
+3/an). Le non-chargement de la v1 était la façade du dépôt, pas le type d'arrêt. Rentabilité
+mesurée : `docs/opexai_route.md`, banc PH **+9,3 %**.
 - **Gérer des voies aller-retour** (double voie) pour permettre plusieurs trains simultanés sur le
   même parcours, plutôt qu'une seule voie à sens unique par ligne.
 - **Gérer une file d'attente de tâches** (queue) plutôt que le déroulement actuel, pour ordonnancer

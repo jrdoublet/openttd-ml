@@ -401,9 +401,11 @@ function OpexCatalog::_refreshRail()
   }
 }
 
-/* Le premier aeroport est volontairement simple : LARGE tant qu'il est disponible (c'est le cas
- * du vanilla 1970), sinon SMALL puis COMMUTER. Une piste courte ne recoit jamais un gros avion.
- * On choisit, pour le type d'aeroport retenu, l'appareil passagers refittable le plus capacitaire. */
+/* Le premier aeroport est volontairement simple : LARGE tant qu'il est disponible.
+ * Vanilla 15.3 (docs/catalogue_churn_1950_2000.json) : SMALL expire en 1960, donc un
+ * depart 1970 tombe sur LARGE ; INTERNATIONAL n'arrive qu'en 1990. Sinon SMALL puis
+ * COMMUTER (1983). Une piste courte ne recoit jamais un gros avion. On choisit, pour
+ * le type d'aeroport retenu, l'appareil passagers refittable le plus capacitaire. */
 function OpexCatalog::_refreshAir()
 {
   this.airport = null;

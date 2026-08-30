@@ -31,7 +31,10 @@ de calibration ; elles ne définissent pas la cible d'exécution d'OpexAI.
 contient des moteurs plus rapides, plus chers et plus nombreux. `engine_rank` ne désigne donc pas
 les mêmes locomotives et les coûts de construction ne sont pas directement comparables. Les JSON
 antérieurs en 1950/densité 2 restent des artefacts historiques; les mesures 1970/densité 3 forment
-une campagne distincte et ne doivent pas être mélangées avec elles.
+une campagne distincte et ne doivent pas être mélangées avec elles. Sonde 1950-2000
+(`docs/catalogue_churn_1950_2000.json`) : l'électrique est là dès **1967**, INTERNATIONAL en
+**1990**, monorail en **2000**. Une campagne de 20 ans depuis 1970 a déjà l'électrique et ne
+voit pas INTERNATIONAL.
 
 **Note sur la version.** La documentation d'OpenTTDLab se contredit : la section *Compatibility*
 annonce le support des branches 12, 13 et 15+, tandis que l'avertissement sur `run_experiments`

@@ -595,9 +595,8 @@ des arrêts en cul-de-sac. Tout cela reste donc à mesurer dans le jeu, pas à c
 C'est une contrainte de type, pas une préférence : un bus ne chargera jamais sur une aire de
 chargement pour camions. ✅ **Vérifié dans notre code** : `builder_road.nut` appelle bien
 `AIRoad.BuildRoadStation(..., AIRoad.ROADVEHTYPE_BUS, ...)` aux deux extrémités
-(lignes 115, 274, 285). **Cette piste est donc écartée** comme cause du non-chargement de la
-liaison bus mesurée (notes d'arrêts à −1, recettes quasi nulles — voir
-`docs/opexai_multimodal.md`).
+(type imposé par le cargo). **Cette piste est écartée** comme cause du non-chargement de la
+v1 (notes −1) : c'était la façade du dépôt, 2026-08-28. Voir `docs/opexai_route.md`.
 
 ### Ce que les pages apprennent quand même
 
@@ -613,13 +612,11 @@ liaison bus mesurée (notes d'arrêts à −1, recettes quasi nulles — voir
 - **Ordres** : `Go To` gare A puis `Go To` gare B, la boucle se referme d'elle-même.
 - **Le dépôt** doit être proche d'un arrêt mais n'a aucune contrainte de voisinage de maisons.
 - **Le wiki lui-même prévient qu'une courte liaison bus « ne sera probablement pas très
-  rentable »**, faute de distance et de volume. À prendre au sérieux : c'est cohérent avec notre
-  mesure (600 de coûts annuels contre des recettes quasi nulles), et cela plaide pour que la route
-  serve la **croissance de ville** (§5) plutôt que le profit direct de la ligne.
-- **Regrouper plusieurs arrêts en UNE gare** (`Ctrl`+clic) est présenté comme le vrai levier de
-  volume : l'exemple cité passe de 1 000-2 000 à **8 000-10 000 passagers par mois**. ❓ Chiffre du
-  wiki, non vérifié, mais l'ordre de grandeur (×5) justifierait à lui seul de tester le
-  regroupement avant de conclure quoi que ce soit sur la rentabilité du bus.
+  rentable »**. Les recettes nulles de la v1 étaient un bug de façade. Le mode adopté a un
+  profit réel (pax médiane 3,91× le prédit) et un plancher `ROAD_MIN_PROFIT_ANNUAL = 1000`.
+- **Regrouper plusieurs arrêts en UNE gare** (`Ctrl`+clic) : le wiki cite ×5 de volume.
+  Testé (`road_multistop`, 2026-08-30) : le second arrêt se pose, les 4 véhicules ne
+  paient pas (ligne pax appariée 8 905 → 1 781). ⚠️ Défaut 0.
 
 ### Le plafond de deux véhicules par arrêt — la contrainte que les autres pages taisaient
 
@@ -642,11 +639,9 @@ efficace, sans que la page en détaille la mécanique. ❓
 
 > **Conséquences pour OpexAI.**
 > - **Le dimensionnement d'une ligne bus n'est pas libre** : au-delà de 2 bus par arrêt, ajouter un
->   véhicule dégrade la ligne au lieu de l'améliorer. Le modèle de `economy.nut` calcule pourtant
->   un nombre de convois à partir de la seule contrainte de fréquence (`TARGET_HEADWAY_DAYS`), sans
->   aucun plafond de quai — transposé tel quel à la route, **il peut prescrire une flotte qui se
->   bloque elle-même**. C'est un argument de plus pour ne pas réutiliser le modèle rail sans le
->   revalider (limite déjà signalée par Codex).
+>   véhicule dégrade la ligne au lieu de l'améliorer. `MAX_ROAD_VEHICLES = 2` est cette règle.
+>   Le multistop relâche le plafond seulement si les deux bouts ont doublé, et ce n'est pas
+>   adopté (défaut 0).
 > - **La congestion est un mode d'échec propre à la route**, absent du rail dans notre code (une
 >   ligne rail à voie unique a ses propres blocages, mais pas ce plafond de deux). Un bus coincé
 >   dans une file n'est pas détecté par notre surveillance de lignes mortes, qui ne couvre que le
@@ -658,9 +653,9 @@ efficace, sans que la page en détaille la mécanique. ❓
   contrairement au rail — un argument de coût en opcodes en faveur de la route.
 
 > **Conséquences pour OpexAI.**
-> 1. **Le type d'arrêt n'est pas la cause du non-chargement** — écarté par lecture du code.
->    Les deux suspects restants, par ordre de vraisemblance : un véhicule jamais démarré, et un
->    arrêt mal orienté donc non raccordé à la route.
+> 1. **Le type d'arrêt n'était pas la cause du non-chargement v1** — écarté. C'était la
+>    façade du dépôt (bit de route perpendiculaire, 2026-08-28). `StartStopVehicle` est
+>    appelé. Le mode route est adopté.
 > 2. **Le regroupement d'arrêts a été testé** (`road_multistop`, 2026-08-30) : le second
 >    arrêt se pose (7/8 et 8/8), les 4 véhicules ne paient pas (ligne pax appariée
 >    8 905 → 1 781). ⚠️ Défaut 0. Voir `docs/opexai_route.md` §7 item 4.

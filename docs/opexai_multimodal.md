@@ -21,7 +21,7 @@ rejoignent `_lines`. Les lignes routières aussi, mais `OpexOriginServed(..., in
 et `_tooClose` les ignorent : un bus de 12 tuiles n'épuise pas une ville contre le rail.
 
 **Route.** La v1 (une liaison bus, désactivée après notes −1) est **périmée**. Le mode actuel est
-une phase annuelle adoptée au banc ; état, bugs, SITE/TRACEX et ce qui reste :
+une phase annuelle adoptée au banc ; SITE/TRACEX/classement/multistop mesurés :
 [`docs/opexai_route.md`](opexai_route.md). Les chiffres de coût `Pathfinder.Road` (696 794
 opcodes) contre le L Manhattan (171 356) ci-dessous restent la raison pour laquelle on n'importe
 pas l'A* routier.
@@ -93,9 +93,12 @@ n'existe plus, les lignes routières sont dans `_lines`.
 
 ## Liaison aérienne
 
-Le catalogue essaie `AT_LARGE`, puis `AT_SMALL` et `AT_COMMUTER`. Un gros avion n'est jamais
-retenu pour une piste courte. Parmi les moteurs constructibles et refittables en passagers, le
-choix privilégie la capacité puis la vitesse.
+Le catalogue essaie `AT_LARGE`, puis `AT_SMALL` et `AT_COMMUTER` **s'ils sont encore
+valides**. Vanilla 15.3 (`docs/catalogue_churn_1950_2000.json`) : SMALL n'est plus
+constructible dès 1960 ; en 1970 c'est LARGE (+ HELIPORT). COMMUTER arrive en 1983,
+INTERNATIONAL en **1990** — après une campagne de 20 ans. Un gros avion n'est jamais
+retenu pour une piste courte. Parmi les moteurs constructibles et refittables en
+passagers, le choix privilégie la capacité puis la vitesse.
 
 `builder_air.nut` :
 
