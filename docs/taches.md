@@ -675,10 +675,10 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
       Le spread n'est **pas** débloqué : joindre plus, sur un terme qui ne paie pas, recréerait
       le banc vivier.
 
-**Priorité de fait, révisée le 2026-08-30 (vitesse route)** : `ROAD_SPEED_EFFICIENCY_PCT`
-✅ mesuré, pas retuné. Croissance de ville ✅. Vitesse rail ✅. Catalogue ✅.
-Multistop ✅. Le **spread** n'est pas la suite. `MIN_SEPARATION` reste gelé.
-L'item 2 reste dernier. §4 mesures : plus rien d'ouvert (le 4 reste lu en 13.4).
+**Priorité de fait, révisée le 2026-08-30 (note de gare 15.3)** : courbe de
+note ✅ relue, inchangée. Vitesse route ✅. Croissance de ville ✅. Catalogue ✅.
+Le **spread** n'est pas la suite. `MIN_SEPARATION` reste gelé. L'item 2 reste
+dernier. §4 mesures : plus rien d'ouvert.
 
 *Priorité précédente, conservée pour la trace* : ~~le rendement join~~ (✅ mesuré,
 défaut 0) était la tête. ~~l'item **9.1**~~ (✅) était la tête. ~~le retuning pax
@@ -767,7 +767,7 @@ borné~~ / ~~l'item **7**~~ / ~~l'item **4**~~.
 ## 4. Mesures dans le jeu plutôt qu'à citer — closes
 
 Reprend le §8 de `docs/mecanique_jeu.md`, complété. Les six points sont clos.
-Le 4 est lu en 13.4, pas revérifié en 15.3.
+Le 4 est relu en 15.3 : inchangé.
 
 1. ✅ Le réglage `plane_speed` réellement actif : `4`, le défaut, non surchargé — vérifié dans
    l'`openttdlab.cfg` d'un run `OpexAI` réel du 2026-08-28, pas supposé.
@@ -785,12 +785,13 @@ Le 4 est lu en 13.4, pas revérifié en 15.3.
    = 70` était trop pessimiste. ⚠️ **Pas de retuning.** Ne pas réintroduire un
    abattement forfaitaire ni inventer une fraction de virages. La route est
    mesurée à part (`RY`, 60 % mesuré, pas retuné).
-4. ✅🔶 La **courbe de montée de la note d'une gare neuve**, dérivée de la source 13.4
-   (`UpdateStationRating` dans `station_cmd.cpp`) — départ à `175/255` (pas 0), mise à jour tous
-   les 2,5 jours (`185/74` ticks), pas de ±2 points vers la cible calculée une fois le premier
-   ramassage enregistré ; ~2 mois pour résorber un écart de 50 points. Détail dans
-   `docs/mecanique_jeu.md` §8.4. **Pas encore confirmé inchangé en 15.3** — lu sur la seule source
-   locale disponible (13.4).
+4. ✅ **Courbe de note de gare, relue en 15.3** (2026-08-30). Tag OpenTTD 15.3 :
+   `UpdateStationRating` (`station_cmd.cpp`), `INITIAL_STATION_RATING = 175`
+   (`station_base.h`), `Ticks::STATION_RATING_TICKS = 185` /
+   `DAY_TICKS = 74` (`timer_game_tick.h`). Inchangée vs 13.4. Départ 175/255,
+   cycle 2,5 jours, `Clamp(±2)` une fois `HasRating()`. ~2 mois pour 50
+   points. Détail : `docs/mecanique_jeu.md` §8.4. ⚠️ **Pas de retuning** de
+   `STATION_RATING_PCT = 50`.
 5. ✅ **Barème croissance de ville / gares actives** (2026-08-30). Lu dans OpenTTD 15.3
    (`GetNormalGrowthRate` / `CountActiveStations`, plus `UpdateTownGrowth`). Table
    normale 320/420/300/220/160/100, chez nous `town_growth_rate = 2` → **160/210/150/110/80/50**,

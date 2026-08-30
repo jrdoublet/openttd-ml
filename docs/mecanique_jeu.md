@@ -255,12 +255,12 @@ cycle**, sauf événement.
 >    contredit l'intuition « un train long = plus de capacité ».
 > 2. **Sous-servir est doublement puni** : le cargo s'accumule (jusqu'à −35 %) *et* le délai de
 >    ramassage s'allonge. La dégradation est auto-renforçante.
-> 3. **La note monte (ou descend) lentement** (2 points / 2,5 jours). Correction depuis §8.4 : une
->    gare neuve démarre en fait à **175/255 (~69 %)**, pas à 0 — le premier ramassage capté n'a
+> 3. **La note monte (ou descend) lentement** (2 points / 2,5 jours). Relu en 15.3 (§8.4) : une
+>    gare neuve démarre à **175/255 (~69 %)**, pas à 0 — `HasRating()` (cargo arrivé) n'a
 >    donc rien à rattraper depuis zéro, seulement l'écart entre 175 et sa cible réelle (souvent en
 >    dessous, d'où une note qui *descend* au début plutôt que monte). Un écart de 50 points prend
 >    ~2 mois à se résorber, dans un sens comme dans l'autre. Le revenu attendu doit quand même être
->    escompté au démarrage, mais depuis 69 %, pas depuis 0.
+>    escompté au démarrage, mais depuis 69 %, pas depuis 0. `STATION_RATING_PCT = 50` tient.
 > 4. **Renouveler les véhicules a une valeur mesurable** : 13 % pour du neuf contre 4 % à 2 ans.
 > 5. La note plafonne bien en dessous de 100 % sans statue et sans vitesse : c'est un plafond
 >    structurel à modéliser, pas un détail.
@@ -441,7 +441,7 @@ Construire une gare exige une note de seulement **−200** (donc quasi toujours 
 
 ## 8. Vérifié dans le jeu plutôt que sur le wiki
 
-Les six points sont clos. Le 4 est lu en 13.4, pas revérifié en 15.3.
+Les six points sont clos. Le 4 est relu en 15.3 : inchangé.
 
 1. ✅ Le réglage `plane_speed` réellement actif dans notre config : `4` (le défaut, non surchargé),
    vérifié dans l'`openttdlab.cfg` généré par un run `OpexAI` réel du 2026-08-28
@@ -457,21 +457,27 @@ Les six points sont clos. Le 4 est lu en 13.4, pas revérifié en 15.3.
    Le plafond 61 km/h apparaît (20 % des instantanés) mais n'est pas le régime
    médian. `TILES_PER_DAY = 2` a déjà été remplacé par `0,036 × effectiveSpeed`.
    Pas de retuning.
-4. ✅🔶 La **courbe de montée de la note de gare** sur une ligne neuve, lue dans `station_cmd.cpp`
-   (`UpdateStationRating`) et `station_base.h` de la source 13.4 disponible localement — **pas
-   encore confirmée inchangée en 15.3**, mécanique ancienne donc probablement stable, mais non
-   revérifiée sur la bonne version :
-   - Une gare (par type de cargo) démarre à `INITIAL_STATION_RATING = 175` (sur 255, ~69 %) —
-     **pas à 0**. Pas de montée à faire tant qu'aucun ramassage n'a encore eu lieu pour ce cargo.
-   - La note ne se met à jour que tous les `STATION_RATING_TICKS = 185` ticks, soit `185/74 ≈
-     2,5 jours` (`DAY_TICKS = 74`) — confirme le chiffre déjà noté dans le backlog.
-   - Une fois le premier ramassage enregistré (`HasRating()` devient vrai), chaque cycle de
-     2,5 jours recalcule une note cible (vitesse du dernier véhicule, délai entre ramassages,
-     cargo en attente, statue en ville, âge du véhicule) puis ne déplace la note réelle que de
-     **±2 points maximum vers cette cible**, bornée à [0, 255].
-   - Conséquence chiffrable : un écart de ~50 points entre la note de départ (175) et une cible
-     stable prend `50/2 × 2,5 ≈ 62,5 jours ≈ 2 mois` à se résorber — cohérent avec le « ~2 mois
-     annoncés » déjà noté, mais dérivé ici de la formule plutôt que rappelé de mémoire.
+4. ✅ **Courbe de note de gare, relue en 15.3** (2026-08-30). Tag
+   [OpenTTD 15.3](https://github.com/OpenTTD/OpenTTD/tree/15.3) :
+   `station_cmd.cpp` `UpdateStationRating`, `station_base.h`,
+   `timer/timer_game_tick.h`. Inchangée par rapport à la lecture 13.4.
+   - `INITIAL_STATION_RATING = 175` (sur 255, ~69 %), `MAX_STATION_RATING = 255`.
+     Une gare **démarre à 175, pas à 0**. Tant que `HasRating()` est faux
+     (aucun cargo encore arrivé sur ce type), la cible n'est pas calculée :
+     si la note est sous 175 (pot-de-vin raté), elle remonte de **+1 par
+     cycle** vers 175.
+   - `Ticks::STATION_RATING_TICKS = 185`, `Ticks::DAY_TICKS = 74` →
+     `185/74 ≈ 2,5 jours`. `StationHandleSmallTick` n'appelle
+     `UpdateStationRating` que lorsque `delete_ctr` revient à 0.
+   - Une fois `HasRating()` vrai (cargo arrivé à la gare, pas forcément
+     un ramassage), chaque cycle recalcule une cible (vitesse
+     `last_speed − 85` puis `>> 2` ; `time_since_pickup` ≤ 3 / 6 / 12 / 21
+     cycles ; `max_waiting_cargo` ; statue +26 ; âge < 3 / 2 / 1 an) puis
+     `Clamp(cible − note, −2, 2)`. Bornée à [0, 255].
+   - Un écart de ~50 points prend `50/2 × 2,5 ≈ 62,5 jours ≈ 2 mois`.
+     `STATION_RATING_PCT = 50` reste le calage empirique 15.3 (notes
+     mesurées 49–55). ⚠️ Pas de retuning. Vanilla : le callback NewGRF
+     `StationRatingCalc` n'existe pas chez nous.
 5. ✅ Barème de croissance / gares actives, lu dans le source 15.3 et mesuré
    (`docs/opex_town_growth.json`, 2026-08-30).
 6. ✅ **Sonde de catalogue 1950-2000** (2026-08-30, `docs/catalogue_churn_1950_2000.json`) :
