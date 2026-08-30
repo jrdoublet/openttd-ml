@@ -60,8 +60,11 @@ RE_OB_ATTEMPT = re.compile(r"^OB\|A\|(\d{2})\|(\d+)\|(\d+)\|(\d+)(?:\|(\d+))?$")
 RE_PK = re.compile(r"^PK\|(\d+)\|([PF])\|(\d+)$")
 RE_PC = re.compile(r"^PC\|(\d+)\|(.+)$")
 # Marqueur par LIGNE de la tranche jointure (2026-08-29) : extremite jointe ("A"/"B"/"N")
-# et origine deja desservie (0/1). Emis seulement quand station_join = 1.
-RE_PJ = re.compile(r"^PJ\|(\d+)\|([ABN])\|([01])$")
+# et origine deja desservie (0/1). 4e champ optionnel : P = H2 place-first, T = v1 tooClose.
+# Emis quand station_join = 1 ou join_place = 1.
+RE_PJ = re.compile(r"^PJ\|(\d+)\|([ABN])\|([01])(?:\|([PT]))?$")
+RE_PH = re.compile(r"^PH\|(\d{2})\|(\d+)\|(\d+)\|(\d+)$")  # yy, gen, ranked, built
+RE_SG = re.compile(r"^SG\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")  # id, ok, fail, junc
 RE_PM = re.compile(r"^PM\|(\d+)\|([AWR])\|(\d+)\|(.+)$")
 RE_IA = re.compile(r"^IA\|(\d+)\|(\d+)\|(-?\d)\|(-?\d)\|(-?\d+)$")
 RE_OX = re.compile(r"^OX\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")   # year, towns, industries, ranked.all
@@ -321,7 +324,14 @@ def parse_lines(all_signs):
             predicted[idx]["monthly"] = int(m.group(3))
         elif m := RE_PJ.match(sign):
             join_marks[int(m.group(1))] = {"joined_end": None if m.group(2) == "N" else m.group(2),
-                                           "origin_served": m.group(3) == "1"}
+                                           "origin_served": m.group(3) == "1",
+                                           "place_join": m.group(4) == "P"}
+        elif m := RE_SG.match(sign):
+            idx = int(m.group(1))
+            predicted.setdefault(idx, {})
+            predicted[idx]["signals_ok"] = int(m.group(2))
+            predicted[idx]["signals_fail"] = int(m.group(3))
+            predicted[idx]["signal_junc"] = int(m.group(4))
         elif m := RE_PC.match(sign):
             predicted.setdefault(int(m.group(1)), {})["cargo_label"] = m.group(2)
         elif m := RE_PX.match(sign):
@@ -377,6 +387,10 @@ def parse_lines(all_signs):
             # se lire comme "ligne non jointe, origine libre" -- c'est "non mesure".
             "joined_end": mark.get("joined_end"),
             "origin_served": mark.get("origin_served"),
+            "place_join": mark.get("place_join"),
+            "signals_ok": pred.get("signals_ok"),
+            "signals_fail": pred.get("signals_fail"),
+            "signal_junc": pred.get("signal_junc"),
             "predicted": pred,
             "actual_last_year": last_year,
             "actual": last,
@@ -713,6 +727,11 @@ def parse_yearly(all_signs):
             y = int(m.group(1)); d = by_year.setdefault(y, {})
             d["ranked_origin_served"] = int(m.group(2))
             d["ranked_total"] = int(m.group(3))
+        elif m := RE_PH.match(sign):
+            y = 1900 + int(m.group(1)); d = by_year.setdefault(y, {})
+            d["place_join_generated"] = int(m.group(2))
+            d["place_join_ranked"] = int(m.group(3))
+            d["place_join_built"] = int(m.group(4))
         elif m := RE_CJ.match(sign):
             y = int(m.group(1)); d = by_year.setdefault(y, {})
             d["candidate_pairs_join_impossible"] = int(m.group(2))
@@ -1068,6 +1087,13 @@ def make_run_payload(rows, seed, years):
         "n_join_refuse_other": sum(row.get("join_refuse_other", 0) for row in yearly.values()),
         "n_join_refuse_dist": sum(row.get("join_refuse_dist", 0) for row in yearly.values()),
         "n_rail_attempts_joinpath": sum(1 for attempt in attempts if attempt["reason"] == "JOINPATH"),
+        "n_place_join_generated": sum(row.get("place_join_generated", 0) for row in yearly.values()),
+        "n_place_join_ranked": sum(row.get("place_join_ranked", 0) for row in yearly.values()),
+        "n_place_join_built": sum(row.get("place_join_built", 0) for row in yearly.values()),
+        "n_place_join_lines": sum(1 for line in lines if line.get("place_join")),
+        "n_join_signals_ok": sum(line.get("signals_ok") or 0 for line in lines),
+        "n_join_signals_fail": sum(line.get("signals_fail") or 0 for line in lines),
+        "n_join_signal_junc": sum(line.get("signal_junc") or 0 for line in lines),
         "n_road_lines_ok": sum(1 for line in lines if line["mode"] == "road"),
         "n_road_freight_lines_ok": sum(
             1 for line in lines
@@ -1192,6 +1218,9 @@ def main():
                                   "PE/PY pax_near",
                                   "OB|R refus de jointure",
                                   "OB|R D join_max_distance",
+                                  "PH join_place H2",
+                                  "SG signaux PBS jointure",
+                                  "PJ|P place-first",
                                   "PS join_end A/B/N",
                                   "RI SITE route cargo/buildable/cmd",
                                   "RT TRACEX trials/long/hit/unb",
@@ -1280,6 +1309,13 @@ def main():
               f"ok={run.get('n_station_join_built', 0)}  "
               f"fail={run.get('n_station_join_failed', 0)}  "
               f"JOINPATH={run.get('n_rail_attempts_joinpath', 0)}")
+        print(f"join_place: gen={run.get('n_place_join_generated', 0)}  "
+              f"rank={run.get('n_place_join_ranked', 0)}  "
+              f"ok={run.get('n_place_join_built', 0)}  "
+              f"lines={run.get('n_place_join_lines', 0)}")
+        print(f"signaux: ok={run.get('n_join_signals_ok', 0)}  "
+              f"fail={run.get('n_join_signals_fail', 0)}  "
+              f"junc={run.get('n_join_signal_junc', 0)}")
         print(f"join refuse: multi={run.get('n_join_refuse_multi', 0)}  "
               f"kind={run.get('n_join_refuse_kind', 0)}  "
               f"role={run.get('n_join_refuse_role', 0)}  "
@@ -1301,7 +1337,10 @@ def main():
           f"dist={sum(r.get('n_join_refuse_dist', 0) for r in runs)} "
           f"att={sum(r.get('n_station_join_attempts', 0) for r in runs)} "
           f"ok={sum(r.get('n_station_join_built', 0) for r in runs)} "
-          f"JOINPATH={sum(r.get('n_rail_attempts_joinpath', 0) for r in runs)} ===")
+          f"JOINPATH={sum(r.get('n_rail_attempts_joinpath', 0) for r in runs)} "
+          f"place_ok={sum(r.get('n_place_join_built', 0) for r in runs)} "
+          f"sig_ok={sum(r.get('n_join_signals_ok', 0) for r in runs)} "
+          f"sig_junc={sum(r.get('n_join_signal_junc', 0) for r in runs)} ===")
     print(f"=== distance toutes graines: {dist.get('n_with_distance')}/"
           f"{dist.get('n_attempts')}  OK={dist.get('n_ok')} ABND={dist.get('n_abnd')} ===")
     for band in dist.get("bands") or []:

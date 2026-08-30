@@ -10,7 +10,7 @@ class OpexAI extends AIInfo {
 
   /* Les reglages debug_signs et pathfinder_sleep_ticks existent pour NE PAS POLLUER une partie
    * partagee avec des joueurs humains (loan_repay_floor_k, pathfinder_hard_cap_k,
-   * abandon_memory, station_join, join_max_distance, origin_sitable, basin_share, reborrow, road_mode, road_refleet, road_multistop, astar_cost, probe_negative et pax_near, eux, sont des parametres de conception exposes au banc,
+   * abandon_memory, station_join, join_max_distance, join_place, origin_sitable, basin_share, reborrow, road_mode, road_refleet, road_multistop, astar_cost, probe_negative et pax_near, eux, sont des parametres de conception exposes au banc,
    * pas des bridages).
    * Entre IA, la regle est l'inverse : jouer a armes egales,
    * donc ne jamais s'auto-handicaper face a un adversaire qui ne se bride pas. Un handicap non intentionnel
@@ -254,7 +254,7 @@ class OpexAI extends AIInfo {
      *
      * H1 (2026-08-30). Population encore longue (docs/opex_join_pop.json).
      * join_max_distance=50 : 29 OK, dist 37, D=1035. Coupe le vivier, ne bat
-     * pas join=0. Defaut 0. H2 ensuite. */
+     * pas join=0. Defaut 0. H2 (join_place) mesure, ne paie pas. */
     AddSetting({
       name = "station_join",
       description = "Reuse one compatible nearby OpexAI rail station with a dedicated platform: 1 = enabled, 0 = historical too-close rejection",
@@ -278,6 +278,27 @@ class OpexAI extends AIInfo {
       custom_value = 0,
       step_size = 5,
       flags = 0
+    });
+
+    /* H2 : joindre au lieu. Defaut 0 APRES MESURE 2026-08-30.
+     * 1 = candidats depuis chaque gare rail OpexAI vers une origine
+     * libre (bande 25-75, capee par join_max_distance si > 0), objet
+     * join attache a la generation. Quai parallele 1-4, StationID du
+     * primaire, JOINPATH dedie. PBS sur quais joints et aiguillage depot.
+     * Independant de station_join (v1 = repli _tooClose).
+     *
+     * 5 graines (docs/opex_join_place_20y_5seeds.json) : 50 OK, dist 50,
+     * reel/pred an 2 -0,16. Mediane company_value -64 % vs join=0
+     * (5/5, graine 100 -92 %). TOP_K pollue, SITEA au quai joint.
+     * Moins de vehicules ET moins de valeur. Pas de banc n=20.
+     * OpexAI[join_place=1]. */
+    AddSetting({
+      name = "join_place",
+      description = "Place-first rail join from an existing OpexAI station to a free origin (25-75 tiles): 1 = enabled, 0 = off",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
     });
 
     /* Filtre d'origine rail constructible. Defaut 0 DEPUIS LE 2026-08-29, apres banc apparie.

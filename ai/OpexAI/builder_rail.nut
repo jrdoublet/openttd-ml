@@ -370,7 +370,8 @@ function OpexMatchPlan(plans, tile)
  * faible a un rail deja pose ; l'accepter ici fabriquerait precisement l'aiguillage implicite que
  * v1 refuse, et le rollback ne pourrait pas restaurer sa geometrie initiale. Les deux sorties de
  * quai (indices 0 et last) sont exclues : elles sont les nouvelles gares qui seront posees apres
- * ce controle. */
+ * ce controle. H2 pose des PBS sur l'aiguillage depot et devant les quais ; JOINPATH reste
+ * un rejet, les signaux ne partagent pas la voie. */
 function OpexJoinPathIsDedicated(tiles)
 {
   for (local i = 1; i < tiles.len() - 1; i++) {
@@ -622,6 +623,103 @@ function OpexBuildTrains(catalog, cargo, kind, depotTile, exitA, exitB, wanted, 
            locoLength = measuredLocoLength, wagonLength = measuredWagonLength };
 }
 
+/* Premier signal : PBS bidirectionnel devant le quai, pas un sens unique
+ * au milieu (mecanique_jeu §12.2). GetSignalType(tile, front) : front est
+ * la case vers laquelle le signal REGARDE. -1 = rien a poser (pas de rail). */
+function OpexTryBuildSignal(tile, front)
+{
+  if (!AIMap.IsValidTile(tile) || !AIMap.IsValidTile(front)) return -1;
+  if (AIMap.DistanceManhattan(tile, front) != 1) return -1;
+  if (AIBridge.IsBridgeTile(tile) || AITunnel.IsTunnelTile(tile)) return -1;
+  if (!AIRail.IsRailTile(tile)) return -1;
+  if (AIRail.IsRailStationTile(tile) || AIRail.IsRailDepotTile(tile)) return -1;
+  if (AIRail.GetSignalType(tile, front) != AIRail.SIGNALTYPE_NONE) return 1;
+  if (AIRail.BuildSignal(tile, front, AIRail.SIGNALTYPE_PBS)) return 1;
+  if (AIRail.BuildSignal(tile, front, AIRail.SIGNALTYPE_NORMAL_TWOWAY)) return 1;
+  return 0;
+}
+
+function OpexTileTrackCount(tile)
+{
+  if (!AIRail.IsRailTile(tile) || AIRail.IsRailStationTile(tile) || AIRail.IsRailDepotTile(tile)) {
+    return 0;
+  }
+  local tracks = AIRail.GetRailTracks(tile);
+  if (tracks == AIRail.RAILTRACK_INVALID) return 0;
+  local n = 0;
+  if ((tracks & AIRail.RAILTRACK_NE_SW) != 0) n++;
+  if ((tracks & AIRail.RAILTRACK_NW_SE) != 0) n++;
+  if ((tracks & AIRail.RAILTRACK_NW_NE) != 0) n++;
+  if ((tracks & AIRail.RAILTRACK_SW_SE) != 0) n++;
+  if ((tracks & AIRail.RAILTRACK_NW_SW) != 0) n++;
+  if ((tracks & AIRail.RAILTRACK_NE_SE) != 0) n++;
+  return n;
+}
+
+function OpexAccountSignal(built, acc)
+{
+  if (built == 1) acc.ok++;
+  else if (built == 0) acc.fail++;
+}
+
+/* Signaux d'une ligne JOINTE. JOINPATH refuse toujours la voie partagee ;
+ * la jonction reelle ici est l'aiguillage depot et la gare a deux quais.
+ * Un echec de signal ne rollback pas la ligne. */
+function OpexTryBuildSignalEither(tile, a, b)
+{
+  local first = OpexTryBuildSignal(tile, a);
+  if (first == 1) return 1;
+  if (b != null && AIMap.IsValidTile(b) && b != a) {
+    local second = OpexTryBuildSignal(tile, b);
+    if (second == 1) return 1;
+    if (second == 0) return 0;
+  }
+  return first;
+}
+
+function OpexPlaceJoinSignals(planA, planB, tiles, depot, join)
+{
+  local acc = { ok = 0, fail = 0, junc = 0 };
+  local last = tiles.len() - 1;
+  /* La voie reelle, pas le lead du plan : A* peut decaler d'une case.
+   * Les deux sens : front=gare echoue souvent, front=voie suivante passe. */
+  if (last >= 2) {
+    OpexAccountSignal(OpexTryBuildSignalEither(tiles[1], tiles[0], tiles[2]), acc);
+    OpexAccountSignal(OpexTryBuildSignalEither(tiles[last - 1], tiles[last], tiles[last - 2]), acc);
+  }
+
+  local existing = join.platform;
+  local exit0 = existing.anchor;
+  local exit1 = existing.anchor + existing.step * (existing.length - 1);
+  OpexAccountSignal(OpexTryBuildSignalEither(exit0 - existing.step, exit0, exit0 - existing.step * 2), acc);
+  OpexAccountSignal(OpexTryBuildSignalEither(exit1 + existing.step, exit1, exit1 + existing.step * 2), acc);
+
+  local signaled = {};
+  for (local i = 1; i < last; i++) {
+    if (OpexTileTrackCount(tiles[i]) < 2) continue;
+    acc.junc++;
+    local prev = tiles[i - 1];
+    local next = tiles[i + 1];
+    OpexAccountSignal(OpexTryBuildSignalEither(tiles[i], prev, next), acc);
+    signaled[tiles[i]] <- true;
+  }
+  if (depot != null) {
+    local junc = AIRail.GetRailDepotFrontTile(depot);
+    if (AIMap.IsValidTile(junc) && OpexTileTrackCount(junc) >= 2 && !(junc in signaled)) {
+      acc.junc++;
+      local front = tiles[0];
+      for (local i = 1; i < last; i++) {
+        if (tiles[i] == junc) {
+          front = tiles[i - 1];
+          break;
+        }
+      }
+      OpexAccountSignal(OpexTryBuildSignalEither(junc, front, depot), acc);
+    }
+  }
+  return acc;
+}
+
 /* Construit une ligne complete. Rend une table de resultat, jamais d'exception. */
 function OpexBuildLine(catalog, budget, candidate, alternativeRatio, join, cashReserve)
 {
@@ -633,6 +731,7 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, join, cashR
                    slopeRelaxed = 0, siteClear = 0, siteCargo = 0, siteCmd = 0,
                    siteKind = candidate.kind == "pax" ? "P" : "F",
                    joinEnd = join == null ? "N" : join.candidateEnd,
+                   signalsOk = 0, signalsFail = 0, signalJunc = 0,
                    capital = candidate.capital, money = 0,
                    budgetInfo = OpexIterationBudget(candidate.profitAnnual, alternativeRatio),
                    iterationBudget = 0 };
@@ -725,6 +824,13 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, join, cashR
   if (depot == null) {
     OpexRollback(tiles, planA, planB, null, null);
     result.reason = "DEPFAIL"; return result;
+  }
+
+  if (join != null) {
+    local signals = OpexPlaceJoinSignals(planA, planB, tiles, depot, join);
+    result.signalsOk = signals.ok;
+    result.signalsFail = signals.fail;
+    result.signalJunc = signals.junc;
   }
 
   budget.begin();

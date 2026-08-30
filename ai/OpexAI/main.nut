@@ -138,6 +138,11 @@ STATION_JOIN <- false;
  * candidate.distance >= N, sans A*. Defaut 0. Valeur de travail 50
  * (docs/opex_join_pop.json). Inerte si station_join = 0. */
 JOIN_MAX_DISTANCE <- 0;
+/* H2 : joindre au lieu, pas en repli _tooClose. Defaut 0. Les candidats
+ * naissent d'une gare rail OpexAI vers une origine libre dans 25-75
+ * tuiles, avec l'objet join deja attache. Independant de station_join :
+ * le banc doit pouvoir attribuer. JOINPATH reste dedie. */
+JOIN_PLACE <- false;
 
 /* Filtre d'origine sitable : repli FAUX jusqu'a la lecture unique de origin_sitable dans
  * Start(). Defaut 0 apres banc apparie (pas d'effet etabli) ; 1 ecarte du TOP_K les sources
@@ -765,6 +770,8 @@ function OpexAI::_tryBuild(ranked, year)
   local nJoinRefuseOther = 0;   // N / E
   local nJoinRefuseDist = 0;    // D : join_max_distance, pas d'A*
   local nOriginServedRanked = 0;   // candidats du TOP_K qui n'existent QUE grace a la jointure
+  local nPlaceJoinRanked = 0;
+  local nPlaceJoinBuilt = 0;
   local nPaxNearTried = 0;
   local nPaxNearOk = 0;
 
@@ -781,12 +788,42 @@ function OpexAI::_tryBuild(ranked, year)
     if (candidate.originServed) nOriginServedRanked++;
     local close = this._tooClose(candidate);
     local join = null;
+    local placeJoin = ("placeJoin" in candidate) ? candidate.placeJoin : null;
+    if (placeJoin != null) nPlaceJoinRanked++;
     if (close.hard >= 0) {
       nTooClose++;
       if (close.hard < 5) nTooCloseNear++; else nTooCloseFar++;
       continue;
     }
-    if (close.blocking >= 0) {
+    if (placeJoin != null) {
+      /* H2 : le join vient de la generation, pas du filet. Le bout libre
+       * reste arme ; un second StationID sur le bout joint est un M. */
+      join = placeJoin;
+      local joinEnd = join.candidateEnd;
+      local refuse = null;
+      if (!AIStation.IsValidStation(join.stationId)) refuse = "N";
+      else {
+        foreach (conflict in close.conflicts) {
+          if (conflict.end != joinEnd || conflict.stationId != join.stationId) {
+            refuse = "M";
+            break;
+          }
+        }
+      }
+      if (refuse == null && JOIN_MAX_DISTANCE > 0 && candidate.distance >= JOIN_MAX_DISTANCE) {
+        refuse = "D";
+      }
+      if (refuse != null) {
+        if (refuse == "M") nJoinRefuseMulti++;
+        else if (refuse == "D") nJoinRefuseDist++;
+        else nJoinRefuseOther++;
+        nTooClose++;
+        if (close.blocking >= 0 && close.blocking < 5) nTooCloseNear++;
+        else if (close.blocking >= 5) nTooCloseFar++;
+        join = null;
+        continue;
+      }
+    } else if (close.blocking >= 0) {
       /* Le filet garde la main tant que le candidat ne peut pas reutiliser UNE gare logique avec
        * un quai rail dedie. Ne pas choisir une autre gare ni une autre extremite ici : ce serait
        * desarmer MIN_SEPARATION au-dela de l'objet precis de la tranche. */
@@ -894,6 +931,7 @@ function OpexAI::_tryBuild(ranked, year)
     if (result.ok) {
       nBuilt++;
       if (join != null) nJoinBuilt++;
+      if (placeJoin != null) nPlaceJoinBuilt++;
       if (isPaxNear) nPaxNearOk++;
       local idx = this._nextLineId;
       /* Predit-vs-reel (etage 1) : le detail du calcul au moment de la construction, pour pouvoir
@@ -953,9 +991,16 @@ function OpexAI::_tryBuild(ranked, year)
        * Gate sur STATION_JOIN comme GM/CJ/OB : a 0 les deux champs valent "N" et 0 pour toutes
        * les lignes, donc le panneau ne porterait aucune information et couterait quand meme une
        * commande par ligne au bras de controle. */
-      if (STATION_JOIN) {
+      if (STATION_JOIN || JOIN_PLACE) {
+        local joinHow = "";
+        if (placeJoin != null) joinHow = "|P";
+        else if (join != null) joinHow = "|T";
         OpexSign(anchor, "PJ|" + idx + "|" + (join == null ? "N" : join.candidateEnd)
-                                 + "|" + (candidate.originServed ? 1 : 0));
+                                 + "|" + (candidate.originServed ? 1 : 0) + joinHow);
+      }
+      if (join != null) {
+        OpexSign(anchor, "SG|" + idx + "|" + result.signalsOk + "|"
+                                 + result.signalsFail + "|" + result.signalJunc);
       }
       if (isPaxNear) OpexSign(anchor, "PY|" + idx);
 
@@ -1020,18 +1065,25 @@ function OpexAI::_tryBuild(ranked, year)
   if (ABANDON_MEMORY) OpexSign(anchor, "GM|" + year + "|" + nAbandonMemory);
   /* OR est sature et GM deja reserve a la memoire : compagnon court, avec essais / succes /
    * echecs du raccordement. "OB|J|9999|20|20|20" reste largement sous les 31 caracteres. */
-  if (STATION_JOIN) OpexSign(anchor, "OB|J|" + year + "|" + nJoinAttempts + "|" + nJoinBuilt
-                                      + "|" + nJoinFailed);
+  if (STATION_JOIN || JOIN_PLACE) OpexSign(anchor, "OB|J|" + year + "|" + nJoinAttempts + "|"
+                                      + nJoinBuilt + "|" + nJoinFailed);
   /* Compagnons de OB|J : les refus AVANT tentative. 6e champ = D (join_max_distance).
    * "OB|R|1989|20|20|20|20|20" = 26 caracteres. */
-  if (STATION_JOIN) OpexSign(anchor, "OB|R|" + year + "|" + nJoinRefuseMulti + "|"
+  if (STATION_JOIN || JOIN_PLACE) OpexSign(anchor, "OB|R|" + year + "|" + nJoinRefuseMulti + "|"
                                       + nJoinRefuseKind + "|" + nJoinRefuseRole + "|"
                                       + nJoinRefuseOther + "|" + nJoinRefuseDist);
   /* Combien du classement n'existe QUE parce qu'une extremite servie peut etre reprise : c'est la
    * mesure directe de la tranche du 2026-08-29, celle qui dit si le vivier est bien rouvert --
    * independamment du fait que la jointure aboutisse ou non. */
-  if (STATION_JOIN) OpexSign(anchor, "OB|S|" + year + "|" + nOriginServedRanked
+  if (STATION_JOIN || JOIN_PLACE) OpexSign(anchor, "OB|S|" + year + "|" + nOriginServedRanked
                                       + "|" + best.len());
+  /* H2 : paires generees / presentes au TOP_K / construites.
+   * PH|99|999|20|20 = 16 caracteres. */
+  if (JOIN_PLACE) {
+    local generated = ("placeJoinAccepted" in ranked.stats) ? ranked.stats.placeJoinAccepted : 0;
+    OpexSign(anchor, "PH|" + (year % 100) + "|" + generated + "|" + nPlaceJoinRanked
+                             + "|" + nPlaceJoinBuilt);
+  }
   /* pax_near : admis au classement / tentatives / succes. Gate : a 0, zero panneau.
    * PE|99|99|9|9 : 14 caracteres. */
   if (PAX_NEAR) {
@@ -1471,7 +1523,7 @@ function OpexAI::_reportYear(year, ranked)
    * vers l'etage economique. La somme des deux est ce que l'ancienne regle coupait a l'aveugle.
    * Gate sur STATION_JOIN comme GM l'est sur ABANDON_MEMORY : le bras de controle du banc ne doit
    * pas payer une commande de panneau que l'autre bras ne paie pas. Son absence vaut zero. */
-  if (STATION_JOIN) {
+  if (STATION_JOIN || JOIN_PLACE) {
     OpexSign(anchor, "CJ|" + year + "|" + stats.pairsJoinImpossible + "|" + stats.pairsOneServed);
   }
   OpexSign(anchor, "CD|" + year + "|" + stats.distanceShort + "|" + stats.distanceLong);
@@ -1587,6 +1639,7 @@ function OpexAI::Start()
   ABANDON_MEMORY = AIController.GetSetting("abandon_memory") != 0;
   STATION_JOIN = AIController.GetSetting("station_join") != 0;
   JOIN_MAX_DISTANCE = AIController.GetSetting("join_max_distance");
+  JOIN_PLACE = AIController.GetSetting("join_place") != 0;
   ORIGIN_SITABLE = AIController.GetSetting("origin_sitable") != 0;
   BASIN_SHARE = AIController.GetSetting("basin_share") != 0;
   REBORROW = AIController.GetSetting("reborrow") != 0;

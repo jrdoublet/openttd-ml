@@ -28,11 +28,12 @@ classement, pas de retuning ; l'écart fret ~4-6x est réfuté ; (2)
 et [junctions](https://www.transporttycoon.net/junctions) lus et intégrés (2026-08-30)** — voir
 `docs/mecanique_jeu.md` §12. Série TTD + TTDPatch, pas le wiki 15.3. Apport net : OpexAI *est*
 le point-à-point que la page moque, et `JOINPATH` doit le rester tant que la jointure ne paie
-pas ; zéro signal posé alors que le modèle peut mettre 8 trains sur une voie unique (non
-mesuré) ; quai déjà calé sur la rame ; les jonctions se résument à trois principes (séparer
+pas ; PBS seulement sur une ligne **jointe** (dépôt + quais, `join_place` / `station_join`),
+les neuves restent sans signal ; quai déjà calé sur la rame ; les jonctions se résument à trois principes (séparer
 avant de fusionner, sortie avant entrée, train+2 tuiles) — l'index Junctionairy n'est qu'un
 catalogue d'images, on ne copie pas de cloverleaf. Waypoints natifs OpenTTD, utiles seulement
-le jour des branches. Pré-signaux TTDPatch = path signals chez nous, non posés.
+le jour des branches. Pré-signaux TTDPatch = path signals chez nous, posés
+seulement sur une ligne jointe (PBS, `join_place` / `station_join`).
 
 ✅ **[Community/Pseudo canals](https://wiki.openttd.org/en/Community/Pseudo%20canals) lue et
 intégrée (2026-08-30)** — voir `docs/mecanique_jeu.md` §13. Apport net : ce n'est pas un canal,
@@ -163,7 +164,19 @@ pas plus de valeur ».
    <50 paie (1,12) ; ≥100 : 0,07. `join_max_distance` défaut 0 ; à 50, 5 graines
    (`docs/opex_join_cap50_20y_5seeds.json`) : 29 jointures, dist. 37, D=1035.
    Coupe le vivier (véhicules − vs parallèle). **Ne bat pas `join=0`** (2 graines
-   −30 %). Pas de banc n=20. Suite H2 (lieu), pas le spread.
+   −30 %). Pas de banc n=20.
+6. ✅ **H2 joindre au lieu + signaux PBS** (2026-08-30). `join_place` défaut
+   **0**. Candidats depuis une gare rail OpexAI vers une origine libre
+   (bande 25–75), join attaché à la génération, quai parallèle 1–4,
+   `JOINPATH` dédié. PBS devant les quais joints et sur l'aiguillage
+   dépôt (1 jonction / jointure : le dépôt). 5 graines
+   (`docs/opex_join_place_20y_5seeds.json`) : 50 jointures, dist. 50,
+   réel/prédit an 2 **−0,16**. Médiane valeur **−64 %** vs `join=0`
+   (5/5, graine 100 −92 %). Le TOP_K se remplit de H2 (43–143 classés,
+   7–14 OK), SITEA explose (spread au quai joint). Moins de véhicules
+   **et** moins de valeur. ⚠️ **Pas de banc n=20. Pas de spread.**
+   Signaux : 77 OK / 128 fail / 50 junc — le PBS du dépôt passe, le
+   front de quai vers la gare refuse souvent.
 
 ⚠️ **Effet de bord à ne pas attribuer au mode route :** le rail affamé reprend la trésorerie, et
 les lignes routières passent de 6 à 3 sur la graine 42. Le +9,3 % du mode route a été mesuré avec
@@ -680,9 +693,10 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
       Le spread n'est **pas** débloqué : joindre plus, sur un terme qui ne paie pas, recréerait
       le banc vivier.
 
-**Priorité de fait, révisée le 2026-08-30 (join H1)** : porte 50 tuiles ✅
-mesurée, coupe le long, **ne paie pas** vs `join=0`. Défauts 0. Suite **H2**
-(joindre au lieu), pas le spread. `MIN_SEPARATION` gelé. L'item 2 reste dernier.
+**Priorité de fait, révisée le 2026-08-30 (join H2)** : H1 et H2 mesurés,
+**aucun ne paie**. Défauts `station_join` / `join_max_distance` / `join_place`
+= 0. Pas de spread, pas de jonction de voie, `JOINPATH` tient. `MIN_SEPARATION`
+gelé. L'item 2 reste dernier.
 
 *Priorité précédente, conservée pour la trace* : ~~le rendement join~~ (✅ mesuré,
 défaut 0) était la tête. ~~l'item **9.1**~~ (✅) était la tête. ~~le retuning pax

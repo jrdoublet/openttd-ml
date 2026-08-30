@@ -77,4 +77,38 @@ Encore du long. H1 : `join_max_distance`, défaut **0**. À 50, rejet tooClose *
 jointures OK 71 → **29**, dist. 63 → **37**, D = 1035. Contre le parallèle : moins
 de véhicules, plus de valeur (on arrête le vivier). Contre `join=0` (campagne
 villes) : médiane valeur **plate**, 2 graines à **−30 %**. ⚠️ **Pas de banc n=20.**
-Le défaut join reste 0. Suite : H2 (joindre au lieu), pas le spread.
+Le défaut join reste 0. H2 mesuré ci-dessous, ne paie pas. Pas de spread.
+
+## H2 — joindre au lieu (`join_place`, 2026-08-30)
+
+Réglage propre, défaut **0**, indépendant de `station_join`. Pour chaque gare
+rail OpexAI, origines **libres** dans 25–75 tuiles (cappé par
+`join_max_distance` si > 0). Même `kind` / cargo / rôle fret que la v1.
+L'objet join est attaché à la génération : `_tryBuild` ne repasse pas par
+`_tooClose`. Quai parallèle 1–4, identifiant du primaire. `JOINPATH` inchangé
+(dédié). PBS sur la ligne jointe : quais + aiguillage dépôt.
+
+5 graines × 20 ans, `join_place=1` seul
+(`docs/opex_join_place_20y_5seeds.json`) contre `join=0`
+(`docs/opex_town_growth_20y_5seeds.json`) :
+
+| | n | dist. médiane | trains | réel/prédit (an 2) |
+|---|---:|---:|---:|---:|
+| neuves | 73 | 43 | 2 | 1,21 |
+| H2 | **50** | **50** | 2 | **−0,16** |
+
+| graine | valeur join=0 | H2 | delta |
+|---|---:|---:|---:|
+| 42 | 3,24 M | 2,00 M | −38 % |
+| 100 | 2,01 M | 0,16 M | **−92 %** |
+| 999 | 3,53 M | 1,17 M | −67 % |
+| 4096 | 2,46 M | 0,84 M | −66 % |
+| 12345 | 4,65 M | 2,42 M | −48 % |
+| **médiane** | **3,24 M** | **1,17 M** | **−64 %** |
+
+Véhicules 204 → 169. 201 tentatives de jointure, 50 OK, **0 JOINPATH**.
+Le TOP_K se remplit de H2 (jusqu'à 143 classés / an cumulés) qui meurent
+en SITEA au quai joint — le spread, toujours pas la suite. Les jointures
+qui passent **perdent** en an 2. ⚠️ **Défaut 0. Pas de banc n=20. Pas de
+spread.** Signaux : 77 OK / 128 fail / 50 junc (un PBS dépôt par
+jointure ; le front de quai vers la gare refuse souvent).

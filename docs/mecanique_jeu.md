@@ -749,11 +749,11 @@ sont rouges, donc un train n'entre pas dans une gare pleine pour se coller au pr
 OpenTTD 15, l'équivalent est le **path signal** (PBS), pas ce trio TTDPatch. ❓ Non posé par
 OpexAI.
 
-> **Conséquence.** `builder_rail.nut` ne pose **aucun** signal (`BuildSignal` absent). Sur une
-> ligne dédiée à un seul train, c'est inoffensif. Dès que `trains > 1` sur la même voie unique
-> (le modèle peut aller jusqu'à 8), deux convois se partagent un bloc sans réservation — ❓
-> collisions ou file à la gare, **non mesuré**. Premier signal à poser, si on en pose : un
-> bidirectionnel par quai, pas un sens unique au milieu de la ligne.
+> **Conséquence.** Les lignes neuves (défaut) n'ont toujours **aucun** signal. Sur une jointure
+> (`station_join` ou `join_place`), `OpexPlaceJoinSignals` pose un **PBS** devant chaque quai
+> (nouveau + existant) et sur l'aiguillage dépôt — le premier signal de §12.2, pas un sens
+> unique au milieu. `JOINPATH` refuse toujours la voie partagée. Les lignes dédiées à `trains
+> > 1` sans jointure restent non signalées — ❓ non mesuré.
 
 ### 12.3 Gares — hors de la ligne principale
 

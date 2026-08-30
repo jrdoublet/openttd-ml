@@ -100,7 +100,12 @@ def parse_opex_variant(name):
                 raise ValueError("pathfinder_hard_cap_k doit etre entre 5 et 100")
             if value % 5:
                 raise ValueError("pathfinder_hard_cap_k doit etre un multiple de 5 (step_size)")
-        elif key in ("abandon_memory", "station_join", "origin_sitable", "basin_share", "reborrow", "road_mode", "road_refleet", "road_multistop", "astar_cost", "probe_negative", "pax_near"):
+        elif key == "join_max_distance":
+            if not 0 <= value <= 200:
+                raise ValueError("join_max_distance doit etre entre 0 et 200")
+            if value % 5:
+                raise ValueError("join_max_distance doit etre un multiple de 5 (step_size)")
+        elif key in ("abandon_memory", "station_join", "join_place", "origin_sitable", "basin_share", "reborrow", "road_mode", "road_refleet", "road_multistop", "astar_cost", "probe_negative", "pax_near"):
             if value not in (0, 1):
                 raise ValueError(f"{key} est booleen : 0 ou 1")
         else:

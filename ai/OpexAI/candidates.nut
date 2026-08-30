@@ -16,6 +16,9 @@
  * de la campagne v3). Ce n'est pas une precaution, c'est une mesure. */
 const MIN_DISTANCE = 25;
 const MAX_DISTANCE = 200;
+/* H2 : bande courte depuis une gare deja a nous. MIN_DISTANCE inchange
+ * pour les lignes neuves. join_max_distance > 0 bride aussi cette bande. */
+const JOIN_PLACE_MAX = 75;
 
 /* Nombre de candidats retenus en tete de classement. Au-dela, on ne consomme jamais. */
 const TOP_K = 20;
@@ -467,6 +470,168 @@ function OpexShareBasin(amount, lines, stationId, cargo)
  * pas cette dilution geometrique -- non mesure ici, donc non touche. */
 const TOWN_CATCHMENT_SHARE_PCT = 22;
 
+function OpexJoinPlaceMaxDistance()
+{
+  local maxDist = JOIN_PLACE_MAX;
+  if (JOIN_MAX_DISTANCE > 0 && JOIN_MAX_DISTANCE < maxDist) maxDist = JOIN_MAX_DISTANCE;
+  return maxDist;
+}
+
+/* H2 pax : depuis chaque gare rail OpexAI, la ville libre la plus proche
+ * dans la bande. L'objet join est attache ici, _tryBuild ne le redecouvre
+ * pas via _tooClose. Une seule paire par ville libre (la gare la plus
+ * proche), jamais deux gares sur la meme origine. */
+function OpexPlaceJoinPax(catalog, lines, out, stats, towns, produced, served, cargo)
+{
+  local maxDist = OpexJoinPlaceMaxDistance();
+  local stations = [];
+  foreach (line in lines) {
+    if (("mode" in line) || !("kind" in line) || line.kind != "pax") continue;
+    if (!("platformA" in line) || !("platformB" in line) || line.cargo != cargo) continue;
+    foreach (lineEnd in ["A", "B"]) {
+      local stationId = OpexLineStationId(line, lineEnd);
+      if (stationId < 0) continue;
+      stations.append({
+        stationId = stationId,
+        platform = lineEnd == "A" ? line.platformA : line.platformB,
+        tile = lineEnd == "A" ? line.stationA : line.stationB,
+        origin = lineEnd == "A" ? line.originA : line.originB,
+      });
+    }
+  }
+  if (stations.len() == 0) return;
+
+  for (local t = 0; t < towns.len(); t++) {
+    if (served[t] != null) continue;
+    local best = null;
+    local bestD = 0;
+    foreach (st in stations) {
+      local d = AIMap.DistanceManhattan(st.tile, towns[t].tile);
+      if (d < MIN_DISTANCE || d > maxDist) continue;
+      if (best == null || d < bestD) {
+        best = st;
+        bestD = d;
+      }
+    }
+    if (best == null) continue;
+    stats.placeJoinPairs++;
+    local originTown = AITile.GetClosestTown(best.origin);
+    local originProd = AITown.GetLastMonthProduction(originTown, cargo);
+    local monthly = ((originProd + produced[t]) * TOWN_CATCHMENT_SHARE_PCT) / 100;
+    local candidate = OpexMakeCandidate(catalog, "pax", cargo, best.origin, towns[t].tile,
+                                        monthly, true, stats);
+    if (candidate == null) continue;
+    local key = OpexAbandonedPairKey(candidate);
+    if (key in stats.placeJoinKeys) continue;
+    stats.placeJoinKeys[key] <- true;
+    candidate.placeJoin <- {
+      candidateEnd = "A",
+      stationId = best.stationId,
+      platform = best.platform,
+    };
+    stats.placeJoinAccepted++;
+    out.append(candidate);
+  }
+}
+
+/* H2 fret : un puits libre rejoint la source existante la plus proche du
+ * meme cargo (candidateEnd A) ; une source libre rejoint le puits existant
+ * le plus proche (candidateEnd B). Roles v1, pas d'inversion. */
+function OpexPlaceJoinFreight(catalog, lines, out, stats, industries, served)
+{
+  local maxDist = OpexJoinPlaceMaxDistance();
+  local sources = [];
+  local sinks = [];
+  foreach (line in lines) {
+    if (("mode" in line) || !("kind" in line) || line.kind != "freight") continue;
+    if (!("platformA" in line) || !("platformB" in line)) continue;
+    local sidA = OpexLineStationId(line, "A");
+    local sidB = OpexLineStationId(line, "B");
+    if (sidA >= 0) {
+      sources.append({
+        cargo = line.cargo, stationId = sidA, platform = line.platformA,
+        tile = line.stationA, origin = line.originA,
+        srcIndustry = ("srcIndustry" in line) ? line.srcIndustry : -1,
+      });
+    }
+    if (sidB >= 0) {
+      sinks.append({
+        cargo = line.cargo, stationId = sidB, platform = line.platformB,
+        tile = line.stationB, origin = line.originB,
+      });
+    }
+  }
+
+  foreach (cargo, sinkIdxs in catalog.acceptors) {
+    foreach (di in sinkIdxs) {
+      if (served[di] != null) continue;
+      local sink = industries[di];
+      local best = null;
+      local bestD = 0;
+      foreach (st in sources) {
+        if (st.cargo != cargo) continue;
+        local d = AIMap.DistanceManhattan(st.tile, sink.tile);
+        if (d < MIN_DISTANCE || d > maxDist) continue;
+        if (best == null || d < bestD) {
+          best = st;
+          bestD = d;
+        }
+      }
+      if (best == null) continue;
+      stats.placeJoinPairs++;
+      local monthly = (best.srcIndustry >= 0)
+          ? AIIndustry.GetLastMonthProduction(best.srcIndustry, cargo) : 0;
+      local candidate = OpexMakeCandidate(catalog, "freight", cargo, best.origin, sink.tile,
+                                          monthly, true, stats);
+      if (candidate == null) continue;
+      local key = OpexAbandonedPairKey(candidate);
+      if (key in stats.placeJoinKeys) continue;
+      stats.placeJoinKeys[key] <- true;
+      candidate.placeJoin <- {
+        candidateEnd = "A",
+        stationId = best.stationId,
+        platform = best.platform,
+      };
+      stats.placeJoinAccepted++;
+      out.append(candidate);
+    }
+  }
+
+  foreach (cargo, srcIdxs in catalog.producers) {
+    foreach (si in srcIdxs) {
+      if (served[si] != null) continue;
+      local source = industries[si];
+      local best = null;
+      local bestD = 0;
+      foreach (st in sinks) {
+        if (st.cargo != cargo) continue;
+        local d = AIMap.DistanceManhattan(st.tile, source.tile);
+        if (d < MIN_DISTANCE || d > maxDist) continue;
+        if (best == null || d < bestD) {
+          best = st;
+          bestD = d;
+        }
+      }
+      if (best == null) continue;
+      stats.placeJoinPairs++;
+      local monthly = AIIndustry.GetLastMonthProduction(source.id, cargo);
+      local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile, best.origin,
+                                          monthly, true, stats);
+      if (candidate == null) continue;
+      local key = OpexAbandonedPairKey(candidate);
+      if (key in stats.placeJoinKeys) continue;
+      stats.placeJoinKeys[key] <- true;
+      candidate.placeJoin <- {
+        candidateEnd = "B",
+        stationId = best.stationId,
+        platform = best.platform,
+      };
+      stats.placeJoinAccepted++;
+      out.append(candidate);
+    }
+  }
+}
+
 /* Paires de villes pour les passagers. */
 function OpexPaxCandidates(catalog, lines, out, stats)
 {
@@ -482,6 +647,7 @@ function OpexPaxCandidates(catalog, lines, out, stats)
     served.append(service);
     if (service != null) stats.townsServed++; else stats.townsUnserved++;
   }
+  if (JOIN_PLACE) OpexPlaceJoinPax(catalog, lines, out, stats, towns, produced, served, cargo);
   for (local a = 0; a < n; a++) {
     for (local b = a + 1; b < n; b++) {
       stats.pairsTotal++;
@@ -529,7 +695,13 @@ function OpexPaxCandidates(catalog, lines, out, stats)
        * Corriger `monthly` ici serait donc traiter le mauvais terme. */
       local candidate = OpexMakeCandidate(catalog, "pax", cargo, towns[a].tile, towns[b].tile,
                                           monthly, originServed, stats);
-      if (candidate != null) out.append(candidate);
+      if (candidate != null) {
+        if (JOIN_PLACE && (OpexAbandonedPairKey(candidate) in stats.placeJoinKeys)) {
+          /* H2 porte deja le join ; ne pas occuper un second slot TOP_K. */
+        } else {
+          out.append(candidate);
+        }
+      }
     }
   }
 }
@@ -545,6 +717,7 @@ function OpexFreightCandidates(catalog, lines, out, stats)
     served.append(service);
     if (service != null) stats.industriesServed++; else stats.industriesUnserved++;
   }
+  if (JOIN_PLACE) OpexPlaceJoinFreight(catalog, lines, out, stats, industries, served);
   foreach (cargo, sources in catalog.producers) {
     if (!(cargo in catalog.acceptors)) continue;
     local sinks = catalog.acceptors[cargo];
@@ -581,7 +754,13 @@ function OpexFreightCandidates(catalog, lines, out, stats)
          * Voir le commentaire detaille dans OpexPaxCandidates ci-dessus. */
         local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
                                             industries[di].tile, monthly, originServed, stats);
-        if (candidate != null) out.append(candidate);
+        if (candidate != null) {
+          if (JOIN_PLACE && (OpexAbandonedPairKey(candidate) in stats.placeJoinKeys)) {
+            /* H2 porte deja le join ; ne pas occuper un second slot TOP_K. */
+          } else {
+            out.append(candidate);
+          }
+        }
       }
     }
   }
@@ -617,6 +796,11 @@ function OpexBuildCandidates(catalog, budget, lines)
     stats.negMin <- 0;
   }
   if (PAX_NEAR) stats.paxNearAdmitted <- 0;
+  if (JOIN_PLACE) {
+    stats.placeJoinKeys <- {};
+    stats.placeJoinPairs <- 0;
+    stats.placeJoinAccepted <- 0;
+  }
 
   budget.begin();
   OpexPaxCandidates(catalog, lines, all, stats);
