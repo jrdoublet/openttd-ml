@@ -47,6 +47,17 @@ const PROBE_STASH_K = 12;
  * ordre qu'une ligne mediocre, pas un gouffre d'amortissement. */
 const PROBE_NEAR_ZERO = -1000;
 
+/* Retuning pax borne (suite item 7). Les 11/11 paires pax <=100 tuiles force-construites
+ * avec predit -146..-9 etaient rentables en derniere annee ; au-dela de 100 la mediane
+ * reelle est 0. On admet cette famille au classement, rien d'autre : pas le fret, pas
+ * le long, pas un decalage de OpexLineEconomics. ratio = 1 les place sous tout candidat
+ * qui passe MIN_RATIO. _tryBuild les bride a 1 tentative/an au plafond dur.
+ * PAX_NEAR_MIN_PROFIT = -200 couvre l'echantillon (-146) sans ouvrir le gouffre. */
+const PAX_NEAR_MAX_DISTANCE = 100;
+const PAX_NEAR_MIN_PROFIT = -200;
+const PAX_NEAR_MAX_ATTEMPTS_PER_YEAR = 1;
+const PAX_NEAR_RATIO = 1;
+
 /* Etage 2 : le cout, AJUSTE sur la campagne v3 (1997 lignes reelles, OpenTTD 13.4).
  *
  * La grandeur utile n'est pas "iterations d'une tentative" mais "iterations par ligne REUSSIE",
@@ -155,10 +166,16 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
     stats.economicsUnavailable++;
     return null;
   }
-  /* Un candidat dont le profit annuel attendu est negatif ne merite AUCUN opcode.
-   * Derriere probe_negative=1, on le range quand meme : le classement n'en voit rien,
-   * _tryProbeNegative en force-construit au plus un par an sur le cash restant. */
+  /* Un candidat dont le profit annuel attendu est negatif ne merite AUCUN opcode,
+   * SAUF la famille pax_near (pax, <=100 tuiles, predit > -200) : le sondage a
+   * 40 000 iterations a trouve 11/11 rentables en derniere annee, et le long non.
+   * Derriere probe_negative=1, les AUTRES rejets sont ranges pour le force-build. */
   if (economics.profitAnnual <= 0) {
+    if (PAX_NEAR && kind == "pax" && distance <= PAX_NEAR_MAX_DISTANCE
+        && economics.profitAnnual > PAX_NEAR_MIN_PROFIT) {
+      return OpexMakePaxNearCandidate(kind, cargo, srcTile, dstTile, monthly, originServed,
+                                      distance, economics, stats);
+    }
     stats.profitNonPositive++;
     if (PROBE_NEGATIVE) OpexStashNegative(stats, kind, cargo, srcTile, dstTile, monthly,
                                           originServed, distance, economics);
@@ -215,6 +232,34 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
      * ci-dessus pour le test MIN_RATIO -- repris tel quel, pas recalcule. */
     ratio = ratio,
   };
+}
+
+/* Famille pax_near : meme tableau qu'un candidat classe, ratio = 1 (sous MIN_RATIO),
+ * slot paxNear pour que _tryBuild bride a une tentative/an au plafond dur.
+ * Un helper evite de copier 30 champs dans le chemin profit>0. */
+function OpexMakePaxNearCandidate(kind, cargo, srcTile, dstTile, monthly, originServed,
+                                  distance, economics, stats)
+{
+  stats.paxNearAdmitted++;
+  stats.accepted++;
+  local candidate = {
+    kind = kind, cargo = cargo, originServed = originServed,
+    src = srcTile, dst = dstTile, distance = distance, monthly = monthly,
+    trains = economics.trains, wagons = economics.wagons, perTrain = economics.perTrain,
+    platformLength = economics.platformLength, loco = economics.loco,
+    effectiveSpeed = economics.effectiveSpeed, tripsPerMonth = economics.tripsPerMonth,
+    headwayDays = economics.headwayDays, stationRating = economics.stationRating,
+    offered = economics.offered, monthlyCapacity = economics.monthlyCapacity,
+    trainsForHeadway = economics.trainsForHeadway, trainsForVolume = economics.trainsForVolume,
+    carried = economics.carried, capital = economics.capital,
+    profitAnnual = economics.profitAnnual, revenueAnnual = economics.revenueAnnual,
+    runningAnnual = economics.runningAnnual, amortAnnual = economics.amortAnnual,
+    oneWayDays = economics.oneWayDays,
+    iterations = OpexRailIterations(distance),
+    ratio = PAX_NEAR_RATIO,
+  };
+  candidate.paxNear <- true;
+  return candidate;
 }
 
 /* Histogramme de TOUTES les paires a profit <= 0, plus les PROBE_STASH_K moins negatives.
@@ -571,6 +616,7 @@ function OpexBuildCandidates(catalog, budget, lines)
     stats.negSum <- 0;
     stats.negMin <- 0;
   }
+  if (PAX_NEAR) stats.paxNearAdmitted <- 0;
 
   budget.begin();
   OpexPaxCandidates(catalog, lines, all, stats);

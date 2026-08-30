@@ -109,6 +109,8 @@ RE_PX = re.compile(r"^PX\|(\d+)$")
 RE_PQ = re.compile(r"^PQ\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|([01])$")
 RE_NH = re.compile(r"^NH\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
 RE_NM = re.compile(r"^NM\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(-?\d+)$")
+RE_PE = re.compile(r"^PE\|(\d{2})\|(\d+)\|(\d+)\|(\d+)$")
+RE_PY = re.compile(r"^PY\|(\d+)$")
 
 TOP_K = 20  # Doit rester synchronise avec ai/OpexAI/candidates.nut, pour decoder rang20.
 REASON_CODES = {
@@ -315,6 +317,8 @@ def parse_lines(all_signs):
             predicted.setdefault(int(m.group(1)), {})["cargo_label"] = m.group(2)
         elif m := RE_PX.match(sign):
             probe_built[int(m.group(1))] = True
+        elif m := RE_PY.match(sign):
+            predicted.setdefault(int(m.group(1)), {})["pax_near"] = True
         elif m := RE_PN.match(sign):
             # Un ABND reutilise _nextLineId : ne pas coller ce PN sur la ligne classee
             # qui reprendra le meme idx. Seulement PX (succes) autorise le merge.
@@ -352,6 +356,7 @@ def parse_lines(all_signs):
         lines.append({
             "line_index": idx,
             "mode": "rail",
+            "pax_near": bool(pred.get("pax_near")),
             "distance": built[idx].get("distance", pred.get("distance")),
             "iterations": built[idx]["iterations"],
             "reason": built[idx]["reason"],
@@ -698,6 +703,11 @@ def parse_yearly(all_signs):
             d["probe_skip_close"] = int(m.group(3))
             d["probe_skip_cash"] = int(m.group(4))
             d["probe_tried"] = int(m.group(5))
+        elif m := RE_PE.match(sign):
+            y = 1900 + int(m.group(1)); d = by_year.setdefault(y, {})
+            d["pax_near_admitted"] = int(m.group(2))
+            d["pax_near_tried"] = int(m.group(3))
+            d["pax_near_ok"] = int(m.group(4))
     return dict(sorted(by_year.items()))
 
 
@@ -921,6 +931,9 @@ def make_run_payload(rows, seed, years):
         "n_probe_attempts": len(probe_attempts),
         "n_probe_ok": sum(1 for item in probe_attempts if item["reason"] == "OK"),
         "n_probe_lines": sum(1 for line in lines if line.get("probe")),
+        "n_pax_near_admitted": sum(row.get("pax_near_admitted") or 0 for row in yearly.values()),
+        "n_pax_near_tried": sum(row.get("pax_near_tried") or 0 for row in yearly.values()),
+        "n_pax_near_ok": sum(1 for line in lines if line.get("pax_near")),
         "loan_view": loan_view_rows,
         "lines": lines, "yearly": yearly,
         "annual_blocks": annual_blocks, "calendar_years_crossed": calendar_years_crossed,
@@ -1003,7 +1016,8 @@ def main():
                                   "OR SITEA/SITEB/SITEAB/ECON", "PS site clear/cargo/cmd",
                                   "GL reemprunt", "RF reconstitution flotte route",
                                   "OB|A distance",
-                                  "PN/PX/PQ/NH/NM sondage profit<=0"],
+                                  "PN/PX/PQ/NH/NM sondage profit<=0",
+                                  "PE/PY pax_near"],
         "runs": runs,
     }
     result_path.write_text(json.dumps(payload, indent=2))
@@ -1028,6 +1042,8 @@ def main():
         dist = run.get("attempt_distance") or {}
         print(f"sondages profit<=0: {run.get('n_probe_attempts', 0)}  "
               f"OK={run.get('n_probe_ok', 0)}  lignes={run.get('n_probe_lines', 0)}")
+        print(f"pax_near: admis={run.get('n_pax_near_admitted', 0)}  "
+              f"tries={run.get('n_pax_near_tried', 0)}  OK={run.get('n_pax_near_ok', 0)}")
         print(f"tentatives avec distance: {dist.get('n_with_distance')}/"
               f"{dist.get('n_attempts')}  OK={dist.get('n_ok')} ABND={dist.get('n_abnd')}")
         for band in dist.get("bands") or []:

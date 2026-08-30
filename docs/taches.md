@@ -570,9 +570,27 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
    du très long (110–195 tuiles) au plafond.
 
    ⚠️ **Ne pas lever `profit≤0` globalement** : ce serait réadmettre le long
-   qui ne paie pas, le piège du vivier. Un retuning, s'il vient, est borné
-   au pax ≤100 tuiles à prédit légèrement négatif, réglage défaut 0, banc
-   apparié. Défaut `probe_negative` **0**.
+   qui ne paie pas, le piège du vivier. Défaut `probe_negative` **0**.
+
+   ✅ **Retuning pax borné : écrit, mesuré, défaut 0** (2026-08-30, nuit).
+   Réglage `pax_near` : pax, ≤100 tuiles, prédit dans (−200, 0], ratio = 1,
+   au plus 1 tentative/an au plafond dur. 5 graines
+   (`docs/opex_pax_near_20y_5seeds.json`) : 21 lignes, toutes pax, 38–97 tuiles,
+   prédit −197…−13. Le mécanisme est chirurgical.
+
+   Banc apparié 20 graines × 20 ans (`docs/bench_pax_near.json`) :
+
+   | métrique | delta | t | graines | verdict |
+   |---|---|---|---|---|
+   | `company_value` | +0,6 % | 0,10 | 8/20 | nul |
+   | `performance_history` | +4,7 % | 1,42 | 14/20 | sous le plancher (~12 %) |
+   | véhicules | +1,3 % | 0,20 | 9/20 | nul |
+   | gares | **+10,5 %** | **4,27** | **17/20** | **établi** — plus de construction |
+
+   Même piège que le vivier : on construit plus, pour la même valeur. Variance
+   pire (CV 0,25 → 0,33), minimum 1,70 M → 1,56 M, une graine à emprunt
+   résiduel. Graine 42 +64 %, 512 −42 %. ⚠️ **Défaut 0.** `OpexAI[pax_near=1]`
+   rallume. Ne pas élargir les bornes (distance, −200) sans banc.
 
 9. 🔴 **Les suites de la tranche v1 du raccordement de gare** (commité, défaut `station_join=0`).
    Le quai parallèle joint au même `StationID` avec sa propre entrée est en place et contourne à
@@ -615,20 +633,18 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
       le banc vivier.
 
 **Priorité de fait, révisée le 2026-08-30 (nuit)** : plus d'échec qualitatif du mode route.
-Distance A\* ✅. Recalibrage conjoint des nœuds ✅ mesuré, **défaut 0**. Item 7 ✅ mesuré
-aux deux budgets, **défaut 0**. Le pax ≤100 tuiles rejeté pour `profit≤0` est
-rentable (11/11) ; au-delà de 100 tuiles la médiane réelle est 0. `station_join`,
-`basin_share`, `reborrow`, `origin_sitable`, `astar_cost`, `probe_negative` restent à 0.
-Le **spread** n'est pas la suite. La tête est un **retuning pax borné** : admettre
-les paires pax ≤100 tuiles à profit prédit légèrement négatif, réglage défaut 0,
-banc apparié n=20. Ne pas lever le filtre sur le long.
+Distance A\* ✅. Recalibrage conjoint des nœuds ✅. Item 7 ✅ aux deux budgets.
+Retuning pax borné ✅ mesuré, **défaut 0** (gares +10,5 %, t = 4,27 ; valeur nulle).
+`station_join`, `basin_share`, `reborrow`, `origin_sitable`, `astar_cost`,
+`probe_negative`, `pax_near` restent à 0. Le **spread** n'est pas la suite.
+La tête est l'item **9.1** : instrumenter le refus de jointure (`OpexFindStationJoin`
+rend `null` sans dire laquelle des trois conditions a tué).
 
-*Priorité précédente, conservée pour la trace* : ~~l'item **7**~~ (✅ mesuré, défaut 0) était
-la tête le matin. ~~l'item **4**~~ (✅ fait) et l'item **6** (plafond d'abandon) passaient
-devant — ce sont deux échecs mesurés, et surtout les deux seuls qui soient **orthogonaux à
-l'architecture de §9**. L'item 5 (`MIN_SEPARATION`) est explicitement gelé derrière §9.
-L'item 2 (verrouillage de ville) reste dernier — il exige lui aussi d'abord une mesure
-(la croissance des villes desservies stagne-t-elle réellement ?).
+*Priorité précédente, conservée pour la trace* : ~~le retuning pax borné~~ (✅ mesuré,
+défaut 0) était la tête. ~~l'item **7**~~ (✅ mesuré, défaut 0) était la tête le matin.
+~~l'item **4**~~ (✅ fait) et l'item **6** (plafond d'abandon) passaient devant — ce
+sont deux échecs mesurés, orthogonaux à §9. L'item 5 (`MIN_SEPARATION`) est gelé
+derrière §9. L'item 2 (verrouillage de ville) reste dernier.
 
 ---
 

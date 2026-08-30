@@ -10,7 +10,7 @@ class OpexAI extends AIInfo {
 
   /* Les reglages debug_signs et pathfinder_sleep_ticks existent pour NE PAS POLLUER une partie
    * partagee avec des joueurs humains (loan_repay_floor_k, pathfinder_hard_cap_k,
-   * abandon_memory, station_join, origin_sitable, basin_share, reborrow, road_mode, road_refleet, astar_cost et probe_negative, eux, sont des parametres de conception exposes au banc,
+   * abandon_memory, station_join, origin_sitable, basin_share, reborrow, road_mode, road_refleet, astar_cost, probe_negative et pax_near, eux, sont des parametres de conception exposes au banc,
    * pas des bridages).
    * Entre IA, la regle est l'inverse : jouer a armes egales,
    * donc ne jamais s'auto-handicaper face a un adversaire qui ne se bride pas. Un handicap non intentionnel
@@ -160,6 +160,31 @@ class OpexAI extends AIInfo {
     AddSetting({
       name = "probe_negative",
       description = "Force-build one leftover-cash rail pair rejected for predicted profit <= 0, once per year: 1 = measure selection bias, 0 = historical ranking (default)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* Retuning pax borne. Defaut 0 : attendre le banc apparie.
+     *
+     * CE QUE 1 FAIT. Les paires pax, distance <= 100, profit predit dans (-200, 0]
+     * entrent au classement (ratio = 1, sous MIN_RATIO). _tryBuild en tente au plus
+     * une par an au plafond dur. Fret et pax >100 restent rejetes a profit<=0.
+     *
+     * POURQUOI CES BORNES. Sondage a 40 000 iterations (docs/opex_probe_negative_hardcap_20y_5seeds.json) :
+     * 11/11 pax <=100 rentables en derniere annee (predit -146..-9, reel 10-20 k) ;
+     * >100 tuiles, mediane reelle 0. Lever le filtre partout readmettrait le long
+     * du vivier. -200 couvre l'echantillon sans ouvrir le gouffre.
+     *
+     * VERDICT n=20 (docs/bench_pax_near.json) : company_value +0,6 %, t = 0,10,
+     * 8/20 -- nul. performance_history +4,7 %, t = 1,42, 14/20 -- sous le
+     * plancher ~12 %. Gares +10,5 %, t = 4,27, 17/20 : CA c'est etabli, on
+     * construit plus pour la meme valeur. C'est le vivier. Defaut 0.
+     * OpexAI[pax_near=1] rallume. */
+    AddSetting({
+      name = "pax_near",
+      description = "Admit passenger rail pairs of at most 100 tiles with predicted profit in (-200, 0] into ranking: 1 = enabled, 0 = historical profit<=0 rejection (default)",
       min_value = 0, max_value = 1,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,

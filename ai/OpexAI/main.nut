@@ -161,6 +161,11 @@ REBORROW <- false;
  * au plus une tentative rail par an, sur le cash que le TOP_K n'a pas pris. */
 PROBE_NEGATIVE <- false;
 
+/* Retuning pax borne : repli FAUX jusqu'a la lecture unique de pax_near dans Start().
+ * Defaut 0. 1 admet au classement les pax <=100 tuiles a predit > -200, une
+ * tentative/an au plafond dur. Le long et le fret restent filtres. */
+PAX_NEAR <- false;
+
 /* Ligne fret morte (2026-08-28) : une industrie source qui ferme NE garantit PAS l'effondrement --
  * la gare peut recuperer une industrie voisine du meme cargo (ligne 4, campagne 20 ans, restee
  * rentable malgre srcAlive=0). Le diagnostic se fie donc TOUJOURS a la performance REELLE
@@ -688,6 +693,8 @@ function OpexAI::_tryBuild(ranked, year)
   local nJoinBuilt = 0;
   local nJoinFailed = 0;
   local nOriginServedRanked = 0;   // candidats du TOP_K qui n'existent QUE grace a la jointure
+  local nPaxNearTried = 0;
+  local nPaxNearOk = 0;
 
   for (local i = 0; i < best.len() && i < CASH_CANDIDATE_SCAN_LIMIT; i++) {
     local candidate = best[i];
@@ -733,10 +740,17 @@ function OpexAI::_tryBuild(ranked, year)
       }
     }
 
+    local isPaxNear = PAX_NEAR && ("paxNear" in candidate) && candidate.paxNear;
+    if (isPaxNear && nPaxNearTried >= PAX_NEAR_MAX_ATTEMPTS_PER_YEAR) continue;
+
     local alternativeSource = (i + 1 < best.len()) ? "S" : "L";
     local alternativeRatio = (alternativeSource == "S") ? best[i + 1].ratio : MIN_RATIO;
+    /* pax_near : profit negatif -> forme fermee negative -> plancher 2000, qui
+     * abandonnait le 75-100. alternativeRatio 0 = chemin Z, HARD_ITERATION_CAP. */
+    if (isPaxNear) alternativeRatio = 0;
     local result = OpexBuildLine(this._catalog, this._budget, candidate, alternativeRatio, join,
                                  CASH_RESERVE);
+    if (isPaxNear) nPaxNearTried++;
     /* La longueur retenue peut etre plus courte que le souhait, ou celle d'un quai joint plus
      * longue. OpexBuildLine a alors recalcule le capital avant toute demolition. Ce rejet reste
      * financier, pas un echec de plan ou de voie, et le classement continue comme ci-dessus. */
@@ -791,6 +805,7 @@ function OpexAI::_tryBuild(ranked, year)
     if (result.ok) {
       nBuilt++;
       if (join != null) nJoinBuilt++;
+      if (isPaxNear) nPaxNearOk++;
       local idx = this._nextLineId;
       /* Predit-vs-reel (etage 1) : le detail du calcul au moment de la construction, pour pouvoir
        * le comparer plus tard a la mesure reelle (_reportLines). Les dimensions traction ajoutent
@@ -853,6 +868,7 @@ function OpexAI::_tryBuild(ranked, year)
         OpexSign(anchor, "PJ|" + idx + "|" + (join == null ? "N" : join.candidateEnd)
                                  + "|" + (candidate.originServed ? 1 : 0));
       }
+      if (isPaxNear) OpexSign(anchor, "PY|" + idx);
 
       /* Diagnostic effondrement fret (2026-08-28) : garder de quoi verifier, annee apres annee,
        * si les DEUX industries d'une ligne fret restent valides -- sans ca on ne peut pas
@@ -922,6 +938,13 @@ function OpexAI::_tryBuild(ranked, year)
    * independamment du fait que la jointure aboutisse ou non. */
   if (STATION_JOIN) OpexSign(anchor, "OB|S|" + year + "|" + nOriginServedRanked
                                       + "|" + best.len());
+  /* pax_near : admis au classement / tentatives / succes. Gate : a 0, zero panneau.
+   * PE|99|99|9|9 : 14 caracteres. */
+  if (PAX_NEAR) {
+    local admitted = ("paxNearAdmitted" in ranked.stats) ? ranked.stats.paxNearAdmitted : 0;
+    OpexSign(anchor, "PE|" + (year % 100) + "|" + admitted + "|" + nPaxNearTried
+                             + "|" + nPaxNearOk);
+  }
 }
 
 /* Item 7 : au plus UNE tentative rail par an sur une paire que le modele a rejetee
@@ -1405,6 +1428,7 @@ function OpexAI::Start()
   ROAD_REFLEET = AIController.GetSetting("road_refleet") != 0;
   ASTAR_COST_V2 = AIController.GetSetting("astar_cost") != 0;
   PROBE_NEGATIVE = AIController.GetSetting("probe_negative") != 0;
+  PAX_NEAR = AIController.GetSetting("pax_near") != 0;
 
   /* 🔴 RENOUVELLEMENT AUTOMATIQUE (2026-08-29). Mesure : campagne 20 ans, graine 42 -- trois des
    * quatre lignes ROUTIERES finissent la partie avec vehCount = 0 et un profit de zero, alors que
