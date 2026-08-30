@@ -311,8 +311,15 @@ ligne a roulé onze ans à perte sans être ferraillée). Les deux touchent auss
    rail médiane 5 040 / `MIN_RATIO` 500 : un classement unique affamerait le rail.
    ⚠️ **Pas de retuning de `BASE`.** Le rail d'abord (`docs/opexai_route.md` §2)
    est une décision de valeur, pas d'opcode.
-4. **Multistop** (`AIStation.STATION_JOIN_ADJACENT`) : seul levier de volume par ligne, le plafond
-   de deux véhicules par arrêt étant une règle du jeu.
+4. ✅ **Multistop : le mécanisme marche, les 4 véhicules non** (2026-08-30).
+   Réglage `road_multistop`, défaut 0. Un arrêt extra par bout, même façade, joint
+   par l'identifiant du primaire (pas `STATION_JOIN_ADJACENT` nu). Clones au-delà
+   de 2 seulement si les deux bouts ont doublé. 5 graines
+   (`docs/opex_road_multistop_20y_5seeds.json` contre TRACEX) : extra A 7/8, extra
+   B 8/8, les deux 7/8, 4 véhicules 7/8. La ligne pax appariée (graine 12345, L22,
+   1983, 24 tuiles) passe **8 905 → 1 781** à 4 bus. 4096 IORE 5 153 → 3 792, et
+   la WOOD disparaît. Le ×5 du wiki n'est pas là. ⚠️ **Défaut 0.** Pas un banc
+   n=20 : le pairé dit déjà que les clones extra ne paient pas.
 5. ✅ **Reconstitution de flotte routiere : faite, defaut 1** (2026-08-29, nuit).
    Le trou n'était pas n = 1 : sur `docs/opex_road_20y_42.json` la ligne pax 15 passe 2→1→0
    (1985-87, 9 000/an puis notes 54→−1) ; sur `docs/opex_join_20y_42.json` le COAL fait 2→1→0
@@ -665,11 +672,11 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
       Le spread n'est **pas** débloqué : joindre plus, sur un terme qui ne paie pas, recréerait
       le banc vivier.
 
-**Priorité de fait, révisée le 2026-08-30 (RB)** : classement inter-modes ✅
-(mesuré, pas unifié). TRACEX ✅. SITEA/SITEB ✅. Item route 1 ✅. Le **spread**
-n'est pas la suite. La tête route suivante est le **multistop**
-(`AIStation.STATION_JOIN_ADJACENT`). Les 2 TRACEX restants sont `nUnb` — pas
-Pathfinder.Road. `MIN_SEPARATION` reste gelé. L'item 2 reste dernier.
+**Priorité de fait, révisée le 2026-08-30 (multistop)** : multistop ✅ (mécanisme
+oui, 4 véhicules non, défaut 0). Classement inter-modes ✅. TRACEX ✅.
+SITEA/SITEB ✅. Item route 1 ✅. Le **spread** n'est pas la suite. Plus de tête
+route de construction. Les 2 TRACEX restants sont `nUnb` — pas Pathfinder.Road.
+`MIN_SEPARATION` reste gelé. L'item 2 reste dernier.
 
 *Priorité précédente, conservée pour la trace* : ~~le rendement join~~ (✅ mesuré,
 défaut 0) était la tête. ~~l'item **9.1**~~ (✅) était la tête. ~~le retuning pax
@@ -886,8 +893,8 @@ Reprend le §8 de `docs/mecanique_jeu.md`, complété.
 4. ✅ **Route** — adoptée le 2026-08-29, `road_mode` défaut 1. Ce n'est plus la liaison bus
    unique désactivée du 2026-08-28 (notes −1, `ROAD_BUILD_ENABLED = false`) : c'est une phase
    annuelle, bus et **camions**, bande 5–25 tuiles. Banc apparié : `performance_history` **+9,3 %**,
-   t = 2,03, 16/20. Tout le détail, les bugs de mise en service, SITE/TRACEX et ce qui reste
-   (classement inter-modes, multistop) : **`docs/opexai_route.md`** et §1 bis ci-dessus.
+   t = 2,03, 16/20. SITE, TRACEX, classement et multistop sont mesurés (défauts inchangés sauf
+   le mode lui-même). Détail : **`docs/opexai_route.md`** et §1 bis ci-dessus.
 
 Ne pas oublier deux composantes gratuites de la note de compagnie : **emprunt à zéro** (5 %) et
 **8 types de cargo par trimestre** (5 %) — cette dernière plaide contre une IA 100 % passagers.

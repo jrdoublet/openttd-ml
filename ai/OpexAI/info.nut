@@ -10,7 +10,7 @@ class OpexAI extends AIInfo {
 
   /* Les reglages debug_signs et pathfinder_sleep_ticks existent pour NE PAS POLLUER une partie
    * partagee avec des joueurs humains (loan_repay_floor_k, pathfinder_hard_cap_k,
-   * abandon_memory, station_join, origin_sitable, basin_share, reborrow, road_mode, road_refleet, astar_cost, probe_negative et pax_near, eux, sont des parametres de conception exposes au banc,
+   * abandon_memory, station_join, origin_sitable, basin_share, reborrow, road_mode, road_refleet, road_multistop, astar_cost, probe_negative et pax_near, eux, sont des parametres de conception exposes au banc,
    * pas des bridages).
    * Entre IA, la regle est l'inverse : jouer a armes egales,
    * donc ne jamais s'auto-handicaper face a un adversaire qui ne se bride pas. Un handicap non intentionnel
@@ -388,6 +388,26 @@ class OpexAI extends AIInfo {
       min_value = 0, max_value = 1,
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* Multistop routier. Defaut 0 : un arret par bout, flotte bornee a 2.
+     *
+     * CE QUE 1 FAIT. Apres les deux arrets primaires, tente un arret extra a chaque
+     * extremite, meme facade, tuile cardinale voisine, joint par l'identifiant du
+     * primaire (pas STATION_JOIN_ADJACENT : piege de deux gares voisines). Un echec
+     * d'extra n'annule pas la ligne. Des vehicules au-dela de candidate.trains seulement
+     * si les DEUX bouts ont double (2 berths x min(nA,nB)), cash au-dessus de
+     * CASH_RESERVE. Le classement et MAX_ROAD_VEHICLES restent a 2.
+     *
+     * POURQUOI DEFAUT 0. Le wiki promet x5 de volume ; ce n'est pas mesure. Extra
+     * stop + clones coutent du cash hors modele. OpexAI[road_multistop=1] allume. */
+    AddSetting({
+      name = "road_multistop",
+      description = "Join a second road stop at each end and add vehicles only if both ends doubled: 1 = try, 0 = one stop per end (default)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
 

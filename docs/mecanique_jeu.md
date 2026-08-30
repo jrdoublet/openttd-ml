@@ -647,8 +647,8 @@ efficace, sans que la page en détaille la mécanique. ❓
 >   ligne rail à voie unique a ses propres blocages, mais pas ce plafond de deux). Un bus coincé
 >   dans une file n'est pas détecté par notre surveillance de lignes mortes, qui ne couvre que le
 >   fret.
-> - **Le multistop est la voie de croissance**, pas l'ajout de véhicules sur un arrêt unique — et
->   il recoupe exactement le plafond de 5 gares actives pour la croissance de ville (§5).
+> - **Le multistop a été testé** (`road_multistop`, défaut 0) : le second arrêt se pose, ajouter
+>   les véhicules jusqu'aux quais extra ne paie pas. Voir `docs/opexai_route.md` §7 item 4.
 - **Les véhicules routiers ne se percutent jamais entre eux** ; le seul risque de destruction est
   un train à un passage à niveau. Une IA routière n'a donc pas à gérer de conflit de circulation,
   contrairement au rail — un argument de coût en opcodes en faveur de la route.
@@ -657,8 +657,9 @@ efficace, sans que la page en détaille la mécanique. ❓
 > 1. **Le type d'arrêt n'est pas la cause du non-chargement** — écarté par lecture du code.
 >    Les deux suspects restants, par ordre de vraisemblance : un véhicule jamais démarré, et un
 >    arrêt mal orienté donc non raccordé à la route.
-> 2. **Le regroupement d'arrêts (`Ctrl`+clic, `AIStation.STATION_JOIN_ADJACENT`) est la piste de
->    volume à tester** avant de juger la rentabilité du bus.
+> 2. **Le regroupement d'arrêts a été testé** (`road_multistop`, 2026-08-30) : le second
+>    arrêt se pose (7/8 et 8/8), les 4 véhicules ne paient pas (ligne pax appariée
+>    8 905 → 1 781). ⚠️ Défaut 0. Voir `docs/opexai_route.md` §7 item 4.
 > 3. **Ne pas attendre du bus un profit de ligne** : le wiki l'annonce lui-même. Sa valeur est
 >    ailleurs — croissance de ville (§5) et cargos supplémentaires pour la note de compagnie (§6).
 

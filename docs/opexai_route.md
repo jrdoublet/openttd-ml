@@ -47,7 +47,8 @@ Repris du rail, avec trois écarts, chacun justifié :
 
 - **`MAX_ROAD_VEHICLES = 2`.** Un arrêt n'accueille que deux véhicules à la fois ; au-delà ils font
   la queue sur la route et se bloquent (`docs/mecanique_jeu.md` §11). Ce n'est pas une précaution,
-  c'est la règle du jeu. Le levier de volume est le **multistop**, non implémenté.
+  c'est la règle du jeu. Le levier de volume est le **multistop** (`road_multistop`, défaut 0) :
+  mesuré, le second arrêt se pose, les 4 véhicules ne paient pas (§7 item 4).
 - **`ROAD_SPEED_EFFICIENCY_PCT = 60`.** Hypothèse, non calibrée. Le rail n'a plus d'abattement
   forfaitaire (`SPEED_EFFICIENCY_PCT` a été remplacé par la traction dimensionnée) ; la route
   n'a pas encore ce modèle.
@@ -162,8 +163,10 @@ plutôt que par bruit diffus :
 
 Items **fermés** : 0 (graine qui coulait, §6 bis), 1 (plancher pax, mesuré pas retuné),
 2 (SITEA/B, sondes sur des maisons), 2 bis (TRACEX, 32 L + façade), 3 (classement
-inter-modes, mesuré pas unifié), 5 (`road_refleet=1`).
-**Ouverts** : 4 (multistop).
+inter-modes, mesuré pas unifié), 4 (multistop, mécanisme oui, 4 véhicules non),
+5 (`road_refleet=1`).
+**Ouverts** : plus rien de ce côté. L'item 2 du backlog général (villes enfermées)
+reste dernier.
 
 1. ✅ **Le plancher `ROAD_MIN_PROFIT_ANNUAL = 1000` : mesuré, pas retuné** (2026-08-30).
    12 lignes pax, médiane réel/prédit **3,91** (revenu 2,29). Fret n = 6 : **1,21 / 1,03**.
@@ -186,8 +189,12 @@ inter-modes, mesuré pas unifié), 5 (`road_refleet=1`).
    Plan OK médiane 31 440 opcodes contre `20+d` ≈ 42,5 iter (rapport 0,29).
    Un ratio route sur le plan réel (68 k–710 k) écrase le rail (médiane 5 040,
    `MIN_RATIO` 500). ⚠️ Pas de retuning de `BASE`. Le rail d'abord (§2) tient.
-4. **Le multistop** (`AIStation.STATION_JOIN_ADJACENT`) est le seul levier de volume par ligne, le
-   plafond de deux véhicules par arrêt étant une règle du jeu.
+4. ✅ **Le multistop : le second arrêt se pose, les 4 véhicules ne paient pas**
+   (2026-08-30). Réglage `road_multistop`, défaut 0. Identifiant du primaire, pas
+   `STATION_JOIN_ADJACENT` nu. 5 graines contre TRACEX
+   (`docs/opex_road_multistop_20y_5seeds.json`) : extra A 7/8, extra B 8/8, les
+   deux 7/8. La ligne pax appariée (12345 L22) **8 905 → 1 781** à 4 bus. ⚠️
+   Défaut 0. Le ×5 du wiki n'est pas là.
 5. ✅ **Rebâtir la flotte d'une ligne tombée à zéro véhicule.** Réglage `road_refleet`, défaut 1.
    Le trou n'était pas n = 1 (pax 15 de `opex_road_20y_42.json` : 2→1→0, 9 000/an ; COAL de
    `opex_join_20y_42.json` : vide huit ans). Sur l'arbre courant (`docs/opex_refleet_20y_4seeds.json`,
@@ -198,6 +205,8 @@ inter-modes, mesuré pas unifié), 5 (`road_refleet=1`).
 ## 8. Les pistes déjà écartées par la mesure — ne pas les reproposer
 
 - `Pathfinder.Road` : 696 794 opcodes contre 171 356 pour le tracé Manhattan borné.
+- Quatre véhicules via multistop : le second arrêt se pose (7/8), le profit de la
+  ligne pax appariée s'effondre (8 905 → 1 781). Défaut 0.
 - Arrêts traversants (`BuildDriveThroughRoadStation`) : 912 232 opcodes, aucun gain. C'est cette
   disposition en cul-de-sac qui impose d'écarter les **véhicules articulés** au catalogue.
 - Distance du dépôt aux arrêts, testée de 1 à 4 tuiles : la variable pertinente était la

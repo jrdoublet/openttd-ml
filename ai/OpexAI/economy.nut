@@ -274,7 +274,8 @@ function OpexApplyRailEconomics(candidate, economics)
  *     queue SUR LA ROUTE et se bloquent. Le modele rail ne connait que MAX_TRAINS = 8 et
  *     prescrirait donc une flotte auto-congestionnee. MAX_ROAD_VEHICLES = 2 est la traduction
  *     directe de la regle du jeu, pas une precaution. Le levier de volume est le multistop
- *     (AIStation.STATION_JOIN_ADJACENT), pas le vehicule supplementaire -- non implemente ici.
+ *     (reglage road_multistop, defaut 0) : un arret extra joint par bout, clones seulement
+ *     si les deux bouts ont double. Le classement ici reste borne a 2.
  *  2. Le rendement de vitesse. Un vehicule routier traverse des villes, s'arrete a chaque
  *     extremite et suit un trace en L (deux angles droits par sens) sur des distances ou
  *     l'acceleration compte proportionnellement bien plus que sur une ligne rail de 50 tuiles.

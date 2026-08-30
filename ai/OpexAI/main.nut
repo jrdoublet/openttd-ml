@@ -150,6 +150,11 @@ BASIN_SHARE <- false;
  * bug, pas un choix. 0 reproduit l'abandon silencieux mesure (graine 42, 2->1->0). */
 ROAD_REFLEET <- true;
 
+/* Multistop routier : repli FAUX jusqu'a la lecture unique de road_multistop dans Start().
+ * Defaut 0 : un arret par bout, deux vehicules. 1 tente un arret extra joint (meme facade)
+ * a chaque extremite, et n'ajoute de vehicules que si les deux bouts ont double. */
+ROAD_MULTISTOP <- false;
+
 /* Reemprunt a la demande : repli FAUX jusqu'a la lecture unique de reborrow dans Start().
  * Defaut 0 : le trou "desendetter puis manquer d'argent" est vide (412 GC a emprunt max,
  * 0 tirage). Sans lui, _tryRepayLoan reste a sens unique. */
@@ -571,6 +576,13 @@ function OpexAI::_tryBuildRoads(year)
      * apparier ce succes a son panneau RB de cout, indexe par ce meme triplet. */
     OpexSign(anchor, "RC|" + yy + "|" + idx + "|" + attempts + "|" + result.cost
                              + "|" + result.vehicles.len());
+    /* "RM|99|999|6|2|2|4" = 16 caracteres. Gate comme CJ : a 0, zero panneau, le bras
+     * de controle du banc ne paie pas la commande. nStops 1 ou 2 par bout. */
+    if (ROAD_MULTISTOP) {
+      OpexSign(anchor, "RM|" + yy + "|" + idx + "|" + attempts + "|"
+                               + result.nStopsA + "|" + result.nStopsB + "|"
+                               + result.vehicles.len());
+    }
 
     /* La ligne routiere rejoint _lines comme les autres : elle est ainsi rapportee chaque annee
      * (_reportLines) et mise au rebut si elle meurt (_scrapDeadLines), sans code parallele. Le
@@ -590,6 +602,7 @@ function OpexAI::_tryBuildRoads(year)
        * renouvellement automatique, qui detruit l'identifiant et le fait recycler par le moteur
        * (cf. OpexLineVehicleIds). Une ligne routiere interroge toujours sa gare. */
       mode = "road", kind = candidate.kind, depot = result.depot,
+      nStopsA = result.nStopsA, nStopsB = result.nStopsB,
       /* Une extremite de ville n'est pas une industrie : GetIndustryID y rendrait un identifiant
        * invalide, que _reportLines rapporterait comme une industrie fermee. Seule une extremite
        * reellement industrielle (townId < 0 dans le candidat) est interrogee. */
@@ -1295,7 +1308,8 @@ function OpexAI::_scrapDeadLines(year)
 /* Une ligne routiere a zero (ou trop peu de) vehicules avec arrets et depot encore la :
  * l'infrastructure est payee, auto-renouvellement n'a pas suivi. Mesure, plusieurs campagnes
  * graine 42 : 2 -> 1 -> 0, notes 54 -> -1, plus jamais de reconstitution. On complete jusqu'au
- * predTrains d'origine, borne par MAX_ROAD_VEHICLES. Avant _tryBuild : un camion sur une route
+ * predTrains d'origine, borne par les quais de la ligne (2 x min(nStops), sinon
+ * MAX_ROAD_VEHICLES). Avant _tryBuild : un camion sur une route
  * deja posee rapporte plus, a l'opcode, qu'une ligne neuve. Panneau RF|year|id|added|after
  * (succes) ou RF|year|id|0|REASON (echec). */
 function OpexAI::_refleetRoadLines(year)
@@ -1309,8 +1323,15 @@ function OpexAI::_refleetRoadLines(year)
     if (("deadStreak" in line) && line.deadStreak > 0) continue;
     local have = ("vehCount" in line) ? line.vehCount : 0;
     local target = ("predTrains" in line) ? line.predTrains : (("trains" in line) ? line.trains : 1);
+    if (("trains" in line) && line.trains > target) target = line.trains;
     if (target < 1) target = 1;
-    if (target > MAX_ROAD_VEHICLES) target = MAX_ROAD_VEHICLES;
+    local cap = MAX_ROAD_VEHICLES;
+    if (("nStopsA" in line) && ("nStopsB" in line)) {
+      local nMin = line.nStopsA < line.nStopsB ? line.nStopsA : line.nStopsB;
+      if (nMin < 1) nMin = 1;
+      cap = 2 * nMin;
+    }
+    if (target > cap) target = cap;
     if (have >= target) continue;
     local refill = OpexRoadRefleet(this._catalog, line, have, target);
     if (refill.added > 0) {
@@ -1479,6 +1500,7 @@ function OpexAI::Start()
    * cycle annuel, qui a lieu apres Start(). */
   ROAD_BUILD_ENABLED = AIController.GetSetting("road_mode") != 0;
   ROAD_REFLEET = AIController.GetSetting("road_refleet") != 0;
+  ROAD_MULTISTOP = AIController.GetSetting("road_multistop") != 0;
   ASTAR_COST_V2 = AIController.GetSetting("astar_cost") != 0;
   PROBE_NEGATIVE = AIController.GetSetting("probe_negative") != 0;
   PAX_NEAR = AIController.GetSetting("pax_near") != 0;

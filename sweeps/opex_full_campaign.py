@@ -99,6 +99,7 @@ RE_ON = re.compile(r"^ON\|W\|(\w+)\|(-?\d+)$")            # water failure: reaso
 # decrite par les MEMES panneaux que le rail (OF/OJ/OK/OQ/OT/PK/PC predits, OY/OZ/OU/OO reels) et
 # n'a plus besoin que d'un marqueur de mode.
 RE_RC_ROAD = re.compile(r"^RC\|(\d{2})\|(\d+)\|(\d+)\|(-?\d+)\|(\d+)$")   # annee, id, essai, cout, vehicules
+RE_RM_ROAD = re.compile(r"^RM\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")  # nStopsA / nStopsB / veh
 RE_RA_ROAD = re.compile(r"^RA\|(\d{2})\|(\d+)\|(\d+)\|(\w+)\|(-?\d+)$")  # tentative echouee
 RE_RI_ROAD = re.compile(r"^RI\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")  # SITE cargo/buildable/cmd
 RE_RT_ROAD = re.compile(r"^RT\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")  # TRACEX trials/long/hit/unb
@@ -231,6 +232,7 @@ def parse_lines(all_signs):
     built = {}
     multimodal_built = {}
     road_cost = {}
+    road_multi = {}
     join_marks = {}
     probe_built = {}
     probe_pn = {}
@@ -344,6 +346,10 @@ def parse_lines(all_signs):
             idx = int(m.group(2))
             road_cost[idx] = {"year": 1900 + int(m.group(1)), "attempt": int(m.group(3)),
                               "cost": int(m.group(4)), "vehicles": int(m.group(5))}
+        elif m := RE_RM_ROAD.match(sign):
+            idx = int(m.group(2))
+            road_multi[idx] = {"n_stops_a": int(m.group(4)), "n_stops_b": int(m.group(5)),
+                               "vehicles": int(m.group(6))}
 
     for idx, fields in probe_pn.items():
         if idx in probe_built:
@@ -427,6 +433,9 @@ def parse_lines(all_signs):
             entry["attempt"] = road_cost[idx]["attempt"]
             entry["cost"] = road_cost[idx]["cost"]
             entry["vehicles_built"] = road_cost[idx]["vehicles"]
+        if idx in road_multi:
+            entry["n_stops_a"] = road_multi[idx]["n_stops_a"]
+            entry["n_stops_b"] = road_multi[idx]["n_stops_b"]
         lines.append(entry)
     return lines
 
@@ -879,6 +888,9 @@ def make_run_payload(rows, seed, years):
                 "vehicles": line.get("vehicles_built"),
                 "kind": line["predicted"].get("kind"),
                 "cargo_label": line["predicted"].get("cargo_label")}
+        if "n_stops_a" in line:
+            item["n_stops_a"] = line["n_stops_a"]
+            item["n_stops_b"] = line["n_stops_b"]
         if year_built is not None:
             item.update(road_ops.get((year_built % 100, line["line_index"], item["attempt"]), {}))
         road.append(item)
@@ -941,6 +953,15 @@ def make_run_payload(rows, seed, years):
         "n_road_freight_lines_ok": sum(
             1 for line in lines
             if line["mode"] == "road" and line["predicted"].get("kind") == "freight"),
+        "n_road_multistop_a": sum(
+            1 for line in lines if line["mode"] == "road" and (line.get("n_stops_a") or 1) > 1),
+        "n_road_multistop_b": sum(
+            1 for line in lines if line["mode"] == "road" and (line.get("n_stops_b") or 1) > 1),
+        "n_road_multistop_both": sum(
+            1 for line in lines if line["mode"] == "road"
+            and (line.get("n_stops_a") or 1) > 1 and (line.get("n_stops_b") or 1) > 1),
+        "n_road_vehicles_gt2": sum(
+            1 for line in lines if line["mode"] == "road" and (line.get("vehicles_built") or 0) > 2),
         "n_road_attempts": sum(row.get("road_attempts", 0) for row in yearly.values()),
         "n_road_attempts_failed": sum(1 for item in road if not item["ok"]),
         "road_plan_opcodes": sum(item.get("plan_ops", 0) for item in road),
@@ -1048,7 +1069,8 @@ def main():
                                   "OB|R refus de jointure",
                                   "PS join_end A/B/N",
                                   "RI SITE route cargo/buildable/cmd",
-                                  "RT TRACEX trials/long/hit/unb"],
+                                  "RT TRACEX trials/long/hit/unb",
+                                  "RM multistop nStopsA/nStopsB/veh"],
         "runs": runs,
     }
     result_path.write_text(json.dumps(payload, indent=2))
@@ -1076,6 +1098,13 @@ def main():
         print(f"n_vehicles: {run['final_n_vehicles']}  n_stations: {run['final_n_stations']}")
         print(f"road_ok: {run['n_road_lines_ok']}  refleets: {run.get('n_road_refleets', 0)}"
               f" veh+={run.get('n_road_refleet_vehicles', 0)}")
+        road_ok = [a for a in (run.get("road_attempts") or []) if a.get("ok")]
+        extra_a = sum(1 for a in road_ok if (a.get("n_stops_a") or 1) > 1)
+        extra_b = sum(1 for a in road_ok if (a.get("n_stops_b") or 1) > 1)
+        extra_both = sum(1 for a in road_ok
+                         if (a.get("n_stops_a") or 1) > 1 and (a.get("n_stops_b") or 1) > 1)
+        veh_gt2 = sum(1 for a in road_ok if (a.get("vehicles") or 0) > 2)
+        print(f"  multistop extraA={extra_a} extraB={extra_b} both={extra_both} veh>2={veh_gt2}")
         road_fail = [a for a in (run.get("road_attempts") or []) if not a.get("ok")]
         site = [a for a in road_fail if a.get("reason") in ("SITEA", "SITEB")]
         print(f"  road SITE={len(site)}/{len(road_fail)} "
