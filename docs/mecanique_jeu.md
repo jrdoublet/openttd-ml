@@ -757,7 +757,9 @@ plus sur une ligne dédiée à plusieurs trains.
 > simple, jamais l’aiguillage (`TracksOverlap`). `DT` mesure la pose ; `SJ`/`JF` la jointure ;
 > `XC` / `RX` les collisions. `JOINPATH` refuse toujours la voie partagée. Cinq graines × vingt
 > ans (`docs/opex_double_track_20y_5seeds.json`) : 64/92 doubles, 0 `XC`, 0 `RX`, emprunt 0,
-> médiane 5,73 M.
+> médiane 5,73 M. Banc 20×20 vs `docs/bench_road_current.json`
+> (`docs/bench_double_track.json`) : valeur +55,5 % (t = 5,27, 17/20), note −9,0 %
+> (t = −2,32). **Processus gardé** ; la note se retravaillera.
 
 ### 12.3 Gares — hors de la ligne principale
 

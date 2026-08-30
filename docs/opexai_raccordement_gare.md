@@ -38,7 +38,7 @@ Une ligne raccordée conserve ses deux tuiles de quai propres, mais l'une retour
 
 Deux contrôles de la même passe s'appliquent aussi quand `station_join=0`. Après chaque `BuildRail`, `AIRail.AreTilesConnected` vérifie le raccordement réel : une ligne auparavant déclarée construite peut donc désormais finir en `TRKFAIL`, ce qui est voulu car le succès de l'appel ne garantit pas une voie utilisable. De même, `StartStopVehicle` est reporté après toute la boucle de construction afin qu'un rollback puisse encore vendre une transaction incomplète. Ces deux protections changent le comportement de toutes les lignes, pas seulement des lignes jointes.
 
-**Re-baseline (2026-08-30).** Ils sont dans `docs/bench_road_current.json` (20×20, défauts, route ON) : moyenne 3,13 M, emprunt 0. `docs/bench_v2.json` et `docs/opexai_plafonnement_mesure.json` restent historiques. `docs/bench_after_pbs.json` n'est **pas** ce successeur : PBS `e027037` y tombe 20/20.
+**Re-baseline (2026-08-30).** Ils sont dans `docs/bench_road_current.json` (route ON, 3,13 M). L'arbre courant est `docs/bench_double_track.json` (double voie, 4,86 M, +55 % apparié). `docs/bench_v2.json` reste historique. `docs/bench_after_pbs.json` n'est **pas** une référence : PBS y tombe 20/20.
 
 ## Limites reportées
 
