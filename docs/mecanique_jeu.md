@@ -3,6 +3,7 @@
 **Source** : [wiki OpenTTD, *Manual/Game Mechanics*](https://wiki.openttd.org/en/Manual/Game%20Mechanics/)
 et [*Manual/Towns*](https://wiki.openttd.org/en/Manual/Towns), lues le 2026-08-28. Série rail
 [transporttycoon.net](https://www.transporttycoon.net/rail1) lue le 2026-08-30 (§12).
+[*Community/Pseudo canals*](https://wiki.openttd.org/en/Community/Pseudo%20canals) lu le 2026-08-30 (§13).
 
 Ce document n'est pas une copie du wiki : c'est ce qui **change la conception d'`OpexAI`**. Chaque
 section donne la règle, puis ce qu'on en fait. Les valeurs marquées ⚙️ sont des **paramètres de
@@ -493,8 +494,9 @@ mémoire, sans développement.
   à 61 km/h contre 111 km/h à courbure 2. La tip confirme sans nouveau chiffre. La série
   transporttycoon.net (§12) ajoute trois principes de jonction ; pas de cloverleaf tant que
   `JOINPATH` tient.
-- **Canaux pseudo** — toujours dans la liste de lecture (section 1 du backlog), pas évalué ;
-  la tip les signale comme « peu coûteux » sans chiffrer opcodes ni argent.
+- **Canaux pseudo** — lus et intégrés §13. La tip les signale comme « peu coûteux » sans
+  chiffrer opcodes ni argent : ce n'est pas un plan pour OpexAI. Le trick n'est pas un canal,
+  c'est une inondation au niveau de la mer.
 - **Un aéroport diffuse mieux son influence qu'une gare ferroviaire pour la génération de
   passagers/courrier.** ❓ Affirmation du wiki, pas vérifiée dans le code ni mesurée en jeu. Si
   confirmée, argument de plus (au-delà du gain d'`opexai_multimodal`) pour préférer l'avion sur les
@@ -789,3 +791,56 @@ s'arrêter. C'est la réponse au cloverleaf et aux trains perdus.
 > jonctions, un waypoint sur la bonne branche est plus cheap en opcodes qu'un cloverleaf
 > « qui marche tout seul ». API : `AIRail.BuildRailWaypoint` / `AIOrder` vers un waypoint —
 > ❓ non appelé aujourd'hui, à relire dans les en-têtes 15 le jour venu.
+
+---
+
+## 13. Pseudo-canaux — inonder plutôt que `BuildCanal`
+
+**Source** : [wiki OpenTTD, *Community/Pseudo canals*](https://wiki.openttd.org/en/Community/Pseudo%20canals),
+lu le 2026-08-30 (lecture demandée en section 1 du backlog). Complété par
+[*Manual/Landscaping*](https://wiki.openttd.org/en/Manual/Landscaping) (inondation au niveau de
+la mer, coût de rehausser depuis l'eau) et [*Manual/Water Transport Tiles*](https://wiki.openttd.org/en/Manual/Water%20Transport%20Tiles)
+(canal, écluse, bouée). Page Community : technique de joueur, pas une spec d'API.
+
+Les tuiles de canal officielles sont chères. La page imagine deux nappes d'eau à relier et
+propose, faute d'argent pour un vrai canal :
+
+1. **Abaisser tout le terrain entre les deux nappes, sauf un point sur chaque rive.** C'est le
+   même geste que pour une jonction ferroviaire, dit la page — donc « ça ne coûte pas cher ».
+2. **Abaisser les deux points restants.** L'eau envahit le sillon.
+3. **Avoir le tracé exact (moins l'eau) avant d'ouvrir.** Terraformer **à sec** est bien moins
+   cher que terraformer sous l'eau. Revenir en arrière — combler — coûte autant que d'avoir
+   construit le vrai canal dès le départ.
+
+On peut le faire plus large. C'est tout. Aucun chiffre d'argent, aucun opcode.
+
+Deux règles qui ne sont **pas** dans cette page, et qui en bornent la portée :
+
+- [*Landscaping*](https://wiki.openttd.org/en/Manual/Landscaping) : le terrain au niveau de la mer
+  **inonde**, et toutes les tuiles sont emportées. Rehausser depuis la mer est extrêmement cher
+  (volume, pas hauteur) et peut couler une compagnie jeune. Le trick n'est donc pas un canal
+  posé sur la terre : c'est une **inondation contrôlée**, qui produit de la mer (tuile eau
+  naturelle, sans propriétaire), pas une tuile `BuildCanal` (possédée, n'importe quelle altitude,
+  écluses pour changer de niveau).
+- [*Water Transport Tiles*](https://wiki.openttd.org/en/Manual/Water%20Transport%20Tiles) : un
+  canal existe précisément **là où baisser ou hausser le terrain serait trop cher**. Une écluse
+  est cotée £13 125, dont deux tuiles de canal à £3 750 (wiki, ❓ non recoupé dans le source 15.3).
+  Un bateau ne gravit pas une rivière : sans écluse, le trick **ne monte pas une colline**. Il ne
+  relie que deux nappes déjà au niveau 0, à travers une bande de terre qu'on est prêt à noyer.
+
+> **Conséquence pour OpexAI.** `builder_water.nut` ne terraform jamais, ne pose ni canal, ni
+> écluse, ni bouée. Le BFS ne suit que l'eau naturelle (`AreWaterTilesConnected`). Une paire
+> sans composante commune est ignorée — ce n'est pas un oubli du trick, c'est le contrat de
+> la v1 (une liaison pax entre deux villes côtières). **Ne pas ajouter de canal, vrai ou
+> pseudo, pour un bateau passagers.**
+>
+> Le coût opcode + argent de N×`AITile.LowerTile` puis inondation, contre N×`AIMarine.BuildCanal`,
+> n'est **pas mesuré** (❓). AdmiralAI terraform déjà pour le rail ; OpexAI n'appelle pas
+> `LowerTile`. « Peu coûteux » est une phrase de joueur à la souris, pas un budget NoAI.
+>
+> La note d'autorité (§7) : détruire une rivière −200, un bâtiment −40 à −300. Noyer une ville
+> n'est pas une économie, c'est une catastrophe de note — et de carte.
+>
+> Si un jour on relie deux lacs : (1) mesurer d'abord ; (2) terraform à sec, inonder en
+> dernier ; (3) ne jamais `LowerTile` une tuile déjà eau ; (4) ne jamais rehausser depuis la
+> mer ; (5) rester au niveau 0 — sinon ce n'est plus le trick, c'est `BuildCanal` + écluse.

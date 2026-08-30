@@ -184,6 +184,8 @@ l'état courant du véhicule dans `VEHS`.
 - la route est une phase annuelle (plusieurs lignes), `road_mode` défaut 1 — voir `docs/opexai_route.md` ;
 - passagers uniquement pour l'air et l'eau ; la route fait aussi du fret camion ;
 - classement encore heuristique, sans modèle de profit multimodal calibré (`ROAD_PLAN_ITERATIONS_BASE` non calé sur le rail) ;
-- aucun canal, écluse ou bouée ; une paire sans composante d'eau naturelle commune est ignorée ;
+- aucun canal, écluse ou bouée ; une paire sans composante d'eau naturelle commune est ignorée
+  (le trick des pseudo-canaux — inonder du terrain sec, `docs/mecanique_jeu.md` §13 — n'est pas
+  un plan : un bateau pax ne le justifie pas, coût opcode/argent non mesuré) ;
 - la reconstruction après chargement est évitée par scan des véhicules, mais OpexAI ne possède
   toujours pas de schéma `Save` / `Load` persistant pour ses tables de lignes.

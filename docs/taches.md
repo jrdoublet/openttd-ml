@@ -10,10 +10,6 @@ liste ; l'historique reste dans les journaux `docs/journal_*.md`.
 À traiter comme `docs/mecanique_jeu.md` : **pas une copie du wiki, mais règle + conséquence pour la
 conception**, avec ce qui est vérifié et ce qui ne l'est pas.
 
-| page | ce qu'on espère en tirer |
-|---|---|
-| [Community/Pseudo canals](https://wiki.openttd.org/en/Community/Pseudo%20canals) | technique de terrain sur l'eau ; à évaluer surtout pour son coût en opcodes |
-
 ✅ **[Manual/Tips](https://wiki.openttd.org/en/Manual/Tips) lue et intégrée (2026-08-28)** — voir
 `docs/mecanique_jeu.md` §9. La plupart des heuristiques utiles étaient déjà couvertes ailleurs dans
 le document (note de gare §3, note d'autorité §7, vitesse/virages §2) ; l'apport net : ordres
@@ -39,8 +35,15 @@ avant de fusionner, sortie avant entrée, train+2 tuiles) — l'index Junctionai
 catalogue d'images, on ne copie pas de cloverleaf. Waypoints natifs OpenTTD, utiles seulement
 le jour des branches. Pré-signaux TTDPatch = path signals chez nous, non posés.
 
-⚠️ La page restante n'a **pas** été lue : la colonne « ce qu'on espère » est une hypothèse de
-pertinence, pas un résumé.
+✅ **[Community/Pseudo canals](https://wiki.openttd.org/en/Community/Pseudo%20canals) lue et
+intégrée (2026-08-30)** — voir `docs/mecanique_jeu.md` §13. Apport net : ce n'est pas un canal,
+c'est une inondation au niveau de la mer (terraform **à sec**, ouvrir en dernier). Le trick ne
+monte pas une colline ; un vrai canal existe précisément là où baisser le terrain coûterait
+plus. OpexAI eau v1 ne terraform jamais ; une paire sans composante d'eau naturelle reste
+ignorée. ❓ Coût opcode/argent de l'inondation vs `BuildCanal` non mesuré. **Pas de canal pour
+un bateau pax.**
+
+La liste de lecture demandée le 2026-08-28 est **vide**.
 
 ---
 
