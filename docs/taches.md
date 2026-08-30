@@ -895,7 +895,9 @@ Le 4 est relu en 15.3 : inchangé.
   notion d'**arm** (une IA OU une variante paramétrée d'OpexAI via `ai_params`, ex.
   `OpexAI[pathfinder_sleep_ticks=1]`), le nettoyage des sauvegardes, un checkpoint `.jsonl`, les
   stats de dispersion et les **comparaisons appariées par graine**. Les deux items ci-dessous
-  (20 ans, 20 graines) sont absorbés par lui.
+  (20 ans, 20 graines) sont absorbés par lui. Indicateurs de succès : `company_value`,
+  `performance_history` (score 0-1000, pas le profit ni la note de gare), **profit** du
+  trimestre et de l'année (`income`+`expenses`), **note de gare** médiane (`STNN`, 0-255).
 
   | arm | company_value | CV | SE | note | CV |
   |---|---:|---:|---:|---:|---:|

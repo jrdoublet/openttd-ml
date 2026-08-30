@@ -11,9 +11,12 @@ OpenTTD 15.3 obligatoire, et c'est la seule version possible :
     et major >= 15 (mode console-script) -- la 14.x leve une exception.
 Le binaire >= 15 exige libgomp1 et libglib2.0-0, ajoutes au Dockerfile.
 
-Metrique : PLYR[0]["old_economy"][0] donne company_value et performance_history (le score
-officiel 0-1000) de la DERNIERE ANNEE CLOTUREE. cur_economy a company_value = 0 : ne pas
-l'utiliser. max_loan est parse en -9223372036854775808 a cette version : champ ininterpretable.
+Metrique : PLYR[0]["old_economy"][0] donne company_value, performance_history (score
+officiel 0-1000), income et expenses du DERNIER TRIMESTRE CLOTURE. Profit = income + expenses
+(expenses deja signe negatif en 15.3). profit_year somme jusqu'a 4 trimestres. Note de gare :
+mediane STNN.goods.rating des cargos qui ont une note (status & 1, ramasses). cur_economy a
+company_value = 0 : ne pas l'utiliser. max_loan est parse en -9223372036854775808 a cette
+version : champ ininterpretable.
 """
 import argparse
 import inspect
@@ -56,6 +59,16 @@ map_y = 8
 # keep() est execute dans les workers. La valeur est fixee avant la creation du Pool, puis heritee
 # par fork : ainsi chaque sauvegarde est durable avant que run_experiments() ne rende sa liste.
 CHECKPOINT_PATH = None
+
+# Indicateurs de succes du banc : valeur, score officiel, profit, note de gare.
+# performance_history n'est NI le profit NI la note de gare (docs/mecanique_jeu.md §6).
+SUCCESS_METRICS = (
+    "company_value",
+    "performance_history",
+    "profit",
+    "profit_year",
+    "median_station_rating",
+)
 
 
 def parse_opex_variant(name):
@@ -166,12 +179,75 @@ def append_checkpoint(record):
         os.close(fd)
 
 
+def _first(value):
+    """STNN encode parfois une liste a un element, parfois un objet unique."""
+    if value is None:
+        return None
+    if isinstance(value, list):
+        return value[0] if value else None
+    if isinstance(value, dict):
+        if "xy" in value or "goods" in value or "base" in value:
+            return value
+        return next(iter(value.values()), None)
+    return value
+
+
+def quarter_profit(entry):
+    """Profit d'un trimestre clos. expenses est negatif dans OpenTTD 15.3."""
+    if not entry:
+        return None
+    income = entry.get("income")
+    expenses = entry.get("expenses")
+    if income is None or expenses is None:
+        return None
+    if expenses <= 0:
+        return income + expenses
+    return income - expenses
+
+
+def year_profit(closed):
+    """Somme des (jusqu'a) quatre derniers trimestres clos."""
+    profits = [quarter_profit(entry) for entry in (closed or [])[:4]]
+    profits = [value for value in profits if value is not None]
+    if not profits:
+        return None
+    return sum(profits)
+
+
+def station_ratings(chunks, owner=0):
+    """Notes 0-255 des cargos deja ramasses, gares de la compagnie."""
+    ratings = []
+    stations = chunks.get("STNN") or {}
+    for station in stations.values():
+        body = _first(station.get("normal") if isinstance(station, dict) else None)
+        if body is None and isinstance(station, dict):
+            body = station
+        if not isinstance(body, dict):
+            continue
+        base = _first(body.get("base"))
+        if isinstance(base, dict) and base.get("owner", owner) != owner:
+            continue
+        for good in body.get("goods") or []:
+            if not isinstance(good, dict):
+                continue
+            if (good.get("status") or 0) & 1 == 0:
+                continue
+            if good.get("time_since_pickup", 255) >= 255:
+                continue
+            rating = good.get("rating")
+            if rating is None:
+                continue
+            ratings.append(int(rating))
+    return ratings
+
+
 def keep(row):
     """Une ligne par sauvegarde mensuelle, persistee immediatement pour survivre a un crash."""
     chunks = row["chunks"]
     player = chunks.get("PLYR", {}).get(0) or chunks.get("PLYR", {}).get("0")
     closed = (player or {}).get("old_economy") or []
     last_closed = closed[0] if closed else {}
+    ratings = station_ratings(chunks)
     record = {
         "run": row["experiment"]["bench_run"],
         "date": str(row["date"]),
@@ -179,6 +255,10 @@ def keep(row):
         "performance_history": last_closed.get("performance_history"),
         "income_last_year": last_closed.get("income"),
         "expenses_last_year": last_closed.get("expenses"),
+        "profit": quarter_profit(last_closed),
+        "profit_year": year_profit(closed),
+        "median_station_rating": (statistics.median(ratings) if ratings else None),
+        "n_station_ratings": len(ratings),
         "money": (player or {}).get("money"),
         "current_loan": (player or {}).get("current_loan"),
         "months_of_bankruptcy": (player or {}).get("months_of_bankruptcy"),
@@ -261,6 +341,11 @@ def summarise(rows):
             "company_value": final["company_value"],
             "performance_history": final["performance_history"],
             "income_last_year": final["income_last_year"],
+            "expenses_last_year": final.get("expenses_last_year"),
+            "profit": final.get("profit"),
+            "profit_year": final.get("profit_year"),
+            "median_station_rating": final.get("median_station_rating"),
+            "n_station_ratings": final.get("n_station_ratings"),
             "money": final["money"], "current_loan": final["current_loan"],
             "n_vehicles": final["n_vehicles"], "n_stations": final["n_stations"],
             "months_of_bankruptcy": final["months_of_bankruptcy"],
@@ -304,10 +389,8 @@ def arm_statistics(summary, arm_names):
     """Calcule la dispersion sans melanger les arms."""
     return {
         arm: {
-            "company_value": dispersion([r["company_value"] for r in summary if r["arm"] == arm]),
-            "performance_history": dispersion(
-                [r["performance_history"] for r in summary if r["arm"] == arm]
-            ),
+            metric: dispersion([r.get(metric) for r in summary if r["arm"] == arm])
+            for metric in SUCCESS_METRICS
         }
         for arm in arm_names
     }
@@ -322,7 +405,7 @@ def paired_comparisons(summary, arm_names):
             per_seed[arm, seed] = {
                 metric: statistics.mean([record[metric] for record in records if record[metric] is not None])
                 if any(record[metric] is not None for record in records) else None
-                for metric in ("company_value", "performance_history")
+                for metric in SUCCESS_METRICS
             }
     comparisons = []
     for index, arm_a in enumerate(arm_names):
@@ -331,7 +414,7 @@ def paired_comparisons(summary, arm_names):
                 seed for arm, seed in per_seed if arm == arm_a and (arm_b, seed) in per_seed
             )
             metrics = {}
-            for metric in ("company_value", "performance_history"):
+            for metric in SUCCESS_METRICS:
                 pairs = [
                     (per_seed[arm_a, seed][metric], per_seed[arm_b, seed][metric])
                     for seed in shared_seeds
@@ -421,7 +504,12 @@ def main():
         "arms": args.arms,
         "repeats": args.repeats,
         "openttd_config": CFG,
-        "metric": "PLYR[0].old_economy[0] : company_value et performance_history (0-1000)",
+        "metric": (
+            "PLYR[0].old_economy[0] : company_value, performance_history (0-1000), "
+            "profit (trimestre), profit_year (4 trimestres) ; "
+            "STNN median_station_rating (0-255, cargos ramasses)"
+        ),
+        "success_metrics": list(SUCCESS_METRICS),
         "paired_reading": (
             "mean(A(seed) - B(seed)); les paires annulent la difficulte inter-graines partagee"
         ),
@@ -435,7 +523,8 @@ def main():
     for record in summary:
         print(
             f"{record['arm']:>36} seed={record['seed']:<8} rep={record['repeat']} "
-            f"value={record['company_value']} rating={record['performance_history']} "
+            f"value={record['company_value']} score={record['performance_history']} "
+            f"profit={record.get('profit_year')} st_rating={record.get('median_station_rating')} "
             f"veh={record['n_vehicles']} st={record['n_stations']}"
         )
     print("checkpoint", CHECKPOINT_PATH)
