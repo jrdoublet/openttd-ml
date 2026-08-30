@@ -942,17 +942,11 @@ Le 4 est relu en 15.3 : inchangé.
 
   ✅ **Contrat rail 1--2 trains aligne (2026-08-31).** Le modele ne cote plus 3--8
   rames que le constructeur ne peut pas poser; `rail_cost_probe` confirme 62/97
-  sur-evaluations de flotte avant correction. Rejeu 5x20
-  `opex_rail_cap2_20y_5seeds.json` : valeur +5,6 %, note -0,4 %, 0 crash/perte.
-  Echantillon sous le plancher du banc et echecs `SITE*` plus frequents : le correctif
-  est garde pour la coherence, mais la baseline reste `bench_double_track_startfix`.
-
-  ✅ **Contrat rail 1--2 trains aligne (2026-08-31).** Le modele ne cote plus 3--8
-  rames que le constructeur ne peut pas poser; `rail_cost_probe` confirme 62/97
-  sur-evaluations de flotte avant correction. Rejeu 5x20
-  `opex_rail_cap2_20y_5seeds.json` : valeur +5,6 %, note -0,4 %, 0 crash/perte.
-  Echantillon sous le plancher du banc et echecs `SITE*` plus frequents : le correctif
-  est garde pour la coherence, mais la baseline reste `bench_double_track_startfix`.
+  sur-evaluations de flotte avant correction. Banc apparié 20x20
+  `bench_rail_cap2.json` : valeur +3,6 % (t=0,97), profit annuel +0,6 % (t=0,18),
+  note +0,5 % (t=0,23), note de gare +2,1 % (t=1,10), sans emprunt ni insolvabilité.
+  Tous sous le plancher de détection : correctif gardé pour la cohérence, mais baseline
+  inchangée (`bench_double_track_startfix`).
 
   🔴 **HEAD + PBS (`e027037`) n'est pas une baseline.** 20 graines contre
   `bench_road_current` (`docs/bench_after_pbs.json`) : `company_value` **−94,9 %**,
