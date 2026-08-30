@@ -134,6 +134,10 @@ ABANDON_MEMORY <- true;
  * pas le comportement historique. Repli FAUX depuis le 2026-08-29 : deux bancs (vivier, puis
  * post-traction) montrent un effet de construction sans valeur. Tout le verdict est dans info.nut. */
 STATION_JOIN <- false;
+/* Porte H1 : 0 = pas de plafond (v1 inerte). N = rejeter la jointure si
+ * candidate.distance >= N, sans A*. Defaut 0. Valeur de travail 50
+ * (docs/opex_join_pop.json). Inerte si station_join = 0. */
+JOIN_MAX_DISTANCE <- 0;
 
 /* Filtre d'origine sitable : repli FAUX jusqu'a la lecture unique de origin_sitable dans
  * Start(). Defaut 0 apres banc apparie (pas d'effet etabli) ; 1 ecarte du TOP_K les sources
@@ -759,6 +763,7 @@ function OpexAI::_tryBuild(ranked, year)
   local nJoinRefuseKind = 0;    // K : kind / cargo
   local nJoinRefuseRole = 0;    // R : roles fret inverses
   local nJoinRefuseOther = 0;   // N / E
+  local nJoinRefuseDist = 0;    // D : join_max_distance, pas d'A*
   local nOriginServedRanked = 0;   // candidats du TOP_K qui n'existent QUE grace a la jointure
   local nPaxNearTried = 0;
   local nPaxNearOk = 0;
@@ -793,6 +798,11 @@ function OpexAI::_tryBuild(ranked, year)
           else if (r == "K") nJoinRefuseKind++;
           else if (r == "R") nJoinRefuseRole++;
           else nJoinRefuseOther++;
+          join = null;
+        } else if (JOIN_MAX_DISTANCE > 0 && candidate.distance >= JOIN_MAX_DISTANCE) {
+          /* H1 : le long est le reliquat qui ne paie pas (docs/opex_join_pop.json).
+           * Rejet tooClose historique, zero A*. */
+          nJoinRefuseDist++;
           join = null;
         }
       }
@@ -1012,11 +1022,11 @@ function OpexAI::_tryBuild(ranked, year)
    * echecs du raccordement. "OB|J|9999|20|20|20" reste largement sous les 31 caracteres. */
   if (STATION_JOIN) OpexSign(anchor, "OB|J|" + year + "|" + nJoinAttempts + "|" + nJoinBuilt
                                       + "|" + nJoinFailed);
-  /* Compagnons de OB|J : les refus AVANT tentative, un seau par condition. Sans eux, too_close_far
-   * sans tentative de jointure reste muet. "OB|R|1989|20|20|20|20" = 22 caracteres. */
+  /* Compagnons de OB|J : les refus AVANT tentative. 6e champ = D (join_max_distance).
+   * "OB|R|1989|20|20|20|20|20" = 26 caracteres. */
   if (STATION_JOIN) OpexSign(anchor, "OB|R|" + year + "|" + nJoinRefuseMulti + "|"
                                       + nJoinRefuseKind + "|" + nJoinRefuseRole + "|"
-                                      + nJoinRefuseOther);
+                                      + nJoinRefuseOther + "|" + nJoinRefuseDist);
   /* Combien du classement n'existe QUE parce qu'une extremite servie peut etre reprise : c'est la
    * mesure directe de la tranche du 2026-08-29, celle qui dit si le vivier est bien rouvert --
    * independamment du fait que la jointure aboutisse ou non. */
@@ -1576,6 +1586,7 @@ function OpexAI::Start()
   HARD_ITERATION_CAP = AIController.GetSetting("pathfinder_hard_cap_k") * 1000;
   ABANDON_MEMORY = AIController.GetSetting("abandon_memory") != 0;
   STATION_JOIN = AIController.GetSetting("station_join") != 0;
+  JOIN_MAX_DISTANCE = AIController.GetSetting("join_max_distance");
   ORIGIN_SITABLE = AIController.GetSetting("origin_sitable") != 0;
   BASIN_SHARE = AIController.GetSetting("basin_share") != 0;
   REBORROW = AIController.GetSetting("reborrow") != 0;

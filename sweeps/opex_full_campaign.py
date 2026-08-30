@@ -77,7 +77,7 @@ RE_GN = re.compile(r"^GN\|(\d+)\|(\d+)\|(\d+)$")
 RE_GM = re.compile(r"^GM\|(\d+)\|(\d+)$")                 # candidats exclus par memoire ABND
 RE_OB_JOIN = re.compile(r"^OB\|J\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
 # Refus de jointure AVANT tentative (2026-08-30) : multi / kind-cargo / role fret / autre.
-RE_OB_REFUSE = re.compile(r"^OB\|R\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
+RE_OB_REFUSE = re.compile(r"^OB\|R\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)(?:\|(\d+))?$")
 # Tranche du 2026-08-29 : part du TOP_K qui n'existe QUE parce qu'une extremite deja servie
 # peut etre reprise par un quai joint (annee, ces candidats, taille du classement).
 RE_OB_SERVED = re.compile(r"^OB\|S\|(\d+)\|(\d+)\|(\d+)$")
@@ -708,6 +708,7 @@ def parse_yearly(all_signs):
             d["join_refuse_kind"] = int(m.group(3))
             d["join_refuse_role"] = int(m.group(4))
             d["join_refuse_other"] = int(m.group(5))
+            d["join_refuse_dist"] = int(m.group(6) or 0)
         elif m := RE_OB_SERVED.match(sign):
             y = int(m.group(1)); d = by_year.setdefault(y, {})
             d["ranked_origin_served"] = int(m.group(2))
@@ -1065,6 +1066,7 @@ def make_run_payload(rows, seed, years):
         "n_join_refuse_kind": sum(row.get("join_refuse_kind", 0) for row in yearly.values()),
         "n_join_refuse_role": sum(row.get("join_refuse_role", 0) for row in yearly.values()),
         "n_join_refuse_other": sum(row.get("join_refuse_other", 0) for row in yearly.values()),
+        "n_join_refuse_dist": sum(row.get("join_refuse_dist", 0) for row in yearly.values()),
         "n_rail_attempts_joinpath": sum(1 for attempt in attempts if attempt["reason"] == "JOINPATH"),
         "n_road_lines_ok": sum(1 for line in lines if line["mode"] == "road"),
         "n_road_freight_lines_ok": sum(
@@ -1189,6 +1191,7 @@ def main():
                                   "PN/PX/PQ/NH/NM sondage profit<=0",
                                   "PE/PY pax_near",
                                   "OB|R refus de jointure",
+                                  "OB|R D join_max_distance",
                                   "PS join_end A/B/N",
                                   "RI SITE route cargo/buildable/cmd",
                                   "RT TRACEX trials/long/hit/unb",
@@ -1280,7 +1283,8 @@ def main():
         print(f"join refuse: multi={run.get('n_join_refuse_multi', 0)}  "
               f"kind={run.get('n_join_refuse_kind', 0)}  "
               f"role={run.get('n_join_refuse_role', 0)}  "
-              f"other={run.get('n_join_refuse_other', 0)}")
+              f"other={run.get('n_join_refuse_other', 0)}  "
+              f"dist={run.get('n_join_refuse_dist', 0)}")
         print(f"tentatives avec distance: {dist.get('n_with_distance')}/"
               f"{dist.get('n_attempts')}  OK={dist.get('n_ok')} ABND={dist.get('n_abnd')}")
         for band in dist.get("bands") or []:
@@ -1294,6 +1298,7 @@ def main():
           f"kind={sum(r.get('n_join_refuse_kind', 0) for r in runs)} "
           f"role={sum(r.get('n_join_refuse_role', 0) for r in runs)} "
           f"other={sum(r.get('n_join_refuse_other', 0) for r in runs)} "
+          f"dist={sum(r.get('n_join_refuse_dist', 0) for r in runs)} "
           f"att={sum(r.get('n_station_join_attempts', 0) for r in runs)} "
           f"ok={sum(r.get('n_station_join_built', 0) for r in runs)} "
           f"JOINPATH={sum(r.get('n_rail_attempts_joinpath', 0) for r in runs)} ===")

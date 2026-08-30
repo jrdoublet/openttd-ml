@@ -60,3 +60,21 @@ longueur. Ce n'est pas le scan d'enveloppe. 5 graines × 20 ans
 39 → 71 jointures OK (5,5 % → 15,7 %), SITE 692 → 393, JOINPATH toujours 0. Il reste 361
 échecs au quai joint avec `nClear=0` — autre orientation / enveloppe, c'est-à-dire le spread,
 explicitement pas la suite. 5/5 plus de véhicules, 4/5 moins de valeur. Défaut `station_join` 0.
+
+## Population jointe (étape 0) et porte H1 (2026-08-30)
+
+`docs/opex_join_pop.json` (même campagne parallèle, pas un nouveau run) :
+
+| | n | dist. médiane | trains | réel/prédit (an 2) |
+|---|---:|---:|---:|---:|
+| neuves | 66 | **43** | 2 | 1,19 |
+| jointes | 71 | **63** | 3 | 0,80 |
+| jointes < 50 | 20 | 37 | 2 | **1,12** |
+| jointes ≥ 100 | 7 | 109 | 4 | **0,07** |
+
+Encore du long. H1 : `join_max_distance`, défaut **0**. À 50, rejet tooClose **sans A\***
+(panneau `OB|R` champ D). 5 graines (`docs/opex_join_cap50_20y_5seeds.json`) :
+jointures OK 71 → **29**, dist. 63 → **37**, D = 1035. Contre le parallèle : moins
+de véhicules, plus de valeur (on arrête le vivier). Contre `join=0` (campagne
+villes) : médiane valeur **plate**, 2 graines à **−30 %**. ⚠️ **Pas de banc n=20.**
+Le défaut join reste 0. Suite : H2 (joindre au lieu), pas le spread.

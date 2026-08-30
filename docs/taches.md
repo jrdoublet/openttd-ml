@@ -158,6 +158,12 @@ pas plus de valeur ».
 4. ⚠️ Ne **pas** corriger `monthly` pour une origine servie sur la foi du chiffre brut : c'est le
    piège que cette mesure vient de désamorcer. Le partage de stock **une fois la gare jointe**
    (plusieurs lignes, même `StationID`) est un autre terme, lui encore ouvert (§2.9.3).
+5. ✅ **Étape 0 + H1 porte 50 tuiles** (2026-08-30). Population
+   (`docs/opex_join_pop.json`) : jointes 63 tuiles / 0,80 vs neuves 43 / 1,19.
+   <50 paie (1,12) ; ≥100 : 0,07. `join_max_distance` défaut 0 ; à 50, 5 graines
+   (`docs/opex_join_cap50_20y_5seeds.json`) : 29 jointures, dist. 37, D=1035.
+   Coupe le vivier (véhicules − vs parallèle). **Ne bat pas `join=0`** (2 graines
+   −30 %). Pas de banc n=20. Suite H2 (lieu), pas le spread.
 
 ⚠️ **Effet de bord à ne pas attribuer au mode route :** le rail affamé reprend la trésorerie, et
 les lignes routières passent de 6 à 3 sur la graine 42. Le +9,3 % du mode route a été mesuré avec
@@ -674,11 +680,9 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
       Le spread n'est **pas** débloqué : joindre plus, sur un terme qui ne paie pas, recréerait
       le banc vivier.
 
-**Priorité de fait, révisée le 2026-08-30 (accel route)** : wiki 37 km-ish/h/j
-= modèle original, notre défaut 15.3 = réaliste. Pax `RY` 0,75 = plafond 3/4
-du L. Pas de retuning du 60 %. Production industrie ✅. Note de gare ✅.
-Le **spread** n'est pas la suite. `MIN_SEPARATION` reste gelé. L'item 2 reste
-dernier.
+**Priorité de fait, révisée le 2026-08-30 (join H1)** : porte 50 tuiles ✅
+mesurée, coupe le long, **ne paie pas** vs `join=0`. Défauts 0. Suite **H2**
+(joindre au lieu), pas le spread. `MIN_SEPARATION` gelé. L'item 2 reste dernier.
 
 *Priorité précédente, conservée pour la trace* : ~~le rendement join~~ (✅ mesuré,
 défaut 0) était la tête. ~~l'item **9.1**~~ (✅) était la tête. ~~le retuning pax

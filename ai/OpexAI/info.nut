@@ -10,7 +10,7 @@ class OpexAI extends AIInfo {
 
   /* Les reglages debug_signs et pathfinder_sleep_ticks existent pour NE PAS POLLUER une partie
    * partagee avec des joueurs humains (loan_repay_floor_k, pathfinder_hard_cap_k,
-   * abandon_memory, station_join, origin_sitable, basin_share, reborrow, road_mode, road_refleet, road_multistop, astar_cost, probe_negative et pax_near, eux, sont des parametres de conception exposes au banc,
+   * abandon_memory, station_join, join_max_distance, origin_sitable, basin_share, reborrow, road_mode, road_refleet, road_multistop, astar_cost, probe_negative et pax_near, eux, sont des parametres de conception exposes au banc,
    * pas des bridages).
    * Entre IA, la regle est l'inverse : jouer a armes egales,
    * donc ne jamais s'auto-handicaper face a un adversaire qui ne se bride pas. Un handicap non intentionnel
@@ -250,7 +250,11 @@ class OpexAI extends AIInfo {
      * RENDEMENT (2026-08-30). OpexJoinPlatformPlans cherche offset 1-4, pas le spread.
      * 39 -> 71 OK (5,5 % -> 15,7 %), SITE 692 -> 393, 361 nClear=0 restants au quai
      * joint (docs/opex_join_parallel_20y_5seeds.json). 5/5 plus de vehicules, 4/5
-     * moins de valeur. Le spread n'est pas la suite. */
+     * moins de valeur. Le spread n'est pas la suite.
+     *
+     * H1 (2026-08-30). Population encore longue (docs/opex_join_pop.json).
+     * join_max_distance=50 : 29 OK, dist 37, D=1035. Coupe le vivier, ne bat
+     * pas join=0. Defaut 0. H2 ensuite. */
     AddSetting({
       name = "station_join",
       description = "Reuse one compatible nearby OpexAI rail station with a dedicated platform: 1 = enabled, 0 = historical too-close rejection",
@@ -258,6 +262,22 @@ class OpexAI extends AIInfo {
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
+    });
+
+    /* Porte H1 sur la jointure. Defaut 0 : pas de plafond, la v1 inchangee.
+     * N > 0 : si OpexFindStationJoin a reussi mais candidate.distance >= N,
+     * rejet tooClose historique, zero A*. Inerte si station_join = 0.
+     * Valeur de travail 50 (docs/opex_join_pop.json) : jointures <50 tuiles
+     * reel/pred 1,12, 2 trains ; >=100 : 0,07 et 4 trains. Ne pas baisser
+     * MIN_RATIO global. OpexAI[station_join=1,join_max_distance=50]. */
+    AddSetting({
+      name = "join_max_distance",
+      description = "Reject a station join when the pair is this long or longer (tiles); 0 = no cap (v1)",
+      min_value = 0, max_value = 200,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 5,
+      flags = 0
     });
 
     /* Filtre d'origine rail constructible. Defaut 0 DEPUIS LE 2026-08-29, apres banc apparie.

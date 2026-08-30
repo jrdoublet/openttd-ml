@@ -1,0 +1,106 @@
+{
+  "source": "docs/opex_join_parallel_20y_5seeds.json",
+  "date": "2026-08-30",
+  "note": "Etape 0 du plan jointure. Population post-traction, parallele 1-4, station_join=1. Pas une nouvelle campagne.",
+  "n_rail_ok": 137,
+  "joined": {
+    "n": 71,
+    "median_distance": 63,
+    "bands": {
+      "lt50": 20,
+      "50_75": 31,
+      "75_100": 13,
+      "gt100": 7
+    },
+    "median_trains": 3,
+    "median_pred": 11316,
+    "median_y2": 9280,
+    "median_real_pred": 0.802,
+    "n_y2_positive": 63,
+    "n_y2": 70
+  },
+  "new": {
+    "n": 66,
+    "median_distance": 43,
+    "bands": {
+      "lt50": 43,
+      "50_75": 17,
+      "75_100": 4,
+      "gt100": 2
+    },
+    "median_trains": 2,
+    "median_pred": 10252,
+    "median_y2": 10440,
+    "median_real_pred": 1.186,
+    "n_y2_positive": 60,
+    "n_y2": 66
+  },
+  "joined_by_band": {
+    "lt50": {
+      "n": 20,
+      "median_distance": 37,
+      "bands": {
+        "lt50": 20,
+        "50_75": 0,
+        "75_100": 0,
+        "gt100": 0
+      },
+      "median_trains": 2,
+      "median_pred": 4326,
+      "median_y2": 7102,
+      "median_real_pred": 1.741,
+      "n_y2_positive": 20,
+      "n_y2": 20
+    },
+    "50_75": {
+      "n": 31,
+      "median_distance": 63,
+      "bands": {
+        "lt50": 0,
+        "50_75": 31,
+        "75_100": 0,
+        "gt100": 0
+      },
+      "median_trains": 2,
+      "median_pred": 10869,
+      "median_y2": 9952,
+      "median_real_pred": 0.802,
+      "n_y2_positive": 27,
+      "n_y2": 30
+    },
+    "75_100": {
+      "n": 13,
+      "median_distance": 89,
+      "bands": {
+        "lt50": 0,
+        "50_75": 0,
+        "75_100": 13,
+        "gt100": 0
+      },
+      "median_trains": 4,
+      "median_pred": 21840,
+      "median_y2": 15797,
+      "median_real_pred": 0.607,
+      "n_y2_positive": 12,
+      "n_y2": 13
+    },
+    "gt100": {
+      "n": 7,
+      "median_distance": 109,
+      "bands": {
+        "lt50": 0,
+        "50_75": 0,
+        "75_100": 0,
+        "gt100": 7
+      },
+      "median_trains": 4,
+      "median_pred": 34331,
+      "median_y2": 2902,
+      "median_real_pred": 0.074,
+      "n_y2_positive": 4,
+      "n_y2": 7
+    }
+  },
+  "verdict": "Les jointures sont encore plus longues (mediane 63 vs 43). <50 paie (reel/pred 1,12, 19/19). >=100 : 0,07. H1 : porte join_max_distance=50, defaut 0.",
+  "h1_working_cap": 50
+}
