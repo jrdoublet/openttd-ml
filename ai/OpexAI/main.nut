@@ -818,11 +818,13 @@ function OpexAI::_tryBuild(ranked, year)
                              + "|" + result.opcodes + "|" + candidate.distance);
     /* PS decompose SITEA/B/AB : rectangles libres, ceux qui ont du cargo, ceux que
      * BuildRailStation a acceptes. Le rang packed aligne le panneau sur OR.
-     * `PS|89|21|400|9999|999|9` : 26 caracteres. */
+     * JoinEnd A/B/N dit si l'echec est le parallele joint. Pire nom
+     * `PS|89|999|400|9999|999|99|P|A` : 29 caracteres. */
     if (result.reason == "SITEA" || result.reason == "SITEB" || result.reason == "SITEAB") {
       OpexSign(anchor, "PS|" + (year % 100) + "|" + this._nextLineId + "|" + rankPacked
                               + "|" + result.siteClear + "|" + result.siteCargo + "|"
-                              + result.siteCmd + "|" + result.siteKind);
+                              + result.siteCmd + "|" + result.siteKind + "|"
+                              + result.joinEnd);
     }
     if (result.error != 0) OpexSign(anchor, "OV|" + this._nextLineId + "|" + result.error);
     if (result.diag != null) {
@@ -1048,7 +1050,7 @@ function OpexAI::_tryProbeNegative(ranked, year)
     if (result.reason == "SITEA" || result.reason == "SITEB" || result.reason == "SITEAB") {
       OpexSign(anchor, "PS|" + (year % 100) + "|" + idx + "|1|" + result.siteClear + "|"
                               + result.siteCargo + "|" + result.siteCmd + "|"
-                              + result.siteKind);
+                              + result.siteKind + "|" + result.joinEnd);
     }
     if (!result.ok) {
       if (ABANDON_MEMORY && result.reason == "ABND") {

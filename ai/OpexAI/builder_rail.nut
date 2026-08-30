@@ -21,6 +21,10 @@
  * plan. Le jeu, et non une valeur supposee, reste donc l'autorite sur le maximum utilisable. */
 const STATION_SEARCH_RADIUS = 30;
 const MAX_STATION_PLANS = 12;
+/* v1 reste un parallele dedie, pas l'enveloppe spread. Offset 1 est le colle d'origine ;
+ * 2-4 sautent la sortie/voie qui occupe le voisin. 4 x 2 x 2 = 16 sondes, rien a cote d'A*.
+ * Mesure 2026-08-30 (join_refuse, station_join=1) : 658/692 SITE a nClear=0, 100 % du pax. */
+const JOIN_PARALLEL_MAX_SIDE = 4;
 const PATH_CHUNK = 50;
 const PATHFINDER_MAX_COST = 200000;
 
@@ -155,38 +159,50 @@ function OpexStationPlans(center, otherCenter, radius, length, maxPlans, cargo, 
  * platform est le plan que nous avions nous-memes pose pour la ligne voisine. On ne cherche pas a
  * inferer une gare generique (aeroport, dock, ou gare humaine) : cette tranche n'est autorisee a
  * toucher que la geometrie dont elle connait l'origine. Les deux choix d'extremite donnent au
- * pathfinder une entree dediee sans avoir a raccorder la voie ancienne. */
-function OpexJoinPlatformPlans(platform, stationId)
+ * pathfinder une entree dediee sans avoir a raccorder la voie ancienne.
+ *
+ * L'offset 1 d'origine laissait les deux cotes bloques par la sortie, un depot ou un quai deja
+ * joint. On elargit PERPENDICULAIREMENT seulement, meme orientation, meme longueur : ce n'est
+ * pas le scan d'enveloppe de AAAHogEx. stats recoit nClear / nCargo (= nClear, le cargo n'est
+ * pas un filtre ici) / nCmd, pour que PS ne reste plus a 0,0,0 sur un echec de quai joint. */
+function OpexJoinPlatformPlans(platform, stationId, stats = null)
 {
   local length = platform.length;
   local plans = [];
   local sideways = platform.direction == AIRail.RAILTRACK_NE_SW
       ? AIMap.GetTileIndex(0, 1) : AIMap.GetTileIndex(1, 0);
-  for (local side = -1; side <= 1; side += 2) {
-    local anchor = platform.anchor + sideways * side;
-    for (local farExit = 0; farExit <= 1; farExit++) {
-      local stationExit = farExit != 0 ? anchor + platform.step * (length - 1) : anchor;
-      local lead = farExit != 0 ? stationExit + platform.step : stationExit - platform.step;
-      local usable = AIMap.IsValidTile(lead) && AITile.IsBuildable(lead) &&
-          AITile.GetSlope(lead) == AITile.SLOPE_FLAT;
-      for (local i = 0; i < length && usable; i++) {
-        local tile = anchor + platform.step * i;
-        usable = AIMap.IsValidTile(tile) && AITile.IsBuildable(tile) &&
-            AITile.GetSlope(tile) == AITile.SLOPE_FLAT;
-      }
-      if (!usable) continue;
+  for (local dist = 1; dist <= JOIN_PARALLEL_MAX_SIDE; dist++) {
+    for (local flip = -1; flip <= 1; flip += 2) {
+      local anchor = platform.anchor + sideways * (dist * flip);
+      for (local farExit = 0; farExit <= 1; farExit++) {
+        local stationExit = farExit != 0 ? anchor + platform.step * (length - 1) : anchor;
+        local lead = farExit != 0 ? stationExit + platform.step : stationExit - platform.step;
+        local usable = AIMap.IsValidTile(lead) && AITile.IsBuildable(lead) &&
+            AITile.GetSlope(lead) == AITile.SLOPE_FLAT;
+        for (local i = 0; i < length && usable; i++) {
+          local tile = anchor + platform.step * i;
+          usable = AIMap.IsValidTile(tile) && AITile.IsBuildable(tile) &&
+              AITile.GetSlope(tile) == AITile.SLOPE_FLAT;
+        }
+        if (!usable) continue;
+        if (stats != null) {
+          stats.nClear++;
+          stats.nCargo++;
+        }
 
-      /* Le test inclut les regles de jointure et de taille de gare du moteur. Une reussite de
-       * BuildRailStation ne suffit toujours pas pour la VOIE : elle sera controlee plus bas par
-       * AreTilesConnected apres chaque pose. */
-      local joins = false;
-      {
-        local probe = AITestMode();
-        joins = AIRail.BuildRailStation(anchor, platform.direction, 1, length, stationId);
-      }
-      if (joins) {
-        plans.push({ anchor = anchor, station_exit = stationExit, lead = lead,
-                     direction = platform.direction, step = platform.step, length = length });
+        /* Le test inclut les regles de jointure et de taille de gare du moteur. Une reussite de
+         * BuildRailStation ne suffit toujours pas pour la VOIE : elle sera controlee plus bas par
+         * AreTilesConnected apres chaque pose. */
+        local joins = false;
+        {
+          local probe = AITestMode();
+          joins = AIRail.BuildRailStation(anchor, platform.direction, 1, length, stationId);
+        }
+        if (joins) {
+          if (stats != null) stats.nCmd++;
+          plans.push({ anchor = anchor, station_exit = stationExit, lead = lead,
+                       direction = platform.direction, step = platform.step, length = length });
+        }
       }
     }
   }
@@ -240,12 +256,12 @@ function OpexRailPlatformPlans(catalog, candidate, join)
   if (join != null) {
     local length = join.platform.length;
     local plansA = joinA
-        ? OpexJoinPlatformPlans(join.platform, join.stationId)
+        ? OpexJoinPlatformPlans(join.platform, join.stationId, statsA)
         : OpexStationPlans(candidate.src, candidate.dst, STATION_SEARCH_RADIUS, length,
                            MAX_STATION_PLANS, candidate.cargo, catalog.railCoverage, true,
                            statsA);
     local plansB = !joinA
-        ? OpexJoinPlatformPlans(join.platform, join.stationId)
+        ? OpexJoinPlatformPlans(join.platform, join.stationId, statsB)
         : OpexStationPlans(candidate.dst, candidate.src, STATION_SEARCH_RADIUS, length,
                            MAX_STATION_PLANS, candidate.cargo, catalog.railCoverage,
                            candidate.kind == "pax", statsB);
@@ -616,6 +632,7 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, join, cashR
                    wantedPlatformLength = candidate.platformLength, plansA = 0, plansB = 0,
                    slopeRelaxed = 0, siteClear = 0, siteCargo = 0, siteCmd = 0,
                    siteKind = candidate.kind == "pax" ? "P" : "F",
+                   joinEnd = join == null ? "N" : join.candidateEnd,
                    capital = candidate.capital, money = 0,
                    budgetInfo = OpexIterationBudget(candidate.profitAnnual, alternativeRatio),
                    iterationBudget = 0 };

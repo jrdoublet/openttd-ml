@@ -139,10 +139,12 @@ pas plus de valeur ».
    jointure, pas un bug. **La valeur ne passe toujours pas le plancher.** La graine 42 recule
    de 18 %. ⚠️ **Défaut `station_join` reste 0.** Le partage de bassin (§2.9.3) est mesuré et
    ne paie pas davantage. Le spread n'est pas la suite.
-3. Seulement ensuite, le **rendement des jointures** : `NOPLAN` en tue 68 sur 82, mais à
-   32 280 opcodes et zéro itération d'A\*, soit 0,4 % du budget — c'est un levier de rendement,
-   pas d'économie. AAAHogEx cherche dans l'enveloppe `station_spread` du groupe, pas un parallèle
-   collé ; 68/82 `NOPLAN` est exactement « pas de parallèle libre ».
+3. ✅ **Rendement des jointures — parallèle 1–4, mesuré, défaut 0** (2026-08-30).
+   Le colle unique (offset 1) était 658/692 SITE à `nClear=0`. Offset 1–4, même
+   orientation : 39 → **71** OK (5,5 % → 15,7 %), SITE 692 → 393, JOINPATH 0.
+   Il reste **361** SITE au quai joint à `nClear=0` — c'est le spread, et le
+   spread n'est pas la suite. 5/5 plus de véhicules, 4/5 moins de valeur (cinq
+   graines, pas un banc). `docs/opex_join_parallel_20y_5seeds.json`.
 4. ⚠️ Ne **pas** corriger `monthly` pour une origine servie sur la foi du chiffre brut : c'est le
    piège que cette mesure vient de désamorcer. Le partage de stock **une fois la gare jointe**
    (plusieurs lignes, même `StationID`) est un autre terme, lui encore ouvert (§2.9.3).
@@ -615,8 +617,8 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
    2. ✅ **`JOINPATH` : mesuré vide.** 0 / 808 tentatives rail. `OpexJoinPathIsDedicated` ne
       rejette rien sur cet arbre ; les 666 échecs de jointure sont SITEA/SITEB, pas un A\*
       payé puis invalidé. Pas de mémoire à ajouter, pas de contrainte à pousser dans le
-      pathfinder. Le rendement restant est le **site** (quai parallèle introuvable), pas
-      JOINPATH.
+      pathfinder. Le rendement site a été mesuré ensuite (parallèle 1–4, 39 → 71 OK) :
+      JOINPATH reste 0, le reste est le spread, et ce n'est pas la suite.
    3. ✅ **Le profit prédit d'une ligne jointe — `basin_share` mesuré, défaut 0.** La production
       de l'extrémité jointe est divisée par (n+1). Banc apparié 20 graines × 20 ans
       (`docs/bench_basin_share.json`, paire `docs/bench_basin_share_paired.json`), les deux
@@ -635,19 +637,16 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
       Le spread n'est **pas** débloqué : joindre plus, sur un terme qui ne paie pas, recréerait
       le banc vivier.
 
-**Priorité de fait, révisée le 2026-08-30 (nuit, 9.1)** : item 9.1 ✅, item 9.2 ✅ vide.
-Distance A\* ✅. Recalibrage conjoint ✅. Item 7 ✅. Retuning pax borné ✅, défaut 0.
-`station_join`, `basin_share`, `reborrow`, `origin_sitable`, `astar_cost`,
-`probe_negative`, `pax_near` restent à 0. Le **spread** n'est pas la suite.
-La tête est le **rendement de construction des jointures offertes** : 705 tentatives,
-39 OK, 666 SITEA/SITEB, 0 JOINPATH. M (196) est le plus gros refus avant tentative ;
-ce n'est pas le levier de construction. L'item 5 (`MIN_SEPARATION`) reste gelé
-derrière §9. L'item 2 (verrouillage de ville) reste dernier.
+**Priorité de fait, révisée le 2026-08-30 (nuit, parallèle join)** : rendement
+join ✅ (39 → 71 OK, 5,5 % → 15,7 %). Item 9.1 ✅, item 9.2 ✅ vide. Distance A\* ✅.
+Recalibrage conjoint ✅. Item 7 ✅. Retuning pax borné ✅. Tous défauts 0.
+Le **spread** n'est pas la suite : 361 SITE restants au quai joint sont exactement
+ça, et cinq graines montrent déjà plus de véhicules pour moins de valeur.
+`MIN_SEPARATION` (item 5) reste gelé. L'item 2 (verrouillage de ville) reste dernier.
 
-*Priorité précédente, conservée pour la trace* : ~~l'item **9.1**~~ (✅ mesuré) était
-la tête. ~~le retuning pax borné~~ (✅ mesuré, défaut 0) était la tête. ~~l'item **7**~~
-(✅ mesuré, défaut 0) était la tête le matin. ~~l'item **4**~~ (✅ fait) et l'item 6
-(plafond d'abandon) passaient devant.
+*Priorité précédente, conservée pour la trace* : ~~le rendement join~~ (✅ mesuré,
+défaut 0) était la tête. ~~l'item **9.1**~~ (✅) était la tête. ~~le retuning pax
+borné~~ / ~~l'item **7**~~ / ~~l'item **4**~~.
 
 ---
 

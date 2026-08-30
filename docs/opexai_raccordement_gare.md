@@ -51,3 +51,12 @@ lu par `sweeps/opex_full_campaign.py`. Cinq graines × 20 ans, `station_join=1`
 (`docs/opex_join_refuse_20y_5seeds.json`) : 196 M, 75 K, **0 R**, 41 other, 705 tentatives,
 39 OK, **0 JOINPATH**. Les rôles fret inverses meurent à la génération. JOINPATH est vide.
 Le rendement restant est SITEA/SITEB sur un quai parallèle, pas un A\* invalidé après coup.
+
+## Parallèle offset 1–4 (2026-08-30)
+
+`OpexJoinPlatformPlans` ne colle plus au seul voisin : offsets 1 à 4, même orientation, même
+longueur. Ce n'est pas le scan d'enveloppe. 5 graines × 20 ans
+(`docs/opex_join_parallel_20y_5seeds.json` contre `docs/opex_join_refuse_20y_5seeds.json`) :
+39 → 71 jointures OK (5,5 % → 15,7 %), SITE 692 → 393, JOINPATH toujours 0. Il reste 361
+échecs au quai joint avec `nClear=0` — autre orientation / enveloppe, c'est-à-dire le spread,
+explicitement pas la suite. 5/5 plus de véhicules, 4/5 moins de valeur. Défaut `station_join` 0.

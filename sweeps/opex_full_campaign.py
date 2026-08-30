@@ -47,7 +47,7 @@ RE_PL = re.compile(r"^PL\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
 RE_PT = re.compile(r"^PT\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
 RE_PG = re.compile(r"^PG\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
 RE_PD = re.compile(r"^PD\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)(?:\|(\d+))?$")
-RE_PS = re.compile(r"^PS\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)(?:\|([PF]))?$")
+RE_PS = re.compile(r"^PS\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)(?:\|([PF]))?(?:\|([ABN]))?$")
 RE_OY = re.compile(r"^OY\|(\d+)\|(\d+)\|(-?\d+)\|(-?\d+)$")
 RE_OZ = re.compile(r"^OZ\|(\d+)\|(\d+)\|(-?\d+)$")
 RE_OU = re.compile(r"^OU\|(\d+)\|(\d+)\|(\d+)\|(-?\d+)$")
@@ -592,6 +592,8 @@ def parse_attempts(all_signs):
             }
             if m.group(7):
                 stats["kind"] = "pax" if m.group(7) == "P" else "freight"
+            if m.group(8):
+                stats["join_end"] = m.group(8)
             site_stats[(int(m.group(1)), int(m.group(2)), int(m.group(3)))] = stats
     for sign in all_signs:
         if m := RE_OR_BUDGET.match(sign):
@@ -1031,7 +1033,8 @@ def main():
                                   "OB|A distance",
                                   "PN/PX/PQ/NH/NM sondage profit<=0",
                                   "PE/PY pax_near",
-                                  "OB|R refus de jointure"],
+                                  "OB|R refus de jointure",
+                                  "PS join_end A/B/N"],
         "runs": runs,
     }
     result_path.write_text(json.dumps(payload, indent=2))
@@ -1042,11 +1045,17 @@ def main():
         print(f"sites: SITEA={run['n_rail_attempts_sitea']} SITEB={run['n_rail_attempts_siteb']} "
               f"SITEAB={run['n_rail_attempts_siteab']} ECON={run['n_rail_attempts_econ']} "
               f"NOPLAN={run['n_rail_attempts_noplan']}  pente={run['n_lines_slope_relaxed']}")
-        for attempt in run["rail_attempts"]:
-            if attempt["reason"] in ("SITEA", "SITEB", "SITEAB") and "n_clear" in attempt:
-                print(f"  {attempt['reason']} {attempt['year']} idx={attempt['idx']} "
-                      f"{attempt.get('kind', '?')} clear={attempt['n_clear']} "
-                      f"cargo={attempt['n_cargo']} cmd={attempt['n_cmd']}")
+        site = [a for a in run["rail_attempts"]
+                if a["reason"] in ("SITEA", "SITEB", "SITEAB")]
+        join_end = sum(1 for a in site
+                       if a.get("join_end") in ("A", "B")
+                       and ((a["reason"] == "SITEA" and a.get("join_end") == "A")
+                            or (a["reason"] == "SITEB" and a.get("join_end") == "B")
+                            or a["reason"] == "SITEAB"))
+        clear0 = sum(1 for a in site if (a.get("n_clear") or 0) == 0)
+        cmd = sum(1 for a in site if (a.get("n_cmd") or 0) > 0)
+        print(f"  SITE n={len(site)} join_end_fail={join_end} clear0={clear0} "
+              f"cmd>0={cmd} JOINPATH={run.get('n_rail_attempts_joinpath', 0)}")
         print(f"company_value final: {run['final_company_value']}  "
               f"performance_history: {run['final_performance_history']}")
         print(f"money: {run['final_money']}  current_loan: {run['final_current_loan']}")
