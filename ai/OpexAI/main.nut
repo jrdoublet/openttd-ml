@@ -43,6 +43,10 @@ ROAD_PAX_CATCHMENT_SHARE_PCT <- 86;
  * OpenTTDLab. On ne les coupe que pour une partie avec des humains. */
 DEBUG_SIGNS <- true;
 
+
+/* Mesure ponctuelle : un panneau par ligne reussie, donc desactivee par defaut pour ne pas
+ * changer le profil d'opcodes de la baseline. */
+RAIL_COST_PROBE <- false;
 /* Unique point de passage vers AISign.BuildSign : permet de tout couper d'un reglage sans
  * conditionner 57 appels un par un. Meme signature que l'appel d'origine. */
 function OpexSign(anchor, name)
@@ -1030,6 +1034,11 @@ function OpexAI::_tryBuild(ranked, year)
        * Gate sur STATION_JOIN comme GM/CJ/OB : a 0 les deux champs valent "N" et 0 pour toutes
        * les lignes, donc le panneau ne porterait aucune information et couterait quand meme une
        * commande par ligne au bras de controle. */
+      if (RAIL_COST_PROBE) {
+        OpexSign(anchor, "DC|" + idx + "|" + result.capital + "|" + result.actualCost + "|"
+                               + candidate.trains + "|" + result.trains + "|"
+                               + result.doubleTrack);
+      }
       if (STATION_JOIN || JOIN_PLACE) {
         local joinHow = "";
         if (placeJoin != null) joinHow = "|P";
@@ -1727,6 +1736,7 @@ function OpexAI::Start()
   if (roadPaxCatchment > 0) ROAD_PAX_CATCHMENT_SHARE_PCT = roadPaxCatchment;
   ROAD_REFLEET = AIController.GetSetting("road_refleet") != 0;
   ROAD_MULTISTOP = AIController.GetSetting("road_multistop") != 0;
+  RAIL_COST_PROBE = AIController.GetSetting("rail_cost_probe") != 0;
   ASTAR_COST_V2 = AIController.GetSetting("astar_cost") != 0;
   PROBE_NEGATIVE = AIController.GetSetting("probe_negative") != 0;
   PAX_NEAR = AIController.GetSetting("pax_near") != 0;

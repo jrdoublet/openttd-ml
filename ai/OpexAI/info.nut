@@ -2,8 +2,8 @@ class OpexAI extends AIInfo {
   function GetAuthor()      { return "openttd-ml"; }
   function GetName()        { return "OpexAI"; }
   function GetDescription() { return "IA qui traite les opcodes comme une ressource de jeu : chaque candidat porte un profit attendu ET un cout en opcodes attendu, et le budget va au meilleur rapport."; }
-  function GetVersion()     { return 4; }
-  function GetDate()        { return "2026-08-29"; }
+  function GetVersion()     { return 5; }
+  function GetDate()        { return "2026-08-30"; }
   function CreateInstance() { return "OpexAI"; }
   function GetShortName()   { return "OPEX"; }
   function GetAPIVersion()  { return "15"; }
@@ -33,6 +33,15 @@ class OpexAI extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+
+    AddSetting({
+      name = "rail_cost_probe",
+      description = "Emit per-line rail model capital versus actual construction cost: 1 = measurement only, 0 = no extra signs (default)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
     /* Plancher de tresorerie sous lequel on ne rembourse pas l'emprunt, EN MILLIERS.
      *
      * DEFAUT 300 (= 300 000) DEPUIS LE 2026-08-29, apres mesure au banc apparie -- voir le verdict

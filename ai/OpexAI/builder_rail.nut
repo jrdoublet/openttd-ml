@@ -407,7 +407,7 @@ function OpexSameStationEnd(plan, original)
 function OpexTryDoubleTrack(catalog, planA, planB, tiles, depot, cashReserve, iterationBudget, deadlineTick, extraForbidden = null)
 {
   local acc = { ok = false, skip = 2, tiles = null, planA = null, planB = null, depot = null,
-                iterations = 0 };
+                iterations = 0, actualCost = 0 };
   local stationIdA = AIStation.GetStationID(planA.anchor);
   local stationIdB = AIStation.GetStationID(planB.anchor);
   if (!AIStation.IsValidStation(stationIdA) || !AIStation.IsValidStation(stationIdB)) return acc;
@@ -457,6 +457,7 @@ function OpexTryDoubleTrack(catalog, planA, planB, tiles, depot, cashReserve, it
     return acc;
   }
 
+  local costs = AIAccounting();
   for (local i = 0; i < planA2.length; i++) AITile.DemolishTile(planA2.anchor + planA2.step * i);
   for (local i = 0; i < planB2.length; i++) AITile.DemolishTile(planB2.anchor + planB2.step * i);
   local okA = AIRail.BuildRailStation(planA2.anchor, planA2.direction, 1, planA2.length, stationIdA);
@@ -493,6 +494,7 @@ function OpexTryDoubleTrack(catalog, planA, planB, tiles, depot, cashReserve, it
   acc.planA = planA2;
   acc.planB = planB2;
   acc.depot = depot2;
+  acc.actualCost = costs.GetCosts();
   return acc;
 }
 
@@ -887,7 +889,7 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, join, cashR
                    signalFailures = [],
                    capacitySignalsOk = 0, capacitySignalsFail = 0, capacitySignalSegments = 0, capacitySignalFailures = [],
                    doubleTrack = 0, doubleSkip = 0, doubleTiles = 0, doubleDepot = null,
-                   capital = candidate.capital, money = 0,
+                   capital = candidate.capital, money = 0, actualCost = 0,
                    budgetInfo = OpexIterationBudget(candidate.profitAnnual, alternativeRatio),
                    iterationBudget = 0 };
   result.iterationBudget = result.budgetInfo.budget;
@@ -946,6 +948,11 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, join, cashR
   if (planA == null || planB == null) { result.reason = "NOMATCH"; return result; }
   if (join != null && !OpexJoinPathIsDedicated(tiles)) { result.reason = "JOINPATH"; return result; }
 
+  /* Mesure uniquement les commandes de construction reelle de cette tentative : ne pas
+   * la demarrer avant A*, dont les tests de pont/tunnel peuvent etre comptes sans poser
+   * une tuile. La lecture finale est reservee aux lignes qui ont effectivement reussi. */
+  local costs = AIAccounting();
+
   budget.begin();
   for (local i = 0; i < planA.length; i++) {
     AITile.DemolishTile(planA.anchor + planA.step * i);
@@ -981,6 +988,9 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, join, cashR
     result.reason = "DEPFAIL"; return result;
   }
 
+  local primaryCost = costs.GetCosts();
+  costs = null;
+
   /* Deux trains sur une seule voie se rencontrent. Deuxieme voie dediee, un train
    * par voie ; sinon un seul convoi. JOINPATH + ignored_tiles gardent la voie voisine. */
   local tiles2 = null;
@@ -988,6 +998,7 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, join, cashR
   local planB2 = null;
   local depot2 = null;
   local want = 1;
+  local doubleCost = 0;
   if (candidate.trains > 1) {
     local remain = result.iterationBudget - result.iterations;
     if (remain < ATTEMPT_FLOOR) remain = ATTEMPT_FLOOR;
@@ -1011,11 +1022,13 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, join, cashR
       planA2 = dual.planA;
       planB2 = dual.planB;
       depot2 = dual.depot;
+      doubleCost = dual.actualCost;
       want = candidate.trains;
       if (want > 2) want = 2;
     }
   }
 
+  local postPathCosts = AIAccounting();
   if (join != null) {
     local signals = OpexPlaceJoinSignals(planA, planB, tiles, depot, join);
     result.signalsOk = signals.ok;
@@ -1036,7 +1049,7 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, join, cashR
   budget.begin();
   local trains = OpexBuildTrains(catalog, candidate.cargo, candidate.kind, depot,
                                  planA.station_exit, planB.station_exit, 1, candidate.loco,
-                                 candidate.wagons, candidate.platformLength, want == 1);
+                                 candidate.wagons, candidate.platformLength, false);
   if (!trains.failed && trains.built > 0 && want == 2 && depot2 != null) {
     local second = OpexBuildTrains(catalog, candidate.cargo, candidate.kind, depot2,
                                    planA2.station_exit, planB2.station_exit, 1, candidate.loco,
@@ -1076,6 +1089,7 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, join, cashR
   result.locoLength = trains.locoLength;
   result.wagonLength = trains.wagonLength;
   result.vehicles = trains.vehicles;
+  result.actualCost = primaryCost + doubleCost + postPathCosts.GetCosts();
   result.stationA = planA.station_exit;
   result.stationB = planB.station_exit;
   result.depot = depot;

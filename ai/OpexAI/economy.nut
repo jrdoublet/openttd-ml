@@ -27,7 +27,10 @@ const STATION_RATING_PCT = 50;
  * est "moins de 15 s" de temps reel, soit ~6,8 jours de jeu a 74 ticks/jour. */
 const TARGET_HEADWAY_DAYS = 7;
 
-const MAX_TRAINS = 8;
+/* Le constructeur realise une voie simple avec un train, ou deux voies dediees avec deux
+ * trains. Le classement ne doit donc pas attribuer du revenu a une flotte qu'il ne construit
+ * pas. Les plafonds routiers ont leur propre constante plus bas. */
+const MAX_RAIL_TRAINS = 2;
 
 /* Duree d'amortissement de l'infrastructure, en annees. Convention deja utilisee par les
  * campagnes (profit_ligne), gardee pour rester comparable. */
@@ -118,7 +121,8 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
    * unites/mois avec 1,9 trajet charge par mois demande ceil(68/(30*1,9)) = 2 wagons, pas le wagon
    * unique produit par la formule ancienne qui le divisait d'abord par ses 3 trains.
    *
-   * La seconde boucle est bornee par MAX_TRAINS = 8, deja plafond de gare du modele. Elle ne boucle
+   * La seconde boucle est bornee par MAX_RAIL_TRAINS = 2, le maximum realisable par le
+   * constructeur (une rame par voie dediee). Elle ne boucle
    * jamais sur les moteurs : pour chaque nombre de rames elle compare le revenu de la note issue du
    * bareme au capital et au cout courant. Le gagnant est le profit maximal, et l'egalite garde moins
    * de trains parce qu'ils n'apportent alors aucun point de note ni cargo supplementaire. */
@@ -189,7 +193,7 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   local infraCost = distance * catalog.costTrackPerTile + 2 * platformLength * catalog.costStation;
   local locoLife = loco.ageYears > 0 ? loco.ageYears : 20;
   local best = null;
-  for (local trains = 1; trains <= MAX_TRAINS; trains++) {
+  for (local trains = 1; trains <= MAX_RAIL_TRAINS; trains++) {
     local headwayDays = roundTripDays / trains;
     local stationRating = OpexStationRatingForHeadway(headwayDays);
     local offered = monthlyUnits * stationRating / 100.0;
@@ -271,7 +275,7 @@ function OpexApplyRailEconomics(candidate, economics)
  *
  *  1. Le plafond de quai. docs/mecanique_jeu.md S11 : "un arret de bus n'accueille au plus que
  *     DEUX bus a la fois", idem pour une aire de chargement camion. Au-dela les vehicules font la
- *     queue SUR LA ROUTE et se bloquent. Le modele rail ne connait que MAX_TRAINS = 8 et
+ *     queue SUR LA ROUTE et se bloquent. Le modele rail a son propre plafond MAX_RAIL_TRAINS et
  *     prescrirait donc une flotte auto-congestionnee. MAX_ROAD_VEHICLES = 2 est la traduction
  *     directe de la regle du jeu, pas une precaution. Le levier de volume est le multistop
  *     (reglage road_multistop, defaut 0) : un arret extra joint par bout, clones seulement

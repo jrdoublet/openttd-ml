@@ -741,6 +741,16 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
       (`docs/bench_double_track.json`) : valeur **+55,5 %**, t = 5,27, 17/20 ;
       note **−9,0 %**, t = −2,32, 8/20 ; véhicules −39 %. **Gardé** ; la note
       s'améliorera plus tard.
+      ⚠️ Ce banc est pré-correctif : le premier convoi était démarré dans
+      `OpexBuildTrains`, puis arrêté par le second `StartStopVehicle` du commit :
+      44/44 lignes restées à un train avaient un profit nul.
+      ✅ **Banc corrigé** (`docs/bench_double_track_startfix.json`, 20×20 contre
+      `bench_road_current`) : valeur **+125,1 %**, t = **13,31**, **20/20** ; note
+      **+17,6 %**, t = **6,05**, 18/20 ; revenu dernière année **+49,2 %**,
+      t = **7,61**, 19/20 ; véhicules −34,1 %, t = −8,19 ; gares +1,8 %, nul.
+      Emprunt et insolvabilité 0/20. C'est la baseline courante. Son smoke 5×20
+      (`docs/opex_double_track_startfix_20y_5seeds.json`) a 35/39 lignes à un train
+      profitables, 64/93 doubles, 0 `RX` / `XC` / `SIGFAIL`.
 
 **Priorité de fait, révisée le 2026-08-30 (join H2, rejeu DT)** : H1, H2 et
 le rejeu avec double voie **aucun ne paie**. Défauts `station_join` /
@@ -916,18 +926,33 @@ Le 4 est relu en 15.3 : inchangé.
 
   | arm | company_value | CV | SE | note | CV |
   |---|---:|---:|---:|---:|---:|
-  | OpexAI *(arbre courant, `bench_double_track`, 2026-08-30)* | **4 859 987** | **36,8 %** | 8,2 % | **482** | 18,5 % |
+  | OpexAI *(arbre courant, `bench_double_track_startfix`, 2026-08-30)* | **7 034 590** | **24,7 %** | 5,5 % | **623** | 12,2 % |
   | OpexAI *(route, `bench_road_current`)* | 3 125 439 | 22,3 % | 5,0 % | 530 | 12,0 % |
   | OpexAI *(re-baseliné le 2026-08-29, `bench_v2`)* | 2 409 531 | 48,8 % | 10,9 % | 396 | 27,6 % |
   | OpexAI *(mesure d'origine, archivée)* | 2 527 171 | 32,6 % | 7,30 % | 408 | 20,4 % |
   | AAAHogEx | 225 430 986 | 16,2 % | 3,62 % | 897 | 0,5 % |
 
-  ⚠️ **Référence de l'arbre : `docs/bench_double_track.json`.** Apparié 20×20 contre
-  `bench_road_current` : `company_value` **+55,5 %**, t = **5,27**, **17/20** ;
-  `performance_history` **−9,0 %**, t = **−2,32**, 8/20 ; véhicules **−39 %**,
-  t = **−9,87**, 0/20. Emprunt 0, minimum 2,07 M. On **garde** la double voie
-  (collision) ; la note et le parc se retravailleront. `docs/bench_v2.json` et
+  ✅ **Référence de l'arbre : `docs/bench_double_track_startfix.json`.** Apparié
+  20×20 contre `bench_road_current` : `company_value` **+125,1 %**, t = **13,31**,
+  **20/20** ; `performance_history` **+17,6 %**, t = **6,05**, 18/20 ; revenu
+  dernière année **+49,2 %**, t = **7,61**, 19/20 ; véhicules **−34,1 %**, t =
+  **−8,19**, 0/20. Emprunt / insolvabilité 0 / 0. La double voie est gardée ;
+  `docs/bench_double_track.json` reste le bras pré-correctif. `docs/bench_v2.json` et
   `docs/opexai_plafonnement_mesure.json` restent historiques.
+
+  ✅ **Contrat rail 1--2 trains aligne (2026-08-31).** Le modele ne cote plus 3--8
+  rames que le constructeur ne peut pas poser; `rail_cost_probe` confirme 62/97
+  sur-evaluations de flotte avant correction. Rejeu 5x20
+  `opex_rail_cap2_20y_5seeds.json` : valeur +5,6 %, note -0,4 %, 0 crash/perte.
+  Echantillon sous le plancher du banc et echecs `SITE*` plus frequents : le correctif
+  est garde pour la coherence, mais la baseline reste `bench_double_track_startfix`.
+
+  ✅ **Contrat rail 1--2 trains aligne (2026-08-31).** Le modele ne cote plus 3--8
+  rames que le constructeur ne peut pas poser; `rail_cost_probe` confirme 62/97
+  sur-evaluations de flotte avant correction. Rejeu 5x20
+  `opex_rail_cap2_20y_5seeds.json` : valeur +5,6 %, note -0,4 %, 0 crash/perte.
+  Echantillon sous le plancher du banc et echecs `SITE*` plus frequents : le correctif
+  est garde pour la coherence, mais la baseline reste `bench_double_track_startfix`.
 
   🔴 **HEAD + PBS (`e027037`) n'est pas une baseline.** 20 graines contre
   `bench_road_current` (`docs/bench_after_pbs.json`) : `company_value` **−94,9 %**,
