@@ -269,34 +269,46 @@ cycle**, sauf événement.
 
 ## 4. Production des industries — le rendement composé du bon service
 
-- Production **toutes les 256 ticks, soit 8 ou 9 fois par mois**. `GetLastMonthProduction` est donc
-  un signal solide et complet.
-- ⚙️ **Économie « lisse »** (*smooth economy*) : **4,5 % de chance de changement par mois** et par
-  industrie productrice. En économie TTD classique sur une carte 256×256, une seule industrie
-  change par mois, par paliers de −50 % ou +100 %.
+✅ **Relu en 15.3** (`industry_cmd.cpp` `ChangeIndustryProduction`, tag
+[OpenTTD 15.3](https://github.com/OpenTTD/OpenTTD/tree/15.3)). Notre config
+est `economy.type = 1` = `ET_SMOOTH`. Vanilla, pas de callback NewGRF :
+`UsesOriginalEconomy()` est faux, donc **seul l'appel mensuel** change la
+production (l'appel quotidien « random » `monthly=false` sort tout de suite).
 
-Probabilités de sens du changement, selon le **pourcentage transporté** :
+- Production **toutes les `INDUSTRY_PRODUCE_TICKS = 256` ticks**, soit 8 ou 9
+  fois par mois. `GetLastMonthProduction` est un signal complet.
+- **4,5 % de chance de changement par mois** et par cargo produit :
+  `Chance16I(1, 22)` ≈ 1/22. Amplitude **3,9–23 %**
+  (`(RandomRange(50)+10) * rate >> 8`, plancher 1 unité).
+- Seuils en 256e : `PERCENT_TRANSPORTED_60 = 153` (≈ 59,8 %),
+  `PERCENT_TRANSPORTED_80 = 204` (≈ 79,7 %). Le wiki arrondit à 60 / 80.
+
+Probabilités de **sens**, *conditionnellement à un changement* :
 
 | service | hausse | baisse |
 |---|---|---|
-| industrie « décroissante uniquement » (ex. puits de pétrole tempérés) | 0 % | 100 % |
-| faible (< 60 % transporté) | 33 % | 67 % |
-| bon (60-80 %) | 67 % | 33 % |
-| **excellent (> 80 %)** | **83 %** | 17 % |
+| `DontIncrProd` tempéré (puits de pétrole) | 0 % | 100 % |
+| faible (≤ 153/256 transporté) | 33 % | 67 % |
+| bon (154–204) | 67 % | 33 % |
+| **excellent (> 204/256)** | **83 %** | 17 % |
 
-**Effet cumulé sur 100 ans** cité par le wiki : **×10,35** à ~70 % de service, **×106,62** au-delà
-de 80 %. Les industries décroissantes perdent −6,8 % par an (demi-vie 9,84 ans).
+⚠️ Le commentaire du source 15.3 dit « *very high station ratings (over 80 %)* ».
+C'est **faux** : le test est `PctTransported() > 204`, pas la note de gare.
+La note n'entre que **indirectement** : `MoveGoodsToStation` capte
+`production × (rating+1)`, ce qui peut monter le % transporté.
 
-Cas particuliers : les plateformes pétrolières plafonnent à 16 passagers par événement de
-production ; les scieries ne produisent pas vraiment (elles cherchent des arbres 4-5 fois par mois,
-max 225 t/mois) ; **les banques tempérées ne changent jamais de production**.
+`INDUSTRYLIFE_BLACK_HOLE` (banques tempérées, centrales) : **aucun**
+changement. Secondaires (`Processing`) : pas ce barème ; fermeture possible
+après des années sans production. Plateforme pétrolière : passagers plafonnés
+à 16. Wiki 100 ans ×10,35 / ×106,62 : cité, pas recalculé ici. Sur 20 ans
+ça resterait de l'ordre de ×1,6 / ×2,5.
 
-> **Conséquence pour OpexAI.** Bien servir une industrie **fait croître sa production de façon
-> composée**. Sur notre banc de 20 ans, ×10,35 sur 100 ans ≈ **×1,6**, et ×106,62 ≈ **×2,5**. Ce
-> n'est pas marginal : cela **récompense la concentration** (peu de lignes bien servies) plutôt que
-> la dispersion, et cela rend la production de l'étage 1 **dynamique et endogène** — la valeur d'une
-> ligne dépend de la qualité du service qu'on lui donnera. À intégrer comme facteur de croissance,
-> pas comme constante.
+> **Conséquence pour OpexAI.** Bien servir une primaire **fait croître sa
+> production**, via le % transporté, pas via la note. L'étage 1 prend un
+> instantané `GetLastMonthProduction` : on n'y met **pas** un facteur de
+> croissance. L'écart fret ~4-6x est réfuté (0,98). ⚠️ **Pas de retuning.**
+> Ne pas ajouter un terme « service composé » au classement sans banc,
+> défaut 0.
 
 ---
 
@@ -446,12 +458,10 @@ Les six points sont clos. Le 4 est relu en 15.3 : inchangé.
 1. ✅ Le réglage `plane_speed` réellement actif dans notre config : `4` (le défaut, non surchargé),
    vérifié dans l'`openttdlab.cfg` généré par un run `OpexAI` réel du 2026-08-28
    (`starting_year = 1970`, config figée) — pas supposé.
-2. ✅ Économie lisse ou TTD classique dans notre config gelée : `economy.type = 1` = `ET_SMOOTH`
-   (économie lisse), le défaut, non surchargé — vérifié dans l'`openttdlab.cfg` du 2026-08-28.
-   Les % wiki de §4 (hausse/baisse selon le service) n'ont pas été recalibrés
-   empiriquement sous ce régime — hors de cette liste. À ne pas confondre avec
-   `difficulty.economy` (= `false`, recessions désactivées), un réglage distinct
-   malgré le nom qui prête à confusion.
+2. ✅ Économie lisse : `economy.type = 1` = `ET_SMOOTH`, et le barème wiki de §4
+   **est** la formule 15.3 (`ChangeIndustryProduction`, `Chance16I(1,22)`,
+   seuils 153/204). Pas de recalibrage empirique à faire. Recessions :
+   `difficulty.economy = false`, distinct malgré le nom.
 3. ✅ **Rendement de vitesse effectif** (2026-08-30, `docs/opex_speed_yield.json`) :
    médiane réelle / catalogue **0,96** (n = 832), réelle / traction **1,18**.
    Le plafond 61 km/h apparaît (20 % des instantanés) mais n'est pas le régime
@@ -541,10 +551,12 @@ mémoire, sans développement.
   **sans objet pour `OpexAI`** aujourd'hui. À reconsidérer seulement si la config gelée change.
 - **Note de gare : véhicules rapides, ramassages fréquents, peu de cargo en attente, statue en
   ville.** Déjà couvert en détail et de façon chiffrée section 3 — la tip ajoute une précision
-  absente de notre lecture initiale : une bonne note **augmente aussi la production de
-  l'industrie** desservie (pas seulement le volume capté). ❓ Non vérifié dans le code
-  (`station_cmd.cpp` ne suffit pas à trancher, ce serait plutôt côté `industry_cmd.cpp`).
-  L'écart fret ~4-6x (ancien item 2.1) a été **réfuté** (ratio 0,98). Pas un levier ouvert.
+  absente de notre lecture initiale : une bonne note **augmenterait aussi la production de
+  l'industrie** desservie. ✅ Relu en 15.3 : **faux comme terme direct**.
+  `ChangeIndustryProduction` teste `PctTransported`, pas `ge.rating`. La note
+  n'agit que via le cargo capté (`MoveGoodsToStation`). Le commentaire du
+  source (« station ratings over 80 % ») est le même piège. Pas un levier
+  ouvert ; l'écart fret ~4-6x est réfuté.
 
 **Raccourcis UI sans objet pour une IA** (mentionnés pour mémoire, non développés) : aperçu de coût
 avant construction (`Shift`), transparence des arbres/bâtiments (`x`), pose de signaux par glisser
@@ -580,17 +592,10 @@ Bank. Les listes sub-arctique/tropicale/toyland du wiki ne nous concernent pas.
 > table sert surtout à **comprendre** ce que le code découvre au runtime, pas à changer le code.
 
 > **Ce qui est nouveau et potentiellement actionnable.**
-> 1. **« La croissance d'une industrie primaire dépend du pourcentage de sa production transportée
->    au loin. Plus on en transporte, plus vite elle croît en moyenne à long terme. »** C'est un
->    mécanisme distinct de la croissance des villes déjà notée comme volontairement ignorée
->    (`candidates.nut:146-148`, commentaire « on ignore encore la croissance de la ville »). Ici
->    c'est la croissance de la **source fret** elle-même, jamais mentionnée dans le code. ❓ Piste
->    non vérifiée à rapprocher de l'écart prédit/réel du fret encore ~4-6x (backlog section 2.1,
->    3) : `OpexFreightCandidates` prend un instantané `GetLastMonthProduction` figé au moment du
->    scan, alors que bien desservir une source ferait *croître* sa production ensuite — dans le
->    sens qui **agrandit** l'écart avec le temps si le prédit reste sous-estimé, ou qui
->    l'expliquerait à l'inverse si le prédit se révèle surestimé (le sens de l'écart n'a pas été
->    tranché ici, seulement le mécanisme candidat).
+> 1. ✅ **Croissance d'une primaire = % transporté, relu en 15.3** (`ChangeIndustryProduction`,
+>    §4). Distinct de la croissance des villes. `OpexFreightCandidates` reste un
+>    instantané `GetLastMonthProduction` : on n'y ajoute **pas** un facteur de
+>    service. L'écart fret ~4-6x est réfuté (0,98). ⚠️ Pas de retuning.
 > 2. **« Pendant une récession, la production primaire est réduite de moitié. »** ✅ Sans objet chez
 >    nous : `difficulty.economy = false` (recessions désactivées), déjà vérifié section 8.2. Ce
 >    n'est donc pas une source de variance à modéliser dans notre config gelée.

@@ -19,11 +19,10 @@ et une piste non vérifiée sur les avions qui diffuseraient mieux leur influenc
 ✅ **[Manual/Industries](https://wiki.openttd.org/en/Manual/Industries) lue et intégrée
 (2026-08-28)** — voir `docs/mecanique_jeu.md` §10. La table des chaînes de production ne change
 rien au code : `catalog.nut` interroge déjà l'API dynamiquement plutôt que coder les chaînes en
-dur. L'apport net, deux pistes non vérifiées : (1) la croissance d'une industrie source dépend du
-% de sa production transportée — mécanisme jamais modélisé, et **toujours pas mesuré** (la mention
-d'un « écart fret ~4-6x » qui figurait ici était périmée : cet écart a été réfuté le même jour,
-voir §3) ; (2) `difficulty.economy = false` confirme que la réduction de moitié de la production
-primaire en récession est **sans objet** chez nous.
+dur. L'apport net : (1) ✅ croissance d'une primaire = % transporté, relu en
+15.3 (`ChangeIndustryProduction`, `mecanique_jeu.md` §4) — pas un terme de
+classement, pas de retuning ; l'écart fret ~4-6x est réfuté ; (2)
+`difficulty.economy = false` : récession **sans objet** chez nous.
 
 ✅ **[transporttycoon.net/rail1](https://www.transporttycoon.net/rail1) … [rail6](https://www.transporttycoon.net/rail6)
 et [junctions](https://www.transporttycoon.net/junctions) lus et intégrés (2026-08-30)** — voir
@@ -675,10 +674,10 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
       Le spread n'est **pas** débloqué : joindre plus, sur un terme qui ne paie pas, recréerait
       le banc vivier.
 
-**Priorité de fait, révisée le 2026-08-30 (note de gare 15.3)** : courbe de
-note ✅ relue, inchangée. Vitesse route ✅. Croissance de ville ✅. Catalogue ✅.
-Le **spread** n'est pas la suite. `MIN_SEPARATION` reste gelé. L'item 2 reste
-dernier. §4 mesures : plus rien d'ouvert.
+**Priorité de fait, révisée le 2026-08-30 (production industrie)** : barème
+lisse ✅ relu en 15.3, table wiki confirmée, pas de retuning. Note de gare ✅.
+Vitesse route ✅. Croissance de ville ✅. Le **spread** n'est pas la suite.
+`MIN_SEPARATION` reste gelé. L'item 2 reste dernier.
 
 *Priorité précédente, conservée pour la trace* : ~~le rendement join~~ (✅ mesuré,
 défaut 0) était la tête. ~~l'item **9.1**~~ (✅) était la tête. ~~le retuning pax
@@ -771,11 +770,11 @@ Le 4 est relu en 15.3 : inchangé.
 
 1. ✅ Le réglage `plane_speed` réellement actif : `4`, le défaut, non surchargé — vérifié dans
    l'`openttdlab.cfg` d'un run `OpexAI` réel du 2026-08-28, pas supposé.
-2. ✅ Économie « lisse » (`economy.type = 1` = `ET_SMOOTH`) confirmée dans notre config gelée, le
-   défaut, non surchargé — vérifié dans l'`openttdlab.cfg` du 2026-08-28. À distinguer de
-   `difficulty.economy` (recessions, réglage différent malgré le nom). Les % wiki de
-   `docs/mecanique_jeu.md` §4 n'ont pas été recalibrés empiriquement sous ce régime —
-   hors de cette liste.
+2. ✅ Économie « lisse » (`economy.type = 1` = `ET_SMOOTH`) et **barème de
+   production 15.3** (2026-08-30). `ChangeIndustryProduction` : 1/22 par mois,
+   seuils 153/204 (≈ 60 / 80 %), table wiki 0/33/67/83 **confirmée**. La note
+   de gare n'est pas un terme. Recessions : `difficulty.economy`, autre
+   réglage. ⚠️ Pas de facteur « service composé » au classement.
 3. ✅ **Rendement de vitesse effectif** (2026-08-30). Panneau `RV`, 5 graines × 20 ans
    (`docs/opex_speed_yield_20y_5seeds.json`, `docs/opex_speed_yield.json`). Instantané
    annuel des trains **en marche** (vitesse > 0) : n = **832** ligne-années.
