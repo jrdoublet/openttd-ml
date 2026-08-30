@@ -774,9 +774,35 @@ Reprend le §8 de `docs/mecanique_jeu.md`, complété.
    locale disponible (13.4).
 5. Le **barème croissance de ville / nombre de gares actives** : absent du wiki, présent dans le
    source (`town_cmd.cpp`, `UpdateTownGrowRate`) — à mesurer, pas à recopier de mémoire.
-6. **Sonde de catalogue de 1950 à 2000** (`ai/CatalogProbe/`, changer `starting_year` et la durée) :
-   les chiffres actuels ne couvrent que 1970-1989 et ratent l'électrification, l'aéroport
-   INTERNATIONAL (1990) et le début du parc.
+6. ✅ **Sonde de catalogue 1950-2000** (2026-08-30). `CatalogProbe`, `starting_year = 1950`,
+   51 ans, graine 42, OpenTTD 15.3 / OpenGFX 7.1 (`docs/catalogue_churn_1950_2000.json`,
+   harnais `sweeps/opex_catalog_probe.py`). La sonde 1970-1989 reste
+   `docs/catalogue_churn.json`.
+
+   Dates d'introduction (vanilla) :
+
+   | | année |
+   |---|---:|
+   | rail électrique + locos | **1967** |
+   | monorail | **2000** |
+   | maglev | pas encore en 2000 |
+   | aéroport SMALL | 1950 (plus valide dès 1960) |
+   | LARGE | 1955 |
+   | HELIPORT | 1963 |
+   | HELIDEPOT | 1976 |
+   | METROPOLITAN / HELISTATION | 1980 |
+   | COMMUTER | 1983 |
+   | INTERNATIONAL | **1990** |
+   | INTERCON | pas encore en 2000 |
+
+   Parc moteurs 1950 → 2000 : rail 14→33, route 11→17, eau 3→4, air 3→19.
+
+   **Conséquence.** Une campagne 1970-1989 **a déjà l'électrique** (1967) ; elle ne
+   voit ni INTERNATIONAL ni monorail. L'item « on rate l'électrification » était
+   faux pour le départ 1970. `catalog.nut` prend le **dernier** type de rail
+   disponible : en 1970 c'est ELECTRIC (voulu) ; en 2000 ce serait MONO, et toutes
+   les lignes neuves basculeraient — hors de nos 20 ans. Ne pas allonger une
+   campagne au-delà de 1999 sans figer le type de rail.
 
 ---
 

@@ -1,0 +1,1505 @@
+{
+  "openttd_version": "15.3",
+  "opengfx_version": "7.1",
+  "starting_year": 1950,
+  "years": 51,
+  "seeds": [
+    42
+  ],
+  "openttd_config": "[difficulty]\nnumber_towns = 3\nindustry_density = 4\n[economy]\ninflation = false\ntown_growth_rate = 2\n[game_creation]\nstarting_year = 1950\nmap_x = 8\nmap_y = 8\n",
+  "note": "CatalogProbe, starting_year=1950, config gelee sinon. CE = locos par type de rail (pas wagons). La sonde 1970-1989 reste docs/catalogue_churn.json.",
+  "runs": [
+    {
+      "seed": 42,
+      "n_savegames": 612,
+      "final_date": "2000-12-01",
+      "per_year": [
+        {
+          "year": 1950,
+          "towns": 42,
+          "industries": 47,
+          "rail": 14,
+          "road": 11,
+          "water": 3,
+          "air": 3,
+          "airports": [
+            "SMALL"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 735,
+          "ops_pairs": 18698,
+          "ops_engines": 1612,
+          "ops_airports": 146,
+          "n_rail_types": 1,
+          "rail_types_available": [
+            "RAIL"
+          ],
+          "locos_rail": 3,
+          "locos_electric": 0,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1951,
+          "towns": 42,
+          "industries": 47,
+          "rail": 14,
+          "road": 11,
+          "water": 3,
+          "air": 3,
+          "airports": [
+            "SMALL"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 735,
+          "ops_pairs": 18699,
+          "ops_engines": 1612,
+          "ops_airports": 146,
+          "n_rail_types": 1,
+          "rail_types_available": [
+            "RAIL"
+          ],
+          "locos_rail": 3,
+          "locos_electric": 0,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1952,
+          "towns": 42,
+          "industries": 47,
+          "rail": 14,
+          "road": 11,
+          "water": 3,
+          "air": 3,
+          "airports": [
+            "SMALL"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 735,
+          "ops_pairs": 18698,
+          "ops_engines": 1612,
+          "ops_airports": 146,
+          "n_rail_types": 1,
+          "rail_types_available": [
+            "RAIL"
+          ],
+          "locos_rail": 3,
+          "locos_electric": 0,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1953,
+          "towns": 42,
+          "industries": 47,
+          "rail": 14,
+          "road": 11,
+          "water": 3,
+          "air": 3,
+          "airports": [
+            "SMALL"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 735,
+          "ops_pairs": 18698,
+          "ops_engines": 1612,
+          "ops_airports": 146,
+          "n_rail_types": 1,
+          "rail_types_available": [
+            "RAIL"
+          ],
+          "locos_rail": 3,
+          "locos_electric": 0,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1954,
+          "towns": 42,
+          "industries": 48,
+          "rail": 14,
+          "road": 11,
+          "water": 3,
+          "air": 3,
+          "airports": [
+            "SMALL"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 750,
+          "ops_pairs": 18698,
+          "ops_engines": 1612,
+          "ops_airports": 146,
+          "n_rail_types": 1,
+          "rail_types_available": [
+            "RAIL"
+          ],
+          "locos_rail": 3,
+          "locos_electric": 0,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1955,
+          "towns": 42,
+          "industries": 48,
+          "rail": 14,
+          "road": 11,
+          "water": 3,
+          "air": 3,
+          "airports": [
+            "SMALL",
+            "LARGE"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 750,
+          "ops_pairs": 18698,
+          "ops_engines": 1612,
+          "ops_airports": 149,
+          "n_rail_types": 1,
+          "rail_types_available": [
+            "RAIL"
+          ],
+          "locos_rail": 3,
+          "locos_electric": 0,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1956,
+          "towns": 42,
+          "industries": 48,
+          "rail": 15,
+          "road": 11,
+          "water": 3,
+          "air": 3,
+          "airports": [
+            "SMALL",
+            "LARGE"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 750,
+          "ops_pairs": 18699,
+          "ops_engines": 1654,
+          "ops_airports": 149,
+          "n_rail_types": 1,
+          "rail_types_available": [
+            "RAIL"
+          ],
+          "locos_rail": 4,
+          "locos_electric": 0,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1957,
+          "towns": 42,
+          "industries": 47,
+          "rail": 15,
+          "road": 11,
+          "water": 3,
+          "air": 4,
+          "airports": [
+            "SMALL",
+            "LARGE"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 735,
+          "ops_pairs": 18699,
+          "ops_engines": 1669,
+          "ops_airports": 149,
+          "n_rail_types": 1,
+          "rail_types_available": [
+            "RAIL"
+          ],
+          "locos_rail": 4,
+          "locos_electric": 0,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1958,
+          "towns": 42,
+          "industries": 47,
+          "rail": 16,
+          "road": 11,
+          "water": 3,
+          "air": 3,
+          "airports": [
+            "SMALL",
+            "LARGE"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 735,
+          "ops_pairs": 18700,
+          "ops_engines": 1696,
+          "ops_airports": 149,
+          "n_rail_types": 1,
+          "rail_types_available": [
+            "RAIL"
+          ],
+          "locos_rail": 5,
+          "locos_electric": 0,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1959,
+          "towns": 42,
+          "industries": 47,
+          "rail": 16,
+          "road": 11,
+          "water": 3,
+          "air": 4,
+          "airports": [
+            "SMALL",
+            "LARGE"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 735,
+          "ops_pairs": 18699,
+          "ops_engines": 1711,
+          "ops_airports": 149,
+          "n_rail_types": 1,
+          "rail_types_available": [
+            "RAIL"
+          ],
+          "locos_rail": 5,
+          "locos_electric": 0,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1960,
+          "towns": 42,
+          "industries": 48,
+          "rail": 16,
+          "road": 11,
+          "water": 3,
+          "air": 5,
+          "airports": [
+            "LARGE"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 750,
+          "ops_pairs": 18699,
+          "ops_engines": 1726,
+          "ops_airports": 146,
+          "n_rail_types": 1,
+          "rail_types_available": [
+            "RAIL"
+          ],
+          "locos_rail": 5,
+          "locos_electric": 0,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1961,
+          "towns": 42,
+          "industries": 48,
+          "rail": 17,
+          "road": 11,
+          "water": 3,
+          "air": 5,
+          "airports": [
+            "LARGE"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 750,
+          "ops_pairs": 18698,
+          "ops_engines": 1768,
+          "ops_airports": 146,
+          "n_rail_types": 1,
+          "rail_types_available": [
+            "RAIL"
+          ],
+          "locos_rail": 6,
+          "locos_electric": 0,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1962,
+          "towns": 42,
+          "industries": 48,
+          "rail": 17,
+          "road": 11,
+          "water": 3,
+          "air": 5,
+          "airports": [
+            "LARGE"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 750,
+          "ops_pairs": 18698,
+          "ops_engines": 1768,
+          "ops_airports": 146,
+          "n_rail_types": 1,
+          "rail_types_available": [
+            "RAIL"
+          ],
+          "locos_rail": 6,
+          "locos_electric": 0,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1963,
+          "towns": 42,
+          "industries": 49,
+          "rail": 17,
+          "road": 11,
+          "water": 3,
+          "air": 5,
+          "airports": [
+            "LARGE",
+            "HELIPORT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 765,
+          "ops_pairs": 18698,
+          "ops_engines": 1768,
+          "ops_airports": 149,
+          "n_rail_types": 1,
+          "rail_types_available": [
+            "RAIL"
+          ],
+          "locos_rail": 6,
+          "locos_electric": 0,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1964,
+          "towns": 42,
+          "industries": 49,
+          "rail": 18,
+          "road": 11,
+          "water": 3,
+          "air": 5,
+          "airports": [
+            "LARGE",
+            "HELIPORT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 765,
+          "ops_pairs": 18698,
+          "ops_engines": 1810,
+          "ops_airports": 149,
+          "n_rail_types": 1,
+          "rail_types_available": [
+            "RAIL"
+          ],
+          "locos_rail": 7,
+          "locos_electric": 0,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1965,
+          "towns": 42,
+          "industries": 50,
+          "rail": 19,
+          "road": 11,
+          "water": 3,
+          "air": 7,
+          "airports": [
+            "LARGE",
+            "HELIPORT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 780,
+          "ops_pairs": 18698,
+          "ops_engines": 1882,
+          "ops_airports": 149,
+          "n_rail_types": 1,
+          "rail_types_available": [
+            "RAIL"
+          ],
+          "locos_rail": 8,
+          "locos_electric": 0,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1966,
+          "towns": 42,
+          "industries": 50,
+          "rail": 19,
+          "road": 12,
+          "water": 3,
+          "air": 8,
+          "airports": [
+            "LARGE",
+            "HELIPORT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 780,
+          "ops_pairs": 18698,
+          "ops_engines": 1912,
+          "ops_airports": 149,
+          "n_rail_types": 1,
+          "rail_types_available": [
+            "RAIL"
+          ],
+          "locos_rail": 8,
+          "locos_electric": 0,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1967,
+          "towns": 42,
+          "industries": 48,
+          "rail": 19,
+          "road": 12,
+          "water": 3,
+          "air": 8,
+          "airports": [
+            "LARGE",
+            "HELIPORT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 750,
+          "ops_pairs": 18699,
+          "ops_engines": 2774,
+          "ops_airports": 149,
+          "n_rail_types": 2,
+          "rail_types_available": [
+            "RAIL",
+            "ELECTRIC"
+          ],
+          "locos_rail": 8,
+          "locos_electric": 7,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1968,
+          "towns": 42,
+          "industries": 47,
+          "rail": 19,
+          "road": 12,
+          "water": 3,
+          "air": 9,
+          "airports": [
+            "LARGE",
+            "HELIPORT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 735,
+          "ops_pairs": 18698,
+          "ops_engines": 2789,
+          "ops_airports": 149,
+          "n_rail_types": 2,
+          "rail_types_available": [
+            "RAIL",
+            "ELECTRIC"
+          ],
+          "locos_rail": 8,
+          "locos_electric": 7,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1969,
+          "towns": 42,
+          "industries": 47,
+          "rail": 19,
+          "road": 12,
+          "water": 5,
+          "air": 10,
+          "airports": [
+            "LARGE",
+            "HELIPORT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 735,
+          "ops_pairs": 18699,
+          "ops_engines": 2834,
+          "ops_airports": 149,
+          "n_rail_types": 2,
+          "rail_types_available": [
+            "RAIL",
+            "ELECTRIC"
+          ],
+          "locos_rail": 8,
+          "locos_electric": 7,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1970,
+          "towns": 42,
+          "industries": 47,
+          "rail": 19,
+          "road": 12,
+          "water": 5,
+          "air": 10,
+          "airports": [
+            "LARGE",
+            "HELIPORT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 735,
+          "ops_pairs": 18699,
+          "ops_engines": 2834,
+          "ops_airports": 149,
+          "n_rail_types": 2,
+          "rail_types_available": [
+            "RAIL",
+            "ELECTRIC"
+          ],
+          "locos_rail": 8,
+          "locos_electric": 7,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1971,
+          "towns": 42,
+          "industries": 46,
+          "rail": 19,
+          "road": 12,
+          "water": 5,
+          "air": 10,
+          "airports": [
+            "LARGE",
+            "HELIPORT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 720,
+          "ops_pairs": 18699,
+          "ops_engines": 2834,
+          "ops_airports": 149,
+          "n_rail_types": 2,
+          "rail_types_available": [
+            "RAIL",
+            "ELECTRIC"
+          ],
+          "locos_rail": 8,
+          "locos_electric": 7,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1972,
+          "towns": 42,
+          "industries": 46,
+          "rail": 19,
+          "road": 12,
+          "water": 5,
+          "air": 12,
+          "airports": [
+            "LARGE",
+            "HELIPORT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 720,
+          "ops_pairs": 18699,
+          "ops_engines": 2864,
+          "ops_airports": 149,
+          "n_rail_types": 2,
+          "rail_types_available": [
+            "RAIL",
+            "ELECTRIC"
+          ],
+          "locos_rail": 8,
+          "locos_electric": 7,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1973,
+          "towns": 42,
+          "industries": 45,
+          "rail": 18,
+          "road": 12,
+          "water": 5,
+          "air": 12,
+          "airports": [
+            "LARGE",
+            "HELIPORT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 705,
+          "ops_pairs": 18699,
+          "ops_engines": 2795,
+          "ops_airports": 149,
+          "n_rail_types": 2,
+          "rail_types_available": [
+            "RAIL",
+            "ELECTRIC"
+          ],
+          "locos_rail": 7,
+          "locos_electric": 6,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1974,
+          "towns": 42,
+          "industries": 45,
+          "rail": 18,
+          "road": 12,
+          "water": 6,
+          "air": 12,
+          "airports": [
+            "LARGE",
+            "HELIPORT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 705,
+          "ops_pairs": 18699,
+          "ops_engines": 2810,
+          "ops_airports": 149,
+          "n_rail_types": 2,
+          "rail_types_available": [
+            "RAIL",
+            "ELECTRIC"
+          ],
+          "locos_rail": 7,
+          "locos_electric": 6,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1975,
+          "towns": 42,
+          "industries": 45,
+          "rail": 18,
+          "road": 12,
+          "water": 6,
+          "air": 13,
+          "airports": [
+            "LARGE",
+            "HELIPORT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 705,
+          "ops_pairs": 18699,
+          "ops_engines": 2825,
+          "ops_airports": 149,
+          "n_rail_types": 2,
+          "rail_types_available": [
+            "RAIL",
+            "ELECTRIC"
+          ],
+          "locos_rail": 7,
+          "locos_electric": 6,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1976,
+          "towns": 42,
+          "industries": 46,
+          "rail": 19,
+          "road": 15,
+          "water": 7,
+          "air": 13,
+          "airports": [
+            "LARGE",
+            "HELIPORT",
+            "HELIDEPOT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 720,
+          "ops_pairs": 18699,
+          "ops_engines": 2953,
+          "ops_airports": 152,
+          "n_rail_types": 2,
+          "rail_types_available": [
+            "RAIL",
+            "ELECTRIC"
+          ],
+          "locos_rail": 8,
+          "locos_electric": 6,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1977,
+          "towns": 42,
+          "industries": 48,
+          "rail": 19,
+          "road": 16,
+          "water": 7,
+          "air": 13,
+          "airports": [
+            "LARGE",
+            "HELIPORT",
+            "HELIDEPOT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 750,
+          "ops_pairs": 18699,
+          "ops_engines": 2968,
+          "ops_airports": 152,
+          "n_rail_types": 2,
+          "rail_types_available": [
+            "RAIL",
+            "ELECTRIC"
+          ],
+          "locos_rail": 8,
+          "locos_electric": 6,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1978,
+          "towns": 42,
+          "industries": 47,
+          "rail": 18,
+          "road": 16,
+          "water": 7,
+          "air": 12,
+          "airports": [
+            "LARGE",
+            "HELIPORT",
+            "HELIDEPOT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 735,
+          "ops_pairs": 18699,
+          "ops_engines": 2884,
+          "ops_airports": 152,
+          "n_rail_types": 2,
+          "rail_types_available": [
+            "RAIL",
+            "ELECTRIC"
+          ],
+          "locos_rail": 7,
+          "locos_electric": 5,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1979,
+          "towns": 42,
+          "industries": 47,
+          "rail": 19,
+          "road": 17,
+          "water": 7,
+          "air": 12,
+          "airports": [
+            "LARGE",
+            "HELIPORT",
+            "HELIDEPOT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 735,
+          "ops_pairs": 18698,
+          "ops_engines": 2968,
+          "ops_airports": 152,
+          "n_rail_types": 2,
+          "rail_types_available": [
+            "RAIL",
+            "ELECTRIC"
+          ],
+          "locos_rail": 8,
+          "locos_electric": 6,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1980,
+          "towns": 42,
+          "industries": 47,
+          "rail": 19,
+          "road": 19,
+          "water": 7,
+          "air": 13,
+          "airports": [
+            "LARGE",
+            "METROPOLITAN",
+            "HELIPORT",
+            "HELISTATION",
+            "HELIDEPOT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 735,
+          "ops_pairs": 18698,
+          "ops_engines": 3013,
+          "ops_airports": 158,
+          "n_rail_types": 2,
+          "rail_types_available": [
+            "RAIL",
+            "ELECTRIC"
+          ],
+          "locos_rail": 8,
+          "locos_electric": 6,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1981,
+          "towns": 42,
+          "industries": 47,
+          "rail": 19,
+          "road": 20,
+          "water": 7,
+          "air": 13,
+          "airports": [
+            "LARGE",
+            "METROPOLITAN",
+            "HELIPORT",
+            "HELISTATION",
+            "HELIDEPOT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 735,
+          "ops_pairs": 18698,
+          "ops_engines": 3028,
+          "ops_airports": 158,
+          "n_rail_types": 2,
+          "rail_types_available": [
+            "RAIL",
+            "ELECTRIC"
+          ],
+          "locos_rail": 8,
+          "locos_electric": 6,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1982,
+          "towns": 42,
+          "industries": 48,
+          "rail": 19,
+          "road": 20,
+          "water": 7,
+          "air": 13,
+          "airports": [
+            "LARGE",
+            "METROPOLITAN",
+            "HELIPORT",
+            "HELISTATION",
+            "HELIDEPOT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 750,
+          "ops_pairs": 18698,
+          "ops_engines": 3028,
+          "ops_airports": 158,
+          "n_rail_types": 2,
+          "rail_types_available": [
+            "RAIL",
+            "ELECTRIC"
+          ],
+          "locos_rail": 8,
+          "locos_electric": 6,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1983,
+          "towns": 42,
+          "industries": 47,
+          "rail": 19,
+          "road": 21,
+          "water": 7,
+          "air": 16,
+          "airports": [
+            "LARGE",
+            "METROPOLITAN",
+            "COMMUTER",
+            "HELIPORT",
+            "HELISTATION",
+            "HELIDEPOT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 735,
+          "ops_pairs": 18698,
+          "ops_engines": 3088,
+          "ops_airports": 161,
+          "n_rail_types": 2,
+          "rail_types_available": [
+            "RAIL",
+            "ELECTRIC"
+          ],
+          "locos_rail": 8,
+          "locos_electric": 6,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1984,
+          "towns": 42,
+          "industries": 48,
+          "rail": 19,
+          "road": 21,
+          "water": 7,
+          "air": 16,
+          "airports": [
+            "LARGE",
+            "METROPOLITAN",
+            "COMMUTER",
+            "HELIPORT",
+            "HELISTATION",
+            "HELIDEPOT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 750,
+          "ops_pairs": 18698,
+          "ops_engines": 3088,
+          "ops_airports": 161,
+          "n_rail_types": 2,
+          "rail_types_available": [
+            "RAIL",
+            "ELECTRIC"
+          ],
+          "locos_rail": 8,
+          "locos_electric": 6,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1985,
+          "towns": 42,
+          "industries": 49,
+          "rail": 19,
+          "road": 21,
+          "water": 7,
+          "air": 16,
+          "airports": [
+            "LARGE",
+            "METROPOLITAN",
+            "COMMUTER",
+            "HELIPORT",
+            "HELISTATION",
+            "HELIDEPOT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 765,
+          "ops_pairs": 18698,
+          "ops_engines": 3088,
+          "ops_airports": 161,
+          "n_rail_types": 2,
+          "rail_types_available": [
+            "RAIL",
+            "ELECTRIC"
+          ],
+          "locos_rail": 8,
+          "locos_electric": 6,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1986,
+          "towns": 42,
+          "industries": 50,
+          "rail": 19,
+          "road": 21,
+          "water": 7,
+          "air": 16,
+          "airports": [
+            "LARGE",
+            "METROPOLITAN",
+            "COMMUTER",
+            "HELIPORT",
+            "HELISTATION",
+            "HELIDEPOT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 780,
+          "ops_pairs": 18698,
+          "ops_engines": 3088,
+          "ops_airports": 161,
+          "n_rail_types": 2,
+          "rail_types_available": [
+            "RAIL",
+            "ELECTRIC"
+          ],
+          "locos_rail": 8,
+          "locos_electric": 6,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1987,
+          "towns": 42,
+          "industries": 49,
+          "rail": 21,
+          "road": 21,
+          "water": 7,
+          "air": 16,
+          "airports": [
+            "LARGE",
+            "METROPOLITAN",
+            "COMMUTER",
+            "HELIPORT",
+            "HELISTATION",
+            "HELIDEPOT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 765,
+          "ops_pairs": 18698,
+          "ops_engines": 3225,
+          "ops_airports": 161,
+          "n_rail_types": 2,
+          "rail_types_available": [
+            "RAIL",
+            "ELECTRIC"
+          ],
+          "locos_rail": 10,
+          "locos_electric": 7,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1988,
+          "towns": 42,
+          "industries": 48,
+          "rail": 21,
+          "road": 22,
+          "water": 6,
+          "air": 17,
+          "airports": [
+            "LARGE",
+            "METROPOLITAN",
+            "COMMUTER",
+            "HELIPORT",
+            "HELISTATION",
+            "HELIDEPOT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 750,
+          "ops_pairs": 18698,
+          "ops_engines": 3240,
+          "ops_airports": 161,
+          "n_rail_types": 2,
+          "rail_types_available": [
+            "RAIL",
+            "ELECTRIC"
+          ],
+          "locos_rail": 10,
+          "locos_electric": 7,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1989,
+          "towns": 42,
+          "industries": 47,
+          "rail": 21,
+          "road": 22,
+          "water": 6,
+          "air": 18,
+          "airports": [
+            "LARGE",
+            "METROPOLITAN",
+            "COMMUTER",
+            "HELIPORT",
+            "HELISTATION",
+            "HELIDEPOT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 735,
+          "ops_pairs": 18698,
+          "ops_engines": 3255,
+          "ops_airports": 161,
+          "n_rail_types": 2,
+          "rail_types_available": [
+            "RAIL",
+            "ELECTRIC"
+          ],
+          "locos_rail": 10,
+          "locos_electric": 7,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1990,
+          "towns": 42,
+          "industries": 47,
+          "rail": 21,
+          "road": 22,
+          "water": 6,
+          "air": 18,
+          "airports": [
+            "LARGE",
+            "METROPOLITAN",
+            "INTERNATIONAL",
+            "COMMUTER",
+            "HELIPORT",
+            "HELISTATION",
+            "HELIDEPOT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 735,
+          "ops_pairs": 18698,
+          "ops_engines": 3255,
+          "ops_airports": 164,
+          "n_rail_types": 2,
+          "rail_types_available": [
+            "RAIL",
+            "ELECTRIC"
+          ],
+          "locos_rail": 10,
+          "locos_electric": 7,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1991,
+          "towns": 42,
+          "industries": 48,
+          "rail": 21,
+          "road": 22,
+          "water": 6,
+          "air": 19,
+          "airports": [
+            "LARGE",
+            "METROPOLITAN",
+            "INTERNATIONAL",
+            "COMMUTER",
+            "HELIPORT",
+            "HELISTATION",
+            "HELIDEPOT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 750,
+          "ops_pairs": 18698,
+          "ops_engines": 3270,
+          "ops_airports": 164,
+          "n_rail_types": 2,
+          "rail_types_available": [
+            "RAIL",
+            "ELECTRIC"
+          ],
+          "locos_rail": 10,
+          "locos_electric": 7,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1992,
+          "towns": 42,
+          "industries": 49,
+          "rail": 21,
+          "road": 22,
+          "water": 6,
+          "air": 19,
+          "airports": [
+            "LARGE",
+            "METROPOLITAN",
+            "INTERNATIONAL",
+            "COMMUTER",
+            "HELIPORT",
+            "HELISTATION",
+            "HELIDEPOT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 765,
+          "ops_pairs": 18698,
+          "ops_engines": 3270,
+          "ops_airports": 164,
+          "n_rail_types": 2,
+          "rail_types_available": [
+            "RAIL",
+            "ELECTRIC"
+          ],
+          "locos_rail": 10,
+          "locos_electric": 7,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1993,
+          "towns": 42,
+          "industries": 49,
+          "rail": 20,
+          "road": 22,
+          "water": 5,
+          "air": 19,
+          "airports": [
+            "LARGE",
+            "METROPOLITAN",
+            "INTERNATIONAL",
+            "COMMUTER",
+            "HELIPORT",
+            "HELISTATION",
+            "HELIDEPOT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 765,
+          "ops_pairs": 18698,
+          "ops_engines": 3186,
+          "ops_airports": 164,
+          "n_rail_types": 2,
+          "rail_types_available": [
+            "RAIL",
+            "ELECTRIC"
+          ],
+          "locos_rail": 9,
+          "locos_electric": 6,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1994,
+          "towns": 42,
+          "industries": 48,
+          "rail": 21,
+          "road": 22,
+          "water": 5,
+          "air": 19,
+          "airports": [
+            "LARGE",
+            "METROPOLITAN",
+            "INTERNATIONAL",
+            "COMMUTER",
+            "HELIPORT",
+            "HELISTATION",
+            "HELIDEPOT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 750,
+          "ops_pairs": 18698,
+          "ops_engines": 3254,
+          "ops_airports": 164,
+          "n_rail_types": 2,
+          "rail_types_available": [
+            "RAIL",
+            "ELECTRIC"
+          ],
+          "locos_rail": 10,
+          "locos_electric": 6,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1995,
+          "towns": 42,
+          "industries": 49,
+          "rail": 21,
+          "road": 22,
+          "water": 5,
+          "air": 20,
+          "airports": [
+            "LARGE",
+            "METROPOLITAN",
+            "INTERNATIONAL",
+            "COMMUTER",
+            "HELIPORT",
+            "HELISTATION",
+            "HELIDEPOT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 765,
+          "ops_pairs": 18698,
+          "ops_engines": 3269,
+          "ops_airports": 164,
+          "n_rail_types": 2,
+          "rail_types_available": [
+            "RAIL",
+            "ELECTRIC"
+          ],
+          "locos_rail": 10,
+          "locos_electric": 6,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1996,
+          "towns": 42,
+          "industries": 47,
+          "rail": 21,
+          "road": 22,
+          "water": 4,
+          "air": 20,
+          "airports": [
+            "LARGE",
+            "METROPOLITAN",
+            "INTERNATIONAL",
+            "COMMUTER",
+            "HELIPORT",
+            "HELISTATION",
+            "HELIDEPOT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 735,
+          "ops_pairs": 18698,
+          "ops_engines": 3254,
+          "ops_airports": 164,
+          "n_rail_types": 2,
+          "rail_types_available": [
+            "RAIL",
+            "ELECTRIC"
+          ],
+          "locos_rail": 10,
+          "locos_electric": 6,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1997,
+          "towns": 42,
+          "industries": 45,
+          "rail": 21,
+          "road": 21,
+          "water": 4,
+          "air": 20,
+          "airports": [
+            "LARGE",
+            "METROPOLITAN",
+            "INTERNATIONAL",
+            "COMMUTER",
+            "HELIPORT",
+            "HELISTATION",
+            "HELIDEPOT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 705,
+          "ops_pairs": 18698,
+          "ops_engines": 3239,
+          "ops_airports": 164,
+          "n_rail_types": 2,
+          "rail_types_available": [
+            "RAIL",
+            "ELECTRIC"
+          ],
+          "locos_rail": 10,
+          "locos_electric": 6,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1998,
+          "towns": 42,
+          "industries": 46,
+          "rail": 21,
+          "road": 20,
+          "water": 4,
+          "air": 20,
+          "airports": [
+            "LARGE",
+            "METROPOLITAN",
+            "INTERNATIONAL",
+            "COMMUTER",
+            "HELIPORT",
+            "HELISTATION",
+            "HELIDEPOT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 720,
+          "ops_pairs": 18698,
+          "ops_engines": 3224,
+          "ops_airports": 164,
+          "n_rail_types": 2,
+          "rail_types_available": [
+            "RAIL",
+            "ELECTRIC"
+          ],
+          "locos_rail": 10,
+          "locos_electric": 6,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 1999,
+          "towns": 42,
+          "industries": 44,
+          "rail": 21,
+          "road": 18,
+          "water": 4,
+          "air": 19,
+          "airports": [
+            "LARGE",
+            "METROPOLITAN",
+            "INTERNATIONAL",
+            "COMMUTER",
+            "HELIPORT",
+            "HELISTATION",
+            "HELIDEPOT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 690,
+          "ops_pairs": 18698,
+          "ops_engines": 3179,
+          "ops_airports": 164,
+          "n_rail_types": 2,
+          "rail_types_available": [
+            "RAIL",
+            "ELECTRIC"
+          ],
+          "locos_rail": 10,
+          "locos_electric": 6,
+          "locos_mono": 0,
+          "locos_maglev": 0
+        },
+        {
+          "year": 2000,
+          "towns": 42,
+          "industries": 46,
+          "rail": 33,
+          "road": 17,
+          "water": 4,
+          "air": 19,
+          "airports": [
+            "LARGE",
+            "METROPOLITAN",
+            "INTERNATIONAL",
+            "COMMUTER",
+            "HELIPORT",
+            "HELISTATION",
+            "HELIDEPOT"
+          ],
+          "ops_towns": 786,
+          "ops_industries": 720,
+          "ops_pairs": 18698,
+          "ops_engines": 4341,
+          "ops_airports": 164,
+          "n_rail_types": 3,
+          "rail_types_available": [
+            "RAIL",
+            "ELECTRIC",
+            "MONO"
+          ],
+          "locos_rail": 1,
+          "locos_electric": 10,
+          "locos_mono": 6,
+          "locos_maglev": 0
+        }
+      ],
+      "summary": {
+        "years": [
+          1950,
+          2000
+        ],
+        "intro": {
+          "electric_rail_available": 1967,
+          "electric_loco": 1967,
+          "monorail_available": 2000,
+          "monorail_loco": 2000,
+          "maglev_available": null,
+          "maglev_loco": null,
+          "airport_small": 1950,
+          "airport_large": 1955,
+          "airport_metropolitan": 1980,
+          "airport_international": 1990,
+          "airport_commuter": 1983,
+          "airport_intercon": null,
+          "airport_heliport": 1963,
+          "airport_helistation": 1980,
+          "airport_helidepot": 1976
+        },
+        "engines_start": {
+          "rail": 14,
+          "road": 11,
+          "water": 3,
+          "air": 3
+        },
+        "engines_end": {
+          "rail": 33,
+          "road": 17,
+          "water": 4,
+          "air": 19
+        },
+        "ops_engines_median": 2864
+      }
+    }
+  ]
+}

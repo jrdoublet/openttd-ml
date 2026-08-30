@@ -1,12 +1,11 @@
 /* Etage 0 : le catalogue.
  *
- * Mesure faite le 2026-08-28 (ai/CatalogProbe, docs/catalogue_churn.json) : un rafraichissement
- * complet coute ~21 500 opcodes, soit 0,008 % du budget d'une partie si on le refait chaque
- * annee. Il n'y a donc AUCUNE raison de l'optimiser -- pas de rafraichissement incrementiel, pas
- * de planification sur les dates d'introduction connues. On refait tout, tous les ans.
- *
- * Ce qui bouge reellement en 20 ans : le nombre de villes ne change pas, les industries subissent
- * ~2,6 % de churn par an, et le parc de moteurs route/avion croit fortement (+83 % / +38 %).
+ * Mesure 2026-08-28 (docs/catalogue_churn.json, 1970-1989) : un rafraichissement complet
+ * coute ~21 500 opcodes. Sonde 1950-2000 (docs/catalogue_churn_1950_2000.json) : electrique
+ * 1967, INTERNATIONAL 1990, monorail 2000, maglev pas encore. Une campagne 1970-1989 a deja
+ * l'electrique ; elle ne voit pas INTERNATIONAL. On prend le DERNIER type de rail disponible
+ * (ci-dessous) : en 1970 c'est ELECTRIC, en 2000 ce serait MONO -- hors de nos 20 ans.
+ * Toujours aucun motif d'optimiser le rafraichissement annuel.
  */
 
 /* Nombre nominal de wagons qui tient dans un quai de `platformLength` tuiles.
@@ -247,6 +246,9 @@ function OpexCatalog::_refreshRail()
   this.railCoverage = AIStation.GetCoverageRadius(AIStation.STATION_TRAIN);
   if (this.platformLength < 1 || this.freightTrainMultiplier < 1 || this.railCoverage < 1) return;
 
+  /* Dernier type disponible. 1970 = ELECTRIC (intro 1967). 2000 = MONO : ne pas
+   * allonger une campagne jusque-la sans figer le type. Maglev pas encore en 2000
+   * (docs/catalogue_churn_1950_2000.json). */
   local types = AIRailTypeList();
   local chosen = -1;
   for (local t = types.Begin(); !types.IsEnd(); t = types.Next()) {

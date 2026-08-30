@@ -98,6 +98,28 @@ function _countBuildable(vehicleType)
   return n;
 }
 
+/* Locos (pas wagons) avec puissance sur chaque type de rail disponible.
+ * API 15.3 : pas de RAILTYPE_RAIL, seulement AIRailTypeList().
+ * "CE|2000|4|12|8|4|2" = 18 caracteres. nTypes puis jusqu'a 4 comptes, 0 si absent. */
+function _railTypeCounts()
+{
+  local counts = [0, 0, 0, 0];
+  local nTypes = 0;
+  local types = AIRailTypeList();
+  for (local rt = types.Begin(); !types.IsEnd(); rt = types.Next()) {
+    if (!AIRail.IsRailTypeAvailable(rt)) continue;
+    local n = 0;
+    local engines = AIEngineList(AIVehicle.VT_RAIL);
+    for (local e = engines.Begin(); !engines.IsEnd(); e = engines.Next()) {
+      if (!AIEngine.IsBuildable(e) || AIEngine.IsWagon(e)) continue;
+      if (AIEngine.HasPowerOnRail(e, rt)) n++;
+    }
+    if (nTypes < 4) counts[nTypes] = n;
+    nTypes++;
+  }
+  return { nTypes = nTypes, n0 = counts[0], n1 = counts[1], n2 = counts[2], n3 = counts[3] };
+}
+
 function CatalogProbe::Start()
 {
   AICompany.SetName("CatalogProbe");
@@ -134,6 +156,7 @@ function CatalogProbe::Start()
       local nRoad = _countBuildable(AIVehicle.VT_ROAD);
       local nWater = _countBuildable(AIVehicle.VT_WATER);
       local nAir = _countBuildable(AIVehicle.VT_AIR);
+      local railTypes = _railTypeCounts();
       local opsEngines = _opsEnd(b);
 
       b = _opsBegin();
@@ -150,6 +173,9 @@ function CatalogProbe::Start()
       AISign.BuildSign(anchor, "CO|" + year + "|" + opsTowns + "|" + opsIndustries);
       AISign.BuildSign(anchor, "CP|" + year + "|" + opsPairs + "|" + opsEngines
                                + "|" + opsAirports);
+      AISign.BuildSign(anchor, "CE|" + year + "|" + railTypes.nTypes + "|"
+                               + railTypes.n0 + "|" + railTypes.n1 + "|"
+                               + railTypes.n2 + "|" + railTypes.n3);
     }
     AIController.Sleep(74 * 10);
   }

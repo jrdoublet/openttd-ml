@@ -455,6 +455,10 @@ Construire une gare exige une note de seulement **−200** (donc quasi toujours 
      stable prend `50/2 × 2,5 ≈ 62,5 jours ≈ 2 mois` à se résorber — cohérent avec le « ~2 mois
      annoncés » déjà noté, mais dérivé ici de la formule plutôt que rappelé de mémoire.
 5. ❓ La formule chiffrée de croissance des villes, absente du wiki.
+6. ✅ **Sonde de catalogue 1950-2000** (2026-08-30, `docs/catalogue_churn_1950_2000.json`) :
+   électrique 1967, INTERNATIONAL 1990, monorail 2000, maglev pas encore. Une
+   campagne 1970-1989 a déjà l'électrique. `catalog.nut` prend le dernier type de
+   rail : MONO en 2000 serait un piège, hors de nos 20 ans.
 
 ---
 
