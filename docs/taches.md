@@ -208,7 +208,7 @@ forfaitaire jamais calibré — est remplacé par un modèle de vitesse réellem
 ⚠️ **Fusionné sur la correction de bugs et la robustesse, pas sur un gain de performance.** Ne pas
 citer le +7,7 % comme un résultat acquis.
 
-**Ce qui reste explicitement non établi, et devient le prochain travail :**
+**Ce qui restait explicitement non établi après traction :**
 
 1. 🔶 **`NOPLAN` : cause nommée, filtre derrière `origin_sitable`, défaut 0.** Graine 42 / 20 ans
    (`docs/opex_traction_v3_20y_42.json` → `docs/opex_noplan_sitable_20y_42.json`) : 23 `NOPLAN`
@@ -338,7 +338,7 @@ ligne a roulé onze ans à perte sans être ferraillée). Les deux touchent auss
 
 ---
 
-## 2. Le prochain morceau de code
+## 2. Le code, par ordre d'impact mesuré
 
 **✅ Étage 3 fait** (`ai/OpexAI/builder_rail.nut`, 2026-08-28) : 3 lignes sur 3 construites en
 10 ans, 56 véhicules. Comptabilité d'opcodes branchée, rollback sur échec, réserve de trésorerie.
@@ -758,16 +758,18 @@ borné~~ / ~~l'item **7**~~ / ~~l'item **4**~~.
 
 ---
 
-## 4. Mesures à faire dans le jeu plutôt qu'à citer
+## 4. Mesures dans le jeu plutôt qu'à citer — closes
 
-Reprend le §8 de `docs/mecanique_jeu.md`, complété.
+Reprend le §8 de `docs/mecanique_jeu.md`, complété. Les six points sont clos.
+Le 4 est lu en 13.4, pas revérifié en 15.3.
 
 1. ✅ Le réglage `plane_speed` réellement actif : `4`, le défaut, non surchargé — vérifié dans
    l'`openttdlab.cfg` d'un run `OpexAI` réel du 2026-08-28, pas supposé.
 2. ✅ Économie « lisse » (`economy.type = 1` = `ET_SMOOTH`) confirmée dans notre config gelée, le
    défaut, non surchargé — vérifié dans l'`openttdlab.cfg` du 2026-08-28. À distinguer de
-   `difficulty.economy` (recessions, réglage différent malgré le nom). Les probabilités de
-   changement de production restent à recalibrer sur ce régime précis.
+   `difficulty.economy` (recessions, réglage différent malgré le nom). Les % wiki de
+   `docs/mecanique_jeu.md` §4 n'ont pas été recalibrés empiriquement sous ce régime —
+   hors de cette liste.
 3. ✅ **Rendement de vitesse effectif** (2026-08-30). Panneau `RV`, 5 graines × 20 ans
    (`docs/opex_speed_yield_20y_5seeds.json`, `docs/opex_speed_yield.json`). Instantané
    annuel des trains **en marche** (vitesse > 0) : n = **832** ligne-années.
@@ -1082,8 +1084,10 @@ mesurée : `docs/opexai_route.md`, banc PH **+9,3 %**.
 - **Gérer une file d'attente de tâches** (queue) plutôt que le déroulement actuel, pour ordonnancer
   les constructions/décisions.
 - **Contribuer à la croissance d'une ville via des stations de bus/camions** (jusqu'à 5 gares,
-  une unité de cargo par 50 jours) — recoupe le mode Route déjà prévu en section 6, mais posé ici
-  comme objectif de croissance plutôt que comme mode de transport en soi.
+  une unité de cargo par 50 jours) — recoupe le mode Route adopté (section 6), posé ici
+  comme objectif de croissance plutôt que comme mode de transport. Le barème 15.3
+  confirme le plafond à 5 ; `TV` 2026-08-30 ne distingue pas le mode. L'item 2 reste
+  dernier.
 - **Planter des arbres pour augmenter la réputation** (note de compagnie) — déjà identifié dans
   `docs/mecanique_jeu.md` comme le levier de rattrapage bon marché si la note stagne à cause du
   terrassement/destruction de bâtiments.

@@ -150,17 +150,13 @@ près ; seul le passager voit sa capacité doubler.
   monorail 91, maglev 121. À courbure 2 : 111 / 166 / 221 km/h.
 - Véhicules routiers : accélération de 37 km-ish/h par jour. ❓
 
-> **Conséquence directe, à corriger.** `candidates.nut` porte `TILES_PER_DAY = 2` marqué
-> « PLACEHOLDER ». La bonne valeur est **`0,036 × vitesse_km/h`**. Un train de 1970 à ~160 km/h
-> donne **5,8 tuiles/jour**, soit près de **3× notre valeur actuelle**. Nous surestimons donc le
-> temps de trajet, donc les pénalités de retard, donc nous **sous-estimons le revenu — et d'autant
-> plus que la ligne est longue**. Combiné au modèle de coût, la distance est aujourd'hui pénalisée
-> deux fois. Corriger cela devrait repousser l'optimum choisi (34-36 tuiles) vers l'optimum mesuré
-> (48-63).
->
-> ⚠️ Mais la vitesse *maximale* n'est pas la vitesse *effective* : virages, accélération, arrêts.
-> Et la table des courbes dit que le bridage est sévère (61 km/h sur un virage serré). Il faut donc
-> un **rendement de vitesse** calibré empiriquement, pas la vitesse catalogue brute.
+> **Conséquence, déjà appliquée.** `TILES_PER_DAY = 2` (PLACEHOLDER dans `candidates.nut`)
+> a été remplacé : le trajet utilise **`0,036 × effectiveSpeed`** (traction, §2 bis).
+> 100 km/h ≈ 3,6 tuiles/jour reste la conversion ; un train 1970 à ~160 km/h catalogue
+> ferait ~5,8 tuiles/jour. L'ancien 2 sous-estimait le revenu, surtout sur le long.
+> ⚠️ L'hypothèse « cela repoussera l'optimum 34-36 vers 48-63 » n'est **pas** tenue :
+> le coût A\* amorti dit l'inverse (le court). Rendement mesuré §2 bis / §8.3 :
+> médiane réelle / catalogue **0,96**, pas de retuning.
 >
 > **Et l'avantage de l'avion n'est PAS la vitesse.** Au quart de la vitesse affichée, un avion de
 > 1970 n'écrase pas un train. Son avantage est ailleurs et il est exactement celui de notre
@@ -340,14 +336,18 @@ Autres règles :
 - **Une banque apparaît dans les villes tempérées au-delà de 1 200 habitants** — donc une source de
   cargo *nouvelle* naît de la croissance qu'on provoque (à rapprocher de la churn du catalogue).
 
-### ⚠️ Le piège : notre propre rail peut étrangler la ville
+### ⚠️ Le piège wiki : notre propre rail peut étrangler la ville
 
 > « La croissance exige que la ville ne soit **pas enfermée par des voies diagonales ou des voies
 > signalisées**. »
 
 C'est le point le plus dangereux de la page pour une IA ferroviaire : **une ligne mal placée autour
-d'une ville tue la croissance de la ville qui nous nourrit.** Le dommage est différé, invisible dans
-l'immédiat, et il frappe précisément la source qu'on a payé cher à raccorder.
+d'une ville tuerait la croissance de la ville qui nous nourrit.** Le dommage serait différé,
+invisible dans l'immédiat, et frapperait précisément la source qu'on a payé cher à raccorder.
+
+⚠️ **Mesure 2026-08-30** (`docs/opex_town_growth.json`) : les villes desservies n'estagnent
+**pas** comme classe. Un effet local (maisons coincées par nos voies) n'est pas isolé.
+L'item 2 du backlog **reste dernier** — pas de contrainte de tracé.
 
 ### Génération de passagers
 
@@ -378,7 +378,7 @@ Siège social : `256 / 4 tuiles / (6 − niveau)` passagers, `196 / 4 tuiles / (
 > improductive, elle **dégrade activement** la capacité à construire dans cette ville. Cela rejoint
 > la surveillance des lignes possédées déjà identifiée (industrie fermée).
 
-✅ **Barème 15.3** (`GetNormalGrowthRate`, plus `UpdateTownGrowRate`). Gare *active* :
+✅ **Barème 15.3** (`GetNormalGrowthRate` / `CountActiveStations`, plus `UpdateTownGrowth`). Gare *active* :
 `time_since_load ≤ 20` ou `time_since_unload ≤ 20` (~50 jours wiki). Table normale, n = 0…5+
 gares actives : **320, 420, 300, 220, 160, 100** ticks ville. Notre `town_growth_rate = 2`
 fait `m >>= 1` : **160, 210, 150, 110, 80, 50**, puis `/ (num_houses/50 + 1)`, encore `/2`
@@ -439,16 +439,19 @@ Construire une gare exige une note de seulement **−200** (donc quasi toujours 
 
 ---
 
-## 8. Ce qui reste à vérifier dans le jeu plutôt que sur le wiki
+## 8. Vérifié dans le jeu plutôt que sur le wiki
+
+Les six points sont clos. Le 4 est lu en 13.4, pas revérifié en 15.3.
 
 1. ✅ Le réglage `plane_speed` réellement actif dans notre config : `4` (le défaut, non surchargé),
    vérifié dans l'`openttdlab.cfg` généré par un run `OpexAI` réel du 2026-08-28
    (`starting_year = 1970`, config figée) — pas supposé.
 2. ✅ Économie lisse ou TTD classique dans notre config gelée : `economy.type = 1` = `ET_SMOOTH`
    (économie lisse), le défaut, non surchargé — vérifié dans l'`openttdlab.cfg` du 2026-08-28.
-   Les probabilités de §4 restent donc à recalibrer sur ce régime, pas sur le régime `ORIGINAL`.
-   À ne pas confondre avec `difficulty.economy` (= `false`, recessions désactivées), un réglage
-   distinct malgré le nom qui prête à confusion.
+   Les % wiki de §4 (hausse/baisse selon le service) n'ont pas été recalibrés
+   empiriquement sous ce régime — hors de cette liste. À ne pas confondre avec
+   `difficulty.economy` (= `false`, recessions désactivées), un réglage distinct
+   malgré le nom qui prête à confusion.
 3. ✅ **Rendement de vitesse effectif** (2026-08-30, `docs/opex_speed_yield.json`) :
    médiane réelle / catalogue **0,96** (n = 832), réelle / traction **1,18**.
    Le plafond 61 km/h apparaît (20 % des instantanés) mais n'est pas le régime
@@ -493,8 +496,9 @@ mémoire, sans développement.
   d'une ligne existante (ex. ajouter un arrêt) : partager les ordres évite de reparcourir chaque
   véhicule un par un.
 - **Boucles de gare routière** — une gare routière en ville fonctionne mieux insérée dans une
-  boucle (le véhicule peut refaire un tour plutôt que s'égarer si la gare est pleine). À retenir
-  pour le mode **Route** (prochain mode, section 6) au moment de dessiner le placement des arrêts.
+  boucle (le véhicule peut refaire un tour plutôt que s'égarer si la gare est pleine). Le mode
+  **Route** est adopté (`docs/opexai_route.md`) ; TRACEX pose déjà une façade. Les boucles
+  ne sont pas dessinées.
 - **Mise à niveau des ponts** — remplacer un pont ancien par un modèle plus résistant/rapide évite
   de brider un train rapide. ❓ Pas mesuré : `OpexAI` ne revisite pas l'infrastructure existante
   après construction (voir [[ponts_tunnels_v3]] — `estimated_cost` gardé pour plus tard). À
@@ -502,9 +506,11 @@ mémoire, sans développement.
   construite avec un pont ancien.
 - **Équilibre entre gares desservant une même industrie** — éviter d'assécher une industrie avec
   plusieurs types de transport si cela retire du volume à une route longue-distance plus rentable.
-  Rejoint directement l'item 2.3 du backlog (« ne pas enfermer la ville dans nos propres voies ») —
-  même logique appliquée à une industrie plutôt qu'à une ville : deux lignes d'`OpexAI` desservant
-  la même source de cargo peuvent se cannibaliser plutôt que s'additionner. Non mesuré.
+  Même logique que l'item 2 du backlog (« ne pas enfermer la ville »), appliquée à une
+  industrie plutôt qu'à une ville : deux lignes d'`OpexAI` desservant la même source
+  peuvent se cannibaliser plutôt que s'additionner. L'item 2 reste dernier (mesure
+  villes : pas de stagnation de classe) ; la cannibalisation inter-lignes n'est pas
+  mesurée.
 - **Distance et vitesse comme leviers de profit** — déjà couvert en détail sections 1 et 2 de ce
   document ; la page tips ne fait que confirmer, sans détail chiffré supplémentaire.
 - **Relations avec la ville** et **plantation d'arbres pour la note** — déjà couverts section 7
@@ -522,7 +528,8 @@ mémoire, sans développement.
   confirmée, argument de plus (au-delà du gain d'`opexai_multimodal`) pour préférer l'avion sur les
   liaisons visant la croissance d'une ville plutôt que le rail seul — à croiser avec l'idée
   « contribuer à la croissance d'une ville avec des stations de bus/camions » (section 9 du
-  backlog) une fois le mode Route construit.
+  backlog). Le mode Route est adopté ; la mesure `TV` 2026-08-30 ne distingue pas le
+  mode d'activation.
 - **Maintenance d'infrastructure** — pertinente seulement si `infrastructure_maintenance` est actif.
   ✅ Vérifié : `infrastructure_maintenance = false` dans notre `openttdlab.cfg` (2026-08-28) — donc
   **sans objet pour `OpexAI`** aujourd'hui. À reconsidérer seulement si la config gelée change.
@@ -530,9 +537,8 @@ mémoire, sans développement.
   ville.** Déjà couvert en détail et de façon chiffrée section 3 — la tip ajoute une précision
   absente de notre lecture initiale : une bonne note **augmente aussi la production de
   l'industrie** desservie (pas seulement le volume capté). ❓ Non vérifié dans le code
-  (`station_cmd.cpp` ne suffit pas à trancher, ce serait plutôt côté `industry_cmd.cpp`) — à
-  creuser si l'écart fret ~4-6x (item 2.1 du backlog) n'est toujours pas expliqué après les pistes
-  déjà en cours.
+  (`station_cmd.cpp` ne suffit pas à trancher, ce serait plutôt côté `industry_cmd.cpp`).
+  L'écart fret ~4-6x (ancien item 2.1) a été **réfuté** (ratio 0,98). Pas un levier ouvert.
 
 **Raccourcis UI sans objet pour une IA** (mentionnés pour mémoire, non développés) : aperçu de coût
 avant construction (`Shift`), transparence des arbres/bâtiments (`x`), pose de signaux par glisser
