@@ -232,7 +232,7 @@ citer le +7,7 % comme un résultat acquis.
 
 ---
 
-## 1 bis. Mode route : ouvert, mesuré, et ce qui reste (2026-08-29)
+## 1 bis. Mode route : ouvert, mesuré, et ce qui reste (2026-08-29, révisé 2026-08-30)
 
 **✅ Adopté au banc apparié** (`docs/bench_v2_road.json`, 20 graines × 20 ans) :
 `performance_history` **+9,3 %, t = 2,03, 16 graines sur 20, test des signes p = 0,012**.
@@ -285,7 +285,7 @@ ligne a roulé onze ans à perte sans être ferraillée). Les deux touchent auss
    y passent avant l'herbe. Filtre `IsBuildable` + plat sur l'arrêt (comme le rail),
    façade plate, constructible sauf route déjà là. 5 graines
    (`docs/opex_road_sitable_20y_5seeds.json`) : SITEA 12→**0**, SITEB 2→**0**,
-   OK 2→**6**. Il reste TRACEX (5). Pas un nouveau réglage.
+   OK 2→**6**. TRACEX ensuite, item 2 bis. Pas un nouveau réglage.
 2 bis. ✅ **TRACEX : 32 L et façade vers l'autre bout** (2026-08-30).
    Le plafond à 12 coupait après 6 paires (classement cargo, pas géométrie).
    `nLong = 0`. ~½ des L traversaient l'arrêt. 32 essais + bonus de façade
@@ -869,27 +869,11 @@ Reprend le §8 de `docs/mecanique_jeu.md`, complété.
 3. ✅ **Bateau** — une liaison passagers entre deux grandes villes côtières, avec validation
    bornée du graphe d'eau et dépôt construit sur la même composante. Voir
    `docs/opexai_multimodal.md`.
-4. ✅🔶 **Route** — constructeur transactionnel (deux arrêts, dépôt, bus, rollback, garde
-   anti-doublon) ajouté le 2026-08-28, mais **désactivé** après mesure. Le trace Manhattan borné
-   évite `Pathfinder.Road` (171 356 opcodes contre 696 794 mesurés pour l'A* sur la sonde courte),
-   et la liaison 27–33 (23 tuiles) construit bien pour 10 092. **Elle ne charge pourtant personne** :
-   profit −588 puis −599/−601 par an, notes d'arrêt à **−1** — la signature d'un cargo jamais
-   ramassé, exactement comme le bug fret d'`abd641b`. C'est LE symptôme à expliquer.
-   ⚠️ **La campagne route active finit à 1 749 226 contre 2 787 970, mais cet écart n'est PAS
-   attribuable à la liaison** (vérifié le 2026-08-28) : elle coûte 171 356 opcodes, soit **0,04 %**
-   des 436 M de la campagne, et 10 092 d'argent — et le run avec route consomme au total *moins*
-   d'opcodes (231 M contre 436 M), il construit moins, il n'est pas étranglé. C'est une divergence
-   de trajectoire sur graine unique : deux arrêts de bus changent l'état du monde dès 1972 et tout
-   diverge ensuite. On ne peut pas séparer « le bus nuit » de « cette trajectoire est moins bonne ».
-   `ROAD_BUILD_ENABLED = false` conserve le code sans sacrifier le banc.
-   La croissance (une unité / 50 jours / cinq gares) reste un effet de bord non mesuré et non
-   poursuivi ici ; avant toute réactivation, expliquer le non-chargement et mesurer plusieurs
-   paires avec une économie routière propre.
-   **Suspects du non-chargement, par vraisemblance** (voir `docs/mecanique_jeu.md` §11) : (1) bus
-   jamais démarré — un véhicule neuf naît `Stopped`, il faut `AIVehicle.StartStopVehicle` ;
-   (2) arrêt mal orienté donc non raccordé à la route. Le type d'arrêt est **écarté** : le code
-   passe bien `ROADVEHTYPE_BUS`. À vérifier aussi avant de dimensionner : **un arrêt n'accueille
-   que 2 bus**, au-delà ils font la queue sur la route — `economy.nut` ignore ce plafond.
+4. ✅ **Route** — adoptée le 2026-08-29, `road_mode` défaut 1. Ce n'est plus la liaison bus
+   unique désactivée du 2026-08-28 (notes −1, `ROAD_BUILD_ENABLED = false`) : c'est une phase
+   annuelle, bus et **camions**, bande 5–25 tuiles. Banc apparié : `performance_history` **+9,3 %**,
+   t = 2,03, 16/20. Tout le détail, les bugs de mise en service, SITE/TRACEX et ce qui reste
+   (classement inter-modes, multistop) : **`docs/opexai_route.md`** et §1 bis ci-dessus.
 
 Ne pas oublier deux composantes gratuites de la note de compagnie : **emprunt à zéro** (5 %) et
 **8 types de cargo par trimestre** (5 %) — cette dernière plaide contre une IA 100 % passagers.

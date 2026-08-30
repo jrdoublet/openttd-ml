@@ -9,18 +9,24 @@ construction.
 
 `ai/OpexAI/main.nut` rafraîchit le catalogue puis tente, dans cet ordre :
 
-1. au plus une liaison aérienne de passagers ;
-2. au plus une liaison maritime de passagers ;
-3. une liaison bus passagers, seulement si `ROAD_BUILD_ENABLED` est réactivé après mesure ;
-4. les candidats ferroviaires classés par profit attendu / coût de recherche.
+1. les candidats ferroviaires classés par profit attendu / coût de recherche ;
+2. la phase routière (jusqu'à 3 lignes, bus et camions, bande 5–25 tuiles) — `road_mode`, défaut 1 ;
+3. au plus une liaison aérienne de passagers ;
+4. au plus une liaison maritime de passagers.
 
-Après un rechargement, OpexAI recherche les véhicules `VT_AIR` et `VT_WATER` déjà présents
-avant de construire. Cela empêche les doublons même si l'état en mémoire de l'IA a été perdu.
-Les liaisons aérienne et maritime réussies rejoignent `_lines`, ce qui permet de réutiliser le
-reporting des stations, du profit des véhicules et la protection contre la cannibalisation des
-lignes ferroviaires. La route est explicitement à part (voir ci-dessous).
+Le rail choisit en premier : il vaut un ordre de grandeur de plus par ligne et dispute les mêmes
+origines et la même trésorerie. Après un rechargement, OpexAI recherche les véhicules `VT_AIR` et
+`VT_WATER` déjà présents avant de construire. Les liaisons aérienne et maritime réussies
+rejoignent `_lines`. Les lignes routières aussi, mais `OpexOriginServed(..., includeRoad = false)`
+et `_tooClose` les ignorent : un bus de 12 tuiles n'épuise pas une ville contre le rail.
 
-## Liaison routière : constructeur validé, activation refusée par la mesure
+**Route.** La v1 (une liaison bus, désactivée après notes −1) est **périmée**. Le mode actuel est
+une phase annuelle adoptée au banc ; état, bugs, SITE/TRACEX et ce qui reste :
+[`docs/opexai_route.md`](opexai_route.md). Les chiffres de coût `Pathfinder.Road` (696 794
+opcodes) contre le L Manhattan (171 356) ci-dessous restent la raison pour laquelle on n'importe
+pas l'A* routier.
+
+## Liaison routière v1 (historique, 2026-08-28)
 
 `builder_road.nut` implémente une transaction pour **un bus entre deux villes distantes de 5 à
 25 tuiles** (trace concret plafonné à 32 tuiles pour la marge des arrêts). Elle choisit les paires
@@ -53,7 +59,12 @@ Il est borné et ne tente ni pont, ni tunnel, ni boucle de gares. C'est le meill
 pour une seule liaison de 5–25 tuiles ; l'A* et les extensions pont/tunnel sont écartés pour leur
 coût, pas supposés inutiles universellement.
 
-### Résultat économique : ne pas activer
+### Résultat économique v1 : ne pas activer (périmé)
+
+⚠️ **Périmé le 2026-08-29.** Le non-chargement était un bug (façade de dépôt, bit de route
+perpendiculaire), pas une condamnation du mode. Le mode route est **actif**, défaut 1, voir
+`docs/opexai_route.md`. Le paragraphe ci-dessous est la mesure qui a justifié
+`ROAD_BUILD_ENABLED = false` pendant 24 h.
 
 La transaction a été vérifiée en jeu sur les villes **27 (57,25)** et **33 (58,47)**, distantes de
 23 tuiles (trace 24), avec un bus passagers de 35 places. Coût réellement débité : **10 092**.
@@ -76,9 +87,9 @@ en pratique. Il faut expliquer cette absence de chargement et mesurer une famill
 de proposer une réactivation.
 
 La route ne participe volontairement ni à `OpexOriginServed` ni à `_tooClose` : un bus local peut
-desservir une ville déjà reliée par rail, et ne doit pas interdire son train interurbain. Sa
-proximité est contrôlée localement par le test de construction OpenTTD ; il n'existe en outre
-qu'une transaction routière, gardée par `_roadBuilt` et par scan des `VT_ROAD` au rechargement.
+desservir une ville déjà reliée par rail, et ne doit pas interdire son train interurbain. (Toujours
+vrai dans le mode actuel.) La v1 n'avait qu'une transaction, gardée par `_roadBuilt` ; ce garde-fou
+n'existe plus, les lignes routières sont dans `_lines`.
 
 ## Liaison aérienne
 
@@ -169,10 +180,10 @@ l'état courant du véhicule dans `VEHS`.
 
 ## Limites actuelles
 
-- une seule liaison de chaque mode ;
-- route v1 désactivée après mesure négative ;
-- passagers uniquement pour l'air et l'eau ;
-- classement encore heuristique, sans modèle de profit multimodal calibré ;
+- une seule liaison **avion** et une seule **maritime** ;
+- la route est une phase annuelle (plusieurs lignes), `road_mode` défaut 1 — voir `docs/opexai_route.md` ;
+- passagers uniquement pour l'air et l'eau ; la route fait aussi du fret camion ;
+- classement encore heuristique, sans modèle de profit multimodal calibré (`ROAD_PLAN_ITERATIONS_BASE` non calé sur le rail) ;
 - aucun canal, écluse ou bouée ; une paire sans composante d'eau naturelle commune est ignorée ;
 - la reconstruction après chargement est évitée par scan des véhicules, mais OpexAI ne possède
   toujours pas de schéma `Save` / `Load` persistant pour ses tables de lignes.

@@ -119,8 +119,8 @@ mode route au banc.**
 
 **Le modèle de fret est bien calibré** (rapport prédit/réel de 0,84 à 1,20 sur les années à
 production stable) : `STATION_RATING_PCT = 50`, calibré sur le rail, tient aussi pour le camion.
-**Le modèle pax sous-estime d'un facteur ~10** — et c'est la piste la plus prometteuse ouverte, voir
-§7.
+**Le modèle pax sous-estime** : n = 12, médiane réel/prédit **3,91** (revenu 2,29), voir §7.1.
+Pas un retuning : le 22 % de bassin est aussi le rail.
 
 Coût : ~15 000 opcodes par plan, ~300 000 par construction, ~60 000 par an pour la génération de
 candidats. Négligeable devant les ~270 M d'opcodes annuels.
@@ -160,8 +160,9 @@ plutôt que par bruit diffus :
 
 ## 7. Ce qui reste ouvert, par impact estimé
 
-L'item 0 (la graine qui coulait) est **fermé**, voir §6 bis. L'item 5 (flotte à zéro) est
-**fermé**, `road_refleet=1`.
+Items **fermés** : 0 (graine qui coulait, §6 bis), 1 (plancher pax, mesuré pas retuné),
+2 (SITEA/B, sondes sur des maisons), 2 bis (TRACEX, 32 L + façade), 5 (`road_refleet=1`).
+**Ouverts** : 3 (classement inter-modes), 4 (multistop).
 
 1. ✅ **Le plancher `ROAD_MIN_PROFIT_ANNUAL = 1000` : mesuré, pas retuné** (2026-08-30).
    12 lignes pax, médiane réel/prédit **3,91** (revenu 2,29). Fret n = 6 : **1,21 / 1,03**.
@@ -174,7 +175,7 @@ L'item 0 (la graine qui coulait) est **fermé**, voir §6 bis. L'item 5 (flotte 
    `GetCargoProduction` est vrai sur le bâtiment, `IsBuildable` non. 48 sondes y passent.
    Filtre `IsBuildable` + plat, comme `OpexStationPlans`. 5 graines :
    SITE 14/18 → **0/11**, OK 2 → 6 (`docs/opex_road_sitable_20y_5seeds.json`).
-   Il reste TRACEX. Le rayon et le plafond de sondes n'étaient pas le levier.
+   TRACEX ensuite (2 bis). Le rayon et le plafond de sondes n'étaient pas le levier.
 2 bis. ✅ **TRACEX** (2026-08-30). 32 L (plus le plafond à 12) et façade tournée
    vers l'autre extrémité. `nLong = 0`. TRACEX 5→2, OK 6→8, pax 2→4
    (`docs/opex_road_tracex_20y_5seeds.json`). Les 2 restants sont un L à travers
