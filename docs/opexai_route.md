@@ -1,6 +1,6 @@
 # Le mode route d'OpexAI
 
-État au **2026-08-29**. Ce document décrit ce que le mode route fait, ce qui a été mesuré, et ce
+État au **2026-08-30**. Ce document décrit ce que le mode route fait, ce qui a été mesuré, et ce
 qui reste ouvert. Il remplace la note historique sur la « liaison bus v1 », qui décrivait une
 transaction unique et désactivée.
 
@@ -163,11 +163,13 @@ plutôt que par bruit diffus :
 L'item 0 (la graine qui coulait) est **fermé**, voir §6 bis. L'item 5 (flotte à zéro) est
 **fermé**, `road_refleet=1`.
 
-1. **Le plancher `ROAD_MIN_PROFIT_ANNUAL = 1000` coupe des lignes pax qui rapportent 10 000.** La
-   seule ligne pax bâtie était prédite à 1 031 et a rendu 7 000 à 11 700 par an. La cause probable
-   est `TOWN_CATCHMENT_SHARE_PCT = 22`, calibré sur des **gares rail**. Un facteur propre à la route
-   se mesure exactement comme le premier l'a été (`sweeps/opex_predict_vs_actual.py`). C'est n = 1 :
-   à mesurer, pas à recalibrer d'après ce seul cas.
+1. ✅ **Le plancher `ROAD_MIN_PROFIT_ANNUAL = 1000` : mesuré, pas retuné** (2026-08-30).
+   12 lignes pax, médiane réel/prédit **3,91** (revenu 2,29). Fret n = 6 : **1,21 / 1,03**.
+   `docs/opex_road_predict_vs_actual.json`. Ce n'est pas la vitesse (le fret la partage).
+   C'est `TOWN_CATCHMENT_SHARE_PCT = 22` calé sur le rail, appliqué à un arrêt dans la ville.
+   Le plancher coupe 76 % des paires en bande sur l'arbre courant. Ne pas le baisser ni
+   monter le 22 — le 22 est aussi le rail. Une part de bassin route, si elle vient, est une
+   constante propre, défaut 0, banc apparié.
 2. **`SITEA` / `SITEB` dominent les échecs de plan** (36 sur 40 tentatives échouées) : aucun site
    d'arrêt valide autour de l'extrémité. Le rayon n'est pas le levier — au-delà du rayon de
    couverture (3), `GetCargoProduction` rend zéro de toute façon. Les suspects sont l'exigence de

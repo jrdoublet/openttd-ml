@@ -687,7 +687,9 @@ const ROAD_TOP_K = 12;
  * prendre, et ajoute un vehicule a surveiller. Valeur ARBITRAIRE, choisie a l'ordre de grandeur du
  * profit d'une liaison bus courte sur une petite ville (~1 500/an au modele) : elle laisse passer
  * le fret, qui la depasse d'un ou deux ordres de grandeur, et coupe la desserte passagers la plus
- * marginale. A trancher au banc, pas par le raisonnement. */
+ * marginale. Mesure 2026-08-30 (docs/opex_road_predict_vs_actual.json) : 12 pax, mediane
+ * reel/predit 3,91 ; fret temoin 1,21. Ne PAS baisser ce plancher pour « laisser passer le pax
+ * sous-estime » : le 22 % de bassin est aussi le rail. */
 const ROAD_MIN_PROFIT_ANNUAL = 1000;
 
 /* Seuil d'acceptation d'une ville pour un cargo. AITile.GetCargoAcceptance rend une acceptation en

@@ -271,11 +271,15 @@ ligne a roulé onze ans à perte sans être ferraillée). Les deux touchent auss
    L'hypothèse « la route mange le cash du prochain rail » décrivait le `break` d'avant traction
    sur le classement rail ; le `continue` borné a fermé le trou. **Pas de garde-fou à écrire.**
 
-1. **Le plancher `ROAD_MIN_PROFIT_ANNUAL` coupe des lignes pax qui rapportent dix fois la
-   prédiction.** La seule ligne pax bâtie était prédite à 1 031 et a rendu 7 000 à 11 700 par an.
-   Cause probable : `TOWN_CATCHMENT_SHARE_PCT = 22` est calibré sur des **gares rail**. Se mesure
-   exactement comme le premier calibrage (`sweeps/opex_predict_vs_actual.py`). C'est n = 1 : à
-   mesurer, pas à recalibrer sur ce seul cas.
+1. ✅ **Le plancher `ROAD_MIN_PROFIT_ANNUAL` : mesuré, pas retuné** (2026-08-30).
+   n n'est plus 1. 12 lignes pax (`docs/opex_road_predict_vs_actual.json`) :
+   médiane réel/prédit **3,91** sur le profit, **2,29** sur le revenu
+   (1,33–7,42 ; le 1,33 est la ligne morte pré-refleet). Fret témoin n = 6 :
+   **1,21 / 1,03** — même vitesse, pas de bassin ville. Ce n'est pas
+   `ROAD_SPEED_EFFICIENCY_PCT`. Sur l'arbre courant le plancher coupe 76 %
+   des paires en bande (406/532), 0 pax sur 5 graines.
+   ⚠️ **Pas de retuning.** Le 22 % est aussi le rail. Une part de bassin route,
+   si elle vient, est une constante propre, défaut 0, banc apparié.
 2. **`SITEA`/`SITEB` dominent les échecs de plan** (36 sur 40) : aucun site d'arrêt valide autour de
    l'extrémité. Le rayon n'est pas le levier ; les suspects sont l'exigence de platitude de la
    façade et `ROAD_MAX_SITE_PROBES`.
@@ -637,12 +641,11 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
       Le spread n'est **pas** débloqué : joindre plus, sur un terme qui ne paie pas, recréerait
       le banc vivier.
 
-**Priorité de fait, révisée le 2026-08-30 (nuit, parallèle join)** : rendement
-join ✅ (39 → 71 OK, 5,5 % → 15,7 %). Item 9.1 ✅, item 9.2 ✅ vide. Distance A\* ✅.
-Recalibrage conjoint ✅. Item 7 ✅. Retuning pax borné ✅. Tous défauts 0.
-Le **spread** n'est pas la suite : 361 SITE restants au quai joint sont exactement
-ça, et cinq graines montrent déjà plus de véhicules pour moins de valeur.
-`MIN_SEPARATION` (item 5) reste gelé. L'item 2 (verrouillage de ville) reste dernier.
+**Priorité de fait, révisée le 2026-08-30 (nuit, route pax)** : item route 1 ✅
+(pax ×3,91, fret calibré, pas de retuning). Rendement join ✅. 9.1 ✅, 9.2 ✅ vide.
+Tous défauts 0. Le **spread** n'est pas la suite. La tête route suivante est
+`SITEA`/`SITEB` des plans d'arrêt. `MIN_SEPARATION` (item 5) reste gelé.
+L'item 2 (verrouillage de ville) reste dernier.
 
 *Priorité précédente, conservée pour la trace* : ~~le rendement join~~ (✅ mesuré,
 défaut 0) était la tête. ~~l'item **9.1**~~ (✅) était la tête. ~~le retuning pax
