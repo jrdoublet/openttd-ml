@@ -31,6 +31,11 @@ import("pathfinder.rail", "RailPathFinder", 1);
  * chemin d'opcodes reste alors EXACTEMENT celui des campagnes anterieures. */
 ROAD_BUILD_ENABLED <- true;
 
+/* Part du bassin de ville propre aux bus. 86 est le calibrage route adopte au banc.
+ * Le reglage road_pax_catchment_pct vaut 0 pour reconstituer le repli rail a 22 % ; une valeur
+ * positive ne touche que OpexRoadPaxCandidates, jamais le rail ni le fret. */
+ROAD_PAX_CATCHMENT_SHARE_PCT <- 86;
+
 /* Panneaux de diagnostic : lu UNE fois depuis le reglage dans Start(), pas a chaque appel (57
  * panneaux par an, GetSetting a chaque fois serait du gaspillage d'opcodes pour une valeur qui ne
  * change jamais en cours de partie). Defaut vrai : voir info.nut::debug_signs -- toute
@@ -1646,6 +1651,8 @@ function OpexAI::Start()
   /* Lu ici comme les autres reglages de decision : catalog.refresh le consulte des le premier
    * cycle annuel, qui a lieu apres Start(). */
   ROAD_BUILD_ENABLED = AIController.GetSetting("road_mode") != 0;
+  local roadPaxCatchment = AIController.GetSetting("road_pax_catchment_pct");
+  if (roadPaxCatchment > 0) ROAD_PAX_CATCHMENT_SHARE_PCT = roadPaxCatchment;
   ROAD_REFLEET = AIController.GetSetting("road_refleet") != 0;
   ROAD_MULTISTOP = AIController.GetSetting("road_multistop") != 0;
   ASTAR_COST_V2 = AIController.GetSetting("astar_cost") != 0;

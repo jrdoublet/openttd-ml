@@ -105,6 +105,11 @@ def parse_opex_variant(name):
                 raise ValueError("join_max_distance doit etre entre 0 et 200")
             if value % 5:
                 raise ValueError("join_max_distance doit etre un multiple de 5 (step_size)")
+        elif key == "road_pax_catchment_pct":
+            # 0 garde le calibrage historique a 22 %. Une valeur positive est une sonde route
+            # uniquement (info.nut) ; 86 = 22 * le ratio median reel/predit 3,91.
+            if not 0 <= value <= 100:
+                raise ValueError("road_pax_catchment_pct doit etre entre 0 et 100")
         elif key in ("abandon_memory", "station_join", "join_place", "origin_sitable", "basin_share", "reborrow", "road_mode", "road_refleet", "road_multistop", "astar_cost", "probe_negative", "pax_near"):
             if value not in (0, 1):
                 raise ValueError(f"{key} est booleen : 0 ou 1")

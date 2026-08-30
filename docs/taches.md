@@ -263,9 +263,10 @@ citer le +7,7 % comme un résultat acquis.
 
 ## 1 bis. Mode route : ouvert, mesuré, et ce qui reste (2026-08-29, révisé 2026-08-30)
 
-**✅ Adopté au banc apparié** (`docs/bench_v2_road.json`, 20 graines × 20 ans) :
-`performance_history` **+9,3 %, t = 2,03, 16 graines sur 20, test des signes p = 0,012**.
-`company_value` +9,6 % mais t = 1,50 seulement, et otage d'une graine — voir le point 0 ci-dessous.
+**✅ Re-baseliné et adopté** (`docs/bench_road_current.json`, 20 graines × 20 ans) :
+`performance_history` **+15,3 %, t = 5,65, 18 graines sur 20** ; `company_value`
+**+13,5 %, t = 2,24, 13/20**. Ce banc tourne avec traction et
+`road_pax_catchment_pct=86` : le mode route est désormais établi sur l'arbre courant.
 
 **Fait.** Le mode route n'est plus une liaison bus unique et désactivée : c'est une phase annuelle
 qui bâtit jusqu'à 3 petites lignes courtes, dont du **fret par camion** (industrie → industrie et
@@ -307,8 +308,10 @@ ligne a roulé onze ans à perte sans être ferraillée). Les deux touchent auss
    **1,21 / 1,03** — même vitesse, pas de bassin ville. `RY` le confirme :
    pax 0,75 vs catalogue, pas un ×4. Sur l'arbre courant le plancher coupe 76 %
    des paires en bande (406/532), 0 pax sur 5 graines.
-   ⚠️ **Pas de retuning.** Le 22 % est aussi le rail. Une part de bassin route,
-   si elle vient, est une constante propre, défaut 0, banc apparié.
+   ✅ **Bassin pax route adopté (2026-08-30).** `road_pax_catchment_pct = 86` est le défaut ;
+   `0` rétablit le contrôle à 22 %. Banc apparié 20 graines : `performance_history`
+   **+4,19 %** (+22,2), t = **2,48**, 14/20 ; `company_value` −1,32 %, nul.
+   Voir `docs/bench_road_pax_catchment.json`.
 2. ✅ **`SITEA`/`SITEB` : on sondait des maisons — FAIT** (2026-08-30).
    Le cargo est sur le bâtiment ; `BuildRoadStation` n'y marchera pas, et 48 sondes
    y passent avant l'herbe. Filtre `IsBuildable` + plat sur l'arrêt (comme le rail),

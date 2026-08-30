@@ -10,7 +10,7 @@ class OpexAI extends AIInfo {
 
   /* Les reglages debug_signs et pathfinder_sleep_ticks existent pour NE PAS POLLUER une partie
    * partagee avec des joueurs humains (loan_repay_floor_k, pathfinder_hard_cap_k,
-   * abandon_memory, station_join, join_max_distance, join_place, origin_sitable, basin_share, reborrow, road_mode, road_refleet, road_multistop, astar_cost, probe_negative et pax_near, eux, sont des parametres de conception exposes au banc,
+   * abandon_memory, station_join, join_max_distance, join_place, origin_sitable, basin_share, reborrow, road_mode, road_pax_catchment_pct, road_refleet, road_multistop, astar_cost, probe_negative et pax_near, eux, sont des parametres de conception exposes au banc,
    * pas des bridages).
    * Entre IA, la regle est l'inverse : jouer a armes egales,
    * donc ne jamais s'auto-handicaper face a un adversaire qui ne se bride pas. Un handicap non intentionnel
@@ -386,7 +386,10 @@ class OpexAI extends AIInfo {
      * months_of_bankruptcy 0. Les deux bras sont identiques au 1er janvier 1971. Campagne
      * 20 ans : 0 tentative routiere -- le continue-not-break de la traction laisse le rail
      * prendre le cash residual, le break cash de la route ne s'exerce plus. Pas de garde-fou
-     * a ecrire. Le +9,3 % d'adoption n'a PAS ete rejoue apres traction.
+     * a ecrire. Re-baseline 2026-08-30 : `docs/bench_road_current.json`, 20 graines × 20 ans,
+`road_mode=1` contre `road_mode=0` avec traction et `road_pax_catchment_pct=86` :
+performance_history +70,35 (+15,3 %), t = 5,65, 18/20 ; company_value +13,5 %, t = 2,24.
+Le mode route est donc reconfirme sur l arbre courant.
      *
      * SITEA/B (2026-08-30). OpexRoadSites saute les tuiles non constructibles : 48 sondes
      * etaient brulees sur des maisons/industries qui ont du cargo. 5 graines : SITE
@@ -401,6 +404,21 @@ class OpexAI extends AIInfo {
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       flags = AICONFIG_BOOLEAN
+    });
+
+    /* Part de la production totale d une ville qu un arret de bus capte, en pourcentage.
+     *
+     * 86 est adopte apres le banc apparie 20 graines (docs/bench_road_pax_catchment.json) :
+     * performance_history +22,2 points (+4,19 %), t = 2,48, 14/20 graines gagnantes ;
+     * company_value -1,32 %, sans effet etabli. Le 0 reconstitue le calibrage rail historique
+     * a 22 %. Ce reglage ne change que OpexRoadPaxCandidates, jamais le rail ni le fret. */
+    AddSetting({
+      name = "road_pax_catchment_pct",
+      description = "Town production share captured by each bus stop, percent: 86 = measured route default; 0 = historical 22% rail-calibrated control",
+      min_value = 0, max_value = 100,
+      easy_value = 86, medium_value = 86, hard_value = 86,
+      custom_value = 86,
+      flags = 0
     });
 
     /* Reconstitution de flotte routiere. Defaut 1 : c'est un correctif, pas un pari.

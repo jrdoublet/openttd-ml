@@ -130,7 +130,14 @@ Pas un retuning : le 22 % de bassin est aussi le rail.
 Coût : ~15 000 opcodes par plan, ~300 000 par construction, ~60 000 par an pour la génération de
 candidats. Négligeable devant les ~270 M d'opcodes annuels.
 
-## 6 bis. Le verdict du banc apparié (`docs/bench_v2_road.json`)
+## 6 bis. Le verdict du banc apparié
+
+**Re-baseline courant (2026-08-30, `docs/bench_road_current.json`) :** 20 graines × 20 ans,
+route active contre `road_mode=0`, avec traction et `road_pax_catchment_pct=86`.
+`performance_history` **+15,3 %** (+70,35), t = **5,65**, 18/20 ; `company_value`
+**+13,5 %**, t = **2,24**, 13/20. Le mode route est reconfirmé.
+
+### Mesure historique (`docs/bench_v2_road.json`)
 
 20 graines × 20 ans, `OpexAI` contre `OpexAI[road_mode=0]`. Les deux bras portent le
 renouvellement automatique et le correctif de ligne morte : le banc isole donc **le mode route
@@ -164,6 +171,11 @@ plutôt que par bruit diffus :
 > été rejoué après traction.
 
 ## 7. Ce qui reste ouvert, par impact estimé
+
+✅ **Bassin pax route adopté (2026-08-30).** `road_pax_catchment_pct=86` devient le défaut :
+`performance_history` +4,19 % (+22,2 points), t = 2,48, 14/20 graines ; `company_value`
+−1,32 %, sans effet établi. `0` reconstitue le contrôle historique à 22 %. Le réglage ne
+touche ni le rail ni le fret. Résultats : `docs/bench_road_pax_catchment.json`.
 
 Items **fermés** : 0 (graine qui coulait, §6 bis), 1 (plancher pax, mesuré pas retuné),
 2 (SITEA/B, sondes sur des maisons), 2 bis (TRACEX, 32 L + façade), 3 (classement

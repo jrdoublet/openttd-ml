@@ -969,8 +969,9 @@ function OpexRoadPaxCandidates(catalog, lines, out, stats)
       stats.pairsInBand++;
       /* Meme lecture que le rail : les deux sens transportent chacun la production de LEUR
        * origine, donc le debit utile est la somme, corrigee de la part du bassin d'une seule gare
-       * (TOWN_CATCHMENT_SHARE_PCT, calibre sur des lignes reelles). */
-      local monthly = ((produced[a] + produced[b]) * TOWN_CATCHMENT_SHARE_PCT) / 100;
+       * (ROAD_PAX_CATCHMENT_SHARE_PCT). Le repli 22 reproduit le calibrage rail ; un reglage
+       * route explicite ne doit jamais contaminer le rail ou le fret. */
+      local monthly = ((produced[a] + produced[b]) * ROAD_PAX_CATCHMENT_SHARE_PCT) / 100;
       if (monthly <= 0) { stats.noMonthly++; continue; }
       local candidate = OpexMakeRoadCandidate(catalog, "pax", cargo, towns[a].tile, towns[b].tile,
                                               towns[a].id, towns[b].id, distance, monthly, stats);
