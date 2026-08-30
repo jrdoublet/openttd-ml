@@ -286,8 +286,8 @@ ligne a roulé onze ans à perte sans être ferraillée). Les deux touchent auss
    n n'est plus 1. 12 lignes pax (`docs/opex_road_predict_vs_actual.json`) :
    médiane réel/prédit **3,91** sur le profit, **2,29** sur le revenu
    (1,33–7,42 ; le 1,33 est la ligne morte pré-refleet). Fret témoin n = 6 :
-   **1,21 / 1,03** — même vitesse, pas de bassin ville. Ce n'est pas
-   `ROAD_SPEED_EFFICIENCY_PCT`. Sur l'arbre courant le plancher coupe 76 %
+   **1,21 / 1,03** — même vitesse, pas de bassin ville. `RY` le confirme :
+   pax 0,75 vs catalogue, pas un ×4. Sur l'arbre courant le plancher coupe 76 %
    des paires en bande (406/532), 0 pax sur 5 graines.
    ⚠️ **Pas de retuning.** Le 22 % est aussi le rail. Une part de bassin route,
    si elle vient, est une constante propre, défaut 0, banc apparié.
@@ -675,10 +675,10 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
       Le spread n'est **pas** débloqué : joindre plus, sur un terme qui ne paie pas, recréerait
       le banc vivier.
 
-**Priorité de fait, révisée le 2026-08-30 (villes)** : croissance de ville ✅
-(barème 15.3 + médianes `TV`, pas de stagnation de classe). Vitesse ✅. Catalogue
-✅. Multistop ✅. Le **spread** n'est pas la suite. `MIN_SEPARATION` reste gelé.
-L'item 2 reste dernier. §4 mesures : plus rien d'ouvert.
+**Priorité de fait, révisée le 2026-08-30 (vitesse route)** : `ROAD_SPEED_EFFICIENCY_PCT`
+✅ mesuré, pas retuné. Croissance de ville ✅. Vitesse rail ✅. Catalogue ✅.
+Multistop ✅. Le **spread** n'est pas la suite. `MIN_SEPARATION` reste gelé.
+L'item 2 reste dernier. §4 mesures : plus rien d'ouvert (le 4 reste lu en 13.4).
 
 *Priorité précédente, conservée pour la trace* : ~~le rendement join~~ (✅ mesuré,
 défaut 0) était la tête. ~~l'item **9.1**~~ (✅) était la tête. ~~le retuning pax
@@ -753,8 +753,14 @@ borné~~ / ~~l'item **7**~~ / ~~l'item **4**~~.
 - ✅ **Constantes HYPOTHÈSE `SPEED_EFFICIENCY_PCT = 70` et `WAGONS_PER_TRAIN = 5`** : remplacées
   le 2026-08-29 par la traction dimensionnée (`4a8e15e`). Rendement réel mesuré le 2026-08-30
   (§4.3) : 0,96 vs catalogue, 1,18 vs traction — le 70 % était trop pessimiste, pas de
-  retuning. `ROAD_SPEED_EFFICIENCY_PCT = 60` reste une hypothèse du mode route
-  (`docs/opexai_route.md`).
+  retuning.
+- ✅ **`ROAD_SPEED_EFFICIENCY_PCT = 60` : mesuré, pas retuné** (2026-08-30). Panneau `RY`,
+  5 graines × 20 ans (`docs/opex_road_speed_yield_20y_5seeds.json`,
+  `docs/opex_road_speed_yield.json`). n = **53** ligne-années en marche (6 lignes,
+  0 sur 12345). Fret **1,00** vs catalogue, pax **0,75**. Réel / 60 % :
+  **1,27** pax, **1,71** fret. Instantané, pas un temps de trajet. Le 60 % est
+  pessimiste en croisière, comme le 70 % rail. ⚠️ **Pas de retuning.** Ce n'est
+  pas le 3,91 pax (`TOWN_CATCHMENT_SHARE_PCT`). `docs/opexai_route.md`.
 
 ---
 
@@ -777,8 +783,8 @@ Le 4 est lu en 13.4, pas revérifié en 15.3.
    traction **123** (rapport **1,18**). 20 % des instantanés ont une médiane ≤ 61
    (le plafond d'angle droit existe) ; 53 % sont ≥ 150. L'ancien `SPEED_EFFICIENCY_PCT
    = 70` était trop pessimiste. ⚠️ **Pas de retuning.** Ne pas réintroduire un
-   abattement forfaitaire ni inventer une fraction de virages. `ROAD_SPEED_EFFICIENCY_PCT
-   = 60` n'est pas ceci (route, autre constante).
+   abattement forfaitaire ni inventer une fraction de virages. La route est
+   mesurée à part (`RY`, 60 % mesuré, pas retuné).
 4. ✅🔶 La **courbe de montée de la note d'une gare neuve**, dérivée de la source 13.4
    (`UpdateStationRating` dans `station_cmd.cpp`) — départ à `175/255` (pas 0), mise à jour tous
    les 2,5 jours (`185/74` ticks), pas de ±2 points vers la cible calculée une fois le premier

@@ -614,6 +614,8 @@ function OpexAI::_tryBuildRoads(year)
       predRevenue = candidate.revenueAnnual, predRunning = candidate.runningAnnual,
       predAmort = candidate.amortAnnual, predCarried = candidate.carried,
       predTrains = candidate.trains, predOneWayDays = candidate.oneWayDays,
+      effectiveSpeed = candidate.effectiveSpeed,
+      catalogSpeed = candidate.engine.speed,
       /* Pas de champ `vehicles` ici, DELIBEREMENT : une liste figee ne survit pas au
        * renouvellement automatique, qui detruit l'identifiant et le fait recycler par le moteur
        * (cf. OpexLineVehicleIds). Une ligne routiere interroge toujours sa gare. */
@@ -1234,6 +1236,28 @@ function OpexAI::_reportLines(year)
       else if (("loco" in line) && line.loco != null && ("speed" in line.loco)) cat = line.loco.speed;
       OpexSign(anchor, "RV|" + (year % 100) + "|" + line.lineId + "|" + moving.len() + "|"
                                + OpexMedianInt(moving) + "|" + pred + "|" + cat);
+    }
+    /* Rendement route (ROAD_SPEED_EFFICIENCY_PCT = 60, hypothese). Meme instantane que RV.
+     * "RY|99|999|P|8|999|999|999" = 24 caracteres. */
+    if (vehicleType == AIVehicle.VT_ROAD) {
+      local moving = [];
+      local catalogs = [];
+      foreach (v in vehicles) {
+        if (!AIVehicle.IsValidVehicle(v)) continue;
+        if (AIVehicle.GetVehicleType(v) != AIVehicle.VT_ROAD) continue;
+        local speed = AIVehicle.GetCurrentSpeed(v);
+        if (speed <= 0) continue;
+        moving.append(speed);
+        catalogs.append(AIEngine.GetMaxSpeed(AIVehicle.GetEngineType(v)));
+      }
+      local pred = ("effectiveSpeed" in line) ? line.effectiveSpeed.tointeger() : 0;
+      local cat = 0;
+      if (catalogs.len() > 0) cat = OpexMedianInt(catalogs);
+      else if ("catalogSpeed" in line) cat = line.catalogSpeed;
+      local kindCh = (("kind" in line) && line.kind == "pax") ? "P" : "F";
+      OpexSign(anchor, "RY|" + (year % 100) + "|" + line.lineId + "|" + kindCh + "|"
+                               + moving.len() + "|" + OpexMedianInt(moving) + "|"
+                               + pred + "|" + cat);
     }
     /* `<-` : le slot n'existe pas a la construction. `=` leve "the index 'vehCount' does not
      * exist" et tue le script (mesure 2026-08-29, toutes les graines, des 1971). */

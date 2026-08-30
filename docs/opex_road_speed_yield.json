@@ -1,0 +1,104 @@
+{
+  "source": "docs/opex_road_speed_yield_20y_5seeds.json",
+  "date": "2026-08-30",
+  "note": "Panneau RY : mediane GetCurrentSpeed des vehicules routiers en marche (vitesse > 0) vs GetMaxSpeed et vs 60 % catalogue. Instantane annuel, pas un temps de trajet. 5 graines x 20 ans. n petit : 6 lignes (0 sur 12345).",
+  "n_moving_line_years": 53,
+  "n_samples": 63,
+  "all": {
+    "n_moving": 53,
+    "median_speed": 48,
+    "median_catalog": 88,
+    "median_pred": 52,
+    "median_vs_catalog": 0.807,
+    "median_vs_pred": 1.365,
+    "p10_vs_catalog": 0.568,
+    "p90_vs_catalog": 1.0,
+    "share_le_0_6": 0.132,
+    "share_ge_catalog": 0.283
+  },
+  "pax": {
+    "n_moving": 26,
+    "median_speed": 66,
+    "median_catalog": 88,
+    "median_pred": 52,
+    "median_vs_catalog": 0.75,
+    "median_vs_pred": 1.269,
+    "p10_vs_catalog": 0.523,
+    "p90_vs_catalog": 0.818,
+    "share_le_0_6": 0.231,
+    "share_ge_catalog": 0.0
+  },
+  "freight": {
+    "n_moving": 27,
+    "median_speed": 48,
+    "median_catalog": 48,
+    "median_pred": 28,
+    "median_vs_catalog": 1.0,
+    "median_vs_pred": 1.714,
+    "p10_vs_catalog": 0.771,
+    "p90_vs_catalog": 1.0,
+    "share_le_0_6": 0.037,
+    "share_ge_catalog": 0.556
+  },
+  "seeds": {
+    "42": {
+      "n_moving": 31,
+      "median_speed": 48,
+      "median_catalog": 88,
+      "median_pred": 52,
+      "median_vs_catalog": 0.83,
+      "median_vs_pred": 1.404,
+      "p10_vs_catalog": 0.523,
+      "p90_vs_catalog": 1.0,
+      "share_le_0_6": 0.161,
+      "share_ge_catalog": 0.226
+    },
+    "100": {
+      "n_moving": 5,
+      "median_speed": 64,
+      "median_catalog": 88,
+      "median_pred": 52,
+      "median_vs_catalog": 0.727,
+      "median_vs_pred": 1.231,
+      "p10_vs_catalog": 0.568,
+      "p90_vs_catalog": 0.818,
+      "share_le_0_6": 0.2,
+      "share_ge_catalog": 0.0
+    },
+    "999": {
+      "n_moving": 9,
+      "median_speed": 67,
+      "median_catalog": 88,
+      "median_pred": 52,
+      "median_vs_catalog": 0.761,
+      "median_vs_pred": 1.288,
+      "p10_vs_catalog": 0.58,
+      "p90_vs_catalog": 0.818,
+      "share_le_0_6": 0.111,
+      "share_ge_catalog": 0.0
+    },
+    "4096": {
+      "n_moving": 8,
+      "median_speed": 48,
+      "median_catalog": 48,
+      "median_pred": 28,
+      "median_vs_catalog": 1.0,
+      "median_vs_pred": 1.714,
+      "p10_vs_catalog": 1.0,
+      "p90_vs_catalog": 1.0,
+      "share_le_0_6": 0.0,
+      "share_ge_catalog": 1.0
+    },
+    "12345": {
+      "n_moving": 0
+    }
+  },
+  "road_lines_ok": {
+    "42": 3,
+    "100": 1,
+    "999": 1,
+    "4096": 1,
+    "12345": 0
+  },
+  "verdict": "Le 60 % est pessimiste en croisiere, comme le 70 % rail. Fret mediane = catalogue (1,00). Pax 0,75 (villes). Reel/pred 1,27 pax et 1,71 fret. Pas un temps de trajet : les arrets sont hors instantane. n=53. Pas de retuning."
+}

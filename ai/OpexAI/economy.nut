@@ -279,9 +279,9 @@ function OpexApplyRailEconomics(candidate, economics)
  *  2. Le rendement de vitesse. Un vehicule routier traverse des villes, s'arrete a chaque
  *     extremite et suit un trace en L (deux angles droits par sens) sur des distances ou
  *     l'acceleration compte proportionnellement bien plus que sur une ligne rail de 50 tuiles.
- *     60 % est une HYPOTHESE, plus severe que les 70 % du rail, a recalibrer sur la premiere
- *     campagne qui produira des lignes routieres reelles (le releve annuel OY/OZ/OU/OO les couvre
- *     deja, cf. _reportLines).
+ *     60 % est une HYPOTHESE, plus severe que les 70 % du rail. Panneau RY : instantane
+ *     annuel des vehicules EN MARCHE, comme RV. Pas un temps de trajet. Ne pas retuner
+ *     sur un seul chiffre de croisiere.
  *  3. La duree de trajet reelle suit le TRACE, pas la distance a vol d'oiseau. Ici les deux
  *     coincident : le trace est un L de Manhattan, dont la longueur EST la distance Manhattan
  *     entre les deux facades. C'est la seule raison pour laquelle on peut reutiliser la meme
@@ -353,5 +353,6 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
     amortAnnual = amortAnnual,
     capital = vehicleCost + infraCost,
     profitAnnual = revenueAnnual - runningAnnual - amortAnnual,
+    effectiveSpeed = effectiveSpeed,
   };
 }

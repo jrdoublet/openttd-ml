@@ -757,6 +757,7 @@ function OpexMakeRoadCandidate(catalog, kind, cargo, src, dst, srcTown, dstTown,
     runningAnnual = economics.runningAnnual,
     amortAnnual = economics.amortAnnual,
     oneWayDays = economics.oneWayDays,
+    effectiveSpeed = economics.effectiveSpeed,
     iterations = iterations,
     ratio = (economics.profitAnnual * 1000) / iterations,
   };

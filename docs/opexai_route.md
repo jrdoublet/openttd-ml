@@ -49,9 +49,11 @@ Repris du rail, avec trois écarts, chacun justifié :
   la queue sur la route et se bloquent (`docs/mecanique_jeu.md` §11). Ce n'est pas une précaution,
   c'est la règle du jeu. Le levier de volume est le **multistop** (`road_multistop`, défaut 0) :
   mesuré, le second arrêt se pose, les 4 véhicules ne paient pas (§7 item 4).
-- **`ROAD_SPEED_EFFICIENCY_PCT = 60`.** Hypothèse, non calibrée. Le rail n'a plus d'abattement
-  forfaitaire (`SPEED_EFFICIENCY_PCT` a été remplacé par la traction dimensionnée) ; la route
-  n'a pas encore ce modèle.
+- **`ROAD_SPEED_EFFICIENCY_PCT = 60`.** Mesuré le 2026-08-30, **pas retuné**.
+  Panneau `RY`, n = 53 (`docs/opex_road_speed_yield.json`). Fret en marche =
+  catalogue (1,00) ; pax 0,75. Réel / 60 % : 1,27 pax, 1,71 fret. Instantané,
+  pas un temps de trajet. Le 60 % est pessimiste en croisière, comme le 70 %
+  rail. Pas de modèle de traction route.
 - **La durée de trajet suit le tracé**, et ici tracé et distance Manhattan coïncident (le tracé est
   un L de Manhattan), ce qui autorise la même formule sans facteur de détour.
 
@@ -164,14 +166,16 @@ plutôt que par bruit diffus :
 Items **fermés** : 0 (graine qui coulait, §6 bis), 1 (plancher pax, mesuré pas retuné),
 2 (SITEA/B, sondes sur des maisons), 2 bis (TRACEX, 32 L + façade), 3 (classement
 inter-modes, mesuré pas unifié), 4 (multistop, mécanisme oui, 4 véhicules non),
-5 (`road_refleet=1`).
-**Ouverts** : plus rien de ce côté. L'item 2 du backlog général (villes enfermées)
-reste dernier.
+5 (`road_refleet=1`), 6 (`ROAD_SPEED_EFFICIENCY_PCT=60`, mesuré pas retuné).
+**Ouverts** : plus rien de ce côté (`ROAD_SPEED_EFFICIENCY_PCT` mesuré, pas
+retuné). L'item 2 du backlog général (villes enfermées) reste dernier.
 
 1. ✅ **Le plancher `ROAD_MIN_PROFIT_ANNUAL = 1000` : mesuré, pas retuné** (2026-08-30).
    12 lignes pax, médiane réel/prédit **3,91** (revenu 2,29). Fret n = 6 : **1,21 / 1,03**.
    `docs/opex_road_predict_vs_actual.json`. Ce n'est pas la vitesse (le fret la partage).
-   C'est `TOWN_CATCHMENT_SHARE_PCT = 22` calé sur le rail, appliqué à un arrêt dans la ville.
+   Ce n'est pas `ROAD_SPEED_EFFICIENCY_PCT` : `RY` donne pax 0,75 vs catalogue
+   (1,27 vs 60 %), pas un ×4. C'est `TOWN_CATCHMENT_SHARE_PCT = 22` calé sur le
+   rail, appliqué à un arrêt dans la ville.
    Le plancher coupe 76 % des paires en bande sur l'arbre courant. Ne pas le baisser ni
    monter le 22 — le 22 est aussi le rail. Une part de bassin route, si elle vient, est une
    constante propre, défaut 0, banc apparié.
@@ -201,9 +205,17 @@ reste dernier.
    graine 42) la ligne COAL 15 passe 2→1 en 1982 et 1988 : `RF` ajoute 1 chaque fois, la note
    revient à 67, **jamais à zéro**. Auto-renouvellement ne suffit pas : il ne remplace pas un
    véhicule détruit. `OpexAI[road_refleet=0]` rallume l'abandon.
+6. ✅ **`ROAD_SPEED_EFFICIENCY_PCT = 60` : mesuré, pas retuné** (2026-08-30).
+   Panneau `RY`, 5 graines (`docs/opex_road_speed_yield.json`). n = 53
+   (6 lignes, 0 sur 12345). Fret **1,00** vs catalogue, pax **0,75**.
+   Réel / 60 % : **1,27** pax, **1,71** fret. Instantané, pas un temps de
+   trajet. ⚠️ Pas de retuning. Le 3,91 pax n'est pas ceci.
 
 ## 8. Les pistes déjà écartées par la mesure — ne pas les reproposer
 
+- Retuner `ROAD_SPEED_EFFICIENCY_PCT` sur un instantané de croisière : le 60 %
+  est pessimiste (pax 0,75 / fret 1,00 vs catalogue) mais ce n'est pas un
+  temps de trajet. Pas de modèle de traction route.
 - `Pathfinder.Road` : 696 794 opcodes contre 171 356 pour le tracé Manhattan borné.
 - Quatre véhicules via multistop : le second arrêt se pose (7/8), le profit de la
   ligne pax appariée s'effondre (8 905 → 1 781). Défaut 0.
