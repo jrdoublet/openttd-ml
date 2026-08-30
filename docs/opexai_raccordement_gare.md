@@ -42,7 +42,7 @@ Deux contrôles de la même passe s'appliquent aussi quand `station_join=0`. Apr
 
 ## Limites reportées
 
-Cette tranche ne construit pas de jonction générale, de double voie, ni d'extension après remplissage des deux côtés du quai initial. Elle ne joint pas deux gares existantes, ni ne réutilise un aéroport ou un dock. Ces cas exigent une géométrie de station générique et une politique de capacité, distinctes du petit chemin transactionnel validé ici. Le réglage `station_join` (défaut **0** après le banc vivier) permet d'opposer ce comportement au bras historique.
+Cette tranche ne construit pas de jonction générale ni d'extension après remplissage des deux côtés du quai initial. La double voie dédiée s'applique aussi à une ligne jointe ; le rejeu 5×20 ans ne paie pas (défauts 0, item 0.7). Elle ne joint pas deux gares existantes, ni ne réutilise un aéroport ou un dock. Ces cas exigent une géométrie de station générique et une politique de capacité, distinctes du petit chemin transactionnel validé ici. Le réglage `station_join` (défaut **0** après le banc vivier) permet d'opposer ce comportement au bras historique.
 
 AAAHogEx joint autrement : un nouveau quai **dans le spread d'un groupe de gare**, pas un parallèle collé après `_tooClose`. Idées et méthode, sans copie : `docs/aaahogex_rail_join.md`.
 

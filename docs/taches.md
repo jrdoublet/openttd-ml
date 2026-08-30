@@ -178,6 +178,21 @@ pas plus de valeur ».
    Signaux (mesure H2) : 77 OK / 128 fail / 50 junc — le PBS du dépôt passe, le
    front de quai vers la gare refuse souvent. Placement **périmé** le soir même :
    plus de signal sur l'aiguillage (item 9.4).
+7. ✅ **Rejeu join + double voie** (2026-08-30). La 2e voie dédiée s'applique
+   aussi à une jointure (quai voisin ignoré, `JOINPATH`). 5 graines × 20 ans
+   contre `docs/opex_double_track_20y_5seeds.json` (join=0, médiane **5,73 M**) :
+
+   | | médiane | vs join=0 | graines | jointures | DT |
+   |---|---:|---:|---:|---:|---:|
+   | `station_join=1` | 3,59 M | −2,14 M | 3/5 | 64/427 | 70/122 |
+   | + `join_max_distance=50` | 4,43 M | −1,30 M | 1/5 | 21/88 | 52/77 |
+   | `join_place=1` | 3,69 M | −2,04 M | 2/5 | 52/266 | 63/109 |
+
+   0 `XC`/`RX`, emprunt 0, pas deux trains sur une voie. Même piège : plus de
+   construction, moins de valeur. ⚠️ **Défauts 0.** Pas un banc n=20. Pas de spread.
+   Preuves : `docs/opex_join_dt_20y_5seeds.json`,
+   `docs/opex_join_cap50_dt_20y_5seeds.json`,
+   `docs/opex_join_place_dt_20y_5seeds.json`.
 
 ⚠️ **Effet de bord à ne pas attribuer au mode route :** le rail affamé reprend la trésorerie, et
 les lignes routières passent de 6 à 3 sur la graine 42. Le +9,3 % du mode route a été mesuré avec
@@ -717,7 +732,7 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
    5. ✅ **Double voie v1** (2026-08-30). Deux trains sur une voie se rencontrent.
       `OpexTryDoubleTrack` : quai parallèle, A* avec `ignored_tiles`, dépôt
       propre, un convoi par voie, plafond 2. Échec → un train. Pas de PBS de
-      capacité. Pas de double voie sur une jointure. 5 graines × 20 ans
+      capacité. 5 graines × 20 ans
       (`docs/opex_double_track_20y_5seeds.json`) : **64/92** doubles, 128
       trains, 0 ligne à deux convois sur une voie, 0 `XC` / `RX`, emprunt 0.
       Médiane valeur **5,73 M** (5/5 au-dessus de `opex_town_growth_20y_5seeds`).
@@ -727,10 +742,10 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
       note **−9,0 %**, t = −2,32, 8/20 ; véhicules −39 %. **Gardé** ; la note
       s'améliorera plus tard.
 
-**Priorité de fait, révisée le 2026-08-30 (join H2)** : H1 et H2 mesurés,
-**aucun ne paie**. Défauts `station_join` / `join_max_distance` / `join_place`
-= 0. Pas de spread, pas de jonction de voie, `JOINPATH` tient. `MIN_SEPARATION`
-gelé. L'item 2 reste dernier.
+**Priorité de fait, révisée le 2026-08-30 (join H2, rejeu DT)** : H1, H2 et
+le rejeu avec double voie **aucun ne paie**. Défauts `station_join` /
+`join_max_distance` / `join_place` = 0. Pas de spread, pas de jonction de
+voie, `JOINPATH` tient. `MIN_SEPARATION` gelé. L'item 2 reste dernier.
 
 *Priorité précédente, conservée pour la trace* : ~~le rendement join~~ (✅ mesuré,
 défaut 0) était la tête. ~~l'item **9.1**~~ (✅) était la tête. ~~le retuning pax
@@ -1160,7 +1175,7 @@ Les lignes **routières** sont dans `_lines` (rapport, rebut, `RF`) mais
 mesurée : `docs/opexai_route.md`, banc PH **+9,3 %**.
 - ✅ **Gérer des voies aller-retour** (double voie v1, 2026-08-30). Voir item 9.5.
   Banc 20×20 vs `bench_road_current` : valeur +55 %, note −9 %. **Gardé.**
-  Pas sur une jointure.
+  Jointure aussi (item 0.7) : ne paie pas, défauts 0.
 - **Gérer une file d'attente de tâches** (queue) plutôt que le déroulement actuel, pour ordonnancer
   les constructions/décisions.
 - **Contribuer à la croissance d'une ville via des stations de bus/camions** (jusqu'à 5 gares,

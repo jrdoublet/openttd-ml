@@ -752,8 +752,9 @@ plus sur une ligne dédiée à plusieurs trains.
 > **Conséquence.** Deux trains sur une voie unique se rencontrent. PBS bidirectionnel tous les
 > huit slots l'a confirmé au banc (`docs/bench_after_pbs.json` : −94,9 %, 0/20) : ce n'est plus
 > posé. `trains > 1` exige une **deuxième voie dédiée** (quai parallèle, A* qui ignore la première,
-> dépôt propre, un convoi par voie, plafond 2). Échec → un seul train, pas de collision. Pas de
-> double voie sur une jointure v1. Sur une jointure, `OpexPlaceJoinSignals` reste sur une voie
+> dépôt propre, un convoi par voie, plafond 2). Échec → un seul train, pas de collision. Une
+> jointure a le même droit à la 2e voie ; le rejeu 5×20 ans ne paie pas (défauts join 0).
+> Sur une jointure, `OpexPlaceJoinSignals` reste sur une voie
 > simple, jamais l’aiguillage (`TracksOverlap`). `DT` mesure la pose ; `SJ`/`JF` la jointure ;
 > `XC` / `RX` les collisions. `JOINPATH` refuse toujours la voie partagée. Cinq graines × vingt
 > ans (`docs/opex_double_track_20y_5seeds.json`) : 64/92 doubles, 0 `XC`, 0 `RX`, emprunt 0,

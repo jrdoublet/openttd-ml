@@ -404,7 +404,7 @@ function OpexSameStationEnd(plan, original)
  * le pathfinder ignore la premiere voie, le depot 2 n'y touche pas, et si la pose
  * echoue on garde la ligne a UN train. skip : 2=pas de quai, 3=pas de chemin, 4=voie,
  * 5=gare, 6=depot, 7=cash, 8=chevauchement, 9=court. */
-function OpexTryDoubleTrack(catalog, planA, planB, tiles, depot, cashReserve, iterationBudget, deadlineTick)
+function OpexTryDoubleTrack(catalog, planA, planB, tiles, depot, cashReserve, iterationBudget, deadlineTick, extraForbidden = null)
 {
   local acc = { ok = false, skip = 2, tiles = null, planA = null, planB = null, depot = null,
                 iterations = 0 };
@@ -419,6 +419,9 @@ function OpexTryDoubleTrack(catalog, planA, planB, tiles, depot, cashReserve, it
   forbidden[depot] <- true;
   local depotFront = AIRail.GetRailDepotFrontTile(depot);
   if (AIMap.IsValidTile(depotFront)) forbidden[depotFront] <- true;
+  if (extraForbidden != null) {
+    foreach (tile in extraForbidden) forbidden[tile] <- true;
+  }
 
   local dualA = [];
   foreach (plan in OpexJoinPlatformPlans(planA, stationIdA)) {
@@ -978,22 +981,26 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, join, cashR
     result.reason = "DEPFAIL"; return result;
   }
 
-  /* Deux trains sur une seule voie se rencontrent. PBS bidirectionnel n'a pas empeche
-   * le gridlock (bench_after_pbs : -95 % / 0/20). Une deuxieme voie dediee, un train
-   * par voie ; sinon un seul convoi. Pas de double voie sur une jointure v1. */
+  /* Deux trains sur une seule voie se rencontrent. Deuxieme voie dediee, un train
+   * par voie ; sinon un seul convoi. JOINPATH + ignored_tiles gardent la voie voisine. */
   local tiles2 = null;
   local planA2 = null;
   local planB2 = null;
   local depot2 = null;
   local want = 1;
-  if (candidate.trains > 1 && join != null) {
-    result.doubleSkip = 1;
-  } else if (candidate.trains > 1) {
+  if (candidate.trains > 1) {
     local remain = result.iterationBudget - result.iterations;
     if (remain < ATTEMPT_FLOOR) remain = ATTEMPT_FLOOR;
     local dualDeadline = AIController.GetTick() + remain / 3 + BUILD_TICK_MARGIN;
+    local extraForbidden = [];
+    if (join != null) {
+      local existing = join.platform;
+      for (local i = 0; i < existing.length; i++) {
+        extraForbidden.append(existing.anchor + existing.step * i);
+      }
+    }
     local dual = OpexTryDoubleTrack(catalog, planA, planB, tiles, depot, cashReserve,
-                                    remain, dualDeadline);
+                                    remain, dualDeadline, extraForbidden);
     result.iterations += dual.iterations;
     result.doubleSkip = dual.skip;
     if (dual.ok) {
@@ -1020,6 +1027,7 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, join, cashR
      * Comme aucun train n’existe encore, le rollback reste atomique. */
     if (signals.fail > 0) {
       result.error = signals.failures[0].error;
+      if (tiles2 != null) OpexRollback(tiles2, planA2, planB2, depot2, null);
       OpexRollback(tiles, planA, planB, depot, null);
       result.reason = "SIGFAIL"; return result;
     }
