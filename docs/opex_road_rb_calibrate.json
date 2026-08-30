@@ -1,0 +1,31 @@
+{
+  "source": "docs/opex_road_tracex_20y_5seeds.json",
+  "date": "2026-08-30",
+  "note": "Panneau RB deja pose. Pas une nouvelle campagne. 1 iteration rail ~ 2700 opcodes (commentaire TrainLineAI), utilise ici seulement pour convertir.",
+  "model": {"ROAD_PLAN_ITERATIONS_BASE": 20, "formula": "20 + distance", "opcodes_per_iter": 2700},
+  "n_attempts": 10,
+  "n_ok": 8,
+  "n_tracex": 2,
+  "plan_ops_ok": {"median": 31440, "min": 23484, "max": 45552},
+  "plan_ops_tracex": [107293, 69471],
+  "build_ops_ok": {"median": 286901, "min": 215223, "max": 322937},
+  "plan_iter_eq_ok": {"median": 11.65, "min": 8.7, "max": 16.9},
+  "pred_iter_ok": {"median": 42.5},
+  "plan_over_pred_ok_median": 0.29,
+  "implied_BASE_plan_only_ok_median": -9.0,
+  "implied_BASE_plan_plus_build_ok_median": 98.1,
+  "rail_ratio_profit_per_k_iter": {"n": 101, "median": 5040, "p10": 878, "p90": 38560, "MIN_RATIO": 500},
+  "verdict": "Ne pas unifier le classement. Un ratio route sur le plan reel (68k-710k) ecrase le rail. Ne pas retuner BASE : dans la bande 5-25 tuiles le denominateur ne reordonne presque pas, et le rail-d'abord est une decision de valeur (opexai_route §2).",
+  "attempts": [
+    {"seed": 42, "ok": false, "reason": "TRACEX", "year": 1975, "plan_ops": 107293, "build_ops": 0, "n_trials": 32, "n_unb": 18},
+    {"seed": 42, "ok": true, "year": 1971, "distance": 22, "kind": "freight", "profitAnnual": 3534, "plan_ops": 24820, "build_ops": 314568, "ratio_model": 84143, "ratio_plan": 384440},
+    {"seed": 42, "ok": true, "year": 1974, "distance": 16, "kind": "freight", "profitAnnual": 2773, "plan_ops": 25551, "build_ops": 245584, "ratio_model": 77028, "ratio_plan": 293026},
+    {"seed": 100, "ok": true, "year": 1975, "distance": 25, "kind": "pax", "profitAnnual": 1086, "plan_ops": 42858, "build_ops": 279485, "ratio_model": 24133, "ratio_plan": 68417},
+    {"seed": 999, "ok": false, "reason": "TRACEX", "year": 1986, "plan_ops": 69471, "build_ops": 0, "n_trials": 32, "n_unb": 21},
+    {"seed": 999, "ok": true, "year": 1977, "distance": 23, "kind": "pax", "profitAnnual": 2567, "plan_ops": 37984, "build_ops": 215223, "ratio_model": 59698, "ratio_plan": 182469},
+    {"seed": 999, "ok": true, "year": 1982, "distance": 21, "kind": "pax", "profitAnnual": 1035, "plan_ops": 35402, "build_ops": 254676, "ratio_model": 25244, "ratio_plan": 78936},
+    {"seed": 4096, "ok": true, "year": 1978, "distance": 20, "kind": "freight", "profitAnnual": 2316, "plan_ops": 27477, "build_ops": 304701, "ratio_model": 57900, "ratio_plan": 227579},
+    {"seed": 4096, "ok": true, "year": 1983, "distance": 23, "kind": "freight", "profitAnnual": 6181, "plan_ops": 23484, "build_ops": 322937, "ratio_model": 143744, "ratio_plan": 710641},
+    {"seed": 12345, "ok": true, "year": 1983, "distance": 24, "kind": "pax", "profitAnnual": 1304, "plan_ops": 45552, "build_ops": 294316, "ratio_model": 29636, "ratio_plan": 77292}
+  ]
+}

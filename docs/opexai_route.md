@@ -161,8 +161,9 @@ plutôt que par bruit diffus :
 ## 7. Ce qui reste ouvert, par impact estimé
 
 Items **fermés** : 0 (graine qui coulait, §6 bis), 1 (plancher pax, mesuré pas retuné),
-2 (SITEA/B, sondes sur des maisons), 2 bis (TRACEX, 32 L + façade), 5 (`road_refleet=1`).
-**Ouverts** : 3 (classement inter-modes), 4 (multistop).
+2 (SITEA/B, sondes sur des maisons), 2 bis (TRACEX, 32 L + façade), 3 (classement
+inter-modes, mesuré pas unifié), 5 (`road_refleet=1`).
+**Ouverts** : 4 (multistop).
 
 1. ✅ **Le plancher `ROAD_MIN_PROFIT_ANNUAL = 1000` : mesuré, pas retuné** (2026-08-30).
    12 lignes pax, médiane réel/prédit **3,91** (revenu 2,29). Fret n = 6 : **1,21 / 1,03**.
@@ -180,11 +181,11 @@ Items **fermés** : 0 (graine qui coulait, §6 bis), 1 (plancher pax, mesuré pa
    vers l'autre extrémité. `nLong = 0`. TRACEX 5→2, OK 6→8, pax 2→4
    (`docs/opex_road_tracex_20y_5seeds.json`). Les 2 restants sont un L à travers
    un bâtiment. Pas Pathfinder.Road.
-3. **Le classement routier et le classement rail ne sont pas comparables.**
-   `ROAD_PLAN_ITERATIONS_BASE` est non calibré et ne sert qu'à ordonner les candidats routiers entre
-   eux. Le panneau `RB` mesure désormais le coût réel de chaque tentative, ce qui rend cette
-   calibration possible — et donc, à terme, **un seul classement pour tous les modes**, ce que la
-   philosophie du projet demande.
+3. ✅ **Le classement routier et le classement rail ne sont pas à unifier**
+   (2026-08-30). Panneau `RB`, n = 10, `docs/opex_road_rb_calibrate.json`.
+   Plan OK médiane 31 440 opcodes contre `20+d` ≈ 42,5 iter (rapport 0,29).
+   Un ratio route sur le plan réel (68 k–710 k) écrase le rail (médiane 5 040,
+   `MIN_RATIO` 500). ⚠️ Pas de retuning de `BASE`. Le rail d'abord (§2) tient.
 4. **Le multistop** (`AIStation.STATION_JOIN_ADJACENT`) est le seul levier de volume par ligne, le
    plafond de deux véhicules par arrêt étant une règle du jeu.
 5. ✅ **Rebâtir la flotte d'une ligne tombée à zéro véhicule.** Réglage `road_refleet`, défaut 1.

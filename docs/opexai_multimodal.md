@@ -183,7 +183,8 @@ l'état courant du véhicule dans `VEHS`.
 - une seule liaison **avion** et une seule **maritime** ;
 - la route est une phase annuelle (plusieurs lignes), `road_mode` défaut 1 — voir `docs/opexai_route.md` ;
 - passagers uniquement pour l'air et l'eau ; la route fait aussi du fret camion ;
-- classement encore heuristique, sans modèle de profit multimodal calibré (`ROAD_PLAN_ITERATIONS_BASE` non calé sur le rail) ;
+- classements rail et route séparés : `ROAD_PLAN_ITERATIONS_BASE` mesuré (rapport plan 0,29),
+  pas unifié — un ratio unique affamerait le rail (`docs/opex_road_rb_calibrate.json`) ;
 - aucun canal, écluse ou bouée ; une paire sans composante d'eau naturelle commune est ignorée
   (le trick des pseudo-canaux — inonder du terrain sec, `docs/mecanique_jeu.md` §13 — n'est pas
   un plan : un bateau pax ne le justifie pas, coût opcode/argent non mesuré) ;

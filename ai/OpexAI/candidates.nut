@@ -700,14 +700,12 @@ const ROAD_ACCEPTANCE_MIN = 8;
 /* Cout en "iterations equivalentes" d'une tentative routiere, pour rester dans la meme unite que
  * le rail (1 iteration ~ 2 700 opcodes).
  *
- * ⚠️ NON CALIBRE. La seule mesure disponible est indirecte : 171 356 opcodes pour le balayage
- * complet de toutes les paires de la carte par la v1 (docs/opexai_mode_route), soit ~63 iterations
- * pour un travail bien plus large que le plan d'UNE paire fait ici. La forme (une base plus la
- * longueur du trace, qui borne le nombre d'aretes revalidees sous AITestMode) est defendable, les
- * coefficients ne le sont pas. Consequence assumee : ce nombre ne sert QU'A classer les candidats
- * routiers ENTRE EUX, jamais a les comparer au rail -- une comparaison inter-modes exigerait
- * d'abord de mesurer le cout reel d'un plan routier, ce que le panneau RB pose desormais chaque
- * tentative (main.nut) pour permettre cette calibration. */
+ * Mesure 2026-08-30 (docs/opex_road_rb_calibrate.json, panneau RB, campagne TRACEX 5 graines,
+ * n = 10). Plan OK mediane 31 440 opcodes (~11,7 iter) contre 20+d ~ 42,5 (rapport 0,29).
+ * BASE impliquee plan seul : -9. TRACEX 70-107 k. Le build (mediane 287 k) n'est pas le
+ * denominateur du rail (A*). Un ratio route sur le plan reel (68 k-710 k) ecrase le rail
+ * (mediane 5 040, MIN_RATIO 500) : ne PAS unifier les classements. BASE reste 20, intra-route
+ * seulement. Le rail d'abord est une decision de valeur (docs/opexai_route.md §2), pas d'opcode. */
 const ROAD_PLAN_ITERATIONS_BASE = 20;
 
 function OpexRoadIterations(distance)

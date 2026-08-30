@@ -541,9 +541,9 @@ function OpexAI::_tryBuildRoads(year)
       continue;
     }
     local result = OpexBuildRoadRoute(this._catalog, this._budget, plan, candidate);
-    /* Le cout REEL d'une tentative, plan et construction separes : c'est la mesure qui manque pour
-     * calibrer ROAD_PLAN_ITERATIONS_BASE (candidates.nut), donc pour pouvoir un jour comparer un
-     * candidat routier a un candidat rail dans un seul classement. */
+    /* Le cout REEL d'une tentative, plan et construction separes. Mesure 2026-08-30
+     * (docs/opex_road_rb_calibrate.json) : le plan OK est ~0,29x le modele, et un classement
+     * unique affamerait le rail. Le panneau reste, pour ne pas reposer la question a l'aveugle. */
     OpexSign(anchor, "RB|" + yy + "|" + idx + "|" + attempts + "|" + planOps
                              + "|" + result.opcodes);
     if (!result.ok) {
