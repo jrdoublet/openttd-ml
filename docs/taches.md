@@ -599,21 +599,24 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
    pour la valeur (§0.2), malgré un effet de construction toujours solide. Trois suites, dans
    cet ordre :
 
-   1. 🔴 **Instrumenter le REFUS de jointure — le plus urgent.** `OpexFindStationJoin` rend `null`
-      sans dire laquelle des trois conditions a tué le candidat : gare logique unique (plusieurs
-      gares dans le disque), même `kind` et même cargo, ou même rôle fret (source avec source,
-      puits avec puits). **Sur la graine 4096, `too_close_far` se déclenche 5 fois (1980, 1981,
-      1983, 1984, 1985) pour 0 tentative de jointure** : le chemin est inerte et on ne sait pas
-      pourquoi. Aucune décision sur §9 n'est informée tant que ce compteur n'existe pas. Et le banc
-      ne peut pas y répondre — il ne lit que les sauvegardes, seul `sweeps/opex_full_campaign.py`
-      décode `OB|J|`.
-   2. **`JOINPATH` brûle l'A\* entier pour rien.** `OpexJoinPathIsDedicated` rejette *après coup*
-      tout chemin dont une case intermédiaire touche un rail existant, mais le pathfinder n'est pas
-      informé de la contrainte — il peut donc router à travers la voie voisine et se faire rejeter
-      une fois la recherche entièrement payée. Et contrairement à `ABND`, `JOINPATH` n'entre pas
-      dans la mémoire des paires : le candidat revient l'année suivante repayer la même recherche.
-      Hypothèse, pas un fait mesuré : le compteur `OB|J|` et le code de raison `J` la trancheront
-      dès la première campagne.
+   1. ✅ **Instrumenter le REFUS de jointure — fait (2026-08-30).** `OpexFindStationJoin` rend
+      `{ refuse = M|K|R|N|E }` au lieu de `null`. Panneau `OB|R` (multi / kind / role / other),
+      gated comme `OB|J`. 5 graines × 20 ans, `station_join=1`
+      (`docs/opex_join_refuse_20y_5seeds.json`) :
+
+      | | M | K | R | other | tentatives | OK | JOINPATH |
+      |---|---:|---:|---:|---:|---:|---:|---:|
+      | total | **196** | **75** | **0** | 41 | **705** | **39** | **0** |
+
+      La jointure n'est **pas** inerte. La « graine 4096, 5 `too_close_far`, 0 tentative » est
+      périmée (165 tentatives / 7 OK ; les far sans tentative sont 1970-72, toutes K).
+      **R = 0** : `OpexOriginJoinable` a déjà coupé les rôles fret à la génération.
+      ⚠️ **Défaut 0.** Pas un changement de classement.
+   2. ✅ **`JOINPATH` : mesuré vide.** 0 / 808 tentatives rail. `OpexJoinPathIsDedicated` ne
+      rejette rien sur cet arbre ; les 666 échecs de jointure sont SITEA/SITEB, pas un A\*
+      payé puis invalidé. Pas de mémoire à ajouter, pas de contrainte à pousser dans le
+      pathfinder. Le rendement restant est le **site** (quai parallèle introuvable), pas
+      JOINPATH.
    3. ✅ **Le profit prédit d'une ligne jointe — `basin_share` mesuré, défaut 0.** La production
       de l'extrémité jointe est divisée par (n+1). Banc apparié 20 graines × 20 ans
       (`docs/bench_basin_share.json`, paire `docs/bench_basin_share_paired.json`), les deux
@@ -632,19 +635,19 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
       Le spread n'est **pas** débloqué : joindre plus, sur un terme qui ne paie pas, recréerait
       le banc vivier.
 
-**Priorité de fait, révisée le 2026-08-30 (nuit)** : plus d'échec qualitatif du mode route.
-Distance A\* ✅. Recalibrage conjoint des nœuds ✅. Item 7 ✅ aux deux budgets.
-Retuning pax borné ✅ mesuré, **défaut 0** (gares +10,5 %, t = 4,27 ; valeur nulle).
+**Priorité de fait, révisée le 2026-08-30 (nuit, 9.1)** : item 9.1 ✅, item 9.2 ✅ vide.
+Distance A\* ✅. Recalibrage conjoint ✅. Item 7 ✅. Retuning pax borné ✅, défaut 0.
 `station_join`, `basin_share`, `reborrow`, `origin_sitable`, `astar_cost`,
 `probe_negative`, `pax_near` restent à 0. Le **spread** n'est pas la suite.
-La tête est l'item **9.1** : instrumenter le refus de jointure (`OpexFindStationJoin`
-rend `null` sans dire laquelle des trois conditions a tué).
-
-*Priorité précédente, conservée pour la trace* : ~~le retuning pax borné~~ (✅ mesuré,
-défaut 0) était la tête. ~~l'item **7**~~ (✅ mesuré, défaut 0) était la tête le matin.
-~~l'item **4**~~ (✅ fait) et l'item **6** (plafond d'abandon) passaient devant — ce
-sont deux échecs mesurés, orthogonaux à §9. L'item 5 (`MIN_SEPARATION`) est gelé
+La tête est le **rendement de construction des jointures offertes** : 705 tentatives,
+39 OK, 666 SITEA/SITEB, 0 JOINPATH. M (196) est le plus gros refus avant tentative ;
+ce n'est pas le levier de construction. L'item 5 (`MIN_SEPARATION`) reste gelé
 derrière §9. L'item 2 (verrouillage de ville) reste dernier.
+
+*Priorité précédente, conservée pour la trace* : ~~l'item **9.1**~~ (✅ mesuré) était
+la tête. ~~le retuning pax borné~~ (✅ mesuré, défaut 0) était la tête. ~~l'item **7**~~
+(✅ mesuré, défaut 0) était la tête le matin. ~~l'item **4**~~ (✅ fait) et l'item 6
+(plafond d'abandon) passaient devant.
 
 ---
 

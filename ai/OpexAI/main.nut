@@ -317,20 +317,37 @@ function OpexJoinCompatible(candidate, conflict)
 /* Un seul objet gare et une seule extremite candidate peuvent etre court-circuites. Si une autre
  * gare physique est aussi dans le disque, la ligne neuve lui volerait son bassin : le filet reste
  * arme. Les doublons de lignes deja jointes ont le meme StationID et sont donc volontairement un
- * seul conflit logique. */
+ * seul conflit logique.
+ *
+ * Succes : table avec candidateEnd / stationId / platform. Refus : { refuse = code }, jamais
+ * null -- le null d'avant ne disait pas laquelle des trois conditions avait tue.
+ *   M  plusieurs StationID, ou les deux extremites du candidat
+ *   K  rail, mais kind ou cargo different
+ *   R  meme cargo fret, roles inverses (source contre puits)
+ *   N  aucune ligne rail avec un plan de quai (air / dock / etat ancien)
+ *   E  conflicts vide (ne devrait pas arriver si blocking >= 0) */
 function OpexFindStationJoin(candidate, conflicts)
 {
-  if (conflicts.len() == 0) return null;
+  if (conflicts.len() == 0) return { refuse = "E" };
   local first = conflicts[0];
   foreach (conflict in conflicts) {
-    if (conflict.end != first.end || conflict.stationId != first.stationId) return null;
+    if (conflict.end != first.end || conflict.stationId != first.stationId) return { refuse = "M" };
   }
+  local refuse = "N";
   foreach (conflict in conflicts) {
-    if (!OpexJoinCompatible(candidate, conflict)) continue;
-    local platform = conflict.lineEnd == "A" ? conflict.line.platformA : conflict.line.platformB;
-    return { candidateEnd = conflict.end, stationId = conflict.stationId, platform = platform };
+    if (OpexJoinCompatible(candidate, conflict)) {
+      local platform = conflict.lineEnd == "A" ? conflict.line.platformA : conflict.line.platformB;
+      return { candidateEnd = conflict.end, stationId = conflict.stationId, platform = platform };
+    }
+    local line = conflict.line;
+    if (("mode" in line) || !("platformA" in line) || !("platformB" in line)) continue;
+    if (!("kind" in line) || line.kind != candidate.kind || line.cargo != candidate.cargo) {
+      if (refuse == "N") refuse = "K";
+      continue;
+    }
+    refuse = "R";
   }
-  return null;
+  return { refuse = refuse };
 }
 
 /* Les tuiles candidate.src/dst sont des positions, tandis que les identifiants de ville/industrie
@@ -692,6 +709,10 @@ function OpexAI::_tryBuild(ranked, year)
   local nJoinAttempts = 0;
   local nJoinBuilt = 0;
   local nJoinFailed = 0;
+  local nJoinRefuseMulti = 0;   // M : plusieurs gares, ou les deux extremites
+  local nJoinRefuseKind = 0;    // K : kind / cargo
+  local nJoinRefuseRole = 0;    // R : roles fret inverses
+  local nJoinRefuseOther = 0;   // N / E
   local nOriginServedRanked = 0;   // candidats du TOP_K qui n'existent QUE grace a la jointure
   local nPaxNearTried = 0;
   local nPaxNearOk = 0;
@@ -718,7 +739,17 @@ function OpexAI::_tryBuild(ranked, year)
       /* Le filet garde la main tant que le candidat ne peut pas reutiliser UNE gare logique avec
        * un quai rail dedie. Ne pas choisir une autre gare ni une autre extremite ici : ce serait
        * desarmer MIN_SEPARATION au-dela de l'objet precis de la tranche. */
-      if (STATION_JOIN) join = OpexFindStationJoin(candidate, close.conflicts);
+      if (STATION_JOIN) {
+        join = OpexFindStationJoin(candidate, close.conflicts);
+        if ("refuse" in join) {
+          local r = join.refuse;
+          if (r == "M") nJoinRefuseMulti++;
+          else if (r == "K") nJoinRefuseKind++;
+          else if (r == "R") nJoinRefuseRole++;
+          else nJoinRefuseOther++;
+          join = null;
+        }
+      }
       if (join == null) {
         nTooClose++;
         if (close.blocking < 5) nTooCloseNear++; else nTooCloseFar++;
@@ -933,6 +964,11 @@ function OpexAI::_tryBuild(ranked, year)
    * echecs du raccordement. "OB|J|9999|20|20|20" reste largement sous les 31 caracteres. */
   if (STATION_JOIN) OpexSign(anchor, "OB|J|" + year + "|" + nJoinAttempts + "|" + nJoinBuilt
                                       + "|" + nJoinFailed);
+  /* Compagnons de OB|J : les refus AVANT tentative, un seau par condition. Sans eux, too_close_far
+   * sans tentative de jointure reste muet. "OB|R|1989|20|20|20|20" = 22 caracteres. */
+  if (STATION_JOIN) OpexSign(anchor, "OB|R|" + year + "|" + nJoinRefuseMulti + "|"
+                                      + nJoinRefuseKind + "|" + nJoinRefuseRole + "|"
+                                      + nJoinRefuseOther);
   /* Combien du classement n'existe QUE parce qu'une extremite servie peut etre reprise : c'est la
    * mesure directe de la tranche du 2026-08-29, celle qui dit si le vivier est bien rouvert --
    * independamment du fait que la jointure aboutisse ou non. */

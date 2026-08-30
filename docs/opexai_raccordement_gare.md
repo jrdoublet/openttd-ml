@@ -43,3 +43,11 @@ Deux contrôles de la même passe s'appliquent aussi quand `station_join=0`. Apr
 Cette tranche ne construit pas de jonction générale, de double voie, ni d'extension après remplissage des deux côtés du quai initial. Elle ne joint pas deux gares existantes, ni ne réutilise un aéroport ou un dock. Ces cas exigent une géométrie de station générique et une politique de capacité, distinctes du petit chemin transactionnel validé ici. Le réglage `station_join` (défaut **0** après le banc vivier) permet d'opposer ce comportement au bras historique.
 
 AAAHogEx joint autrement : un nouveau quai **dans le spread d'un groupe de gare**, pas un parallèle collé après `_tooClose`. Idées et méthode, sans copie : `docs/aaahogex_rail_join.md`.
+
+## Refus (2026-08-30)
+
+`OpexFindStationJoin` dit maintenant *pourquoi* il refuse : panneau `OB|R` (M / K / R / other),
+lu par `sweeps/opex_full_campaign.py`. Cinq graines × 20 ans, `station_join=1`
+(`docs/opex_join_refuse_20y_5seeds.json`) : 196 M, 75 K, **0 R**, 41 other, 705 tentatives,
+39 OK, **0 JOINPATH**. Les rôles fret inverses meurent à la génération. JOINPATH est vide.
+Le rendement restant est SITEA/SITEB sur un quai parallèle, pas un A\* invalidé après coup.

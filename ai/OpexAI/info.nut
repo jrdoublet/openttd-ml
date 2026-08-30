@@ -241,7 +241,11 @@ class OpexAI extends AIInfo {
      * SUITE : basin_share a ete mesure, defaut 0, et ne paie pas (les jointures sont
      * declassees, l'IA repose des gares neuves). Le spread n'est PAS la suite : il
      * convertirait des NOPLAN en jointures sur un classement qui ne paie pas.
-     * docs/aaahogex_rail_join.md reste la note d'idees, pas un plan. */
+     * docs/aaahogex_rail_join.md reste la note d'idees, pas un plan.
+     *
+     * REFUS (2026-08-30). OB|R decompose le null : 196 M, 75 K, 0 R, 41 other, 705
+     * tentatives, 39 OK, 0 JOINPATH (docs/opex_join_refuse_20y_5seeds.json). R meurt
+     * a la generation. JOINPATH est vide. Les echecs sont SITEA/SITEB. */
     AddSetting({
       name = "station_join",
       description = "Reuse one compatible nearby OpexAI rail station with a dedicated platform: 1 = enabled, 0 = historical too-close rejection",
