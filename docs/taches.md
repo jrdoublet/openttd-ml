@@ -13,8 +13,6 @@ conception**, avec ce qui est vérifié et ce qui ne l'est pas.
 | page | ce qu'on espère en tirer |
 |---|---|
 | [Community/Pseudo canals](https://wiki.openttd.org/en/Community/Pseudo%20canals) | technique de terrain sur l'eau ; à évaluer surtout pour son coût en opcodes |
-| [transporttycoon.net/rail1](https://www.transporttycoon.net/rail1) … [rail6](https://www.transporttycoon.net/rail6) | série sur la construction ferroviaire : signalisation, débit, tracés |
-| [transporttycoon.net/junctions](https://www.transporttycoon.net/junctions) | conception de jonctions — pertinent dès qu'`OpexAI` aura plusieurs lignes qui se croisent |
 
 ✅ **[Manual/Tips](https://wiki.openttd.org/en/Manual/Tips) lue et intégrée (2026-08-28)** — voir
 `docs/mecanique_jeu.md` §9. La plupart des heuristiques utiles étaient déjà couvertes ailleurs dans
@@ -31,8 +29,18 @@ d'un « écart fret ~4-6x » qui figurait ici était périmée : cet écart a é
 voir §3) ; (2) `difficulty.economy = false` confirme que la réduction de moitié de la production
 primaire en récession est **sans objet** chez nous.
 
-⚠️ Le contenu des pages restantes n'a **pas** été lu : les colonnes « ce qu'on espère » sont des
-hypothèses de pertinence, pas des résumés.
+✅ **[transporttycoon.net/rail1](https://www.transporttycoon.net/rail1) … [rail6](https://www.transporttycoon.net/rail6)
+et [junctions](https://www.transporttycoon.net/junctions) lus et intégrés (2026-08-30)** — voir
+`docs/mecanique_jeu.md` §12. Série TTD + TTDPatch, pas le wiki 15.3. Apport net : OpexAI *est*
+le point-à-point que la page moque, et `JOINPATH` doit le rester tant que la jointure ne paie
+pas ; zéro signal posé alors que le modèle peut mettre 8 trains sur une voie unique (non
+mesuré) ; quai déjà calé sur la rame ; les jonctions se résument à trois principes (séparer
+avant de fusionner, sortie avant entrée, train+2 tuiles) — l'index Junctionairy n'est qu'un
+catalogue d'images, on ne copie pas de cloverleaf. Waypoints natifs OpenTTD, utiles seulement
+le jour des branches. Pré-signaux TTDPatch = path signals chez nous, non posés.
+
+⚠️ La page restante n'a **pas** été lue : la colonne « ce qu'on espère » est une hypothèse de
+pertinence, pas un résumé.
 
 ---
 
@@ -998,8 +1006,9 @@ items d'abord, le réglage de `MIN_SEPARATION` jamais (§2.5).
   (b) **le raccordement** — transformer le rejet `_tooClose` en jonction sur la gare voisine.
   C'est (b) qui débloque le vivier chiffré ci-dessus.
 - 🔴 **Gérer les jonctions de rails** — condition technique de (b) : sans jonction, deux lignes ne
-  peuvent pas partager une gare. Pertinent aussi dès qu'`OpexAI` a plusieurs lignes qui se croisent ;
-  voir la lecture en attente sur les jonctions en §1.
+  peuvent pas partager une gare. Pertinent aussi dès qu'`OpexAI` a plusieurs lignes qui se croisent.
+  Lecture faite : `docs/mecanique_jeu.md` §12 — trois principes, pas un cloverleaf ; `JOINPATH`
+  tient tant que la jointure ne paie pas.
 
 **Périmètre de mode, vérifié le 2026-08-29** : `_tooClose` n'est appelé qu'à `main.nut:374`, dans
 `_tryBuild` — **le filet ne filtre que le rail**. L'avion et le bateau ne le subissent pas (une

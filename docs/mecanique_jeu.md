@@ -1,7 +1,8 @@
 # Mécanique du jeu — référence de conception
 
 **Source** : [wiki OpenTTD, *Manual/Game Mechanics*](https://wiki.openttd.org/en/Manual/Game%20Mechanics/)
-et [*Manual/Towns*](https://wiki.openttd.org/en/Manual/Towns), lues le 2026-08-28.
+et [*Manual/Towns*](https://wiki.openttd.org/en/Manual/Towns), lues le 2026-08-28. Série rail
+[transporttycoon.net](https://www.transporttycoon.net/rail1) lue le 2026-08-30 (§12).
 
 Ce document n'est pas une copie du wiki : c'est ce qui **change la conception d'`OpexAI`**. Chaque
 section donne la règle, puis ce qu'on en fait. Les valeurs marquées ⚙️ sont des **paramètres de
@@ -489,10 +490,11 @@ mémoire, sans développement.
   (barème exact de la note d'autorité locale) ; la tip confirme l'idée déjà notée dans le backlog
   (section 9, « planter des arbres pour augmenter la réputation »), sans rien y ajouter.
 - **Virages larges plutôt qu'à 90°** — déjà couvert section 2 : un virage à 90° bride un train rail
-  à 61 km/h contre 111 km/h à courbure 2. La tip confirme sans nouveau chiffre.
-- **Canaux pseudo** — déjà dans la liste de lecture en attente (section 1), pas encore évalué en
-  détail ; la tip ne fait que la signaler comme « technique peu coûteuse », sans chiffrer le coût
-  réel en opcodes ou en argent.
+  à 61 km/h contre 111 km/h à courbure 2. La tip confirme sans nouveau chiffre. La série
+  transporttycoon.net (§12) ajoute trois principes de jonction ; pas de cloverleaf tant que
+  `JOINPATH` tient.
+- **Canaux pseudo** — toujours dans la liste de lecture (section 1 du backlog), pas évalué ;
+  la tip les signale comme « peu coûteux » sans chiffrer opcodes ni argent.
 - **Un aéroport diffuse mieux son influence qu'une gare ferroviaire pour la génération de
   passagers/courrier.** ❓ Affirmation du wiki, pas vérifiée dans le code ni mesurée en jeu. Si
   confirmée, argument de plus (au-delà du gain d'`opexai_multimodal`) pour préférer l'avion sur les
@@ -657,3 +659,133 @@ efficace, sans que la page en détaille la mécanique. ❓
 >    volume à tester** avant de juger la rentabilité du bus.
 > 3. **Ne pas attendre du bus un profit de ligne** : le wiki l'annonce lui-même. Sa valeur est
 >    ailleurs — croissance de ville (§5) et cargos supplémentaires pour la note de compagnie (§6).
+
+---
+
+## 12. Construction ferroviaire — série transporttycoon.net
+
+**Source** : [Owen's Transport Tycoon Station](https://www.transporttycoon.net/rail1),
+*Rail Building* parts 1–6 et l'index [*Rail Junctions*](https://www.transporttycoon.net/junctions)
+(l'ancien « Junctionairy »), lus le 2026-08-30. Demandé en section 1 du backlog.
+
+⚠️ **Ce n'est pas le wiki OpenTTD 15.3.** Les pages visent TTD + [TTDPatch](http://www.ttdpatch.net/)
+(pré-signaux, `non-stop` modifié, construction sur pente). Chez nous : **path signals** et
+**waypoints** sont natifs, `vehicle_breakdowns` n'est pas figé dans le `CFG` des campagnes OpexAI
+(❓ défaut du moteur, pas le `0` de la campagne historique 13.4). On ne recopie **aucun** dessin
+de cloverleaf. Seulement les règles qui changent une décision d'IA, et ce qu'OpexAI en fait déjà.
+
+### 12.1 Point-à-point contre réseau
+
+Deux layouts. **Point-à-point** : une ligne dédiée par paire de gares. C'est « the style used by
+the AI with extremely limited success ». **Réseau** : la plupart des gares se rejoignent, un train
+peut aller n'importe où. Coût initial plus haut, économie de voie ensuite ; trains perdus aux
+jonctions (U-turn, « tourner à gauche pour aller à droite ») ; bouchons.
+
+> **Conséquence pour OpexAI.** Nous *sommes* ce point-à-point. `JOINPATH` refuse tout chemin qui
+> touche un rail déjà posé ; chaque ligne a sa voie et son dépôt. Le banc join a mesuré plus de
+> construction, pas plus de valeur (`station_join` défaut 0). Un réseau (spread, jonctions, voies
+> partagées) recréerait ce banc. **Ne pas « améliorer » OpexAI en réseau tant que la v1 ne paie
+> pas.** Les problèmes de trains perdus et de cloverleafs ne s'appliquent pas tant que
+> `JOINPATH` tient.
+
+### 12.2 Signaux
+
+Deux familles, deux règles :
+
+| type | le train choisit | où le poser |
+|---|---|---|
+| **bidirectionnel** | la voie **libre** (même si ce n'est pas la bonne direction) | devant chaque quai d'une gare multi-voies |
+| **sens unique** | la voie qui **pointe vers la destination** ; s'il est rouge, il attend | aux jonctions, pour forcer une branche |
+
+Un sens unique **dos au train** : le train ne prend pas cette voie ; s'il y arrive, il s'arrête,
+fait demi-tour, revient. Utile pour forcer un dépôt.
+
+Les **pré-signaux** TTDPatch (entrée / sortie / combo) : rouges si *toutes* les sorties suivantes
+sont rouges, donc un train n'entre pas dans une gare pleine pour se coller au premier quai. En
+OpenTTD 15, l'équivalent est le **path signal** (PBS), pas ce trio TTDPatch. ❓ Non posé par
+OpexAI.
+
+> **Conséquence.** `builder_rail.nut` ne pose **aucun** signal (`BuildSignal` absent). Sur une
+> ligne dédiée à un seul train, c'est inoffensif. Dès que `trains > 1` sur la même voie unique
+> (le modèle peut aller jusqu'à 8), deux convois se partagent un bloc sans réservation — ❓
+> collisions ou file à la gare, **non mesuré**. Premier signal à poser, si on en pose : un
+> bidirectionnel par quai, pas un sens unique au milieu de la ligne.
+
+### 12.3 Gares — hors de la ligne principale
+
+La gare doit être **à l'écart** de la ligne de transit, sinon le trafic de passage s'arrête
+dedans. Deux géométries :
+
+- **Terminus** : on entre et on sort par le même bout. Un train qui sort bloque celui qui entre.
+  À réserver aux villes / montagnes (manque de place).
+- **Ro-Ro** (roll-on / roll-off) : on traverse. Pas d'attente entrée/sortie. Un Ro-Ro mal signalé
+  + ordre *full load* sur un quai occupé = gridlock (le train attend le quai le plus proche,
+  jamais l'autre).
+
+Le train **ne doit pas dépasser le quai** : la queue sort, le signal reste rouge, le chargement
+est beaucoup plus long. « Make all stations the same length. » **Overflow** (boucle, dépôt-refuge,
+pré-signaux) : seulement si un troisième train arrive alors que les quais sont pleins.
+**Sortie longue** : longueur du plus long train **+ 2 tuiles**, pour que le convoi dégage le quai
+avant le signal de fusion.
+
+> **Conséquence.** OpexAI dimensionne déjà le quai sur la rame (`platformLength`, traction,
+> `trainLengthLimit = platformLength * 16`) : la règle « pas plus long que le quai » est tenue.
+> Une ligne = un quai dédié, terminus de fait, `OF_FULL_LOAD_ANY` à la source et `OF_NONE` au
+> puits — le deadlock Ro-Ro + full load ne se pose pas. La sortie +2 tuiles, le Ro-Ro et
+> l'overflow ne deviennent des leviers que le jour où plusieurs lignes **partagent** une gare
+> et que des trains s'y croisent. Ce n'est pas le cas de la jointure v1 (quai parallèle, voie
+> dédiée). Ne pas les construire « en prévention ».
+
+### 12.4 Jonctions — trois principes, zéro cloverleaf
+
+rail3 / rail4 : les 3-voies et 4-voies « basic » (un train à la fois) sont à éviter. Ce qui
+survit indépendamment du dessin :
+
+1. **Séparer avant de fusionner** (le CRAB le dit : split before merge → moins de rouges).
+2. **La sortie de la ligne principale est *avant* l'entrée**, sinon un train qui se rabat
+   bloque celui qui veut sortir.
+3. **Distance entrée–sortie = plus long train + 2 tuiles** (comme la sortie de gare) : un train
+   à l'arrêt au rouge ne barre pas l'autre branche.
+
+Aussi : un **tunnel n'a pas de plafond de vitesse**, un pont si. Les virages à 90° tuent la
+vitesse — déjà chiffré §2 (61 km/h). Un cloverleaf oblige à « tourner à gauche pour aller à
+droite » → trains perdus, d'où les checkpoints.
+
+L'index [*junctions*](https://www.transporttycoon.net/junctions) est un **catalogue d'images**
+(Junctionairy, TTDPatch, pas de 90° « pour le réalisme »). Les sous-pages `junctions1`–`7` n'ont
+pas de règle supplémentaire : on ne les recopie pas.
+
+> **Conséquence.** OpexAI n'a aucune jonction. `JOINPATH` l'interdit. Le spread n'est pas la
+> suite (banc join). **Quand** on dégelera les jonctions, ces trois principes + waypoints
+> (§12.6) + signaux sens unique, pas un cloverleaf de 40 tuiles. Recopier un CRAB serait du
+> TTDPatch, pas de la 15.3, et un gouffre d'opcodes.
+
+### 12.5 Dépôts
+
+Les pannes ralentissent tout le réseau ; un train qui *cherche* un dépôt peut s'engager dans
+une branche et n'en plus sortir. Deux réponses de la page : (1) **forcer** le passage au dépôt
+par un sens unique dos à la voie de contournement ; (2) un ordre **Go to depot**, natif
+OpenTTD (`AIOrder.OF_SERVICE_IF_NEEDED` / dépôt dans la liste d'ordres), plus un intervalle
+de service long.
+
+⚠️ Un dépôt posé **en coupure** de la voie (le rail s'arrête, le dépôt, le rail reprend) : le
+pathfinder ne « voit » pas au-delà. Les deux premiers dessins (dépôt en baie, voie continue)
+passent ; le troisième non.
+
+> **Conséquence.** OpexAI pose un dépôt **sur** la ligne dédiée, pas en coupure, et y construit
+> les trains. Tant qu'il n'y a pas de réseau, un train ne se « perd » pas en cherchant un
+> dépôt. Les pannes : ❓ `vehicle_breakdowns` n'est **pas** dans le `CFG` gelé des campagnes
+> 15.3 (seulement dans `docs/methode.md` pour la 13.4). Si le défaut du moteur n'est pas 0,
+> des pannes existent déjà sur nos lignes sans signaux — non mesuré. Ne pas ajouter d'ordres
+> dépôt « pour faire réseau ».
+
+### 12.6 Waypoints (ex-checkpoints)
+
+En TTDPatch, un checkpoint est une gare d'une tuile + ordre *non-stop* au sémantique patché.
+**OpenTTD a un outil waypoint dédié** : ordre « aller au waypoint », le train traverse sans
+s'arrêter. C'est la réponse au cloverleaf et aux trains perdus.
+
+> **Conséquence.** Inutile tant que `JOINPATH` tient (pas de branche à se tromper). Le jour des
+> jonctions, un waypoint sur la bonne branche est plus cheap en opcodes qu'un cloverleaf
+> « qui marche tout seul ». API : `AIRail.BuildRailWaypoint` / `AIOrder` vers un waypoint —
+> ❓ non appelé aujourd'hui, à relire dans les en-têtes 15 le jour venu.
