@@ -1,0 +1,18 @@
+{
+  "source": "docs/opex_town_growth_20y_5seeds.json",
+  "openttd": "15.3 src/town_cmd.cpp GetNormalGrowthRate / CountActiveStations / UpdateTownGrowth",
+  "date": "2026-08-30",
+  "town_growth_rate_setting": 2,
+  "active_station": "time_since_load <= 20 || time_since_unload <= 20 (~50 jours wiki, 20 ticks gare)",
+  "table_normal_town_ticks_before_shift": [320, 420, 300, 220, 160, 100],
+  "table_after_shift_rate2": [160, 210, 150, 110, 80, 50],
+  "note": "n=0 a un malus : 11/12 du temps la ville ne grandit pas (Chance16(1,12)). Le 320 n'est donc pas plus rapide que le 420. Intervalle ensuite divise par (num_houses/50+1). City : encore /2.",
+  "seeds": {
+    "42": {"served": "5->25", "pop": "424->1118", "ratio": 2.637, "free_pop": "725->520", "free_ratio": 0.717},
+    "100": {"served": "4->25", "pop": "1101->914", "ratio": 0.830, "free_pop": "582->504", "free_ratio": 0.866},
+    "999": {"served": "5->32", "pop": "944->951", "ratio": 1.007, "free_pop": "647->401", "free_ratio": 0.620},
+    "4096": {"served": "7->32", "pop": "1931->1244", "ratio": 0.644, "free_pop": "804->465", "free_ratio": 0.578},
+    "12345": {"served": "5->34", "pop": "1221->965", "ratio": 0.790, "free_pop": "695->507", "free_ratio": 0.729}
+  },
+  "verdict": "Les villes desservies n'estagnent pas comme classe : le set s'agrandit (on y ajoute des petites), ce qui dilue la mediane. Graine 42 : mediane x2,64 malgre +20 villes. Les libres baissent surtout par composition (on prend les grandes). L'item 2 (ne pas enfermer) reste dernier : pas de contrainte de trace. Le bareme 15.3 dit qu'1 a 5 gares actives accelerent, 0 gare bloque 11 fois sur 12."
+}

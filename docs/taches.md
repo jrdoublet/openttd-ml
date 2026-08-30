@@ -361,8 +361,11 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
    aussi pour le fret, sans facteur correctif propre. Les 2 ratios à 1,8-2,4x observés sont des
    lignes à 1 an de données (ligne neuve ou industrie en fin de vie), pas un biais de modèle.
    Détail dans `docs/opexai_croissance.md` §2 et §8.
-2. **Ne pas enfermer la ville dans nos propres voies** — reporté faute de mesure : vérifier
-   d'abord si la croissance des villes desservies stagne réellement (`docs/mecanique_jeu.md` §5).
+2. **Ne pas enfermer la ville dans nos propres voies** — la mesure existe
+   (`docs/opex_town_growth.json`, 2026-08-30) : les villes desservies n'estagnent **pas**
+   comme classe. Le barème 15.3 accélère avec 1–5 gares actives. ⚠️ **Reste dernier** :
+   pas de contrainte de tracé rail. Un effet local (maisons coincées par nos voies) n'est
+   pas isolé.
 3. ✅ **Origines épuisées dans la fenêtre `TOP_K` : résolu (2026-08-28), en deux temps.** Exclusion
    des origines déjà servies à la génération (`OpexOriginServed` dans `candidates.nut`) plutôt
    qu'au filtrage — mais **seule, cette exclusion dégradait le résultat** (`company_value`
@@ -672,11 +675,10 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
       Le spread n'est **pas** débloqué : joindre plus, sur un terme qui ne paie pas, recréerait
       le banc vivier.
 
-**Priorité de fait, révisée le 2026-08-30 (vitesse)** : rendement de vitesse ✅
-(0,96 vs catalogue, 1,18 vs traction, pas de retuning). Sonde 1950-2000 ✅.
-Multistop ✅. Classement ✅. TRACEX ✅. `RetryToBuild` : ~2/173. Le **spread**
-n'est pas la suite. `MIN_SEPARATION` reste gelé. L'item 2 reste dernier. Mesure
-ouverte : croissance de ville (§4.5).
+**Priorité de fait, révisée le 2026-08-30 (villes)** : croissance de ville ✅
+(barème 15.3 + médianes `TV`, pas de stagnation de classe). Vitesse ✅. Catalogue
+✅. Multistop ✅. Le **spread** n'est pas la suite. `MIN_SEPARATION` reste gelé.
+L'item 2 reste dernier. §4 mesures : plus rien d'ouvert.
 
 *Priorité précédente, conservée pour la trace* : ~~le rendement join~~ (✅ mesuré,
 défaut 0) était la tête. ~~l'item **9.1**~~ (✅) était la tête. ~~le retuning pax
@@ -781,8 +783,12 @@ Reprend le §8 de `docs/mecanique_jeu.md`, complété.
    ramassage enregistré ; ~2 mois pour résorber un écart de 50 points. Détail dans
    `docs/mecanique_jeu.md` §8.4. **Pas encore confirmé inchangé en 15.3** — lu sur la seule source
    locale disponible (13.4).
-5. Le **barème croissance de ville / nombre de gares actives** : absent du wiki, présent dans le
-   source (`town_cmd.cpp`, `UpdateTownGrowRate`) — à mesurer, pas à recopier de mémoire.
+5. ✅ **Barème croissance de ville / gares actives** (2026-08-30). Lu dans OpenTTD 15.3
+   (`GetNormalGrowthRate` / `CountActiveStations`, plus `UpdateTownGrowth`). Table
+   normale 320/420/300/220/160/100, chez nous `town_growth_rate = 2` → **160/210/150/110/80/50**,
+   n = 0 bloque 11/12 du temps. Mesure `TV`, 5 graines
+   (`docs/opex_town_growth_20y_5seeds.json`) : les desservies n'estagnent pas comme classe
+   (graine 42 ×2,64 malgré la dilution). L'item 2 reste dernier.
 6. ✅ **Sonde de catalogue 1950-2000** (2026-08-30). `CatalogProbe`, `starting_year = 1950`,
    51 ans, graine 42, OpenTTD 15.3 / OpenGFX 7.1 (`docs/catalogue_churn_1950_2000.json`,
    harnais `sweeps/opex_catalog_probe.py`). La sonde 1970-1989 reste

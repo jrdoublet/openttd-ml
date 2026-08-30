@@ -369,18 +369,28 @@ Siège social : `256 / 4 tuiles / (6 − niveau)` passagers, `196 / 4 tuiles / (
 >    récompense la concentration plutôt que la dispersion.
 > 4. **Poser de la route autour d'une ville desservie est un investissement de croissance** — bon
 >    marché en opcodes, sans pathfinding long.
-> 5. **Éviter d'enfermer la ville** doit être une contrainte du constructeur rail, pas une
->    remarque : c'est un auto-sabotage différé.
+> 5. **Éviter d'enfermer la ville** : la page le dit, la mesure 2026-08-30 ne voit **pas**
+>    de stagnation de classe (`docs/opex_town_growth.json`). L'item 2 du backlog reste
+>    dernier — pas de contrainte de tracé tant qu'un effet local n'est pas isolé.
 >
 > ⚠️ **Piège opérationnel** : une gare **sans transfert depuis 50 jours** coûte **−15 par mois** de
 > note d'autorité locale (contre +12 par gare active). Une ligne morte n'est donc pas seulement
 > improductive, elle **dégrade activement** la capacité à construire dans cette ville. Cela rejoint
 > la surveillance des lignes possédées déjà identifiée (industrie fermée).
 
-❓ **Ce que la page ne donne pas** : aucune formule chiffrée du taux de croissance, ni le barème
-reliant le nombre de gares actives à l'intervalle entre deux constructions de maison. Cette table
-existe dans le code source (`town_cmd.cpp`, `UpdateTownGrowRate`) mais **n'a pas été vérifiée ici**
-— à mesurer chez nous plutôt qu'à citer de mémoire, une fois qu'un constructeur existe.
+✅ **Barème 15.3** (`GetNormalGrowthRate`, plus `UpdateTownGrowRate`). Gare *active* :
+`time_since_load ≤ 20` ou `time_since_unload ≤ 20` (~50 jours wiki). Table normale, n = 0…5+
+gares actives : **320, 420, 300, 220, 160, 100** ticks ville. Notre `town_growth_rate = 2`
+fait `m >>= 1` : **160, 210, 150, 110, 80, 50**, puis `/ (num_houses/50 + 1)`, encore `/2`
+si city. n = 0 : **11/12** du temps la ville ne grandit pas (`Chance16(1,12)`) — le 320 n'est
+donc pas plus rapide que le 420.
+
+✅ **Mesure 2026-08-30** (`docs/opex_town_growth.json`, panneau `TV`, 5 graines × 20 ans).
+Ville desservie = `GetClosestTown` d'une de nos gares. Le set desservi passe de ~5 à 25–34
+villes : la médiane est **diluée** par les petites qu'on ajoute. Graine 42 : 424 → 1118
+(×2,64) malgré +20 villes — elles ne stagnent pas. Les libres baissent (0,58–0,87) surtout
+par composition. ⚠️ L'item 2 (ne pas enfermer le rail) **reste dernier** : pas de contrainte
+de tracé. Le barème dit qu'1 à 5 gares actives accélèrent ; 0 gare bloque presque toujours.
 
 ---
 
@@ -459,7 +469,8 @@ Construire une gare exige une note de seulement **−200** (donc quasi toujours 
    - Conséquence chiffrable : un écart de ~50 points entre la note de départ (175) et une cible
      stable prend `50/2 × 2,5 ≈ 62,5 jours ≈ 2 mois` à se résorber — cohérent avec le « ~2 mois
      annoncés » déjà noté, mais dérivé ici de la formule plutôt que rappelé de mémoire.
-5. ❓ La formule chiffrée de croissance des villes, absente du wiki.
+5. ✅ Barème de croissance / gares actives, lu dans le source 15.3 et mesuré
+   (`docs/opex_town_growth.json`, 2026-08-30).
 6. ✅ **Sonde de catalogue 1950-2000** (2026-08-30, `docs/catalogue_churn_1950_2000.json`) :
    électrique 1967, INTERNATIONAL 1990, monorail 2000, maglev pas encore. Une
    campagne 1970-1989 a déjà l'électrique. `catalog.nut` prend le dernier type de

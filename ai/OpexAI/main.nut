@@ -1388,6 +1388,28 @@ function OpexAI::_reportYear(year, ranked)
 
   OpexSign(anchor, "OX|" + year + "|" + this._catalog.towns.len()
                            + "|" + this._catalog.industries.len() + "|" + ranked.all);
+  /* Croissance de ville (taches S4.5). Ville desservie = GetClosestTown d'une de
+   * nos gares (rail/route/air/eau). "TV|89|12|9999|30|999" = 22 caracteres. */
+  local servedTowns = {};
+  for (local i = 0; i < this._lines.len(); i++) {
+    local line = this._lines[i];
+    local ends = [line.stationA];
+    if (("stationB" in line) && line.stationB != null) ends.append(line.stationB);
+    foreach (tile in ends) {
+      if (tile == null || !AIMap.IsValidTile(tile)) continue;
+      local town = AITile.GetClosestTown(tile);
+      if (town >= 0) servedTowns.rawset(town, true);
+    }
+  }
+  local servedPops = [];
+  local freePops = [];
+  foreach (town in this._catalog.towns) {
+    if (town.id in servedTowns) servedPops.append(town.pop);
+    else freePops.append(town.pop);
+  }
+  OpexSign(anchor, "TV|" + (year % 100) + "|" + servedPops.len() + "|"
+                           + OpexMedianInt(servedPops) + "|" + freePops.len() + "|"
+                           + OpexMedianInt(freePops));
   OpexSign(anchor, "OC|" + year + "|" + this._budget.get("cat_towns")
                            + "|" + this._budget.get("cat_industries")
                            + "|" + this._budget.get("cat_rail"));

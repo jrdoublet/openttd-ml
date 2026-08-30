@@ -64,6 +64,7 @@ RE_PJ = re.compile(r"^PJ\|(\d+)\|([ABN])\|([01])$")
 RE_PM = re.compile(r"^PM\|(\d+)\|([AWR])\|(\d+)\|(.+)$")
 RE_IA = re.compile(r"^IA\|(\d+)\|(\d+)\|(-?\d)\|(-?\d)\|(-?\d+)$")
 RE_OX = re.compile(r"^OX\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")   # year, towns, industries, ranked.all
+RE_TV = re.compile(r"^TV\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")  # yy, nServed, medS, nFree, medU
 RE_OW = re.compile(r"^OW\|(\d+)\|(\d+)\|(\d+)$")          # year, buildOps, lines.len() (as of start of year)
 RE_OS = re.compile(r"^OS\|(\d+)\|(\d+)\|(\d+)$")          # year, cand_rank opcodes, utilisationPerMille
 RE_CG = re.compile(r"^CG\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
@@ -641,6 +642,13 @@ def parse_yearly(all_signs):
             by_year.setdefault(y, {})["towns"] = int(m.group(2))
             by_year[y]["industries"] = int(m.group(3))
             by_year[y]["ranked_all"] = int(m.group(4))
+        elif m := RE_TV.match(sign):
+            y = 1900 + int(m.group(1))
+            d = by_year.setdefault(y, {})
+            d["pop_n_served"] = int(m.group(2))
+            d["pop_served_median"] = int(m.group(3))
+            d["pop_n_free"] = int(m.group(4))
+            d["pop_free_median"] = int(m.group(5))
         elif m := RE_OW.match(sign):
             y = int(m.group(1))
             by_year.setdefault(y, {})["buildOps"] = int(m.group(2))
@@ -731,6 +739,42 @@ def parse_yearly(all_signs):
             d["pax_near_tried"] = int(m.group(3))
             d["pax_near_ok"] = int(m.group(4))
     return dict(sorted(by_year.items()))
+
+
+def summarise_town_growth(yearly):
+    """Ratio  derniere/premiere annee des medianes TV (villes desservies vs libres)."""
+    rows = []
+    for year, row in yearly.items():
+        if "pop_served_median" not in row:
+            continue
+        rows.append((int(year), row))
+    if len(rows) < 2:
+        return {}
+    rows.sort()
+    last_year, last = rows[-1]
+    first_year, first = rows[0]
+    for year, row in rows:
+        if (row.get("pop_n_served") or 0) > 0:
+            first_year, first = year, row
+            break
+    def ratio(a, b):
+        if not a:
+            return None
+        return b / a
+    return {
+        "first_year": first_year,
+        "last_year": last_year,
+        "n_served_first": first.get("pop_n_served"),
+        "n_served_last": last.get("pop_n_served"),
+        "n_free_first": first.get("pop_n_free"),
+        "n_free_last": last.get("pop_n_free"),
+        "pop_served_first": first.get("pop_served_median"),
+        "pop_served_last": last.get("pop_served_median"),
+        "pop_free_first": first.get("pop_free_median"),
+        "pop_free_last": last.get("pop_free_median"),
+        "served_ratio": ratio(first.get("pop_served_median") or 0, last.get("pop_served_median") or 0),
+        "free_ratio": ratio(first.get("pop_free_median") or 0, last.get("pop_free_median") or 0),
+    }
 
 
 def parse_speed_yield(all_signs):
@@ -1030,6 +1074,7 @@ def make_run_payload(rows, seed, years):
         "loan_view": loan_view_rows,
         "speed_yield": {k: v for k, v in speed_yield.items() if k != "samples"},
         "speed_samples": speed_yield["samples"],
+        "town_growth": summarise_town_growth(yearly),
         "lines": lines, "yearly": yearly,
         "annual_blocks": annual_blocks, "calendar_years_crossed": calendar_years_crossed,
         "skipped_years": skipped_years, "financial_series": financial_series,
@@ -1118,7 +1163,8 @@ def main():
                                   "RI SITE route cargo/buildable/cmd",
                                   "RT TRACEX trials/long/hit/unb",
                                   "RM multistop nStopsA/nStopsB/veh",
-                                  "RV vitesse mediane trains en marche"],
+                                  "RV vitesse mediane trains en marche",
+                                  "TV pop mediane villes desservies/libres"],
         "runs": runs,
     }
     result_path.write_text(json.dumps(payload, indent=2))
@@ -1145,6 +1191,14 @@ def main():
               f"med={sy.get('median_speed')} pred={sy.get('median_pred')} "
               f"cat={sy.get('median_catalog')} "
               f"med/cat={sy.get('median_vs_catalog')} med/pred={sy.get('median_vs_pred')}")
+        tg = run.get("town_growth") or {}
+        if tg:
+            print(f"  villes served {tg.get('n_served_first')}->{tg.get('n_served_last')} "
+                  f"pop {tg.get('pop_served_first')}->{tg.get('pop_served_last')} "
+                  f"x{tg.get('served_ratio')}  "
+                  f"free {tg.get('n_free_first')}->{tg.get('n_free_last')} "
+                  f"pop {tg.get('pop_free_first')}->{tg.get('pop_free_last')} "
+                  f"x{tg.get('free_ratio')}")
         print(f"company_value final: {run['final_company_value']}  "
               f"performance_history: {run['final_performance_history']}")
         print(f"money: {run['final_money']}  current_loan: {run['final_current_loan']}")
