@@ -511,8 +511,8 @@ function OpexAI::_tryBuildAir(year)
       if (line.year == year) airLinesThisYear++;
     }
   }
-  local maxPerYear = AIR_STARTER ? 6 : 2;
-  local maxTotal = AIR_STARTER ? 30 : 10;
+  local maxPerYear = AIR_STARTER ? 15 : 2;
+  local maxTotal = AIR_STARTER ? 100 : 10;
   if (airLinesThisYear >= maxPerYear || totalAirLines >= maxTotal) return;
 
   local margin = AIR_STARTER ? 10000 : AIR_CAPITAL_MARGIN;
@@ -1770,32 +1770,18 @@ function OpexAI::_resizeAirFleets(year)
   local anchor = AIMap.GetTileIndex(1, 1);
   foreach (line in this._lines) {
     if (!("mode" in line) || line.mode != "air") continue;
-    local have = ("vehCount" in line) ? line.vehCount : 0;
+    local have = ("vehCount" in line) ? line.vehCount : (("vehicles" in line) ? line.vehicles.len() : 0);
     if (have < 1 || have >= AIR_MAX_PLANES_PER_ROUTE) continue;
-    if (("lastProfit" in line) && line.lastProfit <= 0) continue;
+    if (("lastProfit" in line) && line.lastProfit < 0) continue;
     local stationA = AIStation.GetStationID(line.stationA);
     local stationB = AIStation.GetStationID(line.stationB);
     local waitingA = AIStation.IsValidStation(stationA) ? AIStation.GetCargoWaiting(stationA, line.cargo) : 0;
     local waitingB = AIStation.IsValidStation(stationB) ? AIStation.GetCargoWaiting(stationB, line.cargo) : 0;
-    /* Un StationID de hub expose un backlog agrege. Sans partage, chacune de ses routes lirait
-     * le meme stock et pourrait cloner simultanement. Diviser par le nombre de lignes qui voient
-     * chaque extremite est conservateur et ne change strictement rien au bras air_hub=0. */
-    if (AIR_HUB) {
-      local shareA = 0;
-      local shareB = 0;
-      foreach (other in this._lines) {
-        if (!("mode" in other) || other.mode != "air") continue;
-        local otherA = AIStation.GetStationID(other.stationA);
-        local otherB = AIStation.GetStationID(other.stationB);
-        if (AIStation.IsValidStation(stationA) && (otherA == stationA || otherB == stationA)) shareA++;
-        if (AIStation.IsValidStation(stationB) && (otherA == stationB || otherB == stationB)) shareB++;
-      }
-      if (shareA > 1) waitingA /= shareA;
-      if (shareB > 1) waitingB /= shareB;
-    }
     local waiting = waitingA + waitingB;
     local capacity = ("planeCapacity" in line) ? line.planeCapacity : 0;
-    if (capacity <= 0 || waiting < (capacity * 3) / 4) continue;
+    local profitable = ("lastProfit" in line) && line.lastProfit > 12000;
+    local needGrowth = (capacity > 0 && waiting >= 25) || profitable;
+    if (!needGrowth) continue;
     local grown = OpexAirAddPlane(line);
     if (grown.added > 0) {
       line.vehCount <- have + 1;

@@ -275,17 +275,10 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0)
       }
     }
 
-    /* Bras hub de REPLI : un aeroport existant, rentable et non sature, plus UNE destination.
-     * Il n'est evalue que si aucune paire neuve n'est rentable ET financable. Le premier essai
-     * remplacait une ligne fraiche de 48 tuiles par un hub de 127 pour 16 200 de capital gagne :
-     * moins de rotation, moins de croissance. Un hub doit employer du capital autrement oisif,
-     * jamais evincer la meilleure liaison classique. */
+    /* Bras hub : un aeroport existant, rentable et non sature (max 6 routes), plus UNE destination. */
     local hubs = [];
-    if (AIR_HUB && bestPlan == null && lines != null) {
-      /* Une fois les douze grandes villes consommees par six paires, la liste de sites serait
-       * vide pour toujours. Le hub seul peut alors regarder les douze villes suivantes, et ne
-       * conserve que quatre sites : ouverture du vivier bornee, sans surcout classique. */
-      if (sites.len() == 0) {
+    if (AIR_HUB && lines != null) {
+      if (sites.len() < AIR_HUB_NEW_SITE_POOL) {
         local hubLimit = towns.len() < AIR_HUB_TOWN_POOL ? towns.len() : AIR_HUB_TOWN_POOL;
         local hubProbes = { left = AIR_MAX_SITE_PROBES,
                             townsLeft = hubLimit > limit ? hubLimit - limit : 0 };
@@ -298,15 +291,12 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0)
       local seenStations = {};
       foreach (line in lines) {
         if (!("mode" in line) || line.mode != "air") continue;
-        if (!("lastProfit" in line) || line.lastProfit <= 0) continue;
+        if (("lastProfit" in line) && line.lastProfit < 0) continue;
         local ends = [
-          { anchor = line.stationA, origin = line.originA,
-            waiting = ("lastWaitingA" in line) ? line.lastWaitingA : -1 },
-          { anchor = line.stationB, origin = line.originB,
-            waiting = ("lastWaitingB" in line) ? line.lastWaitingB : -1 },
+          { anchor = line.stationA, origin = line.originA },
+          { anchor = line.stationB, origin = line.originB },
         ];
         foreach (end in ends) {
-          if (end.waiting < 0 || end.waiting >= plane.capacity) continue;
           if (!AIAirport.IsAirportTile(end.anchor)) continue;
           local existingType = AIAirport.GetAirportType(end.anchor);
           if (!OpexAirAirportAcceptsPlane(existingType, plane.planeType)) continue;
@@ -320,7 +310,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0)
             local otherB = AIStation.GetStationID(other.stationB);
             if (otherA == station || otherB == station) routeCount++;
           }
-          if (routeCount >= 4) continue;
+          if (routeCount >= 6) continue;
           local townId = AITile.GetClosestTown(end.origin);
           if (townId < 0) continue;
           local hubTown = null;
@@ -331,8 +321,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0)
             hubTown = { id = townId, tile = end.origin, pop = AITown.GetPopulation(townId) };
           }
           seenStations.rawset(station, true);
-          hubs.append({ town = hubTown, anchor = end.anchor, routes = routeCount,
-                        waiting = end.waiting });
+          hubs.append({ town = hubTown, anchor = end.anchor, routes = routeCount });
         }
       }
     }
@@ -356,6 +345,44 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0)
           airport = airport, plane = plane, planes = economics.planes,
           capital = economics.capital, economics = economics,
           reuseA = true, hubRoutes = hub.routes,
+        };
+        if (bestPlan == null || economics.profitAnnual > bestPlan.economics.profitAnnual) bestPlan = plan;
+      }
+    }
+
+    /* Liaisons Hub-a-Hub directes entre deux aeroports existants (capital = 1 avion seul) */
+    for (local i = 0; i < hubs.len(); i++) {
+      for (local j = i + 1; j < hubs.len(); j++) {
+        local hub1 = hubs[i];
+        local hub2 = hubs[j];
+        local st1 = AIStation.GetStationID(hub1.anchor);
+        local st2 = AIStation.GetStationID(hub2.anchor);
+        local alreadyConnected = false;
+        foreach (line in lines) {
+          if (!("mode" in line) || line.mode != "air") continue;
+          local oA = AIStation.GetStationID(line.stationA);
+          local oB = AIStation.GetStationID(line.stationB);
+          if ((oA == st1 && oB == st2) || (oA == st2 && oB == st1)) {
+            alreadyConnected = true; break;
+          }
+        }
+        if (alreadyConnected) continue;
+        local distance = AIMap.DistanceManhattan(hub1.town.tile, hub2.town.tile);
+        if (distance < 45) continue;
+        local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR, hub1.anchor, hub2.anchor);
+        if (plane.maxOrderDistance > 0 && orderDistance > plane.maxOrderDistance) continue;
+        local monthly1 = ((hub1.town.pop * 22) / 100) / (hub1.routes + 1);
+        local monthly2 = ((hub2.town.pop * 22) / 100) / (hub2.routes + 1);
+        local monthlyPax = monthly1 + monthly2;
+        if (monthlyPax < 10) monthlyPax = 10;
+        local economics = OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
+                                            infrastructureMaintenance, maxCapital, 0);
+        if (economics == null || economics.profitAnnual <= 0) continue;
+        local plan = {
+          siteA = hub1, siteB = hub2, distance = distance, orderDistance = orderDistance,
+          airport = airport, plane = plane, planes = economics.planes,
+          capital = economics.capital, economics = economics,
+          reuseA = true, reuseB = true, hubRoutes = hub1.routes + hub2.routes,
         };
         if (bestPlan == null || economics.profitAnnual > bestPlan.economics.profitAnnual) bestPlan = plan;
       }
@@ -395,6 +422,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
   local airport = ("airport" in plan) ? plan.airport : catalog.airport;
   local planeChoice = ("plane" in plan) ? plan.plane : catalog.plane;
   local reuseA = ("reuseA" in plan) && plan.reuseA;
+  local reuseB = ("reuseB" in plan) && plan.reuseB;
 
   budget.begin();
   if (reuseA) {
@@ -414,26 +442,34 @@ function OpexBuildAirRoute(catalog, budget, plan)
     return result;
   }
 
-  local okB = AIAirport.BuildAirport(plan.siteB.anchor, airport.type, AIStation.STATION_NEW);
-  if (okB && AIAirport.IsAirportTile(plan.siteB.anchor)) airportB = plan.siteB.anchor;
+  if (reuseB) {
+    if (AIAirport.IsAirportTile(plan.siteB.anchor) &&
+        OpexAirAirportAcceptsPlane(AIAirport.GetAirportType(plan.siteB.anchor),
+                                   planeChoice.planeType)) {
+      airportB = plan.siteB.anchor;
+    }
+  } else {
+    local okB = AIAirport.BuildAirport(plan.siteB.anchor, airport.type, AIStation.STATION_NEW);
+    if (okB && AIAirport.IsAirportTile(plan.siteB.anchor)) airportB = plan.siteB.anchor;
+  }
   result.opcodes += budget.end("build_airports");
   if (airportB == null) {
     result.error = AIError.GetLastError();
     OpexAirRollback(reuseA ? null : airportA, null, []);
-    result.reason = "BFAIL";
+    result.reason = reuseB ? "HUBB" : "BFAIL";
     return result;
   }
 
   local stationA = AIStation.GetStationID(airportA);
   local stationB = AIStation.GetStationID(airportB);
   if (!AIStation.IsValidStation(stationA) || !AIStation.IsValidStation(stationB)) {
-    OpexAirRollback(reuseA ? null : airportA, airportB, []);
+    OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, []);
     result.reason = "STNFAIL";
     return result;
   }
   local hangar = AIAirport.GetHangarOfAirport(airportA);
   if (!AIMap.IsValidTile(hangar) || !AIAirport.IsHangarTile(hangar)) {
-    OpexAirRollback(reuseA ? null : airportA, airportB, []);
+    OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, []);
     result.reason = "HANGAR";
     return result;
   }
