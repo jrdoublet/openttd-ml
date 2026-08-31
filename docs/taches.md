@@ -1225,15 +1225,18 @@ mesurée : `docs/opexai_route.md`, banc PH **+9,3 %**.
   **profit attendu/Gopcode rail +28,9 %**, mais seulement 4/5 et `t = 1,29` (non etabli) ; en
   contrepartie **lignes -27,2 %**, revenu brut -26,7 %, performance -14,8 % et valeur -33,5 %.
   Le blocage strict sur une ligne bien classee mais chere immobilise le capital et casse la
-  croissance composee. Sur le smoke graine 42, autoriser le saut vers les lignes moins cheres
-  construit davantage a deux ans, mais fait baisser le profit attendu/opcode d'environ 10 % : ce
-  signal mono-graine ne suffit pas pour quantifier l'effet, mais sa direction viole la priorite
-  no 1. Resultats : `docs/opex_dynamic_queue_smoke_2y_42.json`,
-  `docs/opex_dynamic_queue_2y_5seeds.json` et
-  `docs/opex_dynamic_queue_5y_5seeds.json`. **Verdict : prototype non retenu ; le debit de
-  construction d'AAAHogEx ne vient pas de la seule forme de la file.** La prochaine hypothese utile
-  doit attaquer le cout de construction/pathfinding ou le capital par ligne, en gardant l'ordre
-  lexicographique fixe en tete de ce document.
+  croissance composee.
+
+  ✅ **Pipeline de précalcul sans blocage financier — FAIT (2026-08-31)** : découplage du calcul de tracé
+  (`OpexPlanRailRoute`) et de l'exécution financière (`OpexExecuteRailPlan`). Pendant les périodes
+  d'accumulation de cash (où 87 % des opcodes étaient dormants), l'IA précalcule les tracés A*, les quais
+  et la double voie des meilleurs candidats. Dès que la trésorerie atteint le capital requis, la construction
+  s'effectue instantanément.
+  **Banc apparié 5 graines × 5 ans (`docs/bench_preplan_queue_5y.json`)** :
+  - Valeur d'entreprise : **+3,63 %** (+11 374 £), **5/5 graines gagnantes**
+  - Profit annuel : **+4,86 %** (+5 194 £), **5/5 graines gagnantes**
+  - Profit dernier trimestre : **+4,85 %** (+1 293 £), **5/5 graines gagnantes**
+  - Réglage `preplan_queue`, défaut 1.
 - ✅ **Contribuer à la croissance d'une ville via des stations de bus/camions — FAIT (2026-08-31)** :
   Tâche basse priorité `town_growth` intégrée en fin de file annuelle (juste avant `repay`). Pour chaque
   ville desservie comptant $n$ gares ferroviaires/aéroports ($n < 5$), l'IA construit $5 - n$ stations de

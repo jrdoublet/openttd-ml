@@ -201,6 +201,10 @@ PAX_NEAR <- false;
  * Complete avec 5-n stations de bus pour chaque ville desservie comptant n gares/aeroports. */
 TOWN_GROWTH_ENABLED <- true;
 
+/* Precalcul de routes en file d'attente : repli VRAI jusqu'a la lecture unique de preplan_queue dans Start().
+ * Utilise les opcodes dormants pour precalculer A* et les plans de gare avant que le cash n'arrive. */
+PREPLAN_ENABLED <- true;
+
 /* Ligne fret morte (2026-08-28) : une industrie source qui ferme NE garantit PAS l'effondrement --
  * la gare peut recuperer une industrie voisine du meme cargo (ligne 4, campagne 20 ans, restee
  * rentable malgre srcAlive=0). Le diagnostic se fie donc TOUJOURS a la performance REELLE
@@ -256,6 +260,8 @@ class OpexAI extends AIController {
       /* Reutiliser une infrastructure rentable avant de repayer un nouvel A* : c'est le premier
        * item de croissance marginale et son ratio profit/opcode est mesure par EU/EX. */
       { name = "expand", dueCycle = 0, enabled = true },
+      /* Precalcul des traces pour utiliser les opcodes dormants et preparer la construction instantanee. */
+      { name = "preplan", dueCycle = 0, enabled = true },
       { name = "rail", dueCycle = 0, enabled = true },
       { name = "road", dueCycle = 0, enabled = true },
       { name = "air", dueCycle = 0, enabled = true },
@@ -272,6 +278,7 @@ class OpexAI extends AIController {
   function _tryBuildWater(year);
   function _tryBuildRoads(year);
   function _tryTownGrowth(year);
+  function _tryPreplan(year);
   function _tryBuild(ranked, year);
   function _tryProbeNegative(ranked, year);
   function _runNextTask();
@@ -852,6 +859,49 @@ function OpexAI::_tryTownGrowth(year)
       lineId = this._nextLineId,
     });
     this._nextLineId++;
+    break;
+  }
+}
+
+/* Precalcule le trace des meilleurs candidats en avance pendant les ticks d'opcodes dormants. */
+function OpexAI::_tryPreplan(year)
+{
+  if (!PREPLAN_ENABLED || this._ranked == null || this._ranked.best.len() == 0) return;
+  local best = this._ranked.best;
+  local anchor = AIMap.GetTileIndex(1, 1);
+
+  for (local i = 0; i < best.len() && i < CASH_CANDIDATE_SCAN_LIMIT; i++) {
+    local candidate = best[i];
+    if (("railPlan" in candidate) && candidate.railPlan != null) continue;
+    if (ABANDON_MEMORY) {
+      local abandonedKey = OpexAbandonedPairKey(candidate);
+      if (abandonedKey in this._abandonedPairs) continue;
+    }
+    local close = this._tooClose(candidate);
+    if (close.hard >= 0) continue;
+    local join = null;
+    local placeJoin = ("placeJoin" in candidate) ? candidate.placeJoin : null;
+    if (placeJoin != null) {
+      join = placeJoin;
+    } else if (close.blocking >= 0) {
+      if (STATION_JOIN) {
+        join = OpexFindStationJoin(candidate, close.conflicts);
+        if ("refuse" in join) join = null;
+      }
+      if (join == null) continue;
+    }
+
+    local alternativeSource = (i + 1 < best.len()) ? "S" : "L";
+    local alternativeRatio = (alternativeSource == "S") ? best[i + 1].ratio : MIN_RATIO;
+    local isPaxNear = PAX_NEAR && ("paxNear" in candidate) && candidate.paxNear;
+    if (isPaxNear) alternativeRatio = 0;
+
+    local plan = OpexPlanRailRoute(this._catalog, this._budget, candidate, alternativeRatio, join);
+    candidate.railPlan <- plan;
+    if (plan.ok) {
+      OpexSign(anchor, "PP|" + (year % 100) + "|" + i + "|" + candidate.distance + "|" + plan.iterations);
+    }
+    // Precalcule 1 plan par tour de file pour etaler l'effort sur les ticks disponibles
     break;
   }
 }
@@ -2282,6 +2332,11 @@ function OpexAI::_runNextTask()
     if (this._waterBuilt) task.enabled = false;
     return true;
   }
+  if (task.name == "preplan") {
+    if (!PREPLAN_ENABLED) { task.enabled = false; return false; }
+    this._tryPreplan(year);
+    return true;
+  }
   if (task.name == "rail") { this._tryBuild(this._ranked, year); return true; }
   if (task.name == "probe") {
     if (!PROBE_NEGATIVE) { task.enabled = false; return false; }
@@ -2328,6 +2383,7 @@ function OpexAI::Start()
    * cycle annuel, qui a lieu apres Start(). */
   ROAD_BUILD_ENABLED = AIController.GetSetting("road_mode") != 0;
   TOWN_GROWTH_ENABLED = AIController.GetSetting("town_growth") != 0;
+  PREPLAN_ENABLED = AIController.GetSetting("preplan_queue") != 0;
   local roadPaxCatchment = AIController.GetSetting("road_pax_catchment_pct");
   if (roadPaxCatchment > 0) ROAD_PAX_CATCHMENT_SHARE_PCT = roadPaxCatchment;
   ROAD_REFLEET = AIController.GetSetting("road_refleet") != 0;

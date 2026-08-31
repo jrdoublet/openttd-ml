@@ -441,6 +441,18 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
+    /* Précalcul de tracés en file d'attente (utilisation des opcodes dormants en attente de cash).
+     * Calcule A* et les plans de gare à l'avance pour les meilleurs candidats du classement,
+     * permettant une construction instantanée dès que la trésorerie est disponible. */
+    AddSetting({
+      name = "preplan_queue",
+      description = "Precalculate route plans in advance during idle opcode ticks: 1 = enabled (default), 0 = compute only when building",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* Part de la production totale d une ville qu un arret de bus capte, en pourcentage.
      *
      * 86 est adopte apres le banc apparie 20 graines (docs/bench_road_pax_catchment.json) :
