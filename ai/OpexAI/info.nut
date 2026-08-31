@@ -475,16 +475,14 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
-    /* Plantation d'arbres pour rehausser la note municipale aupres de l'autorite locale.
-     * Banc 20 graines x 5 ans (docs/bench_tree_planting_5y.json) : la plantation proactive
-     * consomme de la tresorerie sans gain (la note initiale > -200 suffit deja a construire).
-     * company_value -17.05% (t = -6.62, 0/20). Defaut 0 (ecarte). */
+    /* Ordre de chargement passagers rail : 1 = OF_FULL_LOAD_ANY (attente plein chargement aux deux bouts),
+     * 0 = OF_NONE (chargement partiel et depart immediat pour maximiser la cadence et la note). */
     AddSetting({
-      name = "tree_planting",
-      description = "Plant trees to restore town local authority rating: 1 = enabled, 0 = disabled (default)",
+      name = "pax_full_load",
+      description = "Rail passenger load order: 1 = full load any (default), 0 = no full load (fast partial departure)",
       min_value = 0, max_value = 1,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 

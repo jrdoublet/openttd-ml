@@ -656,22 +656,12 @@ function OpexBuildTrains(catalog, cargo, kind, depotTile, exitA, exitB, wanted, 
     return { built = 0, vehicles = vehicles, rollbackVehicles = rollbackVehicles,
              failed = true, failure = "LENGTH", error = 0, diag = diag };
   }
-  /* OF_FULL_LOAD_ANY aux deux arrets : verifie empiriquement sur TrainLineAI que OF_NONE fait
-   * repartir a vide sur une ligne neuve a faible frequentation -- vrai pour les PAIRES DE VILLES
-   * (pax), ou chaque bout produit ET accepte le cargo, donc chaque leg peut se remplir.
-   *
-   * FAUX pour le fret (diagnostic du 2026-08-28, ai/OpexAI/main.nut::_reportLines, docs/
-   * opex_freight_diag.json) : OpexFreightCandidates n'apparie qu'un producteur a un accepteur du
-   * MEME cargo -- la ligne est structurellement A SENS UNIQUE, le puits ne produit jamais rien a
-   * charger pour le retour. Avec OF_FULL_LOAD_ANY aux deux bouts, le convoi qui arrive au puits
-   * reste bloque en VS_AT_STATION (etat 3) a l'ordre 1 pour toujours -- confirme sur un convoi
-   * reel (order=1, load=0, coince) -- et sur une gare a UNE seule voie, ce convoi bouche la ligne
-   * : les autres convois restent VS_RUNNING vitesse 0 juste derriere. Resultat mesure : note de
-   * gare a -1 et revenu nul des la 2e annee sur 3 lignes fret / 3. Les industries elles-memes
-   * restaient valides et productives tout du long (IA|...|1|1|prod>0) -- ce n'est donc PAS une
-   * fermeture d'industrie. Correctif : le puits fret n'attend PAS de plein chargement (OF_NONE),
-   * seule la source continue de le faire. */
-  local flagsB = (kind == "freight") ? AIOrder.OF_NONE : AIOrder.OF_FULL_LOAD_ANY;
+  /* Ordres de chargement : pour le fret (sens unique), seule la source attend le plein chargement.
+   * Pour les passagers, PAX_FULL_LOAD=1 force le plein chargement aux deux bouts (patron trAIns),
+   * tandis que PAX_FULL_LOAD=0 autorise le chargement partiel immediat (OF_NONE) pour accelerer
+   * la cadence, eviter le pourrissement des passagers et maintenir la note de station. */
+  local flagsA = (kind == "pax" && !PAX_FULL_LOAD) ? AIOrder.OF_NONE : AIOrder.OF_FULL_LOAD_ANY;
+  local flagsB = (kind == "freight" || (kind == "pax" && !PAX_FULL_LOAD)) ? AIOrder.OF_NONE : AIOrder.OF_FULL_LOAD_ANY;
   for (local i = 0; i < wanted; i++) {
     local train = AIVehicle.BuildVehicle(depotTile, loco.id);
     if (!AIVehicle.IsValidVehicle(train)) {
@@ -739,7 +729,7 @@ function OpexBuildTrains(catalog, cargo, kind, depotTile, exitA, exitB, wanted, 
       }
     }
     measuredLength = trainLength;
-    local okA = AIOrder.AppendOrder(train, exitA, AIOrder.OF_FULL_LOAD_ANY);
+    local okA = AIOrder.AppendOrder(train, exitA, flagsA);
     local okB = AIOrder.AppendOrder(train, exitB, flagsB);
     if (!okA || !okB || AIOrder.GetOrderCount(train) != 2) {
       return { built = built, vehicles = vehicles, rollbackVehicles = rollbackVehicles,

@@ -1271,3 +1271,12 @@ mesurée : `docs/opexai_route.md`, banc PH **+9,3 %**.
   
   **Cause de l'échec** : La note d'autorité locale initiale dans OpenTTD est déjà suffisante ($\ge -200$) pour construire des gares et arrêts sans refus. Planter des arbres de façon préventive draine inutilement la trésorerie au démarrage sans débloquer aucun nouveau corridor.
   ⚠️ **Réglage `tree_planting`, défaut 0 (ÉCARTÉ).**
+- ⚪ **Ordre de chargement passagers rail (`pax_full_load`) — MAINTENU PAR DÉFAUT (2026-08-31)** :
+  Comparaison entre le plein chargement forcé aux deux bouts (`pax_full_load=1`, `OF_FULL_LOAD_ANY`) et le départ partiel rapide (`pax_full_load=0`, `OF_NONE`).
+  **Banc apparié 20 graines × 5 ans (`docs/bench_pax_full_load_5y.json`)** :
+  - `company_value` : **+0,21 %** (+1 055 £), $t = +0,61$, 8/20 wins pour A, 8/20 wins pour B, 4 nuls.
+  - `performance_history` : **+0,31 %** (+0,8 pt), $t = +0,63$.
+  - `profit` : **−0,16 %**, $t = −0,06$.
+  
+  **Conclusion** : Le dimensionnement de la longueur des convois par OpexAI (`trainsForVolume` / `OpexRailNominalMaxWagons`) est déjà ajusté au tonnage mensuel des villes reliées. Le départ partiel immédiat fait rouler des convois à demi-vides dont les coûts de fonctionnement fixes absorbent le léger gain de rotation.
+  ⚠️ **Défaut `pax_full_load=1` strictement maintenu.**
