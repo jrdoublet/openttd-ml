@@ -159,6 +159,7 @@ function OpexRailEffectiveSpeed(loco, wagon, wagons, distance)
 
 class OpexCatalog {
   towns = null;        // [{id, tile, pop}]
+  townAcceptors = null; // cargo -> [{id, tile, pop}]
   industries = null;   // [{id, tile, type}]
   producers = null;    // cargo -> [index dans industries]
   acceptors = null;    // cargo -> [index dans industries]
@@ -203,6 +204,7 @@ class OpexCatalog {
   constructor()
   {
     this.towns = [];
+    this.townAcceptors = {};
     this.industries = [];
     this.producers = {};
     this.acceptors = {};
@@ -627,13 +629,27 @@ function OpexCatalog::_refreshCargos()
 function OpexCatalog::_refreshTowns()
 {
   this.towns = [];
+  this.townAcceptors = {};
   local list = AITownList();
   for (local t = list.Begin(); !list.IsEnd(); t = list.Next()) {
-    this.towns.append({
+    local tile = AITown.GetLocation(t);
+    local pop = AITown.GetPopulation(t);
+    local townObj = {
       id = t,
-      tile = AITown.GetLocation(t),
-      pop = AITown.GetPopulation(t),
-    });
+      tile = tile,
+      pop = pop,
+    };
+    this.towns.append(townObj);
+
+    /* Indexation des marchandises complexes et cargos urbains acceptes par la ville (Goods, Food, Mail, etc.) */
+    foreach (cargo in this.cargos) {
+      if (cargo == this.paxCargo) continue;
+      local acceptance = AITile.GetCargoAcceptance(tile, cargo, 2, 2, this.railCoverage > 0 ? this.railCoverage : 4);
+      if (acceptance >= 8 || (pop >= 300 && AICargo.HasCargoClass(cargo, AICargo.CC_EXPRESS))) {
+        if (!(cargo in this.townAcceptors)) this.townAcceptors.rawset(cargo, []);
+        this.townAcceptors[cargo].append(townObj);
+      }
+    }
   }
 }
 

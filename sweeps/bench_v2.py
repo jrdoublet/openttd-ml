@@ -123,7 +123,7 @@ def parse_opex_variant(name):
             # uniquement (info.nut) ; 86 = 22 * le ratio median reel/predit 3,91.
             if not 0 <= value <= 100:
                 raise ValueError("road_pax_catchment_pct doit etre entre 0 et 100")
-        elif key in ("abandon_memory", "station_join", "join_place", "origin_sitable", "basin_share", "reborrow", "road_mode", "road_refleet", "road_multistop", "astar_cost", "probe_negative", "pax_near", "rail_cost_probe", "rail_expand", "town_growth", "preplan_queue", "dynamic_cash_reserve", "dynamic_pathfinder_cap", "tree_planting", "pax_full_load"):
+        elif key in ("abandon_memory", "station_join", "join_place", "origin_sitable", "basin_share", "reborrow", "road_mode", "road_refleet", "road_multistop", "astar_cost", "probe_negative", "pax_near", "rail_cost_probe", "rail_expand", "town_growth", "preplan_queue", "dynamic_cash_reserve", "dynamic_pathfinder_cap", "tree_planting", "pax_full_load", "complex_cargo"):
             if value not in (0, 1):
                 raise ValueError(f"{key} est booleen : 0 ou 1")
         else:

@@ -1280,3 +1280,13 @@ mesurée : `docs/opexai_route.md`, banc PH **+9,3 %**.
   
   **Conclusion** : Le dimensionnement de la longueur des convois par OpexAI (`trainsForVolume` / `OpexRailNominalMaxWagons`) est déjà ajusté au tonnage mensuel des villes reliées. Le départ partiel immédiat fait rouler des convois à demi-vides dont les coûts de fonctionnement fixes absorbent le léger gain de rotation.
   ⚠️ **Défaut `pax_full_load=1` strictement maintenu.**
+- ✅ **Gestion des marchandises complexes et chaînes de transformation secondaire (`complex_cargo`) — ADOPTÉ (2026-08-31)** :
+  Indexation au catalogue des villes acceptatrices pour les marchandises transformées (`Goods`, `Food`, `Water`, `Mail`) et génération des corridors Industrie $\rightarrow$ Ville dans `OpexFreightCandidates`.
+  Permet d'alimenter les industries secondaires (Aciérie, Scierie, Raffinerie, Usine) et d'évacuer les marchandises à haute valeur ajoutée vers les centres urbains.
+  **Banc apparié 20 graines × 5 ans (`docs/bench_complex_cargo_5y.json`)** :
+  - `company_value` : **+4,27 %** (+21 181 £), **$t = +2,29$** ($p < 0,05$), 12/20 graines gagnantes.
+  - `performance_history` : **+5,38 %** (+13,6 points), **$t = +3,10$** ($p < 0,01$), **16/20 graines gagnantes**.
+  - `profit` : **+4,85 %** (+1 853 £), $t = +1,71$, 12/20 graines gagnantes.
+  - `profit_year` : **+3,81 %** (+5 863 £), $t = +1,90$, 14/20 graines gagnantes.
+  
+  ⚠️ **Réglage `complex_cargo = 1` activé par défaut.**

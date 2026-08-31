@@ -727,8 +727,10 @@ function OpexFreightCandidates(catalog, lines, out, stats)
   }
   if (JOIN_PLACE) OpexPlaceJoinFreight(catalog, lines, out, stats, industries, served);
   foreach (cargo, sources in catalog.producers) {
-    if (!(cargo in catalog.acceptors)) continue;
-    local sinks = catalog.acceptors[cargo];
+    local hasIndustrySinks = (cargo in catalog.acceptors);
+    local hasTownSinks = COMPLEX_CARGO && (cargo in catalog.townAcceptors);
+    if (!hasIndustrySinks && !hasTownSinks) continue;
+    local sinks = hasIndustrySinks ? catalog.acceptors[cargo] : [];
     foreach (si in sources) {
       local source = industries[si];
       local monthly = AIIndustry.GetLastMonthProduction(source.id, cargo);
@@ -757,15 +759,41 @@ function OpexFreightCandidates(catalog, lines, out, stats)
         }
         local originServed = ss != null || sd != null;
         if (originServed) stats.pairsOneServed++;
-        /* Meme double comptage qu'en pax quand la SOURCE est deja servie -- et meme verdict :
-         * mesure le 2026-08-29, il ne se distingue pas du bruit une fois la distance neutralisee.
-         * Voir le commentaire detaille dans OpexPaxCandidates ci-dessus. */
         local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
                                             industries[di].tile, monthly, originServed, stats);
         if (candidate != null) {
           if (JOIN_PLACE && (OpexAbandonedPairKey(candidate) in stats.placeJoinKeys)) {
             /* H2 porte deja le join ; ne pas occuper un second slot TOP_K. */
           } else {
+            out.append(candidate);
+          }
+        }
+      }
+
+      /* Livraison des marchandises complexes aux villes acceptatrices (Goods, Food, Mail, etc.) */
+      if (hasTownSinks) {
+        local townSinks = catalog.townAcceptors[cargo];
+        foreach (town in townSinks) {
+          stats.pairsTotal++;
+          local st = OpexOriginService(lines, town.tile);
+          if ((ss != null && st != null) || (!STATION_JOIN && (ss != null || st != null))) {
+            stats.pairsOriginServed++;
+            continue;
+          }
+          if (ss != null && !OpexOriginJoinable(ss, "freight", cargo, "A")) {
+            stats.pairsJoinImpossible++;
+            continue;
+          }
+          if (st != null && !OpexOriginJoinable(st, "freight", cargo, "B")) {
+            stats.pairsJoinImpossible++;
+            continue;
+          }
+          local originServed = ss != null || st != null;
+          if (originServed) stats.pairsOneServed++;
+          local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
+                                              town.tile, monthly, originServed, stats);
+          if (candidate != null) {
+            candidate.dstTown <- town.id;
             out.append(candidate);
           }
         }

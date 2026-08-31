@@ -100,6 +100,7 @@ const BUILD_TICK_MARGIN = 3000;
 DYNAMIC_CASH_RESERVE <- true;
 TREE_PLANTING <- false;
 PAX_FULL_LOAD <- true;
+COMPLEX_CARGO <- true;
 const CASH_RESERVE_STATIC = 50000;
 const CASH_RESERVE_MIN = 15000;
 const CASH_RESERVE_MAX = 50000;
@@ -2448,6 +2449,7 @@ function OpexAI::Start()
   DYNAMIC_PATHFINDER_CAP = AIController.GetSetting("dynamic_pathfinder_cap") != 0;
   TREE_PLANTING = AIController.GetSetting("tree_planting") != 0;
   PAX_FULL_LOAD = AIController.GetSetting("pax_full_load") != 0;
+  COMPLEX_CARGO = AIController.GetSetting("complex_cargo") != 0;
 
   /* 🔴 RENOUVELLEMENT AUTOMATIQUE (2026-08-29). Mesure : campagne 20 ans, graine 42 -- trois des
    * quatre lignes ROUTIERES finissent la partie avec vehCount = 0 et un profit de zero, alors que

@@ -486,6 +486,18 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
+    /* Gestion des marchandises complexes et chaines d'industries secondaires (Goods, Food, Mail, etc.) :
+     * 1 = livre les marchandises transformees (usines/raffineries) aux villes acceptatrices (defaut),
+     * 0 = fret primaire industrie-industrie uniquement (mode historique). */
+    AddSetting({
+      name = "complex_cargo",
+      description = "Support complex secondary cargo chains and town goods/food deliveries: 1 = enabled (default), 0 = primary only",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* Part de la production totale d une ville qu un arret de bus capte, en pourcentage.
      *
      * 86 est adopte apres le banc apparie 20 graines (docs/bench_road_pax_catchment.json) :
