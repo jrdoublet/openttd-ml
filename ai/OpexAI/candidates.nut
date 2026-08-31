@@ -1086,3 +1086,30 @@ function OpexBuildRoadCandidates(catalog, budget, lines)
    * annees ou rien n'est bati, donc le panneau RN le porte sans condition (main.nut). */
   return { all = all.len(), best = OpexTopK(all, ROAD_TOP_K), stats = stats, opcodes = ops };
 }
+
+/* Rehausse la reputation municipale aupres de l'autorite locale en plantant des arbres.
+ * Cout : ~40 £ par arbre, gain : +7 points de note par arbre plante (plafond standard +220).
+ * Empeche le blocage ERR_LOCAL_AUTHORITY_REFUSES lors des constructions urbaines. */
+function OpexBoostTownRating(townId, targetRating = 100, maxTrees = 20)
+{
+  if (!AITown.IsValidTown(townId)) return;
+  local currentRating = AITown.GetRating(townId, AICompany.COMPANY_SELF);
+  if (currentRating >= targetRating) return;
+
+  local center = AITown.GetLocation(townId);
+  local planted = 0;
+  local radius = 7;
+
+  for (local dx = -radius; dx <= radius && planted < maxTrees; dx++) {
+    for (local dy = -radius; dy <= radius && planted < maxTrees; dy++) {
+      local tile = center + AIMap.GetTileIndex(dx, dy);
+      if (!AIMap.IsValidTile(tile)) continue;
+      if (AITown.GetNearestTown(tile) != townId) continue;
+      if (AITile.IsBuildable(tile)) {
+        if (AITile.PlantTree(tile)) {
+          planted++;
+        }
+      }
+    }
+  }
+}

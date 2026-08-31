@@ -98,6 +98,7 @@ const BUILD_TICK_MARGIN = 3000;
 /* Reserve de tresorerie dynamique : adaptee a la taille de la flotte pour liberer le capital
  * des les premieres annees (15 000 £ au lieu de 50 000 £) et eviter les soldes oisifs. */
 DYNAMIC_CASH_RESERVE <- true;
+TREE_PLANTING <- true;
 const CASH_RESERVE_STATIC = 50000;
 const CASH_RESERVE_MIN = 15000;
 const CASH_RESERVE_MAX = 50000;
@@ -514,6 +515,11 @@ function OpexAI::_tryBuildAir(year)
     if (money < need) return;
   }
 
+  if (TREE_PLANTING) {
+    OpexBoostTownRating(plan.siteA.town.id, 100, 20);
+    OpexBoostTownRating(plan.siteB.town.id, 100, 20);
+  }
+
   local result = OpexBuildAirRoute(this._catalog, this._budget, plan);
   local anchor = AIMap.GetTileIndex(1, 1);
   OpexSign(anchor, "OA|" + year + "|" + plan.distance + "|" + planOps + "|" + result.reason);
@@ -650,6 +656,10 @@ function OpexAI::_tryBuildRoads(year)
                                  + t.nLong + "|" + t.nHit + "|" + t.nUnb);
       }
       continue;
+    }
+    if (TREE_PLANTING) {
+      if (candidate.srcTown >= 0) OpexBoostTownRating(candidate.srcTown, 100, 15);
+      if (candidate.dstTown >= 0) OpexBoostTownRating(candidate.dstTown, 100, 15);
     }
     local result = OpexBuildRoadRoute(this._catalog, this._budget, plan, candidate);
     /* Le cout REEL d'une tentative, plan et construction separes. Mesure 2026-08-30
@@ -803,6 +813,10 @@ function OpexAI::_tryTownGrowth(year)
     local townPop = AITown.GetPopulation(townId);
     if (townPop < 100) continue;
 
+    if (TREE_PLANTING) {
+      OpexBoostTownRating(townId, 100, 15);
+    }
+
     local cx = AIMap.GetTileX(townTile);
     local cy = AIMap.GetTileY(townTile);
     local srcCenter = townTile;
@@ -854,7 +868,7 @@ function OpexAI::_tryTownGrowth(year)
     local plan = planning.plan;
     if (plan == null) continue;
 
-    local need = candidate.capital + CASH_RESERVE;
+    local need = candidate.capital + OpexCashReserve();
     money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
     if (money < need) continue;
 
@@ -1142,6 +1156,10 @@ function OpexAI::_tryBuild(ranked, year)
      * abandonnait le 75-100. alternativeRatio 0 = chemin Z, HARD_ITERATION_CAP. */
     if (isPaxNear) alternativeRatio = 0;
     local hardCap = OpexDynamicHardCap(this._lines.len(), false);
+    if (TREE_PLANTING && candidate.kind == "pax") {
+      OpexBoostTownRating(candidate.src, 100, 20);
+      OpexBoostTownRating(candidate.dst, 100, 20);
+    }
     local result = OpexBuildLine(this._catalog, this._budget, candidate, alternativeRatio, join,
                                  OpexCashReserve(), hardCap);
     if (isPaxNear) nPaxNearTried++;
@@ -2427,6 +2445,7 @@ function OpexAI::Start()
   PAX_NEAR = AIController.GetSetting("pax_near") != 0;
   DYNAMIC_CASH_RESERVE = AIController.GetSetting("dynamic_cash_reserve") != 0;
   DYNAMIC_PATHFINDER_CAP = AIController.GetSetting("dynamic_pathfinder_cap") != 0;
+  TREE_PLANTING = AIController.GetSetting("tree_planting") != 0;
 
   /* 🔴 RENOUVELLEMENT AUTOMATIQUE (2026-08-29). Mesure : campagne 20 ans, graine 42 -- trois des
    * quatre lignes ROUTIERES finissent la partie avec vehCount = 0 et un profit de zero, alors que
