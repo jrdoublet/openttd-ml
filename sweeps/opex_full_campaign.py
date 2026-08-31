@@ -1333,7 +1333,7 @@ def parse_args():
     parser.add_argument("years", type=int, nargs="?", default=10)
     parser.add_argument("seeds", type=int, nargs="*", default=[42])
     parser.add_argument("--output", type=Path)
-    parser.add_argument("--workers", type=int, default=1)
+    parser.add_argument("--workers", type=int, default=3)
     # Un reglage OpexAI par occurrence, "cle=valeur". Sert a mesurer un mecanisme que le DEFAUT
     # desactive -- station_join est passe a 0 le 2026-08-29 apres le verdict du banc, mais il faut
     # encore pouvoir l'allumer pour chiffrer la sur-estimation des lignes jointes.

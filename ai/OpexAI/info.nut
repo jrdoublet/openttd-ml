@@ -464,6 +464,17 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
+    /* Plafond d'itérations A* dynamique : faible au départ (15k) pour filtrer vite les lignes faciles,
+     * augmente en précalcul / attente de cash (60k) et avec la maturité du réseau (15k -> 60k). */
+    AddSetting({
+      name = "dynamic_pathfinder_cap",
+      description = "Dynamically scale pathfinder opcode cap (15k early -> 60k low-cash/mature): 1 = enabled (default), 0 = static cap",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* Part de la production totale d une ville qu un arret de bus capte, en pourcentage.
      *
      * 86 est adopte apres le banc apparie 20 graines (docs/bench_road_pax_catchment.json) :

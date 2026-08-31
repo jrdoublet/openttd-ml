@@ -55,14 +55,29 @@ const ATTEMPT_FLOOR = 2000;
  * candidat suivant. Pour le dernier, l'appelant fournit MIN_RATIO, le plus petit rapport encore
  * acceptable au prochain classement annuel. Le cas <=0 reste seulement un garde-fou defensif.
  */
-function OpexIterationBudget(profitAnnual, alternativeRatio)
+DYNAMIC_PATHFINDER_CAP <- true;
+
+/* Plafond dur d'iterations A* dynamique :
+ * 1. Faible au debut (15k) pour filtrer rapidement les lignes faciles sans bruler de temps.
+ * 2. Augmente pendant le precalcul ou quand la tresorerie manque (60k) pour exploiter les opcodes dormants.
+ * 3. Augmente avec la maturite du reseau (15k + 7.5k * nLines, jusqu'a 60k) quand les couloirs faciles sont epuises. */
+function OpexDynamicHardCap(linesCount, isPreplanOrLowCash)
+{
+  if (!DYNAMIC_PATHFINDER_CAP) return HARD_ITERATION_CAP;
+  if (isPreplanOrLowCash) return 60000;
+  local cap = 30000 + linesCount * 5000;
+  if (cap > 60000) cap = 60000;
+  return cap;
+}
+
+function OpexIterationBudget(profitAnnual, alternativeRatio, hardCap = 40000)
 {
   /* Le chemin est retourne avec le budget pour l'instrumentation : Z = pas d'alternative,
    * F = plancher de tentative, C = plafond dur, N = forme fermee non bornee. */
-  if (alternativeRatio <= 0) return { budget = HARD_ITERATION_CAP, path = "Z" };
+  if (alternativeRatio <= 0) return { budget = hardCap, path = "Z" };
   local budget = ATTEMPT_MULTIPLIER * (profitAnnual * 1000) / alternativeRatio;
   if (budget < ATTEMPT_FLOOR) return { budget = ATTEMPT_FLOOR, path = "F" };
-  if (budget > HARD_ITERATION_CAP) return { budget = HARD_ITERATION_CAP, path = "C" };
+  if (budget > hardCap) return { budget = hardCap, path = "C" };
   return { budget = budget, path = "N" };
 }
 
@@ -876,7 +891,7 @@ function OpexPlaceJoinSignals(planA, planB, tiles, depot, join)
 
 /* Precalcule le plan physique complet d'une ligne ferroviaire (quais, economie, trace A*,
  * depot, double voie eventuelle) SANS modifier la carte du jeu ni depenser de tresorerie. */
-function OpexPlanRailRoute(catalog, budget, candidate, alternativeRatio, join)
+function OpexPlanRailRoute(catalog, budget, candidate, alternativeRatio, join, hardCap = 40000)
 {
   local plan = { ok = false, reason = "", iterations = 0, opcodes = 0,
                  plansA = null, plansB = null, planA = null, planB = null,
@@ -886,7 +901,7 @@ function OpexPlanRailRoute(catalog, budget, candidate, alternativeRatio, join)
                  doubleTrack = 0, doubleTiles = 0, doubleDepot = null, doubleSkip = 0,
                  budgetInfo = null, iterationBudget = 0, capital = candidate.capital };
 
-  plan.budgetInfo = OpexIterationBudget(candidate.profitAnnual, alternativeRatio);
+  plan.budgetInfo = OpexIterationBudget(candidate.profitAnnual, alternativeRatio, hardCap);
   plan.iterationBudget = plan.budgetInfo.budget;
 
   budget.begin();
@@ -914,7 +929,7 @@ function OpexPlanRailRoute(catalog, budget, candidate, alternativeRatio, join)
   if (economics == null) { plan.reason = "ECON"; return plan; }
   plan.capital = economics.capital;
   OpexApplyRailEconomics(candidate, economics);
-  plan.budgetInfo = OpexIterationBudget(candidate.profitAnnual, alternativeRatio);
+  plan.budgetInfo = OpexIterationBudget(candidate.profitAnnual, alternativeRatio, hardCap);
   plan.iterationBudget = plan.budgetInfo.budget;
 
   budget.begin();
@@ -1138,16 +1153,19 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, join, cashReserve
 }
 
 /* Construit une ligne complete, en reutilisant le plan precalcule s'il est present. */
-function OpexBuildLine(catalog, budget, candidate, alternativeRatio, join, cashReserve)
+function OpexBuildLine(catalog, budget, candidate, alternativeRatio, join, cashReserve, hardCap = 40000)
 {
   local plan = null;
   if (("railPlan" in candidate) && candidate.railPlan != null && candidate.railPlan.ok) {
     plan = candidate.railPlan;
   } else {
-    plan = OpexPlanRailRoute(catalog, budget, candidate, alternativeRatio, join);
+    plan = OpexPlanRailRoute(catalog, budget, candidate, alternativeRatio, join, hardCap);
     if (!plan.ok) {
       return { ok = false, reason = plan.reason, iterations = plan.iterations, opcodes = plan.opcodes,
                siteClear = plan.siteClear, siteCargo = plan.siteCargo, siteCmd = plan.siteCmd,
+               siteKind = "N", joinEnd = "N", error = 0, diag = null,
+               capacitySignalSegments = 0, capacitySignalsOk = 0, capacitySignalsFail = 0,
+               capacitySignalFailures = [],
                budgetInfo = plan.budgetInfo, iterationBudget = plan.iterationBudget };
     }
   }

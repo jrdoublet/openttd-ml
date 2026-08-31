@@ -912,7 +912,8 @@ function OpexAI::_tryPreplan(year)
     local isPaxNear = PAX_NEAR && ("paxNear" in candidate) && candidate.paxNear;
     if (isPaxNear) alternativeRatio = 0;
 
-    local plan = OpexPlanRailRoute(this._catalog, this._budget, candidate, alternativeRatio, join);
+    local hardCap = OpexDynamicHardCap(this._lines.len(), true);
+    local plan = OpexPlanRailRoute(this._catalog, this._budget, candidate, alternativeRatio, join, hardCap);
     candidate.railPlan <- plan;
     if (plan.ok) {
       OpexSign(anchor, "PP|" + (year % 100) + "|" + i + "|" + candidate.distance + "|" + plan.iterations);
@@ -1137,8 +1138,9 @@ function OpexAI::_tryBuild(ranked, year)
     /* pax_near : profit negatif -> forme fermee negative -> plancher 2000, qui
      * abandonnait le 75-100. alternativeRatio 0 = chemin Z, HARD_ITERATION_CAP. */
     if (isPaxNear) alternativeRatio = 0;
+    local hardCap = OpexDynamicHardCap(this._lines.len(), false);
     local result = OpexBuildLine(this._catalog, this._budget, candidate, alternativeRatio, join,
-                                 OpexCashReserve());
+                                 OpexCashReserve(), hardCap);
     if (isPaxNear) nPaxNearTried++;
     /* La longueur retenue peut etre plus courte que le souhait, ou celle d'un quai joint plus
      * longue. OpexBuildLine a alors recalcule le capital avant toute demolition. Ce rejet reste
@@ -1342,7 +1344,7 @@ function OpexAI::_tryBuild(ranked, year)
       /* Seulement ABND signifie que le plafond d'iterations a joue. DEAD est le deadline, NOPA
        * une file vide, et les echecs de construction ne disent rien sur cette paire : les garder
        * hors memoire preserve leur possibilite de reussir plus tard. */
-      if (ABANDON_MEMORY && result.reason == "ABND") {
+      if (ABANDON_MEMORY && result.reason == "ABND" && result.iterationBudget >= 40000) {
         this._abandonedPairs[abandonedKey] <- true;
       }
     }
@@ -1443,8 +1445,9 @@ function OpexAI::_tryProbeNegative(ranked, year)
     local rankingDistance = candidate.distance;
     /* alternativeRatio 0 : chemin Z, HARD_ITERATION_CAP. join = null : on mesure
      * la paire rejetee, pas une jointure. Pas de reemprunt. */
+    local hardCap = OpexDynamicHardCap(this._lines.len(), false);
     local result = OpexBuildLine(this._catalog, this._budget, candidate, 0, null,
-                                 OpexCashReserve());
+                                 OpexCashReserve(), hardCap);
     /* Un seul OpexBuildLine par an : le sondage de site est deja un cout d'opcodes. */
     tried = 1;
     if (result.reason == "CASH") {
@@ -2409,6 +2412,7 @@ function OpexAI::Start()
   PROBE_NEGATIVE = AIController.GetSetting("probe_negative") != 0;
   PAX_NEAR = AIController.GetSetting("pax_near") != 0;
   DYNAMIC_CASH_RESERVE = AIController.GetSetting("dynamic_cash_reserve") != 0;
+  DYNAMIC_PATHFINDER_CAP = AIController.GetSetting("dynamic_pathfinder_cap") != 0;
 
   /* 🔴 RENOUVELLEMENT AUTOMATIQUE (2026-08-29). Mesure : campagne 20 ans, graine 42 -- trois des
    * quatre lignes ROUTIERES finissent la partie avec vehCount = 0 et un profit de zero, alors que
