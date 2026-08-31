@@ -208,6 +208,17 @@ class OpexAI extends AIController {
   _abandonedPairs = null;
   _airBuilt = false;
   _waterBuilt = false;
+  /* Ordonnanceur permanent : une tache atomique par tour de boucle. Contrairement au bloc annuel,
+   * il ne se remet pas a zero au changement d annee : apres le dernier element, l index revient
+   * immediatement au premier. Les taches gardent leurs invariants : air et eau uniques, rail
+   * classe, route bornee, remboursement prudent. */
+  _taskQueue = null;
+  _nextTask = 0;
+  _ranked = null;
+  _lastReportYear = -1;
+  _lastScrapYear = -1;
+  _lastRefleetYear = -1;
+  _lastRepayYear = -1;
   /* Le diagnostic mono-bus (_roadDiag, _reportRoad, echantillon trimestriel RQ/RE/RI) a ete retire
    * le 2026-08-29 : il servait a trouver pourquoi UNE liaison ne chargeait rien, la reponse est
    * connue et documentee (builder_road.nut), et les lignes routieres rejoignent desormais _lines,
@@ -226,6 +237,8 @@ class OpexAI extends AIController {
     this._catalog = OpexCatalog();
     this._lines = [];
     this._abandonedPairs = {};
+    this._taskQueue = ["catalog", "report", "scrap", "refleet", "air", "water",
+                       "rail", "probe", "road", "repay"];
   }
 
   function Start();
@@ -235,6 +248,7 @@ class OpexAI extends AIController {
   function _tryBuildRoads(year);
   function _tryBuild(ranked, year);
   function _tryProbeNegative(ranked, year);
+  function _runNextTask();
   function _reportYear(year, ranked);
   function _reportLines(year);
   function _scrapDeadLines(year);
@@ -1708,6 +1722,57 @@ function OpexAI::_processEvents()
   }
 }
 
+/* Execute one queue item, then advance immediately. Maintenance is still yearly because
+ * OpenTTD exposes last-year profit, not a shorter accounting period; construction and
+ * one-shot modes are deliberately continuous. */
+function OpexAI::_runNextTask()
+{
+  if (this._taskQueue == null || this._taskQueue.len() == 0) return;
+  local task = this._taskQueue[this._nextTask];
+  this._nextTask = (this._nextTask + 1) % this._taskQueue.len();
+  local year = AIDate.GetYear(AIDate.GetCurrentDate());
+
+  if (task == "catalog") {
+    this._catalog.refresh(this._budget, year);
+    this._ranked = OpexBuildCandidates(this._catalog, this._budget, this._lines);
+    return;
+  }
+  if (this._ranked == null) return;
+  if (task == "report") {
+    if (this._lastReportYear != year) {
+      OpexSign(AIMap.GetTileIndex(1, 1), "LB|" + (year % 100) + "|"
+               + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
+      this._reportYear(year, this._ranked);
+      this._reportLines(year);
+      this._lastReportYear = year;
+    }
+    return;
+  }
+  if (task == "scrap") {
+    if (this._lastScrapYear != year) {
+      this._scrapDeadLines(year);
+      this._lastScrapYear = year;
+    }
+    return;
+  }
+  if (task == "refleet") {
+    if (this._lastRefleetYear != year) {
+      this._refleetRoadLines(year);
+      this._lastRefleetYear = year;
+    }
+    return;
+  }
+  if (task == "air") { this._tryBuildAir(year); return; }
+  if (task == "water") { this._tryBuildWater(year); return; }
+  if (task == "rail") { this._tryBuild(this._ranked, year); return; }
+  if (task == "probe") { if (PROBE_NEGATIVE) this._tryProbeNegative(this._ranked, year); return; }
+  if (task == "road") { this._tryBuildRoads(year); return; }
+  if (task == "repay" && this._lastRepayYear != year) {
+    this._tryRepayLoan(year);
+    this._lastRepayYear = year;
+  }
+}
+
 function OpexAI::Start()
 {
   AICompany.SetName("OpexAI");
@@ -1763,65 +1828,9 @@ function OpexAI::Start()
    * viendra quand la tresorerie le permettra. */
   AICompany.SetLoanAmount(AICompany.GetMaxLoanAmount());
 
-  local lastYear = -1;
   while (true) {
     this._processEvents();
-    local year = AIDate.GetYear(AIDate.GetCurrentDate());
-    if (year != lastYear) {
-      /* Mesure directe du cycle annuel. YT|aa|debut|fin|tryBuild|saut[C] : aa est l'annee
-       * modulo 100 ; saut compte les annees civiles sautees depuis le dernier cycle et C prouve
-       * leur rattrapage. Le pire nom est YT|99|999999|999999|999999|99C : 30 caracteres. Un seul
-       * panneau par cycle, pose APRES le travail, suffit : fin-debut est la duree totale et le
-       * reste (total - tryBuild) couvre catalogue, candidats, rapports, entretien et emprunt. */
-      local blockStartTick = AIController.GetTick();
-      local skippedYears = (lastYear < 0) ? 0 : year - lastYear - 1;
-      /* Tresorerie AVANT toute depense du cycle : c'est le sommet annuel, celui que _tryRepayLoan
-       * ne voit jamais puisqu'il est appele apres _tryBuild. LB - LF mesure donc exactement ce que
-       * la construction retire au remboursement. */
-      OpexSign(AIMap.GetTileIndex(1, 1), "LB|" + (year % 100) + "|"
-               + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
-      /* Un cycle de construction ne se rejoue jamais retroactivement : ses candidats, son argent
-       * et le monde ont deja evolue. En revanche les rapports de lignes, le rebut des lignes
-       * mortes et le remboursement restent des decisions valides au moment du rattrapage. Les
-       * executer pour chaque annee manquee empeche qu'une annee complete soit totalement ignoree.
-       * Le catalogue est ensuite rafraichi une seule fois, a son etat reel courant, avant le
-       * classement et la construction de l'annee courante. */
-      if (lastYear >= 0) {
-        for (local missedYear = lastYear + 1; missedYear < year; missedYear++) {
-          this._reportLines(missedYear);
-          this._scrapDeadLines(missedYear);
-          this._refleetRoadLines(missedYear);
-          this._tryRepayLoan(missedYear);
-        }
-      }
-      lastYear = year;
-      this._catalog.refresh(this._budget, year);
-      local ranked = OpexBuildCandidates(this._catalog, this._budget, this._lines);
-      this._reportYear(year, ranked);
-      this._reportLines(year);
-      this._scrapDeadLines(year);
-      this._refleetRoadLines(year);
-      this._tryBuildAir(year);
-      this._tryBuildWater(year);
-      local buildStartTick = AIController.GetTick();
-      this._tryBuild(ranked, year);
-      local tryBuildTicks = AIController.GetTick() - buildStartTick;
-      /* Item 7 : APRES le classement, AVANT la route. Le cash restant est celui que le
-       * TOP_K n'a pas voulu ; la route ne le dispute pas encore. Hors YT : a 0, un seul
-       * test, et la duree _tryBuild reste comparable aux campagnes anterieures. */
-      if (PROBE_NEGATIVE) this._tryProbeNegative(ranked, year);
-      /* APRES le rail, et delibere : cf. le commentaire en tete de _tryBuildRoads. YT continue de
-       * ne mesurer que _tryBuild, pour que la duree du cycle rail reste comparable aux campagnes
-       * anterieures ; le cout de la phase routiere se lit sur ses propres panneaux RB. */
-      this._tryBuildRoads(year);
-      this._tryRepayLoan(year);
-      local blockEndTick = AIController.GetTick();
-      local anchor = AIMap.GetTileIndex(1, 1);
-      local skippedMarker = skippedYears > 0 ? skippedYears + "C" : "0";
-      OpexSign(anchor, "YT|" + (year % 100) + "|" + blockStartTick + "|" + blockEndTick
-                               + "|" + tryBuildTicks + "|" + skippedMarker);
-    }
-
+    this._runNextTask();
     AIController.Sleep(74 * 10);
   }
 }
