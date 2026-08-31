@@ -1234,11 +1234,12 @@ mesurée : `docs/opexai_route.md`, banc PH **+9,3 %**.
   construction d'AAAHogEx ne vient pas de la seule forme de la file.** La prochaine hypothese utile
   doit attaquer le cout de construction/pathfinding ou le capital par ligne, en gardant l'ordre
   lexicographique fixe en tete de ce document.
-- **Contribuer à la croissance d'une ville via des stations de bus/camions** (jusqu'à 5 gares,
-  une unité de cargo par 50 jours) — recoupe le mode Route adopté (section 6), posé ici
-  comme objectif de croissance plutôt que comme mode de transport. Le barème 15.3
-  confirme le plafond à 5 ; `TV` 2026-08-30 ne distingue pas le mode. L'item 2 reste
-  dernier.
+- ✅ **Contribuer à la croissance d'une ville via des stations de bus/camions — FAIT (2026-08-31)** :
+  Tâche basse priorité `town_growth` intégrée en fin de file annuelle (juste avant `repay`). Pour chaque
+  ville desservie comptant $n$ gares ferroviaires/aéroports ($n < 5$), l'IA construit $5 - n$ stations de
+  bus intra-urbaines pour atteindre le plafond maximal de 5 stations actives d'OpenTTD (`CountActiveStations = 5`)
+  et maximiser l'accélération de croissance démographique sans pénaliser les investissements lourds.
+  Réglage `town_growth`, défaut 1. Signe diagnostic `TG|year|townId|nBefore|nAfter`.
 - **Planter des arbres pour augmenter la réputation** (note de compagnie) — déjà identifié dans
   `docs/mecanique_jeu.md` comme le levier de rattrapage bon marché si la note stagne à cause du
   terrassement/destruction de bâtiments.

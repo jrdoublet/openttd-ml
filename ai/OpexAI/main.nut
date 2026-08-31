@@ -197,6 +197,10 @@ PROBE_NEGATIVE <- false;
  * tentative/an au plafond dur. Le long et le fret restent filtres. */
 PAX_NEAR <- false;
 
+/* Croissance urbaine : repli VRAI jusqu'a la lecture unique de town_growth dans Start().
+ * Complete avec 5-n stations de bus pour chaque ville desservie comptant n gares/aeroports. */
+TOWN_GROWTH_ENABLED <- true;
+
 /* Ligne fret morte (2026-08-28) : une industrie source qui ferme NE garantit PAS l'effondrement --
  * la gare peut recuperer une industrie voisine du meme cargo (ligne 4, campagne 20 ans, restee
  * rentable malgre srcAlive=0). Le diagnostic se fie donc TOUJOURS a la performance REELLE
@@ -257,6 +261,7 @@ class OpexAI extends AIController {
       { name = "air", dueCycle = 0, enabled = true },
       { name = "water", dueCycle = 0, enabled = true },
       { name = "probe", dueCycle = 0, enabled = true },
+      { name = "town_growth", dueCycle = 0, enabled = true },
       { name = "repay", dueCycle = 0, enabled = true },
     ];
   }
@@ -266,6 +271,7 @@ class OpexAI extends AIController {
   function _tryBuildAir(year);
   function _tryBuildWater(year);
   function _tryBuildRoads(year);
+  function _tryTownGrowth(year);
   function _tryBuild(ranked, year);
   function _tryProbeNegative(ranked, year);
   function _runNextTask();
@@ -704,6 +710,152 @@ function OpexAI::_tryBuildRoads(year)
    * haut -- et le plancher, lui, est arbitraire (cf. ROAD_MIN_PROFIT_ANNUAL). */
   OpexSign(anchor, "RS|" + yy + "|" + ranked.stats.pairsInBand + "|"
                            + ranked.stats.profitTooLow + "|" + ranked.stats.accepted);
+}
+
+/* Compte le nombre de stations actives de notre compagnie dans une ville donnee. */
+function OpexCountTownStations(townId)
+{
+  local stations = AIStationList(AIStation.STATION_ANY);
+  local count = 0;
+  for (local st = stations.Begin(); !stations.IsEnd(); st = stations.Next()) {
+    if (AIStation.GetNearestTown(st) == townId) {
+      count++;
+    }
+  }
+  return count;
+}
+
+/* Liste des villes desservies par au moins une liaison rail, air ou route de notre compagnie. */
+function OpexGetServedTowns(lines)
+{
+  local townMap = {};
+  local result = [];
+  foreach (line in lines) {
+    if (line.mode == "rail" || line.mode == "air" || line.mode == "road") {
+      local stA = AIStation.GetStationID(line.stationA);
+      local stB = AIStation.GetStationID(line.stationB);
+      if (AIStation.IsValidStation(stA)) {
+        local tA = AIStation.GetNearestTown(stA);
+        if (tA >= 0 && !(tA in townMap)) {
+          townMap.rawset(tA, true);
+          result.append(tA);
+        }
+      }
+      if (AIStation.IsValidStation(stB)) {
+        local tB = AIStation.GetNearestTown(stB);
+        if (tB >= 0 && !(tB in townMap)) {
+          townMap.rawset(tB, true);
+          result.append(tB);
+        }
+      }
+    }
+  }
+  return result;
+}
+
+/* Tache basse priorite de croissance urbaine : si une ville desservie compte n gares/aeroports (n < 5),
+ * construit 5 - n stations de bus pour porter le total a 5 (plafond de croissance maximale OpenTTD). */
+function OpexAI::_tryTownGrowth(year)
+{
+  if (!TOWN_GROWTH_ENABLED || this._catalog.roadType < 0 || this._catalog.paxCargo < 0) return;
+  local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  if (money < CASH_RESERVE + 25000) return;
+
+  local engine = (this._catalog.paxCargo in this._catalog.roadEngineByCargo)
+      ? this._catalog.roadEngineByCargo[this._catalog.paxCargo] : null;
+  if (engine == null) return;
+
+  local servedTowns = OpexGetServedTowns(this._lines);
+  if (servedTowns.len() == 0) return;
+
+  local anchor = AIMap.GetTileIndex(1, 1);
+
+  foreach (townId in servedTowns) {
+    if (!AITown.IsValidTown(townId)) continue;
+    local currentCount = OpexCountTownStations(townId);
+    if (currentCount >= 5) continue;
+
+    local townTile = AITown.GetLocation(townId);
+    local townPop = AITown.GetPopulation(townId);
+    if (townPop < 100) continue;
+
+    local cx = AIMap.GetTileX(townTile);
+    local cy = AIMap.GetTileY(townTile);
+    local srcCenter = townTile;
+    local offsets = [[6, 0], [-6, 0], [0, 6], [0, -6], [6, 6], [-6, -6], [8, 0], [0, 8]];
+    local dstCenter = null;
+    foreach (off in offsets) {
+      local tx = cx + off[0];
+      local ty = cy + off[1];
+      if (OpexRoadInMap(tx, ty)) {
+        local t = AIMap.GetTileIndex(tx, ty);
+        if (AITile.GetClosestTown(t) == townId && AITile.GetCargoProduction(t, this._catalog.paxCargo, 1, 1, 3) > 0) {
+          dstCenter = t;
+          break;
+        }
+      }
+    }
+    if (dstCenter == null) {
+      dstCenter = townTile + AIMap.GetTileIndex(5, 5);
+      if (!AIMap.IsValidTile(dstCenter) || AITile.GetClosestTown(dstCenter) != townId) dstCenter = townTile;
+    }
+
+    local dist = AIMap.DistanceManhattan(srcCenter, dstCenter);
+    if (dist < 4) dist = 5;
+
+    local candidate = {
+      src = srcCenter,
+      dst = dstCenter,
+      srcTown = townId,
+      dstTown = townId,
+      cargo = this._catalog.paxCargo,
+      kind = "pax",
+      distance = dist,
+      trains = 1,
+      engine = engine,
+      capital = 2 * this._catalog.costRoadBusStop + 20 * this._catalog.costRoadPerTile + this._catalog.costRoadDepot + engine.price,
+      revenueAnnual = 0,
+      runningAnnual = 0,
+      amortAnnual = 0,
+      carried = 0,
+      oneWayDays = 1,
+      iterations = 0,
+      profitAnnual = 0,
+      effectiveSpeed = engine.speed,
+    };
+
+    this._budget.begin();
+    local planning = OpexRoadPlanFor(this._catalog, candidate);
+    local planOps = this._budget.end("build_road_plans");
+    local plan = planning.plan;
+    if (plan == null) continue;
+
+    local need = candidate.capital + CASH_RESERVE;
+    money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+    if (money < need) continue;
+
+    local result = OpexBuildRoadRoute(this._catalog, this._budget, plan, candidate);
+    if (!result.ok) continue;
+
+    local newCount = OpexCountTownStations(townId);
+    OpexSign(anchor, "TG|" + (year % 100) + "|" + townId + "|" + currentCount + "|" + newCount);
+
+    this._lines.append({
+      stationA = result.stopA, stationB = result.stopB,
+      originA = candidate.src, originB = candidate.dst,
+      cargo = candidate.cargo,
+      predicted = 0, iterations = 0, trains = result.vehicles.len(), distance = dist, year = year,
+      predRevenue = 0, predRunning = 0, predAmort = 0, predCarried = 0, predTrains = 1, predOneWayDays = 1,
+      effectiveSpeed = engine.speed, catalogSpeed = engine.speed,
+      mode = "road", kind = "pax", depot = result.depot,
+      nStopsA = result.nStopsA, nStopsB = result.nStopsB,
+      srcIndustry = -1, dstIndustry = -1,
+      deadStreak = 0, scrapping = false, scrapVehicles = [],
+      lineId = this._nextLineId,
+    });
+    this._nextLineId++;
+    break;
+  }
 }
 
 /* Une extremite deja desservie par nous ne merite pas un second raccordement.
@@ -2143,6 +2295,11 @@ function OpexAI::_runNextTask()
     this._tryBuildRoads(year);
     return true;
   }
+  if (task.name == "town_growth") {
+    if (!TOWN_GROWTH_ENABLED) { task.enabled = false; return false; }
+    this._tryTownGrowth(year);
+    return true;
+  }
   if (task.name == "repay") { this._tryRepayLoan(year); return true; }
   task.enabled = false;
   return false;
@@ -2172,6 +2329,7 @@ function OpexAI::Start()
   /* Lu ici comme les autres reglages de decision : catalog.refresh le consulte des le premier
    * cycle annuel, qui a lieu apres Start(). */
   ROAD_BUILD_ENABLED = AIController.GetSetting("road_mode") != 0;
+  TOWN_GROWTH_ENABLED = AIController.GetSetting("town_growth") != 0;
   local roadPaxCatchment = AIController.GetSetting("road_pax_catchment_pct");
   if (roadPaxCatchment > 0) ROAD_PAX_CATCHMENT_SHARE_PCT = roadPaxCatchment;
   ROAD_REFLEET = AIController.GetSetting("road_refleet") != 0;

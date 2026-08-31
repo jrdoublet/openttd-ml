@@ -429,6 +429,18 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
+    /* Croissance urbaine : cibler 5 gares/stations par ville desservie en ajoutant des stations de bus.
+     * Defaut 1. S'il y a n gares ferroviaires/aeroports, complete avec 5-n stations de bus
+     * intra-urbaines pour atteindre le plafond de croissance maximale du moteur OpenTTD (CountActiveStations=5). */
+    AddSetting({
+      name = "town_growth",
+      description = "Boost served town growth with bus feeder stations (target 5 active stations per town): 1 = enabled (default), 0 = off",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* Part de la production totale d une ville qu un arret de bus capte, en pourcentage.
      *
      * 86 est adopte apres le banc apparie 20 graines (docs/bench_road_pax_catchment.json) :
