@@ -262,6 +262,9 @@ class OpexAI extends AIController {
    * premiere execution : l'indice 5 melangeait une ligne fret morte 1977-1979 et une ligne saine
    * qui avait glisse dans ce slot). _nextLineId ne recule jamais, contrairement a _lines.len(). */
   _nextLineId = 0;
+  _lastCatalogYear = -1;
+  _lastReportYear = -1;
+  _lastRepayMonth = -1;
 
   constructor()
   {
@@ -2319,6 +2322,8 @@ function OpexAI::_runNextTask()
   task.dueCycle = this._taskCycle + 1;
 
   if (task.name == "catalog") {
+    if (this._lastCatalogYear == year && this._ranked != null) return false;
+    this._lastCatalogYear = year;
     this._catalog.refresh(this._budget, year);
     this._ranked = OpexBuildCandidates(this._catalog, this._budget, this._lines);
     return true;
@@ -2328,6 +2333,8 @@ function OpexAI::_runNextTask()
     return false;
   }
   if (task.name == "report") {
+    if (this._lastReportYear == year) return false;
+    this._lastReportYear = year;
     OpexSign(AIMap.GetTileIndex(1, 1), "LB|" + (year % 100) + "|"
              + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
     this._reportYear(year, this._ranked);
@@ -2371,7 +2378,14 @@ function OpexAI::_runNextTask()
     this._tryTownGrowth(year);
     return true;
   }
-  if (task.name == "repay") { this._tryRepayLoan(year); return true; }
+  if (task.name == "repay") {
+    local date = AIDate.GetCurrentDate();
+    local month = AIDate.GetMonth(date);
+    if (this._lastRepayMonth == month) return false;
+    this._lastRepayMonth = month;
+    this._tryRepayLoan(year);
+    return true;
+  }
   task.enabled = false;
   return false;
 }
@@ -2439,6 +2453,6 @@ function OpexAI::Start()
   while (true) {
     this._processEvents();
     this._runNextTask();
-    AIController.Sleep(74 * 10);
+    AIController.Sleep(1);
   }
 }
