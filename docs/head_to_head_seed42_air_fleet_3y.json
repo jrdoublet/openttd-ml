@@ -1,0 +1,2565 @@
+{
+ "openttd_version": "15.3",
+ "opengfx_version": "7.1",
+ "seed": 42,
+ "years": 3,
+ "arms": [
+  "OpexAI[rail_expand=1]",
+  "AAAHogEx"
+ ],
+ "shared_game": true,
+ "openttd_config": "[difficulty]\nnumber_towns = 3\nindustry_density = 4\n[economy]\ninflation = false\ntown_growth_rate = 2\n[game_creation]\nstarting_year = 1970\nmap_x = 8\nmap_y = 8\n",
+ "summary": [
+  {
+   "arm": "OpexAI[rail_expand=1]",
+   "owner": 0,
+   "company_value": 67504,
+   "performance_history": 117,
+   "profit": 10513,
+   "profit_year": 43999,
+   "median_station_rating": 163,
+   "money": 38695,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 21,
+   "n_stations": 20,
+   "modes": {
+    "rail": {
+     "n_lead_vehicles": 1,
+     "profit_last_year": 20620
+    },
+    "road": {
+     "n_lead_vehicles": 12,
+     "profit_last_year": 5306
+    },
+    "water": {
+     "n_lead_vehicles": 0,
+     "profit_last_year": 0
+    },
+    "air": {
+     "n_lead_vehicles": 3,
+     "profit_last_year": 24037
+    }
+   }
+  },
+  {
+   "arm": "AAAHogEx",
+   "owner": 1,
+   "company_value": 4637163,
+   "performance_history": 736,
+   "profit": 796209,
+   "profit_year": 2784073,
+   "median_station_rating": 190,
+   "money": 337321,
+   "current_loan": 0,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 307,
+   "n_stations": 130,
+   "modes": {
+    "rail": {
+     "n_lead_vehicles": 8,
+     "profit_last_year": 33217
+    },
+    "road": {
+     "n_lead_vehicles": 151,
+     "profit_last_year": 614
+    },
+    "water": {
+     "n_lead_vehicles": 0,
+     "profit_last_year": 0
+    },
+    "air": {
+     "n_lead_vehicles": 42,
+     "profit_last_year": 1938522
+    }
+   }
+  }
+ ],
+ "openttd_output": "",
+ "series": [
+  {
+   "date": "1970-01-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": null,
+     "performance_history": null,
+     "profit": null,
+     "profit_year": null,
+     "median_station_rating": null,
+     "money": 100000,
+     "current_loan": 100000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 0,
+     "n_stations": 0,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      }
+     }
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": null,
+     "performance_history": null,
+     "profit": null,
+     "profit_year": null,
+     "median_station_rating": null,
+     "money": 100000,
+     "current_loan": 100000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 0,
+     "n_stations": 0,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      }
+     }
+    }
+   ]
+  },
+  {
+   "date": "1970-02-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": null,
+     "performance_history": null,
+     "profit": null,
+     "profit_year": null,
+     "median_station_rating": 177.0,
+     "money": 49215,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 9,
+     "n_stations": 4,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 0
+      }
+     }
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": null,
+     "performance_history": null,
+     "profit": null,
+     "profit_year": null,
+     "median_station_rating": null,
+     "money": 19423,
+     "current_loan": 20000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 0,
+     "n_stations": 0,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      }
+     }
+    }
+   ]
+  },
+  {
+   "date": "1970-03-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": null,
+     "performance_history": null,
+     "profit": null,
+     "profit_year": null,
+     "median_station_rating": 177,
+     "money": 40662,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 10,
+     "n_stations": 6,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 0
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 0
+      }
+     }
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": null,
+     "performance_history": null,
+     "profit": null,
+     "profit_year": null,
+     "median_station_rating": 179.0,
+     "money": 23640,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 8,
+     "n_stations": 6,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 4,
+       "profit_last_year": 0
+      }
+     }
+    }
+   ]
+  },
+  {
+   "date": "1970-04-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": null,
+     "performance_history": null,
+     "profit": null,
+     "profit_year": null,
+     "median_station_rating": 179,
+     "money": 39911,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 10,
+     "n_stations": 6,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 0
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 0
+      }
+     }
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": null,
+     "performance_history": null,
+     "profit": null,
+     "profit_year": null,
+     "median_station_rating": 191.0,
+     "money": 21051,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 8,
+     "n_stations": 6,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 4,
+       "profit_last_year": 0
+      }
+     }
+    }
+   ]
+  },
+  {
+   "date": "1970-05-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 65445,
+     "performance_history": 28,
+     "profit": -959,
+     "profit_year": -959,
+     "median_station_rating": 169,
+     "money": 45920,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 10,
+     "n_stations": 6,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 0
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 0
+      }
+     }
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 1,
+     "performance_history": 10,
+     "profit": -3114,
+     "profit_year": -3114,
+     "median_station_rating": 171.5,
+     "money": 37936,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 8,
+     "n_stations": 6,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 4,
+       "profit_last_year": 0
+      }
+     }
+    }
+   ]
+  },
+  {
+   "date": "1970-06-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 65445,
+     "performance_history": 28,
+     "profit": -959,
+     "profit_year": -959,
+     "median_station_rating": 158,
+     "money": 50116,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 10,
+     "n_stations": 6,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 0
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 0
+      }
+     }
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 1,
+     "performance_history": 10,
+     "profit": -3114,
+     "profit_year": -3114,
+     "median_station_rating": 178.0,
+     "money": 26465,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 12,
+     "n_stations": 6,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 6,
+       "profit_last_year": 0
+      }
+     }
+    }
+   ]
+  },
+  {
+   "date": "1970-07-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 65445,
+     "performance_history": 28,
+     "profit": -959,
+     "profit_year": -959,
+     "median_station_rating": 164,
+     "money": 52057,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 10,
+     "n_stations": 6,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 0
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 0
+      }
+     }
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 1,
+     "performance_history": 10,
+     "profit": -3114,
+     "profit_year": -3114,
+     "median_station_rating": 161.0,
+     "money": 36436,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 12,
+     "n_stations": 7,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 6,
+       "profit_last_year": 0
+      }
+     }
+    }
+   ]
+  },
+  {
+   "date": "1970-08-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 64447,
+     "performance_history": 48,
+     "profit": 12221,
+     "profit_year": 11262,
+     "median_station_rating": 175,
+     "money": 47151,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 11,
+     "n_stations": 8,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 2,
+       "profit_last_year": 0
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 0
+      }
+     }
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 99481,
+     "performance_history": 142,
+     "profit": 118753,
+     "profit_year": 115639,
+     "median_station_rating": 166.0,
+     "money": 60725,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 16,
+     "n_stations": 9,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 8,
+       "profit_last_year": 0
+      }
+     }
+    }
+   ]
+  },
+  {
+   "date": "1970-09-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 64447,
+     "performance_history": 48,
+     "profit": 12221,
+     "profit_year": 11262,
+     "median_station_rating": 175,
+     "money": 52486,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 11,
+     "n_stations": 8,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 2,
+       "profit_last_year": 0
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 0
+      }
+     }
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 99481,
+     "performance_history": 142,
+     "profit": 118753,
+     "profit_year": 115639,
+     "median_station_rating": 166.5,
+     "money": 1812,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 22,
+     "n_stations": 12,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 11,
+       "profit_last_year": 0
+      }
+     }
+    }
+   ]
+  },
+  {
+   "date": "1970-10-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 64447,
+     "performance_history": 48,
+     "profit": 12221,
+     "profit_year": 11262,
+     "median_station_rating": 177,
+     "money": 44074,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 12,
+     "n_stations": 10,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 0
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 0
+      }
+     }
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 99481,
+     "performance_history": 142,
+     "profit": 118753,
+     "profit_year": 115639,
+     "median_station_rating": 156.5,
+     "money": 47188,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 24,
+     "n_stations": 12,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 12,
+       "profit_last_year": 0
+      }
+     }
+    }
+   ]
+  },
+  {
+   "date": "1970-11-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 70831,
+     "performance_history": 62,
+     "profit": 11361,
+     "profit_year": 22623,
+     "median_station_rating": 175,
+     "money": 47066,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 12,
+     "n_stations": 10,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 0
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 0
+      }
+     }
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 451318,
+     "performance_history": 197,
+     "profit": 341037,
+     "profit_year": 456676,
+     "median_station_rating": 153.0,
+     "money": 114837,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 28,
+     "n_stations": 15,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 14,
+       "profit_last_year": 0
+      }
+     }
+    }
+   ]
+  },
+  {
+   "date": "1970-12-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 70831,
+     "performance_history": 62,
+     "profit": 11361,
+     "profit_year": 22623,
+     "median_station_rating": 175,
+     "money": 53428,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 12,
+     "n_stations": 10,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 0
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 0
+      }
+     }
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 451318,
+     "performance_history": 197,
+     "profit": 341037,
+     "profit_year": 456676,
+     "median_station_rating": 156,
+     "money": 19635,
+     "current_loan": 230000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 36,
+     "n_stations": 17,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 2,
+       "profit_last_year": 0
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 17,
+       "profit_last_year": 0
+      }
+     }
+    }
+   ]
+  },
+  {
+   "date": "1971-01-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 70831,
+     "performance_history": 62,
+     "profit": 11361,
+     "profit_year": 22623,
+     "median_station_rating": 177.0,
+     "money": 38568,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 14,
+     "n_stations": 12,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 5,
+       "profit_last_year": 0
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 0
+      }
+     }
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 451318,
+     "performance_history": 197,
+     "profit": 341037,
+     "profit_year": 456676,
+     "median_station_rating": 159.0,
+     "money": 78881,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 42,
+     "n_stations": 20,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 4,
+       "profit_last_year": 0
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 19,
+       "profit_last_year": 0
+      }
+     }
+    }
+   ]
+  },
+  {
+   "date": "1971-02-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 73725,
+     "performance_history": 75,
+     "profit": 11561,
+     "profit_year": 34184,
+     "median_station_rating": 185,
+     "money": 40175,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 14,
+     "n_stations": 12,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 17942
+      },
+      "road": {
+       "n_lead_vehicles": 5,
+       "profit_last_year": 953
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 20789
+      }
+     }
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 895014,
+     "performance_history": 262,
+     "profit": 486073,
+     "profit_year": 942749,
+     "median_station_rating": 171,
+     "money": 11474,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 52,
+     "n_stations": 25,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 6,
+       "profit_last_year": -145
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 23,
+       "profit_last_year": 948266
+      }
+     }
+    }
+   ]
+  },
+  {
+   "date": "1971-03-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 73725,
+     "performance_history": 75,
+     "profit": 11561,
+     "profit_year": 34184,
+     "median_station_rating": 177,
+     "money": 45052,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 14,
+     "n_stations": 12,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 17942
+      },
+      "road": {
+       "n_lead_vehicles": 5,
+       "profit_last_year": 953
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 20789
+      }
+     }
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 895014,
+     "performance_history": 262,
+     "profit": 486073,
+     "profit_year": 942749,
+     "median_station_rating": 164,
+     "money": 65013,
+     "current_loan": 220000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 58,
+     "n_stations": 26,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 8,
+       "profit_last_year": -145
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 25,
+       "profit_last_year": 948266
+      }
+     }
+    }
+   ]
+  },
+  {
+   "date": "1971-04-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 73725,
+     "performance_history": 75,
+     "profit": 11561,
+     "profit_year": 34184,
+     "median_station_rating": 181,
+     "money": 46818,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 14,
+     "n_stations": 12,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 17942
+      },
+      "road": {
+       "n_lead_vehicles": 5,
+       "profit_last_year": 953
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 20789
+      }
+     }
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 895014,
+     "performance_history": 262,
+     "profit": 486073,
+     "profit_year": 942749,
+     "median_station_rating": 166.0,
+     "money": 141206,
+     "current_loan": 220000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 63,
+     "n_stations": 31,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 10,
+       "profit_last_year": -145
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 24,
+       "profit_last_year": 948266
+      }
+     }
+    }
+   ]
+  },
+  {
+   "date": "1971-05-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 69206,
+     "performance_history": 88,
+     "profit": 10035,
+     "profit_year": 45178,
+     "median_station_rating": 175,
+     "money": 50913,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 14,
+     "n_stations": 12,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 17942
+      },
+      "road": {
+       "n_lead_vehicles": 5,
+       "profit_last_year": 953
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 20789
+      }
+     }
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 1404289,
+     "performance_history": 360,
+     "profit": 581983,
+     "profit_year": 1527846,
+     "median_station_rating": 157,
+     "money": 46346,
+     "current_loan": 110000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 79,
+     "n_stations": 44,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 24,
+       "profit_last_year": -145
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 25,
+       "profit_last_year": 949989
+      }
+     }
+    }
+   ]
+  },
+  {
+   "date": "1971-06-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 69206,
+     "performance_history": 88,
+     "profit": 10035,
+     "profit_year": 45178,
+     "median_station_rating": 175,
+     "money": 57039,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 14,
+     "n_stations": 12,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 17942
+      },
+      "road": {
+       "n_lead_vehicles": 5,
+       "profit_last_year": 953
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 20789
+      }
+     }
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 1404289,
+     "performance_history": 360,
+     "profit": 581983,
+     "profit_year": 1527846,
+     "median_station_rating": 183,
+     "money": 98908,
+     "current_loan": 180000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 92,
+     "n_stations": 47,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 35,
+       "profit_last_year": -145
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 26,
+       "profit_last_year": 950905
+      }
+     }
+    }
+   ]
+  },
+  {
+   "date": "1971-07-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 69206,
+     "performance_history": 88,
+     "profit": 10035,
+     "profit_year": 45178,
+     "median_station_rating": 175,
+     "money": 58182,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 14,
+     "n_stations": 12,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 17942
+      },
+      "road": {
+       "n_lead_vehicles": 5,
+       "profit_last_year": 953
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 20789
+      }
+     }
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 1404289,
+     "performance_history": 360,
+     "profit": 581983,
+     "profit_year": 1527846,
+     "median_station_rating": 183.0,
+     "money": 14390,
+     "current_loan": 130000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 114,
+     "n_stations": 58,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 57,
+       "profit_last_year": -145
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 26,
+       "profit_last_year": 951818
+      }
+     }
+    }
+   ]
+  },
+  {
+   "date": "1971-08-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 67437,
+     "performance_history": 93,
+     "profit": 11439,
+     "profit_year": 44396,
+     "median_station_rating": 175,
+     "money": 41733,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 16,
+     "n_stations": 14,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 17942
+      },
+      "road": {
+       "n_lead_vehicles": 7,
+       "profit_last_year": 953
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 20789
+      }
+     }
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 1889810,
+     "performance_history": 453,
+     "profit": 534673,
+     "profit_year": 1943766,
+     "median_station_rating": 190.0,
+     "money": 16427,
+     "current_loan": 10000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 124,
+     "n_stations": 62,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 2,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 62,
+       "profit_last_year": -145
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 26,
+       "profit_last_year": 951818
+      }
+     }
+    }
+   ]
+  },
+  {
+   "date": "1971-09-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 67437,
+     "performance_history": 93,
+     "profit": 11439,
+     "profit_year": 44396,
+     "median_station_rating": 173,
+     "money": 46512,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 16,
+     "n_stations": 14,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 17942
+      },
+      "road": {
+       "n_lead_vehicles": 7,
+       "profit_last_year": 953
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 20789
+      }
+     }
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 1889810,
+     "performance_history": 453,
+     "profit": 534673,
+     "profit_year": 1943766,
+     "median_station_rating": 186.0,
+     "money": 118180,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 139,
+     "n_stations": 70,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 70,
+       "profit_last_year": -145
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 25,
+       "profit_last_year": 951818
+      }
+     }
+    }
+   ]
+  },
+  {
+   "date": "1971-10-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 67437,
+     "performance_history": 93,
+     "profit": 11439,
+     "profit_year": 44396,
+     "median_station_rating": 175,
+     "money": 46080,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 16,
+     "n_stations": 14,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 17942
+      },
+      "road": {
+       "n_lead_vehicles": 7,
+       "profit_last_year": 953
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 20789
+      }
+     }
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 1889810,
+     "performance_history": 453,
+     "profit": 534673,
+     "profit_year": 1943766,
+     "median_station_rating": 190.0,
+     "money": 181612,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 148,
+     "n_stations": 73,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 77,
+       "profit_last_year": -145
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 26,
+       "profit_last_year": 951818
+      }
+     }
+    }
+   ]
+  },
+  {
+   "date": "1971-11-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 65066,
+     "performance_history": 98,
+     "profit": 12121,
+     "profit_year": 45156,
+     "median_station_rating": 170,
+     "money": 50286,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 16,
+     "n_stations": 14,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 17942
+      },
+      "road": {
+       "n_lead_vehicles": 7,
+       "profit_last_year": 953
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 20789
+      }
+     }
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 2384999,
+     "performance_history": 504,
+     "profit": 559243,
+     "profit_year": 2161972,
+     "median_station_rating": 190.0,
+     "money": 205826,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 157,
+     "n_stations": 75,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 80,
+       "profit_last_year": -145
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 29,
+       "profit_last_year": 951818
+      }
+     }
+    }
+   ]
+  },
+  {
+   "date": "1971-12-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 65066,
+     "performance_history": 98,
+     "profit": 12121,
+     "profit_year": 45156,
+     "median_station_rating": 170,
+     "money": 52976,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 16,
+     "n_stations": 14,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 17942
+      },
+      "road": {
+       "n_lead_vehicles": 7,
+       "profit_last_year": 953
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 20789
+      }
+     }
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 2384999,
+     "performance_history": 504,
+     "profit": 559243,
+     "profit_year": 2161972,
+     "median_station_rating": 188.0,
+     "money": 461719,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 167,
+     "n_stations": 81,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 92,
+       "profit_last_year": -145
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 28,
+       "profit_last_year": 951818
+      }
+     }
+    }
+   ]
+  },
+  {
+   "date": "1972-01-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 65066,
+     "performance_history": 98,
+     "profit": 12121,
+     "profit_year": 45156,
+     "median_station_rating": 170,
+     "money": 51769,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 16,
+     "n_stations": 14,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 17942
+      },
+      "road": {
+       "n_lead_vehicles": 7,
+       "profit_last_year": 953
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 20789
+      }
+     }
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 2384999,
+     "performance_history": 504,
+     "profit": 559243,
+     "profit_year": 2161972,
+     "median_station_rating": 189.0,
+     "money": 371020,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 185,
+     "n_stations": 91,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 0
+      },
+      "road": {
+       "n_lead_vehicles": 110,
+       "profit_last_year": -145
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 28,
+       "profit_last_year": 951818
+      }
+     }
+    }
+   ]
+  },
+  {
+   "date": "1972-02-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 58031,
+     "performance_history": 101,
+     "profit": 10369,
+     "profit_year": 43964,
+     "median_station_rating": 175,
+     "money": 41056,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 18,
+     "n_stations": 16,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 20620
+      },
+      "road": {
+       "n_lead_vehicles": 9,
+       "profit_last_year": 5306
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 24037
+      }
+     }
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 2911109,
+     "performance_history": 532,
+     "profit": 627996,
+     "profit_year": 2303895,
+     "median_station_rating": 188.0,
+     "money": 283849,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 188,
+     "n_stations": 93,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 33217
+      },
+      "road": {
+       "n_lead_vehicles": 113,
+       "profit_last_year": 955
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 28,
+       "profit_last_year": 2235140
+      }
+     }
+    }
+   ]
+  },
+  {
+   "date": "1972-03-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 58031,
+     "performance_history": 101,
+     "profit": 10369,
+     "profit_year": 43964,
+     "median_station_rating": 171,
+     "money": 45330,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 18,
+     "n_stations": 16,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 20620
+      },
+      "road": {
+       "n_lead_vehicles": 9,
+       "profit_last_year": 5306
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 24037
+      }
+     }
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 2911109,
+     "performance_history": 532,
+     "profit": 627996,
+     "profit_year": 2303895,
+     "median_station_rating": 188,
+     "money": 297528,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 204,
+     "n_stations": 101,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 33217
+      },
+      "road": {
+       "n_lead_vehicles": 125,
+       "profit_last_year": 955
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 30,
+       "profit_last_year": 2235140
+      }
+     }
+    }
+   ]
+  },
+  {
+   "date": "1972-04-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 58031,
+     "performance_history": 101,
+     "profit": 10369,
+     "profit_year": 43964,
+     "median_station_rating": 167,
+     "money": 48753,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 18,
+     "n_stations": 16,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 20620
+      },
+      "road": {
+       "n_lead_vehicles": 9,
+       "profit_last_year": 5306
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 24037
+      }
+     }
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 2911109,
+     "performance_history": 532,
+     "profit": 627996,
+     "profit_year": 2303895,
+     "median_station_rating": 188.0,
+     "money": 125744,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 215,
+     "n_stations": 107,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 33217
+      },
+      "road": {
+       "n_lead_vehicles": 132,
+       "profit_last_year": -50
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 32,
+       "profit_last_year": 2235140
+      }
+     }
+    }
+   ]
+  },
+  {
+   "date": "1972-05-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 65173,
+     "performance_history": 112,
+     "profit": 13874,
+     "profit_year": 47803,
+     "median_station_rating": 161,
+     "money": 50413,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 18,
+     "n_stations": 16,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 20620
+      },
+      "road": {
+       "n_lead_vehicles": 9,
+       "profit_last_year": 5306
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 24037
+      }
+     }
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 3365843,
+     "performance_history": 673,
+     "profit": 661708,
+     "profit_year": 2383620,
+     "median_station_rating": 190,
+     "money": 209670,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 223,
+     "n_stations": 109,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 33217
+      },
+      "road": {
+       "n_lead_vehicles": 136,
+       "profit_last_year": -50
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 34,
+       "profit_last_year": 2235140
+      }
+     }
+    }
+   ]
+  },
+  {
+   "date": "1972-06-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 65173,
+     "performance_history": 112,
+     "profit": 13874,
+     "profit_year": 47803,
+     "median_station_rating": 163,
+     "money": 54928,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 18,
+     "n_stations": 16,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 20620
+      },
+      "road": {
+       "n_lead_vehicles": 9,
+       "profit_last_year": 5306
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 24037
+      }
+     }
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 3365843,
+     "performance_history": 673,
+     "profit": 661708,
+     "profit_year": 2383620,
+     "median_station_rating": 190.0,
+     "money": 323463,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 247,
+     "n_stations": 109,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 5,
+       "profit_last_year": 33217
+      },
+      "road": {
+       "n_lead_vehicles": 136,
+       "profit_last_year": -50
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 35,
+       "profit_last_year": 2235140
+      }
+     }
+    }
+   ]
+  },
+  {
+   "date": "1972-07-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 65173,
+     "performance_history": 112,
+     "profit": 13874,
+     "profit_year": 47803,
+     "median_station_rating": 163.0,
+     "money": 38512,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 18,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 20620
+      },
+      "road": {
+       "n_lead_vehicles": 11,
+       "profit_last_year": 5306
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 24037
+      }
+     }
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 3365843,
+     "performance_history": 673,
+     "profit": 661708,
+     "profit_year": 2383620,
+     "median_station_rating": 187.0,
+     "money": 348403,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 254,
+     "n_stations": 112,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 6,
+       "profit_last_year": 33217
+      },
+      "road": {
+       "n_lead_vehicles": 134,
+       "profit_last_year": 538
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 35,
+       "profit_last_year": 2235140
+      }
+     }
+    }
+   ]
+  },
+  {
+   "date": "1972-08-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 65487,
+     "performance_history": 112,
+     "profit": 9243,
+     "profit_year": 45607,
+     "median_station_rating": 168,
+     "money": 33122,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 21,
+     "n_stations": 20,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 20620
+      },
+      "road": {
+       "n_lead_vehicles": 12,
+       "profit_last_year": 5306
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 24037
+      }
+     }
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 3821850,
+     "performance_history": 704,
+     "profit": 698160,
+     "profit_year": 2547107,
+     "median_station_rating": 186.0,
+     "money": 41036,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 279,
+     "n_stations": 128,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 6,
+       "profit_last_year": 33217
+      },
+      "road": {
+       "n_lead_vehicles": 149,
+       "profit_last_year": 538
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 40,
+       "profit_last_year": 2235140
+      }
+     }
+    }
+   ]
+  },
+  {
+   "date": "1972-09-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 65487,
+     "performance_history": 112,
+     "profit": 9243,
+     "profit_year": 45607,
+     "median_station_rating": 168,
+     "money": 38058,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 21,
+     "n_stations": 20,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 20620
+      },
+      "road": {
+       "n_lead_vehicles": 12,
+       "profit_last_year": 5306
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 24037
+      }
+     }
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 3821850,
+     "performance_history": 704,
+     "profit": 698160,
+     "profit_year": 2547107,
+     "median_station_rating": 190,
+     "money": 194200,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 277,
+     "n_stations": 128,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 6,
+       "profit_last_year": 33217
+      },
+      "road": {
+       "n_lead_vehicles": 149,
+       "profit_last_year": 587
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 39,
+       "profit_last_year": 2207550
+      }
+     }
+    }
+   ]
+  },
+  {
+   "date": "1972-10-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 65487,
+     "performance_history": 112,
+     "profit": 9243,
+     "profit_year": 45607,
+     "median_station_rating": 168,
+     "money": 39819,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 21,
+     "n_stations": 20,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 20620
+      },
+      "road": {
+       "n_lead_vehicles": 12,
+       "profit_last_year": 5306
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 24037
+      }
+     }
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 3821850,
+     "performance_history": 704,
+     "profit": 698160,
+     "profit_year": 2547107,
+     "median_station_rating": 190,
+     "money": 208967,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 298,
+     "n_stations": 130,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 8,
+       "profit_last_year": 33217
+      },
+      "road": {
+       "n_lead_vehicles": 148,
+       "profit_last_year": 614
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 39,
+       "profit_last_year": 2062420
+      }
+     }
+    }
+   ]
+  },
+  {
+   "date": "1972-11-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 67504,
+     "performance_history": 117,
+     "profit": 10513,
+     "profit_year": 43999,
+     "median_station_rating": 167,
+     "money": 38343,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 21,
+     "n_stations": 20,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 20620
+      },
+      "road": {
+       "n_lead_vehicles": 12,
+       "profit_last_year": 5306
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 24037
+      }
+     }
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 4637163,
+     "performance_history": 736,
+     "profit": 796209,
+     "profit_year": 2784073,
+     "median_station_rating": 190,
+     "money": 101289,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 306,
+     "n_stations": 130,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 8,
+       "profit_last_year": 33217
+      },
+      "road": {
+       "n_lead_vehicles": 152,
+       "profit_last_year": 614
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 41,
+       "profit_last_year": 1938522
+      }
+     }
+    }
+   ]
+  },
+  {
+   "date": "1972-12-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 67504,
+     "performance_history": 117,
+     "profit": 10513,
+     "profit_year": 43999,
+     "median_station_rating": 163,
+     "money": 38695,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 21,
+     "n_stations": 20,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 1,
+       "profit_last_year": 20620
+      },
+      "road": {
+       "n_lead_vehicles": 12,
+       "profit_last_year": 5306
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 3,
+       "profit_last_year": 24037
+      }
+     }
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 4637163,
+     "performance_history": 736,
+     "profit": 796209,
+     "profit_year": 2784073,
+     "median_station_rating": 190,
+     "money": 337321,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 307,
+     "n_stations": 130,
+     "modes": {
+      "rail": {
+       "n_lead_vehicles": 8,
+       "profit_last_year": 33217
+      },
+      "road": {
+       "n_lead_vehicles": 151,
+       "profit_last_year": 614
+      },
+      "water": {
+       "n_lead_vehicles": 0,
+       "profit_last_year": 0
+      },
+      "air": {
+       "n_lead_vehicles": 42,
+       "profit_last_year": 1938522
+      }
+     }
+    }
+   ]
+  }
+ ]
+}

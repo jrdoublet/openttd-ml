@@ -268,6 +268,7 @@ class OpexAI extends AIController {
   _nextLineId = 0;
   _lastCatalogYear = -1;
   _lastReportYear = -1;
+  _lastAirFleetYear = -1;
   _lastRepayMonth = -1;
 
   constructor()
@@ -282,6 +283,8 @@ class OpexAI extends AIController {
       { name = "report", dueCycle = 0, enabled = true },
       { name = "scrap", dueCycle = 0, enabled = true },
       { name = "refleet", dueCycle = 0, enabled = true },
+      /* Taille de flotte aerienne : une seule passe annuelle, fondee sur le rapport reel. */
+      { name = "air_fleet", dueCycle = 0, enabled = true },
       /* Reutiliser une infrastructure rentable avant de repayer un nouvel A* : c'est le premier
        * item de croissance marginale et son ratio profit/opcode est mesure par EU/EX. */
       { name = "expand", dueCycle = 0, enabled = true },
@@ -312,6 +315,7 @@ class OpexAI extends AIController {
   function _reportLines(year);
   function _scrapDeadLines(year);
   function _refleetRoadLines(year);
+  function _resizeAirFleets(year);
   function _expandRailLines(year);
   function _continueRailExpansion();
   function _findLineById(lineId);
@@ -508,8 +512,13 @@ function OpexAI::_tryBuildAir(year)
   local maxTotal = AIR_STARTER ? 15 : 5;
   if (airLinesThisYear >= maxPerYear || totalAirLines >= maxTotal) return;
 
+  local margin = AIR_STARTER ? 10000 : AIR_CAPITAL_MARGIN;
+  local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  local maxCapital = money - OpexCashReserve() - margin;
+  if (maxCapital <= 0) return;
+
   this._budget.begin();
-  local plan = OpexAirPlans(this._catalog, this._lines);
+  local plan = OpexAirPlans(this._catalog, this._lines, maxCapital);
   local planOps = this._budget.end("build_air_plans");
   AILog.Info("TRY AIR: plan=" + (plan != null ? "FOUND" : "NULL") + " combos=" + this._catalog.airCombos.len());
   if (plan == null) {
@@ -518,9 +527,7 @@ function OpexAI::_tryBuildAir(year)
   }
 
   local capital = ("capital" in plan) ? plan.capital : (2 * plan.airport.price + plan.plane.price);
-  local margin = AIR_STARTER ? 10000 : AIR_CAPITAL_MARGIN;
   local need = capital + OpexCashReserve() + margin;
-  local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   OpexSign(AIMap.GetTileIndex(1, 1), "AD|K=" + capital + "|N=" + need + "|M=" + money);
   if (money < need) {
     if (REBORROW) money = OpexTryReborrow(need, money);
@@ -544,10 +551,17 @@ function OpexAI::_tryBuildAir(year)
     originA = plan.siteA.town.tile, originB = plan.siteB.town.tile,
     cargo = this._catalog.paxCargo,
     predicted = ("economics" in plan && "profitAnnual" in plan.economics) ? plan.economics.profitAnnual : 0,
-    iterations = 0, trains = 1, distance = plan.distance, year = year,
-    mode = "air", vehicle = result.vehicle, vehicles = [result.vehicle],
+    predRevenue = plan.economics.revenueAnnual, predRunning = plan.economics.runningAnnual,
+    predAmort = plan.economics.amortAnnual, predCarried = plan.economics.carried,
+    predTrains = plan.planes, predOneWayDays = plan.economics.oneWayDays,
+    planeCapacity = plan.plane.capacity,
+    iterations = 0, trains = result.vehicles.len(), distance = plan.distance, year = year,
+    mode = "air", vehicle = result.vehicle, vehicles = result.vehicles,
+    lastLiveVehicles = result.vehicles.len(), suspectedCrashes = 0,
     lineId = this._nextLineId,
   });
+  OpexSign(anchor, "AF|" + this._nextLineId + "|" + result.vehicles.len() + "|"
+                         + plan.economics.profitAnnual);
   OpexSign(anchor, "PM|" + this._nextLineId + "|A|" + plan.distance + "|"
                    + AICargo.GetCargoLabel(this._catalog.paxCargo));
   this._nextLineId++;
@@ -1679,13 +1693,17 @@ function OpexAI::_reportLines(year)
     line.vehCount <- vehCount;
     line.lastProfit <- profit;
     line.lastRevenue <- profit + runCost;
-    if (vehicleType == AIVehicle.VT_RAIL) {
+    if (vehicleType == AIVehicle.VT_RAIL || vehicleType == AIVehicle.VT_AIR) {
       /* Instantane de backlog, complete par l'utilisation annuelle derivee du revenu dans
        * _expandRailLines. Le second signal evite que la phase du train au jour du releve fasse
        * disparaitre une saturation reelle ; deux annees consecutives restent obligatoires. */
       line.lastWaitingA <- AIStation.GetCargoWaiting(stationA, line.cargo);
       line.lastWaitingB <- AIStation.IsValidStation(stationB)
           ? AIStation.GetCargoWaiting(stationB, line.cargo) : 0;
+      if (vehicleType == AIVehicle.VT_AIR) {
+        OpexSign(anchor, "FA|" + (year % 100) + "|" + line.lineId + "|"
+                         + line.lastWaitingA + "|" + line.lastWaitingB);
+      }
     }
 
     /* Les deux industries sont-elles encore valides ? Et l'industrie source produit-elle encore ?
@@ -1720,6 +1738,37 @@ function OpexAI::_reportLines(year)
       }
     }
   }
+}
+
+/* Dimensionnement progressif de l'air. Une prediction de population ne peut plus acheter une
+ * flotte entiere au demarrage. Apres au moins une annee, on ajoute au plus UN avion par ligne et
+ * par an si (1) les appareils existants gagnent de l'argent et (2) au moins une charge utile
+ * complete attend dans les deux aeroports. Un echec de cash est reporte a l'annee suivante : la
+ * file ne le resonde pas a chaque cycle et ne gaspille donc pas d'opcodes. */
+function OpexAI::_resizeAirFleets(year)
+{
+  if (this._lastAirFleetYear == year) return false;
+  this._lastAirFleetYear = year;
+  local anchor = AIMap.GetTileIndex(1, 1);
+  foreach (line in this._lines) {
+    if (!("mode" in line) || line.mode != "air") continue;
+    if (!("year" in line) || year <= line.year) continue;
+    local have = ("vehCount" in line) ? line.vehCount : 0;
+    if (have < 1 || have >= AIR_MAX_PLANES_PER_ROUTE) continue;
+    if (!("lastProfit" in line) || line.lastProfit <= 0) continue;
+    local waiting = (("lastWaitingA" in line) ? line.lastWaitingA : 0)
+                  + (("lastWaitingB" in line) ? line.lastWaitingB : 0);
+    local capacity = ("planeCapacity" in line) ? line.planeCapacity : 0;
+    if (capacity <= 0 || waiting < capacity) continue;
+    local grown = OpexAirAddPlane(line);
+    if (grown.added > 0) {
+      line.vehCount <- have + 1;
+      line.trains = have + 1;
+    }
+    OpexSign(anchor, "FG|" + (year % 100) + "|" + line.lineId + "|" + have + "|"
+                     + waiting + "|" + (grown.added > 0 ? "K" : grown.reason));
+  }
+  return true;
 }
 
 /* Remediation ligne morte (2026-08-28) : une fois deadStreak >= DEAD_STREAK_THRESHOLD confirme
@@ -2373,6 +2422,12 @@ function OpexAI::_runNextTask()
   }
   if (task.name == "scrap") { this._scrapDeadLines(year); return true; }
   if (task.name == "refleet") { this._refleetRoadLines(year); return true; }
+  if (task.name == "air_fleet") {
+    /* Le garde annuel evite la mutation ; le report evite aussi de repayer le dispatch a chaque
+     * tour continu. Seize cycles laissent passer plusieurs autres investissements avant resonde. */
+    task.dueCycle = this._taskCycle + 16;
+    return this._resizeAirFleets(year);
+  }
   if (task.name == "expand") {
     if (!RAIL_EXPAND) { task.enabled = false; return false; }
     this._expandRailLines(year);

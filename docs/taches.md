@@ -259,6 +259,30 @@ pas un banc apparié), OpexAI passe de **140 071 à
 La prochaine limite est distincte : OpexAI n'a encore que **2 avions** fin 1972 contre **40**
 pour AAAHogEx ; dimensionner la flotte doit être mesuré séparément, sans confondre ce levier
 avec la correction certaine de maintenance.
+
+**Taille de flotte aérienne — implémentée et validée le 2026-08-31.** L'essai naïf « maximiser
+le profit prédit de chaque liaison » achetait trois avions dès 1970. Il a été rejeté : sur le duel
+partagé graine 42 à trois ans, OpexAI tombait à **43 999 £/an** et **67 504 £** de valeur, contre
+**197 899 £/an** et **350 538 £** avec la correction de maintenance seule. Le capital immobilisé
+sur une ligne empêchait d'en ouvrir une seconde et les trois appareils ne rapportaient ensemble
+que 24 037 £ sur leur dernière année.
+
+La politique retenue sépare maintenant les deux décisions :
+
+1. une nouvelle liaison démarre avec **un avion**, les liaisons restant classées au ROI ;
+2. une passe annuelle peut cloner **au plus un avion par ligne**, avec ordres partagés, seulement
+   après une année réelle positive et si au moins une capacité complète attend dans les deux
+   aéroports ; manque de cash ou absence de demande sont reportés à l'année suivante, jamais
+   resondés à chaque tour de file. Plafond de sécurité : huit avions par ligne. `FA` rapporte le
+   backlog observé et `FG` toute tentative d'agrandissement.
+
+Validation diagnostique, toujours sur une seule graine : duel partagé trois ans
+`docs/head_to_head_seed42_air_fleet_roi_3y.json`, **204 356 £/an**, valeur **352 023 £**, deux
+avions sur deux lignes ; soit légèrement au-dessus de la référence maintenance seule, sans
+surallocation. Partie seule dix ans `docs/opex_air_fleet_roi_10y_42.json` : six lignes aériennes
+d'un avion, aucune `FG` car aucune n'avait une pleine capacité en attente. C'est un
+**non-déclenchement correct**, pas encore une preuve statistique de gain de l'expansion : un banc
+multi-graines sera nécessaire dès que `FG` fournit un échantillon.
 3. **Banc de validation (5 graines × 5 ans)** :
    - Trésorerie moyenne à l'an 5 : **~454 400 £** (déblocage total du mur de trésorerie).
    - Valeur moyenne d'entreprise : **~434 400 £**.
