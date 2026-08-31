@@ -731,22 +731,20 @@ function OpexGetServedTowns(lines)
   local townMap = {};
   local result = [];
   foreach (line in lines) {
-    if (line.mode == "rail" || line.mode == "air" || line.mode == "road") {
-      local stA = AIStation.GetStationID(line.stationA);
-      local stB = AIStation.GetStationID(line.stationB);
-      if (AIStation.IsValidStation(stA)) {
-        local tA = AIStation.GetNearestTown(stA);
-        if (tA >= 0 && !(tA in townMap)) {
-          townMap.rawset(tA, true);
-          result.append(tA);
-        }
+    local stA = AIStation.GetStationID(line.stationA);
+    local stB = AIStation.GetStationID(line.stationB);
+    if (AIStation.IsValidStation(stA)) {
+      local tA = AIStation.GetNearestTown(stA);
+      if (tA >= 0 && !(tA in townMap)) {
+        townMap.rawset(tA, true);
+        result.append(tA);
       }
-      if (AIStation.IsValidStation(stB)) {
-        local tB = AIStation.GetNearestTown(stB);
-        if (tB >= 0 && !(tB in townMap)) {
-          townMap.rawset(tB, true);
-          result.append(tB);
-        }
+    }
+    if (AIStation.IsValidStation(stB)) {
+      local tB = AIStation.GetNearestTown(stB);
+      if (tB >= 0 && !(tB in townMap)) {
+        townMap.rawset(tB, true);
+        result.append(tB);
       }
     }
   }
@@ -1243,10 +1241,9 @@ function OpexAI::_tryBuild(ranked, year)
        * departager "industrie fermee" de "train coince" comme cause de la note -1. */
       this._lines.append({
         stationA = result.stationA, stationB = result.stationB,
-        /* Identite d'origine (ville ou industrie) pour _tooClose -- cf. commentaire sur
-         * ORIGIN_SEPARATION : la tuile exacte du candidat, pas la gare batie. */
         originA = candidate.src, originB = candidate.dst,
         cargo = candidate.cargo,
+        mode = "rail",
         predicted = candidate.profitAnnual, iterations = result.iterations,
         trains = result.trains, distance = candidate.distance, year = year,
         predRevenue = candidate.revenueAnnual, predRunning = candidate.runningAnnual,
@@ -1434,6 +1431,7 @@ function OpexAI::_tryProbeNegative(ranked, year)
       stationA = result.stationA, stationB = result.stationB,
       originA = candidate.src, originB = candidate.dst,
       cargo = candidate.cargo,
+      mode = "rail",
       predicted = rankingProfit, iterations = result.iterations,
       trains = result.trains, distance = candidate.distance, year = year,
       predRevenue = candidate.revenueAnnual, predRunning = candidate.runningAnnual,
