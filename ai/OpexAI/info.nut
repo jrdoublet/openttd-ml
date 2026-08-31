@@ -498,6 +498,18 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
+    /* Demarrage aerien prioritaire et expansion de la flotte aerienne :
+     * 1 = priorite aux lignes aeriennes a fort ROI des l'an 0 et expansion jusqu'a 15 lignes (defaut),
+     * 0 = cadence aerienne historique lente (1 ligne/an, max 5). */
+    AddSetting({
+      name = "air_starter",
+      description = "Air starter & aggressive air expansion: 1 = enabled (default), 0 = historical slow air (1/yr, max 5)",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* Part de la production totale d une ville qu un arret de bus capte, en pourcentage.
      *
      * 86 est adopte apres le banc apparie 20 graines (docs/bench_road_pax_catchment.json) :

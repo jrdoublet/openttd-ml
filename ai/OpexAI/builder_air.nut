@@ -52,18 +52,16 @@ function OpexAirFindSite(town, airport, probes)
   /* Chaque ville recoit sa part arrondie vers le haut du reliquat. Une ville dont le premier
    * emplacement est bon rend donc les probes inutilisees aux suivantes, sans que les premieres
    * puissent accaparer le budget global. */
-  local allowance = probes.townsLeft > 0
-      ? (probes.left + probes.townsLeft - 1) / probes.townsLeft : 0;
+  local allowance = 400;
   probes.townsLeft--;
   local used = 0;
-  for (local r = 0; r <= AIR_SITE_RADIUS; r++) {
+  for (local r = 4; r <= AIR_SITE_RADIUS; r++) {
     for (local dx = -r; dx <= r; dx++) {
       for (local dy = -r; dy <= r; dy++) {
         if (abs(dx) != r && abs(dy) != r) continue;
         local anchor = town.tile + AIMap.GetTileIndex(dx, dy);
         if (!AIMap.IsValidTile(anchor)) continue;
-        if (OpexAirDistanceToRect(town.tile, anchor, airport.width, airport.height) >
-            airport.coverage) continue;
+        if (OpexAirDistanceToRect(town.tile, anchor, airport.width, airport.height) > 25) continue;
         if (AIAirport.GetNearestTown(anchor, airport.type) != town.id) continue;
         if (used >= allowance || probes.left <= 0) return null;
 
@@ -94,6 +92,7 @@ function OpexAirPlans(catalog, lines = null)
   local towns = OpexAirSortedTowns(catalog.towns);
   local limit = towns.len() < AIR_TOWN_POOL ? towns.len() : AIR_TOWN_POOL;
   local bestPlan = null;
+  AILog.Info("OpexAirPlans: combos=" + combos.len() + " towns=" + towns.len());
 
   foreach (combo in combos) {
     local airport = combo.airport;
@@ -101,17 +100,32 @@ function OpexAirPlans(catalog, lines = null)
     local sites = [];
     local probes = { left = AIR_MAX_SITE_PROBES, townsLeft = limit };
     for (local i = 0; i < limit; i++) {
-      if (lines != null && OpexOriginServed(lines, towns[i].tile, true)) continue;
+      /* Ne filtrer que les lignes aeriennes existantes : un aeroport ne concurrence pas une
+       * gare ferroviaire, et exclure les villes deja servies en rail empechait toute
+       * construction aerienne sur une carte partiellement couverte. */
+      local airServed = false;
+      if (lines != null) {
+        foreach (line in lines) {
+          if (!("mode" in line) || line.mode != "air") continue;
+          if (AIMap.DistanceManhattan(towns[i].tile, line.originA) < 15) { airServed = true; break; }
+          if (AIMap.DistanceManhattan(towns[i].tile, line.originB) < 15) { airServed = true; break; }
+        }
+      }
+      if (airServed) continue;
       local site = OpexAirFindSite(towns[i], airport, probes);
       if (site != null) sites.append(site);
     }
+    OpexSign(AIMap.GetTileIndex(1, 3), "AS|S=" + sites.len() + "|A=" + airport.name);
 
     for (local a = 0; a < sites.len(); a++) {
       for (local b = a + 1; b < sites.len(); b++) {
         local distance = AIMap.DistanceManhattan(sites[a].town.tile, sites[b].town.tile);
-        if (distance < AIR_TOWN_MIN_DISTANCE) continue;
         local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR,
                                                         sites[a].anchor, sites[b].anchor);
+        if (a == 0 && b == 1) {
+          OpexSign(AIMap.GetTileIndex(1, 7), "AZ|D=" + distance + "|OD=" + orderDistance + "|MO=" + plane.maxOrderDistance + "|MIN=" + AIR_TOWN_MIN_DISTANCE);
+        }
+        if (distance < AIR_TOWN_MIN_DISTANCE) continue;
         if (plane.maxOrderDistance > 0 && orderDistance > plane.maxOrderDistance) {
           continue;
         }
@@ -120,6 +134,9 @@ function OpexAirPlans(catalog, lines = null)
         local popB = sites[b].town.pop;
         local monthlyPax = ((popA + popB) * 22) / 100;
         if (monthlyPax < 10) monthlyPax = 10;
+        if (a == 0 && b == 1) {
+          OpexSign(AIMap.GetTileIndex(1, 5), "AX|PA=" + popA + "|PB=" + popB + "|MPX=" + monthlyPax);
+        }
 
         // Vitesse effective de l'avion (facteur 4 de OpenTTD plane_speed)
         local effectiveSpeed = plane.speed / 4.0;
@@ -153,6 +170,10 @@ function OpexAirPlans(catalog, lines = null)
           }
         };
 
+        if (a == 0 && b == 1) {
+          OpexSign(AIMap.GetTileIndex(1, 8), "AW|R=" + revenueAnnual + "|C=" + runningAnnual + "|A=" + amortAnnual + "|P=" + profitAnnual);
+          OpexSign(AIMap.GetTileIndex(1, 9), "AV|SP=" + plane.speed + "|CP=" + plane.capacity + "|OWD=" + oneWayDays + "|TC=" + tripsPerMonth);
+        }
         if (profitAnnual > 0) {
           if (bestPlan == null || roi > bestPlan.economics.roi) {
             bestPlan = plan;
@@ -160,6 +181,7 @@ function OpexAirPlans(catalog, lines = null)
         }
       }
     }
+    OpexSign(AIMap.GetTileIndex(1, 4), "AE|S=" + sites.len() + "|B=" + (bestPlan != null ? bestPlan.economics.profitAnnual : "NO"));
     // Si on a trouve un plan rentable pour le grand aeroport a gros avion, on le retient
     if (bestPlan != null && bestPlan.airport.allowBig) break;
   }

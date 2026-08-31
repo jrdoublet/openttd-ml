@@ -1,0 +1,371 @@
+{
+ "openttd_version": "15.3",
+ "opengfx_version": "7.1",
+ "years": 1,
+ "seeds": [
+  42
+ ],
+ "arms": [
+  "OpexAI"
+ ],
+ "repeats": 1,
+ "openttd_config": "[difficulty]\nnumber_towns = 3\nindustry_density = 4\n[economy]\ninflation = false\ntown_growth_rate = 2\n[game_creation]\nstarting_year = 1970\nmap_x = 8\nmap_y = 8\n",
+ "metric": "PLYR[0].old_economy[0] : company_value, performance_history (0-1000), profit (trimestre), profit_year (4 trimestres) ; STNN median_station_rating (0-255, cargos ramasses)",
+ "success_metrics": [
+  "company_value",
+  "performance_history",
+  "profit",
+  "profit_year",
+  "median_station_rating"
+ ],
+ "paired_reading": "mean(A(seed) - B(seed)); les paires annulent la difficulte inter-graines partagee",
+ "checkpoint": "docs/bench_smoke_air_diag2.jsonl",
+ "summary": [
+  {
+   "arm": "OpexAI",
+   "seed": 42,
+   "repeat": 0,
+   "last_date": "1971-01-01",
+   "company_value": 37966,
+   "performance_history": 38,
+   "income_last_year": 19152,
+   "expenses_last_year": -2777,
+   "profit": 16375,
+   "profit_year": 21467,
+   "median_station_rating": 175,
+   "n_station_ratings": 5,
+   "money": 182968,
+   "current_loan": 300000,
+   "n_vehicles": 25,
+   "n_stations": 10,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 13,
+   "openttd_output": ""
+  }
+ ],
+ "statistics": {
+  "OpexAI": {
+   "company_value": {
+    "n": 1,
+    "mean": 37966,
+    "median": 37966,
+    "standard_deviation": null,
+    "standard_error": null,
+    "standard_error_percent": null,
+    "coefficient_of_variation_percent": null
+   },
+   "performance_history": {
+    "n": 1,
+    "mean": 38,
+    "median": 38,
+    "standard_deviation": null,
+    "standard_error": null,
+    "standard_error_percent": null,
+    "coefficient_of_variation_percent": null
+   },
+   "profit": {
+    "n": 1,
+    "mean": 16375,
+    "median": 16375,
+    "standard_deviation": null,
+    "standard_error": null,
+    "standard_error_percent": null,
+    "coefficient_of_variation_percent": null
+   },
+   "profit_year": {
+    "n": 1,
+    "mean": 21467,
+    "median": 21467,
+    "standard_deviation": null,
+    "standard_error": null,
+    "standard_error_percent": null,
+    "coefficient_of_variation_percent": null
+   },
+   "median_station_rating": {
+    "n": 1,
+    "mean": 175,
+    "median": 175,
+    "standard_deviation": null,
+    "standard_error": null,
+    "standard_error_percent": null,
+    "coefficient_of_variation_percent": null
+   }
+  }
+ },
+ "paired_comparisons": [],
+ "series": [
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1970-01-01",
+   "company_value": null,
+   "performance_history": null,
+   "income_last_year": null,
+   "expenses_last_year": null,
+   "profit": null,
+   "profit_year": null,
+   "median_station_rating": null,
+   "n_station_ratings": 0,
+   "money": 100000,
+   "current_loan": 100000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 8,
+   "n_stations": 0
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1970-02-01",
+   "company_value": null,
+   "performance_history": null,
+   "income_last_year": null,
+   "expenses_last_year": null,
+   "profit": null,
+   "profit_year": null,
+   "median_station_rating": null,
+   "n_station_ratings": 0,
+   "money": 269433,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 11,
+   "n_stations": 2
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1970-03-01",
+   "company_value": null,
+   "performance_history": null,
+   "income_last_year": null,
+   "expenses_last_year": null,
+   "profit": null,
+   "profit_year": null,
+   "median_station_rating": 175,
+   "n_station_ratings": 1,
+   "money": 270161,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 11,
+   "n_stations": 2
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1970-04-01",
+   "company_value": null,
+   "performance_history": null,
+   "income_last_year": null,
+   "expenses_last_year": null,
+   "profit": null,
+   "profit_year": null,
+   "median_station_rating": 175,
+   "n_station_ratings": 1,
+   "money": 270877,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 15,
+   "n_stations": 2
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1970-05-01",
+   "company_value": 9560,
+   "performance_history": 12,
+   "income_last_year": 2838,
+   "expenses_last_year": -1374,
+   "profit": 1464,
+   "profit_year": 1464,
+   "median_station_rating": 175,
+   "n_station_ratings": 1,
+   "money": 271598,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 11,
+   "n_stations": 2
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1970-06-01",
+   "company_value": 9560,
+   "performance_history": 12,
+   "income_last_year": 2838,
+   "expenses_last_year": -1374,
+   "profit": 1464,
+   "profit_year": 1464,
+   "median_station_rating": 175,
+   "n_station_ratings": 1,
+   "money": 273736,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 11,
+   "n_stations": 2
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1970-07-01",
+   "company_value": 9560,
+   "performance_history": 12,
+   "income_last_year": 2838,
+   "expenses_last_year": -1374,
+   "profit": 1464,
+   "profit_year": 1464,
+   "median_station_rating": 175,
+   "n_station_ratings": 1,
+   "money": 237067,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 22,
+   "n_stations": 4
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1970-08-01",
+   "company_value": 17191,
+   "performance_history": 17,
+   "income_last_year": 5688,
+   "expenses_last_year": -2060,
+   "profit": 3628,
+   "profit_year": 5092,
+   "median_station_rating": 175,
+   "n_station_ratings": 1,
+   "money": 237602,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 16,
+   "n_stations": 4
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1970-09-01",
+   "company_value": 17191,
+   "performance_history": 17,
+   "income_last_year": 5688,
+   "expenses_last_year": -2060,
+   "profit": 3628,
+   "profit_year": 5092,
+   "median_station_rating": 175.0,
+   "n_station_ratings": 2,
+   "money": 214591,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 26,
+   "n_stations": 6
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1970-10-01",
+   "company_value": 17191,
+   "performance_history": 17,
+   "income_last_year": 5688,
+   "expenses_last_year": -2060,
+   "profit": 3628,
+   "profit_year": 5092,
+   "median_station_rating": 175.0,
+   "n_station_ratings": 2,
+   "money": 221761,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 19,
+   "n_stations": 6
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1970-11-01",
+   "company_value": 37966,
+   "performance_history": 38,
+   "income_last_year": 19152,
+   "expenses_last_year": -2777,
+   "profit": 16375,
+   "profit_year": 21467,
+   "median_station_rating": 175,
+   "n_station_ratings": 3,
+   "money": 199252,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 30,
+   "n_stations": 10
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1970-12-01",
+   "company_value": 37966,
+   "performance_history": 38,
+   "income_last_year": 19152,
+   "expenses_last_year": -2777,
+   "profit": 16375,
+   "profit_year": 21467,
+   "median_station_rating": 175.0,
+   "n_station_ratings": 4,
+   "money": 176400,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 32,
+   "n_stations": 10
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1971-01-01",
+   "company_value": 37966,
+   "performance_history": 38,
+   "income_last_year": 19152,
+   "expenses_last_year": -2777,
+   "profit": 16375,
+   "profit_year": 21467,
+   "median_station_rating": 175,
+   "n_station_ratings": 5,
+   "money": 182968,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 25,
+   "n_stations": 10
+  }
+ ]
+}

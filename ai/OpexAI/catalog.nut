@@ -517,6 +517,9 @@ function OpexCatalog::_refreshAir()
       break;
     }
   }
+  AILog.Info("_refreshAir: combos=" + this.airCombos.len()
+    + " airport=" + (this.airport != null ? "YES" : "NULL")
+    + " plane=" + (this.plane != null ? "YES" : "NULL"));
 }
 
 /* Coques refittables : la capacite reelle depend du depot et du GRF. */

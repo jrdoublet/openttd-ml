@@ -101,6 +101,7 @@ DYNAMIC_CASH_RESERVE <- true;
 TREE_PLANTING <- false;
 PAX_FULL_LOAD <- true;
 COMPLEX_CARGO <- true;
+AIR_STARTER <- true;
 const CASH_RESERVE_STATIC = 50000;
 const CASH_RESERVE_MIN = 15000;
 const CASH_RESERVE_MAX = 50000;
@@ -286,9 +287,10 @@ class OpexAI extends AIController {
       { name = "expand", dueCycle = 0, enabled = true },
       /* Precalcul des traces pour utiliser les opcodes dormants et preparer la construction instantanee. */
       { name = "preplan", dueCycle = 0, enabled = true },
+      /* Liaison aerienne a fort ROI : finance le demarrage et genere le cash flow des l'an 0. */
+      { name = "air", dueCycle = 0, enabled = true },
       { name = "rail", dueCycle = 0, enabled = true },
       { name = "road", dueCycle = 0, enabled = true },
-      { name = "air", dueCycle = 0, enabled = true },
       { name = "water", dueCycle = 0, enabled = true },
       { name = "probe", dueCycle = 0, enabled = true },
       { name = "town_growth", dueCycle = 0, enabled = true },
@@ -502,16 +504,24 @@ function OpexAI::_tryBuildAir(year)
       if (line.year == year) airLinesThisYear++;
     }
   }
-  if (airLinesThisYear >= 1 || totalAirLines >= 5) return;
+  local maxPerYear = AIR_STARTER ? 3 : 1;
+  local maxTotal = AIR_STARTER ? 15 : 5;
+  if (airLinesThisYear >= maxPerYear || totalAirLines >= maxTotal) return;
 
   this._budget.begin();
   local plan = OpexAirPlans(this._catalog, this._lines);
   local planOps = this._budget.end("build_air_plans");
-  if (plan == null) return;
+  AILog.Info("TRY AIR: plan=" + (plan != null ? "FOUND" : "NULL") + " combos=" + this._catalog.airCombos.len());
+  if (plan == null) {
+    OpexSign(AIMap.GetTileIndex(1, 1), "AD|NULL|C=" + this._catalog.airCombos.len());
+    return;
+  }
 
   local capital = ("capital" in plan) ? plan.capital : (2 * plan.airport.price + plan.plane.price);
-  local need = capital + OpexCashReserve() + AIR_CAPITAL_MARGIN;
+  local margin = AIR_STARTER ? 10000 : AIR_CAPITAL_MARGIN;
+  local need = capital + OpexCashReserve() + margin;
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  OpexSign(AIMap.GetTileIndex(1, 1), "AD|K=" + capital + "|N=" + need + "|M=" + money);
   if (money < need) {
     if (REBORROW) money = OpexTryReborrow(need, money);
     if (money < need) return;
@@ -2450,6 +2460,7 @@ function OpexAI::Start()
   TREE_PLANTING = AIController.GetSetting("tree_planting") != 0;
   PAX_FULL_LOAD = AIController.GetSetting("pax_full_load") != 0;
   COMPLEX_CARGO = AIController.GetSetting("complex_cargo") != 0;
+  AIR_STARTER = AIController.GetSetting("air_starter") != 0;
 
   /* 🔴 RENOUVELLEMENT AUTOMATIQUE (2026-08-29). Mesure : campagne 20 ans, graine 42 -- trois des
    * quatre lignes ROUTIERES finissent la partie avec vehCount = 0 et un profit de zero, alors que
