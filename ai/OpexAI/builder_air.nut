@@ -13,7 +13,7 @@ const AIR_HUB_TOWN_POOL = 60;
 const AIR_HUB_NEW_SITE_POOL = 10;
 const AIR_SITE_RADIUS = 35;
 const AIR_TOWN_MIN_DISTANCE = 55;
-const AIR_MAX_SITE_PROBES = 1200;
+const AIR_MAX_SITE_PROBES = 15000;
 /* Une piste AT_LARGE ne doit pas recevoir une flotte sans borne. */
 const AIR_MAX_PLANES_PER_ROUTE = 10;
 
@@ -70,9 +70,6 @@ function OpexAirAirportAcceptsPlane(airportType, planeType)
  * pas seulement contre son coin. */
 function OpexAirFindSite(town, airport, probes)
 {
-  /* Chaque ville recoit sa part arrondie vers le haut du reliquat. Une ville dont le premier
-   * emplacement est bon rend donc les probes inutilisees aux suivantes, sans que les premieres
-   * puissent accaparer le budget global. */
   local allowance = 400;
   probes.townsLeft--;
   local used = 0;

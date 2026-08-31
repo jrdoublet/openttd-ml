@@ -122,7 +122,7 @@ def main():
                         help="Réglage OpexAI supplémentaire, répétable")
     args = parser.parse_args()
 
-    opex_settings = {"rail_expand": 1}
+    opex_settings = {}
     for raw in args.setting:
         if "=" not in raw:
             parser.error(f"--setting attend CLE=VALEUR, reçu {raw!r}")
@@ -133,7 +133,7 @@ def main():
             parser.error(f"valeur entière attendue pour --setting {raw!r}")
     settings_tuple = tuple(opex_settings.items())
     setting_label = ",".join(f"{key}={value}" for key, value in settings_tuple)
-    arm_names = (f"OpexAI[{setting_label}]", "AAAHogEx")
+    arm_names = (f"OpexAI[{setting_label}]" if setting_label else "OpexAI", "AAAHogEx")
     opex = local_folder(
         str(ROOT / "ai" / "OpexAI"),
         "OpexAI",

@@ -533,6 +533,17 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
+    /* Plantation automatique d'arbres pour maximiser la reputation municipale et lever les refus de permis :
+     * 1 = plante des arbres si refus de permis ou notation basse (defaut), 0 = off. */
+    AddSetting({
+      name = "tree_planting",
+      description = "Automatic tree planting to maximize town authority rating and bypass local permits: 1 = enabled (default), 0 = off",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* Part de la production totale d une ville qu un arret de bus capte, en pourcentage.
      *
      * 86 est adopte apres le banc apparie 20 graines (docs/bench_road_pax_catchment.json) :
