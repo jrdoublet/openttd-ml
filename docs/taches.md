@@ -1195,7 +1195,7 @@ mesurée : `docs/opexai_route.md`, banc PH **+9,3 %**.
 - ✅ **Gérer des voies aller-retour** (double voie v1, 2026-08-30). Voir item 9.5.
   Banc 20×20 vs `bench_road_current` : valeur +55 %, note −9 %. **Gardé.**
   Jointure aussi (item 0.7) : ne paie pas, défauts 0.
-- 🔶 **File attente continue** (2026-08-31) : main.nut tourne en rond dans la sequence catalog, report, scrap, refleet, air, water, rail, probe, road, repay. Une tache est executee par passage dans la boucle, puis le dernier element revient au premier. Les constructions et les tentatives air/eau ne sont donc plus bloquees par le changement annuel. Les taches comptables restent bornees a une fois par annee, car leur entree est le profit de l annee precedente. **Smoke OpenTTD 15.3 OK** (graine 42, 30 000 ticks, aucune erreur Squirrel) ; banc A/B reste a faire avant de conclure sur la performance.
+- 🔴 **File attente continue** (2026-08-31) : smoke 15.3 OK. Banc apparie 20 graines x 20 ans (`docs/bench_continuous_queue.json`) : valeur **-11,1 %**, t = **-2,78**, 4/20 ; note compagnie -0,7 %, t = -0,51. La queue degrade la valeur sans gain de note : **ne pas adopter comme baseline**. Le code reste disponible pour une future politique de priorite mieux fondee.
 - **Contribuer à la croissance d'une ville via des stations de bus/camions** (jusqu'à 5 gares,
   une unité de cargo par 50 jours) — recoupe le mode Route adopté (section 6), posé ici
   comme objectif de croissance plutôt que comme mode de transport. Le barème 15.3
