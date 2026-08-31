@@ -95,10 +95,28 @@ const ORIGIN_SEPARATION = 3;
  * par tick, N iterations demandent ~N/3,7 ticks ; la marge couvre la pose elle-meme. */
 const BUILD_TICK_MARGIN = 3000;
 
-/* Reserve de tresorerie. Sans elle l'IA construit jusqu'a la ruine : mesure du 2026-08-28,
- * 4 lignes construites puis solde a -542 avec l'emprunt au maximum. Une compagnie a sec ne peut
- * plus ni renouveler ses vehicules ni saisir une occasion, et la valeur d'entreprise tombe a 1. */
-const CASH_RESERVE = 50000;
+/* Reserve de tresorerie dynamique : adaptee a la taille de la flotte pour liberer le capital
+ * des les premieres annees (15 000 £ au lieu de 50 000 £) et eviter les soldes oisifs. */
+DYNAMIC_CASH_RESERVE <- true;
+const CASH_RESERVE_STATIC = 50000;
+const CASH_RESERVE_MIN = 15000;
+const CASH_RESERVE_MAX = 50000;
+
+function OpexCashReserve()
+{
+  if (!DYNAMIC_CASH_RESERVE) return CASH_RESERVE_STATIC;
+  local totalRunning = 0;
+  local vehicles = AIVehicleList();
+  for (local v = vehicles.Begin(); !vehicles.IsEnd(); v = vehicles.Next()) {
+    if (AIVehicle.IsValidVehicle(v)) {
+      totalRunning += AIVehicle.GetRunningCost(v);
+    }
+  }
+  local quarterlyBuffer = totalRunning / 4;
+  if (quarterlyBuffer < CASH_RESERVE_MIN) return CASH_RESERVE_MIN;
+  if (quarterlyBuffer > CASH_RESERVE_MAX) return CASH_RESERVE_MAX;
+  return quarterlyBuffer;
+}
 
 /* Le classement ne contient que TOP_K = 20 candidats. Le plafond de continuation est exactement
  * cette borne existante, pas un second seuil arbitraire : une annee sans argent examine au plus
@@ -466,26 +484,27 @@ function OpexAbandonedPairKey(candidate)
   return candidate.kind + "|" + candidate.cargo + "|" + src + "|" + dst;
 }
 
-/* Un seul avion suffit pour cette premiere liaison. Le scan des vehicules empeche un doublon apres
- * rechargement, ou si l'etat transitoire de l'IA a ete perdu. */
+/* Liaison aerienne passagers a fort ROI. Deploie la tresorerie excedentaire sans A*. */
 function OpexAI::_tryBuildAir(year)
 {
-  if (this._airBuilt || (this._catalog.airCombos == null && this._catalog.airport == null)) return;
-  local vehicles = AIVehicleList();
-  for (local v = vehicles.Begin(); !vehicles.IsEnd(); v = vehicles.Next()) {
-    if (AIVehicle.GetVehicleType(v) == AIVehicle.VT_AIR) {
-      this._airBuilt = true;
-      return;
+  if (this._catalog.airCombos == null && this._catalog.airport == null) return;
+  local airLinesThisYear = 0;
+  local totalAirLines = 0;
+  foreach (line in this._lines) {
+    if (("mode" in line) && line.mode == "air") {
+      totalAirLines++;
+      if (line.year == year) airLinesThisYear++;
     }
   }
+  if (airLinesThisYear >= 1 || totalAirLines >= 5) return;
 
   this._budget.begin();
-  local plan = OpexAirPlans(this._catalog);
+  local plan = OpexAirPlans(this._catalog, this._lines);
   local planOps = this._budget.end("build_air_plans");
   if (plan == null) return;
 
   local capital = ("capital" in plan) ? plan.capital : (2 * plan.airport.price + plan.plane.price);
-  local need = capital + CASH_RESERVE + AIR_CAPITAL_MARGIN;
+  local need = capital + OpexCashReserve() + AIR_CAPITAL_MARGIN;
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   if (money < need) {
     if (REBORROW) money = OpexTryReborrow(need, money);
@@ -501,10 +520,7 @@ function OpexAI::_tryBuildAir(year)
   this._airBuilt = true;
   this._lines.append({
     stationA = result.stationA, stationB = result.stationB,
-    /* Pas de notion d'origine distincte pour l'avion (une seule liaison jamais dupliquee, gardee
-     * par _airBuilt) -- la gare batie sert de repli pour que _tooClose n'ait pas a distinguer les
-     * modes. */
-    originA = result.stationA, originB = result.stationB,
+    originA = plan.siteA.town.tile, originB = plan.siteB.town.tile,
     cargo = this._catalog.paxCargo,
     predicted = ("economics" in plan && "profitAnnual" in plan.economics) ? plan.economics.profitAnnual : 0,
     iterations = 0, trains = 1, distance = plan.distance, year = year,
@@ -532,7 +548,7 @@ function OpexAI::_tryBuildWater(year)
   local planOps = this._budget.end("build_water_plans");
   if (plan == null) return;
   local capital = 2 * this._catalog.costDock + this._catalog.costWaterDepot + this._catalog.maxShipPrice;
-  local need = capital + CASH_RESERVE + WATER_CAPITAL_MARGIN;
+  local need = capital + OpexCashReserve() + WATER_CAPITAL_MARGIN;
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   if (money < need) {
     if (REBORROW) money = OpexTryReborrow(need, money);
@@ -592,7 +608,7 @@ function OpexAI::_tryBuildRoads(year)
     if (OpexOriginServed(this._lines, candidate.src, true)) continue;
     if (OpexOriginServed(this._lines, candidate.dst, true)) continue;
 
-    local need = candidate.capital + CASH_RESERVE + ROAD_CAPITAL_MARGIN;
+    local need = candidate.capital + OpexCashReserve() + ROAD_CAPITAL_MARGIN;
     local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
     if (money < need) {
       if (REBORROW) money = OpexTryReborrow(need, money);
@@ -764,7 +780,7 @@ function OpexAI::_tryTownGrowth(year)
 {
   if (!TOWN_GROWTH_ENABLED || this._catalog.roadType < 0 || this._catalog.paxCargo < 0) return;
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  if (money < CASH_RESERVE + 25000) return;
+  if (money < OpexCashReserve() + 25000) return;
 
   local engine = (this._catalog.paxCargo in this._catalog.roadEngineByCargo)
       ? this._catalog.roadEngineByCargo[this._catalog.paxCargo] : null;
@@ -1099,7 +1115,7 @@ function OpexAI::_tryBuild(ranked, year)
       }
     }
 
-    local need = candidate.capital + CASH_RESERVE;
+    local need = candidate.capital + OpexCashReserve();
     local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
     if (money < need) {
       if (REBORROW) money = OpexTryReborrow(need, money);
@@ -1122,7 +1138,7 @@ function OpexAI::_tryBuild(ranked, year)
      * abandonnait le 75-100. alternativeRatio 0 = chemin Z, HARD_ITERATION_CAP. */
     if (isPaxNear) alternativeRatio = 0;
     local result = OpexBuildLine(this._catalog, this._budget, candidate, alternativeRatio, join,
-                                 CASH_RESERVE);
+                                 OpexCashReserve());
     if (isPaxNear) nPaxNearTried++;
     /* La longueur retenue peut etre plus courte que le souhait, ou celle d'un quai joint plus
      * longue. OpexBuildLine a alors recalcule le capital avant toute demolition. Ce rejet reste
@@ -1416,7 +1432,7 @@ function OpexAI::_tryProbeNegative(ranked, year)
       nClose++;
       continue;
     }
-    local need = candidate.capital + CASH_RESERVE;
+    local need = candidate.capital + OpexCashReserve();
     local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
     if (money < need) {
       nCash++;
@@ -1428,7 +1444,7 @@ function OpexAI::_tryProbeNegative(ranked, year)
     /* alternativeRatio 0 : chemin Z, HARD_ITERATION_CAP. join = null : on mesure
      * la paire rejetee, pas une jointure. Pas de reemprunt. */
     local result = OpexBuildLine(this._catalog, this._budget, candidate, 0, null,
-                                 CASH_RESERVE);
+                                 OpexCashReserve());
     /* Un seul OpexBuildLine par an : le sondage de site est deja un cout d'opcodes. */
     tried = 1;
     if (result.reason == "CASH") {
@@ -2019,7 +2035,7 @@ function OpexAI::_expandRailLines(year)
   if (best == null) return;
 
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  local need = best.wagon.price + CASH_RESERVE;
+  local need = best.wagon.price + OpexCashReserve();
   if (money < need) {
     if (REBORROW) money = OpexTryReborrow(need, money);
     if (money < need) return;
@@ -2171,7 +2187,7 @@ function OpexAI::_continueRailExpansion()
     return true;
   }
   local wagonPrice = AIEngine.GetPrice(state.wagonId);
-  if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < wagonPrice + CASH_RESERVE) {
+  if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < wagonPrice + OpexCashReserve()) {
     AIVehicle.StartStopVehicle(state.vehicle);
     state.ops += this._budget.end("expand_rail_build");
     OpexSign(anchor, "EX|" + year + "|" + state.lineId + "|C|" + state.ops + "|0");
@@ -2324,7 +2340,6 @@ function OpexAI::_runNextTask()
   }
   if (task.name == "air") {
     this._tryBuildAir(year);
-    if (this._airBuilt) task.enabled = false;
     return true;
   }
   if (task.name == "water") {
@@ -2393,6 +2408,7 @@ function OpexAI::Start()
   ASTAR_COST_V2 = AIController.GetSetting("astar_cost") != 0;
   PROBE_NEGATIVE = AIController.GetSetting("probe_negative") != 0;
   PAX_NEAR = AIController.GetSetting("pax_near") != 0;
+  DYNAMIC_CASH_RESERVE = AIController.GetSetting("dynamic_cash_reserve") != 0;
 
   /* 🔴 RENOUVELLEMENT AUTOMATIQUE (2026-08-29). Mesure : campagne 20 ans, graine 42 -- trois des
    * quatre lignes ROUTIERES finissent la partie avec vehCount = 0 et un profit de zero, alors que
@@ -2409,7 +2425,7 @@ function OpexAI::Start()
    * que la construction protege. */
   AICompany.SetAutoRenewStatus(true);
   AICompany.SetAutoRenewMonths(-6);
-  AICompany.SetAutoRenewMoney(CASH_RESERVE);
+  AICompany.SetAutoRenewMoney(OpexCashReserve());
 
   /* L'emprunt maximal des le depart : la note de compagnie recompense l'emprunt a zero (5 %),
    * mais une ligne non construite faute de tresorerie coute bien davantage. Le remboursement

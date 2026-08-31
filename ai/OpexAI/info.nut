@@ -453,6 +453,17 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
+    /* Réserve de trésorerie dynamique adaptée aux coûts d'entretien réels (15 000 à 50 000 £).
+     * Libère jusqu'à 35 000 £ au démarrage pour accélérer l'investissement initial. */
+    AddSetting({
+      name = "dynamic_cash_reserve",
+      description = "Scale cash reserve with fleet maintenance (15k-50k) instead of static 50k: 1 = enabled (default), 0 = static 50k",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* Part de la production totale d une ville qu un arret de bus capte, en pourcentage.
      *
      * 86 est adopte apres le banc apparie 20 graines (docs/bench_road_pax_catchment.json) :

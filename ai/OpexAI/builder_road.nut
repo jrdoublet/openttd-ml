@@ -676,7 +676,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
     if (i >= candidate.trains) {
       local price = AIEngine.GetPrice(candidate.engine.id);
       if (price <= 0) break;
-      if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) - CASH_RESERVE < price) break;
+      if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) - OpexCashReserve() < price) break;
     }
     local extra = AIVehicle.CloneVehicle(depot, first, true);
     if (!AIVehicle.IsValidVehicle(extra)) break;
@@ -741,7 +741,7 @@ function OpexRoadRefleet(catalog, line, have, target)
   }
   if (unitPrice <= 0) { result.reason = "PRICE"; return result; }
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  local affordable = (money - CASH_RESERVE) / unitPrice;
+  local affordable = (money - OpexCashReserve()) / unitPrice;
   if (affordable < 1) { result.reason = "CASH"; return result; }
   if (missing > affordable) missing = affordable;
 

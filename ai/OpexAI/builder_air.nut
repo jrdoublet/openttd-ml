@@ -84,7 +84,7 @@ function OpexAirFindSite(town, airport, probes)
 /* Evalue et planifie la meilleure liaison aerienne en testant les combinaisons
  * grand aeroport (+gros/petit avion) et petit aeroport (+petit avion strictement).
  * Privilegie le plus fort ROI avec retour sur investissement rapide. */
-function OpexAirPlans(catalog)
+function OpexAirPlans(catalog, lines = null)
 {
   local combos = (("airCombos" in catalog) && catalog.airCombos != null && catalog.airCombos.len() > 0)
       ? catalog.airCombos
@@ -101,6 +101,7 @@ function OpexAirPlans(catalog)
     local sites = [];
     local probes = { left = AIR_MAX_SITE_PROBES, townsLeft = limit };
     for (local i = 0; i < limit; i++) {
+      if (lines != null && OpexOriginServed(lines, towns[i].tile, true)) continue;
       local site = OpexAirFindSite(towns[i], airport, probes);
       if (site != null) sites.append(site);
     }

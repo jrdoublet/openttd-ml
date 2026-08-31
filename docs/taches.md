@@ -1243,16 +1243,11 @@ mesurée : `docs/opexai_route.md`, banc PH **+9,3 %**.
   bus intra-urbaines pour atteindre le plafond maximal de 5 stations actives d'OpenTTD (`CountActiveStations = 5`)
   et maximiser l'accélération de croissance démographique sans pénaliser les investissements lourds.
   Réglage `town_growth`, défaut 1. Signe diagnostic `TG|year|townId|nBefore|nAfter`.
+- ✅ **Réserve de trésorerie dynamique (`dynamic_cash_reserve`) et déploiement du cash — FAIT (2026-08-31)** :
+  Remplacement de la constante statique `CASH_RESERVE = 50 000` par la fonction `OpexCashReserve()` :
+  - **Dimensionnement dynamique** : calculé sur 3 mois de coûts d'exploitation de la flotte active, borné entre 15 000 £ (au démarrage) et 50 000 £ (en régime de croisière). Libère jusqu'à 35 000 £ de capital dès l'an 1.
+  - **Déploiement du cash excédentaire** : levée du plafond mono-avion (`AIR_MAX_LINES_PER_YEAR = 1`, jusqu'à 5 liaisons aéroportuaires rentables) et remboursement de la dette via `_tryRepayLoan` quand la trésorerie dépasse `LOAN_REPAY_FLOOR` (300 000 £).
+  - Réglage `dynamic_cash_reserve` (défaut 1) dans `info.nut`.
 - **Planter des arbres pour augmenter la réputation** (note de compagnie) — déjà identifié dans
   `docs/mecanique_jeu.md` comme le levier de rattrapage bon marché si la note stagne à cause du
   terrassement/destruction de bâtiments.
-- **Budget de construction d'une ligne proportionnel au cash** (idée notée le 2026-08-28) : plafonner
-  à ~90 % de la trésorerie disponible plutôt qu'à une valeur fixe, pour que le plafond suive la
-  compagnie au lieu de la brider quand elle est riche.
-  ⚠️ **Vérification faite : la valeur fixe de 200 000 soupçonnée existe bien, mais ce n'est pas un
-  budget en argent.** C'est `PATHFINDER_MAX_COST` (`builder_rail.nut:24`), un plafond de *coût A\**
-  (unités de pathfinding), sans rapport avec la trésorerie. Côté argent, `_tryBuild`
-  (`main.nut:255`) compare déjà `GetBankBalance` au `candidate.capital` calculé par ligne, moins
-  `CASH_RESERVE = 50 000` — donc déjà proportionnel au cash, pas un plafond fixe. L'idée reste
-  évaluable, mais sur les bons paramètres : soit rendre `CASH_RESERVE` proportionnel (au lieu de
-  50 000 fixes), soit revoir `PATHFINDER_MAX_COST` — deux choses distinctes, à ne pas confondre.
