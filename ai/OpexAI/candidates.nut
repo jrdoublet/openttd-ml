@@ -186,14 +186,26 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   }
 
   local iterations = OpexRailIterations(distance);
-  local ratio = (economics.profitAnnual * 1000) / iterations;
+  local opcodeRatio = (economics.profitAnnual * 1000) / iterations;
   /* Sous MIN_RATIO, le candidat coute structurellement plus qu'il ne rapporte compare au reste du
    * classement -- ne merite pas d'occuper une place dans le TOP_K meme s'il est techniquement
    * profitable (economics.profitAnnual > 0 ne suffit pas, voir MIN_RATIO ci-dessus). */
-  if (ratio < MIN_RATIO) {
+  if (opcodeRatio < MIN_RATIO) {
     stats.ratioTooLow++;
     return null;
   }
+
+  /* Score composite : priorise le fort ROI et le retour sur investissement rapide (cash turnover).
+   * Une rotation rapide (oneWayDays court) reinjecte du cash rapidement pour financer les lignes suivantes. */
+  local turnoverBonus = 100;
+  if (economics.oneWayDays <= 12) turnoverBonus = 130;
+  else if (economics.oneWayDays <= 25) turnoverBonus = 115;
+  else if (economics.oneWayDays <= 45) turnoverBonus = 100;
+  else turnoverBonus = 75;
+
+  local adjustedRoi = (economics.roi * turnoverBonus) / 100;
+  local ratio = opcodeRatio + (adjustedRoi * 15);
+
   stats.accepted++;
   return {
     kind = kind,            // "pax" ou "freight"
@@ -221,6 +233,7 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
     trainsForVolume = economics.trainsForVolume,
     carried = economics.carried,
     capital = economics.capital,
+    roi = economics.roi,
     profitAnnual = economics.profitAnnual,
     /* Detail du calcul, garde pour l'instrumentation predit-vs-reel (cf. main.nut). */
     revenueAnnual = economics.revenueAnnual,
@@ -228,11 +241,6 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
     amortAnnual = economics.amortAnnual,
     oneWayDays = economics.oneWayDays,
     iterations = iterations,
-    /* Le classement interne : profit annuel attendu par millier d'iterations d'A* attendues.
-     * On divise par les iterations et non par les opcodes : c'est le meme classement (2700
-     * opcodes par iteration, un facteur constant) mais les entiers restent petits et la valeur
-     * est directement comparable au "profit par iteration" mesure sur les campagnes. Deja calcule
-     * ci-dessus pour le test MIN_RATIO -- repris tel quel, pas recalcule. */
     ratio = ratio,
   };
 }
@@ -254,7 +262,7 @@ function OpexMakePaxNearCandidate(kind, cargo, srcTile, dstTile, monthly, origin
     headwayDays = economics.headwayDays, stationRating = economics.stationRating,
     offered = economics.offered, monthlyCapacity = economics.monthlyCapacity,
     trainsForHeadway = economics.trainsForHeadway, trainsForVolume = economics.trainsForVolume,
-    carried = economics.carried, capital = economics.capital,
+    carried = economics.carried, capital = economics.capital, roi = economics.roi,
     profitAnnual = economics.profitAnnual, revenueAnnual = economics.revenueAnnual,
     runningAnnual = economics.runningAnnual, amortAnnual = economics.amortAnnual,
     oneWayDays = economics.oneWayDays,

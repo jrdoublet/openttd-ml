@@ -121,6 +121,10 @@ RE_RB_ROAD = re.compile(r"^RB\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")   # opcode
 RE_RN_ROAD = re.compile(r"^RN\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")  # classes/tentatives/baties/opcodes
 RE_RS_ROAD = re.compile(r"^RS\|(\d{2})\|(\d+)\|(\d+)\|(\d+)$")  # paires en bande / coupees / acceptees
 RE_RF_ROAD = re.compile(r"^RF\|(\d+)\|(\d+)\|(\d+)\|(.+)$")  # year, id, added, after|reason
+RE_EU_EXPAND = re.compile(r"^EU\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
+RE_EG_EXPAND = re.compile(r"^EG\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(-?\d+)$")
+RE_ES_EXPAND = re.compile(r"^ES\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
+RE_EX_EXPAND = re.compile(r"^EX\|(\d{2})\|(\d+)\|([A-Z])\|(\d+)\|(-?\d+)$")
 RE_YT = re.compile(r"^YT\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)(C)?$")
 # Item 7 : sondage des paires a profit predit <= 0. Absents si probe_negative = 0.
 RE_PN = re.compile(r"^PN\|(\d{2})\|(\d+)\|(-?\d+)\|(\d+)\|([A-Z])\|(\d+)$")
@@ -1011,6 +1015,59 @@ def parse_events(all_signs):
             loan_view(seen_at_repay, seen_before_block))
 
 
+def parse_rail_expansions(all_signs):
+    """Funnel annuel, decisions et resultat atomique des ajouts de wagon."""
+    funnels, decisions, results = [], {}, []
+    saturation = {}
+    for sign in all_signs:
+        if m := RE_EU_EXPAND.match(sign):
+            funnels.append({
+                "year": 1900 + int(m.group(1)), "eligible": int(m.group(2)),
+                "saturated": int(m.group(3)), "persistent": int(m.group(4)),
+                "positive": int(m.group(5)), "decision_opcodes": int(m.group(6)),
+            })
+        elif m := RE_EG_EXPAND.match(sign):
+            key = (int(m.group(1)), int(m.group(2)))
+            decisions[key] = {
+                "year": 1900 + key[0], "line_index": key[1],
+                "old_wagons": int(m.group(3)), "new_wagons": int(m.group(4)),
+                "expected_profit_annual": int(m.group(5)),
+            }
+        elif m := RE_ES_EXPAND.match(sign):
+            saturation[(int(m.group(1)), int(m.group(2)))] = {
+                "waiting": int(m.group(3)), "utilisation_permille": int(m.group(4)),
+                "streak": int(m.group(5)),
+            }
+        elif m := RE_EX_EXPAND.match(sign):
+            key = (int(m.group(1)), int(m.group(2)))
+            results.append({
+                "year": 1900 + key[0], "line_index": key[1], "reason": m.group(3),
+                "transaction_opcodes": int(m.group(4)), "cost_or_error": int(m.group(5)),
+            })
+    for key, decision in decisions.items():
+        decision.update(saturation.get(key, {}))
+    for result in results:
+        # Le trajet vers le depot peut franchir le 31 decembre : EX porte alors l'annee
+        # d'arrivee, EG celle de la decision. Associer la derniere decision anterieure de la ligne.
+        prior = [decision for decision in decisions.values()
+                 if decision["line_index"] == result["line_index"]
+                 and decision["year"] <= result["year"]]
+        if prior:
+            result.update(max(prior, key=lambda decision: decision["year"]))
+    successful = [result for result in results if result["reason"] == "K"]
+    total_ops = (sum(row["decision_opcodes"] for row in funnels)
+                 + sum(row["transaction_opcodes"] for row in results))
+    expected_profit = sum(row.get("expected_profit_annual", 0) for row in successful)
+    return {
+        "funnels": funnels, "decisions": list(decisions.values()), "results": results,
+        "n_success": len(successful), "n_fail": len(results) - len(successful),
+        "expected_profit_annual": expected_profit, "opcodes": total_ops,
+        "expected_profit_per_mopcode": (
+            expected_profit * 1_000_000 / total_ops if total_ops else None),
+        "capital": sum(row["cost_or_error"] for row in successful),
+    }
+
+
 def loan_view(seen_at_repay, seen_before_block):
     """Croise le sommet annuel de tresorerie (LB) et ce que _tryRepayLoan voit (LF).
 
@@ -1144,6 +1201,7 @@ def make_run_payload(rows, seed, years):
     probe_attempts = parse_probes(final["signs"])
     speed_yield = parse_speed_yield(final["signs"])
     road_speed_yield = parse_road_speed_yield(final["signs"])
+    rail_expansion = parse_rail_expansions(final["signs"])
 
     n_rail_ok = sum(1 for line in lines
                     if line["mode"] == "rail" and line["reason"] == "OK" and not line.get("probe"))
@@ -1248,6 +1306,7 @@ def make_run_payload(rows, seed, years):
         "road_refleets": road_refleets,
         "n_road_refleets": sum(1 for event in road_refleets if event["added"] > 0),
         "n_road_refleet_vehicles": sum(event["added"] for event in road_refleets),
+        "rail_expansion": rail_expansion,
         "probe_attempts": probe_attempts,
         "n_probe_attempts": len(probe_attempts),
         "n_probe_ok": sum(1 for item in probe_attempts if item["reason"] == "OK"),
@@ -1343,7 +1402,7 @@ def main():
                                   "GL reemprunt", "RF reconstitution flotte route",
                                   "OB|A distance",
                                   "PN/PX/PQ/NH/NM sondage profit<=0",
-                                  "PE/PY pax_near",
+                                  "PE/PY pax_near", "EU/EG/ES/EX expansion rail",
                                   "OB|R refus de jointure",
                                   "OB|R D join_max_distance",
                                   "PH join_place H2",
@@ -1413,6 +1472,12 @@ def main():
         print(f"n_vehicles: {run['final_n_vehicles']}  n_stations: {run['final_n_stations']}")
         print(f"road_ok: {run['n_road_lines_ok']}  refleets: {run.get('n_road_refleets', 0)}"
               f" veh+={run.get('n_road_refleet_vehicles', 0)}")
+        expansion = run.get("rail_expansion") or {}
+        print(f"rail_expand: ok={expansion.get('n_success', 0)} "
+              f"fail={expansion.get('n_fail', 0)} "
+              f"gain_attendu={expansion.get('expected_profit_annual', 0)} "
+              f"ops={expansion.get('opcodes', 0)} "
+              f"profit/Mop={expansion.get('expected_profit_per_mopcode')}")
         road_ok = [a for a in (run.get("road_attempts") or []) if a.get("ok")]
         extra_a = sum(1 for a in road_ok if (a.get("n_stops_a") or 1) > 1)
         extra_b = sum(1 for a in road_ok if (a.get("n_stops_b") or 1) > 1)

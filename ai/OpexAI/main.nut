@@ -49,6 +49,12 @@ DEBUG_SIGNS <- true;
 /* Mesure ponctuelle : un panneau par ligne reussie, donc desactivee par defaut pour ne pas
  * changer le profil d'opcodes de la baseline. */
 RAIL_COST_PROBE <- false;
+/* Expansion marginale : bras A/B inerte par defaut jusqu'au verdict du banc. */
+RAIL_EXPAND <- false;
+const RAIL_EXPAND_STREAK = 2;
+const RAIL_EXPAND_UTIL_PERMILLE = 850;
+const RAIL_EXPAND_TIMEOUT_DAYS = 120;
+const RAIL_EXPAND_APPROACH_TILES = 12;
 /* Unique point de passage vers AISign.BuildSign : permet de tout couper d'un reglage sans
  * conditionner 57 appels un par un. Meme signature que l'appel d'origine. */
 function OpexSign(anchor, name)
@@ -210,11 +216,15 @@ class OpexAI extends AIController {
   _abandonedPairs = null;
   _airBuilt = false;
   _waterBuilt = false;
-  /* Ordonnanceur permanent : une tache utile et due par tour de boucle. dueYear reporte le
-   * travail inutile a un cycle futur ; enabled=false retire definitivement une tache one-shot
-   * terminee ou une sonde desactivee. */
+  /* Ordonnanceur permanent : une tache utile et due par tour de file. dueCycle reporte le
+   * travail inutile a un tour futur ; le calendrier du jeu ne reordonne jamais la file. */
   _taskQueue = null;
+  _taskCursor = 0;
+  _taskCycle = 0;
   _ranked = null;
+  /* Transaction asynchrone d'expansion rail : le train roule vers son depot pendant que la
+   * boucle principale continue par pas de dix jours. Jamais de Sleep bloquant dans la tache. */
+  _railExpansion = null;
   /* Le diagnostic mono-bus (_roadDiag, _reportRoad, echantillon trimestriel RQ/RE/RI) a ete retire
    * le 2026-08-29 : il servait a trouver pourquoi UNE liaison ne chargeait rien, la reponse est
    * connue et documentee (builder_road.nut), et les lignes routieres rejoignent desormais _lines,
@@ -235,16 +245,19 @@ class OpexAI extends AIController {
     this._abandonedPairs = {};
     /* Priorite : donnees et stop-loss, revenu par opcode, modes sans score, experience, dette. */
     this._taskQueue = [
-      { name = "catalog", dueYear = 0, enabled = true },
-      { name = "report", dueYear = 0, enabled = true },
-      { name = "scrap", dueYear = 0, enabled = true },
-      { name = "refleet", dueYear = 0, enabled = true },
-      { name = "rail", dueYear = 0, enabled = true },
-      { name = "road", dueYear = 0, enabled = true },
-      { name = "air", dueYear = 0, enabled = true },
-      { name = "water", dueYear = 0, enabled = true },
-      { name = "probe", dueYear = 0, enabled = true },
-      { name = "repay", dueYear = 0, enabled = true },
+      { name = "catalog", dueCycle = 0, enabled = true },
+      { name = "report", dueCycle = 0, enabled = true },
+      { name = "scrap", dueCycle = 0, enabled = true },
+      { name = "refleet", dueCycle = 0, enabled = true },
+      /* Reutiliser une infrastructure rentable avant de repayer un nouvel A* : c'est le premier
+       * item de croissance marginale et son ratio profit/opcode est mesure par EU/EX. */
+      { name = "expand", dueCycle = 0, enabled = true },
+      { name = "rail", dueCycle = 0, enabled = true },
+      { name = "road", dueCycle = 0, enabled = true },
+      { name = "air", dueCycle = 0, enabled = true },
+      { name = "water", dueCycle = 0, enabled = true },
+      { name = "probe", dueCycle = 0, enabled = true },
+      { name = "repay", dueCycle = 0, enabled = true },
     ];
   }
 
@@ -260,6 +273,9 @@ class OpexAI extends AIController {
   function _reportLines(year);
   function _scrapDeadLines(year);
   function _refleetRoadLines(year);
+  function _expandRailLines(year);
+  function _continueRailExpansion();
+  function _findLineById(lineId);
   function _processEvents();
 }
 
@@ -441,7 +457,7 @@ function OpexAbandonedPairKey(candidate)
  * rechargement, ou si l'etat transitoire de l'IA a ete perdu. */
 function OpexAI::_tryBuildAir(year)
 {
-  if (this._airBuilt || this._catalog.airport == null || this._catalog.plane == null) return;
+  if (this._airBuilt || (this._catalog.airCombos == null && this._catalog.airport == null)) return;
   local vehicles = AIVehicleList();
   for (local v = vehicles.Begin(); !vehicles.IsEnd(); v = vehicles.Next()) {
     if (AIVehicle.GetVehicleType(v) == AIVehicle.VT_AIR) {
@@ -455,7 +471,7 @@ function OpexAI::_tryBuildAir(year)
   local planOps = this._budget.end("build_air_plans");
   if (plan == null) return;
 
-  local capital = 2 * this._catalog.airport.price + this._catalog.plane.price;
+  local capital = ("capital" in plan) ? plan.capital : (2 * plan.airport.price + plan.plane.price);
   local need = capital + CASH_RESERVE + AIR_CAPITAL_MARGIN;
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   if (money < need) {
@@ -477,7 +493,8 @@ function OpexAI::_tryBuildAir(year)
      * modes. */
     originA = result.stationA, originB = result.stationB,
     cargo = this._catalog.paxCargo,
-    predicted = 0, iterations = 0, trains = 1, distance = plan.distance, year = year,
+    predicted = ("economics" in plan && "profitAnnual" in plan.economics) ? plan.economics.profitAnnual : 0,
+    iterations = 0, trains = 1, distance = plan.distance, year = year,
     mode = "air", vehicle = result.vehicle, vehicles = [result.vehicle],
     lineId = this._nextLineId,
   });
@@ -1084,12 +1101,14 @@ function OpexAI::_tryBuild(ranked, year)
         predAmort = candidate.amortAnnual, predCarried = candidate.carried,
         predTrains = candidate.trains, predOneWayDays = candidate.oneWayDays,
         wagons = candidate.wagons, platformLength = candidate.platformLength,
+        monthly = candidate.monthly, wagonId = this._catalog.wagonByCargo[candidate.cargo].id,
         loco = candidate.loco, effectiveSpeed = candidate.effectiveSpeed,
         headwayDays = candidate.headwayDays, stationRating = candidate.stationRating,
         /* La liste est l'identite de la ligne, pas une requete par StationID : sur une gare
          * jointe, celle-ci verrait aussi les convois de la voisine (rapport et rebut doivent les
          * laisser intacts). Les plans rendent le prochain quai adjacent deterministe. */
         vehicles = result.vehicles, platformA = result.platformA, platformB = result.platformB,
+        depot = result.depot,
         kind = candidate.kind,
         srcIndustry = (candidate.kind == "freight") ? AIIndustry.GetIndustryID(candidate.src) : -1,
         dstIndustry = (candidate.kind == "freight") ? AIIndustry.GetIndustryID(candidate.dst) : -1,
@@ -1269,9 +1288,11 @@ function OpexAI::_tryProbeNegative(ranked, year)
       predAmort = candidate.amortAnnual, predCarried = candidate.carried,
       predTrains = candidate.trains, predOneWayDays = candidate.oneWayDays,
       wagons = candidate.wagons, platformLength = candidate.platformLength,
+      monthly = candidate.monthly, wagonId = this._catalog.wagonByCargo[candidate.cargo].id,
       loco = candidate.loco, effectiveSpeed = candidate.effectiveSpeed,
       headwayDays = candidate.headwayDays, stationRating = candidate.stationRating,
       vehicles = result.vehicles, platformA = result.platformA, platformB = result.platformB,
+      depot = result.depot,
       kind = candidate.kind,
       srcIndustry = (candidate.kind == "freight") ? AIIndustry.GetIndustryID(candidate.src) : -1,
       dstIndustry = (candidate.kind == "freight") ? AIIndustry.GetIndustryID(candidate.dst) : -1,
@@ -1404,6 +1425,16 @@ function OpexAI::_reportLines(year)
     /* `<-` : le slot n'existe pas a la construction. `=` leve "the index 'vehCount' does not
      * exist" et tue le script (mesure 2026-08-29, toutes les graines, des 1971). */
     line.vehCount <- vehCount;
+    line.lastProfit <- profit;
+    line.lastRevenue <- profit + runCost;
+    if (vehicleType == AIVehicle.VT_RAIL) {
+      /* Instantane de backlog, complete par l'utilisation annuelle derivee du revenu dans
+       * _expandRailLines. Le second signal evite que la phase du train au jour du releve fasse
+       * disparaitre une saturation reelle ; deux annees consecutives restent obligatoires. */
+      line.lastWaitingA <- AIStation.GetCargoWaiting(stationA, line.cargo);
+      line.lastWaitingB <- AIStation.IsValidStation(stationB)
+          ? AIStation.GetCargoWaiting(stationB, line.cargo) : 0;
+    }
 
     /* Les deux industries sont-elles encore valides ? Et l'industrie source produit-elle encore ?
      * Depart le blocage "train coince" (hypothese 2) de la fermeture d'industrie (hypothese 1). */
@@ -1523,6 +1554,9 @@ function OpexAI::_refleetRoadLines(year)
     local line = this._lines[i];
     if (!("mode" in line) || line.mode != "road") continue;
     if (("scrapping" in line) && line.scrapping) continue;
+    if (("expandBlocked" in line) && line.expandBlocked) continue;
+    if (("expandRetryCycle" in line) && line.expandRetryCycle > this._taskCycle) continue;
+    if (!("depot" in line) || !AIRail.IsRailDepotTile(line.depot)) continue;
     if (("deadStreak" in line) && line.deadStreak > 0) continue;
     local have = ("vehCount" in line) ? line.vehCount : 0;
     local target = ("predTrains" in line) ? line.predTrains : (("trains" in line) ? line.trains : 1);
@@ -1702,6 +1736,302 @@ function OpexAI::_tryRepayLoan(year)
   OpexSign(anchor, "LR|" + year + "|" + repaid + "|" + newLoan);
 }
 
+function OpexAI::_findLineById(lineId)
+{
+  foreach (line in this._lines) {
+    if (("lineId" in line) && line.lineId == lineId) return line;
+  }
+  return null;
+}
+
+/* Choisit au plus UNE expansion par an. L'infrastructure est deja payee et aucun pathfinder ne
+ * tourne : le classement porte donc sur le gain annuel marginal, les candidats ayant tous le
+ * meme ordre de grandeur d'opcodes. Le revenu a capacite pleine de N+1 wagons est recale par le
+ * revenu REEL de N wagons ; ce ratio conserve la physique (traction, temps, capacite) sans croire
+ * la demande pax surestimee du catalogue. */
+function OpexAI::_expandRailLines(year)
+{
+  if (!RAIL_EXPAND || this._railExpansion != null) return;
+  this._budget.begin();
+  local best = null;
+  local nEligible = 0;
+  local nSaturated = 0;
+  local nPersistent = 0;
+  local nPositive = 0;
+  foreach (line in this._lines) {
+    if (("mode" in line) || !("wagons" in line) || !("platformLength" in line) ||
+        !("loco" in line) || !("kind" in line)) continue;
+    if (line.trains != 1 || !("vehCount" in line) || line.vehCount != 1) continue;
+    if (("scrapping" in line) && line.scrapping) continue;
+    if (!("lastProfit" in line) || line.lastProfit <= 0 ||
+        !("lastRevenue" in line) || line.lastRevenue <= 0) continue;
+    if (!(line.cargo in this._catalog.wagonByCargo)) continue;
+    if (line.wagons >= OpexRailNominalMaxWagons(line.platformLength)) continue;
+    nEligible++;
+
+    local oldEcon = OpexRailFixedConsist(this._catalog, line.cargo, line.distance,
+                                         line.kind, line.loco, line.wagons);
+    local newEcon = OpexRailFixedConsist(this._catalog, line.cargo, line.distance,
+                                         line.kind, line.loco, line.wagons + 1);
+    if (oldEcon == null || newEcon == null || oldEcon.capacityRevenueAnnual <= 0) continue;
+
+    local wagon = this._catalog.wagonByCargo[line.cargo];
+    local waitingA = ("lastWaitingA" in line) ? line.lastWaitingA : 0;
+    local waitingB = ("lastWaitingB" in line) ? line.lastWaitingB : 0;
+    local waiting = line.kind == "freight" ? waitingA : waitingA + waitingB;
+    local backlogThreshold = line.kind == "freight" ? wagon.capacity : 2 * wagon.capacity;
+    local utilPermille = (line.lastRevenue * 1000) / oldEcon.capacityRevenueAnnual;
+    if (utilPermille > 1000) utilPermille = 1000;
+    local saturated = waiting >= backlogThreshold || utilPermille >= RAIL_EXPAND_UTIL_PERMILLE;
+    if (saturated) nSaturated++;
+    local priorStreak = ("expandStreak" in line) ? line.expandStreak : 0;
+    /* Un tour de file peut finir sans qu'une annee de jeu passe. Ne jamais compter deux fois le
+     * meme GetProfitLastYear / backlog comme deux confirmations independantes. */
+    if (!("lastExpandCheckYear" in line) || line.lastExpandCheckYear != year) {
+      line.expandStreak <- saturated ? priorStreak + 1 : 0;
+      line.lastExpandCheckYear <- year;
+    }
+    if (line.expandStreak < RAIL_EXPAND_STREAK) continue;
+    nPersistent++;
+
+    local capacityDelta = newEcon.capacityRevenueAnnual - oldEcon.capacityRevenueAnnual;
+    if (capacityDelta <= 0) continue;
+    local grossGain = (line.lastRevenue * capacityDelta) / oldEcon.capacityRevenueAnnual;
+    local marginalProfit = grossGain - newEcon.wagonRunningAnnual - newEcon.wagonAmortAnnual;
+    if (marginalProfit <= 0) continue;
+    nPositive++;
+
+    local vehicle = null;
+    foreach (v in line.vehicles) {
+      if (AIVehicle.IsValidVehicle(v) && AIVehicle.IsPrimaryVehicle(v) &&
+          AIVehicle.GetVehicleType(v) == AIVehicle.VT_RAIL) { vehicle = v; break; }
+    }
+    if (vehicle == null) continue;
+    if (best == null || marginalProfit > best.gain) {
+      best = { line = line, vehicle = vehicle, wagon = wagon, oldEcon = oldEcon,
+               newEcon = newEcon, gain = marginalProfit, waiting = waiting,
+               util = utilPermille };
+    }
+  }
+  local decisionOps = this._budget.end("expand_rail_decide");
+  OpexSign(AIMap.GetTileIndex(1, 1), "EU|" + (year % 100) + "|" + nEligible + "|"
+           + nSaturated + "|" + nPersistent + "|" + nPositive + "|" + decisionOps);
+  if (best == null) return;
+
+  local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  local need = best.wagon.price + CASH_RESERVE;
+  if (money < need) {
+    if (REBORROW) money = OpexTryReborrow(need, money);
+    if (money < need) return;
+  }
+
+  local waitDays = (2 * best.oldEcon.oneWayDays).tointeger() + 60;
+  if (waitDays < 120) waitDays = 120;
+  if (waitDays > 730) waitDays = 730;
+  this._railExpansion = {
+    lineId = best.line.lineId, vehicle = best.vehicle, wagonId = best.wagon.id,
+    oldWagons = best.line.wagons, newWagons = best.line.wagons + 1,
+    newSpeed = best.newEcon.effectiveSpeed, newOneWayDays = best.newEcon.oneWayDays,
+    gain = best.gain, waiting = best.waiting, util = best.util,
+    decisionDate = AIDate.GetCurrentDate(), waitDays = waitDays,
+    startDate = AIDate.GetCurrentDate(), phase = "approach", dispatchAttempts = 0,
+    temporaryOrder = false, temporaryOrderPosition = -1,
+    /* EU porte le cout de selection ; EX ne porte que dispatch + polls + construction, afin
+     * que leur somme soit le debit total sans double comptage. */
+    ops = 0, cost = 0,
+  };
+  local anchor = AIMap.GetTileIndex(1, 1);
+  OpexSign(anchor, "EG|" + (year % 100) + "|" + best.line.lineId + "|"
+                   + best.line.wagons + "|" + (best.line.wagons + 1) + "|" + best.gain);
+  OpexSign(anchor, "ES|" + (year % 100) + "|" + best.line.lineId + "|"
+                   + best.waiting + "|" + best.util + "|" + best.line.expandStreak);
+  /* Si le train passe deja pres du depot, l'interception peut commencer dans ce meme tour. */
+  if (AIVehicle.IsStoppedInDepot(best.vehicle) ||
+      AIMap.DistanceManhattan(AIVehicle.GetLocation(best.vehicle), best.line.depot)
+          <= RAIL_EXPAND_APPROACH_TILES) this._continueRailExpansion();
+}
+
+/* Avance la transaction sans attente bloquante. Tant que la rame est loin du depot, elle garde
+ * ses ordres et son revenu normaux ; l'ordre d'arret temporaire n'est injecte qu'a l'approche. */
+function OpexAI::_continueRailExpansion()
+{
+  if (this._railExpansion == null) return false;
+  local state = this._railExpansion;
+  local line = this._findLineById(state.lineId);
+  local anchor = AIMap.GetTileIndex(1, 1);
+  local year = AIDate.GetYear(AIDate.GetCurrentDate()) % 100;
+  this._budget.begin();
+
+  if (line == null || !AIVehicle.IsValidVehicle(state.vehicle)) {
+    state.ops += this._budget.end("expand_rail_build");
+    OpexSign(anchor, "EX|" + year + "|" + state.lineId + "|V|" + state.ops + "|0");
+    this._railExpansion = null;
+    return true;
+  }
+
+  if (state.phase == "resume") {
+    local resumed = AIVehicle.StartStopVehicle(state.vehicle);
+    state.ops += this._budget.end("expand_rail_build");
+    if (resumed) {
+      OpexSign(anchor, "EX|" + year + "|" + state.lineId + "|K|" + state.ops + "|" + state.cost);
+      this._railExpansion = null;
+    }
+    return true;
+  }
+
+  if (state.phase == "approach") {
+    if (AIVehicle.IsStoppedInDepot(state.vehicle)) {
+      state.phase = "depot";
+    } else {
+      if (AIDate.GetCurrentDate() - state.decisionDate > state.waitDays) {
+        state.ops += this._budget.end("expand_rail_dispatch");
+        line.expandStreak <- 0;
+        line.expandRetryCycle <- this._taskCycle + 3;
+        OpexSign(anchor, "EX|" + year + "|" + state.lineId + "|W|" + state.ops + "|0");
+        this._railExpansion = null;
+        return true;
+      }
+      if (!("depot" in line) || !AIRail.IsRailDepotTile(line.depot) ||
+          AIMap.DistanceManhattan(AIVehicle.GetLocation(state.vehicle), line.depot)
+              > RAIL_EXPAND_APPROACH_TILES) {
+        state.ops += this._budget.end("expand_rail_dispatch");
+        return true;
+      }
+
+      local dispatched = false;
+      local position = AIOrder.ResolveOrderPosition(state.vehicle, AIOrder.ORDER_CURRENT);
+      if (position != AIOrder.ORDER_INVALID &&
+          AIOrder.InsertOrder(state.vehicle, position, line.depot, AIOrder.OF_STOP_IN_DEPOT)) {
+        if (AIOrder.SkipToOrder(state.vehicle, position)) {
+          dispatched = true;
+          state.temporaryOrder = true;
+          state.temporaryOrderPosition = position;
+        } else {
+          AIOrder.RemoveOrder(state.vehicle, position);
+        }
+      }
+      if (!dispatched) dispatched = AIVehicle.SendVehicleToDepot(state.vehicle);
+      state.dispatchAttempts++;
+      state.ops += this._budget.end("expand_rail_dispatch");
+      if (!dispatched) {
+        if (state.dispatchAttempts >= 3) {
+          line.expandRetryCycle <- this._taskCycle + 3;
+          OpexSign(anchor, "EX|" + year + "|" + state.lineId + "|G|" + state.ops
+                           + "|" + AIError.GetLastError());
+          this._railExpansion = null;
+        }
+        return true;
+      }
+      state.phase = "depot";
+      state.startDate = AIDate.GetCurrentDate();
+      return true;
+    }
+  }
+
+  if (!AIVehicle.IsStoppedInDepot(state.vehicle)) {
+    if (AIDate.GetCurrentDate() - state.startDate > RAIL_EXPAND_TIMEOUT_DAYS) {
+      if (state.temporaryOrder &&
+          AIOrder.IsValidVehicleOrder(state.vehicle, state.temporaryOrderPosition)) {
+        AIOrder.RemoveOrder(state.vehicle, state.temporaryOrderPosition);
+      } else {
+        /* Deuxieme appel = annulation documentee de l'ordre depot automatique. */
+        AIVehicle.SendVehicleToDepot(state.vehicle);
+      }
+      state.ops += this._budget.end("expand_rail_build");
+      line.expandStreak <- 0;
+      line.expandRetryCycle <- this._taskCycle + 3;
+      OpexSign(anchor, "EX|" + year + "|" + state.lineId + "|T|" + state.ops + "|0");
+      this._railExpansion = null;
+      return true;
+    }
+    state.ops += this._budget.end("expand_rail_build");
+    return true;
+  }
+
+  if (state.temporaryOrder) {
+    if (AIOrder.IsValidVehicleOrder(state.vehicle, state.temporaryOrderPosition) &&
+        AIOrder.IsGotoDepotOrder(state.vehicle, state.temporaryOrderPosition)) {
+      if (!AIOrder.RemoveOrder(state.vehicle, state.temporaryOrderPosition)) {
+        /* Ne jamais abandonner un train arrete avec notre ordre temporaire encore attache. */
+        state.ops += this._budget.end("expand_rail_build");
+        return true;
+      }
+    }
+    state.temporaryOrder = false;
+  }
+
+  local depot = AIVehicle.GetLocation(state.vehicle);
+  if (!AIRail.IsRailDepotTile(depot)) {
+    AIVehicle.StartStopVehicle(state.vehicle);
+    state.ops += this._budget.end("expand_rail_build");
+    line.expandStreak <- 0;
+    line.expandRetryCycle <- this._taskCycle + 3;
+    OpexSign(anchor, "EX|" + year + "|" + state.lineId + "|D|" + state.ops + "|0");
+    this._railExpansion = null;
+    return true;
+  }
+  local wagonPrice = AIEngine.GetPrice(state.wagonId);
+  if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < wagonPrice + CASH_RESERVE) {
+    AIVehicle.StartStopVehicle(state.vehicle);
+    state.ops += this._budget.end("expand_rail_build");
+    OpexSign(anchor, "EX|" + year + "|" + state.lineId + "|C|" + state.ops + "|0");
+    this._railExpansion = null;
+    return true;
+  }
+
+  local cashBefore = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  local car = AIVehicle.BuildVehicle(depot, state.wagonId);
+  if (!AIVehicle.IsValidVehicle(car)) {
+    AIVehicle.StartStopVehicle(state.vehicle);
+    state.ops += this._budget.end("expand_rail_build");
+    line.expandStreak <- 0;
+    line.expandRetryCycle <- this._taskCycle + 3;
+    OpexSign(anchor, "EX|" + year + "|" + state.lineId + "|B|" + state.ops + "|0");
+    this._railExpansion = null;
+    return true;
+  }
+
+  if (AIVehicle.GetLength(state.vehicle) + AIVehicle.GetLength(car) > line.platformLength * 16) {
+    AIVehicle.SellVehicle(car);
+    AIVehicle.StartStopVehicle(state.vehicle);
+    state.ops += this._budget.end("expand_rail_build");
+    line.expandStreak <- 0;
+    line.expandBlocked <- true;
+    OpexSign(anchor, "EX|" + year + "|" + state.lineId + "|L|" + state.ops + "|0");
+    this._railExpansion = null;
+    return true;
+  }
+  if (!AIVehicle.MoveWagon(car, 0, state.vehicle, 0)) {
+    if (AIVehicle.IsValidVehicle(car)) AIVehicle.SellVehicle(car);
+    AIVehicle.StartStopVehicle(state.vehicle);
+    state.ops += this._budget.end("expand_rail_build");
+    line.expandStreak <- 0;
+    line.expandRetryCycle <- this._taskCycle + 3;
+    OpexSign(anchor, "EX|" + year + "|" + state.lineId + "|M|" + state.ops + "|0");
+    this._railExpansion = null;
+    return true;
+  }
+
+  state.cost = cashBefore - AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  line.wagons = state.newWagons;
+  line.wagonId <- state.wagonId;
+  line.effectiveSpeed = state.newSpeed;
+  line.predOneWayDays = state.newOneWayDays;
+  line.headwayDays = 2 * state.newOneWayDays;
+  line.expandStreak <- 0;
+  local expansionCount = ("railExpansions" in line) ? line.railExpansions : 0;
+  line.railExpansions <- expansionCount + 1;
+  line.lastExpansionYear <- AIDate.GetYear(AIDate.GetCurrentDate());
+  state.phase = "resume";
+  local resumed = AIVehicle.StartStopVehicle(state.vehicle);
+  state.ops += this._budget.end("expand_rail_build");
+  if (resumed) {
+    OpexSign(anchor, "EX|" + year + "|" + state.lineId + "|K|" + state.ops + "|" + state.cost);
+    this._railExpansion = null;
+  }
+  return true;
+}
+
 /* Event moteur exact : CRASH_TRAIN est emis dans train_cmd.cpp au moment ou deux trains
  * entrent en collision. XC garde la ligne, le vehicule, la tuile et les victimes ; RX reste le
  * filet annuel pour toute disparition sans evenement reconnu. */
@@ -1729,24 +2059,45 @@ function OpexAI::_processEvents()
   }
 }
 
-/* Select the first useful task whose due year has arrived. A task reports itself to the
- * next annual cycle before running; completed one-shot tasks and disabled probes retire
- * permanently. If no task is due, the scan costs only this fixed ten-entry table. */
+/* File CONTINUE : le scan reprend apres la derniere tache choisie, meme si un A* a franchi le
+ * changement d'annee. Le calendrier ne decide plus RIEN : quand le suffixe de la table est fini,
+ * _taskCycle avance et le scan repart a zero. Chaque tache se reporte par dueCycle, donc aucun
+ * item ne peut affamer ceux places apres lui et le dernier rend litteralement la main au premier. */
 function OpexAI::_runNextTask()
 {
   if (this._taskQueue == null || this._taskQueue.len() == 0) return false;
+  /* Sonder d'abord la transaction, puis CONTINUER la file dans le meme passage. Retourner ici
+   * affamait de nouveau le scheduler pendant tout le trajet vers le depot (jusqu'a un an mesure),
+   * alors que ce trajet ne consomme aucun opcode de l'IA. */
+  if (this._railExpansion != null) this._continueRailExpansion();
   local year = AIDate.GetYear(AIDate.GetCurrentDate());
   local task = null;
-  foreach (candidate in this._taskQueue) {
-    if (candidate.enabled && candidate.dueYear <= year) {
+  local taskIndex = -1;
+  for (local index = this._taskCursor; index < this._taskQueue.len(); index++) {
+    local candidate = this._taskQueue[index];
+    if (candidate.enabled && candidate.dueCycle <= this._taskCycle) {
       task = candidate;
+      taskIndex = index;
       break;
     }
   }
+  if (task == null) {
+    this._taskCycle++;
+    this._taskCursor = 0;
+    for (local index = 0; index < this._taskQueue.len(); index++) {
+      local candidate = this._taskQueue[index];
+      if (candidate.enabled && candidate.dueCycle <= this._taskCycle) {
+        task = candidate;
+        taskIndex = index;
+        break;
+      }
+    }
+  }
   if (task == null) return false;
+  this._taskCursor = (taskIndex + 1) % this._taskQueue.len();
 
-  /* Default outcome: do not pay this task again before the next catalog cycle. */
-  task.dueYear = year + 1;
+  /* Defaut : exactement une execution par tour continu. Une tache inutile peut choisir plus loin. */
+  task.dueCycle = this._taskCycle + 1;
 
   if (task.name == "catalog") {
     this._catalog.refresh(this._budget, year);
@@ -1754,7 +2105,7 @@ function OpexAI::_runNextTask()
     return true;
   }
   if (this._ranked == null) {
-    task.dueYear = year;
+    task.dueCycle = this._taskCycle;
     return false;
   }
   if (task.name == "report") {
@@ -1766,6 +2117,11 @@ function OpexAI::_runNextTask()
   }
   if (task.name == "scrap") { this._scrapDeadLines(year); return true; }
   if (task.name == "refleet") { this._refleetRoadLines(year); return true; }
+  if (task.name == "expand") {
+    if (!RAIL_EXPAND) { task.enabled = false; return false; }
+    this._expandRailLines(year);
+    return true;
+  }
   if (task.name == "air") {
     this._tryBuildAir(year);
     if (this._airBuilt) task.enabled = false;
@@ -1821,6 +2177,7 @@ function OpexAI::Start()
   ROAD_REFLEET = AIController.GetSetting("road_refleet") != 0;
   ROAD_MULTISTOP = AIController.GetSetting("road_multistop") != 0;
   RAIL_COST_PROBE = AIController.GetSetting("rail_cost_probe") != 0;
+  RAIL_EXPAND = AIController.GetSetting("rail_expand") != 0;
   ASTAR_COST_V2 = AIController.GetSetting("astar_cost") != 0;
   PROBE_NEGATIVE = AIController.GetSetting("probe_negative") != 0;
   PAX_NEAR = AIController.GetSetting("pax_near") != 0;

@@ -1,9 +1,10 @@
 /* Etage 3b : une liaison aerienne passagers, sans pathfinding.
  *
  * L'avion est le contrepoint du rail : il n'y a pas de recherche A*, mais les aires de
- * construction et la compatibilite aeroport/appareil sont des preconditions reelles. On choisit
- * donc les deux plus grosses villes pour lesquelles les DEUX aeroports passent AITestMode avant
- * toute mutation. La construction elle-meme est transactionnelle : avion vendu, puis aeroports
+ * construction et la compatibilite aeroport/appareil sont des preconditions reelles.
+ * Regle : 2 types principaux d'avions et d'aeroports (les gros et les petits).
+ * Les gros avions ne vont QUE dans les grands aeroports.
+ * La construction elle-meme est transactionnelle : avion vendu, puis aeroports
  * retires, au moindre echec apres le premier aeroport.
  */
 
@@ -80,35 +81,88 @@ function OpexAirFindSite(town, airport, probes)
   return null;
 }
 
-/* Les deux villes les plus peuplees qui ont chacune un site, sont suffisamment disjointes, et
- * sont a portee de l'appareil retenu. GetOrderDistance est la seule unite comparable a la portee
- * fournie par GetMaximumOrderDistance. */
+/* Evalue et planifie la meilleure liaison aerienne en testant les combinaisons
+ * grand aeroport (+gros/petit avion) et petit aeroport (+petit avion strictement).
+ * Privilegie le plus fort ROI avec retour sur investissement rapide. */
 function OpexAirPlans(catalog)
 {
-  if (catalog.airport == null || catalog.plane == null) return null;
+  local combos = (("airCombos" in catalog) && catalog.airCombos != null && catalog.airCombos.len() > 0)
+      ? catalog.airCombos
+      : (catalog.airport != null && catalog.plane != null ? [{ airport = catalog.airport, plane = catalog.plane }] : []);
+  if (combos.len() == 0) return null;
+
   local towns = OpexAirSortedTowns(catalog.towns);
   local limit = towns.len() < AIR_TOWN_POOL ? towns.len() : AIR_TOWN_POOL;
-  local sites = [];
-  local probes = { left = AIR_MAX_SITE_PROBES, townsLeft = limit };
-  for (local i = 0; i < limit; i++) {
-    local site = OpexAirFindSite(towns[i], catalog.airport, probes);
-    if (site != null) sites.append(site);
-  }
+  local bestPlan = null;
 
-  for (local a = 0; a < sites.len(); a++) {
-    for (local b = a + 1; b < sites.len(); b++) {
-      local distance = AIMap.DistanceManhattan(sites[a].town.tile, sites[b].town.tile);
-      if (distance < AIR_TOWN_MIN_DISTANCE) continue;
-      local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR,
-                                                      sites[a].anchor, sites[b].anchor);
-      if (catalog.plane.maxOrderDistance > 0 && orderDistance > catalog.plane.maxOrderDistance) {
-        continue;
-      }
-      return { siteA = sites[a], siteB = sites[b], distance = distance,
-               orderDistance = orderDistance };
+  foreach (combo in combos) {
+    local airport = combo.airport;
+    local plane = combo.plane;
+    local sites = [];
+    local probes = { left = AIR_MAX_SITE_PROBES, townsLeft = limit };
+    for (local i = 0; i < limit; i++) {
+      local site = OpexAirFindSite(towns[i], airport, probes);
+      if (site != null) sites.append(site);
     }
+
+    for (local a = 0; a < sites.len(); a++) {
+      for (local b = a + 1; b < sites.len(); b++) {
+        local distance = AIMap.DistanceManhattan(sites[a].town.tile, sites[b].town.tile);
+        if (distance < AIR_TOWN_MIN_DISTANCE) continue;
+        local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR,
+                                                        sites[a].anchor, sites[b].anchor);
+        if (plane.maxOrderDistance > 0 && orderDistance > plane.maxOrderDistance) {
+          continue;
+        }
+
+        local popA = sites[a].town.pop;
+        local popB = sites[b].town.pop;
+        local monthlyPax = ((popA + popB) * 22) / 100;
+        if (monthlyPax < 10) monthlyPax = 10;
+
+        // Vitesse effective de l'avion (facteur 4 de OpenTTD plane_speed)
+        local effectiveSpeed = plane.speed / 4.0;
+        if (effectiveSpeed < 1.0) effectiveSpeed = 1.0;
+        local oneWayDays = distance.tofloat() / (0.036 * effectiveSpeed);
+        if (oneWayDays < 1.0) oneWayDays = 1.0;
+        local tripsPerMonth = 30.0 / oneWayDays;
+        local monthlyCapacity = (plane.capacity * tripsPerMonth).tointeger();
+        local carried = monthlyPax < monthlyCapacity ? monthlyPax : monthlyCapacity;
+        local incomeDays = OpexCeilDiv(oneWayDays, 1);
+        local revenueAnnual = (12 * carried * AICargo.GetCargoIncome(catalog.paxCargo, distance, incomeDays)).tointeger();
+        local runningAnnual = plane.runningCost + 24 * airport.maintenance;
+        local amortAnnual = plane.price / 20 + 2 * airport.price / 30;
+        local profitAnnual = revenueAnnual - runningAnnual - amortAnnual;
+        local capital = 2 * airport.price + plane.price;
+        local roi = capital > 0 ? (profitAnnual * 1000) / capital : 0;
+
+        local plan = {
+          siteA = sites[a], siteB = sites[b], distance = distance,
+          orderDistance = orderDistance,
+          airport = airport, plane = plane,
+          capital = capital,
+          economics = {
+            profitAnnual = profitAnnual,
+            revenueAnnual = revenueAnnual,
+            runningAnnual = runningAnnual,
+            amortAnnual = amortAnnual,
+            roi = roi,
+            oneWayDays = oneWayDays,
+            carried = carried,
+          }
+        };
+
+        if (profitAnnual > 0) {
+          if (bestPlan == null || roi > bestPlan.economics.roi) {
+            bestPlan = plan;
+          }
+        }
+      }
+    }
+    // Si on a trouve un plan rentable pour le grand aeroport a gros avion, on le retient
+    if (bestPlan != null && bestPlan.airport.allowBig) break;
   }
-  return null;
+  return bestPlan;
 }
 
 function OpexAirRollback(airportA, airportB, plane)
@@ -130,8 +184,11 @@ function OpexBuildAirRoute(catalog, budget, plan)
   local airportB = null;
   local plane = null;
 
+  local airport = ("airport" in plan) ? plan.airport : catalog.airport;
+  local planeChoice = ("plane" in plan) ? plan.plane : catalog.plane;
+
   budget.begin();
-  local okA = AIAirport.BuildAirport(plan.siteA.anchor, catalog.airport.type, AIStation.STATION_NEW);
+  local okA = AIAirport.BuildAirport(plan.siteA.anchor, airport.type, AIStation.STATION_NEW);
   if (okA && AIAirport.IsAirportTile(plan.siteA.anchor)) airportA = plan.siteA.anchor;
   if (airportA == null) {
     result.error = AIError.GetLastError();
@@ -140,7 +197,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
     return result;
   }
 
-  local okB = AIAirport.BuildAirport(plan.siteB.anchor, catalog.airport.type, AIStation.STATION_NEW);
+  local okB = AIAirport.BuildAirport(plan.siteB.anchor, airport.type, AIStation.STATION_NEW);
   if (okB && AIAirport.IsAirportTile(plan.siteB.anchor)) airportB = plan.siteB.anchor;
   result.opcodes += budget.end("build_airports");
   if (airportB == null) {
@@ -165,7 +222,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
   }
 
   budget.begin();
-  plane = AIVehicle.BuildVehicleWithRefit(hangar, catalog.plane.id, catalog.paxCargo);
+  plane = AIVehicle.BuildVehicleWithRefit(hangar, planeChoice.id, catalog.paxCargo);
   if (!AIVehicle.IsValidVehicle(plane)) {
     result.error = AIError.GetLastError();
     result.opcodes += budget.end("build_aircraft");

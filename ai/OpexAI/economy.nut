@@ -204,11 +204,13 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
     local amortAnnual = vehicleCost / locoLife + infraCost / INFRA_LIFE_YEARS;
     local runningAnnual = trains * loco.runningCost;
     local profitAnnual = revenueAnnual - runningAnnual - amortAnnual;
+    local capital = vehicleCost + infraCost;
+    local roi = (profitAnnual > 0 && capital > 0) ? (profitAnnual * 1000) / capital : 0;
     if (best == null || profitAnnual > best.profitAnnual) {
       best = { trains = trains, headwayDays = headwayDays, stationRating = stationRating,
                offered = offered, monthlyCapacity = monthlyCapacity, carried = carried,
                revenueAnnual = revenueAnnual, vehicleCost = vehicleCost, amortAnnual = amortAnnual,
-               runningAnnual = runningAnnual, profitAnnual = profitAnnual };
+               runningAnnual = runningAnnual, profitAnnual = profitAnnual, capital = capital, roi = roi };
     }
   }
   if (best == null) return null;
@@ -235,8 +237,38 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
     revenueAnnual = best.revenueAnnual,
     runningAnnual = best.runningAnnual,
     amortAnnual = best.amortAnnual,
-    capital = best.vehicleCost + infraCost,
+    capital = best.capital,
+    roi = best.roi,
     profitAnnual = best.profitAnnual,
+  };
+}
+
+/* Rendement physique d'UNE rame existante, sans attribuer une seconde fois le prix des voies et
+ * des gares deja payees. Ce helper ne choisit ni la demande ni le nombre de trains : il sert a
+ * comparer N et N+1 wagons sur une ligne REELLEMENT rentable et saturee. La valeur annuelle a
+ * capacite pleine permet a l'appelant de la recaler sur le revenu reel de la ligne ; ainsi le
+ * biais pax connu du catalogue ne se propage pas dans la decision d'expansion. */
+function OpexRailFixedConsist(catalog, cargo, distance, kind, loco, wagons)
+{
+  if (!(cargo in catalog.wagonByCargo) || loco == null || wagons < 1) return null;
+  local wagon = catalog.wagonByCargo[cargo];
+  local effectiveSpeed = OpexRailEffectiveSpeed(loco, wagon, wagons, distance);
+  if (effectiveSpeed < 1) return null;
+  local oneWayDays = distance.tofloat() / (0.036 * effectiveSpeed);
+  if (oneWayDays < 1) oneWayDays = 1;
+  local roundTripDays = 2 * oneWayDays;
+  local tripsPerMonth = OpexLoadedTripsPerMonth(oneWayDays, roundTripDays, kind == "pax");
+  local monthlyCapacity = wagons * wagon.capacity * tripsPerMonth;
+  local incomeDays = OpexCeilDiv(oneWayDays, 1);
+  local incomePerUnit = AICargo.GetCargoIncome(cargo, distance, incomeDays);
+  local capacityRevenueAnnual = (12 * monthlyCapacity * incomePerUnit).tointeger();
+  local wagonLife = wagon.ageYears > 0 ? wagon.ageYears : 20;
+  return {
+    wagons = wagons, effectiveSpeed = effectiveSpeed, oneWayDays = oneWayDays,
+    tripsPerMonth = tripsPerMonth, monthlyCapacity = monthlyCapacity,
+    capacityRevenueAnnual = capacityRevenueAnnual,
+    wagonRunningAnnual = wagon.runningCost,
+    wagonAmortAnnual = wagon.price / wagonLife,
   };
 }
 
@@ -265,6 +297,7 @@ function OpexApplyRailEconomics(candidate, economics)
   candidate.runningAnnual = economics.runningAnnual;
   candidate.amortAnnual = economics.amortAnnual;
   candidate.capital = economics.capital;
+  candidate.roi = economics.roi;
   candidate.profitAnnual = economics.profitAnnual;
 }
 

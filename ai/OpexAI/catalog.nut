@@ -181,6 +181,7 @@ class OpexCatalog {
 
   airport = null;      // {type, width, height, coverage, price, maintenance} ou null
   plane = null;        // {id, capacity, speed, price, runningCost, maxOrderDistance} ou null
+  airCombos = null;    // [{kind="large"|"small", airport={...}, plane={...}}] ou null
 
   ships = null;        // [{id, capacity, speed, price, runningCost, maxOrderDistance}]
   maxShipPrice = 0;
@@ -277,6 +278,7 @@ function OpexCatalog::_refreshRail()
         local entry = {
           id = e, capacity = capacity, speed = AIEngine.GetMaxSpeed(e), price = AIEngine.GetPrice(e),
           weight = AIEngine.GetWeight(e), fullWeight = AIEngine.GetWeight(e) + cargoWeight,
+          runningCost = AIEngine.GetRunningCost(e), ageYears = AIEngine.GetMaxAge(e) / 365,
         };
         if (cargo in this.wagonByCargo) this.wagonByCargo[cargo] = entry;
         else this.wagonByCargo.rawset(cargo, entry);
@@ -401,24 +403,30 @@ function OpexCatalog::_refreshRail()
   }
 }
 
-/* Le premier aeroport est volontairement simple : LARGE tant qu'il est disponible.
- * Vanilla 15.3 (docs/catalogue_churn_1950_2000.json) : SMALL expire en 1960, donc un
- * depart 1970 tombe sur LARGE ; INTERNATIONAL n'arrive qu'en 1990. Sinon SMALL puis
- * COMMUTER (1983). Une piste courte ne recoit jamais un gros avion. On choisit, pour
- * le type d'aeroport retenu, l'appareil passagers refittable le plus capacitaire. */
+/* Deux types d'aeroports et appareils :
+ * 1. Grand aeroport (AT_INTERNATIONAL, AT_METROPOLITAN, AT_LARGE) avec gros avion (PT_BIG_PLANE) ou petit avion
+ * 2. Petit aeroport (AT_COMMUTER, AT_SMALL) avec petit avion (PT_SMALL_PLANE) STRICTEMENT (les gros avions y sont interdits). */
 function OpexCatalog::_refreshAir()
 {
   this.airport = null;
   this.plane = null;
+  this.airCombos = [];
   if (this.paxCargo < 0) return;
 
-  local airportTypes = [
-    { type = AIAirport.AT_LARGE, allowBig = true },
-    { type = AIAirport.AT_SMALL, allowBig = false },
-    { type = AIAirport.AT_COMMUTER, allowBig = false },
+  local airportLargeTypes = [
+    { type = AIAirport.AT_INTERNATIONAL, allowBig = true, name = "INTERNATIONAL" },
+    { type = AIAirport.AT_METROPOLITAN, allowBig = true, name = "METROPOLITAN" },
+    { type = AIAirport.AT_LARGE, allowBig = true, name = "LARGE" },
   ];
+  local airportSmallTypes = [
+    { type = AIAirport.AT_COMMUTER, allowBig = false, name = "COMMUTER" },
+    { type = AIAirport.AT_SMALL, allowBig = false, name = "SMALL" },
+  ];
+
   local engines = AIEngineList(AIVehicle.VT_AIR);
-  foreach (choice in airportTypes) {
+
+  // 1. Combo Grand Aeroport + Avion compatible
+  foreach (choice in airportLargeTypes) {
     if (!AIAirport.IsValidAirportType(choice.type)) continue;
     local best = null;
     for (local e = engines.Begin(); !engines.IsEnd(); e = engines.Next()) {
@@ -426,7 +434,53 @@ function OpexCatalog::_refreshAir()
       if (!AIEngine.CanRefitCargo(e, this.paxCargo)) continue;
       local planeType = AIEngine.GetPlaneType(e);
       if (planeType != AIAirport.PT_SMALL_PLANE && planeType != AIAirport.PT_BIG_PLANE) continue;
-      if (planeType == AIAirport.PT_BIG_PLANE && !choice.allowBig) continue;
+      local capacity = AIEngine.GetCapacity(e);
+      local speed = AIEngine.GetMaxSpeed(e);
+      if (capacity <= 0) continue;
+      local isBig = (planeType == AIAirport.PT_BIG_PLANE);
+      local bestIsBig = (best != null && best.isBig);
+      if (best == null || (isBig && !bestIsBig) ||
+          (isBig == bestIsBig && (capacity > best.capacity || (capacity == best.capacity && speed > best.speed)))) {
+        best = {
+          id = e, capacity = capacity, speed = speed, price = AIEngine.GetPrice(e),
+          runningCost = AIEngine.GetRunningCost(e),
+          maxOrderDistance = AIEngine.GetMaximumOrderDistance(e),
+          planeType = planeType,
+          isBig = isBig,
+        };
+      }
+    }
+    if (best != null) {
+      local ap = {
+        type = choice.type,
+        kind = "large",
+        name = choice.name,
+        allowBig = true,
+        width = AIAirport.GetAirportWidth(choice.type),
+        height = AIAirport.GetAirportHeight(choice.type),
+        coverage = AIAirport.GetAirportCoverageRadius(choice.type),
+        price = AIAirport.GetPrice(choice.type),
+        maintenance = AIAirport.GetMonthlyMaintenanceCost(choice.type),
+      };
+      this.airCombos.append({ kind = "large", airport = ap, plane = best });
+      if (this.airport == null) {
+        this.airport = ap;
+        this.plane = best;
+      }
+      break;
+    }
+  }
+
+  // 2. Combo Petit Aeroport + Petit Avion (strictement PT_SMALL_PLANE)
+  foreach (choice in airportSmallTypes) {
+    if (!AIAirport.IsValidAirportType(choice.type)) continue;
+    local best = null;
+    for (local e = engines.Begin(); !engines.IsEnd(); e = engines.Next()) {
+      if (!AIEngine.IsBuildable(e)) continue;
+      if (!AIEngine.CanRefitCargo(e, this.paxCargo)) continue;
+      local planeType = AIEngine.GetPlaneType(e);
+      // Règle d'or : les gros avions ne vont JAMAIS dans les petits aeroports
+      if (planeType != AIAirport.PT_SMALL_PLANE) continue;
       local capacity = AIEngine.GetCapacity(e);
       local speed = AIEngine.GetMaxSpeed(e);
       if (capacity <= 0) continue;
@@ -436,20 +490,30 @@ function OpexCatalog::_refreshAir()
           id = e, capacity = capacity, speed = speed, price = AIEngine.GetPrice(e),
           runningCost = AIEngine.GetRunningCost(e),
           maxOrderDistance = AIEngine.GetMaximumOrderDistance(e),
+          planeType = planeType,
+          isBig = false,
         };
       }
     }
-    if (best == null) continue;
-    this.airport = {
-      type = choice.type,
-      width = AIAirport.GetAirportWidth(choice.type),
-      height = AIAirport.GetAirportHeight(choice.type),
-      coverage = AIAirport.GetAirportCoverageRadius(choice.type),
-      price = AIAirport.GetPrice(choice.type),
-      maintenance = AIAirport.GetMonthlyMaintenanceCost(choice.type),
-    };
-    this.plane = best;
-    return;
+    if (best != null) {
+      local ap = {
+        type = choice.type,
+        kind = "small",
+        name = choice.name,
+        allowBig = false,
+        width = AIAirport.GetAirportWidth(choice.type),
+        height = AIAirport.GetAirportHeight(choice.type),
+        coverage = AIAirport.GetAirportCoverageRadius(choice.type),
+        price = AIAirport.GetPrice(choice.type),
+        maintenance = AIAirport.GetMonthlyMaintenanceCost(choice.type),
+      };
+      this.airCombos.append({ kind = "small", airport = ap, plane = best });
+      if (this.airport == null) {
+        this.airport = ap;
+        this.plane = best;
+      }
+      break;
+    }
   }
 }
 

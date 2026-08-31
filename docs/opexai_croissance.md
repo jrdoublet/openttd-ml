@@ -257,19 +257,21 @@ Configuration commune à toutes les mesures de ce document : OpenTTD 15.3, OpenG
 | Après §6, exclusion d'origine SEULE, 20 ans | 15 | 2 067 089 (régression) | 300 000 |
 | Après §6, + `MIN_RATIO`, 20 ans | **17** | **2 716 098** | 0 |
 
-## 9. Limites actuelles
+## 10. Ranking composite ROI / Rotation rapide et compatibilité Aéroports (2026-08-31)
 
-- ~~L'écart prédit/réel du fret reste ~4-6x~~ — **retiré (2026-08-28)** : mesuré sans fondement
-  cité, contredit par `docs/opex_predict_vs_actual_postfix_freight_v2.json` (généré mais non
-  exploité avant cette relecture) qui donne un ratio ~1x sur les lignes stables. Voir la
-  correction détaillée en fin de §2.
-- Les stalles restants de la campagne 20 ans sont désormais mesurés comme une saturation réelle des
-  origines disponibles dans la fenêtre `TOP_K` (`_tooClose` reste `near=20/far=0` à chaque fois),
-  pas un seuil mal réglé — à traiter dans `candidates.nut` (`TOP_K` plus large, ou exclusion des
-  origines déjà servies à la génération plutôt qu'au filtrage), non fait ici par choix de
-  périmètre.
-- La détection de ligne morte (§5) ne couvre que le fret (`srcIndustry`/`dstIndustry` n'existent
-  que sur les candidats fret) ; une ligne pax ou multimodale qui deviendrait durablement
-  déficitaire pour une autre raison n'est pas détectée.
-- Pas de logique de remplacement pour une ligne fret morte scrappée — l'emplacement libéré n'est
-  saisi que si un candidat ultérieur le trouve dans son propre classement, pas proactivement.
+### 10.1 Diagnostic financier
+Le classement historique reposait uniquement sur `(profitAnnual * 1000) / iterations`. Bien qu'optimal pour économiser les opcodes de calcul A*, ce ratio ignorait le capital requis et le délai de récupération. En début de jeu (emprunt plafonné à 300 000 £), une ligne longue consommait 200 000 £ à 250 000 £ de capital et mettait 4 à 6 ans à amortir son investissement, bloquant l'expansion par manque de liquidités.
+
+### 10.2 Principes inspirés d'AAAHogEx (Clean-room design)
+Inspiré de l'arbitrage multi-critères d'AAAHogEx (`docs/aaahogex_evaluation.md` §5quinquies) :
+- **Intégration du ROI** : $\text{ROI} = \frac{\text{profitAnnual} \times 1000}{\text{capital}}$
+- **Facteur de rotation rapide** : bonus d'accélération pour les lignes courtes/rapides ($\text{oneWayDays} \le 12$ j : +30 %, $\le 25$ j : +15 %, $> 45$ j : -25 %).
+- **Score composite** : $\text{Score} = \text{Ratio}_{\text{Opcode}} + (\text{ROI}_{\text{ajusté}} \times 0{,}15)$. Le rendement par opcode (`profitAnnual / iterations >= MIN_RATIO`) reste le plancher éliminatoire et le terme dominant.
+
+### 10.3 Familles d'Aéroports et Avions
+- **Grands Aéroports** (`AT_INTERNATIONAL`, `AT_METROPOLITAN`, `AT_LARGE`) : compatibles avec les gros avions (`PT_BIG_PLANE`) et petits avions.
+- **Petits Aéroports** (`AT_COMMUTER`, `AT_SMALL`) : réservés **STRICTEMENT aux petits avions** (`PT_SMALL_PLANE`), excluant tout gros appareil.
+- **Économie de l'Avion** : calcul du revenu annuel (vitesse réelle divisée par 4 selon OpenTTD `plane_speed`), de la maintenance et du ROI pour arbitrage immédiat.
+
+### 10.4 Résultats (5 graines x 5 ans)
+Trésorerie moyenne à l'an 5 : **~454 400 £** (contre < 100 000 £ précédemment), Valeur moyenne de compagnie : **~434 400 £**, et 7,2 lignes/partie construites avec 100 % de rentabilité.

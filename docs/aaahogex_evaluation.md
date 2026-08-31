@@ -363,10 +363,51 @@ soit ; il faut alors une sentinelle non ambiguë, surtout pas 0.
 
 ---
 
+## 5quinquies. `estimator.nut` : idées économiques, pas code à reprendre
+
+Relecture clean-room du 2026-08-31. La différence la plus importante n'est pas une formule de
+revenu isolée : AAAHogEx change de **fonction objectif selon la contrainte active**. Quand la
+compagnie manque d'argent, il classe par revenu annuel rapporté au capital (ROI) ; riche et loin
+du plafond de véhicules, par revenu rapporté à un temps de construction heuristique ; près du
+plafond, par revenu rapporté au nombre de véhicules. Son rythme initial vient donc en partie d'un
+arbitrage de capital, puis d'un arbitrage de débit. Son `buildingTime` reste toutefois une formule
+arbitraire en distance et nombre de véhicules : pour notre objectif, les itérations A* mesurées
+par OpexAI sont un meilleur dénominateur et ne doivent pas être remplacées.
+
+L'estimateur simule aussi le couplage **production -> stock -> attente de plein chargement ->
+intervalle de passage -> note de gare -> quantité captée**, inclut temps de chargement, trajet de
+retour, cargaison retour/secondaire, entretien d'infrastructure, fiabilité, composition complète
+de la rame et délai avant encaissement. Une partie est spécifique à son graphe de transferts ou à
+son constructeur ; plusieurs coefficients portent des TODO ou sont explicitement arbitraires.
+
+Comparaison avec OpexAI : traction, longueur de rame, nombre de trains, trajets chargés dans les
+deux sens, note fonction du headway, capital, coût courant et amortissement sont déjà présents.
+Le fret est calibré à `predit/reel = 1,001` à vingt ans ; ajouter toute la complexité AAAHogEx
+risquerait donc surtout de consommer des opcodes. Deux écarts seulement méritent une mesure :
+
+1. **Temps de chargement et attente du plein.** OpexAI calcule le cycle avec le trajet seul. Un
+   modèle analytique dérivé des règles OpenTTD peut refermer la boucle attente/frequence/note sans
+   reprendre l'algorithme AAAHogEx. Candidat prioritaire pour expliquer le pax encore optimiste de
+   22,2 %, à tester séparément du fret déjà juste.
+2. **Ressource financière rare.** Conserver `profit attendu / opcodes A* attendus` comme premier
+   objectif. Parmi les candidats actuellement finançables -- ou dont les scores primaires sont
+   indiscernables dans l'erreur du modèle -- utiliser délai de retour du capital puis
+   profit/véhicule comme départages. Ne jamais bloquer la file sur un candidat non finançable : le
+   banc dynamique a déjà montré que cela casse la croissance composée.
+
+Protocole avant tout changement de décision : instrumenter hors ligne `tempsChargement`,
+`attentePlein`, `notePredite`, `delaiPremierRevenu` et `profit/capital`; comparer modèle courant et
+modèle enrichi sur les **mêmes lignes** par erreur absolue logarithmique prédit/réel, séparée
+pax/fret et par distance. Un A/B de classement n'est justifié que si la précision hors graine
+s'améliore sans dégrader le fret. Les cargaisons secondaires, doubles locomotives et transferts
+restent hors périmètre tant que le constructeur OpexAI ne sait pas les réaliser.
+
 ## 6. Ce qu'il reste à retenir
 
 | Idée | Verdict |
 |---|---|
+| **Attente de plein -> frequence -> note -> captation** (§5quinquies) | **PROCHAINE SONDE ECONOMIQUE** — modèle analytique clean-room, validation prédit/réel hors graine avant tout A/B |
+| Objectif variable ROI / débit / véhicule (§5quinquies) | **Idée à adapter, pas à copier** — profit/opcode reste premier ; ROI seulement pour finançabilité ou départage dans l'incertitude |
 | **Sonde d'A\* tronquée** (§5quater) | **LA piste retenue** — faisabilité vérifiée au source, coût nul, seule grandeur non redondante avec la distance |
 | Sites de gare faisables, occupation des sorties (§5ter, cat. I) | **Inexploité chez nous** — mesures locales aux extrémités, de nature différente du corridor |
 | Pré-filtre `IsLandConnectedForRail` (§5bis) | **ESSAYÉ, ÉCHOUÉ** : `corridor_max_water_run` fait moins bien que le total d'eau ; avec la raideur, −0,0020 d'AUC |
@@ -379,10 +420,11 @@ soit ; il faut alors une sentinelle non ambiguë, surtout pas 0.
 | Terrassement pendant la pose | À retenir, mais impose de généraliser la capture de `first_mutation_tick` |
 | Pilotage par budget d'opcodes | **N'existe pas** — il mesure, il ne s'adapte pas |
 
-**Recommandation** : pas de portage, pas d'exposition GPL v3. Le gain principal n'est pas une
-technique de construction mais **une mesure** — la longueur d'eau contiguë plutôt que le total,
-et la raideur locale plutôt que l'amplitude (§5bis). Idée secondaire à réimplémenter en clean-room
-si besoin : la reprise conservant le préfixe (§2.2).
+**Recommandation** : pas de portage, pas d'exposition GPL v3. Pour l'économie, mesurer d'abord la
+boucle attente/frequence/note avec nos propres équations et nos lignes réelles ; pour le coût A\*,
+la sonde tronquée reste la piste non redondante. Le changement de score d'AAAHogEx explique une
+partie de son débit, mais ne remplace pas notre objectif profit/opcode. Idée secondaire à
+réimplémenter en clean-room si besoin : la reprise conservant le préfixe (§2.2).
 
 ---
 

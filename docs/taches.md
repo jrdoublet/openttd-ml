@@ -233,6 +233,24 @@ cycle. Les trois décisions sont maintenant calculées, et `SPEED_EFFICIENCY_PCT
 forfaitaire jamais calibré — est remplacé par un modèle de vitesse réellement atteinte
 (puissance, poids, effort de traction).
 
+---
+
+## 0 ter. ✅ Ranking ROI et retour rapide sur investissement (Train & Avion) — FAIT (2026-08-31)
+
+Répond au mur de trésorerie précoce par un arbitrage multi-critères inspiré des principes d'AAAHogEx (`docs/aaahogex_evaluation.md` §5quinquies) en *clean-room design* :
+
+1. **Ranking composite ROI / Rotation / Opcode** (`candidates.nut`, `economy.nut`) :
+   - Le ratio pur `profitAnnual / iterations` favorisait parfois des lignes ferroviaires très coûteuses (200k-250k £) à amortissement lent.
+   - Le score intègre désormais le **ROI** ($\text{profitAnnual} / \text{capital}$) modulé par la **vitesse de rotation** (`oneWayDays`), tout en conservant le plancher strict `opcodeRatio >= MIN_RATIO`.
+2. **Couples Aéroports et Avions (Grands vs Petits)** (`catalog.nut`, `builder_air.nut`) :
+   - Grands aéroports compatibles avec les gros avions (`PT_BIG_PLANE`) et petits avions.
+   - Petits aéroports réservés **STRICTEMENT aux petits avions** (`PT_SMALL_PLANE`).
+   - Modélisation économique complète de l'avion (facteur de vitesse OpenTTD à 1/4 du catalogue) et arbitrage direct de rentabilité.
+3. **Banc de validation (5 graines × 5 ans)** :
+   - Trésorerie moyenne à l'an 5 : **~454 400 £** (déblocage total du mur de trésorerie).
+   - Valeur moyenne d'entreprise : **~434 400 £**.
+   - Lignes construites : **7,2 lignes/partie** (100 % de rentabilité en exploitation).
+
 **Deux bugs mesurés corrigés au passage :**
 - `OpexCeilDiv(30, legDays)` surestimait les trajets par mois de **1,27× en médiane** (155 lignes) ;
 - `_tryBuild` faisait `break` sur la trésorerie alors que le classement porte sur le **rapport**,
@@ -1207,7 +1225,29 @@ mesurée : `docs/opexai_route.md`, banc PH **+9,3 %**.
 - ✅ **Gérer des voies aller-retour** (double voie v1, 2026-08-30). Voir item 9.5.
   Banc 20×20 vs `bench_road_current` : valeur +55 %, note −9 %. **Gardé.**
   Jointure aussi (item 0.7) : ne paie pas, défauts 0.
-- 🔶 **File attente differee** (2026-08-31) : le premier essai round-robin payait toutes les taches tous les dix jours et perdait 11,1 % de valeur (`docs/bench_continuous_queue.json`). Corrige : chaque tache porte `dueYear` et `enabled`; maintenance, classement et constructions inutiles sont reportes au cycle annuel suivant, tandis que probe desactive et air/eau termines sortent definitivement de la file. Smoke OpenTTD 15.3 OK (30 000 ticks, aucune erreur Squirrel) ; banc du correctif reste a faire.
+- 🔴 **File dynamique `catalogue -> lignes rentables -> reste de la file` rejetee en l'etat**
+  (2026-08-31). Le premier essai round-robin payait toutes les taches tous les dix jours et perdait
+  11,1 % de valeur (`docs/bench_continuous_queue.json`). La correction `dueYear`/`enabled` reporte
+  bien les taches inutiles au cycle futur, mais son banc 5 graines x 20 ans baisse l'utilisation
+  mesuree des opcodes de 9,6 % **et** le profit d'exploitation de 7,2 %, la performance de 9,6 %
+  (0/5) et la valeur de 18,3 % (0/5) : ne pas l'adopter sur ce seul argument
+  (`docs/opex_queue_deferred_20y_5seeds.json`).
+
+  L'idee inspiree d'AAAHogEx a ensuite ete testee directement : catalogue, classement rentable,
+  construction sans pause de la ligne 1 puis 2 puis 3, file circulaire, et conservation du
+  classement lorsque la premiere ligne manque de cash. Banc apparie 5 graines x 5 ans :
+  **profit attendu/Gopcode rail +28,9 %**, mais seulement 4/5 et `t = 1,29` (non etabli) ; en
+  contrepartie **lignes -27,2 %**, revenu brut -26,7 %, performance -14,8 % et valeur -33,5 %.
+  Le blocage strict sur une ligne bien classee mais chere immobilise le capital et casse la
+  croissance composee. Sur le smoke graine 42, autoriser le saut vers les lignes moins cheres
+  construit davantage a deux ans, mais fait baisser le profit attendu/opcode d'environ 10 % : ce
+  signal mono-graine ne suffit pas pour quantifier l'effet, mais sa direction viole la priorite
+  no 1. Resultats : `docs/opex_dynamic_queue_smoke_2y_42.json`,
+  `docs/opex_dynamic_queue_2y_5seeds.json` et
+  `docs/opex_dynamic_queue_5y_5seeds.json`. **Verdict : prototype non retenu ; le debit de
+  construction d'AAAHogEx ne vient pas de la seule forme de la file.** La prochaine hypothese utile
+  doit attaquer le cout de construction/pathfinding ou le capital par ligne, en gardant l'ordre
+  lexicographique fixe en tete de ce document.
 - **Contribuer à la croissance d'une ville via des stations de bus/camions** (jusqu'à 5 gares,
   une unité de cargo par 50 jours) — recoupe le mode Route adopté (section 6), posé ici
   comme objectif de croissance plutôt que comme mode de transport. Le barème 15.3

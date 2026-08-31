@@ -42,6 +42,20 @@ class OpexAI extends AIInfo {
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
+
+    /* Expansion marginale d'une ligne rail existante. Le bras 1 ne cherche aucun nouveau
+     * chemin : apres deux releves de saturation sur une ligne a une rame, il ajoute un wagon
+     * dans la marge de quai deja payee, seulement si le revenu reel recale predit un gain net.
+     * Defaut 0 jusqu'au banc apparie : le mecanisme et ses panneaux EG/EX restent alors absents
+     * du chemin de controle. */
+    AddSetting({
+      name = "rail_expand",
+      description = "Add one wagon to profitable saturated one-train rail lines using paid platform margin: 1 = enabled, 0 = control (default)",
+      min_value = 0, max_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
     /* Plancher de tresorerie sous lequel on ne rembourse pas l'emprunt, EN MILLIERS.
      *
      * DEFAUT 300 (= 300 000) DEPUIS LE 2026-08-29, apres mesure au banc apparie -- voir le verdict
