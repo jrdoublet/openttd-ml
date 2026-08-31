@@ -476,13 +476,15 @@ Le mode route est donc reconfirme sur l arbre courant.
     });
 
     /* Plantation d'arbres pour rehausser la note municipale aupres de l'autorite locale.
-     * Cout modeste (~800 £) pour +140 points de reputation, debloquant les droits de construction. */
+     * Banc 20 graines x 5 ans (docs/bench_tree_planting_5y.json) : la plantation proactive
+     * consomme de la tresorerie sans gain (la note initiale > -200 suffit deja a construire).
+     * company_value -17.05% (t = -6.62, 0/20). Defaut 0 (ecarte). */
     AddSetting({
       name = "tree_planting",
-      description = "Plant trees to restore town local authority rating: 1 = enabled (default), 0 = disabled",
+      description = "Plant trees to restore town local authority rating: 1 = enabled, 0 = disabled (default)",
       min_value = 0, max_value = 1,
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
 

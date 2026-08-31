@@ -98,7 +98,7 @@ const BUILD_TICK_MARGIN = 3000;
 /* Reserve de tresorerie dynamique : adaptee a la taille de la flotte pour liberer le capital
  * des les premieres annees (15 000 £ au lieu de 50 000 £) et eviter les soldes oisifs. */
 DYNAMIC_CASH_RESERVE <- true;
-TREE_PLANTING <- true;
+TREE_PLANTING <- false;
 const CASH_RESERVE_STATIC = 50000;
 const CASH_RESERVE_MIN = 15000;
 const CASH_RESERVE_MAX = 50000;

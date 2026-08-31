@@ -1262,6 +1262,12 @@ mesurée : `docs/opexai_route.md`, banc PH **+9,3 %**.
   - Élimine les latences de 10 à 130 jours in-game entre les tâches.
   - Cadencement annuel de `catalog` et `report`, et mensuel de `repay`.
   - **Banc 20 graines × 5 ans** : Valeur d'entreprise moyenne en hausse de **+17,5 %** (**298 631 £** vs **254 040 £**).
-- **Planter des arbres pour augmenter la réputation** (note de compagnie) — déjà identifié dans
-  `docs/mecanique_jeu.md` comme le levier de rattrapage bon marché si la note stagne à cause du
-  terrassement/destruction de bâtiments.
+- ⚪ **Planter des arbres pour augmenter la réputation municipale (`tree_planting`) — ÉCARTÉ (2026-08-31)** :
+  Implémentation du module `OpexBoostTownRating` (plantant des arbres pour relever la note locale au-dessus de 100).
+  **Banc apparié 20 graines × 5 ans (`docs/bench_tree_planting_5y.json`)** :
+  - `company_value` : **−17,05 %** (−84 572 £), $t = −6,62$, **0/20 graines gagnantes** (20/20 défavorables).
+  - `profit` : **−31,57 %** (−12 490 £), $t = −7,19$, **0/20 graines gagnantes**.
+  - `profit_year` : **−25,94 %** (−40 051 £), $t = −6,57$, **0/20 graines gagnantes**.
+  
+  **Cause de l'échec** : La note d'autorité locale initiale dans OpenTTD est déjà suffisante ($\ge -200$) pour construire des gares et arrêts sans refus. Planter des arbres de façon préventive draine inutilement la trésorerie au démarrage sans débloquer aucun nouveau corridor.
+  ⚠️ **Réglage `tree_planting`, défaut 0 (ÉCARTÉ).**
