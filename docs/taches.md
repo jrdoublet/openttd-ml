@@ -1248,6 +1248,17 @@ mesurée : `docs/opexai_route.md`, banc PH **+9,3 %**.
   - **Dimensionnement dynamique** : calculé sur 3 mois de coûts d'exploitation de la flotte active, borné entre 15 000 £ (au démarrage) et 50 000 £ (en régime de croisière). Libère jusqu'à 35 000 £ de capital dès l'an 1.
   - **Déploiement du cash excédentaire** : levée du plafond mono-avion (`AIR_MAX_LINES_PER_YEAR = 1`, jusqu'à 5 liaisons aéroportuaires rentables) et remboursement de la dette via `_tryRepayLoan` quand la trésorerie dépasse `LOAN_REPAY_FLOOR` (300 000 £).
   - Réglage `dynamic_cash_reserve` (défaut 1) dans `info.nut`.
+- ✅ **Limite d'opcodes de pathfinding dynamique (`dynamic_pathfinder_cap`) — FAIT (2026-08-31)** :
+  Calibrage automatique du plafond d'itérations A* selon l'état de la compagnie :
+  - **Démarrage / Réseau jeune** : Plafond modéré à **30 000 itérations** pour éviter d'épuiser des opcodes sur des tracés complexes quand des corridors directs faciles existent.
+  - **Précalcul & Attente de trésorerie** : Plafond ouvert à **60 000 itérations** pour exploiter les opcodes dormants.
+  - **Maturité du réseau** : Échelle de 30 000 à 60 000 itérations proportionnelle au nombre de lignes pour contourner les obstacles.
+  - Réglage `dynamic_pathfinder_cap`, défaut 1 dans `info.nut`.
+- ✅ **Exécution continue sans blocage (Suppression du Sleep(10 jours)) — FAIT (2026-08-31)** :
+  Remplacement du `AIController.Sleep(74 * 10)` inconditionnel de la boucle principale par `AIController.Sleep(1)` (1 tick NoAI).
+  - Élimine les latences de 10 à 130 jours in-game entre les tâches.
+  - Cadencement annuel de `catalog` et `report`, et mensuel de `repay`.
+  - **Banc 20 graines × 5 ans** : Valeur d'entreprise moyenne en hausse de **+17,5 %** (**298 631 £** vs **254 040 £**).
 - **Planter des arbres pour augmenter la réputation** (note de compagnie) — déjà identifié dans
   `docs/mecanique_jeu.md` comme le levier de rattrapage bon marché si la note stagne à cause du
   terrassement/destruction de bâtiments.
