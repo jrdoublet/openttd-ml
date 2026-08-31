@@ -92,6 +92,12 @@ function OpexAirPlans(catalog, lines = null)
   local towns = OpexAirSortedTowns(catalog.towns);
   local limit = towns.len() < AIR_TOWN_POOL ? towns.len() : AIR_TOWN_POOL;
   local bestPlan = null;
+  /* GetMonthlyMaintenanceCost expose le tarif potentiel, pas une depense toujours active.
+   * CompaniesGenStatistics ne le debite que si le reglage de partie est arme. La configuration
+   * gelee le laisse a false : compter ce tarif rendait toutes les paires de la graine 42
+   * artificiellement deficitaires (270 000/an pour deux AT_LARGE). */
+  local infrastructureMaintenance =
+      AIGameSettings.GetValue("economy.infrastructure_maintenance") != 0;
   AILog.Info("OpexAirPlans: combos=" + combos.len() + " towns=" + towns.len());
 
   foreach (combo in combos) {
@@ -148,7 +154,8 @@ function OpexAirPlans(catalog, lines = null)
         local carried = monthlyPax < monthlyCapacity ? monthlyPax : monthlyCapacity;
         local incomeDays = OpexCeilDiv(oneWayDays, 1);
         local revenueAnnual = (12 * carried * AICargo.GetCargoIncome(catalog.paxCargo, distance, incomeDays)).tointeger();
-        local runningAnnual = plane.runningCost + 24 * airport.maintenance;
+        local airportMaintenanceAnnual = infrastructureMaintenance ? 24 * airport.maintenance : 0;
+        local runningAnnual = plane.runningCost + airportMaintenanceAnnual;
         local amortAnnual = plane.price / 20 + 2 * airport.price / 30;
         local profitAnnual = revenueAnnual - runningAnnual - amortAnnual;
         local capital = 2 * airport.price + plane.price;
@@ -171,8 +178,13 @@ function OpexAirPlans(catalog, lines = null)
         };
 
         if (a == 0 && b == 1) {
-          OpexSign(AIMap.GetTileIndex(1, 8), "AW|R=" + revenueAnnual + "|C=" + runningAnnual + "|A=" + amortAnnual + "|P=" + profitAnnual);
-          OpexSign(AIMap.GetTileIndex(1, 9), "AV|SP=" + plane.speed + "|CP=" + plane.capacity + "|OWD=" + oneWayDays + "|TC=" + tripsPerMonth);
+          /* Les anciens libelles avec cles depassaient la longueur maximale d'un panneau et
+           * disparaissaient silencieusement. Valeurs : revenu, courant, amortissement, profit. */
+          OpexSign(AIMap.GetTileIndex(1, 8), "AW|" + revenueAnnual + "|" + runningAnnual
+                                                + "|" + amortAnnual + "|" + profitAnnual);
+          OpexSign(AIMap.GetTileIndex(1, 9), "AV|" + plane.speed + "|" + plane.capacity
+                                                + "|" + oneWayDays.tointeger()
+                                                + "|" + (tripsPerMonth * 100).tointeger());
         }
         if (profitAnnual > 0) {
           if (bestPlan == null || roi > bestPlan.economics.roi) {

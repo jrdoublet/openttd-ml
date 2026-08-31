@@ -246,6 +246,19 @@ Répond au mur de trésorerie précoce par un arbitrage multi-critères inspiré
    - Grands aéroports compatibles avec les gros avions (`PT_BIG_PLANE`) et petits avions.
    - Petits aéroports réservés **STRICTEMENT aux petits avions** (`PT_SMALL_PLANE`).
    - Modélisation économique complète de l'avion (facteur de vitesse OpenTTD à 1/4 du catalogue) et arbitrage direct de rentabilité.
+
+**Correction aérienne mesurée le 2026-08-31, graine 42.** Le modèle ajoutait
+`24 * AIAirport.GetMonthlyMaintenanceCost(AT_LARGE)`, soit **270 000 £/an** pour deux
+aéroports, alors que `economy.infrastructure_maintenance=false` et que le moteur ne débite donc
+jamais cette charge. La première paire passait artificiellement de **+63 609 £/an** à
+**−206 391 £/an** et tout l'air était rejeté. Le coût n'est désormais compté que lorsque le
+réglage est actif. Validation : une ligne aérienne construite dès 1970, profit réel
+**42 178 £** en 1971 ; duel partagé 3 ans contre AAAHogEx (diagnostic sur une seule graine,
+pas un banc apparié), OpexAI passe de **140 071 à
+197 899 £** de profit annuel (+41 %) et de **286 851 à 350 538 £** de valeur (+22 %).
+La prochaine limite est distincte : OpexAI n'a encore que **2 avions** fin 1972 contre **40**
+pour AAAHogEx ; dimensionner la flotte doit être mesuré séparément, sans confondre ce levier
+avec la correction certaine de maintenance.
 3. **Banc de validation (5 graines × 5 ans)** :
    - Trésorerie moyenne à l'an 5 : **~454 400 £** (déblocage total du mur de trésorerie).
    - Valeur moyenne d'entreprise : **~434 400 £**.

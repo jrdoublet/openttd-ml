@@ -1,0 +1,7965 @@
+{
+ "openttd_version": "15.3",
+ "opengfx_version": "7.1",
+ "seed": 42,
+ "years": 20,
+ "arms": [
+  "OpexAI[rail_expand=1]",
+  "AAAHogEx"
+ ],
+ "shared_game": true,
+ "openttd_config": "[difficulty]\nnumber_towns = 3\nindustry_density = 4\n[economy]\ninflation = false\ntown_growth_rate = 2\n[game_creation]\nstarting_year = 1970\nmap_x = 8\nmap_y = 8\n",
+ "summary": [
+  {
+   "arm": "OpexAI[rail_expand=1]",
+   "owner": 0,
+   "company_value": 2695607,
+   "performance_history": 300,
+   "profit": 50107,
+   "profit_year": 182858,
+   "median_station_rating": 175,
+   "money": 2609400,
+   "current_loan": 0,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 30,
+   "n_stations": 26
+  },
+  {
+   "arm": "AAAHogEx",
+   "owner": 1,
+   "company_value": 186084092,
+   "performance_history": 900,
+   "profit": 5828954,
+   "profit_year": 22906205,
+   "median_station_rating": 190,
+   "money": 174233967,
+   "current_loan": 0,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 1679,
+   "n_stations": 256
+  }
+ ],
+ "openttd_output": "",
+ "series": [
+  {
+   "date": "1970-01-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": null,
+     "performance_history": null,
+     "profit": null,
+     "profit_year": null,
+     "median_station_rating": null,
+     "money": 100000,
+     "current_loan": 100000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 0,
+     "n_stations": 0
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": null,
+     "performance_history": null,
+     "profit": null,
+     "profit_year": null,
+     "median_station_rating": null,
+     "money": 100000,
+     "current_loan": 100000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 0,
+     "n_stations": 0
+    }
+   ]
+  },
+  {
+   "date": "1970-02-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": null,
+     "performance_history": null,
+     "profit": null,
+     "profit_year": null,
+     "median_station_rating": null,
+     "money": 269436,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 3,
+     "n_stations": 2
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": null,
+     "performance_history": null,
+     "profit": null,
+     "profit_year": null,
+     "median_station_rating": null,
+     "money": 19423,
+     "current_loan": 20000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 0,
+     "n_stations": 0
+    }
+   ]
+  },
+  {
+   "date": "1970-03-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": null,
+     "performance_history": null,
+     "profit": null,
+     "profit_year": null,
+     "median_station_rating": 175,
+     "money": 270162,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 3,
+     "n_stations": 2
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": null,
+     "performance_history": null,
+     "profit": null,
+     "profit_year": null,
+     "median_station_rating": 179.0,
+     "money": 23701,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 8,
+     "n_stations": 6
+    }
+   ]
+  },
+  {
+   "date": "1970-04-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": null,
+     "performance_history": null,
+     "profit": null,
+     "profit_year": null,
+     "median_station_rating": 175,
+     "money": 270878,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 3,
+     "n_stations": 2
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": null,
+     "performance_history": null,
+     "profit": null,
+     "profit_year": null,
+     "median_station_rating": 189.0,
+     "money": 21112,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 8,
+     "n_stations": 6
+    }
+   ]
+  },
+  {
+   "date": "1970-05-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 9561,
+     "performance_history": 12,
+     "profit": 1465,
+     "profit_year": 1465,
+     "median_station_rating": 175,
+     "money": 271600,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 3,
+     "n_stations": 2
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 1,
+     "performance_history": 10,
+     "profit": -3113,
+     "profit_year": -3113,
+     "median_station_rating": 169.5,
+     "money": 37995,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 8,
+     "n_stations": 6
+    }
+   ]
+  },
+  {
+   "date": "1970-06-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 9561,
+     "performance_history": 12,
+     "profit": 1465,
+     "profit_year": 1465,
+     "median_station_rating": 175,
+     "money": 273738,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 3,
+     "n_stations": 2
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 1,
+     "performance_history": 10,
+     "profit": -3113,
+     "profit_year": -3113,
+     "median_station_rating": 177.0,
+     "money": 45683,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 12,
+     "n_stations": 6
+    }
+   ]
+  },
+  {
+   "date": "1970-07-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 9561,
+     "performance_history": 12,
+     "profit": 1465,
+     "profit_year": 1465,
+     "median_station_rating": 175,
+     "money": 237101,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 8,
+     "n_stations": 4
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 1,
+     "performance_history": 10,
+     "profit": -3113,
+     "profit_year": -3113,
+     "median_station_rating": 161.0,
+     "money": 109286,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 12,
+     "n_stations": 7
+    }
+   ]
+  },
+  {
+   "date": "1970-08-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 17225,
+     "performance_history": 17,
+     "profit": 3631,
+     "profit_year": 5096,
+     "median_station_rating": 175,
+     "money": 237636,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 8,
+     "n_stations": 4
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 172331,
+     "performance_history": 149,
+     "profit": 190477,
+     "profit_year": 187364,
+     "median_station_rating": 161.0,
+     "money": 42653,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 18,
+     "n_stations": 8
+    }
+   ]
+  },
+  {
+   "date": "1970-09-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 17225,
+     "performance_history": 17,
+     "profit": 3631,
+     "profit_year": 5096,
+     "median_station_rating": 175.0,
+     "money": 214612,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 11,
+     "n_stations": 6
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 172331,
+     "performance_history": 149,
+     "profit": 190477,
+     "profit_year": 187364,
+     "median_station_rating": 162.0,
+     "money": 22914,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 22,
+     "n_stations": 11
+    }
+   ]
+  },
+  {
+   "date": "1970-10-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 17225,
+     "performance_history": 17,
+     "profit": 3631,
+     "profit_year": 5096,
+     "median_station_rating": 175.0,
+     "money": 221758,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 11,
+     "n_stations": 6
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 172331,
+     "performance_history": 149,
+     "profit": 190477,
+     "profit_year": 187364,
+     "median_station_rating": 162,
+     "money": 28100,
+     "current_loan": 290000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 28,
+     "n_stations": 12
+    }
+   ]
+  },
+  {
+   "date": "1970-11-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 38081,
+     "performance_history": 38,
+     "profit": 16353,
+     "profit_year": 21449,
+     "median_station_rating": 175,
+     "money": 198863,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 14,
+     "n_stations": 8
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 558511,
+     "performance_history": 198,
+     "profit": 337160,
+     "profit_year": 524524,
+     "median_station_rating": 159.5,
+     "money": 53654,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 32,
+     "n_stations": 15
+    }
+   ]
+  },
+  {
+   "date": "1970-12-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 38081,
+     "performance_history": 38,
+     "profit": 16353,
+     "profit_year": 21449,
+     "median_station_rating": 175.0,
+     "money": 174368,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 17,
+     "n_stations": 10
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 558511,
+     "performance_history": 198,
+     "profit": 337160,
+     "profit_year": 524524,
+     "median_station_rating": 159.0,
+     "money": 32706,
+     "current_loan": 290000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 44,
+     "n_stations": 18
+    }
+   ]
+  },
+  {
+   "date": "1971-01-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 38081,
+     "performance_history": 38,
+     "profit": 16353,
+     "profit_year": 21449,
+     "median_station_rating": 175,
+     "money": 183038,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 17,
+     "n_stations": 10
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 558511,
+     "performance_history": 198,
+     "profit": 337160,
+     "profit_year": 524524,
+     "median_station_rating": 162,
+     "money": 107880,
+     "current_loan": 290000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 45,
+     "n_stations": 22
+    }
+   ]
+  },
+  {
+   "date": "1971-02-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 72473,
+     "performance_history": 78,
+     "profit": 29632,
+     "profit_year": 51081,
+     "median_station_rating": 175,
+     "money": 196473,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 17,
+     "n_stations": 10
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 1006978,
+     "performance_history": 282,
+     "profit": 500328,
+     "profit_year": 1024852,
+     "median_station_rating": 179.0,
+     "money": 65947,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 49,
+     "n_stations": 28
+    }
+   ]
+  },
+  {
+   "date": "1971-03-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 72473,
+     "performance_history": 78,
+     "profit": 29632,
+     "profit_year": 51081,
+     "median_station_rating": 175,
+     "money": 207812,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 17,
+     "n_stations": 10
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 1006978,
+     "performance_history": 282,
+     "profit": 500328,
+     "profit_year": 1024852,
+     "median_station_rating": 177,
+     "money": 33179,
+     "current_loan": 270000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 59,
+     "n_stations": 30
+    }
+   ]
+  },
+  {
+   "date": "1971-04-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 72473,
+     "performance_history": 78,
+     "profit": 29632,
+     "profit_year": 51081,
+     "median_station_rating": 175,
+     "money": 205996,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 19,
+     "n_stations": 12
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 1006978,
+     "performance_history": 282,
+     "profit": 500328,
+     "profit_year": 1024852,
+     "median_station_rating": 159.0,
+     "money": 120713,
+     "current_loan": 240000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 62,
+     "n_stations": 31
+    }
+   ]
+  },
+  {
+   "date": "1971-05-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 110545,
+     "performance_history": 102,
+     "profit": 38863,
+     "profit_year": 88479,
+     "median_station_rating": 175,
+     "money": 212172,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 1391138,
+     "performance_history": 363,
+     "profit": 503182,
+     "profit_year": 1531147,
+     "median_station_rating": 165,
+     "money": 63511,
+     "current_loan": 90000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 79,
+     "n_stations": 38
+    }
+   ]
+  },
+  {
+   "date": "1971-06-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 110545,
+     "performance_history": 102,
+     "profit": 38863,
+     "profit_year": 88479,
+     "median_station_rating": 175,
+     "money": 224391,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 1391138,
+     "performance_history": 363,
+     "profit": 503182,
+     "profit_year": 1531147,
+     "median_station_rating": 175,
+     "money": 177110,
+     "current_loan": 120000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 91,
+     "n_stations": 45
+    }
+   ]
+  },
+  {
+   "date": "1971-07-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 110545,
+     "performance_history": 102,
+     "profit": 38863,
+     "profit_year": 88479,
+     "median_station_rating": 175,
+     "money": 231532,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 1391138,
+     "performance_history": 363,
+     "profit": 503182,
+     "profit_year": 1531147,
+     "median_station_rating": 171.0,
+     "money": 130872,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 104,
+     "n_stations": 52
+    }
+   ]
+  },
+  {
+   "date": "1971-08-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 142033,
+     "performance_history": 127,
+     "profit": 34299,
+     "profit_year": 119147,
+     "median_station_rating": 175,
+     "money": 245174,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 1965170,
+     "performance_history": 471,
+     "profit": 571518,
+     "profit_year": 1912188,
+     "median_station_rating": 177.0,
+     "money": 325666,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 116,
+     "n_stations": 54
+    }
+   ]
+  },
+  {
+   "date": "1971-09-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 142033,
+     "performance_history": 127,
+     "profit": 34299,
+     "profit_year": 119147,
+     "median_station_rating": 175,
+     "money": 258766,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 1965170,
+     "performance_history": 471,
+     "profit": 571518,
+     "profit_year": 1912188,
+     "median_station_rating": 176.0,
+     "money": 361166,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 125,
+     "n_stations": 64
+    }
+   ]
+  },
+  {
+   "date": "1971-10-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 142033,
+     "performance_history": 127,
+     "profit": 34299,
+     "profit_year": 119147,
+     "median_station_rating": 175,
+     "money": 271111,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 1965170,
+     "performance_history": 471,
+     "profit": 571518,
+     "profit_year": 1912188,
+     "median_station_rating": 177,
+     "money": 463566,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 145,
+     "n_stations": 70
+    }
+   ]
+  },
+  {
+   "date": "1971-11-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 173984,
+     "performance_history": 139,
+     "profit": 39654,
+     "profit_year": 142448,
+     "median_station_rating": 175,
+     "money": 284932,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 2520813,
+     "performance_history": 509,
+     "profit": 606316,
+     "profit_year": 2181344,
+     "median_station_rating": 183.5,
+     "money": 312364,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 153,
+     "n_stations": 74
+    }
+   ]
+  },
+  {
+   "date": "1971-12-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 173984,
+     "performance_history": 139,
+     "profit": 39654,
+     "profit_year": 142448,
+     "median_station_rating": 175,
+     "money": 291840,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 2520813,
+     "performance_history": 509,
+     "profit": 606316,
+     "profit_year": 2181344,
+     "median_station_rating": 189,
+     "money": 305478,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 162,
+     "n_stations": 76
+    }
+   ]
+  },
+  {
+   "date": "1972-01-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 173984,
+     "performance_history": 139,
+     "profit": 39654,
+     "profit_year": 142448,
+     "median_station_rating": 175,
+     "money": 305526,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 2520813,
+     "performance_history": 509,
+     "profit": 606316,
+     "profit_year": 2181344,
+     "median_station_rating": 185,
+     "money": 403980,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 177,
+     "n_stations": 84
+    }
+   ]
+  },
+  {
+   "date": "1972-02-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 201216,
+     "performance_history": 145,
+     "profit": 34490,
+     "profit_year": 147306,
+     "median_station_rating": 175,
+     "money": 319020,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 2794837,
+     "performance_history": 534,
+     "profit": 634019,
+     "profit_year": 2315035,
+     "median_station_rating": 182,
+     "money": 27872,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 192,
+     "n_stations": 88
+    }
+   ]
+  },
+  {
+   "date": "1972-03-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 201216,
+     "performance_history": 145,
+     "profit": 34490,
+     "profit_year": 147306,
+     "median_station_rating": 175,
+     "money": 331208,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 2794837,
+     "performance_history": 534,
+     "profit": 634019,
+     "profit_year": 2315035,
+     "median_station_rating": 190.0,
+     "money": 69063,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 200,
+     "n_stations": 95
+    }
+   ]
+  },
+  {
+   "date": "1972-04-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 201216,
+     "performance_history": 145,
+     "profit": 34490,
+     "profit_year": 147306,
+     "median_station_rating": 175,
+     "money": 344765,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 2794837,
+     "performance_history": 534,
+     "profit": 634019,
+     "profit_year": 2315035,
+     "median_station_rating": 188,
+     "money": 76463,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 226,
+     "n_stations": 101
+    }
+   ]
+  },
+  {
+   "date": "1972-05-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 233662,
+     "performance_history": 249,
+     "profit": 39314,
+     "profit_year": 147757,
+     "median_station_rating": 175,
+     "money": 351452,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 3451273,
+     "performance_history": 689,
+     "profit": 694156,
+     "profit_year": 2506009,
+     "median_station_rating": 187.5,
+     "money": 15850,
+     "current_loan": 60000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 246,
+     "n_stations": 115
+    }
+   ]
+  },
+  {
+   "date": "1972-06-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 233662,
+     "performance_history": 249,
+     "profit": 39314,
+     "profit_year": 147757,
+     "median_station_rating": 175,
+     "money": 365054,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 3451273,
+     "performance_history": 689,
+     "profit": 694156,
+     "profit_year": 2506009,
+     "median_station_rating": 190,
+     "money": 128217,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 258,
+     "n_stations": 123
+    }
+   ]
+  },
+  {
+   "date": "1972-07-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 233662,
+     "performance_history": 249,
+     "profit": 39314,
+     "profit_year": 147757,
+     "median_station_rating": 175,
+     "money": 376923,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 3451273,
+     "performance_history": 689,
+     "profit": 694156,
+     "profit_year": 2506009,
+     "median_station_rating": 188.0,
+     "money": 50676,
+     "current_loan": 190000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 272,
+     "n_stations": 124
+    }
+   ]
+  },
+  {
+   "date": "1972-08-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 259170,
+     "performance_history": 249,
+     "profit": 32233,
+     "profit_year": 145691,
+     "median_station_rating": 175,
+     "money": 392116,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 4284130,
+     "performance_history": 675,
+     "profit": 784832,
+     "profit_year": 2719323,
+     "median_station_rating": 188,
+     "money": 73474,
+     "current_loan": 200000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 254,
+     "n_stations": 126
+    }
+   ]
+  },
+  {
+   "date": "1972-09-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 259170,
+     "performance_history": 249,
+     "profit": 32233,
+     "profit_year": 145691,
+     "median_station_rating": 175,
+     "money": 397440,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 4284130,
+     "performance_history": 675,
+     "profit": 784832,
+     "profit_year": 2719323,
+     "median_station_rating": 187.0,
+     "money": 70886,
+     "current_loan": 200000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 237,
+     "n_stations": 129
+    }
+   ]
+  },
+  {
+   "date": "1972-10-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 259170,
+     "performance_history": 249,
+     "profit": 32233,
+     "profit_year": 145691,
+     "median_station_rating": 175,
+     "money": 410882,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 4284130,
+     "performance_history": 675,
+     "profit": 784832,
+     "profit_year": 2719323,
+     "median_station_rating": 186.0,
+     "money": 121007,
+     "current_loan": 100000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 240,
+     "n_stations": 131
+    }
+   ]
+  },
+  {
+   "date": "1972-11-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 286851,
+     "performance_history": 247,
+     "profit": 34034,
+     "profit_year": 140071,
+     "median_station_rating": 175,
+     "money": 417642,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 5009653,
+     "performance_history": 724,
+     "profit": 818073,
+     "profit_year": 2931080,
+     "median_station_rating": 188,
+     "money": 91827,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 280,
+     "n_stations": 138
+    }
+   ]
+  },
+  {
+   "date": "1972-12-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 286851,
+     "performance_history": 247,
+     "profit": 34034,
+     "profit_year": 140071,
+     "median_station_rating": 175,
+     "money": 429665,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 5009653,
+     "performance_history": 724,
+     "profit": 818073,
+     "profit_year": 2931080,
+     "median_station_rating": 188,
+     "money": 225689,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 312,
+     "n_stations": 139
+    }
+   ]
+  },
+  {
+   "date": "1973-01-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 286851,
+     "performance_history": 247,
+     "profit": 34034,
+     "profit_year": 140071,
+     "median_station_rating": 175,
+     "money": 442962,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 5009653,
+     "performance_history": 724,
+     "profit": 818073,
+     "profit_year": 2931080,
+     "median_station_rating": 189.5,
+     "money": 360311,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 342,
+     "n_stations": 148
+    }
+   ]
+  },
+  {
+   "date": "1973-02-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 312928,
+     "performance_history": 246,
+     "profit": 32155,
+     "profit_year": 137736,
+     "median_station_rating": 175,
+     "money": 448365,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 5793466,
+     "performance_history": 691,
+     "profit": 875481,
+     "profit_year": 3172542,
+     "median_station_rating": 180,
+     "money": 264890,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 354,
+     "n_stations": 150
+    }
+   ]
+  },
+  {
+   "date": "1973-03-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 312928,
+     "performance_history": 246,
+     "profit": 32155,
+     "profit_year": 137736,
+     "median_station_rating": 175,
+     "money": 461881,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 5793466,
+     "performance_history": 691,
+     "profit": 875481,
+     "profit_year": 3172542,
+     "median_station_rating": 180.0,
+     "money": 466615,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 356,
+     "n_stations": 150
+    }
+   ]
+  },
+  {
+   "date": "1973-04-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 312928,
+     "performance_history": 246,
+     "profit": 32155,
+     "profit_year": 137736,
+     "median_station_rating": 175,
+     "money": 466597,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 5793466,
+     "performance_history": 691,
+     "profit": 875481,
+     "profit_year": 3172542,
+     "median_station_rating": 180.0,
+     "money": 445108,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 358,
+     "n_stations": 150
+    }
+   ]
+  },
+  {
+   "date": "1973-05-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 330982,
+     "performance_history": 153,
+     "profit": 23710,
+     "profit_year": 122132,
+     "median_station_rating": 175,
+     "money": 478471,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 5849154,
+     "performance_history": 793,
+     "profit": 883756,
+     "profit_year": 3362142,
+     "median_station_rating": 180.0,
+     "money": 420627,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 362,
+     "n_stations": 152
+    }
+   ]
+  },
+  {
+   "date": "1973-06-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 330982,
+     "performance_history": 153,
+     "profit": 23710,
+     "profit_year": 122132,
+     "median_station_rating": 175,
+     "money": 493353,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 5849154,
+     "performance_history": 793,
+     "profit": 883756,
+     "profit_year": 3362142,
+     "median_station_rating": 180.0,
+     "money": 301866,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 385,
+     "n_stations": 152
+    }
+   ]
+  },
+  {
+   "date": "1973-07-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 330982,
+     "performance_history": 153,
+     "profit": 23710,
+     "profit_year": 122132,
+     "median_station_rating": 175,
+     "money": 498689,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 5849154,
+     "performance_history": 793,
+     "profit": 883756,
+     "profit_year": 3362142,
+     "median_station_rating": 180.0,
+     "money": 417292,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 387,
+     "n_stations": 157
+    }
+   ]
+  },
+  {
+   "date": "1973-08-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 357701,
+     "performance_history": 157,
+     "profit": 32167,
+     "profit_year": 122066,
+     "median_station_rating": 175,
+     "money": 510742,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 5821490,
+     "performance_history": 798,
+     "profit": 769200,
+     "profit_year": 3346510,
+     "median_station_rating": 180,
+     "money": 254248,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 421,
+     "n_stations": 159
+    }
+   ]
+  },
+  {
+   "date": "1973-09-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 357701,
+     "performance_history": 157,
+     "profit": 32167,
+     "profit_year": 122066,
+     "median_station_rating": 175,
+     "money": 518966,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 5821490,
+     "performance_history": 798,
+     "profit": 769200,
+     "profit_year": 3346510,
+     "median_station_rating": 180,
+     "money": 495028,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 421,
+     "n_stations": 161
+    }
+   ]
+  },
+  {
+   "date": "1973-10-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 357701,
+     "performance_history": 157,
+     "profit": 32167,
+     "profit_year": 122066,
+     "median_station_rating": 175,
+     "money": 530941,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 5821490,
+     "performance_history": 798,
+     "profit": 769200,
+     "profit_year": 3346510,
+     "median_station_rating": 180,
+     "money": 745036,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 429,
+     "n_stations": 163
+    }
+   ]
+  },
+  {
+   "date": "1973-11-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 384681,
+     "performance_history": 164,
+     "profit": 32327,
+     "profit_year": 120359,
+     "median_station_rating": 175,
+     "money": 542891,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 6325031,
+     "performance_history": 797,
+     "profit": 913873,
+     "profit_year": 3442310,
+     "median_station_rating": 182,
+     "money": 1122577,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 426,
+     "n_stations": 163
+    }
+   ]
+  },
+  {
+   "date": "1973-12-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 384681,
+     "performance_history": 164,
+     "profit": 32327,
+     "profit_year": 120359,
+     "median_station_rating": 175,
+     "money": 551163,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 6325031,
+     "performance_history": 797,
+     "profit": 913873,
+     "profit_year": 3442310,
+     "median_station_rating": 180,
+     "money": 1347226,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 432,
+     "n_stations": 163
+    }
+   ]
+  },
+  {
+   "date": "1974-01-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 384681,
+     "performance_history": 164,
+     "profit": 32327,
+     "profit_year": 120359,
+     "median_station_rating": 175,
+     "money": 563207,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 6325031,
+     "performance_history": 797,
+     "profit": 913873,
+     "profit_year": 3442310,
+     "median_station_rating": 180,
+     "money": 1614926,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 435,
+     "n_stations": 163
+    }
+   ]
+  },
+  {
+   "date": "1974-02-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 411898,
+     "performance_history": 164,
+     "profit": 32341,
+     "profit_year": 120545,
+     "median_station_rating": 175,
+     "money": 577327,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 7112015,
+     "performance_history": 807,
+     "profit": 960158,
+     "profit_year": 3526987,
+     "median_station_rating": 172.0,
+     "money": 1835756,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 438,
+     "n_stations": 168
+    }
+   ]
+  },
+  {
+   "date": "1974-03-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 411898,
+     "performance_history": 164,
+     "profit": 32341,
+     "profit_year": 120545,
+     "median_station_rating": 175,
+     "money": 582042,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 7112015,
+     "performance_history": 807,
+     "profit": 960158,
+     "profit_year": 3526987,
+     "median_station_rating": 178.0,
+     "money": 1350693,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 462,
+     "n_stations": 167
+    }
+   ]
+  },
+  {
+   "date": "1974-04-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 411898,
+     "performance_history": 164,
+     "profit": 32341,
+     "profit_year": 120545,
+     "median_station_rating": 175,
+     "money": 595541,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 7112015,
+     "performance_history": 807,
+     "profit": 960158,
+     "profit_year": 3526987,
+     "median_station_rating": 180.0,
+     "money": 1140272,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 466,
+     "n_stations": 169
+    }
+   ]
+  },
+  {
+   "date": "1974-05-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 439388,
+     "performance_history": 168,
+     "profit": 32409,
+     "profit_year": 129244,
+     "median_station_rating": 175,
+     "money": 607781,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 6737743,
+     "performance_history": 817,
+     "profit": 1045793,
+     "profit_year": 3689024,
+     "median_station_rating": 183.0,
+     "money": 1284552,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 453,
+     "n_stations": 169
+    }
+   ]
+  },
+  {
+   "date": "1974-06-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 439388,
+     "performance_history": 168,
+     "profit": 32409,
+     "profit_year": 129244,
+     "median_station_rating": 175,
+     "money": 614577,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 6737743,
+     "performance_history": 817,
+     "profit": 1045793,
+     "profit_year": 3689024,
+     "median_station_rating": 188.0,
+     "money": 1129032,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 460,
+     "n_stations": 169
+    }
+   ]
+  },
+  {
+   "date": "1974-07-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 439388,
+     "performance_history": 168,
+     "profit": 32409,
+     "profit_year": 129244,
+     "median_station_rating": 175,
+     "money": 628050,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 6737743,
+     "performance_history": 817,
+     "profit": 1045793,
+     "profit_year": 3689024,
+     "median_station_rating": 194.0,
+     "money": 1197911,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 462,
+     "n_stations": 169
+    }
+   ]
+  },
+  {
+   "date": "1974-08-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 467349,
+     "performance_history": 170,
+     "profit": 32584,
+     "profit_year": 129661,
+     "median_station_rating": 175,
+     "money": 640194,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 6812154,
+     "performance_history": 816,
+     "profit": 802300,
+     "profit_year": 3722124,
+     "median_station_rating": 191.0,
+     "money": 1093451,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 499,
+     "n_stations": 172
+    }
+   ]
+  },
+  {
+   "date": "1974-09-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 467349,
+     "performance_history": 170,
+     "profit": 32584,
+     "profit_year": 129661,
+     "median_station_rating": 175,
+     "money": 653676,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 6812154,
+     "performance_history": 816,
+     "profit": 802300,
+     "profit_year": 3722124,
+     "median_station_rating": 191.0,
+     "money": 1201674,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 514,
+     "n_stations": 176
+    }
+   ]
+  },
+  {
+   "date": "1974-10-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 467349,
+     "performance_history": 170,
+     "profit": 32584,
+     "profit_year": 129661,
+     "median_station_rating": 175,
+     "money": 659026,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 6812154,
+     "performance_history": 816,
+     "profit": 802300,
+     "profit_year": 3722124,
+     "median_station_rating": 194,
+     "money": 1404990,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 526,
+     "n_stations": 176
+    }
+   ]
+  },
+  {
+   "date": "1974-11-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 493813,
+     "performance_history": 170,
+     "profit": 31051,
+     "profit_year": 128385,
+     "median_station_rating": 175,
+     "money": 671045,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 7638202,
+     "performance_history": 808,
+     "profit": 1048748,
+     "profit_year": 3856999,
+     "median_station_rating": 196,
+     "money": 1616793,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 553,
+     "n_stations": 176
+    }
+   ]
+  },
+  {
+   "date": "1974-12-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 493813,
+     "performance_history": 170,
+     "profit": 31051,
+     "profit_year": 128385,
+     "median_station_rating": 175,
+     "money": 686135,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 7638202,
+     "performance_history": 808,
+     "profit": 1048748,
+     "profit_year": 3856999,
+     "median_station_rating": 196,
+     "money": 1397421,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 577,
+     "n_stations": 180
+    }
+   ]
+  },
+  {
+   "date": "1975-01-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 493813,
+     "performance_history": 170,
+     "profit": 31051,
+     "profit_year": 128385,
+     "median_station_rating": 175,
+     "money": 691394,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 7638202,
+     "performance_history": 808,
+     "profit": 1048748,
+     "profit_year": 3856999,
+     "median_station_rating": 196.0,
+     "money": 1634045,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 585,
+     "n_stations": 184
+    }
+   ]
+  },
+  {
+   "date": "1975-02-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 521962,
+     "performance_history": 170,
+     "profit": 32443,
+     "profit_year": 128487,
+     "median_station_rating": 175,
+     "money": 703459,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 8171067,
+     "performance_history": 808,
+     "profit": 1162509,
+     "profit_year": 4059350,
+     "median_station_rating": 192.0,
+     "money": 1879124,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 587,
+     "n_stations": 184
+    }
+   ]
+  },
+  {
+   "date": "1975-03-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 521962,
+     "performance_history": 170,
+     "profit": 32443,
+     "profit_year": 128487,
+     "median_station_rating": 175,
+     "money": 718565,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 8171067,
+     "performance_history": 808,
+     "profit": 1162509,
+     "profit_year": 4059350,
+     "median_station_rating": 192.0,
+     "money": 1656291,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 617,
+     "n_stations": 184
+    }
+   ]
+  },
+  {
+   "date": "1975-04-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 521962,
+     "performance_history": 170,
+     "profit": 32443,
+     "profit_year": 128487,
+     "median_station_rating": 175,
+     "money": 723874,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 14
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 8171067,
+     "performance_history": 808,
+     "profit": 1162509,
+     "profit_year": 4059350,
+     "median_station_rating": 189,
+     "money": 1769535,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 610,
+     "n_stations": 185
+    }
+   ]
+  },
+  {
+   "date": "1975-05-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 550448,
+     "performance_history": 164,
+     "profit": 32555,
+     "profit_year": 128633,
+     "median_station_rating": 175,
+     "money": 730825,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 20,
+     "n_stations": 16
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 8427884,
+     "performance_history": 826,
+     "profit": 996904,
+     "profit_year": 4010461,
+     "median_station_rating": 185.5,
+     "money": 1655983,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 616,
+     "n_stations": 186
+    }
+   ]
+  },
+  {
+   "date": "1975-06-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 550448,
+     "performance_history": 164,
+     "profit": 32555,
+     "profit_year": 128633,
+     "median_station_rating": 175,
+     "money": 717310,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 23,
+     "n_stations": 16
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 8427884,
+     "performance_history": 826,
+     "profit": 996904,
+     "profit_year": 4010461,
+     "median_station_rating": 188.0,
+     "money": 1601312,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 603,
+     "n_stations": 188
+    }
+   ]
+  },
+  {
+   "date": "1975-07-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 550448,
+     "performance_history": 164,
+     "profit": 32555,
+     "profit_year": 128633,
+     "median_station_rating": 175,
+     "money": 730793,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 23,
+     "n_stations": 16
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 8427884,
+     "performance_history": 826,
+     "profit": 996904,
+     "profit_year": 4010461,
+     "median_station_rating": 190.0,
+     "money": 1957281,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 600,
+     "n_stations": 188
+    }
+   ]
+  },
+  {
+   "date": "1975-08-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 592735,
+     "performance_history": 171,
+     "profit": 39158,
+     "profit_year": 135207,
+     "median_station_rating": 175,
+     "money": 742790,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 23,
+     "n_stations": 16
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 9072846,
+     "performance_history": 809,
+     "profit": 991641,
+     "profit_year": 4199802,
+     "median_station_rating": 187.0,
+     "money": 2394444,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 573,
+     "n_stations": 188
+    }
+   ]
+  },
+  {
+   "date": "1975-09-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 592735,
+     "performance_history": 171,
+     "profit": 39158,
+     "profit_year": 135207,
+     "median_station_rating": 175.0,
+     "money": 757972,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 23,
+     "n_stations": 16
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 9072846,
+     "performance_history": 809,
+     "profit": 991641,
+     "profit_year": 4199802,
+     "median_station_rating": 190.0,
+     "money": 2643041,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 588,
+     "n_stations": 188
+    }
+   ]
+  },
+  {
+   "date": "1975-10-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 592735,
+     "performance_history": 171,
+     "profit": 39158,
+     "profit_year": 135207,
+     "median_station_rating": 175.0,
+     "money": 761557,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 23,
+     "n_stations": 16
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 9072846,
+     "performance_history": 809,
+     "profit": 991641,
+     "profit_year": 4199802,
+     "median_station_rating": 190.0,
+     "money": 3034788,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 598,
+     "n_stations": 190
+    }
+   ]
+  },
+  {
+   "date": "1975-11-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 618473,
+     "performance_history": 177,
+     "profit": 30839,
+     "profit_year": 134995,
+     "median_station_rating": 175.0,
+     "money": 776936,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 23,
+     "n_stations": 16
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 10250132,
+     "performance_history": 815,
+     "profit": 1466123,
+     "profit_year": 4617177,
+     "median_station_rating": 190,
+     "money": 2748589,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 634,
+     "n_stations": 193
+    }
+   ]
+  },
+  {
+   "date": "1975-12-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 618473,
+     "performance_history": 177,
+     "profit": 30839,
+     "profit_year": 134995,
+     "median_station_rating": 175.0,
+     "money": 788934,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 23,
+     "n_stations": 16
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 10250132,
+     "performance_history": 815,
+     "profit": 1466123,
+     "profit_year": 4617177,
+     "median_station_rating": 194,
+     "money": 2701725,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 656,
+     "n_stations": 196
+    }
+   ]
+  },
+  {
+   "date": "1976-01-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 618473,
+     "performance_history": 177,
+     "profit": 30839,
+     "profit_year": 134995,
+     "median_station_rating": 175.0,
+     "money": 795482,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 23,
+     "n_stations": 16
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 10250132,
+     "performance_history": 815,
+     "profit": 1466123,
+     "profit_year": 4617177,
+     "median_station_rating": 196,
+     "money": 2954650,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 647,
+     "n_stations": 198
+    }
+   ]
+  },
+  {
+   "date": "1976-02-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 647414,
+     "performance_history": 178,
+     "profit": 34000,
+     "profit_year": 136552,
+     "median_station_rating": 175.0,
+     "money": 809260,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 23,
+     "n_stations": 16
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 11167290,
+     "performance_history": 817,
+     "profit": 1355869,
+     "profit_year": 4810537,
+     "median_station_rating": 196,
+     "money": 3362438,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 656,
+     "n_stations": 198
+    }
+   ]
+  },
+  {
+   "date": "1976-03-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 647414,
+     "performance_history": 178,
+     "profit": 34000,
+     "profit_year": 136552,
+     "median_station_rating": 175.0,
+     "money": 824250,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 23,
+     "n_stations": 16
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 11167290,
+     "performance_history": 817,
+     "profit": 1355869,
+     "profit_year": 4810537,
+     "median_station_rating": 196.0,
+     "money": 3810334,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 674,
+     "n_stations": 199
+    }
+   ]
+  },
+  {
+   "date": "1976-04-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 647414,
+     "performance_history": 178,
+     "profit": 34000,
+     "profit_year": 136552,
+     "median_station_rating": 175,
+     "money": 799349,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 25,
+     "n_stations": 18
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 11167290,
+     "performance_history": 817,
+     "profit": 1355869,
+     "profit_year": 4810537,
+     "median_station_rating": 192.0,
+     "money": 4145739,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 690,
+     "n_stations": 199
+    }
+   ]
+  },
+  {
+   "date": "1976-05-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 685183,
+     "performance_history": 188,
+     "profit": 33994,
+     "profit_year": 137991,
+     "median_station_rating": 175,
+     "money": 812972,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 25,
+     "n_stations": 18
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 12340907,
+     "performance_history": 851,
+     "profit": 1491907,
+     "profit_year": 5305540,
+     "median_station_rating": 195.0,
+     "money": 4352094,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 688,
+     "n_stations": 199
+    }
+   ]
+  },
+  {
+   "date": "1976-06-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 685183,
+     "performance_history": 188,
+     "profit": 33994,
+     "profit_year": 137991,
+     "median_station_rating": 175,
+     "money": 825046,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 25,
+     "n_stations": 18
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 12340907,
+     "performance_history": 851,
+     "profit": 1491907,
+     "profit_year": 5305540,
+     "median_station_rating": 190.0,
+     "money": 4842662,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 679,
+     "n_stations": 199
+    }
+   ]
+  },
+  {
+   "date": "1976-07-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 685183,
+     "performance_history": 188,
+     "profit": 33994,
+     "profit_year": 137991,
+     "median_station_rating": 175,
+     "money": 833450,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 25,
+     "n_stations": 18
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 12340907,
+     "performance_history": 851,
+     "profit": 1491907,
+     "profit_year": 5305540,
+     "median_station_rating": 190.0,
+     "money": 5335479,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 679,
+     "n_stations": 199
+    }
+   ]
+  },
+  {
+   "date": "1976-08-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 713432,
+     "performance_history": 191,
+     "profit": 34176,
+     "profit_year": 133009,
+     "median_station_rating": 175,
+     "money": 846768,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 25,
+     "n_stations": 18
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 13675441,
+     "performance_history": 857,
+     "profit": 1518188,
+     "profit_year": 5832087,
+     "median_station_rating": 188,
+     "money": 5681335,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 692,
+     "n_stations": 199
+    }
+   ]
+  },
+  {
+   "date": "1976-09-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 713432,
+     "performance_history": 191,
+     "profit": 34176,
+     "profit_year": 133009,
+     "median_station_rating": 175.0,
+     "money": 859210,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 25,
+     "n_stations": 18
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 13675441,
+     "performance_history": 857,
+     "profit": 1518188,
+     "profit_year": 5832087,
+     "median_station_rating": 190,
+     "money": 5815793,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 701,
+     "n_stations": 199
+    }
+   ]
+  },
+  {
+   "date": "1976-10-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 713432,
+     "performance_history": 191,
+     "profit": 34176,
+     "profit_year": 133009,
+     "median_station_rating": 175.0,
+     "money": 874852,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 25,
+     "n_stations": 18
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 13675441,
+     "performance_history": 857,
+     "profit": 1518188,
+     "profit_year": 5832087,
+     "median_station_rating": 192,
+     "money": 6392709,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 740,
+     "n_stations": 199
+    }
+   ]
+  },
+  {
+   "date": "1976-11-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 749158,
+     "performance_history": 197,
+     "profit": 41477,
+     "profit_year": 143647,
+     "median_station_rating": 175.0,
+     "money": 879981,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 25,
+     "n_stations": 18
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 15195776,
+     "performance_history": 862,
+     "profit": 1697874,
+     "profit_year": 6063838,
+     "median_station_rating": 194,
+     "money": 7072327,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 718,
+     "n_stations": 199
+    }
+   ]
+  },
+  {
+   "date": "1976-12-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 749158,
+     "performance_history": 197,
+     "profit": 41477,
+     "profit_year": 143647,
+     "median_station_rating": 175.0,
+     "money": 891877,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 25,
+     "n_stations": 18
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 15195776,
+     "performance_history": 862,
+     "profit": 1697874,
+     "profit_year": 6063838,
+     "median_station_rating": 196,
+     "money": 7643334,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 720,
+     "n_stations": 199
+    }
+   ]
+  },
+  {
+   "date": "1977-01-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 749158,
+     "performance_history": 197,
+     "profit": 41477,
+     "profit_year": 143647,
+     "median_station_rating": 175.0,
+     "money": 900344,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 25,
+     "n_stations": 18
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 15195776,
+     "performance_history": 862,
+     "profit": 1697874,
+     "profit_year": 6063838,
+     "median_station_rating": 194,
+     "money": 8300885,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 723,
+     "n_stations": 199
+    }
+   ]
+  },
+  {
+   "date": "1977-02-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 769228,
+     "performance_history": 191,
+     "profit": 25567,
+     "profit_year": 135214,
+     "median_station_rating": 175.0,
+     "money": 912191,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 25,
+     "n_stations": 18
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 16811210,
+     "performance_history": 869,
+     "profit": 1948247,
+     "profit_year": 6656216,
+     "median_station_rating": 190,
+     "money": 8978790,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 717,
+     "n_stations": 200
+    }
+   ]
+  },
+  {
+   "date": "1977-03-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 769228,
+     "performance_history": 191,
+     "profit": 25567,
+     "profit_year": 135214,
+     "median_station_rating": 175.0,
+     "money": 924298,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 25,
+     "n_stations": 18
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 16811210,
+     "performance_history": 869,
+     "profit": 1948247,
+     "profit_year": 6656216,
+     "median_station_rating": 192,
+     "money": 9428328,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 747,
+     "n_stations": 202
+    }
+   ]
+  },
+  {
+   "date": "1977-04-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 769228,
+     "performance_history": 191,
+     "profit": 25567,
+     "profit_year": 135214,
+     "median_station_rating": 175.0,
+     "money": 942047,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 25,
+     "n_stations": 18
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 16811210,
+     "performance_history": 869,
+     "profit": 1948247,
+     "profit_year": 6656216,
+     "median_station_rating": 193,
+     "money": 9858172,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 756,
+     "n_stations": 204
+    }
+   ]
+  },
+  {
+   "date": "1977-05-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 805814,
+     "performance_history": 197,
+     "profit": 41778,
+     "profit_year": 142998,
+     "median_station_rating": 175.0,
+     "money": 947291,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 25,
+     "n_stations": 18
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 18424673,
+     "performance_history": 886,
+     "profit": 1944289,
+     "profit_year": 7108598,
+     "median_station_rating": 192,
+     "money": 10507657,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 737,
+     "n_stations": 204
+    }
+   ]
+  },
+  {
+   "date": "1977-06-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 805814,
+     "performance_history": 197,
+     "profit": 41778,
+     "profit_year": 142998,
+     "median_station_rating": 175.0,
+     "money": 959365,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 25,
+     "n_stations": 18
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 18424673,
+     "performance_history": 886,
+     "profit": 1944289,
+     "profit_year": 7108598,
+     "median_station_rating": 192.0,
+     "money": 11145162,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 746,
+     "n_stations": 204
+    }
+   ]
+  },
+  {
+   "date": "1977-07-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 805814,
+     "performance_history": 197,
+     "profit": 41778,
+     "profit_year": 142998,
+     "median_station_rating": 175.0,
+     "money": 972988,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 25,
+     "n_stations": 18
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 18424673,
+     "performance_history": 886,
+     "profit": 1944289,
+     "profit_year": 7108598,
+     "median_station_rating": 188.0,
+     "money": 11561346,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 772,
+     "n_stations": 206
+    }
+   ]
+  },
+  {
+   "date": "1977-08-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 831839,
+     "performance_history": 195,
+     "profit": 31016,
+     "profit_year": 139838,
+     "median_station_rating": 175.0,
+     "money": 985001,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 25,
+     "n_stations": 18
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 19880846,
+     "performance_history": 881,
+     "profit": 1832748,
+     "profit_year": 7423158,
+     "median_station_rating": 188,
+     "money": 12228956,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 768,
+     "n_stations": 208
+    }
+   ]
+  },
+  {
+   "date": "1977-09-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 831839,
+     "performance_history": 195,
+     "profit": 31016,
+     "profit_year": 139838,
+     "median_station_rating": 175.0,
+     "money": 997214,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 25,
+     "n_stations": 18
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 19880846,
+     "performance_history": 881,
+     "profit": 1832748,
+     "profit_year": 7423158,
+     "median_station_rating": 194,
+     "money": 12813345,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 774,
+     "n_stations": 208
+    }
+   ]
+  },
+  {
+   "date": "1977-10-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 831839,
+     "performance_history": 195,
+     "profit": 31016,
+     "profit_year": 139838,
+     "median_station_rating": 175.0,
+     "money": 1006551,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 25,
+     "n_stations": 18
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 19880846,
+     "performance_history": 881,
+     "profit": 1832748,
+     "profit_year": 7423158,
+     "median_station_rating": 191,
+     "money": 12942876,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 803,
+     "n_stations": 210
+    }
+   ]
+  },
+  {
+   "date": "1977-11-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 860592,
+     "performance_history": 196,
+     "profit": 33638,
+     "profit_year": 131999,
+     "median_station_rating": 175.0,
+     "money": 1017876,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 25,
+     "n_stations": 18
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 21624207,
+     "performance_history": 881,
+     "profit": 2003631,
+     "profit_year": 7728915,
+     "median_station_rating": 192,
+     "money": 13359208,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 811,
+     "n_stations": 214
+    }
+   ]
+  },
+  {
+   "date": "1977-12-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 860592,
+     "performance_history": 196,
+     "profit": 33638,
+     "profit_year": 131999,
+     "median_station_rating": 175.0,
+     "money": 1029810,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 25,
+     "n_stations": 18
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 21624207,
+     "performance_history": 881,
+     "profit": 2003631,
+     "profit_year": 7728915,
+     "median_station_rating": 192,
+     "money": 13817151,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 823,
+     "n_stations": 214
+    }
+   ]
+  },
+  {
+   "date": "1978-01-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 860592,
+     "performance_history": 196,
+     "profit": 33638,
+     "profit_year": 131999,
+     "median_station_rating": 175.0,
+     "money": 1043529,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 25,
+     "n_stations": 18
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 21624207,
+     "performance_history": 881,
+     "profit": 2003631,
+     "profit_year": 7728915,
+     "median_station_rating": 192,
+     "money": 14433645,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 827,
+     "n_stations": 214
+    }
+   ]
+  },
+  {
+   "date": "1978-02-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 892978,
+     "performance_history": 200,
+     "profit": 37053,
+     "profit_year": 143485,
+     "median_station_rating": 175.0,
+     "money": 1049761,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 25,
+     "n_stations": 18
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 23350771,
+     "performance_history": 900,
+     "profit": 2037946,
+     "profit_year": 7818614,
+     "median_station_rating": 190,
+     "money": 14586391,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 836,
+     "n_stations": 214
+    }
+   ]
+  },
+  {
+   "date": "1978-03-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 892978,
+     "performance_history": 200,
+     "profit": 37053,
+     "profit_year": 143485,
+     "median_station_rating": 175.0,
+     "money": 1061983,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 25,
+     "n_stations": 18
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 23350771,
+     "performance_history": 900,
+     "profit": 2037946,
+     "profit_year": 7818614,
+     "median_station_rating": 193,
+     "money": 15219253,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 836,
+     "n_stations": 214
+    }
+   ]
+  },
+  {
+   "date": "1978-04-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 892978,
+     "performance_history": 200,
+     "profit": 37053,
+     "profit_year": 143485,
+     "median_station_rating": 175.0,
+     "money": 1075412,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 25,
+     "n_stations": 18
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 23350771,
+     "performance_history": 900,
+     "profit": 2037946,
+     "profit_year": 7818614,
+     "median_station_rating": 190,
+     "money": 15973654,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 837,
+     "n_stations": 214
+    }
+   ]
+  },
+  {
+   "date": "1978-05-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 920541,
+     "performance_history": 195,
+     "profit": 31958,
+     "profit_year": 133665,
+     "median_station_rating": 175.0,
+     "money": 1083922,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 25,
+     "n_stations": 18
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 25199388,
+     "performance_history": 900,
+     "profit": 2020510,
+     "profit_year": 7894835,
+     "median_station_rating": 188,
+     "money": 16330547,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 879,
+     "n_stations": 214
+    }
+   ]
+  },
+  {
+   "date": "1978-06-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 920541,
+     "performance_history": 195,
+     "profit": 31958,
+     "profit_year": 133665,
+     "median_station_rating": 175.0,
+     "money": 1097036,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 25,
+     "n_stations": 18
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 25199388,
+     "performance_history": 900,
+     "profit": 2020510,
+     "profit_year": 7894835,
+     "median_station_rating": 190,
+     "money": 16996029,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 874,
+     "n_stations": 214
+    }
+   ]
+  },
+  {
+   "date": "1978-07-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 920541,
+     "performance_history": 195,
+     "profit": 31958,
+     "profit_year": 133665,
+     "median_station_rating": 175.0,
+     "money": 1108990,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 25,
+     "n_stations": 18
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 25199388,
+     "performance_history": 900,
+     "profit": 2020510,
+     "profit_year": 7894835,
+     "median_station_rating": 190,
+     "money": 17647657,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 863,
+     "n_stations": 214
+    }
+   ]
+  },
+  {
+   "date": "1978-08-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 950019,
+     "performance_history": 196,
+     "profit": 33653,
+     "profit_year": 136302,
+     "median_station_rating": 175.0,
+     "money": 1121195,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 25,
+     "n_stations": 18
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 26717123,
+     "performance_history": 900,
+     "profit": 1852618,
+     "profit_year": 7914705,
+     "median_station_rating": 190,
+     "money": 18282337,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 865,
+     "n_stations": 214
+    }
+   ]
+  },
+  {
+   "date": "1978-09-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 950019,
+     "performance_history": 196,
+     "profit": 33653,
+     "profit_year": 136302,
+     "median_station_rating": 175.0,
+     "money": 1133079,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 25,
+     "n_stations": 18
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 26717123,
+     "performance_history": 900,
+     "profit": 1852618,
+     "profit_year": 7914705,
+     "median_station_rating": 188,
+     "money": 19128661,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 815,
+     "n_stations": 217
+    }
+   ]
+  },
+  {
+   "date": "1978-10-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 950019,
+     "performance_history": 196,
+     "profit": 33653,
+     "profit_year": 136302,
+     "median_station_rating": 175.0,
+     "money": 1139702,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 25,
+     "n_stations": 18
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 26717123,
+     "performance_history": 900,
+     "profit": 1852618,
+     "profit_year": 7914705,
+     "median_station_rating": 192,
+     "money": 19702231,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 828,
+     "n_stations": 217
+    }
+   ]
+  },
+  {
+   "date": "1978-11-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 976722,
+     "performance_history": 194,
+     "profit": 30787,
+     "profit_year": 133451,
+     "median_station_rating": 175.0,
+     "money": 1152637,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 25,
+     "n_stations": 18
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 28369424,
+     "performance_history": 900,
+     "profit": 2146537,
+     "profit_year": 8057611,
+     "median_station_rating": 194,
+     "money": 20422302,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 806,
+     "n_stations": 217
+    }
+   ]
+  },
+  {
+   "date": "1978-12-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 976722,
+     "performance_history": 194,
+     "profit": 30787,
+     "profit_year": 133451,
+     "median_station_rating": 175.0,
+     "money": 1166335,
+     "current_loan": 300000,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 25,
+     "n_stations": 18
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 28369424,
+     "performance_history": 900,
+     "profit": 2146537,
+     "profit_year": 8057611,
+     "median_station_rating": 192,
+     "money": 20976818,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 836,
+     "n_stations": 217
+    }
+   ]
+  },
+  {
+   "date": "1979-01-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 976722,
+     "performance_history": 194,
+     "profit": 30787,
+     "profit_year": 133451,
+     "median_station_rating": 175,
+     "money": 802932,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 31,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 28369424,
+     "performance_history": 900,
+     "profit": 2146537,
+     "profit_year": 8057611,
+     "median_station_rating": 192,
+     "money": 21742246,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 851,
+     "n_stations": 218
+    }
+   ]
+  },
+  {
+   "date": "1979-02-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1011349,
+     "performance_history": 243,
+     "profit": 31755,
+     "profit_year": 128153,
+     "median_station_rating": 175.0,
+     "money": 815615,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 31,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 30381462,
+     "performance_history": 900,
+     "profit": 2439343,
+     "profit_year": 8459008,
+     "median_station_rating": 192.0,
+     "money": 22214929,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 862,
+     "n_stations": 218
+    }
+   ]
+  },
+  {
+   "date": "1979-03-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1011349,
+     "performance_history": 243,
+     "profit": 31755,
+     "profit_year": 128153,
+     "median_station_rating": 175,
+     "money": 830668,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 31,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 30381462,
+     "performance_history": 900,
+     "profit": 2439343,
+     "profit_year": 8459008,
+     "median_station_rating": 194.0,
+     "money": 22844424,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 897,
+     "n_stations": 218
+    }
+   ]
+  },
+  {
+   "date": "1979-04-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1011349,
+     "performance_history": 243,
+     "profit": 31755,
+     "profit_year": 128153,
+     "median_station_rating": 175,
+     "money": 843181,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 31,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 30381462,
+     "performance_history": 900,
+     "profit": 2439343,
+     "profit_year": 8459008,
+     "median_station_rating": 194.0,
+     "money": 23558106,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 903,
+     "n_stations": 218
+    }
+   ]
+  },
+  {
+   "date": "1979-05-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1045504,
+     "performance_history": 254,
+     "profit": 40324,
+     "profit_year": 136519,
+     "median_station_rating": 175,
+     "money": 852614,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 31,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 32470588,
+     "performance_history": 900,
+     "profit": 2287712,
+     "profit_year": 8726210,
+     "median_station_rating": 193.5,
+     "money": 23809721,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 939,
+     "n_stations": 218
+    }
+   ]
+  },
+  {
+   "date": "1979-06-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1045504,
+     "performance_history": 254,
+     "profit": 40324,
+     "profit_year": 136519,
+     "median_station_rating": 175,
+     "money": 871020,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 32470588,
+     "performance_history": 900,
+     "profit": 2287712,
+     "profit_year": 8726210,
+     "median_station_rating": 192.0,
+     "money": 24098046,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 986,
+     "n_stations": 219
+    }
+   ]
+  },
+  {
+   "date": "1979-07-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1045504,
+     "performance_history": 254,
+     "profit": 40324,
+     "profit_year": 136519,
+     "median_station_rating": 175,
+     "money": 885572,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 32470588,
+     "performance_history": 900,
+     "profit": 2287712,
+     "profit_year": 8726210,
+     "median_station_rating": 194.0,
+     "money": 25034424,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 990,
+     "n_stations": 219
+    }
+   ]
+  },
+  {
+   "date": "1979-08-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1074055,
+     "performance_history": 258,
+     "profit": 42466,
+     "profit_year": 145332,
+     "median_station_rating": 175,
+     "money": 901582,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 34756694,
+     "performance_history": 900,
+     "profit": 2353293,
+     "profit_year": 9226885,
+     "median_station_rating": 192,
+     "money": 25794287,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 985,
+     "n_stations": 219
+    }
+   ]
+  },
+  {
+   "date": "1979-09-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1074055,
+     "performance_history": 258,
+     "profit": 42466,
+     "profit_year": 145332,
+     "median_station_rating": 175,
+     "money": 911012,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 34756694,
+     "performance_history": 900,
+     "profit": 2353293,
+     "profit_year": 9226885,
+     "median_station_rating": 192,
+     "money": 26501926,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 959,
+     "n_stations": 219
+    }
+   ]
+  },
+  {
+   "date": "1979-10-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1074055,
+     "performance_history": 258,
+     "profit": 42466,
+     "profit_year": 145332,
+     "median_station_rating": 175,
+     "money": 924534,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 34756694,
+     "performance_history": 900,
+     "profit": 2353293,
+     "profit_year": 9226885,
+     "median_station_rating": 194,
+     "money": 27198299,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 968,
+     "n_stations": 219
+    }
+   ]
+  },
+  {
+   "date": "1979-11-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1107491,
+     "performance_history": 252,
+     "profit": 39037,
+     "profit_year": 153582,
+     "median_station_rating": 175,
+     "money": 942616,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 36875690,
+     "performance_history": 900,
+     "profit": 2492745,
+     "profit_year": 9573093,
+     "median_station_rating": 194,
+     "money": 27432985,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 951,
+     "n_stations": 219
+    }
+   ]
+  },
+  {
+   "date": "1979-12-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1107491,
+     "performance_history": 252,
+     "profit": 39037,
+     "profit_year": 153582,
+     "median_station_rating": 175,
+     "money": 948969,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 36875690,
+     "performance_history": 900,
+     "profit": 2492745,
+     "profit_year": 9573093,
+     "median_station_rating": 194,
+     "money": 27988626,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1003,
+     "n_stations": 219
+    }
+   ]
+  },
+  {
+   "date": "1980-01-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1107491,
+     "performance_history": 252,
+     "profit": 39037,
+     "profit_year": 153582,
+     "median_station_rating": 175,
+     "money": 965984,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 36875690,
+     "performance_history": 900,
+     "profit": 2492745,
+     "profit_year": 9573093,
+     "median_station_rating": 194.0,
+     "money": 28666507,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1032,
+     "n_stations": 219
+    }
+   ]
+  },
+  {
+   "date": "1980-02-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1143764,
+     "performance_history": 265,
+     "profit": 41525,
+     "profit_year": 163352,
+     "median_station_rating": 175,
+     "money": 983761,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 39175977,
+     "performance_history": 900,
+     "profit": 2422440,
+     "profit_year": 9556190,
+     "median_station_rating": 190.5,
+     "money": 29311495,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1048,
+     "n_stations": 218
+    }
+   ]
+  },
+  {
+   "date": "1980-03-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1143764,
+     "performance_history": 265,
+     "profit": 41525,
+     "profit_year": 163352,
+     "median_station_rating": 175,
+     "money": 994718,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 39175977,
+     "performance_history": 900,
+     "profit": 2422440,
+     "profit_year": 9556190,
+     "median_station_rating": 192.0,
+     "money": 29853844,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1084,
+     "n_stations": 219
+    }
+   ]
+  },
+  {
+   "date": "1980-04-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1143764,
+     "performance_history": 265,
+     "profit": 41525,
+     "profit_year": 163352,
+     "median_station_rating": 175,
+     "money": 1006695,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 39175977,
+     "performance_history": 900,
+     "profit": 2422440,
+     "profit_year": 9556190,
+     "median_station_rating": 192.0,
+     "money": 30700896,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1103,
+     "n_stations": 219
+    }
+   ]
+  },
+  {
+   "date": "1980-05-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1179461,
+     "performance_history": 269,
+     "profit": 40786,
+     "profit_year": 163814,
+     "median_station_rating": 175,
+     "money": 1017875,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 41882860,
+     "performance_history": 900,
+     "profit": 2866144,
+     "profit_year": 10134622,
+     "median_station_rating": 194,
+     "money": 31534901,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1113,
+     "n_stations": 219
+    }
+   ]
+  },
+  {
+   "date": "1980-06-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1179461,
+     "performance_history": 269,
+     "profit": 40786,
+     "profit_year": 163814,
+     "median_station_rating": 175,
+     "money": 1035096,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 41882860,
+     "performance_history": 900,
+     "profit": 2866144,
+     "profit_year": 10134622,
+     "median_station_rating": 188,
+     "money": 32280123,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1093,
+     "n_stations": 219
+    }
+   ]
+  },
+  {
+   "date": "1980-07-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1179461,
+     "performance_history": 269,
+     "profit": 40786,
+     "profit_year": 163814,
+     "median_station_rating": 175,
+     "money": 1048720,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 41882860,
+     "performance_history": 900,
+     "profit": 2866144,
+     "profit_year": 10134622,
+     "median_station_rating": 194,
+     "money": 33344789,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1080,
+     "n_stations": 220
+    }
+   ]
+  },
+  {
+   "date": "1980-08-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1216824,
+     "performance_history": 261,
+     "profit": 42100,
+     "profit_year": 163448,
+     "median_station_rating": 175,
+     "money": 1059201,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 44400121,
+     "performance_history": 900,
+     "profit": 2946867,
+     "profit_year": 10728196,
+     "median_station_rating": 192.0,
+     "money": 33721687,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1104,
+     "n_stations": 220
+    }
+   ]
+  },
+  {
+   "date": "1980-09-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1216824,
+     "performance_history": 261,
+     "profit": 42100,
+     "profit_year": 163448,
+     "median_station_rating": 174,
+     "money": 1072335,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 44400121,
+     "performance_history": 900,
+     "profit": 2946867,
+     "profit_year": 10728196,
+     "median_station_rating": 193.5,
+     "money": 34630329,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1115,
+     "n_stations": 223
+    }
+   ]
+  },
+  {
+   "date": "1980-10-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1216824,
+     "performance_history": 261,
+     "profit": 42100,
+     "profit_year": 163448,
+     "median_station_rating": 174,
+     "money": 1090785,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 44400121,
+     "performance_history": 900,
+     "profit": 2946867,
+     "profit_year": 10728196,
+     "median_station_rating": 192.0,
+     "money": 35367227,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1138,
+     "n_stations": 223
+    }
+   ]
+  },
+  {
+   "date": "1980-11-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1254330,
+     "performance_history": 269,
+     "profit": 42140,
+     "profit_year": 166551,
+     "median_station_rating": 175,
+     "money": 1097245,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 46946486,
+     "performance_history": 900,
+     "profit": 2828261,
+     "profit_year": 11063712,
+     "median_station_rating": 192.0,
+     "money": 36030166,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1187,
+     "n_stations": 224
+    }
+   ]
+  },
+  {
+   "date": "1980-12-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1254330,
+     "performance_history": 269,
+     "profit": 42140,
+     "profit_year": 166551,
+     "median_station_rating": 175,
+     "money": 1112836,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 46946486,
+     "performance_history": 900,
+     "profit": 2828261,
+     "profit_year": 11063712,
+     "median_station_rating": 192.0,
+     "money": 36976406,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1119,
+     "n_stations": 224
+    }
+   ]
+  },
+  {
+   "date": "1981-01-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1254330,
+     "performance_history": 269,
+     "profit": 42140,
+     "profit_year": 166551,
+     "median_station_rating": 175,
+     "money": 1126308,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 46946486,
+     "performance_history": 900,
+     "profit": 2828261,
+     "profit_year": 11063712,
+     "median_station_rating": 192.0,
+     "money": 37759372,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1152,
+     "n_stations": 224
+    }
+   ]
+  },
+  {
+   "date": "1981-02-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1285520,
+     "performance_history": 263,
+     "profit": 35598,
+     "profit_year": 160624,
+     "median_station_rating": 168,
+     "money": 1138787,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 49152321,
+     "performance_history": 900,
+     "profit": 2717504,
+     "profit_year": 11358776,
+     "median_station_rating": 194.0,
+     "money": 38563227,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1107,
+     "n_stations": 227
+    }
+   ]
+  },
+  {
+   "date": "1981-03-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1285520,
+     "performance_history": 263,
+     "profit": 35598,
+     "profit_year": 160624,
+     "median_station_rating": 168,
+     "money": 1152397,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 49152321,
+     "performance_history": 900,
+     "profit": 2717504,
+     "profit_year": 11358776,
+     "median_station_rating": 192,
+     "money": 39404860,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1115,
+     "n_stations": 227
+    }
+   ]
+  },
+  {
+   "date": "1981-04-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1285520,
+     "performance_history": 263,
+     "profit": 35598,
+     "profit_year": 160624,
+     "median_station_rating": 170,
+     "money": 1167464,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 49152321,
+     "performance_history": 900,
+     "profit": 2717504,
+     "profit_year": 11358776,
+     "median_station_rating": 192,
+     "money": 40208040,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1130,
+     "n_stations": 227
+    }
+   ]
+  },
+  {
+   "date": "1981-05-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1322702,
+     "performance_history": 270,
+     "profit": 41231,
+     "profit_year": 161069,
+     "median_station_rating": 170,
+     "money": 1179246,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 51625197,
+     "performance_history": 900,
+     "profit": 3071226,
+     "profit_year": 11563858,
+     "median_station_rating": 192.0,
+     "money": 40943881,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1152,
+     "n_stations": 227
+    }
+   ]
+  },
+  {
+   "date": "1981-06-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1322702,
+     "performance_history": 270,
+     "profit": 41231,
+     "profit_year": 161069,
+     "median_station_rating": 170,
+     "money": 1189480,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 51625197,
+     "performance_history": 900,
+     "profit": 3071226,
+     "profit_year": 11563858,
+     "median_station_rating": 190,
+     "money": 42132859,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1152,
+     "n_stations": 227
+    }
+   ]
+  },
+  {
+   "date": "1981-07-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1322702,
+     "performance_history": 270,
+     "profit": 41231,
+     "profit_year": 161069,
+     "median_station_rating": 170,
+     "money": 1204548,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 51625197,
+     "performance_history": 900,
+     "profit": 3071226,
+     "profit_year": 11563858,
+     "median_station_rating": 192.0,
+     "money": 43183970,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1158,
+     "n_stations": 227
+    }
+   ]
+  },
+  {
+   "date": "1981-08-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1355949,
+     "performance_history": 273,
+     "profit": 37159,
+     "profit_year": 156128,
+     "median_station_rating": 170,
+     "money": 1221447,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 54356956,
+     "performance_history": 900,
+     "profit": 3258320,
+     "profit_year": 11875311,
+     "median_station_rating": 192.0,
+     "money": 43785701,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1195,
+     "n_stations": 227
+    }
+   ]
+  },
+  {
+   "date": "1981-09-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1355949,
+     "performance_history": 273,
+     "profit": 37159,
+     "profit_year": 156128,
+     "median_station_rating": 170,
+     "money": 1235611,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 54356956,
+     "performance_history": 900,
+     "profit": 3258320,
+     "profit_year": 11875311,
+     "median_station_rating": 190.5,
+     "money": 44812457,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1203,
+     "n_stations": 227
+    }
+   ]
+  },
+  {
+   "date": "1981-10-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1355949,
+     "performance_history": 273,
+     "profit": 37159,
+     "profit_year": 156128,
+     "median_station_rating": 168,
+     "money": 1245291,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 54356956,
+     "performance_history": 900,
+     "profit": 3258320,
+     "profit_year": 11875311,
+     "median_station_rating": 191,
+     "money": 45869701,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1229,
+     "n_stations": 227
+    }
+   ]
+  },
+  {
+   "date": "1981-11-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1393108,
+     "performance_history": 268,
+     "profit": 40818,
+     "profit_year": 154806,
+     "median_station_rating": 168,
+     "money": 1257035,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 57159859,
+     "performance_history": 900,
+     "profit": 3211409,
+     "profit_year": 12258459,
+     "median_station_rating": 193,
+     "money": 46601140,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1294,
+     "n_stations": 227
+    }
+   ]
+  },
+  {
+   "date": "1981-12-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1393108,
+     "performance_history": 268,
+     "profit": 40818,
+     "profit_year": 154806,
+     "median_station_rating": 168,
+     "money": 1274830,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 57159859,
+     "performance_history": 900,
+     "profit": 3211409,
+     "profit_year": 12258459,
+     "median_station_rating": 193.0,
+     "money": 47379201,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1293,
+     "n_stations": 229
+    }
+   ]
+  },
+  {
+   "date": "1982-01-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1393108,
+     "performance_history": 268,
+     "profit": 40818,
+     "profit_year": 154806,
+     "median_station_rating": 170,
+     "money": 1290461,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 57159859,
+     "performance_history": 900,
+     "profit": 3211409,
+     "profit_year": 12258459,
+     "median_station_rating": 194.0,
+     "money": 48561669,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1291,
+     "n_stations": 229
+    }
+   ]
+  },
+  {
+   "date": "1982-02-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1434759,
+     "performance_history": 286,
+     "profit": 45245,
+     "profit_year": 164453,
+     "median_station_rating": 170,
+     "money": 1307844,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 60493502,
+     "performance_history": 900,
+     "profit": 3524029,
+     "profit_year": 13064984,
+     "median_station_rating": 193.0,
+     "money": 49557090,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1300,
+     "n_stations": 229
+    }
+   ]
+  },
+  {
+   "date": "1982-03-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1434759,
+     "performance_history": 286,
+     "profit": 45245,
+     "profit_year": 164453,
+     "median_station_rating": 170,
+     "money": 1313107,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 60493502,
+     "performance_history": 900,
+     "profit": 3524029,
+     "profit_year": 13064984,
+     "median_station_rating": 194.0,
+     "money": 50624401,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1308,
+     "n_stations": 229
+    }
+   ]
+  },
+  {
+   "date": "1982-04-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1434759,
+     "performance_history": 286,
+     "profit": 45245,
+     "profit_year": 164453,
+     "median_station_rating": 168,
+     "money": 1330231,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 60493502,
+     "performance_history": 900,
+     "profit": 3524029,
+     "profit_year": 13064984,
+     "median_station_rating": 194.0,
+     "money": 51828793,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1314,
+     "n_stations": 229
+    }
+   ]
+  },
+  {
+   "date": "1982-05-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1471282,
+     "performance_history": 281,
+     "profit": 39845,
+     "profit_year": 163067,
+     "median_station_rating": 168,
+     "money": 1345712,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 63776166,
+     "performance_history": 900,
+     "profit": 3591462,
+     "profit_year": 13585220,
+     "median_station_rating": 194.0,
+     "money": 52921455,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1338,
+     "n_stations": 227
+    }
+   ]
+  },
+  {
+   "date": "1982-06-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1471282,
+     "performance_history": 281,
+     "profit": 39845,
+     "profit_year": 163067,
+     "median_station_rating": 166,
+     "money": 1362808,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 63776166,
+     "performance_history": 900,
+     "profit": 3591462,
+     "profit_year": 13585220,
+     "median_station_rating": 194.0,
+     "money": 54137528,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1332,
+     "n_stations": 227
+    }
+   ]
+  },
+  {
+   "date": "1982-07-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1471282,
+     "performance_history": 281,
+     "profit": 39845,
+     "profit_year": 163067,
+     "median_station_rating": 170,
+     "money": 1370042,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 63776166,
+     "performance_history": 900,
+     "profit": 3591462,
+     "profit_year": 13585220,
+     "median_station_rating": 192.0,
+     "money": 55101507,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1351,
+     "n_stations": 231
+    }
+   ]
+  },
+  {
+   "date": "1982-08-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1507933,
+     "performance_history": 281,
+     "profit": 39886,
+     "profit_year": 165794,
+     "median_station_rating": 170,
+     "money": 1387000,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 66923406,
+     "performance_history": 900,
+     "profit": 3525797,
+     "profit_year": 13852697,
+     "median_station_rating": 192.0,
+     "money": 55872881,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1340,
+     "n_stations": 233
+    }
+   ]
+  },
+  {
+   "date": "1982-09-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1507933,
+     "performance_history": 281,
+     "profit": 39886,
+     "profit_year": 165794,
+     "median_station_rating": 170,
+     "money": 1401194,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 66923406,
+     "performance_history": 900,
+     "profit": 3525797,
+     "profit_year": 13852697,
+     "median_station_rating": 192,
+     "money": 56967792,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1361,
+     "n_stations": 233
+    }
+   ]
+  },
+  {
+   "date": "1982-10-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1507933,
+     "performance_history": 281,
+     "profit": 39886,
+     "profit_year": 165794,
+     "median_station_rating": 168,
+     "money": 1418184,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 66923406,
+     "performance_history": 900,
+     "profit": 3525797,
+     "profit_year": 13852697,
+     "median_station_rating": 189.0,
+     "money": 57628461,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1393,
+     "n_stations": 233
+    }
+   ]
+  },
+  {
+   "date": "1982-11-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1552945,
+     "performance_history": 286,
+     "profit": 48217,
+     "profit_year": 173193,
+     "median_station_rating": 164,
+     "money": 1432084,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 70368409,
+     "performance_history": 900,
+     "profit": 3614916,
+     "profit_year": 14256204,
+     "median_station_rating": 190.0,
+     "money": 58625008,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1383,
+     "n_stations": 235
+    }
+   ]
+  },
+  {
+   "date": "1982-12-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1552945,
+     "performance_history": 286,
+     "profit": 48217,
+     "profit_year": 173193,
+     "median_station_rating": 170,
+     "money": 1443388,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 70368409,
+     "performance_history": 900,
+     "profit": 3614916,
+     "profit_year": 14256204,
+     "median_station_rating": 192.5,
+     "money": 59405807,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1383,
+     "n_stations": 235
+    }
+   ]
+  },
+  {
+   "date": "1983-01-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1552945,
+     "performance_history": 286,
+     "profit": 48217,
+     "profit_year": 173193,
+     "median_station_rating": 168,
+     "money": 1459021,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 70368409,
+     "performance_history": 900,
+     "profit": 3614916,
+     "profit_year": 14256204,
+     "median_station_rating": 190,
+     "money": 60007891,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1380,
+     "n_stations": 235
+    }
+   ]
+  },
+  {
+   "date": "1983-02-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1590870,
+     "performance_history": 285,
+     "profit": 40912,
+     "profit_year": 168860,
+     "median_station_rating": 168,
+     "money": 1474770,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 73416720,
+     "performance_history": 900,
+     "profit": 3312556,
+     "profit_year": 14044731,
+     "median_station_rating": 190,
+     "money": 60881535,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1381,
+     "n_stations": 236
+    }
+   ]
+  },
+  {
+   "date": "1983-03-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1590870,
+     "performance_history": 285,
+     "profit": 40912,
+     "profit_year": 168860,
+     "median_station_rating": 168,
+     "money": 1488153,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 73416720,
+     "performance_history": 900,
+     "profit": 3312556,
+     "profit_year": 14044731,
+     "median_station_rating": 192,
+     "money": 61912533,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1392,
+     "n_stations": 236
+    }
+   ]
+  },
+  {
+   "date": "1983-04-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1590870,
+     "performance_history": 285,
+     "profit": 40912,
+     "profit_year": 168860,
+     "median_station_rating": 168,
+     "money": 1498062,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 73416720,
+     "performance_history": 900,
+     "profit": 3312556,
+     "profit_year": 14044731,
+     "median_station_rating": 192,
+     "money": 63562014,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1382,
+     "n_stations": 236
+    }
+   ]
+  },
+  {
+   "date": "1983-05-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1627163,
+     "performance_history": 281,
+     "profit": 39116,
+     "profit_year": 168131,
+     "median_station_rating": 168,
+     "money": 1513516,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 76691570,
+     "performance_history": 900,
+     "profit": 3776978,
+     "profit_year": 14230247,
+     "median_station_rating": 195,
+     "money": 64678063,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1395,
+     "n_stations": 236
+    }
+   ]
+  },
+  {
+   "date": "1983-06-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1627163,
+     "performance_history": 281,
+     "profit": 39116,
+     "profit_year": 168131,
+     "median_station_rating": 170,
+     "money": 1531803,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 76691570,
+     "performance_history": 900,
+     "profit": 3776978,
+     "profit_year": 14230247,
+     "median_station_rating": 192,
+     "money": 65875220,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1394,
+     "n_stations": 236
+    }
+   ]
+  },
+  {
+   "date": "1983-07-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1627163,
+     "performance_history": 281,
+     "profit": 39116,
+     "profit_year": 168131,
+     "median_station_rating": 170,
+     "money": 1545357,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 76691570,
+     "performance_history": 900,
+     "profit": 3776978,
+     "profit_year": 14230247,
+     "median_station_rating": 193,
+     "money": 66902940,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1388,
+     "n_stations": 236
+    }
+   ]
+  },
+  {
+   "date": "1983-08-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1671764,
+     "performance_history": 284,
+     "profit": 47370,
+     "profit_year": 175615,
+     "median_station_rating": 170,
+     "money": 1563713,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 79516079,
+     "performance_history": 900,
+     "profit": 3449978,
+     "profit_year": 14154428,
+     "median_station_rating": 191,
+     "money": 68151028,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1357,
+     "n_stations": 236
+    }
+   ]
+  },
+  {
+   "date": "1983-09-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1671764,
+     "performance_history": 284,
+     "profit": 47370,
+     "profit_year": 175615,
+     "median_station_rating": 168,
+     "money": 1577667,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 79516079,
+     "performance_history": 900,
+     "profit": 3449978,
+     "profit_year": 14154428,
+     "median_station_rating": 194,
+     "money": 68951555,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1361,
+     "n_stations": 236
+    }
+   ]
+  },
+  {
+   "date": "1983-10-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1671764,
+     "performance_history": 284,
+     "profit": 47370,
+     "profit_year": 175615,
+     "median_station_rating": 170,
+     "money": 1589260,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 79516079,
+     "performance_history": 900,
+     "profit": 3449978,
+     "profit_year": 14154428,
+     "median_station_rating": 196,
+     "money": 69585584,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1382,
+     "n_stations": 235
+    }
+   ]
+  },
+  {
+   "date": "1983-11-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1713151,
+     "performance_history": 285,
+     "profit": 43978,
+     "profit_year": 171376,
+     "median_station_rating": 170,
+     "money": 1603621,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 82478125,
+     "performance_history": 900,
+     "profit": 3256365,
+     "profit_year": 13795877,
+     "median_station_rating": 195.5,
+     "money": 71022630,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1370,
+     "n_stations": 235
+    }
+   ]
+  },
+  {
+   "date": "1983-12-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1713151,
+     "performance_history": 285,
+     "profit": 43978,
+     "profit_year": 171376,
+     "median_station_rating": 168,
+     "money": 1617493,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 82478125,
+     "performance_history": 900,
+     "profit": 3256365,
+     "profit_year": 13795877,
+     "median_station_rating": 196,
+     "money": 72058110,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1410,
+     "n_stations": 235
+    }
+   ]
+  },
+  {
+   "date": "1984-01-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1713151,
+     "performance_history": 285,
+     "profit": 43978,
+     "profit_year": 171376,
+     "median_station_rating": 168,
+     "money": 1625541,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 82478125,
+     "performance_history": 900,
+     "profit": 3256365,
+     "profit_year": 13795877,
+     "median_station_rating": 194,
+     "money": 73264684,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1390,
+     "n_stations": 239
+    }
+   ]
+  },
+  {
+   "date": "1984-02-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1746979,
+     "performance_history": 285,
+     "profit": 36356,
+     "profit_year": 166820,
+     "median_station_rating": 164,
+     "money": 1642509,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 85895502,
+     "performance_history": 900,
+     "profit": 3991667,
+     "profit_year": 14474988,
+     "median_station_rating": 196,
+     "money": 74206658,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1390,
+     "n_stations": 239
+    }
+   ]
+  },
+  {
+   "date": "1984-03-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1746979,
+     "performance_history": 285,
+     "profit": 36356,
+     "profit_year": 166820,
+     "median_station_rating": 170,
+     "money": 1655536,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 85895502,
+     "performance_history": 900,
+     "profit": 3991667,
+     "profit_year": 14474988,
+     "median_station_rating": 195,
+     "money": 75337824,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1401,
+     "n_stations": 240
+    }
+   ]
+  },
+  {
+   "date": "1984-04-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1746979,
+     "performance_history": 285,
+     "profit": 36356,
+     "profit_year": 166820,
+     "median_station_rating": 170,
+     "money": 1669282,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 85895502,
+     "performance_history": 900,
+     "profit": 3991667,
+     "profit_year": 14474988,
+     "median_station_rating": 194.0,
+     "money": 76475709,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1374,
+     "n_stations": 240
+    }
+   ]
+  },
+  {
+   "date": "1984-05-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1788413,
+     "performance_history": 287,
+     "profit": 43816,
+     "profit_year": 171520,
+     "median_station_rating": 168,
+     "money": 1678980,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 89190180,
+     "performance_history": 900,
+     "profit": 3767307,
+     "profit_year": 14465317,
+     "median_station_rating": 193.5,
+     "money": 77327592,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1377,
+     "n_stations": 242
+    }
+   ]
+  },
+  {
+   "date": "1984-06-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1788413,
+     "performance_history": 287,
+     "profit": 43816,
+     "profit_year": 171520,
+     "median_station_rating": 170,
+     "money": 1696815,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 89190180,
+     "performance_history": 900,
+     "profit": 3767307,
+     "profit_year": 14465317,
+     "median_station_rating": 192.0,
+     "money": 78584260,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1388,
+     "n_stations": 243
+    }
+   ]
+  },
+  {
+   "date": "1984-07-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1788413,
+     "performance_history": 287,
+     "profit": 43816,
+     "profit_year": 171520,
+     "median_station_rating": 168,
+     "money": 1710821,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 89190180,
+     "performance_history": 900,
+     "profit": 3767307,
+     "profit_year": 14465317,
+     "median_station_rating": 192.0,
+     "money": 79908897,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1412,
+     "n_stations": 243
+    }
+   ]
+  },
+  {
+   "date": "1984-08-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1827741,
+     "performance_history": 283,
+     "profit": 41614,
+     "profit_year": 165764,
+     "median_station_rating": 170,
+     "money": 1724403,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 92769342,
+     "performance_history": 900,
+     "profit": 4002555,
+     "profit_year": 15017894,
+     "median_station_rating": 192.0,
+     "money": 81316465,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1442,
+     "n_stations": 243
+    }
+   ]
+  },
+  {
+   "date": "1984-09-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1827741,
+     "performance_history": 283,
+     "profit": 41614,
+     "profit_year": 165764,
+     "median_station_rating": 170,
+     "money": 1734974,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 92769342,
+     "performance_history": 900,
+     "profit": 4002555,
+     "profit_year": 15017894,
+     "median_station_rating": 192.0,
+     "money": 82581151,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1422,
+     "n_stations": 243
+    }
+   ]
+  },
+  {
+   "date": "1984-10-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1827741,
+     "performance_history": 283,
+     "profit": 41614,
+     "profit_year": 165764,
+     "median_station_rating": 170,
+     "money": 1749170,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 92769342,
+     "performance_history": 900,
+     "profit": 4002555,
+     "profit_year": 15017894,
+     "median_station_rating": 192.5,
+     "money": 83424150,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1464,
+     "n_stations": 243
+    }
+   ]
+  },
+  {
+   "date": "1984-11-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1863976,
+     "performance_history": 281,
+     "profit": 38424,
+     "profit_year": 160210,
+     "median_station_rating": 170,
+     "money": 1749076,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 26
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 96508033,
+     "performance_history": 900,
+     "profit": 4060283,
+     "profit_year": 15821812,
+     "median_station_rating": 192.0,
+     "money": 84574895,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1451,
+     "n_stations": 243
+    }
+   ]
+  },
+  {
+   "date": "1984-12-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1863976,
+     "performance_history": 281,
+     "profit": 38424,
+     "profit_year": 160210,
+     "median_station_rating": 168,
+     "money": 1762025,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 96508033,
+     "performance_history": 900,
+     "profit": 4060283,
+     "profit_year": 15821812,
+     "median_station_rating": 192.0,
+     "money": 85732479,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1515,
+     "n_stations": 243
+    }
+   ]
+  },
+  {
+   "date": "1985-01-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1863976,
+     "performance_history": 281,
+     "profit": 38424,
+     "profit_year": 160210,
+     "median_station_rating": 168,
+     "money": 1780650,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 96508033,
+     "performance_history": 900,
+     "profit": 4060283,
+     "profit_year": 15821812,
+     "median_station_rating": 194,
+     "money": 86985518,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1533,
+     "n_stations": 243
+    }
+   ]
+  },
+  {
+   "date": "1985-02-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1893357,
+     "performance_history": 286,
+     "profit": 49423,
+     "profit_year": 173277,
+     "median_station_rating": 170,
+     "money": 1794267,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 100776731,
+     "performance_history": 900,
+     "profit": 4548649,
+     "profit_year": 16378794,
+     "median_station_rating": 192,
+     "money": 88517007,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1530,
+     "n_stations": 243
+    }
+   ]
+  },
+  {
+   "date": "1985-03-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1893357,
+     "performance_history": 286,
+     "profit": 49423,
+     "profit_year": 173277,
+     "median_station_rating": 170,
+     "money": 1804650,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 100776731,
+     "performance_history": 900,
+     "profit": 4548649,
+     "profit_year": 16378794,
+     "median_station_rating": 192,
+     "money": 89810384,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1512,
+     "n_stations": 243
+    }
+   ]
+  },
+  {
+   "date": "1985-04-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1893357,
+     "performance_history": 286,
+     "profit": 49423,
+     "profit_year": 173277,
+     "median_station_rating": 168,
+     "money": 1817892,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 100776731,
+     "performance_history": 900,
+     "profit": 4548649,
+     "profit_year": 16378794,
+     "median_station_rating": 194,
+     "money": 91006168,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1573,
+     "n_stations": 243
+    }
+   ]
+  },
+  {
+   "date": "1985-05-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1928704,
+     "performance_history": 284,
+     "profit": 37317,
+     "profit_year": 166778,
+     "median_station_rating": 166,
+     "money": 1835530,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 104594339,
+     "performance_history": 900,
+     "profit": 4556123,
+     "profit_year": 17167610,
+     "median_station_rating": 194.0,
+     "money": 92355213,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1547,
+     "n_stations": 243
+    }
+   ]
+  },
+  {
+   "date": "1985-06-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1928704,
+     "performance_history": 284,
+     "profit": 37317,
+     "profit_year": 166778,
+     "median_station_rating": 168,
+     "money": 1850490,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 104594339,
+     "performance_history": 900,
+     "profit": 4556123,
+     "profit_year": 17167610,
+     "median_station_rating": 195.0,
+     "money": 93969232,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1525,
+     "n_stations": 243
+    }
+   ]
+  },
+  {
+   "date": "1985-07-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1928704,
+     "performance_history": 284,
+     "profit": 37317,
+     "profit_year": 166778,
+     "median_station_rating": 168,
+     "money": 1867686,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 104594339,
+     "performance_history": 900,
+     "profit": 4556123,
+     "profit_year": 17167610,
+     "median_station_rating": 196.0,
+     "money": 95325487,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1548,
+     "n_stations": 243
+    }
+   ]
+  },
+  {
+   "date": "1985-08-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1976627,
+     "performance_history": 289,
+     "profit": 49869,
+     "profit_year": 175033,
+     "median_station_rating": 168,
+     "money": 1876226,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 108447900,
+     "performance_history": 900,
+     "profit": 4495443,
+     "profit_year": 17660498,
+     "median_station_rating": 194.0,
+     "money": 96783825,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1571,
+     "n_stations": 243
+    }
+   ]
+  },
+  {
+   "date": "1985-09-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1976627,
+     "performance_history": 289,
+     "profit": 49869,
+     "profit_year": 175033,
+     "median_station_rating": 168,
+     "money": 1893368,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 108447900,
+     "performance_history": 900,
+     "profit": 4495443,
+     "profit_year": 17660498,
+     "median_station_rating": 194.0,
+     "money": 97954432,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1575,
+     "n_stations": 246
+    }
+   ]
+  },
+  {
+   "date": "1985-10-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 1976627,
+     "performance_history": 289,
+     "profit": 49869,
+     "profit_year": 175033,
+     "median_station_rating": 166,
+     "money": 1904725,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 108447900,
+     "performance_history": 900,
+     "profit": 4495443,
+     "profit_year": 17660498,
+     "median_station_rating": 194.0,
+     "money": 99875834,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1559,
+     "n_stations": 246
+    }
+   ]
+  },
+  {
+   "date": "1985-11-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2011808,
+     "performance_history": 287,
+     "profit": 37114,
+     "profit_year": 173723,
+     "median_station_rating": 166,
+     "money": 1926027,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 112357074,
+     "performance_history": 900,
+     "profit": 4680130,
+     "profit_year": 18280345,
+     "median_station_rating": 196.0,
+     "money": 101262396,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1562,
+     "n_stations": 246
+    }
+   ]
+  },
+  {
+   "date": "1985-12-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2011808,
+     "performance_history": 287,
+     "profit": 37114,
+     "profit_year": 173723,
+     "median_station_rating": 166,
+     "money": 1939500,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 112357074,
+     "performance_history": 900,
+     "profit": 4680130,
+     "profit_year": 18280345,
+     "median_station_rating": 194.0,
+     "money": 102840504,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1512,
+     "n_stations": 246
+    }
+   ]
+  },
+  {
+   "date": "1986-01-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2011808,
+     "performance_history": 287,
+     "profit": 37114,
+     "profit_year": 173723,
+     "median_station_rating": 168,
+     "money": 1950529,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 112357074,
+     "performance_history": 900,
+     "profit": 4680130,
+     "profit_year": 18280345,
+     "median_station_rating": 192.5,
+     "money": 104151635,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1499,
+     "n_stations": 246
+    }
+   ]
+  },
+  {
+   "date": "1986-02-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2055892,
+     "performance_history": 287,
+     "profit": 45879,
+     "profit_year": 170179,
+     "median_station_rating": 168,
+     "money": 1967640,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 116432267,
+     "performance_history": 900,
+     "profit": 4619037,
+     "profit_year": 18350733,
+     "median_station_rating": 193.0,
+     "money": 105364625,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1549,
+     "n_stations": 246
+    }
+   ]
+  },
+  {
+   "date": "1986-03-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2055892,
+     "performance_history": 287,
+     "profit": 45879,
+     "profit_year": 170179,
+     "median_station_rating": 166,
+     "money": 1978858,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 116432267,
+     "performance_history": 900,
+     "profit": 4619037,
+     "profit_year": 18350733,
+     "median_station_rating": 192,
+     "money": 106561905,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1574,
+     "n_stations": 246
+    }
+   ]
+  },
+  {
+   "date": "1986-04-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2055892,
+     "performance_history": 287,
+     "profit": 45879,
+     "profit_year": 170179,
+     "median_station_rating": 168,
+     "money": 1982093,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 116432267,
+     "performance_history": 900,
+     "profit": 4619037,
+     "profit_year": 18350733,
+     "median_station_rating": 192,
+     "money": 108265427,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1555,
+     "n_stations": 248
+    }
+   ]
+  },
+  {
+   "date": "1986-05-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2109144,
+     "performance_history": 289,
+     "profit": 47333,
+     "profit_year": 180195,
+     "median_station_rating": 174,
+     "money": 1989671,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 120574878,
+     "performance_history": 900,
+     "profit": 4661124,
+     "profit_year": 18455734,
+     "median_station_rating": 195,
+     "money": 109384699,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1628,
+     "n_stations": 248
+    }
+   ]
+  },
+  {
+   "date": "1986-06-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2109144,
+     "performance_history": 289,
+     "profit": 47333,
+     "profit_year": 180195,
+     "median_station_rating": 175,
+     "money": 2007079,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 120574878,
+     "performance_history": 900,
+     "profit": 4661124,
+     "profit_year": 18455734,
+     "median_station_rating": 192,
+     "money": 110743901,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1636,
+     "n_stations": 248
+    }
+   ]
+  },
+  {
+   "date": "1986-07-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2109144,
+     "performance_history": 289,
+     "profit": 47333,
+     "profit_year": 180195,
+     "median_station_rating": 175,
+     "money": 2020301,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 120574878,
+     "performance_history": 900,
+     "profit": 4661124,
+     "profit_year": 18455734,
+     "median_station_rating": 194,
+     "money": 112102402,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1610,
+     "n_stations": 249
+    }
+   ]
+  },
+  {
+   "date": "1986-08-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2142371,
+     "performance_history": 282,
+     "profit": 38283,
+     "profit_year": 168609,
+     "median_station_rating": 175,
+     "money": 2037919,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 124408414,
+     "performance_history": 900,
+     "profit": 4418303,
+     "profit_year": 18378594,
+     "median_station_rating": 188,
+     "money": 113635847,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1604,
+     "n_stations": 251
+    }
+   ]
+  },
+  {
+   "date": "1986-09-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2142371,
+     "performance_history": 282,
+     "profit": 38283,
+     "profit_year": 168609,
+     "median_station_rating": 174,
+     "money": 2051008,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 124408414,
+     "performance_history": 900,
+     "profit": 4418303,
+     "profit_year": 18378594,
+     "median_station_rating": 190,
+     "money": 114891041,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1614,
+     "n_stations": 251
+    }
+   ]
+  },
+  {
+   "date": "1986-10-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2142371,
+     "performance_history": 282,
+     "profit": 38283,
+     "profit_year": 168609,
+     "median_station_rating": 175,
+     "money": 2062717,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 124408414,
+     "performance_history": 900,
+     "profit": 4418303,
+     "profit_year": 18378594,
+     "median_station_rating": 188,
+     "money": 116319141,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1580,
+     "n_stations": 251
+    }
+   ]
+  },
+  {
+   "date": "1986-11-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2182396,
+     "performance_history": 283,
+     "profit": 42491,
+     "profit_year": 173986,
+     "median_station_rating": 175,
+     "money": 2080408,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 128322124,
+     "performance_history": 900,
+     "profit": 4572873,
+     "profit_year": 18271337,
+     "median_station_rating": 186,
+     "money": 117710877,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1580,
+     "n_stations": 251
+    }
+   ]
+  },
+  {
+   "date": "1986-12-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2182396,
+     "performance_history": 283,
+     "profit": 42491,
+     "profit_year": 173986,
+     "median_station_rating": 175,
+     "money": 2095184,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 128322124,
+     "performance_history": 900,
+     "profit": 4572873,
+     "profit_year": 18271337,
+     "median_station_rating": 188,
+     "money": 119123324,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1587,
+     "n_stations": 251
+    }
+   ]
+  },
+  {
+   "date": "1987-01-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2182396,
+     "performance_history": 283,
+     "profit": 42491,
+     "profit_year": 173986,
+     "median_station_rating": 175,
+     "money": 2097139,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 26
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 128322124,
+     "performance_history": 900,
+     "profit": 4572873,
+     "profit_year": 18271337,
+     "median_station_rating": 186,
+     "money": 120110913,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1589,
+     "n_stations": 251
+    }
+   ]
+  },
+  {
+   "date": "1987-02-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2214552,
+     "performance_history": 288,
+     "profit": 51642,
+     "profit_year": 179749,
+     "median_station_rating": 168,
+     "money": 2110052,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 132181497,
+     "performance_history": 900,
+     "profit": 4419866,
+     "profit_year": 18072166,
+     "median_station_rating": 186,
+     "money": 121738558,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1538,
+     "n_stations": 251
+    }
+   ]
+  },
+  {
+   "date": "1987-03-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2214552,
+     "performance_history": 288,
+     "profit": 51642,
+     "profit_year": 179749,
+     "median_station_rating": 174,
+     "money": 2120986,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 132181497,
+     "performance_history": 900,
+     "profit": 4419866,
+     "profit_year": 18072166,
+     "median_station_rating": 181,
+     "money": 123253335,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1544,
+     "n_stations": 251
+    }
+   ]
+  },
+  {
+   "date": "1987-04-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2214552,
+     "performance_history": 288,
+     "profit": 51642,
+     "profit_year": 179749,
+     "median_station_rating": 175,
+     "money": 2136409,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 132181497,
+     "performance_history": 900,
+     "profit": 4419866,
+     "profit_year": 18072166,
+     "median_station_rating": 184,
+     "money": 124075929,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1556,
+     "n_stations": 249
+    }
+   ]
+  },
+  {
+   "date": "1987-05-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2251717,
+     "performance_history": 287,
+     "profit": 39345,
+     "profit_year": 171761,
+     "median_station_rating": 175,
+     "money": 2153533,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 136513423,
+     "performance_history": 900,
+     "profit": 4900504,
+     "profit_year": 18311546,
+     "median_station_rating": 186,
+     "money": 125440396,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1593,
+     "n_stations": 249
+    }
+   ]
+  },
+  {
+   "date": "1987-06-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2251717,
+     "performance_history": 287,
+     "profit": 39345,
+     "profit_year": 171761,
+     "median_station_rating": 175,
+     "money": 2169036,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 136513423,
+     "performance_history": 900,
+     "profit": 4900504,
+     "profit_year": 18311546,
+     "median_station_rating": 181,
+     "money": 126966384,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1583,
+     "n_stations": 251
+    }
+   ]
+  },
+  {
+   "date": "1987-07-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2251717,
+     "performance_history": 287,
+     "profit": 39345,
+     "profit_year": 171761,
+     "median_station_rating": 175,
+     "money": 2185927,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 136513423,
+     "performance_history": 900,
+     "profit": 4900504,
+     "profit_year": 18311546,
+     "median_station_rating": 182.0,
+     "money": 128474084,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1610,
+     "n_stations": 251
+    }
+   ]
+  },
+  {
+   "date": "1987-08-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2299191,
+     "performance_history": 292,
+     "profit": 49593,
+     "profit_year": 183071,
+     "median_station_rating": 175,
+     "money": 2199727,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 140915567,
+     "performance_history": 900,
+     "profit": 4946138,
+     "profit_year": 18839381,
+     "median_station_rating": 187.5,
+     "money": 129585461,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1624,
+     "n_stations": 252
+    }
+   ]
+  },
+  {
+   "date": "1987-09-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2299191,
+     "performance_history": 292,
+     "profit": 49593,
+     "profit_year": 183071,
+     "median_station_rating": 175,
+     "money": 2211630,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 140915567,
+     "performance_history": 900,
+     "profit": 4946138,
+     "profit_year": 18839381,
+     "median_station_rating": 183,
+     "money": 131257890,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1574,
+     "n_stations": 252
+    }
+   ]
+  },
+  {
+   "date": "1987-10-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2299191,
+     "performance_history": 292,
+     "profit": 49593,
+     "profit_year": 183071,
+     "median_station_rating": 175,
+     "money": 2227792,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 140915567,
+     "performance_history": 900,
+     "profit": 4946138,
+     "profit_year": 18839381,
+     "median_station_rating": 184,
+     "money": 132723547,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1541,
+     "n_stations": 252
+    }
+   ]
+  },
+  {
+   "date": "1987-11-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2339055,
+     "performance_history": 294,
+     "profit": 41940,
+     "profit_year": 182520,
+     "median_station_rating": 175,
+     "money": 2246228,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 145039199,
+     "performance_history": 900,
+     "profit": 4650462,
+     "profit_year": 18916970,
+     "median_station_rating": 186,
+     "money": 134192662,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1552,
+     "n_stations": 252
+    }
+   ]
+  },
+  {
+   "date": "1987-12-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2339055,
+     "performance_history": 294,
+     "profit": 41940,
+     "profit_year": 182520,
+     "median_station_rating": 175,
+     "money": 2261673,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 145039199,
+     "performance_history": 900,
+     "profit": 4650462,
+     "profit_year": 18916970,
+     "median_station_rating": 184.5,
+     "money": 135518974,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1543,
+     "n_stations": 252
+    }
+   ]
+  },
+  {
+   "date": "1988-01-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2339055,
+     "performance_history": 294,
+     "profit": 41940,
+     "profit_year": 182520,
+     "median_station_rating": 175,
+     "money": 2278940,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 145039199,
+     "performance_history": 900,
+     "profit": 4650462,
+     "profit_year": 18916970,
+     "median_station_rating": 187.0,
+     "money": 137076142,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1613,
+     "n_stations": 252
+    }
+   ]
+  },
+  {
+   "date": "1988-02-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2388289,
+     "performance_history": 295,
+     "profit": 51223,
+     "profit_year": 182101,
+     "median_station_rating": 175,
+     "money": 2294152,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 149476591,
+     "performance_history": 900,
+     "profit": 4847309,
+     "profit_year": 19344413,
+     "median_station_rating": 188.5,
+     "money": 138646098,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1613,
+     "n_stations": 254
+    }
+   ]
+  },
+  {
+   "date": "1988-03-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2388289,
+     "performance_history": 295,
+     "profit": 51223,
+     "profit_year": 182101,
+     "median_station_rating": 170,
+     "money": 2304483,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 149476591,
+     "performance_history": 900,
+     "profit": 4847309,
+     "profit_year": 19344413,
+     "median_station_rating": 190.0,
+     "money": 139983410,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1615,
+     "n_stations": 254
+    }
+   ]
+  },
+  {
+   "date": "1988-04-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2388289,
+     "performance_history": 295,
+     "profit": 51223,
+     "profit_year": 182101,
+     "median_station_rating": 174,
+     "money": 2319816,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 149476591,
+     "performance_history": 900,
+     "profit": 4847309,
+     "profit_year": 19344413,
+     "median_station_rating": 190,
+     "money": 141651228,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1622,
+     "n_stations": 254
+    }
+   ]
+  },
+  {
+   "date": "1988-05-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2427342,
+     "performance_history": 297,
+     "profit": 40951,
+     "profit_year": 183707,
+     "median_station_rating": 174,
+     "money": 2338038,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 154480539,
+     "performance_history": 900,
+     "profit": 5274196,
+     "profit_year": 19718105,
+     "median_station_rating": 192.0,
+     "money": 143114909,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1644,
+     "n_stations": 255
+    }
+   ]
+  },
+  {
+   "date": "1988-06-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2427342,
+     "performance_history": 297,
+     "profit": 40951,
+     "profit_year": 183707,
+     "median_station_rating": 175,
+     "money": 2351356,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 154480539,
+     "performance_history": 900,
+     "profit": 5274196,
+     "profit_year": 19718105,
+     "median_station_rating": 194,
+     "money": 145212955,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1633,
+     "n_stations": 255
+    }
+   ]
+  },
+  {
+   "date": "1988-07-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2427342,
+     "performance_history": 297,
+     "profit": 40951,
+     "profit_year": 183707,
+     "median_station_rating": 175,
+     "money": 2362287,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 154480539,
+     "performance_history": 900,
+     "profit": 5274196,
+     "profit_year": 19718105,
+     "median_station_rating": 192,
+     "money": 146984861,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1603,
+     "n_stations": 255
+    }
+   ]
+  },
+  {
+   "date": "1988-08-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2468070,
+     "performance_history": 295,
+     "profit": 42546,
+     "profit_year": 176660,
+     "median_station_rating": 175,
+     "money": 2378385,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 159478370,
+     "performance_history": 900,
+     "profit": 5637378,
+     "profit_year": 20409345,
+     "median_station_rating": 194,
+     "money": 148779497,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1616,
+     "n_stations": 255
+    }
+   ]
+  },
+  {
+   "date": "1988-09-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2468070,
+     "performance_history": 295,
+     "profit": 42546,
+     "profit_year": 176660,
+     "median_station_rating": 175,
+     "money": 2396082,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 159478370,
+     "performance_history": 900,
+     "profit": 5637378,
+     "profit_year": 20409345,
+     "median_station_rating": 192,
+     "money": 150595922,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1600,
+     "n_stations": 255
+    }
+   ]
+  },
+  {
+   "date": "1988-10-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2468070,
+     "performance_history": 295,
+     "profit": 42546,
+     "profit_year": 176660,
+     "median_station_rating": 170,
+     "money": 2409322,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 159478370,
+     "performance_history": 900,
+     "profit": 5637378,
+     "profit_year": 20409345,
+     "median_station_rating": 194,
+     "money": 151598091,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1663,
+     "n_stations": 255
+    }
+   ]
+  },
+  {
+   "date": "1988-11-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2513464,
+     "performance_history": 298,
+     "profit": 47110,
+     "profit_year": 181830,
+     "median_station_rating": 175,
+     "money": 2428245,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 164946238,
+     "performance_history": 900,
+     "profit": 5698988,
+     "profit_year": 21457871,
+     "median_station_rating": 196,
+     "money": 153380602,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1654,
+     "n_stations": 255
+    }
+   ]
+  },
+  {
+   "date": "1988-12-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2513464,
+     "performance_history": 298,
+     "profit": 47110,
+     "profit_year": 181830,
+     "median_station_rating": 175,
+     "money": 2435518,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 164946238,
+     "performance_history": 900,
+     "profit": 5698988,
+     "profit_year": 21457871,
+     "median_station_rating": 194,
+     "money": 154591206,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1689,
+     "n_stations": 255
+    }
+   ]
+  },
+  {
+   "date": "1989-01-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2513464,
+     "performance_history": 298,
+     "profit": 47110,
+     "profit_year": 181830,
+     "median_station_rating": 175,
+     "money": 2453015,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 164946238,
+     "performance_history": 900,
+     "profit": 5698988,
+     "profit_year": 21457871,
+     "median_station_rating": 196,
+     "money": 156544335,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1647,
+     "n_stations": 255
+    }
+   ]
+  },
+  {
+   "date": "1989-02-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2555586,
+     "performance_history": 297,
+     "profit": 43768,
+     "profit_year": 174375,
+     "median_station_rating": 170,
+     "money": 2471217,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 170339141,
+     "performance_history": 900,
+     "profit": 5782959,
+     "profit_year": 22393521,
+     "median_station_rating": 196,
+     "money": 157686196,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1634,
+     "n_stations": 255
+    }
+   ]
+  },
+  {
+   "date": "1989-03-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2555586,
+     "performance_history": 297,
+     "profit": 43768,
+     "profit_year": 174375,
+     "median_station_rating": 164,
+     "money": 2483525,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 170339141,
+     "performance_history": 900,
+     "profit": 5782959,
+     "profit_year": 22393521,
+     "median_station_rating": 194,
+     "money": 159163248,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1652,
+     "n_stations": 255
+    }
+   ]
+  },
+  {
+   "date": "1989-04-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2555586,
+     "performance_history": 297,
+     "profit": 43768,
+     "profit_year": 174375,
+     "median_station_rating": 168,
+     "money": 2500534,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 170339141,
+     "performance_history": 900,
+     "profit": 5782959,
+     "profit_year": 22393521,
+     "median_station_rating": 194.0,
+     "money": 160718152,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1683,
+     "n_stations": 255
+    }
+   ]
+  },
+  {
+   "date": "1989-05-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2601639,
+     "performance_history": 297,
+     "profit": 47594,
+     "profit_year": 181018,
+     "median_station_rating": 170,
+     "money": 2509154,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 175400186,
+     "performance_history": 900,
+     "profit": 5330872,
+     "profit_year": 22450197,
+     "median_station_rating": 196.0,
+     "money": 162503862,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1701,
+     "n_stations": 256
+    }
+   ]
+  },
+  {
+   "date": "1989-06-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2601639,
+     "performance_history": 297,
+     "profit": 47594,
+     "profit_year": 181018,
+     "median_station_rating": 170,
+     "money": 2528341,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 175400186,
+     "performance_history": 900,
+     "profit": 5330872,
+     "profit_year": 22450197,
+     "median_station_rating": 196,
+     "money": 164294498,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1740,
+     "n_stations": 256
+    }
+   ]
+  },
+  {
+   "date": "1989-07-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2601639,
+     "performance_history": 297,
+     "profit": 47594,
+     "profit_year": 181018,
+     "median_station_rating": 170,
+     "money": 2541848,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 175400186,
+     "performance_history": 900,
+     "profit": 5330872,
+     "profit_year": 22450197,
+     "median_station_rating": 196,
+     "money": 165973229,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1679,
+     "n_stations": 256
+    }
+   ]
+  },
+  {
+   "date": "1989-08-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2641509,
+     "performance_history": 299,
+     "profit": 41389,
+     "profit_year": 179861,
+     "median_station_rating": 170,
+     "money": 2562902,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 180850039,
+     "performance_history": 900,
+     "profit": 5963420,
+     "profit_year": 22776239,
+     "median_station_rating": 196,
+     "money": 167713335,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1686,
+     "n_stations": 256
+    }
+   ]
+  },
+  {
+   "date": "1989-09-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2641509,
+     "performance_history": 299,
+     "profit": 41389,
+     "profit_year": 179861,
+     "median_station_rating": 170,
+     "money": 2576250,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 29,
+     "n_stations": 24
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 180850039,
+     "performance_history": 900,
+     "profit": 5963420,
+     "profit_year": 22776239,
+     "median_station_rating": 190,
+     "money": 169720044,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1640,
+     "n_stations": 256
+    }
+   ]
+  },
+  {
+   "date": "1989-10-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2641509,
+     "performance_history": 299,
+     "profit": 41389,
+     "profit_year": 179861,
+     "median_station_rating": 175,
+     "money": 2583756,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 26
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 180850039,
+     "performance_history": 900,
+     "profit": 5963420,
+     "profit_year": 22776239,
+     "median_station_rating": 188,
+     "money": 171301069,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1655,
+     "n_stations": 256
+    }
+   ]
+  },
+  {
+   "date": "1989-11-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2695607,
+     "performance_history": 300,
+     "profit": 50107,
+     "profit_year": 182858,
+     "median_station_rating": 175,
+     "money": 2596063,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 26
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 186084092,
+     "performance_history": 900,
+     "profit": 5828954,
+     "profit_year": 22906205,
+     "median_station_rating": 188,
+     "money": 172796745,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1661,
+     "n_stations": 256
+    }
+   ]
+  },
+  {
+   "date": "1989-12-01",
+   "companies": [
+    {
+     "arm": "OpexAI[rail_expand=1]",
+     "owner": 0,
+     "company_value": 2695607,
+     "performance_history": 300,
+     "profit": 50107,
+     "profit_year": 182858,
+     "median_station_rating": 175,
+     "money": 2609400,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 30,
+     "n_stations": 26
+    },
+    {
+     "arm": "AAAHogEx",
+     "owner": 1,
+     "company_value": 186084092,
+     "performance_history": 900,
+     "profit": 5828954,
+     "profit_year": 22906205,
+     "median_station_rating": 190,
+     "money": 174233967,
+     "current_loan": 0,
+     "months_of_bankruptcy": 0,
+     "n_vehicles": 1679,
+     "n_stations": 256
+    }
+   ]
+  }
+ ]
+}

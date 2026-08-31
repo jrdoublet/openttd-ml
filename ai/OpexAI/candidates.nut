@@ -1132,7 +1132,7 @@ function OpexBoostTownRating(townId, targetRating = 100, maxTrees = 20)
     for (local dy = -radius; dy <= radius && planted < maxTrees; dy++) {
       local tile = center + AIMap.GetTileIndex(dx, dy);
       if (!AIMap.IsValidTile(tile)) continue;
-      if (AITown.GetNearestTown(tile) != townId) continue;
+      if (AITile.GetClosestTown(tile) != townId) continue;
       if (AITile.IsBuildable(tile)) {
         if (AITile.PlantTree(tile)) {
           planted++;
