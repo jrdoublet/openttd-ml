@@ -1055,20 +1055,6 @@ Le 4 est relu en 15.3 : inchangé.
   `_tryBuild` déjà lancé pouvait continuer). Le rattrapage exécute désormais rapport des lignes,
   traitement des lignes mortes et remboursement pour chaque année franchie ; détail et mesure
   directe dans `docs/opexai_croissance.md` §6.
-- Élucider le **non-déterminisme propre à AAAHogEx** (la plateforme, elle, est déterministe).
-  🔶 Mécanisme confirmé par lecture de source (pas encore de test A/B, donc la causalité sur le
-  non-déterminisme reste ouverte) :
-  - `openttdlab.py:376-393` (mode `console-script`, celui utilisé en 15.3) programme un `save`
-    console à chaque mois de jeu via des scripts `.scr` — ce n'est pas l'autosave du moteur
-    (`autosave = off` dans notre `openttdlab.cfg`), mais un déclenchement externe mensuel.
-  - Chaque `save` console appelle `Save()` d'AAAHogEx (`main.nut:4032-4105`), qui sérialise des
-    caches volumineux (`landConnectedCache`, `cargoVtDistanceValues`, `estimateTable`, toutes les
-    statics de route) ET s'auto-instrumente : un `AIController.GetOpsTillSuspend()` avant/après
-    chaque sous-`Save()` plus un `HgLog.Info(...)` de concaténation de chaîne à chaque étape.
-  - Donc l'hypothèse est confirmée **mécaniquement plausible** (travail réel et non trivial
-    déclenché chaque mois, hors du chemin de décision normal de l'IA) mais pas encore **prouvée
-    causale** : reste à faire tourner deux campagnes identiques avec/sans le `save` mensuel
-    (ou avec logging désactivé) et comparer la dispersion.
 
 ---
 
