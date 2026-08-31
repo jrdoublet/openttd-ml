@@ -118,13 +118,26 @@ def main():
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--years", type=int, default=20)
     parser.add_argument("--out", type=Path, default=Path("docs/head_to_head_seed42.json"))
+    parser.add_argument("--setting", action="append", default=[], metavar="CLE=VALEUR",
+                        help="Réglage OpexAI supplémentaire, répétable")
     args = parser.parse_args()
 
-    arm_names = ("OpexAI[rail_expand=1]", "AAAHogEx")
+    opex_settings = {"rail_expand": 1}
+    for raw in args.setting:
+        if "=" not in raw:
+            parser.error(f"--setting attend CLE=VALEUR, reçu {raw!r}")
+        key, value = raw.split("=", 1)
+        try:
+            opex_settings[key.strip()] = int(value)
+        except ValueError:
+            parser.error(f"valeur entière attendue pour --setting {raw!r}")
+    settings_tuple = tuple(opex_settings.items())
+    setting_label = ",".join(f"{key}={value}" for key, value in settings_tuple)
+    arm_names = (f"OpexAI[{setting_label}]", "AAAHogEx")
     opex = local_folder(
         str(ROOT / "ai" / "OpexAI"),
         "OpexAI",
-        (("rail_expand", 1),),
+        settings_tuple,
     )
     aaahogex = local_folder(str(ROOT / "ai" / "AAAHogEx-115"), "AAAHogEx", ())
     rows = list(run_experiments(
@@ -151,6 +164,7 @@ def main():
         "seed": args.seed,
         "years": args.years,
         "arms": list(arm_names),
+        "opex_settings": opex_settings,
         "shared_game": True,
         "openttd_config": CFG,
         "summary": rows[-1]["companies"] if rows else [],

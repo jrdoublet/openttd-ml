@@ -1049,10 +1049,10 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, join, cashReserve
   local depot2 = plan.depot2;
   local want = 1;
   local doubleCost = 0;
+  local okD = false;
 
   if (plan.doubleTrack == 1 && tiles2 != null && planA2 != null && planB2 != null) {
     local dCosts = AIAccounting();
-    local okD = false;
     for (local i = 0; i < planA2.length; i++) AITile.DemolishTile(planA2.anchor + planA2.step * i);
     for (local i = 0; i < planB2.length; i++) AITile.DemolishTile(planB2.anchor + planB2.step * i);
     local okA2 = AIRail.BuildRailStation(planA2.anchor, planA2.direction, 1, planA2.length,
@@ -1139,6 +1139,14 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, join, cashReserve
   result.depot = depot;
   result.platformA = { anchor = planA.anchor, direction = planA.direction, step = planA.step, length = planA.length };
   result.platformB = { anchor = planB.anchor, direction = planB.direction, step = planB.step, length = planB.length };
+  result.doubleTrack <- (okD ? 1 : 0);
+  if (okD && depot2 != null) {
+    result.depot2 <- depot2;
+    result.stationA2 <- planA2.station_exit;
+    result.stationB2 <- planB2.station_exit;
+    result.platformA2 <- { anchor = planA2.anchor, direction = planA2.direction, step = planA2.step, length = planA2.length };
+    result.platformB2 <- { anchor = planB2.anchor, direction = planB2.direction, step = planB2.step, length = planB2.length };
+  }
   return result;
 }
 
@@ -1163,4 +1171,173 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, join, cashR
     }
   }
   return OpexExecuteRailPlan(catalog, budget, candidate, plan, join, cashReserve);
+}
+
+/* Doublement securise d'une ligne ferroviaire existante :
+ * Pose un second quai a la gare A, un second quai a la gare B,
+ * trace une seconde voie dediee avec son propre depot, pose les signaux PBS,
+ * et lance le deuxieme convoi. Zéro collision, voies indépendantes. */
+function OpexUpgradeRailLineToDoubleTrack(catalog, budget, line, cashReserve, hardCap = 40000)
+{
+  local result = { ok = false, reason = "", cost = 0, train = null, depot2 = null,
+                   stationA2 = null, stationB2 = null, platformA2 = null, platformB2 = null };
+  if (line == null || (("doubleTrack" in line) && line.doubleTrack == 1)) {
+    result.reason = "ALREADY_DOUBLE";
+    return result;
+  }
+  if (!("platformA" in line) || !("platformB" in line) || line.platformA == null || line.platformB == null) {
+    result.reason = "NOPLATFORM";
+    return result;
+  }
+  local stationIdA = AIStation.GetStationID(line.stationA);
+  local stationIdB = AIStation.GetStationID(line.stationB);
+  if (!AIStation.IsValidStation(stationIdA) || !AIStation.IsValidStation(stationIdB)) {
+    result.reason = "NOSTATION";
+    return result;
+  }
+
+  local forbidden = {};
+  if (("depot" in line) && line.depot != null) {
+    forbidden[line.depot] <- true;
+    local df = AIRail.GetRailDepotFrontTile(line.depot);
+    if (AIMap.IsValidTile(df)) forbidden[df] <- true;
+  }
+  local planA = line.platformA;
+  local planB = line.platformB;
+  for (local i = 0; i < planA.length; i++) forbidden[planA.anchor + planA.step * i] <- true;
+  for (local i = 0; i < planB.length; i++) forbidden[planB.anchor + planB.step * i] <- true;
+
+  local dualA = [];
+  foreach (plan in OpexJoinPlatformPlans(planA, stationIdA)) {
+    if (OpexSameStationEnd(plan, planA) && !OpexPlanHitsSet(plan, forbidden)) dualA.append(plan);
+  }
+  local dualB = [];
+  foreach (plan in OpexJoinPlatformPlans(planB, stationIdB)) {
+    if (OpexSameStationEnd(plan, planB) && !OpexPlanHitsSet(plan, forbidden)) dualB.append(plan);
+  }
+  if (dualA.len() == 0 || dualB.len() == 0) {
+    result.reason = "NOSPOT";
+    return result;
+  }
+
+  local ignored = [];
+  foreach (tile, ignoredVal in forbidden) ignored.append(tile);
+  local iterationBudget = hardCap;
+  local deadlineTick = AIController.GetTick() + hardCap / 3 + BUILD_TICK_MARGIN;
+  local search = OpexSearchPath(dualA, dualB, iterationBudget, deadlineTick, ignored);
+  if (search.path == false || search.path == null) {
+    result.reason = "NOPATH";
+    return result;
+  }
+  local tiles2 = OpexPathTiles(search.path);
+  if (tiles2.len() < 3) {
+    result.reason = "SHORT";
+    return result;
+  }
+  local planA2 = OpexMatchPlan(dualA, tiles2[0]);
+  local planB2 = OpexMatchPlan(dualB, tiles2[tiles2.len() - 1]);
+  if (planA2 == null || planB2 == null) {
+    result.reason = "NOMATCH";
+    return result;
+  }
+  if (!OpexJoinPathIsDedicated(tiles2)) {
+    result.reason = "OVERLAP";
+    return result;
+  }
+  for (local i = 1; i < tiles2.len() - 1; i++) {
+    if (tiles2[i] in forbidden) {
+      result.reason = "OVERLAP";
+      return result;
+    }
+  }
+
+  local wagon = (line.cargo in catalog.wagonByCargo) ? catalog.wagonByCargo[line.cargo] : null;
+  if (wagon == null) { result.reason = "NOWAGON"; return result; }
+  local depotCost = AIRail.GetBuildCost(AIRail.GetCurrentRailType(), AIRail.BT_DEPOT);
+  local trackCost = tiles2.len() * catalog.costTrackPerTile + (planA2.length + planB2.length) * catalog.costStation + depotCost;
+  local trainCost = line.loco.price + line.wagons * wagon.price;
+  local totalNeeded = trackCost + trainCost + cashReserve;
+  if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < totalNeeded) {
+    result.reason = "CASH";
+    return result;
+  }
+
+  local costs = AIAccounting();
+  for (local i = 0; i < planA2.length; i++) AITile.DemolishTile(planA2.anchor + planA2.step * i);
+  for (local i = 0; i < planB2.length; i++) AITile.DemolishTile(planB2.anchor + planB2.step * i);
+  local okA = AIRail.BuildRailStation(planA2.anchor, planA2.direction, 1, planA2.length, stationIdA);
+  local okB = AIRail.BuildRailStation(planB2.anchor, planB2.direction, 1, planB2.length, stationIdB);
+  local joinedA = AIStation.GetStationID(planA2.anchor) == stationIdA;
+  local joinedB = AIStation.GetStationID(planB2.anchor) == stationIdB;
+  if (!okA || !okB || !joinedA || !joinedB) {
+    OpexRollback(null, planA2, planB2, null, null);
+    result.reason = "STATIONFAIL";
+    return result;
+  }
+
+  local trackFailed = OpexBuildTrack(tiles2);
+  local last = tiles2.len() - 1;
+  local connected = trackFailed == 0 &&
+      AIRail.AreTilesConnected(planA2.station_exit, tiles2[1], tiles2[2]) &&
+      AIRail.AreTilesConnected(tiles2[last - 2], tiles2[last - 1], planB2.station_exit);
+  if (!connected) {
+    OpexRollback(tiles2, planA2, planB2, null, null);
+    result.reason = "TRACKFAIL";
+    return result;
+  }
+
+  local depot2 = OpexBuildDepot(tiles2, forbidden);
+  if (depot2 == null) {
+    OpexRollback(tiles2, planA2, planB2, null, null);
+    result.reason = "DEPOTFAIL";
+    return result;
+  }
+
+  local signals = OpexPlaceJoinSignals(planA2, planB2, tiles2, depot2, null);
+
+  local newTrains = OpexBuildTrains(catalog, line.cargo, line.kind, depot2,
+                                    planA2.station_exit, planB2.station_exit, 1,
+                                    line.loco, line.wagons, line.platformLength, true);
+  if (newTrains.failed || newTrains.built == 0) {
+    OpexRollback(tiles2, planA2, planB2, depot2, newTrains.rollbackVehicles);
+    result.reason = "TRAINFAIL";
+    return result;
+  }
+
+  result.ok = true;
+  result.reason = "OK";
+  result.depot2 = depot2;
+  result.stationA2 = planA2.station_exit;
+  result.stationB2 = planB2.station_exit;
+  result.platformA2 = { anchor = planA2.anchor, direction = planA2.direction, step = planA2.step, length = planA2.length };
+  result.platformB2 = { anchor = planB2.anchor, direction = planB2.direction, step = planB2.step, length = planB2.length };
+  result.train = newTrains.vehicles[0];
+  result.cost = costs.GetCosts();
+  return result;
+}
+
+/* Construit un 2e train sur une ligne deja doublee avec depot2 valide. */
+function OpexBuildSecondTrain(catalog, line, cashReserve)
+{
+  local result = { ok = false, reason = "", train = null };
+  if (!("depot2" in line) || line.depot2 == null || !AIRail.IsRailDepotTile(line.depot2)) {
+    result.reason = "NODEPOT2"; return result;
+  }
+  local wagon = (line.cargo in catalog.wagonByCargo) ? catalog.wagonByCargo[line.cargo] : null;
+  if (wagon == null) { result.reason = "NOWAGON"; return result; }
+  local trainCost = line.loco.price + line.wagons * wagon.price;
+  if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < trainCost + cashReserve) {
+    result.reason = "CASH"; return result;
+  }
+  local stA = (("stationA2" in line) && line.stationA2 != null) ? line.stationA2 : line.stationA;
+  local stB = (("stationB2" in line) && line.stationB2 != null) ? line.stationB2 : line.stationB;
+  local newTrains = OpexBuildTrains(catalog, line.cargo, line.kind, line.depot2,
+                                    stA, stB, 1, line.loco, line.wagons, line.platformLength, true);
+  if (newTrains.failed || newTrains.built == 0) {
+    result.reason = "TRAINFAIL"; return result;
+  }
+  result.ok = true;
+  result.reason = "OK";
+  result.train = newTrains.vehicles[0];
+  return result;
 }

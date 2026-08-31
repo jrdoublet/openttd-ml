@@ -63,6 +63,36 @@ function OpexSign(anchor, name)
   AISign.BuildSign(anchor, name);
 }
 
+/* Reserve de tresorerie dynamique : adaptee a la taille de la flotte pour liberer le capital
+ * des les premieres annees (15 000 £ au lieu de 50 000 £) et eviter les soldes oisifs. */
+DYNAMIC_CASH_RESERVE <- true;
+TREE_PLANTING <- false;
+PAX_FULL_LOAD <- true;
+COMPLEX_CARGO <- true;
+AIR_STARTER <- true;
+/* Bras experimental : reutiliser un aeroport rentable pour une nouvelle destination. */
+AIR_HUB <- true;
+RAIL_REFLEET <- true;
+const CASH_RESERVE_STATIC = 50000;
+const CASH_RESERVE_MIN = 15000;
+const CASH_RESERVE_MAX = 50000;
+
+function OpexCashReserve()
+{
+  if (!DYNAMIC_CASH_RESERVE) return CASH_RESERVE_STATIC;
+  local totalRunning = 0;
+  local vehicles = AIVehicleList();
+  for (local v = vehicles.Begin(); !vehicles.IsEnd(); v = vehicles.Next()) {
+    if (AIVehicle.IsValidVehicle(v)) {
+      totalRunning += AIVehicle.GetRunningCost(v);
+    }
+  }
+  local quarterlyBuffer = totalRunning / 4;
+  if (quarterlyBuffer < CASH_RESERVE_MIN) return CASH_RESERVE_MIN;
+  if (quarterlyBuffer > CASH_RESERVE_MAX) return CASH_RESERVE_MAX;
+  return quarterlyBuffer;
+}
+
 require("budget.nut");
 require("catalog.nut");
 require("economy.nut");
@@ -94,33 +124,6 @@ const ORIGIN_SEPARATION = 3;
 /* Fenetre de temps accordee a une tentative, en plus du budget d'iterations. A ~3,7 iterations
  * par tick, N iterations demandent ~N/3,7 ticks ; la marge couvre la pose elle-meme. */
 const BUILD_TICK_MARGIN = 3000;
-
-/* Reserve de tresorerie dynamique : adaptee a la taille de la flotte pour liberer le capital
- * des les premieres annees (15 000 £ au lieu de 50 000 £) et eviter les soldes oisifs. */
-DYNAMIC_CASH_RESERVE <- true;
-TREE_PLANTING <- false;
-PAX_FULL_LOAD <- true;
-COMPLEX_CARGO <- true;
-AIR_STARTER <- true;
-const CASH_RESERVE_STATIC = 50000;
-const CASH_RESERVE_MIN = 15000;
-const CASH_RESERVE_MAX = 50000;
-
-function OpexCashReserve()
-{
-  if (!DYNAMIC_CASH_RESERVE) return CASH_RESERVE_STATIC;
-  local totalRunning = 0;
-  local vehicles = AIVehicleList();
-  for (local v = vehicles.Begin(); !vehicles.IsEnd(); v = vehicles.Next()) {
-    if (AIVehicle.IsValidVehicle(v)) {
-      totalRunning += AIVehicle.GetRunningCost(v);
-    }
-  }
-  local quarterlyBuffer = totalRunning / 4;
-  if (quarterlyBuffer < CASH_RESERVE_MIN) return CASH_RESERVE_MIN;
-  if (quarterlyBuffer > CASH_RESERVE_MAX) return CASH_RESERVE_MAX;
-  return quarterlyBuffer;
-}
 
 /* Le classement ne contient que TOP_K = 20 candidats. Le plafond de continuation est exactement
  * cette borne existante, pas un second seuil arbitraire : une annee sans argent examine au plus
@@ -266,9 +269,9 @@ class OpexAI extends AIController {
    * premiere execution : l'indice 5 melangeait une ligne fret morte 1977-1979 et une ligne saine
    * qui avait glisse dans ce slot). _nextLineId ne recule jamais, contrairement a _lines.len(). */
   _nextLineId = 0;
-  _lastCatalogYear = -1;
+  _lastCatalogMonth = -1;
   _lastReportYear = -1;
-  _lastAirFleetYear = -1;
+  _lastAirFleetMonth = -1;
   _lastRepayMonth = -1;
 
   constructor()
@@ -508,13 +511,15 @@ function OpexAI::_tryBuildAir(year)
       if (line.year == year) airLinesThisYear++;
     }
   }
-  local maxPerYear = AIR_STARTER ? 3 : 1;
-  local maxTotal = AIR_STARTER ? 15 : 5;
+  local maxPerYear = AIR_STARTER ? 6 : 2;
+  local maxTotal = AIR_STARTER ? 30 : 10;
   if (airLinesThisYear >= maxPerYear || totalAirLines >= maxTotal) return;
 
   local margin = AIR_STARTER ? 10000 : AIR_CAPITAL_MARGIN;
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  local maxCapital = money - OpexCashReserve() - margin;
+  local borrowable = REBORROW ? (AICompany.GetMaxLoanAmount() - AICompany.GetLoanAmount()) : 0;
+  if (borrowable < 0) borrowable = 0;
+  local maxCapital = money + borrowable - OpexCashReserve() - margin;
   if (maxCapital <= 0) return;
 
   this._budget.begin();
@@ -555,6 +560,8 @@ function OpexAI::_tryBuildAir(year)
     predAmort = plan.economics.amortAnnual, predCarried = plan.economics.carried,
     predTrains = plan.planes, predOneWayDays = plan.economics.oneWayDays,
     planeCapacity = plan.plane.capacity,
+    sharedAirportA = ("reuseA" in plan) && plan.reuseA,
+    hubRoutesAtBuild = ("hubRoutes" in plan) ? plan.hubRoutes : 0,
     iterations = 0, trains = result.vehicles.len(), distance = plan.distance, year = year,
     mode = "air", vehicle = result.vehicle, vehicles = result.vehicles,
     lastLiveVehicles = result.vehicles.len(), suspectedCrashes = 0,
@@ -562,6 +569,9 @@ function OpexAI::_tryBuildAir(year)
   });
   OpexSign(anchor, "AF|" + this._nextLineId + "|" + result.vehicles.len() + "|"
                          + plan.economics.profitAnnual);
+  OpexSign(anchor, "AH|" + this._nextLineId + "|"
+                   + ((("reuseA" in plan) && plan.reuseA) ? 1 : 0) + "|"
+                   + plan.capital + "|" + (("hubRoutes" in plan) ? plan.hubRoutes : 0));
   OpexSign(anchor, "PM|" + this._nextLineId + "|A|" + plan.distance + "|"
                    + AICargo.GetCargoLabel(this._catalog.paxCargo));
   this._nextLineId++;
@@ -1373,6 +1383,12 @@ function OpexAI::_tryBuild(ranked, year)
          * laisser intacts). Les plans rendent le prochain quai adjacent deterministe. */
         vehicles = result.vehicles, platformA = result.platformA, platformB = result.platformB,
         depot = result.depot,
+        doubleTrack = (("doubleTrack" in result) ? result.doubleTrack : 0),
+        depot2 = (("depot2" in result) ? result.depot2 : null),
+        stationA2 = (("stationA2" in result) ? result.stationA2 : null),
+        stationB2 = (("stationB2" in result) ? result.stationB2 : null),
+        platformA2 = (("platformA2" in result) ? result.platformA2 : null),
+        platformB2 = (("platformB2" in result) ? result.platformB2 : null),
         kind = candidate.kind,
         srcIndustry = (candidate.kind == "freight") ? AIIndustry.GetIndustryID(candidate.src) : -1,
         dstIndustry = (candidate.kind == "freight") ? AIIndustry.GetIndustryID(candidate.dst) : -1,
@@ -1747,19 +1763,39 @@ function OpexAI::_reportLines(year)
  * file ne le resonde pas a chaque cycle et ne gaspille donc pas d'opcodes. */
 function OpexAI::_resizeAirFleets(year)
 {
-  if (this._lastAirFleetYear == year) return false;
-  this._lastAirFleetYear = year;
+  local date = AIDate.GetCurrentDate();
+  local month = AIDate.GetMonth(date);
+  if (this._lastAirFleetMonth == month) return false;
+  this._lastAirFleetMonth = month;
   local anchor = AIMap.GetTileIndex(1, 1);
   foreach (line in this._lines) {
     if (!("mode" in line) || line.mode != "air") continue;
-    if (!("year" in line) || year <= line.year) continue;
     local have = ("vehCount" in line) ? line.vehCount : 0;
     if (have < 1 || have >= AIR_MAX_PLANES_PER_ROUTE) continue;
-    if (!("lastProfit" in line) || line.lastProfit <= 0) continue;
-    local waiting = (("lastWaitingA" in line) ? line.lastWaitingA : 0)
-                  + (("lastWaitingB" in line) ? line.lastWaitingB : 0);
+    if (("lastProfit" in line) && line.lastProfit <= 0) continue;
+    local stationA = AIStation.GetStationID(line.stationA);
+    local stationB = AIStation.GetStationID(line.stationB);
+    local waitingA = AIStation.IsValidStation(stationA) ? AIStation.GetCargoWaiting(stationA, line.cargo) : 0;
+    local waitingB = AIStation.IsValidStation(stationB) ? AIStation.GetCargoWaiting(stationB, line.cargo) : 0;
+    /* Un StationID de hub expose un backlog agrege. Sans partage, chacune de ses routes lirait
+     * le meme stock et pourrait cloner simultanement. Diviser par le nombre de lignes qui voient
+     * chaque extremite est conservateur et ne change strictement rien au bras air_hub=0. */
+    if (AIR_HUB) {
+      local shareA = 0;
+      local shareB = 0;
+      foreach (other in this._lines) {
+        if (!("mode" in other) || other.mode != "air") continue;
+        local otherA = AIStation.GetStationID(other.stationA);
+        local otherB = AIStation.GetStationID(other.stationB);
+        if (AIStation.IsValidStation(stationA) && (otherA == stationA || otherB == stationA)) shareA++;
+        if (AIStation.IsValidStation(stationB) && (otherA == stationB || otherB == stationB)) shareB++;
+      }
+      if (shareA > 1) waitingA /= shareA;
+      if (shareB > 1) waitingB /= shareB;
+    }
+    local waiting = waitingA + waitingB;
     local capacity = ("planeCapacity" in line) ? line.planeCapacity : 0;
-    if (capacity <= 0 || waiting < capacity) continue;
+    if (capacity <= 0 || waiting < (capacity * 3) / 4) continue;
     local grown = OpexAirAddPlane(line);
     if (grown.added > 0) {
       line.vehCount <- have + 1;
@@ -2060,7 +2096,7 @@ function OpexAI::_expandRailLines(year)
   local nPersistent = 0;
   local nPositive = 0;
   foreach (line in this._lines) {
-    if (("mode" in line) || !("wagons" in line) || !("platformLength" in line) ||
+    if ((("mode" in line) && line.mode != "rail") || !("wagons" in line) || !("platformLength" in line) ||
         !("loco" in line) || !("kind" in line)) continue;
     if (line.trains != 1 || !("vehCount" in line) || line.vehCount != 1) continue;
     if (("scrapping" in line) && line.scrapping) continue;
@@ -2117,7 +2153,72 @@ function OpexAI::_expandRailLines(year)
   local decisionOps = this._budget.end("expand_rail_decide");
   OpexSign(AIMap.GetTileIndex(1, 1), "EU|" + (year % 100) + "|" + nEligible + "|"
            + nSaturated + "|" + nPersistent + "|" + nPositive + "|" + decisionOps);
-  if (best == null) return;
+  if (best == null) {
+    if (RAIL_REFLEET) {
+      foreach (line in this._lines) {
+        if ((("mode" in line) && line.mode != "rail") || !("wagons" in line) || !("loco" in line) || !("kind" in line)) continue;
+        if (line.trains >= 2 || line.vehicles.len() >= 2) continue;
+        if (("scrapping" in line) && line.scrapping) continue;
+        if (!("lastProfit" in line) || line.lastProfit <= 0) continue;
+        if (!(line.cargo in this._catalog.wagonByCargo)) continue;
+
+        local wagon = this._catalog.wagonByCargo[line.cargo];
+        local waitingA = ("lastWaitingA" in line) ? line.lastWaitingA : 0;
+        local waitingB = ("lastWaitingB" in line) ? line.lastWaitingB : 0;
+        local waiting = line.kind == "freight" ? waitingA : waitingA + waitingB;
+        local backlogThreshold = line.kind == "freight" ? (2 * wagon.capacity) : (4 * wagon.capacity);
+        if (waiting < backlogThreshold) continue;
+
+        // Cas 1 : Ligne deja doublee avec depot2 -> ajout immediat du 2e train
+        if (("doubleTrack" in line) && line.doubleTrack == 1 && ("depot2" in line) && line.depot2 != null) {
+          local trainCost = line.loco.price + line.wagons * wagon.price;
+          local need = trainCost + OpexCashReserve();
+          local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+          if (money < need && REBORROW) money = OpexTryReborrow(need, money);
+          if (money >= need) {
+            local secondTrain = OpexBuildSecondTrain(this._catalog, line, OpexCashReserve());
+            if (secondTrain.ok) {
+              line.vehicles.append(secondTrain.train);
+              line.trains = line.vehicles.len();
+              line.vehCount <- line.vehicles.len();
+              local anchor = AIMap.GetTileIndex(1, 1);
+              OpexSign(anchor, "RD|" + (year % 100) + "|" + line.lineId + "|" + line.trains);
+              return;
+            }
+          }
+        }
+        // Cas 2 : Ligne a voie unique -> doublement d'infrastructure et 2e train
+        else if ((!("doubleTrack" in line) || line.doubleTrack == 0) &&
+                 ("platformA" in line) && ("platformB" in line) &&
+                 line.platformA != null && line.platformB != null) {
+          local depotCost = AIRail.GetBuildCost(AIRail.GetCurrentRailType(), AIRail.BT_DEPOT);
+          local trackCost = line.distance * this._catalog.costTrackPerTile + 2 * line.platformLength * this._catalog.costStation + depotCost;
+          local trainCost = line.loco.price + line.wagons * wagon.price;
+          local need = trackCost + trainCost + OpexCashReserve();
+          local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+          if (money < need && REBORROW) money = OpexTryReborrow(need, money);
+          if (money >= need) {
+            local upgrade = OpexUpgradeRailLineToDoubleTrack(this._catalog, this._budget, line, OpexCashReserve(), HARD_ITERATION_CAP);
+            local anchor = AIMap.GetTileIndex(1, 1);
+            OpexSign(anchor, "RU|" + (year % 100) + "|" + line.lineId + "|" + upgrade.reason);
+            if (upgrade.ok) {
+              line.doubleTrack = 1;
+              line.depot2 = upgrade.depot2;
+              line.stationA2 = upgrade.stationA2;
+              line.stationB2 = upgrade.stationB2;
+              line.platformA2 = upgrade.platformA2;
+              line.platformB2 = upgrade.platformB2;
+              line.vehicles.append(upgrade.train);
+              line.trains = line.vehicles.len();
+              line.vehCount <- line.vehicles.len();
+              return;
+            }
+          }
+        }
+      }
+    }
+    return;
+  }
 
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   local need = best.wagon.price + OpexCashReserve();
@@ -2401,8 +2502,10 @@ function OpexAI::_runNextTask()
   task.dueCycle = this._taskCycle + 1;
 
   if (task.name == "catalog") {
-    if (this._lastCatalogYear == year && this._ranked != null) return false;
-    this._lastCatalogYear = year;
+    local date = AIDate.GetCurrentDate();
+    local month = AIDate.GetMonth(date);
+    if (this._lastCatalogMonth == month && this._ranked != null) return false;
+    this._lastCatalogMonth = month;
     this._catalog.refresh(this._budget, year);
     this._ranked = OpexBuildCandidates(this._catalog, this._budget, this._lines);
     return true;
@@ -2516,6 +2619,8 @@ function OpexAI::Start()
   PAX_FULL_LOAD = AIController.GetSetting("pax_full_load") != 0;
   COMPLEX_CARGO = AIController.GetSetting("complex_cargo") != 0;
   AIR_STARTER = AIController.GetSetting("air_starter") != 0;
+  AIR_HUB = AIController.GetSetting("air_hub") != 0;
+  RAIL_REFLEET = AIController.GetSetting("rail_refleet") != 0;
 
   /* 🔴 RENOUVELLEMENT AUTOMATIQUE (2026-08-29). Mesure : campagne 20 ans, graine 42 -- trois des
    * quatre lignes ROUTIERES finissent la partie avec vehCount = 0 et un profit de zero, alors que

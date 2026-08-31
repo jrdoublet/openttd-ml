@@ -1,0 +1,623 @@
+{
+ "openttd_version": "15.3",
+ "opengfx_version": "7.1",
+ "years": 2,
+ "seeds": [
+  42
+ ],
+ "arms": [
+  "OpexAI"
+ ],
+ "repeats": 1,
+ "openttd_config": "[difficulty]\nnumber_towns = 3\nindustry_density = 4\n[economy]\ninflation = false\ntown_growth_rate = 2\n[game_creation]\nstarting_year = 1970\nmap_x = 8\nmap_y = 8\n",
+ "metric": "PLYR[0].old_economy[0] : company_value, performance_history (0-1000), profit (trimestre), profit_year (4 trimestres) ; STNN median_station_rating (0-255, cargos ramasses)",
+ "success_metrics": [
+  "company_value",
+  "performance_history",
+  "profit",
+  "profit_year",
+  "median_station_rating"
+ ],
+ "paired_reading": "mean(A(seed) - B(seed)); les paires annulent la difficulte inter-graines partagee",
+ "checkpoint": "docs/bench_smoke_final.jsonl",
+ "summary": [
+  {
+   "arm": "OpexAI",
+   "seed": 42,
+   "repeat": 0,
+   "last_date": "1972-01-01",
+   "company_value": 1,
+   "performance_history": 1,
+   "income_last_year": 0,
+   "expenses_last_year": -1500,
+   "profit": -1500,
+   "profit_year": -6000,
+   "median_station_rating": null,
+   "n_station_ratings": 0,
+   "money": 287925,
+   "current_loan": 300000,
+   "n_vehicles": 8,
+   "n_stations": 0,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 25,
+   "openttd_output": "[2026-08-31 20:46:29] dbg: [script:0] [0] [S] Your script made an error: the index 'getroottable' does not exist\n[2026-08-31 20:46:29] dbg: [script:0] [0] [S] \n[2026-08-31 20:46:29] dbg: [script:0] [0] [S] CALLSTACK\n[2026-08-31 20:46:29] dbg: [script:0] [0] [S] *FUNCTION [OpexFreightCandidates()] opexai.tar/opexai/candidates.nut line [731]\n[2026-08-31 20:46:29] dbg: [script:0] [0] [S] *FUNCTION [OpexBuildCandidates()] opexai.tar/opexai/candidates.nut line [847]\n[2026-08-31 20:46:29] dbg: [script:0] [0] [S] *FUNCTION [_runNextTask()] opexai.tar/opexai/main.nut line [2509]\n[2026-08-31 20:46:29] dbg: [script:0] [0] [S] *FUNCTION [Start()] opexai.tar/opexai/main.nut line [2648]\n[2026-08-31 20:46:29] dbg: [script:0] [0] [S] \n[2026-08-31 20:46:29] dbg: [script:0] [0] [S] LOCALS\n[2026-08-31 20:46:29] dbg: [script:0] [0] [S] [hasIndustrySinks] true\n[2026-08-31 20:46:29] dbg: [script:0] [0] [S] [@ITERATOR@] 2\n[2026-08-31 20:46:29] dbg: [script:0] [0] [S] [sources] ARRAY\n[2026-08-31 20:46:29] dbg: [script:0] [0] [S] [cargo] 1\n[2026-08-31 20:46:29] dbg: [script:0] [0] [S] [served] ARRAY\n[2026-08-31 20:46:29] dbg: [script:0] [0] [S] [industries] ARRAY\n[2026-08-31 20:46:29] dbg: [script:0] [0] [S] [stats] TABLE\n[2026-08-31 20:46:29] dbg: [script:0] [0] [S] [out] ARRAY\n[2026-08-31 20:46:29] dbg: [script:0] [0] [S] [lines] ARRAY\n[2026-08-31 20:46:29] dbg: [script:0] [0] [S] [catalog] INSTANCE\n[2026-08-31 20:46:29] dbg: [script:0] [0] [S] [this] INSTANCE\n[2026-08-31 20:46:29] dbg: [script:0] [0] [S] [stats] TABLE\n[2026-08-31 20:46:29] dbg: [script:0] [0] [S] [all] ARRAY\n[2026-08-31 20:46:29] dbg: [script:0] [0] [S] [lines] ARRAY\n[2026-08-31 20:46:29] dbg: [script:0] [0] [S] [budget] INSTANCE\n[2026-08-31 20:46:29] dbg: [script:0] [0] [S] [catalog] INSTANCE\n[2026-08-31 20:46:29] dbg: [script:0] [0] [S] [this] INSTANCE\n[2026-08-31 20:46:29] dbg: [script:0] [0] [S] [month] 1\n[2026-08-31 20:46:29] dbg: [script:0] [0] [S] [date] 719528\n[2026-08-31 20:46:29] dbg: [script:0] [0] [S] [taskIndex] 0\n[2026-08-31 20:46:29] dbg: [script:0] [0] [S] [task] TABLE\n[2026-08-31 20:46:29] dbg: [script:0] [0] [S] [year] 1970\n[2026-08-31 20:46:29] dbg: [script:0] [0] [S] [this] INSTANCE\n[2026-08-31 20:46:29] dbg: [script:0] [0] [S] [roadPaxCatchment] 86\n[2026-08-31 20:46:29] dbg: [script:0] [0] [S] [this] INSTANCE\n[2026-08-31 20:46:29] dbg: [script:0] The script died unexpectedly.\n"
+  }
+ ],
+ "statistics": {
+  "OpexAI": {
+   "company_value": {
+    "n": 1,
+    "mean": 1,
+    "median": 1,
+    "standard_deviation": null,
+    "standard_error": null,
+    "standard_error_percent": null,
+    "coefficient_of_variation_percent": null
+   },
+   "performance_history": {
+    "n": 1,
+    "mean": 1,
+    "median": 1,
+    "standard_deviation": null,
+    "standard_error": null,
+    "standard_error_percent": null,
+    "coefficient_of_variation_percent": null
+   },
+   "profit": {
+    "n": 1,
+    "mean": -1500,
+    "median": -1500,
+    "standard_deviation": null,
+    "standard_error": null,
+    "standard_error_percent": null,
+    "coefficient_of_variation_percent": null
+   },
+   "profit_year": {
+    "n": 1,
+    "mean": -6000,
+    "median": -6000,
+    "standard_deviation": null,
+    "standard_error": null,
+    "standard_error_percent": null,
+    "coefficient_of_variation_percent": null
+   },
+   "median_station_rating": {
+    "n": 0,
+    "mean": null,
+    "median": null,
+    "standard_deviation": null,
+    "standard_error": null,
+    "standard_error_percent": null,
+    "coefficient_of_variation_percent": null
+   }
+  }
+ },
+ "paired_comparisons": [],
+ "series": [
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1970-01-01",
+   "company_value": null,
+   "performance_history": null,
+   "income_last_year": null,
+   "expenses_last_year": null,
+   "profit": null,
+   "profit_year": null,
+   "median_station_rating": null,
+   "n_station_ratings": 0,
+   "money": 100000,
+   "current_loan": 100000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 8,
+   "n_stations": 0
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1970-02-01",
+   "company_value": null,
+   "performance_history": null,
+   "income_last_year": null,
+   "expenses_last_year": null,
+   "profit": null,
+   "profit_year": null,
+   "median_station_rating": null,
+   "n_station_ratings": 0,
+   "money": 300000,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 8,
+   "n_stations": 0
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1970-03-01",
+   "company_value": null,
+   "performance_history": null,
+   "income_last_year": null,
+   "expenses_last_year": null,
+   "profit": null,
+   "profit_year": null,
+   "median_station_rating": null,
+   "n_station_ratings": 0,
+   "money": 299475,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 8,
+   "n_stations": 0
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1970-04-01",
+   "company_value": null,
+   "performance_history": null,
+   "income_last_year": null,
+   "expenses_last_year": null,
+   "profit": null,
+   "profit_year": null,
+   "median_station_rating": null,
+   "n_station_ratings": 0,
+   "money": 298950,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 8,
+   "n_stations": 0
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1970-05-01",
+   "company_value": 1,
+   "performance_history": 1,
+   "income_last_year": 0,
+   "expenses_last_year": -1000,
+   "profit": -1000,
+   "profit_year": -1000,
+   "median_station_rating": null,
+   "n_station_ratings": 0,
+   "money": 298425,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 8,
+   "n_stations": 0
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1970-06-01",
+   "company_value": 1,
+   "performance_history": 1,
+   "income_last_year": 0,
+   "expenses_last_year": -1000,
+   "profit": -1000,
+   "profit_year": -1000,
+   "median_station_rating": null,
+   "n_station_ratings": 0,
+   "money": 297900,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 8,
+   "n_stations": 0
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1970-07-01",
+   "company_value": 1,
+   "performance_history": 1,
+   "income_last_year": 0,
+   "expenses_last_year": -1000,
+   "profit": -1000,
+   "profit_year": -1000,
+   "median_station_rating": null,
+   "n_station_ratings": 0,
+   "money": 297375,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 8,
+   "n_stations": 0
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1970-08-01",
+   "company_value": 1,
+   "performance_history": 1,
+   "income_last_year": 0,
+   "expenses_last_year": -1500,
+   "profit": -1500,
+   "profit_year": -2500,
+   "median_station_rating": null,
+   "n_station_ratings": 0,
+   "money": 296850,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 8,
+   "n_stations": 0
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1970-09-01",
+   "company_value": 1,
+   "performance_history": 1,
+   "income_last_year": 0,
+   "expenses_last_year": -1500,
+   "profit": -1500,
+   "profit_year": -2500,
+   "median_station_rating": null,
+   "n_station_ratings": 0,
+   "money": 296325,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 8,
+   "n_stations": 0
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1970-10-01",
+   "company_value": 1,
+   "performance_history": 1,
+   "income_last_year": 0,
+   "expenses_last_year": -1500,
+   "profit": -1500,
+   "profit_year": -2500,
+   "median_station_rating": null,
+   "n_station_ratings": 0,
+   "money": 295800,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 8,
+   "n_stations": 0
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1970-11-01",
+   "company_value": 1,
+   "performance_history": 1,
+   "income_last_year": 0,
+   "expenses_last_year": -1500,
+   "profit": -1500,
+   "profit_year": -4000,
+   "median_station_rating": null,
+   "n_station_ratings": 0,
+   "money": 295275,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 8,
+   "n_stations": 0
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1970-12-01",
+   "company_value": 1,
+   "performance_history": 1,
+   "income_last_year": 0,
+   "expenses_last_year": -1500,
+   "profit": -1500,
+   "profit_year": -4000,
+   "median_station_rating": null,
+   "n_station_ratings": 0,
+   "money": 294750,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 8,
+   "n_stations": 0
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1971-01-01",
+   "company_value": 1,
+   "performance_history": 1,
+   "income_last_year": 0,
+   "expenses_last_year": -1500,
+   "profit": -1500,
+   "profit_year": -4000,
+   "median_station_rating": null,
+   "n_station_ratings": 0,
+   "money": 294225,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 8,
+   "n_stations": 0
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1971-02-01",
+   "company_value": 1,
+   "performance_history": 1,
+   "income_last_year": 0,
+   "expenses_last_year": -1500,
+   "profit": -1500,
+   "profit_year": -5500,
+   "median_station_rating": null,
+   "n_station_ratings": 0,
+   "money": 293700,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 8,
+   "n_stations": 0
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1971-03-01",
+   "company_value": 1,
+   "performance_history": 1,
+   "income_last_year": 0,
+   "expenses_last_year": -1500,
+   "profit": -1500,
+   "profit_year": -5500,
+   "median_station_rating": null,
+   "n_station_ratings": 0,
+   "money": 293175,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 8,
+   "n_stations": 0
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1971-04-01",
+   "company_value": 1,
+   "performance_history": 1,
+   "income_last_year": 0,
+   "expenses_last_year": -1500,
+   "profit": -1500,
+   "profit_year": -5500,
+   "median_station_rating": null,
+   "n_station_ratings": 0,
+   "money": 292650,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 8,
+   "n_stations": 0
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1971-05-01",
+   "company_value": 1,
+   "performance_history": 1,
+   "income_last_year": 0,
+   "expenses_last_year": -1500,
+   "profit": -1500,
+   "profit_year": -6000,
+   "median_station_rating": null,
+   "n_station_ratings": 0,
+   "money": 292125,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 8,
+   "n_stations": 0
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1971-06-01",
+   "company_value": 1,
+   "performance_history": 1,
+   "income_last_year": 0,
+   "expenses_last_year": -1500,
+   "profit": -1500,
+   "profit_year": -6000,
+   "median_station_rating": null,
+   "n_station_ratings": 0,
+   "money": 291600,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 8,
+   "n_stations": 0
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1971-07-01",
+   "company_value": 1,
+   "performance_history": 1,
+   "income_last_year": 0,
+   "expenses_last_year": -1500,
+   "profit": -1500,
+   "profit_year": -6000,
+   "median_station_rating": null,
+   "n_station_ratings": 0,
+   "money": 291075,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 8,
+   "n_stations": 0
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1971-08-01",
+   "company_value": 1,
+   "performance_history": 1,
+   "income_last_year": 0,
+   "expenses_last_year": -1500,
+   "profit": -1500,
+   "profit_year": -6000,
+   "median_station_rating": null,
+   "n_station_ratings": 0,
+   "money": 290550,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 8,
+   "n_stations": 0
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1971-09-01",
+   "company_value": 1,
+   "performance_history": 1,
+   "income_last_year": 0,
+   "expenses_last_year": -1500,
+   "profit": -1500,
+   "profit_year": -6000,
+   "median_station_rating": null,
+   "n_station_ratings": 0,
+   "money": 290025,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 8,
+   "n_stations": 0
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1971-10-01",
+   "company_value": 1,
+   "performance_history": 1,
+   "income_last_year": 0,
+   "expenses_last_year": -1500,
+   "profit": -1500,
+   "profit_year": -6000,
+   "median_station_rating": null,
+   "n_station_ratings": 0,
+   "money": 289500,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 8,
+   "n_stations": 0
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1971-11-01",
+   "company_value": 1,
+   "performance_history": 1,
+   "income_last_year": 0,
+   "expenses_last_year": -1500,
+   "profit": -1500,
+   "profit_year": -6000,
+   "median_station_rating": null,
+   "n_station_ratings": 0,
+   "money": 288975,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 8,
+   "n_stations": 0
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1971-12-01",
+   "company_value": 1,
+   "performance_history": 1,
+   "income_last_year": 0,
+   "expenses_last_year": -1500,
+   "profit": -1500,
+   "profit_year": -6000,
+   "median_station_rating": null,
+   "n_station_ratings": 0,
+   "money": 288450,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 8,
+   "n_stations": 0
+  },
+  {
+   "run": [
+    "OpexAI",
+    42,
+    0
+   ],
+   "date": "1972-01-01",
+   "company_value": 1,
+   "performance_history": 1,
+   "income_last_year": 0,
+   "expenses_last_year": -1500,
+   "profit": -1500,
+   "profit_year": -6000,
+   "median_station_rating": null,
+   "n_station_ratings": 0,
+   "money": 287925,
+   "current_loan": 300000,
+   "months_of_bankruptcy": 0,
+   "n_vehicles": 8,
+   "n_stations": 0
+  }
+ ]
+}

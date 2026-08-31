@@ -17,6 +17,15 @@ donc etre lus dans cet ordre, et pas en prenant `company_value` comme arbitre un
 
 ---
 
+## Tâches Récentes Validées au Banc (2026-08-31)
+
+✅ **Aviation & Réseau Aérien en Étoile (`air_starter = 1`, `air_hub = 1`)** — Déploiement d'un réseau radial réutilisant les aéroports existants rentables. Banc apparié 20 graines × 5 ans : +29,16 % company value ($t = +4,42$), +60,16 % profit annuel ($t = +6,33$), +147,58 % gares ($t = +8,26$).
+✅ **Doublement Ferroviaire Sécurisé & Signaux PBS (`rail_refleet = 1`)** — Doublement d'infrastructure avec 2e voie dédiée parallèle, 2e quai indépendant, 2e dépôt et signalisation PBS sans risque de collision ni blocage.
+✅ **Lignes Longue Distance & Flotte Dynamique** — Élargissement du vivier aérien à 36 villes, seuil min de distance à 55 tuiles, et réajustement mensuel dynamique de la flotte selon la charge réelle (`AIStation.GetCargoWaiting`).
+✅ **Réinvestissement Continu Intra-Annuel** — Suppression du verrou annuel sur le catalogue (`_lastCatalogMonth`) et intégration du crédit disponible (`REBORROW`) dans `maxCapital`.
+
+---
+
 ## 1. À lire et intégrer (demandé le 2026-08-28)
 
 À traiter comme `docs/mecanique_jeu.md` : **pas une copie du wiki, mais règle + conséquence pour la

@@ -510,6 +510,29 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
+    /* Reutilisation d'un aeroport existant comme hub. Defaut 0 tant que le gain marginal
+     * (un aeroport + un avion) n'a pas ete etabli au banc face aux paires disjointes. */
+    AddSetting({
+      name = "air_hub",
+      description = "Reuse a profitable uncongested airport for a new destination: 1 = experimental hub routes (default), 0 = two new airports",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* Expansion et doublement des lignes ferroviaires saturees (double voie et 2e train securise) :
+     * 1 = double les lignes saturees avec 2e voie/depot et signaux PBS (defaut),
+     * 0 = allongement de rame uniquement (mode historique). */
+    AddSetting({
+      name = "rail_refleet",
+      description = "Double saturated rail lines with parallel track, PBS signals and 2nd train: 1 = enabled (default), 0 = consist elongation only",
+      min_value = 0, max_value = 1,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* Part de la production totale d une ville qu un arret de bus capte, en pourcentage.
      *
      * 86 est adopte apres le banc apparie 20 graines (docs/bench_road_pax_catchment.json) :
