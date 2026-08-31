@@ -1164,8 +1164,11 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, join, cashR
       return { ok = false, reason = plan.reason, iterations = plan.iterations, opcodes = plan.opcodes,
                siteClear = plan.siteClear, siteCargo = plan.siteCargo, siteCmd = plan.siteCmd,
                siteKind = "N", joinEnd = "N", error = 0, diag = null,
+               trains = 0, doubleTrack = 0, doubleSkip = 0,
                capacitySignalSegments = 0, capacitySignalsOk = 0, capacitySignalsFail = 0,
                capacitySignalFailures = [],
+               signalsOk = 0, signalsFail = 0, signalsSkip = 0, signalJunc = 0,
+               signalFailures = [],
                budgetInfo = plan.budgetInfo, iterationBudget = plan.iterationBudget };
     }
   }

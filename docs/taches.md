@@ -845,18 +845,21 @@ borné~~ / ~~l'item **7**~~ / ~~l'item **4**~~.
   5 graines × 20 ans (`docs/opex_astar_cost1_20y_5seeds.json`) : 13–20 lignes, médiane 51→47
   tuiles, tentatives 227→149, ABND 12→7. Le piège « budgets 50–400, zéro ligne » est évité.
 
-  **Banc apparié 20 graines** (`docs/bench_astar_cost.json`) :
+  **Banc apparié 20 graines post-traction 20 ans** (`docs/bench_astar_cost.json`) :
+  - `company_value` : −8,9 % (t = −1,86, 7/20)
+  - `gares` : −7,9 % (t = −3,23, 4/20)
 
-  | métrique | delta | t | graines | verdict |
-  |---|---|---|---|---|
-  | `company_value` | −8,9 % | −1,86 | 7/20 | sous le plancher (~15 %) |
-  | `performance_history` | −5,3 % | −1,81 | 7/20 | sous le plancher (~12 %) |
-  | gares | **−7,9 %** | **−3,23** | 4/20 | **établi** — moins de lignes |
-  | véhicules | −7,6 % | −1,53 | 9/20 | nul |
+  **Ré-évaluation sur architecture continue (2026-08-31, `docs/bench_astar_cost_5y.json`, 20 graines × 5 ans)** :
+  
+  | métrique | Contrôle (`astar_cost=0`) | Traitement (`astar_cost=1`) | Delta | t | Graines | Verdict |
+  |---|---|---|---|---|---|---|
+  | `company_value` | 536 000 £ | 522 500 £ | −2,52 % | −0,73 | 8/20 | Défavorable à astar_cost=1 |
+  | `profit` (dernier trim.) | 44 800 £ | 42 770 £ | −4,75 % | −0,80 | 9/20 | Défavorable à astar_cost=1 |
+  | `profit_year` (annuel) | 174 200 £ | 172 080 £ | −1,23 % | −0,38 | 10/20 | Défavorable à astar_cost=1 |
+  | `performance_history` | 260,2 | 261,8 | +0,61 % | +0,21 | 13/20 | Neutre |
 
-  MIN_RATIO coupe le long sans le remplacer 1:1 par du court. ⚠️ **Défaut 0.**
-  `OpexAI[astar_cost=1]` rallume. Ne pas baisser MIN_RATIO « pour compenser » sans banc :
-  ce serait le vivier.
+  **Conclusion** : Même avec le précalcul continu et la boucle sans sleep, `astar_cost=1` (table v2) sur-pénalise inutilement les corridors à moyenne/longue distance au ranking annuel, retardant la construction de lignes très rentables.
+  ⚠️ **Défaut `astar_cost=0` STRICTEMENT MAINTENU.**
 - ✅ **Constantes HYPOTHÈSE `SPEED_EFFICIENCY_PCT = 70` et `WAGONS_PER_TRAIN = 5`** : remplacées
   le 2026-08-29 par la traction dimensionnée (`4a8e15e`). Rendement réel mesuré le 2026-08-30
   (§4.3) : 0,96 vs catalogue, 1,18 vs traction — le 70 % était trop pessimiste, pas de
