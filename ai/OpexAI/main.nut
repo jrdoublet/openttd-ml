@@ -2,10 +2,12 @@
  *
  * Principe directeur : le budget du VM (10 000 opcodes par tick) n'est pas un stock qu'on
  * economise mais un DEBIT non reportable. La seule decision est donc l'ALLOCATION : a quel
- * candidat va le prochain tick de calcul. D'ou deux metriques :
- *   - externe, l'arbitre : company_value au banc (sweeps/bench.py) ;
- *   - interne, la regle d'allocation : profit par opcode.
- * En cas de desaccord, le banc gagne.
+ * candidat va le prochain tick de calcul. Ordre des objectifs, explicite et stable :
+ *   1. maximiser le profit attendu par opcode ;
+ *   2. maximiser la performance de compagnie ;
+ *   3. maximiser les notes ;
+ *   4. maximiser la valeur de compagnie.
+ * Un objectif inferieur ne justifie jamais de sacrifier un objectif superieur.
  *
  * Quatre etages :
  *   0  catalog.nut       -- villes, industries, cargos, materiel roulant (rafraichi chaque annee)
@@ -208,17 +210,11 @@ class OpexAI extends AIController {
   _abandonedPairs = null;
   _airBuilt = false;
   _waterBuilt = false;
-  /* Ordonnanceur permanent : une tache atomique par tour de boucle. Contrairement au bloc annuel,
-   * il ne se remet pas a zero au changement d annee : apres le dernier element, l index revient
-   * immediatement au premier. Les taches gardent leurs invariants : air et eau uniques, rail
-   * classe, route bornee, remboursement prudent. */
+  /* Ordonnanceur permanent : une tache utile et due par tour de boucle. dueYear reporte le
+   * travail inutile a un cycle futur ; enabled=false retire definitivement une tache one-shot
+   * terminee ou une sonde desactivee. */
   _taskQueue = null;
-  _nextTask = 0;
   _ranked = null;
-  _lastReportYear = -1;
-  _lastScrapYear = -1;
-  _lastRefleetYear = -1;
-  _lastRepayYear = -1;
   /* Le diagnostic mono-bus (_roadDiag, _reportRoad, echantillon trimestriel RQ/RE/RI) a ete retire
    * le 2026-08-29 : il servait a trouver pourquoi UNE liaison ne chargeait rien, la reponse est
    * connue et documentee (builder_road.nut), et les lignes routieres rejoignent desormais _lines,
@@ -237,8 +233,19 @@ class OpexAI extends AIController {
     this._catalog = OpexCatalog();
     this._lines = [];
     this._abandonedPairs = {};
-    this._taskQueue = ["catalog", "report", "scrap", "refleet", "air", "water",
-                       "rail", "probe", "road", "repay"];
+    /* Priorite : donnees et stop-loss, revenu par opcode, modes sans score, experience, dette. */
+    this._taskQueue = [
+      { name = "catalog", dueYear = 0, enabled = true },
+      { name = "report", dueYear = 0, enabled = true },
+      { name = "scrap", dueYear = 0, enabled = true },
+      { name = "refleet", dueYear = 0, enabled = true },
+      { name = "rail", dueYear = 0, enabled = true },
+      { name = "road", dueYear = 0, enabled = true },
+      { name = "air", dueYear = 0, enabled = true },
+      { name = "water", dueYear = 0, enabled = true },
+      { name = "probe", dueYear = 0, enabled = true },
+      { name = "repay", dueYear = 0, enabled = true },
+    ];
   }
 
   function Start();
@@ -1722,55 +1729,67 @@ function OpexAI::_processEvents()
   }
 }
 
-/* Execute one queue item, then advance immediately. Maintenance is still yearly because
- * OpenTTD exposes last-year profit, not a shorter accounting period; construction and
- * one-shot modes are deliberately continuous. */
+/* Select the first useful task whose due year has arrived. A task reports itself to the
+ * next annual cycle before running; completed one-shot tasks and disabled probes retire
+ * permanently. If no task is due, the scan costs only this fixed ten-entry table. */
 function OpexAI::_runNextTask()
 {
-  if (this._taskQueue == null || this._taskQueue.len() == 0) return;
-  local task = this._taskQueue[this._nextTask];
-  this._nextTask = (this._nextTask + 1) % this._taskQueue.len();
+  if (this._taskQueue == null || this._taskQueue.len() == 0) return false;
   local year = AIDate.GetYear(AIDate.GetCurrentDate());
+  local task = null;
+  foreach (candidate in this._taskQueue) {
+    if (candidate.enabled && candidate.dueYear <= year) {
+      task = candidate;
+      break;
+    }
+  }
+  if (task == null) return false;
 
-  if (task == "catalog") {
+  /* Default outcome: do not pay this task again before the next catalog cycle. */
+  task.dueYear = year + 1;
+
+  if (task.name == "catalog") {
     this._catalog.refresh(this._budget, year);
     this._ranked = OpexBuildCandidates(this._catalog, this._budget, this._lines);
-    return;
+    return true;
   }
-  if (this._ranked == null) return;
-  if (task == "report") {
-    if (this._lastReportYear != year) {
-      OpexSign(AIMap.GetTileIndex(1, 1), "LB|" + (year % 100) + "|"
-               + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
-      this._reportYear(year, this._ranked);
-      this._reportLines(year);
-      this._lastReportYear = year;
-    }
-    return;
+  if (this._ranked == null) {
+    task.dueYear = year;
+    return false;
   }
-  if (task == "scrap") {
-    if (this._lastScrapYear != year) {
-      this._scrapDeadLines(year);
-      this._lastScrapYear = year;
-    }
-    return;
+  if (task.name == "report") {
+    OpexSign(AIMap.GetTileIndex(1, 1), "LB|" + (year % 100) + "|"
+             + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
+    this._reportYear(year, this._ranked);
+    this._reportLines(year);
+    return true;
   }
-  if (task == "refleet") {
-    if (this._lastRefleetYear != year) {
-      this._refleetRoadLines(year);
-      this._lastRefleetYear = year;
-    }
-    return;
+  if (task.name == "scrap") { this._scrapDeadLines(year); return true; }
+  if (task.name == "refleet") { this._refleetRoadLines(year); return true; }
+  if (task.name == "air") {
+    this._tryBuildAir(year);
+    if (this._airBuilt) task.enabled = false;
+    return true;
   }
-  if (task == "air") { this._tryBuildAir(year); return; }
-  if (task == "water") { this._tryBuildWater(year); return; }
-  if (task == "rail") { this._tryBuild(this._ranked, year); return; }
-  if (task == "probe") { if (PROBE_NEGATIVE) this._tryProbeNegative(this._ranked, year); return; }
-  if (task == "road") { this._tryBuildRoads(year); return; }
-  if (task == "repay" && this._lastRepayYear != year) {
-    this._tryRepayLoan(year);
-    this._lastRepayYear = year;
+  if (task.name == "water") {
+    this._tryBuildWater(year);
+    if (this._waterBuilt) task.enabled = false;
+    return true;
   }
+  if (task.name == "rail") { this._tryBuild(this._ranked, year); return true; }
+  if (task.name == "probe") {
+    if (!PROBE_NEGATIVE) { task.enabled = false; return false; }
+    this._tryProbeNegative(this._ranked, year);
+    return true;
+  }
+  if (task.name == "road") {
+    if (!ROAD_BUILD_ENABLED) { task.enabled = false; return false; }
+    this._tryBuildRoads(year);
+    return true;
+  }
+  if (task.name == "repay") { this._tryRepayLoan(year); return true; }
+  task.enabled = false;
+  return false;
 }
 
 function OpexAI::Start()

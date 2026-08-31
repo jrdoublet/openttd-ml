@@ -5,6 +5,18 @@ liste ; l'historique reste dans les journaux `docs/journal_*.md`.
 
 ---
 
+## Ordre des objectifs
+
+1. **Maximiser le profit attendu par opcode.**
+2. **Maximiser la performance de compagnie.**
+3. **Maximiser les notes.**
+4. **Maximiser la valeur de compagnie.**
+
+Un objectif inferieur ne justifie jamais de sacrifier un objectif superieur. Les bancs doivent
+donc etre lus dans cet ordre, et pas en prenant `company_value` comme arbitre unique.
+
+---
+
 ## 1. À lire et intégrer (demandé le 2026-08-28)
 
 À traiter comme `docs/mecanique_jeu.md` : **pas une copie du wiki, mais règle + conséquence pour la
@@ -1195,7 +1207,7 @@ mesurée : `docs/opexai_route.md`, banc PH **+9,3 %**.
 - ✅ **Gérer des voies aller-retour** (double voie v1, 2026-08-30). Voir item 9.5.
   Banc 20×20 vs `bench_road_current` : valeur +55 %, note −9 %. **Gardé.**
   Jointure aussi (item 0.7) : ne paie pas, défauts 0.
-- 🔴 **File attente continue** (2026-08-31) : smoke 15.3 OK. Banc apparie 20 graines x 20 ans (`docs/bench_continuous_queue.json`) : valeur **-11,1 %**, t = **-2,78**, 4/20 ; note compagnie -0,7 %, t = -0,51. La queue degrade la valeur sans gain de note : **ne pas adopter comme baseline**. Le code reste disponible pour une future politique de priorite mieux fondee.
+- 🔶 **File attente differee** (2026-08-31) : le premier essai round-robin payait toutes les taches tous les dix jours et perdait 11,1 % de valeur (`docs/bench_continuous_queue.json`). Corrige : chaque tache porte `dueYear` et `enabled`; maintenance, classement et constructions inutiles sont reportes au cycle annuel suivant, tandis que probe desactive et air/eau termines sortent definitivement de la file. Smoke OpenTTD 15.3 OK (30 000 ticks, aucune erreur Squirrel) ; banc du correctif reste a faire.
 - **Contribuer à la croissance d'une ville via des stations de bus/camions** (jusqu'à 5 gares,
   une unité de cargo par 50 jours) — recoupe le mode Route adopté (section 6), posé ici
   comme objectif de croissance plutôt que comme mode de transport. Le barème 15.3
