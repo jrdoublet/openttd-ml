@@ -65,7 +65,7 @@ function OpexSign(anchor, name)
 /* Reserve de tresorerie dynamique : adaptee a la taille de la flotte pour liberer le capital
  * des les premieres annees (15 000 £ au lieu de 50 000 £) et eviter les soldes oisifs. */
 DYNAMIC_CASH_RESERVE <- true;
-TREE_PLANTING <- true;
+TREE_PLANTING <- false;
 PAX_FULL_LOAD <- true;
 COMPLEX_CARGO <- true;
 AIR_STARTER <- true;

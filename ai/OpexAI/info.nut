@@ -510,13 +510,26 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
-    /* Plantation automatique d'arbres pour maximiser la reputation municipale et lever les refus de permis :
-     * 1 = plante des arbres si refus de permis ou notation basse (defaut), 0 = off. */
+    /* Plantation d'arbres PREVENTIVE, avant toute tentative de construction (air, route, rail,
+     * croissance urbaine) : 1 = plante systematiquement, 0 = off (defaut).
+     *
+     * ⚠️ Ce reglage ne commande QUE la plantation preventive, celle des sept sites gardes par
+     * TREE_PLANTING dans main.nut. Le recours REACTIF reste actif en permanence et n'est pas
+     * derriere ce drapeau : builder_air.nut appelle OpexBoostTownRating puis reessaie
+     * l'aeroport uniquement quand BuildAirport a renvoye un vrai ERR_LOCAL_AUTHORITY_REFUSES.
+     * C'est la regle voulue : on ne plante que si une ville nous refuse un aeroport.
+     *
+     * 0 est adopte apres le banc apparie 20 graines x 3 ans
+     * (docs/bench_treeplanting_3y_20seeds.json) : couper la plantation preventive vaut
+     * company_value +22,1 % (t = 2,42, 17/20 graines gagnantes), profit +26,8 % (t = 2,09),
+     * profit_year +20,1 %, et resserre la dispersion (CV 63,8 % -> 50,7 %). L'effet depasse
+     * le plancher de detection du banc (~15 % sur company_value). La depense d'arbres tombait
+     * au moment ou le capital initial est le plus contraint. */
     AddSetting({
       name = "tree_planting",
-      description = "Automatic tree planting to maximize town authority rating and bypass local permits: 1 = enabled (default), 0 = off",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
+      description = "Preventive tree planting before every build to raise town authority rating: 1 = enabled, 0 = off (default). The reactive retry after an airport refusal stays active regardless.",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
 
