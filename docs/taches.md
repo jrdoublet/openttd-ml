@@ -244,7 +244,7 @@ forfaitaire jamais calibré — est remplacé par un modèle de vitesse réellem
 
 ---
 
-## 0 ter. ✅ Ranking ROI et retour rapide sur investissement (Train & Avion) — FAIT (2026-08-31)
+## 0 ter. Ranking composite Train & Avion — HISTORIQUE, remplacé le 2026-09-01
 
 Répond au mur de trésorerie précoce par un arbitrage multi-critères inspiré des principes d'AAAHogEx (`docs/aaahogex_evaluation.md` §5quinquies) en *clean-room design* :
 
@@ -350,6 +350,29 @@ citer le +7,7 % comme un résultat acquis.
 3. ✅ **`station_join` : v1 en place, défaut 0.** Banc post-traction : construction sans
    valeur. `basin_share` mesuré ensuite : véhicules nuls, gares +12,9 %, valeur sous le
    plancher. Les deux défauts restent 0. Note AAAHogEx : `docs/aaahogex_rail_join.md`.
+
+---
+
+## 0 quater. ✅ Portefeuille ROI → capital → opcodes — FAIT (2026-09-01)
+
+`ai/OpexAI/projects.nut` remplace les files d'investissement modales par une seule liste de
+projets. L'ordre est désormais contractuel :
+
+1. génération de toutes les alternatives rentables rail/route/air/eau ;
+2. un gagnant par couple origine/destination au meilleur `profitAnnual / capital` ;
+3. maximisation gloutonne du revenu sous le capital réellement mobilisable ;
+4. ordre d'exécution des seuls projets financés par `revenueAnnual / expectedOpcodes`.
+
+Le rail et la route se chevauchent volontairement entre 5 et 25 tuiles. `MIN_RATIO` et
+`ROAD_MIN_PROFIT_ANNUAL` restent des mesures historiques mais n'éliminent plus une alternative
+rentable avant le choix modal. L'air émet toutes ses paires rentables ; l'eau teste la
+connectivité des quatre paires au meilleur ROI. Une construction réussie invalide le portefeuille
+afin de recalculer les origines et la trésorerie.
+
+Télémétrie : `IG` compte alternatives, couples O/D et projets financés ; `IB` rapporte budget
+mobilisable et capital sélectionné ; `IP` donne le mode et les scores capital/opcodes du projet
+exécuté. C'est la nouvelle base à mesurer face à AAAHogEx ; les résultats antérieurs documentent
+les composants, pas encore le gain de cette orchestration complète.
 
 ---
 

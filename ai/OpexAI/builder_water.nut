@@ -7,6 +7,7 @@ const WATER_MAX_DEPOT_PROBES = 96;
 const WATER_BFS_MARGIN = 24;
 const WATER_BFS_MAX_NODES = 12000;
 const WATER_CAPITAL_MARGIN = 50000;
+const WATER_PROJECT_POOL = 4;
 
 function OpexWaterInMap(x, y)
 {
@@ -23,6 +24,16 @@ function OpexWaterSortedTowns(towns)
     out.insert(pos, town);
   }
   return out;
+}
+function OpexWaterTownServed(town, lines)
+{
+  if (lines == null) return false;
+  foreach (line in lines) {
+    if (!("mode" in line) || line.mode != "water") continue;
+    if (AIMap.DistanceManhattan(town.tile, line.originA) < 15) return true;
+    if (AIMap.DistanceManhattan(town.tile, line.originB) < 15) return true;
+  }
+  return false;
 }
 
 /* Une tuile navigable a une vraie arete navigable ; aucun AIWaterTile n'est utilise. */
@@ -227,7 +238,47 @@ function OpexWaterFindDepot(siteA, siteB)
   return null;
 }
 
-function OpexWaterPlans(catalog)
+/* Economie maritime avant construction. La capacite du catalogue est une approximation de refit,
+ * comme pour la route ; le constructeur relit la capacite exacte dans le depot. */
+function OpexWaterEconomics(catalog, distance, orderDistance, monthlyPax)
+{
+  local best = null;
+  foreach (ship in catalog.ships) {
+    if (ship.capacity <= 0 || ship.speed <= 0) continue;
+    if (ship.maxOrderDistance > 0 && orderDistance > ship.maxOrderDistance) continue;
+    local effectiveSpeed = ship.speed / 2;
+    if (effectiveSpeed < 1) effectiveSpeed = 1;
+    local oneWayDays = (distance * 1000) / (36 * effectiveSpeed);
+    if (oneWayDays < 1) oneWayDays = 1;
+    local tripsPerMonth = 30 / oneWayDays;
+    if (tripsPerMonth < 1) tripsPerMonth = 1;
+    local offered = (monthlyPax * STATION_RATING_PCT) / 100;
+    local monthlyCapacity = ship.capacity * tripsPerMonth;
+    local carried = offered < monthlyCapacity ? offered : monthlyCapacity;
+    local income = AICargo.GetCargoIncome(catalog.paxCargo, distance, oneWayDays);
+    local revenueAnnual = 12 * carried * income;
+    local infraCapital = 2 * catalog.costDock + catalog.costWaterDepot;
+    local capital = infraCapital + ship.price;
+    local runningAnnual = ship.runningCost;
+    local amortAnnual = infraCapital / INFRA_LIFE_YEARS + ship.price / 20;
+    local profitAnnual = revenueAnnual - runningAnnual - amortAnnual;
+    local roi = (profitAnnual > 0 && capital > 0)
+        ? (profitAnnual * 1000) / capital : 0;
+    local economics = {
+      ship = ship, oneWayDays = oneWayDays, carried = carried,
+      revenueAnnual = revenueAnnual, runningAnnual = runningAnnual,
+      amortAnnual = amortAnnual, profitAnnual = profitAnnual,
+      capital = capital, roi = roi,
+    };
+    if (best == null || economics.roi > best.roi ||
+        (economics.roi == best.roi && economics.profitAnnual > best.profitAnnual)) {
+      best = economics;
+    }
+  }
+  return best;
+}
+
+function OpexWaterPlans(catalog, lines = null, projects = null)
 {
   if (catalog.ships.len() == 0 || catalog.paxCargo < 0) return null;
   local towns = OpexWaterSortedTowns(catalog.towns);
@@ -235,21 +286,40 @@ function OpexWaterPlans(catalog)
   local sites = [];
   local probes = { left = WATER_MAX_SITE_PROBES, townsLeft = limit };
   for (local i = 0; i < limit; i++) {
+    if (OpexWaterTownServed(towns[i], lines)) continue;
     local site = OpexWaterFindSite(towns[i], probes);
     if (site != null) sites.append(site);
   }
+  /* La connectivite maritime est couteuse. On classe d'abord toutes les paires sur leur ROI,
+   * puis on ne lance le BFS que sur un petit bassin economique. */
+  local ranked = [];
   for (local a = 0; a < sites.len(); a++) {
     for (local b = a + 1; b < sites.len(); b++) {
       local distance = AIMap.DistanceManhattan(sites[a].town.tile, sites[b].town.tile);
       if (distance < WATER_TOWN_MIN_DISTANCE) continue;
-      local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_WATER, sites[a].dock, sites[b].dock);
+      local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_WATER,
+                                                      sites[a].dock, sites[b].dock);
       if (orderDistance < 0 || !OpexWaterHasRange(catalog, orderDistance)) continue;
-      if (!OpexWaterFindConnection(sites[a], sites[b])) continue;
-      return { siteA = sites[a], siteB = sites[b], distance = distance,
-               orderDistance = orderDistance };
+      local monthlyPax = ((sites[a].town.pop + sites[b].town.pop) * 22) / 100;
+      local economics = OpexWaterEconomics(catalog, distance, orderDistance, monthlyPax);
+      if (economics == null || economics.profitAnnual <= 0) continue;
+      local plan = { siteA = sites[a], siteB = sites[b], distance = distance,
+                     orderDistance = orderDistance, economics = economics };
+      local pos = ranked.len();
+      while (pos > 0 && (ranked[pos - 1].economics.roi < economics.roi ||
+             (ranked[pos - 1].economics.roi == economics.roi &&
+              ranked[pos - 1].economics.profitAnnual < economics.profitAnnual))) pos--;
+      ranked.insert(pos, plan);
+      if (ranked.len() > WATER_PROJECT_POOL) ranked.pop();
     }
   }
-  return null;
+  local best = null;
+  foreach (plan in ranked) {
+    if (!OpexWaterFindConnection(plan.siteA, plan.siteB)) continue;
+    if (projects != null) projects.append(plan);
+    if (best == null) best = plan;
+  }
+  return best;
 }
 
 function OpexWaterRollback(dockA, dockB, depot, ship)

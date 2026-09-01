@@ -7,24 +7,33 @@ construction.
 
 ## Orchestration annuelle
 
-`ai/OpexAI/main.nut` rafraîchit le catalogue puis tente, dans cet ordre :
+`ai/OpexAI/main.nut` rafraîchit le catalogue puis exécute cette chaîne :
 
-1. les candidats ferroviaires classés par profit attendu / coût de recherche ;
-2. la phase routière (jusqu'à 3 lignes, bus et camions, bande 5–25 tuiles) — `road_mode`, défaut 1 ;
-3. au plus une liaison aérienne de passagers ;
-4. au plus une liaison maritime de passagers.
+1. rail, route, air et eau produisent leurs alternatives économiques faisables ;
+2. `projects.nut` regroupe les alternatives par couple origine/destination et garde le mode au
+   meilleur ROI, défini par `profitAnnual / capital` ;
+3. les projets gagnants sont classés par `revenueAnnual / budgetCapital` et le budget disponible
+   est rempli sans dépasser capital liquide + emprunt mobilisable − réserve ;
+4. seuls les projets financés sont reclassés par `revenueAnnual / expectedOpcodes` ;
+5. l'ordonnanceur construit le premier projet, puis invalide et recalcule tout le portefeuille.
 
-Le rail choisit en premier : il vaut un ordre de grandeur de plus par ligne et dispute les mêmes
-origines et la même trésorerie. Après un rechargement, OpexAI recherche les véhicules `VT_AIR` et
-`VT_WATER` déjà présents avant de construire. Les liaisons aérienne et maritime réussies
-rejoignent `_lines`. Les lignes routières aussi, mais `OpexOriginServed(..., includeRoad = false)`
-et `_tooClose` les ignorent : un bus de 12 tuiles n'épuise pas une ville contre le rail.
+Le choix modal est donc antérieur aux deux contraintes et ne dépend jamais d'une priorité
+rail/route/air/eau. Le budget optimise le **revenu**, pas le profit, une fois les alternatives non
+rentables éliminées par le ROI. Les opcodes déjà dépensés pour découvrir les projets sont
+télémétrés mais ne sont pas refacturés dans leur coût d'exécution restant.
 
-**Route.** La v1 (une liaison bus, désactivée après notes −1) est **périmée**. Le mode actuel est
-une phase annuelle adoptée au banc ; SITE/TRACEX/classement/multistop mesurés :
-[`docs/opexai_route.md`](opexai_route.md). Les chiffres de coût `Pathfinder.Road` (696 794
-opcodes) contre le L Manhattan (171 356) ci-dessous restent la raison pour laquelle on n'importe
-pas l'A* routier.
+L'air expose toutes les paires rentables de chaque combinaison aéroport/avion. L'eau classe
+d'abord les paires par ROI, puis borne à quatre les BFS de connectivité les plus prometteurs.
+Après un succès, les villes déjà desservies par le même mode sont exclues du portefeuille suivant,
+ce qui empêche les doublons sans limiter globalement le nombre de lignes. Toutes les lignes
+réussies rejoignent `_lines`. `OpexOriginServed(..., includeRoad = false)` et `_tooClose`
+continuent d'ignorer les arrêts routiers pour le seul filet physique ferroviaire.
+
+**Route.** La v1 (une liaison bus, désactivée après notes −1) est **périmée**. Les familles bus et
+camions alimentent désormais le portefeuille commun. SITE/TRACEX/multistop mesurés :
+[`docs/opexai_route.md`](opexai_route.md). Les coûts de `Pathfinder.Road` (696 794 opcodes)
+contre le L Manhattan borné (171 356) restent la raison pour laquelle on n'importe pas l'A*
+routier.
 
 ## Liaison routière v1 (historique, 2026-08-28)
 

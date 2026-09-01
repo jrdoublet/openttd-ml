@@ -4,17 +4,20 @@
  * plus population_a * population_b / distance (un proxy) mais la PRODUCTION reelle multipliee par
  * le revenu unitaire reel (AICargo.GetCargoIncome), c'est-a-dire la grandeur physique.
  *
- * Etage 2 -- le cout en opcodes attendu. C'est l'etage que personne n'a, et le denominateur du
- * classement interne. Pour l'instant c'est un modele lineaire grossier ; il sera remplace par une
- * regression ajustee sur les campagnes, ou le nombre reel d'iterations d'A* par ligne est connu.
+ * Etage 2 -- le cout en opcodes attendu. Pour l'instant c'est un modele lineaire grossier ; il
+ * sera remplace par une regression ajustee sur les campagnes, ou le nombre reel d'iterations
+ * d'A* par ligne est connu.
  *
- * Le classement se fait sur le RAPPORT revenu/opcode, jamais sur le revenu seul : le budget est un
- * debit non reportable, la seule question est de savoir a quel candidat va le prochain tick.
+ * candidates.nut produit les alternatives : projects.nut choisit d'abord le ROI modal, remplit
+ * ensuite le budget sur le revenu/capital, puis seulement ordonne sur le revenu/opcode.
  */
 
-/* Distance minimale : sous 25 tuiles le profit MEDIAN mesure est negatif (-296 626 sur 20 lignes
- * de la campagne v3). Ce n'est pas une precaution, c'est une mesure. */
-const MIN_DISTANCE = 25;
+/* Distance minimale commune aux projets terrestres. Le rail et la route doivent se chevaucher
+ * entre 5 et 25 tuiles : couper le rail a 25 AVANT le calcul economique empechait precisement de
+ * choisir le meilleur mode pour un meme couple origine/destination. Le modele de capital du rail
+ * le declasse normalement dans cette bande ; c'est desormais un resultat du ROI, pas un a priori
+ * d'orchestration. */
+const MIN_DISTANCE = 5;
 const MAX_DISTANCE = 200;
 /* H2 : bande courte depuis une gare deja a nous. MIN_DISTANCE inchange
  * pour les lignes neuves. join_max_distance > 0 bride aussi cette bande. */
@@ -187,12 +190,11 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
 
   local iterations = OpexRailIterations(distance);
   local opcodeRatio = (economics.profitAnnual * 1000) / iterations;
-  /* Sous MIN_RATIO, le candidat coute structurellement plus qu'il ne rapporte compare au reste du
-   * classement -- ne merite pas d'occuper une place dans le TOP_K meme s'il est techniquement
-   * profitable (economics.profitAnnual > 0 ne suffit pas, voir MIN_RATIO ci-dessus). */
+  /* MIN_RATIO reste une mesure et le cout d'opportunite terminal du pathfinder, mais il ne peut
+   * plus eliminer un mode AVANT l'arbitrage par couple O/D. La contrainte d'opcodes est appliquee
+   * apres la contrainte de capital dans projects.nut. */
   if (opcodeRatio < MIN_RATIO) {
     stats.ratioTooLow++;
-    return null;
   }
 
   /* Score composite : priorise le fort ROI et le retour sur investissement rapide (cash turnover).
@@ -208,6 +210,7 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
 
   stats.accepted++;
   return {
+    mode = "rail",
     kind = kind,            // "pax" ou "freight"
     cargo = cargo,
     /* Vrai quand UNE des deux extremites reutilise une origine deja desservie : ce candidat n'est
@@ -254,7 +257,7 @@ function OpexMakePaxNearCandidate(kind, cargo, srcTile, dstTile, monthly, origin
   stats.paxNearAdmitted++;
   stats.accepted++;
   local candidate = {
-    kind = kind, cargo = cargo, originServed = originServed,
+    mode = "rail", kind = kind, cargo = cargo, originServed = originServed,
     src = srcTile, dst = dstTile, distance = distance, monthly = monthly,
     trains = economics.trains, wagons = economics.wagons, perTrain = economics.perTrain,
     platformLength = economics.platformLength, loco = economics.loco,
@@ -851,7 +854,8 @@ function OpexBuildCandidates(catalog, budget, lines)
   budget.end("cand_rank");
 
   stats.topKOmitted = all.len() - best.len();
-  return { all = all.len(), best = best, bands = OpexBands(all), stats = stats };
+  return { all = all.len(), candidates = all, best = best,
+           bands = OpexBands(all), stats = stats };
 }
 
 /* Meilleur rapport atteint dans chaque bande de distance.
@@ -877,13 +881,12 @@ function OpexBands(all)
 
 /* --- Candidats ROUTIERS (2026-08-29) ---------------------------------------------------------
  *
- * Creneau volontairement DISJOINT de celui du rail : 5 a 25 tuiles, la bande que MIN_DISTANCE = 25
- * refuse structurellement au rail parce que le profit median y est negatif POUR LE RAIL (une gare,
- * une voie et une locomotive ne s'amortissent pas sur 15 tuiles). Un camion, lui, n'a ni voie ni
- * signaux : son capital est d'un ordre de grandeur en dessous, donc le meme volume sur la meme
- * distance peut le rentabiliser. Les deux modes ne se disputent donc jamais la meme PAIRE ; ils
- * peuvent en revanche se disputer la meme ORIGINE, et c'est le rail qui sert en premier
- * (main.nut : _tryBuildRoads est appele APRES _tryBuild, et exclut toute origine deja servie).
+ * Le creneau route reste borne a 5--25 tuiles, mais le rail descend maintenant a 5 : ce
+ * chevauchement est volontaire. Une gare, une voie et une locomotive amortissent souvent moins
+ * bien une liaison courte qu'un camion sans voie ni signaux ; projects.nut mesure pourtant les
+ * deux au lieu de graver cette conclusion dans une bande de distance. Les modes se disputent donc
+ * bien la meme PAIRE, et le gagnant est celui au meilleur ROI. Le revenu/capital remplit ensuite
+ * le budget commun, puis le revenu/opcodes ordonne seulement les projets finances.
  *
  * Trois familles de candidats, la deuxieme et la troisieme etant l'objet meme de la manoeuvre --
  * "des petites lignes courtes avec du cargo" :
@@ -896,20 +899,17 @@ function OpexBands(all)
 const ROAD_MIN_DISTANCE = 5;
 const ROAD_MAX_DISTANCE = 25;
 
-/* Le classement routier est SEPARE de celui du rail (TOP_K), et plus court : une tentative
- * routiere est bornee et bon marche, mais chaque ligne consomme de la tresorerie et un couple
- * d'origines. Douze candidats couvrent largement les ROAD_MAX_NEW_LINES_PER_YEAR retenus. */
+/* TOP_K reste une vue de diagnostic propre a la route. La decision d'investissement utilise la
+ * liste complete candidates et le portefeuille commun de projects.nut ; ce plafond ne peut donc
+ * plus imposer une priorite modale. */
 const ROAD_TOP_K = 12;
 
-/* Plancher de profit annuel attendu. Ce n'est PAS l'equivalent de MIN_RATIO (un cout d'opportunite
- * en opcodes) mais un cout d'opportunite en TRESORERIE et en origines : une ligne routiere qui
- * rapporte quelques centaines par an immobilise une ville ou une industrie que le rail aurait pu
- * prendre, et ajoute un vehicule a surveiller. Valeur ARBITRAIRE, choisie a l'ordre de grandeur du
- * profit d'une liaison bus courte sur une petite ville (~1 500/an au modele) : elle laisse passer
- * le fret, qui la depasse d'un ou deux ordres de grandeur, et coupe la desserte passagers la plus
- * marginale. Mesure 2026-08-30 (docs/opex_road_predict_vs_actual.json) : 12 pax, mediane
- * reel/predit 3,91 ; fret temoin 1,21. Ne PAS baisser ce plancher pour « laisser passer le pax
- * sous-estime » : le 22 % de bassin est aussi le rail. */
+/* Repere historique de profit, conserve pour RS et les campagnes comparables. Il ne coupe plus
+ * aucun candidat rentable avant l'arbitrage modal : profitTooLow compte les projets sous ce
+ * repere, tandis que profitAnnual <= 0 reste le seul rejet economique. Mesure 2026-08-30
+ * (docs/opex_road_predict_vs_actual.json) : 12 pax, mediane reel/predit 3,91 ; fret temoin 1,21.
+ * La valeur n'est donc plus un parametre de decision.
+ */
 const ROAD_MIN_PROFIT_ANNUAL = 1000;
 
 /* Seuil d'acceptation d'une ville pour un cargo. AITile.GetCargoAcceptance rend une acceptation en
@@ -922,10 +922,10 @@ const ROAD_ACCEPTANCE_MIN = 8;
  *
  * Mesure 2026-08-30 (docs/opex_road_rb_calibrate.json, panneau RB, campagne TRACEX 5 graines,
  * n = 10). Plan OK mediane 31 440 opcodes (~11,7 iter) contre 20+d ~ 42,5 (rapport 0,29).
- * BASE impliquee plan seul : -9. TRACEX 70-107 k. Le build (mediane 287 k) n'est pas le
- * denominateur du rail (A*). Un ratio route sur le plan reel (68 k-710 k) ecrase le rail
- * (mediane 5 040, MIN_RATIO 500) : ne PAS unifier les classements. BASE reste 20, intra-route
- * seulement. Le rail d'abord est une decision de valeur (docs/opexai_route.md §2), pas d'opcode. */
+ * BASE impliquee plan seul : -9. TRACEX 70-107 k. Le build (mediane 287 k) est maintenant inclus
+ * dans expectedOpcodes, comme la transaction rail : l'unite commune ne sert qu'a ordonner sous
+ * contrainte de calcul APRES le choix modal par ROI et la selection sous capital.
+ */
 const ROAD_PLAN_ITERATIONS_BASE = 20;
 
 function OpexRoadIterations(distance)
@@ -949,10 +949,12 @@ function OpexMakeRoadCandidate(catalog, kind, cargo, src, dst, srcTown, dstTown,
     stats.economicsUnavailable++;
     return null;
   }
-  if (economics.profitAnnual < ROAD_MIN_PROFIT_ANNUAL) {
+  /* Le plancher historique reste telemetre mais ne peut plus eliminer un mode avant le ROI. */
+  if (economics.profitAnnual <= 0) {
     stats.profitTooLow++;
     return null;
   }
+  if (economics.profitAnnual < ROAD_MIN_PROFIT_ANNUAL) stats.profitTooLow++;
   local iterations = OpexRoadIterations(distance);
   stats.accepted++;
   return {
@@ -972,6 +974,7 @@ function OpexMakeRoadCandidate(catalog, kind, cargo, src, dst, srcTown, dstTown,
     trains = economics.trains,
     carried = economics.carried,
     capital = economics.capital,
+    roi = economics.roi,
     profitAnnual = economics.profitAnnual,
     revenueAnnual = economics.revenueAnnual,
     runningAnnual = economics.runningAnnual,
@@ -1112,7 +1115,8 @@ function OpexBuildRoadCandidates(catalog, budget, lines)
   /* Le cout de CETTE annee, pas le cumul : budget.get() totalise depuis le debut de la partie, et
    * c'est le debit annuel qui dit si la generation routiere merite sa place. Il est paye meme les
    * annees ou rien n'est bati, donc le panneau RN le porte sans condition (main.nut). */
-  return { all = all.len(), best = OpexTopK(all, ROAD_TOP_K), stats = stats, opcodes = ops };
+  return { all = all.len(), candidates = all, best = OpexTopK(all, ROAD_TOP_K),
+           stats = stats, opcodes = ops };
 }
 
 /* Rehausse la reputation municipale aupres de l'autorite locale en plantant des arbres.

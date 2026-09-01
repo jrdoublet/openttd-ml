@@ -187,7 +187,16 @@ function OpexAirAddPlane(line)
  * grand aeroport (+gros/petit avion) et petit aeroport (+petit avion strictement).
  * Chaque paire demarre avec un avion et les paires restent classees au ROI : maximiser le profit
  * total d'une seule paire immobilisait le capital et choisissait une moins bonne rotation. */
-function OpexAirPlans(catalog, lines = null, maxCapital = 0)
+function OpexAirPlanBetter(plan, bestPlan)
+{
+  if (bestPlan == null) return true;
+  if (plan.economics.roi != bestPlan.economics.roi) {
+    return plan.economics.roi > bestPlan.economics.roi;
+  }
+  return plan.economics.profitAnnual > bestPlan.economics.profitAnnual;
+}
+
+function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null)
 {
   local combos = (("airCombos" in catalog) && catalog.airCombos != null && catalog.airCombos.len() > 0)
       ? catalog.airCombos
@@ -265,7 +274,8 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0)
                                                 + economics.oneWayDays.tointeger());
         }
         if (economics.profitAnnual > 0) {
-          if (bestPlan == null || economics.profitAnnual > bestPlan.economics.profitAnnual) {
+          if (projects != null) projects.append(plan);
+          if (OpexAirPlanBetter(plan, bestPlan)) {
             bestPlan = plan;
           }
         }
@@ -343,7 +353,8 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0)
           capital = economics.capital, economics = economics,
           reuseA = true, hubRoutes = hub.routes,
         };
-        if (bestPlan == null || economics.profitAnnual > bestPlan.economics.profitAnnual) bestPlan = plan;
+        if (projects != null) projects.append(plan);
+        if (OpexAirPlanBetter(plan, bestPlan)) bestPlan = plan;
       }
     }
 
@@ -381,7 +392,8 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0)
           capital = economics.capital, economics = economics,
           reuseA = true, reuseB = true, hubRoutes = hub1.routes + hub2.routes,
         };
-        if (bestPlan == null || economics.profitAnnual > bestPlan.economics.profitAnnual) bestPlan = plan;
+        if (projects != null) projects.append(plan);
+        if (OpexAirPlanBetter(plan, bestPlan)) bestPlan = plan;
       }
     }
     if (AIR_HUB && hubs.len() > 0) {
@@ -389,8 +401,6 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0)
                + (bestPlan != null && bestPlan.reuseA ? 1 : 0));
     }
     OpexSign(AIMap.GetTileIndex(1, 4), "AE|S=" + sites.len() + "|B=" + (bestPlan != null ? bestPlan.economics.profitAnnual : "NO"));
-    // Si on a trouve un plan rentable pour le grand aeroport a gros avion, on le retient
-    if (bestPlan != null && bestPlan.airport.allowBig) break;
   }
   return bestPlan;
 }

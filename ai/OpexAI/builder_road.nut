@@ -17,8 +17,8 @@
  *
  * Historique (2026-08-29) : la v1 ne savait construire qu'UNE liaison passagers, choisie en
  * balayant toutes les paires de villes de la carte. Elle est devenue un constructeur par candidat
- * -- le classement vit dans candidates.nut (OpexBuildRoadCandidates), ce fichier ne fait plus que
- * planifier et batir la paire qu'on lui donne.
+ * -- les alternatives naissent dans candidates.nut et la decision vit dans projects.nut ; ce
+ * fichier ne fait plus que planifier et batir la paire qu'on lui donne.
  */
 
 const ROAD_MAX_TRACE_TILES = 32;

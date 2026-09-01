@@ -46,6 +46,9 @@ RE_OL_TRACTION = re.compile(r"^OL\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
 RE_PL = re.compile(r"^PL\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
 RE_PT = re.compile(r"^PT\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
 RE_PG = re.compile(r"^PG\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
+RE_IG = re.compile(r"^IG\|(\d{2})\|(\d+)\|(\d+)\|(\d+)$")
+RE_IB = re.compile(r"^IB\|(\d{2})\|(\d+)\|(\d+)$")
+RE_IP = re.compile(r"^IP\|(\d{2})\|([TRAW])\|(\d+)\|(\d+)$")
 RE_PD = re.compile(r"^PD\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)(?:\|(\d+))?$")
 RE_PS = re.compile(r"^PS\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)(?:\|([PF]))?(?:\|([ABN]))?$")
 RE_OY = re.compile(r"^OY\|(\d+)\|(\d+)\|(-?\d+)\|(-?\d+)$")
@@ -760,6 +763,37 @@ def parse_safety(all_signs):
     }
 
 
+def parse_project_portfolios(all_signs):
+    """Portefeuilles IG/IB et décisions IP, dans l'ordre de création des panneaux."""
+    portfolios, decisions = [], []
+    current = None
+    for sign in all_signs:
+        if m := RE_IG.match(sign):
+            current = {
+                "year": 1900 + int(m.group(1)),
+                "mode_candidates": int(m.group(2)),
+                "od_projects": int(m.group(3)),
+                "budget_selected": int(m.group(4)),
+            }
+            portfolios.append(current)
+        elif m := RE_IB.match(sign):
+            row = {
+                "year": 1900 + int(m.group(1)),
+                "capital_budget": int(m.group(2)),
+                "selected_capital": int(m.group(3)),
+            }
+            if current is not None and current["year"] == row["year"]:
+                current.update(row)
+            else:
+                portfolios.append(row)
+        elif m := RE_IP.match(sign):
+            decisions.append({
+                "year": 1900 + int(m.group(1)),
+                "mode": {"T": "rail", "R": "road", "A": "air", "W": "water"}[m.group(2)],
+                "budget_score": int(m.group(3)), "opcode_score": int(m.group(4)),
+            })
+    return portfolios, decisions
+
 def parse_yearly(all_signs):
     """Series annuelles : candidats totaux (OX), lignes construites a date (OW), utilisation du
     budget d'opcodes en pour mille (OS)."""
@@ -1172,6 +1206,7 @@ def make_run_payload(rows, seed, years):
     attempts = parse_attempts(final["signs"])
     safety = parse_safety(final["signs"])
     yearly = parse_yearly(final["signs"])
+    project_portfolios, project_decisions = parse_project_portfolios(final["signs"])
     annual_blocks = parse_annual_blocks(final["signs"])
     calendar_years_crossed = [missed for block in annual_blocks for missed in
                               range(block["year"] - block["calendar_years_crossed_before"], block["year"])]
@@ -1223,6 +1258,10 @@ def make_run_payload(rows, seed, years):
         "final_performance_history": final["performance_history"],
         "final_money": final["money"], "final_current_loan": final["current_loan"],
         "final_n_vehicles": final["n_vehicles"], "final_n_stations": final["n_stations"],
+        "n_project_portfolios": len(project_portfolios),
+        "n_project_decisions": len(project_decisions),
+        "project_portfolios": project_portfolios,
+        "project_decisions": project_decisions,
         "n_rail_lines_ok": n_rail_ok, "n_rail_attempts_total": len(attempts),
         "n_rail_attempts_failed": n_rail_failed_attempts,
         "n_rail_attempts_sitea": sum(1 for attempt in attempts if attempt["reason"] == "SITEA"),

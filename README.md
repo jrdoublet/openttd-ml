@@ -5,11 +5,13 @@ construction, sans simuler la partie ? Voir `docs/methode.md` pour le protocole 
 
 ## OpexAI
 
-`ai/OpexAI/` est l'IA de production actuelle, ciblée sur OpenTTD 15.3 / API NoAI 15. Elle
-construit des lignes ferroviaires, une liaison aérienne et une liaison maritime de passagers, et
-une phase routière annuelle (bus et camions, bande 5–25 tuiles). Réglage `road_mode`, défaut 1,
-adopté au banc actuel (`performance_history` +15,3 %, t = 5,65). Conception air/eau :
-[`docs/opexai_multimodal.md`](docs/opexai_multimodal.md). Mode route :
+`ai/OpexAI/` est l'IA de production actuelle, ciblée sur OpenTTD 15.3 / API NoAI 15. Après le
+catalogue, elle produit un portefeuille commun rail/route/air/eau : meilleur ROI par couple
+origine/destination, sélection du revenu sous contrainte de capital, puis ordre d'exécution sous
+contrainte d'opcodes. La route couvre bus et camions ; `road_mode` vaut 1 par défaut, adopté au
+banc actuel (`performance_history` +15,3 %, t = 5,65).
+
+Architecture multimodale : [`docs/opexai_multimodal.md`](docs/opexai_multimodal.md). Mode route :
 [`docs/opexai_route.md`](docs/opexai_route.md). Correctifs de rentabilité et de croissance :
 [`docs/opexai_croissance.md`](docs/opexai_croissance.md). Backlog : [`docs/taches.md`](docs/taches.md).
 

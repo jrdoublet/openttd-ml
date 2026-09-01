@@ -381,6 +381,9 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
   local life = engine.ageYears > 0 ? engine.ageYears : 12;
   local amortAnnual = vehicleCost / life + infraCost / INFRA_LIFE_YEARS;
   local runningAnnual = vehicles * engine.runningCost;
+  local capital = vehicleCost + infraCost;
+  local profitAnnual = revenueAnnual - runningAnnual - amortAnnual;
+  local roi = (profitAnnual > 0 && capital > 0) ? (profitAnnual * 1000) / capital : 0;
 
   return {
     oneWayDays = oneWayDays,
@@ -389,8 +392,9 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
     revenueAnnual = revenueAnnual,
     runningAnnual = runningAnnual,
     amortAnnual = amortAnnual,
-    capital = vehicleCost + infraCost,
-    profitAnnual = revenueAnnual - runningAnnual - amortAnnual,
+    capital = capital,
+    profitAnnual = profitAnnual,
+    roi = roi,
     effectiveSpeed = effectiveSpeed,
   };
 }

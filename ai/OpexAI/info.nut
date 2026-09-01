@@ -1,9 +1,9 @@
 class OpexAI extends AIInfo {
   function GetAuthor()      { return "openttd-ml"; }
   function GetName()        { return "OpexAI"; }
-  function GetDescription() { return "IA qui traite les opcodes comme une ressource de jeu : chaque candidat porte un profit attendu ET un cout en opcodes attendu, et le budget va au meilleur rapport."; }
-  function GetVersion()     { return 5; }
-  function GetDate()        { return "2026-08-30"; }
+  function GetDescription() { return "IA multimodale : meilleur ROI par origine/destination, puis revenu maximise sous contraintes de capital et d'opcodes."; }
+  function GetVersion()     { return 6; }
+  function GetDate()        { return "2026-09-01"; }
   function CreateInstance() { return "OpexAI"; }
   function GetShortName()   { return "OPEX"; }
   function GetAPIVersion()  { return "15"; }
@@ -382,16 +382,15 @@ class OpexAI extends AIInfo {
      * une seule graine, un ecart bien sous le plancher de detection du banc (~15 % sur
      * company_value, docs/taches.md S5).
      *
-     * CE QUE LE MODE FAIT MAINTENANT, ET POURQUOI C'EST UN AUTRE PARI. Ce n'est plus une liaison
-     * passagers unique mais une phase annuelle qui bâtit jusqu'a ROAD_MAX_NEW_LINES_PER_YEAR
-     * petites lignes, dont -- c'est l'essentiel -- des lignes de FRET par camion, industrie vers
-     * industrie et industrie vers ville. Le pari tient en une phrase : sur 5 a 25 tuiles, un
-     * camion n'a ni voie, ni signaux, ni gare, donc son capital est d'un ordre de grandeur sous
-     * celui du rail, et la bande de distance ou le rail perd de l'argent (MIN_DISTANCE = 25, une
-     * mesure) peut lui etre rentable. Le wiki previent qu'une courte liaison BUS "ne sera
-     * probablement pas tres rentable" (docs/mecanique_jeu.md S11) -- il ne dit rien de tel du
-     * fret, et notre plancher ROAD_MIN_PROFIT_ANNUAL laisse justement passer le second en coupant
-     * le premier quand il est marginal.
+     * CE QUE LE MODE FAIT MAINTENANT. Ce n'est plus une liaison passagers unique mais une famille
+     * de projets, dont -- c'est l'essentiel -- des lignes de FRET par camion, industrie vers
+     * industrie et industrie vers ville. Sur 5 a 25 tuiles, un camion n'a ni voie, ni signaux, ni
+     * gare, donc son capital est souvent d'un ordre de grandeur sous celui du rail. Depuis la
+     * chaine ROI, le rail couvre aussi cette bande : projects.nut compare les deux modes sur la
+     * meme paire au lieu de donner la priorite a l'un d'eux. Le wiki previent qu'une courte
+     * liaison BUS "ne sera probablement pas tres rentable" (docs/mecanique_jeu.md S11) -- le
+     * modele economique tranche desormais chaque cas, sans plancher de profit eliminatoire avant
+     * l'arbitrage modal.
      *
      * VERDICT DU BANC APPARIE (docs/bench_v2_road.json, 20 graines x 20 ans, OpexAI contre
      * OpexAI[road_mode=0]) : ADOPTE, sur la metrique que le projet a designee comme la bonne entre
@@ -498,12 +497,12 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
-    /* Demarrage aerien prioritaire et expansion de la flotte aerienne :
-     * 1 = priorite aux lignes aeriennes a fort ROI des l'an 0 et expansion jusqu'a 15 lignes (defaut),
-     * 0 = cadence aerienne historique lente (1 ligne/an, max 5). */
+    /* Politique de capacite aerienne, sans priorite modale :
+     * 1 = marge de depart reduite, plafond de lignes releve et expansion de flotte (defaut) ;
+     * 0 = politique de capacite historique lente (1 ligne/an, max 5). */
     AddSetting({
       name = "air_starter",
-      description = "Air starter & aggressive air expansion: 1 = enabled (default), 0 = historical slow air (1/yr, max 5)",
+      description = "Air capacity policy: 1 = aggressive fleet/line caps (default), 0 = historical slow capacity (1/yr, max 5)",
       min_value = 0, max_value = 1,
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
