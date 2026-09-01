@@ -190,10 +190,13 @@ function OpexAirAddPlane(line)
   if (!("vehicles" in line) || line.vehicles.len() == 0) {
     result.reason = "NOVEH"; return result;
   }
-  if (!AIAirport.IsAirportTile(line.stationA)) {
+  local airportTile = ("originA" in line) && AIAirport.IsAirportTile(line.originA)
+      ? line.originA
+      : (AIAirport.IsAirportTile(line.stationA) ? line.stationA : null);
+  if (airportTile == null) {
     result.reason = "NOAIR"; return result;
   }
-  local hangar = AIAirport.GetHangarOfAirport(line.stationA);
+  local hangar = AIAirport.GetHangarOfAirport(airportTile);
   if (!AIMap.IsValidTile(hangar) || !AIAirport.IsHangarTile(hangar)) {
     result.reason = "HANG"; return result;
   }
@@ -354,23 +357,23 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null)
       local seenStations = {};
       foreach (line in lines) {
         if (!("mode" in line) || line.mode != "air") continue;
-        if (("lastProfit" in line) && line.lastProfit < 0) continue;
+        if (("deadStreak" in line) && line.deadStreak >= 2) continue;
         local ends = [
-          { anchor = line.stationA, origin = line.originA },
-          { anchor = line.stationB, origin = line.originB },
+          { anchor = line.originA, origin = line.originA, stationId = line.stationA },
+          { anchor = line.originB, origin = line.originB, stationId = line.stationB },
         ];
         foreach (end in ends) {
-          if (!AIAirport.IsAirportTile(end.anchor)) continue;
+          if (!AIMap.IsValidTile(end.anchor) || !AIAirport.IsAirportTile(end.anchor)) continue;
           local existingType = AIAirport.GetAirportType(end.anchor);
           if (!OpexAirAirportAcceptsPlane(existingType, plane.planeType)) continue;
-          local station = AIStation.GetStationID(end.anchor);
-          if (!AIStation.IsValidStation(station) || station in seenStations) continue;
+          local station = AIStation.IsValidStation(end.stationId) ? end.stationId : AIStation.GetStationID(end.anchor);
+          if (!AIStation.IsValidStation(station) || (station in seenStations)) continue;
 
           local routeCount = 0;
           foreach (other in lines) {
             if (!("mode" in other) || other.mode != "air") continue;
-            local otherA = AIStation.GetStationID(other.stationA);
-            local otherB = AIStation.GetStationID(other.stationB);
+            local otherA = AIStation.IsValidStation(other.stationA) ? other.stationA : AIStation.GetStationID(other.originA);
+            local otherB = AIStation.IsValidStation(other.stationB) ? other.stationB : AIStation.GetStationID(other.originB);
             if (otherA == station || otherB == station) routeCount++;
           }
           local maxRoutes = (existingType == AIAirport.AT_SMALL || existingType == AIAirport.AT_COMMUTER) ? 4 : 12;
@@ -385,7 +388,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null)
             hubTown = { id = townId, tile = end.origin, pop = AITown.GetPopulation(townId) };
           }
           seenStations.rawset(station, true);
-          hubs.append({ town = hubTown, anchor = end.anchor, routes = routeCount });
+          hubs.append({ town = hubTown, anchor = end.anchor, stationId = station, routes = routeCount });
         }
       }
     }
@@ -421,13 +424,13 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null)
       for (local j = i + 1; j < hubs.len(); j++) {
         local hub1 = hubs[i];
         local hub2 = hubs[j];
-        local st1 = AIStation.GetStationID(hub1.anchor);
-        local st2 = AIStation.GetStationID(hub2.anchor);
+        local st1 = hub1.stationId;
+        local st2 = hub2.stationId;
         local alreadyConnected = false;
         foreach (line in lines) {
           if (!("mode" in line) || line.mode != "air") continue;
-          local oA = AIStation.GetStationID(line.stationA);
-          local oB = AIStation.GetStationID(line.stationB);
+          local oA = AIStation.IsValidStation(line.stationA) ? line.stationA : AIStation.GetStationID(line.originA);
+          local oB = AIStation.IsValidStation(line.stationB) ? line.stationB : AIStation.GetStationID(line.originB);
           if ((oA == st1 && oB == st2) || (oA == st2 && oB == st1)) {
             alreadyConnected = true; break;
           }

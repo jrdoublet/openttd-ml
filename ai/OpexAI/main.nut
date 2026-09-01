@@ -146,8 +146,8 @@ CASH_CANDIDATE_SCAN_LIMIT <- TOP_K;
  *  - le nombre de TENTATIVES, parce qu'un plan qui echoue coute quand meme ses sondes de site et
  *    ses validations d'aretes. Sans lui, une annee ou aucun candidat n'est constructible paierait
  *    le plan des douze. */
-const ROAD_MAX_NEW_LINES_PER_YEAR = 6;
-const ROAD_MAX_ATTEMPTS_PER_YEAR = 12;
+ROAD_MAX_NEW_LINES_PER_YEAR <- 18;
+ROAD_MAX_ATTEMPTS_PER_YEAR <- 36;
 
 /* Seuil de remboursement d'emprunt : sous ce plancher de tresorerie on ne rembourse pas, un
  * emprunt a 5 % coute bien moins qu'une ligne manquee faute de cash. Au-dessus, l'argent qui
@@ -1796,22 +1796,25 @@ function OpexAI::_resizeAirFleets(year)
     local waiting = waitingA + waitingB;
     local capacity = ("planeCapacity" in line) ? line.planeCapacity : 0;
 
-    local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+    local targetPlanes = isSmallAirport ? 6 : 12;
+    local addedAny = 0;
     local planePrice = (this._catalog.plane != null) ? this._catalog.plane.price : 30000;
     local need = planePrice + OpexCashReserve() + 1000;
-    local canAfford = money >= need;
-    local targetPlanes = isSmallAirport ? 4 : 8;
-    local needGrowth = canAfford && (have < targetPlanes);
-    if (!needGrowth) continue;
-
-    local grown = OpexAirAddPlane(line);
-    AILog.Info("[AIR_FLEET] line=" + line.lineId + " have=" + have + " money=" + money + " need=" + need + " res=" + grown.reason);
-    if (grown.added > 0) {
-      line.vehCount <- have + 1;
-      line.trains = have + 1;
+    while (have < targetPlanes) {
+      local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+      if (money < need) break;
+      local grown = OpexAirAddPlane(line);
+      if (grown.added <= 0) break;
+      have++;
+      addedAny++;
+      line.vehCount <- have;
+      line.trains = have;
     }
-    OpexSign(AIMap.GetTileIndex(1, 10 + line.lineId), "FG|" + (year % 100) + "|" + line.lineId + "|" + have + "|"
-                     + waiting + "|" + (grown.added > 0 ? "K" : grown.reason));
+    if (addedAny > 0) {
+      AILog.Info("[AIR_FLEET] line=" + line.lineId + " added=" + addedAny + " total=" + have);
+      OpexSign(AIMap.GetTileIndex(1, 10 + line.lineId), "FG|" + (year % 100) + "|" + line.lineId + "|" + have + "|"
+                       + waiting + "|K");
+    }
   }
   return true;
 }

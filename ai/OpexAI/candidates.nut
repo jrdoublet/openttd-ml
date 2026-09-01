@@ -893,7 +893,7 @@ const ROAD_MAX_DISTANCE = 25;
 /* TOP_K reste une vue de diagnostic propre a la route. La decision d'investissement utilise la
  * liste complete candidates et le portefeuille commun de projects.nut ; ce plafond ne peut donc
  * plus imposer une priorite modale. */
-const ROAD_TOP_K = 24;
+ROAD_TOP_K <- 48;
 
 /* Repere historique de profit, conserve pour RS et les campagnes comparables. Il ne coupe plus
  * aucun candidat rentable avant l'arbitrage modal : profitTooLow compte les projets sous ce
