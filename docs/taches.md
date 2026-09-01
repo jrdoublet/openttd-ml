@@ -400,6 +400,10 @@ Résultats du banc comparatif 3 ans (5 graines × 3 ans) :
 - **1970** : Valeur moyenne à **850 000 £** (Peak 1,22 M£), profit annuel à **433 000 £/an** (Peak 686k £/an), score à **298.8** (Peak 513), 80 véhicules, 50 stations, solvabilité **100 %**.
 - **1950** : Valeur moyenne à **205 000 £** (Peak 316k £), profit annuel à **121 000 £/an**, solvabilité **100 %**.
 
+Résultats du banc comparatif 5 ans (5 graines × 5 ans) :
+- **1990** : Valeur moyenne à **1,91 M£** (Peak **3,38 M£** sur graine 17), profit annuel moyen à **526 000 £/an** (Peak **943 000 £/an**), 110 véhicules, 36 stations, solvabilité **100 %**.
+- **1970** : Valeur moyenne à **1,70 M£** (Peak **2,45 M£** sur graine 7), profit annuel moyen à **615 000 £/an** (Peak **1,03 M£/an**), score à **443.6** (Peak **618**), 109 véhicules, 61 stations, solvabilité **100 %**.
+
 ---
 
 ## 1 bis. Mode route : ouvert, mesuré, et ce qui reste (2026-08-29, révisé 2026-08-30)

@@ -87,6 +87,13 @@ function OpexAirFindSite(town, airport, probes)
         {
           local probe = AITestMode();
           ok = AIAirport.BuildAirport(anchor, airport.type, AIStation.STATION_NEW);
+          if (!ok) {
+            local endTile = anchor + AIMap.GetTileIndex(airport.width - 1, airport.height - 1);
+            if (AIMap.IsValidTile(endTile)) {
+              AITile.LevelTiles(anchor, endTile);
+              ok = AIAirport.BuildAirport(anchor, airport.type, AIStation.STATION_NEW);
+            }
+          }
         }
         used++;
         probes.left--;
@@ -118,9 +125,9 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
   local airportAmortAnnual = newAirportCount * airport.price / 30;
   local best = null;
 
-  /* Plafond d'appareils selon l'infrastructure : 3 sur AT_SMALL, jusqu'a 4 sur grands aeroports. */
+  /* Plafond d'appareils selon l'infrastructure : 3 sur AT_SMALL, jusqu'a 5 sur grands aeroports. */
   local isSmall = (airport.type == AIAirport.AT_SMALL || airport.type == AIAirport.AT_COMMUTER);
-  local maxAllowed = isSmall ? 3 : 4;
+  local maxAllowed = isSmall ? 3 : (plane.speed >= 400 ? 5 : 4);
   /* Dimensionnement cible selon le volume passagers */
   local targetPlanes = OpexCeilDiv(monthlyPax, capacityPerPlane.tointeger());
   if (targetPlanes < 1) targetPlanes = 1;
@@ -449,6 +456,8 @@ function OpexBuildAirRoute(catalog, budget, plan)
       airportA = plan.siteA.anchor;
     }
   } else {
+    local endA = plan.siteA.anchor + AIMap.GetTileIndex(airport.width - 1, airport.height - 1);
+    if (AIMap.IsValidTile(endA)) AITile.LevelTiles(plan.siteA.anchor, endA);
     local okA = AIAirport.BuildAirport(plan.siteA.anchor, airport.type, AIStation.STATION_NEW);
     if (okA && AIAirport.IsAirportTile(plan.siteA.anchor)) airportA = plan.siteA.anchor;
   }
@@ -466,6 +475,8 @@ function OpexBuildAirRoute(catalog, budget, plan)
       airportB = plan.siteB.anchor;
     }
   } else {
+    local endB = plan.siteB.anchor + AIMap.GetTileIndex(airport.width - 1, airport.height - 1);
+    if (AIMap.IsValidTile(endB)) AITile.LevelTiles(plan.siteB.anchor, endB);
     local okB = AIAirport.BuildAirport(plan.siteB.anchor, airport.type, AIStation.STATION_NEW);
     if (okB && AIAirport.IsAirportTile(plan.siteB.anchor)) airportB = plan.siteB.anchor;
   }

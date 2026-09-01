@@ -10,6 +10,7 @@ from bench_v2 import (
     CFG,
     OPENGFX_VERSION,
     OPENTTD_VERSION,
+    make_cfg,
     quarter_profit,
     station_ratings,
     year_profit,
@@ -118,6 +119,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--years", type=int, default=20)
+    parser.add_argument("--starting-year", type=int, default=1970)
     parser.add_argument("--out", type=Path, default=Path("docs/head_to_head_seed42.json"))
     parser.add_argument("--setting", action="append", default=[], metavar="CLE=VALEUR",
                         help="Réglage OpexAI supplémentaire, répétable")
@@ -141,6 +143,7 @@ def main():
         settings_tuple,
     )
     aaahogex = local_folder(str(ROOT / "ai" / "AAAHogEx-115"), "AAAHogEx", ())
+    cfg = make_cfg(args.starting_year)
     rows = list(run_experiments(
         openttd_version=OPENTTD_VERSION,
         opengfx_version=OPENGFX_VERSION,
@@ -149,7 +152,7 @@ def main():
         experiments=({
             "seed": args.seed,
             "days": 365 * args.years,
-            "openttd_config": CFG,
+            "openttd_config": cfg,
             "ais": (opex, aaahogex),
             "head_to_head_arms": arm_names,
         },),

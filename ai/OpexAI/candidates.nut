@@ -207,6 +207,10 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   else turnoverBonus = 75;
 
   local adjustedRoi = (economics.roi * turnoverBonus) / 100;
+  if (kind == "freight") {
+    /* Le fret beneficie d'un monopole d'exploitation absolu sans concurrence adverse */
+    adjustedRoi = (adjustedRoi * 125) / 100;
+  }
   local ratio = opcodeRatio + (adjustedRoi * 15);
 
   stats.accepted++;

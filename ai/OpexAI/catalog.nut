@@ -469,7 +469,6 @@ function OpexCatalog::_refreshAir()
         this.airport = ap;
         this.plane = best;
       }
-      break;
     }
   }
 
