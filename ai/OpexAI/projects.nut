@@ -137,7 +137,7 @@ function OpexProjectRemember(winners, project, stats)
 {
   if (project == null) return;
   stats.modeCandidates++;
-  local key = OpexProjectPairKey(project.kind, project.cargo, project.src, project.dst);
+  local key = project.mode + "|" + OpexProjectPairKey(project.kind, project.cargo, project.src, project.dst);
   if (!(key in winners)) {
     winners.rawset(key, project);
     return;
@@ -232,13 +232,18 @@ function OpexBuildProjects(catalog, budget, lines)
 
   local funded = [];
   local remaining = capitalBudget;
+  local roadCount = 0;
   foreach (project in byBudget) {
     stats.budgetConsidered++;
+    if (project.mode == "road") {
+      if (roadCount >= ROAD_MAX_NEW_LINES_PER_YEAR) continue;
+    }
     if (project.budgetCapital > remaining) {
       stats.budgetRejected++;
       continue;
     }
     funded.append(project);
+    if (project.mode == "road") roadCount++;
     remaining -= project.budgetCapital;
     stats.selectedRevenue += project.revenueAnnual;
     stats.selectedCapital += project.budgetCapital;

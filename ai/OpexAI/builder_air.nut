@@ -8,12 +8,12 @@
  * retires, au moindre echec apres le premier aeroport.
  */
 
-const AIR_TOWN_POOL = 36;
-const AIR_HUB_TOWN_POOL = 60;
-const AIR_HUB_NEW_SITE_POOL = 10;
+const AIR_TOWN_POOL = 100;
+const AIR_HUB_TOWN_POOL = 100;
+const AIR_HUB_NEW_SITE_POOL = 25;
 const AIR_SITE_RADIUS = 35;
-const AIR_TOWN_MIN_DISTANCE = 55;
-const AIR_MAX_SITE_PROBES = 15000;
+const AIR_TOWN_MIN_DISTANCE = 32;
+const AIR_MAX_SITE_PROBES = 25000;
 /* Une piste AT_LARGE ne doit pas recevoir une flotte sans borne. */
 const AIR_MAX_PLANES_PER_ROUTE = 10;
 
@@ -97,16 +97,18 @@ function OpexAirFindSite(town, airport, probes)
   return null;
 }
 
-/* Economie initiale sur deux aeroports deja choisis. Le plan de construction porte volontairement
- * sur un seul avion ; la taille suivante depend des mesures reelles dans OpexAI::_resizeAirFleets. */
+/* Economie et dimensionnement optimal de flotte selon les caracteristiques du vehicule. */
 function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
                           infrastructureMaintenance, maxCapital, newAirportCount = 2)
 {
   local effectiveSpeed = plane.speed / 4.0;
   if (effectiveSpeed < 1.0) effectiveSpeed = 1.0;
-  local oneWayDays = distance.tofloat() / (0.036 * effectiveSpeed);
+  local flightDays = distance.tofloat() / (0.036 * effectiveSpeed);
+  local airportDelayDays = 3.0;
+  local oneWayDays = flightDays + airportDelayDays;
   if (oneWayDays < 1.0) oneWayDays = 1.0;
-  local tripsPerMonth = 30.0 / oneWayDays;
+  local roundTripDays = 2.0 * oneWayDays;
+  local tripsPerMonth = 30.4 / oneWayDays;
   local capacityPerPlane = plane.capacity * tripsPerMonth;
   if (capacityPerPlane <= 0) return null;
   local incomeDays = OpexCeilDiv(oneWayDays, 1);
@@ -116,15 +118,22 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
   local airportAmortAnnual = newAirportCount * airport.price / 30;
   local best = null;
 
-  /* Le plan initial compare les liaisons a capital egal : exactement un avion. Dimensionner ici
-   * maximisait le profit predit d'UNE liaison et affamait toutes les suivantes. Graine 42 : trois
-   * avions sur la premiere ligne -> 43 999/an, contre 197 899/an avec deux lignes d'un avion. */
-  for (local planes = 1; planes <= 1; planes++) {
+  /* Plafond d'appareils selon l'infrastructure : 3 sur AT_SMALL, jusqu'a 4 sur grands aeroports. */
+  local isSmall = (airport.type == AIAirport.AT_SMALL || airport.type == AIAirport.AT_COMMUTER);
+  local maxAllowed = isSmall ? 3 : 4;
+  /* Dimensionnement cible selon le volume passagers */
+  local targetPlanes = OpexCeilDiv(monthlyPax, capacityPerPlane.tointeger());
+  if (targetPlanes < 1) targetPlanes = 1;
+  if (targetPlanes > maxAllowed) targetPlanes = maxAllowed;
+
+  for (local planes = 1; planes <= targetPlanes; planes++) {
     local capital = newAirportCount * airport.price + planes * plane.price;
     if (maxCapital > 0 && capital > maxCapital) break;
+    local headwayDays = roundTripDays / planes;
+    local stationRating = OpexStationRatingForHeadway(headwayDays);
+    local offered = (monthlyPax * stationRating) / 100.0;
     local monthlyCapacity = planes * capacityPerPlane;
-    local carried = monthlyPax < monthlyCapacity ? monthlyPax : monthlyCapacity;
-    carried = carried.tointeger();
+    local carried = (offered < monthlyCapacity ? offered : monthlyCapacity).tointeger();
     local revenueAnnual = (12 * carried * incomePerUnit).tointeger();
     local runningAnnual = planes * plane.runningCost + airportMaintenanceAnnual;
     local amortAnnual = planes * plane.price / 20 + airportAmortAnnual;
@@ -135,7 +144,8 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
       best = {
         planes = planes, profitAnnual = profitAnnual, revenueAnnual = revenueAnnual,
         runningAnnual = runningAnnual, amortAnnual = amortAnnual, capital = capital, roi = roi,
-        oneWayDays = oneWayDays, tripsPerMonth = tripsPerMonth,
+        oneWayDays = oneWayDays, roundTripDays = roundTripDays, headwayDays = headwayDays,
+        stationRating = stationRating, tripsPerMonth = tripsPerMonth,
         monthlyCapacity = monthlyCapacity, carried = carried,
       };
     }
@@ -184,15 +194,14 @@ function OpexAirAddPlane(line)
 }
 
 /* Evalue et planifie la meilleure liaison aerienne en testant les combinaisons
- * grand aeroport (+gros/petit avion) et petit aeroport (+petit avion strictement).
- * Chaque paire demarre avec un avion et les paires restent classees au ROI : maximiser le profit
- * total d'une seule paire immobilisait le capital et choisissait une moins bonne rotation. */
+ * grand aeroport (+gros/petit avion) et petit aeroport (+petit avion strictement). */
 function OpexAirPlanBetter(plan, bestPlan)
 {
   if (bestPlan == null) return true;
-  if (plan.economics.roi != bestPlan.economics.roi) {
-    return plan.economics.roi > bestPlan.economics.roi;
-  }
+  /* Arbitrage ROI vs Volume : si un plan offre un ROI significativement superieur (>25% d'ecart),
+   * il deploie le capital plus vite et permet de batir plus de lignes. */
+  if (plan.economics.roi > (bestPlan.economics.roi * 1.25).tointeger()) return true;
+  if (bestPlan.economics.roi > (plan.economics.roi * 1.25).tointeger()) return false;
   return plan.economics.profitAnnual > bestPlan.economics.profitAnnual;
 }
 
@@ -217,6 +226,9 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null)
   foreach (combo in combos) {
     local airport = combo.airport;
     local plane = combo.plane;
+    local townPool = (plane.speed >= 400) ? AIR_TOWN_POOL : 40;
+    local limit = towns.len() < townPool ? towns.len() : townPool;
+    local minDist = (plane.speed >= 400) ? 32 : 40;
     local sites = [];
     local probes = { left = AIR_MAX_SITE_PROBES, townsLeft = limit };
     for (local i = 0; i < limit; i++) {
@@ -235,9 +247,9 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null)
         local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR,
                                                         sites[a].anchor, sites[b].anchor);
         if (a == 0 && b == 1) {
-          OpexSign(AIMap.GetTileIndex(1, 7), "AZ|D=" + distance + "|OD=" + orderDistance + "|MO=" + plane.maxOrderDistance + "|MIN=" + AIR_TOWN_MIN_DISTANCE);
+          OpexSign(AIMap.GetTileIndex(1, 7), "AZ|D=" + distance + "|OD=" + orderDistance + "|MO=" + plane.maxOrderDistance + "|MIN=" + minDist);
         }
-        if (distance < AIR_TOWN_MIN_DISTANCE) continue;
+        if (distance < minDist) continue;
         if (plane.maxOrderDistance > 0 && orderDistance > plane.maxOrderDistance) {
           continue;
         }
@@ -263,11 +275,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null)
         };
 
         if (a == 0 && b == 1) {
-          /* Les anciens libelles avec cles depassaient la longueur maximale d'un panneau et
-           * disparaissaient silencieusement. Valeurs : revenu, courant, amortissement, profit. */
-          OpexSign(AIMap.GetTileIndex(1, 8), "AW|" + economics.revenueAnnual + "|"
-                                                + economics.runningAnnual + "|"
-                                                + economics.amortAnnual + "|"
+          OpexSign(AIMap.GetTileIndex(1, 8), "AY|" + economics.capital + "|"
                                                 + economics.profitAnnual);
           OpexSign(AIMap.GetTileIndex(1, 9), "AV|" + plane.speed + "|" + plane.capacity
                                                 + "|" + economics.planes + "|"
@@ -317,7 +325,8 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null)
             local otherB = AIStation.GetStationID(other.stationB);
             if (otherA == station || otherB == station) routeCount++;
           }
-          if (routeCount >= 6) continue;
+          local maxRoutes = (existingType == AIAirport.AT_SMALL || existingType == AIAirport.AT_COMMUTER) ? 4 : 8;
+          if (routeCount >= maxRoutes) continue;
           local townId = AITile.GetClosestTown(end.origin);
           if (townId < 0) continue;
           local hubTown = null;
@@ -336,7 +345,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null)
     foreach (hub in hubs) {
       foreach (site in sites) {
         local distance = AIMap.DistanceManhattan(hub.town.tile, site.town.tile);
-        if (distance < 45) continue;
+        if (distance < 35) continue;
         local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR,
                                                         hub.anchor, site.anchor);
         if (plane.maxOrderDistance > 0 && orderDistance > plane.maxOrderDistance) continue;
@@ -376,7 +385,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null)
         }
         if (alreadyConnected) continue;
         local distance = AIMap.DistanceManhattan(hub1.town.tile, hub2.town.tile);
-        if (distance < 45) continue;
+        if (distance < 35) continue;
         local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR, hub1.anchor, hub2.anchor);
         if (plane.maxOrderDistance > 0 && orderDistance > plane.maxOrderDistance) continue;
         local monthly1 = ((hub1.town.pop * 22) / 100) / (hub1.routes + 1);
@@ -401,6 +410,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null)
                + (bestPlan != null && bestPlan.reuseA ? 1 : 0));
     }
     OpexSign(AIMap.GetTileIndex(1, 4), "AE|S=" + sites.len() + "|B=" + (bestPlan != null ? bestPlan.economics.profitAnnual : "NO"));
+    if (bestPlan != null && bestPlan.airport.allowBig) break;
   }
   return bestPlan;
 }

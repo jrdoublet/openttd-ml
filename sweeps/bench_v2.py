@@ -43,18 +43,20 @@ SEEDS = (
 MAX_WORKERS = 3
 DEFAULT_ARMS = ("OpexAI", "AAAHogEx", "AdmiralAI", "trAIns")
 
-# Configuration gelee du projet (voir docs/methode.md) : carte 256x256, depart 1970.
-CFG = """[difficulty]
+def make_cfg(starting_year=1970):
+    return f"""[difficulty]
 number_towns = 3
 industry_density = 4
 [economy]
 inflation = false
 town_growth_rate = 2
 [game_creation]
-starting_year = 1970
+starting_year = {starting_year}
 map_x = 8
 map_y = 8
 """
+
+CFG = make_cfg(1970)
 
 # keep() est execute dans les workers. La valeur est fixee avant la creation du Pool, puis heritee
 # par fork : ainsi chaque sauvegarde est durable avant que run_experiments() ne rende sa liste.
@@ -309,13 +311,14 @@ def enable_savegame_cleanup():
     openttdlab._run_experiment = _run_experiment_with_savegame_cleanup
 
 
-def experiments(arms, seeds, years, repeats):
+def experiments(arms, seeds, years, repeats, starting_year=1970):
     """Une partie isolee par (arm, graine, repetition)."""
+    cfg = make_cfg(starting_year)
     return [
         {
             "seed": seed,
             "days": 365 * years,
-            "openttd_config": CFG,
+            "openttd_config": cfg,
             "ais": (arms[name],),
             "bench_run": [name, seed, repeat],
         }
@@ -461,6 +464,7 @@ def parse_args():
     parser.add_argument("--arms", nargs="+", default=list(DEFAULT_ARMS), help="arms ou variantes OpexAI[cle=valeur]")
     parser.add_argument("--seeds", nargs="+", type=int, default=list(SEEDS), help="graines OpenTTD")
     parser.add_argument("--years", type=int, default=YEARS, help="duree de chaque partie")
+    parser.add_argument("--starting-year", type=int, default=1970, help="annee de depart de la partie")
     parser.add_argument("--out", type=Path, default=Path("docs/bench_v2.json"), help="JSON final")
     parser.add_argument("--max-workers", type=int, default=MAX_WORKERS, help="taille du Pool")
     parser.add_argument("--repeats", type=int, default=1, help="repetitions par arm et graine")
@@ -484,12 +488,13 @@ def main():
     out.parent.mkdir(parents=True, exist_ok=True)
     CHECKPOINT_PATH = out.with_suffix(".jsonl")
     enable_savegame_cleanup()
+    cfg = make_cfg(args.starting_year)
     rows = list(run_experiments(
         openttd_version=OPENTTD_VERSION,
         opengfx_version=OPENGFX_VERSION,
         max_workers=args.max_workers,
         result_processor=keep,
-        experiments=experiments(args.built_arms, args.seeds, args.years, args.repeats),
+        experiments=experiments(args.built_arms, args.seeds, args.years, args.repeats, args.starting_year),
         ai_libraries=(
             bananas_ai_library("51554648", "Queue.FibonacciHeap"),
             bananas_ai_library("5046524c", "Pathfinder.Rail"),
@@ -500,10 +505,11 @@ def main():
         "openttd_version": OPENTTD_VERSION,
         "opengfx_version": OPENGFX_VERSION,
         "years": args.years,
+        "starting_year": args.starting_year,
         "seeds": args.seeds,
         "arms": args.arms,
         "repeats": args.repeats,
-        "openttd_config": CFG,
+        "openttd_config": cfg,
         "metric": (
             "PLYR[0].old_economy[0] : company_value, performance_history (0-1000), "
             "profit (trimestre), profit_year (4 trimestres) ; "

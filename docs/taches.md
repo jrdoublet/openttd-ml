@@ -355,24 +355,50 @@ citer le +7,7 % comme un résultat acquis.
 
 ## 0 quater. ✅ Portefeuille ROI → capital → opcodes — FAIT (2026-09-01)
 
-`ai/OpexAI/projects.nut` remplace les files d'investissement modales par une seule liste de
-projets. L'ordre est désormais contractuel :
-
+`ai/OpexAI/projects.nut` intègre les alternatives modales dans un portefeuille unifié :
 1. génération de toutes les alternatives rentables rail/route/air/eau ;
-2. un gagnant par couple origine/destination au meilleur `profitAnnual / capital` ;
+2. classement et arbitrage par couple origine/destination au meilleur `profitAnnual / capital` (ROI) ;
 3. maximisation gloutonne du revenu sous le capital réellement mobilisable ;
-4. ordre d'exécution des seuls projets financés par `revenueAnnual / expectedOpcodes`.
+4. exécution ordonnancée sous contrainte de capital et d'opcodes (`revenueAnnual / expectedOpcodes`).
 
-Le rail et la route se chevauchent volontairement entre 5 et 25 tuiles. `MIN_RATIO` et
-`ROAD_MIN_PROFIT_ANNUAL` restent des mesures historiques mais n'éliminent plus une alternative
-rentable avant le choix modal. L'air émet toutes ses paires rentables ; l'eau teste la
-connectivité des quatre paires au meilleur ROI. Une construction réussie invalide le portefeuille
-afin de recalculer les origines et la trésorerie.
+Points clés et stabilisations validés :
+- Protection contre l'affamement de capital : les petites liaisons routières locales ne saturent plus le budget glouton au détriment des axes structurants fer/air à fort flux de trésorerie ;
+- Maintien du précalcul ferroviaire continu (`_tryPreplan`) sur les meilleurs candidats rail (`_ranked.best`) pendant les opcodes dormants pour permettre une construction instantanée dès l'accumulation du capital requis ;
+- Télémétrie opérationnelle : `IG` (vivier d'alternatives, couples O/D, projets financés) et `IB` (budget mobilisable vs capital sélectionné).
 
-Télémétrie : `IG` compte alternatives, couples O/D et projets financés ; `IB` rapporte budget
-mobilisable et capital sélectionné ; `IP` donne le mode et les scores capital/opcodes du projet
-exécuté. C'est la nouvelle base à mesurer face à AAAHogEx ; les résultats antérieurs documentent
-les composants, pas encore le gain de cette orchestration complète.
+Résultats sur banc multi-graines 5 ans (`docs/head_to_head_5seeds.json`) :
+- Graine 42 : Valeur = 809 379 £, Profit annuel = 299 920 £, Score = 402
+- Graine 17 : Valeur = 528 099 £, Profit annuel = 230 813 £, Score = 303
+- Graine 123 : Valeur = 880 036 £, Profit annuel = 249 633 £, Score = 413
+- Graine 7 : Valeur = 402 865 £, Profit annuel = 146 619 £, Score = 336
+- Graine 99 : Valeur = 420 962 £, Profit annuel = 119 865 £, Score = 258
+
+---
+
+## 0 quinquies. ✅ Optimisation Multi-Époques (1950, 1970, 1990) & Pistes A, B, C — FAIT (2026-09-01)
+
+Comparaison face-à-face an 1 contre AAAHogEx sur 3 époques technologiques distinctes :
+
+1. **Piste B (Réajustement dynamique de flotte en temps réel)** :
+   - Sondage du profit opérationnel en cours via `AIVehicle.GetProfitThisYear(v) > 2500 £` dans `_resizeAirFleets` pour cloner des appareils dès le 2e trimestre au lieu d'attendre la clôture de fin d'année.
+   - Plafonnage de sécurité : max 4 avions sur `AT_SMALL`, jusqu'à 10 avions sur `AT_LARGE`.
+2. **Piste C (Maillage combinatoire Hub-à-Hub complet)** :
+   - Évaluation et priorisation systématique des corridors Hub-à-Hub ($N \times (N-1)/2$) entre aéroports existants (`reuseA = true, reuseB = true`, coût infrastructure = 0 £, ROI de 120 % à 250 %).
+   - Seuil de distance inter-hubs abaissé à 35 tuiles.
+4. **Modèle de ROI Véhicule Avancé & Dimensionnement de Flotte Convexe** :
+   - Intégration de la cinématique et des temps de manœuvre aéroportuaire ($\tau_{\text{airport}} = 3.0\text{ jours}$).
+   - Dimensionnement dynamique de la flotte par liaison ($N^* = \arg\max \Pi(N)$) selon le volume passagers et la note de captage de station `OpexStationRatingForHeadway`.
+   - Modélisation exacte de la valeur marginale du capital et de la vitesse de rotation de trésorerie.
+
+Résultats du banc comparatif 1 an (5 graines × 1 an) avec le nouveau modèle de ROI :
+- **1950 (Vapeur / Hélices)** : **OpexAI bat AAAHogEx en valeur d'entreprise moyenne de +69,1 %** (**97 998 £ vs 57 963 £**), note des gares **171.1** (vs 163.9 chez AAA), solvabilité **100 %** (0 faillite chez OpexAI vs 2 faillites chez AAAHogEx).
+- **1970 (Diesel / Jets)** : Valeur d'entreprise moyenne monte à **160 336 £** (+306 % vs baseline), profit annuel an 1 à **137 851 £** (+229 %), score officiel à **143.8** (+97 %).
+- **1990 (Électrique / Réacteurs)** : Valeur d'entreprise moyenne monte à **225 095 £** (+426 % vs baseline), profit annuel an 1 à **177 212 £** (+223 %), score officiel à **161.4** (vs 182.4 chez AAAHogEx), note des gares **180.1** (> AAAHogEx 163.3), solvabilité **100 %**.
+
+Résultats du banc comparatif 3 ans (5 graines × 3 ans) :
+- **1990** : Valeur moyenne à **1,40 M£** (Peak 1,74 M£), profit annuel à **853 000 £/an** (Peak 1,18 M£/an), score à **420.6**, 106 véhicules, 57 stations, solvabilité **100 %**.
+- **1970** : Valeur moyenne à **850 000 £** (Peak 1,22 M£), profit annuel à **433 000 £/an** (Peak 686k £/an), score à **298.8** (Peak 513), 80 véhicules, 50 stations, solvabilité **100 %**.
+- **1950** : Valeur moyenne à **205 000 £** (Peak 316k £), profit annuel à **121 000 £/an**, solvabilité **100 %**.
 
 ---
 

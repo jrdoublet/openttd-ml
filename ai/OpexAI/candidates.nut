@@ -17,7 +17,7 @@
  * choisir le meilleur mode pour un meme couple origine/destination. Le modele de capital du rail
  * le declasse normalement dans cette bande ; c'est desormais un resultat du ROI, pas un a priori
  * d'orchestration. */
-const MIN_DISTANCE = 5;
+const MIN_DISTANCE = 25;
 const MAX_DISTANCE = 200;
 /* H2 : bande courte depuis une gare deja a nous. MIN_DISTANCE inchange
  * pour les lignes neuves. join_max_distance > 0 bride aussi cette bande. */
@@ -195,6 +195,7 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
    * apres la contrainte de capital dans projects.nut. */
   if (opcodeRatio < MIN_RATIO) {
     stats.ratioTooLow++;
+    return null;
   }
 
   /* Score composite : priorise le fort ROI et le retour sur investissement rapide (cash turnover).
@@ -384,7 +385,7 @@ function OpexTopK(all, k)
 function OpexOriginServed(lines, tile, includeRoad)
 {
   foreach (line in lines) {
-    if (!includeRoad && ("mode" in line) && line.mode == "road") continue;
+    if (("mode" in line) && line.mode != "rail" && (!includeRoad || line.mode != "road")) continue;
     if (AIMap.DistanceManhattan(tile, line.originA) < ORIGIN_SEPARATION) return true;
     if (AIMap.DistanceManhattan(tile, line.originB) < ORIGIN_SEPARATION) return true;
   }
@@ -415,13 +416,12 @@ function OpexOriginServed(lines, tile, includeRoad)
 
 /* Etat d'une origine face aux lignes RAIL deja baties. Rend null si elle est libre, sinon la ligne
  * qui la sert et l'extremite concernee -- ou une table dont `blocked` est vrai quand plusieurs
- * gares DISTINCTES la servent. Les lignes routieres sont ignorees, comme dans les deux autres
- * filets rail : une desserte de bus de 12 tuiles n'epuise pas une ville. */
+ * gares DISTINCTES la servent. Les lignes non ferroviaires sont ignorees. */
 function OpexOriginService(lines, tile)
 {
   local found = null;
   foreach (line in lines) {
-    if (("mode" in line) && line.mode == "road") continue;
+    if (("mode" in line) && line.mode != "rail") continue;
     foreach (lineEnd in ["A", "B"]) {
       local originTile = lineEnd == "A" ? line.originA : line.originB;
       if (AIMap.DistanceManhattan(tile, originTile) >= ORIGIN_SEPARATION) continue;

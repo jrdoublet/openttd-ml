@@ -1,16 +1,24 @@
-/* OpexAI -- une IA qui traite le capital et les opcodes comme deux contraintes distinctes.
+/* OpexAI -- une IA qui traite les opcodes comme une ressource de jeu.
  *
- * Orchestration, dans cet ordre et sans priorite modale codee :
- *   0. catalog.nut : etablir les moyens disponibles ;
- *   1. projects.nut : calculer le ROI de chaque mode par couple origine/destination et ne garder
- *      que le meilleur moyen de transport ;
- *   2. remplir le budget monetaire en maximisant le revenu annuel par capital immobilise ;
- *   3. ordonner les projets finances par revenu annuel / opcodes attendus ;
- *   4. construire un projet, puis recalculer le portefeuille avec le cash et les origines restants.
+ * Principe directeur : le budget du VM (10 000 opcodes par tick) n'est pas un stock qu'on
+ * economise mais un DEBIT non reportable. La seule decision est donc l'ALLOCATION : a quel
+ * candidat va le prochain tick de calcul. Ordre des objectifs, explicite et stable :
+ *   1. maximiser le profit attendu par opcode ;
+ *   2. maximiser la performance de compagnie ;
+ *   3. maximiser les notes ;
+ *   4. maximiser la valeur de compagnie.
+ * Un objectif inferieur ne justifie jamais de sacrifier un objectif superieur.
  *
- * Le debit VM de 10 000 opcodes par tick n'est pas reportable. Il ne doit pourtant pas intervenir
- * avant le capital : faire du profit/opcode le score unique eliminait des projets a fort ROI et
- * laissait quatre ordonnanceurs rail, route, air et eau se disputer implicitement la tresorerie.
+ * Quatre etages :
+ *   0  catalog.nut       -- villes, industries, cargos, materiel roulant (rafraichi chaque annee)
+ *   1  economy.nut       -- profit annuel attendu d'une ligne (rail ET route)
+ *   2  candidates.nut    -- cout en iterations d'A* attendu, et le classement par rapport
+ *   3  builder_rail.nut  -- construction, sous budget d'iterations calcule par l'arret optimal
+ *
+ * Plus trois constructeurs secondaires, chacun avec son propre classement ou sa propre unicite :
+ * builder_air.nut et builder_water.nut (une liaison passagers chacun), et builder_road.nut, qui
+ * est le seul a batir plusieurs lignes par an -- des petites lignes courtes, bus entre villes et
+ * surtout CAMIONS pour le fret, dans la bande de 5 a 25 tuiles que le rail refuse.
  *
  * Instrumentation : AILog.Info n'apparait PAS dans la sortie capturee par OpenTTDLab (verifie le
  * 2026-08-28), et un nom de panneau echoue SILENCIEUSEMENT au-dela de 31 caracteres. D'ou des
@@ -92,7 +100,6 @@ require("builder_rail.nut");
 require("builder_air.nut");
 require("builder_water.nut");
 require("builder_road.nut");
-require("projects.nut");
 
 /* Filet physique : deux gares reellement posees trop pres l'une de l'autre partagent leur bassin
  * de desserte, MEME si ce sont deux villes/industries differentes. Un rayon de couverture de gare
@@ -240,14 +247,12 @@ class OpexAI extends AIController {
    * petite (quelques abandons par partie) plutot qu'un historique de toutes les tentatives. */
   _abandonedPairs = null;
   _airBuilt = false;
+  _waterBuilt = false;
   /* Ordonnanceur permanent : une tache utile et due par tour de file. dueCycle reporte le
    * travail inutile a un tour futur ; le calendrier du jeu ne reordonne jamais la file. */
   _taskQueue = null;
   _taskCursor = 0;
   _taskCycle = 0;
-  /* Portefeuille courant : gagnant ROI par O/D, selection budget, puis ordre opcodes. */
-  _projects = null;
-  _projectCursor = 0;
   _ranked = null;
   /* Transaction asynchrone d'expansion rail : le train roule vers son depot pendant que la
    * boucle principale continue par pas de dix jours. Jamais de Sleep bloquant dans la tache. */
@@ -274,18 +279,24 @@ class OpexAI extends AIController {
     this._catalog = OpexCatalog();
     this._lines = [];
     this._abandonedPairs = {};
-    /* Catalogue -> ROI modal -> budget -> opcodes. Les constructeurs ne sont plus des taches
-     * concurrentes : invest depile exclusivement le portefeuille commun. */
+    /* Priorite : donnees et stop-loss, revenu par opcode, modes sans score, experience, dette. */
     this._taskQueue = [
       { name = "catalog", dueCycle = 0, enabled = true },
-      { name = "projects", dueCycle = 0, enabled = true },
       { name = "report", dueCycle = 0, enabled = true },
       { name = "scrap", dueCycle = 0, enabled = true },
       { name = "refleet", dueCycle = 0, enabled = true },
+      /* Taille de flotte aerienne : une seule passe annuelle, fondee sur le rapport reel. */
       { name = "air_fleet", dueCycle = 0, enabled = true },
+      /* Reutiliser une infrastructure rentable avant de repayer un nouvel A* : c'est le premier
+       * item de croissance marginale et son ratio profit/opcode est mesure par EU/EX. */
       { name = "expand", dueCycle = 0, enabled = true },
+      /* Precalcul des traces pour utiliser les opcodes dormants et preparer la construction instantanee. */
       { name = "preplan", dueCycle = 0, enabled = true },
-      { name = "invest", dueCycle = 0, enabled = true },
+      /* Liaison aerienne a fort ROI : finance le demarrage et genere le cash flow des l'an 0. */
+      { name = "air", dueCycle = 0, enabled = true },
+      { name = "rail", dueCycle = 0, enabled = true },
+      { name = "road", dueCycle = 0, enabled = true },
+      { name = "water", dueCycle = 0, enabled = true },
       { name = "probe", dueCycle = 0, enabled = true },
       { name = "town_growth", dueCycle = 0, enabled = true },
       { name = "repay", dueCycle = 0, enabled = true },
@@ -294,10 +305,9 @@ class OpexAI extends AIController {
 
   function Start();
   function _tooClose(candidate);
-  function _tryBuildAir(year, project);
-  function _tryBuildWater(year, project);
-  function _tryBuildRoads(year, project);
-  function _tryProject(year);
+  function _tryBuildAir(year);
+  function _tryBuildWater(year);
+  function _tryBuildRoads(year);
   function _tryTownGrowth(year);
   function _tryPreplan(year);
   function _tryBuild(ranked, year);
@@ -489,83 +499,103 @@ function OpexAbandonedPairKey(candidate)
 }
 
 /* Liaison aerienne passagers a fort ROI. Deploie la tresorerie excedentaire sans A*. */
-function OpexAI::_tryBuildAir(year, project)
+function OpexAI::_tryBuildAir(year)
 {
   if (this._catalog.airCombos == null && this._catalog.airport == null) return;
-  local airLinesThisYear = 0;
-  local totalAirLines = 0;
-  foreach (line in this._lines) {
-    if (("mode" in line) && line.mode == "air") {
-      totalAirLines++;
-      if (line.year == year) airLinesThisYear++;
-    }
-  }
-  local maxPerYear = AIR_STARTER ? 15 : 2;
-  local maxTotal = AIR_STARTER ? 100 : 10;
-  if (airLinesThisYear >= maxPerYear || totalAirLines >= maxTotal) return;
-
-  if (project == null || project.mode != "air") return;
+  local maxPerYear = AIR_STARTER ? 30 : 5;
+  local maxTotal = AIR_STARTER ? 250 : 25;
   local margin = AIR_STARTER ? 10000 : AIR_CAPITAL_MARGIN;
-  local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  local plan = project.payload;
-  local planOps = project.planningOpcodes;
-  if (plan == null) return;
 
-  local capital = ("capital" in plan) ? plan.capital : (2 * plan.airport.price + plan.plane.price);
-  local need = capital + OpexCashReserve() + margin;
-  OpexSign(AIMap.GetTileIndex(1, 1), "AD|K=" + capital + "|N=" + need + "|M=" + money);
-  if (money < need) {
-    if (REBORROW) money = OpexTryReborrow(need, money);
-    if (money < need) return;
+  local maxBatch = (this._catalog.plane != null && this._catalog.plane.speed >= 400) ? 6 : 3;
+  local builtCount = 0;
+  while (builtCount < maxBatch) {
+    local airLinesThisYear = 0;
+    local totalAirLines = 0;
+    foreach (line in this._lines) {
+      if (("mode" in line) && line.mode == "air") {
+        totalAirLines++;
+        if (line.year == year) airLinesThisYear++;
+      }
+    }
+    if (airLinesThisYear >= maxPerYear || totalAirLines >= maxTotal) break;
+
+    local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+    local borrowable = REBORROW ? (AICompany.GetMaxLoanAmount() - AICompany.GetLoanAmount()) : 0;
+    if (borrowable < 0) borrowable = 0;
+    local maxCapital = money + borrowable - OpexCashReserve() - margin;
+    if (maxCapital <= 0) break;
+
+    this._budget.begin();
+    local plan = OpexAirPlans(this._catalog, this._lines, maxCapital);
+    local planOps = this._budget.end("build_air_plans");
+    if (plan == null) {
+      if (builtCount == 0) OpexSign(AIMap.GetTileIndex(1, 1), "AD|NULL|C=" + this._catalog.airCombos.len());
+      break;
+    }
+
+    local capital = ("capital" in plan) ? plan.capital : (2 * plan.airport.price + plan.plane.price);
+    local need = capital + OpexCashReserve() + margin;
+    if (money < need) {
+      if (REBORROW) money = OpexTryReborrow(need, money);
+      if (money < need) break;
+    }
+
+    if (TREE_PLANTING) {
+      OpexBoostTownRating(plan.siteA.town.id, 100, 20);
+      OpexBoostTownRating(plan.siteB.town.id, 100, 20);
+    }
+
+    local result = OpexBuildAirRoute(this._catalog, this._budget, plan);
+    local anchor = AIMap.GetTileIndex(1, 1);
+    OpexSign(anchor, "OA|" + year + "|" + plan.distance + "|" + planOps + "|" + result.reason);
+    if (result.error != 0) OpexSign(anchor, "OE|A|" + result.error);
+    if (!result.ok) break;
+
+    this._airBuilt = true;
+    this._lines.append({
+      stationA = result.stationA, stationB = result.stationB,
+      originA = plan.siteA.town.tile, originB = plan.siteB.town.tile,
+      cargo = this._catalog.paxCargo,
+      predicted = ("economics" in plan && "profitAnnual" in plan.economics) ? plan.economics.profitAnnual : 0,
+      predRevenue = plan.economics.revenueAnnual, predRunning = plan.economics.runningAnnual,
+      predAmort = plan.economics.amortAnnual, predCarried = plan.economics.carried,
+      predTrains = plan.planes, predOneWayDays = plan.economics.oneWayDays,
+      planeCapacity = plan.plane.capacity,
+      sharedAirportA = ("reuseA" in plan) && plan.reuseA,
+      hubRoutesAtBuild = ("hubRoutes" in plan) ? plan.hubRoutes : 0,
+      iterations = 0, trains = result.vehicles.len(), distance = plan.distance, year = year,
+      mode = "air", vehicle = result.vehicle, vehicles = result.vehicles,
+      lastLiveVehicles = result.vehicles.len(), suspectedCrashes = 0,
+      lineId = this._nextLineId,
+    });
+    OpexSign(anchor, "AF|" + this._nextLineId + "|" + result.vehicles.len() + "|"
+                           + plan.economics.profitAnnual);
+    OpexSign(anchor, "AH|" + this._nextLineId + "|"
+                     + ((("reuseA" in plan) && plan.reuseA) ? 1 : 0) + "|"
+                     + plan.capital + "|" + (("hubRoutes" in plan) ? plan.hubRoutes : 0));
+    OpexSign(anchor, "PM|" + this._nextLineId + "|A|" + plan.distance + "|"
+                     + AICargo.GetCargoLabel(this._catalog.paxCargo));
+    this._nextLineId++;
+    builtCount++;
   }
-
-  if (TREE_PLANTING) {
-    OpexBoostTownRating(plan.siteA.town.id, 100, 20);
-    OpexBoostTownRating(plan.siteB.town.id, 100, 20);
-  }
-
-  local result = OpexBuildAirRoute(this._catalog, this._budget, plan);
-  local anchor = AIMap.GetTileIndex(1, 1);
-  OpexSign(anchor, "OA|" + year + "|" + plan.distance + "|" + planOps + "|" + result.reason);
-  if (result.error != 0) OpexSign(anchor, "OE|A|" + result.error);
-  if (!result.ok) return;
-
-  this._airBuilt = true;
-  this._lines.append({
-    stationA = result.stationA, stationB = result.stationB,
-    originA = plan.siteA.town.tile, originB = plan.siteB.town.tile,
-    cargo = this._catalog.paxCargo,
-    predicted = ("economics" in plan && "profitAnnual" in plan.economics) ? plan.economics.profitAnnual : 0,
-    predRevenue = plan.economics.revenueAnnual, predRunning = plan.economics.runningAnnual,
-    predAmort = plan.economics.amortAnnual, predCarried = plan.economics.carried,
-    predTrains = plan.planes, predOneWayDays = plan.economics.oneWayDays,
-    planeCapacity = plan.plane.capacity,
-    sharedAirportA = ("reuseA" in plan) && plan.reuseA,
-    hubRoutesAtBuild = ("hubRoutes" in plan) ? plan.hubRoutes : 0,
-    iterations = 0, trains = result.vehicles.len(), distance = plan.distance, year = year,
-    mode = "air", vehicle = result.vehicle, vehicles = result.vehicles,
-    lastLiveVehicles = result.vehicles.len(), suspectedCrashes = 0,
-    lineId = this._nextLineId,
-  });
-  OpexSign(anchor, "AF|" + this._nextLineId + "|" + result.vehicles.len() + "|"
-                         + plan.economics.profitAnnual);
-  OpexSign(anchor, "AH|" + this._nextLineId + "|"
-                   + ((("reuseA" in plan) && plan.reuseA) ? 1 : 0) + "|"
-                   + plan.capital + "|" + (("hubRoutes" in plan) ? plan.hubRoutes : 0));
-  OpexSign(anchor, "PM|" + this._nextLineId + "|A|" + plan.distance + "|"
-                   + AICargo.GetCargoLabel(this._catalog.paxCargo));
-  this._nextLineId++;
 }
 
-/* Execute le projet maritime choisi ; le portefeuille exclut les villes deja desservies par eau. */
-function OpexAI::_tryBuildWater(year, project)
+/* Une seule route v1 ; le scan apres rechargement empeche tout doublon maritime. */
+function OpexAI::_tryBuildWater(year)
 {
-  if (this._catalog.ships.len() == 0 || this._catalog.paxCargo < 0) return;
-  if (project == null || project.mode != "water") return;
-  local plan = project.payload;
-  local planOps = project.planningOpcodes;
+  if (this._waterBuilt || this._catalog.ships.len() == 0 || this._catalog.paxCargo < 0) return;
+  local vehicles = AIVehicleList();
+  for (local v = vehicles.Begin(); !vehicles.IsEnd(); v = vehicles.Next()) {
+    if (AIVehicle.GetVehicleType(v) == AIVehicle.VT_WATER) {
+      this._waterBuilt = true;
+      return;
+    }
+  }
+  this._budget.begin();
+  local plan = OpexWaterPlans(this._catalog);
+  local planOps = this._budget.end("build_water_plans");
   if (plan == null) return;
-  local capital = plan.economics.capital;
+  local capital = 2 * this._catalog.costDock + this._catalog.costWaterDepot + this._catalog.maxShipPrice;
   local need = capital + OpexCashReserve() + WATER_CAPITAL_MARGIN;
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   if (money < need) {
@@ -577,15 +607,13 @@ function OpexAI::_tryBuildWater(year, project)
   if (result.ok) OpexSign(anchor, "OM|W|" + year + "|" + plan.distance + "|" + planOps);
   else OpexSign(anchor, "ON|W|" + result.reason + "|" + result.error);
   if (!result.ok) return;
+  this._waterBuilt = true;
   this._lines.append({
     stationA = result.dockA, stationB = result.dockB,
-    originA = plan.siteA.town.tile, originB = plan.siteB.town.tile,
+    /* Idem avion : pas de notion d'origine distincte, repli sur le quai bati. */
+    originA = result.dockA, originB = result.dockB,
     cargo = this._catalog.paxCargo,
-    predicted = plan.economics.profitAnnual, iterations = 0, trains = 1,
-    distance = plan.distance, year = year,
-    predRevenue = plan.economics.revenueAnnual, predRunning = plan.economics.runningAnnual,
-    predAmort = plan.economics.amortAnnual, predCarried = plan.economics.carried,
-    predTrains = 1, predOneWayDays = plan.economics.oneWayDays,
+    predicted = 0, iterations = 0, trains = 1, distance = plan.distance, year = year,
     mode = "water", vehicle = result.vehicle, vehicles = [result.vehicle],
     lineId = this._nextLineId,
   });
@@ -594,17 +622,25 @@ function OpexAI::_tryBuildWater(year, project)
   this._nextLineId++;
 }
 
-/* Execute exactement le projet routier choisi par projects.nut. La route n'a plus de phase,
- * de plafond annuel ni de priorite relative au rail : ces decisions appartiennent au budget
- * commun et a l'ordre d'opcodes. */
-function OpexAI::_tryBuildRoads(year, project)
+/* La phase routiere : autant de petites lignes courtes que le classement en propose, dans la
+ * limite des deux plafonds annuels ci-dessus.
+ *
+ * Elle tourne APRES _tryBuild, et c'est une decision, pas un detail d'ordonnancement. Les deux
+ * modes ne se disputent jamais la meme PAIRE (leurs bandes de distance sont disjointes : le rail
+ * commence ou la route s'arrete, a 25 tuiles) mais ils se disputent les memes ORIGINES et la meme
+ * tresorerie. Le rail vaut un ordre de grandeur de plus par ligne : il choisit donc en premier, et
+ * la route prend ce qui reste -- des villes et des industries qu'aucune ligne rail n'a retenues,
+ * avec l'argent qui dort une fois la reserve rail respectee. C'est aussi ce qui garde la baseline
+ * rail lisible au banc : a road_mode = 0 il ne se passe litteralement rien de plus.
+ *
+ * Le classement est recalcule ICI et non dans le cycle annuel : les lignes rail de l'annee
+ * viennent d'entrer dans _lines, et leurs origines doivent etre exclues avant que la route ne
+ * choisisse. */
+function OpexAI::_tryBuildRoads(year)
 {
-  if (!ROAD_BUILD_ENABLED || this._catalog.roadType < 0 ||
-      project == null || project.mode != "road") return;
+  if (!ROAD_BUILD_ENABLED || this._catalog.roadType < 0) return;
   local anchor = AIMap.GetTileIndex(1, 1);
-  local ranked = {
-    all = 1, best = [project.payload], stats = this._projects.road.stats, opcodes = 0
-  };
+  local ranked = OpexBuildRoadCandidates(this._catalog, this._budget, this._lines);
   local best = ranked.best;
   local attempts = 0;
   local builtCount = 0;
@@ -743,48 +779,13 @@ function OpexAI::_tryBuildRoads(year, project)
    * echec" -- plus le prix paye les annees ou la phase ne batit rien du tout. */
   OpexSign(anchor, "RN|" + yy + "|" + ranked.all + "|" + attempts + "|" + builtCount
                            + "|" + ranked.opcodes);
-  /* "RS|99|9999|9999|999" = 19 caracteres. RN dit combien de candidats ont SURVECU ; RS rapporte
-   * le vivier, ceux situes sous le repere historique ROAD_MIN_PROFIT_ANNUAL et les rentables
-   * acceptes. Depuis projects.nut, le repere est telemetrique : seuls les profits non positifs
-   * sont vraiment rejetes. */
+  /* "RS|99|9999|9999|999" = 19 caracteres. RN dit combien de candidats ont SURVECU ; RS dit ce que
+   * le vivier contenait avant filtrage et ce que le plancher de profit a coupe. Sans lui, "quatre
+   * candidats classes" ne distingue pas une carte pauvre en paires courtes d'un plancher trop
+   * haut -- et le plancher, lui, est arbitraire (cf. ROAD_MIN_PROFIT_ANNUAL). */
   OpexSign(anchor, "RS|" + yy + "|" + ranked.stats.pairsInBand + "|"
                            + ranked.stats.profitTooLow + "|" + ranked.stats.accepted);
 }
-/* Depile un seul projet deja passe par ROI, budget et opcodes. Une construction reussie invalide
- * immediatement tout le portefeuille : capital et origines ont change, donc le prochain choix doit
- * repartir du catalogue courant et non du suffixe d'un classement devenu faux. */
-function OpexAI::_tryProject(year)
-{
-  if (this._projects == null || this._projectCursor >= this._projects.best.len()) return false;
-  local project = this._projects.best[this._projectCursor++];
-  local before = this._nextLineId;
-  local modeCode = project.mode == "rail" ? "T"
-      : (project.mode == "road" ? "R" : (project.mode == "air" ? "A" : "W"));
-  OpexSign(AIMap.GetTileIndex(1, 1), "IP|" + (year % 100) + "|" + modeCode + "|"
-           + project.budgetScore + "|" + project.opcodeScore);
-
-  if (project.mode == "rail") {
-    local ranked = {
-      all = 1, best = [project.payload], bands = this._projects.rail.bands,
-      stats = this._projects.rail.stats
-    };
-    this._tryBuild(ranked, year);
-  } else if (project.mode == "road") {
-    this._tryBuildRoads(year, project);
-  } else if (project.mode == "air") {
-    this._tryBuildAir(year, project);
-  } else if (project.mode == "water") {
-    this._tryBuildWater(year, project);
-  }
-
-  if (this._nextLineId > before) {
-    this._projects = null;
-    this._ranked = null;
-    this._projectCursor = 0;
-  }
-  return true;
-}
-
 
 /* Compte le nombre de stations actives de notre compagnie dans une ville donnee. */
 function OpexCountTownStations(townId)
@@ -937,14 +938,12 @@ function OpexAI::_tryTownGrowth(year)
 /* Precalcule le trace des meilleurs candidats en avance pendant les ticks d'opcodes dormants. */
 function OpexAI::_tryPreplan(year)
 {
-  if (!PREPLAN_ENABLED || this._projects == null || this._projects.best.len() == 0) return;
-  local best = this._projects.best;
+  if (!PREPLAN_ENABLED || this._ranked == null || this._ranked.best.len() == 0) return;
+  local best = this._ranked.best;
   local anchor = AIMap.GetTileIndex(1, 1);
 
   for (local i = 0; i < best.len() && i < CASH_CANDIDATE_SCAN_LIMIT; i++) {
-    local project = best[i];
-    if (project.mode != "rail") continue;
-    local candidate = project.payload;
+    local candidate = best[i];
     if (("railPlan" in candidate) && candidate.railPlan != null) continue;
     if (ABANDON_MEMORY) {
       local abandonedKey = OpexAbandonedPairKey(candidate);
@@ -964,10 +963,8 @@ function OpexAI::_tryPreplan(year)
       if (join == null) continue;
     }
 
-    /* Le projet suivant peut etre d'un autre mode et son score porte le revenu, pas le profit
-     * rail par iteration. MIN_RATIO reste donc le cout d'opportunite homogene du pathfinder. */
-    local alternativeSource = "L";
-    local alternativeRatio = MIN_RATIO;
+    local alternativeSource = (i + 1 < best.len()) ? "S" : "L";
+    local alternativeRatio = (alternativeSource == "S") ? best[i + 1].ratio : MIN_RATIO;
     local isPaxNear = PAX_NEAR && ("paxNear" in candidate) && candidate.paxNear;
     if (isPaxNear) alternativeRatio = 0;
 
@@ -1019,11 +1016,8 @@ function OpexAI::_tooClose(candidate)
   local originA = -1;
   local originB = -1;
   foreach (line in this._lines) {
-    /* Les lignes routieres partagent ce tableau depuis le 2026-08-29 mais sont invisibles aux deux
-     * filets rail, origine comme filet physique : une desserte routiere de 12 tuiles n'epuise pas
-     * une ville, et son arret (rayon 3) ne cannibalise pas le bassin d'une gare rail. Les laisser
-     * ici rejetterait des candidats rail bien plus rentables au profit de bus. */
-    if (("mode" in line) && line.mode == "road") continue;
+    /* Seules les lignes ferroviaires comptent pour la separation de bassin et gares ferroviaires. */
+    if (("mode" in line) && line.mode != "rail") continue;
     foreach (lineEnd in ["A", "B"]) {
       local originTile = lineEnd == "A" ? line.originA : line.originB;
       foreach (entry in entries) {
@@ -1047,7 +1041,7 @@ function OpexAI::_tooClose(candidate)
 
   /* Test 2 : filet physique. Depend de la gare BATIE, donc incalculable a la generation. */
   foreach (line in this._lines) {
-    if (("mode" in line) && line.mode == "road") continue;   // cf. commentaire ci-dessus
+    if (("mode" in line) && line.mode != "rail") continue;
     foreach (lineEnd in ["A", "B"]) {
       local stationId = OpexLineStationId(line, lineEnd);
       if (stationId < 0) continue;
@@ -1779,15 +1773,37 @@ function OpexAI::_resizeAirFleets(year)
     local have = ("vehCount" in line) ? line.vehCount : (("vehicles" in line) ? line.vehicles.len() : 0);
     if (have < 1 || have >= AIR_MAX_PLANES_PER_ROUTE) continue;
     if (("lastProfit" in line) && line.lastProfit < 0) continue;
+
+    local isSmallAirport = false;
+    if (AIAirport.IsAirportTile(line.stationA) && AIAirport.GetAirportType(line.stationA) == AIAirport.AT_SMALL) {
+      isSmallAirport = true;
+    }
+    local maxPlanesForAirport = isSmallAirport ? 4 : AIR_MAX_PLANES_PER_ROUTE;
+    if (have >= maxPlanesForAirport) continue;
+
     local stationA = AIStation.GetStationID(line.stationA);
     local stationB = AIStation.GetStationID(line.stationB);
     local waitingA = AIStation.IsValidStation(stationA) ? AIStation.GetCargoWaiting(stationA, line.cargo) : 0;
     local waitingB = AIStation.IsValidStation(stationB) ? AIStation.GetCargoWaiting(stationB, line.cargo) : 0;
     local waiting = waitingA + waitingB;
     local capacity = ("planeCapacity" in line) ? line.planeCapacity : 0;
-    local profitable = ("lastProfit" in line) && line.lastProfit > 12000;
-    local needGrowth = (capacity > 0 && waiting >= 25) || profitable;
+
+    local vehProfit = 0;
+    local anyVehicleProfitable = false;
+    if ("vehicles" in line) {
+      foreach (v in line.vehicles) {
+        if (AIVehicle.IsValidVehicle(v)) {
+          local p = AIVehicle.GetProfitThisYear(v);
+          vehProfit += p;
+          if (p > 2500 || AIVehicle.GetProfitLastYear(v) > 6000) anyVehicleProfitable = true;
+        }
+      }
+    }
+
+    local profitable = anyVehicleProfitable || (("lastProfit" in line) && line.lastProfit > 10000) || vehProfit > 4000;
+    local needGrowth = (waiting >= 15) || (capacity > 0 && waiting >= 20) || (profitable && have < (isSmallAirport ? 4 : 8));
     if (!needGrowth) continue;
+
     local grown = OpexAirAddPlane(line);
     if (grown.added > 0) {
       line.vehCount <- have + 1;
@@ -2524,29 +2540,14 @@ function OpexAI::_runNextTask()
   if (task.name == "catalog") {
     local date = AIDate.GetCurrentDate();
     local month = AIDate.GetMonth(date);
-    if (this._lastCatalogMonth == month) return false;
+    if (this._lastCatalogMonth == month && this._ranked != null) return false;
     this._lastCatalogMonth = month;
     this._catalog.refresh(this._budget, year);
-    this._projects = null;
-    this._ranked = null;
-    this._projectCursor = 0;
-    return true;
-  }
-  if (task.name == "projects") {
-    if (this._projects != null) return false;
-    this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines);
-    this._ranked = this._projects.rail;
-    this._projectCursor = 0;
-    local ps = this._projects.stats;
-    OpexSign(AIMap.GetTileIndex(1, 1), "IG|" + (year % 100) + "|" + ps.modeCandidates
-             + "|" + ps.odProjects + "|" + ps.budgetSelected);
-    OpexSign(AIMap.GetTileIndex(1, 1), "IB|" + (year % 100) + "|"
-             + this._projects.capitalBudget + "|" + ps.selectedCapital);
+    this._ranked = OpexBuildCandidates(this._catalog, this._budget, this._lines);
     return true;
   }
   if (this._ranked == null) {
-    /* Le report par defaut au cycle suivant est indispensable : remettre cette tache due dans le
-     * cycle courant affame projects, seul capable de regenerer _ranked apres un investissement. */
+    task.dueCycle = this._taskCycle;
     return false;
   }
   if (task.name == "report") {
@@ -2571,15 +2572,29 @@ function OpexAI::_runNextTask()
     this._expandRailLines(year);
     return true;
   }
+  if (task.name == "air") {
+    this._tryBuildAir(year);
+    return true;
+  }
+  if (task.name == "water") {
+    this._tryBuildWater(year);
+    if (this._waterBuilt) task.enabled = false;
+    return true;
+  }
   if (task.name == "preplan") {
     if (!PREPLAN_ENABLED) { task.enabled = false; return false; }
     this._tryPreplan(year);
     return true;
   }
-  if (task.name == "invest") return this._tryProject(year);
+  if (task.name == "rail") { this._tryBuild(this._ranked, year); return true; }
   if (task.name == "probe") {
     if (!PROBE_NEGATIVE) { task.enabled = false; return false; }
     this._tryProbeNegative(this._ranked, year);
+    return true;
+  }
+  if (task.name == "road") {
+    if (!ROAD_BUILD_ENABLED) { task.enabled = false; return false; }
+    this._tryBuildRoads(year);
     return true;
   }
   if (task.name == "town_growth") {
