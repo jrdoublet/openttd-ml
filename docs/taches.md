@@ -1414,6 +1414,81 @@ portefeuille à la demande plutôt qu'au mois) : ils visent le capital dormant. 
 
 ---
 
+## 0 octies. 🔴 REVUE DE `economy.nut` (étape 4, 2026-09-01) — le rendement unitaire
+
+Le banc dit que ~15 % de l'écart de profit vient du **rendement par véhicule** (6 332 £/an par
+véhicule net ajouté contre 9 229 £, soit **−31,4 %**) et qu'OpexAI met **3,26 véhicules par gare
+contre 2,71**. Ce fichier porte ce rendement. **Les trois trouvailles de tête sont vérifiées à la
+main.**
+
+### 🔴 1. La variante « 2 trains » est facturée SANS la voie qu'elle exige (`economy.nut:193`)
+
+`infraCost` est calculé **une seule fois, ligne 193, avant la boucle**, puis réutilisé identique
+pour `trains = 1` et `trains = 2` (lignes 204 `amortAnnual` et 207 `capital`). Or la variante à
+deux trains est une **seconde voie dédiée** : `builder_rail.nut:1257` facture réellement
+`tiles2.len() * costTrackPerTile + (planA2.length + planB2.length) * costStation + depotCost`,
+soit approximativement une seconde copie de toute la ligne.
+
+Le deuxième train est donc pricé au seul `loco.price + wagons * wagon.price` plus un
+`loco.runningCost`. Comme le revenu est croissant en `trains` (palier de note franchi, capacité
+doublée), la boucle **choisit 2 trains sur pratiquement toute ligne viable**, alors que le capital
+réel est le double de ce que `capital` rapporte.
+➜ **C'est le mécanisme direct des 3,26 véhicules par gare.** L'erreur vaut 100 % de `infraCost`,
+très au-dessus du plancher de détection.
+
+### 🔴 2. Le nombre de trains maximise le profit ABSOLU, le portefeuille classe au ROI (`:209`)
+
+`if (best == null || profitAnnual > best.profitAnnual)` ne consulte **jamais** `roi` ni `capital`.
+Or c'est `roi` que le sac à dos de `projects.nut` trie. Ajouter un train augmente presque toujours
+`profitAnnual` **et baisse `roi`** : le modèle livre donc au portefeuille, pour chaque ligne, la
+variante **la plus gourmande en capital** de toutes celles qu'il a évaluées. Se compose avec le
+point 1.
+
+### 🔴 3. Les seuils de note de ramassage contredisent le source du moteur (`:90-95`)
+
+`docs/mecanique_jeu.md` §8.4 enregistre la lecture du source 15.3 :
+`time_since_pickup ≤ 3 / 6 / 12 / 21` **cycles**, à ~2,5 jours le cycle → **7,5 / 15 / 30 / 52,5
+jours**. Le code utilise **6,8 / 13,5 / 27 / 47** : chaque palier est **~10 % trop strict**.
+
+Le plus coûteux : `TARGET_HEADWAY_DAYS = 7` tombe **entre 6,8 et 7,5**. Le modèle note donc sa
+propre cible de conception à **95 points quand le moteur en accorde 130**.
+
+**Conséquence en cascade sur `:99`** : `otherPoints = 127,5 − 95 = +32,5` suppose que les lignes de
+calibration étaient dans la tranche 95. Sous le seuil corrigé, un headway de 7 jours est dans la
+tranche **130**, donc `otherPoints = −2,5`. Toute la courbe bascule : 65,7 / 50 / 32,4 / 22,5 %
+deviendrait 50 / 36,3 / 18,6 / 8,8 %. Ça change la valeur marginale d'un train **et** le revenu
+absolu de tout candidat rail et air. ⚠️ La décomposition utilise le headway *cible* des lignes de
+calibration, jamais leur `roundTripDays / trains` mesuré — à refaire proprement avant de corriger.
+
+### Le reste
+
+| gravité | lieu | problème |
+|---|---|---|
+| HAUT | `:370`, `:376` | La flotte routière est fixée par une cible de fréquence **sans aucun test de profit marginal**, et le commentaire qui la justifie est faux sur **toute** la plage légale : il affirme « sur une ligne courte la contrainte de fréquence rend presque toujours 1 », or entre `ROAD_MIN_DISTANCE = 5` et `ROAD_MAX_DISTANCE = 25` le terme vaut **2 à 6**, jamais 1 — et `max()` en fait un plancher. `builder_road.nut:735` clone ensuite jusqu'à `candidate.trains`. **Toute ligne routière naît sur-dotée.** |
+| MOYEN/HAUT | `:363` | La route n'applique **jamais** `OpexStationRatingForHeadway`, que le rail (`:199`) et l'air (`builder_air.nut:175`) utilisent : elle est figée à 50 % à plat. Une ligne de bus courte et fréquente — exactement ce que le mode route construit — vaudrait 65,7 % sous la courbe du modèle lui-même. **Le même mécanisme physique est pricé 31 % moins cher pour la route que pour le rail**, et le sac à dos multimodal les compare sur ce nombre. |
+| MOYEN | `:148` vs `:199` | La rame est dimensionnée sur `STATION_RATING_PCT = 50` à plat, mais la demande dans la boucle utilise la courbe (22,5–65,7 %). Sur une ligne longue à un train : ~54 % de wagons de trop par rapport à la demande estimée par le modèle lui-même, donc quai plus long et capital gonflé. Sur une ligne courte à deux trains, l'inverse. |
+| MOYEN | `:205` vs `:270` | **Les deux modèles rail se contredisent sur le coût d'entretien des wagons** : `runningAnnual = trains * loco.runningCost` l'ignore, `OpexRailFixedConsist` renvoie `wagonRunningAnnual` que `main.nut:2646` soustrait. L'un des deux a tort. Si les wagons ne coûtent rien, `OpexRailFixedConsist` surcharge chaque wagon marginal et **étouffe silencieusement `_expandRailLines`**. Trancher en lisant `AIEngine.GetRunningCost` sur un vrai wagon. |
+| MOYEN | `:204` vs `:404` | Horizons d'amortissement **asymétriques par mode** : rail `vehicleCost/20`, route `vehicleCost/12`, infra /30 des deux côtés. Le capital rail est dominé par l'infra, celui de la route par les véhicules → la route paie ~2,5× l'amortissement annuel par livre de capital. Et `roi` redivise ensuite par `capital` : **le capital est pénalisé deux fois, à un taux dépendant du mode**. Le moteur ne débite rien de tel — c'est une convention de classement, elle doit au minimum être neutre entre modes. |
+| MOYEN | `:193` | `infraCost` rail **omet le dépôt**, que la route compte (`:401`) et que `builder_rail.nut:467` et `:1256` paient réellement (deux fois sur le chemin 2 trains). Sous-estime le capital rail et gonfle son `roi` face à la route. |
+| MOYEN | `:328` | `ROAD_SPEED_EFFICIENCY_PCT = 60` est justifié **contre une constante rail qui n'existe plus** (les 70 % du rail, remplacés par un vrai modèle de traction). La route est désormais le seul mode portant un abattement forfaitaire non calibré, et sa base de comparaison a disparu. Le document pointe 0,75 (plafond de virage 3/4, `RY` 66/88). ⚠️ `mecanique_jeu.md:159` dit explicitement « pas de retuning du 60 % » : **justification périmée à trancher, pas changement automatique**. |
+| FAIBLE/MOYEN | `:193` | Le coût de voie rail est pricé en distance **de Manhattan**, alors que la voie posée est le résultat de l'A\*, toujours ≥ Manhattan (déviations, ponts, Z). Erre en notre faveur. La route documente sa propre approximation, en sens inverse ; le rail non. |
+| FAIBLE | `:208`, `:408` | Tout candidat déficitaire est écrasé à `roi = 0` : une ligne à −200 £/an et une à −200 000 £/an sont indiscernables, donc rien en aval ne peut les ordonner ni les diagnostiquer. Division entière également quantifiante. Même forme que le défaut trouvé dans `projects.nut`. |
+
+### ✅ Vérifié comme n'étant PAS un bug — ne pas re-litiger
+
+Asymétrie pax/fret de `OpexLoadedTripsPerMonth` (conforme à `mecanique_jeu.md` §1 ter, et
+dimensionnellement cohérente des deux côtés) ; retrait du `ceil` favorable ; `0.036 * speed` comme
+tuiles/jour ; `headwayDays = roundTripDays / trains` ; `OpexCeilDiv` (pas d'erreur de bord) ;
+`incomeDays` conservateur ; le `>` strict qui garde bien la flotte la plus petite à égalité ;
+`MARGINAL_FLEET` lu après `require` (résolution à l'appel, pas à la compilation) ; absence de charge
+`infrastructure_maintenance` (le réglage est bien `false` au banc) ; budget d'opcodes (la seule
+boucle est bornée à `MAX_RAIL_TRAINS = 2`) ; pas de closure imbriquée ni d'`AIAccounting` ici ;
+`roi` mis à l'échelle par 1000 sans risque de débordement (Squirrel 64 bits).
+
+⚠️ Rien n'est corrigé ni mesuré. Le mécanisme est établi, pas son effet.
+
+---
+
 ## 7 bis. Dimensionnement marginal de flotte (`marginal_fleet`) — MESURÉ, défaut 0, mais le mécanisme est bon (2026-09-01)
 
 **Banc apparié 20 graines × 3 ans** (`docs/bench_marginal_fleet_3y_20seeds.json`, les deux bras
