@@ -117,13 +117,16 @@ def keep(row):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--years", type=int, default=20)
+    parser.add_argument("--seed", type=int, default=None)
+    parser.add_argument("--seeds", type=int, nargs="+", default=None)
+    parser.add_argument("--years", type=int, default=5)
     parser.add_argument("--starting-year", type=int, default=1970)
-    parser.add_argument("--out", type=Path, default=Path("docs/head_to_head_seed42.json"))
+    parser.add_argument("--out", type=Path, default=Path("docs/head_to_head_results.json"))
     parser.add_argument("--setting", action="append", default=[], metavar="CLE=VALEUR",
                         help="Réglage OpexAI supplémentaire, répétable")
     args = parser.parse_args()
+
+    seeds = args.seeds if args.seeds is not None else ([args.seed] if args.seed is not None else [42])
 
     opex_settings = {}
     for raw in args.setting:
@@ -144,50 +147,69 @@ def main():
     )
     aaahogex = local_folder(str(ROOT / "ai" / "AAAHogEx-115"), "AAAHogEx", ())
     cfg = make_cfg(args.starting_year)
-    rows = list(run_experiments(
-        openttd_version=OPENTTD_VERSION,
-        opengfx_version=OPENGFX_VERSION,
-        max_workers=1,
-        result_processor=keep,
-        experiments=({
-            "seed": args.seed,
+    
+    experiments = tuple(
+        {
+            "seed": s,
             "days": 365 * args.years,
             "openttd_config": cfg,
             "ais": (opex, aaahogex),
             "head_to_head_arms": arm_names,
-        },),
+        }
+        for s in seeds
+    )
+
+    rows = list(run_experiments(
+        openttd_version=OPENTTD_VERSION,
+        opengfx_version=OPENGFX_VERSION,
+        max_workers=min(len(seeds), 4),
+        result_processor=keep,
+        experiments=experiments,
         ai_libraries=(
             bananas_ai_library("51554648", "Queue.FibonacciHeap"),
             bananas_ai_library("5046524c", "Pathfinder.Rail"),
         ),
     ))
     rows.sort(key=lambda record: record["date"])
+    
+    # Structure per seed
+    results_by_seed = {}
+    for r in rows:
+        # group by seed
+        # each row has companies
+        results_by_seed[str(r.get("date"))] = r
+
     payload = {
         "openttd_version": OPENTTD_VERSION,
         "opengfx_version": OPENGFX_VERSION,
-        "seed": args.seed,
+        "seeds": seeds,
         "years": args.years,
+        "starting_year": args.starting_year,
         "arms": list(arm_names),
         "opex_settings": opex_settings,
         "shared_game": True,
-        "openttd_config": CFG,
-        "summary": rows[-1]["companies"] if rows else [],
-        "openttd_output": rows[-1]["openttd_output"] if rows else "",
-        "signs": rows[-1].get("signs", []) if rows else [],
-        "series": [
-            {"date": record["date"], "companies": record["companies"]}
+        "openttd_config": cfg,
+        "runs": [
+            {
+                "date": record["date"],
+                "companies": record["companies"],
+                "signs": record.get("signs", []),
+            }
             for record in rows
         ],
     }
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(payload, indent=1) + "\n")
-    for company in payload["summary"]:
-        print(
-            f"{company['arm']:>28} value={company['company_value']} "
-            f"score={company['performance_history']} profit={company['profit_year']} "
-            f"rating={company['median_station_rating']} "
-            f"veh={company['n_vehicles']} st={company['n_stations']}"
-        )
+    print(f"=== FACE-A-FACE PARTAGE ({args.starting_year}, {args.years} ANS, {len(seeds)} GRAINES) ===")
+    for record in rows:
+        print(f"--- Run {record['date']} ---")
+        for company in record["companies"]:
+            print(
+                f"{company['arm']:>28} value={company['company_value']} "
+                f"score={company['performance_history']} profit={company['profit_year']} "
+                f"rating={company['median_station_rating']} "
+                f"veh={company['n_vehicles']} st={company['n_stations']}"
+            )
     print("ecrit", args.out)
 
 

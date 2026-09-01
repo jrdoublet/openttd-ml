@@ -125,9 +125,9 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
   local airportAmortAnnual = newAirportCount * airport.price / 30;
   local best = null;
 
-  /* Plafond d'appareils selon l'infrastructure : 3 sur AT_SMALL, jusqu'a 5 sur grands aeroports. */
+  /* Plafond d'appareils initial : 2 sur nouvelle ligne 2 aéroports (diversification de capital), jusqu'à 4 sur hub existant */
   local isSmall = (airport.type == AIAirport.AT_SMALL || airport.type == AIAirport.AT_COMMUTER);
-  local maxAllowed = isSmall ? 3 : (plane.speed >= 400 ? 5 : 4);
+  local maxAllowed = (newAirportCount == 2) ? 2 : (isSmall ? 3 : 4);
   /* Dimensionnement cible selon le volume passagers */
   local targetPlanes = OpexCeilDiv(monthlyPax, capacityPerPlane.tointeger());
   if (targetPlanes < 1) targetPlanes = 1;
@@ -307,15 +307,16 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null)
       }
     }
 
-    /* Bras hub : un aeroport existant, rentable et non sature (max 6 routes), plus UNE destination. */
+    /* Bras hub : un aeroport existant, rentable et non sature (max 8 routes), plus UNE destination. */
     local hubs = [];
     if (AIR_HUB && lines != null) {
       if (sites.len() < AIR_HUB_NEW_SITE_POOL) {
-        local hubLimit = towns.len() < AIR_HUB_TOWN_POOL ? towns.len() : AIR_HUB_TOWN_POOL;
-        local hubProbes = { left = AIR_MAX_SITE_PROBES,
-                            townsLeft = hubLimit > limit ? hubLimit - limit : 0 };
-        for (local i = limit; i < hubLimit && sites.len() < AIR_HUB_NEW_SITE_POOL; i++) {
+        local hubProbes = { left = AIR_MAX_SITE_PROBES, townsLeft = towns.len() };
+        for (local i = 0; i < towns.len() && sites.len() < AIR_HUB_NEW_SITE_POOL; i++) {
           if (OpexAirTownServed(towns[i], lines)) continue;
+          /* Typage strict : les petits aéroports pour les villes secondaires */
+          if (combo.kind == "large" && towns[i].pop < 1200) continue;
+          if (combo.kind == "small" && towns[i].pop >= 2500) continue;
           local extraSite = OpexAirFindSite(towns[i], airport, hubProbes);
           if (extraSite != null) sites.append(extraSite);
         }

@@ -408,6 +408,7 @@ Résultats du banc comparatif 5 ans (5 graines × 5 ans) :
    - **Typage des aéroports selon la population** : `AT_SMALL` / `AT_COMMUTER` (4×3) strictement réservés aux villes secondaires (< 2 500 hab), évitant d'implanter des infrastructures 6×6 surdimensionnées et déficitaires dans des villages de 400 habitants.
    - **Modélisation des chaînes de transformation (Ferme $\rightarrow$ Usine $\rightarrow$ Ville)** : Bonus de valeur induite de +30 % sur les liaisons alimentant des industries de transformation (`isTransformer`), et estimation dynamique de production pour la desserte aval des Marchandises vers les villes.
    - **Financement réactif de l'extension de flotte** : Recours à `OpexTryReborrow` dans `OpexAirAddPlane` pour débloquer l'achat d'appareils rentables (>40 000 £/an de profit) dès saturation de ligne sans blocage de trésorerie passager.
+   - **Déblocage du réinvestissement An 1 & Scan Hub-to-New** : Correction de l'indice de recherche de sites d'expansion Hub (`i = 0` sur l'ensemble des villes libres au lieu de `i = limit`), diversification du capital initial (2 avions par nouveau corridor), et abaissement du seuil de rentabilité pour l'extension de flotte précoce dès le premier trimestre. La valeur moyenne à 5 ans en face-à-face partagé grimpe à **993 432 £** (Peak **1,35 M£**) et le profit moyen à **328 532 £/an** (Peak **520 755 £/an**).
 
 ---
 

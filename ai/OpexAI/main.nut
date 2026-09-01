@@ -504,7 +504,7 @@ function OpexAI::_tryBuildAir(year)
   if (this._catalog.airCombos == null && this._catalog.airport == null) return;
   local maxPerYear = AIR_STARTER ? 30 : 5;
   local maxTotal = AIR_STARTER ? 250 : 25;
-  local margin = AIR_STARTER ? 10000 : AIR_CAPITAL_MARGIN;
+  local margin = AIR_STARTER ? 2000 : AIR_CAPITAL_MARGIN;
 
   local maxBatch = (this._catalog.plane != null && this._catalog.plane.speed >= 400) ? 6 : 3;
   local builtCount = 0;
@@ -1795,12 +1795,12 @@ function OpexAI::_resizeAirFleets(year)
         if (AIVehicle.IsValidVehicle(v)) {
           local p = AIVehicle.GetProfitThisYear(v);
           vehProfit += p;
-          if (p > 2500 || AIVehicle.GetProfitLastYear(v) > 6000) anyVehicleProfitable = true;
+          if (p > 1000 || AIVehicle.GetProfitLastYear(v) > 3000) anyVehicleProfitable = true;
         }
       }
     }
 
-    local profitable = anyVehicleProfitable || (("lastProfit" in line) && line.lastProfit > 10000) || vehProfit > 4000;
+    local profitable = anyVehicleProfitable || (("lastProfit" in line) && line.lastProfit > 5000) || vehProfit > 2000;
     local needGrowth = (waiting >= 15) || (capacity > 0 && waiting >= 20) || (profitable && have < (isSmallAirport ? 4 : 8));
     if (!needGrowth) continue;
 
