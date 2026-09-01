@@ -79,7 +79,8 @@ function OpexProjectFromAir(catalog, plan, planningOps)
   local economics = plan.economics;
   if (economics.profitAnnual <= 0 || economics.revenueAnnual <= 0 ||
       economics.capital <= 0) return null;
-  local margin = AIR_STARTER ? 10000 : AIR_CAPITAL_MARGIN;
+  local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1) + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
+  local margin = (newAirports == 2) ? 30000 : (newAirports == 1 ? 12000 : 2000);
   local budgetCapital = economics.capital + margin;
   /* La decouverte a deja ete payee pendant l'etape projets. La contrainte d'execution ne porte
    * que sur les opcodes encore necessaires pour construire le projet. */

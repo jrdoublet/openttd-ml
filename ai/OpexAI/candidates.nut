@@ -643,7 +643,9 @@ function OpexPaxCandidates(catalog, lines, out, stats)
   local produced = [];
   local served = [];
   for (local i = 0; i < n; i++) {
-    produced.append(AITown.GetLastMonthProduction(towns[i].id, cargo));
+    local p = AITown.GetLastMonthProduction(towns[i].id, cargo);
+    if (p <= 0 && towns[i].pop > 0) p = (towns[i].pop * 22) / 100;
+    produced.append(p);
     local service = OpexOriginService(lines, towns[i].tile);
     served.append(service);
     if (service != null) stats.townsServed++; else stats.townsUnserved++;
@@ -1022,7 +1024,9 @@ function OpexRoadPaxCandidates(catalog, lines, out, stats)
   local produced = [];
   local roadLinesPerTown = [];
   for (local i = 0; i < n; i++) {
-    produced.append(AITown.GetLastMonthProduction(towns[i].id, cargo));
+    local p = AITown.GetLastMonthProduction(towns[i].id, cargo);
+    if (p <= 0 && towns[i].pop > 0) p = (towns[i].pop * 22) / 100;
+    produced.append(p);
     roadLinesPerTown.append(OpexTownRoadLineCount(lines, towns[i].tile));
   }
   for (local a = 0; a < n; a++) {

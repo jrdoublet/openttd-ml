@@ -1501,6 +1501,8 @@ function OpexAI::_tryBuildProjects(year)
         }
       }
       if (airLinesThisYear >= maxPerYear || totalAirLines >= maxTotal) continue;
+      local abandonedKey = "air|" + plan.siteA.town.tile + "|" + plan.siteB.town.tile;
+      if (ABANDON_MEMORY && (abandonedKey in this._abandonedPairs)) continue;
 
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
       local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1) + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
@@ -1521,6 +1523,10 @@ function OpexAI::_tryBuildProjects(year)
       local result = OpexBuildAirRoute(this._catalog, this._budget, plan);
       OpexSign(anchor, "OA|" + year + "|" + plan.distance + "|" + planOps + "|" + result.reason);
       if (result.error != 0) OpexSign(anchor, "OE|A|" + result.error);
+      if (!result.ok) {
+        if (ABANDON_MEMORY) this._abandonedPairs[abandonedKey] <- true;
+        continue;
+      }
       if (result.ok) {
         this._airBuilt = true;
         this._lines.append({
