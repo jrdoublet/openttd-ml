@@ -5,6 +5,48 @@ liste ; l'historique reste dans les journaux `docs/journal_*.md`.
 
 ---
 
+## 🔴 Où en est vraiment OpexAI (mesuré le 2026-09-01) — À LIRE AVANT TOUT LE RESTE
+
+**OpexAI perd contre AAAHogEx, très largement, et ce document contient plusieurs passages plus
+anciens qui donnent l'impression inverse.** Mesure de référence actuelle :
+`docs/bench_1v1_3y_1aeefe1_20seeds.json` — 20 graines × 3 ans, départ 1970, lecture appariée,
+0 échec de script :
+
+| métrique | écart apparié OpexAI vs AAAHogEx | graines gagnées |
+|---|---:|---:|
+| `company_value` | **−87,8 %** (602 750 £ contre 4 947 586 £) | **0/20** |
+| `profit_year` | **−91,5 %** | **0/20** |
+| `performance_history` | −71,0 % | 0/20 |
+| `median_station_rating` | −12,0 % | 0/20 |
+
+Décomposition : `8,5 % de profit = 12,4 % de volume × 68,6 % de rendement unitaire`. Donc **~85 %
+de l'écart vient du volume** (8× moins de véhicules et de gares) et ~15 % du rendement par
+véhicule. La note de gare presque au niveau ne veut PAS dire que l'IA est presque au niveau.
+
+Goulot identifié, et ce n'est **pas** la trésorerie : avec ≥300 k£ en caisse, OpexAI ne construit
+rien dans **61,2 %** des transitions mensuelles, contre 2,8 % chez AAAHogEx ; 19,2 mois actifs sur
+36 contre 32,4 ; 9,6 mois entièrement figés. AAAHogEx passe même *plus* de mois sous 50 k£ que nous
+(14,6 contre 13,55). Le goulot est le **débit du contrôleur** — sélection, planification et
+exécution des projets.
+
+### Comment lire les chiffres de ce document sans se tromper
+
+1. **Un banc à 5 graines ne tranche rien**, et un banc **à 1 an** encore moins : AAAHogEx monte en
+   puissance lentement, donc le battre à l'an 1 ne dit rien sur 3 ans. Plusieurs sections
+   ci-dessous annoncent des victoires sur ce type de banc — elles sont **contredites** par la
+   mesure 20 graines × 3 ans ci-dessus. Elles sont conservées comme historique, pas comme preuve.
+2. **Plancher de détection du banc à n=20** : ~15 % sur `company_value`, ~12 % sur
+   `performance_history`. Sous ça, un résultat non significatif ne prouve **pas** l'absence d'effet.
+3. **Contre AAAHogEx, `performance_history` est inutilisable** (saturée chez lui, CV 0,5 %). Seuls
+   `company_value` et `profit_year` parlent. Entre deux variantes d'OpexAI, c'est l'inverse.
+4. **Une valeur absolue sans l'adversaire sur les mêmes graines ne veut rien dire.** « Valeur
+   moyenne 1,40 M£ » n'est pas un résultat tant qu'on ne sait pas ce qu'AAAHogEx fait sur ces
+   graines-là (il fait ~4,9 M£ à 3 ans).
+5. **« Solvabilité 100 % » n'est pas une performance** : ne pas faire faillite est un plancher, pas
+   un objectif. Voir l'ordre des objectifs ci-dessous.
+
+---
+
 ## Ordre des objectifs
 
 1. **Maximiser le profit attendu par opcode.**
@@ -17,12 +59,23 @@ donc etre lus dans cet ordre, et pas en prenant `company_value` comme arbitre un
 
 ---
 
-## Tâches Récentes Validées au Banc (2026-09-01)
+## Fonctionnalités livrées le 2026-09-01 — ⚠️ livrées, PAS validées contre AAAHogEx
+
+⚠️ **Titre corrigé le 2026-09-01.** Cette section s'intitulait « Tâches Récentes Validées au Banc »,
+ce qui est faux et trompeur : aucun de ces items n'a été opposé à AAAHogEx en lecture appariée sur
+20 graines. Les chiffres cités sont les valeurs **absolues d'OpexAI seul**, sans l'adversaire sur
+les mêmes graines. Le banc 1v1 qui a suivi (voir le bloc rouge en tête de document) donne **0/20
+graines gagnées et −87,8 %**. Ces fonctionnalités existent et tournent ; elles n'ont pas fermé
+l'écart.
 
 ✅ **Multiplication des Corridors Longue Distance & Réseau Hub-to-Hub Dès 30 000 £** — Interconnexion directe des aéroports du réseau (Hub-to-Hub à coût marginal d'1 avion seul ~30k £) et extensions étoilées (Hub-and-Spoke à 1 aéroport + 1 avion ~92k £), portant le plafond de routes par grand aéroport à 12.
 ✅ **Toile de Feeder Buses Satellites Vers les Hubs** — Raccordement systématique des 3 à 5 villages satellites (dès 200 habitants dans un rayon de 40 tuiles) avec ordres de transfert OpenTTD (`AIOrder.OF_TRANSFER | AIOrder.OF_UNLOAD`), saturation des lignes mères et bonus d'évaluation de +60 % ROI.
 ✅ **Montée en Flotte Agressive & Clonage Fiable** — Algorithme de redimensionnement de flotte mensuel en continu, acquisition automatique d'avions supplémentaires dès rentabilité/fonds disponibles, et fallback résilient `BuildVehicleWithRefit` + `ShareOrders`.
-✅ **Banc 1v1 Face-à-Face Multi-Graines 5 Ans** — Performance moyenne de **1 135 658 £** de valeur d'entreprise (pics à **1,72 M£** et **1,63 M£**), **331 903 £/an** de bénéfices nets ($+116\%$), flotte moyenne de **42,6 véhicules** ($+255\%$) et solvabilité **100% (5/5 sans faillite)**.
+⚠️ **Banc 1v1 Face-à-Face Multi-Graines 5 Ans** — Performance moyenne de **1 135 658 £** de valeur d'entreprise (pics à **1,72 M£** et **1,63 M£**), **331 903 £/an** de bénéfices nets ($+116\%$), flotte moyenne de **42,6 véhicules** ($+255\%$) et solvabilité **100% (5/5 sans faillite)**.
+  **Ces chiffres ne comparent rien** : ils décrivent OpexAI seul, sur 5 graines, sans les valeurs
+  d'AAAHogEx sur ces mêmes graines, et les pourcentages sont relatifs à une baseline OpexAI
+  antérieure — pas à l'adversaire. À 3 ans sur 20 graines, AAAHogEx est à 4,9 M£ contre 0,60 M£
+  pour nous. Ne pas citer cette ligne comme une victoire.
 
 ---
 
@@ -375,7 +428,7 @@ Résultats sur banc multi-graines 5 ans (`docs/head_to_head_5seeds.json`) :
 
 ---
 
-## 0 quinquies. ✅ Optimisation Multi-Époques (1950, 1970, 1990) & Pistes A, B, C — FAIT (2026-09-01)
+## 0 quinquies. ⚠️ Optimisation Multi-Époques (1950, 1970, 1990) & Pistes A, B, C — LIVRÉ, non validé (2026-09-01)
 
 Comparaison face-à-face an 1 contre AAAHogEx sur 3 époques technologiques distinctes :
 
@@ -390,8 +443,17 @@ Comparaison face-à-face an 1 contre AAAHogEx sur 3 époques technologiques dist
    - Dimensionnement dynamique de la flotte par liaison ($N^* = \arg\max \Pi(N)$) selon le volume passagers et la note de captage de station `OpexStationRatingForHeadway`.
    - Modélisation exacte de la valeur marginale du capital et de la vitesse de rotation de trésorerie.
 
+⚠️ **Avertissement ajouté le 2026-09-01 — les résultats ci-dessous ne survivent pas au banc.**
+Ils viennent de bancs à **5 graines** et, pour le plus flatteur, sur **1 an**. Or l'horizon d'un an
+est un régime très particulier : AAAHogEx démarre lentement et n'a pas encore composé. Battre
+AAAHogEx à l'an 1 sur 5 graines **ne prédit rien** à 3 ans. Le banc 20 graines × 3 ans
+(`docs/bench_1v1_3y_1aeefe1_20seeds.json`) donne **0/20 graines gagnées et −87,8 % de valeur**.
+Par ailleurs les valeurs absolues citées ici (« 850 000 £ à 3 ans en 1970 ») ne se reproduisent pas
+sur 20 graines : la mesure appariée donne **602 750 £** de moyenne sur le même horizon et la même
+année de départ. Historique conservé, **à ne pas citer comme un acquis**.
+
 Résultats du banc comparatif 1 an (5 graines × 1 an) avec le nouveau modèle de ROI :
-- **1950 (Vapeur / Hélices)** : **OpexAI bat AAAHogEx en valeur d'entreprise moyenne de +69,1 %** (**97 998 £ vs 57 963 £**), note des gares **171.1** (vs 163.9 chez AAA), solvabilité **100 %** (0 faillite chez OpexAI vs 2 faillites chez AAAHogEx).
+- **1950 (Vapeur / Hélices)** : OpexAI devance AAAHogEx en valeur d'entreprise moyenne de +69,1 % (**97 998 £ vs 57 963 £**), note des gares **171.1** (vs 163.9 chez AAA), solvabilité **100 %** (0 faillite chez OpexAI vs 2 faillites chez AAAHogEx). ⚠️ **5 graines, 1 an : sous le plancher de détection et hors du régime qui compte.**
 - **1970 (Diesel / Jets)** : Valeur d'entreprise moyenne monte à **160 336 £** (+306 % vs baseline), profit annuel an 1 à **137 851 £** (+229 %), score officiel à **143.8** (+97 %).
 - **1990 (Électrique / Réacteurs)** : Valeur d'entreprise moyenne monte à **225 095 £** (+426 % vs baseline), profit annuel an 1 à **177 212 £** (+223 %), score officiel à **161.4** (vs 182.4 chez AAAHogEx), note des gares **180.1** (> AAAHogEx 163.3), solvabilité **100 %**.
 
@@ -1215,7 +1277,75 @@ Ne pas oublier deux composantes gratuites de la note de compagnie : **emprunt à
 
 ---
 
+## 7 bis. Dimensionnement marginal de flotte (`marginal_fleet`) — MESURÉ, défaut 0, mais le mécanisme est bon (2026-09-01)
+
+**Banc apparié 20 graines × 3 ans** (`docs/bench_marginal_fleet_3y_20seeds.json`, les deux bras
+portant déjà `tree_planting=0`) :
+
+| métrique | `marginal_fleet=1` contre le défaut | t | graines |
+|---|---:|---:|---:|
+| `company_value` | **−27,2 %** | 2,02 | 14/20 défavorables |
+| `median_station_rating` | **−29,4 %** | 6,90 | **20/20 défavorables** |
+| `profit_year` | −13,8 % | 1,06 | 12/20 défavorables |
+| `performance_history` | +9,8 % | 1,52 | 14/20 favorables |
+| gares | **19,6 → 31,8 (+62 %)** | | ✅ |
+| véhicules | 58,0 → 41,5 (−28 %) | | ✅ |
+
+⚠️ **Défaut maintenu à 0.** La dégradation de valeur dépasse le plancher de détection (~15 %), ce
+n'est pas du bruit.
+
+**Mais ne pas jeter le mécanisme — il fait ce qu'on lui demandait.** Le capital libéré se convertit
+bel et bien en réseau : **+62 % de gares**, exactement le levier de volume qui manque (le banc 1v1
+dit que ~85 % de l'écart avec AAAHogEx vient du volume). Ce qui tue le résultat est le **démarrage
+à un seul véhicule** : la ligne est sous-desservie, le cargo s'accumule, et la note de gare chute de
+29 % sur **20 graines sur 20** — signal net et non ambigu, pas une fluctuation.
+
+**Ce que ça dit pour la suite** : le bon réglage n'est ni 1 (sous-service) ni le clonage immédiat à
+`candidate.trains` (immobilisation). Piste à tester : démarrer à **2** véhicules, ou garder le
+démarrage minimal mais rendre la croissance **beaucoup plus réactive** (trimestrielle plutôt
+qu'annuelle, dès que du cargo attend) au lieu d'un avion par ligne et par an.
+
+**Deux dérives code/commentaire trouvées en l'implémentant, et toujours présentes sous le défaut 0 :**
+1. `economy.nut` : le commentaire dit « `MAX_ROAD_VEHICLES = 2` est la traduction directe de la
+   règle du jeu » **juste au-dessus d'une constante qui vaut 8**.
+2. `_resizeAirFleets` (`main.nut`) : son commentaire promet âge ≥ 1 an, charge complète en attente
+   et un avion par an — **aucune des trois n'était vérifiée**, et la boucle montait à 4 avions par
+   passage.
+
+Même famille que la régression `tree_planting` : **le code a divergé de sa propre justification
+écrite**. Ne jamais faire confiance à un commentaire de constante sans lire la constante.
+
+---
+
 ## 8. Hygiène
+
+- 🔶 **Supprimer le réglage `tree_planting` et le chemin préventif qu'il garde (demandé le
+  2026-09-01).** La question est **tranchée**, le réglage n'a donc plus de raison d'exister : la
+  plantation ne doit avoir lieu **que** quand une ville nous refuse un aéroport. Laisser un
+  paramètre inutile encombre `info.nut` et la liste blanche du banc.
+
+  Ce qu'il faut retirer :
+  1. les **sept sites préventifs** gardés par `TREE_PLANTING` dans `main.nut`
+     (`542`, `707`, `864`, `1204`, `1518`, `1594`, `1699` au 2026-09-01) — ils appellent
+     `OpexBoostTownRating` *avant* toute tentative de construction ;
+  2. la constante `TREE_PLANTING` (`main.nut:68`) et sa relecture (`main.nut:3050`) ;
+  3. la déclaration `AddSetting` dans `info.nut` ;
+  4. l'entrée `"tree_planting"` de la liste blanche de `sweeps/bench_v2.py` (~ligne 141).
+
+  ⚠️ **Ne PAS toucher** au recours réactif de `builder_air.nut` (`517` et `540`) : il n'est pas
+  derrière le drapeau, il ne se déclenche qu'après un vrai `ERR_LOCAL_AUTHORITY_REFUSES` renvoyé
+  par `BuildAirport`, et c'est le seul comportement qu'on garde. `OpexBoostTownRating`
+  (`candidates.nut`) reste donc en place, seul son usage préventif disparaît.
+
+  ⚠️ Suppression **sans effet attendu sur le comportement** : le défaut est déjà à 0 depuis le
+  banc ci-dessous. Mais toute perturbation du rythme d'opcodes décale les frontières de ticks
+  (voir §5) — donc si le banc bouge après ce nettoyage, ce n'est pas une régression de décision,
+  c'est une divergence de trajectoire. Ne pas re-mesurer pour « valider » la suppression.
+
+  Motivation mesurée : banc apparié 20 graines × 3 ans
+  (`docs/bench_treeplanting_3y_20seeds.json`), couper la plantation préventive vaut
+  `company_value` **+22,1 %** (t = 2,42, 17/20 graines), `profit` +26,8 % (t = 2,09),
+  `profit_year` +20,1 %, et resserre la dispersion (CV 63,8 % → 50,7 %).
 
 - ✅ **Session du 2026-08-28 committée** en 5 commits (`a227281` banc/15.3, `f6095de` sonde de
   catalogue, `212c532` mécanique du jeu, `826a6fa` OpexAI, `ee3e370` cette liste). Historique local
@@ -1384,6 +1514,25 @@ mesurée : `docs/opexai_route.md`, banc PH **+9,3 %**.
   
   **Cause de l'échec** : La note d'autorité locale initiale dans OpenTTD est déjà suffisante ($\ge -200$) pour construire des gares et arrêts sans refus. Planter des arbres de façon préventive draine inutilement la trésorerie au démarrage sans débloquer aucun nouveau corridor.
   ⚠️ **Réglage `tree_planting`, défaut 0 (ÉCARTÉ).**
+
+  🔴 **RÉGRESSION : ce défaut a été perdu, puis remesuré et rétabli le 2026-09-01.** Entre le
+  2026-08-31 et le 2026-09-01, le code est repassé à `TREE_PLANTING <- true` (`main.nut:68`) et
+  `custom_value = 1` (`info.nut`) — **ce document disait 0 pendant que le code faisait 1**, et
+  personne ne l'a vu pendant une journée entière de travail bâti sur cette base. Remesuré à
+  3 ans, la perte est confirmée (`docs/bench_treeplanting_3y_20seeds.json`, 20 graines) :
+  `company_value` **+22,1 %** en coupant (t = 2,42, **17/20 graines**), `profit` +26,8 %
+  (t = 2,09), `profit_year` +20,1 %, et la dispersion se resserre (CV 63,8 % → 50,7 %). Défaut
+  remis à **0** partout.
+
+  **Leçon de méthode** : un défaut « adopté » dans ce document n'est PAS une garantie que le code
+  l'applique. Avant de bâtir sur un réglage, **lire sa valeur dans `info.nut` et `main.nut`**, pas
+  seulement ici. Une régression de défaut est invisible au banc si on ne mesure que des variantes
+  entre elles.
+
+  **Ce qui reste vivant, et qui n'est pas derrière ce réglage** : le recours **réactif** de
+  `builder_air.nut` (`517` et `540`), qui appelle `OpexBoostTownRating` puis réessaie l'aéroport
+  uniquement après un vrai `ERR_LOCAL_AUTHORITY_REFUSES`. C'est la règle voulue : **on ne plante
+  que si une ville nous refuse un aéroport**. Le nettoyage du réglage devenu inutile est en §8.
 - ⚪ **Ordre de chargement passagers rail (`pax_full_load`) — MAINTENU PAR DÉFAUT (2026-08-31)** :
   Comparaison entre le plein chargement forcé aux deux bouts (`pax_full_load=1`, `OF_FULL_LOAD_ANY`) et le départ partiel rapide (`pax_full_load=0`, `OF_NONE`).
   **Banc apparié 20 graines × 5 ans (`docs/bench_pax_full_load_5y.json`)** :
