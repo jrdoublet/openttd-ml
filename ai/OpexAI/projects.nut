@@ -235,10 +235,10 @@ function OpexKnapsackSolve(candidates, capitalBudget, maxRoad = 18, maxItems = 3
     return { projects = [], nodes = 0, exact = true };
   }
 
-  // Trier les candidats par densité de revenu décroissante (ratio revenu/capital)
+  // Trier les candidats par score composite décroissant (rendement économique et efficacité d'opcodes)
   candidates.sort(function(a, b) {
-    local va = a.revenueAnnual.tofloat() / (a.budgetCapital > 0 ? a.budgetCapital : 1);
-    local vb = b.revenueAnnual.tofloat() / (b.budgetCapital > 0 ? b.budgetCapital : 1);
+    local va = (a.budgetScore * 75 + a.opcodeScore * 25).tofloat();
+    local vb = (b.budgetScore * 75 + b.opcodeScore * 25).tofloat();
     if (va > vb) return -1;
     if (va < vb) return 1;
     return 0;

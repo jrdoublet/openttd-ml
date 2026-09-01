@@ -84,12 +84,11 @@ function OpexRailIterations(distance)
       return v0 + ((v1 - v0) * (distance - d0)) / (d1 - d0);
     }
   }
-  /* Au-dela du dernier noeud on prolonge la derniere pente : la vraie courbe monte plus vite
-   * encore, donc c'est une SOUS-estimation du cout -- prudent dans le mauvais sens, a surveiller. */
-  local last = n - 1;
-  local slope = (knots[last] - knots[last - 1])
-              / (KNOT_DISTANCE[last] - KNOT_DISTANCE[last - 1]);
-  return knots[last] + slope * (distance - KNOT_DISTANCE[last]);
+  /* Au-dela du dernier noeud, la complexite empirique d'un pathfinder A* sur grille 2D croit
+   * au moins comme le carre de la distance (surface exploree). */
+  local dLast = KNOT_DISTANCE[n - 1];
+  local vLast = knots[n - 1];
+  return (vLast * distance * distance) / (dLast * dLast);
 }
 
 /* Une origine rail est constructible s'il existe, dans le bassin, une tuile de TERRE qui voit
@@ -137,7 +136,7 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
     stats.distanceShort++;
     return null;
   }
-  if (distance > 85) {
+  if (distance > MAX_DISTANCE) {
     stats.distanceLong++;
     return null;
   }
