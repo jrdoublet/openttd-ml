@@ -119,7 +119,14 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
   local capacityPerPlane = plane.capacity * tripsPerMonth;
   if (capacityPerPlane <= 0) return null;
   local incomeDays = OpexCeilDiv(oneWayDays, 1);
-  local incomePerUnit = AICargo.GetCargoIncome(catalog.paxCargo, distance, incomeDays);
+  local paxIncome = AICargo.GetCargoIncome(catalog.paxCargo, distance, incomeDays);
+  local totalIncomePerUnit = paxIncome;
+  if (("mailCargo" in catalog) && catalog.mailCargo >= 0) {
+    local mailIncome = AICargo.GetCargoIncome(catalog.mailCargo, distance, incomeDays);
+    /* En soute, les avions de ligne transportent ~15% de fret postal sans refit */
+    totalIncomePerUnit = paxIncome + (mailIncome * 15) / 100;
+  }
+  local incomePerUnit = totalIncomePerUnit;
   local airportMaintenanceAnnual =
       infrastructureMaintenance ? 12 * newAirportCount * airport.maintenance : 0;
   local airportAmortAnnual = newAirportCount * airport.price / 30;
@@ -279,12 +286,13 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null)
           OpexSign(AIMap.GetTileIndex(1, 5), "AX|PA=" + popA + "|PB=" + popB + "|MPX=" + monthlyPax);
         }
 
-        local economics = OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
+        local flightDistance = orderDistance > 0 ? orderDistance : distance;
+        local economics = OpexAirEconomics(catalog, airport, plane, flightDistance, monthlyPax,
                                             infrastructureMaintenance, maxCapital, 2);
         if (economics == null) continue;
 
         local plan = {
-          siteA = sites[a], siteB = sites[b], distance = distance,
+          siteA = sites[a], siteB = sites[b], distance = flightDistance,
           orderDistance = orderDistance,
           airport = airport, plane = plane,
           planes = economics.planes, capital = economics.capital, economics = economics,
@@ -371,11 +379,12 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null)
         local newMonthly = (site.town.pop * 22) / 100;
         local monthlyPax = hubMonthly + newMonthly;
         if (monthlyPax < 10) monthlyPax = 10;
-        local economics = OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
+        local flightDistance = orderDistance > 0 ? orderDistance : distance;
+        local economics = OpexAirEconomics(catalog, airport, plane, flightDistance, monthlyPax,
                                             infrastructureMaintenance, maxCapital, 1);
         if (economics == null || economics.profitAnnual <= 0) continue;
         local plan = {
-          siteA = hub, siteB = site, distance = distance, orderDistance = orderDistance,
+          siteA = hub, siteB = site, distance = flightDistance, orderDistance = orderDistance,
           airport = airport, plane = plane, planes = economics.planes,
           capital = economics.capital, economics = economics,
           reuseA = true, hubRoutes = hub.routes,
@@ -410,11 +419,12 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null)
         local monthly2 = ((hub2.town.pop * 22) / 100) / (hub2.routes + 1);
         local monthlyPax = monthly1 + monthly2;
         if (monthlyPax < 10) monthlyPax = 10;
-        local economics = OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
+        local flightDistance = orderDistance > 0 ? orderDistance : distance;
+        local economics = OpexAirEconomics(catalog, airport, plane, flightDistance, monthlyPax,
                                             infrastructureMaintenance, maxCapital, 0);
         if (economics == null || economics.profitAnnual <= 0) continue;
         local plan = {
-          siteA = hub1, siteB = hub2, distance = distance, orderDistance = orderDistance,
+          siteA = hub1, siteB = hub2, distance = flightDistance, orderDistance = orderDistance,
           airport = airport, plane = plane, planes = economics.planes,
           capital = economics.capital, economics = economics,
           reuseA = true, reuseB = true, hubRoutes = hub1.routes + hub2.routes,

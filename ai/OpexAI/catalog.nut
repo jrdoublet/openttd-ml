@@ -165,6 +165,7 @@ class OpexCatalog {
   acceptors = null;    // cargo -> [index dans industries]
   cargos = null;       // [cargo_id]
   paxCargo = -1;
+  mailCargo = -1;
   year = 0;
 
   railType = -1;       // type de rail courant
@@ -620,10 +621,12 @@ function OpexCatalog::_refreshCargos()
 {
   this.cargos = [];
   this.paxCargo = -1;
+  this.mailCargo = -1;
   local list = AICargoList();
   for (local c = list.Begin(); !list.IsEnd(); c = list.Next()) {
     this.cargos.append(c);
     if (this.paxCargo < 0 && AICargo.HasCargoClass(c, AICargo.CC_PASSENGERS)) this.paxCargo = c;
+    if (this.mailCargo < 0 && AICargo.HasCargoClass(c, AICargo.CC_MAIL)) this.mailCargo = c;
   }
 }
 

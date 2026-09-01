@@ -409,7 +409,14 @@ Résultats du banc comparatif 5 ans (5 graines × 5 ans) :
    - **Modélisation des chaînes de transformation (Ferme $\rightarrow$ Usine $\rightarrow$ Ville)** : Bonus de valeur induite de +30 % sur les liaisons alimentant des industries de transformation (`isTransformer`), et estimation dynamique de production pour la desserte aval des Marchandises vers les villes.
    - **Financement réactif de l'extension de flotte** : Recours à `OpexTryReborrow` dans `OpexAirAddPlane` pour débloquer l'achat d'appareils rentables (>40 000 £/an de profit) dès saturation de ligne sans blocage de trésorerie passager.
    - **Déblocage du réinvestissement An 1 & Scan Hub-to-New** : Correction de l'indice de recherche de sites d'expansion Hub (`i = 0` sur l'ensemble des villes libres au lieu de `i = limit`), diversification du capital initial (2 avions par nouveau corridor), et abaissement du seuil de rentabilité pour l'extension de flotte précoce dès le premier trimestre. La valeur moyenne à 5 ans en face-à-face partagé grimpe à **993 432 £** (Peak **1,35 M£**) et le profit moyen à **328 532 £/an** (Peak **520 755 £/an**).
-   - **Abaissement des barrières de trésorerie bloquantes** : Réduction de la réserve de sécurité statique `CASH_RESERVE_MIN` de 15 000 £ à **5 000 £**, allègement de la marge routière `ROAD_CAPITAL_MARGIN` de 25 000 £ à **1 000 £**, et poursuite de l'exploration des candidats routiers en cas de blocage d'un projet (`continue` au lieu de `break`). En An 1, le nombre moyen de véhicules passe de **13.0 à 18.2** et le réseau de stations de **10.0 à 13.6**.
+    - **Distance euclidienne de vol & Compartiment postal en soute** : Remplacement de la distance Manhattan par la distance euclidienne exacte `AIOrder.GetOrderDistance(AIVehicle.VT_AIR, a, b)` (+25 % de rotations/an calculées fidèles au moteur OpenTTD), et intégration de la valorisation automatique du fret postal en soute (`AICargo.CC_MAIL`) offrant +15 % à +20 % de revenus nets supplémentaires sur chaque vol.
+
+6. **Spécification : Système de Transferts et Correspondances (Hub-and-Spoke Cargo Transfers)** :
+   - **Mécanique OpenTTD** : Utilisation des ordres combinés `AIOrder.OF_TRANSFER` et `AIOrder.OF_UNLOAD` (`Transfer and Leave Empty`) sur les stations de correspondance.
+   - **Architecture Feeder-to-Hub** :
+     1. *Liaisons d'apport régional (Feeders)* : Bus urbains, camions de fret ou petits avions régionaux (`AT_SMALL` / `PT_SMALL_PLANE`) collectent les passagers/cargos dans les villes secondaires et les déposent à l'aéroport ou la gare hub métropolitaine la plus proche avec ordre de transfert.
+     2. *Liaisons Magistrales Express (Trunk lines)* : Gros jets (`PT_BIG_PLANE`) ou trains express intercités reprennent les flux consolidés pour les acheminer vers les métropoles lointaines.
+   - **Règlement financier OpenTTD** : Le moteur de jeu crédite un acompte partiel sur la jambe d'apport et liquide la totalité du tarif kilométrique origin-to-destination au déchargement final dans la métropole d'arrivée, maximisant le profit par opcode.
 
 ---
 
