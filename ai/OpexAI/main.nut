@@ -523,7 +523,8 @@ function OpexAI::_tryBuildAir(year)
     local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
     local borrowable = REBORROW ? (AICompany.GetMaxLoanAmount() - AICompany.GetLoanAmount()) : 0;
     if (borrowable < 0) borrowable = 0;
-    local maxCapital = money + borrowable - OpexCashReserve() - margin;
+    local baseReserve = OpexCashReserve();
+    local maxCapital = money + borrowable - baseReserve - 2000;
     if (maxCapital <= 0) break;
 
     this._budget.begin();
@@ -534,8 +535,10 @@ function OpexAI::_tryBuildAir(year)
       break;
     }
 
-    local capital = ("capital" in plan) ? plan.capital : (2 * plan.airport.price + plan.plane.price);
-    local need = capital + OpexCashReserve() + margin;
+    local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1) + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
+    local requiredMargin = (newAirports == 2) ? 30000 : (newAirports == 1 ? 12000 : 2000);
+    local capital = ("capital" in plan) ? plan.capital : (newAirports * plan.airport.price + plan.plane.price);
+    local need = capital + baseReserve + requiredMargin;
     if (money < need) {
       if (REBORROW) money = OpexTryReborrow(need, money);
       if (money < need) break;
@@ -551,6 +554,8 @@ function OpexAI::_tryBuildAir(year)
     OpexSign(anchor, "OA|" + year + "|" + plan.distance + "|" + planOps + "|" + result.reason);
     if (result.error != 0) OpexSign(anchor, "OE|A|" + result.error);
     if (!result.ok) break;
+
+    builtCount++;
 
     this._airBuilt = true;
     this._lines.append({
@@ -1775,7 +1780,7 @@ function OpexAI::_resizeAirFleets(year)
     if (!("mode" in line) || line.mode != "air") continue;
     local have = ("vehCount" in line) ? line.vehCount : (("vehicles" in line) ? line.vehicles.len() : 0);
     if (have < 1 || have >= AIR_MAX_PLANES_PER_ROUTE) continue;
-    if (("lastProfit" in line) && line.lastProfit < 0) continue;
+    if (("deadStreak" in line) && line.deadStreak >= 2) continue;
 
     local isSmallAirport = false;
     if (AIAirport.IsAirportTile(line.stationA) && AIAirport.GetAirportType(line.stationA) == AIAirport.AT_SMALL) {
@@ -1795,8 +1800,8 @@ function OpexAI::_resizeAirFleets(year)
     local planePrice = (this._catalog.plane != null) ? this._catalog.plane.price : 30000;
     local need = planePrice + OpexCashReserve() + 1000;
     local canAfford = money >= need;
-    local profitable = (("lastProfit" in line) && line.lastProfit > 2000) || (("predicted" in line) && line.predicted > 5000);
-    local needGrowth = canAfford && profitable && (have < (isSmallAirport ? 4 : 8));
+    local targetPlanes = isSmallAirport ? 4 : 8;
+    local needGrowth = canAfford && (have < targetPlanes);
     if (!needGrowth) continue;
 
     local grown = OpexAirAddPlane(line);

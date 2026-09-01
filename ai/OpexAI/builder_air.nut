@@ -146,9 +146,9 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
   local airportAmortAnnual = newAirportCount * airport.price / 30;
   local best = null;
 
-  /* Plafond d'appareils initial : 2 sur nouvelle ligne 2 aéroports (diversification de capital), jusqu'à 4 sur hub existant */
+  /* Plafond d'appareils initial : jusqu'à 3 sur nouvelle ligne, jusqu'à 6 sur hub existant */
   local isSmall = (airport.type == AIAirport.AT_SMALL || airport.type == AIAirport.AT_COMMUTER);
-  local maxAllowed = (newAirportCount == 2) ? 2 : (isSmall ? 3 : 4);
+  local maxAllowed = (newAirportCount == 2) ? 3 : (isSmall ? 4 : 6);
   /* Dimensionnement cible selon le volume passagers */
   local targetPlanes = OpexCeilDiv(monthlyPax, capacityPerPlane.tointeger());
   if (targetPlanes < 1) targetPlanes = 1;
@@ -580,12 +580,11 @@ function OpexBuildAirRoute(catalog, budget, plan)
   for (local i = 1; i < wanted; i++) {
     local extra = AIVehicle.CloneVehicle(hangar, plane, true);
     if (!AIVehicle.IsValidVehicle(extra)) {
-      result.error = AIError.GetLastError();
-      result.opcodes += budget.end("build_aircraft");
-      OpexAirRollback(reuseA ? null : airportA, airportB, built);
-      result.reason = "CLONE";
-      return result;
+      local engine = AIVehicle.GetEngineType(plane);
+      extra = AIVehicle.BuildVehicleWithRefit(hangar, engine, catalog.paxCargo);
+      if (AIVehicle.IsValidVehicle(extra)) AIOrder.ShareOrders(extra, plane);
     }
+    if (!AIVehicle.IsValidVehicle(extra)) break;
     built.append(extra);
   }
   foreach (aircraft in built) {

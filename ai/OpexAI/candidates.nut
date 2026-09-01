@@ -168,7 +168,8 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   /* MIN_RATIO reste une mesure et le cout d'opportunite terminal du pathfinder, mais il ne peut
    * plus eliminer un mode AVANT l'arbitrage par couple O/D. La contrainte d'opcodes est appliquee
    * apres la contrainte de capital dans projects.nut. */
-  if (opcodeRatio < MIN_RATIO) {
+  local minRatio = (kind == "freight") ? 200 : MIN_RATIO;
+  if (opcodeRatio < minRatio) {
     stats.ratioTooLow++;
     return null;
   }
@@ -183,11 +184,11 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
 
   local adjustedRoi = (economics.roi * turnoverBonus) / 100;
   if (kind == "freight") {
-    /* Le fret beneficie d'un monopole d'exploitation absolu sans concurrence adverse */
-    adjustedRoi = (adjustedRoi * 125) / 100;
+    /* Le fret beneficie d'un monopole d'exploitation absolu sans concurrence adverse (+40%) */
+    adjustedRoi = (adjustedRoi * 140) / 100;
     if (isTransformer) {
       /* Bonus de chaîne industrielle : alimenter une usine génère des marchandises en aval */
-      adjustedRoi = (adjustedRoi * 130) / 100;
+      adjustedRoi = (adjustedRoi * 135) / 100;
     }
   }
   local ratio = opcodeRatio + (adjustedRoi * 15);
