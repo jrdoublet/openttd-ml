@@ -17,37 +17,12 @@
  * choisir le meilleur mode pour un meme couple origine/destination. Le modele de capital du rail
  * le declasse normalement dans cette bande ; c'est desormais un resultat du ROI, pas un a priori
  * d'orchestration. */
-const MIN_DISTANCE = 25;
-const MAX_DISTANCE = 200;
-/* H2 : bande courte depuis une gare deja a nous. MIN_DISTANCE inchange
- * pour les lignes neuves. join_max_distance > 0 bride aussi cette bande. */
-const JOIN_PLACE_MAX = 75;
-
-/* Nombre de candidats retenus en tete de classement. Au-dela, on ne consomme jamais. */
-const TOP_K = 20;
-
-/* Plancher de ratio (profit annuel attendu par millier d'iterations). Mesure du 2026-08-28,
- * graine 42/20 ans, apres l'exclusion d'origine ci-dessous (OpexOriginServed) : une fois les
- * bonnes origines epuisees, le TOP_K se remplit de candidats de moins en moins bons plutot que de
- * rester vide -- et certains, lointains, ont un ratio predit ecrase (15, 218, 275) bien en dessous
- * du plancher empirique observe sur cette meme campagne AVANT la correction (1278, jamais franchi
- * a la baisse quand le classement avait assez de bons candidats pour ne jamais descendre aussi
- * bas). Sans ce plancher, l'exclusion d'origine seule degradait le resultat (company_value
- * 2 067 089 contre 2 413 587 avant, emprunt non rembourse) en laissant l'IA s'engager sur ces
- * candidats marginaux -- avec MIN_RATIO=500, meme graine/duree : 17 lignes (contre 15),
- * company_value 2 716 098 (+12,5 % vs avant tout correctif), emprunt rembourse. Ce plancher ne
- * remplace pas la politique d'abandon : il coupe les candidats structurellement mauvais AVANT la
- * tentative, pas ceux dont le cout reel derape en cours de route (observe separement : une
- * tentative a 70 tuiles a consomme 60 000 iterations pour un profit predit de 3 149 avant d'etre
- * abandonnee, cf. docs/opexai_croissance.md). Il sert aussi de cout d'opportunite du dernier
- * candidat : attendre le classement annuel suivant vaut au moins ce rapport acceptable. */
-const MIN_RATIO = 500;
-
-/* Item 7 : echantillon des paires rejetees pour profit predit <= 0. Les moins negatives
- * d'abord -- si celles-la sont vraiment non rentables, le filtre est calibre ; si elles
- * rapportent, le modele sous-estime une famille que la calibration n'a jamais vue.
- * 12 tiennent dans leftover-cash : tropClose et le capital en eliment encore. */
-const PROBE_STASH_K = 12;
+MIN_DISTANCE <- 25;
+MAX_DISTANCE <- 200;
+JOIN_PLACE_MAX <- 75;
+TOP_K <- 20;
+MIN_RATIO <- 500;
+PROBE_STASH_K <- 12;
 /* "Presque admis" : predit > -1000. L'echelle du plancher MIN_RATIO * iterations/1000
  * pour une ligne courte (~500*310/1000 = 155) est plus petite ; -1000 reste du meme
  * ordre qu'une ligne mediocre, pas un gouffre d'amortissement. */
@@ -1142,13 +1117,13 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats)
   for (local i = 0; i < n; i++) {
     if (OpexOriginServed(lines, towns[i].tile, true)) continue;
     local pop = towns[i].pop;
-    if (pop < 300) continue;
+    if (pop < 200) continue;
     local produced = AITown.GetLastMonthProduction(towns[i].id, cargo);
     if (produced <= 0) continue;
 
     foreach (hub in hubs) {
       local distance = AIMap.DistanceManhattan(towns[i].tile, hub.tile);
-      if (distance < ROAD_MIN_DISTANCE || distance > 30) continue;
+      if (distance < ROAD_MIN_DISTANCE || distance > 40) continue;
       stats.pairsInBand++;
       local monthly = (produced * ROAD_PAX_CATCHMENT_SHARE_PCT) / 100;
       if (monthly <= 0) continue;
@@ -1158,9 +1133,10 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats)
         candidate.isFeeder <- true;
         candidate.hubStationId <- hub.stationId;
         candidate.hubMode <- hub.mode;
-        /* Bonus ROI pour la valeur réseau apportée au Hub (+40%) */
-        candidate.adjustedRoi = (candidate.adjustedRoi * 140) / 100;
-        candidate.profitAnnual = (candidate.profitAnnual * 140) / 100;
+        /* Bonus ROI pour la valeur réseau apportée au Hub (+60%) */
+        candidate.roi = (candidate.roi * 160) / 100;
+        candidate.ratio = (candidate.ratio * 160) / 100;
+        candidate.profitAnnual = (candidate.profitAnnual * 160) / 100;
         out.append(candidate);
       }
     }
@@ -1194,11 +1170,11 @@ function OpexBuildRoadCandidates(catalog, budget, lines)
 /* Rehausse la reputation municipale aupres de l'autorite locale en plantant des arbres.
  * Cout : ~40 £ par arbre, gain : +7 points de note par arbre plante (plafond standard +220).
  * Empeche le blocage ERR_LOCAL_AUTHORITY_REFUSES lors des constructions urbaines. */
-function OpexBoostTownRating(townId, targetRating = 100, maxTrees = 20)
+function OpexBoostTownRating(townId, targetRating = 700, maxTrees = 35)
 {
   if (!AITown.IsValidTown(townId)) return;
   local currentRating = AITown.GetRating(townId, AICompany.COMPANY_SELF);
-  if (currentRating >= targetRating) return;
+  if (currentRating >= targetRating && currentRating != AITown.TOWN_RATING_NONE) return;
 
   local center = AITown.GetLocation(townId);
   local planted = 0;

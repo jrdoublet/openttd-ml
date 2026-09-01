@@ -11,7 +11,7 @@
  * ATTENTION : non reentrant. Un seul begin()/end() a la fois, jamais imbrique.
  */
 
-const OPS_PER_TICK = 10000;
+OPS_PER_TICK <- 10000;
 
 class OpexBudget {
   totals = null;   // categorie -> opcodes cumules

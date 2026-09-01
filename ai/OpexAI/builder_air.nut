@@ -8,18 +8,14 @@
  * retires, au moindre echec apres le premier aeroport.
  */
 
-const AIR_TOWN_POOL = 100;
-const AIR_HUB_TOWN_POOL = 100;
-const AIR_HUB_NEW_SITE_POOL = 25;
-const AIR_SITE_RADIUS = 35;
-const AIR_TOWN_MIN_DISTANCE = 32;
-const AIR_MAX_SITE_PROBES = 25000;
-/* Une piste AT_LARGE ne doit pas recevoir une flotte sans borne. */
-const AIR_MAX_PLANES_PER_ROUTE = 10;
-
-/* GetPrice ne comprend pas le nettoyage eventuel du terrain. Cette marge s'ajoute a la reserve
- * generale dans main.nut avant le premier BuildAirport. */
-const AIR_CAPITAL_MARGIN = 50000;
+AIR_TOWN_POOL <- 100;
+AIR_HUB_TOWN_POOL <- 100;
+AIR_HUB_NEW_SITE_POOL <- 25;
+AIR_SITE_RADIUS <- 35;
+AIR_TOWN_MIN_DISTANCE <- 32;
+AIR_MAX_SITE_PROBES <- 25000;
+AIR_MAX_PLANES_PER_ROUTE <- 10;
+AIR_CAPITAL_MARGIN <- 50000;
 
 /* Distance euclidienne exacte à vol d'oiseau pour la cinématique et le paiement aérien :
  * sqrt(dx^2 + dy^2) approximé par 0.414 * min(dx, dy) + max(dx, dy) */
@@ -82,7 +78,7 @@ function OpexAirAirportAcceptsPlane(airportType, planeType)
  * pas seulement contre son coin. */
 function OpexAirFindSite(town, airport, probes)
 {
-  local allowance = 400;
+  local allowance = 3000;
   probes.townsLeft--;
   local used = 0;
   for (local r = 4; r <= AIR_SITE_RADIUS; r++) {
@@ -100,10 +96,16 @@ function OpexAirFindSite(town, airport, probes)
           local probe = AITestMode();
           ok = AIAirport.BuildAirport(anchor, airport.type, AIStation.STATION_NEW);
           if (!ok) {
-            local endTile = anchor + AIMap.GetTileIndex(airport.width - 1, airport.height - 1);
-            if (AIMap.IsValidTile(endTile)) {
-              AITile.LevelTiles(anchor, endTile);
-              ok = AIAirport.BuildAirport(anchor, airport.type, AIStation.STATION_NEW);
+            local err = AIError.GetLastError();
+            if (err == AIError.ERR_LOCAL_AUTHORITY_REFUSES) {
+              ok = true;
+            } else {
+              local endTile = anchor + AIMap.GetTileIndex(airport.width - 1, airport.height - 1);
+              if (AIMap.IsValidTile(endTile)) {
+                AITile.LevelTiles(anchor, endTile);
+                ok = AIAirport.BuildAirport(anchor, airport.type, AIStation.STATION_NEW);
+                if (!ok && AIError.GetLastError() == AIError.ERR_LOCAL_AUTHORITY_REFUSES) ok = true;
+              }
             }
           }
         }
@@ -213,7 +215,18 @@ function OpexAirAddPlane(line)
     }
   }
   local extra = AIVehicle.CloneVehicle(hangar, template, true);
-  if (!AIVehicle.IsValidVehicle(extra)) { result.reason = "CLONE"; return result; }
+  if (!AIVehicle.IsValidVehicle(extra)) {
+    local engine = AIVehicle.GetEngineType(template);
+    local cargo = ("cargo" in line) ? line.cargo : 0;
+    extra = AIVehicle.BuildVehicleWithRefit(hangar, engine, cargo);
+    if (AIVehicle.IsValidVehicle(extra)) {
+      AIOrder.ShareOrders(extra, template);
+    }
+  }
+  if (!AIVehicle.IsValidVehicle(extra)) {
+    result.reason = "CLONE|" + AIError.GetLastError();
+    return result;
+  }
   if (!AIVehicle.StartStopVehicle(extra)) {
     if (AIVehicle.IsStoppedInDepot(extra)) AIVehicle.SellVehicle(extra);
     result.reason = "START"; return result;
@@ -257,9 +270,9 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null)
   foreach (combo in combos) {
     local airport = combo.airport;
     local plane = combo.plane;
-    local townPool = (plane.speed >= 400) ? AIR_TOWN_POOL : 40;
+    local townPool = AIR_TOWN_POOL;
     local limit = towns.len() < townPool ? towns.len() : townPool;
-    local minDist = (plane.speed >= 400) ? 32 : 40;
+    local minDist = (plane.speed >= 400) ? 32 : 30;
     local sites = [];
     local probes = { left = AIR_MAX_SITE_PROBES, townsLeft = limit };
     for (local i = 0; i < limit; i++) {
@@ -267,10 +280,10 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null)
        * gare ferroviaire, et exclure les villes deja servies en rail empechait toute
        * construction aerienne sur une carte partiellement couverte. */
       if (OpexAirTownServed(towns[i], lines)) continue;
-      /* Typage strict selon la strate de population :
-       * - Grands aéroports : réservés aux villes >= 1200 habitants
+      /* Typage selon la population :
+       * - Grands aéroports : accessibles dès 600 habitants (suffisant pour alimenter un jet vers un hub)
        * - Petits aéroports : adaptés aux villes < 2500 habitants */
-      if (combo.kind == "large" && towns[i].pop < 1200) continue;
+      if (combo.kind == "large" && towns[i].pop < 600) continue;
       if (combo.kind == "small" && towns[i].pop >= 2500) continue;
       local site = OpexAirFindSite(towns[i], airport, probes);
       if (site != null) sites.append(site);
@@ -282,11 +295,9 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null)
         local distance = AIMap.DistanceManhattan(sites[a].town.tile, sites[b].town.tile);
         local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR,
                                                         sites[a].anchor, sites[b].anchor);
-        if (a == 0 && b == 1) {
-          OpexSign(AIMap.GetTileIndex(1, 7), "AZ|D=" + distance + "|OD=" + orderDistance + "|MO=" + plane.maxOrderDistance + "|MIN=" + minDist);
-        }
+        local flightDistance = OpexFlightDistance(sites[a].anchor, sites[b].anchor);
         if (distance < minDist) continue;
-        if (plane.maxOrderDistance > 0 && orderDistance > plane.maxOrderDistance) {
+        if (plane.maxOrderDistance > 0 && flightDistance > plane.maxOrderDistance) {
           continue;
         }
 
@@ -298,7 +309,6 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null)
           OpexSign(AIMap.GetTileIndex(1, 5), "AX|PA=" + popA + "|PB=" + popB + "|MPX=" + monthlyPax);
         }
 
-        local flightDistance = OpexFlightDistance(sites[a].anchor, sites[b].anchor);
         local economics = OpexAirEconomics(catalog, airport, plane, flightDistance, monthlyPax,
                                             infrastructureMaintenance, maxCapital, 2);
         if (economics == null) continue;
@@ -334,8 +344,8 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null)
         local hubProbes = { left = AIR_MAX_SITE_PROBES, townsLeft = towns.len() };
         for (local i = 0; i < towns.len() && sites.len() < AIR_HUB_NEW_SITE_POOL; i++) {
           if (OpexAirTownServed(towns[i], lines)) continue;
-          /* Typage strict : les petits aéroports pour les villes secondaires */
-          if (combo.kind == "large" && towns[i].pop < 1200) continue;
+          /* Typage : grands aéroports dès 600 hab */
+          if (combo.kind == "large" && towns[i].pop < 600) continue;
           if (combo.kind == "small" && towns[i].pop >= 2500) continue;
           local extraSite = OpexAirFindSite(towns[i], airport, hubProbes);
           if (extraSite != null) sites.append(extraSite);
@@ -363,7 +373,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null)
             local otherB = AIStation.GetStationID(other.stationB);
             if (otherA == station || otherB == station) routeCount++;
           }
-          local maxRoutes = (existingType == AIAirport.AT_SMALL || existingType == AIAirport.AT_COMMUTER) ? 4 : 8;
+          local maxRoutes = (existingType == AIAirport.AT_SMALL || existingType == AIAirport.AT_COMMUTER) ? 4 : 12;
           if (routeCount >= maxRoutes) continue;
           local townId = AITile.GetClosestTown(end.origin);
           if (townId < 0) continue;
@@ -383,15 +393,15 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null)
     foreach (hub in hubs) {
       foreach (site in sites) {
         local distance = AIMap.DistanceManhattan(hub.town.tile, site.town.tile);
-        if (distance < 35) continue;
+        if (distance < 20) continue;
         local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR,
                                                         hub.anchor, site.anchor);
-        if (plane.maxOrderDistance > 0 && orderDistance > plane.maxOrderDistance) continue;
+        local flightDistance = OpexFlightDistance(hub.anchor, site.anchor);
+        if (plane.maxOrderDistance > 0 && flightDistance > plane.maxOrderDistance) continue;
         local hubMonthly = ((hub.town.pop * 22) / 100) / (hub.routes + 1);
         local newMonthly = (site.town.pop * 22) / 100;
         local monthlyPax = hubMonthly + newMonthly;
         if (monthlyPax < 10) monthlyPax = 10;
-        local flightDistance = OpexFlightDistance(hub.anchor, site.anchor);
         local economics = OpexAirEconomics(catalog, airport, plane, flightDistance, monthlyPax,
                                             infrastructureMaintenance, maxCapital, 1);
         if (economics == null || economics.profitAnnual <= 0) continue;
@@ -424,14 +434,14 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null)
         }
         if (alreadyConnected) continue;
         local distance = AIMap.DistanceManhattan(hub1.town.tile, hub2.town.tile);
-        if (distance < 35) continue;
+        if (distance < 20) continue;
         local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR, hub1.anchor, hub2.anchor);
-        if (plane.maxOrderDistance > 0 && orderDistance > plane.maxOrderDistance) continue;
+        local flightDistance = OpexFlightDistance(hub1.anchor, hub2.anchor);
+        if (plane.maxOrderDistance > 0 && flightDistance > plane.maxOrderDistance) continue;
         local monthly1 = ((hub1.town.pop * 22) / 100) / (hub1.routes + 1);
         local monthly2 = ((hub2.town.pop * 22) / 100) / (hub2.routes + 1);
         local monthlyPax = monthly1 + monthly2;
         if (monthlyPax < 10) monthlyPax = 10;
-        local flightDistance = OpexFlightDistance(hub1.anchor, hub2.anchor);
         local economics = OpexAirEconomics(catalog, airport, plane, flightDistance, monthlyPax,
                                             infrastructureMaintenance, maxCapital, 0);
         if (economics == null || economics.profitAnnual <= 0) continue;
@@ -492,6 +502,10 @@ function OpexBuildAirRoute(catalog, budget, plan)
     local endA = plan.siteA.anchor + AIMap.GetTileIndex(airport.width - 1, airport.height - 1);
     if (AIMap.IsValidTile(endA)) AITile.LevelTiles(plan.siteA.anchor, endA);
     local okA = AIAirport.BuildAirport(plan.siteA.anchor, airport.type, AIStation.STATION_NEW);
+    if (!okA && AIError.GetLastError() == AIError.ERR_LOCAL_AUTHORITY_REFUSES) {
+      OpexBoostTownRating(plan.siteA.town.id, 800, 40);
+      okA = AIAirport.BuildAirport(plan.siteA.anchor, airport.type, AIStation.STATION_NEW);
+    }
     if (okA && AIAirport.IsAirportTile(plan.siteA.anchor)) airportA = plan.siteA.anchor;
   }
   if (airportA == null) {
@@ -511,6 +525,10 @@ function OpexBuildAirRoute(catalog, budget, plan)
     local endB = plan.siteB.anchor + AIMap.GetTileIndex(airport.width - 1, airport.height - 1);
     if (AIMap.IsValidTile(endB)) AITile.LevelTiles(plan.siteB.anchor, endB);
     local okB = AIAirport.BuildAirport(plan.siteB.anchor, airport.type, AIStation.STATION_NEW);
+    if (!okB && AIError.GetLastError() == AIError.ERR_LOCAL_AUTHORITY_REFUSES) {
+      OpexBoostTownRating(plan.siteB.town.id, 800, 40);
+      okB = AIAirport.BuildAirport(plan.siteB.anchor, airport.type, AIStation.STATION_NEW);
+    }
     if (okB && AIAirport.IsAirportTile(plan.siteB.anchor)) airportB = plan.siteB.anchor;
   }
   result.opcodes += budget.end("build_airports");

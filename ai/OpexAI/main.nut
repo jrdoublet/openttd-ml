@@ -54,7 +54,7 @@ RAIL_EXPAND <- false;
 const RAIL_EXPAND_STREAK = 2;
 const RAIL_EXPAND_UTIL_PERMILLE = 850;
 const RAIL_EXPAND_TIMEOUT_DAYS = 120;
-const RAIL_EXPAND_APPROACH_TILES = 12;
+OPS_PER_TICK <- 10000;
 _budgetSignIds <- {};
 function OpexSign(anchor, name)
 {
@@ -129,6 +129,7 @@ const BUILD_TICK_MARGIN = 3000;
  * 20 candidats, donc au plus 20 appels de solde et de _tooClose, sans lancer A* avant le test de
  * cash. L'ancien break en examinait 1 ; parcourir les 19 restants est le cout borne qui rend enfin
  * visible un candidat moins rentable par iteration mais financable en capital. */
+TOP_K <- 20;
 CASH_CANDIDATE_SCAN_LIMIT <- TOP_K;
 
 /* Phase routiere (2026-08-29). La v1 batissait UNE liaison bus passagers et restait desactivee :
@@ -506,7 +507,7 @@ function OpexAI::_tryBuildAir(year)
   local maxTotal = AIR_STARTER ? 250 : 25;
   local margin = AIR_STARTER ? 2000 : AIR_CAPITAL_MARGIN;
 
-  local maxBatch = (this._catalog.plane != null && this._catalog.plane.speed >= 400) ? 6 : 3;
+  local maxBatch = AIR_STARTER ? 12 : 3;
   local builtCount = 0;
   while (builtCount < maxBatch) {
     local airLinesThisYear = 0;
@@ -541,8 +542,8 @@ function OpexAI::_tryBuildAir(year)
     }
 
     if (TREE_PLANTING) {
-      OpexBoostTownRating(plan.siteA.town.id, 100, 20);
-      OpexBoostTownRating(plan.siteB.town.id, 100, 20);
+      OpexBoostTownRating(plan.siteA.town.id, 700, 35);
+      OpexBoostTownRating(plan.siteB.town.id, 700, 35);
     }
 
     local result = OpexBuildAirRoute(this._catalog, this._budget, plan);
@@ -699,8 +700,8 @@ function OpexAI::_tryBuildRoads(year)
       continue;
     }
     if (TREE_PLANTING) {
-      if (candidate.srcTown >= 0) OpexBoostTownRating(candidate.srcTown, 100, 15);
-      if (candidate.dstTown >= 0) OpexBoostTownRating(candidate.dstTown, 100, 15);
+      if (candidate.srcTown >= 0) OpexBoostTownRating(candidate.srcTown, 700, 35);
+      if (candidate.dstTown >= 0) OpexBoostTownRating(candidate.dstTown, 700, 35);
     }
     local result = OpexBuildRoadRoute(this._catalog, this._budget, plan, candidate);
     /* Le cout REEL d'une tentative, plan et construction separes. Mesure 2026-08-30
@@ -1195,8 +1196,8 @@ function OpexAI::_tryBuild(ranked, year)
     if (isPaxNear) alternativeRatio = 0;
     local hardCap = OpexDynamicHardCap(this._lines.len(), false);
     if (TREE_PLANTING && candidate.kind == "pax") {
-      OpexBoostTownRating(candidate.src, 100, 20);
-      OpexBoostTownRating(candidate.dst, 100, 20);
+      OpexBoostTownRating(candidate.src, 700, 35);
+      OpexBoostTownRating(candidate.dst, 700, 35);
     }
     local result = OpexBuildLine(this._catalog, this._budget, candidate, alternativeRatio, join,
                                  OpexCashReserve(), hardCap);
@@ -1790,28 +1791,21 @@ function OpexAI::_resizeAirFleets(year)
     local waiting = waitingA + waitingB;
     local capacity = ("planeCapacity" in line) ? line.planeCapacity : 0;
 
-    local vehProfit = 0;
-    local anyVehicleProfitable = false;
-    if ("vehicles" in line) {
-      foreach (v in line.vehicles) {
-        if (AIVehicle.IsValidVehicle(v)) {
-          local p = AIVehicle.GetProfitThisYear(v);
-          vehProfit += p;
-          if (p > 1000 || AIVehicle.GetProfitLastYear(v) > 3000) anyVehicleProfitable = true;
-        }
-      }
-    }
-
-    local profitable = anyVehicleProfitable || (("lastProfit" in line) && line.lastProfit > 5000) || vehProfit > 2000;
-    local needGrowth = (waiting >= 15) || (capacity > 0 && waiting >= 20) || (profitable && have < (isSmallAirport ? 4 : 8));
+    local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+    local planePrice = (this._catalog.plane != null) ? this._catalog.plane.price : 30000;
+    local need = planePrice + OpexCashReserve() + 1000;
+    local canAfford = money >= need;
+    local profitable = (("lastProfit" in line) && line.lastProfit > 2000) || (("predicted" in line) && line.predicted > 5000);
+    local needGrowth = canAfford && profitable && (have < (isSmallAirport ? 4 : 8));
     if (!needGrowth) continue;
 
     local grown = OpexAirAddPlane(line);
+    AILog.Info("[AIR_FLEET] line=" + line.lineId + " have=" + have + " money=" + money + " need=" + need + " res=" + grown.reason);
     if (grown.added > 0) {
       line.vehCount <- have + 1;
       line.trains = have + 1;
     }
-    OpexSign(anchor, "FG|" + (year % 100) + "|" + line.lineId + "|" + have + "|"
+    OpexSign(AIMap.GetTileIndex(1, 10 + line.lineId), "FG|" + (year % 100) + "|" + line.lineId + "|" + have + "|"
                      + waiting + "|" + (grown.added > 0 ? "K" : grown.reason));
   }
   return true;
@@ -2564,9 +2558,7 @@ function OpexAI::_runNextTask()
   if (task.name == "scrap") { this._scrapDeadLines(year); return true; }
   if (task.name == "refleet") { this._refleetRoadLines(year); return true; }
   if (task.name == "air_fleet") {
-    /* Le garde annuel evite la mutation ; le report evite aussi de repayer le dispatch a chaque
-     * tour continu. Seize cycles laissent passer plusieurs autres investissements avant resonde. */
-    task.dueCycle = this._taskCycle + 16;
+    task.dueCycle = this._taskCycle + 1;
     return this._resizeAirFleets(year);
   }
   if (task.name == "expand") {

@@ -21,21 +21,14 @@
  * fichier ne fait plus que planifier et batir la paire qu'on lui donne.
  */
 
-const ROAD_MAX_TRACE_TILES = 32;
-/* Rayon de recherche d'un site d'arret. Une ville s'etale, donc on cherche loin de son centre
- * administratif ; une industrie occupe quelques tuiles et l'arret doit de toute facon tomber dans
- * son rayon de couverture, donc chercher au-dela serait payer des sondes pour rien. */
-const ROAD_TOWN_SEARCH_RADIUS = 16;
-const ROAD_INDUSTRY_SEARCH_RADIUS = 5;
-const ROAD_MAX_SITE_PROBES = 48;
-const ROAD_MAX_SITES_PER_END = 4;
-/* 4 x 4 x 2 = 32 L. Le plafond a 12 (2026-08-29) coupait apres 6 paires de sites : le classement
- * est le cargo, pas la geometrie, donc les premieres paires sont souvent les plus mal orientees.
- * 32 essais x 32 aretes reste ~1 000 tests, deja payes par la sonde de site (35-74 k opcodes
- * mesures sur TRACEX). */
-const ROAD_MAX_TRACE_TRIALS = 32;
-const ROAD_CAPITAL_MARGIN = 1000;
-const ROAD_DEPOT_MIN_STOP_DISTANCE = 3;
+ROAD_MAX_TRACE_TILES <- 32;
+ROAD_TOWN_SEARCH_RADIUS <- 16;
+ROAD_INDUSTRY_SEARCH_RADIUS <- 5;
+ROAD_MAX_SITE_PROBES <- 48;
+ROAD_MAX_SITES_PER_END <- 4;
+ROAD_MAX_TRACE_TRIALS <- 32;
+ROAD_CAPITAL_MARGIN <- 1000;
+ROAD_DEPOT_MIN_STOP_DISTANCE <- 3;
 
 function OpexRoadInMap(x, y)
 {

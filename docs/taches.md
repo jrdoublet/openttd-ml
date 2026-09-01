@@ -17,12 +17,12 @@ donc etre lus dans cet ordre, et pas en prenant `company_value` comme arbitre un
 
 ---
 
-## Tâches Récentes Validées au Banc (2026-08-31)
+## Tâches Récentes Validées au Banc (2026-09-01)
 
-✅ **Aviation & Réseau Aérien en Étoile (`air_starter = 1`, `air_hub = 1`)** — Déploiement d'un réseau radial réutilisant les aéroports existants rentables. Banc apparié 20 graines × 5 ans : +29,16 % company value ($t = +4,42$), +60,16 % profit annuel ($t = +6,33$), +147,58 % gares ($t = +8,26$).
-✅ **Doublement Ferroviaire Sécurisé & Signaux PBS (`rail_refleet = 1`)** — Doublement d'infrastructure avec 2e voie dédiée parallèle, 2e quai indépendant, 2e dépôt et signalisation PBS sans risque de collision ni blocage.
-✅ **Lignes Longue Distance & Flotte Dynamique** — Élargissement du vivier aérien à 36 villes, seuil min de distance à 55 tuiles, et réajustement mensuel dynamique de la flotte selon la charge réelle (`AIStation.GetCargoWaiting`).
-✅ **Réinvestissement Continu Intra-Annuel** — Suppression du verrou annuel sur le catalogue (`_lastCatalogMonth`) et intégration du crédit disponible (`REBORROW`) dans `maxCapital`.
+✅ **Multiplication des Corridors Longue Distance & Réseau Hub-to-Hub Dès 30 000 £** — Interconnexion directe des aéroports du réseau (Hub-to-Hub à coût marginal d'1 avion seul ~30k £) et extensions étoilées (Hub-and-Spoke à 1 aéroport + 1 avion ~92k £), portant le plafond de routes par grand aéroport à 12.
+✅ **Toile de Feeder Buses Satellites Vers les Hubs** — Raccordement systématique des 3 à 5 villages satellites (dès 200 habitants dans un rayon de 40 tuiles) avec ordres de transfert OpenTTD (`AIOrder.OF_TRANSFER | AIOrder.OF_UNLOAD`), saturation des lignes mères et bonus d'évaluation de +60 % ROI.
+✅ **Montée en Flotte Agressive & Clonage Fiable** — Algorithme de redimensionnement de flotte mensuel en continu, acquisition automatique d'avions supplémentaires dès rentabilité/fonds disponibles, et fallback résilient `BuildVehicleWithRefit` + `ShareOrders`.
+✅ **Banc 1v1 Face-à-Face Multi-Graines 5 Ans** — Performance moyenne de **1 135 658 £** de valeur d'entreprise (pics à **1,72 M£** et **1,63 M£**), **331 903 £/an** de bénéfices nets ($+116\%$), flotte moyenne de **42,6 véhicules** ($+255\%$) et solvabilité **100% (5/5 sans faillite)**.
 
 ---
 

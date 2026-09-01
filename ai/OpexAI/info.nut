@@ -1,4 +1,4 @@
-class OpexAI extends AIInfo {
+class OpexAIInfo extends AIInfo {
   function GetAuthor()      { return "openttd-ml"; }
   function GetName()        { return "OpexAI"; }
   function GetDescription() { return "IA multimodale : meilleur ROI par origine/destination, puis revenu maximise sous contraintes de capital et d'opcodes."; }
@@ -6,7 +6,7 @@ class OpexAI extends AIInfo {
   function GetDate()        { return "2026-09-01"; }
   function CreateInstance() { return "OpexAI"; }
   function GetShortName()   { return "OPEX"; }
-  function GetAPIVersion()  { return "15"; }
+  function GetAPIVersion()  { return "13"; }
 
   /* Les reglages debug_signs et pathfinder_sleep_ticks existent pour NE PAS POLLUER une partie
    * partagee avec des joueurs humains (loan_repay_floor_k, pathfinder_hard_cap_k,
@@ -27,7 +27,6 @@ class OpexAI extends AIInfo {
     AddSetting({
       name = "debug_signs",
       description = "Diagnostic signs on the map: 1 = current behaviour (required by sweeps/), 0 = none (use when playing with humans)",
-      min_value = 0, max_value = 1,
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       flags = AICONFIG_BOOLEAN
@@ -37,7 +36,6 @@ class OpexAI extends AIInfo {
     AddSetting({
       name = "rail_cost_probe",
       description = "Emit per-line rail model capital versus actual construction cost: 1 = measurement only, 0 = no extra signs (default)",
-      min_value = 0, max_value = 1,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -51,7 +49,6 @@ class OpexAI extends AIInfo {
     AddSetting({
       name = "rail_expand",
       description = "Add one wagon to profitable saturated one-train rail lines using paid platform margin: 1 = enabled, 0 = control (default)",
-      min_value = 0, max_value = 1,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -135,7 +132,6 @@ class OpexAI extends AIInfo {
     AddSetting({
       name = "reborrow",
       description = "Borrow the missing loan step when a candidate exceeds cash: 1 = enabled, 0 = historical one-way repay (unmeasured default)",
-      min_value = 0, max_value = 1,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -159,7 +155,6 @@ class OpexAI extends AIInfo {
     AddSetting({
       name = "astar_cost",
       description = "A* cost knots: 0 = OpenTTD 13.4 TrainLineAI table (control), 1 = amortized iterations per success under 15.3 (227 attempts)",
-      min_value = 0, max_value = 1,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -183,7 +178,6 @@ class OpexAI extends AIInfo {
     AddSetting({
       name = "probe_negative",
       description = "Force-build one leftover-cash rail pair rejected for predicted profit <= 0, once per year: 1 = measure selection bias, 0 = historical ranking (default)",
-      min_value = 0, max_value = 1,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -208,7 +202,6 @@ class OpexAI extends AIInfo {
     AddSetting({
       name = "pax_near",
       description = "Admit passenger rail pairs of at most 100 tiles with predicted profit in (-200, 0] into ranking: 1 = enabled, 0 = historical profit<=0 rejection (default)",
-      min_value = 0, max_value = 1,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -236,7 +229,6 @@ class OpexAI extends AIInfo {
     AddSetting({
       name = "abandon_memory",
       description = "Remember rail origin/destination/cargo pairs after ABND: 1 = enabled, 0 = pre-2026-08-29 behaviour",
-      min_value = 0, max_value = 1,
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       flags = AICONFIG_BOOLEAN
@@ -281,7 +273,6 @@ class OpexAI extends AIInfo {
     AddSetting({
       name = "station_join",
       description = "Reuse one compatible nearby OpexAI rail station with a dedicated platform: 1 = enabled, 0 = historical too-close rejection",
-      min_value = 0, max_value = 1,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -318,7 +309,6 @@ class OpexAI extends AIInfo {
     AddSetting({
       name = "join_place",
       description = "Place-first rail join from an existing OpexAI station to a free origin (25-75 tiles): 1 = enabled, 0 = off",
-      min_value = 0, max_value = 1,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -341,7 +331,6 @@ class OpexAI extends AIInfo {
     AddSetting({
       name = "origin_sitable",
       description = "Drop rail candidates whose source has no land tile seeing the cargo: 1 = enabled, 0 = historical ranking (measured default)",
-      min_value = 0, max_value = 1,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -364,7 +353,6 @@ class OpexAI extends AIInfo {
     AddSetting({
       name = "basin_share",
       description = "Split a joined station's production across rail lines on that StationID: 1 = enabled, 0 = count the catchment as if the station were new (measured default)",
-      min_value = 0, max_value = 1,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -422,7 +410,6 @@ Le mode route est donc reconfirme sur l arbre courant.
     AddSetting({
       name = "road_mode",
       description = "Build short road lines (bus town-town, and truck freight industry-industry / industry-town): 1 = enabled, 0 = rail-only baseline",
-      min_value = 0, max_value = 1,
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       flags = AICONFIG_BOOLEAN
@@ -434,7 +421,6 @@ Le mode route est donc reconfirme sur l arbre courant.
     AddSetting({
       name = "town_growth",
       description = "Boost served town growth with bus feeder stations (target 5 active stations per town): 1 = enabled (default), 0 = off",
-      min_value = 0, max_value = 1,
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       flags = AICONFIG_BOOLEAN
@@ -446,7 +432,6 @@ Le mode route est donc reconfirme sur l arbre courant.
     AddSetting({
       name = "preplan_queue",
       description = "Precalculate route plans in advance during idle opcode ticks: 1 = enabled (default), 0 = compute only when building",
-      min_value = 0, max_value = 1,
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       flags = AICONFIG_BOOLEAN
@@ -457,7 +442,6 @@ Le mode route est donc reconfirme sur l arbre courant.
     AddSetting({
       name = "dynamic_cash_reserve",
       description = "Scale cash reserve with fleet maintenance (15k-50k) instead of static 50k: 1 = enabled (default), 0 = static 50k",
-      min_value = 0, max_value = 1,
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       flags = AICONFIG_BOOLEAN
@@ -468,7 +452,6 @@ Le mode route est donc reconfirme sur l arbre courant.
     AddSetting({
       name = "dynamic_pathfinder_cap",
       description = "Dynamically scale pathfinder opcode cap (15k early -> 60k low-cash/mature): 1 = enabled (default), 0 = static cap",
-      min_value = 0, max_value = 1,
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       flags = AICONFIG_BOOLEAN
@@ -479,7 +462,6 @@ Le mode route est donc reconfirme sur l arbre courant.
     AddSetting({
       name = "pax_full_load",
       description = "Rail passenger load order: 1 = full load any (default), 0 = no full load (fast partial departure)",
-      min_value = 0, max_value = 1,
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       flags = AICONFIG_BOOLEAN
@@ -491,7 +473,6 @@ Le mode route est donc reconfirme sur l arbre courant.
     AddSetting({
       name = "complex_cargo",
       description = "Support complex secondary cargo chains and town goods/food deliveries: 1 = enabled (default), 0 = primary only",
-      min_value = 0, max_value = 1,
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       flags = AICONFIG_BOOLEAN
@@ -503,7 +484,6 @@ Le mode route est donc reconfirme sur l arbre courant.
     AddSetting({
       name = "air_starter",
       description = "Air capacity policy: 1 = aggressive fleet/line caps (default), 0 = historical slow capacity (1/yr, max 5)",
-      min_value = 0, max_value = 1,
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       flags = AICONFIG_BOOLEAN
@@ -514,7 +494,6 @@ Le mode route est donc reconfirme sur l arbre courant.
     AddSetting({
       name = "air_hub",
       description = "Reuse a profitable uncongested airport for a new destination: 1 = experimental hub routes (default), 0 = two new airports",
-      min_value = 0, max_value = 1,
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       flags = AICONFIG_BOOLEAN
@@ -526,7 +505,6 @@ Le mode route est donc reconfirme sur l arbre courant.
     AddSetting({
       name = "rail_refleet",
       description = "Double saturated rail lines with parallel track, PBS signals and 2nd train: 1 = enabled (default), 0 = consist elongation only",
-      min_value = 0, max_value = 1,
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       flags = AICONFIG_BOOLEAN
@@ -537,7 +515,6 @@ Le mode route est donc reconfirme sur l arbre courant.
     AddSetting({
       name = "tree_planting",
       description = "Automatic tree planting to maximize town authority rating and bypass local permits: 1 = enabled (default), 0 = off",
-      min_value = 0, max_value = 1,
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       flags = AICONFIG_BOOLEAN
@@ -581,7 +558,6 @@ Le mode route est donc reconfirme sur l arbre courant.
     AddSetting({
       name = "road_refleet",
       description = "Rebuild a road line's fleet when vehicles drop below the original count: 1 = enabled (bugfix default), 0 = leave empty infrastructure idle",
-      min_value = 0, max_value = 1,
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       flags = AICONFIG_BOOLEAN
@@ -601,7 +577,6 @@ Le mode route est donc reconfirme sur l arbre courant.
     AddSetting({
       name = "road_multistop",
       description = "Join a second road stop at each end and add vehicles only if both ends doubled: 1 = try, 0 = one stop per end (default)",
-      min_value = 0, max_value = 1,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -649,4 +624,4 @@ Le mode route est donc reconfirme sur l arbre courant.
   }
 }
 
-RegisterAI(OpexAI());
+RegisterAI(OpexAIInfo());
