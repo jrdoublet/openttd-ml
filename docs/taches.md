@@ -404,6 +404,11 @@ Résultats du banc comparatif 5 ans (5 graines × 5 ans) :
 - **1990** : Valeur moyenne à **1,91 M£** (Peak **3,38 M£** sur graine 17), profit annuel moyen à **526 000 £/an** (Peak **943 000 £/an**), 110 véhicules, 36 stations, solvabilité **100 %**.
 - **1970** : Valeur moyenne à **1,70 M£** (Peak **2,45 M£** sur graine 7), profit annuel moyen à **615 000 £/an** (Peak **1,03 M£/an**), score à **443.6** (Peak **618**), 109 véhicules, 61 stations, solvabilité **100 %**.
 
+5. **Typage des Aéroports par Strate Urbaine & Chaînes d'Approvisionnement Industrielles** :
+   - **Typage des aéroports selon la population** : `AT_SMALL` / `AT_COMMUTER` (4×3) strictement réservés aux villes secondaires (< 2 500 hab), évitant d'implanter des infrastructures 6×6 surdimensionnées et déficitaires dans des villages de 400 habitants.
+   - **Modélisation des chaînes de transformation (Ferme $\rightarrow$ Usine $\rightarrow$ Ville)** : Bonus de valeur induite de +30 % sur les liaisons alimentant des industries de transformation (`isTransformer`), et estimation dynamique de production pour la desserte aval des Marchandises vers les villes.
+   - **Financement réactif de l'extension de flotte** : Recours à `OpexTryReborrow` dans `OpexAirAddPlane` pour débloquer l'achat d'appareils rentables (>40 000 £/an de profit) dès saturation de ligne sans blocage de trésorerie passager.
+
 ---
 
 ## 1 bis. Mode route : ouvert, mesuré, et ce qui reste (2026-08-29, révisé 2026-08-30)

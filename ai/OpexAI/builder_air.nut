@@ -184,9 +184,14 @@ function OpexAirAddPlane(line)
   }
   if (template == null) { result.reason = "NOLIVE"; return result; }
   local price = AIEngine.GetPrice(AIVehicle.GetEngineType(template));
-  if (price <= 0 || AICompany.GetBankBalance(AICompany.COMPANY_SELF)
-                    < price + OpexCashReserve() + 2000) {
-    result.reason = "CASH"; return result;
+  if (price <= 0) { result.reason = "PRICE"; return result; }
+  local need = price + OpexCashReserve() + 1000;
+  local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  if (money < need) {
+    if (REBORROW) money = OpexTryReborrow(need, money);
+    if (money < need) {
+      result.reason = "CASH"; return result;
+    }
   }
   local extra = AIVehicle.CloneVehicle(hangar, template, true);
   if (!AIVehicle.IsValidVehicle(extra)) { result.reason = "CLONE"; return result; }
@@ -243,6 +248,11 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null)
        * gare ferroviaire, et exclure les villes deja servies en rail empechait toute
        * construction aerienne sur une carte partiellement couverte. */
       if (OpexAirTownServed(towns[i], lines)) continue;
+      /* Typage strict selon la strate de population :
+       * - Grands aéroports : réservés aux villes >= 1200 habitants
+       * - Petits aéroports : adaptés aux villes < 2500 habitants */
+      if (combo.kind == "large" && towns[i].pop < 1200) continue;
+      if (combo.kind == "small" && towns[i].pop >= 2500) continue;
       local site = OpexAirFindSite(towns[i], airport, probes);
       if (site != null) sites.append(site);
     }

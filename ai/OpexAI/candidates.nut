@@ -144,7 +144,7 @@ function OpexRailOriginSitable(tile, cargo, coverage, wantProduction)
   return false;
 }
 
-function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, originServed, stats)
+function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, originServed, stats, isTransformer = false)
 {
   if (monthly <= 0) {
     stats.noMonthly++;
@@ -210,6 +210,10 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   if (kind == "freight") {
     /* Le fret beneficie d'un monopole d'exploitation absolu sans concurrence adverse */
     adjustedRoi = (adjustedRoi * 125) / 100;
+    if (isTransformer) {
+      /* Bonus de chaîne industrielle : alimenter une usine génère des marchandises en aval */
+      adjustedRoi = (adjustedRoi * 130) / 100;
+    }
   }
   local ratio = opcodeRatio + (adjustedRoi * 15);
 
@@ -764,10 +768,11 @@ function OpexFreightCandidates(catalog, lines, out, stats)
           stats.pairsJoinImpossible++;
           continue;
         }
+        local isTransformer = ("isTransformer" in industries[di]) && industries[di].isTransformer;
         local originServed = ss != null || sd != null;
         if (originServed) stats.pairsOneServed++;
         local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
-                                            industries[di].tile, monthly, originServed, stats);
+                                            industries[di].tile, monthly, originServed, stats, isTransformer);
         if (candidate != null) {
           if (JOIN_PLACE && (OpexAbandonedPairKey(candidate) in stats.placeJoinKeys)) {
             /* H2 porte deja le join ; ne pas occuper un second slot TOP_K. */
@@ -795,10 +800,16 @@ function OpexFreightCandidates(catalog, lines, out, stats)
             stats.pairsJoinImpossible++;
             continue;
           }
+          local townMonthly = monthly;
+          if (townMonthly <= 0 && ss != null) {
+            /* Industrie de transformation activement approvisionnée en amont */
+            townMonthly = 45;
+          }
+          if (townMonthly <= 0) continue;
           local originServed = ss != null || st != null;
           if (originServed) stats.pairsOneServed++;
           local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
-                                              town.tile, monthly, originServed, stats);
+                                              town.tile, townMonthly, originServed, stats, false);
           if (candidate != null) {
             candidate.dstTown <- town.id;
             out.append(candidate);

@@ -513,7 +513,6 @@ function OpexCatalog::_refreshAir()
         this.airport = ap;
         this.plane = best;
       }
-      break;
     }
   }
   AILog.Info("_refreshAir: combos=" + this.airCombos.len()
@@ -677,6 +676,8 @@ function OpexCatalog::_refreshIndustries()
       producedByType.rawset(type, this._cargoArray(AIIndustryType.GetProducedCargo(type)));
       acceptedByType.rawset(type, this._cargoArray(AIIndustryType.GetAcceptedCargo(type)));
     }
+    local isTransformer = (producedByType[type].len() > 0 && acceptedByType[type].len() > 0);
+    this.industries[k].isTransformer <- isTransformer;
     foreach (cargo in producedByType[type]) {
       if (!(cargo in this.producers)) this.producers.rawset(cargo, []);
       this.producers[cargo].append(k);
