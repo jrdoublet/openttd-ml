@@ -137,7 +137,7 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
     stats.distanceShort++;
     return null;
   }
-  if (distance > MAX_DISTANCE) {
+  if (distance > 85) {
     stats.distanceLong++;
     return null;
   }
