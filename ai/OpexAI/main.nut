@@ -2482,14 +2482,10 @@ function OpexAI::_tryRepayLoan(year)
   OpexSign(AIMap.GetTileIndex(1, 1), "LF|" + (year % 100) + "|" + cash + "|" + loan);
   if (loan <= 0) return;
 
-  /* Plancher dynamique : en Année 1 (amorce du réseau), on conserve LOAN_REPAY_FLOOR (300k£)
-   * pour financer les projets. Dès l'Année 2 et après, on abaisse le plancher à 50k£
-   * pour désendetter la compagnie et valoriser l'entreprise, le réemprunt (reborrow) assurant le financement à la demande. */
-  local floor = (year <= 1970) ? LOAN_REPAY_FLOOR : 50000;
-  if (cash <= floor) return;
+  if (cash <= LOAN_REPAY_FLOOR) return;
 
   local interval = AICompany.GetLoanInterval();
-  local minNewLoan = loan - (cash - floor);
+  local minNewLoan = loan - (cash - LOAN_REPAY_FLOOR);
   if (minNewLoan < 0) minNewLoan = 0;
   local newLoan = ((minNewLoan + interval - 1) / interval) * interval;
   if (newLoan >= loan) return;  // moins d'un palier remboursable : pas la peine

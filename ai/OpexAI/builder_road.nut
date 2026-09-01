@@ -397,14 +397,36 @@ function OpexRoadPlanFor(catalog, candidate)
   local nHit = 0;
   local nUnb = 0;
   local noDepot = 0;
+
+  // Passe 1 : L direct rapide (0 = horizontal, 1 = vertical)
   foreach (siteA in sitesA) {
     foreach (siteB in sitesB) {
-      for (local shape = 0; shape < 6; shape++) {
-        if (trials >= ROAD_MAX_TRACE_TRIALS) {
-          return { plan = null, reason = noDepot > 0 ? "DEPOTX" : "TRACEX",
-                   trace = { trials = trials, nEmpty = nEmpty, nLong = nLong, nHit = nHit,
-                             nUnb = nUnb, nNoDepot = noDepot } };
+      for (local shape = 0; shape < 2; shape++) {
+        if (trials >= ROAD_MAX_TRACE_TRIALS) break;
+        trials++;
+        local trace = OpexRoadTrace(siteA.front, siteB.front, shape == 0);
+        if (trace.len() == 0) { nEmpty++; continue; }
+        if (trace.len() > ROAD_MAX_TRACE_TILES) { nLong++; continue; }
+        if (OpexRoadTraceHitsStop(trace, siteA.tile) || OpexRoadTraceHitsStop(trace, siteB.tile)) {
+          nHit++;
+          continue;
         }
+        if (!OpexRoadTraceBuildable(trace)) { nUnb++; continue; }
+        local depot = OpexRoadFindDepot(trace, siteA, siteB);
+        if (depot == null) { noDepot++; continue; }
+        return { plan = { stopA = siteA, stopB = siteB, trace = trace, depot = depot,
+                          stationType = stop.stationType, vehType = stop.vehType,
+                          routeDistance = trace.len(), shape = shape, trials = trials },
+                 reason = "OK" };
+      }
+    }
+  }
+
+  // Passe 2 : Déviations en escalier (Z et contournements) si tous les L directs échouent
+  foreach (siteA in sitesA) {
+    foreach (siteB in sitesB) {
+      for (local shape = 2; shape < 6; shape++) {
+        if (trials >= ROAD_MAX_TRACE_TRIALS * 3) break;
         trials++;
         local trace = OpexRoadTraceMulti(siteA.front, siteB.front, shape);
         if (trace.len() == 0) { nEmpty++; continue; }
@@ -423,6 +445,7 @@ function OpexRoadPlanFor(catalog, candidate)
       }
     }
   }
+
   return { plan = null, reason = noDepot > 0 ? "DEPOTX" : "TRACEX",
            trace = { trials = trials, nEmpty = nEmpty, nLong = nLong, nHit = nHit,
                      nUnb = nUnb, nNoDepot = noDepot } };
