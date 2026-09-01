@@ -2156,8 +2156,8 @@ function OpexAI::_resizeAirFleets(year)
     if (have < 1) continue;
     if (("deadStreak" in line) && line.deadStreak >= 2) continue;
 
-    // Condition 1 : Les appareils existants doivent etre rentables
-    if (!("lastProfit" in line) || line.lastProfit <= 0) continue;
+    // Condition 1 : Les appareils existants ne doivent pas etre deficitaires
+    if (("lastProfit" in line) && line.lastProfit < 0) continue;
 
     local isSmallAirport = false;
     if ((AIAirport.IsAirportTile(line.stationA) && AIAirport.GetAirportType(line.stationA) == AIAirport.AT_SMALL) ||
@@ -2285,22 +2285,47 @@ function OpexAI::_refleetRoadLines(year)
     if (("trains" in line) && line.trains > target) target = line.trains;
     if (target < 1) target = 1;
 
-    // Dimensionnement dynamique : si la ligne est rentable et qu'il y a du stock en attente aux arrêts
+    // Dimensionnement dynamique intelligent basé sur les flux physiques
     local stationA = AIStation.GetStationID(line.stationA);
     local stationB = AIStation.GetStationID(line.stationB);
     local waitingA = AIStation.IsValidStation(stationA) ? AIStation.GetCargoWaiting(stationA, line.cargo) : 0;
     local waitingB = AIStation.IsValidStation(stationB) ? AIStation.GetCargoWaiting(stationB, line.cargo) : 0;
-    local waiting = waitingA + waitingB;
-    if (("lastProfit" in line) && line.lastProfit <= 0) continue;
+    local ratingA = AIStation.IsValidStation(stationA) ? AIStation.GetCargoRating(stationA, line.cargo) : 100;
+    local ratingB = AIStation.IsValidStation(stationB) ? AIStation.GetCargoRating(stationB, line.cargo) : 100;
+    local minRating = (ratingA < ratingB) ? ratingA : ratingB;
+    local totalWaiting = waitingA + waitingB;
+
+    // Analyse des véhicules de la ligne : y en a-t-il qui attendent à l'arrêt ?
+    local vehicles = OpexLineVehicleIds(line, stationA);
+    local isAnyWaiting = false;
+    local movingCount = 0;
+    foreach (v in vehicles) {
+      if (!AIVehicle.IsValidVehicle(v)) continue;
+      if (AIVehicle.GetCurrentSpeed(v) == 0) isAnyWaiting = true;
+      else movingCount++;
+    }
+
+    if (("lastProfit" in line) && line.lastProfit < -200 && have >= 2) continue;
+
     local capacity = ("capacity" in line && line.capacity > 0) ? line.capacity : 25;
     local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-    if (("lastProfit" in line) && line.lastProfit > 500) {
-      local extraNeeded = 0;
-      if (waiting >= capacity * 2) extraNeeded = waiting / (capacity * 2);
-      else if (money > 60000 && have < 4) extraNeeded = 1;
-      if (extraNeeded > 2) extraNeeded = 2;
-      if (have + extraNeeded > target) target = have + extraNeeded;
+    local extraNeeded = 0;
+
+    // 1. S'il y a du stock en attente et que les véhicules circulent bien
+    if (totalWaiting >= capacity && !isAnyWaiting) {
+      extraNeeded = totalWaiting / capacity;
+      if (extraNeeded > 3) extraNeeded = 3;
     }
+    // 2. Si la note de station s'effondre faute de fréquence (distance longue)
+    else if (minRating < 65 && have < 3 && !isAnyWaiting && money > 35000) {
+      extraNeeded = 1;
+    }
+    // 3. Si la ligne est très rentable (> 1000 £) et qu'on a du cash
+    else if (("lastProfit" in line) && line.lastProfit > 1000 && have < 6 && money > 60000 && !isAnyWaiting) {
+      extraNeeded = 1;
+    }
+
+    if (have + extraNeeded > target) target = have + extraNeeded;
 
     local cap = 16;
     if (target > cap) target = cap;
