@@ -312,9 +312,66 @@ function OpexRoadFindDepot(trace, stopA, stopB)
   return null;
 }
 
+function OpexRoadTraceMulti(from, to, variant)
+{
+  local x1 = AIMap.GetTileX(from);
+  local y1 = AIMap.GetTileY(from);
+  local x2 = AIMap.GetTileX(to);
+  local y2 = AIMap.GetTileY(to);
+
+  if (variant == 0) return OpexRoadTrace(from, to, true);
+  if (variant == 1) return OpexRoadTrace(from, to, false);
+  if (variant == 2) {
+    local xmid = (x1 + x2) / 2;
+    local c1 = AIMap.GetTileIndex(xmid, y1);
+    local c2 = AIMap.GetTileIndex(xmid, y2);
+    if (!OpexRoadIsFlat(c1) || !OpexRoadIsFlat(c2)) return [];
+    local out = [];
+    OpexRoadAppendSegment(out, from, c1);
+    OpexRoadAppendSegment(out, c1, c2);
+    OpexRoadAppendSegment(out, c2, to);
+    return out;
+  }
+  if (variant == 3) {
+    local ymid = (y1 + y2) / 2;
+    local c1 = AIMap.GetTileIndex(x1, ymid);
+    local c2 = AIMap.GetTileIndex(x2, ymid);
+    if (!OpexRoadIsFlat(c1) || !OpexRoadIsFlat(c2)) return [];
+    local out = [];
+    OpexRoadAppendSegment(out, from, c1);
+    OpexRoadAppendSegment(out, c1, c2);
+    OpexRoadAppendSegment(out, c2, to);
+    return out;
+  }
+  if (variant == 4) {
+    local xmid = (x1 + x2) / 2 + 1;
+    if (!OpexRoadInMap(xmid, y1) || !OpexRoadInMap(xmid, y2)) return [];
+    local c1 = AIMap.GetTileIndex(xmid, y1);
+    local c2 = AIMap.GetTileIndex(xmid, y2);
+    if (!OpexRoadIsFlat(c1) || !OpexRoadIsFlat(c2)) return [];
+    local out = [];
+    OpexRoadAppendSegment(out, from, c1);
+    OpexRoadAppendSegment(out, c1, c2);
+    OpexRoadAppendSegment(out, c2, to);
+    return out;
+  }
+  if (variant == 5) {
+    local ymid = (y1 + y2) / 2 + 1;
+    if (!OpexRoadInMap(x1, ymid) || !OpexRoadInMap(x2, ymid)) return [];
+    local c1 = AIMap.GetTileIndex(x1, ymid);
+    local c2 = AIMap.GetTileIndex(x2, ymid);
+    if (!OpexRoadIsFlat(c1) || !OpexRoadIsFlat(c2)) return [];
+    local out = [];
+    OpexRoadAppendSegment(out, from, c1);
+    OpexRoadAppendSegment(out, c1, c2);
+    OpexRoadAppendSegment(out, c2, to);
+    return out;
+  }
+  return [];
+}
+
 /* Plan concret d'UN candidat routier. Le candidat porte deja la paire, le cargo et le sens ; il
- * reste a trouver deux sites d'arret reels et un L qui les relie. Le sens compte : l'extremite
- * d'arrivee d'une ligne de fret doit ACCEPTER le cargo, pas le produire. */
+ * reste a trouver deux sites d'arret reels et un trace multi-variantes qui les relie. */
 function OpexRoadPlanFor(catalog, candidate)
 {
   if (catalog.roadType < 0) return { plan = null, reason = "NOROAD" };
@@ -323,15 +380,8 @@ function OpexRoadPlanFor(catalog, candidate)
   local coverage = AIStation.GetCoverageRadius(stop.stationType);
   local radiusA = candidate.srcTown >= 0 ? ROAD_TOWN_SEARCH_RADIUS : ROAD_INDUSTRY_SEARCH_RADIUS;
   local radiusB = candidate.dstTown >= 0 ? ROAD_TOWN_SEARCH_RADIUS : ROAD_INDUSTRY_SEARCH_RADIUS;
-  /* Une ligne pax est bidirectionnelle : les deux extremites sont des sources. Une ligne de fret
-   * est a sens unique -- c'est la meme asymetrie que le rail, et elle decide ici du predicat de
-   * site comme elle decidera plus bas des ordres. */
   local dstWantsProduction = candidate.kind == "pax";
 
-  /* Le plan rend une RAISON, jamais un simple null : la mesure du 2026-08-29 donnait 20 NOPLAN sur
-   * 24 tentatives sans dire lesquelles butaient sur les sites d'arret et lesquelles sur le trace --
-   * deux causes qui n'appellent pas du tout le meme correctif (rayon et sondes d'un cote, plafond
-   * d'essais et platitude de l'autre). */
   local huntA = OpexRoadSites(candidate.src, candidate.srcTown, candidate.cargo, stop.vehType,
                               coverage, true, radiusA, candidate.dst);
   local sitesA = huntA.sites;
@@ -349,28 +399,22 @@ function OpexRoadPlanFor(catalog, candidate)
   local noDepot = 0;
   foreach (siteA in sitesA) {
     foreach (siteB in sitesB) {
-      for (local shape = 0; shape < 2; shape++) {
+      for (local shape = 0; shape < 6; shape++) {
         if (trials >= ROAD_MAX_TRACE_TRIALS) {
           return { plan = null, reason = noDepot > 0 ? "DEPOTX" : "TRACEX",
                    trace = { trials = trials, nEmpty = nEmpty, nLong = nLong, nHit = nHit,
                              nUnb = nUnb, nNoDepot = noDepot } };
         }
         trials++;
-        local trace = OpexRoadTrace(siteA.front, siteB.front, shape == 0);
+        local trace = OpexRoadTraceMulti(siteA.front, siteB.front, shape);
         if (trace.len() == 0) { nEmpty++; continue; }
         if (trace.len() > ROAD_MAX_TRACE_TILES) { nLong++; continue; }
-        /* cf. commentaire sur OpexRoadTraceHitsStop : le trace ne doit jamais retraverser le
-         * corps d'un des deux arrets qu'il relie, sous peine d'etre coupe une fois l'arret
-         * construit par-dessus. */
         if (OpexRoadTraceHitsStop(trace, siteA.tile) || OpexRoadTraceHitsStop(trace, siteB.tile)) {
           nHit++;
           continue;
         }
         if (!OpexRoadTraceBuildable(trace)) { nUnb++; continue; }
         local depot = OpexRoadFindDepot(trace, siteA, siteB);
-        /* Un trace valide sans depot n'est pas le meme echec qu'aucun trace valide : le premier dit
-         * que le terrain autour du trace est bati ou en pente, le second que les deux facades ne se
-         * relient pas. noDepot les separe dans la raison rendue. */
         if (depot == null) { noDepot++; continue; }
         return { plan = { stopA = siteA, stopB = siteB, trace = trace, depot = depot,
                           stationType = stop.stationType, vehType = stop.vehType,

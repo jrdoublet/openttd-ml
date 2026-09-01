@@ -2293,13 +2293,16 @@ function OpexAI::_refleetRoadLines(year)
     local lastProfit = ("lastProfit" in line) ? line.lastProfit : 1;
     local capacity = ("capacity" in line && line.capacity > 0) ? line.capacity : 25;
 
-    if (lastProfit > 0 && waiting >= capacity) {
-      local extraNeeded = waiting / capacity;
+    local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+    if (lastProfit > 0) {
+      local extraNeeded = 0;
+      if (waiting >= capacity) extraNeeded = waiting / capacity;
+      else if (money > 35000 && have < 8) extraNeeded = 1;
       if (extraNeeded > 4) extraNeeded = 4;
       if (have + extraNeeded > target) target = have + extraNeeded;
     }
 
-    local cap = 16;
+    local cap = 20;
     if (target > cap) target = cap;
     if (have >= target) continue;
     local refill = OpexRoadRefleet(this._catalog, line, have, target);
@@ -2476,16 +2479,17 @@ function OpexAI::_tryRepayLoan(year)
 {
   local loan = AICompany.GetLoanAmount();
   local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  /* Diagnostic emprunt (2026-08-29) : LR ne se pose qu'en cas de remboursement REUSSI, donc un
-   * emprunt qui ne descend jamais ne laisse aucune trace expliquant pourquoi. LF enregistre
-   * inconditionnellement ce que cette fonction VOIT -- et elle est appelee juste apres _tryBuild,
-   * donc au creux annuel de la tresorerie, pas a son sommet. A recouper avec LB. */
   OpexSign(AIMap.GetTileIndex(1, 1), "LF|" + (year % 100) + "|" + cash + "|" + loan);
   if (loan <= 0) return;
-  if (cash <= LOAN_REPAY_FLOOR) return;
+
+  /* Plancher dynamique : en Année 1 (amorce du réseau), on conserve LOAN_REPAY_FLOOR (300k£)
+   * pour financer les projets. Dès l'Année 2 et après, on abaisse le plancher à 50k£
+   * pour désendetter la compagnie et valoriser l'entreprise, le réemprunt (reborrow) assurant le financement à la demande. */
+  local floor = (year <= 1970) ? LOAN_REPAY_FLOOR : 50000;
+  if (cash <= floor) return;
 
   local interval = AICompany.GetLoanInterval();
-  local minNewLoan = loan - (cash - LOAN_REPAY_FLOOR);
+  local minNewLoan = loan - (cash - floor);
   if (minNewLoan < 0) minNewLoan = 0;
   local newLoan = ((minNewLoan + interval - 1) / interval) * interval;
   if (newLoan >= loan) return;  // moins d'un palier remboursable : pas la peine
