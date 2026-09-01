@@ -34,7 +34,7 @@ const ROAD_MAX_SITES_PER_END = 4;
  * 32 essais x 32 aretes reste ~1 000 tests, deja payes par la sonde de site (35-74 k opcodes
  * mesures sur TRACEX). */
 const ROAD_MAX_TRACE_TRIALS = 32;
-const ROAD_CAPITAL_MARGIN = 25000;
+const ROAD_CAPITAL_MARGIN = 1000;
 const ROAD_DEPOT_MIN_STOP_DISTANCE = 3;
 
 function OpexRoadInMap(x, y)

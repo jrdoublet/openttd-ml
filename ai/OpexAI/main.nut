@@ -72,9 +72,9 @@ AIR_STARTER <- true;
 /* Bras experimental : reutiliser un aeroport rentable pour une nouvelle destination. */
 AIR_HUB <- true;
 RAIL_REFLEET <- true;
-const CASH_RESERVE_STATIC = 50000;
-const CASH_RESERVE_MIN = 15000;
-const CASH_RESERVE_MAX = 50000;
+const CASH_RESERVE_STATIC = 25000;
+const CASH_RESERVE_MIN = 5000;
+const CASH_RESERVE_MAX = 25000;
 
 function OpexCashReserve()
 {
@@ -660,7 +660,7 @@ function OpexAI::_tryBuildRoads(year)
     local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
     if (money < need) {
       if (REBORROW) money = OpexTryReborrow(need, money);
-      if (money < need) break;
+      if (money < need) continue;
     }
 
     attempts++;
