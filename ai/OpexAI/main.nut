@@ -207,6 +207,20 @@ ROAD_REFLEET <- true;
  * a chaque extremite, et n'ajoute de vehicules que si les deux bouts ont double. */
 ROAD_MULTISTOP <- false;
 
+/* Dimensionnement marginal et progressif de flotte (item de tete, 2026-09-01) : repli FAUX
+ * jusqu'a la lecture unique de marginal_fleet dans Start(). Defaut 0 : chemin actuel
+ * rigoureusement inchange -- MAX_ROAD_VEHICLES/plafond 16 route, clonage immediat a
+ * candidate.trains, jusqu'a 4 avions/an air, flotte initiale a 3/6 avions. Mesure au banc apparie
+ * 20 graines contre AAAHogEx : 8x moins de vehicules ET 8x moins de gares, plus un rendement par
+ * vehicule ajoute -31,4 % (6332 £/an contre 9229 £), avec 3,26 vehicules/gare contre 2,71 --
+ * capital immobilise plutot que redeploye en nouvelles lignes. Sous 1 : demarrage MINIMAL (1
+ * vehicule/avion), croissance seulement apres profit reel mesure, borne par une contrainte
+ * physique/marginale (quais route, age+charge+un avion/an en air) plutot que par une constante
+ * generique. Voir economy.nut::OpexRoadPhysicalVehicleCap, builder_road.nut (clonage initial),
+ * builder_air.nut::OpexAirEconomics (flotte initiale), main.nut::_refleetRoadLines et
+ * _resizeAirFleets (croissance). */
+MARGINAL_FLEET <- false;
+
 /* Reemprunt a la demande : repli FAUX jusqu'a la lecture unique de reborrow dans Start().
  * Defaut 0 : le trou "desendetter puis manquer d'argent" est vide (412 GC a emprunt max,
  * 0 tirage). Sans lui, _tryRepayLoan reste a sens unique. */
@@ -2159,6 +2173,31 @@ function OpexAI::_resizeAirFleets(year)
     // Condition 1 : Les appareils existants ne doivent pas etre deficitaires
     if (("lastProfit" in line) && line.lastProfit < 0) continue;
 
+    /* marginal_fleet = 1 (2026-09-01) : dimensionnement marginal STRICT de l'air. Le commentaire
+     * de cette fonction promettait deja d'attendre un an, d'exiger une charge complete en attente
+     * et de ne jamais ajouter plus d'un avion par an -- mais rien ci-dessus ni ci-dessous ne
+     * verifiait l'age de la ligne ou le fret en attente, et la boucle plus bas autorisait jusqu'a
+     * 4 avions en un seul passage (addedThisPass < 4). Sous 0 (defaut), ce bloc ne change RIEN :
+     * il ajoute seulement des refus supplementaires, jamais un chemin different pour les
+     * conditions deja verifiees plus haut (have, deadStreak, lastProfit < 0). */
+    if (MARGINAL_FLEET) {
+      // (a) la ligne a au moins un an d'existence revolu
+      if (!("year" in line) || (year - line.year) < 1) continue;
+      // (b) lastProfit disponible ET strictement positif (pas seulement "pas negatif")
+      if (!("lastProfit" in line) || line.lastProfit <= 0) continue;
+      // (c) au moins une capacite complete d'avion attend REELLEMENT dans une des deux gares
+      local planeCap = ("planeCapacity" in line && line.planeCapacity > 0) ? line.planeCapacity : 0;
+      if (planeCap <= 0) continue;
+      /* Pas de AIStation.STATION_INVALID ici : jamais utilise ailleurs dans ce projet, on prefere
+       * garder le meme garde-fou "hasB" que le reste du fichier (cf. lastWaitingB plus haut). */
+      local stA = AIStation.GetStationID(line.stationA);
+      local hasB = ("stationB" in line) && line.stationB != null;
+      local stB = hasB ? AIStation.GetStationID(line.stationB) : 0;
+      local waitA = AIStation.IsValidStation(stA) ? AIStation.GetCargoWaiting(stA, line.cargo) : 0;
+      local waitB = (hasB && AIStation.IsValidStation(stB)) ? AIStation.GetCargoWaiting(stB, line.cargo) : 0;
+      if (waitA < planeCap && waitB < planeCap) continue;
+    }
+
     local isSmallAirport = false;
     if ((AIAirport.IsAirportTile(line.stationA) && AIAirport.GetAirportType(line.stationA) == AIAirport.AT_SMALL) ||
         (AIAirport.IsAirportTile(line.stationB) && AIAirport.GetAirportType(line.stationB) == AIAirport.AT_SMALL)) {
@@ -2172,7 +2211,9 @@ function OpexAI::_resizeAirFleets(year)
     local planePrice = (this._catalog.plane != null) ? this._catalog.plane.price : 30000;
     local need = planePrice + OpexCashReserve() + 2000;
     local addedThisPass = 0;
-    while (have < maxPlanesForAirport && addedThisPass < 4) {
+    // (d) au plus un avion par ligne et par an sous marginal_fleet=1 ; 4 (repli actuel) sous 0.
+    local maxAddedPerPass = MARGINAL_FLEET ? 1 : 4;
+    while (have < maxPlanesForAirport && addedThisPass < maxAddedPerPass) {
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
       if (money < need && REBORROW) money = OpexTryReborrow(need, money);
       if (money < need) break;
@@ -2306,6 +2347,12 @@ function OpexAI::_refleetRoadLines(year)
     }
 
     if (("lastProfit" in line) && line.lastProfit < -200 && have >= 2) continue;
+    /* marginal_fleet = 1 : le profit marginal attendu du vehicule supplementaire doit etre
+     * positif -- pas de lastProfit connu et STRICTEMENT positif, pas de croissance au-dela de la
+     * reconstitution du parc d'origine (missing/target calcules plus haut, jamais touches ici).
+     * Sous 0 (defaut) ce garde-fou n'existe pas et les trois heuristiques ci-dessous restent
+     * exactement ce qu'elles etaient. */
+    if (MARGINAL_FLEET && (!("lastProfit" in line) || line.lastProfit <= 0)) continue;
 
     local capacity = ("capacity" in line && line.capacity > 0) ? line.capacity : 25;
     local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
@@ -2325,9 +2372,25 @@ function OpexAI::_refleetRoadLines(year)
       extraNeeded = 1;
     }
 
+    /* marginal_fleet = 1 : le vehicule supplementaire ne peut ajouter de valeur que s'il trouve
+     * un quai libre au meme instant -- au-dela, il fait la queue sur la route (docs/mecanique_jeu
+     * S11) et son profit marginal est nul ou negatif, quel que soit ce que disent les heuristiques
+     * ci-dessus. On borne donc extraNeeded par la borne physique REELLE de cette ligne
+     * (OpexRoadPhysicalVehicleCap, economy.nut) avant meme de l'ajouter a target, plutot que de
+     * gonfler target puis couper au plafond generique 16 comme le fait le chemin 0 plus bas. */
+    if (MARGINAL_FLEET) {
+      local physicalCap = OpexRoadPhysicalVehicleCap(
+          ("nStopsA" in line) ? line.nStopsA : 1, ("nStopsB" in line) ? line.nStopsB : 1);
+      if (have + extraNeeded > physicalCap) extraNeeded = physicalCap - have;
+      if (extraNeeded < 0) extraNeeded = 0;
+    }
+
     if (have + extraNeeded > target) target = have + extraNeeded;
 
-    local cap = 16;
+    local cap = MARGINAL_FLEET
+        ? OpexRoadPhysicalVehicleCap(
+              ("nStopsA" in line) ? line.nStopsA : 1, ("nStopsB" in line) ? line.nStopsB : 1)
+        : 16;
     if (target > cap) target = cap;
     if (have >= target) continue;
     local refill = OpexRoadRefleet(this._catalog, line, have, target);
@@ -3040,6 +3103,7 @@ function OpexAI::Start()
   if (roadPaxCatchment > 0) ROAD_PAX_CATCHMENT_SHARE_PCT = roadPaxCatchment;
   ROAD_REFLEET = AIController.GetSetting("road_refleet") != 0;
   ROAD_MULTISTOP = AIController.GetSetting("road_multistop") != 0;
+  MARGINAL_FLEET = AIController.GetSetting("marginal_fleet") != 0;
   RAIL_COST_PROBE = AIController.GetSetting("rail_cost_probe") != 0;
   RAIL_EXPAND = AIController.GetSetting("rail_expand") != 0;
   ASTAR_COST_V2 = AIController.GetSetting("astar_cost") != 0;

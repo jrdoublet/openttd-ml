@@ -328,6 +328,24 @@ function OpexApplyRailEconomics(candidate, economics)
 const ROAD_SPEED_EFFICIENCY_PCT = 60;
 const MAX_ROAD_VEHICLES = 8;
 
+/* 🔴 Reglage marginal_fleet (2026-09-01). Le commentaire ci-dessus dit "MAX_ROAD_VEHICLES = 2 est
+ * la traduction directe de la regle du jeu" -- mais la constante vaut 8, pas 2 : elle a diverge de
+ * sa propre justification. Mesure au banc apparie contre AAAHogEx (20 graines) : 3,26 vehicules
+ * par gare contre 2,71 chez l'adversaire, capital immobilise plutot que redeploye en nouvelles
+ * lignes. Sous marginal_fleet = 0 (defaut), rien ne change : MAX_ROAD_VEHICLES reste la borne, ici
+ * et partout ou elle est lue. Sous 1, cette fonction et _refleetRoadLines (main.nut) retombent sur
+ * la borne PHYSIQUE reellement justifiee : 2 vehicules par quai simultanement joint a chaque bout,
+ * cf. docs/mecanique_jeu.md S11. Au classement, les quais ne sont pas encore construits -- on
+ * suppose donc le cas de base (1 quai par bout, comme road_multistop = 0), soit un plafond de 2 ;
+ * OpexRoadPhysicalVehicleCap est reappelee en aval (builder_road.nut, main.nut) avec les VRAIS
+ * comptes de quais une fois la ligne construite. */
+function OpexRoadPhysicalVehicleCap(nStopsA, nStopsB)
+{
+  local nMin = nStopsA < nStopsB ? nStopsA : nStopsB;
+  if (nMin < 1) nMin = 1;
+  return 2 * nMin;
+}
+
 /* Economie complete d'une ligne routiere. Rend null si le materiel manque pour ce cargo.
  * `engine` vient de catalog.roadEngineByCargo[cargo] ; sa capacite est celle du cargo d'origine
  * (approximation assumee au classement, cf. catalog.nut) -- le constructeur relit la vraie
@@ -357,7 +375,11 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
 
   local vehicles = vehiclesForHeadway > vehiclesForVolume ? vehiclesForHeadway : vehiclesForVolume;
   if (vehicles < 1) vehicles = 1;
-  if (vehicles > MAX_ROAD_VEHICLES) vehicles = MAX_ROAD_VEHICLES;
+  /* marginal_fleet = 0 (defaut) : chemin inchange, MAX_ROAD_VEHICLES (8). = 1 : borne physique du
+   * cas de base (2, cf. OpexRoadPhysicalVehicleCap ci-dessus) -- le demarrage reel se fera de toute
+   * facon a 1 vehicule (builder_road.nut) puis grandira par _refleetRoadLines apres profit mesure. */
+  local roadVehicleCap = MARGINAL_FLEET ? OpexRoadPhysicalVehicleCap(1, 1) : MAX_ROAD_VEHICLES;
+  if (vehicles > roadVehicleCap) vehicles = roadVehicleCap;
 
   local monthlyCapacity = vehicles * engine.capacity * tripsPerMonth;
   local carried = offered < monthlyCapacity ? offered : monthlyCapacity;

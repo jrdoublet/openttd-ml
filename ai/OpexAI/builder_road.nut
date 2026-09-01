@@ -726,11 +726,21 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
    * au-dela ils font la queue sur la route et se bloquent (docs/mecanique_jeu.md S11). C'est
    * MAX_ROAD_VEHICLES dans economy.nut qui borne candidate.trains. Le multistop relache ce
    * plafond seulement si les DEUX bouts ont un arret extra (2 berths x min(nA,nB)). */
+  /* marginal_fleet = 1 (2026-09-01) : demarrage MINIMAL. On ne clone plus tout de suite jusqu'a
+   * candidate.trains (le plein du modele predictif) -- on part a 1 seul vehicule, et
+   * _refleetRoadLines (main.nut) fait grandir la ligne APRES avoir mesure un profit reel, borne
+   * par OpexRoadPhysicalVehicleCap. Le repli berths (road_multistop) est donc lui aussi saute ici :
+   * il n'a plus de sens d'elargir tout de suite une ligne qu'on vient de retrecir a 1 par principe.
+   * Sous 0 (defaut), ce bloc est un no-op et le chemin d'avant est rigoureusement identique. */
   local want = candidate.trains;
-  local nMin = result.nStopsA < result.nStopsB ? result.nStopsA : result.nStopsB;
-  if (nMin < 1) nMin = 1;
-  local berths = 2 * nMin;
-  if (ROAD_MULTISTOP && berths > want) want = berths;
+  if (MARGINAL_FLEET) {
+    want = 1;
+  } else {
+    local nMin = result.nStopsA < result.nStopsB ? result.nStopsA : result.nStopsB;
+    if (nMin < 1) nMin = 1;
+    local berths = 2 * nMin;
+    if (ROAD_MULTISTOP && berths > want) want = berths;
+  }
   for (local i = 1; i < want; i++) {
     /* `clone` est un MOT RESERVE de Squirrel (l'operateur de copie) : le nommer ainsi fait echouer
      * la compilation du fichier entier, et l'echec est presque muet -- une seule ligne dans la

@@ -10,7 +10,7 @@ class OpexAIInfo extends AIInfo {
 
   /* Les reglages debug_signs et pathfinder_sleep_ticks existent pour NE PAS POLLUER une partie
    * partagee avec des joueurs humains (loan_repay_floor_k, pathfinder_hard_cap_k,
-   * abandon_memory, station_join, join_max_distance, join_place, origin_sitable, basin_share, reborrow, road_mode, road_pax_catchment_pct, road_refleet, road_multistop, astar_cost, probe_negative et pax_near, eux, sont des parametres de conception exposes au banc,
+   * abandon_memory, station_join, join_max_distance, join_place, origin_sitable, basin_share, reborrow, road_mode, road_pax_catchment_pct, road_refleet, road_multistop, marginal_fleet, astar_cost, probe_negative et pax_near, eux, sont des parametres de conception exposes au banc,
    * pas des bridages).
    * Entre IA, la regle est l'inverse : jouer a armes egales,
    * donc ne jamais s'auto-handicaper face a un adversaire qui ne se bride pas. Un handicap non intentionnel
@@ -590,6 +590,24 @@ Le mode route est donc reconfirme sur l arbre courant.
     AddSetting({
       name = "road_multistop",
       description = "Join a second road stop at each end and add vehicles only if both ends doubled: 1 = try, 0 = one stop per end (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* Dimensionnement marginal et progressif de flotte. Defaut 0 : chemin actuel inchange (achat
+     * immediat de tout ce que le modele predit, plafonds generiques MAX_ROAD_VEHICLES/16/4 avions
+     * par an). Diagnostic banc apparie 20 graines contre AAAHogEx : ~85 % de l'ecart de profit vient
+     * du volume (8x moins de vehicules/gares), le reste (~15 %) d'un rendement par vehicule
+     * ajoute -31,4 %, avec 3,26 vehicules/gare contre 2,71 -- du capital immobilise plutot que
+     * redeploye en nouvelles lignes. 1 fait demarrer chaque nouvelle ligne au minimum viable (1
+     * vehicule/avion), et ne grandit qu'apres un profit REEL mesure, borne par une contrainte
+     * physique/marginale (quais route reellement joints, age >= 1 an + charge complete en attente +
+     * 1 avion/an en air) plutot que par une constante generique. Non mesure au banc, defaut choisi
+     * par prudence -- OpexAI[marginal_fleet=1] pour l'evaluer. */
+    AddSetting({
+      name = "marginal_fleet",
+      description = "Start new lines with the minimum viable fleet and grow only after measured profit, bounded by a physical/marginal cap: 1 = marginal sizing, 0 = buy the full model prediction upfront (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN

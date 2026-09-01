@@ -156,9 +156,13 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
   local airportAmortAnnual = newAirportCount * airport.price / 30;
   local best = null;
 
-  /* Plafond d'appareils initial : jusqu'à 3 sur nouvelle ligne, jusqu'à 6 sur hub existant */
+  /* Plafond d'appareils initial : jusqu'à 3 sur nouvelle ligne, jusqu'à 6 sur hub existant.
+   * marginal_fleet = 1 (2026-09-01) : demarrage MINIMAL, 1 seul avion quel que soit le type
+   * d'aeroport -- la croissance se fait ensuite par _resizeAirFleets (main.nut), apres un an
+   * d'existence et une charge complete mesuree, jamais en achetant d'emblee tout ce que le modele
+   * predit. Sous 0 (defaut), ce bloc ne change rien au calcul existant. */
   local isSmall = (airport.type == AIAirport.AT_SMALL || airport.type == AIAirport.AT_COMMUTER);
-  local maxAllowed = (newAirportCount == 2) ? 3 : (isSmall ? 4 : 6);
+  local maxAllowed = MARGINAL_FLEET ? 1 : ((newAirportCount == 2) ? 3 : (isSmall ? 4 : 6));
   /* Dimensionnement cible selon le volume passagers */
   local targetPlanes = OpexCeilDiv(monthlyPax, capacityPerPlane.tointeger());
   if (targetPlanes < 1) targetPlanes = 1;
