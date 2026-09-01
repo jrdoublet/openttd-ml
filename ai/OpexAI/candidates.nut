@@ -164,6 +164,11 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   }
 
   local iterations = OpexRailIterations(distance);
+  if (distance > 105) {
+    iterations = iterations * 2;
+  } else if (distance > 70) {
+    iterations = (iterations * 13) / 10;
+  }
   local opcodeRatio = (economics.profitAnnual * 1000) / iterations;
   /* MIN_RATIO reste une mesure et le cout d'opportunite terminal du pathfinder, mais il ne peut
    * plus eliminer un mode AVANT l'arbitrage par couple O/D. La contrainte d'opcodes est appliquee
@@ -180,7 +185,8 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   if (economics.oneWayDays <= 12) turnoverBonus = 130;
   else if (economics.oneWayDays <= 25) turnoverBonus = 115;
   else if (economics.oneWayDays <= 45) turnoverBonus = 100;
-  else turnoverBonus = 75;
+  else turnoverBonus = 60;
+  if (distance > 105) turnoverBonus = (turnoverBonus * 50) / 100;
 
   local adjustedRoi = (economics.roi * turnoverBonus) / 100;
   if (kind == "freight") {
@@ -977,6 +983,35 @@ function OpexMakeRoadCandidate(catalog, kind, cargo, src, dst, srcTown, dstTown,
   };
 }
 
+function OpexRoadPairServed(lines, tileA, tileB)
+{
+  if (lines == null) return false;
+  foreach (line in lines) {
+    if (!("mode" in line) || line.mode != "road") continue;
+    if ((AIMap.DistanceManhattan(tileA, line.originA) < ORIGIN_SEPARATION &&
+         AIMap.DistanceManhattan(tileB, line.originB) < ORIGIN_SEPARATION) ||
+        (AIMap.DistanceManhattan(tileA, line.originB) < ORIGIN_SEPARATION &&
+         AIMap.DistanceManhattan(tileB, line.originA) < ORIGIN_SEPARATION)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function OpexTownRoadLineCount(lines, townTile)
+{
+  local count = 0;
+  if (lines == null) return 0;
+  foreach (line in lines) {
+    if (!("mode" in line) || line.mode != "road") continue;
+    if (AIMap.DistanceManhattan(townTile, line.originA) < ORIGIN_SEPARATION ||
+        AIMap.DistanceManhattan(townTile, line.originB) < ORIGIN_SEPARATION) {
+      count++;
+    }
+  }
+  return count;
+}
+
 /* Famille 1 : ville <-> ville, passagers. */
 function OpexRoadPaxCandidates(catalog, lines, out, stats)
 {
@@ -985,22 +1020,19 @@ function OpexRoadPaxCandidates(catalog, lines, out, stats)
   local towns = catalog.towns;
   local n = towns.len();
   local produced = [];
-  local served = [];
+  local roadLinesPerTown = [];
   for (local i = 0; i < n; i++) {
     produced.append(AITown.GetLastMonthProduction(towns[i].id, cargo));
-    served.append(OpexOriginServed(lines, towns[i].tile, true));
+    roadLinesPerTown.append(OpexTownRoadLineCount(lines, towns[i].tile));
   }
   for (local a = 0; a < n; a++) {
-    if (served[a]) continue;
+    if (roadLinesPerTown[a] >= 4) continue;
     for (local b = a + 1; b < n; b++) {
-      if (served[b]) continue;
+      if (roadLinesPerTown[b] >= 4) continue;
+      if (OpexRoadPairServed(lines, towns[a].tile, towns[b].tile)) continue;
       local distance = AIMap.DistanceManhattan(towns[a].tile, towns[b].tile);
       if (distance < ROAD_MIN_DISTANCE || distance > ROAD_MAX_DISTANCE) continue;
       stats.pairsInBand++;
-      /* Meme lecture que le rail : les deux sens transportent chacun la production de LEUR
-       * origine, donc le debit utile est la somme, corrigee de la part du bassin d'une seule gare
-       * (ROAD_PAX_CATCHMENT_SHARE_PCT). Le repli 22 reproduit le calibrage rail ; un reglage
-       * route explicite ne doit jamais contaminer le rail ou le fret. */
       local monthly = ((produced[a] + produced[b]) * ROAD_PAX_CATCHMENT_SHARE_PCT) / 100;
       if (monthly <= 0) { stats.noMonthly++; continue; }
       local candidate = OpexMakeRoadCandidate(catalog, "pax", cargo, towns[a].tile, towns[b].tile,

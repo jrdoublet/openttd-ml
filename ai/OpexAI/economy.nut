@@ -326,7 +326,7 @@ function OpexApplyRailEconomics(candidate, economics)
  *     formule jours = distance / (0,036 * vitesse) sans facteur de detour.
  */
 const ROAD_SPEED_EFFICIENCY_PCT = 60;
-const MAX_ROAD_VEHICLES = 2;
+const MAX_ROAD_VEHICLES = 8;
 
 /* Economie complete d'une ligne routiere. Rend null si le materiel manque pour ce cargo.
  * `engine` vient de catalog.roadEngineByCargo[cargo] ; sa capacite est celle du cargo d'origine

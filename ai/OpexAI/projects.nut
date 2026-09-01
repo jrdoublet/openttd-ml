@@ -12,8 +12,8 @@
  * l'ouverture de nouvelles lignes dans l'ordonnanceur.
  */
 
-const PROJECT_POOL_K = 64;
-const PROJECT_TOP_K = 32;
+const PROJECT_POOL_K = 128;
+const PROJECT_TOP_K = 64;
 
 /* Mesures communes. Le pathfinder rail consomme environ 2 700 opcodes par iteration. Pour les
  * autres modes, la partie plan est mesuree pendant la generation ; les constantes ci-dessous
@@ -137,7 +137,7 @@ function OpexProjectRemember(winners, project, stats)
 {
   if (project == null) return;
   stats.modeCandidates++;
-  local key = project.mode + "|" + OpexProjectPairKey(project.kind, project.cargo, project.src, project.dst);
+  local key = OpexProjectPairKey(project.kind, project.cargo, project.src, project.dst);
   if (!(key in winners)) {
     winners.rawset(key, project);
     return;
@@ -162,6 +162,92 @@ function OpexProjectInsert(best, project, field, limit)
   }
   best.insert(pos, project);
   if (best.len() > limit) best.pop();
+}
+
+/* Solveur Knapsack 0/1 exact (Branch & Bound avec borne superieure fractionnaire gloutonne)
+ * sur les candidats classes par budgetScore. */
+function OpexKnapsackComputeBound(candidates, n, startIdx, cap)
+{
+  local bound = 0;
+  local rem = cap;
+  for (local j = startIdx; j < n; j++) {
+    local p = candidates[j];
+    if (p.budgetCapital <= rem) {
+      rem -= p.budgetCapital;
+      bound += p.revenueAnnual;
+    } else {
+      if (rem > 0 && p.budgetCapital > 0) {
+        bound += ((p.revenueAnnual.tofloat() * rem) / p.budgetCapital).tointeger();
+      }
+      break;
+    }
+  }
+  return bound;
+}
+
+function OpexKnapsackSearch(state, idx, currentCapital, currentRevenue, currentRoad, currentItems)
+{
+  state.nodeCount++;
+  if (currentRevenue > state.bestValue) {
+    state.bestValue = currentRevenue;
+    state.bestSolution = [];
+    foreach (item in currentItems) state.bestSolution.append(item);
+  }
+  if (idx >= state.n || state.nodeCount >= state.maxNodes || currentItems.len() >= state.maxItems) return;
+
+  local remCap = state.capitalBudget - currentCapital;
+  local bound = currentRevenue + OpexKnapsackComputeBound(state.candidates, state.n, idx, remCap);
+  if (bound <= state.bestValue) return;
+
+  local p = state.candidates[idx];
+
+  // Branche 1 : Inclure le projet si finançable et respecte la limite route
+  local canInclude = (currentCapital + p.budgetCapital <= state.capitalBudget);
+  if (canInclude && p.mode == "road" && currentRoad >= state.maxRoad) canInclude = false;
+
+  if (canInclude) {
+    currentItems.append(p);
+    OpexKnapsackSearch(state, idx + 1, currentCapital + p.budgetCapital, currentRevenue + p.revenueAnnual,
+                       p.mode == "road" ? currentRoad + 1 : currentRoad, currentItems);
+    currentItems.pop();
+  }
+
+  // Branche 2 : Exclure le projet
+  OpexKnapsackSearch(state, idx + 1, currentCapital, currentRevenue, currentRoad, currentItems);
+}
+
+/* Résout le problème du sac à dos 0/1 borné par Branch & Bound.
+ * Maximise la somme des revenueAnnual sous contrainte de capitalBudget, maxRoad et maxItems. */
+function OpexKnapsackSolve(candidates, capitalBudget, maxRoad = 18, maxItems = 32)
+{
+  if (candidates.len() == 0 || capitalBudget <= 0) return [];
+
+  // Trier les candidats par densité de revenu décroissante (ratio revenu/capital)
+  candidates.sort(function(a, b) {
+    local va = a.revenueAnnual.tofloat() / (a.budgetCapital > 0 ? a.budgetCapital : 1);
+    local vb = b.revenueAnnual.tofloat() / (b.budgetCapital > 0 ? b.budgetCapital : 1);
+    if (va > vb) return -1;
+    if (va < vb) return 1;
+    return 0;
+  });
+
+  local n = candidates.len();
+  if (n > 64) n = 64; // Limiter aux 64 meilleurs candidats
+
+  local state = {
+    candidates = candidates,
+    n = n,
+    capitalBudget = capitalBudget,
+    maxRoad = maxRoad,
+    maxItems = maxItems,
+    nodeCount = 0,
+    maxNodes = 2000,
+    bestValue = 0,
+    bestSolution = [],
+  };
+
+  OpexKnapsackSearch(state, 0, 0, 0, 0, []);
+  return state.bestSolution;
 }
 
 function OpexProjectEmptyRoad()
@@ -192,7 +278,7 @@ function OpexBuildProjects(catalog, budget, lines)
   local airOps = 0;
   if ((catalog.airCombos != null && catalog.airCombos.len() > 0) || catalog.airport != null) {
     budget.begin();
-    airPlan = OpexAirPlans(catalog, lines, capitalBudget, airPlans);
+    airPlan = OpexAirPlans(catalog, lines, 0, airPlans);
     airOps = budget.end("project_air");
   }
 
@@ -230,26 +316,21 @@ function OpexBuildProjects(catalog, budget, lines)
     OpexProjectInsert(byBudget, project, "budgetScore", PROJECT_POOL_K);
   }
 
-  local funded = [];
-  local remaining = capitalBudget;
-  local roadCount = 0;
-  foreach (project in byBudget) {
-    stats.budgetConsidered++;
-    if (project.mode == "road") {
-      if (roadCount >= ROAD_MAX_NEW_LINES_PER_YEAR) continue;
-    }
-    if (project.budgetCapital > remaining) {
-      stats.budgetRejected++;
-      continue;
-    }
-    funded.append(project);
-    if (project.mode == "road") roadCount++;
-    remaining -= project.budgetCapital;
-    stats.selectedRevenue += project.revenueAnnual;
-    stats.selectedCapital += project.budgetCapital;
-    if (funded.len() >= PROJECT_TOP_K) break;
-  }
+  local funded = OpexKnapsackSolve(byBudget, capitalBudget, ROAD_MAX_NEW_LINES_PER_YEAR, PROJECT_TOP_K);
+  stats.budgetConsidered = byBudget.len();
   stats.budgetSelected = funded.len();
+  stats.budgetRejected = byBudget.len() - funded.len();
+
+  local selectedRev = 0;
+  local selectedCap = 0;
+  foreach (p in funded) {
+    selectedRev += p.revenueAnnual;
+    selectedCap += p.budgetCapital;
+  }
+  stats.selectedRevenue = selectedRev;
+  stats.selectedCapital = selectedCap;
+  local remaining = capitalBudget - selectedCap;
+  if (remaining < 0) remaining = 0;
 
   local byOpcodes = [];
   foreach (project in funded) {

@@ -96,6 +96,7 @@ require("budget.nut");
 require("catalog.nut");
 require("economy.nut");
 require("candidates.nut");
+require("projects.nut");
 require("builder_rail.nut");
 require("builder_air.nut");
 require("builder_water.nut");
@@ -146,8 +147,8 @@ CASH_CANDIDATE_SCAN_LIMIT <- TOP_K;
  *  - le nombre de TENTATIVES, parce qu'un plan qui echoue coute quand meme ses sondes de site et
  *    ses validations d'aretes. Sans lui, une annee ou aucun candidat n'est constructible paierait
  *    le plan des douze. */
-ROAD_MAX_NEW_LINES_PER_YEAR <- 18;
-ROAD_MAX_ATTEMPTS_PER_YEAR <- 36;
+ROAD_MAX_NEW_LINES_PER_YEAR <- 36;
+ROAD_MAX_ATTEMPTS_PER_YEAR <- 60;
 
 /* Seuil de remboursement d'emprunt : sous ce plancher de tresorerie on ne rembourse pas, un
  * emprunt a 5 % coute bien moins qu'une ligne manquee faute de cash. Au-dessus, l'argent qui
@@ -255,6 +256,7 @@ class OpexAI extends AIController {
   _taskCursor = 0;
   _taskCycle = 0;
   _ranked = null;
+  _projects = null;
   /* Transaction asynchrone d'expansion rail : le train roule vers son depot pendant que la
    * boucle principale continue par pas de dix jours. Jamais de Sleep bloquant dans la tache. */
   _railExpansion = null;
@@ -280,20 +282,16 @@ class OpexAI extends AIController {
     this._catalog = OpexCatalog();
     this._lines = [];
     this._abandonedPairs = {};
-    /* Priorite : donnees et stop-loss, revenu par opcode, modes sans score, experience, dette. */
+    /* Priorite : donnees et stop-loss, croissance des flottes existantes avant nouveaux projets,
+     * portefeuille multimodal ROI, croissance urbaine, dette. */
     this._taskQueue = [
       { name = "catalog", dueCycle = 0, enabled = true },
-      { name = "air", dueCycle = 0, enabled = true },
-      { name = "air_fleet", dueCycle = 0, enabled = true },
-      { name = "road", dueCycle = 0, enabled = true },
       { name = "report", dueCycle = 0, enabled = true },
       { name = "scrap", dueCycle = 0, enabled = true },
-      { name = "refleet", dueCycle = 0, enabled = true },
       { name = "expand", dueCycle = 0, enabled = true },
-      { name = "preplan", dueCycle = 0, enabled = true },
-      { name = "rail", dueCycle = 0, enabled = true },
-      { name = "water", dueCycle = 0, enabled = true },
-      { name = "probe", dueCycle = 0, enabled = true },
+      { name = "refleet", dueCycle = 0, enabled = true },
+      { name = "air_fleet", dueCycle = 0, enabled = true },
+      { name = "projects", dueCycle = 0, enabled = true },
       { name = "town_growth", dueCycle = 0, enabled = true },
       { name = "repay", dueCycle = 0, enabled = true },
     ];
@@ -304,6 +302,7 @@ class OpexAI extends AIController {
   function _tryBuildAir(year);
   function _tryBuildWater(year);
   function _tryBuildRoads(year);
+  function _tryBuildProjects(year);
   function _tryTownGrowth(year);
   function _tryPreplan(year);
   function _tryBuild(ranked, year);
@@ -550,8 +549,6 @@ function OpexAI::_tryBuildAir(year)
     if (result.error != 0) OpexSign(anchor, "OE|A|" + result.error);
     if (!result.ok) break;
 
-    builtCount++;
-
     this._airBuilt = true;
     this._lines.append({
       stationA = result.stationA, stationB = result.stationB,
@@ -650,7 +647,12 @@ function OpexAI::_tryBuildRoads(year)
   for (local i = 0; i < best.len(); i++) {
     if (builtCount >= ROAD_MAX_NEW_LINES_PER_YEAR) break;
     if (attempts >= ROAD_MAX_ATTEMPTS_PER_YEAR) break;
-    local candidate = best[i];
+    local abandonedKey = null;
+    if (ABANDON_MEMORY) {
+      abandonedKey = OpexAbandonedPairKey(candidate);
+      if (abandonedKey in this._abandonedPairs) continue;
+    }
+
     /* Le classement a ete etabli avant la premiere construction de cette boucle : une ligne batie
      * il y a deux tours a pu prendre l'une des deux extremites de ce candidat. Sans cette
      * reverification, deux lignes routieres de la meme annee se poseraient sur la meme ville. */
@@ -673,6 +675,7 @@ function OpexAI::_tryBuildRoads(year)
     local plan = planning.plan;
     local idx = this._nextLineId;
     if (plan == null) {
+      if (ABANDON_MEMORY && abandonedKey != null) this._abandonedPairs[abandonedKey] <- true;
       /* "RA|99|999|6|TRACEX|0" = 20 caracteres, sous le plafond silencieux de 31. Deux choses y
        * comptent. La RAISON porte l'etape qui a bute (SITEA, SITEB, TRACEX, DEPOTX) plutot qu'un
        * "pas de plan" indifferencie : chacune appelle un correctif different. Et le rang de la
@@ -710,6 +713,7 @@ function OpexAI::_tryBuildRoads(year)
     OpexSign(anchor, "RB|" + yy + "|" + idx + "|" + attempts + "|" + planOps
                              + "|" + result.opcodes);
     if (!result.ok) {
+      if (ABANDON_MEMORY && abandonedKey != null) this._abandonedPairs[abandonedKey] <- true;
       OpexSign(anchor, "RA|" + yy + "|" + idx + "|" + attempts + "|" + result.reason
                                + "|" + result.error);
       continue;
@@ -1410,7 +1414,8 @@ function OpexAI::_tryBuild(ranked, year)
       /* Seulement ABND signifie que le plafond d'iterations a joue. DEAD est le deadline, NOPA
        * une file vide, et les echecs de construction ne disent rien sur cette paire : les garder
        * hors memoire preserve leur possibilite de reussir plus tard. */
-      if (ABANDON_MEMORY && result.reason == "ABND" && result.iterationBudget >= 40000) {
+      if (ABANDON_MEMORY && (result.reason == "ABND" || result.reason == "SITEA" || result.reason == "SITEB" ||
+                             result.reason == "SITEAB" || result.reason == "NOPA" || result.reason == "STNFAIL")) {
         this._abandonedPairs[abandonedKey] <- true;
       }
     }
@@ -1459,6 +1464,368 @@ function OpexAI::_tryBuild(ranked, year)
     OpexSign(anchor, "PE|" + (year % 100) + "|" + admitted + "|" + nPaxNearTried
                              + "|" + nPaxNearOk);
   }
+}
+
+/* Construction multimodale du portefeuille ROI. Parcourt les projets finances ordonnes par opcodeScore,
+ * emet le panneau de decision IP et dispatch vers le constructeur specialise. En cas de succes, le portefeuille
+ * est immediatement regenere car le capital et les origines ont change. */
+function OpexAI::_tryBuildProjects(year)
+{
+  if (this._projects == null || this._projects.best.len() == 0) return false;
+  local anchor = AIMap.GetTileIndex(1, 1);
+  local yy = year % 100;
+  local builtCount = 0;
+  local maxBatch = 4;
+
+  for (local i = 0; i < this._projects.best.len(); i++) {
+    local project = this._projects.best[i];
+    if (project == null) continue;
+
+    local mode = project.mode;
+    local modeChar = mode == "rail" ? "T" : (mode == "road" ? "R" : (mode == "air" ? "A" : "W"));
+
+    if (mode == "air") {
+      local plan = project.payload;
+      local maxPerYear = AIR_STARTER ? 30 : 5;
+      local maxTotal = AIR_STARTER ? 250 : 25;
+      local airLinesThisYear = 0;
+      local totalAirLines = 0;
+      foreach (line in this._lines) {
+        if (("mode" in line) && line.mode == "air") {
+          totalAirLines++;
+          if (line.year == year) airLinesThisYear++;
+        }
+      }
+      if (airLinesThisYear >= maxPerYear || totalAirLines >= maxTotal) continue;
+
+      local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+      local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1) + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
+      local requiredMargin = (newAirports == 2) ? 30000 : (newAirports == 1 ? 12000 : 2000);
+      local capital = ("capital" in plan) ? plan.capital : (newAirports * plan.airport.price + plan.plane.price);
+      local need = capital + OpexCashReserve() + requiredMargin;
+      if (money < need && REBORROW) money = OpexTryReborrow(need, money);
+      if (money < need) continue;
+
+      OpexSign(anchor, "IP|" + yy + "|A|" + project.budgetScore + "|" + project.opcodeScore);
+
+      if (TREE_PLANTING) {
+        OpexBoostTownRating(plan.siteA.town.id, 700, 35);
+        OpexBoostTownRating(plan.siteB.town.id, 700, 35);
+      }
+
+      local planOps = ("planningOpcodes" in project) ? project.planningOpcodes : 0;
+      local result = OpexBuildAirRoute(this._catalog, this._budget, plan);
+      OpexSign(anchor, "OA|" + year + "|" + plan.distance + "|" + planOps + "|" + result.reason);
+      if (result.error != 0) OpexSign(anchor, "OE|A|" + result.error);
+      if (result.ok) {
+        this._airBuilt = true;
+        this._lines.append({
+          stationA = result.stationA, stationB = result.stationB,
+          originA = plan.siteA.town.tile, originB = plan.siteB.town.tile,
+          cargo = this._catalog.paxCargo,
+          predicted = ("economics" in plan && "profitAnnual" in plan.economics) ? plan.economics.profitAnnual : 0,
+          predRevenue = plan.economics.revenueAnnual, predRunning = plan.economics.runningAnnual,
+          predAmort = plan.economics.amortAnnual, predCarried = plan.economics.carried,
+          predTrains = plan.planes, predOneWayDays = plan.economics.oneWayDays,
+          planeCapacity = plan.plane.capacity,
+          sharedAirportA = ("reuseA" in plan) && plan.reuseA,
+          hubRoutesAtBuild = ("hubRoutes" in plan) ? plan.hubRoutes : 0,
+          iterations = 0, trains = result.vehicles.len(), distance = plan.distance, year = year,
+          mode = "air", vehicle = result.vehicle, vehicles = result.vehicles,
+          lastLiveVehicles = result.vehicles.len(), suspectedCrashes = 0,
+          lineId = this._nextLineId,
+        });
+        OpexSign(anchor, "AF|" + this._nextLineId + "|" + result.vehicles.len() + "|"
+                               + plan.economics.profitAnnual);
+        OpexSign(anchor, "AH|" + this._nextLineId + "|"
+                         + ((("reuseA" in plan) && plan.reuseA) ? 1 : 0) + "|"
+                         + plan.capital + "|" + (("hubRoutes" in plan) ? plan.hubRoutes : 0));
+        OpexSign(anchor, "PM|" + this._nextLineId + "|A|" + plan.distance + "|"
+                         + AICargo.GetCargoLabel(this._catalog.paxCargo));
+        this._nextLineId++;
+        builtCount++;
+        if (builtCount >= maxBatch) break;
+      }
+    } else if (mode == "road") {
+      if (!ROAD_BUILD_ENABLED || this._catalog.roadType < 0) continue;
+      local candidate = project.payload;
+      if (candidate.kind == "pax") {
+        if (OpexRoadPairServed(this._lines, candidate.src, candidate.dst)) continue;
+        if (OpexTownRoadLineCount(this._lines, candidate.src) >= 4) continue;
+        if (OpexTownRoadLineCount(this._lines, candidate.dst) >= 4) continue;
+      } else {
+        if (OpexOriginServed(this._lines, candidate.src, true)) continue;
+        if (!("isFeeder" in candidate) || !candidate.isFeeder) {
+          if (OpexOriginServed(this._lines, candidate.dst, true)) continue;
+        }
+      }
+      local abandonedKey = OpexAbandonedPairKey(candidate);
+      if (ABANDON_MEMORY && (abandonedKey in this._abandonedPairs)) continue;
+
+      local need = candidate.capital + OpexCashReserve() + ROAD_CAPITAL_MARGIN;
+      local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+      if (money < need && REBORROW) money = OpexTryReborrow(need, money);
+      if (money < need) continue;
+
+      OpexSign(anchor, "IP|" + yy + "|R|" + project.budgetScore + "|" + project.opcodeScore);
+
+      this._budget.begin();
+      local planning = OpexRoadPlanFor(this._catalog, candidate);
+      local planOps = this._budget.end("build_road_plans");
+      local plan = planning.plan;
+      local idx = this._nextLineId;
+      if (plan == null) {
+        if (ABANDON_MEMORY) this._abandonedPairs[abandonedKey] <- true;
+        OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|" + planning.reason + "|0");
+        OpexSign(anchor, "RB|" + yy + "|" + idx + "|1|" + planOps + "|0");
+        continue;
+      }
+      if (TREE_PLANTING) {
+        if (candidate.srcTown >= 0) OpexBoostTownRating(candidate.srcTown, 700, 35);
+        if (candidate.dstTown >= 0) OpexBoostTownRating(candidate.dstTown, 700, 35);
+      }
+      local result = OpexBuildRoadRoute(this._catalog, this._budget, plan, candidate);
+      OpexSign(anchor, "RB|" + yy + "|" + idx + "|1|" + planOps + "|" + result.opcodes);
+      if (!result.ok) {
+        if (ABANDON_MEMORY) this._abandonedPairs[abandonedKey] <- true;
+        OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|" + result.reason + "|" + result.error);
+        continue;
+      }
+
+      OpexSign(anchor, "OF|" + idx + "|" + candidate.revenueAnnual);
+      OpexSign(anchor, "OJ|" + idx + "|" + candidate.runningAnnual);
+      OpexSign(anchor, "OK|" + idx + "|" + candidate.amortAnnual);
+      OpexSign(anchor, "OQ|" + idx + "|" + candidate.carried + "|" + candidate.trains);
+      OpexSign(anchor, "OT|" + idx + "|" + candidate.oneWayDays + "|" + candidate.distance);
+      OpexSign(anchor, "PK|" + idx + "|" + (candidate.kind == "pax" ? "P" : "F")
+                               + "|" + candidate.monthly);
+      OpexSign(anchor, "PC|" + idx + "|" + AICargo.GetCargoLabel(candidate.cargo));
+      OpexSign(anchor, "PM|" + idx + "|R|" + candidate.distance + "|"
+                               + AICargo.GetCargoLabel(candidate.cargo));
+      OpexSign(anchor, "RC|" + yy + "|" + idx + "|1|" + result.cost
+                               + "|" + result.vehicles.len());
+      if (ROAD_MULTISTOP) {
+        OpexSign(anchor, "RM|" + yy + "|" + idx + "|1|"
+                                 + result.nStopsA + "|" + result.nStopsB + "|"
+                                 + result.vehicles.len());
+      }
+      this._lines.append({
+        stationA = result.stopA, stationB = result.stopB,
+        originA = candidate.src, originB = candidate.dst,
+        cargo = candidate.cargo,
+        predicted = candidate.profitAnnual, iterations = candidate.iterations,
+        trains = result.vehicles.len(), distance = candidate.distance, year = year,
+        predRevenue = candidate.revenueAnnual, predRunning = candidate.runningAnnual,
+        predAmort = candidate.amortAnnual, predCarried = candidate.carried,
+        predTrains = candidate.trains, predOneWayDays = candidate.oneWayDays,
+        effectiveSpeed = candidate.effectiveSpeed,
+        catalogSpeed = candidate.engine.speed,
+        mode = "road", kind = candidate.kind, depot = result.depot,
+        nStopsA = result.nStopsA, nStopsB = result.nStopsB,
+        capacity = ("capacity" in result) ? result.capacity : 25,
+        srcIndustry = (candidate.kind == "freight" && candidate.srcTown < 0)
+                      ? AIIndustry.GetIndustryID(candidate.src) : -1,
+        dstIndustry = (candidate.kind == "freight" && candidate.dstTown < 0)
+                      ? AIIndustry.GetIndustryID(candidate.dst) : -1,
+        deadStreak = 0, scrapping = false, scrapVehicles = [],
+        lineId = idx,
+      });
+      this._nextLineId++;
+      builtCount++;
+      if (builtCount >= maxBatch) break;
+    } else if (mode == "rail") {
+      local candidate = project.payload;
+      local abandonedKey = OpexAbandonedPairKey(candidate);
+      if (ABANDON_MEMORY && (abandonedKey in this._abandonedPairs)) continue;
+
+      local close = this._tooClose(candidate);
+      local join = null;
+      local placeJoin = ("placeJoin" in candidate) ? candidate.placeJoin : null;
+      if (close.hard >= 0) continue;
+
+      if (placeJoin != null) {
+        join = placeJoin;
+        local joinEnd = join.candidateEnd;
+        local refuse = null;
+        if (!AIStation.IsValidStation(join.stationId)) refuse = "N";
+        else {
+          foreach (conflict in close.conflicts) {
+            if (conflict.end != joinEnd || conflict.stationId != join.stationId) {
+              refuse = "M";
+              break;
+            }
+          }
+        }
+        if (refuse == null && JOIN_MAX_DISTANCE > 0 && candidate.distance >= JOIN_MAX_DISTANCE) {
+          refuse = "D";
+        }
+        if (refuse != null) {
+          join = null;
+          continue;
+        }
+      } else if (close.blocking >= 0) {
+        if (STATION_JOIN) {
+          join = OpexFindStationJoin(candidate, close.conflicts);
+          if ("refuse" in join) {
+            join = null;
+          } else if (JOIN_MAX_DISTANCE > 0 && candidate.distance >= JOIN_MAX_DISTANCE) {
+            join = null;
+          }
+        }
+        if (join == null) continue;
+      }
+
+      local need = candidate.capital + OpexCashReserve();
+      local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+      if (money < need && REBORROW) money = OpexTryReborrow(need, money);
+      if (money < need) continue;
+
+      OpexSign(anchor, "IP|" + yy + "|T|" + project.budgetScore + "|" + project.opcodeScore);
+
+      local isPaxNear = PAX_NEAR && ("paxNear" in candidate) && candidate.paxNear;
+      local alternativeRatio = isPaxNear ? 0 : MIN_RATIO;
+      local hardCap = OpexDynamicHardCap(this._lines.len(), false);
+      if (TREE_PLANTING && candidate.kind == "pax") {
+        OpexBoostTownRating(candidate.src, 700, 35);
+        OpexBoostTownRating(candidate.dst, 700, 35);
+      }
+      local result = OpexBuildLine(this._catalog, this._budget, candidate, alternativeRatio, join,
+                                   OpexCashReserve(), hardCap);
+      if (result.reason == "CASH") continue;
+
+      local budgetInfo = result.budgetInfo;
+      local iterationBudget = result.iterationBudget;
+      local rankPacked = i * TOP_K + this._projects.best.len();
+      OpexSign(anchor, "OR|" + yy + "|" + this._nextLineId + "|" + rankPacked
+                               + "|" + budgetInfo.path + "S"
+                               + OpexAttemptReasonCode(result.reason) + "|" + iterationBudget
+                               + "|" + result.iterations);
+      OpexSign(anchor, "OB|A|" + yy + "|" + this._nextLineId + "|" + rankPacked
+                               + "|" + result.opcodes + "|" + candidate.distance);
+      if (result.reason == "SITEA" || result.reason == "SITEB" || result.reason == "SITEAB") {
+        OpexSign(anchor, "PS|" + yy + "|" + this._nextLineId + "|" + rankPacked
+                                + "|" + result.siteClear + "|" + result.siteCargo + "|"
+                                + result.siteCmd + "|" + result.siteKind + "|"
+                                + result.joinEnd);
+      }
+      if (result.error != 0) OpexSign(anchor, "OV|" + this._nextLineId + "|" + result.error);
+
+      if (result.ok) {
+        local idx = this._nextLineId;
+        OpexSign(anchor, "OF|" + idx + "|" + candidate.revenueAnnual);
+        OpexSign(anchor, "OJ|" + idx + "|" + candidate.runningAnnual);
+        OpexSign(anchor, "OK|" + idx + "|" + candidate.amortAnnual);
+        OpexSign(anchor, "OQ|" + idx + "|" + candidate.carried + "|" + candidate.trains
+                                + "|" + candidate.wagons + "|" + candidate.perTrain);
+        OpexSign(anchor, "PT|" + idx + "|" + candidate.offered.tointeger() + "|"
+                                + candidate.monthlyCapacity.tointeger() + "|"
+                                + candidate.headwayDays.tointeger() + "|"
+                                + candidate.stationRating.tointeger() + "|"
+                                + candidate.trainsForHeadway);
+        OpexSign(anchor, "OT|" + idx + "|" + candidate.oneWayDays.tointeger() + "|" + candidate.distance
+                                + "|" + candidate.platformLength + "|" + candidate.effectiveSpeed.tointeger());
+        OpexSign(anchor, "OL|" + idx + "|" + candidate.loco.id + "|" + candidate.loco.speed
+                                + "|" + candidate.effectiveSpeed.tointeger() + "|" + candidate.loco.power
+                                + "|" + candidate.loco.tractiveEffort);
+        OpexSign(anchor, "PL|" + idx + "|" + result.platformLength + "|" + result.wagons
+                                + "|" + result.trainLength + "|" + result.locoLength
+                                + "|" + result.wagonLength);
+        OpexSign(anchor, "PD|" + idx + "|" + result.wantedPlatformLength + "|"
+                                + result.platformLength + "|" + result.plansA + "|"
+                                + result.plansB + "|" + result.slopeRelaxed);
+        OpexSign(anchor, "PK|" + idx + "|" + (candidate.kind == "pax" ? "P" : "F")
+                                 + "|" + candidate.monthly);
+        OpexSign(anchor, "PC|" + idx + "|" + AICargo.GetCargoLabel(candidate.cargo));
+        if (RAIL_COST_PROBE) {
+          OpexSign(anchor, "DC|" + idx + "|" + result.capital + "|" + result.actualCost + "|"
+                                 + candidate.trains + "|" + result.trains + "|"
+                                 + result.doubleTrack);
+        }
+        if (STATION_JOIN || JOIN_PLACE) {
+          local joinHow = "";
+          if (placeJoin != null) joinHow = "|P";
+          else if (join != null) joinHow = "|T";
+          OpexSign(anchor, "PJ|" + idx + "|" + (join == null ? "N" : join.candidateEnd)
+                                   + "|" + (candidate.originServed ? 1 : 0) + joinHow);
+        }
+        if (isPaxNear) OpexSign(anchor, "PY|" + idx);
+
+        this._lines.append({
+          stationA = result.stationA, stationB = result.stationB,
+          platformA = result.platformA, platformB = result.platformB,
+          originA = candidate.src, originB = candidate.dst,
+          cargo = candidate.cargo,
+          predicted = candidate.profitAnnual, iterations = candidate.iterations,
+          trains = result.trains, distance = candidate.distance, year = year,
+          predRevenue = candidate.revenueAnnual, predRunning = candidate.runningAnnual,
+          predAmort = candidate.amortAnnual, predCarried = candidate.carried,
+          predTrains = candidate.trains, predOneWayDays = candidate.oneWayDays,
+          loco = candidate.loco, wagons = candidate.wagons,
+          platformLength = result.platformLength,
+          depot = result.depot, doubleTrack = result.doubleTrack,
+          depot2 = result.depot2, stationA2 = result.stationA2, stationB2 = result.stationB2,
+          platformA2 = result.platformA2, platformB2 = result.platformB2,
+          effectiveSpeed = candidate.effectiveSpeed,
+          mode = "rail", kind = candidate.kind,
+          vehicle = result.train, vehicles = result.trainsList,
+          srcIndustry = (candidate.kind == "freight") ? AIIndustry.GetIndustryID(candidate.src) : -1,
+          dstIndustry = (candidate.kind == "freight") ? AIIndustry.GetIndustryID(candidate.dst) : -1,
+          deadStreak = 0, scrapping = false, scrapVehicles = [],
+          lastLiveVehicles = result.trains, suspectedCrashes = 0,
+          lineId = idx,
+        });
+        this._nextLineId++;
+        builtCount++;
+        if (builtCount >= maxBatch) break;
+      } else {
+        if (ABANDON_MEMORY && (result.reason == "ABND" || result.reason == "SITEA" || result.reason == "SITEB" ||
+                               result.reason == "SITEAB" || result.reason == "NOPA" || result.reason == "STNFAIL")) {
+          this._abandonedPairs[abandonedKey] <- true;
+        }
+      }
+    } else if (mode == "water") {
+      if (this._waterBuilt || this._catalog.ships.len() == 0 || this._catalog.paxCargo < 0) continue;
+      local plan = project.payload;
+      local capital = 2 * this._catalog.costDock + this._catalog.costWaterDepot + this._catalog.maxShipPrice;
+      local need = capital + OpexCashReserve() + WATER_CAPITAL_MARGIN;
+      local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+      if (money < need && REBORROW) money = OpexTryReborrow(need, money);
+      if (money < need) continue;
+
+      OpexSign(anchor, "IP|" + yy + "|W|" + project.budgetScore + "|" + project.opcodeScore);
+      local planOps = ("planningOpcodes" in project) ? project.planningOpcodes : 0;
+      local result = OpexBuildWaterRoute(this._catalog, this._budget, plan);
+      if (result.ok) OpexSign(anchor, "OM|W|" + year + "|" + plan.distance + "|" + planOps);
+      else OpexSign(anchor, "ON|W|" + result.reason + "|" + result.error);
+      if (result.ok) {
+        this._waterBuilt = true;
+        this._lines.append({
+          stationA = result.dockA, stationB = result.dockB,
+          originA = result.dockA, originB = result.dockB,
+          cargo = this._catalog.paxCargo,
+          predicted = 0, iterations = 0, trains = 1, distance = plan.distance, year = year,
+          mode = "water", vehicle = result.vehicle, vehicles = [result.vehicle],
+          lineId = this._nextLineId,
+        });
+        OpexSign(anchor, "PM|" + this._nextLineId + "|W|" + plan.distance + "|"
+                         + AICargo.GetCargoLabel(this._catalog.paxCargo));
+        this._nextLineId++;
+        builtCount++;
+        if (builtCount >= maxBatch) break;
+      }
+    }
+  }
+
+  if (builtCount > 0) {
+    this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines);
+    this._ranked = this._projects.rail;
+    OpexSign(anchor, "IG|" + yy + "|" + this._projects.stats.modeCandidates + "|"
+             + this._projects.stats.odProjects + "|" + this._projects.stats.budgetSelected);
+    OpexSign(anchor, "IB|" + yy + "|" + this._projects.capitalBudget + "|"
+             + this._projects.stats.selectedCapital);
+    return true;
+  }
+  return false;
 }
 
 /* Item 7 : au plus UNE tentative rail par an sur une paire que le modele a rejetee
@@ -1766,19 +2133,20 @@ function OpexAI::_reportLines(year)
  * file ne le resonde pas a chaque cycle et ne gaspille donc pas d'opcodes. */
 function OpexAI::_resizeAirFleets(year)
 {
-  local date = AIDate.GetCurrentDate();
-  local month = AIDate.GetMonth(date);
-  if (this._lastAirFleetMonth == month) return false;
-  this._lastAirFleetMonth = month;
   local anchor = AIMap.GetTileIndex(1, 1);
   foreach (line in this._lines) {
     if (!("mode" in line) || line.mode != "air") continue;
+    if (("lastAirFleetYear" in line) && line.lastAirFleetYear == year) continue;
     local have = ("vehCount" in line) ? line.vehCount : (("vehicles" in line) ? line.vehicles.len() : 0);
-    if (have < 1 || have >= AIR_MAX_PLANES_PER_ROUTE) continue;
+    if (have < 1) continue;
     if (("deadStreak" in line) && line.deadStreak >= 2) continue;
 
+    // Condition 1 : Les appareils existants doivent etre rentables
+    if (!("lastProfit" in line) || line.lastProfit <= 0) continue;
+
     local isSmallAirport = false;
-    if (AIAirport.IsAirportTile(line.stationA) && AIAirport.GetAirportType(line.stationA) == AIAirport.AT_SMALL) {
+    if ((AIAirport.IsAirportTile(line.stationA) && AIAirport.GetAirportType(line.stationA) == AIAirport.AT_SMALL) ||
+        (AIAirport.IsAirportTile(line.stationB) && AIAirport.GetAirportType(line.stationB) == AIAirport.AT_SMALL)) {
       isSmallAirport = true;
     }
     local maxPlanesForAirport = isSmallAirport ? 4 : AIR_MAX_PLANES_PER_ROUTE;
@@ -1791,22 +2159,25 @@ function OpexAI::_resizeAirFleets(year)
     local waiting = waitingA + waitingB;
     local capacity = ("planeCapacity" in line) ? line.planeCapacity : 0;
 
-    local targetPlanes = isSmallAirport ? 6 : 12;
-    local addedAny = 0;
-    local planePrice = (this._catalog.plane != null) ? this._catalog.plane.price : 30000;
-    local need = planePrice + OpexCashReserve() + 1000;
-    while (have < targetPlanes) {
+    // Condition 2 : Au moins une charge utile complete attend dans les deux aeroports
+    if (capacity <= 0 || waiting < capacity) continue;
+
+    local addedThisPass = 0;
+    while (have < maxPlanesForAirport && addedThisPass < 4) {
+      if (waiting < capacity * (addedThisPass + 1)) break;
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+      if (money < need && REBORROW) money = OpexTryReborrow(need, money);
       if (money < need) break;
       local grown = OpexAirAddPlane(line);
       if (grown.added <= 0) break;
-      have++;
-      addedAny++;
+      have += grown.added;
+      addedThisPass += grown.added;
       line.vehCount <- have;
       line.trains = have;
     }
-    if (addedAny > 0) {
-      AILog.Info("[AIR_FLEET] line=" + line.lineId + " added=" + addedAny + " total=" + have);
+    if (addedThisPass > 0) {
+      line.lastAirFleetYear <- year;
+      AILog.Info("[AIR_FLEET] line=" + line.lineId + " added=" + addedThisPass + " total=" + have);
       OpexSign(AIMap.GetTileIndex(1, 10 + line.lineId), "FG|" + (year % 100) + "|" + line.lineId + "|" + have + "|"
                        + waiting + "|K");
     }
@@ -1900,18 +2271,29 @@ function OpexAI::_refleetRoadLines(year)
     if (("scrapping" in line) && line.scrapping) continue;
     if (("expandBlocked" in line) && line.expandBlocked) continue;
     if (("expandRetryCycle" in line) && line.expandRetryCycle > this._taskCycle) continue;
-    if (!("depot" in line) || !AIRail.IsRailDepotTile(line.depot)) continue;
+    if (!("depot" in line) || !AIRoad.IsRoadDepotTile(line.depot)) continue;
     if (("deadStreak" in line) && line.deadStreak > 0) continue;
     local have = ("vehCount" in line) ? line.vehCount : 0;
     local target = ("predTrains" in line) ? line.predTrains : (("trains" in line) ? line.trains : 1);
     if (("trains" in line) && line.trains > target) target = line.trains;
     if (target < 1) target = 1;
-    local cap = MAX_ROAD_VEHICLES;
-    if (("nStopsA" in line) && ("nStopsB" in line)) {
-      local nMin = line.nStopsA < line.nStopsB ? line.nStopsA : line.nStopsB;
-      if (nMin < 1) nMin = 1;
-      cap = 2 * nMin;
+
+    // Dimensionnement dynamique : si la ligne est rentable et qu'il y a du stock en attente aux arrêts
+    local stationA = AIStation.GetStationID(line.stationA);
+    local stationB = AIStation.GetStationID(line.stationB);
+    local waitingA = AIStation.IsValidStation(stationA) ? AIStation.GetCargoWaiting(stationA, line.cargo) : 0;
+    local waitingB = AIStation.IsValidStation(stationB) ? AIStation.GetCargoWaiting(stationB, line.cargo) : 0;
+    local waiting = waitingA + waitingB;
+    local lastProfit = ("lastProfit" in line) ? line.lastProfit : 1;
+    local capacity = ("capacity" in line && line.capacity > 0) ? line.capacity : 25;
+
+    if (lastProfit > 0 && waiting >= capacity) {
+      local extraNeeded = waiting / capacity;
+      if (extraNeeded > 4) extraNeeded = 4;
+      if (have + extraNeeded > target) target = have + extraNeeded;
     }
+
+    local cap = 16;
     if (target > cap) target = cap;
     if (have >= target) continue;
     local refill = OpexRoadRefleet(this._catalog, line, have, target);
@@ -2538,14 +2920,21 @@ function OpexAI::_runNextTask()
 
   if (task.name == "catalog") {
     local date = AIDate.GetCurrentDate();
-    local month = AIDate.GetMonth(date);
-    if (this._lastCatalogMonth == month && this._ranked != null) return false;
-    this._lastCatalogMonth = month;
+    local ym = year * 12 + AIDate.GetMonth(date);
+    if (this._lastCatalogMonth == ym && this._projects != null) return false;
+    this._lastCatalogMonth = ym;
     this._catalog.refresh(this._budget, year);
-    this._ranked = OpexBuildCandidates(this._catalog, this._budget, this._lines);
+    this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines);
+    this._ranked = this._projects.rail;
+    local anchor = AIMap.GetTileIndex(1, 1);
+    local yy = year % 100;
+    OpexSign(anchor, "IG|" + yy + "|" + this._projects.stats.modeCandidates + "|"
+             + this._projects.stats.odProjects + "|" + this._projects.stats.budgetSelected);
+    OpexSign(anchor, "IB|" + yy + "|" + this._projects.capitalBudget + "|"
+             + this._projects.stats.selectedCapital);
     return true;
   }
-  if (this._ranked == null) {
+  if (this._projects == null) {
     task.dueCycle = this._taskCycle;
     return false;
   }
@@ -2559,40 +2948,18 @@ function OpexAI::_runNextTask()
     return true;
   }
   if (task.name == "scrap") { this._scrapDeadLines(year); return true; }
-  if (task.name == "refleet") { this._refleetRoadLines(year); return true; }
-  if (task.name == "air_fleet") {
-    task.dueCycle = this._taskCycle + 1;
-    return this._resizeAirFleets(year);
-  }
   if (task.name == "expand") {
     if (!RAIL_EXPAND) { task.enabled = false; return false; }
     this._expandRailLines(year);
     return true;
   }
-  if (task.name == "air") {
-    this._tryBuildAir(year);
-    return true;
+  if (task.name == "refleet") { this._refleetRoadLines(year); return true; }
+  if (task.name == "air_fleet") {
+    task.dueCycle = this._taskCycle + 1;
+    return this._resizeAirFleets(year);
   }
-  if (task.name == "water") {
-    this._tryBuildWater(year);
-    if (this._waterBuilt) task.enabled = false;
-    return true;
-  }
-  if (task.name == "preplan") {
-    if (!PREPLAN_ENABLED) { task.enabled = false; return false; }
-    this._tryPreplan(year);
-    return true;
-  }
-  if (task.name == "rail") { this._tryBuild(this._ranked, year); return true; }
-  if (task.name == "probe") {
-    if (!PROBE_NEGATIVE) { task.enabled = false; return false; }
-    this._tryProbeNegative(this._ranked, year);
-    return true;
-  }
-  if (task.name == "road") {
-    if (!ROAD_BUILD_ENABLED) { task.enabled = false; return false; }
-    this._tryBuildRoads(year);
-    return true;
+  if (task.name == "projects") {
+    return this._tryBuildProjects(year);
   }
   if (task.name == "town_growth") {
     if (!TOWN_GROWTH_ENABLED) { task.enabled = false; return false; }
@@ -2601,9 +2968,9 @@ function OpexAI::_runNextTask()
   }
   if (task.name == "repay") {
     local date = AIDate.GetCurrentDate();
-    local month = AIDate.GetMonth(date);
-    if (this._lastRepayMonth == month) return false;
-    this._lastRepayMonth = month;
+    local ym = year * 12 + AIDate.GetMonth(date);
+    if (this._lastRepayMonth == ym) return false;
+    this._lastRepayMonth = ym;
     this._tryRepayLoan(year);
     return true;
   }
