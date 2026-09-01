@@ -2291,19 +2291,18 @@ function OpexAI::_refleetRoadLines(year)
     local waitingA = AIStation.IsValidStation(stationA) ? AIStation.GetCargoWaiting(stationA, line.cargo) : 0;
     local waitingB = AIStation.IsValidStation(stationB) ? AIStation.GetCargoWaiting(stationB, line.cargo) : 0;
     local waiting = waitingA + waitingB;
-    local lastProfit = ("lastProfit" in line) ? line.lastProfit : 1;
+    if (("lastProfit" in line) && line.lastProfit <= 0) continue;
     local capacity = ("capacity" in line && line.capacity > 0) ? line.capacity : 25;
-
     local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-    if (lastProfit > 0) {
+    if (("lastProfit" in line) && line.lastProfit > 500) {
       local extraNeeded = 0;
-      if (waiting >= capacity) extraNeeded = waiting / capacity;
-      else if (money > 35000 && have < 8) extraNeeded = 1;
-      if (extraNeeded > 4) extraNeeded = 4;
+      if (waiting >= capacity * 2) extraNeeded = waiting / (capacity * 2);
+      else if (money > 60000 && have < 4) extraNeeded = 1;
+      if (extraNeeded > 2) extraNeeded = 2;
       if (have + extraNeeded > target) target = have + extraNeeded;
     }
 
-    local cap = 20;
+    local cap = 16;
     if (target > cap) target = cap;
     if (have >= target) continue;
     local refill = OpexRoadRefleet(this._catalog, line, have, target);

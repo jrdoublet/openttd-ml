@@ -295,9 +295,8 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null)
       if (OpexAirTownServed(towns[i], lines)) continue;
       /* Typage selon la population :
        * - Grands aéroports : accessibles dès 600 habitants (suffisant pour alimenter un jet vers un hub)
-       * - Petits aéroports : adaptés aux villes < 2500 habitants */
+       * - Petits aéroports : utilisables sur toutes les villes si aucun grand aéroport ne rentre */
       if (combo.kind == "large" && towns[i].pop < 600) continue;
-      if (combo.kind == "small" && towns[i].pop >= 2500) continue;
       local site = OpexAirFindSite(towns[i], airport, probes);
       if (site != null) sites.append(site);
     }
