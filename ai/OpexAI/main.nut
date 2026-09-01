@@ -288,10 +288,11 @@ class OpexAI extends AIController {
       { name = "catalog", dueCycle = 0, enabled = true },
       { name = "report", dueCycle = 0, enabled = true },
       { name = "scrap", dueCycle = 0, enabled = true },
-      { name = "expand", dueCycle = 0, enabled = true },
-      { name = "refleet", dueCycle = 0, enabled = true },
+      { name = "air", dueCycle = 0, enabled = true },
       { name = "air_fleet", dueCycle = 0, enabled = true },
       { name = "projects", dueCycle = 0, enabled = true },
+      { name = "expand", dueCycle = 0, enabled = true },
+      { name = "refleet", dueCycle = 0, enabled = true },
       { name = "town_growth", dueCycle = 0, enabled = true },
       { name = "repay", dueCycle = 0, enabled = true },
     ];
@@ -2954,12 +2955,7 @@ function OpexAI::_runNextTask()
     return true;
   }
   if (task.name == "scrap") { this._scrapDeadLines(year); return true; }
-  if (task.name == "expand") {
-    if (!RAIL_EXPAND) { task.enabled = false; return false; }
-    this._expandRailLines(year);
-    return true;
-  }
-  if (task.name == "refleet") { this._refleetRoadLines(year); return true; }
+  if (task.name == "air") { this._tryBuildAir(year); return true; }
   if (task.name == "air_fleet") {
     task.dueCycle = this._taskCycle + 1;
     return this._resizeAirFleets(year);
@@ -2967,6 +2963,12 @@ function OpexAI::_runNextTask()
   if (task.name == "projects") {
     return this._tryBuildProjects(year);
   }
+  if (task.name == "expand") {
+    if (!RAIL_EXPAND) { task.enabled = false; return false; }
+    this._expandRailLines(year);
+    return true;
+  }
+  if (task.name == "refleet") { this._refleetRoadLines(year); return true; }
   if (task.name == "town_growth") {
     if (!TOWN_GROWTH_ENABLED) { task.enabled = false; return false; }
     this._tryTownGrowth(year);
