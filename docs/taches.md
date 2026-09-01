@@ -1277,6 +1277,143 @@ Ne pas oublier deux composantes gratuites de la note de compagnie : **emprunt à
 
 ---
 
+## 0 sexies. 🔴 REVUE DU CONTRÔLEUR (2026-09-01) — la cause du goulot est trouvée
+
+Revue de code ciblée sur `Start()`, `_runNextTask()` et la file de tâches, motivée par le banc 1v1
+(61,2 % des mois avec ≥300 k£ et aucune construction). **Les deux trouvailles de tête sont
+vérifiées à la main**, pas seulement rapportées.
+
+### 1. 🔴 La boucle principale abandonne l'essentiel du budget d'opcodes (`main.nut:3143`)
+
+```
+while (true) { this._processEvents(); this._runNextTask(); AIController.Sleep(1); }
+```
+
+**Une seule tâche par tick, puis `Sleep(1)`.** Le budget est de 10 000 opcodes par tick et il n'est
+**pas reportable**. Un tick qui tire `catalog` hors de son mois, `report` hors de son année,
+`repay` hors de son mois, ou `air_fleet` sans rien à faire, dépense quelques centaines d'opcodes
+puis jette les ~9 700 restants. `_runNextTask()` **retourne déjà un booléen** « j'ai fait un travail
+utile » — et `Start()` l'ignore.
+
+Sur 3 ans ≈ 81 000 ticks ≈ 810 M d'opcodes, c'est le gisement dont AAAHogEx tire ~150 gares.
+**C'est l'explication la plus simple et la plus complète du « 8× moins de gares ».**
+Correctif : `while (this._runNextTask()) {}`, ou boucler tant que `GetOpsTillSuspend()` reste haut,
+et ne `Sleep(1)` que si la file n'a rien d'utile.
+
+### 2. 🔴 Cinq fonctions ne sont JAMAIS appelées, dont le mécanisme qui aurait sauvé le point 1
+
+Vérifié par recherche exhaustive : aucun site d'appel pour
+`_tryBuild` (~400 lignes, tout le chemin rail), `_tryBuildRoads`, `_tryBuildWater`,
+`_tryPreplan`, `_tryProbeNegative`. Seuls `_tryBuildAir`, `_tryBuildProjects` et `_tryTownGrowth`
+sont dispatchés par `_runNextTask`.
+
+⚠️ **Nuance à ne pas rater** : rail, route et eau sont désormais construits par le portefeuille
+(`_tryBuildProjects` → `projects.nut`), donc ces quatre-là sont du code **supplanté**, pas un trou
+fonctionnel. Le cinquième, si.
+
+🔴 **`_tryPreplan` est le trou fonctionnel.** Il est documenté comme « précalcule le tracé pendant
+les ticks d'opcodes dormants » — exactement le remède au point 1 — et son réglage
+`preplan_queue` a pour **défaut 1**. Sa seule utilisation (`main.nut:964`) est à l'intérieur de la
+fonction morte : **le réglage est totalement inerte**, il ment sur ce qui tourne.
+
+**Ceci corrige la conclusion de l'étape 1 de la revue** (`info.nut` déclaré sain) : les 31 réglages
+sont bien déclarés, lus et cohérents, mais vérifier qu'un réglage est *lu* ne prouve pas que le code
+qui l'*utilise* est atteignable. `preplan_queue` est le seul dans ce cas sur les 31 — vérifié un par
+un.
+
+### Les autres trouvailles, par gravité
+
+| # | lieu | problème |
+|---|---|---|
+| 3 | `main.nut:536`/`:550` | `_tryBuildAir` dimensionne les plans sur `maxCapital` mais les accepte sur `capital + reserve + marge` (30 000 £ pour deux aéroports). Tout plan tombant dans cette bande de 28 k£ est **retrouvé puis rejeté à chaque cycle, indéfiniment** : argent présent, rien construit, budget brûlé. |
+| 4 | `main.nut:512`/`:521` | La tâche `air` n'a **aucune barrière de cadence** (contrairement à `catalog`, `report`, `repay`) et relance un scan complet `OpexAirPlans` à chaque cycle, jusqu'à 12 fois par invocation — alors que `OpexBuildProjects` fait déjà le même scan mensuellement. |
+| 5 | `main.nut:565` | `_tryBuildAir` n'écrit ni ne lit `_abandonedPairs` : une paire qui échoue est replanifiée et retentée **tout le reste de la partie**. Le chemin portefeuille, lui, mémorise. |
+| 6 | `main.nut:869` | `_tryTownGrowth` tourne à chaque cycle sans barrière et **précisément quand il y a du cash** (`money < reserve + 25000` en garde). Il paie un plan routier complet par ville servie, sans mémoïsation ni cooldown ; le test `money < need` arrive **après** que le plan a été payé. |
+| 7 | `main.nut:3031` | Interblocage latent : `task.dueCycle = this._taskCycle` (au lieu de `+1`) quand `_projects` est null. `_taskCycle` ne peut alors plus avancer et `catalog`, différé à `+1`, ne tourne plus jamais. Inatteignable aujourd'hui, mais un seul `return` ajouté dans `OpexBuildProjects` gèle l'IA. |
+| 8 | `main.nut:3045` | `air` précède `projects` et peut consommer le capital **et le plafond d'emprunt** que le sac à dos avait alloués aux autres modes ; le dispatch retourne `true` quoi qu'il arrive. |
+| 9 | `main.nut:2937` | `line.lastExpansionYear` est **écrit et jamais lu** — le commentaire promet « au plus UNE expansion par an », rien ne l'applique. Même famille que `MAX_ROAD_VEHICLES` et `_resizeAirFleets`. |
+| 10 | `main.nut:514` | La garde air teste `airCombos == null && airport == null`, mais `airCombos` vaut toujours `[]` après `_refreshAir()` : la garde ne peut jamais se déclencher sur « aucun avion disponible ». Et le seul état qu'elle laisse passer fait déréférencer `airCombos.len()` sur null en `:543`, ce qui **tue l'IA**. |
+| 11 | `main.nut:290` | `_lastAirFleetMonth` déclaré, initialisé, **jamais lu ni écrit** : `air_fleet` n'a pas de barrière de cadence. |
+| 13 | `main.nut:1723` | Télémétrie fausse : `rankPacked = i * TOP_K + this._projects.best.len()` mélange l'indice et la **longueur** du portefeuille — toute analyse qui dépaquette `rankPacked % TOP_K` comme un rang lit la taille de la liste. |
+
+### Ordre d'attaque proposé
+
+1 (budget d'opcodes) et 2 (`_tryPreplan`) d'abord : ils visent directement les ~85 % de l'écart qui
+viennent du volume. Puis 3, 4, 6 — trois boucles qui brûlent du budget sans construire, exactement
+le profil « cash présent, rien de bâti ». 10 est un risque de mort de l'IA à traiter au passage.
+
+⚠️ Aucun de ces points n'est encore corrigé ni mesuré. **Ne pas supposer un gain avant le banc** :
+la seule chose établie ici est le mécanisme, pas son effet.
+
+---
+
+## 0 septies. 🔴 REVUE DU PORTEFEUILLE `projects.nut` (2026-09-01) — les 4 soupçons confirmés
+
+Étape 3 de la revue. Rappel de contexte : `_tryBuild` / `_tryBuildRoads` / `_tryBuildWater` de
+`main.nut` étant du **code mort vérifié** (§0 sexies), `OpexBuildProjects` est le SEUL chemin de
+construction vivant pour rail, route et eau. Ce fichier porte donc presque toute la décision
+d'investissement.
+
+### Les deux qui expliquent la mesure
+
+🔴 **A. Le capital dort jusqu'à la fin du mois** (`main.nut:3018` + `projects.nut:335`).
+Le portefeuille n'est régénéré qu'au **changement de mois** ou après une construction **réussie**,
+et `capitalBudget` est figé au moment de la génération. Si le mois s'ouvre à 60 k£ et qu'aucun
+projet ne rentre, `bestSolution = []`, `best.len() == 0`, et `_tryBuildProjects` sort dès sa
+première ligne — **pour tout le reste du mois**, même si la trésorerie monte ensuite à 400 k£.
+➜ C'est exactement la mesure « **4,15 mois en moyenne avec ≥100 k£ et aucune croissance** ».
+
+🔴 **B. Un sac à dos entier est calculé, puis jeté sauf un item** (`projects.nut:264` +
+`main.nut:1503`). `maxBatch = 1` : un seul projet est construit, puis le portefeuille est
+régénéré de zéro. Seul compte donc *quel projet unique arrive en tête de `byOpcodes`* — mais il a
+d'abord dû être admis par un empaquetage dont l'objectif est le **revenu total**.
+Échec concret : à `capitalBudget` = 300 k£, le solveur préfère {A 100k/rev20k, B 100k/rev20k,
+C 100k/rev20k} = 60k à {D 280k/rev55k} = 55k. **D est finançable, meilleur, et jamais construit** —
+et ça se rejoue à chaque régénération. La forme correcte ici n'est pas un sac à dos, c'est
+« prendre le meilleur projet finançable ».
+
+### Les 4 soupçons, tous CONFIRMÉS
+
+| # | lieu | confirmation |
+|---|---|---|
+| 1 | `projects.nut:137` | Le vainqueur par couple O/D est élu **avant** toute consultation de `capitalBudget` (calculé :288, utilisé :335). `OpexProjectModeBetter` classe sur `roi`, un **ratio** : une ligne rail à 900 k£ (roi 180) bat une route à 45 k£ (roi 170), puis échoue au test de capital — **le couple ne rapporte alors rien**. Les clés se collisionnent bien entre modes, donc la perte est réelle. |
+| 2 | `projects.nut:199`/`:219` | L'objectif est `currentRevenue`, la borne (:179) somme `revenueAnnual`. **`profitAnnual` n'apparaît nulle part** dans l'objectif — seulement comme portillon `> 0`. Un projet à 120k de revenu / 2k de profit **domine** un projet à 60k de revenu / 45k de profit. |
+| 3 | `projects.nut:70` (`:95`, `:116`) | `budgetScore = revenu / 1000 £ de capital`, pas profit. C'est la clé primaire d'insertion (:332), **75 % du poids de tri** du sac à dos (:240), et la valeur imprimée dans le panneau `IP|` : **tout chiffre d'investissement montré à l'opérateur est un chiffre d'affaires.** |
+| 4 | `projects.nut:213` | Interdit à deux projets financés de partager **l'une ou l'autre** extrémité — donc interdit exactement la topologie en étoile que `builder_air.nut:415-470` s'échine à produire (tous les plans hub réutilisent `hub.town.tile` en `siteA`). Et comme `maxBatch = 1`, cette contrainte **n'apporte rigoureusement rien** tout en faussant quel projet unique sort premier. |
+
+### Le reste
+
+| gravité | lieu | problème |
+|---|---|---|
+| MOYEN | `:248` | `PROJECT_POOL_K = 128` remplit le vivier, puis `if (n > 64) n = 64` rend les candidats 65→128 **invisibles au solveur** — pendant que `stats.budgetConsidered` rapporte 128. Les 64 slots en trop coûtent des opcodes et n'achètent rien. |
+| MOYEN | `:240` | Le tri composite `budgetScore * 75 + opcodeScore * 25` mélange **des unités incommensurables** (revenu/1000 £ contre revenu/1000 opcodes). Sur un projet à 20 k£, `budgetScore` écrase la somme ; sur un projet à 500 k£ les deux termes sont comparables. La pondération réelle **varie avec le coût du projet**, et elle décide de l'ordre de branchement du B&B. |
+| MOYEN | `:57` | Commentaire mensonger + erreur d'unité : la route ajoute `candidate.iterations * PROJECT_RAIL_OPS_PER_ITERATION`, alors que `OpexRoadIterations` **n'est pas un compte d'itérations d'A\* rail**. Dimensionnellement faux, et double-compte une planification que le commentaire dit déjà mesurée. `opcodeScore` route sous-estimé. |
+| MOYEN | `:212`+`:335` | `ROAD_MAX_NEW_LINES_PER_YEAR = 36` est un **plafond annuel inerte** : le compteur est local à une résolution et se réinitialise à chaque régénération, donc il ne peut jamais atteindre 36 ni contraindre quoi que ce soit. Même famille que `MAX_ROAD_VEHICLES` et `lastExpansionYear`. |
+| MOYEN | `:313` | `knapsackNodes`, `knapsackExact`, `budgetRejected`, `modeAlternatives`, `modeReplaced` et `capitalRemaining` sont **écrits et lus nulle part**. Or `maxNodes = 2000` pour `n = 64` fait tronquer la recherche **couramment** : impossible de distinguer « le solveur a prouvé l'optimum » de « le solveur a épuisé son budget de nœuds ». ➜ *C'est cet angle mort qui a permis aux soupçons 1 à 4 de survivre aussi longtemps.* |
+| FAIBLE | `:39` | Double division entière (`cost / 1000` puis `value / thousands`) : 14 900 £ et 14 100 £ donnent le même score. Les égalités fabriquées sont départagées par `revenueAnnual` brut — ce qui **renforce** les points 2 et 3. |
+| FAIBLE | `:323`/`:326` | `airOps` (une mesure couvrant TOUT le balayage `OpexAirPlans`) est attribué à **chaque** plan comme `planningOpcodes` : surestimation d'un facteur N. Télémétrie seulement, mais ça corrompt la mesure même qui servirait à pricer la découverte aérienne. |
+| FAIBLE | `budget.nut:27` | La non-réentrance documentée **n'a aucun détecteur** : `begin()` écrase sans condition, `end()` retourne 0 en silence. ~40 sites d'appel. `OpexBuildProjects` n'est sûr que parce que `OpexAirPlans`/`OpexWaterPlans` ne reçoivent pas `budget` — un accident de signature, pas un invariant. |
+
+### ✅ Vérifié comme n'étant PAS des bugs — ne pas re-litiger à la passe de correction
+
+Le comparateur `:239` ne capture aucune locale (le piège des closures Squirrel ne s'applique pas
+ici) ; le backtracking de `originsUsed` est correct ; `OpexProjectInsert` est correct ; les marges
+de capital ne sont **pas** double-comptées (le sac à dos exige `capital + marge ≤ cash − réserve`,
+soit exactement le `need` de `main.nut`) ; la borne qui ignore `maxRoad`/`maxItems`/`originsUsed`
+est une relaxation valide ; les trois formes de plan air portent bien `siteA.town.tile`, donc
+`:110-111` ne peut pas déréférencer null ; `plan.capital` et `plan.economics.capital` coïncident.
+
+### Ordre de correction proposé
+
+**A et B d'abord** (remplacer le sac à dos par « meilleur projet finançable » + régénérer le
+portefeuille à la demande plutôt qu'au mois) : ils visent le capital dormant. Puis **1, 2, 3**
+(différer l'élection modale après le test de capital, et passer l'objectif et `budgetScore` au
+`profitAnnual`). **4 tombe gratuitement** une fois B fait.
+
+⚠️ Rien n'est corrigé ni mesuré. Le mécanisme est établi, pas son effet.
+
+---
+
 ## 7 bis. Dimensionnement marginal de flotte (`marginal_fleet`) — MESURÉ, défaut 0, mais le mécanisme est bon (2026-09-01)
 
 **Banc apparié 20 graines × 3 ans** (`docs/bench_marginal_fleet_3y_20seeds.json`, les deux bras
