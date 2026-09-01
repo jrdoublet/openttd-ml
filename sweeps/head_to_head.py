@@ -110,6 +110,7 @@ def keep(row):
         "date": str(row["date"]),
         "companies": companies,
         "openttd_output": row.get("output") or "",
+        "signs": [s["name"] for s in chunks.get("SIGN", {}).values()] if "SIGN" in chunks else [],
     },)
 
 
@@ -169,6 +170,7 @@ def main():
         "openttd_config": CFG,
         "summary": rows[-1]["companies"] if rows else [],
         "openttd_output": rows[-1]["openttd_output"] if rows else "",
+        "signs": rows[-1].get("signs", []) if rows else [],
         "series": [
             {"date": record["date"], "companies": record["companies"]}
             for record in rows
