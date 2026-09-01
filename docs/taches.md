@@ -1489,6 +1489,108 @@ boucle est bornée à `MAX_RAIL_TRAINS = 2`) ; pas de closure imbriquée ni d'`A
 
 ---
 
+## 0 nonies. 🔴 REVUE FLOTTE ET ENTRETIEN (étape 5, 2026-09-01)
+
+Périmètre : `_reportLines`, `_resizeAirFleets`, `_scrapDeadLines`, `_refleetRoadLines`,
+`_expandRailLines`, `_continueRailExpansion`. Ces fonctions décident **combien de véhicules par
+ligne** et **quand une ligne meurt ou grandit** : elles portent à la fois le rendement unitaire
+(−31,4 %) et une part du volume.
+
+### ✅ La piste léguée par la §0 octies est TRANCHÉE — ce n'était pas un bug
+
+**Les wagons vanilla ne coûtent rien à faire rouler.** Lecture du source du moteur : chaque ligne
+wagon de `table/engines.h` porte `running_cost 0, RC_W` avec `RC_W = INVALID_PRICE`, et
+`Engine::GetRunningCost()` retourne 0 immédiatement pour `base_price == INVALID_PRICE`.
+`catalog.nut:284` remplit `runningCost` depuis cette même API, donc `wagonRunningAnnual` vaut **0**
+et `main.nut:2648` soustrait zéro. `economy.nut:205` qui ignore les wagons a **raison**, et
+`_expandRailLines` ne surcharge pas ses wagons marginaux.
+⚠️ Vrai en vanilla seulement : un jeu de wagons NewGRF donnerait un coût non nul, et c'est alors
+`economy.nut:205` qui deviendrait faux. Ce n'est pas la configuration du banc.
+
+### 🔴 1. TOUTE la fonctionnalité `rail_refleet` est du code injoignable (`main.nut:2602`)
+
+Vérifié à la main :
+
+```
+main.nut:2602   if (!RAIL_EXPAND || ...) return;        RAIL_EXPAND  <- false  (défaut 0)
+main.nut:2668     if (RAIL_REFLEET) { ... }             RAIL_REFLEET <- true   (défaut 1)
+main.nut:2690       OpexBuildSecondTrain(...)           ← SEUL site d'appel
+main.nut:2712       OpexUpgradeRailLineToDoubleTrack(...) ← SEUL site d'appel
+```
+
+Le bloc `RAIL_REFLEET` est **imbriqué derrière un `return` anticipé** commandé par un réglage à 0
+par défaut, et `_runNextTask:3054` fait `if (!RAIL_EXPAND) { task.enabled = false; return false; }`
+— définitivement. Donc, avec les défauts livrés, **aucune ligne rail ne peut jamais obtenir un
+second train ni une seconde voie**, alors que `rail_refleet` vaut 1 et qu'`info.nut:506-509`
+l'annonce actif. Toute ligne rail est gelée à un train pour la partie entière.
+➜ En plein dans l'écart de volume mesuré, très au-dessus du plancher de détection.
+
+**⚠️ Nuance qui corrige la §0 octies** : la trouvaille n°1 de l'étape 4 citait
+`builder_rail.nut:1257` comme le coût réel de la variante 2 trains. Or 1257 est **à l'intérieur de
+`OpexUpgradeRailLineToDoubleTrack`** (fonction ouverte en 1180), c'est-à-dire le chemin mort
+ci-dessus. La construction *initiale* gère `candidate.trains > 1` par un autre chemin
+(`OpexBuildLine`, voir `builder_rail.nut:943`, `:1073`, `:1100`). **Le fond de la trouvaille tient**
+— `infraCost` reste constant sur toute la boucle de `economy.nut` — mais la citation de ligne
+visait le mauvais chemin : **revérifier le coût réel de la variante 2 trains contre `OpexBuildLine`
+avant de corriger.**
+
+### 🔴 2. Une ligne routière voit sa flotte doublée le cycle même où elle est construite (`:2324`)
+
+`have = ("vehCount" in line) ? line.vehCount : 0`, mais les dicts de ligne routière (`:2770-2794`,
+`:2943-2955`) ne portent **délibérément pas** `vehCount` : il n'est écrit que par
+`_reportLines:2108`, au plus une fois par an. Or la file exécute `projects` (index 5) puis
+`refleet` (index 7) **dans le même cycle** : une ligne tout juste bâtie arrive donc avec `have = 0`
+alors que `target = max(predTrains, line.trains)` vaut la flotte réelle. `have >= target` est faux,
+`OpexRoadRefleet(have=0, target=N)` part — et comme `have > 0` est faux il **saute la reprise de
+gabarit** (`builder_road.nut:795`), crée un véhicule avec **sa propre liste d'ordres** au lieu de
+partager, puis en clone N−1.
+➜ **Toute ligne routière neuve achète immédiatement une seconde flotte complète**, avec des ordres
+dupliqués. Cohérent avec les 3,26 véhicules par gare contre 2,71.
+
+### 🔴 3. `isAnyWaiting` prend un véhicule en chargement pour un embouteillage (`:2345`)
+
+`if (AIVehicle.GetCurrentSpeed(v) == 0) isAnyWaiting = true;` se déclenche pour tout véhicule
+**arrêté à un arrêt en train de charger** — l'état normal. Les lignes de fret routier sont bâties
+avec `AIOrder.OF_FULL_LOAD_ANY` (`builder_road.nut:837`), donc un camion reste à vitesse 0 la
+majeure partie de son cycle. Les **trois** heuristiques de croissance (`:2362`, `:2367`, `:2371`)
+exigent `!isAnyWaiting` : la situation qui devrait déclencher la croissance — du cargo qui
+s'accumule pendant qu'un camion fait le plein — est lue comme « déjà saturé, ne pas grandir ».
+**La condition est inversée par rapport à l'intention.** `movingCount` (`:2346`) est calculé et
+jamais utilisé, ce qui corrobore que le signal voulu n'a jamais été câblé.
+➜ Principal frein de croissance de la route, le mode qui porte le plus de lignes.
+
+### Le reste
+
+| gravité | lieu | problème |
+|---|---|---|
+| HAUT | `:2002` | Un `continue` sur une gare A devenue invalide **gèle l'état entier de la ligne pour toujours** : `deadStreak`, `vehCount`, `lastProfit` ne sont plus mis à jour, donc `_scrapDeadLines` ne la ferraille jamais. Ses véhicules saignent leur coût d'exploitation toute la partie et ses gares continuent de bloquer `_tooClose`. Même mode d'échec que la ligne `OIL_` documentée en `:2139`, sur un chemin que ce correctif ne couvrait pas. |
+| HAUT | `:2211` | La garde de trésorerie air **price le mauvais avion** : `planePrice = catalog.plane.price` (le meilleur du catalogue) alors qu'`OpexAirAddPlane` clone le gabarit **de la ligne**. Une ligne à hélices face à un catalogue passé au gros jet voit `need` plusieurs fois trop grand → `break`, et une ligne rentable ne grandit jamais malgré la trésorerie. La garde interne étant correcte, celle-ci ne produit que des faux négatifs. |
+| MOYEN | `:2242-2244` | Le commentaire garantit que la liste de ferraillage vient des véhicules **posés par cette ligne**, « PAS une interrogation par gare qui prendrait les convois du voisin ». Faux pour la route : `OpexLineVehicleIds` (`:381-388`) fait précisément la requête par gare pour `mode == "road"`. Sur un `StationID` partagé, **ferrailler une ligne morte envoie au dépôt et vend les camions de toutes les lignes co-localisées.** |
+| MOYEN | `:2280` | Une ligne bloquée en `scrapping` n'est **jamais libérée** : seule sortie `remaining.len() == 0`. Un véhicule qui ne peut plus atteindre un dépôt fige la ligne à vie — elle est re-scannée chaque année, paie son exploitation et bloque `_tooClose`. Aucun plafond d'âge ni de tentatives. |
+| MOYEN | `:2912`, `:2802` | **Tout l'état de temporisation de l'expansion rail est en écriture seule** : `expandBlocked` et `expandRetryCycle` ne sont lus que dans `_refleetRoadLines:2320`, une boucle qui a déjà fait `continue` sur `mode != "road"` — or ces champs ne sont posés que sur des lignes **rail**. Une ligne dont la rame dépasse le quai rejoue donc éternellement la séquence perdante : dérouter au dépôt, perdre le trajet, acheter le wagon, constater qu'il ne rentre pas, le revendre. Masqué aujourd'hui par la trouvaille n°1, actif dès qu'on l'allume. |
+| MOYEN | `:2312` | `refleet` n'a **aucune limitation de cadence** (contrairement à `air_fleet:3047`) : le scan complet — deux `GetCargoWaiting`, deux `GetCargoRating`, un `AIVehicleList_Station` et un `GetCurrentSpeed` par véhicule, pour chaque ligne routière — est payé à **chaque cycle**, alors que ses entrées ne se rafraîchissent qu'une fois par an. |
+| MOYEN | `:2612` | Une ligne ayant gagné un second train **ne peut plus jamais gagner de wagons** : `if (line.trains != 1 || line.vehCount != 1) continue;`. Les deux chemins sont mutuellement exclusifs et à sens unique. Sans effet tant que la trouvaille n°1 tient, plafond réel dès qu'elle est levée. |
+| FAIBLE | `:2158-2162` | Les trois garanties du commentaire de `_resizeAirFleets` (âge ≥ 1 an, charge complète en attente, un avion par an) sont **absentes du chemin par défaut** — confirmé : seul le bloc `MARGINAL_FLEET` (à 0) les implémente, et `maxAddedPerPass = 4` contredit « au plus UN avion ». |
+| FAIBLE | `:2208` | Gardes dupliquées et **incohérentes** : `deadStreak >= 1` ici contre `>= 2` en `:2171`, ce qui rend la première inatteignable. La politique documentée « deadStreak >= 2 » n'est pas celle qui tourne. |
+| FAIBLE | `:2937` | `lastExpansionYear` écrit et jamais lu — confirmé. La garantie « au plus UNE expansion par an » est en fait assurée autrement (`expandStreak` + `RAIL_EXPAND_STREAK = 2`), et donne au plus une expansion **tous les deux ans**, plus strict qu'annoncé. Poids mort, pas défaut vivant. |
+| FAIBLE | `:2189-2198` | Le commentaire d'en-tête promet une charge complète dans **les deux** aéroports ; le code implémente un OU (et le commentaire en ligne le dit correctement). Seul l'en-tête ment. |
+
+### ✅ Vérifié comme n'étant PAS un bug — ne pas re-litiger
+
+Coût d'entretien des wagons (voir verdict ci-dessus) ; `OpexRailNominalMaxWagons` et son `2*p−1`
+(borne serrée, pas d'erreur de bord, vérifiée contre le test physique `:2907`) ; ordre de retrait
+descendant dans `_scrapDeadLines` ; `collapsed` sur une ligne neuve (impossible, `GetRunningCost`
+est strictement positif) ; hystérésis de `deadStreak` (2 ans consécutifs **et** `srcSuffering`
+**et** revenu implicite nul — pas trop agressif) ; `<-` contre `=` dans `_reportLines` ;
+`line.lineId` contre l'indice de boucle pour les panneaux ; `OpexAirAddPlane` qui alimente bien
+`line.vehicles` ; le garde `lastExpandCheckYear` contre le double comptage d'une année ; le verrou
+définitif de la tâche `expand` (sûr en soi — le problème est ce qui est imbriqué derrière) ; aucune
+closure imbriquée ni `AIAccounting` imbriqué dans ce périmètre.
+
+⚠️ Rien n'est corrigé ni mesuré. Le mécanisme est établi, pas son effet.
+
+---
+
 ## 7 bis. Dimensionnement marginal de flotte (`marginal_fleet`) — MESURÉ, défaut 0, mais le mécanisme est bon (2026-09-01)
 
 **Banc apparié 20 graines × 3 ans** (`docs/bench_marginal_fleet_3y_20seeds.json`, les deux bras
