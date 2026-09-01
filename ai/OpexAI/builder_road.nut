@@ -649,7 +649,9 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
   local sourceFlags = candidate.kind == "freight" ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE;
   local orderA = AIOrder.AppendOrder(first, stopA, sourceFlags);
   local errorA = orderA ? 0 : AIError.GetLastError();
-  local orderB = AIOrder.AppendOrder(first, stopB, AIOrder.OF_NONE);
+  local destFlags = (("isFeeder" in candidate) && candidate.isFeeder)
+      ? (AIOrder.OF_TRANSFER | AIOrder.OF_UNLOAD) : AIOrder.OF_NONE;
+  local orderB = AIOrder.AppendOrder(first, stopB, destFlags);
   local errorB = orderB ? 0 : AIError.GetLastError();
   if (!orderA || !orderB || AIOrder.GetOrderCount(first) != 2) {
     result.error = !orderA ? errorA : errorB; result.opcodes += budget.end("build_road_vehicles");

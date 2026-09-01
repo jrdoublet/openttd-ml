@@ -145,8 +145,8 @@ CASH_CANDIDATE_SCAN_LIMIT <- TOP_K;
  *  - le nombre de TENTATIVES, parce qu'un plan qui echoue coute quand meme ses sondes de site et
  *    ses validations d'aretes. Sans lui, une annee ou aucun candidat n'est constructible paierait
  *    le plan des douze. */
-const ROAD_MAX_NEW_LINES_PER_YEAR = 3;
-const ROAD_MAX_ATTEMPTS_PER_YEAR = 6;
+const ROAD_MAX_NEW_LINES_PER_YEAR = 6;
+const ROAD_MAX_ATTEMPTS_PER_YEAR = 12;
 
 /* Seuil de remboursement d'emprunt : sous ce plancher de tresorerie on ne rembourse pas, un
  * emprunt a 5 % coute bien moins qu'une ligne manquee faute de cash. Au-dessus, l'argent qui
@@ -654,7 +654,9 @@ function OpexAI::_tryBuildRoads(year)
      * il y a deux tours a pu prendre l'une des deux extremites de ce candidat. Sans cette
      * reverification, deux lignes routieres de la meme annee se poseraient sur la meme ville. */
     if (OpexOriginServed(this._lines, candidate.src, true)) continue;
-    if (OpexOriginServed(this._lines, candidate.dst, true)) continue;
+    if (!("isFeeder" in candidate) || !candidate.isFeeder) {
+      if (OpexOriginServed(this._lines, candidate.dst, true)) continue;
+    }
 
     local need = candidate.capital + OpexCashReserve() + ROAD_CAPITAL_MARGIN;
     local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);

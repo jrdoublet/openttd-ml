@@ -917,7 +917,7 @@ const ROAD_MAX_DISTANCE = 25;
 /* TOP_K reste une vue de diagnostic propre a la route. La decision d'investissement utilise la
  * liste complete candidates et le portefeuille commun de projects.nut ; ce plafond ne peut donc
  * plus imposer une priorite modale. */
-const ROAD_TOP_K = 12;
+const ROAD_TOP_K = 24;
 
 /* Repere historique de profit, conserve pour RS et les campagnes comparables. Il ne coupe plus
  * aucun candidat rentable avant l'arbitrage modal : profitTooLow compte les projets sous ce
@@ -1111,6 +1111,62 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats)
   }
 }
 
+/* Famille 4 (Transferts / Feeders) : ville satellite libre -> Gare Hub ou Aéroport existant.
+ * Les bus acheminent les passagers vers le hub avec un ordre de transfert (OF_TRANSFER | OF_UNLOAD),
+ * décuplant le flux capté par les lignes ferroviaires et aériennes longue distance. */
+function OpexRoadFeederCandidates(catalog, lines, out, stats)
+{
+  local cargo = catalog.paxCargo;
+  if (cargo < 0 || !(cargo in catalog.roadEngineByCargo)) return;
+  local towns = catalog.towns;
+  local n = towns.len();
+
+  local hubs = [];
+  local seenHubStations = {};
+  foreach (line in lines) {
+    if (!("mode" in line)) continue;
+    if (line.mode != "rail" && line.mode != "air") continue;
+    local stA = OpexLineStationId(line, "A");
+    local stB = OpexLineStationId(line, "B");
+    if (stA >= 0 && !(stA in seenHubStations)) {
+      seenHubStations[stA] <- true;
+      hubs.append({ stationId = stA, tile = line.stationA, mode = line.mode });
+    }
+    if (stB >= 0 && !(stB in seenHubStations)) {
+      seenHubStations[stB] <- true;
+      hubs.append({ stationId = stB, tile = line.stationB, mode = line.mode });
+    }
+  }
+  if (hubs.len() == 0) return;
+
+  for (local i = 0; i < n; i++) {
+    if (OpexOriginServed(lines, towns[i].tile, true)) continue;
+    local pop = towns[i].pop;
+    if (pop < 300) continue;
+    local produced = AITown.GetLastMonthProduction(towns[i].id, cargo);
+    if (produced <= 0) continue;
+
+    foreach (hub in hubs) {
+      local distance = AIMap.DistanceManhattan(towns[i].tile, hub.tile);
+      if (distance < ROAD_MIN_DISTANCE || distance > 30) continue;
+      stats.pairsInBand++;
+      local monthly = (produced * ROAD_PAX_CATCHMENT_SHARE_PCT) / 100;
+      if (monthly <= 0) continue;
+      local candidate = OpexMakeRoadCandidate(catalog, "pax", cargo, towns[i].tile, hub.tile,
+                                              towns[i].id, -1, distance, monthly, stats);
+      if (candidate != null) {
+        candidate.isFeeder <- true;
+        candidate.hubStationId <- hub.stationId;
+        candidate.hubMode <- hub.mode;
+        /* Bonus ROI pour la valeur réseau apportée au Hub (+40%) */
+        candidate.adjustedRoi = (candidate.adjustedRoi * 140) / 100;
+        candidate.profitAnnual = (candidate.profitAnnual * 140) / 100;
+        out.append(candidate);
+      }
+    }
+  }
+}
+
 /* Classement routier complet. Rendu a part de celui du rail : les deux ne partagent ni leur unite
  * de cout (cf. ROAD_PLAN_ITERATIONS_BASE) ni leur phase de construction. */
 function OpexBuildRoadCandidates(catalog, budget, lines)
@@ -1125,6 +1181,7 @@ function OpexBuildRoadCandidates(catalog, budget, lines)
   budget.begin();
   OpexRoadPaxCandidates(catalog, lines, all, stats);
   OpexRoadFreightCandidates(catalog, lines, all, stats);
+  OpexRoadFeederCandidates(catalog, lines, all, stats);
   local ops = budget.end("cand_road");
 
   /* Le cout de CETTE annee, pas le cumul : budget.get() totalise depuis le debut de la partie, et
