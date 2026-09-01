@@ -15,3 +15,6 @@ sweeps/*_scratch_*/
 # du JSON final, qui est versionne. Ils n'existent que pour survivre a un crash en cours de
 # campagne.
 docs/*.jsonl
+
+# Worktrees et etat local des agents Claude Code
+.claude/
