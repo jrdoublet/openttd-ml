@@ -21,6 +21,18 @@ const AIR_MAX_PLANES_PER_ROUTE = 10;
  * generale dans main.nut avant le premier BuildAirport. */
 const AIR_CAPITAL_MARGIN = 50000;
 
+/* Distance euclidienne exacte à vol d'oiseau pour la cinématique et le paiement aérien :
+ * sqrt(dx^2 + dy^2) approximé par 0.414 * min(dx, dy) + max(dx, dy) */
+function OpexFlightDistance(tileA, tileB)
+{
+  local dx = abs(AIMap.GetTileX(tileA) - AIMap.GetTileX(tileB));
+  local dy = abs(AIMap.GetTileY(tileA) - AIMap.GetTileY(tileB));
+  local minD = dx < dy ? dx : dy;
+  local maxD = dx > dy ? dx : dy;
+  local dist = (minD * 414) / 1000 + maxD;
+  return dist > 0 ? dist : 1;
+}
+
 /* Distance Manhattan d'une tuile au rectangle [anchor, anchor + width/height - 1]. */
 function OpexAirDistanceToRect(tile, anchor, width, height)
 {
@@ -286,7 +298,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null)
           OpexSign(AIMap.GetTileIndex(1, 5), "AX|PA=" + popA + "|PB=" + popB + "|MPX=" + monthlyPax);
         }
 
-        local flightDistance = orderDistance > 0 ? orderDistance : distance;
+        local flightDistance = OpexFlightDistance(sites[a].anchor, sites[b].anchor);
         local economics = OpexAirEconomics(catalog, airport, plane, flightDistance, monthlyPax,
                                             infrastructureMaintenance, maxCapital, 2);
         if (economics == null) continue;
@@ -379,7 +391,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null)
         local newMonthly = (site.town.pop * 22) / 100;
         local monthlyPax = hubMonthly + newMonthly;
         if (monthlyPax < 10) monthlyPax = 10;
-        local flightDistance = orderDistance > 0 ? orderDistance : distance;
+        local flightDistance = OpexFlightDistance(hub.anchor, site.anchor);
         local economics = OpexAirEconomics(catalog, airport, plane, flightDistance, monthlyPax,
                                             infrastructureMaintenance, maxCapital, 1);
         if (economics == null || economics.profitAnnual <= 0) continue;
@@ -419,7 +431,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null)
         local monthly2 = ((hub2.town.pop * 22) / 100) / (hub2.routes + 1);
         local monthlyPax = monthly1 + monthly2;
         if (monthlyPax < 10) monthlyPax = 10;
-        local flightDistance = orderDistance > 0 ? orderDistance : distance;
+        local flightDistance = OpexFlightDistance(hub1.anchor, hub2.anchor);
         local economics = OpexAirEconomics(catalog, airport, plane, flightDistance, monthlyPax,
                                             infrastructureMaintenance, maxCapital, 0);
         if (economics == null || economics.profitAnnual <= 0) continue;
