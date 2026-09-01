@@ -2165,22 +2165,16 @@ function OpexAI::_resizeAirFleets(year)
     }
     local maxPlanesForAirport = isSmallAirport ? 4 : AIR_MAX_PLANES_PER_ROUTE;
     if (have >= maxPlanesForAirport) continue;
+    if (("deadStreak" in line) && line.deadStreak >= 1) continue;
+    if (("lastProfit" in line) && line.lastProfit < 0) continue;
 
-    local stationA = AIStation.GetStationID(line.stationA);
-    local stationB = AIStation.GetStationID(line.stationB);
-    local waitingA = AIStation.IsValidStation(stationA) ? AIStation.GetCargoWaiting(stationA, line.cargo) : 0;
-    local waitingB = AIStation.IsValidStation(stationB) ? AIStation.GetCargoWaiting(stationB, line.cargo) : 0;
-    local waiting = waitingA + waitingB;
-    local capacity = ("planeCapacity" in line) ? line.planeCapacity : 0;
-
-    // Condition 2 : Au moins une charge utile complete attend dans les deux aeroports
-    if (capacity <= 0 || waiting < capacity) continue;
-
+    local planePrice = (this._catalog.plane != null) ? this._catalog.plane.price : 30000;
+    local need = planePrice + OpexCashReserve() + 2000;
     local addedThisPass = 0;
     while (have < maxPlanesForAirport && addedThisPass < 4) {
-      if (waiting < capacity * (addedThisPass + 1)) break;
-      /* OpexAirAddPlane calcule le prix reel, preserve la reserve et gere le reemprunt : ne pas
-       * dupliquer ici ce garde avec une variable `need` approximative. */
+      local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+      if (money < need && REBORROW) money = OpexTryReborrow(need, money);
+      if (money < need) break;
       local grown = OpexAirAddPlane(line);
       if (grown.added <= 0) break;
       have += grown.added;
@@ -2191,8 +2185,7 @@ function OpexAI::_resizeAirFleets(year)
     if (addedThisPass > 0) {
       line.lastAirFleetYear <- year;
       AILog.Info("[AIR_FLEET] line=" + line.lineId + " added=" + addedThisPass + " total=" + have);
-      OpexSign(AIMap.GetTileIndex(1, 10 + line.lineId), "FG|" + (year % 100) + "|" + line.lineId + "|" + have + "|"
-                       + waiting + "|K");
+      OpexSign(AIMap.GetTileIndex(1, 10 + line.lineId), "FG|" + (year % 100) + "|" + line.lineId + "|" + have + "|K");
     }
   }
   return true;
