@@ -1033,7 +1033,12 @@ function OpexRoadPaxCandidates(catalog, lines, out, stats)
       local distance = AIMap.DistanceManhattan(towns[a].tile, towns[b].tile);
       if (distance < ROAD_MIN_DISTANCE || distance > ROAD_MAX_DISTANCE) continue;
       stats.pairsInBand++;
-      local monthly = ((produced[a] + produced[b]) * ROAD_PAX_CATCHMENT_SHARE_PCT) / 100;
+      /* Une ville maillee ne peut pas promettre sa production entiere a chaque nouvelle paire.
+       * Comme le portefeuille est regenere apres chaque succes, la n-ieme liaison ne recoit que
+       * sa part marginale de la demande partagee entre les lignes existantes et elle-meme. */
+      local marginalA = produced[a] / (roadLinesPerTown[a] + 1);
+      local marginalB = produced[b] / (roadLinesPerTown[b] + 1);
+      local monthly = ((marginalA + marginalB) * ROAD_PAX_CATCHMENT_SHARE_PCT) / 100;
       if (monthly <= 0) { stats.noMonthly++; continue; }
       local candidate = OpexMakeRoadCandidate(catalog, "pax", cargo, towns[a].tile, towns[b].tile,
                                               towns[a].id, towns[b].id, distance, monthly, stats);

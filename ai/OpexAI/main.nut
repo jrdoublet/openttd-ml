@@ -647,6 +647,7 @@ function OpexAI::_tryBuildRoads(year)
   for (local i = 0; i < best.len(); i++) {
     if (builtCount >= ROAD_MAX_NEW_LINES_PER_YEAR) break;
     if (attempts >= ROAD_MAX_ATTEMPTS_PER_YEAR) break;
+    local candidate = best[i];
     local abandonedKey = null;
     if (ABANDON_MEMORY) {
       abandonedKey = OpexAbandonedPairKey(candidate);
@@ -1475,7 +1476,10 @@ function OpexAI::_tryBuildProjects(year)
   local anchor = AIMap.GetTileIndex(1, 1);
   local yy = year % 100;
   local builtCount = 0;
-  local maxBatch = 4;
+  /* Un seul succes par passage : le portefeuille doit etre regenere des que le capital ou les
+   * origines changent. Construire plusieurs elements d'un meme sac a dos utiliserait un etat
+   * economique devenu obsolete apres le premier chantier. */
+  local maxBatch = 1;
 
   for (local i = 0; i < this._projects.best.len(); i++) {
     local project = this._projects.best[i];
@@ -1752,22 +1756,26 @@ function OpexAI::_tryBuildProjects(year)
 
         this._lines.append({
           stationA = result.stationA, stationB = result.stationB,
-          platformA = result.platformA, platformB = result.platformB,
           originA = candidate.src, originB = candidate.dst,
           cargo = candidate.cargo,
-          predicted = candidate.profitAnnual, iterations = candidate.iterations,
+          predicted = candidate.profitAnnual, iterations = result.iterations,
           trains = result.trains, distance = candidate.distance, year = year,
           predRevenue = candidate.revenueAnnual, predRunning = candidate.runningAnnual,
           predAmort = candidate.amortAnnual, predCarried = candidate.carried,
           predTrains = candidate.trains, predOneWayDays = candidate.oneWayDays,
-          loco = candidate.loco, wagons = candidate.wagons,
-          platformLength = result.platformLength,
-          depot = result.depot, doubleTrack = result.doubleTrack,
-          depot2 = result.depot2, stationA2 = result.stationA2, stationB2 = result.stationB2,
-          platformA2 = result.platformA2, platformB2 = result.platformB2,
-          effectiveSpeed = candidate.effectiveSpeed,
+          wagons = candidate.wagons, platformLength = result.platformLength,
+          monthly = candidate.monthly, wagonId = this._catalog.wagonByCargo[candidate.cargo].id,
+          loco = candidate.loco, effectiveSpeed = candidate.effectiveSpeed,
+          headwayDays = candidate.headwayDays, stationRating = candidate.stationRating,
+          vehicles = result.vehicles, platformA = result.platformA, platformB = result.platformB,
+          depot = result.depot,
+          doubleTrack = ("doubleTrack" in result) ? result.doubleTrack : 0,
+          depot2 = ("depot2" in result) ? result.depot2 : null,
+          stationA2 = ("stationA2" in result) ? result.stationA2 : null,
+          stationB2 = ("stationB2" in result) ? result.stationB2 : null,
+          platformA2 = ("platformA2" in result) ? result.platformA2 : null,
+          platformB2 = ("platformB2" in result) ? result.platformB2 : null,
           mode = "rail", kind = candidate.kind,
-          vehicle = result.train, vehicles = result.trainsList,
           srcIndustry = (candidate.kind == "freight") ? AIIndustry.GetIndustryID(candidate.src) : -1,
           dstIndustry = (candidate.kind == "freight") ? AIIndustry.GetIndustryID(candidate.dst) : -1,
           deadStreak = 0, scrapping = false, scrapVehicles = [],
@@ -2165,9 +2173,8 @@ function OpexAI::_resizeAirFleets(year)
     local addedThisPass = 0;
     while (have < maxPlanesForAirport && addedThisPass < 4) {
       if (waiting < capacity * (addedThisPass + 1)) break;
-      local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-      if (money < need && REBORROW) money = OpexTryReborrow(need, money);
-      if (money < need) break;
+      /* OpexAirAddPlane calcule le prix reel, preserve la reserve et gere le reemprunt : ne pas
+       * dupliquer ici ce garde avec une variable `need` approximative. */
       local grown = OpexAirAddPlane(line);
       if (grown.added <= 0) break;
       have += grown.added;

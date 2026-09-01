@@ -164,8 +164,9 @@ function OpexProjectInsert(best, project, field, limit)
   if (best.len() > limit) best.pop();
 }
 
-/* Solveur Knapsack 0/1 exact (Branch & Bound avec borne superieure fractionnaire gloutonne)
- * sur les candidats classes par budgetScore. */
+/* Solveur Knapsack 0/1 borne (Branch & Bound avec borne superieure fractionnaire gloutonne)
+ * sur les candidats classes par budgetScore. Le plafond de noeuds protege les opcodes ; le
+ * resultat expose donc explicitement si l'optimalite a pu etre prouvee. */
 function OpexKnapsackComputeBound(candidates, n, startIdx, cap)
 {
   local bound = 0;
@@ -187,13 +188,17 @@ function OpexKnapsackComputeBound(candidates, n, startIdx, cap)
 
 function OpexKnapsackSearch(state, idx, currentCapital, currentRevenue, currentRoad, currentItems)
 {
+  if (state.nodeCount >= state.maxNodes) {
+    state.truncated = true;
+    return;
+  }
   state.nodeCount++;
   if (currentRevenue > state.bestValue) {
     state.bestValue = currentRevenue;
     state.bestSolution = [];
     foreach (item in currentItems) state.bestSolution.append(item);
   }
-  if (idx >= state.n || state.nodeCount >= state.maxNodes || currentItems.len() >= state.maxItems) return;
+  if (idx >= state.n || currentItems.len() >= state.maxItems) return;
 
   local remCap = state.capitalBudget - currentCapital;
   local bound = currentRevenue + OpexKnapsackComputeBound(state.candidates, state.n, idx, remCap);
@@ -204,11 +209,16 @@ function OpexKnapsackSearch(state, idx, currentCapital, currentRevenue, currentR
   // Branche 1 : Inclure le projet si finançable et respecte la limite route
   local canInclude = (currentCapital + p.budgetCapital <= state.capitalBudget);
   if (canInclude && p.mode == "road" && currentRoad >= state.maxRoad) canInclude = false;
+  if (canInclude && ((p.src in state.originsUsed) || (p.dst in state.originsUsed))) canInclude = false;
 
   if (canInclude) {
     currentItems.append(p);
+    state.originsUsed[p.src] <- true;
+    state.originsUsed[p.dst] <- true;
     OpexKnapsackSearch(state, idx + 1, currentCapital + p.budgetCapital, currentRevenue + p.revenueAnnual,
                        p.mode == "road" ? currentRoad + 1 : currentRoad, currentItems);
+    delete state.originsUsed[p.src];
+    delete state.originsUsed[p.dst];
     currentItems.pop();
   }
 
@@ -220,7 +230,9 @@ function OpexKnapsackSearch(state, idx, currentCapital, currentRevenue, currentR
  * Maximise la somme des revenueAnnual sous contrainte de capitalBudget, maxRoad et maxItems. */
 function OpexKnapsackSolve(candidates, capitalBudget, maxRoad = 18, maxItems = 32)
 {
-  if (candidates.len() == 0 || capitalBudget <= 0) return [];
+  if (candidates.len() == 0 || capitalBudget <= 0) {
+    return { projects = [], nodes = 0, exact = true };
+  }
 
   // Trier les candidats par densité de revenu décroissante (ratio revenu/capital)
   candidates.sort(function(a, b) {
@@ -243,11 +255,13 @@ function OpexKnapsackSolve(candidates, capitalBudget, maxRoad = 18, maxItems = 3
     nodeCount = 0,
     maxNodes = 2000,
     bestValue = 0,
+    truncated = false,
+    originsUsed = {},
     bestSolution = [],
   };
 
   OpexKnapsackSearch(state, 0, 0, 0, 0, []);
-  return state.bestSolution;
+  return { projects = state.bestSolution, nodes = state.nodeCount, exact = !state.truncated };
 }
 
 function OpexProjectEmptyRoad()
@@ -295,6 +309,7 @@ function OpexBuildProjects(catalog, budget, lines)
     modeCandidates = 0, modeAlternatives = 0, modeReplaced = 0,
     odProjects = 0, budgetConsidered = 0, budgetSelected = 0,
     budgetRejected = 0, selectedRevenue = 0, selectedCapital = 0,
+    knapsackNodes = 0, knapsackExact = true,
   };
   local winners = {};
   foreach (candidate in rail.candidates) {
@@ -316,7 +331,10 @@ function OpexBuildProjects(catalog, budget, lines)
     OpexProjectInsert(byBudget, project, "budgetScore", PROJECT_POOL_K);
   }
 
-  local funded = OpexKnapsackSolve(byBudget, capitalBudget, ROAD_MAX_NEW_LINES_PER_YEAR, PROJECT_TOP_K);
+  local knapsack = OpexKnapsackSolve(byBudget, capitalBudget, ROAD_MAX_NEW_LINES_PER_YEAR, PROJECT_TOP_K);
+  local funded = knapsack.projects;
+  stats.knapsackNodes = knapsack.nodes;
+  stats.knapsackExact = knapsack.exact;
   stats.budgetConsidered = byBudget.len();
   stats.budgetSelected = funded.len();
   stats.budgetRejected = byBudget.len() - funded.len();

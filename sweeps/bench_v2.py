@@ -72,6 +72,19 @@ SUCCESS_METRICS = (
     "median_station_rating",
 )
 
+SCRIPT_FAILURE_MARKERS = (
+    "Your script made an error",
+    "The script died unexpectedly",
+)
+
+
+def script_failure_reason(output):
+    """Retourne le marqueur fatal NoAI trouve dans stdout, sinon None."""
+    output = output or ""
+    for marker in SCRIPT_FAILURE_MARKERS:
+        if marker in output:
+            return marker
+
 
 def parse_opex_variant(name):
     """Retourne les parametres d'une variante OpexAI explicitee sur la ligne de commande."""
@@ -338,6 +351,7 @@ def summarise(rows):
     for key, series in sorted(by_run.items(), key=lambda item: str(item[0])):
         series.sort(key=lambda row: row["date"])
         final = series[-1]
+        failure_reason = script_failure_reason(final.get("openttd_output"))
         summary.append({
             "arm": key[0], "seed": key[1], "repeat": key[2],
             "last_date": final["date"],
@@ -354,6 +368,8 @@ def summarise(rows):
             "months_of_bankruptcy": final["months_of_bankruptcy"],
             "n_savegames": len(series),
             "openttd_output": final["openttd_output"],
+            "run_ok": failure_reason is None,
+            "failure_reason": failure_reason,
         })
     return summary
 
@@ -392,7 +408,9 @@ def arm_statistics(summary, arm_names):
     """Calcule la dispersion sans melanger les arms."""
     return {
         arm: {
-            metric: dispersion([r.get(metric) for r in summary if r["arm"] == arm])
+            metric: dispersion([
+                r.get(metric) for r in summary if r["arm"] == arm and r.get("run_ok", True)
+            ])
             for metric in SUCCESS_METRICS
         }
         for arm in arm_names
@@ -403,8 +421,9 @@ def paired_comparisons(summary, arm_names):
     """Compare les moyennes de differences par graine, et non deux moyennes independantes."""
     per_seed = {}
     for arm in arm_names:
-        for seed in {record["seed"] for record in summary if record["arm"] == arm}:
-            records = [record for record in summary if record["arm"] == arm and record["seed"] == seed]
+        valid = [record for record in summary if record["arm"] == arm and record.get("run_ok", True)]
+        for seed in {record["seed"] for record in valid}:
+            records = [record for record in valid if record["seed"] == seed]
             per_seed[arm, seed] = {
                 metric: statistics.mean([record[metric] for record in records if record[metric] is not None])
                 if any(record[metric] is not None for record in records) else None
@@ -501,6 +520,7 @@ def main():
         ),
     ))
     summary = summarise(rows)
+    failed_runs = [record for record in summary if not record["run_ok"]]
     payload = {
         "openttd_version": OPENTTD_VERSION,
         "opengfx_version": OPENGFX_VERSION,
@@ -521,6 +541,13 @@ def main():
         ),
         "checkpoint": str(CHECKPOINT_PATH),
         "summary": summary,
+        "failed_runs": [
+            {
+                "arm": record["arm"], "seed": record["seed"], "repeat": record["repeat"],
+                "failure_reason": record["failure_reason"],
+            }
+            for record in failed_runs
+        ],
         "statistics": arm_statistics(summary, args.arms),
         "paired_comparisons": paired_comparisons(summary, args.arms),
         "series": [{key: value for key, value in row.items() if key != "openttd_output"} for row in rows],
@@ -531,10 +558,13 @@ def main():
             f"{record['arm']:>36} seed={record['seed']:<8} rep={record['repeat']} "
             f"value={record['company_value']} score={record['performance_history']} "
             f"profit={record.get('profit_year')} st_rating={record.get('median_station_rating')} "
-            f"veh={record['n_vehicles']} st={record['n_stations']}"
+            f"veh={record['n_vehicles']} st={record['n_stations']} "
+            f"status={'OK' if record['run_ok'] else 'FAILED'}"
         )
     print("checkpoint", CHECKPOINT_PATH)
     print("ecrit", out)
+    if failed_runs:
+        raise SystemExit(f"banc invalide: {len(failed_runs)} run(s) avec une erreur fatale NoAI")
 
 
 if __name__ == "__main__":
