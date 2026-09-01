@@ -283,20 +283,15 @@ class OpexAI extends AIController {
     /* Priorite : donnees et stop-loss, revenu par opcode, modes sans score, experience, dette. */
     this._taskQueue = [
       { name = "catalog", dueCycle = 0, enabled = true },
+      { name = "air", dueCycle = 0, enabled = true },
+      { name = "air_fleet", dueCycle = 0, enabled = true },
+      { name = "road", dueCycle = 0, enabled = true },
       { name = "report", dueCycle = 0, enabled = true },
       { name = "scrap", dueCycle = 0, enabled = true },
       { name = "refleet", dueCycle = 0, enabled = true },
-      /* Taille de flotte aerienne : une seule passe annuelle, fondee sur le rapport reel. */
-      { name = "air_fleet", dueCycle = 0, enabled = true },
-      /* Reutiliser une infrastructure rentable avant de repayer un nouvel A* : c'est le premier
-       * item de croissance marginale et son ratio profit/opcode est mesure par EU/EX. */
       { name = "expand", dueCycle = 0, enabled = true },
-      /* Precalcul des traces pour utiliser les opcodes dormants et preparer la construction instantanee. */
       { name = "preplan", dueCycle = 0, enabled = true },
-      /* Liaison aerienne a fort ROI : finance le demarrage et genere le cash flow des l'an 0. */
-      { name = "air", dueCycle = 0, enabled = true },
       { name = "rail", dueCycle = 0, enabled = true },
-      { name = "road", dueCycle = 0, enabled = true },
       { name = "water", dueCycle = 0, enabled = true },
       { name = "probe", dueCycle = 0, enabled = true },
       { name = "town_growth", dueCycle = 0, enabled = true },

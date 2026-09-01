@@ -8,13 +8,13 @@
  * retires, au moindre echec apres le premier aeroport.
  */
 
-AIR_TOWN_POOL <- 100;
-AIR_HUB_TOWN_POOL <- 100;
-AIR_HUB_NEW_SITE_POOL <- 25;
+AIR_TOWN_POOL <- 24;
+AIR_HUB_TOWN_POOL <- 24;
+AIR_HUB_NEW_SITE_POOL <- 12;
 AIR_SITE_RADIUS <- 35;
 AIR_TOWN_MIN_DISTANCE <- 32;
-AIR_MAX_SITE_PROBES <- 25000;
-AIR_MAX_PLANES_PER_ROUTE <- 10;
+AIR_MAX_SITE_PROBES <- 1500;
+AIR_MAX_PLANES_PER_ROUTE <- 16;
 AIR_CAPITAL_MARGIN <- 50000;
 
 /* Distance euclidienne exacte à vol d'oiseau pour la cinématique et le paiement aérien :
@@ -78,16 +78,29 @@ function OpexAirAirportAcceptsPlane(airportType, planeType)
  * pas seulement contre son coin. */
 function OpexAirFindSite(town, airport, probes)
 {
-  local allowance = 3000;
+  local allowance = 120;
   probes.townsLeft--;
   local used = 0;
+  local w = airport.width;
+  local h = airport.height;
+  local offX = w - 1;
+  local offY = h - 1;
+  local mapX = AIMap.GetMapSizeX();
+  local mapY = AIMap.GetMapSizeY();
+
   for (local r = 4; r <= AIR_SITE_RADIUS; r++) {
     for (local dx = -r; dx <= r; dx++) {
       for (local dy = -r; dy <= r; dy++) {
         if (abs(dx) != r && abs(dy) != r) continue;
         local anchor = town.tile + AIMap.GetTileIndex(dx, dy);
         if (!AIMap.IsValidTile(anchor)) continue;
-        if (OpexAirDistanceToRect(town.tile, anchor, airport.width, airport.height) > 25) continue;
+        local ax = AIMap.GetTileX(anchor);
+        local ay = AIMap.GetTileY(anchor);
+        if (ax + offX >= mapX || ay + offY >= mapY) continue;
+        if (OpexAirDistanceToRect(town.tile, anchor, w, h) > 25) continue;
+        if (AITile.IsWaterTile(anchor) || AITile.IsCoastTile(anchor)) continue;
+        local c4 = anchor + AIMap.GetTileIndex(offX, offY);
+        if (AITile.IsWaterTile(c4) || AITile.IsCoastTile(c4)) continue;
         if (AIAirport.GetNearestTown(anchor, airport.type) != town.id) continue;
         if (used >= allowance || probes.left <= 0) return null;
 
@@ -100,12 +113,9 @@ function OpexAirFindSite(town, airport, probes)
             if (err == AIError.ERR_LOCAL_AUTHORITY_REFUSES) {
               ok = true;
             } else {
-              local endTile = anchor + AIMap.GetTileIndex(airport.width - 1, airport.height - 1);
-              if (AIMap.IsValidTile(endTile)) {
-                AITile.LevelTiles(anchor, endTile);
-                ok = AIAirport.BuildAirport(anchor, airport.type, AIStation.STATION_NEW);
-                if (!ok && AIError.GetLastError() == AIError.ERR_LOCAL_AUTHORITY_REFUSES) ok = true;
-              }
+              AITile.LevelTiles(anchor, c4);
+              ok = AIAirport.BuildAirport(anchor, airport.type, AIStation.STATION_NEW);
+              if (!ok && AIError.GetLastError() == AIError.ERR_LOCAL_AUTHORITY_REFUSES) ok = true;
             }
           }
         }
