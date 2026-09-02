@@ -4215,3 +4215,80 @@ Dans le portefeuille incrémental de §3 sexies, `expectedOpcodes` entre dans le
 l'attention, **pas de l'argent** : la fonction de perte est indulgente. Un modèle grossier mais
 non biaisé vaut donc déjà beaucoup, et il n'est pas nécessaire d'attendre un modèle fin pour
 gagner. À dire explicitement dans la mesure, pour ne pas sur-investir.
+
+---
+
+## 3 nonies. 🔶 DOCTRINE DE PARTIE EN SIX PHASES, et le bonus d'occupation qui la déclenche (2026-09-02)
+
+**Idée de l'utilisateur.** C'est la **politique** qui manquait à la file dynamique de §3 septies :
+celle-ci disait « il faut des priorités dépendantes de la phase », celle-ci dit **lesquelles**.
+
+### La doctrine
+
+1. **Début de partie : construire un maximum d'aéroports.**
+2. **Saturer ces aéroports** (flotte).
+3. **Construire des lignes de passagers vers ces aéroports** (rabattage).
+4. **Acheter encore plus d'avions dès que le budget le permet.**
+5. **Se positionner sur les industries non occupées** — l'argent rentre, on passe au fret.
+6. **Concurrencer les autres sur leur propre terrain.**
+
+### Le mécanisme qui la déclenche : mesurer l'OCCUPATION, pas seulement la nôtre
+
+Aujourd'hui, `OpexOriginServed` (`candidates.nut:396-404`) ne regarde **que nos propres lignes** :
+un concurrent installé sur une ville est parfaitement invisible pour nous. C'est le trou que cette
+idée comble.
+
+Le jeu donne la réponse directement, et **OpexAI n'utilise ces deux appels nulle part** :
+
+```
+AITown.GetLastMonthTransportedPercentage(town, cargo)          // script_town.hpp:228
+AIIndustry.GetLastMonthTransportedPercentage(industry, cargo)  // script_industry.hpp:160
+```
+
+🔑 **C'est un signal très bon marché** : un appel par ville ou par industrie, aucun balayage de
+carte — à comparer au scan de corridor de §3 octies, dont le coût est justement le point qui peut
+tuer l'idée. Ici, la question du coût ne se pose pas.
+
+Sémantique exacte, à ne pas confondre : le pourcentage compte **tout transport, le nôtre inclus**.
+Donc **0 % = personne ne la dessert** (ni nous ni un concurrent), ce qui est précisément le
+critère voulu pour les phases 1 et 5 ; et un pourcentage **élevé** désigne le terrain d'un
+concurrent, ce qui est le critère de la phase 6. **Le même nombre sert aux deux bouts de la
+doctrine, avec le signe inversé.**
+
+⚠️ **Où porter le bonus** : surtout pas dans `roi` seul. Le classement actuel se fait sur
+`budgetScore`/`opcodeScore`, calculés sur `revenueAnnual` — c'est le piège commun aux bonus fret,
+au bonus de rabattage et à `transit_cost` (§0 sexvicies verrou 3). Sous le portefeuille incrémental
+de §3 sexies, où le ROI devient l'unique nombre de classement, la question disparaît.
+
+### Phase par phase : ce qui existe, ce qui est mesuré, ce qui manque
+
+| phase | état | ce que la mesure dit déjà |
+|---|---|---|
+| **1. max d'aéroports** | partiellement fait | La direction est **confirmée deux fois** : `fleet_before_new` rejeté à 3 et 10 ans — la largeur bat la profondeur. Mais on ne pose que **2,4 lignes aériennes par partie** (5 graines × 3 ans) contre 35 appareils chez AAAHogEx (§0 undecies). Plafonds réels : la trésorerie, et **40 % d'échec** des tentatives aériennes (§0 duovicies) |
+| **2. saturer** | mécanisme là, inerte | Refusé **31 fois sur 32 pour trésorerie**, jamais pour le plafond d'aéroport ; 1,6 avion par ligne pour un plafond de 16 (§0 quinvicies) |
+| **3. rabattage** | 2 verrous levés le 2026-09-02, 1 reste | 651 candidats générés, **0 bâti**. La jointure au hub et le critère de site sont réparés ; le verrou restant est l'**élection** (§0 sexvicies, §3 quinquies) |
+| **4. plus d'avions** | = phase 2 avec du budget | Même mécanisme, même blocage : la caisse |
+| **5. industries libres** | **rien** | Le fret existe (rail et route) mais **aucun critère d'occupation** n'entre dans le classement |
+| **6. concurrencer** | **rien, et c'est le plus risqué** | Voir ci-dessous |
+
+### Les trois tensions à ne pas balayer
+
+1. **Phase 2 après phase 1 n'est pas ce qui a été mesuré.** `fleet_before_new` a mesuré « saturer
+   **avant** de construire » : −18,3 % de valeur à 10 ans. La doctrine dit « saturer **après** avoir
+   construit le maximum ». C'est une règle **différente**, non testée — et elle n'est réalisable
+   que si la bascule de phase est réelle et détectable. C'est exactement l'objet de §3 septies.
+2. **La phase 6 contredit toute la conception actuelle**, qui écarte les origines déjà servies. Et
+   se poser sur le terrain d'un concurrent **divise le cargo entre les deux gares** : les deux
+   notes de gare baissent. C'est peut-être un jeu à somme négative — à mesurer avant de croire que
+   « concurrencer » est un gain. Sa place en dernier est justifiée.
+3. **La doctrine est une hypothèse, pas un résultat.** Elle est cohérente avec tout ce qu'on a
+   mesuré, ce qui est déjà beaucoup, mais chaque bascule reste un bras de banc. La leçon du jour
+   est qu'un raisonnement juste — la note de gare est un multiplicateur — a produit un ordre qui
+   coûte 18 % de valeur.
+
+### Le plus petit pas utile
+
+Ne pas construire la machine à six états d'un coup. **Un seul bras mesurable, et il est petit** :
+ajouter le pourcentage transporté comme critère au classement aérien, pour préférer une ville que
+personne ne dessert. Ça teste la phase 1 et le mécanisme d'occupation **en même temps**, sans
+toucher à l'ordonnanceur.
