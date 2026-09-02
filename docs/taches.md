@@ -1733,6 +1733,52 @@ chemin sera réactivé.
 
 ---
 
+## 0 nonies quater. ❌ `portfolio_v2` NON ADOPTABLE, même réparé — et pourquoi (2026-09-02)
+
+`docs/bench_floor_3y_20seeds.json` : 5 bras, 100 parties, 20 graines x 3 ans, lecture appariée,
+0 échec. Contrôle = défauts courants, **donc `economy_fix` déjà adopté**.
+
+| bras | valeur moy | gares | `company_value` vs contrôle |
+|---|---:|---:|---:|
+| **contrôle** | **868 151** | **22,4** | — |
+| plancher 0 % (v2 pur) | 747 226 | 21,1 | −16,2 % (t −1,92) |
+| plancher 25 % | 797 729 | 18,7 | −8,8 % (t −1,87) |
+| plancher 50 % | 869 146 | 21,9 | **+0,1 %** (t 0,02) |
+| plancher 75 % | 860 782 | 20,2 | −0,9 % (t −0,23), `performance_history` **−12,4 %** (t −2,12) |
+
+### Le plancher marche, et ça ne suffit pas
+
+Le plancher de profit absolu **répare bien** ce qu'il devait réparer : de −16,2 % à l'équilibre
+exact en montant à 50 %. Mais il ne produit **aucun gain** — au mieux `portfolio_v2` devient neutre
+en ajoutant de la complexité. ❌ **Défaut maintenu à 0.**
+
+### 🔴 L'interaction que l'isolation ne pouvait pas montrer
+
+**Les +27 % de gares de `portfolio_v2` ont disparu.** Dans la campagne d'isolation, le contrôle
+était *sans* `economy_fix` : 21,4 gares, contre 27,2 pour `portfolio_v2`. Depuis, `economy_fix` a
+été adopté et le contrôle est monté **à 22,4 gares tout seul** — pendant que `portfolio_v2` n'en
+tire plus que 21,1, soit **moins** que le contrôle.
+
+➜ **`economy_fix` avait déjà capté le volume que `portfolio_v2` apportait.** Les cumuler est
+redondant, voire nuisible. ⚠️ **Leçon de méthode : un effet mesuré contre un contrôle donné n'est
+pas transportable une fois le contrôle amélioré.** Il faut re-mesurer contre le contrôle courant,
+pas réutiliser le chiffre de la campagne précédente.
+
+### Confirmation indépendante d'`economy_fix`
+
+Le contrôle est passé de **766 552 à 868 151** de valeur moyenne entre les deux campagnes, seul
+`economy_fix` ayant changé entre-temps. Son gain se confirme donc sur une campagne indépendante,
+avec des graines et un bras de contrôle identiques par ailleurs.
+
+### Où chercher le volume maintenant
+
+Les deux voies testées sont épuisées : le budget d'opcodes est nul, et la sélection de projet ne
+fait que déplacer la valeur. **Il reste `candidates.nut`, le seul gros morceau jamais revu** — ce
+qui *produit* les candidats, avant toute sélection. Instrumenter d'abord : combien de candidats
+générés, combien survivent à chaque filtre, combien échouent à la construction et pourquoi.
+
+---
+
 ## 7 bis. Dimensionnement marginal de flotte (`marginal_fleet`) — MESURÉ, défaut 0, mais le mécanisme est bon (2026-09-01)
 
 **Banc apparié 20 graines × 3 ans** (`docs/bench_marginal_fleet_3y_20seeds.json`, les deux bras

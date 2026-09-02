@@ -727,6 +727,29 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
+    /* Plancher de profit ABSOLU du portefeuille v2, en pourcentage du meilleur profit finançable
+     * du moment. N'a d'effet que sous portfolio_v2 = 1.
+     *
+     * POURQUOI IL EXISTE. Banc du 2026-09-02 (docs/bench_isolation_3y_20seeds.json, reglage
+     * isole) : le tri au seul ratio profit/capital est le SEUL des quatre reglages a bouger le
+     * volume -- 21,4 -> 27,2 gares, +27 % -- mais il coute -24,4 % de valeur et -30,7 % de profit
+     * annuel. Un ratio favorise les tout petits projets bon marche, dont le profit absolu est
+     * negligeable ; comme un seul projet est bati par cycle, chaque cycle est consomme par une
+     * ligne mediocre et les gros projets rentables ne sont jamais atteints.
+     *
+     * Le plancher est RELATIF au meilleur projet finançable, donc independant de l'epoque, de la
+     * taille de carte et de l'inflation. 0 reproduit exactement le comportement mesure ci-dessus ;
+     * 100 ne garderait que le meilleur profit absolu. La valeur a retenir est a mesurer. */
+    AddSetting({
+      name = "portfolio_floor_pct",
+      description = "Portfolio v2 only: minimum annual profit to be ranked, as a percentage of the best affordable project's profit. 0 = pure ratio ranking (default)",
+      min_value = 0, max_value = 100,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 5,
+      flags = 0
+    });
+
     AddSetting({
       name = "portfolio_v2",
       description = "Portfolio selection on profit per pound of affordable capital, modal choice after the capital test, and regeneration when capital grows: 1 = v2, 0 = revenue knapsack, monthly only (default)",

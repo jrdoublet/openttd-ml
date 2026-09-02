@@ -237,6 +237,10 @@ PORTFOLIO_V2 <- false;
 /* Gain absolu minimal avant de rejouer la generation : en dessous, le cout en opcodes ne vaut pas
  * la peine d'etre paye pour quelques milliers de livres. */
 const PORTFOLIO_REFRESH_MIN_GAIN = 50000;
+/* Plancher de profit absolu du portefeuille v2, en POURCENTAGE du meilleur profit finançable du
+ * moment. Repli 0 (= tri au seul ratio) jusqu'a la lecture de portfolio_floor_pct dans Start().
+ * Voir projects.nut::OpexProjectSelectAffordable pour le mecanisme et la mesure qui l'impose. */
+PORTFOLIO_FLOOR_PCT <- 0;
 
 /* Correctifs de flotte (revue flotte et entretien, docs/taches.md S0 nonies) : repli FAUX jusqu'a
  * la lecture unique de fleet_fix dans Start(). Defaut 0 : chemin historique inchange. Sous 1,
@@ -3264,6 +3268,7 @@ function OpexAI::Start()
   MARGINAL_FLEET = AIController.GetSetting("marginal_fleet") != 0;
   LOOP_BUDGET = AIController.GetSetting("loop_budget") != 0;
   PORTFOLIO_V2 = AIController.GetSetting("portfolio_v2") != 0;
+  PORTFOLIO_FLOOR_PCT = AIController.GetSetting("portfolio_floor_pct");
   FLEET_FIX = AIController.GetSetting("fleet_fix") != 0;
   ECONOMY_FIX = AIController.GetSetting("economy_fix") != 0;
   RAIL_COST_PROBE = AIController.GetSetting("rail_cost_probe") != 0;

@@ -188,11 +188,47 @@ function OpexProjectRememberAll(winners, project, stats)
  * Le classement est le profit par livre de capital reellement mobilisable. */
 function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
 {
+  /* 🔴 LE PLANCHER DE PROFIT ABSOLU, ET POURQUOI IL EXISTE (banc du 2026-09-02,
+   * docs/bench_isolation_3y_20seeds.json). Le tri au seul RATIO profit/capital a ete mesure isole :
+   * il fait bien ce qu'on lui demandait sur le volume -- 21,4 -> 27,2 gares, +27 %, le SEUL des
+   * quatre reglages a le bouger -- mais il coute -24,4 % de valeur et -30,7 % de profit annuel.
+   *
+   * Mecanisme : un ratio favorise les tout petits projets bon marche, dont le profit absolu est
+   * negligeable. Comme main.nut n'en batit qu'UN par cycle (maxBatch = 1), chaque cycle est alors
+   * consomme par une ligne mediocre, et les gros projets rentables ne sont jamais atteints. C'est
+   * exactement le risque « cheap-first » que l'analyse avait nomme d'avance.
+   *
+   * Le correctif garde le ratio -- c'est lui qui apporte le volume -- mais n'admet au classement
+   * que les projets dont le profit annuel atteint une fraction du MEILLEUR profit finançable du
+   * moment. Le plancher est relatif, donc il ne depend ni de l'epoque, ni de la taille de la carte,
+   * ni de l'inflation : a 0 il reproduit exactement le comportement mesure ci-dessus. */
+  local bestProfit = 0;
+  foreach (project in alternatives) {
+    if (project.budgetCapital > capitalBudget) continue;
+    if (project.profitAnnual > bestProfit) bestProfit = project.profitAnnual;
+  }
+  local floorProfit = 0;
+  if (PORTFOLIO_FLOOR_PCT > 0 && bestProfit > 0) {
+    floorProfit = bestProfit * PORTFOLIO_FLOOR_PCT / 100;
+  }
+
   local affordable = [];
   foreach (project in alternatives) {
     if (project.budgetCapital > capitalBudget) continue;
+    if (project.profitAnnual < floorProfit) continue;
     project.fundScore <- OpexProjectScore(project.profitAnnual, project.budgetCapital);
     OpexProjectInsert(affordable, project, "fundScore", limit);
+  }
+  /* Filet de securite : si le plancher a tout ecarte -- il ne le peut pas puisque le meilleur
+   * projet l'atteint par construction, mais un profitAnnual nul ou negatif rendrait bestProfit nul
+   * et le plancher inoperant -- on retombe sur l'ensemble finançable brut plutot que de ne rien
+   * batir du tout. */
+  if (affordable.len() == 0 && floorProfit > 0) {
+    foreach (project in alternatives) {
+      if (project.budgetCapital > capitalBudget) continue;
+      project.fundScore <- OpexProjectScore(project.profitAnnual, project.budgetCapital);
+      OpexProjectInsert(affordable, project, "fundScore", limit);
+    }
   }
   return affordable;
 }
