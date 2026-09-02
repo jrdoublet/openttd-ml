@@ -426,17 +426,7 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
-    /* Précalcul de tracés en file d'attente (utilisation des opcodes dormants en attente de cash).
-     * Calcule A* et les plans de gare à l'avance pour les meilleurs candidats du classement,
-     * permettant une construction instantanée dès que la trésorerie est disponible. */
-    AddSetting({
-      name = "preplan_queue",
-      description = "Precalculate route plans in advance during idle opcode ticks: 1 = enabled (default), 0 = compute only when building",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
+    
     /* Réserve de trésorerie dynamique adaptée aux coûts d'entretien réels (15 000 à 50 000 £).
      * Libère jusqu'à 35 000 £ au démarrage pour accélérer l'investissement initial. */
     AddSetting({
