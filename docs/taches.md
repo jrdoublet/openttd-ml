@@ -1916,6 +1916,79 @@ alors que son `maxBatch` vaut 12 et que la trésorerie ne bloque jamais ?
 
 ---
 
+## 3 ter. 🔶 AUDIT DE TOUTES LES CONSTANTES EN DUR (demandé le 2026-09-02)
+
+**46 constantes `const` dans `ai/OpexAI/`, contre 35 réglages exposés.** Aucune revue systématique
+n'a jamais été faite. Il faut passer chacune en revue et la classer dans l'une de trois issues :
+**exposer** (elle est décisionnelle et le banc doit pouvoir la faire varier), **vérifier** (elle
+prétend traduire une règle du jeu, il faut confronter au source), ou **étalonner** (elle a été
+posée à vue et jamais mesurée).
+
+⚠️ **Ne PAS toutes exposer.** 46 réglages de plus, ce serait 46 configurations mortes de plus, et
+le projet a déjà la leçon inverse (§8, suppression de `tree_planting` et de `preplan_queue`
+devenus inutiles). N'exposer que ce qu'un banc peut réellement trancher.
+
+### Pourquoi c'est prioritaire : les preuves déjà accumulées
+
+Ce n'est pas une inquiétude théorique — **six constantes se sont déjà révélées fausses ou inertes**
+en une seule journée de revue :
+
+| constante | ce qu'on a découvert |
+|---|---|
+| `MAX_ROAD_VEHICLES = 8` | son propre commentaire, deux lignes plus haut, affirme « **= 2** est la traduction directe de la règle du jeu » |
+| `ROAD_SPEED_EFFICIENCY_PCT = 60` | justifié « plus sévère que les 70 % du rail » — **la constante rail a été supprimée depuis** |
+| `PROJECT_TOP_K = 64` | **jette 81,6 % des candidats acceptés** (1 152 sur 1 412, mesuré) |
+| `PROJECT_POOL_K = 128` | tronqué à 64 juste après : la moitié du vivier coûte des opcodes et **n'est jamais vue** |
+| `TARGET_HEADWAY_DAYS = 7` | tombe **exactement sur une frontière de palier** de note de ramassage |
+| `maxBatch = 1` | **même pas une constante — un `local`** — et c'est le plafond structurel de toute la croissance (~1 projet/mois, §0 decies) |
+
+### Les quatre familles, et ce que chacune demande
+
+**1. Plafonds** — la famille que l'utilisateur signale, et la plus suspecte : chacun peut brider
+silencieusement la croissance sans jamais lever d'erreur.
+`MAX_RAIL_TRAINS` 2, `MAX_ROAD_VEHICLES` 8, `MAX_STATION_PLANS` 12, `PROJECT_TOP_K` 64,
+`PROJECT_POOL_K` 128, `LOOP_BUDGET_MAX_TASKS` 8, `PAX_NEAR_MAX_ATTEMPTS_PER_YEAR` 1,
+`PAX_NEAR_MAX_DISTANCE` 100, `ROAD_MAX_DISTANCE` 25, `PATHFINDER_MAX_COST` 200000,
+`CASH_RESERVE_MAX` 25000, `JOIN_PARALLEL_MAX_SIDE` 4, `RAIL_EXPAND_TIMEOUT_DAYS` 120,
+`SCRAP_TIMEOUT_YEARS` 2 — **plus les `maxBatch` locaux** (1 pour le portefeuille, 12 ou 3 pour
+l'air), qui échappent même à cette liste parce qu'ils ne sont pas des constantes.
+
+**2. Planchers** — symétriques : ils écartent des candidats sans trace.
+`ATTEMPT_FLOOR` 2000, `CASH_RESERVE_MIN` 5000, `ROAD_MIN_DISTANCE` 5,
+`ROAD_MIN_PROFIT_ANNUAL` 1000, `ROAD_ACCEPTANCE_MIN` 8, `MIN_SEPARATION` 10,
+`ORIGIN_SEPARATION` 3, `LOOP_BUDGET_FLOOR` 2000, `PORTFOLIO_REFRESH_MIN_GAIN` 50000,
+`PAX_NEAR_MIN_PROFIT` −200, `PROBE_NEAR_ZERO` −1000, `DEAD_STREAK_THRESHOLD` 2,
+`RAIL_EXPAND_STREAK` 2.
+
+**3. Calibrations économiques** — les plus dangereuses : elles entrent dans le modèle de décision,
+donc une erreur y fausse **tout le classement** sans jamais lever d'exception.
+`STATION_RATING_PCT` 50 (son ancre est déjà la question ouverte du §3 bis),
+`TARGET_HEADWAY_DAYS` 7, `TOWN_CATCHMENT_SHARE_PCT` 22, `ROAD_SPEED_EFFICIENCY_PCT` 60,
+`INFRA_LIFE_YEARS` 30 (hypothèse assumée, le moteur ne modélise aucune durée de vie
+d'infrastructure), `RAIL_EXPAND_UTIL_PERMILLE` 850.
+
+**4. Coûts d'opcodes** — mesurés une fois, et le code a beaucoup bougé depuis.
+`PROJECT_RAIL_OPS_PER_ITERATION` 2700, `PROJECT_RAIL_TRANSACTION_OPS` 200000,
+`PROJECT_ROAD_TRANSACTION_OPS` 287000, `PROJECT_AIR_TRANSACTION_OPS` 100000,
+`PROJECT_WATER_TRANSACTION_OPS` 100000, `ROAD_PLAN_ITERATIONS_BASE` 20, `ATTEMPT_MULTIPLIER` 4,
+`PATH_CHUNK` 50, `BUILD_TICK_MARGIN` 3000, `STATION_SEARCH_RADIUS` 30,
+`RAIL_PLATFORM_GROWTH_WAGONS` 2.
+⚠️ Une erreur de dimension y est déjà avérée : les itérations ROUTE sont facturées au tarif du
+pathfinder RAIL (§0 septies).
+
+### Méthode proposée
+
+1. **Instrumenter avant d'étalonner.** Pour chaque plafond et plancher, compter **combien de fois
+   il mord réellement** — c'est ainsi que `PROJECT_TOP_K` a été confondu. Un plafond qui ne mord
+   jamais ne mérite ni réglage ni mesure ; un plafond qui mord 81 % du temps est un choix de
+   conception déguisé en détail d'implémentation.
+2. **Confronter au source** tout ce qui prétend traduire une règle du jeu (famille 3) — c'est ainsi
+   que les seuils de note ont été corrigés.
+3. **N'exposer au banc que ce qui reste décisionnel** après les deux étapes ci-dessus, et
+   documenter la mesure à côté de la valeur, comme le fait déjà `loan_repay_floor_k`.
+
+---
+
 ## 7 bis. Dimensionnement marginal de flotte (`marginal_fleet`) — MESURÉ, défaut 0, mais le mécanisme est bon (2026-09-01)
 
 **Banc apparié 20 graines × 3 ans** (`docs/bench_marginal_fleet_3y_20seeds.json`, les deux bras
