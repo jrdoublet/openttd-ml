@@ -1958,6 +1958,42 @@ Même famille que la régression `tree_planting` : **le code a divergé de sa pr
 
 ## 8. Hygiène
 
+- 🔶 **Workflow GitHub avec OpenTTDLab : smoke test à chaque PR, banc à la demande (demandé le
+  2026-09-02).** Le dépôt est désormais sur GitHub (`jrdoublet/openttd-ml`, privé), donc
+  l'intégration continue devient possible. Deux étages, et **surtout pas un seul** :
+
+  **Étage 1 — porte de PR, obligatoire, ~2 à 5 min.** Smoke test 3 graines × **2 ans**, échec du
+  job si une partie remonte `run_ok = false` ou un marqueur fatal NoAI (`Your script made an
+  error`, `The script died unexpectedly`).
+
+  ⚠️ **Deux ans, pas un.** Paramètre payé le 2026-09-02 : le plantage `station_exit` de
+  `OpexUpgradeRailLineToDoubleTrack` **passe le smoke à 1 an** et ne tue l'IA qu'à 2 ans, quand le
+  refleet rail se déclenche pour la première fois. Un smoke d'un an aurait laissé passer une IA qui
+  meurt en cours de partie.
+
+  ⚠️ **La porte doit aussi vérifier un PLANCHER DE PLAUSIBILITÉ**, pas seulement l'absence
+  d'erreur : au moins une gare et un profit non nul sur chaque graine. Sans ça, une IA qui ne
+  construit RIEN passe le test en silence — c'est la règle du projet, *une IA morte ressemble
+  exactement à une IA nulle*, et un job vert la maquillerait.
+
+  **Étage 2 — banc apparié, manuel ou nocturne, PAS une porte de PR.** 20 graines × 3 ans contre le
+  bras de contrôle courant, JSON publié en artefact. Il ne peut pas être bloquant, pour deux
+  raisons de fond :
+  1. il dure ~20 min sur 3 cœurs, et bien plus sur un runner GitHub à 2 vCPU ;
+  2. son **plancher de détection est de ~15 % sur `company_value`** — il est structurellement
+     incapable de valider un petit changement, donc l'utiliser comme porte produirait surtout des
+     échecs et des succès aléatoires.
+
+  **Points de mise en œuvre à ne pas redécouvrir :**
+  - OpenTTD **15.3 obligatoire** (AAAHogEx exige ≥ 14, OpenTTDLab ne supporte pas 14.x) ;
+  - l'image exige `libgomp1` et `libglib2.0-0`, sinon `exit 127` silencieux — c'est déjà dans le
+    `Dockerfile` du dépôt, le réutiliser plutôt que d'en écrire un autre ;
+  - **mettre en cache les téléchargements OpenTTDLab** (binaire OpenTTD + OpenGFX), sinon chaque
+    job les retélécharge ; clé de cache = version d'OpenTTD ;
+  - le dépôt est **privé** : les minutes Actions sont facturées, ce qui plaide pour un étage 1
+    court et un étage 2 déclenché à la main.
+
+
 - 🔶 **Supprimer le réglage `tree_planting` et le chemin préventif qu'il garde (demandé le
   2026-09-01).** La question est **tranchée**, le réglage n'a donc plus de raison d'exister : la
   plantation ne doit avoir lieu **que** quand une ville nous refuse un aéroport. Laisser un
