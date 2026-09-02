@@ -82,6 +82,8 @@ RE_RX = re.compile(r"^RX\|(\d{2})\|(\d+)\|(\d+)\|(\d+)$")  # yy, id, lost, total
 RE_XC = re.compile(r"^XC\|(\d{2})\|(-?\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
 RE_DT = re.compile(r"^DT\|(\d+)\|([01])\|(\d+)\|(\d+)$")  # id, posed, trains, skip
 RE_PM = re.compile(r"^PM\|(\d+)\|([AWR])\|(\d+)\|(.+)$")
+RE_AH = re.compile(r"^AH\|(\d+)\|([01])\|(\d+)\|(\d+)$")   # id, reuseA, capital modele, hubRoutes
+RE_AF = re.compile(r"^AF\|(\d+)\|(\d+)\|(-?\d+)$")          # id, avions, profit annuel predit
 RE_IA = re.compile(r"^IA\|(\d+)\|(\d+)\|(-?\d)\|(-?\d)\|(-?\d+)$")
 RE_OX = re.compile(r"^OX\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")   # year, towns, industries, ranked.all
 RE_TV = re.compile(r"^TV\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")  # yy, nServed, medS, nFree, medU
@@ -258,6 +260,7 @@ def parse_lines(all_signs):
     actual_series = {}
     built = {}
     multimodal_built = {}
+    air_extra = {}
     road_cost = {}
     road_multi = {}
     join_marks = {}
@@ -400,6 +403,15 @@ def parse_lines(all_signs):
                 "mode": {"A": "air", "W": "water", "R": "road"}[m.group(2)],
                 "distance": int(m.group(3)), "cargo_label": m.group(4),
             }
+        elif m := RE_AH.match(sign):
+            e = air_extra.setdefault(int(m.group(1)), {})
+            e["reuseA"] = int(m.group(2)) == 1
+            e["modelCapital"] = int(m.group(3))
+            e["hubRoutes"] = int(m.group(4))
+        elif m := RE_AF.match(sign):
+            e = air_extra.setdefault(int(m.group(1)), {})
+            e["planes"] = int(m.group(2))
+            e["profitAnnual"] = int(m.group(3))
         elif m := RE_RC_ROAD.match(sign):
             idx = int(m.group(2))
             road_cost[idx] = {"year": 1900 + int(m.group(1)), "attempt": int(m.group(3)),
@@ -485,6 +497,12 @@ def parse_lines(all_signs):
             pred = dict(pred)
             pred["profitAnnual"] = (pred.get("revenueAnnual", 0) - pred.get("runningAnnual", 0)
                                     - pred.get("amortAnnual", 0))
+        # AH/AF ne sont emis que par l'avion : le capital MODELE et la flotte prevue.
+        # Fusionne apres coup pour ne pas transformer le `pred is None` des lignes
+        # aeriennes en branche `else`, qui ecraserait cargo_label et profitAnnual.
+        if idx in air_extra:
+            pred = dict(pred)
+            pred.update(air_extra[idx])
         entry = {
             "line_index": idx,
             "mode": item["mode"],

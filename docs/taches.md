@@ -3057,3 +3057,124 @@ mesurée : `docs/opexai_route.md`, banc PH **+9,3 %**.
   - `profit_year` : **+3,81 %** (+5 863 £), $t = +1,90$, 14/20 graines gagnantes.
   
   ⚠️ **Réglage `complex_cargo = 1` activé par défaut.**
+
+---
+
+## 0 unvicies. 🔴 LE RAIL COÛTE 1,8× SON PRIX MODÉLISÉ — mesuré (2026-09-02)
+
+Dernier angle mort de l'attribution de trésorerie de §0 vicies : le rail n'émettait aucun panneau
+de coût. `rail_cost_probe = 1` l'ouvre (`DC|idx|capitalModèle|coûtRéel|trainsPrévus|trainsBâtis|doubleVoie`,
+`main.nut:1430` en succès et `:1476` en échec). Campagne 5 graines × 3 ans archivée dans
+`docs/opex_campaign_5seeds_rail_cost_probe.json`.
+
+### 1. Le résultat : le modèle sous-facture le rail de 21 %
+
+15 lignes ferroviaires mises en service. Sur les **14 dont la flotte bâtie est conforme au plan**
+(la 15ᵉ prévoyait 2 convois et n'en a bâti qu'un, ce qui inverse artificiellement l'écart) :
+
+| | capital modèle | coût réel | écart |
+|---|---:|---:|---:|
+| **14 lignes** | 470 713 £ | **569 119 £** | **+98 406 £ — +20,9 %** |
+
+Et l'erreur **croît avec la distance**, ce qui la localise :
+
+| distance | n | modèle | réel | écart |
+|---|---:|---:|---:|---:|
+| < 75 tuiles | 6 | 184 696 | 211 037 | +14,3 % |
+| 75-100 | 3 | 102 396 | 128 262 | +25,3 % |
+| 100-130 | 5 | 183 621 | 229 820 | +25,2 % |
+
+Régression du surcoût sur la distance : **+103 £/tuile, ordonnée à l'origine −2 030 £** ($R^2 = 0{,}44$).
+L'ordonnée est nulle aux erreurs près : **toute l'erreur est dans le seul terme qui dépend de la
+distance**, `distance * catalog.costTrackPerTile` (`economy.nut:231`). Les gares, le dépôt et les
+véhicules sont correctement facturés.
+
+### 2. Le facteur exact
+
+`costTrackPerTile` vaut **75 £/tuile** (identifié par différence sur les paires de lignes de même
+quai / même rame / même loco : 12 paires sur 18 donnent exactement 75,0). Le prix réellement
+facturé par tuile de distance **à vol d'oiseau** est de **157 £** — détours du tracé, nivellement,
+ponts et tunnels, dont §0 « Ponts et tunnels (v3) » disait déjà qu'aucun n'est *pricé*.
+
+Le facteur qui annule le biais médian est **×1,81** (75 → 136 £/tuile) :
+
+| ratio modèle/réel | min | médiane | max |
+|---|---:|---:|---:|
+| avant | 0,70 | **0,87** | 0,92 |
+| après ×1,81 | 0,84 | **1,00** | 1,04 |
+
+C'est une correction de **biais pur** : la dispersion ne bouge pas (écart-type 7,1 → 7,0 points).
+Le modèle passe de « sous-estime toujours, de 8 à 30 % » à « juste, à ±16 % dans le pire cas ».
+
+### 3. Pourquoi ça compte pour le portefeuille
+
+`roi = profitAnnual * 1000 / capital` (`economy.nut:247`) et `OpexProjectModeBetter` élit le mode
+sur `roi` (`projects.nut:136`). Un capital rail sous-facturé de 21 % **gonfle mécaniquement le ROI
+du rail face à la route et à l'avion**, dans le seul nombre qui les départage — exactement le
+défaut que `pricing_fix` (dépôt manquant, §0 octies) avait déjà corrigé, mais d'une ampleur bien
+supérieure. Et le sac à dos finance ensuite sur un budget faux : il croit acheter 5 projets, en
+paie 4.
+
+➡️ **Candidat de tête** : réglage `rail_terrain_factor` (pour mille, défaut 100 = neutre) appliqué
+à `costTrackPerTile`, banc apparié 20 graines à 100 contre 181. Sens de l'effet **non acquis** :
+corriger le prix rend le plan honnête mais peut aussi tuer des lignes rentables — c'est la mesure
+qui tranche, pas l'argument.
+
+### 4. Chantiers avortés : le rail est innocent, l'avion coupable
+
+**`n_rail_attempts_failed = 0` sur les 5 graines et les 3 ans.** Aucun rollback ferroviaire, donc
+aucun capital gaspillé de ce côté. Le trou de 150 475 £ de la graine 42 (§0 vicies) n'est pas rail.
+
+Il est aérien. Sur **20 tentatives aériennes : 12 OK, 4 `AFAIL`, 4 `BFAIL`** — **40 % d'échec**.
+
+`builder_air.nut:535-580` nivelle le site A, y **bâtit** l'aéroport, puis nivelle B, tente B, et
+sur échec **démolit A** (`OpexAirRollback`). Un `BFAIL` brûle donc un nivellement, un aéroport
+complet et une démolition, **sans qu'aucun panneau ne chiffre quoi que ce soit**. La graine 42 a
+exactement un `BFAIL` en 1970 (distance 223) — le trou de 150 475 £ a son coupable.
+
+Et **4 graines sur 5 encaissent leur `BFAIL` dès la première année**, quand la trésorerie est au
+plus juste (§0 « plafonnement — trésorerie 1970-1980 »).
+
+Signature nette : **tous les échecs sont les tentatives longues.**
+
+| | distances |
+|---|---|
+| `OK` (12) | 140, 146, 157, 161, 163, 173, 190, 195, 195, 197, 200, 212 |
+| `BFAIL` (4) | **189, 191, 214, 223** |
+| `AFAIL` (4) | **178, 240, 243, 245** |
+
+Deux pistes, la première quasi gratuite :
+
+1. **Tester B avant de payer A.** L'ordre actuel paie A puis découvre que B est impossible.
+   Un `AITestMode` sur le site B avant d'engager A ne coûte que des opcodes et récupère
+   l'intégralité du capital des 4 `BFAIL`. À vérifier : le mode test intercepte-t-il bien
+   `ERR_LOCAL_AUTHORITY_REFUSES` ?
+2. **Plafonner la distance des tentatives aériennes.** Aucun succès au-delà de 212 tuiles,
+   aucun échec en deçà de 178. Un plafond est un réglage d'une ligne — mais il coupe aussi la
+   queue haute du profit, donc il se mesure.
+
+### 5. ✅ L'avion rendu lisible, et l'attribution enfin complète
+
+`AH|idx|reuseA|capital|hubRoutes` (`main.nut:773`) et `AF|idx|avions|profitAnnuel` (`:771`)
+portaient déjà le capital aérien **et le parseur les ignorait** — aucun `RE_AH`/`RE_AF` dans
+`sweeps/opex_full_campaign.py`. Ajoutés, et **vérifiés contre les chaînes réellement émises**
+(12/12 panneaux appariés dans l'archive) avant toute exploitation — la leçon de §0 vicies sur
+`RE_IG` cassé pendant deux jours.
+
+Attribution complète de la campagne, 5 graines × 3 ans :
+
+| mode | lignes | capital | source | part |
+|---|---:|---:|---|---:|
+| **avion** | 12 | **1 434 691 £** | `AH` — *modèle* | **64,5 %** |
+| **rail** | 15 | **614 704 £** | `DC` — **réel** | 27,6 % |
+| **route** | 7 | **176 119 £** | `RC` — **réel** | 7,9 % |
+| total | 34 | 2 225 514 £ | | |
+
+**L'avion prend les deux tiers du capital avec un tiers des lignes**, et ces 64,5 % sont un
+**plancher** : le chiffre aérien est le modèle, il ignore le nivellement des sites et ne compte
+aucune des 8 tentatives avortées. §0 vicies mesurait déjà que 11 des 12 lignes aériennes sont
+bâties **hors** du portefeuille, par la tâche `air` qui passe avant lui dans la file
+(`main.nut:429-440`). Les deux mesures se recoupent : **le portefeuille arbitre le tiers restant.**
+
+Reste aveugle : le coût réel de l'aéroport (nivellement compris) et celui des `AFAIL`/`BFAIL`.
+Un panneau de coût aérien symétrique de `DC|` les fermerait.
