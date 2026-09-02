@@ -3809,3 +3809,53 @@ entre ces deux villes bannit aussi le feeder. À confirmer par lecture de `OpexA
 
 ⚠️ **Ne pas mesurer avant les points 1 et 2** : un banc sur le seul point 3 mesurerait un
 mécanisme encore cassé, et rendrait « sans effet » pour la mauvaise raison.
+
+---
+
+## 3 quinquies. 🔶 RÉPARER LES BUS DE RABATTAGE — quatre correctifs, dans cet ordre (demandé le 2026-09-02)
+
+**Non commencé.** Diagnostic complet en §0 sexvicies : 651 candidats générés, 0 bâti, six verrous
+dont deux tuent indépendamment. Le mécanisme entier est déjà écrit ; il n'y a rien à concevoir,
+seulement à réparer.
+
+⚠️ **L'ordre n'est pas négociable.** Mesurer un correctif isolé rendrait « sans effet » pour la
+mauvaise raison, comme la plantation préventive dont le −22,1 % portait sur du code cassé.
+
+### Étape 1 — rattacher l'arrêt au hub (sans elle, rien d'autre ne sert)
+
+`builder_road.nut:590` et `:607` posent les deux arrêts en `AIStation.STATION_NEW`, alors que
+`candidate.hubStationId` est renseigné et jamais lu. Passer cet identifiant à `BuildRoadStation`
+pour l'extrémité hub. **Sans ça, `OF_TRANSFER | OF_UNLOAD` dépose les passagers dans une gare
+qu'aucun avion ni train ne dessert : la fonctionnalité ne peut pas marcher.**
+
+À vérifier en même temps : l'écart de gare (`station_spread`) autorise-t-il le rattachement à la
+distance où l'arrêt est posé ? Et le rattachement passe-t-il par `join_max_distance`, déjà utilisé
+côté rail ?
+
+### Étape 2 — un feeder décharge, il ne charge pas
+
+`builder_road.nut:383` : `dstWantsProduction = candidate.kind == "pax"`. Un feeder est `pax`, donc
+le planificateur exige que la tuile de hub **produise** des passagers dans un rayon de 5
+(`dstTown = -1` → `ROAD_INDUSTRY_SEARCH_RADIUS`). Forcer `false` quand `candidate.isFeeder`.
+Sans ça le plan rend `SITEB` et `main.nut:1278` **bannit la paire définitivement**.
+
+### Étape 3 — rendre la valeur réseau visible à la sélection
+
+Le bonus de +60 % écrit `roi`, `ratio` et `profitAnnual` (`candidates.nut:1200-1203`), jamais
+`revenueAnnual` — le seul champ que lisent `budgetScore` et `opcodeScore`, donc le tri du sac à
+dos, sa fonction objectif et le re-tri final. **Décider explicitement où porter la valeur réseau**,
+et ne pas se contenter d'un bonus sur `roi` qui serait cosmétique. Même famille que les bonus fret
+(§0 septdecies point 2), que `transit_cost` (§3 quater) et que le refleet aérien (§0 septvicies).
+
+### Étape 4 — hygiène
+
+- `main.nut:1254` : la garde `isFeeder` est dans la branche **fret**, alors qu'un feeder est `pax`.
+  Code mort.
+- Vérifier `OpexAbandonedPairKey` : la clé ne distingue pas un feeder d'une liaison interurbaine
+  entre les deux mêmes villes, donc un échec antérieur peut bannir le feeder par ricochet.
+
+### Ce qui se mesure ensuite
+
+Une fois 1 et 2 faits, un simple diagnostic 5 graines suffit à savoir si un feeder se bâtit **et
+si les passagers embarquent réellement** (note de gare du hub, cargo en attente à l'arrêt de bus).
+Le banc apparié ne vient qu'après, sur l'étape 3.

@@ -54,7 +54,7 @@ RE_IG = re.compile(r"^IG\|(\d{2})\|(\d+)\|(\d+)\|(\d+)(?:\|(\d+)\|(\d+))?$")
 # `|B<n>` = projets reellement batis dans le passage (portfolio_max_batch). Absent des
 # panneaux emis a la generation et de tous les JSON anterieurs, donc optionnel.
 RE_IB = re.compile(r"^IB\|(\d{2})\|(\d+)\|(\d+)(?:\|B(\d+))?$")
-RE_IP = re.compile(r"^IP\|(\d{2})\|([TRAW])\|(\d+)\|(\d+)$")
+RE_IP = re.compile(r"^IP\|(\d{2})\|([TRAWF])\|(\d+)\|(\d+)$")
 RE_PD = re.compile(r"^PD\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)(?:\|(\d+))?$")
 RE_PS = re.compile(r"^PS\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)(?:\|([PF]))?(?:\|([ABN]))?$")
 RE_OY = re.compile(r"^OY\|(\d+)\|(\d+)\|(-?\d+)\|(-?\d+)$")
@@ -88,6 +88,7 @@ RE_FR = re.compile(r"^FR\|(\d{2})\|(\d+)\|([A-Z])$")        # annee, ligne, caus
 RE_FE = re.compile(r"^FE\|(\d+)\|([AT])$")                   # ligne routiere feeder, vers hub Air ou Train
 RE_FN = re.compile(r"^FN\|(\d{2})\|(\d+)\|(\d+)$")            # annee, hubs vus, candidats feeders generes
 RE_FB = re.compile(r"^FB\|(\d{2})\|(\d+)\|(\d+)\|(\d+)$")     # annee, budget genere, budget reel, projets retenus
+RE_FP = re.compile(r"^FP\|(\d{2})\|(-?\d+)\|(\d+)$")           # annee, ligne, flotte apres croissance PAR LE PORTEFEUILLE
 RE_AF = re.compile(r"^AF\|(\d+)\|(\d+)\|(-?\d+)$")          # id, avions, profit annuel predit
 RE_IA = re.compile(r"^IA\|(\d+)\|(\d+)\|(-?\d)\|(-?\d)\|(-?\d+)$")
 RE_OX = re.compile(r"^OX\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")   # year, towns, industries, ranked.all
@@ -554,6 +555,18 @@ def parse_fleet_refusals(all_signs):
     return rows
 
 
+def parse_portfolio_fleet_growth(all_signs):
+    """Croissance de flotte aerienne decidee PAR LE PORTEFEUILLE (panneau FP|), a distinguer de
+    celle de la tache air_fleet (panneau FG|)."""
+    rows = []
+    for sign in all_signs:
+        m = RE_FP.match(sign)
+        if m:
+            rows.append({"year": 1900 + int(m.group(1)), "line_index": int(m.group(2)),
+                         "fleet_after": int(m.group(3))})
+    return rows
+
+
 def parse_fresh_budget(all_signs):
     """portfolio_fresh_budget : le budget fige a la generation contre celui de la caisse au
     moment de construire, et ce que la re-selection retient."""
@@ -893,7 +906,8 @@ def parse_project_portfolios(all_signs):
         elif m := RE_IP.match(sign):
             decisions.append({
                 "year": 1900 + int(m.group(1)),
-                "mode": {"T": "rail", "R": "road", "A": "air", "W": "water"}[m.group(2)],
+                "mode": {"T": "rail", "R": "road", "A": "air", "W": "water",
+                         "F": "air_fleet"}[m.group(2)],
                 "budget_score": int(m.group(3)), "opcode_score": int(m.group(4)),
             })
     return portfolios, decisions
@@ -1313,6 +1327,7 @@ def make_run_payload(rows, seed, years):
     feeders = parse_feeders(final["signs"])
     feeder_generation = parse_feeder_generation(final["signs"])
     fresh_budget = parse_fresh_budget(final["signs"])
+    portfolio_fleet_growth = parse_portfolio_fleet_growth(final["signs"])
     safety = parse_safety(final["signs"])
     yearly = parse_yearly(final["signs"])
     project_portfolios, project_decisions = parse_project_portfolios(final["signs"])
@@ -1452,6 +1467,7 @@ def make_run_payload(rows, seed, years):
         "n_feeders": len(feeders),
         "feeder_generation": feeder_generation,
         "fresh_budget": fresh_budget,
+        "portfolio_fleet_growth": portfolio_fleet_growth,
         "feeders": feeders,
         "road_attempts": road, "cash_blocks": cash_blocks, "dead_line_events": dead_lines,
         "loan_repayments": loan_repayments, "loan_draws": loan_draws,

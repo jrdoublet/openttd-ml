@@ -130,7 +130,8 @@ function OpexAirFindSite(town, airport, probes)
 
 /* Economie et dimensionnement optimal de flotte selon les caracteristiques du vehicule. */
 function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
-                          infrastructureMaintenance, maxCapital, newAirportCount = 2)
+                          infrastructureMaintenance, maxCapital, newAirportCount = 2,
+                          fixedPlanes = 0)
 {
   local effectiveSpeed = plane.speed / 4.0;
   if (effectiveSpeed < 1.0) effectiveSpeed = 1.0;
@@ -181,7 +182,15 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
     extraMargin = ((newAirportCount == 2) ? 30000 : (newAirportCount == 1 ? 12000 : 2000)) - 2000;
   }
 
-  for (local planes = 1; planes <= targetPlanes; planes++) {
+  /* air_fleet_projects : `fixedPlanes` force la boucle sur UN effectif precis au lieu de chercher
+   * le meilleur. C'est ce qui permet d'evaluer le convoi marginal d'une ligne DEJA en service en
+   * reutilisant EXACTEMENT les memes formules -- intervalle, note de gare, cargo capte, revenu --
+   * plutot qu'un second modele qui divergerait du premier. Les plafonds `maxAllowed` et
+   * `targetPlanes` sont volontairement contournes : l'appelant connait le plafond reel de SON
+   * aeroport, que ce calcul-ci n'a pas a redecouvrir. */
+  local planesFrom = fixedPlanes > 0 ? fixedPlanes : 1;
+  local planesTo = fixedPlanes > 0 ? fixedPlanes : targetPlanes;
+  for (local planes = planesFrom; planes <= planesTo; planes++) {
     local capital = newAirportCount * airport.price + planes * plane.price;
     if (maxCapital > 0 && capital + extraMargin > maxCapital) break;
     local headwayDays = roundTripDays / planes;
@@ -211,6 +220,73 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
 /* Ajoute un seul avion a une liaison deja mesuree. Le clonage partage les ordres et ne refait ni
  * recherche de sites ni construction d'infrastructure : c'est le chemin marginal au meilleur
  * profit/opcode. Toute decision de l'appeler reste dans main.nut, apres une annee de donnees. */
+/* Economie du convoi MARGINAL d'une ligne aerienne deja en service : ce que rapporte le passage
+ * de `have` a `have + 1` appareils, et ce qu'il coute.
+ *
+ * Trois choix, chacun paye par une mesure du depot :
+ *
+ * 1. `newAirportCount = 0` : aucune infrastructure n'est achetee, donc ni prix ni entretien ni
+ *    amortissement d'aeroport. Le capital du projet est le SEUL prix de l'avion.
+ * 2. L'appareil price est celui de la LIGNE, lu sur son propre moteur, pas le meilleur du
+ *    catalogue -- c'est la lecon de `fleet_fix` (docs/taches.md S0 nonies) : une ligne a helices
+ *    face a un catalogue passe au gros jet voyait un besoin plusieurs fois trop grand.
+ * 3. La population est relue VIVANTE. Une ligne construite en 1970 dessert en 1975 des villes qui
+ *    ont grossi : c'est precisement ce que la croissance de flotte doit capter, et le figer au
+ *    plan de construction reviendrait a nier la raison d'etre de la fonction.
+ *
+ * Rend null si la ligne n'est pas evaluable ou si le convoi marginal ne paie pas. */
+function OpexAirFleetMarginal(catalog, line, have)
+{
+  if (have < 1) return null;
+  if (!("vehicles" in line) || line.vehicles.len() == 0) return null;
+  if (!("distance" in line) || line.distance <= 0) return null;
+
+  local template = null;
+  foreach (v in line.vehicles) {
+    if (AIVehicle.IsValidVehicle(v) && AIVehicle.GetVehicleType(v) == AIVehicle.VT_AIR) {
+      template = v; break;
+    }
+  }
+  if (template == null) return null;
+  local engine = AIVehicle.GetEngineType(template);
+  local price = AIEngine.GetPrice(engine);
+  local capacity = AIEngine.GetCapacity(engine);
+  local speed = AIEngine.GetMaxSpeed(engine);
+  if (price <= 0 || capacity <= 0 || speed <= 0) return null;
+  local plane = { id = engine, capacity = capacity, speed = speed, price = price,
+                  runningCost = AIEngine.GetRunningCost(engine),
+                  planeType = AIEngine.GetPlaneType(engine) };
+
+  local townA = AITile.GetClosestTown(line.originA);
+  local townB = AITile.GetClosestTown(line.originB);
+  if (!AITown.IsValidTown(townA) || !AITown.IsValidTown(townB)) return null;
+  local monthlyPax = ((AITown.GetPopulation(townA) + AITown.GetPopulation(townB)) * 22) / 100;
+  if (monthlyPax < 10) monthlyPax = 10;
+
+  local airport = ("airport" in catalog) ? catalog.airport : null;
+  if (airport == null) return null;
+
+  local before = OpexAirEconomics(catalog, airport, plane, line.distance, monthlyPax,
+                                  false, 0, 0, have);
+  local after = OpexAirEconomics(catalog, airport, plane, line.distance, monthlyPax,
+                                 false, 0, 0, have + 1);
+  if (before == null || after == null) return null;
+
+  local dRevenue = after.revenueAnnual - before.revenueAnnual;
+  local dProfit = after.profitAnnual - before.profitAnnual;
+  local dCapital = after.capital - before.capital;
+  if (dCapital <= 0) dCapital = price;
+  if (dRevenue <= 0 || dProfit <= 0) return null;
+
+  return {
+    lineId = ("lineId" in line) ? line.lineId : -1,
+    have = have, price = price,
+    capital = dCapital, revenueAnnual = dRevenue, profitAnnual = dProfit,
+    roi = (dProfit * 1000) / dCapital,
+    carriedBefore = before.carried, carriedAfter = after.carried,
+  };
+}
+
 function OpexAirAddPlane(line)
 {
   local result = { added = 0, reason = "" };

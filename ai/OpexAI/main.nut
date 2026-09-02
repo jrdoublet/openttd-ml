@@ -61,6 +61,9 @@ PORTFOLIO_FRESH_BUDGET <- false;
  * n'grandit pas, la cause est invisible. FR| donne le premier refus rencontre, une fois par ligne
  * et par an. */
 AIR_FLEET_PROBE <- false;
+/* air_fleet_projects : la croissance de flotte aerienne devient un projet du portefeuille, au
+ * lieu d'une tache servie apres les lignes neuves. Inerte par defaut jusqu'au banc. */
+AIR_FLEET_PROJECTS <- false;
 /* Expansion marginale : bras A/B inerte par defaut jusqu'au verdict du banc. */
 RAIL_EXPAND <- false;
 const RAIL_EXPAND_STREAK = 2;
@@ -1178,9 +1181,45 @@ function OpexAI::_tryBuildProjects(year)
     if (project == null) continue;
 
     local mode = project.mode;
-    local modeChar = mode == "rail" ? "T" : (mode == "road" ? "R" : (mode == "air" ? "A" : "W"));
+    local modeChar = mode == "rail" ? "T" : (mode == "road" ? "R"
+                   : (mode == "air" ? "A" : (mode == "air_fleet" ? "F" : "W")));
 
-    if (mode == "air") {
+    if (mode == "air_fleet") {
+      /* air_fleet_projects : un appareil de plus sur une ligne existante. Aucune infrastructure,
+       * donc aucune revalidation de site : seules la sante de la ligne et la caisse comptent.
+       * L'etat est relu VIVANT et non repris du projet -- entre la generation du portefeuille et
+       * ce passage, la tache air_fleet a pu grandir la meme ligne. */
+      local line = project.payload;
+      if (line == null || !("vehicles" in line)) continue;
+      if (("scrapping" in line) && line.scrapping) continue;
+      local haveNow = 0;
+      foreach (v in line.vehicles) { if (AIVehicle.IsValidVehicle(v)) haveNow++; }
+      if (haveNow < 1) continue;
+      local isSmallNow =
+          (AIAirport.IsAirportTile(line.stationA) &&
+           AIAirport.GetAirportType(line.stationA) == AIAirport.AT_SMALL) ||
+          (AIAirport.IsAirportTile(line.stationB) &&
+           AIAirport.GetAirportType(line.stationB) == AIAirport.AT_SMALL);
+      if (haveNow >= (isSmallNow ? 4 : AIR_MAX_PLANES_PER_ROUTE)) continue;
+
+      local need = project.capital + OpexCashReserve() + AIR_FLEET_CAPITAL_MARGIN;
+      local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+      if (money < need && REBORROW) money = OpexTryReborrow(need, money);
+      if (money < need) continue;
+
+      OpexSign(anchor, "IP|" + yy + "|F|" + project.budgetScore + "|" + project.opcodeScore);
+      local grown = OpexAirAddPlane(line);
+      if (grown.added <= 0) continue;
+      local total = haveNow + grown.added;
+      line.vehCount <- total;
+      if (("trains" in line) && line.trains < total) line.trains = total;
+      /* Meme panneau que la croissance par tache, avec un code d'origine distinct : la mesure doit
+       * pouvoir dire QUI a fait grandir la ligne. */
+      OpexSign(AIMap.GetTileIndex(2, 40 + (("lineId" in line) ? line.lineId : 0)),
+               "FP|" + yy + "|" + (("lineId" in line) ? line.lineId : -1) + "|" + total);
+      builtCount++;
+      if (builtCount >= maxBatch) break;
+    } else if (mode == "air") {
       local plan = project.payload;
       if (builtCount > 0) {
         if (!OpexAirBatchPlanStillLive(plan, this._lines)) continue;
@@ -2889,6 +2928,7 @@ function OpexAI::Start()
   AIR_PRESITE = AIController.GetSetting("air_presite") != 0;
   PORTFOLIO_FRESH_BUDGET = AIController.GetSetting("portfolio_fresh_budget") != 0;
   AIR_FLEET_PROBE = AIController.GetSetting("air_fleet_probe") != 0;
+  AIR_FLEET_PROJECTS = AIController.GetSetting("air_fleet_projects") != 0;
   RAIL_EXPAND = AIController.GetSetting("rail_expand") != 0;
   ASTAR_COST_V2 = AIController.GetSetting("astar_cost") != 0;
   PROBE_NEGATIVE = AIController.GetSetting("probe_negative") != 0;
