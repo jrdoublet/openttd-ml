@@ -3315,3 +3315,29 @@ Corrigé (`candidates.nut:1239`) : plafond à `TOWN_RATING_MEDIOCRE`, l'échelon
 coupée et le seul appel vivant est le recours réactif, où la ville vient de refuser (note ≤ −200),
 donc très en dessous du plafond. Le correctif répare `tree_planting` pour le jour où on le
 remesure : **la mesure du −22,1 % portait sur du code cassé et ne vaut plus.**
+
+### 6. Banc apparié 20 graines × 3 ans : le gain de capital ne se convertit pas
+
+`docs/bench_air_presite_3y.json`, `OpexAI` contre `OpexAI[air_presite=1]`.
+
+| métrique | écart moyen | $t$ | graines gagnées |
+|---|---:|---:|---|
+| `company_value` | **+0,18 %** | +0,06 | 6/20 (9 nulles) |
+| `performance_history` | +1,13 % | +0,27 | 5/20 (9 nulles) |
+| `profit_year` | −1,81 % | −0,41 | 5/20 (9 nulles) |
+| `profit` | −1,83 % | −0,42 | 4/20 (9 nulles) |
+
+**9 graines sur 20 sont rigoureusement identiques** : aucun `BFAIL` n'y survient, le mécanisme
+n'a rien à faire. Sur les **11 graines où il agit : 6 gains, 5 pertes.** Test des signes 6/11,
+$p \approx 1$. Les deux mouvements dominants sont la graine 42 (+85,8 %) et la graine 999
+(−38,9 %) — la signature exacte du **remaniement de trajectoire** de §0 vicies : la trésorerie
+libérée change l'ordre des chantiers, et la chance de carte reprend la main.
+
+**Même verdict de forme que `maxBatch`** : le mécanisme fait exactement ce qu'on lui demande
+(−53,7 % de capital brûlé, mesuré et non déduit), et **ça ne se convertit en rien** à 3 ans.
+
+⚠️ **Une différence avec `maxBatch`, toutefois** : ici l'économie est réelle, datée et située —
+67 198 £ récupérés dont l'essentiel tombe en **première année**, au moment précis où le mur de
+trésorerie 1970-1980 mord le plus. Trois ans est peut-être un horizon trop court pour qu'un
+capital rendu tôt compose. Banc 10 ans lancé (`docs/bench_air_presite_10y.json`) : **c'est lui
+qui tranche**, pas celui-ci. Défaut à 0 en attendant.
