@@ -1591,6 +1591,40 @@ closure imbriquée ni `AIAccounting` imbriqué dans ce périmètre.
 
 ---
 
+## 3 bis. 🔶 MESURER le headway réel des lignes de calibration de la note de gare (2026-09-02)
+
+**Question ouverte, et il faut la MESURER, pas la deviner.** `OpexStationRatingForHeadway`
+(`economy.nut`) décompose la note en `STATION_RATING_PCT * 255/100 − 95`, où le **95** suppose que
+les lignes ayant servi au calage empirique (notes mesurées 49–55 en 15.3) étaient dans la tranche
+de ramassage 95 points.
+
+Or `economy_fix` corrige les seuils vers les valeurs du source (7,5 / 15 / 30 / 52,5 jours au lieu
+de 6,8 / 13,5 / 27 / 47), et `TARGET_HEADWAY_DAYS = 7` bascule alors de la tranche 95 vers la
+tranche **130**. Si les lignes de calibration étaient vraiment à 7 jours de headway *réel*, l'ancre
+devrait donc devenir 130.
+
+**Essayé le 2026-09-02, et RETIRÉ.** Trois raisons :
+
+1. La décomposition utilise le headway **cible**, jamais le `roundTripDays / trains` réellement
+   mesuré de ces lignes. Si leur headway réel dépassait 7,5 jours, elles n'étaient pas dans la
+   tranche 130 et **95 est la bonne ancre**.
+2. Une ancre à 130 donne `otherPoints = −2,5` : tous les autres facteurs de note du moteur
+   (vitesse, âge du matériel, cargo en attente, statue) contribueraient ensemble **~0**. C'est
+   invraisemblable au vu du source.
+3. Smoke test 3 graines × 1 an avec la ré-dérivation : les trois graines s'effondrent et la graine
+   42 sort à **−185 £ de profit**. À n=3 ce n'est pas une preuve, mais un profit négatif est un
+   changement qualitatif, pas du bruit de trajectoire.
+
+**Ce qu'il faut pour trancher** : instrumenter le `roundTripDays / trains` effectif des lignes sur
+lesquelles la note 49–55 a été relevée, et lire dans quelle tranche elles tombent réellement. Tant
+que ce n'est pas fait, l'ancre reste à 95 — y compris sous `economy_fix`, qui ne corrige donc que
+les **seuils**, lesquels ne déplacent la courbe qu'au voisinage des bandes-frontières.
+
+⚠️ Ne pas « corriger » l'ancre par cohérence algébrique : les deux hypothèses sont internement
+cohérentes, seule la mesure les départage.
+
+---
+
 ## 7 bis. Dimensionnement marginal de flotte (`marginal_fleet`) — MESURÉ, défaut 0, mais le mécanisme est bon (2026-09-01)
 
 **Banc apparié 20 graines × 3 ans** (`docs/bench_marginal_fleet_3y_20seeds.json`, les deux bras

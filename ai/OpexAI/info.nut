@@ -686,6 +686,33 @@ Le mode route est donc reconfirme sur l arbre courant.
      *     croissance est lue comme une saturation. Le signal est inverse.
      *
      * 1 : les trois sont corriges. */
+    /* Correctifs du modele economique. Revue de economy.nut, docs/taches.md S0 octies. Cible : le
+     * rendement unitaire, mesure a -31,4 % contre AAAHogEx (6 332 £/an par vehicule net ajoute
+     * contre 9 229 £).
+     *
+     * 0 (defaut, comportement historique) :
+     *   - les seuils de note de ramassage valent 6,8 / 13,5 / 27 / 47 jours, alors que le source
+     *     15.3 compare time_since_pickup a 3 / 6 / 12 / 21 CYCLES a ~2,5 jours le cycle, soit
+     *     7,5 / 15 / 30 / 52,5. Chaque palier est ~10 % trop strict. Le plus couteux est le
+     *     premier : TARGET_HEADWAY_DAYS = 7 tombe entre 6,8 et 7,5, donc le modele note sa PROPRE
+     *     cible de conception a 95 points quand le moteur en accorde 130.
+     *   - le nombre de convois est choisi au profit ABSOLU, sans jamais consulter roi ni capital,
+     *     alors que c'est roi que le portefeuille classe ensuite. Ajouter un convoi augmente
+     *     presque toujours le profit absolu et baisse le roi : le modele livre donc au portefeuille
+     *     la variante la plus gourmande en capital de toutes celles qu'il a evaluees.
+     *
+     * 1 : les seuils suivent le source, l'ancre de calibration suit la tranche reelle de la cible
+     * (le modele reproduit donc exactement STATION_RATING_PCT au headway de calibration, sans
+     * constante nouvelle), et la variante est choisie sur le meme objectif que celui qui
+     * l'arbitrera -- le profit par livre de capital. */
+    AddSetting({
+      name = "economy_fix",
+      description = "Source-verified station rating thresholds with a self-consistent calibration anchor, and train count chosen on profit per pound of capital: 1 = fixed, 0 = historical (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     AddSetting({
       name = "fleet_fix",
       description = "Make rail_refleet reachable, stop new road lines from buying a second full fleet on their build cycle, and stop reading a loading vehicle as a jam: 1 = fixed, 0 = historical (default)",

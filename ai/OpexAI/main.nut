@@ -253,6 +253,20 @@ const PORTFOLIO_REFRESH_MIN_GAIN = 50000;
  *      exigeant !isAnyWaiting, le signal etait inverse par rapport a son intention. */
 FLEET_FIX <- false;
 
+/* Correctifs du modele economique (revue de economy.nut, docs/taches.md S0 octies) : repli FAUX
+ * jusqu'a la lecture unique de economy_fix dans Start(). Defaut 0 : chemin historique inchange.
+ * Sous 1, deux defauts du rendement unitaire tombent --
+ *   1. les seuils de note de ramassage passent de 6,8 / 13,5 / 27 / 47 jours aux valeurs du source
+ *      du moteur, 7,5 / 15 / 30 / 52,5 (3 / 6 / 12 / 21 cycles a ~2,5 jours le cycle). Chaque
+ *      palier etait ~10 % trop strict, et TARGET_HEADWAY_DAYS = 7 tombait entre les deux valeurs du
+ *      premier : le modele notait sa propre cible de conception a 95 quand le moteur accorde 130.
+ *      L'ancre de calibration suit desormais la tranche reelle de cette cible, pour que le modele
+ *      reproduise exactement STATION_RATING_PCT au headway de calibration.
+ *   2. le nombre de convois est choisi au profit par livre de capital -- le meme objectif que celui
+ *      qui l'arbitrera au portefeuille -- au lieu du profit absolu, qui livrait systematiquement la
+ *      variante la plus gourmande en capital. */
+ECONOMY_FIX <- false;
+
 /* Dimensionnement marginal et progressif de flotte (item de tete, 2026-09-01) : repli FAUX
  * jusqu'a la lecture unique de marginal_fleet dans Start(). Defaut 0 : chemin actuel
  * rigoureusement inchange -- MAX_ROAD_VEHICLES/plafond 16 route, clonage immediat a
@@ -3219,6 +3233,7 @@ function OpexAI::Start()
   LOOP_BUDGET = AIController.GetSetting("loop_budget") != 0;
   PORTFOLIO_V2 = AIController.GetSetting("portfolio_v2") != 0;
   FLEET_FIX = AIController.GetSetting("fleet_fix") != 0;
+  ECONOMY_FIX = AIController.GetSetting("economy_fix") != 0;
   RAIL_COST_PROBE = AIController.GetSetting("rail_cost_probe") != 0;
   RAIL_EXPAND = AIController.GetSetting("rail_expand") != 0;
   ASTAR_COST_V2 = AIController.GetSetting("astar_cost") != 0;

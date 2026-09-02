@@ -85,8 +85,22 @@ function OpexLoadedTripsPerMonth(oneWayDays, roundTripDays, bidirectional)
  *
  * Elle rend visible le conflit que l'ancien `max(headway, volume)` cachait : ajouter une locomotive
  * raccourcit le headway et augmente le cargo capte, mais coute son capital et son entretien. */
+/* economy_fix : les seuils ci-dessus (6,8 / 13,5 / 27 / 47) ne correspondent PAS au source du
+ * moteur. docs/mecanique_jeu.md S8.4 enregistre la lecture de la 15.3 : `time_since_pickup` est
+ * compare a 3 / 6 / 12 / 21 CYCLES, et un cycle vaut STATION_RATING_TICKS / DAY_TICKS = 185 / 74,
+ * soit ~2,5 jours. Les vrais seuils sont donc 7,5 / 15 / 30 / 52,5 jours : chaque palier etait
+ * ~10 % trop strict. Le plus couteux est le premier -- TARGET_HEADWAY_DAYS vaut 7, qui tombe entre
+ * 6,8 et 7,5 : le modele notait sa PROPRE cible de conception a 95 points quand le moteur en
+ * accorde 130 (docs/taches.md S0 octies, trouvaille 3). */
 function OpexPickupRatingPoints(headwayDays)
 {
+  if (ECONOMY_FIX) {
+    if (headwayDays < 7.5) return 130;
+    if (headwayDays < 15.0) return 95;
+    if (headwayDays < 30.0) return 50;
+    if (headwayDays < 52.5) return 25;
+    return 0;
+  }
   if (headwayDays < 6.8) return 130;
   if (headwayDays < 13.5) return 95;
   if (headwayDays < 27.0) return 50;
@@ -96,6 +110,26 @@ function OpexPickupRatingPoints(headwayDays)
 
 function OpexStationRatingForHeadway(headwayDays)
 {
+  /* 🔴 L'ANCRE RESTE A 95, MEME SOUS economy_fix -- et c'est un choix, pas un oubli.
+   *
+   * La re-derivation « logique » serait OpexPickupRatingPoints(TARGET_HEADWAY_DAYS), pour que le
+   * modele reproduise STATION_RATING_PCT au headway de calibration quels que soient les seuils.
+   * Elle a ete implantee, essayee, et RETIREE le 2026-09-02 :
+   *
+   * 1. Elle repose sur une hypothese que la revue avait explicitement signalee comme non verifiee
+   *    (docs/taches.md S0 octies) : la decomposition utilise le headway CIBLE des lignes de
+   *    calibration, jamais leur roundTripDays / trains reellement mesure. Si leur headway reel
+   *    depassait 7,5 jours, elles n'etaient pas dans la tranche 130 et l'ancre 95 est la bonne.
+   * 2. Elle donnerait otherPoints = -2,5, c'est-a-dire que TOUS les autres facteurs de note du
+   *    moteur (vitesse, age du materiel, cargo en attente, statue) contribueraient ensemble ~0.
+   *    C'est invraisemblable au vu du source.
+   * 3. Smoke test 3 graines x 1 an avec la re-derivation : les trois graines s'effondrent et la 42
+   *    sort a -185 £ de profit. A n=3 ce n'est pas une preuve statistique, mais un profit negatif
+   *    est un changement qualitatif, pas du bruit de trajectoire.
+   *
+   * Les seuils corriges, eux, sont conserves : ils viennent du source et ne deplacent la courbe
+   * qu'au voisinage des bandes-frontieres. Trancher l'ancre demande de MESURER le headway reel des
+   * lignes de calibration -- tache ouverte, pas un reglage a deviner. */
   local otherPoints = STATION_RATING_PCT * 255.0 / 100.0 - 95.0;
   local rating = 100.0 * (otherPoints + OpexPickupRatingPoints(headwayDays)) / 255.0;
   if (rating < 0) return 0;
@@ -206,7 +240,22 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
     local profitAnnual = revenueAnnual - runningAnnual - amortAnnual;
     local capital = vehicleCost + infraCost;
     local roi = (profitAnnual > 0 && capital > 0) ? (profitAnnual * 1000) / capital : 0;
-    if (best == null || profitAnnual > best.profitAnnual) {
+    /* economy_fix : la selection maximisait le profit ABSOLU, sans jamais consulter `roi` ni
+     * `capital` -- or c'est `roi` que le portefeuille classe en aval. Ajouter un convoi augmente
+     * presque toujours profitAnnual et BAISSE roi : le modele livrait donc au portefeuille, pour
+     * chaque ligne, la variante la plus gourmande en capital de toutes celles qu'il avait
+     * evaluees (docs/taches.md S0 octies, trouvaille 2). On choisit desormais la variante sur le
+     * MEME objectif que celui qui l'arbitrera ensuite, le profit par livre de capital, en
+     * departageant les egalites -- roi est quantifie par sa division entiere -- au profit absolu. */
+    local better = false;
+    if (best == null) {
+      better = true;
+    } else if (ECONOMY_FIX) {
+      better = (roi != best.roi) ? (roi > best.roi) : (profitAnnual > best.profitAnnual);
+    } else {
+      better = profitAnnual > best.profitAnnual;
+    }
+    if (better) {
       best = { trains = trains, headwayDays = headwayDays, stationRating = stationRating,
                offered = offered, monthlyCapacity = monthlyCapacity, carried = carried,
                revenueAnnual = revenueAnnual, vehicleCost = vehicleCost, amortAnnual = amortAnnual,
