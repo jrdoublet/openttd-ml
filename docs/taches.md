@@ -1852,6 +1852,70 @@ d'emprunter plus, il est de faire tourner ce qu'on a.
 
 ---
 
+## 0 undecies. 🔴 CE QUE FAIT AAAHogEx : LA RUÉE AÉRIENNE (diagnostic mensuel, 2026-09-02)
+
+`sweeps/diag_1v1_monthly.py` → `docs/diag_1v1_monthly.json` : 3 graines × 2 ans, une ligne par mois
+et par IA, extraite des **chunks de sauvegarde** (les panneaux sont les nôtres, AAAHogEx n'en émet
+aucun).
+
+### La stratégie d'AAAHogEx, lue mois par mois
+
+| mois | AAAHogEx tr/rt/bt/av | gares | OpexAI tr/rt/bt/av | gares |
+|---|---|---:|---|---:|
+| 1970-03 | **0/0/0/9** | 6,0 | 0/3/0/4 | 2,7 |
+| 1970-06 | **0/0/0/13** | 6,7 | 0/4/0/3 | 3,3 |
+| 1970-09 | 1/1/0/21 | 10,7 | 0/5/0/3 | 3,3 |
+| 1970-12 | 1/1/0/**35** | 17,0 | 2/5/0/5 | 6,0 |
+| 1971-05 | 12/18/0/53 | 38,0 | 5/12/0/8 | 10,7 |
+| 1971-12 | 31/80/0/65 | 79,7 | 7/19/0/9 | 15,3 |
+| 1972-01 | 31/**91**/0/65 | 85,7 | 8/19/0/9 | 16,0 |
+
+**Il fait de l'AVION, exclusivement, pendant toute la première année** — 35 appareils fin 1970,
+zéro train et zéro camion jusqu'en janvier 1971. Puis il bascule et convertit ces profits en un
+réseau rail+route massif en année 2.
+
+Nous, dès février 1970, nous sommes **déjà éparpillés** (1 route + 4 avions) et nous progressons au
+goutte-à-goutte sur tous les modes à la fois.
+
+### 🔴 Il ne construit PAS des lignes plus rentables
+
+Profit par véhicule :
+
+| | OpexAI | AAAHogEx | rapport |
+|---|---:|---:|---:|
+| 1970-12 | 5 009 326 | 5 436 241 | 1,09 |
+| 1971-12 | 2 588 799 | 3 516 375 | 1,36 |
+
+**Nos lignes sont individuellement saines.** Sur toute l'année 1970 son profit par véhicule est du
+même ordre que le nôtre, parfois inférieur (avril : −81 020 contre −43 610 chez nous).
+➜ **Il ne gagne ni par la qualité des lignes ni par une meilleure exploitation : il gagne par le
+NOMBRE.** 5× plus de véhicules.
+
+### Pourquoi l'avion, et pourquoi ça répond au goulot
+
+L'avion est le seul mode dont **le véhicule supplémentaire ne coûte AUCUNE infrastructure** : pas
+de tracé, pas de pathfinding, pas de voie, pas de quai à rallonger. Deux aéroports posés, chaque
+appareil suivant est du capital pur converti immédiatement en revenu.
+
+C'est donc le mode qui **fait tourner le capital le plus vite** — exactement le goulot mesuré en
+§0 decies (44,5 % de notre valeur dort en caisse contre 10,4 % chez lui). Et il l'exploite en
+**concentration** : ~2 appareils par gare, sur peu de liaisons.
+
+### Ce que ça dit de notre conception
+
+Notre portefeuille arbitre les modes **au ROI par projet**, ce qui traite un avion supplémentaire
+sur une liaison existante comme un projet parmi d'autres. Or ce n'est pas un projet : c'est une
+**expansion à coût marginal d'infrastructure nul**, la seule opération qui échappe au plafond de
+~1 projet par mois (§0 decies). `_tryBuildAir` a d'ailleurs déjà `maxBatch = 12` là où le
+portefeuille est bridé à 1 — mais nous n'atteignons que 5 à 9 appareils là où il en aligne 35.
+
+**Piste de tête, et elle est cohérente avec tout ce qui précède** : traiter l'ajout d'avion sur
+liaison existante comme un flux continu prioritaire, pas comme un projet en concurrence avec le
+rail. À vérifier avant de coder : pourquoi `_tryBuildAir` plafonne-t-il en pratique à ~9 appareils
+alors que son `maxBatch` vaut 12 et que la trésorerie ne bloque jamais ?
+
+---
+
 ## 7 bis. Dimensionnement marginal de flotte (`marginal_fleet`) — MESURÉ, défaut 0, mais le mécanisme est bon (2026-09-01)
 
 **Banc apparié 20 graines × 3 ans** (`docs/bench_marginal_fleet_3y_20seeds.json`, les deux bras
