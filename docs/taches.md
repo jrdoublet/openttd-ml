@@ -1591,6 +1591,130 @@ closure imbriquée ni `AIAccounting` imbriqué dans ce périmètre.
 
 ---
 
+## 0 decies. 🔴 REVUE DE `candidates.nut` (étape 6, 2026-09-02) — le vivier lui-même est bridé
+
+Périmètre : génération et filtrage des candidats rail et route (~1 240 lignes). C'est l'étage qui
+décide ce qu'OpexAI envisage même de construire — un filtre trop strict y coûte directement du
+volume, et le volume est ~85 % de l'écart mesuré contre AAAHogEx. **Les deux trouvailles de tête
+sont vérifiées par archéologie git**, pas seulement par lecture du fichier actuel.
+
+### 🔴 1. `MIN_DISTANCE = 25` est une régression silencieuse : la bande 5-24 tuiles est fermée au rail depuis un commit qui ne l'a jamais annoncé (`candidates.nut:20`)
+
+Le code actuel :
+
+```
+candidates.nut:20   MIN_DISTANCE <- 25;
+candidates.nut:135   if (distance < MIN_DISTANCE) { stats.distanceShort++; return null; }
+```
+
+Mais le commentaire d'en-tête du fichier (`:15-19`) et un second commentaire à `:882-887`
+décrivent tous les deux, en détail et au présent, un tout autre comportement :
+
+> « Le rail et la route doivent se chevaucher entre 5 et 25 tuiles [...] Le modèle de capital du
+> rail le déclasse normalement dans cette bande ; c'est désormais un résultat du ROI, pas un a
+> priori d'orchestration. » (`:15-19`)
+>
+> « Le créneau route reste borné à 5-25 tuiles, **mais le rail descend maintenant à 5** : ce
+> chevauchement est volontaire [...] Les modes se disputent donc bien la même PAIRE, et le gagnant
+> est celui au meilleur ROI. » (`:882-887`)
+
+Aucun des deux textes n'est vrai du code livré : avec `MIN_DISTANCE = 25`, aucun candidat rail
+n'est jamais généré sous 25 tuiles, donc le rail ne "descend" nulle part et ne dispute jamais la
+bande où la route (`ROAD_MIN_DISTANCE = 5`, `ROAD_MAX_DISTANCE = 25`) opère seule. Vérifié par
+`grep` : `MIN_DISTANCE` n'est lié à aucun réglage `info.nut` / `AIController.GetSetting` (contrairement
+à `STATION_JOIN`, `JOIN_PLACE`, `BASIN_SHARE`, etc., tous lus en `main.nut:3091-3116`) — c'est une
+constante fixe, jamais un bras de banc.
+
+**Historique reconstitué (`git log -p`)** :
+- `3467851` (« orchestrer les projets par ROI budget et opcodes ») fait passer `MIN_DISTANCE` de
+  25 à 5 *délibérément*, en remplaçant l'ancien commentaire (« sous 25 tuiles le profit MEDIAN
+  mesuré est négatif [...] Ce n'est pas une précaution, c'est une mesure ») par celui qu'on lit
+  encore aujourd'hui à `:15-19`. C'est ce commit qui a aussi réécrit le commentaire de `:882-887`
+  pour annoncer le chevauchement 5-25.
+- `31b13bad` (« modèle de ROI cinématique véhicule, maillage multi-époques et saturation de
+  flotte ») repasse `MIN_DISTANCE` de 5 à 25 **sans toucher un seul mot des deux commentaires**, et
+  sans aucune justification dans le message de commit ni dans le diff environnant. Rien n'indique
+  une mesure qui aurait motivé ce retour en arrière — le commit mélange par ailleurs des
+  changements sans rapport (cinématique véhicule, feeders, flotte), ce qui a très probablement
+  masqué la régression.
+
+➜ **Effet** : la bande 5-24 tuiles — celle que le fichier lui-même documente comme un chevauchement
+volontaire entre rail et route, jugé nécessaire pour "choisir le meilleur mode pour un même couple
+origine/destination" — est aujourd'hui fermée à 100 % au rail, sans arbitrage ROI possible. Le même
+`MIN_DISTANCE` ferme aussi cette bande à `OpexPlaceJoinPax`/`OpexPlaceJoinFreight` (`:510`, `:574`,
+`:609`, réglage `join_place`, défaut 0). Je ne peux pas chiffrer l'effet sur `company_value` sans
+banc — la note `mecanique_jeu.md`/git ne dit pas quelle fraction des paires réelles tombe dans
+cette bande — mais c'est un pan entier de l'espace de candidats rail, fermé par accident plutôt que
+par conception, exactement le genre d'écart qui coûte du volume. À mesurer avant de trancher :
+restaurer `MIN_DISTANCE = 5` et comparer au banc appairé.
+
+### 🔴 2. Les bonus de `ratio`/`roi` du fret (monopole +40 %, chaîne +35 %) ne changent RIEN à la construction réelle ; le bonus feeder (+60 %) n'agit qu'à moitié (`candidates.nut:190-199`, `:229`, `:1178-1181`)
+
+`OpexMakeCandidate` calcule un `adjustedRoi` local qui empile trois bonus commentés comme des
+signaux de priorisation réels :
+
+```
+candidates.nut:183-188  turnoverBonus (rotation de cash)
+candidates.nut:190       adjustedRoi = (economics.roi * turnoverBonus) / 100
+candidates.nut:192-193   fret : adjustedRoi *= 1.40   // "monopole d'exploitation absolu"
+candidates.nut:195-196   transformateur : adjustedRoi *= 1.35   // "bonus de chaîne industrielle"
+candidates.nut:199       ratio = opcodeRatio + (adjustedRoi * 15)
+```
+
+Mais le champ renvoyé dans l'objet candidat n'est PAS `adjustedRoi` : `candidates.nut:229` écrit
+`roi = economics.roi` — le ROI **non bonifié**. Les bonus fret (+40 %, +35 %) ne survivent que dans
+`ratio`, un champ que j'ai vérifié par recherche exhaustive (`grep -n "\.ratio\b" ai/OpexAI/projects.nut`,
+`ai/OpexAI/main.nut`) : **zéro occurrence dans `projects.nut`**, et les deux seules occurrences dans
+`main.nut` (`:990`, `:1213`) sont à l'intérieur de `_tryPreplan`, une des cinq fonctions mortes de
+la §0 sexies. `projects.nut` calcule ses propres `budgetScore`/`opcodeScore` (`:70-71`, `:95-96`,
+`:116-117`) uniquement à partir de `candidate.revenueAnnual` — jamais de `candidate.ratio` — et
+l'élection modale par couple O/D (`:127`, `OpexProjectModeBetter`, confirmée §0 septies) compare
+`candidate.roi`, qui reste la valeur non bonifiée. **Les bonus fret +40 % et +35 % sont donc
+entièrement cosmétiques pour la décision de construction réelle** : ils ne déplacent que
+`OpexTopK`/`.best`, déjà établi ci-dessus comme ne nourrissant que du code mort et de la
+signalisation.
+
+Le bonus feeder routier est différent et partiellement vivant : `OpexRoadFeederCandidates`
+(`:1178-1181`) écrit directement `candidate.roi = (candidate.roi * 160) / 100` **après**
+construction du candidat — donc CE bonus atteint bien `roi` et peut influencer l'élection modale
+(`projects.nut:127`). Mais il ne touche ni `revenueAnnual` ni `capital`, donc il n'a aucun effet
+sur `budgetScore`/`opcodeScore` ni sur l'objectif du sac à dos (`currentRevenue`, §0 septies) : le
+commentaire "Bonus ROI pour la valeur réseau apportée au Hub (+60 %)" décrit un effet plus large
+que celui réellement câblé.
+➜ Même famille que les sept cas déjà recensés (garantie de commentaire non implémentée), avec un
+mécanisme neuf : le bonus vit dans un champ (`ratio`/`adjustedRoi`) que la couche de décision réelle
+ne lit jamais, sauf quand — comme pour le feeder — il est aussi écrit directement dans `roi`.
+
+### Le reste
+
+| gravité | lieu | problème |
+|---|---|---|
+| MOYEN | `:166-170` + `:188` | Une même condition (`distance > 105`) déclenche **deux pénalités indépendantes et non recalibrées** empilées sur une table déjà calibrée (`KNOT_ITERATIONS_V1/V2`) : `iterations *= 2` (`:167`) ET `turnoverBonus` divisé par 2 (`:188`), qui baisse à son tour `adjustedRoi` puis `ratio`. Introduit par `7fbe55e` (« branchement portefeuille ROI multimodal ») sans commentaire ni mesure justifiant le facteur. Comme établi au point 2, cet empilement n'affecte de toute façon que `ratio` (mort pour la décision), mais si les bonus étaient un jour reconnectés (ou pour la lecture diagnostic `OpexBands`), il sur-pénaliserait le long deux fois pour la même raison. |
+| FAIBLE | `:455-459` | `OpexShareBasin` : `amount / (n + 1)` est une division entière Squirrel — perte de fraction à chaque partage de bassin. Inactif par défaut (`basin_share = 0`), donc sans effet sur le banc de référence, même famille que les divisions entières déjà trouvées dans `projects.nut`/`economy.nut`. |
+
+### ✅ Vérifié comme n'étant PAS un bug — ne pas re-litiger à la passe de correction
+
+Aucune closure imbriquée dans `candidates.nut` (recherche exhaustive de fonctions anonymes :
+zéro résultat) ni `AIAccounting` imbriqué — le piège Squirrel de la consigne ne s'applique pas à ce
+fichier. `OpexTopK` (`:335-348`) : logique d'insertion/troncature correcte, pas d'erreur de borne.
+`TOP_K`/`ROAD_TOP_K` (`.best`) **ne bornent pas** la construction réelle : `projects.nut:280-282`
+puis `:316-319` consomment `rail.candidates`/`road.candidates` (la liste `all`, non tronquée) ;
+`.best` n'alimente que les fonctions mortes (`_tryBuild`, `_tryPreplan`) et la signalisation
+(`_reportYear`, panneau `OX`) — vérifié par recherche exhaustive des usages de `.best` dans
+`main.nut`. `ROAD_MIN_PROFIT_ANNUAL` (`:911`, `:955`) ne rejette plus rien, conforme à son
+commentaire — seul `profitAnnual <= 0` rejette (`:951-954`). Le seuil `value >= 8` de
+`OpexRailOriginSitable` (`:114`) est cohérent avec la règle des huitièmes d'unité du moteur, déjà
+vérifiée ailleurs. Les réglages `station_join`, `join_place`, `origin_sitable`, `basin_share`,
+`probe_negative`, `pax_near`, `astar_cost` sont bien tous lus depuis `AIController.GetSetting`
+(`main.nut:3091-3116`) et tous à leur défaut mesuré 0 (sauf `complex_cargo` = 1) : le bras par
+défaut du banc de référence n'active aucune de ces relaxations, donc leurs propres bugs connus
+(déjà couverts par les verdicts de banc cités dans `info.nut`) ne changent rien à la mesure
+−87,8 %.
+
+⚠️ Rien n'est corrigé ni mesuré. Le mécanisme est établi, pas son effet.
+
+---
+
 ## 7 bis. Dimensionnement marginal de flotte (`marginal_fleet`) — MESURÉ, défaut 0, mais le mécanisme est bon (2026-09-01)
 
 **Banc apparié 20 graines × 3 ans** (`docs/bench_marginal_fleet_3y_20seeds.json`, les deux bras
