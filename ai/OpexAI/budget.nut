@@ -18,6 +18,11 @@ class OpexBudget {
   _tick = 0;
   _left = 0;
   _open = false;
+  /* Compteur d'imbrications detectees. L'en-tete documente la non-reentrance depuis toujours,
+   * mais RIEN ne la verifiait : begin() ecrasait sans condition et end() rendait 0 en silence.
+   * Avec ~40 sites d'appel, une imbrication future attribuerait le cout du bloc interne a la
+   * categorie externe, sans exception ni trace (docs/taches.md S0 septies). */
+  nested = 0;
 
   constructor()
   {
@@ -26,6 +31,7 @@ class OpexBudget {
 
   function begin()
   {
+    if (this._open) this.nested++;
     this._tick = AIController.GetTick();
     this._left = AIController.GetOpsTillSuspend();
     this._open = true;

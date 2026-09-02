@@ -407,6 +407,15 @@ function OpexBuildProjects(catalog, budget, lines)
   /* Branchement explicite plutot qu'une fonction passee dans un local : ce depot a deja paye
    * plusieurs echecs Squirrel silencieux, et ici une IA morte ressemblerait exactement a une IA
    * nulle au banc. */
+  /* Le cout de decouverte mesure couvre TOUT le balayage (OpexAirPlans / OpexWaterPlans), pas un
+   * plan en particulier. Le passer tel quel a chaque plan faisait rapporter N fois le meme cout
+   * dans planningOpcodes, donc dans les panneaux OA| et eau : surestimation d'un facteur N, et
+   * corruption de la mesure meme qui servirait a pricer la decouverte aerienne
+   * (docs/taches.md S0 septies). On repartit desormais la depense entre les plans qu'elle a
+   * produits. */
+  local airOpsPerPlan = (airPlans.len() > 0) ? airOps / airPlans.len() : airOps;
+  local waterOpsPerPlan = (waterPlans.len() > 0) ? waterOps / waterPlans.len() : waterOps;
+
   local winners = {};
   if (PORTFOLIO_V2) {
     foreach (candidate in rail.candidates) {
@@ -416,10 +425,10 @@ function OpexBuildProjects(catalog, budget, lines)
       OpexProjectRememberAll(winners, OpexProjectFromCandidate(candidate), stats);
     }
     foreach (plan in airPlans) {
-      OpexProjectRememberAll(winners, OpexProjectFromAir(catalog, plan, airOps), stats);
+      OpexProjectRememberAll(winners, OpexProjectFromAir(catalog, plan, airOpsPerPlan), stats);
     }
     foreach (plan in waterPlans) {
-      OpexProjectRememberAll(winners, OpexProjectFromWater(catalog, plan, waterOps), stats);
+      OpexProjectRememberAll(winners, OpexProjectFromWater(catalog, plan, waterOpsPerPlan), stats);
     }
   } else {
     foreach (candidate in rail.candidates) {
@@ -429,10 +438,10 @@ function OpexBuildProjects(catalog, budget, lines)
       OpexProjectRemember(winners, OpexProjectFromCandidate(candidate), stats);
     }
     foreach (plan in airPlans) {
-      OpexProjectRemember(winners, OpexProjectFromAir(catalog, plan, airOps), stats);
+      OpexProjectRemember(winners, OpexProjectFromAir(catalog, plan, airOpsPerPlan), stats);
     }
     foreach (plan in waterPlans) {
-      OpexProjectRemember(winners, OpexProjectFromWater(catalog, plan, waterOps), stats);
+      OpexProjectRemember(winners, OpexProjectFromWater(catalog, plan, waterOpsPerPlan), stats);
     }
   }
 

@@ -1199,15 +1199,22 @@ function OpexAI::_tryBuildProjects(year)
 
       local budgetInfo = result.budgetInfo;
       local iterationBudget = result.iterationBudget;
-      local rankPacked = i * TOP_K + this._projects.best.len();
-      OpexSign(anchor, "OR|" + yy + "|" + this._nextLineId + "|" + rankPacked
+      /* Deux nombres empaquetes dans un champ, la limite des panneaux etant de 31 caracteres.
+       * ⚠️ CE N'EST PAS UN RANG. Depaqueter : `/ TOP_K` = position dans le portefeuille (`i`),
+       * `% TOP_K` = TAILLE du portefeuille finance ce mois-ci, pas le rang du candidat. Toute
+       * analyse qui lit `% TOP_K` comme un rang lit en fait la taille de la liste
+       * (docs/taches.md S0 septies). Le nom `posPacked` induisait precisement cette erreur ;
+       * la taille, elle, est utile -- c'est le nombre de projets FINANCES, dont on sait
+       * depuis S0 decies qu'un seul sera bati. */
+      local posPacked = i * TOP_K + this._projects.best.len();
+      OpexSign(anchor, "OR|" + yy + "|" + this._nextLineId + "|" + posPacked
                                + "|" + budgetInfo.path + "S"
                                + OpexAttemptReasonCode(result.reason) + "|" + iterationBudget
                                + "|" + result.iterations);
-      OpexSign(anchor, "OB|A|" + yy + "|" + this._nextLineId + "|" + rankPacked
+      OpexSign(anchor, "OB|A|" + yy + "|" + this._nextLineId + "|" + posPacked
                                + "|" + result.opcodes + "|" + candidate.distance);
       if (result.reason == "SITEA" || result.reason == "SITEB" || result.reason == "SITEAB") {
-        OpexSign(anchor, "PS|" + yy + "|" + this._nextLineId + "|" + rankPacked
+        OpexSign(anchor, "PS|" + yy + "|" + this._nextLineId + "|" + posPacked
                                 + "|" + result.siteClear + "|" + result.siteCargo + "|"
                                 + result.siteCmd + "|" + result.siteKind + "|"
                                 + result.joinEnd);
@@ -1327,8 +1334,17 @@ function OpexAI::_tryBuildProjects(year)
   if (builtCount > 0) {
     this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines);
     this._ranked = this._projects.rail;
+    /* `knapsackExact` et le compteur d'imbrications du budget etaient ECRITS ET LUS NULLE PART.
+     * Or maxNodes = 2000 pour n = 64 fait tronquer la recherche couramment : sans ce champ, on ne
+     * peut pas distinguer « le solveur a prouve l'optimum » de « il a epuise son budget de noeuds »
+     * -- l'angle mort qui a laisse survivre quatre defauts du portefeuille (docs/taches.md
+     * S0 septies). Ajoutes au panneau EXISTANT plutot que dans un nouveau : un appel BuildSign de
+     * plus deplace les frontieres de ticks (precedent mesure : un helper devant 57 appels a coute
+     * 3 lignes rail). Longueur maximale d'un panneau : 31 caracteres. */
     OpexSign(anchor, "IG|" + yy + "|" + this._projects.stats.modeCandidates + "|"
-             + this._projects.stats.odProjects + "|" + this._projects.stats.budgetSelected);
+             + this._projects.stats.odProjects + "|" + this._projects.stats.budgetSelected
+             + "|" + (this._projects.stats.knapsackExact ? 0 : 1)
+             + "|" + this._budget.nested);
     OpexSign(anchor, "IB|" + yy + "|" + this._projects.capitalBudget + "|"
              + this._projects.stats.selectedCapital);
     return true;
@@ -2487,8 +2503,17 @@ function OpexAI::_runNextTask()
     this._ranked = this._projects.rail;
     local anchor = AIMap.GetTileIndex(1, 1);
     local yy = year % 100;
+    /* `knapsackExact` et le compteur d'imbrications du budget etaient ECRITS ET LUS NULLE PART.
+     * Or maxNodes = 2000 pour n = 64 fait tronquer la recherche couramment : sans ce champ, on ne
+     * peut pas distinguer « le solveur a prouve l'optimum » de « il a epuise son budget de noeuds »
+     * -- l'angle mort qui a laisse survivre quatre defauts du portefeuille (docs/taches.md
+     * S0 septies). Ajoutes au panneau EXISTANT plutot que dans un nouveau : un appel BuildSign de
+     * plus deplace les frontieres de ticks (precedent mesure : un helper devant 57 appels a coute
+     * 3 lignes rail). Longueur maximale d'un panneau : 31 caracteres. */
     OpexSign(anchor, "IG|" + yy + "|" + this._projects.stats.modeCandidates + "|"
-             + this._projects.stats.odProjects + "|" + this._projects.stats.budgetSelected);
+             + this._projects.stats.odProjects + "|" + this._projects.stats.budgetSelected
+             + "|" + (this._projects.stats.knapsackExact ? 0 : 1)
+             + "|" + this._budget.nested);
     OpexSign(anchor, "IB|" + yy + "|" + this._projects.capitalBudget + "|"
              + this._projects.stats.selectedCapital);
     return true;

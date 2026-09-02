@@ -2065,6 +2065,50 @@ déplace le biais.
 
 ---
 
+## 0 quaterdecies. ✅ LOT C : la télémétrie ne ment plus (2026-09-02)
+
+`docs/bench_lotC_3y_20seeds.json` : 20 graines × 3 ans, 0 échec. **10/20 graines identiques au bit
+près**, les 10 autres légèrement déplacées.
+
+| métrique | avant | après | écart | t |
+|---|---:|---:|---:|---:|
+| `company_value` | 923 277 | 919 592 | −0,40 % | −0,43 |
+| `profit_year` | 483 319 | 479 411 | −0,81 % | −0,76 |
+| `performance_history` | 307 | 305 | −0,57 % | −0,82 |
+
+⚠️ **Seules 3 graines sur 20 s'améliorent.** L'ampleur est négligeable et aucun `t` n'approche la
+significativité, mais ce déséquilibre de signe n'est pas du hasard : c'est le **coût réel** des deux
+champs ajoutés au panneau. **La visibilité se paie**, et il faut le savoir avant d'instrumenter à
+la légère.
+
+### Les quatre correctifs
+
+1. **Le champ empaqueté ne ment plus.** `rankPacked` s'appelait « rang » mais valait
+   `i × TOP_K + taille du portefeuille`. La **valeur n'a pas été changée** — la taille est le nombre
+   de projets FINANCÉS, précisément la grandeur qui compte depuis qu'on sait qu'un seul sera bâti
+   (§0 decies). Renommé `posPacked`, avec le dépaquetage documenté : `/ TOP_K` = position,
+   `% TOP_K` = **taille**, jamais un rang.
+2. **Le coût de découverte est réparti.** `airOps` mesure le balayage COMPLET et était attribué à
+   *chaque* plan : surestimation d'un facteur N, qui corrompait la mesure même servant à pricer la
+   découverte aérienne. Idem pour l'eau.
+3. **La troncature du solveur est visible.** `knapsackExact` n'était lu nulle part alors que
+   `maxNodes = 2000` pour `n = 64` fait tronquer couramment — impossible de distinguer « optimum
+   prouvé » de « budget de nœuds épuisé ». C'est **l'angle mort qui a laissé survivre les quatre
+   défauts du portefeuille**.
+4. **`budget.nut` a enfin un détecteur de non-réentrance.** L'en-tête la documentait depuis
+   toujours, mais `begin()` écrasait sans condition et `end()` rendait 0 en silence : sur ~40 sites
+   d'appel, une imbrication future aurait imputé le coût du bloc interne à la catégorie externe,
+   sans exception ni trace.
+
+### Le choix de conception, dicté par un précédent mesuré
+
+Les deux indicateurs sont ajoutés au panneau **`IG` existant**, pas dans un nouveau panneau : un
+appel `BuildSign` de plus déplace les frontières de ticks — le dépôt a mesuré qu'un helper
+interposé devant 57 appels coûtait **3 lignes rail** (16 → 13). Longueur au pire cas vérifiée :
+22 caractères, sous la limite de **31 au-delà de laquelle un panneau est refusé EN SILENCE**.
+
+---
+
 ## 7 bis. Dimensionnement marginal de flotte (`marginal_fleet`) — MESURÉ, défaut 0, mais le mécanisme est bon (2026-09-01)
 
 **Banc apparié 20 graines × 3 ans** (`docs/bench_marginal_fleet_3y_20seeds.json`, les deux bras
