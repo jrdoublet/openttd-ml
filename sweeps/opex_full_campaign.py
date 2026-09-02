@@ -85,7 +85,7 @@ RE_PM = re.compile(r"^PM\|(\d+)\|([AWR])\|(\d+)\|(.+)$")
 RE_AH = re.compile(r"^AH\|(\d+)\|([01])\|(\d+)\|(\d+)$")   # id, reuseA, capital modele, hubRoutes
 RE_AC = re.compile(r"^AC\|(\d+)\|(\d+)\|(-?\d+)\|(\d+)\|(\d+)$")  # id, capital modele, cout reel, avions prevus, batis
 RE_FR = re.compile(r"^FR\|(\d{2})\|(\d+)\|([A-Z])$")        # annee, ligne, cause du refus de croissance
-RE_FE = re.compile(r"^FE\|(\d+)\|([AT])$")                   # ligne routiere feeder, vers hub Air ou Train
+RE_FE = re.compile(r"^FE\|(\d+)\|([AT])\|([01])$")            # feeder : ligne, hub Air ou Train, arret REJOINT au hub
 RE_FN = re.compile(r"^FN\|(\d{2})\|(\d+)\|(\d+)$")            # annee, hubs vus, candidats feeders generes
 RE_FB = re.compile(r"^FB\|(\d{2})\|(\d+)\|(\d+)\|(\d+)$")     # annee, budget genere, budget reel, projets retenus
 RE_AF = re.compile(r"^AF\|(\d+)\|(\d+)\|(-?\d+)$")          # id, avions, profit annuel predit
@@ -585,7 +585,8 @@ def parse_feeders(all_signs):
         m = RE_FE.match(sign)
         if m:
             rows.append({"line_index": int(m.group(1)),
-                         "hub_mode": "air" if m.group(2) == "A" else "rail"})
+                         "hub_mode": "air" if m.group(2) == "A" else "rail",
+                         "joined_hub": m.group(3) == "1"})
     return rows
 
 

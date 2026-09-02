@@ -134,8 +134,14 @@ function OpexRoadTraceBuildable(trace)
  * facade n'a pas besoin de preexister -- BuildRoad(front, tile) sous AITestMode prouve deja
  * qu'elle est constructible. La preference pour une facade deja routiere reste, mais comme un
  * BONUS de classement (moins de tuiles a payer, aucune demolition), plus comme un filtre. */
+/* `requireCargo = false` : accepter un emplacement qui ne produit NI n'accepte de cargo par
+ * lui-meme. C'est le cas du bout HUB d'une ligne de rabattage : la gare ou l'aeroport vise n'est
+ * ni une source ni un puits au sens de la carte d'acceptation -- le cargo est celui que le bus
+ * apporte. Exiger une production (le defaut pax) ou une acceptation (le defaut fret) y rend
+ * SITEB a coup sur, et main.nut bannit alors la paire pour toujours (docs/taches.md S0 sexvicies,
+ * verrou 2). */
 function OpexRoadSites(center, townId, cargo, vehType, coverage, wantProduction, radius,
-                       otherCenter)
+                       otherCenter, requireCargo = true)
 {
   local out = [];
   local cx = AIMap.GetTileX(center);
@@ -157,7 +163,7 @@ function OpexRoadSites(center, townId, cargo, vehType, coverage, wantProduction,
         local value = wantProduction
             ? AITile.GetCargoProduction(tile, cargo, 1, 1, coverage)
             : AITile.GetCargoAcceptance(tile, cargo, 1, 1, coverage);
-        if (wantProduction ? (value <= 0) : (value < ROAD_ACCEPTANCE_MIN)) continue;
+        if (requireCargo && (wantProduction ? (value <= 0) : (value < ROAD_ACCEPTANCE_MIN))) continue;
         nCargo++;
         /* CheckFlatLandRoadStop ne regarde QUE la tuile de l'arret. Un batiment d'industrie ou
          * une maison a du cargo et brule le plafond de 48 sondes : 12 tuiles x 4 facades, et
@@ -380,14 +386,20 @@ function OpexRoadPlanFor(catalog, candidate)
   local coverage = AIStation.GetCoverageRadius(stop.stationType);
   local radiusA = candidate.srcTown >= 0 ? ROAD_TOWN_SEARCH_RADIUS : ROAD_INDUSTRY_SEARCH_RADIUS;
   local radiusB = candidate.dstTown >= 0 ? ROAD_TOWN_SEARCH_RADIUS : ROAD_INDUSTRY_SEARCH_RADIUS;
-  local dstWantsProduction = candidate.kind == "pax";
+  /* feeder_join : un rabattage DECHARGE au hub, il n'y charge rien. Le defaut pax exigeait que la
+   * tuile de gare PRODUISE des passagers dans un rayon de 5 (dstTown = -1), ce qui rendait SITEB
+   * et bannissait la paire. Et l'acceptation n'est pas davantage le bon test : un aeroport hors
+   * ville n'est pas non plus un puits de la carte d'acceptation. Le bon critere est
+   * geometrique -- une tuile constructible a portee de jointure du hub -- d'ou requireCargo. */
+  local isFeeder = ("isFeeder" in candidate) && candidate.isFeeder;
+  local dstWantsProduction = candidate.kind == "pax" && !isFeeder;
 
   local huntA = OpexRoadSites(candidate.src, candidate.srcTown, candidate.cargo, stop.vehType,
                               coverage, true, radiusA, candidate.dst);
   local sitesA = huntA.sites;
   if (sitesA.len() == 0) return { plan = null, reason = "SITEA", site = huntA };
   local huntB = OpexRoadSites(candidate.dst, candidate.dstTown, candidate.cargo, stop.vehType,
-                              coverage, dstWantsProduction, radiusB, candidate.src);
+                              coverage, dstWantsProduction, radiusB, candidate.src, !isFeeder);
   local sitesB = huntB.sites;
   if (sitesB.len() == 0) return { plan = null, reason = "SITEB", site = huntB };
 
@@ -604,8 +616,17 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
   AIRoad.BuildRoad(plan.stopB.front, plan.stopB.tile);
   local stubConnectedB = AIRoad.AreRoadTilesConnected(plan.stopB.front, plan.stopB.tile);
   if (stubConnectedB) added.append({ from = plan.stopB.front, to = plan.stopB.tile });
+  /* feeder_join : le bout HUB d'un rabattage doit REJOINDRE la gare du hub, pas en creer une
+   * nouvelle. Sans ça l'arret de bus est une gare distincte : OF_TRANSFER|OF_UNLOAD y depose les
+   * passagers et aucun avion ni train ne dessert cette gare-la -- le rabattage ne transporte rien
+   * (docs/taches.md S0 sexvicies, verrou 1). Le site est cherche a 5 tuiles du hub, tres en deça
+   * de station_spread, donc la jointure est geometriquement possible. */
+  local wantJoinB = ("isFeeder" in candidate) && candidate.isFeeder &&
+                    ("hubStationId" in candidate) &&
+                    AIStation.IsValidStation(candidate.hubStationId);
+  local joinIdB = wantJoinB ? candidate.hubStationId : AIStation.STATION_NEW;
   local okB = stubConnectedB && AIRoad.BuildRoadStation(plan.stopB.tile, plan.stopB.front,
-                                                        plan.vehType, AIStation.STATION_NEW);
+                                                        plan.vehType, joinIdB);
   if (okB && AIRoad.IsRoadStationTile(plan.stopB.tile) &&
       AIRoad.GetRoadStationFrontTile(plan.stopB.tile) == plan.stopB.front &&
       AIRoad.AreRoadTilesConnected(plan.stopB.tile, plan.stopB.front)) stopB = plan.stopB.tile;
@@ -614,6 +635,15 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
     OpexRoadRollback(stopA, null, null, built, added, extras);
     result.reason = "BSTOP"; return result;
   }
+  /* Une jointure DEMANDEE mais NON OBTENUE est pire qu'un echec franc : la ligne roulerait en
+   * deposant son cargo dans le vide. On refuse donc explicitement, avec un motif propre, plutot
+   * que de laisser passer une ligne inutile qui compterait comme un succes au banc. */
+  if (wantJoinB && AIStation.GetStationID(stopB) != candidate.hubStationId) {
+    result.opcodes += budget.end("build_road_stops");
+    OpexRoadRollback(stopA, stopB, null, built, added, extras);
+    result.reason = "NOJOIN"; return result;
+  }
+  result.joinedHub <- wantJoinB;
   local stationA = AIStation.GetStationID(stopA);
   local stationB = AIStation.GetStationID(stopB);
   if (!AIStation.IsValidStation(stationA) || !AIStation.IsValidStation(stationB) || stationA == stationB) {

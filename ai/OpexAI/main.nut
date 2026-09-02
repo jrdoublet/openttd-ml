@@ -1344,7 +1344,8 @@ function OpexAI::_tryBuildProjects(year)
        * jamais ete bati. Un panneau par feeder, donc aucun cout quand il n'y en a pas. */
       if (("isFeeder" in candidate) && candidate.isFeeder) {
         OpexSign(anchor, "FE|" + idx + "|"
-                                 + ((("hubMode" in candidate) && candidate.hubMode == "air") ? "A" : "T"));
+                                 + ((("hubMode" in candidate) && candidate.hubMode == "air") ? "A" : "T")
+                                 + "|" + ((("joinedHub" in result) && result.joinedHub) ? 1 : 0));
       }
       if (ROAD_MULTISTOP) {
         OpexSign(anchor, "RM|" + yy + "|" + idx + "|1|"
