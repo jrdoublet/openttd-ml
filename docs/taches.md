@@ -4332,7 +4332,7 @@ qui n'avait pas encore sa ligne. Journal de la journée : `docs/journal_2026-09-
 | C9 | **`transit_cost`** : temps de voyage au dénominateur du ROI | non chiffré | §3 quater |
 | C10 | **`builder_water.nut:255`** : note de gare plate au lieu de `OpexStationRatingForHeadway` | ✅ Fait (§0 octodecies) | §0 octodecies |
 | C11 | **`candidates.nut:166-170` + `:188`** : double pénalité empilée sur `distance > 105`, non recalibrée | ✅ Fait (§0 septdecies) | §0 septdecies |
-| C12 | **La division entière écrase le rail dans `opcodeScore`** : médianes mesurées air 1037, route 62, **rail 0** | à trancher avec B1 | §0 tervicies |
+| C12 | **La division entière écrase le rail dans `opcodeScore`** : médianes mesurées air 1037, route 62, **rail 0** | éliminé par division flottante continue | ✅ Fait (§0 tervicies) |
 
 ### D. Mesures à refaire, parce que les anciennes ne valent plus
 

@@ -37,10 +37,8 @@ function OpexProjectPairKey(kind, cargo, src, dst)
 
 function OpexProjectScore(value, cost)
 {
-  if (value <= 0 || cost <= 0) return 0;
-  local thousands = cost / 1000;
-  if (thousands < 1) thousands = 1;
-  return value / thousands;
+  if (value <= 0 || cost <= 0) return 0.0;
+  return (value.tofloat() * 1000.0) / cost;
 }
 
 function OpexProjectFromCandidate(candidate)
