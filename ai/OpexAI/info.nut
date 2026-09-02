@@ -626,12 +626,16 @@ Le mode route est donc reconfirme sur l arbre courant.
      * plafond LOOP_BUDGET_MAX_TASKS par tick pour qu'un tour de file entierement compose de taches
      * hors periode ne brule pas le budget en pur ordonnancement.
      *
-     * Ce n'est PAS un bridage retire a la legere : docs/philosophie_armes_egales dit que Sleep sert
-     * aux parties avec des HUMAINS, et qu'entre IA on ne s'auto-handicape jamais -- AAAHogEx ne
-     * dort pas entre ses chunks. Le Sleep(1) de fin de tour reste, seul le gaspillage part. */
+     * Sous 1, le Sleep(1) de fin de tour DISPARAIT aussi. Ce n'est pas un oubli :
+     * docs/philosophie_armes_egales dit que Sleep sert aux parties avec des HUMAINS, et qu'entre
+     * IA on ne s'auto-handicape jamais -- AAAHogEx ne dort pas entre ses chunks. Rendre la main
+     * alors qu'il reste du budget est exactement l'auto-handicap que ce principe interdit. Le
+     * moteur suspend le script de lui-meme des que le budget du tick est epuise et le reprend au
+     * tick suivant la ou il en etait : la boucle reste bornee et la partie avance normalement.
+     * Sous 0, le Sleep(1) historique est conserve tel quel. */
     AddSetting({
       name = "loop_budget",
-      description = "Drain the tick's opcode budget by running consecutive due tasks instead of exactly one per tick: 1 = drain, 0 = one task then sleep (default)",
+      description = "Drain the tick's opcode budget by running consecutive due tasks, with no end-of-turn sleep: 1 = drain (plays like AAAHogEx), 0 = one task then sleep (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN

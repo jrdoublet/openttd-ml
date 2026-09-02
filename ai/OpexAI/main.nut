@@ -3211,9 +3211,15 @@ function OpexAI::Start()
        * le plafond de taches empeche un tour de file entierement compose de taches inutiles de
        * bruler le budget en pur ordonnancement. */
       if (drained == 0) this._runNextTask();
+      /* AUCUN Sleep ici, et c'est deliberé. Le Sleep de fin de tour rendait la main alors qu'il
+       * restait du budget, ce qui est un auto-handicap face a une IA qui ne dort pas entre ses
+       * chunks (docs/philosophie_armes_egales : les bridages servent aux parties avec des HUMAINS,
+       * jamais entre IA). Le moteur nous suspend de lui-meme quand le budget du tick est epuise et
+       * nous reprend au tick suivant exactement ou il nous avait laisses : la boucle reste donc
+       * bornee, et la partie avance normalement. */
     } else {
       this._runNextTask();
+      AIController.Sleep(1);
     }
-    AIController.Sleep(1);
   }
 }
