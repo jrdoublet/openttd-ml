@@ -202,17 +202,17 @@ def main():
     for month in months:
         line = f"{month:<8} |"
         for arm in ("OpexAI", "AAAHogEx"):
-            rows = per_month[(arm, month)]["rows"]
-            if not rows:
+            month_rows = per_month[(arm, month)]["rows"]
+            if not month_rows:
                 line += f" {'-':>19} {'-':>5} {'-':>9} {'-':>9} |"
                 continue
             mode_totals = {
-                mode: statistics.mean([r["vehicles"]["by_mode"][mode] for r in rows])
+                mode: statistics.mean([r["vehicles"]["by_mode"][mode] for r in month_rows])
                 for mode in VEHICLE_MODES
             }
-            st = statistics.mean([r["stations"]["n_stations"] for r in rows])
-            cap = statistics.mean([r["vehicles"]["rolling_capital"] for r in rows])
-            ppv = [r["vehicles"]["profit_per_vehicle"] for r in rows if r["vehicles"]["profit_per_vehicle"] is not None]
+            st = statistics.mean([r["stations"]["n_stations"] for r in month_rows])
+            cap = statistics.mean([r["vehicles"]["rolling_capital"] for r in month_rows])
+            ppv = [r["vehicles"]["profit_per_vehicle"] for r in month_rows if r["vehicles"]["profit_per_vehicle"] is not None]
             mix = "/".join(f"{mode_totals[m]:.0f}" for m in VEHICLE_MODES)
             line += (f" {mix:>19} {st:>5.1f} {cap:>9,.0f}"
                      f" {statistics.mean(ppv) if ppv else 0:>9,.0f} |")
