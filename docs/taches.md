@@ -1963,6 +1963,110 @@ supplémentaire à chercher ici.
 
 ---
 
+## 0 undecies ter. 🔴 L'IA SE FIGE DES MOIS ENTIERS PENDANT UN A\* RAIL — la vraie cause du plafond aérien (2026-09-03)
+
+Suite de §0 undecies bis. La question posée était : « comment peut-on construire du rail alors
+qu'on n'a pas de quoi acheter un avion ? ». Réponse : **le rail ne prend pas l'argent de l'avion,
+il prend le TEMPS DE L'IA**.
+
+### La mesure qui tranche
+
+`docs/diag_1v1_monthly_signs.json` (`sweeps/diag_1v1_monthly.py`, désormais avec capture du chunk
+`SIGN` et `air_fleet_probe=1`) donne le nombre **cumulé de panneaux, tous types confondus**, mois
+par mois. Il ne s'agit plus de la seule télémétrie aérienne :
+
+| graine 100 | 1971-05 | 1971-06 → 1971-12 | 1972-01 |
+|---|---:|---:|---:|
+| panneaux cumulés | 317 | **317 (+0 pendant 7 mois)** | 330 |
+
+**Sept mois consécutifs sans un seul panneau de quelque type que ce soit.** Ce n'est pas
+`_resizeAirFleets` qui se tait : c'est l'IA entière qui ne fait plus rien. Même signature sur la
+graine 42 (septembre → novembre 1970, +0). Et dans les deux cas **la reprise coïncide exactement
+avec l'apparition de trains neufs** : graine 100 → 5 puis 10 trains en 1972-01 ; graine 42 → 4
+trains en 1970-12.
+
+### Le mécanisme
+
+La boucle principale exécute **une tâche par tick puis `Sleep(1)`** (`loop_budget = 0`, défaut).
+Une tâche qui part dans un A\* ferroviaire long n'est pas « lente » : le moteur la suspend et la
+**reprend au même endroit** au tick suivant, donc **aucune autre tâche ne tourne** tant qu'elle
+n'a pas fini. Coût mesuré d'une seule tentative rail réussie
+(`docs/diag_airfleet_monthly_5s3y.json`) :
+
+| graine | année | itérations A\* | opcodes |
+|---|---:|---:|---:|
+| 7 | 1971 | 18 550 | **57 406 250** |
+| 100 | 1971 | 15 050 | **46 816 101** |
+| 2026 | 1972 | 13 900 | 37 250 868 |
+
+À 10 000 opcodes par tick et 74 ticks par jour, 46,8 M opcodes ≈ **2 mois de jeu pour une seule
+tentative**, sans compter les tentatives échouées ni la pose elle-même. Le commentaire de la file
+de tâches l'admettait déjà à demi-mot (« même si un A\* a franchi le changement d'année »), et le
+retrait d'une ligne morte avait déjà mesuré une famine « jusqu'à un an ».
+
+### 🔴 Ce que ça invalide
+
+- **La lecture « refus pour trésorerie » de §0 undecies bis est incomplète.** Les refus `M` sont
+  réels, mais l'essentiel du plafond aérien ne vient pas d'un refus : il vient de mois entiers où
+  la croissance **n'est même pas évaluée**. La trésorerie monte à vide pendant ce temps
+  (graine 100 : 76 k£ → 179 k£ pendant le gel).
+- **Aucun réordonnancement des tâches ne peut corriger ça** : le problème n'est pas l'ordre, c'est
+  qu'une seule tâche confisque la file pendant des mois. C'est le même goulot que
+  [[pathfinder-budget-contrainte]] et §0 sexies, mais mesuré ici en **mois de jeu perdus**, pas en
+  opcodes.
+
+### Piste, non codée
+
+Découper l'A\* rail en tranches reprises d'un tick à l'autre (comme `_continueRailExpansion` le
+fait déjà pour le trajet vers le dépôt) pour que la file continue de tourner pendant la
+recherche. À rapprocher de A2 (remplacer l'A\* maison par `Graph.AyStar`) et du prototype de
+pathfinder segmenté déjà mesuré 4× moins cher.
+
+## 0 undecies quater. ✅ `air_roi_order` ADOPTÉ — la croissance aérienne servait la ligne la plus VIEILLE (2026-09-03)
+
+Second défaut trouvé en même temps, indépendant du gel ci-dessus, et celui-là est corrigé.
+
+### Le défaut
+
+`_resizeAirFleets` parcourait `this._lines` **dans l'ordre de construction** — pas un choix de
+conception, juste l'ordre du tableau. La première ligne aérienne ouverte captait donc la
+trésorerie à chaque passage, rentable ou non, et les suivantes ne passaient jamais. Aucun tri par
+rendement nulle part.
+
+Conséquence mesurée avant correctif (`docs/diag_airfleet_monthly_5s3y.json`, 5 graines × 3 ans) :
+**aucun effet composé nulle part**. Croissances réussies via ce mécanisme sur toute la fenêtre :
+
+| graine | 42 | 100 | 7 | 999 | 2026 |
+|---|---|---|---|---|---|
+| croissances | 1 (→2 avions) | **0** | **0** | 4→5→6 (+1/an) | **0** |
+
+### Le correctif
+
+Réglage `air_roi_order` (défaut **1**). Les lignes aériennes sont triées avant la boucle par
+`OpexAirFleetYield` = **profit par appareil déjà en service** (`lastProfit` mesuré s'il existe,
+sinon `predicted`), donc la ligne qui rembourse l'appareil suivant le plus vite est servie la
+première. Le tri porte sur une copie de références : `_lines` garde son ordre, dont dépend le
+retrait par position de `_scrapDeadLines`.
+
+### ✅ Banc apparié 20 graines × 10 ans (`docs/bench_air_roi_order_10y.json`), 40 parties, 0 échec
+
+| métrique | ordre construction | ordre rendement | écart | t | graines gagnantes | p (signes) |
+|---|---:|---:|---:|---:|---:|---:|
+| `company_value` | 1 554 230 £ | **1 688 017 £** | **+7,93 %** | 2,29 | **17/20** | **0,0026** |
+| `profit_year` | 249 549 £ | **294 378 £** | **+15,23 %** | 3,36 | 16/20 | 0,0118 |
+| `performance_history` | 432 | **478** | **+9,54 %** | 3,33 | 16/20 | 0,0118 |
+| `profit` | 60 443 £ | 75 407 £ | +19,84 % | 2,27 | 14/20 | 0,115 |
+| `median_station_rating` | 170,1 | 170,1 | +0,04 % | 0,23 | 17/20 | — |
+
+Trois métriques sur quatre passent le test des signes, dont `company_value` à p = 0,0026. C'est
+le gain le plus net depuis l'adoption du mode route. Défaut mis à 1 ; `air_roi_order=0` rend
+l'ordre historique pour re-mesurer.
+
+⚠️ **Ce correctif ne traite PAS le gel de §0 undecies ter** : il répartit mieux la trésorerie
+quand l'IA tourne, il ne lui rend pas les mois perdus dans l'A\*. Les deux se cumulent.
+
+---
+
 ## 3 ter. 🔶 AUDIT DE TOUTES LES CONSTANTES EN DUR (demandé le 2026-09-02)
 
 **46 constantes `const` dans `ai/OpexAI/`, contre 35 réglages exposés.** Aucune revue systématique

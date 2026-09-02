@@ -728,6 +728,18 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
+    /* Ordre de service de la croissance de flotte aerienne (docs/taches.md S0 undecies ter).
+     * L'ordre historique etait celui du tableau _lines, donc l'anciennete : la premiere ligne
+     * ouverte captait la tresorerie a chaque passage et les autres ne grandissaient jamais
+     * (0 croissance sur 3 graines / 5, +1 avion/an au mieux ailleurs). */
+    AddSetting({
+      name = "air_roi_order",
+      description = "Serve air fleet growth best-yield-first (profit per aircraft) instead of oldest-line-first: 1 = yield order (default), 0 = historical build order",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* Drainage du budget d'opcodes du tick. Revue du controleur, docs/taches.md S0 sexies point 1.
      *
      * 0 (defaut, comportement historique) : la boucle principale de Start() execute EXACTEMENT une

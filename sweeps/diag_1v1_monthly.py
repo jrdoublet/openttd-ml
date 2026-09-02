@@ -143,6 +143,7 @@ def keep(row):
     player = (chunks.get("PLYR") or {}).get(0) or (chunks.get("PLYR") or {}).get("0") or {}
     closed = player.get("old_economy") or []
     last = closed[0] if closed else {}
+    signs = [s["name"] for s in chunks.get("SIGN", {}).values()]
     record = {
         "arm": row["experiment"]["diag_arm"],
         "seed": row["experiment"]["seed"],
@@ -153,6 +154,7 @@ def keep(row):
         "delivered_cargo": last.get("delivered_cargo"),
         "vehicles": vehicle_breakdown(chunks),
         "stations": station_detail(chunks),
+        "signs": signs,
         "output": row.get("output"),
     }
     return (record,)
@@ -160,7 +162,7 @@ def keep(row):
 
 def build_arms(seeds, years):
     arms = {
-        "OpexAI": local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", ()),
+        "OpexAI": local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", (("air_fleet_probe", 1),)),
         "AAAHogEx": local_folder(str(ROOT / "ai" / AAAHOGEX_DIR), "AAAHogEx", ()),
     }
     return [

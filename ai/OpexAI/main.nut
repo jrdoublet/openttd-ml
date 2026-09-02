@@ -369,6 +369,16 @@ PRICING_ROAD_OPS <- true;
  * _resizeAirFleets (croissance). */
 MARGINAL_FLEET <- false;
 
+/* air_roi_order (2026-09-03) : ordre de service de la croissance de flotte aerienne.
+ * _resizeAirFleets parcourait _lines dans l'ordre de CONSTRUCTION -- ce n'etait pas une decision
+ * de conception, juste l'ordre du tableau. Consequence mesuree (5 graines x 3 ans,
+ * docs/diag_airfleet_monthly_5s3y.json) : la premiere ligne aerienne ouverte capte la tresorerie
+ * a chaque passage, et les autres ne grandissent JAMAIS -- 0 croissance sur 3 graines / 5, et
+ * +1 avion par an au mieux ailleurs. Aucun effet compose n'apparait nulle part.
+ * 1 (defaut) sert d'abord la ligne au meilleur profit PAR APPAREIL, donc celle qui rembourse
+ * l'avion suivant le plus vite ; 0 rend l'ordre historique pour que le banc puisse trancher. */
+AIR_ROI_ORDER <- true;
+
 /* Reemprunt a la demande : repli FAUX jusqu'a la lecture unique de reborrow dans Start().
  * Defaut 0 : le trou "desendetter puis manquer d'argent" est vide (412 GC a emprunt max,
  * 0 tirage). Sans lui, _tryRepayLoan reste a sens unique. */
@@ -1934,17 +1944,57 @@ function OpexAirFleetRefusal(line, year, code)
 {
   if (!AIR_FLEET_PROBE) return;
   if (!("lineId" in line)) return;
-  if (("lastFleetProbeYear" in line) && line.lastFleetProbeYear == year) return;
-  line.lastFleetProbeYear <- year;
+  /* rabattage_diag (2026-09-02) : dedup resserre au MOIS, pas a l'annee -- le dedup annuel
+   * masquait un blocage de plusieurs mois derriere un seul motif fige au premier refus de
+   * l'annee, alors que la tresorerie disponible changeait entre-temps. Diagnostic uniquement. */
+  local month = AIDate.GetMonth(AIDate.GetCurrentDate());
+  local ym = year * 12 + month;
+  if (("lastFleetProbeMonth" in line) && line.lastFleetProbeMonth == ym) return;
+  line.lastFleetProbeMonth <- ym;
   OpexSign(AIMap.GetTileIndex(2, 10 + line.lineId),
-           "FR|" + (year % 100) + "|" + line.lineId + "|" + code);
+           "FR|" + (year % 100) + (month < 10 ? "0" + month : "" + month) + "|" + line.lineId + "|" + code);
+}
+
+/* Rendement marginal d'une ligne aerienne : profit PAR APPAREIL deja en service. C'est le
+ * predicteur du remboursement de l'appareil SUIVANT -- une ligne qui gagne 100 k£ avec 2 avions
+ * rembourse deux fois plus vite que celle qui gagne 100 k£ avec 8. `lastProfit` (mesure ecrite
+ * par _reportLines) prime sur `predicted` (modele) des qu'il existe ; une ligne neuve jamais
+ * rapportee tombe donc sur sa prevision plutot que sur zero, sinon elle serait servie en dernier
+ * pendant toute sa premiere annee. */
+function OpexAirFleetYield(line)
+{
+  local fleet = ("vehCount" in line) ? line.vehCount
+              : (("vehicles" in line) ? line.vehicles.len() : 1);
+  if (fleet < 1) fleet = 1;
+  local profit = ("lastProfit" in line) ? line.lastProfit
+               : (("predicted" in line) ? line.predicted : 0);
+  return profit / fleet;
+}
+
+/* Comparateur de tete de file pour la croissance aerienne : meilleur rendement d'abord.
+ * Fonction NOMMEE au niveau module, comme OpexFeederCandidateCompare : dans cet environnement
+ * Squirrel une closure imbriquee ne capture jamais les locales englobantes. */
+function OpexAirFleetPriorityCompare(a, b)
+{
+  local ya = OpexAirFleetYield(a);
+  local yb = OpexAirFleetYield(b);
+  if (ya > yb) return -1;
+  if (ya < yb) return 1;
+  return 0;
 }
 
 function OpexAI::_resizeAirFleets(year)
 {
   local anchor = AIMap.GetTileIndex(1, 1);
+  /* air_roi_order : servir la ligne qui rembourse le plus vite, pas la plus ancienne. Le tri
+   * porte sur une COPIE de references : _lines garde son ordre, dont depend l'indexation de
+   * _scrapDeadLines (retrait par position). */
+  local airLines = [];
   foreach (line in this._lines) {
-    if (!("mode" in line) || line.mode != "air") continue;
+    if (("mode" in line) && line.mode == "air") airLines.append(line);
+  }
+  if (AIR_ROI_ORDER) airLines.sort(OpexAirFleetPriorityCompare);
+  foreach (line in airLines) {
     if (("lastAirFleetYear" in line) && line.lastAirFleetYear == year) { OpexAirFleetRefusal(line, year, "Y"); continue; }
     local have = ("vehCount" in line) ? line.vehCount : (("vehicles" in line) ? line.vehicles.len() : 0);
     if (have < 1) { OpexAirFleetRefusal(line, year, "V"); continue; }
@@ -3006,6 +3056,7 @@ function OpexAI::Start()
   ROAD_REFLEET = AIController.GetSetting("road_refleet") != 0;
   ROAD_MULTISTOP = AIController.GetSetting("road_multistop") != 0;
   MARGINAL_FLEET = AIController.GetSetting("marginal_fleet") != 0;
+  AIR_ROI_ORDER = AIController.GetSetting("air_roi_order") != 0;
   LOOP_BUDGET = AIController.GetSetting("loop_budget") != 0;
   PORTFOLIO_V2 = AIController.GetSetting("portfolio_v2") != 0;
   PORTFOLIO_MAX_BATCH = AIController.GetSetting("portfolio_max_batch");
