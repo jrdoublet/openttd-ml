@@ -347,6 +347,20 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
 
+    /* Recherche A* ferroviaire reprise d'un tour de file a l'autre (docs/taches.md A4,
+     * S0 undecies ter). Mesure du 2026-09-03 : 7 mois consecutifs sans aucune action
+     * (graine 100, juin-dec 1971) pendant un A* rail, parce que OpexSearchPath rebouclait
+     * sur FindPath(50) sans jamais rendre la main a _runNextTask. Defaut 0 = comportement
+     * actuel, pour que le banc puisse attribuer : ce changement modifie l'entrelacement
+     * donc les decisions. */
+    AddSetting({
+      name = "rail_search_resumable",
+      description = "Resume rail A* across task-queue turns so other tasks run during a long search (docs/taches.md A4): 1 = sliced, 0 = blocking (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* Un ABND est seulement l'epuisement du budget d'iterations, pas une ligne construite puis
      * defectueuse. La meme paire peut sinon revenir au classement l'annee suivante et repayer le
      * plafond : 4096 l'a fait trois fois dans la mesure du 2026-08-29. La memoire est une petite

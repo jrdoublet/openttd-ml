@@ -27,6 +27,23 @@ const MAX_STATION_PLANS = 12;
 const JOIN_PARALLEL_MAX_SIDE = 4;
 const PATH_CHUNK = 50;
 const PATHFINDER_MAX_COST = 200000;
+/* Une tranche = un chunk de la bibliotheque. PATH_CHUNK=50 rend deja la main au moteur ;
+ * c'est le rebouclage while dans OpexSearchPath qui confisquait la file (7 mois sans panneau,
+ * docs/taches.md S0 undecies ter, 2026-09-03). Un seul chunk par tour, puis l'ordonnanceur
+ * reprend les autres taches. */
+/* ⚠️ LITTERAL OBLIGATOIRE : `const` n'accepte en Squirrel qu'un scalaire litteral. Ni
+ * `= PATH_CHUNK` (reference a une autre constante) ni `= 74 * 365 * 2` (expression) ne
+ * compilent -- « scalar expected : integer,float or string », et le fichier entier echoue a
+ * la compilation, donc l'IA meurt au demarrage sur TOUS les bras, y compris le defaut.
+ * Doit rester egal a PATH_CHUNK ci-dessus. */
+const RAIL_SEARCH_SLICE = 50;
+/* Borne horaire de SECURITE seulement. deadlineTick = iter/3 + 3000 gelait 7 mois parce que
+ * la boucle ne rendait pas la main ; une fois etalee, le temps ECOULE inclut le travail des
+ * autres taches, donc cette formule tuerait exactement les recherches qu'A4 doit sauver.
+ * 54 020 = 74 ticks/jour * 365 * 2, soit deux ans de jeu, ~8x le plus long gel mesure
+ * (litteral pour la meme raison que ci-dessus). Le vrai arret reste
+ * spent >= iterationBudget (ABND). */
+const RAIL_SEARCH_SAFETY_TICKS = 54020;
 
 /* Plafond absolu, garde-fou reglable depuis main.nut::HARD_ITERATION_CAP. La mesure du 2026-08-29
  * (4 graines x 20 ans) a trouve 36 600 iterations comme maximum d'une reussite ; 40 000 garde 9 %
@@ -313,10 +330,9 @@ function OpexRailPlatformPlans(catalog, candidate, join)
            reason = OpexRailSiteReason(sawA, sawB), statsA = statsA, statsB = statsB };
 }
 
-/* Recherche de chemin sous budget d'iterations. Rend une table avec le chemin brut et le compte
- * d'iterations reellement consommees -- ce compte est le DENOMINATEUR du classement, il doit etre
- * mesure, pas estime. */
-function OpexSearchPath(plansA, plansB, iterationBudget, deadlineTick, ignoredTiles = null)
+/* Cree le pathfinder. L'objet doit survivre entre les tours (stocke sur this._railSearch) :
+ * FindPath(PATH_CHUNK) reprend exactement ou il s'etait arrete. Ne pas recreer a chaque tranche. */
+function OpexCreateRailPathfinder(plansA, plansB, ignoredTiles = null)
 {
   local sources = [];
   local goals = [];
@@ -324,34 +340,70 @@ function OpexSearchPath(plansA, plansB, iterationBudget, deadlineTick, ignoredTi
    * predecesseur virtuel ; a l'arrivee la bibliotheque ajoute goal[1] apres goal[0]. */
   foreach (plan in plansA) sources.push([plan.lead, plan.station_exit]);
   foreach (plan in plansB) goals.push([plan.lead, plan.station_exit]);
-  if (sources.len() == 0 || goals.len() == 0) {
-    return { path = null, iterations = 0, stop = "NOPA" };
-  }
-
+  if (sources.len() == 0 || goals.len() == 0) return null;
   local pathfinder = RailPathFinder();
   pathfinder.cost.max_cost = PATHFINDER_MAX_COST;
   pathfinder.InitializePath(sources, goals, ignoredTiles == null ? [] : ignoredTiles);
+  return pathfinder;
+}
 
+/* Une tranche d'A*. `spent` est le cumul DEJA consomme (denominateur du classement : mesurer,
+ * pas estimer, et surtout pas remettre a zero d'une tranche a l'autre). `sliceIters` borne
+ * CETTE tranche ; passer iterationBudget reconstitue la boucle bloquante historique.
+ * deadlineTick : en mode bloquant, la formule historique (iter/3 + marge) ; en mode
+ * reprenable, RAIL_SEARCH_SAFETY_TICKS -- le budget d'iterations est la vraie borne. */
+function OpexAdvanceRailPathfinder(pathfinder, spent, iterationBudget, deadlineTick, sliceIters)
+{
   local path = false;
-  local spent = 0;
+  local sliceSpent = 0;
   /* 0 par defaut = aucun bridage : AAAHogEx ne dort PAS entre ses chunks (verifie dans son
    * source, cf. info.nut::pathfinder_sleep_ticks), donc le Sleep(1) inconditionnel qui etait ici
    * etait un handicap que nous seuls payions face a lui. Reglable pour rendre la main plus
    * souvent dans une partie avec des humains. */
   local sleepTicks = AIController.GetSetting("pathfinder_sleep_ticks");
-  while (path == false && spent < iterationBudget && AIController.GetTick() < deadlineTick) {
+  while (path == false && spent < iterationBudget && sliceSpent < sliceIters
+         && AIController.GetTick() < deadlineTick) {
     path = pathfinder.FindPath(PATH_CHUNK);
     spent += PATH_CHUNK;
+    sliceSpent += PATH_CHUNK;
     if (sleepTicks > 0) AIController.Sleep(sleepTicks);
   }
 
   /* Codes courts : un nom de panneau accepte au plus 31 caracteres et echoue SILENCIEUSEMENT
    * au-dela (verifie sur TrainLineAI). ABND = budget d'iterations epuise, c'est-a-dire l'arret
-   * optimal qui a joue ; DEAD = fenetre de temps epuisee ; NOPA = file vide, aucun chemin. */
+   * optimal qui a joue ; DEAD = fenetre de temps epuisee ; NOPA = file vide, aucun chemin.
+   * CONT = tranche epuisee, la recherche n'est pas finie -- ne jamais rapporter ce code au
+   * classement, seulement reprendre au tour suivant. */
   local stop = "OK";
-  if (path == false) stop = (AIController.GetTick() >= deadlineTick) ? "DEAD" : "ABND";
-  else if (path == null) stop = "NOPA";
-  return { path = path, iterations = spent, stop = stop };
+  local done = true;
+  if (path == false) {
+    /* Meme priorite que l'historique : DEAD gagne si les deux bornes sont franchies. */
+    if (AIController.GetTick() >= deadlineTick) stop = "DEAD";
+    else if (spent >= iterationBudget) stop = "ABND";
+    else { stop = "CONT"; done = false; }
+  } else if (path == null) {
+    stop = "NOPA";
+  }
+  return { path = path, iterations = spent, stop = stop, done = done };
+}
+
+/* Recherche de chemin sous budget d'iterations. Rend une table avec le chemin brut et le compte
+ * d'iterations reellement consommees -- ce compte est le DENOMINATEUR du classement, il doit etre
+ * mesure, pas estime.
+ *
+ * Mode BLOQUANT (rail_search_resumable=0, defaut) : reconstitue la boucle historique. C'est
+ * cette boucle qui gelait l'IA des mois entiers (7 mois, graine 100, juin-dec 1971) : la
+ * bibliotheque rendait la main toutes les 50 iterations et on la reprenait aussitot, donc
+ * _runNextTask ne tournait plus. Le mode reprenable vit dans OpexAI::_continueRailSearch. */
+function OpexSearchPath(plansA, plansB, iterationBudget, deadlineTick, ignoredTiles = null)
+{
+  local pathfinder = OpexCreateRailPathfinder(plansA, plansB, ignoredTiles);
+  if (pathfinder == null) return { path = null, iterations = 0, stop = "NOPA" };
+  /* sliceIters = iterationBudget : une seule "tranche" aussi longue que le budget, donc le
+   * while interne ne s'arrete plus que sur chemin / ABND / DEAD, comme avant A4. */
+  local result = OpexAdvanceRailPathfinder(pathfinder, 0, iterationBudget, deadlineTick,
+                                           iterationBudget);
+  return { path = result.path, iterations = result.iterations, stop = result.stop };
 }
 
 /* Deplie le chemin en liste de tuiles, en supprimant les allers-retours d'une tuile que le
@@ -887,9 +939,10 @@ function OpexPlaceJoinSignals(planA, planB, tiles, depot, join)
   return acc;
 }
 
-/* Precalcule le plan physique complet d'une ligne ferroviaire (quais, economie, trace A*,
- * depot, double voie eventuelle) SANS modifier la carte du jeu ni depenser de tresorerie. */
-function OpexPlanRailRoute(catalog, budget, candidate, alternativeRatio, join, hardCap = 10000)
+/* Quais + economie, AVANT l'A*. Separe pour que le mode reprenable puisse poser le pathfinder
+ * et rendre la main sans rejouer ce travail a chaque tranche. plansA == null => echec, pas de
+ * recherche a lancer. */
+function OpexPrepareRailRoute(catalog, budget, candidate, alternativeRatio, join, hardCap = 10000)
 {
   local plan = { ok = false, reason = "", iterations = 0, opcodes = 0,
                  plansA = null, plansB = null, planA = null, planB = null,
@@ -913,12 +966,9 @@ function OpexPlanRailRoute(catalog, budget, candidate, alternativeRatio, join, h
     plan.siteCmd = stats.nCmd;
     return plan;
   }
-  local plansA = platformPlans.plansA;
-  local plansB = platformPlans.plansB;
-  local joinA = platformPlans.joinA;
-  plan.plansA = plansA;
-  plan.plansB = plansB;
-  plan.joinA = joinA;
+  plan.plansA = platformPlans.plansA;
+  plan.plansB = platformPlans.plansB;
+  plan.joinA = platformPlans.joinA;
   plan.length = platformPlans.length;
   plan.slopeRelaxed = platformPlans.slopeRelaxed ? 1 : 0;
 
@@ -929,18 +979,20 @@ function OpexPlanRailRoute(catalog, budget, candidate, alternativeRatio, join, h
   OpexApplyRailEconomics(candidate, economics);
   plan.budgetInfo = OpexIterationBudget(candidate.profitAnnual, alternativeRatio, hardCap);
   plan.iterationBudget = plan.budgetInfo.budget;
+  return plan;
+}
 
-  budget.begin();
-  local deadlineTick = AIController.GetTick() + plan.iterationBudget / 3 + BUILD_TICK_MARGIN;
-  local search = OpexSearchPath(plansA, plansB, plan.iterationBudget, deadlineTick);
-  plan.opcodes += budget.end("build_search");
+/* Assemble le plan une fois l'A* termine. `search.iterations` DOIT etre le cumul de toutes
+ * les tranches : c'est le denominateur du classement. */
+function OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search, join)
+{
   plan.iterations = search.iterations;
   if (search.path == false || search.path == null) { plan.reason = search.stop; return plan; }
 
   local tiles = OpexPathTiles(search.path);
   if (tiles.len() < 3) { plan.reason = "SHORT"; return plan; }
-  local planA = OpexMatchPlan(plansA, tiles[0]);
-  local planB = OpexMatchPlan(plansB, tiles[tiles.len() - 1]);
+  local planA = OpexMatchPlan(plan.plansA, tiles[0]);
+  local planB = OpexMatchPlan(plan.plansB, tiles[tiles.len() - 1]);
   if (planA == null || planB == null) { plan.reason = "NOMATCH"; return plan; }
   if (join != null && !OpexJoinPathIsDedicated(tiles)) { plan.reason = "JOINPATH"; return plan; }
 
@@ -951,7 +1003,13 @@ function OpexPlanRailRoute(catalog, budget, candidate, alternativeRatio, join, h
   if (candidate.trains > 1) {
     local remain = plan.iterationBudget - plan.iterations;
     if (remain < ATTEMPT_FLOOR) remain = ATTEMPT_FLOOR;
-    local dualDeadline = AIController.GetTick() + remain / 3 + BUILD_TICK_MARGIN;
+    /* Sous rail_search_resumable, la borne tick historique tuerait cette seconde recherche
+     * des qu'elle est entrelacee. OpexTryDoubleTrack sort de toute facon avant l'A* pour une
+     * ligne neuve (gares pas encore posees, docs/taches.md S0) : le changement de deadline
+     * n'a donc d'effet que si ce chemin redevient vivant. */
+    local dualDeadline = (RAIL_SEARCH_RESUMABLE
+        ? AIController.GetTick() + RAIL_SEARCH_SAFETY_TICKS
+        : AIController.GetTick() + remain / 3 + BUILD_TICK_MARGIN);
     local extraForbidden = [];
     if (join != null) {
       local existing = join.platform;
@@ -961,6 +1019,7 @@ function OpexPlanRailRoute(catalog, budget, candidate, alternativeRatio, join, h
     }
     local dual = OpexTryDoubleTrack(catalog, planA, planB, tiles, null, 0,
                                     remain, dualDeadline, extraForbidden);
+    /* Cumul : les iterations de la seconde voie s'ajoutent au denominateur, pas le remplacent. */
     plan.iterations += dual.iterations;
     plan.doubleSkip = dual.skip;
     if (dual.ok) {
@@ -977,6 +1036,22 @@ function OpexPlanRailRoute(catalog, budget, candidate, alternativeRatio, join, h
   plan.ok = true;
   plan.reason = "OK";
   return plan;
+}
+
+/* Precalcule le plan physique complet d'une ligne ferroviaire (quais, economie, trace A*,
+ * depot, double voie eventuelle) SANS modifier la carte du jeu ni depenser de tresorerie.
+ * Mode bloquant : conserve pour rail_search_resumable=0. Le mode reprenable orchestre
+ * Prepare / tranches / Complete depuis OpexAI::_continueRailSearch. */
+function OpexPlanRailRoute(catalog, budget, candidate, alternativeRatio, join, hardCap = 10000)
+{
+  local plan = OpexPrepareRailRoute(catalog, budget, candidate, alternativeRatio, join, hardCap);
+  if (plan.plansA == null) return plan;
+
+  budget.begin();
+  local deadlineTick = AIController.GetTick() + plan.iterationBudget / 3 + BUILD_TICK_MARGIN;
+  local search = OpexSearchPath(plan.plansA, plan.plansB, plan.iterationBudget, deadlineTick);
+  plan.opcodes += budget.end("build_search");
+  return OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search, join);
 }
 
 /* Devis réel par AITestMode + AIAccounting avant engagement (docs/taches.md §0 tervicies point 8 & C7).
@@ -1242,50 +1317,52 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, join, cashReserve
   return result;
 }
 
-/* Construit une ligne complete, en reutilisant le plan precalcule s'il est present. */
+/* Construit une ligne complete, en reutilisant le plan precalcule s'il est present.
+ * Un railPlan non-null, y compris en echec (ABND/DEAD/SITE), est consomme tel quel : la
+ * recherche reprenable a deja paye les iterations, les rejouer casserait le denominateur
+ * et referait le gel. Le bras historique (railPlan absent) planifie puis construit. */
 function OpexBuildLine(catalog, budget, candidate, alternativeRatio, join, cashReserve, hardCap = 10000)
 {
   local plan = null;
-  if (("railPlan" in candidate) && candidate.railPlan != null && candidate.railPlan.ok) {
+  if (("railPlan" in candidate) && candidate.railPlan != null) {
     plan = candidate.railPlan;
   } else {
     plan = OpexPlanRailRoute(catalog, budget, candidate, alternativeRatio, join, hardCap);
-    if (!plan.ok) {
-      return { ok = false, reason = plan.reason, iterations = plan.iterations, opcodes = plan.opcodes,
-               siteClear = plan.siteClear, siteCargo = plan.siteCargo, siteCmd = plan.siteCmd,
-               siteKind = "N", joinEnd = "N", error = 0, diag = null,
-               trains = 0, doubleTrack = 0, doubleSkip = 0,
-               capacitySignalSegments = 0, capacitySignalsOk = 0, capacitySignalsFail = 0,
-               capacitySignalFailures = [],
-               signalsOk = 0, signalsFail = 0, signalsSkip = 0, signalJunc = 0,
-               signalFailures = [],
-               budgetInfo = plan.budgetInfo, iterationBudget = plan.iterationBudget };
-    }
+  }
+  if (!plan.ok) {
+    return { ok = false, reason = plan.reason, iterations = plan.iterations, opcodes = plan.opcodes,
+             siteClear = plan.siteClear, siteCargo = plan.siteCargo, siteCmd = plan.siteCmd,
+             siteKind = "N", joinEnd = "N", error = 0, diag = null,
+             trains = 0, doubleTrack = 0, doubleSkip = 0,
+             capacitySignalSegments = 0, capacitySignalsOk = 0, capacitySignalsFail = 0,
+             capacitySignalFailures = [],
+             signalsOk = 0, signalsFail = 0, signalsSkip = 0, signalJunc = 0,
+             signalFailures = [],
+             budgetInfo = plan.budgetInfo, iterationBudget = plan.iterationBudget };
   }
   return OpexExecuteRailPlan(catalog, budget, candidate, plan, join, cashReserve);
 }
 
-/* Doublement securise d'une ligne ferroviaire existante :
- * Pose un second quai a la gare A, un second quai a la gare B,
- * trace une seconde voie dediee avec son propre depot, pose les signaux PBS,
- * et lance le deuxieme convoi. Zéro collision, voies indépendantes. */
-function OpexUpgradeRailLineToDoubleTrack(catalog, budget, line, cashReserve, hardCap = 10000)
+/* Prepare la recherche de seconde voie d'une ligne existante, SANS lancer l'A*.
+ * ok=false => pas de pathfinder a poser (raison dans .reason). */
+function OpexPrepareUpgradeSearch(line, hardCap = 10000)
 {
-  local result = { ok = false, reason = "", cost = 0, train = null, depot2 = null,
-                   stationA2 = null, stationB2 = null, platformA2 = null, platformB2 = null };
+  local prep = { ok = false, reason = "", dualA = null, dualB = null, ignored = null,
+                 forbidden = null, iterationBudget = hardCap, planA = null, planB = null,
+                 stationIdA = -1, stationIdB = -1 };
   if (line == null || (("doubleTrack" in line) && line.doubleTrack == 1)) {
-    result.reason = "ALREADY_DOUBLE";
-    return result;
+    prep.reason = "ALREADY_DOUBLE";
+    return prep;
   }
   if (!("platformA" in line) || !("platformB" in line) || line.platformA == null || line.platformB == null) {
-    result.reason = "NOPLATFORM";
-    return result;
+    prep.reason = "NOPLATFORM";
+    return prep;
   }
   local stationIdA = AIStation.GetStationID(line.stationA);
   local stationIdB = AIStation.GetStationID(line.stationB);
   if (!AIStation.IsValidStation(stationIdA) || !AIStation.IsValidStation(stationIdB)) {
-    result.reason = "NOSTATION";
-    return result;
+    prep.reason = "NOSTATION";
+    return prep;
   }
 
   local forbidden = {};
@@ -1308,15 +1385,31 @@ function OpexUpgradeRailLineToDoubleTrack(catalog, budget, line, cashReserve, ha
     if (OpexSameStationEnd(plan, planB) && !OpexPlanHitsSet(plan, forbidden)) dualB.append(plan);
   }
   if (dualA.len() == 0 || dualB.len() == 0) {
-    result.reason = "NOSPOT";
-    return result;
+    prep.reason = "NOSPOT";
+    return prep;
   }
 
   local ignored = [];
   foreach (tile, ignoredVal in forbidden) ignored.append(tile);
-  local iterationBudget = hardCap;
-  local deadlineTick = AIController.GetTick() + hardCap / 3 + BUILD_TICK_MARGIN;
-  local search = OpexSearchPath(dualA, dualB, iterationBudget, deadlineTick, ignored);
+  prep.ok = true;
+  prep.reason = "OK";
+  prep.dualA = dualA;
+  prep.dualB = dualB;
+  prep.ignored = ignored;
+  prep.forbidden = forbidden;
+  prep.planA = planA;
+  prep.planB = planB;
+  prep.stationIdA = stationIdA;
+  prep.stationIdB = stationIdB;
+  return prep;
+}
+
+/* Pose la seconde voie une fois l'A* termine. search.iterations est ignore ici
+ * (l'upgrade n'entre pas dans le denominateur du classement des candidats). */
+function OpexExecuteUpgradeAfterSearch(catalog, budget, line, cashReserve, search, prep)
+{
+  local result = { ok = false, reason = "", cost = 0, train = null, depot2 = null,
+                   stationA2 = null, stationB2 = null, platformA2 = null, platformB2 = null };
   if (search.path == false || search.path == null) {
     result.reason = "NOPATH";
     return result;
@@ -1326,8 +1419,8 @@ function OpexUpgradeRailLineToDoubleTrack(catalog, budget, line, cashReserve, ha
     result.reason = "SHORT";
     return result;
   }
-  local planA2 = OpexMatchPlan(dualA, tiles2[0]);
-  local planB2 = OpexMatchPlan(dualB, tiles2[tiles2.len() - 1]);
+  local planA2 = OpexMatchPlan(prep.dualA, tiles2[0]);
+  local planB2 = OpexMatchPlan(prep.dualB, tiles2[tiles2.len() - 1]);
   if (planA2 == null || planB2 == null) {
     result.reason = "NOMATCH";
     return result;
@@ -1337,7 +1430,7 @@ function OpexUpgradeRailLineToDoubleTrack(catalog, budget, line, cashReserve, ha
     return result;
   }
   for (local i = 1; i < tiles2.len() - 1; i++) {
-    if (tiles2[i] in forbidden) {
+    if (tiles2[i] in prep.forbidden) {
       result.reason = "OVERLAP";
       return result;
     }
@@ -1357,10 +1450,10 @@ function OpexUpgradeRailLineToDoubleTrack(catalog, budget, line, cashReserve, ha
   local costs = AIAccounting();
   for (local i = 0; i < planA2.length; i++) AITile.DemolishTile(planA2.anchor + planA2.step * i);
   for (local i = 0; i < planB2.length; i++) AITile.DemolishTile(planB2.anchor + planB2.step * i);
-  local okA = AIRail.BuildRailStation(planA2.anchor, planA2.direction, 1, planA2.length, stationIdA);
-  local okB = AIRail.BuildRailStation(planB2.anchor, planB2.direction, 1, planB2.length, stationIdB);
-  local joinedA = AIStation.GetStationID(planA2.anchor) == stationIdA;
-  local joinedB = AIStation.GetStationID(planB2.anchor) == stationIdB;
+  local okA = AIRail.BuildRailStation(planA2.anchor, planA2.direction, 1, planA2.length, prep.stationIdA);
+  local okB = AIRail.BuildRailStation(planB2.anchor, planB2.direction, 1, planB2.length, prep.stationIdB);
+  local joinedA = AIStation.GetStationID(planA2.anchor) == prep.stationIdA;
+  local joinedB = AIStation.GetStationID(planB2.anchor) == prep.stationIdB;
   if (!okA || !okB || !joinedA || !joinedB) {
     OpexRollback(null, planA2, planB2, null, null);
     result.reason = "STATIONFAIL";
@@ -1378,7 +1471,7 @@ function OpexUpgradeRailLineToDoubleTrack(catalog, budget, line, cashReserve, ha
     return result;
   }
 
-  local depot2 = OpexBuildDepot(tiles2, forbidden);
+  local depot2 = OpexBuildDepot(tiles2, prep.forbidden);
   if (depot2 == null) {
     OpexRollback(tiles2, planA2, planB2, null, null);
     result.reason = "DEPOTFAIL";
@@ -1406,6 +1499,26 @@ function OpexUpgradeRailLineToDoubleTrack(catalog, budget, line, cashReserve, ha
   result.train = newTrains.vehicles[0];
   result.cost = costs.GetCosts();
   return result;
+}
+
+/* Doublement securise d'une ligne ferroviaire existante :
+ * Pose un second quai a la gare A, un second quai a la gare B,
+ * trace une seconde voie dediee avec son propre depot, pose les signaux PBS,
+ * et lance le deuxieme convoi. Zero collision, voies independantes.
+ * Mode bloquant (rail_search_resumable=0). Le mode reprenable orchestre
+ * Prepare / tranches / Execute depuis OpexAI::_continueRailSearch. */
+function OpexUpgradeRailLineToDoubleTrack(catalog, budget, line, cashReserve, hardCap = 10000)
+{
+  local result = { ok = false, reason = "", cost = 0, train = null, depot2 = null,
+                   stationA2 = null, stationB2 = null, platformA2 = null, platformB2 = null };
+  local prep = OpexPrepareUpgradeSearch(line, hardCap);
+  if (!prep.ok) {
+    result.reason = prep.reason;
+    return result;
+  }
+  local deadlineTick = AIController.GetTick() + hardCap / 3 + BUILD_TICK_MARGIN;
+  local search = OpexSearchPath(prep.dualA, prep.dualB, prep.iterationBudget, deadlineTick, prep.ignored);
+  return OpexExecuteUpgradeAfterSearch(catalog, budget, line, cashReserve, search, prep);
 }
 
 /* Construit un 2e train sur une ligne deja doublee avec depot2 valide. */
