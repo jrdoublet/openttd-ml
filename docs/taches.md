@@ -4330,7 +4330,7 @@ qui n'avait pas encore sa ligne. Journal de la journée : `docs/journal_2026-09-
 | C7 | **Devis réel par `AITestMode` + `AIAccounting`** avant engagement, au lieu d'un facteur correctif | remplacerait C2 à l'engagement | §0 tervicies point 8 |
 | C8 | **Câbler les bonus fret** (+40 % monopole, +35 % chaîne) sur ce que la sélection lit | aujourd'hui cosmétiques | §0 septdecies point 2 |
 | C9 | **`transit_cost`** : temps de voyage au dénominateur du ROI | non chiffré | §3 quater |
-| C10 | **`builder_water.nut:255`** : note de gare plate au lieu de `OpexStationRatingForHeadway` | MOYEN | §0 octodecies |
+| C10 | **`builder_water.nut:255`** : note de gare plate au lieu de `OpexStationRatingForHeadway` | ✅ Fait (§0 octodecies) | §0 octodecies |
 | C11 | **`candidates.nut:166-170` + `:188`** : double pénalité empilée sur `distance > 105`, non recalibrée. Dormante — **réveillée dès que C8 est fait** | MOYEN | §0 septdecies |
 | C12 | **La division entière écrase le rail dans `opcodeScore`** : médianes mesurées air 1037, route 62, **rail 0** | à trancher avec B1 | §0 tervicies |
 

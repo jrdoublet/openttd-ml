@@ -250,9 +250,12 @@ function OpexWaterEconomics(catalog, distance, orderDistance, monthlyPax)
     if (effectiveSpeed < 1) effectiveSpeed = 1;
     local oneWayDays = (distance * 1000) / (36 * effectiveSpeed);
     if (oneWayDays < 1) oneWayDays = 1;
+    local roundTripDays = 2 * oneWayDays;
+    local headwayDays = roundTripDays;
     local tripsPerMonth = 30 / oneWayDays;
     if (tripsPerMonth < 1) tripsPerMonth = 1;
-    local offered = (monthlyPax * STATION_RATING_PCT) / 100;
+    local stationRating = OpexStationRatingForHeadway(headwayDays);
+    local offered = (monthlyPax * stationRating) / 100;
     local monthlyCapacity = ship.capacity * tripsPerMonth;
     local carried = offered < monthlyCapacity ? offered : monthlyCapacity;
     local income = AICargo.GetCargoIncome(catalog.paxCargo, distance, oneWayDays);
@@ -265,7 +268,9 @@ function OpexWaterEconomics(catalog, distance, orderDistance, monthlyPax)
     local roi = (profitAnnual > 0 && capital > 0)
         ? (profitAnnual * 1000) / capital : 0;
     local economics = {
-      ship = ship, oneWayDays = oneWayDays, carried = carried,
+      ship = ship, oneWayDays = oneWayDays, roundTripDays = roundTripDays,
+      headwayDays = headwayDays, stationRating = stationRating,
+      carried = carried,
       revenueAnnual = revenueAnnual, runningAnnual = runningAnnual,
       amortAnnual = amortAnnual, profitAnnual = profitAnnual,
       capital = capital, roi = roi,
