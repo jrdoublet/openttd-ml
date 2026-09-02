@@ -763,10 +763,18 @@ Le mode route est donc reconfirme sur l arbre courant.
     });
 
     AddSetting({
-      name = "air_margin",
-      description = "Air authority margin applied per plan inside fleet sizing instead of shaving the global budget: 1 = per plan, 0 = historical (default)",
+      name = "air_abandon",
+      description = "Air build failures are remembered so the site scan stops re-proposing the same pair: 1 = remembered, 0 = historical (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "air_margin",
+      description = "Air authority margin applied per plan inside fleet sizing instead of shaving the global budget: 1 = per plan (default, adopted at bench as neutral-and-correct), 0 = historical",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 

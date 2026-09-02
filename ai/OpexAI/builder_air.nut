@@ -174,7 +174,8 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
    * cote appelant a ete mesure a −11,5 % (t = −2,66) le 2026-09-01 : ca rabote aussi le hub-a-hub,
    * dont la marge reelle n'est que 2 000. Ici la marge est appliquee PAR PLAN, au bon grain.
    * L'appelant soustrait deja le plancher de 2 000, on ne compte donc que le supplement.
-   * Sous 0 (defaut) ou maxCapital == 0 (chemin portefeuille), ce bloc ne change rien. */
+   * Sous 0 ou maxCapital == 0 (chemin portefeuille), ce bloc ne change rien. Adopte le
+   * 2026-09-02 (defaut 1) : mesure NEUTRE, adopte pour la justesse -- voir main.nut. */
   local extraMargin = 0;
   if (AIR_MARGIN && maxCapital > 0) {
     extraMargin = ((newAirportCount == 2) ? 30000 : (newAirportCount == 1 ? 12000 : 2000)) - 2000;
@@ -278,7 +279,12 @@ function OpexAirPlanBetter(plan, bestPlan)
   return plan.economics.profitAnnual > bestPlan.economics.profitAnnual;
 }
 
-function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null)
+/* `abandoned` : table des paires dont une construction a deja echoue (cle
+ * "air|tileA|tileB", identique a celle de main.nut). null = filtre desactive.
+ * Le filtre est place APRES les tests de distance et AVANT OpexAirEconomics : les paires
+ * ecartees pour distance ne paient pas la concatenation, et celles qui restent evitent le
+ * calcul cher. */
+function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, abandoned = null)
 {
   local combos = (("airCombos" in catalog) && catalog.airCombos != null && catalog.airCombos.len() > 0)
       ? catalog.airCombos
@@ -328,6 +334,9 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null)
         if (plane.maxOrderDistance > 0 && flightDistance > plane.maxOrderDistance) {
           continue;
         }
+
+        if (abandoned != null
+            && (("air|" + sites[a].town.tile + "|" + sites[b].town.tile) in abandoned)) continue;
 
         local popA = sites[a].town.pop;
         local popB = sites[b].town.pop;
@@ -426,6 +435,8 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null)
                                                         hub.anchor, site.anchor);
         local flightDistance = OpexFlightDistance(hub.anchor, site.anchor);
         if (plane.maxOrderDistance > 0 && flightDistance > plane.maxOrderDistance) continue;
+        if (abandoned != null
+            && (("air|" + hub.town.tile + "|" + site.town.tile) in abandoned)) continue;
         local hubMonthly = ((hub.town.pop * 22) / 100) / (hub.routes + 1);
         local newMonthly = (site.town.pop * 22) / 100;
         local monthlyPax = hubMonthly + newMonthly;
@@ -466,6 +477,8 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null)
         local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR, hub1.anchor, hub2.anchor);
         local flightDistance = OpexFlightDistance(hub1.anchor, hub2.anchor);
         if (plane.maxOrderDistance > 0 && flightDistance > plane.maxOrderDistance) continue;
+        if (abandoned != null
+            && (("air|" + hub1.town.tile + "|" + hub2.town.tile) in abandoned)) continue;
         local monthly1 = ((hub1.town.pop * 22) / 100) / (hub1.routes + 1);
         local monthly2 = ((hub2.town.pop * 22) / 100) / (hub2.routes + 1);
         local monthlyPax = monthly1 + monthly2;

@@ -273,10 +273,23 @@ FLEET_FIX <- false;
 GROWTH_YIELDS <- false;
 
 /* Marge d'autorite aerienne appliquee PAR PLAN dans OpexAirEconomics (builder_air.nut) plutot
- * qu'en rabotant maxCapital chez l'appelant : repli FAUX jusqu'a la lecture unique de air_margin
- * dans Start(). Voir le commentaire de la boucle de dimensionnement pour le raisonnement complet
- * et le banc a −11,5 % qu'il corrige. */
-AIR_MARGIN <- false;
+ * qu'en rabotant maxCapital chez l'appelant. Voir le commentaire de la boucle de dimensionnement
+ * (builder_air.nut) pour le raisonnement complet et le banc a -11,5 % qu'il corrige.
+ *
+ * ADOPTE le 2026-09-02, defaut 1 (docs/bench_air_margin_3y.json, 20 graines x 3 ans, apparie) :
+ * company_value +1,3 % (t = 0,26), profit_year -1,6 % (t = -0,28), toutes metriques sous t = 1,2.
+ * NEUTRE, donc adopte pour la JUSTESSE, pas pour la performance -- ne revendiquer aucun gain. Le
+ * defaut vise est reel mais son cout est nul, ce qui est coherent avec loop_budget nul : le gachis
+ * d'un cycle d'opcodes ne se paie pas. Repli VRAI jusqu'a la lecture unique dans Start(). */
+AIR_MARGIN <- true;
+
+/* _tryBuildAir memorise ses echecs de construction dans _abandonedPairs et OpexAirPlans les
+ * ecarte pendant le scan : repli FAUX jusqu'a la lecture unique de air_abandon dans Start().
+ * Sous 0 (defaut), chemin historique -- l'echec n'est pas retenu, et comme OpexAirPlans ne
+ * renvoie qu'un seul bestPlan, le cycle suivant re-scanne tous les sites pour reproposer
+ * exactement la meme paire et echouer de la meme facon. Le chemin portefeuille, lui, memorisait
+ * deja ses echecs. */
+AIR_ABANDON <- false;
 
 /* Correctifs du modele economique (revue de economy.nut, docs/taches.md S0 octies) : repli FAUX
  * jusqu'a la lecture unique de economy_fix dans Start(). Defaut 0 : chemin historique inchange.
@@ -687,7 +700,8 @@ function OpexAI::_tryBuildAir(year)
     if (maxCapital <= 0) break;
 
     this._budget.begin();
-    local plan = OpexAirPlans(this._catalog, this._lines, maxCapital);
+    local plan = OpexAirPlans(this._catalog, this._lines, maxCapital, null,
+                              (AIR_ABANDON && ABANDON_MEMORY) ? this._abandonedPairs : null);
     local planOps = this._budget.end("build_air_plans");
     if (plan == null) {
       if (builtCount == 0) {
@@ -716,7 +730,15 @@ function OpexAI::_tryBuildAir(year)
     local anchor = AIMap.GetTileIndex(1, 1);
     OpexSign(anchor, "OA|" + year + "|" + plan.distance + "|" + planOps + "|" + result.reason);
     if (result.error != 0) OpexSign(anchor, "OE|A|" + result.error);
-    if (!result.ok) break;
+    if (!result.ok) {
+      /* air_abandon : sans cette memorisation, le cycle suivant re-scanne tous les sites pour
+       * reproposer EXACTEMENT le meme bestPlan et echouer de la meme facon. Le chemin
+       * portefeuille memorise deja ses echecs (voir plus bas) ; ce chemin-ci ne le faisait pas. */
+      if (AIR_ABANDON && ABANDON_MEMORY) {
+        this._abandonedPairs["air|" + plan.siteA.town.tile + "|" + plan.siteB.town.tile] <- true;
+      }
+      break;
+    }
 
     this._airBuilt = true;
     this._lines.append({
@@ -2666,6 +2688,7 @@ function OpexAI::Start()
   ECONOMY_FIX = AIController.GetSetting("economy_fix") != 0;
   GROWTH_YIELDS = AIController.GetSetting("growth_yields") != 0;
   AIR_MARGIN = AIController.GetSetting("air_margin") != 0;
+  AIR_ABANDON = AIController.GetSetting("air_abandon") != 0;
   PRICING_ROAD_RATING = AIController.GetSetting("pricing_road_rating") != 0;
   PRICING_RAIL_DEPOT = AIController.GetSetting("pricing_rail_depot") != 0;
   PRICING_ROAD_OPS = AIController.GetSetting("pricing_road_ops") != 0;

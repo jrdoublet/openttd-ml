@@ -2181,8 +2181,43 @@ Analyse de grok (lecture seule) sur les trois branches de `OpexAirPlans` :
 .allowBig) break;` (`builder_air.nut:479`). Si aucun combo « grand » n'est finançable, les combos
 suivants (jusqu'à 5×) s'exécutent au lieu de s'arrêter tôt — surcoût d'opcodes ponctuel.
 
-Implémenté sous le réglage `air_margin` (défaut 0), smoke 3/3 OK. Banc apparié 20 graines × 3 ans
-en cours : `docs/bench_air_margin_3y.json`.
+### ✅ `air_margin` ADOPTÉ le 2026-09-02 — pour la justesse, pas pour la performance
+
+**Banc apparié 20 graines × 3 ans** (`docs/bench_air_margin_3y.json`), contrôle moins variante :
+
+| métrique | écart apparié | t | graines gagnées par le contrôle |
+|---|---:|---:|---:|
+| `company_value` | +11 126 £ (+1,3 %) | 0,26 | 8/20 |
+| `profit_year` | −7 209 £ (−1,6 %) | −0,28 | 6/20 |
+| `performance_history` | +9,3 pts (+3,3 %) | 1,16 | 8/20 |
+| `median_station_rating` | +3,8 pts (+2,3 %) | 0,81 | 9/20 |
+
+**Neutre sur toute la ligne.** C'est le résultat qu'il fallait obtenir : le rabot global coûtait
+−11,5 % (t = −2,66), le même mécanisme appliqué **par plan** ne coûte rien. Défaut passé à 1 sur le
+même motif que `pricing_road_ops` — justesse mesurée non nuisible. **Ne revendiquer aucun gain.**
+
+🔴 **Et ça enseigne quelque chose de plus** : le défaut visé était réel (plan trouvé puis rejeté,
+cycle gâché) mais sa correction ne vaut rien. Cohérent avec `loop_budget` nul : le gâchis d'un
+cycle d'opcodes ne se paie pas. Troisième confirmation que **les opcodes ne sont pas le goulot** —
+arrêter de proposer des pistes qui économisent des cycles.
+
+⚠️ **Repère de bruit utile** : le bras de contrôle vaut 919 592 £ au banc `growth_yields` et
+874 603 £ ici, à *code de contrôle identique* — seules deux lignes de déclaration ajoutées entre
+les deux décalent les frontières de ticks. **Un écart de 5 % sur `company_value` est du bruit de
+trajectoire pur**, ce qui reconfirme indépendamment le plancher de détection à ~15 %.
+
+### 🔶 `air_abandon` : `_tryBuildAir` ne mémorisait pas ses échecs (2026-09-02)
+
+Défaut confirmé en lecture : `_tryBuildAir` (`main.nut:639-746`) ne consulte **ni n'alimente**
+`_abandonedPairs`. Sur `!result.ok` il fait un simple `break` — et comme `OpexAirPlans` ne renvoie
+qu'un seul `bestPlan`, le cycle suivant re-scanne tous les sites pour reproposer **exactement la
+même paire** et échouer pareil. Le chemin portefeuille (`main.nut:1050`, `:1072`), lui, mémorisait
+déjà. `OpexAirPlans` reçoit désormais un paramètre `abandoned` optionnel et filtre dans ses trois
+boucles, **après** les tests de distance et **avant** `OpexAirEconomics` : les paires écartées pour
+distance ne paient pas la concaténation de clé, les autres évitent le calcul cher.
+
+Réglage `air_abandon` (défaut 0), smoke 3/3 OK. Banc apparié en cours :
+`docs/bench_air_abandon_3y.json`.
 
 ---
 
