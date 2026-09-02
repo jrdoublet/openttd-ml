@@ -1160,6 +1160,13 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats)
   local towns = catalog.towns;
   local n = towns.len();
 
+  /* air_fleet_probe : ZERO feeder n'a jamais ete bati (mesure du 2026-09-02, 5 graines x 3 ans),
+   * alors que le mecanisme est cable de bout en bout. Impossible de dire si c'est la GENERATION
+   * ou l'ELECTION qui echoue sans compter les deux. `feederHubs` et `feederCandidates` repondent
+   * a la premiere question ; le panneau FE| de main.nut repond a la seconde. */
+  if (!("feederHubs" in stats)) stats.feederHubs <- 0;
+  if (!("feederCandidates" in stats)) stats.feederCandidates <- 0;
+
   local hubs = [];
   local seenHubStations = {};
   foreach (line in lines) {
@@ -1176,6 +1183,7 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats)
       hubs.append({ stationId = stB, tile = line.stationB, mode = line.mode });
     }
   }
+  stats.feederHubs = hubs.len();
   if (hubs.len() == 0) return;
 
   for (local i = 0; i < n; i++) {
@@ -1194,6 +1202,7 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats)
       local candidate = OpexMakeRoadCandidate(catalog, "pax", cargo, towns[i].tile, hub.tile,
                                               towns[i].id, -1, distance, monthly, stats);
       if (candidate != null) {
+        stats.feederCandidates++;
         candidate.isFeeder <- true;
         candidate.hubStationId <- hub.stationId;
         candidate.hubMode <- hub.mode;
@@ -1215,6 +1224,7 @@ function OpexBuildRoadCandidates(catalog, budget, lines)
   local stats = {
     pairsInBand = 0, noMonthly = 0, noEngine = 0, townRejected = 0,
     economicsUnavailable = 0, profitTooLow = 0, accepted = 0,
+    feederHubs = 0, feederCandidates = 0,
   };
   if (catalog.roadType < 0) return { all = 0, best = [], stats = stats, opcodes = 0 };
 

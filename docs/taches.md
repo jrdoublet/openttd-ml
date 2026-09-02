@@ -3561,3 +3561,103 @@ de ≥ 2 niveaux de la moyenne (`tile.nut:1269-1274`), sans dépenser un sou. No
 Il supprime le résidu que le sondage laisse, et il coûte moins cher que lui. Mais il ne faut pas
 en attendre de la performance non plus — ce banc-ci vient de montrer que l'économie de capital,
 seule, ne paie pas. La vraie piste reste §0 tervicies point 1 : **le dénominateur du classement.**
+
+---
+
+## 0 quinvicies. 🔴 SATURATION AÉRIENNE ET BUS DE RABATTAGE : deux réponses mesurées (2026-09-02)
+
+Priorité fixée par l'utilisateur. Réglage `air_fleet_probe` (`info.nut`, défaut 0) : panneau `FR|`
+pour la cause du refus de croissance d'une flotte aérienne, `FE|` pour une ligne routière de
+rabattage réellement mise en service, `FN|` pour ce que la génération de rabattage produit.
+Campagnes `docs/diag_air_fleet_feeder.json` et `docs/diag_feeder_gen.json`, 5 graines × 3 ans.
+
+### 1. La flotte aérienne ne sature pas — et c'est la TRÉSORERIE, à 31 refus sur 32
+
+`_resizeAirFleets` n'émettait que ses succès (`FG|`). Le premier refus rencontré est désormais
+tracé, une fois par ligne et par an :
+
+| cause | code | n |
+|---|---|---:|
+| **trésorerie insuffisante** (`money < prix + réserve + 2 000`) | `M` | **31** |
+| profit négatif | `L` | 1 |
+| plafond de l'aéroport atteint | `C` | **0** |
+| déjà grandie cette année / ligne morte / achat échoué | `Y`/`D`/`X` | **0** |
+
+**Le plafond n'est jamais atteint.** 17 lignes aériennes, **28 avions, 1,6 par ligne**, pour un
+plafond de 16 (4 sur petit aéroport). Ce n'est ni le dimensionnement, ni le rythme annuel, ni la
+santé des lignes : **il n'y a pas d'argent au moment où la tâche `air_fleet` passe.**
+
+Et l'ordre de la file explique pourquoi (`main.nut:429-440`) :
+
+```
+catalog → report → scrap → air → air_fleet → projects → …
+             tâche `air` : NOUVELLES lignes      ↑ croissance des lignes EXISTANTES
+```
+
+**On finance des lignes neuves avant de saturer celles qui marchent déjà.** Un avion de plus sur
+une ligne rentable n'exige aucune infrastructure : c'est le capital le mieux employé du jeu, et
+c'est le dernier servi. Recoupe §0 unvicies (l'avion prend 64,5 % du capital, presque tout en
+aéroports neufs) et le mur de trésorerie 1970-1980.
+
+➡️ **Candidat** : inverser `air` et `air_fleet` dans la file, ou réserver une part du capital à la
+croissance avant toute nouvelle liaison. À mesurer, comme le reste.
+
+### 2. 🔴 Les bus de rabattage : 651 candidats générés, **ZÉRO bâti**
+
+Le mécanisme est câblé de bout en bout et il est correct : `OpexRoadFeederCandidates`
+(`candidates.nut:1156-1207`) cherche les villes non desservies de 200 habitants et plus à 5-40
+tuiles d'un hub **rail ou aérien** existant, et `builder_road.nut:712` pose bien l'ordre
+`OF_TRANSFER | OF_UNLOAD` au hub.
+
+| | mesuré sur 105 cycles de portefeuille |
+|---|---:|
+| hubs vus (cumul) | 504 |
+| **candidats de rabattage générés** | **651** |
+| **lignes de rabattage bâties** | **0** |
+
+**La génération marche parfaitement. C'est l'élection qui les écarte, 100 % du temps.**
+
+**Cause identifiée, une jambe vérifiée** : le bonus de rabattage écrit `roi`, `ratio` et
+`profitAnnual` (`candidates.nut:1200-1203`), **jamais `revenueAnnual`**. Or le sac à dos trie sur
+`budgetScore * 75 + opcodeScore * 25` (`projects.nut:332`) et **les deux scores sont calculés à
+partir de `candidate.revenueAnnual`** (`:79-80`), puis le re-tri final `byOpcodes` refait le même
+calcul. **Le +60 % tombe donc entièrement dans des champs que la sélection ne lit jamais.**
+
+C'est **exactement le défaut de §0 septdecies point 2** pour les bonus fret (+40 %, +35 %), à un
+endroit de plus : le bonus vit dans `ratio`/`roi`, la décision vit dans `revenueAnnual`.
+
+⚠️ Ce qui reste à mesurer : un feeder est-il seulement *financé* par le sac à dos avant d'être
+écarté au re-tri, ou est-il éliminé dès le premier tri ? Un compteur sur le jeu financé le dira.
+Ne pas coder le correctif avant.
+
+### 3. Le compteur d'opcodes route existe déjà — et la constante n'est pas si mauvaise
+
+Demandé : un compteur d'opcodes pour la route. **Il est déjà là** : `RB|yy|idx|1|planOps|buildOps`
+(`main.nut:1284`) porte la planification et la construction de chaque tentative, et le parseur les
+expose en `plan_ops` / `build_ops` par tentative.
+
+Mesuré, 5 graines × 3 ans, 21 tentatives :
+
+| | plan | construction | total |
+|---|---:|---:|---:|
+| tentative réussie | 45 000 - 94 000 | 230 000 - 375 000 | **~350 000** |
+| tentative échouée | 38 000 - 212 000 | 0 | **~150 000** |
+
+Contre `PROJECT_ROAD_TRANSACTION_OPS = 287 000`, constante actuelle : **l'ordre de grandeur est
+bon** (facteur 1,2 sur les succès, 1,9 sur les échecs). Ce qui manque n'est donc pas la mesure
+mais **la variabilité** : la constante ignore qu'un échec coûte le tiers d'un succès, et la route
+échoue 2 fois sur 3 (21 tentatives → 7 lignes).
+
+⚠️ Un estimateur dépendant de la distance ne peut PAS être calibré sur ces données : toutes les
+lignes routières bâties font 20 à 25 tuiles (`ROAD_MAX_DISTANCE = 25`), il n'y a aucun levier.
+
+### 4. Temps de voyage et de chargement, valable pour tous les modes
+
+Les ingrédients existent déjà dans les quatre modes : `oneWayDays` est calculé partout
+(`economy.nut:69`, `builder_air.nut:139`, `builder_water.nut:251`, et porté par le candidat
+routier), `roundTripDays` et `headwayDays` en plus pour le rail et l'air.
+
+Ce qui manque est le branchement : ajouter au **dénominateur** du ROI le revenu immobilisé pendant
+le trajet et l'attente, à la manière de `lostOpportunity` (§0 tervicies point 2). Réglage
+`transit_cost` (pour mille, défaut 0 = neutre), appliqué uniformément dans `OpexEconomics` et ses
+trois homologues modaux. **C'est un changement de classement : il se banche.**

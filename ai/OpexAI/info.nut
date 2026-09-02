@@ -65,6 +65,17 @@ class OpexAIInfo extends AIInfo {
      *
      * Defaut 0 jusqu'au banc apparie : economiser un aeroport rase est un gain evident sur le
      * papier, mais c'est exactement ce que disaient les treize corrections de S0 nonies bis. */
+    /* _resizeAirFleets n'emet que ses SUCCES (panneau FG|). Quand une ligne aerienne cesse de
+     * grandir -- et la mesure du 2026-09-02 dit 2,2 avions par ligne pour un plafond de 16 --
+     * la cause est invisible. FR| donne le PREMIER refus rencontre, une fois par ligne et par an. */
+    AddSetting({
+      name = "air_fleet_probe",
+      description = "Emit the reason an air line's fleet did not grow, once per line per year: 1 = measurement only, 0 = no extra signs (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     AddSetting({
       name = "air_presite",
       description = "Probe both airport sites in test mode before committing capital to the first one: 1 = enabled, 0 = build A then discover B (default)",

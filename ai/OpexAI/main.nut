@@ -55,6 +55,10 @@ AIR_COST_PROBE <- false;
 /* air_presite : sonder les deux sites en AITestMode avant d'engager le capital du premier
  * aeroport. Inerte par defaut jusqu'au verdict du banc. */
 AIR_PRESITE <- false;
+/* air_fleet_probe : _resizeAirFleets n'emet que ses SUCCES (FG|). Quand une ligne aerienne
+ * n'grandit pas, la cause est invisible. FR| donne le premier refus rencontre, une fois par ligne
+ * et par an. */
+AIR_FLEET_PROBE <- false;
 /* Expansion marginale : bras A/B inerte par defaut jusqu'au verdict du banc. */
 RAIL_EXPAND <- false;
 const RAIL_EXPAND_STREAK = 2;
@@ -1300,6 +1304,14 @@ function OpexAI::_tryBuildProjects(year)
                                + AICargo.GetCargoLabel(candidate.cargo));
       OpexSign(anchor, "RC|" + yy + "|" + idx + "|1|" + result.cost
                                + "|" + result.vehicles.len());
+      /* Un feeder est une ligne routiere de RABATTAGE vers un hub rail ou aerien
+       * (candidates.nut:1156), avec ordre OF_TRANSFER|OF_UNLOAD au hub. Rien ne le distinguait
+       * d'une liaison ville-a-ville dans la telemetrie : impossible de dire si un seul avait
+       * jamais ete bati. Un panneau par feeder, donc aucun cout quand il n'y en a pas. */
+      if (("isFeeder" in candidate) && candidate.isFeeder) {
+        OpexSign(anchor, "FE|" + idx + "|"
+                                 + ((("hubMode" in candidate) && candidate.hubMode == "air") ? "A" : "T"));
+      }
       if (ROAD_MULTISTOP) {
         OpexSign(anchor, "RM|" + yy + "|" + idx + "|1|"
                                  + result.nStopsA + "|" + result.nStopsB + "|"
@@ -1549,6 +1561,14 @@ function OpexAI::_tryBuildProjects(year)
              + this._projects.stats.odProjects + "|" + this._projects.stats.budgetSelected
              + "|" + (this._projects.stats.knapsackExact ? 0 : 1)
              + "|" + this._budget.nested);
+    /* air_fleet_probe : combien de hubs le rabattage voit-il, et combien de candidats feeders
+     * en tire-t-il ? Sans ces deux nombres, un "zero feeder bati" ne dit pas si la generation
+     * est vide ou si l'election les ecarte. */
+    if (AIR_FLEET_PROBE && ("road" in this._projects) && ("stats" in this._projects.road) &&
+        ("feederCandidates" in this._projects.road.stats)) {
+      OpexSign(anchor, "FN|" + yy + "|" + this._projects.road.stats.feederHubs
+                             + "|" + this._projects.road.stats.feederCandidates);
+    }
     /* B est le nombre reellement construit dans CE passage. On complete IB au lieu d'ajouter un
      * panneau : ses deux champs historiques restent aux memes positions, et avec les deux
      * capitaux a 10 chiffres que le format IB admet deja, |B8 fait 30 caracteres, sous 31. */
@@ -1762,18 +1782,31 @@ function OpexAI::_reportLines(year)
  * par an si (1) les appareils existants gagnent de l'argent et (2) au moins une charge utile
  * complete attend dans les deux aeroports. Un echec de cash est reporte a l'annee suivante : la
  * file ne le resonde pas a chaque cycle et ne gaspille donc pas d'opcodes. */
+/* Cause du refus de croissance d'une flotte aerienne, une seule fois par ligne et par an.
+ * Codes : Y deja grandie cette annee, V aucun avion vivant, D ligne morte, L profit negatif,
+ * C plafond de l'aeroport atteint, S un an de mauvaise sante, M tresorerie, X l'achat a echoue. */
+function OpexAirFleetRefusal(line, year, code)
+{
+  if (!AIR_FLEET_PROBE) return;
+  if (!("lineId" in line)) return;
+  if (("lastFleetProbeYear" in line) && line.lastFleetProbeYear == year) return;
+  line.lastFleetProbeYear <- year;
+  OpexSign(AIMap.GetTileIndex(2, 10 + line.lineId),
+           "FR|" + (year % 100) + "|" + line.lineId + "|" + code);
+}
+
 function OpexAI::_resizeAirFleets(year)
 {
   local anchor = AIMap.GetTileIndex(1, 1);
   foreach (line in this._lines) {
     if (!("mode" in line) || line.mode != "air") continue;
-    if (("lastAirFleetYear" in line) && line.lastAirFleetYear == year) continue;
+    if (("lastAirFleetYear" in line) && line.lastAirFleetYear == year) { OpexAirFleetRefusal(line, year, "Y"); continue; }
     local have = ("vehCount" in line) ? line.vehCount : (("vehicles" in line) ? line.vehicles.len() : 0);
-    if (have < 1) continue;
-    if (("deadStreak" in line) && line.deadStreak >= 2) continue;
+    if (have < 1) { OpexAirFleetRefusal(line, year, "V"); continue; }
+    if (("deadStreak" in line) && line.deadStreak >= 2) { OpexAirFleetRefusal(line, year, "D"); continue; }
 
     // Condition 1 : Les appareils existants ne doivent pas etre deficitaires
-    if (("lastProfit" in line) && line.lastProfit < 0) continue;
+    if (("lastProfit" in line) && line.lastProfit < 0) { OpexAirFleetRefusal(line, year, "L"); continue; }
 
     /* marginal_fleet = 1 (2026-09-01) : dimensionnement marginal STRICT de l'air. Le commentaire
      * de cette fonction promettait deja d'attendre un an, d'exiger une charge complete en attente
@@ -1806,9 +1839,9 @@ function OpexAI::_resizeAirFleets(year)
       isSmallAirport = true;
     }
     local maxPlanesForAirport = isSmallAirport ? 4 : AIR_MAX_PLANES_PER_ROUTE;
-    if (have >= maxPlanesForAirport) continue;
-    if (("deadStreak" in line) && line.deadStreak >= 1) continue;
-    if (("lastProfit" in line) && line.lastProfit < 0) continue;
+    if (have >= maxPlanesForAirport) { OpexAirFleetRefusal(line, year, "C"); continue; }
+    if (("deadStreak" in line) && line.deadStreak >= 1) { OpexAirFleetRefusal(line, year, "S"); continue; }
+    if (("lastProfit" in line) && line.lastProfit < 0) { OpexAirFleetRefusal(line, year, "L"); continue; }
 
     /* fleet_fix : cette garde pricait le MEILLEUR avion du catalogue, alors qu'OpexAirAddPlane
      * clone le gabarit de LA LIGNE (builder_air.nut:224, prix lu sur l'engin du vehicule existant).
@@ -1833,9 +1866,9 @@ function OpexAI::_resizeAirFleets(year)
     while (have < maxPlanesForAirport && addedThisPass < maxAddedPerPass) {
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
       if (money < need && REBORROW) money = OpexTryReborrow(need, money);
-      if (money < need) break;
+      if (money < need) { OpexAirFleetRefusal(line, year, "M"); break; }
       local grown = OpexAirAddPlane(line);
-      if (grown.added <= 0) break;
+      if (grown.added <= 0) { OpexAirFleetRefusal(line, year, "X"); break; }
       have += grown.added;
       addedThisPass += grown.added;
       line.vehCount <- have;
@@ -2721,6 +2754,14 @@ function OpexAI::_runNextTask()
              + this._projects.stats.odProjects + "|" + this._projects.stats.budgetSelected
              + "|" + (this._projects.stats.knapsackExact ? 0 : 1)
              + "|" + this._budget.nested);
+    /* air_fleet_probe : combien de hubs le rabattage voit-il, et combien de candidats feeders
+     * en tire-t-il ? Sans ces deux nombres, un "zero feeder bati" ne dit pas si la generation
+     * est vide ou si l'election les ecarte. */
+    if (AIR_FLEET_PROBE && ("road" in this._projects) && ("stats" in this._projects.road) &&
+        ("feederCandidates" in this._projects.road.stats)) {
+      OpexSign(anchor, "FN|" + yy + "|" + this._projects.road.stats.feederHubs
+                             + "|" + this._projects.road.stats.feederCandidates);
+    }
     OpexSign(anchor, "IB|" + yy + "|" + this._projects.capitalBudget + "|"
              + this._projects.stats.selectedCapital);
     return true;
@@ -2831,6 +2872,7 @@ function OpexAI::Start()
   RAIL_COST_PROBE = AIController.GetSetting("rail_cost_probe") != 0;
   AIR_COST_PROBE = AIController.GetSetting("air_cost_probe") != 0;
   AIR_PRESITE = AIController.GetSetting("air_presite") != 0;
+  AIR_FLEET_PROBE = AIController.GetSetting("air_fleet_probe") != 0;
   RAIL_EXPAND = AIController.GetSetting("rail_expand") != 0;
   ASTAR_COST_V2 = AIController.GetSetting("astar_cost") != 0;
   PROBE_NEGATIVE = AIController.GetSetting("probe_negative") != 0;

@@ -84,6 +84,9 @@ RE_DT = re.compile(r"^DT\|(\d+)\|([01])\|(\d+)\|(\d+)$")  # id, posed, trains, s
 RE_PM = re.compile(r"^PM\|(\d+)\|([AWR])\|(\d+)\|(.+)$")
 RE_AH = re.compile(r"^AH\|(\d+)\|([01])\|(\d+)\|(\d+)$")   # id, reuseA, capital modele, hubRoutes
 RE_AC = re.compile(r"^AC\|(\d+)\|(\d+)\|(-?\d+)\|(\d+)\|(\d+)$")  # id, capital modele, cout reel, avions prevus, batis
+RE_FR = re.compile(r"^FR\|(\d{2})\|(\d+)\|([A-Z])$")        # annee, ligne, cause du refus de croissance
+RE_FE = re.compile(r"^FE\|(\d+)\|([AT])$")                   # ligne routiere feeder, vers hub Air ou Train
+RE_FN = re.compile(r"^FN\|(\d{2})\|(\d+)\|(\d+)$")            # annee, hubs vus, candidats feeders generes
 RE_AF = re.compile(r"^AF\|(\d+)\|(\d+)\|(-?\d+)$")          # id, avions, profit annuel predit
 RE_IA = re.compile(r"^IA\|(\d+)\|(\d+)\|(-?\d)\|(-?\d)\|(-?\d+)$")
 RE_OX = re.compile(r"^OX\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")   # year, towns, industries, ranked.all
@@ -537,6 +540,40 @@ def parse_lines(all_signs):
             entry["n_stops_b"] = road_multi[idx]["n_stops_b"]
         lines.append(entry)
     return lines
+
+
+def parse_fleet_refusals(all_signs):
+    """Cause du refus de croissance d'une flotte aerienne, une entree par ligne et par an."""
+    rows = []
+    for sign in all_signs:
+        m = RE_FR.match(sign)
+        if m:
+            rows.append({"year": 1900 + int(m.group(1)), "line_index": int(m.group(2)),
+                         "reason": m.group(3)})
+    return rows
+
+
+def parse_feeder_generation(all_signs):
+    """Hubs vus et candidats de rabattage generes, par annee : distingue une generation vide
+    d'une election qui ecarte."""
+    rows = []
+    for sign in all_signs:
+        m = RE_FN.match(sign)
+        if m:
+            rows.append({"year": 1900 + int(m.group(1)), "hubs": int(m.group(2)),
+                         "candidates": int(m.group(3))})
+    return rows
+
+
+def parse_feeders(all_signs):
+    """Lignes routieres de rabattage reellement mises en service, et le mode du hub vise."""
+    rows = []
+    for sign in all_signs:
+        m = RE_FE.match(sign)
+        if m:
+            rows.append({"line_index": int(m.group(1)),
+                         "hub_mode": "air" if m.group(2) == "A" else "rail"})
+    return rows
 
 
 def parse_air_costs(all_signs):
@@ -1259,6 +1296,9 @@ def make_run_payload(rows, seed, years):
     lines = parse_lines(final["signs"])
     attempts = parse_attempts(final["signs"])
     air_costs = parse_air_costs(final["signs"])
+    fleet_refusals = parse_fleet_refusals(final["signs"])
+    feeders = parse_feeders(final["signs"])
+    feeder_generation = parse_feeder_generation(final["signs"])
     safety = parse_safety(final["signs"])
     yearly = parse_yearly(final["signs"])
     project_portfolios, project_decisions = parse_project_portfolios(final["signs"])
@@ -1394,6 +1434,10 @@ def make_run_payload(rows, seed, years):
         "attempt_distance": summarise_attempt_distance(attempts),
         "rail_attempts": attempts, "air_attempts": air, "water_attempts": water,
         "air_costs": air_costs,
+        "air_fleet_refusals": fleet_refusals,
+        "n_feeders": len(feeders),
+        "feeder_generation": feeder_generation,
+        "feeders": feeders,
         "road_attempts": road, "cash_blocks": cash_blocks, "dead_line_events": dead_lines,
         "loan_repayments": loan_repayments, "loan_draws": loan_draws,
         "n_loan_draws": len(loan_draws),

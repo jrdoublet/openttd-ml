@@ -362,7 +362,8 @@ function OpexProjectEmptyRoad()
   return {
     all = 0, candidates = [], best = [],
     stats = { pairsInBand = 0, noMonthly = 0, noEngine = 0, townRejected = 0,
-              economicsUnavailable = 0, profitTooLow = 0, accepted = 0 },
+              economicsUnavailable = 0, profitTooLow = 0, accepted = 0,
+              feederHubs = 0, feederCandidates = 0 },
     opcodes = 0,
   };
 }
