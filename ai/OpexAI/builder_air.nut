@@ -104,6 +104,26 @@ function OpexAirFindSite(town, airport, probes)
         local c4 = anchor + AIMap.GetTileIndex(offX, offY);
         if (AITile.IsWaterTile(c4) || AITile.IsCoastTile(c4)) continue;
         if (AIAirport.GetNearestTown(anchor, airport.type) != town.id) continue;
+
+        /* Filtre de platitude préalable (docs/taches.md §0 tervicies point 5 & C4, façon AAAHogEx) :
+         * Si l'écart d'altitude au sein de l'emprise dépasse 1 niveau, le terrassement échoue
+         * massivement ou coûte trop cher. Rejet éliminatoire avant d'entrer en AITestMode. */
+        local minH = AITile.GetMinHeight(anchor);
+        local maxH = AITile.GetMaxHeight(anchor);
+        local tooSteep = false;
+        for (local tx = 0; tx <= offX; tx++) {
+          for (local ty = 0; ty <= offY; ty++) {
+            local t = anchor + AIMap.GetTileIndex(tx, ty);
+            local tMin = AITile.GetMinHeight(t);
+            local tMax = AITile.GetMaxHeight(t);
+            if (tMin < minH) minH = tMin;
+            if (tMax > maxH) maxH = tMax;
+            if (maxH - minH >= 2) { tooSteep = true; break; }
+          }
+          if (tooSteep) break;
+        }
+        if (tooSteep) continue;
+
         if (used >= allowance || probes.left <= 0) return null;
 
         local ok = false;
