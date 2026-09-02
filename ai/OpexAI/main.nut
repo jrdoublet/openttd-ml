@@ -2696,6 +2696,7 @@ function OpexAI::Start()
   GROWTH_YIELDS = AIController.GetSetting("growth_yields") != 0;
   AIR_MARGIN = AIController.GetSetting("air_margin") != 0;
   AIR_ABANDON = AIController.GetSetting("air_abandon") != 0;
+  MIN_DISTANCE = AIController.GetSetting("rail_min_distance");
   PRICING_ROAD_RATING = AIController.GetSetting("pricing_road_rating") != 0;
   PRICING_RAIL_DEPOT = AIController.GetSetting("pricing_rail_depot") != 0;
   PRICING_ROAD_OPS = AIController.GetSetting("pricing_road_ops") != 0;

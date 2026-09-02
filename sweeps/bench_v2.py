@@ -145,6 +145,11 @@ def parse_opex_variant(name):
                 raise ValueError("portfolio_floor_pct doit etre entre 0 et 100")
             if value % 5:
                 raise ValueError("portfolio_floor_pct doit etre un multiple de 5 (step_size)")
+        elif key == "rail_min_distance":
+            # Distance minimale d'un candidat rail. 25 = comportement livre ; 5 rouvre la bande
+            # de chevauchement rail/route que les commentaires du fichier decrivent deja.
+            if not 5 <= value <= 40:
+                raise ValueError("rail_min_distance doit etre entre 5 et 40")
         elif key in ("abandon_memory", "station_join", "join_place", "origin_sitable", "basin_share", "reborrow", "road_mode", "road_refleet", "road_multistop", "astar_cost", "probe_negative", "pax_near", "rail_cost_probe", "rail_expand", "town_growth", "dynamic_cash_reserve", "dynamic_pathfinder_cap", "tree_planting", "loop_budget", "portfolio_v2", "fleet_fix", "economy_fix", "growth_yields", "air_margin", "air_abandon", "pricing_road_rating", "pricing_rail_depot", "pricing_road_ops", "pax_full_load", "complex_cargo", "air_starter", "air_hub", "rail_refleet", "marginal_fleet"):
             if value not in (0, 1):
                 raise ValueError(f"{key} est booleen : 0 ou 1")

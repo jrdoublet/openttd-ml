@@ -763,6 +763,16 @@ Le mode route est donc reconfirme sur l arbre courant.
     });
 
     AddSetting({
+      name = "rail_min_distance",
+      description = "Minimum tile distance for a rail candidate. 25 = as shipped; 5 restores the rail/road overlap band that the file's own comments describe (see docs/taches.md 0 septdecies)",
+      min_value = 5, max_value = 40,
+      easy_value = 25, medium_value = 25, hard_value = 25,
+      custom_value = 25,
+      step_size = 1,
+      flags = 0
+    });
+
+    AddSetting({
       name = "air_abandon",
       description = "Air build failures are remembered so the site scan stops re-proposing the same pair: 1 = remembered (default, adopted at bench, +6.1% company value on 18/20 seeds), 0 = historical",
       easy_value = 1, medium_value = 1, hard_value = 1,

@@ -16,7 +16,17 @@
  * entre 5 et 25 tuiles : couper le rail a 25 AVANT le calcul economique empechait precisement de
  * choisir le meilleur mode pour un meme couple origine/destination. Le modele de capital du rail
  * le declasse normalement dans cette bande ; c'est desormais un resultat du ROI, pas un a priori
- * d'orchestration. */
+ * d'orchestration.
+ *
+ * 🔴 REGRESSION SILENCIEUSE, trouvee le 2026-09-02 (docs/taches.md S0 septdecies) : le texte
+ * ci-dessus decrit le comportement voulu, PAS celui livre. Le commit 3467851 avait bien mis la
+ * borne a 5 en ecrivant ce commentaire ; 31b13bad l'a repassee a 25 sans toucher un mot du texte
+ * ni justifier, au milieu d'un commit melangeant des changements sans rapport. La bande 5-24
+ * tuiles etait donc fermee a 100 % au rail par accident, sans arbitrage ROI possible -- et le
+ * volume est ~85 % de l'ecart avec AAAHogEx.
+ *
+ * Devenu le reglage `rail_min_distance` pour que le banc puisse opposer 5 a 25 en une campagne.
+ * Repli 25 (comportement livre) jusqu'a la lecture unique dans Start(). */
 MIN_DISTANCE <- 25;
 MAX_DISTANCE <- 200;
 JOIN_PLACE_MAX <- 75;
