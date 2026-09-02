@@ -2017,10 +2017,25 @@ retrait d'une ligne morte avait déjà mesuré une famine « jusqu'à un an ».
 
 ### Piste, non codée
 
-Découper l'A\* rail en tranches reprises d'un tick à l'autre (comme `_continueRailExpansion` le
-fait déjà pour le trajet vers le dépôt) pour que la file continue de tourner pendant la
-recherche. À rapprocher de A2 (remplacer l'A\* maison par `Graph.AyStar`) et du prototype de
-pathfinder segmenté déjà mesuré 4× moins cher.
+Découper l'A\* rail en tranches reprises d'un **tour de file** à l'autre (comme
+`_continueRailExpansion` le fait déjà), pour que les autres tâches tournent pendant la recherche.
+
+⚠️ **Deux fausses pistes à écarter d'emblée, vérifiées dans le code le 2026-09-03 :**
+
+1. **Il n'y a PAS d'A\* « fait maison » à remplacer.** `main.nut:28` fait
+   `import("pathfinder.rail", "RailPathFinder", 1)` : on utilise déjà la bibliothèque officielle
+   `Pathfinder.Rail`, elle-même bâtie sur `Graph.AyStar`. Seule la fonction de coût est à nous.
+   Toute tâche formulée comme « remplacer notre A\* par `Graph.AyStar` » est sans objet.
+2. **Le pathfinding segmenté n'est PAS en production** (seulement dans `sweeps/measure_*_segmented.py`,
+   hérité de `TrainLineAI`) — mais le porter ne suffirait pas : à 4× moins cher, une tentative à
+   57 M opcodes gèle encore ~2 semaines de jeu, et il y en a plusieurs par partie. La segmentation
+   **réduit** le gel, la reprise par tranches le **supprime**, quel que soit le coût du pathfinder.
+   Les deux se composent ; la reprise passe en premier.
+
+🔴 **Le point délicat du refactor** : `deadlineTick` borne aujourd'hui du temps de jeu *écoulé*.
+Étalée sur plusieurs tours, une recherche simplement entrelacée dépasserait cette borne sans être
+plus lente. La comptabilité doit passer en **itérations consommées**, pas en ticks, sinon le
+correctif tue exactement les recherches qu'il est censé sauver.
 
 ## 0 undecies quater. ✅ `air_roi_order` ADOPTÉ — la croissance aérienne servait la ligne la plus VIEILLE (2026-09-03)
 
@@ -4471,12 +4486,19 @@ toucher à l'ordonnanceur.
 Récapitulatif de tout ce qui est ouvert, y compris ce qui a été identifié en passant aujourd'hui et
 qui n'avait pas encore sa ligne. Journal de la journée : `docs/journal_2026-09-02.md`.
 
-### A. Les deux pistes de fond (tout le reste est secondaire)
+### A. Les pistes de fond (tout le reste est secondaire)
 
 | # | tâche | pourquoi elle est en tête |
 |---|---|---|
 | **A1** | **Dénominateur du classement dépendant de la ressource rare** (§0 tervicies point 1, §3 septies) | Sept mécanismes de capital mesurés, sept non adoptés : **le capital n'est pas le mur**. AAAHogEx bascule son dénominateur, nous jamais |
 | **A2** | **Volume de liaisons** — largeur contre profondeur (§3 nonies phase 1) | Confirmé deux fois aujourd'hui. On pose 2,4 lignes aériennes par partie contre 35 appareils chez l'adversaire |
+| **A3** | **Sonde : plafonner `iterationBudget`** à ~10 000 au lieu de 50 000, banc apparié (§0 undecies ter) | **À faire en premier, c'est quelques lignes.** Les succès mesurés coûtent 3 350 à 18 550 itérations : le plafond en préserve 4 sur 7 et borne le gel à ~1/5 du pire cas. Mesure **ce que les recherches chères rapportent vraiment**, donc ce que vaut A4 avant de le payer |
+| **A4** | **Recherche de chemin reprenable d'un tour de file à l'autre** (§0 undecies ter) | **Le vrai correctif du gel de 7 mois.** La bibliothèque rend déjà la main toutes les 50 itérations (`builder_rail.nut:341-345`) et on la jette en rebouclant. Patron déjà en place dans le code : `_railExpansion` / `_continueRailExpansion`. ⚠️ Exige de passer `deadlineTick` d'une comptabilité en **ticks** à une comptabilité en **itérations**, sinon le correctif tue les recherches qu'il doit sauver. Les 3 appelants de `OpexSearchPath` deviennent des états |
+| **A5** | **Porter le pathfinding segmenté en production** (`sweeps/measure_*_segmented.py` → `ai/OpexAI/`) | Mesuré 4× moins cher et sous la barrière sur 9/9, mais **4/9 aboutissent** — deux briques manquent (voir [[pathfinder-segmente-prototype]]). **Après A4, pas avant** : la segmentation *réduit* le gel (57 M ÷ 4 ≈ 2 semaines de jeu, plusieurs fois par partie), A4 le *supprime*. Les deux se composent |
+
+⚠️ **A2 n'est PAS « remplacer notre A\* par `Graph.AyStar` »** — cette formulation, qui circule
+encore, est sans objet : `main.nut:28` importe déjà `Pathfinder.Rail`, bâti sur `Graph.AyStar`.
+Il n'y a pas d'A\* fait maison. Seule la fonction de coût est à nous.
 
 ### B. Refontes notées aujourd'hui, prêtes à être planifiées
 
