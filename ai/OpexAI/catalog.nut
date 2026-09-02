@@ -180,6 +180,7 @@ class OpexCatalog {
   freightTrainMultiplier = 1;
   costTrackPerTile = 0;
   costStation = 0;
+  costRailDepot = 0;
 
   airport = null;      // {type, width, height, coverage, price, maintenance} ou null
   plane = null;        // {id, capacity, speed, price, runningCost, maxOrderDistance} ou null
@@ -263,6 +264,9 @@ function OpexCatalog::_refreshRail()
   AIRail.SetCurrentRailType(chosen);
   this.costTrackPerTile = AIRail.GetBuildCost(chosen, AIRail.BT_TRACK);
   this.costStation = AIRail.GetBuildCost(chosen, AIRail.BT_STATION);
+  /* Le depot rail etait le seul cout d'infrastructure absent du modele, alors que la route
+   * et l'eau comptent le leur et que builder_rail.nut le paie reellement. */
+  this.costRailDepot = AIRail.GetBuildCost(chosen, AIRail.BT_DEPOT);
 
   local engines = AIEngineList(AIVehicle.VT_RAIL);
   for (local e = engines.Begin(); !engines.IsEnd(); e = engines.Next()) {

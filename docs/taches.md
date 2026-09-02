@@ -2020,6 +2020,51 @@ du banc.
 
 ---
 
+## 0 terdecies. LOT D — un seul des trois correctifs de pricing survit (2026-09-02)
+
+Groupés (`docs/bench_pricing_3y_20seeds.json`) les trois dégradaient nettement : `company_value`
+−14,8 %, `profit_year` −22,7 %, `performance_history` −18,7 % (t = −3,82). Isolés
+(`docs/bench_pricing_isole_3y.json`, 4 bras, 80 parties) :
+
+| réglage | `company_value` | `profit_year` | `performance_history` | verdict |
+|---|---:|---:|---:|---|
+| `pricing_road_rating` | **−9,9 %** | **−13,5 %** | **−8,2 %** (t −2,20) | ❌ rejeté |
+| `pricing_rail_depot` | −4,8 % (t −0,73) | −6,3 % | −1,2 % | ~ non établi, défaut 0 |
+| `pricing_road_ops` | +0,8 % | +0,3 % | −0,3 % | ✅ **adopté** (14-16/20 au signe) |
+
+La somme (−9,9 − 4,8 + 0,8 ≈ −13,9) retrouve le −14,8 % du lot groupé : décomposition cohérente.
+
+### 🔴 LA COHÉRENCE ENTRE MODES N'EST PAS AUTOMATIQUEMENT DE LA JUSTESSE
+
+`pricing_road_rating` appliquait à la route la courbe `OpexStationRatingForHeadway` que le rail et
+l'air utilisent, au motif que « le même mécanisme physique doit être pricé pareil ». **C'était une
+erreur de raisonnement.** La courbe est ancrée sur `STATION_RATING_PCT = 50`, calibré sur des
+lignes **RAIL passagers** (mesuré 49-55). L'appliquer à la route suppose qu'un arrêt de bus se
+comporte comme une gare : une ligne routière courte y passe de 50 % à **63,7 %**, le modèle devient
+plus optimiste, sélectionne des lignes qui ne tiennent pas, et la valeur baisse de 10 %.
+
+➜ **L'écart entre modes encodait une MESURE, pas un oubli.** Avant d'« harmoniser » deux modes,
+vérifier si la différence vient d'un calibrage séparé. Cette leçon s'applique directement aux
+autres asymétries de la liste D encore ouvertes (amortissement, dimensionnement de rame).
+
+### 🔶 Le cas `pricing_rail_depot` : un coût RÉEL dont la prise en compte dégrade
+
+Le dépôt rail est payé à chaque ligne par `builder_rail.nut` et n'était pas dans le capital
+modélisé — la route et l'eau comptent le leur. C'est donc une omission **indiscutable**, et pourtant
+la corriger donne −4,8 % (non établi, t = −0,73).
+
+**Lecture la plus probable : le classement s'appuie sur une erreur qui en compense une autre.** Le
+coût de voie rail est calculé en distance de **Manhattan**, alors que la voie posée est le résultat
+de l'A\* — donc toujours ≥ Manhattan. Le capital rail est ainsi sous-estimé dans un sens, et le
+dépôt manquant l'était dans le même sens : ajouter le dépôt seul ne rapproche pas de la vérité, il
+déplace le biais.
+
+➜ **Ne pas corriger l'un sans l'autre.** La mesure du détour réel est l'objet du réglage
+`rail_cost_probe`, déjà présent : il émet capital modélisé contre coût de construction réel.
+**Le mesurer avant de retoucher le capital rail.**
+
+---
+
 ## 7 bis. Dimensionnement marginal de flotte (`marginal_fleet`) — MESURÉ, défaut 0, mais le mécanisme est bon (2026-09-01)
 
 **Banc apparié 20 graines × 3 ans** (`docs/bench_marginal_fleet_3y_20seeds.json`, les deux bras

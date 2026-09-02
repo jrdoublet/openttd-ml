@@ -701,6 +701,46 @@ Le mode route est donc reconfirme sur l arbre courant.
      * (le modele reproduit donc exactement STATION_RATING_PCT au headway de calibration, sans
      * constante nouvelle), et la variante est choisie sur le meme objectif que celui qui
      * l'arbitrera -- le profit par livre de capital. */
+    /* Correctifs de pricing, decoupes en TROIS reglages pour que le banc puisse les isoler.
+     * Groupes, ils ont ete mesures NUISIBLES le 2026-09-02 (docs/bench_pricing_3y_20seeds.json,
+     * 20 graines x 3 ans) : company_value -14,8 %, profit_year -22,7 %, performance_history
+     * -18,7 % (t = -3,82). Il reste a savoir lequel des trois porte la degradation.
+     *
+     * Hypothese principale : pricing_road_rating. La courbe de note a ete calibree sur des lignes
+     * RAIL passagers (STATION_RATING_PCT = 50, mesure 49-55). L'appliquer a la route suppose qu'un
+     * arret de bus se comporte comme une gare -- une ligne routiere courte y passe a 63,7 % au lieu
+     * de 50 %, donc le modele devient PLUS optimiste et selectionne des lignes qui ne tiennent pas.
+     * L'« incoherence » entre modes encodait peut-etre une mesure, pas un oubli. */
+    AddSetting({
+      name = "pricing_road_rating",
+      description = "Apply OpexStationRatingForHeadway to road instead of a flat 50 percent: 1 = curve, 0 = flat (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* Le depot rail manque au capital modelise, alors que builder_rail.nut le paie a chaque ligne
+     * et que la route comme l'eau comptent le leur. C'est un cout REEL non compte : le seul des
+     * trois dont la justesse ne fait aucun doute -- reste a voir ce que la mesure en dit. */
+    AddSetting({
+      name = "pricing_rail_depot",
+      description = "Count the rail depot in modelled rail capital, as road and water already do: 1 = counted, 0 = omitted (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* Erreur de dimension : les iterations d'un candidat ROUTE etaient facturees au tarif d'une
+     * iteration du pathfinder RAIL (2 700 opcodes), ce qui double-comptait une planification deja
+     * mesuree pendant la generation. */
+    AddSetting({
+      name = "pricing_road_ops",
+      description = "Stop pricing road planning at the rail pathfinder rate: 1 = transaction cost only (default, adopted), 0 = historical",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
     AddSetting({
       name = "economy_fix",
       description = "Source-verified station rating thresholds and train count chosen on profit per pound of capital: 1 = fixed (default, adopted at bench), 0 = historical",

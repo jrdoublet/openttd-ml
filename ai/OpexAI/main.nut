@@ -271,6 +271,23 @@ FLEET_FIX <- false;
  *      variante la plus gourmande en capital. */
 ECONOMY_FIX <- true;
 
+/* Correctifs de PRICING (revue de economy.nut, docs/taches.md S0 octies et S0 septies) : repli
+ * FAUX jusqu'a la lecture unique de pricing_fix dans Start(). Defaut 0 : chemin historique
+ * inchange. Sous 1, trois incoherences de modele tombent, toutes dans l'arbitrage MULTIMODAL --
+ * c'est-a-dire la ou le portefeuille compare rail et route sur des nombres qui n'etaient pas
+ * calcules de la meme facon :
+ *   1. la route applique enfin OpexStationRatingForHeadway, que le rail et l'air utilisent deja.
+ *      Elle etait figee a STATION_RATING_PCT = 50 % a plat, donc le meme mecanisme physique --
+ *      la frequence fixe la note, donc la part de demande captee -- etait price differemment selon
+ *      le mode. Une ligne de bus courte et frequente vaut 65,7 % sous la courbe, pas 50 % ;
+ *   2. le capital rail inclut enfin le DEPOT, que builder_rail.nut paie a chaque ligne et que la
+ *      route comme l'eau comptent deja. L'omission gonflait le ROI rail face a la route ;
+ *   3. l'estimation d'opcodes d'un projet routier ne facture plus ses iterations au tarif du
+ *      pathfinder RAIL -- une erreur de dimension qui sous-estimait opcodeScore cote route. */
+PRICING_ROAD_RATING <- false;
+PRICING_RAIL_DEPOT <- false;
+PRICING_ROAD_OPS <- true;
+
 /* Dimensionnement marginal et progressif de flotte (item de tete, 2026-09-01) : repli FAUX
  * jusqu'a la lecture unique de marginal_fleet dans Start(). Defaut 0 : chemin actuel
  * rigoureusement inchange -- MAX_ROAD_VEHICLES/plafond 16 route, clonage immediat a
@@ -2571,6 +2588,9 @@ function OpexAI::Start()
   PORTFOLIO_FLOOR_PCT = AIController.GetSetting("portfolio_floor_pct");
   FLEET_FIX = AIController.GetSetting("fleet_fix") != 0;
   ECONOMY_FIX = AIController.GetSetting("economy_fix") != 0;
+  PRICING_ROAD_RATING = AIController.GetSetting("pricing_road_rating") != 0;
+  PRICING_RAIL_DEPOT = AIController.GetSetting("pricing_rail_depot") != 0;
+  PRICING_ROAD_OPS = AIController.GetSetting("pricing_road_ops") != 0;
   RAIL_COST_PROBE = AIController.GetSetting("rail_cost_probe") != 0;
   RAIL_EXPAND = AIController.GetSetting("rail_expand") != 0;
   ASTAR_COST_V2 = AIController.GetSetting("astar_cost") != 0;

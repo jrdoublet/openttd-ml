@@ -54,8 +54,17 @@ function OpexProjectFromCandidate(candidate)
                 + PROJECT_RAIL_TRANSACTION_OPS;
   } else if (mode == "road") {
     margin = ROAD_CAPITAL_MARGIN;
-    expectedOps = candidate.iterations * PROJECT_RAIL_OPS_PER_ITERATION
-                + PROJECT_ROAD_TRANSACTION_OPS;
+    /* pricing_fix : ERREUR DE DIMENSION. `candidate.iterations` d'un candidat ROUTE vient
+     * d'OpexRoadIterations(distance) -- ce n'est PAS un compte d'iterations d'A* rail, et le
+     * multiplier par PROJECT_RAIL_OPS_PER_ITERATION (2 700 opcodes par iteration du pathfinder
+     * RAIL) n'a aucun sens dimensionnel. Le commentaire d'en-tete de ce fichier dit d'ailleurs que
+     * la partie plan est deja mesuree pendant la generation et que les constantes ne couvrent que
+     * les commandes transactionnelles restantes : ce terme double-comptait donc une planification
+     * deja payee, en la facturant au tarif d'un autre mode (docs/taches.md S0 septies).
+     * Consequence : opcodeScore route sous-estime, donc la route defavorisee au second tri. */
+    expectedOps = PRICING_ROAD_OPS
+        ? PROJECT_ROAD_TRANSACTION_OPS
+        : candidate.iterations * PROJECT_RAIL_OPS_PER_ITERATION + PROJECT_ROAD_TRANSACTION_OPS;
   } else {
     return null;
   }

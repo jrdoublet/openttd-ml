@@ -224,7 +224,12 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   local platformLength = fixedPlatformLength > 0
       ? fixedPlatformLength
       : OpexRailWantedPlatformLength(wagons, catalog.platformLength);
+  /* pricing_fix : le depot rail manquait au capital, alors que builder_rail.nut le paie a chaque
+   * ligne (AIRail.GetBuildCost(BT_DEPOT)) et que la route comme l'eau comptent le leur. L'omission
+   * sous-estimait le capital rail et gonflait donc son ROI FACE A LA ROUTE, dans un portefeuille
+   * qui compare precisement les deux sur ce nombre (docs/taches.md S0 octies). */
   local infraCost = distance * catalog.costTrackPerTile + 2 * platformLength * catalog.costStation;
+  if (PRICING_RAIL_DEPOT && ("costRailDepot" in catalog)) infraCost += catalog.costRailDepot;
   local locoLife = loco.ageYears > 0 ? loco.ageYears : 20;
   local best = null;
   for (local trains = 1; trains <= MAX_RAIL_TRAINS; trains++) {
@@ -409,6 +414,9 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
   if (oneWayDays < 1) oneWayDays = 1;
   local roundTripDays = 2 * oneWayDays;
 
+  /* Ce `offered` sert au DIMENSIONNEMENT, comme `calibrationOffered` au rail : la note a plat de
+   * calibrage, avant de connaitre la frequence reelle. La demande effective est recalculee plus
+   * bas sous pricing_fix, une fois le nombre de vehicules connu. */
   local offered = (monthlyUnits * STATION_RATING_PCT) / 100;
   if (offered <= 0) return null;
 
@@ -430,8 +438,25 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
   local roadVehicleCap = MARGINAL_FLEET ? OpexRoadPhysicalVehicleCap(1, 1) : MAX_ROAD_VEHICLES;
   if (vehicles > roadVehicleCap) vehicles = roadVehicleCap;
 
+  /* pricing_fix : la route n'appliquait JAMAIS OpexStationRatingForHeadway, que le rail
+   * (OpexLineEconomics) et l'air (builder_air.nut) utilisent tous deux -- elle restait figee a
+   * STATION_RATING_PCT = 50 % a plat. Le meme mecanisme physique -- la frequence de passage fixe la
+   * note de ramassage, donc la part de la demande captee -- etait donc price differemment selon le
+   * mode, alors que le portefeuille multimodal arbitre precisement rail contre route sur ce
+   * nombre. Une ligne de bus courte et frequente, exactement ce que le mode route construit,
+   * vaut 65,7 % sous la courbe et non 50 % (docs/taches.md S0 octies).
+   *
+   * On recalcule donc la demande sur la frequence REELLE une fois la flotte connue, exactement
+   * comme le rail le fait dans sa boucle sur `trains`. */
   local monthlyCapacity = vehicles * engine.capacity * tripsPerMonth;
-  local carried = offered < monthlyCapacity ? offered : monthlyCapacity;
+  local effectiveOffered = offered;
+  local stationRating = STATION_RATING_PCT.tofloat();
+  if (PRICING_ROAD_RATING) {
+    local headwayDays = roundTripDays.tofloat() / vehicles;
+    stationRating = OpexStationRatingForHeadway(headwayDays);
+    effectiveOffered = monthlyUnits * stationRating / 100.0;
+  }
+  local carried = effectiveOffered < monthlyCapacity ? effectiveOffered : monthlyCapacity;
   /* OpexLoadedTripsPerMonth est aussi partage par la route. Sa capacite moyenne peut etre
    * fractionnaire depuis la suppression du ceil favorable ; les cargaisons et les panneaux restent
    * entiers, donc on ne credite jamais 28,57 unites qui n'existent pas dans le moteur. */
