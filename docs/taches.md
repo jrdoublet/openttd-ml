@@ -3936,3 +3936,28 @@ avant d'y toucher :
 2. §0 undecies dit qu'AAAHogEx gagne par la **ruée aérienne** et que nous sommes déjà loin derrière
    en nombre d'appareils. Subordonner l'aérien à un arbitrage qui l'a jusqu'ici peu élu est un
    risque réel — c'est précisément pour ça que ça se mesure au lieu de se décréter.
+
+### ⚠️ Banc 3 ans de `fleet_before_new` : NÉGATIF, et significativement
+
+`docs/bench_fleet_before_new_3y.json`, 20 graines, bras 0 (ordre historique) contre 1 (flotte servie en premier).
+
+| métrique | écart | $t$ | signes |
+|---|---:|---:|---|
+| `profit_year` | **−20,40 %** | **−3,53** | 4/16, $p = 0{,}012$ |
+| `profit` | **−23,71 %** | **−3,28** | 5/15, $p = 0{,}041$ |
+| `company_value` | −7,44 % | −1,63 | 7/13, $p = 0{,}26$ |
+| `performance_history` | −3,70 % | −0,77 | 8/11 |
+
+**Le principe, appliqué à l'aérien sur 3 ans, coûte du profit — et le signal est net**, bien
+au-dessus du bruit habituel du banc.
+
+Hypothèse à tester avant d'en conclure quoi que ce soit : **3 ans est la phase de RUÉE**. §0
+undecies a mesuré qu'AAAHogEx gagne en posant des liaisons vite et en nombre ; retarder une
+liaison neuve pour densifier une ligne existante est peut-être exactement le mauvais arbitrage
+tant que les sites sont libres, et le bon une fois la carte prise. **Banc 10 ans lancé**
+(`docs/bench_fleet_before_new_10y.json`) : c'est lui qui dit si le principe vaut à l'horizon où
+il devrait payer.
+
+⚠️ **Le défaut est à 1, donc la ligne de base du banc a bougé.** Toute comparaison ultérieure doit
+en tenir compte. Si le banc 10 ans confirme le 3 ans, remettre le défaut à 0 et conserver le
+réglage comme instrument.
