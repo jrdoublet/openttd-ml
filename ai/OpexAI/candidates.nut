@@ -26,7 +26,19 @@
  * volume est ~85 % de l'ecart avec AAAHogEx.
  *
  * Devenu le reglage `rail_min_distance` pour que le banc puisse opposer 5 a 25 en une campagne.
- * Repli 25 (comportement livre) jusqu'a la lecture unique dans Start(). */
+ * Repli 25 (comportement livre) jusqu'a la lecture unique dans Start().
+ *
+ * MESURE le 2026-09-02 (docs/bench_rail_min_distance_3y.json, 20 graines x 3 ans, apparie) : NUL.
+ * company_value -0,6 % (t = 0,12), profit_year -1,0 % (t = 0,17), et surtout le compte de signes
+ * vaut 8/20, 9/20, 11/20, 7/20, 10/20 -- la signature exacte du rebattage de trajectoires. Le
+ * reglage AGIT (les valeurs par graine different, il n'est pas inerte), mais son effet est de
+ * signe aleatoire. Defaut LAISSE A 25.
+ *
+ * Lecture probable, ecrite dans le commentaire d'origine lui-meme : le rail est de toute facon
+ * declasse dans cette bande par l'election modale au ROI (projects.nut:127), donc le filtre
+ * supprimait en amont ce que l'election supprimait en aval. Filtre REDONDANT, pas nuisible.
+ * Non verifie : le confirmer demanderait d'instrumenter combien de candidats 5-24 atteignent
+ * l'election modale et la perdent. */
 MIN_DISTANCE <- 25;
 MAX_DISTANCE <- 200;
 JOIN_PLACE_MAX <- 75;

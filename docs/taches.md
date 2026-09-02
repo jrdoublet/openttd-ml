@@ -2359,6 +2359,36 @@ cette bande — mais c'est un pan entier de l'espace de candidats rail, fermé p
 par conception, exactement le genre d'écart qui coûte du volume. À mesurer avant de trancher :
 restaurer `MIN_DISTANCE = 5` et comparer au banc appairé.
 
+### ❌ MESURÉ le 2026-09-02 : rouvrir la bande ne paie PAS — défaut réel, correctif sans effet
+
+Banc apparié 20 graines × 3 ans (`docs/bench_rail_min_distance_3y.json`), `MIN_DISTANCE` devenu le
+réglage `rail_min_distance` (commit `8c627d0`), variante = 5 :
+
+| métrique | variante | `t` | signes | p |
+|---|---:|---:|---:|---:|
+| `company_value` | −0,60 % | 0,12 | 8/20 | 0,50 |
+| `profit_year` | −1,00 % | 0,17 | 7/20 | 0,26 |
+| `performance_history` | +1,62 % | −0,39 | 9/20 | 0,82 |
+| `profit` | −5,75 % | 0,61 | 11/20 | 0,82 |
+| `median_station_rating` | +1,52 % | −0,40 | 10/20 | 1,00 |
+
+**8/20, 9/20, 11/20, 7/20, 10/20 : la signature exacte du rebattage de trajectoires.** Le réglage
+n'est pas inerte (les valeurs par graine diffèrent, contrairement à `rail_refleet` dont l'écart-type
+des différences est nul) — il agit, mais son effet est de signe aléatoire. **Défaut laissé à 25.**
+
+🔴 **Lecture probable — et elle est écrite dans le commentaire d'origine** : « le modèle de capital
+du rail le déclasse *normalement* dans cette bande ; c'est désormais un résultat du ROI, pas un a
+priori d'orchestration. » L'intention était d'ouvrir la bande **en sachant que le rail y perdrait**
+contre la route à l'élection modale (`projects.nut:127`). Le banc dit qu'il perd effectivement : le
+filtre supprimait en amont ce que l'élection supprimait en aval. **Filtre REDONDANT, pas nuisible.**
+⚠️ Non vérifié — le confirmer demanderait d'instrumenter combien de candidats 5-24 atteignent
+l'élection modale et la perdent.
+
+👉 **Conséquence de priorisation** : « un pan entier de l'espace de candidats est fermé » ne suffit
+pas à prédire du volume. Ce qui est fermé peut être ce qu'on aurait rejeté ensuite. Les deux autres
+trouvailles de la revue (§0 octodecies : aucune ligne rail n'a jamais 2 trains ; `maxBatch = 1`)
+touchent le RÉEL construit, pas l'espace envisagé — les traiter en premier.
+
 ### 🔴 2. Les bonus de `ratio`/`roi` du fret (monopole +40 %, chaîne +35 %) ne changent RIEN à la construction réelle ; le bonus feeder (+60 %) n'agit qu'à moitié (`candidates.nut:190-199`, `:229`, `:1178-1181`)
 
 `OpexMakeCandidate` calcule un `adjustedRoi` local qui empile trois bonus commentés comme des
