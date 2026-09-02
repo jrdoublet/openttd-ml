@@ -54,6 +54,18 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* Le catalogue mensuel fige le capital AVANT les taches air et air_fleet. Sur la graine 42,
+     * 295 000 GBP a la generation devenaient 24 013 GBP au passage projects : le sac a dos
+     * optimisait donc un budget qui n'existait plus. Ce bras ne rejoue que la selection bon marche
+     * sur le vivier deja genere ; defaut 0 jusqu'au banc apparie. */
+    AddSetting({
+      name = "portfolio_fresh_budget",
+      description = "Reselect the generated project portfolio against current cash immediately before building: 1 = enabled, 0 = monthly frozen budget (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* Sonde les DEUX sites en AITestMode avant de batir le premier aeroport. L'ordre historique
      * batit A, decouvre B impossible, puis demolit A : 4 BFAIL sur 20 tentatives, tous en
      * premiere annee, quand la tresorerie est au plus juste.

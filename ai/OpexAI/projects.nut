@@ -357,6 +357,63 @@ function OpexKnapsackSolve(candidates, capitalBudget, maxRoad = 18, maxItems = 3
   return { projects = state.bestSolution, nodes = state.nodeCount, exact = !state.truncated };
 }
 
+/* Rejoue UNIQUEMENT la contrainte de capital sur les projets deja produits par le catalogue.
+ * budgetCandidates est exactement le vivier deja passe au sac a dos historique ; candidateGroups
+ * ne sert qu'a reaplatir les alternatives du chemin portfolio_v2. Aucune planification rail,
+ * recherche de site aerien ou generation de route ne repasse ici. Les statistiques sont
+ * remplacees ensemble car IG| et IB| doivent decrire la meme solution que best, y compris
+ * lorsqu'un sac a dos borne n'a pas prouve son optimum. */
+function OpexReselectProjects(projects, capitalBudget)
+{
+  local funded = null;
+  local considered = 0;
+  if (PORTFOLIO_V2) {
+    local alternatives = [];
+    foreach (key, list in projects.candidateGroups) {
+      foreach (project in list) alternatives.push(project);
+    }
+    funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);
+    considered = alternatives.len();
+    projects.stats.knapsackNodes = 0;
+    projects.stats.knapsackExact = true;
+  } else {
+    local knapsack = OpexKnapsackSolve(projects.budgetCandidates, capitalBudget,
+                                       ROAD_MAX_NEW_LINES_PER_YEAR, PROJECT_TOP_K);
+    funded = knapsack.projects;
+    considered = projects.budgetCandidates.len();
+    projects.stats.knapsackNodes = knapsack.nodes;
+    projects.stats.knapsackExact = knapsack.exact;
+  }
+
+  projects.stats.budgetConsidered = considered;
+  projects.stats.budgetSelected = funded.len();
+  projects.stats.budgetRejected = considered - funded.len();
+
+  local selectedRev = 0;
+  local selectedCap = 0;
+  foreach (project in funded) {
+    selectedRev += project.revenueAnnual;
+    selectedCap += project.budgetCapital;
+  }
+  projects.stats.selectedRevenue = selectedRev;
+  projects.stats.selectedCapital = selectedCap;
+
+  projects.capitalBudget = capitalBudget;
+  projects.capitalRemaining = capitalBudget - selectedCap;
+  if (projects.capitalRemaining < 0) projects.capitalRemaining = 0;
+
+  /* Le chemin historique consomme le portefeuille par revenu/opcode apres le sac a dos. */
+  local byOpcodes = funded;
+  if (!PORTFOLIO_V2) {
+    byOpcodes = [];
+    foreach (project in funded) {
+      OpexProjectInsert(byOpcodes, project, "opcodeScore", PROJECT_TOP_K);
+    }
+  }
+  projects.best = byOpcodes;
+  return projects;
+}
+
 function OpexProjectEmptyRoad()
 {
   return {
@@ -499,6 +556,18 @@ function OpexBuildProjects(catalog, budget, lines)
     }
   }
 
+  /* Le retour historique reste litteralement intact sous 0. Le bras 1 seul conserve le vivier :
+   * cela evite meme de changer la forme de this._projects dans le controle. */
+  if (PORTFOLIO_FRESH_BUDGET) {
+    return {
+      all = stats.odProjects, best = byOpcodes, stats = stats,
+      capitalBudget = capitalBudget, generationCapitalBudget = capitalBudget,
+      capitalRemaining = remaining, candidateGroups = winners, budgetCandidates = byBudget,
+      rail = rail, road = road, airPlan = airPlan, waterPlan = waterPlan,
+      airPlans = airPlans, waterPlans = waterPlans,
+      airPlanningOpcodes = airOps, waterPlanningOpcodes = waterOps,
+    };
+  }
   return {
     all = stats.odProjects, best = byOpcodes, stats = stats,
     capitalBudget = capitalBudget, capitalRemaining = remaining,

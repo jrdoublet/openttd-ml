@@ -87,6 +87,7 @@ RE_AC = re.compile(r"^AC\|(\d+)\|(\d+)\|(-?\d+)\|(\d+)\|(\d+)$")  # id, capital 
 RE_FR = re.compile(r"^FR\|(\d{2})\|(\d+)\|([A-Z])$")        # annee, ligne, cause du refus de croissance
 RE_FE = re.compile(r"^FE\|(\d+)\|([AT])$")                   # ligne routiere feeder, vers hub Air ou Train
 RE_FN = re.compile(r"^FN\|(\d{2})\|(\d+)\|(\d+)$")            # annee, hubs vus, candidats feeders generes
+RE_FB = re.compile(r"^FB\|(\d{2})\|(\d+)\|(\d+)\|(\d+)$")     # annee, budget genere, budget reel, projets retenus
 RE_AF = re.compile(r"^AF\|(\d+)\|(\d+)\|(-?\d+)$")          # id, avions, profit annuel predit
 RE_IA = re.compile(r"^IA\|(\d+)\|(\d+)\|(-?\d)\|(-?\d)\|(-?\d+)$")
 RE_OX = re.compile(r"^OX\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")   # year, towns, industries, ranked.all
@@ -550,6 +551,18 @@ def parse_fleet_refusals(all_signs):
         if m:
             rows.append({"year": 1900 + int(m.group(1)), "line_index": int(m.group(2)),
                          "reason": m.group(3)})
+    return rows
+
+
+def parse_fresh_budget(all_signs):
+    """portfolio_fresh_budget : le budget fige a la generation contre celui de la caisse au
+    moment de construire, et ce que la re-selection retient."""
+    rows = []
+    for sign in all_signs:
+        m = RE_FB.match(sign)
+        if m:
+            rows.append({"year": 1900 + int(m.group(1)), "budget_generation": int(m.group(2)),
+                         "budget_now": int(m.group(3)), "selected": int(m.group(4))})
     return rows
 
 
@@ -1299,6 +1312,7 @@ def make_run_payload(rows, seed, years):
     fleet_refusals = parse_fleet_refusals(final["signs"])
     feeders = parse_feeders(final["signs"])
     feeder_generation = parse_feeder_generation(final["signs"])
+    fresh_budget = parse_fresh_budget(final["signs"])
     safety = parse_safety(final["signs"])
     yearly = parse_yearly(final["signs"])
     project_portfolios, project_decisions = parse_project_portfolios(final["signs"])
@@ -1437,6 +1451,7 @@ def make_run_payload(rows, seed, years):
         "air_fleet_refusals": fleet_refusals,
         "n_feeders": len(feeders),
         "feeder_generation": feeder_generation,
+        "fresh_budget": fresh_budget,
         "feeders": feeders,
         "road_attempts": road, "cash_blocks": cash_blocks, "dead_line_events": dead_lines,
         "loan_repayments": loan_repayments, "loan_draws": loan_draws,

@@ -55,6 +55,8 @@ AIR_COST_PROBE <- false;
 /* air_presite : sonder les deux sites en AITestMode avant d'engager le capital du premier
  * aeroport. Inerte par defaut jusqu'au verdict du banc. */
 AIR_PRESITE <- false;
+/* Refaire le sac a dos contre la caisse vivante, sans repayer la generation des candidats. */
+PORTFOLIO_FRESH_BUDGET <- false;
 /* air_fleet_probe : _resizeAirFleets n'emet que ses SUCCES (FG|). Quand une ligne aerienne
  * n'grandit pas, la cause est invisible. FR| donne le premier refus rencontre, une fois par ligne
  * et par an. */
@@ -1150,6 +1152,19 @@ function OpexWaterBatchSiteStillBuildable(site)
  * est immediatement regenere car le capital et les origines ont change. */
 function OpexAI::_tryBuildProjects(year)
 {
+  if (PORTFOLIO_FRESH_BUDGET && this._projects != null) {
+    local initialBudget = this._projects.generationCapitalBudget;
+    local cashNow = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+    local borrowableNow = REBORROW
+        ? AICompany.GetMaxLoanAmount() - AICompany.GetLoanAmount() : 0;
+    if (borrowableNow < 0) borrowableNow = 0;
+    local budgetNow = cashNow + borrowableNow - OpexCashReserve();
+    if (budgetNow < 0) budgetNow = 0;
+    this._projects = OpexReselectProjects(this._projects, budgetNow);
+    /* 30 caracteres au pire : FB|99|2147483647|2147483647|64. */
+    OpexSign(AIMap.GetTileIndex(1, 1), "FB|" + (year % 100) + "|" + initialBudget
+             + "|" + budgetNow + "|" + this._projects.stats.budgetSelected);
+  }
   if (this._projects == null || this._projects.best.len() == 0) return false;
   local anchor = AIMap.GetTileIndex(1, 1);
   local yy = year % 100;
@@ -2872,6 +2887,7 @@ function OpexAI::Start()
   RAIL_COST_PROBE = AIController.GetSetting("rail_cost_probe") != 0;
   AIR_COST_PROBE = AIController.GetSetting("air_cost_probe") != 0;
   AIR_PRESITE = AIController.GetSetting("air_presite") != 0;
+  PORTFOLIO_FRESH_BUDGET = AIController.GetSetting("portfolio_fresh_budget") != 0;
   AIR_FLEET_PROBE = AIController.GetSetting("air_fleet_probe") != 0;
   RAIL_EXPAND = AIController.GetSetting("rail_expand") != 0;
   ASTAR_COST_V2 = AIController.GetSetting("astar_cost") != 0;
