@@ -312,6 +312,11 @@ TOWN_GROWTH_ENABLED <- true;
  * (note de gare et revenu implicite), jamais a srcAlive seul, ET exige DEUX annees CONSECUTIVES
  * de confirmation pour exclure un accroc transitoire -- cf. OpexAI::_reportLines. */
 const DEAD_STREAK_THRESHOLD = 2;
+/* Duree maximale de la phase de ferraillage. Au-dela, la ligne est retiree meme s'il reste des
+ * vehicules injoignables : mieux vaut abandonner quelques camions que garder a vie une ligne qui
+ * paie son exploitation et bloque ses origines pour de nouveaux candidats. Deux ans laissent
+ * largement le temps a un vehicule sain de rejoindre son depot. */
+const SCRAP_TIMEOUT_YEARS = 2;
 
 class OpexAI extends AIController {
   _budget = null;
@@ -432,12 +437,40 @@ function OpexAttemptReasonCode(reason)
  * toujours pose en STATION_NEW et n'est jamais joint a un autre, donc AIVehicleList_Station rend
  * exactement les vehicules de CETTE ligne. C'est la seule source de verite qui survit au
  * renouvellement. */
+/* Un vehicule dessert-il cette gare dans ses ordres ? Sert a distinguer NOS vehicules de ceux
+ * d'une ligne voisine quand un StationID est partage. */
+function OpexVehicleServesStation(vehicle, stationId)
+{
+  if (!AIStation.IsValidStation(stationId)) return false;
+  local count = AIOrder.GetOrderCount(vehicle);
+  for (local i = 0; i < count; i++) {
+    if (!AIOrder.IsValidVehicleOrder(vehicle, i)) continue;
+    local dest = AIOrder.GetOrderDestination(vehicle, i);
+    if (AIStation.GetStationID(dest) == stationId) return true;
+  }
+  return false;
+}
+
 function OpexLineVehicleIds(line, stationId)
 {
   if (("mode" in line) && line.mode == "road") {
+    /* Le commentaire de _scrapDeadLines jure que la liste vient des vehicules POSES PAR CETTE
+     * LIGNE, « PAS une interrogation par gare qui prendrait les convois du voisin sur un
+     * StationID partage ». C'etait faux ici, et exactement pour la route : AIVehicleList_Station
+     * rend TOUS les vehicules qui desservent la gare, donc ferrailler une ligne morte envoyait au
+     * depot et vendait les camions de toutes les lignes co-localisees (docs/taches.md S0 nonies).
+     *
+     * Les lignes routieres ne portent pas de liste `vehicles` par conception. On filtre donc par
+     * les ORDRES : un camion de cette ligne dessert forcement son AUTRE extremite. Un voisin qui
+     * ne partage que stationA est ainsi ecarte. Si stationB est inconnue ou invalide, on retombe
+     * sur l'ancien comportement plutot que de rendre une liste vide -- ne jamais transformer un
+     * defaut de precision en perte de ferraillage. */
     local roadIds = [];
+    local other = ("stationB" in line) ? AIStation.GetStationID(line.stationB) : AIStation.STATION_INVALID;
+    local filter = AIStation.IsValidStation(other) && other != stationId;
     local roadVehicles = AIVehicleList_Station(stationId);
     for (local v = roadVehicles.Begin(); !roadVehicles.IsEnd(); v = roadVehicles.Next()) {
+      if (filter && !OpexVehicleServesStation(v, other)) continue;
       roadIds.append(v);
     }
     return roadIds;
@@ -567,7 +600,15 @@ function OpexAbandonedPairKey(candidate)
 /* Liaison aerienne passagers a fort ROI. Deploie la tresorerie excedentaire sans A*. */
 function OpexAI::_tryBuildAir(year)
 {
-  if (this._catalog.airCombos == null && this._catalog.airport == null) return;
+  /* La garde testait `airCombos == null && airport == null`. Deux defauts (docs/taches.md
+   * S0 sexies) : `_refreshAir` pose TOUJOURS une liste, meme vide (catalog.nut met `[]` avant sa
+   * sortie anticipee), donc la garde ne pouvait jamais se declencher sur « aucun avion
+   * disponible » et la fonction partait dans sa boucle sur des cartes sans combo ; et le seul etat
+   * qu'elle laissait passer -- `airCombos == null` avec `airport != null` -- faisait dereferencer
+   * `airCombos.len()` plus bas, ce qui TUE l'IA. On teste desormais la vacuite reelle, et le
+   * deref est protege a son propre site. */
+  local combos = this._catalog.airCombos;
+  if ((combos == null || combos.len() == 0) && this._catalog.airport == null) return;
   local maxPerYear = AIR_STARTER ? 30 : 5;
   local maxTotal = AIR_STARTER ? 250 : 25;
   local margin = AIR_STARTER ? 2000 : AIR_CAPITAL_MARGIN;
@@ -596,7 +637,11 @@ function OpexAI::_tryBuildAir(year)
     local plan = OpexAirPlans(this._catalog, this._lines, maxCapital);
     local planOps = this._budget.end("build_air_plans");
     if (plan == null) {
-      if (builtCount == 0) OpexSign(AIMap.GetTileIndex(1, 1), "AD|NULL|C=" + this._catalog.airCombos.len());
+      if (builtCount == 0) {
+        /* airCombos peut etre null : ne jamais dereferencer pour un panneau de diagnostic. */
+        local nCombos = (this._catalog.airCombos == null) ? -1 : this._catalog.airCombos.len();
+        OpexSign(AIMap.GetTileIndex(1, 1), "AD|NULL|C=" + nCombos);
+      }
       break;
     }
 
@@ -1620,9 +1665,22 @@ function OpexAI::_scrapDeadLines(year)
         }
       }
       line.scrapVehicles = remaining;
-      if (remaining.len() == 0) {
+      /* Sortie de secours du ferraillage. Sans elle, la SEULE sortie etait `remaining.len() == 0` :
+       * un vehicule qui ne peut plus atteindre un depot -- depot detruit, route coupee, convoi
+       * bloque -- figeait la ligne DEFINITIVEMENT. Elle restait alors dans _lines, re-scannee
+       * chaque annee, payant son cout d'exploitation, et ses deux extremites continuaient de
+       * bloquer _tooClose pour de nouveaux candidats : exactement l'interblocage que le retrait
+       * est cense empecher (docs/taches.md S0 nonies).
+       *
+       * On borne donc la phase en ANNEES. Les vehicules encore vivants sont abandonnes en l'etat
+       * plutot que de garder la ligne en vie : ils continueront a rouler, mais la ligne libere ses
+       * origines et cesse d'etre re-scannee. Panneau DL|...|4 pour distinguer cette sortie de la
+       * sortie propre DL|...|3. */
+      if (!("scrapStartYear" in line)) line.scrapStartYear <- year;
+      local stuck = (year - line.scrapStartYear) >= SCRAP_TIMEOUT_YEARS;
+      if (remaining.len() == 0 || stuck) {
         toRemove.append(i);  // i = position physique dans _lines, pour le retrait -- pas le sign
-        OpexSign(anchor, "DL|" + year + "|" + line.lineId + "|3");
+        OpexSign(anchor, "DL|" + year + "|" + line.lineId + "|" + (remaining.len() == 0 ? "3" : "4"));
       }
     }
   }
@@ -2419,7 +2477,14 @@ function OpexAI::_runNextTask()
     return true;
   }
   if (this._projects == null) {
-    task.dueCycle = this._taskCycle;
+    /* `_taskCycle` (et non `+ 1`) laissait la tache due au cycle COURANT. Or le cycle n'avance que
+     * lorsque le balayage depuis _taskCursor ne trouve plus rien de du : une tache qui reste
+     * eternellement due empeche donc `_taskCycle` d'avancer, et `catalog` -- differe a
+     * `_taskCycle + 1` -- ne tourne plus JAMAIS. L'IA tournerait alors a vide pour le reste de la
+     * partie avec `_projects` null a jamais. Inatteignable aujourd'hui puisque OpexBuildProjects
+     * ne rend jamais null, mais un seul `return` ajoute la-bas gelait l'IA (docs/taches.md
+     * S0 sexies). */
+    task.dueCycle = this._taskCycle + 1;
     return false;
   }
   if (task.name == "report") {

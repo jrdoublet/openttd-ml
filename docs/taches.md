@@ -1989,6 +1989,37 @@ pathfinder RAIL (§0 septies).
 
 ---
 
+## 0 duodecies. ✅ LOT A : les quatre correctifs de robustesse (2026-09-02)
+
+`docs/bench_lotA_3y_20seeds.json` : 20 graines × 3 ans, 0 échec, **20/20 graines identiques au bit
+près** au banc précédent. Aucune régression — **et aucun bénéfice mesurable non plus**.
+
+| # | correctif | statut au banc |
+|---|---|---|
+| 1 | garde air : testait `airCombos == null` alors que `_refreshAir` pose toujours une liste ; le seul état qu'elle laissait passer **déréférençait null et tuait l'IA** | jamais déclenché |
+| 2 | `dueCycle = _taskCycle` → `+ 1` : empêchait `_taskCycle` d'avancer et gelait `catalog` à jamais | inatteignable aujourd'hui |
+| 3 | ferraillage sans fin : seule sortie « plus aucun véhicule », donc un camion injoignable figeait la ligne à vie. Délai `SCRAP_TIMEOUT_YEARS = 2`, panneau `DL\|…\|4` | **chemin jamais exécuté** |
+| 4 | ferraillage du voisin : `AIVehicleList_Station` rend tous les véhicules d'une gare partagée. Filtre par les ordres | **chemin jamais exécuté** |
+
+### 🔴 Ce que le banc ne peut PAS dire, et pourquoi
+
+**Zéro événement de ligne morte sur 5 parties × 3 ans** (`docs/diag_vivier_3y.json`) : à cet
+horizon, `_scrapDeadLines` ne ferraille jamais rien. Les correctifs 3 et 4 n'ont donc **pas été
+exercés une seule fois**. Le « 20/20 identique » prouve l'absence de régression, **pas** la
+justesse du correctif.
+
+Les quatre sont des **assurances** : ils empêchent des modes d'échec qui ne se produisent pas dans
+les conditions du banc actuel, mais qui sont catastrophiques quand ils surviennent (mort de l'IA
+pour le 1, gel définitif pour le 2 et le 3, vente des camions d'une ligne voisine pour le 4). Leur
+justification est la **lecture du code**, pas la mesure — et il faut l'assumer comme telle plutôt
+que de faire passer un banc plat pour une validation.
+
+🔶 **À faire pour valider 3 et 4 : un banc à 20 ans**, horizon auquel les lignes mortes existent
+réellement (les campagnes 20 ans historiques en montrent). À 3 ans, ces chemins sont hors de portée
+du banc.
+
+---
+
 ## 7 bis. Dimensionnement marginal de flotte (`marginal_fleet`) — MESURÉ, défaut 0, mais le mécanisme est bon (2026-09-01)
 
 **Banc apparié 20 graines × 3 ans** (`docs/bench_marginal_fleet_3y_20seeds.json`, les deux bras
