@@ -979,6 +979,59 @@ function OpexPlanRailRoute(catalog, budget, candidate, alternativeRatio, join, h
   return plan;
 }
 
+/* Devis réel par AITestMode + AIAccounting avant engagement (docs/taches.md §0 tervicies point 8 & C7).
+ * Simule la construction des gares et de la voie sans modifier la carte pour mesurer le coût exact. */
+function OpexSimulateRailInfraCost(plan, join)
+{
+  local simulatedInfra = 0;
+  {
+    local testMode = AITestMode();
+    local accounting = AIAccounting();
+
+    local planA = plan.planA;
+    local planB = plan.planB;
+    local tiles = plan.tiles;
+    local joinA = plan.joinA;
+
+    for (local i = 0; i < planA.length; i++) {
+      AITile.DemolishTile(planA.anchor + planA.step * i);
+    }
+    for (local i = 0; i < planB.length; i++) {
+      AITile.DemolishTile(planB.anchor + planB.step * i);
+    }
+    AIRail.BuildRailStation(planA.anchor, planA.direction, 1, planA.length,
+                            joinA ? join.stationId : AIStation.STATION_NEW);
+    AIRail.BuildRailStation(planB.anchor, planB.direction, 1, planB.length,
+                            !joinA && join != null ? join.stationId : AIStation.STATION_NEW);
+
+    for (local i = 1; i < tiles.len() - 1; i++) {
+      local prev = tiles[i - 1];
+      local cur = tiles[i];
+      local next = tiles[i + 1];
+      if (prev == next) {
+        continue;
+      } else if (AIMap.DistanceManhattan(prev, cur) > 1) {
+        continue;
+      } else if (AIMap.DistanceManhattan(cur, next) > 1) {
+        if (AITunnel.GetOtherTunnelEnd(cur) == next) {
+          AITunnel.BuildTunnel(AIVehicle.VT_RAIL, cur);
+        } else {
+          local bridges = AIBridgeList_Length(AIMap.DistanceManhattan(cur, next) + 1);
+          bridges.Valuate(AIBridge.GetMaxSpeed);
+          bridges.Sort(AIList.SORT_BY_VALUE, false);
+          if (!bridges.IsEmpty()) {
+            AIBridge.BuildBridge(AIVehicle.VT_RAIL, bridges.Begin(), cur, next);
+          }
+        }
+      } else {
+        AIRail.BuildRail(prev, cur, next);
+      }
+    }
+    simulatedInfra = accounting.GetCosts();
+  }
+  return simulatedInfra;
+}
+
 /* Execute la construction reelle d'un plan precalcule ou valide. */
 function OpexExecuteRailPlan(catalog, budget, candidate, plan, join, cashReserve)
 {
@@ -1003,6 +1056,20 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, join, cashReserve
   local planB = plan.planB;
   local tiles = plan.tiles;
   local joinA = plan.joinA;
+
+  if (RAIL_DEVIS) {
+    local realInfra = OpexSimulateRailInfraCost(plan, join);
+    if (realInfra > 0) {
+      local depotCost = catalog.costRailDepot + 2 * catalog.costTrackPerTile;
+      local vehicleCost = ("vehicleCost" in candidate) ? candidate.vehicleCost : 0;
+      if (vehicleCost <= 0 && ("loco" in candidate) && candidate.loco != null &&
+          (candidate.cargo in catalog.wagonByCargo)) {
+        vehicleCost = candidate.trains * (candidate.loco.price + candidate.wagons * catalog.wagonByCargo[candidate.cargo].price);
+      }
+      local realCapital = realInfra + depotCost + vehicleCost;
+      result.capital = realCapital;
+    }
+  }
 
   result.money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   local need = result.capital + cashReserve;

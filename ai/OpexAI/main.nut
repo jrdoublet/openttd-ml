@@ -69,6 +69,8 @@ AIR_FLEET_PROBE <- false;
 FLEET_BEFORE_NEW <- false;
 /* Construction dediee de rabattages vers les hubs (docs/taches.md C1). */
 FEEDER_ENABLED <- true;
+/* Devis réel par AITestMode + AIAccounting avant engagement (docs/taches.md C7). */
+RAIL_DEVIS <- true;
 /* Expansion marginale : bras A/B inerte par defaut jusqu'au verdict du banc. */
 RAIL_EXPAND <- false;
 const RAIL_EXPAND_STREAK = 2;
@@ -3025,6 +3027,7 @@ function OpexAI::Start()
   }
   local tc = AIController.GetSetting("transit_cost");
   if (tc >= 0) TRANSIT_COST_PERMILLE = tc;
+  RAIL_DEVIS = AIController.GetSetting("rail_devis") != 0;
   RAIL_EXPAND = AIController.GetSetting("rail_expand") != 0;
   ASTAR_COST_V2 = AIController.GetSetting("astar_cost") != 0;
   PROBE_NEGATIVE = AIController.GetSetting("probe_negative") != 0;

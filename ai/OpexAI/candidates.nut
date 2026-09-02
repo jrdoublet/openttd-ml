@@ -243,6 +243,7 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
     trainsForVolume = economics.trainsForVolume,
     carried = economics.carried,
     capital = economics.capital,
+    vehicleCost = economics.vehicleCost,
     immobilise = ("immobilise" in economics) ? economics.immobilise : 0,
     roi = effectiveRoi,
     freightBonus = freightBonus,

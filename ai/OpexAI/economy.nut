@@ -306,6 +306,8 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
     runningAnnual = best.runningAnnual,
     amortAnnual = best.amortAnnual,
     capital = best.capital,
+    vehicleCost = best.vehicleCost,
+    immobilise = best.immobilise,
     roi = best.roi,
     profitAnnual = best.profitAnnual,
   };
