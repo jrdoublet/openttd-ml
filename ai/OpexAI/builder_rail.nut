@@ -1137,8 +1137,21 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, join, cashReserve
   result.stationA = planA.station_exit;
   result.stationB = planB.station_exit;
   result.depot = depot;
-  result.platformA = { anchor = planA.anchor, direction = planA.direction, step = planA.step, length = planA.length };
-  result.platformB = { anchor = planB.anchor, direction = planB.direction, step = planB.step, length = planB.length };
+  /* fleet_fix : la copie reduite laissait tomber `station_exit` et `lead`. Or
+   * OpexUpgradeRailLineToDoubleTrack relit `original.station_exit` via OpexSameStationEnd : le
+   * passage en double voie etait donc GARANTI de planter des sa premiere execution -- ce qui n'est
+   * jamais arrive, le bloc rail_refleet etant lui-meme injoignable (docs/taches.md S0 nonies).
+   * Rendre le refleet atteignable sans ceci tue l'IA. Les champs ne sont ajoutes que sous
+   * fleet_fix, pour que le bras de controle du banc reste rigoureusement identique. */
+  if (FLEET_FIX) {
+    result.platformA = { anchor = planA.anchor, direction = planA.direction, step = planA.step,
+                         length = planA.length, station_exit = planA.station_exit, lead = planA.lead };
+    result.platformB = { anchor = planB.anchor, direction = planB.direction, step = planB.step,
+                         length = planB.length, station_exit = planB.station_exit, lead = planB.lead };
+  } else {
+    result.platformA = { anchor = planA.anchor, direction = planA.direction, step = planA.step, length = planA.length };
+    result.platformB = { anchor = planB.anchor, direction = planB.direction, step = planB.step, length = planB.length };
+  }
   result.doubleTrack <- (okD ? 1 : 0);
   if (okD && depot2 != null) {
     result.depot2 <- depot2;

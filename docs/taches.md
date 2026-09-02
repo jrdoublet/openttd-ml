@@ -1591,6 +1591,148 @@ closure imbriquée ni `AIAccounting` imbriqué dans ce périmètre.
 
 ---
 
+## 3 bis. 🔶 MESURER le headway réel des lignes de calibration de la note de gare (2026-09-02)
+
+**Question ouverte, et il faut la MESURER, pas la deviner.** `OpexStationRatingForHeadway`
+(`economy.nut`) décompose la note en `STATION_RATING_PCT * 255/100 − 95`, où le **95** suppose que
+les lignes ayant servi au calage empirique (notes mesurées 49–55 en 15.3) étaient dans la tranche
+de ramassage 95 points.
+
+Or `economy_fix` corrige les seuils vers les valeurs du source (7,5 / 15 / 30 / 52,5 jours au lieu
+de 6,8 / 13,5 / 27 / 47), et `TARGET_HEADWAY_DAYS = 7` bascule alors de la tranche 95 vers la
+tranche **130**. Si les lignes de calibration étaient vraiment à 7 jours de headway *réel*, l'ancre
+devrait donc devenir 130.
+
+**Essayé le 2026-09-02, et RETIRÉ.** Trois raisons :
+
+1. La décomposition utilise le headway **cible**, jamais le `roundTripDays / trains` réellement
+   mesuré de ces lignes. Si leur headway réel dépassait 7,5 jours, elles n'étaient pas dans la
+   tranche 130 et **95 est la bonne ancre**.
+2. Une ancre à 130 donne `otherPoints = −2,5` : tous les autres facteurs de note du moteur
+   (vitesse, âge du matériel, cargo en attente, statue) contribueraient ensemble **~0**. C'est
+   invraisemblable au vu du source.
+3. Smoke test 3 graines × 1 an avec la ré-dérivation : les trois graines s'effondrent et la graine
+   42 sort à **−185 £ de profit**. À n=3 ce n'est pas une preuve, mais un profit négatif est un
+   changement qualitatif, pas du bruit de trajectoire.
+
+**Ce qu'il faut pour trancher** : instrumenter le `roundTripDays / trains` effectif des lignes sur
+lesquelles la note 49–55 a été relevée, et lire dans quelle tranche elles tombent réellement. Tant
+que ce n'est pas fait, l'ancre reste à 95 — y compris sous `economy_fix`, qui ne corrige donc que
+les **seuils**, lesquels ne déplacent la courbe qu'au voisinage des bandes-frontières.
+
+⚠️ Ne pas « corriger » l'ancre par cohérence algébrique : les deux hypothèses sont internement
+cohérentes, seule la mesure les départage.
+
+---
+
+## 0 nonies bis. 🔴 LES TREIZE CORRECTIONS NE PAIENT PAS — banc du 2026-09-02
+
+`docs/bench_corrections_3y_20seeds.json` : 20 graines x 3 ans, lecture appariée, 0 échec de
+script. Bras de contrôle = défauts courants (donc `tree_planting` déjà corrigé) ; bras traité =
+`loop_budget=1, portfolio_v2=1, fleet_fix=1, economy_fix=1`.
+
+| métrique | effet des corrections | t | graines |
+|---|---:|---:|---:|
+| `company_value` | **+2,5 %** | 0,26 | 12/20 |
+| `profit_year` | +11,3 % | 1,08 | 11/20 |
+| `profit` | +20,7 % | 1,66 | 15/20 |
+| `performance_history` | **+12,2 %** | 2,39 | 13/20 |
+| `median_station_rating` | **−14,8 %** | 3,63 | 5/20 |
+| gares | 21,4 → **20,6** | | |
+| véhicules | 58,3 → **58,0** | | |
+
+### 🔴 Ce que ça invalide
+
+**L'hypothèse centrale du diagnostic tombe.** Toute la revue concluait que ~85 % de l'écart vient
+du VOLUME, et que le goulot était le débit du contrôleur (61,2 % des mois avec ≥300 k£ et aucune
+construction). Les correctifs visaient précisément ça — budget d'opcodes drainé, `Sleep` retiré,
+portefeuille régénéré dès que le capital grandit, sélection au profit finançable. **Le volume n'a
+pas bougé d'un pouce** : 20,6 gares contre 21,4, véhicules identiques.
+
+Donc : **ce n'est pas le budget d'opcodes ni la sélection de projet qui limitent le volume.** Le
+frein est ailleurs, et il faut le chercher ailleurs — vraisemblablement dans ce qui *produit* les
+candidats (`candidates.nut`, non encore revu) ou dans le taux d'échec réel des constructions.
+
+### Les deux effets réels, de signes opposés
+
+- **`performance_history` +12,2 % (t = 2,39)** — au niveau du plancher (~12 %), donc juste établi.
+- **`median_station_rating` −14,8 % (t = 3,63, 15/20 défavorables)** — nettement établi, et c'est
+  une dégradation. **Mécanisme plausible et précis** : `economy_fix` choisit les convois au ROI,
+  ce qui pousse vers MOINS de convois, donc un headway plus long, donc un palier de note de
+  ramassage inférieur. Le correctif censé améliorer le rendement unitaire dégraderait la captation.
+
+### Ce qu'il faut faire avant de continuer à corriger
+
+1. **Isoler les quatre réglages** — quatre campagnes appariées, une par réglage. Sans ça on ne sait
+   pas lequel des quatre porte le +12,2 % et lequel porte le −14,8 %. Soupçon principal :
+   `economy_fix` pour la perte de note.
+2. **Ne PAS adopter le lot en bloc.** Aucun des quatre n'est établi individuellement, et
+   `company_value` — la seule métrique qui parle contre AAAHogEx — est plate.
+3. Le seul gain mesuré de la journée reste **`tree_planting`** (+22 %, déjà adopté) : le bras de
+   contrôle est passé de 602 750 à 766 552 de valeur moyenne depuis la référence `1aeefe1`.
+
+⚠️ Écart avec AAAHogEx toujours entier : **0,79 M£ contre ~4,95 M£**, facteur ~6.
+
+---
+
+## 0 nonies ter. ✅ ISOLATION DES QUATRE RÉGLAGES — `economy_fix` adopté, `portfolio_v2` est le coupable (2026-09-02)
+
+`docs/bench_isolation_3y_20seeds.json` : **5 bras, 100 parties**, 20 graines x 3 ans, lecture
+appariée, 0 échec. Un seul contrôle commun, donc les quatre lectures sont comparables entre elles
+(et 60 parties économisées sur quatre campagnes séparées).
+
+| réglage | `company_value` | `profit_year` | `performance_history` | note de gare | gares | véhicules |
+|---|---:|---:|---:|---:|---:|---:|
+| **`economy_fix`** | **+11,7 %** (t 1,47) | **+21,1 %** (t 2,09) | **+16,1 %** (t 3,01) | −5,9 % (t −1,66) | 22,4 | 62,3 |
+| `loop_budget` | +1,6 % (t 0,23) | +2,7 % | +1,1 % | −0,4 % | 21,7 | 61,8 |
+| `fleet_fix` | −2,4 % | +2,0 % | −1,2 % | −2,5 % | 22,8 | 57,9 |
+| **`portfolio_v2`** | **−24,4 %** (t −1,62) | **−30,7 %** (t −1,54) | +1,2 % | +4,0 % (t 2,21) | **27,2** | **71,9** |
+
+*(contrôle : 21,4 gares, 58,3 véhicules, 766 552 de valeur)*
+
+### ✅ `economy_fix` ADOPTÉ, défaut passé à 1
+
+`profit_year` +21,1 % et `performance_history` +16,1 % dépassent leur plancher de détection, et
+**priment sur `company_value` dans l'ordre des objectifs du projet**. Seule ombre, non établie :
+note de gare −5,9 % (t = −1,66).
+
+### 🔴 `portfolio_v2` : il TIRE le bon levier et détruit quand même la valeur
+
+**C'est le seul réglage qui bouge le volume** — 21,4 → **27,2 gares (+27 %)**, véhicules +23 %.
+Le levier que toute la revue cherchait existe donc bien, et c'est lui qui l'actionne. Mais il coûte
+**−24,4 % de valeur et −30,7 % de profit annuel** : en classant au profit par livre de capital, il
+privilégie **beaucoup de petites lignes bon marché et médiocres**. C'est exactement le risque que
+l'analyse avait nommé (« une politique trop cheap-first peut construire beaucoup de petites lignes
+médiocres »), et il s'est réalisé.
+
+➜ **Ne pas jeter le mécanisme, corriger sa règle de tri.** Pistes : plancher de profit ABSOLU par
+projet en plus du ratio ; ou classer les projets finançables au profit absolu plutôt qu'au ratio ;
+ou n'autoriser le « bon marché » qu'une fois les gros projets rentables financés. C'est
+**l'item de tête** : c'est la seule voie identifiée vers le volume.
+
+### 🔴 `loop_budget` est NUL — la trouvaille n°1 de la revue du contrôleur est invalidée
+
++1,6 % (t = 0,23). **Le budget d'opcodes n'était pas le goulot.** Le raisonnement était pourtant
+solide (10 000 opcodes/tick non reportables, une tâche par tick, ~810 M d'opcodes de dotation), et
+il est faux : drainer le tick ne produit rien de plus. Corollaire : les « 61,2 % de mois avec
+≥300 k£ et aucune construction » étaient un **symptôme, pas la cause** — si le vivier ne contient
+rien qui vaille, donner plus de temps de calcul ne change rien.
+
+### Pourquoi le lot groupé paraissait plat
+
+`economy_fix` (+11,7 %) et `portfolio_v2` (−24,4 %) **se sont annulés**. Le banc groupé du même
+jour donnait +2,5 % sur `company_value` : c'était la somme de deux effets réels de signes opposés,
+pas l'absence d'effet. ⚠️ **Leçon de méthode : ne jamais conclure « sans effet » d'un lot de
+correctifs groupés — isoler d'abord.**
+
+### `fleet_fix` : nul au banc, mais garde un correctif de plantage
+
+−2,4 % sur la valeur, rien d'établi. Il contient toutefois la réparation du champ `station_exit`
+sans laquelle **l'IA meurt** dès que `rail_refleet` devient atteignable : à conserver le jour où ce
+chemin sera réactivé.
+
+---
+
 ## 0 decies. 🔴 REVUE DE `candidates.nut` (étape 6, 2026-09-02) — le vivier lui-même est bridé
 
 Périmètre : génération et filtrage des candidats rail et route (~1 240 lignes). C'est l'étage qui

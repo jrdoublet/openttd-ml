@@ -207,6 +207,66 @@ ROAD_REFLEET <- true;
  * a chaque extremite, et n'ajoute de vehicules que si les deux bouts ont double. */
 ROAD_MULTISTOP <- false;
 
+/* Drainage du budget d'opcodes du tick (revue du controleur, docs/taches.md S0 sexies point 1) :
+ * repli FAUX jusqu'a la lecture unique de loop_budget dans Start(). Defaut 0 : la boucle
+ * principale execute exactement UNE tache par tick puis Sleep(1), donc tout ce qui reste des
+ * 10 000 opcodes du tick est PERDU -- le budget n'est pas reportable. Sur une partie de 3 ans
+ * (~81 000 ticks, ~810 M d'opcodes) c'est le gisement dont AAAHogEx tire ~150 gares quand nous
+ * en tirons ~18. Sous 1 : on enchaine les taches tant qu'il reste de quoi travailler.
+ * Coherent avec docs/philosophie_armes_egales : Sleep sert aux parties avec des humains, pas
+ * face a une IA qui, elle, ne dort pas entre ses chunks. */
+LOOP_BUDGET <- false;
+/* Marge laissee au moteur pour ne pas suspendre au milieu d'une transaction, et plafond de taches
+ * par tick pour qu'un tour de file entierement compose de taches hors periode ne brule pas le
+ * budget en pur ordonnancement. */
+const LOOP_BUDGET_FLOOR = 2000;
+const LOOP_BUDGET_MAX_TASKS = 8;
+
+/* Portefeuille v2 (revue du portefeuille, docs/taches.md S0 sexies et S0 septies) : repli FAUX
+ * jusqu'a la lecture unique de portfolio_v2 dans Start(). Defaut 0 : chemin historique inchange.
+ * Sous 1, quatre defauts confirmes tombent ensemble --
+ *   - l'election modale par couple O/D se fait APRES le test de capital, pas avant ;
+ *   - l'objectif passe du revenu total au PROFIT par livre de capital ;
+ *   - le sac a dos 0/1 est remplace par « le meilleur projet finançable », puisque maxBatch = 1
+ *     n'en batit qu'un et jetait tout le reste ;
+ *   - la contrainte « pas deux projets sur la meme extremite » disparait : elle interdisait la
+ *     topologie en etoile de builder_air sans rien apporter a un batch de taille 1.
+ * Plus la regeneration du portefeuille des que le capital mobilisable a materiellement grandi,
+ * au lieu d'attendre le mois suivant. */
+PORTFOLIO_V2 <- false;
+/* Gain absolu minimal avant de rejouer la generation : en dessous, le cout en opcodes ne vaut pas
+ * la peine d'etre paye pour quelques milliers de livres. */
+const PORTFOLIO_REFRESH_MIN_GAIN = 50000;
+
+/* Correctifs de flotte (revue flotte et entretien, docs/taches.md S0 nonies) : repli FAUX jusqu'a
+ * la lecture unique de fleet_fix dans Start(). Defaut 0 : chemin historique inchange. Sous 1,
+ * trois defauts mesures tombent ensemble --
+ *   1. rail_refleet redevient ATTEIGNABLE. Son bloc vit a l'interieur de _expandRailLines, derriere
+ *      un return anticipe commande par rail_expand (defaut 0), et _runNextTask desactivait la tache
+ *      sur le meme critere. Avec les defauts livres, aucune ligne rail ne pouvait donc jamais
+ *      gagner un second train ni une seconde voie, alors qu'info.nut annonce rail_refleet actif.
+ *   2. une ligne routiere neuve n'achete plus une seconde flotte complete dans son propre cycle de
+ *      construction : `vehCount` n'etant ecrit qu'une fois par an, elle arrivait au refleet avec
+ *      have = 0 et se faisait reconstruire, ordres dupliques compris.
+ *   3. `isAnyWaiting` ne prend plus un vehicule en chargement pour un embouteillage. Sous
+ *      OF_FULL_LOAD_ANY c'est l'etat normal d'un camion, et les trois heuristiques de croissance
+ *      exigeant !isAnyWaiting, le signal etait inverse par rapport a son intention. */
+FLEET_FIX <- false;
+
+/* Correctifs du modele economique (revue de economy.nut, docs/taches.md S0 octies) : repli FAUX
+ * jusqu'a la lecture unique de economy_fix dans Start(). Defaut 0 : chemin historique inchange.
+ * Sous 1, deux defauts du rendement unitaire tombent --
+ *   1. les seuils de note de ramassage passent de 6,8 / 13,5 / 27 / 47 jours aux valeurs du source
+ *      du moteur, 7,5 / 15 / 30 / 52,5 (3 / 6 / 12 / 21 cycles a ~2,5 jours le cycle). Chaque
+ *      palier etait ~10 % trop strict, et TARGET_HEADWAY_DAYS = 7 tombait entre les deux valeurs du
+ *      premier : le modele notait sa propre cible de conception a 95 quand le moteur accorde 130.
+ *      L'ancre de calibration suit desormais la tranche reelle de cette cible, pour que le modele
+ *      reproduise exactement STATION_RATING_PCT au headway de calibration.
+ *   2. le nombre de convois est choisi au profit par livre de capital -- le meme objectif que celui
+ *      qui l'arbitrera au portefeuille -- au lieu du profit absolu, qui livrait systematiquement la
+ *      variante la plus gourmande en capital. */
+ECONOMY_FIX <- true;
+
 /* Dimensionnement marginal et progressif de flotte (item de tete, 2026-09-01) : repli FAUX
  * jusqu'a la lecture unique de marginal_fleet dans Start(). Defaut 0 : chemin actuel
  * rigoureusement inchange -- MAX_ROAD_VEHICLES/plafond 16 route, clonage immediat a
@@ -1999,7 +2059,24 @@ function OpexAI::_reportLines(year)
     local line = this._lines[i];
     local stationA = AIStation.GetStationID(line.stationA);
     local stationB = AIStation.GetStationID(line.stationB);
-    if (!AIStation.IsValidStation(stationA)) continue;
+    /* fleet_fix : ce `continue` sautait la ligne AVANT toute mise a jour de deadStreak, vehCount,
+     * lastProfit, lastRevenue et lastLiveVehicles. Une gare A devenue invalide (demolie, tuile
+     * passee a autrui) gelait donc l'etat de la ligne POUR TOUJOURS : _scrapDeadLines s'appuyant
+     * sur deadStreak, la ligne n'etait jamais ferraillee, ses vehicules saignaient leur cout
+     * d'exploitation toute la partie, et ses deux extremites continuaient de bloquer _tooClose
+     * pour de nouveaux candidats (docs/taches.md S0 nonies). Meme mode d'echec que la ligne OIL_
+     * deja documentee plus bas, sur un chemin que ce correctif ne couvrait pas.
+     *
+     * On compte desormais la gare perdue comme une annee morte : la ligne rejoint le chemin normal
+     * de ferraillage au lieu de pourrir en silence. */
+    if (!AIStation.IsValidStation(stationA)) {
+      if (FLEET_FIX) {
+        local streak = ("deadStreak" in line) ? line.deadStreak : 0;
+        line.deadStreak <- streak + 1;
+        OpexSign(anchor, "OZ|" + line.lineId + "|" + year + "|SA|" + line.deadStreak);
+      }
+      continue;
+    }
 
     local ratingA = AIStation.GetCargoRating(stationA, line.cargo);
     local ratingB = AIStation.IsValidStation(stationB)
@@ -2208,7 +2285,22 @@ function OpexAI::_resizeAirFleets(year)
     if (("deadStreak" in line) && line.deadStreak >= 1) continue;
     if (("lastProfit" in line) && line.lastProfit < 0) continue;
 
+    /* fleet_fix : cette garde pricait le MEILLEUR avion du catalogue, alors qu'OpexAirAddPlane
+     * clone le gabarit de LA LIGNE (builder_air.nut:224, prix lu sur l'engin du vehicule existant).
+     * Une ligne a helices desservant un petit aeroport, face a un catalogue passe au gros jet,
+     * voyait donc `need` plusieurs fois trop grand : `money < need` -> break, et une ligne
+     * rentable ne grandissait jamais alors que la tresorerie etait la. La garde interne
+     * d'OpexAirAddPlane etant correcte, celle-ci ne produisait que des FAUX NEGATIFS
+     * (docs/taches.md S0 nonies). On price desormais l'avion qu'on va reellement acheter. */
     local planePrice = (this._catalog.plane != null) ? this._catalog.plane.price : 30000;
+    if (FLEET_FIX && ("vehicles" in line)) {
+      foreach (v in line.vehicles) {
+        if (!AIVehicle.IsValidVehicle(v)) continue;
+        local ownPrice = AIEngine.GetPrice(AIVehicle.GetEngineType(v));
+        if (ownPrice > 0) planePrice = ownPrice;
+        break;
+      }
+    }
     local need = planePrice + OpexCashReserve() + 2000;
     local addedThisPass = 0;
     // (d) au plus un avion par ligne et par an sous marginal_fleet=1 ; 4 (repli actuel) sous 0.
@@ -2321,7 +2413,20 @@ function OpexAI::_refleetRoadLines(year)
     if (("expandRetryCycle" in line) && line.expandRetryCycle > this._taskCycle) continue;
     if (!("depot" in line) || !AIRoad.IsRoadDepotTile(line.depot)) continue;
     if (("deadStreak" in line) && line.deadStreak > 0) continue;
-    local have = ("vehCount" in line) ? line.vehCount : 0;
+    /* fleet_fix : `vehCount` n'est ecrit que par _reportLines, au plus UNE fois par an, et les
+     * dicts de ligne routiere n'en portent pas a la construction. Or la file execute `projects`
+     * puis `refleet` DANS LE MEME CYCLE : une ligne tout juste batie arrivait donc ici avec
+     * have = 0 face a un target valant sa flotte reelle, et OpexRoadRefleet repartait -- en
+     * sautant la reprise de gabarit faute de have > 0, donc en creant un vehicule avec sa PROPRE
+     * liste d'ordres puis en clonant le reste. Toute ligne routiere neuve achetait ainsi une
+     * seconde flotte complete (docs/taches.md S0 nonies, trouvaille 2). Le repli est desormais la
+     * flotte reellement posee a la construction, pas zero. */
+    local have = 0;
+    if ("vehCount" in line) {
+      have = line.vehCount;
+    } else if (FLEET_FIX && ("trains" in line)) {
+      have = line.trains;
+    }
     local target = ("predTrains" in line) ? line.predTrains : (("trains" in line) ? line.trains : 1);
     if (("trains" in line) && line.trains > target) target = line.trains;
     if (target < 1) target = 1;
@@ -2342,8 +2447,18 @@ function OpexAI::_refleetRoadLines(year)
     local movingCount = 0;
     foreach (v in vehicles) {
       if (!AIVehicle.IsValidVehicle(v)) continue;
-      if (AIVehicle.GetCurrentSpeed(v) == 0) isAnyWaiting = true;
-      else movingCount++;
+      if (AIVehicle.GetCurrentSpeed(v) == 0) {
+        /* fleet_fix : « vitesse nulle » n'est PAS un embouteillage -- c'est l'etat NORMAL d'un
+         * vehicule en cours de chargement a un arret, et les lignes de fret routier sont baties
+         * avec OF_FULL_LOAD_ANY, donc un camion y passe la majeure partie de son cycle. Les trois
+         * heuristiques de croissance plus bas exigeant toutes !isAnyWaiting, la situation qui
+         * devrait declencher la croissance -- du cargo qui s'accumule pendant qu'un camion fait le
+         * plein -- etait lue comme « deja sature, ne pas grandir ». Le signal etait donc inverse
+         * par rapport a son intention (docs/taches.md S0 nonies, trouvaille 3). On ne compte
+         * desormais comme bloque qu'un vehicule arrete EN LIGNE, pas a quai. */
+        if (!FLEET_FIX || AIVehicle.GetState(v) != AIVehicle.VS_AT_STATION) isAnyWaiting = true;
+        else movingCount++;
+      } else movingCount++;
     }
 
     if (("lastProfit" in line) && line.lastProfit < -200 && have >= 2) continue;
@@ -2599,7 +2714,17 @@ function OpexAI::_findLineById(lineId)
  * la demande pax surestimee du catalogue. */
 function OpexAI::_expandRailLines(year)
 {
-  if (!RAIL_EXPAND || this._railExpansion != null) return;
+  /* fleet_fix : la garde d'entree coupait TOUT sur !RAIL_EXPAND, y compris le bloc RAIL_REFLEET
+   * plus bas -- seul site d'appel de OpexBuildSecondTrain et OpexUpgradeRailLineToDoubleTrack.
+   * Avec les defauts livres (rail_expand = 0, rail_refleet = 1) aucune ligne rail ne pouvait donc
+   * JAMAIS gagner un second train ni une seconde voie, alors qu'info.nut annonce la
+   * fonctionnalite active. On n'ecarte desormais que la partie expansion de wagons, en laissant
+   * passer le refleet. */
+  if (FLEET_FIX) {
+    if ((!RAIL_EXPAND && !RAIL_REFLEET) || this._railExpansion != null) return;
+  } else {
+    if (!RAIL_EXPAND || this._railExpansion != null) return;
+  }
   this._budget.begin();
   local best = null;
   local nEligible = 0;
@@ -2607,6 +2732,10 @@ function OpexAI::_expandRailLines(year)
   local nPersistent = 0;
   local nPositive = 0;
   foreach (line in this._lines) {
+    /* fleet_fix : quand on n'est entre QUE pour le refleet (rail_expand = 0, rail_refleet = 1),
+     * l'expansion de wagons ne doit pas s'exercer -- on ne fait que traverser vers le bloc
+     * RAIL_REFLEET, `best` restant nul. */
+    if (FLEET_FIX && !RAIL_EXPAND) break;
     if ((("mode" in line) && line.mode != "rail") || !("wagons" in line) || !("platformLength" in line) ||
         !("loco" in line) || !("kind" in line)) continue;
     if (line.trains != 1 || !("vehCount" in line) || line.vehCount != 1) continue;
@@ -3015,7 +3144,28 @@ function OpexAI::_runNextTask()
   if (task.name == "catalog") {
     local date = AIDate.GetCurrentDate();
     local ym = year * 12 + AIDate.GetMonth(date);
-    if (this._lastCatalogMonth == ym && this._projects != null) return false;
+    /* portfolio_v2 : le portefeuille n'etait regenere qu'au CHANGEMENT DE MOIS ou apres une
+     * construction reussie, et son capitalBudget etait fige a la generation. Un mois qui s'ouvrait
+     * a 60 k£ sans projet finançable rendait donc un portefeuille vide, et _tryBuildProjects
+     * sortait des sa premiere ligne POUR TOUT LE MOIS -- meme si la tresorerie montait ensuite a
+     * 400 k£. C'est la mesure « 4,15 mois en moyenne avec >= 100 k£ et aucune croissance »
+     * (docs/taches.md S0 septies, trouvaille A). On regenere donc aussi des que le capital
+     * mobilisable a materiellement grandi depuis la derniere generation. */
+    local stale = false;
+    if (PORTFOLIO_V2 && this._projects != null) {
+      local cashNow = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+      local borrowableNow = REBORROW
+          ? AICompany.GetMaxLoanAmount() - AICompany.GetLoanAmount() : 0;
+      if (borrowableNow < 0) borrowableNow = 0;
+      local budgetNow = cashNow + borrowableNow - OpexCashReserve();
+      if (budgetNow < 0) budgetNow = 0;
+      local budgetThen = this._projects.capitalBudget;
+      /* Seuil relatif ET absolu : on ne rejoue pas la generation pour quelques milliers de livres,
+       * mais un doublement du capital mobilisable rouvre le vivier. */
+      if (budgetNow > budgetThen + PORTFOLIO_REFRESH_MIN_GAIN &&
+          budgetNow > budgetThen * 2) stale = true;
+    }
+    if (this._lastCatalogMonth == ym && this._projects != null && !stale) return false;
     this._lastCatalogMonth = ym;
     this._catalog.refresh(this._budget, year);
     this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines);
@@ -3051,7 +3201,15 @@ function OpexAI::_runNextTask()
     return this._tryBuildProjects(year);
   }
   if (task.name == "expand") {
-    if (!RAIL_EXPAND) { task.enabled = false; return false; }
+    /* fleet_fix : la tache portait UNIQUEMENT sur RAIL_EXPAND, alors que le bloc RAIL_REFLEET
+     * (second train, passage en double voie) vit a l'interieur de _expandRailLines. La desactiver
+     * sur !RAIL_EXPAND rendait donc rail_refleet injoignable malgre son defaut a 1
+     * (docs/taches.md S0 nonies, trouvaille 1). */
+    if (FLEET_FIX) {
+      if (!RAIL_EXPAND && !RAIL_REFLEET) { task.enabled = false; return false; }
+    } else {
+      if (!RAIL_EXPAND) { task.enabled = false; return false; }
+    }
     this._expandRailLines(year);
     return true;
   }
@@ -3104,6 +3262,10 @@ function OpexAI::Start()
   ROAD_REFLEET = AIController.GetSetting("road_refleet") != 0;
   ROAD_MULTISTOP = AIController.GetSetting("road_multistop") != 0;
   MARGINAL_FLEET = AIController.GetSetting("marginal_fleet") != 0;
+  LOOP_BUDGET = AIController.GetSetting("loop_budget") != 0;
+  PORTFOLIO_V2 = AIController.GetSetting("portfolio_v2") != 0;
+  FLEET_FIX = AIController.GetSetting("fleet_fix") != 0;
+  ECONOMY_FIX = AIController.GetSetting("economy_fix") != 0;
   RAIL_COST_PROBE = AIController.GetSetting("rail_cost_probe") != 0;
   RAIL_EXPAND = AIController.GetSetting("rail_expand") != 0;
   ASTAR_COST_V2 = AIController.GetSetting("astar_cost") != 0;
@@ -3142,7 +3304,30 @@ function OpexAI::Start()
 
   while (true) {
     this._processEvents();
-    this._runNextTask();
-    AIController.Sleep(1);
+    if (LOOP_BUDGET) {
+      /* Le budget d'un tick n'est PAS reportable : ce qui n'est pas depense est perdu. L'ancienne
+       * boucle executait exactement UNE tache puis rendait la main, donc un tick qui tirait une
+       * tache hors de sa periode (catalog hors de son mois, report hors de son annee, repay hors
+       * du sien) depensait quelques centaines d'opcodes et jetait les ~9 700 restants.
+       * On draine desormais le tick tant qu'il reste de quoi travailler. */
+      local drained = 0;
+      while (AIController.GetOpsTillSuspend() > LOOP_BUDGET_FLOOR && drained < LOOP_BUDGET_MAX_TASKS) {
+        if (!this._runNextTask()) break;
+        drained++;
+      }
+      /* Le plancher garde de la marge pour ne pas etre suspendu au milieu d'une transaction, et
+       * le plafond de taches empeche un tour de file entierement compose de taches inutiles de
+       * bruler le budget en pur ordonnancement. */
+      if (drained == 0) this._runNextTask();
+      /* AUCUN Sleep ici, et c'est deliberé. Le Sleep de fin de tour rendait la main alors qu'il
+       * restait du budget, ce qui est un auto-handicap face a une IA qui ne dort pas entre ses
+       * chunks (docs/philosophie_armes_egales : les bridages servent aux parties avec des HUMAINS,
+       * jamais entre IA). Le moteur nous suspend de lui-meme quand le budget du tick est epuise et
+       * nous reprend au tick suivant exactement ou il nous avait laisses : la boucle reste donc
+       * bornee, et la partie avance normalement. */
+    } else {
+      this._runNextTask();
+      AIController.Sleep(1);
+    }
   }
 }

@@ -150,6 +150,53 @@ function OpexProjectRemember(winners, project, stats)
   }
 }
 
+/* portfolio_v2 : garde TOUTES les alternatives modales d'un couple origine/destination au lieu
+ * d'en elire une avant le test de capital. Motif (docs/taches.md S0 septies, soupcon 1 confirme) :
+ * OpexProjectModeBetter classe sur `roi`, un RATIO -- une ligne rail a 900 k£ (roi 180) bat une
+ * route a 45 k£ (roi 170) sur le meme couple, puis echoue au test de capital, et le couple ne
+ * rapporte alors RIEN alors qu'une alternative finançable existait. */
+function OpexProjectRememberAll(winners, project, stats)
+{
+  if (project == null) return;
+  stats.modeCandidates++;
+  local key = OpexProjectPairKey(project.kind, project.cargo, project.src, project.dst);
+  if (!(key in winners)) {
+    winners.rawset(key, [project]);
+    return;
+  }
+  stats.modeAlternatives++;
+  winners[key].push(project);
+}
+
+/* portfolio_v2 : la selection finale.
+ *
+ * Remplace le sac a dos 0/1 par « le meilleur projet finançable ». Motif (S0 septies, trouvaille
+ * B) : `maxBatch = 1` dans main.nut -- UN SEUL projet est construit, puis tout le portefeuille est
+ * regenere. Tout le sac a dos etait donc jete sauf un item, et cet item avait ete admis par un
+ * empaquetage dont l'objectif etait le REVENU total. A 300 k£ de budget, le solveur preferait
+ * {3 x 100 k£ / rev 20k} = 60k a {1 x 280 k£ / rev 55k} = 55k : le meilleur projet etait
+ * finançable et n'etait jamais construit.
+ *
+ * Trois defauts tombent d'un coup :
+ *   - l'objectif passe du revenu au PROFIT (soupcons 2 et 3) ;
+ *   - la contrainte « deux projets ne partagent aucune extremite » disparait (soupcon 4) : elle
+ *     interdisait la topologie en etoile que builder_air produit, sans rien apporter puisqu'un
+ *     seul projet est bati ;
+ *   - le couple garde son alternative finançable (soupcon 1), l'election modale se faisant
+ *     desormais APRES le test de capital.
+ *
+ * Le classement est le profit par livre de capital reellement mobilisable. */
+function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
+{
+  local affordable = [];
+  foreach (project in alternatives) {
+    if (project.budgetCapital > capitalBudget) continue;
+    project.fundScore <- OpexProjectScore(project.profitAnnual, project.budgetCapital);
+    OpexProjectInsert(affordable, project, "fundScore", limit);
+  }
+  return affordable;
+}
+
 /* Insertion bornee et stable. field vaut budgetScore pendant la premiere contrainte, opcodeScore
  * pendant la seconde. Les egalites gardent le revenu absolu le plus eleve. */
 function OpexProjectInsert(best, project, field, limit)
@@ -312,33 +359,67 @@ function OpexBuildProjects(catalog, budget, lines)
     budgetRejected = 0, selectedRevenue = 0, selectedCapital = 0,
     knapsackNodes = 0, knapsackExact = true,
   };
+  /* Branchement explicite plutot qu'une fonction passee dans un local : ce depot a deja paye
+   * plusieurs echecs Squirrel silencieux, et ici une IA morte ressemblerait exactement a une IA
+   * nulle au banc. */
   local winners = {};
-  foreach (candidate in rail.candidates) {
-    OpexProjectRemember(winners, OpexProjectFromCandidate(candidate), stats);
-  }
-  foreach (candidate in road.candidates) {
-    OpexProjectRemember(winners, OpexProjectFromCandidate(candidate), stats);
-  }
-  foreach (plan in airPlans) {
-    OpexProjectRemember(winners, OpexProjectFromAir(catalog, plan, airOps), stats);
-  }
-  foreach (plan in waterPlans) {
-    OpexProjectRemember(winners, OpexProjectFromWater(catalog, plan, waterOps), stats);
+  if (PORTFOLIO_V2) {
+    foreach (candidate in rail.candidates) {
+      OpexProjectRememberAll(winners, OpexProjectFromCandidate(candidate), stats);
+    }
+    foreach (candidate in road.candidates) {
+      OpexProjectRememberAll(winners, OpexProjectFromCandidate(candidate), stats);
+    }
+    foreach (plan in airPlans) {
+      OpexProjectRememberAll(winners, OpexProjectFromAir(catalog, plan, airOps), stats);
+    }
+    foreach (plan in waterPlans) {
+      OpexProjectRememberAll(winners, OpexProjectFromWater(catalog, plan, waterOps), stats);
+    }
+  } else {
+    foreach (candidate in rail.candidates) {
+      OpexProjectRemember(winners, OpexProjectFromCandidate(candidate), stats);
+    }
+    foreach (candidate in road.candidates) {
+      OpexProjectRemember(winners, OpexProjectFromCandidate(candidate), stats);
+    }
+    foreach (plan in airPlans) {
+      OpexProjectRemember(winners, OpexProjectFromAir(catalog, plan, airOps), stats);
+    }
+    foreach (plan in waterPlans) {
+      OpexProjectRemember(winners, OpexProjectFromWater(catalog, plan, waterOps), stats);
+    }
   }
 
+  local funded = null;
   local byBudget = [];
-  foreach (key, project in winners) {
-    stats.odProjects++;
-    OpexProjectInsert(byBudget, project, "budgetScore", PROJECT_POOL_K);
+  if (PORTFOLIO_V2) {
+    /* Toutes les alternatives de tous les couples, aplaties : c'est le test de capital qui
+     * tranchera, pas une election modale prealable au ratio. */
+    local alternatives = [];
+    foreach (key, list in winners) {
+      stats.odProjects++;
+      foreach (project in list) alternatives.push(project);
+    }
+    funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);
+    stats.budgetConsidered = alternatives.len();
+    stats.budgetSelected = funded.len();
+    stats.budgetRejected = alternatives.len() - funded.len();
+    stats.knapsackNodes = 0;
+    stats.knapsackExact = true;
+  } else {
+    foreach (key, project in winners) {
+      stats.odProjects++;
+      OpexProjectInsert(byBudget, project, "budgetScore", PROJECT_POOL_K);
+    }
+    local knapsack = OpexKnapsackSolve(byBudget, capitalBudget, ROAD_MAX_NEW_LINES_PER_YEAR, PROJECT_TOP_K);
+    funded = knapsack.projects;
+    stats.knapsackNodes = knapsack.nodes;
+    stats.knapsackExact = knapsack.exact;
+    stats.budgetConsidered = byBudget.len();
+    stats.budgetSelected = funded.len();
+    stats.budgetRejected = byBudget.len() - funded.len();
   }
-
-  local knapsack = OpexKnapsackSolve(byBudget, capitalBudget, ROAD_MAX_NEW_LINES_PER_YEAR, PROJECT_TOP_K);
-  local funded = knapsack.projects;
-  stats.knapsackNodes = knapsack.nodes;
-  stats.knapsackExact = knapsack.exact;
-  stats.budgetConsidered = byBudget.len();
-  stats.budgetSelected = funded.len();
-  stats.budgetRejected = byBudget.len() - funded.len();
 
   local selectedRev = 0;
   local selectedCap = 0;
@@ -351,9 +432,16 @@ function OpexBuildProjects(catalog, budget, lines)
   local remaining = capitalBudget - selectedCap;
   if (remaining < 0) remaining = 0;
 
-  local byOpcodes = [];
-  foreach (project in funded) {
-    OpexProjectInsert(byOpcodes, project, "opcodeScore", PROJECT_TOP_K);
+  /* portfolio_v2 : on garde l'ordre de financement (profit par livre de capital). Le reclassement
+   * par `opcodeScore` du chemin historique est un classement au REVENU par opcode, et comme un
+   * seul projet est bati par cycle il decidait a lui seul lequel -- en contredisant l'objectif de
+   * profit qu'on vient d'etablir. */
+  local byOpcodes = funded;
+  if (!PORTFOLIO_V2) {
+    byOpcodes = [];
+    foreach (project in funded) {
+      OpexProjectInsert(byOpcodes, project, "opcodeScore", PROJECT_TOP_K);
+    }
   }
 
   return {

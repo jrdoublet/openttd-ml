@@ -613,6 +613,128 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
+    /* Drainage du budget d'opcodes du tick. Revue du controleur, docs/taches.md S0 sexies point 1.
+     *
+     * 0 (defaut, comportement historique) : la boucle principale de Start() execute EXACTEMENT une
+     * tache par tick puis Sleep(1). Le budget de 10 000 opcodes par tick n'etant PAS reportable,
+     * un tick qui tire une tache hors de sa periode (catalog hors de son mois, report hors de son
+     * annee, repay hors du sien) depense quelques centaines d'opcodes et JETTE les ~9 700 restants.
+     * Sur une partie de 3 ans (~81 000 ticks, ~810 M d'opcodes) c'est le gisement dont AAAHogEx
+     * tire ~150 gares quand nous en tirons ~18.
+     *
+     * 1 : on enchaine les taches tant que GetOpsTillSuspend() depasse LOOP_BUDGET_FLOOR, avec un
+     * plafond LOOP_BUDGET_MAX_TASKS par tick pour qu'un tour de file entierement compose de taches
+     * hors periode ne brule pas le budget en pur ordonnancement.
+     *
+     * Sous 1, le Sleep(1) de fin de tour DISPARAIT aussi. Ce n'est pas un oubli :
+     * docs/philosophie_armes_egales dit que Sleep sert aux parties avec des HUMAINS, et qu'entre
+     * IA on ne s'auto-handicape jamais -- AAAHogEx ne dort pas entre ses chunks. Rendre la main
+     * alors qu'il reste du budget est exactement l'auto-handicap que ce principe interdit. Le
+     * moteur suspend le script de lui-meme des que le budget du tick est epuise et le reprend au
+     * tick suivant la ou il en etait : la boucle reste bornee et la partie avance normalement.
+     * Sous 0, le Sleep(1) historique est conserve tel quel. */
+    AddSetting({
+      name = "loop_budget",
+      description = "Drain the tick's opcode budget by running consecutive due tasks, with no end-of-turn sleep: 1 = drain (plays like AAAHogEx), 0 = one task then sleep (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* Portefeuille v2. Revue du portefeuille, docs/taches.md S0 septies -- quatre soupcons
+     * confirmes et deux trouvailles majeures, corriges ensemble parce qu'ils portent tous sur la
+     * meme decision : quel projet unique est bati ce cycle.
+     *
+     * 0 (defaut, comportement historique) :
+     *   - l'election modale par couple origine/destination se fait AVANT le test de capital, et sur
+     *     `roi` qui est un RATIO : une ligne rail a 900 k£ bat une route a 45 k£ sur le meme
+     *     couple, puis echoue faute de capital, et le couple ne rapporte alors RIEN ;
+     *   - le sac a dos 0/1 maximise la somme des REVENUS, `profitAnnual` n'apparaissant nulle part
+     *     dans l'objectif ;
+     *   - `budgetScore` est un revenu par 1000 £ de capital, y compris dans le panneau IP| montre
+     *     a l'operateur ;
+     *   - deux projets finances ne peuvent partager aucune extremite, ce qui interdit la topologie
+     *     en etoile que builder_air.nut produit -- sans rien apporter, puisque main.nut n'en batit
+     *     qu'UN par cycle (maxBatch = 1) et regenere tout ensuite ;
+     *   - le portefeuille n'est regenere qu'au changement de mois ou apres une construction
+     *     reussie, capitalBudget fige a la generation : un mois ouvert a 60 k£ sans projet
+     *     finançable ne construit RIEN de tout le mois, meme si la tresorerie monte a 400 k£.
+     *
+     * 1 : toutes les alternatives modales d'un couple sont conservees, le test de capital tranche,
+     * le classement est le PROFIT par livre de capital mobilisable, le sac a dos est remplace par
+     * « le meilleur projet finançable », et le portefeuille est regenere des que le capital
+     * mobilisable a materiellement grandi. */
+    /* Correctifs de flotte. Revue flotte et entretien, docs/taches.md S0 nonies -- trois defauts
+     * qui visent tous le meme symptome mesure : 3,26 vehicules par gare contre 2,71 chez
+     * AAAHogEx, et 8x moins de gares.
+     *
+     * 0 (defaut, comportement historique) :
+     *   - rail_refleet est INJOIGNABLE. Son bloc (second train, passage en double voie, seuls
+     *     sites d'appel de OpexBuildSecondTrain et OpexUpgradeRailLineToDoubleTrack) vit a
+     *     l'interieur de _expandRailLines, derriere un return anticipe commande par rail_expand
+     *     dont le defaut est 0 ; et _runNextTask desactive la tache definitivement sur le meme
+     *     critere. Avec les defauts livres, AUCUNE ligne rail ne peut donc jamais gagner un second
+     *     train ni une seconde voie -- alors que rail_refleet vaut 1 et est annonce actif.
+     *   - toute ligne routiere neuve achete une seconde flotte complete dans son propre cycle de
+     *     construction : vehCount n'est ecrit que par _reportLines, une fois par an, et la file
+     *     execute projects puis refleet dans le meme cycle, donc la ligne arrive avec have = 0
+     *     face a un target valant sa flotte reelle. OpexRoadRefleet saute alors la reprise de
+     *     gabarit et cree un vehicule avec sa propre liste d'ordres avant de cloner le reste.
+     *   - isAnyWaiting prend un vehicule en chargement pour un embouteillage. Sous
+     *     OF_FULL_LOAD_ANY c'est l'etat normal d'un camion de fret, et les trois heuristiques de
+     *     croissance exigent toutes !isAnyWaiting : la situation qui devrait declencher la
+     *     croissance est lue comme une saturation. Le signal est inverse.
+     *
+     * 1 : les trois sont corriges. */
+    /* Correctifs du modele economique. Revue de economy.nut, docs/taches.md S0 octies. Cible : le
+     * rendement unitaire, mesure a -31,4 % contre AAAHogEx (6 332 £/an par vehicule net ajoute
+     * contre 9 229 £).
+     *
+     * 0 (defaut, comportement historique) :
+     *   - les seuils de note de ramassage valent 6,8 / 13,5 / 27 / 47 jours, alors que le source
+     *     15.3 compare time_since_pickup a 3 / 6 / 12 / 21 CYCLES a ~2,5 jours le cycle, soit
+     *     7,5 / 15 / 30 / 52,5. Chaque palier est ~10 % trop strict. Le plus couteux est le
+     *     premier : TARGET_HEADWAY_DAYS = 7 tombe entre 6,8 et 7,5, donc le modele note sa PROPRE
+     *     cible de conception a 95 points quand le moteur en accorde 130.
+     *   - le nombre de convois est choisi au profit ABSOLU, sans jamais consulter roi ni capital,
+     *     alors que c'est roi que le portefeuille classe ensuite. Ajouter un convoi augmente
+     *     presque toujours le profit absolu et baisse le roi : le modele livre donc au portefeuille
+     *     la variante la plus gourmande en capital de toutes celles qu'il a evaluees.
+     *
+     * ADOPTE AU BANC LE 2026-09-02 (docs/bench_isolation_3y_20seeds.json, 20 graines x 3 ans,
+     * lecture appariee, reglage isole) : profit_year +21,1 % (t = 2,09, 14/20),
+     * performance_history +16,1 % (t = 3,01, 15/20), company_value +11,7 % (t = 1,47, 12/20).
+     * Les deux premieres depassent leur plancher de detection et priment sur company_value dans
+     * l'ordre des objectifs du projet. Seule ombre : note de gare -5,9 % (t = -1,66), non etabli.
+     *
+     * 1 : les seuils suivent le source, l'ancre de calibration reste a 95 (voir economy.nut)
+     * (le modele reproduit donc exactement STATION_RATING_PCT au headway de calibration, sans
+     * constante nouvelle), et la variante est choisie sur le meme objectif que celui qui
+     * l'arbitrera -- le profit par livre de capital. */
+    AddSetting({
+      name = "economy_fix",
+      description = "Source-verified station rating thresholds and train count chosen on profit per pound of capital: 1 = fixed (default, adopted at bench), 0 = historical",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "fleet_fix",
+      description = "Make rail_refleet reachable, stop new road lines from buying a second full fleet on their build cycle, and stop reading a loading vehicle as a jam: 1 = fixed, 0 = historical (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "portfolio_v2",
+      description = "Portfolio selection on profit per pound of affordable capital, modal choice after the capital test, and regeneration when capital grows: 1 = v2, 0 = revenue knapsack, monthly only (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* Ticks de sommeil apres chaque bloc de PATH_CHUNK (50) iterations d'A*.
      *
      * Defaut 0 = AUCUN bridage. Choisi PAR PRINCIPE (armes egales entre IA), PAS par la mesure --
