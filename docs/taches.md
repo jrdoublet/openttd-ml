@@ -3522,3 +3522,42 @@ le devis, lui, doit décider de l'*engagement*.
 4. **Filtre de platitude préalable sur les sites d'aéroport** (point 5) — plus radical et moins
    cher que notre sondage `air_presite`, qui nivelle avant de tester.
 5. **Ne plus raser l'aéroport orphelin** (point 6).
+
+---
+
+## 0 quatervicies. ❌ `air_presite` : MESURÉ À 10 ANS, NON ADOPTÉ — le gaspillage supprimé ne se convertit pas (2026-09-02)
+
+`docs/bench_air_presite_10y.json`, banc apparié 20 graines × **10 ans**, `OpexAI` contre
+`OpexAI[air_presite=1]`. C'est le banc qui devait trancher (§0 duovicies §6) : le capital rendu en
+première année a eu dix ans pour composer.
+
+| métrique | écart moyen | $t$ | signes |
+|---|---:|---:|---|
+| `company_value` | **−1,76 %** | −0,38 | 11 gains / 8 pertes (1 nulle) — **$p = 0{,}65$** |
+| `performance_history` | +4,11 % | +1,24 | 10 / 9 — $p = 1{,}00$ |
+| `profit_year` | −2,64 % | −0,43 | 8 / 11 |
+| `profit` | −1,13 % | −0,21 | 9 / 10 |
+
+**Aucun effet.** La moyenne est négative pendant que le compte des signes est légèrement positif :
+c'est la signature d'une poignée de grosses pertes qui écrasent la moyenne. Les mouvements
+individuels le disent — graine 1 **+66,7 %**, graine 42 **−31,0 %**, graine 123456 **+33,2 %**,
+graine 7 **−27,8 %**. Le remaniement de trajectoire, amplifié par dix ans.
+
+**Verdict : `air_presite` reste à 0.** Le mécanisme fait pourtant exactement ce qu'on lui demande
+— **−53,7 % du capital brûlé par les abandons, mesuré et non déduit** (§0 duovicies §2). Troisième
+fois de suite qu'un mécanisme vérifié ne se convertit en rien : après `maxBatch` (§0 vicies) et
+les treize corrections (§0 nonies bis). **Le volume de capital n'est pas le mur.**
+
+### Ce qu'il faut faire à la place, et §0 tervicies le dit
+
+Notre sondage **nivelle les deux sites avant de tester** — c'est ce qui explique le plancher
+résiduel de 57 961 £ : les 8 abandons coûtent chacun le prix d'un nivellement.
+
+AAAHogEx ne nivelle pas pour savoir. Elle **refuse le site d'emblée** si une seule tuile s'écarte
+de ≥ 2 niveaux de la moyenne (`tile.nut:1269-1274`), sans dépenser un sou. Nos 7 échecs
+`FLAT_LAND` sur 8 tombent exactement dans ce filtre.
+
+➡️ **Le successeur d'`air_presite` n'est pas un re-banc : c'est le filtre de platitude préalable.**
+Il supprime le résidu que le sondage laisse, et il coûte moins cher que lui. Mais il ne faut pas
+en attendre de la performance non plus — ce banc-ci vient de montrer que l'économie de capital,
+seule, ne paie pas. La vraie piste reste §0 tervicies point 1 : **le dénominateur du classement.**
