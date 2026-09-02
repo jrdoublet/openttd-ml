@@ -3341,3 +3341,184 @@ libérée change l'ordre des chantiers, et la chance de carte reprend la main.
 trésorerie 1970-1980 mord le plus. Trois ans est peut-être un horizon trop court pour qu'un
 capital rendu tôt compose. Banc 10 ans lancé (`docs/bench_air_presite_10y.json`) : **c'est lui
 qui tranche**, pas celui-ci. Défaut à 0 en attendant.
+
+---
+
+## 0 tervicies. 🔴 CE QUE FAIT AAAHogEx : L'OBJECTIF CHANGE DE DÉNOMINATEUR (lecture de code, 2026-09-02)
+
+Lecture des 37 531 lignes de `ai/AAAHogEx-115/`, sur deux sujets précis : la construction
+d'aéroport et le devis du rail. **Toutes les citations ci-dessous ont été relues et vérifiées
+ligne à ligne dans le source.**
+
+### 1. 🔴 LA TROUVAILLE : `CalculateProfitModel` bascule l'objectif selon la ressource rare (`main.nut:781-836`)
+
+```squirrel
+main.nut:781  function CalculateProfitModel() {
+main.nut:782    if(!IsRich() || IsInflation()) {
+main.nut:783      roiBase = true;              // pauvre -> maximiser le profit PAR LIVRE
+...
+main.nut:795      if(room >= 100 && current < max * 7 / 10) {
+main.nut:798        buildingTimeBase = true;   // riche, places de vehicules libres -> profit PAR TEMPS DE CHANTIER
+...
+main.nut:805      vehicleProfibitBase = true; // riche et plafonne en vehicules -> profit PAR VEHICULE
+```
+
+```squirrel
+main.nut:828  function GetValue(roi, incomePerBuildingTime, incomePerVehicle) {
+main.nut:829    if(roiBase) return roi;
+main.nut:832    if(buildingTimeBase) return incomePerBuildingTime;
+main.nut:835    return incomePerVehicle;
+```
+
+**AAAHogEx ne classe pas ses projets sur un critère fixe.** Elle identifie la ressource qui la
+contraint à cet instant — l'argent, le temps de chantier, ou le plafond de véhicules — et
+**change le dénominateur** de son classement en conséquence.
+
+`incomePerBuildingTime = routeIncome / buildingTime` (`estimator.nut:90`) **est exactement la
+métrique « profit par itération »** que ce projet s'est donnée comme objectif. Elle est déjà dans
+sa fonction objectif, et elle s'active précisément quand l'argent cesse de mordre.
+
+➡️ **OpexAI divise TOUJOURS par le capital.** En 1970 c'est le bon dénominateur ; dès que la
+trésorerie n'est plus le mur, on continue d'optimiser une contrainte qui ne lie plus. C'est, de
+loin, la différence la plus importante trouvée — bien avant le prix du rail.
+
+### 2. 🔴 Le ROI porte le capital IMMOBILISÉ EN TRANSIT au dénominateur (`estimator.nut:78-88`)
+
+```squirrel
+estimator.nut:85   lostOpportunity = routeIncome * (cruiseDays + waitingInStationTime) / 365;
+estimator.nut:87   local cost = max(1, price * vehiclesPerRoute + buildingCost + lostOpportunity);
+estimator.nut:88   roi = routeIncome * 1000 / cost;
+```
+
+Le dénominateur n'est pas le capital construit : c'est le capital construit **plus le revenu
+renoncé pendant que la marchandise voyage et attend en gare**. Une ligne longue et lente est
+pénalisée même à coût de construction identique.
+
+C'est la correction **flux contre stock** de la philosophie du projet, appliquée à l'argent et au
+temps. Nous ne l'avons nulle part : `roi = profitAnnual * 1000 / capital` (`economy.nut:247`)
+ignore entièrement la durée d'immobilisation.
+
+### 3. La validation bilatérale est STRUCTURELLE, pas un correctif (`route.nut:3761` → `:3860`)
+
+```squirrel
+route.nut:3761   local testMode = AITestMode();
+route.nut:3785     destHgStation = destStationFactory.CreateBest(dest, cargo, src.GetLocation());
+route.nut:3800     if(destHgStation == null) return null;
+route.nut:3803     HogeAI.notBuildableList.AddList(list);   // reserve les tuiles de dest
+route.nut:3823     srcHgStation = srcStationFactory.CreateBest(src, cargo, destHgStation.platformTile);
+route.nut:3837     if(srcHgStation == null) return null;
+...
+route.nut:3860   { local execMode = AIExecMode();  ... BuildExec() ... }
+```
+
+Toute la recherche des **deux** stations se fait sous une seule fenêtre `AITestMode`, et la
+bascule en `AIExecMode` n'a lieu qu'après. **Aucune livre n'est engagée tant que les deux
+extrémités ne sont pas prouvées**, et ce pour **tous les modes**, pas seulement l'avion.
+
+Notre `air_presite` (§0 duovicies) est la version locale et tardive de cette idée. La leur est
+l'architecture : `CreateBest()` (sonde) et `BuildExec()` (pose) sont deux méthodes distinctes de
+toute classe de station.
+
+Détail à voler : `notBuildableList.AddList` (`:3803`) réserve les tuiles de la première station
+pendant la recherche de la seconde, ce qui empêche les deux extrémités de se disputer un site.
+
+### 4. Le devis du rail : ils ne pricent PAS le terrain non plus — ils **surbudgètent** (`estimator.nut:555-561`)
+
+```squirrel
+estimator.nut:557   local demolishFarm = HogeAI.GetInflatedMoney(540) * 40 / 100;      // 216 £
+estimator.nut:558   local cost = (AIRail.GetBuildCost(type, BT_TRACK)*2 + demolishFarm) * 2 * distance;
+estimator.nut:559   cost += AIRail.GetBuildCost(type, BT_TRACK) * 220 + Route.GetPaxMailTransferBuildingCost(cargo);
+```
+
+Terme par terme :
+
+| terme | valeur | ce qu'il représente |
+|---|---|---|
+| `GetBuildCost(BT_TRACK) * 2` | 150 £ | **double voie**, posée par défaut |
+| `+ demolishFarm` | **216 £/tuile** | forfait de défrichage : 40 % de 540, une espérance |
+| `* 2` | **×2** | **coefficient de détour** sur la distance à vol d'oiseau |
+| `* distance` | | distance droite |
+| `+ GetBuildCost * 220` | 16 500 £ | forfait gares + aiguillages + dépôt |
+
+Soit **732 £ par tuile de distance droite**, contre **75 £** chez nous. Même en ramenant à la voie
+simple, ils budgètent ~366 £/tuile là où le réel mesuré est de 151 £.
+
+**Deux enseignements, et le second contredit notre plan :**
+
+1. **Le coefficient de détour ×2 corrobore notre mesure de façon indépendante.** Nous avons mesuré
+   un rapport réel/modèle de 2,02 par tuile (§0 unvicies) sans jamais regarder leur code ; ils ont
+   codé ×2 en dur. Le facteur `rail_terrain_factor` n'est donc pas un bricolage : c'est le terme
+   que tout le monde a, sauf nous.
+2. **Ils ne pricent le terrain nulle part** — aucun terme de pente, d'eau, de pont ou de tunnel
+   dans le devis (le relief n'entre que dans le calcul du temps de trajet). Leur réponse au
+   terrain n'est pas de le mesurer : c'est de **surbudgéter et de refuser les mauvais sites**
+   (point 5). Aérien : `airportTraints.cost * 2 * 2 /* 整地とかの分 */` (`:589`) — le coût de
+   l'aéroport doublé « pour le terrassement etc. », soit **100 % de marge**, là où notre mesure
+   d'aujourd'hui montre un écart réel de +2,6 %.
+
+### 5. Filtre de platitude éliminatoire : ≥ 2 niveaux d'écart et le site est refusé (`tile.nut:1269-1274`)
+
+```squirrel
+tile.nut:1269   if(!force) {
+tile.nut:1270     foreach(tile,level in tileList) { // 山岳マップは失敗する事が多いので、先にはじく
+tile.nut:1271       if(abs(average - level) >= 2) {
+tile.nut:1272         return false;
+```
+
+Le commentaire japonais dit : « sur les cartes montagneuses ça échoue souvent, on rejette
+d'abord ». **C'est ce qui rend leurs échecs `FLAT_LAND` rares** — nos 7 échecs sur 8 sont
+exactement ce que ce filtre aurait écarté sans dépenser un sou.
+
+### 6. L'aéroport orphelin n'est PAS rasé (`air.nut:368`)
+
+```squirrel
+air.nut:368   isNotRemoveStation = HogeAI.Get().IsInfrastructureMaintenance() == false;
+```
+
+Quand l'entretien d'infrastructure est désactivé (le défaut), un échec de liaison **ne démolit pas**
+l'aéroport déjà posé : il ne coûte rien à garder et servira une autre liaison. Nous le rasons.
+
+### 7. Leur plantation d'arbres est la version correcte de la nôtre (`utils.nut:984-1026`, `station.nut:2102-2114`)
+
+```squirrel
+utils.nut:1021    if( AITown.GetRating(town, AICompany.COMPANY_SELF) >= goalRating ) return true;
+station.nut:2113  BuildUtils.Get().PlantTreeTown(town, AITown.TOWN_RATING_POOR);
+```
+
+Ils comparent **l'enum à l'enum** (`TOWN_RATING_POOR`), **re-testent après chaque rectangle** et
+s'arrêtent dès l'objectif atteint, avec un **verrou de 90 jours** par ville quand il n'y a plus
+de place où planter (`:985-989`). Ils plantent par rectangle (`PlantTreeRectangleSafe`), pas tuile
+à tuile. C'est la confirmation externe du bug de §0 duovicies §5.
+
+### 8. ⚠️ Le « piège » `AITestMode` + `AIAccounting` est chez eux un OUTIL (`utils.nut:718-732`)
+
+```squirrel
+utils.nut:718   static function WaitForMoney(func) {
+utils.nut:720     {
+utils.nut:721       local testMode = AITestMode();
+utils.nut:722       local accounting = AIAccounting();
+utils.nut:723       if(!func()) { ... }
+utils.nut:728       cost = accounting.GetCosts();
+utils.nut:729     }
+utils.nut:730     if(HogeAI.Get().IsTooExpensive(cost)) { ... return false; }
+```
+
+Ils exploitent délibérément ce que nous avons traité comme un défaut (§0 duovicies §3) :
+`AIAccounting` sous `AITestMode` **rend un devis exact**. Le bloc lexical joue le même rôle de
+bouclier que le nôtre — l'accounting imbriqué est détruit à la sortie et ne pollue rien.
+
+➡️ **Conséquence directe pour §0 unvicies** : nous n'avons pas forcément besoin d'un facteur
+correctif sur `costTrackPerTile`. Une fois le tracé A\* connu, **un devis exact est disponible
+pour le prix de quelques opcodes**. Le facteur reste utile au *classement* (avant le pathfinding) ;
+le devis, lui, doit décider de l'*engagement*.
+
+### 9. Ce qu'il faut en retirer, dans l'ordre
+
+1. **Rendre le dénominateur du classement dépendant de la ressource rare** (point 1). C'est
+   structurel et c'est probablement là qu'est le facteur de vitesse.
+2. **Ajouter le capital immobilisé en transit au dénominateur du ROI** (point 2).
+3. **Devis réel par `AITestMode` + `AIAccounting` avant engagement** (point 8), en complément du
+   facteur de détour pour le classement (point 4).
+4. **Filtre de platitude préalable sur les sites d'aéroport** (point 5) — plus radical et moins
+   cher que notre sondage `air_presite`, qui nivelle avant de tester.
+5. **Ne plus raser l'aéroport orphelin** (point 6).
