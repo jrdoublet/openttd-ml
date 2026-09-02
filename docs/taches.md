@@ -4131,3 +4131,87 @@ appliquent à l'objectif ce que cette idée applique à la file. Les deux sont c
 4. **Interaction avec §3 sexies** : si le portefeuille devient incrémental, une partie des tâches
    deviennent des étages d'évaluation. La politique de phase doit alors arbitrer **le temps de
    calcul** entre recensement, évaluation de coût et construction — pas seulement l'ordre.
+
+---
+
+## 3 octies. 🔶 ESTIMATEUR D'OPCODES APPRIS, sur la longueur ET le terrain (idée du 2026-09-02)
+
+**Non commencé.** Demandé explicitement : sortir des constantes tirées de moyennes, et apprendre
+le coût en opcodes en fonction de la longueur de la route et du terrain.
+
+### Verdict : ça a du sens, et les données disent pourquoi — mais sous deux conditions strictes
+
+**Ce qui justifie l'idée, mesuré sur les 15 tentatives rail de `docs/rail_cost_shielded_v2.json` :**
+
+```
+iterations ~ distance  :  R2 = 0,20        (pente 110 iterations/tuile)
+iterations             :  min 950, mediane 8 600, max 20 850
+opcodes / iteration    :  mediane 3 105     (la constante du code dit 2 700)
+```
+
+**$R^2 = 0{,}20$.** La distance n'explique quasiment rien. Les exemples le crient : 63 tuiles →
+9 350 itérations, mais 96 tuiles → 7 950 ; 84 tuiles → 20 850, mais 125 tuiles → 13 800. **Le
+prédicteur actuel est une table de nœuds sur la seule distance** (`KNOT_ITERATIONS_V1/V2`,
+`candidates.nut:91-92`) : il ne peut pas faire mieux que ce $R^2$.
+
+Ce qui manque est **le terrain**, et le dossier a déjà mesuré que c'est là que ça se joue —
+`ponts_tunnels_v3` : le taux de `PATHLIM` passe de **1,9 %** sans eau sur le corridor à **60,7 %**
+au-delà de 21 tuiles d'eau, et les AUC univariées des features de corridor valent 0,76 (eau),
+0,75 (inconstructible), 0,72 (dénivelé).
+
+Au passage : la constante `PROJECT_RAIL_OPS_PER_ITERATION = 2 700` est **15 % trop basse**
+(médiane réelle 3 105) — un correctif d'une ligne, indépendant du reste.
+
+### Condition 1 — le coût des features doit être inférieur à ce que la prédiction rapporte
+
+C'est **le** point qui peut tuer l'idée, et il se mesure avant d'écrire le modèle. Échantillonner
+un corridor coûte des opcodes ; si ce scan coûte une fraction notable des 23,4 M d'un A\* rail,
+on n'a rien gagné. À mesurer d'abord : **prix d'un scan de corridor en opcodes**, contre
+**opcodes économisés** en n'engageant pas les A\* voués à `PATHLIM`.
+
+Le calcul est favorable *a priori* — éviter un seul abandon rail économise des millions
+d'opcodes — mais « a priori » n'est pas une mesure.
+
+### Condition 2 — le modèle doit tenir en Squirrel
+
+Pas de numpy à l'exécution. **On apprend hors ligne, on embarque des coefficients.** Formes
+acceptables : une régression linéaire sur 3-4 features, ou une table de nœuds à deux entrées
+(distance × eau du corridor) — c'est-à-dire exactement ce que `KNOT_ITERATIONS_V*` est déjà, en
+une dimension. **Ce n'est donc pas un changement de paradigme : c'est le même artefact, mieux
+ajusté et mieux nourri.**
+
+### Cible à apprendre : deux problèmes, pas un
+
+L'itération d'A\* n'est pas une grandeur lisse — elle est dominée par « le chemin est-il bloqué ».
+Le bon estimateur est donc composite :
+
+```
+opcodesAttendus = P(abandon) * plafondIterations + (1 - P(abandon)) * E[iterations | succes]
+                  puis x opcodes_par_iteration
+```
+
+- **une classification** — la tentative va-t-elle rendre `PATHLIM`/`ABND` ? C'est là que les
+  features d'eau et d'inconstructible ont leurs AUC de 0,75 ;
+- **une régression** sur les itérations des tentatives réussies.
+
+### Ce qui existe déjà et ce qui manque
+
+| | état |
+|---|---|
+| vérité terrain rail | ✅ `rail_attempts` porte `distance`, `iterations`, `opcodes`, `reason`, `iteration_budget` |
+| vérité terrain route | ✅ panneau `RB|` : `plan_ops` et `build_ops` par tentative |
+| features de terrain | 🔶 mesurées en campagne v3 (`corridor_water/unbuildable/slope`) mais **pas calculées en jeu par OpexAI** |
+| protocole d'apprentissage | ✅ `GroupKFold` par graine, déjà rodé (`docs/phase3_ml.md`) |
+| volume | 🔴 **15 tentatives rail sur 5 graines × 3 ans** — très insuffisant. Une campagne dédiée est nécessaire |
+
+⚠️ **Pour la route, il n'y a aucun levier sur la distance** : toutes les lignes bâties font 20 à
+25 tuiles (`ROAD_MAX_DISTANCE = 25`). Un modèle routier dépendant de la longueur exige d'abord
+une campagne à bande élargie, sinon on ajustera du bruit.
+
+### Ce que l'estimateur sert vraiment — et pourquoi une précision modeste suffit
+
+Dans le portefeuille incrémental de §3 sexies, `expectedOpcodes` entre dans le ROI et décide
+**l'ordre d'évaluation**, c'est-à-dire à quoi on consacre son attention. Une erreur y coûte de
+l'attention, **pas de l'argent** : la fonction de perte est indulgente. Un modèle grossier mais
+non biaisé vaut donc déjà beaucoup, et il n'est pas nécessaire d'attendre un modèle fin pour
+gagner. À dire explicitement dans la mesure, pour ne pas sur-investir.
