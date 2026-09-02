@@ -185,11 +185,6 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   }
 
   local iterations = OpexRailIterations(distance);
-  if (distance > 105) {
-    iterations = iterations * 2;
-  } else if (distance > 70) {
-    iterations = (iterations * 13) / 10;
-  }
   local opcodeRatio = (economics.profitAnnual * 1000) / iterations;
   /* MIN_RATIO reste une mesure et le cout d'opportunite terminal du pathfinder, mais il ne peut
    * plus eliminer un mode AVANT l'arbitrage par couple O/D. La contrainte d'opcodes est appliquee
