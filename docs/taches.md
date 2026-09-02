@@ -4323,7 +4323,7 @@ qui n'avait pas encore sa ligne. Journal de la journée : `docs/journal_2026-09-
 |---|---|---|---|
 | C1 | **Débloquer l'élection des feeders** — étapes 1 et 2 faites, la 3 reste. Un bonus ne suffira pas (`opcodeScore` 6 contre 1037) : il faut une **tâche dédiée**, comme `air_fleet` | 651 candidats → 0 bâti | §3 quinquies |
 | C2 | **`rail_terrain_factor`** : facteur ×1,70 sur `costTrackPerTile`, banc 20 graines contre 100 | modèle 19 % sous le réel | §0 unvicies |
-| C3 | **`PROJECT_RAIL_OPS_PER_ITERATION = 2 700` est 15 % trop bas** — médiane réelle **3 105**. Correctif d'une ligne | 15 % | §3 octies |
+| C3 | **`PROJECT_RAIL_OPS_PER_ITERATION = 2 700` est 15 % trop bas** — médiane réelle **3 105**. ✅ Fait (calibré à 3 105) | 15 % | §3 octies |
 | C4 | **Filtre de platitude préalable** sur les sites d'aéroport (rejet à ≥ 2 niveaux d'écart, à la AAAHogEx) — plus radical et moins cher qu'`air_presite`, qui nivelle avant de tester | écarterait 7 échecs sur 8 | §0 tervicies point 5 |
 | C5 | **Ne plus raser l'aéroport orphelin** quand l'entretien d'infrastructure est coupé | ~25 000 £ par `BFAIL` | §0 tervicies point 6 |
 | C6 | **Plafonner la distance des tentatives aériennes** — aucun succès au-delà de 212 tuiles, aucun échec en deçà de 178 | 8 échecs sur 20 | §0 unvicies point 4 |

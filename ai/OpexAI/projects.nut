@@ -18,7 +18,8 @@ const PROJECT_TOP_K = 64;
 /* Mesures communes. Le pathfinder rail consomme environ 2 700 opcodes par iteration. Pour les
  * autres modes, la partie plan est mesuree pendant la generation ; les constantes ci-dessous
  * couvrent les commandes transactionnelles qui restent apres le plan. */
-const PROJECT_RAIL_OPS_PER_ITERATION = 2700;
+/* Calibré sur la médiane réelle mesurée (3 105 opcodes par itération d'A* rail, cf. docs/taches.md §3 octies & C3). */
+const PROJECT_RAIL_OPS_PER_ITERATION = 3105;
 const PROJECT_RAIL_TRANSACTION_OPS = 200000;
 const PROJECT_ROAD_TRANSACTION_OPS = 287000;
 const PROJECT_AIR_TRANSACTION_OPS = 100000;
