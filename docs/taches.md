@@ -2531,6 +2531,43 @@ morte de la §0 nonies) N'A PAS ce défaut : elle tourne sur une ligne **déjà 
 jour réactivé, ce chemin de mise à niveau a priori fonctionnerait pour doubler une ligne existante —
 contrairement au chemin de construction initiale, qui resterait cassé indépendamment.
 
+### ✅ MESURÉ le 2026-09-02 : mécanisme CONFIRMÉ, enjeu MARGINAL — ne pas corriger maintenant
+
+Diagnostic de comptage avant d'écrire le moindre correctif (`sweeps/opex_two_trains_diag.py`,
+résultat dans `docs/opex_two_trains_diag.json`, 8 graines × 3 ans, `rail_cost_probe=1`). La sonde
+existait déjà : `main.nut:1332` émet `DC|idx|capital|actualCost|candidate.trains|result.trains|result.doubleTrack`.
+**Aucun code d'IA modifié pour mesurer.**
+
+| grandeur | résultat |
+|---|---|
+| lignes rail construites (8 parties) | **21** |
+| `result.trains` | **1 sur 21/21** |
+| `result.doubleTrack` | **0 sur 21/21** |
+| `candidate.trains == 2` | **1 sur 21 (4,8 %)** |
+
+✅ **Le mécanisme de la trouvaille n°1 est confirmé par la mesure** : aucune ligne rail ne reçoit
+jamais de seconde voie ni de second train. La lecture de code était juste.
+
+🔴 **Mais sa portée annoncée est RÉFUTÉE.** La revue écrivait que « 2 trains maximise presque
+toujours le profit absolu par construction du modèle » et que le défaut touchait « potentiellement
+une majorité des lignes rail ». La mesure dit **4,8 %**. Explication la plus probable :
+`economy_fix` (adopté le 2026-09-02) a changé la sélection du nombre de trains pour comparer le
+**ROI** d'abord au lieu du profit absolu (§0 octies trouvaille 2) — et le ROI préfère un train.
+**Le correctif de la veille avait déjà neutralisé l'essentiel de ce défaut-ci sans qu'on le sache.**
+
+Sur la seule ligne concernée (graine 7) : capital prédit 66 183 £ pour un coût réel de 45 585 £,
+soit **31 % de surestimation** — le mécanisme est bien réel, il est simplement rare.
+
+👉 **Décision : ne pas corriger l'ordre des opérations de `OpexTryDoubleTrack` maintenant.** À
+4,8 % des lignes rail, l'effet est très en dessous du plancher de détection et le correctif touche
+le chemin de construction le plus délicat du dépôt. Garder la trouvaille documentée pour le jour
+où `RAIL_EXPAND` serait réactivé, ou si la sélection du nombre de trains changeait à nouveau.
+
+⚠️ **Datum secondaire, plus inquiétant que la trouvaille elle-même** : **21 lignes rail pour 8
+parties de 3 ans**, soit 2,6 par partie — et la graine 1 n'en construit **aucune**. À comparer aux
+107-183 gares d'AAAHogEx. Le rail est une part minuscule de notre volume, ce qui recentre l'effort
+sur `maxBatch` et sur les modes qui produisent réellement du volume.
+
 ### Le reste
 
 | gravité | lieu | problème |
