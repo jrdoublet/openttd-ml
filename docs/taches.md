@@ -4055,3 +4055,79 @@ colle au régime réel.
 - L'élection modale par couple O/D (`OpexProjectModeBetter`) : si chaque projet entre au
   portefeuille avec son propre ROI réel, il n'y a plus besoin d'élire un mode *avant* de connaître
   les coûts.
+
+### ❌ Banc 10 ans : `fleet_before_new` REJETÉ, défaut remis à 0 (2026-09-02)
+
+| métrique | 3 ans | 10 ans |
+|---|---:|---:|
+| `company_value` | −7,44 % ($t = -1{,}63$) | **−18,33 %** ($t = -3{,}81$, 5/15, $p = 0{,}041$) |
+| `profit_year` | **−20,40 %** ($t = -3{,}53$) | **−11,54 %** ($t = -2{,}70$, 3/17, **$p = 0{,}003$**) |
+| `profit` | −23,71 % ($t = -3{,}28$) | −10,06 % ($t = -1{,}91$) |
+
+**L'hypothèse « 3 ans est la phase de ruée, ça paiera à 10 » est RÉFUTÉE** : c'est pire à 10 ans,
+et le signal y est plus fort. Deux horizons, deux bancs appariés de 20 graines, même verdict.
+
+**Lecture : pour l'aérien, la LARGEUR bat la PROFONDEUR.** Une liaison neuve ouvre un flux entier
+et un capital de ~94 000 £ qui travaille ; un appareil de plus n'ajoute qu'une tranche marginale
+d'une ligne déjà servie. Le raisonnement sur la note de gare reste juste — il est simplement
+**dominé**. Ça recoupe §0 undecies : AAAHogEx gagne en posant beaucoup de liaisons, pas en
+saturant les siennes.
+
+⚠️ **Ce qui n'est PAS réfuté** : le principe de §0 septvicies pourrait rester vrai pour les modes
+où une ligne neuve coûte cher et rapporte peu vite (le rail, dont le capital est sous-facturé de
+19 %), ou plus tard dans la partie quand les sites libres manquent. C'est exactement l'argument de
+la file dynamique de §3 septies : un ordre FIXE est faux dans un sens ou dans l'autre.
+Le réglage reste exposé comme instrument, défaut 0.
+
+---
+
+## 3 septies. 🔶 FILE DE TÂCHES DYNAMIQUE : des priorités qui dépendent de la phase de partie (idée du 2026-09-02)
+
+**Non commencé.** Complément direct de §3 sexies (portefeuille incrémental) et réponse à ce que le
+banc de `fleet_before_new` vient de montrer.
+
+### L'idée
+
+L'ordonnanceur (`main.nut`, `this._taskQueue`) joue aujourd'hui une **liste figée**, écrite dans le
+constructeur : `catalog → report → scrap → air → air_fleet → projects → expand → refleet →
+town_growth → repay`. Chaque tâche porte déjà `dueCycle` et `enabled` — le squelette est donc
+dynamique, **c'est la politique qui manque**. Il faut que l'ordre et l'activation dépendent de la
+**phase de partie**.
+
+### Ce qui prouve qu'un ordre fixe est faux
+
+`fleet_before_new` a échangé deux tâches et mesuré **−18,3 % de valeur à 10 ans**. L'ordre inverse
+est donc meilleur *aujourd'hui*. Mais le raisonnement qui motivait l'échange — la note de gare est
+un multiplicateur — n'est pas faux pour autant : il est dominé **tant que des sites restent
+libres**. Un ordre fixe se trompe forcément dans l'une des deux phases. **C'est la définition d'un
+problème d'ordonnancement dépendant de l'état.**
+
+### Le précédent vérifié : AAAHogEx le fait, sur l'objectif
+
+§0 tervicies point 1 : `CalculateProfitModel` (`main.nut:781-836`) bascule le **dénominateur du
+classement** selon la ressource rare — profit par livre quand elle est pauvre, profit par temps de
+chantier quand les places de véhicules sont libres, profit par véhicule quand elle plafonne. Ils
+appliquent à l'objectif ce que cette idée applique à la file. Les deux sont complémentaires.
+
+### Signaux de phase déjà mesurables, sans code neuf
+
+| signal | ce qu'il dit | mesure déjà au dossier |
+|---|---|---|
+| emprunt saturé | phase de contrainte de trésorerie | maxé de 1970 à 1980, 412 relevés à emprunt max |
+| vivier de candidats qui s'épuise | phase de carte prise | mur mesuré **à partir de 1982** |
+| places de véhicules restantes | plafond de flotte | test exact d'AAAHogEx (`room >= 100 && current < max*7/10`) |
+| refus de croissance pour trésorerie | l'argent est le mur | **31 sur 32**, panneau `FR|` |
+| nombre de lignes et de gares | densité atteinte | déjà dans les campagnes |
+
+### Ce qu'il faut trancher
+
+1. **Combien de phases, et définies par quoi ?** Deux (ruée / consolidation) suffisent peut-être.
+   Ne pas inventer une machine à états avant d'avoir mesuré que deux régimes se distinguent.
+2. **La politique se mesure comme un réglage**, pas comme une évidence : chaque règle de bascule
+   est un bras de banc. La leçon de `fleet_before_new` est précisément qu'un raisonnement juste
+   peut donner un ordre faux.
+3. **Le coût de la décision.** Réévaluer la phase à chaque tour de file coûte des opcodes ;
+   la recalculer une fois par mois suffit probablement.
+4. **Interaction avec §3 sexies** : si le portefeuille devient incrémental, une partie des tâches
+   deviennent des étages d'évaluation. La politique de phase doit alors arbitrer **le temps de
+   calcul** entre recensement, évaluation de coût et construction — pas seulement l'ordre.

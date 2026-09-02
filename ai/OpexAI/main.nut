@@ -62,9 +62,11 @@ PORTFOLIO_FRESH_BUDGET <- false;
  * et par an. */
 AIR_FLEET_PROBE <- false;
 /* fleet_before_new : servir la croissance de flotte avant la construction de lignes aeriennes
- * neuves. Defaut 1 -- adopte sur DECISION de conception (docs/taches.md S0 septvicies), le banc
- * vient valider et non autoriser. */
-FLEET_BEFORE_NEW <- true;
+ * neuves. Defaut REMIS A 0 le 2026-09-02 apres deux bancs concordants : -20,4 % de profit annuel
+ * a 3 ans (t = -3,53) et -18,3 % de valeur a 10 ans (t = -3,81, 5/15 graines, p = 0,041).
+ * Pour l'aerien, la LARGEUR bat la PROFONDEUR : une liaison neuve ouvre un flux entier, un avion
+ * de plus n'ajoute qu'une tranche marginale. Le reglage reste comme instrument. */
+FLEET_BEFORE_NEW <- false;
 /* Expansion marginale : bras A/B inerte par defaut jusqu'au verdict du banc. */
 RAIL_EXPAND <- false;
 const RAIL_EXPAND_STREAK = 2;

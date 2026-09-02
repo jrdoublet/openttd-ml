@@ -89,13 +89,18 @@ class OpexAIInfo extends AIInfo {
      * plafond de l'aeroport (1,6 avion par ligne pour un plafond de 16, docs/taches.md
      * S0 quinvicies). Quand `air` passe en premier, il ne reste rien pour `air_fleet`.
      *
-     * Defaut 1 : adopte sur DECISION de conception (S0 septvicies), le banc vient valider et non
-     * autoriser. 0 rejoue l'ordre historique pour que la comparaison reste possible. */
+     * ⚠️ Defaut REMIS A 0 le 2026-09-02 : deux bancs apparies 20 graines concordent contre.
+     * A 3 ans, profit annuel -20,4 % (t = -3,53) ; a 10 ans, valeur -18,3 % (t = -3,81, 5 graines
+     * gagnantes sur 20, p = 0,041) et profit annuel -11,5 % (t = -2,70, p = 0,003). L'hypothese
+     * "3 ans est la phase de ruee, ça paiera a 10" est REFUTEE : c'est pire a 10 ans.
+     * Lecture : pour l'aerien, la LARGEUR bat la PROFONDEUR. Une liaison neuve ouvre un flux
+     * entier, un appareil de plus n'ajoute qu'une tranche marginale d'une ligne existante. Le
+     * raisonnement sur la note de gare reste juste ; il est simplement domine. */
     AddSetting({
       name = "fleet_before_new",
-      description = "Serve air fleet growth before building new air lines: 1 = tune what exists first (default), 0 = historical order",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
+      description = "Serve air fleet growth before building new air lines: 1 = tune what exists first, 0 = historical order (default, measured better)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
 
