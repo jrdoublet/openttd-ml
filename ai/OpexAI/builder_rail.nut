@@ -64,13 +64,13 @@ DYNAMIC_PATHFINDER_CAP <- true;
 function OpexDynamicHardCap(linesCount, isPreplanOrLowCash)
 {
   if (!DYNAMIC_PATHFINDER_CAP) return HARD_ITERATION_CAP;
-  if (isPreplanOrLowCash) return 60000;
-  local cap = 30000 + linesCount * 5000;
-  if (cap > 60000) cap = 60000;
+  if (isPreplanOrLowCash) return HARD_ITERATION_CAP;
+  local cap = 5000 + linesCount * 1000;
+  if (cap > HARD_ITERATION_CAP) cap = HARD_ITERATION_CAP;
   return cap;
 }
 
-function OpexIterationBudget(profitAnnual, alternativeRatio, hardCap = 40000)
+function OpexIterationBudget(profitAnnual, alternativeRatio, hardCap = 10000)
 {
   /* Le chemin est retourne avec le budget pour l'instrumentation : Z = pas d'alternative,
    * F = plancher de tentative, C = plafond dur, N = forme fermee non bornee. */
@@ -889,7 +889,7 @@ function OpexPlaceJoinSignals(planA, planB, tiles, depot, join)
 
 /* Precalcule le plan physique complet d'une ligne ferroviaire (quais, economie, trace A*,
  * depot, double voie eventuelle) SANS modifier la carte du jeu ni depenser de tresorerie. */
-function OpexPlanRailRoute(catalog, budget, candidate, alternativeRatio, join, hardCap = 40000)
+function OpexPlanRailRoute(catalog, budget, candidate, alternativeRatio, join, hardCap = 10000)
 {
   local plan = { ok = false, reason = "", iterations = 0, opcodes = 0,
                  plansA = null, plansB = null, planA = null, planB = null,
@@ -1243,7 +1243,7 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, join, cashReserve
 }
 
 /* Construit une ligne complete, en reutilisant le plan precalcule s'il est present. */
-function OpexBuildLine(catalog, budget, candidate, alternativeRatio, join, cashReserve, hardCap = 40000)
+function OpexBuildLine(catalog, budget, candidate, alternativeRatio, join, cashReserve, hardCap = 10000)
 {
   local plan = null;
   if (("railPlan" in candidate) && candidate.railPlan != null && candidate.railPlan.ok) {
@@ -1269,7 +1269,7 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, join, cashR
  * Pose un second quai a la gare A, un second quai a la gare B,
  * trace une seconde voie dediee avec son propre depot, pose les signaux PBS,
  * et lance le deuxieme convoi. Zéro collision, voies indépendantes. */
-function OpexUpgradeRailLineToDoubleTrack(catalog, budget, line, cashReserve, hardCap = 40000)
+function OpexUpgradeRailLineToDoubleTrack(catalog, budget, line, cashReserve, hardCap = 10000)
 {
   local result = { ok = false, reason = "", cost = 0, train = null, depot2 = null,
                    stationA2 = null, stationB2 = null, platformA2 = null, platformB2 = null };

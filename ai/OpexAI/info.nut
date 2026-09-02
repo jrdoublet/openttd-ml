@@ -339,10 +339,10 @@ class OpexAIInfo extends AIInfo {
      * d'opportunite. Le reglage conserve 60 comme bras de controle lisible au banc. */
     AddSetting({
       name = "pathfinder_hard_cap_k",
-      description = "Hard pathfinder iteration cap, in thousands: 40 = measured default, 60 = pre-2026-08-29 behaviour",
+      description = "Hard pathfinder iteration cap, in thousands (docs/taches.md A3): 10 = A3 probe default, 40 = pre-A3 behaviour",
       min_value = 5, max_value = 100,
-      easy_value = 40, medium_value = 40, hard_value = 40,
-      custom_value = 40,
+      easy_value = 10, medium_value = 10, hard_value = 10,
+      custom_value = 10,
       step_size = 5,
       flags = 0
     });

@@ -183,10 +183,9 @@ ROAD_MAX_ATTEMPTS_PER_YEAR <- 60;
 LOAN_REPAY_FLOOR <- 300000;
 
 /* Plafond absolu du pathfinder. Initialisation de repli seulement : Start() le remplace UNE fois
- * par pathfinder_hard_cap_k. Mesure du 2026-08-29 (4 graines x 20 ans) : 36 600 iterations est le
- * maximum d'une reussite ; le defaut 40 000 garde 9 % de marge et evite les ABND a 60 000 qui
- * absorbaient 56,5 % des opcodes de construction. */
-HARD_ITERATION_CAP <- 40000;
+ * par pathfinder_hard_cap_k. Plafonné à 10 000 (docs/taches.md A3, §0 undecies ter) pour
+ * éliminer le gel de l'IA pendant des mois sur les recherches chères. */
+HARD_ITERATION_CAP <- 10000;
 
 /* La memoire est l'autre correctif, independamment des 40 000 iterations. Elle reste un repli
  * actif jusqu'a la lecture unique de abandon_memory dans Start(), comme les autres reglages de
