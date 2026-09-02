@@ -664,6 +664,36 @@ Le mode route est donc reconfirme sur l arbre courant.
      * le classement est le PROFIT par livre de capital mobilisable, le sac a dos est remplace par
      * « le meilleur projet finançable », et le portefeuille est regenere des que le capital
      * mobilisable a materiellement grandi. */
+    /* Correctifs de flotte. Revue flotte et entretien, docs/taches.md S0 nonies -- trois defauts
+     * qui visent tous le meme symptome mesure : 3,26 vehicules par gare contre 2,71 chez
+     * AAAHogEx, et 8x moins de gares.
+     *
+     * 0 (defaut, comportement historique) :
+     *   - rail_refleet est INJOIGNABLE. Son bloc (second train, passage en double voie, seuls
+     *     sites d'appel de OpexBuildSecondTrain et OpexUpgradeRailLineToDoubleTrack) vit a
+     *     l'interieur de _expandRailLines, derriere un return anticipe commande par rail_expand
+     *     dont le defaut est 0 ; et _runNextTask desactive la tache definitivement sur le meme
+     *     critere. Avec les defauts livres, AUCUNE ligne rail ne peut donc jamais gagner un second
+     *     train ni une seconde voie -- alors que rail_refleet vaut 1 et est annonce actif.
+     *   - toute ligne routiere neuve achete une seconde flotte complete dans son propre cycle de
+     *     construction : vehCount n'est ecrit que par _reportLines, une fois par an, et la file
+     *     execute projects puis refleet dans le meme cycle, donc la ligne arrive avec have = 0
+     *     face a un target valant sa flotte reelle. OpexRoadRefleet saute alors la reprise de
+     *     gabarit et cree un vehicule avec sa propre liste d'ordres avant de cloner le reste.
+     *   - isAnyWaiting prend un vehicule en chargement pour un embouteillage. Sous
+     *     OF_FULL_LOAD_ANY c'est l'etat normal d'un camion de fret, et les trois heuristiques de
+     *     croissance exigent toutes !isAnyWaiting : la situation qui devrait declencher la
+     *     croissance est lue comme une saturation. Le signal est inverse.
+     *
+     * 1 : les trois sont corriges. */
+    AddSetting({
+      name = "fleet_fix",
+      description = "Make rail_refleet reachable, stop new road lines from buying a second full fleet on their build cycle, and stop reading a loading vehicle as a jam: 1 = fixed, 0 = historical (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     AddSetting({
       name = "portfolio_v2",
       description = "Portfolio selection on profit per pound of affordable capital, modal choice after the capital test, and regeneration when capital grows: 1 = v2, 0 = revenue knapsack, monthly only (default)",

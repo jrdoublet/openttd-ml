@@ -238,6 +238,21 @@ PORTFOLIO_V2 <- false;
  * la peine d'etre paye pour quelques milliers de livres. */
 const PORTFOLIO_REFRESH_MIN_GAIN = 50000;
 
+/* Correctifs de flotte (revue flotte et entretien, docs/taches.md S0 nonies) : repli FAUX jusqu'a
+ * la lecture unique de fleet_fix dans Start(). Defaut 0 : chemin historique inchange. Sous 1,
+ * trois defauts mesures tombent ensemble --
+ *   1. rail_refleet redevient ATTEIGNABLE. Son bloc vit a l'interieur de _expandRailLines, derriere
+ *      un return anticipe commande par rail_expand (defaut 0), et _runNextTask desactivait la tache
+ *      sur le meme critere. Avec les defauts livres, aucune ligne rail ne pouvait donc jamais
+ *      gagner un second train ni une seconde voie, alors qu'info.nut annonce rail_refleet actif.
+ *   2. une ligne routiere neuve n'achete plus une seconde flotte complete dans son propre cycle de
+ *      construction : `vehCount` n'etant ecrit qu'une fois par an, elle arrivait au refleet avec
+ *      have = 0 et se faisait reconstruire, ordres dupliques compris.
+ *   3. `isAnyWaiting` ne prend plus un vehicule en chargement pour un embouteillage. Sous
+ *      OF_FULL_LOAD_ANY c'est l'etat normal d'un camion, et les trois heuristiques de croissance
+ *      exigeant !isAnyWaiting, le signal etait inverse par rapport a son intention. */
+FLEET_FIX <- false;
+
 /* Dimensionnement marginal et progressif de flotte (item de tete, 2026-09-01) : repli FAUX
  * jusqu'a la lecture unique de marginal_fleet dans Start(). Defaut 0 : chemin actuel
  * rigoureusement inchange -- MAX_ROAD_VEHICLES/plafond 16 route, clonage immediat a
@@ -2352,7 +2367,20 @@ function OpexAI::_refleetRoadLines(year)
     if (("expandRetryCycle" in line) && line.expandRetryCycle > this._taskCycle) continue;
     if (!("depot" in line) || !AIRoad.IsRoadDepotTile(line.depot)) continue;
     if (("deadStreak" in line) && line.deadStreak > 0) continue;
-    local have = ("vehCount" in line) ? line.vehCount : 0;
+    /* fleet_fix : `vehCount` n'est ecrit que par _reportLines, au plus UNE fois par an, et les
+     * dicts de ligne routiere n'en portent pas a la construction. Or la file execute `projects`
+     * puis `refleet` DANS LE MEME CYCLE : une ligne tout juste batie arrivait donc ici avec
+     * have = 0 face a un target valant sa flotte reelle, et OpexRoadRefleet repartait -- en
+     * sautant la reprise de gabarit faute de have > 0, donc en creant un vehicule avec sa PROPRE
+     * liste d'ordres puis en clonant le reste. Toute ligne routiere neuve achetait ainsi une
+     * seconde flotte complete (docs/taches.md S0 nonies, trouvaille 2). Le repli est desormais la
+     * flotte reellement posee a la construction, pas zero. */
+    local have = 0;
+    if ("vehCount" in line) {
+      have = line.vehCount;
+    } else if (FLEET_FIX && ("trains" in line)) {
+      have = line.trains;
+    }
     local target = ("predTrains" in line) ? line.predTrains : (("trains" in line) ? line.trains : 1);
     if (("trains" in line) && line.trains > target) target = line.trains;
     if (target < 1) target = 1;
@@ -2373,8 +2401,18 @@ function OpexAI::_refleetRoadLines(year)
     local movingCount = 0;
     foreach (v in vehicles) {
       if (!AIVehicle.IsValidVehicle(v)) continue;
-      if (AIVehicle.GetCurrentSpeed(v) == 0) isAnyWaiting = true;
-      else movingCount++;
+      if (AIVehicle.GetCurrentSpeed(v) == 0) {
+        /* fleet_fix : « vitesse nulle » n'est PAS un embouteillage -- c'est l'etat NORMAL d'un
+         * vehicule en cours de chargement a un arret, et les lignes de fret routier sont baties
+         * avec OF_FULL_LOAD_ANY, donc un camion y passe la majeure partie de son cycle. Les trois
+         * heuristiques de croissance plus bas exigeant toutes !isAnyWaiting, la situation qui
+         * devrait declencher la croissance -- du cargo qui s'accumule pendant qu'un camion fait le
+         * plein -- etait lue comme « deja sature, ne pas grandir ». Le signal etait donc inverse
+         * par rapport a son intention (docs/taches.md S0 nonies, trouvaille 3). On ne compte
+         * desormais comme bloque qu'un vehicule arrete EN LIGNE, pas a quai. */
+        if (!FLEET_FIX || AIVehicle.GetState(v) != AIVehicle.VS_AT_STATION) isAnyWaiting = true;
+        else movingCount++;
+      } else movingCount++;
     }
 
     if (("lastProfit" in line) && line.lastProfit < -200 && have >= 2) continue;
@@ -2630,7 +2668,17 @@ function OpexAI::_findLineById(lineId)
  * la demande pax surestimee du catalogue. */
 function OpexAI::_expandRailLines(year)
 {
-  if (!RAIL_EXPAND || this._railExpansion != null) return;
+  /* fleet_fix : la garde d'entree coupait TOUT sur !RAIL_EXPAND, y compris le bloc RAIL_REFLEET
+   * plus bas -- seul site d'appel de OpexBuildSecondTrain et OpexUpgradeRailLineToDoubleTrack.
+   * Avec les defauts livres (rail_expand = 0, rail_refleet = 1) aucune ligne rail ne pouvait donc
+   * JAMAIS gagner un second train ni une seconde voie, alors qu'info.nut annonce la
+   * fonctionnalite active. On n'ecarte desormais que la partie expansion de wagons, en laissant
+   * passer le refleet. */
+  if (FLEET_FIX) {
+    if ((!RAIL_EXPAND && !RAIL_REFLEET) || this._railExpansion != null) return;
+  } else {
+    if (!RAIL_EXPAND || this._railExpansion != null) return;
+  }
   this._budget.begin();
   local best = null;
   local nEligible = 0;
@@ -2638,6 +2686,10 @@ function OpexAI::_expandRailLines(year)
   local nPersistent = 0;
   local nPositive = 0;
   foreach (line in this._lines) {
+    /* fleet_fix : quand on n'est entre QUE pour le refleet (rail_expand = 0, rail_refleet = 1),
+     * l'expansion de wagons ne doit pas s'exercer -- on ne fait que traverser vers le bloc
+     * RAIL_REFLEET, `best` restant nul. */
+    if (FLEET_FIX && !RAIL_EXPAND) break;
     if ((("mode" in line) && line.mode != "rail") || !("wagons" in line) || !("platformLength" in line) ||
         !("loco" in line) || !("kind" in line)) continue;
     if (line.trains != 1 || !("vehCount" in line) || line.vehCount != 1) continue;
@@ -3103,7 +3155,15 @@ function OpexAI::_runNextTask()
     return this._tryBuildProjects(year);
   }
   if (task.name == "expand") {
-    if (!RAIL_EXPAND) { task.enabled = false; return false; }
+    /* fleet_fix : la tache portait UNIQUEMENT sur RAIL_EXPAND, alors que le bloc RAIL_REFLEET
+     * (second train, passage en double voie) vit a l'interieur de _expandRailLines. La desactiver
+     * sur !RAIL_EXPAND rendait donc rail_refleet injoignable malgre son defaut a 1
+     * (docs/taches.md S0 nonies, trouvaille 1). */
+    if (FLEET_FIX) {
+      if (!RAIL_EXPAND && !RAIL_REFLEET) { task.enabled = false; return false; }
+    } else {
+      if (!RAIL_EXPAND) { task.enabled = false; return false; }
+    }
     this._expandRailLines(year);
     return true;
   }
@@ -3158,6 +3218,7 @@ function OpexAI::Start()
   MARGINAL_FLEET = AIController.GetSetting("marginal_fleet") != 0;
   LOOP_BUDGET = AIController.GetSetting("loop_budget") != 0;
   PORTFOLIO_V2 = AIController.GetSetting("portfolio_v2") != 0;
+  FLEET_FIX = AIController.GetSetting("fleet_fix") != 0;
   RAIL_COST_PROBE = AIController.GetSetting("rail_cost_probe") != 0;
   RAIL_EXPAND = AIController.GetSetting("rail_expand") != 0;
   ASTAR_COST_V2 = AIController.GetSetting("astar_cost") != 0;
