@@ -613,6 +613,61 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
+    /* Drainage du budget d'opcodes du tick. Revue du controleur, docs/taches.md S0 sexies point 1.
+     *
+     * 0 (defaut, comportement historique) : la boucle principale de Start() execute EXACTEMENT une
+     * tache par tick puis Sleep(1). Le budget de 10 000 opcodes par tick n'etant PAS reportable,
+     * un tick qui tire une tache hors de sa periode (catalog hors de son mois, report hors de son
+     * annee, repay hors du sien) depense quelques centaines d'opcodes et JETTE les ~9 700 restants.
+     * Sur une partie de 3 ans (~81 000 ticks, ~810 M d'opcodes) c'est le gisement dont AAAHogEx
+     * tire ~150 gares quand nous en tirons ~18.
+     *
+     * 1 : on enchaine les taches tant que GetOpsTillSuspend() depasse LOOP_BUDGET_FLOOR, avec un
+     * plafond LOOP_BUDGET_MAX_TASKS par tick pour qu'un tour de file entierement compose de taches
+     * hors periode ne brule pas le budget en pur ordonnancement.
+     *
+     * Ce n'est PAS un bridage retire a la legere : docs/philosophie_armes_egales dit que Sleep sert
+     * aux parties avec des HUMAINS, et qu'entre IA on ne s'auto-handicape jamais -- AAAHogEx ne
+     * dort pas entre ses chunks. Le Sleep(1) de fin de tour reste, seul le gaspillage part. */
+    AddSetting({
+      name = "loop_budget",
+      description = "Drain the tick's opcode budget by running consecutive due tasks instead of exactly one per tick: 1 = drain, 0 = one task then sleep (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* Portefeuille v2. Revue du portefeuille, docs/taches.md S0 septies -- quatre soupcons
+     * confirmes et deux trouvailles majeures, corriges ensemble parce qu'ils portent tous sur la
+     * meme decision : quel projet unique est bati ce cycle.
+     *
+     * 0 (defaut, comportement historique) :
+     *   - l'election modale par couple origine/destination se fait AVANT le test de capital, et sur
+     *     `roi` qui est un RATIO : une ligne rail a 900 k£ bat une route a 45 k£ sur le meme
+     *     couple, puis echoue faute de capital, et le couple ne rapporte alors RIEN ;
+     *   - le sac a dos 0/1 maximise la somme des REVENUS, `profitAnnual` n'apparaissant nulle part
+     *     dans l'objectif ;
+     *   - `budgetScore` est un revenu par 1000 £ de capital, y compris dans le panneau IP| montre
+     *     a l'operateur ;
+     *   - deux projets finances ne peuvent partager aucune extremite, ce qui interdit la topologie
+     *     en etoile que builder_air.nut produit -- sans rien apporter, puisque main.nut n'en batit
+     *     qu'UN par cycle (maxBatch = 1) et regenere tout ensuite ;
+     *   - le portefeuille n'est regenere qu'au changement de mois ou apres une construction
+     *     reussie, capitalBudget fige a la generation : un mois ouvert a 60 k£ sans projet
+     *     finançable ne construit RIEN de tout le mois, meme si la tresorerie monte a 400 k£.
+     *
+     * 1 : toutes les alternatives modales d'un couple sont conservees, le test de capital tranche,
+     * le classement est le PROFIT par livre de capital mobilisable, le sac a dos est remplace par
+     * « le meilleur projet finançable », et le portefeuille est regenere des que le capital
+     * mobilisable a materiellement grandi. */
+    AddSetting({
+      name = "portfolio_v2",
+      description = "Portfolio selection on profit per pound of affordable capital, modal choice after the capital test, and regeneration when capital grows: 1 = v2, 0 = revenue knapsack, monthly only (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* Ticks de sommeil apres chaque bloc de PATH_CHUNK (50) iterations d'A*.
      *
      * Defaut 0 = AUCUN bridage. Choisi PAR PRINCIPE (armes egales entre IA), PAS par la mesure --

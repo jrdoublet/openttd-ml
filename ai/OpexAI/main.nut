@@ -207,6 +207,37 @@ ROAD_REFLEET <- true;
  * a chaque extremite, et n'ajoute de vehicules que si les deux bouts ont double. */
 ROAD_MULTISTOP <- false;
 
+/* Drainage du budget d'opcodes du tick (revue du controleur, docs/taches.md S0 sexies point 1) :
+ * repli FAUX jusqu'a la lecture unique de loop_budget dans Start(). Defaut 0 : la boucle
+ * principale execute exactement UNE tache par tick puis Sleep(1), donc tout ce qui reste des
+ * 10 000 opcodes du tick est PERDU -- le budget n'est pas reportable. Sur une partie de 3 ans
+ * (~81 000 ticks, ~810 M d'opcodes) c'est le gisement dont AAAHogEx tire ~150 gares quand nous
+ * en tirons ~18. Sous 1 : on enchaine les taches tant qu'il reste de quoi travailler.
+ * Coherent avec docs/philosophie_armes_egales : Sleep sert aux parties avec des humains, pas
+ * face a une IA qui, elle, ne dort pas entre ses chunks. */
+LOOP_BUDGET <- false;
+/* Marge laissee au moteur pour ne pas suspendre au milieu d'une transaction, et plafond de taches
+ * par tick pour qu'un tour de file entierement compose de taches hors periode ne brule pas le
+ * budget en pur ordonnancement. */
+const LOOP_BUDGET_FLOOR = 2000;
+const LOOP_BUDGET_MAX_TASKS = 8;
+
+/* Portefeuille v2 (revue du portefeuille, docs/taches.md S0 sexies et S0 septies) : repli FAUX
+ * jusqu'a la lecture unique de portfolio_v2 dans Start(). Defaut 0 : chemin historique inchange.
+ * Sous 1, quatre defauts confirmes tombent ensemble --
+ *   - l'election modale par couple O/D se fait APRES le test de capital, pas avant ;
+ *   - l'objectif passe du revenu total au PROFIT par livre de capital ;
+ *   - le sac a dos 0/1 est remplace par « le meilleur projet finançable », puisque maxBatch = 1
+ *     n'en batit qu'un et jetait tout le reste ;
+ *   - la contrainte « pas deux projets sur la meme extremite » disparait : elle interdisait la
+ *     topologie en etoile de builder_air sans rien apporter a un batch de taille 1.
+ * Plus la regeneration du portefeuille des que le capital mobilisable a materiellement grandi,
+ * au lieu d'attendre le mois suivant. */
+PORTFOLIO_V2 <- false;
+/* Gain absolu minimal avant de rejouer la generation : en dessous, le cout en opcodes ne vaut pas
+ * la peine d'etre paye pour quelques milliers de livres. */
+const PORTFOLIO_REFRESH_MIN_GAIN = 50000;
+
 /* Dimensionnement marginal et progressif de flotte (item de tete, 2026-09-01) : repli FAUX
  * jusqu'a la lecture unique de marginal_fleet dans Start(). Defaut 0 : chemin actuel
  * rigoureusement inchange -- MAX_ROAD_VEHICLES/plafond 16 route, clonage immediat a
@@ -3015,7 +3046,28 @@ function OpexAI::_runNextTask()
   if (task.name == "catalog") {
     local date = AIDate.GetCurrentDate();
     local ym = year * 12 + AIDate.GetMonth(date);
-    if (this._lastCatalogMonth == ym && this._projects != null) return false;
+    /* portfolio_v2 : le portefeuille n'etait regenere qu'au CHANGEMENT DE MOIS ou apres une
+     * construction reussie, et son capitalBudget etait fige a la generation. Un mois qui s'ouvrait
+     * a 60 k£ sans projet finançable rendait donc un portefeuille vide, et _tryBuildProjects
+     * sortait des sa premiere ligne POUR TOUT LE MOIS -- meme si la tresorerie montait ensuite a
+     * 400 k£. C'est la mesure « 4,15 mois en moyenne avec >= 100 k£ et aucune croissance »
+     * (docs/taches.md S0 septies, trouvaille A). On regenere donc aussi des que le capital
+     * mobilisable a materiellement grandi depuis la derniere generation. */
+    local stale = false;
+    if (PORTFOLIO_V2 && this._projects != null) {
+      local cashNow = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+      local borrowableNow = REBORROW
+          ? AICompany.GetMaxLoanAmount() - AICompany.GetLoanAmount() : 0;
+      if (borrowableNow < 0) borrowableNow = 0;
+      local budgetNow = cashNow + borrowableNow - OpexCashReserve();
+      if (budgetNow < 0) budgetNow = 0;
+      local budgetThen = this._projects.capitalBudget;
+      /* Seuil relatif ET absolu : on ne rejoue pas la generation pour quelques milliers de livres,
+       * mais un doublement du capital mobilisable rouvre le vivier. */
+      if (budgetNow > budgetThen + PORTFOLIO_REFRESH_MIN_GAIN &&
+          budgetNow > budgetThen * 2) stale = true;
+    }
+    if (this._lastCatalogMonth == ym && this._projects != null && !stale) return false;
     this._lastCatalogMonth = ym;
     this._catalog.refresh(this._budget, year);
     this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines);
@@ -3104,6 +3156,8 @@ function OpexAI::Start()
   ROAD_REFLEET = AIController.GetSetting("road_refleet") != 0;
   ROAD_MULTISTOP = AIController.GetSetting("road_multistop") != 0;
   MARGINAL_FLEET = AIController.GetSetting("marginal_fleet") != 0;
+  LOOP_BUDGET = AIController.GetSetting("loop_budget") != 0;
+  PORTFOLIO_V2 = AIController.GetSetting("portfolio_v2") != 0;
   RAIL_COST_PROBE = AIController.GetSetting("rail_cost_probe") != 0;
   RAIL_EXPAND = AIController.GetSetting("rail_expand") != 0;
   ASTAR_COST_V2 = AIController.GetSetting("astar_cost") != 0;
@@ -3142,7 +3196,24 @@ function OpexAI::Start()
 
   while (true) {
     this._processEvents();
-    this._runNextTask();
+    if (LOOP_BUDGET) {
+      /* Le budget d'un tick n'est PAS reportable : ce qui n'est pas depense est perdu. L'ancienne
+       * boucle executait exactement UNE tache puis rendait la main, donc un tick qui tirait une
+       * tache hors de sa periode (catalog hors de son mois, report hors de son annee, repay hors
+       * du sien) depensait quelques centaines d'opcodes et jetait les ~9 700 restants.
+       * On draine desormais le tick tant qu'il reste de quoi travailler. */
+      local drained = 0;
+      while (AIController.GetOpsTillSuspend() > LOOP_BUDGET_FLOOR && drained < LOOP_BUDGET_MAX_TASKS) {
+        if (!this._runNextTask()) break;
+        drained++;
+      }
+      /* Le plancher garde de la marge pour ne pas etre suspendu au milieu d'une transaction, et
+       * le plafond de taches empeche un tour de file entierement compose de taches inutiles de
+       * bruler le budget en pur ordonnancement. */
+      if (drained == 0) this._runNextTask();
+    } else {
+      this._runNextTask();
+    }
     AIController.Sleep(1);
   }
 }
