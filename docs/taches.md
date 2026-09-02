@@ -2302,6 +2302,273 @@ semaine où un compteur à zéro ne prouve rien (cf. `cash_blocks`, §0 decies).
 
 **Ne pas remettre à 1** sans avoir d'abord donné un profit prédit honnête à ces candidats — c'est
 ça, la tâche réelle, et elle rejoint l'audit des constantes en dur (§3 ter).
+## 0 septdecies. 🔴 REVUE DE `candidates.nut` (étape 6, 2026-09-02) — le vivier lui-même est bridé
+
+Périmètre : génération et filtrage des candidats rail et route (~1 240 lignes). C'est l'étage qui
+décide ce qu'OpexAI envisage même de construire — un filtre trop strict y coûte directement du
+volume, et le volume est ~85 % de l'écart mesuré contre AAAHogEx. **Les deux trouvailles de tête
+sont vérifiées par archéologie git**, pas seulement par lecture du fichier actuel.
+
+### 🔴 1. `MIN_DISTANCE = 25` est une régression silencieuse : la bande 5-24 tuiles est fermée au rail depuis un commit qui ne l'a jamais annoncé (`candidates.nut:20`)
+
+Le code actuel :
+
+```
+candidates.nut:20   MIN_DISTANCE <- 25;
+candidates.nut:135   if (distance < MIN_DISTANCE) { stats.distanceShort++; return null; }
+```
+
+Mais le commentaire d'en-tête du fichier (`:15-19`) et un second commentaire à `:882-887`
+décrivent tous les deux, en détail et au présent, un tout autre comportement :
+
+> « Le rail et la route doivent se chevaucher entre 5 et 25 tuiles [...] Le modèle de capital du
+> rail le déclasse normalement dans cette bande ; c'est désormais un résultat du ROI, pas un a
+> priori d'orchestration. » (`:15-19`)
+>
+> « Le créneau route reste borné à 5-25 tuiles, **mais le rail descend maintenant à 5** : ce
+> chevauchement est volontaire [...] Les modes se disputent donc bien la même PAIRE, et le gagnant
+> est celui au meilleur ROI. » (`:882-887`)
+
+Aucun des deux textes n'est vrai du code livré : avec `MIN_DISTANCE = 25`, aucun candidat rail
+n'est jamais généré sous 25 tuiles, donc le rail ne "descend" nulle part et ne dispute jamais la
+bande où la route (`ROAD_MIN_DISTANCE = 5`, `ROAD_MAX_DISTANCE = 25`) opère seule. Vérifié par
+`grep` : `MIN_DISTANCE` n'est lié à aucun réglage `info.nut` / `AIController.GetSetting` (contrairement
+à `STATION_JOIN`, `JOIN_PLACE`, `BASIN_SHARE`, etc., tous lus en `main.nut:3091-3116`) — c'est une
+constante fixe, jamais un bras de banc.
+
+**Historique reconstitué (`git log -p`)** :
+- `3467851` (« orchestrer les projets par ROI budget et opcodes ») fait passer `MIN_DISTANCE` de
+  25 à 5 *délibérément*, en remplaçant l'ancien commentaire (« sous 25 tuiles le profit MEDIAN
+  mesuré est négatif [...] Ce n'est pas une précaution, c'est une mesure ») par celui qu'on lit
+  encore aujourd'hui à `:15-19`. C'est ce commit qui a aussi réécrit le commentaire de `:882-887`
+  pour annoncer le chevauchement 5-25.
+- `31b13bad` (« modèle de ROI cinématique véhicule, maillage multi-époques et saturation de
+  flotte ») repasse `MIN_DISTANCE` de 5 à 25 **sans toucher un seul mot des deux commentaires**, et
+  sans aucune justification dans le message de commit ni dans le diff environnant. Rien n'indique
+  une mesure qui aurait motivé ce retour en arrière — le commit mélange par ailleurs des
+  changements sans rapport (cinématique véhicule, feeders, flotte), ce qui a très probablement
+  masqué la régression.
+
+➜ **Effet** : la bande 5-24 tuiles — celle que le fichier lui-même documente comme un chevauchement
+volontaire entre rail et route, jugé nécessaire pour "choisir le meilleur mode pour un même couple
+origine/destination" — est aujourd'hui fermée à 100 % au rail, sans arbitrage ROI possible. Le même
+`MIN_DISTANCE` ferme aussi cette bande à `OpexPlaceJoinPax`/`OpexPlaceJoinFreight` (`:510`, `:574`,
+`:609`, réglage `join_place`, défaut 0). Je ne peux pas chiffrer l'effet sur `company_value` sans
+banc — la note `mecanique_jeu.md`/git ne dit pas quelle fraction des paires réelles tombe dans
+cette bande — mais c'est un pan entier de l'espace de candidats rail, fermé par accident plutôt que
+par conception, exactement le genre d'écart qui coûte du volume. À mesurer avant de trancher :
+restaurer `MIN_DISTANCE = 5` et comparer au banc appairé.
+
+### 🔴 2. Les bonus de `ratio`/`roi` du fret (monopole +40 %, chaîne +35 %) ne changent RIEN à la construction réelle ; le bonus feeder (+60 %) n'agit qu'à moitié (`candidates.nut:190-199`, `:229`, `:1178-1181`)
+
+`OpexMakeCandidate` calcule un `adjustedRoi` local qui empile trois bonus commentés comme des
+signaux de priorisation réels :
+
+```
+candidates.nut:183-188  turnoverBonus (rotation de cash)
+candidates.nut:190       adjustedRoi = (economics.roi * turnoverBonus) / 100
+candidates.nut:192-193   fret : adjustedRoi *= 1.40   // "monopole d'exploitation absolu"
+candidates.nut:195-196   transformateur : adjustedRoi *= 1.35   // "bonus de chaîne industrielle"
+candidates.nut:199       ratio = opcodeRatio + (adjustedRoi * 15)
+```
+
+Mais le champ renvoyé dans l'objet candidat n'est PAS `adjustedRoi` : `candidates.nut:229` écrit
+`roi = economics.roi` — le ROI **non bonifié**. Les bonus fret (+40 %, +35 %) ne survivent que dans
+`ratio`, un champ que j'ai vérifié par recherche exhaustive (`grep -n "\.ratio\b" ai/OpexAI/projects.nut`,
+`ai/OpexAI/main.nut`) : **zéro occurrence dans `projects.nut`**, et les deux seules occurrences dans
+`main.nut` (`:990`, `:1213`) sont à l'intérieur de `_tryPreplan`, une des cinq fonctions mortes de
+la §0 sexies. `projects.nut` calcule ses propres `budgetScore`/`opcodeScore` (`:70-71`, `:95-96`,
+`:116-117`) uniquement à partir de `candidate.revenueAnnual` — jamais de `candidate.ratio` — et
+l'élection modale par couple O/D (`:127`, `OpexProjectModeBetter`, confirmée §0 septies) compare
+`candidate.roi`, qui reste la valeur non bonifiée. **Les bonus fret +40 % et +35 % sont donc
+entièrement cosmétiques pour la décision de construction réelle** : ils ne déplacent que
+`OpexTopK`/`.best`, déjà établi ci-dessus comme ne nourrissant que du code mort et de la
+signalisation.
+
+Le bonus feeder routier est différent et partiellement vivant : `OpexRoadFeederCandidates`
+(`:1178-1181`) écrit directement `candidate.roi = (candidate.roi * 160) / 100` **après**
+construction du candidat — donc CE bonus atteint bien `roi` et peut influencer l'élection modale
+(`projects.nut:127`). Mais il ne touche ni `revenueAnnual` ni `capital`, donc il n'a aucun effet
+sur `budgetScore`/`opcodeScore` ni sur l'objectif du sac à dos (`currentRevenue`, §0 septies) : le
+commentaire "Bonus ROI pour la valeur réseau apportée au Hub (+60 %)" décrit un effet plus large
+que celui réellement câblé.
+➜ Même famille que les sept cas déjà recensés (garantie de commentaire non implémentée), avec un
+mécanisme neuf : le bonus vit dans un champ (`ratio`/`adjustedRoi`) que la couche de décision réelle
+ne lit jamais, sauf quand — comme pour le feeder — il est aussi écrit directement dans `roi`.
+
+### Le reste
+
+| gravité | lieu | problème |
+|---|---|---|
+| MOYEN | `:166-170` + `:188` | Une même condition (`distance > 105`) déclenche **deux pénalités indépendantes et non recalibrées** empilées sur une table déjà calibrée (`KNOT_ITERATIONS_V1/V2`) : `iterations *= 2` (`:167`) ET `turnoverBonus` divisé par 2 (`:188`), qui baisse à son tour `adjustedRoi` puis `ratio`. Introduit par `7fbe55e` (« branchement portefeuille ROI multimodal ») sans commentaire ni mesure justifiant le facteur. Comme établi au point 2, cet empilement n'affecte de toute façon que `ratio` (mort pour la décision), mais si les bonus étaient un jour reconnectés (ou pour la lecture diagnostic `OpexBands`), il sur-pénaliserait le long deux fois pour la même raison. |
+| FAIBLE | `:455-459` | `OpexShareBasin` : `amount / (n + 1)` est une division entière Squirrel — perte de fraction à chaque partage de bassin. Inactif par défaut (`basin_share = 0`), donc sans effet sur le banc de référence, même famille que les divisions entières déjà trouvées dans `projects.nut`/`economy.nut`. |
+
+### ✅ Vérifié comme n'étant PAS un bug — ne pas re-litiger à la passe de correction
+
+Aucune closure imbriquée dans `candidates.nut` (recherche exhaustive de fonctions anonymes :
+zéro résultat) ni `AIAccounting` imbriqué — le piège Squirrel de la consigne ne s'applique pas à ce
+fichier. `OpexTopK` (`:335-348`) : logique d'insertion/troncature correcte, pas d'erreur de borne.
+`TOP_K`/`ROAD_TOP_K` (`.best`) **ne bornent pas** la construction réelle : `projects.nut:280-282`
+puis `:316-319` consomment `rail.candidates`/`road.candidates` (la liste `all`, non tronquée) ;
+`.best` n'alimente que les fonctions mortes (`_tryBuild`, `_tryPreplan`) et la signalisation
+(`_reportYear`, panneau `OX`) — vérifié par recherche exhaustive des usages de `.best` dans
+`main.nut`. `ROAD_MIN_PROFIT_ANNUAL` (`:911`, `:955`) ne rejette plus rien, conforme à son
+commentaire — seul `profitAnnual <= 0` rejette (`:951-954`). Le seuil `value >= 8` de
+`OpexRailOriginSitable` (`:114`) est cohérent avec la règle des huitièmes d'unité du moteur, déjà
+vérifiée ailleurs. Les réglages `station_join`, `join_place`, `origin_sitable`, `basin_share`,
+`probe_negative`, `pax_near`, `astar_cost` sont bien tous lus depuis `AIController.GetSetting`
+(`main.nut:3091-3116`) et tous à leur défaut mesuré 0 (sauf `complex_cargo` = 1) : le bras par
+défaut du banc de référence n'active aucune de ces relaxations, donc leurs propres bugs connus
+(déjà couverts par les verdicts de banc cités dans `info.nut`) ne changent rien à la mesure
+−87,8 %.
+
+⚠️ Rien n'est corrigé ni mesuré. Le mécanisme est établi, pas son effet.
+
+---
+
+## 0 octodecies. 🔴 REVUE DES CONSTRUCTEURS MODAUX (étape 7, 2026-09-02) — la question des 2 trains tranchée, et c'est pire que prévu
+
+Périmètre : `builder_rail.nut` (~1 340 l.), `builder_road.nut` (~860 l.), `builder_air.nut`
+(~625 l.), `builder_water.nut` (~450 l.). Objectif premier : trancher la question laissée ouverte
+par la §0 octies/nonies sur la variante « 2 trains ».
+
+### 🔴 1. RÉPONSE À LA QUESTION OUVERTE : `OpexBuildLine` ne pose JAMAIS de seconde voie ni de second train à la construction initiale — le garde-fou interroge une gare qui n'existe pas encore (`builder_rail.nut:426-428`)
+
+**Verdict, avec les lignes à l'appui.** `OpexBuildLine` (`:1154-1173`) ne met jamais deux convois
+sur une voie unique — sur ce point précis la §0 octies avait tort de le redouter. Mais il ne pose
+pas non plus de seconde voie dédiée : la tentative de doublement est structurellement condamnée à
+échouer, pour toute ligne neuve, à cause d'un ordre des opérations.
+
+Chaîne exacte :
+
+```
+builder_rail.nut:1154  OpexBuildLine(...)
+builder_rail.nut:1160    plan = OpexPlanRailRoute(...)          <- PLANIFIE, ne construit rien
+builder_rail.nut:1173    return OpexExecuteRailPlan(...)        <- CONSTRUIT pour de vrai
+
+builder_rail.nut:943    dans OpexPlanRailRoute, si candidate.trains > 1 :
+builder_rail.nut:954      dual = OpexTryDoubleTrack(catalog, planA, planB, tiles, null, 0, ...)
+
+builder_rail.nut:426     dans OpexTryDoubleTrack :
+builder_rail.nut:426       stationIdA = AIStation.GetStationID(planA.anchor)
+builder_rail.nut:427       stationIdB = AIStation.GetStationID(planB.anchor)
+builder_rail.nut:428       if (!IsValidStation(stationIdA) || !IsValidStation(stationIdB)) return acc;  // acc.ok reste false
+```
+
+`OpexTryDoubleTrack` est appelé depuis `OpexPlanRailRoute` — donc **avant** qu'une seule gare ait
+été posée : la construction réelle (`AIRail.BuildRailStation`) n'a lieu que plus tard, dans
+`OpexExecuteRailPlan` (`:1015-1018`). Pour une ligne neuve (le cas normal, et le seul avec
+`STATION_JOIN = 0` par défaut), `planA.anchor`/`planB.anchor` ne portent encore aucune gare :
+`AIStation.GetStationID` y renvoie `STATION_INVALID`, `IsValidStation` renvoie faux des deux côtés,
+et `OpexTryDoubleTrack` retourne `acc.ok = false` **à son tout premier test**, avant même de
+chercher un tracé. `candidate.railPlan` n'est jamais pré-rempli (`_tryPreplan` est mort, §0 sexies),
+donc ce chemin s'exécute à chaque construction réelle, sans exception.
+
+Conséquence tracée jusqu'au bout dans `OpexExecuteRailPlan` :
+
+```
+builder_rail.nut:891    plan.doubleTrack = 0            (valeur initiale dans OpexPlanRailRoute)
+builder_rail.nut:958-966  if (dual.ok) { plan.doubleTrack = 1; ... }   <- jamais atteint
+builder_rail.nut:1050   local want = 1;                 (valeur initiale dans OpexExecuteRailPlan)
+builder_rail.nut:1054   if (plan.doubleTrack == 1 && ...) { ... }      <- jamais vrai
+builder_rail.nut:1073     want = candidate.trains > 2 ? 2 : candidate.trains;  <- jamais atteint
+builder_rail.nut:1100   trains = OpexBuildTrains(..., wanted = 1, ...)
+builder_rail.nut:1103   if (... && want == 2 && depot2 != null) { ... }  <- jamais vrai (want=1, depot2=null)
+```
+
+**Toute ligne rail construite par OpexAI — quel que soit `candidate.trains` prédit par
+`economy.nut` (1 ou 2) — sort de `OpexBuildLine` avec exactement UNE voie et UN train.** Ce n'est
+pas juste un défaut de tarification (comme le formulait la §0 octies) : la variante « 2 trains »
+**n'existe physiquement jamais** à la construction. Et comme `RAIL_EXPAND`/`RAIL_REFLEET` sont
+confirmés injoignables (§0 nonies finding 1), il n'existe **aucun** chemin vivant, ni à la
+construction ni après coup, par lequel une ligne rail obtienne un second train.
+
+**Ce que ça change à la lecture de la §0 octies.** `infraCost` constant sur `trains=1/2`
+(`economy.nut:193`) n'est donc pas un capital sous-compté pour une ligne réellement doublée : cette
+ligne n'existe pas. Le vrai dommage est en amont, sur la PRÉDICTION : `economy.nut` choisit
+`trains=2` dès que ça maximise le profit absolu (§0 octies finding 2), ce qui gonfle
+`profitAnnual`/`revenueAnnual`/`capital` du candidat retenu par le classement modal (`roi`,
+§0 septies) et par le sac à dos (`currentRevenue`) — mais la ligne construite ne livre jamais que la
+capacité et le revenu d'UN SEUL train. C'est un écart prédit/réel systématique sur toute ligne où le
+modèle a préféré 2 trains, pas une erreur de capital ponctuelle. Je ne peux pas quantifier la part de
+`profitAnnual` concernée sans instrumenter combien de candidats retenus ont `trains == 2` — à
+mesurer avant de corriger — mais le mécanisme est net et touche potentiellement une majorité des
+lignes rail (2 trains maximise presque toujours le profit absolu par construction du modèle).
+
+**Nuance utile pour la correction.** `OpexUpgradeRailLineToDoubleTrack` (`:1180-1317`, la fonction
+morte de la §0 nonies) N'A PAS ce défaut : elle tourne sur une ligne **déjà construite**, donc
+`AIStation.GetStationID(line.stationA)` (`:1192`) y résout une vraie gare. Si `RAIL_EXPAND` était un
+jour réactivé, ce chemin de mise à niveau a priori fonctionnerait pour doubler une ligne existante —
+contrairement au chemin de construction initiale, qui resterait cassé indépendamment.
+
+### Le reste
+
+| gravité | lieu | problème |
+|---|---|---|
+| FAIBLE (latent) | `builder_rail.nut:1055` vs `:1083` | Dans le bloc mort ci-dessus, si `plan.doubleTrack == 1` devenait un jour atteignable : `dCosts = AIAccounting()` (`:1055`) n'est fermé par `.GetCosts()` (`:1072`) que dans la branche `okD` réussie. Si `okA2 && okB2` échoue, ou si `conn2`/`depot2` échoue, `dCosts` n'est jamais finalisé avant que `postPathCosts = AIAccounting()` (`:1083`) n'ouvre un second compteur — la consigne « `AIAccounting` ne s'imbrique pas » serait violée. Sans effet aujourd'hui : ce chemin n'est jamais atteint (finding 1). |
+| MOYEN | `builder_water.nut:255` | `offered = (monthlyPax * STATION_RATING_PCT) / 100` : le mode eau utilise, comme la route (§0 octies, `economy.nut:363`), le pourcentage **plat** au lieu de `OpexStationRatingForHeadway(headwayDays)` que le rail (`economy.nut:199`) et l'air (`builder_air.nut:175`) appliquent tous les deux. Site distinct de celui déjà trouvé en §0 octies (l'économie de l'eau vit dans `builder_water.nut`, hors du périmètre audité alors) : même famille de bug, nouvel endroit. Effet probablement faible en valeur absolue (le mode eau est rarement construit — un seul bateau par ligne, pas de flotte), donc je ne le classe pas HAUT malgré la parenté avec un bug déjà classé HAUT pour la route. |
+| FAIBLE | `builder_air.nut:519`, `:542` | `AITile.LevelTiles` est appelé pour de vrai à la construction (hors `AITestMode`), sans que son coût soit reflété dans `capital`/`amortAnnual` calculés par `OpexAirEconomics` (`:172`, qui ne compte que `newAirportCount * airport.price + planes * plane.price`). Sous-estimation de capital du même ordre que celle déjà connue pour le dépôt rail (§0 octies, `economy.nut:193`) ou l'infrastructure eau — jamais le tracé complet, donc pas quantifié ici. |
+
+### ✅ Vérifié comme n'étant PAS un bug — ne pas re-litiger à la passe de correction
+
+Aucune closure imbriquée ni usage imbriqué d'`AIAccounting` dans `builder_road.nut`,
+`builder_air.nut`, `builder_water.nut` (recherche exhaustive : zéro fonction anonyme, zéro
+`AIAccounting` dans les trois fichiers). Les usages séquentiels d'`AIAccounting` dans
+`builder_rail.nut` (`:475`, `:1006`→`:1043`, `:1265`) sont correctement fermés avant le suivant sur
+le chemin réellement atteint. Les corrections déjà en place dans `builder_road.nut`, vérifiées
+contre le source du moteur (`road_cmd.cpp:1151`, `script_road.cpp:524`) pour le bit de route manquant
+sur `front` avant `BuildRoadDepot`/`BuildRoadStation`, et le remplacement du prédicat de succès API
+par `AreRoadTilesConnected` (vérifié correct sur les tuiles `MP_STATION`/dépôt dans `road_map.cpp`),
+sont saines et n'ont révélé aucune régression à la relecture. `OpexRoadTraceBuildable`,
+`OpexRoadFindDepot`, `OpexRoadTryJoinStop` valident chaque arête sous `AITestMode` puis la
+reconfirment par connectivité réelle après pose — aucun cas où un retour API est pris pour argent
+comptant. `OpexWaterFindDockAccess` relit les fronts d'accès après construction réelle plutôt que de
+faire confiance au plan initial — correct. `OpexUpgradeRailLineToDoubleTrack` (`:1180`, code mort)
+n'est pas affectée par le défaut du finding 1 : elle interroge une gare qui existe déjà.
+
+⚠️ Rien n'est corrigé ni mesuré. Le mécanisme est établi, pas son effet. Le finding 1 répond à la
+question posée pour l'étape 6-9 : ce n'est pas un écart de capital ponctuel, c'est une variante « 2
+trains » qui n'a jamais existé dans aucune partie jouée avec les défauts livrés.
+
+---
+
+## 0 novemdecies. REVUE DE `catalog.nut` (étape 8, 2026-09-02) — fichier le moins prioritaire, peu de décisions, deux défauts mineurs confirmés
+
+Périmètre : `catalog.nut` (~740 l.), étage 0 (matériel roulant, terrain, cargos). Comme annoncé dans
+le brief, ce fichier interroge l'API dynamiquement plutôt que d'encoder des décisions, et c'est ce
+qu'on observe : les formules physiques (`OpexRailForce`, `OpexRailResistance`,
+`OpexRailCruiseSpeed`) sont **vérifiées ligne à ligne contre leur duplication en boucle serrée**
+(`:363-389`, la version « déroulée sans fermeture » pour l'étage 1) — les deux versions calculent
+rigoureusement la même chose, aucune dérive trouvée entre elles. L'indexation
+`choices[maxWagons - 1]` côté consommateur (`economy.nut:138`) correspond exactement à
+`choices.append(best)` pour `wagons = 1..maxWagons` côté catalogue (`:350-404`) : pas d'erreur
+d'un cran. Aucun filtre ici ne coûte de volume au sens de la §0 decies — ce fichier ne rejette pas
+de candidats, il prépare seulement les données que `candidates.nut`/`economy.nut` utilisent.
+
+### Le reste
+
+| gravité | lieu | problème |
+|---|---|---|
+| FAIBLE | `:702-720` + `:651` | `OpexCatalog::refresh()` appelle `_refreshTowns()` (`:711`) **avant** `_refreshRail()` (`:719`), mais `_refreshTowns()` lit `this.railCoverage` (`:651`) pour dimensionner le test d'acceptation des cargos urbains complexes — un champ que seul `_refreshRail()` renseigne. Chaque année, `_refreshTowns` utilise donc la valeur de `railCoverage` laissée par l'année **précédente** (ou le défaut de constructeur 0 → repli `: 4` la toute première année), pas celle de l'année courante. Effet probablement nul en pratique : `AIStation.GetCoverageRadius(AIStation.STATION_TRAIN)` est un rayon fixé par les réglages de partie, pas une grandeur qui évolue avec le parc — donc la valeur « en retard d'un an » est presque toujours identique à la valeur courante. Reste un ordre d'exécution fragile : si un futur réglage ou NewGRF faisait varier ce rayon en cours de partie, ce serait silencieux. |
+| FAIBLE | `:651` | `AITile.GetCargoAcceptance(tile, cargo, 2, 2, ...)` teste l'acceptation urbaine avec une empreinte fixe **2×2**, alors que les tests d'acceptation équivalents ailleurs dans le dépôt (`candidates.nut:1117` pour la route, `OpexRailOriginSitable` pour le rail) utilisent **1×1**. Aucun commentaire ne justifie ce choix précis. `AITile.GetCargoAcceptance` dépend surtout du rayon, peu de l'empreinte, donc l'effet est probablement marginal — mais l'incohérence n'est pas expliquée et vaut la peine d'être alignée par cohérence si `complex_cargo` est un jour retravaillé. |
+
+### ✅ Vérifié comme n'étant PAS un bug — ne pas re-litiger à la passe de correction
+
+Aucune closure imbriquée ni `AIAccounting` dans `catalog.nut` (recherche exhaustive : zéro
+résultat). Le piège `CanRunOnRail`/`HasPowerOnRail` (`:290-298`) et son équivalent routier
+`CanRunOnRoad`/`HasPowerOnRoad` (`:588-589`) sont correctement appliqués — les deux prédicats sont
+exigés, pas un seul. L'optimisation « le plus rapide sature son plafond, donc les moteurs à
+plafond inférieur sont sautés » (`:329-334`, `:356-358`, `:381`) est mathématiquement saine : elle
+ne s'active qu'après preuve que `railLocos[0]` atteint son propre plafond, et les ex æquo de
+plafond restent tous évalués — vérifié par relecture de la condition de saut. `OpexRailNominalMaxWagons`/`OpexRailPlatformLengthForWagons` sont bien des inverses entiers l'un de
+l'autre sur le domaine testé. La dichotomie de `OpexRailCruiseSpeed` (et sa version déroulée) est
+une recherche binaire standard sur prédicat monotone, sans boucle infinie possible. Le
+rafraîchissement conditionnel du catalogue routier à `road_mode = 0` (`:733-737`) préserve bien le
+chemin d'opcodes de la baseline rail, conforme au commentaire.
+
+⚠️ Rien n'est corrigé ni mesuré. Bloc traité par exhaustivité de méthode, pas parce qu'il portait un
+enjeu de l'ordre du plancher de détection du banc : aucune des deux trouvailles FAIBLES ci-dessus
+n'est présentée comme un gain probable.
 
 ---
 
