@@ -3130,6 +3130,26 @@ paie 4.
 corriger le prix rend le plan honnête mais peut aussi tuer des lignes rentables — c'est la mesure
 qui tranche, pas l'argument.
 
+### 3 bis. ✅ D1 — Vérifié en conditions réelles après C2/C3/C7 (2026-09-02 soir)
+
+Rejeu de la même campagne (mêmes 5 graines, 3 ans, `rail_cost_probe=1`,
+`docs/opex_campaign_5seeds_rail_cost_probe_postfix.json`), avec `rail_terrain_factor` calibré à
+170 % (C2), `PROJECT_RAIL_OPS_PER_ITERATION = 3105` (C3) et le devis réel `AITestMode`+`AIAccounting`
+(C7) tous actifs par défaut — pas une simple recalibration rétrospective du même jeu de données
+comme la ligne « après ×1,70 » ci-dessus, une **nouvelle mesure**.
+
+| ratio modèle/réel | min | médiane | max |
+|---|---:|---:|---:|
+| avant (référence ci-dessus) | 0,70 | 0,88 | 0,93 |
+| **après, mesuré (D1)** | **0,998** | **1,025** | **1,038** |
+
+8 lignes rail exploitables (flotte bâtie conforme au plan) sur les 5 graines. Le biais de
+sous-facturation est refermé : le modèle passe de « toujours trop bas de 7 à 30 % » à « neutre à
+légèrement prudent (+0 à +3,8 %) » — dans le sens qui protège le portefeuille (surestimer le
+capital rail est sans risque pour le ROI, le sous-estimer gonflait artificiellement sa place face
+à la route et l'avion). `n_rail_attempts_failed = 0` sur les 5 graines : toujours aucun chantier
+rail avorté, confirmé inchangé.
+
 ### 4. Chantiers avortés : le rail est innocent, l'avion coupable
 
 **`n_rail_attempts_failed = 0` sur les 5 graines et les 3 ans.** Aucun rollback ferroviaire, donc
@@ -4358,4 +4378,29 @@ qui n'avait pas encore sa ligne. Journal de la journée : `docs/journal_2026-09-
 
 `portfolio_max_batch` · `air_presite` · `air_cost_probe` · `air_fleet_probe` ·
 `portfolio_fresh_budget` · `fleet_before_new` · `rail_cost_probe` · `portfolio_v2` ·
-`tree_planting` · `marginal_fleet`
+`tree_planting` · `marginal_fleet` · `transit_cost`
+
+### D2. ❌ `transit_cost` — banc apparié 20 graines × 10 ans, RIEN ne bouge (2026-09-02 soir)
+
+`docs/bench_transit_cost_10y.json`, `OpexAI` contre `OpexAI[transit_cost=1000]` (coût complet, la
+valeur la plus agressive permise). Un diagnostic à 5 graines × 3 ans avait montré que le réglage
+n'est pas structurellement mort : à graines égales (parties déterministes), il change bien quelles
+lignes se construisent (rail 8→10, route 6→5 sur les mêmes 5 graines). Mais ce réarbitrage ne se
+traduit par rien à 20 graines × 10 ans :
+
+| métrique | témoin | `transit_cost=1000` | écart | t |
+|---|---:|---:|---:|---:|
+| `company_value` | 1 333 997 £ | 1 342 066 £ | +0,6 % | 0,07 |
+| `profit` | 46 430 £ | 46 359 £ | −0,2 % | 0,01 |
+| `profit_year` | 199 256 £ | 202 678 £ | +1,7 % | 0,17 |
+| `performance_history` | 348,5 | 345,6 | −0,8 % | 0,12 |
+| `median_station_rating` | 171,6 | 170,8 | −0,5 % | 1,40 |
+
+Tous les $|t| < 1,5$ (seuil habituel de ce projet ~2), et le partage gagnant/perdant reste ~11-12/20
+sur toutes les métriques de valeur — un pile ou face statistique. Le réarbitrage rail/route que le
+réglage produit à la construction ne favorise donc ni l'un ni l'autre mode en moyenne : il déplace
+le problème sans le résoudre. **Défaut gardé à 0.**
+
+Note d'outillage : `sweeps/bench_v2.py` ne reconnaissait pas encore `transit_cost` (ajouté à
+`info.nut` par C9 après l'écriture du validateur) — corrigé au passage (bornes 0-2000, pas 50,
+identiques à `info.nut`), non commité.

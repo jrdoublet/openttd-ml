@@ -133,6 +133,13 @@ def parse_opex_variant(name):
                 raise ValueError("join_max_distance doit etre entre 0 et 200")
             if value % 5:
                 raise ValueError("join_max_distance doit etre un multiple de 5 (step_size)")
+        elif key == "transit_cost":
+            # Memes bornes et meme pas que ai/OpexAI/info.nut (docs/taches.md C9) : 0 = neutre
+            # (defaut), 1000 = cout complet.
+            if not 0 <= value <= 2000:
+                raise ValueError("transit_cost doit etre entre 0 et 2000")
+            if value % 50:
+                raise ValueError("transit_cost doit etre un multiple de 50 (step_size)")
         elif key == "road_pax_catchment_pct":
             # 0 garde le calibrage historique a 22 %. Une valeur positive est une sonde route
             # uniquement (info.nut) ; 86 = 22 * le ratio median reel/predit 3,91.
