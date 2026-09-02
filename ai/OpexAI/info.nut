@@ -120,6 +120,16 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    AddSetting({
+      name = "air_max_distance",
+      description = "Plafond de distance pour les liaisons aeriennes (0 = illimite, 212 = defaut empirique, docs/taches.md C6)",
+      min_value = 0, max_value = 1000,
+      easy_value = 212, medium_value = 212, hard_value = 212,
+      custom_value = 212,
+      step_size = 1,
+      flags = 0
+    });
+
     /* Expansion marginale d'une ligne rail existante. Le bras 1 ne cherche aucun nouveau
      * chemin : apres deux releves de saturation sur une ligne a une rame, il ajoute un wagon
      * dans la marge de quai deja payee, seulement si le revenu reel recale predit un gain net.

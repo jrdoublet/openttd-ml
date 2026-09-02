@@ -16,6 +16,8 @@ AIR_TOWN_MIN_DISTANCE <- 32;
 AIR_MAX_SITE_PROBES <- 1500;
 AIR_MAX_PLANES_PER_ROUTE <- 16;
 AIR_CAPITAL_MARGIN <- 50000;
+/* Plafond empirique de distance aérienne (docs/taches.md C6) : 0 succès mesurés au-delà de 212 tuiles */
+AIR_MAX_DISTANCE <- 212;
 
 /* Distance euclidienne exacte à vol d'oiseau pour la cinématique et le paiement aérien :
  * sqrt(dx^2 + dy^2) approximé par 0.414 * min(dx, dy) + max(dx, dy) */
@@ -331,6 +333,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
                                                         sites[a].anchor, sites[b].anchor);
         local flightDistance = OpexFlightDistance(sites[a].anchor, sites[b].anchor);
         if (distance < minDist) continue;
+        if (AIR_MAX_DISTANCE > 0 && flightDistance > AIR_MAX_DISTANCE) continue;
         if (plane.maxOrderDistance > 0 && flightDistance > plane.maxOrderDistance) {
           continue;
         }
@@ -454,6 +457,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
         local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR,
                                                         hub.anchor, site.anchor);
         local flightDistance = OpexFlightDistance(hub.anchor, site.anchor);
+        if (AIR_MAX_DISTANCE > 0 && flightDistance > AIR_MAX_DISTANCE) continue;
         if (plane.maxOrderDistance > 0 && flightDistance > plane.maxOrderDistance) continue;
         if (abandoned != null
             && (("air|" + hub.town.tile + "|" + site.town.tile) in abandoned)) continue;
@@ -496,6 +500,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
         if (distance < 20) continue;
         local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR, hub1.anchor, hub2.anchor);
         local flightDistance = OpexFlightDistance(hub1.anchor, hub2.anchor);
+        if (AIR_MAX_DISTANCE > 0 && flightDistance > AIR_MAX_DISTANCE) continue;
         if (plane.maxOrderDistance > 0 && flightDistance > plane.maxOrderDistance) continue;
         if (abandoned != null
             && (("air|" + hub1.town.tile + "|" + hub2.town.tile) in abandoned)) continue;

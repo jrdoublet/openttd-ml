@@ -2935,6 +2935,8 @@ function OpexAI::Start()
   COMPLEX_CARGO = AIController.GetSetting("complex_cargo") != 0;
   AIR_STARTER = AIController.GetSetting("air_starter") != 0;
   AIR_HUB = AIController.GetSetting("air_hub") != 0;
+  local airMaxDist = AIController.GetSetting("air_max_distance");
+  if (airMaxDist >= 0) AIR_MAX_DISTANCE = airMaxDist;
   RAIL_REFLEET = AIController.GetSetting("rail_refleet") != 0;
 
   /* 🔴 RENOUVELLEMENT AUTOMATIQUE (2026-08-29). Mesure : campagne 20 ans, graine 42 -- trois des
