@@ -2109,6 +2109,56 @@ interposé devant 57 appels coûtait **3 lignes rail** (16 → 13). Longueur au 
 
 ---
 
+## 0 quindecies. ❌ LOT E : la marge aérienne — correctif ESSAYÉ, MESURÉ, ANNULÉ (2026-09-02)
+
+`docs/bench_lotE_air_marge_3y.json`, 20 graines × 3 ans, 0 échec :
+
+| métrique | avant | après | t |
+|---|---:|---:|---:|
+| `company_value` | 919 592 | **813 840** (−11,5 %) | **−2,66** |
+| `performance_history` | 305 | 275 (−9,8 %) | **−3,25** |
+| gares | 23,6 | **20,9** (−11,2 %) | −1,64 |
+| véhicules | 66,2 | 61,2 (−7,6 %) | −1,44 |
+
+**Annulé.** Retour à l'identique vérifié sur 5 graines.
+
+### Le défaut est réel, le correctif était faux
+
+`_tryBuildAir` dimensionne son budget avec une marge forfaitaire de **2 000 £**
+(`maxCapital = money + borrowable − reserve − 2000`) alors que le test d'acceptation exige
+`requiredMargin` — **jusqu'à 30 000** pour deux aéroports neufs. Un plan tombant dans cette bande
+de 28 000 est donc trouvé au prix d'un balayage complet de sites, puis rejeté, et le `break` gâche
+le cycle. Rejoué à l'identique au cycle suivant. **Ce diagnostic reste valide.**
+
+Le correctif essayé — dimensionner au pire cas (30 000), rendant l'acceptation vraie par
+construction — **repose sur une erreur de raisonnement** :
+
+> « Un plan trouvé puis rejeté ne construit rien, donc refuser de le planifier est strictement
+> meilleur. »
+
+C'est faux. **`maxCapital` n'est pas qu'un filtre : c'est le budget avec lequel `OpexAirPlans`
+CHOISIT le plan à proposer.** Le réduire de 30 000 partout appauvrit la sélection dans *tous* les
+cas où l'ancienne marge suffisait — en particulier le hub-à-hub, dont la marge réelle n'est que
+2 000 et à qui on retranchait donc 28 000 de trop. On échange une boucle bloquée **rare** contre une
+dégradation **systématique** du choix de plan.
+
+### 🔴 La leçon, généralisable
+
+**Avant de resserrer un budget « par sécurité », vérifier s'il sert aussi à CHOISIR.** Un paramètre
+qui filtre peut être durci sans dommage ; un paramètre qui alimente une optimisation en amont ne
+peut pas — le durcir dégrade la solution retenue, pas seulement les candidats écartés. C'est la
+même famille d'erreur que « la cohérence entre modes n'est pas de la justesse » (§0 terdecies) :
+un raisonnement local correct, faux dans le système.
+
+### La bonne correction, si on y revient
+
+Passer par le **plan**, pas par le budget : soit transmettre la marge exigée à `OpexAirPlans` pour
+qu'il l'applique **par plan** (elle dépend de `newAirports`, que lui seul connaît), soit ne pas
+`break` sur rejet et réessayer avec un budget raboté. L'avertissement est écrit à côté du `2000`
+dans `main.nut` pour que personne ne « corrige » à nouveau à l'aveugle.
+
+---
+
 ## 7 bis. Dimensionnement marginal de flotte (`marginal_fleet`) — MESURÉ, défaut 0, mais le mécanisme est bon (2026-09-01)
 
 **Banc apparié 20 graines × 3 ans** (`docs/bench_marginal_fleet_3y_20seeds.json`, les deux bras

@@ -647,6 +647,21 @@ function OpexAI::_tryBuildAir(year)
     local borrowable = REBORROW ? (AICompany.GetMaxLoanAmount() - AICompany.GetLoanAmount()) : 0;
     if (borrowable < 0) borrowable = 0;
     local baseReserve = OpexCashReserve();
+    /* ⚠️ NE PAS « CORRIGER » CE 2 000 EN LE PORTANT A LA MARGE MAXIMALE. Essaye et MESURE le
+     * 2026-09-02 (docs/bench_lotE_air_marge_3y.json) : -11,5 % de valeur (t = -2,66), -9,8 % de
+     * note officielle (t = -3,25), -11,2 % de gares.
+     *
+     * Le defaut apparent est reel : le test d'acceptation plus bas exige `requiredMargin` (jusqu'a
+     * 30 000 pour deux aeroports neufs), donc un plan tombant dans cette bande est trouve puis
+     * rejete, et le `break` gache le cycle. Mais `maxCapital` n'est PAS qu'un filtre : c'est le
+     * budget avec lequel OpexAirPlans CHOISIT le plan a proposer. Le reduire de 30 000 partout
+     * appauvrit la selection dans tous les cas ou l'ancienne marge suffisait -- notamment le
+     * hub-a-hub, dont la marge reelle n'est que 2 000. On echange une boucle bloquee rare contre
+     * une degradation systematique.
+     *
+     * La bonne correction passerait par le plan, pas par le budget : soit passer la marge exigee a
+     * OpexAirPlans pour qu'il l'applique par plan, soit ne pas `break` sur rejet et reessayer avec
+     * un budget rabote. Voir docs/taches.md. */
     local maxCapital = money + borrowable - baseReserve - 2000;
     if (maxCapital <= 0) break;
 
