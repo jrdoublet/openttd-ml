@@ -2082,6 +2082,56 @@ quand l'IA tourne, il ne lui rend pas les mois perdus dans l'A\*. Les deux se cu
 
 ---
 
+## 0 undecies quater. ❌ A4 `rail_search_resumable` — REJETÉ, et il renverse le diagnostic de §0 undecies ter (2026-09-03)
+
+Implémentation déléguée à grok (`grok-4.6`), relue et corrigée ici, puis mesurée. Le code est
+fusionné et fonctionnel ; c'est la **mesure** qui le rejette.
+
+### Le banc
+
+`docs/bench_rail_search_resumable_10y.json`, banc apparié 20 graines × 10 ans, 40 parties,
+0 échec, bras 0 contre bras 1 **de la même branche** :
+
+| métrique | bloquant (`=0`) | reprenable (`=1`) | écart | t | graines | p (signes) |
+|---|---:|---:|---:|---:|---:|---:|
+| `company_value` | 1 478 949 £ | 1 201 031 £ | **−23,1 %** | −3,48 | perd **16/20** | **0,0118** |
+| `performance_history` | 431 | 359 | **−20,0 %** | −3,54 | perd **17/20** | **0,0026** |
+| `profit_year` | 247 326 £ | 202 318 £ | −22,3 % | −2,28 | perd 13/20 | 0,26 |
+| `profit` | 61 764 £ | 50 485 £ | −22,3 % | −1,61 | perd 13/20 | 0,26 |
+
+### 🔴 Le mécanisme, lisible dans les chiffres
+
+Le bras reprenable construit **moins** : **31,4 gares contre 39,5**, **128 véhicules contre 152,7**.
+Dégeler la file **n'a pas créé de capacité** — elle a réparti la même capacité plus mince, en
+retardant la mise en service des lignes rail qui rapportent.
+
+### 🔴 Ce que ça renverse dans §0 undecies ter
+
+Le gel de 7 mois est réel et reste mesuré. Mais **il ne coûtait pas ce qu'on croyait** : les tâches
+qu'il bloquait étaient **elles-mêmes bloquées par la trésorerie** — 63 refus de croissance aérienne
+sur 65 pour cause de cash (§0 undecies bis). Leur rendre du **temps** ne leur donne pas d'**argent**,
+alors que retarder le rail coûte directement.
+
+➡️ **Leçon généralisable, à opposer à toute future idée d'ordonnancement** : le budget d'opcodes
+est un **stock**, pas un problème d'ordonnancement. On ne gagne pas en redistribuant le temps ; on
+gagne en **abaissant le coût total** (A5, pathfinding segmenté) ou en changeant ce qu'on achète (A1).
+
+### Ce qui reste acquis du travail
+
+- Le réglage `rail_search_resumable` (défaut 0) et la machine à états `_railSearch`, rejouables.
+- ⚠️ **Le défaut 0 n'est PAS bit-à-bit identique à l'avant-A4** : la recherche est rigoureusement
+  la même (8 850 itérations à l'identique sur la graine 42), mais les frames d'appel ajoutées
+  coûtent **+9 974 opcodes** (+0,037 %), soit presque un tick entier, ce qui décale l'aval.
+  Inhérent : ici le comportement dépend des opcodes consommés. **Tout banc sur ce réglage doit
+  donc comparer bras 0 contre bras 1 de la même branche**, jamais contre des chiffres historiques.
+- 🔴 **Piège Squirrel qui a failli passer** : `const` n'accepte qu'un **littéral** scalaire.
+  `= PATH_CHUNK` et `= 74 * 365 * 2` ne compilent pas (« scalar expected »), et comme c'est une
+  erreur de compilation, l'IA meurt au démarrage **sur tous les bras, défaut compris** (4/4 parties
+  en erreur fatale NoAI). Détecté par un smoke test 2 graines × 3 ans, pas par la relecture.
+  ➡️ **Après toute livraison d'agent touchant du `.nut`, smoke test avant commit.**
+
+---
+
 ## 3 ter. 🔶 AUDIT DE TOUTES LES CONSTANTES EN DUR (demandé le 2026-09-02)
 
 **46 constantes `const` dans `ai/OpexAI/`, contre 35 réglages exposés.** Aucune revue systématique
@@ -4493,8 +4543,8 @@ qui n'avait pas encore sa ligne. Journal de la journée : `docs/journal_2026-09-
 | **A1** | **Dénominateur du classement dépendant de la ressource rare** (§0 tervicies point 1, §3 septies) | Sept mécanismes de capital mesurés, sept non adoptés : **le capital n'est pas le mur**. AAAHogEx bascule son dénominateur, nous jamais |
 | **A2** | **Volume de liaisons** — largeur contre profondeur (§3 nonies phase 1) | Confirmé deux fois aujourd'hui. On pose 2,4 lignes aériennes par partie contre 35 appareils chez l'adversaire |
 | **A3** | **Sonde : plafonner `iterationBudget`** à ~10 000 au lieu de 50 000, banc apparié (§0 undecies ter) | ✅ Fait (`pathfinder_hard_cap_k` = 10, bornes dynamiques à 10k max) |
-| **A4** | **Recherche de chemin reprenable d'un tour de file à l'autre** (§0 undecies ter) | **Le vrai correctif du gel de 7 mois.** La bibliothèque rend déjà la main toutes les 50 itérations (`builder_rail.nut:341-345`) et on la jette en rebouclant. Patron déjà en place dans le code : `_railExpansion` / `_continueRailExpansion`. ⚠️ Exige de passer `deadlineTick` d'une comptabilité en **ticks** à une comptabilité en **itérations**, sinon le correctif tue les recherches qu'il doit sauver. Les 3 appelants de `OpexSearchPath` deviennent des états |
-| **A5** | **Porter le pathfinding segmenté en production** (`sweeps/measure_*_segmented.py` → `ai/OpexAI/`) | Mesuré 4× moins cher et sous la barrière sur 9/9, mais **4/9 aboutissent** — deux briques manquent (voir [[pathfinder-segmente-prototype]]). **Après A4, pas avant** : la segmentation *réduit* le gel (57 M ÷ 4 ≈ 2 semaines de jeu, plusieurs fois par partie), A4 le *supprime*. Les deux se composent |
+| **A4** | ❌ **FAIT, MESURÉ, REJETÉ** — recherche reprenable d'un tour de file à l'autre (§0 undecies quater) | **−23,1 % de valeur, 16/20 graines perdantes** ($p = 0{,}0118$). Le gel de 7 mois est réel, mais il ne coûtait pas ce qu'on croyait. Réglage `rail_search_resumable` conservé comme instrument, défaut 0 |
+| **A5** | **Porter le pathfinding segmenté en production** (`sweeps/measure_*_segmented.py` → `ai/OpexAI/`) | Mesuré 4× moins cher et sous la barrière sur 9/9, mais **4/9 aboutissent** — deux briques manquent (voir [[pathfinder-segmente-prototype]]). ⚠️ **La consigne « après A4 » est CADUQUE.** L'échec d'A4 rend A5 *plus* prometteur, pas moins : la segmentation **réduit le coût total** du pathfinding, là où A4 se contentait de le **redistribuer** dans le temps — et c'est précisément la redistribution qui a coûté 23 % |
 
 ⚠️ **A2 n'est PAS « remplacer notre A\* par `Graph.AyStar` »** — cette formulation, qui circule
 encore, est sans objet : `main.nut:28` importe déjà `Pathfinder.Rail`, bâti sur `Graph.AyStar`.
@@ -4551,7 +4601,7 @@ Il n'y a pas d'A\* fait maison. Seule la fonction de coût est à nous.
 
 `portfolio_max_batch` · `air_presite` · `air_cost_probe` · `air_fleet_probe` ·
 `portfolio_fresh_budget` · `fleet_before_new` · `rail_cost_probe` · `portfolio_v2` ·
-`tree_planting` · `marginal_fleet` · `transit_cost`
+`tree_planting` · `marginal_fleet` · `transit_cost` · `rail_search_resumable`
 
 ### D2. ❌ `transit_cost` — banc apparié 20 graines × 10 ans, RIEN ne bouge (2026-09-02 soir)
 
