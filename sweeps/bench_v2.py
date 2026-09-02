@@ -145,6 +145,11 @@ def parse_opex_variant(name):
                 raise ValueError("portfolio_floor_pct doit etre entre 0 et 100")
             if value % 5:
                 raise ValueError("portfolio_floor_pct doit etre un multiple de 5 (step_size)")
+        elif key == "portfolio_max_batch":
+            # Memes bornes que ai/OpexAI/info.nut : sans ce garde, le moteur pourrait borner la
+            # valeur sans que le nom de l'arm dans le JSON dise ce qui a vraiment ete joue.
+            if not 1 <= value <= 8:
+                raise ValueError("portfolio_max_batch doit etre entre 1 et 8")
         elif key == "rail_min_distance":
             # Distance minimale d'un candidat rail. 25 = comportement livre ; 5 rouvre la bande
             # de chevauchement rail/route que les commentaires du fichier decrivent deja.

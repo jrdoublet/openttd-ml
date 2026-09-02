@@ -2639,6 +2639,103 @@ n'est présentée comme un gain probable.
 
 ---
 
+## 0 vicies. ❌ `maxBatch = 1` : MESURÉ, REJETÉ — et le plafond ne retenait rien (2026-09-02)
+
+L'item de tête du backlog (« le seul candidat restant qui touche le volume global »). Mesuré avant
+d'être levé, puis levé, puis mesuré. Réglage `portfolio_max_batch` (`info.nut`), défaut **1**.
+
+### 1. Ce que coûtait le plafond, lu dans les données existantes
+
+`docs/diag_vivier_3y.json` contenait déjà les 105 panneaux `IG|` et les 43 `IP|` : **aucune
+campagne nouvelle n'était nécessaire** pour chiffrer le plafond. Même angle mort qu'en §0 decies.
+
+| graine | portefeuilles | Σ projets financés | tentatives | ratio |
+|---:|---:|---:|---:|---:|
+| 42 | 16 | 25 | 8 | 3,1 |
+| 100 | 18 | 22 | 7 | 3,1 |
+| 7 | 23 | 80 | 12 | 6,7 |
+| 999 | 22 | 54 | 10 | 5,4 |
+| 2026 | 26 | 22 | 6 | 3,7 |
+| **total** | **105** | **203** | **43** | **4,7** |
+
+Distribution de `budget_selected` : `{0:21, 1:35, 2:22, 3:12, 4:6, 5:3, 6:2, 7:1, 8:2, 14:1}`.
+**La médiane est 1** : sur 56 générations sur 105, le plafond ne coûte rigoureusement rien. Il ne
+mord que sur les 49 qui financent ≥ 2. Par année, tentatives **19 → 16 → 8** : la construction
+décélère pendant que le capital croît.
+
+### 2. 🔴 Le banc : rejeté (20 graines × 3 ans, `docs/bench_portfolio_max_batch_3y.json`)
+
+| métrique | écart (4 contre 1) | t | test des signes |
+|---|---:|---:|---|
+| `company_value` | **−3,8 %** | −1,77 | 3 gagnantes / 6 perdantes / **11 nulles** (p = 0,51) |
+| `profit_year` | −4,8 % | −1,54 | 3 / 6 / 11 |
+| `n_stations` | −7,9 % | −2,04 | 2 / 8 / 10 (p = 0,11) |
+| `n_vehicles` | −9,5 % | **−2,94** | 2 / 8 / 10 (p = 0,11) |
+
+**11 graines sur 20 sont des nuls EXACTS** : chez elles le batch ne se déclenche jamais. Le reste
+est défavorable, et significativement sur le volume.
+
+### 3. 🔴 POURQUOI c'est nul — le mécanisme, vérifié aux panneaux
+
+Instrumentation ajoutée : `IB|` reçoit un champ terminal `|B<n>` = projets réellement bâtis dans le
+passage (aucun `BuildSign` supplémentaire ; 30 caractères sur 31).
+
+**a) Le batch fusionne des cycles, il n'en ajoute pas.** Un passage RÉUSSI régénère lui-même le
+portefeuille (`main.nut:1520`). Bâtir 2 projets dans un passage remplace donc deux cycles par un.
+Mesure : le nombre de tentatives **baisse** (0/5 graines en hausse à `batch=8`).
+
+**b) Le batch ne dépasse jamais DEUX, même réglé à 8** (`docs/diag_batch8_5seeds.json`, 14 passages
+avec chantier : `{1: 10, 2: 4}`), alors que la graine 7 a un portefeuille qui finance 17 projets.
+
+**c) La cause : la caisse est vidée entre deux passages par les tâches concurrentes.** Graine 42,
+janvier 1970 :
+
+```
+portefeuille #0 : capital mobilisable 295 000 -> 5 projets finances (282 578)
+   chantier unique du passage : une ligne de bus a 26 589 £
+portefeuille #1 : capital mobilisable  24 013 -> 1 projet finance
+```
+
+245 000 £ ont disparu sans passer par le portefeuille : `_tryBuildAir` est une **tâche séparée**,
+avec son propre `maxBatch = 3` (12 en starter), et elle a posé une liaison aérienne la même année
+(`air_attempts`, `reason OK`, distance 161) — **aucun panneau `IP|`**, donc hors portefeuille. Plus
+deux lignes rail de 96 et 63 tuiles. L'emprunt est au plafond dès février.
+
+👉 **Le vrai goulot n'est pas le plafond de batch, c'est la CONCURRENCE POUR LA CAISSE** entre le
+portefeuille et les tâches qui dépensent en parallèle. Le sac à dos planifie contre 295 k£ qu'il
+croit siens et n'en retrouve que 24 k£ au passage suivant. C'est le prolongement direct de
+§0 decies (vitesse du capital) et de §0 undecies (la ruée aérienne d'AAAHogEx).
+
+### 4. 🔴 Défaut trouvé en chemin : le parseur ne lisait PLUS les portefeuilles
+
+`RE_IG` (`sweeps/opex_full_campaign.py:49`) est ancré par `$` et attend 4 champs. Le commit
+`1b7c6d7` (« lot C : la télémétrie ne ment plus », 2026-09-02 09:35) en a ajouté deux **sans
+toucher au motif**. Depuis ce commit, **aucun panneau `IG|` ne matchait** : toute campagne lancée
+après 09h35 aurait rendu `project_portfolios = []` en silence — y compris celle-ci. Les mesures
+ci-dessus n'existent que parce que le motif a été réparé d'abord. `RE_IG` et `RE_IB` acceptent
+désormais l'ancien et le nouveau format, et capturent `knapsack_truncated`, `budget_nested`, `built`.
+
+**Leçon de méthode, à ajouter à celle de `tree_planting`** : quand on enrichit un panneau, le
+parseur ancré par `$` échoue en SILENCE — pas d'erreur, juste une liste vide. Toute modification de
+format de panneau doit être suivie d'un test du motif sur la chaîne réellement émise.
+
+### 5. Ce qui reste vrai, et ce qu'on garde
+
+- Le réglage `portfolio_max_batch` reste **exposé, défaut 1** : c'est le seul instrument pour
+  remesurer ce plafond le jour où la concurrence pour la trésorerie serait corrigée.
+- Les revalidations de batch (préflight air `AITestMode` + recomptage vivant des routes de hub,
+  préflight dock eau, invalidation de `candidate.railPlan`) sont **inertes au défaut** : elles sont
+  toutes gardées par `builtCount > 0`.
+- ⚠️ **Risque résiduel connu, non corrigé** : `OpexJoinPathIsDedicated` n'est armé que si
+  `join != null` (`builder_rail.nut:937`), donc un A\* rail peut traverser du rail existant dans le
+  cas courant. Ce n'est PAS un risque né du batch (il existe déjà entre passages successifs) ;
+  le rendre inconditionnel modifierait le bras de contrôle, ce qui a été refusé pour garder la
+  comparaison lisible.
+- ➜ **Suite logique** : instrumenter qui dépense la caisse entre deux passages du portefeuille, et
+  décider si `_tryBuildAir` doit continuer à court-circuiter l'arbitrage du portefeuille.
+
+---
+
 ## 7 bis. Dimensionnement marginal de flotte (`marginal_fleet`) — MESURÉ, défaut 0, mais le mécanisme est bon (2026-09-01)
 
 **Banc apparié 20 graines × 3 ans** (`docs/bench_marginal_fleet_3y_20seeds.json`, les deux bras

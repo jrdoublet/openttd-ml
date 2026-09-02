@@ -46,8 +46,14 @@ RE_OL_TRACTION = re.compile(r"^OL\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
 RE_PL = re.compile(r"^PL\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
 RE_PT = re.compile(r"^PT\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
 RE_PG = re.compile(r"^PG\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
-RE_IG = re.compile(r"^IG\|(\d{2})\|(\d+)\|(\d+)\|(\d+)$")
-RE_IB = re.compile(r"^IB\|(\d{2})\|(\d+)\|(\d+)$")
+# Les deux derniers champs (knapsack tronque, imbrications de budget) ont ete ajoutes
+# par 1b7c6d7 le 2026-09-02 SANS toucher a ce motif, ancre par $ : depuis ce commit,
+# AUCUN panneau IG ne matchait plus et les portefeuilles disparaissaient en silence de
+# toute campagne. Ils sont donc optionnels ici, pour lire aussi les JSON anterieurs.
+RE_IG = re.compile(r"^IG\|(\d{2})\|(\d+)\|(\d+)\|(\d+)(?:\|(\d+)\|(\d+))?$")
+# `|B<n>` = projets reellement batis dans le passage (portfolio_max_batch). Absent des
+# panneaux emis a la generation et de tous les JSON anterieurs, donc optionnel.
+RE_IB = re.compile(r"^IB\|(\d{2})\|(\d+)\|(\d+)(?:\|B(\d+))?$")
 RE_IP = re.compile(r"^IP\|(\d{2})\|([TRAW])\|(\d+)\|(\d+)$")
 RE_PD = re.compile(r"^PD\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)(?:\|(\d+))?$")
 RE_PS = re.compile(r"^PS\|(\d{2})\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)(?:\|([PF]))?(?:\|([ABN]))?$")
@@ -774,6 +780,8 @@ def parse_project_portfolios(all_signs):
                 "mode_candidates": int(m.group(2)),
                 "od_projects": int(m.group(3)),
                 "budget_selected": int(m.group(4)),
+                "knapsack_truncated": int(m.group(5)) if m.group(5) is not None else None,
+                "budget_nested": int(m.group(6)) if m.group(6) is not None else None,
             }
             portfolios.append(current)
         elif m := RE_IB.match(sign):
@@ -781,6 +789,7 @@ def parse_project_portfolios(all_signs):
                 "year": 1900 + int(m.group(1)),
                 "capital_budget": int(m.group(2)),
                 "selected_capital": int(m.group(3)),
+                "built": int(m.group(4)) if m.group(4) is not None else None,
             }
             if current is not None and current["year"] == row["year"]:
                 current.update(row)

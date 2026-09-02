@@ -835,6 +835,40 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
+    /* Nombre maximum de projets construits dans le meme passage du portefeuille. 1 conserve
+     * exactement le passage historique : le premier succes regenere le portefeuille et arrete
+     * la boucle. Les valeurs superieures ne reutilisent les plans figes qu apres revalidation
+     * contre la carte et la tresorerie vivantes (main.nut). La borne 8 est volontairement petite :
+     * mesure du 2026-09-02 sur docs/diag_vivier_3y.json (5 graines x 3 ans, defauts), le sac a dos
+     * finance 203 projets pour 43 construits, mais la MEDIANE des portefeuilles n'en finance qu'UN
+     * et le maximum observe est 14.
+     *
+     * MESURE, ET REGLAGE ECARTE (2026-09-02, docs/bench_portfolio_max_batch_3y.json, 20 graines
+     * x 3 ans, apparie) : batch 4 contre 1 donne company_value -3,8 % (t = -1,77), profit_year
+     * -4,8 %, n_stations -7,9 % (t = -2,04) et n_vehicles -9,5 % (t = -2,94). Test des signes :
+     * 11 graines sur 20 sont des NULS EXACTS -- le batch ne se declenche jamais chez elles -- et
+     * sur les 9 restantes le batch perd 6 fois contre 3 (p = 0,51 ; p = 0,11 sur le volume).
+     *
+     * POURQUOI C'EST NUL, verifie aux panneaux (docs/diag_batch8_5seeds.json) : un passage REUSSI
+     * regenere lui-meme le portefeuille. Batir deux projets dans le meme passage ne fait donc pas
+     * un chantier de plus, il FUSIONNE deux cycles en un -- le nombre de tentatives baisse au lieu
+     * de monter (0/5 graines en hausse). Et meme a 8, le batch ne depasse jamais DEUX : la
+     * tresorerie est videe entre-temps par les taches concurrentes (_tryBuildAir a son propre
+     * batch de 3), le capital mobilisable tombant de 295 000 a 24 013 apres un seul chantier a
+     * 26 589 £. Le plafond a 1 ne retenait rien ; le vrai goulot est la CONCURRENCE POUR LA CAISSE.
+     *
+     * Garde a 1 par defaut. Le reglage reste expose parce qu'il est le seul instrument capable de
+     * remesurer ce plafond si la competition pour la tresorerie est un jour corrigee. */
+    AddSetting({
+      name = "portfolio_max_batch",
+      description = "Maximum funded portfolio projects built in one pass. 1 = historical one-project behaviour (default); 2-8 = revalidated batch",
+      min_value = 1, max_value = 8,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      step_size = 1,
+      flags = 0
+    });
+
     /* Ticks de sommeil apres chaque bloc de PATH_CHUNK (50) iterations d'A*.
      *
      * Defaut 0 = AUCUN bridage. Choisi PAR PRINCIPE (armes egales entre IA), PAS par la mesure --

@@ -234,6 +234,10 @@ const LOOP_BUDGET_MAX_TASKS = 8;
  * Plus la regeneration du portefeuille des que le capital mobilisable a materiellement grandi,
  * au lieu d'attendre le mois suivant. */
 PORTFOLIO_V2 <- false;
+/* Taille du batch du portefeuille. Repli 1 jusqu'a la lecture unique de
+ * portfolio_max_batch dans Start() : 1 garde le break apres le premier succes, donc le chemin
+ * livre reste strictement le meme. */
+PORTFOLIO_MAX_BATCH <- 1;
 /* Gain absolu minimal avant de rejouer la generation : en dessous, le cout en opcodes ne vaut pas
  * la peine d'etre paye pour quelques milliers de livres. */
 const PORTFOLIO_REFRESH_MIN_GAIN = 50000;
@@ -1035,6 +1039,90 @@ function OpexAI::_tooClose(candidate)
   return { hard = -1, blocking = blocking, conflicts = conflicts };
 }
 
+/* Revalidation air du batch : un plan garde ses deux sites depuis la generation, mais un succes
+ * precedent a pu y poser une gare, une route ou un aeroport. Ce probe ne tourne donc JAMAIS pour
+ * le premier projet ; le precedent mesure est maxBatch=1, ou le plan etait encore celui de la
+ * generation. Il reprend le test utile de OpexAirFindSite, y compris le nivellement que le vrai
+ * constructeur fera, sans relancer OpexAirPlans ni ses panneaux. */
+function OpexAirBatchSiteStillBuildable(site, airport, plane, reuse)
+{
+  if (reuse) {
+    return AIAirport.IsAirportTile(site.anchor) &&
+           OpexAirAirportAcceptsPlane(AIAirport.GetAirportType(site.anchor), plane.planeType);
+  }
+  local end = site.anchor + AIMap.GetTileIndex(airport.width - 1, airport.height - 1);
+  if (!AIMap.IsValidTile(end)) return false;
+  local ok = false;
+  {
+    local probe = AITestMode();
+    ok = AIAirport.BuildAirport(site.anchor, airport.type, AIStation.STATION_NEW);
+    if (!ok) {
+      local error = AIError.GetLastError();
+      if (error == AIError.ERR_LOCAL_AUTHORITY_REFUSES) ok = true;
+      else {
+        AITile.LevelTiles(site.anchor, end);
+        ok = AIAirport.BuildAirport(site.anchor, airport.type, AIStation.STATION_NEW);
+        if (!ok && AIError.GetLastError() == AIError.ERR_LOCAL_AUTHORITY_REFUSES) ok = true;
+      }
+    }
+  }
+  return ok;
+}
+
+/* Un hub garde une limite de routes liee a son aeroport. La generation l'avait controlee sur
+ * l'ancien this._lines ; apres un succes de batch, seul ce comptage vivant peut dire si le plan
+ * reste admissible. Pas de controle de taille de flotte ici : plan.planes ne depend d'aucun etat
+ * modifie par le chantier precedent et le relire serait du cout d'opcodes sans information. */
+function OpexAirBatchHubHasCapacity(anchor, plane, lines)
+{
+  if (!AIAirport.IsAirportTile(anchor) ||
+      !OpexAirAirportAcceptsPlane(AIAirport.GetAirportType(anchor), plane.planeType)) return false;
+  local station = AIStation.GetStationID(anchor);
+  if (!AIStation.IsValidStation(station)) return false;
+  local routes = 0;
+  foreach (line in lines) {
+    if (!("mode" in line) || line.mode != "air") continue;
+    /* this._lines garde les tuiles d'aeroport, pas les StationID. Comparer les tuiles au
+     * StationID du hub laisserait passer le plafond apres le premier succes du batch. */
+    if (AIStation.GetStationID(line.stationA) == station ||
+        AIStation.GetStationID(line.stationB) == station) routes++;
+  }
+  local airportType = AIAirport.GetAirportType(anchor);
+  local maxRoutes = (airportType == AIAirport.AT_SMALL || airportType == AIAirport.AT_COMMUTER) ? 4 : 12;
+  return routes < maxRoutes;
+}
+
+/* La paire O/D et les bouts nouveaux etaient valides dans le portefeuille fige. Apres un succes,
+ * ils peuvent desormais etre deja servis ; on les ecarte plutot que de laisser le constructeur
+ * detruire puis echouer. Les scans sont bornes par PORTFOLIO_MAX_BATCH <= 8 et absents du controle
+ * maxBatch=1, pour ne pas recreer le cout de panneaux qui avait deplace les frontieres de ticks. */
+function OpexAirBatchPlanStillLive(plan, lines)
+{
+  local reuseA = ("reuseA" in plan) && plan.reuseA;
+  local reuseB = ("reuseB" in plan) && plan.reuseB;
+  if (!reuseA && OpexAirTownServed(plan.siteA.town, lines)) return false;
+  if (!reuseB && OpexAirTownServed(plan.siteB.town, lines)) return false;
+  if (reuseA && !OpexAirBatchHubHasCapacity(plan.siteA.anchor, plan.plane, lines)) return false;
+  if (reuseB && !OpexAirBatchHubHasCapacity(plan.siteB.anchor, plan.plane, lines)) return false;
+  foreach (line in lines) {
+    if (!("mode" in line) || line.mode != "air") continue;
+    if ((line.originA == plan.siteA.town.tile && line.originB == plan.siteB.town.tile) ||
+        (line.originA == plan.siteB.town.tile && line.originB == plan.siteA.town.tile)) return false;
+  }
+  return true;
+}
+
+/* Les docks sont des sites figes, contrairement au trace routier qui est recalcule juste avant
+ * OpexBuildRoadRoute. La connexion eau elle-meme n'est pas re-scannee : aucun premier chantier
+ * non maritime ne peut modifier ses aretes, et un premier chantier maritime met _waterBuilt a 1.
+ * Ce probe couvre donc le seul etat que le batch peut invalider sans payer un BFS inutile. */
+function OpexWaterBatchSiteStillBuildable(site)
+{
+  local ok = false;
+  { local probe = AITestMode(); ok = AIMarine.BuildDock(site.dock, AIStation.STATION_NEW); }
+  return ok;
+}
+
 /* Le coeur de l'allocation : on descend le classement tant qu'il reste de l'argent, et chaque
  * tentative recoit un budget d'iterations egal a ce qu'il faut pour continuer a battre le
  * candidat SUIVANT. Pour le dernier, l'alternative reelle n'est pas l'absence de travail : c'est
@@ -1050,10 +1138,9 @@ function OpexAI::_tryBuildProjects(year)
   local anchor = AIMap.GetTileIndex(1, 1);
   local yy = year % 100;
   local builtCount = 0;
-  /* Un seul succes par passage : le portefeuille doit etre regenere des que le capital ou les
-   * origines changent. Construire plusieurs elements d'un meme sac a dos utiliserait un etat
-   * economique devenu obsolete apres le premier chantier. */
-  local maxBatch = 1;
+  /* 1 conserve le break historique. Au-dela, chaque candidat apres le premier succes passe les
+   * revalidations de son mode contre this._lines, la carte et la tresorerie vivantes. */
+  local maxBatch = PORTFOLIO_MAX_BATCH;
 
   for (local i = 0; i < this._projects.best.len(); i++) {
     local project = this._projects.best[i];
@@ -1064,6 +1151,13 @@ function OpexAI::_tryBuildProjects(year)
 
     if (mode == "air") {
       local plan = project.payload;
+      if (builtCount > 0) {
+        if (!OpexAirBatchPlanStillLive(plan, this._lines)) continue;
+        if (!OpexAirBatchSiteStillBuildable(plan.siteA, plan.airport, plan.plane,
+                                             ("reuseA" in plan) && plan.reuseA)) continue;
+        if (!OpexAirBatchSiteStillBuildable(plan.siteB, plan.airport, plan.plane,
+                                             ("reuseB" in plan) && plan.reuseB)) continue;
+      }
       local maxPerYear = AIR_STARTER ? 30 : 5;
       local maxTotal = AIR_STARTER ? 250 : 25;
       local airLinesThisYear = 0;
@@ -1219,6 +1313,12 @@ function OpexAI::_tryBuildProjects(year)
       if (builtCount >= maxBatch) break;
     } else if (mode == "rail") {
       local candidate = project.payload;
+      if (builtCount > 0 && ("railPlan" in candidate)) {
+        /* Le trace A* memorise vise la carte de la generation. Le premier chantier peut avoir
+         * occupe un quai, un depot ou une tuile du trace ; le jeter force OpexBuildLine a
+         * replanifier sur la carte vivante. Inerte pour maxBatch=1, precedent mesure. */
+        candidate.railPlan = null;
+      }
       local abandonedKey = OpexAbandonedPairKey(candidate);
       if (ABANDON_MEMORY && (abandonedKey in this._abandonedPairs)) continue;
 
@@ -1381,6 +1481,8 @@ function OpexAI::_tryBuildProjects(year)
     } else if (mode == "water") {
       if (this._waterBuilt || this._catalog.ships.len() == 0 || this._catalog.paxCargo < 0) continue;
       local plan = project.payload;
+      if (builtCount > 0 && (!OpexWaterBatchSiteStillBuildable(plan.siteA) ||
+                             !OpexWaterBatchSiteStillBuildable(plan.siteB))) continue;
       local capital = 2 * this._catalog.costDock + this._catalog.costWaterDepot + this._catalog.maxShipPrice;
       local need = capital + OpexCashReserve() + WATER_CAPITAL_MARGIN;
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
@@ -1425,8 +1527,11 @@ function OpexAI::_tryBuildProjects(year)
              + this._projects.stats.odProjects + "|" + this._projects.stats.budgetSelected
              + "|" + (this._projects.stats.knapsackExact ? 0 : 1)
              + "|" + this._budget.nested);
+    /* B est le nombre reellement construit dans CE passage. On complete IB au lieu d'ajouter un
+     * panneau : ses deux champs historiques restent aux memes positions, et avec les deux
+     * capitaux a 10 chiffres que le format IB admet deja, |B8 fait 30 caracteres, sous 31. */
     OpexSign(anchor, "IB|" + yy + "|" + this._projects.capitalBudget + "|"
-             + this._projects.stats.selectedCapital);
+             + this._projects.stats.selectedCapital + "|B" + builtCount);
     return true;
   }
   return false;
@@ -2690,6 +2795,7 @@ function OpexAI::Start()
   MARGINAL_FLEET = AIController.GetSetting("marginal_fleet") != 0;
   LOOP_BUDGET = AIController.GetSetting("loop_budget") != 0;
   PORTFOLIO_V2 = AIController.GetSetting("portfolio_v2") != 0;
+  PORTFOLIO_MAX_BATCH = AIController.GetSetting("portfolio_max_batch");
   PORTFOLIO_FLOOR_PCT = AIController.GetSetting("portfolio_floor_pct");
   FLEET_FIX = AIController.GetSetting("fleet_fix") != 0;
   ECONOMY_FIX = AIController.GetSetting("economy_fix") != 0;
