@@ -4292,3 +4292,69 @@ Ne pas construire la machine à six états d'un coup. **Un seul bras mesurable, 
 ajouter le pourcentage transporté comme critère au classement aérien, pour préférer une ville que
 personne ne dessert. Ça teste la phase 1 et le mécanisme d'occupation **en même temps**, sans
 toucher à l'ordonnanceur.
+
+---
+
+## 3 decies. 📋 TÂCHES RESTANTES au soir du 2026-09-02 — liste consolidée
+
+Récapitulatif de tout ce qui est ouvert, y compris ce qui a été identifié en passant aujourd'hui et
+qui n'avait pas encore sa ligne. Journal de la journée : `docs/journal_2026-09-02.md`.
+
+### A. Les deux pistes de fond (tout le reste est secondaire)
+
+| # | tâche | pourquoi elle est en tête |
+|---|---|---|
+| **A1** | **Dénominateur du classement dépendant de la ressource rare** (§0 tervicies point 1, §3 septies) | Sept mécanismes de capital mesurés, sept non adoptés : **le capital n'est pas le mur**. AAAHogEx bascule son dénominateur, nous jamais |
+| **A2** | **Volume de liaisons** — largeur contre profondeur (§3 nonies phase 1) | Confirmé deux fois aujourd'hui. On pose 2,4 lignes aériennes par partie contre 35 appareils chez l'adversaire |
+
+### B. Refontes notées aujourd'hui, prêtes à être planifiées
+
+| # | tâche | section |
+|---|---|---|
+| B1 | Portefeuille incrémental, découpé en petites tâches, rafraîchi en continu | §3 sexies |
+| B2 | File de tâches dynamique à priorités dépendantes de la phase | §3 septies |
+| B3 | Estimateur d'opcodes appris sur longueur **et** terrain | §3 octies |
+| B4 | Doctrine de partie en six phases + bonus d'occupation | §3 nonies |
+| B5 | Intégrer la **construction** aérienne au portefeuille (aujourd'hui hors arbitrage : 11 lignes sur 12) | §0 septvicies |
+
+### C. Correctifs identifiés, non faits, chiffrés
+
+| # | tâche | chiffre | où |
+|---|---|---|---|
+| C1 | **Débloquer l'élection des feeders** — étapes 1 et 2 faites, la 3 reste. Un bonus ne suffira pas (`opcodeScore` 6 contre 1037) : il faut une **tâche dédiée**, comme `air_fleet` | 651 candidats → 0 bâti | §3 quinquies |
+| C2 | **`rail_terrain_factor`** : facteur ×1,70 sur `costTrackPerTile`, banc 20 graines contre 100 | modèle 19 % sous le réel | §0 unvicies |
+| C3 | **`PROJECT_RAIL_OPS_PER_ITERATION = 2 700` est 15 % trop bas** — médiane réelle **3 105**. Correctif d'une ligne | 15 % | §3 octies |
+| C4 | **Filtre de platitude préalable** sur les sites d'aéroport (rejet à ≥ 2 niveaux d'écart, à la AAAHogEx) — plus radical et moins cher qu'`air_presite`, qui nivelle avant de tester | écarterait 7 échecs sur 8 | §0 tervicies point 5 |
+| C5 | **Ne plus raser l'aéroport orphelin** quand l'entretien d'infrastructure est coupé | ~25 000 £ par `BFAIL` | §0 tervicies point 6 |
+| C6 | **Plafonner la distance des tentatives aériennes** — aucun succès au-delà de 212 tuiles, aucun échec en deçà de 178 | 8 échecs sur 20 | §0 unvicies point 4 |
+| C7 | **Devis réel par `AITestMode` + `AIAccounting`** avant engagement, au lieu d'un facteur correctif | remplacerait C2 à l'engagement | §0 tervicies point 8 |
+| C8 | **Câbler les bonus fret** (+40 % monopole, +35 % chaîne) sur ce que la sélection lit | aujourd'hui cosmétiques | §0 septdecies point 2 |
+| C9 | **`transit_cost`** : temps de voyage au dénominateur du ROI | non chiffré | §3 quater |
+| C10 | **`builder_water.nut:255`** : note de gare plate au lieu de `OpexStationRatingForHeadway` | MOYEN | §0 octodecies |
+| C11 | **`candidates.nut:166-170` + `:188`** : double pénalité empilée sur `distance > 105`, non recalibrée. Dormante — **réveillée dès que C8 est fait** | MOYEN | §0 septdecies |
+| C12 | **La division entière écrase le rail dans `opcodeScore`** : médianes mesurées air 1037, route 62, **rail 0** | à trancher avec B1 | §0 tervicies |
+
+### D. Mesures à refaire, parce que les anciennes ne valent plus
+
+| # | tâche | pourquoi |
+|---|---|---|
+| D1 | **Remesurer `tree_planting`** | Le −22,1 % portait sur un garde mort (`AITown.GetRating` est un enum 0-8). §8 disait « supprimer le réglage » : **cette instruction est caduque** |
+| D2 | Volume de données pour B3 | 15 tentatives rail seulement ; et **aucun levier de distance côté route** (toutes les lignes font 20-25 tuiles) |
+
+### E. Hygiène et outillage, inchangés
+
+| # | tâche | où |
+|---|---|---|
+| E1 | CI GitHub : smoke 3 graines × **2 ans** avec plancher de plausibilité | §8 |
+| E2 | Supprimer `rail_refleet` et `air_starter`, prouvés inertes | §8 |
+| E3 | Audit des 46 constantes en dur | §3 ter |
+| E4 | Mesurer le headway réel des lignes de calibration de la note de gare (le −95) | §3 bis |
+| E5 | `builder_rail.nut` : `AIAccounting` imbriqué non finalisé sur les branches d'échec (latent, chemin mort) | §0 octodecies |
+| E6 | `catalog.nut:702-720` : `railCoverage` lu avec un an de retard | §0 novemdecies |
+| E7 | `OpexJoinPathIsDedicated` armé seulement si `join != null` — un A\* peut traverser du rail existant | §0 vicies |
+
+### Réglages laissés comme instruments, défaut 0, mesurés et non adoptés
+
+`portfolio_max_batch` · `air_presite` · `air_cost_probe` · `air_fleet_probe` ·
+`portfolio_fresh_budget` · `fleet_before_new` · `rail_cost_probe` · `portfolio_v2` ·
+`tree_planting` · `marginal_fleet`
