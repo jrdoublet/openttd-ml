@@ -1625,6 +1625,56 @@ cohérentes, seule la mesure les départage.
 
 ---
 
+## 0 nonies bis. 🔴 LES TREIZE CORRECTIONS NE PAIENT PAS — banc du 2026-09-02
+
+`docs/bench_corrections_3y_20seeds.json` : 20 graines x 3 ans, lecture appariée, 0 échec de
+script. Bras de contrôle = défauts courants (donc `tree_planting` déjà corrigé) ; bras traité =
+`loop_budget=1, portfolio_v2=1, fleet_fix=1, economy_fix=1`.
+
+| métrique | effet des corrections | t | graines |
+|---|---:|---:|---:|
+| `company_value` | **+2,5 %** | 0,26 | 12/20 |
+| `profit_year` | +11,3 % | 1,08 | 11/20 |
+| `profit` | +20,7 % | 1,66 | 15/20 |
+| `performance_history` | **+12,2 %** | 2,39 | 13/20 |
+| `median_station_rating` | **−14,8 %** | 3,63 | 5/20 |
+| gares | 21,4 → **20,6** | | |
+| véhicules | 58,3 → **58,0** | | |
+
+### 🔴 Ce que ça invalide
+
+**L'hypothèse centrale du diagnostic tombe.** Toute la revue concluait que ~85 % de l'écart vient
+du VOLUME, et que le goulot était le débit du contrôleur (61,2 % des mois avec ≥300 k£ et aucune
+construction). Les correctifs visaient précisément ça — budget d'opcodes drainé, `Sleep` retiré,
+portefeuille régénéré dès que le capital grandit, sélection au profit finançable. **Le volume n'a
+pas bougé d'un pouce** : 20,6 gares contre 21,4, véhicules identiques.
+
+Donc : **ce n'est pas le budget d'opcodes ni la sélection de projet qui limitent le volume.** Le
+frein est ailleurs, et il faut le chercher ailleurs — vraisemblablement dans ce qui *produit* les
+candidats (`candidates.nut`, non encore revu) ou dans le taux d'échec réel des constructions.
+
+### Les deux effets réels, de signes opposés
+
+- **`performance_history` +12,2 % (t = 2,39)** — au niveau du plancher (~12 %), donc juste établi.
+- **`median_station_rating` −14,8 % (t = 3,63, 15/20 défavorables)** — nettement établi, et c'est
+  une dégradation. **Mécanisme plausible et précis** : `economy_fix` choisit les convois au ROI,
+  ce qui pousse vers MOINS de convois, donc un headway plus long, donc un palier de note de
+  ramassage inférieur. Le correctif censé améliorer le rendement unitaire dégraderait la captation.
+
+### Ce qu'il faut faire avant de continuer à corriger
+
+1. **Isoler les quatre réglages** — quatre campagnes appariées, une par réglage. Sans ça on ne sait
+   pas lequel des quatre porte le +12,2 % et lequel porte le −14,8 %. Soupçon principal :
+   `economy_fix` pour la perte de note.
+2. **Ne PAS adopter le lot en bloc.** Aucun des quatre n'est établi individuellement, et
+   `company_value` — la seule métrique qui parle contre AAAHogEx — est plate.
+3. Le seul gain mesuré de la journée reste **`tree_planting`** (+22 %, déjà adopté) : le bras de
+   contrôle est passé de 602 750 à 766 552 de valeur moyenne depuis la référence `1aeefe1`.
+
+⚠️ Écart avec AAAHogEx toujours entier : **0,79 M£ contre ~4,95 M£**, facteur ~6.
+
+---
+
 ## 7 bis. Dimensionnement marginal de flotte (`marginal_fleet`) — MESURÉ, défaut 0, mais le mécanisme est bon (2026-09-01)
 
 **Banc apparié 20 graines × 3 ans** (`docs/bench_marginal_fleet_3y_20seeds.json`, les deux bras
