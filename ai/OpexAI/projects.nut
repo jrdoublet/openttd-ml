@@ -68,6 +68,9 @@ function OpexProjectFromCandidate(candidate)
     return null;
   }
   local budgetCapital = candidate.capital + margin;
+  if (("immobilise" in candidate) && candidate.immobilise > 0) {
+    budgetCapital += candidate.immobilise;
+  }
   local scoreRevenue = candidate.revenueAnnual;
   if (candidate.kind == "freight" && ("freightBonus" in candidate) && candidate.freightBonus > 100) {
     scoreRevenue = (scoreRevenue * candidate.freightBonus) / 100;
@@ -94,6 +97,9 @@ function OpexProjectFromAir(catalog, plan, planningOps)
   local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1) + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
   local margin = (newAirports == 2) ? 30000 : (newAirports == 1 ? 12000 : 2000);
   local budgetCapital = economics.capital + margin;
+  if (("immobilise" in economics) && economics.immobilise > 0) {
+    budgetCapital += economics.immobilise;
+  }
   /* La decouverte a deja ete payee pendant l'etape projets. La contrainte d'execution ne porte
    * que sur les opcodes encore necessaires pour construire le projet. */
   local expectedOps = PROJECT_AIR_TRANSACTION_OPS;
@@ -117,6 +123,9 @@ function OpexProjectFromWater(catalog, plan, planningOps)
   if (economics.profitAnnual <= 0 || economics.revenueAnnual <= 0 ||
       economics.capital <= 0) return null;
   local budgetCapital = economics.capital + WATER_CAPITAL_MARGIN;
+  if (("immobilise" in economics) && economics.immobilise > 0) {
+    budgetCapital += economics.immobilise;
+  }
   local expectedOps = PROJECT_WATER_TRANSACTION_OPS;
   return {
     mode = "water", kind = "pax", cargo = catalog.paxCargo,

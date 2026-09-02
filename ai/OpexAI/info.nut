@@ -148,6 +148,16 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    AddSetting({
+      name = "transit_cost",
+      description = "Penalisation du capital immobilise en transit au denominateur du ROI (pour mille, docs/taches.md C9): 0 = neutre (defaut), 1000 = cout complet",
+      min_value = 0, max_value = 2000,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 50,
+      flags = 0
+    });
+
     /* Expansion marginale d'une ligne rail existante. Le bras 1 ne cherche aucun nouveau
      * chemin : apres deux releves de saturation sur une ligne a une rame, il ajoute un wagon
      * dans la marge de quai deja payee, seulement si le revenu reel recale predit un gain net.

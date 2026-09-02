@@ -3023,6 +3023,8 @@ function OpexAI::Start()
       }
     }
   }
+  local tc = AIController.GetSetting("transit_cost");
+  if (tc >= 0) TRANSIT_COST_PERMILLE = tc;
   RAIL_EXPAND = AIController.GetSetting("rail_expand") != 0;
   ASTAR_COST_V2 = AIController.GetSetting("astar_cost") != 0;
   PROBE_NEGATIVE = AIController.GetSetting("probe_negative") != 0;

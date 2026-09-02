@@ -215,12 +215,16 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
     local runningAnnual = planes * plane.runningCost + airportMaintenanceAnnual;
     local amortAnnual = planes * plane.price / 20 + airportAmortAnnual;
     local profitAnnual = revenueAnnual - runningAnnual - amortAnnual;
-    local roi = capital > 0 ? (profitAnnual * 1000) / capital : 0;
+    local immobilise = (TRANSIT_COST_PERMILLE > 0)
+        ? (revenueAnnual * roundTripDays * TRANSIT_COST_PERMILLE) / 365000 : 0;
+    local totalCapital = capital + immobilise;
+    local roi = totalCapital > 0 ? (profitAnnual * 1000) / totalCapital : 0;
     if (best == null || profitAnnual > best.profitAnnual ||
         (profitAnnual == best.profitAnnual && roi > best.roi)) {
       best = {
         planes = planes, profitAnnual = profitAnnual, revenueAnnual = revenueAnnual,
-        runningAnnual = runningAnnual, amortAnnual = amortAnnual, capital = capital, roi = roi,
+        runningAnnual = runningAnnual, amortAnnual = amortAnnual, capital = capital,
+        immobilise = immobilise, roi = roi,
         oneWayDays = oneWayDays, roundTripDays = roundTripDays, headwayDays = headwayDays,
         stationRating = stationRating, tripsPerMonth = tripsPerMonth,
         monthlyCapacity = monthlyCapacity, carried = carried,

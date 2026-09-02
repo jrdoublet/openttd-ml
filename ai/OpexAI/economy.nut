@@ -28,6 +28,10 @@ const STATION_RATING_PCT = 50;
  * terrassement, ponts/tunnels). 170 = ×1,70 annule le biais médian. */
 RAIL_TERRAIN_FACTOR <- 170;
 
+/* Coût d'opportunité du capital immobilisé en transit, en pour mille (docs/taches.md §3 quater & C9).
+ * 0 = inerte, 1000 = coût complet inspiré de lostOpportunity dans AAAHogEx. */
+TRANSIT_COST_PERMILLE <- 0;
+
 /* Intervalle cible entre deux ramassages, en jours. Vient du bareme : la tranche la mieux notee
  * est "moins de 15 s" de temps reel, soit ~6,8 jours de jeu a 74 ticks/jour. */
 const TARGET_HEADWAY_DAYS = 7;
@@ -250,7 +254,10 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
     local runningAnnual = trains * loco.runningCost;
     local profitAnnual = revenueAnnual - runningAnnual - amortAnnual;
     local capital = vehicleCost + infraCost;
-    local roi = (profitAnnual > 0 && capital > 0) ? (profitAnnual * 1000) / capital : 0;
+    local immobilise = (TRANSIT_COST_PERMILLE > 0)
+        ? (revenueAnnual * roundTripDays * TRANSIT_COST_PERMILLE) / 365000 : 0;
+    local totalCapital = capital + immobilise;
+    local roi = (profitAnnual > 0 && totalCapital > 0) ? (profitAnnual * 1000) / totalCapital : 0;
     /* economy_fix : la selection maximisait le profit ABSOLU, sans jamais consulter `roi` ni
      * `capital` -- or c'est `roi` que le portefeuille classe en aval. Ajouter un convoi augmente
      * presque toujours profitAnnual et BAISSE roi : le modele livrait donc au portefeuille, pour
@@ -270,7 +277,8 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
       best = { trains = trains, headwayDays = headwayDays, stationRating = stationRating,
                offered = offered, monthlyCapacity = monthlyCapacity, carried = carried,
                revenueAnnual = revenueAnnual, vehicleCost = vehicleCost, amortAnnual = amortAnnual,
-               runningAnnual = runningAnnual, profitAnnual = profitAnnual, capital = capital, roi = roi };
+               runningAnnual = runningAnnual, profitAnnual = profitAnnual, capital = capital,
+               immobilise = immobilise, roi = roi };
     }
   }
   if (best == null) return null;
@@ -483,9 +491,12 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
   local life = engine.ageYears > 0 ? engine.ageYears : 12;
   local amortAnnual = vehicleCost / life + infraCost / INFRA_LIFE_YEARS;
   local runningAnnual = vehicles * engine.runningCost;
-  local capital = vehicleCost + infraCost;
   local profitAnnual = revenueAnnual - runningAnnual - amortAnnual;
-  local roi = (profitAnnual > 0 && capital > 0) ? (profitAnnual * 1000) / capital : 0;
+  local capital = vehicleCost + infraCost;
+  local immobilise = (TRANSIT_COST_PERMILLE > 0)
+      ? (revenueAnnual * roundTripDays * TRANSIT_COST_PERMILLE) / 365000 : 0;
+  local totalCapital = capital + immobilise;
+  local roi = (profitAnnual > 0 && totalCapital > 0) ? (profitAnnual * 1000) / totalCapital : 0;
 
   return {
     oneWayDays = oneWayDays,
@@ -495,6 +506,7 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
     runningAnnual = runningAnnual,
     amortAnnual = amortAnnual,
     capital = capital,
+    immobilise = immobilise,
     profitAnnual = profitAnnual,
     roi = roi,
     effectiveSpeed = effectiveSpeed,

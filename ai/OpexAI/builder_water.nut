@@ -265,15 +265,18 @@ function OpexWaterEconomics(catalog, distance, orderDistance, monthlyPax)
     local runningAnnual = ship.runningCost;
     local amortAnnual = infraCapital / INFRA_LIFE_YEARS + ship.price / 20;
     local profitAnnual = revenueAnnual - runningAnnual - amortAnnual;
-    local roi = (profitAnnual > 0 && capital > 0)
-        ? (profitAnnual * 1000) / capital : 0;
+    local immobilise = (TRANSIT_COST_PERMILLE > 0)
+        ? (revenueAnnual * roundTripDays * TRANSIT_COST_PERMILLE) / 365000 : 0;
+    local totalCapital = capital + immobilise;
+    local roi = (profitAnnual > 0 && totalCapital > 0)
+        ? (profitAnnual * 1000) / totalCapital : 0;
     local economics = {
       ship = ship, oneWayDays = oneWayDays, roundTripDays = roundTripDays,
       headwayDays = headwayDays, stationRating = stationRating,
       carried = carried,
       revenueAnnual = revenueAnnual, runningAnnual = runningAnnual,
       amortAnnual = amortAnnual, profitAnnual = profitAnnual,
-      capital = capital, roi = roi,
+      capital = capital, immobilise = immobilise, roi = roi,
     };
     if (best == null || economics.roi > best.roi ||
         (economics.roi == best.roi && economics.profitAnnual > best.profitAnnual)) {
