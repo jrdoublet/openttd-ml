@@ -425,6 +425,26 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
           hubs.append({ town = hubTown, anchor = end.anchor, stationId = station, routes = routeCount });
         }
       }
+      /* Aéroports orphelins : aéroports bâtis sans ligne active (ex: issu d'un BFAIL conservé). */
+      local orphanList = AIStationList(AIStation.STATION_AIRPORT);
+      for (local st = orphanList.Begin(); !orphanList.IsEnd(); st = orphanList.Next()) {
+        if (st in seenStations) continue;
+        local loc = AIStation.GetLocation(st);
+        if (!AIMap.IsValidTile(loc) || !AIAirport.IsAirportTile(loc)) continue;
+        local existingType = AIAirport.GetAirportType(loc);
+        if (!OpexAirAirportAcceptsPlane(existingType, plane.planeType)) continue;
+        local townId = AITile.GetClosestTown(loc);
+        if (townId < 0) continue;
+        local hubTown = null;
+        foreach (town in towns) {
+          if (town.id == townId) { hubTown = town; break; }
+        }
+        if (hubTown == null) {
+          hubTown = { id = townId, tile = loc, pop = AITown.GetPopulation(townId) };
+        }
+        seenStations.rawset(st, true);
+        hubs.append({ town = hubTown, anchor = loc, stationId = st, routes = 0 });
+      }
     }
 
     foreach (hub in hubs) {
@@ -653,7 +673,10 @@ function OpexBuildAirRoute(catalog, budget, plan)
   result.opcodes += budget.end("build_airports");
   if (airportB == null) {
     result.error = AIError.GetLastError();
-    OpexAirRollback(reuseA ? null : airportA, null, []);
+    local keepOrphan = (AIGameSettings.GetValue("economy.infrastructure_maintenance") == 0);
+    if (!keepOrphan) {
+      OpexAirRollback(reuseA ? null : airportA, null, []);
+    }
     result.actualCost = costs != null ? costs.GetCosts() : 0;
     result.reason = reuseB ? "HUBB" : "BFAIL";
     return result;
