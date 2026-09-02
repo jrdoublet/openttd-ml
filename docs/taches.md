@@ -3661,3 +3661,61 @@ Ce qui manque est le branchement : ajouter au **dénominateur** du ROI le revenu
 le trajet et l'attente, à la manière de `lostOpportunity` (§0 tervicies point 2). Réglage
 `transit_cost` (pour mille, défaut 0 = neutre), appliqué uniformément dans `OpexEconomics` et ses
 trois homologues modaux. **C'est un changement de classement : il se banche.**
+
+---
+
+## 3 quater. 🔶 `transit_cost` : le temps de voyage et de chargement au dénominateur du ROI (demandé le 2026-09-02)
+
+**Non commencé.** Placé au backlog derrière les trois chantiers en cours (budget actualisé du
+portefeuille, refleet aérien dans le portefeuille, branchement du bonus feeder).
+
+### Ce que c'est
+
+Notre ROI est `profitAnnual * 1000 / capital` (`economy.nut:247`) : le dénominateur ne contient que
+le capital **construit**. Il ignore entièrement la durée pendant laquelle la marchandise est
+immobilisée en transit et en attente — donc, à coût de construction égal, une liaison longue et
+lente vaut autant qu'une liaison courte et rapide.
+
+AAAHogEx porte ce terme explicitement (§0 tervicies point 2, `estimator.nut:78-88`) :
+
+```squirrel
+lostOpportunity = routeIncome * (cruiseDays + waitingInStationTime) / 365;
+cost = max(1, price * vehiclesPerRoute + buildingCost + lostOpportunity);
+roi = routeIncome * 1000 / cost;
+```
+
+### Pourquoi c'est faisable tout de suite
+
+**Les ingrédients existent déjà dans les quatre modes** — c'est du branchement, pas du calcul neuf :
+
+| mode | ce qui est déjà calculé | où |
+|---|---|---|
+| rail | `oneWayDays`, `roundTripDays`, `headwayDays` | `economy.nut:69`, `:95` |
+| air | `oneWayDays`, `roundTripDays`, `headwayDays` | `builder_air.nut:139-141`, `:187` |
+| eau | `oneWayDays` | `builder_water.nut:251` |
+| route | `oneWayDays` porté par le candidat | panneau `OT|`, `main.nut:1295` |
+
+### Forme proposée
+
+Réglage `transit_cost` en **pour mille**, défaut **0** (neutre, chemin actuel bit-à-bit), appliqué
+uniformément dans les quatre calculs d'économie :
+
+```
+transitDays = ("roundTripDays" in eco) ? eco.roundTripDays : 2 * oneWayDays
+immobilise  = revenueAnnual * transitDays * TRANSIT_COST_PERMILLE / (365 * 1000)
+roi         = profitAnnual * 1000 / (capital + immobilise)
+```
+
+⚠️ **C'est un changement de CLASSEMENT, pas une correction** : il se banche en apparié 20 graines
+avant toute adoption, comme `rail_terrain_factor` et `air_presite`.
+
+⚠️ **Le chargement n'est pas modélisé aujourd'hui.** Seul le fret rail et le fret routier posent
+`OF_FULL_LOAD_ANY` à la source ; l'attente qui en résulte n'apparaît nulle part. Première version :
+ne compter que le voyage. Le chargement demande sa propre mesure et ne doit pas être deviné.
+
+⚠️ **Interaction connue** : `roi` est le champ sur lequel `OpexProjectModeBetter` élit le mode d'un
+couple O/D (`projects.nut:136`), mais le sac à dos, lui, trie sur `budgetScore`/`opcodeScore`
+calculés depuis `revenueAnnual` (`:79-80`). Un terme ajouté au seul `roi` n'atteindra donc que
+l'élection modale — le même piège que les bonus fret (§0 septdecies point 2) et que le bonus feeder
+(§0 quinvicies point 2). Décider explicitement des DEUX branchements, ou constater qu'on n'en veut
+qu'un.
