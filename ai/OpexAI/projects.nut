@@ -70,6 +70,10 @@ function OpexProjectFromCandidate(candidate)
     return null;
   }
   local budgetCapital = candidate.capital + margin;
+  local scoreRevenue = candidate.revenueAnnual;
+  if (candidate.kind == "freight" && ("freightBonus" in candidate) && candidate.freightBonus > 100) {
+    scoreRevenue = (scoreRevenue * candidate.freightBonus) / 100;
+  }
   return {
     mode = mode, kind = candidate.kind, cargo = candidate.cargo,
     src = candidate.src, dst = candidate.dst, payload = candidate,
@@ -77,8 +81,8 @@ function OpexProjectFromCandidate(candidate)
     budgetCapital = budgetCapital, profitAnnual = candidate.profitAnnual,
     revenueAnnual = candidate.revenueAnnual, roi = candidate.roi,
     expectedOpcodes = expectedOps,
-    budgetScore = OpexProjectScore(candidate.revenueAnnual, budgetCapital),
-    opcodeScore = OpexProjectScore(candidate.revenueAnnual, expectedOps),
+    budgetScore = OpexProjectScore(scoreRevenue, budgetCapital),
+    opcodeScore = OpexProjectScore(scoreRevenue, expectedOps),
     planningOpcodes = 0,
   };
 }

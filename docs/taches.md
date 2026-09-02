@@ -4328,7 +4328,7 @@ qui n'avait pas encore sa ligne. Journal de la journée : `docs/journal_2026-09-
 | C5 | **Ne plus raser l'aéroport orphelin** quand l'entretien d'infrastructure est coupé | ~25 000 £ par `BFAIL` | ✅ Fait (§0 tervicies point 6) |
 | C6 | **Plafonner la distance des tentatives aériennes** — aucun succès au-delà de 212 tuiles, aucun échec en deçà de 178 | 8 échecs sur 20 | ✅ Fait (plafonné à 212 tuiles, §0 unvicies point 4) |
 | C7 | **Devis réel par `AITestMode` + `AIAccounting`** avant engagement, au lieu d'un facteur correctif | remplacerait C2 à l'engagement | §0 tervicies point 8 |
-| C8 | **Câbler les bonus fret** (+40 % monopole, +35 % chaîne) sur ce que la sélection lit | aujourd'hui cosmétiques | §0 septdecies point 2 |
+| C8 | **Câbler les bonus fret** (+40 % monopole, +35 % chaîne) sur ce que la sélection lit | ✅ Fait (§0 septdecies point 2) | §0 septdecies point 2 |
 | C9 | **`transit_cost`** : temps de voyage au dénominateur du ROI | non chiffré | §3 quater |
 | C10 | **`builder_water.nut:255`** : note de gare plate au lieu de `OpexStationRatingForHeadway` | ✅ Fait (§0 octodecies) | §0 octodecies |
 | C11 | **`candidates.nut:166-170` + `:188`** : double pénalité empilée sur `distance > 105`, non recalibrée. Dormante — **réveillée dès que C8 est fait** | MOYEN | §0 septdecies |

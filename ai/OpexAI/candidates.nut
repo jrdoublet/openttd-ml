@@ -207,18 +207,18 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   else if (economics.oneWayDays <= 25) turnoverBonus = 115;
   else if (economics.oneWayDays <= 45) turnoverBonus = 100;
   else turnoverBonus = 60;
-  if (distance > 105) turnoverBonus = (turnoverBonus * 50) / 100;
-
-  local adjustedRoi = (economics.roi * turnoverBonus) / 100;
+  local freightBonus = 100;
   if (kind == "freight") {
     /* Le fret beneficie d'un monopole d'exploitation absolu sans concurrence adverse (+40%) */
-    adjustedRoi = (adjustedRoi * 140) / 100;
+    freightBonus = 140;
     if (isTransformer) {
-      /* Bonus de chaîne industrielle : alimenter une usine génère des marchandises en aval */
-      adjustedRoi = (adjustedRoi * 135) / 100;
+      /* Bonus de chaîne industrielle : alimenter une usine génère des marchandises en aval (+35%) */
+      freightBonus = (freightBonus * 135) / 100;
     }
   }
+  local adjustedRoi = (((economics.roi * turnoverBonus) / 100) * freightBonus) / 100;
   local ratio = opcodeRatio + (adjustedRoi * 15);
+  local effectiveRoi = (economics.roi * freightBonus) / 100;
 
   stats.accepted++;
   return {
@@ -248,7 +248,9 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
     trainsForVolume = economics.trainsForVolume,
     carried = economics.carried,
     capital = economics.capital,
-    roi = economics.roi,
+    roi = effectiveRoi,
+    freightBonus = freightBonus,
+    isTransformer = isTransformer,
     profitAnnual = economics.profitAnnual,
     /* Detail du calcul, garde pour l'instrumentation predit-vs-reel (cf. main.nut). */
     revenueAnnual = economics.revenueAnnual,
@@ -957,7 +959,7 @@ function OpexRoadIterations(distance)
  * rapport annuel et la mise au rebut sont communs), plus ce qu'il faut pour retrouver les sites
  * d'arret : le role de chaque extremite (ville ou industrie) et, pour une ville, son identifiant. */
 function OpexMakeRoadCandidate(catalog, kind, cargo, src, dst, srcTown, dstTown, distance,
-                               monthly, stats)
+                               monthly, stats, isTransformer = false)
 {
   local engine = (cargo in catalog.roadEngineByCargo) ? catalog.roadEngineByCargo[cargo] : null;
   if (engine == null) {
@@ -976,6 +978,12 @@ function OpexMakeRoadCandidate(catalog, kind, cargo, src, dst, srcTown, dstTown,
   }
   if (economics.profitAnnual < ROAD_MIN_PROFIT_ANNUAL) stats.profitTooLow++;
   local iterations = OpexRoadIterations(distance);
+  local freightBonus = 100;
+  if (kind == "freight") {
+    freightBonus = 140;
+    if (isTransformer) freightBonus = (freightBonus * 135) / 100;
+  }
+  local effectiveRoi = (economics.roi * freightBonus) / 100;
   stats.accepted++;
   return {
     mode = "road",
@@ -994,7 +1002,9 @@ function OpexMakeRoadCandidate(catalog, kind, cargo, src, dst, srcTown, dstTown,
     trains = economics.trains,
     carried = economics.carried,
     capital = economics.capital,
-    roi = economics.roi,
+    roi = effectiveRoi,
+    freightBonus = freightBonus,
+    isTransformer = isTransformer,
     profitAnnual = economics.profitAnnual,
     revenueAnnual = economics.revenueAnnual,
     runningAnnual = economics.runningAnnual,
@@ -1121,9 +1131,10 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats)
         local distance = AIMap.DistanceManhattan(source.tile, industries[di].tile);
         if (distance < ROAD_MIN_DISTANCE || distance > ROAD_MAX_DISTANCE) continue;
         stats.pairsInBand++;
+        local isTransformer = ("isTransformer" in industries[di]) && industries[di].isTransformer;
         local candidate = OpexMakeRoadCandidate(catalog, "freight", cargo, source.tile,
                                                 industries[di].tile, -1, -1, distance, monthly,
-                                                stats);
+                                                stats, isTransformer);
         if (candidate != null) out.append(candidate);
       }
 
