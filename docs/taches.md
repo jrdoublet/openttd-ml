@@ -3859,3 +3859,51 @@ et ne pas se contenter d'un bonus sur `roi` qui serait cosmétique. Même famill
 Une fois 1 et 2 faits, un simple diagnostic 5 graines suffit à savoir si un feeder se bâtit **et
 si les passagers embarquent réellement** (note de gare du hub, cargo en attente à l'arrêt de bus).
 Le banc apparié ne vient qu'après, sur l'étape 3.
+
+---
+
+## 0 septvicies. 📐 PRINCIPE : régler l'existant avant de construire du neuf (décidé le 2026-09-02)
+
+**Décision de l'utilisateur, qui vaut au-dessus des mécanismes particuliers.**
+
+> La note de gare est un multiplicateur, pas un bonus. **Il ne faut construire de nouvelles lignes
+> qu'après avoir bien réglé celles qui sont déjà construites.**
+
+C'est un principe d'**ordonnancement**, pas d'arbitrage. Une ligne mal servie ne perd pas
+seulement le trafic qu'elle ne transporte pas : sa note de gare s'effondre, et la note multiplie
+tout le reste (`docs/mecanique_jeu.md` §3 — 51 % de la note vient du délai depuis le dernier
+ramassage). Une deuxième ligne médiocre à côté d'une première mal réglée dégrade les deux.
+
+Conséquence opérationnelle : la croissance de flotte, l'allongement de rame, la seconde voie, les
+arrêts supplémentaires — tout ce qui **densifie l'existant** — doit passer **avant** ce qui ajoute
+une liaison, et doit être servi sur la trésorerie en premier. Ce n'est pas une compétition à
+arbitrer dans un portefeuille : c'est un ordre.
+
+### Ce que ça tranche, et ce que ça abandonne
+
+**Abandonné : faire concourir le refleet aérien DANS le portefeuille** (§0 quinvicies point 1
+proposait les deux voies ; la voie « portefeuille » est écartée par cette décision). Le mécanisme
+a été écrit, mesuré, puis retiré du dépôt — l'historique le garde (`f23e1e4`, révoqué).
+
+Le banc apparié 20 graines × 3 ans, pour mémoire :
+
+| métrique | écart | $t$ | signes |
+|---|---:|---:|---|
+| `company_value` | +4,94 % | +1,18 | 10/10, $p = 1{,}00$ |
+| `profit_year` | +5,20 % | +1,15 | 12/8, $p = 0{,}50$ |
+| `profit` | +4,17 % | +0,51 | 10/10 |
+| `performance_history` | +1,16 % | +0,54 | 11/7 |
+
+**Les quatre métriques penchent du bon côté, aucune ne conclut** — sous le plancher de détection du
+banc. À retenir : contrairement à `portfolio_fresh_budget`, ce mécanisme n'était pas nocif. Il est
+retiré par **décision de conception**, pas par verdict de mesure, et c'est une distinction qui
+compte si on y revient.
+
+### Ce qui reste à faire sous ce principe
+
+1. **Ordonnancer, pas arbitrer** : servir `air_fleet` (et les équivalents rail/route) **avant**
+   `air` et `projects` dans la file (`main.nut:429-440`), ou leur réserver une part de la caisse.
+   La mesure dit que le blocage est la trésorerie à 31 refus sur 32 — c'est donc l'ordre de
+   service qui décide, pas le classement.
+2. Étendre le principe aux autres modes : `rail_refleet` (second train, double voie) et
+   `road_refleet` existent déjà et sont servis, eux aussi, après la construction neuve.

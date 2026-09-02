@@ -23,15 +23,6 @@ const PROJECT_RAIL_TRANSACTION_OPS = 200000;
 const PROJECT_ROAD_TRANSACTION_OPS = 287000;
 const PROJECT_AIR_TRANSACTION_OPS = 100000;
 const PROJECT_WATER_TRANSACTION_OPS = 100000;
-/* air_fleet_projects : ajouter un appareil a une ligne existante ne construit RIEN -- un
- * AIVehicle.CloneVehicle, un partage d'ordres, un demarrage. C'est de tres loin la transaction la
- * moins chere du jeu. La valeur ci-dessous est une BORNE HAUTE posee a vue, pas une mesure :
- * elle est volontairement generreuse pour ne pas donner au refleet un avantage artificiel dans
- * `opcodeScore`, qui divise le revenu par ce nombre. A remesurer si le bras est adopte. */
-const PROJECT_AIR_FLEET_OPS = 20000;
-/* Un appareil se paie comptant ; la marge couvre le meme coussin que OpexAirAddPlane (prix +
- * reserve + 1 000) sans dupliquer la reserve, que le budget du portefeuille retranche deja. */
-const AIR_FLEET_CAPITAL_MARGIN = 1000;
 
 function OpexProjectPairKey(kind, cargo, src, dst)
 {
@@ -87,42 +78,6 @@ function OpexProjectFromCandidate(candidate)
     expectedOpcodes = expectedOps,
     budgetScore = OpexProjectScore(candidate.revenueAnnual, budgetCapital),
     opcodeScore = OpexProjectScore(candidate.revenueAnnual, expectedOps),
-    planningOpcodes = 0,
-  };
-}
-
-/* air_fleet_projects : un appareil de plus sur une ligne DEJA en service, presente au portefeuille
- * comme n'importe quel autre projet.
- *
- * Motif, mesure du 2026-09-02 (docs/taches.md S0 quinvicies) : la croissance de flotte aerienne
- * est refusee 31 fois sur 32 pour TRESORERIE, jamais pour le plafond de l'aeroport -- 1,6 avion
- * par ligne pour un plafond de 16. La tache `air_fleet` passe apres `air` dans la file et ne voit
- * plus que les restes. Or un avion de plus n'achete AUCUNE infrastructure : a capital egal c'est
- * la depense la plus rentable du jeu, et c'est la derniere servie. La faire concourir dans le
- * meme arbitrage que les lignes neuves est la seule facon de le lui faire dire.
- *
- * ⚠️ Pas de bonus de ROI ici, et c'est delibere. Le sac a dos ne lit NI `roi` NI `profitAnnual` :
- * il trie sur `budgetScore`/`opcodeScore`, tous deux calcules sur `revenueAnnual` (S0 sexvicies,
- * meme piege que le bonus feeder et que les bonus fret). Un bonus pose sur `roi` serait
- * cosmetique. Le revenu marginal rendu par OpexAirFleetMarginal est deja la vraie grandeur ;
- * s'il faut un jour pousser le refleet, c'est `revenueAnnual` qu'il faudra majorer, en le disant. */
-function OpexProjectFromAirFleet(catalog, line, marginal)
-{
-  if (marginal == null) return null;
-  if (marginal.profitAnnual <= 0 || marginal.revenueAnnual <= 0 || marginal.capital <= 0) return null;
-  local budgetCapital = marginal.capital + AIR_FLEET_CAPITAL_MARGIN;
-  return {
-    mode = "air_fleet", kind = "pax", cargo = catalog.paxCargo,
-    /* Cle de couple distincte de celle d'une ligne aerienne NEUVE sur les memes villes : on prend
-     * les tuiles de GARE, pas les tuiles de ville. Sans ça, OpexProjectRemember opposerait la
-     * croissance et la creation sur la meme cle et n'en garderait qu'une. */
-    src = line.stationA, dst = line.stationB, payload = line,
-    distance = line.distance, capital = marginal.capital,
-    budgetCapital = budgetCapital, profitAnnual = marginal.profitAnnual,
-    revenueAnnual = marginal.revenueAnnual, roi = marginal.roi,
-    expectedOpcodes = PROJECT_AIR_FLEET_OPS,
-    budgetScore = OpexProjectScore(marginal.revenueAnnual, budgetCapital),
-    opcodeScore = OpexProjectScore(marginal.revenueAnnual, PROJECT_AIR_FLEET_OPS),
     planningOpcodes = 0,
   };
 }
@@ -545,35 +500,6 @@ function OpexBuildProjects(catalog, budget, lines)
     }
     foreach (plan in waterPlans) {
       OpexProjectRemember(winners, OpexProjectFromWater(catalog, plan, waterOpsPerPlan), stats);
-    }
-  }
-
-  /* air_fleet_projects : un appareil de plus sur chaque ligne aerienne saine devient un projet
-   * comme les autres. Le plafond consulte est celui de l'aeroport REEL de la ligne, pas une
-   * constante : main.nut:_resizeAirFleets applique deja 4 sur AT_SMALL et AIR_MAX_PLANES_PER_ROUTE
-   * ailleurs, et les deux chemins doivent dire la meme chose sous peine de proposer un projet que
-   * la construction refusera. */
-  if (AIR_FLEET_PROJECTS) {
-    foreach (line in lines) {
-      if (!("mode" in line) || line.mode != "air") continue;
-      if (("scrapping" in line) && line.scrapping) continue;
-      if (("deadStreak" in line) && line.deadStreak >= 1) continue;
-      if (("lastProfit" in line) && line.lastProfit < 0) continue;
-      local have = ("vehCount" in line) ? line.vehCount
-                 : (("vehicles" in line) ? line.vehicles.len() : 0);
-      if (have < 1) continue;
-      local isSmallAirport =
-          (AIAirport.IsAirportTile(line.stationA) &&
-           AIAirport.GetAirportType(line.stationA) == AIAirport.AT_SMALL) ||
-          (AIAirport.IsAirportTile(line.stationB) &&
-           AIAirport.GetAirportType(line.stationB) == AIAirport.AT_SMALL);
-      local cap = isSmallAirport ? 4 : AIR_MAX_PLANES_PER_ROUTE;
-      if (have >= cap) continue;
-      local project = OpexProjectFromAirFleet(catalog, line,
-                                              OpexAirFleetMarginal(catalog, line, have));
-      if (project == null) continue;
-      if (PORTFOLIO_V2) OpexProjectRememberAll(winners, project, stats);
-      else OpexProjectRemember(winners, project, stats);
     }
   }
 

@@ -80,19 +80,6 @@ class OpexAIInfo extends AIInfo {
     /* _resizeAirFleets n'emet que ses SUCCES (panneau FG|). Quand une ligne aerienne cesse de
      * grandir -- et la mesure du 2026-09-02 dit 2,2 avions par ligne pour un plafond de 16 --
      * la cause est invisible. FR| donne le PREMIER refus rencontre, une fois par ligne et par an. */
-    /* La croissance de flotte aerienne est refusee 31 fois sur 32 pour TRESORERIE, jamais pour le
-     * plafond de l'aeroport : 1,6 avion par ligne pour un plafond de 16 (docs/taches.md
-     * S0 quinvicies). La tache `air_fleet` passe apres `air` dans la file et ne voit plus que les
-     * restes. Or un appareil de plus n'achete AUCUNE infrastructure. Ce bras le fait concourir
-     * dans le meme arbitrage que les lignes neuves, sur son revenu MARGINAL reel. */
-    AddSetting({
-      name = "air_fleet_projects",
-      description = "Let air fleet growth compete inside the project portfolio on its marginal revenue: 1 = enabled, 0 = growth stays a separate task served after new lines (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
     AddSetting({
       name = "air_fleet_probe",
       description = "Emit the reason an air line's fleet did not grow, once per line per year: 1 = measurement only, 0 = no extra signs (default)",
