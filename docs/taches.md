@@ -2246,8 +2246,36 @@ neutre ne laisse pas les trajectoires en place — il les **rebat**, et le compt
 quelques heures plus tôt. **19/20 n'est pas du rebattage.**
 
 👉 **À appliquer désormais à tous les bancs appariés** : lire le compte de signes AVANT de conclure
-« sous le plancher, invisible ». Plusieurs pistes classées nulles cette semaine méritent d'être
-relues sous cet angle — en particulier celles dont le `t` était faible mais le signe régulier.
+« sous le plancher, invisible ».
+
+### ✅ Relecture de TOUS les bancs appariés sous le test des signes (2026-09-02)
+
+Faite dans la foulée sur les ~40 comparaisons appariées à n = 20 du dépôt, filtrées sur |t| < 2
+(celles à |t| ≥ 2 étaient déjà tranchées par la moyenne). Trois acquis.
+
+**⚠️ 1. Un piège dans le test des signes lui-même.** Le compteur `arm_a_beats_arm_b` range les
+**ex æquo** du côté de `b`. Un réglage totalement inerte affiche donc un faux **20/20, p < 10⁻⁵** —
+le « signal » le plus fort du lot est un artefact. **Toujours exclure les égalités**, ou vérifier
+que l'écart-type des différences n'est pas nul.
+
+**✅ 2. `rail_refleet` et `air_starter` sont prouvés INERTES par la mesure.** Écart-type des
+différences = **0,0** sur 20 graines (`bench_rail_refleet_vs_aaahogex_5y.json` et `_v2`) : basculer
+le réglage ne change pas un bit. Confirmation indépendante de la revue de code (§0 nonies : « TOUTE
+la fonctionnalité `rail_refleet` est du code injoignable »). 👉 **Les ajouter à la tâche de ménage
+des réglages inutiles du §8**, à côté de `tree_planting`.
+
+**✅ 3. Aucune piste rejetée cette semaine n'était un gagnant caché** — mais deux verdicts se
+précisent :
+
+| bras | métrique | écart variante | `t` | signes | p |
+|---|---|---:|---:|---:|---:|
+| `pricing_road_ops=1` | `profit_year` | **+0,25 %** | −0,14 | **15/20** | **0,041** |
+| `portfolio_v2=1` + plancher | `company_value` | −8,83 % | 1,87 | 5/20 | 0,041 |
+
+`pricing_road_ops` avait été adopté sur la seule **justesse dimensionnelle**, son `t` de −0,14
+paraissant sans appel. Le signe dit qu'il gagne réellement, petitement et régulièrement :
+**l'adoption était mieux fondée qu'on ne le croyait**. Symétriquement, le rejet de `portfolio_v2`
+même réparé se renforce — la variante perd 15/20.
 
 ---
 
@@ -2354,6 +2382,16 @@ Même famille que la régression `tree_planting` : **le code a divergé de sa pr
   - le dépôt est **privé** : les minutes Actions sont facturées, ce qui plaide pour un étage 1
     court et un étage 2 déclenché à la main.
 
+
+- 🔶 **Supprimer aussi `rail_refleet` et `air_starter`, PROUVÉS INERTES par la mesure
+  (2026-09-02).** Écart-type des différences appariées = **0,0** sur 20 graines : basculer l'un ou
+  l'autre ne change pas un bit du résultat (`bench_rail_refleet_vs_aaahogex_5y.json` et `_v2`).
+  C'est la confirmation indépendante de la revue de code (§0 nonies : « TOUTE la fonctionnalité
+  `rail_refleet` est du code injoignable »). Même traitement que `tree_planting` ci-dessous :
+  retirer le code gardé, la constante, sa relecture dans `Start()`, l'entrée `info.nut` et la
+  liste blanche de `bench_v2.py`. ⚠️ Retirer le code **mort** ne décale pas les trajectoires
+  (vérifié le 2026-09-02 : 20/20 graines bit-identiques après suppression de 766 lignes) — mais
+  retirer une **lecture de réglage** en décale, donc prévoir un banc de non-régression.
 
 - 🔶 **Supprimer le réglage `tree_planting` et le chemin préventif qu'il garde (demandé le
   2026-09-01).** La question est **tranchée**, le réglage n'a donc plus de raison d'exister : la
