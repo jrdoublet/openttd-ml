@@ -1675,6 +1675,64 @@ candidats (`candidates.nut`, non encore revu) ou dans le taux d'échec réel des
 
 ---
 
+## 0 nonies ter. ✅ ISOLATION DES QUATRE RÉGLAGES — `economy_fix` adopté, `portfolio_v2` est le coupable (2026-09-02)
+
+`docs/bench_isolation_3y_20seeds.json` : **5 bras, 100 parties**, 20 graines x 3 ans, lecture
+appariée, 0 échec. Un seul contrôle commun, donc les quatre lectures sont comparables entre elles
+(et 60 parties économisées sur quatre campagnes séparées).
+
+| réglage | `company_value` | `profit_year` | `performance_history` | note de gare | gares | véhicules |
+|---|---:|---:|---:|---:|---:|---:|
+| **`economy_fix`** | **+11,7 %** (t 1,47) | **+21,1 %** (t 2,09) | **+16,1 %** (t 3,01) | −5,9 % (t −1,66) | 22,4 | 62,3 |
+| `loop_budget` | +1,6 % (t 0,23) | +2,7 % | +1,1 % | −0,4 % | 21,7 | 61,8 |
+| `fleet_fix` | −2,4 % | +2,0 % | −1,2 % | −2,5 % | 22,8 | 57,9 |
+| **`portfolio_v2`** | **−24,4 %** (t −1,62) | **−30,7 %** (t −1,54) | +1,2 % | +4,0 % (t 2,21) | **27,2** | **71,9** |
+
+*(contrôle : 21,4 gares, 58,3 véhicules, 766 552 de valeur)*
+
+### ✅ `economy_fix` ADOPTÉ, défaut passé à 1
+
+`profit_year` +21,1 % et `performance_history` +16,1 % dépassent leur plancher de détection, et
+**priment sur `company_value` dans l'ordre des objectifs du projet**. Seule ombre, non établie :
+note de gare −5,9 % (t = −1,66).
+
+### 🔴 `portfolio_v2` : il TIRE le bon levier et détruit quand même la valeur
+
+**C'est le seul réglage qui bouge le volume** — 21,4 → **27,2 gares (+27 %)**, véhicules +23 %.
+Le levier que toute la revue cherchait existe donc bien, et c'est lui qui l'actionne. Mais il coûte
+**−24,4 % de valeur et −30,7 % de profit annuel** : en classant au profit par livre de capital, il
+privilégie **beaucoup de petites lignes bon marché et médiocres**. C'est exactement le risque que
+l'analyse avait nommé (« une politique trop cheap-first peut construire beaucoup de petites lignes
+médiocres »), et il s'est réalisé.
+
+➜ **Ne pas jeter le mécanisme, corriger sa règle de tri.** Pistes : plancher de profit ABSOLU par
+projet en plus du ratio ; ou classer les projets finançables au profit absolu plutôt qu'au ratio ;
+ou n'autoriser le « bon marché » qu'une fois les gros projets rentables financés. C'est
+**l'item de tête** : c'est la seule voie identifiée vers le volume.
+
+### 🔴 `loop_budget` est NUL — la trouvaille n°1 de la revue du contrôleur est invalidée
+
++1,6 % (t = 0,23). **Le budget d'opcodes n'était pas le goulot.** Le raisonnement était pourtant
+solide (10 000 opcodes/tick non reportables, une tâche par tick, ~810 M d'opcodes de dotation), et
+il est faux : drainer le tick ne produit rien de plus. Corollaire : les « 61,2 % de mois avec
+≥300 k£ et aucune construction » étaient un **symptôme, pas la cause** — si le vivier ne contient
+rien qui vaille, donner plus de temps de calcul ne change rien.
+
+### Pourquoi le lot groupé paraissait plat
+
+`economy_fix` (+11,7 %) et `portfolio_v2` (−24,4 %) **se sont annulés**. Le banc groupé du même
+jour donnait +2,5 % sur `company_value` : c'était la somme de deux effets réels de signes opposés,
+pas l'absence d'effet. ⚠️ **Leçon de méthode : ne jamais conclure « sans effet » d'un lot de
+correctifs groupés — isoler d'abord.**
+
+### `fleet_fix` : nul au banc, mais garde un correctif de plantage
+
+−2,4 % sur la valeur, rien d'établi. Il contient toutefois la réparation du champ `station_exit`
+sans laquelle **l'IA meurt** dès que `rail_refleet` devient atteignable : à conserver le jour où ce
+chemin sera réactivé.
+
+---
+
 ## 7 bis. Dimensionnement marginal de flotte (`marginal_fleet`) — MESURÉ, défaut 0, mais le mécanisme est bon (2026-09-01)
 
 **Banc apparié 20 graines × 3 ans** (`docs/bench_marginal_fleet_3y_20seeds.json`, les deux bras

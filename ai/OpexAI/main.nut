@@ -265,7 +265,7 @@ FLEET_FIX <- false;
  *   2. le nombre de convois est choisi au profit par livre de capital -- le meme objectif que celui
  *      qui l'arbitrera au portefeuille -- au lieu du profit absolu, qui livrait systematiquement la
  *      variante la plus gourmande en capital. */
-ECONOMY_FIX <- false;
+ECONOMY_FIX <- true;
 
 /* Dimensionnement marginal et progressif de flotte (item de tete, 2026-09-01) : repli FAUX
  * jusqu'a la lecture unique de marginal_fleet dans Start(). Defaut 0 : chemin actuel

@@ -701,15 +701,21 @@ Le mode route est donc reconfirme sur l arbre courant.
      *     presque toujours le profit absolu et baisse le roi : le modele livre donc au portefeuille
      *     la variante la plus gourmande en capital de toutes celles qu'il a evaluees.
      *
-     * 1 : les seuils suivent le source, l'ancre de calibration suit la tranche reelle de la cible
+     * ADOPTE AU BANC LE 2026-09-02 (docs/bench_isolation_3y_20seeds.json, 20 graines x 3 ans,
+     * lecture appariee, reglage isole) : profit_year +21,1 % (t = 2,09, 14/20),
+     * performance_history +16,1 % (t = 3,01, 15/20), company_value +11,7 % (t = 1,47, 12/20).
+     * Les deux premieres depassent leur plancher de detection et priment sur company_value dans
+     * l'ordre des objectifs du projet. Seule ombre : note de gare -5,9 % (t = -1,66), non etabli.
+     *
+     * 1 : les seuils suivent le source, l'ancre de calibration reste a 95 (voir economy.nut)
      * (le modele reproduit donc exactement STATION_RATING_PCT au headway de calibration, sans
      * constante nouvelle), et la variante est choisie sur le meme objectif que celui qui
      * l'arbitrera -- le profit par livre de capital. */
     AddSetting({
       name = "economy_fix",
-      description = "Source-verified station rating thresholds with a self-consistent calibration anchor, and train count chosen on profit per pound of capital: 1 = fixed, 0 = historical (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "Source-verified station rating thresholds and train count chosen on profit per pound of capital: 1 = fixed (default, adopted at bench), 0 = historical",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
