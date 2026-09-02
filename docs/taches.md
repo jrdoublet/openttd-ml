@@ -1715,6 +1715,112 @@ défaut du banc de référence n'active aucune de ces relaxations, donc leurs pr
 
 ---
 
+## 0 undecies. 🔴 REVUE DES CONSTRUCTEURS MODAUX (étape 7, 2026-09-02) — la question des 2 trains tranchée, et c'est pire que prévu
+
+Périmètre : `builder_rail.nut` (~1 340 l.), `builder_road.nut` (~860 l.), `builder_air.nut`
+(~625 l.), `builder_water.nut` (~450 l.). Objectif premier : trancher la question laissée ouverte
+par la §0 octies/nonies sur la variante « 2 trains ».
+
+### 🔴 1. RÉPONSE À LA QUESTION OUVERTE : `OpexBuildLine` ne pose JAMAIS de seconde voie ni de second train à la construction initiale — le garde-fou interroge une gare qui n'existe pas encore (`builder_rail.nut:426-428`)
+
+**Verdict, avec les lignes à l'appui.** `OpexBuildLine` (`:1154-1173`) ne met jamais deux convois
+sur une voie unique — sur ce point précis la §0 octies avait tort de le redouter. Mais il ne pose
+pas non plus de seconde voie dédiée : la tentative de doublement est structurellement condamnée à
+échouer, pour toute ligne neuve, à cause d'un ordre des opérations.
+
+Chaîne exacte :
+
+```
+builder_rail.nut:1154  OpexBuildLine(...)
+builder_rail.nut:1160    plan = OpexPlanRailRoute(...)          <- PLANIFIE, ne construit rien
+builder_rail.nut:1173    return OpexExecuteRailPlan(...)        <- CONSTRUIT pour de vrai
+
+builder_rail.nut:943    dans OpexPlanRailRoute, si candidate.trains > 1 :
+builder_rail.nut:954      dual = OpexTryDoubleTrack(catalog, planA, planB, tiles, null, 0, ...)
+
+builder_rail.nut:426     dans OpexTryDoubleTrack :
+builder_rail.nut:426       stationIdA = AIStation.GetStationID(planA.anchor)
+builder_rail.nut:427       stationIdB = AIStation.GetStationID(planB.anchor)
+builder_rail.nut:428       if (!IsValidStation(stationIdA) || !IsValidStation(stationIdB)) return acc;  // acc.ok reste false
+```
+
+`OpexTryDoubleTrack` est appelé depuis `OpexPlanRailRoute` — donc **avant** qu'une seule gare ait
+été posée : la construction réelle (`AIRail.BuildRailStation`) n'a lieu que plus tard, dans
+`OpexExecuteRailPlan` (`:1015-1018`). Pour une ligne neuve (le cas normal, et le seul avec
+`STATION_JOIN = 0` par défaut), `planA.anchor`/`planB.anchor` ne portent encore aucune gare :
+`AIStation.GetStationID` y renvoie `STATION_INVALID`, `IsValidStation` renvoie faux des deux côtés,
+et `OpexTryDoubleTrack` retourne `acc.ok = false` **à son tout premier test**, avant même de
+chercher un tracé. `candidate.railPlan` n'est jamais pré-rempli (`_tryPreplan` est mort, §0 sexies),
+donc ce chemin s'exécute à chaque construction réelle, sans exception.
+
+Conséquence tracée jusqu'au bout dans `OpexExecuteRailPlan` :
+
+```
+builder_rail.nut:891    plan.doubleTrack = 0            (valeur initiale dans OpexPlanRailRoute)
+builder_rail.nut:958-966  if (dual.ok) { plan.doubleTrack = 1; ... }   <- jamais atteint
+builder_rail.nut:1050   local want = 1;                 (valeur initiale dans OpexExecuteRailPlan)
+builder_rail.nut:1054   if (plan.doubleTrack == 1 && ...) { ... }      <- jamais vrai
+builder_rail.nut:1073     want = candidate.trains > 2 ? 2 : candidate.trains;  <- jamais atteint
+builder_rail.nut:1100   trains = OpexBuildTrains(..., wanted = 1, ...)
+builder_rail.nut:1103   if (... && want == 2 && depot2 != null) { ... }  <- jamais vrai (want=1, depot2=null)
+```
+
+**Toute ligne rail construite par OpexAI — quel que soit `candidate.trains` prédit par
+`economy.nut` (1 ou 2) — sort de `OpexBuildLine` avec exactement UNE voie et UN train.** Ce n'est
+pas juste un défaut de tarification (comme le formulait la §0 octies) : la variante « 2 trains »
+**n'existe physiquement jamais** à la construction. Et comme `RAIL_EXPAND`/`RAIL_REFLEET` sont
+confirmés injoignables (§0 nonies finding 1), il n'existe **aucun** chemin vivant, ni à la
+construction ni après coup, par lequel une ligne rail obtienne un second train.
+
+**Ce que ça change à la lecture de la §0 octies.** `infraCost` constant sur `trains=1/2`
+(`economy.nut:193`) n'est donc pas un capital sous-compté pour une ligne réellement doublée : cette
+ligne n'existe pas. Le vrai dommage est en amont, sur la PRÉDICTION : `economy.nut` choisit
+`trains=2` dès que ça maximise le profit absolu (§0 octies finding 2), ce qui gonfle
+`profitAnnual`/`revenueAnnual`/`capital` du candidat retenu par le classement modal (`roi`,
+§0 septies) et par le sac à dos (`currentRevenue`) — mais la ligne construite ne livre jamais que la
+capacité et le revenu d'UN SEUL train. C'est un écart prédit/réel systématique sur toute ligne où le
+modèle a préféré 2 trains, pas une erreur de capital ponctuelle. Je ne peux pas quantifier la part de
+`profitAnnual` concernée sans instrumenter combien de candidats retenus ont `trains == 2` — à
+mesurer avant de corriger — mais le mécanisme est net et touche potentiellement une majorité des
+lignes rail (2 trains maximise presque toujours le profit absolu par construction du modèle).
+
+**Nuance utile pour la correction.** `OpexUpgradeRailLineToDoubleTrack` (`:1180-1317`, la fonction
+morte de la §0 nonies) N'A PAS ce défaut : elle tourne sur une ligne **déjà construite**, donc
+`AIStation.GetStationID(line.stationA)` (`:1192`) y résout une vraie gare. Si `RAIL_EXPAND` était un
+jour réactivé, ce chemin de mise à niveau a priori fonctionnerait pour doubler une ligne existante —
+contrairement au chemin de construction initiale, qui resterait cassé indépendamment.
+
+### Le reste
+
+| gravité | lieu | problème |
+|---|---|---|
+| FAIBLE (latent) | `builder_rail.nut:1055` vs `:1083` | Dans le bloc mort ci-dessus, si `plan.doubleTrack == 1` devenait un jour atteignable : `dCosts = AIAccounting()` (`:1055`) n'est fermé par `.GetCosts()` (`:1072`) que dans la branche `okD` réussie. Si `okA2 && okB2` échoue, ou si `conn2`/`depot2` échoue, `dCosts` n'est jamais finalisé avant que `postPathCosts = AIAccounting()` (`:1083`) n'ouvre un second compteur — la consigne « `AIAccounting` ne s'imbrique pas » serait violée. Sans effet aujourd'hui : ce chemin n'est jamais atteint (finding 1). |
+| MOYEN | `builder_water.nut:255` | `offered = (monthlyPax * STATION_RATING_PCT) / 100` : le mode eau utilise, comme la route (§0 octies, `economy.nut:363`), le pourcentage **plat** au lieu de `OpexStationRatingForHeadway(headwayDays)` que le rail (`economy.nut:199`) et l'air (`builder_air.nut:175`) appliquent tous les deux. Site distinct de celui déjà trouvé en §0 octies (l'économie de l'eau vit dans `builder_water.nut`, hors du périmètre audité alors) : même famille de bug, nouvel endroit. Effet probablement faible en valeur absolue (le mode eau est rarement construit — un seul bateau par ligne, pas de flotte), donc je ne le classe pas HAUT malgré la parenté avec un bug déjà classé HAUT pour la route. |
+| FAIBLE | `builder_air.nut:519`, `:542` | `AITile.LevelTiles` est appelé pour de vrai à la construction (hors `AITestMode`), sans que son coût soit reflété dans `capital`/`amortAnnual` calculés par `OpexAirEconomics` (`:172`, qui ne compte que `newAirportCount * airport.price + planes * plane.price`). Sous-estimation de capital du même ordre que celle déjà connue pour le dépôt rail (§0 octies, `economy.nut:193`) ou l'infrastructure eau — jamais le tracé complet, donc pas quantifié ici. |
+
+### ✅ Vérifié comme n'étant PAS un bug — ne pas re-litiger à la passe de correction
+
+Aucune closure imbriquée ni usage imbriqué d'`AIAccounting` dans `builder_road.nut`,
+`builder_air.nut`, `builder_water.nut` (recherche exhaustive : zéro fonction anonyme, zéro
+`AIAccounting` dans les trois fichiers). Les usages séquentiels d'`AIAccounting` dans
+`builder_rail.nut` (`:475`, `:1006`→`:1043`, `:1265`) sont correctement fermés avant le suivant sur
+le chemin réellement atteint. Les corrections déjà en place dans `builder_road.nut`, vérifiées
+contre le source du moteur (`road_cmd.cpp:1151`, `script_road.cpp:524`) pour le bit de route manquant
+sur `front` avant `BuildRoadDepot`/`BuildRoadStation`, et le remplacement du prédicat de succès API
+par `AreRoadTilesConnected` (vérifié correct sur les tuiles `MP_STATION`/dépôt dans `road_map.cpp`),
+sont saines et n'ont révélé aucune régression à la relecture. `OpexRoadTraceBuildable`,
+`OpexRoadFindDepot`, `OpexRoadTryJoinStop` valident chaque arête sous `AITestMode` puis la
+reconfirment par connectivité réelle après pose — aucun cas où un retour API est pris pour argent
+comptant. `OpexWaterFindDockAccess` relit les fronts d'accès après construction réelle plutôt que de
+faire confiance au plan initial — correct. `OpexUpgradeRailLineToDoubleTrack` (`:1180`, code mort)
+n'est pas affectée par le défaut du finding 1 : elle interroge une gare qui existe déjà.
+
+⚠️ Rien n'est corrigé ni mesuré. Le mécanisme est établi, pas son effet. Le finding 1 répond à la
+question posée pour l'étape 6-9 : ce n'est pas un écart de capital ponctuel, c'est une variante « 2
+trains » qui n'a jamais existé dans aucune partie jouée avec les défauts livrés.
+
+---
+
 ## 7 bis. Dimensionnement marginal de flotte (`marginal_fleet`) — MESURÉ, défaut 0, mais le mécanisme est bon (2026-09-01)
 
 **Banc apparié 20 graines × 3 ans** (`docs/bench_marginal_fleet_3y_20seeds.json`, les deux bras
