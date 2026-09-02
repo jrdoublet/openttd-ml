@@ -1212,17 +1212,24 @@ function OpexAI::_tryBuildFeeders(year)
 
   candidates.sort(OpexFeederCandidateCompare);
 
+  /* rabattage_diag (2026-09-02) : n_feeders reste a 0 sur les 5 graines du banc alors que
+   * feederCandidates > 0 chaque annee -- ce compteur dit a QUELLE garde de cette boucle les
+   * candidats meurent. Ajoute pour diagnostic, pas pour changer le comportement. */
+  local rejectStats = {
+    served = 0, townCount = 0, abandoned = 0, cash = 0, planNull = 0, buildFail = 0,
+  };
+
   foreach (candidate in candidates) {
-    if (OpexRoadPairServed(this._lines, candidate.src, candidate.dst)) continue;
-    if (OpexTownRoadLineCount(this._lines, candidate.src) >= 4) continue;
+    if (OpexRoadPairServed(this._lines, candidate.src, candidate.dst)) { rejectStats.served++; continue; }
+    if (OpexTownRoadLineCount(this._lines, candidate.src) >= 4) { rejectStats.townCount++; continue; }
 
     local abandonedKey = OpexAbandonedPairKey(candidate);
-    if (ABANDON_MEMORY && (abandonedKey in this._abandonedPairs)) continue;
+    if (ABANDON_MEMORY && (abandonedKey in this._abandonedPairs)) { rejectStats.abandoned++; continue; }
 
     local need = candidate.capital + OpexCashReserve() + ROAD_CAPITAL_MARGIN;
     local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
     if (money < need && REBORROW) money = OpexTryReborrow(need, money);
-    if (money < need) continue;
+    if (money < need) { rejectStats.cash++; continue; }
 
     this._budget.begin();
     local planning = OpexRoadPlanFor(this._catalog, candidate);
@@ -1232,6 +1239,7 @@ function OpexAI::_tryBuildFeeders(year)
     if (plan == null) {
       if (ABANDON_MEMORY) this._abandonedPairs[abandonedKey] <- true;
       OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|" + planning.reason + "|0");
+      rejectStats.planNull++;
       continue;
     }
     if (TREE_PLANTING) {
@@ -1242,6 +1250,7 @@ function OpexAI::_tryBuildFeeders(year)
     if (!result.ok) {
       if (ABANDON_MEMORY) this._abandonedPairs[abandonedKey] <- true;
       OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|" + result.reason + "|" + result.error);
+      rejectStats.buildFail++;
       continue;
     }
 
@@ -1265,6 +1274,9 @@ function OpexAI::_tryBuildFeeders(year)
     this._nextLineId++;
     return true;
   }
+  OpexSign(anchor, "FZ|" + yy + "|" + rejectStats.served + "|" + rejectStats.townCount + "|"
+                         + rejectStats.abandoned + "|" + rejectStats.cash + "|"
+                         + rejectStats.planNull + "|" + rejectStats.buildFail);
   return false;
 }
 
@@ -1437,7 +1449,7 @@ function OpexAI::_tryBuildProjects(year)
       OpexSign(anchor, "RC|" + yy + "|" + idx + "|1|" + result.cost
                                + "|" + result.vehicles.len());
       /* Un feeder est une ligne routiere de RABATTAGE vers un hub rail ou aerien
-       * (candidates.nut:1156), avec ordre OF_TRANSFER|OF_UNLOAD au hub. Rien ne le distinguait
+       * (candidates.nut:1156), avec ordre OF_TRANSFER au hub. Rien ne le distinguait
        * d'une liaison ville-a-ville dans la telemetrie : impossible de dire si un seul avait
        * jamais ete bati. Un panneau par feeder, donc aucun cout quand il n'y en a pas. */
       if (("isFeeder" in candidate) && candidate.isFeeder) {

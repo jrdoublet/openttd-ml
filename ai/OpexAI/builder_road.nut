@@ -617,7 +617,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
   local stubConnectedB = AIRoad.AreRoadTilesConnected(plan.stopB.front, plan.stopB.tile);
   if (stubConnectedB) added.append({ from = plan.stopB.front, to = plan.stopB.tile });
   /* feeder_join : le bout HUB d'un rabattage doit REJOINDRE la gare du hub, pas en creer une
-   * nouvelle. Sans ça l'arret de bus est une gare distincte : OF_TRANSFER|OF_UNLOAD y depose les
+   * nouvelle. Sans ça l'arret de bus est une gare distincte : OF_TRANSFER y depose les
    * passagers et aucun avion ni train ne dessert cette gare-la -- le rabattage ne transporte rien
    * (docs/taches.md S0 sexvicies, verrou 1). Le site est cherche a 5 tuiles du hub, tres en deça
    * de station_spread, donc la jointure est geometriquement possible. */
@@ -739,8 +739,13 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
   local sourceFlags = candidate.kind == "freight" ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE;
   local orderA = AIOrder.AppendOrder(first, stopA, sourceFlags);
   local errorA = orderA ? 0 : AIError.GetLastError();
+  /* OF_TRANSFER et OF_UNLOAD sont mutuellement exclusifs (ai_order.hpp:44-47, meme champ
+   * "type de dechargement") : les combiner fait echouer AreOrderFlagsValid a coup sur
+   * (ERR_PRECONDITION_FAILED) et donc AppendOrder, docs/taches.md C-suite feeders diag
+   * 2026-09-02. OF_TRANSFER seul est le comportement voulu : deposer pour ramassage par
+   * une autre ligne, pas livrer definitivement. */
   local destFlags = (("isFeeder" in candidate) && candidate.isFeeder)
-      ? (AIOrder.OF_TRANSFER | AIOrder.OF_UNLOAD) : AIOrder.OF_NONE;
+      ? AIOrder.OF_TRANSFER : AIOrder.OF_NONE;
   local orderB = AIOrder.AppendOrder(first, stopB, destFlags);
   local errorB = orderB ? 0 : AIError.GetLastError();
   if (!orderA || !orderB || AIOrder.GetOrderCount(first) != 2) {

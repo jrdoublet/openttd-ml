@@ -1160,7 +1160,7 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats)
 }
 
 /* Famille 4 (Transferts / Feeders) : ville satellite libre -> Gare Hub ou Aéroport existant.
- * Les bus acheminent les passagers vers le hub avec un ordre de transfert (OF_TRANSFER | OF_UNLOAD),
+ * Les bus acheminent les passagers vers le hub avec un ordre de transfert (OF_TRANSFER),
  * décuplant le flux capté par les lignes ferroviaires et aériennes longue distance. */
 function OpexRoadFeederCandidates(catalog, lines, out, stats)
 {

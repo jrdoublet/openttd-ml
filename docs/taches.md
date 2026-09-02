@@ -1914,6 +1914,53 @@ liaison existante comme un flux continu prioritaire, pas comme un projet en conc
 rail. À vérifier avant de coder : pourquoi `_tryBuildAir` plafonne-t-il en pratique à ~9 appareils
 alors que son `maxBatch` vaut 12 et que la trésorerie ne bloque jamais ?
 
+## 0 undecies bis. ✅ Rabattage : cause trouvée et CORRIGÉE — croissance aérienne : cause trouvée, PAS un bug (2026-09-02 soir)
+
+Suite directe de §0 undecies (« pourquoi si peu d'avions, pourquoi aucun rabattage »). Deux
+instrumentations ajoutées pour trancher : `air_fleet_probe=1` (déjà présent, gate les panneaux
+`FR|` de `OpexAirFleetRefusal`) et un nouveau panneau `FZ|` dans `_tryBuildFeeders` détaillant à
+quelle garde chaque candidat de rabattage meurt (`served`, `townCount`, `abandoned`, `cash`,
+`planNull`, `buildFail`).
+
+### 🔴 Rabattage : bug à 100 % de taux d'échec, trouvé et corrigé
+
+`builder_road.nut:743` construisait l'ordre de destination du rabattage avec
+`AIOrder.OF_TRANSFER | AIOrder.OF_UNLOAD` combinés. Or `AIOF_UNLOAD` et `AIOF_TRANSFER` sont
+**mutuellement exclusifs** dans l'API OpenTTD (`ai_order.hpp:44-47` : « Cannot be set when
+AIOF_TRANSFER is set » et réciproquement — même champ de 3 bits, « type de déchargement »). Les
+combiner fait échouer `AreOrderFlagsValid` à coup sûr, donc `AIOrder.AppendOrder` échoue avec
+`ERR_PRECONDITION_FAILED` (code 2) — **chaque candidat de rabattage qui atteint ce point échoue à
+100 %, sur toutes les graines, à chaque tentative**, depuis toujours (latent tant que
+`_tryBuildFeeders` lui-même était mort, donc jamais exercé avant C1).
+
+Mesuré sur 5 graines × 3 ans avant correctif : 305 rejets au total sur le panneau `FZ|`, dont
+**226 `abandoned`** (candidats mis en cache après un premier échec et jamais retentés), et parmi
+les échecs initiaux (`RA|`) : **18 `ORDERS`** (le bug ci-dessus) et 14 `TRACEX` (échec de tracé,
+cause distincte). `n_feeders` : **0 sur les 5 graines**.
+
+**Correctif** : `destFlags = AIOrder.OF_TRANSFER` seul (le comportement voulu — déposer pour
+ramassage par une autre ligne, pas livrer définitivement). Trois commentaires obsolètes corrigés
+au passage (`builder_road.nut:620`, `candidates.nut:1163`, `main.nut:1452`).
+
+**Vérifié après correctif**, même campagne (5 graines × 3 ans) : **4 graines sur 5 construisent
+maintenant des feeders** (0 avant) : seed 42 → 3 feeders, seed 100 → 2, seed 7 → 4, seed 2026 → 3,
+profits annuels prédits positifs (148 £ à 16 606 £ selon la ligne). Seed 999 reste à 0, mais pour
+une raison différente (`TRACEX`, échec de tracé routier propre à sa géographie) — pas une preuve
+d'échec du correctif.
+
+### ✅ Croissance de flotte aérienne : cause trouvée, ce n'est PAS un bug
+
+Contrairement à ce que §0 undecies affirmait (« la trésorerie ne bloque jamais »), le panneau `FR|`
+(`air_fleet_probe=1`) montre que **63 refus sur 65 (97 %) sont du cash insuffisant** (code `M`,
+*après* tentative de réemprunt via `REBORROW` — le plafond d'emprunt est déjà atteint), et 2
+seulement à cause d'un profit négatif (`L`). Aucun refus `Y`/`V`/`D`/`C`/`S`/`X` observé : ni la
+capacité de l'aéroport, ni le `deadStreak`, ni un échec technique de `OpexAirAddPlane` ne bloquent
+quoi que ce soit sur cet échantillon. **C'est le même mur que §0 decies/`opexai_plafonnement.md` :
+la trésorerie 1970-1980 est déjà au plafond d'emprunt.** Ajouter des avions à un hub existant ne
+peut donc pas aller plus vite tant que ce mur de trésorerie n'est pas traité — cohérent avec la
+piste de tête déjà identifiée (dénominateur/ressource rare, A1) plutôt qu'un correctif de code
+supplémentaire à chercher ici.
+
 ---
 
 ## 3 ter. 🔶 AUDIT DE TOUTES LES CONSTANTES EN DUR (demandé le 2026-09-02)
@@ -4341,7 +4388,7 @@ qui n'avait pas encore sa ligne. Journal de la journée : `docs/journal_2026-09-
 
 | # | tâche | chiffre | où |
 |---|---|---|---|
-| C1 | **Débloquer l'élection des feeders** — tâche dédiée `feeders` dans l'ordonnanceur | 651 candidats → construction active | ✅ Fait (§3 quinquies) |
+| C1 | **Débloquer l'élection des feeders** — tâche dédiée `feeders` dans l'ordonnanceur | 651 candidats → construction active | ⚠️ Fait mais restait mort jusqu'au correctif du 2026-09-02 soir (§3 quinquies + §0 undecies bis) |
 | C2 | **`rail_terrain_factor`** : facteur ×1,70 sur `costTrackPerTile` | modèle 19 % sous le réel | ✅ Fait (calibré à 170 %, §0 unvicies) |
 | C3 | **`PROJECT_RAIL_OPS_PER_ITERATION = 2 700` est 15 % trop bas** — médiane réelle **3 105**. ✅ Fait (calibré à 3 105) | 15 % | §3 octies |
 | C4 | **Filtre de platitude préalable** sur les sites d'aéroport (rejet à ≥ 2 niveaux d'écart, à la AAAHogEx) — plus radical et moins cher qu'`air_presite`, qui nivelle avant de tester | écarterait 7 échecs sur 8 | ✅ Fait (§0 tervicies point 5) |

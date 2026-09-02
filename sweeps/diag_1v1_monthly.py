@@ -67,6 +67,8 @@ def vehicle_breakdown(chunks, owner=0):
     coute plus cher qu'une metrique absente.
     """
     counts = {mode: 0 for mode in VEHICLE_MODES}
+    profit_by_mode = {mode: 0 for mode in VEHICLE_MODES}
+    capital_by_mode = {mode: 0 for mode in VEHICLE_MODES}
     profits = []
     capital = 0
     capacity = 0
@@ -84,17 +86,22 @@ def vehicle_breakdown(chunks, owner=0):
         if common.get("owner") != owner:
             continue
         counts[mode] += 1
-        capital += common.get("value") or 0
+        value = common.get("value") or 0
+        capital += value
+        capital_by_mode[mode] += value
         capacity += common.get("cargo_cap") or 0
         profit = common.get("profit_this_year")
         if profit is not None:
             profits.append(profit)
+            profit_by_mode[mode] += profit
     return {
         "by_mode": counts,
         "n_units": sum(counts.values()),
         "rolling_capital": capital,
+        "capital_by_mode": capital_by_mode,
         "cargo_capacity": capacity,
         "profit_total": sum(profits) if profits else 0,
+        "profit_by_mode": profit_by_mode,
         "profit_per_vehicle": (statistics.mean(profits) if profits else None),
     }
 
