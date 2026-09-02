@@ -1821,6 +1821,46 @@ trains » qui n'a jamais existé dans aucune partie jouée avec les défauts liv
 
 ---
 
+## 0 duodecies. REVUE DE `catalog.nut` (étape 8, 2026-09-02) — fichier le moins prioritaire, peu de décisions, deux défauts mineurs confirmés
+
+Périmètre : `catalog.nut` (~740 l.), étage 0 (matériel roulant, terrain, cargos). Comme annoncé dans
+le brief, ce fichier interroge l'API dynamiquement plutôt que d'encoder des décisions, et c'est ce
+qu'on observe : les formules physiques (`OpexRailForce`, `OpexRailResistance`,
+`OpexRailCruiseSpeed`) sont **vérifiées ligne à ligne contre leur duplication en boucle serrée**
+(`:363-389`, la version « déroulée sans fermeture » pour l'étage 1) — les deux versions calculent
+rigoureusement la même chose, aucune dérive trouvée entre elles. L'indexation
+`choices[maxWagons - 1]` côté consommateur (`economy.nut:138`) correspond exactement à
+`choices.append(best)` pour `wagons = 1..maxWagons` côté catalogue (`:350-404`) : pas d'erreur
+d'un cran. Aucun filtre ici ne coûte de volume au sens de la §0 decies — ce fichier ne rejette pas
+de candidats, il prépare seulement les données que `candidates.nut`/`economy.nut` utilisent.
+
+### Le reste
+
+| gravité | lieu | problème |
+|---|---|---|
+| FAIBLE | `:702-720` + `:651` | `OpexCatalog::refresh()` appelle `_refreshTowns()` (`:711`) **avant** `_refreshRail()` (`:719`), mais `_refreshTowns()` lit `this.railCoverage` (`:651`) pour dimensionner le test d'acceptation des cargos urbains complexes — un champ que seul `_refreshRail()` renseigne. Chaque année, `_refreshTowns` utilise donc la valeur de `railCoverage` laissée par l'année **précédente** (ou le défaut de constructeur 0 → repli `: 4` la toute première année), pas celle de l'année courante. Effet probablement nul en pratique : `AIStation.GetCoverageRadius(AIStation.STATION_TRAIN)` est un rayon fixé par les réglages de partie, pas une grandeur qui évolue avec le parc — donc la valeur « en retard d'un an » est presque toujours identique à la valeur courante. Reste un ordre d'exécution fragile : si un futur réglage ou NewGRF faisait varier ce rayon en cours de partie, ce serait silencieux. |
+| FAIBLE | `:651` | `AITile.GetCargoAcceptance(tile, cargo, 2, 2, ...)` teste l'acceptation urbaine avec une empreinte fixe **2×2**, alors que les tests d'acceptation équivalents ailleurs dans le dépôt (`candidates.nut:1117` pour la route, `OpexRailOriginSitable` pour le rail) utilisent **1×1**. Aucun commentaire ne justifie ce choix précis. `AITile.GetCargoAcceptance` dépend surtout du rayon, peu de l'empreinte, donc l'effet est probablement marginal — mais l'incohérence n'est pas expliquée et vaut la peine d'être alignée par cohérence si `complex_cargo` est un jour retravaillé. |
+
+### ✅ Vérifié comme n'étant PAS un bug — ne pas re-litiger à la passe de correction
+
+Aucune closure imbriquée ni `AIAccounting` dans `catalog.nut` (recherche exhaustive : zéro
+résultat). Le piège `CanRunOnRail`/`HasPowerOnRail` (`:290-298`) et son équivalent routier
+`CanRunOnRoad`/`HasPowerOnRoad` (`:588-589`) sont correctement appliqués — les deux prédicats sont
+exigés, pas un seul. L'optimisation « le plus rapide sature son plafond, donc les moteurs à
+plafond inférieur sont sautés » (`:329-334`, `:356-358`, `:381`) est mathématiquement saine : elle
+ne s'active qu'après preuve que `railLocos[0]` atteint son propre plafond, et les ex æquo de
+plafond restent tous évalués — vérifié par relecture de la condition de saut. `OpexRailNominalMaxWagons`/`OpexRailPlatformLengthForWagons` sont bien des inverses entiers l'un de
+l'autre sur le domaine testé. La dichotomie de `OpexRailCruiseSpeed` (et sa version déroulée) est
+une recherche binaire standard sur prédicat monotone, sans boucle infinie possible. Le
+rafraîchissement conditionnel du catalogue routier à `road_mode = 0` (`:733-737`) préserve bien le
+chemin d'opcodes de la baseline rail, conforme au commentaire.
+
+⚠️ Rien n'est corrigé ni mesuré. Bloc traité par exhaustivité de méthode, pas parce qu'il portait un
+enjeu de l'ordre du plancher de détection du banc : aucune des deux trouvailles FAIBLES ci-dessus
+n'est présentée comme un gain probable.
+
+---
+
 ## 7 bis. Dimensionnement marginal de flotte (`marginal_fleet`) — MESURÉ, défaut 0, mais le mécanisme est bon (2026-09-01)
 
 **Banc apparié 20 graines × 3 ans** (`docs/bench_marginal_fleet_3y_20seeds.json`, les deux bras
