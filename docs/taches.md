@@ -3719,3 +3719,93 @@ calculés depuis `revenueAnnual` (`:79-80`). Un terme ajouté au seul `roi` n'at
 l'élection modale — le même piège que les bonus fret (§0 septdecies point 2) et que le bonus feeder
 (§0 quinvicies point 2). Décider explicitement des DEUX branchements, ou constater qu'on n'en veut
 qu'un.
+
+---
+
+## 0 sexvicies. 🔴 POURQUOI ZÉRO FEEDER : six verrous, dont deux tuent indépendamment (2026-09-02)
+
+Suite de §0 quinvicies point 2 (651 candidats générés, 0 bâti). Tracé complet du chemin d'un
+candidat de rabattage. **Les deux verrous de tête ont été relus et vérifiés dans le source.**
+
+### 🔴 1. L'arrêt de bus n'est JAMAIS rattaché au hub — le mécanisme est inopérant de bout en bout
+
+```squirrel
+builder_road.nut:590   local okA = stubConnectedA && AIRoad.BuildRoadStation(plan.stopA.tile,
+                              plan.stopA.front, plan.vehType, AIStation.STATION_NEW);
+builder_road.nut:607   local okB = stubConnectedB && AIRoad.BuildRoadStation(plan.stopB.tile,
+                              plan.stopB.front, plan.vehType, AIStation.STATION_NEW);
+```
+
+`candidate.hubStationId`, que `OpexRoadFeederCandidates` prend soin de renseigner
+(`candidates.nut:1198`), **n'est lu nulle part**. Les deux arrêts sont posés en `STATION_NEW`.
+
+Conséquence : l'arrêt de bus au pied de l'aéroport est une **gare distincte** de l'aéroport.
+L'ordre `OF_TRANSFER | OF_UNLOAD` (`builder_road.nut:712`) y dépose les passagers, et **aucun avion
+ne dessert cette gare-là**. Les passagers resteraient bloqués sur le quai pour toujours.
+
+➡️ **Même si tous les autres verrous sautaient, la fonctionnalité ne marcherait pas.** C'est le
+correctif à faire en premier, et il conditionne tous les autres : passer `candidate.hubStationId`
+à `BuildRoadStation` pour l'extrémité hub.
+
+### 🔴 2. Le planificateur exige que le hub PRODUISE des passagers — un feeder y décharge
+
+```squirrel
+builder_road.nut:382   local radiusB = candidate.dstTown >= 0 ? ROAD_TOWN_SEARCH_RADIUS
+                                                              : ROAD_INDUSTRY_SEARCH_RADIUS;
+builder_road.nut:383   local dstWantsProduction = candidate.kind == "pax";
+...
+builder_road.nut:160   if (wantProduction ? (value <= 0) : (value < ROAD_ACCEPTANCE_MIN)) continue;
+```
+
+Un feeder est créé avec `kind = "pax"` et `dstTown = -1`. Donc `dstWantsProduction = true` et
+`radiusB = ROAD_INDUSTRY_SEARCH_RADIUS = 5` : le planificateur cherche, **à 5 tuiles de la tuile de
+gare**, un emplacement qui *produit* des passagers. Or un aéroport est posé hors du centre-ville
+(couronnes d'`OpexAirFindSite`), et **un feeder ne charge pas au hub, il y décharge**.
+
+C'est une erreur de sémantique, pas seulement de calibrage. L'échec rend `SITEB`, et
+`main.nut:1278` inscrit alors le couple dans `_abandonedPairs` : **la paire est bannie
+définitivement**.
+
+### 3. Le bonus de +60 % est invisible pour le sac à dos (confirmé)
+
+Le bonus écrit `roi`, `ratio` et `profitAnnual` (`candidates.nut:1200-1203`), jamais
+`revenueAnnual`. Le pré-tri du sac à dos classe sur `budgetScore * 75 + opcodeScore * 25`
+(`projects.nut:332`) et sa fonction objectif **maximise la somme des `revenueAnnual`** : le bonus
+n'entre ni dans l'un ni dans l'autre.
+
+Un bus satellite pèse quelques milliers de livres de revenu annuel face aux dizaines de milliers
+d'un train ou d'un avion. Sans le bonus, il est éliminé au tri, souvent avant même le solveur
+(plafond des 64 meilleurs).
+
+### 4. Le re-tri par `opcodeScore`, combiné à `maxBatch = 1`
+
+Le jeu financé est re-trié sur `opcodeScore` (`projects.nut:494-500`, `PORTFOLIO_V2 = 0`), calculé
+lui aussi sur `revenueAnnual`. Un seul projet est construit par cycle : un feeder en fond de
+classement n'est jamais atteint.
+
+> ⚠️ **Correction d'une estimation du rapport d'analyse** : il avançait `opcodeScore` ≈ 140-300
+> pour le rail et 400-900 pour l'avion. Ce sont des estimations. **La mesure** (§0 tervicies, sur
+> les panneaux `IP|` réels) donne des médianes de **1037 pour l'air, 62 pour la route et 0 pour le
+> rail** — la division entière écrase le rail. La conclusion d'ordre tient ; les nombres non.
+
+### 5. La garde `isFeeder` de `_tryBuildProjects` est du code mort
+
+`main.nut:1254` place l'exemption `isFeeder` dans la branche **fret** (`else`), alors qu'un feeder
+a `kind = "pax"` et tombe donc toujours dans la branche pax. Déjà constaté en §0 quinvicies.
+
+### 6. La mémoire d'abandon ne distingue pas un feeder d'une liaison interurbaine
+
+La clé d'abandon associe la ville satellite et la ville du hub : un échec interurbain antérieur
+entre ces deux villes bannit aussi le feeder. À confirmer par lecture de `OpexAbandonedPairKey`.
+
+### Ordre de correction
+
+1. **Rattacher l'arrêt au hub** (`hubStationId` → `BuildRoadStation`) — sans lui, rien d'autre ne sert.
+2. **`dstWantsProduction = false` pour un feeder** — sinon le plan échoue et la paire est bannie.
+3. **Rendre le bonus visible à la sélection** — porter la valeur réseau sur ce que lisent
+   `budgetScore`/`opcodeScore`, pas sur `roi` seul. Même famille que les bonus fret
+   (§0 septdecies point 2) et que le futur `transit_cost` (§3 quater).
+4. Nettoyer la garde morte, et vérifier la clé d'abandon.
+
+⚠️ **Ne pas mesurer avant les points 1 et 2** : un banc sur le seul point 3 mesurerait un
+mécanisme encore cassé, et rendrait « sans effet » pour la mauvaise raison.
