@@ -1020,6 +1020,7 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, join, cashReserve
   local joinedB = joinA || join == null || AIStation.GetStationID(planB.anchor) == join.stationId;
   if (!okA || !okB || !joinedA || !joinedB) {
     OpexRollback(null, planA, planB, null, null);
+    result.actualCost = costs != null ? costs.GetCosts() : 0;
     result.opcodes += budget.end("build_stations"); result.reason = "STNFAIL"; return result;
   }
 
@@ -1030,6 +1031,7 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, join, cashReserve
       AIRail.AreTilesConnected(tiles[last - 2], tiles[last - 1], planB.station_exit);
   if (!connected) {
     OpexRollback(tiles, planA, planB, null, null);
+    result.actualCost = costs != null ? costs.GetCosts() : 0;
     result.opcodes += budget.end("build_track"); result.reason = "TRKFAIL"; return result;
   }
 
@@ -1037,6 +1039,7 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, join, cashReserve
   result.opcodes += budget.end("build_track");
   if (depot == null) {
     OpexRollback(tiles, planA, planB, null, null);
+    result.actualCost = costs != null ? costs.GetCosts() : 0;
     result.reason = "DEPFAIL"; return result;
   }
 
@@ -1122,6 +1125,7 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, join, cashReserve
   if (trains.failed || trains.built == 0) {
     if (tiles2 != null) OpexRollback(tiles2, planA2, planB2, depot2, trains.rollbackVehicles);
     OpexRollback(tiles, planA, planB, depot, trains.rollbackVehicles);
+    result.actualCost = primaryCost + (postPathCosts != null ? postPathCosts.GetCosts() : 0);
     result.reason = (trains.failed && trains.failure == "ORDER") ? "ORDFAIL" : "NOTRAIN";
     return result;
   }

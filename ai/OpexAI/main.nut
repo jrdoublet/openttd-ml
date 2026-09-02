@@ -1473,6 +1473,10 @@ function OpexAI::_tryBuildProjects(year)
         builtCount++;
         if (builtCount >= maxBatch) break;
       } else {
+        if (RAIL_COST_PROBE && ("actualCost" in result) && result.actualCost != 0) {
+          OpexSign(anchor, "DC|" + this._nextLineId + "|" + result.capital + "|" + result.actualCost + "|"
+                                 + candidate.trains + "|0|0");
+        }
         if (ABANDON_MEMORY && (result.reason == "ABND" || result.reason == "SITEA" || result.reason == "SITEB" ||
                                result.reason == "SITEAB" || result.reason == "NOPA" || result.reason == "STNFAIL")) {
           this._abandonedPairs[abandonedKey] <- true;
