@@ -3961,3 +3961,97 @@ il devrait payer.
 ⚠️ **Le défaut est à 1, donc la ligne de base du banc a bougé.** Toute comparaison ultérieure doit
 en tenir compte. Si le banc 10 ans confirme le 3 ans, remettre le défaut à 0 et conserver le
 réglage comme instrument.
+
+---
+
+## 3 sexies. 🔶 PORTEFEUILLE INCRÉMENTAL : découper l'évaluation en petites tâches et rafraîchir en continu (idée du 2026-09-02)
+
+**Non commencé. Refonte, pas correctif** — à traiter comme telle : elle remplace plusieurs items
+ouverts au lieu de s'ajouter à eux.
+
+### L'idée
+
+Le portefeuille cesse d'être un calcul monolithique mensuel. Il devient une **chaîne de petites
+tâches**, chacune tenant dans un tour de file, et l'état vit entre les passages :
+
+1. **Recensement par mode, revenu seulement.** Une tâche par mode — aérien, puis rail, puis eau,
+   puis route — qui énumère les projets possibles et calcule leur **chiffre d'affaires potentiel**.
+   **Pas le coût.**
+2. **Évaluation du coût à la demande, et seulement quand il reste du temps de calcul.** On part du
+   projet au plus fort chiffre d'affaires potentiel et on descend. Chaque évaluation rend un coût
+   réel, donc un **ROI — opcodes compris**.
+3. **Insertion continue.** Le projet évalué entre au portefeuille, trié par ROI.
+4. **La sélection devient triviale** : prendre le meilleur projet **compte tenu de la trésorerie
+   disponible à cet instant**.
+
+### Pourquoi c'est la bonne forme, mesures à l'appui
+
+**a) Ça met l'opcode là où il coûte vraiment.** Le recensement est bon marché ; c'est
+l'**évaluation du coût** qui est chère, et de façon très inégale : un projet rail coûte
+**23,4 M d'opcodes** en médiane (8 600 itérations d'A\* × 2 700) contre **100 000** pour un
+aéroport et **~211 000** pour une tentative routière (§0 tervicies, §0 quinvicies point 3).
+Aujourd'hui on paie ce prix pour **tous** les candidats, puis on n'en construit **qu'un** :
+§0 vicies a mesuré 203 projets financés pour 43 tentatives, **ratio 4,7:1**. Évaluer le coût
+uniquement en descendant depuis le meilleur revenu, c'est appliquer au portefeuille lui-même le
+principe fondateur du projet — l'opcode est une ressource.
+
+**b) Ça résout le budget périmé SANS l'effet mesuré.** `portfolio_fresh_budget` (§0 unvicies suite,
+banc `docs/bench_fresh_budget_3y.json`) rejouait le sac à dos contre la caisse du moment :
+**profit −19,25 %, $t = -2{,}12$, $p = 0{,}041$**. La cause probable est que le sac à dos rend
+l'ensemble **vide** dans 127 cas sur 201 quand la caisse est petite et les projets indivisibles.
+« Prendre le meilleur projet finançable maintenant » est une règle **différente** — et c'est
+justement celle que l'ancien comportement approchait en parcourant une liste périmée en sautant
+les inabordables. Cette refonte fait donc *bien* ce que `portfolio_fresh_budget` faisait *mal*.
+
+**c) Ça supprime la falaise mensuelle.** Aujourd'hui `catalog` regénère une fois par mois
+(`main.nut`, garde `_lastCatalogMonth == ym`) et tout est figé entre-temps. Le rafraîchissement
+continu supprime la notion même de portefeuille périmé.
+
+**d) 🔑 Ça rend enfin vivants tous les bonus qui sont aujourd'hui cosmétiques.** C'est
+l'argument le plus fort et il n'est pas évident. Le classement se fait aujourd'hui sur
+`budgetScore`/`opcodeScore`, **tous deux calculés sur `revenueAnnual`** : tout ce qui est écrit
+dans `roi` n'est jamais lu par la sélection. C'est la cause commune de trois défauts déjà mesurés :
+
+- les bonus fret monopole +40 % et chaîne +35 % (§0 septdecies point 2) ;
+- le bonus de rabattage +60 % (§0 sexvicies verrou 3) ;
+- et le futur `transit_cost` (§3 quater), dont la note d'ouverture signalait déjà qu'il faudrait
+  choisir entre deux branchements.
+
+**Si le ROI devient l'unique nombre de classement, les trois se branchent d'eux-mêmes.** La
+question « où porter la valeur réseau ? » disparaît.
+
+**e) Le sac à dos n'a jamais servi à grand-chose.** Il sélectionne un *ensemble* sous contrainte de
+capital, alors qu'**un seul projet est bâti par cycle** — et §0 vicies a mesuré que lever ce
+plafond ne retient rien (`portfolio_max_batch` rejeté, 11/20 graines strictement identiques).
+Remplacer un sac à dos borné par « le meilleur projet finançable » est une simplification qui
+colle au régime réel.
+
+### Ce qu'il faut trancher avant d'écrire une ligne
+
+1. **Le classement provisoire par chiffre d'affaires est un pari.** Un projet à fort revenu peut
+   avoir un ROI catastrophique : c'est exactement ce que le rail nous fait déjà, avec un capital
+   sous-facturé de 19 % (§0 unvicies). L'ordre d'évaluation n'est qu'une **heuristique de priorité
+   d'attention** — à documenter comme telle, et à mesurer : combien de projets faut-il évaluer
+   avant que le meilleur ROI réel soit dans le lot ?
+2. **Où placer le coût du recensement lui-même ?** Le rail paie déjà sa planification pendant la
+   génération des candidats. Il faut séparer nettement « estimer un revenu » (bon marché) de
+   « trouver un tracé » (cher), ce que `candidates.nut` ne distingue pas aujourd'hui.
+3. **Invalidation.** Un état qui vit entre les passages doit savoir mourir : ville qui grossit,
+   site pris par un concurrent, industrie qui ferme, ligne construite qui change les origines
+   servies. Les revalidations de batch de §0 vicies donnent déjà le patron.
+4. **Le ROI doit inclure les opcodes**, comme demandé — donc `expectedOpcodes` doit devenir une
+   mesure et non une constante. Elle l'est déjà pour le rail (itérations × 2 700) ; elle est une
+   **constante** pour l'air, l'eau et la route (§0 quinvicies point 3), et la route dispose déjà
+   de la mesure réelle par tentative (panneau `RB|`).
+5. **Ordre de service.** §0 septvicies (régler l'existant avant de construire) reste au-dessus :
+   les tâches de densification gardent leur place devant, quel que soit le portefeuille.
+
+### Ce que ça remplace
+
+- `portfolio_fresh_budget` — mesuré négatif, **cette refonte est la bonne réponse au même
+  problème**. Le réglage reste comme instrument, le défaut reste 0.
+- `portfolio_v2` — jugé non adoptable même réparé (§0 nonies quater) ; sa raison d'être (garder les
+  alternatives modales jusqu'au test de capital) est absorbée par l'évaluation à la demande.
+- L'élection modale par couple O/D (`OpexProjectModeBetter`) : si chaque projet entre au
+  portefeuille avec son propre ROI réel, il n'y a plus besoin d'élire un mode *avant* de connaître
+  les coûts.
