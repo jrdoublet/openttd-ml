@@ -2157,6 +2157,59 @@ qu'il l'applique **par plan** (elle dépend de `newAirports`, que lui seul conna
 `break` sur rejet et réessayer avec un budget raboté. L'avertissement est écrit à côté du `2000`
 dans `main.nut` pour que personne ne « corrige » à nouveau à l'aveugle.
 
+### 🔶 Reprise du 2026-09-02 : `air_margin`, la marge appliquée par plan
+
+Analyse de grok (lecture seule) sur les trois branches de `OpexAirPlans` :
+
+- `maxCapital` **ne filtre pas les sites** (`OpexAirFindSite` ne le reçoit pas). Il plafonne la
+  seule boucle de dimensionnement de flotte de `OpexAirEconomics` (`builder_air.nut:171-173`),
+  donc il décide **combien d'avions** on met sur un plan déjà trouvé — ce qui change ensuite le
+  classement `OpexAirPlanBetter`. Le portefeuille passe `maxCapital = 0`, ce qui neutralise
+  complètement ce plafond : **ne pas casser ce cas**.
+- `OpexAirEconomics` reçoit déjà `newAirportCount` (2 / 1 / 0 selon la branche). La table
+  30 000 / 12 000 / 2 000, elle, n'existe qu'**après** le retour, dupliquée en trois endroits
+  (`main.nut:687-693`, `projects.nut:91-93`, `main.nut:1039-1042`).
+- Option retenue : appliquer la marge **dans la boucle**, pas côté appelant. La boucle est
+  monotone (plus d'avions ⇒ plus de capital), donc serrer le plafond par type de plan revient à
+  choisir la plus grande flotte finançable avec la **vraie** marge — même mécanisme que le rabot
+  global raté, mais au bon grain, donc le hub-à-hub (marge réelle 2 000) n'est plus pénalisé.
+- Option écartée : le retry. `OpexAirPlans` ne renvoie qu'un `bestPlan` ; un retry sans changer
+  `maxCapital` retrouve le même plan, et un retry avec `maxCapital` global raboté reproduit
+  **exactement** le banc annulé.
+
+⚠️ **Risque à surveiller au banc** : le court-circuit `if (bestPlan != null && bestPlan.airport
+.allowBig) break;` (`builder_air.nut:479`). Si aucun combo « grand » n'est finançable, les combos
+suivants (jusqu'à 5×) s'exécutent au lieu de s'arrêter tôt — surcoût d'opcodes ponctuel.
+
+Implémenté sous le réglage `air_margin` (défaut 0), smoke 3/3 OK. Banc apparié 20 graines × 3 ans
+en cours : `docs/bench_air_margin_3y.json`.
+
+---
+
+## 0 sexdecies. ❌ `growth_yields` : REJETÉ, et il apprend quelque chose (2026-09-02)
+
+**Banc apparié 20 graines × 3 ans** (`docs/bench_growth_yields_3y.json`), contrôle moins variante :
+
+| métrique | écart apparié | t | graines gagnées par le contrôle |
+|---|---:|---:|---:|
+| `company_value` | +42 052 £ (+4,8 %) | 1,33 | 9/20 |
+| `profit_year` | −1 357 £ (−0,3 %) | −0,06 | 6/20 |
+| `performance_history` | +14 pts (+4,8 %) | 1,91 | 11/20 |
+| **`median_station_rating`** | **+15,9 pts (+10,4 %)** | **2,97** | **15/20** |
+
+L'idée était de reprendre `_tryTownGrowth`, qui bâtit des lignes portant un `profitAnnual = 0`
+**explicite** (`main.nut`) tout en dépensant du capital réel, et de lui faire céder le pas au
+capital déjà engagé par le portefeuille. Sur la valeur : rien. Sur la note de gare : **la variante
+perd nettement**, et la graine 2026 s'effondre à `company_value = 1`.
+
+🔴 **Ce que ça enseigne** : le `profitAnnual = 0` de ces candidats est un **compteur faux, pas une
+dépense gâchée**. La ville qui grandit alimente les gares déjà construites, et le rendement se lit
+sur la note de gare, pas sur le profit prédit de la ligne elle-même. C'est le troisième cas de la
+semaine où un compteur à zéro ne prouve rien (cf. `cash_blocks`, §0 decies).
+
+**Ne pas remettre à 1** sans avoir d'abord donné un profit prédit honnête à ces candidats — c'est
+ça, la tâche réelle, et elle rejoint l'audit des constantes en dur (§3 ter).
+
 ---
 
 ## 7 bis. Dimensionnement marginal de flotte (`marginal_fleet`) — MESURÉ, défaut 0, mais le mécanisme est bon (2026-09-01)

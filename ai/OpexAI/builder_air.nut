@@ -168,9 +168,21 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
   if (targetPlanes < 1) targetPlanes = 1;
   if (targetPlanes > maxAllowed) targetPlanes = maxAllowed;
 
+  /* air_margin : la marge exigee a l'acceptation (30 000 / 12 000 / 2 000 selon le nombre
+   * d'aeroports NEUFS -- autorite locale, terrassement, aleas) doit etre connue ici, sinon
+   * _tryBuildAir trouve un plan puis le rejette et gache son cycle. L'appliquer globalement du
+   * cote appelant a ete mesure a −11,5 % (t = −2,66) le 2026-09-01 : ca rabote aussi le hub-a-hub,
+   * dont la marge reelle n'est que 2 000. Ici la marge est appliquee PAR PLAN, au bon grain.
+   * L'appelant soustrait deja le plancher de 2 000, on ne compte donc que le supplement.
+   * Sous 0 (defaut) ou maxCapital == 0 (chemin portefeuille), ce bloc ne change rien. */
+  local extraMargin = 0;
+  if (AIR_MARGIN && maxCapital > 0) {
+    extraMargin = ((newAirportCount == 2) ? 30000 : (newAirportCount == 1 ? 12000 : 2000)) - 2000;
+  }
+
   for (local planes = 1; planes <= targetPlanes; planes++) {
     local capital = newAirportCount * airport.price + planes * plane.price;
-    if (maxCapital > 0 && capital > maxCapital) break;
+    if (maxCapital > 0 && capital + extraMargin > maxCapital) break;
     local headwayDays = roundTripDays / planes;
     local stationRating = OpexStationRatingForHeadway(headwayDays);
     local offered = (monthlyPax * stationRating) / 100.0;

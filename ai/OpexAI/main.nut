@@ -257,6 +257,27 @@ PORTFOLIO_FLOOR_PCT <- 0;
  *      exigeant !isAnyWaiting, le signal etait inverse par rapport a son intention. */
 FLEET_FIX <- false;
 
+/* La croissance urbaine cede le pas au portefeuille (docs/taches.md S0 septies et S0 decies) :
+ * repli FAUX jusqu'a la lecture unique de growth_yields dans Start(). Defaut 0 : chemin
+ * historique inchange -- _tryTownGrowth depense des qu'il a de quoi payer, sur des candidats a
+ * profit predit NUL. Sous 1, il exige en plus un surplus couvrant le capital que le portefeuille
+ * s'est deja engage a depenser.
+ *
+ * MESURE le 2026-09-02 (docs/bench_growth_yields_3y.json, 20 graines x 3 ans, apparie) : REJETE.
+ * company_value +4,8 % pour le controle (t = 1,33, 9/20 : nul), profit_year −0,3 % (nul), mais
+ * median_station_rating +10,4 % pour le controle (t = 2,97, 15/20 : REEL et defavorable a la
+ * variante), et la graine 2026 s'effondre a company_value = 1. Lecture : le `profitAnnual = 0`
+ * porte par les candidats de croissance est un compteur faux, pas une depense gachee -- la ville
+ * qui grandit alimente les gares deja construites, et ca se lit sur la note. Ne pas remettre a 1
+ * sans corriger d'abord le profit predit de ces candidats. */
+GROWTH_YIELDS <- false;
+
+/* Marge d'autorite aerienne appliquee PAR PLAN dans OpexAirEconomics (builder_air.nut) plutot
+ * qu'en rabotant maxCapital chez l'appelant : repli FAUX jusqu'a la lecture unique de air_margin
+ * dans Start(). Voir le commentaire de la boucle de dimensionnement pour le raisonnement complet
+ * et le banc a −11,5 % qu'il corrige. */
+AIR_MARGIN <- false;
+
 /* Correctifs du modele economique (revue de economy.nut, docs/taches.md S0 octies) : repli FAUX
  * jusqu'a la lecture unique de economy_fix dans Start(). Defaut 0 : chemin historique inchange.
  * Sous 1, deux defauts du rendement unitaire tombent --
@@ -864,6 +885,21 @@ function OpexAI::_tryTownGrowth(year)
     local need = candidate.capital + OpexCashReserve();
     money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
     if (money < need) continue;
+    /* growth_yields : la croissance urbaine batit des lignes a profitAnnual = 0 et
+     * revenueAnnual = 0 EXPLICITES (voir le candidat construit ci-dessus). Son rendement est
+     * indirect -- faire grossir la ville pour nourrir les autres lignes -- mais son capital, lui,
+     * est bien reel et immediat. Or le goulot mesure de cette IA est la VITESSE DU CAPITAL :
+     * 44,5 % de la valeur d'entreprise dort en caisse, et un seul projet est bati par mois
+     * (docs/taches.md S0 decies). Cette depense a rendement nul entre donc en concurrence directe
+     * avec les projets rentables du portefeuille.
+     *
+     * Sous 1, la croissance urbaine ne prend que le capital dont le portefeuille NE VEUT PAS :
+     * elle exige un surplus au-dela de ce que celui-ci s'est deja engage a depenser
+     * (`selectedCapital`). Elle cede donc le pas sans jamais etre supprimee. */
+    if (GROWTH_YIELDS && this._projects != null) {
+      local committed = ("stats" in this._projects) ? this._projects.stats.selectedCapital : 0;
+      if (money < need + committed) continue;
+    }
 
     local result = OpexBuildRoadRoute(this._catalog, this._budget, plan, candidate);
     if (!result.ok) continue;
@@ -2628,6 +2664,8 @@ function OpexAI::Start()
   PORTFOLIO_FLOOR_PCT = AIController.GetSetting("portfolio_floor_pct");
   FLEET_FIX = AIController.GetSetting("fleet_fix") != 0;
   ECONOMY_FIX = AIController.GetSetting("economy_fix") != 0;
+  GROWTH_YIELDS = AIController.GetSetting("growth_yields") != 0;
+  AIR_MARGIN = AIController.GetSetting("air_margin") != 0;
   PRICING_ROAD_RATING = AIController.GetSetting("pricing_road_rating") != 0;
   PRICING_RAIL_DEPOT = AIController.GetSetting("pricing_rail_depot") != 0;
   PRICING_ROAD_OPS = AIController.GetSetting("pricing_road_ops") != 0;

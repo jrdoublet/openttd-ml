@@ -741,6 +741,35 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
+    /* La croissance urbaine cede le pas au portefeuille. docs/taches.md S0 septies et S0 decies.
+     *
+     * _tryTownGrowth construit des lignes de bus dont le candidat porte profitAnnual = 0 et
+     * revenueAnnual = 0 EXPLICITES : son rendement est indirect (faire grossir la ville pour
+     * nourrir les autres lignes), mais son capital est immediat et reel.
+     *
+     * Or le goulot mesure de cette IA est la VITESSE DU CAPITAL : 44,5 % de la valeur d'entreprise
+     * dort en caisse contre 10,4 % chez AAAHogEx, et un seul projet est bati par mois. Une depense
+     * a rendement predit nul entre donc en concurrence directe avec les projets rentables.
+     *
+     * 0 (defaut) : la croissance depense des qu'elle peut payer.
+     * 1 : elle exige un surplus au-dela du capital que le portefeuille s'est deja engage a
+     * depenser -- elle ne prend que ce dont il ne veut pas, sans jamais etre supprimee. */
+    AddSetting({
+      name = "growth_yields",
+      description = "Town growth only spends capital the portfolio does not want: 1 = yields to funded projects, 0 = spends as soon as affordable (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "air_margin",
+      description = "Air authority margin applied per plan inside fleet sizing instead of shaving the global budget: 1 = per plan, 0 = historical (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     AddSetting({
       name = "economy_fix",
       description = "Source-verified station rating thresholds and train count chosen on profit per pound of capital: 1 = fixed (default, adopted at bench), 0 = historical",
