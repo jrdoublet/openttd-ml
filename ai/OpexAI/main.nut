@@ -2059,7 +2059,24 @@ function OpexAI::_reportLines(year)
     local line = this._lines[i];
     local stationA = AIStation.GetStationID(line.stationA);
     local stationB = AIStation.GetStationID(line.stationB);
-    if (!AIStation.IsValidStation(stationA)) continue;
+    /* fleet_fix : ce `continue` sautait la ligne AVANT toute mise a jour de deadStreak, vehCount,
+     * lastProfit, lastRevenue et lastLiveVehicles. Une gare A devenue invalide (demolie, tuile
+     * passee a autrui) gelait donc l'etat de la ligne POUR TOUJOURS : _scrapDeadLines s'appuyant
+     * sur deadStreak, la ligne n'etait jamais ferraillee, ses vehicules saignaient leur cout
+     * d'exploitation toute la partie, et ses deux extremites continuaient de bloquer _tooClose
+     * pour de nouveaux candidats (docs/taches.md S0 nonies). Meme mode d'echec que la ligne OIL_
+     * deja documentee plus bas, sur un chemin que ce correctif ne couvrait pas.
+     *
+     * On compte desormais la gare perdue comme une annee morte : la ligne rejoint le chemin normal
+     * de ferraillage au lieu de pourrir en silence. */
+    if (!AIStation.IsValidStation(stationA)) {
+      if (FLEET_FIX) {
+        local streak = ("deadStreak" in line) ? line.deadStreak : 0;
+        line.deadStreak <- streak + 1;
+        OpexSign(anchor, "OZ|" + line.lineId + "|" + year + "|SA|" + line.deadStreak);
+      }
+      continue;
+    }
 
     local ratingA = AIStation.GetCargoRating(stationA, line.cargo);
     local ratingB = AIStation.IsValidStation(stationB)
@@ -2268,7 +2285,22 @@ function OpexAI::_resizeAirFleets(year)
     if (("deadStreak" in line) && line.deadStreak >= 1) continue;
     if (("lastProfit" in line) && line.lastProfit < 0) continue;
 
+    /* fleet_fix : cette garde pricait le MEILLEUR avion du catalogue, alors qu'OpexAirAddPlane
+     * clone le gabarit de LA LIGNE (builder_air.nut:224, prix lu sur l'engin du vehicule existant).
+     * Une ligne a helices desservant un petit aeroport, face a un catalogue passe au gros jet,
+     * voyait donc `need` plusieurs fois trop grand : `money < need` -> break, et une ligne
+     * rentable ne grandissait jamais alors que la tresorerie etait la. La garde interne
+     * d'OpexAirAddPlane etant correcte, celle-ci ne produisait que des FAUX NEGATIFS
+     * (docs/taches.md S0 nonies). On price desormais l'avion qu'on va reellement acheter. */
     local planePrice = (this._catalog.plane != null) ? this._catalog.plane.price : 30000;
+    if (FLEET_FIX && ("vehicles" in line)) {
+      foreach (v in line.vehicles) {
+        if (!AIVehicle.IsValidVehicle(v)) continue;
+        local ownPrice = AIEngine.GetPrice(AIVehicle.GetEngineType(v));
+        if (ownPrice > 0) planePrice = ownPrice;
+        break;
+      }
+    }
     local need = planePrice + OpexCashReserve() + 2000;
     local addedThisPass = 0;
     // (d) au plus un avion par ligne et par an sous marginal_fleet=1 ; 4 (repli actuel) sous 0.
