@@ -23,6 +23,11 @@
  * de la tache "predit vs reel" pour le detail ligne par ligne. */
 const STATION_RATING_PCT = 50;
 
+/* Facteur correctif sur le coût de la voie ferrée par tuile à vol d'oiseau (docs/taches.md §0 unvicies & C2).
+ * Calibré sur la campagne 5 graines : le coût réel mesuré est de 151 £/tuile pour 75 £ brut (détours,
+ * terrassement, ponts/tunnels). 170 = ×1,70 annule le biais médian. */
+RAIL_TERRAIN_FACTOR <- 170;
+
 /* Intervalle cible entre deux ramassages, en jours. Vient du bareme : la tranche la mieux notee
  * est "moins de 15 s" de temps reel, soit ~6,8 jours de jeu a 74 ticks/jour. */
 const TARGET_HEADWAY_DAYS = 7;
@@ -228,7 +233,8 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
    * ligne (AIRail.GetBuildCost(BT_DEPOT)) et que la route comme l'eau comptent le leur. L'omission
    * sous-estimait le capital rail et gonflait donc son ROI FACE A LA ROUTE, dans un portefeuille
    * qui compare precisement les deux sur ce nombre (docs/taches.md S0 octies). */
-  local infraCost = distance * catalog.costTrackPerTile + 2 * platformLength * catalog.costStation;
+  local effectiveTrackCost = (catalog.costTrackPerTile * RAIL_TERRAIN_FACTOR) / 100;
+  local infraCost = distance * effectiveTrackCost + 2 * platformLength * catalog.costStation;
   if (PRICING_RAIL_DEPOT && ("costRailDepot" in catalog)) infraCost += catalog.costRailDepot;
   local locoLife = loco.ageYears > 0 ? loco.ageYears : 20;
   local best = null;

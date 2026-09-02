@@ -130,6 +130,16 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
 
+    AddSetting({
+      name = "rail_terrain_factor",
+      description = "Pourcentage applique au cout du rail par tuile (100 = brut, 170 = calibre sur le reel, docs/taches.md C2)",
+      min_value = 50, max_value = 300,
+      easy_value = 170, medium_value = 170, hard_value = 170,
+      custom_value = 170,
+      step_size = 5,
+      flags = 0
+    });
+
     /* Expansion marginale d'une ligne rail existante. Le bras 1 ne cherche aucun nouveau
      * chemin : apres deux releves de saturation sur une ligne a une rame, il ajoute un wagon
      * dans la marge de quai deja payee, seulement si le revenu reel recale predit un gain net.
