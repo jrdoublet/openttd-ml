@@ -506,6 +506,48 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
   return bestPlan;
 }
 
+/* Sondage pur d'un site : rend 0 s'il accepte l'aeroport, sinon le code d'erreur. Ne depense
+ * rien et NE LAISSE AUCUNE TRACE dans la comptabilite du caller.
+ *
+ * ⚠️ Les deux pieges de ce sondage, mesures dans le source de 15.3 :
+ *
+ * 1. AIAccounting compte AUSSI les commandes jouees en AITestMode --
+ *    `if (estimate_only) IncreaseDoCommandCosts(res.GetCost())`, script_object.cpp:299-302.
+ *    Un sondage d'aeroport ajoute donc son prix SIMULE au compteur sans qu'une livre sorte :
+ *    +35 000 £ par ligne au premier essai du 2026-09-02 (ratio cout/modele 1,02 -> 1,38).
+ *    Le bouclier est un AIAccounting IMBRIQUE : son destructeur RESTAURE le total du niveau
+ *    superieur (script_accounting.cpp), donc tout ce qui entre dedans est jete.
+ *
+ * 2. AITestMode lit le terrain REEL. Les 8 echecs mesures sont 7 x ERR_FLAT_LAND_REQUIRED et
+ *    1 x ERR_AREA_NOT_CLEAR : sonder avant de niveler rejetterait tous les bons sites.
+ *    A n'appeler qu'APRES LevelTiles.
+ *
+ * CmdBuildAirport appelle CheckIfAuthorityAllowsNewStation en tout premier
+ * (station_cmd.cpp:2637), et NoTestTownRating n'est pose que par la generation interne du jeu :
+ * le refus municipal remonte donc bien jusqu'ici. */
+function OpexAirProbeSite(site, airportType)
+{
+  local shield = AIAccounting();
+  local test = AITestMode();
+  local ok = AIAirport.BuildAirport(site.anchor, airportType, AIStation.STATION_NEW);
+  local err = ok ? 0 : AIError.GetLastError();
+  test = null;
+  shield = null;
+  return err;
+}
+
+/* Le refus municipal est le seul cas rattrapable : on plante alors des arbres -- HORS bouclier,
+ * cette depense-la est reelle -- et on resonde. ERR_LOCAL_AUTHORITY_REFUSES couvre AUSSI le
+ * plafond de bruit (script_error.hpp), que les arbres ne reparent pas : le second sondage tranche
+ * entre les deux au lieu de le deviner. */
+function OpexAirSiteRefusal(site, airportType)
+{
+  local err = OpexAirProbeSite(site, airportType);
+  if (err != AIError.ERR_LOCAL_AUTHORITY_REFUSES) return err;
+  OpexBoostTownRating(site.town.id, 800, 40);
+  return OpexAirProbeSite(site, airportType);
+}
+
 function OpexAirRollback(airportA, airportB, planes)
 {
   /* La flotte n'est demarree qu'apres tous les clones et ordres valides : elle est donc encore
@@ -522,7 +564,7 @@ function OpexAirRollback(airportA, airportB, planes)
 function OpexBuildAirRoute(catalog, budget, plan)
 {
   local result = { ok = false, reason = "", opcodes = 0, error = 0, stationA = null,
-                   stationB = null, vehicle = null, vehicles = [] };
+                   stationB = null, vehicle = null, vehicles = [], actualCost = 0 };
   local airportA = null;
   local airportB = null;
   local plane = null;
@@ -532,7 +574,42 @@ function OpexBuildAirRoute(catalog, budget, plan)
   local reuseA = ("reuseA" in plan) && plan.reuseA;
   local reuseB = ("reuseB" in plan) && plan.reuseB;
 
+  /* air_cost_probe : le cout REEL de la ligne aerienne, nivellement, aeroports, avions et
+   * demolitions de repli compris. Symetrique du `costs` de builder_rail.nut. Le seul
+   * AIAccounting imbrique en dessous est le bouclier d'OpexAirProbeSite, et c'est voulu : il
+   * jette le cout SIMULE des sondages au lieu de le laisser gonfler ce compteur. */
+  local costs = AIAccounting();
+
   budget.begin();
+
+  /* air_presite : sonder les DEUX sites avant d'engager la moindre livre. L'ordre historique
+   * batissait A, decouvrait B impossible, puis demolissait A -- 4 BFAIL sur 20 tentatives au banc
+   * du 2026-09-02, tous en premiere annee, quand la tresorerie est au plus juste (§0 unvicies).
+   * Le nivellement des deux sites est deja paye dans le chemin nominal ; ce qu'on economise, c'est
+   * l'aeroport bati puis rase. B est sonde en premier : c'est lui qui echoue. */
+  if (AIR_PRESITE && !reuseA && !reuseB) {
+    local endA = plan.siteA.anchor + AIMap.GetTileIndex(airport.width - 1, airport.height - 1);
+    local endB = plan.siteB.anchor + AIMap.GetTileIndex(airport.width - 1, airport.height - 1);
+    if (AIMap.IsValidTile(endA)) AITile.LevelTiles(plan.siteA.anchor, endA);
+    if (AIMap.IsValidTile(endB)) AITile.LevelTiles(plan.siteB.anchor, endB);
+    local errB = OpexAirSiteRefusal(plan.siteB, airport.type);
+    if (errB != 0) {
+      result.error = errB;
+      result.actualCost = costs != null ? costs.GetCosts() : 0;
+      result.opcodes += budget.end("build_airports");
+      result.reason = "PREB";
+      return result;
+    }
+    local errA = OpexAirSiteRefusal(plan.siteA, airport.type);
+    if (errA != 0) {
+      result.error = errA;
+      result.actualCost = costs != null ? costs.GetCosts() : 0;
+      result.opcodes += budget.end("build_airports");
+      result.reason = "PREA";
+      return result;
+    }
+  }
+
   if (reuseA) {
     if (AIAirport.IsAirportTile(plan.siteA.anchor) &&
         OpexAirAirportAcceptsPlane(AIAirport.GetAirportType(plan.siteA.anchor),
@@ -552,6 +629,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
   if (airportA == null) {
     result.error = AIError.GetLastError();
     result.opcodes += budget.end("build_airports");
+    result.actualCost = costs != null ? costs.GetCosts() : 0;
     result.reason = reuseA ? "HUB" : "AFAIL";
     return result;
   }
@@ -576,6 +654,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
   if (airportB == null) {
     result.error = AIError.GetLastError();
     OpexAirRollback(reuseA ? null : airportA, null, []);
+    result.actualCost = costs != null ? costs.GetCosts() : 0;
     result.reason = reuseB ? "HUBB" : "BFAIL";
     return result;
   }
@@ -584,12 +663,14 @@ function OpexBuildAirRoute(catalog, budget, plan)
   local stationB = AIStation.GetStationID(airportB);
   if (!AIStation.IsValidStation(stationA) || !AIStation.IsValidStation(stationB)) {
     OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, []);
+    result.actualCost = costs != null ? costs.GetCosts() : 0;
     result.reason = "STNFAIL";
     return result;
   }
   local hangar = AIAirport.GetHangarOfAirport(airportA);
   if (!AIMap.IsValidTile(hangar) || !AIAirport.IsHangarTile(hangar)) {
     OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, []);
+    result.actualCost = costs != null ? costs.GetCosts() : 0;
     result.reason = "HANGAR";
     return result;
   }
@@ -600,6 +681,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
     result.error = AIError.GetLastError();
     result.opcodes += budget.end("build_aircraft");
     OpexAirRollback(reuseA ? null : airportA, airportB, []);
+    result.actualCost = costs != null ? costs.GetCosts() : 0;
     result.reason = "PLANE";
     return result;
   }
@@ -613,6 +695,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
     result.error = !okOrderA ? errorA : errorB;
     result.opcodes += budget.end("build_aircraft");
     OpexAirRollback(reuseA ? null : airportA, airportB, [plane]);
+    result.actualCost = costs != null ? costs.GetCosts() : 0;
     result.reason = "ORDFAIL";
     return result;
   }
@@ -633,12 +716,14 @@ function OpexBuildAirRoute(catalog, budget, plan)
       result.error = AIError.GetLastError();
       result.opcodes += budget.end("build_aircraft");
       OpexAirRollback(reuseA ? null : airportA, airportB, built);
+      result.actualCost = costs != null ? costs.GetCosts() : 0;
       result.reason = "START";
       return result;
     }
   }
   result.opcodes += budget.end("build_aircraft");
 
+  result.actualCost = costs != null ? costs.GetCosts() : 0;
   result.ok = true;
   result.reason = "OK";
   result.stationA = airportA;

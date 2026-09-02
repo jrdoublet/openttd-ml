@@ -49,6 +49,12 @@ DEBUG_SIGNS <- true;
 /* Mesure ponctuelle : un panneau par ligne reussie, donc desactivee par defaut pour ne pas
  * changer le profil d'opcodes de la baseline. */
 RAIL_COST_PROBE <- false;
+/* Symetrique aerien de RAIL_COST_PROBE : un panneau AC| par tentative, reussie ou non. C'est le
+ * seul moyen de chiffrer le nivellement et les aeroports batis puis rases (§0 unvicies). */
+AIR_COST_PROBE <- false;
+/* air_presite : sonder les deux sites en AITestMode avant d'engager le capital du premier
+ * aeroport. Inerte par defaut jusqu'au verdict du banc. */
+AIR_PRESITE <- false;
 /* Expansion marginale : bras A/B inerte par defaut jusqu'au verdict du banc. */
 RAIL_EXPAND <- false;
 const RAIL_EXPAND_STREAK = 2;
@@ -741,6 +747,12 @@ function OpexAI::_tryBuildAir(year)
     local anchor = AIMap.GetTileIndex(1, 1);
     OpexSign(anchor, "OA|" + year + "|" + plan.distance + "|" + planOps + "|" + result.reason);
     if (result.error != 0) OpexSign(anchor, "OE|A|" + result.error);
+    if (AIR_COST_PROBE) {
+      OpexSign(anchor, "AC|" + this._nextLineId + "|" + (("capital" in plan) ? plan.capital : 0) + "|"
+                             + result.actualCost + "|"
+                             + (("planes" in plan) ? plan.planes : 1) + "|"
+                             + (result.ok ? result.vehicles.len() : 0));
+    }
     if (!result.ok) {
       /* air_abandon : sans cette memorisation, le cycle suivant re-scanne tous les sites pour
        * reproposer EXACTEMENT le meme bestPlan et echouer de la meme facon. Le chemin
@@ -1191,6 +1203,12 @@ function OpexAI::_tryBuildProjects(year)
       local result = OpexBuildAirRoute(this._catalog, this._budget, plan);
       OpexSign(anchor, "OA|" + year + "|" + plan.distance + "|" + planOps + "|" + result.reason);
       if (result.error != 0) OpexSign(anchor, "OE|A|" + result.error);
+      if (AIR_COST_PROBE) {
+        OpexSign(anchor, "AC|" + this._nextLineId + "|" + (("capital" in plan) ? plan.capital : 0) + "|"
+                               + result.actualCost + "|"
+                               + (("planes" in plan) ? plan.planes : 1) + "|"
+                               + (result.ok ? result.vehicles.len() : 0));
+      }
       if (!result.ok) {
         if (ABANDON_MEMORY) this._abandonedPairs[abandonedKey] <- true;
         continue;
@@ -2811,6 +2829,8 @@ function OpexAI::Start()
   PRICING_RAIL_DEPOT = AIController.GetSetting("pricing_rail_depot") != 0;
   PRICING_ROAD_OPS = AIController.GetSetting("pricing_road_ops") != 0;
   RAIL_COST_PROBE = AIController.GetSetting("rail_cost_probe") != 0;
+  AIR_COST_PROBE = AIController.GetSetting("air_cost_probe") != 0;
+  AIR_PRESITE = AIController.GetSetting("air_presite") != 0;
   RAIL_EXPAND = AIController.GetSetting("rail_expand") != 0;
   ASTAR_COST_V2 = AIController.GetSetting("astar_cost") != 0;
   PROBE_NEGATIVE = AIController.GetSetting("probe_negative") != 0;

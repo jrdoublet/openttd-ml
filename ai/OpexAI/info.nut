@@ -41,6 +41,38 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* Symetrique aerien de rail_cost_probe, et il manquait la ou l'argent part le plus :
+     * l'attribution du 2026-09-02 met 64,5 % du capital sur l'avion, mais ce chiffre est le
+     * MODELE (panneau AH|), le seul disponible. AC| donne le cout REEL, nivellement compris, et
+     * il est emis aussi sur ECHEC -- c'est le seul moyen de chiffrer un aeroport bati puis rase
+     * (4 BFAIL sur 20 tentatives au banc, docs/taches.md S0 unvicies). */
+    AddSetting({
+      name = "air_cost_probe",
+      description = "Emit per-attempt air model capital versus actual cost, including levelling and rolled-back airports: 1 = measurement only, 0 = no extra signs (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* Sonde les DEUX sites en AITestMode avant de batir le premier aeroport. L'ordre historique
+     * batit A, decouvre B impossible, puis demolit A : 4 BFAIL sur 20 tentatives, tous en
+     * premiere annee, quand la tresorerie est au plus juste.
+     *
+     * Le sondage vient APRES le nivellement des deux sites, et c'est essentiel : les 8 echecs
+     * mesures sont 7 x ERR_FLAT_LAND_REQUIRED et 1 x ERR_AREA_NOT_CLEAR, jamais un refus
+     * municipal -- sonder le terrain brut rejetterait precisement les sites que LevelTiles
+     * repare. Le nivellement des deux sites est deja paye dans le chemin nominal.
+     *
+     * Defaut 0 jusqu'au banc apparie : economiser un aeroport rase est un gain evident sur le
+     * papier, mais c'est exactement ce que disaient les treize corrections de S0 nonies bis. */
+    AddSetting({
+      name = "air_presite",
+      description = "Probe both airport sites in test mode before committing capital to the first one: 1 = enabled, 0 = build A then discover B (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* Expansion marginale d'une ligne rail existante. Le bras 1 ne cherche aucun nouveau
      * chemin : apres deux releves de saturation sur une ligne a une rame, il ajoute un wagon
      * dans la marge de quai deja payee, seulement si le revenu reel recale predit un gain net.

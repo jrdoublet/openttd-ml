@@ -3074,34 +3074,44 @@ de coût. `rail_cost_probe = 1` l'ouvre (`DC|idx|capitalModèle|coûtRéel|train
 
 | | capital modèle | coût réel | écart |
 |---|---:|---:|---:|
-| **14 lignes** | 470 713 £ | **569 119 £** | **+98 406 £ — +20,9 %** |
+| **14 lignes** | 470 713 £ | **561 395 £** | **+90 682 £ — +19,3 %** |
+
+> **Chiffres corrigés le 2026-09-02 au soir.** La première lecture donnait +98 406 £ (+20,9 %) :
+> elle comptait 552 £ de trop par ligne. `AIAccounting` additionne aussi le coût **simulé** des
+> commandes jouées en `AITestMode` (`script_object.cpp:299-302`), et `OpexBuildDepot` sonde le
+> dépôt en mode test à l'intérieur de la fenêtre comptable. Corrigé par un `AIAccounting`
+> imbriqué qui jette ces coûts (voir §0 duovicies). Le trajet des parties est identique — mêmes
+> lignes, même capital modèle — seule la mesure change.
 
 Et l'erreur **croît avec la distance**, ce qui la localise :
 
 | distance | n | modèle | réel | écart |
 |---|---:|---:|---:|---:|
-| < 75 tuiles | 6 | 184 696 | 211 037 | +14,3 % |
-| 75-100 | 3 | 102 396 | 128 262 | +25,3 % |
-| 100-130 | 5 | 183 621 | 229 820 | +25,2 % |
+| < 75 tuiles | 6 | 184 696 | 207 700 | +12,5 % |
+| 75-100 | 3 | 102 396 | 126 687 | +23,7 % |
+| 100-130 | 5 | 183 621 | 227 008 | +23,6 % |
 
-Régression du surcoût sur la distance : **+103 £/tuile, ordonnée à l'origine −2 030 £** ($R^2 = 0{,}44$).
-L'ordonnée est nulle aux erreurs près : **toute l'erreur est dans le seul terme qui dépend de la
-distance**, `distance * catalog.costTrackPerTile` (`economy.nut:231`). Les gares, le dépôt et les
-véhicules sont correctement facturés.
+Régression du surcoût sur la distance : **+103 £/tuile, ordonnée à l'origine −2 563 £**
+($R^2 = 0{,}44$).
+
+L'ordonnée à l'origine de la régression est nulle aux erreurs près : **toute l'erreur est dans le
+seul terme qui dépend de la distance**, `distance * catalog.costTrackPerTile` (`economy.nut:231`).
+Les gares, le dépôt et les véhicules sont correctement facturés.
 
 ### 2. Le facteur exact
 
 `costTrackPerTile` vaut **75 £/tuile** (identifié par différence sur les paires de lignes de même
-quai / même rame / même loco : 12 paires sur 18 donnent exactement 75,0). Le prix réellement
-facturé par tuile de distance **à vol d'oiseau** est de **157 £** — détours du tracé, nivellement,
-ponts et tunnels, dont §0 « Ponts et tunnels (v3) » disait déjà qu'aucun n'est *pricé*.
+quai / même rame / même loco : 12 paires sur 18 donnent exactement 75,0 ; et le prix de base
+`PR_BUILD_RAIL` = 100 de `src/table/pricebase.h` confirme un multiplicateur de 0,75). Le prix
+réellement facturé par tuile de distance **à vol d'oiseau** est de **151 £** — détours du tracé,
+nivellement, ponts et tunnels, dont §0 « Ponts et tunnels (v3) » disait déjà qu'aucun n'est *pricé*.
 
-Le facteur qui annule le biais médian est **×1,81** (75 → 136 £/tuile) :
+Le facteur qui annule le biais médian est **×1,70** (75 → 128 £/tuile) :
 
 | ratio modèle/réel | min | médiane | max |
 |---|---:|---:|---:|
-| avant | 0,70 | **0,87** | 0,92 |
-| après ×1,81 | 0,84 | **1,00** | 1,04 |
+| avant | 0,70 | **0,88** | 0,93 |
+| après ×1,70 | ~0,85 | **1,00** | ~1,04 |
 
 C'est une correction de **biais pur** : la dispersion ne bouge pas (écart-type 7,1 → 7,0 points).
 Le modèle passe de « sous-estime toujours, de 8 à 30 % » à « juste, à ±16 % dans le pire cas ».
@@ -3116,7 +3126,7 @@ supérieure. Et le sac à dos finance ensuite sur un budget faux : il croit ache
 paie 4.
 
 ➡️ **Candidat de tête** : réglage `rail_terrain_factor` (pour mille, défaut 100 = neutre) appliqué
-à `costTrackPerTile`, banc apparié 20 graines à 100 contre 181. Sens de l'effet **non acquis** :
+à `costTrackPerTile`, banc apparié 20 graines à 100 contre 170. Sens de l'effet **non acquis** :
 corriger le prix rend le plan honnête mais peut aussi tuer des lignes rentables — c'est la mesure
 qui tranche, pas l'argument.
 
@@ -3178,3 +3188,130 @@ bâties **hors** du portefeuille, par la tâche `air` qui passe avant lui dans l
 
 Reste aveugle : le coût réel de l'aéroport (nivellement compris) et celui des `AFAIL`/`BFAIL`.
 Un panneau de coût aérien symétrique de `DC|` les fermerait.
+
+---
+
+## 0 duovicies. ✅ AVION : sonder avant de payer, chiffrer le gaspillage, et deux bugs au passage (2026-09-02)
+
+Items 2 et 3 de §0 unvicies. Réglages `air_presite` et `air_cost_probe` (`info.nut`), défauts **0**.
+Campagnes 5 graines × 3 ans : `docs/air_cost_ctrl_v2.json`, `docs/air_cost_presite_v2.json`.
+
+### 1. Le coût réel de l'avion, enfin lisible — et le modèle est juste
+
+Panneau `AC|idx|capitalModèle|coûtRéel|avionsPrévus|avionsBâtis`, émis **aussi sur échec**
+(`main.nut:750` et `:1207`), alimenté par un `AIAccounting` qui couvre toute `OpexBuildAirRoute`,
+nivellement et démolitions de repli compris.
+
+| | n | modèle | réel | écart |
+|---|---:|---:|---:|---:|
+| lignes en service | 15 | 1 839 506 £ | 1 887 627 £ | **+2,6 %** |
+
+**Contraste net avec le rail (+19,3 %)** : le modèle aérien est juste. Il n'y a pas de terrain à
+traverser — deux rectangles nivelés, et le prix de l'aéroport est un forfait.
+
+### 2. Ce que coûtent les chantiers avortés, et ce que `air_presite` en récupère
+
+Les 7 abandons du témoin se lisent en deux paquets nets :
+
+| | n | coût par tentative |
+|---|---:|---|
+| `AFAIL` — le site A refuse, rien n'est bâti | 3 | 7 326 / 7 744 / 7 918 £ (nivellement seul) |
+| `BFAIL` — A est **bâti**, B refuse, A est **rasé** | 4 | 23 847 / 24 573 / 25 105 / 28 646 £ |
+
+`air_presite` nivelle les deux sites, les sonde en `AITestMode`, et n'engage l'aéroport A que si B
+passe. Résultat sur les mêmes graines :
+
+| | tentatives avortées | capital brûlé |
+|---|---:|---:|
+| témoin | 7 (3 `AFAIL` + 4 `BFAIL`) | **125 159 £** |
+| `air_presite` | 8 (4 `PREA` + 4 `PREB`) | **57 961 £** |
+
+**−67 198 £, soit −53,7 % du gaspillage**, et le paquet cher a **entièrement disparu** : les 8
+abandons coûtent tous entre 6 285 et 7 918 £, le prix du seul nivellement. Le mécanisme fait
+exactement ce qu'on lui demande.
+
+Valeur d'entreprise à 3 ans : 2 graines montent, 2 descendent, 1 nulle. **n = 5 ne tranche rien**
+(§ « Banc mono-graine insuffisant ») — le banc apparié 20 graines est lancé, défaut à 0 d'ici là.
+
+### 3. ⚠️ Piège majeur : `AIAccounting` compte le coût SIMULÉ d'`AITestMode`
+
+Le premier jet d'`air_presite` mesurait un coût réel **+30,8 %** au-dessus du modèle, contre
++2,6 % au témoin. Ce n'était pas une dépense : c'était l'instrument.
+
+```cpp
+/* src/script/api/script_object.cpp:299-302 */
+/* Estimates, update the cost for the estimate and be done */
+if (estimate_only) {
+    IncreaseDoCommandCosts(res.GetCost());
+    return true;
+}
+```
+
+**Une commande jouée en `AITestMode` ajoute son prix simulé au compteur d'`AIAccounting` sans
+qu'une livre ne sorte.** Deux sondages d'aéroport = **+35 000 £ fantômes par ligne**.
+
+Le correctif tient en une ligne, et il utilise le piège documenté « `AIAccounting` ne s'imbrique
+pas » **à l'endroit** : le destructeur d'un `AIAccounting` imbriqué **restaure** le total du
+niveau supérieur (`src/script/api/script_accounting.cpp`), donc tout ce qui entre dans le compteur
+imbriqué est jeté. Un `local shield = AIAccounting();` autour du sondage suffit
+(`builder_air.nut:530`). Après correction, les deux bras mesurent +2,6 % et +2,7 % : identiques,
+comme ils doivent l'être.
+
+**Le rail était contaminé par le même défaut** : `OpexBuildDepot` sonde le dépôt en `AITestMode`
+dans la fenêtre comptable (`builder_rail.nut:589`), ce qui facturait un dépôt fantôme de 552 £ à
+chaque ligne. §0 unvicies est corrigé : **+19,3 % et non +20,9 %**, facteur **×1,70** et non
+×1,81. La pente par tuile, elle, ne bouge pas — une constante n'entre pas dans une pente.
+
+➡️ **Règle générale** : tout `AITestMode` situé dans une fenêtre `AIAccounting` fausse la mesure.
+Les autres sondages du code (`builder_road.nut`, `builder_water.nut`, `OpexAirFindSite`,
+`OpexStationPlans`) sont hors de toute fenêtre comptable — vérifié, rien d'autre à corriger.
+
+### 4. La plantation d'arbres au refus municipal : le mécanisme est bon, **le garde est mort**
+
+Question posée : plante-t-on bien des arbres quand l'autorité refuse ?
+
+**Le recours réactif existe et n'est pas bridé** — `builder_air.nut` appelle `OpexBoostTownRating`
+puis retente l'aéroport dès que `BuildAirport` rend `ERR_LOCAL_AUTHORITY_REFUSES`, sur le site A
+comme sur le site B, **hors du drapeau `TREE_PLANTING`** (qui ne commande que la plantation
+préventive, à 0 depuis le banc). `air_presite` conserve ce recours dans son sondage.
+
+Trois faits vérifiés dans le source de 15.3 :
+
+- Le refus n'arrive que si la note brute est **≤ RATING_VERYPOOR = −200** (`town_cmd.cpp:3930`).
+- Un arbre vaut **+7**, plafonné à **RATING_TREE_MAXIMUM = 220** (`tree_cmd.cpp:591`). Depuis un
+  refus, **un seul arbre suffit** à repasser au-dessus du seuil ; 40 est largement assez.
+- `ERR_LOCAL_AUTHORITY_REFUSES` recouvre **aussi** le refus pour **bruit** (`script_error.hpp`),
+  que les arbres ne réparent pas. Le re-sondage d'`air_presite` tranche entre les deux au lieu de
+  le deviner.
+
+**Mais le recours ne se déclenche jamais**, et ce n'est pas un défaut : les 8 abandons mesurés sont
+**7 × `ERR_FLAT_LAND_REQUIRED` (263) et 1 × `ERR_AREA_NOT_CLEAR` (260)**, **zéro refus municipal**.
+Le mur aérien est le terrain, pas la mairie.
+
+> ⚠️ Corrige une lecture fautive de §0 vicies : le panneau `OE|A|263` de la graine 42 y était lu
+> comme un « refus municipal ». **263 = `ERR_FLAT_LAND_REQUIRED`.** Le refus municipal est 258.
+
+### 5. 🔴 Bug : `OpexBoostTownRating` compare un enum 0-8 à 700
+
+```nut
+local currentRating = AITown.GetRating(townId, AICompany.COMPANY_SELF);
+if (currentRating >= targetRating && currentRating != AITown.TOWN_RATING_NONE) return;
+```
+
+`AITown.GetRating` **ne rend pas la note brute −1000..1000** : elle rend un `TownRating`, un enum
+de **0 à 8** (`script_town.hpp:83` — `NONE, APPALLING, VERY_POOR, POOR, MEDIOCRE, GOOD, VERY_GOOD,
+EXCELLENT, OUTSTANDING`). Les appelants passent `targetRating` = 100, 700 ou 800.
+
+**La condition est donc toujours fausse : le garde n'a jamais rien coupé.** La fonction plantait
+`maxTrees` arbres à chaque appel, quelle que soit la note déjà acquise — y compris très au-dessus
+du plafond de 220 où un arbre ne rapporte **rien**.
+
+C'est l'explication mécanique du **−22,1 % de valeur** mesuré sur la plantation préventive
+(`info.nut`, `tree_planting`) : ce n'était pas « planter tôt coûte cher », c'était « planter
+**toujours**, y compris quand c'est sans effet ».
+
+Corrigé (`candidates.nut:1239`) : plafond à `TOWN_RATING_MEDIOCRE`, l'échelon juste sous les 220 de
+`RATING_TREE_MAXIMUM`. **Effet au réglage par défaut : aucun** — la plantation préventive est
+coupée et le seul appel vivant est le recours réactif, où la ville vient de refuser (note ≤ −200),
+donc très en dessous du plafond. Le correctif répare `tree_planting` pour le jour où on le
+remesure : **la mesure du −22,1 % portait sur du code cassé et ne vaut plus.**

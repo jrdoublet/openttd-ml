@@ -582,6 +582,11 @@ function OpexBuildDepot(tiles, forbidden = null)
 
       AITile.DemolishTile(candidate);
       {
+        /* Bouclier : AIAccounting compte le cout SIMULE des commandes jouees en AITestMode
+         * (script_object.cpp:299-302). Sans lui, le sondage qui REUSSIT ajoutait un prix de
+         * depot fantome (~450 £) au `actualCost` de chaque ligne rail. Le destructeur d'un
+         * AIAccounting imbrique restaure le total superieur, donc tout ce qui entre ici est jete. */
+        local shield = AIAccounting();
         local testMode = AITestMode();
         if (!AIRail.BuildRailDepot(candidate, anchor)) continue;
       }
@@ -669,6 +674,9 @@ function OpexBuildTrains(catalog, cargo, kind, depotTile, exitA, exitB, wanted, 
       /* Diagnostic minimal au moment exact de l'echec : c'est moins cher que de deviner. */
       local testOk = 0;
       {
+        /* Meme bouclier que dans OpexBuildDepot : ce sondage ne doit rien laisser dans la
+         * comptabilite du caller, sans quoi un echec de convoi facturerait une loco fantome. */
+        local shield = AIAccounting();
         local probe = AITestMode();
         testOk = AIVehicle.BuildVehicle(depotTile, loco.id) != null ? 1 : 0;
       }

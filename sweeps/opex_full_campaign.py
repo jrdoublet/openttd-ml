@@ -83,6 +83,7 @@ RE_XC = re.compile(r"^XC\|(\d{2})\|(-?\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")
 RE_DT = re.compile(r"^DT\|(\d+)\|([01])\|(\d+)\|(\d+)$")  # id, posed, trains, skip
 RE_PM = re.compile(r"^PM\|(\d+)\|([AWR])\|(\d+)\|(.+)$")
 RE_AH = re.compile(r"^AH\|(\d+)\|([01])\|(\d+)\|(\d+)$")   # id, reuseA, capital modele, hubRoutes
+RE_AC = re.compile(r"^AC\|(\d+)\|(\d+)\|(-?\d+)\|(\d+)\|(\d+)$")  # id, capital modele, cout reel, avions prevus, batis
 RE_AF = re.compile(r"^AF\|(\d+)\|(\d+)\|(-?\d+)$")          # id, avions, profit annuel predit
 RE_IA = re.compile(r"^IA\|(\d+)\|(\d+)\|(-?\d)\|(-?\d)\|(-?\d+)$")
 RE_OX = re.compile(r"^OX\|(\d+)\|(\d+)\|(\d+)\|(\d+)$")   # year, towns, industries, ranked.all
@@ -412,6 +413,18 @@ def parse_lines(all_signs):
             e = air_extra.setdefault(int(m.group(1)), {})
             e["planes"] = int(m.group(2))
             e["profitAnnual"] = int(m.group(3))
+        elif m := RE_AC.match(sign):
+            # AC est emis AUSSI sur echec, avec un line_index qu'une ligne reussie ulterieure
+            # reprendra (_nextLineId n'avance qu'au succes). Ne fusionner dans la ligne que les
+            # panneaux a avions batis ; les echecs sont lus par parse_air_costs, ou ils
+            # chiffrent le nivellement et les aeroports rases.
+            rec = {"line_index": int(m.group(1)), "modelCapital": int(m.group(2)),
+                   "actualCost": int(m.group(3)), "plannedPlanes": int(m.group(4)),
+                   "builtPlanes": int(m.group(5))}
+            if rec["builtPlanes"] > 0:
+                e = air_extra.setdefault(rec["line_index"], {})
+                e["actualCost"] = rec["actualCost"]
+                e["modelCapital"] = rec["modelCapital"]
         elif m := RE_RC_ROAD.match(sign):
             idx = int(m.group(2))
             road_cost[idx] = {"year": 1900 + int(m.group(1)), "attempt": int(m.group(3)),
@@ -524,6 +537,20 @@ def parse_lines(all_signs):
             entry["n_stops_b"] = road_multi[idx]["n_stops_b"]
         lines.append(entry)
     return lines
+
+
+def parse_air_costs(all_signs):
+    """Toutes les tentatives aeriennes chiffrees par AC|, ECHECS COMPRIS -- c'est la seule
+    trace du nivellement et des aeroports batis puis rases. `line_index` n'identifie une ligne
+    que lorsque builtPlanes > 0 : sur echec, _nextLineId n'a pas avance et sera repris."""
+    rows = []
+    for sign in all_signs:
+        m = RE_AC.match(sign)
+        if m:
+            rows.append({"line_index": int(m.group(1)), "modelCapital": int(m.group(2)),
+                         "actualCost": int(m.group(3)), "plannedPlanes": int(m.group(4)),
+                         "builtPlanes": int(m.group(5))})
+    return rows
 
 
 def parse_probes(all_signs):
@@ -1231,6 +1258,7 @@ def make_run_payload(rows, seed, years):
 
     lines = parse_lines(final["signs"])
     attempts = parse_attempts(final["signs"])
+    air_costs = parse_air_costs(final["signs"])
     safety = parse_safety(final["signs"])
     yearly = parse_yearly(final["signs"])
     project_portfolios, project_decisions = parse_project_portfolios(final["signs"])
@@ -1365,6 +1393,7 @@ def make_run_payload(rows, seed, years):
         "road_build_opcodes": sum(item.get("build_ops", 0) for item in road),
         "attempt_distance": summarise_attempt_distance(attempts),
         "rail_attempts": attempts, "air_attempts": air, "water_attempts": water,
+        "air_costs": air_costs,
         "road_attempts": road, "cash_blocks": cash_blocks, "dead_line_events": dead_lines,
         "loan_repayments": loan_repayments, "loan_draws": loan_draws,
         "n_loan_draws": len(loan_draws),

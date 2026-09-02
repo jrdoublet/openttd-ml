@@ -1237,8 +1237,28 @@ function OpexBuildRoadCandidates(catalog, budget, lines)
 function OpexBoostTownRating(townId, targetRating = 700, maxTrees = 35)
 {
   if (!AITown.IsValidTown(townId)) return;
+  /* ⚠️ AITown.GetRating rend un ENUM de 0 a 8 (script_town.hpp:83 : NONE, APPALLING, VERY_POOR,
+   * POOR, MEDIOCRE, GOOD, VERY_GOOD, EXCELLENT, OUTSTANDING), PAS la note brute -1000..1000.
+   * Le garde historique comparait cet enum aux `targetRating` 100/700/800 passes par les
+   * appelants : la condition etait donc TOUJOURS fausse et la fonction plantait `maxTrees`
+   * arbres a chaque appel, quelle que soit la note deja acquise.
+   *
+   * Planter ne sert qu'en dessous de RATING_TREE_MAXIMUM = 220 en note brute : tree_cmd.cpp:591
+   * appelle ChangeTownRating(t, +7, 220), qui ne monte la note que `if (rating < max)`. Au-dessus,
+   * chaque arbre est une depense a rendement strictement nul. 220 tombe juste au-dessus de
+   * l'echelon MEDIOCRE (note brute <= 200), d'ou le plafond ci-dessous.
+   *
+   * `targetRating` n'est plus lu : aucun appelant ne peut exprimer un seuil utile sur cette
+   * echelle. Le parametre reste dans la signature pour ne pas toucher aux quatre sites d'appel.
+   *
+   * Effet au reglage par defaut : AUCUN. La plantation preventive est coupee (tree_planting = 0)
+   * et le seul appel vivant est le recours reactif de builder_air.nut, ou la ville vient
+   * precisement de refuser -- donc note brute <= -200, tres en dessous du plafond. Ce correctif
+   * repare la plantation preventive pour le jour ou on la remesure : c'est le garde mort qui
+   * explique mecaniquement son -22,1 % de valeur (info.nut, tree_planting). */
   local currentRating = AITown.GetRating(townId, AICompany.COMPANY_SELF);
-  if (currentRating >= targetRating && currentRating != AITown.TOWN_RATING_NONE) return;
+  if (currentRating != AITown.TOWN_RATING_NONE &&
+      currentRating > AITown.TOWN_RATING_MEDIOCRE) return;
 
   local center = AITown.GetLocation(townId);
   local planted = 0;
