@@ -2216,8 +2216,38 @@ déjà. `OpexAirPlans` reçoit désormais un paramètre `abandoned` optionnel et
 boucles, **après** les tests de distance et **avant** `OpexAirEconomics` : les paires écartées pour
 distance ne paient pas la concaténation de clé, les autres évitent le calcul cher.
 
-Réglage `air_abandon` (défaut 0), smoke 3/3 OK. Banc apparié en cours :
-`docs/bench_air_abandon_3y.json`.
+### ✅ `air_abandon` ADOPTÉ le 2026-09-02 — le premier vrai gain depuis l'arbre
+
+**Banc apparié 20 graines × 3 ans** (`docs/bench_air_abandon_3y.json`), variante moins contrôle :
+
+| métrique | écart apparié | t | graines gagnées par la variante | test des signes |
+|---|---:|---:|---:|---:|
+| `company_value` | **+6,05 %** (+55 005 £) | 1,90 | **18/20** | **p = 0,0004** |
+| `profit_year` | **+6,83 %** (+33 214 £) | 1,89 | **19/20** | **p = 0,00004** |
+| `profit` | +4,00 % | 1,95 | 19/20 | p = 0,00004 |
+| `performance_history` | +1,13 % | 0,83 | 19/20 | p = 0,00004 |
+
+Défaut passé à 1.
+
+### 🔴 CONSÉQUENCE DE MÉTHODE : le plancher à 15 % ne vaut que pour les MOYENNES
+
+C'est la première fois qu'une piste passe alors que son `t` reste **sous 2** (1,90 / 1,89 / 1,95).
+Le test des signes, lui, est écrasant : 18/20 et 19/20, soit p = 4·10⁻⁴ et 4·10⁻⁵. Les deux tests
+ne mesurent pas la même chose :
+
+- Le **t sur la moyenne** est écrasé par la variance inter-graines (CV ≈ 55 % sur `company_value`).
+  De là le plancher de ~15 % noté dans [[banc-monograine-insuffisant]].
+- Le **test des signes** ignore l'amplitude et ne regarde que la direction. Il voit donc un effet
+  **petit et constant** que la moyenne noie.
+
+⚠️ **L'argument qui rend ça valide ici** : la plateforme est déterministe, donc un changement
+neutre ne laisse pas les trajectoires en place — il les **rebat**, et le compte de signes tombe à
+~10/20. C'est exactement ce qu'ont donné `air_margin` (8/20, 9/20) et `growth_yields` (9/20, 11/20)
+quelques heures plus tôt. **19/20 n'est pas du rebattage.**
+
+👉 **À appliquer désormais à tous les bancs appariés** : lire le compte de signes AVANT de conclure
+« sous le plancher, invisible ». Plusieurs pistes classées nulles cette semaine méritent d'être
+relues sous cet angle — en particulier celles dont le `t` était faible mais le signe régulier.
 
 ---
 

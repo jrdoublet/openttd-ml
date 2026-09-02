@@ -284,12 +284,19 @@ GROWTH_YIELDS <- false;
 AIR_MARGIN <- true;
 
 /* _tryBuildAir memorise ses echecs de construction dans _abandonedPairs et OpexAirPlans les
- * ecarte pendant le scan : repli FAUX jusqu'a la lecture unique de air_abandon dans Start().
- * Sous 0 (defaut), chemin historique -- l'echec n'est pas retenu, et comme OpexAirPlans ne
- * renvoie qu'un seul bestPlan, le cycle suivant re-scanne tous les sites pour reproposer
- * exactement la meme paire et echouer de la meme facon. Le chemin portefeuille, lui, memorisait
- * deja ses echecs. */
-AIR_ABANDON <- false;
+ * ecarte pendant le scan. Sous 0, chemin historique -- l'echec n'est pas retenu, et comme
+ * OpexAirPlans ne renvoie qu'un seul bestPlan, le cycle suivant re-scanne tous les sites pour
+ * reproposer exactement la meme paire et echouer de la meme facon. Le chemin portefeuille, lui,
+ * memorisait deja ses echecs.
+ *
+ * ADOPTE le 2026-09-02, defaut 1 (docs/bench_air_abandon_3y.json, 20 graines x 3 ans, apparie) :
+ * company_value +6,1 %, profit_year +6,8 %, profit +4,0 %. Les t restent sous 2 (1,90 / 1,89 /
+ * 1,95) mais le TEST DES SIGNES tranche : la variante gagne 18/20, 19/20 et 19/20, soit
+ * p = 4e-4 et 4e-5. L'effet est petit et CONSTANT, pas grand et bruyant -- et sur une plateforme
+ * deterministe un changement neutre rebat les trajectoires et donne ~10/20. Le plancher de
+ * detection a ~15 % vaut pour la comparaison de MOYENNES, pas pour le test des signes.
+ * Repli VRAI jusqu'a la lecture unique dans Start(). */
+AIR_ABANDON <- true;
 
 /* Correctifs du modele economique (revue de economy.nut, docs/taches.md S0 octies) : repli FAUX
  * jusqu'a la lecture unique de economy_fix dans Start(). Defaut 0 : chemin historique inchange.
