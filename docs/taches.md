@@ -1779,6 +1779,79 @@ générés, combien survivent à chaque filtre, combien échouent à la construc
 
 ---
 
+## 0 decies. 🔴 LE VRAI GOULOT : LA VITESSE DU CAPITAL (diagnostic du 2026-09-02)
+
+`docs/diag_vivier_3y.json` : 5 graines x 3 ans, défauts courants, panneaux `CG`/`CR`/`CD`/`CE`/`CK`
+enfin lus — **l'instrumentation existait déjà depuis des semaines et n'avait jamais été exploitée.**
+
+### L'entonnoir du vivier (22 153 paires, 5 parties)
+
+| étape | volume | part |
+|---|---:|---:|
+| paires générées | 22 153 | 100 % |
+| rejet distance trop longue | 4 238 | 19,1 % |
+| rejet profit non positif | 2 922 | 13,2 % |
+| rejet ratio d'opcodes trop bas | 5 563 | 25,1 % |
+| **acceptés** | **1 412** | **6,4 %** |
+| dont **jetés par `TOP_K`** | 1 152 | **81,6 % des acceptés** |
+| survivants au classement | 260 | |
+| **lignes réellement construites** | **4,4 / partie** | |
+
+### 🔴 Trois hypothèses tombent, mesurées
+
+- **Le vivier n'est PAS vide** : 260 candidats classés survivent, ~20 par an et par partie.
+- **La trésorerie ne bloque JAMAIS** : `cash_blocks` = **0** sur les 5 parties.
+- **La construction ne rate PAS** : 12 tentatives rail sur 13 réussissent (1 seul `TRKFAIL`).
+
+L'IA ne tente tout simplement pas : **2 à 4 tentatives rail en trois ans** face à 260 candidats.
+
+### 🔴 La cause, lue dans les portefeuilles successifs (graine 999)
+
+```
+portefeuille  1 : capital 295 000 -> 3 projets, 293 424 depenses
+portefeuille  2 : capital   9 933 -> 0 projet
+portefeuille  3 : capital  12 078 -> 0 projet
+portefeuille  4 : capital  15 101 -> 1 projet
+portefeuille  5 : capital  35 223 -> 1 projet
+```
+
+Chaque portefeuille propose **250 à 310 projets viables**. Le premier mois, l'IA dépense **la
+totalité de son capital** (293 424 sur 295 000) en trois projets. Ensuite elle vit sur **10 à 60 k£**
+de bénéfices accumulés pendant trois ans, et ne finance plus que 0 à 2 micro-projets à la fois.
+
+➜ **`cash_blocks` valait 0 parce que le portefeuille ne se fait jamais bloquer : il rabote
+silencieusement ses ambitions à ce qu'il peut payer.** Le compteur mesurait un blocage qui, par
+construction, ne pouvait pas survenir. ⚠️ **Leçon : un compteur à zéro ne prouve rien tant qu'on n'a
+pas vérifié qu'il PEUT s'incrémenter.**
+
+### Pourquoi les trois correctifs de la journée étaient nuls
+
+- **`loop_budget`** : donner plus de cycles à une IA sans un sou ne change rien.
+- **`portfolio_v2`** : mieux classer 250 projets quand on peut en payer zéro ne change rien.
+- **`fleet_fix`** : même raison.
+
+Tous trois optimisaient **en aval** d'une contrainte située **en amont**. C'est cohérent avec leurs
+mesures : +1,6 %, neutre, −2,4 %.
+
+### La vraie question, désormais
+
+Le plafond d'emprunt est le même pour AAAHogEx, qui atteint pourtant 4,95 M£ à 3 ans avec ~3,4 M£
+de profit annuel contre nos ~450 k£. **Il ne gagne pas parce qu'il emprunte plus, il gagne parce
+que son capital tourne plus vite.** Deux directions à instrumenter avant de coder quoi que ce soit :
+
+1. **Le rendement du premier déploiement.** Les 293 k£ du premier mois décident de toute la partie :
+   si ces trois projets rendent mal, tout ce qui suit est affamé. Que rapportent-ils réellement, et
+   combien de temps mettent-ils à se rembourser ?
+2. **Le délai de retour.** Le classement ne comporte aucune notion de **payback** : un projet qui
+   rend 50 k£/an en immobilisant 250 k£ bloque la croissance bien plus qu'un projet à 20 k£/an pour
+   40 k£. À capital rare, c'est le temps de retour qui commande, pas le ROI annuel.
+
+⚠️ Ne pas se précipiter sur `reborrow` : `SetLoanAmount(GetMaxLoanAmount())` est déjà appelé au
+démarrage, donc `borrowable` vaut **0** tant que l'emprunt n'est pas remboursé. Le levier n'est pas
+d'emprunter plus, il est de faire tourner ce qu'on a.
+
+---
+
 ## 7 bis. Dimensionnement marginal de flotte (`marginal_fleet`) — MESURÉ, défaut 0, mais le mécanisme est bon (2026-09-01)
 
 **Banc apparié 20 graines × 3 ans** (`docs/bench_marginal_fleet_3y_20seeds.json`, les deux bras
