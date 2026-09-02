@@ -80,6 +80,25 @@ class OpexAIInfo extends AIInfo {
     /* _resizeAirFleets n'emet que ses SUCCES (panneau FG|). Quand une ligne aerienne cesse de
      * grandir -- et la mesure du 2026-09-02 dit 2,2 avions par ligne pour un plafond de 16 --
      * la cause est invisible. FR| donne le PREMIER refus rencontre, une fois par ligne et par an. */
+    /* La note de gare est un MULTIPLICATEUR, pas un bonus : 51 % de la note vient du delai depuis
+     * le dernier ramassage (docs/mecanique_jeu.md S3). Une ligne mal servie effondre sa note et
+     * degrade tout ce qu'elle touche -- donc on regle l'existant avant d'ajouter une liaison.
+     *
+     * Ce n'est pas un arbitrage mais un ORDRE DE SERVICE, et la mesure dit pourquoi : la
+     * croissance de flotte aerienne est refusee 31 fois sur 32 pour TRESORERIE, jamais pour le
+     * plafond de l'aeroport (1,6 avion par ligne pour un plafond de 16, docs/taches.md
+     * S0 quinvicies). Quand `air` passe en premier, il ne reste rien pour `air_fleet`.
+     *
+     * Defaut 1 : adopte sur DECISION de conception (S0 septvicies), le banc vient valider et non
+     * autoriser. 0 rejoue l'ordre historique pour que la comparaison reste possible. */
+    AddSetting({
+      name = "fleet_before_new",
+      description = "Serve air fleet growth before building new air lines: 1 = tune what exists first (default), 0 = historical order",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
     AddSetting({
       name = "air_fleet_probe",
       description = "Emit the reason an air line's fleet did not grow, once per line per year: 1 = measurement only, 0 = no extra signs (default)",

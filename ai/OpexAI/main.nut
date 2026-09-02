@@ -61,6 +61,10 @@ PORTFOLIO_FRESH_BUDGET <- false;
  * n'grandit pas, la cause est invisible. FR| donne le premier refus rencontre, une fois par ligne
  * et par an. */
 AIR_FLEET_PROBE <- false;
+/* fleet_before_new : servir la croissance de flotte avant la construction de lignes aeriennes
+ * neuves. Defaut 1 -- adopte sur DECISION de conception (docs/taches.md S0 septvicies), le banc
+ * vient valider et non autoriser. */
+FLEET_BEFORE_NEW <- true;
 /* Expansion marginale : bras A/B inerte par defaut jusqu'au verdict du banc. */
 RAIL_EXPAND <- false;
 const RAIL_EXPAND_STREAK = 2;
@@ -442,6 +446,21 @@ class OpexAI extends AIController {
       { name = "catalog", dueCycle = 0, enabled = true },
       { name = "report", dueCycle = 0, enabled = true },
       { name = "scrap", dueCycle = 0, enabled = true },
+      /* fleet_before_new : la croissance de flotte passe AVANT la construction de lignes neuves.
+       * La note de gare est un multiplicateur, pas un bonus (docs/mecanique_jeu.md S3 : 51 % de la
+       * note vient du delai depuis le dernier ramassage) : une ligne mal servie effondre sa note et
+       * degrade tout ce qu'elle touche. On regle donc l'existant avant d'ajouter une liaison.
+       *
+       * Ce n'est pas un arbitrage, c'est un ORDRE DE SERVICE, et la mesure dit pourquoi : la
+       * croissance de flotte aerienne est refusee 31 fois sur 32 pour TRESORERIE, jamais pour le
+       * plafond de l'aeroport -- 1,6 avion par ligne pour un plafond de 16 (docs/taches.md
+       * S0 quinvicies). Quand `air` passe en premier, il ne reste rien pour `air_fleet`.
+       *
+       * ⚠️ L'echange N'A PAS LIEU ICI : ce constructeur s'execute AVANT Start(), donc avant la
+       * lecture des reglages, et FLEET_BEFORE_NEW y vaut encore son repli. La file est batie dans
+       * l'ordre historique et echangee dans Start(), une fois le reglage connu.
+       *
+       * L'ordre historique reste joignable par le reglage a 0 pour que le banc puisse trancher. */
       { name = "air", dueCycle = 0, enabled = true },
       { name = "air_fleet", dueCycle = 0, enabled = true },
       { name = "projects", dueCycle = 0, enabled = true },
@@ -2889,6 +2908,19 @@ function OpexAI::Start()
   AIR_PRESITE = AIController.GetSetting("air_presite") != 0;
   PORTFOLIO_FRESH_BUDGET = AIController.GetSetting("portfolio_fresh_budget") != 0;
   AIR_FLEET_PROBE = AIController.GetSetting("air_fleet_probe") != 0;
+  FLEET_BEFORE_NEW = AIController.GetSetting("fleet_before_new") != 0;
+  /* La file a ete batie par le constructeur, avant que ce reglage ne soit lisible : c'est donc
+   * ici, et seulement ici, que l'ordre de service peut etre echange. */
+  if (FLEET_BEFORE_NEW) {
+    for (local i = 0; i < this._taskQueue.len() - 1; i++) {
+      if (this._taskQueue[i].name == "air" && this._taskQueue[i + 1].name == "air_fleet") {
+        local swap = this._taskQueue[i];
+        this._taskQueue[i] = this._taskQueue[i + 1];
+        this._taskQueue[i + 1] = swap;
+        break;
+      }
+    }
+  }
   RAIL_EXPAND = AIController.GetSetting("rail_expand") != 0;
   ASTAR_COST_V2 = AIController.GetSetting("astar_cost") != 0;
   PROBE_NEGATIVE = AIController.GetSetting("probe_negative") != 0;

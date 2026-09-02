@@ -3907,3 +3907,32 @@ compte si on y revient.
    service qui décide, pas le classement.
 2. Étendre le principe aux autres modes : `rail_refleet` (second train, double voie) et
    `road_refleet` existent déjà et sont servis, eux aussi, après la construction neuve.
+
+### Appliqué : `fleet_before_new`, défaut **1** (2026-09-02)
+
+L'échange est fait : la tâche `air_fleet` passe **avant** `air` dans la file. Réglage
+`fleet_before_new`, **défaut 1** — adopté sur décision de conception, le banc vient valider et non
+autoriser ; 0 rejoue l'ordre historique pour que la comparaison reste possible.
+
+⚠️ **Piège évité, à ne pas réintroduire** : `this._taskQueue` est bâtie dans le **constructeur**,
+qui s'exécute AVANT `Start()` et donc avant toute lecture de réglage. Un `FLEET_BEFORE_NEW ? … : …`
+dans la liste littérale aurait figé le repli et rendu le réglage inopérant. L'échange a lieu dans
+`Start()`, une fois la valeur connue.
+
+### 🔶 Reste ouvert : intégrer la CONSTRUCTION de lignes aériennes au portefeuille
+
+Demandé le 2026-09-02, non commencé. La tâche `air` bâtit des lignes neuves **hors** de tout
+arbitrage : §0 unvicies a mesuré que **11 des 12 lignes aériennes sont bâties hors portefeuille**,
+pour 64,5 % du capital. Passer `air_fleet` devant règle l'ordre de service, **pas** le
+court-circuit : `air` continue de choisir seule ce qu'elle construit et de le payer avant que le
+portefeuille n'arbitre quoi que ce soit.
+
+L'intégration devra donc, à terme, supprimer la tâche `air` au profit du seul chemin
+`_tryBuildProjects` (qui sait déjà bâtir de l'aérien, `mode == "air"`). Deux obstacles connus
+avant d'y toucher :
+
+1. `_tryBuildAir` porte des plafonds et une logique de hub (`AIR_STARTER`, `AIR_HUB`,
+   `maxPerYear`/`maxTotal`) que le chemin portefeuille ne réplique pas entièrement.
+2. §0 undecies dit qu'AAAHogEx gagne par la **ruée aérienne** et que nous sommes déjà loin derrière
+   en nombre d'appareils. Subordonner l'aérien à un arbitrage qui l'a jusqu'ici peu élu est un
+   risque réel — c'est précisément pour ça que ça se mesure au lieu de se décréter.
