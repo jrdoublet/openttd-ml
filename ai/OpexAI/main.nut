@@ -1246,7 +1246,7 @@ function OpexAI::_tryBuildFeeders(year)
     }
 
     this._lines.append({
-      stationA = result.stationA, stationB = result.stationB,
+      stationA = result.stopA, stationB = result.stopB,
       originA = candidate.src, originB = candidate.dst,
       cargo = candidate.cargo,
       predicted = candidate.profitAnnual,
@@ -1254,7 +1254,7 @@ function OpexAI::_tryBuildFeeders(year)
       predAmort = candidate.amortAnnual, predCarried = candidate.carried,
       predTrains = candidate.trains, predOneWayDays = candidate.oneWayDays,
       iterations = candidate.iterations, trains = candidate.trains, distance = candidate.distance,
-      year = year, mode = "road", vehicle = result.vehicle,
+      year = year, mode = "road",
       vehicles = result.vehicles,
       lineId = this._nextLineId,
       isFeeder = true,
