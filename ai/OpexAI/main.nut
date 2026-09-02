@@ -67,6 +67,8 @@ AIR_FLEET_PROBE <- false;
  * Pour l'aerien, la LARGEUR bat la PROFONDEUR : une liaison neuve ouvre un flux entier, un avion
  * de plus n'ajoute qu'une tranche marginale. Le reglage reste comme instrument. */
 FLEET_BEFORE_NEW <- false;
+/* Construction dediee de rabattages vers les hubs (docs/taches.md C1). */
+FEEDER_ENABLED <- true;
 /* Expansion marginale : bras A/B inerte par defaut jusqu'au verdict du banc. */
 RAIL_EXPAND <- false;
 const RAIL_EXPAND_STREAK = 2;
@@ -465,6 +467,7 @@ class OpexAI extends AIController {
        * L'ordre historique reste joignable par le reglage a 0 pour que le banc puisse trancher. */
       { name = "air", dueCycle = 0, enabled = true },
       { name = "air_fleet", dueCycle = 0, enabled = true },
+      { name = "feeders", dueCycle = 0, enabled = true },
       { name = "projects", dueCycle = 0, enabled = true },
       { name = "expand", dueCycle = 0, enabled = true },
       { name = "refleet", dueCycle = 0, enabled = true },
@@ -476,6 +479,7 @@ class OpexAI extends AIController {
   function Start();
   function _tooClose(candidate);
   function _tryBuildAir(year);
+  function _tryBuildFeeders(year);
   function _tryBuildProjects(year);
   function _tryTownGrowth(year);
   function _runNextTask();
@@ -674,6 +678,10 @@ function OpexFindStationJoin(candidate, conflicts)
  * changement de l'ordre de catalog.towns entre deux rafraichissements. */
 function OpexAbandonedPairKey(candidate)
 {
+  if (("isFeeder" in candidate) && candidate.isFeeder) {
+    local srcTown = ("srcTown" in candidate && candidate.srcTown >= 0) ? candidate.srcTown : AITile.GetClosestTown(candidate.src);
+    return "feeder|" + srcTown + "|" + candidate.hubStationId;
+  }
   local src = candidate.src;
   local dst = candidate.dst;
   if (candidate.kind == "pax") {
@@ -1171,6 +1179,93 @@ function OpexWaterBatchSiteStillBuildable(site)
 /* Construction multimodale du portefeuille ROI. Parcourt les projets finances ordonnes par opcodeScore,
  * emet le panneau de decision IP et dispatch vers le constructeur specialise. En cas de succes, le portefeuille
  * est immediatement regenere car le capital et les origines ont change. */
+function OpexFeederCandidateCompare(a, b)
+{
+  if (a.roi > b.roi) return -1;
+  if (a.roi < b.roi) return 1;
+  if (a.profitAnnual > b.profitAnnual) return -1;
+  if (a.profitAnnual < b.profitAnnual) return 1;
+  return 0;
+}
+
+/* Tâche dédiée de rabattage bus (feeders) vers les hubs aéroportuaires et ferroviaires (docs/taches.md C1).
+ * Décloisonnée du sac à dos principal pour ne pas être écrasée par l'opcodeScore des lignes aériennes. */
+function OpexAI::_tryBuildFeeders(year)
+{
+  if (!ROAD_BUILD_ENABLED || this._catalog.roadType < 0) return false;
+  if (this._lines.len() == 0) return false;
+
+  local candidates = [];
+  local stats = {
+    pairsInBand = 0, noMonthly = 0, noEngine = 0, townRejected = 0,
+    economicsUnavailable = 0, profitTooLow = 0, accepted = 0,
+    feederHubs = 0, feederCandidates = 0,
+  };
+  OpexRoadFeederCandidates(this._catalog, this._lines, candidates, stats);
+  local anchor = AIMap.GetTileIndex(1, 1);
+  local yy = year % 100;
+  AILog.Info("FD|" + yy + "|" + stats.feederHubs + "|" + stats.feederCandidates + "|" + candidates.len());
+  OpexSign(anchor, "FD|" + yy + "|" + stats.feederHubs + "|" + stats.feederCandidates + "|" + candidates.len());
+  if (candidates.len() == 0) return false;
+
+  candidates.sort(OpexFeederCandidateCompare);
+
+  foreach (candidate in candidates) {
+    if (OpexRoadPairServed(this._lines, candidate.src, candidate.dst)) continue;
+    if (OpexTownRoadLineCount(this._lines, candidate.src) >= 4) continue;
+
+    local abandonedKey = OpexAbandonedPairKey(candidate);
+    if (ABANDON_MEMORY && (abandonedKey in this._abandonedPairs)) continue;
+
+    local need = candidate.capital + OpexCashReserve() + ROAD_CAPITAL_MARGIN;
+    local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+    if (money < need && REBORROW) money = OpexTryReborrow(need, money);
+    if (money < need) continue;
+
+    this._budget.begin();
+    local planning = OpexRoadPlanFor(this._catalog, candidate);
+    local planOps = this._budget.end("build_road_plans");
+    local plan = planning.plan;
+    local idx = this._nextLineId;
+    if (plan == null) {
+      if (ABANDON_MEMORY) this._abandonedPairs[abandonedKey] <- true;
+      OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|" + planning.reason + "|0");
+      continue;
+    }
+    if (TREE_PLANTING) {
+      if (candidate.srcTown >= 0) OpexBoostTownRating(candidate.srcTown, 700, 35);
+      if (candidate.dstTown >= 0) OpexBoostTownRating(candidate.dstTown, 700, 35);
+    }
+    local result = OpexBuildRoadRoute(this._catalog, this._budget, plan, candidate);
+    if (!result.ok) {
+      if (ABANDON_MEMORY) this._abandonedPairs[abandonedKey] <- true;
+      OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|" + result.reason + "|" + result.error);
+      continue;
+    }
+
+    this._lines.append({
+      stationA = result.stationA, stationB = result.stationB,
+      originA = candidate.src, originB = candidate.dst,
+      cargo = candidate.cargo,
+      predicted = candidate.profitAnnual,
+      predRevenue = candidate.revenueAnnual, predRunning = candidate.runningAnnual,
+      predAmort = candidate.amortAnnual, predCarried = candidate.carried,
+      predTrains = candidate.trains, predOneWayDays = candidate.oneWayDays,
+      iterations = candidate.iterations, trains = candidate.trains, distance = candidate.distance,
+      year = year, mode = "road", vehicle = result.vehicle,
+      vehicles = result.vehicles,
+      lineId = this._nextLineId,
+      isFeeder = true,
+      hubStationId = candidate.hubStationId,
+    });
+    AILog.Info("FE|" + yy + "|" + this._nextLineId + "|" + candidate.distance + "|" + candidate.profitAnnual);
+    OpexSign(anchor, "FE|" + yy + "|" + this._nextLineId + "|" + candidate.distance + "|" + candidate.profitAnnual);
+    this._nextLineId++;
+    return true;
+  }
+  return false;
+}
+
 function OpexAI::_tryBuildProjects(year)
 {
   if (PORTFOLIO_FRESH_BUDGET && this._projects != null) {
@@ -1285,15 +1380,14 @@ function OpexAI::_tryBuildProjects(year)
     } else if (mode == "road") {
       if (!ROAD_BUILD_ENABLED || this._catalog.roadType < 0) continue;
       local candidate = project.payload;
+      local isFeeder = ("isFeeder" in candidate) && candidate.isFeeder;
       if (candidate.kind == "pax") {
         if (OpexRoadPairServed(this._lines, candidate.src, candidate.dst)) continue;
         if (OpexTownRoadLineCount(this._lines, candidate.src) >= 4) continue;
-        if (OpexTownRoadLineCount(this._lines, candidate.dst) >= 4) continue;
+        if (!isFeeder && OpexTownRoadLineCount(this._lines, candidate.dst) >= 4) continue;
       } else {
         if (OpexOriginServed(this._lines, candidate.src, true)) continue;
-        if (!("isFeeder" in candidate) || !candidate.isFeeder) {
-          if (OpexOriginServed(this._lines, candidate.dst, true)) continue;
-        }
+        if (OpexOriginServed(this._lines, candidate.dst, true)) continue;
       }
       local abandonedKey = OpexAbandonedPairKey(candidate);
       if (ABANDON_MEMORY && (abandonedKey in this._abandonedPairs)) continue;
@@ -2829,6 +2923,11 @@ function OpexAI::_runNextTask()
     task.dueCycle = this._taskCycle + 1;
     return this._resizeAirFleets(year);
   }
+  if (task.name == "feeders") {
+    if (!FEEDER_ENABLED) { task.enabled = false; return false; }
+    task.dueCycle = this._taskCycle + 1;
+    return this._tryBuildFeeders(year);
+  }
   if (task.name == "projects") {
     return this._tryBuildProjects(year);
   }
@@ -2940,6 +3039,7 @@ function OpexAI::Start()
   local rtf = AIController.GetSetting("rail_terrain_factor");
   if (rtf > 0) RAIL_TERRAIN_FACTOR = rtf;
   RAIL_REFLEET = AIController.GetSetting("rail_refleet") != 0;
+  FEEDER_ENABLED = AIController.GetSetting("feeder_enabled") != 0;
 
   /* 🔴 RENOUVELLEMENT AUTOMATIQUE (2026-08-29). Mesure : campagne 20 ans, graine 42 -- trois des
    * quatre lignes ROUTIERES finissent la partie avec vehCount = 0 et un profit de zero, alors que

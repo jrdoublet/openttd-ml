@@ -140,6 +140,14 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
 
+    AddSetting({
+      name = "feeder_enabled",
+      description = "Tache dediee de rabattage bus vers les hubs aeriens/ferroviaires (docs/taches.md C1): 1 = active (defaut), 0 = desactive",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* Expansion marginale d'une ligne rail existante. Le bras 1 ne cherche aucun nouveau
      * chemin : apres deux releves de saturation sur une ligne a une rame, il ajoute un wagon
      * dans la marge de quai deja payee, seulement si le revenu reel recale predit un gain net.

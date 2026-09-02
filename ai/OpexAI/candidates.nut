@@ -1216,6 +1216,7 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats)
         candidate.roi = (candidate.roi * 160) / 100;
         candidate.ratio = (candidate.ratio * 160) / 100;
         candidate.profitAnnual = (candidate.profitAnnual * 160) / 100;
+        candidate.revenueAnnual = (candidate.revenueAnnual * 160) / 100;
         out.append(candidate);
       }
     }
