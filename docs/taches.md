@@ -5005,7 +5005,7 @@ Il n'y a pas d'A\* fait maison. Seule la fonction de coût est à nous.
 | C12 | **La division entière écrase le rail dans `opcodeScore`** : médianes mesurées air 1037, route 62, **rail 0** | éliminé par division flottante continue | ✅ Fait (§0 tervicies) |
 | C14 | 🔶 **Desserrer le GAIN de la boucle de croissance aérienne** — AAAHogEx achète `(attente − 50) / capacité` appareils, jusqu'à 4 par passage ; nous exigeons une **pleine** capacité en attente et n'ajoutons **qu'un** avion. Le mécanisme est le même, le réglage ne l'est pas | tampon 50 contre 1 pleine capacité | §0 novemvicies point 6 |
 | C15 | 🔶 **Relever la CADENCE de `_resizeAirFleets`** — une croissance par ligne et par an (`lastAirFleetYear`, refus `Y`) contre un passage d'entretien chez eux. Deux réglages séparés de C14, à ne pas grouper | 1/an contre n/cycle | §0 novemvicies point 6 |
-| C21 | 🔴 **`expectedOpcodes` ignore `HARD_ITERATION_CAP` — défaut de PRODUCTION, pas seulement de sonde** : `expectedOps = candidate.iterations × PROJECT_RAIL_OPS_PER_ITERATION` (`projects.nut:122`) utilise un nombre d'itérations **prédit** (36 000 à 75 185 relevés en sonde) alors qu'A3 a plafonné le pathfinder à **10 000** (`pathfinder_hard_cap_k`). Le devis surestime donc d'un facteur **4 à 7** un coût qui ne peut plus être payé. ⚠️ Et `expectedOpcodes` sert au **classement réel** (`OpexProjectModeBetter`, `projects.nut:203`), pas seulement à la sonde : le rail est pénalisé aujourd'hui sur un coût fantôme | tension opcode 1,2-1,8 mesurée au lieu de ~0,28 | §0 duotrigesies, A3 |
+| C21 | **`expectedOpcodes` ignore `HARD_ITERATION_CAP`** : `expectedOps = candidate.iterations × PROJECT_RAIL_OPS_PER_ITERATION` (`projects.nut:122`) utilise un nombre d'itérations prédit sans borner à `HARD_ITERATION_CAP` (10 000) — ✅ Fait (`projects.nut` borne désormais à `HARD_ITERATION_CAP`) | tension opcode 1,2-1,8 mesurée au lieu de ~0,28 | §0 duotrigesies, A3 |
 | C19 | 🔶 **Convertir les boucles `Begin()/Next()` chaudes en pipeline `Valuate` + `Keep*`** — surface réelle mesurée : **17 boucles manuelles** (catalogue 10, `main` 5) contre **3 seuls appels à `Valuate`** dans tout le projet. ⚠️ **Pas gratuit** : la source facture `Squirrel::DecreaseOps(vm, 5)` **par élément** (`script_list.cpp:910`) plus le valuateur — c'est un facteur, pas une exonération. À chiffrer sur le rafraîchissement du catalogue, mesuré à 21 492 opcodes | 5 opcodes/élément contre le corps entier d'une boucle Squirrel | `docs/cible.md` §8.3 |
 | C20 | 🔴 **Échéance PAR MICRO-ÉTAPE, jamais globale** — prérequis de toute exécution incrémentale. `safetyDeadline` est aujourd'hui une échéance en ticks posée **une fois** (`main.nut:2847`) ; c'est elle qui a fait rejeter A4 **deux fois** (−23,1 % puis −13,3 % et −27,5 % de gares) : en mode reprenable la fenêtre est partagée et la recherche meurt avant d'aboutir | ampute au lieu de redistribuer | §0 undecies sexies, `docs/cible.md` §2.1 |
 | C18 | 🔶 **Financement / prospection d'industrie** (`AIIndustryType.BuildIndustry` / `ProspectIndustry`, soumis à `economy.fund_buildings`) — créer un **débouché** là où il n'y en a pas, pour une source déjà desservie mais sous-exploitée faute d'accepteur proche. Plus spéculatif que C17 : à ne prendre qu'après lui | AAAHogEx : **0 occurrence**, comme pour les subventions | `docs/mecanique_jeu.md` §14 et §10 |
@@ -5992,3 +5992,72 @@ quatre (argent 0,11-0,15) : **l'opcode demeure la contrainte qui mord, mais il n
 soit **18,5 ticks de jeu par jour** et non les 74 souvent supposés. À 67 M d'opcodes par an, un
 seul chantier rail au plafond de 10 000 itérations en consomme **31 M, soit 46 % de l'année**.
 C'est le chiffre qui manquait pour situer le pathfinder à l'échelle du reste.
+
+---
+
+## 0 tertrigesies. 🔴 APRÈS C21 : PLUS RIEN NE MORD — et l'opcode n'était qu'un coût fantôme (2026-09-03)
+
+Même sonde, même graines, même horizon, sur l'arbre corrigé par C21
+(`docs/diag_tension_c21.json`).
+
+| | avant C21 | après C21 |
+|---|---:|---:|
+| « ça mord » (tension ≥ 0,50) | 11-12 % | **2-3 %** (11 % sur la graine pauvre) |
+| amplitude médiane de la dominante | 0,048-0,063 | **0,043-0,054** |
+| **quand ça mord, c'est…** | **opcodes 70-80 %** | **argent 100 %, sur les trois graines** |
+
+### 1. 🔴 Ma conclusion n°5 était entièrement un artefact
+
+« Quand ça mord, c'est l'opcode » ne survit pas au correctif : une fois `expectedOpcodes` borné au
+plafond réel du pathfinder, **l'opcode ne mord plus jamais**. Les 70-80 % venaient du devis
+fantôme de 4 à 7 fois trop cher, pas du jeu. La leçon de méthode est la même que celle déjà au
+dossier pour le premier banc de `knapsack_roi` : **une mesure faite sur un code défectueux mesure
+le défaut, pas le phénomène.**
+
+### 2. 🔑 Le vrai résultat : AUCUNE des quatre ressources n'est le mur
+
+Dans **97 à 98 %** des évaluations, la ressource la plus tendue n'est consommée qu'à ~5 % par
+l'action envisagée. Et dans les 2-3 % restants, c'est **toujours l'argent** — c'est-à-dire
+exactement la ressource que le classement actuel met déjà au dénominateur.
+
+➡️ **Le modèle de tension a fait son travail, et sa réponse est négative** : ni le capital, ni les
+opcodes, ni les slots de véhicules, ni le foncier n'expliquent l'inaction. Un dénominateur composé
+réallouerait entre quatre ressources dont aucune n'est rare. **A1 tel qu'il était posé n'est donc
+pas le levier**, et ce n'est pas une déception : c'est la première réponse *négative propre* à une
+question qui traînait depuis le 2026-09-01.
+
+⚠️ Nuance à ne pas perdre : la graine **12345, la pauvre**, mord encore 11 % du temps, et
+toujours sur l'argent. La trésorerie reste le mur **des parties pauvres** — ce qui est cohérent
+avec le mur mesuré de 1970-1980 — mais pas des parties normales à 10 ans.
+
+### 3. 🔴 Ce que la sonde montre en creux : le contrôleur ne REGARDE presque jamais
+
+Chaque ligne `TENSION_COST` correspond à une reconstruction du portefeuille. Comptage sur 10 ans :
+
+| graine | cycles de portefeuille | soit |
+|---|---:|---|
+| 42 | 52 | **5,2 par an** |
+| 999 | 54 | 5,4 par an |
+| 12345 | 15 | 1,5 par an |
+
+**Le portefeuille est reclassé environ cinq fois par an.** Rapproché du goulot mesuré — 61,2 % des
+transitions mensuelles sans construction alors qu'il y a ≥ 300 k£ en caisse — l'explication ne
+serait pas que l'IA est **empêchée**, mais qu'elle ne **regarde pas** : rien ne la contraint, et
+elle n'agit pas non plus.
+
+⚠️ **Hypothèse, pas encore un fait.** Le portefeuille est mis en cache et peut être consulté entre
+deux reconstructions ; le nombre de cycles n'est donc pas le nombre de décisions. Ce qu'il faut
+vérifier avant d'y croire : compter, sur le même journal, les entrées `TASK`, `PROJECT_CHOSEN`,
+`PROJECT_DISCARD` et `PORTFOLIO_EMPTY` par mois, et voir combien de mois ne portent **aucune** de
+ces traces. La donnée est déjà produite ; il n'y a qu'à la lire.
+
+### ➡️ Conséquence sur l'ordre des travaux
+
+1. **Ne pas câbler le dénominateur pondéré maintenant.** Il n'a rien à réallouer : sa condition
+   d'utilité — qu'une ressource soit réellement rare — n'est pas remplie 97 % du temps. Le garder
+   comme instrument, pas comme chantier.
+2. **Compter les mois sans aucune trace de décision** (ci-dessus). C'est gratuit et ça tranche
+   entre « empêchée » et « inactive ».
+3. Si c'est bien l'inaction : **A7 (événements) et C15 (cadence)** deviennent les items de tête,
+   non plus comme « offre d'une ressource rare » mais comme **fréquence de décision** — ce qui est
+   un tout autre mécanisme, et le seul que la mesure désigne encore.
