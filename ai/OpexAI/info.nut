@@ -140,6 +140,56 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* A7.2 : Vente immediate des convois de lignes mortes des leur arrivee au depot via
+     * l'evenement ET_VEHICLE_WAITING_IN_DEPOT (1 = actif, 0 = classique/defaut). */
+    AddSetting({
+      name = "event_depot_sell",
+      description = "Vente immediate des convois ferrailles des leur arrivee au depot via ET_VEHICLE_WAITING_IN_DEPOT (docs/taches.md A7.2): 1 = actif, 0 = cycle annuel classique (defaut)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* A7.1 : Stop-loss immediat sur fermeture d'industrie via l'evenement ET_INDUSTRY_CLOSE
+     * (1 = actif, 0 = cycle annuel classique/defaut). */
+    AddSetting({
+      name = "event_industry_close",
+      description = "Stop-loss immediat sur fermeture d'industrie via ET_INDUSTRY_CLOSE (docs/taches.md A7.1): 1 = actif, 0 = cycle annuel classique (defaut)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* A7.3 / C17 : Sonde subventions en lecture seule via AIEventSubsidy*
+     * (1 = actif, 0 = inactif/defaut). */
+    AddSetting({
+      name = "event_subsidy_probe",
+      description = "Sonde subventions en lecture seule via AIEventSubsidy* (docs/taches.md A7.3 / C17): 1 = actif, 0 = inactif (defaut)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* A7.4 : Alerte et diagnostic des convois perdus/bloques via ET_VEHICLE_LOST
+     * (1 = actif, 0 = inactif/defaut). */
+    AddSetting({
+      name = "event_vehicle_lost",
+      description = "Alerte et diagnostic des convois perdus/bloques via ET_VEHICLE_LOST (docs/taches.md A7.4): 1 = actif, 0 = inactif (defaut)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* A7.5 : Invalidation et rafraichissement reactif du catalogue via ET_INDUSTRY_OPEN et ET_TOWN_FOUNDED
+     * (1 = actif, 0 = cycle annuel classique/defaut). */
+    AddSetting({
+      name = "event_catalog_invalidate",
+      description = "Rafraichissement reactif du catalogue lors de l'ouverture d'industrie ou fondation de ville (docs/taches.md A7.5): 1 = actif, 0 = cycle annuel classique (defaut)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     AddSetting({
       name = "air_max_distance",
       description = "Plafond de distance pour les liaisons aeriennes (0 = illimite, 212 = defaut empirique, docs/taches.md C6)",

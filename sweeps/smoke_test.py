@@ -62,6 +62,10 @@ def verify_plausibility(record):
 def main():
     args = parse_args()
     args.out.parent.mkdir(parents=True, exist_ok=True)
+    import bench_v2
+    bench_v2.CHECKPOINT_PATH = args.out.with_suffix(".jsonl")
+    if bench_v2.CHECKPOINT_PATH.exists():
+        bench_v2.CHECKPOINT_PATH.unlink()
     enable_savegame_cleanup()
 
     built_arms = build_arms([args.arm])

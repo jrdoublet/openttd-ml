@@ -153,6 +153,8 @@ AIR_HUB_FIX <- true;
 /* Plafonds de demande separes pour garder un banc factoriel : croissance et plan. */
 AIR_DEMAND_CAP <- false;
 AIR_DEMAND_PLAN <- false;
+/* C15 : cadence minimale d'agrandissement de flotte en jours (365 = defaut annuel historique). */
+AIR_FLEET_CADENCE_DAYS <- 365;
 TREE_PLANTING <- false;
 PAX_FULL_LOAD <- true;
 COMPLEX_CARGO <- true;
@@ -160,6 +162,16 @@ AIR_STARTER <- true;
 /* Bras experimental : reutiliser un aeroport rentable pour une nouvelle destination. */
 AIR_HUB <- true;
 RAIL_REFLEET <- true;
+/* A7.2 : Vente immediate des convois au depot via ET_VEHICLE_WAITING_IN_DEPOT */
+EVENT_DEPOT_SELL <- false;
+/* A7.1 : Stop-loss immediat sur fermeture d'industrie via ET_INDUSTRY_CLOSE */
+EVENT_INDUSTRY_CLOSE <- false;
+/* A7.3 / C17 : Sonde subventions en lecture seule via AIEventSubsidy* */
+EVENT_SUBSIDY_PROBE <- false;
+/* A7.4 : Alerte et diagnostic convois perdus/bloques via ET_VEHICLE_LOST */
+EVENT_VEHICLE_LOST <- false;
+/* A7.5 : Invalidation reactif catalogue via ET_INDUSTRY_OPEN et ET_TOWN_FOUNDED */
+EVENT_CATALOG_INVALIDATE <- false;
 const CASH_RESERVE_STATIC = 25000;
 const CASH_RESERVE_MIN = 5000;
 const CASH_RESERVE_MAX = 25000;
@@ -561,6 +573,9 @@ class OpexAI extends AIController {
   _lastReportYear = -1;
   _lastAirFleetMonth = -1;
   _lastRepayMonth = -1;
+  _vehiclesToScrap = null;
+  _activeSubsidies = null;
+  _subsidyStats = null;
 
   constructor()
   {
@@ -568,6 +583,9 @@ class OpexAI extends AIController {
     this._catalog = OpexCatalog();
     this._lines = [];
     this._abandonedPairs = {};
+    this._vehiclesToScrap = {};
+    this._activeSubsidies = {};
+    this._subsidyStats = { offers = 0, expiredWithoutAward = 0, awardedSelf = 0, awardedOther = 0, matchedPool = 0 };
     /* Priorite : donnees et stop-loss, croissance des flottes existantes avant nouveaux projets,
      * portefeuille multimodal ROI, croissance urbaine, dette. */
     this._taskQueue = [
@@ -610,6 +628,7 @@ class OpexAI extends AIController {
   function _reportYear(year, ranked);
   function _reportLines(year);
   function _scrapDeadLines(year);
+  function _triggerScrapLine(line, criterion);
   function _refleetRoadLines(year);
   function _resizeAirFleets(year);
   function _expandRailLines(year);
@@ -992,6 +1011,7 @@ function OpexAI::_tryBuildAir(year)
       sharedAirportA = ("reuseA" in plan) && plan.reuseA,
       hubRoutesAtBuild = ("hubRoutes" in plan) ? plan.hubRoutes : 0,
       iterations = 0, trains = result.vehicles.len(), distance = plan.distance, year = year,
+      buildDate = AIDate.GetCurrentDate(),
       mode = "air", vehicle = result.vehicle, vehicles = result.vehicles,
       lastLiveVehicles = result.vehicles.len(), suspectedCrashes = 0,
       lineId = this._nextLineId,
@@ -1628,6 +1648,7 @@ function OpexAI::_tryBuildProjects(year)
           sharedAirportA = ("reuseA" in plan) && plan.reuseA,
           hubRoutesAtBuild = ("hubRoutes" in plan) ? plan.hubRoutes : 0,
           iterations = 0, trains = result.vehicles.len(), distance = plan.distance, year = year,
+          buildDate = AIDate.GetCurrentDate(),
           mode = "air", vehicle = result.vehicle, vehicles = result.vehicles,
           lastLiveVehicles = result.vehicles.len(), suspectedCrashes = 0,
           lineId = this._nextLineId,
@@ -2282,7 +2303,18 @@ function OpexAI::_resizeAirFleets(year)
   }
   if (AIR_ROI_ORDER) airLines.sort(OpexAirFleetPriorityCompare);
   foreach (line in airLines) {
-    if (("lastAirFleetYear" in line) && line.lastAirFleetYear == year) { OpexAirFleetRefusal(line, year, "Y"); continue; }
+    /* C15 : Cadence d'extension de flotte aerienne.
+     * Si AIR_FLEET_CADENCE_DAYS >= 365 : conservation exacte du verrou annuel historique.
+     * Sinon : verrou glissant en jours depuis la derniere extension (ou la creation de la ligne). */
+    if (AIR_FLEET_CADENCE_DAYS >= 365) {
+      if (("lastAirFleetYear" in line) && line.lastAirFleetYear == year) { OpexAirFleetRefusal(line, year, "Y"); continue; }
+    } else {
+      local lastDate = ("lastAirFleetDate" in line) ? line.lastAirFleetDate : (("buildDate" in line) ? line.buildDate : 0);
+      if (lastDate > 0 && (AIDate.GetCurrentDate() - lastDate) < AIR_FLEET_CADENCE_DAYS) {
+        OpexAirFleetRefusal(line, year, "Y");
+        continue;
+      }
+    }
     local have = ("vehCount" in line) ? line.vehCount : (("vehicles" in line) ? line.vehicles.len() : 0);
     if (have < 1) { OpexAirFleetRefusal(line, year, "V"); continue; }
     if (("deadStreak" in line) && line.deadStreak >= 2) { OpexAirFleetRefusal(line, year, "D"); continue; }
@@ -2375,6 +2407,7 @@ function OpexAI::_resizeAirFleets(year)
     }
     if (addedThisPass > 0) {
       line.lastAirFleetYear <- year;
+      line.lastAirFleetDate <- AIDate.GetCurrentDate();
       if (DECISION_LOG) {
         local yieldVal = OpexAirFleetYield(line);
         OpexDecide("AIR_FLEET", "action=grow line=" + line.lineId + " yield=" + yieldVal + " planes_before=" + (have - addedThisPass) + " planes_after=" + have + " added=" + addedThisPass);
@@ -2403,6 +2436,37 @@ function OpexAI::_resizeAirFleets(year)
  * bloquent plus rien (le seul frein etait la presence dans _lines), et demolir ajoute un risque
  * (note d'autorite locale, infrastructure partagee) pour un gain nul ici. */
 
+function OpexAI::_triggerScrapLine(line, criterion)
+{
+  if (("scrapping" in line) && line.scrapping) return;
+  line.scrapping = true;
+  line.deadStreak = DEAD_STREAK_THRESHOLD;
+  local anchor = AIMap.GetTileIndex(1, 1);
+  local year = AIDate.GetYear(AIDate.GetCurrentDate());
+  local stationA = AIStation.GetStationID(line.stationA);
+  local ids = [];
+  local vehicleType = OpexLineVehicleType(line);
+  if (AIStation.IsValidStation(stationA)) {
+    local vehicles = OpexLineVehicleIds(line, stationA);
+    foreach (v in vehicles) {
+      if (!AIVehicle.IsValidVehicle(v)) continue;
+      if (AIVehicle.GetVehicleType(v) != vehicleType) continue;
+      AIVehicle.SendVehicleToDepot(v);
+      ids.append(v);
+      if (EVENT_DEPOT_SELL && this._vehiclesToScrap != null) {
+        this._vehiclesToScrap.rawset(v, line.lineId);
+      }
+    }
+  }
+  line.scrapVehicles = ids;
+  if (DECISION_LOG) {
+    local m = ("mode" in line) ? line.mode : "unknown";
+    OpexDecide("SCRAP_LINE", "action=start line=" + line.lineId + " mode=" + m + " dead_streak=" + line.deadStreak + " threshold=" + DEAD_STREAK_THRESHOLD + " vehicles=" + ids.len() + " criterion=" + criterion);
+  }
+  local signCode = (criterion == "industry_close") ? "C" : "2";
+  OpexSign(anchor, "DL|" + year + "|" + line.lineId + "|" + signCode);
+}
+
 function OpexAI::_scrapDeadLines(year)
 {
   local anchor = AIMap.GetTileIndex(1, 1);
@@ -2413,33 +2477,25 @@ function OpexAI::_scrapDeadLines(year)
     if (!("deadStreak" in line)) continue;  // pax/avion/bateau : jamais candidates
 
     if (!line.scrapping && line.deadStreak >= DEAD_STREAK_THRESHOLD) {
-      line.scrapping = true;
-      local stationA = AIStation.GetStationID(line.stationA);
-      local ids = [];
-      local vehicleType = OpexLineVehicleType(line);
-      if (AIStation.IsValidStation(stationA)) {
-        local vehicles = OpexLineVehicleIds(line, stationA);
-        foreach (v in vehicles) {
-          if (!AIVehicle.IsValidVehicle(v)) continue;
-          if (AIVehicle.GetVehicleType(v) != vehicleType) continue;
-          AIVehicle.SendVehicleToDepot(v);
-          ids.append(v);
-        }
-      }
-      line.scrapVehicles = ids;
-      if (DECISION_LOG) {
-        local m = ("mode" in line) ? line.mode : "unknown";
-        OpexDecide("SCRAP_LINE", "action=start line=" + line.lineId + " mode=" + m + " dead_streak=" + line.deadStreak + " threshold=" + DEAD_STREAK_THRESHOLD + " vehicles=" + ids.len() + " criterion=dead_streak");
-      }
-      OpexSign(anchor, "DL|" + year + "|" + line.lineId + "|2");
+      this._triggerScrapLine(line, "dead_streak");
     }
 
     if (line.scrapping) {
+      if (EVENT_DEPOT_SELL && this._vehiclesToScrap != null && ("scrapVehicles" in line)) {
+        foreach (v in line.scrapVehicles) {
+          if (AIVehicle.IsValidVehicle(v) && !(v in this._vehiclesToScrap)) {
+            this._vehiclesToScrap.rawset(v, line.lineId);
+          }
+        }
+      }
       local remaining = [];
       foreach (v in line.scrapVehicles) {
         if (!AIVehicle.IsValidVehicle(v)) continue;  // deja vendu ou detruit
         if (AIVehicle.IsStoppedInDepot(v)) {
           AIVehicle.SellVehicle(v);
+          if (this._vehiclesToScrap != null && (v in this._vehiclesToScrap)) {
+            delete this._vehiclesToScrap[v];
+          }
           if (DECISION_LOG) {
             OpexDecide("SCRAP_LINE", "action=sell_vehicle line=" + line.lineId + " vehicle=" + v);
           }
@@ -2462,6 +2518,11 @@ function OpexAI::_scrapDeadLines(year)
       if (!("scrapStartYear" in line)) line.scrapStartYear <- year;
       local stuck = (year - line.scrapStartYear) >= SCRAP_TIMEOUT_YEARS;
       if (remaining.len() == 0 || stuck) {
+        if (this._vehiclesToScrap != null) {
+          foreach (v in remaining) {
+            if (v in this._vehiclesToScrap) delete this._vehiclesToScrap[v];
+          }
+        }
         toRemove.append(i);  // i = position physique dans _lines, pour le retrait -- pas le sign
         if (DECISION_LOG) {
           local crit = (remaining.len() == 0) ? "all_sold" : "timeout";
@@ -2730,6 +2791,17 @@ function OpexAI::_reportYear(year, ranked)
     OpexSign(anchor, "OL|" + year + "|" + this._catalog.loco.speed
                              + "|" + this._catalog.costTrackPerTile
                              + "|" + this._catalog.costStation);
+  }
+
+  if (EVENT_SUBSIDY_PROBE && this._subsidyStats != null) {
+    OpexSign(anchor, "SR|" + (year % 100) + "|" + this._subsidyStats.offers
+                     + "|" + this._subsidyStats.matchedPool
+                     + "|" + this._subsidyStats.awardedSelf
+                     + "|" + this._subsidyStats.awardedOther
+                     + "|" + this._subsidyStats.expiredWithoutAward);
+    if (DECISION_LOG) {
+      OpexDecide("SUBSIDY_REPORT", "year=" + year + " offers=" + this._subsidyStats.offers + " matched=" + this._subsidyStats.matchedPool + " awarded_self=" + this._subsidyStats.awardedSelf + " awarded_other=" + this._subsidyStats.awardedOther + " expired=" + this._subsidyStats.expiredWithoutAward);
+    }
   }
 }
 
@@ -3536,23 +3608,267 @@ function OpexAI::_processEvents()
 {
   while (AIEventController.IsEventWaiting()) {
     local event = AIEventController.GetNextEvent();
-    if (event == null || event.GetEventType() != AIEvent.ET_VEHICLE_CRASHED) continue;
-    local crash = AIEventVehicleCrashed.Convert(event);
-    if (crash == null || crash.GetCrashReason() != AIEventVehicleCrashed.CRASH_TRAIN) continue;
+    if (event == null) continue;
+    local eventType = event.GetEventType();
 
-    local vehicle = crash.GetVehicleID();
-    local lineId = -1;
-    foreach (line in this._lines) {
-      if (!("vehicles" in line)) continue;
-      foreach (known in line.vehicles) {
-        if (known == vehicle) { lineId = line.lineId; break; }
+    if (eventType == AIEvent.ET_VEHICLE_CRASHED) {
+      local crash = AIEventVehicleCrashed.Convert(event);
+      if (crash != null && crash.GetCrashReason() == AIEventVehicleCrashed.CRASH_TRAIN) {
+        local vehicle = crash.GetVehicleID();
+        local lineId = -1;
+        foreach (line in this._lines) {
+          if (!("vehicles" in line)) continue;
+          foreach (known in line.vehicles) {
+            if (known == vehicle) { lineId = line.lineId; break; }
+          }
+          if (lineId >= 0) break;
+        }
+        local site = crash.GetCrashSite();
+        OpexSign(AIMap.GetTileIndex(1, 1), "XC|" + (AIDate.GetYear(AIDate.GetCurrentDate()) % 100)
+                 + "|" + lineId + "|" + vehicle + "|" + AIMap.GetTileX(site) + "|"
+                 + AIMap.GetTileY(site) + "|" + crash.GetVictims());
       }
-      if (lineId >= 0) break;
+      continue;
     }
-    local site = crash.GetCrashSite();
-    OpexSign(AIMap.GetTileIndex(1, 1), "XC|" + (AIDate.GetYear(AIDate.GetCurrentDate()) % 100)
-             + "|" + lineId + "|" + vehicle + "|" + AIMap.GetTileX(site) + "|"
-             + AIMap.GetTileY(site) + "|" + crash.GetVictims());
+
+    if (eventType == AIEvent.ET_VEHICLE_WAITING_IN_DEPOT) {
+      if (EVENT_DEPOT_SELL && this._vehiclesToScrap != null) {
+        local depotEvt = AIEventVehicleWaitingInDepot.Convert(event);
+        if (depotEvt != null) {
+          local vehicle = depotEvt.GetVehicleID();
+          if (vehicle in this._vehiclesToScrap) {
+            local lineId = this._vehiclesToScrap[vehicle];
+            if (AIVehicle.IsValidVehicle(vehicle) && AIVehicle.IsStoppedInDepot(vehicle)) {
+              if (AIVehicle.SellVehicle(vehicle)) {
+                if (DECISION_LOG) {
+                  OpexDecide("SCRAP_LINE", "action=event_sell line=" + lineId + " vehicle=" + vehicle);
+                }
+                delete this._vehiclesToScrap[vehicle];
+              }
+            }
+          }
+        }
+      }
+      continue;
+    }
+
+    if (eventType == AIEvent.ET_INDUSTRY_CLOSE) {
+      if (EVENT_INDUSTRY_CLOSE) {
+        local indEvt = AIEventIndustryClose.Convert(event);
+        if (indEvt != null) {
+          local indId = indEvt.GetIndustryID();
+          if (DECISION_LOG) {
+            OpexDecide("EVENT_INDUSTRY_CLOSE", "industry=" + indId);
+          }
+          foreach (line in this._lines) {
+            local srcInd = ("srcIndustry" in line) ? line.srcIndustry : -1;
+            local dstInd = ("dstIndustry" in line) ? line.dstIndustry : -1;
+            if (srcInd == indId || dstInd == indId) {
+              this._triggerScrapLine(line, "industry_close");
+            }
+          }
+          if (this._catalog != null) {
+            this._catalog._refreshIndustries();
+          }
+        }
+      }
+      continue;
+    }
+
+    if (eventType == AIEvent.ET_SUBSIDY_OFFER) {
+      if (EVENT_SUBSIDY_PROBE) {
+        local subEvt = AIEventSubsidyOffer.Convert(event);
+        if (subEvt != null) {
+          local subId = subEvt.GetSubsidyID();
+          if (AISubsidy.IsValidSubsidy(subId)) {
+            local cargo = AISubsidy.GetCargoType(subId);
+            local srcType = AISubsidy.GetSourceType(subId);
+            local srcId = AISubsidy.GetSourceIndex(subId);
+            local dstType = AISubsidy.GetDestinationType(subId);
+            local dstId = AISubsidy.GetDestinationIndex(subId);
+            local expDate = AISubsidy.GetExpireDate(subId);
+            local mult = AIGameSettings.IsValid("difficulty.subsidy_multiplier") ? AIGameSettings.GetValue("difficulty.subsidy_multiplier") : -1;
+            local dur = AIGameSettings.IsValid("difficulty.subsidy_duration") ? AIGameSettings.GetValue("difficulty.subsidy_duration") : -1;
+
+            local matchedLine = -1;
+            foreach (line in this._lines) {
+              if (line.cargo != cargo) continue;
+              local mSrc = false;
+              local mDst = false;
+              if (srcType == AISubsidy.SPT_INDUSTRY && ("srcIndustry" in line) && line.srcIndustry == srcId) mSrc = true;
+              else if (srcType == AISubsidy.SPT_TOWN && ("originA" in line) && line.originA == srcId) mSrc = true;
+              if (dstType == AISubsidy.SPT_INDUSTRY && ("dstIndustry" in line) && line.dstIndustry == dstId) mDst = true;
+              else if (dstType == AISubsidy.SPT_TOWN && ("originB" in line) && line.originB == dstId) mDst = true;
+              if (mSrc && mDst) { matchedLine = line.lineId; break; }
+            }
+
+            if (this._subsidyStats != null) {
+              this._subsidyStats.offers++;
+              if (matchedLine >= 0) this._subsidyStats.matchedPool++;
+            }
+            if (this._activeSubsidies != null) {
+              this._activeSubsidies.rawset(subId, {
+                cargo = cargo, srcType = srcType, srcId = srcId,
+                dstType = dstType, dstId = dstId, expDate = expDate,
+                matchedLine = matchedLine
+              });
+            }
+
+            if (DECISION_LOG) {
+              local cName = AICargo.GetCargoLabel(cargo);
+              OpexDecide("SUBSIDY_OFFER", "sub=" + subId + " cargo=" + cName + " src_t=" + srcType + " src=" + srcId + " dst_t=" + dstType + " dst=" + dstId + " exp=" + expDate + " mult=" + mult + " dur=" + dur + " matched=" + (matchedLine >= 0 ? matchedLine : "none"));
+            }
+            local year = AIDate.GetYear(AIDate.GetCurrentDate());
+            OpexSign(AIMap.GetTileIndex(1, 1), "SO|" + (year % 100) + "|" + subId + "|" + cargo + "|" + (matchedLine >= 0 ? 1 : 0));
+          }
+        }
+      }
+      continue;
+    }
+
+    if (eventType == AIEvent.ET_SUBSIDY_OFFER_EXPIRED) {
+      if (EVENT_SUBSIDY_PROBE) {
+        local subEvt = AIEventSubsidyOfferExpired.Convert(event);
+        if (subEvt != null) {
+          local subId = subEvt.GetSubsidyID();
+          if (this._subsidyStats != null) {
+            this._subsidyStats.expiredWithoutAward++;
+          }
+          if (this._activeSubsidies != null && (subId in this._activeSubsidies)) {
+            delete this._activeSubsidies[subId];
+          }
+          if (DECISION_LOG) {
+            OpexDecide("SUBSIDY_OFFER_EXPIRED", "sub=" + subId);
+          }
+          local year = AIDate.GetYear(AIDate.GetCurrentDate());
+          OpexSign(AIMap.GetTileIndex(1, 1), "SE|" + (year % 100) + "|" + subId);
+        }
+      }
+      continue;
+    }
+
+    if (eventType == AIEvent.ET_SUBSIDY_AWARDED) {
+      if (EVENT_SUBSIDY_PROBE) {
+        local subEvt = AIEventSubsidyAwarded.Convert(event);
+        if (subEvt != null) {
+          local subId = subEvt.GetSubsidyID();
+          local company = AISubsidy.IsValidSubsidy(subId) ? AISubsidy.GetAwardedTo(subId) : -1;
+          local isSelf = (company == AICompany.COMPANY_SELF);
+          if (this._subsidyStats != null) {
+            if (isSelf) this._subsidyStats.awardedSelf++;
+            else this._subsidyStats.awardedOther++;
+          }
+          if (DECISION_LOG) {
+            OpexDecide("SUBSIDY_AWARDED", "sub=" + subId + " company=" + company + " is_self=" + (isSelf ? 1 : 0));
+          }
+          local year = AIDate.GetYear(AIDate.GetCurrentDate());
+          OpexSign(AIMap.GetTileIndex(1, 1), "SA|" + (year % 100) + "|" + subId + "|" + (isSelf ? 1 : 0));
+        }
+      }
+      continue;
+    }
+
+    if (eventType == AIEvent.ET_SUBSIDY_EXPIRED) {
+      if (EVENT_SUBSIDY_PROBE) {
+        local subEvt = AIEventSubsidyExpired.Convert(event);
+        if (subEvt != null) {
+          local subId = subEvt.GetSubsidyID();
+          if (this._activeSubsidies != null && (subId in this._activeSubsidies)) {
+            delete this._activeSubsidies[subId];
+          }
+          if (DECISION_LOG) {
+            OpexDecide("SUBSIDY_EXPIRED", "sub=" + subId);
+          }
+          local year = AIDate.GetYear(AIDate.GetCurrentDate());
+          OpexSign(AIMap.GetTileIndex(1, 1), "SX|" + (year % 100) + "|" + subId);
+        }
+      }
+      continue;
+    }
+
+    if (eventType == AIEvent.ET_VEHICLE_LOST) {
+      if (EVENT_VEHICLE_LOST) {
+        local lostEvt = AIEventVehicleLost.Convert(event);
+        if (lostEvt != null) {
+          local vehicle = lostEvt.GetVehicleID();
+          if (AIVehicle.IsValidVehicle(vehicle)) {
+            local lineId = -1;
+            local vehicleType = AIVehicle.GetVehicleType(vehicle);
+            foreach (line in this._lines) {
+              if (!("vehicles" in line)) continue;
+              foreach (v in line.vehicles) {
+                if (v == vehicle) {
+                  lineId = line.lineId;
+                  if (!("lostCount" in line)) line.lostCount <- 0;
+                  line.lostCount++;
+                  break;
+                }
+              }
+              if (lineId >= 0) break;
+            }
+            local loc = AIVehicle.GetLocation(vehicle);
+            if (DECISION_LOG) {
+              OpexDecide("VEHICLE_LOST", "vehicle=" + vehicle + " line=" + lineId + " type=" + vehicleType + " tile=" + loc);
+            }
+            local year = AIDate.GetYear(AIDate.GetCurrentDate());
+            OpexSign(AIMap.GetTileIndex(1, 1), "VL|" + (year % 100) + "|" + lineId + "|" + vehicle);
+          }
+        }
+      }
+      continue;
+    }
+
+    if (eventType == AIEvent.ET_INDUSTRY_OPEN) {
+      if (EVENT_CATALOG_INVALIDATE) {
+        local indEvt = AIEventIndustryOpen.Convert(event);
+        if (indEvt != null) {
+          local indId = indEvt.GetIndustryID();
+          if (AIIndustry.IsValidIndustry(indId)) {
+            local indType = AIIndustry.GetIndustryType(indId);
+            if (DECISION_LOG) {
+              OpexDecide("EVENT_INDUSTRY_OPEN", "industry=" + indId + " type=" + indType);
+            }
+            local year = AIDate.GetYear(AIDate.GetCurrentDate());
+            OpexSign(AIMap.GetTileIndex(1, 1), "IO|" + (year % 100) + "|" + indId + "|" + indType);
+            if (this._catalog != null) {
+              this._catalog._refreshIndustries();
+            }
+            if (this._taskQueue != null) {
+              foreach (t in this._taskQueue) {
+                if (t.name == "catalog" || t.name == "projects") t.dueCycle = 0;
+              }
+            }
+          }
+        }
+      }
+      continue;
+    }
+
+    if (eventType == AIEvent.ET_TOWN_FOUNDED) {
+      if (EVENT_CATALOG_INVALIDATE) {
+        local townEvt = AIEventTownFounded.Convert(event);
+        if (townEvt != null) {
+          local townId = townEvt.GetTownID();
+          if (AITown.IsValidTown(townId)) {
+            local pop = AITown.GetPopulation(townId);
+            if (DECISION_LOG) {
+              OpexDecide("EVENT_TOWN_FOUNDED", "town=" + townId + " pop=" + pop);
+            }
+            local year = AIDate.GetYear(AIDate.GetCurrentDate());
+            OpexSign(AIMap.GetTileIndex(1, 1), "TF|" + (year % 100) + "|" + townId + "|" + pop);
+            if (this._catalog != null) {
+              this._catalog._refreshTowns();
+            }
+            if (this._taskQueue != null) {
+              foreach (t in this._taskQueue) {
+                if (t.name == "catalog" || t.name == "projects") t.dueCycle = 0;
+              }
+            }
+          }
+        }
+      }
+      continue;
+    }
   }
 }
 
@@ -3836,10 +4152,17 @@ function OpexAI::Start()
   AIR_HUB = AIController.GetSetting("air_hub") != 0;
   local airMaxDist = AIController.GetSetting("air_max_distance");
   if (airMaxDist >= 0) AIR_MAX_DISTANCE = airMaxDist;
+  local afcd = AIController.GetSetting("air_fleet_cadence_days");
+  if (afcd >= 0) AIR_FLEET_CADENCE_DAYS = afcd;
   local rtf = AIController.GetSetting("rail_terrain_factor");
   if (rtf > 0) RAIL_TERRAIN_FACTOR = rtf;
   RAIL_REFLEET = AIController.GetSetting("rail_refleet") != 0;
   FEEDER_ENABLED = AIController.GetSetting("feeder_enabled") != 0;
+  EVENT_DEPOT_SELL = AIController.GetSetting("event_depot_sell") != 0;
+  EVENT_INDUSTRY_CLOSE = AIController.GetSetting("event_industry_close") != 0;
+  EVENT_SUBSIDY_PROBE = AIController.GetSetting("event_subsidy_probe") != 0;
+  EVENT_VEHICLE_LOST = AIController.GetSetting("event_vehicle_lost") != 0;
+  EVENT_CATALOG_INVALIDATE = AIController.GetSetting("event_catalog_invalidate") != 0;
 
   /* 🔴 RENOUVELLEMENT AUTOMATIQUE (2026-08-29). Mesure : campagne 20 ans, graine 42 -- trois des
    * quatre lignes ROUTIERES finissent la partie avec vehCount = 0 et un profit de zero, alors que

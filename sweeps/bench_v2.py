@@ -162,7 +162,12 @@ def parse_opex_variant(name):
             # de chevauchement rail/route que les commentaires du fichier decrivent deja.
             if not 5 <= value <= 40:
                 raise ValueError("rail_min_distance doit etre entre 5 et 40")
-        elif key in ("abandon_memory", "station_join", "join_place", "origin_sitable", "basin_share", "reborrow", "road_mode", "road_refleet", "road_multistop", "astar_cost", "probe_negative", "pax_near", "rail_cost_probe", "rail_expand", "town_growth", "dynamic_cash_reserve", "dynamic_pathfinder_cap", "tree_planting", "loop_budget", "portfolio_v2", "fleet_fix", "economy_fix", "growth_yields", "air_margin", "air_abandon", "pricing_road_rating", "pricing_rail_depot", "pricing_road_ops", "pax_full_load", "complex_cargo", "air_starter", "air_hub", "rail_refleet", "marginal_fleet", "air_cost_probe", "air_presite", "portfolio_fresh_budget", "air_fleet_probe", "fleet_before_new", "air_roi_order", "rail_search_resumable", "rail_segmented_search", "decision_log", "reserve_maint_cap", "air_margin_v2", "knapsack_roi", "pool_financeable", "air_hub_fix", "air_demand_cap", "air_demand_plan"):
+        elif key == "air_fleet_cadence_days":
+            if not 0 <= value <= 365:
+                raise ValueError("air_fleet_cadence_days doit etre entre 0 et 365")
+            if value % 5:
+                raise ValueError("air_fleet_cadence_days doit etre un multiple de 5 (step_size)")
+        elif key in ("abandon_memory", "station_join", "join_place", "origin_sitable", "basin_share", "reborrow", "road_mode", "road_refleet", "road_multistop", "astar_cost", "probe_negative", "pax_near", "rail_cost_probe", "rail_expand", "town_growth", "dynamic_cash_reserve", "dynamic_pathfinder_cap", "tree_planting", "loop_budget", "portfolio_v2", "fleet_fix", "economy_fix", "growth_yields", "air_margin", "air_abandon", "pricing_road_rating", "pricing_rail_depot", "pricing_road_ops", "pax_full_load", "complex_cargo", "air_starter", "air_hub", "rail_refleet", "marginal_fleet", "air_cost_probe", "air_presite", "portfolio_fresh_budget", "air_fleet_probe", "fleet_before_new", "air_roi_order", "rail_search_resumable", "rail_segmented_search", "decision_log", "reserve_maint_cap", "air_margin_v2", "knapsack_roi", "pool_financeable", "air_hub_fix", "air_demand_cap", "air_demand_plan", "event_depot_sell", "event_industry_close", "event_subsidy_probe", "event_vehicle_lost", "event_catalog_invalidate"):
             if value not in (0, 1):
                 raise ValueError(f"{key} est booleen : 0 ou 1")
         else:
