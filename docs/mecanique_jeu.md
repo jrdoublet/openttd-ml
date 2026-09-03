@@ -893,3 +893,80 @@ Deux règles qui ne sont **pas** dans cette page, et qui en bornent la portée :
 > Si un jour on relie deux lacs : (1) mesurer d'abord ; (2) terraform à sec, inonder en
 > dernier ; (3) ne jamais `LowerTile` une tuile déjà eau ; (4) ne jamais rehausser depuis la
 > mer ; (5) rester au niveau 0 — sinon ce n'est plus le trick, c'est `BuildCanal` + écluse.
+
+---
+
+## 14. Subventions et financement d'industries — deux leviers que personne n'a touchés chez nous
+
+Apport de l'utilisateur (2026-09-03). Traité comme le reste de ce document : **règle + conséquence
+pour la conception**, en séparant ce qui est vérifié de ce qui ne l'est pas.
+
+### La règle
+
+Le jeu publie régulièrement des appels d'offres : relier deux points précis pour un cargo donné.
+La **première** compagnie qui établit la liaison et livre dans la fenêtre remporte le contrat, et
+les revenus de cette liaison sont **multipliés** pendant une durée fixée.
+
+**✅ Vérifié — la surface d'API**, en lisant du code qui s'en sert réellement
+(`ai/AdmiralAI/road/buslinemanager.nut:221-247`) :
+
+```squirrel
+local subsidies = AISubsidyList();
+subsidies.Valuate(AISubsidy.IsAwarded);        subsidies.KeepValue(0);   // non encore remportees
+subsidies.Valuate(AISubsidy.GetCargoType);     subsidies.KeepValue(pax);
+subsidies.Valuate(AISubsidy.GetSourceType);    subsidies.KeepValue(AISubsidy.SPT_TOWN);
+subsidies.Valuate(AISubsidy.GetDestinationType); subsidies.KeepValue(AISubsidy.SPT_TOWN);
+/* We need at least 6 months or the subsidy might already be expired before we are done building */
+subsidies.Valuate(AISubsidy.GetExpireDate);    subsidies.KeepAboveValue(AIDate.GetCurrentDate() + 180);
+```
+
+Donc : `AISubsidyList`, `IsAwarded`, `GetCargoType`, `GetSourceType` / `GetDestinationType`
+(`SPT_TOWN` ou industrie), `GetSourceIndex` / `GetDestinationIndex`, `GetExpireDate`. Et un
+garde-fou empirique déjà écrit par quelqu'un d'autre : **ne pas tenter sous 180 jours restants**.
+
+**❓ NON vérifié dans le source** — la fenêtre de 12 mois, la durée du bonus (~1 an) et le
+multiplicateur (annoncé 1,5 à 4 selon la configuration). Ces valeurs sont **lisibles au runtime**
+par l'IA elle-même : `AIGameSettings.GetValue("difficulty.subsidy_multiplier")` et
+`"difficulty.subsidy_duration"` — c'est le geste que nous utilisons déjà pour
+`station.station_spread` et `vehicle.freight_trains` (`catalog.nut:249-250`). **Les lire plutôt
+que les coder en dur**, cf. la consigne « pas de constantes ».
+
+### 🔑 Le fait qui décide de la priorité
+
+**AAAHogEx n'utilise NI les subventions NI le financement d'industries.** Zéro occurrence de
+`AISubsidy`, `BuildIndustry` et `ProspectIndustry` dans ses **37 531 lignes**. **AdmiralAI**, plus
+ancienne et bien plus faible, s'en sert.
+
+Deux lectures possibles, et **on ne tranche pas à vue** :
+- soit c'est un **angle mort** de l'adversaire qui nous bat 8×, donc un avantage à prendre ;
+- soit c'est un levier que le meilleur joueur du lot a **écarté en connaissance de cause**.
+
+### Conséquence pour la conception
+
+1. **Ça vise exactement notre mur.** Le goulot mesuré de 1970-1980 est la trésorerie
+   (`docs/opexai_plafonnement.md`), et un multiplicateur de revenus sur une ligne **courte** en
+   début de partie attaque ce mur-là précisément, sans capital supplémentaire.
+2. 🔴 **Mais notre cadence de décision est incompatible avec une fenêtre datée.** Plusieurs de nos
+   chemins ne décident **qu'une fois par an** (rattrapage annuel, croissance de flotte :
+   `lastAirFleetYear`, refus `Y`). Une subvention à saisir en 12 mois — pose comprise — ne peut pas
+   être vue par une boucle annuelle. C'est le même obstacle que **C15** (relever la cadence), et ça
+   lui donne une seconde justification indépendante.
+3. **Une subvention n'est pas un stock, c'est une opportunité DATÉE**, et c'est un bon test du
+   modèle de tension (§3 terdecies du backlog) : sa grandeur limitante est un **temps avant
+   fermeture**, pas un rapport coût/disponible. Si le vecteur de tension ne sait pas représenter une
+   fenêtre qui se referme, il est incomplet — mieux vaut le découvrir sur ce cas-là que plus tard.
+4. **Le financement d'industrie** (`AIIndustryType.BuildIndustry` / `ProspectIndustry`, soumis à
+   `economy.fund_buildings`) crée un **débouché** là où il n'y en a pas : une source déjà desservie
+   mais sous-exploitée faute d'accepteur proche. C'était déjà noté §10 comme piste non chiffrée ;
+   ça le reste, et c'est plus spéculatif que les subventions.
+
+### Le plus petit pas utile, et il ne construit rien
+
+Une **sonde en lecture seule** : compter, sur une partie de 10 ans, combien de subventions sont
+publiées, combien portent sur une paire **déjà présente dans notre vivier**, combien expirent sans
+preneur, et quel multiplicateur la partie applique réellement. Zéro construction, zéro décision.
+
+Si la réponse est « trois offres en dix ans, aucune sur une paire qui nous intéresse », la question
+est close pour le coût d'une sonde. Si elle est « une offre exploitable par an », c'est un revenu
+gratuit que nous laissons passer — et le silence d'AAAHogEx devient une opportunité, pas un
+avertissement.
