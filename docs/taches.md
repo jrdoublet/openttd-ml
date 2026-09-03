@@ -5004,7 +5004,7 @@ Il n'y a pas d'A\* fait maison. Seule la fonction de coût est à nous.
 | C11 | **`candidates.nut:166-170` + `:188`** : double pénalité empilée sur `distance > 105`, non recalibrée | ✅ Fait (§0 septdecies) | §0 septdecies |
 | C12 | **La division entière écrase le rail dans `opcodeScore`** : médianes mesurées air 1037, route 62, **rail 0** | éliminé par division flottante continue | ✅ Fait (§0 tervicies) |
 | C14 | 🔶 **Desserrer le GAIN de la boucle de croissance aérienne** — AAAHogEx achète `(attente − 50) / capacité` appareils, jusqu'à 4 par passage ; nous exigeons une **pleine** capacité en attente et n'ajoutons **qu'un** avion. Le mécanisme est le même, le réglage ne l'est pas | tampon 50 contre 1 pleine capacité | §0 novemvicies point 6 |
-| C15 | 🔶 **Relever la CADENCE de `_resizeAirFleets`** — une croissance par ligne et par an (`lastAirFleetYear`, refus `Y`) contre un passage d'entretien chez eux. Deux réglages séparés de C14, à ne pas grouper | 1/an contre n/cycle | §0 novemvicies point 6 |
+| C15 | **Relever la CADENCE de `_resizeAirFleets`** — ✅ Fait (`air_fleet_cadence_days` configurable : 365 = annuel/défaut historique, glissant en jours sinon, avec mémorisation de `buildDate` et `lastAirFleetDate`) | 1/an contre n/cycle | §0 novemvicies point 6 |
 | C21 | **`expectedOpcodes` ignore `HARD_ITERATION_CAP`** : `expectedOps = candidate.iterations × PROJECT_RAIL_OPS_PER_ITERATION` (`projects.nut:122`) utilise un nombre d'itérations prédit sans borner à `HARD_ITERATION_CAP` (10 000) — ✅ Fait (`projects.nut` borne désormais à `HARD_ITERATION_CAP`) | tension opcode 1,2-1,8 mesurée au lieu de ~0,28 | §0 duotrigesies, A3 |
 | C19 | **Convertir les boucles `Begin()/Next()` chaudes en pipeline `Valuate` + `Keep*`** — ✅ Fait (`catalog.nut`, `main.nut`, `tension.nut` convertis aux pipelines natifs `Valuate`/`Keep*`) | 5 opcodes/élément contre le corps entier d'une boucle Squirrel | `docs/cible.md` §8.3 |
 | C20 | 🔴 **Échéance PAR MICRO-ÉTAPE, jamais globale** — prérequis de toute exécution incrémentale. `safetyDeadline` est aujourd'hui une échéance en ticks posée **une fois** (`main.nut:2847`) ; c'est elle qui a fait rejeter A4 **deux fois** (−23,1 % puis −13,3 % et −27,5 % de gares) : en mode reprenable la fenêtre est partagée et la recherche meurt avant d'aboutir | ampute au lieu de redistribuer | §0 undecies sexies, `docs/cible.md` §2.1 |
@@ -6120,3 +6120,80 @@ au mauvais endroit, ce que personne ne pouvait savoir avant d'avoir ce tableau.
 ⚠️ Rappel de §0 tertrigesies : **l'opcode ne mord plus** une fois `expectedOpcodes` corrigé. Ce
 tableau dit où part le budget, **pas** qu'il manque. À utiliser pour rendre la planification
 aérienne moins chère si on y touche, pas comme une urgence.
+
+---
+
+## 0 quintrigesies. 🔑 NI EMPÊCHÉE NI ENDORMIE : L'IA REJETTE — 2 à 5 projets élus en DIX ANS (2026-09-03)
+
+`sweeps/diag_decisions.py`, 3 graines × 10 ans × 2 cadences, `docs/diag_decisions.json`.
+Comptage par mois de jeu sur 120 mois, plus l'histogramme des décisions.
+
+### 1. ❌ Mon hypothèse « le contrôleur ne regarde pas » est RÉFUTÉE
+
+| cadence | mois avec une trace | mois **évalués** | mois avec une **action** |
+|---|---:|---:|---:|
+| 365 (défaut) | 116-120 / 120 | **86-89 %** | **47 %** |
+| 90 | 118-119 / 120 | 86 % | 50 % |
+
+L'IA tourne quasiment tous les mois et **évalue 9 mois sur 10**. §0 tertrigesies avançait qu'elle
+« ne regarde que 5 fois par an » à partir du nombre de reconstructions de portefeuille : c'était
+bien une hypothèse, et elle est fausse — le portefeuille est mis en cache et **consulté** bien
+plus souvent qu'il n'est reconstruit. L'avertissement écrit à l'époque a servi.
+
+### 2. 🔑 Ce qu'elle fait de ces évaluations : elle rejette
+
+Sur **dix ans**, par graine :
+
+| | 42 | 999 | 7 |
+|---|---:|---:|---:|
+| `PORTFOLIO_RANK` (classements) | 123 | 141 | 109 |
+| `PROJECT_DISCARD` | 111 | 134 | 71 |
+| **`PROJECT_CHOSEN`** | **4** | **2** | **5** |
+| `PORTFOLIO_EMPTY` | 4 | 3 | 4 |
+
+**Le portefeuille élit 2 à 5 projets en dix ans**, pour 71 à 134 rejets — un ratio d'environ
+**30 rejets pour une élection**. Et il n'est presque jamais vide (0-4 fois) : **les candidats sont
+là, ils sont classés, et ils sont écartés.**
+
+➡️ La réponse à « empêchée ou inactive » est **ni l'une ni l'autre : rejetante**. Rien ne la
+contraint (§0 tertrigesies : aucune tension ne mord dans 97 % des cas), elle regarde presque tous
+les mois, elle a des candidats — et elle n'en retient quasiment aucun.
+
+### 3. 🔴 Et l'essentiel de la construction passe À CÔTÉ du portefeuille
+
+Constructions réelles sur dix ans :
+
+| | 42 | 999 | 7 |
+|---|---:|---:|---:|
+| `AIR_BUILD` | 18 | 13 | **68** |
+| `FEEDER_BUILD` | 7 | 3 | 15 |
+| `ROAD_BUILD` | 2 | 2 | 3 |
+| **`RAIL_BUILD`** | **1** | **0** | **2** |
+| **`WATER_BUILD`** | **0** | **0** | **0** |
+
+Des dizaines de liaisons aériennes pour **2 à 5 `PROJECT_CHOSEN`** : la quasi-totalité de l'air
+est bâtie par son bras dédié, **hors arbitrage** — ce que B5 signalait déjà (« 11 lignes sur 12
+hors arbitrage »), désormais chiffré sur dix ans. Le portefeuille n'est pas le moteur de l'IA,
+c'est un canal secondaire.
+
+Deux constats collatéraux : **le rail construit 0 à 2 lignes en dix ans**, et **l'eau n'en
+construit jamais aucune**.
+
+### 4. ✅ C15 n'est pas inerte — il déplace les trajectoires
+
+| cadence | extensions aériennes (42 / 999 / 7) | `AIR_BUILD` |
+|---|---|---|
+| 365 | 22 / 37 / 29 | 18 / 13 / 68 |
+| 90 | 32 / 29 / 35 | 6 / 54 / 64 |
+
+L'effet n'est **pas monotone** — +45 % d'extensions sur la graine 42, **−22 %** sur la 999 — parce
+qu'agrandir plus tôt change ce qui reste finançable ensuite. Mais le mécanisme **mord** : c'est
+exactement le contrôle qui manquait à `portfolio_max_batch` (rejeté avec 11 graines sur 20 en nuls
+exacts). ➡️ **C15 est banchable** ; son signe reste inconnu, et le défaut à 365 rejoue le
+comportement historique à l'identique.
+
+### ➡️ La prochaine coupe, et elle est gratuite
+
+`PROJECT_DISCARD` porte un champ `reason=`. Le journal existe déjà : il n'y a qu'à agréger les
+motifs des 71-134 rejets par graine pour savoir **pourquoi** 30 projets sont écartés pour un
+élu. C'est la question qui commande tout le reste — et elle ne coûte qu'un parseur.
