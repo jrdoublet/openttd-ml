@@ -2476,6 +2476,55 @@ et la leçon du §0 undecies septies dit que c'est cette catégorie-là qui agit
   viderait le vivier. Prévoir une marge, ou filtrer sur le budget **maximal mobilisable**.
 - l'aérien est déjà bâti par sa voie dédiée ; le retirer du vivier ne le supprime pas du jeu.
 
+✅ **Implémenté le 2026-09-03, réglage `pool_financeable` (défaut 0, non mesuré) — pas encore
+adopté.** `OpexBuildProjects` (`projects.nut:542`) calcule maintenant `capitalCeiling`, le plus
+haut `capitalBudget` jamais observé (jamais décroissant, transmis d'une régénération à l'autre via
+`this._projects.capitalBudgetPeak`, les deux points d'appel dans `main.nut`) plutôt que
+l'instantané du passage — la seconde réserve ci-dessus, réglée en suivant l'option « budget maximal
+mobilisable » plutôt que la marge, précisément parce que la régénération a lieu juste après un
+achat (creux de trésorerie du cycle) : filtrer sur l'instant aurait presque toujours appliqué le
+seuil le plus strict possible. L'admission au vivier (`byBudget`, ligne ~646) rejette maintenant
+tout candidat dont `budgetCapital > capitalCeiling` sous `pool_financeable=1`, compté dans
+`stats.poolInfundable` et journalisé dans `VIVIER`. La voie aérienne dédiée (`_tryBuildAir`) n'est
+pas touchée (première réserve).
+
+🟡 **Mesuré le 2026-09-03 — NEUTRE, `pool_financeable` PAS adopté.**
+
+D'abord contre AAAHogEx (`docs/bench_pool_financeable_3y_20seeds.json`, 20 graines × 3 ans) :
+`OpexAI[pool_financeable=1]` perd 0/20 sur tout, `company_value` −86,7 %. Sans valeur en soi — c'est
+le même écart structurel que la référence (`−87,8 %`), et un 1v1 contre un adversaire qui gagne déjà
+par ~87 % ne peut isoler l'effet d'un seul réglage.
+
+L'isolation qui compte, `pool_financeable=1` contre `pool_financeable=0`, mêmes graines
+(`docs/bench_pool_financeable_iso_3y_20seeds.json`) :
+
+| métrique | delta moyen | t | graines gagnées | test des signes (p) |
+|---|---:|---:|---:|---:|
+| `company_value` | +8,1 % | 1,48 | 13/20 | 0,26 (NS) |
+| `profit` (trimestre) | +8,6 % | 0,77 | **16/20** | **0,012** |
+| `profit_year` | +11,7 % | 1,52 | 13/20 | 0,26 (NS) |
+| `performance_history` | +3,5 % | 0,88 | 11/20 | 0,82 (NS) |
+| `median_station_rating` | **−1,6 %** | −1,00 | **5/20** | **0,041** |
+
+Aucune moyenne ne franchit le plancher de détection (~15 % sur `company_value` à n=20,
+[[banc_monograine_insuffisant]]). Le test des signes isole deux effets réels sous le plancher des
+moyennes : `profit` du dernier trimestre gagne significativement (16/20, p=0,012) — mais c'est la
+métrique la plus bruitée, pas `profit_year` ; et `median_station_rating` **perd** significativement
+(seulement 5/20, p=0,041) — un coût réel, pas du bruit, dans l'ordre d'objectifs n°3. `company_value`
+et `profit_year`, les métriques qui comptent le plus dans l'ordre d'objectifs, restent NON
+significatives (p=0,26).
+
+**Verdict du banc : structure correcte (documentée ci-dessus, aucune régression de mécanisme), mais
+le gain de profit ne se traduit pas encore en valeur de compagnie mesurable, et coûte une note de
+gare mesurable.**
+
+✅ **Adopté quand même le 2026-09-03, décision utilisateur explicite.** `pool_financeable` passe à
+`1` par défaut (`main.nut`, `info.nut`) malgré le verdict neutre ci-dessus — la décision assume le
+coût mesuré sur `median_station_rating` (5/20, p=0,041) contre le signal de profit (16/20,
+p=0,012) et la tendance positive non significative sur `company_value`/`profit_year`. Piste à
+creuser si le sujet est repris : le vivier filtré construit-il des lignes plus courtes/moins bien
+desservies (d'où la note en baisse) en échange du peu de profit gagné ?
+
 ### 4. `origin_served` n'est PAS le motif de rejet dominant
 
 Motifs à la génération, cumulés sur 3 parties × 16 ans :

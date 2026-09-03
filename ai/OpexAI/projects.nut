@@ -413,6 +413,7 @@ function OpexLogVivier(path, candidates, stats, capitalBudget, capitalRemaining)
   if (DECISION_LOG) {
     OpexDecide("VIVIER", "path=" + path + " considered=" + stats.budgetConsidered
                + " selected=" + stats.budgetSelected + " rejected=" + stats.budgetRejected
+               + " infundable=" + stats.poolInfundable
                + " budget=" + capitalBudget + " remaining=" + capitalRemaining);
   }
   if (candidates == null) return;
@@ -538,7 +539,7 @@ function OpexProjectEmptyRoad()
   };
 }
 
-function OpexBuildProjects(catalog, budget, lines)
+function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0)
 {
   local rail = OpexBuildCandidates(catalog, budget, lines);
   local road = ROAD_BUILD_ENABLED
@@ -550,6 +551,13 @@ function OpexBuildProjects(catalog, budget, lines)
   if (borrowable < 0) borrowable = 0;
   local capitalBudget = cash + borrowable - OpexCashReserve();
   if (capitalBudget < 0) capitalBudget = 0;
+  /* Plafond de financabilite pour l'ADMISSION au vivier, distinct du capitalBudget instantane
+   * utilise plus bas pour le sac a dos. La regeneration a lieu juste apres un achat (cash au
+   * plancher du cycle) ou une fois par mois ; filtrer l'admission sur ce seul instant viderait le
+   * vivier a chaque passage pauvre alors que le capital mobilisable grimpe ensuite jusqu'a 3x plus
+   * haut avant la prochaine regeneration (docs/taches.md S0 undecies nonies). Le plafond retenu
+   * est donc le plus haut capital mobilisable jamais observe, jamais decroissant. */
+  local capitalCeiling = (priorCapitalPeak > capitalBudget) ? priorCapitalPeak : capitalBudget;
 
   local airPlan = null;
   local airPlans = [];
@@ -573,7 +581,7 @@ function OpexBuildProjects(catalog, budget, lines)
     modeCandidates = 0, modeAlternatives = 0, modeReplaced = 0,
     odProjects = 0, budgetConsidered = 0, budgetSelected = 0,
     budgetRejected = 0, selectedRevenue = 0, selectedCapital = 0,
-    knapsackNodes = 0, knapsackExact = true,
+    knapsackNodes = 0, knapsackExact = true, poolInfundable = 0,
   };
   /* Branchement explicite plutot qu'une fonction passee dans un local : ce depot a deja paye
    * plusieurs echecs Squirrel silencieux, et ici une IA morte ressemblerait exactement a une IA
@@ -635,6 +643,14 @@ function OpexBuildProjects(catalog, budget, lines)
   } else {
     foreach (key, project in winners) {
       stats.odProjects++;
+      /* Ne pas depenser une place de vivier sur un candidat qui ne peut etre finance a aucun
+       * passage plausible (docs/taches.md S0 undecies nonies) : l'aerien y occupait 43 % du
+       * vivier pour 0 selection en 16 ans. Sa voie dediee (_tryBuildAir) reste intacte : ce filtre
+       * ne touche que l'admission au sac a dos. */
+      if (POOL_FINANCEABLE && project.budgetCapital > capitalCeiling) {
+        stats.poolInfundable++;
+        continue;
+      }
       OpexProjectInsert(byBudget, project, "budgetScore", PROJECT_POOL_K);
     }
     local knapsack = OpexKnapsackSolve(byBudget, capitalBudget, ROAD_MAX_NEW_LINES_PER_YEAR, PROJECT_TOP_K);
@@ -688,6 +704,7 @@ function OpexBuildProjects(catalog, budget, lines)
     return {
       all = stats.odProjects, best = byOpcodes, stats = stats,
       capitalBudget = capitalBudget, generationCapitalBudget = capitalBudget,
+      capitalBudgetPeak = capitalCeiling,
       capitalRemaining = remaining, candidateGroups = winners, budgetCandidates = byBudget,
       rail = rail, road = road, airPlan = airPlan, waterPlan = waterPlan,
       airPlans = airPlans, waterPlans = waterPlans,
@@ -696,7 +713,8 @@ function OpexBuildProjects(catalog, budget, lines)
   }
   return {
     all = stats.odProjects, best = byOpcodes, stats = stats,
-    capitalBudget = capitalBudget, capitalRemaining = remaining,
+    capitalBudget = capitalBudget, capitalBudgetPeak = capitalCeiling,
+    capitalRemaining = remaining,
     rail = rail, road = road, airPlan = airPlan, waterPlan = waterPlan,
     airPlans = airPlans, waterPlans = waterPlans,
     airPlanningOpcodes = airOps, waterPlanningOpcodes = waterOps,

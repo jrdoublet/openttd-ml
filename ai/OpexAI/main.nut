@@ -141,6 +141,18 @@ AIR_MARGIN_V2 <- false;
  * Consequence attendue, mesuree par le banc : donner plus de capital cesse de degrader le choix
  * (docs/taches.md S0 undecies septies). */
 KNAPSACK_ROI <- false;
+/* docs/taches.md S0 undecies nonies (2026-09-03) : le vivier est rempli sans test de
+ * financabilite, sur budgetScore seul (une DENSITE). L'aerien y occupait 43 % des 128 places pour
+ * 0 selection en 16 ans -- structurellement trop cher pour tout capitalBudget observe (~131 000 £
+ * contre 30-92 000 £). 1 = filtrer l'admission au vivier sur le plafond de capital mobilisable
+ * jamais observe, AVANT troncature a PROJECT_POOL_K ; 0 = comportement precedent (classement par
+ * densite seule).
+ *
+ * ADOPTE le 2026-09-03 par decision utilisateur MALGRE un banc d'isolation NEUTRE (20 graines x
+ * 3 ans) : company_value +8,1 % et profit_year +11,7 % ne franchissent pas le plancher de
+ * detection (t=1,48 et 1,52), et median_station_rating perd significativement au test des signes
+ * (5/20, p=0,041). Rien n'est casse -- le gain de valeur n'est simplement pas encore prouve. */
+POOL_FINANCEABLE <- true;
 TREE_PLANTING <- false;
 PAX_FULL_LOAD <- true;
 COMPLEX_CARGO <- true;
@@ -1962,7 +1974,9 @@ function OpexAI::_tryBuildProjects(year)
   }
 
   if (builtCount > 0) {
-    this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines);
+    local priorPeak = (this._projects != null && ("capitalBudgetPeak" in this._projects))
+        ? this._projects.capitalBudgetPeak : 0;
+    this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines, priorPeak);
     this._ranked = this._projects.rail;
     if (DECISION_LOG) OpexLogPortfolioRank(this._projects);
     /* `knapsackExact` et le compteur d'imbrications du budget etaient ECRITS ET LUS NULLE PART.
@@ -3609,7 +3623,9 @@ function OpexAI::_runNextTask()
     if (this._lastCatalogMonth == ym && this._projects != null && !stale) return false;
     this._lastCatalogMonth = ym;
     this._catalog.refresh(this._budget, year);
-    this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines);
+    local priorPeak = (this._projects != null && ("capitalBudgetPeak" in this._projects))
+        ? this._projects.capitalBudgetPeak : 0;
+    this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines, priorPeak);
     this._ranked = this._projects.rail;
     if (DECISION_LOG) {
       if (this._projects != null && this._projects.best != null && this._projects.best.len() > 0) {
@@ -3790,6 +3806,7 @@ function OpexAI::Start()
   RESERVE_MAINT_CAP = AIController.GetSetting("reserve_maint_cap") != 0;
   AIR_MARGIN_V2 = AIController.GetSetting("air_margin_v2") != 0;
   KNAPSACK_ROI = AIController.GetSetting("knapsack_roi") != 0;
+  POOL_FINANCEABLE = AIController.GetSetting("pool_financeable") != 0;
   DYNAMIC_PATHFINDER_CAP = AIController.GetSetting("dynamic_pathfinder_cap") != 0;
   TREE_PLANTING = AIController.GetSetting("tree_planting") != 0;
   PAX_FULL_LOAD = AIController.GetSetting("pax_full_load") != 0;

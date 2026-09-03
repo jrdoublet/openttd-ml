@@ -619,6 +619,25 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
+    /* docs/taches.md S0 undecies nonies (2026-09-03) : mesure directe du vivier -- l'aerien y
+     * occupe 43 % des 128 places (56 en moyenne) pour 0 selection par le sac a dos en 16 ans,
+     * parce qu'il coute ~131 000 £ contre un capitalBudget moyen de 40 000 £, et que le vivier est
+     * rempli sur budgetScore (une densite) sans jamais tester la financabilite.
+     *
+     * ADOPTE le 2026-09-03 par decision utilisateur, MALGRE un banc d'isolation NEUTRE (20 graines
+     * x 3 ans, docs/bench_pool_financeable_iso_3y_20seeds.json) : company_value +8,1 % (t=1,48,
+     * NS), profit_year +11,7 % (t=1,52, NS), aucune moyenne ne franchit le plancher de detection.
+     * Le test des signes isole deux effets reels sous ce plancher : profit du dernier trimestre
+     * gagne (16/20, p=0,012) mais median_station_rating perd (5/20, p=0,041). La structure ne
+     * casse rien ; elle n'a simplement pas encore prouve de gain de valeur mesurable. */
+    AddSetting({
+      name = "pool_financeable",
+      description = "Filter pool admission on the highest ever-observed mobilisable capital before truncating to PROJECT_POOL_K, instead of ranking by density alone: 1 = enabled (default, adopted 2026-09-03 despite a neutral isolation bench), 0 = rank by density alone",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
     AddSetting({
       name = "air_margin_v2",
       description = "Lower the air cash margins (refleet 2000->0, two new airports 30000->15000, one 12000->6000): 1 = enabled, 0 = current margins (default)",
