@@ -152,6 +152,108 @@ function OpexAirLineStationId(line, which)
   return AIStation.GetStationID(tile);
 }
 
+/* Modele unique de temps de vol pour l'economie et le plafond de demande. */
+function OpexAirTripModel(speed, capacity, distance)
+{
+  local effectiveSpeed = speed / 4.0;
+  if (effectiveSpeed < 1.0) effectiveSpeed = 1.0;
+  local flightDays = distance.tofloat() / (0.036 * effectiveSpeed);
+  local airportDelayDays = 3.0;
+  local oneWayDays = flightDays + airportDelayDays;
+  if (oneWayDays < 1.0) oneWayDays = 1.0;
+  local roundTripDays = 2.0 * oneWayDays;
+  local tripsPerMonth = 30.4 / oneWayDays;
+  return {
+    effectiveSpeed = effectiveSpeed, flightDays = flightDays,
+    airportDelayDays = airportDelayDays, oneWayDays = oneWayDays,
+    roundTripDays = roundTripDays, tripsPerMonth = tripsPerMonth,
+    capacityPerPlane = capacity * tripsPerMonth,
+  };
+}
+
+/* Compte les lignes aeriennes vivantes qui touchent CET aeroport. Les champs stationA/B sont
+ * des TUILES : chaque comparaison passe donc par GetStationID, comme le controle des hubs de
+ * batch dans main.nut. */
+function OpexAirLiveRoutesAtAirport(airportTile, lines)
+{
+  if (airportTile == null || !AIMap.IsValidTile(airportTile) || lines == null) return 0;
+  local station = AIStation.GetStationID(airportTile);
+  if (!AIStation.IsValidStation(station)) return 0;
+  local routes = 0;
+  foreach (other in lines) {
+    if (!("mode" in other) || other.mode != "air") continue;
+    local live = false;
+    if (("vehicles" in other) && other.vehicles != null) {
+      foreach (v in other.vehicles) {
+        if (AIVehicle.IsValidVehicle(v)) { live = true; break; }
+      }
+    } else if (("vehicle" in other) && AIVehicle.IsValidVehicle(other.vehicle)) {
+      live = true;
+    }
+    if (!live) continue;
+    local otherA = ("stationA" in other) ? OpexAirLineStationId(other, 0) : -1;
+    local otherB = ("stationB" in other) ? OpexAirLineStationId(other, 1) : -1;
+    if (otherA == station || otherB == station) routes++;
+  }
+  return routes;
+}
+
+/* Plafond de flotte derive d'un FLUX mensuel, jamais du stock de cargo en attente. */
+function OpexAirDemandCap(line, catalog, lines)
+{
+  local speed = (("plane" in catalog) && catalog.plane != null) ? catalog.plane.speed : 1;
+  if (("vehicles" in line) && line.vehicles != null) {
+    foreach (v in line.vehicles) {
+      if (!AIVehicle.IsValidVehicle(v)) continue;
+      speed = AIEngine.GetMaxSpeed(AIVehicle.GetEngineType(v));
+      break;
+    }
+  } else if (("vehicle" in line) && AIVehicle.IsValidVehicle(line.vehicle)) {
+    speed = AIEngine.GetMaxSpeed(AIVehicle.GetEngineType(line.vehicle));
+  }
+  local capacity = ("planeCapacity" in line) ? line.planeCapacity : 0;
+  if (capacity <= 0 && ("plane" in catalog) && catalog.plane != null) {
+    capacity = catalog.plane.capacity;
+  }
+  local distance = OpexFlightDistance(line.stationA, line.stationB);
+  local trip = OpexAirTripModel(speed, capacity, distance);
+
+  local routesA = OpexAirLiveRoutesAtAirport(line.stationA, lines);
+  local routesB = OpexAirLiveRoutesAtAirport(line.stationB, lines);
+  local divisorA = routesA > 0 ? routesA : 1;
+  local divisorB = routesB > 0 ? routesB : 1;
+  local townA = AITile.GetClosestTown(line.originA);
+  local townB = AITile.GetClosestTown(line.originB);
+  local prodA = townA >= 0 ? AITown.GetLastMonthProduction(townA, line.cargo) : 0;
+  local prodB = townB >= 0 ? AITown.GetLastMonthProduction(townB, line.cargo) : 0;
+  if (prodA < 0) prodA = 0;
+  if (prodB < 0) prodB = 0;
+  local demandA = ((prodA * TOWN_CATCHMENT_SHARE_PCT) / 100) / divisorA;
+  local demandB = ((prodB * TOWN_CATCHMENT_SHARE_PCT) / 100) / divisorB;
+  local monthlyDemand = demandA + demandB;
+  local cap = trip.capacityPerPlane > 0
+      ? OpexCeilDiv(monthlyDemand, trip.capacityPerPlane) : 1;
+  if (cap < 1) cap = 1;
+  return {
+    cap = cap, monthlyDemand = monthlyDemand,
+    capacityPerPlane = trip.capacityPerPlane,
+    routesA = routesA, routesB = routesB,
+  };
+}
+
+/* Adapte un plan non encore construit a OpexAirDemandCap. Le mini-catalogue porte l'avion de
+ * CE combo, qui est le repli de vitesse tant qu'aucun appareil n'est en service. */
+function OpexAirPlanDemand(siteA, siteB, plane, catalog, lines)
+{
+  local candidate = {
+    stationA = siteA.anchor, stationB = siteB.anchor,
+    originA = siteA.town.tile, originB = siteB.town.tile,
+    cargo = catalog.paxCargo, planeCapacity = plane.capacity,
+    vehicles = [],
+  };
+  return OpexAirDemandCap(candidate, { plane = plane }, lines);
+}
+
 function OpexAirAirportAcceptsPlane(airportType, planeType)
 {
   if (planeType == AIAirport.PT_SMALL_PLANE) return true;
@@ -235,17 +337,14 @@ function OpexAirFindSite(town, airport, probes)
 
 /* Economie et dimensionnement optimal de flotte selon les caracteristiques du vehicule. */
 function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
-                          infrastructureMaintenance, maxCapital, newAirportCount = 2)
+                          infrastructureMaintenance, maxCapital, newAirportCount = 2,
+                          demandCap = 0)
 {
-  local effectiveSpeed = plane.speed / 4.0;
-  if (effectiveSpeed < 1.0) effectiveSpeed = 1.0;
-  local flightDays = distance.tofloat() / (0.036 * effectiveSpeed);
-  local airportDelayDays = 3.0;
-  local oneWayDays = flightDays + airportDelayDays;
-  if (oneWayDays < 1.0) oneWayDays = 1.0;
-  local roundTripDays = 2.0 * oneWayDays;
-  local tripsPerMonth = 30.4 / oneWayDays;
-  local capacityPerPlane = plane.capacity * tripsPerMonth;
+  local trip = OpexAirTripModel(plane.speed, plane.capacity, distance);
+  local oneWayDays = trip.oneWayDays;
+  local roundTripDays = trip.roundTripDays;
+  local tripsPerMonth = trip.tripsPerMonth;
+  local capacityPerPlane = trip.capacityPerPlane;
   if (capacityPerPlane <= 0) return null;
   local incomeDays = OpexCeilDiv(oneWayDays, 1);
   local paxIncome = AICargo.GetCargoIncome(catalog.paxCargo, distance, incomeDays);
@@ -261,13 +360,15 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
   local airportAmortAnnual = newAirportCount * airport.price / 30;
   local best = null;
 
-  /* Plafond d'appareils initial : jusqu'à 3 sur nouvelle ligne, jusqu'à 6 sur hub existant.
+  /* Plafond d'appareils initial : jusqu'a 3 sur nouvelle ligne, jusqu'a 6 sur hub existant.
    * marginal_fleet = 1 (2026-09-01) : demarrage MINIMAL, 1 seul avion quel que soit le type
    * d'aeroport -- la croissance se fait ensuite par _resizeAirFleets (main.nut), apres un an
    * d'existence et une charge complete mesuree, jamais en achetant d'emblee tout ce que le modele
-   * predit. Sous 0 (defaut), ce bloc ne change rien au calcul existant. */
+   * predit. air_demand_plan remplace le plafond fixe par celui du flux reel ; sous 0, ce bloc
+   * garde le calcul existant. */
   local isSmall = (airport.type == AIAirport.AT_SMALL || airport.type == AIAirport.AT_COMMUTER);
   local maxAllowed = MARGINAL_FLEET ? 1 : ((newAirportCount == 2) ? 3 : (isSmall ? 4 : 6));
+  if (!MARGINAL_FLEET && AIR_DEMAND_PLAN && demandCap > 0) maxAllowed = demandCap;
   /* Dimensionnement cible selon le volume passagers */
   local targetPlanes = OpexCeilDiv(monthlyPax, capacityPerPlane.tointeger());
   if (targetPlanes < 1) targetPlanes = 1;
@@ -479,13 +580,19 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
         local popA = sites[a].town.pop;
         local popB = sites[b].town.pop;
         local monthlyPax = ((popA + popB) * 22) / 100;
+        local demandCap = 0;
+        if (AIR_DEMAND_PLAN) {
+          local demand = OpexAirPlanDemand(sites[a], sites[b], plane, catalog, lines);
+          monthlyPax = demand.monthlyDemand;
+          demandCap = demand.cap;
+        }
         if (monthlyPax < 10) monthlyPax = 10;
         if (a == 0 && b == 1) {
           OpexSign(AIMap.GetTileIndex(1, 5), "AX|PA=" + popA + "|PB=" + popB + "|MPX=" + monthlyPax);
         }
 
         local economics = OpexAirEconomics(catalog, airport, plane, flightDistance, monthlyPax,
-                                            infrastructureMaintenance, maxCapital, 2);
+                                            infrastructureMaintenance, maxCapital, 2, demandCap);
         if (economics == null) continue;
 
         local plan = {
@@ -632,9 +739,15 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
         local hubMonthly = ((hub.town.pop * 22) / 100) / (hub.routes + 1);
         local newMonthly = (site.town.pop * 22) / 100;
         local monthlyPax = hubMonthly + newMonthly;
+        local demandCap = 0;
+        if (AIR_DEMAND_PLAN) {
+          local demand = OpexAirPlanDemand(hub, site, plane, catalog, lines);
+          monthlyPax = demand.monthlyDemand;
+          demandCap = demand.cap;
+        }
         if (monthlyPax < 10) monthlyPax = 10;
         local economics = OpexAirEconomics(catalog, airport, plane, flightDistance, monthlyPax,
-                                            infrastructureMaintenance, maxCapital, 1);
+                                            infrastructureMaintenance, maxCapital, 1, demandCap);
         if (economics == null || economics.profitAnnual <= 0) continue;
         local plan = {
           siteA = hub, siteB = site, distance = flightDistance, orderDistance = orderDistance,
@@ -680,9 +793,15 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
         local monthly1 = ((hub1.town.pop * 22) / 100) / (hub1.routes + 1);
         local monthly2 = ((hub2.town.pop * 22) / 100) / (hub2.routes + 1);
         local monthlyPax = monthly1 + monthly2;
+        local demandCap = 0;
+        if (AIR_DEMAND_PLAN) {
+          local demand = OpexAirPlanDemand(hub1, hub2, plane, catalog, lines);
+          monthlyPax = demand.monthlyDemand;
+          demandCap = demand.cap;
+        }
         if (monthlyPax < 10) monthlyPax = 10;
         local economics = OpexAirEconomics(catalog, airport, plane, flightDistance, monthlyPax,
-                                            infrastructureMaintenance, maxCapital, 0);
+                                            infrastructureMaintenance, maxCapital, 0, demandCap);
         if (economics == null || economics.profitAnnual <= 0) continue;
         local plan = {
           siteA = hub1, siteB = hub2, distance = flightDistance, orderDistance = orderDistance,

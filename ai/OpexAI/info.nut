@@ -655,6 +655,24 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
+    /* Plafond de croissance derive du flux mensuel reel, instrument separe du plan. */
+    AddSetting({
+      name = "air_demand_cap",
+      description = "Cap growth of each air fleet from captured monthly town production and aircraft throughput: 1 = enabled, 0 = physical airport cap only (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* Dimensionnement du plan par le meme flux, independant du plafond de croissance. */
+    AddSetting({
+      name = "air_demand_plan",
+      description = "Size new air plans from captured monthly town production instead of population and fixed fleet caps: 1 = enabled, 0 = historical planning model (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     AddSetting({
       name = "air_margin_v2",
       description = "Lower the air cash margins (refleet 2000->0, two new airports 30000->15000, one 12000->6000): 1 = enabled, 0 = current margins (default)",

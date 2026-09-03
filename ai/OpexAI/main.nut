@@ -160,6 +160,9 @@ POOL_FINANCEABLE <- true;
  * `/(routes+1)` toujours divisee par 1. 1 = resolution correcte tuile -> StationID ;
  * 0 = comportement casse d'avant le 2026-09-03, pour que le banc puisse chiffrer l'ecart. */
 AIR_HUB_FIX <- true;
+/* Plafonds de demande separes pour garder un banc factoriel : croissance et plan. */
+AIR_DEMAND_CAP <- false;
+AIR_DEMAND_PLAN <- false;
 TREE_PLANTING <- false;
 PAX_FULL_LOAD <- true;
 COMPLEX_CARGO <- true;
@@ -2220,7 +2223,8 @@ function OpexAI::_reportLines(year)
  * file ne le resonde pas a chaque cycle et ne gaspille donc pas d'opcodes. */
 /* Cause du refus de croissance d'une flotte aerienne, une seule fois par ligne et par an.
  * Codes : Y deja grandie cette annee, V aucun avion vivant, D ligne morte, L profit negatif,
- * C plafond de l'aeroport atteint, S un an de mauvaise sante, M tresorerie, X l'achat a echoue. */
+ * C plafond physique de l'aeroport atteint, Q plafond de demande atteint,
+ * S un an de mauvaise sante, M tresorerie, X l'achat a echoue. */
 function OpexAirFleetRefusal(line, year, code)
 {
   if (!AIR_FLEET_PROBE && !DECISION_LOG) return;
@@ -2239,14 +2243,16 @@ function OpexAirFleetRefusal(line, year, code)
   if (DECISION_LOG) {
     local yieldVal = OpexAirFleetYield(line);
     local have = ("vehCount" in line) ? line.vehCount : (("vehicles" in line) ? line.vehicles.len() : 0);
-    local reasonStr = (code == "Y") ? "already_grown_this_year" :
-                     ((code == "V") ? "no_live_aircraft" :
-                     ((code == "D") ? "dead_line" :
-                     ((code == "L") ? "negative_profit" :
-                     ((code == "C") ? "airport_capacity_reached" :
-                     ((code == "S") ? "poor_health_streak" :
-                     ((code == "M") ? "insufficient_cash" :
-                     ((code == "X") ? "purchase_failed" : code)))))));
+    local reasonStr = code;
+    if (code == "Y") reasonStr = "already_grown_this_year";
+    else if (code == "V") reasonStr = "no_live_aircraft";
+    else if (code == "D") reasonStr = "dead_line";
+    else if (code == "L") reasonStr = "negative_profit";
+    else if (code == "C") reasonStr = "airport_capacity_reached";
+    else if (code == "Q") reasonStr = "demand_cap_reached";
+    else if (code == "S") reasonStr = "poor_health_streak";
+    else if (code == "M") reasonStr = "insufficient_cash";
+    else if (code == "X") reasonStr = "purchase_failed";
     OpexDecide("AIR_FLEET", "action=refuse line=" + line.lineId + " reason=" + reasonStr + " planes=" + have + " yield=" + yieldVal);
   }
 }
@@ -2329,8 +2335,22 @@ function OpexAI::_resizeAirFleets(year)
         (AIAirport.IsAirportTile(line.stationB) && AIAirport.GetAirportType(line.stationB) == AIAirport.AT_SMALL)) {
       isSmallAirport = true;
     }
-    local maxPlanesForAirport = isSmallAirport ? 4 : AIR_MAX_PLANES_PER_ROUTE;
-    if (have >= maxPlanesForAirport) { OpexAirFleetRefusal(line, year, "C"); continue; }
+    local physicalMaxPlanes = isSmallAirport ? 4 : AIR_MAX_PLANES_PER_ROUTE;
+    local maxPlanesForAirport = physicalMaxPlanes;
+    if (have >= physicalMaxPlanes) { OpexAirFleetRefusal(line, year, "C"); continue; }
+    if (AIR_DEMAND_CAP) {
+      local demand = OpexAirDemandCap(line, this._catalog, this._lines);
+      if (demand.cap < maxPlanesForAirport) maxPlanesForAirport = demand.cap;
+      if (DECISION_LOG) {
+        OpexDecide("AIR_DEMAND_CAP", "line=" + line.lineId + " cap=" + demand.cap
+                   + " monthly_demand=" + demand.monthlyDemand
+                   + " capacity_per_plane=" + demand.capacityPerPlane
+                   + " routes_a=" + demand.routesA + " routes_b=" + demand.routesB
+                   + " planes=" + have + " physical_cap=" + physicalMaxPlanes
+                   + " applied_cap=" + maxPlanesForAirport);
+      }
+      if (have >= maxPlanesForAirport) { OpexAirFleetRefusal(line, year, "Q"); continue; }
+    }
     if (("deadStreak" in line) && line.deadStreak >= 1) { OpexAirFleetRefusal(line, year, "S"); continue; }
     if (("lastProfit" in line) && line.lastProfit < 0) { OpexAirFleetRefusal(line, year, "L"); continue; }
 
@@ -3815,6 +3835,8 @@ function OpexAI::Start()
   KNAPSACK_ROI = AIController.GetSetting("knapsack_roi") != 0;
   POOL_FINANCEABLE = AIController.GetSetting("pool_financeable") != 0;
   AIR_HUB_FIX = AIController.GetSetting("air_hub_fix") != 0;
+  AIR_DEMAND_CAP = AIController.GetSetting("air_demand_cap") != 0;
+  AIR_DEMAND_PLAN = AIController.GetSetting("air_demand_plan") != 0;
   DYNAMIC_PATHFINDER_CAP = AIController.GetSetting("dynamic_pathfinder_cap") != 0;
   TREE_PLANTING = AIController.GetSetting("tree_planting") != 0;
   PAX_FULL_LOAD = AIController.GetSetting("pax_full_load") != 0;

@@ -5216,3 +5216,81 @@ comportement cassé pour que l'écart reste chiffrable.
 ➡️ Suite naturelle, **pas encore faite** : maintenant que `routes` est enfin correct, la décote
 `/(routes+1)` et le plafond `maxRoutes` sont vivants pour la première fois — ce sont eux que le
 plafond dérivé de la demande (§3 undecies point 1) doit remplacer ou calibrer.
+
+---
+
+## 3 undecies bis. 🧪 PLAFOND AÉRIEN DE DEMANDE CÂBLÉ, à sonder avant banc (2026-09-03)
+
+Deux instruments indépendants, tous deux à défaut 0, sont maintenant exposés :
+`air_demand_cap` borne la croissance de `_resizeAirFleets`, tandis que `air_demand_plan` remplace
+le dimensionnement fixe et le proxy de population dans les trois bras du plan (`newpair`,
+`hubsite`, `hubhub`). Les quatre combinaisons 0/0, 1/0, 0/1 et 1/1 restent donc mesurables.
+
+La production mensuelle réelle de chaque ville est multipliée par
+`TOWN_CATCHMENT_SHARE_PCT = 22 %`, puis divisée par le nombre de lignes aériennes vivantes qui
+desservent l'aéroport, comptées après résolution de sa **tuile** en `StationID` (diviseur 1 si
+l'aéroport n'a encore aucune ligne). Les deux parts sont additionnées. La capacité mensuelle d'un
+avion est `capacité × 30,4 / oneWayDays`, avec le même modèle de vol que l'économie aérienne ; la
+vitesse vient du premier avion vivant de la ligne, ou de l'avion du catalogue pour un plan. Le
+plafond est `ceil(demande mensuelle / capacité mensuelle)`, avec un plancher de 1. En croissance,
+il est combiné par `min` avec le plafond physique 4/16 ; un refus de demande porte le code `Q`,
+distinct du code physique `C`, et `DECISION_LOG` publie les deux ingrédients du calcul.
+
+Cette première version est volontairement une borne haute : elle ignore les aéroports et lignes
+futurs qui détourneront ensuite une part du flux. Elle ne consulte jamais le stock
+`AIStation.GetCargoWaiting`, réservé au mécanisme `marginal_fleet`.
+
+Avant tout banc, une sonde 1 graine × 3 ans doit montrer le nombre de refus `Q`, la distribution
+du plafond calculé, et la marge entre flotte courante et plafond. Si `Q = 0`, le mécanisme ne mord
+pas et aucun banc n'est justifié. Sinon seulement, lancer un banc apparié 20 graines × 10 ans sur
+les quatre bras factoriels, lire `profit_year` avant `company_value`, puis vérifier le test des
+signes en plus du test t.
+
+### 🧪 SONDE FAITE le 2026-09-03 — `docs/diag_air_demand_cap.json` (`sweeps/diag_air_demand_cap.py`)
+
+4 bras factoriels × 3 graines × 3 ans, `decision_log=1`. ⚠️ **Ce n'est pas un banc** : 3 graines ne
+tranchent rien, et rien ici n'est un résultat significatif. La sonde sert à décider s'il y a
+quelque chose à mesurer.
+
+| bras | valeur (42 / 999 / 12345) | avions | lignes air | refus `Q` |
+|---|---:|---:|---:|---:|
+| base | 601 568 / 882 581 / **1** | 14 / 26 / 6 | 5 / 8 / 3 | 0 / 0 / 0 |
+| `cap` | 416 188 / 945 495 / **1** | 8 / 22 / 6 | 4 / 10 / 3 | **24 / 75 / 43** |
+| `plan` | **865 314 / 1 556 737 / 242 451** | 18 / 36 / 10 | 3 / 5 / 2 | 0 / 0 / 0 |
+| `cap+plan` | 725 322 / 982 669 / 316 681 | 6 / 10 / 4 | 3 / 4 / 2 | 23 / 30 / 20 |
+
+**1. `air_demand_cap` MORD — et c'est justement le problème.** 24, 75 et 43 refus `Q` contre
+**0 refus `C`** : le plafond de demande se déclenche là où le plafond physique n'a jamais rien
+retenu (§0 quinvicies, 0 refus sur 32). Marge médiane **0**, souvent négative — la ligne 0 de la
+graine 42 tourne à 2 avions pour un plafond de 1, le plafond n'arrivant qu'après la croissance et
+ne vendant jamais. Les ingrédients bruts : demande captée **70 à 280 pax/mois**, capacité d'un
+avion **90 à 132 pax/mois**, donc un plafond de **1 à 3 appareils**. Et il se resserre seul : la
+demande de la ligne 0 tombe de 193 à 76 quand `routes_a` passe de 1 à 2, le bassin étant partagé.
+Effet sur la valeur : −31 % / +7 % / nul. **Ça rabote, ça ne paie pas.**
+
+**2. `air_demand_plan` n'affame PAS le bras aérien — il le concentre.** C'était la crainte
+explicite avant la sonde ; elle est démentie. **Moins de lignes** (3/5/2 contre 5/8/3) mais **plus
+d'avions** (18/36/10 contre 14/26/6), et la valeur monte sur **3 graines sur 3** : +44 %, +76 %, et
+**1 → 242 451** sur la graine 12345, celle qui s'effondrait déjà sous `air_hub_fix`. Mécanisme
+cohérent : avec une assiette de demande vraie — donc bien plus basse — `OpexAirEconomics` cesse de
+surestimer le revenu de chaque paire, moins de plans passent `profitAnnual > 0`, et le capital se
+concentre sur les paires réellement bonnes que la croissance remplit ensuite. C'est la
+largeur-contre-profondeur d'A2 prise par l'autre bout.
+
+**3. Les deux ensemble s'annulent.** `cap+plan` est sous `plan` seul sur 2 graines sur 3, avec 3 à
+4 fois moins d'avions : le plafond étrangle la croissance que la meilleure sélection venait
+d'ouvrir. ➡️ Confirme après coup qu'il fallait **deux réglages séparés** : en un seul, ce résultat
+était illisible.
+
+**4. 🔴 Le suspect n°1 du plafond : les 22 % sont calibrés sur des gares RAIL.**
+`TOWN_CATCHMENT_SHARE_PCT` a été mesuré le 2026-08-28 comme le résidu
+« production atteignant la gare ÷ `AITown.GetLastMonthProduction` » sur **9 lignes pax rail**
+(8-37 %, moyenne 22 %, `candidates.nut:485-492`) — l'avertissement était déjà écrit dans
+`docs/mecanique_jeu.md` §. Un aéroport ne couvre pas le même rayon qu'une gare ferroviaire. Un
+plafond à 1-3 avions sur une paire qui en nourrit visiblement 6 est donc plus probablement un
+**coefficient faux** qu'une vérité économique. À recalibrer par le même résidu, sur des lignes
+aériennes, avant de rejuger le plafond de croissance.
+
+**Décision de l'utilisateur (2026-09-03) : pas de banc sur `air_demand_plan`.** Défauts laissés à
+0 des deux côtés en attendant. Piste ouverte à la place : lire comment AAAHogEx estime, lui, la
+demande qui justifie ses ~35 appareils (délégué à agy le même jour).
