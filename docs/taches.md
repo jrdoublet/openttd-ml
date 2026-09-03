@@ -5409,3 +5409,82 @@ headway ; l'ingrédient manquant est le `stationDateSpan` de chaque type d'aéro
 - Les **valeurs numériques** de `stationDateSpan` par type d'aéroport, jamais lues.
 - L'estimation « ~21 à ~33 appareils » est un calcul d'agy sur la formule, **pas** une mesure en
   partie ; le chiffre observé de ~35 appareils, lui, vient de nos propres bancs.
+
+---
+
+## 3 duodecies. 💡 UNE « PERSONNALITÉ » D'OPEXAI À LA PLACE DES RÉGLAGES (idée de l'utilisateur, 2026-09-03)
+
+**L'idée, telle qu'énoncée** : quand tout sera stabilisé, remplacer la plupart des paramètres
+d'`info.nut` par une **personnalité** — agressive, pacifique, perfectionniste, etc. — au lieu d'une
+liste de commutateurs.
+
+⚠️ **Explicitement datée « quand tout sera stabilisé »** : ce n'est pas un item à prendre avant que
+les instruments en cours aient rendu leur verdict.
+
+### Le crochet existe déjà, et il est inutilisé
+
+`AddSetting` porte `easy_value` / `medium_value` / `hard_value` / `custom_value`. Sur les
+**64 réglages** d'`info.nut`, **les quatre valeurs sont identiques partout** : 35 booléens à 0,
+23 à 1, 6 numériques. Le mécanisme de profil prévu par l'API NoAI est donc entièrement disponible,
+et n'a jamais servi. Une personnalité peut se câbler comme un réglage entier `personality` lu dans
+`Start()`, qui écrase les constantes globales avant la première itération — quelques lignes, aucun
+coût d'opcode en régime.
+
+### 🔴 La contrainte qui décide de la forme : une personnalité est un LOT
+
+Ce projet s'est déjà fait piéger **deux fois** par des lots :
+
+1. **Les treize corrections du 2026-09-02** (§0 nonies bis), benchées ensemble : le lot paraissait
+   plat parce qu'il contenait des effets **de signes opposés** — `economy_fix` positif et
+   `portfolio_v2` destructeur s'annulaient. Il a fallu les isoler pour voir quoi que ce soit.
+2. **Un seuil de trésorerie** dont l'implémentation changeait deux choses à la fois, et qui a
+   failli être rejeté à tort.
+
+Et le 2026-09-03, `air_demand_cap` + `air_demand_plan` ont dû être livrés en **deux réglages
+séparés** précisément pour cette raison : ensemble, ils s'annulent (§3 undecies bis point 3), et en
+un seul commutateur le résultat aurait été illisible.
+
+➡️ **Conséquence non négociable : la personnalité est une COUCHE DE PRÉRÉGLAGES au-dessus des
+instruments, jamais leur remplacement.** Chaque constante doit rester adressable seule, sinon le
+banc perd son seul outil de discrimination. Ce qui disparaît, c'est l'obligation de choisir 64
+valeurs à la main — pas la possibilité de le faire.
+
+### Ce qui est réellement matière à personnalité, et ce qui ne l'est pas
+
+La majorité des 64 réglages actuels ne sont **pas** des choix de tempérament : ce sont des
+**verdicts de mesure**. `air_hub_fix` à 1 corrige un défaut de type ; `fleet_before_new` à 0 est
+rejeté à −20,4 %. Une IA « agressive » n'a aucune raison de rejouer un bug ou une régression
+mesurée. Ceux-là doivent **sortir du fichier** (voir E8) plutôt que devenir des traits de caractère.
+
+Sont matière à personnalité les paramètres dont la bonne valeur dépend du goût, de la carte ou de
+l'adversaire — essentiellement des **nombres**, pas des booléens : réserve de trésorerie, plancher
+de ROI, plafonds de distance, marges de sécurité, `TOP_K` / `MIN_RATIO`, headway visé,
+`MIN_SEPARATION`. ➡️ **E3 (audit des 46 constantes en dur) est donc le prérequis** : on ne compose
+pas des personnalités à partir d'un inventaire qu'on n'a pas fait.
+
+### 🔴 La tension à ne pas balayer : une personnalité est FIXE, l'adversaire est ADAPTATIF
+
+§0 tervicies l'a établi en lisant le source : AAAHogEx **change de dénominateur d'objectif** selon
+la ressource qui le contraint à l'instant — argent, temps de chantier, ou places de véhicules. §3
+nonies propose la même chose sous forme de doctrine en six phases. Une personnalité figée risque
+donc de **geler un choix que la mesure dit devoir varier** au cours de la partie.
+
+La forme qui survit à cette objection n'est pas « un jeu de constantes » mais **un a priori sur la
+doctrine de phase** : la personnalité dit *avec quel biais* on arbitre quand deux phases se
+disputent la ressource, pas *quelle valeur* prend chaque constante pour toute la partie.
+
+### Ce que ça apporterait vraiment, au-delà du confort
+
+1. **Bancher des stratégies cohérentes entre elles**, et plus seulement des commutateurs isolés :
+   un portefeuille de personnalités opposées sur les mêmes graines dirait quelque chose qu'aucun
+   banc à un réglage ne peut dire.
+2. **Cohérent avec « armes égales »** ([[philosophie_armes_egales]]) : une IA qui joue
+   différemment selon la carte et l'adversaire, plutôt qu'un unique réglage moyen.
+3. Un `info.nut` lisible par un humain qui n'a pas suivi les 30 bancs.
+
+### Le plus petit pas utile, le jour venu
+
+Ne pas commencer par écrire trois personnalités. Commencer par **une** — la doctrine par défaut
+actuelle, nommée et rendue explicite — et vérifier qu'elle rejoue le comportement courant **au bit
+près** sur 20 graines. Tant que ce contrôle de non-régression n'est pas vert, aucune seconde
+personnalité n'a de sens.
