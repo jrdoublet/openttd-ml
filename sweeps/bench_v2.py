@@ -167,7 +167,17 @@ def parse_opex_variant(name):
                 raise ValueError("air_fleet_cadence_days doit etre entre 0 et 365")
             if value % 5:
                 raise ValueError("air_fleet_cadence_days doit etre un multiple de 5 (step_size)")
-        elif key in ("abandon_memory", "station_join", "join_place", "origin_sitable", "basin_share", "reborrow", "road_mode", "road_refleet", "road_multistop", "astar_cost", "probe_negative", "pax_near", "rail_cost_probe", "rail_expand", "town_growth", "dynamic_cash_reserve", "dynamic_pathfinder_cap", "tree_planting", "loop_budget", "portfolio_v2", "fleet_fix", "economy_fix", "growth_yields", "air_margin", "air_abandon", "pricing_road_rating", "pricing_rail_depot", "pricing_road_ops", "pax_full_load", "complex_cargo", "air_starter", "air_hub", "rail_refleet", "marginal_fleet", "air_cost_probe", "air_presite", "portfolio_fresh_budget", "air_fleet_probe", "fleet_before_new", "air_roi_order", "rail_search_resumable", "rail_segmented_search", "decision_log", "reserve_maint_cap", "air_margin_v2", "knapsack_roi", "pool_financeable", "air_hub_fix", "air_demand_cap", "air_demand_plan", "event_depot_sell", "event_industry_close", "event_subsidy_probe", "event_vehicle_lost", "event_catalog_invalidate"):
+        elif key == "air_fleet_buffer":
+            if not -1 <= value <= 500:
+                raise ValueError("air_fleet_buffer doit etre entre -1 et 500")
+            if value >= 0 and value % 5:
+                raise ValueError("air_fleet_buffer doit etre un multiple de 5 (step_size)")
+        elif key == "infra_amort_pct":
+            if not 0 <= value <= 100:
+                raise ValueError("infra_amort_pct doit etre entre 0 et 100")
+            if value % 10:
+                raise ValueError("infra_amort_pct doit etre un multiple de 10 (step_size)")
+        elif key in ("abandon_memory", "station_join", "join_place", "origin_sitable", "basin_share", "reborrow", "road_mode", "road_refleet", "road_multistop", "astar_cost", "probe_negative", "pax_near", "rail_cost_probe", "rail_expand", "town_growth", "dynamic_cash_reserve", "dynamic_pathfinder_cap", "tree_planting", "loop_budget", "portfolio_v2", "fleet_fix", "economy_fix", "growth_yields", "air_margin", "air_abandon", "pricing_road_rating", "pricing_rail_depot", "pricing_road_ops", "pax_full_load", "complex_cargo", "air_starter", "air_hub", "rail_refleet", "marginal_fleet", "air_cost_probe", "air_presite", "portfolio_fresh_budget", "air_fleet_probe", "fleet_before_new", "air_roi_order", "rail_search_resumable", "rail_segmented_search", "decision_log", "reserve_maint_cap", "air_margin_v2", "knapsack_roi", "pool_financeable", "air_hub_fix", "air_demand_cap", "air_demand_plan", "event_depot_sell", "event_industry_close", "event_subsidy_probe", "event_vehicle_lost", "event_catalog_invalidate", "vivier_ratio_filter"):
             if value not in (0, 1):
                 raise ValueError(f"{key} est booleen : 0 ou 1")
         else:

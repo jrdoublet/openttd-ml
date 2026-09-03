@@ -155,6 +155,8 @@ AIR_DEMAND_CAP <- false;
 AIR_DEMAND_PLAN <- false;
 /* C15 : cadence minimale d'agrandissement de flotte en jours (365 = defaut annuel historique). */
 AIR_FLEET_CADENCE_DAYS <- 365;
+/* C14 : tampon de cargo au sol pour achat proportionnel (-1 = inactif/defaut). */
+AIR_FLEET_BUFFER <- -1;
 TREE_PLANTING <- false;
 PAX_FULL_LOAD <- true;
 COMPLEX_CARGO <- true;
@@ -2329,7 +2331,7 @@ function OpexAI::_resizeAirFleets(year)
      * 4 avions en un seul passage (addedThisPass < 4). Sous 0 (defaut), ce bloc ne change RIEN :
      * il ajoute seulement des refus supplementaires, jamais un chemin different pour les
      * conditions deja verifiees plus haut (have, deadStreak, lastProfit < 0). */
-    if (MARGINAL_FLEET) {
+    if (MARGINAL_FLEET && AIR_FLEET_BUFFER < 0) {
       // (a) la ligne a au moins un an d'existence revolu
       if (!("year" in line) || (year - line.year) < 1) continue;
       // (b) lastProfit disponible ET strictement positif (pas seulement "pas negatif")
@@ -2394,6 +2396,38 @@ function OpexAI::_resizeAirFleets(year)
     local addedThisPass = 0;
     // (d) au plus un avion par ligne et par an sous marginal_fleet=1 ; 4 (repli actuel) sous 0.
     local maxAddedPerPass = MARGINAL_FLEET ? 1 : 4;
+    /* C14 : Dimensionnement dynamique de flotte par le stock au sol (AAAHogEx route.nut:2896-2921).
+     * Si AIR_FLEET_BUFFER >= 0 : calcule buildNum = (maxWait - bottom) / capacity.
+     * Si buildNum < 1 : refus W (pas assez de cargo au sol).
+     * Sinon : autorise jusqu'a min(buildNum, 4) avions dans ce passage. */
+    if (AIR_FLEET_BUFFER >= 0) {
+      local planeCap = ("planeCapacity" in line && line.planeCapacity > 0) ? line.planeCapacity : 0;
+      if (planeCap <= 0 && ("vehicles" in line)) {
+        foreach (v in line.vehicles) {
+          if (AIVehicle.IsValidVehicle(v)) {
+            planeCap = AIVehicle.GetCapacity(v, line.cargo);
+            if (planeCap > 0) { line.planeCapacity <- planeCap; break; }
+          }
+        }
+      }
+      local stA = AIStation.GetStationID(line.stationA);
+      local hasB = ("stationB" in line) && line.stationB != null;
+      local stB = hasB ? AIStation.GetStationID(line.stationB) : 0;
+      local waitA = AIStation.IsValidStation(stA) ? AIStation.GetCargoWaiting(stA, line.cargo) : 0;
+      local waitB = (hasB && AIStation.IsValidStation(stB)) ? AIStation.GetCargoWaiting(stB, line.cargo) : 0;
+      local maxWait = (waitA > waitB) ? waitA : waitB;
+
+      local bottom = (AIR_FLEET_BUFFER < planeCap) ? AIR_FLEET_BUFFER : planeCap;
+      local buildNum = 0;
+      if (maxWait > bottom && planeCap > 0) {
+        buildNum = (maxWait - bottom) / planeCap;
+      }
+      if (buildNum < 1) {
+        OpexAirFleetRefusal(line, year, "W");
+        continue;
+      }
+      maxAddedPerPass = (buildNum < 4) ? buildNum : 4;
+    }
     while (have < maxPlanesForAirport && addedThisPass < maxAddedPerPass) {
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
       if (money < need && REBORROW) money = OpexTryReborrow(need, money);
@@ -4154,6 +4188,8 @@ function OpexAI::Start()
   if (airMaxDist >= 0) AIR_MAX_DISTANCE = airMaxDist;
   local afcd = AIController.GetSetting("air_fleet_cadence_days");
   if (afcd >= 0) AIR_FLEET_CADENCE_DAYS = afcd;
+  local afb = AIController.GetSetting("air_fleet_buffer");
+  if (afb >= -1) AIR_FLEET_BUFFER = afb;
   local rtf = AIController.GetSetting("rail_terrain_factor");
   if (rtf > 0) RAIL_TERRAIN_FACTOR = rtf;
   RAIL_REFLEET = AIController.GetSetting("rail_refleet") != 0;
@@ -4163,6 +4199,9 @@ function OpexAI::Start()
   EVENT_SUBSIDY_PROBE = AIController.GetSetting("event_subsidy_probe") != 0;
   EVENT_VEHICLE_LOST = AIController.GetSetting("event_vehicle_lost") != 0;
   EVENT_CATALOG_INVALIDATE = AIController.GetSetting("event_catalog_invalidate") != 0;
+  VIVIER_RATIO_FILTER = AIController.GetSetting("vivier_ratio_filter") != 0;
+  local iap = AIController.GetSetting("infra_amort_pct");
+  if (iap >= 0) INFRA_AMORT_PCT = iap;
 
   /* 🔴 RENOUVELLEMENT AUTOMATIQUE (2026-08-29). Mesure : campagne 20 ans, graine 42 -- trois des
    * quatre lignes ROUTIERES finissent la partie avec vehCount = 0 et un profit de zero, alors que

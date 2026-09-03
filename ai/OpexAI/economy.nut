@@ -44,6 +44,8 @@ const MAX_RAIL_TRAINS = 2;
 /* Duree d'amortissement de l'infrastructure, en annees. Convention deja utilisee par les
  * campagnes (profit_ligne), gardee pour rester comparable. */
 const INFRA_LIFE_YEARS = 30;
+/* D3.2 : Taux d'amortissement de l'infrastructure (100 = defaut historique, 0 = reel OpenTTD). */
+INFRA_AMORT_PCT <- 100;
 
 function OpexCeilDiv(a, b)
 {
@@ -250,7 +252,7 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
     local carried = (offered < monthlyCapacity ? offered : monthlyCapacity).tointeger();
     local revenueAnnual = (12 * carried * AICargo.GetCargoIncome(cargo, distance, incomeDays)).tointeger();
     local vehicleCost = trains * (loco.price + wagons * wagon.price);
-    local amortAnnual = vehicleCost / locoLife + infraCost / INFRA_LIFE_YEARS;
+    local amortAnnual = vehicleCost / locoLife + ((infraCost * INFRA_AMORT_PCT / 100) / INFRA_LIFE_YEARS);
     local runningAnnual = trains * loco.runningCost;
     local profitAnnual = revenueAnnual - runningAnnual - amortAnnual;
     local capital = vehicleCost + infraCost;
@@ -491,7 +493,7 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
   local infraCost = distance * catalog.costRoadPerTile + 2 * stopCost + catalog.costRoadDepot;
 
   local life = engine.ageYears > 0 ? engine.ageYears : 12;
-  local amortAnnual = vehicleCost / life + infraCost / INFRA_LIFE_YEARS;
+  local amortAnnual = vehicleCost / life + ((infraCost * INFRA_AMORT_PCT / 100) / INFRA_LIFE_YEARS);
   local runningAnnual = vehicles * engine.runningCost;
   local profitAnnual = revenueAnnual - runningAnnual - amortAnnual;
   local capital = vehicleCost + infraCost;

@@ -263,7 +263,7 @@ function OpexWaterEconomics(catalog, distance, orderDistance, monthlyPax)
     local infraCapital = 2 * catalog.costDock + catalog.costWaterDepot;
     local capital = infraCapital + ship.price;
     local runningAnnual = ship.runningCost;
-    local amortAnnual = infraCapital / INFRA_LIFE_YEARS + ship.price / 20;
+    local amortAnnual = ((infraCapital * INFRA_AMORT_PCT / 100) / INFRA_LIFE_YEARS) + ship.price / 20;
     local profitAnnual = revenueAnnual - runningAnnual - amortAnnual;
     local immobilise = (TRANSIT_COST_PERMILLE > 0)
         ? (revenueAnnual * roundTripDays * TRANSIT_COST_PERMILLE) / 365000 : 0;

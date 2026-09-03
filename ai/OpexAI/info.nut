@@ -190,6 +190,40 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* D3.1 : Filtre eliminatoire ratio_too_low dans le vivier
+     * (1 = actif/defaut historique, 0 = inactif, preserve les candidats a profit>0). */
+    AddSetting({
+      name = "vivier_ratio_filter",
+      description = "Filtre eliminatoire opcodeRatio < minRatio dans le vivier (docs/taches.md D3.1): 1 = actif (defaut), 0 = desactive",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* C14 : Desserrer le gain de la boucle de croissance aerienne
+     * (-1 = inactif/defaut historique, >=0 = tampon de cargo au sol avant achat (ex: 50 comme AAAHogEx)). */
+    AddSetting({
+      name = "air_fleet_buffer",
+      description = "Tampon de cargo en attente avant achat proportionnel d'avions (docs/taches.md C14): -1 = inactif (defaut), >=0 = taille du tampon",
+      min_value = -1, max_value = 500,
+      easy_value = -1, medium_value = -1, hard_value = -1,
+      custom_value = -1,
+      step_size = 5,
+      flags = 0
+    });
+
+    /* D3.2 : Assainissement de profit_non_positive via le taux d'amortissement de l'infrastructure
+     * (100 = defaut historique 100% comptabilise, 0 = aucun amortissement fictif de voie/gare). */
+    AddSetting({
+      name = "infra_amort_pct",
+      description = "Pourcentage d'amortissement annuel de l'infrastructure (voies/gares) dans profitAnnual (docs/taches.md D3.2): 100 = defaut historique, 0 = reel OpenTTD (zero amortissement infrastructure)",
+      min_value = 0, max_value = 100,
+      easy_value = 100, medium_value = 100, hard_value = 100,
+      custom_value = 100,
+      step_size = 10,
+      flags = 0
+    });
+
     AddSetting({
       name = "air_max_distance",
       description = "Plafond de distance pour les liaisons aeriennes (0 = illimite, 212 = defaut empirique, docs/taches.md C6)",

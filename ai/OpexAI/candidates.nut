@@ -44,6 +44,7 @@ MAX_DISTANCE <- 200;
 JOIN_PLACE_MAX <- 75;
 TOP_K <- 20;
 MIN_RATIO <- 500;
+VIVIER_RATIO_FILTER <- true;
 PROBE_STASH_K <- 12;
 /* "Presque admis" : predit > -1000. L'echelle du plancher MIN_RATIO * iterations/1000
  * pour une ligne courte (~500*310/1000 = 155) est plus petite ; -1000 reste du meme
@@ -192,7 +193,7 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   local minRatio = (kind == "freight") ? 200 : MIN_RATIO;
   if (opcodeRatio < minRatio) {
     stats.ratioTooLow++;
-    return null;
+    if (VIVIER_RATIO_FILTER) return null;
   }
 
   /* Score composite : priorise le fort ROI et le retour sur investissement rapide (cash turnover).
