@@ -6197,3 +6197,77 @@ comportement historique à l'identique.
 `PROJECT_DISCARD` porte un champ `reason=`. Le journal existe déjà : il n'y a qu'à agréger les
 motifs des 71-134 rejets par graine pour savoir **pourquoi** 30 projets sont écartés pour un
 élu. C'est la question qui commande tout le reste — et elle ne coûte qu'un parseur.
+
+---
+
+## 0 sextrigesies. 🔑 L'ENTONNOIR DE DÉCISION, CHIFFRÉ — le ratio 30:1 est un ARTEFACT (2026-09-04)
+
+`sweeps/diag_discards.py`, 3 graines × 10 ans, `docs/diag_discards.json`. Réponse à la question
+laissée ouverte par §0 quintrigesies : **pourquoi 30 projets écartés pour un élu ?**
+
+### 1. ✅ A7 ne régresse pas
+
+Vérification appariée aux défauts (les cinq réglages `event_*` à 0), 3 graines × 3 ans, arm
+« avant » = copie de `ai/OpexAI` à `1b88172` : **3 graines sur 3 bit-identiques** (valeur,
+véhicules, gares). Le drainage `while (IsEventWaiting())` consomme les événements et chaque
+traitement neuf est derrière son réglage.
+
+### 2. 🔴 Les rejets au portefeuille sont un artefact de la MÉMOIRE D'ABANDON
+
+| motif | occurrences | part |
+|---|---:|---:|
+| **`abandoned_pair`** | **280** | **89 %** |
+| `insufficient_cash` | 26 | 8 % |
+| `plan_failed` | 7 | 2 % |
+| `town_road_line_cap` | 2 | 1 % |
+| `too_close_no_join` | 1 | 0 % |
+
+Et par mode, `abandoned_pair` est **quasi exclusivement de la ROUTE** : 95, 125 et 59 sur les
+trois graines, soit 279 des 280. Le rail et l'air ne sont écartés que pour `insufficient_cash`.
+
+➡️ **Le « 30 rejets pour une élection » ne décrit pas une sélection exigeante : il décrit une
+paire routière déjà abandonnée qu'on régénère, qu'on classe, et qu'on jette à nouveau.** Le
+gaspillage est en amont — la mémoire d'abandon filtre à l'**élection** alors qu'elle devrait
+filtrer à la **génération**. En volume c'est modeste (~9 re-propositions par an et par graine),
+mais ça occupe des places de classement et ça fausse toute lecture du taux de rejet.
+
+### 3. 🔑 Le portefeuille n'est pas le chemin de construction — confirmé sur dix ans
+
+Constructions réelles, trois graines cumulées : **`AIR_BUILD` 99, `FEEDER_BUILD` 25,
+`ROAD_BUILD` 7, `RAIL_BUILD` 3** — soit **134 constructions** pour **2 à 5 `PROJECT_CHOSEN`** par
+graine. La quasi-totalité passe par les bras dédiés, hors arbitrage.
+
+Le portefeuille n'élit donc pas peu parce qu'il serait sévère : **il n'est simplement pas le
+moteur**. C'est B5, mesuré sur dix ans au lieu d'être supposé.
+
+### 4. 🔑 Le vrai rétrécissement est au VIVIER, pas au portefeuille
+
+Entonnoir complet (graine 7) : **72 868 paires produites → 8 534 candidats retenus → 71 écartés
+→ 5 élus → 88 constructions**.
+
+Motifs de rejet du vivier, 194 781 rejets cumulés :
+
+| motif | part |
+|---|---:|
+| `distance_long` | **33 %** |
+| `ratio_too_low` | **31 %** |
+| `profit_non_positive` | **28 %** |
+| `no_monthly` | 3 % |
+| `road_town_rejected` | 2 % |
+| tous les autres | < 2 % chacun |
+
+**Trois motifs font 92 %.** C'est là que 64 000 paires sur 72 000 disparaissent — pas dans les
+71 rejets du portefeuille, qui sont du bruit à côté.
+
+### ➡️ Ce que ça ouvre
+
+1. **Hygiène, petite et sûre** : filtrer les paires abandonnées **à la génération**. Ça libère des
+   places de classement et rend le taux de rejet lisible. Aucun effet attendu sur la valeur.
+2. **La vraie question**, désormais posée proprement : les trois filtres du vivier
+   (`distance_long`, `ratio_too_low`, `profit_non_positive`) éliminent 92 % des paires. Sont-ils
+   **justes** ? `ratio_too_low` et `profit_non_positive` reposent sur l'estimateur économique, dont
+   ce projet a déjà corrigé plusieurs erreurs d'échelle (rail ×1,70, `air_demand_plan`, la
+   capacité doublée du pax). Un filtre calibré sur un modèle faux jette de bons candidats sans
+   laisser de trace.
+3. ⚠️ **Ne pas conclure que 92 % de rejet est anormal** : un vivier doit trier. Ce qu'il faut
+   mesurer, c'est si les rejetés valaient mieux que les retenus — pas leur nombre.

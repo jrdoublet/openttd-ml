@@ -1,0 +1,91 @@
+{
+ "years": 10,
+ "seeds": [
+  42,
+  999,
+  7
+ ],
+ "per_seed": {
+  "42": {
+   "discard": {
+    "insufficient_cash": 11,
+    "abandoned_pair": 96,
+    "plan_failed": 3,
+    "too_close_no_join": 1
+   },
+   "vivier": {
+    "no_monthly": 1301,
+    "distance_short": 832,
+    "distance_long": 20834,
+    "profit_non_positive": 19868,
+    "ratio_too_low": 21255,
+    "road_no_monthly": 1449,
+    "road_town_rejected": 1463,
+    "road_profit_too_low": 454,
+    "origin_served": 70
+   },
+   "produced": 114182,
+   "kept": 8231,
+   "chosen": 4,
+   "builds": {
+    "AIR_BUILD": 18,
+    "FEEDER_BUILD": 7,
+    "ROAD_BUILD": 2,
+    "RAIL_BUILD": 1
+   }
+  },
+  "999": {
+   "discard": {
+    "insufficient_cash": 5,
+    "plan_failed": 2,
+    "abandoned_pair": 125,
+    "town_road_line_cap": 2
+   },
+   "vivier": {
+    "no_monthly": 1559,
+    "distance_short": 1123,
+    "distance_long": 29160,
+    "profit_non_positive": 22770,
+    "ratio_too_low": 25033,
+    "road_no_monthly": 1578,
+    "road_town_rejected": 1766,
+    "road_profit_too_low": 676
+   },
+   "produced": 144179,
+   "kept": 16758,
+   "chosen": 2,
+   "builds": {
+    "AIR_BUILD": 13,
+    "FEEDER_BUILD": 3,
+    "ROAD_BUILD": 2
+   }
+  },
+  "7": {
+   "discard": {
+    "insufficient_cash": 10,
+    "abandoned_pair": 59,
+    "plan_failed": 2
+   },
+   "vivier": {
+    "no_monthly": 2320,
+    "distance_short": 468,
+    "distance_long": 13351,
+    "profit_non_positive": 11247,
+    "ratio_too_low": 13411,
+    "road_no_monthly": 816,
+    "road_town_rejected": 775,
+    "road_profit_too_low": 480,
+    "origin_served": 722
+   },
+   "produced": 72868,
+   "kept": 8534,
+   "chosen": 5,
+   "builds": {
+    "AIR_BUILD": 68,
+    "FEEDER_BUILD": 15,
+    "ROAD_BUILD": 3,
+    "RAIL_BUILD": 2
+   }
+  }
+ }
+}
