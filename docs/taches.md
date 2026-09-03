@@ -5756,3 +5756,49 @@ point-à-point, à voie unique, avec 1 à 2 convois.
   le pathfinder, donc la déclivité maximale est calculable (`AITile.GetMaxHeight` /
   `GetCornerHeight` le long du chemin). ⚠️ À pondérer : le banc de traction a donné de la
   **robustesse**, pas de la performance, et le rail coûte déjà ×1,70 son prix modèle.
+
+---
+
+## 3 terdecies bis. ✅ A6 CÂBLÉ et validé en jeu — la sonde de tension tourne (2026-09-03)
+
+`ai/OpexAI/tension.nut` + réglage `tension_probe` (défaut 0, aucun calcul exécuté sous 0, logger
+historique conservé mot pour mot). Implémentation déléguée à Codex, **trois défauts corrigés à la
+relecture avant tout run** :
+
+1. 🔴 **Les engagements valaient `−dépenses du trimestre / 3`, donc chantiers compris.** La
+   tension argent aurait réagi à la construction **passée** au lieu des obligations à venir — et
+   les dépenses étaient comptées **deux fois**, puisqu'elles sont déjà dans le flux net.
+   Remplacés par l'entretien réellement dû : `Σ GetRunningCost / 12` (la valeur est annuelle,
+   vérifié dans `script_engine.hpp` : *« per economy-year »*) plus
+   `AIInfrastructure.GetMonthlyInfrastructureCosts` sur les six catégories — la doc précise
+   qu'`INFRASTRUCTURE_RAIL` et `_ROAD` rendent le total **tous types confondus**, donc six appels
+   suffisent.
+2. 🔴 **Le comptage de flotte parcourait toute la flotte pour chaque projet** : la sonde
+   perturbait précisément la ressource qu'elle mesure. Tout ce qui ne dépend pas du projet est
+   désormais calculé **une fois par cycle** (`OpexTensionContext`), en un seul parcours qui rend à
+   la fois les effectifs par type et le coût de fonctionnement.
+3. 🔴 **Le foncier sommait les candidats des quatre modes**, comptant deux fois une paire proposée
+   en rail et en route, et ne disant rien de l'espace disponible pour l'action évaluée. Désormais :
+   candidats survivants du **même mode**, plus `separation_rejected` (`stats.pairsOriginServed`)
+   journalisé comme contexte.
+
+Plus trois points de relecture : garde sur `tau` (division par `profitAnnual`), suppression des
+paramètres et globales morts, et **un seul bloc de budget par cycle** au lieu d'un par projet —
+`probe_ops` mesure donc le coût réel de la sonde, pas une fraction de lui-même.
+
+### Validation en jeu — 1 graine × 2 ans, `tension_probe=1`
+
+**0 erreur de script**, 24 lignes `TENSION`, coût **3 474 opcodes** pour 5 projets au premier
+cycle puis ~1 290 pour un projet seul : négligeable devant les 10 000 opcodes par tick.
+
+🟢 **Premier signal, à confirmer** : sur ces 24 évaluations, la contrainte dominante se répartit en
+**argent 7, foncier 11, opcodes 6**. Ce n'est donc **pas « l'argent 100 % du temps »**, et le
+critère d'arrêt d'A6 — « si c'est toujours l'argent, il n'y a rien à coder » — **n'est pas
+déclenché**.
+
+⚠️ **Une graine et deux ans ne tranchent rien.** Et le proxy de foncier (1 site divisé par le
+nombre de candidats du mode) est le moins solide des quatre : quand le vivier d'un mode est petit,
+sa tension monte mécaniquement. À lire comme un instrument, pas comme un verdict. **La sonde
+réelle reste 3 graines × 10 ans**, avec le tracé de la dominante mois par mois et de l'écart
+entre la première et la deuxième tension — c'est cet écart qui dira si un `argmax` oscillerait,
+donc si le dénominateur pondéré est nécessaire.
