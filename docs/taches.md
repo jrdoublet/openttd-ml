@@ -2410,6 +2410,89 @@ sélectionner.** Le vivier — 61 candidats classés sur 3 parties contre 855 es
 
 ---
 
+## 0 undecies nonies. 🔴 LE VIVIER N'EST PAS AFFAMÉ : il est PLEIN, et 43 % de ses places sont mortes (2026-09-03)
+
+Première mesure directe du vivier. Instrumentation déléguée à agy sous `decision_log`, vérifiée
+**identique bit à bit** réglage éteint. Campagne 3 graines × 16 ans, `docs/mesure_vivier.json`,
+10 542 décisions.
+
+⚠️ **Corrige un chiffre que j'avais avancé** : « 61 candidats classés contre 855 chez AAAHogEx »
+était un artefact de ma propre journalisation (`OpexLogPortfolioRank` plafonne à 5 entrées par
+passage). Ne pas le citer.
+
+### 1. Le vivier déborde — la génération n'est pas le goulot
+
+`PROJECT_POOL_K = 128`, et `considered = 128,0` **toutes les années, toutes les graines**, de 1970
+à 1985. Le vivier est **saturé à son plafond en permanence**. La génération rail examine
+**1 543 paires par passage** pour en garder 120 (7,8 %).
+
+➡️ **« Produire plus de candidats » est sans objet** : tout ce qui dépasse 128 est déjà jeté.
+Cohérent avec les deux bancs qui avaient élargi le vivier sans gain
+([[opexai-vivier-jointure]] : +37,2 % de véhicules, −0,3 % de valeur).
+
+### 2. La redondance n'est pas le problème non plus — hypothèse réfutée
+
+**126,4 paires distinctes sur 128** en moyenne. Les origines se répètent (35 origines distinctes,
+soit ~3,7 candidats par origine) mais aucune paire n'est dupliquée. L'hypothèse « un vivier de 50
+dont 40 desservent le même bassin » est **écartée par la mesure**.
+
+### 3. 🔴 Le vrai défaut : 43 % du vivier est structurellement INFINANÇABLE
+
+| | rail | route | **air** | eau |
+|---|---:|---:|---:|---:|
+| places dans le vivier (moy./passage) | 60 | 11 | **56** | 0 |
+| **fois choisi par le sac à dos en 16 ans** | **20** | **6** | **0** | 0 |
+| lignes réellement bâties | — | — | **100** | — |
+
+**L'aérien occupe 43 % d'un vivier plafonné et n'est JAMAIS retenu — zéro fois en 16 ans.** Pendant
+ce temps la tâche dédiée `_tryBuildAir`, hors portefeuille, en construit 100.
+
+La cause est arithmétique : un projet aérien coûte ~131 000 £ (`PROJECT_DISCARD … need=131038
+cash=15985`) contre un `capitalBudget` moyen de **40 000 £**. `OpexProjectSelectAffordable` et le
+sac à dos écartent donc tout projet dont `budgetCapital > capitalBudget` — systématiquement, à
+chaque passage.
+
+🔑 **Et le vivier est rempli SANS test de finançabilité** (`projects.nut:638`) :
+
+```squirrel
+OpexProjectInsert(byBudget, project, "budgetScore", PROJECT_POOL_K);
+```
+
+`budgetScore` est une **densité** (revenu par livre). L'aérien y est bien classé — forte densité —
+mais **infinançable en valeur absolue**. Le vivier dépense donc 43 % de ses 128 places, puis le sac
+à dos une part de ses 64, sur des candidats qui ne peuvent pas être retenus, **en évinçant les
+candidats bon marché qui, eux, le pourraient**. C'est ce qui explique `selected ≈ 1,1` par passage
+malgré 128 candidats.
+
+### ➡️ La correction qu'il faut mesurer
+
+**Filtrer sur la finançabilité AVANT de tronquer à `PROJECT_POOL_K`, pas après.** Formulation
+mode-agnostique et principielle : *ne pas dépenser une place de vivier pour un candidat qui ne peut
+pas être financé ce tour-ci.* Ce n'est pas un seuil à desserrer mais une **structure** à corriger —
+et la leçon du §0 undecies septies dit que c'est cette catégorie-là qui agit.
+
+⚠️ Deux réserves à ne pas oublier en l'implémentant :
+- le budget varie d'un passage à l'autre (30 k£ à 92 k£) ; un filtre trop strict à un passage pauvre
+  viderait le vivier. Prévoir une marge, ou filtrer sur le budget **maximal mobilisable**.
+- l'aérien est déjà bâti par sa voie dédiée ; le retirer du vivier ne le supprime pas du jeu.
+
+### 4. `origin_served` n'est PAS le motif de rejet dominant
+
+Motifs à la génération, cumulés sur 3 parties × 16 ans :
+
+| motif | rejets |
+|---|---:|
+| `ratio_too_low` | **95 243** |
+| `distance_long` | 72 230 |
+| `profit_non_positive` | 49 962 |
+| `origin_served` | 22 249 |
+
+La mémoire du projet attribuait le mur du vivier à `origin_served` (« 213 à 242 paires/an »). Il
+rejette bien beaucoup, mais **`ratio_too_low` en rejette 4,3 fois plus**. À corriger dans
+[[opexai-plafonnement]].
+
+---
+
 ## 3 ter. 🔶 AUDIT DE TOUTES LES CONSTANTES EN DUR (demandé le 2026-09-02)
 
 **46 constantes `const` dans `ai/OpexAI/`, contre 35 réglages exposés.** Aucune revue systématique

@@ -407,6 +407,53 @@ function OpexKnapsackSolve(candidates, capitalBudget, maxRoad = 18, maxItems = 3
   return { projects = state.bestSolution, nodes = state.nodeCount, exact = !state.truncated };
 }
 
+function OpexLogVivier(path, candidates, stats, capitalBudget, capitalRemaining)
+{
+  if (!DECISION_LOG) return;
+  if (DECISION_LOG) {
+    OpexDecide("VIVIER", "path=" + path + " considered=" + stats.budgetConsidered
+               + " selected=" + stats.budgetSelected + " rejected=" + stats.budgetRejected
+               + " budget=" + capitalBudget + " remaining=" + capitalRemaining);
+  }
+  if (candidates == null) return;
+  if (DECISION_LOG) {
+    local rail = 0;
+    local road = 0;
+    local air = 0;
+    local water = 0;
+    local seenSrcs = {};
+    local seenDsts = {};
+    local seenPairs = {};
+    local nSrcs = 0;
+    local nDsts = 0;
+    local nPairs = 0;
+    foreach (p in candidates) {
+      if (p == null) continue;
+      local m = ("mode" in p) ? p.mode : null;
+      if (m == "rail") rail++;
+      else if (m == "road") road++;
+      else if (m == "air") air++;
+      else if (m == "water") water++;
+
+      if (("src" in p) && ("dst" in p) && p.src != null && p.dst != null) {
+        local s = p.src;
+        local d = p.dst;
+        local sk = "" + s;
+        if (!(sk in seenSrcs)) { seenSrcs[sk] <- true; nSrcs++; }
+        local dk = "" + d;
+        if (!(dk in seenDsts)) { seenDsts[dk] <- true; nDsts++; }
+        local pk = "" + s + ":" + d;
+        if (!(pk in seenPairs)) { seenPairs[pk] <- true; nPairs++; }
+      }
+    }
+    local total = candidates.len();
+    OpexDecide("VIVIER_MIX", "rail=" + rail + " road=" + road + " air=" + air
+               + " water=" + water + " total=" + total);
+    OpexDecide("VIVIER_DIV", "srcs=" + nSrcs + " dsts=" + nDsts + " pairs=" + nPairs
+               + " total=" + total);
+  }
+}
+
 /* Rejoue UNIQUEMENT la contrainte de capital sur les projets deja produits par le catalogue.
  * budgetCandidates est exactement le vivier deja passe au sac a dos historique ; candidateGroups
  * ne sert qu'a reaplatir les alternatives du chemin portfolio_v2. Aucune planification rail,
@@ -461,6 +508,22 @@ function OpexReselectProjects(projects, capitalBudget)
     }
   }
   projects.best = byOpcodes;
+
+  if (DECISION_LOG) {
+    local vivierPool = null;
+    if (PORTFOLIO_V2) {
+      vivierPool = [];
+      if (("candidateGroups" in projects) && projects.candidateGroups != null) {
+        foreach (key, list in projects.candidateGroups) {
+          foreach (project in list) vivierPool.push(project);
+        }
+      }
+    } else {
+      vivierPool = ("budgetCandidates" in projects) ? projects.budgetCandidates : null;
+    }
+    OpexLogVivier("reselect", vivierPool, projects.stats, projects.capitalBudget, projects.capitalRemaining);
+  }
+
   return projects;
 }
 
@@ -604,6 +667,19 @@ function OpexBuildProjects(catalog, budget, lines)
     foreach (project in funded) {
       OpexProjectInsert(byOpcodes, project, "opcodeScore", PROJECT_TOP_K);
     }
+  }
+
+  if (DECISION_LOG) {
+    local vivierPool = null;
+    if (PORTFOLIO_V2) {
+      vivierPool = [];
+      foreach (key, list in winners) {
+        foreach (project in list) vivierPool.push(project);
+      }
+    } else {
+      vivierPool = byBudget;
+    }
+    OpexLogVivier("build", vivierPool, stats, capitalBudget, remaining);
   }
 
   /* Le retour historique reste litteralement intact sous 0. Le bras 1 seul conserve le vivier :

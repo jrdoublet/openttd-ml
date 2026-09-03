@@ -170,12 +170,14 @@ def keep(row):
     },)
 
 
-def build_experiments(seeds, years, decision_log):
+def build_experiments(seeds, years, decision_log, only=None):
     arms = {
         "OpexAI": local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI",
                                (("air_fleet_probe", 1), ("decision_log", 1 if decision_log else 0))),
         "AAAHogEx": local_folder(str(ROOT / "ai" / AAAHOGEX_DIR), "AAAHogEx", ()),
     }
+    if only:
+        arms = {name: ai for name, ai in arms.items() if name == only}
     return [
         {"seed": seed, "days": 365 * years, "openttd_config": CFG,
          "ais": (arms[arm],), "diag_arm": arm}
@@ -189,13 +191,15 @@ def main():
     parser.add_argument("--seeds", nargs="+", type=int, default=[42, 100, 7])
     parser.add_argument("--out", type=Path, default=ROOT / "docs" / "diag_1v1_decisions.json")
     parser.add_argument("--workers", type=int, default=3)
+    parser.add_argument("--only", choices=("OpexAI", "AAAHogEx"), default=None,
+                        help="ne faire tourner qu'une seule IA (le vivier ne concerne que la notre)")
     parser.add_argument("--no-decision-log", action="store_true",
                         help="laisse decision_log a 0 (mesure la richesse du seul journal adverse)")
     args = parser.parse_args()
 
     rows = list(run_experiments(
         openttd_version=OPENTTD_VERSION, opengfx_version=OPENGFX_VERSION,
-        experiments=build_experiments(args.seeds, args.years, not args.no_decision_log),
+        experiments=build_experiments(args.seeds, args.years, not args.no_decision_log, args.only),
         max_workers=args.workers, result_processor=keep,
         ai_libraries=(
             bananas_ai_library("51554648", "Queue.FibonacciHeap"),

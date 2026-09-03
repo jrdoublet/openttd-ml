@@ -873,6 +873,38 @@ function OpexBuildCandidates(catalog, budget, lines)
   budget.end("cand_rank");
 
   stats.topKOmitted = all.len() - best.len();
+
+  if (DECISION_LOG) {
+    OpexDecide("VIVIER_GEN", "mode=rail produced=" + stats.pairsTotal + " kept=" + all.len());
+    if (stats.pairsOriginServed > 0) {
+      OpexDecide("VIVIER_REJECT", "reason=origin_served n=" + stats.pairsOriginServed);
+    }
+    if (stats.pairsJoinImpossible > 0) {
+      OpexDecide("VIVIER_REJECT", "reason=join_impossible n=" + stats.pairsJoinImpossible);
+    }
+    if (stats.noMonthly > 0) {
+      OpexDecide("VIVIER_REJECT", "reason=no_monthly n=" + stats.noMonthly);
+    }
+    if (stats.unsitable > 0) {
+      OpexDecide("VIVIER_REJECT", "reason=unsitable n=" + stats.unsitable);
+    }
+    if (stats.distanceShort > 0) {
+      OpexDecide("VIVIER_REJECT", "reason=distance_short n=" + stats.distanceShort);
+    }
+    if (stats.distanceLong > 0) {
+      OpexDecide("VIVIER_REJECT", "reason=distance_long n=" + stats.distanceLong);
+    }
+    if (stats.economicsUnavailable > 0) {
+      OpexDecide("VIVIER_REJECT", "reason=economics_unavailable n=" + stats.economicsUnavailable);
+    }
+    if (stats.profitNonPositive > 0) {
+      OpexDecide("VIVIER_REJECT", "reason=profit_non_positive n=" + stats.profitNonPositive);
+    }
+    if (stats.ratioTooLow > 0) {
+      OpexDecide("VIVIER_REJECT", "reason=ratio_too_low n=" + stats.ratioTooLow);
+    }
+  }
+
   return { all = all.len(), candidates = all, best = best,
            bands = OpexBands(all), stats = stats };
 }
@@ -1243,6 +1275,25 @@ function OpexBuildRoadCandidates(catalog, budget, lines)
   OpexRoadFreightCandidates(catalog, lines, all, stats);
   OpexRoadFeederCandidates(catalog, lines, all, stats);
   local ops = budget.end("cand_road");
+
+  if (DECISION_LOG) {
+    OpexDecide("VIVIER_GEN", "mode=road produced=" + stats.pairsInBand + " kept=" + all.len());
+    if (stats.noMonthly > 0) {
+      OpexDecide("VIVIER_REJECT", "reason=road_no_monthly n=" + stats.noMonthly);
+    }
+    if (stats.noEngine > 0) {
+      OpexDecide("VIVIER_REJECT", "reason=road_no_engine n=" + stats.noEngine);
+    }
+    if (stats.townRejected > 0) {
+      OpexDecide("VIVIER_REJECT", "reason=road_town_rejected n=" + stats.townRejected);
+    }
+    if (stats.economicsUnavailable > 0) {
+      OpexDecide("VIVIER_REJECT", "reason=road_economics_unavailable n=" + stats.economicsUnavailable);
+    }
+    if (stats.profitTooLow > 0) {
+      OpexDecide("VIVIER_REJECT", "reason=road_profit_too_low n=" + stats.profitTooLow);
+    }
+  }
 
   /* Le cout de CETTE annee, pas le cumul : budget.get() totalise depuis le debut de la partie, et
    * c'est le debit annuel qui dit si la generation routiere merite sa place. Il est paye meme les
