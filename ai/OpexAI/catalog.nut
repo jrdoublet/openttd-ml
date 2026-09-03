@@ -712,16 +712,16 @@ function OpexCatalog::refresh(budget, year)
   budget.end("cat_cargos");
 
   budget.begin();
+  this._refreshRail();
+  budget.end("cat_rail");
+
+  budget.begin();
   this._refreshTowns();
   budget.end("cat_towns");
 
   budget.begin();
   this._refreshIndustries();
   budget.end("cat_industries");
-
-  budget.begin();
-  this._refreshRail();
-  budget.end("cat_rail");
 
   budget.begin();
   this._refreshAir();

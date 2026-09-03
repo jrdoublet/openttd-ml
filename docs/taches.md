@@ -4992,19 +4992,19 @@ Il n'y a pas d'A\* fait maison. Seule la fonction de coût est à nous.
 
 | # | tâche | pourquoi |
 |---|---|---|
-| D1 | **Remesurer `tree_planting`** | Le −22,1 % portait sur un garde mort (`AITown.GetRating` est un enum 0-8). §8 disait « supprimer le réglage » : **cette instruction est caduque** |
+| D1 | **Remesurer `tree_planting`** | ✅ Fait (`docs/bench_tree_planting_recalibrated_3y.json`, 20 graines × 3 ans) : même après correction du bug d'enum, `tree_planting=1` dégrade `company_value` (−12,1 %, t = 1,77, 12/20 graines) et `profit_year` (−13,4 %, t = 1,88, 13/20 graines). La plantation préventive reste néfaste. **Défaut confirmé à 0**. |
 | D2 | Volume de données pour B3 | 15 tentatives rail seulement ; et **aucun levier de distance côté route** (toutes les lignes font 20-25 tuiles) |
 
 ### E. Hygiène et outillage, inchangés
 
 | # | tâche | où |
 |---|---|---|
-| E1 | CI GitHub : smoke 3 graines × **2 ans** avec plancher de plausibilité | §8 |
+| E1 | CI GitHub : smoke 3 graines × **2 ans** avec plancher de plausibilité — ✅ Fait (`.github/workflows/ci.yml` + `sweeps/smoke_test.py`) | §8 |
 | E2 | Supprimer `rail_refleet` et `air_starter`, prouvés inertes | §8 |
 | E3 | Audit des 46 constantes en dur | §3 ter |
 | E4 | Mesurer le headway réel des lignes de calibration de la note de gare (le −95) | §3 bis |
 | E5 | `builder_rail.nut` : `AIAccounting` imbriqué non finalisé sur les branches d'échec (latent, chemin mort) | §0 octodecies |
-| E6 | `catalog.nut:702-720` : `railCoverage` lu avec un an de retard | §0 novemdecies |
+| E6 | `catalog.nut:702-720` : `railCoverage` lu avec un an de retard — ✅ Fait (`_refreshRail` appelé avant `_refreshTowns`) | §0 novemdecies |
 | E7 | `OpexJoinPathIsDedicated` armé seulement si `join != null` — un A\* peut traverser du rail existant | §0 vicies |
 
 ### Réglages laissés comme instruments, défaut 0, mesurés et non adoptés

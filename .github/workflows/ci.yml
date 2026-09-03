@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      run_full_bench:
+        description: "Exécuter le banc 20 graines x 3 ans (Étage 2) au lieu du simple smoke test"
+        type: boolean
+        default: false
+
+jobs:
+  smoke-test:
+    name: "Étage 1: Smoke Test (3 graines x 2 ans)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install system dependencies (OpenTTD 15.3 runtime)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends unzip tar ca-certificates libgomp1 libglib2.0-0
+
+      - name: Cache OpenTTDLab binaries & graphics
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/OpenTTDLab
+          key: openttdlab-${{ runner.os }}-15.3-7.1
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Smoke Test & Plausibility Check
+        run: |
+          PYTHONPATH=sweeps python sweeps/smoke_test.py --seeds 42 100 7 --years 2 --max-workers 2 --out docs/smoke_ci.json
+
+      - name: Upload Smoke Test Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-test-report
+          path: docs/smoke_ci.json
+
+  bench-ondemand:
+    name: "Étage 2: Banc 20 graines x 3 ans (À la demande)"
+    if: github.event_name == 'workflow_dispatch' && inputs.run_full_bench == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install system dependencies (OpenTTD 15.3 runtime)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends unzip tar ca-certificates libgomp1 libglib2.0-0
+
+      - name: Cache OpenTTDLab binaries & graphics
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/OpenTTDLab
+          key: openttdlab-${{ runner.os }}-15.3-7.1
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run 20 seeds x 3 years benchmark
+        run: |
+          PYTHONPATH=sweeps python sweeps/bench_v2.py --arms OpexAI AAAHogEx --seeds 42 100 7 999 2026 1 17 73 314 512 1024 1337 4096 8191 12345 54321 65537 123456 424242 8675309 --years 3 --max-workers 2 --out docs/bench_ci_demand.json
+
+      - name: Upload Benchmark Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results-3y-20seeds
+          path: docs/bench_ci_demand.json

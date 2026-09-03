@@ -31,7 +31,7 @@ import statistics
 import openttdlab
 from openttdlab import bananas_ai, bananas_ai_library, local_folder, run_experiments
 
-ROOT = Path("/work")
+ROOT = Path("/work") if Path("/work").exists() else Path(__file__).resolve().parents[1]
 OPENTTD_VERSION, OPENGFX_VERSION = "15.3", "7.1"
 TRAINS_MD5 = "c4c069dc797674e545411b59867ad0c2"  # identique aux scripts phase0
 YEARS = 20
