@@ -2345,6 +2345,71 @@ dénominateur selon la ressource rare, nous divisons toujours par le capital.
 
 ---
 
+## 0 undecies octies. 🟡 C13 `knapsack_roi` : NEUTRE (+4,1 %, non significatif) — et le premier banc mesurait MON bug (2026-09-03)
+
+Le sac à dos maximisait la somme des `revenueAnnual` (`projects.nut`, `OpexKnapsackSearch`). Le
+revenu ignore les frais de roulement : deux projets à revenu égal y sont équivalents même si l'un
+paie deux fois plus. `knapsack_roi=1` bascule **trois choses de concert** — l'objectif, la **borne**
+du Branch & Bound (elle doit majorer la *même* grandeur, sinon l'élagage coupe des solutions
+valides) et l'ordre de branchement (il doit suivre la densité de la grandeur optimisée).
+
+🔑 **Rien de nouveau n'est estimé.** `profitAnnual` et `roi` existaient déjà sur chaque projet,
+jamais consultés par l'optimiseur. La vitesse et la distance sont déjà dans le modèle
+(`roundTripDays` → `carried`, et `GetCargoIncome` paie la rapidité de livraison), et le capital rail
+est déjà corrigé du terrain (`RAIL_TERRAIN_FACTOR = 170`). Le même défaut avait d'ailleurs été
+trouvé et corrigé **un étage plus bas** (`economy.nut:261`, choix du nombre de convois) sans que
+personne ne remonte d'un cran.
+
+### 🔴 Le premier banc était faux, et c'était mon bug — pas celui du code mesuré
+
+Premier banc : **−8,5 % de valeur, −21,1 % de gares** ($t = -2{,}86$). J'ai relu mon implémentation
+avant de conclure et trouvé la cause : le chemin « revenu » applique un **bonus fret** à l'ordre de
+branchement (×1,40, jusqu'à ×1,89 pour les transformateurs, `projects.nut`), que mon chemin
+« profit » ne reprenait pas. Le réglage mesurait donc **deux changements** : le passage au profit
+*et* la suppression silencieuse de la préférence fret.
+
+Banc corrigé, mêmes graines, même durée (`docs/bench_knapsack_roi_v2_10y.json`) :
+
+| métrique | témoin | `knapsack_roi=1` | écart | t | graines | p |
+|---|---:|---:|---:|---:|---:|---:|
+| `company_value` | 1 458 048 £ | 1 517 816 £ | **+4,1 %** | +0,86 | 11/20 | 0,82 |
+| `profit` | 56 935 £ | 58 697 £ | +3,1 % | +0,39 | 8/20 | 0,50 |
+| `profit_year` | 245 599 £ | 241 370 £ | −1,7 % | −0,24 | 9/20 | 0,82 |
+| `n_stations` | 46 | 41 | −11,0 % | −1,86 | 6/20 | 0,12 |
+
+**De −8,5 % à +4,1 % : le défaut expliquait tout l'effet négatif.**
+➡️ **Leçon : avant de conclure au rejet, relire ce que le réglage change VRAIMENT.** Un banc
+propre sur une implémentation qui change deux choses mesure la somme des deux, et un rejet est
+aussi coûteux qu'une adoption à tort — ici il aurait enterré C13.
+
+### Le verdict, et ce qu'il apprend quand même
+
+**Neutre : rien de significatif** ($p = 0{,}82$), défaut laissé à 0. Mais le comportement est
+exactement celui qu'on attend d'un objectif de rendement : **−11 % de gares pour +4,1 % de
+valeur** — moins de lignes, mieux choisies. C'est le seul bras de la journée qui penche du bon côté.
+
+### ❌ L'interaction prédite n'est PAS au rendez-vous
+
+Le banc du §0 undecies septies avait produit une prédiction falsifiable : sous un objectif de
+profit, desserrer la réserve devrait cesser de dégrader le choix. Mesuré : la réserve reste
+négative sous objectif profit (**−4,9 %**, $t = -1{,}05$) contre −6,4 % seule. Marginalement moins
+mauvaise, mais toujours mauvaise. ➡️ **« La réserve est le budget du sac à dos » n'explique donc
+qu'une petite part de son effet.** Ne pas présenter cette hypothèse comme établie.
+
+### 🔴 Le vrai signal de la journée : un optimum local
+
+**Tous les bras de tous les bancs du 2026-09-03 perdent contre le témoin** — réserve, marges,
+objectif du sac à dos, dans toutes les combinaisons, sauf `knapsack_roi` seul qui est neutre. Ça
+ressemble moins à une série d'échecs indépendants qu'à une **sélection de portefeuille déjà à un
+optimum local**, façonnée par les nombreuses mesures antérieures : toute perturbation à un facteur
+en tombe.
+
+➡️ **Déplacer la cible : ce n'est plus un paramètre de la sélection, c'est ce qu'on lui donne à
+sélectionner.** Le vivier — 61 candidats classés sur 3 parties contre 855 estimés chez AAAHogEx
+(§0 undecies sexies bis). Rejoint [[opexai-plafonnement]], dont le second mur est le vivier.
+
+---
+
 ## 3 ter. 🔶 AUDIT DE TOUTES LES CONSTANTES EN DUR (demandé le 2026-09-02)
 
 **46 constantes `const` dans `ai/OpexAI/`, contre 35 réglages exposés.** Aucune revue systématique

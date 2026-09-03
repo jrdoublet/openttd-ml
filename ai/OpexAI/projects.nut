@@ -359,8 +359,16 @@ function OpexKnapsackSolve(candidates, capitalBudget, maxRoad = 18, maxItems = 3
     foreach (c in candidates) {
       /* Densite de PROFIT par livre, calculee ICI et pas dans les constructeurs : la porter
        * en champ la ferait payer aux DEUX bras. profitAnnual est deja net du roulement et de
-       * l'amortissement, et le capital rail deja corrige du terrain (RAIL_TERRAIN_FACTOR). */
-      local roiScore = OpexProjectScore(c.profitAnnual, c.budgetCapital);
+       * l'amortissement, et le capital rail deja corrige du terrain (RAIL_TERRAIN_FACTOR).
+       * Le bonus fret est REPRIS a l'identique du chemin revenu (voir OpexProjectFromCandidate) :
+       * sans lui, basculer sur le profit retirerait AUSSI la preference fret (jusqu'a x1,89),
+       * et le banc mesurerait deux changements au lieu d'un. */
+      local scoreProfit = c.profitAnnual;
+      if (c.kind == "freight" && ("payload" in c) && c.payload != null
+          && ("freightBonus" in c.payload) && c.payload.freightBonus > 100) {
+        scoreProfit = (scoreProfit * c.payload.freightBonus) / 100;
+      }
+      local roiScore = OpexProjectScore(scoreProfit, c.budgetCapital);
       c.sortKey <- (roiScore * 75 + c.opcodeScore * 25).tofloat();
     }
     candidates.sort(function(a, b) {
