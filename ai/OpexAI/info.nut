@@ -655,6 +655,15 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
+    /* Sonde A6 : calcul et journal du vecteur, sans effet sur le classement ni la construction. */
+    AddSetting({
+      name = "tension_probe",
+      description = "Log the four-resource tension vector for ranked projects: 1 = measurement only, 0 = no calculation (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* Plafond de croissance derive du flux mensuel reel, instrument separe du plan. */
     AddSetting({
       name = "air_demand_cap",

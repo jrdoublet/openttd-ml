@@ -61,6 +61,10 @@ PORTFOLIO_FRESH_BUDGET <- false;
  * n'grandit pas, la cause est invisible. FR| donne le premier refus rencontre, une fois par ligne
  * et par an. */
 AIR_FLEET_PROBE <- false;
+/* Sonde de tension : aucun calcul ni journal supplementaire sur le chemin par defaut. */
+TENSION_PROBE <- false;
+/* Garde unique du logger de portefeuille : evite un OR supplementaire dans le chemin chaud. */
+PORTFOLIO_LOG <- false;
 /* fleet_before_new : servir la croissance de flotte avant la construction de lignes aeriennes
  * neuves. Defaut REMIS A 0 le 2026-09-02 apres deux bancs concordants : -20,4 % de profit annuel
  * a 3 ans (t = -3,53) et -18,3 % de valeur a 10 ans (t = -3,81, 5/15 graines, p = 0,041).
@@ -99,20 +103,6 @@ function OpexDecide(kind, fields)
   }
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " " + kind + " " + fields);
-}
-
-function OpexLogPortfolioRank(projects)
-{
-  if (!DECISION_LOG) return;
-  if (projects == null || !("best" in projects) || projects.best == null || projects.best.len() == 0) return;
-  local n = projects.best.len();
-  if (n > 5) n = 5;
-  for (local i = 0; i < n; i++) {
-    local p = projects.best[i];
-    if (p == null) continue;
-    local cargoStr = ("cargo" in p && p.cargo >= 0) ? AICargo.GetCargoLabel(p.cargo) : "none";
-    if (DECISION_LOG) OpexDecide("PORTFOLIO_RANK", "rank=" + i + " mode=" + p.mode + " kind=" + p.kind + " cargo=" + cargoStr + " src=" + p.src + " dst=" + p.dst + " dist=" + p.distance + " roi=" + p.roi + " score=" + p.budgetScore + " cost=" + p.capital + " profit=" + p.profitAnnual);
-  }
 }
 
 /* Reserve de tresorerie dynamique : adaptee a la taille de la flotte pour liberer le capital
@@ -217,6 +207,7 @@ require("budget.nut");
 require("catalog.nut");
 require("economy.nut");
 require("candidates.nut");
+require("tension.nut");
 require("projects.nut");
 require("builder_rail.nut");
 require("builder_air.nut");
@@ -1988,7 +1979,7 @@ function OpexAI::_tryBuildProjects(year)
         ? this._projects.capitalBudgetPeak : 0;
     this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines, priorPeak);
     this._ranked = this._projects.rail;
-    if (DECISION_LOG) OpexLogPortfolioRank(this._projects);
+    if (PORTFOLIO_LOG) OpexLogPortfolioRank(this._projects);
     /* `knapsackExact` et le compteur d'imbrications du budget etaient ECRITS ET LUS NULLE PART.
      * Or maxNodes = 2000 pour n = 64 fait tronquer la recherche couramment : sans ce champ, on ne
      * peut pas distinguer « le solveur a prouve l'optimum » de « il a epuise son budget de noeuds »
@@ -3654,10 +3645,10 @@ function OpexAI::_runNextTask()
         ? this._projects.capitalBudgetPeak : 0;
     this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines, priorPeak);
     this._ranked = this._projects.rail;
-    if (DECISION_LOG) {
+    if (PORTFOLIO_LOG) {
       if (this._projects != null && this._projects.best != null && this._projects.best.len() > 0) {
         OpexLogPortfolioRank(this._projects);
-      } else {
+      } else if (DECISION_LOG) {
         local cBudget = (this._projects != null) ? this._projects.capitalBudget : 0;
         OpexDecide("PORTFOLIO_EMPTY", "budget=" + cBudget);
       }
@@ -3774,6 +3765,7 @@ function OpexAI::Start()
   RAIL_SEARCH_RESUMABLE = AIController.GetSetting("rail_search_resumable") != 0;
   RAIL_SEGMENTED_SEARCH = AIController.GetSetting("rail_segmented_search") != 0;
   DECISION_LOG = AIController.GetSetting("decision_log") != 0;
+  PORTFOLIO_LOG = DECISION_LOG;
   ABANDON_MEMORY = AIController.GetSetting("abandon_memory") != 0;
   STATION_JOIN = AIController.GetSetting("station_join") != 0;
   JOIN_MAX_DISTANCE = AIController.GetSetting("join_max_distance");
@@ -3835,6 +3827,11 @@ function OpexAI::Start()
   KNAPSACK_ROI = AIController.GetSetting("knapsack_roi") != 0;
   POOL_FINANCEABLE = AIController.GetSetting("pool_financeable") != 0;
   AIR_HUB_FIX = AIController.GetSetting("air_hub_fix") != 0;
+  TENSION_PROBE = AIController.GetSetting("tension_probe") != 0;
+  if (TENSION_PROBE) {
+    PORTFOLIO_LOG = true;
+    OpexTensionEnable(this._budget);
+  }
   AIR_DEMAND_CAP = AIController.GetSetting("air_demand_cap") != 0;
   AIR_DEMAND_PLAN = AIController.GetSetting("air_demand_plan") != 0;
   DYNAMIC_PATHFINDER_CAP = AIController.GetSetting("dynamic_pathfinder_cap") != 0;
