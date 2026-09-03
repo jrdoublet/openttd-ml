@@ -6347,3 +6347,78 @@ calibration de la note de gare »), qui cesse d'être de l'hygiène pour devenir
 - Le rapport ×4,4 est mesuré sur des données du **2026-08-30**, donc avant `economy_fix`, C21 et
   D3.2. À recontrôler sur l'arbre courant avant d'en tirer un correctif chiffré — mais le **signe**
   et l'ordre de grandeur ne dépendent d'aucun de ces trois.
+
+---
+
+## 0 octotrigesies. ⚠️ DIAGNOSTIC PRÉDIT-vs-RÉEL : trois défauts d'instrumentation, et un vrai résultat sur la ROUTE (2026-09-04)
+
+Dépouillement de `docs/diag_revenue_estimator_3y_20seeds.json` (20 graines × 3 ans, 2 bras).
+
+### 1. 🔴 Ce que le fichier NE peut pas dire
+
+- **`low_ratio` est armé sur 0 enregistrement sur 628**, dans les **deux** bras — y compris
+  `no_filter`. Et `op_ratio` n'est renseigné que 14 à 16 fois. Le drapeau n'est donc **pas câblé
+  jusqu'à la ligne** : ce n'est pas « aucune ligne sous plancher n'a été bâtie », c'est
+  « l'étiquette n'existe pas ». ➡️ **La question de D3.1 reste entière** ; le bras `no_filter`
+  bâtit bien 3 à 5 lignes rail de plus, mais rien ne les identifie.
+- **21 à 23 % des enregistrements ont `pred_rev = 0`** (65 et 72) : des lignes bâties sans aucune
+  prédiction, hors du chemin de l'estimateur. Les inclure dans un rapport réel/prédit produit des
+  valeurs infinies ou nulles — à exclure explicitement.
+- 🔴 **65 % des enregistrements sont à `age = 1`**, c'est-à-dire la **première année partielle**.
+  Le piège est documenté depuis le 2026-08-30 (`opex_pax_near_20y_5seeds.json`) : le rapport annuel
+  ne voit qu'un profit partiel pour une ligne bâtie en cours d'année. **Le contrôler change les
+  conclusions**, voir ci-dessous.
+
+### 2. ⚠️ Le chiffre d'ensemble est un piège
+
+`summary_overall` annonce un rapport agrégé **1,005** — « l'estimateur est parfait ». Il ne l'est
+pas : c'est la **compensation** d'une surestimation routière par une sous-estimation aérienne,
+pondérée par le volume de l'air (9,3 M de revenu prédit sur 11,7 M), et mélangée à des années
+partielles. La médiane du même jeu vaut **0,54**. **Quand l'agrégat et la médiane diffèrent d'un
+facteur 2, c'est la médiane qui décrit la ligne typique.**
+
+### 3. Le tableau corrigé — `pred_rev > 0` et `age ≥ 2`
+
+Rapport **réel / prédit**, médianes :
+
+| mode | n | revenu, tous âges | **revenu, âge ≥ 2** | coût de fonctionnement |
+|---|---:|---:|---:|---:|
+| **route** | 45-47 | 0,38-0,40 | **0,47-0,54** | 1,00 |
+| **air** | 36-40 | 0,92-1,04 | **1,21-1,48** | 1,00-1,67 |
+| rail | 3-5 | 0,61-0,92 | 1,63-1,87 | 1,00 |
+
+- 🔴 **La route est surestimée d'un facteur ~2** : elle encaisse la moitié de ce que le modèle
+  promet. C'est le seul résultat correctement échantillonné (n≈46), et il porte sur **186 des 300
+  lignes** du diagnostic — le mode le plus construit est le plus mal estimé.
+- **L'air est SOUS-estimé** de 20 à 48 % une fois les années partielles retirées, alors qu'il
+  paraissait exact avant contrôle.
+- **Le rail est trop peu nombreux pour conclure** (n = 3 à 5). La direction va dans le sens du
+  ×4,4 mesuré en §0 septentrigesies, mais **cet échantillon ne le confirme pas** — ne pas le citer
+  comme confirmation.
+
+### 4. 🔑 La dispersion routière interdit un facteur correctif
+
+Quartiles du rapport réel/prédit pour la route (âge ≥ 2) : **0,34 / 0,54 / 0,88**, avec une queue
+à **0,07 – 0,16** et des sommets à 1,39. Ce n'est pas une erreur d'échelle qu'un coefficient
+corrigerait : certaines lignes routières encaissent **7 %** de ce qui est promis, d'autres 139 %.
+Le modèle ne se trompe pas d'un facteur, il **ne discrimine pas**.
+
+### 5. ✅ Trouvaille collatérale : le doublement de flotte routière est visible et chiffré
+
+Sur 128 lignes routières, le rapport coût de fonctionnement réel/prédit vaut **exactement 2,00 sur
+22 d'entre elles (17 %)**, et 1,00 sur 102. C'est le défaut de §0 nonies point 2 — « une ligne
+routière voit sa flotte doublée le cycle même où elle est construite » — **jamais corrigé, et
+mesuré ici pour la première fois**. Il explique une part de la surestimation du profit routier,
+mais pas du revenu (le revenu prédit est indépendant de ce doublement).
+
+### ➡️ Ce qu'il faut faire, dans l'ordre
+
+1. **Câbler `low_ratio` et `op_ratio` jusqu'à la ligne** — sans ça, aucun diagnostic ne pourra
+   répondre à D3, et le fichier actuel ne le peut pas.
+2. **Exclure ou expliquer les `pred_rev = 0`** (21-23 % des lignes) : d'où viennent des lignes
+   bâties sans prédiction ?
+3. **Toujours filtrer sur `age ≥ 2`** dans ce diagnostic, et publier médiane **et** agrégat par
+   mode — jamais un agrégat global.
+4. **Le sujet de fond est la ROUTE** : revenu encaissé à ~50 % du promis, dispersion de 0,07 à
+   1,39, sur le mode qui fournit 62 % des lignes. Devant ça, le doublement de flotte (17 % des
+   lignes) est un correctif secondaire mais gratuit.
