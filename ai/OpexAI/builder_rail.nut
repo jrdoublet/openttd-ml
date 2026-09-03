@@ -45,6 +45,28 @@ const RAIL_SEARCH_SLICE = 50;
  * spent >= iterationBudget (ABND). */
 const RAIL_SEARCH_SAFETY_TICKS = 54020;
 
+/* Pathfinding segmente (docs/taches.md A5), porte tel quel depuis
+ * TrainLineAI::_segmentedPath (ai/TrainLineAI-segmented/main.nut:511).
+ *
+ * POURQUOI MAINTENANT. Sonde 2026-09-03 : 4 tentatives rail sur 10 meurent en ABND
+ * (budget epuise sans chemin) -- une a 10 000 (plafond dur A3), trois a 5 000
+ * (budget dynamique). Le prototype gagnait 1,7x a 3x d'iterations, mais 98 % de
+ * ce gain venait des cas a 36k-95k, que A3 tronque desormais. L'objectif n'est
+ * donc plus d'aller plus vite sur ce qui marche, c'est de trouver un chemin
+ * sous 5 000-10 000 iterations la ou l'A* classique echoue.
+ *
+ * ⚠️ LITTERAUX OBLIGATOIRES : `const` n'accepte qu'un scalaire litteral
+ * (tache A4, « scalar expected » tuait l'IA au demarrage sur TOUS les bras). */
+const SEGMENTED_SEGMENT_ITERS = 2000;
+const SEGMENTED_RECOVERY_ITERS = 10000;
+const SEGMENTED_FRONTIER_WIDTH = 3;
+const SEGMENTED_MAX_BACKTRACKS = 4;
+/* Garde-fou historique du prototype (50 000). Sous A3 le budget vaut 5k-10k,
+ * donc timeSafe = min(50 000, iterationBudget) se confond avec le budget. */
+const SEGMENTED_TIME_SAFE_ITERS = 50000;
+const SEGMENTED_BRIDGE_MIN_LEN = 3;
+const SEGMENTED_BRIDGE_MAX_LEN = 20;
+
 /* Plafond absolu, garde-fou reglable depuis main.nut::HARD_ITERATION_CAP. La mesure du 2026-08-29
  * (4 graines x 20 ans) a trouve 36 600 iterations comme maximum d'une reussite ; 40 000 garde 9 %
  * de marge, alors que les ABND a 60 000 absorbaient 56,5 % des opcodes de construction. */
@@ -387,6 +409,409 @@ function OpexAdvanceRailPathfinder(pathfinder, spent, iterationBudget, deadlineT
   return { path = path, iterations = spent, stop = stop, done = done };
 }
 
+/* Convertit une chaine AyStar en ordre de construction. Copie obligatoire : le segment suivant
+ * repart d'un RailPathFinder neuf, et les noeuds du segment precedent meurent avec FindPath. */
+function OpexSegmentTiles(node)
+{
+  local tiles = [];
+  while (node != null) {
+    tiles.push(node.GetTile());
+    node = node.GetParent();
+  }
+  tiles.reverse();
+  local simplified = [];
+  foreach (tile in tiles) {
+    if (simplified.len() >= 2 && simplified[simplified.len() - 2] == tile) {
+      simplified.pop();
+    } else if (simplified.len() == 0 || simplified[simplified.len() - 1] != tile) {
+      simplified.push(tile);
+    }
+  }
+  return simplified;
+}
+
+/* Squirrel 3.0 ne capture pas les locales englobantes. clone() est refuse ; une copie
+ * explicite rend les checkpoints de retour arriere independants. */
+function OpexCopySegmentTiles(tiles)
+{
+  local copied = [];
+  foreach (tile in tiles) copied.push(tile);
+  return copied;
+}
+
+/* Une paire de tuiles eloignees peut etre un pont OU l'entree d'un tunnel naturel.
+ * GetOtherTunnelEnd au moment de poser a produit TRKFAIL (prototype 4/9 -> 7/9,
+ * 2026-09-03). Le kind retenu sous AITestMode doit voyager jusqu'a la construction. */
+function OpexCopySegmentStructures(structures)
+{
+  local copied = [];
+  foreach (structure in structures) {
+    copied.push({ from = structure.from, to = structure.to, kind = structure.kind,
+        length = structure.length });
+  }
+  return copied;
+}
+
+function OpexPlannedStructureKind(structures, fromTile, toTile)
+{
+  if (structures == null) return null;
+  foreach (structure in structures) {
+    if (structure.from == fromTile && structure.to == toTile) return structure.kind;
+  }
+  return null;
+}
+
+/* Un nouveau segment a un closed set vide. Sans ce garde, il reentre le prefixe deja
+ * planifie et la pose boucle (TRKFAIL). Les deux dernieres cases restent autorisees :
+ * elles sont la source directionnelle du segment. */
+function OpexCanAppendSegment(prefix, tail)
+{
+  if (prefix == null) return true;
+  local seen = {};
+  for (local i = 0; i < prefix.len() - 2; i++) seen[prefix[i]] <- true;
+  for (local i = 2; i < tail.len(); i++) {
+    if (tail[i] in seen) return false;
+  }
+  return true;
+}
+
+/* Extraire K minima par un petit front d'indices, sans retirer de noeud et sans
+ * closure. Trier toute la file etait O(n log n) a chaque coupure et mangeait la
+ * fenetre avant le prochain FindPath. */
+function OpexFrontierAlternatives(pathfinder, maxAlternatives)
+{
+  local open = pathfinder._pathfinder._open;
+  if (open == null || open.Count() == 0) return [];
+  local nodes = [];
+  local seen = {};
+  local candidates = [0];
+  while (candidates.len() > 0 && nodes.len() < maxAlternatives) {
+    local bestPosition = 0;
+    local bestPriority = open._queue[candidates[0]][1];
+    for (local i = 1; i < candidates.len(); i++) {
+      local priority = open._queue[candidates[i]][1];
+      if (priority < bestPriority) {
+        bestPosition = i;
+        bestPriority = priority;
+      }
+    }
+    local heapIndex = candidates[bestPosition];
+    candidates[bestPosition] = candidates[candidates.len() - 1];
+    candidates.pop();
+    local left = heapIndex * 2 + 1;
+    local right = left + 1;
+    if (left < open.Count()) candidates.push(left);
+    if (right < open.Count()) candidates.push(right);
+    local node = open._queue[heapIndex][0];
+    local key = node.GetTile() + ":" + node.GetDirection();
+    if (key in seen) continue;
+    seen[key] <- true;
+    nodes.push(node);
+  }
+  return nodes;
+}
+
+/* Centre des station_exit de plansB : OpexAI a plusieurs buts, pas un centre-ville. */
+function OpexDestinationCenter(plansB)
+{
+  local sumX = 0;
+  local sumY = 0;
+  local n = 0;
+  foreach (plan in plansB) {
+    sumX += AIMap.GetTileX(plan.station_exit);
+    sumY += AIMap.GetTileY(plan.station_exit);
+    n++;
+  }
+  if (n <= 0) return 0;
+  return AIMap.GetTileIndex(sumX / n, sumY / n);
+}
+
+/* Ponts 3-20 et tunnels, sous AITestMode, UNIQUEMENT si le rail ne peut pas
+ * continuer dans l'axe. Sonder 18 ponts a chaque coupure sans obstacle epuisait
+ * la fenetre et mourait sans exception (piege 1 du prototype). */
+function OpexLocalStructureChoices(front, previous, destinationCenter, state)
+{
+  local choices = [];
+  local distance = AIMap.DistanceManhattan(front, previous);
+  if (distance <= 0) return choices;
+  local step = (front - previous) / distance;
+  local before = AIMap.DistanceManhattan(front, destinationCenter);
+  local next = front + step;
+  if (!AIMap.IsValidTile(next)) return choices;
+
+  local canContinue = false;
+  {
+    local testMode = AITestMode();
+    canContinue = AIRail.BuildRail(previous, front, next);
+  }
+  if (canContinue) return choices;
+
+  for (local length = SEGMENTED_BRIDGE_MIN_LEN; length <= SEGMENTED_BRIDGE_MAX_LEN; length++) {
+    local target = front + (length - 1) * step;
+    if (!AIMap.IsValidTile(target) || AIMap.DistanceManhattan(target, destinationCenter) >= before) {
+      continue;
+    }
+    local bridges = AIBridgeList_Length(length);
+    if (bridges.IsEmpty()) continue;
+    bridges.Valuate(AIBridge.GetMaxSpeed);
+    bridges.Sort(AIList.SORT_BY_VALUE, false);
+    local usable = false;
+    {
+      local testMode = AITestMode();
+      usable = AIBridge.BuildBridge(AIVehicle.VT_RAIL, bridges.Begin(), front, target);
+    }
+    if (usable) {
+      choices.push({ to = target, kind = "bridge", length = length });
+      state.bridgeTests++;
+    }
+  }
+
+  local tunnelEnd = AITunnel.GetOtherTunnelEnd(front);
+  if (AIMap.IsValidTile(tunnelEnd)) {
+    local tunnelDistance = AIMap.DistanceManhattan(front, tunnelEnd);
+    if (tunnelDistance >= 2 && tunnelDistance + 1 <= SEGMENTED_BRIDGE_MAX_LEN &&
+        (tunnelEnd - front) / tunnelDistance == step &&
+        AIMap.DistanceManhattan(tunnelEnd, destinationCenter) < before) {
+      local usable = false;
+      {
+        local testMode = AITestMode();
+        usable = AITunnel.BuildTunnel(AIVehicle.VT_RAIL, front);
+      }
+      if (usable) {
+        choices.push({ to = tunnelEnd, kind = "tunnel", length = tunnelDistance + 1 });
+        state.tunnelTests++;
+      }
+    }
+  }
+  return choices;
+}
+
+function OpexSegmentedResult(state, path, stop, done)
+{
+  local tiles = null;
+  local structures = null;
+  if (stop == "OK") {
+    tiles = state.prefix;
+    structures = state.structures;
+  }
+  return {
+    path = path,
+    tiles = tiles,
+    structures = structures,
+    iterations = state.iterations,
+    stop = stop,
+    done = done,
+    segments = state.segments,
+    backtracks = state.backtracks,
+    localChoices = state.localChoices,
+  };
+}
+
+function OpexTrySegmentedBacktrack(state)
+{
+  if (state.alternatives.len() > 0 && state.backtracks < SEGMENTED_MAX_BACKTRACKS) {
+    local alternative = state.alternatives.pop();
+    state.prefix = OpexCopySegmentTiles(alternative.prefix);
+    state.structures = OpexCopySegmentStructures(alternative.structures);
+    state.activeSources = alternative.sources;
+    state.backtracks++;
+    state.nextSegmentLimit = SEGMENTED_RECOVERY_ITERS;
+    state.pathfinder = null;
+    state.segmentPath = false;
+    state.segmentUsed = 0;
+    return true;
+  }
+  return false;
+}
+
+/* Cree l'etat d'une recherche segmentee. Table passee en parametre : Squirrel ici
+ * ne capture pas les locales englobantes (piege 6). pathfinder reste null jusqu'au
+ * premier segment : le closed set ne survit jamais d'un segment a l'autre. */
+function OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles = null)
+{
+  local sources = [];
+  local goals = [];
+  foreach (plan in plansA) sources.push([plan.lead, plan.station_exit]);
+  foreach (plan in plansB) goals.push([plan.lead, plan.station_exit]);
+  if (sources.len() == 0 || goals.len() == 0) return null;
+
+  /* timeSafe = min(50 000, budget). Sous A3 le budget vaut 5k-10k, donc se confond
+   * avec iterationBudget ; le plafond historique reste pour un cap plus haut. */
+  local timeSafe = SEGMENTED_TIME_SAFE_ITERS;
+  if (iterationBudget < timeSafe) timeSafe = iterationBudget;
+
+  return {
+    activeSources = sources,
+    goals = goals,
+    ignoredTiles = ignoredTiles == null ? [] : ignoredTiles,
+    destinationCenter = OpexDestinationCenter(plansB),
+    prefix = null,
+    structures = [],
+    alternatives = [],
+    nextSegmentLimit = SEGMENTED_SEGMENT_ITERS,
+    currentSegmentLimit = SEGMENTED_SEGMENT_ITERS,
+    pathfinder = null,
+    segmentPath = false,
+    segmentUsed = 0,
+    iterations = 0,
+    iterationBudget = iterationBudget,
+    timeSafe = timeSafe,
+    segments = 0,
+    backtracks = 0,
+    localChoices = 0,
+    bridgeTests = 0,
+    tunnelTests = 0,
+  };
+}
+
+/* Une tranche de recherche segmentee. `state.iterations` est le denominateur du
+ * classement : uniquement les vrais FindPath(1), cumules sur TOUS les segments et
+ * TOUS les retours arriere, jamais remis a zero (piege 4).
+ *
+ * Slice : si FindPath s'arrete parce que sliceIters est epuise ALORS que le
+ * segment court encore et que budget/deadline restent, CONT + garder le meme
+ * pathfinder, SANS traiter la frontiere. Un segment fini (null ou 2000) est
+ * traite comme le prototype, meme en mode reprenable. */
+function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
+{
+  local sliceSpent = 0;
+  local sleepTicks = AIController.GetSetting("pathfinder_sleep_ticks");
+  local ignored = state.ignoredTiles;
+
+  while (state.iterations < state.iterationBudget &&
+         state.iterations < state.timeSafe &&
+         AIController.GetTick() < deadlineTick &&
+         sliceSpent < sliceIters) {
+
+    if (state.pathfinder == null) {
+      state.segments++;
+      state.currentSegmentLimit = state.nextSegmentLimit;
+      state.nextSegmentLimit = SEGMENTED_SEGMENT_ITERS;
+      local pathfinder = RailPathFinder();
+      /* Table de cout inchangee : seulement max_cost, comme l'A* classique. */
+      pathfinder.cost.max_cost = PATHFINDER_MAX_COST;
+      pathfinder.InitializePath(state.activeSources, state.goals, ignored);
+      state.pathfinder = pathfinder;
+      state.segmentPath = false;
+      state.segmentUsed = 0;
+    }
+
+    while (state.segmentPath == false &&
+           state.segmentUsed < state.currentSegmentLimit &&
+           state.iterations < state.iterationBudget &&
+           state.iterations < state.timeSafe &&
+           AIController.GetTick() < deadlineTick &&
+           sliceSpent < sliceIters) {
+      state.segmentPath = state.pathfinder.FindPath(1);
+      state.segmentUsed++;
+      state.iterations++;
+      sliceSpent++;
+      /* Sleep seulement si le reglage le demande (defaut 0 : ne pas reintroduire
+       * le Sleep(1) qui etait un handicap face a AAAHogEx). Groupe par PATH_CHUNK
+       * comme le prototype groupait Sleep(1). */
+      if (sleepTicks > 0 && (state.segmentPath != false || state.segmentUsed % PATH_CHUNK == 0)) {
+        AIController.Sleep(sleepTicks);
+      }
+    }
+
+    local path = state.segmentPath;
+    if (path != false && path != null) {
+      local tail = OpexSegmentTiles(path);
+      if (state.prefix == null) state.prefix = tail;
+      else for (local i = 2; i < tail.len(); i++) state.prefix.push(tail[i]);
+      state.pathfinder = null;
+      return OpexSegmentedResult(state, path, "OK", true);
+    }
+
+    if (path == null) {
+      state.pathfinder = null;
+      if (OpexTrySegmentedBacktrack(state)) continue;
+      return OpexSegmentedResult(state, null, "NOPA", true);
+    }
+
+    /* path == false : le segment n'a pas abouti. */
+    if (state.segmentUsed < state.currentSegmentLimit) {
+      /* Segment encore en cours : slice, budget ou deadline. */
+      if (state.iterations < state.iterationBudget &&
+          state.iterations < state.timeSafe &&
+          AIController.GetTick() < deadlineTick) {
+        return OpexSegmentedResult(state, false, "CONT", false);
+      }
+      if (AIController.GetTick() >= deadlineTick) {
+        return OpexSegmentedResult(state, false, "DEAD", true);
+      }
+      return OpexSegmentedResult(state, false, "ABND", true);
+    }
+
+    /* Coupure a 2000 (ou 10000 en reprise). Empiler 3 alternatives a CHAQUE
+     * coupure, pas seulement aux obstacles : sinon la pile reste vide et
+     * backtracks=0 / local_choices=0 (piege 3, echec initial du prototype). */
+    local frontier = OpexFrontierAlternatives(state.pathfinder, SEGMENTED_FRONTIER_WIDTH * 4);
+    state.pathfinder = null;
+    local usable = [];
+    foreach (node in frontier) {
+      local candidateTail = OpexSegmentTiles(node);
+      if (candidateTail.len() < 3 || !OpexCanAppendSegment(state.prefix, candidateTail)) continue;
+      usable.push({ tail = candidateTail });
+      if (usable.len() >= SEGMENTED_FRONTIER_WIDTH) break;
+    }
+    if (usable.len() == 0) {
+      if (OpexTrySegmentedBacktrack(state)) continue;
+      return OpexSegmentedResult(state, null, "NOPA", true);
+    }
+
+    local tail = usable[0].tail;
+    /* Moins bon -> meilleur : Pop() essaie le deuxieme noeud tout de suite. */
+    for (local i = usable.len() - 1; i >= 1; i--) {
+      local alternativeTail = usable[i].tail;
+      local alternativePrefix = state.prefix == null ? OpexCopySegmentTiles(alternativeTail) :
+          OpexCopySegmentTiles(state.prefix);
+      if (state.prefix != null) {
+        for (local j = 2; j < alternativeTail.len(); j++) alternativePrefix.push(alternativeTail[j]);
+      }
+      if (alternativePrefix.len() < 2) continue;
+      local alternativeFront = alternativePrefix[alternativePrefix.len() - 1];
+      local alternativePrevious = alternativePrefix[alternativePrefix.len() - 2];
+      state.alternatives.push({ prefix = alternativePrefix,
+          structures = OpexCopySegmentStructures(state.structures),
+          sources = [[alternativeFront, alternativePrevious]] });
+    }
+
+    if (state.prefix == null) state.prefix = tail;
+    else for (local i = 2; i < tail.len(); i++) state.prefix.push(tail[i]);
+
+    local front = state.prefix[state.prefix.len() - 1];
+    local previous = state.prefix[state.prefix.len() - 2];
+    local choices = OpexLocalStructureChoices(front, previous, state.destinationCenter, state);
+    if (choices.len() > 0) {
+      for (local i = choices.len() - 1; i >= 1; i--) {
+        local alternativePrefix = OpexCopySegmentTiles(state.prefix);
+        alternativePrefix.push(choices[i].to);
+        local alternativeStructures = OpexCopySegmentStructures(state.structures);
+        alternativeStructures.push({ from = front, to = choices[i].to, kind = choices[i].kind,
+            length = choices[i].length });
+        state.alternatives.push({ prefix = alternativePrefix, structures = alternativeStructures,
+            sources = [[choices[i].to, front]] });
+      }
+      state.prefix.push(choices[0].to);
+      state.structures.push({ from = front, to = choices[0].to, kind = choices[0].kind,
+          length = choices[0].length });
+      state.activeSources = [[choices[0].to, front]];
+      state.localChoices++;
+    } else {
+      state.activeSources = [[front, previous]];
+    }
+  }
+
+  if (AIController.GetTick() >= deadlineTick) {
+    return OpexSegmentedResult(state, false, "DEAD", true);
+  }
+  if (state.iterations >= state.timeSafe || state.iterations >= state.iterationBudget) {
+    return OpexSegmentedResult(state, false, "ABND", true);
+  }
+  return OpexSegmentedResult(state, false, "CONT", false);
+}
+
 /* Recherche de chemin sous budget d'iterations. Rend une table avec le chemin brut et le compte
  * d'iterations reellement consommees -- ce compte est le DENOMINATEUR du classement, il doit etre
  * mesure, pas estime.
@@ -394,9 +819,18 @@ function OpexAdvanceRailPathfinder(pathfinder, spent, iterationBudget, deadlineT
  * Mode BLOQUANT (rail_search_resumable=0, defaut) : reconstitue la boucle historique. C'est
  * cette boucle qui gelait l'IA des mois entiers (7 mois, graine 100, juin-dec 1971) : la
  * bibliotheque rendait la main toutes les 50 iterations et on la reprenait aussitot, donc
- * _runNextTask ne tournait plus. Le mode reprenable vit dans OpexAI::_continueRailSearch. */
+ * _runNextTask ne tournait plus. Le mode reprenable vit dans OpexAI::_continueRailSearch.
+ *
+ * rail_segmented_search=1 : meme enveloppe, mais chaque A* vise les quais finals et s'arrete
+ * a 2000 iterations. Defaut 0 = A* classique inchange (table de cout, plafond A3). */
 function OpexSearchPath(plansA, plansB, iterationBudget, deadlineTick, ignoredTiles = null)
 {
+  if (RAIL_SEGMENTED_SEARCH) {
+    local state = OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles);
+    if (state == null) return { path = null, iterations = 0, stop = "NOPA" };
+    /* sliceIters = iterationBudget : une seule avancee jusqu'au chemin / ABND / DEAD / NOPA. */
+    return OpexAdvanceSegmentedSearch(state, iterationBudget, deadlineTick);
+  }
   local pathfinder = OpexCreateRailPathfinder(plansA, plansB, ignoredTiles);
   if (pathfinder == null) return { path = null, iterations = 0, stop = "NOPA" };
   /* sliceIters = iterationBudget : une seule "tranche" aussi longue que le budget, donc le
@@ -426,6 +860,21 @@ function OpexPathTiles(path)
     if (simplified.len() == 0 || simplified[simplified.len() - 1] != tile) simplified.push(tile);
   }
   return simplified;
+}
+
+/* Un succes segmente porte `tiles` (prefixe complet, y compris ponts/tunnels locaux)
+ * et pas seulement le dernier noeud AyStar. L'A* classique n'a pas ce champ. */
+function OpexResolveSearchTiles(search)
+{
+  if (("tiles" in search) && search.tiles != null) return search.tiles;
+  if (search.path == false || search.path == null) return [];
+  return OpexPathTiles(search.path);
+}
+
+function OpexResolveSearchStructures(search)
+{
+  if (("structures" in search) && search.structures != null) return search.structures;
+  return [];
 }
 
 function OpexMatchPlan(plans, tile)
@@ -474,7 +923,7 @@ function OpexSameStationEnd(plan, original)
 function OpexTryDoubleTrack(catalog, planA, planB, tiles, depot, cashReserve, iterationBudget, deadlineTick, extraForbidden = null)
 {
   local acc = { ok = false, skip = 2, tiles = null, planA = null, planB = null, depot = null,
-                iterations = 0, actualCost = 0 };
+                iterations = 0, actualCost = 0, structures = null };
   local stationIdA = AIStation.GetStationID(planA.anchor);
   local stationIdB = AIStation.GetStationID(planB.anchor);
   if (!AIStation.IsValidStation(stationIdA) || !AIStation.IsValidStation(stationIdB)) return acc;
@@ -506,7 +955,8 @@ function OpexTryDoubleTrack(catalog, planA, planB, tiles, depot, cashReserve, it
   acc.iterations = search.iterations;
   if (search.path == false || search.path == null) { acc.skip = 3; return acc; }
 
-  local tiles2 = OpexPathTiles(search.path);
+  local tiles2 = OpexResolveSearchTiles(search);
+  local structures2 = OpexResolveSearchStructures(search);
   if (tiles2.len() < 3) { acc.skip = 9; return acc; }
   local planA2 = OpexMatchPlan(dualA, tiles2[0]);
   local planB2 = OpexMatchPlan(dualB, tiles2[tiles2.len() - 1]);
@@ -537,7 +987,7 @@ function OpexTryDoubleTrack(catalog, planA, planB, tiles, depot, cashReserve, it
     return acc;
   }
 
-  local trackFailed = OpexBuildTrack(tiles2);
+  local trackFailed = OpexBuildTrack(tiles2, structures2);
   local last = tiles2.len() - 1;
   local connected = trackFailed == 0 &&
       AIRail.AreTilesConnected(planA2.station_exit, tiles2[1], tiles2[2]) &&
@@ -561,12 +1011,16 @@ function OpexTryDoubleTrack(catalog, planA, planB, tiles, depot, cashReserve, it
   acc.planA = planA2;
   acc.planB = planB2;
   acc.depot = depot2;
+  acc.structures = structures2;
   acc.actualCost = costs.GetCosts();
   return acc;
 }
 
-/* Pose la voie sur les cases intermediaires. Les extremites sont les sorties de quai. */
-function OpexBuildTrack(tiles)
+/* Pose la voie sur les cases intermediaires. Les extremites sont les sorties de quai.
+ * `structures` propage le kind retenu sous AITestMode : GetOtherTunnelEnd sur une paire
+ * eloignee a pris un tunnel naturel a la place d'un pont (TRKFAIL, prototype 4/9 -> 7/9).
+ * Tableau vide ou null = deduction classique, A* inchange. */
+function OpexBuildTrack(tiles, structures = null)
 {
   local failed = 0;
   for (local i = 1; i < tiles.len() - 1; i++) {
@@ -579,7 +1033,9 @@ function OpexBuildTrack(tiles)
     } else if (AIMap.DistanceManhattan(prev, cur) > 1) {
       ok = true;                                   // autre bout d'un franchissement deja pose
     } else if (AIMap.DistanceManhattan(cur, next) > 1) {
-      if (AITunnel.GetOtherTunnelEnd(cur) == next) {
+      local plannedKind = OpexPlannedStructureKind(structures, cur, next);
+      if (plannedKind == "tunnel" ||
+          (plannedKind == null && AITunnel.GetOtherTunnelEnd(cur) == next)) {
         ok = AITunnel.BuildTunnel(AIVehicle.VT_RAIL, cur);
       } else {
         local bridges = AIBridgeList_Length(AIMap.DistanceManhattan(cur, next) + 1);
@@ -950,6 +1406,8 @@ function OpexPrepareRailRoute(catalog, budget, candidate, alternativeRatio, join
                  slopeRelaxed = 0, siteClear = 0, siteCargo = 0, siteCmd = 0,
                  tiles = null, depot = null, tiles2 = null, planA2 = null, planB2 = null, depot2 = null,
                  doubleTrack = 0, doubleTiles = 0, doubleDepot = null, doubleSkip = 0,
+                 structures = null, structures2 = null,
+                 segmentedSegments = 0, segmentedBacktracks = 0, segmentedLocalChoices = 0,
                  budgetInfo = null, iterationBudget = 0, capital = candidate.capital };
 
   plan.budgetInfo = OpexIterationBudget(candidate.profitAnnual, alternativeRatio, hardCap);
@@ -987,9 +1445,14 @@ function OpexPrepareRailRoute(catalog, budget, candidate, alternativeRatio, join
 function OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search, join)
 {
   plan.iterations = search.iterations;
+  if (("segments" in search)) {
+    plan.segmentedSegments = search.segments;
+    plan.segmentedBacktracks = search.backtracks;
+    plan.segmentedLocalChoices = search.localChoices;
+  }
   if (search.path == false || search.path == null) { plan.reason = search.stop; return plan; }
 
-  local tiles = OpexPathTiles(search.path);
+  local tiles = OpexResolveSearchTiles(search);
   if (tiles.len() < 3) { plan.reason = "SHORT"; return plan; }
   local planA = OpexMatchPlan(plan.plansA, tiles[0]);
   local planB = OpexMatchPlan(plan.plansB, tiles[tiles.len() - 1]);
@@ -997,6 +1460,7 @@ function OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search, join
   if (join != null && !OpexJoinPathIsDedicated(tiles)) { plan.reason = "JOINPATH"; return plan; }
 
   plan.tiles = tiles;
+  plan.structures = OpexResolveSearchStructures(search);
   plan.planA = planA;
   plan.planB = planB;
 
@@ -1030,6 +1494,7 @@ function OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search, join
       plan.planA2 = dual.planA;
       plan.planB2 = dual.planB;
       plan.depot2 = dual.depot;
+      plan.structures2 = dual.structures;
     }
   }
 
@@ -1088,7 +1553,10 @@ function OpexSimulateRailInfraCost(plan, join)
       } else if (AIMap.DistanceManhattan(prev, cur) > 1) {
         continue;
       } else if (AIMap.DistanceManhattan(cur, next) > 1) {
-        if (AITunnel.GetOtherTunnelEnd(cur) == next) {
+        local plannedKind = OpexPlannedStructureKind(
+            (("structures" in plan) ? plan.structures : null), cur, next);
+        if (plannedKind == "tunnel" ||
+            (plannedKind == null && AITunnel.GetOtherTunnelEnd(cur) == next)) {
           AITunnel.BuildTunnel(AIVehicle.VT_RAIL, cur);
         } else {
           local bridges = AIBridgeList_Length(AIMap.DistanceManhattan(cur, next) + 1);
@@ -1125,7 +1593,10 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, join, cashReserve
                    doubleTrack = plan.doubleTrack, doubleSkip = plan.doubleSkip,
                    doubleTiles = plan.doubleTiles, doubleDepot = plan.doubleDepot,
                    capital = plan.capital, money = 0, actualCost = 0,
-                   budgetInfo = plan.budgetInfo, iterationBudget = plan.iterationBudget };
+                   budgetInfo = plan.budgetInfo, iterationBudget = plan.iterationBudget,
+                   segmentedSegments = plan.segmentedSegments,
+                   segmentedBacktracks = plan.segmentedBacktracks,
+                   segmentedLocalChoices = plan.segmentedLocalChoices };
 
   local planA = plan.planA;
   local planB = plan.planB;
@@ -1174,7 +1645,7 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, join, cashReserve
     result.opcodes += budget.end("build_stations"); result.reason = "STNFAIL"; return result;
   }
 
-  local trackFailed = OpexBuildTrack(tiles);
+  local trackFailed = OpexBuildTrack(tiles, plan.structures);
   local last = tiles.len() - 1;
   local connected = trackFailed == 0 &&
       AIRail.AreTilesConnected(planA.station_exit, tiles[1], tiles[2]) &&
@@ -1213,7 +1684,7 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, join, cashReserve
     local okB2 = AIRail.BuildRailStation(planB2.anchor, planB2.direction, 1, planB2.length,
                                         AIStation.GetStationID(planB.anchor));
     if (okA2 && okB2) {
-      local tFail = OpexBuildTrack(tiles2);
+      local tFail = OpexBuildTrack(tiles2, plan.structures2);
       local l2 = tiles2.len() - 1;
       local conn2 = tFail == 0 &&
           AIRail.AreTilesConnected(planA2.station_exit, tiles2[1], tiles2[2]) &&
@@ -1338,7 +1809,10 @@ function OpexBuildLine(catalog, budget, candidate, alternativeRatio, join, cashR
              capacitySignalFailures = [],
              signalsOk = 0, signalsFail = 0, signalsSkip = 0, signalJunc = 0,
              signalFailures = [],
-             budgetInfo = plan.budgetInfo, iterationBudget = plan.iterationBudget };
+             budgetInfo = plan.budgetInfo, iterationBudget = plan.iterationBudget,
+             segmentedSegments = plan.segmentedSegments,
+             segmentedBacktracks = plan.segmentedBacktracks,
+             segmentedLocalChoices = plan.segmentedLocalChoices };
   }
   return OpexExecuteRailPlan(catalog, budget, candidate, plan, join, cashReserve);
 }
@@ -1414,7 +1888,8 @@ function OpexExecuteUpgradeAfterSearch(catalog, budget, line, cashReserve, searc
     result.reason = "NOPATH";
     return result;
   }
-  local tiles2 = OpexPathTiles(search.path);
+  local tiles2 = OpexResolveSearchTiles(search);
+  local structures2 = OpexResolveSearchStructures(search);
   if (tiles2.len() < 3) {
     result.reason = "SHORT";
     return result;
@@ -1460,7 +1935,7 @@ function OpexExecuteUpgradeAfterSearch(catalog, budget, line, cashReserve, searc
     return result;
   }
 
-  local trackFailed = OpexBuildTrack(tiles2);
+  local trackFailed = OpexBuildTrack(tiles2, structures2);
   local last = tiles2.len() - 1;
   local connected = trackFailed == 0 &&
       AIRail.AreTilesConnected(planA2.station_exit, tiles2[1], tiles2[2]) &&

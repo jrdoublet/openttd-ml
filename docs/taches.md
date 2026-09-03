@@ -2132,6 +2132,93 @@ gagne en **abaissant le coût total** (A5, pathfinding segmenté) ou en changean
 
 ---
 
+## 0 undecies quinquies. 🟡 A5 `rail_segmented_search` — le mécanisme MARCHE, la valeur est NEUTRE ; adopté à 1 par décision (2026-09-03)
+
+Portage de `ai/TrainLineAI-segmented/` vers `ai/OpexAI/builder_rail.nut`, délégué à grok
+(`grok-4.6`), relu ici, smoke-testé (`docs/smoke_a5.json` : bras 0 **bit-à-bit identique** au
+master d'avant, donc le refactor ne décale rien quand le réglage est à 0), puis mesuré.
+
+### Le banc
+
+`docs/bench_rail_segmented_10y.json`, banc apparié 20 graines × 10 ans, 40 parties, 0 échec, les
+deux bras **de la même branche** (`feat/rail-segmented-search`) :
+
+| métrique | classique (`=0`) | segmenté (`=1`) | écart | t | graines gagnées | p (signes) |
+|---|---:|---:|---:|---:|---:|---:|
+| `company_value` | 1 478 949 £ | 1 430 436 £ | −3,4 % | −0,86 | 7/20 | 0,2632 |
+| `profit_year` | 247 326 £ | 229 107 £ | −8,0 % | −1,40 | 9/20 | 0,8238 |
+| `profit` | 61 764 £ | 56 858 £ | −8,6 % | −1,12 | 9/20 | 0,8238 |
+| `performance_history` | 431 | 423 | −1,9 % | −0,50 | 9/20 | 0,8238 |
+
+**Aucune métrique de valeur n'approche la significativité** (tous les $|t| < 1{,}5$, tous les
+$p \geq 0{,}26$). C'est un **résultat nul**, pas un rejet : distinctement plus doux que le
+−23,1 % franc d'A4 (§0 undecies quater).
+
+⚠️ **Correction d'une erreur de dépouillement** faite en séance : j'ai d'abord annoncé
+`median_station_rating` « 15/20 gagnées, $p = 0{,}0414$ ». **Faux — ces 15 sont des ÉGALITÉS.**
+Hors égalités le score est **classique 5, segmenté 0** ($n = 5$, $p = 0{,}0625$) : la note de gare
+ne monte jamais et baisse sur 5 graines. Règle : le test des signes **exclut** les ex æquo, il ne
+les attribue pas.
+
+### 🟢 Le mécanisme visé fonctionne, et c'est le plus gros effet du banc
+
+| | classique | segmenté | écart | t |
+|---|---:|---:|---:|---:|
+| gares | 39,5 | **44,6** | **+12,9 %** | **+1,94** |
+| véhicules | 152,7 | **161,1** | +5,5 % | +1,44 |
+| trésorerie | 91 493 £ | 69 964 £ | **−23,5 %** | −2,03 |
+
+La segmentation **convertit réellement les abandons en lignes construites** — c'était exactement
+la cible (sonde `docs/probe_abnd.json` : **40 % des tentatives rail meurent en `ABND`**). Le +12,9 %
+de gares est le plus fort effet mesuré du banc, plus fort que n'importe quelle métrique de valeur.
+Et la trésorerie fond d'autant : **l'IA dépense son cash à construire ce réseau supplémentaire.**
+
+### 🔴 Pourquoi ça ne paie pas — et ça referme une vieille question
+
+Les candidats qui mouraient en `ABND` avaient un budget d'itérations de **5 000**. Or ce budget est
+**proportionnel au profit attendu**. Ce sont donc, *par construction*, les lignes que le modèle
+juge les **moins rentables**. Le projet avait déjà mesuré et réfuté « relever le budget
+d'itérations », avec exactement ce raisonnement : « payer 90 000 itérations pour récupérer les
+`PATHLIM`, c'est acheter les lignes les moins rentables au prix fort »
+([[pathfinder-budget-contrainte]]).
+
+**A5 obtient le même effet quatre fois moins cher — et retombe sur le même verdict.** Baisser le
+prix n'a rien changé, parce que **le problème n'a jamais été le coût de trouver ces chemins, mais
+la valeur de ces lignes.**
+
+➡️ **Les trois voies d'attaque du pathfinder sont désormais épuisées et mesurées :**
+
+| voie | tâche | verdict |
+|---|---|---|
+| **relever** le budget d'itérations | (2026-08-28) | ❌ réfuté — rendement ÷16 entre lignes faciles et difficiles |
+| **redistribuer** le temps de recherche | A4 | ❌ −23,1 %, 16/20 graines |
+| **abaisser** le coût de recherche | A5 | 🟡 nul (−3,4 %, $p = 0{,}26$) |
+
+🔑 **Le pathfinder n'est pas le goulot.** Trois mesures indépendantes le disent maintenant, chacune
+par un angle différent. Toute nouvelle idée de pathfinding doit d'abord expliquer pourquoi elle
+échappe à ces trois-là. Le levier restant est **le dénominateur du classement** (A1) et **le volume
+de liaisons** (A2), pas la recherche de chemin.
+
+### ✅ Décision : défaut **1** (utilisateur, 2026-09-03)
+
+Contre ma recommandation (« instrument à défaut 0 »), et le raisonnement se tient :
+
+- **Le résultat est nul, pas négatif.** Rien n'est significatif ; on ne renonce à aucun gain établi.
+- **Les médianes vont dans l'autre sens que les moyennes** : `company_value` médiane
+  1 367 726 £ contre 1 343 685 £, `performance_history` médiane 434,5 contre 413,5. La moyenne est
+  tirée par quelques grosses pertes, pas par une dégradation générale.
+- **À 10 ans le réseau supplémentaire n'est pas amorti** : +12,9 % de gares payées en trésorerie
+  (−23,5 %), pour un revenu encore plat. Un horizon plus long les jugerait différemment.
+- **C'est le socle des mesures suivantes** : avec la segmentation active, le gel de §0 undecies ter
+  est structurellement plus court. **A4 mérite donc d'être retesté sur ce socle** — sa perte venait
+  d'un retard de mise en service du rail, que la segmentation réduit à la source.
+
+`RAIL_SEGMENTED_SEARCH` : repli d'initialisation passé à `true` dans `main.nut` pour qu'il vaille le
+défaut du réglage — une partie qui n'aurait pas lu ses réglages doit se comporter comme une partie
+normale.
+
+---
+
 ## 3 ter. 🔶 AUDIT DE TOUTES LES CONSTANTES EN DUR (demandé le 2026-09-02)
 
 **46 constantes `const` dans `ai/OpexAI/`, contre 35 réglages exposés.** Aucune revue systématique
@@ -4543,8 +4630,8 @@ qui n'avait pas encore sa ligne. Journal de la journée : `docs/journal_2026-09-
 | **A1** | **Dénominateur du classement dépendant de la ressource rare** (§0 tervicies point 1, §3 septies) | Sept mécanismes de capital mesurés, sept non adoptés : **le capital n'est pas le mur**. AAAHogEx bascule son dénominateur, nous jamais |
 | **A2** | **Volume de liaisons** — largeur contre profondeur (§3 nonies phase 1) | Confirmé deux fois aujourd'hui. On pose 2,4 lignes aériennes par partie contre 35 appareils chez l'adversaire |
 | **A3** | **Sonde : plafonner `iterationBudget`** à ~10 000 au lieu de 50 000, banc apparié (§0 undecies ter) | ✅ Fait (`pathfinder_hard_cap_k` = 10, bornes dynamiques à 10k max) |
-| **A4** | ❌ **FAIT, MESURÉ, REJETÉ** — recherche reprenable d'un tour de file à l'autre (§0 undecies quater) | **−23,1 % de valeur, 16/20 graines perdantes** ($p = 0{,}0118$). Le gel de 7 mois est réel, mais il ne coûtait pas ce qu'on croyait. Réglage `rail_search_resumable` conservé comme instrument, défaut 0 |
-| **A5** | **Porter le pathfinding segmenté en production** (`sweeps/measure_*_segmented.py` → `ai/OpexAI/`) | Mesuré 4× moins cher et sous la barrière sur 9/9, mais **4/9 aboutissent** — deux briques manquent (voir [[pathfinder-segmente-prototype]]). ⚠️ **La consigne « après A4 » est CADUQUE.** L'échec d'A4 rend A5 *plus* prometteur, pas moins : la segmentation **réduit le coût total** du pathfinding, là où A4 se contentait de le **redistribuer** dans le temps — et c'est précisément la redistribution qui a coûté 23 % |
+| **A4** | ❌ **FAIT, MESURÉ, REJETÉ** — recherche reprenable d'un tour de file à l'autre (§0 undecies quater) | **−23,1 % de valeur, 16/20 graines perdantes** ($p = 0{,}0118$). Le gel de 7 mois est réel, mais il ne coûtait pas ce qu'on croyait. Réglage `rail_search_resumable` conservé comme instrument, défaut 0 — 🔄 **RETEST en cours (2026-09-03)** sur le socle segmenté (A5 = 1) : sa perte venait du retard de mise en service du rail, que la segmentation réduit à la source |
+| **A5** | 🟡 **FAIT, MESURÉ, RÉSULTAT NUL — adopté à 1 par décision** (§0 undecies quinquies) | Le mécanisme marche : **+12,9 % de gares** (t = +1,94), +5,5 % de véhicules, −23,5 % de trésorerie — il convertit bien les 40 % d'`ABND` en lignes. Mais la valeur est **neutre** : −3,4 %, t = −0,86, 7/20, $p = 0{,}26$ — rien de significatif. `docs/bench_rail_segmented_10y.json`. **Défaut `rail_segmented_search` = 1** : résultat nul et non négatif, médianes en hausse, réseau non amorti à 10 ans, et surtout **socle du retest d'A4**. ➡️ Referme les trois voies du pathfinder : relever ❌, redistribuer ❌, abaisser 🟡. **Le pathfinder n'est pas le goulot** |
 
 ⚠️ **A2 n'est PAS « remplacer notre A\* par `Graph.AyStar` »** — cette formulation, qui circule
 encore, est sans objet : `main.nut:28` importe déjà `Pathfinder.Rail`, bâti sur `Graph.AyStar`.

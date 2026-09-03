@@ -194,6 +194,14 @@ HARD_ITERATION_CAP <- 10000;
  * les decisions : le banc tranchera. */
 RAIL_SEARCH_RESUMABLE <- false;
 
+/* Pathfinding segmente (docs/taches.md A5). Repli VRAI depuis le 2026-09-03 : c'est le
+ * defaut du reglage, et le repli doit valoir le defaut pour qu'une partie sans reglage lu
+ * se comporte comme une partie normale. 1 porte TrainLineAI::_segmentedPath. Sonde
+ * 2026-09-03 : 4/10 tentatives rail en ABND ; A3 plafonne a 10k donc l'enjeu est de
+ * convertir les abandons, pas d'accelerer les succes. Le banc dit reseau +13 % pour une
+ * valeur neutre (docs/taches.md A5). */
+RAIL_SEGMENTED_SEARCH <- true;
+
 /* La memoire est l'autre correctif, independamment des 40 000 iterations. Elle reste un repli
  * actif jusqu'a la lecture unique de abandon_memory dans Start(), comme les autres reglages de
  * decision qui ne changent pas pendant une partie. */
@@ -2813,15 +2821,26 @@ function OpexAI::_startRailSearch(candidate, join, placeJoin, alternativeRatio, 
   local plan = OpexPrepareRailRoute(this._catalog, this._budget, candidate, alternativeRatio,
                                     join, hardCap);
   if (plan.plansA == null) return { pending = false, plan = plan };
-  local pathfinder = OpexCreateRailPathfinder(plan.plansA, plan.plansB, null);
-  if (pathfinder == null) {
-    plan.reason = "NOPA";
-    return { pending = false, plan = plan };
+  local pathfinder = null;
+  local segmented = null;
+  if (RAIL_SEGMENTED_SEARCH) {
+    segmented = OpexCreateSegmentedSearch(plan.plansA, plan.plansB, plan.iterationBudget, null);
+    if (segmented == null) {
+      plan.reason = "NOPA";
+      return { pending = false, plan = plan };
+    }
+  } else {
+    pathfinder = OpexCreateRailPathfinder(plan.plansA, plan.plansB, null);
+    if (pathfinder == null) {
+      plan.reason = "NOPA";
+      return { pending = false, plan = plan };
+    }
   }
   this._railSearch = {
     kind = "primary",
     phase = "search",
     pathfinder = pathfinder,
+    segmented = segmented,
     spent = 0,
     iterationBudget = plan.iterationBudget,
     /* Borne horaire large : le budget d'iterations est la vraie limite (piege 1). */
@@ -2858,8 +2877,13 @@ function OpexAI::_continueRailSearch()
   if (state.phase != "search") return;
 
   this._budget.begin();
-  local slice = OpexAdvanceRailPathfinder(state.pathfinder, state.spent, state.iterationBudget,
-                                          state.safetyDeadline, RAIL_SEARCH_SLICE);
+  local slice;
+  if (("segmented" in state) && state.segmented != null) {
+    slice = OpexAdvanceSegmentedSearch(state.segmented, RAIL_SEARCH_SLICE, state.safetyDeadline);
+  } else {
+    slice = OpexAdvanceRailPathfinder(state.pathfinder, state.spent, state.iterationBudget,
+                                      state.safetyDeadline, RAIL_SEARCH_SLICE);
+  }
   /* spent est le CUMUL de toutes les tranches : c'est le denominateur du classement. */
   state.spent = slice.iterations;
   if (state.kind == "primary") {
@@ -2927,6 +2951,13 @@ function OpexAI::_recordRailAttempt(candidate, result, join, placeJoin, posPacke
                            + "|" + budgetInfo.path + "S"
                            + OpexAttemptReasonCode(result.reason) + "|" + iterationBudget
                            + "|" + result.iterations);
+  /* Bras experimental seulement. Sous 31 caracteres : SG|yy|lineId|seg|bt|loc. */
+  if (RAIL_SEGMENTED_SEARCH) {
+    local segs = ("segmentedSegments" in result) ? result.segmentedSegments : 0;
+    local backs = ("segmentedBacktracks" in result) ? result.segmentedBacktracks : 0;
+    local locs = ("segmentedLocalChoices" in result) ? result.segmentedLocalChoices : 0;
+    OpexSign(anchor, "SG|" + yy + "|" + this._nextLineId + "|" + segs + "|" + backs + "|" + locs);
+  }
   OpexSign(anchor, "OB|A|" + yy + "|" + this._nextLineId + "|" + posPacked
                            + "|" + result.opcodes + "|" + candidate.distance);
   if (result.reason == "SITEA" || result.reason == "SITEB" || result.reason == "SITEAB") {
@@ -3022,16 +3053,28 @@ function OpexAI::_recordRailAttempt(candidate, result, join, placeJoin, posPacke
 
 function OpexAI::_startRailUpgradeSearch(line, prep)
 {
-  local pathfinder = OpexCreateRailPathfinder(prep.dualA, prep.dualB, prep.ignored);
-  if (pathfinder == null) {
-    OpexSign(AIMap.GetTileIndex(1, 1), "RU|" + (AIDate.GetYear(AIDate.GetCurrentDate()) % 100)
-             + "|" + line.lineId + "|NOPATH");
-    return;
+  local pathfinder = null;
+  local segmented = null;
+  if (RAIL_SEGMENTED_SEARCH) {
+    segmented = OpexCreateSegmentedSearch(prep.dualA, prep.dualB, prep.iterationBudget, prep.ignored);
+    if (segmented == null) {
+      OpexSign(AIMap.GetTileIndex(1, 1), "RU|" + (AIDate.GetYear(AIDate.GetCurrentDate()) % 100)
+               + "|" + line.lineId + "|NOPATH");
+      return;
+    }
+  } else {
+    pathfinder = OpexCreateRailPathfinder(prep.dualA, prep.dualB, prep.ignored);
+    if (pathfinder == null) {
+      OpexSign(AIMap.GetTileIndex(1, 1), "RU|" + (AIDate.GetYear(AIDate.GetCurrentDate()) % 100)
+               + "|" + line.lineId + "|NOPATH");
+      return;
+    }
   }
   this._railSearch = {
     kind = "upgrade",
     phase = "search",
     pathfinder = pathfinder,
+    segmented = segmented,
     spent = 0,
     iterationBudget = prep.iterationBudget,
     safetyDeadline = AIController.GetTick() + RAIL_SEARCH_SAFETY_TICKS,
@@ -3271,6 +3314,7 @@ function OpexAI::Start()
    * donc les GetSetting dans ces boucles seraient du debit d'opcodes perdu. */
   HARD_ITERATION_CAP = AIController.GetSetting("pathfinder_hard_cap_k") * 1000;
   RAIL_SEARCH_RESUMABLE = AIController.GetSetting("rail_search_resumable") != 0;
+  RAIL_SEGMENTED_SEARCH = AIController.GetSetting("rail_segmented_search") != 0;
   ABANDON_MEMORY = AIController.GetSetting("abandon_memory") != 0;
   STATION_JOIN = AIController.GetSetting("station_join") != 0;
   JOIN_MAX_DISTANCE = AIController.GetSetting("join_max_distance");

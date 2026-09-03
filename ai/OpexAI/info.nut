@@ -361,6 +361,22 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* Pathfinding segmente (docs/taches.md A5). Sonde 2026-09-03 : 40 % des tentatives
+     * rail meurent en ABND. A3 a plafonne a 10k, donc l'objectif n'est plus d'accelerer
+     * les succes mais de convertir les abandons. Port de TrainLineAI-segmented.
+     * Banc 20 graines x 10 ans (docs/bench_rail_segmented_10y.json) : le mecanisme
+     * marche (+13 % de gares, +5,5 % de vehicules) mais la valeur est NEUTRE
+     * (-3,4 %, t = -0,86, 7/20, p = 0,26 -- non significatif).
+     * Defaut 1 par decision de l'utilisateur du 2026-09-03 : on garde le reseau plus
+     * dense et la recherche moins chere comme socle des mesures suivantes (A4 retest). */
+    AddSetting({
+      name = "rail_segmented_search",
+      description = "Segmented rail pathfinding (docs/taches.md A5): 1 = segmented (default), 0 = classic A*",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* Un ABND est seulement l'epuisement du budget d'iterations, pas une ligne construite puis
      * defectueuse. La meme paire peut sinon revenir au classement l'annee suivante et repayer le
      * plafond : 4096 l'a fait trois fois dans la mesure du 2026-08-29. La memoire est une petite
