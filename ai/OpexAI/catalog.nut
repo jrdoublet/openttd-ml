@@ -257,9 +257,14 @@ function OpexCatalog::_refreshRail()
   local types = AIRailTypeList();
   types.Valuate(AIRail.IsRailTypeAvailable);
   types.KeepValue(1);
+  /* Le choix ne doit PAS dependre de l'ordre d'iteration : le tri par defaut d'une AIList est
+   * SORT_BY_VALUE DECROISSANT (script_list.cpp:397-403), donc le Valuate ci-dessus change cet
+   * ordre. L'ancien "le dernier gagne" rendait le type de rail dependant du tri -- invisible a
+   * 3 ans de partie ou un seul type est disponible, et instable des qu'il y en a plusieurs.
+   * Voir docs/mecanique_jeu.md S15.1. */
   local chosen = -1;
   for (local t = types.Begin(); !types.IsEnd(); t = types.Next()) {
-    chosen = t;
+    if (t > chosen) chosen = t;
   }
   if (chosen < 0) return;
   this.railType = chosen;

@@ -119,6 +119,19 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C15 : Relever la cadence d'agrandissement de flotte aerienne.
+     * 365 = annuel/defaut historique (verrou Y par annee civile).
+     * <365 = delai minimal en jours entre deux extensions (ex: 90 = trimestriel, 0 = chaque cycle). */
+    AddSetting({
+      name = "air_fleet_cadence_days",
+      description = "Delai minimal en jours entre deux extensions de flotte aerienne sur une meme ligne (365 = annuel/defaut historique, 90 = trimestriel, 0 = chaque cycle, docs/taches.md C15)",
+      min_value = 0, max_value = 365,
+      easy_value = 365, medium_value = 365, hard_value = 365,
+      custom_value = 365,
+      step_size = 5,
+      flags = 0
+    });
+
     AddSetting({
       name = "air_presite",
       description = "Probe both airport sites in test mode before committing capital to the first one: 1 = enabled, 0 = build A then discover B (default)",

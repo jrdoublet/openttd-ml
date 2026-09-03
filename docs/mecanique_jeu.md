@@ -970,3 +970,92 @@ Si la réponse est « trois offres en dix ans, aucune sur une paire qui nous int
 est close pour le coût d'une sonde. Si elle est « une offre exploitable par an », c'est un revenu
 gratuit que nous laissons passer — et le silence d'AAAHogEx devient une opportunité, pas un
 avertissement.
+
+---
+
+## 15. `AIList`, le budget d'opcodes, et le débit réel de la VM
+
+Établi le 2026-09-03 en lisant la source d'OpenTTD 15.3 (`src/script/api/script_list.cpp`,
+`script_controller.hpp`, `src/table/settings/script_settings.ini`) puis en mesurant en partie.
+Ces quatre règles sont durables : elles ne dépendent d'aucune version de notre code.
+
+### 15.1 🔴 Le tri par défaut d'une `AIList` est **par VALEUR, DÉCROISSANT**
+
+```cpp
+// script_list.cpp:397-403
+ScriptList::ScriptList()
+{
+    this->sorter         = std::make_unique<ScriptListSorterValueDescending>(this);
+    this->sorter_type    = SORT_BY_VALUE;
+    this->sort_ascending = false;
+}
+```
+
+**Conséquence pour la conception.** `Valuate()` assigne une valeur à chaque élément, donc
+**il change l'ordre d'itération** de la liste. Tout idiome dont le résultat dépend de l'ordre —
+« le dernier gagne », « le premier trouvé », une égalité tranchée par la position — devient
+instable dès qu'on insère un `Valuate` en amont, même si le filtre appliqué est sémantiquement
+identique.
+
+➡️ **Règle** : ne jamais faire dépendre un choix de l'ordre d'une `AIList`. Écrire la comparaison
+explicitement (`if (t > chosen) chosen = t`) ou `Sort()` volontairement. Un test court ne révèle
+pas le défaut : à trois ans de partie il n'y a qu'un ou deux types de rail disponibles, donc
+l'ambiguïté ne se présente jamais — elle attend une partie longue ou une autre carte.
+
+### 15.2 ⚪ `Valuate` n'est PAS gratuit : 5 opcodes par élément
+
+```cpp
+// script_list.cpp:910, dans la boucle de Valuate
+Squirrel::DecreaseOps(vm, 5);
+```
+
+Plus le coût du valuateur lui-même à chaque élément. Le pipeline `Valuate` + `Keep*` reste
+préférable à une boucle Squirrel — celle-ci paie l'intégralité de son corps à chaque tour — mais
+**c'est un facteur, pas une exonération**.
+
+**Mesuré chez nous (tâche C19)** : convertir les filtres du catalogue en pipeline donne
+**exactement zéro** gain — toutes les catégories d'opcodes identiques au millier près, sur trois
+graines. Sur des listes de 4 types de rail et de quelques dizaines de moteurs, les 5 opcodes du
+`Valuate` valent le `if` qu'ils remplacent.
+
+➡️ **Règle** : le pipeline paie quand la liste est **grande** ET que le corps de boucle est
+**cher**. Sur une petite liste, ne rien attendre.
+
+### 15.3 Où part réellement le budget d'opcodes (mesuré, 3 ans, 3 graines)
+
+Publié par `_reportBudget` en panneaux `BC|<catégorie>|<k>|…`, donc lisible dans le chunk `SIGN`
+d'une sauvegarde. Milliers d'opcodes, graines 42 / 999 / 7 :
+
+| catégorie | 42 | 999 | 7 |
+|---|---:|---:|---:|
+| `project_air` | 40 777 | 39 169 | 31 721 |
+| `build_air_plans` | 36 542 | 39 962 | 41 622 |
+| `cand_pax` | 21 827 | 29 512 | 27 199 |
+| `build_search` (A\* rail) | 13 771 | — | — |
+| `cand_freight` | 5 051 | 8 934 | 7 078 |
+| `cand_road` | 2 788 | 3 424 | 4 607 |
+| `cat_rail` | 2 577 | 3 972 | 3 089 |
+| `project_water` | 1 787 | 2 148 | 1 818 |
+| catalogue complet (`cat_*`) | **< 3 000** | < 4 500 | < 3 500 |
+
+➡️ **La planification aérienne pèse ~75 M à elle seule, la génération de candidats passagers
+~25 M, et tout le catalogue moins de 5 % du total.** Quiconque veut économiser des opcodes doit
+regarder là, et nulle part ailleurs.
+
+### 15.4 ❓ Le débit réel : ~5,6 M d'opcodes par mois de jeu, pas 22 M
+
+`script.script_max_opcode_till_suspend` vaut **10 000** par tick
+(`src/table/settings/script_settings.ini`, valeur par défaut confirmée en source). Mais le nombre
+de ticks par **jour de jeu** décide du débit réel, et il a été mesuré, pas supposé :
+
+```
+opcodes_flow ≈ 5 630 000 par mois  ⇒  ≈ 18,5 ticks par jour de jeu
+```
+
+Soit **~67 M d'opcodes par an**. À ce débit, un seul chantier rail au plafond de 10 000 itérations
+(`HARD_ITERATION_CAP`, à 3 105 opcodes l'itération) consomme **31 M, soit 46 % de l'année**.
+
+⚠️ **Le chiffre de 74 ticks/jour, souvent cité, ne correspond pas à cette mesure.** Hypothèse non
+vérifiée : `AIDate` suit le temps **économique** en 15.3, distinct du calendrier, ce qui changerait
+le rapport ticks/jour. **À vérifier en source avant de citer 18,5 comme une constante du moteur** ;
+en attendant, c'est une mesure reproductible de notre configuration, pas une propriété du jeu.
