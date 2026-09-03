@@ -1485,6 +1485,10 @@ function OpexAI::_tryBuildFeeders(year)
       opcodeRatio = ("opcodeRatio" in candidate) ? candidate.opcodeRatio : -1,
       lineId = this._nextLineId,
       isFeeder = true,
+      /* Un feeder DECHARGE dans un hub : son revenu propre n'est pas sa raison d'etre, et le
+       * comparer a une liaison interurbaine n'a pas de sens. Motif explicite pour que le
+       * diagnostic predit/reel le separe au lieu de le noyer dans la route pax. */
+      purpose = "feeder",
       hubStationId = candidate.hubStationId,
     });
     if (DECISION_LOG) {

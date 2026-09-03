@@ -6481,3 +6481,56 @@ qu'il faut réparer l'**estimateur**, pas condamner la population.
 2. Le sujet de fond reste celui de §0 octotrigesies : **la route**, revenu encaissé à ~50 % du
    promis avec une dispersion de 0,07 à 1,39, sur 62 % des lignes bâties. Et elle n'a **aucun**
    filtre de ratio, puisque son générateur ne calcule pas d'`opcodeRatio`.
+
+---
+
+## 0 quadragesies. 🔑 LA ROUTE VENTILÉE PAR MOTIF : le pax interurbain encaisse **13 %** du profit promis (2026-09-04)
+
+`sweeps/diag_road_purpose.py`, 5 graines × 10 ans, `docs/diag_road_purpose.json`. Contrôles
+imposés par §0 octotrigesies : prédictions nulles écartées, **`age ≥ 2`** seulement.
+`purpose = "feeder"` ajouté au passage — un feeder **décharge** dans un hub, son revenu propre
+n'est pas sa raison d'être et le comparer à une liaison interurbaine n'a pas de sens.
+
+### Le tableau, 1 305 enregistrements
+
+| mode | motif | n | utiles | revenu réel/prédit | profit réel/prédit | sous 0,5 |
+|---|---|---:|---:|---:|---:|---:|
+| **route** | `town_growth` | **345** | **0** | — *aucune prédiction, par construction* | — | — |
+| **route** | `feeder` | 292 | 238 | **0,54** | 0,77 | 47 % |
+| **route** | **`pax` interurbain** | 58 | 48 | **0,31** | **0,13** | **83 %** |
+| route | `fret` | 2 | 1 | 1,22 | 1,05 | 0 % |
+| **rail** | `fret` | 18 | 14 | **1,82** | **2,10** | 0 % |
+| **air** | `pax` | 590 | 447 | **1,16** | 1,08 | 14 % |
+
+### Ce que la ventilation change
+
+1. 🔴 **La « route surestimée ×2 » de §0 octotrigesies était un mélange.** Elle confondait des
+   feeders à 0,54 et du pax interurbain à **0,31**. Séparés, ce sont deux problèmes distincts.
+2. 🔴 **Le pax routier interurbain est le pire cas de tout le projet** : **31 % du revenu promis,
+   13 % du profit promis**, et **83 % des lignes sous la moitié**. C'est aussi le seul mode
+   **sans aucun filtre de ratio** — son générateur ne calcule pas d'`opcodeRatio`.
+3. **La moitié de la population routière (345 sur 697) est de la croissance urbaine**, sans
+   prédiction par construction. Toute lecture agrégée de « la route » la comptait comme une ligne
+   comme une autre.
+4. ⚠️ **Le 0,54 des feeders n'est peut-être pas un défaut.** Un feeder est payé au **transfert**,
+   pas à la livraison finale : si le modèle lui prédit le revenu d'une livraison complète, un
+   rapport voisin de la moitié est **exactement ce qu'on doit observer**. ➡️ À vérifier avant de
+   « corriger » quoi que ce soit — ce serait alors le modèle de transfert, pas l'estimateur.
+5. ✅ **L'air est bien calibré et légèrement conservateur** (1,16 / 1,08 sur 447 années pleines) —
+   c'est le mode qui porte l'essentiel de la valeur, et son estimateur n'est pas le problème.
+6. **Le rail fret est sous-estimé d'un facteur ~2** (1,82 / 2,10, n = 14). Direction cohérente
+   avec le ×4,4 pax de §0 septentrigesies, sur une population différente et un échantillon mince :
+   **convergent, pas confirmatif**.
+
+### ➡️ Ce que ça désigne
+
+**L'estimateur n'est pas « faux » : il est faux PAR MOTIF, et dans les deux sens.** Il surestime
+lourdement le pax routier, sous-estime le rail, et vise juste sur l'air. Une recalibration globale
+déplacerait la médiane sans rien corriger — elle aggraverait même le rail.
+
+L'ordre qui en découle :
+1. **Pax routier interurbain** — 13 % du profit promis, 83 % des lignes sous la moitié. C'est là
+   que le modèle ment le plus, et sur le mode le moins filtré.
+2. **Vérifier la nature du 0,54 des feeders** avant d'y toucher : artefact de transfert ou vrai
+   biais.
+3. Ne **rien** changer à l'estimateur aérien.

@@ -1,0 +1,77 @@
+{
+ "years": 10,
+ "seeds": [
+  42,
+  999,
+  7,
+  1024,
+  314
+ ],
+ "groups": {
+  "road|town_growth": {
+   "n_total": 345,
+   "n_useful": 0
+  },
+  "road|feeder": {
+   "n_total": 292,
+   "n_useful": 238,
+   "rev_median": 0.5354878841607564,
+   "rev_agg": 0.4965988482872507,
+   "prof_median": 0.7739093261228857,
+   "rev_quartiles": [
+    0.27711485750346343,
+    0.5354878841607564,
+    0.8007345180638336
+   ],
+   "share_below_half": 0.46638655462184875
+  },
+  "road|pax": {
+   "n_total": 58,
+   "n_useful": 48,
+   "rev_median": 0.3058448157533523,
+   "rev_agg": 0.34819479671047576,
+   "prof_median": 0.13458871401835693,
+   "rev_quartiles": [
+    0.2524780132641292,
+    0.3058448157533523,
+    0.39783502494176654
+   ],
+   "share_below_half": 0.8333333333333334
+  },
+  "road|fret": {
+   "n_total": 2,
+   "n_useful": 1,
+   "rev_median": 1.22119341563786,
+   "rev_agg": 1.22119341563786,
+   "prof_median": 1.048951048951049,
+   "rev_quartiles": null,
+   "share_below_half": 0.0
+  },
+  "rail|fret": {
+   "n_total": 18,
+   "n_useful": 14,
+   "rev_median": 1.8248590982286634,
+   "rev_agg": 1.7152964654569394,
+   "prof_median": 2.098582916544082,
+   "rev_quartiles": [
+    1.301364531706697,
+    1.8248590982286634,
+    2.0423098726670155
+   ],
+   "share_below_half": 0.0
+  },
+  "air|pax": {
+   "n_total": 590,
+   "n_useful": 447,
+   "rev_median": 1.1565241228070176,
+   "rev_agg": 1.209203876942842,
+   "prof_median": 1.07590708972218,
+   "rev_quartiles": [
+    0.6848672161172161,
+    1.1565241228070176,
+    1.8377207977207977
+   ],
+   "share_below_half": 0.13646532438478748
+  }
+ }
+}
