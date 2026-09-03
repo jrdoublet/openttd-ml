@@ -2219,6 +2219,65 @@ normale.
 
 ---
 
+## 0 undecies sexies. ❌❌ A4 RETESTÉ sur socle segmenté — REJETÉ UNE SECONDE FOIS, et on comprend enfin le mécanisme (2026-09-03)
+
+L'hypothèse à tester : A4 avait perdu 23 % **parce qu'il retardait la mise en service du rail**. Si
+la segmentation (A5, désormais défaut 1) raccourcit assez les recherches, ce retard devrait
+s'évaporer et A4 redevenir neutre. **Elle est réfutée.**
+
+Vérifié avant de lancer : audit du chemin combiné A4=1 × A5=1 (agy, recoupé ligne à ligne ici) —
+un seul `state.iterations++` par `FindPath(1)`, `state.spent = slice.iterations` en affectation donc
+pas de double décompte, `state.pathfinder` remis à `null` seulement en fin de segment réel et jamais
+sur la sortie `CONT` de tranche. Puis smoke 2 graines × 3 ans, 4/4 OK, bras divergents. **Le banc
+mesure bien A4, pas un bug d'interaction.**
+
+`docs/bench_a4_retest_on_a5_10y.json`, banc apparié 20 graines × 10 ans, 40 parties, 0 échec,
+`rail_segmented_search=1` **sur les deux bras** :
+
+| métrique | A4=0 | A4=1 | écart | t | graines | p (signes) |
+|---|---:|---:|---:|---:|---:|---:|
+| `company_value` | 1 430 436 £ | 1 240 481 £ | **−13,3 %** | −2,79 | 5/20 | **0,0414** |
+| `performance_history` | 423 | 370 | **−12,5 %** | −2,38 | 3/20 | **0,0026** |
+| `profit` | 56 858 £ | 50 904 £ | −10,5 % | −1,00 | 7/20 | 0,2632 |
+| `profit_year` | 229 107 £ | 216 419 £ | −5,5 % | −0,57 | 7/20 | 0,2632 |
+| **gares** | **44,6** | **32,4** | **−27,5 %** | **−4,46** | 2/20 | **0,0004** |
+| **véhicules** | **161,1** | **134,2** | **−16,7 %** | **−3,92** | 2/20 | **0,0004** |
+
+**Deux socles indépendants, même verdict.** La perte s'atténue (−23,1 % → −13,3 %), ce qui est
+cohérent avec « la segmentation réduit bien le retard » — mais **pas du tout assez**.
+
+### 🔑 Le mécanisme, enfin identifié — et ce n'est PAS seulement de la redistribution
+
+L'effet de loin le plus fort et le plus significatif du banc n'est aucune métrique de valeur, c'est
+le **nombre de gares : −27,5 %, t = −4,46, 18/20 graines perdantes**. A4 ne réarrange pas la
+construction, **il l'empêche**.
+
+La cause est dans `main.nut:2847` (et `:3080`) :
+
+```squirrel
+safetyDeadline = AIController.GetTick() + RAIL_SEARCH_SAFETY_TICKS,
+```
+
+**L'échéance est absolue et posée une seule fois, en TICKS, alors que le travail se compte en
+ITÉRATIONS.** En mode bloquant, la quasi-totalité des ticks de cette fenêtre est consommée *par la
+recherche elle-même*. En mode reprenable, **la même fenêtre de ticks est partagée avec toute la file
+de tâches** : la recherche n'en reçoit qu'une fraction, son échéance tombe après beaucoup moins
+d'itérations, et elle meurt en `DEAD` au lieu d'aboutir.
+
+➡️ **A4 ne redistribue pas le temps : il ampute la fenêtre de recherche.** C'est ce qui explique
+quantitativement les −27,5 % de gares, là où « redistribuer » n'expliquait rien de tel.
+
+🔶 **Hypothèse testable, NON mesurée, à ne pas présenter comme un fait** : ce défaut est
+*réparable* — rendre l'échéance proportionnelle au travail accompli, ou l'étendre du temps cédé aux
+autres tâches. Une A4-bis ainsi corrigée n'a **jamais** été mesurée. Le rejet ci-dessus porte sur
+A4 **telle qu'implémentée**, pas sur l'idée d'ordonnancement en général. ⚠️ Mais avant de la
+retenter, se rappeler que la leçon du STOCK (§0 undecies quater) tient toujours : les tâches
+débloquées étaient bloquées par la **trésorerie**, pas par le temps.
+
+**Décision** : `rail_search_resumable` reste à **défaut 0**, conservé comme instrument.
+
+---
+
 ## 3 ter. 🔶 AUDIT DE TOUTES LES CONSTANTES EN DUR (demandé le 2026-09-02)
 
 **46 constantes `const` dans `ai/OpexAI/`, contre 35 réglages exposés.** Aucune revue systématique
@@ -4630,7 +4689,7 @@ qui n'avait pas encore sa ligne. Journal de la journée : `docs/journal_2026-09-
 | **A1** | **Dénominateur du classement dépendant de la ressource rare** (§0 tervicies point 1, §3 septies) | Sept mécanismes de capital mesurés, sept non adoptés : **le capital n'est pas le mur**. AAAHogEx bascule son dénominateur, nous jamais |
 | **A2** | **Volume de liaisons** — largeur contre profondeur (§3 nonies phase 1) | Confirmé deux fois aujourd'hui. On pose 2,4 lignes aériennes par partie contre 35 appareils chez l'adversaire |
 | **A3** | **Sonde : plafonner `iterationBudget`** à ~10 000 au lieu de 50 000, banc apparié (§0 undecies ter) | ✅ Fait (`pathfinder_hard_cap_k` = 10, bornes dynamiques à 10k max) |
-| **A4** | ❌ **FAIT, MESURÉ, REJETÉ** — recherche reprenable d'un tour de file à l'autre (§0 undecies quater) | **−23,1 % de valeur, 16/20 graines perdantes** ($p = 0{,}0118$). Le gel de 7 mois est réel, mais il ne coûtait pas ce qu'on croyait. Réglage `rail_search_resumable` conservé comme instrument, défaut 0 — 🔄 **RETEST en cours (2026-09-03)** sur le socle segmenté (A5 = 1) : sa perte venait du retard de mise en service du rail, que la segmentation réduit à la source |
+| **A4** | ❌ **FAIT, MESURÉ, REJETÉ** — recherche reprenable d'un tour de file à l'autre (§0 undecies quater) | **−23,1 % de valeur, 16/20 graines perdantes** ($p = 0{,}0118$). Le gel de 7 mois est réel, mais il ne coûtait pas ce qu'on croyait. Réglage `rail_search_resumable` conservé comme instrument, défaut 0 — ❌ **RETEST FAIT sur socle segmenté (§0 undecies sexies) : REJETÉ UNE SECONDE FOIS**, −13,3 % de valeur (5/20, $p = 0{,}0414$) et surtout **−27,5 % de gares** ($t = -4{,}46$, $p = 0{,}0004$). Mécanisme identifié : `safetyDeadline` est une échéance en TICKS posée une fois (`main.nut:2847`), donc en mode reprenable la fenêtre est partagée avec la file et la recherche meurt avant d'aboutir — **A4 ampute la recherche, il ne la redistribue pas**. Défaut 0 |
 | **A5** | 🟡 **FAIT, MESURÉ, RÉSULTAT NUL — adopté à 1 par décision** (§0 undecies quinquies) | Le mécanisme marche : **+12,9 % de gares** (t = +1,94), +5,5 % de véhicules, −23,5 % de trésorerie — il convertit bien les 40 % d'`ABND` en lignes. Mais la valeur est **neutre** : −3,4 %, t = −0,86, 7/20, $p = 0{,}26$ — rien de significatif. `docs/bench_rail_segmented_10y.json`. **Défaut `rail_segmented_search` = 1** : résultat nul et non négatif, médianes en hausse, réseau non amorti à 10 ans, et surtout **socle du retest d'A4**. ➡️ Referme les trois voies du pathfinder : relever ❌, redistribuer ❌, abaisser 🟡. **Le pathfinder n'est pas le goulot** |
 
 ⚠️ **A2 n'est PAS « remplacer notre A\* par `Graph.AyStar` »** — cette formulation, qui circule
