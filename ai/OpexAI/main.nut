@@ -84,6 +84,37 @@ function OpexSign(anchor, name)
   AISign.BuildSign(anchor, name);
 }
 
+_currentTaskName <- null;
+_currentTaskLogged <- false;
+
+function OpexDecide(kind, fields)
+{
+  local date = AIDate.GetCurrentDate();
+  if (_currentTaskName != null && !_currentTaskLogged && kind != "TASK") {
+    _currentTaskLogged = true;
+    local cur = _currentTaskName;
+    _currentTaskName = null;
+    OpexDecide("TASK", "name=" + cur);
+    _currentTaskName = cur;
+  }
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " " + kind + " " + fields);
+}
+
+function OpexLogPortfolioRank(projects)
+{
+  if (!DECISION_LOG) return;
+  if (projects == null || !("best" in projects) || projects.best == null || projects.best.len() == 0) return;
+  local n = projects.best.len();
+  if (n > 5) n = 5;
+  for (local i = 0; i < n; i++) {
+    local p = projects.best[i];
+    if (p == null) continue;
+    local cargoStr = ("cargo" in p && p.cargo >= 0) ? AICargo.GetCargoLabel(p.cargo) : "none";
+    if (DECISION_LOG) OpexDecide("PORTFOLIO_RANK", "rank=" + i + " mode=" + p.mode + " kind=" + p.kind + " cargo=" + cargoStr + " src=" + p.src + " dst=" + p.dst + " dist=" + p.distance + " roi=" + p.roi + " score=" + p.budgetScore + " cost=" + p.capital + " profit=" + p.profitAnnual);
+  }
+}
+
 /* Reserve de tresorerie dynamique : adaptee a la taille de la flotte pour liberer le capital
  * des les premieres annees (15 000 £ au lieu de 50 000 £) et eviter les soldes oisifs. */
 DYNAMIC_CASH_RESERVE <- true;
@@ -201,6 +232,12 @@ RAIL_SEARCH_RESUMABLE <- false;
  * convertir les abandons, pas d'accelerer les succes. Le banc dit reseau +13 % pour une
  * valeur neutre (docs/taches.md A5). */
 RAIL_SEGMENTED_SEARCH <- true;
+
+/* Journalisation structuree des decisions (decision_log) : repli FAUX. */
+DECISION_LOG <- false;
+_lastAirRefuseMonth <- -1;
+_lastFeederRefuseMonth <- -1;
+_lastProjectScanMonth <- -1;
 
 /* La memoire est l'autre correctif, independamment des 40 000 iterations. Elle reste un repli
  * actif jusqu'a la lecture unique de abandon_memory dans Start(), comme les autres reglages de
@@ -747,7 +784,16 @@ function OpexAI::_tryBuildAir(year)
    * `airCombos.len()` plus bas, ce qui TUE l'IA. On teste desormais la vacuite reelle, et le
    * deref est protege a son propre site. */
   local combos = this._catalog.airCombos;
-  if ((combos == null || combos.len() == 0) && this._catalog.airport == null) return;
+  if ((combos == null || combos.len() == 0) && this._catalog.airport == null) {
+    if (DECISION_LOG) {
+      local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+      if (_lastAirRefuseMonth != ym) {
+        _lastAirRefuseMonth = ym;
+        OpexDecide("AIR_REFUSE", "reason=no_aircraft_and_airport");
+      }
+    }
+    return;
+  }
   local maxPerYear = AIR_STARTER ? 30 : 5;
   local maxTotal = AIR_STARTER ? 250 : 25;
   local margin = AIR_STARTER ? 2000 : AIR_CAPITAL_MARGIN;
@@ -763,7 +809,16 @@ function OpexAI::_tryBuildAir(year)
         if (line.year == year) airLinesThisYear++;
       }
     }
-    if (airLinesThisYear >= maxPerYear || totalAirLines >= maxTotal) break;
+    if (airLinesThisYear >= maxPerYear || totalAirLines >= maxTotal) {
+      if (DECISION_LOG) {
+        local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+        if (_lastAirRefuseMonth != ym) {
+          _lastAirRefuseMonth = ym;
+          OpexDecide("AIR_REFUSE", "reason=line_cap_reached lines_year=" + airLinesThisYear + " max_year=" + maxPerYear + " total=" + totalAirLines + " max_total=" + maxTotal);
+        }
+      }
+      break;
+    }
 
     local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
     local borrowable = REBORROW ? (AICompany.GetMaxLoanAmount() - AICompany.GetLoanAmount()) : 0;
@@ -785,17 +840,33 @@ function OpexAI::_tryBuildAir(year)
      * OpexAirPlans pour qu'il l'applique par plan, soit ne pas `break` sur rejet et reessayer avec
      * un budget rabote. Voir docs/taches.md. */
     local maxCapital = money + borrowable - baseReserve - 2000;
-    if (maxCapital <= 0) break;
+    if (maxCapital <= 0) {
+      if (DECISION_LOG) {
+        local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+        if (_lastAirRefuseMonth != ym) {
+          _lastAirRefuseMonth = ym;
+          OpexDecide("AIR_REFUSE", "reason=insufficient_capital cash=" + money + " reserve=" + baseReserve);
+        }
+      }
+      break;
+    }
 
     this._budget.begin();
     local plan = OpexAirPlans(this._catalog, this._lines, maxCapital, null,
                               (AIR_ABANDON && ABANDON_MEMORY) ? this._abandonedPairs : null);
     local planOps = this._budget.end("build_air_plans");
     if (plan == null) {
+      local nCombos = (this._catalog.airCombos == null) ? -1 : this._catalog.airCombos.len();
       if (builtCount == 0) {
         /* airCombos peut etre null : ne jamais dereferencer pour un panneau de diagnostic. */
-        local nCombos = (this._catalog.airCombos == null) ? -1 : this._catalog.airCombos.len();
         OpexSign(AIMap.GetTileIndex(1, 1), "AD|NULL|C=" + nCombos);
+      }
+      if (DECISION_LOG) {
+        local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+        if (_lastAirRefuseMonth != ym) {
+          _lastAirRefuseMonth = ym;
+          OpexDecide("AIR_REFUSE", "reason=no_candidate combos=" + nCombos);
+        }
       }
       break;
     }
@@ -806,7 +877,16 @@ function OpexAI::_tryBuildAir(year)
     local need = capital + baseReserve + requiredMargin;
     if (money < need) {
       if (REBORROW) money = OpexTryReborrow(need, money);
-      if (money < need) break;
+      if (money < need) {
+        if (DECISION_LOG) {
+          local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+          if (_lastAirRefuseMonth != ym) {
+            _lastAirRefuseMonth = ym;
+            OpexDecide("AIR_REFUSE", "reason=insufficient_cash cash=" + money + " need=" + need + " capital=" + capital + " margin=" + requiredMargin);
+          }
+        }
+        break;
+      }
     }
 
     if (TREE_PLANTING) {
@@ -825,6 +905,9 @@ function OpexAI::_tryBuildAir(year)
                              + (result.ok ? result.vehicles.len() : 0));
     }
     if (!result.ok) {
+      if (DECISION_LOG) {
+        OpexDecide("AIR_REFUSE", "reason=build_failed detail=" + result.reason + " error=" + result.error + " dist=" + plan.distance + " cost=" + result.actualCost);
+      }
       /* air_abandon : sans cette memorisation, le cycle suivant re-scanne tous les sites pour
        * reproposer EXACTEMENT le meme bestPlan et echouer de la meme facon. Le chemin
        * portefeuille memorise deja ses echecs (voir plus bas) ; ce chemin-ci ne le faisait pas. */
@@ -835,6 +918,9 @@ function OpexAI::_tryBuildAir(year)
     }
 
     this._airBuilt = true;
+    if (DECISION_LOG) {
+      OpexDecide("AIR_BUILD", "line=" + this._nextLineId + " src=" + plan.siteA.town.tile + " dst=" + plan.siteB.town.tile + " src_town=" + plan.siteA.town.id + " dst_town=" + plan.siteB.town.id + " dist=" + plan.distance + " profit=" + plan.economics.profitAnnual + " cost=" + plan.capital + " planes=" + result.vehicles.len());
+    }
     this._lines.append({
       stationA = result.stationA, stationB = result.stationB,
       originA = plan.siteA.town.tile, originB = plan.siteB.town.tile,
@@ -1022,6 +1108,9 @@ function OpexAI::_tryTownGrowth(year)
 
     local newCount = OpexCountTownStations(townId);
     OpexSign(anchor, "TG|" + (year % 100) + "|" + townId + "|" + currentCount + "|" + newCount);
+    if (DECISION_LOG) {
+      OpexDecide("TOWN_GROWTH", "action=build town=" + townId + " stations_before=" + currentCount + " stations_after=" + newCount + " cost=" + candidate.capital);
+    }
 
     this._lines.append({
       stationA = result.stopA, stationB = result.stopB,
@@ -1242,7 +1331,16 @@ function OpexAI::_tryBuildFeeders(year)
   local yy = year % 100;
   AILog.Info("FD|" + yy + "|" + stats.feederHubs + "|" + stats.feederCandidates + "|" + candidates.len());
   OpexSign(anchor, "FD|" + yy + "|" + stats.feederHubs + "|" + stats.feederCandidates + "|" + candidates.len());
-  if (candidates.len() == 0) return false;
+  if (candidates.len() == 0) {
+    if (DECISION_LOG && stats.feederHubs > 0) {
+      local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+      if (_lastFeederRefuseMonth != ym) {
+        _lastFeederRefuseMonth = ym;
+        OpexDecide("FEEDER_REFUSE", "reason=no_candidates hubs=" + stats.feederHubs + " pairs_in_band=" + stats.pairsInBand + " no_monthly=" + stats.noMonthly + " profit_too_low=" + stats.profitTooLow);
+      }
+    }
+    return false;
+  }
 
   candidates.sort(OpexFeederCandidateCompare);
 
@@ -1303,10 +1401,20 @@ function OpexAI::_tryBuildFeeders(year)
       isFeeder = true,
       hubStationId = candidate.hubStationId,
     });
+    if (DECISION_LOG) {
+      OpexDecide("FEEDER_BUILD", "line=" + this._nextLineId + " hub=" + candidate.hubStationId + " src=" + candidate.src + " dst=" + candidate.dst + " dist=" + candidate.distance + " profit=" + candidate.profitAnnual + " cost=" + candidate.capital);
+    }
     AILog.Info("FE|" + yy + "|" + this._nextLineId + "|" + candidate.distance + "|" + candidate.profitAnnual);
     OpexSign(anchor, "FE|" + yy + "|" + this._nextLineId + "|" + candidate.distance + "|" + candidate.profitAnnual);
     this._nextLineId++;
     return true;
+  }
+  if (DECISION_LOG) {
+    local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+    if (_lastFeederRefuseMonth != ym) {
+      _lastFeederRefuseMonth = ym;
+      OpexDecide("FEEDER_REFUSE", "reason=all_rejected hubs=" + stats.feederHubs + " candidates=" + stats.feederCandidates + " served=" + rejectStats.served + " town_limit=" + rejectStats.townCount + " abandoned=" + rejectStats.abandoned + " cash=" + rejectStats.cash + " no_plan=" + rejectStats.planNull + " build_fail=" + rejectStats.buildFail);
+    }
   }
   OpexSign(anchor, "FZ|" + yy + "|" + rejectStats.served + "|" + rejectStats.townCount + "|"
                          + rejectStats.abandoned + "|" + rejectStats.cash + "|"
@@ -1348,6 +1456,18 @@ function OpexAI::_tryBuildProjects(year)
   }
 
   if (builtCount < maxBatch && this._projects != null && this._projects.best.len() > 0) {
+  local passDiscards = [];
+  local logDiscardsThisPass = false;
+  /* Le calcul du mois courant coute DEUX appels d'API et tournait a chaque passage, reglage
+   * eteint compris. Ici le comportement depend des opcodes consommes : tout ce qui ne sert
+   * qu'a journaliser doit vivre DANS la garde, pas seulement l'appel a OpexDecide. */
+  if (DECISION_LOG) {
+    local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+    if (_lastProjectScanMonth != ym) {
+      _lastProjectScanMonth = ym;
+      logDiscardsThisPass = true;
+    }
+  }
   for (local i = 0; i < this._projects.best.len(); i++) {
     local project = this._projects.best[i];
     if (project == null) continue;
@@ -1358,11 +1478,20 @@ function OpexAI::_tryBuildProjects(year)
     if (mode == "air") {
       local plan = project.payload;
       if (builtCount > 0) {
-        if (!OpexAirBatchPlanStillLive(plan, this._lines)) continue;
+        if (!OpexAirBatchPlanStillLive(plan, this._lines)) {
+          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "batch_plan_dead", extra = "" });
+          continue;
+        }
         if (!OpexAirBatchSiteStillBuildable(plan.siteA, plan.airport, plan.plane,
-                                             ("reuseA" in plan) && plan.reuseA)) continue;
+                                             ("reuseA" in plan) && plan.reuseA)) {
+          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "siteA_unbuildable", extra = "" });
+          continue;
+        }
         if (!OpexAirBatchSiteStillBuildable(plan.siteB, plan.airport, plan.plane,
-                                             ("reuseB" in plan) && plan.reuseB)) continue;
+                                             ("reuseB" in plan) && plan.reuseB)) {
+          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "siteB_unbuildable", extra = "" });
+          continue;
+        }
       }
       local maxPerYear = AIR_STARTER ? 30 : 5;
       local maxTotal = AIR_STARTER ? 250 : 25;
@@ -1374,9 +1503,15 @@ function OpexAI::_tryBuildProjects(year)
           if (line.year == year) airLinesThisYear++;
         }
       }
-      if (airLinesThisYear >= maxPerYear || totalAirLines >= maxTotal) continue;
+      if (airLinesThisYear >= maxPerYear || totalAirLines >= maxTotal) {
+        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "line_cap_reached", extra = "lines_year=" + airLinesThisYear + " total=" + totalAirLines });
+        continue;
+      }
       local abandonedKey = "air|" + plan.siteA.town.tile + "|" + plan.siteB.town.tile;
-      if (ABANDON_MEMORY && (abandonedKey in this._abandonedPairs)) continue;
+      if (ABANDON_MEMORY && (abandonedKey in this._abandonedPairs)) {
+        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "abandoned_pair", extra = "" });
+        continue;
+      }
 
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
       local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1) + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
@@ -1384,7 +1519,10 @@ function OpexAI::_tryBuildProjects(year)
       local capital = ("capital" in plan) ? plan.capital : (newAirports * plan.airport.price + plan.plane.price);
       local need = capital + OpexCashReserve() + requiredMargin;
       if (money < need && REBORROW) money = OpexTryReborrow(need, money);
-      if (money < need) continue;
+      if (money < need) {
+        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
+        continue;
+      }
 
       OpexSign(anchor, "IP|" + yy + "|A|" + project.budgetScore + "|" + project.opcodeScore);
 
@@ -1404,10 +1542,22 @@ function OpexAI::_tryBuildProjects(year)
                                + (result.ok ? result.vehicles.len() : 0));
       }
       if (!result.ok) {
+        if (DECISION_LOG) {
+          OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=air src=" + plan.siteA.town.tile + " dst=" + plan.siteB.town.tile + " reason=build_failed detail=" + result.reason + " error=" + result.error);
+        }
         if (ABANDON_MEMORY) this._abandonedPairs[abandonedKey] <- true;
         continue;
       }
       if (result.ok) {
+        if (DECISION_LOG) {
+          foreach (d in passDiscards) {
+            OpexDecide("PROJECT_DISCARD", "rank=" + d.rank + " mode=" + d.mode + " src=" + d.src + " dst=" + d.dst + " reason=" + d.reason + (d.extra != "" ? " " + d.extra : ""));
+          }
+          passDiscards = [];
+          local cargoStr = AICargo.GetCargoLabel(this._catalog.paxCargo);
+          OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=air cargo=" + cargoStr + " src=" + plan.siteA.town.tile + " dst=" + plan.siteB.town.tile + " dist=" + plan.distance + " cost=" + plan.capital + " profit=" + plan.economics.profitAnnual + " roi=" + project.roi);
+          OpexDecide("AIR_BUILD", "line=" + this._nextLineId + " src=" + plan.siteA.town.tile + " dst=" + plan.siteB.town.tile + " src_town=" + plan.siteA.town.id + " dst_town=" + plan.siteB.town.id + " dist=" + plan.distance + " profit=" + plan.economics.profitAnnual + " cost=" + plan.capital + " planes=" + result.vehicles.len());
+        }
         this._airBuilt = true;
         this._lines.append({
           stationA = result.stationA, stationB = result.stationB,
@@ -1437,24 +1587,48 @@ function OpexAI::_tryBuildProjects(year)
         if (builtCount >= maxBatch) break;
       }
     } else if (mode == "road") {
-      if (!ROAD_BUILD_ENABLED || this._catalog.roadType < 0) continue;
+      if (!ROAD_BUILD_ENABLED || this._catalog.roadType < 0) {
+        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = project.src, dst = project.dst, reason = "road_disabled", extra = "" });
+        continue;
+      }
       local candidate = project.payload;
       local isFeeder = ("isFeeder" in candidate) && candidate.isFeeder;
       if (candidate.kind == "pax") {
-        if (OpexRoadPairServed(this._lines, candidate.src, candidate.dst)) continue;
-        if (OpexTownRoadLineCount(this._lines, candidate.src) >= 4) continue;
-        if (!isFeeder && OpexTownRoadLineCount(this._lines, candidate.dst) >= 4) continue;
+        if (OpexRoadPairServed(this._lines, candidate.src, candidate.dst)) {
+          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "pair_already_served", extra = "" });
+          continue;
+        }
+        if (OpexTownRoadLineCount(this._lines, candidate.src) >= 4) {
+          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "town_road_line_cap", extra = "" });
+          continue;
+        }
+        if (!isFeeder && OpexTownRoadLineCount(this._lines, candidate.dst) >= 4) {
+          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "town_road_line_cap", extra = "" });
+          continue;
+        }
       } else {
-        if (OpexOriginServed(this._lines, candidate.src, true)) continue;
-        if (OpexOriginServed(this._lines, candidate.dst, true)) continue;
+        if (OpexOriginServed(this._lines, candidate.src, true)) {
+          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "src_origin_served", extra = "" });
+          continue;
+        }
+        if (OpexOriginServed(this._lines, candidate.dst, true)) {
+          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "dst_origin_served", extra = "" });
+          continue;
+        }
       }
       local abandonedKey = OpexAbandonedPairKey(candidate);
-      if (ABANDON_MEMORY && (abandonedKey in this._abandonedPairs)) continue;
+      if (ABANDON_MEMORY && (abandonedKey in this._abandonedPairs)) {
+        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "abandoned_pair", extra = "" });
+        continue;
+      }
 
       local need = candidate.capital + OpexCashReserve() + ROAD_CAPITAL_MARGIN;
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
       if (money < need && REBORROW) money = OpexTryReborrow(need, money);
-      if (money < need) continue;
+      if (money < need) {
+        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
+        continue;
+      }
 
       OpexSign(anchor, "IP|" + yy + "|R|" + project.budgetScore + "|" + project.opcodeScore);
 
@@ -1464,6 +1638,9 @@ function OpexAI::_tryBuildProjects(year)
       local plan = planning.plan;
       local idx = this._nextLineId;
       if (plan == null) {
+        if (DECISION_LOG) {
+          OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=road src=" + candidate.src + " dst=" + candidate.dst + " reason=plan_failed detail=" + planning.reason);
+        }
         if (ABANDON_MEMORY) this._abandonedPairs[abandonedKey] <- true;
         OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|" + planning.reason + "|0");
         OpexSign(anchor, "RB|" + yy + "|" + idx + "|1|" + planOps + "|0");
@@ -1476,9 +1653,22 @@ function OpexAI::_tryBuildProjects(year)
       local result = OpexBuildRoadRoute(this._catalog, this._budget, plan, candidate);
       OpexSign(anchor, "RB|" + yy + "|" + idx + "|1|" + planOps + "|" + result.opcodes);
       if (!result.ok) {
+        if (DECISION_LOG) {
+          OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=road src=" + candidate.src + " dst=" + candidate.dst + " reason=build_failed detail=" + result.reason + " error=" + result.error);
+        }
         if (ABANDON_MEMORY) this._abandonedPairs[abandonedKey] <- true;
         OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|" + result.reason + "|" + result.error);
         continue;
+      }
+
+      if (DECISION_LOG) {
+        foreach (d in passDiscards) {
+          OpexDecide("PROJECT_DISCARD", "rank=" + d.rank + " mode=" + d.mode + " src=" + d.src + " dst=" + d.dst + " reason=" + d.reason + (d.extra != "" ? " " + d.extra : ""));
+        }
+        passDiscards = [];
+        local cargoStr = AICargo.GetCargoLabel(candidate.cargo);
+        OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=road kind=" + candidate.kind + " cargo=" + cargoStr + " src=" + candidate.src + " dst=" + candidate.dst + " dist=" + candidate.distance + " cost=" + candidate.capital + " profit=" + candidate.profitAnnual + " roi=" + candidate.roi);
+        OpexDecide("ROAD_BUILD", "line=" + idx + " src=" + candidate.src + " dst=" + candidate.dst + " cargo=" + cargoStr + " dist=" + candidate.distance + " profit=" + candidate.profitAnnual + " cost=" + result.cost + " vehicles=" + result.vehicles.len());
       }
 
       OpexSign(anchor, "OF|" + idx + "|" + candidate.revenueAnnual);
@@ -1541,14 +1731,23 @@ function OpexAI::_tryBuildProjects(year)
       }
       /* Une recherche est deja en cours (autre candidat, ou upgrade) : ne pas en lancer une
        * seconde, et laisser air/route du portefeuille tourner. */
-      if (RAIL_SEARCH_RESUMABLE && this._railSearch != null) continue;
+      if (RAIL_SEARCH_RESUMABLE && this._railSearch != null) {
+        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "search_in_progress", extra = "" });
+        continue;
+      }
       local abandonedKey = OpexAbandonedPairKey(candidate);
-      if (ABANDON_MEMORY && (abandonedKey in this._abandonedPairs)) continue;
+      if (ABANDON_MEMORY && (abandonedKey in this._abandonedPairs)) {
+        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "abandoned_pair", extra = "" });
+        continue;
+      }
 
       local close = this._tooClose(candidate);
       local join = null;
       local placeJoin = ("placeJoin" in candidate) ? candidate.placeJoin : null;
-      if (close.hard >= 0) continue;
+      if (close.hard >= 0) {
+        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "too_close_hard", extra = "" });
+        continue;
+      }
 
       if (placeJoin != null) {
         join = placeJoin;
@@ -1568,6 +1767,7 @@ function OpexAI::_tryBuildProjects(year)
         }
         if (refuse != null) {
           join = null;
+          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "place_join_refuse", extra = "refuse=" + refuse });
           continue;
         }
       } else if (close.blocking >= 0) {
@@ -1579,13 +1779,19 @@ function OpexAI::_tryBuildProjects(year)
             join = null;
           }
         }
-        if (join == null) continue;
+        if (join == null) {
+          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "too_close_no_join", extra = "" });
+          continue;
+        }
       }
 
       local need = candidate.capital + OpexCashReserve();
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
       if (money < need && REBORROW) money = OpexTryReborrow(need, money);
-      if (money < need) continue;
+      if (money < need) {
+        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
+        continue;
+      }
 
       OpexSign(anchor, "IP|" + yy + "|T|" + project.budgetScore + "|" + project.opcodeScore);
 
@@ -1596,16 +1802,17 @@ function OpexAI::_tryBuildProjects(year)
         OpexBoostTownRating(candidate.src, 700, 35);
         OpexBoostTownRating(candidate.dst, 700, 35);
       }
-      /* Deux nombres empaquetes dans un champ, la limite des panneaux etant de 31 caracteres.
-       * ⚠️ CE N'EST PAS UN RANG. Depaqueter : `/ TOP_K` = position dans le portefeuille (`i`),
-       * `% TOP_K` = TAILLE du portefeuille finance ce mois-ci, pas le rang du candidat. Toute
-       * analyse qui lit `% TOP_K` comme un rang lit en fait la taille de la liste
-       * (docs/taches.md S0 septies). Le nom `posPacked` induisait precisement cette erreur ;
-       * la taille, elle, est utile -- c'est le nombre de projets FINANCES, dont on sait
-       * depuis S0 decies qu'un seul sera bati. */
       local posPacked = i * TOP_K + this._projects.best.len();
       if (RAIL_SEARCH_RESUMABLE &&
           !(("railPlan" in candidate) && candidate.railPlan != null)) {
+        if (DECISION_LOG) {
+          foreach (d in passDiscards) {
+            OpexDecide("PROJECT_DISCARD", "rank=" + d.rank + " mode=" + d.mode + " src=" + d.src + " dst=" + d.dst + " reason=" + d.reason + (d.extra != "" ? " " + d.extra : ""));
+          }
+          passDiscards = [];
+          local cargoStr = AICargo.GetCargoLabel(candidate.cargo);
+          OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=rail kind=" + candidate.kind + " cargo=" + cargoStr + " src=" + candidate.src + " dst=" + candidate.dst + " dist=" + candidate.distance + " cost=" + candidate.capital + " profit=" + candidate.profitAnnual + " roi=" + candidate.roi);
+        }
         local start = this._startRailSearch(candidate, join, placeJoin, alternativeRatio,
                                             hardCap, posPacked);
         if (start.pending) {
@@ -1619,30 +1826,65 @@ function OpexAI::_tryBuildProjects(year)
       }
       local result = OpexBuildLine(this._catalog, this._budget, candidate, alternativeRatio, join,
                                    OpexCashReserve(), hardCap);
-      if (result.reason == "CASH") continue;
+      if (result.reason == "CASH") {
+        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "cash_at_build", extra = "" });
+        continue;
+      }
       if (("railPlan" in candidate)) candidate.railPlan = null;
+      if (DECISION_LOG && !RAIL_SEARCH_RESUMABLE) {
+        foreach (d in passDiscards) {
+          OpexDecide("PROJECT_DISCARD", "rank=" + d.rank + " mode=" + d.mode + " src=" + d.src + " dst=" + d.dst + " reason=" + d.reason + (d.extra != "" ? " " + d.extra : ""));
+        }
+        passDiscards = [];
+        local cargoStr = AICargo.GetCargoLabel(candidate.cargo);
+        OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=rail kind=" + candidate.kind + " cargo=" + cargoStr + " src=" + candidate.src + " dst=" + candidate.dst + " dist=" + candidate.distance + " cost=" + candidate.capital + " profit=" + candidate.profitAnnual + " roi=" + candidate.roi);
+      }
       local recorded = this._recordRailAttempt(candidate, result, join, placeJoin, posPacked, year);
       if (recorded) {
         builtCount++;
         if (builtCount >= maxBatch) break;
       }
     } else if (mode == "water") {
-      if (this._waterBuilt || this._catalog.ships.len() == 0 || this._catalog.paxCargo < 0) continue;
+      if (this._waterBuilt || this._catalog.ships.len() == 0 || this._catalog.paxCargo < 0) {
+        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "water", src = project.src, dst = project.dst, reason = "water_unavailable", extra = "" });
+        continue;
+      }
       local plan = project.payload;
       if (builtCount > 0 && (!OpexWaterBatchSiteStillBuildable(plan.siteA) ||
-                             !OpexWaterBatchSiteStillBuildable(plan.siteB))) continue;
+                             !OpexWaterBatchSiteStillBuildable(plan.siteB))) {
+        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "water", src = plan.siteA.town.id, dst = plan.siteB.town.id, reason = "batch_site_unbuildable", extra = "" });
+        continue;
+      }
       local capital = 2 * this._catalog.costDock + this._catalog.costWaterDepot + this._catalog.maxShipPrice;
       local need = capital + OpexCashReserve() + WATER_CAPITAL_MARGIN;
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
       if (money < need && REBORROW) money = OpexTryReborrow(need, money);
-      if (money < need) continue;
+      if (money < need) {
+        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "water", src = plan.siteA.town.id, dst = plan.siteB.town.id, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
+        continue;
+      }
 
       OpexSign(anchor, "IP|" + yy + "|W|" + project.budgetScore + "|" + project.opcodeScore);
       local planOps = ("planningOpcodes" in project) ? project.planningOpcodes : 0;
       local result = OpexBuildWaterRoute(this._catalog, this._budget, plan);
       if (result.ok) OpexSign(anchor, "OM|W|" + year + "|" + plan.distance + "|" + planOps);
       else OpexSign(anchor, "ON|W|" + result.reason + "|" + result.error);
+      if (!result.ok) {
+        if (DECISION_LOG) {
+          OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=water src=" + plan.siteA.town.id + " dst=" + plan.siteB.town.id + " reason=build_failed detail=" + result.reason + " error=" + result.error);
+        }
+        continue;
+      }
       if (result.ok) {
+        if (DECISION_LOG) {
+          foreach (d in passDiscards) {
+            OpexDecide("PROJECT_DISCARD", "rank=" + d.rank + " mode=" + d.mode + " src=" + d.src + " dst=" + d.dst + " reason=" + d.reason + (d.extra != "" ? " " + d.extra : ""));
+          }
+          passDiscards = [];
+          local cargoStr = AICargo.GetCargoLabel(this._catalog.paxCargo);
+          OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=water cargo=" + cargoStr + " src=" + result.dockA + " dst=" + result.dockB + " dist=" + plan.distance + " cost=" + capital + " roi=" + project.roi);
+          OpexDecide("WATER_BUILD", "line=" + this._nextLineId + " src=" + result.dockA + " dst=" + result.dockB + " cargo=" + cargoStr + " dist=" + plan.distance + " cost=" + capital);
+        }
         this._waterBuilt = true;
         this._lines.append({
           stationA = result.dockA, stationB = result.dockB,
@@ -1660,11 +1902,19 @@ function OpexAI::_tryBuildProjects(year)
       }
     }
   }
+  if (DECISION_LOG && builtCount == 0 && logDiscardsThisPass && passDiscards.len() > 0) {
+    local maxLog = passDiscards.len() < 3 ? passDiscards.len() : 3;
+    for (local k = 0; k < maxLog; k++) {
+      local d = passDiscards[k];
+      OpexDecide("PROJECT_DISCARD", "rank=" + d.rank + " mode=" + d.mode + " src=" + d.src + " dst=" + d.dst + " reason=" + d.reason + (d.extra != "" ? " " + d.extra : ""));
+    }
+  }
   }
 
   if (builtCount > 0) {
     this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines);
     this._ranked = this._projects.rail;
+    if (DECISION_LOG) OpexLogPortfolioRank(this._projects);
     /* `knapsackExact` et le compteur d'imbrications du budget etaient ECRITS ET LUS NULLE PART.
      * Or maxNodes = 2000 pour n = 64 fait tronquer la recherche couramment : sans ce champ, on ne
      * peut pas distinguer « le solveur a prouve l'optimum » de « il a epuise son budget de noeuds »
@@ -1902,7 +2152,7 @@ function OpexAI::_reportLines(year)
  * C plafond de l'aeroport atteint, S un an de mauvaise sante, M tresorerie, X l'achat a echoue. */
 function OpexAirFleetRefusal(line, year, code)
 {
-  if (!AIR_FLEET_PROBE) return;
+  if (!AIR_FLEET_PROBE && !DECISION_LOG) return;
   if (!("lineId" in line)) return;
   /* rabattage_diag (2026-09-02) : dedup resserre au MOIS, pas a l'annee -- le dedup annuel
    * masquait un blocage de plusieurs mois derriere un seul motif fige au premier refus de
@@ -1911,8 +2161,23 @@ function OpexAirFleetRefusal(line, year, code)
   local ym = year * 12 + month;
   if (("lastFleetProbeMonth" in line) && line.lastFleetProbeMonth == ym) return;
   line.lastFleetProbeMonth <- ym;
-  OpexSign(AIMap.GetTileIndex(2, 10 + line.lineId),
-           "FR|" + (year % 100) + (month < 10 ? "0" + month : "" + month) + "|" + line.lineId + "|" + code);
+  if (AIR_FLEET_PROBE) {
+    OpexSign(AIMap.GetTileIndex(2, 10 + line.lineId),
+             "FR|" + (year % 100) + (month < 10 ? "0" + month : "" + month) + "|" + line.lineId + "|" + code);
+  }
+  if (DECISION_LOG) {
+    local yieldVal = OpexAirFleetYield(line);
+    local have = ("vehCount" in line) ? line.vehCount : (("vehicles" in line) ? line.vehicles.len() : 0);
+    local reasonStr = (code == "Y") ? "already_grown_this_year" :
+                     ((code == "V") ? "no_live_aircraft" :
+                     ((code == "D") ? "dead_line" :
+                     ((code == "L") ? "negative_profit" :
+                     ((code == "C") ? "airport_capacity_reached" :
+                     ((code == "S") ? "poor_health_streak" :
+                     ((code == "M") ? "insufficient_cash" :
+                     ((code == "X") ? "purchase_failed" : code)))))));
+    OpexDecide("AIR_FLEET", "action=refuse line=" + line.lineId + " reason=" + reasonStr + " planes=" + have + " yield=" + yieldVal);
+  }
 }
 
 /* Rendement marginal d'une ligne aerienne : profit PAR APPAREIL deja en service. C'est le
@@ -2031,6 +2296,10 @@ function OpexAI::_resizeAirFleets(year)
     }
     if (addedThisPass > 0) {
       line.lastAirFleetYear <- year;
+      if (DECISION_LOG) {
+        local yieldVal = OpexAirFleetYield(line);
+        OpexDecide("AIR_FLEET", "action=grow line=" + line.lineId + " yield=" + yieldVal + " planes_before=" + (have - addedThisPass) + " planes_after=" + have + " added=" + addedThisPass);
+      }
       AILog.Info("[AIR_FLEET] line=" + line.lineId + " added=" + addedThisPass + " total=" + have);
       OpexSign(AIMap.GetTileIndex(1, 10 + line.lineId), "FG|" + (year % 100) + "|" + line.lineId + "|" + have + "|K");
     }
@@ -2079,6 +2348,10 @@ function OpexAI::_scrapDeadLines(year)
         }
       }
       line.scrapVehicles = ids;
+      if (DECISION_LOG) {
+        local m = ("mode" in line) ? line.mode : "unknown";
+        OpexDecide("SCRAP_LINE", "action=start line=" + line.lineId + " mode=" + m + " dead_streak=" + line.deadStreak + " threshold=" + DEAD_STREAK_THRESHOLD + " vehicles=" + ids.len() + " criterion=dead_streak");
+      }
       OpexSign(anchor, "DL|" + year + "|" + line.lineId + "|2");
     }
 
@@ -2088,6 +2361,9 @@ function OpexAI::_scrapDeadLines(year)
         if (!AIVehicle.IsValidVehicle(v)) continue;  // deja vendu ou detruit
         if (AIVehicle.IsStoppedInDepot(v)) {
           AIVehicle.SellVehicle(v);
+          if (DECISION_LOG) {
+            OpexDecide("SCRAP_LINE", "action=sell_vehicle line=" + line.lineId + " vehicle=" + v);
+          }
         } else {
           remaining.append(v);
         }
@@ -2108,6 +2384,10 @@ function OpexAI::_scrapDeadLines(year)
       local stuck = (year - line.scrapStartYear) >= SCRAP_TIMEOUT_YEARS;
       if (remaining.len() == 0 || stuck) {
         toRemove.append(i);  // i = position physique dans _lines, pour le retrait -- pas le sign
+        if (DECISION_LOG) {
+          local crit = (remaining.len() == 0) ? "all_sold" : "timeout";
+          OpexDecide("SCRAP_LINE", "action=removed line=" + line.lineId + " criterion=" + crit + " remaining=" + remaining.len());
+        }
         OpexSign(anchor, "DL|" + year + "|" + line.lineId + "|" + (remaining.len() == 0 ? "3" : "4"));
       }
     }
@@ -2238,6 +2518,17 @@ function OpexAI::_refleetRoadLines(year)
     if (refill.added > 0) {
       line.vehCount <- refill.after;
       if (("trains" in line) && line.trains < refill.after) line.trains = refill.after;
+    }
+    if (DECISION_LOG) {
+      if (refill.added > 0) {
+        OpexDecide("ROAD_REFLEET", "action=refill line=" + line.lineId + " added=" + refill.added + " total=" + refill.after);
+      } else {
+        local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+        if (!("lastRefleetRefuseMonth" in line) || line.lastRefleetRefuseMonth != ym) {
+          line.lastRefleetRefuseMonth <- ym;
+          OpexDecide("ROAD_REFLEET", "action=refuse line=" + line.lineId + " reason=" + refill.reason + " have=" + have + " target=" + target);
+        }
+      }
     }
     OpexSign(anchor, "RF|" + year + "|" + line.lineId + "|" + refill.added + "|"
                      + (refill.added > 0 ? refill.after : refill.reason));
@@ -2392,6 +2683,9 @@ function OpexTryReborrow(need, money)
   local drew = after - money;
   if (drew <= 0) return after;
   local covered = after >= need ? 1 : 0;
+  if (DECISION_LOG) {
+    OpexDecide("LOAN", "action=reborrow drew=" + drew + " new_loan=" + newLoan + " covered=" + covered + " need=" + need + " cash_after=" + after);
+  }
   OpexSign(AIMap.GetTileIndex(1, 1),
            "GL|" + AIDate.GetYear(AIDate.GetCurrentDate()) + "|" + drew + "|" + newLoan
                  + "|" + covered);
@@ -2409,20 +2703,38 @@ function OpexAI::_tryRepayLoan(year)
   local loan = AICompany.GetLoanAmount();
   local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   OpexSign(AIMap.GetTileIndex(1, 1), "LF|" + (year % 100) + "|" + cash + "|" + loan);
-  if (loan <= 0) return;
+  if (loan <= 0) {
+    if (DECISION_LOG) {
+      OpexDecide("LOAN", "action=none reason=no_loan cash=" + cash + " floor=" + LOAN_REPAY_FLOOR);
+    }
+    return;
+  }
 
-  if (cash <= LOAN_REPAY_FLOOR) return;
+  if (cash <= LOAN_REPAY_FLOOR) {
+    if (DECISION_LOG) {
+      OpexDecide("LOAN", "action=refuse_repay reason=cash_below_floor cash=" + cash + " floor=" + LOAN_REPAY_FLOOR + " loan=" + loan);
+    }
+    return;
+  }
 
   local interval = AICompany.GetLoanInterval();
   local minNewLoan = loan - (cash - LOAN_REPAY_FLOOR);
   if (minNewLoan < 0) minNewLoan = 0;
   local newLoan = ((minNewLoan + interval - 1) / interval) * interval;
-  if (newLoan >= loan) return;  // moins d'un palier remboursable : pas la peine
+  if (newLoan >= loan) {
+    if (DECISION_LOG) {
+      OpexDecide("LOAN", "action=refuse_repay reason=less_than_interval cash=" + cash + " floor=" + LOAN_REPAY_FLOOR + " loan=" + loan + " interval=" + interval);
+    }
+    return;  // moins d'un palier remboursable : pas la peine
+  }
 
   local repaid = loan - newLoan;
   AICompany.SetLoanAmount(newLoan);
   local anchor = AIMap.GetTileIndex(1, 1);
   OpexSign(anchor, "LR|" + year + "|" + repaid + "|" + newLoan);
+  if (DECISION_LOG) {
+    OpexDecide("LOAN", "action=repay repaid=" + repaid + " new_loan=" + newLoan + " cash=" + cash + " floor=" + LOAN_REPAY_FLOOR);
+  }
 }
 
 function OpexAI::_findLineById(lineId)
@@ -2551,6 +2863,9 @@ function OpexAI::_expandRailLines(year)
               line.vehCount <- line.vehicles.len();
               local anchor = AIMap.GetTileIndex(1, 1);
               OpexSign(anchor, "RD|" + (year % 100) + "|" + line.lineId + "|" + line.trains);
+              if (DECISION_LOG) {
+                OpexDecide("RAIL_EXPAND", "action=second_train line=" + line.lineId + " trains=" + line.trains);
+              }
               return;
             }
           }
@@ -2579,6 +2894,9 @@ function OpexAI::_expandRailLines(year)
               local upgrade = OpexUpgradeRailLineToDoubleTrack(this._catalog, this._budget, line, OpexCashReserve(), HARD_ITERATION_CAP);
               local anchor = AIMap.GetTileIndex(1, 1);
               OpexSign(anchor, "RU|" + (year % 100) + "|" + line.lineId + "|" + upgrade.reason);
+              if (DECISION_LOG) {
+                OpexDecide("RAIL_EXPAND", "action=double_track line=" + line.lineId + " reason=" + upgrade.reason + " ok=" + (upgrade.ok ? 1 : 0));
+              }
               if (upgrade.ok) {
                 line.doubleTrack = 1;
                 line.depot2 = upgrade.depot2;
@@ -2626,6 +2944,9 @@ function OpexAI::_expandRailLines(year)
                    + best.line.wagons + "|" + (best.line.wagons + 1) + "|" + best.gain);
   OpexSign(anchor, "ES|" + (year % 100) + "|" + best.line.lineId + "|"
                    + best.waiting + "|" + best.util + "|" + best.line.expandStreak);
+  if (DECISION_LOG) {
+    OpexDecide("RAIL_EXPAND", "action=wagon_expansion line=" + best.line.lineId + " old_wagons=" + best.line.wagons + " new_wagons=" + (best.line.wagons + 1) + " gain=" + best.gain + " waiting=" + best.waiting + " util=" + best.util);
+  }
   /* Si le train passe deja pres du depot, l'interception peut commencer dans ce meme tour. */
   if (AIVehicle.IsStoppedInDepot(best.vehicle) ||
       AIMap.DistanceManhattan(AIVehicle.GetLocation(best.vehicle), best.line.depot)
@@ -2826,12 +3147,14 @@ function OpexAI::_startRailSearch(candidate, join, placeJoin, alternativeRatio, 
   if (RAIL_SEGMENTED_SEARCH) {
     segmented = OpexCreateSegmentedSearch(plan.plansA, plan.plansB, plan.iterationBudget, null);
     if (segmented == null) {
+      if (DECISION_LOG) OpexDecide("RAIL_SEARCH", "type=resumable outcome=NOPA iters=0 budget=" + plan.iterationBudget);
       plan.reason = "NOPA";
       return { pending = false, plan = plan };
     }
   } else {
     pathfinder = OpexCreateRailPathfinder(plan.plansA, plan.plansB, null);
     if (pathfinder == null) {
+      if (DECISION_LOG) OpexDecide("RAIL_SEARCH", "type=resumable outcome=NOPA iters=0 budget=" + plan.iterationBudget);
       plan.reason = "NOPA";
       return { pending = false, plan = plan };
     }
@@ -2893,6 +3216,10 @@ function OpexAI::_continueRailSearch()
     this._budget.end("build_search");
   }
   if (!slice.done) return;
+
+  if (DECISION_LOG) {
+    OpexDecide("RAIL_SEARCH", "type=resumable outcome=" + slice.stop + " iters=" + state.spent + " budget=" + state.iterationBudget);
+  }
 
   if (state.kind == "primary") {
     local plan = OpexCompleteRailRouteAfterSearch(this._catalog, state.candidate, state.plan,
@@ -2967,6 +3294,15 @@ function OpexAI::_recordRailAttempt(candidate, result, join, placeJoin, posPacke
                             + result.joinEnd);
   }
   if (result.error != 0) OpexSign(anchor, "OV|" + this._nextLineId + "|" + result.error);
+
+  if (DECISION_LOG) {
+    if (result.ok) {
+      local cargoStr = AICargo.GetCargoLabel(candidate.cargo);
+      OpexDecide("RAIL_BUILD", "line=" + this._nextLineId + " src=" + candidate.src + " dst=" + candidate.dst + " cargo=" + cargoStr + " dist=" + candidate.distance + " cost=" + result.actualCost + " trains=" + result.trains + " wagons=" + result.wagons);
+    } else {
+      OpexDecide("RAIL_BUILD_FAIL", "line=" + this._nextLineId + " reason=" + result.reason + " error=" + result.error + " iters=" + result.iterations + " budget=" + iterationBudget);
+    }
+  }
 
   if (result.ok) {
     local idx = this._nextLineId;
@@ -3058,6 +3394,7 @@ function OpexAI::_startRailUpgradeSearch(line, prep)
   if (RAIL_SEGMENTED_SEARCH) {
     segmented = OpexCreateSegmentedSearch(prep.dualA, prep.dualB, prep.iterationBudget, prep.ignored);
     if (segmented == null) {
+      if (DECISION_LOG) OpexDecide("RAIL_SEARCH", "type=resumable outcome=NOPA iters=0 budget=" + prep.iterationBudget);
       OpexSign(AIMap.GetTileIndex(1, 1), "RU|" + (AIDate.GetYear(AIDate.GetCurrentDate()) % 100)
                + "|" + line.lineId + "|NOPATH");
       return;
@@ -3065,6 +3402,7 @@ function OpexAI::_startRailUpgradeSearch(line, prep)
   } else {
     pathfinder = OpexCreateRailPathfinder(prep.dualA, prep.dualB, prep.ignored);
     if (pathfinder == null) {
+      if (DECISION_LOG) OpexDecide("RAIL_SEARCH", "type=resumable outcome=NOPA iters=0 budget=" + prep.iterationBudget);
       OpexSign(AIMap.GetTileIndex(1, 1), "RU|" + (AIDate.GetYear(AIDate.GetCurrentDate()) % 100)
                + "|" + line.lineId + "|NOPATH");
       return;
@@ -3094,6 +3432,9 @@ function OpexAI::_consumeRailUpgrade()
   if (upgrade.reason == "CASH") return;
   local anchor = AIMap.GetTileIndex(1, 1);
   OpexSign(anchor, "RU|" + (year % 100) + "|" + state.line.lineId + "|" + upgrade.reason);
+  if (DECISION_LOG) {
+    OpexDecide("RAIL_EXPAND", "action=double_track line=" + state.line.lineId + " reason=" + upgrade.reason + " ok=" + (upgrade.ok ? 1 : 0));
+  }
   if (upgrade.ok) {
     local line = state.line;
     line.doubleTrack = 1;
@@ -3142,6 +3483,10 @@ function OpexAI::_processEvents()
  * item ne peut affamer ceux places apres lui et le dernier rend litteralement la main au premier. */
 function OpexAI::_runNextTask()
 {
+  if (DECISION_LOG) {
+    _currentTaskName = null;
+    _currentTaskLogged = false;
+  }
   if (this._taskQueue == null || this._taskQueue.len() == 0) return false;
   /* Sonder d'abord la transaction, puis CONTINUER la file dans le meme passage. Retourner ici
    * affamait de nouveau le scheduler pendant tout le trajet vers le depot (jusqu'a un an mesure),
@@ -3179,6 +3524,10 @@ function OpexAI::_runNextTask()
 
   /* Defaut : exactement une execution par tour continu. Une tache inutile peut choisir plus loin. */
   task.dueCycle = this._taskCycle + 1;
+  if (DECISION_LOG) {
+    _currentTaskName = task.name;
+    _currentTaskLogged = false;
+  }
 
   if (task.name == "catalog") {
     local date = AIDate.GetCurrentDate();
@@ -3209,6 +3558,14 @@ function OpexAI::_runNextTask()
     this._catalog.refresh(this._budget, year);
     this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines);
     this._ranked = this._projects.rail;
+    if (DECISION_LOG) {
+      if (this._projects != null && this._projects.best != null && this._projects.best.len() > 0) {
+        OpexLogPortfolioRank(this._projects);
+      } else {
+        local cBudget = (this._projects != null) ? this._projects.capitalBudget : 0;
+        OpexDecide("PORTFOLIO_EMPTY", "budget=" + cBudget);
+      }
+    }
     local anchor = AIMap.GetTileIndex(1, 1);
     local yy = year % 100;
     /* `knapsackExact` et le compteur d'imbrications du budget etaient ECRITS ET LUS NULLE PART.
@@ -3248,6 +3605,11 @@ function OpexAI::_runNextTask()
   if (task.name == "report") {
     if (this._lastReportYear == year) return false;
     this._lastReportYear = year;
+    if (DECISION_LOG) {
+      local bank = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+      local loan = AICompany.GetLoanAmount();
+      OpexDecide("REPORT", "year=" + year + " lines=" + this._lines.len() + " bank=" + bank + " loan=" + loan);
+    }
     OpexSign(AIMap.GetTileIndex(1, 1), "LB|" + (year % 100) + "|"
              + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
     this._reportYear(year, this._ranked);
@@ -3315,6 +3677,7 @@ function OpexAI::Start()
   HARD_ITERATION_CAP = AIController.GetSetting("pathfinder_hard_cap_k") * 1000;
   RAIL_SEARCH_RESUMABLE = AIController.GetSetting("rail_search_resumable") != 0;
   RAIL_SEGMENTED_SEARCH = AIController.GetSetting("rail_segmented_search") != 0;
+  DECISION_LOG = AIController.GetSetting("decision_log") != 0;
   ABANDON_MEMORY = AIController.GetSetting("abandon_memory") != 0;
   STATION_JOIN = AIController.GetSetting("station_join") != 0;
   JOIN_MAX_DISTANCE = AIController.GetSetting("join_max_distance");
@@ -3405,6 +3768,9 @@ function OpexAI::Start()
    * mais une ligne non construite faute de tresorerie coute bien davantage. Le remboursement
    * viendra quand la tresorerie le permettra. */
   AICompany.SetLoanAmount(AICompany.GetMaxLoanAmount());
+  if (DECISION_LOG) {
+    OpexDecide("LOAN", "action=initial_borrow amount=" + AICompany.GetLoanAmount() + " max_loan=" + AICompany.GetMaxLoanAmount());
+  }
 
   while (true) {
     this._processEvents();

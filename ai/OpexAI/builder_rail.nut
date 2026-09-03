@@ -825,19 +825,31 @@ function OpexAdvanceSegmentedSearch(state, sliceIters, deadlineTick)
  * a 2000 iterations. Defaut 0 = A* classique inchange (table de cout, plafond A3). */
 function OpexSearchPath(plansA, plansB, iterationBudget, deadlineTick, ignoredTiles = null)
 {
+  local res;
   if (RAIL_SEGMENTED_SEARCH) {
     local state = OpexCreateSegmentedSearch(plansA, plansB, iterationBudget, ignoredTiles);
-    if (state == null) return { path = null, iterations = 0, stop = "NOPA" };
+    if (state == null) {
+      if (DECISION_LOG) OpexDecide("RAIL_SEARCH", "type=blocking outcome=NOPA iters=0 budget=" + iterationBudget);
+      return { path = null, iterations = 0, stop = "NOPA" };
+    }
     /* sliceIters = iterationBudget : une seule avancee jusqu'au chemin / ABND / DEAD / NOPA. */
-    return OpexAdvanceSegmentedSearch(state, iterationBudget, deadlineTick);
+    res = OpexAdvanceSegmentedSearch(state, iterationBudget, deadlineTick);
+  } else {
+    local pathfinder = OpexCreateRailPathfinder(plansA, plansB, ignoredTiles);
+    if (pathfinder == null) {
+      if (DECISION_LOG) OpexDecide("RAIL_SEARCH", "type=blocking outcome=NOPA iters=0 budget=" + iterationBudget);
+      return { path = null, iterations = 0, stop = "NOPA" };
+    }
+    /* sliceIters = iterationBudget : une seule "tranche" aussi longue que le budget, donc le
+     * while interne ne s'arrete plus que sur chemin / ABND / DEAD, comme avant A4. */
+    local result = OpexAdvanceRailPathfinder(pathfinder, 0, iterationBudget, deadlineTick,
+                                             iterationBudget);
+    res = { path = result.path, iterations = result.iterations, stop = result.stop };
   }
-  local pathfinder = OpexCreateRailPathfinder(plansA, plansB, ignoredTiles);
-  if (pathfinder == null) return { path = null, iterations = 0, stop = "NOPA" };
-  /* sliceIters = iterationBudget : une seule "tranche" aussi longue que le budget, donc le
-   * while interne ne s'arrete plus que sur chemin / ABND / DEAD, comme avant A4. */
-  local result = OpexAdvanceRailPathfinder(pathfinder, 0, iterationBudget, deadlineTick,
-                                           iterationBudget);
-  return { path = result.path, iterations = result.iterations, stop = result.stop };
+  if (DECISION_LOG) {
+    OpexDecide("RAIL_SEARCH", "type=blocking outcome=" + res.stop + " iters=" + res.iterations + " budget=" + iterationBudget);
+  }
+  return res;
 }
 
 /* Deplie le chemin en liste de tuiles, en supprimant les allers-retours d'une tuile que le

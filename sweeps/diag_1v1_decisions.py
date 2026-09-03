@@ -38,6 +38,11 @@ from pathlib import Path
 import openttdlab
 from openttdlab import bananas_ai_library, local_folder, run_experiments
 
+# Parseurs de chunks VERIFIES (dump du 2026-09-02) : la structure VEHS/STNN est imbriquee
+# (vehicule[mode]["common"]["owner"]), pas plate. Une seconde implementation ici a deja rendu
+# des zeros silencieux -- on importe la seule version verifiee.
+from diag_1v1_monthly import station_detail, vehicle_breakdown
+
 ROOT = Path("/work")
 OPENTTD_VERSION, OPENGFX_VERSION = "15.3", "7.1"
 AAAHOGEX_DIR = "AAAHogEx-115"
@@ -127,10 +132,13 @@ def parse_decisions(output, arm):
             continue
         year, month, day, body = m2.groups()
         func = HOGEX_FUNC_RE.search(body)
-        # Le "kind" d'AAAHogEx est le debut de phrase avant la parenthese de fonction : c'est la
-        # partie stable ("Not enough money", "Build railroute"), le reste etant les parametres.
-        head = body.split("(")[0].strip()
-        head = re.sub(r"[0-9]+", "#", head)[:60].strip()
+        # AAAHogEx journalise en prose : sans normalisation on obtient ~1 950 "types" pour
+        # 6 140 lignes, ce qui n'est pas une taxonomie. On masque les nombres, on coupe aux
+        # deux-points (qui introduisent toujours les parametres) et on garde les TROIS premiers
+        # mots : ca ramene a une centaine de types stables et lisibles.
+        head = re.sub(r"[0-9]+", "#", body.split("(")[0])
+        head = re.sub(r"[:=].*", "", head).strip(" {}[],")
+        head = " ".join(head.split()[:3])
         events.append({
             "month": f"{int(year):04d}-{int(month):02d}",
             "day": int(day), "level": level, "kind": head or "?",
@@ -138,53 +146,6 @@ def parse_decisions(output, arm):
             "raw": body,
         })
     return events
-
-
-def vehicle_breakdown(chunks, owner=0):
-    """VEHS est un enregistrement A VARIANTES : toutes les cles de mode sont presentes quel que
-    soit le type reel. C'est le champ `type` (une CHAINE) qui tranche, jamais la presence d'une cle.
-    """
-    by_mode = dict.fromkeys(VEHICLE_MODES, 0)
-    profit_by_mode = dict.fromkeys(VEHICLE_MODES, 0)
-    capital = 0
-    profits = []
-    for record in (chunks.get("VEHS") or {}).values():
-        record = _first(record)
-        if not record or record.get("owner") != owner:
-            continue
-        mode = TYPE_TO_MODE.get(str(record.get("type")))
-        if mode is None:
-            continue
-        by_mode[mode] += 1
-        profit = record.get("profit_this_year") or 0
-        profit_by_mode[mode] += profit
-        profits.append(profit)
-        capital += record.get("value") or 0
-    return {
-        "by_mode": by_mode, "profit_by_mode": profit_by_mode,
-        "n_vehicles": sum(by_mode.values()), "rolling_capital": capital,
-        "profit_per_vehicle": (sum(profits) / len(profits)) if profits else None,
-    }
-
-
-def station_detail(chunks, owner=0):
-    ratings, waiting, n = [], 0, 0
-    for record in (chunks.get("STNN") or {}).values():
-        record = _first(record)
-        if not record or record.get("owner") != owner:
-            continue
-        n += 1
-        for goods in record.get("goods") or []:
-            goods = _first(goods) or {}
-            rating = goods.get("rating")
-            if rating is not None and (goods.get("cargo_count") or 0) > 0:
-                ratings.append(rating)
-            waiting += goods.get("cargo_count") or 0
-    return {
-        "n_stations": n, "waiting_cargo": waiting,
-        "median_rating": statistics.median(ratings) if ratings else None,
-        "n_rated": len(ratings),
-    }
 
 
 def keep(row):
