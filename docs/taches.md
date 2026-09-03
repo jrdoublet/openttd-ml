@@ -5576,3 +5576,115 @@ justesse de l'estimation mais le **volume**, et brider la sélection ampute la c
 la partie est le mauvais objet »** — troisième mesure indépendante qui pointe vers A1 (dénominateur
 dépendant de la ressource rare) et B4 (doctrine de phase). Le réglage reste comme instrument à 0 ;
 s'il revient, c'est **conditionné à la richesse**, pas en dur.
+
+---
+
+## 3 terdecies. 🔑 A1 SANS CONSTANTES : loi de Liebig + théorie des contraintes (proposition de l'utilisateur, 2026-09-03)
+
+**Consigne explicite : éviter à tout prix les constantes en dur.** Pas d'automate à états rigide
+(`EarlyGame` / `MidGame`), mais un **indice de tension** calculé, et une contrainte dominante qui
+est simplement celle dont la marge opérationnelle est la plus faible face à l'action projetée.
+
+Forme proposée, pour chaque ressource `r` et une action projetée :
+
+```
+tension(r) = cout_r(action) / (disponible_r - marge_r  +  max(0, flux_r) * tau)
+contrainte_dominante = argmax_r tension(r)
+```
+
+### Pourquoi c'est la bonne forme
+
+1. **Ça supprime la comparaison à un seuil.** On ne teste plus `cash < 50 000` : on compare des
+   **ressources entre elles**. La tension est un rapport sans dimension, donc comparable entre des
+   unités hétérogènes — c'est cette propriété qui rend l'`argmax` licite.
+2. **C'est ce que la mesure réclame.** Tous les seuils mesurés cette semaine sont neutres ou
+   négatifs, et §0 undecies septies a montré pourquoi : **abaisser un seuil ne libère que la bande
+   entre l'ancienne et la nouvelle valeur**. Un seuil est un objet local ; la contrainte est
+   globale.
+3. **C'est la généralisation continue de l'aiguillage d'AAAHogEx.** Son `_IsRich` est une bascule
+   à deux états ; la tension est la même idée sans marche d'escalier. Et §0 trigesies dit que le
+   régime varie **continûment** : le signe de l'effet d'`air_demand_plan` suit la richesse avec un
+   Spearman de −0,725, pas un saut.
+
+### 🔴 1. La formule proposée réintroduit deux constantes en douce
+
+`marge_r` (safety margin) et `tau` (horizon) **sont exactement les nombres magiques qu'on veut
+bannir**, renommés. Deux des trois termes du dénominateur sont des paramètres libres.
+
+Et dans ce projet, la marge n'est pas neutre : §0 undecies septies a mesuré que
+notre réserve de trésorerie **n'est pas un plancher de sécurité, c'est le BUDGET DU SAC À DOS**.
+Poser `marge_r` comme une constante de confort revient à re-régler le budget de sélection sans le
+dire.
+
+➡️ **Les deux doivent être endogènes** :
+- `tau` = **l'horizon d'amortissement de l'action elle-même** (sa propre durée de retour), pas un
+  horizon de confort choisi à la main. Chaque action porte alors son propre horizon, ce qui est
+  précisément ce qu'on veut : une ligne de bus courte et un aéroport ne s'évaluent pas sur la même
+  fenêtre.
+- `marge_r` = **les engagements déjà pris et non encore payés** pour cette ressource (coûts de
+  fonctionnement jusqu'à la prochaine rentrée, véhicules commandés, chantiers engagés). C'est une
+  grandeur **mesurable**, pas un choix.
+
+### 🔴 2. `max(0, flux)` supprime le cas le plus urgent
+
+Une ressource qui **se vide** (flux négatif) est la plus contraignante de toutes ; avec
+`max(0, flux)`, une compagnie qui perd de l'argent est indiscernable d'une compagnie à revenu
+plat. Le **Time-to-Exhaustion** est nommé dans la proposition mais pas implémenté par cette ligne.
+
+➡️ Garder `disponible + flux * tau` **signé**, et laisser la tension diverger quand le
+dénominateur passe sous zéro. C'est le seul cas où l'infini a un sens.
+
+### 🔴 3. L'`argmax` oscille, et ce projet y est mesurablement sensible
+
+Deux tensions à 0,98 et 0,97 font basculer la doctrine sur du bruit d'estimation, d'un mois à
+l'autre. Ajouter une hystérésis rétablirait une constante.
+
+➡️ **La forme que je propose à la place : ne pas basculer, pondérer.** Au lieu de choisir un
+dénominateur, en composer un :
+
+```
+denominateur(action) = somme_r [ tension(r) * cout_r(action) ]
+classement = profit_attendu / denominateur(action)
+```
+
+Propriétés, et c'est pour ça que je la préfère :
+- **Continue** : aucun basculement, donc aucune oscillation, donc aucune hystérésis à régler.
+- **Elle dégénère correctement** : quand une ressource domine largement, la somme se réduit à
+  cette ressource et on retrouve exactement l'aiguillage d'AAAHogEx.
+- **Elle contient l'existant comme cas particulier** : aujourd'hui nous faisons
+  `tension(capital) = 1` et toutes les autres à 0. Le passage est donc mesurable en continu, et
+  non comme un remplacement en bloc — ce qui compte, vu que `portfolio_v2`, la dernière refonte
+  du classement livrée d'un coup, **détruisait la valeur** (§0 nonies quater).
+
+### Les ressources candidates, et ce que le dossier dit DÉJÀ de chacune
+
+| ressource | état au dossier | verdict pour ce modèle |
+|---|---|---|
+| **Argent** | la seule que nous mettons au dénominateur aujourd'hui | ✅ à garder, mais elle cesse d'être seule |
+| **Emprise foncière** | 🔴 **mur mesuré** : `MIN_SEPARATION` tue **18 des 19 derniers candidats** de la graine 999, avec 37-39 villes encore non desservies (`docs/opexai_plafonnement.md`) | 🔴 **la plus prometteuse après l'argent** — c'est déjà un mur constaté, pas une hypothèse |
+| **Budget d'opcodes** | ⚠️ **mesuré NON goulot** : les trois voies sont fermées — relever ❌, redistribuer ❌ (−23 %), abaisser 🟡 nul (A3/A4/A5) | ✅ à inclure comme ressource, ❌ **ne pas en attendre la domination** ; la traiter comme une tension parmi d'autres |
+| **Slots de véhicules** | ❓ **jamais lu** : aucun appel au plafond de véhicules dans tout `ai/OpexAI/` | 🔶 mesure préalable **triviale** — et c'est le régime où AAAHogEx bascule sur `profit par véhicule` |
+| **Note municipale** | ⚠️ c'est un **enum 0-8**, pas un score continu ; et notre seul levier (`tree_planting`) est **rejeté deux fois** (D1) | 🔶 ressource réelle, levier mesuré nul : à modéliser en lecture, pas en action |
+| **Saturation de tronçon** | ⚠️ quasi **sans objet dans notre topologie** : point-à-point, voie unique, 1-2 convois (`docs/mecanique_jeu.md` §12) | ⏳ n'aura de sens qu'après un changement de topologie |
+| **Fenêtre de subvention** | ❓ **ZÉRO occurrence** dans tout le dépôt — jamais lue, jamais exploitée | 🔶 **ressource réellement neuve**, et la seule du lot qui soit une *opportunité* datée plutôt qu'un stock |
+
+### 🔑 Le premier pas, et il ne change aucune décision
+
+Ne pas câbler l'arbitrage. **Calculer et journaliser le VECTEUR de tension à chaque cycle, en
+laissant le classement actuel intact.** La question à laquelle il faut répondre avant d'écrire une
+ligne d'arbitrage est : **la contrainte dominante varie-t-elle réellement au cours d'une partie ?**
+
+Si c'est « argent » 100 % du temps, le modèle se réduit à ce que nous faisons déjà et il n'y a
+rien à coder. Ce contrôle est exactement celui qui manquait à `portfolio_max_batch` (rejeté, **11
+graines sur 20 en nuls exacts** : le mécanisme ne se déclenchait jamais) et au plafond `maxRoutes`
+(**0 refus sur 32**). **Vérifier que le mécanisme mord avant de l'armer** est devenu la règle de
+ce projet, et elle s'applique ici plus qu'ailleurs.
+
+### Ce que ça absorbe
+
+Cette proposition **remplace** B2 (file de tâches dynamique à priorités par phase) et B4 (doctrine
+de partie en six phases) : toutes deux étaient des automates à états, c'est-à-dire la forme que
+l'utilisateur écarte explicitement. Elle donne aussi sa forme correcte à §3 duodecies : une
+**personnalité** n'est plus un jeu de constantes, mais un **a priori sur la pondération des
+tensions** — ce qui est le seul objet qui survit à l'objection « une personnalité est fixe, le jeu
+ne l'est pas ».
