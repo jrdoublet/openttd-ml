@@ -2278,6 +2278,73 @@ débloquées étaient bloquées par la **trésorerie**, pas par le temps.
 
 ---
 
+## 0 undecies septies. ❌ SEUILS DE TRÉSORERIE : les deux abaissements sont NEUTRES — et la réserve n'est pas ce qu'on croyait (2026-09-03)
+
+Suite directe du diagnostic 1v1 (§0 undecies sexies bis) : 88 refus `insufficient_cash` pour
+3 acceptations sur la croissance aérienne. Deux leviers demandés par l'utilisateur, implémentés en
+réglages **séparés** pour que le banc puisse attribuer.
+
+- `reserve_maint_cap` : `OpexCashReserve()` plafonnée à `totalRunning / 12`, soit **un mois**
+  d'entretien au lieu de trois. Le plafond prime sur le plancher `CASH_RESERVE_MIN = 5000` et peut
+  valoir 0 sur flotte vide — demandé explicitement, aucune marge de sécurité ajoutée.
+- `air_margin_v2` : marges exigées **en plus** de la réserve. Refleet 2 000 → 0 ; deux aéroports
+  neufs 30 000 → 15 000 ; un aéroport neuf 12 000 → 6 000 ; réutilisation 2 000 → 0.
+
+Vérifié avant de mesurer : les deux réglages à 0 sont **identiques bit à bit** au master d'avant
+(36 champs sur 4 parties, `docs/smoke_ident2.json`).
+
+### Le banc — factoriel complet, 4 bras × 20 graines × 10 ans, 80 parties, 0 échec
+
+`docs/bench_tresorerie_10y.json`. Écarts contre le témoin (`0,0`) :
+
+| bras | `company_value` | t | p | gares | véhicules |
+|---|---:|---:|---:|---:|---:|
+| réserve seule | −5,9 % | −0,89 | 0,50 | −11,7 % | **−9,8 %** (t = −2,18) |
+| marges seules | −3,6 % | −1,06 | 1,00 | −7,6 % | −4,5 % (t = −2,46) |
+| les deux | −6,2 % | −1,00 | 0,50 | −8,8 % | −7,5 % |
+
+**Aucune métrique de valeur n'est significative**, et les trois bras vont dans le même sens :
+légèrement négatif. Verdict : **on n'adopte ni l'un ni l'autre**, défauts laissés à 0.
+
+### 🔑 Trouvaille 1 — abaisser un SEUIL ne libère que la bande entre l'ancienne et la nouvelle valeur
+
+`air_margin_v2` est **strictement identique au témoin sur 7 graines sur 20** (tous champs confondus).
+C'est mécanique : baisser une marge de 30 000 à 15 000 ne change le comportement que lorsque la
+trésorerie tombe *entre* les deux valeurs. Sur le refleet, cette bande fait **2 000 £**.
+
+➡️ **À opposer à toute future idée de « desserrer un seuil ».** Ce qui change vraiment le
+comportement, c'est de changer une **formule** — `reserve_maint_cap` modifie la valeur à chaque
+appel et agit sur les 20 graines sur 20. Le seuil, lui, n'agit qu'au bord.
+
+### 🔴 Trouvaille 2 — la réserve n'est pas un plancher de sécurité, c'est le BUDGET DU SAC À DOS
+
+Contre-intuitif et vérifié dans le code : baisser la réserve fait construire **moins**
+(−11,7 % de gares, −9,8 % de véhicules). Ce n'est pas de la faillite — **zéro mois de faillite sur
+les 80 parties**, trésorerie de fin inchangée (65 925 £ contre 67 123 £).
+
+La chaîne causale est dans `ai/OpexAI/projects.nut:450` :
+
+```squirrel
+local capitalBudget = cash + borrowable - OpexCashReserve();
+```
+
+puis `:539` → `OpexKnapsackSolve(byBudget, capitalBudget, ...)`, qui **maximise la somme des
+`revenueAnnual` sous contrainte de capital**. La réserve n'est donc pas seulement un filet : c'est
+la **contrainte du sac à dos**. La baisser augmente le budget, et un sac à dos qui maximise le
+revenu — non le rendement — dépense ce budget supplémentaire en projets **plus gros**, donc moins
+nombreux.
+
+🔶 **Statut : hypothèse forte, non mesurée directement.** La chaîne de causalité est vérifiée dans
+le code et la direction des chiffres y colle, mais je n'ai pas isolé la bascule de mode. Ce qui la
+testerait : mesurer la répartition des modes entre les deux bras.
+
+➡️ **Ça pointe directement sur C13** (sac à dos classé par ROI et non par revenu) : tant que
+l'objectif du sac à dos est le revenu sous contrainte de capital, *donner plus de capital dégrade le
+choix*. C'est le même défaut que celui identifié chez AAAHogEx à l'envers — elle change de
+dénominateur selon la ressource rare, nous divisons toujours par le capital.
+
+---
+
 ## 3 ter. 🔶 AUDIT DE TOUTES LES CONSTANTES EN DUR (demandé le 2026-09-02)
 
 **46 constantes `const` dans `ai/OpexAI/`, contre 35 réglages exposés.** Aucune revue systématique
