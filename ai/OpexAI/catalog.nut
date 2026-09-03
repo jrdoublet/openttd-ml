@@ -255,9 +255,11 @@ function OpexCatalog::_refreshRail()
    * allonger une campagne jusque-la sans figer le type. Maglev pas encore en 2000
    * (docs/catalogue_churn_1950_2000.json). */
   local types = AIRailTypeList();
+  types.Valuate(AIRail.IsRailTypeAvailable);
+  types.KeepValue(1);
   local chosen = -1;
   for (local t = types.Begin(); !types.IsEnd(); t = types.Next()) {
-    if (AIRail.IsRailTypeAvailable(t)) chosen = t;
+    chosen = t;
   }
   if (chosen < 0) return;
   this.railType = chosen;
@@ -269,8 +271,9 @@ function OpexCatalog::_refreshRail()
   this.costRailDepot = AIRail.GetBuildCost(chosen, AIRail.BT_DEPOT);
 
   local engines = AIEngineList(AIVehicle.VT_RAIL);
+  engines.Valuate(AIEngine.IsBuildable);
+  engines.KeepValue(1);
   for (local e = engines.Begin(); !engines.IsEnd(); e = engines.Next()) {
-    if (!AIEngine.IsBuildable(e)) continue;
     if (AIEngine.IsWagon(e)) {
       local cargo = AIEngine.GetCargoType(e);
       local capacity = AIEngine.GetCapacity(e);
@@ -431,13 +434,14 @@ function OpexCatalog::_refreshAir()
   ];
 
   local engines = AIEngineList(AIVehicle.VT_AIR);
+  engines.Valuate(AIEngine.IsBuildable);
+  engines.KeepValue(1);
 
   // 1. Combo Grand Aeroport + Avion compatible
   foreach (choice in airportLargeTypes) {
     if (!AIAirport.IsValidAirportType(choice.type)) continue;
     local best = null;
     for (local e = engines.Begin(); !engines.IsEnd(); e = engines.Next()) {
-      if (!AIEngine.IsBuildable(e)) continue;
       if (!AIEngine.CanRefitCargo(e, this.paxCargo)) continue;
       local planeType = AIEngine.GetPlaneType(e);
       if (planeType != AIAirport.PT_SMALL_PLANE && planeType != AIAirport.PT_BIG_PLANE) continue;
@@ -482,7 +486,6 @@ function OpexCatalog::_refreshAir()
     if (!AIAirport.IsValidAirportType(choice.type)) continue;
     local best = null;
     for (local e = engines.Begin(); !engines.IsEnd(); e = engines.Next()) {
-      if (!AIEngine.IsBuildable(e)) continue;
       if (!AIEngine.CanRefitCargo(e, this.paxCargo)) continue;
       local planeType = AIEngine.GetPlaneType(e);
       // Règle d'or : les gros avions ne vont JAMAIS dans les petits aeroports
@@ -534,8 +537,9 @@ function OpexCatalog::_refreshWater()
   this.costWaterDepot = AIMarine.GetBuildCost(AIMarine.BT_DEPOT);
   if (this.paxCargo < 0) return;
   local engines = AIEngineList(AIVehicle.VT_WATER);
+  engines.Valuate(AIEngine.IsBuildable);
+  engines.KeepValue(1);
   for (local e = engines.Begin(); !engines.IsEnd(); e = engines.Next()) {
-    if (!AIEngine.IsBuildable(e)) continue;
     if (!AIEngine.CanRefitCargo(e, this.paxCargo)) continue;
     local capacity = AIEngine.GetCapacity(e);
     local speed = AIEngine.GetMaxSpeed(e);
@@ -587,11 +591,13 @@ function OpexCatalog::_refreshRoad()
    * cargos, cela reste tres en dessous du budget annuel du catalogue. */
   local usable = [];
   local engines = AIEngineList(AIVehicle.VT_ROAD);
+  engines.Valuate(AIEngine.IsBuildable);
+  engines.KeepValue(1);
+  engines.Valuate(AIEngine.IsArticulated);
+  engines.KeepValue(0);
   for (local e = engines.Begin(); !engines.IsEnd(); e = engines.Next()) {
-    if (!AIEngine.IsBuildable(e)) continue;
     if (!AIEngine.CanRunOnRoad(e, this.roadType)) continue;
     if (!AIEngine.HasPowerOnRoad(e, this.roadType)) continue;
-    if (AIEngine.IsArticulated(e)) continue;
     local capacity = AIEngine.GetCapacity(e);
     if (capacity <= 0) continue;
     usable.append({

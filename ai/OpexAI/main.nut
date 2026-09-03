@@ -172,10 +172,9 @@ function OpexCashReserve()
     if (!RESERVE_MAINT_CAP) return CASH_RESERVE_STATIC;
     local totalRunning = 0;
     local vehicles = AIVehicleList();
+    vehicles.Valuate(AIVehicle.GetRunningCost);
     for (local v = vehicles.Begin(); !vehicles.IsEnd(); v = vehicles.Next()) {
-      if (AIVehicle.IsValidVehicle(v)) {
-        totalRunning += AIVehicle.GetRunningCost(v);
-      }
+      totalRunning += vehicles.GetValue(v);
     }
     local maintCap = totalRunning / 12;
     if (maintCap < CASH_RESERVE_STATIC) return maintCap;
@@ -183,10 +182,9 @@ function OpexCashReserve()
   }
   local totalRunning = 0;
   local vehicles = AIVehicleList();
+  vehicles.Valuate(AIVehicle.GetRunningCost);
   for (local v = vehicles.Begin(); !vehicles.IsEnd(); v = vehicles.Next()) {
-    if (AIVehicle.IsValidVehicle(v)) {
-      totalRunning += AIVehicle.GetRunningCost(v);
-    }
+    totalRunning += vehicles.GetValue(v);
   }
   local reserve;
   local quarterlyBuffer = totalRunning / 4;
@@ -202,6 +200,11 @@ function OpexCashReserve()
   }
   return reserve;
 }
+
+/* Plafond absolu du pathfinder. Initialisation de repli seulement : Start() le remplace UNE fois
+ * par pathfinder_hard_cap_k. Plafonné à 10 000 (docs/taches.md A3, §0 undecies ter) pour
+ * éliminer le gel de l'IA pendant des mois sur les recherches chères. */
+HARD_ITERATION_CAP <- 10000;
 
 require("budget.nut");
 require("catalog.nut");
@@ -271,11 +274,6 @@ ROAD_MAX_ATTEMPTS_PER_YEAR <- 60;
  * n'est qu'un repli : Start() la remplace par le reglage. Tout le raisonnement, la mesure qui
  * condamne l'ancienne valeur et le verdict sont dans info.nut. */
 LOAN_REPAY_FLOOR <- 300000;
-
-/* Plafond absolu du pathfinder. Initialisation de repli seulement : Start() le remplace UNE fois
- * par pathfinder_hard_cap_k. Plafonné à 10 000 (docs/taches.md A3, §0 undecies ter) pour
- * éliminer le gel de l'IA pendant des mois sur les recherches chères. */
-HARD_ITERATION_CAP <- 10000;
 
 /* Recherche de chemin ferroviaire reprenable d'un tour de file a l'autre (docs/taches.md A4).
  * Repli FAUX : le defaut conserve la boucle bloquante mesuree (7 mois sans action, graine 100,
@@ -1029,13 +1027,9 @@ function OpexAI::_tryBuildAir(year)
 function OpexCountTownStations(townId)
 {
   local stations = AIStationList(AIStation.STATION_ANY);
-  local count = 0;
-  for (local st = stations.Begin(); !stations.IsEnd(); st = stations.Next()) {
-    if (AIStation.GetNearestTown(st) == townId) {
-      count++;
-    }
-  }
-  return count;
+  stations.Valuate(AIStation.GetNearestTown);
+  stations.KeepValue(townId);
+  return stations.Count();
 }
 
 /* Liste des villes desservies par au moins une liaison rail, air ou route de notre compagnie. */

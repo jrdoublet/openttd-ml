@@ -5006,7 +5006,7 @@ Il n'y a pas d'A\* fait maison. Seule la fonction de coût est à nous.
 | C14 | 🔶 **Desserrer le GAIN de la boucle de croissance aérienne** — AAAHogEx achète `(attente − 50) / capacité` appareils, jusqu'à 4 par passage ; nous exigeons une **pleine** capacité en attente et n'ajoutons **qu'un** avion. Le mécanisme est le même, le réglage ne l'est pas | tampon 50 contre 1 pleine capacité | §0 novemvicies point 6 |
 | C15 | 🔶 **Relever la CADENCE de `_resizeAirFleets`** — une croissance par ligne et par an (`lastAirFleetYear`, refus `Y`) contre un passage d'entretien chez eux. Deux réglages séparés de C14, à ne pas grouper | 1/an contre n/cycle | §0 novemvicies point 6 |
 | C21 | **`expectedOpcodes` ignore `HARD_ITERATION_CAP`** : `expectedOps = candidate.iterations × PROJECT_RAIL_OPS_PER_ITERATION` (`projects.nut:122`) utilise un nombre d'itérations prédit sans borner à `HARD_ITERATION_CAP` (10 000) — ✅ Fait (`projects.nut` borne désormais à `HARD_ITERATION_CAP`) | tension opcode 1,2-1,8 mesurée au lieu de ~0,28 | §0 duotrigesies, A3 |
-| C19 | 🔶 **Convertir les boucles `Begin()/Next()` chaudes en pipeline `Valuate` + `Keep*`** — surface réelle mesurée : **17 boucles manuelles** (catalogue 10, `main` 5) contre **3 seuls appels à `Valuate`** dans tout le projet. ⚠️ **Pas gratuit** : la source facture `Squirrel::DecreaseOps(vm, 5)` **par élément** (`script_list.cpp:910`) plus le valuateur — c'est un facteur, pas une exonération. À chiffrer sur le rafraîchissement du catalogue, mesuré à 21 492 opcodes | 5 opcodes/élément contre le corps entier d'une boucle Squirrel | `docs/cible.md` §8.3 |
+| C19 | **Convertir les boucles `Begin()/Next()` chaudes en pipeline `Valuate` + `Keep*`** — ✅ Fait (`catalog.nut`, `main.nut`, `tension.nut` convertis aux pipelines natifs `Valuate`/`Keep*`) | 5 opcodes/élément contre le corps entier d'une boucle Squirrel | `docs/cible.md` §8.3 |
 | C20 | 🔴 **Échéance PAR MICRO-ÉTAPE, jamais globale** — prérequis de toute exécution incrémentale. `safetyDeadline` est aujourd'hui une échéance en ticks posée **une fois** (`main.nut:2847`) ; c'est elle qui a fait rejeter A4 **deux fois** (−23,1 % puis −13,3 % et −27,5 % de gares) : en mode reprenable la fenêtre est partagée et la recherche meurt avant d'aboutir | ampute au lieu de redistribuer | §0 undecies sexies, `docs/cible.md` §2.1 |
 | C18 | 🔶 **Financement / prospection d'industrie** (`AIIndustryType.BuildIndustry` / `ProspectIndustry`, soumis à `economy.fund_buildings`) — créer un **débouché** là où il n'y en a pas, pour une source déjà desservie mais sous-exploitée faute d'accepteur proche. Plus spéculatif que C17 : à ne prendre qu'après lui | AAAHogEx : **0 occurrence**, comme pour les subventions | `docs/mecanique_jeu.md` §14 et §10 |
 | C17 | 🔶 **Sonde subventions, en lecture seule** — combien d'offres par partie, combien portent sur une paire déjà dans notre vivier, combien expirent sans preneur, et quel multiplicateur la partie applique (`AIGameSettings`, pas une constante). Zéro construction. ➡️ **Reformulé le 2026-09-03 après lecture du source** : ne PAS scruter `AISubsidyList` en boucle — `AIEventSubsidyOffer` prévient à la publication, et `SubsidyAwarded` / `Expired` ferment le suivi. Une opportunité datée se **signale**, elle ne se sonde pas | AAAHogEx : **0 occurrence** d'`AISubsidy` sur 37 531 lignes ; AdmiralAI s'en sert | `docs/mecanique_jeu.md` §14, `docs/cible.md` §8 |
@@ -6061,3 +6061,62 @@ ces traces. La donnée est déjà produite ; il n'y a qu'à la lire.
 3. Si c'est bien l'inaction : **A7 (événements) et C15 (cadence)** deviennent les items de tête,
    non plus comme « offre d'une ressource rare » mais comme **fréquence de décision** — ce qui est
    un tout autre mécanisme, et le seul que la mesure désigne encore.
+
+---
+
+## 0 quattuortrigesies. ⚪ C19 VALIDÉ : sans régression, mais SANS GAIN — et le vrai budget d'opcodes est enfin chiffré (2026-09-03)
+
+Validation appariée `avant`/`après` sur le même arbre, 3 graines × 3 ans, l'arm `avant` étant une
+copie de `ai/OpexAI` à `HEAD` (`sweeps`-hors-dépôt, supprimée après mesure).
+
+### 1. ✅ Aucune régression : 3 graines sur 3 **bit-identiques**
+
+| graine | valeur avant | valeur après | véhicules | gares |
+|---|---:|---:|---:|---:|
+| 42 | 617 922 | 617 922 | 59 → 59 | 17 → 17 |
+| 999 | 720 386 | 720 386 | 49 → 49 | 10 → 10 |
+| 7 | 2 742 574 | 2 742 574 | 137 → 137 | 32 → 32 |
+
+⚠️ **Le risque d'ordre existait pourtant, et il n'a pas été levé — il n'a pas été rencontré.** Le
+tri par défaut d'une `AIList` est **`SORT_BY_VALUE` DESCENDANT** (`script_list.cpp:397-403`), donc
+`Valuate` **change l'ordre d'itération**. L'idiome « le dernier gagne » de `_refreshRail`
+(`chosen = t` sans comparaison) y est sensible par construction. À 3 ans depuis 1970 il n'y a
+qu'un ou deux types de rail disponibles, donc l'ambiguïté ne se présente jamais. ➡️ **Durcir
+quand même** : `if (t > chosen) chosen = t`, ou `KeepTop(1)`. Une ligne, et le résultat cesse de
+dépendre du tri.
+
+### 2. ⚪ Et aucun gain : **toutes** les catégories sont identiques au millier d'opcodes près
+
+`cat_rail` 2 577k → 2 577k, `cat_towns` 188k → 188k, `cat_road` 37k → 37k… sur les trois graines.
+
+C'était prévisible une fois le bon modèle de coût en tête : `Valuate` facture **5 opcodes par
+élément** plus l'appel du valuateur (`script_list.cpp:910`), c'est-à-dire à peu près ce que
+coûtait le `if` qu'il remplace. Sur des listes de **4 types de rail** et de quelques dizaines de
+moteurs, le gain est nul par construction. **Le pipeline `AIList` n'est pas un accélérateur
+magique : il paie quand la liste est GRANDE et que le corps de boucle est CHER.**
+
+### 3. 🔑 Le vrai budget d'opcodes, mesuré pour la première fois
+
+C'est le sous-produit qui vaut la manœuvre. Par catégorie, sur 3 ans (milliers d'opcodes,
+graines 42 / 999 / 7) :
+
+| catégorie | 42 | 999 | 7 |
+|---|---:|---:|---:|
+| **`project_air`** | **40 777** | 39 169 | 31 721 |
+| **`build_air_plans`** | 36 542 | 39 962 | **41 622** |
+| **`cand_pax`** | 21 827 | **29 512** | 27 199 |
+| `build_search` (rail) | 13 771 | — | — |
+| `cand_freight` | 5 051 | 8 934 | 7 078 |
+| `cand_road` | 2 788 | 3 424 | 4 607 |
+| `cat_rail` | 2 577 | 3 972 | 3 089 |
+| `project_water` | 1 787 | 2 148 | 1 818 |
+| tout le reste (`cat_*`, `build_*`) | < 500 chacun | | |
+
+➡️ **Trois catégories concentrent l'essentiel : la planification aérienne (`project_air` +
+`build_air_plans`, ~75 M à elles deux) et la génération de candidats passagers (~25 M).** Le
+catalogue, cible initiale de C19, pèse **moins de 4 M** — moins de 5 % du total. C19 a été appliqué
+au mauvais endroit, ce que personne ne pouvait savoir avant d'avoir ce tableau.
+
+⚠️ Rappel de §0 tertrigesies : **l'opcode ne mord plus** une fois `expectedOpcodes` corrigé. Ce
+tableau dit où part le budget, **pas** qu'il manque. À utiliser pour rendre la planification
+aérienne moins chère si on y touche, pas comme une urgence.

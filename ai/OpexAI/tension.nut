@@ -79,9 +79,9 @@ function OpexTensionFleetScan()
 {
   local scan = { rail = 0, road = 0, air = 0, water = 0, runningAnnual = 0 };
   local vehicles = AIVehicleList();
+  vehicles.Valuate(AIVehicle.GetRunningCost);
   for (local v = vehicles.Begin(); !vehicles.IsEnd(); v = vehicles.Next()) {
-    if (!AIVehicle.IsValidVehicle(v)) continue;
-    scan.runningAnnual += AIVehicle.GetRunningCost(v);
+    scan.runningAnnual += vehicles.GetValue(v);
     local type = AIVehicle.GetVehicleType(v);
     if (type == AIVehicle.VT_RAIL) scan.rail++;
     else if (type == AIVehicle.VT_ROAD) scan.road++;
