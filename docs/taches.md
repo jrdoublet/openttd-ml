@@ -4971,6 +4971,8 @@ qui n'avait pas encore sa ligne. Journal de la journée : `docs/journal_2026-09-
 
 | **A6** | 🔑 **Vecteur de tension (loi de Liebig) — le dénominateur composé, sans constantes** (§3 terdecies) | La forme qu'A1 doit prendre : on ne compare plus à un seuil, on compare des ressources entre elles. **Premier pas purement instrumental** : journaliser le vecteur, ne changer aucune décision, et répondre à « la contrainte dominante varie-t-elle au cours d'une partie ? ». Si c'est l'argent 100 % du temps, il n'y a rien à coder. ➡️ **Absorbe B2 et B4**, qui étaient des automates à états |
 
+| **A7** | 🟢 **Architecture par ÉVÉNEMENTS au lieu du sondage périodique** (`AIEventController`) — vérifié dans la source 15.3 : `AIEventVehicleLost`, `VehicleUnprofitable`, `IndustryClose`, `TownFounded` existent, **plus quatre événements de subvention** (`SubsidyOffer`, `OfferExpired`, `Awarded`, `Expired`), `script_event_types.hpp` | Attaque **directement le goulot mesuré** : 61,2 % des transitions mensuelles sans construction avec ≥ 300 k£ en caisse. Un événement remplace un rescan complet — c'est du débit de contrôleur rendu gratuitement. `docs/cible.md` §8 |
+
 ⚠️ **A2 n'est PAS « remplacer notre A\* par `Graph.AyStar` »** — cette formulation, qui circule
 encore, est sans objet : `main.nut:28` importe déjà `Pathfinder.Rail`, bâti sur `Graph.AyStar`.
 Il n'y a pas d'A\* fait maison. Seule la fonction de coût est à nous.
@@ -5003,8 +5005,10 @@ Il n'y a pas d'A\* fait maison. Seule la fonction de coût est à nous.
 | C12 | **La division entière écrase le rail dans `opcodeScore`** : médianes mesurées air 1037, route 62, **rail 0** | éliminé par division flottante continue | ✅ Fait (§0 tervicies) |
 | C14 | 🔶 **Desserrer le GAIN de la boucle de croissance aérienne** — AAAHogEx achète `(attente − 50) / capacité` appareils, jusqu'à 4 par passage ; nous exigeons une **pleine** capacité en attente et n'ajoutons **qu'un** avion. Le mécanisme est le même, le réglage ne l'est pas | tampon 50 contre 1 pleine capacité | §0 novemvicies point 6 |
 | C15 | 🔶 **Relever la CADENCE de `_resizeAirFleets`** — une croissance par ligne et par an (`lastAirFleetYear`, refus `Y`) contre un passage d'entretien chez eux. Deux réglages séparés de C14, à ne pas grouper | 1/an contre n/cycle | §0 novemvicies point 6 |
+| C19 | 🔶 **Convertir les boucles `Begin()/Next()` chaudes en pipeline `Valuate` + `Keep*`** — surface réelle mesurée : **17 boucles manuelles** (catalogue 10, `main` 5) contre **3 seuls appels à `Valuate`** dans tout le projet. ⚠️ **Pas gratuit** : la source facture `Squirrel::DecreaseOps(vm, 5)` **par élément** (`script_list.cpp:910`) plus le valuateur — c'est un facteur, pas une exonération. À chiffrer sur le rafraîchissement du catalogue, mesuré à 21 492 opcodes | 5 opcodes/élément contre le corps entier d'une boucle Squirrel | `docs/cible.md` §8.3 |
+| C20 | 🔴 **Échéance PAR MICRO-ÉTAPE, jamais globale** — prérequis de toute exécution incrémentale. `safetyDeadline` est aujourd'hui une échéance en ticks posée **une fois** (`main.nut:2847`) ; c'est elle qui a fait rejeter A4 **deux fois** (−23,1 % puis −13,3 % et −27,5 % de gares) : en mode reprenable la fenêtre est partagée et la recherche meurt avant d'aboutir | ampute au lieu de redistribuer | §0 undecies sexies, `docs/cible.md` §2.1 |
 | C18 | 🔶 **Financement / prospection d'industrie** (`AIIndustryType.BuildIndustry` / `ProspectIndustry`, soumis à `economy.fund_buildings`) — créer un **débouché** là où il n'y en a pas, pour une source déjà desservie mais sous-exploitée faute d'accepteur proche. Plus spéculatif que C17 : à ne prendre qu'après lui | AAAHogEx : **0 occurrence**, comme pour les subventions | `docs/mecanique_jeu.md` §14 et §10 |
-| C17 | 🔶 **Sonde subventions, en lecture seule** — combien d'offres par partie, combien portent sur une paire déjà dans notre vivier, combien expirent sans preneur, et quel multiplicateur la partie applique (`AIGameSettings`, pas une constante). Zéro construction | AAAHogEx : **0 occurrence** d'`AISubsidy` sur 37 531 lignes ; AdmiralAI s'en sert | `docs/mecanique_jeu.md` §14 |
+| C17 | 🔶 **Sonde subventions, en lecture seule** — combien d'offres par partie, combien portent sur une paire déjà dans notre vivier, combien expirent sans preneur, et quel multiplicateur la partie applique (`AIGameSettings`, pas une constante). Zéro construction. ➡️ **Reformulé le 2026-09-03 après lecture du source** : ne PAS scruter `AISubsidyList` en boucle — `AIEventSubsidyOffer` prévient à la publication, et `SubsidyAwarded` / `Expired` ferment le suivi. Une opportunité datée se **signale**, elle ne se sonde pas | AAAHogEx : **0 occurrence** d'`AISubsidy` sur 37 531 lignes ; AdmiralAI s'en sert | `docs/mecanique_jeu.md` §14, `docs/cible.md` §8 |
 | C16 | 🔶 **Si le plafond aérien revient, le dériver de la CADENCE et non de la demande** — `jours d'aller-retour / créneau d'absorption`, divisé par le nombre de lignes qui partagent la piste (`EstimateMaxVehicles`, `route.nut:2374-2380`). L'ingrédient manquant est le `stationDateSpan` par type d'aéroport, jamais lu | remplace un plafond rejeté deux fois | §0 novemvicies points 1-2 |
 | C13 | **Le sac à dos (knapsack) n'utilise pas le ROI bonifié fret de C8** — `OpexKnapsackComputeBound`/`OpexKnapsackSearch` (`projects.nut:283-286`, `:323`) additionnent encore `p.revenueAnnual` brut comme objectif, pas le ROI bonifié (monopole +40 %, chaîne +35 %). Le bonus C8 pèse donc sur le tri/seuil de sélection en amont, pas sur l'optimum retenu quand plusieurs candidats se disputent le même capital | trouvé en revue croisée agy/codex/grok du 2026-09-02, en vérifiant C8 | §C8, `projects.nut` |
 
@@ -5027,6 +5031,7 @@ Il n'y a pas d'A\* fait maison. Seule la fonction de coût est à nous.
 | E6 | `catalog.nut:702-720` : `railCoverage` lu avec un an de retard — ✅ Fait (`_refreshRail` appelé avant `_refreshTowns`) | §0 novemdecies |
 | E7 | `OpexJoinPathIsDedicated` armé seulement si `join != null` — un A\* peut traverser du rail existant | §0 vicies |
 | E8 | 🔶 **NETTOYAGE DE CODE — débloqué le 2026-09-03 par D1** : sortir les trois mécanismes prouvés morts ou infirmés (`tree_planting` + les sept sites préventifs qu'il garde, `rail_refleet`, `air_starter`) — code gardé, constante, relecture dans `Start()`, entrée `info.nut`, liste blanche de `bench_v2.py`. ⚠️ Retirer du code **mort** ne décale pas les trajectoires (20/20 graines bit-identiques après 766 lignes supprimées le 2026-09-02) ; retirer une **lecture de réglage** en décale → banc de non-régression obligatoire, et un seul mécanisme par commit | §8, §0 nonies, D1 |
+| E9 | 🔶 **`Save()` / `Load()` : OpexAI n'en a AUCUN** — vérifié, zéro occurrence dans `ai/OpexAI/`. Un rechargement de partie perd donc tout l'état (`_lines`, mémoire d'abandon, compteurs) et l'IA repart à zéro sur un réseau existant. Sans objet au banc, réel en partie humaine. Forme correcte : **états plats** (tableaux d'IDs, énumérations d'étapes), jamais d'objets ni de curseurs | `docs/cible.md` §8.3 |
 
 ### Réglages laissés comme instruments, défaut 0, mesurés et non adoptés
 
@@ -5148,6 +5153,10 @@ passage ne les re-propose pas :
 | Mettre le temps de voyage/chargement au dénominateur (`transit_cost`) | ❌ nul à 20 graines × 10 ans, tous les $\|t\| < 1{,}5$ — §3 quater / D2 |
 | Plafonner la flotte aérienne par la demande de la ville (`air_demand_cap`) | ❌ mord fort (24/75/43 refus `Q`) mais rabote : −31 % / +7 % / nul — §3 undecies bis |
 | Dimensionner le plan aérien sur la production réelle (`air_demand_plan`) | ❌ **−51,5 % de `profit_year`** ($t = -3{,}96$, 5/20, signes $p = 0{,}041$) — §0 trigesies |
+| Pathfinding hiérarchique (HPA\*, découpage macro/micro) | ⛔ **répond à un problème que nous n'avons pas** : les trois voies du pathfinder sont fermées (relever ❌, redistribuer ❌ −23 %, abaisser 🟡 nul) et le segmenté A5 donne +12,9 % de gares pour une valeur **neutre** |
+| « Verrouiller un corridor » en achetant du terrain (`BuyLandArea`) | ⛔ **impossible** : aucune méthode d'achat de terrain dans l'API 15.3 (ni `AITile`, ni `AICompany`). Réserver un corridor exige d'y poser du rail, au prix fort — `docs/cible.md` §8 |
+| Interroger le `LinkGraph` / optimiser les correspondances CargoDist | ⛔ **doublement sans objet** : pas de `script_linkgraph.hpp` dans l'API, **et** CargoDist est désactivé par défaut (`linkgraph.distribution_pax = DT_MANUAL`), notre config ne l'active pas |
+| `AIController.GetOpsLimit()` / `GetOps()` / `Break()` comme rendu de main | ⛔ **n'existent pas** : seuls `GetOpsTillSuspend()` et `Sleep()`. `Break` est un point d'arrêt de débogueur (`script_controller.hpp:175-184`) |
 
 **Et le dénominateur adaptatif d'AAAHogEx n'est PAS la pièce à copier en premier.** Son
 `CalculateProfitModel()` (`main.nut:781-806`) ne quitte le régime `roiBase` que si la compagnie est
@@ -5684,6 +5693,36 @@ graines sur 20 en nuls exacts** : le mécanisme ne se déclenchait jamais) et au
 (**0 refus sur 32**). **Vérifier que le mécanisme mord avant de l'armer** est devenu la règle de
 ce projet, et elle s'applique ici plus qu'ailleurs.
 
+### A6 — instrumentation du vecteur de tension
+
+La sonde `tension_probe` (défaut `0`) ne participe à aucune décision. Quand elle vaut `1`, elle
+calcule `OpexTensionVector` dans l'unique parcours qui publie déjà `PORTFOLIO_RANK`, puis impute
+son coût au `OpexBudget` sous la catégorie `tension`. Chaque projet journalisé produit une seule
+ligne `TENSION` avec `cost`, `available`, `commitments`, `flow`, `tau` et `tension` pour les quatre
+ressources, suivis de la dominante et de l'écart relatif entre les deux premières tensions. La
+valeur entière `-1` représente une tension infinie lorsque le dénominateur est nul ou négatif.
+
+| ressource | coût de l'action | disponible | engagements | flux |
+|---|---|---|---|---|
+| argent | `project.capital` | `GetBankBalance` + `GetMaxLoanAmount` − `GetLoanAmount` | dépenses récurrentes du dernier trimestre clos, mensualisées | revenu moins dépenses du même trimestre, mensualisé et signé |
+| slots de véhicules | flotte projetée (`trains`, `planes` ou le navire du plan) | plafond `vehicle.max_*` lu par `AIGameSettings` moins la flotte primaire actuelle du mode | `0` | `0` |
+| opcodes | `project.expectedOpcodes`, qui réutilise notamment `PROJECT_RAIL_OPS_PER_ITERATION` pour le rail | `0`, car le budget est un débit | `0` | `OPS_PER_TICK` multiplié par les ticks mensuels mesurés au runtime |
+| foncier | `1` site | nombre de candidats multimodaux retenus dans le vivier après les rejets de séparation | `0` | `0` |
+
+`tau` est toujours l'horizon propre à l'action, en mois :
+`12 × project.capital / project.profitAnnual`. Le produit `flow × tau` conserve donc le signe du
+flux. Pour les opcodes,
+les ticks par jour sont observés entre deux dates de jeu au lieu d'être fixés dans le code ; avant
+la première observation, le flux vaut `0` et la sentinelle rend explicitement ce manque de mesure.
+`OpexCashReserve()` n'intervient jamais dans ce calcul : la sonde mesure la ressource, pas le budget
+du sac à dos.
+
+La mesure humaine attendue reste trois graines sur dix ans avec `tension_probe=1`. Il faut tracer,
+mois par mois, la ressource dominante et l'écart entre la première et la deuxième tension. La
+sonde doit montrer à la fois si la dominante quitte réellement l'argent et si les deux premières
+restent assez séparées pour qu'un futur `argmax` ne soit pas une oscillation de bruit. Si l'argent
+domine 100 % du temps, aucune refonte du classement ne sera armée.
+
 ### Ce que ça absorbe
 
 Cette proposition **remplace** B2 (file de tâches dynamique à priorités par phase) et B4 (doctrine
@@ -5692,3 +5731,28 @@ l'utilisateur écarte explicitement. Elle donne aussi sa forme correcte à §3 d
 **personnalité** n'est plus un jeu de constantes, mais un **a priori sur la pondération des
 tensions** — ce qui est le seul objet qui survit à l'objection « une personnalité est fixe, le jeu
 ne l'est pas ».
+
+---
+
+## 9 bis. 💡 Idées conditionnées à un changement de topologie (2026-09-03)
+
+Issues du second lot de conseils, vérifiées contre la source 15.3. Elles sont **justes**, mais
+elles supposent un réseau que nous n'avons pas encore : aujourd'hui nos lignes rail sont
+point-à-point, à voie unique, avec 1 à 2 convois.
+
+- 🔶 **Gares traversantes (Ro-Ro) plutôt que terminus en cul-de-sac.** Supprime le croisement à
+  l'entrée de gare, donc double le débit d'un axe sans toucher aux signaux. ⏳ N'a de sens qu'une
+  fois qu'un axe porte assez de convois pour que le croisement morde — ce qui n'arrive pas à
+  1-2 trains. À rouvrir avec la seconde voie dédiée (`docs/mecanique_jeu.md` §12).
+- 🔶 **Signalisation PBS exclusive** (`AIRail.SIGNALTYPE_PBS` — ⚠️ dans `AIRail`, il n'existe pas
+  de classe `AISignal`). Deux convois peuvent franchir une même intersection si leurs
+  réservations ne se croisent pas. ⚠️ §12 de `mecanique_jeu.md` dit déjà l'essentiel : PBS sur les
+  approches **simples** d'une jointure, **jamais** sur `TracksOverlap`, et `trains > 1` exige une
+  **seconde voie dédiée** — pas des PBS sur voie unique. Le « divise par trois les blocages » du
+  conseil est **invérifiable**, à ne pas citer comme un fait.
+- 🔶 **Rapport poids/puissance selon la déclivité du tracé.** Notre dimensionnement de traction
+  (quai, wagons, loco) est calculé, mais il **ignore la pente** : un convoi correctement dimensionné
+  en plaine peut tomber à vitesse ridicule en côte et saturer son canton. Le tracé est connu après
+  le pathfinder, donc la déclivité maximale est calculable (`AITile.GetMaxHeight` /
+  `GetCornerHeight` le long du chemin). ⚠️ À pondérer : le banc de traction a donné de la
+  **robustesse**, pas de la performance, et le rail coûte déjà ×1,70 son prix modèle.
