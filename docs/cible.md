@@ -284,3 +284,83 @@ score(a) = profit_attendu(a) / denominateur(a)
 **mord**. `portfolio_max_batch` a été rejeté avec 11 graines sur 20 en nuls exacts, et le plafond
 `maxRoutes` mesuré à 0 refus sur 32. Un beau schéma qui ne se déclenche jamais coûte des opcodes
 et ne rend rien.
+
+---
+
+## 8. Vérification contre la source OpenTTD 15.3 (2026-09-03)
+
+Second lot de conseils, **vérifié dans le source du moteur** (`github.com/OpenTTD/OpenTTD`, tag
+`15.3`), et non dans d'autres IA. Fichiers lus : `src/script/api/*.hpp`, `script_list.cpp`,
+`src/table/settings/*.ini`.
+
+### 8.1 Verdicts, un par affirmation
+
+| affirmation | verdict | source |
+|---|---|---|
+| `AIList.Valuate`, `KeepTop`, `KeepAboveValue`, `KeepBottom`, `KeepList` | ✅ existent | `script_list.hpp:318,343,349` |
+| `AIList.Filter()` | ❌ **n'existe pas** — la liste complète est `Clear HasItem Begin Next IsEmpty IsEnd Count GetValue SetValue Sort AddList SwapList Remove* Keep* Valuate` | `script_list.hpp` |
+| `AIList.KeepBelowList()` | ❌ **n'existe pas** (il y a `KeepList` et `KeepBelowValue`) | idem |
+| 🔴 « `Valuate` est exécuté 100 % en C++, coût CPU quasi nul » | ❌ **FAUX** — la boucle de `Valuate` appelle `Squirrel::DecreaseOps(vm, 5)` **par élément**, plus le coût du valuateur lui-même | `script_list.cpp:910` |
+| `AIController.GetOpsLimit()` / `GetOps()` | ❌ **n'existent pas** : la classe expose `GetTick`, `GetOpsTillSuspend`, `GetSetting`, `GetVersion`, `SetCommandDelay`, `Sleep`, `Break`, `Print`, `Import` | `script_controller.hpp:111-204` |
+| `AIController.Break(1)` comme `yield` | ❌ signature `Break(const std::string &message)`, et la doc dit **« when script developer tools are active »** — c'est un point d'arrêt de débogueur | `script_controller.hpp:175-184` |
+| `AIController.Sleep(ticks)` | ✅ c'est le vrai rendu de main | `script_controller.hpp:172` |
+| `AIEventVehicleLost`, `AIEventVehicleUnprofitable`, `AIEventIndustryClose`, `AIEventTownFounded` | ✅ **tous les quatre existent** | `script_event_types.hpp:573,639,705,879` |
+| `AIEventTownStyleAnnounce` | ❌ **n'existe pas** dans les 34 classes d'événements de 15.3 | `script_event_types.hpp` |
+| 🟢 **non cité, et directement utile** : `AIEventSubsidyOffer`, `SubsidyOfferExpired`, `SubsidyAwarded`, `SubsidyExpired` | ✅ existent | idem |
+| `AISignal.SIGNALTYPE_PBS` | ❌ **il n'y a pas de classe `AISignal`** ; c'est `AIRail.SIGNALTYPE_PBS` | `script_rail.hpp:74`, liste des classes de l'API |
+| `AICompany.BuyLandArea` (« acheter du terrain pour verrouiller un corridor ») | ❌ **n'existe pas** — aucune méthode d'achat de terrain dans `AITile` (`IsBuildable … PlantTree, DemolishTile, LevelTiles, GetBuildCost`) ni dans `AICompany` | `script_tile.hpp`, `script_company.hpp` |
+| « interroger la demande via le graphe interne (LinkGraph) » | ❌ **aucun `script_linkgraph.hpp`** dans l'API. Le plus proche existant est `AICargoMonitor` (cargo ramassé/livré par compagnie) | liste des classes de l'API 15.3 |
+| `AITown.TOWN_RATING_MEDIOCRE` | ✅ existe — enum `NONE, APPALLING, VERY_POOR, POOR, MEDIOCRE, GOOD, VERY_GOOD, EXCELLENT, OUTSTANDING`, `INVALID = -1`. **Confirme notre mesure : c'est un enum, pas un score continu** | `script_town.hpp:84-93` |
+| `AIOrder.OF_TRANSFER`, `OF_NO_LOAD` | ✅ existent | `script_order.hpp:56,57` |
+| ⚠️ **`OF_TRANSFER` et `OF_UNLOAD` sont mutuellement exclusifs** | ✅ confirmé par la source : « Cannot be set when `OF_TRANSFER` or `OF_NO_UNLOAD` is set ». Déjà corrigé dans `builder_road.nut:742-748` le 2026-09-02 ; **la ligne de `taches.md` qui écrit `OF_TRANSFER \| OF_UNLOAD` est périmée** | `script_order.hpp:53-56` |
+| « une case de gare = deux caisses » | 🟡 vrai pour le jeu de base, mais la longueur est une **propriété par engin** (`AIVehicle.GetLength`), qu'un NewGRF peut changer | — |
+| « PBS divise par trois les blocages » | ❓ **invérifiable**, aucune source ; à traiter comme une intuition |
+| `AIMain.Save()` / `Load()` | 🟡 le mécanisme existe bien (méthodes `Save`/`Load` sur la classe principale de l'IA), mais **il n'y a pas de classe `AIMain`** — c'est la classe déclarée par l'IA elle-même |
+
+### 8.2 🔑 Deux vérifications qui changent une conclusion
+
+**1. CargoDist est DÉSACTIVÉ par défaut, et notre config ne l'active pas.**
+
+```ini
+linkgraph.distribution_pax       def = DT_MANUAL
+linkgraph.distribution_mail      def = DT_MANUAL
+linkgraph.distribution_armoured  def = DT_MANUAL
+```
+(`src/table/settings/linkgraph_settings.ini`)
+
+➡️ **Toute la section 4 du conseil est sans objet chez nous.** Les passagers n'ont pas de
+destination, il n'y a pas d'accumulation de correspondances en gare B, et le « piège classique »
+décrit ne peut pas se produire dans notre configuration gelée. À rouvrir **seulement** si on
+décide un jour d'activer CargoDist — et ce serait alors un changement de règle du jeu, pas une
+optimisation.
+
+**2. `OPS_PER_TICK = 10000` est confirmé au niveau du moteur.**
+
+```ini
+script.script_max_opcode_till_suspend   def = 10000   max = 250000
+```
+(`src/table/settings/script_settings.ini`)
+
+➡️ Confirme la constante de `budget.nut`, qui n'était jusqu'ici vérifiée que « dans le binaire ».
+
+### 8.3 Ce qu'il faut retenir des conseils, une fois corrigés
+
+- ✅ **Le pipeline `AIList` reste le bon réflexe**, mais pour la bonne raison : il ne coûte pas
+  « zéro », il coûte **5 opcodes par élément** plus le valuateur, là où une boucle `foreach`
+  Squirrel paie l'intégralité de son corps à chaque tour. C'est un facteur, pas une exonération.
+  ⚠️ Corollaire direct pour A6 : un calcul de tension écrit en `Valuate` sur 500 villes coûte au
+  minimum 2 500 opcodes — soit un quart d'un tick entier. **À mesurer**, pas à supposer gratuit.
+- 🟢 **L'architecture par événements est le vrai gain**, et elle est mieux fournie que le conseil
+  ne le dit : les quatre événements cités existent, **plus les quatre événements de subvention**.
+  ➡️ **C17 n'a donc pas besoin de scruter `AISubsidyList` en boucle** : `AIEventSubsidyOffer`
+  prévient à la publication de l'offre. Une opportunité datée est signalée, pas sondée.
+- ⚠️ **Le HPA\* hiérarchique est une bonne idée qui répond à un problème que nous n'avons pas.**
+  Les trois voies du pathfinder sont mesurées et fermées : relever ❌, redistribuer ❌ (−23 %),
+  abaisser 🟡 nul ; et le pathfinder segmenté (A5) donne **+12,9 % de gares pour une valeur
+  neutre**. Le découpage macro/micro serait un quatrième essai sur un goulot qui n'en est pas un.
+- ❌ **Le « verrouillage foncier préemptif » est impossible** : l'API n'expose aucun achat de
+  terrain. La seule façon de réserver un corridor est d'y **poser du rail**, ce qui en paie le
+  coût complet. L'idée tombe.
+- ✅ **La résilience Save/Load par états plats est juste**, et rejoint la leçon d'A4 : ce qui ne
+  se sérialise pas (curseurs, échéances globales, objets complexes) est précisément ce qui nous a
+  déjà coûté deux bancs.
