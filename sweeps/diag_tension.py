@@ -79,13 +79,29 @@ def report(seed, tensions, costs):
         by_year[t["year"]][t.get("dominant", "?")] += 1
 
     gaps = []
+    binding_doms = Counter()
+    # AMPLITUDE de la tension dominante. Sans elle, un argmax sur quatre tensions toutes proches
+    # de zero designe une "contrainte dominante" alors que RIEN ne contraint : la valeur dit
+    # quelle fraction de la ressource l'action consomme, l'identite ne le dit pas.
+    peaks = []
     for t in tensions:
         try:
             gaps.append(float(t.get("gap", "nan")))
         except ValueError:
             pass
+        dom = t.get("dominant")
+        if dom:
+            try:
+                value = float(t.get(dom + "_tension", "nan"))
+            except ValueError:
+                value = float("nan")
+            peaks.append(value)
+            if value == value and value >= 0.5:
+                binding_doms[dom] += 1
     gaps = [g for g in gaps if g == g]
     gaps.sort()
+    peaks = [p for p in peaks if p == p and p >= 0]
+    peaks.sort()
     ops = []
     for c in costs:
         try:
@@ -102,16 +118,55 @@ def report(seed, tensions, costs):
         tight = sum(1 for g in gaps if g < 0.10)
         print(f"  ecart 1re/2e : median {med:.3f} | < 0,10 sur {tight}/{len(gaps)} "
               f"({100 * tight / len(gaps):.0f} %) -> un argmax y basculerait sur du bruit")
+    if peaks:
+        med = peaks[len(peaks) // 2]
+        binding = sum(1 for p in peaks if p >= 0.5)
+        loose = sum(1 for p in peaks if p < 0.10)
+        print(f"  AMPLITUDE de la dominante : mediane {med:.3f} | >= 0,50 (contrainte qui MORD) "
+              f"{binding}/{len(peaks)} ({100 * binding / len(peaks):.0f} %) | "
+              f"< 0,10 (rien ne contraint) {100 * loose / len(peaks):.0f} %")
+    if binding_doms:
+        tot = sum(binding_doms.values())
+        print("  QUAND ca mord (tension >= 0,50), c'est : " + ", ".join(
+            f"{k} {v} ({100 * v / tot:.0f} %)" for k, v in binding_doms.most_common()))
     if ops:
         ops.sort()
         print(f"  cout sonde : median {ops[len(ops) // 2]} opcodes/cycle, max {ops[-1]}")
+    # Les quatre mesures foncieres, par annee : c'est leur TRAJECTOIRE qui dit laquelle decrit
+    # reellement le mur, et non une moyenne globale qui melangerait debut et fin de partie.
+    land = defaultdict(lambda: {"free": [], "served": [], "pairs": [], "sep": [], "pool": []})
+    for c in costs:
+        y = c["year"]
+        for key, field in (("free", "origins_free"), ("served", "origins_served"),
+                           ("pairs", "pairs_total"), ("sep", "separation_rejected")):
+            try:
+                land[y][key].append(int(c.get(field, 0)))
+            except ValueError:
+                pass
+        try:
+            land[y]["pool"].append(sum(int(c.get(f"pool_{m}", 0))
+                                       for m in ("rail", "road", "air", "water")))
+        except ValueError:
+            pass
+
     print("  par annee :")
     for year in sorted(by_year):
         row = by_year[year]
         n = sum(row.values())
-        print(f"    {year} : " + ", ".join(f"{k} {100 * v / n:.0f} %" for k, v in row.most_common()))
+        doms_txt = ", ".join(f"{k} {100 * v / n:.0f} %" for k, v in row.most_common())
+        extra = ""
+        if year in land and land[year]["free"]:
+            def med(key):
+                vals = sorted(land[year][key])
+                return vals[len(vals) // 2] if vals else 0
+            free, served, pairs, sep = med("free"), med("served"), med("pairs"), med("sep")
+            pressure = (100 * sep / pairs) if pairs else 0
+            extra = (f"   | origines libres {free} (servies {served}), "
+                     f"pression separation {pressure:.0f} %, vivier {med('pool')}")
+        print(f"    {year} : {doms_txt}{extra}")
     return {"dominant": dict(doms), "by_year": {y: dict(c) for y, c in by_year.items()},
-            "gaps": gaps, "probe_ops": ops}
+            "gaps": gaps, "peaks": peaks, "binding": dict(binding_doms), "probe_ops": ops,
+            "land": {y: {k: v for k, v in d.items()} for y, d in land.items()}}
 
 
 def main():

@@ -5878,3 +5878,95 @@ jour l'arbitrage tourne à chaque cycle. À reconsidérer si le vecteur passe en
    justifient pas le second, et le premier est bien moins risqué.
 3. La graine 12345 s'arrête de construire en 1972 (19 évaluations contre ~100) — cohérent avec son
    effondrement connu. Ne pas la lire comme les deux autres.
+
+---
+
+## 0 duotrigesies. 🔑 LA TENSION FONCIÈRE NE MORD PAS — et ce qui mord, ce sont les OPCODES (2026-09-03)
+
+Suite directe de §0 untrigesies, qui laissait le foncier dominant à 46 % sur le proxy le plus
+faible. Trois sondes successives, `sweeps/diag_tension.py`, 10 ans.
+
+### 1. Le proxy foncier faussait bien le résultat de tête
+
+Le dénominateur est passé de « taille du vivier du mode » au **stock d'origines libres** —
+`townsUnserved + industriesUnserved`, déjà calculé chaque cycle par le générateur et **jamais lu**
+(`candidates.nut:671`, `:741`). C'est la grandeur du mur de `docs/opexai_plafonnement.md` : chaque
+gare bâtie interdit un disque autour d'elle. Le coût passe de 1 à **2** : une liaison neuve
+consomme une origine à chaque bout.
+
+| dominante | proxy « taille du vivier » | stock d'origines libres |
+|---|---:|---:|
+| foncier | **46 %** | **20 %** |
+| argent | 32 % | **53 %** |
+| opcodes | 22 % | 27 % |
+
+### 2. 🔴 Et le foncier ne se contracte PAS en dix ans
+
+Trajectoire médiane, mesurée :
+
+| | 1970 | 1979 | pression de séparation |
+|---|---:|---:|---:|
+| graine 42 | 87 origines libres | **83** | 1 à 4 % |
+| graine 999 | 99 origines libres | **93** | 0 à 1 % |
+
+**Six origines consommées en dix ans sur une centaine.** Le mur de
+`docs/opexai_plafonnement.md` — 18 des 19 derniers candidats tués — est daté « à partir de 1982 »
+et mesuré sur une partie de **20 ans en mode route** : il est **hors de notre fenêtre**. Le
+foncier est une contrainte réelle, mais pas à cet horizon.
+
+### 3. 🔑 LA TROUVAILLE : l'`argmax` désigne une dominante qui ne contraint rien
+
+En relevant non plus l'identité de la dominante mais son **amplitude** :
+
+| graine | amplitude médiane | ≥ 0,50 (ça mord) | < 0,10 (rien ne contraint) |
+|---|---:|---:|---:|
+| 42 | **0,063** | 12 % | 58 % |
+| 999 | **0,048** | 11 % | 76 % |
+| 12345 (pauvre) | **0,268** | **28 %** | 22 % |
+
+Une tension de 0,05 signifie que l'action consomme **5 %** de la ressource disponible. Dans
+**76 %** des évaluations de la graine 999, la « contrainte dominante » est la moins abondante de
+quatre ressources abondantes. L'identité est un artefact ; seule l'amplitude dit s'il y a
+contrainte. Et la graine **12345, la pauvre**, est la seule où ça mord souvent (28 %) — cohérent.
+
+⚠️ **Ce que l'écart 1re/2e ne pouvait pas voir.** Il vaut 0,6 en médiane, ce qui semblait dire
+« la dominante est nette ». Mais un écart de 0,6 entre **0,05 et 0,02** est relativement large et
+absolument nul. **Deux indicateurs de forme opposée ; c'est l'amplitude qui a raison.**
+
+### 4. 🔴 CONSÉQUENCE : la bascule discrète est la MAUVAISE forme — je m'étais trompé
+
+§0 untrigesies concluait qu'une bascule discrète à la `_IsRich` suffirait, l'écart étant large.
+**L'amplitude renverse cette conclusion** : une bascule changerait de dénominateur sur une
+différence entre deux tensions négligeables, trois fois sur quatre. Elle serait *stable* et
+*vide de sens*.
+
+Le **dénominateur pondéré** `Σ_r tension(r,a) × coût_r(a)` n'a pas ce défaut : quand toutes les
+tensions sont petites, il tend continûment vers un coût pondéré — donc vers un ROI généralisé,
+c'est-à-dire vers le comportement actuel — et il ne se met à mordre que lorsqu'une tension
+devient réellement grande. ➡️ **La forme choisie par l'utilisateur (« la solution élégante »)
+est désormais soutenue par la mesure, et non plus seulement par l'élégance.** C'est ma
+recommandation précédente qui était fausse, faute d'avoir relevé l'amplitude.
+
+### 5. 🔑 Et quand ça mord, c'est l'OPCODE
+
+Parmi les évaluations où la dominante dépasse 0,50 :
+
+| graine | opcodes | argent | foncier |
+|---|---:|---:|---:|
+| 42 | **80 %** | 20 % | 0 |
+| 999 | **70 %** | 30 % | 0 |
+| 12345 | **60 %** | 40 % | 0 |
+
+**Le foncier ne mord jamais. L'opcode mord 70 à 80 % du temps.**
+
+C'est la confirmation, depuis l'intérieur du modèle, du goulot mesuré de l'extérieur : **61,2 %
+des transitions mensuelles sans construction alors qu'il y a ≥ 300 k£ en caisse**. Deux mesures
+indépendantes, la même conclusion.
+
+⚠️ **Et ça ne contredit pas « le pathfinder n'est pas le goulot ».** Les trois voies fermées
+(A3/A4/A5) portaient sur le **budget d'itérations** du pathfinder : lui en donner plus, le
+redistribuer, l'abaisser. Ce qui mord n'est pas le réglage du pathfinder, c'est **l'opcode
+lui-même**. Le levier n'est donc pas d'en donner plus à la recherche, mais d'en **dépenser moins
+par projet** — ce qui désigne C19 (pipelines `Valuate` au lieu de boucles Squirrel) et A7
+(événements au lieu de sondage) comme les deux tâches qui attaquent la contrainte réellement
+active.

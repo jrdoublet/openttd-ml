@@ -81,10 +81,18 @@ function OpexLogPortfolioRankWithTension(projects)
     if (DECISION_LOG) OpexDecide("PORTFOLIO_RANK", "rank=" + i + " mode=" + p.mode + " kind=" + p.kind + " cargo=" + cargoStr + " src=" + p.src + " dst=" + p.dst + " dist=" + p.distance + " roi=" + p.roi + " score=" + p.budgetScore + " cost=" + p.capital + " profit=" + p.profitAnnual);
   }
   foreach (fields in lines) OpexDecide("TENSION", fields);
+  /* Les quatre mesures foncieres cote a cote : le stock d'origines libres (celui qui est
+   * desormais au denominateur), la pression de separation, les paires produites, et l'ancien
+   * proxy de taille de vivier. C'est ce qui permet de comparer les mesures entre elles au lieu
+   * d'en figer une a l'aveugle. */
   OpexDecide("TENSION_COST", "probe_ops=" + spent + " projects=" + lines.len()
              + " fleet_rail=" + ctx.fleet.rail + " fleet_road=" + ctx.fleet.road
              + " fleet_air=" + ctx.fleet.air + " fleet_water=" + ctx.fleet.water
-             + " separation_rejected=" + ctx.separationRejected);
+             + " origins_free=" + ctx.originsFree + " origins_served=" + ctx.originsServed
+             + " pairs_total=" + ctx.pairsTotal + " separation_rejected=" + ctx.separationRejected
+             + " pairs_one_served=" + ctx.pairsOneServed
+             + " pool_rail=" + ctx.pool.rail + " pool_road=" + ctx.pool.road
+             + " pool_air=" + ctx.pool.air + " pool_water=" + ctx.pool.water);
 }
 
 function OpexProjectPairKey(kind, cargo, src, dst)

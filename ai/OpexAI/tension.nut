@@ -134,32 +134,55 @@ function OpexTensionContext(projects)
     if (key != null && AIGameSettings.IsValid(key)) limits[mode] = AIGameSettings.GetValue(key);
   }
 
-  /* Foncier : les candidats survivants du MEME mode que le projet. Sommer les quatre modes
-   * compterait deux fois une paire proposee en rail et en route, et ne dirait rien de l'espace
-   * reellement disponible pour l'action evaluee. */
-  local land = { rail = 0, road = 0, air = 0, water = 0 };
+  /* FONCIER (revise le 2026-09-03). La premiere version divisait par la TAILLE DU VIVIER du mode,
+   * ce qui disait "il reste peu d'idees", pas "il reste peu de place" -- et cette mesure dominait
+   * 46 % des evaluations, donc le resultat de tete reposait sur le proxy le plus faible.
+   *
+   * Le vrai stock etait deja calcule a chaque cycle et jamais lu : le generateur de vivier compte
+   * les origines LIBRES, c'est-a-dire les villes et industries qu'aucune de nos gares ne dessert
+   * deja (OpexOriginServed / ORIGIN_SEPARATION, candidates.nut:671 et :741). C'est exactement le
+   * mur mesure dans docs/opexai_plafonnement.md : chaque gare batie interdit un disque autour
+   * d'elle, et l'IA epuise l'espace admissible bien avant la carte.
+   *
+   * Le stock est une propriete de la CARTE, pas d'un mode : une ville servie par le rail n'est
+   * plus une origine libre pour personne. Les trois autres grandeurs (pression de separation,
+   * paires produites, taille des viviers) sont journalisees a cote pour pouvoir comparer les
+   * mesures entre elles avant d'en figer une. */
+  local originsFree = 0;
+  local originsServed = 0;
+  local pairsTotal = 0;
   local separationRejected = 0;
+  local pairsOneServed = 0;
+  local pool = { rail = 0, road = 0, air = 0, water = 0 };
   if (projects != null) {
-    if (("rail" in projects) && projects.rail != null && ("candidates" in projects.rail)) {
-      land.rail = projects.rail.candidates.len();
-      if (("stats" in projects.rail) && projects.rail.stats != null
-          && ("pairsOriginServed" in projects.rail.stats)) {
-        separationRejected = projects.rail.stats.pairsOriginServed;
+    if (("rail" in projects) && projects.rail != null) {
+      if ("candidates" in projects.rail) pool.rail = projects.rail.candidates.len();
+      if (("stats" in projects.rail) && projects.rail.stats != null) {
+        local st = projects.rail.stats;
+        if ("townsUnserved" in st) originsFree += st.townsUnserved;
+        if ("industriesUnserved" in st) originsFree += st.industriesUnserved;
+        if ("townsServed" in st) originsServed += st.townsServed;
+        if ("industriesServed" in st) originsServed += st.industriesServed;
+        if ("pairsTotal" in st) pairsTotal = st.pairsTotal;
+        if ("pairsOriginServed" in st) separationRejected = st.pairsOriginServed;
+        if ("pairsOneServed" in st) pairsOneServed = st.pairsOneServed;
       }
     }
     if (("road" in projects) && projects.road != null && ("candidates" in projects.road)) {
-      land.road = projects.road.candidates.len();
+      pool.road = projects.road.candidates.len();
     }
-    if (("airPlans" in projects) && projects.airPlans != null) land.air = projects.airPlans.len();
-    if (("waterPlans" in projects) && projects.waterPlans != null) land.water = projects.waterPlans.len();
+    if (("airPlans" in projects) && projects.airPlans != null) pool.air = projects.airPlans.len();
+    if (("waterPlans" in projects) && projects.waterPlans != null) pool.water = projects.waterPlans.len();
   }
 
   return {
     moneyAvailable = AICompany.GetBankBalance(company)
                      + (AICompany.GetMaxLoanAmount() - AICompany.GetLoanAmount()),
     moneyCommitments = commitments, moneyFlow = monthlyNet,
-    fleet = scan, limits = limits, land = land,
-    separationRejected = separationRejected,
+    fleet = scan, limits = limits,
+    originsFree = originsFree, originsServed = originsServed,
+    pairsTotal = pairsTotal, separationRejected = separationRejected,
+    pairsOneServed = pairsOneServed, pool = pool,
     opcodeFlow = OpexTensionOpcodeFlowPerMonth(),
   };
 }
@@ -217,7 +240,6 @@ function OpexTensionVector(project, ctx)
   local mode = OpexTensionModeKey(project.mode);
   local fleet = (mode != null) ? ctx.fleet[mode] : 0;
   local limit = (mode != null) ? ctx.limits[mode] : 0;
-  local landAvailable = (mode != null) ? ctx.land[mode] : 0;
 
   local vector = [
     OpexTensionEntry("argent", project.capital, ctx.moneyAvailable,
@@ -226,7 +248,10 @@ function OpexTensionVector(project, ctx)
                      limit - fleet, 0, 0, tau),
     OpexTensionEntry("opcodes", ("expectedOpcodes" in project) ? project.expectedOpcodes : 0,
                      0, 0, ctx.opcodeFlow, tau),
-    OpexTensionEntry("foncier", 1, landAvailable, 0, 0, tau),
+    /* Une liaison neuve consomme DEUX origines, une a chaque bout : c'est ce qu'elle retire du
+     * stock, et c'est pour ca que le cout n'est pas 1. Le flux est nul -- une origine ne se
+     * libere que si une ligne meurt, ce que la fondation de villes ne compense pas au mois. */
+    OpexTensionEntry("foncier", 2, ctx.originsFree, 0, 0, tau),
   ];
 
   local first = null;
