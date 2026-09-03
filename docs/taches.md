@@ -5294,3 +5294,118 @@ aériennes, avant de rejuger le plafond de croissance.
 **Décision de l'utilisateur (2026-09-03) : pas de banc sur `air_demand_plan`.** Défauts laissés à
 0 des deux côtés en attendant. Piste ouverte à la place : lire comment AAAHogEx estime, lui, la
 demande qui justifie ses ~35 appareils (délégué à agy le même jour).
+
+---
+
+## 0 novemvicies. 🔑 CE QUE FAIT AAAHogEx : IL N'A PAS DE PLAFOND DE DEMANDE, IL A UN PLAFOND DE CADENCE (lecture de code, 2026-09-03)
+
+Question posée après la sonde de §3 undecies bis : notre plafond dérivé de la demande tombe à
+**1-3 appareils** quand AAAHogEx en fait voler ~35. Lecture de `ai/AAAHogEx-115/` déléguée à agy,
+**toutes les citations ci-dessous relues et vérifiées ligne à ligne dans le source**.
+
+### 1. 🔑 LA TROUVAILLE : `EstimateMaxVehicles` borne la flotte par la ROTATION, pas par le cargo (`route.nut:2374-2380`)
+
+```squirrel
+route.nut:2374  function EstimateMaxVehicles(self, distance, speed, vehicleLength = 0) {
+route.nut:2378    local days = distance * 664 / speed / 24;
+route.nut:2379    return min( days * 2 / self.GetStationDateSpan(self) + 1,
+route.nut:2379                (distance + 4) * 16 / vehicleLength) + 2;
+```
+
+Jours d'aller-retour ÷ cadence d'absorption de l'aéroport. **Ni production, ni population, ni
+note de gare n'entrent dans ce plafond** — c'est une question de débit physique : combien
+d'appareils tiennent sur la ligne si la gare n'en absorbe qu'un tous les `stationDateSpan` jours.
+
+➡️ **Notre `air_demand_cap` répond à une question qu'AAAHogEx ne pose jamais.** Ce n'est donc pas
+seulement le coefficient de 22 % qui est mal calibré (§3 undecies bis point 4) : **la grandeur
+elle-même n'est pas celle qui borne une flotte aérienne**. Un aéroport ne sature pas parce que la
+ville manque de passagers ; il sature parce qu'il n'absorbe qu'un appareil par créneau.
+
+### 2. Le partage entre lignes est au dénominateur de la CADENCE, pas du bassin (`air.nut:330-336`)
+
+```squirrel
+air.nut:331  local srcUsings  = ArrayUtils.Without(srcHgStation.GetUsingRoutes(),this).len()+1;
+air.nut:332  local destUsings = ArrayUtils.Without(destHgStation.GetUsingRoutes(),this).len()+1;
+air.nut:334  return max( Air.Get().GetAiportTraits(srcHgStation.airportType).stationDateSpan * srcUsings,
+air.nut:335              Air.Get().GetAiportTraits(destHgStation.airportType).stationDateSpan * destUsings );
+```
+
+Deux routes sur un aéroport ⇒ chacune attend deux fois plus son créneau. **Nous divisons le cargo
+disponible, eux divisent le droit d'atterrir.** Le partage existe donc des deux côtés, mais il ne
+porte pas sur la même grandeur.
+
+### 3. L'achat marginal est piloté par le STOCK, avec une bande morte (`route.nut:2896-2921`)
+
+```squirrel
+route.nut:2903    } else if(CargoUtils.IsPaxOrMail(cargo)) {
+route.nut:2904      bottom = min(50, capacity);            // on laisse 50 unites au sol
+route.nut:2906    buildNum = (cargoWaiting-bottom) / capacity;
+route.nut:2918    buildNum = min(buildNum, 4);             // 4 par passage
+route.nut:2921    buildNum = min(maxVehicles - vehicles.Count(), buildNum) - firstBuild;
+```
+
+Un avion par pleine capacité de cargo **effectivement au sol**, moins un tampon. C'est une boucle
+de régulation à bande morte : si la flotte dépasse, la file se vide et `buildNum` passe à zéro
+tout seul. Deux surcharges vérifiées forcent `buildNum = max(1, buildNum)` quand la **note de
+gare** est mauvaise malgré du cargo en attente (`:2908` et `:2913`) — la note de gare sert de
+signal d'urgence, pas de terme de classement.
+
+🔴 **Et ça renverse une lecture que j'avais faite le 2026-09-03.** Ici le stock n'est pas une
+prédiction, c'est une **observation**. L'argument flux-vs-stock qui a chassé le stock de notre
+*classement* (philosophie de l'opcode) ne s'applique pas à la **croissance d'une ligne déjà
+construite** : à ce moment-là, la file au sol est la mesure la plus directe de ce qui manque.
+
+### 4. Aucun coefficient de captation : ils étendent physiquement la couverture (`place.nut:2948`)
+
+```squirrel
+place.nut:2948    production = production * 2 / 3;   // ce qui deborde de l'arret de bus
+```
+
+Pas d'équivalent de nos 22 %. Là où nous **décotons** la production d'une ville, ils **vont la
+chercher** : `distant_join_stations` et bus d'apport, avec une perte assumée d'un tiers. La
+production estimée est ensuite bornée par des plafonds durs par mode (`:2950-2952`).
+
+Et le doublon passagers est **interdit par construction** (`air.nut:729-746`) : `CanShareByMultiRoute`
+refuse dès qu'une route bidirectionnelle du même cargo existe sur l'aéroport, refuse si
+`usingRoutes >= terminals - 1`, et refuse si les arrivées annuelles cumulées dépassent la moitié
+de la capacité de l'aéroport (`:747-750`, commentaire japonais explicite : n'accepter une route
+neuve que si l'aéroport est libre à plus de moitié).
+
+### 5. La sanction est a posteriori, pas a priori (`route.nut:2484-2498`)
+
+```squirrel
+route.nut:2486  local notProfitable = age > checkAge && AIVehicle.GetProfitLastYear(vehicle)
+route.nut:2486                        + AIVehicle.GetProfitThisYear(vehicle) < 0;
+route.nut:2488  AppendRemoveOrder(vehicle);
+```
+
+`checkAge = 800` jours. Ils achètent tant qu'il y a du cargo au sol et de la place physique, puis
+retirent ce qui perd. **Aucun arbitrage de profit marginal avant l'achat.**
+
+### 6. Ce qui est réellement actionnable chez nous
+
+**Le mécanisme de stock, nous l'avons déjà** : `MARGINAL_FLEET` exige une pleine capacité en
+attente (`main.nut:2315-2325`), et il a été **mesuré nul, défaut 0** (§7 bis). Mais il est
+beaucoup plus timide que le leur, sur deux axes indépendants :
+
+| | AAAHogEx | OpexAI sous `marginal_fleet` |
+|---|---|---|
+| quantité par passage | `(attente − 50) / capacité`, jusqu'à **4** | **1** |
+| cadence | à chaque passage d'entretien de route (fréquence exacte **non vérifiée**) | **une fois par an et par ligne** (`lastAirFleetYear`, refus `Y`) |
+| bande morte | tampon de 50 unités | une **pleine** capacité d'avion |
+
+➡️ La différence n'est pas le mécanisme, c'est le **gain et la cadence de la boucle**. C'est
+mesurable sans rien réécrire : desserrer le tampon et relever la cadence de `_resizeAirFleets`
+sont deux réglages, pas une refonte. **À faire avant de retoucher le plafond.**
+
+➡️ Et si le plafond doit revenir un jour, la forme à essayer n'est **pas** le bassin de la ville
+mais la **cadence de l'aéroport** : `jours d'aller-retour / créneau d'absorption`, divisée par le
+nombre de lignes qui se partagent la piste. Notre `OpexStationRatingForHeadway` calcule déjà un
+headway ; l'ingrédient manquant est le `stationDateSpan` de chaque type d'aéroport.
+
+### ⚠️ Non vérifié, à ne pas surinterpréter
+
+- La **fréquence** réelle de leur boucle d'achat (« à chaque cycle » vient d'agy, non recoupé).
+- Les **valeurs numériques** de `stationDateSpan` par type d'aéroport, jamais lues.
+- L'estimation « ~21 à ~33 appareils » est un calcul d'agy sur la formule, **pas** une mesure en
+  partie ; le chiffre observé de ~35 appareils, lui, vient de nos propres bancs.
