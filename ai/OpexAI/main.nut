@@ -153,6 +153,13 @@ KNAPSACK_ROI <- false;
  * detection (t=1,48 et 1,52), et median_station_rating perd significativement au test des signes
  * (5/20, p=0,041). Rien n'est casse -- le gain de valeur n'est simplement pas encore prouve. */
 POOL_FINANCEABLE <- true;
+/* docs/taches.md S3 undecies (2026-09-03) : les lignes aeriennes rangent des TUILES d'aeroport
+ * dans stationA/stationB, mais le code de hub de builder_air.nut les lisait comme des StationID.
+ * Consequence mesuree graine 42 : la garde `alreadyConnected` toujours fausse -> NEUF liaisons sur
+ * la meme paire de villes en 3 ans, plafond maxRoutes inoperant, et decote de saturation
+ * `/(routes+1)` toujours divisee par 1. 1 = resolution correcte tuile -> StationID ;
+ * 0 = comportement casse d'avant le 2026-09-03, pour que le banc puisse chiffrer l'ecart. */
+AIR_HUB_FIX <- true;
 TREE_PLANTING <- false;
 PAX_FULL_LOAD <- true;
 COMPLEX_CARGO <- true;
@@ -979,7 +986,7 @@ function OpexAI::_tryBuildAir(year)
 
     this._airBuilt = true;
     if (DECISION_LOG) {
-      OpexDecide("AIR_BUILD", "line=" + this._nextLineId + " src=" + plan.siteA.town.tile + " dst=" + plan.siteB.town.tile + " src_town=" + plan.siteA.town.id + " dst_town=" + plan.siteB.town.id + " dist=" + plan.distance + " profit=" + plan.economics.profitAnnual + " cost=" + plan.capital + " planes=" + result.vehicles.len());
+      OpexDecide("AIR_BUILD", "arm=" + plan.arm + " line=" + this._nextLineId + " src=" + plan.siteA.town.tile + " dst=" + plan.siteB.town.tile + " src_town=" + plan.siteA.town.id + " dst_town=" + plan.siteB.town.id + " dist=" + plan.distance + " profit=" + plan.economics.profitAnnual + " cost=" + plan.capital + " planes=" + result.vehicles.len());
     }
     this._lines.append({
       stationA = result.stationA, stationB = result.stationB,
@@ -1618,7 +1625,7 @@ function OpexAI::_tryBuildProjects(year)
           passDiscards = [];
           local cargoStr = AICargo.GetCargoLabel(this._catalog.paxCargo);
           OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=air cargo=" + cargoStr + " src=" + plan.siteA.town.tile + " dst=" + plan.siteB.town.tile + " dist=" + plan.distance + " cost=" + plan.capital + " profit=" + plan.economics.profitAnnual + " roi=" + project.roi);
-          OpexDecide("AIR_BUILD", "line=" + this._nextLineId + " src=" + plan.siteA.town.tile + " dst=" + plan.siteB.town.tile + " src_town=" + plan.siteA.town.id + " dst_town=" + plan.siteB.town.id + " dist=" + plan.distance + " profit=" + plan.economics.profitAnnual + " cost=" + plan.capital + " planes=" + result.vehicles.len());
+          OpexDecide("AIR_BUILD", "arm=" + plan.arm + " line=" + this._nextLineId + " src=" + plan.siteA.town.tile + " dst=" + plan.siteB.town.tile + " src_town=" + plan.siteA.town.id + " dst_town=" + plan.siteB.town.id + " dist=" + plan.distance + " profit=" + plan.economics.profitAnnual + " cost=" + plan.capital + " planes=" + result.vehicles.len());
         }
         this._airBuilt = true;
         this._lines.append({
@@ -3807,6 +3814,7 @@ function OpexAI::Start()
   AIR_MARGIN_V2 = AIController.GetSetting("air_margin_v2") != 0;
   KNAPSACK_ROI = AIController.GetSetting("knapsack_roi") != 0;
   POOL_FINANCEABLE = AIController.GetSetting("pool_financeable") != 0;
+  AIR_HUB_FIX = AIController.GetSetting("air_hub_fix") != 0;
   DYNAMIC_PATHFINDER_CAP = AIController.GetSetting("dynamic_pathfinder_cap") != 0;
   TREE_PLANTING = AIController.GetSetting("tree_planting") != 0;
   PAX_FULL_LOAD = AIController.GetSetting("pax_full_load") != 0;

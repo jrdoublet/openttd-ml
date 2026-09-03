@@ -5037,3 +5037,179 @@ le problème sans le résoudre. **Défaut gardé à 0.**
 Note d'outillage : `sweeps/bench_v2.py` ne reconnaissait pas encore `transit_cost` (ajouté à
 `info.nut` par C9 après l'écriture du validateur) — corrigé au passage (bornes 0-2000, pas 50,
 identiques à `info.nut`), non commité.
+
+---
+
+## 3 undecies. 🔶 PLAFOND AÉRIEN DÉRIVÉ DE LA DEMANDE, et le tri des pistes issues d'AAAHogEx (2026-09-03)
+
+Origine : la trace par avion de l'année 1 (graine 42, `docs/diag_air_vehicles.json`,
+`sweeps/diag_air_vehicles.py`) et la lecture du classement d'AAAHogEx déléguée à agy le même jour.
+
+### 1. 🔑 L'IDÉE PRINCIPALE (utilisateur) : le plafond de duplication se CALCULE, il ne se décrète pas
+
+**On ne peut pas trancher sur les routes dupliquées sans plus de données.** La bonne forme n'est
+pas un plafond posé à vue (« pas plus de N liaisons par paire ») mais une grandeur estimée :
+
+> **cargo attendu par aller-retour dans chaque aéroport ÷ capacité totale des avions = le plafond.**
+
+⚠️ **C'est volontairement la version naïve, et il faut la garder telle quelle au premier jet** :
+elle ne tient compte ni des **aéroports futurs**, ni des **lignes futures**, qui détourneront une
+part de ce cargo. C'est donc une **borne haute** du nombre d'appareils que la paire peut nourrir,
+à raffiner seulement une fois mesurée.
+
+**Pourquoi ça mord alors que le plafond actuel ne mord jamais.** Le plafond en vigueur est
+*physique* (`maxPlanesForAirport` = `AIR_MAX_PLANES_PER_ROUTE`, ou 4 sur petit aéroport,
+`main.nut:2320-2326`). §0 quinvicies l'a mesuré : cause `C` (plafond atteint) = **0 refus sur 32**,
+pour 28 avions sur 17 lignes, soit 1,6 par ligne contre un plafond de 16. Le plafond existant ne
+retient donc **rien**. Un plafond dérivé de la demande, lui, retiendrait quelque chose.
+
+**Ce que la mesure du 2026-09-03 dit, et surtout ce qu'elle NE dit PAS.** Graine 42, une seule
+paire de villes (tuiles 59980 ↔ 48086), **9 liaisons aériennes bâties dessus** entre 1970 et 1972.
+Profit et revenu réels par ligne, année civile 1971 complète (panneaux `OZ`/`OO` posés par
+`_reportLines`) :
+
+| avion | ligne | bâti | coût | profit 1971 | revenu 1971 | flotte | ROI |
+|---:|---:|---|---:|---:|---:|---:|---:|
+| 1 | 0 | 1970-02-13 | 93 923 | 22 743 | 29 858 | 1 | **24,2 %** |
+| 2 | 1 | 1970-02-26 | 61 523 | 90 377 | 97 492 | 1 | **146,9 %** |
+| 3 | 2 | 1970-03-11 | 61 523 | 38 339 | 52 569 | 2 | 62,3 %* |
+| 4 | 3 | 1970-03-24 | 61 523 | 4 010 | 11 125 | 1 | **6,5 %** |
+| 5 | 6 | 1970-12-08 | 61 523 | 64 723 | 71 838 | 1 | **105,2 %** |
+| 6 | 9 | 1971-02-11 | 61 523 | 26 281 | 40 511 | 2 | 42,7 %* |
+
+\* deux appareils sur la ligne (croissance de flotte en 1971) : le chiffre agrège, il n'est pas
+comparable aux lignes à un seul avion.
+
+🔴 **Le ROI ne décroît PAS avec le rang de construction** — 24 %, 147 %, 62 %, 6,5 %, 105 %, 43 %.
+L'hypothèse intuitive « chaque avion suivant capte moins » **n'est pas vérifiée sur cette graine**.
+Le ROI faible de l'avion 1 s'explique par son **capital** (93 923 £, deux aéroports neufs) et non
+par la demande ; tous les suivants réutilisent ces aéroports à 61 523 £. Les notes de gare
+tiennent dans les 70 tout du long. **Donc : rien ne prouve aujourd'hui que les doublons soient du
+gaspillage** — c'est exactement pourquoi le plafond doit être calculé avant d'être imposé.
+
+**Ingrédients déjà disponibles pour le calculer** : `TOWN_CATCHMENT_SHARE_PCT` (part captée,
+`candidates.nut:492`), la production mensuelle des deux villes déjà lue par le catalogue,
+`line.planeCapacity` (déjà porté par la ligne, `main.nut:2308`), `AIStation.GetCargoWaiting`
+(déjà appelé sous `MARGINAL_FLEET`, `main.nut:2315-2317`) et la durée d'aller-retour, qu'il faudra
+dériver de la distance et de la vitesse catalogue.
+
+⚠️ Rappel de §5 : **`_resizeAirFleets` ne consulte AUCUN signal de saturation** aujourd'hui — ni
+part desservie, ni cargo en attente hors `MARGINAL_FLEET` (éteint par défaut). Le seul garde-fou
+est `lastProfit >= 0` et la trésorerie. Le plafond calculé serait le **premier** signal de demande
+du chemin de croissance aérienne.
+
+### 2. Pistes issues de la lecture d'AAAHogEx (agy, citations vérifiées par sondage)
+
+1. **🔶 Plancher de ROI ABSOLU.** AAAHogEx refuse tout candidat sous **20 %** de ROI
+   (`main.nut:1054-1057`, `value < 200`) et met l'expansion routière en pause **365 jours** sous
+   10 % (`main.nut:1048-1052`). Notre plancher est **relatif** (`PORTFOLIO_FLOOR_PCT` d'une
+   fraction du meilleur profit finançable, `projects.nut:231-234`) : quand tout est mauvais, on
+   bâtit quand même le moins mauvais. C'est ainsi que l'avion 4 a été acheté à **6,5 %** de ROI.
+   Un plancher absolu est une **barre de rejet**, pas un changement de classement : il est
+   compatible avec le plancher relatif existant et ne rejoue pas le banc du 2026-09-02.
+2. **🔶 Garde de finançabilité ANTICIPÉE.** AAAHogEx vérifie que la caisse couvre les véhicules
+   restants de la route en cours **plus le coût complet de la suivante**, et **diffère jusqu'à
+   180 jours plutôt que de bâtir à moitié** (`main.nut:1024-1047`). Nous n'avons aucun équivalent :
+   la trace de 1970 montre une caisse vidée puis huit mois de refus `insufficient_cash`.
+3. **Dénominateur variable** — voir §0 tervicies, et le point 3 ci-dessous : **à ne pas copier
+   maintenant.**
+
+### 3. ⛔ Ce qui est DÉJÀ RÉFUTÉ — ne pas reproposer
+
+Ces trois pistes ont été suggérées à l'oral le 2026-09-03 avant relecture du présent document.
+Elles sont **déjà mesurées et négatives ou nulles** ; le rappel est ici pour que le prochain
+passage ne les re-propose pas :
+
+| piste | verdict déjà au dossier |
+|---|---|
+| Servir la flotte avant la construction neuve (`fleet_before_new`) | ❌ **−20,4 % de `profit_year`** ($t = -3{,}53$, signes $p = 0{,}012$) à 3 ans — §0 septvicies |
+| Lever le plafond d'un projet par passage (`portfolio_max_batch`) | ❌ rejeté : −3,8 % de valeur, et **11 graines sur 20 sont des nuls exacts** (le lot ne se déclenche jamais) |
+| Mettre le temps de voyage/chargement au dénominateur (`transit_cost`) | ❌ nul à 20 graines × 10 ans, tous les $\|t\| < 1{,}5$ — §3 quater / D2 |
+
+**Et le dénominateur adaptatif d'AAAHogEx n'est PAS la pièce à copier en premier.** Son
+`CalculateProfitModel()` (`main.nut:781-806`) ne quitte le régime `roiBase` que si la compagnie est
+**riche** (`_IsRich`, `main.nut:4324` : > 500 k£ *et* 100 k£/mois de revenu, ou > 2 M£) **et** hors
+inflation. Dans le régime où nous perdons — pauvre, contraint par la trésorerie, très loin des
+plafonds de véhicules — **AAAHogEx divise par le capital, exactement comme nous**. Copier
+l'aiguillage reviendrait à copier la partie qui ne travaille pas à 3 ans. À reprendre le jour où
+l'IA est effectivement riche.
+
+### 4. Ce qui reste réellement ouvert, dans l'ordre
+
+1. Le **plafond dérivé de la demande** (point 1) — la seule piste vraiment neuve du lot.
+2. Le **plancher de ROI absolu** (point 2.1) — le moins cher à câbler et à mesurer.
+3. La **garde de finançabilité anticipée** (point 2.2).
+4. Subordonner la **construction** aérienne au portefeuille — déjà ouvert en §0 septvicies, avec
+   ses deux obstacles connus, et à lire avec l'avertissement de §0 undecies (AAAHogEx gagne par la
+   ruée aérienne : subordonner l'aérien à un arbitrage qui l'élit peu est un risque réel).
+
+---
+
+## 0 octovicies. ✅ CORRIGÉ : les liaisons aériennes en double venaient d'une TUILE lue comme un StationID (2026-09-03)
+
+Suite directe de §3 undecies. L'utilisateur avait raison sur le comportement — « `_tryBuildAir`
+crée des lignes neuves entre les 2 mêmes aéroports, ça devrait être le boulot du refleet » — mais
+la cause n'était ni celle qu'il supposait ni celle que j'avais avancée.
+
+### La cause : un seul défaut de type, trois conséquences
+
+`OpexBuildAirRoute` calcule bien les `StationID` (`builder_air.nut:831-832`) puis **rend les
+TUILES** (`:898-899`, `result.stationA = airportA`). Tout `main.nut` lit correctement ces champs
+comme des tuiles (`GetStationID(line.stationA)` en `:1046`, `:1319`, `:2034`) : la convention
+« tuile » est la bonne. **Seul le code de hub de `builder_air.nut` les prenait pour des StationID
+déjà résolus.** D'où :
+
+1. **La garde `alreadyConnected` comparait un StationID à une tuile → structurellement TOUJOURS
+   fausse.** C'est elle, et elle seule, qui devait interdire de reconnecter une paire déjà servie.
+2. **La découverte de hub testait `IsAirportTile()` sur un CENTRE-VILLE** (`line.originA`) → jamais
+   vraie → tous les aéroports tombaient dans le repli « orphelins », qui code `routes = 0` en dur.
+3. `routes = 0` en permanence → le plafond `maxRoutes` (12) **inopérant**, et la décote de
+   saturation `hubMonthly / (routes + 1)` **divisait toujours par 1**. Le ROI de chaque doublon
+   était donc calculé sur le bassin ENTIER des deux villes, comme si personne ne les desservait.
+
+⚠️ **Deux hypothèses fausses écartées en route, à ne pas resservir** : (a) `OpexAirTownServed`
+fonctionne parfaitement — la sonde le montre évincer les villes 26 et 30 dès la ligne 0 (`sites`
+16 → 14, aucune fausse-négative sur 926 appels) ; (b) l'arm coupable n'est pas `hubsite` (déduit à
+tort de l'ordre `src`/`dst`) mais **`hubhub`**, celui qui portait pourtant la garde.
+
+### La preuve, avant / après (graine 42, 3 ans, `docs/diag_airserved_probe.json` → `docs/diag_airfix_verify.json`)
+
+| | lignes aériennes | arms | paires distinctes |
+|---|---:|---|---:|
+| avant | **9** | `newpair` 1, `hubhub` 8 | **1** (48086 ↔ 59980, neuf fois) |
+| après | 6 | `newpair` 2, `hubsite` 2, `hubhub` 2 | **6** |
+
+`hubsite` ne s'était **jamais déclenché** avant le correctif : la découverte de hub ne rendait
+jamais rien d'exploitable.
+
+### Le banc : positif sur les moyennes, MAIS porté par quelques graines
+
+`docs/bench_air_hub_fix_3y_20seeds.json`, 20 graines × 3 ans, `air_hub_fix=1` contre `=0`, 0 échec :
+
+| métrique | écart | t | graines gagnées | test des signes |
+|---|---:|---:|---:|---:|
+| `profit_year` | **+35,7 %** | **2,53** | 14/20 | 0,115 |
+| `profit` | **+46,3 %** | **2,40** | 11/20 | 0,82 |
+| `company_value` | **+15,8 %** | **2,06** | 11/20 | 0,82 |
+| `performance_history` | +13,0 % | 1,98 | 13/20 | 0,26 |
+| `median_station_rating` | −2,8 % | −1,67 | 7/20 | 0,26 |
+
+**Lecture honnête.** C'est le premier réglage de la journée dont les moyennes franchissent à la
+fois le plancher de détection (~15 % sur `company_value`) et $t = 2$ sur trois métriques de valeur.
+Mais **aucun test des signes n'est significatif**, la médiane n'est que +53 k£, et **les 3
+meilleures graines apportent 72 % du gain total**. C'est un gain à forte variance, pas un gain
+large : 11 graines gagnent, 9 perdent.
+
+🔴 **Et une graine s'effondre** : 12345 tombe à `company_value = 1` (contre 157 646 sous `=0`),
+score 119 → 58, 48 → 34 véhicules — pas un plantage de script (`run_ok = true`), une quasi-faillite.
+Le correctif retire une croissance **bon marché** (un avion seul sur une paire déjà équipée) et
+pousse le capital vers des aéroports neufs à ~32 k£ de plus pièce ; sur une graine pauvre, ça
+suffit à basculer dans la dette.
+
+**Défaut posé à `air_hub_fix = 1`** — c'est une correction de défaut, pas un arbitrage de
+conception, et les trois métriques de l'ordre d'objectifs montent. `0` rejoue exactement le
+comportement cassé pour que l'écart reste chiffrable.
+
+➡️ Suite naturelle, **pas encore faite** : maintenant que `routes` est enfin correct, la décote
+`/(routes+1)` et le plafond `maxRoutes` sont vivants pour la première fois — ce sont eux que le
+plafond dérivé de la demande (§3 undecies point 1) doit remplacer ou calibrer.

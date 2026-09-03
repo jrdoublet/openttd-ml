@@ -638,6 +638,23 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
+    /* docs/taches.md S3 undecies (2026-09-03), diagnostic docs/diag_airserved_probe.json.
+     * OpexBuildAirRoute calcule les StationID puis rend les TUILES (`builder_air.nut:831-832` puis
+     * `:898-899`). main.nut lit bien ces champs comme des tuiles ; le code de hub, non. La garde
+     * `alreadyConnected` comparait donc un StationID a une tuile et etait structurellement
+     * toujours fausse : NEUF liaisons aeriennes sur la MEME paire de villes en 3 ans (graine 42),
+     * huit d'entre elles au prix d'un avion seul. Le meme defaut rendait `maxRoutes` inoperant et
+     * annulait la decote de saturation `/(routes+1)`.
+     * ⚠️ Ce correctif RETIRE une source de croissance qui, mesuree par avion, payait souvent bien
+     * (ROI 105 % et 147 % sur deux des doublons) : il doit etre chiffre au banc, pas suppose bon. */
+    AddSetting({
+      name = "air_hub_fix",
+      description = "Resolve air line airport tiles to station IDs in hub discovery and the already-connected guard: 1 = fixed (default), 0 = pre-2026-09-03 behaviour that allowed unlimited duplicate routes on one town pair",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
     AddSetting({
       name = "air_margin_v2",
       description = "Lower the air cash margins (refleet 2000->0, two new airports 30000->15000, one 12000->6000): 1 = enabled, 0 = current margins (default)",

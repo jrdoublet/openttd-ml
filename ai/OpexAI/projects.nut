@@ -641,6 +641,7 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0)
     stats.knapsackNodes = 0;
     stats.knapsackExact = true;
   } else {
+    local infundableByMode = { rail = 0, road = 0, air = 0, water = 0 };
     foreach (key, project in winners) {
       stats.odProjects++;
       /* Ne pas depenser une place de vivier sur un candidat qui ne peut etre finance a aucun
@@ -649,9 +650,15 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0)
        * ne touche que l'admission au sac a dos. */
       if (POOL_FINANCEABLE && project.budgetCapital > capitalCeiling) {
         stats.poolInfundable++;
+        if (DECISION_LOG && (project.mode in infundableByMode)) infundableByMode[project.mode]++;
         continue;
       }
       OpexProjectInsert(byBudget, project, "budgetScore", PROJECT_POOL_K);
+    }
+    if (DECISION_LOG && stats.poolInfundable > 0) {
+      OpexDecide("VIVIER_INFUNDABLE", "rail=" + infundableByMode.rail + " road=" + infundableByMode.road
+                 + " air=" + infundableByMode.air + " water=" + infundableByMode.water
+                 + " total=" + stats.poolInfundable + " ceiling=" + capitalCeiling);
     }
     local knapsack = OpexKnapsackSolve(byBudget, capitalBudget, ROAD_MAX_NEW_LINES_PER_YEAR, PROJECT_TOP_K);
     funded = knapsack.projects;

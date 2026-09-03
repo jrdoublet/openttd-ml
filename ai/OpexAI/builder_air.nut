@@ -16,6 +16,7 @@ AIR_TOWN_MIN_DISTANCE <- 32;
 AIR_MAX_SITE_PROBES <- 1500;
 AIR_MAX_PLANES_PER_ROUTE <- 16;
 AIR_CAPITAL_MARGIN <- 50000;
+AIR_PLAN_DIAG_SEQ <- 0;
 /* Plafond empirique de distance aérienne (docs/taches.md C6) : 0 succès mesurés au-delà de 212 tuiles */
 AIR_MAX_DISTANCE <- 212;
 
@@ -58,15 +59,97 @@ function OpexAirSortedTowns(towns)
   return out;
 }
 
-function OpexAirTownServed(town, lines)
+function OpexAirTownServed(town, lines, diag = null)
 {
-  if (lines == null) return false;
+  /* Keep the non-diagnostic path byte-for-byte equivalent in its tests and short-circuiting. */
+  if (!DECISION_LOG || diag == null) {
+    if (lines == null) return false;
+    foreach (line in lines) {
+      if (!("mode" in line) || line.mode != "air") continue;
+      if (AIMap.DistanceManhattan(town.tile, line.originA) < 15) return true;
+      if (AIMap.DistanceManhattan(town.tile, line.originB) < 15) return true;
+    }
+    return false;
+  }
+
+  if (lines == null) {
+    diag.nullCalls++;
+    diag.falseCalls++;
+    if (DECISION_LOG && !diag.noAirLogged) {
+      diag.noAirLogged = true;
+      OpexDecide("AIR_TOWN_SERVED", "scan=" + diag.scan + " town_id=" + town.id
+                 + " town_tile=" + town.tile + " lines_state=null line_count=0"
+                 + " air_line_count=0 verdict=0 comparisons=none");
+    }
+    return false;
+  }
+  if (lines.len() == 0) diag.emptyCalls++;
+  else diag.nonemptyCalls++;
+
+  local comparisons = "";
+  local airLineCount = 0;
   foreach (line in lines) {
     if (!("mode" in line) || line.mode != "air") continue;
-    if (AIMap.DistanceManhattan(town.tile, line.originA) < 15) return true;
-    if (AIMap.DistanceManhattan(town.tile, line.originB) < 15) return true;
+    local distanceA = AIMap.DistanceManhattan(town.tile, line.originA);
+    if (distanceA < 15) {
+      diag.trueCalls++;
+      return true;
+    }
+    local distanceB = AIMap.DistanceManhattan(town.tile, line.originB);
+    if (distanceB < 15) {
+      diag.trueCalls++;
+      return true;
+    }
+    comparisons += " line" + airLineCount
+        + "_id=" + (("lineId" in line) ? line.lineId : "none")
+        + " line" + airLineCount + "_originA=" + line.originA
+        + " line" + airLineCount + "_originB=" + line.originB
+        + " line" + airLineCount + "_distA=" + distanceA
+        + " line" + airLineCount + "_distB=" + distanceB;
+    airLineCount++;
+  }
+  diag.falseCalls++;
+  if (airLineCount == 0 && !diag.noAirLogged) {
+    diag.noAirLogged = true;
+    if (DECISION_LOG) {
+      local linesState = lines.len() == 0 ? "empty" : "nonempty";
+      OpexDecide("AIR_TOWN_SERVED", "scan=" + diag.scan + " town_id=" + town.id
+                 + " town_tile=" + town.tile + " lines_state=" + linesState
+                 + " line_count=" + lines.len()
+                 + " air_line_count=0 verdict=0 comparisons=none");
+    }
+  }
+  /* One record per failed town per OpexAirPlans invocation: repeated combo/site scans compare
+   * the same immutable town and lines, so suppressing duplicates loses no comparison. */
+  if (airLineCount > 0 && !(town.id in diag.loggedFalseTowns)) {
+    diag.loggedFalseTowns[town.id] <- true;
+    diag.loggedFalseCount++;
+    if (DECISION_LOG) {
+      OpexDecide("AIR_TOWN_SERVED", "scan=" + diag.scan + " town_id=" + town.id
+                 + " town_tile=" + town.tile + " lines_state=nonempty line_count=" + lines.len()
+                 + " air_line_count=" + airLineCount + " verdict=0" + comparisons);
+    }
   }
   return false;
+}
+
+/* 🔴 Une ligne aerienne stocke des TUILES d'aeroport dans stationA/stationB, malgre leur nom :
+ * OpexBuildAirRoute calcule bien les StationID (`:831-832`) puis rend `result.stationA = airportA`,
+ * la tuile. main.nut lit ces champs comme des tuiles partout (`GetStationID(line.stationA)` en
+ * :1046, :1319, :2034) -- la convention "tuile" est donc la bonne. Seul le code de hub ci-dessous
+ * les prenait pour des StationID deja resolus, avec trois consequences mesurees le 2026-09-03 :
+ *   1. la garde `alreadyConnected` comparait un StationID a une tuile : TOUJOURS fausse, d'ou
+ *      NEUF liaisons sur la meme paire de villes (graine 42, 1970-1972) ;
+ *   2. la decouverte de hub testait `IsAirportTile()` sur un CENTRE-VILLE : toujours fausse, donc
+ *      tous les aeroports tombaient dans le repli "orphelins" avec `routes = 0` code en dur ;
+ *   3. `routes = 0` rendait le plafond `maxRoutes` inoperant ET annulait la decote de saturation
+ *      `hubMonthly / (routes + 1)`, qui divisait donc toujours par 1.
+ * Resoudre la tuile en StationID repare les trois d'un coup. */
+function OpexAirLineStationId(line, which)
+{
+  local tile = (which == 0) ? line.stationA : line.stationB;
+  if (tile == null || !AIMap.IsValidTile(tile)) return -1;
+  return AIStation.GetStationID(tile);
 }
 
 function OpexAirAirportAcceptsPlane(airportType, planeType)
@@ -315,7 +398,35 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
   local combos = (("airCombos" in catalog) && catalog.airCombos != null && catalog.airCombos.len() > 0)
       ? catalog.airCombos
       : (catalog.airport != null && catalog.plane != null ? [{ airport = catalog.airport, plane = catalog.plane }] : []);
-  if (combos.len() == 0) return null;
+  local servedDiag = null;
+  if (DECISION_LOG) {
+    AIR_PLAN_DIAG_SEQ++;
+    servedDiag = {
+      scan = AIR_PLAN_DIAG_SEQ,
+      nullCalls = 0, emptyCalls = 0, nonemptyCalls = 0,
+      trueCalls = 0, falseCalls = 0,
+      loggedFalseTowns = {}, loggedFalseCount = 0, noAirLogged = false,
+    };
+    local linesState = lines == null ? "null" : (lines.len() == 0 ? "empty" : "nonempty");
+    local lineCount = lines == null ? 0 : lines.len();
+    local airLineCount = 0;
+    if (lines != null) {
+      foreach (line in lines) {
+        if (("mode" in line) && line.mode == "air") airLineCount++;
+      }
+    }
+    OpexDecide("AIR_PLAN_INPUT", "scan=" + servedDiag.scan + " lines_state=" + linesState
+               + " line_count=" + lineCount + " air_line_count=" + airLineCount
+               + " combos=" + combos.len());
+  }
+  if (combos.len() == 0) {
+    if (DECISION_LOG) {
+      OpexDecide("AIR_SERVED_SUMMARY", "scan=" + servedDiag.scan
+                 + " null_calls=0 empty_calls=0 nonempty_calls=0 true_calls=0 false_calls=0"
+                 + " false_towns_logged=0");
+    }
+    return null;
+  }
 
   local towns = OpexAirSortedTowns(catalog.towns);
   local limit = towns.len() < AIR_TOWN_POOL ? towns.len() : AIR_TOWN_POOL;
@@ -340,7 +451,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
       /* Ne filtrer que les lignes aeriennes existantes : un aeroport ne concurrence pas une
        * gare ferroviaire, et exclure les villes deja servies en rail empechait toute
        * construction aerienne sur une carte partiellement couverte. */
-      if (OpexAirTownServed(towns[i], lines)) continue;
+      if (OpexAirTownServed(towns[i], lines, servedDiag)) continue;
       /* Typage selon la population :
        * - Grands aéroports : accessibles dès 600 habitants (suffisant pour alimenter un jet vers un hub)
        * - Petits aéroports : utilisables sur toutes les villes si aucun grand aéroport ne rentre */
@@ -382,7 +493,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
           orderDistance = orderDistance,
           airport = airport, plane = plane,
           planes = economics.planes, capital = economics.capital, economics = economics,
-          reuseA = false, hubRoutes = 0,
+          reuseA = false, hubRoutes = 0, arm = "newpair",
         };
 
         if (a == 0 && b == 1) {
@@ -407,7 +518,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
       if (sites.len() < AIR_HUB_NEW_SITE_POOL) {
         local hubProbes = { left = AIR_MAX_SITE_PROBES, townsLeft = towns.len() };
         for (local i = 0; i < towns.len() && sites.len() < AIR_HUB_NEW_SITE_POOL; i++) {
-          if (OpexAirTownServed(towns[i], lines)) continue;
+          if (OpexAirTownServed(towns[i], lines, servedDiag)) continue;
           /* Typage : grands aéroports dès 600 hab */
           if (combo.kind == "large" && towns[i].pop < 600) continue;
           if (combo.kind == "small" && towns[i].pop >= 2500) continue;
@@ -419,22 +530,38 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
       foreach (line in lines) {
         if (!("mode" in line) || line.mode != "air") continue;
         if (("deadStreak" in line) && line.deadStreak >= 2) continue;
-        local ends = [
-          { anchor = line.originA, origin = line.originA, stationId = line.stationA },
-          { anchor = line.originB, origin = line.originB, stationId = line.stationB },
-        ];
+        /* air_hub_fix : l'ancre d'un hub est la TUILE D'AEROPORT (line.stationA/B), pas le
+         * centre-ville (line.originA/B). Sous 0, on rejoue litteralement le comportement casse. */
+        local ends = null;
+        if (AIR_HUB_FIX) {
+          ends = [
+            { anchor = line.stationA, origin = line.originA, stationId = line.stationA },
+            { anchor = line.stationB, origin = line.originB, stationId = line.stationB },
+          ];
+        } else {
+          ends = [
+            { anchor = line.originA, origin = line.originA, stationId = line.stationA },
+            { anchor = line.originB, origin = line.originB, stationId = line.stationB },
+          ];
+        }
         foreach (end in ends) {
           if (!AIMap.IsValidTile(end.anchor) || !AIAirport.IsAirportTile(end.anchor)) continue;
           local existingType = AIAirport.GetAirportType(end.anchor);
           if (!OpexAirAirportAcceptsPlane(existingType, plane.planeType)) continue;
-          local station = AIStation.IsValidStation(end.stationId) ? end.stationId : AIStation.GetStationID(end.anchor);
+          /* Resolution non ambigue : `end.stationId` est une tuile, et `IsValidStation(tuile)`
+           * peut etre vrai par pure collision d'indices. On resout toujours depuis l'ancre. */
+          local station = AIR_HUB_FIX
+              ? AIStation.GetStationID(end.anchor)
+              : (AIStation.IsValidStation(end.stationId) ? end.stationId : AIStation.GetStationID(end.anchor));
           if (!AIStation.IsValidStation(station) || (station in seenStations)) continue;
 
           local routeCount = 0;
           foreach (other in lines) {
             if (!("mode" in other) || other.mode != "air") continue;
-            local otherA = AIStation.IsValidStation(other.stationA) ? other.stationA : AIStation.GetStationID(other.originA);
-            local otherB = AIStation.IsValidStation(other.stationB) ? other.stationB : AIStation.GetStationID(other.originB);
+            local otherA = AIR_HUB_FIX ? OpexAirLineStationId(other, 0)
+                : (AIStation.IsValidStation(other.stationA) ? other.stationA : AIStation.GetStationID(other.originA));
+            local otherB = AIR_HUB_FIX ? OpexAirLineStationId(other, 1)
+                : (AIStation.IsValidStation(other.stationB) ? other.stationB : AIStation.GetStationID(other.originB));
             if (otherA == station || otherB == station) routeCount++;
           }
           local maxRoutes = (existingType == AIAirport.AT_SMALL || existingType == AIAirport.AT_COMMUTER) ? 4 : 12;
@@ -474,6 +601,23 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
       }
     }
 
+    if (DECISION_LOG) {
+      local siteFields = sites.len() == 0 ? "none" : "";
+      foreach (site in sites) {
+        if (siteFields != "") siteFields += ",";
+        siteFields += site.town.id + ":" + site.town.tile;
+      }
+      local hubFields = hubs.len() == 0 ? "none" : "";
+      foreach (hub in hubs) {
+        if (hubFields != "") hubFields += ",";
+        hubFields += hub.town.id + ":" + hub.town.tile;
+      }
+      OpexDecide("AIR_PLAN_SETS", "scan=" + servedDiag.scan + " combo=" + combo.kind
+                 + " airport_type=" + airport.type + " plane=" + plane.id
+                 + " sites_count=" + sites.len() + " sites=" + siteFields
+                 + " hubs_count=" + hubs.len() + " hubs=" + hubFields);
+    }
+
     foreach (hub in hubs) {
       foreach (site in sites) {
         local distance = AIMap.DistanceManhattan(hub.town.tile, site.town.tile);
@@ -496,7 +640,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
           siteA = hub, siteB = site, distance = flightDistance, orderDistance = orderDistance,
           airport = airport, plane = plane, planes = economics.planes,
           capital = economics.capital, economics = economics,
-          reuseA = true, hubRoutes = hub.routes,
+          reuseA = true, hubRoutes = hub.routes, arm = "hubsite",
         };
         if (projects != null) projects.append(plan);
         if (OpexAirPlanBetter(plan, bestPlan)) bestPlan = plan;
@@ -513,8 +657,13 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
         local alreadyConnected = false;
         foreach (line in lines) {
           if (!("mode" in line) || line.mode != "air") continue;
-          local oA = AIStation.IsValidStation(line.stationA) ? line.stationA : AIStation.GetStationID(line.originA);
-          local oB = AIStation.IsValidStation(line.stationB) ? line.stationB : AIStation.GetStationID(line.originB);
+          /* air_hub_fix : c'est CETTE comparaison qui etait morte -- un StationID (st1/st2, issus
+           * de la decouverte de hub) contre une tuile d'aeroport (line.stationA/B). */
+          local oA = AIR_HUB_FIX ? OpexAirLineStationId(line, 0)
+              : (AIStation.IsValidStation(line.stationA) ? line.stationA : AIStation.GetStationID(line.originA));
+          local oB = AIR_HUB_FIX ? OpexAirLineStationId(line, 1)
+              : (AIStation.IsValidStation(line.stationB) ? line.stationB : AIStation.GetStationID(line.originB));
+          if (!AIStation.IsValidStation(oA) || !AIStation.IsValidStation(oB)) continue;
           if ((oA == st1 && oB == st2) || (oA == st2 && oB == st1)) {
             alreadyConnected = true; break;
           }
@@ -540,6 +689,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
           airport = airport, plane = plane, planes = economics.planes,
           capital = economics.capital, economics = economics,
           reuseA = true, reuseB = true, hubRoutes = hub1.routes + hub2.routes,
+          arm = "hubhub",
         };
         if (projects != null) projects.append(plan);
         if (OpexAirPlanBetter(plan, bestPlan)) bestPlan = plan;
@@ -551,6 +701,13 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
     }
     OpexSign(AIMap.GetTileIndex(1, 4), "AE|S=" + sites.len() + "|B=" + (bestPlan != null ? bestPlan.economics.profitAnnual : "NO"));
     if (bestPlan != null && bestPlan.airport.allowBig) break;
+  }
+  if (DECISION_LOG) {
+    OpexDecide("AIR_SERVED_SUMMARY", "scan=" + servedDiag.scan
+               + " null_calls=" + servedDiag.nullCalls + " empty_calls=" + servedDiag.emptyCalls
+               + " nonempty_calls=" + servedDiag.nonemptyCalls + " true_calls=" + servedDiag.trueCalls
+               + " false_calls=" + servedDiag.falseCalls
+               + " false_towns_logged=" + servedDiag.loggedFalseCount);
   }
   return bestPlan;
 }
