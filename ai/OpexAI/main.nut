@@ -2177,6 +2177,19 @@ function OpexAI::_reportLines(year)
     line.vehCount <- vehCount;
     line.lastProfit <- profit;
     line.lastRevenue <- profit + runCost;
+    if (DECISION_LOG) {
+      local realRevenue = profit + runCost;
+      local predRevenue = ("predRevenue" in line) ? line.predRevenue : 0;
+      local predProfit = ("predicted" in line) ? line.predicted : 0;
+      local predRunning = ("predRunning" in line) ? line.predRunning : 0;
+      local isLow = ("isLowRatio" in line && line.isLowRatio) ? 1 : 0;
+      local opRatio = ("opcodeRatio" in line) ? line.opcodeRatio : -1;
+      local lMode = ("mode" in line) ? line.mode : "unknown";
+      local lKind = ("kind" in line) ? line.kind : "unknown";
+      local lAge = ("year" in line) ? (year - line.year) : -1;
+      local cLabel = AICargo.GetCargoLabel(line.cargo);
+      OpexDecide("LINE_REVENUE", "line=" + line.lineId + " mode=" + lMode + " kind=" + lKind + " cargo=" + cLabel + " year=" + year + " age=" + lAge + " pred_rev=" + predRevenue + " real_rev=" + realRevenue + " pred_prof=" + predProfit + " real_prof=" + profit + " pred_run=" + predRunning + " real_run=" + runCost + " vehs=" + vehCount + " low_ratio=" + isLow + " op_ratio=" + opRatio);
+    }
     if (vehicleType == AIVehicle.VT_RAIL || vehicleType == AIVehicle.VT_AIR) {
       /* Instantane de backlog, complete par l'utilisation annuelle derivee du revenu dans
        * _expandRailLines. Le second signal evite que la phase du train au jour du releve fasse
@@ -3556,6 +3569,8 @@ function OpexAI::_recordRailAttempt(candidate, result, join, placeJoin, posPacke
       dstIndustry = (candidate.kind == "freight") ? AIIndustry.GetIndustryID(candidate.dst) : -1,
       deadStreak = 0, scrapping = false, scrapVehicles = [],
       lastLiveVehicles = result.trains, suspectedCrashes = 0,
+      isLowRatio = ("isLowRatio" in candidate) ? candidate.isLowRatio : false,
+      opcodeRatio = ("opcodeRatio" in candidate) ? candidate.opcodeRatio : -1,
       lineId = idx,
     });
     this._nextLineId++;

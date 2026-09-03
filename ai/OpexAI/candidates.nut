@@ -191,7 +191,8 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
    * plus eliminer un mode AVANT l'arbitrage par couple O/D. La contrainte d'opcodes est appliquee
    * apres la contrainte de capital dans projects.nut. */
   local minRatio = (kind == "freight") ? 200 : MIN_RATIO;
-  if (opcodeRatio < minRatio) {
+  local isLowRatio = (opcodeRatio < minRatio);
+  if (isLowRatio) {
     stats.ratioTooLow++;
     if (VIVIER_RATIO_FILTER) return null;
   }
@@ -257,6 +258,8 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
     oneWayDays = economics.oneWayDays,
     iterations = iterations,
     ratio = ratio,
+    opcodeRatio = opcodeRatio,
+    isLowRatio = isLowRatio,
   };
 }
 
