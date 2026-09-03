@@ -3463,6 +3463,8 @@ Même famille que la régression `tree_planting` : **le code a divergé de sa pr
   3. la déclaration `AddSetting` dans `info.nut` ;
   4. l'entrée `"tree_planting"` de la liste blanche de `sweeps/bench_v2.py` (~ligne 141).
 
+  ✅ **Débloqué le 2026-09-03.** La seule raison de garder le réglage était que le −22,1 % qui l'avait condamné portait sur un garde mort (`AITown.GetRating` est un enum 0-8). Le garde réparé, D1 a refait la mesure : `tree_planting=1` reste **négatif** (−12,1 % de `company_value`, −13,4 % de `profit_year`, 13/20 graines perdantes, `docs/bench_tree_planting_recalibrated_3y.json`). La question est tranchée deux fois, par deux mesures indépendantes dont l'une sur un mécanisme réparé : **le chemin préventif part, la plantation au refus municipal reste**. Suivi en E8.
+
   ⚠️ **Ne PAS toucher** au recours réactif de `builder_air.nut` (`517` et `540`) : il n'est pas
   derrière le drapeau, il ne se déclenche qu'après un vrai `ERR_LOCAL_AUTHORITY_REFUSES` renvoyé
   par `BuildAirport`, et c'est le seul comportement qu'on garde. `OpexBoostTownRating`
@@ -5006,6 +5008,7 @@ Il n'y a pas d'A\* fait maison. Seule la fonction de coût est à nous.
 | E5 | `builder_rail.nut` : `AIAccounting` imbriqué non finalisé sur les branches d'échec (latent, chemin mort) | §0 octodecies |
 | E6 | `catalog.nut:702-720` : `railCoverage` lu avec un an de retard — ✅ Fait (`_refreshRail` appelé avant `_refreshTowns`) | §0 novemdecies |
 | E7 | `OpexJoinPathIsDedicated` armé seulement si `join != null` — un A\* peut traverser du rail existant | §0 vicies |
+| E8 | 🔶 **NETTOYAGE DE CODE — débloqué le 2026-09-03 par D1** : sortir les trois mécanismes prouvés morts ou infirmés (`tree_planting` + les sept sites préventifs qu'il garde, `rail_refleet`, `air_starter`) — code gardé, constante, relecture dans `Start()`, entrée `info.nut`, liste blanche de `bench_v2.py`. ⚠️ Retirer du code **mort** ne décale pas les trajectoires (20/20 graines bit-identiques après 766 lignes supprimées le 2026-09-02) ; retirer une **lecture de réglage** en décale → banc de non-régression obligatoire, et un seul mécanisme par commit | §8, §0 nonies, D1 |
 
 ### Réglages laissés comme instruments, défaut 0, mesurés et non adoptés
 
