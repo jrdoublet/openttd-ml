@@ -6422,3 +6422,62 @@ mais pas du revenu (le revenu prédit est indépendant de ce doublement).
 4. **Le sujet de fond est la ROUTE** : revenu encaissé à ~50 % du promis, dispersion de 0,07 à
    1,39, sur le mode qui fournit 62 % des lignes. Devant ça, le doublement de flotte (17 % des
    lignes) est un correctif secondaire mais gratuit.
+
+---
+
+## 0 novemtrigesies. 🔑 INSTRUMENTATION RÉPARÉE — et D3.1 est STRUCTURELLEMENT inmesurable à 3 ans (2026-09-04)
+
+Suite de §0 octotrigesies, qui relevait que `low_ratio` était armé sur **0 enregistrement sur
+628**. Correctif appliqué, puis vérifié en jeu — et la vérification déplace la conclusion.
+
+### 1. ✅ Ce qui est réparé
+
+- **`isLowRatio` et `opcodeRatio` sont désormais posés sur les 7 sites de création de ligne**
+  (ils ne l'étaient que sur un seul, le chemin d'expansion rail). Pour l'air et l'eau, qui
+  viennent d'un *plan* et non d'un candidat, ils valent explicitement `false` / `-1` — « sans
+  objet » se distingue ainsi de « non renseigné ».
+- **`purpose` ajouté** et publié dans `LINE_REVENUE`. Vérifié en jeu : **5 enregistrements sur 15
+  sont `town_growth`**, soit 33 %. Ce sont les lignes bâties pour faire **croître une ville**, dont
+  le candidat porte `revenueAnnual = 0` **explicite** (`main.nut:1148`). ➡️ Les 21-23 % de
+  `pred_rev = 0` de §0 octotrigesies **ne sont pas un bug** : c'est une population distincte, qu'il
+  faut désormais exclure **par son nom** et non deviner par un zéro.
+
+### 2. 🔴 Et pourtant `low_ratio` reste à 0 — pour une raison structurelle
+
+`opcodeRatio`, `isLowRatio` et `VIVIER_RATIO_FILTER` n'existent que dans `OpexMakeCandidate`
+(`candidates.nut:189-262`), le générateur **rail**. Le générateur routier ne les calcule pas du
+tout. Vérification en jeu (1 graine × 3 ans, filtre levé) : **op_ratio renseigné sur 1
+enregistrement sur 15**, et cet unique enregistrement est la seule ligne rail.
+
+➡️ **Le filtre de D3.1 ne gouverne que le RAIL.** Et le rail construit **0 à 2 lignes par
+décennie** (§0 sextrigesies). Donc :
+
+> **À un horizon de 3 ans, la population « sous plancher » est d'environ une ligne par graine.
+> Aucun diagnostic à 3 ans ne peut répondre à D3.1 — ce n'était pas un défaut de câblage, c'était
+> un défaut d'horizon.**
+
+Le jeu `pax_near` (20 graines × **20 ans**, 21 lignes sous plancher) reste **le seul échantillon
+exploitable**, et c'est celui déjà dépouillé en §0 septentrigesies.
+
+### 3. ⚠️ Ce que ça impose de relire dans le banc de D3.1
+
+D3.1 a mesuré **−12,8 % de valeur** en levant le filtre. Or le diagnostic montre que la levée fait
+passer le rail de **13 à 16 enregistrements** sur 20 graines × 3 ans — soit une poignée de lignes.
+Un écart de 12,8 % de valeur d'entreprise ne peut pas venir *directement* du profit ou de la perte
+de trois lignes rail.
+
+L'explication plausible est **indirecte** : une tentative rail consomme du capital et des opcodes
+qui ne vont plus à l'air, seul mode réellement rentable ici. Ce n'est **pas** « les lignes sous
+plancher perdent de l'argent » — §0 septentrigesies montre l'inverse sur 21 lignes — mais
+« tenter du rail coûte son coût d'opportunité ».
+
+➡️ **Le rejet de D3.1 reste la bonne décision**, mais son motif au dossier doit être celui-là et
+non « les candidats sous plancher sont mauvais ». La distinction commande la suite : elle dit
+qu'il faut réparer l'**estimateur**, pas condamner la population.
+
+### ➡️ Ce qui reste
+
+1. Si on veut trancher D3.1 proprement : **20 ans, pas 3**. Sinon, s'appuyer sur `pax_near`.
+2. Le sujet de fond reste celui de §0 octotrigesies : **la route**, revenu encaissé à ~50 % du
+   promis avec une dispersion de 0,07 à 1,39, sur 62 % des lignes bâties. Et elle n'a **aucun**
+   filtre de ratio, puisque son générateur ne calcule pas d'`opcodeRatio`.

@@ -1016,6 +1016,7 @@ function OpexAI::_tryBuildAir(year)
       buildDate = AIDate.GetCurrentDate(),
       mode = "air", vehicle = result.vehicle, vehicles = result.vehicles,
       lastLiveVehicles = result.vehicles.len(), suspectedCrashes = 0,
+      isLowRatio = false, opcodeRatio = -1,   /* plan, pas de candidat : sans objet */
       lineId = this._nextLineId,
     });
     OpexSign(anchor, "AF|" + this._nextLineId + "|" + result.vehicles.len() + "|"
@@ -1195,11 +1196,17 @@ function OpexAI::_tryTownGrowth(year)
       cargo = candidate.cargo,
       predicted = 0, iterations = 0, trains = result.vehicles.len(), distance = dist, year = year,
       predRevenue = 0, predRunning = 0, predAmort = 0, predCarried = 0, predTrains = 1, predOneWayDays = 1,
+      /* Batie pour la CROISSANCE de la ville, pas pour son profit : son candidat porte
+       * revenueAnnual = 0 EXPLICITE. A exclure nommement d'une comparaison predit/reel, et non
+       * devinee par pred_rev == 0 -- 21 a 23 % des enregistrements du diagnostic. */
+      purpose = "town_growth",
       effectiveSpeed = engine.speed, catalogSpeed = engine.speed,
       mode = "road", kind = "pax", depot = result.depot,
       nStopsA = result.nStopsA, nStopsB = result.nStopsB,
       srcIndustry = -1, dstIndustry = -1,
       deadStreak = 0, scrapping = false, scrapVehicles = [],
+      isLowRatio = ("isLowRatio" in candidate) ? candidate.isLowRatio : false,
+      opcodeRatio = ("opcodeRatio" in candidate) ? candidate.opcodeRatio : -1,
       lineId = this._nextLineId,
     });
     this._nextLineId++;
@@ -1474,6 +1481,8 @@ function OpexAI::_tryBuildFeeders(year)
       iterations = candidate.iterations, trains = candidate.trains, distance = candidate.distance,
       year = year, mode = "road",
       vehicles = result.vehicles,
+      isLowRatio = ("isLowRatio" in candidate) ? candidate.isLowRatio : false,
+      opcodeRatio = ("opcodeRatio" in candidate) ? candidate.opcodeRatio : -1,
       lineId = this._nextLineId,
       isFeeder = true,
       hubStationId = candidate.hubStationId,
@@ -1653,6 +1662,7 @@ function OpexAI::_tryBuildProjects(year)
           buildDate = AIDate.GetCurrentDate(),
           mode = "air", vehicle = result.vehicle, vehicles = result.vehicles,
           lastLiveVehicles = result.vehicles.len(), suspectedCrashes = 0,
+          isLowRatio = false, opcodeRatio = -1,   /* plan, pas de candidat : sans objet */
           lineId = this._nextLineId,
         });
         OpexSign(anchor, "AF|" + this._nextLineId + "|" + result.vehicles.len() + "|"
@@ -1796,6 +1806,8 @@ function OpexAI::_tryBuildProjects(year)
         dstIndustry = (candidate.kind == "freight" && candidate.dstTown < 0)
                       ? AIIndustry.GetIndustryID(candidate.dst) : -1,
         deadStreak = 0, scrapping = false, scrapVehicles = [],
+        isLowRatio = ("isLowRatio" in candidate) ? candidate.isLowRatio : false,
+        opcodeRatio = ("opcodeRatio" in candidate) ? candidate.opcodeRatio : -1,
         lineId = idx,
       });
       this._nextLineId++;
@@ -1972,6 +1984,7 @@ function OpexAI::_tryBuildProjects(year)
           cargo = this._catalog.paxCargo,
           predicted = 0, iterations = 0, trains = 1, distance = plan.distance, year = year,
           mode = "water", vehicle = result.vehicle, vehicles = [result.vehicle],
+          isLowRatio = false, opcodeRatio = -1,   /* plan, pas de candidat : sans objet */
           lineId = this._nextLineId,
         });
         OpexSign(anchor, "PM|" + this._nextLineId + "|W|" + plan.distance + "|"
@@ -2187,8 +2200,9 @@ function OpexAI::_reportLines(year)
       local lMode = ("mode" in line) ? line.mode : "unknown";
       local lKind = ("kind" in line) ? line.kind : "unknown";
       local lAge = ("year" in line) ? (year - line.year) : -1;
+      local lPurpose = ("purpose" in line) ? line.purpose : "profit";
       local cLabel = AICargo.GetCargoLabel(line.cargo);
-      OpexDecide("LINE_REVENUE", "line=" + line.lineId + " mode=" + lMode + " kind=" + lKind + " cargo=" + cLabel + " year=" + year + " age=" + lAge + " pred_rev=" + predRevenue + " real_rev=" + realRevenue + " pred_prof=" + predProfit + " real_prof=" + profit + " pred_run=" + predRunning + " real_run=" + runCost + " vehs=" + vehCount + " low_ratio=" + isLow + " op_ratio=" + opRatio);
+      OpexDecide("LINE_REVENUE", "line=" + line.lineId + " mode=" + lMode + " kind=" + lKind + " cargo=" + cLabel + " year=" + year + " age=" + lAge + " pred_rev=" + predRevenue + " real_rev=" + realRevenue + " pred_prof=" + predProfit + " real_prof=" + profit + " pred_run=" + predRunning + " real_run=" + runCost + " vehs=" + vehCount + " low_ratio=" + isLow + " op_ratio=" + opRatio + " purpose=" + lPurpose);
     }
     if (vehicleType == AIVehicle.VT_RAIL || vehicleType == AIVehicle.VT_AIR) {
       /* Instantane de backlog, complete par l'utilisation annuelle derivee du revenu dans
