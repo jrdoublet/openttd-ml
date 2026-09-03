@@ -599,6 +599,30 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
+    /* Decision utilisateur : la reserve ne doit jamais depasser UN mois d'entretien, contre 3 mois
+     * (quarterlyBuffer) dans la branche dynamique et un forfait fixe dans la branche statique. Ce
+     * plafond passe sous CASH_RESERVE_MIN des que l'entretien annuel tombe sous 60 000 £, et sous 0
+     * si la flotte est vide -- assume, pas un bug : le plafond prime sur le plancher. */
+    /* Marges de tresorerie exigees EN PLUS de la reserve sur le chemin aerien (decision
+     * utilisateur du 2026-09-03). Le diagnostic 1v1 montre 88 refus insufficient_cash pour 3
+     * acceptations : la marge, jusqu'a 30 000 £, pese un ordre de grandeur de plus que la reserve
+     * (~7 000 £). Reglage SEPARE de reserve_maint_cap pour que le banc puisse attribuer. */
+    AddSetting({
+      name = "air_margin_v2",
+      description = "Lower the air cash margins (refleet 2000->0, two new airports 30000->15000, one 12000->6000): 1 = enabled, 0 = current margins (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "reserve_maint_cap",
+      description = "Cap the cash reserve at one month of fleet maintenance, overriding the floor: 1 = enabled, 0 = no cap (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* Plafond d'itérations A* dynamique : faible au départ (15k) pour filtrer vite les lignes faciles,
      * augmente en précalcul / attente de cash (60k) et avec la maturité du réseau (15k -> 60k). */
     AddSetting({

@@ -118,6 +118,21 @@ function OpexLogPortfolioRank(projects)
 /* Reserve de tresorerie dynamique : adaptee a la taille de la flotte pour liberer le capital
  * des les premieres annees (15 000 £ au lieu de 50 000 £) et eviter les soldes oisifs. */
 DYNAMIC_CASH_RESERVE <- true;
+/* Decision utilisateur : la reserve ne doit jamais depasser UN mois d'entretien (totalRunning / 12),
+ * contre jusqu'a 3 mois (quarterlyBuffer) ou un forfait fixe selon la branche. Defaut a false pour
+ * ne rien changer tant que le banc n'a pas tranche -- voir OpexCashReserve() plus bas. */
+RESERVE_MAINT_CAP <- false;
+/* Marges de tresorerie exigees EN PLUS de la reserve, sur le chemin aerien. Decision utilisateur
+ * du 2026-09-03, tirée du diagnostic 1v1 (docs/diag_1v1_decisions.json) : la marge de 30 000 £ est
+ * d'un ordre de grandeur au-dessus de la reserve (~7 000 £), donc c'est elle qui gate reellement.
+ *   refleet (croissance d'une ligne existante) : 2 000 -> 0, il n'y a rien a couvrir ;
+ *   2 aeroports neufs : 30 000 -> 15 000 (valeur demandee) ;
+ *   1 aeroport neuf   : 12 000 -> 6 000 (moitie, pour que les paliers restent ordonnes : 15 000
+ *                       pour deux aeroports contre 12 000 pour un seul n'aurait plus de sens) ;
+ *   0 aeroport neuf (les deux reutilises) : 2 000 -> 0, ce n'est pas une construction.
+ * Defaut a false tant que le banc n'a pas tranche, et reglage SEPARE de reserve_maint_cap pour
+ * que la mesure puisse attribuer -- c'est la lecon du lot de treize corrections groupees. */
+AIR_MARGIN_V2 <- false;
 TREE_PLANTING <- false;
 PAX_FULL_LOAD <- true;
 COMPLEX_CARGO <- true;
@@ -131,7 +146,21 @@ const CASH_RESERVE_MAX = 25000;
 
 function OpexCashReserve()
 {
-  if (!DYNAMIC_CASH_RESERVE) return CASH_RESERVE_STATIC;
+  if (!DYNAMIC_CASH_RESERVE) {
+    /* Branche statique : la boucle vehicules n'existe ici que si le plafond est demande, jamais
+     * inconditionnellement (elle serait sans objet a reglage 0). */
+    if (!RESERVE_MAINT_CAP) return CASH_RESERVE_STATIC;
+    local totalRunning = 0;
+    local vehicles = AIVehicleList();
+    for (local v = vehicles.Begin(); !vehicles.IsEnd(); v = vehicles.Next()) {
+      if (AIVehicle.IsValidVehicle(v)) {
+        totalRunning += AIVehicle.GetRunningCost(v);
+      }
+    }
+    local maintCap = totalRunning / 12;
+    if (maintCap < CASH_RESERVE_STATIC) return maintCap;
+    return CASH_RESERVE_STATIC;
+  }
   local totalRunning = 0;
   local vehicles = AIVehicleList();
   for (local v = vehicles.Begin(); !vehicles.IsEnd(); v = vehicles.Next()) {
@@ -139,10 +168,19 @@ function OpexCashReserve()
       totalRunning += AIVehicle.GetRunningCost(v);
     }
   }
+  local reserve;
   local quarterlyBuffer = totalRunning / 4;
-  if (quarterlyBuffer < CASH_RESERVE_MIN) return CASH_RESERVE_MIN;
-  if (quarterlyBuffer > CASH_RESERVE_MAX) return CASH_RESERVE_MAX;
-  return quarterlyBuffer;
+  if (quarterlyBuffer < CASH_RESERVE_MIN) reserve = CASH_RESERVE_MIN;
+  else if (quarterlyBuffer > CASH_RESERVE_MAX) reserve = CASH_RESERVE_MAX;
+  else reserve = quarterlyBuffer;
+  /* Le plafond d'un mois d'entretien (decision utilisateur) prime sur le plancher CASH_RESERVE_MIN :
+   * totalRunning / 12 est toujours < totalRunning / 4, donc ce plafond mord des que l'entretien
+   * annuel passe sous 60 000 £, y compris jusqu'a 0 flotte vide. Assume, pas une marge de securite. */
+  if (RESERVE_MAINT_CAP) {
+    local maintCap = totalRunning / 12;
+    if (maintCap < reserve) reserve = maintCap;
+  }
+  return reserve;
 }
 
 require("budget.nut");
@@ -872,7 +910,9 @@ function OpexAI::_tryBuildAir(year)
     }
 
     local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1) + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
-    local requiredMargin = (newAirports == 2) ? 30000 : (newAirports == 1 ? 12000 : 2000);
+    local requiredMargin = AIR_MARGIN_V2
+          ? ((newAirports == 2) ? 15000 : (newAirports == 1 ? 6000 : 0))
+          : ((newAirports == 2) ? 30000 : (newAirports == 1 ? 12000 : 2000));
     local capital = ("capital" in plan) ? plan.capital : (newAirports * plan.airport.price + plan.plane.price);
     local need = capital + baseReserve + requiredMargin;
     if (money < need) {
@@ -1515,7 +1555,9 @@ function OpexAI::_tryBuildProjects(year)
 
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
       local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1) + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
-      local requiredMargin = (newAirports == 2) ? 30000 : (newAirports == 1 ? 12000 : 2000);
+      local requiredMargin = AIR_MARGIN_V2
+          ? ((newAirports == 2) ? 15000 : (newAirports == 1 ? 6000 : 0))
+          : ((newAirports == 2) ? 30000 : (newAirports == 1 ? 12000 : 2000));
       local capital = ("capital" in plan) ? plan.capital : (newAirports * plan.airport.price + plan.plane.price);
       local need = capital + OpexCashReserve() + requiredMargin;
       if (money < need && REBORROW) money = OpexTryReborrow(need, money);
@@ -2279,7 +2321,10 @@ function OpexAI::_resizeAirFleets(year)
         break;
       }
     }
-    local need = planePrice + OpexCashReserve() + 2000;
+    /* Croissance d'une ligne aerienne EXISTANTE : aucun aeroport a batir, donc rien que
+     * cette marge doive couvrir. 88 refus insufficient_cash pour 3 acceptations mesures
+     * sur 3 parties x 2 ans (docs/diag_1v1_decisions.json). */
+    local need = planePrice + OpexCashReserve() + (AIR_MARGIN_V2 ? 0 : 2000);
     local addedThisPass = 0;
     // (d) au plus un avion par ligne et par an sous marginal_fleet=1 ; 4 (repli actuel) sous 0.
     local maxAddedPerPass = MARGINAL_FLEET ? 1 : 4;
@@ -3734,6 +3779,8 @@ function OpexAI::Start()
   PROBE_NEGATIVE = AIController.GetSetting("probe_negative") != 0;
   PAX_NEAR = AIController.GetSetting("pax_near") != 0;
   DYNAMIC_CASH_RESERVE = AIController.GetSetting("dynamic_cash_reserve") != 0;
+  RESERVE_MAINT_CAP = AIController.GetSetting("reserve_maint_cap") != 0;
+  AIR_MARGIN_V2 = AIController.GetSetting("air_margin_v2") != 0;
   DYNAMIC_PATHFINDER_CAP = AIController.GetSetting("dynamic_pathfinder_cap") != 0;
   TREE_PLANTING = AIController.GetSetting("tree_planting") != 0;
   PAX_FULL_LOAD = AIController.GetSetting("pax_full_load") != 0;
