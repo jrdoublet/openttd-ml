@@ -5005,6 +5005,7 @@ Il n'y a pas d'A\* fait maison. Seule la fonction de coût est à nous.
 | C12 | **La division entière écrase le rail dans `opcodeScore`** : médianes mesurées air 1037, route 62, **rail 0** | éliminé par division flottante continue | ✅ Fait (§0 tervicies) |
 | C14 | 🔶 **Desserrer le GAIN de la boucle de croissance aérienne** — AAAHogEx achète `(attente − 50) / capacité` appareils, jusqu'à 4 par passage ; nous exigeons une **pleine** capacité en attente et n'ajoutons **qu'un** avion. Le mécanisme est le même, le réglage ne l'est pas | tampon 50 contre 1 pleine capacité | §0 novemvicies point 6 |
 | C15 | 🔶 **Relever la CADENCE de `_resizeAirFleets`** — une croissance par ligne et par an (`lastAirFleetYear`, refus `Y`) contre un passage d'entretien chez eux. Deux réglages séparés de C14, à ne pas grouper | 1/an contre n/cycle | §0 novemvicies point 6 |
+| C21 | 🔴 **`expectedOpcodes` ignore `HARD_ITERATION_CAP` — défaut de PRODUCTION, pas seulement de sonde** : `expectedOps = candidate.iterations × PROJECT_RAIL_OPS_PER_ITERATION` (`projects.nut:122`) utilise un nombre d'itérations **prédit** (36 000 à 75 185 relevés en sonde) alors qu'A3 a plafonné le pathfinder à **10 000** (`pathfinder_hard_cap_k`). Le devis surestime donc d'un facteur **4 à 7** un coût qui ne peut plus être payé. ⚠️ Et `expectedOpcodes` sert au **classement réel** (`OpexProjectModeBetter`, `projects.nut:203`), pas seulement à la sonde : le rail est pénalisé aujourd'hui sur un coût fantôme | tension opcode 1,2-1,8 mesurée au lieu de ~0,28 | §0 duotrigesies, A3 |
 | C19 | 🔶 **Convertir les boucles `Begin()/Next()` chaudes en pipeline `Valuate` + `Keep*`** — surface réelle mesurée : **17 boucles manuelles** (catalogue 10, `main` 5) contre **3 seuls appels à `Valuate`** dans tout le projet. ⚠️ **Pas gratuit** : la source facture `Squirrel::DecreaseOps(vm, 5)` **par élément** (`script_list.cpp:910`) plus le valuateur — c'est un facteur, pas une exonération. À chiffrer sur le rafraîchissement du catalogue, mesuré à 21 492 opcodes | 5 opcodes/élément contre le corps entier d'une boucle Squirrel | `docs/cible.md` §8.3 |
 | C20 | 🔴 **Échéance PAR MICRO-ÉTAPE, jamais globale** — prérequis de toute exécution incrémentale. `safetyDeadline` est aujourd'hui une échéance en ticks posée **une fois** (`main.nut:2847`) ; c'est elle qui a fait rejeter A4 **deux fois** (−23,1 % puis −13,3 % et −27,5 % de gares) : en mode reprenable la fenêtre est partagée et la recherche meurt avant d'aboutir | ampute au lieu de redistribuer | §0 undecies sexies, `docs/cible.md` §2.1 |
 | C18 | 🔶 **Financement / prospection d'industrie** (`AIIndustryType.BuildIndustry` / `ProspectIndustry`, soumis à `economy.fund_buildings`) — créer un **débouché** là où il n'y en a pas, pour une source déjà desservie mais sous-exploitée faute d'accepteur proche. Plus spéculatif que C17 : à ne prendre qu'après lui | AAAHogEx : **0 occurrence**, comme pour les subventions | `docs/mecanique_jeu.md` §14 et §10 |
@@ -5970,3 +5971,24 @@ lui-même**. Le levier n'est donc pas d'en donner plus à la recherche, mais d'e
 par projet** — ce qui désigne C19 (pipelines `Valuate` au lieu de boucles Squirrel) et A7
 (événements au lieu de sondage) comme les deux tâches qui attaquent la contrainte réellement
 active.
+
+### ⚠️ Correction du point 5 de §0 duotrigesies (même jour, après vérification des termes bruts)
+
+La conclusion « quand ça mord, c'est l'opcode » **tient dans sa direction**, mais son amplitude
+était gonflée. Vidage des cas contraignants (graine 42, 5 ans) :
+
+```
+mode=rail dominant=opcodes  opcodes_tension=1.20  opcodes_cost=111 722 285  opcodes_flow=5 626 663/mois  tau=16,5
+mode=rail dominant=opcodes  opcodes_tension=1.82  opcodes_cost=233 450 705  opcodes_flow=5 628 752/mois  tau=22,7
+```
+
+`111 722 285 / 3 105 = 35 980` et `233 450 705 / 3 105 = 75 185` **itérations prédites** — alors
+que `HARD_ITERATION_CAP` vaut **10 000** depuis A3. Le devis facture donc 4 à 7 fois un travail
+que le plafond interdit. Tension réelle attendue : **~0,28**, ce qui reste la plus grande des
+quatre (argent 0,11-0,15) : **l'opcode demeure la contrainte qui mord, mais il ne consomme pas
+« deux ans de calcul »**. ➡️ C21.
+
+🔑 **Au passage, le débit réel est mesuré pour la première fois** : `opcodes_flow ≈ 5,63 M/mois`,
+soit **18,5 ticks de jeu par jour** et non les 74 souvent supposés. À 67 M d'opcodes par an, un
+seul chantier rail au plafond de 10 000 itérations en consomme **31 M, soit 46 % de l'année**.
+C'est le chiffre qui manquait pour situer le pathfinder à l'échelle du reste.
