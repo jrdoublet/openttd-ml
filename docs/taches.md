@@ -29,6 +29,17 @@ rien dans **61,2 %** des transitions mensuelles, contre 2,8 % chez AAAHogEx ; 19
 (14,6 contre 13,55). Le goulot est le **débit du contrôleur** — sélection, planification et
 exécution des projets.
 
+### 🧭 Où mène la piste au 2026-09-03 au soir
+
+Journée de mesure : `air_hub_fix` adopté (défaut de type, §0 octovicies), `tree_planting` infirmé
+une seconde fois (D1), `air_demand_cap` et `air_demand_plan` **tous deux rejetés** (§3 undecies
+bis, §0 trigesies), lecture d'AAAHogEx sur le dimensionnement aérien (§0 novemvicies).
+
+**L'item de tête est A1** — le dénominateur du classement dépendant de la ressource rare. Trois
+mesures indépendantes y convergent désormais, et l'objection qui le bloquait est tombée : à
+**10 ans, 18 graines sur 20 passent le test `_IsRich` d'AAAHogEx**, donc l'argument « nous sommes
+pauvres, leur aiguillage ne travaillerait pas chez nous » ne tient plus. Détail dans le tableau A.
+
 ### Comment lire les chiffres de ce document sans se tromper
 
 1. **Un banc à 5 graines ne tranche rien**, et un banc **à 1 an** encore moins : AAAHogEx monte en
@@ -4952,7 +4963,7 @@ qui n'avait pas encore sa ligne. Journal de la journée : `docs/journal_2026-09-
 
 | # | tâche | pourquoi elle est en tête |
 |---|---|---|
-| **A1** | **Dénominateur du classement dépendant de la ressource rare** (§0 tervicies point 1, §3 septies) | Sept mécanismes de capital mesurés, sept non adoptés : **le capital n'est pas le mur**. AAAHogEx bascule son dénominateur, nous jamais |
+| **A1** | 🔴 **Dénominateur du classement dépendant de la ressource rare** (§0 tervicies point 1, §3 septies) — **ITEM DE TÊTE au 2026-09-03 soir** | Sept mécanismes de capital mesurés, sept non adoptés : **le capital n'est pas le mur**. AAAHogEx bascule son dénominateur, nous jamais. ➡️ **Troisième confirmation indépendante le 2026-09-03** : le signe de l'effet d'`air_demand_plan` suit la RICHESSE (Spearman −0,725, 7/8 gagnantes chez les pauvres, 0/11 chez les riches — §0 trigesies). ➡️ Et **l'objection qui bloquait A1 tombe** : « dans notre régime, pauvre, AAAHogEx divise par le capital comme nous » reposait sur un horizon de 3 ans ; **à 10 ans, 18 graines sur 20 passent son test `_IsRich`** (valeur médiane 3,99 M£, revenu mensuel médian 73 k£). Nous SOMMES riches, et nous optimisons encore une contrainte qui ne lie plus |
 | **A2** | **Volume de liaisons** — largeur contre profondeur (§3 nonies phase 1) | Confirmé deux fois aujourd'hui. On pose 2,4 lignes aériennes par partie contre 35 appareils chez l'adversaire |
 | **A3** | **Sonde : plafonner `iterationBudget`** à ~10 000 au lieu de 50 000, banc apparié (§0 undecies ter) | ✅ Fait (`pathfinder_hard_cap_k` = 10, bornes dynamiques à 10k max) |
 | **A4** | ❌ **FAIT, MESURÉ, REJETÉ** — recherche reprenable d'un tour de file à l'autre (§0 undecies quater) | **−23,1 % de valeur, 16/20 graines perdantes** ($p = 0{,}0118$). Le gel de 7 mois est réel, mais il ne coûtait pas ce qu'on croyait. Réglage `rail_search_resumable` conservé comme instrument, défaut 0 — ❌ **RETEST FAIT sur socle segmenté (§0 undecies sexies) : REJETÉ UNE SECONDE FOIS**, −13,3 % de valeur (5/20, $p = 0{,}0414$) et surtout **−27,5 % de gares** ($t = -4{,}46$, $p = 0{,}0004$). Mécanisme identifié : `safetyDeadline` est une échéance en TICKS posée une fois (`main.nut:2847`), donc en mode reprenable la fenêtre est partagée avec la file et la recherche meurt avant d'aboutir — **A4 ampute la recherche, il ne la redistribue pas**. Défaut 0 |
@@ -4988,6 +4999,9 @@ Il n'y a pas d'A\* fait maison. Seule la fonction de coût est à nous.
 | C10 | **`builder_water.nut:255`** : note de gare plate au lieu de `OpexStationRatingForHeadway` | ✅ Fait (§0 octodecies) | §0 octodecies |
 | C11 | **`candidates.nut:166-170` + `:188`** : double pénalité empilée sur `distance > 105`, non recalibrée | ✅ Fait (§0 septdecies) | §0 septdecies |
 | C12 | **La division entière écrase le rail dans `opcodeScore`** : médianes mesurées air 1037, route 62, **rail 0** | éliminé par division flottante continue | ✅ Fait (§0 tervicies) |
+| C14 | 🔶 **Desserrer le GAIN de la boucle de croissance aérienne** — AAAHogEx achète `(attente − 50) / capacité` appareils, jusqu'à 4 par passage ; nous exigeons une **pleine** capacité en attente et n'ajoutons **qu'un** avion. Le mécanisme est le même, le réglage ne l'est pas | tampon 50 contre 1 pleine capacité | §0 novemvicies point 6 |
+| C15 | 🔶 **Relever la CADENCE de `_resizeAirFleets`** — une croissance par ligne et par an (`lastAirFleetYear`, refus `Y`) contre un passage d'entretien chez eux. Deux réglages séparés de C14, à ne pas grouper | 1/an contre n/cycle | §0 novemvicies point 6 |
+| C16 | 🔶 **Si le plafond aérien revient, le dériver de la CADENCE et non de la demande** — `jours d'aller-retour / créneau d'absorption`, divisé par le nombre de lignes qui partagent la piste (`EstimateMaxVehicles`, `route.nut:2374-2380`). L'ingrédient manquant est le `stationDateSpan` par type d'aéroport, jamais lu | remplace un plafond rejeté deux fois | §0 novemvicies points 1-2 |
 | C13 | **Le sac à dos (knapsack) n'utilise pas le ROI bonifié fret de C8** — `OpexKnapsackComputeBound`/`OpexKnapsackSearch` (`projects.nut:283-286`, `:323`) additionnent encore `p.revenueAnnual` brut comme objectif, pas le ROI bonifié (monopole +40 %, chaîne +35 %). Le bonus C8 pèse donc sur le tri/seuil de sélection en amont, pas sur l'optimum retenu quand plusieurs candidats se disputent le même capital | trouvé en revue croisée agy/codex/grok du 2026-09-02, en vérifiant C8 | §C8, `projects.nut` |
 
 ### D. Mesures à refaire, parce que les anciennes ne valent plus
@@ -5128,6 +5142,8 @@ passage ne les re-propose pas :
 | Servir la flotte avant la construction neuve (`fleet_before_new`) | ❌ **−20,4 % de `profit_year`** ($t = -3{,}53$, signes $p = 0{,}012$) à 3 ans — §0 septvicies |
 | Lever le plafond d'un projet par passage (`portfolio_max_batch`) | ❌ rejeté : −3,8 % de valeur, et **11 graines sur 20 sont des nuls exacts** (le lot ne se déclenche jamais) |
 | Mettre le temps de voyage/chargement au dénominateur (`transit_cost`) | ❌ nul à 20 graines × 10 ans, tous les $\|t\| < 1{,}5$ — §3 quater / D2 |
+| Plafonner la flotte aérienne par la demande de la ville (`air_demand_cap`) | ❌ mord fort (24/75/43 refus `Q`) mais rabote : −31 % / +7 % / nul — §3 undecies bis |
+| Dimensionner le plan aérien sur la production réelle (`air_demand_plan`) | ❌ **−51,5 % de `profit_year`** ($t = -3{,}96$, 5/20, signes $p = 0{,}041$) — §0 trigesies |
 
 **Et le dénominateur adaptatif d'AAAHogEx n'est PAS la pièce à copier en premier.** Son
 `CalculateProfitModel()` (`main.nut:781-806`) ne quitte le régime `roiBase` que si la compagnie est
@@ -5139,7 +5155,13 @@ l'IA est effectivement riche.
 
 ### 4. Ce qui reste réellement ouvert, dans l'ordre
 
-1. Le **plafond dérivé de la demande** (point 1) — la seule piste vraiment neuve du lot.
+⚠️ **Révisé le 2026-09-03 au soir.** Le point 1 a été câblé, sondé et **banché : REJETÉ dans ses
+deux formes** — `air_demand_cap` rabote sans payer (§3 undecies bis), `air_demand_plan` perd
+51,5 % de `profit_year` (§0 trigesies). Ce qui reste ouvert est donc **le 2 et le 3**, et une
+piste neuve issue de la lecture d'AAAHogEx : le plafond de **cadence** (§0 novemvicies), qui n'a
+rien à voir avec la demande de la ville.
+
+1. ❌ Le **plafond dérivé de la demande** (point 1) — **FAIT, MESURÉ, REJETÉ** deux fois.
 2. Le **plancher de ROI absolu** (point 2.1) — le moins cher à câbler et à mesurer.
 3. La **garde de finançabilité anticipée** (point 2.2).
 4. Subordonner la **construction** aérienne au portefeuille — déjà ouvert en §0 septvicies, avec
