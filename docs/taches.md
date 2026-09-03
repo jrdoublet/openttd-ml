@@ -6273,3 +6273,77 @@ Motifs de rejet du vivier, 194 781 rejets cumulés :
    laisser de trace.
 3. ⚠️ **Ne pas conclure que 92 % de rejet est anormal** : un vivier doit trier. Ce qu'il faut
    mesurer, c'est si les rejetés valaient mieux que les retenus — pas leur nombre.
+
+---
+
+## 0 septentrigesies. 🔑 D3.1 : CE QUI EST BÂTI SOUS LE PLANCHER EST RENTABLE À 95 % — le revenu est sous-estimé ×4,4 (2026-09-04)
+
+Question posée après le rejet de D3.1 au banc (−12,8 %, défaut 1 conservé) : **le banc dit que
+lever le filtre globalement coûte, mais que valaient les candidats qu'il rejette ?**
+
+**Aucun banc relancé.** La réponse était déjà sur disque : `docs/opex_pax_near_20y_5seeds.json`
+(2026-08-30) porte, ligne par ligne, le prédit **et** le réel. `pax_near` admet exactement la
+population en question — pax, ≤ 100 tuiles, **`ratio = 1`** (contre `MIN_RATIO = 500`) et profit
+prédit dans (−200, 0] — donc des candidats rejetés à la fois par `ratio_too_low` **et** par
+`profit_non_positive`.
+
+### 1. Le verdict : 20 lignes sur 21 sont rentables
+
+| | lignes sous le plancher | lignes ordinaires |
+|---|---:|---:|
+| effectif | 21 | 105 |
+| profit **prédit**, médiane | **−146** | +8 158 |
+| profit **RÉEL**, médiane | **+13 522** | +8 742 |
+| rentables | **20/21 (95 %)** | 92/105 (88 %) |
+| profit annuel réel cumulé | **+295 765 £** | +1 070 487 £ |
+
+**La ligne médiane rejetée par le filtre est plus rentable que la ligne médiane retenue**
+(13 522 contre 8 742), et son taux de réussite est meilleur (95 % contre 88 %). Une seule des 21
+échoue — une ligne morte à 73 tuiles, jamais desservie.
+
+⚠️ **Deux réserves qui ne renversent pas le résultat.** `actual.profit` est un profit **avant
+amortissement** (revenu − coût de fonctionnement), là où `predicted.profitAnnual` l'inclut ;
+l'amortissement prédit vaut ~1 442 £/an, donc la correction laisse la médiane bien au-dessus de
+zéro. Et ces lignes viennent d'une bande **bornée** (pax, ≤ 100 tuiles) : c'est précisément
+pourquoi lever le filtre **globalement** perd 12,8 % — la levée globale réadmet aussi le très long,
+dont on sait qu'il ne paie pas.
+
+### 2. 🔑 Le mécanisme, et ce n'est PAS l'amortissement
+
+En comparant terme à terme, prédit contre réel, sur les 21 lignes :
+
+| terme | prédit | réel | verdict |
+|---|---|---|---|
+| coût de fonctionnement | 2 132 / 2 894 | **identique au shilling** | ✅ exact |
+| nombre de convois | 1 | 1 | ✅ exact |
+| amortissement | ~1 442 £/an | — | négligeable devant l'écart |
+| **revenu annuel** | 3 192 – 4 320 | **7 715 – 28 325** | 🔴 **×4,4 en médiane** (2,3 à 6,6) |
+| **note de gare** | **22 ou 32** | **31 à 74** | 🔴 sous-estimée d'un facteur ~2 |
+
+**Tout l'écart est dans le revenu, et la note de gare en est le moteur visible.** Le modèle prédit
+une note de 22 ou 32 — une valeur quasi constante, celle du plancher — là où le jeu en rend 31 à
+74. Or le revenu est proportionnel au cargo ramassé, lui-même multiplié par cette note.
+
+➡️ **Le suspect est `OpexStationRatingForHeadway`** : sur une ligne longue à **un seul convoi**,
+le headway est énorme, donc le modèle plafonne la note au plus bas — et la réalité le dément de
+bout en bout. C'est exactement l'objet de **E4** (« mesurer le headway réel des lignes de
+calibration de la note de gare »), qui cesse d'être de l'hygiène pour devenir la piste principale.
+
+### 3. Ce que ça dit de D3.1 et de D3.2
+
+- **D3.1 reste correctement rejeté** : lever le filtre *globalement* est une mauvaise réponse à
+  un vrai problème. Défaut 1 conservé, c'est la bonne décision.
+- **D3.2 (+8,8 %) est juste, mais ce n'est PAS ce bug** : l'amortissement d'infrastructure vaut
+  ~1 442 £/an ici, contre un écart de ~13 700 £/an à expliquer. Les deux corrections sont
+  indépendantes, et D3.2 n'épuise pas le sujet.
+- ➡️ **La bonne forme n'est ni de lever le filtre ni de le déplacer : c'est de réparer
+  l'estimateur de revenu**, après quoi le filtre laissera passer ces lignes de lui-même. Un filtre
+  n'est jamais meilleur que le modèle qui l'alimente.
+
+### 4. Ce qui reste à vérifier avant d'agir
+
+- Ces 21 lignes sont **toutes du rail**, à un convoi, entre 38 et 97 tuiles. **Ne pas généraliser**
+  à l'air, à l'eau ni aux lignes à flotte multiple sans mesure.
+- Le rapport ×4,4 est mesuré sur des données du **2026-08-30**, donc avant `economy_fix`, C21 et
+  D3.2. À recontrôler sur l'arbre courant avant d'en tirer un correctif chiffré — mais le **signe**
+  et l'ordre de grandeur ne dépendent d'aucun de ces trois.
