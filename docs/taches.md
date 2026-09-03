@@ -5802,3 +5802,79 @@ sa tension monte mécaniquement. À lire comme un instrument, pas comme un verdi
 réelle reste 3 graines × 10 ans**, avec le tracé de la dominante mois par mois et de l'écart
 entre la première et la deuxième tension — c'est cet écart qui dira si un `argmax` oscillerait,
 donc si le dénominateur pondéré est nécessaire.
+
+---
+
+## 0 untrigesies. 🔑 SONDE A6 : LA CONTRAINTE DOMINANTE VARIE — et elle a une structure temporelle (2026-09-03)
+
+`sweeps/diag_tension.py`, 3 graines × 10 ans, `tension_probe=1`, `docs/diag_tension.json`.
+215 évaluations, 121 cycles, **0 erreur de script**. Le classement n'est pas touché : la sonde
+journalise, elle ne décide pas.
+
+### 1. ✅ Le critère d'arrêt d'A6 n'est PAS déclenché
+
+| dominante | part |
+|---|---:|
+| **foncier** | 98 / 215 (**46 %**) |
+| **argent** | 69 / 215 (**32 %**) |
+| **opcodes** | 48 / 215 (**22 %**) |
+
+L'argent domine **un tiers du temps**. La règle « si c'est l'argent 100 % du temps, il n'y a rien
+à coder » ne s'applique donc pas : le classement au ROI capital optimise une contrainte qui, deux
+fois sur trois, **n'est pas celle qui lie**. C'est la confirmation directe et interne de ce que
+sept mécanismes de capital non adoptés laissaient supposer.
+
+### 2. 🔑 Et surtout : elle varie AU COURS de la partie
+
+Graine 42, dominante par année :
+
+| 1970 | 1971 | 1972 | 1973 | 1974 | 1975 | 1976 | 1977 | 1978 | 1979 |
+|---|---|---|---|---|---|---|---|---|---|
+| argent 50 % | foncier 67 % | foncier 50 % | foncier 67 % | foncier 56 % | foncier 50 % | foncier 57 % | foncier 70 % | foncier 75 % | **foncier 82 %** |
+
+L'argent domine **la première année** — c'est le mur de trésorerie 1970-1980 déjà mesuré — puis
+s'efface, et le foncier monte régulièrement jusqu'à 82 %. Les opcodes occupent le milieu de
+partie (25 à 50 % selon l'année). Graine 999 : argent **92 %** en 1970, puis alternance
+argent/foncier, opcodes à 44 % en 1976.
+
+➡️ **C'est la doctrine de phase, mesurée au lieu d'être décrétée.** B2 et B4 voulaient la poser à
+la main ; la tension la fait émerger. Aucun seuil, aucune date, aucune constante.
+
+### 3. 🔴 Ce résultat contredit ma propre recommandation sur la forme
+
+**L'écart entre la première et la deuxième tension est LARGE** : médiane **0,577**, et seulement
+**7 %** des évaluations sous 0,10.
+
+J'avais proposé un dénominateur **pondéré** (`Σ tension × coût`) plutôt qu'un `argmax`, au motif
+qu'un `argmax` basculerait sur du bruit d'estimation. **La mesure dit que non** : dans 93 % des
+cas la dominante est nette. Une **bascule discrète**, à la `_IsRich` d'AAAHogEx, serait donc
+stable — et elle est beaucoup moins risquée à livrer qu'une refonte du dénominateur, ce qui compte
+vu que `portfolio_v2`, dernière refonte du classement livrée d'un coup, détruisait la valeur.
+
+Le dénominateur pondéré reste plus élégant ; il n'est plus **justifié par les données**.
+
+### 4. ⚠️ La réserve qui pèse le plus : le foncier est le proxy le plus faible
+
+`foncier` domine 46 % du temps, or sa mesure est `1 / nombre de candidats du mode`. Elle dit
+« le vivier de ce mode est étroit », **pas** « l'espace constructible est épuisé ». Quand un mode
+n'a que deux candidats, sa tension vaut 0,5 et écrase mécaniquement les autres.
+
+➡️ **Le résultat de tête repose donc sur la mesure la moins solide des quatre.** Avant tout
+arbitrage, c'est elle qu'il faut rendre réelle : le bon dénominateur est l'espace admissible
+restant — `separation_rejected` (`stats.pairsOriginServed`) est déjà journalisé à côté et donne
+la matière. `docs/opexai_plafonnement.md` a déjà mesuré ce mur : 18 des 19 derniers candidats de
+la graine 999 tués par `MIN_SEPARATION`, avec 37-39 villes non desservies.
+
+### 5. Coût de la sonde
+
+Médiane **3 200 opcodes par cycle**, maximum 8 546 — sous un tick, mais **pas négligeable** si un
+jour l'arbitrage tourne à chaque cycle. À reconsidérer si le vecteur passe en production.
+
+### ➡️ Ordre qui en découle
+
+1. **Rendre la tension foncière réelle** (espace admissible, pas taille du vivier). Sans ça,
+   46 % du résultat n'est pas interprétable.
+2. **Puis** une bascule discrète du dénominateur, pas le dénominateur pondéré : les données ne
+   justifient pas le second, et le premier est bien moins risqué.
+3. La graine 12345 s'arrête de construire en 1972 (19 évaluations contre ~100) — cohérent avec son
+   effondrement connu. Ne pas la lire comme les deux autres.
