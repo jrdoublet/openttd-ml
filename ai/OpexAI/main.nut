@@ -133,6 +133,14 @@ RESERVE_MAINT_CAP <- false;
  * Defaut a false tant que le banc n'a pas tranche, et reglage SEPARE de reserve_maint_cap pour
  * que la mesure puisse attribuer -- c'est la lecon du lot de treize corrections groupees. */
 AIR_MARGIN_V2 <- false;
+/* C13 : le sac a dos maximise la somme des revenueAnnual (projects.nut:302), donc il ignore
+ * entierement les frais de roulement -- deux projets a revenu egal lui sont equivalents meme si
+ * l'un paie deux fois plus. profitAnnual et roi existent DEJA sur chaque projet, simplement jamais
+ * consultes par l'optimiseur ; et le meme defaut avait ete corrige un etage plus bas
+ * (economy.nut:261) sans qu'on remonte d'un cran. 1 = objectif ET ordre de branchement en profit.
+ * Consequence attendue, mesuree par le banc : donner plus de capital cesse de degrader le choix
+ * (docs/taches.md S0 undecies septies). */
+KNAPSACK_ROI <- false;
 TREE_PLANTING <- false;
 PAX_FULL_LOAD <- true;
 COMPLEX_CARGO <- true;
@@ -3781,6 +3789,7 @@ function OpexAI::Start()
   DYNAMIC_CASH_RESERVE = AIController.GetSetting("dynamic_cash_reserve") != 0;
   RESERVE_MAINT_CAP = AIController.GetSetting("reserve_maint_cap") != 0;
   AIR_MARGIN_V2 = AIController.GetSetting("air_margin_v2") != 0;
+  KNAPSACK_ROI = AIController.GetSetting("knapsack_roi") != 0;
   DYNAMIC_PATHFINDER_CAP = AIController.GetSetting("dynamic_pathfinder_cap") != 0;
   TREE_PLANTING = AIController.GetSetting("tree_planting") != 0;
   PAX_FULL_LOAD = AIController.GetSetting("pax_full_load") != 0;

@@ -607,6 +607,18 @@ Le mode route est donc reconfirme sur l arbre courant.
      * utilisateur du 2026-09-03). Le diagnostic 1v1 montre 88 refus insufficient_cash pour 3
      * acceptations : la marge, jusqu'a 30 000 £, pese un ordre de grandeur de plus que la reserve
      * (~7 000 £). Reglage SEPARE de reserve_maint_cap pour que le banc puisse attribuer. */
+    /* C13 (remarque de grok, 2026-09-02 ; motive par le banc du 2026-09-03). Le sac a dos
+     * maximisait la somme des revenus, jamais du profit -- d'ou le resultat contre-intuitif
+     * "plus de capital fait construire moins" : un objectif de revenu depense le budget
+     * supplementaire en projets plus gros, donc moins nombreux. */
+    AddSetting({
+      name = "knapsack_roi",
+      description = "Knapsack maximises annual PROFIT instead of annual revenue, and branches on profit density: 1 = enabled, 0 = revenue (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     AddSetting({
       name = "air_margin_v2",
       description = "Lower the air cash margins (refleet 2000->0, two new airports 30000->15000, one 12000->6000): 1 = enabled, 0 = current margins (default)",

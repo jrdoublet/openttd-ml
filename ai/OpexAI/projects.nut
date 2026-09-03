@@ -278,12 +278,15 @@ function OpexKnapsackComputeBound(candidates, n, startIdx, cap)
   local rem = cap;
   for (local j = startIdx; j < n; j++) {
     local p = candidates[j];
+    /* La borne doit majorer la MEME grandeur que l'objectif, sinon l'elagage coupe des
+     * solutions valides. Voir OpexKnapsackSearch pour le choix revenu/profit. */
+    local pv = KNAPSACK_ROI ? p.profitAnnual : p.revenueAnnual;
     if (p.budgetCapital <= rem) {
       rem -= p.budgetCapital;
-      bound += p.revenueAnnual;
+      bound += pv;
     } else {
       if (rem > 0 && p.budgetCapital > 0) {
-        bound += ((p.revenueAnnual.tofloat() * rem) / p.budgetCapital).tointeger();
+        bound += ((pv.tofloat() * rem) / p.budgetCapital).tointeger();
       }
       break;
     }
@@ -320,7 +323,8 @@ function OpexKnapsackSearch(state, idx, currentCapital, currentRevenue, currentR
     currentItems.append(p);
     state.originsUsed[p.src] <- true;
     state.originsUsed[p.dst] <- true;
-    OpexKnapsackSearch(state, idx + 1, currentCapital + p.budgetCapital, currentRevenue + p.revenueAnnual,
+    OpexKnapsackSearch(state, idx + 1, currentCapital + p.budgetCapital,
+                       currentRevenue + (KNAPSACK_ROI ? p.profitAnnual : p.revenueAnnual),
                        p.mode == "road" ? currentRoad + 1 : currentRoad, currentItems);
     delete state.originsUsed[p.src];
     delete state.originsUsed[p.dst];
@@ -332,7 +336,11 @@ function OpexKnapsackSearch(state, idx, currentCapital, currentRevenue, currentR
 }
 
 /* Résout le problème du sac à dos 0/1 borné par Branch & Bound.
- * Maximise la somme des revenueAnnual sous contrainte de capitalBudget, maxRoad et maxItems. */
+ * Maximise la somme des revenueAnnual sous contrainte de capitalBudget, maxRoad et maxItems --
+ * ou la somme des profitAnnual sous knapsack_roi. Le revenu ignore le roulement : deux projets
+ * a revenu egal y sont equivalents meme si l'un paie deux fois plus de frais. Le meme defaut
+ * avait deja ete corrige un etage plus bas (economy.nut:261, choix du nombre de convois) sans
+ * qu'on remonte d'un cran. Voir docs/taches.md C13. */
 function OpexKnapsackSolve(candidates, capitalBudget, maxRoad = 18, maxItems = 32)
 {
   if (candidates.len() == 0 || capitalBudget <= 0) {
@@ -340,13 +348,35 @@ function OpexKnapsackSolve(candidates, capitalBudget, maxRoad = 18, maxItems = 3
   }
 
   // Trier les candidats par score composite décroissant (rendement économique et efficacité d'opcodes)
-  candidates.sort(function(a, b) {
-    local va = (a.budgetScore * 75 + a.opcodeScore * 25).tofloat();
-    local vb = (b.budgetScore * 75 + b.opcodeScore * 25).tofloat();
-    if (va > vb) return -1;
-    if (va < vb) return 1;
-    return 0;
-  });
+  /* L'ordre de branchement doit suivre la DENSITE de la grandeur optimisee, sinon la borne
+   * gloutonne majore mal et le Branch & Bound explore dans le desordre. budgetScore est une
+   * densite de REVENU par livre ; sous knapsack_roi on lui substitue la densite de PROFIT. */
+  /* Chemin ETEINT laisse mot pour mot tel qu'il etait, pour que le socle ne glisse pas : ici le
+   * comportement depend des opcodes consommes. Chemin allume : cle precalculee plutot que lue
+   * dans la closure -- ce depot n'a aucun precedent de globale lue depuis un comparateur, et une
+   * passe sur 64 candidats coute moins que deux lectures par comparaison sur ~384 comparaisons. */
+  if (KNAPSACK_ROI) {
+    foreach (c in candidates) {
+      /* Densite de PROFIT par livre, calculee ICI et pas dans les constructeurs : la porter
+       * en champ la ferait payer aux DEUX bras. profitAnnual est deja net du roulement et de
+       * l'amortissement, et le capital rail deja corrige du terrain (RAIL_TERRAIN_FACTOR). */
+      local roiScore = OpexProjectScore(c.profitAnnual, c.budgetCapital);
+      c.sortKey <- (roiScore * 75 + c.opcodeScore * 25).tofloat();
+    }
+    candidates.sort(function(a, b) {
+      if (a.sortKey > b.sortKey) return -1;
+      if (a.sortKey < b.sortKey) return 1;
+      return 0;
+    });
+  } else {
+    candidates.sort(function(a, b) {
+      local va = (a.budgetScore * 75 + a.opcodeScore * 25).tofloat();
+      local vb = (b.budgetScore * 75 + b.opcodeScore * 25).tofloat();
+      if (va > vb) return -1;
+      if (va < vb) return 1;
+      return 0;
+    });
+  }
 
   local n = candidates.len();
   if (n > 64) n = 64; // Limiter aux 64 meilleurs candidats
