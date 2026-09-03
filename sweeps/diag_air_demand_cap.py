@@ -33,7 +33,7 @@ from openttdlab import bananas_ai_library, local_folder, run_experiments
 
 ROOT = Path("/work") if Path("/work").exists() else Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "sweeps"))
-from bench_v2 import enable_savegame_cleanup, make_cfg  # noqa: E402
+from bench_v2 import enable_savegame_cleanup, make_cfg, quarter_profit, year_profit  # noqa: E402
 
 OPENTTD_VERSION, OPENGFX_VERSION = "15.3", "7.1"
 SCRIPT_DEBUG_LEVEL = "4"
@@ -107,6 +107,11 @@ def keep(row):
         "arm": row["experiment"]["diag_arm"],
         "seed": row["experiment"]["seed"],
         "date": str(row["date"]),
+        # L'ordre des objectifs met le PROFIT avant la valeur : la premiere version de cette
+        # sonde ne relevait que company_value, et son tableau a donc flatte un reglage que le
+        # banc a ensuite rejete a -51,5 % de profit_year (S3 undecies bis).
+        "profit": quarter_profit(last_closed),
+        "profit_year": year_profit(closed),
         "company_value": last_closed.get("company_value"),
         "performance_history": last_closed.get("performance_history"),
         "n_vehicles": len(chunks.get("VEHS", {})),
@@ -204,13 +209,14 @@ def main():
         "finals": finals, "summaries": summaries,
     }, indent=1))
 
-    print(f"\n{'bras':10} {'graine':>7} {'valeur':>10} {'avions':>7} {'lignes air':>11} "
-          f"{'refus Q':>8} {'refus C':>8} {'marge med':>10}")
+    print(f"\n{'bras':10} {'graine':>7} {'profit_an':>11} {'valeur':>10} {'avions':>7} "
+          f"{'lignes air':>11} {'refus Q':>8} {'refus C':>8} {'marge med':>10}")
     for name, _c, _p in ARMS:
         for seed in args.seeds:
             key = f"{name}|{seed}"
             f, s = finals.get(key, {}), summaries.get(key, {})
-            print(f"{name:10} {seed:>7} {str(f.get('company_value')):>10} "
+            print(f"{name:10} {seed:>7} {str(f.get('profit_year')):>11} "
+                  f"{str(f.get('company_value')):>10} "
                   f"{str(f.get('n_aircraft')):>7} {str(s.get('air_builds')):>11} "
                   f"{str(s.get('q_refusals')):>8} {str(s.get('c_refusals')):>8} "
                   f"{str(s.get('marge_mediane')):>10}")

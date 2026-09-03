@@ -5488,3 +5488,69 @@ Ne pas commencer par écrire trois personnalités. Commencer par **une** — la 
 actuelle, nommée et rendue explicite — et vérifier qu'elle rejoue le comportement courant **au bit
 près** sur 20 graines. Tant que ce contrôle de non-régression n'est pas vert, aucune seconde
 personnalité n'a de sens.
+
+---
+
+## 0 trigesies. ❌ `air_demand_plan` : REJETÉ au banc 20 graines × 10 ans — et l'effet DÉPEND DE LA RICHESSE (2026-09-03)
+
+Banc apparié `docs/bench_air_demand_plan_10y.json`, 20 graines × 10 ans, `air_demand_cap` à 0 des
+deux côtés, 40 parties, **0 échec de script**.
+
+| métrique | écart de `air_demand_plan=1` | t | graines gagnées | test des signes |
+|---|---:|---:|---:|---:|
+| `profit` | **−60,7 %** | **−4,36** | 4/20 | **0,012** |
+| `profit_year` | **−51,5 %** | **−3,96** | 5/20 | **0,041** |
+| `company_value` | −24,9 % | −1,70 | 8/20 | 0,50 |
+| `performance_history` | −4,9 % | −0,96 | 10/20 | 1,00 |
+| `median_station_rating` | +3,0 % | +1,23 | **19/20** | **0,0002** |
+
+**Verdict : rejeté, sans ambiguïté.** L'ordre des objectifs met le profit en tête, et c'est
+précisément là que le réglage s'effondre — avec le test des signes significatif, pas seulement le
+$t$. Défaut confirmé à **0**.
+
+Le réglage **fait exactement ce qu'il promettait** : il concentre le réseau, et la note de gare
+monte sur **19 graines sur 20**. Mais il échange du profit contre de la note — le troisième
+objectif contre le premier. C'est un mauvais troc, mesuré.
+
+### 🔴 Ce que ça invalide dans ma propre lecture de la sonde
+
+La sonde de §3 undecies bis annonçait +44 %, +76 % et un sauvetage de graine. Deux défauts, dont
+le second est le mien et compte davantage :
+
+1. **3 graines ne tranchent rien** — c'était écrit dans la sonde elle-même, et c'est le rappel de
+   [[banc_monograine_insuffisant]]. Le sauvetage de la graine 12345 (« 1 → 242 451 ») ne survit
+   pas à l'horizon : à 10 ans, **les deux bras** y sont à `company_value = 1`.
+2. 🔴 **Ma sonde relevait `company_value`, que l'ordre des objectifs classe DERNIER.** Elle ne
+   relevait pas le profit du tout. Or sur ses propres 3 graines, à 10 ans, `air_demand_plan` gagne
+   encore en valeur (42 : +15 %, 999 : +64 %) mais **perd en profit** (−31,5 % et −12,3 %). Le
+   signal contraire était déjà là, invisible parce que je ne l'avais pas instrumenté.
+   ➡️ **Corrigé** : `sweeps/diag_air_demand_cap.py` relève désormais `profit` et `profit_year`, et
+   son tableau les affiche **avant** la valeur. Toute sonde future doit suivre l'ordre des
+   objectifs, pas l'inverse.
+
+### 🔑 La trouvaille qui vaut plus que le verdict : le signe de l'effet suit la RICHESSE
+
+En triant les 20 graines par la valeur de compagnie du bras de base :
+
+| régime de la partie de base | graines | `air_demand_plan` gagne |
+|---|---:|---:|
+| pauvre (`company_value` < 3,4 M£) | 8 | **7** |
+| riche (≥ 3,4 M£) | 11 | **0** |
+
+Corrélation de rang, **sans seuil choisi à la main** : Spearman entre la valeur de base et l'écart
+du réglage = **−0,725** ($t = -4{,}33$, $n = 19$ ; la graine 12345, à 1 £ dans les deux bras, est
+écartée). Amplitudes extrêmes : **+104,5 %** sur la graine 123456, **−80,2 %** sur la 100.
+
+⚠️ **Le seuil de 3,4 M£ est ajusté APRÈS coup sur ces 20 graines** : c'est une hypothèse produite
+par les données, pas un résultat validé. La corrélation de rang, elle, ne dépend d'aucun seuil.
+
+**Et ça rejoint exactement §0 tervicies.** AAAHogEx ne quitte le régime `roiBase` que s'il est
+**riche** (`_IsRich`, `main.nut:4324`). Ici, une estimation de demande honnête — donc
+conservatrice — aide quand la compagnie est pauvre et coûte cher quand elle est riche : pauvre, on
+gagne à ne pas gaspiller sur des paires surestimées ; riche, le facteur qui lie n'est plus la
+justesse de l'estimation mais le **volume**, et brider la sélection ampute la croissance.
+
+➡️ Ce n'est donc **pas** « `air_demand_plan` est mauvais ». C'est **« un réglage constant sur toute
+la partie est le mauvais objet »** — troisième mesure indépendante qui pointe vers A1 (dénominateur
+dépendant de la ressource rare) et B4 (doctrine de phase). Le réglage reste comme instrument à 0 ;
+s'il revient, c'est **conditionné à la richesse**, pas en dur.
