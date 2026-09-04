@@ -8116,3 +8116,114 @@ avec l'aéroport, dans la même gare, et alimentent l'avion dès le premier jour
 ⚠️ **C33.1 avant tout le reste.** Tant qu'un tiers de l'année part en planification, aucune
 amélioration de décision ne peut se voir : on optimise le choix pendant que le débit est le mur.
 C'est la même leçon que §0 sexquinquagesies point 2.2 (cadence 7 j contre 365) vue par l'autre bout.
+
+---
+
+## 0 sexagesies. C33.1 — Anatomie du coût de planification aérienne (AIR_PLAN_SETS) et instrumentation (2026-09-05)
+
+### 1. Le constat chiffré : un goulot de 15 millions d'opcodes par passage
+
+L'analyse de timeline (§0 novemquinquagesies) sur la graine 1 a révélé 5 trous majeurs de 20 à 24
+jours de jeu entre `AIR_TOWN_SERVED` et `AIR_PLAN_SETS`. À 10 000 opcodes par tick et ~74 ticks par
+jour (~740 000 opcodes par jour de jeu OpenTTD) :
+- **Un seul passage de `OpexAirPlans` consomme ~15 000 000 d'opcodes**, bloquant l'IA pendant **~20 à
+  24 jours de jeu in-game**.
+- Appelé 6 fois par an (au moins une fois par `main.nut` pour la tâche `air`, et par `projects.nut`
+  pour le portefeuille), cela représente **~130 jours de jeu gelés par an (36 % de l'an 1)**.
+- En comparaison, AAAHogEx boucle la recherche, les chantiers complets (2 aéroports + 4 arrêts de bus
+  + avions + ordres) en **4 à 6 jours** sur ses premières lignes.
+- La génération de feeders optimisée le matin même (§0 quinquagesies, C31.3) consommait 16 171 opcodes :
+  `OpexAirPlans` est **900 fois plus lourd** !
+
+### 2. Anatomie des quatre failles de conception dans `OpexAirPlans` et `OpexAirFindSite`
+
+Une dissection statique du code (`builder_air.nut`) met en lumière quatre anomalies cumulatives :
+
+1. **Absence complète de cache de sites d'atterrissage** :
+   Le relief et l'emprise des villes ne changent quasiment pas en an 1. Pourtant, à CHAQUE appel de
+   `OpexAirPlans`, `OpexAirFindSite` repart de zéro pour jusqu'à 30 villes (`AIR_TOWN_POOL`), et ce pour
+   CHAQUE combinaison avion/aéroport du catalogue (`combos`).
+   *À titre de comparaison chez AAAHogEx* : `Place.canBuildAirportCache` mémorise la faisabilité par ville
+   et n'est purgé que **tous les 10 ans** (`route.nut:1668`, `main.nut:755`).
+
+2. **Boucle géométrique morte ($r \in [26, 35]$)** :
+   `AIR_SITE_RADIUS` vaut 35 (`builder_air.nut:14`). Mais dans `OpexAirFindSite` (l. 349) :
+   ```squirrel
+   if (OpexAirDistanceToRect(town.tile, anchor, w, h) > 25) continue;
+   ```
+   Pour toute tuile dont la distance au rectangle dépasse 25, la boucle rejette immédiatement le candidat.
+   Or, pour tout rayon $r \ge 26$, une part massive (puis 100 % au-delà de $25 + w$) des tuiles générées
+   sur le périmètre carré $[ -r \dots r ]$ dépasse cette distance Manhattan. Des milliers d'itérations
+   calculent des coordonnées et des distances pour un rejet certain.
+
+3. **Double exécution dans le même cycle annuel/mensuel** :
+   Dans `main.nut:970`, la tâche `air` appelle `OpexAirPlans(catalog, lines, maxCapital, null, ...)`.
+   Puis dans `projects.nut:693`, la tâche `projects` ré-exécute `OpexAirPlans(catalog, lines, 0, airPlans)`.
+   Deux balayages complets de 15M d'opcodes chacun sont lancés sans mutualisation du résultat !
+
+4. **Coût prohibitif des sondes transactionnelles en C++** :
+   `AIR_MAX_SITE_PROBES` est fixé à 1 500 (`builder_air.nut:16`), et `allowance` par ville à 120
+   (`builder_air.nut:330`).
+   Pour chaque tuile testée, `OpexAirFindSite` instancie `local probe = AITestMode()`, appelle
+   `AIAirport.BuildAirport()`, et si besoin `AITile.LevelTiles()` puis un second `BuildAirport()`.
+   Ces appels ne sont pas des opérations mémoire Squirrel : ils créent des structures transactionnelles
+   complètes dans le moteur C++ d'OpenTTD avec rollback systématique. 120 sondes de ce type par ville
+   sur 30 villes consomment des millions d'opcodes moteur.
+
+### 3. Stratégie d'instrumentation C33.1
+
+Avant toute retouche algorithmique, il est impératif d'obtenir une mesure décomposée et exacte
+sans perturber le système de comptabilité existant :
+- **Non-interférence avec `OpexBudget`** : `OpexBudget` n'est pas réentrant (`ATTENTION : non reentrant.
+  Un seul begin()/end() a la fois`). Comme `main.nut` et `projects.nut` entourent déjà `OpexAirPlans`
+  de `budget.begin()` / `end()`, l'instrumentation interne doit mesurer les deltas d'opcodes
+  directement via `AIController.GetTick()` et `AIController.GetOpsTillSuspend()`.
+- **Compteurs isolés** :
+  - `ops_sites` : opcodes cumulés dans la recherche de sites (`OpexAirFindSite`).
+  - `ops_eval_pairs` : opcodes cumulés dans l'évaluation combinatoire (site-site, hub-site, hub-hub).
+  - `ticks_elapsed` / `days` : temps de jeu réel consommé par l'appel.
+  - `probes_count` : nombre exact de tuiles testées en `AITestMode()`.
+  - `sites_found` : nombre de sites viables découverts.
+- **Canaux de sortie** :
+  - Journal de décision `AIR_PLAN_PERF` avec décomposition fine.
+  - Panneau diagnostic en tuile `(1, 2)` : `AP|T=<total>|S=<sites>|E=<eval>|TK=<ticks>`.
+
+### 4. Mesure empirique baseline (6 graines, an 1, 102 exécutions)
+
+Mesure réalisée via `sweeps/diag_1v1_decisions.py --seeds 1 42 100 7 999 2026 --years 1 --only OpexAI`
+avec l'instrumentation `AIR_PLAN_PERF` active (`scratch/diag_perf_all_seeds.json`) :
+
+| Graine | Passages | Total opcodes | Ops Sites (`FindSite`) | % Sites | Ops Éval (`Economics`) | % Éval | Jours perdus | Sondes `AITestMode` | Sites / passage |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 10 | 37 377 597 | 36 506 683 | 97,7 % | 654 403 | 1,8 % | 48 j | 23 623 | 12,0 |
+| 42 | 17 | 40 627 145 | 38 460 269 | 94,7 % | 1 719 934 | 4,2 % | 47 j | 22 047 | 14,2 |
+| 100 | 27 | 34 890 240 | 31 595 975 | 90,6 % | 2 521 554 | 7,2 % | 29 j | 19 094 | 13,8 |
+| 7 | 18 | 38 647 669 | 35 735 662 | 92,5 % | 2 361 137 | 6,1 % | 43 j | 24 476 | 19,4 |
+| 999 | 13 | 28 216 073 | 26 516 236 | 94,0 % | 1 341 376 | 4,8 % | 28 j | 16 940 | 16,7 |
+| 2026 | 17 | 36 237 511 | 33 462 436 | 92,3 % | 2 295 846 | 6,3 % | 37 j | 20 670 | 18,7 |
+| **Moyenne** | **17,0** | **35 999 372** | **33 712 877** | **93,6 %** | **1 815 708** | **5,0 %** | **38,7 j** | **21 142** | **15,8** |
+
+**Enseignements capitaux de la mesure** :
+1. **93,6 % du goulot est dans `OpexAirFindSite`** : L'évaluation économique combinatoire (`ops_eval`)
+   ne représente que 5,0 % du temps total (1,8 M d'opcodes sur 36 M). Tout le problème vient de la
+   recherche topographique de sites d'atterrissage.
+2. **21 142 sondes C++ par an** : L'IA exécute en moyenne plus de vingt-mille transactions `AITestMode`
+   par an pour trouver... 16 sites !
+3. **Redondance quasi-parfaite** : Sur la graine 42, `OpexAirPlans` tourne 17 fois dans l'année. Les 17
+   passages testent les mêmes villes et retrouvent exactement les mêmes 14 sites, re-dépensant à chaque
+   fois 2,1 à 2,6 M d'opcodes dans le vide !
+4. **Impact direct sur le jeu** : 38,7 jours complets d'inactivité moteur sont consommés en an 1 par
+   cette seule boucle.
+
+### 5. Feuille de route de réduction C33.1
+
+Les priorités d'action sont désormais chiffrées :
+1. **Élimination de la boucle morte** : passer `AIR_SITE_RADIUS = 25` (élimine 2 440 tuiles superflues
+   par ville, soit 49 % des coordonnées parcourues).
+2. **Cache de sites d'atterrissage (`_airSiteCache`)** : persister les paires `(townId, airportType) -> anchor`
+   au niveau de `OpexAI` pour ne jamais re-sonder une ville déjà résolue (gain attendu : ~90 % des 33,7 M
+   d'opcodes de sites).
+3. **Mutualisation entre tâches (`catalog`, `projects`, `air`)** : éviter de recalculer `OpexAirPlans`
+   plusieurs fois par mois si aucune ligne ni aéroport n'a changé.
+
+

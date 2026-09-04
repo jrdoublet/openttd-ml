@@ -24,3 +24,5 @@ docs/diag_1v1_10y.json
 
 # Rejeu graine 1 avec journaux de decision complets : versionne en .gz a cote.
 docs/replay_seed1_y1.json
+scratch/
+

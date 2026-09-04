@@ -390,6 +390,7 @@ function OpexAirFindSite(town, airport, probes)
         }
         used++;
         probes.left--;
+        if ("tested" in probes) probes.tested++;
         if (ok) return { town = town, anchor = anchor };
       }
     }
@@ -558,6 +559,20 @@ function OpexAirPlanBetter(plan, bestPlan)
  * calcul cher. */
 function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, abandoned = null)
 {
+  local t0_all = AIController.GetTick();
+  local l0_all = AIController.GetOpsTillSuspend();
+  local _calcDeltaOps = function(t0, l0) {
+    local left = AIController.GetOpsTillSuspend();
+    local elapsed = AIController.GetTick() - t0;
+    return elapsed <= 0
+      ? l0 - left
+      : l0 + (elapsed - 1) * OPS_PER_TICK + (OPS_PER_TICK - left);
+  };
+  local perfOpsSites = 0;
+  local perfOpsEval = 0;
+  local perfProbesCount = 0;
+  local perfSitesFound = 0;
+
   local combos = (("airCombos" in catalog) && catalog.airCombos != null && catalog.airCombos.len() > 0)
       ? catalog.airCombos
       : (catalog.airport != null && catalog.plane != null ? [{ airport = catalog.airport, plane = catalog.plane }] : []);
@@ -609,7 +624,9 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
     local limit = towns.len() < townPool ? towns.len() : townPool;
     local minDist = (plane.speed >= 400) ? 32 : 30;
     local sites = [];
-    local probes = { left = AIR_MAX_SITE_PROBES, townsLeft = limit };
+    local probes = { left = AIR_MAX_SITE_PROBES, townsLeft = limit, tested = 0 };
+    local tSites0 = AIController.GetTick();
+    local lSites0 = AIController.GetOpsTillSuspend();
     for (local i = 0; i < limit; i++) {
       /* Ne filtrer que les lignes aeriennes existantes : un aeroport ne concurrence pas une
        * gare ferroviaire, et exclure les villes deja servies en rail empechait toute
@@ -622,8 +639,13 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
       local site = OpexAirFindSite(towns[i], airport, probes);
       if (site != null) sites.append(site);
     }
+    perfOpsSites += _calcDeltaOps(tSites0, lSites0);
+    perfProbesCount += probes.tested;
+    perfSitesFound += sites.len();
     OpexSign(AIMap.GetTileIndex(1, 3), "AS|S=" + sites.len() + "|A=" + airport.name);
 
+    local tEval0 = AIController.GetTick();
+    local lEval0 = AIController.GetOpsTillSuspend();
     for (local a = 0; a < sites.len(); a++) {
       for (local b = a + 1; b < sites.len(); b++) {
         local distance = AIMap.DistanceManhattan(sites[a].town.tile, sites[b].town.tile);
@@ -680,20 +702,28 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
         }
       }
     }
+    perfOpsEval += _calcDeltaOps(tEval0, lEval0);
 
     /* Bras hub : un aeroport existant, rentable et non sature (max 8 routes), plus UNE destination. */
     local hubs = [];
     if (AIR_HUB && lines != null) {
       if (sites.len() < AIR_HUB_NEW_SITE_POOL) {
-        local hubProbes = { left = AIR_MAX_SITE_PROBES, townsLeft = towns.len() };
+        local hubProbes = { left = AIR_MAX_SITE_PROBES, townsLeft = towns.len(), tested = 0 };
+        local tHubSites0 = AIController.GetTick();
+        local lHubSites0 = AIController.GetOpsTillSuspend();
         for (local i = 0; i < towns.len() && sites.len() < AIR_HUB_NEW_SITE_POOL; i++) {
           if (OpexAirTownServed(towns[i], lines, servedDiag)) continue;
           /* Typage : grands aéroports dès 600 hab */
           if (combo.kind == "large" && towns[i].pop < 600) continue;
           if (combo.kind == "small" && towns[i].pop >= 2500) continue;
           local extraSite = OpexAirFindSite(towns[i], airport, hubProbes);
-          if (extraSite != null) sites.append(extraSite);
+          if (extraSite != null) {
+            sites.append(extraSite);
+            perfSitesFound++;
+          }
         }
+        perfOpsSites += _calcDeltaOps(tHubSites0, lHubSites0);
+        perfProbesCount += hubProbes.tested;
       }
       local seenStations = {};
       foreach (line in lines) {
@@ -787,6 +817,8 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
                  + " hubs_count=" + hubs.len() + " hubs=" + hubFields);
     }
 
+    local tHubEval0 = AIController.GetTick();
+    local lHubEval0 = AIController.GetOpsTillSuspend();
     foreach (hub in hubs) {
       foreach (site in sites) {
         local distance = AIMap.DistanceManhattan(hub.town.tile, site.town.tile);
@@ -876,6 +908,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
         if (OpexAirPlanBetter(plan, bestPlan)) bestPlan = plan;
       }
     }
+    perfOpsEval += _calcDeltaOps(tHubEval0, lHubEval0);
     if (AIR_HUB && hubs.len() > 0) {
       OpexSign(AIMap.GetTileIndex(1, 6), "AU|" + hubs.len() + "|"
                + (bestPlan != null && bestPlan.reuseA ? 1 : 0));
@@ -890,6 +923,22 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
                + " false_calls=" + servedDiag.falseCalls
                + " false_towns_logged=" + servedDiag.loggedFalseCount);
   }
+  local totalOps = _calcDeltaOps(t0_all, l0_all);
+  local elapsedTicks = AIController.GetTick() - t0_all;
+  local elapsedDays = elapsedTicks / 74;
+  if (DECISION_LOG) {
+    local scanNum = (servedDiag != null && ("scan" in servedDiag)) ? servedDiag.scan : 0;
+    OpexDecide("AIR_PLAN_PERF", "scan=" + scanNum + " total_ops=" + totalOps
+               + " ops_sites=" + perfOpsSites + " ops_eval=" + perfOpsEval
+               + " ticks=" + elapsedTicks + " days=" + elapsedDays
+               + " probes=" + perfProbesCount + " sites=" + perfSitesFound
+               + " combos=" + combos.len()
+               + " plans=" + (projects != null ? projects.len() : (bestPlan != null ? 1 : 0)));
+  }
+  AILog.Info("AIR_PLAN_PERF: total_ops=" + totalOps + " ops_sites=" + perfOpsSites
+             + " ops_eval=" + perfOpsEval + " ticks=" + elapsedTicks + " days=" + elapsedDays
+             + " probes=" + perfProbesCount + " sites=" + perfSitesFound);
+  OpexSign(AIMap.GetTileIndex(1, 2), "AP|T=" + totalOps + "|S=" + perfOpsSites + "|E=" + perfOpsEval + "|TK=" + elapsedTicks);
   return bestPlan;
 }
 
