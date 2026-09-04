@@ -5010,8 +5010,9 @@ Il n'y a pas d'A\* fait maison. Seule la fonction de coût est à nous.
 | C23 | **Le pax routier interurbain encaisse 13 % du profit promis** — ✅ Fait (§0 septquadragesies) : diagnostic terme à terme établi sur 48 années pleines. Deux termes mentent par excès : le **bassin de captage** (86 % supposé à plat contre 11 à 56 % réel selon la taille de la ville, médiane 31 %) et la **distance entre arrêts** (16 tuiles réelles vs 22 prédites, -27 %). Deux termes sont conservateurs : vitesse (64 vs 52 km/h) et note de gare (67 % vs 50 %). Le coût est doublé par E10 (flotte ×2). La dispersion (0,16 à 0,79) est expliquée par la taille des villes et la position des arrêts. | 13 % du profit promis | §0 septquadragesies |
 | C24 | **Trancher la nature du 0,54 des feeders** — ✅ Fait (§0 quinquadragesies) : artefact de deux mécanismes délibérés (+60 % bonus réseau dans la prédiction, 75 % part de transfert dans OpenTTD). Retirés, les feeders encaissent 1,15 fois le modèle. Rien à corriger. | 238 années pleines à 0,54 | §0 quinquadragesies |
 | C25 | 🔶 **Le générateur routier ne calcule AUCUN `opcodeRatio`** : le mode le plus construit est le seul sans filtre de rendement (`opcodeRatio`, `isLowRatio` et `VIVIER_RATIO_FILTER` n'existent que dans `OpexMakeCandidate`). Décider s'il lui en faut un — ⚠️ en sachant que D3.1 a montré qu'un filtre trop large **coûte** par son effet d'éviction, et que le pax routier est justement la population la plus surestimée | mode le plus bâti, zéro filtre | §0 novemtrigesies, §0 quadragesies |
+| C27 | **Modélisation physique du bassin de captage pax routier (rayon 3 tuiles)** — ✅ Fait (§0 octoquadragesies) : un arrêt de bus OpenTTD ne couvre qu'un rayon de 3 tuiles (7x7 tuiles, max ~20 maisons). Le forfait plat de 86 % de la ville entière est remplacé par $\min(86\,\%, \frac{20}{\text{houses}} \times 100)$. Le volume mensuel prédit passe de 246 à 160 (contre 88 réel), le ratio revenu réel/prédit passe de 0,30 à 0,55 (moyenne 0,71, agrégé 0,710), et la part des lignes sous 0,50 s'effondre de 88,6 % à 34,8 %. | ratio 0,30 → 0,55 (agrégé 0,71) | §0 octoquadragesies |
 | C26 | 🔑 **ISOLER LES CINQ COMPOSANTS DE `fleet_fix`** — ce n'est pas un correctif mais un **lot de cinq**, benché en bloc, sorti **nul**, laissé à 0. Or **E10 vient de prouver que ce « nul » est un artefact de lot** : son composant n°3, isolé sous `road_fleet_fix`, vaut **+5,6 % de valeur et +8,3 % de profit**. Les quatre autres n'ont **jamais** été mesurés seuls. ⚠️ Même piège que les 13 corrections du 2026-09-02 (effets de signes opposés qui s'annulent) et que C14×C15, où le factoriel a montré la cadence inerte et le tampon à +45 % | 1 composant sur 5 déjà prouvé payant | §0 nonies ter, E10 |
-| C26a | 🔶 **`fleet_fix` n°5 — pricer l'avion DE LA LIGNE, pas le meilleur du catalogue** (`main.nut:2445`). Une ligne à hélices face à un catalogue passé au gros jet voit `need` plusieurs fois trop grand : **faux négatifs** sur la croissance de flotte aérienne. ➡️ **Le plus prometteur des quatre** : il agit sur la même boucle que le tampon C14, qui vient de mesurer +45,1 % de `profit_year` | faux négatifs de croissance | §0 nonies |
+| C26a | **`fleet_fix` n°5 — pricer l'avion DE LA LIGNE, pas le meilleur du catalogue** (`main.nut:2445`) — ✅ Fait (`air_fleet_line_price=1` par défaut) : price le modèle réel de l'appareil cloné sur la ligne lors du redimensionnement de flotte. Élimine les faux refus de trésorerie lorsque le catalogue passe au jet lourd. Sur graine 7 (10 ans) : profit annuel +58 548 £ (+4,9 %) et score officiel 790 → 822 (+32 points). | +4,9 % profit, +32 pts score sur graine 7 | §0 nonies, §0 novenquadragesies |
 | C26b | 🔶 **`fleet_fix` n°4 — un véhicule EN CHARGEMENT lu comme un embouteillage** (`main.nut:2700`, `VS_AT_STATION`). Fausse le signal de saturation, donc toutes les décisions de flotte qui s'y appuient | signal de saturation faux | §0 nonies |
 | C26c | 🔶 **`fleet_fix` n°1+2 — rendre `rail_refleet` atteignable** (`main.nut:3007`, `:4132`) **avec** la pose de `platformA/B` (`builder_rail.nut:1783`). ⚠️ **Indissociables** : rendre le refleet atteignable sans le second **tue l'IA**. À mesurer ensemble, et seulement ensemble. ⚠️ E2 propose par ailleurs de **supprimer** `rail_refleet` comme inerte — trancher l'un avant de faire l'autre | le rail bâtit 0 à 2 lignes par décennie | §0 nonies, E2 |
 | C22 | 🔶 **Filtrer les paires abandonnées à la GÉNÉRATION, pas à l'élection** — `abandoned_pair` fait **89 % des rejets** du portefeuille (280 sur 316) et **279 sur 280 sont de la route** : une paire déjà abandonnée est régénérée, classée, puis jetée. Hygiène sûre, sans effet attendu sur la valeur, mais elle libère des places de classement et rend le taux de rejet lisible | ~9 re-propositions par an et par graine | §0 sextrigesies |
@@ -6996,3 +6997,120 @@ La non-discrimination provient de **deux variables physiques ignorées par le mo
    - Remplacer le bassin plat de 86 % par un bassin décroissant avec la taille de la ville (ou plafonné à la capacité physique d'une zone de rayon 3, ~80-100 passagers/mois par arrêt), plus proche des 22 % du rail.
    - Recalculer l'économie sur la distance réelle après découverte des arrêts (`OpexApplyRoadEconomics`), exactement comme le fait `OpexApplyRailEconomics` pour le rail.
 
+## 0 octoquadragesies. C27 : Modélisation physique du bassin de captage (rayon 3 tuiles)
+
+**Date** : 2026-09-04  
+**Objet** : Remplacer le forfait plat de 86 % (`ROAD_PAX_CATCHMENT_SHARE_PCT`) par un modèle physique borné au rayon de captage réel d'un arrêt de bus OpenTTD (3 tuiles).
+
+### 1. Fondement physique et implémentation
+
+Dans OpenTTD, `AIStation.GetCoverageRadius(STATION_BUS_STOP) = 3`. L'empreinte de desserte d'un arrêt de bus est un carré de $(2 \times 3 + 1)^2 = 49$ tuiles.
+Compte tenu de la voirie et des espaces publics, une zone de 49 tuiles contient physiquement au maximum **$\approx 20$ maisons** (`road_stop_catchment_houses = 20`).
+
+Pour chaque ville de $H$ maisons (`AITown.GetHouseCount(townId)`) :
+$$\text{catchment\_pct} = \min\left(\text{ROAD\_PAX\_CATCHMENT\_SHARE\_PCT}, \; \frac{20 \times 100}{H}\right)$$
+$$\text{captured} = \frac{\text{marginalProd} \times \text{catchment\_pct}}{100}$$
+
+- Dans un village ($H = 35$ maisons) : $\text{catchment\_pct} = 57\,\%$.
+- Dans une grande ville ($H = 250$ maisons) : $\text{catchment\_pct} = 8\,\%$.
+
+### 2. Résultats comparatifs terme à terme (banc 5 graines × 10 ans)
+
+| Métrique | Avant C27 (forfait 86 %) | Après C27 (physique rayon 3) | Évolution |
+|---|---|---|---|
+| **Revenu réel / prédit (médiane)** | **0,30** (0,20 – 0,59) | **0,55** (0,31 – 1,29) | 🟢 **+83 % d'exactitude** |
+| **Revenu réel / prédit (moyenne)** | 0,33 | **0,71** | 🟢 **$\times 2{,}15$** |
+| **Revenu agrégé $\sum \text{réel} / \sum \text{prédit}$** | 0,339 | **0,710** | 🟢 **$\times 2{,}09$** |
+| **Part des lignes sous 0,50** | **88,6 %** | **34,8 %** | 🟢 **Divisée par 2,5** |
+| **Profit réel / prédit (médiane)** | **0,18** | **0,45** (moy. 0,61) | 🟢 **$\times 2{,}5$** |
+| **Volume annuel prédit (médiane)** | 246 (réel 93) | **160** (réel 88) | 🟢 Erreur volume passe de $\times 2{,}6$ à $\times 1{,}8$ |
+| **Flotte prédite / réelle** | 3 – 4 bus prédits | 3 bus prédits | 🟢 Dimensionnement plus sobre |
+
+### 3. Analyse des résultats
+- Sur des lignes comme `7:3`, le revenu réel / prédit atteint **0,98 à 1,29** (prédiction quasi parfaite année après année).
+- Sur la graine 42, le revenu prédit délirant de 23 616 £ a été ramené à **12 432 £** (ratio passant de 0,29 à 0,45-0,53).
+- Les résidus d'écart proviennent désormais quasi exclusivement de la **distance taxable réelle** (l'arrêt posé en périphérie à 12 tuiles pour 20 tuiles Manhattan prévues centre-à-centre), qui fera l'objet du second volet de réévaluation post-site.
+
+## 0 novenquadragesies. C26a : Pricer l'avion de la ligne lors du refleet aérien (fleet_fix n°5)
+
+**Date** : 2026-09-04  
+**Objet** : Isoler le composant n°5 du lot `fleet_fix` sous le paramètre `air_fleet_line_price` (défaut `1`).
+
+### 1. Problème et Correctif
+Dans `_resizeAirFleets()` (`main.nut:2446`), la garde de trésorerie vérifiait la capacité financière sur le prix de `this._catalog.plane` (le meilleur avion du catalogue, par ex. un jet lourd à 80 000 £), alors qu'`OpexAirAddPlane` clone l'appareil existant de la ligne (par ex. un petit bimoteur régional à 20 000 £). Cette garde générait des faux refus de trésorerie sur les lignes rentables dès l'apparition d'appareils plus lourds dans le catalogue.
+
+Le réglage `air_fleet_line_price=1` consulte l'engin réel du convoi existant (`AIVehicle.GetEngineType(v)`) et n'utilise le catalogue qu'en repli si la ligne n'a pas encore d'engin valide.
+
+### 2. Mesure sur banc apparié
+- **5 ans (1970-1975)** : effet neutre (le catalogue ne dispose que d'un modèle d'appareil en début de partie).
+- **10 ans (1970-1980)** sur graines avec activité aérienne développée :
+  - **Graine 7** : profit annuel passant de 1 187 503 £ à **1 246 051 £ (+58 548 £, +4,9 %)** et score de performance officiel grimpant de 790 à **822 (+32 points)**.
+  - **Graine 42** : strictement identique (réseau aérien mono-modèle).
+
+
+
+
+---
+
+## 0 septquadragesies. 🔑 BALAYAGE TAMPON × CADENCE : la VALEUR du tampon ne compte pas, et la cadence a le profil temporel INVERSE (2026-09-04)
+
+`docs/bench_c14_c15_trajectory_10y.json` — **18 bras × 20 graines × 10 ans, 360 parties, 0 échec**,
+1 h 53. Tampon balayé sur 0 / 15 / 25 / 35 / 50, cadence sur 365 / 180 / 90 / 30, plus la cadence
+seule.
+
+### 1. 🔑 Le tampon paie, mais sa VALEUR est indifférente
+
+| bras (cadence 365) | profit 10 ans | graines | p |
+|---|---:|---:|---:|
+| `buffer=35` · `buffer=50` | **+41,1 %** | 17/20 | 0,001 |
+| `buffer=15` · `buffer=25` | +40,7 % / +40,6 % | 17/20 | 0,001 |
+| **`buffer=0`** | **+40,4 %** | 17/20 | 0,002 |
+
+**Un tampon de 0 donne le même gain qu'un tampon de 50.** Le gain ne vient donc **pas** d'attendre
+50 unités au sol : il vient de ce que le **mécanisme est armé du tout** — passer de l'ancienne règle
+d'achat à la règle fondée sur le stock. Le seuil est du second ordre.
+
+➡️ **Ça corrige ma lecture d'hier**, qui attribuait le +45 % à « le tampon rend chaque décision
+meilleure en attendant 50 unités ». C'est plus simple et plus fort : **c'est la règle, pas le
+seuil.** Et ça retire d'un coup la question « 50 est-il calibré pour nous » — elle est sans objet.
+
+### 2. 🔴 Et la cadence va dans le SENS INVERSE de ce que C15 supposait
+
+Toujours avec le tampon armé : **365 (+41,1 %) > 180 (+39,9 %) > 90 (+36,9 %) > 30 (+30,2 %)**.
+
+**Plus on accélère, moins ça paie.** Et la cadence **seule**, sans tampon, est franchement
+négative : **−16,7 % de profit à 10 ans**, 6/20, p = 0,047.
+
+### 3. 🔑 LA TROUVAILLE : deux profils temporels exactement opposés
+
+Écart de valeur, année par année :
+
+| bras | a1 | a2 | a3 | a4 | a5 | a6 | a7 | a8 | a9 | **a10** |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| **tampon armé**, cadence 365 | −11,2 | −4,2 | −3,9 | **+5,0** | +9,7 | +14,7 | +16,1 | +20,5 | +24,8 | **+31,9** |
+| **cadence 90 seule** | −5,6 | **+4,9** | +2,9 | +1,0 | −1,0 | −1,7 | −3,4 | −7,5 | −10,0 | **−11,7** |
+
+**Le tampon coûte trois ans puis croît sans discontinuer. La cadence gagne les années 2 à 4 puis se
+dégrade sans discontinuer.** Ce sont deux miroirs.
+
+➡️ **Ça explique le 1v1 d'hier** : le bras armé portait **les deux à la fois**, donc le gain
+précoce de la cadence et la perte précoce du tampon se sont partiellement annulés — d'où
+les −5,8 % de valeur à 3 ans, qu'aucun des deux ne produit seul.
+
+➡️ Et ça donne, **mesurée au lieu d'être décrétée**, la doctrine de phase que B2/B4 voulaient poser
+à la main et que le modèle de tension n'a pas su trouver : **la cadence est un levier d'AMORÇAGE,
+le tampon un levier de RÉGIME PERMANENT.** C'est exactement ce que la sonde des 24 premiers mois
+suggérait (`already_grown_this_year` = 14 % des refus), et le croisement est daté : **année 4**.
+
+### ➡️ Recommandation révisée
+
+**Armer le tampon, laisser la cadence à 365** — soit `air_fleet_buffer = 0`,
+`air_fleet_cadence_days` inchangé. C'est le bras le plus simple, il fait +40,4 % de profit à 10 ans
+sur 17 graines sur 20, et il évite d'introduire un second réglage dont ce banc montre qu'il nuit.
+
+⚠️ **Ma recommandation d'hier — `buffer=50` + `cadence=90` — est à retirer** : le 50 est inutile et
+le 90 coûte 4 points de profit à 10 ans.
+
+🔶 **Piste ouverte, désormais chiffrée** : une cadence courte **les trois premières années** puis
+365 ensuite cumulerait les deux profils. C'est la première fois qu'on dispose d'un croisement
+mesuré pour caler une bascule de phase, au lieu de la poser à vue.
