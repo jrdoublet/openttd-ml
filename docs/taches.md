@@ -6595,3 +6595,29 @@ décision que la mesure soutient le plus fortement de toute la semaine.
 capacity)`, `route.nut:2904`), reprise telle quelle. Le banc dit que le **mécanisme** paie, pas que
 **50** soit l'optimum. ➡️ Un balayage du tampon (25 / 50 / 100 / capacité pleine) est la suite
 naturelle, et la note de gare en donne le garde-fou : elle se dégrade quand le tampon grandit.
+
+---
+
+## 0 duoquadragesies. ✅ E10 VALIDÉ : le doublement routier passe de 21 % à 5 % (2026-09-04)
+
+Contrôle ciblé, 3 graines × 10 ans, `road_fleet_fix` 0 contre 1. On compte le rapport **coût de
+fonctionnement réel / prédit** des lignes routières : le défaut produit un rapport **exactement
+2,00**, signature d'une flotte doublée au cycle de construction.
+
+| | années-lignes | rapport exactement 2,00 | distribution |
+|---|---:|---:|---|
+| **avant** | 216 | **46 (21 %)** | `{1,0 : 169 · 2,0 : 46 · 2,33 : 1}` |
+| **après** | 229 | **11 (5 %)** | `{1,0 : 204 · 1,33 : 2 · 1,5 : 10 · 1,67 : 2 · 2,0 : 11}` |
+
+**Le mécanisme est confirmé et son empreinte chiffrée : le défaut valait ~16 des 21 points.**
+Véhicules cumulés **1 483 → 1 399** (−5,7 %) pour **plus** d'années-lignes (216 → 229) : on cesse
+d'acheter des doublons et le capital libéré construit ailleurs — exactement ce que le banc de
+l'utilisateur montrait (−3,9 véhicules, +1,7 gares, +5,6 % de valeur médiane).
+
+⚠️ **Le résidu de 5 % n'est pas forcément un reste de bug.** Un rapport de 2,00 signifie « la ligne
+tourne avec deux fois la flotte prédite » — ce qu'un ré-armement légitime sur plusieurs années
+produit aussi. Cette métrique **ne sait pas distinguer** les deux ; seule la disparition des 16
+points est attribuable au correctif. Les valeurs intermédiaires apparues après (1,33 · 1,5 · 1,67,
+14 lignes) vont dans ce sens : ce sont des flottes qui ont grandi, pas des doublons.
+
+➡️ E10 est **validé**. Le défaut est réel, borné, et le correctif fait ce qu'il annonce.
