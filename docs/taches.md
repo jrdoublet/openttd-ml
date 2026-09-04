@@ -6689,3 +6689,64 @@ elle qu'il faut trancher avant d'affiner un estimateur de plus.
 Elle gagne franchement à 10 ans (+45 % de `profit_year`, p=0,041) et **perd de la valeur à 3 ans**
 (4/20, p=0,012). Les deux mesures sont valides ; elles ne répondent pas à la même question.
 **Ne pas trancher en citant une seule des deux.**
+
+---
+
+## 0 quaterquadragesies. 🔴 LE CHIFFRE QUI MANQUAIT : ils ont 410 k et zéro dette, nous sommes au PLAFOND D'EMPRUNT (2026-09-04)
+
+Relecture du même banc 1v1, sur deux colonnes jamais regardées. Médianes à 3 ans :
+
+| | caisse | emprunt | valeur | profit annuel |
+|---|---:|---:|---:|---:|
+| nous (défauts) | **64 974** | **300 000 — le MAXIMUM** | 688 364 | 302 366 |
+| nous (armés) | 81 813 | **300 000 — le MAXIMUM** | 592 878 | 264 072 |
+| **AAAHogEx** | **409 558** | **0** | 5 068 380 | 3 410 227 |
+
+**AAAHogEx ne bâtit pas 384 véhicules en empruntant plus : il les bâtit en gagnant assez tôt pour
+s'autofinancer.** Il est à **zéro dette avec 410 k en caisse** quand nous sommes collés au plafond
+avec deux mois de trésorerie.
+
+### 🔴 Ce que ça invalide dans notre propre méthode
+
+Le modèle de tension a conclu que **rien ne contraint dans 97-98 % des évaluations** (§0
+tertrigesies). Il a été mesuré **sur dix ans**, donc dominé par les années où la compagnie est
+riche. La seule graine pauvre du lot, la **12345**, montrait l'argent mordant **28 %** du temps —
+et c'était écrit, sans qu'on en tire la conséquence.
+
+➡️ **Nous avons mesuré l'absence de contrainte dans le régime où il n'y en a pas.** Et les sept
+mécanismes de capital rejetés cette semaine ont tous été mesurés soit à 10 ans, soit **contre
+nous-mêmes**, c'est-à-dire contre un adversaire aussi pauvre que nous. **Aucun n'a été mesuré là
+où le mur existe** — les 24 premiers mois.
+
+### ✅ Décision 1 — adopter C14 × C15, et l'ordre des objectifs le tranche
+
+L'ambiguïté de §0 trequadragesies se résout par la règle du document lui-même : *un objectif
+inférieur ne justifie jamais de sacrifier un objectif supérieur*.
+
+| horizon | profit (1er) | performance (2e) | valeur (4e) |
+|---|---|---|---|
+| 10 ans | **+45,1 %** ✅ | +18,1 % ✅ | +26,4 % ✅ |
+| 3 ans | +10,7 % ✅ | +8,9 % ✅ | **−5,8 %** ❌ |
+
+Le profit et la performance montent **aux deux horizons** ; le seul recul est sur `company_value`,
+**quatrième** de la liste, et seulement à court terme. **Aucun objectif supérieur n'est
+sacrifié.** ⚠️ **Défauts NON basculés à ce commit** — `air_fleet_cadence_days` reste à 365 et
+`air_fleet_buffer` à −1. C'est une recommandation motivée, pas encore une adoption.
+
+### 🔴 Décision 2 — changer de cible : les 24 premiers mois
+
+L'écart se construit entre 1970 et 1973, et c'est là que la trésorerie mord. Optimiser le régime
+permanent à dix ans ne peut pas rattraper un écart créé à l'année deux.
+
+**La mesure qui suit, et elle ne coûte qu'un dépouillement du journal déjà produit** : les
+**24 premiers mois, mois par mois — combien de tentatives de construction, et le motif de refus de
+chacune**. La question n'est pas « quel projet est le meilleur » mais « pourquoi si peu de
+tentatives alors qu'on est au plafond d'emprunt ».
+
+Deux issues, qui mènent ailleurs :
+- **refus de trésorerie** ⇒ le sujet est la **vitesse d'amorçage** : comment atteindre un profit
+  qui s'autofinance avant l'année 3. C'est un problème de première ligne rentable, pas de
+  classement.
+- **refus d'autre chose** ⇒ nous sommes bridés par notre propre ordonnanceur en abondance
+  relative, et la question **constructeur contre sélecteur** (§0 trequadragesies point 4) se pose
+  frontalement.
