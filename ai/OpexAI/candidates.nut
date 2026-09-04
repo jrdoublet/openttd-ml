@@ -1079,6 +1079,27 @@ function OpexTownRoadLineCount(lines, townTile)
   return count;
 }
 
+/* C23 : Modélisation physique du bassin de captage d'un arrêt de bus (rayon 3 tuiles).
+ *
+ * Un arrêt de bus OpenTTD possède un rayon de couverture de 3 tuiles, soit une empreinte
+ * de 7x7 = 49 tuiles. Compte tenu du réseau viaire et des espaces publics, un arrêt couvre
+ * physiquement au maximum ~20 maisons (ROAD_STOP_CATCHMENT_HOUSES = 20).
+ * La part de captage d'une ville ayant H maisons est donc bornée par :
+ *   pct = min(ROAD_PAX_CATCHMENT_SHARE_PCT, (ROAD_STOP_CATCHMENT_HOUSES * 100) / H)
+ * Si H <= 0 ou non disponible, repli physique sur pop / 25.
+ */
+function OpexTownBusCatchment(town, marginalProd)
+{
+  if (marginalProd <= 0) return 0;
+  local houses = ("houses" in town && town.houses > 0) ? town.houses : (town.pop / 25);
+  if (houses <= 0) houses = 1;
+  local pct = (ROAD_STOP_CATCHMENT_HOUSES * 100) / houses;
+  if (pct > ROAD_PAX_CATCHMENT_SHARE_PCT) pct = ROAD_PAX_CATCHMENT_SHARE_PCT;
+  if (pct < 1) pct = 1;
+  local captured = (marginalProd * pct) / 100;
+  return captured > 0 ? captured : 1;
+}
+
 /* Famille 1 : ville <-> ville, passagers. */
 function OpexRoadPaxCandidates(catalog, lines, out, stats)
 {
@@ -1108,7 +1129,9 @@ function OpexRoadPaxCandidates(catalog, lines, out, stats)
       if (marginalA < 25) marginalA = 25;
       local marginalB = produced[b] - (roadLinesPerTown[b] * 40);
       if (marginalB < 25) marginalB = 25;
-      local monthly = ((marginalA + marginalB) * ROAD_PAX_CATCHMENT_SHARE_PCT) / 100;
+      local capturedA = OpexTownBusCatchment(towns[a], marginalA);
+      local capturedB = OpexTownBusCatchment(towns[b], marginalB);
+      local monthly = capturedA + capturedB;
       if (monthly <= 0) { stats.noMonthly++; continue; }
       local candidate = OpexMakeRoadCandidate(catalog, "pax", cargo, towns[a].tile, towns[b].tile,
                                               towns[a].id, towns[b].id, distance, monthly, stats);
@@ -1242,7 +1265,7 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats)
       local distance = AIMap.DistanceManhattan(towns[i].tile, hub.tile);
       if (distance < ROAD_MIN_DISTANCE || distance > 40) continue;
       stats.pairsInBand++;
-      local monthly = (produced * ROAD_PAX_CATCHMENT_SHARE_PCT) / 100;
+      local monthly = OpexTownBusCatchment(towns[i], produced);
       if (monthly <= 0) continue;
       local candidate = OpexMakeRoadCandidate(catalog, "pax", cargo, towns[i].tile, hub.tile,
                                               towns[i].id, -1, distance, monthly, stats);

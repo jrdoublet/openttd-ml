@@ -653,10 +653,12 @@ function OpexCatalog::_refreshTowns()
   for (local t = list.Begin(); !list.IsEnd(); t = list.Next()) {
     local tile = AITown.GetLocation(t);
     local pop = AITown.GetPopulation(t);
+    local houses = AITown.GetHouseCount(t);
     local townObj = {
       id = t,
       tile = tile,
       pop = pop,
+      houses = houses,
     };
     this.towns.append(townObj);
 

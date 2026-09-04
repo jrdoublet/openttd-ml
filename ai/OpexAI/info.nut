@@ -212,6 +212,16 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
 
+    /* C26a : Pricer l'avion de la ligne (fleet_fix n°5)
+     * (docs/taches.md C26a) : price le modele reellement exploite sur la ligne plutot que le meilleur du catalogue. */
+    AddSetting({
+      name = "air_fleet_line_price",
+      description = "Price le modele d'avion de la ligne lors du refleet au lieu du catalogue (docs/taches.md C26a): 1 = actif (defaut), 0 = inactif",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* D3.2 : Assainissement de profit_non_positive via le taux d'amortissement de l'infrastructure
      * (100 = defaut historique 100% comptabilise, 0 = aucun amortissement fictif de voie/gare). */
     AddSetting({
@@ -228,9 +238,9 @@ class OpexAIInfo extends AIInfo {
      * (docs/taches.md E10) : empeche refleet de voir have=0 et de doubler la flotte neuve. */
     AddSetting({
       name = "road_fleet_fix",
-      description = "Empeche le doublement de flotte routiere au cycle de construction (docs/taches.md E10): 1 = actif, 0 = inactif (defaut historique)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "Empeche le doublement de flotte routiere au cycle de construction (docs/taches.md E10): 1 = actif (adopte), 0 = inactif (defaut historique)",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
@@ -903,6 +913,23 @@ Le mode route est donc reconfirme sur l arbre courant.
       min_value = 0, max_value = 100,
       easy_value = 86, medium_value = 86, hard_value = 86,
       custom_value = 86,
+      flags = 0
+    });
+
+    /* Nombre maximal de maisons couvertes par un arret de bus au rayon 3.
+     *
+     * C23 / modelisation physique du bassin de captage pax routier. Un arret a un rayon de
+     * 3 tuiles (zone de 7x7 = 49 tuiles). Compte tenu de la voirie et des espaces libres,
+     * il couvre physiquement au maximum ~20 maisons. La part de captage de la ville est donc
+     * min(road_pax_catchment_pct, (20 * 100) / houses).
+     * Dans un village de 35 maisons -> 57 % de captage.
+     * Dans une aglomeration de 250 maisons -> 8 % de captage. */
+    AddSetting({
+      name = "road_stop_catchment_houses",
+      description = "Maximum houses covered by a radius-3 bus stop (physical catchment bound, default 20)",
+      min_value = 1, max_value = 100,
+      easy_value = 20, medium_value = 20, hard_value = 20,
+      custom_value = 20,
       flags = 0
     });
 

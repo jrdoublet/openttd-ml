@@ -37,6 +37,8 @@ ROAD_BUILD_ENABLED <- true;
  * Le reglage road_pax_catchment_pct vaut 0 pour reconstituer le repli rail a 22 % ; une valeur
  * positive ne touche que OpexRoadPaxCandidates, jamais le rail ni le fret. */
 ROAD_PAX_CATCHMENT_SHARE_PCT <- 86;
+/* C23 : Borne physique d'un arret de bus (rayon 3 tuiles = 7x7 tuiles = max 20 maisons) */
+ROAD_STOP_CATCHMENT_HOUSES <- 20;
 
 /* Panneaux de diagnostic : lu UNE fois depuis le reglage dans Start(), pas a chaque appel (57
  * panneaux par an, GetSetting a chaque fois serait du gaspillage d'opcodes pour une valeur qui ne
@@ -165,7 +167,9 @@ AIR_STARTER <- true;
 AIR_HUB <- true;
 RAIL_REFLEET <- true;
 /* E10 : Correctif du doublement de flotte routiere au cycle de construction */
-ROAD_FLEET_FIX <- false;
+ROAD_FLEET_FIX <- true;
+/* C26a : Pricer l'avion de la ligne lors du refleet au lieu du meilleur avion du catalogue */
+AIR_FLEET_LINE_PRICE <- true;
 /* A7.2 : Vente immediate des convois au depot via ET_VEHICLE_WAITING_IN_DEPOT */
 EVENT_DEPOT_SELL <- false;
 /* A7.1 : Stop-loss immediat sur fermeture d'industrie via ET_INDUSTRY_CLOSE */
@@ -1814,6 +1818,7 @@ function OpexAI::_tryBuildProjects(year)
         deadStreak = 0, scrapping = false, scrapVehicles = [],
         isLowRatio = ("isLowRatio" in candidate) ? candidate.isLowRatio : false,
         opcodeRatio = ("opcodeRatio" in candidate) ? candidate.opcodeRatio : -1,
+        purpose = (("isFeeder" in candidate) && candidate.isFeeder) ? "feeder" : "profit",
         lineId = idx,
       });
       this._nextLineId++;
@@ -2171,6 +2176,7 @@ function OpexAI::_reportLines(year)
     }
     /* Rendement route (ROAD_SPEED_EFFICIENCY_PCT = 60, hypothese). Meme instantane que RV.
      * "RY|99|999|P|8|999|999|999" = 24 caracteres. */
+    local roadRealSpeed = -1;
     if (vehicleType == AIVehicle.VT_ROAD) {
       local moving = [];
       local catalogs = [];
@@ -2187,8 +2193,9 @@ function OpexAI::_reportLines(year)
       if (catalogs.len() > 0) cat = OpexMedianInt(catalogs);
       else if ("catalogSpeed" in line) cat = line.catalogSpeed;
       local kindCh = (("kind" in line) && line.kind == "pax") ? "P" : "F";
+      if (moving.len() > 0) roadRealSpeed = OpexMedianInt(moving);
       OpexSign(anchor, "RY|" + (year % 100) + "|" + line.lineId + "|" + kindCh + "|"
-                               + moving.len() + "|" + OpexMedianInt(moving) + "|"
+                               + moving.len() + "|" + (roadRealSpeed >= 0 ? roadRealSpeed : 0) + "|"
                                + pred + "|" + cat);
     }
     /* `<-` : le slot n'existe pas a la construction. `=` leve "the index 'vehCount' does not
@@ -2208,7 +2215,32 @@ function OpexAI::_reportLines(year)
       local lAge = ("year" in line) ? (year - line.year) : -1;
       local lPurpose = ("purpose" in line) ? line.purpose : "profit";
       local cLabel = AICargo.GetCargoLabel(line.cargo);
-      OpexDecide("LINE_REVENUE", "line=" + line.lineId + " mode=" + lMode + " kind=" + lKind + " cargo=" + cLabel + " year=" + year + " age=" + lAge + " pred_rev=" + predRevenue + " real_rev=" + realRevenue + " pred_prof=" + predProfit + " real_prof=" + profit + " pred_run=" + predRunning + " real_run=" + runCost + " vehs=" + vehCount + " low_ratio=" + isLow + " op_ratio=" + opRatio + " purpose=" + lPurpose);
+      local extra = "";
+      if (lMode == "road") {
+        local predVehs = ("predTrains" in line) ? line.predTrains : 0;
+        local predCarried = ("predCarried" in line) ? line.predCarried : 0;
+        local predDays = ("predOneWayDays" in line) ? line.predOneWayDays : 0;
+        local predDist = ("distance" in line) ? line.distance : 0;
+        local predSpeed = ("effectiveSpeed" in line) ? line.effectiveSpeed.tointeger() : 0;
+        local catSpeed = ("catalogSpeed" in line) ? line.catalogSpeed : 0;
+        local realDist = (AIStation.IsValidStation(stationA) && AIStation.IsValidStation(stationB))
+            ? AIMap.DistanceManhattan(AIStation.GetLocation(stationA), AIStation.GetLocation(stationB)) : predDist;
+        local townA = ("originA" in line) ? AITile.GetClosestTown(line.originA) : -1;
+        local townB = ("originB" in line) ? AITile.GetClosestTown(line.originB) : -1;
+        local popA = AITown.IsValidTown(townA) ? AITown.GetPopulation(townA) : -1;
+        local popB = AITown.IsValidTown(townB) ? AITown.GetPopulation(townB) : -1;
+        local prodA = AITown.IsValidTown(townA) ? AITown.GetLastMonthProduction(townA, line.cargo) : -1;
+        local prodB = AITown.IsValidTown(townB) ? AITown.GetLastMonthProduction(townB, line.cargo) : -1;
+        local waitA = AIStation.IsValidStation(stationA) ? AIStation.GetCargoWaiting(stationA, line.cargo) : -1;
+        local waitB = AIStation.IsValidStation(stationB) ? AIStation.GetCargoWaiting(stationB, line.cargo) : -1;
+        local cap = ("capacity" in line) ? line.capacity : -1;
+        extra = " pred_vehs=" + predVehs + " dist=" + predDist + " real_dist=" + realDist
+              + " pred_carried=" + predCarried + " pred_days=" + predDays + " pred_speed=" + predSpeed
+              + " cat_speed=" + catSpeed + " real_speed=" + roadRealSpeed + " rating_a=" + ratingA
+              + " rating_b=" + ratingB + " pop_a=" + popA + " pop_b=" + popB + " prod_a=" + prodA
+              + " prod_b=" + prodB + " wait_a=" + waitA + " wait_b=" + waitB + " cap=" + cap;
+      }
+      OpexDecide("LINE_REVENUE", "line=" + line.lineId + " mode=" + lMode + " kind=" + lKind + " cargo=" + cLabel + " year=" + year + " age=" + lAge + " pred_rev=" + predRevenue + " real_rev=" + realRevenue + " pred_prof=" + predProfit + " real_prof=" + profit + " pred_run=" + predRunning + " real_run=" + runCost + " vehs=" + vehCount + " low_ratio=" + isLow + " op_ratio=" + opRatio + " purpose=" + lPurpose + extra);
     }
     if (vehicleType == AIVehicle.VT_RAIL || vehicleType == AIVehicle.VT_AIR) {
       /* Instantane de backlog, complete par l'utilisation annuelle derivee du revenu dans
@@ -2414,9 +2446,9 @@ function OpexAI::_resizeAirFleets(year)
      * d'OpexAirAddPlane etant correcte, celle-ci ne produisait que des FAUX NEGATIFS
      * (docs/taches.md S0 nonies). On price desormais l'avion qu'on va reellement acheter. */
     local planePrice = (this._catalog.plane != null) ? this._catalog.plane.price : 30000;
-    if (FLEET_FIX && ("vehicles" in line)) {
+    if ((FLEET_FIX || AIR_FLEET_LINE_PRICE) && ("vehicles" in line)) {
       foreach (v in line.vehicles) {
-        if (!AIVehicle.IsValidVehicle(v)) continue;
+        if (!AIVehicle.IsValidVehicle(v) || AIVehicle.GetVehicleType(v) != AIVehicle.VT_AIR) continue;
         local ownPrice = AIEngine.GetPrice(AIVehicle.GetEngineType(v));
         if (ownPrice > 0) planePrice = ownPrice;
         break;
@@ -4158,6 +4190,8 @@ function OpexAI::Start()
   TOWN_GROWTH_ENABLED = AIController.GetSetting("town_growth") != 0;
   local roadPaxCatchment = AIController.GetSetting("road_pax_catchment_pct");
   if (roadPaxCatchment > 0) ROAD_PAX_CATCHMENT_SHARE_PCT = roadPaxCatchment;
+  local roadStopHouses = AIController.GetSetting("road_stop_catchment_houses");
+  if (roadStopHouses > 0) ROAD_STOP_CATCHMENT_HOUSES = roadStopHouses;
   ROAD_REFLEET = AIController.GetSetting("road_refleet") != 0;
   ROAD_MULTISTOP = AIController.GetSetting("road_multistop") != 0;
   MARGINAL_FLEET = AIController.GetSetting("marginal_fleet") != 0;
@@ -4236,6 +4270,7 @@ function OpexAI::Start()
   EVENT_CATALOG_INVALIDATE = AIController.GetSetting("event_catalog_invalidate") != 0;
   VIVIER_RATIO_FILTER = AIController.GetSetting("vivier_ratio_filter") != 0;
   ROAD_FLEET_FIX = AIController.GetSetting("road_fleet_fix") != 0;
+  AIR_FLEET_LINE_PRICE = AIController.GetSetting("air_fleet_line_price") != 0;
   local iap = AIController.GetSetting("infra_amort_pct");
   if (iap >= 0) INFRA_AMORT_PCT = iap;
 
