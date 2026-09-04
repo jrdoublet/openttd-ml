@@ -5024,8 +5024,9 @@ Il n'y a pas d'A\* fait maison. Seule la fonction de coût est à nous.
 | C18 | 🔶 **Financement / prospection d'industrie** (`AIIndustryType.BuildIndustry` / `ProspectIndustry`, soumis à `economy.fund_buildings`) — créer un **débouché** là où il n'y en a pas, pour une source déjà desservie mais sous-exploitée faute d'accepteur proche. Plus spéculatif que C17 : à ne prendre qu'après lui | AAAHogEx : **0 occurrence**, comme pour les subventions | `docs/mecanique_jeu.md` §14 et §10 |
 | C17 | **Sonde subventions, en lecture seule** — ✅ Fait (A7.3 / `event_subsidy_probe` : écoute `AIEventSubsidyOffer`, `Expired`, `Awarded` ; mesure offres, adéquation réseau/vivier, préemption et multiplicateur via `AIGameSettings`) | AAAHogEx : **0 occurrence** d'`AISubsidy` sur 37 531 lignes ; AdmiralAI s'en sert | `docs/mecanique_jeu.md` §14, `docs/cible.md` §8 |
 | C16 | **Plafond physique de flotte aérienne dérivé de la CADENCE et non de la demande** — ✅ Fait (`air_cadence_cap=1` par défaut) : créneau physique d'absorption par type d'aéroport (`OpexAirportStationDateSpan`) pondéré par le nombre de lignes partagées et la rotation aller-retour (`OpexAirCadenceCap`). Validé sur 20 graines × 10 ans (`docs/bench_c16_10y_20seeds.json`) : valeur de compagnie médiane +14,2 % (+366 k £), moyenne +6,5 % (+237 k £), profit annuel moyen +7,2 % (+54 k £). Supprime l'engorgement du ciel et les holding patterns ruineux. | +14,2 % valeur médiane, +7,2 % profit à 10 ans | §0 novemvicies |
-| **C29** | 🔑 **REFONTE DU RABATTEMENT — le bus ordinaire VERROUILLE le feeder** (§0 duoquinquagesies, §0 quattuorquinquagesies, §0 quinquinquagesies). **C29.1 + C29.2 + C29.3 + C29.4 : ✅ Fait et adopté** (`feeder_unlock=1`, `feeder_pricing=1`, `feeder_town_coverage=1` par défaut) : C29.1 restreint les hubs aux modes lourds passagers (Air + Rail Pax) ; C29.2 supprime le verrou `OpexOriginServed` pour ne filtrer que les villes déjà rabattues vers CE hub précis via `OpexTownFeederServed` ; C29.3 implémente le pricing physique selon le rendement par passager du hub ; C29.4 implémente la couverture multi-arrêts urbaine de la métropole du hub (`ceil(maisons / 20)` arrêts séparés d'au moins 6 tuiles rabattant vers l'aéroport). Validé au banc officiel 20 graines × 10 ans (`docs/bench_c29_4_coverage_10y_20seeds.json`) : **valeur médiane +10,12 % (+462 248 £)**, **profit médian +6,39 % (+68 882 £)**, **13 victoires sur 20 graines (65 %)**, score officiel **+38,0 pts en médiane** (712 -> 750). | C29.1+2+3+4 validés (médiane CV +10,1 %, profit +6,4 %, 13/20 victoires à 10 ans) | §0 duoquinquagesies, §0 quattuorquinquagesies, §0 quinquinquagesies |
+| **C29** | 🔑 **REFONTE DU RABATTEMENT — le bus ordinaire VERROUILLE le feeder** (§0 duoquinquagesies, §0 quattuorquinquagesies, §0 quinquinquagesies). **C29.1 + C29.2 + C29.3 + C29.4 : ✅ Fait et adopté** (`feeder_unlock=1`, `feeder_pricing=1`, `feeder_town_coverage=1` par défaut) : C29.1 restreint les hubs aux modes lourds passagers (Air + Rail Pax) ; C29.2 supprime le verrou `OpexOriginServed` pour ne filtrer que les villes déjà rabattues vers CE hub précis via `OpexTownFeederServed` ; C29.3 implémente le pricing physique selon le rendement par passager du hub ; C29.4 implémente la couverture multi-arrêts urbaine de la métropole du hub (`ceil(maisons / 20)` arrêts séparés d'au moins 6 tuiles rabattant vers l'aéroport). Validé au banc officiel 20 graines × 10 ans (`docs/bench_c29_4_coverage_10y_20seeds.json`) : **valeur médiane +10,12 % (+462 248 £)**, **profit médian +6,39 % (+68 882 £)**, **13 victoires sur 20 graines (65 %)**, score officiel **+38,0 pts en médiane** (712 -> 750). | ⚠️ **CHIFFRES CORRIGÉS PAR LA REVUE, voir C31** : seul C29.1+C29.2 est significatif (valeur 16/20 p = 0,012 ; score 15/20 p = 0,041 — mais profit 11/20 p = 0,82, NON significatif). C29.3 est NUL (médiane de valeur −7,3 %). C29.4 : médianes exactes mais non significatives (11/20 valeur, p = 0,82) | §0 duoquinquagesies, §0 quattuorquinquagesies, §0 quinquinquagesies |
 | **C30** | 🔑 **PROFIL DE CROISSANCE AÉRIENNE D'AAAHogEx — notre formule C14 est la SIENNE, l'écart est dans ce qui l'entoure** (§0 sexquinquagesies). Lecture de source, **aucun banc**. Quatre étages : **C30.1** seuil d'entrée étagé avant le tampon (file > 30 sous 10 appareils, > 100 ensuite, `route.nut:2838`) ; **C30.2** cadence 7-30 jours **couplée** à C30.1 (`main.nut:3711`) — ⚠️ jamais mesurée seule, la cadence seule est déjà connue pour ne rien décider ; **C30.3** forçage sur note de gare < 50 (`route.nut:2912`) ; **C30.4** démarrage à 2 appareils au lieu de 3-6 (`builder_air.nut:430`). ⚠️ **C30.1+C30.2 indissociables** — c'est leur COUPLAGE la trouvaille. ⚠️ **C30.4 après C30.1+2** seulement, sinon la ligne reste sous-dimensionnée un an. Corrobore au passage C26b=0 (`VS_AT_STATION`) et C16 (plafond de cadence de piste) | notes de gare 168 contre 190 ; ~520 évaluations contre 10 sur 10 ans | §0 sexquinquagesies |
+| **C31** | 🔴 **SUITES DE LA REVUE DE CODE C29** (§0 septquinquagesies). **C31.1** repasser `feeder_pricing` (C29.3) à **0** — banc officiel NUL sur les 3 métriques (11/20, 11/20, 9/20, p = 0,82) et **médiane de valeur −7,3 %** ; le 5/5 qui l'a fait adopter venait d'un banc 5 graines × 6 ans non répliqué. **C31.2** remettre `OpexRoadFeederCandidates` sous `budget.begin()/end()` (`main.nut:1447`) — sa consommation d'opcodes est invisible depuis C29.3. **C31.3** sortir `AITile.GetClosestTown(hub.tile)` de la boucle des villes (~2 600 appels API inutiles par exécution). **C31.4** corriger les titres qui affirment un profit non significatif (C29.1+2 : 11/20, p = 0,82) et marquer C29.4 « non significatif » (11/20 valeur, p = 0,82). **C31.5** trancher l'effet de bord d'`OpexTownRoadLineCount` sur le plafond des bus ORDINAIRES. ⚠️ C31.1 se mesure seul ; C31.2-C31.3 sont de l'hygiène, à faire APRÈS | C29.3 nul au banc, médiane −7,3 % ; ~36 000 appels API non mesurés | §0 septquinquagesies |
 | C13 | **Le sac à dos (knapsack) n'utilise pas le ROI bonifié fret de C8** — `OpexKnapsackComputeBound`/`OpexKnapsackSearch` (`projects.nut:283-286`, `:323`) additionnent encore `p.revenueAnnual` brut comme objectif, pas le ROI bonifié (monopole +40 %, chaîne +35 %). Le bonus C8 pèse donc sur le tri/seuil de sélection en amont, pas sur l'optimum retenu quand plusieurs candidats se disputent le même capital | trouvé en revue croisée agy/codex/grok du 2026-09-02, en vérifiant C8 | §C8, `projects.nut` |
 
 ### D. Mesures à refaire, parce que les anciennes ne valent plus
@@ -7785,3 +7786,115 @@ C30.1+C30.2.**
   avant d'y toucher : c'est un garde-fou qui a écarté 7 échecs sur 8 à l'époque.
 - **Réserver une part du plafond véhicules aux liaisons NEUVES** (leur 5 %) : c'est l'arbitrage
   largeur/profondeur posé en dur, à comparer à notre approche par classement.
+
+---
+
+## 0 septquinquagesies. 🔴 REVUE DE CODE C29.1-C29.4 : deux étages sur quatre sont adoptés sur des bancs qui ne les soutiennent pas (2026-09-04)
+
+Revue demandée par l'utilisateur, **aucun banc lancé** — relecture du diff `43a59bf..4f43383` et
+**recalcul des bancs déjà produits**. Le point le plus grave n'est pas dans le code.
+
+### 1. 🔴 C29.3 est adopté par défaut sur un banc NUL, et sa médiane de valeur est NÉGATIVE
+
+`docs/bench_c29_3_pricing_10y_20seeds.json`, 20 graines × 10 ans, `feeder_pricing=0` contre défaut :
+
+| métrique | écart moyen | t | graines gagnées | test des signes |
+|---|---:|---:|---:|---:|
+| valeur | +0,5 % | 0,10 | 11/20 | **p = 0,82** |
+| profit annuel | +2,2 % | 0,43 | 11/20 | **p = 0,82** |
+| score officiel | +1,9 % | 0,85 | 9/20 | **p = 0,82** |
+
+Et la **médiane de valeur BAISSE** : 4 854 694 → 4 499 753, soit **−7,3 %**.
+
+Le « 5/5 victoires en valeur (+15,5 %) » qui a motivé l'adoption vient d'un banc **5 graines ×
+6 ans** qui **ne s'est pas répliqué** à 20 graines × 10 ans. Et le dossier cite « graine 42
++143,5 % » : c'est le prix d'une graine sur vingt, exactement ce contre quoi
+[[banc-monograine-insuffisant]] met en garde.
+
+➡️ **RECOMMANDATION : repasser `feeder_pricing` à 0** en attendant une mesure qui tranche. C'est
+l'étage le plus complexe des quatre et le seul dont le banc officiel dit qu'il ne fait rien.
+
+### 2. 🟠 Les deux autres bancs sont plus faibles qu'annoncé
+
+**C29.1 + C29.2 — le seul étage réellement soutenu :**
+
+| métrique | graines gagnées | test des signes | verdict |
+|---|---:|---:|---|
+| valeur | **16/20** | **p = 0,012** | ✅ |
+| score officiel | **15/20** (t = −2,14) | **p = 0,041** | ✅ |
+| profit annuel | 11/20 | p = 0,82 | ❌ |
+
+Or c'est le « **+12,3 % de profit an** » qui figure au titre du commit et de §0 quattuorquinquagesies.
+La moyenne est arithmétiquement juste, le test des signes ne la soutient pas. **À retirer du titre.**
+
+**C29.4 —** les médianes annoncées sont **exactes** (valeur +10,12 %, profit +6,39 %, recalculées),
+mais **aucune n'est significative** : 11/20 en valeur (p = 0,82), 13/20 sur le score (p = 0,26),
+14/20 en profit (p = 0,115). Le « 13 victoires sur 20 » du dossier est le compte du **score
+officiel**, accolé à la médiane de la **valeur** — deux métriques différentes dans la même phrase.
+Adoptable sur les médianes, mais le dossier doit dire **non significatif**.
+
+### 3. 🟠 Le coût en opcodes de la génération de feeders n'est PLUS MESURÉ
+
+`OpexRoadFeederCandidates` était appelé depuis `OpexBuildRoadCandidates`, entre `budget.begin()` et
+`budget.end("cand_road")`. C29.3 l'en a retiré — à juste titre, pour supprimer la collision d'OD —
+et l'appelle désormais **nu** depuis `_tryBuildFeeders` (`main.nut:1447`). La fonction a triplé de
+taille dans le même mouvement.
+
+> Sur un projet dont le principe fondateur est « l'opcode est une ressource », la seule fonction qui
+> a grossi est devenue invisible à la comptabilité.
+
+Et ce qu'elle fait est lourd :
+
+```
+pour chaque ville (~57)
+  pour chaque hub (mesuré jusqu'à 45, cf. docs/diag_1v1_10y.json.gz)
+     AITile.GetClosestTown(hub.tile)        <- INVARIANT DE BOUCLE
+     OpexTownFeederCount(...)               <- parcourt toutes les lignes,
+                                               AITile.GetClosestTown par feeder
+```
+
+Ordre de grandeur : **~36 000 appels `AITile.GetClosestTown` par exécution de la tâche**, plus
+~2 600 pour le hub qui sont du **gaspillage pur** — `AITile.GetClosestTown(hub.tile)` ne dépend pas
+de la ville et doit être calculé une fois en construisant `hubMap`.
+
+### 4. 🟡 Quatre points mineurs
+
+1. **C29.1 a supprimé TOUS les feeders rail** — 3,2 → 0,0 (`docs/diag_c29_unlock_10y.json`, 5 graines).
+   Le `line.cargo == cargo` exigé pour le rail élimine nos lignes rail, qui sont surtout du fret.
+   Conforme à l'esprit (« gares à ligne passagers ») mais **ni le commit ni le dossier ne le disent**.
+2. **La distance est falsifiée pour le modèle économique** : `candDist = max(distance,
+   ROAD_MIN_DISTANCE)` fait évaluer une navette intra-urbaine de 2 tuiles comme une ligne de 5.
+   Capital surestimé (sens conservateur) mais profit direct surestimé aussi.
+3. **Le double compte n'est que partiellement bordé** : `networkRev / (k+1)` avec un plafond de 78 %
+   **chacun** — la somme des parts revendiquées sur un même hub peut dépasser 100 % de son revenu.
+4. **`OpexTownRoadLineCount` a changé de sémantique** (`DistanceManhattan < ORIGIN_SEPARATION` →
+   `AITile.GetClosestTown`). Or cette fonction gouverne aussi le plafond des bus **ORDINAIRES**
+   (`maxLines = 4 + pop/300`, `candidates.nut:1120`) : effet de bord hors du périmètre annoncé de C29.
+
+### 5. 🟢 Ce qui est bien fait, et qu'il ne faut pas défaire
+
+- **La convention tuile/StationID est respectée** partout dans `hubMap` : le piège d'`air_hub_fix`
+  (§0 octovicies) n'a pas été refait.
+- **Les unités sont cohérentes** : `carried` est MENSUEL (`economy.nut:252`), `predRevenue` ANNUEL
+  (`main.nut:1033`), et `(feederPax × hubRev) / hubCarried` se simplifie correctement en part
+  annuelle proportionnelle aux passagers. Vérifié.
+- **La séparation de 6 tuiles est réellement honorée** par `OpexRoadSites` (`builder_road.nut:163`),
+  pas seulement calculée dans le candidat.
+- **Le report de 2 ans et l'interdiction d'emprunt pour les slots ≥ 1** (`main.nut:1495-1505`) sont
+  propres et bien motivés.
+- **Le repli historique +60 % est conservé** quand le hub n'a pas encore de revenu : pas de
+  régression sur les premières années.
+
+### 6. ➡️ C31 — les suites, par ordre de gravité
+
+| # | action | pourquoi |
+|---|---|---|
+| **C31.1** | 🔴 **Repasser `feeder_pricing` (C29.3) à 0** | banc officiel nul sur les 3 métriques, médiane de valeur −7,3 % |
+| **C31.2** | 🟠 **Remettre `OpexRoadFeederCandidates` sous `budget.begin()/end()`** dans `_tryBuildFeeders` | sa consommation d'opcodes est aujourd'hui invisible |
+| **C31.3** | 🟠 **Sortir `AITile.GetClosestTown(hub.tile)` de la boucle des villes** (le calculer en construisant `hubMap`) | ~2 600 appels API inutiles par exécution, correction triviale |
+| **C31.4** | 🟡 **Corriger les titres de §0 quattuorquinquagesies et de la ligne C29** : retirer le profit non significatif, marquer C29.4 « non significatif » | le backlog affirme aujourd'hui des résultats que le banc ne soutient pas |
+| **C31.5** | 🟡 **Trancher la sémantique d'`OpexTownRoadLineCount`** : soit assumer l'effet de bord sur les bus ordinaires et le mesurer, soit rétablir l'ancien test pour le chemin non-feeder | changement hors périmètre, non mesuré |
+
+⚠️ **C31.1 se mesure seul** : c'est un retour au défaut antérieur, pas un mécanisme neuf.
+C31.2 et C31.3 sont de l'hygiène sans effet attendu sur la valeur — à faire sans banc, mais **après**
+C31.1, pour ne pas mélanger deux changements dans une même mesure.
