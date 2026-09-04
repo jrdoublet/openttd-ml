@@ -1,0 +1,410 @@
+{
+  "summary": {
+    "control": {
+      "valeur_med": 4392078,
+      "valeur_mean": 5986404,
+      "profit_med": 1057337,
+      "profit_mean": 1203126.2,
+      "air_total": 227,
+      "feeder_total": 61,
+      "rail_total": 19,
+      "road_total": 8,
+      "infundable_total": 305
+    },
+    "c28_n24": {
+      "valeur_med": 4992574,
+      "valeur_mean": 6267655.4,
+      "profit_med": 1057337,
+      "profit_mean": 1237172.6,
+      "air_total": 224,
+      "feeder_total": 64,
+      "rail_total": 21,
+      "road_total": 9,
+      "infundable_total": 2066
+    },
+    "c28_n36": {
+      "valeur_med": 4904250,
+      "valeur_mean": 6203839,
+      "profit_med": 1057337,
+      "profit_mean": 1232490.4,
+      "air_total": 218,
+      "feeder_total": 64,
+      "rail_total": 24,
+      "road_total": 9,
+      "infundable_total": 342
+    }
+  },
+  "rows": [
+    {
+      "arm": "control",
+      "seed": 42,
+      "date": "1979-12-01",
+      "company_value": 4392078,
+      "profit_year": 1057337,
+      "profit": 284511,
+      "money": 1779642,
+      "current_loan": 0,
+      "n_vehicles": 208,
+      "n_stations": 70,
+      "decisions": {
+        "build_counts": {
+          "AIR_BUILD": 45,
+          "FEEDER_BUILD": 9,
+          "ROAD_BUILD": 2,
+          "RAIL_BUILD": 5,
+          "RAIL_BUILD_FAIL": 4
+        },
+        "infundable_total": 22,
+        "ceilings_min": 295000,
+        "ceilings_max": 315364,
+        "ceilings_last": 315364
+      }
+    },
+    {
+      "arm": "control",
+      "seed": 100,
+      "date": "1979-12-01",
+      "company_value": 4072748,
+      "profit_year": 692733,
+      "profit": 158681,
+      "money": 378343,
+      "current_loan": 0,
+      "n_vehicles": 238,
+      "n_stations": 74,
+      "decisions": {
+        "build_counts": {
+          "AIR_BUILD": 55,
+          "ROAD_BUILD": 1,
+          "FEEDER_BUILD": 8,
+          "RAIL_BUILD": 2,
+          "RAIL_BUILD_FAIL": 4
+        },
+        "infundable_total": 0,
+        "ceilings_min": 0,
+        "ceilings_max": 0,
+        "ceilings_last": 0
+      }
+    },
+    {
+      "arm": "control",
+      "seed": 7,
+      "date": "1979-12-01",
+      "company_value": 11118732,
+      "profit_year": 2162344,
+      "profit": 542882,
+      "money": 7152340,
+      "current_loan": 0,
+      "n_vehicles": 306,
+      "n_stations": 86,
+      "decisions": {
+        "build_counts": {
+          "AIR_BUILD": 61,
+          "FEEDER_BUILD": 16,
+          "ROAD_BUILD": 2,
+          "RAIL_BUILD": 1
+        },
+        "infundable_total": 126,
+        "ceilings_min": 295000,
+        "ceilings_max": 295000,
+        "ceilings_last": 295000
+      }
+    },
+    {
+      "arm": "control",
+      "seed": 999,
+      "date": "1979-12-01",
+      "company_value": 7632679,
+      "profit_year": 1509162,
+      "profit": 334647,
+      "money": 5635384,
+      "current_loan": 0,
+      "n_vehicles": 213,
+      "n_stations": 70,
+      "decisions": {
+        "build_counts": {
+          "AIR_BUILD": 45,
+          "RAIL_BUILD_FAIL": 5,
+          "FEEDER_BUILD": 15,
+          "RAIL_BUILD": 5,
+          "ROAD_BUILD": 1
+        },
+        "infundable_total": 29,
+        "ceilings_min": 295000,
+        "ceilings_max": 295000,
+        "ceilings_last": 295000
+      }
+    },
+    {
+      "arm": "control",
+      "seed": 2026,
+      "date": "1979-12-01",
+      "company_value": 2715783,
+      "profit_year": 594055,
+      "profit": 158934,
+      "money": 998203,
+      "current_loan": 0,
+      "n_vehicles": 215,
+      "n_stations": 87,
+      "decisions": {
+        "build_counts": {
+          "AIR_BUILD": 21,
+          "FEEDER_BUILD": 13,
+          "RAIL_BUILD": 6,
+          "ROAD_BUILD": 2
+        },
+        "infundable_total": 128,
+        "ceilings_min": 295000,
+        "ceilings_max": 295000,
+        "ceilings_last": 295000
+      }
+    },
+    {
+      "arm": "c28_n24",
+      "seed": 42,
+      "date": "1979-12-01",
+      "company_value": 4392078,
+      "profit_year": 1057337,
+      "profit": 284511,
+      "money": 1779642,
+      "current_loan": 0,
+      "n_vehicles": 208,
+      "n_stations": 70,
+      "decisions": {
+        "build_counts": {
+          "AIR_BUILD": 45,
+          "FEEDER_BUILD": 9,
+          "ROAD_BUILD": 2,
+          "RAIL_BUILD": 5,
+          "RAIL_BUILD_FAIL": 4
+        },
+        "infundable_total": 22,
+        "ceilings_min": 295000,
+        "ceilings_max": 315364,
+        "ceilings_last": 315364
+      }
+    },
+    {
+      "arm": "c28_n24",
+      "seed": 100,
+      "date": "1979-12-01",
+      "company_value": 4992574,
+      "profit_year": 901352,
+      "profit": 245690,
+      "money": 349470,
+      "current_loan": 0,
+      "n_vehicles": 244,
+      "n_stations": 74,
+      "decisions": {
+        "build_counts": {
+          "AIR_BUILD": 53,
+          "ROAD_BUILD": 1,
+          "FEEDER_BUILD": 7,
+          "RAIL_BUILD": 3,
+          "RAIL_BUILD_FAIL": 5
+        },
+        "infundable_total": 865,
+        "ceilings_min": 97056,
+        "ceilings_max": 133752,
+        "ceilings_last": 133752
+      }
+    },
+    {
+      "arm": "c28_n24",
+      "seed": 7,
+      "date": "1979-12-01",
+      "company_value": 11374405,
+      "profit_year": 2000197,
+      "profit": 508335,
+      "money": 8403906,
+      "current_loan": 0,
+      "n_vehicles": 310,
+      "n_stations": 91,
+      "decisions": {
+        "build_counts": {
+          "AIR_BUILD": 57,
+          "FEEDER_BUILD": 19,
+          "ROAD_BUILD": 3,
+          "RAIL_BUILD_FAIL": 1,
+          "RAIL_BUILD": 3
+        },
+        "infundable_total": 126,
+        "ceilings_min": 295000,
+        "ceilings_max": 295000,
+        "ceilings_last": 295000
+      }
+    },
+    {
+      "arm": "c28_n24",
+      "seed": 999,
+      "date": "1979-12-01",
+      "company_value": 7632679,
+      "profit_year": 1509162,
+      "profit": 334647,
+      "money": 5635384,
+      "current_loan": 0,
+      "n_vehicles": 213,
+      "n_stations": 70,
+      "decisions": {
+        "build_counts": {
+          "AIR_BUILD": 45,
+          "RAIL_BUILD_FAIL": 5,
+          "FEEDER_BUILD": 15,
+          "RAIL_BUILD": 5,
+          "ROAD_BUILD": 1
+        },
+        "infundable_total": 29,
+        "ceilings_min": 295000,
+        "ceilings_max": 295000,
+        "ceilings_last": 295000
+      }
+    },
+    {
+      "arm": "c28_n24",
+      "seed": 2026,
+      "date": "1979-12-01",
+      "company_value": 2946541,
+      "profit_year": 717815,
+      "profit": 147182,
+      "money": 1041825,
+      "current_loan": 0,
+      "n_vehicles": 214,
+      "n_stations": 88,
+      "decisions": {
+        "build_counts": {
+          "AIR_BUILD": 24,
+          "FEEDER_BUILD": 14,
+          "RAIL_BUILD": 5,
+          "ROAD_BUILD": 2
+        },
+        "infundable_total": 1024,
+        "ceilings_min": 96994,
+        "ceilings_max": 371494,
+        "ceilings_last": 371494
+      }
+    },
+    {
+      "arm": "c28_n36",
+      "seed": 42,
+      "date": "1979-12-01",
+      "company_value": 4392078,
+      "profit_year": 1057337,
+      "profit": 284511,
+      "money": 1779642,
+      "current_loan": 0,
+      "n_vehicles": 208,
+      "n_stations": 70,
+      "decisions": {
+        "build_counts": {
+          "AIR_BUILD": 45,
+          "FEEDER_BUILD": 9,
+          "ROAD_BUILD": 2,
+          "RAIL_BUILD": 5,
+          "RAIL_BUILD_FAIL": 4
+        },
+        "infundable_total": 22,
+        "ceilings_min": 295000,
+        "ceilings_max": 315364,
+        "ceilings_last": 315364
+      }
+    },
+    {
+      "arm": "c28_n36",
+      "seed": 100,
+      "date": "1979-12-01",
+      "company_value": 4904250,
+      "profit_year": 1001701,
+      "profit": 224107,
+      "money": 325646,
+      "current_loan": 0,
+      "n_vehicles": 310,
+      "n_stations": 74,
+      "decisions": {
+        "build_counts": {
+          "AIR_BUILD": 50,
+          "ROAD_BUILD": 1,
+          "FEEDER_BUILD": 8,
+          "RAIL_BUILD": 5,
+          "RAIL_BUILD_FAIL": 3
+        },
+        "infundable_total": 37,
+        "ceilings_min": 132073,
+        "ceilings_max": 212585,
+        "ceilings_last": 212585
+      }
+    },
+    {
+      "arm": "c28_n36",
+      "seed": 7,
+      "date": "1979-12-01",
+      "company_value": 11374405,
+      "profit_year": 2000197,
+      "profit": 508335,
+      "money": 8403906,
+      "current_loan": 0,
+      "n_vehicles": 310,
+      "n_stations": 91,
+      "decisions": {
+        "build_counts": {
+          "AIR_BUILD": 57,
+          "FEEDER_BUILD": 19,
+          "ROAD_BUILD": 3,
+          "RAIL_BUILD_FAIL": 1,
+          "RAIL_BUILD": 3
+        },
+        "infundable_total": 126,
+        "ceilings_min": 295000,
+        "ceilings_max": 295000,
+        "ceilings_last": 295000
+      }
+    },
+    {
+      "arm": "c28_n36",
+      "seed": 999,
+      "date": "1979-12-01",
+      "company_value": 7632679,
+      "profit_year": 1509162,
+      "profit": 334647,
+      "money": 5635384,
+      "current_loan": 0,
+      "n_vehicles": 213,
+      "n_stations": 70,
+      "decisions": {
+        "build_counts": {
+          "AIR_BUILD": 45,
+          "RAIL_BUILD_FAIL": 5,
+          "FEEDER_BUILD": 15,
+          "RAIL_BUILD": 5,
+          "ROAD_BUILD": 1
+        },
+        "infundable_total": 29,
+        "ceilings_min": 295000,
+        "ceilings_max": 295000,
+        "ceilings_last": 295000
+      }
+    },
+    {
+      "arm": "c28_n36",
+      "seed": 2026,
+      "date": "1979-12-01",
+      "company_value": 2715783,
+      "profit_year": 594055,
+      "profit": 158934,
+      "money": 998203,
+      "current_loan": 0,
+      "n_vehicles": 215,
+      "n_stations": 87,
+      "decisions": {
+        "build_counts": {
+          "AIR_BUILD": 21,
+          "FEEDER_BUILD": 13,
+          "RAIL_BUILD": 6,
+          "ROAD_BUILD": 2
+        },
+        "infundable_total": 128,
+        "ceilings_min": 295000,
+        "ceilings_max": 295000,
+        "ceilings_last": 295000
+      }
+    }
+  ]
+}

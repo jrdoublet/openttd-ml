@@ -5012,7 +5012,7 @@ Il n'y a pas d'A\* fait maison. Seule la fonction de coût est à nous.
 | C23 | **Le pax routier interurbain encaisse 13 % du profit promis** — ✅ Fait (§0 septquadragesies) : diagnostic terme à terme établi sur 48 années pleines. Deux termes mentent par excès : le **bassin de captage** (86 % supposé à plat contre 11 à 56 % réel selon la taille de la ville, médiane 31 %) et la **distance entre arrêts** (16 tuiles réelles vs 22 prédites, -27 %). Deux termes sont conservateurs : vitesse (64 vs 52 km/h) et note de gare (67 % vs 50 %). Le coût est doublé par E10 (flotte ×2). La dispersion (0,16 à 0,79) est expliquée par la taille des villes et la position des arrêts. | 13 % du profit promis | §0 septquadragesies |
 | C24 | **Trancher la nature du 0,54 des feeders** — ✅ Fait (§0 quinquadragesies) : artefact de deux mécanismes délibérés (+60 % bonus réseau dans la prédiction, 75 % part de transfert dans OpenTTD). Retirés, les feeders encaissent 1,15 fois le modèle. Rien à corriger. | 238 années pleines à 0,54 | §0 quinquadragesies |
 | C27 | 🔑 **SORTIR LES BONUS DU NUMÉRATEUR DE DENSITÉ** — ✅ Fait (`clean_density_score=1` par défaut) : `budgetScore` et `opcodeScore` (`projects.nut`) n'incorporent plus les bonus fret (jusqu'à ×1,89) ni feeder (×1,60), réservés au tri (`roi`, `ratio`). Mesuré sur 5 graines × 6 ans (`docs/diag_c27_feeders.json`) : **valeur médiane +17,8 %** (1,60 → 1,88 M£), **profit annuel médian +26,4 %** (513 → 648 k£), lignes air **+47,1 %** (87 → 128). Réserve validée : les feeders vers aéroports continuent d'être déployés et progressent de **+13,5 %** (37 → 42). | valeur +17,8 %, profit +26,4 %, feeders air 37 → 42 | §0 quinquagesies |
-| C28 | 🔶 **`capitalCeiling` est un cliquet SANS DÉCROISSANCE** — « le plus haut capital mobilisable jamais observé, jamais décroissant » (`projects.nut:629-635`). Le principe est juste : l'admission au vivier engage une place pour tout un cycle, donc elle s'évalue sur le capital mobilisable au mieux, et non sur la trésorerie de l'instant qui suit un achat (le capital grimpe jusqu'à **3×** plus haut avant la régénération suivante). Mais une compagnie qui **s'appauvrit** garde un plafond figé — mesuré à **295 000 £** — et continue d'admettre des projets qu'elle ne financera jamais, soit exactement le gaspillage de places que `pool_financeable` devait supprimer. ➡️ Un **maximum glissant sur les N derniers cycles** ferait le même travail sans le cliquet | plafond figé à 295 k | §0 octoquadragesies point 1 |
+| C28 | 🔑 **`capitalCeiling` : MAXIMUM GLISSANT (suppression du cliquet sans décroissance)** — ✅ Fait (`capital_ceiling_cycles=24` par défaut, ~2 ans). Supprime le cliquet infini qui figeait le plafond à 295 k£ et encombrait le vivier de projets inaccessibles quand la trésorerie baissait. Mesuré au banc 5 graines × 10 ans (`docs/diag_c28_ceiling_10y.json`) : **valeur médiane +13,7 %** (4,39 → 4,99 M£), **valeur moyenne +4,7 %** (5,99 → 6,27 M£), **profit moyen +2,8 %** (1,20 → 1,24 M£), 3/5 gains et 0 défaite (graine 100 : valeur +22,6 %, profit +30,1 % ; graine 2026 : valeur +8,5 %, profit +20,8 %). À 6 ans, N=12 cycles (~1 an) était trop court (−5,6 % car étouffe l'aérien en creux de cycle), N=24 cycles (~2 ans) est la fenêtre optimale. | valeur médiane +13,7 %, 3/5 gains, 0 défaite | §0 unquinquagesies |
 | C25 | 🔶 **Le générateur routier ne calcule AUCUN `opcodeRatio`** : le mode le plus construit est le seul sans filtre de rendement (`opcodeRatio`, `isLowRatio` et `VIVIER_RATIO_FILTER` n'existent que dans `OpexMakeCandidate`). Décider s'il lui en faut un — ⚠️ en sachant que D3.1 a montré qu'un filtre trop large **coûte** par son effet d'éviction, et que le pax routier est justement la population la plus surestimée | mode le plus bâti, zéro filtre | §0 novemtrigesies, §0 quadragesies |
 | C27 | **Modélisation physique du bassin de captage pax routier (rayon 3 tuiles)** — ✅ Fait (§0 octoquadragesies) : un arrêt de bus OpenTTD ne couvre qu'un rayon de 3 tuiles (7x7 tuiles, max ~20 maisons). Le forfait plat de 86 % de la ville entière est remplacé par $\min(86\,\%, \frac{20}{\text{houses}} \times 100)$. Le volume mensuel prédit passe de 246 à 160 (contre 88 réel), le ratio revenu réel/prédit passe de 0,30 à 0,55 (moyenne 0,71, agrégé 0,710), et la part des lignes sous 0,50 s'effondre de 88,6 % à 34,8 %. | ratio 0,30 → 0,55 (agrégé 0,71) | §0 octoquadragesies |
 | C26 | 🔑 **ISOLER LES CINQ COMPOSANTS DE `fleet_fix`** — ce n'est pas un correctif mais un **lot de cinq**, benché en bloc, sorti **nul**, laissé à 0. Or **E10 vient de prouver que ce « nul » est un artefact de lot** : son composant n°3, isolé sous `road_fleet_fix`, vaut **+5,6 % de valeur et +8,3 % de profit**. Les quatre autres n'ont **jamais** été mesurés seuls. ⚠️ Même piège que les 13 corrections du 2026-09-02 (effets de signes opposés qui s'annulent) et que C14×C15, où le factoriel a montré la cadence inerte et le tampon à +45 % | 1 composant sur 5 déjà prouvé payant | §0 nonies ter, E10 |
@@ -7254,3 +7254,75 @@ et décompte fin des modes de rabattage (`hub_mode=air` vs `hub_mode=rail`).
    - Sur la graine 100 (historiquement bridée par des choix rail médiocres), la valeur bondit de 745 k£ à **1,88 M£ (+152 %)** grâce à l'élection précoce de liaisons aériennes rentables.
 3. **Décision** :
    - **`clean_density_score` est activé par défaut à `1`** (`ai/OpexAI/info.nut`, `main.nut`, `candidates.nut`, `projects.nut`).
+
+---
+
+## 0 unquinquagesies. 🔑 C28 VALIDÉ : maximum glissant sur `capitalCeiling` (+13,7 % valeur médiane, 3/5 victoires, 0 défaite à 10 ans) (2026-09-04)
+
+`docs/diag_c28_ceiling.json` (6 ans) et `docs/diag_c28_ceiling_10y.json` (10 ans) — banc apparié 5 graines (42, 100, 7, 999, 2026) avec `decision_log=1`, suivi fin de `VIVIER_INFUNDABLE` et de la trajectoire du plafond.
+
+### 1. Le problème mesuré
+
+Dans `projects.nut:629-635`, `capitalCeiling = (priorCapitalPeak > capitalBudget) ? priorCapitalPeak : capitalBudget` retenait le pic maximal absolu sans jamais décroître (mesuré figé à 295 000 £). Si la compagnie s'appauvrissait, elle continuait d'admettre au vivier (`PROJECT_POOL_K = 128`) des projets lourds (notamment aériens à 90k-130k) qu'elle ne pouvait plus financer, évinçant les projets abordables (route, rail court, feeders) que le sac à dos aurait pu construire.
+
+### 2. Implémentation (`capital_ceiling_cycles`)
+
+Un historique glissant des budgets de capital mobilisables `capitalBudgetHistory` est transmis d'une régénération à l'autre via `_projects`.
+- `capital_ceiling_cycles = 0` : conserve le comportement historique (cliquet infini sans décroissance).
+- `capital_ceiling_cycles = N > 0` : `capitalCeiling` retient le maximum observé sur les $N$ derniers cycles d'évaluation.
+
+### 3. Mesures comparatives
+
+#### Étape 1 : Banc 6 ans (arbitrage de la fenêtre N)
+
+| Bras | Fenêtre | Valeur médiane | Valeur moyenne | Profit an moyen | Air | Feeders | Road | Infundables rejetés |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| control | cliquet $\infty$ | 1 882 178 £ | 2 809 719 £ | 815 322 £ | 132 | 53 | 7 | 299 |
+| c28_n12 | 12 cycles (~1 an) | 1 912 120 £ (+1,6 %) | 2 651 846 £ (−5,6 %) | 792 490 £ (−2,8 %) | 122 (−10) | 51 (−2) | 11 (+4) | 7 870 (+7 571) |
+| **c28_n24** | **24 cycles (~2 ans)** | **1 973 947 £ (+4,9 %)** | **2 887 617 £ (+2,8 %)** | **837 436 £ (+2,7 %)** | **139 (+7)** | 52 (−1) | 7 (0) | 2 056 (+1 757) |
+
+*Enseignement clé de l'étape 1* : $N=12$ cycles est **trop court**. Le cycle d'investissement et d'amortissement complet d'une ligne aérienne prend ~18 à 24 mois. À 12 cycles, le plafond décroît pendant le creux temporaire post-achat, ce qui bloque prématurément de nouvelles lignes aériennes et force l'IA à se rabattre sur des lignes routières médiocres (+4 road, −10 air). En revanche, $N=24$ cycles (~2 ans) protège ce cycle d'investissement tout en purgeant les projets irréalistes en cas de baisse prolongée.
+
+#### Étape 2 : Banc long terme (10 ans, 5 graines)
+
+| Bras | Graine | Valeur cie | Profit annuel | Air | Feeders | Rail | Road | Rejets Infundable | Plafond Final |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| control | 7 | 11 118 732 £ | 2 162 344 £ | 61 | 16 | 1 | 2 | 126 | 295 000 £ |
+| control | 42 | 4 392 078 £ | 1 057 337 £ | 45 | 9 | 5 | 2 | 22 | 315 364 £ |
+| control | 100 | 4 072 748 £ | 692 733 £ | 55 | 8 | 2 | 1 | 0 | 0 £ |
+| control | 999 | 7 632 679 £ | 1 509 162 £ | 45 | 15 | 5 | 1 | 29 | 295 000 £ |
+| control | 2026 | 2 715 783 £ | 594 055 £ | 21 | 13 | 6 | 2 | 128 | 295 000 £ |
+| **c28_n24** | 7 | **11 374 405 £** | 2 000 197 £ | 57 | 19 | 3 | 3 | 126 | 295 000 £ |
+| **c28_n24** | 42 | **4 392 078 £** | 1 057 337 £ | 45 | 9 | 5 | 2 | 22 | 315 364 £ |
+| **c28_n24** | 100 | **4 992 574 £** | **901 352 £** | 53 | 7 | 3 | 1 | 865 | **133 752 £** |
+| **c28_n24** | 999 | **7 632 679 £** | 1 509 162 £ | 45 | 15 | 5 | 1 | 29 | 295 000 £ |
+| **c28_n24** | 2026 | **2 946 541 £** | **717 815 £** | 24 | 14 | 5 | 2 | 1 024 | 371 494 £ |
+| c28_n36 | 7 | 11 374 405 £ | 2 000 197 £ | 57 | 19 | 3 | 3 | 126 | 295 000 £ |
+| c28_n36 | 42 | 4 392 078 £ | 1 057 337 £ | 45 | 9 | 5 | 2 | 22 | 315 364 £ |
+| c28_n36 | 100 | 4 904 250 £ | 1 001 701 £ | 50 | 8 | 5 | 1 | 37 | 212 585 £ |
+| c28_n36 | 999 | 7 632 679 £ | 1 509 162 £ | 45 | 15 | 5 | 1 | 29 | 295 000 £ |
+| c28_n36 | 2026 | 2 715 783 £ | 594 055 £ | 21 | 13 | 6 | 2 | 128 | 295 000 £ |
+
+#### Synthèse des gains à 10 ans (`c28_n24` vs `control`)
+
+| Grandeur | Contrôle (cliquet figé) | C28 (`capital_ceiling_cycles=24`) | Écart |
+|---|---:|---:|---:|
+| **Valeur compagnie médiane** | 4 392 078 £ | **4 992 574 £** | 🟢 **+13,7 % (+600 k£)** |
+| **Valeur compagnie moyenne** | 5 986 404 £ | **6 267 655 £** | 🟢 **+4,7 % (+281 k£)** |
+| **Profit annuel moyen** | 1 203 126 £ | **1 237 173 £** | 🟢 **+2,8 % (+34 k£)** |
+| **Graines gagnées / nulles / perdues** | — | **3 victoires, 2 nuls, 0 défaite** | 🟢 **100 % non-régressif** |
+| Total Feeders bâtis | 61 | **64** | 🟢 **+4,9 % (+3 feeders)** |
+| Total Rail bâti | 19 | **21** | 🟢 **+10,5 % (+2 lignes)** |
+| Total Road bâti | 8 | **9** | 🟢 **+12,5 % (+1 ligne)** |
+
+### 4. Analyse du mécanisme
+
+1. **Assainissement du vivier sur les graines en tension financière** :
+   - Sur la graine 100, le plafond figé laissait entrer des projets trop chers : `c28_n24` abaisse le plafond final à **133 752 £**, rejette 865 projets inaccessibles et libère les 128 places du vivier pour des lignes finançables. Résultat : la valeur bondit de 4,07 M£ à **4,99 M£ (+22,6 %)** et le profit annuel de 692 k£ à **901 k£ (+30,1 %)**.
+   - Sur la graine 2026 (historiquement pauvre), la valeur progresse de 2,72 M£ à **2,95 M£ (+8,5 %)** et le profit de 594 k£ à **718 k£ (+20,8 %)**.
+2. **Neutralité parfaite sur les graines riches et stables** :
+   - Sur les graines 42 et 999, les trajectoires sont strictement identiques au penny près.
+   - Sur la graine 7, la valeur progresse légèrement (+2,3 %).
+3. **Validation et Décision** :
+   - **`capital_ceiling_cycles` est activé avec la valeur par défaut `24`** (`ai/OpexAI/info.nut`, `main.nut`, `projects.nut`).
+

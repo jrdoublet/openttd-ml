@@ -41,6 +41,8 @@ ROAD_PAX_CATCHMENT_SHARE_PCT <- 86;
 ROAD_STOP_CATCHMENT_HOUSES <- 20;
 /* C27 : Sortir les bonus du numerateur de densite du portefeuille (adopte) */
 CLEAN_DENSITY_SCORE <- true;
+/* C28 : Maximum glissant sur les N derniers cycles pour capitalCeiling (defaut 24) */
+CAPITAL_CEILING_CYCLES <- 24;
 
 /* Panneaux de diagnostic : lu UNE fois depuis le reglage dans Start(), pas a chaque appel (57
  * panneaux par an, GetSetting a chaque fois serait du gaspillage d'opcodes pour une valeur qui ne
@@ -2027,7 +2029,9 @@ function OpexAI::_tryBuildProjects(year)
   if (builtCount > 0) {
     local priorPeak = (this._projects != null && ("capitalBudgetPeak" in this._projects))
         ? this._projects.capitalBudgetPeak : 0;
-    this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines, priorPeak);
+    local priorHistory = (this._projects != null && ("capitalBudgetHistory" in this._projects))
+        ? this._projects.capitalBudgetHistory : null;
+    this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines, priorPeak, priorHistory);
     this._ranked = this._projects.rail;
     if (PORTFOLIO_LOG) OpexLogPortfolioRank(this._projects);
     /* `knapsackExact` et le compteur d'imbrications du budget etaient ECRITS ET LUS NULLE PART.
@@ -4066,7 +4070,9 @@ function OpexAI::_runNextTask()
     this._catalog.refresh(this._budget, year);
     local priorPeak = (this._projects != null && ("capitalBudgetPeak" in this._projects))
         ? this._projects.capitalBudgetPeak : 0;
-    this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines, priorPeak);
+    local priorHistory = (this._projects != null && ("capitalBudgetHistory" in this._projects))
+        ? this._projects.capitalBudgetHistory : null;
+    this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines, priorPeak, priorHistory);
     this._ranked = this._projects.rail;
     if (PORTFOLIO_LOG) {
       if (this._projects != null && this._projects.best != null && this._projects.best.len() > 0) {
@@ -4286,6 +4292,8 @@ function OpexAI::Start()
   AIR_CADENCE_CAP = AIController.GetSetting("air_cadence_cap") != 0;
   ROAD_LOADING_FIX = AIController.GetSetting("road_loading_fix") != 0;
   CLEAN_DENSITY_SCORE = AIController.GetSetting("clean_density_score") != 0;
+  local ccc = AIController.GetSetting("capital_ceiling_cycles");
+  if (ccc >= 0) CAPITAL_CEILING_CYCLES = ccc;
   local iap = AIController.GetSetting("infra_amort_pct");
   if (iap >= 0) INFRA_AMORT_PCT = iap;
 

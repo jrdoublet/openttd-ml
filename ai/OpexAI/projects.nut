@@ -25,6 +25,7 @@ const PROJECT_ROAD_TRANSACTION_OPS = 287000;
 const PROJECT_AIR_TRANSACTION_OPS = 100000;
 const PROJECT_WATER_TRANSACTION_OPS = 100000;
 CLEAN_DENSITY_SCORE <- true;
+CAPITAL_CEILING_CYCLES <- 24;
 
 /* Journal historique conserve mot pour mot pour le chemin tension_probe=0. */
 function OpexLogPortfolioRank(projects)
@@ -619,7 +620,7 @@ function OpexProjectEmptyRoad()
   };
 }
 
-function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0)
+function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCapitalHistory = null)
 {
   local rail = OpexBuildCandidates(catalog, budget, lines);
   local road = ROAD_BUILD_ENABLED
@@ -631,13 +632,40 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0)
   if (borrowable < 0) borrowable = 0;
   local capitalBudget = cash + borrowable - OpexCashReserve();
   if (capitalBudget < 0) capitalBudget = 0;
-  /* Plafond de financabilite pour l'ADMISSION au vivier, distinct du capitalBudget instantane
-   * utilise plus bas pour le sac a dos. La regeneration a lieu juste apres un achat (cash au
-   * plancher du cycle) ou une fois par mois ; filtrer l'admission sur ce seul instant viderait le
-   * vivier a chaque passage pauvre alors que le capital mobilisable grimpe ensuite jusqu'a 3x plus
-   * haut avant la prochaine regeneration (docs/taches.md S0 undecies nonies). Le plafond retenu
-   * est donc le plus haut capital mobilisable jamais observe, jamais decroissant. */
-  local capitalCeiling = (priorCapitalPeak > capitalBudget) ? priorCapitalPeak : capitalBudget;
+
+  /* C28 (docs/taches.md C28) : Remplacement du cliquet sans decroissance par un maximum glissant
+   * sur les N derniers cycles.
+   * L'admission au vivier engage une place pour tout un cycle, elle s'evalue donc sur le meilleur
+   * capital mobilisable recent, et non sur la tresorerie du moment qui suit un achat (creux de cycle).
+   * Mais sous le cliquet infini historique (CAPITAL_CEILING_CYCLES = 0), une compagnie qui
+   * s'appauvrit garde un plafond fige (mesure a 295 000 £) et continue d'admettre des projets
+   * inaccessibles au vivier, ce qui evince les projets abordables.
+   * Sous CAPITAL_CEILING_CYCLES > 0, on retient le maximum sur les N derniers cycles (defaut 24, ~2 ans). */
+  local history = [];
+  if (typeof(priorCapitalPeak) == "array") {
+    priorCapitalHistory = priorCapitalPeak;
+    priorCapitalPeak = 0;
+  }
+  if (priorCapitalHistory != null && typeof(priorCapitalHistory) == "array") {
+    foreach (val in priorCapitalHistory) history.append(val);
+  } else if (priorCapitalPeak > 0) {
+    history.append(priorCapitalPeak);
+  }
+  history.append(capitalBudget);
+
+  local capitalCeiling;
+  if (CAPITAL_CEILING_CYCLES > 0) {
+    while (history.len() > CAPITAL_CEILING_CYCLES) {
+      history.remove(0);
+    }
+    local maxVal = 0;
+    foreach (val in history) {
+      if (val > maxVal) maxVal = val;
+    }
+    capitalCeiling = maxVal;
+  } else {
+    capitalCeiling = (priorCapitalPeak > capitalBudget) ? priorCapitalPeak : capitalBudget;
+  }
 
   local airPlan = null;
   local airPlans = [];
@@ -791,7 +819,7 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0)
     return {
       all = stats.odProjects, best = byOpcodes, stats = stats,
       capitalBudget = capitalBudget, generationCapitalBudget = capitalBudget,
-      capitalBudgetPeak = capitalCeiling,
+      capitalBudgetPeak = capitalCeiling, capitalBudgetHistory = history,
       capitalRemaining = remaining, candidateGroups = winners, budgetCandidates = byBudget,
       rail = rail, road = road, airPlan = airPlan, waterPlan = waterPlan,
       airPlans = airPlans, waterPlans = waterPlans,
@@ -801,6 +829,7 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0)
   return {
     all = stats.odProjects, best = byOpcodes, stats = stats,
     capitalBudget = capitalBudget, capitalBudgetPeak = capitalCeiling,
+    capitalBudgetHistory = history,
     capitalRemaining = remaining,
     rail = rail, road = road, airPlan = airPlan, waterPlan = waterPlan,
     airPlans = airPlans, waterPlans = waterPlans,
