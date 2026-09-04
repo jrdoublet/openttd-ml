@@ -244,6 +244,27 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C16 : Plafond physique de flotte aerienne derive de la cadence d'absorption de la piste
+     * (docs/taches.md C16) : derive de la rotation aller-retour et du stationDateSpan par type d'aeroport. */
+    AddSetting({
+      name = "air_cadence_cap",
+      description = "Plafond physique de flotte aerienne par la cadence de piste (docs/taches.md C16): 1 = actif (defaut), 0 = inactif",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* C26b : Correctif du faux embouteillage lorsque le vehicule est a quai en chargement (fleet_fix n°4)
+     * (docs/taches.md C26b) : sans MARGINAL_FLEET, autoriser le refleet routier degrade le profit
+     * de -17,6 % a 10 ans en empilant jusqu'a 16 camions sur des arrets a un seul quai. Defaut a 0. */
+    AddSetting({
+      name = "road_loading_fix",
+      description = "Ignore les vehicules a quai pour la detection d'embouteillage routier (docs/taches.md C26b): 1 = actif, 0 = inactif (defaut confirme)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     AddSetting({
       name = "air_max_distance",
       description = "Plafond de distance pour les liaisons aeriennes (0 = illimite, 212 = defaut empirique, docs/taches.md C6)",

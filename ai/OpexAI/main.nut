@@ -170,6 +170,12 @@ RAIL_REFLEET <- true;
 ROAD_FLEET_FIX <- true;
 /* C26a : Pricer l'avion de la ligne lors du refleet au lieu du meilleur avion du catalogue */
 AIR_FLEET_LINE_PRICE <- true;
+/* C16 : Plafond physique de flotte aerienne derive de la cadence d'absorption de la piste */
+AIR_CADENCE_CAP <- true;
+/* C26b : Correctif du faux embouteillage lorsque le vehicule est a l'arret a quai en chargement
+ * Mesure a 10 ans et 3 ans : DEGRADE le profit de -17,6 % s'il n'est pas couple a MARGINAL_FLEET,
+ * car il empile jusqu'a 16 camions sur des arrets a 1 seul quai. Defaut a false. */
+ROAD_LOADING_FIX <- false;
 /* A7.2 : Vente immediate des convois au depot via ET_VEHICLE_WAITING_IN_DEPOT */
 EVENT_DEPOT_SELL <- false;
 /* A7.1 : Stop-loss immediat sur fermeture d'industrie via ET_INDUSTRY_CLOSE */
@@ -2420,6 +2426,9 @@ function OpexAI::_resizeAirFleets(year)
       isSmallAirport = true;
     }
     local physicalMaxPlanes = isSmallAirport ? 4 : AIR_MAX_PLANES_PER_ROUTE;
+    if (AIR_CADENCE_CAP) {
+      physicalMaxPlanes = OpexAirCadenceCap(line, this._catalog, this._lines);
+    }
     local maxPlanesForAirport = physicalMaxPlanes;
     if (have >= physicalMaxPlanes) { OpexAirFleetRefusal(line, year, "C"); continue; }
     if (AIR_DEMAND_CAP) {
@@ -2701,7 +2710,7 @@ function OpexAI::_refleetRoadLines(year)
          * plein -- etait lue comme « deja sature, ne pas grandir ». Le signal etait donc inverse
          * par rapport a son intention (docs/taches.md S0 nonies, trouvaille 3). On ne compte
          * desormais comme bloque qu'un vehicule arrete EN LIGNE, pas a quai. */
-        if (!FLEET_FIX || AIVehicle.GetState(v) != AIVehicle.VS_AT_STATION) isAnyWaiting = true;
+        if ((!FLEET_FIX && !ROAD_LOADING_FIX) || AIVehicle.GetState(v) != AIVehicle.VS_AT_STATION) isAnyWaiting = true;
         else movingCount++;
       } else movingCount++;
     }
@@ -4271,6 +4280,8 @@ function OpexAI::Start()
   VIVIER_RATIO_FILTER = AIController.GetSetting("vivier_ratio_filter") != 0;
   ROAD_FLEET_FIX = AIController.GetSetting("road_fleet_fix") != 0;
   AIR_FLEET_LINE_PRICE = AIController.GetSetting("air_fleet_line_price") != 0;
+  AIR_CADENCE_CAP = AIController.GetSetting("air_cadence_cap") != 0;
+  ROAD_LOADING_FIX = AIController.GetSetting("road_loading_fix") != 0;
   local iap = AIController.GetSetting("infra_amort_pct");
   if (iap >= 0) INFRA_AMORT_PCT = iap;
 

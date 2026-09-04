@@ -254,6 +254,66 @@ function OpexAirPlanDemand(siteA, siteB, plane, catalog, lines)
   return OpexAirDemandCap(candidate, { plane = plane }, lines);
 }
 
+/* C16 : Creneau physique d'absorption de la piste (en jours par atterrissage).
+ * Tire du modele de cadence d'AAAHogEx (air.nut:10-75). */
+function OpexAirportStationDateSpan(airportType)
+{
+  switch (airportType) {
+    case AIAirport.AT_SMALL: return 20;
+    case AIAirport.AT_COMMUTER: return 16;
+    case AIAirport.AT_LARGE: return 10;
+    case AIAirport.AT_METROPOLITAN: return 8;
+    case AIAirport.AT_INTERNATIONAL: return 5;
+    case AIAirport.AT_INTERCON: return 4;
+    default: return 12;
+  }
+}
+
+/* C16 : Plafond physique de flotte aerienne derive de la CADENCE et non de la demande (docs/taches.md C16).
+ * Calcule le nombre maximal d'avions qui peuvent tourner sur la ligne sans creer d'embouteillage
+ * dans le ciel (holding pattern), compte tenu de la rotation aller-retour et du partage de piste. */
+function OpexAirCadenceCap(line, catalog, lines)
+{
+  local speed = (("plane" in catalog) && catalog.plane != null) ? catalog.plane.speed : 1;
+  local capacity = ("planeCapacity" in line) ? line.planeCapacity : 0;
+  if (("vehicles" in line) && line.vehicles != null) {
+    foreach (v in line.vehicles) {
+      if (!AIVehicle.IsValidVehicle(v)) continue;
+      speed = AIEngine.GetMaxSpeed(AIVehicle.GetEngineType(v));
+      if (capacity <= 0) capacity = AIVehicle.GetCapacity(v, line.cargo);
+      break;
+    }
+  } else if (("vehicle" in line) && AIVehicle.IsValidVehicle(line.vehicle)) {
+    speed = AIEngine.GetMaxSpeed(AIVehicle.GetEngineType(line.vehicle));
+    if (capacity <= 0) capacity = AIVehicle.GetCapacity(line.vehicle, line.cargo);
+  }
+  if (capacity <= 0 && ("plane" in catalog) && catalog.plane != null) {
+    capacity = catalog.plane.capacity;
+  }
+  local distance = OpexFlightDistance(line.stationA, line.stationB);
+  local trip = OpexAirTripModel(speed, capacity, distance);
+  local roundTripDays = trip.roundTripDays;
+
+  local routesA = OpexAirLiveRoutesAtAirport(line.stationA, lines);
+  local routesB = OpexAirLiveRoutesAtAirport(line.stationB, lines);
+  if (routesA < 1) routesA = 1;
+  if (routesB < 1) routesB = 1;
+
+  local typeA = (line.stationA != null && AIAirport.IsAirportTile(line.stationA))
+      ? AIAirport.GetAirportType(line.stationA) : AIAirport.AT_SMALL;
+  local typeB = (line.stationB != null && AIAirport.IsAirportTile(line.stationB))
+      ? AIAirport.GetAirportType(line.stationB) : AIAirport.AT_SMALL;
+  local spanA = OpexAirportStationDateSpan(typeA) * routesA;
+  local spanB = OpexAirportStationDateSpan(typeB) * routesB;
+  local effectiveSpan = (spanA > spanB) ? spanA : spanB;
+  if (effectiveSpan < 1) effectiveSpan = 1;
+
+  local cap = (roundTripDays / effectiveSpan.tofloat()).tointeger() + 1;
+  if (cap < 1) cap = 1;
+  if (cap > AIR_MAX_PLANES_PER_ROUTE) cap = AIR_MAX_PLANES_PER_ROUTE;
+  return cap;
+}
+
 function OpexAirAirportAcceptsPlane(airportType, planeType)
 {
   if (planeType == AIAirport.PT_SMALL_PLANE) return true;
