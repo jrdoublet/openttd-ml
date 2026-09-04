@@ -93,6 +93,10 @@ FLEET_BEFORE_NEW <- false;
 FEEDER_ENABLED <- true;
 /* C32 : rabattement arbitre au portefeuille (1) au lieu de la tache dediee (0). */
 FEEDER_PORTFOLIO <- true;
+/* C34.1 : construction aerienne arbitree par le portefeuille seul (1) au lieu de la tache dediee. */
+AIR_PORTFOLIO <- true;
+/* C34.2 : croissance de flotte aerienne arbitree par le portefeuille (1) au lieu de la tache dediee. */
+FLEET_PORTFOLIO <- true;
 /* C32 : bonus forfaitaires de classement (fret x1,89, feeder x1,60). 0 = supprimes. */
 FLAT_BONUS <- false;
 /* Devis réel par AITestMode + AIAccounting avant engagement (docs/taches.md C7). */
@@ -1836,6 +1840,45 @@ function OpexAI::_tryBuildProjects(year)
     local mode = project.mode;
     local modeChar = mode == "rail" ? "T" : (mode == "road" ? "R" : (mode == "air" ? "A" : "W"));
 
+    if (mode == "fleet") {
+      /* C34.2 : achat d'avion elu par le portefeuille. Les gardes de refus ont deja ete franchies
+       * en mode a blanc ; il ne reste que le test de tresorerie, qui est desormais celui du
+       * portefeuille et non un droit de tirage anticipe. */
+      local entry = project.payload;
+      local line = entry.line;
+      local need = entry.planePrice + OpexCashReserve();
+      local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+      if (money < need && REBORROW) money = OpexTryReborrow(need, money);
+      if (money < need) {
+        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst, reason = "insufficient_cash", extra = "" });
+        continue;
+      }
+      local added = 0;
+      for (local k = 0; k < entry.want; k++) {
+        local grown = OpexAirAddPlane(line);
+        if (grown.added <= 0) break;
+        added += grown.added;
+        local haveNow = (("vehCount" in line) ? line.vehCount : 0) + grown.added;
+        line.vehCount <- haveNow;
+        line.trains = haveNow;
+        if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < need) break;
+      }
+      if (added > 0) {
+        local yy2 = year % 100;
+        line.lastAirFleetYear <- year;
+        line.lastAirFleetDate <- AIDate.GetCurrentDate();
+        if (DECISION_LOG) {
+          OpexDecide("FLEET_PROJECT", "action=grow line=" + line.lineId + " added=" + added
+                     + " want=" + entry.want + " price=" + entry.planePrice
+                     + " profit=" + project.profitAnnual + " roi=" + project.roi);
+        }
+        AILog.Info("[FLEET_PROJECT] line=" + line.lineId + " added=" + added);
+        builtCount++;
+        if (builtCount >= maxBatch) break;
+      }
+      continue;
+    }
+
     if (mode == "air") {
       local plan = project.payload;
       if (builtCount > 0) {
@@ -2290,7 +2333,13 @@ function OpexAI::_tryBuildProjects(year)
         ? this._projects.capitalBudgetPeak : 0;
     local priorHistory = (this._projects != null && ("capitalBudgetHistory" in this._projects))
         ? this._projects.capitalBudgetHistory : null;
-    this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines, priorPeak, priorHistory);
+    local fleetPlan = null;
+    if (FLEET_PORTFOLIO) {
+      /* Mode a blanc : meme decision que la tache air_fleet, sans achat ni test de tresorerie. */
+      fleetPlan = [];
+      this._resizeAirFleets(AIDate.GetYear(AIDate.GetCurrentDate()), fleetPlan);
+    }
+    this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines, priorPeak, priorHistory, fleetPlan);
     this._ranked = this._projects.rail;
     if (PORTFOLIO_LOG) OpexLogPortfolioRank(this._projects);
     /* `knapsackExact` et le compteur d'imbrications du budget etaient ECRITS ET LUS NULLE PART.
@@ -2630,7 +2679,13 @@ function OpexAirFleetPriorityCompare(a, b)
   return 0;
 }
 
-function OpexAI::_resizeAirFleets(year)
+/* C34.2 : `plan` non nul = MODE A BLANC. La fonction traverse exactement les memes treize gardes
+ * de refus, mais au lieu d'acheter elle enregistre ce qu'elle achererait dans `plan`, sous la forme
+ * { line, want, planePrice }. C'est volontairement une reutilisation et non une extraction : les
+ * gardes sont trop nombreuses et trop calibrees pour etre dupliquees sans divergence silencieuse.
+ * Le portefeuille appelle ainsi la meme decision que la tache, puis l'arbitre contre les lignes
+ * neuves au lieu de la servir d'office avant elles. */
+function OpexAI::_resizeAirFleets(year, plan = null)
 {
   local anchor = AIMap.GetTileIndex(1, 1);
   /* air_roi_order : servir la ligne qui rembourse le plus vite, pas la plus ancienne. Le tri
@@ -2767,6 +2822,14 @@ function OpexAI::_resizeAirFleets(year)
         continue;
       }
       maxAddedPerPass = (buildNum < 4) ? buildNum : 4;
+    }
+    if (plan != null) {
+      /* Mode a blanc : on ne touche ni a la tresorerie ni a la ligne. Le test de capital est celui
+       * du portefeuille, pas celui d'ici -- c'est tout l'objet de l'arbitrage. */
+      local room = maxPlanesForAirport - have;
+      local want = (room < maxAddedPerPass) ? room : maxAddedPerPass;
+      if (want > 0) plan.append({ line = line, want = want, planePrice = planePrice });
+      continue;
     }
     while (have < maxPlanesForAirport && addedThisPass < maxAddedPerPass) {
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
@@ -4331,7 +4394,13 @@ function OpexAI::_runNextTask()
         ? this._projects.capitalBudgetPeak : 0;
     local priorHistory = (this._projects != null && ("capitalBudgetHistory" in this._projects))
         ? this._projects.capitalBudgetHistory : null;
-    this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines, priorPeak, priorHistory);
+    local fleetPlan = null;
+    if (FLEET_PORTFOLIO) {
+      /* Mode a blanc : meme decision que la tache air_fleet, sans achat ni test de tresorerie. */
+      fleetPlan = [];
+      this._resizeAirFleets(AIDate.GetYear(AIDate.GetCurrentDate()), fleetPlan);
+    }
+    this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines, priorPeak, priorHistory, fleetPlan);
     this._ranked = this._projects.rail;
     if (PORTFOLIO_LOG) {
       if (this._projects != null && this._projects.best != null && this._projects.best.len() > 0) {
@@ -4392,8 +4461,21 @@ function OpexAI::_runNextTask()
     return true;
   }
   if (task.name == "scrap") { this._scrapDeadLines(year); return true; }
-  if (task.name == "air") { this._tryBuildAir(year); return true; }
+  if (task.name == "air") {
+    /* C34.1 : sous air_portfolio, la construction aerienne passe EXCLUSIVEMENT par le portefeuille.
+     * Motif mesure (docs/taches.md 0 novemquinquagesies) : OpexAirPlans est appele DEUX fois par
+     * cycle -- une fois ici (main.nut:971) et une fois dans OpexBuildProjects (projects.nut:693) --
+     * et chaque passage coute ~21 jours de temps de jeu. Sur la graine 1, 11 passages ont mange
+     * 63 % de l'annee 1. Eteindre cette tache supprime la moitie du goulot, et l'executeur du
+     * portefeuille sait deja batir mode == "air" (main.nut:1839). */
+    if (AIR_PORTFOLIO) { task.enabled = false; return false; }
+    this._tryBuildAir(year); return true;
+  }
   if (task.name == "air_fleet") {
+    /* C34.2 : sous fleet_portfolio, la croissance de flotte est arbitree par le portefeuille.
+     * La tache dediee avait un DROIT DE TIRAGE sur la tresorerie avant `projects` (ordre
+     * main.nut:626-630), ce qui la faisait servir d'office avant toute ligne neuve. */
+    if (FLEET_PORTFOLIO) { task.enabled = false; return false; }
     task.dueCycle = this._taskCycle + 1;
     return this._resizeAirFleets(year);
   }
@@ -4476,6 +4558,8 @@ function OpexAI::Start()
   ROAD_MULTISTOP = AIController.GetSetting("road_multistop") != 0;
   MARGINAL_FLEET = AIController.GetSetting("marginal_fleet") != 0;
   FEEDER_PORTFOLIO = AIController.GetSetting("feeder_portfolio") != 0;
+  AIR_PORTFOLIO = AIController.GetSetting("air_portfolio") != 0;
+  FLEET_PORTFOLIO = AIController.GetSetting("fleet_portfolio") != 0;
   FLAT_BONUS = AIController.GetSetting("flat_bonus") != 0;
   AIR_ROI_ORDER = AIController.GetSetting("air_roi_order") != 0;
   LOOP_BUDGET = AIController.GetSetting("loop_budget") != 0;

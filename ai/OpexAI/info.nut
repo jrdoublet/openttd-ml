@@ -340,6 +340,35 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C34.1 : CONSTRUCTION AERIENNE ARBITREE PAR LE PORTEFEUILLE (docs/taches.md C34).
+     * Motif mesure (0 novemquinquagesies) : OpexAirPlans etait appele DEUX fois par cycle, une fois
+     * par la tache dediee (main.nut:971) et une fois par le portefeuille (projects.nut:693), et
+     * chaque passage coute ~21 jours de temps de jeu. Sur la graine 1, ONZE passages ont mange 63 %
+     * de l annee 1. Eteindre la tache dediee supprime la moitie du goulot, et l executeur du
+     * portefeuille sait deja batir mode == "air".
+     * 1 = portefeuille seul (defaut), 0 = tache dediee _tryBuildAir en plus. */
+    AddSetting({
+      name = "air_portfolio",
+      description = "Construction aerienne arbitree par le portefeuille seul (docs/taches.md C34.1): 1 = portefeuille (MESURE -23,3 % en an 1, ne pas activer sans corriger le classement) , 0 = tache dediee",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* C34.2 : CROISSANCE DE FLOTTE ARBITREE PAR LE PORTEFEUILLE (docs/taches.md C34).
+     * La tache air_fleet passait AVANT `projects` dans l ordre de service : elle avait un droit de
+     * tirage sur la tresorerie et etait servie d office avant toute ligne neuve. Sous 1, elle
+     * tourne en MODE A BLANC (_resizeAirFleets(year, plan)) : memes treize gardes de refus, aucun
+     * achat, et chaque achat retenu devient un projet arbitre contre les lignes neuves.
+     * 1 = portefeuille (defaut), 0 = tache dediee servie en premier. */
+    AddSetting({
+      name = "fleet_portfolio",
+      description = "Croissance de flotte aerienne arbitree par le portefeuille (docs/taches.md C34.2): 1 = portefeuille (MESURE -23,3 % en an 1, ne pas activer sans corriger le classement) , 0 = tache dediee",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* C32 : SUPPRESSION DES BONUS FORFAITAIRES DE CLASSEMENT (docs/taches.md C32).
      * Le fret portait jusqu'a x1,89 sur son roi (monopole x1,40 puis chaine x1,35) et un feeder
      * x1,60 forfaitaire. Un forfait n'est pas une estimation : il deplace le classement sans rien

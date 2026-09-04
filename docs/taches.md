@@ -5028,6 +5028,7 @@ Il n'y a pas d'A\* fait maison. Seule la fonction de coût est à nous.
 | **C30** | 🔑 **PROFIL DE CROISSANCE AÉRIENNE D'AAAHogEx — notre formule C14 est la SIENNE, l'écart est dans ce qui l'entoure** (§0 sexquinquagesies). Lecture de source, **aucun banc**. Quatre étages : **C30.1** seuil d'entrée étagé avant le tampon (file > 30 sous 10 appareils, > 100 ensuite, `route.nut:2838`) ; **C30.2** cadence 7-30 jours **couplée** à C30.1 (`main.nut:3711`) — ⚠️ jamais mesurée seule, la cadence seule est déjà connue pour ne rien décider ; **C30.3** forçage sur note de gare < 50 (`route.nut:2912`) ; **C30.4** démarrage à 2 appareils au lieu de 3-6 (`builder_air.nut:430`). ⚠️ **C30.1+C30.2 indissociables** — c'est leur COUPLAGE la trouvaille. ⚠️ **C30.4 après C30.1+2** seulement, sinon la ligne reste sous-dimensionnée un an. Corrobore au passage C26b=0 (`VS_AT_STATION`) et C16 (plafond de cadence de piste) | notes de gare 168 contre 190 ; ~520 évaluations contre 10 sur 10 ans | §0 sexquinquagesies |
 | **C31** | 🔴 **SUITES DE LA REVUE DE CODE C29** (§0 septquinquagesies). **C31.1 ✅ FAIT le 2026-09-04** — `feeder_pricing` ET `feeder_town_coverage` repassés à **0** (§0 octoquinquagesies, factoriel 2×2 30 graines : pricing −1,72 % valeur t=−0,66 34/60, couverture −0,37 % t=−0,16 33/60, interaction non significative p=0,59). Décision initiale : repasser `feeder_pricing` à **0** — banc officiel NUL sur les 3 métriques (11/20, 11/20, 9/20, p = 0,82) et **médiane de valeur −7,3 %** ; le 5/5 qui l'a fait adopter venait d'un banc 5 graines × 6 ans non répliqué. **C31.2 ✅ FAIT** remettre `OpexRoadFeederCandidates` sous `budget.begin()/end()` (`main.nut:1447`) — sa consommation d'opcodes est invisible depuis C29.3. **C31.3 ✅ FAIT** index (ville, hub) en un seul parcours : opcodes de generation **-26,8 %** en moyenne et **-46,5 %** au pire cas (mesure appariee graine 42 x 5 ans). ⚠️ Gravite initiale SUREVALUEE : le cout total etait de 0,03 % du budget. **C31.4** corriger les titres qui affirment un profit non significatif (C29.1+2 : 11/20, p = 0,82) et marquer C29.4 « non significatif » (11/20 valeur, p = 0,82). **C31.5** trancher l'effet de bord d'`OpexTownRoadLineCount` sur le plafond des bus ORDINAIRES. ⚠️ C31.1 se mesure seul ; C31.2-C31.3 sont de l'hygiène, à faire APRÈS | C29.3 nul au banc, médiane −7,3 % ; ~36 000 appels API non mesurés | §0 septquinquagesies |
 | **C33** | 🔴 **LE GOULOT DE L'AN 1 EST LA PLANIFICATION AÉRIENNE** (§0 novemquinquagesies, rejeu de la pire graine). **C33.1 ✅ FAIT et VALIDÉ le 2026-09-05** (`air_site_cache=1` par défaut, `AIR_SITE_RADIUS=25`) : instrumenté puis réduit via cache persistant de sites d'atterrissage avec revalidation à 1 sonde et mémorisation négative. Résultat banc officiel 1 an 5 graines : **valeur +18,6 %** (207 690 £ vs 175 072 £, 4/5 victoires), **profit +15,8 %** (143 973 £ vs 124 311 £), **+3,2 véhicules**, opcodes par passage **-94 % à -96 %** (140 k vs 2,5 à 3,7 M), jours perdus par an divisés par 15 (3 j vs 47-48 j). **C33.2** poser les arrêts de rabattement DANS le chantier de l'aéroport, joints à la même gare (c'est le mécanisme réel d'AAAHogEx, et il rend C29.1-C29.4 caducs). **C33.3** délai de reprise sur la mémoire d'abandon — un seul échec de chantier nous a fait changer de mode pour l'année. **C33.4** décoder `AFAIL error=263`. | C33.1 validé : valeur +18,6 %, opcodes/run −95 %, jours perdus 48j -> 3j | §0 novemquinquagesies, §0 sexagesies |
+| **C34** | 🔴 **FAIT, MESURÉ, REJETÉ — réintégrer l'aérien et le refleet au portefeuille** (§0 sexagesies). `air_portfolio` + `fleet_portfolio`, **défauts remis à 0**. Banc 20 graines × 1 an : **valeur −23,3 %, t = −3,25, 5/20, p = 0,041** — significatif et négatif ; ratio contre AAAHogEx 0,42 → 0,32. Mécanisme : privé de sa voie dédiée, l'aérien affronte un classement qui met la **route au rang 0 dans 27 cas sur 30**. ⚠️ **C34.2 est INERTE** (aucun projet de flotte jamais élu, la règle de tampon refuse toujours) : toute la régression vient de C34.1. ⚠️ Deux de mes raisonnements étaient FAUX et sont réfutés au dossier : couper la tâche aérienne ne divise PAS la planification (11 → 15 passages/an), et l'opcodeScore des projets de flotte n'écrase rien. ➡️ Corriger le DÉNOMINATEUR du classement (A1) avant toute nouvelle plomberie | −23,3 % à 1 an, p = 0,041 ; route rang 0 dans 27/30 | §0 sexagesies |
 | C13 | **Le sac à dos (knapsack) n'utilise pas le ROI bonifié fret de C8** — `OpexKnapsackComputeBound`/`OpexKnapsackSearch` (`projects.nut:283-286`, `:323`) additionnent encore `p.revenueAnnual` brut comme objectif, pas le ROI bonifié (monopole +40 %, chaîne +35 %). Le bonus C8 pèse donc sur le tri/seuil de sélection en amont, pas sur l'optimum retenu quand plusieurs candidats se disputent le même capital | trouvé en revue croisée agy/codex/grok du 2026-09-02, en vérifiant C8 | §C8, `projects.nut` |
 
 ### D. Mesures à refaire, parce que les anciennes ne valent plus
@@ -8260,3 +8261,71 @@ Détail graine par graine :
 
 
 
+
+---
+
+## 0 sexagesies. 🔴 C34 MESURÉ ET REJETÉ : l'aérien perd l'arbitrage qu'on lui impose (2026-09-05)
+
+Demande de l'utilisateur : réintégrer la construction aérienne ET la croissance de flotte au
+portefeuille normal. **Fait, mesuré, rejeté** — `docs/bench_c34_y1_20seeds.json`, 3 bras × 20
+graines × 1 an, 0 échec.
+
+### 1. Le verdict, et il est significatif
+
+| métrique | écart | t | graines gagnées | test des signes |
+|---|---:|---:|---:|---:|
+| valeur | **−23,3 %** | **−3,25** | **5/20** | **p = 0,041** |
+| profit annuel | −18,4 % | −3,01 | 6/20 | p = 0,115 |
+| score officiel | −9,1 % | −1,71 | 6/20 | p = 0,115 |
+
+Ratio contre AAAHogEx : **0,42 → 0,32**. C'est l'un des rares résultats **significatifs** de la
+journée, et il est négatif. **Les deux réglages passent à 0.** Le code reste en place et mesurable.
+
+### 2. 🔑 Le mécanisme : le portefeuille préfère la route à l'aérien, 27 fois sur 30
+
+Relevé des `PORTFOLIO_RANK` (graine 42, 2 ans, `docs/diag_c34.json`) :
+
+| rang | mode élu |
+|---|---|
+| rang 0 | **route 27 fois**, air 3 fois |
+| rang 1 | route 27 fois, air 1 fois |
+| rang 2 | route 21 fois, rail 1 fois |
+
+Privé de sa voie dédiée, l'aérien affronte un classement qui ne le met presque jamais en tête. Sur
+deux ans : 5 lignes routières bâties contre 2 aériennes.
+
+➡️ **C'est exactement le risque inscrit sous B5** (« AAAHogEx gagne par la ruée aérienne :
+subordonner l'aérien à un arbitrage qui l'élit peu est un risque réel ») et la cause en est déjà
+chiffrée en §0 octoquadragesies : `budgetScore = revenueAnnual × 1000 / budgetCapital` est une
+**densité**, et un aéroport à 94 k£ doit produire **3,7 fois** le revenu d'une ligne routière à
+25 k£ pour seulement l'égaler.
+
+> **La leçon : le problème n'est pas la plomberie, c'est le classement.** Tant que la densité de
+> revenu par livre départage les modes, tout mécanisme qui soumet l'aérien à l'arbitrage le tuera.
+
+### 3. ⚠️ DEUX DE MES RAISONNEMENTS ÉTAIENT FAUX, à ne pas resservir
+
+1. **« `OpexAirPlans` est appelé deux fois, donc couper la tâche dédiée divise le goulot par deux. »**
+   **FAUX, mesuré** : `AIR_PLAN_SETS` passe de **11 à 15 par an**. Éteindre une tâche libère le tour
+   de rôle, donc le portefeuille tourne plus souvent et **repaie** la planification. Le goulot de
+   C33.1 est intact, et il ne se traite pas en déplaçant qui l'appelle.
+2. **« Les projets de flotte vont écraser le classement par leur `opcodeScore`. »**
+   **FAUX** : `FLEET_PROJECT = 0` — aucun projet de flotte n'a jamais été élu, ni même produit. Nos
+   lignes aériennes ne franchissent jamais la règle de tampon C14 (`refuse reason=W`), donc le mode
+   à blanc ne rend rien. **C34.2 est INERTE, pas nuisible** : toute la régression vient de C34.1.
+
+### 4. Ce qui est bâti et reste utilisable
+
+- `air_portfolio` : éteint la tâche aérienne dédiée. **Défaut 0.**
+- `fleet_portfolio` : **mode à blanc** de `_resizeAirFleets(year, plan)` — elle traverse ses treize
+  gardes de refus sans acheter et rend ce qu'elle achèterait. Réutilisation volontaire plutôt
+  qu'extraction : dupliquer treize gardes calibrées, c'est garantir une divergence silencieuse.
+  Plus `OpexProjectFromFleet` et l'exécution `mode == "fleet"` au portefeuille. **Défaut 0**, et
+  **inerte tant que la règle de tampon refuse** — le rallumer seul ne changera rien.
+
+### 5. ➡️ Ce que ça désigne pour la suite
+
+**Corriger le dénominateur du classement avant toute nouvelle plomberie.** C'est A1 (dénominateur
+dépendant de la ressource rare) et §0 octoquadragesies point 2, désormais appuyés par une mesure
+significative : la densité revenu/livre écarte systématiquement le mode qui gagne la partie.
+⚠️ Et ne pas retenter C34 avant, sous peine de remesurer les mêmes −23 %.

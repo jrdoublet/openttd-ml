@@ -107,6 +107,13 @@ function OpexLogPortfolioRankWithTension(projects)
 function OpexProjectKeyFor(project)
 {
   local prefix = "";
+  if (project.mode == "fleet") {
+    /* C34.2 : un achat d'avion n'a pas d'origine-destination -- il appartient a UNE ligne. */
+    local lid = (("payload" in project) && project.payload != null
+                 && ("line" in project.payload) && ("lineId" in project.payload.line))
+                ? project.payload.line.lineId : -1;
+    return "fleet|" + lid;
+  }
   if (("payload" in project) && project.payload != null
       && ("isFeeder" in project.payload) && project.payload.isFeeder) {
     prefix = "feeder|";
@@ -181,6 +188,59 @@ function OpexProjectFromCandidate(candidate)
     expectedOpcodes = expectedOps,
     budgetScore = OpexProjectScore(scoreRevenue, budgetCapital),
     opcodeScore = OpexProjectScore(scoreRevenue, expectedOps),
+    planningOpcodes = 0,
+  };
+}
+
+/* C34.2 : un ACHAT D'AVION devient un projet, pour etre arbitre contre les lignes neuves au lieu
+ * d'etre servi d'office avant elles (la tache air_fleet passait avant `projects` dans l'ordre de
+ * service, main.nut:626-630, donc elle avait un droit de tirage sur la tresorerie).
+ *
+ * L'entree vient du MODE A BLANC de _resizeAirFleets : toutes les gardes de refus ont deja ete
+ * franchies, y compris la regle de tampon C14 qui garantit qu'une pleine capacite d'avion attend
+ * reellement au sol. Il ne reste ici qu'a pricer la marge.
+ *
+ * Profit marginal : on prefere le profit REALISE par appareil quand la ligne en a un ; sinon on
+ * retombe sur sa prediction (predRevenue - predRunning) par appareil. Sans ce repli, aucune ligne
+ * de moins d'un an ne produirait de projet de flotte -- or l'annee 1 est precisement la cible. */
+function OpexProjectFromFleet(entry)
+{
+  if (entry == null || entry.want <= 0 || entry.planePrice <= 0) return null;
+  local line = entry.line;
+  local have = ("vehCount" in line && line.vehCount > 0) ? line.vehCount
+             : (("vehicles" in line) ? line.vehicles.len() : 0);
+  if (have < 1) return null;
+
+  local perPlaneProfit = 0;
+  if (("lastProfit" in line) && line.lastProfit > 0) {
+    perPlaneProfit = line.lastProfit / have;
+  } else if (("predRevenue" in line) && line.predRevenue > 0) {
+    local running = ("predRunning" in line) ? line.predRunning : 0;
+    local planes = ("predTrains" in line && line.predTrains > 0) ? line.predTrains : have;
+    perPlaneProfit = (line.predRevenue - running) / planes;
+  }
+  if (perPlaneProfit <= 0) return null;
+
+  local profit = perPlaneProfit * entry.want;
+  local capital = entry.planePrice * entry.want;
+  local revenue = profit;
+  if (("predRevenue" in line) && line.predRevenue > 0) {
+    local planes = ("predTrains" in line && line.predTrains > 0) ? line.predTrains : have;
+    revenue = (line.predRevenue / planes) * entry.want;
+  }
+  /* Un achat d'avion ne coute aucune planification : ni pathfinder, ni sondage de site. Seules
+   * les commandes transactionnelles restent, d'ou un opcodeScore structurellement tres favorable
+   * -- c'est exact, et c'est precisement ce que l'arbitrage doit pouvoir voir. */
+  local expectedOps = PROJECT_ROAD_TRANSACTION_OPS;
+  return {
+    mode = "fleet", kind = "fleet", cargo = line.cargo,
+    src = line.stationA, dst = ("stationB" in line) ? line.stationB : line.stationA,
+    payload = entry, distance = 0, capital = capital,
+    budgetCapital = capital, profitAnnual = profit, revenueAnnual = revenue,
+    roi = capital > 0 ? (profit * 1000) / capital : 0,
+    expectedOpcodes = expectedOps,
+    budgetScore = OpexProjectScore(revenue, capital),
+    opcodeScore = OpexProjectScore(revenue, expectedOps),
     planningOpcodes = 0,
   };
 }
@@ -638,7 +698,7 @@ function OpexProjectEmptyRoad()
   };
 }
 
-function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCapitalHistory = null)
+function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCapitalHistory = null, fleetPlan = null)
 {
   local rail = OpexBuildCandidates(catalog, budget, lines);
   local road = ROAD_BUILD_ENABLED
@@ -735,6 +795,11 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
     foreach (plan in waterPlans) {
       OpexProjectRememberAll(winners, OpexProjectFromWater(catalog, plan, waterOpsPerPlan), stats);
     }
+    if (fleetPlan != null) {
+      foreach (entry in fleetPlan) {
+        OpexProjectRememberAll(winners, OpexProjectFromFleet(entry), stats);
+      }
+    }
   } else {
     foreach (candidate in rail.candidates) {
       OpexProjectRemember(winners, OpexProjectFromCandidate(candidate), stats);
@@ -747,6 +812,11 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
     }
     foreach (plan in waterPlans) {
       OpexProjectRemember(winners, OpexProjectFromWater(catalog, plan, waterOpsPerPlan), stats);
+    }
+    if (fleetPlan != null) {
+      foreach (entry in fleetPlan) {
+        OpexProjectRemember(winners, OpexProjectFromFleet(entry), stats);
+      }
     }
   }
 
