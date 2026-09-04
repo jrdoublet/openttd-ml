@@ -1370,6 +1370,14 @@ Le mode route est donc reconfirme sur l arbre courant.
     });
 
     AddSetting({
+      name = "air_site_cache",
+      description = "Cache airport sites per town and airport type: 1 = enabled (default, C33.1), 0 = disabled",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "economy_fix",
       description = "Source-verified station rating thresholds and train count chosen on profit per pound of capital: 1 = fixed (default, adopted at bench), 0 = historical",
       easy_value = 1, medium_value = 1, hard_value = 1,

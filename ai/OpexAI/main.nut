@@ -620,6 +620,7 @@ class OpexAI extends AIController {
     this._lines = [];
     this._abandonedPairs = {};
     this._vehiclesToScrap = {};
+    OpexAirResetSiteCache();
     this._activeSubsidies = {};
     this._subsidyStats = { offers = 0, expiredWithoutAward = 0, awardedSelf = 0, awardedOther = 0, matchedPool = 0 };
     /* Priorite : donnees et stop-loss, croissance des flottes existantes avant nouveaux projets,
@@ -4569,6 +4570,8 @@ function OpexAI::Start()
   if (fhwm >= 0) FEEDER_HUB_WAIT_MAX = fhwm;
   local fhmd = AIController.GetSetting("feeder_hub_min_days");
   if (fhmd >= 0) FEEDER_HUB_MIN_DAYS = fhmd;
+  AIR_SITE_CACHE_ENABLED = AIController.GetSetting("air_site_cache") != 0;
+  OpexAirResetSiteCache();
 
   /* 🔴 RENOUVELLEMENT AUTOMATIQUE (2026-08-29). Mesure : campagne 20 ans, graine 42 -- trois des
    * quatre lignes ROUTIERES finissent la partie avec vehCount = 0 et un profit de zero, alors que

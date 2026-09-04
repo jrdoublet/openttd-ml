@@ -11,7 +11,7 @@
 AIR_TOWN_POOL <- 24;
 AIR_HUB_TOWN_POOL <- 24;
 AIR_HUB_NEW_SITE_POOL <- 12;
-AIR_SITE_RADIUS <- 35;
+AIR_SITE_RADIUS <- 25;
 AIR_TOWN_MIN_DISTANCE <- 32;
 AIR_MAX_SITE_PROBES <- 1500;
 AIR_MAX_PLANES_PER_ROUTE <- 16;
@@ -21,6 +21,14 @@ AIR_PLAN_DIAG_SEQ <- 0;
 AIR_MAX_DISTANCE <- 0;
 /* Ordre de chargement passagers aerien (true = OF_FULL_LOAD_ANY, false = OF_NONE) */
 AIR_FULL_LOAD <- false;
+/* Cache de sites d'aeroport par ville et type d'aeroport (C33.1) */
+AIR_SITE_CACHE_ENABLED <- true;
+AIR_SITE_CACHE <- {};
+
+function OpexAirResetSiteCache()
+{
+  AIR_SITE_CACHE.clear();
+}
 
 /* Distance euclidienne exacte à vol d'oiseau pour la cinématique et le paiement aérien :
  * sqrt(dx^2 + dy^2) approximé par 0.414 * min(dx, dy) + max(dx, dy) */
@@ -327,6 +335,45 @@ function OpexAirAirportAcceptsPlane(airportType, planeType)
  * pas seulement contre son coin. */
 function OpexAirFindSite(town, airport, probes)
 {
+  local key = town.id + "_" + airport.type;
+  if (AIR_SITE_CACHE_ENABLED && (key in AIR_SITE_CACHE)) {
+    local cachedAnchor = AIR_SITE_CACHE[key];
+    if (cachedAnchor == null) {
+      return null;
+    }
+    local offX = airport.width - 1;
+    local offY = airport.height - 1;
+    local mapX = AIMap.GetMapSizeX();
+    local mapY = AIMap.GetMapSizeY();
+    local ax = AIMap.GetTileX(cachedAnchor);
+    local ay = AIMap.GetTileY(cachedAnchor);
+    if (ax + offX < mapX && ay + offY < mapY) {
+      local c4 = cachedAnchor + AIMap.GetTileIndex(offX, offY);
+      if (!AITile.IsWaterTile(cachedAnchor) && !AITile.IsCoastTile(cachedAnchor) &&
+          !AITile.IsWaterTile(c4) && !AITile.IsCoastTile(c4) &&
+          AIAirport.GetNearestTown(cachedAnchor, airport.type) == town.id) {
+        local ok = false;
+        {
+          local probe = AITestMode();
+          ok = AIAirport.BuildAirport(cachedAnchor, airport.type, AIStation.STATION_NEW);
+          if (!ok) {
+            local err = AIError.GetLastError();
+            if (err == AIError.ERR_LOCAL_AUTHORITY_REFUSES) {
+              ok = true;
+            } else {
+              AITile.LevelTiles(cachedAnchor, c4);
+              ok = AIAirport.BuildAirport(cachedAnchor, airport.type, AIStation.STATION_NEW);
+              if (!ok && AIError.GetLastError() == AIError.ERR_LOCAL_AUTHORITY_REFUSES) ok = true;
+            }
+          }
+        }
+        if ("tested" in probes) probes.tested++;
+        if (ok) return { town = town, anchor = cachedAnchor };
+      }
+    }
+    delete AIR_SITE_CACHE[key];
+  }
+
   local allowance = 120;
   probes.townsLeft--;
   local used = 0;
@@ -371,7 +418,11 @@ function OpexAirFindSite(town, airport, probes)
         }
         if (tooSteep) continue;
 
-        if (used >= allowance || probes.left <= 0) return null;
+        if (used >= allowance) {
+          if (AIR_SITE_CACHE_ENABLED) AIR_SITE_CACHE[key] <- null;
+          return null;
+        }
+        if (probes.left <= 0) return null;
 
         local ok = false;
         {
@@ -391,9 +442,15 @@ function OpexAirFindSite(town, airport, probes)
         used++;
         probes.left--;
         if ("tested" in probes) probes.tested++;
-        if (ok) return { town = town, anchor = anchor };
+        if (ok) {
+          if (AIR_SITE_CACHE_ENABLED) AIR_SITE_CACHE[key] <- anchor;
+          return { town = town, anchor = anchor };
+        }
       }
     }
+  }
+  if (AIR_SITE_CACHE_ENABLED && (used >= allowance || probes.left > 0)) {
+    AIR_SITE_CACHE[key] <- null;
   }
   return null;
 }

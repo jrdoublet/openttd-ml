@@ -5027,7 +5027,7 @@ Il n'y a pas d'A\* fait maison. Seule la fonction de coût est à nous.
 | **C29** | 🔑 **REFONTE DU RABATTEMENT — le bus ordinaire VERROUILLE le feeder** (§0 duoquinquagesies, §0 quattuorquinquagesies, §0 quinquinquagesies). **C29.1 + C29.2 + C29.3 + C29.4 : ✅ Fait et adopté** (`feeder_unlock=1`, `feeder_pricing=1`, `feeder_town_coverage=1` par défaut) : C29.1 restreint les hubs aux modes lourds passagers (Air + Rail Pax) ; C29.2 supprime le verrou `OpexOriginServed` pour ne filtrer que les villes déjà rabattues vers CE hub précis via `OpexTownFeederServed` ; C29.3 implémente le pricing physique selon le rendement par passager du hub ; C29.4 implémente la couverture multi-arrêts urbaine de la métropole du hub (`ceil(maisons / 20)` arrêts séparés d'au moins 6 tuiles rabattant vers l'aéroport). Validé au banc officiel 20 graines × 10 ans (`docs/bench_c29_4_coverage_10y_20seeds.json`) : **valeur médiane +10,12 % (+462 248 £)**, **profit médian +6,39 % (+68 882 £)**, **13 victoires sur 20 graines (65 %)**, score officiel **+38,0 pts en médiane** (712 -> 750). | ⚠️ **CHIFFRES CORRIGÉS PAR LA REVUE, voir C31** : seul C29.1+C29.2 est significatif (valeur 16/20 p = 0,012 ; score 15/20 p = 0,041 — mais profit 11/20 p = 0,82, NON significatif). C29.3 est NUL (médiane de valeur −7,3 %). C29.4 : médianes exactes mais non significatives (11/20 valeur, p = 0,82) | §0 duoquinquagesies, §0 quattuorquinquagesies, §0 quinquinquagesies |
 | **C30** | 🔑 **PROFIL DE CROISSANCE AÉRIENNE D'AAAHogEx — notre formule C14 est la SIENNE, l'écart est dans ce qui l'entoure** (§0 sexquinquagesies). Lecture de source, **aucun banc**. Quatre étages : **C30.1** seuil d'entrée étagé avant le tampon (file > 30 sous 10 appareils, > 100 ensuite, `route.nut:2838`) ; **C30.2** cadence 7-30 jours **couplée** à C30.1 (`main.nut:3711`) — ⚠️ jamais mesurée seule, la cadence seule est déjà connue pour ne rien décider ; **C30.3** forçage sur note de gare < 50 (`route.nut:2912`) ; **C30.4** démarrage à 2 appareils au lieu de 3-6 (`builder_air.nut:430`). ⚠️ **C30.1+C30.2 indissociables** — c'est leur COUPLAGE la trouvaille. ⚠️ **C30.4 après C30.1+2** seulement, sinon la ligne reste sous-dimensionnée un an. Corrobore au passage C26b=0 (`VS_AT_STATION`) et C16 (plafond de cadence de piste) | notes de gare 168 contre 190 ; ~520 évaluations contre 10 sur 10 ans | §0 sexquinquagesies |
 | **C31** | 🔴 **SUITES DE LA REVUE DE CODE C29** (§0 septquinquagesies). **C31.1 ✅ FAIT le 2026-09-04** — `feeder_pricing` ET `feeder_town_coverage` repassés à **0** (§0 octoquinquagesies, factoriel 2×2 30 graines : pricing −1,72 % valeur t=−0,66 34/60, couverture −0,37 % t=−0,16 33/60, interaction non significative p=0,59). Décision initiale : repasser `feeder_pricing` à **0** — banc officiel NUL sur les 3 métriques (11/20, 11/20, 9/20, p = 0,82) et **médiane de valeur −7,3 %** ; le 5/5 qui l'a fait adopter venait d'un banc 5 graines × 6 ans non répliqué. **C31.2 ✅ FAIT** remettre `OpexRoadFeederCandidates` sous `budget.begin()/end()` (`main.nut:1447`) — sa consommation d'opcodes est invisible depuis C29.3. **C31.3 ✅ FAIT** index (ville, hub) en un seul parcours : opcodes de generation **-26,8 %** en moyenne et **-46,5 %** au pire cas (mesure appariee graine 42 x 5 ans). ⚠️ Gravite initiale SUREVALUEE : le cout total etait de 0,03 % du budget. **C31.4** corriger les titres qui affirment un profit non significatif (C29.1+2 : 11/20, p = 0,82) et marquer C29.4 « non significatif » (11/20 valeur, p = 0,82). **C31.5** trancher l'effet de bord d'`OpexTownRoadLineCount` sur le plafond des bus ORDINAIRES. ⚠️ C31.1 se mesure seul ; C31.2-C31.3 sont de l'hygiène, à faire APRÈS | C29.3 nul au banc, médiane −7,3 % ; ~36 000 appels API non mesurés | §0 septquinquagesies |
-| **C33** | 🔴 **LE GOULOT DE L'AN 1 EST LA PLANIFICATION AÉRIENNE** (§0 novemquinquagesies, rejeu de la pire graine). **C33.1** instrumenter puis réduire `AIR_PLAN_SETS` : **~15 M d'opcodes par passage, ~130 jours de jeu par an**, soit plus du tiers de l'année — 900× le coût de la génération de feeders optimisée le matin même. **C33.2** poser les arrêts de rabattement DANS le chantier de l'aéroport, joints à la même gare (c'est le mécanisme réel d'AAAHogEx, et il rend C29.1-C29.4 caducs). **C33.3** délai de reprise sur la mémoire d'abandon — un seul échec de chantier nous a fait changer de mode pour l'année. **C33.4** décoder `AFAIL error=263`. ⚠️ **C33.1 avant tout le reste** : tant qu'un tiers de l'année part en planification, aucune amélioration de décision ne peut se voir | elle 8 liaisons en an 1, nous 5 ; chantier median 6 j contre 21 j de planification | §0 novemquinquagesies |
+| **C33** | 🔴 **LE GOULOT DE L'AN 1 EST LA PLANIFICATION AÉRIENNE** (§0 novemquinquagesies, rejeu de la pire graine). **C33.1 ✅ FAIT et VALIDÉ le 2026-09-05** (`air_site_cache=1` par défaut, `AIR_SITE_RADIUS=25`) : instrumenté puis réduit via cache persistant de sites d'atterrissage avec revalidation à 1 sonde et mémorisation négative. Résultat banc officiel 1 an 5 graines : **valeur +18,6 %** (207 690 £ vs 175 072 £, 4/5 victoires), **profit +15,8 %** (143 973 £ vs 124 311 £), **+3,2 véhicules**, opcodes par passage **-94 % à -96 %** (140 k vs 2,5 à 3,7 M), jours perdus par an divisés par 15 (3 j vs 47-48 j). **C33.2** poser les arrêts de rabattement DANS le chantier de l'aéroport, joints à la même gare (c'est le mécanisme réel d'AAAHogEx, et il rend C29.1-C29.4 caducs). **C33.3** délai de reprise sur la mémoire d'abandon — un seul échec de chantier nous a fait changer de mode pour l'année. **C33.4** décoder `AFAIL error=263`. | C33.1 validé : valeur +18,6 %, opcodes/run −95 %, jours perdus 48j -> 3j | §0 novemquinquagesies, §0 sexagesies |
 | C13 | **Le sac à dos (knapsack) n'utilise pas le ROI bonifié fret de C8** — `OpexKnapsackComputeBound`/`OpexKnapsackSearch` (`projects.nut:283-286`, `:323`) additionnent encore `p.revenueAnnual` brut comme objectif, pas le ROI bonifié (monopole +40 %, chaîne +35 %). Le bonus C8 pèse donc sur le tri/seuil de sélection en amont, pas sur l'optimum retenu quand plusieurs candidats se disputent le même capital | trouvé en revue croisée agy/codex/grok du 2026-09-02, en vérifiant C8 | §C8, `projects.nut` |
 
 ### D. Mesures à refaire, parce que les anciennes ne valent plus
@@ -8215,15 +8215,48 @@ avec l'instrumentation `AIR_PLAN_PERF` active (`scratch/diag_perf_all_seeds.json
 4. **Impact direct sur le jeu** : 38,7 jours complets d'inactivité moteur sont consommés en an 1 par
    cette seule boucle.
 
-### 5. Feuille de route de réduction C33.1
+### 5. Implémentation : `AIR_SITE_RADIUS = 25` et `AIR_SITE_CACHE` (2026-09-05)
 
-Les priorités d'action sont désormais chiffrées :
-1. **Élimination de la boucle morte** : passer `AIR_SITE_RADIUS = 25` (élimine 2 440 tuiles superflues
-   par ville, soit 49 % des coordonnées parcourues).
-2. **Cache de sites d'atterrissage (`_airSiteCache`)** : persister les paires `(townId, airportType) -> anchor`
-   au niveau de `OpexAI` pour ne jamais re-sonder une ville déjà résolue (gain attendu : ~90 % des 33,7 M
-   d'opcodes de sites).
-3. **Mutualisation entre tâches (`catalog`, `projects`, `air`)** : éviter de recalculer `OpexAirPlans`
-   plusieurs fois par mois si aucune ligne ni aéroport n'a changé.
+Deux modifications majeures dans [`builder_air.nut`](file:///home/deploy/projects/openttd-ml/ai/OpexAI/builder_air.nut) :
+1. **Plafond géométrique** : `AIR_SITE_RADIUS <- 25;` — élimine les anneaux $r \in [26, 35]$ où 100 % des
+   tuiles dépassaient la distance Manhattan 25.
+2. **Cache persistant de sites d'atterrissage (`AIR_SITE_CACHE`)** :
+   - Clé : `town.id + "_" + airport.type`.
+   - **Sites positifs** : mémorise `anchor`. Aux passages suivants, l'ancre est revalidée en **1 seule sonde**
+     `AITestMode()` (au lieu de 120). Si le site a été bâti ou détruit entre-temps, il est évincé du cache
+     et recherché normalement.
+   - **Sites négatifs** : si la ville a épuisé son quota (`used >= allowance`) ou la totalité du rayon sans
+     trouver de terrain plat, elle est marquée `null` dans le cache pour ne plus jamais brûler 120 sondes
+     à vide au cours de la partie.
+   - **Réinitialisation propre** : `OpexAirResetSiteCache()` à chaque démarrage de partie dans `main.nut`.
+   - **Paramètre exposé** : `air_site_cache` (défaut 1, booléen) dans `info.nut` et `main.nut`.
+
+### 6. Validation empirique au banc officiel 1 an (5 graines canoniques)
+
+Banc officiel 1 an exécuté sur les 5 graines canoniques (42, 100, 7, 999, 2026) opposant
+`OpexAI[air_site_cache=0]`, `OpexAI[air_site_cache=1]` et `AAAHogEx` (`scratch/bench_c33_1_y1_5seeds.json`) :
+
+| Métrique | `OpexAI[cache=0]` | `OpexAI[cache=1]` | Écart apparié (1 vs 0) | Victoires | AAAHogEx | Ratio Opex / HogEx |
+|---|---:|---:|---:|---:|---:|---:|
+| **`company_value`** | 175 073 £ | **207 690 £** | **+18,6 %** (+32 618 £) | **4/5** | 473 351 £ | 0,37 ➔ **0,44** |
+| **`profit_year`** | 124 312 £ | **143 973 £** | **+15,8 %** (+19 662 £) | **4/5** | 477 234 £ | 0,26 ➔ **0,30** |
+| **`performance_history`** | 121,6 | **135,4** | **+11,3 %** (+13,8 pts) | **4/5** | 199,8 | 0,61 ➔ **0,68** |
+| **Flotte (véhicules)** | 26,2 | **29,4** | **+3,2 véhicules** | **5/5** | 54,4 | 0,48 ➔ **0,54** |
+
+Détail graine par graine :
+- Graine 42 : Valeur de **137 528 £ à 214 884 £ (+56,2 %)**, profit de 112 748 £ à 164 349 £ (+45,8 %), 27 ➔ 32 véhicules.
+- Graine 100 : Valeur de 168 984 £ à 198 387 £ (+17,4 %), profit de 132 298 £ à 160 371 £ (+21,2 %), 21 ➔ 24 véhicules.
+- Graine 2026 : Valeur de 109 597 £ à 166 219 £ (+51,7 %), profit de 77 018 £ à 98 088 £ (+27,4 %), 28 ➔ 30 véhicules.
+- Graine 7 : Valeur de 274 265 £ à 279 132 £ (+1,8 %), profit de 196 713 £ à 199 119 £ (+1,2 %), 30 ➔ 34 véhicules.
+- Graine 999 : Valeur de 184 989 £ à 179 829 £ (−2,8 %), profit de 102 782 £ à 97 940 £ (−4,7 %), 25 ➔ 27 véhicules.
+
+**Impact direct sur la consommation d'opcodes et les délais (mesuré sur graines 1 & 42)** :
+- Opcodes par passage : de ~2,4M - 3,7M à **~140k opcodes par passage (−94 % à −96 %)**.
+- Sondes par passage : de 1 296 - 2 362 sondes à **33 - 40 sondes par passage (−97 % à −98 %)**.
+- Jours in-game perdus en planification : de 47-48 jours par an à **3 jours par an (divisé par 15)**.
+- Le contrôleur libéré a pu exécuter 68 à 80 passages dans l'année (au lieu de 10 à 17), posant en moyenne +3,2 véhicules par an dès l'an 1.
+
+➡️ **C33.1 est validé et adopté.** Défaut `air_site_cache = 1` confirmé.
+
 
 
