@@ -7115,3 +7115,69 @@ le 90 coûte 4 points de profit à 10 ans.
 🔶 **Piste ouverte, désormais chiffrée** : une cadence courte **les trois premières années** puis
 365 ensuite cumulerait les deux profils. C'est la première fois qu'on dispose d'un croisement
 mesuré pour caler une bascule de phase, au lieu de la poser à vue.
+
+---
+
+## 0 octoquadragesies. 🔑 B5 ÉTAPE 1 : l'aérien n'est PAS écarté par le prix — il perd sur la DENSITÉ (2026-09-04)
+
+**Aucun banc lancé.** Dépouillement des journaux de décision déjà capturés le 2026-09-03
+(`docs/diag_airfix_verify.json`, `docs/diag_air_vehicles.json`, `docs/diag_airserved_probe.json`),
+tous postérieurs à l'adoption de `pool_financeable`.
+
+### 1. Le plafond n'est pas celui qu'on croyait, et il n'exclut pas l'air abordable
+
+`VIVIER_INFUNDABLE` journalise le plafond et les rejets par mode. Sur les trois fichiers :
+
+- **plafond = 295 000 £**, pas 65 000 — `capitalCeiling = max(priorCapitalPeak, capitalBudget)`
+  retient le **pic** de budget, pas la trésorerie du moment ;
+- **100 % des rejets d'infinançabilité sont aériens** (rail, route et eau : **zéro**), 1 à 8 par
+  cycle ;
+- donc les projets rejetés coûtent **plus de 295 000 £** — ce sont les gros (grand aéroport ×2 +
+  plusieurs appareils), pas l'aérien ordinaire.
+
+| | coût |
+|---|---|
+| aérien **réellement bâti** (voie dédiée) | 61 523 · 77 723 · **93 923 £** |
+| aérien **présent dans `PORTFOLIO_RANK`** | 93 923 £ — **il atteint bien le classement** |
+| projets non aériens classés | médiane **25 205 – 33 897 £** |
+
+➡️ **`pool_financeable` n'affame pas le sac à dos d'aérien abordable.** Un projet à 94 k passe le
+filtre et apparaît au classement. Ce que le filtre retire est réellement hors de portée.
+
+### 2. 🔑 Le vrai mécanisme : une densité de revenu par livre, et l'air y est doublement handicapé
+
+`budgetScore = revenueAnnual × 1000 / budgetCapital` (`projects.nut:108-112`) — une **densité**.
+Un aéroport à 94 k doit donc produire **≈ 3,7 fois** le revenu d'une ligne routière à 25 k pour
+seulement l'égaler. Et il concourt avec deux handicaps, tous deux mesurés ailleurs :
+
+1. **Son estimateur est CONSERVATEUR.** §0 quadragesies : l'air réalise **1,16 à 1,48 fois** son
+   revenu prédit, quand la route en réalise 0,31 à 0,54. On sous-estime donc l'air de 16 à 48 % —
+   et cette sous-estimation entre **directement au numérateur de sa densité**.
+2. **Ses concurrents sont bonifiés, lui non.** `OpexProjectFromAir` (`projects.nut:188`) utilise
+   `economics.revenueAnnual` **brut**, tandis que le fret porte jusqu'à **×1,89** (monopole +
+   chaîne) et le feeder **×1,60** (valeur réseau), appliqués à `revenueAnnual` **avant** le calcul
+   de densité.
+
+**L'air perd donc une comparaison de densité qu'il dispute avec un numérateur sous-estimé contre
+des numérateurs majorés.** Cela suffit à expliquer « 0 sélection en 16 ans » sans invoquer le prix.
+
+### 3. ➡️ Ce que ça change dans le plan de B5
+
+L'étape 2 que j'avais proposée — **donner une mémoire au sac à dos pour épargner** — **n'est plus
+la bonne** : elle répondait à un problème d'affordabilité qui n'existe pas. À remplacer par deux
+leviers bien moins coûteux, et déjà chiffrés :
+
+1. 🔶 **Corriger le conservatisme de l'estimateur aérien** (+16 à 48 % de densité, gratuit en
+   opcodes). ⚠️ D4 s'applique : correction **par mode**, jamais globale — la même correction
+   appliquée à la route aggraverait sa surestimation.
+2. 🔶 **Trancher l'asymétrie des bonus.** Soit l'air reçoit un bonus de valeur réseau comparable à
+   celui du feeder, soit les bonus sortent tous du numérateur de densité pour ne peser que sur le
+   tri. ⚠️ **Le second est le plus propre** : §0 quinquadragesies a montré que le bonus feeder de
+   ×1,60, écrit dans `revenueAnnual`, avait déjà faussé tout un diagnostic. Un bonus de classement
+   n'a rien à faire dans une grandeur qui sert aussi de prédiction.
+
+### 4. ⚠️ Et la question préalable reste entière
+
+`_tryBuildAir` construit déjà **13 à 68 lignes par décennie** hors arbitrage. Rien ne prouve que
+l'arbitrage ferait de **meilleurs** choix aériens que la voie dédiée — c'est le présupposé de B5,
+et il n'est toujours pas établi. À vérifier avant d'investir dans les deux leviers ci-dessus.
