@@ -201,13 +201,18 @@ class OpexAIInfo extends AIInfo {
     });
 
     /* C14 : Desserrer le gain de la boucle de croissance aerienne
-     * (-1 = inactif/defaut historique, >=0 = tampon de cargo au sol avant achat (ex: 50 comme AAAHogEx)). */
+     * (-1 = inactif, >=0 = tampon de cargo au sol avant achat proportionnel).
+     * ADOPTE a 0 le 2026-09-04 (docs/taches.md, 0 septquadragesies) : balayage factoriel
+     * 18 bras x 20 graines x 10 ans (docs/bench_c14_c15_trajectory_10y.json) montre que la VALEUR
+     * du tampon est indifferente (0 = 50 = +40 % de profit) -- seul le fait d'armer le mecanisme
+     * compte. buffer=0 est donc le bras le plus simple qui capte le gain : +40,4 % de profit a
+     * 10 ans, 17/20 graines, p=0,002. */
     AddSetting({
       name = "air_fleet_buffer",
-      description = "Tampon de cargo en attente avant achat proportionnel d'avions (docs/taches.md C14): -1 = inactif (defaut), >=0 = taille du tampon",
+      description = "Tampon de cargo en attente avant achat proportionnel d'avions (docs/taches.md C14): -1 = inactif, >=0 = taille du tampon (defaut 0, adopte 2026-09-04)",
       min_value = -1, max_value = 500,
-      easy_value = -1, medium_value = -1, hard_value = -1,
-      custom_value = -1,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
       step_size = 5,
       flags = 0
     });

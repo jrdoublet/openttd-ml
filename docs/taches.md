@@ -5005,7 +5005,7 @@ Il n'y a pas d'A\* fait maison. Seule la fonction de coût est à nous.
 | C10 | **`builder_water.nut:255`** : note de gare plate au lieu de `OpexStationRatingForHeadway` | ✅ Fait (§0 octodecies) | §0 octodecies |
 | C11 | **`candidates.nut:166-170` + `:188`** : double pénalité empilée sur `distance > 105`, non recalibrée | ✅ Fait (§0 septdecies) | §0 septdecies |
 | C12 | **La division entière écrase le rail dans `opcodeScore`** : médianes mesurées air 1037, route 62, **rail 0** | éliminé par division flottante continue | ✅ Fait (§0 tervicies) |
-| C14 | **Desserrer le GAIN de la boucle de croissance aérienne** — ✅ Fait (`air_fleet_buffer` : -1 = inactif/défaut, $\ge 0$ = tampon au sol avec achat dynamique $(attente - bottom) / capacite$ jusqu'à 4 appareils par passage, inspiré d'AAAHogEx) | tampon 50 contre 1 pleine capacité | §0 novemvicies point 6 |
+| C14 | **Desserrer le GAIN de la boucle de croissance aérienne** — ✅ Fait, **ADOPTÉ par défaut le 2026-09-04** (`air_fleet_buffer` : -1 = inactif, $\ge 0$ = tampon au sol avec achat dynamique $(attente - bottom) / capacite$ jusqu'à 4 appareils par passage, inspiré d'AAAHogEx). Balayage factoriel §0 septquadragesies : la VALEUR du tampon est indifférente (0 = 50 = +40 % de profit), seul le fait de l'armer compte — **défaut basculé à 0** (le plus simple), +40,4 % de profit à 10 ans, 17/20 graines, $p = 0{,}002$ | tampon 50 contre 1 pleine capacité ; +40,4 % adopté à 0 | §0 novemvicies point 6, §0 septquadragesies |
 | C15 | **Relever la CADENCE de `_resizeAirFleets`** — ✅ Fait (`air_fleet_cadence_days` configurable : 365 = annuel/défaut historique, glissant en jours sinon, avec mémorisation de `buildDate` et `lastAirFleetDate`) | 1/an contre n/cycle | §0 novemvicies point 6 |
 | C21 | **`expectedOpcodes` ignore `HARD_ITERATION_CAP`** : `expectedOps = candidate.iterations × PROJECT_RAIL_OPS_PER_ITERATION` (`projects.nut:122`) utilise un nombre d'itérations prédit sans borner à `HARD_ITERATION_CAP` (10 000) — ✅ Fait (`projects.nut` borne désormais à `HARD_ITERATION_CAP`) | tension opcode 1,2-1,8 mesurée au lieu de ~0,28 | §0 duotrigesies, A3 |
 | C19 | **Convertir les boucles `Begin()/Next()` chaudes en pipeline `Valuate` + `Keep*`** — ✅ Fait (`catalog.nut`, `main.nut`, `tension.nut` convertis aux pipelines natifs `Valuate`/`Keep*`) | 5 opcodes/élément contre le corps entier d'une boucle Squirrel | `docs/cible.md` §8.3 |
@@ -7122,6 +7122,11 @@ le 90 coûte 4 points de profit à 10 ans.
 🔶 **Piste ouverte, désormais chiffrée** : une cadence courte **les trois premières années** puis
 365 ensuite cumulerait les deux profils. C'est la première fois qu'on dispose d'un croisement
 mesuré pour caler une bascule de phase, au lieu de la poser à vue.
+
+✅ **Recommandation appliquée le 2026-09-04** : `air_fleet_buffer` par défaut basculé de `-1` à `0`
+dans `ai/OpexAI/info.nut`, `air_fleet_cadence_days` laissé à `365` (défaut déjà correct). La piste
+de cadence phasée (courte puis 365) reste ouverte — B7 en donne le signal endogène candidat (le
+foncier, pas une date), à câbler séparément.
 
 ---
 
