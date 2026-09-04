@@ -5007,9 +5007,13 @@ Il n'y a pas d'A\* fait maison. Seule la fonction de coût est à nous.
 | C15 | **Relever la CADENCE de `_resizeAirFleets`** — ✅ Fait (`air_fleet_cadence_days` configurable : 365 = annuel/défaut historique, glissant en jours sinon, avec mémorisation de `buildDate` et `lastAirFleetDate`) | 1/an contre n/cycle | §0 novemvicies point 6 |
 | C21 | **`expectedOpcodes` ignore `HARD_ITERATION_CAP`** : `expectedOps = candidate.iterations × PROJECT_RAIL_OPS_PER_ITERATION` (`projects.nut:122`) utilise un nombre d'itérations prédit sans borner à `HARD_ITERATION_CAP` (10 000) — ✅ Fait (`projects.nut` borne désormais à `HARD_ITERATION_CAP`) | tension opcode 1,2-1,8 mesurée au lieu de ~0,28 | §0 duotrigesies, A3 |
 | C19 | **Convertir les boucles `Begin()/Next()` chaudes en pipeline `Valuate` + `Keep*`** — ✅ Fait (`catalog.nut`, `main.nut`, `tension.nut` convertis aux pipelines natifs `Valuate`/`Keep*`) | 5 opcodes/élément contre le corps entier d'une boucle Squirrel | `docs/cible.md` §8.3 |
-| C23 | 🔴 **Le pax routier interurbain encaisse 13 % du profit promis** (31 % du revenu, 83 % des lignes sous la moitié, n = 48 années pleines). Diagnostiquer **quel terme** ment, comme cela a été fait pour `pax_near` : coût de fonctionnement, flotte, note de gare, capacité, distance — un par un, prédit contre réel. ⚠️ Ne PAS appliquer de coefficient correctif avant de savoir : la dispersion va de 0,07 à 1,39, donc le modèle ne se trompe pas d'un facteur, il **ne discrimine pas** | 13 % du profit promis | §0 quadragesies |
-| C24 | 🔶 **Trancher la nature du 0,54 des feeders** — un feeder est payé au **transfert**, pas à la livraison finale. Si le modèle lui prédit une livraison complète, un rapport voisin de la moitié est **exactement attendu** et il n'y a **rien à corriger**. Lecture de code + une ligne de vérification, avant toute intervention | 238 années pleines à 0,54 | §0 quadragesies point 4 |
+| C23 | **Le pax routier interurbain encaisse 13 % du profit promis** — ✅ Fait (§0 septquadragesies) : diagnostic terme à terme établi sur 48 années pleines. Deux termes mentent par excès : le **bassin de captage** (86 % supposé à plat contre 11 à 56 % réel selon la taille de la ville, médiane 31 %) et la **distance entre arrêts** (16 tuiles réelles vs 22 prédites, -27 %). Deux termes sont conservateurs : vitesse (64 vs 52 km/h) et note de gare (67 % vs 50 %). Le coût est doublé par E10 (flotte ×2). La dispersion (0,16 à 0,79) est expliquée par la taille des villes et la position des arrêts. | 13 % du profit promis | §0 septquadragesies |
+| C24 | **Trancher la nature du 0,54 des feeders** — ✅ Fait (§0 quinquadragesies) : artefact de deux mécanismes délibérés (+60 % bonus réseau dans la prédiction, 75 % part de transfert dans OpenTTD). Retirés, les feeders encaissent 1,15 fois le modèle. Rien à corriger. | 238 années pleines à 0,54 | §0 quinquadragesies |
 | C25 | 🔶 **Le générateur routier ne calcule AUCUN `opcodeRatio`** : le mode le plus construit est le seul sans filtre de rendement (`opcodeRatio`, `isLowRatio` et `VIVIER_RATIO_FILTER` n'existent que dans `OpexMakeCandidate`). Décider s'il lui en faut un — ⚠️ en sachant que D3.1 a montré qu'un filtre trop large **coûte** par son effet d'éviction, et que le pax routier est justement la population la plus surestimée | mode le plus bâti, zéro filtre | §0 novemtrigesies, §0 quadragesies |
+| C26 | 🔑 **ISOLER LES CINQ COMPOSANTS DE `fleet_fix`** — ce n'est pas un correctif mais un **lot de cinq**, benché en bloc, sorti **nul**, laissé à 0. Or **E10 vient de prouver que ce « nul » est un artefact de lot** : son composant n°3, isolé sous `road_fleet_fix`, vaut **+5,6 % de valeur et +8,3 % de profit**. Les quatre autres n'ont **jamais** été mesurés seuls. ⚠️ Même piège que les 13 corrections du 2026-09-02 (effets de signes opposés qui s'annulent) et que C14×C15, où le factoriel a montré la cadence inerte et le tampon à +45 % | 1 composant sur 5 déjà prouvé payant | §0 nonies ter, E10 |
+| C26a | 🔶 **`fleet_fix` n°5 — pricer l'avion DE LA LIGNE, pas le meilleur du catalogue** (`main.nut:2445`). Une ligne à hélices face à un catalogue passé au gros jet voit `need` plusieurs fois trop grand : **faux négatifs** sur la croissance de flotte aérienne. ➡️ **Le plus prometteur des quatre** : il agit sur la même boucle que le tampon C14, qui vient de mesurer +45,1 % de `profit_year` | faux négatifs de croissance | §0 nonies |
+| C26b | 🔶 **`fleet_fix` n°4 — un véhicule EN CHARGEMENT lu comme un embouteillage** (`main.nut:2700`, `VS_AT_STATION`). Fausse le signal de saturation, donc toutes les décisions de flotte qui s'y appuient | signal de saturation faux | §0 nonies |
+| C26c | 🔶 **`fleet_fix` n°1+2 — rendre `rail_refleet` atteignable** (`main.nut:3007`, `:4132`) **avec** la pose de `platformA/B` (`builder_rail.nut:1783`). ⚠️ **Indissociables** : rendre le refleet atteignable sans le second **tue l'IA**. À mesurer ensemble, et seulement ensemble. ⚠️ E2 propose par ailleurs de **supprimer** `rail_refleet` comme inerte — trancher l'un avant de faire l'autre | le rail bâtit 0 à 2 lignes par décennie | §0 nonies, E2 |
 | C22 | 🔶 **Filtrer les paires abandonnées à la GÉNÉRATION, pas à l'élection** — `abandoned_pair` fait **89 % des rejets** du portefeuille (280 sur 316) et **279 sur 280 sont de la route** : une paire déjà abandonnée est régénérée, classée, puis jetée. Hygiène sûre, sans effet attendu sur la valeur, mais elle libère des places de classement et rend le taux de rejet lisible | ~9 re-propositions par an et par graine | §0 sextrigesies |
 | C20 | 🔴 **Échéance PAR MICRO-ÉTAPE, jamais globale** — prérequis de toute exécution incrémentale. `safetyDeadline` est aujourd'hui une échéance en ticks posée **une fois** (`main.nut:2847`) ; c'est elle qui a fait rejeter A4 **deux fois** (−23,1 % puis −13,3 % et −27,5 % de gares) : en mode reprenable la fenêtre est partagée et la recherche meurt avant d'aboutir | ampute au lieu de redistribuer | §0 undecies sexies, `docs/cible.md` §2.1 |
 | C18 | 🔶 **Financement / prospection d'industrie** (`AIIndustryType.BuildIndustry` / `ProspectIndustry`, soumis à `economy.fund_buildings`) — créer un **débouché** là où il n'y en a pas, pour une source déjà desservie mais sous-exploitée faute d'accepteur proche. Plus spéculatif que C17 : à ne prendre qu'après lui | AAAHogEx : **0 occurrence**, comme pour les subventions | `docs/mecanique_jeu.md` §14 et §10 |
@@ -6890,3 +6894,105 @@ Les refus, eux, **montent** : 12 au mois 2, 30 au mois 20, **41 au mois 24**.
    et l'a mesuré à 3 ans **groupé avec le tampon**, jamais seul dans la fenêtre où il agit.
 3. **Les deux murs restent à traiter**, et à parts égales : la vitesse d'amorçage **et** les
    filtres qui rejettent 8 534 candidats.
+
+---
+
+## 0 septquadragesies. 🔑 C23 TRANCHÉ : DÉCOMPOSITION DU PAX ROUTIER INTERURBAIN (2026-09-04)
+
+Dépouillement de `docs/diag_c23_pax_road.json` (5 graines × 10 ans, `sweeps/diag_c23_pax_road.py`).
+Filtre strict imposé par C23 : `mode = "road"`, `kind = "pax"`, `purpose = "profit"`, `age ≥ 2`,
+`pred_rev > 0`. L'échantillon couvre **48 années pleines utiles** réparties sur **9 lignes physiques distinctes**.
+
+### 1. Le bilan terme à terme (prédit contre réel)
+
+| terme | modèle prédit | réalité observée | ratio réel / prédit | verdict |
+|---|---|---|---:|---|
+| **Coût de fonctionnement** | 2 400 £ (3 ou 4 bus) | **4 800 £** (6 ou 8 bus) | **2,00** | 🔴 Doublé par le bug E10 (flotte doublée au jour 1) |
+| **Flotte de véhicules** | 3,0 – 4,0 véhicules | **6,0 – 8,0 véhicules** | **2,00** | 🔴 Même cause que ci-dessus |
+| **Vitesse de circulation** | 52 km/h (60 % de 88) | **64 km/h** | **1,23** | ✅ Modèle conservateur (+23 % en réalité) |
+| **Temps de trajet (délai)** | 10 – 12 jours | **~7 jours** | **0,70** | ✅ Barème $T$ intact (251 vs 253, perte < 1 %) |
+| **Note de gare** | 50,0 % (forfait plat) | **67,0 %** (médiane, 52 à 73 %) | **1,34** | ✅ Modèle pessimiste (+34 % en réalité) |
+| **Distance taxable** | 20 – 25 tuiles (méd. **22**) | **12 – 24 tuiles (méd. 16)** | **0,73** | 🔴 **−27 %** (arrêts posés aux franges face-à-face) |
+| **Bassin de captage ville** | **86,0 %** (forfait `ROAD_PAX`) | **10,9 à 56,0 % (méd. 30,6 %)** | **0,36** | 🔴 **Surévalué d'un facteur 2,8** |
+| **Volume mensuel transporté**| 138 – 289 (méd. **246**) | **58 – 142 (méd. 93)** | **0,42** | 🔴 $0{,}36 \text{ (bassin)} \times 1{,}34 \text{ (note)} = 0{,}48$ |
+| **Revenu annuel** | 11 592 – 27 756 £ | 2 157 – 15 196 £ | **0,31** | 🔴 **Produit exact :** $0{,}73 \text{ (dist)} \times 0{,}42 \text{ (vol)} = \mathbf{0{,}31}$ |
+| **Profit annuel** | 8 575 – 23 746 £ | −1 443 – 10 396 £ | **0,13** | 🔴 Revenu à 31 % amputé du coût doublé (E10) |
+
+### 2. 🔑 Le mécanisme du 0,31 de revenu : deux menteurs seulement
+
+L'équation du revenu OpenTTD est un produit simple :
+$$\text{Revenu} = 12 \times \text{Volume} \times \text{Prix}(\text{Distance}, \text{Jours})$$
+
+Sur les trajets courts (< 15 jours), le barème de temps $T$ ne décote quasiment pas ($T \approx 251\text{--}253$). Le prix unitaire est donc **strictement proportionnel à la distance**. Le rapport de revenu réel / prédit est le produit exact de **deux facteurs** :
+
+1. 🔴 **La distance réelle entre arrêts est plus courte que celle entre villes (−27 %)** :
+   `candidates.nut:1104` calcule la distance Manhattan entre les **centres** de villes ($D_{\text{pred}} = 20\text{--}25$, médiane 22). Mais `builder_road.nut` implante les arrêts de bus sur les routes existantes à l'entrée de la ville. Sur deux villes séparées de 20 tuiles, les deux arrêts se font face en périphérie : la distance réelle entre arrêts tombe à **12 à 16 tuiles** ($D_{\text{real}} / D_{\text{pred}} = \mathbf{0{,}73}$ en médiane, et jusqu'à **0,55** sur 42:2).
+   OpenTTD rémunérant le cargo sur la distance entre gares, la ligne encaisse d'emblée **27 % de moins par passager transporté**.
+
+2. 🔴 **Le bassin de captage urbain de 86 % est une aberration physique (−64 %)** :
+   `candidates.nut:1111` utilise `ROAD_PAX_CATCHMENT_SHARE_PCT = 86 %` (`main.nut:39`), adopté le 2026-08-30. Le modèle suppose qu'un arrêt de bus ramasse **86 % de la population d'une métropole entière** !
+   Or un arrêt de bus OpenTTD a un rayon de couverture de **3 tuiles** (environ 25-35 maisons). Le bassin réellement capté par les arrêts posés vaut en médiane **30,6 %** de la production urbaine (contre 86 % supposé, ratio **0,36**).
+   Même avec une note de gare réelle très supérieure à la prédiction (67 % mesuré contre 50 % supposé, bonus ×1,34), le volume réel transporté ne fait que **42 %** de la promesse ($0{,}36 \times 1{,}34 \approx 0{,}48$). Les bus tournent avec **2 passagers en gare en médiane** : les arrêts sont vides.
+
+$$\frac{\text{Revenu réel}}{\text{Revenu prédit}} = \frac{D_{\text{real}}}{D_{\text{pred}}} \times \frac{A_{\text{real}}}{A_{\text{pred}}} = 0{,}73 \times 0{,}42 = \mathbf{0{,}307} \approx \mathbf{0{,}31}$$
+
+**L'écart de revenu s'explique entièrement, au pourcent près.**
+
+### 3. Le mécanisme du 0,13 de profit : l'effet de ciseau E10
+
+Le modèle prédit par exemple sur la ligne médiane 42:2 :
+- Revenu promis : 23 616 £
+- Coût promis (4 bus) : 2 400 £
+- Amortissement promis : 1 605 £
+- Profit promis : **19 611 £**
+
+En réalité :
+- Revenu réel encaissé : **6 879 £** (29 % du promis)
+- Coût réel d'exploitation : **4 800 £** (**DOUBLÉ** à 8 bus quand le réglage E10 était resté à son défaut historique 0)
+- Profit réel brut dégagé : $6\,879 - 4\,800 = \mathbf{2\,079\text{ £}}$, soit un ratio de profit de **0,11** à **0,13** !
+
+➡️ **Avec E10 adopté par défaut (`road_fleet_fix=1`, `ROAD_FLEET_FIX=true`)** :
+La vérification immédiate en jeu montre que :
+- À l'année de mise en service (`age = 2`), **100 % des lignes démarrent avec la flotte exacte** (`v_p = 3, v_r = 3` ; `run_p = 1 800, run_r = 1 800`, ratio 1,00). Le rachat parasite du jour 1 est totalement éliminé.
+- Le profit médian monte de **0,13 à 0,18** (moyenne 0,22, et minimum qui passe de −0,14 à +0,05 : plus aucune ligne déficitaire).
+- **Le revenu, lui, ne bouge pas (médiane 0,30 contre 0,31)** : le facteur 3 de surestimation du revenu est strictement indépendant de la flotte et provient à 100 % de la distance (−27 %) et du bassin à 86 % (−64 %).
+
+### 4. 🔑 Pourquoi le modèle NE DISCRIMINE PAS (dispersion 0,16 à 0,79)
+
+Le mandat de C23 avertissait : *« la dispersion va de 0,07 à 1,39, donc le modèle ne se trompe pas d'un facteur, il ne discrimine pas »*. La décomposition ligne par ligne montre **exactement pourquoi** le modèle échoue à discriminer :
+
+| ligne | pop totale (A+B) | prod mensuelle | $D_{\text{pred}}$ | $D_{\text{real}}$ | $D_{\text{real}} / D_{\text{pred}}$ | bassin réel | revenu réel/prédit |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `999:24` | 2 203 hab | 367 | 25 | 24 | **0,96** | **56,0 %** | **0,76** (sommet) |
+| `314:36` | 2 136 hab | 269 | 20 | 19 | **0,95** | **49,6 %** | **0,63** |
+| `7:4` | 3 773 hab | 543 | 20 | 24 | **1,20** | **31,0 %** | **0,51** |
+| `42:2` | 3 554 hab | 537 | 22 | 12 | **0,55** | **36,3 %** | **0,29** |
+| `42:4` | 2 737 hab | 449 | 20 | 12 | **0,60** | **30,6 %** | **0,28** |
+| `7:9` | 3 996 hab | 594 | 24 | 22 | **0,92** | **23,4 %** | **0,33** |
+| `999:13` | 2 767 hab | 445 | 20 | 13 | **0,65** | **19,6 %** | **0,24** |
+| `314:4` | 5 811 hab | 782 | 22 | 16 | **0,73** | **22,5 %** | **0,30** |
+| `314:45` | **6 524 hab** | **942** | 23 | 14 | **0,61** | **10,9 %** | **0,19** (abîme) |
+
+La non-discrimination provient de **deux variables physiques ignorées par le modèle** :
+
+1. **La taille des villes écrase le taux de captage** :
+   Dans une petite ville (pop 800-1 300), le rayon de 3 tuiles de l'arrêt couvre **50 à 56 %** des habitations. Le modèle (86 %) n'est faux que d'un facteur 1,5.
+   Dans une grande agglomération (pop 5 800-6 500), le même arrêt ne couvre qu'un îlot de **11 %** de la ville. Le modèle (86 %) est faux d'un **facteur 8** !
+   ➡️ **L'estimateur surévalue systématiquement les grandes villes** en leur prêtant une captation presque totale qu'un arrêt unique ne peut pas assurer.
+
+2. **La position des arrêts par rapport aux centres crée un facteur 2,2 de variation de distance** :
+   Selon la topologie des rues, la distance réelle entre arrêts fait entre **55 % et 120 %** de la distance centre-à-centre ($D_{\text{real}} / D_{\text{pred}} \in [0{,}55 ; 1{,}20]$).
+   Or le modèle calcule la rentabilité sur le centre-ville sans attendre de connaître les sites d'arrêt.
+
+### ➡️ Verdict et prescriptions pour le modèle routier
+
+1. **C23 est clos : le diagnostic est complet et chaque terme est quantifié.**
+   - Deux termes mentent par excès : le **bassin de captage** (86 % plat vs 11-56 % réel, ratio 0,36) et la **distance d'implantation** (16 vs 22 tuiles, ratio 0,73).
+   - Deux termes sont conservateurs : la **vitesse** (64 vs 52 km/h, ratio 1,23) et la **note de gare** (67 % vs 50 %, ratio 1,34).
+   - Le coût d'exploitation est doublé par le bug de construction **E10** (corrigé par `road_fleet_fix=1`).
+2. ⛔ **Confirmation de la règle D4 : ne JAMAIS appliquer un multiplicateur 0,31 à la route.**
+   Un abattement forfaitaire ne corrigerait rien : la ligne 999:24 (qui encaisse 76 %) serait rejetée à tort, et la ligne 314:45 (qui n'encaisse que 19 %) continuerait d'être bâtie à perte.
+3. **Les deux vraies pistes pour recalibrer l'estimateur pax route (quand on y touchera)** :
+   - Remplacer le bassin plat de 86 % par un bassin décroissant avec la taille de la ville (ou plafonné à la capacité physique d'une zone de rayon 3, ~80-100 passagers/mois par arrêt), plus proche des 22 % du rail.
+   - Recalculer l'économie sur la distance réelle après découverte des arrêts (`OpexApplyRoadEconomics`), exactement comme le fait `OpexApplyRailEconomics` pour le rail.
+
