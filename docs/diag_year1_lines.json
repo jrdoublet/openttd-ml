@@ -1,0 +1,3057 @@
+{
+  "AAAHogEx": {
+    "arm": "AAAHogEx",
+    "seed": 42,
+    "date": "1971-01-01",
+    "company_value": 541603,
+    "profit_year": 543876,
+    "profit_quarter": 356886,
+    "performance_history": 203,
+    "money": 82791,
+    "current_loan": 210000,
+    "stations": {
+      "0": {
+        "id": 0,
+        "name": "0001Danville",
+        "town": 19,
+        "xy": 32922,
+        "facilities": 12
+      },
+      "1": {
+        "id": 1,
+        "name": "0004Little Frundingbury",
+        "town": 27,
+        "xy": 61002,
+        "facilities": 12
+      },
+      "2": {
+        "id": 2,
+        "name": "0006Linnwell",
+        "town": 12,
+        "xy": 11427,
+        "facilities": 12
+      },
+      "3": {
+        "id": 3,
+        "name": "0008Gredingstone",
+        "town": 23,
+        "xy": 51481,
+        "facilities": 12
+      },
+      "4": {
+        "id": 4,
+        "name": "0010Little Sintburg",
+        "town": 3,
+        "xy": 23083,
+        "facilities": 12
+      },
+      "5": {
+        "id": 5,
+        "name": "0013Gredingstone Bay",
+        "town": 31,
+        "xy": 49365,
+        "facilities": 12
+      },
+      "6": {
+        "id": 6,
+        "name": "0015Nonfingpool",
+        "town": 35,
+        "xy": 14683,
+        "facilities": 12
+      },
+      "7": {
+        "id": 7,
+        "name": "0017Nenningville",
+        "town": 31,
+        "xy": 49115,
+        "facilities": 12
+      },
+      "8": {
+        "id": 8,
+        "name": "0019Chedingstone Bay",
+        "town": 37,
+        "xy": 39377,
+        "facilities": 12
+      },
+      "9": {
+        "id": 9,
+        "name": "0022Finnington",
+        "town": 28,
+        "xy": 6972,
+        "facilities": 12
+      },
+      "10": {
+        "id": 10,
+        "name": "0024Danville",
+        "town": 19,
+        "xy": 33194,
+        "facilities": 10
+      },
+      "11": {
+        "id": 11,
+        "name": "0027Little Frundingbury",
+        "town": 27,
+        "xy": 57936,
+        "facilities": 11
+      },
+      "12": {
+        "id": 12,
+        "name": "0029Linnwell",
+        "town": 38,
+        "xy": 9378,
+        "facilities": 10
+      },
+      "13": {
+        "id": 13,
+        "name": "0032Gredingstone",
+        "town": 39,
+        "xy": 52513,
+        "facilities": 10
+      },
+      "14": {
+        "id": 14,
+        "name": "0035Dronninghall",
+        "town": 23,
+        "xy": 51735,
+        "facilities": 2
+      },
+      "15": {
+        "id": 15,
+        "name": "0036Sonfield",
+        "town": 24,
+        "xy": 45390,
+        "facilities": 7
+      },
+      "16": {
+        "id": 16,
+        "name": "0041Nonfingpool",
+        "town": 35,
+        "xy": 16218,
+        "facilities": 11
+      },
+      "17": {
+        "id": 17,
+        "name": "0044Chedingstone Bay",
+        "town": 37,
+        "xy": 40157,
+        "facilities": 11
+      },
+      "18": {
+        "id": 18,
+        "name": "0047Gredingstone Bay",
+        "town": 31,
+        "xy": 45529,
+        "facilities": 7
+      },
+      "19": {
+        "id": 19,
+        "name": "0052Fontford",
+        "town": 34,
+        "xy": 12863,
+        "facilities": 7
+      },
+      "20": {
+        "id": 20,
+        "name": "0058Pludtown",
+        "town": 21,
+        "xy": 40172,
+        "facilities": 2
+      },
+      "21": {
+        "id": 21,
+        "name": "0060Sleningwell",
+        "town": 32,
+        "xy": 47764,
+        "facilities": 12
+      }
+    },
+    "vehicles": [
+      {
+        "id": 8,
+        "unitnumber": 1,
+        "mode": "aircraft",
+        "cargo_type": 0,
+        "cargo": "passengers",
+        "profit": 38566201,
+        "value": 33467,
+        "capacity": 220,
+        "stations": [
+          1
+        ]
+      },
+      {
+        "id": 9,
+        "unitnumber": 0,
+        "mode": "aircraft",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": 0,
+        "value": 0,
+        "capacity": 40,
+        "stations": [
+          0
+        ]
+      },
+      {
+        "id": 10,
+        "unitnumber": 2,
+        "mode": "aircraft",
+        "cargo_type": 0,
+        "cargo": "passengers",
+        "profit": 38597381,
+        "value": 33467,
+        "capacity": 220,
+        "stations": [
+          1
+        ]
+      },
+      {
+        "id": 11,
+        "unitnumber": 0,
+        "mode": "aircraft",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": 0,
+        "value": 0,
+        "capacity": 40,
+        "stations": [
+          0
+        ]
+      },
+      {
+        "id": 12,
+        "unitnumber": 3,
+        "mode": "aircraft",
+        "cargo_type": 0,
+        "cargo": "passengers",
+        "profit": 38439089,
+        "value": 31707,
+        "capacity": 200,
+        "stations": [
+          2
+        ]
+      },
+      {
+        "id": 13,
+        "unitnumber": 0,
+        "mode": "aircraft",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": 0,
+        "value": 0,
+        "capacity": 30,
+        "stations": [
+          0
+        ]
+      },
+      {
+        "id": 14,
+        "unitnumber": 4,
+        "mode": "aircraft",
+        "cargo_type": 0,
+        "cargo": "passengers",
+        "profit": 38523440,
+        "value": 31707,
+        "capacity": 200,
+        "stations": [
+          3
+        ]
+      },
+      {
+        "id": 15,
+        "unitnumber": 0,
+        "mode": "aircraft",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": 0,
+        "value": 0,
+        "capacity": 30,
+        "stations": [
+          0
+        ]
+      },
+      {
+        "id": 16,
+        "unitnumber": 5,
+        "mode": "aircraft",
+        "cargo_type": 0,
+        "cargo": "passengers",
+        "profit": 29614640,
+        "value": 32711,
+        "capacity": 200,
+        "stations": [
+          5
+        ]
+      },
+      {
+        "id": 17,
+        "unitnumber": 0,
+        "mode": "aircraft",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": 0,
+        "value": 0,
+        "capacity": 30,
+        "stations": [
+          0
+        ]
+      },
+      {
+        "id": 18,
+        "unitnumber": 6,
+        "mode": "aircraft",
+        "cargo_type": 0,
+        "cargo": "passengers",
+        "profit": 23475100,
+        "value": 32967,
+        "capacity": 200,
+        "stations": [
+          5
+        ]
+      },
+      {
+        "id": 19,
+        "unitnumber": 0,
+        "mode": "aircraft",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": 0,
+        "value": 0,
+        "capacity": 30,
+        "stations": [
+          0
+        ]
+      },
+      {
+        "id": 20,
+        "unitnumber": 7,
+        "mode": "aircraft",
+        "cargo_type": 0,
+        "cargo": "passengers",
+        "profit": 19467134,
+        "value": 35621,
+        "capacity": 220,
+        "stations": [
+          7
+        ]
+      },
+      {
+        "id": 21,
+        "unitnumber": 0,
+        "mode": "aircraft",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": 0,
+        "value": 0,
+        "capacity": 40,
+        "stations": [
+          0
+        ]
+      },
+      {
+        "id": 22,
+        "unitnumber": 8,
+        "mode": "aircraft",
+        "cargo_type": 0,
+        "cargo": "passengers",
+        "profit": 19583511,
+        "value": 35621,
+        "capacity": 220,
+        "stations": [
+          6
+        ]
+      },
+      {
+        "id": 23,
+        "unitnumber": 0,
+        "mode": "aircraft",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": 0,
+        "value": 0,
+        "capacity": 40,
+        "stations": [
+          0
+        ]
+      },
+      {
+        "id": 24,
+        "unitnumber": 9,
+        "mode": "aircraft",
+        "cargo_type": 0,
+        "cargo": "passengers",
+        "profit": 10442875,
+        "value": 34277,
+        "capacity": 170,
+        "stations": [
+          8
+        ]
+      },
+      {
+        "id": 25,
+        "unitnumber": 0,
+        "mode": "aircraft",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": 0,
+        "value": 0,
+        "capacity": 35,
+        "stations": [
+          0
+        ]
+      },
+      {
+        "id": 26,
+        "unitnumber": 10,
+        "mode": "aircraft",
+        "cargo_type": 0,
+        "cargo": "passengers",
+        "profit": 10642131,
+        "value": 34545,
+        "capacity": 170,
+        "stations": [
+          9
+        ]
+      },
+      {
+        "id": 27,
+        "unitnumber": 0,
+        "mode": "aircraft",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": 0,
+        "value": 0,
+        "capacity": 35,
+        "stations": [
+          0
+        ]
+      },
+      {
+        "id": 28,
+        "unitnumber": 11,
+        "mode": "aircraft",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": -573901,
+        "value": 34816,
+        "capacity": 230,
+        "stations": [
+          10
+        ]
+      },
+      {
+        "id": 29,
+        "unitnumber": 0,
+        "mode": "aircraft",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": 0,
+        "value": 0,
+        "capacity": 0,
+        "stations": [
+          0
+        ]
+      },
+      {
+        "id": 30,
+        "unitnumber": 12,
+        "mode": "aircraft",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": -478325,
+        "value": 35226,
+        "capacity": 230,
+        "stations": [
+          11
+        ]
+      },
+      {
+        "id": 31,
+        "unitnumber": 0,
+        "mode": "aircraft",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": 0,
+        "value": 0,
+        "capacity": 0,
+        "stations": [
+          0
+        ]
+      },
+      {
+        "id": 32,
+        "unitnumber": 13,
+        "mode": "aircraft",
+        "cargo_type": 0,
+        "cargo": "passengers",
+        "profit": 11891977,
+        "value": 35226,
+        "capacity": 200,
+        "stations": [
+          4
+        ]
+      },
+      {
+        "id": 33,
+        "unitnumber": 0,
+        "mode": "aircraft",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": 0,
+        "value": 0,
+        "capacity": 30,
+        "stations": [
+          0
+        ]
+      },
+      {
+        "id": 34,
+        "unitnumber": 14,
+        "mode": "aircraft",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": -258770,
+        "value": 36060,
+        "capacity": 205,
+        "stations": [
+          13
+        ]
+      },
+      {
+        "id": 35,
+        "unitnumber": 0,
+        "mode": "aircraft",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": 0,
+        "value": 0,
+        "capacity": 0,
+        "stations": [
+          0
+        ]
+      },
+      {
+        "id": 36,
+        "unitnumber": 15,
+        "mode": "aircraft",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": -257875,
+        "value": 36060,
+        "capacity": 205,
+        "stations": [
+          12
+        ]
+      },
+      {
+        "id": 37,
+        "unitnumber": 0,
+        "mode": "aircraft",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": 0,
+        "value": 0,
+        "capacity": 0,
+        "stations": [
+          0
+        ]
+      },
+      {
+        "id": 38,
+        "unitnumber": 1,
+        "mode": "roadveh",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": 7873,
+        "value": 4573,
+        "capacity": 22,
+        "stations": [
+          1
+        ]
+      },
+      {
+        "id": 39,
+        "unitnumber": 2,
+        "mode": "roadveh",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": -20243,
+        "value": 4573,
+        "capacity": 22,
+        "stations": [
+          14
+        ]
+      },
+      {
+        "id": 40,
+        "unitnumber": 16,
+        "mode": "aircraft",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": -257363,
+        "value": 36060,
+        "capacity": 205,
+        "stations": [
+          13
+        ]
+      },
+      {
+        "id": 41,
+        "unitnumber": 0,
+        "mode": "aircraft",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": 0,
+        "value": 0,
+        "capacity": 0,
+        "stations": [
+          0
+        ]
+      },
+      {
+        "id": 42,
+        "unitnumber": 1,
+        "mode": "train",
+        "cargo_type": 0,
+        "cargo": "passengers",
+        "profit": -56494,
+        "value": 19538,
+        "capacity": 0,
+        "stations": [
+          15
+        ]
+      },
+      {
+        "id": 43,
+        "unitnumber": 0,
+        "mode": "train",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": 0,
+        "value": 1310,
+        "capacity": 30,
+        "stations": [
+          0
+        ]
+      },
+      {
+        "id": 44,
+        "unitnumber": 0,
+        "mode": "train",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": 0,
+        "value": 1310,
+        "capacity": 30,
+        "stations": [
+          0
+        ]
+      },
+      {
+        "id": 45,
+        "unitnumber": 0,
+        "mode": "train",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": 0,
+        "value": 1310,
+        "capacity": 30,
+        "stations": [
+          0
+        ]
+      },
+      {
+        "id": 46,
+        "unitnumber": 3,
+        "mode": "roadveh",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": -1486,
+        "value": 4716,
+        "capacity": 22,
+        "stations": [
+          20
+        ]
+      },
+      {
+        "id": 47,
+        "unitnumber": 4,
+        "mode": "roadveh",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": -1443,
+        "value": 4716,
+        "capacity": 22,
+        "stations": [
+          20
+        ]
+      },
+      {
+        "id": 50,
+        "unitnumber": 2,
+        "mode": "train",
+        "cargo_type": 0,
+        "cargo": "passengers",
+        "profit": -18612,
+        "value": 17442,
+        "capacity": 0,
+        "stations": [
+          18
+        ]
+      },
+      {
+        "id": 51,
+        "unitnumber": 0,
+        "mode": "train",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": 0,
+        "value": 1325,
+        "capacity": 30,
+        "stations": [
+          0
+        ]
+      },
+      {
+        "id": 52,
+        "unitnumber": 0,
+        "mode": "train",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": 0,
+        "value": 1325,
+        "capacity": 30,
+        "stations": [
+          0
+        ]
+      },
+      {
+        "id": 53,
+        "unitnumber": 19,
+        "mode": "aircraft",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": -55679,
+        "value": 38812,
+        "capacity": 260,
+        "stations": [
+          17
+        ]
+      },
+      {
+        "id": 54,
+        "unitnumber": 0,
+        "mode": "aircraft",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": 0,
+        "value": 0,
+        "capacity": 0,
+        "stations": [
+          0
+        ]
+      },
+      {
+        "id": 55,
+        "unitnumber": 3,
+        "mode": "train",
+        "cargo_type": 0,
+        "cargo": "passengers",
+        "profit": -11815,
+        "value": 19844,
+        "capacity": 0,
+        "stations": [
+          19
+        ]
+      },
+      {
+        "id": 56,
+        "unitnumber": 0,
+        "mode": "train",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": 0,
+        "value": 1330,
+        "capacity": 30,
+        "stations": [
+          0
+        ]
+      },
+      {
+        "id": 57,
+        "unitnumber": 0,
+        "mode": "train",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": 0,
+        "value": 1330,
+        "capacity": 30,
+        "stations": [
+          0
+        ]
+      }
+    ],
+    "routes": [
+      {
+        "mode": "aircraft",
+        "cargo": "passengers",
+        "stations": [
+          1
+        ],
+        "station_names": [
+          "0004Little Frundingbury"
+        ],
+        "vehicles": 2,
+        "total_profit": 77163582,
+        "total_value": 66934,
+        "units": [
+          {
+            "id": 8,
+            "unitnumber": 1,
+            "mode": "aircraft",
+            "cargo_type": 0,
+            "cargo": "passengers",
+            "profit": 38566201,
+            "value": 33467,
+            "capacity": 220,
+            "stations": [
+              1
+            ]
+          },
+          {
+            "id": 10,
+            "unitnumber": 2,
+            "mode": "aircraft",
+            "cargo_type": 0,
+            "cargo": "passengers",
+            "profit": 38597381,
+            "value": 33467,
+            "capacity": 220,
+            "stations": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "mode": "aircraft",
+        "cargo": "mail",
+        "stations": [
+          0
+        ],
+        "station_names": [
+          "0001Danville"
+        ],
+        "vehicles": 17,
+        "total_profit": 0,
+        "total_value": 0,
+        "units": [
+          {
+            "id": 9,
+            "unitnumber": 0,
+            "mode": "aircraft",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": 0,
+            "value": 0,
+            "capacity": 40,
+            "stations": [
+              0
+            ]
+          },
+          {
+            "id": 11,
+            "unitnumber": 0,
+            "mode": "aircraft",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": 0,
+            "value": 0,
+            "capacity": 40,
+            "stations": [
+              0
+            ]
+          },
+          {
+            "id": 13,
+            "unitnumber": 0,
+            "mode": "aircraft",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": 0,
+            "value": 0,
+            "capacity": 30,
+            "stations": [
+              0
+            ]
+          },
+          {
+            "id": 15,
+            "unitnumber": 0,
+            "mode": "aircraft",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": 0,
+            "value": 0,
+            "capacity": 30,
+            "stations": [
+              0
+            ]
+          },
+          {
+            "id": 17,
+            "unitnumber": 0,
+            "mode": "aircraft",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": 0,
+            "value": 0,
+            "capacity": 30,
+            "stations": [
+              0
+            ]
+          },
+          {
+            "id": 19,
+            "unitnumber": 0,
+            "mode": "aircraft",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": 0,
+            "value": 0,
+            "capacity": 30,
+            "stations": [
+              0
+            ]
+          },
+          {
+            "id": 21,
+            "unitnumber": 0,
+            "mode": "aircraft",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": 0,
+            "value": 0,
+            "capacity": 40,
+            "stations": [
+              0
+            ]
+          },
+          {
+            "id": 23,
+            "unitnumber": 0,
+            "mode": "aircraft",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": 0,
+            "value": 0,
+            "capacity": 40,
+            "stations": [
+              0
+            ]
+          },
+          {
+            "id": 25,
+            "unitnumber": 0,
+            "mode": "aircraft",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": 0,
+            "value": 0,
+            "capacity": 35,
+            "stations": [
+              0
+            ]
+          },
+          {
+            "id": 27,
+            "unitnumber": 0,
+            "mode": "aircraft",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": 0,
+            "value": 0,
+            "capacity": 35,
+            "stations": [
+              0
+            ]
+          },
+          {
+            "id": 29,
+            "unitnumber": 0,
+            "mode": "aircraft",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": 0,
+            "value": 0,
+            "capacity": 0,
+            "stations": [
+              0
+            ]
+          },
+          {
+            "id": 31,
+            "unitnumber": 0,
+            "mode": "aircraft",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": 0,
+            "value": 0,
+            "capacity": 0,
+            "stations": [
+              0
+            ]
+          },
+          {
+            "id": 33,
+            "unitnumber": 0,
+            "mode": "aircraft",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": 0,
+            "value": 0,
+            "capacity": 30,
+            "stations": [
+              0
+            ]
+          },
+          {
+            "id": 35,
+            "unitnumber": 0,
+            "mode": "aircraft",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": 0,
+            "value": 0,
+            "capacity": 0,
+            "stations": [
+              0
+            ]
+          },
+          {
+            "id": 37,
+            "unitnumber": 0,
+            "mode": "aircraft",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": 0,
+            "value": 0,
+            "capacity": 0,
+            "stations": [
+              0
+            ]
+          },
+          {
+            "id": 41,
+            "unitnumber": 0,
+            "mode": "aircraft",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": 0,
+            "value": 0,
+            "capacity": 0,
+            "stations": [
+              0
+            ]
+          },
+          {
+            "id": 54,
+            "unitnumber": 0,
+            "mode": "aircraft",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": 0,
+            "value": 0,
+            "capacity": 0,
+            "stations": [
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "mode": "aircraft",
+        "cargo": "passengers",
+        "stations": [
+          2
+        ],
+        "station_names": [
+          "0006Linnwell"
+        ],
+        "vehicles": 1,
+        "total_profit": 38439089,
+        "total_value": 31707,
+        "units": [
+          {
+            "id": 12,
+            "unitnumber": 3,
+            "mode": "aircraft",
+            "cargo_type": 0,
+            "cargo": "passengers",
+            "profit": 38439089,
+            "value": 31707,
+            "capacity": 200,
+            "stations": [
+              2
+            ]
+          }
+        ]
+      },
+      {
+        "mode": "aircraft",
+        "cargo": "passengers",
+        "stations": [
+          3
+        ],
+        "station_names": [
+          "0008Gredingstone"
+        ],
+        "vehicles": 1,
+        "total_profit": 38523440,
+        "total_value": 31707,
+        "units": [
+          {
+            "id": 14,
+            "unitnumber": 4,
+            "mode": "aircraft",
+            "cargo_type": 0,
+            "cargo": "passengers",
+            "profit": 38523440,
+            "value": 31707,
+            "capacity": 200,
+            "stations": [
+              3
+            ]
+          }
+        ]
+      },
+      {
+        "mode": "aircraft",
+        "cargo": "passengers",
+        "stations": [
+          5
+        ],
+        "station_names": [
+          "0013Gredingstone Bay"
+        ],
+        "vehicles": 2,
+        "total_profit": 53089740,
+        "total_value": 65678,
+        "units": [
+          {
+            "id": 16,
+            "unitnumber": 5,
+            "mode": "aircraft",
+            "cargo_type": 0,
+            "cargo": "passengers",
+            "profit": 29614640,
+            "value": 32711,
+            "capacity": 200,
+            "stations": [
+              5
+            ]
+          },
+          {
+            "id": 18,
+            "unitnumber": 6,
+            "mode": "aircraft",
+            "cargo_type": 0,
+            "cargo": "passengers",
+            "profit": 23475100,
+            "value": 32967,
+            "capacity": 200,
+            "stations": [
+              5
+            ]
+          }
+        ]
+      },
+      {
+        "mode": "aircraft",
+        "cargo": "passengers",
+        "stations": [
+          7
+        ],
+        "station_names": [
+          "0017Nenningville"
+        ],
+        "vehicles": 1,
+        "total_profit": 19467134,
+        "total_value": 35621,
+        "units": [
+          {
+            "id": 20,
+            "unitnumber": 7,
+            "mode": "aircraft",
+            "cargo_type": 0,
+            "cargo": "passengers",
+            "profit": 19467134,
+            "value": 35621,
+            "capacity": 220,
+            "stations": [
+              7
+            ]
+          }
+        ]
+      },
+      {
+        "mode": "aircraft",
+        "cargo": "passengers",
+        "stations": [
+          6
+        ],
+        "station_names": [
+          "0015Nonfingpool"
+        ],
+        "vehicles": 1,
+        "total_profit": 19583511,
+        "total_value": 35621,
+        "units": [
+          {
+            "id": 22,
+            "unitnumber": 8,
+            "mode": "aircraft",
+            "cargo_type": 0,
+            "cargo": "passengers",
+            "profit": 19583511,
+            "value": 35621,
+            "capacity": 220,
+            "stations": [
+              6
+            ]
+          }
+        ]
+      },
+      {
+        "mode": "aircraft",
+        "cargo": "passengers",
+        "stations": [
+          8
+        ],
+        "station_names": [
+          "0019Chedingstone Bay"
+        ],
+        "vehicles": 1,
+        "total_profit": 10442875,
+        "total_value": 34277,
+        "units": [
+          {
+            "id": 24,
+            "unitnumber": 9,
+            "mode": "aircraft",
+            "cargo_type": 0,
+            "cargo": "passengers",
+            "profit": 10442875,
+            "value": 34277,
+            "capacity": 170,
+            "stations": [
+              8
+            ]
+          }
+        ]
+      },
+      {
+        "mode": "aircraft",
+        "cargo": "passengers",
+        "stations": [
+          9
+        ],
+        "station_names": [
+          "0022Finnington"
+        ],
+        "vehicles": 1,
+        "total_profit": 10642131,
+        "total_value": 34545,
+        "units": [
+          {
+            "id": 26,
+            "unitnumber": 10,
+            "mode": "aircraft",
+            "cargo_type": 0,
+            "cargo": "passengers",
+            "profit": 10642131,
+            "value": 34545,
+            "capacity": 170,
+            "stations": [
+              9
+            ]
+          }
+        ]
+      },
+      {
+        "mode": "aircraft",
+        "cargo": "mail",
+        "stations": [
+          10
+        ],
+        "station_names": [
+          "0024Danville"
+        ],
+        "vehicles": 1,
+        "total_profit": -573901,
+        "total_value": 34816,
+        "units": [
+          {
+            "id": 28,
+            "unitnumber": 11,
+            "mode": "aircraft",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": -573901,
+            "value": 34816,
+            "capacity": 230,
+            "stations": [
+              10
+            ]
+          }
+        ]
+      },
+      {
+        "mode": "aircraft",
+        "cargo": "mail",
+        "stations": [
+          11
+        ],
+        "station_names": [
+          "0027Little Frundingbury"
+        ],
+        "vehicles": 1,
+        "total_profit": -478325,
+        "total_value": 35226,
+        "units": [
+          {
+            "id": 30,
+            "unitnumber": 12,
+            "mode": "aircraft",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": -478325,
+            "value": 35226,
+            "capacity": 230,
+            "stations": [
+              11
+            ]
+          }
+        ]
+      },
+      {
+        "mode": "aircraft",
+        "cargo": "passengers",
+        "stations": [
+          4
+        ],
+        "station_names": [
+          "0010Little Sintburg"
+        ],
+        "vehicles": 1,
+        "total_profit": 11891977,
+        "total_value": 35226,
+        "units": [
+          {
+            "id": 32,
+            "unitnumber": 13,
+            "mode": "aircraft",
+            "cargo_type": 0,
+            "cargo": "passengers",
+            "profit": 11891977,
+            "value": 35226,
+            "capacity": 200,
+            "stations": [
+              4
+            ]
+          }
+        ]
+      },
+      {
+        "mode": "aircraft",
+        "cargo": "mail",
+        "stations": [
+          13
+        ],
+        "station_names": [
+          "0032Gredingstone"
+        ],
+        "vehicles": 2,
+        "total_profit": -516133,
+        "total_value": 72120,
+        "units": [
+          {
+            "id": 34,
+            "unitnumber": 14,
+            "mode": "aircraft",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": -258770,
+            "value": 36060,
+            "capacity": 205,
+            "stations": [
+              13
+            ]
+          },
+          {
+            "id": 40,
+            "unitnumber": 16,
+            "mode": "aircraft",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": -257363,
+            "value": 36060,
+            "capacity": 205,
+            "stations": [
+              13
+            ]
+          }
+        ]
+      },
+      {
+        "mode": "aircraft",
+        "cargo": "mail",
+        "stations": [
+          12
+        ],
+        "station_names": [
+          "0029Linnwell"
+        ],
+        "vehicles": 1,
+        "total_profit": -257875,
+        "total_value": 36060,
+        "units": [
+          {
+            "id": 36,
+            "unitnumber": 15,
+            "mode": "aircraft",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": -257875,
+            "value": 36060,
+            "capacity": 205,
+            "stations": [
+              12
+            ]
+          }
+        ]
+      },
+      {
+        "mode": "roadveh",
+        "cargo": "mail",
+        "stations": [
+          1
+        ],
+        "station_names": [
+          "0004Little Frundingbury"
+        ],
+        "vehicles": 1,
+        "total_profit": 7873,
+        "total_value": 4573,
+        "units": [
+          {
+            "id": 38,
+            "unitnumber": 1,
+            "mode": "roadveh",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": 7873,
+            "value": 4573,
+            "capacity": 22,
+            "stations": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "mode": "roadveh",
+        "cargo": "mail",
+        "stations": [
+          14
+        ],
+        "station_names": [
+          "0035Dronninghall"
+        ],
+        "vehicles": 1,
+        "total_profit": -20243,
+        "total_value": 4573,
+        "units": [
+          {
+            "id": 39,
+            "unitnumber": 2,
+            "mode": "roadveh",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": -20243,
+            "value": 4573,
+            "capacity": 22,
+            "stations": [
+              14
+            ]
+          }
+        ]
+      },
+      {
+        "mode": "train",
+        "cargo": "passengers",
+        "stations": [
+          15
+        ],
+        "station_names": [
+          "0036Sonfield"
+        ],
+        "vehicles": 1,
+        "total_profit": -56494,
+        "total_value": 19538,
+        "units": [
+          {
+            "id": 42,
+            "unitnumber": 1,
+            "mode": "train",
+            "cargo_type": 0,
+            "cargo": "passengers",
+            "profit": -56494,
+            "value": 19538,
+            "capacity": 0,
+            "stations": [
+              15
+            ]
+          }
+        ]
+      },
+      {
+        "mode": "train",
+        "cargo": "mail",
+        "stations": [
+          0
+        ],
+        "station_names": [
+          "0001Danville"
+        ],
+        "vehicles": 7,
+        "total_profit": 0,
+        "total_value": 9240,
+        "units": [
+          {
+            "id": 43,
+            "unitnumber": 0,
+            "mode": "train",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": 0,
+            "value": 1310,
+            "capacity": 30,
+            "stations": [
+              0
+            ]
+          },
+          {
+            "id": 44,
+            "unitnumber": 0,
+            "mode": "train",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": 0,
+            "value": 1310,
+            "capacity": 30,
+            "stations": [
+              0
+            ]
+          },
+          {
+            "id": 45,
+            "unitnumber": 0,
+            "mode": "train",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": 0,
+            "value": 1310,
+            "capacity": 30,
+            "stations": [
+              0
+            ]
+          },
+          {
+            "id": 51,
+            "unitnumber": 0,
+            "mode": "train",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": 0,
+            "value": 1325,
+            "capacity": 30,
+            "stations": [
+              0
+            ]
+          },
+          {
+            "id": 52,
+            "unitnumber": 0,
+            "mode": "train",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": 0,
+            "value": 1325,
+            "capacity": 30,
+            "stations": [
+              0
+            ]
+          },
+          {
+            "id": 56,
+            "unitnumber": 0,
+            "mode": "train",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": 0,
+            "value": 1330,
+            "capacity": 30,
+            "stations": [
+              0
+            ]
+          },
+          {
+            "id": 57,
+            "unitnumber": 0,
+            "mode": "train",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": 0,
+            "value": 1330,
+            "capacity": 30,
+            "stations": [
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "mode": "roadveh",
+        "cargo": "mail",
+        "stations": [
+          20
+        ],
+        "station_names": [
+          "0058Pludtown"
+        ],
+        "vehicles": 2,
+        "total_profit": -2929,
+        "total_value": 9432,
+        "units": [
+          {
+            "id": 46,
+            "unitnumber": 3,
+            "mode": "roadveh",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": -1486,
+            "value": 4716,
+            "capacity": 22,
+            "stations": [
+              20
+            ]
+          },
+          {
+            "id": 47,
+            "unitnumber": 4,
+            "mode": "roadveh",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": -1443,
+            "value": 4716,
+            "capacity": 22,
+            "stations": [
+              20
+            ]
+          }
+        ]
+      },
+      {
+        "mode": "train",
+        "cargo": "passengers",
+        "stations": [
+          18
+        ],
+        "station_names": [
+          "0047Gredingstone Bay"
+        ],
+        "vehicles": 1,
+        "total_profit": -18612,
+        "total_value": 17442,
+        "units": [
+          {
+            "id": 50,
+            "unitnumber": 2,
+            "mode": "train",
+            "cargo_type": 0,
+            "cargo": "passengers",
+            "profit": -18612,
+            "value": 17442,
+            "capacity": 0,
+            "stations": [
+              18
+            ]
+          }
+        ]
+      },
+      {
+        "mode": "aircraft",
+        "cargo": "mail",
+        "stations": [
+          17
+        ],
+        "station_names": [
+          "0044Chedingstone Bay"
+        ],
+        "vehicles": 1,
+        "total_profit": -55679,
+        "total_value": 38812,
+        "units": [
+          {
+            "id": 53,
+            "unitnumber": 19,
+            "mode": "aircraft",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": -55679,
+            "value": 38812,
+            "capacity": 260,
+            "stations": [
+              17
+            ]
+          }
+        ]
+      },
+      {
+        "mode": "train",
+        "cargo": "passengers",
+        "stations": [
+          19
+        ],
+        "station_names": [
+          "0052Fontford"
+        ],
+        "vehicles": 1,
+        "total_profit": -11815,
+        "total_value": 19844,
+        "units": [
+          {
+            "id": 55,
+            "unitnumber": 3,
+            "mode": "train",
+            "cargo_type": 0,
+            "cargo": "passengers",
+            "profit": -11815,
+            "value": 19844,
+            "capacity": 0,
+            "stations": [
+              19
+            ]
+          }
+        ]
+      }
+    ],
+    "signs": []
+  },
+  "OpexAI": {
+    "arm": "OpexAI",
+    "seed": 42,
+    "date": "1971-01-01",
+    "company_value": 84249,
+    "profit_year": 59953,
+    "profit_quarter": 44520,
+    "performance_history": 95,
+    "money": 40347,
+    "current_loan": 300000,
+    "stations": {
+      "0": {
+        "id": 0,
+        "name": "Station_0",
+        "town": 27,
+        "xy": 60497,
+        "facilities": 8
+      },
+      "1": {
+        "id": 1,
+        "name": "Station_1",
+        "town": 35,
+        "xy": 15697,
+        "facilities": 14
+      },
+      "2": {
+        "id": 2,
+        "name": "Station_2",
+        "town": 31,
+        "xy": 46299,
+        "facilities": 8
+      },
+      "3": {
+        "id": 3,
+        "name": "Station_3",
+        "town": 35,
+        "xy": 13908,
+        "facilities": 6
+      },
+      "4": {
+        "id": 4,
+        "name": "Station_4",
+        "town": 35,
+        "xy": 15445,
+        "facilities": 4
+      },
+      "5": {
+        "id": 5,
+        "name": "Station_5",
+        "town": 35,
+        "xy": 14683,
+        "facilities": 4
+      },
+      "6": {
+        "id": 6,
+        "name": "Station_6",
+        "town": 12,
+        "xy": 12711,
+        "facilities": 14
+      },
+      "7": {
+        "id": 7,
+        "name": "Station_7",
+        "town": 12,
+        "xy": 9900,
+        "facilities": 6
+      },
+      "8": {
+        "id": 8,
+        "name": "Station_8",
+        "town": 30,
+        "xy": 20551,
+        "facilities": 6
+      }
+    },
+    "vehicles": [
+      {
+        "id": 8,
+        "unitnumber": 1,
+        "mode": "aircraft",
+        "cargo_type": 0,
+        "cargo": "passengers",
+        "profit": 16188163,
+        "value": 52626,
+        "capacity": 300,
+        "stations": [
+          1
+        ]
+      },
+      {
+        "id": 9,
+        "unitnumber": 0,
+        "mode": "aircraft",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": 0,
+        "value": 0,
+        "capacity": 50,
+        "stations": [
+          0
+        ]
+      },
+      {
+        "id": 10,
+        "unitnumber": 1,
+        "mode": "roadveh",
+        "cargo_type": 0,
+        "cargo": "passengers",
+        "profit": 77406,
+        "value": 4966,
+        "capacity": 35,
+        "stations": [
+          3
+        ]
+      },
+      {
+        "id": 11,
+        "unitnumber": 2,
+        "mode": "roadveh",
+        "cargo_type": 0,
+        "cargo": "passengers",
+        "profit": -657,
+        "value": 4966,
+        "capacity": 35,
+        "stations": [
+          1
+        ]
+      },
+      {
+        "id": 12,
+        "unitnumber": 3,
+        "mode": "roadveh",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": 149493,
+        "value": 4080,
+        "capacity": 22,
+        "stations": [
+          1
+        ]
+      },
+      {
+        "id": 13,
+        "unitnumber": 4,
+        "mode": "roadveh",
+        "cargo_type": 0,
+        "cargo": "passengers",
+        "profit": -1540,
+        "value": 4966,
+        "capacity": 35,
+        "stations": [
+          1
+        ]
+      },
+      {
+        "id": 14,
+        "unitnumber": 5,
+        "mode": "roadveh",
+        "cargo_type": 0,
+        "cargo": "passengers",
+        "profit": 154340,
+        "value": 4985,
+        "capacity": 35,
+        "stations": [
+          5
+        ]
+      },
+      {
+        "id": 15,
+        "unitnumber": 2,
+        "mode": "aircraft",
+        "cargo_type": 0,
+        "cargo": "passengers",
+        "profit": 13679343,
+        "value": 54296,
+        "capacity": 300,
+        "stations": [
+          2
+        ]
+      },
+      {
+        "id": 16,
+        "unitnumber": 0,
+        "mode": "aircraft",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": 0,
+        "value": 0,
+        "capacity": 50,
+        "stations": [
+          0
+        ]
+      },
+      {
+        "id": 17,
+        "unitnumber": 6,
+        "mode": "roadveh",
+        "cargo_type": 0,
+        "cargo": "passengers",
+        "profit": 62711,
+        "value": 5118,
+        "capacity": 35,
+        "stations": [
+          7
+        ]
+      },
+      {
+        "id": 18,
+        "unitnumber": 7,
+        "mode": "roadveh",
+        "cargo_type": 0,
+        "cargo": "passengers",
+        "profit": 82952,
+        "value": 5118,
+        "capacity": 35,
+        "stations": [
+          7
+        ]
+      },
+      {
+        "id": 19,
+        "unitnumber": 8,
+        "mode": "roadveh",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": 110542,
+        "value": 4207,
+        "capacity": 22,
+        "stations": [
+          7
+        ]
+      },
+      {
+        "id": 20,
+        "unitnumber": 9,
+        "mode": "roadveh",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": 132378,
+        "value": 4207,
+        "capacity": 22,
+        "stations": [
+          3
+        ]
+      },
+      {
+        "id": 21,
+        "unitnumber": 10,
+        "mode": "roadveh",
+        "cargo_type": 0,
+        "cargo": "passengers",
+        "profit": 350238,
+        "value": 5218,
+        "capacity": 35,
+        "stations": [
+          1
+        ]
+      },
+      {
+        "id": 22,
+        "unitnumber": 11,
+        "mode": "roadveh",
+        "cargo_type": 0,
+        "cargo": "passengers",
+        "profit": 207407,
+        "value": 5218,
+        "capacity": 35,
+        "stations": [
+          8
+        ]
+      },
+      {
+        "id": 23,
+        "unitnumber": 12,
+        "mode": "roadveh",
+        "cargo_type": 0,
+        "cargo": "passengers",
+        "profit": 185152,
+        "value": 5218,
+        "capacity": 35,
+        "stations": [
+          8
+        ]
+      },
+      {
+        "id": 24,
+        "unitnumber": 13,
+        "mode": "roadveh",
+        "cargo_type": 0,
+        "cargo": "passengers",
+        "profit": 53585,
+        "value": 5218,
+        "capacity": 35,
+        "stations": [
+          8
+        ]
+      },
+      {
+        "id": 25,
+        "unitnumber": 14,
+        "mode": "roadveh",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": 268055,
+        "value": 4303,
+        "capacity": 22,
+        "stations": [
+          8
+        ]
+      },
+      {
+        "id": 26,
+        "unitnumber": 15,
+        "mode": "roadveh",
+        "cargo_type": 0,
+        "cargo": "passengers",
+        "profit": 32804,
+        "value": 5338,
+        "capacity": 35,
+        "stations": [
+          1
+        ]
+      },
+      {
+        "id": 27,
+        "unitnumber": 16,
+        "mode": "roadveh",
+        "cargo_type": 0,
+        "cargo": "passengers",
+        "profit": -1227,
+        "value": 5338,
+        "capacity": 35,
+        "stations": [
+          3
+        ]
+      },
+      {
+        "id": 28,
+        "unitnumber": 17,
+        "mode": "roadveh",
+        "cargo_type": 0,
+        "cargo": "passengers",
+        "profit": -16314,
+        "value": 5338,
+        "capacity": 35,
+        "stations": [
+          0
+        ]
+      },
+      {
+        "id": 29,
+        "unitnumber": 18,
+        "mode": "roadveh",
+        "cargo_type": 0,
+        "cargo": "passengers",
+        "profit": 52100,
+        "value": 5338,
+        "capacity": 35,
+        "stations": [
+          6
+        ]
+      },
+      {
+        "id": 30,
+        "unitnumber": 19,
+        "mode": "roadveh",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": 55795,
+        "value": 4471,
+        "capacity": 22,
+        "stations": [
+          7
+        ]
+      },
+      {
+        "id": 31,
+        "unitnumber": 20,
+        "mode": "roadveh",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": 10239,
+        "value": 4471,
+        "capacity": 22,
+        "stations": [
+          7
+        ]
+      },
+      {
+        "id": 32,
+        "unitnumber": 21,
+        "mode": "roadveh",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": -758,
+        "value": 4471,
+        "capacity": 22,
+        "stations": [
+          6
+        ]
+      },
+      {
+        "id": 33,
+        "unitnumber": 22,
+        "mode": "roadveh",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": 38446,
+        "value": 4556,
+        "capacity": 22,
+        "stations": [
+          1
+        ]
+      },
+      {
+        "id": 34,
+        "unitnumber": 23,
+        "mode": "roadveh",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": -1222,
+        "value": 4556,
+        "capacity": 22,
+        "stations": [
+          3
+        ]
+      },
+      {
+        "id": 35,
+        "unitnumber": 24,
+        "mode": "roadveh",
+        "cargo_type": 2,
+        "cargo": "mail",
+        "profit": 70502,
+        "value": 4556,
+        "capacity": 22,
+        "stations": [
+          8
+        ]
+      },
+      {
+        "id": 36,
+        "unitnumber": 25,
+        "mode": "roadveh",
+        "cargo_type": 0,
+        "cargo": "passengers",
+        "profit": 17229,
+        "value": 5654,
+        "capacity": 35,
+        "stations": [
+          6
+        ]
+      },
+      {
+        "id": 37,
+        "unitnumber": 26,
+        "mode": "roadveh",
+        "cargo_type": 0,
+        "cargo": "passengers",
+        "profit": 26974,
+        "value": 5654,
+        "capacity": 35,
+        "stations": [
+          6
+        ]
+      },
+      {
+        "id": 38,
+        "unitnumber": 27,
+        "mode": "roadveh",
+        "cargo_type": 0,
+        "cargo": "passengers",
+        "profit": 17263,
+        "value": 5654,
+        "capacity": 35,
+        "stations": [
+          6
+        ]
+      }
+    ],
+    "routes": [
+      {
+        "mode": "aircraft",
+        "cargo": "passengers",
+        "stations": [
+          1
+        ],
+        "station_names": [
+          "Station_1"
+        ],
+        "vehicles": 1,
+        "total_profit": 16188163,
+        "total_value": 52626,
+        "units": [
+          {
+            "id": 8,
+            "unitnumber": 1,
+            "mode": "aircraft",
+            "cargo_type": 0,
+            "cargo": "passengers",
+            "profit": 16188163,
+            "value": 52626,
+            "capacity": 300,
+            "stations": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "mode": "aircraft",
+        "cargo": "mail",
+        "stations": [
+          0
+        ],
+        "station_names": [
+          "Station_0"
+        ],
+        "vehicles": 2,
+        "total_profit": 0,
+        "total_value": 0,
+        "units": [
+          {
+            "id": 9,
+            "unitnumber": 0,
+            "mode": "aircraft",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": 0,
+            "value": 0,
+            "capacity": 50,
+            "stations": [
+              0
+            ]
+          },
+          {
+            "id": 16,
+            "unitnumber": 0,
+            "mode": "aircraft",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": 0,
+            "value": 0,
+            "capacity": 50,
+            "stations": [
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "mode": "roadveh",
+        "cargo": "passengers",
+        "stations": [
+          3
+        ],
+        "station_names": [
+          "Station_3"
+        ],
+        "vehicles": 2,
+        "total_profit": 76179,
+        "total_value": 10304,
+        "units": [
+          {
+            "id": 10,
+            "unitnumber": 1,
+            "mode": "roadveh",
+            "cargo_type": 0,
+            "cargo": "passengers",
+            "profit": 77406,
+            "value": 4966,
+            "capacity": 35,
+            "stations": [
+              3
+            ]
+          },
+          {
+            "id": 27,
+            "unitnumber": 16,
+            "mode": "roadveh",
+            "cargo_type": 0,
+            "cargo": "passengers",
+            "profit": -1227,
+            "value": 5338,
+            "capacity": 35,
+            "stations": [
+              3
+            ]
+          }
+        ]
+      },
+      {
+        "mode": "roadveh",
+        "cargo": "passengers",
+        "stations": [
+          1
+        ],
+        "station_names": [
+          "Station_1"
+        ],
+        "vehicles": 4,
+        "total_profit": 380845,
+        "total_value": 20488,
+        "units": [
+          {
+            "id": 11,
+            "unitnumber": 2,
+            "mode": "roadveh",
+            "cargo_type": 0,
+            "cargo": "passengers",
+            "profit": -657,
+            "value": 4966,
+            "capacity": 35,
+            "stations": [
+              1
+            ]
+          },
+          {
+            "id": 13,
+            "unitnumber": 4,
+            "mode": "roadveh",
+            "cargo_type": 0,
+            "cargo": "passengers",
+            "profit": -1540,
+            "value": 4966,
+            "capacity": 35,
+            "stations": [
+              1
+            ]
+          },
+          {
+            "id": 21,
+            "unitnumber": 10,
+            "mode": "roadveh",
+            "cargo_type": 0,
+            "cargo": "passengers",
+            "profit": 350238,
+            "value": 5218,
+            "capacity": 35,
+            "stations": [
+              1
+            ]
+          },
+          {
+            "id": 26,
+            "unitnumber": 15,
+            "mode": "roadveh",
+            "cargo_type": 0,
+            "cargo": "passengers",
+            "profit": 32804,
+            "value": 5338,
+            "capacity": 35,
+            "stations": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "mode": "roadveh",
+        "cargo": "mail",
+        "stations": [
+          1
+        ],
+        "station_names": [
+          "Station_1"
+        ],
+        "vehicles": 2,
+        "total_profit": 187939,
+        "total_value": 8636,
+        "units": [
+          {
+            "id": 12,
+            "unitnumber": 3,
+            "mode": "roadveh",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": 149493,
+            "value": 4080,
+            "capacity": 22,
+            "stations": [
+              1
+            ]
+          },
+          {
+            "id": 33,
+            "unitnumber": 22,
+            "mode": "roadveh",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": 38446,
+            "value": 4556,
+            "capacity": 22,
+            "stations": [
+              1
+            ]
+          }
+        ]
+      },
+      {
+        "mode": "roadveh",
+        "cargo": "passengers",
+        "stations": [
+          5
+        ],
+        "station_names": [
+          "Station_5"
+        ],
+        "vehicles": 1,
+        "total_profit": 154340,
+        "total_value": 4985,
+        "units": [
+          {
+            "id": 14,
+            "unitnumber": 5,
+            "mode": "roadveh",
+            "cargo_type": 0,
+            "cargo": "passengers",
+            "profit": 154340,
+            "value": 4985,
+            "capacity": 35,
+            "stations": [
+              5
+            ]
+          }
+        ]
+      },
+      {
+        "mode": "aircraft",
+        "cargo": "passengers",
+        "stations": [
+          2
+        ],
+        "station_names": [
+          "Station_2"
+        ],
+        "vehicles": 1,
+        "total_profit": 13679343,
+        "total_value": 54296,
+        "units": [
+          {
+            "id": 15,
+            "unitnumber": 2,
+            "mode": "aircraft",
+            "cargo_type": 0,
+            "cargo": "passengers",
+            "profit": 13679343,
+            "value": 54296,
+            "capacity": 300,
+            "stations": [
+              2
+            ]
+          }
+        ]
+      },
+      {
+        "mode": "roadveh",
+        "cargo": "passengers",
+        "stations": [
+          7
+        ],
+        "station_names": [
+          "Station_7"
+        ],
+        "vehicles": 2,
+        "total_profit": 145663,
+        "total_value": 10236,
+        "units": [
+          {
+            "id": 17,
+            "unitnumber": 6,
+            "mode": "roadveh",
+            "cargo_type": 0,
+            "cargo": "passengers",
+            "profit": 62711,
+            "value": 5118,
+            "capacity": 35,
+            "stations": [
+              7
+            ]
+          },
+          {
+            "id": 18,
+            "unitnumber": 7,
+            "mode": "roadveh",
+            "cargo_type": 0,
+            "cargo": "passengers",
+            "profit": 82952,
+            "value": 5118,
+            "capacity": 35,
+            "stations": [
+              7
+            ]
+          }
+        ]
+      },
+      {
+        "mode": "roadveh",
+        "cargo": "mail",
+        "stations": [
+          7
+        ],
+        "station_names": [
+          "Station_7"
+        ],
+        "vehicles": 3,
+        "total_profit": 176576,
+        "total_value": 13149,
+        "units": [
+          {
+            "id": 19,
+            "unitnumber": 8,
+            "mode": "roadveh",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": 110542,
+            "value": 4207,
+            "capacity": 22,
+            "stations": [
+              7
+            ]
+          },
+          {
+            "id": 30,
+            "unitnumber": 19,
+            "mode": "roadveh",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": 55795,
+            "value": 4471,
+            "capacity": 22,
+            "stations": [
+              7
+            ]
+          },
+          {
+            "id": 31,
+            "unitnumber": 20,
+            "mode": "roadveh",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": 10239,
+            "value": 4471,
+            "capacity": 22,
+            "stations": [
+              7
+            ]
+          }
+        ]
+      },
+      {
+        "mode": "roadveh",
+        "cargo": "mail",
+        "stations": [
+          3
+        ],
+        "station_names": [
+          "Station_3"
+        ],
+        "vehicles": 2,
+        "total_profit": 131156,
+        "total_value": 8763,
+        "units": [
+          {
+            "id": 20,
+            "unitnumber": 9,
+            "mode": "roadveh",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": 132378,
+            "value": 4207,
+            "capacity": 22,
+            "stations": [
+              3
+            ]
+          },
+          {
+            "id": 34,
+            "unitnumber": 23,
+            "mode": "roadveh",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": -1222,
+            "value": 4556,
+            "capacity": 22,
+            "stations": [
+              3
+            ]
+          }
+        ]
+      },
+      {
+        "mode": "roadveh",
+        "cargo": "passengers",
+        "stations": [
+          8
+        ],
+        "station_names": [
+          "Station_8"
+        ],
+        "vehicles": 3,
+        "total_profit": 446144,
+        "total_value": 15654,
+        "units": [
+          {
+            "id": 22,
+            "unitnumber": 11,
+            "mode": "roadveh",
+            "cargo_type": 0,
+            "cargo": "passengers",
+            "profit": 207407,
+            "value": 5218,
+            "capacity": 35,
+            "stations": [
+              8
+            ]
+          },
+          {
+            "id": 23,
+            "unitnumber": 12,
+            "mode": "roadveh",
+            "cargo_type": 0,
+            "cargo": "passengers",
+            "profit": 185152,
+            "value": 5218,
+            "capacity": 35,
+            "stations": [
+              8
+            ]
+          },
+          {
+            "id": 24,
+            "unitnumber": 13,
+            "mode": "roadveh",
+            "cargo_type": 0,
+            "cargo": "passengers",
+            "profit": 53585,
+            "value": 5218,
+            "capacity": 35,
+            "stations": [
+              8
+            ]
+          }
+        ]
+      },
+      {
+        "mode": "roadveh",
+        "cargo": "mail",
+        "stations": [
+          8
+        ],
+        "station_names": [
+          "Station_8"
+        ],
+        "vehicles": 2,
+        "total_profit": 338557,
+        "total_value": 8859,
+        "units": [
+          {
+            "id": 25,
+            "unitnumber": 14,
+            "mode": "roadveh",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": 268055,
+            "value": 4303,
+            "capacity": 22,
+            "stations": [
+              8
+            ]
+          },
+          {
+            "id": 35,
+            "unitnumber": 24,
+            "mode": "roadveh",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": 70502,
+            "value": 4556,
+            "capacity": 22,
+            "stations": [
+              8
+            ]
+          }
+        ]
+      },
+      {
+        "mode": "roadveh",
+        "cargo": "passengers",
+        "stations": [
+          0
+        ],
+        "station_names": [
+          "Station_0"
+        ],
+        "vehicles": 1,
+        "total_profit": -16314,
+        "total_value": 5338,
+        "units": [
+          {
+            "id": 28,
+            "unitnumber": 17,
+            "mode": "roadveh",
+            "cargo_type": 0,
+            "cargo": "passengers",
+            "profit": -16314,
+            "value": 5338,
+            "capacity": 35,
+            "stations": [
+              0
+            ]
+          }
+        ]
+      },
+      {
+        "mode": "roadveh",
+        "cargo": "passengers",
+        "stations": [
+          6
+        ],
+        "station_names": [
+          "Station_6"
+        ],
+        "vehicles": 4,
+        "total_profit": 113566,
+        "total_value": 22300,
+        "units": [
+          {
+            "id": 29,
+            "unitnumber": 18,
+            "mode": "roadveh",
+            "cargo_type": 0,
+            "cargo": "passengers",
+            "profit": 52100,
+            "value": 5338,
+            "capacity": 35,
+            "stations": [
+              6
+            ]
+          },
+          {
+            "id": 36,
+            "unitnumber": 25,
+            "mode": "roadveh",
+            "cargo_type": 0,
+            "cargo": "passengers",
+            "profit": 17229,
+            "value": 5654,
+            "capacity": 35,
+            "stations": [
+              6
+            ]
+          },
+          {
+            "id": 37,
+            "unitnumber": 26,
+            "mode": "roadveh",
+            "cargo_type": 0,
+            "cargo": "passengers",
+            "profit": 26974,
+            "value": 5654,
+            "capacity": 35,
+            "stations": [
+              6
+            ]
+          },
+          {
+            "id": 38,
+            "unitnumber": 27,
+            "mode": "roadveh",
+            "cargo_type": 0,
+            "cargo": "passengers",
+            "profit": 17263,
+            "value": 5654,
+            "capacity": 35,
+            "stations": [
+              6
+            ]
+          }
+        ]
+      },
+      {
+        "mode": "roadveh",
+        "cargo": "mail",
+        "stations": [
+          6
+        ],
+        "station_names": [
+          "Station_6"
+        ],
+        "vehicles": 1,
+        "total_profit": -758,
+        "total_value": 4471,
+        "units": [
+          {
+            "id": 32,
+            "unitnumber": 21,
+            "mode": "roadveh",
+            "cargo_type": 2,
+            "cargo": "mail",
+            "profit": -758,
+            "value": 4471,
+            "capacity": 22,
+            "stations": [
+              6
+            ]
+          }
+        ]
+      }
+    ],
+    "signs": [
+      "AS|S=16|A=LARGE",
+      "AX|PA=2693|PB=1913|MPX=1013",
+      "AY|155446|79158",
+      "AV|236|300|2|78",
+      "AE|S=16|B=76497",
+      "IG|70|199|195|2|0|0",
+      "IB|70|295000|247846",
+      "LB|70|300000",
+      "OX|1970|42|47|87",
+      "TV|70|0|0|42|656",
+      "OC|1970|15928|4524|240779",
+      "OP|1970|1374258|308795",
+      "OS|1970|10161|927",
+      "OW|1970|0|0",
+      "BT|4M|0M|923|77",
+      "BC|cat_water|0k|0|0",
+      "BC|cand_rank|10k|2|1",
+      "BC|cat_rail|240k|50|47",
+      "BC|project_water|118k|25|23",
+      "BC|cat_road|3k|0|0",
+      "BC|project_air|2579k|545|503",
+      "BC|cat_cargos|0k|0|0",
+      "BC|cat_air|1k|0|0",
+      "BC|cand_road|73k|15|14",
+      "BC|cat_industries|4k|0|0",
+      "BC|cand_freight|308k|65|60",
+      "BC|cat_towns|15k|3|3",
+      "BC|cand_pax|1374k|290|268",
+      "CG|1970|0|42|0|47",
+      "CR|1970|1624|0|20",
+      "CD|1970|11|290",
+      "CE|1970|0|339|253",
+      "CK|1970|87|67",
+      "OB|1970|36|136|15602",
+      "OE|1970|1|9255|41080",
+      "OD|1970|15602|14942|13542|12890",
+      "OL|1970|160|112|285",
+      "AS|S=16|A=LARGE",
+      "AX|PA=2693|PB=1913|MPX=1013",
+      "AY|155446|79158",
+      "AV|236|300|2|78",
+      "AE|S=16|B=76497",
+      "OA|1970|175|2579870|OK",
+      "AF|0|1|76497",
+      "AH|0|0|93923|0",
+      "PM|0|A|175|PASS",
+      "AS|S=14|A=LARGE",
+      "AX|PA=1913|PB=1527|MPX=756",
+      "AY|93923|60153",
+      "AV|236|300|1|73",
+      "AU|2|0",
+      "AE|S=14|B=72633",
+      "OA|1970|200|2449981|BFAIL",
+      "OE|A|263",
+      "FD|70|2|4|4",
+      "RA|70|1|1|DEPOTX|0",
+      "FE|70|1|10|56006",
+      "FM|70|2|10",
+      "IP|70|A|708.2463|877.68",
+      "OA|1970|175|25542|AFAIL",
+      "OE|A|260",
+      "RF|1970|1|1|3",
+      "TG|70|34|2|4",
+      "LF|70|138197|300000",
+      "AS|S=14|A=LARGE",
+      "AX|PA=1873|PB=1642|MPX=773",
+      "AY|93923|67521",
+      "AV|236|300|1|82",
+      "AU|3|0",
+      "AE|S=14|B=67521",
+      "IG|70|229|221|1|0|0",
+      "IB|70|132871|123923",
+      "AS|S=14|A=LARGE",
+      "AX|PA=1873|PB=1642|MPX=773",
+      "AY|93923|67521",
+      "AV|236|300|1|82",
+      "AU|3|1",
+      "AE|S=14|B=71853",
+      "OA|1970|152|2589716|OK",
+      "AF|4|1|71853",
+      "AH|4|1|77723|0",
+      "PM|4|A|152|PASS",
+      "AS|S=13|A=LARGE",
+      "AX|PA=1642|PB=1444|MPX=678",
+      "AU|4|0",
+      "AE|S=13|B=NO",
+      "FD|70|4|7|7",
+      "FE|70|5|14|55207",
+      "FM|70|6|14",
+      "RF|1970|2|1|2",
+      "LF|70|34021|300000",
+      "AS|S=14|A=LARGE",
+      "AX|PA=1642|PB=1444|MPX=678",
+      "AY|155446|41610",
+      "AV|236|300|2|28",
+      "AU|4|0",
+      "AE|S=14|B=54393",
+      "IG|70|268|256|1|0|0",
+      "IB|70|28442|20321",
+      "AS|S=14|A=LARGE",
+      "AX|PA=1642|PB=1444|MPX=678",
+      "AU|4|0",
+      "AE|S=14|B=NO",
+      "AD|NULL|C=1",
+      "FD|70|4|7|7",
+      "RA|70|7|1|DEPOTX|0",
+      "RA|70|7|1|TRACEX|0",
+      "RA|70|7|1|TRACEX|0",
+      "FE|70|7|25|4617",
+      "FM|70|8|25",
+      "RF|1970|5|0|CASH",
+      "RF|1970|6|0|CASH",
+      "LF|70|9207|300000",
+      "AS|S=14|A=LARGE",
+      "AX|PA=1642|PB=1444|MPX=678",
+      "AY|155446|41610",
+      "AV|236|300|2|28",
+      "AU|4|0",
+      "AE|S=14|B=54393",
+      "IG|70|272|257|0|0|0",
+      "IB|70|3111|0",
+      "AS|S=14|A=LARGE",
+      "AX|PA=1642|PB=1444|MPX=678",
+      "AU|4|0",
+      "AE|S=14|B=NO",
+      "AD|NULL|C=1",
+      "FD|70|4|6|6",
+      "FZ|70|2|0|4|0|0|0",
+      "RF|1970|1|3|6",
+      "RF|1970|5|1|3",
+      "RF|1970|6|0|CASH",
+      "LF|70|8659|300000",
+      "AS|S=14|A=LARGE",
+      "AX|PA=1444|PB=1407|MPX=627",
+      "AY|155446|36714",
+      "AV|236|300|2|28",
+      "AU|4|0",
+      "AE|S=14|B=55305",
+      "IG|70|267|253|0|0|0",
+      "IB|70|1324|0",
+      "AS|S=14|A=LARGE",
+      "AX|PA=1444|PB=1407|MPX=627",
+      "AU|4|0",
+      "AE|S=14|B=NO",
+      "AD|NULL|C=1",
+      "FD|70|4|6|6",
+      "FZ|70|2|0|4|0|0|0",
+      "RF|1970|6|3|4",
+      "LF|70|16844|300000",
+      "AS|S=14|A=LARGE",
+      "AX|PA=1444|PB=1407|MPX=627",
+      "AY|155446|36714",
+      "AV|236|300|2|28",
+      "AU|4|0",
+      "AE|S=14|B=55305",
+      "IG|70|269|255|0|0|0",
+      "IB|70|9857|0",
+      "AS|S=14|A=LARGE",
+      "AX|PA=1444|PB=1407|MPX=627",
+      "AU|4|0",
+      "AE|S=14|B=NO",
+      "AD|NULL|C=1",
+      "FD|70|4|6|6",
+      "FZ|70|2|0|4|0|0|0",
+      "RF|1970|2|2|4",
+      "RF|1970|8|1|2",
+      "LF|70|21961|300000",
+      "AS|S=14|A=LARGE",
+      "AX|PA=1455|PB=1444|MPX=637",
+      "AY|155446|37866",
+      "AV|236|300|2|28",
+      "AU|4|0",
+      "AE|S=14|B=55305",
+      "IG|70|264|253|0|0|0",
+      "IB|70|15105|0",
+      "AS|S=14|A=LARGE",
+      "AX|PA=1455|PB=1444|MPX=637",
+      "AU|4|0",
+      "AE|S=14|B=NO",
+      "AD|NULL|C=1",
+      "FD|70|4|6|6",
+      "FZ|70|2|0|4|0|0|0",
+      "RF|1970|5|3|6",
+      "LF|70|26744|300000",
+      "AS|S=14|A=LARGE",
+      "AX|PA=1455|PB=1444|MPX=637",
+      "AY|155446|37866",
+      "AV|236|300|2|28",
+      "AU|4|0",
+      "AE|S=14|B=55305",
+      "IG|70|269|257|0|0|0",
+      "IB|70|19538|0"
+    ]
+  }
+}
