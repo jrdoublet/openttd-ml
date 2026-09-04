@@ -5025,6 +5025,7 @@ Il n'y a pas d'A\* fait maison. Seule la fonction de coût est à nous.
 | C17 | **Sonde subventions, en lecture seule** — ✅ Fait (A7.3 / `event_subsidy_probe` : écoute `AIEventSubsidyOffer`, `Expired`, `Awarded` ; mesure offres, adéquation réseau/vivier, préemption et multiplicateur via `AIGameSettings`) | AAAHogEx : **0 occurrence** d'`AISubsidy` sur 37 531 lignes ; AdmiralAI s'en sert | `docs/mecanique_jeu.md` §14, `docs/cible.md` §8 |
 | C16 | **Plafond physique de flotte aérienne dérivé de la CADENCE et non de la demande** — ✅ Fait (`air_cadence_cap=1` par défaut) : créneau physique d'absorption par type d'aéroport (`OpexAirportStationDateSpan`) pondéré par le nombre de lignes partagées et la rotation aller-retour (`OpexAirCadenceCap`). Validé sur 20 graines × 10 ans (`docs/bench_c16_10y_20seeds.json`) : valeur de compagnie médiane +14,2 % (+366 k £), moyenne +6,5 % (+237 k £), profit annuel moyen +7,2 % (+54 k £). Supprime l'engorgement du ciel et les holding patterns ruineux. | +14,2 % valeur médiane, +7,2 % profit à 10 ans | §0 novemvicies |
 | **C29** | 🔑 **REFONTE DU RABATTEMENT — le bus ordinaire VERROUILLE le feeder** (§0 duoquinquagesies, §0 quattuorquinquagesies, §0 quinquinquagesies). **C29.1 + C29.2 + C29.3 + C29.4 : ✅ Fait et adopté** (`feeder_unlock=1`, `feeder_pricing=1`, `feeder_town_coverage=1` par défaut) : C29.1 restreint les hubs aux modes lourds passagers (Air + Rail Pax) ; C29.2 supprime le verrou `OpexOriginServed` pour ne filtrer que les villes déjà rabattues vers CE hub précis via `OpexTownFeederServed` ; C29.3 implémente le pricing physique selon le rendement par passager du hub ; C29.4 implémente la couverture multi-arrêts urbaine de la métropole du hub (`ceil(maisons / 20)` arrêts séparés d'au moins 6 tuiles rabattant vers l'aéroport). Validé au banc officiel 20 graines × 10 ans (`docs/bench_c29_4_coverage_10y_20seeds.json`) : **valeur médiane +10,12 % (+462 248 £)**, **profit médian +6,39 % (+68 882 £)**, **13 victoires sur 20 graines (65 %)**, score officiel **+38,0 pts en médiane** (712 -> 750). | C29.1+2+3+4 validés (médiane CV +10,1 %, profit +6,4 %, 13/20 victoires à 10 ans) | §0 duoquinquagesies, §0 quattuorquinquagesies, §0 quinquinquagesies |
+| **C30** | 🔑 **PROFIL DE CROISSANCE AÉRIENNE D'AAAHogEx — notre formule C14 est la SIENNE, l'écart est dans ce qui l'entoure** (§0 sexquinquagesies). Lecture de source, **aucun banc**. Quatre étages : **C30.1** seuil d'entrée étagé avant le tampon (file > 30 sous 10 appareils, > 100 ensuite, `route.nut:2838`) ; **C30.2** cadence 7-30 jours **couplée** à C30.1 (`main.nut:3711`) — ⚠️ jamais mesurée seule, la cadence seule est déjà connue pour ne rien décider ; **C30.3** forçage sur note de gare < 50 (`route.nut:2912`) ; **C30.4** démarrage à 2 appareils au lieu de 3-6 (`builder_air.nut:430`). ⚠️ **C30.1+C30.2 indissociables** — c'est leur COUPLAGE la trouvaille. ⚠️ **C30.4 après C30.1+2** seulement, sinon la ligne reste sous-dimensionnée un an. Corrobore au passage C26b=0 (`VS_AT_STATION`) et C16 (plafond de cadence de piste) | notes de gare 168 contre 190 ; ~520 évaluations contre 10 sur 10 ans | §0 sexquinquagesies |
 | C13 | **Le sac à dos (knapsack) n'utilise pas le ROI bonifié fret de C8** — `OpexKnapsackComputeBound`/`OpexKnapsackSearch` (`projects.nut:283-286`, `:323`) additionnent encore `p.revenueAnnual` brut comme objectif, pas le ROI bonifié (monopole +40 %, chaîne +35 %). Le bonus C8 pèse donc sur le tri/seuil de sélection en amont, pas sur l'optimum retenu quand plusieurs candidats se disputent le même capital | trouvé en revue croisée agy/codex/grok du 2026-09-02, en vérifiant C8 | §C8, `projects.nut` |
 
 ### D. Mesures à refaire, parce que les anciennes ne valent plus
@@ -7671,3 +7672,116 @@ Comparaison appariée sur 20 graines × 10 ans (40 parties) entre :
 
 
 
+
+---
+
+## 0 sexquinquagesies. 🔑 LECTURE DU SOURCE D'AAAHogEx : notre formule de croissance aérienne est la SIENNE — tout l'écart est dans ce qui l'entoure (2026-09-04)
+
+Lecture de `ai/AAAHogEx-115/` déléguée en LECTURE SEULE pendant que tournait le banc 1v1
+(§0 duoquinquagesies pour les chiffres du banc). **Aucun banc lancé sur ce qui suit.** L'agent a
+lui-même marqué son attribution des 9,3× comme **SUPPOSÉE** : le source seul ne la quantifie pas.
+À traiter comme des hypothèses testables, pas comme des conclusions.
+
+### 1. 🔑 Sa règle de croissance de flotte EST notre C14
+
+`route.nut:2900` :
+
+```squirrel
+local bottom = 0;
+if (townTransfer)                       bottom = capacity * (vehicleList.Count() + 3);
+else if (CargoUtils.IsPaxOrMail(cargo)) bottom = min(50, capacity);
+buildNum = (cargoWaiting - bottom) / capacity;   // puis min(buildNum, 4)
+```
+
+C'est **exactement** `buildNum = (maxWait − bottom) / planeCap` plafonné à 4, adopté sous C14 le
+2026-09-04. **Le portage était fidèle.** Leur `bottom` pax vaut 50 — précisément la valeur que le
+balayage §0 septquadragesies a trouvée indifférente (0 = 50 = +40 % de profit).
+
+➡️ **La formule n'explique donc RIEN de l'écart.** Ce qui l'explique est ce qu'il y a autour.
+
+### 2. Les quatre choses qui entourent la formule chez eux, et manquent chez nous
+
+**2.1 — Un seuil d'entrée ÉTAGÉ, avant la formule** (`route.nut:2838`) :
+
+```squirrel
+local needsProduction = (!tooMany && vehicleList.Count() < 10)
+    ? (HogeAI.Get().roiBase ? 30 : 10) : 100;
+if (cargoWaiting > needsProduction || ...)
+```
+
+File > 30 (mode ROI) tant que la ligne a moins de 10 appareils, puis > 100. Nous n'avons aucun
+seuil étagé : notre seule porte est `buildNum >= 1`, soit `maxWait >= planeCap`.
+
+**2.2 — Une cadence de 7 jours, adaptative jusqu'à 30** (`main.nut:3711`, `:3936`), contre nos
+**365**. Sur dix ans : ~520 occasions d'évaluer contre 10.
+
+🔑 **Ça rouvre la cadence, et corrige la lecture de §0 septquadragesies.** L'analyse du 2026-09-04
+a montré qu'une fois le tampon armé, 365 ≈ 180 ≈ 90 ≈ 30 est **du bruit** (tête-à-tête apparié,
+|t| < 1, 8 à 11 graines sur 20 — le classement monotone « 365 > 180 > 90 > 30 » n'était pas un
+effet mesuré). La conclusion n'est donc pas « 365 est le bon réglage » mais « **la cadence seule ne
+décide rien** ». Eux tournent à 7 jours **avec** le seuil étagé de 2.1 : **c'est le seuil qui rend
+la cadence rapide sûre.** Nous avons toujours eu l'un ou l'autre, jamais les deux ensemble.
+
+**2.3 — Un forçage sur note de gare basse** (`route.nut:2912`) :
+
+```squirrel
+if (cargoWaiting > capacity / 4 && GetVehicleType() != AIVehicle.VT_ROAD &&
+    AIStation.GetCargoRating(srcHgStation.stationId, cargo) < 50) {
+  buildNum = max(1, buildNum);
+}
+```
+
+Une gare mal notée reçoit un appareil **même sous le seuil normal**. Nous n'avons rien de tel — et
+nos notes médianes sont à **168 contre 190** pour elle (§0 duoquinquagesies).
+
+**2.4 — Un profil de démarrage INVERSE du nôtre.** `BuildVehicleFirst` construit un appareil puis
+le clone : **2 au départ** (`route.nut:2990`, `:4020`). Nous en achetons **3 à 6**
+(`builder_air.nut:430`, `maxAllowed = (newAirportCount == 2) ? 3 : (isSmall ? 4 : 6)`).
+Leur formule théorique `vehiclesPerRoute = max(min(maxVehicles, ratedProduction × 12 × days /
+(365 × capacity) + 1), 1)` (`estimator.nut:264`) sert à **l'ESTIMATION du candidat, pas à l'achat**.
+
+➡️ **Ils démarrent petit et grossissent vite sur demande réelle ; nous chargeons d'avance puis
+gelons un an.** C'est la même formule aux deux bouts d'un profil temporel opposé.
+
+### 3. Deux corroborations de nos propres mesures
+
+- **`VS_AT_STATION` bloque tout ajout chez eux** (`route.nut:3048`) : un véhicule à quai est bien
+  traité comme un signal de congestion. Corrobore le **défaut 0 de C26b**, où retirer ce signal
+  nous coûtait −17,6 % de profit annuel.
+- **Leur plafond par ligne dérive de la cadence de piste** (`air.nut:330`,
+  `stationDateSpan × usings` ; `route.nut:2374`) : c'est ce que **C16** a porté, +14,2 % de valeur
+  médiane. Emprunt confirmé juste.
+
+### 4. Les deux différences structurelles hors flotte
+
+1. **Aucune limite de distance sur l'aérien.** `main.nut:1478` écarte les autres modes au-delà de
+   **1 000 cases, mais pas l'air**. Nous plafonnons l'air à **212 tuiles** (C6, calibré sur nos
+   propres échecs : aucun succès au-delà de 212, aucun échec en deçà de 178).
+2. **5 % du plafond avions est RÉSERVÉ aux routes neuves** (`air.nut:217`, `route.nut:218`) : un
+   arbitrage largeur/profondeur explicite, que nous n'avons pas. L'ordre de service est par
+   ailleurs le même que le nôtre — `DoInterval()` (toutes les flottes existantes) puis `DoStep()`
+   (recherche et construction), `main.nut:751`.
+
+### 5. ➡️ C30 — quatre étages, à mesurer SÉPARÉMENT
+
+| # | changement | référence |
+|---|---|---|
+| **C30.1** | **Seuil d'entrée étagé** avant la formule de tampon : file > 30 tant que la ligne a < 10 appareils, > 100 ensuite | `route.nut:2838` |
+| **C30.2** | **Cadence rapide (7 à 30 jours) COUPLÉE au seuil de C30.1.** ⚠️ Ne jamais mesurer seule : la cadence seule est déjà connue pour ne rien décider | `main.nut:3711` |
+| **C30.3** | **Forçage sur note de gare** : `rating < 50` et `attente > capacité/4` ⇒ au moins un appareil | `route.nut:2912` |
+| **C30.4** | **Démarrage à 2 appareils** au lieu de 3-6, la croissance faisant le reste | `builder_air.nut:430` |
+
+⚠️ **C30.1 et C30.2 sont indissociables** et c'est le cœur de l'item : c'est leur COUPLAGE qui est
+la trouvaille, pas l'un ou l'autre. C30.3 et C30.4 sont indépendants et peuvent être benchés seuls.
+
+⚠️ **C30.4 interagit avec C14** (`air_fleet_buffer = 0`, adopté le 2026-09-04) : démarrer à 2 sans
+cadence rapide laisserait une ligne sous-dimensionnée un an entier. **Ne pas mesurer C30.4 avant
+C30.1+C30.2.**
+
+### 6. Deux pistes ouvertes, hors C30
+
+- **Le plafond de distance aérien (C6, 212 tuiles) est-il encore justifié ?** Il a été calibré
+  avant `air_presite`, avant C4 (filtre de platitude) et avant C16. Eux n'en ont aucun. À re-mesurer
+  avant d'y toucher : c'est un garde-fou qui a écarté 7 échecs sur 8 à l'époque.
+- **Réserver une part du plafond véhicules aux liaisons NEUVES** (leur 5 %) : c'est l'arbitrage
+  largeur/profondeur posé en dur, à comparer à notre approche par classement.
