@@ -45,6 +45,8 @@ CLEAN_DENSITY_SCORE <- true;
 CAPITAL_CEILING_CYCLES <- 24;
 /* C29.1 + C29.2 : Deverrouillage du rabattement (feeders) vers hubs aeriens et ferroviaires */
 FEEDER_UNLOCK <- true;
+/* C29.3 : Pricing du feeder calculé sur le revenu hub et le bassin de captage */
+FEEDER_PRICING <- true;
 
 /* Panneaux de diagnostic : lu UNE fois depuis le reglage dans Start(), pas a chaque appel (57
  * panneaux par an, GetSetting a chaque fois serait du gaspillage d'opcodes pour une valeur qui ne
@@ -1410,8 +1412,10 @@ function OpexFeederCandidateCompare(a, b)
 {
   if (a.roi > b.roi) return -1;
   if (a.roi < b.roi) return 1;
-  if (a.profitAnnual > b.profitAnnual) return -1;
-  if (a.profitAnnual < b.profitAnnual) return 1;
+  local aProf = a.profitAnnual + (("networkProfit" in a) ? a.networkProfit : 0);
+  local bProf = b.profitAnnual + (("networkProfit" in b) ? b.networkProfit : 0);
+  if (aProf > bProf) return -1;
+  if (aProf < bProf) return 1;
   return 0;
 }
 
@@ -4308,6 +4312,7 @@ function OpexAI::Start()
   local iap = AIController.GetSetting("infra_amort_pct");
   if (iap >= 0) INFRA_AMORT_PCT = iap;
   FEEDER_UNLOCK = AIController.GetSetting("feeder_unlock") != 0;
+  FEEDER_PRICING = AIController.GetSetting("feeder_pricing") != 0;
 
   /* 🔴 RENOUVELLEMENT AUTOMATIQUE (2026-08-29). Mesure : campagne 20 ans, graine 42 -- trois des
    * quatre lignes ROUTIERES finissent la partie avec vehCount = 0 et un profit de zero, alors que

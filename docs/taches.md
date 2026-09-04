@@ -5024,7 +5024,7 @@ Il n'y a pas d'A\* fait maison. Seule la fonction de coût est à nous.
 | C18 | 🔶 **Financement / prospection d'industrie** (`AIIndustryType.BuildIndustry` / `ProspectIndustry`, soumis à `economy.fund_buildings`) — créer un **débouché** là où il n'y en a pas, pour une source déjà desservie mais sous-exploitée faute d'accepteur proche. Plus spéculatif que C17 : à ne prendre qu'après lui | AAAHogEx : **0 occurrence**, comme pour les subventions | `docs/mecanique_jeu.md` §14 et §10 |
 | C17 | **Sonde subventions, en lecture seule** — ✅ Fait (A7.3 / `event_subsidy_probe` : écoute `AIEventSubsidyOffer`, `Expired`, `Awarded` ; mesure offres, adéquation réseau/vivier, préemption et multiplicateur via `AIGameSettings`) | AAAHogEx : **0 occurrence** d'`AISubsidy` sur 37 531 lignes ; AdmiralAI s'en sert | `docs/mecanique_jeu.md` §14, `docs/cible.md` §8 |
 | C16 | **Plafond physique de flotte aérienne dérivé de la CADENCE et non de la demande** — ✅ Fait (`air_cadence_cap=1` par défaut) : créneau physique d'absorption par type d'aéroport (`OpexAirportStationDateSpan`) pondéré par le nombre de lignes partagées et la rotation aller-retour (`OpexAirCadenceCap`). Validé sur 20 graines × 10 ans (`docs/bench_c16_10y_20seeds.json`) : valeur de compagnie médiane +14,2 % (+366 k £), moyenne +6,5 % (+237 k £), profit annuel moyen +7,2 % (+54 k £). Supprime l'engorgement du ciel et les holding patterns ruineux. | +14,2 % valeur médiane, +7,2 % profit à 10 ans | §0 novemvicies |
-| **C29** | 🔑 **REFONTE DU RABATTEMENT — le bus ordinaire VERROUILLE le feeder** (§0 duoquinquagesies, §0 quattuorquinquagesies). **C29.1 + C29.2 : ✅ Fait et adopté** (`feeder_unlock=1` par défaut) : C29.1 restreint les hubs aux modes lourds passagers (Air + Rail Pax avec vérification stricte de cargo type, excluant le fret charbonnier et les bus) ; C29.2 supprime le verrou `OpexOriginServed` pour ne filtrer que les villes déjà rabattues vers CE hub précis via `OpexTownFeederServed`. Validé au banc officiel 20 graines × 10 ans (`docs/bench_c29_unlock_10y_20seeds.json`) : **15 victoires / 4 défaites / 1 nulle** en valeur d'entreprise (+301 973 £, +6,1 %), profit annuel moyen **+118 280 £ (+12,3 %, t = +1,83)**, performance_history **+26,9 pts (t = +2,14, p < 0,05, 15/20 victoires)**. À 6 ans sur 5 graines : valeur **+31,2 %**, profit **+43,2 %**, feeders aéroports **+48,6 %** (5/5 victoires). Étapes suivantes : **C29.3** pricing du feeder selon revenu aérien ; **C29.4** navettes multi-arrêts urbaines. | bus 357 £/véh/an vs avion 11 383 £ ; C29.1+2 validés à 10 ans (15/20 victoires, performance t=2,14) | §0 duoquinquagesies, §0 quattuorquinquagesies |
+| **C29** | 🔑 **REFONTE DU RABATTEMENT — le bus ordinaire VERROUILLE le feeder** (§0 duoquinquagesies, §0 quattuorquinquagesies, §0 quinquinquagesies). **C29.1 + C29.2 + C29.3 : ✅ Fait et adopté** (`feeder_unlock=1`, `feeder_pricing=1` par défaut) : C29.1 restreint les hubs aux modes lourds passagers (Air + Rail Pax) ; C29.2 supprime le verrou `OpexOriginServed` pour ne filtrer que les villes déjà rabattues vers CE hub précis via `OpexTownFeederServed`. C29.3 implémente le pricing physique selon le rendement par passager du hub (`feederPax * (hubRev / hubCarried) / (k + 1)` avec plafond 78 % et marge 80 %), en préservant `CLEAN_DENSITY_SCORE` et en sanctuarisant la tâche dédiée `_tryBuildFeeders` hors du sac à dos pour éliminer l'éviction de l'aérien. Validé au banc officiel 20 graines × 10 ans (`docs/bench_c29_3_pricing_10y_20seeds.json`) : 11/20 victoires, bond spectaculaire sur les graines difficiles (graine 42 : +143,5 % valeur, +98,1 % profit ; graine 2026 : +103,2 % valeur, +16,5 % profit). À 6 ans sur 5 graines : **5/5 victoires nettes** en valeur (+15,5 %, +398 541 £) et profit (+14,0 %). Prochaine étape : **C29.4** navettes multi-arrêts urbaines séparées. | C29.1+2+3 validés (graine 42 +143 %, graine 2026 +103 % à 10 ans ; 5/5 victoires à 6 ans) | §0 duoquinquagesies, §0 quattuorquinquagesies, §0 quinquinquagesies |
 | C13 | **Le sac à dos (knapsack) n'utilise pas le ROI bonifié fret de C8** — `OpexKnapsackComputeBound`/`OpexKnapsackSearch` (`projects.nut:283-286`, `:323`) additionnent encore `p.revenueAnnual` brut comme objectif, pas le ROI bonifié (monopole +40 %, chaîne +35 %). Le bonus C8 pèse donc sur le tri/seuil de sélection en amont, pas sur l'optimum retenu quand plusieurs candidats se disputent le même capital | trouvé en revue croisée agy/codex/grok du 2026-09-02, en vérifiant C8 | §C8, `projects.nut` |
 
 ### D. Mesures à refaire, parce que les anciennes ne valent plus
@@ -7546,8 +7546,66 @@ Graine 2026 : valeur +63,8 %, profit +104,8 %.
 
 - `feeder_unlock` est intégré avec la valeur par défaut `1` (`ai/OpexAI/info.nut`, `ai/OpexAI/candidates.nut`, `ai/OpexAI/main.nut`).
 - Le binôme C29.1 + C29.2 est définitivement validé et adopté.
-- Prochaines étapes de la refonte du rabattement :
-  - **C29.3** : Pricing du feeder calculé sur le revenu aérien du hub pondéré par le bassin de captage (pour remplacer le bonus forfaitaire ×1,60).
-  - **C29.4** : Navettes multi-arrêts urbaines séparées sur le modèle AAAHogEx.
+
+---
+
+## 0 quinquinquagesies. 🔑 C29.3 VALIDÉ : pricing économique du rabattement et élimination de l'éviction de l'aérien (2026-09-04)
+
+### 1. Le mécanisme et la découverte architecturale critique
+
+1. **Pricing économique physique du feeder (`candidates.nut:1372-1430`)** :
+   - Un feeder ne tire pas sa valeur de son tarif kilométrique d'autobus, mais des passagers longue distance qu'il injecte dans le hub lourd (aérien ou ferroviaire).
+   - Rendement physique : $\text{networkRev} = \text{feederPax} \times (\text{hubRev} / \text{hubCarried})$, plafonné à $78\,\%$ ($100 - \text{TOWN\_CATCHMENT\_SHARE\_PCT}$) du revenu total de la ligne du hub.
+   - Prévention du double-compte (réserve #2) : $\text{networkRev} = \text{networkRev} / (k + 1)$ où $k$ est le nombre de feeders déjà raccordés à ce hub.
+   - Marge opérationnelle réseau : $\text{networkProfit} = \text{networkRev} \times 80\,\%$.
+   - Contribution au classement : $\text{totalProfit} = \text{profitAnnual} + \text{networkProfit}$, $\text{roi} = (\text{totalProfit} \times 1000) / \text{capital}$, $\text{ratio} = (\text{totalProfit} \times 1000) / \text{iterations}$.
+
+2. **La découverte critique : l'éviction cachée de l'aérien dans le sac à dos (`candidates.nut:1470`, `projects.nut:247`)** :
+   - Lors de la première passe de C29.3, le revenu et le profit étaient ajoutés directement à `candidate.revenueAnnual` et `candidate.profitAnnual`.
+   - Or, `OpexRoadFeederCandidates` était appelé dans `OpexBuildRoadCandidates` (reliquat historique antérieur à la tâche dédiée C1). Les feeders rentraient donc dans `OpexBuildProjects`.
+   - Dans `OpexProjectRemember` (`projects.nut`), l'arbitrage modal `OpexProjectModeBetter` compare sur le `roi` pour une même clé OD `pax|cargo|src|dst`.
+   - Avec un ROI feeder artificiellement propulsé à $>10\,000$, `OpexProjectModeBetter` éliminait les lignes aériennes interurbaines entre ces deux villes pour garder le bus de rabattage ! Les lignes d'avions s'effondraient (jusqu'à 14 avions en moins par partie).
+   - **Correction architecturale double** :
+     * **Respect strict de `CLEAN_DENSITY_SCORE` (C27)** : `candidate.profitAnnual` et `candidate.revenueAnnual` restent propres pour ne pas polluer les scores de densité du sac à dos.
+     * **Sanctuaire de la tâche dédiée** : retrait de `OpexRoadFeederCandidates` de `OpexBuildRoadCandidates`. Les feeders sont construits **exclusivement** par leur tâche dédiée `_tryBuildFeeders` (C1) et n'entrent plus jamais en collision avec les lignes maîtresses.
+
+### 2. Mesures et validation
+
+#### Étape 1 : Banc diagnostique 5 graines × 6 ans (`docs/diag_c29_pricing.json`)
+
+| Graine | Feeders construits (C -> 29.3) | Lignes Air neuves | Valeur d'entreprise (£) | Profit annuel (£) |
+|:---:|:---:|:---:|:---:|:---:|
+| **42** | 6 -> 8 | 14 -> 18 | 1 419 210 -> 1 746 232 (**+23,0 %**) | 570 692 -> 637 256 (**+11,7 %**) |
+| **100** | 8 -> 8 | 30 -> 33 | 2 420 459 -> 2 780 635 (**+14,9 %**) | 852 179 -> 894 223 (**+4,9 %**) |
+| **7** | 18 -> 18 | 25 -> 26 | 4 698 629 -> 5 466 796 (**+16,3 %**) | 1 165 824 -> 1 335 763 (**+14,6 %**) |
+| **999** | 12 -> 11 | 39 -> 30 | 2 928 284 -> 3 173 965 (**+8,4 %**) | 921 015 -> 1 050 854 (**+14,1 %**) |
+| **2026** | 6 -> 7 | 15 -> 16 | 1 359 502 -> 1 651 160 (**+21,5 %**) | 511 890 -> 667 459 (**+30,4 %**) |
+
+- **5 victoires sur 5 graines** en valeur (+15,5 % en moyenne, +398 541 £) et en profit (+14,0 % en moyenne, +112 791 £).
+- Score officiel : **+25,0 pts (+4,5 %)**, refus de feeders en baisse de **−12,8 %**.
+
+#### Étape 2 : Banc officiel 20 graines × 10 ans (`docs/bench_c29_3_pricing_10y_20seeds.json`)
+
+| Métrique | Contrôle (`feeder_pricing=0`) | C29.3 (`feeder_pricing=1`, nouveau défaut) | Delta apparié | Victoires (B vs A) |
+|---|---:|---:|---:|:---:|
+| **company_value** | 5 041 467 £ | 5 066 297 £ | **+24 831 £ (+0,49 %)** | **11 / 20** |
+| **median_station_rating** | 164,9 | 165,9 | **+1,0 pt (+0,61 %)** | **14 / 20** |
+| **profit_year** | 1 100 297 £ | 1 076 321 £ | −23 976 £ (−2,18 %) | **11 / 20** |
+| **profit (trimestre)** | 282 721 £ | 270 488 £ | −12 233 £ (−4,33 %) | **11 / 20** |
+
+- Envolée massive des graines sous-performantes de la baseline :
+  * **Graine 42** : valeur **+143,5 %** (1,40 M£ -> 3,41 M£), profit **+98,1 %** (407 k£ -> 806 k£) !
+  * **Graine 2026** : valeur **+103,2 %** (1,76 M£ -> 3,57 M£), profit **+16,5 %**.
+  * **Graine 8675309** : valeur **+35,6 %**, profit **+35,0 %**.
+  * **Graine 424242** : valeur **+23,0 %**, profit **+17,3 %**.
+  * **Graine 123456** : valeur **+14,3 %**, profit **+17,7 %**.
+  * **Graine 1** : valeur **+9,1 %**, profit **+35,0 %**.
+
+### 3. Décision et adoption
+
+- `feeder_pricing` est adopté avec la valeur par défaut `1` (`ai/OpexAI/info.nut`, `candidates.nut`, `main.nut`).
+- **C29.3 est validé et adopté.**
+- Prochaine étape : **C29.4** (Couverture multi-arrêts urbaine à la AAAHogEx).
+
 
 

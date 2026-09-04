@@ -48,6 +48,8 @@ VIVIER_RATIO_FILTER <- true;
 CLEAN_DENSITY_SCORE <- true;
 /* C29.1 + C29.2 : Deverrouillage du rabattement (feeders) vers hubs aeriens et ferroviaires */
 FEEDER_UNLOCK <- true;
+/* C29.3 : Pricing du feeder calculé sur le revenu hub et le bassin de captage */
+FEEDER_PRICING <- true;
 PROBE_STASH_K <- 12;
 /* "Presque admis" : predit > -1000. L'echelle du plancher MIN_RATIO * iterations/1000
  * pour une ligne courte (~500*310/1000 = 155) est plus petite ; -1000 reste du meme
@@ -1264,9 +1266,22 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats)
   if (!("feederCandidates" in stats)) stats.feederCandidates <- 0;
 
   local hubs = [];
-  local seenHubStations = {};
+  local hubMap = {};
+  local feedersPerHub = {};
+
   foreach (line in lines) {
     if (!("mode" in line)) continue;
+    local isFeeder = (("isFeeder" in line) && line.isFeeder) ||
+                     (("purpose" in line) && line.purpose == "feeder");
+    if (isFeeder) {
+      local hId = ("hubStationId" in line) ? line.hubStationId : -1;
+      if (hId < 0 && ("stationB" in line)) hId = AIStation.GetStationID(line.stationB);
+      if (hId >= 0) {
+        feedersPerHub[hId] <- (hId in feedersPerHub) ? feedersPerHub[hId] + 1 : 1;
+      }
+      continue;
+    }
+
     if (FEEDER_UNLOCK) {
       /* C29.1 : Seuls l'aerien passagers et le rail passagers sont des hubs.
        * Le fret ferroviaire (charbon, minerai, etc.) et le bus ordinaire sont exclus. */
@@ -1280,16 +1295,52 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats)
     } else {
       if (line.mode != "rail" && line.mode != "air") continue;
     }
+
     local stA = OpexLineStationId(line, "A");
     local stB = OpexLineStationId(line, "B");
-    if (stA >= 0 && !(stA in seenHubStations)) {
-      seenHubStations[stA] <- true;
-      hubs.append({ stationId = stA, tile = line.stationA, mode = line.mode });
+    local rev = ("predRevenue" in line) ? line.predRevenue : (("predicted" in line) ? line.predicted : 0);
+    local carried = ("predCarried" in line) ? line.predCarried : 0;
+
+    local ends = [ { st = stA, tile = line.stationA }, { st = stB, tile = line.stationB } ];
+    foreach (end in ends) {
+      local st = end.st;
+      if (st < 0) continue;
+      if (!(st in hubMap)) {
+        hubMap[st] <- {
+          stationId = st,
+          tile = end.tile,
+          mode = line.mode,
+          totalRevenue = 0,
+          totalCarried = 0,
+          lineCount = 0,
+          airLines = 0,
+          railLines = 0,
+          totalAirRevenue = 0,
+          totalAirCarried = 0,
+          totalRailRevenue = 0,
+          totalRailCarried = 0,
+        };
+      }
+      local h = hubMap[st];
+      if (rev > 0) h.totalRevenue += rev;
+      if (carried > 0) h.totalCarried += carried;
+      h.lineCount++;
+      if (line.mode == "air") {
+        h.airLines++;
+        if (rev > 0) h.totalAirRevenue += rev;
+        if (carried > 0) h.totalAirCarried += carried;
+        h.mode = "air";
+      } else if (line.mode == "rail") {
+        h.railLines++;
+        if (rev > 0) h.totalRailRevenue += rev;
+        if (carried > 0) h.totalRailCarried += carried;
+      }
     }
-    if (stB >= 0 && !(stB in seenHubStations)) {
-      seenHubStations[stB] <- true;
-      hubs.append({ stationId = stB, tile = line.stationB, mode = line.mode });
-    }
+  }
+
+  foreach (st, h in hubMap) {
+    h.existingFeeders <- (st in feedersPerHub) ? feedersPerHub[st] : 0;
+    hubs.append(h);
   }
   stats.feederHubs = hubs.len();
   if (hubs.len() == 0) return;
@@ -1317,13 +1368,86 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats)
         candidate.isFeeder <- true;
         candidate.hubStationId <- hub.stationId;
         candidate.hubMode <- hub.mode;
-        /* Bonus ROI pour la valeur réseau apportée au Hub (+60%) pour le tri */
-        candidate.roi = (candidate.roi * 160) / 100;
-        candidate.ratio = (candidate.ratio * 160) / 100;
-        candidate.feederBonus <- 160;
-        if (!CLEAN_DENSITY_SCORE) {
-          candidate.profitAnnual = (candidate.profitAnnual * 160) / 100;
-          candidate.revenueAnnual = (candidate.revenueAnnual * 160) / 100;
+
+        if (FEEDER_PRICING) {
+          /* C29.3 : Pricing economique physique du feeder selon le rendement par passager du hub.
+           * Valeur = passagers apportes par le feeder * (revenu hub / passagers hub).
+           * Plafonne a 78 % (100 - TOWN_CATCHMENT_SHARE_PCT) du revenu total de la ligne du hub. */
+          local hubRev = 0;
+          local hubCarried = 0;
+          if (("airLines" in hub) && hub.airLines > 0) {
+            hubRev = hub.totalAirRevenue;
+            hubCarried = hub.totalAirCarried;
+          } else if (("railLines" in hub) && hub.railLines > 0) {
+            hubRev = hub.totalRailRevenue;
+            hubCarried = hub.totalRailCarried;
+          } else if (("lineCount" in hub) && hub.lineCount > 0) {
+            hubRev = hub.totalRevenue;
+            hubCarried = hub.totalCarried;
+          }
+
+          if (hubRev > 0) {
+            local feederPax = (("carried" in candidate) && candidate.carried > 0) ? candidate.carried : monthly;
+            local maxSharePct = 100 - TOWN_CATCHMENT_SHARE_PCT; /* 78 % */
+            local networkRev = 0;
+
+            if (hubCarried > 0) {
+              /* Rendement physique : passagers feeder * rendement unitaire hub */
+              networkRev = (feederPax * hubRev) / hubCarried;
+              local maxRev = (hubRev * maxSharePct) / 100;
+              if (networkRev > maxRev) networkRev = maxRev;
+            } else {
+              /* Repli si hubCarried n'est pas renseigne : part du bassin communal */
+              local hubTownId = AITile.GetClosestTown(hub.tile);
+              local hubPop = AITown.IsValidTown(hubTownId) ? AITown.GetPopulation(hubTownId) : 0;
+              local sharePct = maxSharePct;
+              if (hubPop > 0) {
+                local hubCapturedPax = (hubPop * TOWN_CATCHMENT_SHARE_PCT) / 100;
+                if (hubCapturedPax > 0) {
+                  sharePct = (feederPax * 100) / hubCapturedPax;
+                  if (sharePct > maxSharePct) sharePct = maxSharePct;
+                  if (sharePct < 1) sharePct = 1;
+                }
+              }
+              networkRev = (hubRev * sharePct) / 100;
+            }
+
+            /* Reserve #2 : Prevention du double compte / repartition entre feeders sur le meme hub */
+            local k = ("existingFeeders" in hub) ? hub.existingFeeders : 0;
+            networkRev = networkRev / (k + 1);
+
+            /* Marge operationnelle reseau (~80 % pour l'aerien/rail) */
+            local networkProfit = (networkRev * 80) / 100;
+
+            candidate.networkRevenue <- networkRev;
+            candidate.networkProfit <- networkProfit;
+            candidate.feederBonus <- networkProfit;
+            local totalProfit = candidate.profitAnnual + networkProfit;
+            candidate.roi = candidate.capital > 0 ? (totalProfit * 1000) / candidate.capital : candidate.roi;
+            candidate.ratio = candidate.iterations > 0 ? (totalProfit * 1000) / candidate.iterations : candidate.ratio;
+            if (!CLEAN_DENSITY_SCORE) {
+              candidate.revenueAnnual += networkRev;
+              candidate.profitAnnual += networkProfit;
+            }
+          } else {
+            /* Repli historique si aucun revenu de ligne n'est encore disponible sur le hub */
+            candidate.roi = (candidate.roi * 160) / 100;
+            candidate.ratio = (candidate.ratio * 160) / 100;
+            candidate.feederBonus <- 160;
+            if (!CLEAN_DENSITY_SCORE) {
+              candidate.profitAnnual = (candidate.profitAnnual * 160) / 100;
+              candidate.revenueAnnual = (candidate.revenueAnnual * 160) / 100;
+            }
+          }
+        } else {
+          /* Bonus ROI forfaitaire historique (+60 %) */
+          candidate.roi = (candidate.roi * 160) / 100;
+          candidate.ratio = (candidate.ratio * 160) / 100;
+          candidate.feederBonus <- 160;
+          if (!CLEAN_DENSITY_SCORE) {
+            candidate.profitAnnual = (candidate.profitAnnual * 160) / 100;
+            candidate.revenueAnnual = (candidate.revenueAnnual * 160) / 100;
+          }
         }
         out.append(candidate);
       }
@@ -1346,7 +1470,9 @@ function OpexBuildRoadCandidates(catalog, budget, lines)
   budget.begin();
   OpexRoadPaxCandidates(catalog, lines, all, stats);
   OpexRoadFreightCandidates(catalog, lines, all, stats);
-  OpexRoadFeederCandidates(catalog, lines, all, stats);
+  /* Les feeders sont exclusivement construits par leur tâche dédiée _tryBuildFeeders (main.nut:1422).
+   * Ne pas les inclure ici empêche toute collision d'OD et évite d'évincer les lignes aériennes
+   * lors de l'arbitrage modal OpexProjectRemember / OpexProjectModeBetter. */
   local ops = budget.end("cand_road");
 
   if (DECISION_LOG) {

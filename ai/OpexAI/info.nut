@@ -314,6 +314,17 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C29.3 : Pricing du feeder calculé sur le revenu hub et le bassin de captage (docs/taches.md C29.3).
+     * Prix = revenu de la ligne du hub * part de captage (repli 78 %). Prevention du double compte.
+     * 1 = pricing calcule (defaut), 0 = bonus forfaitaire historique (x1.60). */
+    AddSetting({
+      name = "feeder_pricing",
+      description = "Pricing du feeder selon revenu hub et part captee (docs/taches.md C29.3): 1 = calcule (defaut), 0 = bonus x1.60",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
     AddSetting({
       name = "air_max_distance",
       description = "Plafond de distance pour les liaisons aeriennes (0 = illimite, 212 = defaut empirique, docs/taches.md C6)",
