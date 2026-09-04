@@ -39,6 +39,8 @@ ROAD_BUILD_ENABLED <- true;
 ROAD_PAX_CATCHMENT_SHARE_PCT <- 86;
 /* C23 : Borne physique d'un arret de bus (rayon 3 tuiles = 7x7 tuiles = max 20 maisons) */
 ROAD_STOP_CATCHMENT_HOUSES <- 20;
+/* C27 : Sortir les bonus du numerateur de densite du portefeuille (adopte) */
+CLEAN_DENSITY_SCORE <- true;
 
 /* Panneaux de diagnostic : lu UNE fois depuis le reglage dans Start(), pas a chaque appel (57
  * panneaux par an, GetSetting a chaque fois serait du gaspillage d'opcodes pour une valeur qui ne
@@ -1504,7 +1506,8 @@ function OpexAI::_tryBuildFeeders(year)
       hubStationId = candidate.hubStationId,
     });
     if (DECISION_LOG) {
-      OpexDecide("FEEDER_BUILD", "line=" + this._nextLineId + " hub=" + candidate.hubStationId + " src=" + candidate.src + " dst=" + candidate.dst + " dist=" + candidate.distance + " profit=" + candidate.profitAnnual + " cost=" + candidate.capital);
+      local hubMode = ("hubMode" in candidate) ? candidate.hubMode : "unknown";
+      OpexDecide("FEEDER_BUILD", "line=" + this._nextLineId + " hub=" + candidate.hubStationId + " hub_mode=" + hubMode + " src=" + candidate.src + " dst=" + candidate.dst + " dist=" + candidate.distance + " profit=" + candidate.profitAnnual + " cost=" + candidate.capital);
     }
     AILog.Info("FE|" + yy + "|" + this._nextLineId + "|" + candidate.distance + "|" + candidate.profitAnnual);
     OpexSign(anchor, "FE|" + yy + "|" + this._nextLineId + "|" + candidate.distance + "|" + candidate.profitAnnual);
@@ -4282,6 +4285,7 @@ function OpexAI::Start()
   AIR_FLEET_LINE_PRICE = AIController.GetSetting("air_fleet_line_price") != 0;
   AIR_CADENCE_CAP = AIController.GetSetting("air_cadence_cap") != 0;
   ROAD_LOADING_FIX = AIController.GetSetting("road_loading_fix") != 0;
+  CLEAN_DENSITY_SCORE = AIController.GetSetting("clean_density_score") != 0;
   local iap = AIController.GetSetting("infra_amort_pct");
   if (iap >= 0) INFRA_AMORT_PCT = iap;
 

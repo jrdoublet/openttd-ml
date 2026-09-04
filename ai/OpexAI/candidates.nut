@@ -45,6 +45,7 @@ JOIN_PLACE_MAX <- 75;
 TOP_K <- 20;
 MIN_RATIO <- 500;
 VIVIER_RATIO_FILTER <- true;
+CLEAN_DENSITY_SCORE <- true;
 PROBE_STASH_K <- 12;
 /* "Presque admis" : predit > -1000. L'echelle du plancher MIN_RATIO * iterations/1000
  * pour une ligne courte (~500*310/1000 = 155) est plus petite ; -1000 reste du meme
@@ -1274,11 +1275,14 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats)
         candidate.isFeeder <- true;
         candidate.hubStationId <- hub.stationId;
         candidate.hubMode <- hub.mode;
-        /* Bonus ROI pour la valeur réseau apportée au Hub (+60%) */
+        /* Bonus ROI pour la valeur réseau apportée au Hub (+60%) pour le tri */
         candidate.roi = (candidate.roi * 160) / 100;
         candidate.ratio = (candidate.ratio * 160) / 100;
-        candidate.profitAnnual = (candidate.profitAnnual * 160) / 100;
-        candidate.revenueAnnual = (candidate.revenueAnnual * 160) / 100;
+        candidate.feederBonus <- 160;
+        if (!CLEAN_DENSITY_SCORE) {
+          candidate.profitAnnual = (candidate.profitAnnual * 160) / 100;
+          candidate.revenueAnnual = (candidate.revenueAnnual * 160) / 100;
+        }
         out.append(candidate);
       }
     }

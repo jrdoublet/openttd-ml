@@ -1,0 +1,274 @@
+{
+  "summary": {
+    "control": {
+      "valeur_med": 1597977,
+      "valeur_mean": 2320902,
+      "profit_med": 512936,
+      "profit_mean": 717323.2,
+      "air_total": 87,
+      "feeder_total": 52,
+      "feeder_air_total": 37,
+      "feeder_rail_total": 15,
+      "rail_total": 18,
+      "road_total": 5
+    },
+    "c27": {
+      "valeur_med": 1882178,
+      "valeur_mean": 2776898.4,
+      "profit_med": 648457,
+      "profit_mean": 799903.2,
+      "air_total": 128,
+      "feeder_total": 54,
+      "feeder_air_total": 42,
+      "feeder_rail_total": 12,
+      "rail_total": 13,
+      "road_total": 7
+    }
+  },
+  "rows": [
+    {
+      "arm": "control",
+      "seed": 42,
+      "date": "1975-12-01",
+      "company_value": 1412229,
+      "profit_year": 479485,
+      "profit": 117975,
+      "money": 480298,
+      "current_loan": 140000,
+      "n_vehicles": 116,
+      "n_stations": 43,
+      "decisions": {
+        "build_counts": {
+          "AIR_BUILD": 11,
+          "FEEDER_BUILD": 9,
+          "RAIL_BUILD": 4,
+          "ROAD_BUILD": 1,
+          "RAIL_BUILD_FAIL": 2
+        },
+        "feeder_by_mode": {
+          "air": 5,
+          "rail": 4
+        }
+      }
+    },
+    {
+      "arm": "control",
+      "seed": 100,
+      "date": "1975-12-01",
+      "company_value": 745508,
+      "profit_year": 273793,
+      "profit": 55574,
+      "money": 54309,
+      "current_loan": 300000,
+      "n_vehicles": 105,
+      "n_stations": 57,
+      "decisions": {
+        "build_counts": {
+          "RAIL_BUILD": 4,
+          "FEEDER_BUILD": 9,
+          "AIR_BUILD": 7,
+          "ROAD_BUILD": 1,
+          "RAIL_BUILD_FAIL": 1
+        },
+        "feeder_by_mode": {
+          "rail": 5,
+          "air": 4
+        }
+      }
+    },
+    {
+      "arm": "control",
+      "seed": 7,
+      "date": "1975-12-01",
+      "company_value": 4937349,
+      "profit_year": 1251444,
+      "profit": 353128,
+      "money": 2521333,
+      "current_loan": 0,
+      "n_vehicles": 195,
+      "n_stations": 69,
+      "decisions": {
+        "build_counts": {
+          "AIR_BUILD": 23,
+          "FEEDER_BUILD": 17,
+          "ROAD_BUILD": 2,
+          "RAIL_BUILD": 3
+        },
+        "feeder_by_mode": {
+          "air": 15,
+          "rail": 2
+        }
+      }
+    },
+    {
+      "arm": "control",
+      "seed": 999,
+      "date": "1975-12-01",
+      "company_value": 2911447,
+      "profit_year": 1068958,
+      "profit": 300311,
+      "money": 512144,
+      "current_loan": 0,
+      "n_vehicles": 148,
+      "n_stations": 49,
+      "decisions": {
+        "build_counts": {
+          "AIR_BUILD": 34,
+          "RAIL_BUILD_FAIL": 1,
+          "FEEDER_BUILD": 9,
+          "RAIL_BUILD": 3
+        },
+        "feeder_by_mode": {
+          "air": 8,
+          "rail": 1
+        }
+      }
+    },
+    {
+      "arm": "control",
+      "seed": 2026,
+      "date": "1975-12-01",
+      "company_value": 1597977,
+      "profit_year": 512936,
+      "profit": 80687,
+      "money": 459167,
+      "current_loan": 110000,
+      "n_vehicles": 118,
+      "n_stations": 50,
+      "decisions": {
+        "build_counts": {
+          "AIR_BUILD": 12,
+          "FEEDER_BUILD": 8,
+          "RAIL_BUILD_FAIL": 2,
+          "RAIL_BUILD": 4,
+          "ROAD_BUILD": 1
+        },
+        "feeder_by_mode": {
+          "air": 5,
+          "rail": 3
+        }
+      }
+    },
+    {
+      "arm": "c27",
+      "seed": 42,
+      "date": "1975-12-01",
+      "company_value": 1514947,
+      "profit_year": 445437,
+      "profit": 110434,
+      "money": 248131,
+      "current_loan": 300000,
+      "n_vehicles": 124,
+      "n_stations": 58,
+      "decisions": {
+        "build_counts": {
+          "AIR_BUILD": 19,
+          "FEEDER_BUILD": 9,
+          "ROAD_BUILD": 2,
+          "RAIL_BUILD": 3,
+          "RAIL_BUILD_FAIL": 2
+        },
+        "feeder_by_mode": {
+          "air": 6,
+          "rail": 3
+        }
+      }
+    },
+    {
+      "arm": "c27",
+      "seed": 100,
+      "date": "1975-12-01",
+      "company_value": 1882178,
+      "profit_year": 648457,
+      "profit": 173255,
+      "money": 104181,
+      "current_loan": 300000,
+      "n_vehicles": 134,
+      "n_stations": 57,
+      "decisions": {
+        "build_counts": {
+          "AIR_BUILD": 28,
+          "ROAD_BUILD": 1,
+          "FEEDER_BUILD": 7,
+          "RAIL_BUILD": 2
+        },
+        "feeder_by_mode": {
+          "air": 6,
+          "rail": 1
+        }
+      }
+    },
+    {
+      "arm": "c27",
+      "seed": 7,
+      "date": "1975-12-01",
+      "company_value": 5222418,
+      "profit_year": 1311703,
+      "profit": 328034,
+      "money": 2607391,
+      "current_loan": 0,
+      "n_vehicles": 203,
+      "n_stations": 67,
+      "decisions": {
+        "build_counts": {
+          "AIR_BUILD": 28,
+          "FEEDER_BUILD": 14,
+          "ROAD_BUILD": 2,
+          "RAIL_BUILD": 1
+        },
+        "feeder_by_mode": {
+          "air": 13,
+          "rail": 1
+        }
+      }
+    },
+    {
+      "arm": "c27",
+      "seed": 999,
+      "date": "1975-12-01",
+      "company_value": 3723265,
+      "profit_year": 1182003,
+      "profit": 288484,
+      "money": 876313,
+      "current_loan": 100000,
+      "n_vehicles": 175,
+      "n_stations": 54,
+      "decisions": {
+        "build_counts": {
+          "AIR_BUILD": 39,
+          "RAIL_BUILD_FAIL": 1,
+          "FEEDER_BUILD": 12,
+          "RAIL_BUILD": 3
+        },
+        "feeder_by_mode": {
+          "air": 10,
+          "rail": 2
+        }
+      }
+    },
+    {
+      "arm": "c27",
+      "seed": 2026,
+      "date": "1975-12-01",
+      "company_value": 1541684,
+      "profit_year": 411916,
+      "profit": 109081,
+      "money": 215743,
+      "current_loan": 300000,
+      "n_vehicles": 158,
+      "n_stations": 64,
+      "decisions": {
+        "build_counts": {
+          "AIR_BUILD": 14,
+          "FEEDER_BUILD": 12,
+          "RAIL_BUILD": 4,
+          "ROAD_BUILD": 2
+        },
+        "feeder_by_mode": {
+          "air": 7,
+          "rail": 5
+        }
+      }
+    }
+  ]
+}

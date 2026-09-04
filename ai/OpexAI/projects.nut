@@ -24,6 +24,7 @@ const PROJECT_RAIL_TRANSACTION_OPS = 200000;
 const PROJECT_ROAD_TRANSACTION_OPS = 287000;
 const PROJECT_AIR_TRANSACTION_OPS = 100000;
 const PROJECT_WATER_TRANSACTION_OPS = 100000;
+CLEAN_DENSITY_SCORE <- true;
 
 /* Journal historique conserve mot pour mot pour le chemin tension_probe=0. */
 function OpexLogPortfolioRank(projects)
@@ -147,8 +148,10 @@ function OpexProjectFromCandidate(candidate)
     budgetCapital += candidate.immobilise;
   }
   local scoreRevenue = candidate.revenueAnnual;
-  if (candidate.kind == "freight" && ("freightBonus" in candidate) && candidate.freightBonus > 100) {
-    scoreRevenue = (scoreRevenue * candidate.freightBonus) / 100;
+  if (!CLEAN_DENSITY_SCORE) {
+    if (candidate.kind == "freight" && ("freightBonus" in candidate) && candidate.freightBonus > 100) {
+      scoreRevenue = (scoreRevenue * candidate.freightBonus) / 100;
+    }
   }
   return {
     mode = mode, kind = candidate.kind, cargo = candidate.cargo,
@@ -439,9 +442,11 @@ function OpexKnapsackSolve(candidates, capitalBudget, maxRoad = 18, maxItems = 3
        * sans lui, basculer sur le profit retirerait AUSSI la preference fret (jusqu'a x1,89),
        * et le banc mesurerait deux changements au lieu d'un. */
       local scoreProfit = c.profitAnnual;
-      if (c.kind == "freight" && ("payload" in c) && c.payload != null
-          && ("freightBonus" in c.payload) && c.payload.freightBonus > 100) {
-        scoreProfit = (scoreProfit * c.payload.freightBonus) / 100;
+      if (!CLEAN_DENSITY_SCORE) {
+        if (c.kind == "freight" && ("payload" in c) && c.payload != null
+            && ("freightBonus" in c.payload) && c.payload.freightBonus > 100) {
+          scoreProfit = (scoreProfit * c.payload.freightBonus) / 100;
+        }
       }
       local roiScore = OpexProjectScore(scoreProfit, c.budgetCapital);
       c.sortKey <- (roiScore * 75 + c.opcodeScore * 25).tofloat();

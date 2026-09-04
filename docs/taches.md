@@ -5011,7 +5011,7 @@ Il n'y a pas d'A\* fait maison. Seule la fonction de coût est à nous.
 | C19 | **Convertir les boucles `Begin()/Next()` chaudes en pipeline `Valuate` + `Keep*`** — ✅ Fait (`catalog.nut`, `main.nut`, `tension.nut` convertis aux pipelines natifs `Valuate`/`Keep*`) | 5 opcodes/élément contre le corps entier d'une boucle Squirrel | `docs/cible.md` §8.3 |
 | C23 | **Le pax routier interurbain encaisse 13 % du profit promis** — ✅ Fait (§0 septquadragesies) : diagnostic terme à terme établi sur 48 années pleines. Deux termes mentent par excès : le **bassin de captage** (86 % supposé à plat contre 11 à 56 % réel selon la taille de la ville, médiane 31 %) et la **distance entre arrêts** (16 tuiles réelles vs 22 prédites, -27 %). Deux termes sont conservateurs : vitesse (64 vs 52 km/h) et note de gare (67 % vs 50 %). Le coût est doublé par E10 (flotte ×2). La dispersion (0,16 à 0,79) est expliquée par la taille des villes et la position des arrêts. | 13 % du profit promis | §0 septquadragesies |
 | C24 | **Trancher la nature du 0,54 des feeders** — ✅ Fait (§0 quinquadragesies) : artefact de deux mécanismes délibérés (+60 % bonus réseau dans la prédiction, 75 % part de transfert dans OpenTTD). Retirés, les feeders encaissent 1,15 fois le modèle. Rien à corriger. | 238 années pleines à 0,54 | §0 quinquadragesies |
-| C27 | 🔑 **SORTIR LES BONUS DU NUMÉRATEUR DE DENSITÉ** — `budgetScore = revenueAnnual × 1000 / budgetCapital` (`projects.nut:108-112`) départage les modes, mais le fret y entre majoré jusqu'à **×1,89** (monopole + chaîne) et le feeder **×1,60** (valeur réseau), tandis que l'air entre **brut** (`projects.nut:188`). Un bonus de valeur réseau est un argument de **tri**, pas une prédiction de recette : le sortir du numérateur rétablit la symétrie **sans toucher à aucun estimateur**. ⚠️ C'est le correctif à préférer à « corriger le conservatisme aérien », qui reviendrait à fausser un estimateur juste pour compenser un biais de classement. ⚠️ Et §0 quinquadragesies a montré que le bonus feeder écrit dans `revenueAnnual` avait déjà **faussé tout un diagnostic** : le sortir répare les deux choses d'un coup | air 0 bonus contre ×1,60 et ×1,89 | §0 octoquadragesies point 2 |
+| C27 | 🔑 **SORTIR LES BONUS DU NUMÉRATEUR DE DENSITÉ** — ✅ Fait (`clean_density_score=1` par défaut) : `budgetScore` et `opcodeScore` (`projects.nut`) n'incorporent plus les bonus fret (jusqu'à ×1,89) ni feeder (×1,60), réservés au tri (`roi`, `ratio`). Mesuré sur 5 graines × 6 ans (`docs/diag_c27_feeders.json`) : **valeur médiane +17,8 %** (1,60 → 1,88 M£), **profit annuel médian +26,4 %** (513 → 648 k£), lignes air **+47,1 %** (87 → 128). Réserve validée : les feeders vers aéroports continuent d'être déployés et progressent de **+13,5 %** (37 → 42). | valeur +17,8 %, profit +26,4 %, feeders air 37 → 42 | §0 quinquagesies |
 | C28 | 🔶 **`capitalCeiling` est un cliquet SANS DÉCROISSANCE** — « le plus haut capital mobilisable jamais observé, jamais décroissant » (`projects.nut:629-635`). Le principe est juste : l'admission au vivier engage une place pour tout un cycle, donc elle s'évalue sur le capital mobilisable au mieux, et non sur la trésorerie de l'instant qui suit un achat (le capital grimpe jusqu'à **3×** plus haut avant la régénération suivante). Mais une compagnie qui **s'appauvrit** garde un plafond figé — mesuré à **295 000 £** — et continue d'admettre des projets qu'elle ne financera jamais, soit exactement le gaspillage de places que `pool_financeable` devait supprimer. ➡️ Un **maximum glissant sur les N derniers cycles** ferait le même travail sans le cliquet | plafond figé à 295 k | §0 octoquadragesies point 1 |
 | C25 | 🔶 **Le générateur routier ne calcule AUCUN `opcodeRatio`** : le mode le plus construit est le seul sans filtre de rendement (`opcodeRatio`, `isLowRatio` et `VIVIER_RATIO_FILTER` n'existent que dans `OpexMakeCandidate`). Décider s'il lui en faut un — ⚠️ en sachant que D3.1 a montré qu'un filtre trop large **coûte** par son effet d'éviction, et que le pax routier est justement la population la plus surestimée | mode le plus bâti, zéro filtre | §0 novemtrigesies, §0 quadragesies |
 | C27 | **Modélisation physique du bassin de captage pax routier (rayon 3 tuiles)** — ✅ Fait (§0 octoquadragesies) : un arrêt de bus OpenTTD ne couvre qu'un rayon de 3 tuiles (7x7 tuiles, max ~20 maisons). Le forfait plat de 86 % de la ville entière est remplacé par $\min(86\,\%, \frac{20}{\text{houses}} \times 100)$. Le volume mensuel prédit passe de 246 à 160 (contre 88 réel), le ratio revenu réel/prédit passe de 0,30 à 0,55 (moyenne 0,71, agrégé 0,710), et la part des lignes sous 0,50 s'effondre de 88,6 % à 34,8 %. | ratio 0,30 → 0,55 (agrégé 0,71) | §0 octoquadragesies |
@@ -7193,3 +7193,64 @@ leviers bien moins coûteux, et déjà chiffrés :
 `_tryBuildAir` construit déjà **13 à 68 lignes par décennie** hors arbitrage. Rien ne prouve que
 l'arbitrage ferait de **meilleurs** choix aériens que la voie dédiée — c'est le présupposé de B5,
 et il n'est toujours pas établi. À vérifier avant d'investir dans les deux leviers ci-dessus.
+
+---
+
+## 0 quinquagesies. 🔑 C27 VALIDÉ : sortir les bonus du numérateur de densité (+17,8 % valeur, +26,4 % profit, feeders vers aéroports +13,5 %) (2026-09-04)
+
+`docs/diag_c27_feeders.json` — **2 bras × 5 graines × 6 ans** (42, 100, 7, 999, 2026), avec `decision_log=1`
+et décompte fin des modes de rabattage (`hub_mode=air` vs `hub_mode=rail`).
+
+### 1. Le mécanisme implémenté (`clean_density_score = 1`)
+
+1. **Sortie des bonus du numérateur de densité** :
+   - `budgetScore = revenueAnnual × 1000 / budgetCapital` et `opcodeScore = revenueAnnual × 1000 / expectedOps`
+     utilisent désormais `revenueAnnual` **brut / non bonifié** pour tous les modes (`projects.nut:150`).
+   - Le fret n'est plus artificiellement gonflé jusqu'à $\times 1,89$ (monopole $\times 1,40$ et chaîne $\times 1,35$)
+     dans la comparaison de densité budgétaire face à l'aérien.
+2. **Conservation du bonus réseau pour le tri** :
+   - Le bonus de $+60\,\%$ des feeders reste actif sur `candidate.roi` et `candidate.ratio` pour `OpexFeederCandidateCompare`
+     et la comparaison d'alternatives modales (`candidates.nut:1278-1280`).
+   - Mais `revenueAnnual` et `profitAnnual` restent fidèles à la prédiction physique, assainissant `line.predRevenue`
+     et `line.predicted` (hygiène de §0 quinquadragesies).
+3. **Réserve utilisateur validée** :
+   - Les feeders vers aéroports (`FEEDER_BUILD` avec `hub_mode=air`) continuent d'être générés et construits.
+
+### 2. Résultats au banc apparié (5 graines × 6 ans)
+
+| Arm | Graine | Valeur cie | Profit annuel | Lignes Air | Feeders tot | **Feeders → Air** | Feeders → Rail | Rail | Road |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| control | 7 | 4 937 349 £ | 1 251 444 £ | 23 | 17 | **15** | 2 | 3 | 2 |
+| control | 42 | 1 412 229 £ | 479 485 £ | 11 | 9 | **5** | 4 | 4 | 1 |
+| control | 100 | 745 508 £ | 273 793 £ | 7 | 9 | **4** | 5 | 4 | 1 |
+| control | 999 | 2 911 447 £ | 1 068 958 £ | 34 | 9 | **8** | 1 | 3 | 0 |
+| control | 2026 | 1 597 977 £ | 512 936 £ | 12 | 8 | **5** | 3 | 4 | 1 |
+| **c27** | 7 | **5 222 418 £** | **1 311 703 £** | 28 | 14 | **13** | 1 | 1 | 2 |
+| **c27** | 42 | **1 514 947 £** | 445 437 £ | 19 | 9 | **6** | 3 | 3 | 2 |
+| **c27** | 100 | **1 882 178 £** | **648 457 £** | 28 | 7 | **6** | 1 | 2 | 1 |
+| **c27** | 999 | **3 723 265 £** | **1 182 003 £** | 39 | 12 | **10** | 2 | 3 | 0 |
+| **c27** | 2026 | 1 541 684 £ | 411 916 £ | 14 | 12 | **7** | 5 | 4 | 2 |
+
+### 3. Synthèse des gains
+
+| Grandeur | Contrôle (historique) | C27 (`clean_density_score=1`) | Écart |
+|---|---:|---:|---:|
+| **Valeur compagnie médiane** | 1 597 977 £ | **1 882 178 £** | 🟢 **+17,8 %** |
+| **Profit annuel médian** | 512 936 £ | **648 457 £** | 🟢 **+26,4 %** |
+| **Lignes aériennes bâties** | 87 | **128** | 🟢 **+47,1 % (+41 lignes)** |
+| **Feeders vers AÉROPORTS** | 37 | **42** | 🟢 **+13,5 % (+5 feeders)** |
+| Feeders vers Rail | 15 | 12 | −20,0 % (−3 feeders) |
+| Total Feeders bâtis | 52 | **54** | 🟢 **+3,8 % (+2 feeders)** |
+| Lignes Rail | 18 | 13 | −27,8 % (−5 lignes) |
+
+### 4. Analyse et conclusion
+
+1. **La réserve utilisateur est pleinement respectée** :
+   - Les feeders vers aéroports non seulement continuent d'être bâtis, mais **progressent de 37 à 42 (+13,5 %)**.
+   - 4 graines sur 5 (42, 100, 999, 2026) voient leur volume de feeders vers aéroports augmenter de +1 à +2.
+   - Mécanisme : en rétablissant l'équité de densité, le sac à dos arbitre davantage de lignes aériennes (+41 lignes, +47 %), ce qui implante davantage d'aéroports dans les villes et ouvre immédiatement davantage de débouchés de rabattage routier pour `_tryBuildFeeders()`.
+2. **Performance financière en forte hausse** :
+   - +17,8 % de valeur médiane et +26,4 % de profit annuel.
+   - Sur la graine 100 (historiquement bridée par des choix rail médiocres), la valeur bondit de 745 k£ à **1,88 M£ (+152 %)** grâce à l'élection précoce de liaisons aériennes rentables.
+3. **Décision** :
+   - **`clean_density_score` est activé par défaut à `1`** (`ai/OpexAI/info.nut`, `main.nut`, `candidates.nut`, `projects.nut`).

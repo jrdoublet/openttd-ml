@@ -270,6 +270,18 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C27 : Sortir les bonus du numerateur de densite (fret monopole/chaine, feeder reseau)
+     * pour retablir l'equite modale face a l'aerien dans budgetScore/opcodeScore (docs/taches.md C27).
+     * Valide au banc (docs/diag_c27_feeders.json): valeur mediane +17.8%, profit median +26.4%,
+     * feeders vers aeroports en hausse (+13.5%, 37 -> 42), lignes air +47.1% (87 -> 128). Defaut 1. */
+    AddSetting({
+      name = "clean_density_score",
+      description = "Sort les bonus du numerateur de densite du portefeuille pour retablir l'equite modale (docs/taches.md C27): 1 = densite brute (adopte), 0 = bonus historiques au numerateur",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
     AddSetting({
       name = "air_max_distance",
       description = "Plafond de distance pour les liaisons aeriennes (0 = illimite, 212 = defaut empirique, docs/taches.md C6)",
