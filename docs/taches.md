@@ -5026,7 +5026,7 @@ Il n'y a pas d'A\* fait maison. Seule la fonction de coût est à nous.
 | C16 | **Plafond physique de flotte aérienne dérivé de la CADENCE et non de la demande** — ✅ Fait (`air_cadence_cap=1` par défaut) : créneau physique d'absorption par type d'aéroport (`OpexAirportStationDateSpan`) pondéré par le nombre de lignes partagées et la rotation aller-retour (`OpexAirCadenceCap`). Validé sur 20 graines × 10 ans (`docs/bench_c16_10y_20seeds.json`) : valeur de compagnie médiane +14,2 % (+366 k £), moyenne +6,5 % (+237 k £), profit annuel moyen +7,2 % (+54 k £). Supprime l'engorgement du ciel et les holding patterns ruineux. | +14,2 % valeur médiane, +7,2 % profit à 10 ans | §0 novemvicies |
 | **C29** | 🔑 **REFONTE DU RABATTEMENT — le bus ordinaire VERROUILLE le feeder** (§0 duoquinquagesies, §0 quattuorquinquagesies, §0 quinquinquagesies). **C29.1 + C29.2 + C29.3 + C29.4 : ✅ Fait et adopté** (`feeder_unlock=1`, `feeder_pricing=1`, `feeder_town_coverage=1` par défaut) : C29.1 restreint les hubs aux modes lourds passagers (Air + Rail Pax) ; C29.2 supprime le verrou `OpexOriginServed` pour ne filtrer que les villes déjà rabattues vers CE hub précis via `OpexTownFeederServed` ; C29.3 implémente le pricing physique selon le rendement par passager du hub ; C29.4 implémente la couverture multi-arrêts urbaine de la métropole du hub (`ceil(maisons / 20)` arrêts séparés d'au moins 6 tuiles rabattant vers l'aéroport). Validé au banc officiel 20 graines × 10 ans (`docs/bench_c29_4_coverage_10y_20seeds.json`) : **valeur médiane +10,12 % (+462 248 £)**, **profit médian +6,39 % (+68 882 £)**, **13 victoires sur 20 graines (65 %)**, score officiel **+38,0 pts en médiane** (712 -> 750). | ⚠️ **CHIFFRES CORRIGÉS PAR LA REVUE, voir C31** : seul C29.1+C29.2 est significatif (valeur 16/20 p = 0,012 ; score 15/20 p = 0,041 — mais profit 11/20 p = 0,82, NON significatif). C29.3 est NUL (médiane de valeur −7,3 %). C29.4 : médianes exactes mais non significatives (11/20 valeur, p = 0,82) | §0 duoquinquagesies, §0 quattuorquinquagesies, §0 quinquinquagesies |
 | **C30** | 🔑 **PROFIL DE CROISSANCE AÉRIENNE D'AAAHogEx — notre formule C14 est la SIENNE, l'écart est dans ce qui l'entoure** (§0 sexquinquagesies). Lecture de source, **aucun banc**. Quatre étages : **C30.1** seuil d'entrée étagé avant le tampon (file > 30 sous 10 appareils, > 100 ensuite, `route.nut:2838`) ; **C30.2** cadence 7-30 jours **couplée** à C30.1 (`main.nut:3711`) — ⚠️ jamais mesurée seule, la cadence seule est déjà connue pour ne rien décider ; **C30.3** forçage sur note de gare < 50 (`route.nut:2912`) ; **C30.4** démarrage à 2 appareils au lieu de 3-6 (`builder_air.nut:430`). ⚠️ **C30.1+C30.2 indissociables** — c'est leur COUPLAGE la trouvaille. ⚠️ **C30.4 après C30.1+2** seulement, sinon la ligne reste sous-dimensionnée un an. Corrobore au passage C26b=0 (`VS_AT_STATION`) et C16 (plafond de cadence de piste) | notes de gare 168 contre 190 ; ~520 évaluations contre 10 sur 10 ans | §0 sexquinquagesies |
-| **C31** | 🔴 **SUITES DE LA REVUE DE CODE C29** (§0 septquinquagesies). **C31.1** repasser `feeder_pricing` (C29.3) à **0** — banc officiel NUL sur les 3 métriques (11/20, 11/20, 9/20, p = 0,82) et **médiane de valeur −7,3 %** ; le 5/5 qui l'a fait adopter venait d'un banc 5 graines × 6 ans non répliqué. **C31.2 ✅ FAIT** remettre `OpexRoadFeederCandidates` sous `budget.begin()/end()` (`main.nut:1447`) — sa consommation d'opcodes est invisible depuis C29.3. **C31.3 ✅ FAIT** index (ville, hub) en un seul parcours : opcodes de generation **-26,8 %** en moyenne et **-46,5 %** au pire cas (mesure appariee graine 42 x 5 ans). ⚠️ Gravite initiale SUREVALUEE : le cout total etait de 0,03 % du budget. **C31.4** corriger les titres qui affirment un profit non significatif (C29.1+2 : 11/20, p = 0,82) et marquer C29.4 « non significatif » (11/20 valeur, p = 0,82). **C31.5** trancher l'effet de bord d'`OpexTownRoadLineCount` sur le plafond des bus ORDINAIRES. ⚠️ C31.1 se mesure seul ; C31.2-C31.3 sont de l'hygiène, à faire APRÈS | C29.3 nul au banc, médiane −7,3 % ; ~36 000 appels API non mesurés | §0 septquinquagesies |
+| **C31** | 🔴 **SUITES DE LA REVUE DE CODE C29** (§0 septquinquagesies). **C31.1 ✅ FAIT le 2026-09-04** — `feeder_pricing` ET `feeder_town_coverage` repassés à **0** (§0 octoquinquagesies, factoriel 2×2 30 graines : pricing −1,72 % valeur t=−0,66 34/60, couverture −0,37 % t=−0,16 33/60, interaction non significative p=0,59). Décision initiale : repasser `feeder_pricing` à **0** — banc officiel NUL sur les 3 métriques (11/20, 11/20, 9/20, p = 0,82) et **médiane de valeur −7,3 %** ; le 5/5 qui l'a fait adopter venait d'un banc 5 graines × 6 ans non répliqué. **C31.2 ✅ FAIT** remettre `OpexRoadFeederCandidates` sous `budget.begin()/end()` (`main.nut:1447`) — sa consommation d'opcodes est invisible depuis C29.3. **C31.3 ✅ FAIT** index (ville, hub) en un seul parcours : opcodes de generation **-26,8 %** en moyenne et **-46,5 %** au pire cas (mesure appariee graine 42 x 5 ans). ⚠️ Gravite initiale SUREVALUEE : le cout total etait de 0,03 % du budget. **C31.4** corriger les titres qui affirment un profit non significatif (C29.1+2 : 11/20, p = 0,82) et marquer C29.4 « non significatif » (11/20 valeur, p = 0,82). **C31.5** trancher l'effet de bord d'`OpexTownRoadLineCount` sur le plafond des bus ORDINAIRES. ⚠️ C31.1 se mesure seul ; C31.2-C31.3 sont de l'hygiène, à faire APRÈS | C29.3 nul au banc, médiane −7,3 % ; ~36 000 appels API non mesurés | §0 septquinquagesies |
 | C13 | **Le sac à dos (knapsack) n'utilise pas le ROI bonifié fret de C8** — `OpexKnapsackComputeBound`/`OpexKnapsackSearch` (`projects.nut:283-286`, `:323`) additionnent encore `p.revenueAnnual` brut comme objectif, pas le ROI bonifié (monopole +40 %, chaîne +35 %). Le bonus C8 pèse donc sur le tri/seuil de sélection en amont, pas sur l'optimum retenu quand plusieurs candidats se disputent le même capital | trouvé en revue croisée agy/codex/grok du 2026-09-02, en vérifiant C8 | §C8, `projects.nut` |
 
 ### D. Mesures à refaire, parce que les anciennes ne valent plus
@@ -7935,3 +7935,82 @@ le calendrier de suspension. Aucun changement d'opcodes n'est gratuit à mesurer
 rattachait une ligne héritée à une ville par PROXIMITÉ (`DistanceManhattan < ORIGIN_SEPARATION`),
 l'index le fait par IDENTITÉ de ville — le même test que celui déjà appliqué aux lignes portant
 `srcTown`, donc l'index est homogène là où l'ancien code mélangeait deux critères.
+
+---
+
+## 0 octoquinquagesies. 🔴 C29.3 ET C29.4 ÉTEINTS : le geste d'AAAHogEx ne paie pas chez nous, et on ne sait pas pourquoi (2026-09-04)
+
+`docs/bench_c31_pricing_factorial_10y_30seeds.json` — **factoriel 2×2, 30 graines × 10 ans,
+120 parties, 0 échec.** Mesuré sur le code d'aujourd'hui, donc après C31.2/C31.3.
+`feeder_unlock` reste à 1 dans les quatre bras : on mesure les deux étages **par-dessus** le seul
+qui soit validé.
+
+### 1. `feeder_pricing` ne fait rien — effet principal sur 60 comparaisons appariées
+
+| métrique | écart | t | graines gagnées | test des signes |
+|---|---:|---:|---:|---:|
+| valeur | **−1,72 %** | −0,66 | 34/60 | p = 0,37 |
+| profit annuel | **−2,13 %** | −0,75 | 30/60 | p = 1,00 |
+| score officiel | +1,18 % | +1,27 | 30/60 | p = 1,00 |
+
+Deux métriques sur trois sont **exactement à pile ou face** (30/60). Avec 60 comparaisons
+appariées, l'erreur-type est deux fois plus fine que celle du banc de 20 qui avait servi à
+l'adopter. **Ce n'est plus « on ne sait pas », c'est « il n'y a rien ».**
+
+### 2. Le factoriel ne sauve pas le mécanisme
+
+C'était l'hypothèse à écarter — un nul cachant deux effets opposés, comme pour C14×C15 :
+
+| | valeur | profit |
+|---|---:|---:|
+| pricing sous couverture = 0 | −3,97 % (15/30) | −3,93 % (14/30) |
+| pricing sous couverture = 1 | +0,60 % (19/30) | −0,29 % (16/30) |
+| **interaction** | +4,56 %, t = 0,98, **p = 0,59** | +3,65 %, t = 0,60, p = 0,86 |
+
+L'interaction va dans le sens attendu mais n'est pas significative. **Aucun effet caché à
+récupérer.**
+
+### 3. Le défaut d'hier portait la plus mauvaise médiane des quatre bras
+
+| bras | valeur médiane | valeur moyenne |
+|---|---:|---:|
+| `p=0 c=0` | **5 266 404** | 5 491 964 |
+| `p=0 c=1` | 5 253 296 | 5 346 840 |
+| `p=1 c=0` | 5 253 088 | 5 273 784 |
+| `p=1 c=1` ← défaut d'hier | **4 726 285** | 5 379 108 |
+
+−10,2 % de médiane sous le bras le plus simple. Ça confirme le −7,3 % relevé à la revue
+(§0 septquinquagesies), sur un échantillon 50 % plus grand et sur le code d'aujourd'hui.
+
+### 4. ✅ Décision : les deux réglages passent à 0
+
+`feeder_pricing = 0` et `feeder_town_coverage = 0` (`info.nut`). **`feeder_unlock` reste à 1** —
+c'est le seul étage significatif (valeur 16/20 p = 0,012, score 15/20 p = 0,041).
+
+⚠️ **Les deux réglages restent EN PLACE et mesurables.** On ne supprime pas le code : on l'éteint.
+C'est une décision de l'utilisateur, et elle est motivée par la question ci-dessous, pas par un
+verdict sur le mécanisme.
+
+### 5. 🔑 LA QUESTION OUVERTE, ET C'EST LA PLUS IMPORTANTE DU DOSSIER
+
+> **Le geste est celui d'AAAHogEx. Chez elle il fonctionne — 245 gares, 4,8 véhicules par gare,
+> 48,3 M£. Chez nous il ne rend rien. Pourquoi ?**
+
+Tant qu'on n'a pas répondu, tout emprunt futur à son architecture est une loterie. Hypothèses
+candidates, **aucune testée**, classées par ce qu'elles coûteraient à trancher :
+
+1. 🔑 **Le hub ne peut pas absorber ce qu'on lui apporte.** C'est l'hypothèse de tête, et elle relie
+   C29 à C30. Nos aéroports grandissent au rythme d'**une évaluation par an**
+   (`air_fleet_cadence_days = 365`) ; les siens à **7 jours** (§0 sexquinquagesies, C30.2). Amener
+   plus de passagers à un aéroport dont la flotte ne réagit qu'à l'année ne fait pas voler
+   davantage : ça allonge la file. Le rabattement ne peut donc payer qu'**après** C30.1+C30.2.
+   ➡️ **Testable directement** : croiser `feeder_town_coverage` avec une cadence courte.
+2. **Ses feeders chargent au complet, pas les nôtres** (`builder_road.nut:736-739`, choix délibéré
+   calibré sur la note de gare). Un bus qui part à moitié vide livre moins par passage.
+3. **Elle double chaque arrêt d'une ligne POSTALE** (`#M1`). Nous ne faisons pas de courrier du
+   tout : à infrastructure égale, elle encaisse deux flux, nous un.
+4. **Effet d'échelle** : à 245 gares, couvrir une ville entièrement a peut-être une valeur que ça
+   n'a pas à 76. Dans ce cas le mécanisme n'est pas faux, il est **prématuré**.
+
+⚠️ **Ne pas reproposer C29.3/C29.4 sans avoir tranché au moins l'hypothèse 1.** Les rallumer tels
+quels a été mesuré deux fois et n'a rien donné.

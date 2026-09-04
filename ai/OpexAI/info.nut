@@ -316,23 +316,36 @@ class OpexAIInfo extends AIInfo {
 
     /* C29.3 : Pricing du feeder calculé sur le revenu hub et le bassin de captage (docs/taches.md C29.3).
      * Prix = revenu de la ligne du hub * part de captage (repli 78 %). Prevention du double compte.
-     * 1 = pricing calcule (defaut), 0 = bonus forfaitaire historique (x1.60). */
+     *
+     * DEFAUT REMIS A 0 le 2026-09-04 (docs/taches.md 0 octoquinquagesies) : factoriel 2x2,
+     * 30 graines x 10 ans, 120 parties, 0 echec. Effet principal sur 60 comparaisons appariees :
+     * valeur -1,72 % (t = -0,66, 34/60), profit -2,13 % (t = -0,75, 30/60), score +1,18 %
+     * (t = +1,27, 30/60). Aucune interaction exploitable avec la couverture (t = 0,98, p = 0,59).
+     * Le bras p=1,c=1 porte la PLUS MAUVAISE mediane de valeur des quatre (4,73 M contre 5,27 M).
+     * Ce n'est pas "on ne sait pas", c'est "il n'y a rien" -- et 0 est le comportement le plus simple.
+     * 1 = pricing calcule, 0 = bonus forfaitaire historique x1.60 (defaut). */
     AddSetting({
       name = "feeder_pricing",
-      description = "Pricing du feeder selon revenu hub et part captee (docs/taches.md C29.3): 1 = calcule (defaut), 0 = bonus x1.60",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
+      description = "Pricing du feeder selon revenu hub et part captee (docs/taches.md C29.3): 1 = calcule, 0 = bonus x1.60 (defaut, banc nul 2026-09-04)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
 
     /* C29.4 : Couverture multi-arrêts urbaine pour rabattement (docs/taches.md C29.4).
      * Jusqu'à ceil(maisons / ROAD_STOP_CATCHMENT_HOUSES) gares distinctes par ville (modèle AAAHogEx).
-     * 1 = active (defaut), 0 = arrêt unique historique par ville. */
+     *
+     * DEFAUT REMIS A 0 le 2026-09-04, meme banc : effet principal valeur -0,37 % (t = -0,16,
+     * 33/60), profit -1,11 % (t = -0,39, 30/60). Nul comme le pricing.
+     * ⚠️ Le mecanisme est pourtant celui d'AAAHogEx, chez qui il fonctionne (245 gares,
+     * 4,8 vehicules par gare). Les deux reglages restent EN PLACE et mesurables : on les eteint
+     * tant qu'on n'a pas compris pourquoi le meme geste ne paie pas chez nous.
+     * 1 = active, 0 = arret unique historique par ville (defaut). */
     AddSetting({
       name = "feeder_town_coverage",
-      description = "Couverture multi-arrets urbaine rabattement (docs/taches.md C29.4): 1 = active (defaut), 0 = arret unique",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
+      description = "Couverture multi-arrets urbaine rabattement (docs/taches.md C29.4): 1 = active, 0 = arret unique (defaut, banc nul 2026-09-04)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
 
