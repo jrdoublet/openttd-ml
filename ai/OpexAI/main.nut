@@ -1444,11 +1444,22 @@ function OpexAI::_tryBuildFeeders(year)
     economicsUnavailable = 0, profitTooLow = 0, accepted = 0,
     feederHubs = 0, feederCandidates = 0,
   };
+  /* C31.2 : la generation de feeders etait comptabilisee tant qu'elle vivait dans
+   * OpexBuildRoadCandidates (budget "cand_road"). C29.3 l'en a sortie -- a juste titre, pour
+   * supprimer la collision d'OD -- mais l'appelait NUE, alors que la fonction avait triple de
+   * taille. Sur un projet ou l'opcode est une ressource, la seule fonction qui grossit ne peut pas
+   * etre celle qu'on cesse de mesurer. */
+  this._budget.begin();
   OpexRoadFeederCandidates(this._catalog, this._lines, candidates, stats);
+  local feederGenOps = this._budget.end("cand_feeders");
   local anchor = AIMap.GetTileIndex(1, 1);
   local yy = year % 100;
   AILog.Info("FD|" + yy + "|" + stats.feederHubs + "|" + stats.feederCandidates + "|" + candidates.len());
   OpexSign(anchor, "FD|" + yy + "|" + stats.feederHubs + "|" + stats.feederCandidates + "|" + candidates.len());
+  if (DECISION_LOG) {
+    OpexDecide("FEEDER_GEN", "hubs=" + stats.feederHubs + " towns_scanned=" + this._catalog.towns.len()
+               + " candidates=" + stats.feederCandidates + " opcodes=" + feederGenOps);
+  }
   if (candidates.len() == 0) {
     if (DECISION_LOG && stats.feederHubs > 0) {
       local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());

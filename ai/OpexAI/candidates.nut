@@ -1131,6 +1131,41 @@ function OpexTownFeederServed(lines, townTile, hubStationId)
   return OpexTownFeederCount(lines, townTile, hubStationId) > 0;
 }
 
+/* C31.3 : index (ville, hub) -> { count, stops }, construit en UN SEUL parcours des lignes.
+ *
+ * OpexTownFeederCount etait rappele pour CHAQUE couple (ville, hub) et reparcourait a chaque fois
+ * toutes les lignes en appelant AITile.GetClosestTown. Sur l'etat mesure -- 57 villes, jusqu'a
+ * 45 hubs (docs/diag_1v1_10y.json.gz), 14 feeders -- cela fait de l'ordre de 36 000 appels API par
+ * execution de la tache, pour un resultat qui ne depend que des lignes. L'index le rend en
+ * O(lignes) : un seul appel GetClosestTown par ligne heritee, aucun pour les lignes posees depuis
+ * C29 puisqu'elles portent `srcTown` (main.nut:1552).
+ *
+ * Difference de semantique assumee : l'ancien code rattachait une ligne heritee a une ville par
+ * proximite (DistanceManhattan < ORIGIN_SEPARATION), l'index le fait par IDENTITE de ville. C'est
+ * le meme test que celui deja applique aux lignes portant `srcTown`, donc l'index est homogene la
+ * ou l'ancien code melangeait deux criteres. */
+function OpexBuildFeederIndex(lines)
+{
+  local index = {};
+  if (lines == null) return index;
+  foreach (line in lines) {
+    if (!("mode" in line) || line.mode != "road") continue;
+    local isFeeder = (("isFeeder" in line) && line.isFeeder) ||
+                     (("purpose" in line) && line.purpose == "feeder");
+    if (!isFeeder) continue;
+    local hubId = ("hubStationId" in line) ? line.hubStationId : -1;
+    if (hubId < 0 && ("stationB" in line)) hubId = AIStation.GetStationID(line.stationB);
+    if (hubId < 0) continue;
+    local townId = ("srcTown" in line && line.srcTown >= 0)
+        ? line.srcTown : AITile.GetClosestTown(line.originA);
+    local key = townId + "|" + hubId;
+    if (!(key in index)) index[key] <- { count = 0, stops = [] };
+    index[key].count++;
+    if (("stationA" in line) && line.stationA != null) index[key].stops.append(line.stationA);
+  }
+  return index;
+}
+
 /* C23 : Modélisation physique du bassin de captage d'un arrêt de bus (rayon 3 tuiles).
  *
  * Un arrêt de bus OpenTTD possède un rayon de couverture de 3 tuiles, soit une empreinte
@@ -1331,6 +1366,9 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats)
         hubMap[st] <- {
           stationId = st,
           tile = end.tile,
+          /* C31.3 : la ville du hub ne depend pas de la ville candidate. La resoudre ici, une fois
+           * par hub, au lieu d'un AITile.GetClosestTown(hub.tile) par couple (ville, hub). */
+          townId = AITile.GetClosestTown(end.tile),
           mode = line.mode,
           totalRevenue = 0,
           totalCarried = 0,
@@ -1367,6 +1405,9 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats)
   stats.feederHubs = hubs.len();
   if (hubs.len() == 0) return;
 
+  /* C31.3 : un seul parcours des lignes pour tout le double balayage ville x hub ci-dessous. */
+  local feederIndex = OpexBuildFeederIndex(lines);
+
   for (local i = 0; i < n; i++) {
     if (!FEEDER_UNLOCK && OpexOriginServed(lines, towns[i].tile, true)) continue;
     local pop = towns[i].pop;
@@ -1374,9 +1415,12 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats)
     local produced = AITown.GetLastMonthProduction(towns[i].id, cargo);
     if (produced <= 0) continue;
 
+    /* C31.3 : towns[i].id EST l'identifiant de la ville (catalog.nut garde AITown.GetLocation),
+     * donc aucun AITile.GetClosestTown n'est necessaire de ce cote non plus. */
+    local townKeyPrefix = towns[i].id + "|";
+
     foreach (hub in hubs) {
-      local hubTownId = AITile.GetClosestTown(hub.tile);
-      local isHubTown = (towns[i].id == hubTownId);
+      local isHubTown = (towns[i].id == hub.townId);
       local distance = AIMap.DistanceManhattan(towns[i].tile, hub.tile);
 
       /* Distance :
@@ -1392,7 +1436,9 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats)
        * - Pour la ville du hub sous FEEDER_TOWN_COVERAGE (C29.4) : jusqu'à ceil(maisons / ROAD_STOP_CATCHMENT_HOUSES)
        *   arrêts de rabattement séparés (plafonné à 4), sur le modèle de couverture intégrale AAAHogEx.
        * - Pour une ville satellite : exactement 1 feeder (slot 0) pour rabattre le satellite vers le hub. */
-      local existingCount = OpexTownFeederCount(lines, towns[i].tile, hub.stationId);
+      local feederEntry = ((townKeyPrefix + hub.stationId) in feederIndex)
+          ? feederIndex[townKeyPrefix + hub.stationId] : null;
+      local existingCount = (feederEntry != null) ? feederEntry.count : 0;
       local maxFeeders = 1;
       if (isHubTown && FEEDER_TOWN_COVERAGE) {
         local houses = ("houses" in towns[i] && towns[i].houses > 0) ? towns[i].houses : (towns[i].pop / 25);
@@ -1433,21 +1479,10 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats)
         if (isHubTown) {
           existingStops.append(hub.tile);
         }
-        if (existingCount > 0) {
-          foreach (line in lines) {
-            if (!("mode" in line) || line.mode != "road") continue;
-            local isFdr = (("isFeeder" in line) && line.isFeeder) ||
-                          (("purpose" in line) && line.purpose == "feeder");
-            if (!isFdr) continue;
-            if (("hubStationId" in line) && line.hubStationId == hub.stationId) {
-              if (("srcTown" in line && line.srcTown == towns[i].id) ||
-                  AIMap.DistanceManhattan(towns[i].tile, line.originA) < ORIGIN_SEPARATION) {
-                if ("stationA" in line && line.stationA != null) {
-                  existingStops.append(line.stationA);
-                }
-              }
-            }
-          }
+        /* C31.3 : les arrets deja poses de ce couple (ville, hub) viennent de l'index, qui les a
+         * collectes dans le meme parcours unique que les compteurs. */
+        if (feederEntry != null) {
+          foreach (stopTile in feederEntry.stops) existingStops.append(stopTile);
         }
         candidate.existingStops <- existingStops;
 
@@ -1480,8 +1515,7 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats)
               if (networkRev > maxRev) networkRev = maxRev;
             } else {
               /* Repli si hubCarried n'est pas renseigne : part du bassin communal */
-              local hubTownId = AITile.GetClosestTown(hub.tile);
-              local hubPop = AITown.IsValidTown(hubTownId) ? AITown.GetPopulation(hubTownId) : 0;
+              local hubPop = AITown.IsValidTown(hub.townId) ? AITown.GetPopulation(hub.townId) : 0;
               local sharePct = maxSharePct;
               if (hubPop > 0) {
                 local hubCapturedPax = (hubPop * TOWN_CATCHMENT_SHARE_PCT) / 100;
