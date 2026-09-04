@@ -6540,3 +6540,58 @@ L'ordre qui en découle :
 2. **Vérifier la nature du 0,54 des feeders** avant d'y toucher : artefact de transfert ou vrai
    biais.
 3. Ne **rien** changer à l'estimateur aérien.
+
+---
+
+## 0 unquadragesies. 🟢 C14 × C15 : LE TAMPON PAIE, LA CADENCE SEULE NON — et l'interaction est nette (2026-09-04)
+
+Banc factoriel `docs/bench_c14_c15_factoriel_10y.json`, **4 bras × 20 graines × 10 ans**,
+80 parties, **0 échec de script**. Lecture appariée dans l'ordre des objectifs.
+
+| bras | `profit_year` | `profit` | `performance_history` | `company_value` | note de gare |
+|---|---:|---:|---:|---:|---:|
+| **C15 seul** (cadence 90 j) | −5,8 % (10/20, p=1,00) | −7,3 % | −7,4 % | −10,6 % | +0,1 % |
+| **C14 seul** (tampon 50) | **+40,7 %** *t*=3,92 (14/20, p=0,115) | +29,8 % | **+17,6 %** *t*=5,08 (17/20, **p=0,003**) | +25,1 % (12/20) | −0,9 % |
+| **C14 + C15** | **+45,1 %** *t*=4,58 (15/20, **p=0,041**) | **+42,1 %** *t*=4,12 (16/20, **p=0,012**) | **+18,1 %** (16/20, **p=0,012**) | +26,4 % (12/20) | −0,8 % |
+
+### 1. 🔑 Le tampon est le principe actif, la cadence est un amplificateur
+
+**La cadence seule ne fait rien** — elle est même légèrement négative, et aucune métrique n'approche
+la significativité. **Le tampon seul paie déjà beaucoup.** Et **les deux ensemble font mieux que le
+tampon seul**, surtout sur les tests des signes : `profit_year` passe de p = 0,115 à **0,041**, et
+`profit` de 0,115 à **0,012**.
+
+Le mécanisme se lit directement : le tampon rend chaque **décision** d'achat meilleure — on n'ajoute
+un appareil que si le cargo au sol le justifie vraiment — tandis que la cadence ne fait que rendre
+la décision **plus fréquente**. Décider plus souvent aussi mal ne sert à rien ; décider mieux et
+plus souvent est le meilleur des quatre.
+
+➡️ **C'est exactement pourquoi le factoriel était obligatoire.** En lot unique, on aurait conclu
+« C14+C15 marche » sans savoir que la cadence seule est inerte — et un futur passage l'aurait
+re-proposée comme une piste neuve.
+
+### 2. C'est le premier changement de la session significatif sur la métrique de tête
+
+L'ordre des objectifs met le profit en premier, et c'est là que le résultat est le plus net :
+**+45,1 % de `profit_year` et +42,1 % de `profit`, avec des tests des signes significatifs**
+(p = 0,041 et 0,012). Aucune autre adoption de la semaine n'a franchi ce seuil.
+
+### 3. ⚠️ Deux réserves, aucune ne renverse le résultat
+
+- **`company_value` monte de 26 % mais sur 12 graines sur 20** (p = 0,503) : le gain de valeur est
+  porté par les moyennes, pas large. Même profil qu'`air_hub_fix`. Le profit, lui, est large.
+- **La note de gare baisse sur 20 graines sur 20** (−0,8 %, p = 0,000). Faible en amplitude, mais
+  parfaitement systématique, et le **mécanisme est logique** : attendre 50 unités au sol avant
+  d'ajouter un appareil laisse du cargo s'accumuler, ce qui dégrade la note. C'est le **prix
+  assumé** du tampon, et l'ordre des objectifs place la note en troisième position, derrière le
+  profit. À surveiller si le tampon devait être augmenté.
+
+### 4. ➡️ Recommandation et suite
+
+**Adopter la combinaison** — `air_fleet_cadence_days = 90`, `air_fleet_buffer = 50` — est la
+décision que la mesure soutient le plus fortement de toute la semaine.
+
+⚠️ **Mais `50` n'est pas calibré pour nous** : c'est la valeur d'AAAHogEx (`bottom = min(50,
+capacity)`, `route.nut:2904`), reprise telle quelle. Le banc dit que le **mécanisme** paie, pas que
+**50** soit l'optimum. ➡️ Un balayage du tampon (25 / 50 / 100 / capacité pleine) est la suite
+naturelle, et la note de gare en donne le garde-fou : elle se dégrade quand le tampon grandit.
