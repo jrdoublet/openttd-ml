@@ -6750,3 +6750,75 @@ Deux issues, qui mènent ailleurs :
 - **refus d'autre chose** ⇒ nous sommes bridés par notre propre ordonnanceur en abondance
   relative, et la question **constructeur contre sélecteur** (§0 trequadragesies point 4) se pose
   frontalement.
+
+---
+
+## 0 quinquadragesies. ✅ C24 TRANCHÉ : le 0,54 des feeders est un ARTEFACT — rien à corriger (2026-09-04)
+
+Deux facteurs connus, tous deux délibérés, expliquent le rapport à eux seuls.
+
+### 1. Nous gonflons la prédiction de 60 %, exprès
+
+`candidates.nut:1250-1258` : le candidat feeder est fabriqué par `OpexMakeRoadCandidate`
+**ordinaire** — donc une prédiction de **livraison** sur la distance ville → hub — puis
+multiplié :
+
+```squirrel
+/* Bonus ROI pour la valeur réseau apportée au Hub (+60%) */
+candidate.roi           = (candidate.roi * 160) / 100;
+candidate.ratio         = (candidate.ratio * 160) / 100;
+candidate.profitAnnual  = (candidate.profitAnnual * 160) / 100;
+candidate.revenueAnnual = (candidate.revenueAnnual * 160) / 100;
+```
+
+`line.predRevenue` reçoit ce `revenueAnnual` **bonifié**. Le diagnostic comparait donc une
+prédiction volontairement majorée de 60 % à une recette réelle.
+
+### 2. Le jeu ne paie que 75 % d'un transfert
+
+Vérifié dans la source 15.3 (`src/economy.cpp:1235-1247`) :
+
+```cpp
+Money profit = -cp->GetFeederShare(count) + GetTransportedGoodsIncome(
+        count, cp->GetDistance(current_tile), cp->GetPeriodsInTransit(), cargo);
+profit = profit * _settings_game.economy.feeder_payment_share / 100;
+```
+
+et `economy.feeder_payment_share` vaut **75** par défaut
+(`src/table/settings/economy_settings.ini:204-207`). Un feeder touche donc **75 %** du revenu de
+son tronçon.
+
+🔑 **Et ce crédit est virtuel côté trésorerie** : `profit_this_year += visual_profit +
+visual_transfer`, alors que `SubtractMoneyFromCompany` n'utilise que `route_profit` — l'argent
+n'entre qu'à la livraison finale. Le crédit apparaît bien dans `AIVehicle.GetProfitLastYear`, donc
+**notre mesure le capte** ; mais il ne finance rien tant que le hub n'a pas livré.
+
+### 3. L'arithmétique
+
+| | valeur |
+|---|---:|
+| rapport attendu par les seuls mécanismes connus : 0,75 / 1,60 | **0,469** |
+| mesuré, médiane | **0,54** |
+| mesuré, agrégé | **0,50** |
+
+**Le mécanisme explique tout le rapport**, à 7-15 % près. Et une fois les deux facteurs retirés,
+les feeders encaissent **1,15 fois** ce que le modèle sous-jacent prédit : l'estimateur routier
+est **légèrement conservateur** sur eux, pas optimiste.
+
+### ➡️ Verdict
+
+**C24 est clos : rien à corriger dans l'estimateur.** Les **238 années-lignes** de feeders sortent
+du dossier « l'estimateur ment » — elles n'auraient jamais dû y entrer.
+
+➡️ **Et ça durcit C23** : le pax routier interurbain à **0,31** ne bénéficie d'**aucune** de ces
+deux explications — pas de bonus ×1,60 (le bloc est réservé aux feeders), pas de part de transfert
+(il livre). Sa surestimation d'un facteur 3 est **réelle**, et c'est désormais le seul cas routier
+qui reste à instruire.
+
+### 🔶 Hygiène qui en découle (petite, sûre)
+
+Le bonus de 60 % est un **bonus de CLASSEMENT** — il exprime la valeur réseau apportée au hub —
+mais il est écrit dans `revenueAnnual` et `profitAnnual`, donc stocké sur la ligne et servi à tout
+diagnostic ultérieur. ➡️ Le garder pour le tri, mais **stocker la prédiction NON bonifiée** dans
+`line.predRevenue` / `line.predicted`. Aucun changement de comportement, et le prochain lecteur ne
+retombera pas dans le piège où celui-ci est tombé.
