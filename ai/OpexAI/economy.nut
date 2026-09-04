@@ -44,8 +44,8 @@ const MAX_RAIL_TRAINS = 2;
 /* Duree d'amortissement de l'infrastructure, en annees. Convention deja utilisee par les
  * campagnes (profit_ligne), gardee pour rester comparable. */
 const INFRA_LIFE_YEARS = 30;
-/* D3.2 : Taux d'amortissement de l'infrastructure (100 = defaut historique, 0 = reel OpenTTD). */
-INFRA_AMORT_PCT <- 100;
+/* D3.2 : Taux d'amortissement de l'infrastructure (100 = defaut historique, 0 = reel OpenTTD, adopte). */
+INFRA_AMORT_PCT <- 0;
 
 function OpexCeilDiv(a, b)
 {

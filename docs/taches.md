@@ -5024,6 +5024,7 @@ Il n'y a pas d'A\* fait maison. Seule la fonction de coût est à nous.
 | C18 | 🔶 **Financement / prospection d'industrie** (`AIIndustryType.BuildIndustry` / `ProspectIndustry`, soumis à `economy.fund_buildings`) — créer un **débouché** là où il n'y en a pas, pour une source déjà desservie mais sous-exploitée faute d'accepteur proche. Plus spéculatif que C17 : à ne prendre qu'après lui | AAAHogEx : **0 occurrence**, comme pour les subventions | `docs/mecanique_jeu.md` §14 et §10 |
 | C17 | **Sonde subventions, en lecture seule** — ✅ Fait (A7.3 / `event_subsidy_probe` : écoute `AIEventSubsidyOffer`, `Expired`, `Awarded` ; mesure offres, adéquation réseau/vivier, préemption et multiplicateur via `AIGameSettings`) | AAAHogEx : **0 occurrence** d'`AISubsidy` sur 37 531 lignes ; AdmiralAI s'en sert | `docs/mecanique_jeu.md` §14, `docs/cible.md` §8 |
 | C16 | **Plafond physique de flotte aérienne dérivé de la CADENCE et non de la demande** — ✅ Fait (`air_cadence_cap=1` par défaut) : créneau physique d'absorption par type d'aéroport (`OpexAirportStationDateSpan`) pondéré par le nombre de lignes partagées et la rotation aller-retour (`OpexAirCadenceCap`). Validé sur 20 graines × 10 ans (`docs/bench_c16_10y_20seeds.json`) : valeur de compagnie médiane +14,2 % (+366 k £), moyenne +6,5 % (+237 k £), profit annuel moyen +7,2 % (+54 k £). Supprime l'engorgement du ciel et les holding patterns ruineux. | +14,2 % valeur médiane, +7,2 % profit à 10 ans | §0 novemvicies |
+| **C29** | 🔑 **REFONTE DU RABATTEMENT — le bus ordinaire VERROUILLE le feeder** (§0 duoquinquagesies). Quatre étages : **C29.1** hub = tout aéroport + toute gare à ligne pax (`candidates.nut:1241-1254`) ; **C29.2** un feeder n'est plus bloqué par une ligne routière, n'exclure que les villes déjà rabattues vers CE hub (`:1259`) ; **C29.3** prix d'un feeder = revenu aérien du hub × part captée, repli 78 % — remplace le bonus forfaitaire ×1,60 (`:1271-1285`) ; **C29.4** couverture de toute la ville, `ceil(maisons/20)` navettes séparées à la AAAHogEx. ⚠️ 1+2 indissociables, 3 est ce qui les fait ÉLIRE. ⚠️ À mesurer avec `air_fleet_buffer=0` : le couplage feeder→tampon est vertueux | bus 357 £/véh/an contre avion 11 383 £ ; route = 16 % du capital pour 3,5 % du profit | §0 duoquinquagesies |
 | C13 | **Le sac à dos (knapsack) n'utilise pas le ROI bonifié fret de C8** — `OpexKnapsackComputeBound`/`OpexKnapsackSearch` (`projects.nut:283-286`, `:323`) additionnent encore `p.revenueAnnual` brut comme objectif, pas le ROI bonifié (monopole +40 %, chaîne +35 %). Le bonus C8 pèse donc sur le tri/seuil de sélection en amont, pas sur l'optimum retenu quand plusieurs candidats se disputent le même capital | trouvé en revue croisée agy/codex/grok du 2026-09-02, en vérifiant C8 | §C8, `projects.nut` |
 
 ### D. Mesures à refaire, parce que les anciennes ne valent plus
@@ -5033,7 +5034,7 @@ Il n'y a pas d'A\* fait maison. Seule la fonction de coût est à nous.
 | D1 | **Remesurer `tree_planting`** | ✅ Fait (`docs/bench_tree_planting_recalibrated_3y.json`, 20 graines × 3 ans) : même après correction du bug d'enum, `tree_planting=1` dégrade `company_value` (−12,1 %, t = 1,77, 12/20 graines) et `profit_year` (−13,4 %, t = 1,88, 13/20 graines). La plantation préventive reste néfaste. **Défaut confirmé à 0**. |
 | D4 | ⛔ **RÈGLE, pas une tâche : ne JAMAIS recalibrer l'estimateur globalement.** Il est faux **par motif et dans les deux sens** — pax routier 0,31, feeder 0,54, air 1,16, rail fret 1,82. Un coefficient global déplacerait la médiane sans rien corriger et **aggraverait le rail**. Toute correction doit être adressée à un couple (mode, motif) | | §0 quadragesies |
 | D5 | 🔶 **Le rail fret est sous-estimé d'un facteur ~2** (revenu 1,82, profit 2,10) — mais **n = 14 années pleines**. Direction cohérente avec le ×4,4 mesuré sur le pax rail de `pax_near`, sur une population différente : **convergent, pas confirmatif**. À rejouer sur 20 ans avant d'en tirer quoi que ce soit, le rail ne bâtissant que 0 à 2 lignes par décennie | n = 14 | §0 quadragesies point 6, §0 septentrigesies |
-| D3 | 🔑 **Les trois filtres du vivier sont-ils JUSTES ?** `distance_long` 33 %, `ratio_too_low` 31 %, `profit_non_positive` 28 % — **92 % des 194 781 rejets**. D3.1 (`ratio_too_low`) : **Rejeté, défaut 1 confirmé** (−12,8 % de valeur, 3/20 victoires). D3.2 (`infra_amort_pct=0`, 20 graines × 3 ans, `docs/bench_d3_2_infra_amort_3y_20seeds.json`) : **+8,8 % de valeur moyenne, +17,8 % de profit annuel, 11/20 victoires**, $t = 1{,}09$. Résultat encourageant en moyenne mais avec variance sur 3 ans (médiane −9,8 %). **Défaut maintenu à 100** en attente de test long (10 ans). | 64 000 paires sur 72 000 meurent là | §0 sextrigesies |
+| D3 | 🔑 **Les trois filtres du vivier sont-ils JUSTES ?** `distance_long` 33 %, `ratio_too_low` 31 %, `profit_non_positive` 28 % — **92 % des 194 781 rejets**. D3.1 (`ratio_too_low`) : **Rejeté, défaut 1 confirmé** (−12,8 % de valeur, 3/20 victoires). D3.2 (`infra_amort_pct=0`) : ✅ **Fait, défaut adopté à 0** (banc officiel 20 graines × 10 ans, `docs/bench_d3_2_infra_amort_10y_20seeds.json`). Suppression de l'amortissement d'infrastructure fictif (OpenTTD n'amortit pas l'infrastructure dans les comptes) : **valeur moyenne +10,0 %** (t = +2,09, p < 0,05, 13/20 victoires), **profit annuel moyen +10,5 %** (t = +1,76, 14/20 victoires), valeur médiane +16,9 %. Réduit les rejets abusifs de lignes viables sous `profit_non_positive`. | 64 000 paires sur 72 000 meurent là | §0 sextrigesies, §0 triquinquagesies |
 | D2 | Volume de données pour B3 | 15 tentatives rail seulement ; et **aucun levier de distance côté route** (toutes les lignes font 20-25 tuiles) |
 
 ### E. Hygiène et outillage, inchangés
@@ -7325,4 +7326,168 @@ Un historique glissant des budgets de capital mobilisables `capitalBudgetHistory
    - Sur la graine 7, la valeur progresse légèrement (+2,3 %).
 3. **Validation et Décision** :
    - **`capital_ceiling_cycles` est activé avec la valeur par défaut `24`** (`ai/OpexAI/info.nut`, `main.nut`, `projects.nut`).
+
+
+---
+
+## 0 duoquinquagesies. 🔑 REFONTE DU RABATTEMENT : le bus ordinaire VERROUILLE le feeder, et un feeder est mal payé d'un ordre de grandeur (2026-09-04)
+
+Diagnostic ouvert par l'utilisateur sur deux captures d'écran (Fort Martown, puis Trennville avec
+les ordres d'AAAHogEx affichés). **Aucun banc lancé** : ce qui suit est de la lecture de source et
+de la lecture des chiffres du banc 1v1 de `docs/diag_1v1_10y.json`. Rien n'est implémenté.
+
+### 1. 🔴 Une ligne de bus ordinaire interdit DÉFINITIVEMENT le feeder de sa ville
+
+`candidates.nut:1259`, en tête du générateur de feeders :
+
+```squirrel
+if (OpexOriginServed(lines, towns[i].tile, true)) continue;
+```
+
+`OpexOriginServed` (`candidates.nut:400-408`) rend `true` dès qu'une ligne **rail ou route** a une
+origine à moins de `ORIGIN_SEPARATION` de la ville. Une ligne de bus interurbaine est une ligne
+route dont l'origine est la tuile de la ville.
+
+➡️ **Le premier bus ordinaire posé dans une ville en exclut le feeder pour toujours.** Ce n'est
+**pas** un problème d'ordonnancement : la tâche `feeders` tourne déjà avant `projects`
+(`main.nut:626-630`). Le feeder n'est pas en retard, il est **refusé**.
+
+### 2. 🔴 Le générateur de bus ordinaire est AVEUGLE aux aéroports
+
+`OpexRoadPaxCandidates` (`candidates.nut:1119-1141`) ne teste que la paire (`OpexRoadPairServed`)
+et un plafond par ville, `maxLines = 4 + pop/300` (`:1120`). Rien n'y regarde si la ville héberge
+un hub. Et `OpexOriginServed:403` **saute les lignes aériennes** : pour `mode == "air"`, le test
+`line.mode != "rail" && (!includeRoad || line.mode != "road")` est vrai, donc `continue`.
+
+➡️ Un aéroport ne rend une ville ni plus ni moins attirante pour un bus ordinaire. Fort Martown
+(1 219 hab.) autorise `4 + 1219/300 = 8` lignes de bus ordinaires, chacune plantant son arrêt à
+côté de l'aéroport, **aucune en transfert**.
+
+**La logique est exactement inversée** : un hub devrait ATTIRER un feeder et REPOUSSER le bus
+ordinaire. Aujourd'hui il est invisible au bus, et le bus repousse le feeder.
+
+### 3. 🔴 C27 a corrigé la PRÉDICTION, pas le GESTE
+
+`OpexTownBusCatchment` (`candidates.nut:1092-1102`) plafonne la capture à
+`min(86 %, 2000/maisons)`. Fort Martown ≈ 49 maisons → **~40 % captés**. C27 a rendu l'estimateur
+honnête : il sait qu'on laisse 60 % de la ville au sol. Le mécanisme, lui, n'a pas bougé — un
+arrêt par ligne, `ROAD_MULTISTOP = false` par défaut (`main.nut:368`).
+
+> **On a appris à mesurer le trou sans jamais le boucher.** C'est la remarque de l'utilisateur, et
+> elle vaut règle générale : un item qui corrige un estimateur doit dire explicitement s'il appelle
+> un changement de comportement, sinon il rend l'IA plus lucide et aussi passive.
+
+### 4. Ce que fait AAAHogEx, lu sur la capture de Trennville
+
+Ordres relevés (`Road T:0009Tr<-0162Tr[Passagers 42]`, `Road T:0019Br<-0070Br[Passagers 8]`) :
+
+```
+1: Aller sans arrêt à 0162Trennville #1 (Charger complètement pour un seul type)
+2: Entretien sans arrêt au Dépôt routier de Trennville
+3: Aller sans arrêt à 0009Trennville (Transférer et laisser vide)
+```
+
+- **N gares SÉPARÉES par ville** (`0162Trennville #1`, `0163Trennville #2`, `0150Trennville #M1`),
+  pas une gare unique en plusieurs morceaux ⇒ **aucune limite d'étalement de gare** à gérer.
+- **Une navette dédiée par arrêt**, en ordres partagés.
+- **Passagers ET courrier séparés** (`#M1`) — nous ne faisons pas du tout le courrier.
+- Le bandeau « Transfert : £18 » confirme que **la recette du bus est négligeable** : la valeur
+  d'un feeder n'est pas dans son billet.
+
+⚠️ **Une divergence à NE PAS recopier à l'aveugle** : AAAHogEx charge **au complet** à l'arrêt de
+ville. Nous ne le faisons jamais pour le pax, délibérément (`builder_road.nut:736-739`) — la note
+de gare dépend à 51 % du délai depuis le dernier ramassage, donc un bus qui attend d'être plein
+détruit ce que la ligne a de bon. Calibré et documenté : ça mérite son propre banc.
+
+### 5. L'enjeu chiffré (banc 1v1, `docs/diag_1v1_10y.json`, 5 graines × 10 ans)
+
+| | profit annuel par véhicule |
+|---|---:|
+| notre bus (route) | **357 £** |
+| notre avion | **11 383 £** |
+| avion AAAHogEx | 39 801 £ |
+
+La route mobilise **16 % de notre capital roulant pour 3,5 % de notre profit**. Un passager routé
+vers l'aéroport au lieu d'un interurbain change d'ordre de grandeur. Et en OpenTTD deux gares
+distinctes dans la même ville **se partagent** sa production : l'arrêt de bus posé à côté de
+l'aéroport ne rate pas seulement une occasion, il **dégrade** l'aéroport.
+
+### 6. ➡️ La refonte proposée — quatre étages, benchables séparément
+
+Décisions de conception arrêtées avec l'utilisateur le 2026-09-04 :
+
+| # | changement | où |
+|---|---|---|
+| **C29.1** | **Hub = TOUT aéroport + TOUTE gare portant déjà une ligne passagers.** Aujourd'hui la liste ne retient que les extrémités de lignes `rail`/`air` | `candidates.nut:1241-1254` |
+| **C29.2** | **Un feeder n'est plus bloqué par une ligne routière** : n'exclure que les villes déjà rabattues **vers ce hub-là**, au lieu de toute ville touchée par une route | `candidates.nut:1259` |
+| **C29.3** | **Prix d'un feeder = revenu de la ligne aérienne du hub × part de population captée**, repli `(1 − part captée par l'aérien)` = **78 %**, puisque `TOWN_CATCHMENT_SHARE_PCT = 22` (`candidates.nut:497`) est précisément la part qu'un aéroport capte seul. Remplace le bonus forfaitaire `×1,60` | `candidates.nut:1271-1285` |
+| **C29.4** | **Couverture de toute la ville** : `ceil(maisons / ROAD_STOP_CATCHMENT_HOUSES)` navettes séparées, une gare chacune, sur le modèle AAAHogEx | `candidates.nut` + `builder_road.nut` |
+
+**C29.1 et C29.2 sont indissociables** : le 1 seul n'ouvre rien (les villes restent verrouillées
+par leurs bus), le 2 seul ne voit pas assez de hubs. **C29.3 est ce qui fera ÉLIRE les feeders** :
+les débloquer sans les repricer ne suffira pas, puisqu'ils concourent au classement contre des
+lignes évaluées, elles, à leur vrai revenu.
+
+⚠️ **Trois réserves à porter au dossier** :
+
+1. **Chaînes de rabattement** : admettre les gares routières pax comme hubs (C29.1) crée des
+   feeder → bus → hub. Borner à **un saut** — un feeder ne rabat jamais vers une gare qui est
+   elle-même l'origine d'un feeder.
+2. **Double compte** (C29.3) : plusieurs feeders sur le même hub multiplieraient chacun le **même**
+   revenu aérien. Il faut soit répartir, soit ne créditer que le revenu **marginal**.
+3. **Couplage à la flotte** (C29.3) : le revenu aérien est plafonné par le nombre d'avions. C'est
+   ici **vertueux** — plus de fret au sol à l'aéroport ⇒ la règle de tampon C14 adoptée le
+   2026-09-04 (`maxWait >= planeCap`, `main.nut:2496-2503`) achète des avions. Les deux mécanismes
+   se composent, et C29 est donc à mesurer **avec** `air_fleet_buffer = 0`, son nouveau défaut.
+
+### 7. Ce que ça ouvre par ailleurs
+
+- **Le courrier n'existe pas chez nous.** AAAHogEx double chaque feeder d'une ligne postale
+  (`#M1`). Jamais évalué de notre côté — à ouvrir comme item distinct, pas dans C29.
+- **L'ordre d'entretien au dépôt** au milieu des ordres d'AAAHogEx : nous n'en posons pas. Effet
+  inconnu, coût nul à tester.
+
+---
+
+## 0 triquinquagesies. 🔑 D3.2 VALIDÉ : suppression de l'amortissement d'infrastructure (+10,0 % valeur, t = +2,09, +10,5 % profit annuel à 10 ans) (2026-09-04)
+
+`docs/bench_d3_2_infra_amort_10y_20seeds.json` — banc officiel 20 graines × 10 ans apparié, comparant `OpexAI` (contrôle historique, `infra_amort_pct=100`) et `OpexAI[infra_amort_pct=0]`.
+
+### 1. Le mécanisme physique dans OpenTTD
+
+Dans `economy.nut:44-48` et `:54`, `profitAnnual` déduisait historiquement un amortissement annuel de l'infrastructure sur 30 ans :
+$$\text{infraCost} \times \frac{\text{INFRA\_AMORT\_PCT}}{100 \times 30}$$
+
+Or, dans le moteur d'OpenTTD :
+- Les comptes d'exploitation de la compagnie ne débitent **aucun amortissement** sur les voies, tunnels, ponts ou gares construits.
+- Seule la **maintenance courante de l'infrastructure** (coût périodique de possession des tuiles) est débitée mensuellement (`AITile.GetBuildCost` / maintenance).
+- Le capital investi dans l'infrastructure est déjà payé comptant à la construction et contraint par la trésorerie disponible (`capital`, `totalCapital` et le sac à dos budgétaire).
+
+En déduisant artificiellement 1/30e du capital d'infrastructure par an de `profitAnnual`, l'estimateur rendait négatif le bénéfice attendu de nombreuses lignes viables (en particulier les lignes ferroviaires ou les lignes avec aménagements de voirie et gares). Résultat mesuré au crible de décision (§0 sextrigesies) : **`profit_non_positive` représentait 28 % des rejets du vivier (54 000 paires éliminées)**.
+
+### 2. Pourquoi le banc 3 ans était insuffisant et ce que tranche le banc 10 ans
+
+À 3 ans (`docs/bench_d3_2_infra_amort_3y_20seeds.json`), le signal était encourageant en moyenne (+8,8 % valeur, +17,8 % profit an, 11/20 victoires) mais très bruité (médiane à −9,8 %, $t = 1{,}09$). Une ligne dont l'infrastructure est posée met 1 à 2 ans à monter en charge et à générer ses cash-flows réguliers. À 3 ans, la dépense d'infrastructure pèse encore lourdement sur la valeur instantanée.
+
+À 10 ans, le retour sur investissement a le temps de se matérialiser sur un cycle complet. Le banc de validation 20 graines × 10 ans lève toute ambiguïté :
+
+| Métrique | Contrôle (`=100`) | Traitement (`=0`) | Delta apparié | t-stat | Victoires / Défaites / Nuls |
+|---|---:|---:|---:|---:|:---:|
+| **company_value** | 4 631 728 £ | 5 092 738 £ | **+461 010 £ (+10,0 %)** | **t = +2,09 (p < 0,05)** | **13 / 6 / 1** |
+| **profit_year** | 967 398 £ | 1 069 056 £ | **+101 658 £ (+10,5 %)** | **t = +1,76** | **14 / 6 / 0** |
+| **profit (trimestre)** | 253 420 £ | 277 921 £ | **+24 501 £ (+9,7 %)** | **t = +1,50** | **14 / 6 / 0** |
+| **performance_history** | 693,9 | 705,4 | **+11,5 (+1,7 %)** | t = +0,91 | 11 / 9 / 0 |
+| **median_station_rating** | 164,3 | 167,3 | **+3,0 (+1,8 %)** | t = +0,66 | 5 / 9 / 6 |
+| **n_vehicles** | 209,6 | 208,0 | −1,6 (−0,8 %) | t = −0,18 | 7 / 13 / 0 |
+| **n_stations** | 72,8 | 71,1 | −1,6 (−2,3 %) | t = −0,60 | 11 / 7 / 2 |
+
+- **Médiane de valeur d'entreprise** : de 4 486 602 £ à 5 246 190 £ (**+16,9 %**).
+- **Médiane de profit annuel** : de 989 890 £ à 1 110 791 £ (**+12,2 %**).
+- **Gains spectaculaires sur graines difficiles** : graine 8675309 (+91,2 % valeur, +143,7 % profit), graine 17 (+65,7 % valeur, +42,3 % profit), graine 2026 (+56,3 % valeur, +18,0 % profit), graine 73 (+42,3 % valeur, +61,1 % profit), graine 65537 (+43,4 % valeur, +13,3 % profit).
+
+### 3. Décision et adoption
+
+- `INFRA_AMORT_PCT <- 0` devient la valeur par défaut dans `ai/OpexAI/economy.nut`.
+- Le réglage `infra_amort_pct` dans `ai/OpexAI/info.nut` a désormais pour valeur par défaut `0` sur tous les niveaux de difficulté (`easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0`).
+- L'infrastructure n'étant plus pénalisée par un amortissement comptable imaginaire, les candidats viables ne sont plus éliminés par `profit_non_positive`, tout en respectant strictement l'enveloppe de trésorerie disponible via le sac à dos.
 

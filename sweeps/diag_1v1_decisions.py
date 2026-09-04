@@ -170,12 +170,17 @@ def keep(row):
     },)
 
 
-def build_experiments(seeds, years, decision_log, only=None):
+def build_experiments(seeds, years, decision_log, only=None, clean_arm=False):
     arms = {
         "OpexAI": local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI",
                                (("air_fleet_probe", 1), ("decision_log", 1 if decision_log else 0))),
         "AAAHogEx": local_folder(str(ROOT / "ai" / AAAHOGEX_DIR), "AAAHogEx", ()),
     }
+    if clean_arm:
+        # Bras de VALEUR : aucun reglage d'instrumentation, donc le seul dont le chiffre soit
+        # comparable aux bancs. Les parties etant ISOLEES, AAAHogEx est indifferent a nos reglages :
+        # son journal reste exploitable pendant que ce bras donne un 1v1 honnete.
+        arms["OpexAI_clean"] = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", ())
     if only:
         arms = {name: ai for name, ai in arms.items() if name == only}
     return [
@@ -195,11 +200,14 @@ def main():
                         help="ne faire tourner qu'une seule IA (le vivier ne concerne que la notre)")
     parser.add_argument("--no-decision-log", action="store_true",
                         help="laisse decision_log a 0 (mesure la richesse du seul journal adverse)")
+    parser.add_argument("--clean-arm", action="store_true",
+                        help="ajoute un bras OpexAI sans aucune instrumentation, seul comparable aux bancs")
     args = parser.parse_args()
 
     rows = list(run_experiments(
         openttd_version=OPENTTD_VERSION, opengfx_version=OPENGFX_VERSION,
-        experiments=build_experiments(args.seeds, args.years, not args.no_decision_log, args.only),
+        experiments=build_experiments(args.seeds, args.years, not args.no_decision_log, args.only,
+                                      args.clean_arm),
         max_workers=args.workers, result_processor=keep,
         ai_libraries=(
             bananas_ai_library("51554648", "Queue.FibonacciHeap"),

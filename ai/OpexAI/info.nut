@@ -228,13 +228,17 @@ class OpexAIInfo extends AIInfo {
     });
 
     /* D3.2 : Assainissement de profit_non_positive via le taux d'amortissement de l'infrastructure
-     * (100 = defaut historique 100% comptabilise, 0 = aucun amortissement fictif de voie/gare). */
+     * (docs/taches.md D3.2). Dans OpenTTD, l'infrastructure ne s'amortit pas dans les comptes ;
+     * deduire 1/30e du capital infra par an de profitAnnual rejette des candidats rentables sous
+     * profit_non_positive. Valide au banc 20 graines x 10 ans (docs/bench_d3_2_infra_amort_10y_20seeds.json) :
+     * valeur moyenne +10,0 % (t = +2,09, p < 0,05), profit annuel moyen +10,5 % (14 victoires sur 20 graines).
+     * Defaut adopte a 0 (zero amortissement fictif d'infrastructure). */
     AddSetting({
       name = "infra_amort_pct",
-      description = "Pourcentage d'amortissement annuel de l'infrastructure (voies/gares) dans profitAnnual (docs/taches.md D3.2): 100 = defaut historique, 0 = reel OpenTTD (zero amortissement infrastructure)",
+      description = "Pourcentage d'amortissement annuel de l'infrastructure (voies/gares) dans profitAnnual (docs/taches.md D3.2): 0 = reel OpenTTD (adopte), 100 = defaut historique",
       min_value = 0, max_value = 100,
-      easy_value = 100, medium_value = 100, hard_value = 100,
-      custom_value = 100,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
       step_size = 10,
       flags = 0
     });
