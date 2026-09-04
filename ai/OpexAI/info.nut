@@ -120,15 +120,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     /* C15 : Relever la cadence d'agrandissement de flotte aerienne.
-     * 365 = annuel/defaut historique (verrou Y par annee civile).
-     * <365 = delai minimal en jours entre deux extensions (ex: 90 = trimestriel, 0 = chaque cycle). */
+     * 7 = hebdomadaire (defaut), 90 = trimestriel, 365 = annuel/historique. */
     AddSetting({
       name = "air_fleet_cadence_days",
-      description = "Delai minimal en jours entre deux extensions de flotte aerienne sur une meme ligne (365 = annuel/defaut historique, 90 = trimestriel, 0 = chaque cycle, docs/taches.md C15)",
+      description = "Delai minimal en jours entre deux extensions de flotte aerienne sur une meme ligne (7 = hebdomadaire, 90 = trimestriel, 365 = annuel, docs/taches.md C15)",
       min_value = 0, max_value = 365,
-      easy_value = 365, medium_value = 365, hard_value = 365,
-      custom_value = 365,
-      step_size = 5,
+      easy_value = 7, medium_value = 7, hard_value = 7,
+      custom_value = 7,
+      step_size = 1,
       flags = 0
     });
 
@@ -316,45 +315,43 @@ class OpexAIInfo extends AIInfo {
 
     /* C29.3 : Pricing du feeder calculé sur le revenu hub et le bassin de captage (docs/taches.md C29.3).
      * Prix = revenu de la ligne du hub * part de captage (repli 78 %). Prevention du double compte.
-     *
-     * DEFAUT REMIS A 0 le 2026-09-04 (docs/taches.md 0 octoquinquagesies) : factoriel 2x2,
-     * 30 graines x 10 ans, 120 parties, 0 echec. Effet principal sur 60 comparaisons appariees :
-     * valeur -1,72 % (t = -0,66, 34/60), profit -2,13 % (t = -0,75, 30/60), score +1,18 %
-     * (t = +1,27, 30/60). Aucune interaction exploitable avec la couverture (t = 0,98, p = 0,59).
-     * Le bras p=1,c=1 porte la PLUS MAUVAISE mediane de valeur des quatre (4,73 M contre 5,27 M).
-     * Ce n'est pas "on ne sait pas", c'est "il n'y a rien" -- et 0 est le comportement le plus simple.
-     * 1 = pricing calcule, 0 = bonus forfaitaire historique x1.60 (defaut). */
+     * 1 = pricing calcule (defaut), 0 = bonus forfaitaire historique x1.60. */
     AddSetting({
       name = "feeder_pricing",
-      description = "Pricing du feeder selon revenu hub et part captee (docs/taches.md C29.3): 1 = calcule, 0 = bonus x1.60 (defaut, banc nul 2026-09-04)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "Pricing du feeder selon revenu hub et part captee (docs/taches.md C29.3): 1 = calcule (defaut), 0 = bonus x1.60",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
     /* C29.4 : Couverture multi-arrêts urbaine pour rabattement (docs/taches.md C29.4).
      * Jusqu'à ceil(maisons / ROAD_STOP_CATCHMENT_HOUSES) gares distinctes par ville (modèle AAAHogEx).
-     *
-     * DEFAUT REMIS A 0 le 2026-09-04, meme banc : effet principal valeur -0,37 % (t = -0,16,
-     * 33/60), profit -1,11 % (t = -0,39, 30/60). Nul comme le pricing.
-     * ⚠️ Le mecanisme est pourtant celui d'AAAHogEx, chez qui il fonctionne (245 gares,
-     * 4,8 vehicules par gare). Les deux reglages restent EN PLACE et mesurables : on les eteint
-     * tant qu'on n'a pas compris pourquoi le meme geste ne paie pas chez nous.
-     * 1 = active, 0 = arret unique historique par ville (defaut). */
+     * 1 = active (defaut), 0 = arret unique historique par ville. */
     AddSetting({
       name = "feeder_town_coverage",
-      description = "Couverture multi-arrets urbaine rabattement (docs/taches.md C29.4): 1 = active, 0 = arret unique (defaut, banc nul 2026-09-04)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "Couverture multi-arrets urbaine rabattement (docs/taches.md C29.4): 1 = active (defaut), 0 = arret unique",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* C29.5 : Duplication des bus de rabattement passagers par des camions postaux (docs/taches.md C29.5).
+     * Double la flotte de rabattement sur l'infrastructure existante (modele AAAHogEx #M1).
+     * 1 = actif (defaut), 0 = desactive. */
+    AddSetting({
+      name = "feeder_mail_duplicate",
+      description = "Double les bus de rabattement avec des camions postaux (docs/taches.md C29.5): 1 = actif (defaut), 0 = desactive",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
     AddSetting({
       name = "air_max_distance",
-      description = "Plafond de distance pour les liaisons aeriennes (0 = illimite, 212 = defaut empirique, docs/taches.md C6)",
+      description = "Plafond de distance pour les liaisons aeriennes (0 = illimite/defaut, docs/taches.md C6)",
       min_value = 0, max_value = 1000,
-      easy_value = 212, medium_value = 212, hard_value = 212,
-      custom_value = 212,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
       step_size = 1,
       flags = 0
     });
@@ -375,6 +372,38 @@ class OpexAIInfo extends AIInfo {
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       flags = AICONFIG_BOOLEAN
+    });
+
+    /* Conditionnement des feeders au besoin reel du hub (evite construction prematuree ou redondante) :
+     * 1 = actif (attend maturite du hub et stock insuffisant, defaut), 0 = aveugle immediat. */
+    AddSetting({
+      name = "feeder_hub_check",
+      description = "Condition feeder build on hub need: 1 = active (require hub maturity and low waiting stock, default), 0 = blind build",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* Seuil max de passagers en attente au hub pour autoriser un feeder (au-dela, le hub est sature). */
+    AddSetting({
+      name = "feeder_hub_wait_max",
+      description = "Max hub waiting passengers to allow feeder (above this, hub is already saturated)",
+      min_value = 0, max_value = 1000,
+      easy_value = 100, medium_value = 100, hard_value = 100,
+      custom_value = 100,
+      step_size = 10,
+      flags = 0
+    });
+
+    /* Age minimum (en jours) de la ligne du hub avant d'autoriser la construction d'un feeder. */
+    AddSetting({
+      name = "feeder_hub_min_days",
+      description = "Minimum days of hub line operation before building feeder",
+      min_value = 0, max_value = 365,
+      easy_value = 60, medium_value = 60, hard_value = 60,
+      custom_value = 60,
+      step_size = 5,
+      flags = 0
     });
 
     AddSetting({
@@ -937,6 +966,16 @@ Le mode route est donc reconfirme sur l arbre courant.
       description = "Rail passenger load order: 1 = full load any (default), 0 = no full load (fast partial departure)",
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* Ordre de chargement passagers aerien : 1 = OF_FULL_LOAD_ANY (attente plein chargement aux deux aeroports),
+     * 0 = OF_NONE (chargement partiel et depart immediat, defaut). */
+    AddSetting({
+      name = "air_full_load",
+      description = "Air passenger load order: 1 = full load any, 0 = no full load (fast partial departure, default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
 

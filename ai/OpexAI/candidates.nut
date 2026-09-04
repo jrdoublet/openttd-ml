@@ -1081,6 +1081,7 @@ function OpexTownRoadLineCount(lines, townTile)
   local townId = AITile.GetClosestTown(townTile);
   foreach (line in lines) {
     if (!("mode" in line) || line.mode != "road") continue;
+    if (("cargo" in line) && line.cargo >= 0 && !AICargo.HasCargoClass(line.cargo, AICargo.CC_PASSENGERS)) continue;
     local isFeeder = (("isFeeder" in line) && line.isFeeder) ||
                      (("purpose" in line) && line.purpose == "feeder");
     if (isFeeder) {
@@ -1106,6 +1107,7 @@ function OpexTownFeederCount(lines, townTile, hubStationId)
   local townId = AITile.GetClosestTown(townTile);
   foreach (line in lines) {
     if (!("mode" in line) || line.mode != "road") continue;
+    if (("cargo" in line) && line.cargo >= 0 && !AICargo.HasCargoClass(line.cargo, AICargo.CC_PASSENGERS)) continue;
     local isFeeder = (("isFeeder" in line) && line.isFeeder) ||
                      (("purpose" in line) && line.purpose == "feeder");
     if (!isFeeder) continue;
@@ -1150,6 +1152,7 @@ function OpexBuildFeederIndex(lines)
   if (lines == null) return index;
   foreach (line in lines) {
     if (!("mode" in line) || line.mode != "road") continue;
+    if (("cargo" in line) && line.cargo >= 0 && !AICargo.HasCargoClass(line.cargo, AICargo.CC_PASSENGERS)) continue;
     local isFeeder = (("isFeeder" in line) && line.isFeeder) ||
                      (("purpose" in line) && line.purpose == "feeder");
     if (!isFeeder) continue;

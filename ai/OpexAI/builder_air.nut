@@ -17,8 +17,10 @@ AIR_MAX_SITE_PROBES <- 1500;
 AIR_MAX_PLANES_PER_ROUTE <- 16;
 AIR_CAPITAL_MARGIN <- 50000;
 AIR_PLAN_DIAG_SEQ <- 0;
-/* Plafond empirique de distance aérienne (docs/taches.md C6) : 0 succès mesurés au-delà de 212 tuiles */
-AIR_MAX_DISTANCE <- 212;
+/* Plafond de distance aerienne (0 = illimite, docs/taches.md C6 supprime) */
+AIR_MAX_DISTANCE <- 0;
+/* Ordre de chargement passagers aerien (true = OF_FULL_LOAD_ANY, false = OF_NONE) */
+AIR_FULL_LOAD <- false;
 
 /* Distance euclidienne exacte à vol d'oiseau pour la cinématique et le paiement aérien :
  * sqrt(dx^2 + dy^2) approximé par 0.414 * min(dx, dy) + max(dx, dy) */
@@ -1074,9 +1076,10 @@ function OpexBuildAirRoute(catalog, budget, plan)
     return result;
   }
 
-  local okOrderA = AIOrder.AppendOrder(plane, airportA, AIOrder.OF_NONE);
+  local airFlags = AIR_FULL_LOAD ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE;
+  local okOrderA = AIOrder.AppendOrder(plane, airportA, airFlags);
   local errorA = okOrderA ? 0 : AIError.GetLastError();
-  local okOrderB = AIOrder.AppendOrder(plane, airportB, AIOrder.OF_NONE);
+  local okOrderB = AIOrder.AppendOrder(plane, airportB, airFlags);
   local errorB = okOrderB ? 0 : AIError.GetLastError();
   local ordersOk = okOrderA && okOrderB && AIOrder.GetOrderCount(plane) == 2;
   if (!ordersOk) {
@@ -1118,6 +1121,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
   result.stationB = airportB;
   result.vehicle = plane;
   result.vehicles = built;
+  result.capacity <- AIVehicle.GetCapacity(plane, catalog.paxCargo);
   result.reusedA <- reuseA;
   return result;
 }

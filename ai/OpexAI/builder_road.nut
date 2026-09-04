@@ -555,6 +555,99 @@ function OpexRoadTryJoinStop(stop, stationId, vehType, noTile, added)
   return null;
 }
 
+/* Trouve ou construit un arret de camion (ROADVEHTYPE_TRUCK) connecte a la meme facade
+ * ou adjacent, joint au meme stationId. Permet de doubler une ligne de bus avec des
+ * camions postaux a cout d'infrastructure quasi-nul (docs/taches.md C29.5). */
+function OpexRoadFindOrBuildTruckStop(catalog, stopTile, frontTile, stationId)
+{
+  if (!AIStation.IsValidStation(stationId)) return null;
+  AIRoad.SetCurrentRoadType(catalog.roadType);
+  local vehType = AIRoad.ROADVEHTYPE_TRUCK;
+  local dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+  /* 1. Verifier si un arret camion joint a stationId existe deja relie a frontTile */
+  if (AIStation.HasStationType(stationId, AIStation.STATION_TRUCK_STOP)) {
+    local truckStops = AITileList_StationType(stationId, AIStation.STATION_TRUCK_STOP);
+    foreach (d in dirs) {
+      local t = AIMap.GetTileIndex(AIMap.GetTileX(frontTile) + d[0], AIMap.GetTileY(frontTile) + d[1]);
+      if (truckStops.HasItem(t) &&
+          AIRoad.IsRoadStationTile(t) &&
+          AIRoad.AreRoadTilesConnected(t, frontTile)) {
+        return { tile = t, front = frontTile, isNew = false, roadBuilt = false };
+      }
+    }
+  }
+
+  /* 2. Tester les voisins directs de frontTile (terrain plat, constructible) */
+  foreach (d in dirs) {
+    local t = AIMap.GetTileIndex(AIMap.GetTileX(frontTile) + d[0], AIMap.GetTileY(frontTile) + d[1]);
+    if (t == stopTile || AIRoad.IsRoadStationTile(t)) continue;
+    if (!OpexRoadIsFlat(t) || !AITile.IsBuildable(t)) continue;
+    local ok = false;
+    {
+      local test = AITestMode();
+      ok = (AIRoad.AreRoadTilesConnected(frontTile, t) || AIRoad.BuildRoad(frontTile, t)) &&
+           AIRoad.BuildRoadStation(t, frontTile, vehType, stationId);
+    }
+    if (!ok) continue;
+
+    local roadBuilt = false;
+    if (!AIRoad.AreRoadTilesConnected(frontTile, t)) {
+      roadBuilt = AIRoad.BuildRoad(frontTile, t);
+    }
+    if (AIRoad.BuildRoadStation(t, frontTile, vehType, stationId)) {
+      if (AIRoad.IsRoadStationTile(t) &&
+          AIStation.GetStationID(t) == stationId &&
+          AIRoad.AreRoadTilesConnected(t, frontTile)) {
+        return { tile = t, front = frontTile, isNew = true, roadBuilt = roadBuilt };
+      }
+      if (AIRoad.IsRoadStationTile(t)) AIRoad.RemoveRoadStation(t);
+    }
+    if (roadBuilt) AIRoad.RemoveRoad(frontTile, t);
+  }
+
+  /* 3. Voisins perpendiculaires a l'arret via OpexRoadTryJoinStop */
+  local join = OpexRoadTryJoinStop({ tile = stopTile, front = frontTile }, stationId, vehType, {}, []);
+  if (join != null) {
+    return { tile = join.tile, front = join.front, isNew = true, roadBuilt = true };
+  }
+
+  /* 4. Voisins de la tuile routiere suivante connectee a frontTile */
+  foreach (d in dirs) {
+    local f2 = AIMap.GetTileIndex(AIMap.GetTileX(frontTile) + d[0], AIMap.GetTileY(frontTile) + d[1]);
+    if (f2 == stopTile || !AIRoad.IsRoadTile(f2) || !AIRoad.AreRoadTilesConnected(frontTile, f2)) continue;
+    if (!OpexRoadIsFlat(f2)) continue;
+    foreach (d2 in dirs) {
+      local t2 = AIMap.GetTileIndex(AIMap.GetTileX(f2) + d2[0], AIMap.GetTileY(f2) + d2[1]);
+      if (t2 == frontTile || t2 == stopTile || t2 == f2 || AIRoad.IsRoadStationTile(t2)) continue;
+      if (!OpexRoadIsFlat(t2) || !AITile.IsBuildable(t2)) continue;
+      local ok = false;
+      {
+        local test = AITestMode();
+        ok = (AIRoad.AreRoadTilesConnected(f2, t2) || AIRoad.BuildRoad(f2, t2)) &&
+             AIRoad.BuildRoadStation(t2, f2, vehType, stationId);
+      }
+      if (!ok) continue;
+
+      local roadBuilt = false;
+      if (!AIRoad.AreRoadTilesConnected(f2, t2)) {
+        roadBuilt = AIRoad.BuildRoad(f2, t2);
+      }
+      if (AIRoad.BuildRoadStation(t2, f2, vehType, stationId)) {
+        if (AIRoad.IsRoadStationTile(t2) &&
+            AIStation.GetStationID(t2) == stationId &&
+            AIRoad.AreRoadTilesConnected(t2, f2)) {
+          return { tile = t2, front = f2, isNew = true, roadBuilt = roadBuilt };
+        }
+        if (AIRoad.IsRoadStationTile(t2)) AIRoad.RemoveRoadStation(t2);
+      }
+      if (roadBuilt) AIRoad.RemoveRoad(f2, t2);
+    }
+  }
+
+  return null;
+}
+
 function OpexRoadBuildTrace(trace, added)
 {
   foreach (edge in trace) {
@@ -883,8 +976,10 @@ function OpexRoadRefleet(catalog, line, have, target)
     built.append(first);
     local sourceFlags = (("kind" in line) && line.kind == "freight")
                         ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE;
+    local destFlags = (("isFeeder" in line) && line.isFeeder)
+                      ? AIOrder.OF_TRANSFER : AIOrder.OF_NONE;
     if (!AIOrder.AppendOrder(first, line.stationA, sourceFlags) ||
-        !AIOrder.AppendOrder(first, line.stationB, AIOrder.OF_NONE) ||
+        !AIOrder.AppendOrder(first, line.stationB, destFlags) ||
         AIOrder.GetOrderCount(first) != 2) {
       AIVehicle.SellVehicle(first);
       result.reason = "ORDER"; return result;

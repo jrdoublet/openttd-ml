@@ -49,6 +49,12 @@ FEEDER_UNLOCK <- true;
 FEEDER_PRICING <- true;
 /* C29.4 : Couverture multi-arrêts urbaine pour rabattement (modèle AAAHogEx) */
 FEEDER_TOWN_COVERAGE <- true;
+/* C29.5 : Duplication des bus de rabattement passagers par des camions postaux (modèle AAAHogEx #M1) */
+FEEDER_MAIL_DUPLICATE <- true;
+/* Conditionnement des feeders au besoin reel du hub (maturite et stock insuffisant) */
+FEEDER_HUB_CHECK <- true;
+FEEDER_HUB_WAIT_MAX <- 100;
+FEEDER_HUB_MIN_DAYS <- 60;
 
 /* Panneaux de diagnostic : lu UNE fois depuis le reglage dans Start(), pas a chaque appel (57
  * panneaux par an, GetSetting a chaque fois serait du gaspillage d'opcodes pour une valeur qui ne
@@ -165,12 +171,13 @@ AIR_HUB_FIX <- true;
 /* Plafonds de demande separes pour garder un banc factoriel : croissance et plan. */
 AIR_DEMAND_CAP <- false;
 AIR_DEMAND_PLAN <- false;
-/* C15 : cadence minimale d'agrandissement de flotte en jours (365 = defaut annuel historique). */
-AIR_FLEET_CADENCE_DAYS <- 365;
+/* C15 : cadence minimale d'agrandissement de flotte en jours (7 = hebdomadaire, 365 = defaut annuel historique). */
+AIR_FLEET_CADENCE_DAYS <- 7;
 /* C14 : tampon de cargo au sol pour achat proportionnel (-1 = inactif/defaut). */
 AIR_FLEET_BUFFER <- -1;
 TREE_PLANTING <- false;
 PAX_FULL_LOAD <- true;
+AIR_FULL_LOAD <- false;
 COMPLEX_CARGO <- true;
 AIR_STARTER <- true;
 /* Bras experimental : reutiliser un aeroport rentable pour une nouvelle destination. */
@@ -647,6 +654,7 @@ class OpexAI extends AIController {
   function _tooClose(candidate);
   function _tryBuildAir(year);
   function _tryBuildFeeders(year);
+  function _tryBuildMailFeeder(candidate, paxResult, year);
   function _tryBuildProjects(year);
   function _tryTownGrowth(year);
   function _runNextTask();
@@ -744,6 +752,7 @@ function OpexLineVehicleIds(line, stationId)
     local roadVehicles = AIVehicleList_Station(stationId);
     for (local v = roadVehicles.Begin(); !roadVehicles.IsEnd(); v = roadVehicles.Next()) {
       if (filter && !OpexVehicleServesStation(v, other)) continue;
+      if (("cargo" in line) && line.cargo >= 0 && AIVehicle.GetCapacity(v, line.cargo) <= 0) continue;
       roadIds.append(v);
     }
     return roadIds;
@@ -1478,6 +1487,7 @@ function OpexAI::_tryBuildFeeders(year)
    * candidats meurent. Ajoute pour diagnostic, pas pour changer le comportement. */
   local rejectStats = {
     served = 0, townCount = 0, abandoned = 0, cash = 0, planNull = 0, buildFail = 0,
+    hubNew = 0, hubSaturated = 0,
   };
 
   foreach (candidate in candidates) {
@@ -1504,6 +1514,50 @@ function OpexAI::_tryBuildFeeders(year)
     local slot = ("feederSlot" in candidate) ? candidate.feederSlot : 0;
     local yearsElapsed = (this._startYear >= 0) ? (year - this._startYear) : 0;
     if (slot >= 1 && yearsElapsed < 2) { rejectStats.served++; continue; }
+
+    if (FEEDER_HUB_CHECK && ("hubStationId" in candidate) && AIStation.IsValidStation(candidate.hubStationId)) {
+      /* Trouver la ligne reliant ce hub, son age et sa capacite */
+      local hubAgeDays = -1;
+      local hubCapacity = 25;
+      foreach (line in this._lines) {
+        if (("stationA" in line) && ("stationB" in line)) {
+          local stA = OpexLineStationId(line, "A");
+          local stB = OpexLineStationId(line, "B");
+          if (stA == candidate.hubStationId || stB == candidate.hubStationId) {
+            if ("buildDate" in line) {
+              local age = AIDate.GetCurrentDate() - line.buildDate;
+              if (hubAgeDays < 0 || age < hubAgeDays) hubAgeDays = age;
+            }
+            if (("capacity" in line) && line.capacity > hubCapacity) {
+              hubCapacity = line.capacity;
+            }
+          }
+        }
+      }
+
+      local hubPaxRating = AIStation.GetCargoRating(candidate.hubStationId, this._catalog.paxCargo);
+      local hubPaxWait = AIStation.GetCargoWaiting(candidate.hubStationId, this._catalog.paxCargo);
+
+      /* 1. Hub immature : ligne trop jeune (< FEEDER_HUB_MIN_DAYS) ou aucune rotation achevee (rating < 0) */
+      if ((hubAgeDays >= 0 && hubAgeDays < FEEDER_HUB_MIN_DAYS) || hubPaxRating < 0) {
+        if (DECISION_LOG) {
+          OpexDecide("FEEDER_REJECT", "reason=hub_immature hub=" + candidate.hubStationId + " age=" + hubAgeDays + " min_days=" + FEEDER_HUB_MIN_DAYS + " rating=" + hubPaxRating);
+        }
+        rejectStats.hubNew++;
+        continue;
+      }
+
+      /* 2. Hub deja pourvu de passagers : le stock en attente depasse la capacite ou le seuil.
+       * Inutile d'investir le cash de demarrage dans un feeder quand le tarmac a deja assez de clients. */
+      local maxWait = (FEEDER_HUB_WAIT_MAX > 0) ? FEEDER_HUB_WAIT_MAX : (hubCapacity * 2);
+      if (hubPaxWait >= maxWait) {
+        if (DECISION_LOG) {
+          OpexDecide("FEEDER_REJECT", "reason=hub_saturated hub=" + candidate.hubStationId + " wait=" + hubPaxWait + " max=" + maxWait);
+        }
+        rejectStats.hubSaturated++;
+        continue;
+      }
+    }
 
     local need = candidate.capital + OpexCashReserve() + ROAD_CAPITAL_MARGIN;
     local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
@@ -1551,6 +1605,10 @@ function OpexAI::_tryBuildFeeders(year)
       iterations = candidate.iterations, trains = candidate.trains, distance = candidate.distance,
       year = year, mode = "road",
       vehicles = result.vehicles,
+      depot = result.depot,
+      capacity = result.capacity,
+      nStopsA = result.nStopsA,
+      nStopsB = result.nStopsB,
       isLowRatio = ("isLowRatio" in candidate) ? candidate.isLowRatio : false,
       opcodeRatio = ("opcodeRatio" in candidate) ? candidate.opcodeRatio : -1,
       lineId = this._nextLineId,
@@ -1566,24 +1624,158 @@ function OpexAI::_tryBuildFeeders(year)
     if (DECISION_LOG) {
       local hubMode = ("hubMode" in candidate) ? candidate.hubMode : "unknown";
       local slot = ("feederSlot" in candidate) ? candidate.feederSlot : 0;
-      OpexDecide("FEEDER_BUILD", "line=" + this._nextLineId + " hub=" + candidate.hubStationId + " hub_mode=" + hubMode + " src=" + candidate.src + " dst=" + candidate.dst + " slot=" + slot + " dist=" + candidate.distance + " profit=" + candidate.profitAnnual + " cost=" + candidate.capital);
+      local hubPaxWait = AIStation.IsValidStation(candidate.hubStationId) ? AIStation.GetCargoWaiting(candidate.hubStationId, this._catalog.paxCargo) : -1;
+      local hubPaxRating = AIStation.IsValidStation(candidate.hubStationId) ? AIStation.GetCargoRating(candidate.hubStationId, this._catalog.paxCargo) : -1;
+      local hubMailWait = (this._catalog.mailCargo >= 0 && AIStation.IsValidStation(candidate.hubStationId)) ? AIStation.GetCargoWaiting(candidate.hubStationId, this._catalog.mailCargo) : -1;
+      local hubMailRating = (this._catalog.mailCargo >= 0 && AIStation.IsValidStation(candidate.hubStationId)) ? AIStation.GetCargoRating(candidate.hubStationId, this._catalog.mailCargo) : -1;
+      OpexDecide("FEEDER_BUILD", "line=" + this._nextLineId + " hub=" + candidate.hubStationId + " hub_mode=" + hubMode + " src=" + candidate.src + " dst=" + candidate.dst + " slot=" + slot + " dist=" + candidate.distance + " profit=" + candidate.profitAnnual + " cost=" + candidate.capital + " hub_pax_wait=" + hubPaxWait + " hub_pax_rating=" + hubPaxRating + " hub_mail_wait=" + hubMailWait + " hub_mail_rating=" + hubMailRating);
     }
     AILog.Info("FE|" + yy + "|" + this._nextLineId + "|" + candidate.distance + "|" + candidate.profitAnnual);
     OpexSign(anchor, "FE|" + yy + "|" + this._nextLineId + "|" + candidate.distance + "|" + candidate.profitAnnual);
     this._nextLineId++;
+
+    /* C29.5 : Duplication automatique des bus de rabattement par des camions postaux (modele AAAHogEx #M1) */
+    if (FEEDER_MAIL_DUPLICATE) {
+      this._tryBuildMailFeeder(candidate, result, year);
+    }
+
     return true;
   }
   if (DECISION_LOG) {
     local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
     if (_lastFeederRefuseMonth != ym) {
       _lastFeederRefuseMonth = ym;
-      OpexDecide("FEEDER_REFUSE", "reason=all_rejected hubs=" + stats.feederHubs + " candidates=" + stats.feederCandidates + " served=" + rejectStats.served + " town_limit=" + rejectStats.townCount + " abandoned=" + rejectStats.abandoned + " cash=" + rejectStats.cash + " no_plan=" + rejectStats.planNull + " build_fail=" + rejectStats.buildFail);
+      OpexDecide("FEEDER_REFUSE", "reason=all_rejected hubs=" + stats.feederHubs + " candidates=" + stats.feederCandidates + " served=" + rejectStats.served + " town_limit=" + rejectStats.townCount + " abandoned=" + rejectStats.abandoned + " cash=" + rejectStats.cash + " hub_immature=" + rejectStats.hubNew + " hub_saturated=" + rejectStats.hubSaturated + " no_plan=" + rejectStats.planNull + " build_fail=" + rejectStats.buildFail);
     }
   }
   OpexSign(anchor, "FZ|" + yy + "|" + rejectStats.served + "|" + rejectStats.townCount + "|"
                          + rejectStats.abandoned + "|" + rejectStats.cash + "|"
                          + rejectStats.planNull + "|" + rejectStats.buildFail);
   return false;
+}
+
+function OpexAI::_tryBuildMailFeeder(candidate, paxResult, year)
+{
+  if (!FEEDER_MAIL_DUPLICATE) return false;
+  if (this._catalog.mailCargo < 0) return false;
+  if (!(this._catalog.mailCargo in this._catalog.roadEngineByCargo)) return false;
+  if (paxResult == null || paxResult.stopA == null || paxResult.stopB == null || paxResult.depot == null) return false;
+
+  local mailCargo = this._catalog.mailCargo;
+  local mailEngine = this._catalog.roadEngineByCargo[mailCargo];
+  local costEstimate = mailEngine.price + 2000;
+  local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  if (money < costEstimate + OpexCashReserve()) {
+    if (REBORROW) money = OpexTryReborrow(costEstimate + OpexCashReserve(), money);
+    if (money < costEstimate + OpexCashReserve()) return false;
+  }
+
+  local stopA = paxResult.stopA;
+  local stopB = paxResult.stopB;
+  local frontA = AIRoad.GetRoadStationFrontTile(stopA);
+  local frontB = AIRoad.GetRoadStationFrontTile(stopB);
+  local stationA = AIStation.GetStationID(stopA);
+  local stationB = AIStation.GetStationID(stopB);
+  if (!AIStation.IsValidStation(stationA) || !AIStation.IsValidStation(stationB)) return false;
+
+  // 1. Trouver ou construire l'arret camion cote ville (A)
+  local mailStopA = OpexRoadFindOrBuildTruckStop(this._catalog, stopA, frontA, stationA);
+  if (mailStopA == null) return false;
+
+  // 2. Trouver ou construire l'arret camion cote hub (B)
+  local mailStopB = OpexRoadFindOrBuildTruckStop(this._catalog, stopB, frontB, stationB);
+  if (mailStopB == null) {
+    if (mailStopA.isNew && AIRoad.IsRoadStationTile(mailStopA.tile)) {
+      AIRoad.RemoveRoadStation(mailStopA.tile);
+      if (mailStopA.roadBuilt) AIRoad.RemoveRoad(mailStopA.front, mailStopA.tile);
+    }
+    return false;
+  }
+
+  // 3. Verifier la capacite refit
+  local capacity = OpexRoadRefitCapacity(paxResult.depot, mailEngine, mailCargo);
+  if (capacity <= 0) {
+    if (mailStopA.isNew && AIRoad.IsRoadStationTile(mailStopA.tile)) {
+      AIRoad.RemoveRoadStation(mailStopA.tile);
+      if (mailStopA.roadBuilt) AIRoad.RemoveRoad(mailStopA.front, mailStopA.tile);
+    }
+    if (mailStopB.isNew && AIRoad.IsRoadStationTile(mailStopB.tile)) {
+      AIRoad.RemoveRoadStation(mailStopB.tile);
+      if (mailStopB.roadBuilt) AIRoad.RemoveRoad(mailStopB.front, mailStopB.tile);
+    }
+    return false;
+  }
+
+  // 4. Construire le camion postal dans le depot partage
+  local truck = AIVehicle.BuildVehicleWithRefit(paxResult.depot, mailEngine.id, mailCargo);
+  if (!AIVehicle.IsValidVehicle(truck)) {
+    if (mailStopA.isNew && AIRoad.IsRoadStationTile(mailStopA.tile)) {
+      AIRoad.RemoveRoadStation(mailStopA.tile);
+      if (mailStopA.roadBuilt) AIRoad.RemoveRoad(mailStopA.front, mailStopA.tile);
+    }
+    if (mailStopB.isNew && AIRoad.IsRoadStationTile(mailStopB.tile)) {
+      AIRoad.RemoveRoadStation(mailStopB.tile);
+      if (mailStopB.roadBuilt) AIRoad.RemoveRoad(mailStopB.front, mailStopB.tile);
+    }
+    return false;
+  }
+
+  // 5. Ordres : ramassage ville (OF_NONE) -> dechargement transfert hub (OF_TRANSFER)
+  local orderA = AIOrder.AppendOrder(truck, mailStopA.tile, AIOrder.OF_NONE);
+  local orderB = AIOrder.AppendOrder(truck, mailStopB.tile, AIOrder.OF_TRANSFER);
+  if (!orderA || !orderB || AIOrder.GetOrderCount(truck) != 2) {
+    AIVehicle.SellVehicle(truck);
+    if (mailStopA.isNew && AIRoad.IsRoadStationTile(mailStopA.tile)) {
+      AIRoad.RemoveRoadStation(mailStopA.tile);
+      if (mailStopA.roadBuilt) AIRoad.RemoveRoad(mailStopA.front, mailStopA.tile);
+    }
+    if (mailStopB.isNew && AIRoad.IsRoadStationTile(mailStopB.tile)) {
+      AIRoad.RemoveRoadStation(mailStopB.tile);
+      if (mailStopB.roadBuilt) AIRoad.RemoveRoad(mailStopB.front, mailStopB.tile);
+    }
+    return false;
+  }
+
+  // 6. Demarrer le camion postal
+  AIVehicle.StartStopVehicle(truck);
+
+  // 7. Enregistrer la ligne postale
+  local yy = year % 100;
+  local anchor = AIMap.GetTileIndex(1, 1);
+  this._lines.append({
+    stationA = mailStopA.tile, stationB = mailStopB.tile,
+    originA = candidate.src, originB = candidate.dst,
+    cargo = mailCargo,
+    predicted = candidate.profitAnnual / 4,
+    predRevenue = candidate.revenueAnnual / 4, predRunning = mailEngine.runningCost * 2,
+    predAmort = 0, predCarried = candidate.carried / 4,
+    predTrains = 1, predOneWayDays = candidate.oneWayDays,
+    iterations = 1, trains = 1, distance = candidate.distance,
+    year = year, mode = "road",
+    vehicles = [truck],
+    depot = paxResult.depot,
+    capacity = capacity,
+    nStopsA = 1, nStopsB = 1,
+    isLowRatio = false,
+    opcodeRatio = -1,
+    lineId = this._nextLineId,
+    isFeeder = true,
+    purpose = "feeder_mail",
+    hubStationId = candidate.hubStationId,
+    srcTown = candidate.srcTown,
+    feederSlot = ("feederSlot" in candidate) ? candidate.feederSlot : 0,
+  });
+  if (DECISION_LOG) {
+    local hubMailWait = (this._catalog.mailCargo >= 0 && AIStation.IsValidStation(candidate.hubStationId)) ? AIStation.GetCargoWaiting(candidate.hubStationId, this._catalog.mailCargo) : -1;
+    local hubMailRating = (this._catalog.mailCargo >= 0 && AIStation.IsValidStation(candidate.hubStationId)) ? AIStation.GetCargoRating(candidate.hubStationId, this._catalog.mailCargo) : -1;
+    OpexDecide("FEEDER_MAIL_BUILD", "line=" + this._nextLineId + " hub=" + candidate.hubStationId
+               + " src=" + candidate.src + " dst=" + candidate.dst + " truck=" + truck
+               + " hub_mail_wait=" + hubMailWait + " hub_mail_rating=" + hubMailRating);
+  }
+  AILog.Info("FM|" + yy + "|" + this._nextLineId + "|" + candidate.distance);
+  OpexSign(anchor, "FM|" + yy + "|" + this._nextLineId + "|" + candidate.distance);
+  this._nextLineId++;
+  return true;
 }
 
 function OpexAI::_tryBuildProjects(year)
@@ -4330,6 +4522,7 @@ function OpexAI::Start()
   DYNAMIC_PATHFINDER_CAP = AIController.GetSetting("dynamic_pathfinder_cap") != 0;
   TREE_PLANTING = AIController.GetSetting("tree_planting") != 0;
   PAX_FULL_LOAD = AIController.GetSetting("pax_full_load") != 0;
+  AIR_FULL_LOAD = AIController.GetSetting("air_full_load") != 0;
   COMPLEX_CARGO = AIController.GetSetting("complex_cargo") != 0;
   AIR_STARTER = AIController.GetSetting("air_starter") != 0;
   AIR_HUB = AIController.GetSetting("air_hub") != 0;
@@ -4361,6 +4554,12 @@ function OpexAI::Start()
   FEEDER_UNLOCK = AIController.GetSetting("feeder_unlock") != 0;
   FEEDER_PRICING = AIController.GetSetting("feeder_pricing") != 0;
   FEEDER_TOWN_COVERAGE = AIController.GetSetting("feeder_town_coverage") != 0;
+  FEEDER_MAIL_DUPLICATE = AIController.GetSetting("feeder_mail_duplicate") != 0;
+  FEEDER_HUB_CHECK = AIController.GetSetting("feeder_hub_check") != 0;
+  local fhwm = AIController.GetSetting("feeder_hub_wait_max");
+  if (fhwm >= 0) FEEDER_HUB_WAIT_MAX = fhwm;
+  local fhmd = AIController.GetSetting("feeder_hub_min_days");
+  if (fhmd >= 0) FEEDER_HUB_MIN_DAYS = fhmd;
 
   /* 🔴 RENOUVELLEMENT AUTOMATIQUE (2026-08-29). Mesure : campagne 20 ans, graine 42 -- trois des
    * quatre lignes ROUTIERES finissent la partie avec vehCount = 0 et un profit de zero, alors que
