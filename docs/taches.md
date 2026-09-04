@@ -6621,3 +6621,71 @@ points est attribuable au correctif. Les valeurs intermédiaires apparues après
 14 lignes) vont dans ce sens : ce sont des flottes qui ont grandi, pas des doublons.
 
 ➡️ E10 est **validé**. Le défaut est réel, borné, et le correctif fait ce qu'il annonce.
+
+---
+
+## 0 trequadragesies. 🔴 1v1 AVEC LES GAINS ARMÉS : l'écart ne bouge PAS — et la décomposition dit pourquoi (2026-09-04)
+
+`docs/bench_1v1_3y_armed_20seeds.json`, 3 bras × 20 graines × 3 ans, 60 parties, 0 échec.
+Bras armé : `air_fleet_buffer=50`, `air_fleet_cadence_days=90`, `road_fleet_fix=1`.
+
+### 1. Contre AAAHogEx, rien ne bouge
+
+| | `profit_year` | `company_value` | graines gagnées |
+|---|---:|---:|---:|
+| défauts | **−91,1 %** | −85,6 % | 0/20 |
+| **gains armés** | **−90,2 %** | **−86,4 %** | **0/20** |
+
+Neuf dixièmes d'écart avant, neuf dixièmes après. La valeur est même **légèrement pire**.
+
+### 2. Et à 3 ans, les gains ne sont pas ceux mesurés à 10 ans
+
+| métrique | armés contre défauts, **à 3 ans** | rappel, **à 10 ans** |
+|---|---:|---:|
+| `profit_year` | +10,7 % (*t*=1,24, 12/20, p=0,503) | **+45,1 %** (p=0,041) |
+| `profit` | +14,6 % (*t*=2,21, 12/20, p=0,503) | +42,1 % (p=0,012) |
+| `company_value` | 🔴 **−5,8 %** (**4/20**, **p=0,012**) | +26,4 % |
+
+🔴 **À 3 ans, la combinaison PERD de la valeur sur 16 graines sur 20**, significativement au test
+des signes. Le mécanisme est cohérent : le tampon **retarde** l'achat — on attend 50 unités au sol
+— donc moins d'appareils tôt, et le bénéfice ne se manifeste qu'en composant sur une décennie.
+
+➡️ **Les gains sont réels mais LENTS.** L'avertissement posé au lancement du banc — « à 3 ans on
+mesure nos gains dans leur fenêtre la moins favorable » — était le bon, et il mordait.
+
+### 3. 🔑 La décomposition, et c'est le vrai enseignement
+
+Médianes à 3 ans :
+
+| | véhicules | gares | profit annuel | **profit par véhicule** |
+|---|---:|---:|---:|---:|
+| nous (défauts) | 61 | 18 | 302 366 | 4 957 |
+| nous (armés) | 65 | **27** | 264 072 | 4 063 |
+| **AAAHogEx** | **384** | **143** | **3 410 227** | **8 892** |
+
+**L'écart se décompose en volume ×6,3 et rendement ×1,8** — et 6,3 × 1,8 ≈ 11, soit exactement
+l'écart de profit observé.
+
+➡️ **Nous ne perdons pas d'abord sur l'efficacité, nous perdons sur le VOLUME, dès l'année 3.**
+Or *tout* ce qui a été travaillé cette semaine — justesse de l'estimateur, tampon, cadence, modèle
+de tension, filtres du vivier — vise le **rendement** ou la **qualité de sélection**. **Rien ne
+vise le volume.**
+
+Le bras armé l'illustre : **+50 % de gares** (18 → 27) et pourtant **moins** de profit et un
+rendement par véhicule en baisse. On construit plus, mais on ne rattrape rien.
+
+### 4. Ce que ça dit de l'architecture
+
+AAAHogEx n'a **pas d'arbitrage de portefeuille** : il bâtit dès qu'il y a du cargo au sol et de la
+place physique, et il élague les perdants après 800 jours. Nous élisons **2 à 5 projets par
+décennie** (§0 sextrigesies) et 134 constructions se font hors arbitrage.
+
+**Leur architecture est un CONSTRUCTEUR qui trie ensuite. La nôtre est un SÉLECTEUR qui construit
+peu.** C'est la conclusion vers laquelle toutes les mesures de la semaine convergent, et c'est
+elle qu'il faut trancher avant d'affiner un estimateur de plus.
+
+### 5. ⚠️ La décision d'adoption de C14×C15 devient ambiguë
+
+Elle gagne franchement à 10 ans (+45 % de `profit_year`, p=0,041) et **perd de la valeur à 3 ans**
+(4/20, p=0,012). Les deux mesures sont valides ; elles ne répondent pas à la même question.
+**Ne pas trancher en citant une seule des deux.**
