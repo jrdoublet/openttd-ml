@@ -97,6 +97,24 @@ function OpexLogPortfolioRankWithTension(projects)
              + " pool_air=" + ctx.pool.air + " pool_water=" + ctx.pool.water);
 }
 
+/* C32 : un feeder n'est pas une desserte origine-destination, c'est un RABATTEMENT vers un hub.
+ * Lui laisser la meme cle qu'une liaison pax entre les deux memes points le ferait concourir --
+ * et gagner, son ROI reseau etant eleve -- contre la ligne aerienne du hub dans
+ * OpexProjectModeBetter, qui n'en garde qu'un par cle. Sous portfolio_v2 = 0 (le defaut),
+ * l'eviction est reelle : c'est le motif pour lequel C29.3 les avait sortis du portefeuille.
+ * Un prefixe distinct les fait concourir sur le CAPITAL, dans le sac a dos, sans jamais evincer
+ * un autre mode sur une cle partagee. */
+function OpexProjectKeyFor(project)
+{
+  local prefix = "";
+  if (("payload" in project) && project.payload != null
+      && ("isFeeder" in project.payload) && project.payload.isFeeder) {
+    prefix = "feeder|";
+    if ("hubStationId" in project.payload) prefix += project.payload.hubStationId + "|";
+  }
+  return prefix + OpexProjectPairKey(project.kind, project.cargo, project.src, project.dst);
+}
+
 function OpexProjectPairKey(kind, cargo, src, dst)
 {
   if (kind == "pax" && src > dst) {
@@ -238,7 +256,7 @@ function OpexProjectRemember(winners, project, stats)
 {
   if (project == null) return;
   stats.modeCandidates++;
-  local key = OpexProjectPairKey(project.kind, project.cargo, project.src, project.dst);
+  local key = OpexProjectKeyFor(project);
   if (!(key in winners)) {
     winners.rawset(key, project);
     return;
@@ -259,7 +277,7 @@ function OpexProjectRememberAll(winners, project, stats)
 {
   if (project == null) return;
   stats.modeCandidates++;
-  local key = OpexProjectPairKey(project.kind, project.cargo, project.src, project.dst);
+  local key = OpexProjectKeyFor(project);
   if (!(key in winners)) {
     winners.rawset(key, [project]);
     return;

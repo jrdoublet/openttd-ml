@@ -211,14 +211,14 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   else if (economics.oneWayDays <= 25) turnoverBonus = 115;
   else if (economics.oneWayDays <= 45) turnoverBonus = 100;
   else turnoverBonus = 60;
+  /* C32 : un forfait n'est pas une estimation. Le monopole (+40 %) et la chaine (+35 %) deplacaient
+   * le classement sans rien predire, et C27 avait deja du les sortir du numerateur de densite parce
+   * qu'ils faussaient un diagnostic entier. Sous flat_bonus = 0 (defaut), tous les modes concourent
+   * sur leur ROI estime. */
   local freightBonus = 100;
-  if (kind == "freight") {
-    /* Le fret beneficie d'un monopole d'exploitation absolu sans concurrence adverse (+40%) */
+  if (FLAT_BONUS && kind == "freight") {
     freightBonus = 140;
-    if (isTransformer) {
-      /* Bonus de chaîne industrielle : alimenter une usine génère des marchandises en aval (+35%) */
-      freightBonus = (freightBonus * 135) / 100;
-    }
+    if (isTransformer) freightBonus = (freightBonus * 135) / 100;
   }
   local adjustedRoi = (((economics.roi * turnoverBonus) / 100) * freightBonus) / 100;
   local ratio = opcodeRatio + (adjustedRoi * 15);
@@ -1021,7 +1021,7 @@ function OpexMakeRoadCandidate(catalog, kind, cargo, src, dst, srcTown, dstTown,
   if (!isFeeder && economics.profitAnnual < ROAD_MIN_PROFIT_ANNUAL) stats.profitTooLow++;
   local iterations = OpexRoadIterations(distance);
   local freightBonus = 100;
-  if (kind == "freight") {
+  if (FLAT_BONUS && kind == "freight") {   /* C32 : voir OpexMakeCandidate */
     freightBonus = 140;
     if (isTransformer) freightBonus = (freightBonus * 135) / 100;
   }
@@ -1550,6 +1550,21 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats)
           } else {
             /* Repli historique si aucun revenu de ligne n'est encore disponible sur le hub */
             if (candidate.profitAnnual <= 0) continue;
+            /* C32 : le forfait x1,60 ne s'applique plus que sous flat_bonus = 1. */
+            if (FLAT_BONUS) {
+              candidate.roi = (candidate.roi * 160) / 100;
+              candidate.ratio = (candidate.ratio * 160) / 100;
+              candidate.feederBonus <- 160;
+              if (!CLEAN_DENSITY_SCORE) {
+                candidate.profitAnnual = (candidate.profitAnnual * 160) / 100;
+                candidate.revenueAnnual = (candidate.revenueAnnual * 160) / 100;
+              }
+            }
+          }
+        } else {
+          /* Bonus ROI forfaitaire historique (+60 %) */
+          if (candidate.profitAnnual <= 0) continue;
+          if (FLAT_BONUS) {   /* C32 */
             candidate.roi = (candidate.roi * 160) / 100;
             candidate.ratio = (candidate.ratio * 160) / 100;
             candidate.feederBonus <- 160;
@@ -1557,16 +1572,6 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats)
               candidate.profitAnnual = (candidate.profitAnnual * 160) / 100;
               candidate.revenueAnnual = (candidate.revenueAnnual * 160) / 100;
             }
-          }
-        } else {
-          /* Bonus ROI forfaitaire historique (+60 %) */
-          if (candidate.profitAnnual <= 0) continue;
-          candidate.roi = (candidate.roi * 160) / 100;
-          candidate.ratio = (candidate.ratio * 160) / 100;
-          candidate.feederBonus <- 160;
-          if (!CLEAN_DENSITY_SCORE) {
-            candidate.profitAnnual = (candidate.profitAnnual * 160) / 100;
-            candidate.revenueAnnual = (candidate.revenueAnnual * 160) / 100;
           }
         }
         out.append(candidate);
@@ -1590,9 +1595,12 @@ function OpexBuildRoadCandidates(catalog, budget, lines)
   budget.begin();
   OpexRoadPaxCandidates(catalog, lines, all, stats);
   OpexRoadFreightCandidates(catalog, lines, all, stats);
-  /* Les feeders sont exclusivement construits par leur tâche dédiée _tryBuildFeeders (main.nut:1422).
-   * Ne pas les inclure ici empêche toute collision d'OD et évite d'évincer les lignes aériennes
-   * lors de l'arbitrage modal OpexProjectRemember / OpexProjectModeBetter. */
+  /* C32 : les feeders reviennent a l'arbitrage. C29.3 les avait sortis d'ici pour deux motifs,
+   * tous deux traites : la collision de cle OD (ils ont desormais leur propre espace de cles,
+   * prefixe "feeder|" dans OpexProjectRemember, donc ils n'evincent plus l'aerien) et
+   * l'ecrasement par l'opcodeScore aerien -- qui est precisement ce que l'arbitrage doit
+   * trancher, pas contourner. Sous feeder_portfolio = 0, comportement C29 conserve. */
+  if (FEEDER_PORTFOLIO) OpexRoadFeederCandidates(catalog, lines, all, stats);
   local ops = budget.end("cand_road");
 
   if (DECISION_LOG) {

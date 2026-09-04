@@ -324,6 +324,36 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C32 : LES FEEDERS REVIENNENT AU PORTEFEUILLE (docs/taches.md C32).
+     * C29.3 les avait sortis d'OpexBuildRoadCandidates pour deux motifs, tous deux traites ici :
+     * la collision de cle OD (ils ont desormais leur propre espace de cles, prefixe "feeder|" dans
+     * OpexProjectKeyFor, donc ils n'evincent plus l'aerien via OpexProjectModeBetter) et
+     * l'ecrasement par l'opcodeScore aerien -- qui est precisement ce que l'arbitrage doit
+     * trancher, pas contourner. Sous 1, la tache dediee _tryBuildFeeders est eteinte : la laisser
+     * active batirait la meme ligne deux fois.
+     * 1 = arbitre au portefeuille (defaut), 0 = tache dediee hors arbitrage (comportement C29). */
+    AddSetting({
+      name = "feeder_portfolio",
+      description = "Rabattement arbitre au portefeuille au lieu d'une tache dediee (docs/taches.md C32): 1 = portefeuille (defaut), 0 = tache dediee",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* C32 : SUPPRESSION DES BONUS FORFAITAIRES DE CLASSEMENT (docs/taches.md C32).
+     * Le fret portait jusqu'a x1,89 sur son roi (monopole x1,40 puis chaine x1,35) et un feeder
+     * x1,60 forfaitaire. Un forfait n'est pas une estimation : il deplace le classement sans rien
+     * predire, et C27 avait deja du le sortir du numerateur de densite parce qu'il faussait un
+     * diagnostic entier. Une fois feeder_pricing en place, aucun mode n'a besoin de forfait.
+     * 0 = aucun bonus forfaitaire (defaut), 1 = forfaits historiques. */
+    AddSetting({
+      name = "flat_bonus",
+      description = "Bonus forfaitaires de classement fret x1.89 et feeder x1.60 (docs/taches.md C32): 0 = supprimes (defaut), 1 = historiques",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* C29.4 : Couverture multi-arrêts urbaine pour rabattement (docs/taches.md C29.4).
      * Jusqu'à ceil(maisons / ROAD_STOP_CATCHMENT_HOUSES) gares distinctes par ville (modèle AAAHogEx).
      * 1 = active (defaut), 0 = arret unique historique par ville. */

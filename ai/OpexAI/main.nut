@@ -91,6 +91,10 @@ PORTFOLIO_LOG <- false;
 FLEET_BEFORE_NEW <- false;
 /* Construction dediee de rabattages vers les hubs (docs/taches.md C1). */
 FEEDER_ENABLED <- true;
+/* C32 : rabattement arbitre au portefeuille (1) au lieu de la tache dediee (0). */
+FEEDER_PORTFOLIO <- true;
+/* C32 : bonus forfaitaires de classement (fret x1,89, feeder x1,60). 0 = supprimes. */
+FLAT_BONUS <- false;
 /* Devis réel par AITestMode + AIAccounting avant engagement (docs/taches.md C7). */
 RAIL_DEVIS <- true;
 /* Expansion marginale : bras A/B inerte par defaut jusqu'au verdict du banc. */
@@ -4394,6 +4398,9 @@ function OpexAI::_runNextTask()
   }
   if (task.name == "feeders") {
     if (!FEEDER_ENABLED) { task.enabled = false; return false; }
+    /* C32 : sous feeder_portfolio, le rabattement est arbitre par le portefeuille. Laisser AUSSI
+     * la tache dediee active batirait la meme ligne deux fois et rendrait l'arbitrage sans objet. */
+    if (FEEDER_PORTFOLIO) { task.enabled = false; return false; }
     task.dueCycle = this._taskCycle + 1;
     return this._tryBuildFeeders(year);
   }
@@ -4467,6 +4474,8 @@ function OpexAI::Start()
   ROAD_REFLEET = AIController.GetSetting("road_refleet") != 0;
   ROAD_MULTISTOP = AIController.GetSetting("road_multistop") != 0;
   MARGINAL_FLEET = AIController.GetSetting("marginal_fleet") != 0;
+  FEEDER_PORTFOLIO = AIController.GetSetting("feeder_portfolio") != 0;
+  FLAT_BONUS = AIController.GetSetting("flat_bonus") != 0;
   AIR_ROI_ORDER = AIController.GetSetting("air_roi_order") != 0;
   LOOP_BUDGET = AIController.GetSetting("loop_budget") != 0;
   PORTFOLIO_V2 = AIController.GetSetting("portfolio_v2") != 0;
