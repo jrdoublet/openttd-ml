@@ -302,6 +302,18 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
 
+    /* C29.1 + C29.2 : Deverrouillage du rabattement (feeders) vers hubs aeriens et ferroviaires (docs/taches.md C29).
+     * C29.1 : Hubs restreints aux modes lourds passagers (Air + Rail Pax). Fret pur (charbon, fer) et bus exclus.
+     * C29.2 : Une ville n'est plus bloquee par une ligne de bus ordinaire ; seul un feeder existant vers CE hub l'exclut.
+     * 1 = actif (deverrouille), 0 = historique. */
+    AddSetting({
+      name = "feeder_unlock",
+      description = "Deverrouille le rabattement vers les hubs (docs/taches.md C29.1 et C29.2): 1 = actif, 0 = historique",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
     AddSetting({
       name = "air_max_distance",
       description = "Plafond de distance pour les liaisons aeriennes (0 = illimite, 212 = defaut empirique, docs/taches.md C6)",

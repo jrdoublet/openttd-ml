@@ -43,6 +43,8 @@ ROAD_STOP_CATCHMENT_HOUSES <- 20;
 CLEAN_DENSITY_SCORE <- true;
 /* C28 : Maximum glissant sur les N derniers cycles pour capitalCeiling (defaut 24) */
 CAPITAL_CEILING_CYCLES <- 24;
+/* C29.1 + C29.2 : Deverrouillage du rabattement (feeders) vers hubs aeriens et ferroviaires */
+FEEDER_UNLOCK <- true;
 
 /* Panneaux de diagnostic : lu UNE fois depuis le reglage dans Start(), pas a chaque appel (57
  * panneaux par an, GetSetting a chaque fois serait du gaspillage d'opcodes pour une valeur qui ne
@@ -1452,7 +1454,11 @@ function OpexAI::_tryBuildFeeders(year)
   };
 
   foreach (candidate in candidates) {
-    if (OpexRoadPairServed(this._lines, candidate.src, candidate.dst)) { rejectStats.served++; continue; }
+    if (FEEDER_UNLOCK) {
+      if (OpexTownFeederServed(this._lines, candidate.src, candidate.hubStationId)) { rejectStats.served++; continue; }
+    } else {
+      if (OpexRoadPairServed(this._lines, candidate.src, candidate.dst)) { rejectStats.served++; continue; }
+    }
     if (OpexTownRoadLineCount(this._lines, candidate.src) >= 4) { rejectStats.townCount++; continue; }
 
     local abandonedKey = OpexAbandonedPairKey(candidate);
@@ -1705,7 +1711,10 @@ function OpexAI::_tryBuildProjects(year)
       local candidate = project.payload;
       local isFeeder = ("isFeeder" in candidate) && candidate.isFeeder;
       if (candidate.kind == "pax") {
-        if (OpexRoadPairServed(this._lines, candidate.src, candidate.dst)) {
+        local alreadyServed = (FEEDER_UNLOCK && isFeeder)
+          ? OpexTownFeederServed(this._lines, candidate.src, candidate.hubStationId)
+          : OpexRoadPairServed(this._lines, candidate.src, candidate.dst);
+        if (alreadyServed) {
           if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "pair_already_served", extra = "" });
           continue;
         }
@@ -1830,6 +1839,8 @@ function OpexAI::_tryBuildProjects(year)
         isLowRatio = ("isLowRatio" in candidate) ? candidate.isLowRatio : false,
         opcodeRatio = ("opcodeRatio" in candidate) ? candidate.opcodeRatio : -1,
         purpose = (("isFeeder" in candidate) && candidate.isFeeder) ? "feeder" : "profit",
+        isFeeder = (("isFeeder" in candidate) && candidate.isFeeder),
+        hubStationId = (("hubStationId" in candidate) ? candidate.hubStationId : -1),
         lineId = idx,
       });
       this._nextLineId++;
@@ -4296,6 +4307,7 @@ function OpexAI::Start()
   if (ccc >= 0) CAPITAL_CEILING_CYCLES = ccc;
   local iap = AIController.GetSetting("infra_amort_pct");
   if (iap >= 0) INFRA_AMORT_PCT = iap;
+  FEEDER_UNLOCK = AIController.GetSetting("feeder_unlock") != 0;
 
   /* 🔴 RENOUVELLEMENT AUTOMATIQUE (2026-08-29). Mesure : campagne 20 ans, graine 42 -- trois des
    * quatre lignes ROUTIERES finissent la partie avec vehCount = 0 et un profit de zero, alors que

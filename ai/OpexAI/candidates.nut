@@ -46,6 +46,8 @@ TOP_K <- 20;
 MIN_RATIO <- 500;
 VIVIER_RATIO_FILTER <- true;
 CLEAN_DENSITY_SCORE <- true;
+/* C29.1 + C29.2 : Deverrouillage du rabattement (feeders) vers hubs aeriens et ferroviaires */
+FEEDER_UNLOCK <- true;
 PROBE_STASH_K <- 12;
 /* "Presque admis" : predit > -1000. L'echelle du plancher MIN_RATIO * iterations/1000
  * pour une ligne courte (~500*310/1000 = 155) est plus petite ; -1000 reste du meme
@@ -1080,6 +1082,31 @@ function OpexTownRoadLineCount(lines, townTile)
   return count;
 }
 
+/* C29.2 : Verifie si une ville possede deja une ligne de rabattement (feeder) active vers un hub donne.
+ * Contrairement a OpexRoadPairServed, les lignes routieres ordinaires (interurbaines) ne bloquent pas
+ * le rabattement vers ce hub. */
+function OpexTownFeederServed(lines, townTile, hubStationId)
+{
+  if (lines == null || !AIStation.IsValidStation(hubStationId)) return false;
+  foreach (line in lines) {
+    if (!("mode" in line) || line.mode != "road") continue;
+    local isFeeder = (("isFeeder" in line) && line.isFeeder) ||
+                     (("purpose" in line) && line.purpose == "feeder");
+    if (!isFeeder) continue;
+    local targetStation = ("hubStationId" in line) ? line.hubStationId : -1;
+    if (targetStation < 0 && ("stationB" in line)) {
+      targetStation = AIStation.GetStationID(line.stationB);
+    }
+    if (targetStation == hubStationId) {
+      if (AIMap.DistanceManhattan(townTile, line.originA) < ORIGIN_SEPARATION ||
+          AIMap.DistanceManhattan(townTile, line.originB) < ORIGIN_SEPARATION) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 /* C23 : Modélisation physique du bassin de captage d'un arrêt de bus (rayon 3 tuiles).
  *
  * Un arrêt de bus OpenTTD possède un rayon de couverture de 3 tuiles, soit une empreinte
@@ -1240,7 +1267,19 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats)
   local seenHubStations = {};
   foreach (line in lines) {
     if (!("mode" in line)) continue;
-    if (line.mode != "rail" && line.mode != "air") continue;
+    if (FEEDER_UNLOCK) {
+      /* C29.1 : Seuls l'aerien passagers et le rail passagers sont des hubs.
+       * Le fret ferroviaire (charbon, minerai, etc.) et le bus ordinaire sont exclus. */
+      if (line.mode == "air") {
+        if (("cargo" in line) && line.cargo != cargo) continue;
+      } else if (line.mode == "rail") {
+        if (!("cargo" in line) || line.cargo != cargo) continue;
+      } else {
+        continue;
+      }
+    } else {
+      if (line.mode != "rail" && line.mode != "air") continue;
+    }
     local stA = OpexLineStationId(line, "A");
     local stB = OpexLineStationId(line, "B");
     if (stA >= 0 && !(stA in seenHubStations)) {
@@ -1256,7 +1295,7 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats)
   if (hubs.len() == 0) return;
 
   for (local i = 0; i < n; i++) {
-    if (OpexOriginServed(lines, towns[i].tile, true)) continue;
+    if (!FEEDER_UNLOCK && OpexOriginServed(lines, towns[i].tile, true)) continue;
     local pop = towns[i].pop;
     if (pop < 200) continue;
     local produced = AITown.GetLastMonthProduction(towns[i].id, cargo);
@@ -1265,6 +1304,9 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats)
     foreach (hub in hubs) {
       local distance = AIMap.DistanceManhattan(towns[i].tile, hub.tile);
       if (distance < ROAD_MIN_DISTANCE || distance > 40) continue;
+      /* C29.2 : Un feeder n'est plus bloque par une ligne routiere ordinaire.
+       * Seule l'existence d'un feeder actif vers CE hub precis exclut la paire. */
+      if (FEEDER_UNLOCK && OpexTownFeederServed(lines, towns[i].tile, hub.stationId)) continue;
       stats.pairsInBand++;
       local monthly = OpexTownBusCatchment(towns[i], produced);
       if (monthly <= 0) continue;
