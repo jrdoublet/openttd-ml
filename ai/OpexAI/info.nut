@@ -224,6 +224,16 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
 
+    /* E10 : Correctif du doublement de flotte routiere au cycle de construction
+     * (docs/taches.md E10) : empeche refleet de voir have=0 et de doubler la flotte neuve. */
+    AddSetting({
+      name = "road_fleet_fix",
+      description = "Empeche le doublement de flotte routiere au cycle de construction (docs/taches.md E10): 1 = actif, 0 = inactif (defaut historique)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     AddSetting({
       name = "air_max_distance",
       description = "Plafond de distance pour les liaisons aeriennes (0 = illimite, 212 = defaut empirique, docs/taches.md C6)",

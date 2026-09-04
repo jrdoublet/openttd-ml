@@ -164,6 +164,8 @@ AIR_STARTER <- true;
 /* Bras experimental : reutiliser un aeroport rentable pour une nouvelle destination. */
 AIR_HUB <- true;
 RAIL_REFLEET <- true;
+/* E10 : Correctif du doublement de flotte routiere au cycle de construction */
+ROAD_FLEET_FIX <- false;
 /* A7.2 : Vente immediate des convois au depot via ET_VEHICLE_WAITING_IN_DEPOT */
 EVENT_DEPOT_SELL <- false;
 /* A7.1 : Stop-loss immediat sur fermeture d'industrie via ET_INDUSTRY_CLOSE */
@@ -2635,7 +2637,7 @@ function OpexAI::_refleetRoadLines(year)
     local have = 0;
     if ("vehCount" in line) {
       have = line.vehCount;
-    } else if (FLEET_FIX && ("trains" in line)) {
+    } else if ((FLEET_FIX || ROAD_FLEET_FIX) && ("trains" in line)) {
       have = line.trains;
     }
     local target = ("predTrains" in line) ? line.predTrains : (("trains" in line) ? line.trains : 1);
@@ -4233,6 +4235,7 @@ function OpexAI::Start()
   EVENT_VEHICLE_LOST = AIController.GetSetting("event_vehicle_lost") != 0;
   EVENT_CATALOG_INVALIDATE = AIController.GetSetting("event_catalog_invalidate") != 0;
   VIVIER_RATIO_FILTER = AIController.GetSetting("vivier_ratio_filter") != 0;
+  ROAD_FLEET_FIX = AIController.GetSetting("road_fleet_fix") != 0;
   local iap = AIController.GetSetting("infra_amort_pct");
   if (iap >= 0) INFRA_AMORT_PCT = iap;
 
