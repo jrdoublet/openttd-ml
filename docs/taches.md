@@ -4982,9 +4982,10 @@ Il n'y a pas d'A\* fait maison. Seule la fonction de coût est à nous.
 | # | tâche | section |
 |---|---|---|
 | B1 | Portefeuille incrémental, découpé en petites tâches, rafraîchi en continu | §3 sexies |
-| B2 | ⛔ **ABSORBÉ par A6** — file de tâches dynamique à priorités par phase : c'est un automate à états, forme écartée par l'utilisateur le 2026-09-03 | §3 septies, §3 terdecies |
+| B2 | 🔶 **RÉ-OUVERT le 2026-09-04** — file de tâches dynamique à priorités par phase. L'absorption par A6 reposait sur « la phase se déduira de la tension » ; **A6 a rendu une réponse négative** (aucune ressource n'est rare dans 97 % des évaluations), donc l'absorption n'a plus de fondement. ⚠️ Mais ce qui est mesuré n'est **pas** B2 : voir B6 | §3 septies, §0 septquadragesies |
 | B3 | Estimateur d'opcodes appris sur longueur **et** terrain | §3 octies |
-| B4 | ⛔ **ABSORBÉ par A6** — doctrine en six phases : même motif, un automate à états. Le bonus d'occupation, lui, reste une mesure utile | §3 nonies, §3 terdecies |
+| B4 | 🔶 **RÉ-OUVERT le 2026-09-04** — doctrine en six phases. Même motif que B2 : A6 devait la faire émerger, il n'a rien trouvé. ⚠️ **Et le résultat du 2026-09-04 ne la valide PAS** : on n'a pas mesuré six phases du jeu, mais **deux régimes par MÉCANISME**. B4 demande un détecteur de phase ; B6 n'en demande aucun. Ne pas confondre | §3 nonies, §0 septquadragesies |
+| **B6** | 🔑 **RÉGLAGE À CALENDRIER : un mécanisme dont le profil temporel est MESURÉ s'arme et se désarme, sans détecteur de phase** (§0 septquadragesies). Premier cas chiffré : la **cadence** gagne les années 2-4 (+4,9 % en a2) puis se dégrade jusqu'à **−11,7 %** en a10 ; le **tampon** coûte trois ans puis croît jusqu'à **+31,9 %**. Deux profils miroirs, **croisement mesuré à l'année 4**. Les cumuler donnerait le gain d'amorçage ET le gain de régime permanent. ⚠️ **C'est plus simple que B2/B4** : aucun état du jeu à détecter, chaque réglage porte son propre profil. ⚠️ **Mais une bascule « année 4 » en dur est une constante magique** — la forme endogène doit s'accrocher à un signal du mécanisme lui-même (nombre de lignes aériennes, richesse, saturation), pas à une date | croisement daté, 360 parties | §0 septquadragesies |
 | B5 | Intégrer la **construction** aérienne au portefeuille (aujourd'hui hors arbitrage : 11 lignes sur 12) | §0 septvicies |
 
 ### C. Correctifs identifiés, non faits, chiffrés
