@@ -47,6 +47,8 @@ CAPITAL_CEILING_CYCLES <- 24;
 FEEDER_UNLOCK <- true;
 /* C29.3 : Pricing du feeder calculé sur le revenu hub et le bassin de captage */
 FEEDER_PRICING <- true;
+/* C29.4 : Couverture multi-arrêts urbaine pour rabattement (modèle AAAHogEx) */
+FEEDER_TOWN_COVERAGE <- true;
 
 /* Panneaux de diagnostic : lu UNE fois depuis le reglage dans Start(), pas a chaque appel (57
  * panneaux par an, GetSetting a chaque fois serait du gaspillage d'opcodes pour une valeur qui ne
@@ -595,6 +597,7 @@ class OpexAI extends AIController {
   _lastReportYear = -1;
   _lastAirFleetMonth = -1;
   _lastRepayMonth = -1;
+  _startYear = -1;
   _vehiclesToScrap = null;
   _activeSubsidies = null;
   _subsidyStats = null;
@@ -851,7 +854,8 @@ function OpexAbandonedPairKey(candidate)
 {
   if (("isFeeder" in candidate) && candidate.isFeeder) {
     local srcTown = ("srcTown" in candidate && candidate.srcTown >= 0) ? candidate.srcTown : AITile.GetClosestTown(candidate.src);
-    return "feeder|" + srcTown + "|" + candidate.hubStationId;
+    local slot = ("feederSlot" in candidate) ? candidate.feederSlot : 0;
+    return "feeder|" + srcTown + "|" + candidate.hubStationId + "|" + slot;
   }
   local src = candidate.src;
   local dst = candidate.dst;
@@ -1410,6 +1414,14 @@ function OpexWaterBatchSiteStillBuildable(site)
  * est immediatement regenere car le capital et les origines ont change. */
 function OpexFeederCandidateCompare(a, b)
 {
+  /* C29.4 : Priorité absolue à la première desserte de chaque ville (slot 0)
+   * sur les extensions secondaires multi-arrêts (slot >= 1) */
+  local slotA = ("feederSlot" in a) ? a.feederSlot : 0;
+  local slotB = ("feederSlot" in b) ? b.feederSlot : 0;
+  if (slotA != slotB) {
+    if (slotA < slotB) return -1;
+    return 1;
+  }
   if (a.roi > b.roi) return -1;
   if (a.roi < b.roi) return 1;
   local aProf = a.profitAnnual + (("networkProfit" in a) ? a.networkProfit : 0);
@@ -1458,20 +1470,40 @@ function OpexAI::_tryBuildFeeders(year)
   };
 
   foreach (candidate in candidates) {
+    local isHubTown = ("isHubTown" in candidate) ? candidate.isHubTown : false;
     if (FEEDER_UNLOCK) {
-      if (OpexTownFeederServed(this._lines, candidate.src, candidate.hubStationId)) { rejectStats.served++; continue; }
+      local maxFeeders = 1;
+      if (isHubTown && FEEDER_TOWN_COVERAGE) {
+        local tId = ("srcTown" in candidate && candidate.srcTown >= 0) ? candidate.srcTown : AITile.GetClosestTown(candidate.src);
+        local houses = AITown.IsValidTown(tId) ? AITown.GetHouseCount(tId) : 0;
+        if (houses <= 0 && AITown.IsValidTown(tId)) houses = AITown.GetPopulation(tId) / 25;
+        maxFeeders = OpexCeilDiv(houses, ROAD_STOP_CATCHMENT_HOUSES);
+        if (maxFeeders > 4) maxFeeders = 4;
+        if (maxFeeders < 1) maxFeeders = 1;
+      }
+      if (OpexTownFeederCount(this._lines, candidate.src, candidate.hubStationId) >= maxFeeders) { rejectStats.served++; continue; }
     } else {
       if (OpexRoadPairServed(this._lines, candidate.src, candidate.dst)) { rejectStats.served++; continue; }
     }
-    if (OpexTownRoadLineCount(this._lines, candidate.src) >= 4) { rejectStats.townCount++; continue; }
+    if (!isHubTown && OpexTownRoadLineCount(this._lines, candidate.src) >= 4) { rejectStats.townCount++; continue; }
 
     local abandonedKey = OpexAbandonedPairKey(candidate);
     if (ABANDON_MEMORY && (abandonedKey in this._abandonedPairs)) { rejectStats.abandoned++; continue; }
 
+    local slot = ("feederSlot" in candidate) ? candidate.feederSlot : 0;
+    local yearsElapsed = (this._startYear >= 0) ? (year - this._startYear) : 0;
+    if (slot >= 1 && yearsElapsed < 2) { rejectStats.served++; continue; }
+
     local need = candidate.capital + OpexCashReserve() + ROAD_CAPITAL_MARGIN;
     local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-    if (money < need && REBORROW) money = OpexTryReborrow(need, money);
-    if (money < need) { rejectStats.cash++; continue; }
+    if (slot >= 1) {
+      /* C29.4 : Un arrêt secondaire ne s'endette jamais pour se construire :
+       * il exige que l'entreprise dispose du cash disponible. */
+      if (money < need) { rejectStats.cash++; continue; }
+    } else {
+      if (money < need && REBORROW) money = OpexTryReborrow(need, money);
+      if (money < need) { rejectStats.cash++; continue; }
+    }
 
     this._budget.begin();
     local planning = OpexRoadPlanFor(this._catalog, candidate);
@@ -1480,6 +1512,7 @@ function OpexAI::_tryBuildFeeders(year)
     local idx = this._nextLineId;
     if (plan == null) {
       if (ABANDON_MEMORY) this._abandonedPairs[abandonedKey] <- true;
+      AILog.Info("PLAN_FAIL: cand=" + candidate.src + "->" + candidate.dst + " slot=" + slot + " reason=" + planning.reason);
       OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|" + planning.reason + "|0");
       rejectStats.planNull++;
       continue;
@@ -1516,10 +1549,13 @@ function OpexAI::_tryBuildFeeders(year)
        * diagnostic predit/reel le separe au lieu de le noyer dans la route pax. */
       purpose = "feeder",
       hubStationId = candidate.hubStationId,
+      srcTown = candidate.srcTown,
+      feederSlot = ("feederSlot" in candidate) ? candidate.feederSlot : 0,
     });
     if (DECISION_LOG) {
       local hubMode = ("hubMode" in candidate) ? candidate.hubMode : "unknown";
-      OpexDecide("FEEDER_BUILD", "line=" + this._nextLineId + " hub=" + candidate.hubStationId + " hub_mode=" + hubMode + " src=" + candidate.src + " dst=" + candidate.dst + " dist=" + candidate.distance + " profit=" + candidate.profitAnnual + " cost=" + candidate.capital);
+      local slot = ("feederSlot" in candidate) ? candidate.feederSlot : 0;
+      OpexDecide("FEEDER_BUILD", "line=" + this._nextLineId + " hub=" + candidate.hubStationId + " hub_mode=" + hubMode + " src=" + candidate.src + " dst=" + candidate.dst + " slot=" + slot + " dist=" + candidate.distance + " profit=" + candidate.profitAnnual + " cost=" + candidate.capital);
     }
     AILog.Info("FE|" + yy + "|" + this._nextLineId + "|" + candidate.distance + "|" + candidate.profitAnnual);
     OpexSign(anchor, "FE|" + yy + "|" + this._nextLineId + "|" + candidate.distance + "|" + candidate.profitAnnual);
@@ -4313,6 +4349,7 @@ function OpexAI::Start()
   if (iap >= 0) INFRA_AMORT_PCT = iap;
   FEEDER_UNLOCK = AIController.GetSetting("feeder_unlock") != 0;
   FEEDER_PRICING = AIController.GetSetting("feeder_pricing") != 0;
+  FEEDER_TOWN_COVERAGE = AIController.GetSetting("feeder_town_coverage") != 0;
 
   /* 🔴 RENOUVELLEMENT AUTOMATIQUE (2026-08-29). Mesure : campagne 20 ans, graine 42 -- trois des
    * quatre lignes ROUTIERES finissent la partie avec vehCount = 0 et un profit de zero, alors que
@@ -4334,6 +4371,7 @@ function OpexAI::Start()
   /* L'emprunt maximal des le depart : la note de compagnie recompense l'emprunt a zero (5 %),
    * mais une ligne non construite faute de tresorerie coute bien davantage. Le remboursement
    * viendra quand la tresorerie le permettra. */
+  this._startYear = AIDate.GetYear(AIDate.GetCurrentDate());
   AICompany.SetLoanAmount(AICompany.GetMaxLoanAmount());
   if (DECISION_LOG) {
     OpexDecide("LOAN", "action=initial_borrow amount=" + AICompany.GetLoanAmount() + " max_loan=" + AICompany.GetMaxLoanAmount());

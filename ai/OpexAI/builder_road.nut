@@ -141,7 +141,7 @@ function OpexRoadTraceBuildable(trace)
  * SITEB a coup sur, et main.nut bannit alors la paire pour toujours (docs/taches.md S0 sexvicies,
  * verrou 2). */
 function OpexRoadSites(center, townId, cargo, vehType, coverage, wantProduction, radius,
-                       otherCenter, requireCargo = true)
+                       otherCenter, requireCargo = true, excludeTiles = null)
 {
   local out = [];
   local cx = AIMap.GetTileX(center);
@@ -160,6 +160,17 @@ function OpexRoadSites(center, townId, cargo, vehType, coverage, wantProduction,
         if (!OpexRoadInMap(x, y)) continue;
         local tile = AIMap.GetTileIndex(x, y);
         if (townId >= 0 && AITile.GetClosestTown(tile) != townId) continue;
+        /* C29.4 : Séparation spatiale >= 6 tuiles entre gares routières d une même ville (modèle AAAHogEx) */
+        if (excludeTiles != null && excludeTiles.len() > 0) {
+          local tooClose = false;
+          foreach (exTile in excludeTiles) {
+            if (AIMap.DistanceManhattan(tile, exTile) < 6) {
+              tooClose = true;
+              break;
+            }
+          }
+          if (tooClose) continue;
+        }
         local value = wantProduction
             ? AITile.GetCargoProduction(tile, cargo, 1, 1, coverage)
             : AITile.GetCargoAcceptance(tile, cargo, 1, 1, coverage);
@@ -394,8 +405,9 @@ function OpexRoadPlanFor(catalog, candidate)
   local isFeeder = ("isFeeder" in candidate) && candidate.isFeeder;
   local dstWantsProduction = candidate.kind == "pax" && !isFeeder;
 
+  local excludeA = ("existingStops" in candidate) ? candidate.existingStops : null;
   local huntA = OpexRoadSites(candidate.src, candidate.srcTown, candidate.cargo, stop.vehType,
-                              coverage, true, radiusA, candidate.dst);
+                              coverage, true, radiusA, candidate.dst, true, excludeA);
   local sitesA = huntA.sites;
   if (sitesA.len() == 0) return { plan = null, reason = "SITEA", site = huntA };
   local huntB = OpexRoadSites(candidate.dst, candidate.dstTown, candidate.cargo, stop.vehType,

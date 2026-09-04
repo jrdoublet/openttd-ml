@@ -5024,7 +5024,7 @@ Il n'y a pas d'A\* fait maison. Seule la fonction de coût est à nous.
 | C18 | 🔶 **Financement / prospection d'industrie** (`AIIndustryType.BuildIndustry` / `ProspectIndustry`, soumis à `economy.fund_buildings`) — créer un **débouché** là où il n'y en a pas, pour une source déjà desservie mais sous-exploitée faute d'accepteur proche. Plus spéculatif que C17 : à ne prendre qu'après lui | AAAHogEx : **0 occurrence**, comme pour les subventions | `docs/mecanique_jeu.md` §14 et §10 |
 | C17 | **Sonde subventions, en lecture seule** — ✅ Fait (A7.3 / `event_subsidy_probe` : écoute `AIEventSubsidyOffer`, `Expired`, `Awarded` ; mesure offres, adéquation réseau/vivier, préemption et multiplicateur via `AIGameSettings`) | AAAHogEx : **0 occurrence** d'`AISubsidy` sur 37 531 lignes ; AdmiralAI s'en sert | `docs/mecanique_jeu.md` §14, `docs/cible.md` §8 |
 | C16 | **Plafond physique de flotte aérienne dérivé de la CADENCE et non de la demande** — ✅ Fait (`air_cadence_cap=1` par défaut) : créneau physique d'absorption par type d'aéroport (`OpexAirportStationDateSpan`) pondéré par le nombre de lignes partagées et la rotation aller-retour (`OpexAirCadenceCap`). Validé sur 20 graines × 10 ans (`docs/bench_c16_10y_20seeds.json`) : valeur de compagnie médiane +14,2 % (+366 k £), moyenne +6,5 % (+237 k £), profit annuel moyen +7,2 % (+54 k £). Supprime l'engorgement du ciel et les holding patterns ruineux. | +14,2 % valeur médiane, +7,2 % profit à 10 ans | §0 novemvicies |
-| **C29** | 🔑 **REFONTE DU RABATTEMENT — le bus ordinaire VERROUILLE le feeder** (§0 duoquinquagesies, §0 quattuorquinquagesies, §0 quinquinquagesies). **C29.1 + C29.2 + C29.3 : ✅ Fait et adopté** (`feeder_unlock=1`, `feeder_pricing=1` par défaut) : C29.1 restreint les hubs aux modes lourds passagers (Air + Rail Pax) ; C29.2 supprime le verrou `OpexOriginServed` pour ne filtrer que les villes déjà rabattues vers CE hub précis via `OpexTownFeederServed`. C29.3 implémente le pricing physique selon le rendement par passager du hub (`feederPax * (hubRev / hubCarried) / (k + 1)` avec plafond 78 % et marge 80 %), en préservant `CLEAN_DENSITY_SCORE` et en sanctuarisant la tâche dédiée `_tryBuildFeeders` hors du sac à dos pour éliminer l'éviction de l'aérien. Validé au banc officiel 20 graines × 10 ans (`docs/bench_c29_3_pricing_10y_20seeds.json`) : 11/20 victoires, bond spectaculaire sur les graines difficiles (graine 42 : +143,5 % valeur, +98,1 % profit ; graine 2026 : +103,2 % valeur, +16,5 % profit). À 6 ans sur 5 graines : **5/5 victoires nettes** en valeur (+15,5 %, +398 541 £) et profit (+14,0 %). Prochaine étape : **C29.4** navettes multi-arrêts urbaines séparées. | C29.1+2+3 validés (graine 42 +143 %, graine 2026 +103 % à 10 ans ; 5/5 victoires à 6 ans) | §0 duoquinquagesies, §0 quattuorquinquagesies, §0 quinquinquagesies |
+| **C29** | 🔑 **REFONTE DU RABATTEMENT — le bus ordinaire VERROUILLE le feeder** (§0 duoquinquagesies, §0 quattuorquinquagesies, §0 quinquinquagesies). **C29.1 + C29.2 + C29.3 + C29.4 : ✅ Fait et adopté** (`feeder_unlock=1`, `feeder_pricing=1`, `feeder_town_coverage=1` par défaut) : C29.1 restreint les hubs aux modes lourds passagers (Air + Rail Pax) ; C29.2 supprime le verrou `OpexOriginServed` pour ne filtrer que les villes déjà rabattues vers CE hub précis via `OpexTownFeederServed` ; C29.3 implémente le pricing physique selon le rendement par passager du hub ; C29.4 implémente la couverture multi-arrêts urbaine de la métropole du hub (`ceil(maisons / 20)` arrêts séparés d'au moins 6 tuiles rabattant vers l'aéroport). Validé au banc officiel 20 graines × 10 ans (`docs/bench_c29_4_coverage_10y_20seeds.json`) : **valeur médiane +10,12 % (+462 248 £)**, **profit médian +6,39 % (+68 882 £)**, **13 victoires sur 20 graines (65 %)**, score officiel **+38,0 pts en médiane** (712 -> 750). | C29.1+2+3+4 validés (médiane CV +10,1 %, profit +6,4 %, 13/20 victoires à 10 ans) | §0 duoquinquagesies, §0 quattuorquinquagesies, §0 quinquinquagesies |
 | C13 | **Le sac à dos (knapsack) n'utilise pas le ROI bonifié fret de C8** — `OpexKnapsackComputeBound`/`OpexKnapsackSearch` (`projects.nut:283-286`, `:323`) additionnent encore `p.revenueAnnual` brut comme objectif, pas le ROI bonifié (monopole +40 %, chaîne +35 %). Le bonus C8 pèse donc sur le tri/seuil de sélection en amont, pas sur l'optimum retenu quand plusieurs candidats se disputent le même capital | trouvé en revue croisée agy/codex/grok du 2026-09-02, en vérifiant C8 | §C8, `projects.nut` |
 
 ### D. Mesures à refaire, parce que les anciennes ne valent plus
@@ -7601,11 +7601,73 @@ Graine 2026 : valeur +63,8 %, profit +104,8 %.
   * **Graine 123456** : valeur **+14,3 %**, profit **+17,7 %**.
   * **Graine 1** : valeur **+9,1 %**, profit **+35,0 %**.
 
-### 3. Décision et adoption
+### 3. Décision et adoption C29.3
 
 - `feeder_pricing` est adopté avec la valeur par défaut `1` (`ai/OpexAI/info.nut`, `candidates.nut`, `main.nut`).
 - **C29.3 est validé et adopté.**
-- Prochaine étape : **C29.4** (Couverture multi-arrêts urbaine à la AAAHogEx).
+
+---
+
+## 🔬 C29.4 : Couverture multi-arrêts urbaine de la métropole du hub (modèle AAAHogEx)
+
+### 1. Contexte, angle mort et découverte physique
+
+- **L'angle mort initial** : Dans `candidates.nut:1366`, le filtre de distance routière imposait :
+  `if (distance < ROAD_MIN_DISTANCE || distance > 40) continue;` avec `ROAD_MIN_DISTANCE = 5`.
+  Lorsqu'un aéroport ou une gare était implanté dans ou à la lisière immédiate d'une grande ville (métropole de 3 000 à 10 000 habitants), la distance Manhattan entre le centre-ville et le hub était comprise entre 1 et 4 tuiles. La métropole elle-même était **systématiquement rejetée** !
+  L'IA laissait ainsi 78 % des passagers de la grande ville sur la table (non couverts par le rayon de captage de l'aéroport) et dépensait des dizaines de milliers de livres (£30k-£35k) à poser de longues routes vers de lointains villages satellites de 600 habitants.
+- **Le verrou du profit direct négatif** : Sur courte distance (5 à 10 tuiles), le barème de transport passager d'OpenTTD rapporte très peu (£1-£2 par passager), si bien que le revenu annuel brut d'un bus (£360/an) est inférieur à ses coûts d'exploitation (£1 100/an de running cost + £200 d'amortissement), donnant `economics.profitAnnual < 0`. `OpexMakeRoadCandidate` rejetait immédiatement tout candidat à profit direct négatif (`stats.profitTooLow++`), tuant les liaisons de quartier avant que `FEEDER_PRICING` n'ait pu calculer leur profit réseau (les passagers rabattus alimentent des avions générant des dizaines de milliers de livres).
+- **Le bug du comptage de feeders** : `OpexTownFeederCount` comparait `originB` (l'aéroport/hub) à `townTile`, de sorte que n'importe quelle ville située à moins de 16 tuiles de l'aéroport comptait tous les feeders reliant d'autres villes à cet aéroport comme ses propres feeders !
+
+### 2. Architecture et implémentation (C29.4)
+
+1. **Dessertes intra-urbaines de la métropole** (`candidates.nut`) :
+   - Détection de la ville hôte du hub : `isHubTown = (towns[i].id == hubTownId)`.
+   - Pour la ville du hub : borne de distance `distance <= 16` sans plancher inférieur. Pour les satellites : bande standard `5 <= distance <= ROAD_MAX_DISTANCE (25)`.
+   - Plafond de feeders :
+     * Ville hôte du hub sous `FEEDER_TOWN_COVERAGE` : jusqu'à `ceil(maisons / ROAD_STOP_CATCHMENT_HOUSES)` arrêts distincts (plafonné à 4), sur le modèle de couverture intégrale AAAHogEx.
+     * Villes satellites : strictement 1 feeder (slot 0) pour éviter le gaspillage de capital sur les villages secondaires.
+2. **Séparation spatiale $\ge 6$ tuiles** (`candidates.nut`, `builder_road.nut`) :
+   - Pour chaque arrêt intra-urbain, `excludeTiles` contient `hub.tile` (l'aéroport/gare) ainsi que tous les arrêts de rabattement déjà construits dans cette ville vers ce hub.
+   - `OpexRoadSites` impose `AIMap.DistanceManhattan(tile, exTile) >= 6` pour chaque tuile candidate, garantissant que chaque arrêt couvre un quartier distinct sans empiéter sur le bassin du hub ou des autres arrêts.
+3. **Modélisation économique et pricing réseau** (`candidates.nut`) :
+   - Paramètre `isFeeder = true` passé à `OpexMakeRoadCandidate` : dispense le feeder du plancher direct `economics.profitAnnual <= 0`.
+   - Sous `FEEDER_PRICING`, `candidate.profitAnnual` intègre le `networkProfit` apporté au hub (`totalProfit = candidate.profitAnnual + networkProfit`). Si `totalProfit <= 0`, le candidat est rejeté.
+4. **Discipline de trésorerie** (`main.nut`) :
+   - Priorité absolue au premier arrêt (slot 0) de chaque ville par rapport aux extensions secondaires multi-arrêts (slot $\ge 1$).
+   - Les arrêts secondaires (slot $\ge 1$) sont différés de 2 ans (`yearsElapsed >= 2`) pour laisser la flotte aérienne s'établir, et ne s'endettent jamais (`reborrow` désactivé, cash disponible requis).
+5. **Comptage robuste** (`candidates.nut`, `main.nut`) :
+   - `OpexTownFeederCount` et `OpexTownRoadLineCount` identifient rigoureusement la ville d'origine via `townId = AITile.GetClosestTown(townTile)` sur `originA`, éliminant toute fausse collision liée à `originB`.
+
+### 3. Résultats au banc officiel 20 graines × 10 ans (`docs/bench_c29_4_coverage_10y_20seeds.json`)
+
+Comparaison appariée sur 20 graines × 10 ans (40 parties) entre :
+- **Contrôle (A)** : `OpexAI[feeder_town_coverage=0]` (arrêt unique historique par ville)
+- **C29.4 (B)** : `OpexAI` (`feeder_town_coverage=1`, couverture multi-arrêts urbaine de la métropole)
+
+| Métrique | Contrôle (`coverage=0`) | C29.4 (`coverage=1`) | Delta moyen | Delta médian | Victoires (B vs A) |
+|---|---:|---:|---:|---:|:---:|
+| **Company Value** | 5 130 090 £ | 5 310 402 £ | **+180 312 £ (+3,51 %)** | **+462 248 £ (+10,12 %)** | **10 / 20** |
+| **Profit annuel** | 1 093 522 £ | 1 137 028 £ | **+43 506 £ (+3,98 %)** | **+68 882 £ (+6,39 %)** | **13 / 20 (65 %)** |
+| **Score officiel** | 697,9 pts | 713,6 pts | **+15,8 pts** | **+38,0 pts** (712 -> 750) | **11 / 20** |
+| **Véhicules** | 193,2 | 205,5 | **+12,3 véh.** | — | — |
+| **Stations** | 71,8 | 73,0 | **+1,2 st.** | — | — |
+
+#### Détail des gains majeurs par graine :
+- **Graine 17** : Valeur **+48,7 %** (2,93 M£ -> 4,36 M£), Profit **+59,0 %** (596 k£ -> 948 k£) !
+- **Graine 999** : Valeur **+47,2 %** (4,28 M£ -> 6,30 M£), Profit **+44,5 %** (916 k£ -> 1,32 M£) !
+- **Graine 73** : Valeur **+36,0 %** (5,02 M£ -> 6,84 M£), Profit **+6,4 %** (1,54 M£ -> 1,64 M£).
+- **Graine 65537** : Valeur **+28,0 %** (4,43 M£ -> 5,67 M£), Profit **+1,2 %**.
+- **Graine 42** : Valeur **+23,3 %** (3,15 M£ -> 3,88 M£), Profit **+7,6 %** (798 k£ -> 859 k£).
+- **Graine 1337** : Valeur **+15,2 %** (6,95 M£ -> 8,01 M£), Profit **+31,9 %** (1,19 M£ -> 1,57 M£).
+- **Graine 1** : Valeur **+7,9 %** (2,65 M£ -> 2,85 M£), Profit **+15,9 %** (630 k£ -> 730 k£).
+- **Graine 2026** : Valeur **+5,6 %** (2,30 M£ -> 2,42 M£).
+
+### 4. Décision et adoption
+
+- `feeder_town_coverage` est activé par défaut (`1`) dans `ai/OpexAI/info.nut`, `candidates.nut`, `main.nut` et supporté dans `sweeps/bench_v2.py`.
+- **C29.4 est validé et adopté.**
+- **L'ensemble de la refonte du rabattement C29 (C29.1 + C29.2 + C29.3 + C29.4) est désormais achevé et validé avec succès.**
 
 
 

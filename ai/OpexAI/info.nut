@@ -325,6 +325,17 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C29.4 : Couverture multi-arrêts urbaine pour rabattement (docs/taches.md C29.4).
+     * Jusqu'à ceil(maisons / ROAD_STOP_CATCHMENT_HOUSES) gares distinctes par ville (modèle AAAHogEx).
+     * 1 = active (defaut), 0 = arrêt unique historique par ville. */
+    AddSetting({
+      name = "feeder_town_coverage",
+      description = "Couverture multi-arrets urbaine rabattement (docs/taches.md C29.4): 1 = active (defaut), 0 = arret unique",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
     AddSetting({
       name = "air_max_distance",
       description = "Plafond de distance pour les liaisons aeriennes (0 = illimite, 212 = defaut empirique, docs/taches.md C6)",
