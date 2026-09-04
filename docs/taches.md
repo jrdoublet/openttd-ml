@@ -6822,3 +6822,71 @@ mais il est écrit dans `revenueAnnual` et `profitAnnual`, donc stocké sur la l
 diagnostic ultérieur. ➡️ Le garder pour le tri, mais **stocker la prédiction NON bonifiée** dans
 `line.predRevenue` / `line.predicted`. Aucun changement de comportement, et le prochain lecteur ne
 retombera pas dans le piège où celui-ci est tombé.
+
+---
+
+## 0 sexquadragesies. 🔑 L'AMORÇAGE : deux murs de taille ÉGALE, et un quart des refus est auto-infligé (2026-09-04)
+
+`sweeps/diag_amorcage.py`, 5 graines × 24 mois, `docs/diag_amorcage.json`. Réponse à la question
+posée par §0 quaterquadragesies : trésorerie, ou ordonnanceur ?
+
+### 1. Le volume d'activité
+
+| | |
+|---|---:|
+| constructions | **43** (8,6 par graine, soit **~4,3 par an**) |
+| refus | **407** (81,4 par graine) |
+| **ratio refus / construction** | **9,5** |
+| par mode | air 21 · feeder 17 · route 5 · **rail 0** · eau 0 |
+| emprunt | `initial_borrow` 5 (une fois par graine), puis **`refuse_repay` 74** |
+
+**Zéro ligne rail et zéro ligne d'eau en deux ans, sur cinq graines.** Et l'emprunt est tiré une
+seule fois au départ, puis on refuse 74 fois de le rembourser — on reste au plafond, par choix.
+
+### 2. 🔑 Les motifs : ni l'une ni l'autre des deux hypothèses ne gagne
+
+| motif | n | part |
+|---|---:|---:|
+| `insufficient_cash` | 141 | **35 %** |
+| `no_candidate` | 71 | 17 % |
+| `already_grown_this_year` | 58 | **14 %** |
+| `all_rejected` | 57 | 14 % |
+| `abandoned_pair` | 53 | **13 %** |
+| `portfolio_empty` | 17 | 4 % |
+| `plan_failed` · `insufficient_capital` · `build_failed` | 10 | 2 % |
+
+**La trésorerie fait 35 %. « Rien d'acceptable à proposer » (`no_candidate` + `all_rejected` +
+`portfolio_empty`) fait exactement 35 % aussi.** Les deux murs sont de taille identique, et aucune
+des deux hypothèses de §0 quaterquadragesies ne l'emporte : **il faut traiter les deux**.
+
+⚠️ Et « rien d'acceptable » ne veut pas dire « rien n'existe » : le vivier tient **8 534
+candidats** (§0 sextrigesies). C'est bien un problème de **filtres**, pas de génération.
+
+### 3. 🔴 27 % des refus sont AUTO-INFLIGÉS, et les deux correctifs existent déjà
+
+- **`already_grown_this_year` : 14 %** — c'est notre propre verrou annuel de croissance de flotte,
+  le refus `Y`. **C15 (`air_fleet_cadence_days`) le supprime**, et il est déjà écrit. Mesuré inerte
+  à 10 ans, il vaut ici **un refus sur sept** : son effet est concentré dans l'amorçage, là où on
+  ne l'avait jamais mesuré seul.
+- **`abandoned_pair` : 13 %** — une paire déjà abandonnée, régénérée, classée, puis rejetée.
+  **C22** la filtre à la génération. Pur gaspillage, aucun arbitrage derrière.
+
+**C'est le terrain le moins cher à reprendre** : les deux mécanismes sont identifiés, l'un est
+codé, l'autre est trivial, et ensemble ils portent plus du quart des refus.
+
+### 4. Le blocage est PROGRESSIF, pas immédiat
+
+Constructions par mois : 6 au mois 2, puis 0 à 4, et **cinq mois à zéro** (4, 12, 15, 17, 19).
+Les refus, eux, **montent** : 12 au mois 2, 30 au mois 20, **41 au mois 24**.
+
+➡️ L'IA démarre correctement puis **s'enlise** : ce n'est pas un défaut d'initialisation, c'est un
+étranglement qui se referme à mesure que le réseau existe. Cohérent avec `abandoned_pair` et
+`already_grown_this_year`, qui ne peuvent que croître avec le nombre de lignes.
+
+### ➡️ Ce que ça ordonne
+
+1. **C22** — supprimer 13 % des refus pour un correctif trivial, sans arbitrage derrière.
+2. **Mesurer C15 SEUL sur 3 ans**, et pas à 10 ans. Le banc factoriel l'a jugé inerte sur dix ans
+   et l'a mesuré à 3 ans **groupé avec le tampon**, jamais seul dans la fenêtre où il agit.
+3. **Les deux murs restent à traiter**, et à parts égales : la vitesse d'amorçage **et** les
+   filtres qui rejettent 8 534 candidats.

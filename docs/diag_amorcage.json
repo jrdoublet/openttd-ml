@@ -1,0 +1,131 @@
+{
+ "months": 24,
+ "seeds": [
+  42,
+  999,
+  7,
+  1024,
+  314
+ ],
+ "builds": {
+  "AIR_BUILD": 21,
+  "FEEDER_BUILD": 17,
+  "ROAD_BUILD": 5
+ },
+ "refus_kind": {
+  "AIR_REFUSE": 74,
+  "AIR_FLEET": 174,
+  "PROJECT_DISCARD": 85,
+  "FEEDER_REFUSE": 57,
+  "PORTFOLIO_EMPTY": 17
+ },
+ "refus_reason": {
+  "build_failed": 1,
+  "insufficient_cash": 141,
+  "abandoned_pair": 53,
+  "no_candidate": 71,
+  "already_grown_this_year": 58,
+  "all_rejected": 57,
+  "portfolio_empty": 17,
+  "plan_failed": 7,
+  "insufficient_capital": 2
+ },
+ "loans": {
+  "initial_borrow": 5,
+  "refuse_repay": 74
+ },
+ "per_month": {
+  "2": {
+   "builds": 6,
+   "refus": 12
+  },
+  "3": {
+   "builds": 3,
+   "refus": 17
+  },
+  "4": {
+   "builds": 0,
+   "refus": 20
+  },
+  "5": {
+   "builds": 1,
+   "refus": 21
+  },
+  "7": {
+   "builds": 3,
+   "refus": 15
+  },
+  "9": {
+   "builds": 2,
+   "refus": 9
+  },
+  "11": {
+   "builds": 4,
+   "refus": 23
+  },
+  "13": {
+   "builds": 3,
+   "refus": 10
+  },
+  "15": {
+   "builds": 0,
+   "refus": 11
+  },
+  "16": {
+   "builds": 3,
+   "refus": 22
+  },
+  "18": {
+   "builds": 3,
+   "refus": 30
+  },
+  "19": {
+   "builds": 0,
+   "refus": 4
+  },
+  "21": {
+   "builds": 1,
+   "refus": 25
+  },
+  "23": {
+   "builds": 2,
+   "refus": 26
+  },
+  "24": {
+   "builds": 1,
+   "refus": 41
+  },
+  "6": {
+   "builds": 1,
+   "refus": 9
+  },
+  "8": {
+   "builds": 2,
+   "refus": 16
+  },
+  "10": {
+   "builds": 3,
+   "refus": 11
+  },
+  "12": {
+   "builds": 0,
+   "refus": 15
+  },
+  "14": {
+   "builds": 1,
+   "refus": 17
+  },
+  "17": {
+   "builds": 0,
+   "refus": 14
+  },
+  "20": {
+   "builds": 3,
+   "refus": 30
+  },
+  "22": {
+   "builds": 1,
+   "refus": 9
+  }
+ }
+}
