@@ -5027,6 +5027,7 @@ Il n'y a pas d'A\* fait maison. Seule la fonction de coût est à nous.
 | **C29** | 🔑 **REFONTE DU RABATTEMENT — le bus ordinaire VERROUILLE le feeder** (§0 duoquinquagesies, §0 quattuorquinquagesies, §0 quinquinquagesies). **C29.1 + C29.2 + C29.3 + C29.4 : ✅ Fait et adopté** (`feeder_unlock=1`, `feeder_pricing=1`, `feeder_town_coverage=1` par défaut) : C29.1 restreint les hubs aux modes lourds passagers (Air + Rail Pax) ; C29.2 supprime le verrou `OpexOriginServed` pour ne filtrer que les villes déjà rabattues vers CE hub précis via `OpexTownFeederServed` ; C29.3 implémente le pricing physique selon le rendement par passager du hub ; C29.4 implémente la couverture multi-arrêts urbaine de la métropole du hub (`ceil(maisons / 20)` arrêts séparés d'au moins 6 tuiles rabattant vers l'aéroport). Validé au banc officiel 20 graines × 10 ans (`docs/bench_c29_4_coverage_10y_20seeds.json`) : **valeur médiane +10,12 % (+462 248 £)**, **profit médian +6,39 % (+68 882 £)**, **13 victoires sur 20 graines (65 %)**, score officiel **+38,0 pts en médiane** (712 -> 750). | ⚠️ **CHIFFRES CORRIGÉS PAR LA REVUE, voir C31** : seul C29.1+C29.2 est significatif (valeur 16/20 p = 0,012 ; score 15/20 p = 0,041 — mais profit 11/20 p = 0,82, NON significatif). C29.3 est NUL (médiane de valeur −7,3 %). C29.4 : médianes exactes mais non significatives (11/20 valeur, p = 0,82) | §0 duoquinquagesies, §0 quattuorquinquagesies, §0 quinquinquagesies |
 | **C30** | 🔑 **PROFIL DE CROISSANCE AÉRIENNE D'AAAHogEx — notre formule C14 est la SIENNE, l'écart est dans ce qui l'entoure** (§0 sexquinquagesies). Lecture de source, **aucun banc**. Quatre étages : **C30.1** seuil d'entrée étagé avant le tampon (file > 30 sous 10 appareils, > 100 ensuite, `route.nut:2838`) ; **C30.2** cadence 7-30 jours **couplée** à C30.1 (`main.nut:3711`) — ⚠️ jamais mesurée seule, la cadence seule est déjà connue pour ne rien décider ; **C30.3** forçage sur note de gare < 50 (`route.nut:2912`) ; **C30.4** démarrage à 2 appareils au lieu de 3-6 (`builder_air.nut:430`). ⚠️ **C30.1+C30.2 indissociables** — c'est leur COUPLAGE la trouvaille. ⚠️ **C30.4 après C30.1+2** seulement, sinon la ligne reste sous-dimensionnée un an. Corrobore au passage C26b=0 (`VS_AT_STATION`) et C16 (plafond de cadence de piste) | notes de gare 168 contre 190 ; ~520 évaluations contre 10 sur 10 ans | §0 sexquinquagesies |
 | **C31** | 🔴 **SUITES DE LA REVUE DE CODE C29** (§0 septquinquagesies). **C31.1 ✅ FAIT le 2026-09-04** — `feeder_pricing` ET `feeder_town_coverage` repassés à **0** (§0 octoquinquagesies, factoriel 2×2 30 graines : pricing −1,72 % valeur t=−0,66 34/60, couverture −0,37 % t=−0,16 33/60, interaction non significative p=0,59). Décision initiale : repasser `feeder_pricing` à **0** — banc officiel NUL sur les 3 métriques (11/20, 11/20, 9/20, p = 0,82) et **médiane de valeur −7,3 %** ; le 5/5 qui l'a fait adopter venait d'un banc 5 graines × 6 ans non répliqué. **C31.2 ✅ FAIT** remettre `OpexRoadFeederCandidates` sous `budget.begin()/end()` (`main.nut:1447`) — sa consommation d'opcodes est invisible depuis C29.3. **C31.3 ✅ FAIT** index (ville, hub) en un seul parcours : opcodes de generation **-26,8 %** en moyenne et **-46,5 %** au pire cas (mesure appariee graine 42 x 5 ans). ⚠️ Gravite initiale SUREVALUEE : le cout total etait de 0,03 % du budget. **C31.4** corriger les titres qui affirment un profit non significatif (C29.1+2 : 11/20, p = 0,82) et marquer C29.4 « non significatif » (11/20 valeur, p = 0,82). **C31.5** trancher l'effet de bord d'`OpexTownRoadLineCount` sur le plafond des bus ORDINAIRES. ⚠️ C31.1 se mesure seul ; C31.2-C31.3 sont de l'hygiène, à faire APRÈS | C29.3 nul au banc, médiane −7,3 % ; ~36 000 appels API non mesurés | §0 septquinquagesies |
+| **C33** | 🔴 **LE GOULOT DE L'AN 1 EST LA PLANIFICATION AÉRIENNE** (§0 novemquinquagesies, rejeu de la pire graine). **C33.1** instrumenter puis réduire `AIR_PLAN_SETS` : **~15 M d'opcodes par passage, ~130 jours de jeu par an**, soit plus du tiers de l'année — 900× le coût de la génération de feeders optimisée le matin même. **C33.2** poser les arrêts de rabattement DANS le chantier de l'aéroport, joints à la même gare (c'est le mécanisme réel d'AAAHogEx, et il rend C29.1-C29.4 caducs). **C33.3** délai de reprise sur la mémoire d'abandon — un seul échec de chantier nous a fait changer de mode pour l'année. **C33.4** décoder `AFAIL error=263`. ⚠️ **C33.1 avant tout le reste** : tant qu'un tiers de l'année part en planification, aucune amélioration de décision ne peut se voir | elle 8 liaisons en an 1, nous 5 ; chantier median 6 j contre 21 j de planification | §0 novemquinquagesies |
 | C13 | **Le sac à dos (knapsack) n'utilise pas le ROI bonifié fret de C8** — `OpexKnapsackComputeBound`/`OpexKnapsackSearch` (`projects.nut:283-286`, `:323`) additionnent encore `p.revenueAnnual` brut comme objectif, pas le ROI bonifié (monopole +40 %, chaîne +35 %). Le bonus C8 pèse donc sur le tri/seuil de sélection en amont, pas sur l'optimum retenu quand plusieurs candidats se disputent le même capital | trouvé en revue croisée agy/codex/grok du 2026-09-02, en vérifiant C8 | §C8, `projects.nut` |
 
 ### D. Mesures à refaire, parce que les anciennes ne valent plus
@@ -8014,3 +8015,104 @@ candidates, **aucune testée**, classées par ce qu'elles coûteraient à tranch
 
 ⚠️ **Ne pas reproposer C29.3/C29.4 sans avoir tranché au moins l'hypothèse 1.** Les rallumer tels
 quels a été mesuré deux fois et n'a rien donné.
+
+---
+
+## 0 novemquinquagesies. 🔑 TIMELINE AN 1, GRAINE 1 : le goulot est la PLANIFICATION AÉRIENNE, pas les décisions (2026-09-05)
+
+Rejeu de la **pire graine des vingt** (`docs/bench_c32_y1_20seeds.json` : graine 1, 21 131 £ contre
+429 855, **ratio 0,05**) avec les deux journaux de décision capturés — `docs/replay_seed1_y1.json`,
+`sweeps/diag_1v1_decisions.py --seeds 1 --years 1`. 289 décisions chez nous, 1 893 chez elle.
+
+⚠️ Ce rejeu tourne avec `decision_log = 1` et `air_fleet_probe = 1`, qui coûtent des opcodes : les
+montants ne sont pas comparables à ceux d'un banc. Les **délais**, eux, sont le sujet.
+
+### 1. Ce que chacune a construit en douze mois
+
+| AAAHogEx — **8 liaisons** | | nous — **5 lignes** | |
+|---|---:|---|---:|
+| air 288 t. (chantier **6 j**) | 26 fév | — | |
+| air 184 t. (**4 j**) | 3 mars | rail **BOIS** 62 t., 45 038 £ | 11 avr |
+| air 293 t. (65 j) | 7 mai | air 230 t., 93 923 £ | 16 juil |
+| air 311 t. (84 j) | 31 juil | air 184 t., 93 923 £ | 28 juil |
+| air 295 t. (35 j) | 9 sept | route pax 24 t. | 22 août |
+| air 276 t. (34 j) | 13 oct | route pax 18 t. | 28 nov |
+| rail 46 t. (13 j) | 28 oct | | |
+| air 357 t. (24 j) | 22 nov | | |
+
+**Elle démarre le 20 février et ne s'arrête plus. Notre première ligne est du 11 avril, et c'est du
+fret bois.** Ses distances aériennes vont de 46 à 357 tuiles ; quatre de ses huit liaisons
+dépassent notre ancien plafond de 212 (C6, depuis débloqué).
+
+### 2. 🔑 Nos trous ont TOUS la même signature
+
+| trou | durée | entre |
+|---|---:|---|
+| 14 jan → 3 fév | **20 j** | `AIR_TOWN_SERVED` → `AIR_PLAN_SETS` |
+| 6 fév → 26 fév | **20 j** | idem |
+| 27 fév → 7 avr | **39 j** | après l'échec de construction aérienne |
+| 23 avr → 14 mai | **21 j** | `AIR_TOWN_SERVED` → `AIR_PLAN_SETS` |
+| 28 mai → 21 juin | **24 j** | idem |
+| 24 juin → 16 juil | **22 j** | idem |
+
+**Cinq trous sur six sont le même : l'étape de planification aérienne.** Elle coûte ~21 jours de
+temps de jeu par passage et tourne six fois dans l'année, soit **~130 jours — plus du tiers de
+l'année passée à planifier**.
+
+> À 74 ticks par jour et 10 000 opcodes par tick, **un seul passage de planification aérienne
+> consomme de l'ordre de 15 MILLIONS d'opcodes.** La génération de feeders optimisée le même jour
+> (C31.3) en coûtait 16 171 : **900 fois moins.** L'optimisation d'opcodes du matin portait sur la
+> mauvaise fonction, et c'est mesuré, pas supposé.
+
+Pendant ce temps, elle boucle un chantier aérien complet — deux aéroports, quatre arrêts de bus,
+avions et ordres — en **4 à 6 jours** sur ses deux premières liaisons.
+
+### 3. Un seul échec de chantier nous a coûté le printemps
+
+Le 4 février le portefeuille classe **rang 0 = aérien**, rang 1 = rail bois. Le 27 février la
+construction aérienne **échoue** (`AIR_REFUSE reason=build_failed detail=AFAIL error=263 dist=157`).
+La paire entre alors dans la mémoire d'abandon. Quand le portefeuille repasse le **11 avril**, le
+rang 0 est écarté (`PROJECT_DISCARD reason=abandoned_pair`) et on tombe sur le rang 1 : le rail bois.
+
+➡️ **Un échec de construction unique change notre mode pour l'année.** La mémoire d'abandon est
+absolue là où il faudrait un délai de reprise. ⚠️ Ne pas confondre avec A4, qui portait sur la
+reprise de recherche du pathfinder : ici c'est la mémoire d'ABANDON de paire.
+
+### 4. Nos avions ne grandissent jamais
+
+Les deux liaisons aériennes, bâties en juillet, restent à **un appareil chacune** jusqu'au 31
+décembre : `AIR_FLEET action=refuse reason=W` aux deux passages (20 août, 29 novembre). La file au
+sol n'atteint jamais une pleine capacité d'avion.
+
+### 5. 🔑 ET LA RÉPONSE À LA QUESTION LAISSÉE OUVERTE PAR §0 octoquinquagesies
+
+Son journal du 23 février :
+
+```
+HgStation.BuildExec succeeded.PieceStation:2[0001Trafingbridge at 108x233] accepters:283
+HgStation.BuildExec succeeded.PieceStation:3[0001Trafingbridge at 102x233] accepters:347
+HgStation.BuildExec succeeded.AirStation:1[0001Trafingbridge at 106x222]   accepters:347
+```
+
+Les deux arrêts de bus et l'aéroport portent **le même identifiant de gare** (`0001Trafingbridge`)
+et sont posés **le même jour, dans le même chantier**.
+
+> **Le rabattement n'est pas un projet chez elle : c'est un COMPOSANT de la liaison aérienne.**
+
+C'est la réponse à « pourquoi le même geste ne paie pas chez nous » : nous en avons fait un projet
+qui concourt pour du capital **des mois après** l'aéroport, alors que chez elle les arrêts naissent
+avec l'aéroport, dans la même gare, et alimentent l'avion dès le premier jour. Aucun de nos quatre
+étages C29 ne pouvait reproduire ça, puisque tous supposaient un arbitrage séparé.
+
+### 6. ➡️ C33 — l'ordre de bataille que ça dessine
+
+| # | action | pourquoi |
+|---|---|---|
+| **C33.1** | 🔴 **Instrumenter puis réduire le coût de la planification aérienne** (`AIR_PLAN_SETS`) | ~15 M d'opcodes par passage, ~130 jours de jeu par an. Le goulot, très loin devant tout le reste |
+| **C33.2** | 🔑 **Poser les arrêts de rabattement DANS le chantier de l'aéroport**, joints à la même gare, au lieu de les arbitrer séparément | c'est le mécanisme réel d'AAAHogEx, et il rend C29.1-C29.4 caducs |
+| **C33.3** | 🟠 **Délai de reprise sur la mémoire d'abandon** au lieu d'un bannissement définitif | un échec de chantier a changé notre mode pour l'année |
+| **C33.4** | 🟡 **Décoder `AFAIL error=263`** et traiter la cause | c'est l'échec qui a déclenché la cascade du §3 |
+
+⚠️ **C33.1 avant tout le reste.** Tant qu'un tiers de l'année part en planification, aucune
+amélioration de décision ne peut se voir : on optimise le choix pendant que le débit est le mur.
+C'est la même leçon que §0 sexquinquagesies point 2.2 (cadence 7 j contre 365) vue par l'autre bout.
