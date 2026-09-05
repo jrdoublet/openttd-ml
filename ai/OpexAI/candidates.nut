@@ -193,6 +193,13 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   }
 
   local iterations = OpexRailIterations(distance);
+  /* C36.2 : Si les iterations predites depassent le plafond dur d'iterations du pathfinder
+   * (HARD_ITERATION_CAP), la tentative est vouee a l'echec (ABND) et gele le script NoAI
+   * pendant des mois. Marge de 20 % pour les couloirs rectilignes. */
+  if (iterations > (HARD_ITERATION_CAP * 12) / 10) {
+    stats.distanceLong++;
+    return null;
+  }
   local opcodeRatio = (economics.profitAnnual * 1000) / iterations;
   /* MIN_RATIO reste une mesure et le cout d'opportunite terminal du pathfinder, mais il ne peut
    * plus eliminer un mode AVANT l'arbitrage par couple O/D. La contrainte d'opcodes est appliquee
@@ -1312,7 +1319,7 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats)
 /* Famille 4 (Transferts / Feeders) : ville satellite libre -> Gare Hub ou Aéroport existant.
  * Les bus acheminent les passagers vers le hub avec un ordre de transfert (OF_TRANSFER),
  * décuplant le flux capté par les lignes ferroviaires et aériennes longue distance. */
-function OpexRoadFeederCandidates(catalog, lines, out, stats)
+function OpexRoadFeederCandidates(catalog, lines, out, stats, abandonedPairs = null)
 {
   local cargo = catalog.paxCargo;
   if (cargo < 0 || !(cargo in catalog.roadEngineByCargo)) return;
@@ -1451,6 +1458,8 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats)
         if (maxFeeders < 1) maxFeeders = 1;
       }
       if (FEEDER_UNLOCK && existingCount >= maxFeeders) continue;
+      local feederKey = "feeder|" + towns[i].id + "|" + hub.stationId + "|" + existingCount;
+      if (abandonedPairs != null && (feederKey in abandonedPairs)) continue;
 
       stats.pairsInBand++;
       /* Part de la production restant à capter après les arrêts déjà construits */
@@ -1583,7 +1592,7 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats)
 
 /* Classement routier complet. Rendu a part de celui du rail : les deux ne partagent ni leur unite
  * de cout (cf. ROAD_PLAN_ITERATIONS_BASE) ni leur phase de construction. */
-function OpexBuildRoadCandidates(catalog, budget, lines)
+function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null)
 {
   local all = [];
   local stats = {
@@ -1601,7 +1610,7 @@ function OpexBuildRoadCandidates(catalog, budget, lines)
    * prefixe "feeder|" dans OpexProjectRemember, donc ils n'evincent plus l'aerien) et
    * l'ecrasement par l'opcodeScore aerien -- qui est precisement ce que l'arbitrage doit
    * trancher, pas contourner. Sous feeder_portfolio = 0, comportement C29 conserve. */
-  if (FEEDER_PORTFOLIO) OpexRoadFeederCandidates(catalog, lines, all, stats);
+  if (FEEDER_PORTFOLIO) OpexRoadFeederCandidates(catalog, lines, all, stats, abandonedPairs);
   local ops = budget.end("cand_road");
 
   if (DECISION_LOG) {

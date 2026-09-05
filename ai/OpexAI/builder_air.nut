@@ -477,7 +477,7 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
   local incomePerUnit = totalIncomePerUnit;
   local airportMaintenanceAnnual =
       infrastructureMaintenance ? 12 * newAirportCount * airport.maintenance : 0;
-  local airportAmortAnnual = newAirportCount * airport.price / 30;
+  local airportAmortAnnual = (newAirportCount * airport.price * INFRA_AMORT_PCT / 100) / 30;
   local best = null;
 
   /* Plafond d'appareils initial : jusqu'a 3 sur nouvelle ligne, jusqu'a 6 sur hub existant.
@@ -487,8 +487,8 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
    * predit. air_demand_plan remplace le plafond fixe par celui du flux reel ; sous 0, ce bloc
    * garde le calcul existant. */
   local isSmall = (airport.type == AIAirport.AT_SMALL || airport.type == AIAirport.AT_COMMUTER);
-  local maxAllowed = MARGINAL_FLEET ? 1 : ((newAirportCount == 2) ? 3 : (isSmall ? 4 : 6));
-  if (!MARGINAL_FLEET && AIR_DEMAND_PLAN && demandCap > 0) maxAllowed = demandCap;
+  local maxAllowed = (MARGINAL_FLEET || FLEET_PORTFOLIO) ? 1 : ((newAirportCount == 2) ? 3 : (isSmall ? 4 : 6));
+  if (!MARGINAL_FLEET && !FLEET_PORTFOLIO && AIR_DEMAND_PLAN && demandCap > 0) maxAllowed = demandCap;
   /* Dimensionnement cible selon le volume passagers */
   local targetPlanes = OpexCeilDiv(monthlyPax, capacityPerPlane.tointeger());
   if (targetPlanes < 1) targetPlanes = 1;
@@ -1081,8 +1081,8 @@ function OpexBuildAirRoute(catalog, budget, plan)
    * Le nivellement des deux sites est deja paye dans le chemin nominal ; ce qu'on economise, c'est
    * l'aeroport bati puis rase. B est sonde en premier : c'est lui qui echoue. */
   if (AIR_PRESITE && !reuseA && !reuseB) {
-    local endA = plan.siteA.anchor + AIMap.GetTileIndex(airport.width - 1, airport.height - 1);
-    local endB = plan.siteB.anchor + AIMap.GetTileIndex(airport.width - 1, airport.height - 1);
+    local endA = plan.siteA.anchor + AIMap.GetTileIndex(airport.width, airport.height);
+    local endB = plan.siteB.anchor + AIMap.GetTileIndex(airport.width, airport.height);
     if (AIMap.IsValidTile(endA)) AITile.LevelTiles(plan.siteA.anchor, endA);
     if (AIMap.IsValidTile(endB)) AITile.LevelTiles(plan.siteB.anchor, endB);
     local errB = OpexAirSiteRefusal(plan.siteB, airport.type);
@@ -1110,8 +1110,15 @@ function OpexBuildAirRoute(catalog, budget, plan)
       airportA = plan.siteA.anchor;
     }
   } else {
-    local endA = plan.siteA.anchor + AIMap.GetTileIndex(airport.width - 1, airport.height - 1);
-    if (AIMap.IsValidTile(endA)) AITile.LevelTiles(plan.siteA.anchor, endA);
+    local endA = plan.siteA.anchor + AIMap.GetTileIndex(airport.width, airport.height);
+    if (AIMap.IsValidTile(endA)) {
+      if (!AITile.LevelTiles(plan.siteA.anchor, endA)) {
+        if (AIError.GetLastError() == AIError.ERR_LOCAL_AUTHORITY_REFUSES) {
+          OpexBoostTownRating(plan.siteA.town.id, 800, 40);
+          AITile.LevelTiles(plan.siteA.anchor, endA);
+        }
+      }
+    }
     local okA = AIAirport.BuildAirport(plan.siteA.anchor, airport.type, AIStation.STATION_NEW);
     if (!okA && AIError.GetLastError() == AIError.ERR_LOCAL_AUTHORITY_REFUSES) {
       OpexBoostTownRating(plan.siteA.town.id, 800, 40);
@@ -1134,8 +1141,15 @@ function OpexBuildAirRoute(catalog, budget, plan)
       airportB = plan.siteB.anchor;
     }
   } else {
-    local endB = plan.siteB.anchor + AIMap.GetTileIndex(airport.width - 1, airport.height - 1);
-    if (AIMap.IsValidTile(endB)) AITile.LevelTiles(plan.siteB.anchor, endB);
+    local endB = plan.siteB.anchor + AIMap.GetTileIndex(airport.width, airport.height);
+    if (AIMap.IsValidTile(endB)) {
+      if (!AITile.LevelTiles(plan.siteB.anchor, endB)) {
+        if (AIError.GetLastError() == AIError.ERR_LOCAL_AUTHORITY_REFUSES) {
+          OpexBoostTownRating(plan.siteB.town.id, 800, 40);
+          AITile.LevelTiles(plan.siteB.anchor, endB);
+        }
+      }
+    }
     local okB = AIAirport.BuildAirport(plan.siteB.anchor, airport.type, AIStation.STATION_NEW);
     if (!okB && AIError.GetLastError() == AIError.ERR_LOCAL_AUTHORITY_REFUSES) {
       OpexBoostTownRating(plan.siteB.town.id, 800, 40);

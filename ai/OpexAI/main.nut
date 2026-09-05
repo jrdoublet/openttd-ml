@@ -1838,6 +1838,7 @@ function OpexAI::_tryBuildProjects(year)
   local anchor = AIMap.GetTileIndex(1, 1);
   local yy = year % 100;
   local builtCount = 0;
+  local passDiscards = [];
   /* 1 conserve le break historique. Au-dela, chaque candidat apres le premier succes passe les
    * revalidations de son mode contre this._lines, la carte et la tresorerie vivantes. */
   local maxBatch = PORTFOLIO_MAX_BATCH;
@@ -1854,7 +1855,6 @@ function OpexAI::_tryBuildProjects(year)
   }
 
   if (builtCount < maxBatch && this._projects != null && this._projects.best.len() > 0) {
-  local passDiscards = [];
   local logDiscardsThisPass = false;
   /* Le calcul du mois courant coute DEUX appels d'API et tournait a chaque passage, reglage
    * eteint compris. Ici le comportement depend des opcodes consommes : tout ce qui ne sert
@@ -2384,7 +2384,15 @@ function OpexAI::_tryBuildProjects(year)
   }
   }
 
-  if (builtCount > 0) {
+  local hadAbandons = false;
+  foreach (d in passDiscards) {
+    if (d.reason == "plan_failed" || d.reason == "build_failed") {
+      hadAbandons = true;
+      break;
+    }
+  }
+
+  if (builtCount > 0 || hadAbandons) {
     local fleetPlan = null;
     if (FLEET_PORTFOLIO) {
       /* Mode a blanc : meme decision que la tache air_fleet, sans achat ni test de tresorerie. */
@@ -2399,13 +2407,13 @@ function OpexAI::_tryBuildProjects(year)
       local budgetNow = cashNow + borrowableNow - OpexCashReserve();
       if (budgetNow < 0) budgetNow = 0;
 
-      this._projects = OpexIncrementalUpdateProjects(this._projects, this._catalog, this._budget, this._lines, budgetNow, fleetPlan);
+      this._projects = OpexIncrementalUpdateProjects(this._projects, this._catalog, this._budget, this._lines, budgetNow, fleetPlan, this._abandonedPairs);
     } else {
       local priorPeak = (this._projects != null && ("capitalBudgetPeak" in this._projects))
           ? this._projects.capitalBudgetPeak : 0;
       local priorHistory = (this._projects != null && ("capitalBudgetHistory" in this._projects))
           ? this._projects.capitalBudgetHistory : null;
-      this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines, priorPeak, priorHistory, fleetPlan);
+      this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines, priorPeak, priorHistory, fleetPlan, this._abandonedPairs);
     }
     this._ranked = this._projects.rail;
     if (PORTFOLIO_LOG) OpexLogPortfolioRank(this._projects);
@@ -4458,7 +4466,7 @@ function OpexAI::_runNextTask()
       fleetPlan = [];
       this._resizeAirFleets(AIDate.GetYear(AIDate.GetCurrentDate()), fleetPlan);
     }
-    this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines, priorPeak, priorHistory, fleetPlan);
+    this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines, priorPeak, priorHistory, fleetPlan, this._abandonedPairs);
     this._ranked = this._projects.rail;
     if (PORTFOLIO_LOG) {
       if (this._projects != null && this._projects.best != null && this._projects.best.len() > 0) {
@@ -4530,11 +4538,27 @@ function OpexAI::_runNextTask()
     this._tryBuildAir(year); return true;
   }
   if (task.name == "air_fleet") {
-    /* C34.2 : sous fleet_portfolio, la croissance de flotte est arbitree par le portefeuille.
-     * La tache dediee avait un DROIT DE TIRAGE sur la tresorerie avant `projects` (ordre
-     * main.nut:626-630), ce qui la faisait servir d'office avant toute ligne neuve. */
-    if (FLEET_PORTFOLIO) { task.enabled = false; return false; }
+    /* C34.2 / C36.2 : sous fleet_portfolio, la croissance de flotte est arbitree par le portefeuille.
+     * La tache dediee ne depense plus a l'aveugle, mais inspecte la flotte et injecte
+     * les opportunites mures dans le vivier incremental du portefeuille sans attendre un an. */
     task.dueCycle = this._taskCycle + 1;
+    if (FLEET_PORTFOLIO) {
+      if (PORTFOLIO_CACHE && this._projects != null) {
+        local fleetPlan = [];
+        this._resizeAirFleets(year, fleetPlan);
+        if (fleetPlan.len() > 0) {
+          local cashNow = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+          local borrowableNow = REBORROW
+              ? AICompany.GetMaxLoanAmount() - AICompany.GetLoanAmount() : 0;
+          if (borrowableNow < 0) borrowableNow = 0;
+          local budgetNow = cashNow + borrowableNow - OpexCashReserve();
+          if (budgetNow < 0) budgetNow = 0;
+          this._projects = OpexIncrementalUpdateProjects(this._projects, this._catalog, this._budget, this._lines, budgetNow, fleetPlan, this._abandonedPairs);
+          this._ranked = this._projects.rail;
+        }
+      }
+      return false;
+    }
     return this._resizeAirFleets(year);
   }
   if (task.name == "feeders") {

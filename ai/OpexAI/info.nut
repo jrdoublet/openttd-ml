@@ -349,23 +349,22 @@ class OpexAIInfo extends AIInfo {
      * 1 = portefeuille seul (defaut), 0 = tache dediee _tryBuildAir en plus. */
     AddSetting({
       name = "air_portfolio",
-      description = "Construction aerienne arbitree par le portefeuille seul (docs/taches.md C34.1): 1 = portefeuille (MESURE -23,3 % en an 1, ne pas activer sans corriger le classement) , 0 = tache dediee",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "Construction aerienne arbitree par le portefeuille seul (docs/taches.md C34.1, C36.2): 1 = portefeuille (adopte C36.2, +4,4 % valeur, +6,2 % profit, +36 pts score a 3 ans), 0 = tache dediee",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
-    /* C34.2 : CROISSANCE DE FLOTTE ARBITREE PAR LE PORTEFEUILLE (docs/taches.md C34).
+    /* C34.2 / C36.2 : CROISSANCE DE FLOTTE ARBITREE PAR LE PORTEFEUILLE (docs/taches.md C36.2).
      * La tache air_fleet passait AVANT `projects` dans l ordre de service : elle avait un droit de
      * tirage sur la tresorerie et etait servie d office avant toute ligne neuve. Sous 1, elle
-     * tourne en MODE A BLANC (_resizeAirFleets(year, plan)) : memes treize gardes de refus, aucun
-     * achat, et chaque achat retenu devient un projet arbitre contre les lignes neuves.
-     * 1 = portefeuille (defaut), 0 = tache dediee servie en premier. */
+     * tourne en MODE A BLANC (_resizeAirFleets(year, plan)) et injecte les achats au portefeuille.
+     * 1 = portefeuille (defaut C36.2), 0 = tache dediee servie en premier. */
     AddSetting({
       name = "fleet_portfolio",
-      description = "Croissance de flotte aerienne arbitree par le portefeuille (docs/taches.md C34.2): 1 = portefeuille (MESURE -23,3 % en an 1, ne pas activer sans corriger le classement) , 0 = tache dediee",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "Croissance de flotte aerienne arbitree par le portefeuille (docs/taches.md C34.2, C36.2): 1 = portefeuille (adopte C36.2), 0 = tache dediee",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 

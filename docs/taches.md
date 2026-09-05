@@ -5030,7 +5030,7 @@ Il n'y a pas d'A\* fait maison. Seule la fonction de coût est à nous.
 | **C33** | 🔴 **LE GOULOT DE L'AN 1 EST LA PLANIFICATION AÉRIENNE** (§0 novemquinquagesies, rejeu de la pire graine). **C33.1 ✅ FAIT et VALIDÉ le 2026-09-05** (`air_site_cache=1` par défaut, `AIR_SITE_RADIUS=25`) : instrumenté puis réduit via cache persistant de sites d'atterrissage avec revalidation à 1 sonde et mémorisation négative. Résultat banc officiel 1 an 5 graines : **valeur +18,6 %** (207 690 £ vs 175 072 £, 4/5 victoires), **profit +15,8 %** (143 973 £ vs 124 311 £), **+3,2 véhicules**, opcodes par passage **-94 % à -96 %** (140 k vs 2,5 à 3,7 M), jours perdus par an divisés par 15 (3 j vs 47-48 j). **C33.2** poser les arrêts de rabattement DANS le chantier de l'aéroport, joints à la même gare (c'est le mécanisme réel d'AAAHogEx, et il rend C29.1-C29.4 caducs). **C33.3** délai de reprise sur la mémoire d'abandon — un seul échec de chantier nous a fait changer de mode pour l'année. **C33.4** décoder `AFAIL error=263`. | C33.1 validé : valeur +18,6 %, opcodes/run −95 %, jours perdus 48j -> 3j | §0 novemquinquagesies, §0 sexagesies |
 | **C34** | 🔴 **FAIT, MESURÉ, REJETÉ — réintégrer l'aérien et le refleet au portefeuille** (§0 sexagesies). `air_portfolio` + `fleet_portfolio`, **défauts remis à 0**. Banc 20 graines × 1 an : **valeur −23,3 %, t = −3,25, 5/20, p = 0,041** — significatif et négatif ; ratio contre AAAHogEx 0,42 → 0,32. Mécanisme : privé de sa voie dédiée, l'aérien affronte un classement qui met la **route au rang 0 dans 27 cas sur 30**. ⚠️ **C34.2 est INERTE** (aucun projet de flotte jamais élu, la règle de tampon refuse toujours) : toute la régression vient de C34.1. ⚠️ Deux de mes raisonnements étaient FAUX et sont réfutés au dossier : couper la tâche aérienne ne divise PAS la planification (11 → 15 passages/an), et l'opcodeScore des projets de flotte n'écrase rien. ➡️ Corriger le DÉNOMINATEUR du classement (A1) avant toute nouvelle plomberie | −23,3 % à 1 an, p = 0,041 ; route rang 0 dans 27/30 | §0 sexagesies |
 | **C35** | 🔑 **A1 : POURQUOI ÇA NE PREND PAS — vers le coût réduit à prix d'ombre** (§0 trenonagies, analyse de code, banc C35.1, banc C35.3). 🔴 **La formule validée a été REMPLACÉE** : `4c087c7` posait un classement continu `profit/(0,05 + Σ T_r)` mesuré **+17,0 % an 3**, `079238c` l'a écrasé par une bascule discrète — et son paramètre `decisionFriction` est resté MORT dans le code. 🔴 **A1.1 n'est pas une loi de Liebig** : `t_foncier = 1,0 + saturation` est toujours ≥ 1 quand les trois autres tensions sont des taux < 1, donc l'argmax élit le foncier sauf quand on est fauché — soit *ROI si fauché, profit brut sinon*, le vecteur à 4 ressources étant décoratif. ➡️ **Synthèse : coût réduit `profit − Σ λ_r a_ir`** — le prix d'ombre EST la normalisation cherchée (il porte une unité, le taux de tension non), la TCC en découle ($\arg\max λ_r$ = le goulot), et `OpexKnapsackComputeBound` calcule DÉJÀ le dual du capital sans le nommer. ⚠️ **D4 devient un PRÉREQUIS** : en coût réduit le biais de prédiction n'est plus amorti. **C35.1 ✅ FAIT et MESURÉ le 2026-09-05** (`docs/bench_c35_1_tension_scoring_3y.json`) : A1.1 seul contre 0 donne **−11,6 % valeur** (−129 k£, 2/5 victoires) et **−9,8 % profit** (−62 k£). **C35.3 ✅ FAIT et MESURÉ le 2026-09-05** (`docs/bench_c35_3_shadow_pricing_3y.json`) : score officiel **+29,4 pts** (357,6 vs 328,2, 3/5 victoires), rating de gare **+13,5 pts**, réseau plus étendu (+7,6 gares), résilience spectaculaire sur la graine aride 2026 (+166 % valeur, +114 % profit, +138 pts score), mais valeur moyenne −11,2 % et profit −25,6 % due à la sur-taxation cumulative des contraintes 1D indépendantes sur cartes riches | +17,0 % validé (Option A) vs −11,6 % (A1.1 seul C35.1) vs +29,4 pts score / +166 % graine 2026 (C35.3) | §0 trenonagies, §0 quinquinonagies, §0 sexanonagies |
-| **C36** | 🔑 **COMPRESSION DU TEMPS DE CYCLE ET RÉINTÉGRATION UNIFIÉE DU PORTEFEUILLE** (§0 septanonagies). **C36.1 ✅ FAIT et MESURÉ le 2026-09-05** (`portfolio_cache=1`) : Caching incrémental du vivier post-chantier via `OpexIncrementalUpdateProjects` (délai post-chantier ramené de 15 jours à 0 jour / < 1 tick). Banc 5 graines × 3 ans : +14,3 % de gares construites (216 vs 189), note de gare médiane +12,2 pts (175,0 vs 162,8), résilience forte graine aride 2026 (+53,3 % valeur, +80 pts score, 44 vs 25 gares). **C36.2** Réintégration unifiée au portefeuille (`air_portfolio=1`, `fleet_portfolio=1`, `feeder_portfolio=1`), rendue viable par les recalibrages D4/D5 qui permettent à l'aérien et au refleet de remporter le rang 0 sans se faire écraser par la route. **C36.3** Découpage et pré-filtrage de la découverte du catalogue (`catalog` / `OpexAirPlans`) par priorité aux métropoles pour comprimer le gel initial de 17 jours à 2 jours. **C36.4** Élimination des ticks morts par drainage (`loop_budget=1`). | délai post-chantier 15j -> 0j ; réseau +14,3 % gares | §0 septanonagies |
+| **C36** | 🔑 **COMPRESSION DU TEMPS DE CYCLE ET RÉINTÉGRATION UNIFIÉE DU PORTEFEUILLE** (§0 septanonagies). **C36.1 ✅ FAIT et MESURÉ le 2026-09-05** (`portfolio_cache=1`) : Caching incrémental du vivier post-chantier via `OpexIncrementalUpdateProjects` (délai post-chantier ramené de 15 jours à 0 jour / < 1 tick). Banc 5 graines × 3 ans : +14,3 % de gares construites (216 vs 189), note de gare médiane +12,2 pts (175,0 vs 162,8), résilience forte graine aride 2026 (+53,3 % valeur, +80 pts score, 44 vs 25 gares). **C36.2 ✅ FAIT et MESURÉ le 2026-09-05** (`air_portfolio=1`, `fleet_portfolio=1`) : Réintégration unifiée et arbitrage multimodal au sac à dos (`OpexProjectConflictKeys`, dimensionnement initial 1 appareil, élagage immédiat `abandonedPairs`, déblocage nivellement site B). Banc 5 graines × 3 ans : **valeur +4,4 %** (1 119 968 £ vs 1 072 350 £, 4/5 victoires), **profit +6,2 %** (582 983 £ vs 548 702 £), **score +36,4 pts** (374,8 vs 338,4, +10,8 %), bond spectaculaire graine 2026 (+127,8 % valeur, +212 % profit, +146 pts score). **C36.3** Découpage et pré-filtrage de la découverte du catalogue (`catalog` / `OpexAirPlans`) par priorité aux métropoles pour comprimer le gel initial de 17 jours à 2 jours. **C36.4** Élimination des ticks morts par drainage (`loop_budget=1`). | délai post-chantier 15j -> 0j ; réseau +14,3 % gares | §0 septanonagies |
 | C13 | **Le sac à dos (knapsack) n'utilise pas le ROI bonifié fret de C8** — `OpexKnapsackComputeBound`/`OpexKnapsackSearch` (`projects.nut:283-286`, `:323`) additionnent encore `p.revenueAnnual` brut comme objectif, pas le ROI bonifié (monopole +40 %, chaîne +35 %). Le bonus C8 pèse donc sur le tri/seuil de sélection en amont, pas sur l'optimum retenu quand plusieurs candidats se disputent le même capital | trouvé en revue croisée agy/codex/grok du 2026-09-02, en vérifiant C8 | §C8, `projects.nut` |
 
 ### D. Mesures à refaire, parce que les anciennes ne valent plus
@@ -8778,8 +8778,8 @@ L'instrumentation du journal de décision NoAI (`-d script=4`) sur les premiers 
 | # | Action | Mécanisme physique et algorithmique | Gain temporel / stratégique |
 |---|---|---|---|
 | **C36.1** | **Caching incrémental du vivier post-chantier** | Remplacer l'appel `OpexBuildProjects` après construction par une mise à jour incrémentale du vivier en cache : (1) retirer les projets dont les origines/destinations sont désormais occupées ; (2) injecter les nouveaux feeders vers le hub créé et les opportunités de refleet ; (3) réélire le portefeuille via `OpexReselectProjects` sur le solde de capital restant. | **Délai post-chantier : 15 jours → 0 jour (< 500 opcodes)** |
-| **C36.2** | **Réintégration unifiée au portefeuille (`air_portfolio`, `fleet_portfolio`, `feeder_portfolio`)** | Fusionner toutes les constructions dans le portefeuille unique. Les recalibrages physiques D4 et D5 ont mis fin à la surévaluation du bus routier : l'avion et le refleet remportent désormais naturellement le rang 0. Élimine les collisions où la tâche `air` doublonne le portefeuille. Permet l'enchaînement vertueux : Ligne 0 → Refleet/Feeder dès maturation → Ligne suivante. | Arbitrage rationnel et fin des chantiers concurrents aveugles |
-| **C36.3** | **Découpage et pré-filtrage de la découverte (`catalog` / `OpexAirPlans`)** | Pré-filtrer les couples de villes par potentiel de gravité ($\text{pop}_A \cdot \text{pop}_B / d$) pour ne sonder que les 5 à 10 meilleures paires urbaines au démarrage au lieu de 49 paires exhaustives. | **Gel initial : 17 jours → 2 jours (premier projet dès le 3 janvier)** |
+| **C36.2** | **Réintégration unifiée au portefeuille (`air_portfolio`, `fleet_portfolio`, `feeder_portfolio`)** | ✅ **FAIT et MESURÉ le 2026-09-05**. Fusionner toutes les constructions dans le portefeuille unique. Les recalibrages physiques D4 et D5 ont mis fin à la surévaluation du bus routier : l'avion et le refleet remportent désormais naturellement le rang 0. Élimine les collisions où la tâche `air` doublonne le portefeuille. Permet l'enchaînement vertueux : Ligne 0 → Refleet/Feeder dès maturation → Ligne suivante. | Arbitrage rationnel et fin des chantiers concurrents aveugles (+4,4 % valeur, +6,2 % profit, +36,4 pts score) |
+| **C36.3** | **Découpage et pré-filtrage de la découverte (`catalog` / `OpexAirPlans`)** | ⚠️ **Fiche initiale infirmée, voir §0 octanonagies (analyse, non codé).** Le coût n'est pas « 49 paires » mais `OpexAirFindSite` à froid sur 24 villes (1 391 sondes, 14 j calendaires sous script=4). La gravité $\mathrm{pop}_A\cdot\mathrm{pop}_B/d$ combat le paiement aérien (revenu croissant avec $d$, rang 0 réel = 175 tuiles). Seule variante raisonnable : plafond de pool **cycle 0** (8–10 plus grosses villes), pas un filtre de paires permanent. | **Gel initial : 17 jours → 2 jours (premier projet dès le 3 janvier)** — cible non tenable en C36.3 seul |
 | **C36.4** | **Élimination des ticks morts de l'ordonnanceur (`loop_budget=1`)** | Dans `main.nut:4744`, drainer le quota de 10 000 opcodes par tick en enchaînant les micro-tâches inactives au lieu de rendre la main après 100 opcodes avec `AIController.Sleep(1)`. | 10 tâches dormantes exécutées en 1 tick au lieu de 10 ticks |
 
 ### 3. Mesures et validation de C36.1 (2026-09-05)
@@ -8817,6 +8817,149 @@ L'instrumentation du journal de décision NoAI (`-d script=4`) sur les premiers 
 2. **Expansion physique du réseau nettement accélérée** : +27 gares supplémentaires construites à 3 ans (+14,3 %), dont +19 gares sur la graine aride 2026 et +10 sur la 100.
 3. **Qualité de service rehaussée** : la note de gare médiane passe de 162,8 à **175,0 (+12,2 points)**, avec un saut spectaculaire sur la graine 7 (112 → 180, +68 points).
 4. **Transition naturelle vers C36.2** : ce vivier incrémental ultra-rapide est le socle indispensable pour C36.2 (`air_portfolio=1`, `fleet_portfolio=1`, `feeder_portfolio=1`), qui permettra aux avions et au refleet d'être saisis au vol dès libération du capital sans attendre les relances de calendrier.
+
+### 4. Mesures et validation de C36.2 (2026-09-05)
+
+**Problématique et verrous identifiés** :
+Lors des premières tentatives de réintégration unifiée (C34), confier l'arbitrage complet au sac à dos entraînait un effondrement (−23,3 %) car la route écrasait tout et bloquait les autres modes. Après le recalibrage physique D4/D5, quatre blocages résiduels empêchaient encore le portefeuille unifié de performer :
+1. **Bogue de nivellement `LevelTiles` (`builder_air.nut:1084, 1113, 1144`)** : L'indexation `anchor + GetTileIndex(w-1, h-1)` omettait les bordures extérieures sud et est des pistes. Le nivellement préalable réussissait faussement, et la pose finale de l'aéroport B échouait avec `BFAIL (ERR_FLAT_LAND_REQUIRED)`. Corrigé en `anchor + GetTileIndex(w, h)` avec relance de subvention locale en cas de refus municipal.
+2. **Conflits inter-modes aveugles au sac à dos (`projects.nut`)** : L'ancien test `(p.src in state.originsUsed) || (p.dst in state.originsUsed)` utilisait des entiers bruts d'identification de villes/industries. Dès qu'un bus urbain était sélectionné pour une ville A, la ville entière était verrouillée : les aéroports et lignes aériennes reliant cette même ville étaient exclus du lot, et les feeders tuaient l'aéroport qu'ils devaient alimenter ! Corrigé par la fonction `OpexProjectConflictKeys(p)` qui segmente les clés de conflit par mode (`rail|tile`, `air|s|d`, `new_airport|tile`, `feeder_hub|hubId`, `feeder|s|d`, `fleet|lineId`).
+3. **Surdimensionnement initial sous `FLEET_PORTFOLIO`** : L'économiseur aérien créait des plans initiaux à 4 avions (£248k) pour les liaisons inter-hubs, dépassant le budget disponible au démarrage et laissant le rail emporter les fonds. Corrigé en calibrant la mise en service initiale à 1 appareil (`maxAllowed = (MARGINAL_FLEET || FLEET_PORTFOLIO) ? 1 : ...`), la montée en charge étant ensuite assurée dynamiquement par le portefeuille (`OpexProjectFromFleet`).
+4. **Encrassement du vivier incrémental par les projets fantômes** : Les candidats échoués lors d'un tracé restaient en cache et monopolisaient le haut du classement. L'intégration de la mémoire `abandonedPairs` dans `OpexRoadFeederCandidates`, `OpexBuildRoadCandidates`, `OpexIncrementalCandidateStillValid` et le déclenchement d'un recalcul incrémental immédiat dès un abandon nettoie instantanément les routes mortes.
+
+**Banc apparié officiel 5 graines × 3 ans (`docs/bench_c36_2_unified_portfolio_3y.json`)** :
+Conditions strictes du banc : 1970–1972 (3 ans), `number_towns=3`, `industry_density=4`, CPU 2.0 / RAM 2048m.
+Comparaison appariée :
+- Témoin : `OpexAI[portfolio_cache=1]` (avec tâches dédiées `_tryBuildAir` et `air_fleet`)
+- Test : `OpexAI[portfolio_cache=1,air_portfolio=1,fleet_portfolio=1]` (portefeuille unifié complet)
+
+| Graine | Valeur Témoin | Valeur Unifiée | Écart Valeur | Score Témoin | Score Unifié | Profit An Témoin | Profit An Unifié | Gares Témoin | Gares Unifié |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 7 | 2 590 444 £ | 2 653 753 £ | +2,4 % (+63 k£) | 556 | 511 | 1 465 209 £ | 1 459 921 £ | 70 | 45 |
+| 42 | 910 633 £ | 911 213 £ | +0,1 % (+0,6 k£) | 374 | 381 (+7 pts) | 395 846 £ | 400 172 £ (+1,1 %) | 65 | 62 |
+| 100 | 627 784 £ | 335 409 £ | −46,6 % | 248 | 249 (+1 pt) | 321 724 £ | 171 256 £ | 27 | 38 (+11) |
+| 1337 | 903 940 £ | 950 107 £ | **+5,1 %** (+46 k£) | 309 | **382 (+73 pts)** | 432 581 £ | **483 730 £ (+11,8 %)** | 40 | 55 (+15) |
+| 2026 | 328 947 £ | 749 358 £ | **+127,8 %** (+420 k£) | 205 | **351 (+146 pts)** | 128 151 £ | **399 834 £ (+212,0 %)** | 38 | 45 (+7) |
+| **Moyenne** | 1 072 350 £ | **1 119 968 £** | **+4,4 % (+47,6 k£)** | 338,4 | **374,8 (+36,4 pts)** | 548 702 £ | **582 983 £ (+6,2 %)** | 47,0 | **48,0 (+1,0)** |
+
+**Victoires appariées** :
+- **Valeur d'entreprise** : Unifié gagne **4/5 graines** (G7, G42, G1337, G2026).
+- **Score d'historique de performance** : Unifié gagne **4/5 graines** (+36,4 points en moyenne, +10,8 %).
+- **Profit annuel** : Unifié gagne en moyenne (+34,3 k£ / an, +6,2 %).
+
+**Enseignements physiques majeurs** :
+1. **Résilience extraordinaire sur topologies hostiles / arides (graine 2026)** :
+   Sur la graine la plus pauvre où l'ancienne architecture s'épuisait, le portefeuille unifié réalise un bond colossal : valeur +127,8 % (749 k£ vs 329 k£), profit annuel plus que triplé (+212 %, 400 k£ vs 128 k£) et score de performance bondissant de 205 à 351 (+146 points).
+2. **Fin de la concurrence aveugle entre la tâche aérienne et le portefeuille** :
+   Les aéroports, avions supplémentaires et rabattements par bus urbains sont désormais financés en symbiose mathématique selon leur productivité marginale, éliminant les blocages de trésorerie.
+3. **Adoption dans le tronc principal** :
+   Les réglages `air_portfolio = 1` et `fleet_portfolio = 1` sont validés et passés par défaut dans `info.nut`.
+
+---
+
+## 0 octanonagies. C36.3 — Analyse (sans implémentation) : pré-filtrage et découpage de `OpexAirPlans` (2026-09-05)
+
+**Objet** : Préparer C36.3 sans le coder. La fiche C36 promet « gel initial 17 j → 2 j, premier projet dès le 3 janvier » en ne sondant que les 5 à 10 meilleures paires par gravité $\mathrm{pop}_A \cdot \mathrm{pop}_B / d$ au lieu de « 49 paires exhaustives ». Cette fiche est **fausse sur quatre points**, et le levier restant après C33.1 n'est pas celui qu'elle désigne.
+
+Aucune ligne de `builder_air.nut` / `catalog.nut` / `main.nut` n'est touchée ici.
+
+### 1. Ce que le code fait aujourd'hui (pas ce que la fiche décrit)
+
+`OpexAirPlans` (`builder_air.nut:617`) ne classe pas des paires puis ne sonde pas. L'ordre est l'inverse :
+
+1. Trier **toutes** les villes du catalogue par population (`OpexAirSortedTowns`).
+2. Prendre les `AIR_TOWN_POOL = 24` plus grosses (la carte bancaire `number_towns=3` en a 46–52).
+3. **`OpexAirFindSite` sur chacune**, pour **chaque** combo avion/aéroport. C'est le coût. C33.1 a montré que 93,6 % des opcodes d'`OpexAirPlans` sont là.
+4. **Ensuite seulement**, évaluer $C(\text{sites}, 2)$ paires (plus hub-site / hub-hub). Ça, c'est 5 % du coût.
+
+Les « 49 paires » de la fiche C36 sont $C(\text{sites}, 2)$ **après** FindSite. Sur `docs/diag_c34.json` graine 42, premier passage : **16 sites, 115 plans** ($C(16,2)=120$, quelques paires écartées par `minDist`). On ne « sonde pas 49 paires ». On sonde **24 villes**, on en trouve 16 constructibles, on évalue ~115 paires pour ~111 k opcodes — négligeable à côté des 2,46 M d'opcodes de FindSite.
+
+Le catalogue lui-même n'est pas le goulot : `catalog.nut` mesure ~21 500 opcodes pour un `refresh`. En revanche la **tâche** `catalog` (`main.nut:4424`) ne se contente pas de rafraîchir : elle enchaîne `OpexBuildProjects`, donc `OpexAirPlans` **avant** que les tâches `air` et `projects` puissent poser quoi que ce soit. Le gel de janvier est ce premier `OpexBuildProjects`, pas `_refreshTowns`.
+
+En 1970, un seul combo est vivant (`AT_LARGE` ; SMALL n'est plus constructible depuis 1960, COMMUTER arrive en 1983, INTERNATIONAL en 1990). Pas de multiplication par le nombre de combos au démarrage.
+
+### 2. Reconstruction calendaire, graine 42, après C33.1
+
+Source : `docs/diag_c34.json` (script=4, `decision_log=1`, `air_site_cache` déjà au défaut 1).
+
+| Date | Événement | Lecture |
+|---|---|---|
+| 1 jan | `LOAN` (fin de `Start()`) | |
+| 1–11 jan | aucun `OpexDecide` | `catalog.refresh` + génération rail (1 624 candidats) **avant** le premier log. La ligne `TASK catalog` n'apparaît qu'au premier `OpexDecide` de la tâche (`main.nut:127-132`) |
+| 11 jan | `VIVIER_GEN mode=rail` | rail+route : ~1 jour calendaire |
+| 12 jan | `AIR_PLAN_INPUT scan=1` | début du FindSite à froid |
+| 26 jan | `AIR_PLAN_SETS` 16 sites / `AIR_PLAN_PERF` 2 591 608 ops, **1 391 sondes**, 16 sites, 115 plans | FindSite à froid |
+| 28 jan | `PORTFOLIO_RANK rank=0 mode=air` dist=175, villes 26→34 | l'aérien gagne le rang 0 |
+| 31 jan | `AIR_BUILD` ligne 0 | premier chantier |
+
+Le gel « catalog + OpexAirPlans » de C36 (11–28 jan = **17 jours**) est **toujours là après C33.1**. Il se décompose en ~1 j rail/route + **~14 j FindSite à froid** + ~2 j knapsack. C33.1 a tué les **reprises** (scan 2 le 10 fév : 152 k ops, 14 sondes, `days=0`), pas le premier passage.
+
+`AIR_PLAN_PERF days=3` (260 ticks / 74) **sous-estime le trou calendaire**. C'est le même artefact qui a fait écrire à C33.1 « 3 jours perdus par an » : on a sommé le champ entier `ticks/74` (3 + 0 + 0 + …). Le calendrier dit 14 jours pour le scan 1. Les deux grandeurs sont vraies pour des questions différentes : 2,46 M d'opcodes / 1 391 sondes sont le travail VM ; 14–17 jours sont ce que le joueur / le premier chantier voient sous `script=4`. Un banc sans `script=4` rapprocherait le calendrier des ~3,3 jours opcode (2,46 M / 10 000 / 74). **C36.3 doit se mesurer sans debug script**, sinon on reoptimisera un artefact de journal.
+
+### 3. Quatre erreurs de la fiche C36.3
+
+**Erreur 1 — on filtre au mauvais étage.** Réduire les paires évaluées ne change presque rien. Il faut réduire les **villes envoyées à FindSite**, ou reporter FindSite après l'élection.
+
+**Erreur 2 — la gravité $\mathrm{pop}_A \cdot \mathrm{pop}_B / d$ combat la physique aérienne.** `OpexAirEconomics` paie `AICargo.GetCargoIncome(pax, distance, days)`, qui **croit** avec la distance, et le volume est aujourd'hui additif $(\mathrm{pop}_A+\mathrm{pop}_B)\times 0{,}22$, pas gravitaire. AAAHogEx n'a **aucun** plafond de distance ; ses premières liaisons font 184–357 tuiles. Le rang 0 réel du 28 jan est déjà **175 tuiles** (rang 1 : 200). Un pré-filtre $/d$ écarte précisément les liaisons que le classement et l'adversaire retiennent. `candidates.nut:4` a déjà abandonné ce proxy pour le rail (« plus $\mathrm{pop}_a \cdot \mathrm{pop}_b / d$ mais la production réelle »). Ne pas le réintroduire sur l'air.
+
+**Erreur 3 — « premier projet le 3 janvier » est hors de portée de C36.3 seul.** Même avec FindSite instantané, le premier `OpexDecide` de `catalog` est le 11 janvier. Les 10 jours LOAN→VIVIER_GEN sont un autre trou (rafraîchissement, génération rail, `Sleep(1)` du défaut `loop_budget=0`, et/ou taxe `script=4`). C36.4 (`loop_budget`) a déjà été mesuré **nul sur la valeur** ; ça n'interdit pas un effet sur la latence d'amorçage, mais ce n'est pas C36.3.
+
+**Erreur 4 — un plafond permanent de 5–10 paires tue le volume (A2).** Au démarrage il n'y a pas de hub (`hubs_count=0`). Dès la ligne 0, le bras hub a besoin d'`AIR_HUB_NEW_SITE_POOL = 12` villes **non servies**. Geler le vivier à 5–10 paires pour toute la partie empêche les 8–16 liaisons visées. Tout filtre C36.3 doit être **borné au cycle 0** (`air_line_count == 0`), puis `AIR_TOWN_POOL = 24` reprend pour l'expansion.
+
+### 4. Ce qui survit à un filtre « plus grandes villes »
+
+Les deux premiers rangs du 28 jan :
+
+- rang 0 : ville 26 (1re du `sites=`, donc plus grosse constructible) → ville 34 (6e du `sites=`)
+- rang 1 : ville 30 (2e) → ville 38 (5e)
+
+Un plafond de **8 plus grosses villes**, sans gravité, **conserve le rang 0 réel**. C'est l'argument empirique pour un pool de démarrage, pas pour un score $/d$.
+
+Anatomie des 1 391 sondes (24 villes, 16 succès, 8 échecs) : un échec brûle l'`allowance = 120` sondes, un succès s'arrête tôt (~27 sondes). Les 8 échecs ≈ 960 sondes, les 16 succès ≈ 430. **Les villes 9–24 du pool sont celles qui échouent.** Les retrancher au cycle 0 coupe le coût à froid à la racine, sans toucher aux métropoles qui gagnent.
+
+### 5. Trois formes possibles, une seule raisonnable
+
+| # | Forme | Mécanisme | Risque | Levier réel |
+|---|---|---|---|---|
+| **A** | **Pool de démarrage** `AIR_TOWN_POOL_START` (8 ou 10), actif seulement si `air_line_count == 0` | FindSite uniquement les plus grosses ; ensuite pool 24 pour les hubs | Faible : le rang 0 C34 survit. Trop petit (≤5) peut perdre une métropole sans site | 1 391 → ~300 sondes à froid. Réglage bool/entier, isolable |
+| **B** | **FindSite reporté à l'exécution** : classer les paires sur tuiles de ville avec un proxy d'économie aérienne $(\mathrm{pop}_A+\mathrm{pop}_B)\times\mathrm{GetCargoIncome}(d)$, ne sonder que la paire élue | 24 FindSite → 2 par ligne bâtie | `AFAIL` si la paire élue n'a pas de site ; C33.3 (mémoire d'abandon) transformerait ça en changement de mode pour l'année | Maximum théorique, mais ce n'est plus C36.3 : c'est un changement d'architecture, et il interagit avec C33.3 / C33.4 |
+| **C** | **Découpage** : `catalog.refresh` rend la main ; `OpexAirPlans` reprendable par paquets de N villes | Permettrait théoriquement de poser une route le 12 jan pendant que l'air scanne | **Piège C36.2 / C34** : le vivier rail+route est prêt le 12 jan. Le relâcher sans l'air élit le train de charbon (rang 1 historique) et recrée le gel A* de 62 jours. Ne **pas** exécuter le portefeuille tant que le scan aérien cycle-0 n'a pas fini | Utile seulement si on veut du débit VM, pas un premier chantier plus tôt — sauf à forcer l'air en tête hors classement |
+
+La fiche (gravité, 5–10 paires, permanent) est une **quatrième forme, à écarter**.
+
+C36.2 non commité appelle déjà `OpexAirPlans` dans `OpexIncrementalUpdateProjects`. Avec C33.1 ce scan est chaud (~150 k ops). C36.3 ne doit pas s'y appliquer : après la ligne 0 on **veut** élargir le pool, pas le restreindre.
+
+### 6. Ce qu'il ne faut pas faire
+
+- Ne pas implémenter $\mathrm{pop}_A \cdot \mathrm{pop}_B / d$.
+- Ne pas baisser `AIR_TOWN_POOL` globalement de 24 à 8 : ça ampute les hubs.
+- Ne pas découper le premier `OpexBuildProjects` pour laisser le rail partir avant l'air.
+- Ne pas empiler C36.3 sur un C36.2 non mesuré (graine 42 encore à −60 % vs cache-only avant les correctifs de vivier).
+- Ne pas enchaîner sur C36.4 : déjà nul sur la valeur ; le `Sleep(1)` du 1–11 jan est un sujet de latence d'amorçage, pas de C36.3.
+- Ne pas viser « premier projet le 3 janvier » comme critère de succès de C36.3 seul.
+
+### 7. Plan de mesure, si on code la forme A
+
+Instrumentation (déjà en place, à étendre d'une ligne) :
+
+- `AIR_PLAN_PERF` : ajouter `towns_probed`, `towns_failed`, `pool_used`, `startup=0|1`.
+- Garder `probes`, `sites`, `ticks`, **et** la date calendaire du `AIR_PLAN_INPUT` / `AIR_BUILD`.
+- Contrôle d'invariance : la paire rang 0 de référence (graine 42, villes 26–34, dist 175) reste dans le vivier cycle 0.
+
+Protocole :
+
+1. **Sonde 1 graine × 1 an, sans `script=4`**, `decision_log=1` seulement : calendrier réel du premier `AIR_BUILD` sous pool 24 vs pool 8. Si l'écart calendaire est < 2 jours hors debug, **arrêter** : C36.3 ne paie pas.
+2. Si l'écart est réel : diagnostic **5 graines × 3 ans** apparié `air_town_pool_start=8` contre 0, à `air_site_cache=1`, **sans** `air_portfolio` (ne pas confondre avec C36.2).
+3. Critères d'adoption : premier air plus tôt **et** valeur / profit / lignes aériennes non dégradés (surtout graines 7 et 999, denses). Un simple « scan plus court » sans effet sur la valeur est un instrument, pas un défaut.
+4. Banc officiel 20×10 **seulement** si le 5×3 est positif. Défaut 0 tant que ce n'est pas le cas.
+
+### 8. Verdict
+
+C36.3 tel qu'écrit dans la fiche C36 **ne doit pas être implémenté**. Le goulot restant est le FindSite à froid des villes 9–24 du pool, pas l'évaluation de 49 paires, pas un score gravitaire.
+
+La seule variante petite et justifiée est **A** : un plafond de pool **cycle 0** (8 ou 10 plus grosses villes), réglage isolé, mesuré d'abord hors `script=4`. Levier attendu : quelques jours d'amorçage, une fois, sur l'année 1. Ce n'est plus le « 17 → 2 jours » de la fiche, et ça ne passe **pas** devant un diagnostic C36.2 à 5 graines ni devant C30.1+C30.2 (ce qui fait effectivement grandir les avions).
+
+Si la sonde hors debug montre que le trou calendaire est déjà ~3 jours opcode, **classer C36.3 derrière C30 et le batch du portefeuille**, et ne pas le coder.
 
 
 
