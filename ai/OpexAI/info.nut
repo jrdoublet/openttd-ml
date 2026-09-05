@@ -1145,10 +1145,10 @@ Le mode route est donc reconfirme sur l arbre courant.
      * Dans une aglomeration de 250 maisons -> 8 % de captage. */
     AddSetting({
       name = "road_stop_catchment_houses",
-      description = "Maximum houses covered by a radius-3 bus stop (physical catchment bound, default 20)",
+      description = "Maximum houses covered by a radius-3 bus stop (physical catchment bound, default 10)",
       min_value = 1, max_value = 100,
-      easy_value = 20, medium_value = 20, hard_value = 20,
-      custom_value = 20,
+      easy_value = 10, medium_value = 10, hard_value = 10,
+      custom_value = 10,
       flags = 0
     });
 

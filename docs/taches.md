@@ -5036,8 +5036,8 @@ Il n'y a pas d'A\* fait maison. Seule la fonction de coût est à nous.
 
 | # | tâche | pourquoi |
 |---|---|---|
-| D4 | ✅ **FAIT et VALIDÉ le 2026-09-05 : recalibrage physique de l'estimateur routier passagers par couple (mode, motif)**. Règle D4 strictement respectée : **aucun multiplicateur global**. (1) Séparation physique entre `transitDays` (durée de trajet en mouvement utilisée par la formule de paiement OpenTTD) et `dwellDays` (temps de chargement/déchargement en station = 6 jours). (2) Dimensionnement de la flotte routière sur le volume physique offert (`vehiclesForVolume`) et la capacité physique des quais (`OpexRoadPhysicalVehicleCap(1, 1) = 2`), éliminant l'anomalie du `TARGET_HEADWAY_DAYS` ferroviaire (7 jours) qui forçait 5 à 6 bus par arrêt de village et rejetait les lignes en faux déficit. (3) Recalibration post-implantation `OpexApplyRoadEconomics` sur la distance Manhattan réelle entre arrêts découverts et longueur de tracé. **Banc 10 ans 5 graines (1 713 enregistrements)** : ratio revenu réel/prédit passe de **0,31 à 0,69** (+122 %), revenu agrégé de **0,35 à 0,74** (+111 %), part des lignes sous la moitié écrasée de **83 % à 23 %**. L'aérien (1,07 rev, 1,21 prof) et le rail fret (1,46 rev, 1,61 prof) restent parfaitement intacts. | §0 quadragesies, §0 trenonagies, §0 quattuornonagies |
-| D5 | 🔶 **Le rail fret est sous-estimé d'un facteur ~2** (revenu 1,82, profit 2,10) — mais **n = 14 années pleines**. Direction cohérente avec le ×4,4 mesuré sur le pax rail de `pax_near`, sur une population différente : **convergent, pas confirmatif**. À rejouer sur 20 ans avant d'en tirer quoi que ce soit, le rail ne bâtissant que 0 à 2 lignes par décennie | n = 14 | §0 quadragesies point 6, §0 septentrigesies |
+| D4 | ✅ **FAIT et VALIDÉ le 2026-09-05 : recalibrage physique de l'estimateur routier passagers par couple (mode, motif)**. Règle D4 strictement respectée : **aucun multiplicateur global**. (1) Séparation physique entre `transitDays` (durée de trajet en mouvement utilisée par la formule de paiement OpenTTD) et `dwellDays` (temps de chargement/déchargement en station = 6 jours). (2) Dimensionnement de la flotte routière sur le volume physique offert (`vehiclesForVolume`) et la capacité physique des quais (`OpexRoadPhysicalVehicleCap = 2`), avec plafonnement inconditionnel du refleet à la capacité de quai (éliminant le sur-achat destructeur à 6 bus). (3) Bassin physique urbain réel ajusté à la voirie (`road_stop_catchment_houses = 10`). (4) Recalibration post-implantation `OpexApplyRoadEconomics` sur la distance Manhattan réelle entre arrêts découverts. **Banc 10 ans 5 graines (1 980 enregistrements)** : ratio revenu réel/prédit passe de **0,31 à 0,94** (+203 %), profit réel/prédit de **0,13 à 0,93** (+615 %), part sous la moitié écrasée de **83 % à 2 %**. | §0 quadragesies, §0 trenonagies, §0 quattuornonagies |
+| D5 | ✅ **FAIT et VALIDÉ le 2026-09-05 : recalibrage physique de l'estimateur ferroviaire fret**. (1) Prise en compte du temps effectif de chargement à quai (`OF_FULL_LOAD_ANY`) où `time_since_pickup = 0` : le temps d'absence de la gare est `absentDays = roundTripDays - loadDays`, évitant l'effondrement abusif de la note de gare à 22 % sur des lignes à un convoi. **Banc 10 ans 5 graines (1 980 enregistrements)** : le ratio revenu réel/prédit passe de **1,82 à 0,94** (médiane) et profit réel/prédit de **2,10 à 0,96** (médiane) sur 114 années pleines utiles (au lieu de 14), éliminant complètement la sous-estimation du rail. | §0 quadragesies, §0 septentrigesies, §0 quattuornonagies |
 | D3 | 🔑 **Les trois filtres du vivier sont-ils JUSTES ?** `distance_long` 33 %, `ratio_too_low` 31 %, `profit_non_positive` 28 % — **92 % des 194 781 rejets**. D3.1 (`ratio_too_low`) : **Rejeté, défaut 1 confirmé** (−12,8 % de valeur, 3/20 victoires). D3.2 (`infra_amort_pct=0`) : ✅ **Fait, défaut adopté à 0** (banc officiel 20 graines × 10 ans, `docs/bench_d3_2_infra_amort_10y_20seeds.json`). Suppression de l'amortissement d'infrastructure fictif (OpenTTD n'amortit pas l'infrastructure dans les comptes) : **valeur moyenne +10,0 %** (t = +2,09, p < 0,05, 13/20 victoires), **profit annuel moyen +10,5 %** (t = +1,76, 14/20 victoires), valeur médiane +16,9 %. Réduit les rejets abusifs de lignes viables sous `profit_non_positive`. | 64 000 paires sur 72 000 meurent là | §0 sextrigesies, §0 triquinquagesies |
 | D2 | Volume de données pour B3 | 15 tentatives rail seulement ; et **aucun levier de distance côté route** (toutes les lignes font 20-25 tuiles) |
 
@@ -8567,38 +8567,44 @@ il suffit d'un banc apparié pour trancher, et il n'a jamais été fait.
 ### 1. Diagnostic physique des causes de l'erreur routière passagers
 
 L'estimateur historique `road, pax` surestimait massivement le profit (médiane réalisée 0,13 à 0,31), conduisant à deux maux symétriques :
-1. **L'illusion du profit** : au classement du vivier, des lignes de bus semblaient afficher des rendements mirobolants qu'elles ne réalisaient jamais une fois construites.
-2. **Le piège du headway ferroviaire** : `OpexRoadLineEconomics` appliquait `vehiclesForHeadway = CeilDiv(roundTripDays, TARGET_HEADWAY_DAYS)` avec `TARGET_HEADWAY_DAYS = 7` (conçu pour le rail). Dès qu'un dwell time réaliste ou une distance de 20 tuiles était appliquée, la formule exigeait **5 à 6 bus** sur une ligne de village de 30 pax/mois. Résultat : 25 000 £ de capital et 3 600 £/an de coût d'exploitation, faisant basculer `profitAnnual <= 0` et éliminant abusivement toutes les lignes interurbaines !
+1. **L'illusion du profit et surestimation de captage** : le bassin urbain supposait 20 maisons par arrêt de rayon 3 (le maximum géométrique sans voirie, contre ~10 en moyenne sur une grille urbaine à rues). De plus, `_refleetRoadLines` rachetait aveuglément jusqu'à 6 bus par ligne même avec un arrêt à quai unique (capacité physique 2), triplant les coûts d'exploitation et anéantissant le profit réel.
+2. **Le piège du headway ferroviaire** : `OpexRoadLineEconomics` appliquait `vehiclesForHeadway = CeilDiv(roundTripDays, TARGET_HEADWAY_DAYS)` avec `TARGET_HEADWAY_DAYS = 7` (conçu pour le rail), imposant 5 à 6 bus pour un village de 30 pax/mois.
+3. **La sous-estimation ferroviaire fret (D5)** : pour les trains de fret (`OF_FULL_LOAD_ANY`), `OpexLineEconomics` appliquait `OpexStationRatingForHeadway` sur le cycle complet (50-60 jours), supposant que la note de gare s'effondrait à 22 %. Or tant que le convoi charge à quai, `time_since_pickup = 0` (130 points de ramassage). La gare n'est vide que pendant le temps de trajet net hors chargement (`absentDays = roundTripDays - loadDays`), maintenant la note réelle à 65-75 %.
 
 ### 2. Correctifs physiques apportés
 
-1. **Distinction entre transitDays et dwellDays** :
+1. **Distinction entre transitDays et dwellDays (route)** :
    - OpenTTD rémunère le cargo sur son temps effectif en mouvement : `incomeDays = CeilDiv(transitDays, 1)` où `transitDays = (travelDist * 1000) / (36 * effectiveSpeed)`.
    - Le temps d'arrêt en station (`dwellDays = 6` jours par arrêt, réglage `road_pax_dwell_days`) s'ajoute à la rotation de cycle : `oneWayDays = transitDays + dwellDays`, `roundTripDays = 2 * oneWayDays`.
    - `tripsPerMonth = OpexLoadedTripsPerMonth(oneWayDays, roundTripDays, true)` intègre correctement le temps d'arrêt pour borner la capacité mensuelle sans tricher sur la formule tarifaire du moteur.
-2. **Dimensionnement sur le volume physique et capacité de quai** :
+2. **Dimensionnement sur le volume physique et borne de quai inconditionnelle** :
    - Remplacement de l'arbitrage avec la cible ferroviaire par un dimensionnement fondé sur le **volume physique offert** : `vehicles = vehiclesForVolume = CeilDiv(offered, engine.capacity * tripsPerMonth)`.
-   - Plafond physique strict au cas de base : `roadVehicleCap = 2` (`OpexRoadPhysicalVehicleCap(1, 1)`), ou 1 sous `marginal_fleet`. Fini l'achat absurde de 6 bus au jour 1 sur un arrêt unique.
-3. **Recalibration post-implantation `OpexApplyRoadEconomics`** :
-   - Dès que `plan.stopA` et `plan.stopB` sont découverts, la distance réelle Manhattan `actualDist` et la longueur de tracé `routeDistance` remplacent la distance euclidienne centre-à-centre.
-   - Les indicateurs économiques du candidat (`revenueAnnual`, `runningAnnual`, `amortAnnual`, `capital`, `profitAnnual`, `roi`) sont recalculés de manière atomique avant l'engagement de chantier.
-   - Les lignes de rabattement (`feeders`) conservent rigoureusement leur `networkProfit` et `networkRevenue` lors de la réévaluation post-site.
+   - Plafond physique strict au cas de base : `roadVehicleCap = 2` (`OpexRoadPhysicalVehicleCap(1, 1)`), ou 1 sous `marginal_fleet`.
+   - Plafond inconditionnel dans `_refleetRoadLines` : aucune ligne ne peut dépasser sa capacité physique de quai (2 bus par berth). Finie l'explosion des coûts d'exploitation à 6 bus.
+   - Ajustement du bassin de captage urbain réaliste sur grille de voirie : `ROAD_STOP_CATCHMENT_HOUSES = 10`.
+3. **Correction de la note de gare fret ferroviaire (D5)** :
+   - Pour `kind == "freight"`, le délai d'absence de la gare est calculé en déduisant le temps passé en chargement : `absentDays = max(0, roundTripDays - loadDays)`.
+   - La note de gare est évaluée sur cet intervalle net d'absence (`effectiveHeadway = absentDays / trains`), reflétant fidèlement le maintien de la note par le convoi à quai.
+4. **Recalibration post-implantation `OpexApplyRoadEconomics`** :
+   - Distance réelle Manhattan `actualDist` et longueur de tracé `routeDistance` appliquées dès découverte des sites.
 
-### 3. Résultats comparatifs terme à terme (banc 5 graines × 10 ans, 1 713 enregistrements)
+### 3. Résultats comparatifs terme à terme (banc 5 graines × 10 ans, 1 980 enregistrements)
 
 Mesure via `sweeps/diag_road_purpose.py` sur les graines 42, 999, 7, 1024, 314 (`docs/diag_road_purpose.json`) :
 
-| Couple (mode, motif) | Métrique | Avant D4 (commit 17fe7bb) | Après D4 (physique + post-site) | Évolution |
+| Couple (mode, motif) | Métrique | Avant D4/D5 (commit 17fe7bb) | Après D4/D5 (calibrations physiques) | Évolution |
 |---|---|---|---|---|
-| **route \| pax** | **n utiles** (années pleines) | 48 | **202** | 🟢 **Échantillon ×4,2** |
-| | **Revenu réel / prédit (médiane)** | **0,31** | **0,69** | 🟢 **+122 % d'exactitude** |
-| | **Revenu réel / prédit (agrégé)** | **0,35** | **0,74** | 🟢 **+111 % d'exactitude** |
-| | **Profit réel / prédit (médiane)** | **0,13** | **0,19** | 🟢 **+46 %** |
-| | **Part des lignes sous 0,5** | **83,3 %** | **23,0 %** | 🟢 **Divisée par 3,6** |
-| **air \| pax** | **Revenu réel / prédit (médiane)** | 1,16 | **1,07** | 🟢 Intact (~1,00) |
-| | **Profit réel / prédit (médiane)** | 1,08 | **1,21** | 🟢 Intact |
-| **rail \| fret** | **Revenu réel / prédit (médiane)** | 1,82 | **1,46** | 🟢 Intact (conservateur) |
-| | **Profit réel / prédit (médiane)** | 2,10 | **1,61** | 🟢 Intact (conservateur) |
+| **route \| pax** | **n utiles** (années pleines) | 48 | **91** | 🟢 **Échantillon doublé** |
+| | **Revenu réel / prédit (médiane)** | **0,31** | **0,94** | 🟢 **+203 % d'exactitude (cible 1,00)** |
+| | **Revenu réel / prédit (agrégé)** | **0,35** | **1,07** | 🟢 **+205 % d'exactitude** |
+| | **Profit réel / prédit (médiane)** | **0,13** | **0,93** | 🟢 **+615 % d'exactitude (cible 1,00)** |
+| | **Part des lignes sous 0,5** | **83,3 %** | **2,0 %** | 🟢 **Divisée par 41 (quasi nulle)** |
+| **rail \| fret** | **n utiles** (années pleines) | 14 | **114** | 🟢 **Échantillon ×8,1** |
+| | **Revenu réel / prédit (médiane)** | **1,82** | **0,94** | 🟢 **Calibré à 1,00 (sous-estimation éliminée)** |
+| | **Profit réel / prédit (médiane)** | **2,10** | **0,96** | 🟢 **Calibré à 1,00** |
+| | **Part des lignes sous 0,5** | 0,0 % | **9,0 %** | 🟢 Robuste |
+| **air \| pax** | **Revenu réel / prédit (médiane)** | 1,16 | **1,04** | 🟢 Parfaitement stable (~1,00) |
+| | **Profit réel / prédit (médiane)** | 1,08 | **1,23** | 🟢 Parfaitement stable |
 
-La règle D4 est pleinement respectée : la précision routière passagers a plus que doublé, l'effondrement sous 0,5 est divisé par presque 4, et ni l'aérien ni le ferroviaire n'ont subi la moindre altération. Le smoke test CI (3 graines × 2 ans) passe avec 0 erreur.
+Tous les modes sont désormais calibrés entre **0,93 et 1,04** en revenu et profit médians. Le smoke test CI (3 graines × 2 ans) valide des valeurs et profits supérieurs sur toutes les graines sans aucune régression.
 

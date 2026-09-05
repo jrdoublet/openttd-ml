@@ -246,7 +246,18 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   local best = null;
   for (local trains = 1; trains <= MAX_RAIL_TRAINS; trains++) {
     local headwayDays = roundTripDays / trains;
-    local stationRating = OpexStationRatingForHeadway(headwayDays);
+    local effectiveHeadway = headwayDays;
+    if (kind == "freight") {
+      /* D4/D5 (docs/taches.md S0 septentrigesies / S0 quadragesies) :
+       * Un convoi de fret charge a 100 % (OF_FULL_LOAD_ANY, builder_rail.nut:1188).
+       * Tant que le train charge a quai, time_since_pickup = 0 (130 points de ramassage).
+       * La gare n'est vide que pendant le trajet aller-retour moins le temps passe en chargement. */
+      local loadDays = monthlyUnits > 0 ? (perTrain * 30.0) / monthlyUnits : 0;
+      local absentDays = roundTripDays - loadDays;
+      if (absentDays < 0) absentDays = 0;
+      effectiveHeadway = absentDays / trains;
+    }
+    local stationRating = OpexStationRatingForHeadway(effectiveHeadway);
     local offered = monthlyUnits * stationRating / 100.0;
     local monthlyCapacity = trains * perTrain * tripsPerMonth;
     local carried = (offered < monthlyCapacity ? offered : monthlyCapacity).tointeger();

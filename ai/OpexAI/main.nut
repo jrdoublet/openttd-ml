@@ -37,8 +37,8 @@ ROAD_BUILD_ENABLED <- true;
  * Le reglage road_pax_catchment_pct vaut 0 pour reconstituer le repli rail a 22 % ; une valeur
  * positive ne touche que OpexRoadPaxCandidates, jamais le rail ni le fret. */
 ROAD_PAX_CATCHMENT_SHARE_PCT <- 86;
-/* C23 : Borne physique d'un arret de bus (rayon 3 tuiles = 7x7 tuiles = max 20 maisons) */
-ROAD_STOP_CATCHMENT_HOUSES <- 20;
+/* C23/D4 : Borne physique d'un arret de bus (rayon 3 tuiles = 7x7 tuiles = moyenne 10 maisons sur grille de voirie) */
+ROAD_STOP_CATCHMENT_HOUSES <- 10;
 /* D4 : Dwell time de chargement/dechargement a la station pour les bus passagers (jours) */
 ROAD_PAX_STOP_DWELL_DAYS <- 6;
 /* C27 : Sortir les bonus du numerateur de densite du portefeuille (adopte) */
@@ -3108,40 +3108,31 @@ function OpexAI::_refleetRoadLines(year)
     local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
     local extraNeeded = 0;
 
+    local physicalCap = OpexRoadPhysicalVehicleCap(
+        ("nStopsA" in line) ? line.nStopsA : 1, ("nStopsB" in line) ? line.nStopsB : 1);
+
     // 1. S'il y a du stock en attente et que les véhicules circulent bien
     if (totalWaiting >= capacity && !isAnyWaiting) {
       extraNeeded = totalWaiting / capacity;
       if (extraNeeded > 3) extraNeeded = 3;
     }
     // 2. Si la note de station s'effondre faute de fréquence (distance longue)
-    else if (minRating < 65 && have < 3 && !isAnyWaiting && money > 35000) {
+    else if (minRating < 65 && have < physicalCap && !isAnyWaiting && money > 35000) {
       extraNeeded = 1;
     }
     // 3. Si la ligne est très rentable (> 1000 £) et qu'on a du cash
-    else if (("lastProfit" in line) && line.lastProfit > 1000 && have < 6 && money > 60000 && !isAnyWaiting) {
+    else if (("lastProfit" in line) && line.lastProfit > 1000 && have < physicalCap && money > 60000 && !isAnyWaiting) {
       extraNeeded = 1;
     }
 
-    /* marginal_fleet = 1 : le vehicule supplementaire ne peut ajouter de valeur que s'il trouve
-     * un quai libre au meme instant -- au-dela, il fait la queue sur la route (docs/mecanique_jeu
-     * S11) et son profit marginal est nul ou negatif, quel que soit ce que disent les heuristiques
-     * ci-dessus. On borne donc extraNeeded par la borne physique REELLE de cette ligne
-     * (OpexRoadPhysicalVehicleCap, economy.nut) avant meme de l'ajouter a target, plutot que de
-     * gonfler target puis couper au plafond generique 16 comme le fait le chemin 0 plus bas. */
-    if (MARGINAL_FLEET) {
-      local physicalCap = OpexRoadPhysicalVehicleCap(
-          ("nStopsA" in line) ? line.nStopsA : 1, ("nStopsB" in line) ? line.nStopsB : 1);
-      if (have + extraNeeded > physicalCap) extraNeeded = physicalCap - have;
-      if (extraNeeded < 0) extraNeeded = 0;
-    }
+    /* Un véhicule supplémentaire ne peut ajouter de valeur que s'il trouve
+     * un quai libre (docs/mecanique_jeu S11). Au-delà de physicalCap (2 par quai),
+     * il bloque la voirie et détruit le profit par les coûts d'exploitation. */
+    if (have + extraNeeded > physicalCap) extraNeeded = physicalCap - have;
+    if (extraNeeded < 0) extraNeeded = 0;
 
     if (have + extraNeeded > target) target = have + extraNeeded;
-
-    local cap = MARGINAL_FLEET
-        ? OpexRoadPhysicalVehicleCap(
-              ("nStopsA" in line) ? line.nStopsA : 1, ("nStopsB" in line) ? line.nStopsB : 1)
-        : 16;
-    if (target > cap) target = cap;
+    if (target > physicalCap) target = physicalCap;
     if (have >= target) continue;
     local refill = OpexRoadRefleet(this._catalog, line, have, target);
     if (refill.added > 0) {
