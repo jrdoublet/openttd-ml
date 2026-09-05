@@ -51,15 +51,17 @@ function OpexTensionOpcodeFlowPerMonth()
     TENSION_TICKS_PER_DAY = elapsedTicks.tofloat() / elapsedDays;
   }
 
-  if (TENSION_TICKS_PER_DAY <= 0) return 0.0;
+  local tpd = TENSION_TICKS_PER_DAY;
+  if (tpd <= 0) tpd = 18.5;
   local year = AIDate.GetYear(date);
   local yearDays = AIDate.GetDate(year + 1, 1, 1) - AIDate.GetDate(year, 1, 1);
-  return (OPS_PER_TICK.tofloat() * TENSION_TICKS_PER_DAY * yearDays) / 12.0;
+  return (OPS_PER_TICK.tofloat() * tpd * yearDays) / 12.0;
 }
 
 function OpexTensionModeKey(mode)
 {
   if (mode == "rail" || mode == "road" || mode == "air" || mode == "water") return mode;
+  if (mode == "fleet") return "air";
   return null;
 }
 
@@ -191,6 +193,9 @@ function OpexTensionProjectVehicleCount(project)
 {
   if (!("payload" in project) || project.payload == null) return 0;
   local payload = project.payload;
+  if (project.mode == "fleet") {
+    return ("want" in payload) ? payload.want : 1;
+  }
   if (project.mode == "rail" || project.mode == "road") {
     return ("trains" in payload) ? payload.trains : 0;
   }
@@ -232,22 +237,25 @@ function OpexTensionVector(project, ctx)
   /* tau endogene. Garde explicite : profitAnnual <= 0 est deja ecarte a la creation des projets
    * de candidat (projects.nut, "profitAnnual <= 0 -> null"), mais rien ne le garantit pour tous
    * les modes, et une division par zero ici ferait mourir la sonde -- pas le classement. */
+  local cap = ("budgetCapital" in project && project.budgetCapital > 0) ? project.budgetCapital : project.capital;
   local tau = 0.0;
   if (("profitAnnual" in project) && project.profitAnnual > 0) {
-    tau = (project.capital.tofloat() * 12.0) / project.profitAnnual;
+    tau = (cap.tofloat() * 12.0) / project.profitAnnual;
   }
 
   local mode = OpexTensionModeKey(project.mode);
-  local fleet = (mode != null) ? ctx.fleet[mode] : 0;
-  local limit = (mode != null) ? ctx.limits[mode] : 0;
+  local fleet = (mode != null && (mode in ctx.fleet)) ? ctx.fleet[mode] : 0;
+  local limit = (mode != null && (mode in ctx.limits)) ? ctx.limits[mode] : 0;
 
   local vector = [
-    OpexTensionEntry("argent", project.capital, ctx.moneyAvailable,
+    OpexTensionEntry("argent", cap, ctx.moneyAvailable,
                      ctx.moneyCommitments, ctx.moneyFlow, tau),
     OpexTensionEntry("slots_vehicules", OpexTensionProjectVehicleCount(project),
                      limit - fleet, 0, 0, tau),
+    /* Opcodes : debit mensuel de la VM. Contrairement a l'argent, les opcodes ne se stockent pas
+     * sur 25 mois : un pathfinder lourd bloque la VM immediatement sur le mois courant (tau = 1). */
     OpexTensionEntry("opcodes", ("expectedOpcodes" in project) ? project.expectedOpcodes : 0,
-                     0, 0, ctx.opcodeFlow, tau),
+                     0, 0, ctx.opcodeFlow, 1.0),
     /* Une liaison neuve consomme DEUX origines, une a chaque bout : c'est ce qu'elle retire du
      * stock, et c'est pour ca que le cout n'est pas 1. Le flux est nul -- une origine ne se
      * libere que si une ligne meurt, ce que la fondation de villes ne compense pas au mois. */
@@ -273,3 +281,37 @@ function OpexTensionVector(project, ctx)
   }
   return { vector = vector, dominant = first.resource, gapRelative = gap };
 }
+
+/* Score de classement A1 (Option A, loi de Liebig).
+ * Le denominateur est la somme des tensions du vecteur augmentee de la friction de decision.
+ * En regime pauvre, T_argent domine et la fonction degenere en ROI du capital.
+ * En regime riche, T_argent s'efface et la fonction degenere en Profit Annuel brut.
+ * En saturation de flotte, T_slots domine et la fonction degenere en Profit par vehicule. */
+function OpexTensionScore(project, ctx, decisionFriction = 0.05)
+{
+  if (project == null) return 0.0;
+  local profit = ("profitAnnual" in project) ? project.profitAnnual : 0;
+  if (profit <= 0) return 0.0;
+  local cap = ("budgetCapital" in project && project.budgetCapital > 0) ? project.budgetCapital : project.capital;
+  if (ctx == null) {
+    return cap > 0 ? (profit.tofloat() * 1000.0) / cap : 0.0;
+  }
+
+  local res = OpexTensionVector(project, ctx);
+  local totalTension = decisionFriction.tofloat();
+
+  foreach (entry in res.vector) {
+    if (entry.tension == TENSION_INFINITE) {
+      if (entry.resource == "argent" || entry.resource == "slots_vehicules") {
+        return 0.0;
+      }
+      totalTension += 1.0;
+    } else {
+      totalTension += entry.tension;
+    }
+  }
+
+  if (totalTension <= 0.0) return 0.0;
+  return (profit.tofloat() * 1000.0) / totalTension;
+}
+

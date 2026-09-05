@@ -369,6 +369,22 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* A1 : CLASSEMENT PAR VECTEUR DE TENSION (docs/taches.md A1, Option A).
+     * Remplace le denominateur budgetCapital par la tension totale adimensionnelle de Liebig :
+     *   TensionTotale = T_argent + T_slots + T_opcodes + T_foncier + T_decision
+     *   Score = ProfitAnnuel * 1000 / TensionTotale
+     * En regime pauvre, T_argent domine et la fonction degenere en ROI du capital.
+     * En regime riche, T_argent s'efface devant T_decision et le score maximise le PROFIT ANNUEL brut.
+     * En saturation de flotte, T_slots domine et le score maximise le PROFIT PAR VEHICULE.
+     * 1 = actif, 0 = classement historique sur budgetScore / ROI (defaut). */
+    AddSetting({
+      name = "tension_scoring",
+      description = "Classement du portefeuille par vecteur de tension (docs/taches.md A1 Option A): 1 = tension de Liebig, 0 = budgetScore historique",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* C32 : SUPPRESSION DES BONUS FORFAITAIRES DE CLASSEMENT (docs/taches.md C32).
      * Le fret portait jusqu'a x1,89 sur son roi (monopole x1,40 puis chaine x1,35) et un feeder
      * x1,60 forfaitaire. Un forfait n'est pas une estimation : il deplace le classement sans rien

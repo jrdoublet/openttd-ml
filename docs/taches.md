@@ -4963,7 +4963,7 @@ qui n'avait pas encore sa ligne. Journal de la journée : `docs/journal_2026-09-
 
 | # | tâche | pourquoi elle est en tête |
 |---|---|---|
-| **A1** | 🔴 **Dénominateur du classement dépendant de la ressource rare** (§0 tervicies point 1, §3 septies) — **ITEM DE TÊTE au 2026-09-03 soir** | Sept mécanismes de capital mesurés, sept non adoptés : **le capital n'est pas le mur**. AAAHogEx bascule son dénominateur, nous jamais. ➡️ **Troisième confirmation indépendante le 2026-09-03** : le signe de l'effet d'`air_demand_plan` suit la RICHESSE (Spearman −0,725, 7/8 gagnantes chez les pauvres, 0/11 chez les riches — §0 trigesies). ➡️ Et **l'objection qui bloquait A1 tombe** : « dans notre régime, pauvre, AAAHogEx divise par le capital comme nous » reposait sur un horizon de 3 ans ; **à 10 ans, 18 graines sur 20 passent son test `_IsRich`** (valeur médiane 3,99 M£, revenu mensuel médian 73 k£). Nous SOMMES riches, et nous optimisons encore une contrainte qui ne lie plus |
+| **A1** | 🟢 **FAIT, MESURÉ, VALIDÉ — Dénominateur de Liebig continu avec vecteur de tension** (§0 unnonagies) | Option A adoptée : formule continue $D(a) = \sum_r T_r(a) + T_{\text{décision}}$ ($T_{\text{décision}} = 0{,}05$), sans seuil ni automate. Horizon opcodes physique $\tau_{\text{opcodes}} = 1{,}0\text{ mois}$. Banc apparié 5 graines : **an 1 : +7,6 % valeur, +5,8 % profit** ; **an 3 : +17,0 % valeur (1,05 M£ vs 897 k£), +32,6 % profit (529 k£ vs 399 k£), +7,0 pts score officiel**. Réglage `tension_scoring` (défaut 0 pour non-régression). |
 | **A2** | **Volume de liaisons** — largeur contre profondeur (§3 nonies phase 1) | Confirmé deux fois aujourd'hui. On pose 2,4 lignes aériennes par partie contre 35 appareils chez l'adversaire |
 | **A3** | **Sonde : plafonner `iterationBudget`** à ~10 000 au lieu de 50 000, banc apparié (§0 undecies ter) | ✅ Fait (`pathfinder_hard_cap_k` = 10, bornes dynamiques à 10k max) |
 | **A4** | ❌ **FAIT, MESURÉ, REJETÉ** — recherche reprenable d'un tour de file à l'autre (§0 undecies quater) | **−23,1 % de valeur, 16/20 graines perdantes** ($p = 0{,}0118$). Le gel de 7 mois est réel, mais il ne coûtait pas ce qu'on croyait. Réglage `rail_search_resumable` conservé comme instrument, défaut 0 — ❌ **RETEST FAIT sur socle segmenté (§0 undecies sexies) : REJETÉ UNE SECONDE FOIS**, −13,3 % de valeur (5/20, $p = 0{,}0414$) et surtout **−27,5 % de gares** ($t = -4{,}46$, $p = 0{,}0004$). Mécanisme identifié : `safetyDeadline` est une échéance en TICKS posée une fois (`main.nut:2847`), donc en mode reprenable la fenêtre est partagée avec la file et la recherche meurt avant d'aboutir — **A4 ampute la recherche, il ne la redistribue pas**. Défaut 0 |
@@ -8329,3 +8329,56 @@ chiffrée en §0 octoquadragesies : `budgetScore = revenueAnnual × 1000 / budge
 dépendant de la ressource rare) et §0 octoquadragesies point 2, désormais appuyés par une mesure
 significative : la densité revenu/livre écarte systématiquement le mode qui gagne la partie.
 ⚠️ Et ne pas retenter C34 avant, sous peine de remesurer les mêmes −23 %.
+
+---
+
+## 0 unnonagies. 🟢 A1 (Option A) : Classement continu par dénominateur de Liebig et vecteur de tension (2026-09-05)
+
+### 1. Contexte et objectif
+Suivant la consigne de l'utilisateur (« passer par le vecteur de tension pour changer de régime », « Option A »), nous mettons en place un mécanisme unifié et continu de changement de régime, sans seuil magique (`cash < 50 000`) ni machine à états discrète (`EarlyGame` / `MidGame`).
+
+Sous la **loi du minimum de Liebig**, le score d'un projet reflète le profit annuel rapporté à l'ensemble des contraintes pondérées :
+$$D(a) = \sum_{r \in \{\text{argent}, \text{slots}, \text{opcodes}, \text{foncier}\}} T_r(a) + T_{\text{décision}}$$
+$$\text{tensionScore}(a) = \frac{\text{ProfitAnnuel}(a) \times 1000}{D(a)}$$
+avec $T_{\text{décision}} = 0{,}05$ (friction minimale garantissant un dénominateur strictement positif et bornant le score quand toutes les ressources abondent).
+
+### 2. Propriétés physiques du dénominateur continu
+- **En régime pauvre** ($T_{\text{argent}} \gg 0$) : $D(a) \approx \frac{\text{Capital}}{\text{Trésorerie}}$, donc $\text{tensionScore}(a) \approx \frac{\text{Profit}}{\text{Capital}} \times \text{Trésorerie} \propto \text{ROI}$. L'agent maximise naturellement l'efficacité du capital investi.
+- **En saturation de flotte** ($T_{\text{slots}} \gg 0$) : $D(a) \approx \frac{\text{Véhicules}}{\text{Slots libres}}$, donc $\text{tensionScore}(a) \propto \frac{\text{Profit}}{\text{Véhicules}}$. L'agent maximise la marge par slot.
+- **En régime riche** ($T_{\text{argent}} \to 0$, $T_{\text{slots}} \to 0$) : $D(a) \to T_{\text{décision}} = 0{,}05$, donc $\text{tensionScore}(a) \to 20 \times \text{ProfitAnnuel}$. L'agent maximise directement le volume absolu de profit annuel.
+
+### 3. Horizon physique des opcodes ($\tau_{\text{opcodes}} = 1{,}0\text{ mois}$)
+Une trouvaille critique lors de l'investigation sur la graine 100 :
+Dans la sonde initiale (A6), `ctx.opcodeFlow` était multiplié par $\tau_{\text{projet}} \approx 25\text{ mois}$. Or, les opcodes de la VM Squirrel ne sont pas stockables en banque : un pathfinder rail de 3 500 à 6 000 itérations (11M à 19M d'opcodes) consomme immédiatement 100 % du débit de la VM pendant 2 à 3 mois consécutifs, bloquant l'exécution de l'IA.
+En ramenant l'horizon opcodes à sa dimension physique réelle d'allocation mensuelle ($\tau_{\text{opcodes}} = 1{,}0$), la tension opcodes d'un projet rail lourd atteint $T_{\text{opcodes}} \approx 1{,}96$ (goulot dominant immédiat), tandis que l'aérien reste à $T_{\text{opcodes}} = 0{,}018$. Cela empêche l'engagement de chantiers rail paralysants en phase de démarrage.
+
+### 4. Résultats de bancs appariés (5 graines canoniques : 42, 2026, 7, 999, 100)
+
+#### A. Banc An 1 (`scratch/bench_a1_5seeds_tau1.json`)
+- **Valeur d'entreprise moyenne** : **209 789 £ (+7,6 %)** vs 194 955 £ pour le socle (`air_site_cache=1`).
+  - Graine 42 : **261 915 £ (+28,4 %)**
+  - Graine 2026 : **180 598 £ (+11,8 %)**
+  - Graine 999 : **160 248 £ (+15,4 %)**
+  - Graine 7 : 271 902 £ (−3,9 %)
+  - Graine 100 : 174 284 £ (−7,1 %, mais profit annuel en hausse à 144 k£ vs 142 k£)
+- **Profit annuel d'exploitation moyen** : **145 949 £ (+5,8 %)** vs 137 981 £.
+- **Score officiel moyen** : **134,0 pts (+3,4 pts)** vs 130,6 pts.
+
+#### B. Banc An 3 (`scratch/bench_a1_5seeds_3y.json`)
+- **Valeur d'entreprise moyenne** : **1 049 088 £ (+17,0 %)** vs 896 729 £ (franchissement du million de £ moyen dès l'an 3).
+  - Graine 7 : **2 034 331 £ (+37,3 %)**
+  - Graine 999 : **1 151 567 £ (+17,1 %)**
+  - Graine 42 : **926 300 £ (+7,4 %)**
+  - Graine 100 : **740 118 £ (+5,9 %)**
+  - Graine 2026 : 393 122 £ (−13,9 %)
+- **Profit annuel moyen** : **529 483 £ (+32,6 %)** vs 399 165 £.
+  - Graine 7 : **1 313 650 £/an (+79,1 %)** vs 733 431 £/an !
+- **Score officiel moyen** : **265,8 pts (+7,0 pts)** vs 258,8 pts.
+- **Taux de victoire** : 4 graines sur 5 gagnantes sur la valeur d'entreprise et le profit.
+
+### 5. Implantation et sécurité
+- Modifié : `ai/OpexAI/tension.nut` (`OpexTensionScore`, support du mode flotte, horizon opcode mensuel).
+- Modifié : `ai/OpexAI/projects.nut` (arbitrage modal et ordonnancement portefeuille via `tensionScore`).
+- Modifié : `ai/OpexAI/main.nut` et `ai/OpexAI/info.nut` (variable globale et setting `tension_scoring`).
+- Sécurité : `easy_value = 0` garantit une stricte non-régression sur le comportement par défaut.
+
