@@ -873,15 +873,15 @@ function OpexBuildCandidates(catalog, budget, lines)
 
   budget.begin();
   OpexPaxCandidates(catalog, lines, all, stats);
-  budget.end("cand_pax");
+  local opsPax = budget.end("cand_pax");
 
   budget.begin();
   OpexFreightCandidates(catalog, lines, all, stats);
-  budget.end("cand_freight");
+  local opsFreight = budget.end("cand_freight");
 
   budget.begin();
   local best = OpexTopK(all, TOP_K);
-  budget.end("cand_rank");
+  local opsRank = budget.end("cand_rank");
 
   stats.topKOmitted = all.len() - best.len();
 
@@ -917,7 +917,7 @@ function OpexBuildCandidates(catalog, budget, lines)
   }
 
   return { all = all.len(), candidates = all, best = best,
-           bands = OpexBands(all), stats = stats };
+           bands = OpexBands(all), stats = stats, opcodes = opsPax + opsFreight + opsRank };
 }
 
 /* Meilleur rapport atteint dans chaque bande de distance.

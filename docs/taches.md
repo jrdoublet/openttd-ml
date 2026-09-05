@@ -8382,3 +8382,64 @@ En ramenant l'horizon opcodes à sa dimension physique réelle d'allocation mens
 - Modifié : `ai/OpexAI/main.nut` et `ai/OpexAI/info.nut` (variable globale et setting `tension_scoring`).
 - Sécurité : `easy_value = 0` garantit une stricte non-régression sur le comportement par défaut.
 
+
+---
+
+## 0 duononagies. 🟢 Réintégration de l'aérien par Macro-Régime de Tension de Liebig (2026-09-05)
+
+### 1. Contexte et demande utilisateur
+Demande : changer le comportement pour que le régime de tension macro-économique de l'entreprise décide formellement de la formule de classement à appliquer aux projets du portefeuille unifié (`air_portfolio = 1`).
+
+Spécifications validées :
+1. **Échelle macro** : Déterminée à l'échelle de la compagnie à chaque cycle de planification.
+2. **Formules par régime selon la contrainte de Liebig** :
+   - Régime `argent` (famine de capital) $\implies$ **ROI** : $\frac{\text{ProfitAnnuel} \times 1000}{\text{BudgetCapital}}$
+   - Régime `foncier` (abondance de capital) $\implies$ **Volume brut de Profit** : $\text{ProfitAnnuel} \times 1000$
+   - Régime `slots_vehicules` (saturation de flotte) $\implies$ **Profit par Véhicule** : $\frac{\text{ProfitAnnuel} \times 1000}{\text{Véhicules}}$
+   - Régime `opcodes` (contrainte VM) $\implies$ **Profit par Opcode** : $\frac{\text{ProfitAnnuel} \times 10^6}{\text{ExpectedOpcodes}}$
+3. **Transition** : `argmax` strict sur les tensions normalisées ($T_{\text{argent}}, T_{\text{slots}}, T_{\text{opcodes}}, T_{\text{foncier}}$).
+
+### 2. Diagnostic et calibrage physique (`tension.nut`, `projects.nut`)
+1. **Le piège du ROI routier (Option A pure)** :
+   En tout début de partie, une ligne de bus coûte 2 500 £ pour 18 000 £ de profit ($\text{ROI} \approx 7\,000$). Un avion de ligne coûte 77 000 à 94 000 £ pour 50 000 à 76 000 £ de profit ($\text{ROI} \approx 800$).
+   Si le classement reste fondé sur le seul ROI, la route écrase l'aérien par un facteur 9:1 et bloque toute expansion aéroportuaire.
+2. **L'empoisonnement par candidats ferroviaires fantômes** :
+   Dans le vivier initial, des lignes rail transcontinentales de 150+ tuiles non viables (£250k–£380k de capital pour £50k de profit, ROI = 200) fixaient $C_{\text{star}} = 350\,000\text{ £}$, maintenant artificiellement $T_{\text{argent}} = 1{,}5 > 1{,}0$ même quand l'IA disposait de 200 000 £ en banque.
+   **Solution adoptée** : Le projet de référence ($C_{\text{star}}$) est filtré sur l'admissibilité financière ($\le \text{capitalCeiling}$) et un plancher de viabilité économique ($\text{ROI} \ge 400$).
+3. **Comportement des régimes validé** :
+   - En phase de tension financière ($T_{\text{argent}} > 1{,}0$) : l'IA sélectionne les lignes routières hyper-rentables pour accumuler rapidement de la trésorerie.
+   - Dès que le capital accumulé (trésorerie + flux 12 mois) permet de financer le projet stratégique disponible ($T_{\text{argent}} \le 1{,}0$) : le régime bascule en `foncier` (abondance).
+   - En régime `foncier` : l'aérien score à 43M–166M contre 3,8M–9M pour la route, plaçant immédiatement l'aérien au rang 0.
+
+### 3. Banc comparatif apparié (5 graines × 3 ans)
+Comparaison du bras de référence `OpexAI[air_site_cache=1,tension_scoring=1]` (`air_portfolio=0`) contre le bras unifié `OpexAI[air_site_cache=1,tension_scoring=1,air_portfolio=1]` :
+
+| Graine | Métrique | Référence (tâche dédiée) | Unifié (portefeuille Liebig) | Écart |
+|:---|:---|:---|:---|:---|
+| **42** | Valeur de compagnie | 508 858 £ | **488 138 £** | −4,1 % |
+| | Profit / an | 175 293 £ | **276 522 £** | **+57,7 %** |
+| | Lignes aériennes | 6 | 3 | |
+| **100** | Valeur de compagnie | 643 706 £ | **415 742 £** | −35,4 % |
+| | Profit / an | 277 067 £ | **194 063 £** | −30,0 % |
+| | Lignes aériennes | 11 | 5 | |
+| **7** | Valeur de compagnie | 2 034 860 £ | **1 588 265 £** | −21,9 % |
+| | Profit / an | 1 173 515 £ | **740 086 £** | −36,9 % |
+| | Lignes aériennes | 16 | 6 | |
+| **999** | Valeur de compagnie | 753 682 £ | **558 836 £** | −25,9 % |
+| | Profit / an | 347 367 £ | **298 542 £** | −14,1 % |
+| | Lignes aériennes | 11 | 2 | |
+| **2026** | Valeur de compagnie | 429 436 £ | **292 306 £** | −31,9 % |
+| | Profit / an | 189 560 £ | **146 340 £** | −22,8 % |
+| | Lignes aériennes | 7 | 2 | |
+| **Moyenne** | **Valeur de compagnie** | | | **−23,8 %** |
+| | **Profit / an** | | | **−9,2 %** |
+| | **Lignes aériennes bâties** | **51** | **18** | **−64,7 %** |
+
+### 4. 🔍 Diagnostic des causes du déficit d'expansion aérienne (51 vs 18 lignes)
+L'analyse approfondie des journaux NoAI pas à pas a révélé trois goulets d'étranglement architecturaux :
+1. **La concurrence de débit (Concurrency Bottleneck)** :
+   Dans la référence (`air_portfolio = 0`), la tâche `air` et la tâche `projects` tournent en parallèle chaque mois : la référence ouvre des lignes routières ET des lignes aériennes en même temps. Sous `air_portfolio = 1`, la tâche `air` est éteinte et tout passe par `projects`, bridé par `PORTFOLIO_MAX_BATCH = 1` (1 seul projet tous modes confondus par mois).
+2. **Le batch initial de démarrage** :
+   Dans la référence, `_tryBuildAir` possède une boucle interne `maxBatch = 3` (ou 12 en `air_starter`), lui permettant de poser jusqu'à 3 liaisons (nouvelle paire + hub-site + hub-hub) dès le premier mois. Dans le portefeuille unifié, `PORTFOLIO_MAX_BATCH = 1` impose 1 mois par liaison.
+3. **Le blocage de tête de file ferroviaire (Rail Head-of-line Blocking)** :
+   Sur la graine 999, dès que le régime `foncier` élit une ligne rail lourde (charbon 144 tuiles, £65k profit), la recherche A* incrémentale s'étale sur 5 à 6 mois consécutifs. Parce que `PORTFOLIO_MAX_BATCH = 1` et que le rail occupe le rang 0, aucune des 164 opportunités aériennes en vivier ne peut être construite pendant ce semestre.

@@ -282,36 +282,183 @@ function OpexTensionVector(project, ctx)
   return { vector = vector, dominant = first.resource, gapRelative = gap };
 }
 
-/* Score de classement A1 (Option A, loi de Liebig).
- * Le denominateur est la somme des tensions du vecteur augmentee de la friction de decision.
- * En regime pauvre, T_argent domine et la fonction degenere en ROI du capital.
- * En regime riche, T_argent s'efface et la fonction degenere en Profit Annuel brut.
- * En saturation de flotte, T_slots domine et la fonction degenere en Profit par vehicule. */
-function OpexTensionScore(project, ctx, decisionFriction = 0.05)
+/* Calcule les tensions macro-economiques de la compagnie par cycle et determine
+ * la contrainte dominante (strict argmax) qui dicte la formule du portefeuille.
+ * Regimes possibles :
+ *   - "argent"          -> ROI (Profit / Capital)
+ *   - "foncier"         -> Abondance : Volume brut de Profit Annuel
+ *   - "slots_vehicules" -> Flotte : Profit par Vehicule
+ *   - "opcodes"         -> Calcul : Profit par Opcode
+ */
+function OpexTensionMacroRegime(ctx, projects, planningOps = 0, capitalCeiling = 0)
+{
+  if (ctx == null) {
+    return {
+      regime = "argent",
+      dominant = "argent",
+      maxVal = 1.0,
+      tensions = { argent = 1.0, slots_vehicules = 0.0, opcodes = 0.0, foncier = 0.0 }
+    };
+  }
+
+  // 1. Argent : capacite a financer le projet strategique le plus rentable du vivier (star project)
+  // Un projet strategique doit avoir un ROI viable (>= 400, soit 40 %/an) pour ne pas laisser un
+  // candidat ferroviaire mediocre et disproportionne (£250k a 35 % de ROI) empoisonner la perception de tresorerie.
+  local maxProfit = 0;
+  local starCap = 50000;
+  if (projects != null) {
+    if (("airPlans" in projects) && projects.airPlans != null) {
+      foreach (p in projects.airPlans) {
+        local cap = ("capital" in p) ? p.capital : 50000;
+        if (capitalCeiling > 0 && cap > capitalCeiling) continue;
+        local profit = ("economics" in p && "profitAnnual" in p.economics) ? p.economics.profitAnnual : 0;
+        local roi = ("economics" in p && "roi" in p.economics) ? p.economics.roi : (cap > 0 ? (profit * 1000) / cap : 0);
+        if (roi >= 400 && profit > maxProfit) {
+          maxProfit = profit;
+          starCap = cap;
+        }
+      }
+    }
+    if (("rail" in projects) && projects.rail != null && ("candidates" in projects.rail)) {
+      foreach (c in projects.rail.candidates) {
+        local cap = ("capital" in c) ? c.capital : 50000;
+        if (capitalCeiling > 0 && cap > capitalCeiling) continue;
+        local profit = ("profitAnnual" in c) ? c.profitAnnual : 0;
+        local roi = ("roi" in c) ? c.roi : (cap > 0 ? (profit * 1000) / cap : 0);
+        if (roi >= 400 && profit > maxProfit) {
+          maxProfit = profit;
+          starCap = cap;
+        }
+      }
+    }
+    if (("road" in projects) && projects.road != null && ("candidates" in projects.road)) {
+      foreach (c in projects.road.candidates) {
+        local cap = ("capital" in c) ? c.capital : 50000;
+        if (capitalCeiling > 0 && cap > capitalCeiling) continue;
+        local profit = ("profitAnnual" in c) ? c.profitAnnual : 0;
+        local roi = ("roi" in c) ? c.roi : (cap > 0 ? (profit * 1000) / cap : 0);
+        if (roi >= 400 && profit > maxProfit) {
+          maxProfit = profit;
+          starCap = cap;
+        }
+      }
+    }
+    if (("waterPlans" in projects) && projects.waterPlans != null) {
+      foreach (p in projects.waterPlans) {
+        local cap = ("capital" in p) ? p.capital : 50000;
+        if (capitalCeiling > 0 && cap > capitalCeiling) continue;
+        local profit = ("economics" in p && "profitAnnual" in p.economics) ? p.economics.profitAnnual : 0;
+        local roi = ("economics" in p && "roi" in p.economics) ? p.economics.roi : (cap > 0 ? (profit * 1000) / cap : 0);
+        if (roi >= 400 && profit > maxProfit) {
+          maxProfit = profit;
+          starCap = cap;
+        }
+      }
+    }
+  }
+
+  // Horizon macro : 12 mois de flux net positif
+  local flowTerm = ctx.moneyFlow > 0 ? (ctx.moneyFlow.tofloat() * 12.0) : 0.0;
+  local denomArgent = ctx.moneyAvailable.tofloat() - ctx.moneyCommitments.tofloat() + flowTerm;
+  local t_argent = 0.0;
+  if (denomArgent <= 0) {
+    t_argent = 999.0;
+  } else {
+    t_argent = starCap.tofloat() / denomArgent;
+  }
+
+  // 2. Slots vehicules : occupation de la flotte par rapport aux plafonds de jeu
+  local totalFleet = ctx.fleet.rail + ctx.fleet.road + ctx.fleet.air + ctx.fleet.water;
+  local totalLimit = ctx.limits.rail + ctx.limits.road + ctx.limits.air + ctx.limits.water;
+  if (totalLimit <= 0) totalLimit = 500;
+  local t_slots = totalFleet.tofloat() / totalLimit.tofloat();
+
+  // 3. Opcodes : charge de calcul de la planification face au debit mensuel VM
+  local opsDemand = planningOps > 0 ? planningOps.tofloat() : 15000.0;
+  local t_opcodes = 0.0;
+  if (ctx.opcodeFlow > 0) {
+    t_opcodes = opsDemand / ctx.opcodeFlow.tofloat();
+  }
+
+  // 4. Foncier : seuil d'abondance (1.0 = capacite a financer le star project)
+  // majore par la saturation du foncier cartographique
+  local totalOrigins = ctx.originsFree + ctx.originsServed;
+  local landSaturation = (totalOrigins > 0) ? (ctx.originsServed.tofloat() / totalOrigins.tofloat()) : 0.0;
+  local t_foncier = 1.0 + landSaturation;
+
+  // Selection par strict argmax
+  local tensionsList = [
+    { res = "argent", val = t_argent },
+    { res = "slots_vehicules", val = t_slots },
+    { res = "opcodes", val = t_opcodes },
+    { res = "foncier", val = t_foncier },
+  ];
+
+  local dominant = "argent";
+  local maxVal = -1000.0;
+  foreach (item in tensionsList) {
+    if (item.val > maxVal) {
+      maxVal = item.val;
+      dominant = item.res;
+    }
+  }
+
+  return {
+    regime = dominant,
+    dominant = dominant,
+    maxVal = maxVal,
+    tensions = {
+      argent = t_argent,
+      slots_vehicules = t_slots,
+      opcodes = t_opcodes,
+      foncier = t_foncier
+    }
+  };
+}
+
+/* Calcule le score d'un projet selon la formule dictee par le regime macro de tension. */
+function OpexProjectScoreForRegime(project, regime)
 {
   if (project == null) return 0.0;
   local profit = ("profitAnnual" in project) ? project.profitAnnual : 0;
   if (profit <= 0) return 0.0;
   local cap = ("budgetCapital" in project && project.budgetCapital > 0) ? project.budgetCapital : project.capital;
-  if (ctx == null) {
+
+  if (regime == "argent") {
+    // Formule ROI : Profit / Capital
     return cap > 0 ? (profit.tofloat() * 1000.0) / cap : 0.0;
   }
-
-  local res = OpexTensionVector(project, ctx);
-  local totalTension = decisionFriction.tofloat();
-
-  foreach (entry in res.vector) {
-    if (entry.tension == TENSION_INFINITE) {
-      if (entry.resource == "argent" || entry.resource == "slots_vehicules") {
-        return 0.0;
-      }
-      totalTension += 1.0;
-    } else {
-      totalTension += entry.tension;
-    }
+  if (regime == "slots_vehicules") {
+    // Formule Flotte : Profit / Vehicule
+    local vehs = OpexTensionProjectVehicleCount(project);
+    if (vehs < 1) vehs = 1;
+    return (profit.tofloat() * 1000.0) / vehs;
   }
-
-  if (totalTension <= 0.0) return 0.0;
-  return (profit.tofloat() * 1000.0) / totalTension;
+  if (regime == "opcodes") {
+    // Formule Opcodes : Profit / Opcode
+    local ops = ("expectedOpcodes" in project && project.expectedOpcodes > 0) ? project.expectedOpcodes : 1000;
+    return (profit.tofloat() * 1000000.0) / ops;
+  }
+  // Regime foncier / abondance : Profit Annuel brut (* 1000 pour conserver l'echelle)
+  return profit.tofloat() * 1000.0;
 }
+
+/* Score de classement A1 par regime de tension (loi de Liebig).
+ * Le regime macro de tension decide de la formule a appliquer :
+ * - Argent : ROI (Profit / Capital)
+ * - Abondance / Foncier : Profit Annuel brut
+ * - Flotte / Slots : Profit / Vehicule
+ * - Opcodes : Profit / Opcode */
+function OpexTensionScore(project, ctx, decisionFriction = 0.05)
+{
+  if (project == null) return 0.0;
+  if (ctx == null) {
+    local profit = ("profitAnnual" in project) ? project.profitAnnual : 0;
+    local cap = ("budgetCapital" in project && project.budgetCapital > 0) ? project.budgetCapital : project.capital;
+    return cap > 0 ? (profit.tofloat() * 1000.0) / cap : 0.0;
+  }
+  local regime = ("regime" in ctx) ? ctx.regime : "argent";
+  return OpexProjectScoreForRegime(project, regime);
+}
+
 

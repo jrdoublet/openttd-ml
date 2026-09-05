@@ -193,8 +193,10 @@ function OpexProjectFromCandidate(candidate, tensionCtx = null)
     planningOpcodes = 0,
   };
   project.tensionScore <- (TENSION_SCORING && tensionCtx != null)
-      ? OpexTensionScore(project, tensionCtx, TENSION_DECISION_FRICTION)
+      ? OpexTensionScore(project, tensionCtx)
       : project.budgetScore;
+  project.tensionRegime <- (TENSION_SCORING && tensionCtx != null && ("regime" in tensionCtx))
+      ? tensionCtx.regime : "none";
   return project;
 }
 
@@ -250,8 +252,10 @@ function OpexProjectFromFleet(entry, tensionCtx = null)
     planningOpcodes = 0,
   };
   project.tensionScore <- (TENSION_SCORING && tensionCtx != null)
-      ? OpexTensionScore(project, tensionCtx, TENSION_DECISION_FRICTION)
+      ? OpexTensionScore(project, tensionCtx)
       : project.budgetScore;
+  project.tensionRegime <- (TENSION_SCORING && tensionCtx != null && ("regime" in tensionCtx))
+      ? tensionCtx.regime : "none";
   return project;
 }
 
@@ -282,8 +286,10 @@ function OpexProjectFromAir(catalog, plan, planningOps, tensionCtx = null)
     planningOpcodes = planningOps,
   };
   project.tensionScore <- (TENSION_SCORING && tensionCtx != null)
-      ? OpexTensionScore(project, tensionCtx, TENSION_DECISION_FRICTION)
+      ? OpexTensionScore(project, tensionCtx)
       : project.budgetScore;
+  project.tensionRegime <- (TENSION_SCORING && tensionCtx != null && ("regime" in tensionCtx))
+      ? tensionCtx.regime : "none";
   return project;
 }
 
@@ -310,8 +316,10 @@ function OpexProjectFromWater(catalog, plan, planningOps, tensionCtx = null)
     planningOpcodes = planningOps,
   };
   project.tensionScore <- (TENSION_SCORING && tensionCtx != null)
-      ? OpexTensionScore(project, tensionCtx, TENSION_DECISION_FRICTION)
+      ? OpexTensionScore(project, tensionCtx)
       : project.budgetScore;
+  project.tensionRegime <- (TENSION_SCORING && tensionCtx != null && ("regime" in tensionCtx))
+      ? tensionCtx.regime : "none";
   return project;
 }
 
@@ -461,6 +469,19 @@ function OpexKnapsackComputeBound(candidates, n, startIdx, cap)
 {
   local bound = 0;
   local rem = cap;
+  if (TENSION_SCORING) {
+    local maxDensity = 0.0;
+    for (local j = startIdx; j < n; j++) {
+      local p = candidates[j];
+      local pv = p.profitAnnual;
+      if (p.budgetCapital > 0) {
+        local d = pv.tofloat() / p.budgetCapital;
+        if (d > maxDensity) maxDensity = d;
+      }
+    }
+    return (maxDensity * rem).tointeger();
+  }
+
   for (local j = startIdx; j < n; j++) {
     local p = candidates[j];
     /* La borne doit majorer la MEME grandeur que l'objectif, sinon l'elagage coupe des
@@ -508,8 +529,9 @@ function OpexKnapsackSearch(state, idx, currentCapital, currentRevenue, currentR
     currentItems.append(p);
     state.originsUsed[p.src] <- true;
     state.originsUsed[p.dst] <- true;
+    local objValue = (TENSION_SCORING || KNAPSACK_ROI) ? p.profitAnnual : p.revenueAnnual;
     OpexKnapsackSearch(state, idx + 1, currentCapital + p.budgetCapital,
-                       currentRevenue + (KNAPSACK_ROI ? p.profitAnnual : p.revenueAnnual),
+                       currentRevenue + objValue,
                        p.mode == "road" ? currentRoad + 1 : currentRoad, currentItems);
     delete state.originsUsed[p.src];
     delete state.originsUsed[p.dst];
@@ -816,7 +838,20 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
 
   local tensionCtx = null;
   if (TENSION_SCORING) {
-    tensionCtx = OpexTensionContext({ rail = rail, road = road, airPlans = airPlans, waterPlans = waterPlans });
+    local projMap = { rail = rail, road = road, airPlans = airPlans, waterPlans = waterPlans, fleetPlan = fleetPlan };
+    tensionCtx = OpexTensionContext(projMap);
+    local railOps = (rail != null && ("opcodes" in rail)) ? rail.opcodes : 0;
+    local roadOps = (road != null && ("opcodes" in road)) ? road.opcodes : 0;
+    local totalOps = railOps + roadOps + airOps + waterOps;
+    local macroRes = OpexTensionMacroRegime(tensionCtx, projMap, totalOps, capitalCeiling);
+    tensionCtx.regime <- macroRes.regime;
+    tensionCtx.dominant <- macroRes.dominant;
+    tensionCtx.macroTensions <- macroRes.tensions;
+    if (DECISION_LOG) {
+      OpexDecide("TENSION_REGIME", "regime=" + macroRes.regime + " dominant=" + macroRes.dominant
+                 + " t_argent=" + macroRes.tensions.argent + " t_slots=" + macroRes.tensions.slots_vehicules
+                 + " t_opcodes=" + macroRes.tensions.opcodes + " t_foncier=" + macroRes.tensions.foncier);
+    }
   }
 
   local winners = {};
