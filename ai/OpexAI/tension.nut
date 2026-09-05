@@ -443,15 +443,152 @@ function OpexProjectScoreForRegime(project, regime)
   return profit.tofloat() * 1000.0;
 }
 
-/* Score de classement A1 par regime de tension (loi de Liebig).
- * Le regime macro de tension decide de la formule a appliquer :
- * - Argent : ROI (Profit / Capital)
- * - Abondance / Foncier : Profit Annuel brut
- * - Flotte / Slots : Profit / Vehicule
- * - Opcodes : Profit / Opcode */
+/* Calcule le prix d'ombre dual d'une contrainte gloutonne par parcours critique (Dantzig 1957).
+ * elements : tableau de tables { profit, cost, density }
+ * budget : capacite disponible de la ressource. */
+function OpexCriticalShadowPrice(elements, budget)
+{
+  if (elements == null || elements.len() == 0) return 0.0;
+  if (budget == null) return 0.0;
+
+  local totalCost = 0.0;
+  foreach (item in elements) {
+    totalCost += item.cost;
+  }
+  // Si la demande totale ne depasse pas le budget, la contrainte ne mord pas (complementary slackness)
+  if (totalCost <= budget) return 0.0;
+
+  // Tri par densite decroissante
+  elements.sort(function(a, b) {
+    if (a.density > b.density) return -1;
+    if (a.density < b.density) return 1;
+    return 0;
+  });
+
+  // Si budget <= 0, famine immediate : l'element le plus dense fixe le prix d'ombre
+  if (budget <= 0) {
+    return elements[0].density;
+  }
+
+  // Parcours critique glouton
+  local accumulated = 0.0;
+  foreach (item in elements) {
+    accumulated += item.cost;
+    if (accumulated > budget) {
+      // Element critique fractionnaire : son rendement marginal est le prix d'ombre dual
+      return item.density;
+    }
+  }
+  return 0.0;
+}
+
+/* C35.3 : Calcule les prix d'ombre duaux (argent, slots par mode, opcodes, foncier)
+ * par parcours critique de Dantzig sur l'ensemble des candidats du vivier multimodal. */
+function OpexTensionComputeShadowPrices(ctx, candidates, capitalBudget)
+{
+  local shadow = {
+    argent = 0.0,
+    slots = { rail = 0.0, road = 0.0, air = 0.0, water = 0.0 },
+    opcodes = 0.0,
+    foncier = 0.0,
+  };
+  if (candidates == null || candidates.len() == 0) return shadow;
+
+  // 1. ARGENT (£ de capital)
+  local argentElements = [];
+  foreach (p in candidates) {
+    local prof = ("profitAnnual" in p && p.profitAnnual > 0) ? p.profitAnnual.tofloat() : 0.0;
+    local cap = ("budgetCapital" in p && p.budgetCapital > 0) ? p.budgetCapital.tofloat()
+              : (("capital" in p && p.capital > 0) ? p.capital.tofloat() : 1.0);
+    if (prof > 0 && cap > 0) {
+      argentElements.append({ profit = prof, cost = cap, density = prof / cap });
+    }
+  }
+  local bArgent = capitalBudget > 0 ? capitalBudget.tofloat()
+                : ((ctx != null && ctx.moneyAvailable > 0) ? ctx.moneyAvailable.tofloat() : 1000.0);
+  shadow.argent = OpexCriticalShadowPrice(argentElements, bArgent);
+
+  // 2. SLOTS VEHICULES (par mode physique)
+  local modes = ["rail", "road", "air", "water"];
+  foreach (m in modes) {
+    local slotElements = [];
+    foreach (p in candidates) {
+      local modeKey = OpexTensionModeKey(p.mode);
+      if (modeKey != m) continue;
+      local prof = ("profitAnnual" in p && p.profitAnnual > 0) ? p.profitAnnual.tofloat() : 0.0;
+      local vehs = OpexTensionProjectVehicleCount(p).tofloat();
+      if (vehs < 1.0) vehs = 1.0;
+      if (prof > 0) {
+        slotElements.append({ profit = prof, cost = vehs, density = prof / vehs });
+      }
+    }
+    local lim = (ctx != null && (m in ctx.limits)) ? ctx.limits[m].tofloat() : 500.0;
+    local flt = (ctx != null && (m in ctx.fleet)) ? ctx.fleet[m].tofloat() : 0.0;
+    local bSlots = lim - flt;
+    if (bSlots < 0.0) bSlots = 0.0;
+    shadow.slots[m] = OpexCriticalShadowPrice(slotElements, bSlots);
+  }
+
+  // 3. OPCODES (debit mensuel VM)
+  local opsElements = [];
+  foreach (p in candidates) {
+    local prof = ("profitAnnual" in p && p.profitAnnual > 0) ? p.profitAnnual.tofloat() : 0.0;
+    local ops = ("expectedOpcodes" in p && p.expectedOpcodes > 0) ? p.expectedOpcodes.tofloat() : 1000.0;
+    if (prof > 0 && ops > 0) {
+      opsElements.append({ profit = prof, cost = ops, density = prof / ops });
+    }
+  }
+  local bOps = (ctx != null && ctx.opcodeFlow > 0) ? ctx.opcodeFlow.tofloat() : 1000000.0;
+  shadow.opcodes = OpexCriticalShadowPrice(opsElements, bOps);
+
+  // 4. FONCIER (origines libres)
+  local foncierElements = [];
+  foreach (p in candidates) {
+    local prof = ("profitAnnual" in p && p.profitAnnual > 0) ? p.profitAnnual.tofloat() : 0.0;
+    local orig = (p.mode == "fleet") ? 0.0 : 2.0;
+    if (prof > 0 && orig > 0) {
+      foncierElements.append({ profit = prof, cost = orig, density = prof / orig });
+    }
+  }
+  local bFoncier = (ctx != null && ctx.originsFree > 0) ? ctx.originsFree.tofloat() : 0.0;
+  shadow.foncier = OpexCriticalShadowPrice(foncierElements, bFoncier);
+
+  return shadow;
+}
+
+/* C35.3 : Score de cout reduit dual : ProfitAnnuel - sum_r lambda_r * a_ir. */
+function OpexReducedCostScore(project, shadowPrices)
+{
+  if (project == null) return 0.0;
+  local profit = ("profitAnnual" in project) ? project.profitAnnual.tofloat() : 0.0;
+  if (profit <= 0) return 0.0;
+  local cap = ("budgetCapital" in project && project.budgetCapital > 0) ? project.budgetCapital.tofloat()
+            : (("capital" in project && project.capital > 0) ? project.capital.tofloat() : 1.0);
+  local vehs = OpexTensionProjectVehicleCount(project).tofloat();
+  if (vehs < 1.0) vehs = 1.0;
+  local ops = ("expectedOpcodes" in project && project.expectedOpcodes > 0) ? project.expectedOpcodes.tofloat() : 1000.0;
+  local origins = (project.mode == "fleet") ? 0.0 : 2.0;
+
+  local modeKey = OpexTensionModeKey(project.mode);
+  local lambdaSlots = (shadowPrices != null && ("slots" in shadowPrices) && (modeKey in shadowPrices.slots))
+                      ? shadowPrices.slots[modeKey] : 0.0;
+  local lambdaArgent = (shadowPrices != null && ("argent" in shadowPrices)) ? shadowPrices.argent : 0.0;
+  local lambdaOps = (shadowPrices != null && ("opcodes" in shadowPrices)) ? shadowPrices.opcodes : 0.0;
+  local lambdaFoncier = (shadowPrices != null && ("foncier" in shadowPrices)) ? shadowPrices.foncier : 0.0;
+
+  local reducedCost = profit - (lambdaArgent * cap) - (lambdaSlots * vehs) - (lambdaOps * ops) - (lambdaFoncier * origins);
+  return reducedCost;
+}
+
+/* Score de classement A1 par regime de tension (loi de Liebig) ou C35.3 (cout reduit dual).
+ * Sous shadowPrices : Score = ProfitAnnuel - sum_r lambda_r * a_ir (prix d'ombre dual).
+ * Sous regime macro Liebig : argent -> ROI, foncier -> profit brut, slots -> profit/vehicule, opcodes -> profit/opcode. */
 function OpexTensionScore(project, ctx, decisionFriction = 0.05)
 {
   if (project == null) return 0.0;
+  if (ctx != null && ("shadowPrices" in ctx)) {
+    return OpexReducedCostScore(project, ctx.shadowPrices);
+  }
   if (ctx == null) {
     local profit = ("profitAnnual" in project) ? project.profitAnnual : 0;
     local cap = ("budgetCapital" in project && project.budgetCapital > 0) ? project.budgetCapital : project.capital;

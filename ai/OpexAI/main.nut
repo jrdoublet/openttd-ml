@@ -432,6 +432,8 @@ PORTFOLIO_FLOOR_PCT <- 0;
 /* A1 (docs/taches.md A1, Option A) : classement du portefeuille par vecteur de tension de Liebig. */
 TENSION_SCORING <- false;
 TENSION_DECISION_FRICTION <- 0.05;
+/* C35.3 (docs/taches.md C35.3) : coût réduit à prix d'ombre dual. */
+SHADOW_PRICING <- false;
 
 /* Correctifs de flotte (revue flotte et entretien, docs/taches.md S0 nonies) : repli FAUX jusqu'a
  * la lecture unique de fleet_fix dans Start(). Defaut 0 : chemin historique inchange. Sous 1,
@@ -4606,6 +4608,7 @@ function OpexAI::Start()
   AIR_PORTFOLIO = AIController.GetSetting("air_portfolio") != 0;
   FLEET_PORTFOLIO = AIController.GetSetting("fleet_portfolio") != 0;
   TENSION_SCORING = AIController.GetSetting("tension_scoring") != 0;
+  SHADOW_PRICING = AIController.GetSetting("shadow_pricing") != 0;
   FLAT_BONUS = AIController.GetSetting("flat_bonus") != 0;
   AIR_ROI_ORDER = AIController.GetSetting("air_roi_order") != 0;
   LOOP_BUDGET = AIController.GetSetting("loop_budget") != 0;

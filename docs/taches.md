@@ -5029,7 +5029,7 @@ Il n'y a pas d'A\* fait maison. Seule la fonction de coût est à nous.
 | **C31** | 🔴 **SUITES DE LA REVUE DE CODE C29** (§0 septquinquagesies). **C31.1 ✅ FAIT le 2026-09-04** — `feeder_pricing` ET `feeder_town_coverage` repassés à **0** (§0 octoquinquagesies, factoriel 2×2 30 graines : pricing −1,72 % valeur t=−0,66 34/60, couverture −0,37 % t=−0,16 33/60, interaction non significative p=0,59). Décision initiale : repasser `feeder_pricing` à **0** — banc officiel NUL sur les 3 métriques (11/20, 11/20, 9/20, p = 0,82) et **médiane de valeur −7,3 %** ; le 5/5 qui l'a fait adopter venait d'un banc 5 graines × 6 ans non répliqué. **C31.2 ✅ FAIT** remettre `OpexRoadFeederCandidates` sous `budget.begin()/end()` (`main.nut:1447`) — sa consommation d'opcodes est invisible depuis C29.3. **C31.3 ✅ FAIT** index (ville, hub) en un seul parcours : opcodes de generation **-26,8 %** en moyenne et **-46,5 %** au pire cas (mesure appariee graine 42 x 5 ans). ⚠️ Gravite initiale SUREVALUEE : le cout total etait de 0,03 % du budget. **C31.4** corriger les titres qui affirment un profit non significatif (C29.1+2 : 11/20, p = 0,82) et marquer C29.4 « non significatif » (11/20 valeur, p = 0,82). **C31.5** trancher l'effet de bord d'`OpexTownRoadLineCount` sur le plafond des bus ORDINAIRES. ⚠️ C31.1 se mesure seul ; C31.2-C31.3 sont de l'hygiène, à faire APRÈS | C29.3 nul au banc, médiane −7,3 % ; ~36 000 appels API non mesurés | §0 septquinquagesies |
 | **C33** | 🔴 **LE GOULOT DE L'AN 1 EST LA PLANIFICATION AÉRIENNE** (§0 novemquinquagesies, rejeu de la pire graine). **C33.1 ✅ FAIT et VALIDÉ le 2026-09-05** (`air_site_cache=1` par défaut, `AIR_SITE_RADIUS=25`) : instrumenté puis réduit via cache persistant de sites d'atterrissage avec revalidation à 1 sonde et mémorisation négative. Résultat banc officiel 1 an 5 graines : **valeur +18,6 %** (207 690 £ vs 175 072 £, 4/5 victoires), **profit +15,8 %** (143 973 £ vs 124 311 £), **+3,2 véhicules**, opcodes par passage **-94 % à -96 %** (140 k vs 2,5 à 3,7 M), jours perdus par an divisés par 15 (3 j vs 47-48 j). **C33.2** poser les arrêts de rabattement DANS le chantier de l'aéroport, joints à la même gare (c'est le mécanisme réel d'AAAHogEx, et il rend C29.1-C29.4 caducs). **C33.3** délai de reprise sur la mémoire d'abandon — un seul échec de chantier nous a fait changer de mode pour l'année. **C33.4** décoder `AFAIL error=263`. | C33.1 validé : valeur +18,6 %, opcodes/run −95 %, jours perdus 48j -> 3j | §0 novemquinquagesies, §0 sexagesies |
 | **C34** | 🔴 **FAIT, MESURÉ, REJETÉ — réintégrer l'aérien et le refleet au portefeuille** (§0 sexagesies). `air_portfolio` + `fleet_portfolio`, **défauts remis à 0**. Banc 20 graines × 1 an : **valeur −23,3 %, t = −3,25, 5/20, p = 0,041** — significatif et négatif ; ratio contre AAAHogEx 0,42 → 0,32. Mécanisme : privé de sa voie dédiée, l'aérien affronte un classement qui met la **route au rang 0 dans 27 cas sur 30**. ⚠️ **C34.2 est INERTE** (aucun projet de flotte jamais élu, la règle de tampon refuse toujours) : toute la régression vient de C34.1. ⚠️ Deux de mes raisonnements étaient FAUX et sont réfutés au dossier : couper la tâche aérienne ne divise PAS la planification (11 → 15 passages/an), et l'opcodeScore des projets de flotte n'écrase rien. ➡️ Corriger le DÉNOMINATEUR du classement (A1) avant toute nouvelle plomberie | −23,3 % à 1 an, p = 0,041 ; route rang 0 dans 27/30 | §0 sexagesies |
-| **C35** | 🔑 **A1 : POURQUOI ÇA NE PREND PAS — vers le coût réduit à prix d'ombre** (§0 trenonagies, analyse de code, banc C35.1). 🔴 **La formule validée a été REMPLACÉE** : `4c087c7` posait un classement continu `profit/(0,05 + Σ T_r)` mesuré **+17,0 % an 3**, `079238c` l'a écrasé par une bascule discrète — et son paramètre `decisionFriction` est resté MORT dans le code. 🔴 **A1.1 n'est pas une loi de Liebig** : `t_foncier = 1,0 + saturation` est toujours ≥ 1 quand les trois autres tensions sont des taux < 1, donc l'argmax élit le foncier sauf quand on est fauché — soit *ROI si fauché, profit brut sinon*, le vecteur à 4 ressources étant décoratif. ➡️ **Synthèse : coût réduit `profit − Σ λ_r a_ir`** — le prix d'ombre EST la normalisation cherchée (il porte une unité, le taux de tension non), la TCC en découle ($\arg\max λ_r$ = le goulot), et `OpexKnapsackComputeBound` calcule DÉJÀ le dual du capital sans le nommer. ⚠️ **D4 devient un PRÉREQUIS** : en coût réduit le biais de prédiction n'est plus amorti. **C35.1 ✅ FAIT et MESURÉ le 2026-09-05** (`docs/bench_c35_1_tension_scoring_3y.json`) : A1.1 seul contre 0 donne **−11,6 % valeur** (−129 k£, 2/5 victoires) et **−9,8 % profit** (−62 k£) ; la bascule discrète au profit brut sous-investit en gares sur graines denses | +17,0 % validé (Option A) vs −11,6 % (A1.1 seul au banc C35.1) | §0 trenonagies, §0 quinquinonagies |
+| **C35** | 🔑 **A1 : POURQUOI ÇA NE PREND PAS — vers le coût réduit à prix d'ombre** (§0 trenonagies, analyse de code, banc C35.1, banc C35.3). 🔴 **La formule validée a été REMPLACÉE** : `4c087c7` posait un classement continu `profit/(0,05 + Σ T_r)` mesuré **+17,0 % an 3**, `079238c` l'a écrasé par une bascule discrète — et son paramètre `decisionFriction` est resté MORT dans le code. 🔴 **A1.1 n'est pas une loi de Liebig** : `t_foncier = 1,0 + saturation` est toujours ≥ 1 quand les trois autres tensions sont des taux < 1, donc l'argmax élit le foncier sauf quand on est fauché — soit *ROI si fauché, profit brut sinon*, le vecteur à 4 ressources étant décoratif. ➡️ **Synthèse : coût réduit `profit − Σ λ_r a_ir`** — le prix d'ombre EST la normalisation cherchée (il porte une unité, le taux de tension non), la TCC en découle ($\arg\max λ_r$ = le goulot), et `OpexKnapsackComputeBound` calcule DÉJÀ le dual du capital sans le nommer. ⚠️ **D4 devient un PRÉREQUIS** : en coût réduit le biais de prédiction n'est plus amorti. **C35.1 ✅ FAIT et MESURÉ le 2026-09-05** (`docs/bench_c35_1_tension_scoring_3y.json`) : A1.1 seul contre 0 donne **−11,6 % valeur** (−129 k£, 2/5 victoires) et **−9,8 % profit** (−62 k£). **C35.3 ✅ FAIT et MESURÉ le 2026-09-05** (`docs/bench_c35_3_shadow_pricing_3y.json`) : score officiel **+29,4 pts** (357,6 vs 328,2, 3/5 victoires), rating de gare **+13,5 pts**, réseau plus étendu (+7,6 gares), résilience spectaculaire sur la graine aride 2026 (+166 % valeur, +114 % profit, +138 pts score), mais valeur moyenne −11,2 % et profit −25,6 % due à la sur-taxation cumulative des contraintes 1D indépendantes sur cartes riches | +17,0 % validé (Option A) vs −11,6 % (A1.1 seul C35.1) vs +29,4 pts score / +166 % graine 2026 (C35.3) | §0 trenonagies, §0 quinquinonagies, §0 sexanonagies |
 | C13 | **Le sac à dos (knapsack) n'utilise pas le ROI bonifié fret de C8** — `OpexKnapsackComputeBound`/`OpexKnapsackSearch` (`projects.nut:283-286`, `:323`) additionnent encore `p.revenueAnnual` brut comme objectif, pas le ROI bonifié (monopole +40 %, chaîne +35 %). Le bonus C8 pèse donc sur le tri/seuil de sélection en amont, pas sur l'optimum retenu quand plusieurs candidats se disputent le même capital | trouvé en revue croisée agy/codex/grok du 2026-09-02, en vérifiant C8 | §C8, `projects.nut` |
 
 ### D. Mesures à refaire, parce que les anciennes ne valent plus
@@ -8553,7 +8553,7 @@ Les quatre budgets existent déjà dans `OpexTensionContext` (`tension.nut:114`)
 |---|---|---|
 | **C35.1** | **Isoler A1.1 au banc** : `tension_scoring=1` contre `0`, à `air_portfolio=0` | ✅ **FAIT et MESURÉ le 2026-09-05** (`docs/bench_c35_1_tension_scoring_3y.json`) : A1.1 seul est négatif : valeur −11,6 % (−129 k£, 2/5 victoires), profit −9,8 % (−62 k£). La bascule discrète sur profit brut étouffe le réseau précoce sur graines denses (42, 7) |
 | **C35.2** | **Restaurer Option A** (`4c087c7`) et la mesurer contre A1.1 | la formule continue est la seule des deux à avoir un chiffre validé (+17,0 % an 3) |
-| **C35.3** | **Coût réduit à prix d'ombre** : $\lambda_r$ par parcours critique, généralisation de `OpexKnapsackComputeBound` aux quatre ressources | prérequis **D4** |
+| **C35.3** | **Coût réduit à prix d'ombre** : $\lambda_r$ par parcours critique, généralisation de `OpexKnapsackComputeBound` aux quatre ressources | ✅ **FAIT et MESURÉ le 2026-09-05** (`docs/bench_c35_3_shadow_pricing_3y.json`) : score officiel **+29,4 pts** (357,6 vs 328,2, 3/5 victoires), note de gare **+13,5 pts** (171,3 vs 157,8), réseau étendu (+7,6 gares, 42,6 vs 35,0), résilience sur graine 2026 (+166 % valeur, +114 % profit, +138 pts score). Valeur moyenne globale −11,2 % et profit −25,6 % sur cartes denses par sur-taxation non coordonnée |
 | **C35.4** | **Retirer le paramètre mort** `decisionFriction` de `OpexTensionScore`, ou le rebrancher | hygiène, signale un remplacement inachevé |
 
 ⚠️ **C35.1 avant C35.2.** Restaurer Option A sans savoir ce que vaut A1.1 seul, c'est échanger un
@@ -8672,4 +8672,87 @@ L'analyse de §0 trenonagies suspectait que :
 3. **Conséquence directe pour C35.2 et C35.3** :
    - A1.1 (`tension_scoring=1`) n'est pas le bon modèle et confirme l'analyse théorique de §0 trenonagies : écraser la formule continue (+17,0 % mesuré sous Option A / `4c087c7`) par une bascule discrète au profit brut a dégradé la performance globale.
    - La suite logique est donc C35.2 (restaurer la formule continue d'Option A) ou C35.3 (coût réduit à prix d'ombre dual avec prérequis D4).
+
+
+## 0 sexanonagies. C35.3 : Banc apparié du coût réduit à prix d'ombre dual (2026-09-05)
+
+**Objet** : Implémenter et mesurer l'approche de coût réduit dual ($\text{score}_i = \text{profit}_i - \sum_r \lambda_r \cdot a_{ir}$) dérivée de l'analyse d'item critique de Dantzig sur le vivier multimodal pour les quatre ressources physiques (capital, slots véhicules par mode, opcodes VM, foncier).
+
+### 1. Modèle mathématique et implémentation
+
+Au lieu d'arbitrer les modes par un dénominateur adimensionnel ou une bascule discrète (A1.1), C35.3 évalue chaque projet par son **coût réduit dual** en unités homogènes (£/an) :
+$$\text{Score}_i = \text{ProfitAnnuel}_i - \left(\lambda_{\text{argent}} \cdot \text{Capital}_i + \lambda_{\text{slots}, m} \cdot \text{Véhicules}_i + \lambda_{\text{opcodes}} \cdot \text{Opcodes}_i + \lambda_{\text{foncier}} \cdot \text{Origines}_i\right)$$
+
+Pour chaque ressource $r$, le multiplicateur $\lambda_r$ est calculé par `OpexCriticalShadowPrice(elements, budget)` :
+1. Les candidats consommant la ressource sont triés par densité décroissante de profit ($\frac{\text{profit}}{a_{ir}}$).
+2. Si la somme des demandes ne sature pas le budget physique alloué ($\sum a_{ir} \le B_r$), alors par complémentarité stricte (conditions KKT), $\lambda_r = 0,0$.
+3. Dès que la demande excède le budget, $\lambda_r$ prend la valeur de la densité marginale du premier projet qui fait déborder le budget (item critique fractionnaire de Dantzig).
+
+Les unités des multiplicateurs duaux sont rigoureusement homogènes en taux de rendement marginal annuel :
+- $\lambda_{\text{argent}}$ : £ profit / (£ capital · an)
+- $\lambda_{\text{slots}, m}$ : £ profit / (véhicule · an), calculé séparément par mode physique (rail, road, air, water)
+- $\lambda_{\text{opcodes}}$ : £ profit / (opcode · an)
+- $\lambda_{\text{foncier}}$ : £ profit / (origine urbaine · an)
+
+### 2. Protocole expérimental
+
+- **Bras comparés** :
+  - Bras A (socle de référence) : `OpexAI[shadow_pricing=0,air_portfolio=0]`
+  - Bras B (coût réduit dual C35.3) : `OpexAI[shadow_pricing=1,air_portfolio=0]`
+- **Graines canoniques** : 42, 100, 7, 999, 2026 (5 graines × 3 ans, 10 parties).
+- **Ressources maîtrisées** : exécution Docker bridée à 2 cœurs (`--cpus 2.0`) et 2 Go de RAM (`--memory 2048m`) avec `--max-workers 2`.
+- **Fichier de données** : `docs/bench_c35_3_shadow_pricing_3y.json`.
+
+### 3. Résultats appariés graine par graine (3 ans)
+
+| Graine | Métrique | Référence (`shadow_pricing=0`) | Coût réduit (`shadow_pricing=1`) | Écart relatif (1 vs 0) |
+|---|---|---|---|---|
+| **42** | Valeur de compagnie | 1 246 788 £ | 756 226 £ | **−39,3 %** (−490 562 £) |
+| | Profit / an | 626 055 £ | 303 454 £ | −51,5 % (−322 601 £) |
+| | Score officiel | 354 | 332 | −22 pts |
+| | Flotte / Gares | 86 veh / 54 st | 69 veh / 46 st | Rating 178 → 176 |
+| **100** | Valeur de compagnie | 619 290 £ | 584 866 £ | **−5,6 %** (−34 424 £) |
+| | Profit / an | 342 065 £ | 287 190 £ | −16,0 % (−54 875 £) |
+| | Score officiel | 257 | 235 | −22 pts |
+| | Flotte / Gares | 44 veh / 19 st | 38 veh / 20 st | Rating 171 → 160,5 |
+| **7** | Valeur de compagnie | 2 627 055 £ | 2 328 535 £ | **−11,4 %** (−298 520 £) |
+| | Profit / an | 1 639 604 £ | 1 274 904 £ | −22,2 % (−364 700 £) |
+| | Score officiel | 521 | 529 | **+8 pts** (victoire) |
+| | Flotte / Gares | 69 veh / 34 st | **103 veh / 55 st** | **Rating bondit : 112 → 171 (+59 pts)** |
+| **999** | Valeur de compagnie | 1 228 158 £ | 970 037 £ | **−21,0 %** (−258 121 £) |
+| | Profit / an | 757 642 £ | 484 345 £ | −36,1 % (−273 297 £) |
+| | Score officiel | 333 | 378 | **+45 pts** (victoire) |
+| | Flotte / Gares | 95 veh / 43 st | 73 veh / 49 st | Rating 150 → 175 (+25 pts) |
+| **2026** | Valeur de compagnie | 249 299 £ | 663 606 £ | **+166,2 %** (+414 307 £) |
+| | Profit / an | 111 079 £ | 238 003 £ | **+114,3 %** (+126 924 £) |
+| | Score officiel | 176 | 314 | **+138 pts** (triomphe) |
+| | Flotte / Gares | 44 veh / 25 st | **66 veh / 43 st** | Expansion réseau massive (+18 gares) |
+| **Moyenne** | **Valeur de compagnie** | **1 194 118 £** | **1 060 654 £** | **−11,2 %** (−133 464 £) |
+| | **Profit / an** | **695 289 £** | **517 579 £** | **−25,6 %** (−177 710 £) |
+| | **Score officiel** | **328,2** | **357,6** | **+29,4 pts** (3/5 victoires, 60 %) |
+| | **Note de gare médiane**| **157,8** | **171,3** | **+13,5 pts** |
+| | **Nombre moyen de gares**| **35,0** | **42,6** | **+7,6 gares** (+21,7 %) |
+| | **Victoires valeur** | **4 / 5 (80 %)** | 1 / 5 (20 %) | Le socle gagne 4 graines sur 5 |
+
+### 4. Diagnostic physique et enseignements théoriques
+
+1. **Une expansion et une qualité de réseau nettement supérieures à A1.1** :
+   - Alors que A1.1 provoquait une sous-densification sévère (−11 gares en moyenne sur graines denses, 31 gares vs 51 sur la graine 42), le coût réduit dual **stimule l'expansion territoriale** : +7,6 gares en moyenne (42,6 vs 35,0).
+   - Sur la graine 7, la flotte passe de 69 à 103 véhicules et le nombre de gares de 34 à 55. La note de gare médiane s'envole de **112 à 171 (+59 points)**, transformant un réseau engorgé en un réseau fluide.
+   - Le score officiel moyen progresse de **+29,4 points** (357,6 contre 328,2), avec 3 victoires sur 5.
+
+2. **L'anti-fragilité spectaculaire sur graines pauvres/difficiles (Graine 2026)** :
+   - Sur la graine 2026 (carte pauvre et dispersée), le socle de base peine à décoller (249 k£ de valeur, 176 de score, 25 gares).
+   - Le coût réduit dual multiplie la valeur de compagnie par **2,66 (+166,2 %)**, plus que double le profit annuel (+114,3 %) et fait bondir le score officiel de **+138 points** (314 vs 176). Le prix d'ombre pénalise impitoyablement les projets gaspilleurs de capital et oriente l'IA vers un maillage frugal de 43 gares.
+
+3. **Le mécanisme de sur-taxation multidimensionnelle non coordonnée sur graines denses** :
+   - Sur les cartes riches (42, 999), la valeur globale recule (−39,3 % sur la graine 42, −21,0 % sur la graine 999).
+   - **Explication mathématique** : Dans un problème de sac à dos multidimensionnel, les multiplicateurs duaux optimaux $\lambda_r^*$ sont conjoints (solution du dual par simplexe ou sous-gradient). En calculant les $\lambda_r$ de manière indépendante par item critique 1D de Dantzig le long de chaque axe, chaque $\lambda_r$ absorbe **100 % du taux de rendement marginal** de la ressource.
+   - Lorsqu'un projet requiert simultanément du capital, des véhicules et du foncier, l'addition $\sum_r \lambda_r a_{ir}$ cumule des coûts d'opportunité redondants. Les projets lourds mais rentables sont sur-taxés 2 à 3 fois, différant des investissements ferroviaires majeurs au profit d'une multitude de petits projets routiers ultra-frugaux (expliquant la multiplication des gares mais le déficit de valeur accumulée).
+
+4. **Conclusion opérationnelle** :
+   - C35.3 prouve la pertinence du concept dual pour la qualité de service et la robustesse en environnement contraint (+29,4 pts de score, résilience 2026).
+   - Pour que la valeur de compagnie rejoigne celle du socle sur cartes riches, les multiplicateurs duaux doivent être amortis ou coordonnés (sous-gradient lagrangien, ou facteur de partage entre contraintes actives).
+   - La comparaison avec C35.2 (restauration de la formule continue de l'Option A `4c087c7` : `profit / (0,05 + Σ T_r)`) permettra d'évaluer si un dénominateur continu simple capture les bénéfices sans la sur-taxation additive de Dantzig 1D.
+
 

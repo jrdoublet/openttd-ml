@@ -385,6 +385,20 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C35.3 : COÛT RÉDUIT À PRIX D'OMBRE DUAL (docs/taches.md C35.3).
+     * Classement économique par coût réduit dual :
+     *   Score = ProfitAnnuel - Σ_r λ_r * a_ir
+     * où chaque prix d'ombre λ_r (argent, slots par mode, opcodes, foncier) est dérivé par
+     * parcours critique fractionnaire de Dantzig sur le vivier multimodal de candidats.
+     * 1 = actif, 0 = inactif (défaut). */
+    AddSetting({
+      name = "shadow_pricing",
+      description = "Coût réduit à prix d'ombre dual (docs/taches.md C35.3): 1 = actif, 0 = inactif (défaut)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* C32 : SUPPRESSION DES BONUS FORFAITAIRES DE CLASSEMENT (docs/taches.md C32).
      * Le fret portait jusqu'a x1,89 sur son roi (monopole x1,40 puis chaine x1,35) et un feeder
      * x1,60 forfaitaire. Un forfait n'est pas une estimation : il deplace le classement sans rien
