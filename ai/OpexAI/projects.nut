@@ -742,6 +742,249 @@ function OpexReselectProjects(projects, capitalBudget)
   return projects;
 }
 
+/* C36.1 : Revalidation rapide d'un candidat deja en memoire contre this._lines.
+ * Verifie qu'aucune extremite n'est devenue invalide, qu'aucune ligne identique n'a ete batie,
+ * et que les contraintes physiques du mode tiennent toujours. */
+function OpexIncrementalCandidateStillValid(p, lines)
+{
+  if (p == null) return false;
+  local mode = p.mode;
+
+  /* 1. Doublon exact avec une ligne deja batie */
+  foreach (line in lines) {
+    if (("cargo" in line) && line.cargo == p.cargo &&
+        ("originA" in line) && ("originB" in line) &&
+        ((line.originA == p.src && line.originB == p.dst) ||
+         (line.originA == p.dst && line.originB == p.src))) {
+      return false;
+    }
+  }
+
+  /* 2. Mode route */
+  if (mode == "road") {
+    local isFeeder = (("payload" in p) && p.payload != null &&
+                      ("isFeeder" in p.payload) && p.payload.isFeeder);
+    if (!isFeeder) {
+      if (OpexOriginServed(lines, p.src, true)) return false;
+      if (OpexOriginServed(lines, p.dst, true)) return false;
+      if (p.kind == "pax" && OpexRoadPairServed(lines, p.src, p.dst)) return false;
+    }
+    return true;
+  }
+
+  /* 3. Mode rail : les deux extremites servies excluent la ligne */
+  if (mode == "rail") {
+    if (OpexOriginServed(lines, p.src, false) && OpexOriginServed(lines, p.dst, false)) {
+      return false;
+    }
+    return true;
+  }
+
+  /* 4. Mode aerien : validite du plan de lot et constructibilite des sites */
+  if (mode == "air") {
+    local plan = p.payload;
+    if (plan == null) return false;
+    if (!OpexAirBatchPlanStillLive(plan, lines)) return false;
+    if (!OpexAirBatchSiteStillBuildable(plan.siteA, plan.airport, plan.plane,
+                                         ("reuseA" in plan) && plan.reuseA)) {
+      return false;
+    }
+    if (!OpexAirBatchSiteStillBuildable(plan.siteB, plan.airport, plan.plane,
+                                         ("reuseB" in plan) && plan.reuseB)) {
+      return false;
+    }
+    return true;
+  }
+
+  /* 5. Mode maritime : dock constructible */
+  if (mode == "water") {
+    local plan = p.payload;
+    if (plan == null || !("siteA" in plan) || !("siteB" in plan)) return false;
+    if (!OpexWaterBatchSiteStillBuildable(plan.siteA) ||
+        !OpexWaterBatchSiteStillBuildable(plan.siteB)) {
+      return false;
+    }
+    return true;
+  }
+
+  return true;
+}
+
+/* C36.1 : Caching incremental du vivier post-chantier.
+ * Au lieu de reconstruire tout le portefeuille ex nihilo apres chaque ligne achevee (15 jours
+ * d'attente sur A* et scan aerien), filtre les candidats existants en memoire, injecte les
+ * nouveaux feeders / opportunites de flotte, et resout le sac a dos sur la tresorerie restante.
+ * Execution : < 1 tick (< 500 opcodes, 0 jour). */
+function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capitalBudget, fleetPlan = null)
+{
+  local stats = {
+    odProjects = 0,
+    modeCandidates = 0,
+    modeAlternatives = 0,
+    modeReplaced = 0,
+    poolInfundable = 0,
+    budgetConsidered = 0,
+    budgetSelected = 0,
+    budgetRejected = 0,
+    selectedRevenue = 0,
+    selectedCapital = 0,
+    knapsackNodes = 0,
+    knapsackExact = true,
+  };
+
+  local tensionCtx = null;
+  if (TENSION_SCORING || SHADOW_PRICING) {
+    tensionCtx = OpexTensionContext(projects);
+  }
+
+  local newWinners = {};
+
+  /* 1. Filtrer les candidats existants du vivier */
+  if (("candidateGroups" in projects) && projects.candidateGroups != null) {
+    foreach (key, entry in projects.candidateGroups) {
+      local list = (typeof entry == "array") ? entry : [entry];
+      foreach (p in list) {
+        if (p == null) continue;
+        /* La flotte et les feeders sont regeneres frais ci-dessous */
+        if (p.mode == "fleet") continue;
+        if (("payload" in p) && p.payload != null &&
+            ("isFeeder" in p.payload) && p.payload.isFeeder) continue;
+        if (!OpexIncrementalCandidateStillValid(p, lines)) continue;
+        if (PORTFOLIO_V2) {
+          OpexProjectRememberAll(newWinners, p, stats);
+        } else {
+          OpexProjectRemember(newWinners, p, stats);
+        }
+      }
+    }
+  }
+
+  /* 2. Injection des rabattements (feeders) frais vers les hubs */
+  if (FEEDER_PORTFOLIO && ("roadType" in catalog) && catalog.roadType >= 0) {
+    local freshFeeders = [];
+    local feederStats = {
+      pairsInBand = 0, noMonthly = 0, noEngine = 0, townRejected = 0,
+      economicsUnavailable = 0, profitTooLow = 0, accepted = 0,
+      feederHubs = 0, feederCandidates = 0,
+    };
+    OpexRoadFeederCandidates(catalog, lines, freshFeeders, feederStats);
+    if (("road" in projects) && ("stats" in projects.road)) {
+      projects.road.stats.feederHubs = feederStats.feederHubs;
+      projects.road.stats.feederCandidates = feederStats.feederCandidates;
+    }
+    foreach (cand in freshFeeders) {
+      local p = OpexProjectFromCandidate(cand, tensionCtx);
+      if (p != null) {
+        if (PORTFOLIO_V2) {
+          OpexProjectRememberAll(newWinners, p, stats);
+        } else {
+          OpexProjectRemember(newWinners, p, stats);
+        }
+      }
+    }
+  }
+
+  /* 3. Injection des projets de croissance de flotte (refleet) frais */
+  if (FLEET_PORTFOLIO && fleetPlan != null) {
+    foreach (entry in fleetPlan) {
+      local p = OpexProjectFromFleet(entry, tensionCtx);
+      if (p != null) {
+        if (PORTFOLIO_V2) {
+          OpexProjectRememberAll(newWinners, p, stats);
+        } else {
+          OpexProjectRemember(newWinners, p, stats);
+        }
+      }
+    }
+  }
+
+  /* 4. Selection et resolution du sac a dos sur le capital restant */
+  local funded = null;
+  local byBudget = [];
+  local capitalCeiling = ("capitalBudgetPeak" in projects) ? projects.capitalBudgetPeak : capitalBudget;
+  if (PORTFOLIO_V2) {
+    local alternatives = [];
+    foreach (key, list in newWinners) {
+      stats.odProjects++;
+      foreach (project in list) alternatives.push(project);
+    }
+    funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);
+    stats.budgetConsidered = alternatives.len();
+    stats.budgetSelected = funded.len();
+    stats.budgetRejected = alternatives.len() - funded.len();
+    stats.knapsackNodes = 0;
+    stats.knapsackExact = true;
+  } else {
+    local infundableByMode = { rail = 0, road = 0, air = 0, water = 0 };
+    foreach (key, project in newWinners) {
+      stats.odProjects++;
+      if (POOL_FINANCEABLE && project.budgetCapital > capitalCeiling) {
+        stats.poolInfundable++;
+        if (DECISION_LOG && (project.mode in infundableByMode)) infundableByMode[project.mode]++;
+        continue;
+      }
+      local scoreField = (TENSION_SCORING || SHADOW_PRICING) ? "tensionScore" : "budgetScore";
+      OpexProjectInsert(byBudget, project, scoreField, PROJECT_POOL_K);
+    }
+    if (DECISION_LOG && stats.poolInfundable > 0) {
+      OpexDecide("VIVIER_INFUNDABLE", "rail=" + infundableByMode.rail + " road=" + infundableByMode.road
+                 + " air=" + infundableByMode.air + " water=" + infundableByMode.water
+                 + " total=" + stats.poolInfundable + " ceiling=" + capitalCeiling);
+    }
+    local knapsack = OpexKnapsackSolve(byBudget, capitalBudget, ROAD_MAX_NEW_LINES_PER_YEAR, PROJECT_TOP_K);
+    funded = knapsack.projects;
+    stats.knapsackNodes = knapsack.nodes;
+    stats.knapsackExact = knapsack.exact;
+    stats.budgetConsidered = byBudget.len();
+    stats.budgetSelected = funded.len();
+    stats.budgetRejected = byBudget.len() - funded.len();
+  }
+
+  /* 5. Cloture des statistiques et du capital restant */
+  local selectedRev = 0;
+  local selectedCap = 0;
+  foreach (p in funded) {
+    selectedRev += p.revenueAnnual;
+    selectedCap += p.budgetCapital;
+  }
+  stats.selectedRevenue = selectedRev;
+  stats.selectedCapital = selectedCap;
+  local remaining = capitalBudget - selectedCap;
+  if (remaining < 0) remaining = 0;
+
+  local byOpcodes = funded;
+  if (!PORTFOLIO_V2 && !TENSION_SCORING && !SHADOW_PRICING) {
+    byOpcodes = [];
+    foreach (project in funded) {
+      OpexProjectInsert(byOpcodes, project, "opcodeScore", PROJECT_TOP_K);
+    }
+  }
+
+  if (DECISION_LOG) {
+    local vivierPool = null;
+    if (PORTFOLIO_V2) {
+      vivierPool = [];
+      foreach (key, list in newWinners) {
+        foreach (project in list) vivierPool.push(project);
+      }
+    } else {
+      vivierPool = byBudget;
+    }
+    OpexLogVivier("incremental", vivierPool, stats, capitalBudget, remaining);
+  }
+
+  AILog.Info("[PORTFOLIO_CACHE] incremental: candidates=" + stats.modeCandidates + " od=" + stats.odProjects + " selected=" + stats.budgetSelected + " remaining=" + remaining);
+
+  projects.all = stats.odProjects;
+  projects.best = byOpcodes;
+  projects.stats = stats;
+  projects.capitalBudget = capitalBudget;
+  projects.capitalRemaining = remaining;
+  projects.candidateGroups = newWinners;
+  projects.budgetCandidates = byBudget;
+  return projects;
+}
+
 function OpexProjectEmptyRoad()
 {
   return {
@@ -1037,7 +1280,7 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
 
   /* Le retour historique reste litteralement intact sous 0. Le bras 1 seul conserve le vivier :
    * cela evite meme de changer la forme de this._projects dans le controle. */
-  if (PORTFOLIO_FRESH_BUDGET) {
+  if (PORTFOLIO_FRESH_BUDGET || PORTFOLIO_CACHE) {
     return {
       all = stats.odProjects, best = byOpcodes, stats = stats,
       capitalBudget = capitalBudget, generationCapitalBudget = capitalBudget,

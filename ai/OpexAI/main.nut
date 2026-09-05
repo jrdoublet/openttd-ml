@@ -77,6 +77,8 @@ AIR_COST_PROBE <- false;
 AIR_PRESITE <- false;
 /* Refaire le sac a dos contre la caisse vivante, sans repayer la generation des candidats. */
 PORTFOLIO_FRESH_BUDGET <- false;
+/* C36.1 : Caching incremental du vivier post-chantier. */
+PORTFOLIO_CACHE <- false;
 /* air_fleet_probe : _resizeAirFleets n'emet que ses SUCCES (FG|). Quand une ligne aerienne
  * n'grandit pas, la cause est invisible. FR| donne le premier refus rencontre, une fois par ligne
  * et par an. */
@@ -2383,17 +2385,28 @@ function OpexAI::_tryBuildProjects(year)
   }
 
   if (builtCount > 0) {
-    local priorPeak = (this._projects != null && ("capitalBudgetPeak" in this._projects))
-        ? this._projects.capitalBudgetPeak : 0;
-    local priorHistory = (this._projects != null && ("capitalBudgetHistory" in this._projects))
-        ? this._projects.capitalBudgetHistory : null;
     local fleetPlan = null;
     if (FLEET_PORTFOLIO) {
       /* Mode a blanc : meme decision que la tache air_fleet, sans achat ni test de tresorerie. */
       fleetPlan = [];
       this._resizeAirFleets(AIDate.GetYear(AIDate.GetCurrentDate()), fleetPlan);
     }
-    this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines, priorPeak, priorHistory, fleetPlan);
+    if (PORTFOLIO_CACHE && this._projects != null && (("budgetCandidates" in this._projects) || ("candidateGroups" in this._projects))) {
+      local cashNow = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+      local borrowableNow = REBORROW
+          ? AICompany.GetMaxLoanAmount() - AICompany.GetLoanAmount() : 0;
+      if (borrowableNow < 0) borrowableNow = 0;
+      local budgetNow = cashNow + borrowableNow - OpexCashReserve();
+      if (budgetNow < 0) budgetNow = 0;
+
+      this._projects = OpexIncrementalUpdateProjects(this._projects, this._catalog, this._budget, this._lines, budgetNow, fleetPlan);
+    } else {
+      local priorPeak = (this._projects != null && ("capitalBudgetPeak" in this._projects))
+          ? this._projects.capitalBudgetPeak : 0;
+      local priorHistory = (this._projects != null && ("capitalBudgetHistory" in this._projects))
+          ? this._projects.capitalBudgetHistory : null;
+      this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines, priorPeak, priorHistory, fleetPlan);
+    }
     this._ranked = this._projects.rail;
     if (PORTFOLIO_LOG) OpexLogPortfolioRank(this._projects);
     /* `knapsackExact` et le compteur d'imbrications du budget etaient ECRITS ET LUS NULLE PART.
@@ -4628,6 +4641,7 @@ function OpexAI::Start()
   AIR_COST_PROBE = AIController.GetSetting("air_cost_probe") != 0;
   AIR_PRESITE = AIController.GetSetting("air_presite") != 0;
   PORTFOLIO_FRESH_BUDGET = AIController.GetSetting("portfolio_fresh_budget") != 0;
+  PORTFOLIO_CACHE = AIController.GetSetting("portfolio_cache") != 0;
   AIR_FLEET_PROBE = AIController.GetSetting("air_fleet_probe") != 0;
   FLEET_BEFORE_NEW = AIController.GetSetting("fleet_before_new") != 0;
   /* La file a ete batie par le constructeur, avant que ce reglage ne soit lisible : c'est donc

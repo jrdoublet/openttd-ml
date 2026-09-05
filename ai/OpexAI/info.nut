@@ -1527,6 +1527,18 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = 0
     });
 
+    /* C36.1 : Caching incremental du vivier post-chantier.
+     * Apres une construction reussie, filtre et reelit les candidats deja decouverts en memoire
+     * plutot que de relancer OpexBuildProjects de fond en comble (gain : 15 jours -> 0 jour).
+     * 1 = actif, 0 = regeneration complete historique (defaut). */
+    AddSetting({
+      name = "portfolio_cache",
+      description = "Incremental portfolio cache after build (docs/taches.md C36.1): 1 = reuse vivier and reselect, 0 = full rebuild (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* Ticks de sommeil apres chaque bloc de PATH_CHUNK (50) iterations d'A*.
      *
      * Defaut 0 = AUCUN bridage. Choisi PAR PRINCIPE (armes egales entre IA), PAS par la mesure --
