@@ -5029,6 +5029,7 @@ Il n'y a pas d'A\* fait maison. Seule la fonction de coût est à nous.
 | **C31** | 🔴 **SUITES DE LA REVUE DE CODE C29** (§0 septquinquagesies). **C31.1 ✅ FAIT le 2026-09-04** — `feeder_pricing` ET `feeder_town_coverage` repassés à **0** (§0 octoquinquagesies, factoriel 2×2 30 graines : pricing −1,72 % valeur t=−0,66 34/60, couverture −0,37 % t=−0,16 33/60, interaction non significative p=0,59). Décision initiale : repasser `feeder_pricing` à **0** — banc officiel NUL sur les 3 métriques (11/20, 11/20, 9/20, p = 0,82) et **médiane de valeur −7,3 %** ; le 5/5 qui l'a fait adopter venait d'un banc 5 graines × 6 ans non répliqué. **C31.2 ✅ FAIT** remettre `OpexRoadFeederCandidates` sous `budget.begin()/end()` (`main.nut:1447`) — sa consommation d'opcodes est invisible depuis C29.3. **C31.3 ✅ FAIT** index (ville, hub) en un seul parcours : opcodes de generation **-26,8 %** en moyenne et **-46,5 %** au pire cas (mesure appariee graine 42 x 5 ans). ⚠️ Gravite initiale SUREVALUEE : le cout total etait de 0,03 % du budget. **C31.4** corriger les titres qui affirment un profit non significatif (C29.1+2 : 11/20, p = 0,82) et marquer C29.4 « non significatif » (11/20 valeur, p = 0,82). **C31.5** trancher l'effet de bord d'`OpexTownRoadLineCount` sur le plafond des bus ORDINAIRES. ⚠️ C31.1 se mesure seul ; C31.2-C31.3 sont de l'hygiène, à faire APRÈS | C29.3 nul au banc, médiane −7,3 % ; ~36 000 appels API non mesurés | §0 septquinquagesies |
 | **C33** | 🔴 **LE GOULOT DE L'AN 1 EST LA PLANIFICATION AÉRIENNE** (§0 novemquinquagesies, rejeu de la pire graine). **C33.1 ✅ FAIT et VALIDÉ le 2026-09-05** (`air_site_cache=1` par défaut, `AIR_SITE_RADIUS=25`) : instrumenté puis réduit via cache persistant de sites d'atterrissage avec revalidation à 1 sonde et mémorisation négative. Résultat banc officiel 1 an 5 graines : **valeur +18,6 %** (207 690 £ vs 175 072 £, 4/5 victoires), **profit +15,8 %** (143 973 £ vs 124 311 £), **+3,2 véhicules**, opcodes par passage **-94 % à -96 %** (140 k vs 2,5 à 3,7 M), jours perdus par an divisés par 15 (3 j vs 47-48 j). **C33.2** poser les arrêts de rabattement DANS le chantier de l'aéroport, joints à la même gare (c'est le mécanisme réel d'AAAHogEx, et il rend C29.1-C29.4 caducs). **C33.3** délai de reprise sur la mémoire d'abandon — un seul échec de chantier nous a fait changer de mode pour l'année. **C33.4** décoder `AFAIL error=263`. | C33.1 validé : valeur +18,6 %, opcodes/run −95 %, jours perdus 48j -> 3j | §0 novemquinquagesies, §0 sexagesies |
 | **C34** | 🔴 **FAIT, MESURÉ, REJETÉ — réintégrer l'aérien et le refleet au portefeuille** (§0 sexagesies). `air_portfolio` + `fleet_portfolio`, **défauts remis à 0**. Banc 20 graines × 1 an : **valeur −23,3 %, t = −3,25, 5/20, p = 0,041** — significatif et négatif ; ratio contre AAAHogEx 0,42 → 0,32. Mécanisme : privé de sa voie dédiée, l'aérien affronte un classement qui met la **route au rang 0 dans 27 cas sur 30**. ⚠️ **C34.2 est INERTE** (aucun projet de flotte jamais élu, la règle de tampon refuse toujours) : toute la régression vient de C34.1. ⚠️ Deux de mes raisonnements étaient FAUX et sont réfutés au dossier : couper la tâche aérienne ne divise PAS la planification (11 → 15 passages/an), et l'opcodeScore des projets de flotte n'écrase rien. ➡️ Corriger le DÉNOMINATEUR du classement (A1) avant toute nouvelle plomberie | −23,3 % à 1 an, p = 0,041 ; route rang 0 dans 27/30 | §0 sexagesies |
+| **C35** | 🔑 **A1 : POURQUOI ÇA NE PREND PAS — vers le coût réduit à prix d'ombre** (§0 trenonagies, analyse de code, aucun banc). 🔴 **La formule validée a été REMPLACÉE** : `4c087c7` posait un classement continu `profit/(0,05 + Σ T_r)` mesuré **+17,0 % an 3**, `079238c` l'a écrasé par une bascule discrète — et son paramètre `decisionFriction` est resté MORT dans le code. 🔴 **A1.1 n'est pas une loi de Liebig** : `t_foncier = 1,0 + saturation` est toujours ≥ 1 quand les trois autres tensions sont des taux < 1, donc l'argmax élit le foncier sauf quand on est fauché — soit *ROI si fauché, profit brut sinon*, le vecteur à 4 ressources étant décoratif. ➡️ **Synthèse : coût réduit `profit − Σ λ_r a_ir`** — le prix d'ombre EST la normalisation cherchée (il porte une unité, le taux de tension non), la TCC en découle ($\arg\max λ_r$ = le goulot), et `OpexKnapsackComputeBound` calcule DÉJÀ le dual du capital sans le nommer. ⚠️ **D4 devient un PRÉREQUIS** : en coût réduit le biais de prédiction n'est plus amorti. **C35.1 : isoler A1.1 au banc — JAMAIS FAIT**, le −23,8 % de §0 duononagies mesure `air_portfolio`, pas A1.1 | +17,0 % validé puis écrasé ; ROI pur = route 9:1 | §0 trenonagies |
 | C13 | **Le sac à dos (knapsack) n'utilise pas le ROI bonifié fret de C8** — `OpexKnapsackComputeBound`/`OpexKnapsackSearch` (`projects.nut:283-286`, `:323`) additionnent encore `p.revenueAnnual` brut comme objectif, pas le ROI bonifié (monopole +40 %, chaîne +35 %). Le bonus C8 pèse donc sur le tri/seuil de sélection en amont, pas sur l'optimum retenu quand plusieurs candidats se disputent le même capital | trouvé en revue croisée agy/codex/grok du 2026-09-02, en vérifiant C8 | §C8, `projects.nut` |
 
 ### D. Mesures à refaire, parce que les anciennes ne valent plus
@@ -8443,3 +8444,119 @@ L'analyse approfondie des journaux NoAI pas à pas a révélé trois goulets d'�
    Dans la référence, `_tryBuildAir` possède une boucle interne `maxBatch = 3` (ou 12 en `air_starter`), lui permettant de poser jusqu'à 3 liaisons (nouvelle paire + hub-site + hub-hub) dès le premier mois. Dans le portefeuille unifié, `PORTFOLIO_MAX_BATCH = 1` impose 1 mois par liaison.
 3. **Le blocage de tête de file ferroviaire (Rail Head-of-line Blocking)** :
    Sur la graine 999, dès que le régime `foncier` élit une ligne rail lourde (charbon 144 tuiles, £65k profit), la recherche A* incrémentale s'étale sur 5 à 6 mois consécutifs. Parce que `PORTFOLIO_MAX_BATCH = 1` et que le rail occupe le rang 0, aucune des 164 opportunités aériennes en vivier ne peut être construite pendant ce semestre.
+
+---
+
+## 0 trenonagies. 🔑 A1 : POURQUOI ÇA NE PREND PAS — tension normalisée, théorie des contraintes et PRIX D'OMBRE (2026-09-05)
+
+Analyse de code demandée par l'utilisateur (« j'ai tenté A1 sans succès, je pense qu'il faut
+combiner tension normalisée, théorie des contraintes et prix d'ombre »). **Aucun banc lancé** :
+lecture de `tension.nut`, `projects.nut` et de l'historique git.
+
+### 1. 🔴 La formule validée a été REMPLACÉE, et son paramètre est resté mort
+
+| commit | ce qu'il fait |
+|---|---|
+| `4c087c7 feat(A1)` | classement **continu** : `score = profit × 1000 / (0,05 + Σ_r T_r)`, `T_r` issus du vecteur de tension **par projet**. Mesuré : **+7,6 % valeur an 1, +17,0 % an 3, +32,6 % profit** (§0 unnonagies) |
+| `079238c feat(A1.1)` | **supprime** cette formule (`-local totalTension = decisionFriction.tofloat();`) et la remplace par une **bascule discrète** : argmax macro, puis une des quatre formules en dur |
+
+Signe resté dans le code : `OpexTensionScore(project, ctx, decisionFriction = 0.05)`
+(`tension.nut:452`) garde encore le paramètre de la formule continue **et ne l'utilise jamais**.
+C'est un paramètre mort, vestige de la version mesurée.
+
+### 2. 🔴 A1.1 n'est pas une loi de Liebig à quatre ressources : c'est une bascule binaire
+
+`OpexTensionMacroRegime` (`tension.nut:293`) compare quatre grandeurs qui **ne sont pas sur la même
+échelle** :
+
+```squirrel
+t_slots   = totalFleet / totalLimit    // ~0,01 a 0,25 en pratique
+t_opcodes = opsDemand / opcodeFlow     // ~0,001 a 0,14
+t_argent  = starCap / denomArgent      // ~0,3 quand l'argent est la
+t_foncier = 1.0 + landSaturation       // TOUJOURS entre 1,0 et 2,0
+```
+
+`t_foncier` **part de 1,0 par construction** ; les trois autres sont des taux d'occupation bornés
+sous 1. Le `strict argmax` élit donc le foncier **sauf** quand `denomArgent ≤ 0` (→ `t_argent = 999`).
+
+➡️ Le régime réel est **binaire** : *ROI quand on est fauché, profit brut le reste du temps* — car
+la formule du régime foncier est `return profit * 1000.0`, **sans aucun dénominateur**. Le vecteur
+à quatre ressources est décoratif. §0 duononagies point 2.3 le décrit d'ailleurs comme tel, en le
+présentant comme le comportement voulu.
+
+### 3. ⚖️ L'objection d'A1.1 à Option A est RÉELLE, et elle doit être conservée
+
+§0 duononagies point 2.1 : un bus coûte 2 500 £ pour 18 000 £ de profit (ROI ≈ 7 000) ; un avion
+77 000–94 000 £ pour 50 000–76 000 £ (ROI ≈ 800). **Un classement au ROI pur fait gagner la route
+9 contre 1** et bloque l'aérien.
+
+Option A amortit ce biais sans le supprimer. Avec 200 k£ disponibles :
+`T_bus ≈ 0,0125` → dénominateur ≈ 0,07 ; `T_avion ≈ 0,47` → dénominateur ≈ 0,53.
+Scores : bus ≈ 257 M, avion ≈ 143 M — **la route gagne encore, à 1,8 contre 1** au lieu de 9.
+
+> **Les deux camps ont raison sur ce qu'ils réfutent et tort sur ce qu'ils proposent** : le ROI pur
+> sur-favorise la route, le profit brut sur-favorise les gros projets. Aucune des deux n'est
+> l'arbitrage juste.
+
+### 4. 🔑 LA SYNTHÈSE : le coût réduit à prix d'ombre
+
+$$\text{score}_i = \text{profit}_i - \sum_r \lambda_r \cdot a_{ir}$$
+
+$a_{ir}$ = consommation de la ressource $r$ par le projet $i$ ; $\lambda_r$ = **prix d'ombre**, le
+coût d'opportunité marginal d'une unité de $r$. Les trois notions demandées n'en font qu'une :
+
+- **Théorie des contraintes** : $\arg\max_r \lambda_r$ **EST** le goulot — il émerge, on ne l'élit pas.
+- **Prix d'ombre** : une ressource qui ne mord pas se price **à zéro toute seule**. Ni seuil, ni
+  régime, ni constante magique.
+- **Normalisation** : c'est là qu'Option A pèche. `T_r` est un **taux sans dimension** ; les sommer
+  revient à décréter que 50 % d'occupation de l'argent vaut 50 % d'occupation des opcodes.
+  $\lambda_r$ porte une **unité** (£/an par unité de ressource), donc les termes deviennent
+  additionnables au sens propre. **Le prix d'ombre EST la normalisation cherchée.**
+
+**Vérification sur l'exemple d'A1.1 lui-même** (bus 18 000 £ / 2 500 £ contre avion 76 000 £ / 94 000 £) :
+
+| $\lambda_{\text{argent}}$ | score bus | score avion | gagnant |
+|---|---:|---:|---|
+| 0 (argent non contraignant) | 18 000 | **76 000** | avion ✅ |
+| 0,634 (bascule) | 16 415 | 16 404 | égalité |
+| 0,9 (capital rare) | **15 750** | −8 600 | bus ✅ |
+
+La bascule est **continue et dérivée**, pas décrétée. Et B7 a mesuré que l'argent ne mord pas (part
+mordante **0 % dès l'an 2**) : donc $\lambda_{\text{argent}} \approx 0$, donc les 94 k£ d'un aéroport
+**ne lui coûtent rien**. C'est exactement la correction que réclamait §0 octoquadragesies (« l'air
+doit produire 3,7 fois pour égaler »), obtenue sans réglage.
+
+### 5. ✅ Le code sait DÉJÀ calculer un prix d'ombre
+
+`OpexKnapsackComputeBound` (`projects.nut:468`) calcule déjà le dual du capital sans le nommer : il
+parcourt les candidats triés par densité jusqu'à épuiser le budget, et l'objet **critique** — inclus
+fractionnellement — porte exactement $\lambda_{\text{argent}} = \text{profit}_c / \text{capital}_c$.
+
+Généraliser ce parcours aux trois autres ressources : $O(n)$ chacun, sur des candidats déjà triés.
+Les quatre budgets existent déjà dans `OpexTensionContext` (`tension.nut:114`) : `moneyAvailable`,
+`limits` par mode, `originsFree`, `opcodeFlow`. **La plomberie est là ; il manque la formule.**
+
+### 6. ⚠️ Deux pièges, dont un sérieux
+
+1. 🔴 **Le biais de prédiction devient PORTEUR.** En forme de ratio, une surestimation du profit se
+   compense partiellement entre numérateur et dénominateur. En coût réduit, le profit est au
+   numérateur sans rien pour l'amortir. Or le pax routier réalise **0,31 à 0,55** de sa prédiction
+   quand l'aérien réalise **1,16 à 1,48** (§0 quadragesies, §0 octoquadragesies). Le prix d'ombre
+   traduirait ce biais directement en allocation de modes, **en faveur du mode qui ment**.
+   ➡️ **D4 (correction par mode) cesse d'être un raffinement et devient un PRÉREQUIS.**
+2. 🟠 **Coûts réduits tous négatifs** si les $\lambda$ sont surestimés : plus rien n'est construit.
+   Garde nécessaire (repli sur le profit maximal, ou facteur d'échelle sur les $\lambda$). C'est le
+   problème classique du sous-gradient lagrangien.
+
+### 7. ➡️ C35 — et ce qui n'est PAS mesuré
+
+| # | action | état |
+|---|---|---|
+| **C35.1** | **Isoler A1.1 au banc** : `tension_scoring=1` contre `0`, à `air_portfolio=0` | ⚠️ **JAMAIS FAIT.** Le banc de §0 duononagies (−23,8 %) compare `air_portfolio`, pas A1.1 : les deux bras y portent `tension_scoring=1`. Personne ne sait ce que vaut A1.1 seul |
+| **C35.2** | **Restaurer Option A** (`4c087c7`) et la mesurer contre A1.1 | la formule continue est la seule des deux à avoir un chiffre validé (+17,0 % an 3) |
+| **C35.3** | **Coût réduit à prix d'ombre** : $\lambda_r$ par parcours critique, généralisation de `OpexKnapsackComputeBound` aux quatre ressources | prérequis **D4** |
+| **C35.4** | **Retirer le paramètre mort** `decisionFriction` de `OpexTensionScore`, ou le rebrancher | hygiène, signale un remplacement inachevé |
+
+⚠️ **C35.1 avant C35.2.** Restaurer Option A sans savoir ce que vaut A1.1 seul, c'est échanger un
+inconnu contre un autre. Les deux formules coexistent derrière le même réglage `tension_scoring` :
+il suffit d'un banc apparié pour trancher, et il n'a jamais été fait.
