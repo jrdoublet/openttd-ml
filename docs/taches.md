@@ -5029,7 +5029,7 @@ Il n'y a pas d'A\* fait maison. Seule la fonction de coût est à nous.
 | **C31** | 🔴 **SUITES DE LA REVUE DE CODE C29** (§0 septquinquagesies). **C31.1 ✅ FAIT le 2026-09-04** — `feeder_pricing` ET `feeder_town_coverage` repassés à **0** (§0 octoquinquagesies, factoriel 2×2 30 graines : pricing −1,72 % valeur t=−0,66 34/60, couverture −0,37 % t=−0,16 33/60, interaction non significative p=0,59). Décision initiale : repasser `feeder_pricing` à **0** — banc officiel NUL sur les 3 métriques (11/20, 11/20, 9/20, p = 0,82) et **médiane de valeur −7,3 %** ; le 5/5 qui l'a fait adopter venait d'un banc 5 graines × 6 ans non répliqué. **C31.2 ✅ FAIT** remettre `OpexRoadFeederCandidates` sous `budget.begin()/end()` (`main.nut:1447`) — sa consommation d'opcodes est invisible depuis C29.3. **C31.3 ✅ FAIT** index (ville, hub) en un seul parcours : opcodes de generation **-26,8 %** en moyenne et **-46,5 %** au pire cas (mesure appariee graine 42 x 5 ans). ⚠️ Gravite initiale SUREVALUEE : le cout total etait de 0,03 % du budget. **C31.4** corriger les titres qui affirment un profit non significatif (C29.1+2 : 11/20, p = 0,82) et marquer C29.4 « non significatif » (11/20 valeur, p = 0,82). **C31.5** trancher l'effet de bord d'`OpexTownRoadLineCount` sur le plafond des bus ORDINAIRES. ⚠️ C31.1 se mesure seul ; C31.2-C31.3 sont de l'hygiène, à faire APRÈS | C29.3 nul au banc, médiane −7,3 % ; ~36 000 appels API non mesurés | §0 septquinquagesies |
 | **C33** | 🔴 **LE GOULOT DE L'AN 1 EST LA PLANIFICATION AÉRIENNE** (§0 novemquinquagesies, rejeu de la pire graine). **C33.1 ✅ FAIT et VALIDÉ le 2026-09-05** (`air_site_cache=1` par défaut, `AIR_SITE_RADIUS=25`) : instrumenté puis réduit via cache persistant de sites d'atterrissage avec revalidation à 1 sonde et mémorisation négative. Résultat banc officiel 1 an 5 graines : **valeur +18,6 %** (207 690 £ vs 175 072 £, 4/5 victoires), **profit +15,8 %** (143 973 £ vs 124 311 £), **+3,2 véhicules**, opcodes par passage **-94 % à -96 %** (140 k vs 2,5 à 3,7 M), jours perdus par an divisés par 15 (3 j vs 47-48 j). **C33.2** poser les arrêts de rabattement DANS le chantier de l'aéroport, joints à la même gare (c'est le mécanisme réel d'AAAHogEx, et il rend C29.1-C29.4 caducs). **C33.3** délai de reprise sur la mémoire d'abandon — un seul échec de chantier nous a fait changer de mode pour l'année. **C33.4** décoder `AFAIL error=263`. | C33.1 validé : valeur +18,6 %, opcodes/run −95 %, jours perdus 48j -> 3j | §0 novemquinquagesies, §0 sexagesies |
 | **C34** | 🔴 **FAIT, MESURÉ, REJETÉ — réintégrer l'aérien et le refleet au portefeuille** (§0 sexagesies). `air_portfolio` + `fleet_portfolio`, **défauts remis à 0**. Banc 20 graines × 1 an : **valeur −23,3 %, t = −3,25, 5/20, p = 0,041** — significatif et négatif ; ratio contre AAAHogEx 0,42 → 0,32. Mécanisme : privé de sa voie dédiée, l'aérien affronte un classement qui met la **route au rang 0 dans 27 cas sur 30**. ⚠️ **C34.2 est INERTE** (aucun projet de flotte jamais élu, la règle de tampon refuse toujours) : toute la régression vient de C34.1. ⚠️ Deux de mes raisonnements étaient FAUX et sont réfutés au dossier : couper la tâche aérienne ne divise PAS la planification (11 → 15 passages/an), et l'opcodeScore des projets de flotte n'écrase rien. ➡️ Corriger le DÉNOMINATEUR du classement (A1) avant toute nouvelle plomberie | −23,3 % à 1 an, p = 0,041 ; route rang 0 dans 27/30 | §0 sexagesies |
-| **C35** | 🔑 **A1 : POURQUOI ÇA NE PREND PAS — vers le coût réduit à prix d'ombre** (§0 trenonagies, analyse de code, aucun banc). 🔴 **La formule validée a été REMPLACÉE** : `4c087c7` posait un classement continu `profit/(0,05 + Σ T_r)` mesuré **+17,0 % an 3**, `079238c` l'a écrasé par une bascule discrète — et son paramètre `decisionFriction` est resté MORT dans le code. 🔴 **A1.1 n'est pas une loi de Liebig** : `t_foncier = 1,0 + saturation` est toujours ≥ 1 quand les trois autres tensions sont des taux < 1, donc l'argmax élit le foncier sauf quand on est fauché — soit *ROI si fauché, profit brut sinon*, le vecteur à 4 ressources étant décoratif. ➡️ **Synthèse : coût réduit `profit − Σ λ_r a_ir`** — le prix d'ombre EST la normalisation cherchée (il porte une unité, le taux de tension non), la TCC en découle ($\arg\max λ_r$ = le goulot), et `OpexKnapsackComputeBound` calcule DÉJÀ le dual du capital sans le nommer. ⚠️ **D4 devient un PRÉREQUIS** : en coût réduit le biais de prédiction n'est plus amorti. **C35.1 : isoler A1.1 au banc — JAMAIS FAIT**, le −23,8 % de §0 duononagies mesure `air_portfolio`, pas A1.1 | +17,0 % validé puis écrasé ; ROI pur = route 9:1 | §0 trenonagies |
+| **C35** | 🔑 **A1 : POURQUOI ÇA NE PREND PAS — vers le coût réduit à prix d'ombre** (§0 trenonagies, analyse de code, banc C35.1). 🔴 **La formule validée a été REMPLACÉE** : `4c087c7` posait un classement continu `profit/(0,05 + Σ T_r)` mesuré **+17,0 % an 3**, `079238c` l'a écrasé par une bascule discrète — et son paramètre `decisionFriction` est resté MORT dans le code. 🔴 **A1.1 n'est pas une loi de Liebig** : `t_foncier = 1,0 + saturation` est toujours ≥ 1 quand les trois autres tensions sont des taux < 1, donc l'argmax élit le foncier sauf quand on est fauché — soit *ROI si fauché, profit brut sinon*, le vecteur à 4 ressources étant décoratif. ➡️ **Synthèse : coût réduit `profit − Σ λ_r a_ir`** — le prix d'ombre EST la normalisation cherchée (il porte une unité, le taux de tension non), la TCC en découle ($\arg\max λ_r$ = le goulot), et `OpexKnapsackComputeBound` calcule DÉJÀ le dual du capital sans le nommer. ⚠️ **D4 devient un PRÉREQUIS** : en coût réduit le biais de prédiction n'est plus amorti. **C35.1 ✅ FAIT et MESURÉ le 2026-09-05** (`docs/bench_c35_1_tension_scoring_3y.json`) : A1.1 seul contre 0 donne **−11,6 % valeur** (−129 k£, 2/5 victoires) et **−9,8 % profit** (−62 k£) ; la bascule discrète au profit brut sous-investit en gares sur graines denses | +17,0 % validé (Option A) vs −11,6 % (A1.1 seul au banc C35.1) | §0 trenonagies, §0 quinquinonagies |
 | C13 | **Le sac à dos (knapsack) n'utilise pas le ROI bonifié fret de C8** — `OpexKnapsackComputeBound`/`OpexKnapsackSearch` (`projects.nut:283-286`, `:323`) additionnent encore `p.revenueAnnual` brut comme objectif, pas le ROI bonifié (monopole +40 %, chaîne +35 %). Le bonus C8 pèse donc sur le tri/seuil de sélection en amont, pas sur l'optimum retenu quand plusieurs candidats se disputent le même capital | trouvé en revue croisée agy/codex/grok du 2026-09-02, en vérifiant C8 | §C8, `projects.nut` |
 
 ### D. Mesures à refaire, parce que les anciennes ne valent plus
@@ -8551,7 +8551,7 @@ Les quatre budgets existent déjà dans `OpexTensionContext` (`tension.nut:114`)
 
 | # | action | état |
 |---|---|---|
-| **C35.1** | **Isoler A1.1 au banc** : `tension_scoring=1` contre `0`, à `air_portfolio=0` | ⚠️ **JAMAIS FAIT.** Le banc de §0 duononagies (−23,8 %) compare `air_portfolio`, pas A1.1 : les deux bras y portent `tension_scoring=1`. Personne ne sait ce que vaut A1.1 seul |
+| **C35.1** | **Isoler A1.1 au banc** : `tension_scoring=1` contre `0`, à `air_portfolio=0` | ✅ **FAIT et MESURÉ le 2026-09-05** (`docs/bench_c35_1_tension_scoring_3y.json`) : A1.1 seul est négatif : valeur −11,6 % (−129 k£, 2/5 victoires), profit −9,8 % (−62 k£). La bascule discrète sur profit brut étouffe le réseau précoce sur graines denses (42, 7) |
 | **C35.2** | **Restaurer Option A** (`4c087c7`) et la mesurer contre A1.1 | la formule continue est la seule des deux à avoir un chiffre validé (+17,0 % an 3) |
 | **C35.3** | **Coût réduit à prix d'ombre** : $\lambda_r$ par parcours critique, généralisation de `OpexKnapsackComputeBound` aux quatre ressources | prérequis **D4** |
 | **C35.4** | **Retirer le paramètre mort** `decisionFriction` de `OpexTensionScore`, ou le rebrancher | hygiène, signale un remplacement inachevé |
@@ -8607,4 +8607,69 @@ Mesure via `sweeps/diag_road_purpose.py` sur les graines 42, 999, 7, 1024, 314 (
 | | **Profit réel / prédit (médiane)** | 1,08 | **1,23** | 🟢 Parfaitement stable |
 
 Tous les modes sont désormais calibrés entre **0,93 et 1,04** en revenu et profit médians. Le smoke test CI (3 graines × 2 ans) valide des valeurs et profits supérieurs sur toutes les graines sans aucune régression.
+
+
+## 0 quinquinonagies. C35.1 : Banc apparié isolant A1.1 (tension_scoring=1 vs 0) à air_portfolio=0 (2026-09-05)
+
+**Objet** : Mesurer pour la première fois l'impact intrinsèque net de la formule de bascule discrète A1.1 (`tension_scoring = 1`) contre le classement de base (`tension_scoring = 0`) en maintenant strictement `air_portfolio = 0` dans les deux bras.
+
+### 1. Pourquoi ce banc était indispensable
+
+Jusqu'alors, le seul banc documenté pour A1.1 était celui de §0 duononagies (−23,8 % de valeur), qui comparait `air_portfolio = 0` à `air_portfolio = 1` avec `tension_scoring = 1` actif dans les deux bras. L'effet propre de la formule A1.1 n'avait jamais été isolé du reste du moteur.
+
+L'analyse de §0 trenonagies suspectait que :
+1. `t_foncier = 1,0 + saturation` domine quasi systématiquement dès que l'entreprise n'est pas fauchée ($T_{\text{argent}} \le 1,0$).
+2. L'arbitrage dégénère en un basculement binaire (*ROI si fauché, profit brut sinon*).
+3. Le tri par profit brut favorise des projets lourds mais lents à rentabiliser, pénalisant la rotation précoce du capital et la densité du réseau par rapport à l'heuristique de base.
+
+### 2. Protocole expérimental
+
+- **Bras comparés** :
+  - Bras A (socle de référence) : `OpexAI[tension_scoring=0,air_portfolio=0]`
+  - Bras B (Liebig macro A1.1) : `OpexAI[tension_scoring=1,air_portfolio=0]`
+- **Graines canoniques** : 42, 100, 7, 999, 2026 (5 graines × 3 ans, 10 parties).
+- **Ressources maîtrisées** : exécution Docker bridée à 2 cœurs (`--cpus 2.0`) et 2 Go de RAM (`--memory 2048m`) pour préserver la stabilité du VPS.
+- **Fichier de données** : `docs/bench_c35_1_tension_scoring_3y.json`.
+
+### 3. Résultats appariés graine par graine (3 ans)
+
+| Graine | Métrique | Référence (`tension_scoring=0`) | A1.1 (`tension_scoring=1`) | Écart relatif (1 vs 0) |
+|---|---|---|---|---|
+| **42** | Valeur de compagnie | 1 143 661 £ | 733 958 £ | **−35,8 %** |
+| | Profit / an | 581 236 £ | 422 521 £ | −27,3 % |
+| | Score officiel | 343 | 292 | −51 pts |
+| | Flotte / Gares | 79 veh / 51 st | 53 veh / 31 st | Sous-densification marquée |
+| **100** | Valeur de compagnie | 550 221 £ | 444 544 £ | **−19,2 %** |
+| | Profit / an | 269 040 £ | 294 605 £ | +9,5 % |
+| | Score officiel | 263 | 294 | +31 pts |
+| | Flotte / Gares | 50 veh / 36 st | 34 veh / 19 st | Moins de gares, note en baisse (128 vs 177) |
+| **7** | Valeur de compagnie | 2 677 483 £ | 2 178 637 £ | **−18,6 %** |
+| | Profit / an | 1 670 820 £ | 1 281 517 £ | −23,3 % |
+| | Score officiel | 488 | 403 | −85 pts |
+| | Flotte / Gares | 71 veh / 42 st | 70 veh / 28 st | Réseau contracté (28 gares vs 42) |
+| **999** | Valeur de compagnie | 895 609 £ | 1 180 295 £ | **+31,8 %** |
+| | Profit / an | 498 454 £ | 662 943 £ | +33,0 % |
+| | Score officiel | 348 | 362 | +14 pts |
+| | Flotte / Gares | 73 veh / 46 st | 85 veh / 55 st | Expansion réussie |
+| **2026** | Valeur de compagnie | 332 123 £ | 414 487 £ | **+24,8 %** |
+| | Profit / an | 161 361 £ | 206 359 £ | +27,9 % |
+| | Score officiel | 221 | 255 | +34 pts |
+| | Flotte / Gares | 52 veh / 36 st | 60 veh / 46 st | Expansion réussie |
+| **Moyenne** | **Valeur de compagnie** | **1 119 819 £** | **990 384 £** | **−11,6 %** (−129 435 £) |
+| | **Profit / an** | **636 182 £** | **573 589 £** | **−9,8 %** (−62 593 £) |
+| | **Score officiel** | **332,6** | **321,2** | **−11,4 pts** |
+| | **Victoires valeur** | **3 / 5 (60 %)** | 2 / 5 (40 %) | Le socle gagne 3 graines sur 5 |
+
+### 4. Diagnostic et conclusions physiques
+
+1. **A1.1 seul est négatif par rapport au socle historique** :
+   - Sur l'ensemble des 5 graines, la perte moyenne est de **−129 435 £ (−11,6 %)** en valeur et **−62 593 £ (−9,8 %)** en profit annuel.
+   - Le socle historique l'emporte nettement sur 3 graines sur 5 (42, 100, 7).
+2. **Le mécanisme de sous-performance sur graines riches/rapides (42 et 7)** :
+   - Dès que la trésorerie initiale est constituée, le régime bascule en `foncier` (profit brut sans dénominateur de capital).
+   - L'IA délaisse alors les lignes agiles à rotation rapide du capital au profit de lignes plus lourdes. Résultat : sur la graine 42, elle ne pose que 31 gares (contre 51 pour le socle), limitant l'effet multiplicateur d'accumulation.
+   - Sur la graine 7, le profit annuel décroche de plus de 389 000 £ (−23,3 %).
+3. **Conséquence directe pour C35.2 et C35.3** :
+   - A1.1 (`tension_scoring=1`) n'est pas le bon modèle et confirme l'analyse théorique de §0 trenonagies : écraser la formule continue (+17,0 % mesuré sous Option A / `4c087c7`) par une bascule discrète au profit brut a dégradé la performance globale.
+   - La suite logique est donc C35.2 (restaurer la formule continue d'Option A) ou C35.3 (coût réduit à prix d'ombre dual avec prérequis D4).
 
