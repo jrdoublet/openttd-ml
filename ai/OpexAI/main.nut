@@ -2035,11 +2035,31 @@ function OpexAI::_tryBuildProjects(year)
       local candidate = project.payload;
       local isFeeder = ("isFeeder" in candidate) && candidate.isFeeder;
       if (candidate.kind == "pax") {
-        local alreadyServed = (FEEDER_UNLOCK && isFeeder)
-          ? OpexTownFeederServed(this._lines, candidate.src, candidate.hubStationId)
-          : OpexRoadPairServed(this._lines, candidate.src, candidate.dst);
+        local alreadyServed = false;
+        if (FEEDER_UNLOCK && isFeeder) {
+          local maxFeeders = 1;
+          local isHubTown = ("isHubTown" in candidate) ? candidate.isHubTown : false;
+          if (isHubTown && FEEDER_TOWN_COVERAGE) {
+            local tId = ("srcTown" in candidate && candidate.srcTown >= 0) ? candidate.srcTown : AITile.GetClosestTown(candidate.src);
+            local houses = AITown.IsValidTown(tId) ? AITown.GetHouseCount(tId) : 0;
+            if (houses <= 0 && AITown.IsValidTown(tId)) houses = AITown.GetPopulation(tId) / 25;
+            maxFeeders = OpexCeilDiv(houses, ROAD_STOP_CATCHMENT_HOUSES);
+            if (maxFeeders > 4) maxFeeders = 4;
+            if (maxFeeders < 1) maxFeeders = 1;
+          }
+          local currentCount = OpexTownFeederCount(this._lines, candidate.src, candidate.hubStationId);
+          local slot = ("feederSlot" in candidate) ? candidate.feederSlot : 0;
+          local yearsElapsed = (this._startYear >= 0) ? (year - this._startYear) : 0;
+          if (currentCount >= maxFeeders || (slot >= 1 && yearsElapsed < 2)) {
+            alreadyServed = true;
+          }
+        } else {
+          alreadyServed = OpexRoadPairServed(this._lines, candidate.src, candidate.dst);
+        }
         if (alreadyServed) {
           if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "pair_already_served", extra = "" });
+          local abandonedKey = OpexAbandonedPairKey(candidate);
+          this._abandonedPairs[abandonedKey] <- true;
           continue;
         }
         if (OpexTownRoadLineCount(this._lines, candidate.src) >= 4) {
@@ -2386,7 +2406,7 @@ function OpexAI::_tryBuildProjects(year)
 
   local hadAbandons = false;
   foreach (d in passDiscards) {
-    if (d.reason == "plan_failed" || d.reason == "build_failed") {
+    if (d.reason == "plan_failed" || d.reason == "build_failed" || d.reason == "pair_already_served") {
       hadAbandons = true;
       break;
     }

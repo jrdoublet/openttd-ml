@@ -912,7 +912,24 @@ function OpexIncrementalCandidateStillValid(p, lines, abandonedPairs = null)
   if (mode == "road") {
     local isFeeder = (("payload" in p) && p.payload != null &&
                       ("isFeeder" in p.payload) && p.payload.isFeeder);
-    if (!isFeeder) {
+    if (isFeeder) {
+      local cand = p.payload;
+      local isHubTown = ("isHubTown" in cand) ? cand.isHubTown : false;
+      local maxFeeders = 1;
+      if (isHubTown && FEEDER_TOWN_COVERAGE) {
+        local tId = ("srcTown" in cand && cand.srcTown >= 0) ? cand.srcTown : AITile.GetClosestTown(cand.src);
+        local houses = AITown.IsValidTown(tId) ? AITown.GetHouseCount(tId) : 0;
+        if (houses <= 0 && AITown.IsValidTown(tId)) houses = AITown.GetPopulation(tId) / 25;
+        maxFeeders = OpexCeilDiv(houses, ROAD_STOP_CATCHMENT_HOUSES);
+        if (maxFeeders > 4) maxFeeders = 4;
+        if (maxFeeders < 1) maxFeeders = 1;
+      }
+      local currCount = OpexTownFeederCount(lines, cand.src, cand.hubStationId);
+      local slot = ("feederSlot" in cand) ? cand.feederSlot : 0;
+      local currYear = AIDate.GetYear(AIDate.GetCurrentDate());
+      local startYear = 1970;
+      if (currCount >= maxFeeders || (slot >= 1 && (currYear - startYear) < 2)) return false;
+    } else {
       if (OpexOriginServed(lines, p.src, true)) return false;
       if (OpexOriginServed(lines, p.dst, true)) return false;
       if (p.kind == "pax" && OpexRoadPairServed(lines, p.src, p.dst)) return false;

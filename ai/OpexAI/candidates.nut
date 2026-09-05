@@ -1458,6 +1458,11 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats, abandonedPairs = n
         if (maxFeeders < 1) maxFeeders = 1;
       }
       if (FEEDER_UNLOCK && existingCount >= maxFeeders) continue;
+      if (existingCount >= 1) {
+        local currYear = AIDate.GetYear(AIDate.GetCurrentDate());
+        local startYear = ("startYear" in catalog) ? catalog.startYear : 1970;
+        if (currYear - startYear < 2) continue;
+      }
       local feederKey = "feeder|" + towns[i].id + "|" + hub.stationId + "|" + existingCount;
       if (abandonedPairs != null && (feederKey in abandonedPairs)) continue;
 
