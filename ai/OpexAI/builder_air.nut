@@ -24,6 +24,8 @@ AIR_FULL_LOAD <- false;
 /* Cache de sites d'aeroport par ville et type d'aeroport (C33.1) */
 AIR_SITE_CACHE_ENABLED <- true;
 AIR_SITE_CACHE <- {};
+/* C36.3 : Filtre d'emprise sans AITestMode avant la sonde (defaut 0, docs/taches.md S0 octanonagies). */
+AIR_CHEAP_SITE <- false;
 
 function OpexAirResetSiteCache()
 {
@@ -330,6 +332,77 @@ function OpexAirAirportAcceptsPlane(airportType, planeType)
   return airportType != AIAirport.AT_SMALL && airportType != AIAirport.AT_COMMUTER;
 }
 
+/* C36.3 : l'emprise est-elle constructible SANS AITestMode ni LevelTiles ?
+ * IsBuildableRectangle accepte Clear + Trees (BuildAirport les rase) et le cote, et refuse
+ * maisons, industries, rail, mer, riviere. Le cote passe IsBuildable : on l'exclut a part,
+ * avec mer/canal/riviere, sur CHAQUE tuile -- pas seulement les deux coins. C4 (span >= 2)
+ * reste. Un hit ici n'est pas encore un site : OpexAirFindSite confirme en une sonde. */
+function OpexAirFootprintCheapOk(anchor, airport)
+{
+  local w = airport.width;
+  local h = airport.height;
+  if (!AITile.IsBuildableRectangle(anchor, w, h)) return false;
+  local minH = AITile.GetMinHeight(anchor);
+  local maxH = AITile.GetMaxHeight(anchor);
+  local offX = w - 1;
+  local offY = h - 1;
+  for (local tx = 0; tx <= offX; tx++) {
+    for (local ty = 0; ty <= offY; ty++) {
+      local t = anchor + AIMap.GetTileIndex(tx, ty);
+      if (!AIMap.IsValidTile(t)) return false;
+      if (AITile.IsWaterTile(t) || AITile.IsCoastTile(t) || AITile.IsRiverTile(t)) return false;
+      local tMin = AITile.GetMinHeight(t);
+      local tMax = AITile.GetMaxHeight(t);
+      if (tMin < minH) minH = tMin;
+      if (tMax > maxH) maxH = tMax;
+      if (maxH - minH >= 2) return false;
+    }
+  }
+  return true;
+}
+
+function OpexAirFootprintEnd(anchor, airport)
+{
+  return anchor + AIMap.GetTileIndex(airport.width - 1, airport.height - 1);
+}
+
+function OpexAirFootprintIsFlat(anchor, airport)
+{
+  /* CheckFlatLandAirport compare le z du coin haut de chaque tuile (allowed_z), pas l'absence
+   * de pente : min==max par tuile est plus dur que le moteur. */
+  local z = AITile.GetMaxHeight(anchor);
+  local offX = airport.width - 1;
+  local offY = airport.height - 1;
+  for (local tx = 0; tx <= offX; tx++) {
+    for (local ty = 0; ty <= offY; ty++) {
+      local t = anchor + AIMap.GetTileIndex(tx, ty);
+      if (!AIMap.IsValidTile(t)) return false;
+      if (AITile.GetMaxHeight(t) != z) return false;
+    }
+  }
+  return true;
+}
+
+/* Nivellement REEL (pas AITestMode) de l'emprise exacte, puis verification min=max.
+ * LevelTiles en test ne change pas la carte ; BuildAirport ne terrasse pas. */
+function OpexAirLevelFootprint(anchor, airport, townId = -1)
+{
+  local end = OpexAirFootprintEnd(anchor, airport);
+  if (!AIMap.IsValidTile(end)) return false;
+  if (OpexAirFootprintIsFlat(anchor, airport)) return true;
+  if (!AITile.LevelTiles(anchor, end)) {
+    local err = AIError.GetLastError();
+    if (err == AITile.ERR_AREA_ALREADY_FLAT) return OpexAirFootprintIsFlat(anchor, airport);
+    if (err == AIError.ERR_LOCAL_AUTHORITY_REFUSES && townId >= 0) {
+      OpexBoostTownRating(townId, 800, 40);
+      if (!AITile.LevelTiles(anchor, end)) return false;
+    } else {
+      return false;
+    }
+  }
+  return OpexAirFootprintIsFlat(anchor, airport);
+}
+
 /* Trouve la premiere ancre constructible, par couronnes autour de la ville. L'ancre est bien le
  * coin haut-gauche attendu par BuildAirport. La couverture est testee contre le rectangle entier,
  * pas seulement contre son coin. */
@@ -351,9 +424,26 @@ function OpexAirFindSite(town, airport, probes)
       local c4 = cachedAnchor + AIMap.GetTileIndex(offX, offY);
       if (!AITile.IsWaterTile(cachedAnchor) && !AITile.IsCoastTile(cachedAnchor) &&
           !AITile.IsWaterTile(c4) && !AITile.IsCoastTile(c4) &&
-          AIAirport.GetNearestTown(cachedAnchor, airport.type) == town.id) {
+          AIAirport.GetNearestTown(cachedAnchor, airport.type) == town.id &&
+          (!AIR_CHEAP_SITE || OpexAirFootprintCheapOk(cachedAnchor, airport))) {
         local ok = false;
-        {
+        if (AIR_CHEAP_SITE) {
+          {
+            local probe = AITestMode();
+            ok = AIAirport.BuildAirport(cachedAnchor, airport.type, AIStation.STATION_NEW);
+          }
+          if (!ok) {
+            local err = AIError.GetLastError();
+            if (err == AIError.ERR_LOCAL_AUTHORITY_REFUSES &&
+                OpexAirFootprintIsFlat(cachedAnchor, airport)) {
+              ok = true;
+            } else if (OpexAirLevelFootprint(cachedAnchor, airport, town.id)) {
+              local probe = AITestMode();
+              ok = AIAirport.BuildAirport(cachedAnchor, airport.type, AIStation.STATION_NEW);
+              if (!ok && AIError.GetLastError() == AIError.ERR_LOCAL_AUTHORITY_REFUSES) ok = true;
+            }
+          }
+        } else {
           local probe = AITestMode();
           ok = AIAirport.BuildAirport(cachedAnchor, airport.type, AIStation.STATION_NEW);
           if (!ok) {
@@ -377,6 +467,7 @@ function OpexAirFindSite(town, airport, probes)
   local allowance = 120;
   probes.townsLeft--;
   local used = 0;
+  local execLevels = 0;
   local w = airport.width;
   local h = airport.height;
   local offX = w - 1;
@@ -399,24 +490,33 @@ function OpexAirFindSite(town, airport, probes)
         if (AITile.IsWaterTile(c4) || AITile.IsCoastTile(c4)) continue;
         if (AIAirport.GetNearestTown(anchor, airport.type) != town.id) continue;
 
-        /* Filtre de platitude préalable (docs/taches.md §0 tervicies point 5 & C4, façon AAAHogEx) :
-         * Si l'écart d'altitude au sein de l'emprise dépasse 1 niveau, le terrassement échoue
-         * massivement ou coûte trop cher. Rejet éliminatoire avant d'entrer en AITestMode. */
-        local minH = AITile.GetMinHeight(anchor);
-        local maxH = AITile.GetMaxHeight(anchor);
-        local tooSteep = false;
-        for (local tx = 0; tx <= offX; tx++) {
-          for (local ty = 0; ty <= offY; ty++) {
-            local t = anchor + AIMap.GetTileIndex(tx, ty);
-            local tMin = AITile.GetMinHeight(t);
-            local tMax = AITile.GetMaxHeight(t);
-            if (tMin < minH) minH = tMin;
-            if (tMax > maxH) maxH = tMax;
-            if (maxH - minH >= 2) { tooSteep = true; break; }
+        if (AIR_CHEAP_SITE) {
+          /* Eau/riviere/cote sur toute l'emprise, C4, et IsBuildableRectangle : sans AITestMode.
+           * La sonde ci-dessous ne tourne plus que sur un hit cheap. */
+          if (!OpexAirFootprintCheapOk(anchor, airport)) {
+            if ("cheapSkip" in probes) probes.cheapSkip++;
+            continue;
           }
-          if (tooSteep) break;
+        } else {
+          /* Filtre de platitude préalable (docs/taches.md §0 tervicies point 5 & C4, façon AAAHogEx) :
+           * Si l'écart d'altitude au sein de l'emprise dépasse 1 niveau, le terrassement échoue
+           * massivement ou coûte trop cher. Rejet éliminatoire avant d'entrer en AITestMode. */
+          local minH = AITile.GetMinHeight(anchor);
+          local maxH = AITile.GetMaxHeight(anchor);
+          local tooSteep = false;
+          for (local tx = 0; tx <= offX; tx++) {
+            for (local ty = 0; ty <= offY; ty++) {
+              local t = anchor + AIMap.GetTileIndex(tx, ty);
+              local tMin = AITile.GetMinHeight(t);
+              local tMax = AITile.GetMaxHeight(t);
+              if (tMin < minH) minH = tMin;
+              if (tMax > maxH) maxH = tMax;
+              if (maxH - minH >= 2) { tooSteep = true; break; }
+            }
+            if (tooSteep) break;
+          }
+          if (tooSteep) continue;
         }
-        if (tooSteep) continue;
 
         if (used >= allowance) {
           if (AIR_SITE_CACHE_ENABLED) AIR_SITE_CACHE[key] <- null;
@@ -425,7 +525,26 @@ function OpexAirFindSite(town, airport, probes)
         if (probes.left <= 0) return null;
 
         local ok = false;
-        {
+        if (AIR_CHEAP_SITE) {
+          {
+            local probe = AITestMode();
+            ok = AIAirport.BuildAirport(anchor, airport.type, AIStation.STATION_NEW);
+          }
+          if (!ok) {
+            local err = AIError.GetLastError();
+            if (err == AIError.ERR_LOCAL_AUTHORITY_REFUSES &&
+                OpexAirFootprintIsFlat(anchor, airport)) {
+              ok = true;
+            } else if (execLevels < 3) {
+              execLevels++;
+              if (OpexAirLevelFootprint(anchor, airport, town.id)) {
+                local probe = AITestMode();
+                ok = AIAirport.BuildAirport(anchor, airport.type, AIStation.STATION_NEW);
+                if (!ok && AIError.GetLastError() == AIError.ERR_LOCAL_AUTHORITY_REFUSES) ok = true;
+              }
+            }
+          }
+        } else {
           local probe = AITestMode();
           ok = AIAirport.BuildAirport(anchor, airport.type, AIStation.STATION_NEW);
           if (!ok) {
@@ -628,6 +747,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
   local perfOpsSites = 0;
   local perfOpsEval = 0;
   local perfProbesCount = 0;
+  local perfCheapSkip = 0;
   local perfSitesFound = 0;
 
   local combos = (("airCombos" in catalog) && catalog.airCombos != null && catalog.airCombos.len() > 0)
@@ -681,7 +801,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
     local limit = towns.len() < townPool ? towns.len() : townPool;
     local minDist = (plane.speed >= 400) ? 32 : 30;
     local sites = [];
-    local probes = { left = AIR_MAX_SITE_PROBES, townsLeft = limit, tested = 0 };
+    local probes = { left = AIR_MAX_SITE_PROBES, townsLeft = limit, tested = 0, cheapSkip = 0 };
     local tSites0 = AIController.GetTick();
     local lSites0 = AIController.GetOpsTillSuspend();
     for (local i = 0; i < limit; i++) {
@@ -698,6 +818,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
     }
     perfOpsSites += _calcDeltaOps(tSites0, lSites0);
     perfProbesCount += probes.tested;
+    if ("cheapSkip" in probes) perfCheapSkip += probes.cheapSkip;
     perfSitesFound += sites.len();
     OpexSign(AIMap.GetTileIndex(1, 3), "AS|S=" + sites.len() + "|A=" + airport.name);
 
@@ -765,7 +886,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
     local hubs = [];
     if (AIR_HUB && lines != null) {
       if (sites.len() < AIR_HUB_NEW_SITE_POOL) {
-        local hubProbes = { left = AIR_MAX_SITE_PROBES, townsLeft = towns.len(), tested = 0 };
+        local hubProbes = { left = AIR_MAX_SITE_PROBES, townsLeft = towns.len(), tested = 0, cheapSkip = 0 };
         local tHubSites0 = AIController.GetTick();
         local lHubSites0 = AIController.GetOpsTillSuspend();
         for (local i = 0; i < towns.len() && sites.len() < AIR_HUB_NEW_SITE_POOL; i++) {
@@ -781,6 +902,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
         }
         perfOpsSites += _calcDeltaOps(tHubSites0, lHubSites0);
         perfProbesCount += hubProbes.tested;
+        if ("cheapSkip" in hubProbes) perfCheapSkip += hubProbes.cheapSkip;
       }
       local seenStations = {};
       foreach (line in lines) {
@@ -988,13 +1110,15 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
     OpexDecide("AIR_PLAN_PERF", "scan=" + scanNum + " total_ops=" + totalOps
                + " ops_sites=" + perfOpsSites + " ops_eval=" + perfOpsEval
                + " ticks=" + elapsedTicks + " days=" + elapsedDays
-               + " probes=" + perfProbesCount + " sites=" + perfSitesFound
+               + " probes=" + perfProbesCount + " cheap_skip=" + perfCheapSkip
+               + " sites=" + perfSitesFound
                + " combos=" + combos.len()
                + " plans=" + (projects != null ? projects.len() : (bestPlan != null ? 1 : 0)));
   }
   AILog.Info("AIR_PLAN_PERF: total_ops=" + totalOps + " ops_sites=" + perfOpsSites
              + " ops_eval=" + perfOpsEval + " ticks=" + elapsedTicks + " days=" + elapsedDays
-             + " probes=" + perfProbesCount + " sites=" + perfSitesFound);
+             + " probes=" + perfProbesCount + " cheap_skip=" + perfCheapSkip
+             + " sites=" + perfSitesFound);
   OpexSign(AIMap.GetTileIndex(1, 2), "AP|T=" + totalOps + "|S=" + perfOpsSites + "|E=" + perfOpsEval + "|TK=" + elapsedTicks);
   return bestPlan;
 }
@@ -1081,10 +1205,8 @@ function OpexBuildAirRoute(catalog, budget, plan)
    * Le nivellement des deux sites est deja paye dans le chemin nominal ; ce qu'on economise, c'est
    * l'aeroport bati puis rase. B est sonde en premier : c'est lui qui echoue. */
   if (AIR_PRESITE && !reuseA && !reuseB) {
-    local endA = plan.siteA.anchor + AIMap.GetTileIndex(airport.width, airport.height);
-    local endB = plan.siteB.anchor + AIMap.GetTileIndex(airport.width, airport.height);
-    if (AIMap.IsValidTile(endA)) AITile.LevelTiles(plan.siteA.anchor, endA);
-    if (AIMap.IsValidTile(endB)) AITile.LevelTiles(plan.siteB.anchor, endB);
+    OpexAirLevelFootprint(plan.siteA.anchor, airport, plan.siteA.town.id);
+    OpexAirLevelFootprint(plan.siteB.anchor, airport, plan.siteB.town.id);
     local errB = OpexAirSiteRefusal(plan.siteB, airport.type);
     if (errB != 0) {
       result.error = errB;
@@ -1110,15 +1232,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
       airportA = plan.siteA.anchor;
     }
   } else {
-    local endA = plan.siteA.anchor + AIMap.GetTileIndex(airport.width, airport.height);
-    if (AIMap.IsValidTile(endA)) {
-      if (!AITile.LevelTiles(plan.siteA.anchor, endA)) {
-        if (AIError.GetLastError() == AIError.ERR_LOCAL_AUTHORITY_REFUSES) {
-          OpexBoostTownRating(plan.siteA.town.id, 800, 40);
-          AITile.LevelTiles(plan.siteA.anchor, endA);
-        }
-      }
-    }
+    OpexAirLevelFootprint(plan.siteA.anchor, airport, plan.siteA.town.id);
     local okA = AIAirport.BuildAirport(plan.siteA.anchor, airport.type, AIStation.STATION_NEW);
     if (!okA && AIError.GetLastError() == AIError.ERR_LOCAL_AUTHORITY_REFUSES) {
       OpexBoostTownRating(plan.siteA.town.id, 800, 40);
@@ -1141,15 +1255,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
       airportB = plan.siteB.anchor;
     }
   } else {
-    local endB = plan.siteB.anchor + AIMap.GetTileIndex(airport.width, airport.height);
-    if (AIMap.IsValidTile(endB)) {
-      if (!AITile.LevelTiles(plan.siteB.anchor, endB)) {
-        if (AIError.GetLastError() == AIError.ERR_LOCAL_AUTHORITY_REFUSES) {
-          OpexBoostTownRating(plan.siteB.town.id, 800, 40);
-          AITile.LevelTiles(plan.siteB.anchor, endB);
-        }
-      }
-    }
+    OpexAirLevelFootprint(plan.siteB.anchor, airport, plan.siteB.town.id);
     local okB = AIAirport.BuildAirport(plan.siteB.anchor, airport.type, AIStation.STATION_NEW);
     if (!okB && AIError.GetLastError() == AIError.ERR_LOCAL_AUTHORITY_REFUSES) {
       OpexBoostTownRating(plan.siteB.town.id, 800, 40);

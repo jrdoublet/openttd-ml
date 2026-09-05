@@ -8961,6 +8961,36 @@ La seule variante petite et justifiée est **A** : un plafond de pool **cycle 0*
 
 Si la sonde hors debug montre que le trou calendaire est déjà ~3 jours opcode, **classer C36.3 derrière C30 et le batch du portefeuille**, et ne pas le coder.
 
+### 9. Implémenté : filtre d'emprise cheap (`air_cheap_site`, défaut 0)
+
+Ni gravité, ni FindSite reporté à l'exécution (B), ni pool réduit. `OpexAirFindSite` garde le rang et le TestMode de confirmation, mais n'entre plus en `AITestMode` que sur une emprise déjà :
+
+- `AITile.IsBuildableRectangle` (Clear + Trees OK ; maisons / industries / rail / mer / rivière refusés) ;
+- aucune tuile `IsWaterTile` / `IsCoastTile` / `IsRiverTile` sur le `w×h` entier (le côte passe `IsBuildable`, d'où le test à part) ;
+- C4 : `maxH - minH >= 2` rejeté.
+
+Un miss cheap n'écrit **pas** `_abandonedPairs`. Une sonde confirmatory (BuildAirport, puis LevelTiles si span 1) reste, pour ne pas élire un site que l'aéroport refuse encore. Réglage `air_cheap_site` (défaut 0). `AIR_PLAN_PERF` journalise `cheap_skip`.
+
+**Sonde graine 42 × 1 an** (`sweeps/diag_c36_3_cheap_site.py`) puis **banc apparié 10 graines × 1 an** (`docs/bench_c36_3_cheap_site_y1_10seeds.json`, graines 42, 100, 7, 999, 2026, 1, 17, 73, 314, 512) :
+
+Premier `AIR_PLAN_PERF` (moyenne 10 graines) : sondes TestMode **1 254 → 196 (−84 %)**, sites **17,4 → 21,4**. Le témoin graine 42 reste 1 391 / 16.
+
+Valeur (témoin − cheap) : **−7 529 £** (cheap **+6,4 %** sur la moyenne témoin 117 k£), **6/10**, t = 0,43, n.s. Profit annuel +5,4 k£ (6/10). Score officiel −8 pts (5/10). Deux graines cassent : 2026 121 k£ → 34 k£ (15 → 4 gares), 73 valeur 44 k£ → 208 £. Le filtre change le premier site (donc toute la trajectoire) ; le gain d'opcodes est réel, l'effet valeur est du bruit à 1 an.
+
+**Banc 10 graines × 3 ans** (`docs/bench_c36_3_cheap_site_3y_10seeds.json`, filtre cheap + terrassement réel vs défaut) : 0 échec. Valeur moyenne **−20,1 %** (contrôle − cheap = +209 k£, t = 1,01, **5/10**). La moyenne est tirée par la graine 7 (2,54 M£ → 0,59 M£). Médiane des écarts **légèrement positive** pour cheap. Graine 73 désormais **+39 %** (le AFAIL 263 a disparu). Graine 2026 **à égalité** à 3 ans (423 k£ vs 422 k£) : le trou d'an 1 se referme. Sondes TestMode 1 254 → **140 (−89 %)**. Profit trimestriel cheap **+9,8 %** (7/10). Défaut **toujours 0**.
+
+### 10. Graines 73 et 2026 — ce n'est pas « le filtre est trop strict »
+
+Rejeu `decision_log=1` (`docs/diag_c36_3_seeds_73_2026.json`). Le filtre **ajoute** des villes (il n'en retire aucune) : 73 → +24 +32 ; 2026 → +30 +37. Les tuiles des villes partagées sont **identiques**.
+
+**73 — faux positif TestMode, `AFAIL 263 = FLAT_LAND_REQUIRED`.**
+Le cheap accepte un site pour la ville 32 que le témoin n'a jamais trouvé. Ce site gagne le rang 0 (32→28, 82 833 £, mieux que le 36→0 du témoin à 77 949 £). `BuildAirport` réel échoue (`error=263`). `LevelTiles` en `AITestMode` peut renvoyer vrai et échouer en Exec (note OpenTTD). La paire est abandonnée. Repli rang 1 : 36→24, et la ville 24 est elle aussi **uniquement cheap**. Dans le banc sans journal la cascade va jusqu'à valeur 208 £ ; avec `decision_log` elle reste voisine du témoin (41 k£ vs 43 k£). C'est C33.3/C33.4 : un AFAIL 263 ne doit pas bannir la paire, et une sonde confirmatory qui nivelle en test n'est pas une preuve de platitude.
+
+**Terrassement réel (2026-09-05, essayé).** `OpexAirLevelFootprint` nivelle l'emprise `width-1 × height-1` **en exec**, vérifie que tous les `GetMaxHeight` sont égaux (le critère `allowed_z` du moteur, pas min=max par tuile), puis `BuildAirport`. Sous `air_cheap_site`, FindSite ne croit plus un `AUTHORITY` en TestMode ni un `LevelTiles` dans `AITestMode` : jusqu'à 3 nivellements réels par ville. Rejeu 73/2026 : le AFAIL 263 de la ville 32 **disparaît** (ligne 32→26 posée le 28 jan). 2026 reste le piège bus+charbon (ce n'était pas un 263). Le constructeur utilise le bon rectangle pour tout le monde (le `width` sans −1 terrassait une bande de trop).
+
+**2026 — piège ROI routier + A\* charbon, déclenché par un premier scan plus tôt.**
+Premier avion : même score 741,36 / 81 681 £ / 140 tuiles, mais 45→34 (cheap) contre 45→21 (témoin). En février les deux ont le **même** bus 12 tuiles en rang 0 (ROI 6 437). Le témoin **n'exécute pas** ce portefeuille (repay, puis regen mars où les hubs aériens 45→9 passent rang 0) et pose 3 lignes aériennes. Le cheap, scan fini 6 jours plus tôt, **exécute** le bus en mars (`TRACEX` ×2) puis enchaîne un charbon de 73 tuiles jusqu'en juin. 3 scans `AIR_PLAN` dans l'année contre 15, 2 gares jusqu'en décembre, 250 k£ en caisse. Les hubs aériens (ville 9 présente dans les deux listes) **n'entrent pas** dans le knapsack cheap de mars — rangs = 2 routes + 3 rails. Ce n'est pas un site manquant, c'est de l'HOL blocking après un faux départ routier.
+
 
 
 

@@ -4742,6 +4742,7 @@ function OpexAI::Start()
   local fhmd = AIController.GetSetting("feeder_hub_min_days");
   if (fhmd >= 0) FEEDER_HUB_MIN_DAYS = fhmd;
   AIR_SITE_CACHE_ENABLED = AIController.GetSetting("air_site_cache") != 0;
+  AIR_CHEAP_SITE = AIController.GetSetting("air_cheap_site") != 0;
   OpexAirResetSiteCache();
 
   /* 🔴 RENOUVELLEMENT AUTOMATIQUE (2026-08-29). Mesure : campagne 20 ans, graine 42 -- trois des
