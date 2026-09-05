@@ -39,6 +39,8 @@ ROAD_BUILD_ENABLED <- true;
 ROAD_PAX_CATCHMENT_SHARE_PCT <- 86;
 /* C23 : Borne physique d'un arret de bus (rayon 3 tuiles = 7x7 tuiles = max 20 maisons) */
 ROAD_STOP_CATCHMENT_HOUSES <- 20;
+/* D4 : Dwell time de chargement/dechargement a la station pour les bus passagers (jours) */
+ROAD_PAX_STOP_DWELL_DAYS <- 6;
 /* C27 : Sortir les bonus du numerateur de densite du portefeuille (adopte) */
 CLEAN_DENSITY_SCORE <- true;
 /* C28 : Maximum glissant sur les N derniers cycles pour capitalCeiling (defaut 24) */
@@ -1208,6 +1210,12 @@ function OpexAI::_tryTownGrowth(year)
     local plan = planning.plan;
     if (plan == null) continue;
 
+    local actualDist = AIMap.DistanceManhattan(plan.stopA.tile, plan.stopB.tile);
+    if (actualDist < 1) actualDist = 1;
+    candidate.distance = actualDist;
+    local routeDist = (plan.routeDistance != null && plan.routeDistance > 0) ? plan.routeDistance : actualDist;
+    candidate.capital = 2 * this._catalog.costRoadBusStop + routeDist * this._catalog.costRoadPerTile + this._catalog.costRoadDepot + candidate.engine.price;
+
     local need = candidate.capital + OpexCashReserve();
     money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
     if (money < need) continue;
@@ -1594,6 +1602,23 @@ function OpexAI::_tryBuildFeeders(year)
       OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|" + planning.reason + "|0");
       rejectStats.planNull++;
       continue;
+    }
+    local actualDist = AIMap.DistanceManhattan(plan.stopA.tile, plan.stopB.tile);
+    if (actualDist < 1) actualDist = 1;
+    local economics = OpexRoadLineEconomics(this._catalog, candidate.cargo, actualDist,
+                                            candidate.monthly, candidate.engine, candidate.kind,
+                                            plan.routeDistance);
+    if (economics != null) {
+      local netProfit = ("networkProfit" in candidate) ? candidate.networkProfit : 0;
+      local netRev = ("networkRevenue" in candidate) ? candidate.networkRevenue : 0;
+      OpexApplyRoadEconomics(candidate, economics, actualDist);
+      if (netProfit > 0) {
+        candidate.profitAnnual += netProfit;
+        candidate.revenueAnnual += netRev;
+        if (candidate.capital > 0) {
+          candidate.roi = (candidate.profitAnnual * 1000) / candidate.capital;
+        }
+      }
     }
     if (TREE_PLANTING) {
       if (candidate.srcTown >= 0) OpexBoostTownRating(candidate.srcTown, 700, 35);
@@ -2060,6 +2085,29 @@ function OpexAI::_tryBuildProjects(year)
         OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|" + planning.reason + "|0");
         OpexSign(anchor, "RB|" + yy + "|" + idx + "|1|" + planOps + "|0");
         continue;
+      }
+      local actualDist = AIMap.DistanceManhattan(plan.stopA.tile, plan.stopB.tile);
+      if (actualDist < 1) actualDist = 1;
+      local economics = OpexRoadLineEconomics(this._catalog, candidate.cargo, actualDist,
+                                              candidate.monthly, candidate.engine, candidate.kind,
+                                              plan.routeDistance);
+      if (economics == null || (!isFeeder && economics.profitAnnual <= 0)) {
+        if (DECISION_LOG) {
+          OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=road src=" + candidate.src + " dst=" + candidate.dst + " reason=unprofitable_after_siting");
+        }
+        if (ABANDON_MEMORY) this._abandonedPairs[abandonedKey] <- true;
+        OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|ECON|0");
+        continue;
+      }
+      local netProfit = ("networkProfit" in candidate) ? candidate.networkProfit : 0;
+      local netRev = ("networkRevenue" in candidate) ? candidate.networkRevenue : 0;
+      OpexApplyRoadEconomics(candidate, economics, actualDist);
+      if (netProfit > 0) {
+        candidate.profitAnnual += netProfit;
+        candidate.revenueAnnual += netRev;
+        if (candidate.capital > 0) {
+          candidate.roi = (candidate.profitAnnual * 1000) / candidate.capital;
+        }
       }
       if (TREE_PLANTING) {
         if (candidate.srcTown >= 0) OpexBoostTownRating(candidate.srcTown, 700, 35);
@@ -4558,6 +4606,8 @@ function OpexAI::Start()
   if (roadPaxCatchment > 0) ROAD_PAX_CATCHMENT_SHARE_PCT = roadPaxCatchment;
   local roadStopHouses = AIController.GetSetting("road_stop_catchment_houses");
   if (roadStopHouses > 0) ROAD_STOP_CATCHMENT_HOUSES = roadStopHouses;
+  local roadPaxDwell = AIController.GetSetting("road_pax_dwell_days");
+  if (roadPaxDwell >= 0) ROAD_PAX_STOP_DWELL_DAYS = roadPaxDwell;
   ROAD_REFLEET = AIController.GetSetting("road_refleet") != 0;
   ROAD_MULTISTOP = AIController.GetSetting("road_multistop") != 0;
   MARGINAL_FLEET = AIController.GetSetting("marginal_fleet") != 0;

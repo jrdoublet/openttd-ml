@@ -1152,6 +1152,16 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = 0
     });
 
+    /* D4 : Delai moyen d'arret et de chargement/dechargement a la station pour les bus passagers */
+    AddSetting({
+      name = "road_pax_dwell_days",
+      description = "Average station dwell and loading time for passenger road vehicles in days (default 6)",
+      min_value = 0, max_value = 20,
+      easy_value = 6, medium_value = 6, hard_value = 6,
+      custom_value = 6,
+      flags = 0
+    });
+
     /* Reconstitution de flotte routiere. Defaut 1 : c'est un correctif, pas un pari.
      *
      * CE QUE 1 FAIT. Apres _reportLines / _scrapDeadLines, une ligne routiere dont vehCount

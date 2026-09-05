@@ -373,6 +373,29 @@ function OpexApplyRailEconomics(candidate, economics)
   candidate.profitAnnual = economics.profitAnnual;
 }
 
+/* Recalibre l'economie d'un candidat routier apres decouverte des sites d'arret reels et du trace
+ * (D4 : docs/taches.md S0 quadragesies / S0 trenonagies).
+ *
+ * La distance centre-a-centre utilisait le vol d'oiseau entre centres urbains ; les arrets reels
+ * sont situes en peripherie ou decales (D_real / D_pred in [0.55, 1.20]), ce qui faussait
+ * revenueAnnual (loi de paiement OpenTTD = Manhattan entre arrets) et oneWayDays (duree de parcours
+ * le long du trace routier).
+ * Cette fonction met a jour les champs du candidat de facon atomique, a l'image d'OpexApplyRailEconomics. */
+function OpexApplyRoadEconomics(candidate, economics, actualDistance = null)
+{
+  if (actualDistance != null) candidate.distance = actualDistance;
+  candidate.oneWayDays = economics.oneWayDays;
+  candidate.trains = economics.trains;
+  candidate.carried = economics.carried;
+  candidate.revenueAnnual = economics.revenueAnnual;
+  candidate.runningAnnual = economics.runningAnnual;
+  candidate.amortAnnual = economics.amortAnnual;
+  candidate.capital = economics.capital;
+  candidate.roi = economics.roi;
+  candidate.profitAnnual = economics.profitAnnual;
+  candidate.effectiveSpeed = economics.effectiveSpeed;
+}
+
 /* --- Economie d'une ligne ROUTIERE (2026-08-29) --------------------------------------------
  *
  * Le modele rail ci-dessus n'est PAS transposable tel quel, pour trois raisons mesurees ou
@@ -421,15 +444,21 @@ function OpexRoadPhysicalVehicleCap(nStopsA, nStopsB)
 /* Economie complete d'une ligne routiere. Rend null si le materiel manque pour ce cargo.
  * `engine` vient de catalog.roadEngineByCargo[cargo] ; sa capacite est celle du cargo d'origine
  * (approximation assumee au classement, cf. catalog.nut) -- le constructeur relit la vraie
- * capacite apres refit depuis le depot. */
-function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, kind)
+ * capacite apres refit depuis le depot.
+ * `routeDistance` (optionnel) : longueur reelle du trace routier decouvert, pour recalibrage post-site (D4). */
+function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, kind, routeDistance = null)
 {
   if (engine == null) return null;
   local effectiveSpeed = (engine.speed * ROAD_SPEED_EFFICIENCY_PCT) / 100;
   if (effectiveSpeed < 1) return null;
 
-  local oneWayDays = (distance * 1000) / (36 * effectiveSpeed);
-  if (oneWayDays < 1) oneWayDays = 1;
+  local travelDist = (routeDistance != null && routeDistance > distance) ? routeDistance : distance;
+  local transitDays = (travelDist * 1000) / (36 * effectiveSpeed);
+  if (transitDays < 1) transitDays = 1;
+  /* D4 (docs/taches.md S0 quadragesies / S0 trenonagies) : Dwell time de chargement/dechargement
+   * a la station pour les bus passagers (~6 jours par arret). */
+  local dwellDays = (kind == "pax") ? ROAD_PAX_STOP_DWELL_DAYS : 0;
+  local oneWayDays = transitDays + dwellDays;
   local roundTripDays = 2 * oneWayDays;
 
   /* Ce `offered` sert au DIMENSIONNEMENT, comme `calibrationOffered` au rail : la note a plat de
@@ -438,22 +467,17 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
   local offered = (monthlyUnits * STATION_RATING_PCT) / 100;
   if (offered <= 0) return null;
 
-  /* Meme arbitrage que le rail : le maximum de ce qu'exige la FREQUENCE et de ce qu'exige la
-   * CAPACITE -- puis le plafond de quai tranche, et il est bas. Sur une ligne courte la contrainte
-   * de frequence rend presque toujours 1 : c'est voulu, un seul vehicule qui repasse souvent tient
-   * la note de gare mieux que deux qui se genent au meme arret. */
-  local vehiclesForHeadway = OpexCeilDiv(roundTripDays, TARGET_HEADWAY_DAYS);
-  /* Meme lecture qu'au rail : un bus ville <-> ville est charge dans les deux sens, un camion
-   * revient a vide -- cf. OpexLoadedTripsPerMonth. */
+  /* D4 (docs/taches.md S0 quadragesies / S0 trenonagies) :
+   * Le dimensionnement routier se fait sur le VOLUME physiquement offert (vehiclesForVolume),
+   * et non sur le TARGET_HEADWAY_DAYS ferroviaire (7 jours) qui forcerait 4 a 6 bus sur un
+   * simple arret de village, provoquant surendettement, couts d'exploitation destructeurs
+   * et saturation de quai. Le plafond physique du cas de base (1 quai a chaque bout) est 2. */
   local tripsPerMonth = OpexLoadedTripsPerMonth(oneWayDays, roundTripDays, kind == "pax");
   local vehiclesForVolume = OpexCeilDiv(offered, engine.capacity * tripsPerMonth);
 
-  local vehicles = vehiclesForHeadway > vehiclesForVolume ? vehiclesForHeadway : vehiclesForVolume;
+  local vehicles = vehiclesForVolume;
   if (vehicles < 1) vehicles = 1;
-  /* marginal_fleet = 0 (defaut) : chemin inchange, MAX_ROAD_VEHICLES (8). = 1 : borne physique du
-   * cas de base (2, cf. OpexRoadPhysicalVehicleCap ci-dessus) -- le demarrage reel se fera de toute
-   * facon a 1 vehicule (builder_road.nut) puis grandira par _refleetRoadLines apres profit mesure. */
-  local roadVehicleCap = MARGINAL_FLEET ? OpexRoadPhysicalVehicleCap(1, 1) : MAX_ROAD_VEHICLES;
+  local roadVehicleCap = MARGINAL_FLEET ? 1 : OpexRoadPhysicalVehicleCap(1, 1);
   if (vehicles > roadVehicleCap) vehicles = roadVehicleCap;
 
   /* pricing_fix : la route n'appliquait JAMAIS OpexStationRatingForHeadway, que le rail
@@ -480,17 +504,19 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
    * entiers, donc on ne credite jamais 28,57 unites qui n'existent pas dans le moteur. */
   carried = carried.tointeger();
 
-  local incomeDays = OpexCeilDiv(oneWayDays, 1);
+  /* Le paiement OpenTTD depend du temps de parcours en transit, pas de la duree au terminus */
+  local incomeDays = OpexCeilDiv(transitDays, 1);
   local revenueAnnual = (12 * carried * AICargo.GetCargoIncome(cargo, distance, incomeDays)).tointeger();
 
-  /* Capital : le trace lui-meme (le L de Manhattan, donc `distance` tuiles), les deux arrets et le
+  /* Capital : le trace lui-meme (le L de Manhattan, ou routeDistance si le trace est connu), les deux arrets et le
    * depot. La borne est basse pour la meme raison que sur le rail -- les tuiles de route deja
    * presentes ne sont pas payees, ce qui joue en notre defaveur dans le classement, jamais en
    * notre faveur. */
   local stopCost = AICargo.HasCargoClass(cargo, AICargo.CC_PASSENGERS)
       ? catalog.costRoadBusStop : catalog.costRoadTruckStop;
   local vehicleCost = vehicles * engine.price;
-  local infraCost = distance * catalog.costRoadPerTile + 2 * stopCost + catalog.costRoadDepot;
+  local infraDist = (routeDistance != null && routeDistance > 0) ? routeDistance : distance;
+  local infraCost = infraDist * catalog.costRoadPerTile + 2 * stopCost + catalog.costRoadDepot;
 
   local life = engine.ageYears > 0 ? engine.ageYears : 12;
   local amortAnnual = vehicleCost / life + ((infraCost * INFRA_AMORT_PCT / 100) / INFRA_LIFE_YEARS);
@@ -504,6 +530,7 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
 
   return {
     oneWayDays = oneWayDays,
+    transitDays = transitDays,
     trains = vehicles,            // meme nom que le rail : _tryBuild/_reportLines sont communs
     carried = carried,
     revenueAnnual = revenueAnnual,

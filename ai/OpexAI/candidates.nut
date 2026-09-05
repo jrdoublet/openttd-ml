@@ -1201,7 +1201,8 @@ function OpexRoadPaxCandidates(catalog, lines, out, stats)
   local roadLinesPerTown = [];
   for (local i = 0; i < n; i++) {
     local p = AITown.GetLastMonthProduction(towns[i].id, cargo);
-    if (p <= 0 && towns[i].pop > 0) p = (towns[i].pop * 22) / 100;
+    /* D4 : Calibrage physique de la production mensuelle moyenne de passagers par habitant (~15 % en OpenGFX/OpenTTD) */
+    if (p <= 0 && towns[i].pop > 0) p = (towns[i].pop * 15) / 100;
     produced.append(p);
     roadLinesPerTown.append(OpexTownRoadLineCount(lines, towns[i].tile));
   }
