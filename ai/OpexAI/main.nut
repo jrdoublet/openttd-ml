@@ -359,6 +359,8 @@ _lastProjectScanMonth <- -1;
 ABANDON_MEMORY <- true;
 /* C33.3 : Cooldown en jours avant réessai d'une paire abandonnée (0 = infini/permanent). */
 ABANDON_COOLDOWN_DAYS <- 0;
+/* C22 : Filtrer les paires abandonnées dès la génération des candidats (défaut 0). */
+ABANDON_GEN_FILTER <- false;
 
 /* Raccordement de gare : repli actif jusqu'a la lecture unique de station_join dans Start().
  * Commande AUSSI la relaxation d'origine a la generation (candidates.nut) : les deux moities du
@@ -4722,6 +4724,7 @@ function OpexAI::Start()
   ABANDON_MEMORY = AIController.GetSetting("abandon_memory") != 0;
   local acd = AIController.GetSetting("abandon_cooldown_days");
   if (acd >= 0) ABANDON_COOLDOWN_DAYS = acd;
+  ABANDON_GEN_FILTER = AIController.GetSetting("abandon_gen_filter") != 0;
   STATION_JOIN = AIController.GetSetting("station_join") != 0;
   JOIN_MAX_DISTANCE = AIController.GetSetting("join_max_distance");
   JOIN_PLACE = AIController.GetSetting("join_place") != 0;

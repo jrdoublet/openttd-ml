@@ -520,7 +520,7 @@ function OpexJoinPlaceMaxDistance()
  * dans la bande. L'objet join est attache ici, _tryBuild ne le redecouvre
  * pas via _tooClose. Une seule paire par ville libre (la gare la plus
  * proche), jamais deux gares sur la meme origine. */
-function OpexPlaceJoinPax(catalog, lines, out, stats, towns, produced, served, cargo)
+function OpexPlaceJoinPax(catalog, lines, out, stats, towns, produced, served, cargo, abandonedPairs = null)
 {
   local maxDist = OpexJoinPlaceMaxDistance();
   local stations = [];
@@ -561,6 +561,7 @@ function OpexPlaceJoinPax(catalog, lines, out, stats, towns, produced, served, c
                                         monthly, true, stats);
     if (candidate == null) continue;
     local key = OpexAbandonedPairKey(candidate);
+    if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (key in abandonedPairs)) continue;
     if (key in stats.placeJoinKeys) continue;
     stats.placeJoinKeys[key] <- true;
     candidate.placeJoin <- {
@@ -576,7 +577,7 @@ function OpexPlaceJoinPax(catalog, lines, out, stats, towns, produced, served, c
 /* H2 fret : un puits libre rejoint la source existante la plus proche du
  * meme cargo (candidateEnd A) ; une source libre rejoint le puits existant
  * le plus proche (candidateEnd B). Roles v1, pas d'inversion. */
-function OpexPlaceJoinFreight(catalog, lines, out, stats, industries, served)
+function OpexPlaceJoinFreight(catalog, lines, out, stats, industries, served, abandonedPairs = null)
 {
   local maxDist = OpexJoinPlaceMaxDistance();
   local sources = [];
@@ -624,6 +625,7 @@ function OpexPlaceJoinFreight(catalog, lines, out, stats, industries, served)
                                           monthly, true, stats);
       if (candidate == null) continue;
       local key = OpexAbandonedPairKey(candidate);
+      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (key in abandonedPairs)) continue;
       if (key in stats.placeJoinKeys) continue;
       stats.placeJoinKeys[key] <- true;
       candidate.placeJoin <- {
@@ -658,6 +660,7 @@ function OpexPlaceJoinFreight(catalog, lines, out, stats, industries, served)
                                           monthly, true, stats);
       if (candidate == null) continue;
       local key = OpexAbandonedPairKey(candidate);
+      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (key in abandonedPairs)) continue;
       if (key in stats.placeJoinKeys) continue;
       stats.placeJoinKeys[key] <- true;
       candidate.placeJoin <- {
@@ -672,7 +675,7 @@ function OpexPlaceJoinFreight(catalog, lines, out, stats, industries, served)
 }
 
 /* Paires de villes pour les passagers. */
-function OpexPaxCandidates(catalog, lines, out, stats)
+function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null)
 {
   local cargo = catalog.paxCargo;
   if (cargo < 0) return;
@@ -688,9 +691,16 @@ function OpexPaxCandidates(catalog, lines, out, stats)
     served.append(service);
     if (service != null) stats.townsServed++; else stats.townsUnserved++;
   }
-  if (JOIN_PLACE) OpexPlaceJoinPax(catalog, lines, out, stats, towns, produced, served, cargo);
+  if (JOIN_PLACE) OpexPlaceJoinPax(catalog, lines, out, stats, towns, produced, served, cargo, abandonedPairs);
   for (local a = 0; a < n; a++) {
     for (local b = a + 1; b < n; b++) {
+      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
+        local tA = towns[a].id;
+        local tB = towns[b].id;
+        if (tA > tB) { local swap = tA; tA = tB; tB = swap; }
+        local pairKey = "pax|" + cargo + "|" + tA + "|" + tB;
+        if (pairKey in abandonedPairs) continue;
+      }
       stats.pairsTotal++;
       local sa = served[a];
       local sb = served[b];
@@ -749,7 +759,7 @@ function OpexPaxCandidates(catalog, lines, out, stats)
 
 /* Industries : on n'apparie que des couples producteur/accepteur du MEME cargo, ce qui garde
  * l'etage 1 lineaire en nombre d'industries plutot que quadratique sur tout le catalogue. */
-function OpexFreightCandidates(catalog, lines, out, stats)
+function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null)
 {
   local industries = catalog.industries;
   local served = [];
@@ -758,7 +768,7 @@ function OpexFreightCandidates(catalog, lines, out, stats)
     served.append(service);
     if (service != null) stats.industriesServed++; else stats.industriesUnserved++;
   }
-  if (JOIN_PLACE) OpexPlaceJoinFreight(catalog, lines, out, stats, industries, served);
+  if (JOIN_PLACE) OpexPlaceJoinFreight(catalog, lines, out, stats, industries, served, abandonedPairs);
   foreach (cargo, sources in catalog.producers) {
     local hasIndustrySinks = (cargo in catalog.acceptors);
     local hasTownSinks = COMPLEX_CARGO && (cargo in catalog.townAcceptors);
@@ -774,6 +784,10 @@ function OpexFreightCandidates(catalog, lines, out, stats)
       }
       foreach (di in sinks) {
         if (di == si) continue;
+        if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
+          local pairKey = "freight|" + cargo + "|" + source.id + "|" + industries[di].id;
+          if (pairKey in abandonedPairs) continue;
+        }
         stats.pairsTotal++;
         local sd = served[di];
         /* Meme regle qu'en pax ci-dessus, roles compris : la source est l'extremite "A" du
@@ -808,6 +822,10 @@ function OpexFreightCandidates(catalog, lines, out, stats)
       if (hasTownSinks) {
         local townSinks = catalog.townAcceptors[cargo];
         foreach (town in townSinks) {
+          if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
+            local pairKey = "freight|" + cargo + "|" + source.id + "|" + AIIndustry.GetIndustryID(town.tile);
+            if (pairKey in abandonedPairs) continue;
+          }
           stats.pairsTotal++;
           local st = OpexOriginService(lines, town.tile);
           if ((ss != null && st != null) || (!STATION_JOIN && (ss != null || st != null))) {
@@ -845,7 +863,7 @@ function OpexFreightCandidates(catalog, lines, out, stats)
 /* Construit et classe tous les candidats. Rend la liste triee par rapport decroissant.
  * `lines` (this._lines de main.nut) sert a exclure les origines deja desservies avant meme de
  * calculer un candidat -- voir OpexOriginServed ci-dessus. */
-function OpexBuildCandidates(catalog, budget, lines)
+function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null)
 {
   local all = [];
   /* Comptes de rejet : ils se trouvent ici, avant que TOP_K ne masque les candidats restants.
@@ -879,11 +897,11 @@ function OpexBuildCandidates(catalog, budget, lines)
   }
 
   budget.begin();
-  OpexPaxCandidates(catalog, lines, all, stats);
+  OpexPaxCandidates(catalog, lines, all, stats, abandonedPairs);
   local opsPax = budget.end("cand_pax");
 
   budget.begin();
-  OpexFreightCandidates(catalog, lines, all, stats);
+  OpexFreightCandidates(catalog, lines, all, stats, abandonedPairs);
   local opsFreight = budget.end("cand_freight");
 
   budget.begin();
@@ -1198,7 +1216,7 @@ function OpexTownBusCatchment(town, marginalProd)
 }
 
 /* Famille 1 : ville <-> ville, passagers. */
-function OpexRoadPaxCandidates(catalog, lines, out, stats)
+function OpexRoadPaxCandidates(catalog, lines, out, stats, abandonedPairs = null)
 {
   local cargo = catalog.paxCargo;
   if (cargo < 0 || !(cargo in catalog.roadEngineByCargo)) return;
@@ -1222,6 +1240,13 @@ function OpexRoadPaxCandidates(catalog, lines, out, stats)
       if (OpexRoadPairServed(lines, towns[a].tile, towns[b].tile)) continue;
       local distance = AIMap.DistanceManhattan(towns[a].tile, towns[b].tile);
       if (distance < ROAD_MIN_DISTANCE || distance > ROAD_MAX_DISTANCE) continue;
+      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
+        local tA = towns[a].id;
+        local tB = towns[b].id;
+        if (tA > tB) { local swap = tA; tA = tB; tB = swap; }
+        local pairKey = "pax|" + cargo + "|" + tA + "|" + tB;
+        if (pairKey in abandonedPairs) continue;
+      }
       stats.pairsInBand++;
       local marginalA = produced[a] - (roadLinesPerTown[a] * 40);
       if (marginalA < 25) marginalA = 25;
@@ -1249,7 +1274,7 @@ function OpexRoadPaxCandidates(catalog, lines, out, stats)
  *
  * Aucune dilution de bassin n'est appliquee au producteur : une industrie produit depuis une seule
  * tuile, elle n'a pas la dilution geometrique d'une ville (cf. TOWN_CATCHMENT_SHARE_PCT). */
-function OpexRoadFreightCandidates(catalog, lines, out, stats)
+function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = null)
 {
   local industries = catalog.industries;
   local towns = catalog.towns;
@@ -1287,6 +1312,10 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats)
         if (di == si || servedIndustry[di]) continue;
         local distance = AIMap.DistanceManhattan(source.tile, industries[di].tile);
         if (distance < ROAD_MIN_DISTANCE || distance > ROAD_MAX_DISTANCE) continue;
+        if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
+          local pairKey = "freight|" + cargo + "|" + source.id + "|" + industries[di].id;
+          if (pairKey in abandonedPairs) continue;
+        }
         stats.pairsInBand++;
         local isTransformer = ("isTransformer" in industries[di]) && industries[di].isTransformer;
         local candidate = OpexMakeRoadCandidate(catalog, "freight", cargo, source.tile,
@@ -1299,6 +1328,10 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats)
         if (servedTown[t]) continue;
         local distance = AIMap.DistanceManhattan(source.tile, towns[t].tile);
         if (distance < ROAD_MIN_DISTANCE || distance > ROAD_MAX_DISTANCE) continue;
+        if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
+          local pairKey = "freight|" + cargo + "|" + source.id + "|" + AIIndustry.GetIndustryID(towns[t].tile);
+          if (pairKey in abandonedPairs) continue;
+        }
         local key = t + "|" + cargo;
         local acceptance;
         if (key in acceptanceCache) {
@@ -1622,8 +1655,8 @@ function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null)
   if (catalog.roadType < 0) return { all = 0, best = [], stats = stats, opcodes = 0 };
 
   budget.begin();
-  OpexRoadPaxCandidates(catalog, lines, all, stats);
-  OpexRoadFreightCandidates(catalog, lines, all, stats);
+  OpexRoadPaxCandidates(catalog, lines, all, stats, abandonedPairs);
+  OpexRoadFreightCandidates(catalog, lines, all, stats, abandonedPairs);
   /* C32 : les feeders reviennent a l'arbitrage. C29.3 les avait sortis d'ici pour deux motifs,
    * tous deux traites : la collision de cle OD (ils ont desormais leur propre espace de cles,
    * prefixe "feeder|" dans OpexProjectRemember, donc ils n'evincent plus l'aerien) et

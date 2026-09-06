@@ -1166,7 +1166,7 @@ function OpexProjectEmptyRoad()
 
 function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCapitalHistory = null, fleetPlan = null, abandonedPairs = null)
 {
-  local rail = OpexBuildCandidates(catalog, budget, lines);
+  local rail = OpexBuildCandidates(catalog, budget, lines, abandonedPairs);
   local road = ROAD_BUILD_ENABLED
       ? OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs) : OpexProjectEmptyRoad();
 

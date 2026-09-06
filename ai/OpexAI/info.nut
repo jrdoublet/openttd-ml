@@ -772,6 +772,17 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
 
+    /* C22 : Filtrer les paires abandonnees des la generation des candidats plutot qu'a l'arbitrage
+     * du portefeuille. Evite que les paires vouees a l'echec n'occupent des slots TOP_K et n'evincent
+     * des projets viables (89 % des rejets vivier etaient des abandoned_pair, docs/taches.md C22). */
+    AddSetting({
+      name = "abandon_gen_filter",
+      description = "Filtrer les paires abandonnees a la generation plutot qu'a l'arbitrage (1 = filtre generation, 0 = arbitrage seul, docs/taches.md C22)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* Le filet MIN_SEPARATION reste la protection de bassin : 1 ne l'abaisse pas, il remplace
      * seulement le rejet d'UNE extremite par un quai rail dedie joint a la gare existante. Depuis
      * le 2026-08-29 (seconde tranche), ce reglage commande AUSSI la relaxation d'origine a la
