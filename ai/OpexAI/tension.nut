@@ -212,6 +212,31 @@ function OpexTensionProjectVehicleCount(project)
   return 0;
 }
 
+/* Nombre d'origines LIBRES reellement consommees par le projet. La ressource
+ * fonciere mesure des origines, pas un nombre uniforme d'extremites : une flotte
+ * ne prend aucun site, un raccordement n'en prend qu'un et un plan aerien peut
+ * reutiliser zero, un ou deux aeroports. Centraliser ce calcul evite que le score
+ * continu et le cout reduit divergent a nouveau. */
+function OpexTensionProjectOriginCount(project)
+{
+  if (project == null || project.mode == "fleet") return 0;
+  if (!("payload" in project) || project.payload == null) return 2;
+  local payload = project.payload;
+
+  if (project.mode == "air") {
+    local origins = 2;
+    if (("reuseA" in payload) && payload.reuseA) origins--;
+    if (("reuseB" in payload) && payload.reuseB) origins--;
+    return origins;
+  }
+
+  if ((project.mode == "rail" || project.mode == "road")
+      && ("originServed" in payload) && payload.originServed) {
+    return 1;
+  }
+  return 2;
+}
+
 function OpexTensionEntry(resource, cost, available, commitments, flow, tau)
 {
   local denominator = available.tofloat() - commitments.tofloat() + flow.tofloat() * tau;
@@ -259,7 +284,8 @@ function OpexTensionVector(project, ctx)
     /* Une liaison neuve consomme DEUX origines, une a chaque bout : c'est ce qu'elle retire du
      * stock, et c'est pour ca que le cout n'est pas 1. Le flux est nul -- une origine ne se
      * libere que si une ligne meurt, ce que la fondation de villes ne compense pas au mois. */
-    OpexTensionEntry("foncier", 2, ctx.originsFree, 0, 0, tau),
+    OpexTensionEntry("foncier", OpexTensionProjectOriginCount(project),
+                     ctx.originsFree, 0, 0, tau),
   ];
 
   local first = null;
@@ -552,7 +578,7 @@ function OpexTensionComputeShadowPrices(ctx, candidates, capitalBudget)
   local foncierElements = [];
   foreach (p in candidates) {
     local prof = ("profitAnnual" in p && p.profitAnnual > 0) ? p.profitAnnual.tofloat() : 0.0;
-    local orig = (p.mode == "fleet") ? 0.0 : 2.0;
+    local orig = OpexTensionProjectOriginCount(p).tofloat();
     if (prof > 0 && orig > 0) {
       foncierElements.append({ profit = prof, cost = orig, density = prof / orig });
     }
@@ -584,7 +610,7 @@ function OpexReducedCostScore(project, shadowPrices)
   local vehs = OpexTensionProjectVehicleCount(project).tofloat();
   if (vehs < 1.0) vehs = 1.0;
   local ops = ("expectedOpcodes" in project && project.expectedOpcodes > 0) ? project.expectedOpcodes.tofloat() : 1000.0;
-  local origins = (project.mode == "fleet") ? 0.0 : 2.0;
+  local origins = OpexTensionProjectOriginCount(project).tofloat();
 
   local modeKey = OpexTensionModeKey(project.mode);
   local lambdaSlots = (shadowPrices != null && ("slots" in shadowPrices) && (modeKey in shadowPrices.slots))
@@ -615,10 +641,20 @@ function OpexReducedCostScore(project, shadowPrices)
   return profit - tax;
 }
 
-/* Score de classement A1 par regime de tension (loi de Liebig) ou C35.3 (cout reduit dual).
- * Sous shadowPrices : Score = ProfitAnnuel - sum_r lambda_r * a_ir (prix d'ombre dual).
- * Sous regime macro Liebig : argent -> ROI, foncier -> profit brut, slots -> profit/vehicule, opcodes -> profit/opcode. */
-function OpexTensionScore(project, ctx, decisionFriction = 0.05)
+/* Score de classement A1/C35.2 par tensions propres au projet, ou C35.3 par cout
+ * reduit dual quand shadowPrices est explicitement active.
+ *
+ * Le classement continu est intentionnel : maxBatch=1 signifie que le choix porte
+ * sur UN chantier. Un regime macro discret ou un prix dual calcule sur la somme du
+ * vivier ne represente donc pas le probleme execute. Chaque projet paie ici la part
+ * des ressources vivantes qu'il consomme :
+ *
+ *   score = ProfitAnnuel * 1000 / (friction + sum_r T_r(projet))
+ *
+ * La friction borne le score quand toutes les ressources abondent. En famine de
+ * capital, T_argent domine et le score tend vers le ROI ; sous pression de flotte
+ * ou de VM, il tend respectivement vers profit/vehicule ou profit/opcode. */
+function OpexTensionScore(project, ctx, decisionFriction = null)
 {
   if (project == null) return 0.0;
   if (ctx != null && ("shadowPrices" in ctx)) {
@@ -629,8 +665,25 @@ function OpexTensionScore(project, ctx, decisionFriction = 0.05)
     local cap = ("budgetCapital" in project && project.budgetCapital > 0) ? project.budgetCapital : project.capital;
     return cap > 0 ? (profit.tofloat() * 1000.0) / cap : 0.0;
   }
-  local regime = ("regime" in ctx) ? ctx.regime : "argent";
-  return OpexProjectScoreForRegime(project, regime);
+  local fric = (decisionFriction != null) ? decisionFriction.tofloat() : TENSION_DECISION_FRICTION.tofloat();
+  local result = OpexTensionVector(project, ctx);
+  local totalTension = fric;
+
+  foreach (entry in result.vector) {
+    if (entry.tension == TENSION_INFINITE) {
+      /* Argent et slots sont des contraintes de faisabilite, contrairement aux
+       * opcodes (debit futur) et au foncier (stock parfois non observable). */
+      if (entry.resource == "argent" || entry.resource == "slots_vehicules") {
+        return 0.0;
+      }
+      totalTension += 1.0;
+    } else {
+      totalTension += entry.tension;
+    }
+  }
+
+  if (totalTension <= 0.0) return 0.0;
+  local profit = ("profitAnnual" in project) ? project.profitAnnual : 0;
+  if (profit <= 0) return 0.0;
+  return (profit.tofloat() * 1000.0) / totalTension;
 }
-
-

@@ -4691,6 +4691,8 @@ function OpexAI::Start()
   AIR_PORTFOLIO = AIController.GetSetting("air_portfolio") != 0;
   FLEET_PORTFOLIO = AIController.GetSetting("fleet_portfolio") != 0;
   TENSION_SCORING = AIController.GetSetting("tension_scoring") != 0;
+  local dfp = AIController.GetSetting("decision_friction_permille");
+  if (dfp >= 0) TENSION_DECISION_FRICTION = dfp.tofloat() / 1000.0;
   SHADOW_PRICING = AIController.GetSetting("shadow_pricing") != 0;
   FLAT_BONUS = AIController.GetSetting("flat_bonus") != 0;
   AIR_ROI_ORDER = AIController.GetSetting("air_roi_order") != 0;

@@ -1252,9 +1252,6 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
   if (TENSION_SCORING || SHADOW_PRICING) {
     local projMap = { rail = rail, road = road, airPlans = airPlans, waterPlans = waterPlans, fleetPlan = fleetPlan };
     tensionCtx = OpexTensionContext(projMap);
-    local railOps = (rail != null && ("opcodes" in rail)) ? rail.opcodes : 0;
-    local roadOps = (road != null && ("opcodes" in road)) ? road.opcodes : 0;
-    local totalOps = railOps + roadOps + airOps + waterOps;
     if (SHADOW_PRICING) {
       local allProjects = [];
       if (rail != null && ("candidates" in rail)) {
@@ -1314,14 +1311,14 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
         }
       }
     } else {
-      local macroRes = OpexTensionMacroRegime(tensionCtx, projMap, totalOps, capitalCeiling);
-      tensionCtx.regime <- macroRes.regime;
-      tensionCtx.dominant <- macroRes.dominant;
-      tensionCtx.macroTensions <- macroRes.tensions;
+      /* C35.2 : le score continu lit le vecteur propre a chaque projet. Ne pas
+       * choisir ici une formule unique a partir d'un argmax macro : foncier >= 1
+       * rendait cette bascule presque toujours egale au profit brut et perdait
+       * l'information des trois autres tensions. */
+      tensionCtx.regime <- "continuous";
+      tensionCtx.dominant <- "project";
       if (DECISION_LOG) {
-        OpexDecide("TENSION_REGIME", "regime=" + macroRes.regime + " dominant=" + macroRes.dominant
-                   + " t_argent=" + macroRes.tensions.argent + " t_slots=" + macroRes.tensions.slots_vehicules
-                   + " t_opcodes=" + macroRes.tensions.opcodes + " t_foncier=" + macroRes.tensions.foncier);
+        OpexDecide("TENSION_REGIME", "regime=continuous dominant=project");
       }
     }
   }

@@ -384,6 +384,18 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C35.5 : FRICTION DE DECISION DU CLASSEMENT CONTINU (docs/taches.md C35.5).
+     * Denominateur = friction + sum_r T_r(projet).
+     * En pour mille : 50 = 0.05 (defaut A1), 10 = 0.01, 0 = 0.0. */
+    AddSetting({
+      name = "decision_friction_permille",
+      description = "Friction de décision en pour mille (C35.5): 50 = 0.05 (défaut A1), 10 = 0.01, 0 = 0.0",
+      min_value = 0, max_value = 1000,
+      easy_value = 50, medium_value = 50, hard_value = 50,
+      custom_value = 50,
+      flags = 0
+    });
+
     /* C35.3/C35.4 : COÛT RÉDUIT À PRIX D'OMBRE DUAL.
      * Score = ProfitAnnuel - Σ_r λ_r a_ir pour les contraintes tendues sur le
      * vivier (λ_r > 0). Si k>1 le prélèvement est partagé. Complementary
