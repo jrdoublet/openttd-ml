@@ -385,9 +385,9 @@ class OpexAIInfo extends AIInfo {
     });
 
     /* C35.3/C35.4 : COÛT RÉDUIT À PRIX D'OMBRE DUAL.
-     * Score = ProfitAnnuel - Σ_r λ_r a_ir, λ 1D Dantzig puis C35.4 : une ressource
-     * ne taxe que si on ne peut pas poser deux fois CE projet (debit maxBatch=1),
-     * et les contraintes actives se partagent le prelevement (pas de triple 1D).
+     * Score = ProfitAnnuel - Σ_r λ_r a_ir pour les contraintes tendues sur le
+     * vivier (λ_r > 0). Si k>1 le prélèvement est partagé. Complementary
+     * slackness = propriété de la ressource, pas de la taille du projet.
      * 1 = actif, 0 = inactif (défaut). */
     AddSetting({
       name = "shadow_pricing",

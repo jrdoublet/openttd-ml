@@ -564,17 +564,16 @@ function OpexTensionComputeShadowPrices(ctx, candidates, capitalBudget)
   return shadow;
 }
 
-/* C35.4 : une ressource ne mord que si ON NE PEUT PAS poser deux fois CE projet
- * (debit d'execution, maxBatch=1). Le Dantzig 1D sur le VIVIER est toujours tendu. */
-function OpexShadowBinds(remaining, projectCost)
-{
-  if (projectCost <= 0.0) return false;
-  if (remaining <= 0.0) return true;
-  return remaining < (2.0 * projectCost);
-}
-
-/* C35.3 + C35.4 : ProfitAnnuel - sum_r λ_r a_ir, seulement les contraintes qui mordent
- * pour ce projet, partagees si plusieurs (pas de triple taxation 1D). */
+/* C35.3 + C35.4 : ProfitAnnuel - sum_r λ_r a_ir pour les contraintes tendues sur
+ * le vivier (lambda_r > 0). Si k>1, le prelevement est partage (tax/k) pour ne
+ * pas additionner des Dantzig 1D independants. Complementary slackness est une
+ * propriete de la ressource, pas de la taille du projet.
+ *
+ * Limite mesurée (docs/diag_c35_4_weak_3y.json, banc 20×10) : a_ops est
+ * incommensurable (air 1e5, route 2.87e5, rail ~3e7) et le Dantzig vivier
+ * saturé pose λ_ops > 0 en permanence, ce qui annule le rail sur les graines
+ * faibles. Ne pas « corriger » par un filtre densité < λ_argent ni par un
+ * surplus absolu capital-seul : les deux ont perdu 7/7 à 6 ans. */
 function OpexReducedCostScore(project, shadowPrices)
 {
   if (project == null) return 0.0;
@@ -594,29 +593,21 @@ function OpexReducedCostScore(project, shadowPrices)
   local lambdaOps = (shadowPrices != null && ("opcodes" in shadowPrices)) ? shadowPrices.opcodes : 0.0;
   local lambdaFoncier = (shadowPrices != null && ("foncier" in shadowPrices)) ? shadowPrices.foncier : 0.0;
 
-  local bArgent = (shadowPrices != null && ("budgetArgent" in shadowPrices)) ? shadowPrices.budgetArgent : cap;
-  local bSlots = 1.0e9;
-  if (shadowPrices != null && ("budgetSlots" in shadowPrices) && (modeKey in shadowPrices.budgetSlots)) {
-    bSlots = shadowPrices.budgetSlots[modeKey];
-  }
-  local bOps = (shadowPrices != null && ("budgetOps" in shadowPrices)) ? shadowPrices.budgetOps : ops;
-  local bFoncier = (shadowPrices != null && ("budgetFoncier" in shadowPrices)) ? shadowPrices.budgetFoncier : origins;
-
   local tax = 0.0;
   local nActive = 0;
-  if (lambdaArgent > 0.0 && OpexShadowBinds(bArgent, cap)) {
+  if (lambdaArgent > 0.0) {
     tax += lambdaArgent * cap;
     nActive++;
   }
-  if (lambdaSlots > 0.0 && OpexShadowBinds(bSlots, vehs)) {
+  if (lambdaSlots > 0.0) {
     tax += lambdaSlots * vehs;
     nActive++;
   }
-  if (lambdaOps > 0.0 && OpexShadowBinds(bOps, ops)) {
+  if (lambdaOps > 0.0) {
     tax += lambdaOps * ops;
     nActive++;
   }
-  if (lambdaFoncier > 0.0 && origins > 0.0 && OpexShadowBinds(bFoncier, origins)) {
+  if (lambdaFoncier > 0.0 && origins > 0.0) {
     tax += lambdaFoncier * origins;
     nActive++;
   }
