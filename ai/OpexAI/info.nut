@@ -718,6 +718,19 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C20 : Echeance de securite par micro-etape (tranche) au lieu d'une echeance globale.
+     * En mode rail_search_resumable=1, l'echeance historique etait posee UNE FOIS au demarrage
+     * (RAIL_SEARCH_SAFETY_TICKS = 54020). Partagee avec les autres taches, elle expirait et
+     * tuait la recherche en DEAD (-27,5 % de gares, §0 undecies sexies).
+     * Si 1, chaque micro-etape porte sa propre echeance de securite locale. Defaut 0. */
+    AddSetting({
+      name = "rail_micro_deadline",
+      description = "Echeance de securite par micro-etape pour la recherche reprenable (0 = globale historique, 1 = par tranche, C20)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* Pathfinding segmente (docs/taches.md A5). Sonde 2026-09-03 : 40 % des tentatives
      * rail meurent en ABND. A3 a plafonne a 10k, donc l'objectif n'est plus d'accelerer
      * les succes mais de convertir les abandons. Port de TrainLineAI-segmented.

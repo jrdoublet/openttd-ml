@@ -336,6 +336,8 @@ LOAN_REPAY_FLOOR <- 300000;
  * _runNextTask, et reprend le meme pathfinder au tour suivant. Change l'entrelacement donc
  * les decisions : le banc tranchera. */
 RAIL_SEARCH_RESUMABLE <- false;
+/* C20 : Echeance de securite locale par micro-etape (tranche) au lieu d'une echeance globale en ticks. */
+RAIL_MICRO_DEADLINE <- false;
 
 /* Pathfinding segmente (docs/taches.md A5). Repli VRAI depuis le 2026-09-03 : c'est le
  * defaut du reglage, et le repli doit valoir le defaut pour qu'une partie sans reglage lu
@@ -3941,12 +3943,19 @@ function OpexAI::_continueRailSearch()
   if (state.phase != "search") return;
 
   this._budget.begin();
+  local deadlineTick = state.safetyDeadline;
+  if (RAIL_MICRO_DEADLINE) {
+    /* C20 : echeance locale par micro-etape. 50 iters prennent ~17 ticks ; BUILD_TICK_MARGIN (3000)
+     * laisse une large marge de securite contre un blocage dans la tranche sans jamais
+     * imputer le temps des autres taches de la file (docs/cible.md §2.1). */
+    deadlineTick = AIController.GetTick() + RAIL_SEARCH_SLICE / 3 + BUILD_TICK_MARGIN;
+  }
   local slice;
   if (("segmented" in state) && state.segmented != null) {
-    slice = OpexAdvanceSegmentedSearch(state.segmented, RAIL_SEARCH_SLICE, state.safetyDeadline);
+    slice = OpexAdvanceSegmentedSearch(state.segmented, RAIL_SEARCH_SLICE, deadlineTick);
   } else {
     slice = OpexAdvanceRailPathfinder(state.pathfinder, state.spent, state.iterationBudget,
-                                      state.safetyDeadline, RAIL_SEARCH_SLICE);
+                                      deadlineTick, RAIL_SEARCH_SLICE);
   }
   /* spent est le CUMUL de toutes les tranches : c'est le denominateur du classement. */
   state.spent = slice.iterations;
@@ -4706,6 +4715,7 @@ function OpexAI::Start()
    * donc les GetSetting dans ces boucles seraient du debit d'opcodes perdu. */
   HARD_ITERATION_CAP = AIController.GetSetting("pathfinder_hard_cap_k") * 1000;
   RAIL_SEARCH_RESUMABLE = AIController.GetSetting("rail_search_resumable") != 0;
+  RAIL_MICRO_DEADLINE = AIController.GetSetting("rail_micro_deadline") != 0;
   RAIL_SEGMENTED_SEARCH = AIController.GetSetting("rail_segmented_search") != 0;
   DECISION_LOG = AIController.GetSetting("decision_log") != 0;
   PORTFOLIO_LOG = DECISION_LOG;
