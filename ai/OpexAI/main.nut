@@ -75,6 +75,8 @@ AIR_COST_PROBE <- false;
 /* air_presite : sonder les deux sites en AITestMode avant d'engager le capital du premier
  * aeroport. Inerte par defaut jusqu'au verdict du banc. */
 AIR_PRESITE <- false;
+/* C33.2 : Arrets de rabattement joints dans le chantier aeroport */
+AIR_JOINED_STOPS <- false;
 /* Refaire le sac a dos contre la caisse vivante, sans repayer la generation des candidats. */
 PORTFOLIO_FRESH_BUDGET <- false;
 /* C36.1 : Caching incremental du vivier post-chantier. */
@@ -4848,6 +4850,7 @@ function OpexAI::Start()
   if (fhmd >= 0) FEEDER_HUB_MIN_DAYS = fhmd;
   AIR_SITE_CACHE_ENABLED = AIController.GetSetting("air_site_cache") != 0;
   AIR_CHEAP_SITE = AIController.GetSetting("air_cheap_site") != 0;
+  AIR_JOINED_STOPS = AIController.GetSetting("air_joined_stops") != 0;
   ROAD_CHEAP_TRACE = AIController.GetSetting("road_cheap_trace") != 0;
   ROAD_PAX_VOIRIE = AIController.GetSetting("road_pax_voirie") != 0;
   ROAD_PAX_OVERLAP = AIController.GetSetting("road_pax_overlap") != 0;

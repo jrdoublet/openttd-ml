@@ -10,7 +10,7 @@ class OpexAIInfo extends AIInfo {
 
   /* Les reglages debug_signs et pathfinder_sleep_ticks existent pour NE PAS POLLUER une partie
    * partagee avec des joueurs humains (loan_repay_floor_k, pathfinder_hard_cap_k,
-   * abandon_memory, station_join, join_max_distance, join_place, origin_sitable, basin_share, reborrow, road_mode, road_pax_catchment_pct, road_refleet, road_multistop, marginal_fleet, astar_cost, probe_negative et pax_near, eux, sont des parametres de conception exposes au banc,
+   * abandon_memory, abandon_gen_filter, air_joined_stops, station_join, join_max_distance, join_place, origin_sitable, basin_share, reborrow, road_mode, road_pax_catchment_pct, road_refleet, road_multistop, marginal_fleet, astar_cost, probe_negative et pax_near, eux, sont des parametres de conception exposes au banc,
    * pas des bridages).
    * Entre IA, la regle est l'inverse : jouer a armes egales,
    * donc ne jamais s'auto-handicaper face a un adversaire qui ne se bride pas. Un handicap non intentionnel
@@ -1498,6 +1498,14 @@ Le mode route est donc reconfirme sur l arbre courant.
       description = "C36.3 cheap airport footprint filter (IsBuildableRectangle + water/river/coast + C4) before AITestMode: 1 = enabled (default, adopted 20x10 docs/bench_c36_3_cheap_site_10y_20seeds.json: profit +27.4% t=3.68 14/6), 0 = historical",
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "air_joined_stops",
+      description = "C33.2 : Joined drive-through bus stops placed inside airport construction to expand airport catchment into the town (AAAHogEx piece stations): 1 = enabled, 0 = disabled (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
 

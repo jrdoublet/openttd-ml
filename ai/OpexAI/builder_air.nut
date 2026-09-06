@@ -26,6 +26,8 @@ AIR_SITE_CACHE_ENABLED <- true;
 AIR_SITE_CACHE <- {};
 /* C36.3 : Filtre d'emprise sans AITestMode avant la sonde (defaut 1, banc 20x10). */
 AIR_CHEAP_SITE <- true;
+/* C33.2 : Arrets de bus joints au chantier aeroport */
+AIR_JOINED_STOPS <- false;
 
 function OpexAirResetSiteCache()
 {
@@ -1173,7 +1175,111 @@ function OpexAirRollback(airportA, airportB, planes)
     if (AIVehicle.IsValidVehicle(plane)) AIVehicle.SellVehicle(plane);
   }
   if (airportB != null && AIAirport.IsAirportTile(airportB)) AIAirport.RemoveAirport(airportB);
-  if (airportA != null && AIAirport.IsAirportTile(airportA)) AIAirport.RemoveAirport(airportA);
+}
+
+/* C33.2 : Pose d'arrets de bus traversants joints a la gare de l'aeroport (modele AAAHogEx piece stations).
+ * Ces arrets etendent l'aire de captage de l'aeroport jusqu'au coeur de la ville hote,
+ * captant les passagers directement a l'aeroport sans aucun vehicule routier ni frais de transfert. */
+function OpexAirBuildJoinedStops(airportTile, stationId, airport, town, paxCargo)
+{
+  if (!AIR_JOINED_STOPS || !AIStation.IsValidStation(stationId)) return 0;
+  local mapX = AIMap.GetMapSizeX();
+  local mapY = AIMap.GetMapSizeY();
+  local spread = AIGameSettings.GetValue("station.station_spread");
+  if (spread < 4) spread = 12;
+
+  local w = airport.width;
+  local h = airport.height;
+  local ax = AIMap.GetTileX(airportTile);
+  local ay = AIMap.GetTileY(airportTile);
+  local center = airportTile + AIMap.GetTileIndex(w / 2, h / 2);
+
+  /* Boite permise par station_spread autour de l'emprise de l'aeroport */
+  local minX = ax + w - spread;
+  if (minX < 1) minX = 1;
+  local maxX = ax + spread - 1;
+  if (maxX >= mapX - 1) maxX = mapX - 2;
+
+  local minY = ay + h - spread;
+  if (minY < 1) minY = 1;
+  local maxY = ay + spread - 1;
+  if (maxY >= mapY - 1) maxY = mapY - 2;
+
+  local coverage = AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP);
+  local dirs = [
+    AIMap.GetTileIndex(1, 0), AIMap.GetTileIndex(0, 1),
+    AIMap.GetTileIndex(-1, 0), AIMap.GetTileIndex(0, -1)
+  ];
+
+  local candidates = [];
+  for (local x = minX; x <= maxX; x++) {
+    for (local y = minY; y <= maxY; y++) {
+      local tile = AIMap.GetTileIndex(x, y);
+      if (!AIMap.IsValidTile(tile)) continue;
+      if (AITile.GetClosestTown(tile) != town.id) continue;
+      if (!AIRoad.IsRoadTile(tile)) continue;
+      if (AIRoad.IsRoadStationTile(tile) || AIRoad.IsRoadDepotTile(tile) || AITile.IsStationTile(tile)) continue;
+      if (AIMap.DistanceManhattan(tile, center) < 3) continue;
+
+      local val = AITile.GetCargoProduction(tile, paxCargo, 1, 1, coverage);
+      if (val <= 0) continue;
+
+      foreach (dir in dirs) {
+        local front = tile + dir;
+        if (!AIMap.IsValidTile(front) || !AIRoad.IsRoadTile(front)) continue;
+        local ok = false;
+        {
+          local test = AITestMode();
+          ok = AIRoad.BuildDriveThroughRoadStation(tile, front, AIRoad.ROADVEHTYPE_BUS, stationId);
+        }
+        if (ok) {
+          candidates.append({ tile = tile, front = front, value = val, dist = AIMap.DistanceManhattan(tile, town.tile) });
+          break;
+        }
+      }
+    }
+  }
+
+  if (candidates.len() == 0) return 0;
+
+  candidates.sort(function(a, b) {
+    if (a.value > b.value) return -1;
+    if (a.value < b.value) return 1;
+    if (a.dist < b.dist) return -1;
+    if (a.dist > b.dist) return 1;
+    return 0;
+  });
+
+  local builtStops = [];
+  local maxStops = 2;
+
+  foreach (cand in candidates) {
+    if (builtStops.len() >= maxStops) break;
+
+    local tooClose = false;
+    foreach (prev in builtStops) {
+      if (AIMap.DistanceManhattan(cand.tile, prev) < 4) {
+        tooClose = true;
+        break;
+      }
+    }
+    if (tooClose) continue;
+
+    local ok = AIRoad.BuildDriveThroughRoadStation(cand.tile, cand.front, AIRoad.ROADVEHTYPE_BUS, stationId);
+    if (!ok && AIError.GetLastError() == AIError.ERR_LOCAL_AUTHORITY_REFUSES) {
+      OpexBoostTownRating(town.id, 800, 40);
+      ok = AIRoad.BuildDriveThroughRoadStation(cand.tile, cand.front, AIRoad.ROADVEHTYPE_BUS, stationId);
+    }
+
+    if (ok) {
+      builtStops.append(cand.tile);
+      if (DECISION_LOG) {
+        OpexDecide("AIR_JOINED_STOP", "station=" + stationId + " town=" + town.id + " tile=" + cand.tile + " val=" + cand.value);
+      }
+    }
+  }
+
+  return builtStops.len();
 }
 
 /* Construit une ligne aerienne complete. Le caller a deja mesure la recherche des sites et
@@ -1339,6 +1445,11 @@ function OpexBuildAirRoute(catalog, budget, plan)
     }
   }
   result.opcodes += budget.end("build_aircraft");
+
+  if (AIR_JOINED_STOPS) {
+    if (!reuseA) OpexAirBuildJoinedStops(airportA, stationA, airport, plan.siteA.town, catalog.paxCargo);
+    if (!reuseB) OpexAirBuildJoinedStops(airportB, stationB, airport, plan.siteB.town, catalog.paxCargo);
+  }
 
   result.actualCost = costs != null ? costs.GetCosts() : 0;
   result.ok = true;
