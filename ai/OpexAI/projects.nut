@@ -1297,7 +1297,10 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
                    + " lambda_foncier=" + shadowPrices.foncier
                    + " lambda_slots_road=" + shadowPrices.slots.road
                    + " lambda_slots_air=" + shadowPrices.slots.air
-                   + " lambda_slots_rail=" + shadowPrices.slots.rail);
+                   + " lambda_slots_rail=" + shadowPrices.slots.rail
+                   + " b_argent=" + shadowPrices.budgetArgent
+                   + " b_ops=" + shadowPrices.budgetOps
+                   + " b_foncier=" + shadowPrices.budgetFoncier);
       }
       foreach (p in allProjects) {
         local score = OpexReducedCostScore(p, shadowPrices);

@@ -491,6 +491,10 @@ function OpexTensionComputeShadowPrices(ctx, candidates, capitalBudget)
     slots = { rail = 0.0, road = 0.0, air = 0.0, water = 0.0 },
     opcodes = 0.0,
     foncier = 0.0,
+    budgetArgent = 0.0,
+    budgetSlots = { rail = 0.0, road = 0.0, air = 0.0, water = 0.0 },
+    budgetOps = 0.0,
+    budgetFoncier = 0.0,
   };
   if (candidates == null || candidates.len() == 0) return shadow;
 
@@ -507,6 +511,7 @@ function OpexTensionComputeShadowPrices(ctx, candidates, capitalBudget)
   local bArgent = capitalBudget > 0 ? capitalBudget.tofloat()
                 : ((ctx != null && ctx.moneyAvailable > 0) ? ctx.moneyAvailable.tofloat() : 1000.0);
   shadow.argent = OpexCriticalShadowPrice(argentElements, bArgent);
+  shadow.budgetArgent = bArgent;
 
   // 2. SLOTS VEHICULES (par mode physique)
   local modes = ["rail", "road", "air", "water"];
@@ -527,6 +532,7 @@ function OpexTensionComputeShadowPrices(ctx, candidates, capitalBudget)
     local bSlots = lim - flt;
     if (bSlots < 0.0) bSlots = 0.0;
     shadow.slots[m] = OpexCriticalShadowPrice(slotElements, bSlots);
+    shadow.budgetSlots[m] = bSlots;
   }
 
   // 3. OPCODES (debit mensuel VM)
@@ -540,6 +546,7 @@ function OpexTensionComputeShadowPrices(ctx, candidates, capitalBudget)
   }
   local bOps = (ctx != null && ctx.opcodeFlow > 0) ? ctx.opcodeFlow.tofloat() : 1000000.0;
   shadow.opcodes = OpexCriticalShadowPrice(opsElements, bOps);
+  shadow.budgetOps = bOps;
 
   // 4. FONCIER (origines libres)
   local foncierElements = [];
@@ -552,11 +559,22 @@ function OpexTensionComputeShadowPrices(ctx, candidates, capitalBudget)
   }
   local bFoncier = (ctx != null && ctx.originsFree > 0) ? ctx.originsFree.tofloat() : 0.0;
   shadow.foncier = OpexCriticalShadowPrice(foncierElements, bFoncier);
+  shadow.budgetFoncier = bFoncier;
 
   return shadow;
 }
 
-/* C35.3 : Score de cout reduit dual : ProfitAnnuel - sum_r lambda_r * a_ir. */
+/* C35.4 : une ressource ne mord que si ON NE PEUT PAS poser deux fois CE projet
+ * (debit d'execution, maxBatch=1). Le Dantzig 1D sur le VIVIER est toujours tendu. */
+function OpexShadowBinds(remaining, projectCost)
+{
+  if (projectCost <= 0.0) return false;
+  if (remaining <= 0.0) return true;
+  return remaining < (2.0 * projectCost);
+}
+
+/* C35.3 + C35.4 : ProfitAnnuel - sum_r λ_r a_ir, seulement les contraintes qui mordent
+ * pour ce projet, partagees si plusieurs (pas de triple taxation 1D). */
 function OpexReducedCostScore(project, shadowPrices)
 {
   if (project == null) return 0.0;
@@ -576,8 +594,34 @@ function OpexReducedCostScore(project, shadowPrices)
   local lambdaOps = (shadowPrices != null && ("opcodes" in shadowPrices)) ? shadowPrices.opcodes : 0.0;
   local lambdaFoncier = (shadowPrices != null && ("foncier" in shadowPrices)) ? shadowPrices.foncier : 0.0;
 
-  local reducedCost = profit - (lambdaArgent * cap) - (lambdaSlots * vehs) - (lambdaOps * ops) - (lambdaFoncier * origins);
-  return reducedCost;
+  local bArgent = (shadowPrices != null && ("budgetArgent" in shadowPrices)) ? shadowPrices.budgetArgent : cap;
+  local bSlots = 1.0e9;
+  if (shadowPrices != null && ("budgetSlots" in shadowPrices) && (modeKey in shadowPrices.budgetSlots)) {
+    bSlots = shadowPrices.budgetSlots[modeKey];
+  }
+  local bOps = (shadowPrices != null && ("budgetOps" in shadowPrices)) ? shadowPrices.budgetOps : ops;
+  local bFoncier = (shadowPrices != null && ("budgetFoncier" in shadowPrices)) ? shadowPrices.budgetFoncier : origins;
+
+  local tax = 0.0;
+  local nActive = 0;
+  if (lambdaArgent > 0.0 && OpexShadowBinds(bArgent, cap)) {
+    tax += lambdaArgent * cap;
+    nActive++;
+  }
+  if (lambdaSlots > 0.0 && OpexShadowBinds(bSlots, vehs)) {
+    tax += lambdaSlots * vehs;
+    nActive++;
+  }
+  if (lambdaOps > 0.0 && OpexShadowBinds(bOps, ops)) {
+    tax += lambdaOps * ops;
+    nActive++;
+  }
+  if (lambdaFoncier > 0.0 && origins > 0.0 && OpexShadowBinds(bFoncier, origins)) {
+    tax += lambdaFoncier * origins;
+    nActive++;
+  }
+  if (nActive > 1) tax = tax / (nActive * 1.0);
+  return profit - tax;
 }
 
 /* Score de classement A1 par regime de tension (loi de Liebig) ou C35.3 (cout reduit dual).

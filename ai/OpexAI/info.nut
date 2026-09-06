@@ -384,15 +384,14 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    /* C35.3 : COÛT RÉDUIT À PRIX D'OMBRE DUAL (docs/taches.md C35.3).
-     * Classement économique par coût réduit dual :
-     *   Score = ProfitAnnuel - Σ_r λ_r * a_ir
-     * où chaque prix d'ombre λ_r (argent, slots par mode, opcodes, foncier) est dérivé par
-     * parcours critique fractionnaire de Dantzig sur le vivier multimodal de candidats.
+    /* C35.3/C35.4 : COÛT RÉDUIT À PRIX D'OMBRE DUAL.
+     * Score = ProfitAnnuel - Σ_r λ_r a_ir, λ 1D Dantzig puis C35.4 : une ressource
+     * ne taxe que si on ne peut pas poser deux fois CE projet (debit maxBatch=1),
+     * et les contraintes actives se partagent le prelevement (pas de triple 1D).
      * 1 = actif, 0 = inactif (défaut). */
     AddSetting({
       name = "shadow_pricing",
-      description = "Coût réduit à prix d'ombre dual (docs/taches.md C35.3): 1 = actif, 0 = inactif (défaut)",
+      description = "Coût réduit à prix d'ombre dual coordonné (docs/taches.md C35.4): 1 = actif, 0 = inactif (défaut)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
