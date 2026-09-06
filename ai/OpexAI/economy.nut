@@ -433,6 +433,38 @@ function OpexApplyRoadEconomics(candidate, economics, actualDistance = null)
  */
 const ROAD_SPEED_EFFICIENCY_PCT = 60;
 const MAX_ROAD_VEHICLES = 8;
+/* Rayon de couverture d'un arret de bus (7x7). Deux arrets a d < 7 se chevauchent. */
+const ROAD_PAX_CATCHMENT_RADIUS = 3;
+ROAD_PAX_OVERLAP <- true;
+
+/* Fraction de l'empreinte A (carre Chebyshev de rayon rA) qui recouvre l'empreinte B,
+ * pire cas aligne (meme rangee). 0 si d >= rA+rB+1, 1 si d <= |rB-rA|. */
+function OpexRoadCatchmentOverlapFrac(distance, radiusA, radiusB)
+{
+  if (distance < 0) distance = 0;
+  local spanA = 2 * radiusA + 1;
+  local overlapX = radiusA + radiusB + 1 - distance;
+  if (overlapX <= 0) return 0.0;
+  if (overlapX > spanA) overlapX = spanA;
+  local spanB = 2 * radiusB + 1;
+  local overlapY = spanA < spanB ? spanA : spanB;
+  return (overlapX * overlapY).tofloat() / (spanA * spanA).tofloat();
+}
+
+/* Demande pax ville-ville : les maisons dans le chevauchement marchent, elles ne prennent
+ * pas le bus. Si d < 7 les deux "villes" sont un meme blob : on ne compte pas A+B. */
+function OpexRoadPaxUniqueMonthly(capturedA, capturedB, distance)
+{
+  local o = OpexRoadCatchmentOverlapFrac(distance, ROAD_PAX_CATCHMENT_RADIUS, ROAD_PAX_CATCHMENT_RADIUS);
+  local uniq = 1.0 - o;
+  local base = capturedA + capturedB;
+  local span = 2 * ROAD_PAX_CATCHMENT_RADIUS + 1;
+  if (distance < span) {
+    base = capturedA > capturedB ? capturedA : capturedB;
+  }
+  local monthly = (base.tofloat() * uniq).tointeger();
+  return monthly > 0 ? monthly : 0;
+}
 
 /* 🔴 Reglage marginal_fleet (2026-09-01). Le commentaire ci-dessus dit "MAX_ROAD_VEHICLES = 2 est
  * la traduction directe de la regle du jeu" -- mais la constante vaut 8, pas 2 : elle a diverge de
@@ -510,6 +542,16 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
     effectiveOffered = monthlyUnits * stationRating / 100.0;
   }
   local carried = effectiveOffered < monthlyCapacity ? effectiveOffered : monthlyCapacity;
+  if (kind == "pax" && ROAD_PAX_OVERLAP && vehicles > 0 && roundTripDays > 0) {
+    /* Flux par rotation : a chaque visite, seulement ce qui s'est accumule pendant le headway,
+     * plafonne a la capacite. Deux bus ne doublent pas la demande, ils se partagent le quai. */
+    local headwayDays = roundTripDays.tofloat() / vehicles;
+    local waitingOneEnd = (monthlyUnits.tofloat() / 2.0) * headwayDays / 30.0;
+    local pickup = waitingOneEnd < engine.capacity ? waitingOneEnd : engine.capacity.tofloat();
+    local visitsOneEnd = vehicles.tofloat() * 30.0 / roundTripDays;
+    local flowCarried = (2.0 * visitsOneEnd * pickup).tointeger();
+    if (flowCarried < carried) carried = flowCarried;
+  }
   /* OpexLoadedTripsPerMonth est aussi partage par la route. Sa capacite moyenne peut etre
    * fractionnaire depuis la suppression du ceil favorable ; les cargaisons et les panneaux restent
    * entiers, donc on ne credite jamais 28,57 unites qui n'existent pas dans le moteur. */

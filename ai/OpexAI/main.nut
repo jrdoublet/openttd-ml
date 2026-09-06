@@ -1212,7 +1212,13 @@ function OpexAI::_tryTownGrowth(year)
     local planning = OpexRoadPlanFor(this._catalog, candidate);
     local planOps = this._budget.end("build_road_plans");
     local plan = planning.plan;
-    if (plan == null) continue;
+    if (plan == null) {
+      if (DECISION_LOG) {
+        OpexDecide("TOWN_GROWTH", "action=fail town=" + townId + " stations=" + currentCount
+                   + " reason=plan detail=" + planning.reason);
+      }
+      continue;
+    }
 
     local actualDist = AIMap.DistanceManhattan(plan.stopA.tile, plan.stopB.tile);
     if (actualDist < 1) actualDist = 1;
@@ -1222,7 +1228,13 @@ function OpexAI::_tryTownGrowth(year)
 
     local need = candidate.capital + OpexCashReserve();
     money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-    if (money < need) continue;
+    if (money < need) {
+      if (DECISION_LOG) {
+        OpexDecide("TOWN_GROWTH", "action=fail town=" + townId + " stations=" + currentCount
+                   + " reason=cash need=" + need + " cash=" + money);
+      }
+      continue;
+    }
     /* growth_yields : la croissance urbaine batit des lignes a profitAnnual = 0 et
      * revenueAnnual = 0 EXPLICITES (voir le candidat construit ci-dessus). Son rendement est
      * indirect -- faire grossir la ville pour nourrir les autres lignes -- mais son capital, lui,
@@ -1236,11 +1248,25 @@ function OpexAI::_tryTownGrowth(year)
      * (`selectedCapital`). Elle cede donc le pas sans jamais etre supprimee. */
     if (GROWTH_YIELDS && this._projects != null) {
       local committed = ("stats" in this._projects) ? this._projects.stats.selectedCapital : 0;
-      if (money < need + committed) continue;
+      if (money < need + committed) {
+        if (DECISION_LOG) {
+          OpexDecide("TOWN_GROWTH", "action=fail town=" + townId + " stations=" + currentCount
+                     + " reason=committed need=" + need + " committed=" + committed
+                     + " cash=" + money);
+        }
+        continue;
+      }
     }
 
     local result = OpexBuildRoadRoute(this._catalog, this._budget, plan, candidate);
-    if (!result.ok) continue;
+    if (!result.ok) {
+      if (DECISION_LOG) {
+        OpexDecide("TOWN_GROWTH", "action=fail town=" + townId + " stations=" + currentCount
+                   + " reason=build detail=" + result.reason + " error=" + result.error
+                   + " dist=" + actualDist);
+      }
+      continue;
+    }
 
     local newCount = OpexCountTownStations(townId);
     OpexSign(anchor, "TG|" + (year % 100) + "|" + townId + "|" + currentCount + "|" + newCount);
@@ -4763,6 +4789,15 @@ function OpexAI::Start()
   if (fhmd >= 0) FEEDER_HUB_MIN_DAYS = fhmd;
   AIR_SITE_CACHE_ENABLED = AIController.GetSetting("air_site_cache") != 0;
   AIR_CHEAP_SITE = AIController.GetSetting("air_cheap_site") != 0;
+  ROAD_CHEAP_TRACE = AIController.GetSetting("road_cheap_trace") != 0;
+  ROAD_PAX_VOIRIE = AIController.GetSetting("road_pax_voirie") != 0;
+  ROAD_PAX_OVERLAP = AIController.GetSetting("road_pax_overlap") != 0;
+  if (DECISION_LOG) {
+    OpexDecide("SETTINGS", "road_cheap_trace=" + ROAD_CHEAP_TRACE
+               + " raw=" + AIController.GetSetting("road_cheap_trace")
+               + " road_pax_voirie=" + ROAD_PAX_VOIRIE
+               + " road_pax_overlap=" + ROAD_PAX_OVERLAP);
+  }
   OpexAirResetSiteCache();
 
   /* 🔴 RENOUVELLEMENT AUTOMATIQUE (2026-08-29). Mesure : campagne 20 ans, graine 42 -- trois des

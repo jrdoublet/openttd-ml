@@ -5031,6 +5031,7 @@ Il n'y a pas d'A\* fait maison. Seule la fonction de coût est à nous.
 | **C34** | 🔴 **FAIT, MESURÉ, REJETÉ — réintégrer l'aérien et le refleet au portefeuille** (§0 sexagesies). `air_portfolio` + `fleet_portfolio`, **défauts remis à 0**. Banc 20 graines × 1 an : **valeur −23,3 %, t = −3,25, 5/20, p = 0,041** — significatif et négatif ; ratio contre AAAHogEx 0,42 → 0,32. Mécanisme : privé de sa voie dédiée, l'aérien affronte un classement qui met la **route au rang 0 dans 27 cas sur 30**. ⚠️ **C34.2 est INERTE** (aucun projet de flotte jamais élu, la règle de tampon refuse toujours) : toute la régression vient de C34.1. ⚠️ Deux de mes raisonnements étaient FAUX et sont réfutés au dossier : couper la tâche aérienne ne divise PAS la planification (11 → 15 passages/an), et l'opcodeScore des projets de flotte n'écrase rien. ➡️ Corriger le DÉNOMINATEUR du classement (A1) avant toute nouvelle plomberie | −23,3 % à 1 an, p = 0,041 ; route rang 0 dans 27/30 | §0 sexagesies |
 | **C35** | 🔑 **A1 : POURQUOI ÇA NE PREND PAS — vers le coût réduit à prix d'ombre** (§0 trenonagies, analyse de code, banc C35.1, banc C35.3). 🔴 **La formule validée a été REMPLACÉE** : `4c087c7` posait un classement continu `profit/(0,05 + Σ T_r)` mesuré **+17,0 % an 3**, `079238c` l'a écrasé par une bascule discrète — et son paramètre `decisionFriction` est resté MORT dans le code. 🔴 **A1.1 n'est pas une loi de Liebig** : `t_foncier = 1,0 + saturation` est toujours ≥ 1 quand les trois autres tensions sont des taux < 1, donc l'argmax élit le foncier sauf quand on est fauché — soit *ROI si fauché, profit brut sinon*, le vecteur à 4 ressources étant décoratif. ➡️ **Synthèse : coût réduit `profit − Σ λ_r a_ir`** — le prix d'ombre EST la normalisation cherchée (il porte une unité, le taux de tension non), la TCC en découle ($\arg\max λ_r$ = le goulot), et `OpexKnapsackComputeBound` calcule DÉJÀ le dual du capital sans le nommer. ⚠️ **D4 devient un PRÉREQUIS** : en coût réduit le biais de prédiction n'est plus amorti. **C35.1 ✅ FAIT et MESURÉ le 2026-09-05** (`docs/bench_c35_1_tension_scoring_3y.json`) : A1.1 seul contre 0 donne **−11,6 % valeur** (−129 k£, 2/5 victoires) et **−9,8 % profit** (−62 k£). **C35.3 ✅ FAIT et MESURÉ le 2026-09-05** (`docs/bench_c35_3_shadow_pricing_3y.json`) : score officiel **+29,4 pts** (357,6 vs 328,2, 3/5 victoires), rating de gare **+13,5 pts**, réseau plus étendu (+7,6 gares), résilience spectaculaire sur la graine aride 2026 (+166 % valeur, +114 % profit, +138 pts score), mais valeur moyenne −11,2 % et profit −25,6 % due à la sur-taxation cumulative des contraintes 1D indépendantes sur cartes riches | +17,0 % validé (Option A) vs −11,6 % (A1.1 seul C35.1) vs +29,4 pts score / +166 % graine 2026 (C35.3) | §0 trenonagies, §0 quinquinonagies, §0 sexanonagies |
 | **C36** | 🔑 **COMPRESSION DU TEMPS DE CYCLE ET RÉINTÉGRATION UNIFIÉE DU PORTEFEUILLE** (§0 septanonagies). **C36.1 ✅ FAIT et MESURÉ le 2026-09-05** (`portfolio_cache=1`) : Caching incrémental du vivier post-chantier via `OpexIncrementalUpdateProjects` (délai post-chantier ramené de 15 jours à 0 jour / < 1 tick). Banc 5 graines × 3 ans : +14,3 % de gares construites (216 vs 189), note de gare médiane +12,2 pts (175,0 vs 162,8), résilience forte graine aride 2026 (+53,3 % valeur, +80 pts score, 44 vs 25 gares). **C36.2 ✅ FAIT et MESURÉ le 2026-09-05** (`air_portfolio=1`, `fleet_portfolio=1`) : Réintégration unifiée et arbitrage multimodal au sac à dos (`OpexProjectConflictKeys`, dimensionnement initial 1 appareil, élagage immédiat `abandonedPairs`, déblocage nivellement site B et verrou multi-feeder). Banc 5 graines × 3 ans : **valeur +5,4 %** (1 278 357 £ vs 1 212 499 £, +65,9 k£), **profit +7,1 %** (684 618 £ vs 639 176 £, +45,4 k£), bonds spectaculaires sur graines complexes (+72,3 % valeur graine 1337, +39,0 % graine 2026). **C36.3** Découpage et pré-filtrage de la découverte du catalogue (`catalog` / `OpexAirPlans`) par priorité aux métropoles pour comprimer le gel initial de 17 jours à 2 jours. **C36.4** Élimination des ticks morts par drainage (`loop_budget=1`). | délai post-chantier 15j -> 0j ; réseau +14,3 % gares | §0 septanonagies |
+| **C37** | 🔴 **COÛT D'OPPORTUNITÉ CALENDAIRE ROUTE/RAIL DANS LE CLASSEMENT** (§0 novanonagies). Le classement ne facture pas le verrou du contrôleur : un bus 5 tuiles (ROI ~6 490) puis un A\* charbon occupent **~18 mois** sur la graine 7 cheap (1 ligne air en 1970 vs 5, 2ᵉ avion le 20 sep 1971). `expectedOpcodes` route = constante `PROJECT_ROAD_TRANSACTION_OPS` (287 k, `pricing_road_ops=1`) ; rail plafonné à `HARD_ITERATION_CAP` (C21) ; air = 100 k de pose seulement. `budgetScore` (densité) pèse 75 %. **Ce n'est pas** A3/A4/A5 (budget d'itérations, voies fermées), **ni** C35 (prix d'ombre Liebig déjà mesuré, −11 %), **ni** B3 (estimateur d'opcodes), **ni** `portfolio_max_batch` (rejeté, et batch=3 + cheap = encore −79 % sur la 7). Facturer les jours de VM volés (profit aérien forclos) dans le score, réglage isolé défaut 0. | graine 7 : ~18 mois d'A\* ; 1 air vs 5 en 1970 ; batch=3 n'y change rien | §0 novanonagies, C21, C25, C34, C35, A5 |
 | C13 | **Le sac à dos (knapsack) n'utilise pas le ROI bonifié fret de C8** — `OpexKnapsackComputeBound`/`OpexKnapsackSearch` (`projects.nut:283-286`, `:323`) additionnent encore `p.revenueAnnual` brut comme objectif, pas le ROI bonifié (monopole +40 %, chaîne +35 %). Le bonus C8 pèse donc sur le tri/seuil de sélection en amont, pas sur l'optimum retenu quand plusieurs candidats se disputent le même capital | trouvé en revue croisée agy/codex/grok du 2026-09-02, en vérifiant C8 | §C8, `projects.nut` |
 
 ### D. Mesures à refaire, parce que les anciennes ne valent plus
@@ -8991,7 +8992,60 @@ Le cheap accepte un site pour la ville 32 que le témoin n'a jamais trouvé. Ce 
 **Terrassement réel (2026-09-05, essayé).** `OpexAirLevelFootprint` nivelle l'emprise `width-1 × height-1` **en exec**, vérifie que tous les `GetMaxHeight` sont égaux (le critère `allowed_z` du moteur, pas min=max par tuile), puis `BuildAirport`. Sous `air_cheap_site`, FindSite ne croit plus un `AUTHORITY` en TestMode ni un `LevelTiles` dans `AITestMode` : jusqu'à 3 nivellements réels par ville. Rejeu 73/2026 : le AFAIL 263 de la ville 32 **disparaît** (ligne 32→26 posée le 28 jan). 2026 reste le piège bus+charbon (ce n'était pas un 263). Le constructeur utilise le bon rectangle pour tout le monde (le `width` sans −1 terrassait une bande de trop).
 
 **2026 — piège ROI routier + A\* charbon, déclenché par un premier scan plus tôt.**
-Premier avion : même score 741,36 / 81 681 £ / 140 tuiles, mais 45→34 (cheap) contre 45→21 (témoin). En février les deux ont le **même** bus 12 tuiles en rang 0 (ROI 6 437). Le témoin **n'exécute pas** ce portefeuille (repay, puis regen mars où les hubs aériens 45→9 passent rang 0) et pose 3 lignes aériennes. Le cheap, scan fini 6 jours plus tôt, **exécute** le bus en mars (`TRACEX` ×2) puis enchaîne un charbon de 73 tuiles jusqu'en juin. 3 scans `AIR_PLAN` dans l'année contre 15, 2 gares jusqu'en décembre, 250 k£ en caisse. Les hubs aériens (ville 9 présente dans les deux listes) **n'entrent pas** dans le knapsack cheap de mars — rangs = 2 routes + 3 rails. Ce n'est pas un site manquant, c'est de l'HOL blocking après un faux départ routier.
+Premier avion : même score 741,36 / 81 681 £ / 140 tuiles, mais 45→34 (cheap) contre 45→21 (témoin). En février les deux ont le **même** bus 12 tuiles en rang 0 (ROI 6 437). Le témoin **n'exécute pas** ce portefeuille (repay, puis regen mars où les hubs aériens 45→9 passent rang 0) et pose 3 lignes aériennes. Le cheap, scan fini 6 jours plus tôt, **exécute** le bus en mars (`TRACEX` ×2) puis enchaîne un charbon de 73 tuiles jusqu'en juin. 3 scans `AIR_PLAN` dans l'année contre 15, 2 gares jusqu'en décembre, 250 k£ en caisse. Les hubs aériens (ville 9 présente dans les deux listes) **n'entrent pas** dans le knapsack cheap de mars — rangs = 2 routes + 3 rails. Ce n'est pas un site manquant, c'est de l'HOL blocking après un faux départ routier. **Suite : C37** (§0 novanonagies) — le classement ne facture pas ces mois.
+
+---
+
+## 0 novanonagies. 🔴 C37 — Le classement n'impute pas le verrou calendaire route/rail (2026-09-05)
+
+**Objet** : Sur la graine 7, passer ~18 mois en pathfinding route/rail après le premier avion est anormal. Ce n'était **pas** encore une fiche. C37 la pose : mieux estimer le coût d'opportunité de ces projets, et l'inclure dans le ranking.
+
+### 1. La mesure qui rend ça visible
+
+Rejeu `decision_log` graine 7 cheap (`docs/diag_c36_3_s7_3y.json`) : première paire `38→10`, puis en février un bus **5 tuiles** rang 0 (ROI **6 490** contre l'air ~800). `TRACEX`, puis A\* charbon. Deuxième avion le **20 septembre 1971**. 1970 : **1 ligne aérienne contre 5** au témoin. À 3 ans : 10 contre 17.
+
+Même forme sur 2026 (bus 12 tuiles ROI 6 437, puis charbon 73 tuiles jusqu'en juin). Banc cheap 10×3 ans : graine 7 **−77 %** (2,54 M£ → 0,59 M£). Banc cheap + `portfolio_max_batch=3` (`docs/bench_c36_3_cheap_batch3_3y_10seeds.json`) : encore **−79 %** sur la 7. Lever le lot ne sort pas du verrou.
+
+### 2. Ce que le ranking facture aujourd'hui (et ce qu'il ne facture pas)
+
+| mode | `expectedOpcodes` | ce que ça ignore |
+|---|---|---|
+| **air** | `PROJECT_AIR_TRANSACTION_OPS` = **100 k** (pose seulement ; FindSite est un coût irrécupérable du catalogue) | rien d'un A\* |
+| **route** | constante **287 k** (`pricing_road_ops=1`, défaut) | `TRACEX`, retries, durée calendaire ; un bus 5 tuiles coûte autant qu'un échec qui ouvre 18 mois |
+| **rail** | `min(iterations, HARD_ITERATION_CAP) × 3 105` (C21 a **plafonné** pour ne plus pénaliser le rail) | un charbon de 73 tuiles qui occupe le script des mois est facturé comme 10 k itérations max |
+
+Le pré-tri pèse `budgetScore × 75 + opcodeScore × 25`. `budgetScore` est une **densité** revenu/£ : le bus court gagne le rang 0 avant même qu'`opcodeScore` parle. Sous `PORTFOLIO_MAX_BATCH=1`, ce rang 0 **occupe tout le passage**, puis le mois suivant, puis le suivant.
+
+Le coût d'opportunité réel n'est pas 287 k d'opcodes de pose. C'est **le profit aérien forclos pendant le verrou** (sur la 7 : quatre lignes air de 1970, et la croissance de flotte/feeders qui va avec).
+
+### 3. Ce que C37 n'est pas (déjà au dossier)
+
+| fiche | pourquoi ça ne couvre pas |
+|---|---|
+| **A3 / A4 / A5** | Budget d'itérations du pathfinder : relever ❌, redistribuer ❌, abaisser 🟡 nul. « Le pathfinder n'est pas le goulot » parlait du *réglage* d'A\*, pas du *choix* de le lancer. Ne pas rouvrir HPA\* ni `rail_search_resumable`. |
+| **C21** | A *baissé* la facture rail pour ne plus l'écraser dans `opcodeScore`. C37 ne doit pas le revertir à l'aveugle. |
+| **C25** | `opcodeRatio` absent du **filtre de vivier** routier. Hygiène d'admission, pas le score d'élection. |
+| **B3** | Estimateur d'opcodes appris longueur × terrain. Utile en entrée de C37, insuffisant : un devis d'opcodes exact sans prix du temps calendaire relaisse le bus 5 tuiles au rang 0. |
+| **C34 / C35** | C34 a montré la route rang 0 **27/30** et pointé A1. C35 (tension / prix d'ombre) a été mesuré : A1.1 **−11,6 %**, shadow **−11,2 %** valeur. Ces formules n'ont pas de terme « jours de VM volés à l'air ». |
+| **`portfolio_max_batch`** | Rejeté (−3,8 %, 11/20 nuls). Empiler batch=3 sur cheap **aggrave** la 7. |
+| **C33.3** | Délai de ban après un échec. Ne décide pas d'élire le bus. |
+
+§0 novemtrigesies avait déjà la phrase « tenter du rail coûte son coût d'opportunité » pour expliquer D3.1. Elle n'était pas devenue une tâche de *classement*.
+
+### 4. Forme à coder (réglage isolé, défaut 0)
+
+1. **Estimer l'occupation calendaire** du chantier route/rail *avant* l'élection : opcodes (ou itérations) convertis en jours de VM à 10 000 ops/tick × ~74 ticks/jour, plus une prime d'échec (`TRACEX` / `ABND`) si le devis de tracé est fragile.
+2. **Prix d'opportunité** : `jours_verrou × profit_annuel du meilleur projet aérien finançable / 365` (ou le dual déjà calculé par `OpexKnapsackComputeBound`, borné à l'air). Un projet dont le profit prédit ne couvre pas ce prélèvement **perd le rang 0**.
+3. **Brancher ce prélèvement sur le score d'élection** (`budgetScore` / knapsack), pas seulement sur `opcodeScore` à 25 %. Sinon le bus court continue de gagner à la densité.
+4. Ne pas exécuter un rail/route dont le verrou prédit dépasse un plafond (ex. 14 jours) tant que `air_line_count` est bas — garde, pas substitut au score.
+
+⚠️ Ne pas défaire C21 ni `pricing_road_ops` dans le même commit. ⚠️ Ne pas confondre avec une garde « pas de route tant que `air_line_count==0` » : c'est un filet d'amorçage, C37 est le ranking pour toute la partie.
+
+### 5. Mesure
+
+1. Diagnostic 5 graines × 3 ans, `decision_log=1` sur la **7** : jours calendaires entre 1er et 2ᵉ `AIR_BUILD`, nombre de `TRACEX` / A\* rail avant le 2ᵉ avion. Critère de mécanisme : plus de ~18 mois d'occupation sol.
+2. Si le mécanisme mord : banc 5×3 apparié contre défaut, **sans** `air_cheap_site` d'abord (ne pas confondre avec C36.3), puis éventuellement croisé cheap.
+3. Adoption seulement si valeur / profit / lignes air ne reculent pas sur les graines denses (7, 999) **et** que la 7 cesse de geler. Banc officiel 20×10 ensuite. Défaut 0 tant que ce n'est pas le cas.
 
 
 

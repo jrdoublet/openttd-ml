@@ -29,6 +29,17 @@ ROAD_MAX_SITES_PER_END <- 4;
 ROAD_MAX_TRACE_TRIALS <- 48;
 ROAD_CAPITAL_MARGIN <- 1000;
 ROAD_DEPOT_MIN_STOP_DISTANCE <- 3;
+/* C37 : sonde L a 2 essais avant OpexRoadPlanFor. Defaut 0. Uniquement pax interurbain
+ * distance <= 12 (le bus 5 tuiles de la graine 7). Ne pas bannir sur CHEAPX. */
+ROAD_CHEAP_TRACE <- false;
+ROAD_CHEAP_TRACE_MAX_DIST <- 12;
+/* Pax : arrets traversants SUR la voirie existante (AAAHogEx). Le depot reste hors route.
+ * Defaut 0. Ce n'est PAS le jet DT de 2026-08-28 (912 k ops en remplacement du L) : ici on
+ * n'echantillonne que des IsRoadTile et on relie par BFS sur la voirie, sans scier les maisons.
+ * MIN_PAIR = C29.4 / HogEx : sous 6 tuiles le depot (filet de 3) est impossible et
+ * CmdBuildRoadStop rend TOO_CLOSE / BSTOP. */
+ROAD_PAX_VOIRIE <- true;
+ROAD_PAX_VOIRIE_MIN_PAIR <- 6;
 
 function OpexRoadInMap(x, y)
 {
@@ -266,7 +277,7 @@ function OpexRoadTraceHitsStop(trace, stopTile)
  * vitesse qui oscille sans jamais avancer (RV/RQ) -- il ne peut litteralement pas monter sur
  * "front", quel que soit le nombre d'annees. Chaque site candidat doit donc AUSSI poser ce bit
  * manquant avec BuildRoad(front, tile) avant BuildRoadDepot -- cf. OpexBuildRoadRoute. */
-function OpexRoadFindDepot(trace, stopA, stopB)
+function OpexRoadFindDepot(trace, stopA, stopB, driveThrough = false)
 {
   local offsets = [[1, 0], [-1, 0], [0, 1], [0, -1]];
   local seen = {};
@@ -302,8 +313,12 @@ function OpexRoadFindDepot(trace, stopA, stopB)
        * constant, ordre bloque sur stopA, campagne graine 42 -- docs/opex_bus_diag_*.json). Le
        * trace a 24 tuiles de facades candidates ; ROAD_DEPOT_MIN_STOP_DISTANCE ecarte tout le
        * voisinage immediat des deux arrets, pas seulement leur facade exacte. */
-      if (AIMap.DistanceManhattan(front, stopA.front) < ROAD_DEPOT_MIN_STOP_DISTANCE) continue;
-      if (AIMap.DistanceManhattan(front, stopB.front) < ROAD_DEPOT_MIN_STOP_DISTANCE) continue;
+      /* DT : l'arret EST sur le trace, stop.front aussi. Mesurer au corps (tile) sinon
+       * le filet de 3 avale tout un bus intra-ville. Cul-de-sac : garder la facade. */
+      local keepA = driveThrough ? stopA.tile : stopA.front;
+      local keepB = driveThrough ? stopB.tile : stopB.front;
+      if (AIMap.DistanceManhattan(front, keepA) < ROAD_DEPOT_MIN_STOP_DISTANCE) continue;
+      if (AIMap.DistanceManhattan(front, keepB) < ROAD_DEPOT_MIN_STOP_DISTANCE) continue;
       /* La facade du depot porte elle aussi deux axes : le trace et le raccord vers le depot. */
       if (!OpexRoadIsFlat(front)) continue;
       local x = AIMap.GetTileX(front);
@@ -387,12 +402,316 @@ function OpexRoadTraceMulti(from, to, variant)
   return [];
 }
 
+/* C37 : mini-chasse (2 sites, 16 sondes) + 2 L + depot. Pas de retombee sur le plan
+ * 64 sondes / 144 essais : si le L court echoue, c'est CHEAPX (le bus 5 tuiles de la
+ * graine 7 est TRACEX meme avec les Z). Si le L reussit, on GARDE ce plan -- retomber
+ * sur les 4 sites les plus cargo reproduisait le TRACEX. */
+function OpexRoadCheapPlan(candidate)
+{
+  local stop = OpexRoadStopKind(candidate.cargo);
+  local coverage = AIStation.GetCoverageRadius(stop.stationType);
+  local radiusA = candidate.srcTown >= 0 ? ROAD_TOWN_SEARCH_RADIUS : ROAD_INDUSTRY_SEARCH_RADIUS;
+  local radiusB = candidate.dstTown >= 0 ? ROAD_TOWN_SEARCH_RADIUS : ROAD_INDUSTRY_SEARCH_RADIUS;
+  local isFeeder = ("isFeeder" in candidate) && candidate.isFeeder;
+  local oldProbes = ROAD_MAX_SITE_PROBES;
+  local oldSites = ROAD_MAX_SITES_PER_END;
+  ROAD_MAX_SITE_PROBES = 16;
+  ROAD_MAX_SITES_PER_END = 2;
+  local huntA = OpexRoadSites(candidate.src, candidate.srcTown, candidate.cargo, stop.vehType,
+                              coverage, true, radiusA, candidate.dst, true, null);
+  /* Hub d'un feeder : pas une source de cargo, cf. OpexRoadPlanFor. */
+  local huntB = OpexRoadSites(candidate.dst, candidate.dstTown, candidate.cargo, stop.vehType,
+                              coverage, !isFeeder, radiusB, candidate.src, !isFeeder);
+  ROAD_MAX_SITE_PROBES = oldProbes;
+  ROAD_MAX_SITES_PER_END = oldSites;
+  if (huntA.sites.len() == 0 || huntB.sites.len() == 0) return null;
+  local trials = 0;
+  foreach (siteA in huntA.sites) {
+    foreach (siteB in huntB.sites) {
+      for (local shape = 0; shape < 2; shape++) {
+        trials++;
+        local trace = OpexRoadTrace(siteA.front, siteB.front, shape == 0);
+        if (trace.len() == 0) continue;
+        if (OpexRoadTraceHitsStop(trace, siteA.tile) || OpexRoadTraceHitsStop(trace, siteB.tile)) continue;
+        if (!OpexRoadTraceBuildable(trace)) continue;
+        local depot = OpexRoadFindDepot(trace, siteA, siteB);
+        if (depot == null) continue;
+        return { stopA = siteA, stopB = siteB, trace = trace, depot = depot,
+                 stationType = stop.stationType, vehType = stop.vehType,
+                 routeDistance = trace.len(), shape = shape, trials = trials };
+      }
+    }
+  }
+  return null;
+}
+
+/* Un arret traversant n'a qu'un axe : le bus ne peut entrer/sortir que par front ou son oppose. */
+function OpexRoadOnDtAxis(tile, front, other)
+{
+  if (front == null) return true;
+  local back = tile - (front - tile);
+  return other == front || other == back;
+}
+
+function OpexRoadOurBusTiles()
+{
+  local out = [];
+  local stations = AIStationList(AIStation.STATION_BUS_STOP);
+  for (local id = stations.Begin(); !stations.IsEnd(); id = stations.Next()) {
+    out.append(AIStation.GetLocation(id));
+  }
+  return out;
+}
+
+function OpexRoadTileTooClose(tile, others, minDist)
+{
+  if (others == null) return false;
+  foreach (other in others) {
+    if (AIMap.DistanceManhattan(tile, other) < minDist) return true;
+  }
+  return false;
+}
+
+/* BFS sur les tuiles de route deja connectees. Pas Pathfinder.Road.
+ * srcFront/dstFront : contraindre le premier et dernier pas a l'axe DT, sinon le bus
+ * sort en perpendiculaire et reste fige dans l'arret. */
+function OpexRoadBfsPath(src, dst, maxNodes, srcFront = null, dstFront = null)
+{
+  if (src == dst) return [];
+  if (!AIRoad.IsRoadTile(src) || !AIRoad.IsRoadTile(dst)) return null;
+  local came = {};
+  came.rawset(src, src);
+  local q = [src];
+  local qi = 0;
+  local n = 0;
+  local dirs = [AIMap.GetTileIndex(1, 0), AIMap.GetTileIndex(-1, 0),
+                AIMap.GetTileIndex(0, 1), AIMap.GetTileIndex(0, -1)];
+  while (qi < q.len()) {
+    local cur = q[qi];
+    qi++;
+    n++;
+    if (n > maxNodes) return null;
+    foreach (d in dirs) {
+      local nxt = cur + d;
+      if (!AIMap.IsValidTile(nxt)) continue;
+      if (nxt in came) continue;
+      if (!AIRoad.IsRoadTile(nxt)) continue;
+      if (!AIRoad.AreRoadTilesConnected(cur, nxt)) continue;
+      if (cur == src && !OpexRoadOnDtAxis(src, srcFront, nxt)) continue;
+      if (nxt == dst && !OpexRoadOnDtAxis(dst, dstFront, cur)) continue;
+      came.rawset(nxt, cur);
+      if (nxt == dst) {
+        local edges = [];
+        local t = dst;
+        while (t != src) {
+          local p = came[t];
+          edges.insert(0, { from = p, to = t });
+          t = p;
+        }
+        return edges;
+      }
+      q.append(nxt);
+    }
+  }
+  return null;
+}
+
+/* Sites pax : tuiles de ROUTE existantes, arret traversant. Jamais d'herbe entre les maisons.
+ * Intra-ville : anneau a 3 tuiles du centre (HogEx), pas le cargo max des deux bouts
+ * (sinon minD=1 et DEPOT impossible). Interurbain : encore le bord tourne vers l'autre ville. */
+function OpexRoadPaxVoirieSites(center, townId, cargo, vehType, coverage, otherCenter,
+                                requireCargo = true, excludeTiles = null)
+{
+  local out = [];
+  local cx = AIMap.GetTileX(center);
+  local cy = AIMap.GetTileY(center);
+  local dirs = [AIMap.GetTileIndex(1, 0), AIMap.GetTileIndex(0, 1)];
+  local probes = 0;
+  local radius = ROAD_TOWN_SEARCH_RADIUS;
+  local sameTown = otherCenter != null &&
+                   AIMap.DistanceManhattan(center, otherCenter) < ROAD_CHEAP_TRACE_MAX_DIST;
+  local minPair = ROAD_PAX_VOIRIE_MIN_PAIR;
+  for (local r = 0; r <= radius; r++) {
+    for (local dx = -r; dx <= r; dx++) {
+      for (local dy = -r; dy <= r; dy++) {
+        local adx = dx < 0 ? -dx : dx;
+        local ady = dy < 0 ? -dy : dy;
+        if (r > 0 && adx != r && ady != r) continue;
+        if (!OpexRoadInMap(cx + dx, cy + dy)) continue;
+        local tile = AIMap.GetTileIndex(cx + dx, cy + dy);
+        if (townId >= 0 && AITile.GetClosestTown(tile) != townId) continue;
+        if (!AIRoad.IsRoadTile(tile)) continue;
+        if (AIRoad.IsRoadStationTile(tile) || AIRoad.IsRoadDepotTile(tile)) continue;
+        if (OpexRoadTileTooClose(tile, excludeTiles, minPair)) continue;
+        local value = AITile.GetCargoProduction(tile, cargo, 1, 1, coverage);
+        if (requireCargo && value <= 0) continue;
+        foreach (dir in dirs) {
+          if (probes >= ROAD_MAX_SITE_PROBES) return out;
+          local front = tile + dir;
+          if (!AIMap.IsValidTile(front) || !AIRoad.IsRoadTile(front)) continue;
+          local ok = false;
+          { local test = AITestMode();
+            ok = AIRoad.BuildDriveThroughRoadStation(tile, front, vehType, AIStation.STATION_NEW); }
+          probes++;
+          if (!ok) continue;
+          local score;
+          if (sameTown) {
+            local ring = AIMap.DistanceManhattan(tile, center);
+            local ringPen = ring > 3 ? ring - 3 : 3 - ring;
+            score = value * 2 - ringPen * 4;
+          } else {
+            local dOther = (otherCenter != null) ? AIMap.DistanceManhattan(tile, otherCenter) : 0;
+            score = value * 2 - dOther;
+          }
+          local site = { tile = tile, front = front, value = value, score = score };
+          local pos = out.len();
+          while (pos > 0 && out[pos - 1].score < site.score) pos--;
+          out.insert(pos, site);
+          if (out.len() > ROAD_MAX_SITES_PER_END) out.pop();
+          break;
+        }
+      }
+    }
+  }
+  return out;
+}
+
+function OpexRoadPlanPaxVoirie(candidate)
+{
+  local stop = OpexRoadStopKind(candidate.cargo);
+  if (stop.vehType != AIRoad.ROADVEHTYPE_BUS) return null;
+  local isFeeder = ("isFeeder" in candidate) && candidate.isFeeder;
+  local coverage = AIStation.GetCoverageRadius(stop.stationType);
+  local exclude = OpexRoadOurBusTiles();
+  if (("existingStops" in candidate) && candidate.existingStops != null) {
+    foreach (t in candidate.existingStops) exclude.append(t);
+  }
+  local sitesA = OpexRoadPaxVoirieSites(candidate.src, candidate.srcTown, candidate.cargo,
+                                        stop.vehType, coverage, candidate.dst, true, exclude);
+  if (sitesA.len() == 0) {
+    if (DECISION_LOG) OpexDecide("VOIRIE_PLAN", "fail=SITEA feeder=" + isFeeder
+                                 + " srcTown=" + candidate.srcTown + " dstTown=" + candidate.dstTown);
+    return null;
+  }
+  /* Hub feeder : la tuile d'aeroport ne produit pas de pax, cf. OpexRoadPlanFor. */
+  local sitesB = OpexRoadPaxVoirieSites(candidate.dst, candidate.dstTown, candidate.cargo,
+                                        stop.vehType, coverage, candidate.src, !isFeeder, exclude);
+  if (sitesB.len() == 0) {
+    if (DECISION_LOG) OpexDecide("VOIRIE_PLAN", "fail=SITEB feeder=" + isFeeder
+                                 + " srcTown=" + candidate.srcTown + " dstTown=" + candidate.dstTown
+                                 + " nA=" + sitesA.len());
+    return null;
+  }
+  local minPair = ROAD_PAX_VOIRIE_MIN_PAIR;
+  local pairs = [];
+  local nClose = 0;
+  foreach (siteA in sitesA) {
+    foreach (siteB in sitesB) {
+      if (siteA.tile == siteB.tile) continue;
+      local d = AIMap.DistanceManhattan(siteA.tile, siteB.tile);
+      if (d < minPair) { nClose++; continue; }
+      pairs.append({ a = siteA, b = siteB, d = d });
+    }
+  }
+  pairs.sort(function(x, y) {
+    if (x.d < y.d) return -1;
+    if (x.d > y.d) return 1;
+    return 0;
+  });
+  local nBfs = 0;
+  local nBfsNoDepot = 0;
+  local nL = 0;
+  local nLNoDepot = 0;
+  foreach (pair in pairs) {
+    local siteA = pair.a;
+    local siteB = pair.b;
+    local trace = OpexRoadBfsPath(siteA.tile, siteB.tile, 96, siteA.front, siteB.front);
+    local via = "L";
+    local depot = null;
+    if (trace != null) {
+      nBfs++;
+      depot = OpexRoadFindDepot(trace, siteA, siteB, true);
+      if (depot == null) nBfsNoDepot++;
+    }
+    if (depot == null) {
+      trace = null;
+      local axisH = AIMap.GetTileX(siteA.front) != AIMap.GetTileX(siteA.tile);
+      for (local k = 0; k < 2; k++) {
+        local firstH = (k == 0) ? axisH : !axisH;
+        local dx = AIMap.GetTileX(siteB.tile) - AIMap.GetTileX(siteA.tile);
+        local dy = AIMap.GetTileY(siteB.tile) - AIMap.GetTileY(siteA.tile);
+        /* Premier pas reel du L : s'il est perpendiculaire a l'axe DT, le bus ne sort pas. */
+        local firstIsH = firstH ? (dx != 0) : (dy == 0);
+        if (firstIsH != axisH) continue;
+        local l = OpexRoadTrace(siteA.tile, siteB.tile, firstH);
+        if (l.len() == 0 || l.len() > ROAD_MAX_TRACE_TILES) continue;
+        if (!OpexRoadTraceBuildable(l)) continue;
+        nL++;
+        local dpt = OpexRoadFindDepot(l, siteA, siteB, true);
+        if (dpt == null) { nLNoDepot++; continue; }
+        trace = l;
+        depot = dpt;
+        break;
+      }
+    } else {
+      via = "BFS";
+    }
+    if (trace == null || depot == null) continue;
+    if (DECISION_LOG) {
+      OpexDecide("VOIRIE_PLAN", "ok=1 via=" + via + " d=" + pair.d
+                 + " route=" + (trace.len() > 0 ? trace.len() : 1)
+                 + " feeder=" + isFeeder + " nA=" + sitesA.len() + " nB=" + sitesB.len()
+                 + " nClose=" + nClose);
+    }
+    return { stopA = siteA, stopB = siteB, trace = trace, depot = depot,
+             stationType = stop.stationType, vehType = stop.vehType,
+             routeDistance = trace.len() > 0 ? trace.len() : 1,
+             shape = 0, trials = 1, driveThrough = true };
+  }
+  if (DECISION_LOG) {
+    local minD = (pairs.len() > 0) ? pairs[0].d : -1;
+    OpexDecide("VOIRIE_PLAN", "fail=DEPOT nA=" + sitesA.len() + " nB=" + sitesB.len()
+               + " nPairs=" + pairs.len() + " minD=" + minD + " nClose=" + nClose
+               + " nBfs=" + nBfs + " nBfsNoDepot=" + nBfsNoDepot
+               + " nL=" + nL + " nLNoDepot=" + nLNoDepot
+               + " feeder=" + isFeeder);
+  }
+  return null;
+}
+
 /* Plan concret d'UN candidat routier. Le candidat porte deja la paire, le cargo et le sens ; il
  * reste a trouver deux sites d'arret reels et un trace multi-variantes qui les relie. */
 function OpexRoadPlanFor(catalog, candidate)
 {
   if (catalog.roadType < 0) return { plan = null, reason = "NOROAD" };
   AIRoad.SetCurrentRoadType(catalog.roadType);
+  if (ROAD_PAX_VOIRIE && candidate.kind == "pax") {
+    /* Intra-ville (town_growth) : le DT rate le depot (maisons le long de la rue) et
+     * brulait 50+ chasses/an avant le L cul-de-sac. Aller directement au plan historique. */
+    local sameTown = candidate.srcTown >= 0 && candidate.srcTown == candidate.dstTown;
+    if (!sameTown) {
+      local voirie = OpexRoadPlanPaxVoirie(candidate);
+      if (voirie != null) return { plan = voirie, reason = "OK" };
+      if (DECISION_LOG) {
+        local isFeederFb = ("isFeeder" in candidate) && candidate.isFeeder;
+        OpexDecide("VOIRIE_PLAN", "fail=FALLBACK feeder=" + isFeederFb
+                   + " srcTown=" + candidate.srcTown + " dstTown=" + candidate.dstTown);
+      }
+    }
+  }
+  local isFeederEarly = ("isFeeder" in candidate) && candidate.isFeeder;
+  local cheapOn = ROAD_CHEAP_TRACE || (AIController.GetSetting("road_cheap_trace") != 0);
+  /* Y compris les feeders : le bus 5 tuiles rang 0 de la graine 7 EST un feeder
+   * vers la ville de l'aeroport ; l'exclure renvoyait au TRACEX complet. */
+  if (cheapOn && candidate.distance <= ROAD_CHEAP_TRACE_MAX_DIST) {
+    if (DECISION_LOG) {
+      OpexDecide("CHEAP_TRACE", "dist=" + candidate.distance + " kind=" + candidate.kind
+                 + " feeder=" + isFeederEarly + " flag=" + ROAD_CHEAP_TRACE);
+    }
+    local cheap = OpexRoadCheapPlan(candidate);
+    if (cheap != null) return { plan = cheap, reason = "OK" };
+    return { plan = null, reason = "CHEAPX" };
+  }
   local stop = OpexRoadStopKind(candidate.cargo);
   local coverage = AIStation.GetCoverageRadius(stop.stationType);
   local radiusA = candidate.srcTown >= 0 ? ROAD_TOWN_SEARCH_RADIUS : ROAD_INDUSTRY_SEARCH_RADIUS;
@@ -402,7 +721,7 @@ function OpexRoadPlanFor(catalog, candidate)
    * et bannissait la paire. Et l'acceptation n'est pas davantage le bon test : un aeroport hors
    * ville n'est pas non plus un puits de la carte d'acceptation. Le bon critere est
    * geometrique -- une tuile constructible a portee de jointure du hub -- d'ou requireCargo. */
-  local isFeeder = ("isFeeder" in candidate) && candidate.isFeeder;
+  local isFeeder = isFeederEarly;
   local dstWantsProduction = candidate.kind == "pax" && !isFeeder;
 
   local excludeA = ("existingStops" in candidate) ? candidate.existingStops : null;
@@ -701,39 +1020,47 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
    * explicitement AVANT l'arret, pendant que la tuile de l'arret est encore une route ordinaire
    * clairable -- CMD_LANDSCAPE_CLEAR interne de CmdBuildRoadStop la remplace ensuite, "front"
    * garde le bit. Chaque arete n'est ajoutee a `added` que si elle est reellement connectee. */
-  AIRoad.BuildRoad(plan.stopA.front, plan.stopA.tile);
-  local stubConnectedA = AIRoad.AreRoadTilesConnected(plan.stopA.front, plan.stopA.tile);
-  if (stubConnectedA) added.append({ from = plan.stopA.front, to = plan.stopA.tile });
-  local okA = stubConnectedA && AIRoad.BuildRoadStation(plan.stopA.tile, plan.stopA.front,
-                                                        plan.vehType, AIStation.STATION_NEW);
+  local driveThrough = ("driveThrough" in plan) && plan.driveThrough;
+  local okA = false;
+  if (driveThrough) {
+    okA = AIRoad.BuildDriveThroughRoadStation(plan.stopA.tile, plan.stopA.front,
+                                             plan.vehType, AIStation.STATION_NEW);
+  } else {
+    AIRoad.BuildRoad(plan.stopA.front, plan.stopA.tile);
+    local stubConnectedA = AIRoad.AreRoadTilesConnected(plan.stopA.front, plan.stopA.tile);
+    if (stubConnectedA) added.append({ from = plan.stopA.front, to = plan.stopA.tile });
+    okA = stubConnectedA && AIRoad.BuildRoadStation(plan.stopA.tile, plan.stopA.front,
+                                                    plan.vehType, AIStation.STATION_NEW);
+  }
   /* Bout en bout : GetRoadStationFrontTile, comme GetRoadDepotFrontTile, n'est que la geometrie
    * DECLAREE (station + offset), jamais une preuve de connexion reelle. Contrairement a ce que
    * supposait un commentaire precedent, AreRoadTilesConnected gere correctement les tuiles
    * MP_STATION (GetAnyRoadBits en fait un cas explicite, verifie dans road_map.cpp) : c'est donc le
    * seul predicat qui prouve que l'arret est reellement raccorde a "front", pas seulement pose. */
   if (okA && AIRoad.IsRoadStationTile(plan.stopA.tile) &&
-      AIRoad.GetRoadStationFrontTile(plan.stopA.tile) == plan.stopA.front &&
+      (driveThrough || AIRoad.GetRoadStationFrontTile(plan.stopA.tile) == plan.stopA.front) &&
       AIRoad.AreRoadTilesConnected(plan.stopA.tile, plan.stopA.front)) stopA = plan.stopA.tile;
   if (stopA == null) {
     result.error = AIError.GetLastError(); result.opcodes += budget.end("build_road_stops");
     OpexRoadRollback(null, null, null, built, added, extras); result.reason = "ASTOP"; return result;
   }
-  AIRoad.BuildRoad(plan.stopB.front, plan.stopB.tile);
-  local stubConnectedB = AIRoad.AreRoadTilesConnected(plan.stopB.front, plan.stopB.tile);
-  if (stubConnectedB) added.append({ from = plan.stopB.front, to = plan.stopB.tile });
-  /* feeder_join : le bout HUB d'un rabattage doit REJOINDRE la gare du hub, pas en creer une
-   * nouvelle. Sans ça l'arret de bus est une gare distincte : OF_TRANSFER y depose les
-   * passagers et aucun avion ni train ne dessert cette gare-la -- le rabattage ne transporte rien
-   * (docs/taches.md S0 sexvicies, verrou 1). Le site est cherche a 5 tuiles du hub, tres en deça
-   * de station_spread, donc la jointure est geometriquement possible. */
   local wantJoinB = ("isFeeder" in candidate) && candidate.isFeeder &&
                     ("hubStationId" in candidate) &&
                     AIStation.IsValidStation(candidate.hubStationId);
   local joinIdB = wantJoinB ? candidate.hubStationId : AIStation.STATION_NEW;
-  local okB = stubConnectedB && AIRoad.BuildRoadStation(plan.stopB.tile, plan.stopB.front,
-                                                        plan.vehType, joinIdB);
+  local okB = false;
+  if (driveThrough) {
+    okB = AIRoad.BuildDriveThroughRoadStation(plan.stopB.tile, plan.stopB.front,
+                                             plan.vehType, joinIdB);
+  } else {
+    AIRoad.BuildRoad(plan.stopB.front, plan.stopB.tile);
+    local stubConnectedB = AIRoad.AreRoadTilesConnected(plan.stopB.front, plan.stopB.tile);
+    if (stubConnectedB) added.append({ from = plan.stopB.front, to = plan.stopB.tile });
+    okB = stubConnectedB && AIRoad.BuildRoadStation(plan.stopB.tile, plan.stopB.front,
+                                                    plan.vehType, joinIdB);
+  }
   if (okB && AIRoad.IsRoadStationTile(plan.stopB.tile) &&
-      AIRoad.GetRoadStationFrontTile(plan.stopB.tile) == plan.stopB.front &&
+      (driveThrough || AIRoad.GetRoadStationFrontTile(plan.stopB.tile) == plan.stopB.front) &&
       AIRoad.AreRoadTilesConnected(plan.stopB.tile, plan.stopB.front)) stopB = plan.stopB.tile;
   if (stopB == null) {
     result.error = AIError.GetLastError(); result.opcodes += budget.end("build_road_stops");
@@ -759,7 +1086,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
   /* Multistop (road_multistop, defaut 0) : un arret extra par bout, meme facade, joint au
    * primaire. Le classement reste a MAX_ROAD_VEHICLES = 2 ; les berths supplementaires et les
    * clones ne viennent que si les deux bouts ont double. Un echec d'extra n'annule pas la ligne. */
-  if (ROAD_MULTISTOP) {
+  if (ROAD_MULTISTOP && !driveThrough) {
     local noTile = {};
     noTile.rawset(plan.stopA.tile, true);
     noTile.rawset(plan.stopA.front, true);

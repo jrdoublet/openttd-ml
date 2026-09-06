@@ -1229,7 +1229,9 @@ function OpexRoadPaxCandidates(catalog, lines, out, stats)
       if (marginalB < 25) marginalB = 25;
       local capturedA = OpexTownBusCatchment(towns[a], marginalA);
       local capturedB = OpexTownBusCatchment(towns[b], marginalB);
-      local monthly = capturedA + capturedB;
+      local monthly = ROAD_PAX_OVERLAP
+          ? OpexRoadPaxUniqueMonthly(capturedA, capturedB, distance)
+          : capturedA + capturedB;
       if (monthly <= 0) { stats.noMonthly++; continue; }
       local candidate = OpexMakeRoadCandidate(catalog, "pax", cargo, towns[a].tile, towns[b].tile,
                                               towns[a].id, towns[b].id, distance, monthly, stats);
@@ -1475,6 +1477,18 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats, abandonedPairs = n
       local marginalProd = (produced * remainingHouses) / houses;
       local monthly = OpexTownBusCatchment(towns[i], marginalProd);
       if (monthly <= 0) continue;
+      if (ROAD_PAX_OVERLAP) {
+        /* Le hub (aeroport) a deja un bassin. Les maisons dans le chevauchement marchent
+         * jusqu'au tarmac ; un feeder a 5 tuiles n'apporte rien. */
+        local airR = 4;
+        if (catalog.airport != null && ("coverage" in catalog.airport)) {
+          airR = catalog.airport.coverage;
+        }
+        local oHub = OpexRoadCatchmentOverlapFrac(distance, ROAD_PAX_CATCHMENT_RADIUS, airR);
+        if (oHub > 0.25) continue;
+        monthly = (monthly.tofloat() * (1.0 - oHub)).tointeger();
+        if (monthly <= 0) continue;
+      }
 
       /* Plancher de distance pour le modèle économique routier (distance >= 5 tuiles) */
       local candDist = distance < ROAD_MIN_DISTANCE ? ROAD_MIN_DISTANCE : distance;

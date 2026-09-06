@@ -1454,6 +1454,30 @@ Le mode route est donc reconfirme sur l arbre courant.
     });
 
     AddSetting({
+      name = "road_pax_overlap",
+      description = "Pax road: unique catchment after 7x7 overlap, hub-town feeders skipped if they sit in the airport catchment, boardings capped by headway accumulation. 1 = enabled (default), 0 = historical A+B",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "road_pax_voirie",
+      description = "Passenger bus stops on existing roads (drive-through); depot stays off-road. 1 = enabled (default), 0 = cul-de-sac on clear tiles",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "road_cheap_trace",
+      description = "C37 cheap L-corridor probe (2 sites, 2 L) for pax dist<=12 including feeders: use that plan or CHEAPX (banned). 1 = enabled, 0 = historical (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "economy_fix",
       description = "Source-verified station rating thresholds and train count chosen on profit per pound of capital: 1 = fixed (default, adopted at bench), 0 = historical",
       easy_value = 1, medium_value = 1, hard_value = 1,
