@@ -1,0 +1,241 @@
+{
+ "openttd_version": "15.3",
+ "opengfx_version": "7.1",
+ "years": 3,
+ "starting_year": 1970,
+ "seeds": [
+  7
+ ],
+ "arms": [
+  "OpexAI",
+  "OpexAI[air_cheap_site=1]"
+ ],
+ "repeats": 1,
+ "openttd_config": "[difficulty]\nnumber_towns = 3\nindustry_density = 4\n[economy]\ninflation = false\ntown_growth_rate = 2\n[game_creation]\nstarting_year = 1970\nmap_x = 8\nmap_y = 8\n",
+ "metric": "PLYR[0].old_economy[0] : company_value, performance_history, profit, profit_year ; STNN median_station_rating ; first AIR_PLAN_PERF probes/sites",
+ "success_metrics": [
+  "company_value",
+  "performance_history",
+  "profit",
+  "profit_year",
+  "median_station_rating"
+ ],
+ "paired_reading": "mean(A(seed) - B(seed))",
+ "checkpoint": "/work/docs/bench_c36_3_cheap_site_3y_s7.jsonl",
+ "summary": [
+  {
+   "arm": "OpexAI",
+   "seed": 7,
+   "repeat": 0,
+   "last_date": "1972-12-01",
+   "company_value": 2538667,
+   "performance_history": 470,
+   "income_last_year": 424995,
+   "expenses_last_year": -31001,
+   "profit": 393994,
+   "profit_year": 1536615,
+   "median_station_rating": 162,
+   "n_station_ratings": 49,
+   "money": 1293525,
+   "current_loan": 0,
+   "n_vehicles": 72,
+   "n_stations": 36,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 36,
+   "openttd_output": "",
+   "run_ok": true,
+   "failure_reason": null,
+   "first_scan": {
+    "total_ops": 2400283,
+    "ops_sites": 2246559,
+    "ops_eval": 131341,
+    "ticks": 241,
+    "days": 3,
+    "probes": 1500,
+    "cheap_skip": 0,
+    "sites": 21
+   }
+  },
+  {
+   "arm": "OpexAI[air_cheap_site=1]",
+   "seed": 7,
+   "repeat": 0,
+   "last_date": "1972-12-01",
+   "company_value": 588601,
+   "performance_history": 355,
+   "income_last_year": 150175,
+   "expenses_last_year": -15178,
+   "profit": 134997,
+   "profit_year": 381440,
+   "median_station_rating": 175.0,
+   "n_station_ratings": 40,
+   "money": 126508,
+   "current_loan": 300000,
+   "n_vehicles": 60,
+   "n_stations": 39,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 36,
+   "openttd_output": "",
+   "run_ok": true,
+   "failure_reason": null,
+   "first_scan": {
+    "total_ops": 1190283,
+    "ops_sites": 1002652,
+    "ops_eval": 164348,
+    "ticks": 120,
+    "days": 1,
+    "probes": 150,
+    "cheap_skip": 1818,
+    "sites": 24
+   }
+  }
+ ],
+ "failed_runs": [],
+ "statistics": {
+  "OpexAI": {
+   "company_value": {
+    "n": 1,
+    "mean": 2538667,
+    "median": 2538667,
+    "standard_deviation": null,
+    "standard_error": null,
+    "standard_error_percent": null,
+    "coefficient_of_variation_percent": null
+   },
+   "performance_history": {
+    "n": 1,
+    "mean": 470,
+    "median": 470,
+    "standard_deviation": null,
+    "standard_error": null,
+    "standard_error_percent": null,
+    "coefficient_of_variation_percent": null
+   },
+   "profit": {
+    "n": 1,
+    "mean": 393994,
+    "median": 393994,
+    "standard_deviation": null,
+    "standard_error": null,
+    "standard_error_percent": null,
+    "coefficient_of_variation_percent": null
+   },
+   "profit_year": {
+    "n": 1,
+    "mean": 1536615,
+    "median": 1536615,
+    "standard_deviation": null,
+    "standard_error": null,
+    "standard_error_percent": null,
+    "coefficient_of_variation_percent": null
+   },
+   "median_station_rating": {
+    "n": 1,
+    "mean": 162,
+    "median": 162,
+    "standard_deviation": null,
+    "standard_error": null,
+    "standard_error_percent": null,
+    "coefficient_of_variation_percent": null
+   }
+  },
+  "OpexAI[air_cheap_site=1]": {
+   "company_value": {
+    "n": 1,
+    "mean": 588601,
+    "median": 588601,
+    "standard_deviation": null,
+    "standard_error": null,
+    "standard_error_percent": null,
+    "coefficient_of_variation_percent": null
+   },
+   "performance_history": {
+    "n": 1,
+    "mean": 355,
+    "median": 355,
+    "standard_deviation": null,
+    "standard_error": null,
+    "standard_error_percent": null,
+    "coefficient_of_variation_percent": null
+   },
+   "profit": {
+    "n": 1,
+    "mean": 134997,
+    "median": 134997,
+    "standard_deviation": null,
+    "standard_error": null,
+    "standard_error_percent": null,
+    "coefficient_of_variation_percent": null
+   },
+   "profit_year": {
+    "n": 1,
+    "mean": 381440,
+    "median": 381440,
+    "standard_deviation": null,
+    "standard_error": null,
+    "standard_error_percent": null,
+    "coefficient_of_variation_percent": null
+   },
+   "median_station_rating": {
+    "n": 1,
+    "mean": 175.0,
+    "median": 175.0,
+    "standard_deviation": null,
+    "standard_error": null,
+    "standard_error_percent": null,
+    "coefficient_of_variation_percent": null
+   }
+  }
+ },
+ "paired_comparisons": [
+  {
+   "arm_a": "OpexAI",
+   "arm_b": "OpexAI[air_cheap_site=1]",
+   "shared_seeds": [
+    7
+   ],
+   "metrics": {
+    "company_value": {
+     "n": 1,
+     "mean_difference": 1950066,
+     "mean_difference_percent": 331.305248,
+     "standard_deviation": null,
+     "standard_error": null,
+     "arm_a_beats_arm_b": 1
+    },
+    "performance_history": {
+     "n": 1,
+     "mean_difference": 115,
+     "mean_difference_percent": 32.394366,
+     "standard_deviation": null,
+     "standard_error": null,
+     "arm_a_beats_arm_b": 1
+    },
+    "profit": {
+     "n": 1,
+     "mean_difference": 258997,
+     "mean_difference_percent": 191.853893,
+     "standard_deviation": null,
+     "standard_error": null,
+     "arm_a_beats_arm_b": 1
+    },
+    "profit_year": {
+     "n": 1,
+     "mean_difference": 1155175,
+     "mean_difference_percent": 302.845795,
+     "standard_deviation": null,
+     "standard_error": null,
+     "arm_a_beats_arm_b": 1
+    },
+    "median_station_rating": {
+     "n": 1,
+     "mean_difference": -13.0,
+     "mean_difference_percent": -7.428571,
+     "standard_deviation": null,
+     "standard_error": null,
+     "arm_a_beats_arm_b": 0
+    }
+   }
+  }
+ ]
+}

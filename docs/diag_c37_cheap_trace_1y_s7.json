@@ -1,0 +1,2859 @@
+{
+ "reports": [
+  {
+   "arm": "OpexAI[air_cheap_site=1,decision_log=1]",
+   "seed": 7,
+   "company_value": 12100,
+   "profit_year": 93972,
+   "n_vehicles": 24,
+   "n_stations": 17,
+   "money": 104774,
+   "run_ok": true,
+   "n_events": 1396,
+   "n_air_build": 1,
+   "first_air": "1970-01-28",
+   "second_air": null,
+   "n_cheapx": 0,
+   "n_tracex": 3,
+   "builds": [
+    {
+     "date": "1970-01-28",
+     "kind": "PROJECT_CHOSEN",
+     "fields": {
+      "rank": "0",
+      "mode": "air",
+      "cargo": "PASS",
+      "src": "26585",
+      "dst": "59620",
+      "dist": "139",
+      "cost": "93923",
+      "profit": "82377",
+      "roi": "877"
+     },
+     "raw": "OPEX 1970-1-28 PROJECT_CHOSEN rank=0 mode=air cargo=PASS src=26585 dst=59620 dist=139 cost=93923 profit=82377 roi=877"
+    },
+    {
+     "date": "1970-01-28",
+     "kind": "AIR_BUILD",
+     "fields": {
+      "arm": "newpair",
+      "line": "0",
+      "src": "26585",
+      "dst": "59620",
+      "src_town": "38",
+      "dst_town": "10",
+      "dist": "139",
+      "profit": "82377",
+      "cost": "93923",
+      "planes": "1"
+     },
+     "raw": "OPEX 1970-1-28 AIR_BUILD arm=newpair line=0 src=26585 dst=59620 src_town=38 dst_town=10 dist=139 profit=82377 cost=93923 planes=1"
+    },
+    {
+     "date": "1970-03-10",
+     "kind": "PROJECT_CHOSEN",
+     "fields": {
+      "rank": "2",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "26585",
+      "dst": "23268",
+      "dist": "27",
+      "cost": "13934",
+      "profit": "10635",
+      "roi": "763"
+     },
+     "raw": "OPEX 1970-3-10 PROJECT_CHOSEN rank=2 mode=road kind=pax cargo=PASS src=26585 dst=23268 dist=27 cost=13934 profit=10635 roi=763"
+    },
+    {
+     "date": "1970-03-10",
+     "kind": "ROAD_BUILD",
+     "fields": {
+      "line": "1",
+      "src": "26585",
+      "dst": "23268",
+      "cargo": "PASS",
+      "dist": "27",
+      "profit": "10635",
+      "cost": "18554",
+      "vehicles": "2"
+     },
+     "raw": "OPEX 1970-3-10 ROAD_BUILD line=1 src=26585 dst=23268 cargo=PASS dist=27 profit=10635 cost=18554 vehicles=2"
+    },
+    {
+     "date": "1970-04-19",
+     "kind": "PROJECT_CHOSEN",
+     "fields": {
+      "rank": "0",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "29665",
+      "dst": "26589",
+      "dist": "16",
+      "cost": "7411",
+      "profit": "21026",
+      "roi": "2837"
+     },
+     "raw": "OPEX 1970-4-19 PROJECT_CHOSEN rank=0 mode=road kind=pax cargo=PASS src=29665 dst=26589 dist=16 cost=7411 profit=21026 roi=2837"
+    },
+    {
+     "date": "1970-04-19",
+     "kind": "ROAD_BUILD",
+     "fields": {
+      "line": "2",
+      "src": "29665",
+      "dst": "26589",
+      "cargo": "PASS",
+      "dist": "16",
+      "profit": "21026",
+      "cost": "9292",
+      "vehicles": "1"
+     },
+     "raw": "OPEX 1970-4-19 ROAD_BUILD line=2 src=29665 dst=26589 cargo=PASS dist=16 profit=21026 cost=9292 vehicles=1"
+    },
+    {
+     "date": "1970-06-06",
+     "kind": "PROJECT_CHOSEN",
+     "fields": {
+      "rank": "1",
+      "mode": "rail",
+      "kind": "freight",
+      "cargo": "COAL",
+      "src": "46222",
+      "dst": "42659",
+      "dist": "35",
+      "cost": "40890",
+      "profit": "30555",
+      "roi": "747"
+     },
+     "raw": "OPEX 1970-6-6 PROJECT_CHOSEN rank=1 mode=rail kind=freight cargo=COAL src=46222 dst=42659 dist=35 cost=40890 profit=30555 roi=747"
+    }
+   ],
+   "rank0": [
+    {
+     "date": "1970-01-25",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "0",
+      "mode": "air",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "26585",
+      "dst": "59620",
+      "dist": "139",
+      "roi": "877",
+      "score": "746.98",
+      "cost": "93923",
+      "profit": "82377"
+     },
+     "raw": "OPEX 1970-1-25 PORTFOLIO_RANK rank=0 mode=air kind=pax cargo=PASS src=26585 dst=59620 dist=139 roi=877 score=746.98 cost=93923 profit=82377"
+    },
+    {
+     "date": "1970-02-13",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "0",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "26585",
+      "dst": "26589",
+      "dist": "5",
+      "roi": "6490",
+      "score": "7196.603",
+      "cost": "6772",
+      "profit": "43953"
+     },
+     "raw": "OPEX 1970-2-13 PORTFOLIO_RANK rank=0 mode=road kind=pax cargo=PASS src=26585 dst=26589 dist=5 roi=6490 score=7196.603 cost=6772 profit=43953"
+    },
+    {
+     "date": "1970-03-06",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "0",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "26585",
+      "dst": "26589",
+      "dist": "5",
+      "roi": "3634",
+      "score": "4099.331",
+      "cost": "6772",
+      "profit": "24614"
+     },
+     "raw": "OPEX 1970-3-6 PORTFOLIO_RANK rank=0 mode=road kind=pax cargo=PASS src=26585 dst=26589 dist=5 roi=3634 score=4099.331 cost=6772 profit=24614"
+    },
+    {
+     "date": "1970-03-27",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "0",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "29665",
+      "dst": "26589",
+      "dist": "16",
+      "roi": "2700",
+      "score": "3052.9639",
+      "cost": "7553",
+      "profit": "20397"
+     },
+     "raw": "OPEX 1970-3-27 PORTFOLIO_RANK rank=0 mode=road kind=pax cargo=PASS src=29665 dst=26589 dist=16 roi=2700 score=3052.9639 cost=7553 profit=20397"
+    },
+    {
+     "date": "1970-04-17",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "0",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "29665",
+      "dst": "26589",
+      "dist": "16",
+      "roi": "2783",
+      "score": "3142.7568",
+      "cost": "7553",
+      "profit": "21026"
+     },
+     "raw": "OPEX 1970-4-17 PORTFOLIO_RANK rank=0 mode=road kind=pax cargo=PASS src=29665 dst=26589 dist=16 roi=2783 score=3142.7568 cost=7553 profit=21026"
+    },
+    {
+     "date": "1970-05-07",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "0",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "23268",
+      "dst": "26589",
+      "dist": "20",
+      "roi": "1123",
+      "score": "1319.9049",
+      "cost": "7837",
+      "profit": "8802"
+     },
+     "raw": "OPEX 1970-5-7 PORTFOLIO_RANK rank=0 mode=road kind=pax cargo=PASS src=23268 dst=26589 dist=20 roi=1123 score=1319.9049 cost=7837 profit=8802"
+    },
+    {
+     "date": "1970-05-29",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "0",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "23268",
+      "dst": "26589",
+      "dist": "20",
+      "roi": "1123",
+      "score": "1319.9049",
+      "cost": "7837",
+      "profit": "8802"
+     },
+     "raw": "OPEX 1970-5-29 PORTFOLIO_RANK rank=0 mode=road kind=pax cargo=PASS src=23268 dst=26589 dist=20 roi=1123 score=1319.9049 cost=7837 profit=8802"
+    },
+    {
+     "date": "1970-10-23",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "0",
+      "mode": "rail",
+      "kind": "freight",
+      "cargo": "WOOD",
+      "src": "2699",
+      "dst": "15789",
+      "dist": "85",
+      "roi": "937",
+      "score": "1013.51196",
+      "cost": "53138",
+      "profit": "49816"
+     },
+     "raw": "OPEX 1970-10-23 PORTFOLIO_RANK rank=0 mode=rail kind=freight cargo=WOOD src=2699 dst=15789 dist=85 roi=937 score=1013.51196 cost=53138 profit=49816"
+    }
+   ],
+   "refuses": [
+    {
+     "date": "1970-03-07",
+     "kind": "PROJECT_DISCARD",
+     "fields": {
+      "rank": "0",
+      "mode": "road",
+      "src": "26585",
+      "dst": "26589",
+      "reason": "plan_failed",
+      "detail": "TRACEX"
+     },
+     "raw": "OPEX 1970-3-7 PROJECT_DISCARD rank=0 mode=road src=26585 dst=26589 reason=plan_failed detail=TRACEX"
+    },
+    {
+     "date": "1970-03-07",
+     "kind": "PROJECT_DISCARD",
+     "fields": {
+      "rank": "1",
+      "mode": "road",
+      "src": "59620",
+      "dst": "61159",
+      "reason": "plan_failed",
+      "detail": "DEPOTX"
+     },
+     "raw": "OPEX 1970-3-7 PROJECT_DISCARD rank=1 mode=road src=59620 dst=61159 reason=plan_failed detail=DEPOTX"
+    },
+    {
+     "date": "1970-05-30",
+     "kind": "PROJECT_DISCARD",
+     "fields": {
+      "rank": "0",
+      "mode": "road",
+      "src": "23268",
+      "dst": "26589",
+      "reason": "plan_failed",
+      "detail": "TRACEX"
+     },
+     "raw": "OPEX 1970-5-30 PROJECT_DISCARD rank=0 mode=road src=23268 dst=26589 reason=plan_failed detail=TRACEX"
+    }
+   ],
+   "events": [
+    {
+     "date": "1970-01-01",
+     "kind": "SETTINGS",
+     "fields": {
+      "road_cheap_trace": "false",
+      "raw": "0",
+      "road_pax_voirie": "false",
+      "road_pax_overlap": "false"
+     },
+     "raw": "OPEX 1970-1-1 SETTINGS road_cheap_trace=false raw=0 road_pax_voirie=false road_pax_overlap=false"
+    },
+    {
+     "date": "1970-01-14",
+     "kind": "TASK",
+     "fields": {
+      "name": "catalog"
+     },
+     "raw": "OPEX 1970-1-14 TASK name=catalog"
+    },
+    {
+     "date": "1970-01-14",
+     "kind": "AIR_PLAN_INPUT",
+     "fields": {
+      "scan": "1",
+      "lines_state": "empty",
+      "line_count": "0",
+      "air_line_count": "0",
+      "combos": "1"
+     },
+     "raw": "OPEX 1970-1-14 AIR_PLAN_INPUT scan=1 lines_state=empty line_count=0 air_line_count=0 combos=1"
+    },
+    {
+     "date": "1970-01-21",
+     "kind": "AIR_PLAN_PERF",
+     "fields": {
+      "scan": "1",
+      "total_ops": "1199582",
+      "ops_sites": "1011760",
+      "ops_eval": "164348",
+      "ticks": "120",
+      "days": "1",
+      "probes": "150",
+      "cheap_skip": "1818",
+      "sites": "24",
+      "combos": "1",
+      "plans": "264"
+     },
+     "raw": "OPEX 1970-1-21 AIR_PLAN_PERF scan=1 total_ops=1199582 ops_sites=1011760 ops_eval=164348 ticks=120 days=1 probes=150 cheap_skip=1818 sites=24 combos=1 plans=264"
+    },
+    {
+     "date": "1970-01-25",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "0",
+      "mode": "air",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "26585",
+      "dst": "59620",
+      "dist": "139",
+      "roi": "877",
+      "score": "746.98",
+      "cost": "93923",
+      "profit": "82377"
+     },
+     "raw": "OPEX 1970-1-25 PORTFOLIO_RANK rank=0 mode=air kind=pax cargo=PASS src=26585 dst=59620 dist=139 roi=877 score=746.98 cost=93923 profit=82377"
+    },
+    {
+     "date": "1970-01-25",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "1",
+      "mode": "air",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "48244",
+      "dst": "39405",
+      "dist": "134",
+      "roi": "871",
+      "score": "742.91296",
+      "cost": "93923",
+      "profit": "81873"
+     },
+     "raw": "OPEX 1970-1-25 PORTFOLIO_RANK rank=1 mode=air kind=pax cargo=PASS src=48244 dst=39405 dist=134 roi=871 score=742.91296 cost=93923 profit=81873"
+    },
+    {
+     "date": "1970-01-25",
+     "kind": "TASK",
+     "fields": {
+      "name": "report"
+     },
+     "raw": "OPEX 1970-1-25 TASK name=report"
+    },
+    {
+     "date": "1970-01-25",
+     "kind": "REPORT",
+     "fields": {
+      "year": "1970",
+      "lines": "0",
+      "bank": "186765",
+      "loan": "300000"
+     },
+     "raw": "OPEX 1970-1-25 REPORT year=1970 lines=0 bank=186765 loan=300000"
+    },
+    {
+     "date": "1970-01-28",
+     "kind": "TASK",
+     "fields": {
+      "name": "projects"
+     },
+     "raw": "OPEX 1970-1-28 TASK name=projects"
+    },
+    {
+     "date": "1970-01-28",
+     "kind": "PROJECT_CHOSEN",
+     "fields": {
+      "rank": "0",
+      "mode": "air",
+      "cargo": "PASS",
+      "src": "26585",
+      "dst": "59620",
+      "dist": "139",
+      "cost": "93923",
+      "profit": "82377",
+      "roi": "877"
+     },
+     "raw": "OPEX 1970-1-28 PROJECT_CHOSEN rank=0 mode=air cargo=PASS src=26585 dst=59620 dist=139 cost=93923 profit=82377 roi=877"
+    },
+    {
+     "date": "1970-01-28",
+     "kind": "AIR_BUILD",
+     "fields": {
+      "arm": "newpair",
+      "line": "0",
+      "src": "26585",
+      "dst": "59620",
+      "src_town": "38",
+      "dst_town": "10",
+      "dist": "139",
+      "profit": "82377",
+      "cost": "93923",
+      "planes": "1"
+     },
+     "raw": "OPEX 1970-1-28 AIR_BUILD arm=newpair line=0 src=26585 dst=59620 src_town=38 dst_town=10 dist=139 profit=82377 cost=93923 planes=1"
+    },
+    {
+     "date": "1970-02-09",
+     "kind": "AIR_PLAN_INPUT",
+     "fields": {
+      "scan": "2",
+      "lines_state": "nonempty",
+      "line_count": "1",
+      "air_line_count": "1",
+      "combos": "1"
+     },
+     "raw": "OPEX 1970-2-9 AIR_PLAN_INPUT scan=2 lines_state=nonempty line_count=1 air_line_count=1 combos=1"
+    },
+    {
+     "date": "1970-02-10",
+     "kind": "AIR_PLAN_PERF",
+     "fields": {
+      "scan": "2",
+      "total_ops": "250961",
+      "ops_sites": "52900",
+      "ops_eval": "164474",
+      "ticks": "26",
+      "days": "0",
+      "probes": "22",
+      "cheap_skip": "23",
+      "sites": "22",
+      "combos": "1",
+      "plans": "265"
+     },
+     "raw": "OPEX 1970-2-10 AIR_PLAN_PERF scan=2 total_ops=250961 ops_sites=52900 ops_eval=164474 ticks=26 days=0 probes=22 cheap_skip=23 sites=22 combos=1 plans=265"
+    },
+    {
+     "date": "1970-02-13",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "0",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "26585",
+      "dst": "26589",
+      "dist": "5",
+      "roi": "6490",
+      "score": "7196.603",
+      "cost": "6772",
+      "profit": "43953"
+     },
+     "raw": "OPEX 1970-2-13 PORTFOLIO_RANK rank=0 mode=road kind=pax cargo=PASS src=26585 dst=26589 dist=5 roi=6490 score=7196.603 cost=6772 profit=43953"
+    },
+    {
+     "date": "1970-02-13",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "1",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "59620",
+      "dst": "61159",
+      "dist": "9",
+      "roi": "4313",
+      "score": "4815.7896",
+      "cost": "7056",
+      "profit": "30436"
+     },
+     "raw": "OPEX 1970-2-13 PORTFOLIO_RANK rank=1 mode=road kind=pax cargo=PASS src=59620 dst=61159 dist=9 roi=4313 score=4815.7896 cost=7056 profit=30436"
+    },
+    {
+     "date": "1970-02-13",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "2",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "26585",
+      "dst": "23268",
+      "dist": "24",
+      "roi": "761",
+      "score": "842.8985",
+      "cost": "13863",
+      "profit": "10563"
+     },
+     "raw": "OPEX 1970-2-13 PORTFOLIO_RANK rank=2 mode=road kind=pax cargo=PASS src=26585 dst=23268 dist=24 roi=761 score=842.8985 cost=13863 profit=10563"
+    },
+    {
+     "date": "1970-02-13",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "3",
+      "mode": "rail",
+      "kind": "freight",
+      "cargo": "COAL",
+      "src": "56717",
+      "dst": "42659",
+      "dist": "77",
+      "roi": "925",
+      "score": "1005.19025",
+      "cost": "49901",
+      "profit": "46170"
+     },
+     "raw": "OPEX 1970-2-13 PORTFOLIO_RANK rank=3 mode=rail kind=freight cargo=COAL src=56717 dst=42659 dist=77 roi=925 score=1005.19025 cost=49901 profit=46170"
+    },
+    {
+     "date": "1970-02-15",
+     "kind": "TASK",
+     "fields": {
+      "name": "repay"
+     },
+     "raw": "OPEX 1970-2-15 TASK name=repay"
+    },
+    {
+     "date": "1970-02-16",
+     "kind": "TASK",
+     "fields": {
+      "name": "catalog"
+     },
+     "raw": "OPEX 1970-2-16 TASK name=catalog"
+    },
+    {
+     "date": "1970-03-01",
+     "kind": "AIR_PLAN_INPUT",
+     "fields": {
+      "scan": "3",
+      "lines_state": "nonempty",
+      "line_count": "1",
+      "air_line_count": "1",
+      "combos": "1"
+     },
+     "raw": "OPEX 1970-3-1 AIR_PLAN_INPUT scan=3 lines_state=nonempty line_count=1 air_line_count=1 combos=1"
+    },
+    {
+     "date": "1970-03-02",
+     "kind": "AIR_PLAN_PERF",
+     "fields": {
+      "scan": "3",
+      "total_ops": "240761",
+      "ops_sites": "49109",
+      "ops_eval": "164151",
+      "ticks": "25",
+      "days": "0",
+      "probes": "22",
+      "cheap_skip": "8",
+      "sites": "22",
+      "combos": "1",
+      "plans": "265"
+     },
+     "raw": "OPEX 1970-3-2 AIR_PLAN_PERF scan=3 total_ops=240761 ops_sites=49109 ops_eval=164151 ticks=25 days=0 probes=22 cheap_skip=8 sites=22 combos=1 plans=265"
+    },
+    {
+     "date": "1970-03-06",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "0",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "26585",
+      "dst": "26589",
+      "dist": "5",
+      "roi": "3634",
+      "score": "4099.331",
+      "cost": "6772",
+      "profit": "24614"
+     },
+     "raw": "OPEX 1970-3-6 PORTFOLIO_RANK rank=0 mode=road kind=pax cargo=PASS src=26585 dst=26589 dist=5 roi=3634 score=4099.331 cost=6772 profit=24614"
+    },
+    {
+     "date": "1970-03-06",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "1",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "59620",
+      "dst": "61159",
+      "dist": "9",
+      "roi": "2465",
+      "score": "2816.7825",
+      "cost": "7056",
+      "profit": "17394"
+     },
+     "raw": "OPEX 1970-3-6 PORTFOLIO_RANK rank=1 mode=road kind=pax cargo=PASS src=59620 dst=61159 dist=9 roi=2465 score=2816.7825 cost=7056 profit=17394"
+    },
+    {
+     "date": "1970-03-06",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "2",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "26585",
+      "dst": "23268",
+      "dist": "24",
+      "roi": "761",
+      "score": "842.8985",
+      "cost": "13863",
+      "profit": "10563"
+     },
+     "raw": "OPEX 1970-3-6 PORTFOLIO_RANK rank=2 mode=road kind=pax cargo=PASS src=26585 dst=23268 dist=24 roi=761 score=842.8985 cost=13863 profit=10563"
+    },
+    {
+     "date": "1970-03-06",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "3",
+      "mode": "rail",
+      "kind": "freight",
+      "cargo": "COAL",
+      "src": "56717",
+      "dst": "42659",
+      "dist": "77",
+      "roi": "925",
+      "score": "1005.19025",
+      "cost": "49901",
+      "profit": "46170"
+     },
+     "raw": "OPEX 1970-3-6 PORTFOLIO_RANK rank=3 mode=rail kind=freight cargo=COAL src=56717 dst=42659 dist=77 roi=925 score=1005.19025 cost=49901 profit=46170"
+    },
+    {
+     "date": "1970-03-07",
+     "kind": "TASK",
+     "fields": {
+      "name": "projects"
+     },
+     "raw": "OPEX 1970-3-7 TASK name=projects"
+    },
+    {
+     "date": "1970-03-07",
+     "kind": "PROJECT_DISCARD",
+     "fields": {
+      "rank": "0",
+      "mode": "road",
+      "src": "26585",
+      "dst": "26589",
+      "reason": "plan_failed",
+      "detail": "TRACEX"
+     },
+     "raw": "OPEX 1970-3-7 PROJECT_DISCARD rank=0 mode=road src=26585 dst=26589 reason=plan_failed detail=TRACEX"
+    },
+    {
+     "date": "1970-03-07",
+     "kind": "PROJECT_DISCARD",
+     "fields": {
+      "rank": "1",
+      "mode": "road",
+      "src": "59620",
+      "dst": "61159",
+      "reason": "plan_failed",
+      "detail": "DEPOTX"
+     },
+     "raw": "OPEX 1970-3-7 PROJECT_DISCARD rank=1 mode=road src=59620 dst=61159 reason=plan_failed detail=DEPOTX"
+    },
+    {
+     "date": "1970-03-10",
+     "kind": "PROJECT_CHOSEN",
+     "fields": {
+      "rank": "2",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "26585",
+      "dst": "23268",
+      "dist": "27",
+      "cost": "13934",
+      "profit": "10635",
+      "roi": "763"
+     },
+     "raw": "OPEX 1970-3-10 PROJECT_CHOSEN rank=2 mode=road kind=pax cargo=PASS src=26585 dst=23268 dist=27 cost=13934 profit=10635 roi=763"
+    },
+    {
+     "date": "1970-03-10",
+     "kind": "ROAD_BUILD",
+     "fields": {
+      "line": "1",
+      "src": "26585",
+      "dst": "23268",
+      "cargo": "PASS",
+      "dist": "27",
+      "profit": "10635",
+      "cost": "18554",
+      "vehicles": "2"
+     },
+     "raw": "OPEX 1970-3-10 ROAD_BUILD line=1 src=26585 dst=23268 cargo=PASS dist=27 profit=10635 cost=18554 vehicles=2"
+    },
+    {
+     "date": "1970-03-23",
+     "kind": "AIR_PLAN_INPUT",
+     "fields": {
+      "scan": "4",
+      "lines_state": "nonempty",
+      "line_count": "2",
+      "air_line_count": "1",
+      "combos": "1"
+     },
+     "raw": "OPEX 1970-3-23 AIR_PLAN_INPUT scan=4 lines_state=nonempty line_count=2 air_line_count=1 combos=1"
+    },
+    {
+     "date": "1970-03-24",
+     "kind": "AIR_PLAN_PERF",
+     "fields": {
+      "scan": "4",
+      "total_ops": "243079",
+      "ops_sites": "48138",
+      "ops_eval": "164151",
+      "ticks": "25",
+      "days": "0",
+      "probes": "22",
+      "cheap_skip": "0",
+      "sites": "22",
+      "combos": "1",
+      "plans": "265"
+     },
+     "raw": "OPEX 1970-3-24 AIR_PLAN_PERF scan=4 total_ops=243079 ops_sites=48138 ops_eval=164151 ticks=25 days=0 probes=22 cheap_skip=0 sites=22 combos=1 plans=265"
+    },
+    {
+     "date": "1970-03-27",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "0",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "29665",
+      "dst": "26589",
+      "dist": "16",
+      "roi": "2700",
+      "score": "3052.9639",
+      "cost": "7553",
+      "profit": "20397"
+     },
+     "raw": "OPEX 1970-3-27 PORTFOLIO_RANK rank=0 mode=road kind=pax cargo=PASS src=29665 dst=26589 dist=16 roi=2700 score=3052.9639 cost=7553 profit=20397"
+    },
+    {
+     "date": "1970-03-27",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "1",
+      "mode": "rail",
+      "kind": "freight",
+      "cargo": "COAL",
+      "src": "56717",
+      "dst": "42659",
+      "dist": "77",
+      "roi": "946",
+      "score": "1025.2029",
+      "cost": "51502",
+      "profit": "48765"
+     },
+     "raw": "OPEX 1970-3-27 PORTFOLIO_RANK rank=1 mode=rail kind=freight cargo=COAL src=56717 dst=42659 dist=77 roi=946 score=1025.2029 cost=51502 profit=48765"
+    },
+    {
+     "date": "1970-03-29",
+     "kind": "TASK",
+     "fields": {
+      "name": "repay"
+     },
+     "raw": "OPEX 1970-3-29 TASK name=repay"
+    },
+    {
+     "date": "1970-04-12",
+     "kind": "TASK",
+     "fields": {
+      "name": "catalog"
+     },
+     "raw": "OPEX 1970-4-12 TASK name=catalog"
+    },
+    {
+     "date": "1970-04-12",
+     "kind": "AIR_PLAN_INPUT",
+     "fields": {
+      "scan": "5",
+      "lines_state": "nonempty",
+      "line_count": "2",
+      "air_line_count": "1",
+      "combos": "1"
+     },
+     "raw": "OPEX 1970-4-12 AIR_PLAN_INPUT scan=5 lines_state=nonempty line_count=2 air_line_count=1 combos=1"
+    },
+    {
+     "date": "1970-04-14",
+     "kind": "AIR_PLAN_PERF",
+     "fields": {
+      "scan": "5",
+      "total_ops": "292618",
+      "ops_sites": "99491",
+      "ops_eval": "164599",
+      "ticks": "30",
+      "days": "0",
+      "probes": "26",
+      "cheap_skip": "62",
+      "sites": "22",
+      "combos": "1",
+      "plans": "266"
+     },
+     "raw": "OPEX 1970-4-14 AIR_PLAN_PERF scan=5 total_ops=292618 ops_sites=99491 ops_eval=164599 ticks=30 days=0 probes=26 cheap_skip=62 sites=22 combos=1 plans=266"
+    },
+    {
+     "date": "1970-04-17",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "0",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "29665",
+      "dst": "26589",
+      "dist": "16",
+      "roi": "2783",
+      "score": "3142.7568",
+      "cost": "7553",
+      "profit": "21026"
+     },
+     "raw": "OPEX 1970-4-17 PORTFOLIO_RANK rank=0 mode=road kind=pax cargo=PASS src=29665 dst=26589 dist=16 roi=2783 score=3142.7568 cost=7553 profit=21026"
+    },
+    {
+     "date": "1970-04-17",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "1",
+      "mode": "rail",
+      "kind": "freight",
+      "cargo": "COAL",
+      "src": "56717",
+      "dst": "42659",
+      "dist": "77",
+      "roi": "1075",
+      "score": "1153.3533",
+      "cost": "51502",
+      "profit": "55365"
+     },
+     "raw": "OPEX 1970-4-17 PORTFOLIO_RANK rank=1 mode=rail kind=freight cargo=COAL src=56717 dst=42659 dist=77 roi=1075 score=1153.3533 cost=51502 profit=55365"
+    },
+    {
+     "date": "1970-04-19",
+     "kind": "TASK",
+     "fields": {
+      "name": "projects"
+     },
+     "raw": "OPEX 1970-4-19 TASK name=projects"
+    },
+    {
+     "date": "1970-04-19",
+     "kind": "PROJECT_CHOSEN",
+     "fields": {
+      "rank": "0",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "29665",
+      "dst": "26589",
+      "dist": "16",
+      "cost": "7411",
+      "profit": "21026",
+      "roi": "2837"
+     },
+     "raw": "OPEX 1970-4-19 PROJECT_CHOSEN rank=0 mode=road kind=pax cargo=PASS src=29665 dst=26589 dist=16 cost=7411 profit=21026 roi=2837"
+    },
+    {
+     "date": "1970-04-19",
+     "kind": "ROAD_BUILD",
+     "fields": {
+      "line": "2",
+      "src": "29665",
+      "dst": "26589",
+      "cargo": "PASS",
+      "dist": "16",
+      "profit": "21026",
+      "cost": "9292",
+      "vehicles": "1"
+     },
+     "raw": "OPEX 1970-4-19 ROAD_BUILD line=2 src=29665 dst=26589 cargo=PASS dist=16 profit=21026 cost=9292 vehicles=1"
+    },
+    {
+     "date": "1970-05-02",
+     "kind": "AIR_PLAN_INPUT",
+     "fields": {
+      "scan": "6",
+      "lines_state": "nonempty",
+      "line_count": "3",
+      "air_line_count": "1",
+      "combos": "1"
+     },
+     "raw": "OPEX 1970-5-2 AIR_PLAN_INPUT scan=6 lines_state=nonempty line_count=3 air_line_count=1 combos=1"
+    },
+    {
+     "date": "1970-05-04",
+     "kind": "AIR_PLAN_PERF",
+     "fields": {
+      "scan": "6",
+      "total_ops": "241742",
+      "ops_sites": "48379",
+      "ops_eval": "164599",
+      "ticks": "25",
+      "days": "0",
+      "probes": "22",
+      "cheap_skip": "0",
+      "sites": "22",
+      "combos": "1",
+      "plans": "266"
+     },
+     "raw": "OPEX 1970-5-4 AIR_PLAN_PERF scan=6 total_ops=241742 ops_sites=48379 ops_eval=164599 ticks=25 days=0 probes=22 cheap_skip=0 sites=22 combos=1 plans=266"
+    },
+    {
+     "date": "1970-05-07",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "0",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "23268",
+      "dst": "26589",
+      "dist": "20",
+      "roi": "1123",
+      "score": "1319.9049",
+      "cost": "7837",
+      "profit": "8802"
+     },
+     "raw": "OPEX 1970-5-7 PORTFOLIO_RANK rank=0 mode=road kind=pax cargo=PASS src=23268 dst=26589 dist=20 roi=1123 score=1319.9049 cost=7837 profit=8802"
+    },
+    {
+     "date": "1970-05-07",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "1",
+      "mode": "rail",
+      "kind": "freight",
+      "cargo": "COAL",
+      "src": "56717",
+      "dst": "42659",
+      "dist": "77",
+      "roi": "1075",
+      "score": "1153.3533",
+      "cost": "51502",
+      "profit": "55365"
+     },
+     "raw": "OPEX 1970-5-7 PORTFOLIO_RANK rank=1 mode=rail kind=freight cargo=COAL src=56717 dst=42659 dist=77 roi=1075 score=1153.3533 cost=51502 profit=55365"
+    },
+    {
+     "date": "1970-05-07",
+     "kind": "TASK",
+     "fields": {
+      "name": "refleet"
+     },
+     "raw": "OPEX 1970-5-7 TASK name=refleet"
+    },
+    {
+     "date": "1970-05-10",
+     "kind": "TASK",
+     "fields": {
+      "name": "town_growth"
+     },
+     "raw": "OPEX 1970-5-10 TASK name=town_growth"
+    },
+    {
+     "date": "1970-05-10",
+     "kind": "TASK",
+     "fields": {
+      "name": "repay"
+     },
+     "raw": "OPEX 1970-5-10 TASK name=repay"
+    },
+    {
+     "date": "1970-05-23",
+     "kind": "TASK",
+     "fields": {
+      "name": "catalog"
+     },
+     "raw": "OPEX 1970-5-23 TASK name=catalog"
+    },
+    {
+     "date": "1970-05-24",
+     "kind": "AIR_PLAN_INPUT",
+     "fields": {
+      "scan": "7",
+      "lines_state": "nonempty",
+      "line_count": "4",
+      "air_line_count": "1",
+      "combos": "1"
+     },
+     "raw": "OPEX 1970-5-24 AIR_PLAN_INPUT scan=7 lines_state=nonempty line_count=4 air_line_count=1 combos=1"
+    },
+    {
+     "date": "1970-05-26",
+     "kind": "AIR_PLAN_PERF",
+     "fields": {
+      "scan": "7",
+      "total_ops": "247365",
+      "ops_sites": "48621",
+      "ops_eval": "164594",
+      "ticks": "25",
+      "days": "0",
+      "probes": "22",
+      "cheap_skip": "0",
+      "sites": "22",
+      "combos": "1",
+      "plans": "266"
+     },
+     "raw": "OPEX 1970-5-26 AIR_PLAN_PERF scan=7 total_ops=247365 ops_sites=48621 ops_eval=164594 ticks=25 days=0 probes=22 cheap_skip=0 sites=22 combos=1 plans=266"
+    },
+    {
+     "date": "1970-05-29",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "0",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "23268",
+      "dst": "26589",
+      "dist": "20",
+      "roi": "1123",
+      "score": "1319.9049",
+      "cost": "7837",
+      "profit": "8802"
+     },
+     "raw": "OPEX 1970-5-29 PORTFOLIO_RANK rank=0 mode=road kind=pax cargo=PASS src=23268 dst=26589 dist=20 roi=1123 score=1319.9049 cost=7837 profit=8802"
+    },
+    {
+     "date": "1970-05-29",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "1",
+      "mode": "rail",
+      "kind": "freight",
+      "cargo": "COAL",
+      "src": "46222",
+      "dst": "42659",
+      "dist": "35",
+      "roi": "747",
+      "score": "843.72705",
+      "cost": "40890",
+      "profit": "30555"
+     },
+     "raw": "OPEX 1970-5-29 PORTFOLIO_RANK rank=1 mode=rail kind=freight cargo=COAL src=46222 dst=42659 dist=35 roi=747 score=843.72705 cost=40890 profit=30555"
+    },
+    {
+     "date": "1970-05-30",
+     "kind": "TASK",
+     "fields": {
+      "name": "projects"
+     },
+     "raw": "OPEX 1970-5-30 TASK name=projects"
+    },
+    {
+     "date": "1970-05-30",
+     "kind": "PROJECT_DISCARD",
+     "fields": {
+      "rank": "0",
+      "mode": "road",
+      "src": "23268",
+      "dst": "26589",
+      "reason": "plan_failed",
+      "detail": "TRACEX"
+     },
+     "raw": "OPEX 1970-5-30 PROJECT_DISCARD rank=0 mode=road src=23268 dst=26589 reason=plan_failed detail=TRACEX"
+    },
+    {
+     "date": "1970-06-06",
+     "kind": "PROJECT_CHOSEN",
+     "fields": {
+      "rank": "1",
+      "mode": "rail",
+      "kind": "freight",
+      "cargo": "COAL",
+      "src": "46222",
+      "dst": "42659",
+      "dist": "35",
+      "cost": "40890",
+      "profit": "30555",
+      "roi": "747"
+     },
+     "raw": "OPEX 1970-6-6 PROJECT_CHOSEN rank=1 mode=rail kind=freight cargo=COAL src=46222 dst=42659 dist=35 cost=40890 profit=30555 roi=747"
+    },
+    {
+     "date": "1970-06-20",
+     "kind": "AIR_PLAN_INPUT",
+     "fields": {
+      "scan": "8",
+      "lines_state": "nonempty",
+      "line_count": "5",
+      "air_line_count": "1",
+      "combos": "1"
+     },
+     "raw": "OPEX 1970-6-20 AIR_PLAN_INPUT scan=8 lines_state=nonempty line_count=5 air_line_count=1 combos=1"
+    },
+    {
+     "date": "1970-06-21",
+     "kind": "AIR_PLAN_PERF",
+     "fields": {
+      "scan": "8",
+      "total_ops": "244178",
+      "ops_sites": "48863",
+      "ops_eval": "164594",
+      "ticks": "25",
+      "days": "0",
+      "probes": "22",
+      "cheap_skip": "0",
+      "sites": "22",
+      "combos": "1",
+      "plans": "266"
+     },
+     "raw": "OPEX 1970-6-21 AIR_PLAN_PERF scan=8 total_ops=244178 ops_sites=48863 ops_eval=164594 ticks=25 days=0 probes=22 cheap_skip=0 sites=22 combos=1 plans=266"
+    },
+    {
+     "date": "1970-06-27",
+     "kind": "TASK",
+     "fields": {
+      "name": "town_growth"
+     },
+     "raw": "OPEX 1970-6-27 TASK name=town_growth"
+    },
+    {
+     "date": "1970-06-27",
+     "kind": "TASK",
+     "fields": {
+      "name": "repay"
+     },
+     "raw": "OPEX 1970-6-27 TASK name=repay"
+    },
+    {
+     "date": "1970-07-11",
+     "kind": "TASK",
+     "fields": {
+      "name": "catalog"
+     },
+     "raw": "OPEX 1970-7-11 TASK name=catalog"
+    },
+    {
+     "date": "1970-07-12",
+     "kind": "AIR_PLAN_INPUT",
+     "fields": {
+      "scan": "9",
+      "lines_state": "nonempty",
+      "line_count": "6",
+      "air_line_count": "1",
+      "combos": "1"
+     },
+     "raw": "OPEX 1970-7-12 AIR_PLAN_INPUT scan=9 lines_state=nonempty line_count=6 air_line_count=1 combos=1"
+    },
+    {
+     "date": "1970-07-14",
+     "kind": "AIR_PLAN_PERF",
+     "fields": {
+      "scan": "9",
+      "total_ops": "240769",
+      "ops_sites": "49105",
+      "ops_eval": "164526",
+      "ticks": "25",
+      "days": "0",
+      "probes": "22",
+      "cheap_skip": "0",
+      "sites": "22",
+      "combos": "1",
+      "plans": "265"
+     },
+     "raw": "OPEX 1970-7-14 AIR_PLAN_PERF scan=9 total_ops=240769 ops_sites=49105 ops_eval=164526 ticks=25 days=0 probes=22 cheap_skip=0 sites=22 combos=1 plans=265"
+    },
+    {
+     "date": "1970-07-20",
+     "kind": "TASK",
+     "fields": {
+      "name": "town_growth"
+     },
+     "raw": "OPEX 1970-7-20 TASK name=town_growth"
+    },
+    {
+     "date": "1970-07-20",
+     "kind": "TASK",
+     "fields": {
+      "name": "repay"
+     },
+     "raw": "OPEX 1970-7-20 TASK name=repay"
+    },
+    {
+     "date": "1970-08-03",
+     "kind": "TASK",
+     "fields": {
+      "name": "catalog"
+     },
+     "raw": "OPEX 1970-8-3 TASK name=catalog"
+    },
+    {
+     "date": "1970-08-04",
+     "kind": "AIR_PLAN_INPUT",
+     "fields": {
+      "scan": "10",
+      "lines_state": "nonempty",
+      "line_count": "7",
+      "air_line_count": "1",
+      "combos": "1"
+     },
+     "raw": "OPEX 1970-8-4 AIR_PLAN_INPUT scan=10 lines_state=nonempty line_count=7 air_line_count=1 combos=1"
+    },
+    {
+     "date": "1970-08-06",
+     "kind": "AIR_PLAN_PERF",
+     "fields": {
+      "scan": "10",
+      "total_ops": "239450",
+      "ops_sites": "49347",
+      "ops_eval": "164524",
+      "ticks": "24",
+      "days": "0",
+      "probes": "22",
+      "cheap_skip": "0",
+      "sites": "22",
+      "combos": "1",
+      "plans": "265"
+     },
+     "raw": "OPEX 1970-8-6 AIR_PLAN_PERF scan=10 total_ops=239450 ops_sites=49347 ops_eval=164524 ticks=24 days=0 probes=22 cheap_skip=0 sites=22 combos=1 plans=265"
+    },
+    {
+     "date": "1970-08-12",
+     "kind": "TASK",
+     "fields": {
+      "name": "town_growth"
+     },
+     "raw": "OPEX 1970-8-12 TASK name=town_growth"
+    },
+    {
+     "date": "1970-08-13",
+     "kind": "TASK",
+     "fields": {
+      "name": "repay"
+     },
+     "raw": "OPEX 1970-8-13 TASK name=repay"
+    },
+    {
+     "date": "1970-08-26",
+     "kind": "TASK",
+     "fields": {
+      "name": "catalog"
+     },
+     "raw": "OPEX 1970-8-26 TASK name=catalog"
+    },
+    {
+     "date": "1970-08-28",
+     "kind": "AIR_PLAN_INPUT",
+     "fields": {
+      "scan": "11",
+      "lines_state": "nonempty",
+      "line_count": "8",
+      "air_line_count": "1",
+      "combos": "1"
+     },
+     "raw": "OPEX 1970-8-28 AIR_PLAN_INPUT scan=11 lines_state=nonempty line_count=8 air_line_count=1 combos=1"
+    },
+    {
+     "date": "1970-08-29",
+     "kind": "AIR_PLAN_PERF",
+     "fields": {
+      "scan": "11",
+      "total_ops": "239715",
+      "ops_sites": "49589",
+      "ops_eval": "164524",
+      "ticks": "24",
+      "days": "0",
+      "probes": "22",
+      "cheap_skip": "0",
+      "sites": "22",
+      "combos": "1",
+      "plans": "265"
+     },
+     "raw": "OPEX 1970-8-29 AIR_PLAN_PERF scan=11 total_ops=239715 ops_sites=49589 ops_eval=164524 ticks=24 days=0 probes=22 cheap_skip=0 sites=22 combos=1 plans=265"
+    },
+    {
+     "date": "1970-09-05",
+     "kind": "TASK",
+     "fields": {
+      "name": "town_growth"
+     },
+     "raw": "OPEX 1970-9-5 TASK name=town_growth"
+    },
+    {
+     "date": "1970-09-05",
+     "kind": "TASK",
+     "fields": {
+      "name": "repay"
+     },
+     "raw": "OPEX 1970-9-5 TASK name=repay"
+    },
+    {
+     "date": "1970-09-19",
+     "kind": "TASK",
+     "fields": {
+      "name": "catalog"
+     },
+     "raw": "OPEX 1970-9-19 TASK name=catalog"
+    },
+    {
+     "date": "1970-09-21",
+     "kind": "AIR_PLAN_INPUT",
+     "fields": {
+      "scan": "12",
+      "lines_state": "nonempty",
+      "line_count": "9",
+      "air_line_count": "1",
+      "combos": "1"
+     },
+     "raw": "OPEX 1970-9-21 AIR_PLAN_INPUT scan=12 lines_state=nonempty line_count=9 air_line_count=1 combos=1"
+    },
+    {
+     "date": "1970-09-22",
+     "kind": "AIR_PLAN_PERF",
+     "fields": {
+      "scan": "12",
+      "total_ops": "240687",
+      "ops_sites": "49831",
+      "ops_eval": "164528",
+      "ticks": "25",
+      "days": "0",
+      "probes": "22",
+      "cheap_skip": "0",
+      "sites": "22",
+      "combos": "1",
+      "plans": "265"
+     },
+     "raw": "OPEX 1970-9-22 AIR_PLAN_PERF scan=12 total_ops=240687 ops_sites=49831 ops_eval=164528 ticks=25 days=0 probes=22 cheap_skip=0 sites=22 combos=1 plans=265"
+    },
+    {
+     "date": "1970-10-03",
+     "kind": "TASK",
+     "fields": {
+      "name": "repay"
+     },
+     "raw": "OPEX 1970-10-3 TASK name=repay"
+    },
+    {
+     "date": "1970-10-16",
+     "kind": "TASK",
+     "fields": {
+      "name": "catalog"
+     },
+     "raw": "OPEX 1970-10-16 TASK name=catalog"
+    },
+    {
+     "date": "1970-10-18",
+     "kind": "AIR_PLAN_INPUT",
+     "fields": {
+      "scan": "13",
+      "lines_state": "nonempty",
+      "line_count": "9",
+      "air_line_count": "1",
+      "combos": "1"
+     },
+     "raw": "OPEX 1970-10-18 AIR_PLAN_INPUT scan=13 lines_state=nonempty line_count=9 air_line_count=1 combos=1"
+    },
+    {
+     "date": "1970-10-20",
+     "kind": "AIR_PLAN_PERF",
+     "fields": {
+      "scan": "13",
+      "total_ops": "243760",
+      "ops_sites": "49831",
+      "ops_eval": "164518",
+      "ticks": "25",
+      "days": "0",
+      "probes": "22",
+      "cheap_skip": "0",
+      "sites": "22",
+      "combos": "1",
+      "plans": "265"
+     },
+     "raw": "OPEX 1970-10-20 AIR_PLAN_PERF scan=13 total_ops=243760 ops_sites=49831 ops_eval=164518 ticks=25 days=0 probes=22 cheap_skip=0 sites=22 combos=1 plans=265"
+    },
+    {
+     "date": "1970-10-23",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "0",
+      "mode": "rail",
+      "kind": "freight",
+      "cargo": "WOOD",
+      "src": "2699",
+      "dst": "15789",
+      "dist": "85",
+      "roi": "937",
+      "score": "1013.51196",
+      "cost": "53138",
+      "profit": "49816"
+     },
+     "raw": "OPEX 1970-10-23 PORTFOLIO_RANK rank=0 mode=rail kind=freight cargo=WOOD src=2699 dst=15789 dist=85 roi=937 score=1013.51196 cost=53138 profit=49816"
+    }
+   ]
+  },
+  {
+   "arm": "OpexAI[air_cheap_site=1,road_pax_overlap=1,decision_log=1]",
+   "seed": 7,
+   "company_value": 1,
+   "profit_year": 63989,
+   "n_vehicles": 28,
+   "n_stations": 18,
+   "money": 55919,
+   "run_ok": true,
+   "n_events": 1397,
+   "n_air_build": 1,
+   "first_air": "1970-01-28",
+   "second_air": null,
+   "n_cheapx": 0,
+   "n_tracex": 1,
+   "builds": [
+    {
+     "date": "1970-01-28",
+     "kind": "PROJECT_CHOSEN",
+     "fields": {
+      "rank": "0",
+      "mode": "air",
+      "cargo": "PASS",
+      "src": "26585",
+      "dst": "59620",
+      "dist": "139",
+      "cost": "93923",
+      "profit": "82377",
+      "roi": "877"
+     },
+     "raw": "OPEX 1970-1-28 PROJECT_CHOSEN rank=0 mode=air cargo=PASS src=26585 dst=59620 dist=139 cost=93923 profit=82377 roi=877"
+    },
+    {
+     "date": "1970-01-28",
+     "kind": "AIR_BUILD",
+     "fields": {
+      "arm": "newpair",
+      "line": "0",
+      "src": "26585",
+      "dst": "59620",
+      "src_town": "38",
+      "dst_town": "10",
+      "dist": "139",
+      "profit": "82377",
+      "cost": "93923",
+      "planes": "1"
+     },
+     "raw": "OPEX 1970-1-28 AIR_BUILD arm=newpair line=0 src=26585 dst=59620 src_town=38 dst_town=10 dist=139 profit=82377 cost=93923 planes=1"
+    },
+    {
+     "date": "1970-03-08",
+     "kind": "PROJECT_CHOSEN",
+     "fields": {
+      "rank": "0",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "29665",
+      "dst": "26589",
+      "dist": "16",
+      "cost": "7411",
+      "profit": "20397",
+      "roi": "2752"
+     },
+     "raw": "OPEX 1970-3-8 PROJECT_CHOSEN rank=0 mode=road kind=pax cargo=PASS src=29665 dst=26589 dist=16 cost=7411 profit=20397 roi=2752"
+    },
+    {
+     "date": "1970-03-08",
+     "kind": "ROAD_BUILD",
+     "fields": {
+      "line": "1",
+      "src": "29665",
+      "dst": "26589",
+      "cargo": "PASS",
+      "dist": "16",
+      "profit": "20397",
+      "cost": "9267",
+      "vehicles": "1"
+     },
+     "raw": "OPEX 1970-3-8 ROAD_BUILD line=1 src=29665 dst=26589 cargo=PASS dist=16 profit=20397 cost=9267 vehicles=1"
+    },
+    {
+     "date": "1970-04-18",
+     "kind": "PROJECT_CHOSEN",
+     "fields": {
+      "rank": "1",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "23268",
+      "dst": "26589",
+      "dist": "16",
+      "cost": "7411",
+      "profit": "9530",
+      "roi": "1285"
+     },
+     "raw": "OPEX 1970-4-18 PROJECT_CHOSEN rank=1 mode=road kind=pax cargo=PASS src=23268 dst=26589 dist=16 cost=7411 profit=9530 roi=1285"
+    },
+    {
+     "date": "1970-04-18",
+     "kind": "ROAD_BUILD",
+     "fields": {
+      "line": "3",
+      "src": "23268",
+      "dst": "26589",
+      "cargo": "PASS",
+      "dist": "16",
+      "profit": "9530",
+      "cost": "10145",
+      "vehicles": "1"
+     },
+     "raw": "OPEX 1970-4-18 ROAD_BUILD line=3 src=23268 dst=26589 cargo=PASS dist=16 profit=9530 cost=10145 vehicles=1"
+    },
+    {
+     "date": "1970-08-04",
+     "kind": "PROJECT_CHOSEN",
+     "fields": {
+      "rank": "0",
+      "mode": "rail",
+      "kind": "freight",
+      "cargo": "COAL",
+      "src": "56717",
+      "dst": "42659",
+      "dist": "77",
+      "cost": "50471",
+      "profit": "48810",
+      "roi": "967"
+     },
+     "raw": "OPEX 1970-8-4 PROJECT_CHOSEN rank=0 mode=rail kind=freight cargo=COAL src=56717 dst=42659 dist=77 cost=50471 profit=48810 roi=967"
+    }
+   ],
+   "rank0": [
+    {
+     "date": "1970-01-25",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "0",
+      "mode": "air",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "26585",
+      "dst": "59620",
+      "dist": "139",
+      "roi": "877",
+      "score": "746.98",
+      "cost": "93923",
+      "profit": "82377"
+     },
+     "raw": "OPEX 1970-1-25 PORTFOLIO_RANK rank=0 mode=air kind=pax cargo=PASS src=26585 dst=59620 dist=139 roi=877 score=746.98 cost=93923 profit=82377"
+    },
+    {
+     "date": "1970-02-13",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "0",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "29665",
+      "dst": "26589",
+      "dist": "16",
+      "roi": "4365",
+      "score": "4848.825",
+      "cost": "7553",
+      "profit": "32973"
+     },
+     "raw": "OPEX 1970-2-13 PORTFOLIO_RANK rank=0 mode=road kind=pax cargo=PASS src=29665 dst=26589 dist=16 roi=4365 score=4848.825 cost=7553 profit=32973"
+    },
+    {
+     "date": "1970-03-06",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "0",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "29665",
+      "dst": "26589",
+      "dist": "16",
+      "roi": "2700",
+      "score": "3052.9639",
+      "cost": "7553",
+      "profit": "20397"
+     },
+     "raw": "OPEX 1970-3-6 PORTFOLIO_RANK rank=0 mode=road kind=pax cargo=PASS src=29665 dst=26589 dist=16 roi=2700 score=3052.9639 cost=7553 profit=20397"
+    },
+    {
+     "date": "1970-03-25",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "0",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "59620",
+      "dst": "61159",
+      "dist": "9",
+      "roi": "2465",
+      "score": "2816.7825",
+      "cost": "7056",
+      "profit": "17394"
+     },
+     "raw": "OPEX 1970-3-25 PORTFOLIO_RANK rank=0 mode=road kind=pax cargo=PASS src=59620 dst=61159 dist=9 roi=2465 score=2816.7825 cost=7056 profit=17394"
+    },
+    {
+     "date": "1970-04-15",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "0",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "59620",
+      "dst": "61159",
+      "dist": "9",
+      "roi": "2633",
+      "score": "2998.5105",
+      "cost": "7056",
+      "profit": "18580"
+     },
+     "raw": "OPEX 1970-4-15 PORTFOLIO_RANK rank=0 mode=road kind=pax cargo=PASS src=59620 dst=61159 dist=9 roi=2633 score=2998.5105 cost=7056 profit=18580"
+    },
+    {
+     "date": "1970-05-06",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "0",
+      "mode": "rail",
+      "kind": "freight",
+      "cargo": "COAL",
+      "src": "46222",
+      "dst": "42659",
+      "dist": "35",
+      "roi": "747",
+      "score": "843.72705",
+      "cost": "40890",
+      "profit": "30555"
+     },
+     "raw": "OPEX 1970-5-6 PORTFOLIO_RANK rank=0 mode=rail kind=freight cargo=COAL src=46222 dst=42659 dist=35 roi=747 score=843.72705 cost=40890 profit=30555"
+    },
+    {
+     "date": "1970-05-28",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "0",
+      "mode": "rail",
+      "kind": "freight",
+      "cargo": "COAL",
+      "src": "56717",
+      "dst": "42659",
+      "dist": "77",
+      "roi": "946",
+      "score": "1025.2029",
+      "cost": "51502",
+      "profit": "48765"
+     },
+     "raw": "OPEX 1970-5-28 PORTFOLIO_RANK rank=0 mode=rail kind=freight cargo=COAL src=56717 dst=42659 dist=77 roi=946 score=1025.2029 cost=51502 profit=48765"
+    }
+   ],
+   "refuses": [
+    {
+     "date": "1970-04-16",
+     "kind": "PROJECT_DISCARD",
+     "fields": {
+      "rank": "0",
+      "mode": "road",
+      "src": "59620",
+      "dst": "61159",
+      "reason": "plan_failed",
+      "detail": "DEPOTX"
+     },
+     "raw": "OPEX 1970-4-16 PROJECT_DISCARD rank=0 mode=road src=59620 dst=61159 reason=plan_failed detail=DEPOTX"
+    }
+   ],
+   "events": [
+    {
+     "date": "1970-01-01",
+     "kind": "SETTINGS",
+     "fields": {
+      "road_cheap_trace": "false",
+      "raw": "0",
+      "road_pax_voirie": "false",
+      "road_pax_overlap": "true"
+     },
+     "raw": "OPEX 1970-1-1 SETTINGS road_cheap_trace=false raw=0 road_pax_voirie=false road_pax_overlap=true"
+    },
+    {
+     "date": "1970-01-14",
+     "kind": "TASK",
+     "fields": {
+      "name": "catalog"
+     },
+     "raw": "OPEX 1970-1-14 TASK name=catalog"
+    },
+    {
+     "date": "1970-01-14",
+     "kind": "AIR_PLAN_INPUT",
+     "fields": {
+      "scan": "1",
+      "lines_state": "empty",
+      "line_count": "0",
+      "air_line_count": "0",
+      "combos": "1"
+     },
+     "raw": "OPEX 1970-1-14 AIR_PLAN_INPUT scan=1 lines_state=empty line_count=0 air_line_count=0 combos=1"
+    },
+    {
+     "date": "1970-01-21",
+     "kind": "AIR_PLAN_PERF",
+     "fields": {
+      "scan": "1",
+      "total_ops": "1198076",
+      "ops_sites": "1010253",
+      "ops_eval": "164348",
+      "ticks": "120",
+      "days": "1",
+      "probes": "150",
+      "cheap_skip": "1818",
+      "sites": "24",
+      "combos": "1",
+      "plans": "264"
+     },
+     "raw": "OPEX 1970-1-21 AIR_PLAN_PERF scan=1 total_ops=1198076 ops_sites=1010253 ops_eval=164348 ticks=120 days=1 probes=150 cheap_skip=1818 sites=24 combos=1 plans=264"
+    },
+    {
+     "date": "1970-01-25",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "0",
+      "mode": "air",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "26585",
+      "dst": "59620",
+      "dist": "139",
+      "roi": "877",
+      "score": "746.98",
+      "cost": "93923",
+      "profit": "82377"
+     },
+     "raw": "OPEX 1970-1-25 PORTFOLIO_RANK rank=0 mode=air kind=pax cargo=PASS src=26585 dst=59620 dist=139 roi=877 score=746.98 cost=93923 profit=82377"
+    },
+    {
+     "date": "1970-01-25",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "1",
+      "mode": "air",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "48244",
+      "dst": "39405",
+      "dist": "134",
+      "roi": "871",
+      "score": "742.91296",
+      "cost": "93923",
+      "profit": "81873"
+     },
+     "raw": "OPEX 1970-1-25 PORTFOLIO_RANK rank=1 mode=air kind=pax cargo=PASS src=48244 dst=39405 dist=134 roi=871 score=742.91296 cost=93923 profit=81873"
+    },
+    {
+     "date": "1970-01-25",
+     "kind": "TASK",
+     "fields": {
+      "name": "report"
+     },
+     "raw": "OPEX 1970-1-25 TASK name=report"
+    },
+    {
+     "date": "1970-01-25",
+     "kind": "REPORT",
+     "fields": {
+      "year": "1970",
+      "lines": "0",
+      "bank": "186765",
+      "loan": "300000"
+     },
+     "raw": "OPEX 1970-1-25 REPORT year=1970 lines=0 bank=186765 loan=300000"
+    },
+    {
+     "date": "1970-01-28",
+     "kind": "TASK",
+     "fields": {
+      "name": "projects"
+     },
+     "raw": "OPEX 1970-1-28 TASK name=projects"
+    },
+    {
+     "date": "1970-01-28",
+     "kind": "PROJECT_CHOSEN",
+     "fields": {
+      "rank": "0",
+      "mode": "air",
+      "cargo": "PASS",
+      "src": "26585",
+      "dst": "59620",
+      "dist": "139",
+      "cost": "93923",
+      "profit": "82377",
+      "roi": "877"
+     },
+     "raw": "OPEX 1970-1-28 PROJECT_CHOSEN rank=0 mode=air cargo=PASS src=26585 dst=59620 dist=139 cost=93923 profit=82377 roi=877"
+    },
+    {
+     "date": "1970-01-28",
+     "kind": "AIR_BUILD",
+     "fields": {
+      "arm": "newpair",
+      "line": "0",
+      "src": "26585",
+      "dst": "59620",
+      "src_town": "38",
+      "dst_town": "10",
+      "dist": "139",
+      "profit": "82377",
+      "cost": "93923",
+      "planes": "1"
+     },
+     "raw": "OPEX 1970-1-28 AIR_BUILD arm=newpair line=0 src=26585 dst=59620 src_town=38 dst_town=10 dist=139 profit=82377 cost=93923 planes=1"
+    },
+    {
+     "date": "1970-02-09",
+     "kind": "AIR_PLAN_INPUT",
+     "fields": {
+      "scan": "2",
+      "lines_state": "nonempty",
+      "line_count": "1",
+      "air_line_count": "1",
+      "combos": "1"
+     },
+     "raw": "OPEX 1970-2-9 AIR_PLAN_INPUT scan=2 lines_state=nonempty line_count=1 air_line_count=1 combos=1"
+    },
+    {
+     "date": "1970-02-10",
+     "kind": "AIR_PLAN_PERF",
+     "fields": {
+      "scan": "2",
+      "total_ops": "249887",
+      "ops_sites": "52900",
+      "ops_eval": "164474",
+      "ticks": "25",
+      "days": "0",
+      "probes": "22",
+      "cheap_skip": "23",
+      "sites": "22",
+      "combos": "1",
+      "plans": "265"
+     },
+     "raw": "OPEX 1970-2-10 AIR_PLAN_PERF scan=2 total_ops=249887 ops_sites=52900 ops_eval=164474 ticks=25 days=0 probes=22 cheap_skip=23 sites=22 combos=1 plans=265"
+    },
+    {
+     "date": "1970-02-13",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "0",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "29665",
+      "dst": "26589",
+      "dist": "16",
+      "roi": "4365",
+      "score": "4848.825",
+      "cost": "7553",
+      "profit": "32973"
+     },
+     "raw": "OPEX 1970-2-13 PORTFOLIO_RANK rank=0 mode=road kind=pax cargo=PASS src=29665 dst=26589 dist=16 roi=4365 score=4848.825 cost=7553 profit=32973"
+    },
+    {
+     "date": "1970-02-13",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "1",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "59620",
+      "dst": "61159",
+      "dist": "9",
+      "roi": "4313",
+      "score": "4815.7896",
+      "cost": "7056",
+      "profit": "30436"
+     },
+     "raw": "OPEX 1970-2-13 PORTFOLIO_RANK rank=1 mode=road kind=pax cargo=PASS src=59620 dst=61159 dist=9 roi=4313 score=4815.7896 cost=7056 profit=30436"
+    },
+    {
+     "date": "1970-02-13",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "2",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "26585",
+      "dst": "23268",
+      "dist": "24",
+      "roi": "761",
+      "score": "842.8985",
+      "cost": "13863",
+      "profit": "10563"
+     },
+     "raw": "OPEX 1970-2-13 PORTFOLIO_RANK rank=2 mode=road kind=pax cargo=PASS src=26585 dst=23268 dist=24 roi=761 score=842.8985 cost=13863 profit=10563"
+    },
+    {
+     "date": "1970-02-13",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "3",
+      "mode": "rail",
+      "kind": "freight",
+      "cargo": "COAL",
+      "src": "56717",
+      "dst": "42659",
+      "dist": "77",
+      "roi": "925",
+      "score": "1005.19025",
+      "cost": "49901",
+      "profit": "46170"
+     },
+     "raw": "OPEX 1970-2-13 PORTFOLIO_RANK rank=3 mode=rail kind=freight cargo=COAL src=56717 dst=42659 dist=77 roi=925 score=1005.19025 cost=49901 profit=46170"
+    },
+    {
+     "date": "1970-02-15",
+     "kind": "TASK",
+     "fields": {
+      "name": "repay"
+     },
+     "raw": "OPEX 1970-2-15 TASK name=repay"
+    },
+    {
+     "date": "1970-02-16",
+     "kind": "TASK",
+     "fields": {
+      "name": "catalog"
+     },
+     "raw": "OPEX 1970-2-16 TASK name=catalog"
+    },
+    {
+     "date": "1970-03-01",
+     "kind": "AIR_PLAN_INPUT",
+     "fields": {
+      "scan": "3",
+      "lines_state": "nonempty",
+      "line_count": "1",
+      "air_line_count": "1",
+      "combos": "1"
+     },
+     "raw": "OPEX 1970-3-1 AIR_PLAN_INPUT scan=3 lines_state=nonempty line_count=1 air_line_count=1 combos=1"
+    },
+    {
+     "date": "1970-03-02",
+     "kind": "AIR_PLAN_PERF",
+     "fields": {
+      "scan": "3",
+      "total_ops": "239693",
+      "ops_sites": "49109",
+      "ops_eval": "164151",
+      "ticks": "24",
+      "days": "0",
+      "probes": "22",
+      "cheap_skip": "8",
+      "sites": "22",
+      "combos": "1",
+      "plans": "265"
+     },
+     "raw": "OPEX 1970-3-2 AIR_PLAN_PERF scan=3 total_ops=239693 ops_sites=49109 ops_eval=164151 ticks=24 days=0 probes=22 cheap_skip=8 sites=22 combos=1 plans=265"
+    },
+    {
+     "date": "1970-03-06",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "0",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "29665",
+      "dst": "26589",
+      "dist": "16",
+      "roi": "2700",
+      "score": "3052.9639",
+      "cost": "7553",
+      "profit": "20397"
+     },
+     "raw": "OPEX 1970-3-6 PORTFOLIO_RANK rank=0 mode=road kind=pax cargo=PASS src=29665 dst=26589 dist=16 roi=2700 score=3052.9639 cost=7553 profit=20397"
+    },
+    {
+     "date": "1970-03-06",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "1",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "59620",
+      "dst": "61159",
+      "dist": "9",
+      "roi": "2465",
+      "score": "2816.7825",
+      "cost": "7056",
+      "profit": "17394"
+     },
+     "raw": "OPEX 1970-3-6 PORTFOLIO_RANK rank=1 mode=road kind=pax cargo=PASS src=59620 dst=61159 dist=9 roi=2465 score=2816.7825 cost=7056 profit=17394"
+    },
+    {
+     "date": "1970-03-06",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "2",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "26585",
+      "dst": "23268",
+      "dist": "24",
+      "roi": "761",
+      "score": "842.8985",
+      "cost": "13863",
+      "profit": "10563"
+     },
+     "raw": "OPEX 1970-3-6 PORTFOLIO_RANK rank=2 mode=road kind=pax cargo=PASS src=26585 dst=23268 dist=24 roi=761 score=842.8985 cost=13863 profit=10563"
+    },
+    {
+     "date": "1970-03-06",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "3",
+      "mode": "rail",
+      "kind": "freight",
+      "cargo": "COAL",
+      "src": "56717",
+      "dst": "42659",
+      "dist": "77",
+      "roi": "925",
+      "score": "1005.19025",
+      "cost": "49901",
+      "profit": "46170"
+     },
+     "raw": "OPEX 1970-3-6 PORTFOLIO_RANK rank=3 mode=rail kind=freight cargo=COAL src=56717 dst=42659 dist=77 roi=925 score=1005.19025 cost=49901 profit=46170"
+    },
+    {
+     "date": "1970-03-08",
+     "kind": "TASK",
+     "fields": {
+      "name": "projects"
+     },
+     "raw": "OPEX 1970-3-8 TASK name=projects"
+    },
+    {
+     "date": "1970-03-08",
+     "kind": "PROJECT_CHOSEN",
+     "fields": {
+      "rank": "0",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "29665",
+      "dst": "26589",
+      "dist": "16",
+      "cost": "7411",
+      "profit": "20397",
+      "roi": "2752"
+     },
+     "raw": "OPEX 1970-3-8 PROJECT_CHOSEN rank=0 mode=road kind=pax cargo=PASS src=29665 dst=26589 dist=16 cost=7411 profit=20397 roi=2752"
+    },
+    {
+     "date": "1970-03-08",
+     "kind": "ROAD_BUILD",
+     "fields": {
+      "line": "1",
+      "src": "29665",
+      "dst": "26589",
+      "cargo": "PASS",
+      "dist": "16",
+      "profit": "20397",
+      "cost": "9267",
+      "vehicles": "1"
+     },
+     "raw": "OPEX 1970-3-8 ROAD_BUILD line=1 src=29665 dst=26589 cargo=PASS dist=16 profit=20397 cost=9267 vehicles=1"
+    },
+    {
+     "date": "1970-03-21",
+     "kind": "AIR_PLAN_INPUT",
+     "fields": {
+      "scan": "4",
+      "lines_state": "nonempty",
+      "line_count": "2",
+      "air_line_count": "1",
+      "combos": "1"
+     },
+     "raw": "OPEX 1970-3-21 AIR_PLAN_INPUT scan=4 lines_state=nonempty line_count=2 air_line_count=1 combos=1"
+    },
+    {
+     "date": "1970-03-22",
+     "kind": "AIR_PLAN_PERF",
+     "fields": {
+      "scan": "4",
+      "total_ops": "240927",
+      "ops_sites": "48138",
+      "ops_eval": "164151",
+      "ticks": "25",
+      "days": "0",
+      "probes": "22",
+      "cheap_skip": "0",
+      "sites": "22",
+      "combos": "1",
+      "plans": "265"
+     },
+     "raw": "OPEX 1970-3-22 AIR_PLAN_PERF scan=4 total_ops=240927 ops_sites=48138 ops_eval=164151 ticks=25 days=0 probes=22 cheap_skip=0 sites=22 combos=1 plans=265"
+    },
+    {
+     "date": "1970-03-25",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "0",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "59620",
+      "dst": "61159",
+      "dist": "9",
+      "roi": "2465",
+      "score": "2816.7825",
+      "cost": "7056",
+      "profit": "17394"
+     },
+     "raw": "OPEX 1970-3-25 PORTFOLIO_RANK rank=0 mode=road kind=pax cargo=PASS src=59620 dst=61159 dist=9 roi=2465 score=2816.7825 cost=7056 profit=17394"
+    },
+    {
+     "date": "1970-03-25",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "1",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "23268",
+      "dst": "26589",
+      "dist": "20",
+      "roi": "1076",
+      "score": "1271.0195",
+      "cost": "7837",
+      "profit": "8440"
+     },
+     "raw": "OPEX 1970-3-25 PORTFOLIO_RANK rank=1 mode=road kind=pax cargo=PASS src=23268 dst=26589 dist=20 roi=1076 score=1271.0195 cost=7837 profit=8440"
+    },
+    {
+     "date": "1970-03-25",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "2",
+      "mode": "rail",
+      "kind": "freight",
+      "cargo": "COAL",
+      "src": "56717",
+      "dst": "42659",
+      "dist": "77",
+      "roi": "946",
+      "score": "1025.2029",
+      "cost": "51502",
+      "profit": "48765"
+     },
+     "raw": "OPEX 1970-3-25 PORTFOLIO_RANK rank=2 mode=rail kind=freight cargo=COAL src=56717 dst=42659 dist=77 roi=946 score=1025.2029 cost=51502 profit=48765"
+    },
+    {
+     "date": "1970-03-25",
+     "kind": "TASK",
+     "fields": {
+      "name": "refleet"
+     },
+     "raw": "OPEX 1970-3-25 TASK name=refleet"
+    },
+    {
+     "date": "1970-03-27",
+     "kind": "TASK",
+     "fields": {
+      "name": "town_growth"
+     },
+     "raw": "OPEX 1970-3-27 TASK name=town_growth"
+    },
+    {
+     "date": "1970-03-28",
+     "kind": "TASK",
+     "fields": {
+      "name": "repay"
+     },
+     "raw": "OPEX 1970-3-28 TASK name=repay"
+    },
+    {
+     "date": "1970-04-10",
+     "kind": "TASK",
+     "fields": {
+      "name": "catalog"
+     },
+     "raw": "OPEX 1970-4-10 TASK name=catalog"
+    },
+    {
+     "date": "1970-04-11",
+     "kind": "AIR_PLAN_INPUT",
+     "fields": {
+      "scan": "5",
+      "lines_state": "nonempty",
+      "line_count": "3",
+      "air_line_count": "1",
+      "combos": "1"
+     },
+     "raw": "OPEX 1970-4-11 AIR_PLAN_INPUT scan=5 lines_state=nonempty line_count=3 air_line_count=1 combos=1"
+    },
+    {
+     "date": "1970-04-12",
+     "kind": "AIR_PLAN_PERF",
+     "fields": {
+      "scan": "5",
+      "total_ops": "296363",
+      "ops_sites": "103248",
+      "ops_eval": "164599",
+      "ticks": "30",
+      "days": "0",
+      "probes": "26",
+      "cheap_skip": "62",
+      "sites": "22",
+      "combos": "1",
+      "plans": "266"
+     },
+     "raw": "OPEX 1970-4-12 AIR_PLAN_PERF scan=5 total_ops=296363 ops_sites=103248 ops_eval=164599 ticks=30 days=0 probes=26 cheap_skip=62 sites=22 combos=1 plans=266"
+    },
+    {
+     "date": "1970-04-15",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "0",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "59620",
+      "dst": "61159",
+      "dist": "9",
+      "roi": "2633",
+      "score": "2998.5105",
+      "cost": "7056",
+      "profit": "18580"
+     },
+     "raw": "OPEX 1970-4-15 PORTFOLIO_RANK rank=0 mode=road kind=pax cargo=PASS src=59620 dst=61159 dist=9 roi=2633 score=2998.5105 cost=7056 profit=18580"
+    },
+    {
+     "date": "1970-04-15",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "1",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "23268",
+      "dst": "26589",
+      "dist": "20",
+      "roi": "1261",
+      "score": "1466.561",
+      "cost": "7837",
+      "profit": "9890"
+     },
+     "raw": "OPEX 1970-4-15 PORTFOLIO_RANK rank=1 mode=road kind=pax cargo=PASS src=23268 dst=26589 dist=20 roi=1261 score=1466.561 cost=7837 profit=9890"
+    },
+    {
+     "date": "1970-04-15",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "2",
+      "mode": "rail",
+      "kind": "freight",
+      "cargo": "COAL",
+      "src": "46222",
+      "dst": "42659",
+      "dist": "35",
+      "roi": "747",
+      "score": "843.72705",
+      "cost": "40890",
+      "profit": "30555"
+     },
+     "raw": "OPEX 1970-4-15 PORTFOLIO_RANK rank=2 mode=rail kind=freight cargo=COAL src=46222 dst=42659 dist=35 roi=747 score=843.72705 cost=40890 profit=30555"
+    },
+    {
+     "date": "1970-04-16",
+     "kind": "TASK",
+     "fields": {
+      "name": "projects"
+     },
+     "raw": "OPEX 1970-4-16 TASK name=projects"
+    },
+    {
+     "date": "1970-04-16",
+     "kind": "PROJECT_DISCARD",
+     "fields": {
+      "rank": "0",
+      "mode": "road",
+      "src": "59620",
+      "dst": "61159",
+      "reason": "plan_failed",
+      "detail": "DEPOTX"
+     },
+     "raw": "OPEX 1970-4-16 PROJECT_DISCARD rank=0 mode=road src=59620 dst=61159 reason=plan_failed detail=DEPOTX"
+    },
+    {
+     "date": "1970-04-18",
+     "kind": "PROJECT_CHOSEN",
+     "fields": {
+      "rank": "1",
+      "mode": "road",
+      "kind": "pax",
+      "cargo": "PASS",
+      "src": "23268",
+      "dst": "26589",
+      "dist": "16",
+      "cost": "7411",
+      "profit": "9530",
+      "roi": "1285"
+     },
+     "raw": "OPEX 1970-4-18 PROJECT_CHOSEN rank=1 mode=road kind=pax cargo=PASS src=23268 dst=26589 dist=16 cost=7411 profit=9530 roi=1285"
+    },
+    {
+     "date": "1970-04-18",
+     "kind": "ROAD_BUILD",
+     "fields": {
+      "line": "3",
+      "src": "23268",
+      "dst": "26589",
+      "cargo": "PASS",
+      "dist": "16",
+      "profit": "9530",
+      "cost": "10145",
+      "vehicles": "1"
+     },
+     "raw": "OPEX 1970-4-18 ROAD_BUILD line=3 src=23268 dst=26589 cargo=PASS dist=16 profit=9530 cost=10145 vehicles=1"
+    },
+    {
+     "date": "1970-05-02",
+     "kind": "AIR_PLAN_INPUT",
+     "fields": {
+      "scan": "6",
+      "lines_state": "nonempty",
+      "line_count": "4",
+      "air_line_count": "1",
+      "combos": "1"
+     },
+     "raw": "OPEX 1970-5-2 AIR_PLAN_INPUT scan=6 lines_state=nonempty line_count=4 air_line_count=1 combos=1"
+    },
+    {
+     "date": "1970-05-03",
+     "kind": "AIR_PLAN_PERF",
+     "fields": {
+      "scan": "6",
+      "total_ops": "237848",
+      "ops_sites": "48620",
+      "ops_eval": "164599",
+      "ticks": "24",
+      "days": "0",
+      "probes": "22",
+      "cheap_skip": "0",
+      "sites": "22",
+      "combos": "1",
+      "plans": "266"
+     },
+     "raw": "OPEX 1970-5-3 AIR_PLAN_PERF scan=6 total_ops=237848 ops_sites=48620 ops_eval=164599 ticks=24 days=0 probes=22 cheap_skip=0 sites=22 combos=1 plans=266"
+    },
+    {
+     "date": "1970-05-06",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "0",
+      "mode": "rail",
+      "kind": "freight",
+      "cargo": "COAL",
+      "src": "46222",
+      "dst": "42659",
+      "dist": "35",
+      "roi": "747",
+      "score": "843.72705",
+      "cost": "40890",
+      "profit": "30555"
+     },
+     "raw": "OPEX 1970-5-6 PORTFOLIO_RANK rank=0 mode=rail kind=freight cargo=COAL src=46222 dst=42659 dist=35 roi=747 score=843.72705 cost=40890 profit=30555"
+    },
+    {
+     "date": "1970-05-06",
+     "kind": "TASK",
+     "fields": {
+      "name": "refleet"
+     },
+     "raw": "OPEX 1970-5-6 TASK name=refleet"
+    },
+    {
+     "date": "1970-05-09",
+     "kind": "TASK",
+     "fields": {
+      "name": "town_growth"
+     },
+     "raw": "OPEX 1970-5-9 TASK name=town_growth"
+    },
+    {
+     "date": "1970-05-09",
+     "kind": "TASK",
+     "fields": {
+      "name": "repay"
+     },
+     "raw": "OPEX 1970-5-9 TASK name=repay"
+    },
+    {
+     "date": "1970-05-22",
+     "kind": "TASK",
+     "fields": {
+      "name": "catalog"
+     },
+     "raw": "OPEX 1970-5-22 TASK name=catalog"
+    },
+    {
+     "date": "1970-05-24",
+     "kind": "AIR_PLAN_INPUT",
+     "fields": {
+      "scan": "7",
+      "lines_state": "nonempty",
+      "line_count": "5",
+      "air_line_count": "1",
+      "combos": "1"
+     },
+     "raw": "OPEX 1970-5-24 AIR_PLAN_INPUT scan=7 lines_state=nonempty line_count=5 air_line_count=1 combos=1"
+    },
+    {
+     "date": "1970-05-25",
+     "kind": "AIR_PLAN_PERF",
+     "fields": {
+      "scan": "7",
+      "total_ops": "247403",
+      "ops_sites": "48863",
+      "ops_eval": "164534",
+      "ticks": "25",
+      "days": "0",
+      "probes": "22",
+      "cheap_skip": "0",
+      "sites": "22",
+      "combos": "1",
+      "plans": "265"
+     },
+     "raw": "OPEX 1970-5-25 AIR_PLAN_PERF scan=7 total_ops=247403 ops_sites=48863 ops_eval=164534 ticks=25 days=0 probes=22 cheap_skip=0 sites=22 combos=1 plans=265"
+    },
+    {
+     "date": "1970-05-28",
+     "kind": "PORTFOLIO_RANK",
+     "fields": {
+      "rank": "0",
+      "mode": "rail",
+      "kind": "freight",
+      "cargo": "COAL",
+      "src": "56717",
+      "dst": "42659",
+      "dist": "77",
+      "roi": "946",
+      "score": "1025.2029",
+      "cost": "51502",
+      "profit": "48765"
+     },
+     "raw": "OPEX 1970-5-28 PORTFOLIO_RANK rank=0 mode=rail kind=freight cargo=COAL src=56717 dst=42659 dist=77 roi=946 score=1025.2029 cost=51502 profit=48765"
+    },
+    {
+     "date": "1970-07-30",
+     "kind": "TASK",
+     "fields": {
+      "name": "projects"
+     },
+     "raw": "OPEX 1970-7-30 TASK name=projects"
+    },
+    {
+     "date": "1970-08-04",
+     "kind": "PROJECT_CHOSEN",
+     "fields": {
+      "rank": "0",
+      "mode": "rail",
+      "kind": "freight",
+      "cargo": "COAL",
+      "src": "56717",
+      "dst": "42659",
+      "dist": "77",
+      "cost": "50471",
+      "profit": "48810",
+      "roi": "967"
+     },
+     "raw": "OPEX 1970-8-4 PROJECT_CHOSEN rank=0 mode=rail kind=freight cargo=COAL src=56717 dst=42659 dist=77 cost=50471 profit=48810 roi=967"
+    },
+    {
+     "date": "1970-08-18",
+     "kind": "AIR_PLAN_INPUT",
+     "fields": {
+      "scan": "8",
+      "lines_state": "nonempty",
+      "line_count": "6",
+      "air_line_count": "1",
+      "combos": "1"
+     },
+     "raw": "OPEX 1970-8-18 AIR_PLAN_INPUT scan=8 lines_state=nonempty line_count=6 air_line_count=1 combos=1"
+    },
+    {
+     "date": "1970-08-20",
+     "kind": "AIR_PLAN_PERF",
+     "fields": {
+      "scan": "8",
+      "total_ops": "242018",
+      "ops_sites": "49105",
+      "ops_eval": "164534",
+      "ticks": "25",
+      "days": "0",
+      "probes": "22",
+      "cheap_skip": "0",
+      "sites": "22",
+      "combos": "1",
+      "plans": "265"
+     },
+     "raw": "OPEX 1970-8-20 AIR_PLAN_PERF scan=8 total_ops=242018 ops_sites=49105 ops_eval=164534 ticks=25 days=0 probes=22 cheap_skip=0 sites=22 combos=1 plans=265"
+    },
+    {
+     "date": "1970-08-26",
+     "kind": "TASK",
+     "fields": {
+      "name": "town_growth"
+     },
+     "raw": "OPEX 1970-8-26 TASK name=town_growth"
+    },
+    {
+     "date": "1970-08-26",
+     "kind": "TASK",
+     "fields": {
+      "name": "repay"
+     },
+     "raw": "OPEX 1970-8-26 TASK name=repay"
+    },
+    {
+     "date": "1970-09-09",
+     "kind": "TASK",
+     "fields": {
+      "name": "catalog"
+     },
+     "raw": "OPEX 1970-9-9 TASK name=catalog"
+    },
+    {
+     "date": "1970-09-11",
+     "kind": "AIR_PLAN_INPUT",
+     "fields": {
+      "scan": "9",
+      "lines_state": "nonempty",
+      "line_count": "7",
+      "air_line_count": "1",
+      "combos": "1"
+     },
+     "raw": "OPEX 1970-9-11 AIR_PLAN_INPUT scan=9 lines_state=nonempty line_count=7 air_line_count=1 combos=1"
+    },
+    {
+     "date": "1970-09-12",
+     "kind": "AIR_PLAN_PERF",
+     "fields": {
+      "scan": "9",
+      "total_ops": "245203",
+      "ops_sites": "49347",
+      "ops_eval": "164530",
+      "ticks": "25",
+      "days": "0",
+      "probes": "22",
+      "cheap_skip": "0",
+      "sites": "22",
+      "combos": "1",
+      "plans": "265"
+     },
+     "raw": "OPEX 1970-9-12 AIR_PLAN_PERF scan=9 total_ops=245203 ops_sites=49347 ops_eval=164530 ticks=25 days=0 probes=22 cheap_skip=0 sites=22 combos=1 plans=265"
+    },
+    {
+     "date": "1970-09-19",
+     "kind": "TASK",
+     "fields": {
+      "name": "town_growth"
+     },
+     "raw": "OPEX 1970-9-19 TASK name=town_growth"
+    },
+    {
+     "date": "1970-09-19",
+     "kind": "TASK",
+     "fields": {
+      "name": "repay"
+     },
+     "raw": "OPEX 1970-9-19 TASK name=repay"
+    },
+    {
+     "date": "1970-10-02",
+     "kind": "TASK",
+     "fields": {
+      "name": "catalog"
+     },
+     "raw": "OPEX 1970-10-2 TASK name=catalog"
+    },
+    {
+     "date": "1970-10-04",
+     "kind": "AIR_PLAN_INPUT",
+     "fields": {
+      "scan": "10",
+      "lines_state": "nonempty",
+      "line_count": "8",
+      "air_line_count": "1",
+      "combos": "1"
+     },
+     "raw": "OPEX 1970-10-4 AIR_PLAN_INPUT scan=10 lines_state=nonempty line_count=8 air_line_count=1 combos=1"
+    },
+    {
+     "date": "1970-10-05",
+     "kind": "AIR_PLAN_PERF",
+     "fields": {
+      "scan": "10",
+      "total_ops": "240429",
+      "ops_sites": "49589",
+      "ops_eval": "164531",
+      "ticks": "25",
+      "days": "0",
+      "probes": "22",
+      "cheap_skip": "0",
+      "sites": "22",
+      "combos": "1",
+      "plans": "265"
+     },
+     "raw": "OPEX 1970-10-5 AIR_PLAN_PERF scan=10 total_ops=240429 ops_sites=49589 ops_eval=164531 ticks=25 days=0 probes=22 cheap_skip=0 sites=22 combos=1 plans=265"
+    },
+    {
+     "date": "1970-10-10",
+     "kind": "TASK",
+     "fields": {
+      "name": "town_growth"
+     },
+     "raw": "OPEX 1970-10-10 TASK name=town_growth"
+    },
+    {
+     "date": "1970-10-10",
+     "kind": "TASK",
+     "fields": {
+      "name": "repay"
+     },
+     "raw": "OPEX 1970-10-10 TASK name=repay"
+    },
+    {
+     "date": "1970-10-24",
+     "kind": "TASK",
+     "fields": {
+      "name": "catalog"
+     },
+     "raw": "OPEX 1970-10-24 TASK name=catalog"
+    },
+    {
+     "date": "1970-10-26",
+     "kind": "AIR_PLAN_INPUT",
+     "fields": {
+      "scan": "11",
+      "lines_state": "nonempty",
+      "line_count": "9",
+      "air_line_count": "1",
+      "combos": "1"
+     },
+     "raw": "OPEX 1970-10-26 AIR_PLAN_INPUT scan=11 lines_state=nonempty line_count=9 air_line_count=1 combos=1"
+    },
+    {
+     "date": "1970-10-28",
+     "kind": "AIR_PLAN_PERF",
+     "fields": {
+      "scan": "11",
+      "total_ops": "285295",
+      "ops_sites": "87714",
+      "ops_eval": "164586",
+      "ticks": "29",
+      "days": "0",
+      "probes": "30",
+      "cheap_skip": "98",
+      "sites": "22",
+      "combos": "1",
+      "plans": "266"
+     },
+     "raw": "OPEX 1970-10-28 AIR_PLAN_PERF scan=11 total_ops=285295 ops_sites=87714 ops_eval=164586 ticks=29 days=0 probes=30 cheap_skip=98 sites=22 combos=1 plans=266"
+    },
+    {
+     "date": "1970-11-02",
+     "kind": "TASK",
+     "fields": {
+      "name": "repay"
+     },
+     "raw": "OPEX 1970-11-2 TASK name=repay"
+    },
+    {
+     "date": "1970-11-16",
+     "kind": "TASK",
+     "fields": {
+      "name": "catalog"
+     },
+     "raw": "OPEX 1970-11-16 TASK name=catalog"
+    },
+    {
+     "date": "1970-11-18",
+     "kind": "AIR_PLAN_INPUT",
+     "fields": {
+      "scan": "12",
+      "lines_state": "nonempty",
+      "line_count": "9",
+      "air_line_count": "1",
+      "combos": "1"
+     },
+     "raw": "OPEX 1970-11-18 AIR_PLAN_INPUT scan=12 lines_state=nonempty line_count=9 air_line_count=1 combos=1"
+    },
+    {
+     "date": "1970-11-19",
+     "kind": "AIR_PLAN_PERF",
+     "fields": {
+      "scan": "12",
+      "total_ops": "241881",
+      "ops_sites": "49831",
+      "ops_eval": "164572",
+      "ticks": "25",
+      "days": "0",
+      "probes": "22",
+      "cheap_skip": "0",
+      "sites": "22",
+      "combos": "1",
+      "plans": "266"
+     },
+     "raw": "OPEX 1970-11-19 AIR_PLAN_PERF scan=12 total_ops=241881 ops_sites=49831 ops_eval=164572 ticks=25 days=0 probes=22 cheap_skip=0 sites=22 combos=1 plans=266"
+    },
+    {
+     "date": "1970-11-25",
+     "kind": "TASK",
+     "fields": {
+      "name": "refleet"
+     },
+     "raw": "OPEX 1970-11-25 TASK name=refleet"
+    },
+    {
+     "date": "1970-12-01",
+     "kind": "TASK",
+     "fields": {
+      "name": "town_growth"
+     },
+     "raw": "OPEX 1970-12-1 TASK name=town_growth"
+    },
+    {
+     "date": "1970-12-02",
+     "kind": "TASK",
+     "fields": {
+      "name": "repay"
+     },
+     "raw": "OPEX 1970-12-2 TASK name=repay"
+    },
+    {
+     "date": "1970-12-15",
+     "kind": "TASK",
+     "fields": {
+      "name": "catalog"
+     },
+     "raw": "OPEX 1970-12-15 TASK name=catalog"
+    },
+    {
+     "date": "1970-12-17",
+     "kind": "AIR_PLAN_INPUT",
+     "fields": {
+      "scan": "13",
+      "lines_state": "nonempty",
+      "line_count": "10",
+      "air_line_count": "1",
+      "combos": "1"
+     },
+     "raw": "OPEX 1970-12-17 AIR_PLAN_INPUT scan=13 lines_state=nonempty line_count=10 air_line_count=1 combos=1"
+    },
+    {
+     "date": "1970-12-19",
+     "kind": "AIR_PLAN_PERF",
+     "fields": {
+      "scan": "13",
+      "total_ops": "242392",
+      "ops_sites": "50074",
+      "ops_eval": "164998",
+      "ticks": "25",
+      "days": "0",
+      "probes": "22",
+      "cheap_skip": "0",
+      "sites": "22",
+      "combos": "1",
+      "plans": "267"
+     },
+     "raw": "OPEX 1970-12-19 AIR_PLAN_PERF scan=13 total_ops=242392 ops_sites=50074 ops_eval=164998 ticks=25 days=0 probes=22 cheap_skip=0 sites=22 combos=1 plans=267"
+    },
+    {
+     "date": "1970-12-26",
+     "kind": "TASK",
+     "fields": {
+      "name": "refleet"
+     },
+     "raw": "OPEX 1970-12-26 TASK name=refleet"
+    }
+   ]
+  }
+ ],
+ "arms": [
+  "OpexAI[air_cheap_site=1,decision_log=1]",
+  "OpexAI[air_cheap_site=1,road_pax_overlap=1,decision_log=1]"
+ ],
+ "seeds": [
+  7
+ ]
+}
