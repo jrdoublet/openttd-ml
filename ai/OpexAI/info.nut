@@ -746,6 +746,19 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C33.3 : Delai de reprise sur la memoire d'abandon au lieu d'un bannissement definitif.
+     * Si > 0, les paires abandonnees sont expirees apres (abandon_cooldown_days * echecs) jours.
+     * Defaut 0 (bannissement permanent historique). */
+    AddSetting({
+      name = "abandon_cooldown_days",
+      description = "Delai de reprise en jours sur la memoire d'abandon (0 = permanent historique, >0 = cooldown lineaire avec backoff, docs/taches.md C33.3)",
+      min_value = 0, max_value = 5000,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 30,
+      flags = 0
+    });
+
     /* Le filet MIN_SEPARATION reste la protection de bassin : 1 ne l'abaisse pas, il remplace
      * seulement le rejet d'UNE extremite par un quai rail dedie joint a la gare existante. Depuis
      * le 2026-08-29 (seconde tranche), ce reglage commande AUSSI la relaxation d'origine a la

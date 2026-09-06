@@ -1,0 +1,1000 @@
+{
+ "openttd_version": "15.3",
+ "opengfx_version": "7.1",
+ "years": 6,
+ "seeds": [
+  42,
+  100,
+  7,
+  999,
+  2026
+ ],
+ "arms": [
+  "OpexAI",
+  "OpexAI[abandon_cooldown_days=180]",
+  "OpexAI[abandon_cooldown_days=365]",
+  "OpexAI[abandon_cooldown_days=730]"
+ ],
+ "openttd_config": "[difficulty]\nnumber_towns = 3\nindustry_density = 4\n[economy]\ninflation = false\ntown_growth_rate = 2\n[game_creation]\nstarting_year = 1970\nmap_x = 8\nmap_y = 8\n",
+ "defaults": "abandon_memory=1,abandon_cooldown_days=0",
+ "success_metrics": [
+  "company_value",
+  "performance_history",
+  "profit",
+  "profit_year",
+  "median_station_rating"
+ ],
+ "summary": [
+  {
+   "arm": "OpexAI",
+   "seed": 100,
+   "repeat": 0,
+   "last_date": "1975-12-01",
+   "company_value": 2829586,
+   "performance_history": 581,
+   "income_last_year": 270642,
+   "expenses_last_year": -53460,
+   "profit": 217182,
+   "profit_year": 894878,
+   "median_station_rating": 148.0,
+   "n_station_ratings": 78,
+   "money": 722468,
+   "current_loan": 0,
+   "n_vehicles": 121,
+   "n_stations": 68,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 72,
+   "openttd_output": "",
+   "run_ok": true,
+   "failure_reason": null
+  },
+  {
+   "arm": "OpexAI",
+   "seed": 2026,
+   "repeat": 0,
+   "last_date": "1975-12-01",
+   "company_value": 1780774,
+   "performance_history": 495,
+   "income_last_year": 301639,
+   "expenses_last_year": -32433,
+   "profit": 269206,
+   "profit_year": 812245,
+   "median_station_rating": 169.0,
+   "n_station_ratings": 66,
+   "money": 372336,
+   "current_loan": 0,
+   "n_vehicles": 106,
+   "n_stations": 63,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 72,
+   "openttd_output": "",
+   "run_ok": true,
+   "failure_reason": null
+  },
+  {
+   "arm": "OpexAI",
+   "seed": 42,
+   "repeat": 0,
+   "last_date": "1975-12-01",
+   "company_value": 2868283,
+   "performance_history": 627,
+   "income_last_year": 274381,
+   "expenses_last_year": -54452,
+   "profit": 219929,
+   "profit_year": 897136,
+   "median_station_rating": 165.0,
+   "n_station_ratings": 80,
+   "money": 844681,
+   "current_loan": 0,
+   "n_vehicles": 133,
+   "n_stations": 70,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 72,
+   "openttd_output": "",
+   "run_ok": true,
+   "failure_reason": null
+  },
+  {
+   "arm": "OpexAI",
+   "seed": 7,
+   "repeat": 0,
+   "last_date": "1975-12-01",
+   "company_value": 4433130,
+   "performance_history": 730,
+   "income_last_year": 461672,
+   "expenses_last_year": -46975,
+   "profit": 414697,
+   "profit_year": 1662120,
+   "median_station_rating": 168,
+   "n_station_ratings": 91,
+   "money": 2719078,
+   "current_loan": 0,
+   "n_vehicles": 123,
+   "n_stations": 80,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 72,
+   "openttd_output": "",
+   "run_ok": true,
+   "failure_reason": null
+  },
+  {
+   "arm": "OpexAI",
+   "seed": 999,
+   "repeat": 0,
+   "last_date": "1975-12-01",
+   "company_value": 4354061,
+   "performance_history": 573,
+   "income_last_year": 393757,
+   "expenses_last_year": -51617,
+   "profit": 342140,
+   "profit_year": 1328685,
+   "median_station_rating": 118.0,
+   "n_station_ratings": 76,
+   "money": 2585744,
+   "current_loan": 0,
+   "n_vehicles": 108,
+   "n_stations": 57,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 72,
+   "openttd_output": "",
+   "run_ok": true,
+   "failure_reason": null
+  },
+  {
+   "arm": "OpexAI[abandon_cooldown_days=180]",
+   "seed": 100,
+   "repeat": 0,
+   "last_date": "1975-12-01",
+   "company_value": 2689698,
+   "performance_history": 582,
+   "income_last_year": 291818,
+   "expenses_last_year": -49724,
+   "profit": 242094,
+   "profit_year": 915436,
+   "median_station_rating": 152.5,
+   "n_station_ratings": 86,
+   "money": 687054,
+   "current_loan": 0,
+   "n_vehicles": 111,
+   "n_stations": 74,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 72,
+   "openttd_output": "",
+   "run_ok": true,
+   "failure_reason": null
+  },
+  {
+   "arm": "OpexAI[abandon_cooldown_days=180]",
+   "seed": 2026,
+   "repeat": 0,
+   "last_date": "1975-12-01",
+   "company_value": 1837807,
+   "performance_history": 491,
+   "income_last_year": 255744,
+   "expenses_last_year": -33538,
+   "profit": 222206,
+   "profit_year": 910190,
+   "median_station_rating": 164,
+   "n_station_ratings": 63,
+   "money": 378739,
+   "current_loan": 0,
+   "n_vehicles": 102,
+   "n_stations": 60,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 72,
+   "openttd_output": "",
+   "run_ok": true,
+   "failure_reason": null
+  },
+  {
+   "arm": "OpexAI[abandon_cooldown_days=180]",
+   "seed": 42,
+   "repeat": 0,
+   "last_date": "1975-12-01",
+   "company_value": 2828255,
+   "performance_history": 637,
+   "income_last_year": 280269,
+   "expenses_last_year": -48296,
+   "profit": 231973,
+   "profit_year": 947923,
+   "median_station_rating": 166,
+   "n_station_ratings": 87,
+   "money": 987053,
+   "current_loan": 0,
+   "n_vehicles": 126,
+   "n_stations": 76,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 72,
+   "openttd_output": "",
+   "run_ok": true,
+   "failure_reason": null
+  },
+  {
+   "arm": "OpexAI[abandon_cooldown_days=180]",
+   "seed": 7,
+   "repeat": 0,
+   "last_date": "1975-12-01",
+   "company_value": 5235395,
+   "performance_history": 709,
+   "income_last_year": 520110,
+   "expenses_last_year": -50519,
+   "profit": 469591,
+   "profit_year": 1873402,
+   "median_station_rating": 154,
+   "n_station_ratings": 81,
+   "money": 3529256,
+   "current_loan": 0,
+   "n_vehicles": 128,
+   "n_stations": 67,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 72,
+   "openttd_output": "",
+   "run_ok": true,
+   "failure_reason": null
+  },
+  {
+   "arm": "OpexAI[abandon_cooldown_days=180]",
+   "seed": 999,
+   "repeat": 0,
+   "last_date": "1975-12-01",
+   "company_value": 4424888,
+   "performance_history": 556,
+   "income_last_year": 366805,
+   "expenses_last_year": -49662,
+   "profit": 317143,
+   "profit_year": 1384267,
+   "median_station_rating": 129.0,
+   "n_station_ratings": 74,
+   "money": 2687152,
+   "current_loan": 0,
+   "n_vehicles": 116,
+   "n_stations": 54,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 72,
+   "openttd_output": "",
+   "run_ok": true,
+   "failure_reason": null
+  },
+  {
+   "arm": "OpexAI[abandon_cooldown_days=365]",
+   "seed": 100,
+   "repeat": 0,
+   "last_date": "1975-12-01",
+   "company_value": 2767570,
+   "performance_history": 566,
+   "income_last_year": 339680,
+   "expenses_last_year": -52654,
+   "profit": 287026,
+   "profit_year": 1072241,
+   "median_station_rating": 141.5,
+   "n_station_ratings": 78,
+   "money": 742706,
+   "current_loan": 0,
+   "n_vehicles": 112,
+   "n_stations": 67,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 72,
+   "openttd_output": "",
+   "run_ok": true,
+   "failure_reason": null
+  },
+  {
+   "arm": "OpexAI[abandon_cooldown_days=365]",
+   "seed": 2026,
+   "repeat": 0,
+   "last_date": "1975-12-01",
+   "company_value": 1889806,
+   "performance_history": 576,
+   "income_last_year": 244049,
+   "expenses_last_year": -35348,
+   "profit": 208701,
+   "profit_year": 873505,
+   "median_station_rating": 170,
+   "n_station_ratings": 85,
+   "money": 308023,
+   "current_loan": 10000,
+   "n_vehicles": 118,
+   "n_stations": 82,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 72,
+   "openttd_output": "",
+   "run_ok": true,
+   "failure_reason": null
+  },
+  {
+   "arm": "OpexAI[abandon_cooldown_days=365]",
+   "seed": 42,
+   "repeat": 0,
+   "last_date": "1975-12-01",
+   "company_value": 2978958,
+   "performance_history": 624,
+   "income_last_year": 248410,
+   "expenses_last_year": -50671,
+   "profit": 197739,
+   "profit_year": 967928,
+   "median_station_rating": 153.0,
+   "n_station_ratings": 84,
+   "money": 998079,
+   "current_loan": 0,
+   "n_vehicles": 128,
+   "n_stations": 74,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 72,
+   "openttd_output": "",
+   "run_ok": true,
+   "failure_reason": null
+  },
+  {
+   "arm": "OpexAI[abandon_cooldown_days=365]",
+   "seed": 7,
+   "repeat": 0,
+   "last_date": "1975-12-01",
+   "company_value": 4534433,
+   "performance_history": 688,
+   "income_last_year": 529349,
+   "expenses_last_year": -47247,
+   "profit": 482102,
+   "profit_year": 1763780,
+   "median_station_rating": 151.5,
+   "n_station_ratings": 76,
+   "money": 2855972,
+   "current_loan": 0,
+   "n_vehicles": 114,
+   "n_stations": 64,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 72,
+   "openttd_output": "",
+   "run_ok": true,
+   "failure_reason": null
+  },
+  {
+   "arm": "OpexAI[abandon_cooldown_days=365]",
+   "seed": 999,
+   "repeat": 0,
+   "last_date": "1975-12-01",
+   "company_value": 4767159,
+   "performance_history": 592,
+   "income_last_year": 426749,
+   "expenses_last_year": -50180,
+   "profit": 376569,
+   "profit_year": 1477391,
+   "median_station_rating": 137,
+   "n_station_ratings": 83,
+   "money": 2990873,
+   "current_loan": 0,
+   "n_vehicles": 116,
+   "n_stations": 63,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 72,
+   "openttd_output": "",
+   "run_ok": true,
+   "failure_reason": null
+  },
+  {
+   "arm": "OpexAI[abandon_cooldown_days=730]",
+   "seed": 100,
+   "repeat": 0,
+   "last_date": "1975-12-01",
+   "company_value": 3028403,
+   "performance_history": 545,
+   "income_last_year": 285801,
+   "expenses_last_year": -52247,
+   "profit": 233554,
+   "profit_year": 967321,
+   "median_station_rating": 129,
+   "n_station_ratings": 79,
+   "money": 1020097,
+   "current_loan": 0,
+   "n_vehicles": 111,
+   "n_stations": 66,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 72,
+   "openttd_output": "",
+   "run_ok": true,
+   "failure_reason": null
+  },
+  {
+   "arm": "OpexAI[abandon_cooldown_days=730]",
+   "seed": 2026,
+   "repeat": 0,
+   "last_date": "1975-12-01",
+   "company_value": 2010794,
+   "performance_history": 519,
+   "income_last_year": 308380,
+   "expenses_last_year": -33641,
+   "profit": 274739,
+   "profit_year": 1016562,
+   "median_station_rating": 164,
+   "n_station_ratings": 61,
+   "money": 563541,
+   "current_loan": 0,
+   "n_vehicles": 104,
+   "n_stations": 54,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 72,
+   "openttd_output": "",
+   "run_ok": true,
+   "failure_reason": null
+  },
+  {
+   "arm": "OpexAI[abandon_cooldown_days=730]",
+   "seed": 42,
+   "repeat": 0,
+   "last_date": "1975-12-01",
+   "company_value": 2621625,
+   "performance_history": 593,
+   "income_last_year": 290767,
+   "expenses_last_year": -48624,
+   "profit": 242143,
+   "profit_year": 899525,
+   "median_station_rating": 168,
+   "n_station_ratings": 77,
+   "money": 743773,
+   "current_loan": 0,
+   "n_vehicles": 118,
+   "n_stations": 67,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 72,
+   "openttd_output": "",
+   "run_ok": true,
+   "failure_reason": null
+  },
+  {
+   "arm": "OpexAI[abandon_cooldown_days=730]",
+   "seed": 7,
+   "repeat": 0,
+   "last_date": "1975-12-01",
+   "company_value": 4558733,
+   "performance_history": 724,
+   "income_last_year": 461484,
+   "expenses_last_year": -48697,
+   "profit": 412787,
+   "profit_year": 1674116,
+   "median_station_rating": 168.0,
+   "n_station_ratings": 94,
+   "money": 2745760,
+   "current_loan": 0,
+   "n_vehicles": 134,
+   "n_stations": 80,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 72,
+   "openttd_output": "",
+   "run_ok": true,
+   "failure_reason": null
+  },
+  {
+   "arm": "OpexAI[abandon_cooldown_days=730]",
+   "seed": 999,
+   "repeat": 0,
+   "last_date": "1975-12-01",
+   "company_value": 5289074,
+   "performance_history": 617,
+   "income_last_year": 508118,
+   "expenses_last_year": -54136,
+   "profit": 453982,
+   "profit_year": 1819853,
+   "median_station_rating": 135,
+   "n_station_ratings": 77,
+   "money": 3408999,
+   "current_loan": 0,
+   "n_vehicles": 127,
+   "n_stations": 59,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 72,
+   "openttd_output": "",
+   "run_ok": true,
+   "failure_reason": null
+  }
+ ],
+ "failed_runs": [],
+ "statistics": {
+  "OpexAI": {
+   "company_value": {
+    "n": 5,
+    "mean": 3253166.8,
+    "median": 2868283,
+    "standard_deviation": 1129134.40122,
+    "standard_error": 504964.255372,
+    "standard_error_percent": 15.522237,
+    "coefficient_of_variation_percent": 34.708777
+   },
+   "performance_history": {
+    "n": 5,
+    "mean": 601.2,
+    "median": 581,
+    "standard_deviation": 86.221807,
+    "standard_error": 38.559564,
+    "standard_error_percent": 6.413767,
+    "coefficient_of_variation_percent": 14.341618
+   },
+   "profit": {
+    "n": 5,
+    "mean": 292630.8,
+    "median": 269206,
+    "standard_deviation": 84967.806355,
+    "standard_error": 37998.758182,
+    "standard_error_percent": 12.985222,
+    "coefficient_of_variation_percent": 29.035838
+   },
+   "profit_year": {
+    "n": 5,
+    "mean": 1119012.8,
+    "median": 897136,
+    "standard_deviation": 364863.011352,
+    "standard_error": 163171.699172,
+    "standard_error_percent": 14.581754,
+    "coefficient_of_variation_percent": 32.605794
+   },
+   "median_station_rating": {
+    "n": 5,
+    "mean": 153.6,
+    "median": 165.0,
+    "standard_deviation": 21.64024,
+    "standard_error": 9.67781,
+    "standard_error_percent": 6.300657,
+    "coefficient_of_variation_percent": 14.088698
+   }
+  },
+  "OpexAI[abandon_cooldown_days=180]": {
+   "company_value": {
+    "n": 5,
+    "mean": 3403208.6,
+    "median": 2828255,
+    "standard_deviation": 1386622.424137,
+    "standard_error": 620116.399899,
+    "standard_error_percent": 18.221522,
+    "coefficient_of_variation_percent": 40.744562
+   },
+   "performance_history": {
+    "n": 5,
+    "mean": 595,
+    "median": 582,
+    "standard_deviation": 82.562098,
+    "standard_error": 36.922893,
+    "standard_error_percent": 6.205528,
+    "coefficient_of_variation_percent": 13.875983
+   },
+   "profit": {
+    "n": 5,
+    "mean": 296601.4,
+    "median": 242094,
+    "standard_deviation": 103718.273849,
+    "standard_error": 46384.222167,
+    "standard_error_percent": 15.638572,
+    "coefficient_of_variation_percent": 34.968909
+   },
+   "profit_year": {
+    "n": 5,
+    "mean": 1206243.6,
+    "median": 947923,
+    "standard_deviation": 423006.793182,
+    "standard_error": 189174.3889,
+    "standard_error_percent": 15.682934,
+    "coefficient_of_variation_percent": 35.068107
+   },
+   "median_station_rating": {
+    "n": 5,
+    "mean": 153.1,
+    "median": 154,
+    "standard_deviation": 14.72413,
+    "standard_error": 6.584831,
+    "standard_error_percent": 4.301,
+    "coefficient_of_variation_percent": 9.617328
+   }
+  },
+  "OpexAI[abandon_cooldown_days=365]": {
+   "company_value": {
+    "n": 5,
+    "mean": 3387585.2,
+    "median": 2978958,
+    "standard_deviation": 1226093.523633,
+    "standard_error": 548325.693123,
+    "standard_error_percent": 16.186329,
+    "coefficient_of_variation_percent": 36.193732
+   },
+   "performance_history": {
+    "n": 5,
+    "mean": 609.2,
+    "median": 592,
+    "standard_deviation": 49.226009,
+    "standard_error": 22.014541,
+    "standard_error_percent": 3.61368,
+    "coefficient_of_variation_percent": 8.080435
+   },
+   "profit": {
+    "n": 5,
+    "mean": 310427.4,
+    "median": 287026,
+    "standard_deviation": 119834.720563,
+    "standard_error": 53591.716249,
+    "standard_error_percent": 17.263849,
+    "coefficient_of_variation_percent": 38.603139
+   },
+   "profit_year": {
+    "n": 5,
+    "mean": 1230969,
+    "median": 1072241,
+    "standard_deviation": 376422.973783,
+    "standard_error": 168341.471534,
+    "standard_error_percent": 13.675525,
+    "coefficient_of_variation_percent": 30.579403
+   },
+   "median_station_rating": {
+    "n": 5,
+    "mean": 150.6,
+    "median": 151.5,
+    "standard_deviation": 12.754411,
+    "standard_error": 5.703946,
+    "standard_error_percent": 3.787481,
+    "coefficient_of_variation_percent": 8.469064
+   }
+  },
+  "OpexAI[abandon_cooldown_days=730]": {
+   "company_value": {
+    "n": 5,
+    "mean": 3501725.8,
+    "median": 3028403,
+    "standard_deviation": 1372349.020139,
+    "standard_error": 613733.139577,
+    "standard_error_percent": 17.52659,
+    "coefficient_of_variation_percent": 39.190648
+   },
+   "performance_history": {
+    "n": 5,
+    "mean": 599.6,
+    "median": 593,
+    "standard_deviation": 79.528611,
+    "standard_error": 35.566276,
+    "standard_error_percent": 5.931667,
+    "coefficient_of_variation_percent": 13.263611
+   },
+   "profit": {
+    "n": 5,
+    "mean": 323441,
+    "median": 274739,
+    "standard_deviation": 102572.636183,
+    "standard_error": 45871.877427,
+    "standard_error_percent": 14.182456,
+    "coefficient_of_variation_percent": 31.712936
+   },
+   "profit_year": {
+    "n": 5,
+    "mean": 1275475.4,
+    "median": 1016562,
+    "standard_deviation": 435486.878548,
+    "standard_error": 194755.652748,
+    "standard_error_percent": 15.26926,
+    "coefficient_of_variation_percent": 34.143103
+   },
+   "median_station_rating": {
+    "n": 5,
+    "mean": 152.8,
+    "median": 164,
+    "standard_deviation": 19.175505,
+    "standard_error": 8.575547,
+    "standard_error_percent": 5.612269,
+    "coefficient_of_variation_percent": 12.549414
+   }
+  }
+ },
+ "paired_comparisons": [
+  {
+   "arm_a": "OpexAI",
+   "arm_b": "OpexAI[abandon_cooldown_days=180]",
+   "shared_seeds": [
+    7,
+    42,
+    100,
+    999,
+    2026
+   ],
+   "metrics": {
+    "company_value": {
+     "n": 5,
+     "mean_difference": -150041.8,
+     "mean_difference_percent": -4.408833,
+     "standard_deviation": 374334.924177,
+     "standard_error": 167407.667362,
+     "arm_a_beats_arm_b": 2
+    },
+    "performance_history": {
+     "n": 5,
+     "mean_difference": 6.2,
+     "mean_difference_percent": 1.042017,
+     "standard_deviation": 12.79453,
+     "standard_error": 5.721888,
+     "arm_a_beats_arm_b": 3
+    },
+    "profit": {
+     "n": 5,
+     "mean_difference": -3970.6,
+     "mean_difference_percent": -1.338699,
+     "standard_deviation": 40416.700147,
+     "standard_error": 18074.897791,
+     "arm_a_beats_arm_b": 2
+    },
+    "profit_year": {
+     "n": 5,
+     "mean_difference": -87230.8,
+     "mean_difference_percent": -7.231607,
+     "standard_deviation": 74630.010155,
+     "standard_error": 33375.555174,
+     "arm_a_beats_arm_b": 0
+    },
+    "median_station_rating": {
+     "n": 5,
+     "mean_difference": 0.5,
+     "mean_difference_percent": 0.326584,
+     "standard_deviation": 9.513149,
+     "standard_error": 4.254409,
+     "arm_a_beats_arm_b": 2
+    }
+   }
+  },
+  {
+   "arm_a": "OpexAI",
+   "arm_b": "OpexAI[abandon_cooldown_days=365]",
+   "shared_seeds": [
+    7,
+    42,
+    100,
+    999,
+    2026
+   ],
+   "metrics": {
+    "company_value": {
+     "n": 5,
+     "mean_difference": -134418.4,
+     "mean_difference_percent": -3.967971,
+     "standard_deviation": 172158.096691,
+     "standard_error": 76991.441416,
+     "arm_a_beats_arm_b": 1
+    },
+    "performance_history": {
+     "n": 5,
+     "mean_difference": -8,
+     "mean_difference_percent": -1.313198,
+     "standard_deviation": 46.368092,
+     "standard_error": 20.736441,
+     "arm_a_beats_arm_b": 3
+    },
+    "profit": {
+     "n": 5,
+     "mean_difference": -17796.6,
+     "mean_difference_percent": -5.732935,
+     "standard_deviation": 57394.75296,
+     "standard_error": 25667.713834,
+     "arm_a_beats_arm_b": 2
+    },
+    "profit_year": {
+     "n": 5,
+     "mean_difference": -111956.2,
+     "mean_difference_percent": -9.094965,
+     "standard_deviation": 49998.012653,
+     "standard_error": 22359.791006,
+     "arm_a_beats_arm_b": 0
+    },
+    "median_station_rating": {
+     "n": 5,
+     "mean_difference": 3.0,
+     "mean_difference_percent": 1.992032,
+     "standard_deviation": 13.9239,
+     "standard_error": 6.226958,
+     "arm_a_beats_arm_b": 3
+    }
+   }
+  },
+  {
+   "arm_a": "OpexAI",
+   "arm_b": "OpexAI[abandon_cooldown_days=730]",
+   "shared_seeds": [
+    7,
+    42,
+    100,
+    999,
+    2026
+   ],
+   "metrics": {
+    "company_value": {
+     "n": 5,
+     "mean_difference": -248559,
+     "mean_difference_percent": -7.098186,
+     "standard_deviation": 428484.279241,
+     "standard_error": 191623.995134,
+     "arm_a_beats_arm_b": 1
+    },
+    "performance_history": {
+     "n": 5,
+     "mean_difference": 1.6,
+     "mean_difference_percent": 0.266845,
+     "standard_deviation": 35.310055,
+     "standard_error": 15.791137,
+     "arm_a_beats_arm_b": 3
+    },
+    "profit": {
+     "n": 5,
+     "mean_difference": -30810.2,
+     "mean_difference_percent": -9.525756,
+     "standard_deviation": 46254.884101,
+     "standard_error": 20685.813028,
+     "arm_a_beats_arm_b": 1
+    },
+    "profit_year": {
+     "n": 5,
+     "mean_difference": -156462.6,
+     "mean_difference_percent": -12.267003,
+     "standard_deviation": 203707.090147,
+     "standard_error": 91100.580214,
+     "arm_a_beats_arm_b": 0
+    },
+    "median_station_rating": {
+     "n": 5,
+     "mean_difference": 0.8,
+     "mean_difference_percent": 0.52356,
+     "standard_deviation": 13.046072,
+     "standard_error": 5.834381,
+     "arm_a_beats_arm_b": 2
+    }
+   }
+  },
+  {
+   "arm_a": "OpexAI[abandon_cooldown_days=180]",
+   "arm_b": "OpexAI[abandon_cooldown_days=365]",
+   "shared_seeds": [
+    7,
+    42,
+    100,
+    999,
+    2026
+   ],
+   "metrics": {
+    "company_value": {
+     "n": 5,
+     "mean_difference": 15623.4,
+     "mean_difference_percent": 0.461196,
+     "standard_deviation": 399611.076029,
+     "standard_error": 178711.506113,
+     "arm_a_beats_arm_b": 1
+    },
+    "performance_history": {
+     "n": 5,
+     "mean_difference": -14.2,
+     "mean_difference_percent": -2.330926,
+     "standard_deviation": 45.767893,
+     "standard_error": 20.468024,
+     "arm_a_beats_arm_b": 3
+    },
+    "profit": {
+     "n": 5,
+     "mean_difference": -13826,
+     "mean_difference_percent": -4.453859,
+     "standard_deviation": 39068.592315,
+     "standard_error": 17472.00564,
+     "arm_a_beats_arm_b": 2
+    },
+    "profit_year": {
+     "n": 5,
+     "mean_difference": -24725.4,
+     "mean_difference_percent": -2.008613,
+     "standard_deviation": 104840.512815,
+     "standard_error": 46886.10269,
+     "arm_a_beats_arm_b": 2
+    },
+    "median_station_rating": {
+     "n": 5,
+     "mean_difference": 2.5,
+     "mean_difference_percent": 1.660027,
+     "standard_deviation": 9.552487,
+     "standard_error": 4.272002,
+     "arm_a_beats_arm_b": 3
+    }
+   }
+  },
+  {
+   "arm_a": "OpexAI[abandon_cooldown_days=180]",
+   "arm_b": "OpexAI[abandon_cooldown_days=730]",
+   "shared_seeds": [
+    7,
+    42,
+    100,
+    999,
+    2026
+   ],
+   "metrics": {
+    "company_value": {
+     "n": 5,
+     "mean_difference": -98517.2,
+     "mean_difference_percent": -2.81339,
+     "standard_deviation": 579547.721817,
+     "standard_error": 259181.620438,
+     "arm_a_beats_arm_b": 2
+    },
+    "performance_history": {
+     "n": 5,
+     "mean_difference": -4.6,
+     "mean_difference_percent": -0.767178,
+     "standard_deviation": 44.523028,
+     "standard_error": 19.911303,
+     "arm_a_beats_arm_b": 2
+    },
+    "profit": {
+     "n": 5,
+     "mean_difference": -26839.6,
+     "mean_difference_percent": -8.298144,
+     "standard_deviation": 72948.37607,
+     "standard_error": 32623.505548,
+     "arm_a_beats_arm_b": 2
+    },
+    "profit_year": {
+     "n": 5,
+     "mean_difference": -69231.8,
+     "mean_difference_percent": -5.427921,
+     "standard_deviation": 235496.435508,
+     "standard_error": 105317.207651,
+     "arm_a_beats_arm_b": 2
+    },
+    "median_station_rating": {
+     "n": 5,
+     "mean_difference": 0.3,
+     "mean_difference_percent": 0.196335,
+     "standard_deviation": 14.033888,
+     "standard_error": 6.276145,
+     "arm_a_beats_arm_b": 1
+    }
+   }
+  },
+  {
+   "arm_a": "OpexAI[abandon_cooldown_days=365]",
+   "arm_b": "OpexAI[abandon_cooldown_days=730]",
+   "shared_seeds": [
+    7,
+    42,
+    100,
+    999,
+    2026
+   ],
+   "metrics": {
+    "company_value": {
+     "n": 5,
+     "mean_difference": -114140.6,
+     "mean_difference_percent": -3.259553,
+     "standard_deviation": 323343.546907,
+     "standard_error": 144603.630194,
+     "arm_a_beats_arm_b": 1
+    },
+    "performance_history": {
+     "n": 5,
+     "mean_difference": 9.6,
+     "mean_difference_percent": 1.601067,
+     "standard_deviation": 39.087082,
+     "standard_error": 17.480275,
+     "arm_a_beats_arm_b": 3
+    },
+    "profit": {
+     "n": 5,
+     "mean_difference": -13013.6,
+     "mean_difference_percent": -4.023485,
+     "standard_deviation": 69178.320869,
+     "standard_error": 30937.485607,
+     "arm_a_beats_arm_b": 2
+    },
+    "profit_year": {
+     "n": 5,
+     "mean_difference": -44506.4,
+     "mean_difference_percent": -3.489397,
+     "standard_deviation": 194658.828591,
+     "standard_error": 87054.07463,
+     "arm_a_beats_arm_b": 3
+    },
+    "median_station_rating": {
+     "n": 5,
+     "mean_difference": -2.2,
+     "mean_difference_percent": -1.439791,
+     "standard_deviation": 12.935416,
+     "standard_error": 5.784894,
+     "arm_a_beats_arm_b": 3
+    }
+   }
+  }
+ ]
+}

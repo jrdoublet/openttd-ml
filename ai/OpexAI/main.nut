@@ -355,6 +355,8 @@ _lastProjectScanMonth <- -1;
  * actif jusqu'a la lecture unique de abandon_memory dans Start(), comme les autres reglages de
  * decision qui ne changent pas pendant une partie. */
 ABANDON_MEMORY <- true;
+/* C33.3 : Cooldown en jours avant réessai d'une paire abandonnée (0 = infini/permanent). */
+ABANDON_COOLDOWN_DAYS <- 0;
 
 /* Raccordement de gare : repli actif jusqu'a la lecture unique de station_join dans Start().
  * Commande AUSSI la relaxation d'origine a la generation (candidates.nut) : les deux moities du
@@ -591,6 +593,7 @@ class OpexAI extends AIController {
   /* Paires qui ont rendu ABND : table indexee par cle chaine, donc test O(1), et volontairement
    * petite (quelques abandons par partie) plutot qu'un historique de toutes les tentatives. */
   _abandonedPairs = null;
+  _abandonCounts = null;
   _airBuilt = false;
   _waterBuilt = false;
   /* Ordonnanceur permanent : une tache utile et due par tour de file. dueCycle reporte le
@@ -633,6 +636,7 @@ class OpexAI extends AIController {
     this._catalog = OpexCatalog();
     this._lines = [];
     this._abandonedPairs = {};
+    this._abandonCounts = {};
     this._vehiclesToScrap = {};
     OpexAirResetSiteCache();
     this._activeSubsidies = {};
@@ -693,6 +697,8 @@ class OpexAI extends AIController {
   function _consumeRailUpgrade();
   function _findLineById(lineId);
   function _processEvents();
+  function _markPairAbandoned(key);
+  function _pruneAbandonedPairs(now);
 }
 
 /* Code d'arret compact pour OR. Le panneau contient deja beaucoup de mesures ; un seul caractere
@@ -903,6 +909,41 @@ function OpexAbandonedPairKey(candidate)
   return candidate.kind + "|" + candidate.cargo + "|" + src + "|" + dst;
 }
 
+/* C33.3 : Enregistre un échec de construction avec horodatage et compteur d'échecs cumulés. */
+function OpexAI::_markPairAbandoned(key)
+{
+  local now = AIDate.GetCurrentDate();
+  local count = (key in this._abandonCounts) ? (this._abandonCounts[key] + 1) : 1;
+  this._abandonCounts[key] <- count;
+  this._abandonedPairs[key] <- { date = now, count = count };
+  if (DECISION_LOG) {
+    OpexDecide("ABANDON_PAIR", "key=" + key + " count=" + count + " cooldown=" + (ABANDON_COOLDOWN_DAYS * count));
+  }
+}
+
+/* C33.3 : Purge les paires dont le délai de reprise est écoulé.
+ * Délai = ABANDON_COOLDOWN_DAYS * count (plafonné à 5 ans / 1825 jours). */
+function OpexAI::_pruneAbandonedPairs(now)
+{
+  if (ABANDON_COOLDOWN_DAYS <= 0) return;
+  local toDelete = [];
+  foreach (key, val in this._abandonedPairs) {
+    if (typeof val != "table" || !("date" in val)) continue;
+    local count = ("count" in val) ? val.count : 1;
+    local cooldown = ABANDON_COOLDOWN_DAYS * count;
+    if (cooldown > 1825) cooldown = 1825;
+    if ((now - val.date) >= cooldown) {
+      toDelete.append(key);
+    }
+  }
+  foreach (k in toDelete) {
+    delete this._abandonedPairs[k];
+  }
+  if (toDelete.len() > 0 && DECISION_LOG) {
+    OpexDecide("ABANDON_PRUNE", "count=" + toDelete.len() + " remaining=" + this._abandonedPairs.len());
+  }
+}
+
 /* Liaison aerienne passagers a fort ROI. Deploie la tresorerie excedentaire sans A*. */
 function OpexAI::_tryBuildAir(year)
 {
@@ -1044,7 +1085,7 @@ function OpexAI::_tryBuildAir(year)
        * reproposer EXACTEMENT le meme bestPlan et echouer de la meme facon. Le chemin
        * portefeuille memorise deja ses echecs (voir plus bas) ; ce chemin-ci ne le faisait pas. */
       if (AIR_ABANDON && ABANDON_MEMORY) {
-        this._abandonedPairs["air|" + plan.siteA.town.tile + "|" + plan.siteB.town.tile] <- true;
+        this._markPairAbandoned("air|" + plan.siteA.town.tile + "|" + plan.siteB.town.tile);
       }
       break;
     }
@@ -1627,7 +1668,7 @@ function OpexAI::_tryBuildFeeders(year)
     local plan = planning.plan;
     local idx = this._nextLineId;
     if (plan == null) {
-      if (ABANDON_MEMORY) this._abandonedPairs[abandonedKey] <- true;
+      if (ABANDON_MEMORY) this._markPairAbandoned(abandonedKey);
       AILog.Info("PLAN_FAIL: cand=" + candidate.src + "->" + candidate.dst + " slot=" + slot + " reason=" + planning.reason);
       OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|" + planning.reason + "|0");
       rejectStats.planNull++;
@@ -1656,7 +1697,7 @@ function OpexAI::_tryBuildFeeders(year)
     }
     local result = OpexBuildRoadRoute(this._catalog, this._budget, plan, candidate);
     if (!result.ok) {
-      if (ABANDON_MEMORY) this._abandonedPairs[abandonedKey] <- true;
+      if (ABANDON_MEMORY) this._markPairAbandoned(abandonedKey);
       OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|" + result.reason + "|" + result.error);
       rejectStats.buildFail++;
       continue;
@@ -2010,7 +2051,7 @@ function OpexAI::_tryBuildProjects(year)
         if (DECISION_LOG) {
           OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=air src=" + plan.siteA.town.tile + " dst=" + plan.siteB.town.tile + " reason=build_failed detail=" + result.reason + " error=" + result.error);
         }
-        if (ABANDON_MEMORY) this._abandonedPairs[abandonedKey] <- true;
+        if (ABANDON_MEMORY) this._markPairAbandoned(abandonedKey);
         continue;
       }
       if (result.ok) {
@@ -2085,7 +2126,7 @@ function OpexAI::_tryBuildProjects(year)
         if (alreadyServed) {
           if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "pair_already_served", extra = "" });
           local abandonedKey = OpexAbandonedPairKey(candidate);
-          this._abandonedPairs[abandonedKey] <- true;
+          this._markPairAbandoned(abandonedKey);
           continue;
         }
         if (OpexTownRoadLineCount(this._lines, candidate.src) >= 4) {
@@ -2131,7 +2172,7 @@ function OpexAI::_tryBuildProjects(year)
         if (DECISION_LOG) {
           OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=road src=" + candidate.src + " dst=" + candidate.dst + " reason=plan_failed detail=" + planning.reason);
         }
-        if (ABANDON_MEMORY) this._abandonedPairs[abandonedKey] <- true;
+        if (ABANDON_MEMORY) this._markPairAbandoned(abandonedKey);
         OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|" + planning.reason + "|0");
         OpexSign(anchor, "RB|" + yy + "|" + idx + "|1|" + planOps + "|0");
         continue;
@@ -2145,7 +2186,7 @@ function OpexAI::_tryBuildProjects(year)
         if (DECISION_LOG) {
           OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=road src=" + candidate.src + " dst=" + candidate.dst + " reason=unprofitable_after_siting");
         }
-        if (ABANDON_MEMORY) this._abandonedPairs[abandonedKey] <- true;
+        if (ABANDON_MEMORY) this._markPairAbandoned(abandonedKey);
         OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|ECON|0");
         continue;
       }
@@ -2169,7 +2210,7 @@ function OpexAI::_tryBuildProjects(year)
         if (DECISION_LOG) {
           OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=road src=" + candidate.src + " dst=" + candidate.dst + " reason=build_failed detail=" + result.reason + " error=" + result.error);
         }
-        if (ABANDON_MEMORY) this._abandonedPairs[abandonedKey] <- true;
+        if (ABANDON_MEMORY) this._markPairAbandoned(abandonedKey);
         OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|" + result.reason + "|" + result.error);
         continue;
       }
@@ -4084,7 +4125,7 @@ function OpexAI::_recordRailAttempt(candidate, result, join, placeJoin, posPacke
   }
   if (ABANDON_MEMORY && (result.reason == "ABND" || result.reason == "SITEA" || result.reason == "SITEB" ||
                          result.reason == "SITEAB" || result.reason == "NOPA" || result.reason == "STNFAIL")) {
-    this._abandonedPairs[OpexAbandonedPairKey(candidate)] <- true;
+    this._markPairAbandoned(OpexAbandonedPairKey(candidate));
   }
   return false;
 }
@@ -4501,6 +4542,7 @@ function OpexAI::_runNextTask()
     }
     if (this._lastCatalogMonth == ym && this._projects != null && !stale) return false;
     this._lastCatalogMonth = ym;
+    this._pruneAbandonedPairs(date);
     this._catalog.refresh(this._budget, year);
     local priorPeak = (this._projects != null && ("capitalBudgetPeak" in this._projects))
         ? this._projects.capitalBudgetPeak : 0;
@@ -4668,6 +4710,8 @@ function OpexAI::Start()
   DECISION_LOG = AIController.GetSetting("decision_log") != 0;
   PORTFOLIO_LOG = DECISION_LOG;
   ABANDON_MEMORY = AIController.GetSetting("abandon_memory") != 0;
+  local acd = AIController.GetSetting("abandon_cooldown_days");
+  if (acd >= 0) ABANDON_COOLDOWN_DAYS = acd;
   STATION_JOIN = AIController.GetSetting("station_join") != 0;
   JOIN_MAX_DISTANCE = AIController.GetSetting("join_max_distance");
   JOIN_PLACE = AIController.GetSetting("join_place") != 0;
