@@ -713,8 +713,8 @@ class OpexAIInfo extends AIInfo {
     AddSetting({
       name = "rail_search_resumable",
       description = "Resume rail A* across task-queue turns so other tasks run during a long search (docs/taches.md A4): 1 = sliced, 0 = blocking (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
@@ -726,8 +726,8 @@ class OpexAIInfo extends AIInfo {
     AddSetting({
       name = "rail_micro_deadline",
       description = "Echeance de securite par micro-etape pour la recherche reprenable (0 = globale historique, 1 = par tranche, C20)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
@@ -766,8 +766,8 @@ class OpexAIInfo extends AIInfo {
       name = "abandon_cooldown_days",
       description = "Delai de reprise en jours sur la memoire d'abandon (0 = permanent historique, >0 = cooldown lineaire avec backoff, docs/taches.md C33.3)",
       min_value = 0, max_value = 5000,
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      easy_value = 365, medium_value = 365, hard_value = 365,
+      custom_value = 365,
       step_size = 30,
       flags = 0
     });
@@ -778,8 +778,8 @@ class OpexAIInfo extends AIInfo {
     AddSetting({
       name = "abandon_gen_filter",
       description = "Filtrer les paires abandonnees a la generation plutot qu'a l'arbitrage (1 = filtre generation, 0 = arbitrage seul, docs/taches.md C22)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
@@ -1504,8 +1504,8 @@ Le mode route est donc reconfirme sur l arbre courant.
     AddSetting({
       name = "air_joined_stops",
       description = "C33.2 : Joined drive-through bus stops placed inside airport construction to expand airport catchment into the town (AAAHogEx piece stations): 1 = enabled, 0 = disabled (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
@@ -1621,8 +1621,8 @@ Le mode route est donc reconfirme sur l arbre courant.
     AddSetting({
       name = "portfolio_cache",
       description = "Incremental portfolio cache after build (docs/taches.md C36.1): 1 = reuse vivier and reselect, 0 = full rebuild (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
