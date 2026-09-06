@@ -24,8 +24,8 @@ AIR_FULL_LOAD <- false;
 /* Cache de sites d'aeroport par ville et type d'aeroport (C33.1) */
 AIR_SITE_CACHE_ENABLED <- true;
 AIR_SITE_CACHE <- {};
-/* C36.3 : Filtre d'emprise sans AITestMode avant la sonde (defaut 0, docs/taches.md S0 octanonagies). */
-AIR_CHEAP_SITE <- false;
+/* C36.3 : Filtre d'emprise sans AITestMode avant la sonde (defaut 1, banc 20x10). */
+AIR_CHEAP_SITE <- true;
 
 function OpexAirResetSiteCache()
 {

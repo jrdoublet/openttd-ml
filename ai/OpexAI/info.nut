@@ -1447,9 +1447,9 @@ Le mode route est donc reconfirme sur l arbre courant.
 
     AddSetting({
       name = "air_cheap_site",
-      description = "C36.3 cheap airport footprint filter (IsBuildableRectangle + water/river/coast + C4) before AITestMode: 1 = enabled, 0 = historical (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "C36.3 cheap airport footprint filter (IsBuildableRectangle + water/river/coast + C4) before AITestMode: 1 = enabled (default, adopted 20x10 docs/bench_c36_3_cheap_site_10y_20seeds.json: profit +27.4% t=3.68 14/6), 0 = historical",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
