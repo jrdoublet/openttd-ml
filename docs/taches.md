@@ -124,8 +124,12 @@ exactement le mécanisme que cette étape doit déjà relire.
   vérité du nombre construit. Ajouter un événement `DYNAMIC_BATCH` avec `action=continue|stop`,
   `reason`, `built`, `attempted`, `budget_before`, `budget_after` et `remaining`.
 
-  **Découpage recommandé :** (1) extraire un helper unique de capital mobilisable ; (2) extraire
-  du grand `for` une tentative qui retourne `built`, `pending`, `rejected` ou `no_candidate` ;
+  **Découpage recommandé :** (1) extraire un helper unique de capital mobilisable ; **fait le
+  2026-09-07 :** `OpexAvailableCapital()` centralise `caisse + emprunt disponible − réserve`,
+  borné à zéro, et remplace les cinq duplications de génération, re-sélection, cache et
+  rafraîchissement. Cette extraction est volontairement neutre : aucun réglage C38 n'est encore
+  lu et le batch reste unitaire. (2) extraire du grand `for` une tentative qui retourne `built`,
+  `pending`, `rejected` ou `no_candidate` ;
   (3) ajouter l'état C38 et le filtre/re-classement, défaut `0` ; (4) seulement ensuite écrire le
   banc. Ne pas mélanger C38 avec C39, A1 ou une modification du score : le contraste doit mesurer
   exclusivement la cadence de consommation d'un même vivier.

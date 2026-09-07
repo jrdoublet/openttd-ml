@@ -1177,12 +1177,7 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
   local road = ROAD_BUILD_ENABLED
       ? OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs) : OpexProjectEmptyRoad();
 
-  local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  local borrowable = REBORROW
-      ? AICompany.GetMaxLoanAmount() - AICompany.GetLoanAmount() : 0;
-  if (borrowable < 0) borrowable = 0;
-  local capitalBudget = cash + borrowable - OpexCashReserve();
-  if (capitalBudget < 0) capitalBudget = 0;
+  local capitalBudget = OpexAvailableCapital();
 
   /* C28 (docs/taches.md C28) : Remplacement du cliquet sans decroissance par un maximum glissant
    * sur les N derniers cycles.

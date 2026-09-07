@@ -269,6 +269,20 @@ function OpexCashReserve()
   return reserve;
 }
 
+/* Capital effectivement mobilisable par le portefeuille. Cette valeur doit toujours etre relue
+ * apres une depense : la caisse, le reliquat d'emprunt et la reserve peuvent tous avoir change.
+ * Centraliser la formule evite que la future passe dynamique (C38) ne diverge de la generation,
+ * du rafraichissement ou du cache incremental. */
+function OpexAvailableCapital()
+{
+  local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  local borrowable = REBORROW
+      ? AICompany.GetMaxLoanAmount() - AICompany.GetLoanAmount() : 0;
+  if (borrowable < 0) borrowable = 0;
+  local available = cash + borrowable - OpexCashReserve();
+  return available > 0 ? available : 0;
+}
+
 /* Plafond absolu du pathfinder. Initialisation de repli seulement : Start() le remplace UNE fois
  * par pathfinder_hard_cap_k. Plafonné à 10 000 (docs/taches.md A3, §0 undecies ter) pour
  * éliminer le gel de l'IA pendant des mois sur les recherches chères. */
@@ -1938,12 +1952,7 @@ function OpexAI::_tryBuildProjects(year)
    * portefeuille avec la nouvelle memoire d'abandon. */
   if (PORTFOLIO_FRESH_BUDGET && this._projects != null) {
     local initialBudget = this._projects.generationCapitalBudget;
-    local cashNow = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-    local borrowableNow = REBORROW
-        ? AICompany.GetMaxLoanAmount() - AICompany.GetLoanAmount() : 0;
-    if (borrowableNow < 0) borrowableNow = 0;
-    local budgetNow = cashNow + borrowableNow - OpexCashReserve();
-    if (budgetNow < 0) budgetNow = 0;
+    local budgetNow = OpexAvailableCapital();
     this._projects = OpexReselectProjects(this._projects, budgetNow);
     /* 30 caracteres au pire : FB|99|2147483647|2147483647|64. */
     OpexSign(AIMap.GetTileIndex(1, 1), "FB|" + (year % 100) + "|" + initialBudget
@@ -2547,12 +2556,7 @@ function OpexAI::_tryBuildProjects(year)
       this._resizeAirFleets(AIDate.GetYear(AIDate.GetCurrentDate()), fleetPlan);
     }
     if (PORTFOLIO_CACHE && this._projects != null && (("budgetCandidates" in this._projects) || ("candidateGroups" in this._projects))) {
-      local cashNow = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-      local borrowableNow = REBORROW
-          ? AICompany.GetMaxLoanAmount() - AICompany.GetLoanAmount() : 0;
-      if (borrowableNow < 0) borrowableNow = 0;
-      local budgetNow = cashNow + borrowableNow - OpexCashReserve();
-      if (budgetNow < 0) budgetNow = 0;
+      local budgetNow = OpexAvailableCapital();
 
       this._projects = OpexIncrementalUpdateProjects(this._projects, this._catalog, this._budget, this._lines, budgetNow, fleetPlan, this._abandonedPairs);
     } else {
@@ -4618,12 +4622,7 @@ function OpexAI::_runNextTask()
      * mobilisable a materiellement grandi depuis la derniere generation. */
     local stale = false;
     if (PORTFOLIO_V2 && this._projects != null) {
-      local cashNow = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-      local borrowableNow = REBORROW
-          ? AICompany.GetMaxLoanAmount() - AICompany.GetLoanAmount() : 0;
-      if (borrowableNow < 0) borrowableNow = 0;
-      local budgetNow = cashNow + borrowableNow - OpexCashReserve();
-      if (budgetNow < 0) budgetNow = 0;
+      local budgetNow = OpexAvailableCapital();
       local budgetThen = this._projects.capitalBudget;
       /* Seuil relatif ET absolu : on ne rejoue pas la generation pour quelques milliers de livres,
        * mais un doublement du capital mobilisable rouvre le vivier. */
@@ -4729,12 +4728,7 @@ function OpexAI::_runNextTask()
         local fleetPlan = [];
         this._resizeAirFleets(year, fleetPlan);
         if (fleetPlan.len() > 0) {
-          local cashNow = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-          local borrowableNow = REBORROW
-              ? AICompany.GetMaxLoanAmount() - AICompany.GetLoanAmount() : 0;
-          if (borrowableNow < 0) borrowableNow = 0;
-          local budgetNow = cashNow + borrowableNow - OpexCashReserve();
-          if (budgetNow < 0) budgetNow = 0;
+          local budgetNow = OpexAvailableCapital();
           this._projects = OpexIncrementalUpdateProjects(this._projects, this._catalog, this._budget, this._lines, budgetNow, fleetPlan, this._abandonedPairs);
           this._ranked = this._projects.rail;
         }
