@@ -1111,7 +1111,7 @@ function OpexAI::_tryBuildAir(year)
     OpexSign(anchor, "OA|" + year + "|" + plan.distance + "|" + planOps + "|" + result.reason);
     if (result.error != 0) OpexSign(anchor, "OE|A|" + result.error);
     if (AIR_COST_PROBE) {
-      OpexSign(anchor, "AC|" + this._nextLineId + "|" + (("capital" in plan) ? plan.capital : 0) + "|"
+      OpexSign(anchor, "AC|" + this._nextLineId + "|" + result.plannedCapital + "|"
                              + result.actualCost + "|"
                              + (("planes" in plan) ? plan.planes : 1) + "|"
                              + (result.ok ? result.vehicles.len() : 0));
@@ -1144,6 +1144,9 @@ function OpexAI::_tryBuildAir(year)
       planeCapacity = plan.plane.capacity,
       sharedAirportA = ("reuseA" in plan) && plan.reuseA,
       hubRoutesAtBuild = ("hubRoutes" in plan) ? plan.hubRoutes : 0,
+      joinedStopsA = result.joinedStopsA, joinedStopsB = result.joinedStopsB,
+      joinedMonthlyPax = result.joinedMonthlyPax, joinedStopCost = result.joinedStopCost,
+      actualCapital = plan.capital,
       iterations = 0, trains = result.vehicles.len(), distance = plan.distance, year = year,
       buildDate = AIDate.GetCurrentDate(),
       mode = "air", vehicle = result.vehicle, vehicles = result.vehicles,
@@ -2084,7 +2087,7 @@ function OpexAI::_tryBuildProjects(year)
       OpexSign(anchor, "OA|" + year + "|" + plan.distance + "|" + planOps + "|" + result.reason);
       if (result.error != 0) OpexSign(anchor, "OE|A|" + result.error);
       if (AIR_COST_PROBE) {
-        OpexSign(anchor, "AC|" + this._nextLineId + "|" + (("capital" in plan) ? plan.capital : 0) + "|"
+        OpexSign(anchor, "AC|" + this._nextLineId + "|" + result.plannedCapital + "|"
                                + result.actualCost + "|"
                                + (("planes" in plan) ? plan.planes : 1) + "|"
                                + (result.ok ? result.vehicles.len() : 0));
@@ -2118,6 +2121,9 @@ function OpexAI::_tryBuildProjects(year)
           planeCapacity = plan.plane.capacity,
           sharedAirportA = ("reuseA" in plan) && plan.reuseA,
           hubRoutesAtBuild = ("hubRoutes" in plan) ? plan.hubRoutes : 0,
+          joinedStopsA = result.joinedStopsA, joinedStopsB = result.joinedStopsB,
+          joinedMonthlyPax = result.joinedMonthlyPax, joinedStopCost = result.joinedStopCost,
+          actualCapital = plan.capital,
           iterations = 0, trains = result.vehicles.len(), distance = plan.distance, year = year,
           buildDate = AIDate.GetCurrentDate(),
           mode = "air", vehicle = result.vehicle, vehicles = result.vehicles,
