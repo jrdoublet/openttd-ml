@@ -1644,6 +1644,9 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, join, cashReserve
       }
       local realCapital = realInfra + depotCost + vehicleCost;
       result.capital = realCapital;
+      /* G3 : le devis est une information economique, pas uniquement un garde de cash. */
+      OpexApplyRailActualCapital(candidate, realCapital);
+      plan.capital = candidate.capital;
     }
   }
 
@@ -1789,6 +1792,10 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, join, cashReserve
   result.wagonLength = trains.wagonLength;
   result.vehicles = trains.vehicles;
   result.actualCost = primaryCost + doubleCost + postPathCosts.GetCosts();
+  /* Les tuiles reellement payees (ponts, tunnels, demolitions, seconde voie) remplacent enfin
+   * le devis avant que main.nut n'inscrive les predictions de la ligne. */
+  OpexApplyRailActualCapital(candidate, result.actualCost);
+  result.capital = candidate.capital;
   result.stationA = planA.station_exit;
   result.stationB = planB.station_exit;
   result.depot = depot;

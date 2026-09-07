@@ -385,8 +385,35 @@ function OpexApplyRailEconomics(candidate, economics)
   candidate.runningAnnual = economics.runningAnnual;
   candidate.amortAnnual = economics.amortAnnual;
   candidate.capital = economics.capital;
+  candidate.vehicleCost = economics.vehicleCost;
+  candidate.immobilise = economics.immobilise;
   candidate.roi = economics.roi;
   candidate.profitAnnual = economics.profitAnnual;
+}
+
+/* G3 : le devis AITestMode et le cout finalement debite ne doivent pas seulement proteger la
+ * caisse. Ils remplacent aussi le capital d'infrastructure du candidat, donc son amortissement,
+ * profit et ROI. La cinematique (distance A* / capacite) a deja ete recalculee par
+ * OpexLineEconomics ; seul son cout d'infrastructure est ici reconcilie avec la carte reelle.
+ * `actualCapital` est le cout total, vehicules inclus. */
+function OpexApplyRailActualCapital(candidate, actualCapital)
+{
+  if (candidate == null || actualCapital <= 0 || candidate.capital <= 0) return;
+  /* Un remboursement de demolition ne peut pas rendre les locomotives gratuites dans le modele. */
+  local vehicleFloor = ("vehicleCost" in candidate && candidate.vehicleCost > 0)
+      ? candidate.vehicleCost : 0;
+  if (actualCapital < vehicleFloor) actualCapital = vehicleFloor;
+  local previousCapital = candidate.capital;
+  local previousAmort = candidate.amortAnnual;
+  local infrastructureDelta = actualCapital - previousCapital;
+  candidate.capital = actualCapital;
+  candidate.amortAnnual = previousAmort
+      + ((infrastructureDelta * INFRA_AMORT_PCT / 100) / INFRA_LIFE_YEARS);
+  candidate.profitAnnual = candidate.revenueAnnual - candidate.runningAnnual - candidate.amortAnnual;
+  local immobilise = ("immobilise" in candidate) ? candidate.immobilise : 0;
+  local totalCapital = candidate.capital + immobilise;
+  candidate.roi = (candidate.profitAnnual > 0 && totalCapital > 0)
+      ? (candidate.profitAnnual * 1000) / totalCapital : 0;
 }
 
 /* Recalibre l'economie d'un candidat routier apres decouverte des sites d'arret reels et du trace
