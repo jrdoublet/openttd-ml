@@ -2310,6 +2310,200 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
 }
 
 
+/* C38 etape 2 : tentative synchrone route, y compris les gardes feeder et le siting vivant. */
+function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor, yy)
+{
+  if (project == null) return { outcome = "no_candidate", discards = passDiscards };
+  local i = rank;
+      if (!ROAD_BUILD_ENABLED || this._catalog.roadType < 0) {
+        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = project.src, dst = project.dst, reason = "road_disabled", extra = "" });
+        return { outcome = "rejected", discards = passDiscards };
+      }
+      local candidate = project.payload;
+      local isFeeder = ("isFeeder" in candidate) && candidate.isFeeder;
+      if (candidate.kind == "pax") {
+        local alreadyServed = false;
+        if (FEEDER_UNLOCK && isFeeder) {
+          local maxFeeders = 1;
+          local isHubTown = ("isHubTown" in candidate) ? candidate.isHubTown : false;
+          if (isHubTown && FEEDER_TOWN_COVERAGE) {
+            local tId = ("srcTown" in candidate && candidate.srcTown >= 0) ? candidate.srcTown : AITile.GetClosestTown(candidate.src);
+            local houses = AITown.IsValidTown(tId) ? AITown.GetHouseCount(tId) : 0;
+            if (houses <= 0 && AITown.IsValidTown(tId)) houses = AITown.GetPopulation(tId) / 25;
+            maxFeeders = OpexCeilDiv(houses, ROAD_STOP_CATCHMENT_HOUSES);
+            if (maxFeeders > 4) maxFeeders = 4;
+            if (maxFeeders < 1) maxFeeders = 1;
+          }
+          local currentCount = OpexTownFeederCount(this._lines, candidate.src, candidate.hubStationId);
+          local slot = ("feederSlot" in candidate) ? candidate.feederSlot : 0;
+          local yearsElapsed = (this._startYear >= 0) ? (year - this._startYear) : 0;
+          if (currentCount >= maxFeeders || (slot >= 1 && yearsElapsed < 2)) {
+            alreadyServed = true;
+          }
+        } else {
+          alreadyServed = OpexRoadPairServed(this._lines, candidate.src, candidate.dst);
+        }
+        if (alreadyServed) {
+          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "pair_already_served", extra = "" });
+          local abandonedKey = OpexAbandonedPairKey(candidate);
+          this._markPairAbandoned(abandonedKey);
+          return { outcome = "rejected", discards = passDiscards };
+        }
+        if (OpexTownRoadLineCount(this._lines, candidate.src) >= 4) {
+          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "town_road_line_cap", extra = "" });
+          return { outcome = "rejected", discards = passDiscards };
+        }
+        if (!isFeeder && OpexTownRoadLineCount(this._lines, candidate.dst) >= 4) {
+          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "town_road_line_cap", extra = "" });
+          return { outcome = "rejected", discards = passDiscards };
+        }
+      } else {
+        if (OpexOriginServed(this._lines, candidate.src, true)) {
+          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "src_origin_served", extra = "" });
+          return { outcome = "rejected", discards = passDiscards };
+        }
+        if (OpexOriginServed(this._lines, candidate.dst, true)) {
+          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "dst_origin_served", extra = "" });
+          return { outcome = "rejected", discards = passDiscards };
+        }
+      }
+      local abandonedKey = OpexAbandonedPairKey(candidate);
+      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && (abandonedKey in this._abandonedPairs)) {
+        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "abandoned_pair", extra = "" });
+        return { outcome = "rejected", discards = passDiscards };
+      }
+
+      local need = candidate.capital + OpexCashReserve() + ROAD_CAPITAL_MARGIN;
+      local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+      if (money < need && REBORROW) money = OpexTryReborrow(need, money);
+      if (money < need) {
+        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
+        return { outcome = "rejected", discards = passDiscards };
+      }
+
+      OpexSign(anchor, "IP|" + yy + "|R|" + project.budgetScore + "|" + project.opcodeScore);
+
+      this._budget.begin();
+      local planning = OpexRoadPlanFor(this._catalog, candidate);
+      local planOps = this._budget.end("build_road_plans");
+      local plan = planning.plan;
+      local idx = this._nextLineId;
+      if (plan == null) {
+        if (DECISION_LOG) {
+          OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=road src=" + candidate.src + " dst=" + candidate.dst + " reason=plan_failed detail=" + planning.reason);
+        }
+        if (ABANDON_MEMORY) this._markPairAbandoned(abandonedKey);
+        OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|" + planning.reason + "|0");
+        OpexSign(anchor, "RB|" + yy + "|" + idx + "|1|" + planOps + "|0");
+        return { outcome = "rejected", discards = passDiscards };
+      }
+      local actualDist = AIMap.DistanceManhattan(plan.stopA.tile, plan.stopB.tile);
+      if (actualDist < 1) actualDist = 1;
+      local economics = OpexRoadLineEconomics(this._catalog, candidate.cargo, actualDist,
+                                              candidate.monthly, candidate.engine, candidate.kind,
+                                              plan.routeDistance);
+      if (economics == null || (!isFeeder && economics.profitAnnual <= 0)) {
+        if (DECISION_LOG) {
+          OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=road src=" + candidate.src + " dst=" + candidate.dst + " reason=unprofitable_after_siting");
+        }
+        if (ABANDON_MEMORY) this._markPairAbandoned(abandonedKey);
+        OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|ECON|0");
+        return { outcome = "rejected", discards = passDiscards };
+      }
+      local netProfit = ("networkProfit" in candidate) ? candidate.networkProfit : 0;
+      local netRev = ("networkRevenue" in candidate) ? candidate.networkRevenue : 0;
+      OpexApplyRoadEconomics(candidate, economics, actualDist);
+      if (netProfit > 0) {
+        candidate.profitAnnual += netProfit;
+        candidate.revenueAnnual += netRev;
+        if (candidate.capital > 0) {
+          candidate.roi = (candidate.profitAnnual * 1000) / candidate.capital;
+        }
+      }
+      if (TREE_PLANTING) {
+        if (candidate.srcTown >= 0) OpexBoostTownRating(candidate.srcTown, 700, 35);
+        if (candidate.dstTown >= 0) OpexBoostTownRating(candidate.dstTown, 700, 35);
+      }
+      local result = OpexBuildRoadRoute(this._catalog, this._budget, plan, candidate);
+      OpexSign(anchor, "RB|" + yy + "|" + idx + "|1|" + planOps + "|" + result.opcodes);
+      if (!result.ok) {
+        if (DECISION_LOG) {
+          OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=road src=" + candidate.src + " dst=" + candidate.dst + " reason=build_failed detail=" + result.reason + " error=" + result.error);
+        }
+        if (ABANDON_MEMORY) this._markPairAbandoned(abandonedKey);
+        OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|" + result.reason + "|" + result.error);
+        return { outcome = "rejected", discards = passDiscards };
+      }
+
+      if (DECISION_LOG) {
+        foreach (d in passDiscards) {
+          OpexDecide("PROJECT_DISCARD", "rank=" + d.rank + " mode=" + d.mode + " src=" + d.src + " dst=" + d.dst + " reason=" + d.reason + (d.extra != "" ? " " + d.extra : ""));
+        }
+        passDiscards = [];
+        local cargoStr = AICargo.GetCargoLabel(candidate.cargo);
+        OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=road kind=" + candidate.kind + " cargo=" + cargoStr + " src=" + candidate.src + " dst=" + candidate.dst + " dist=" + candidate.distance + " cost=" + candidate.capital + " profit=" + candidate.profitAnnual + " roi=" + candidate.roi);
+        OpexDecide("ROAD_BUILD", "line=" + idx + " src=" + candidate.src + " dst=" + candidate.dst + " cargo=" + cargoStr + " dist=" + candidate.distance + " profit=" + candidate.profitAnnual + " cost=" + result.cost + " vehicles=" + result.vehicles.len());
+      }
+
+      OpexSign(anchor, "OF|" + idx + "|" + candidate.revenueAnnual);
+      OpexSign(anchor, "OJ|" + idx + "|" + candidate.runningAnnual);
+      OpexSign(anchor, "OK|" + idx + "|" + candidate.amortAnnual);
+      OpexSign(anchor, "OQ|" + idx + "|" + candidate.carried + "|" + candidate.trains);
+      OpexSign(anchor, "OT|" + idx + "|" + candidate.oneWayDays + "|" + candidate.distance);
+      OpexSign(anchor, "PK|" + idx + "|" + (candidate.kind == "pax" ? "P" : "F")
+                               + "|" + candidate.monthly);
+      OpexSign(anchor, "PC|" + idx + "|" + AICargo.GetCargoLabel(candidate.cargo));
+      OpexSign(anchor, "PM|" + idx + "|R|" + candidate.distance + "|"
+                               + AICargo.GetCargoLabel(candidate.cargo));
+      OpexSign(anchor, "RC|" + yy + "|" + idx + "|1|" + result.cost
+                               + "|" + result.vehicles.len());
+      /* Un feeder est une ligne routiere de RABATTAGE vers un hub rail ou aerien
+       * (candidates.nut:1156), avec ordre OF_TRANSFER au hub. Rien ne le distinguait
+       * d'une liaison ville-a-ville dans la telemetrie : impossible de dire si un seul avait
+       * jamais ete bati. Un panneau par feeder, donc aucun cout quand il n'y en a pas. */
+      if (("isFeeder" in candidate) && candidate.isFeeder) {
+        OpexSign(anchor, "FE|" + idx + "|"
+                                 + ((("hubMode" in candidate) && candidate.hubMode == "air") ? "A" : "T")
+                                 + "|" + ((("joinedHub" in result) && result.joinedHub) ? 1 : 0));
+      }
+      if (ROAD_MULTISTOP) {
+        OpexSign(anchor, "RM|" + yy + "|" + idx + "|1|"
+                                 + result.nStopsA + "|" + result.nStopsB + "|"
+                                 + result.vehicles.len());
+      }
+      this._lines.append({
+        stationA = result.stopA, stationB = result.stopB,
+        originA = candidate.src, originB = candidate.dst,
+        cargo = candidate.cargo,
+        predicted = candidate.profitAnnual, iterations = candidate.iterations,
+        trains = result.vehicles.len(), distance = candidate.distance, year = year,
+        predRevenue = candidate.revenueAnnual, predRunning = candidate.runningAnnual,
+        predAmort = candidate.amortAnnual, predCarried = candidate.carried,
+        predTrains = candidate.trains, predOneWayDays = candidate.oneWayDays,
+        effectiveSpeed = candidate.effectiveSpeed,
+        catalogSpeed = candidate.engine.speed,
+        mode = "road", kind = candidate.kind, depot = result.depot,
+        nStopsA = result.nStopsA, nStopsB = result.nStopsB,
+        capacity = ("capacity" in result) ? result.capacity : 25,
+        srcIndustry = (candidate.kind == "freight" && candidate.srcTown < 0)
+                      ? AIIndustry.GetIndustryID(candidate.src) : -1,
+        dstIndustry = (candidate.kind == "freight" && candidate.dstTown < 0)
+                      ? AIIndustry.GetIndustryID(candidate.dst) : -1,
+        deadStreak = 0, scrapping = false, scrapVehicles = [],
+        isLowRatio = ("isLowRatio" in candidate) ? candidate.isLowRatio : false,
+        opcodeRatio = ("opcodeRatio" in candidate) ? candidate.opcodeRatio : -1,
+        purpose = (("isFeeder" in candidate) && candidate.isFeeder) ? "feeder" : "profit",
+        isFeeder = (("isFeeder" in candidate) && candidate.isFeeder),
+        hubStationId = (("hubStationId" in candidate) ? candidate.hubStationId : -1),
+        lineId = idx,
+      });
+      this._nextLineId++;
+      return { outcome = "built", discards = passDiscards };
+
+  return { outcome = "rejected", discards = passDiscards };
+}
+
+
 function OpexAI::_tryBuildProjects(year)
 {
   /* G4§1 : le drapeau peut etre pose entre deux passes par _consumeRailSearch.
@@ -2380,191 +2574,12 @@ function OpexAI::_tryBuildProjects(year)
         if (builtCount >= maxBatch) break;
       }
     } else if (mode == "road") {
-      if (!ROAD_BUILD_ENABLED || this._catalog.roadType < 0) {
-        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = project.src, dst = project.dst, reason = "road_disabled", extra = "" });
-        continue;
+      local attempt = this._tryBuildRoadProject(year, project, i, passDiscards, anchor, yy);
+      passDiscards = attempt.discards;
+      if (attempt.outcome == "built") {
+        builtCount++;
+        if (builtCount >= maxBatch) break;
       }
-      local candidate = project.payload;
-      local isFeeder = ("isFeeder" in candidate) && candidate.isFeeder;
-      if (candidate.kind == "pax") {
-        local alreadyServed = false;
-        if (FEEDER_UNLOCK && isFeeder) {
-          local maxFeeders = 1;
-          local isHubTown = ("isHubTown" in candidate) ? candidate.isHubTown : false;
-          if (isHubTown && FEEDER_TOWN_COVERAGE) {
-            local tId = ("srcTown" in candidate && candidate.srcTown >= 0) ? candidate.srcTown : AITile.GetClosestTown(candidate.src);
-            local houses = AITown.IsValidTown(tId) ? AITown.GetHouseCount(tId) : 0;
-            if (houses <= 0 && AITown.IsValidTown(tId)) houses = AITown.GetPopulation(tId) / 25;
-            maxFeeders = OpexCeilDiv(houses, ROAD_STOP_CATCHMENT_HOUSES);
-            if (maxFeeders > 4) maxFeeders = 4;
-            if (maxFeeders < 1) maxFeeders = 1;
-          }
-          local currentCount = OpexTownFeederCount(this._lines, candidate.src, candidate.hubStationId);
-          local slot = ("feederSlot" in candidate) ? candidate.feederSlot : 0;
-          local yearsElapsed = (this._startYear >= 0) ? (year - this._startYear) : 0;
-          if (currentCount >= maxFeeders || (slot >= 1 && yearsElapsed < 2)) {
-            alreadyServed = true;
-          }
-        } else {
-          alreadyServed = OpexRoadPairServed(this._lines, candidate.src, candidate.dst);
-        }
-        if (alreadyServed) {
-          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "pair_already_served", extra = "" });
-          local abandonedKey = OpexAbandonedPairKey(candidate);
-          this._markPairAbandoned(abandonedKey);
-          continue;
-        }
-        if (OpexTownRoadLineCount(this._lines, candidate.src) >= 4) {
-          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "town_road_line_cap", extra = "" });
-          continue;
-        }
-        if (!isFeeder && OpexTownRoadLineCount(this._lines, candidate.dst) >= 4) {
-          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "town_road_line_cap", extra = "" });
-          continue;
-        }
-      } else {
-        if (OpexOriginServed(this._lines, candidate.src, true)) {
-          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "src_origin_served", extra = "" });
-          continue;
-        }
-        if (OpexOriginServed(this._lines, candidate.dst, true)) {
-          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "dst_origin_served", extra = "" });
-          continue;
-        }
-      }
-      local abandonedKey = OpexAbandonedPairKey(candidate);
-      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && (abandonedKey in this._abandonedPairs)) {
-        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "abandoned_pair", extra = "" });
-        continue;
-      }
-
-      local need = candidate.capital + OpexCashReserve() + ROAD_CAPITAL_MARGIN;
-      local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-      if (money < need && REBORROW) money = OpexTryReborrow(need, money);
-      if (money < need) {
-        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
-        continue;
-      }
-
-      OpexSign(anchor, "IP|" + yy + "|R|" + project.budgetScore + "|" + project.opcodeScore);
-
-      this._budget.begin();
-      local planning = OpexRoadPlanFor(this._catalog, candidate);
-      local planOps = this._budget.end("build_road_plans");
-      local plan = planning.plan;
-      local idx = this._nextLineId;
-      if (plan == null) {
-        if (DECISION_LOG) {
-          OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=road src=" + candidate.src + " dst=" + candidate.dst + " reason=plan_failed detail=" + planning.reason);
-        }
-        if (ABANDON_MEMORY) this._markPairAbandoned(abandonedKey);
-        OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|" + planning.reason + "|0");
-        OpexSign(anchor, "RB|" + yy + "|" + idx + "|1|" + planOps + "|0");
-        continue;
-      }
-      local actualDist = AIMap.DistanceManhattan(plan.stopA.tile, plan.stopB.tile);
-      if (actualDist < 1) actualDist = 1;
-      local economics = OpexRoadLineEconomics(this._catalog, candidate.cargo, actualDist,
-                                              candidate.monthly, candidate.engine, candidate.kind,
-                                              plan.routeDistance);
-      if (economics == null || (!isFeeder && economics.profitAnnual <= 0)) {
-        if (DECISION_LOG) {
-          OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=road src=" + candidate.src + " dst=" + candidate.dst + " reason=unprofitable_after_siting");
-        }
-        if (ABANDON_MEMORY) this._markPairAbandoned(abandonedKey);
-        OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|ECON|0");
-        continue;
-      }
-      local netProfit = ("networkProfit" in candidate) ? candidate.networkProfit : 0;
-      local netRev = ("networkRevenue" in candidate) ? candidate.networkRevenue : 0;
-      OpexApplyRoadEconomics(candidate, economics, actualDist);
-      if (netProfit > 0) {
-        candidate.profitAnnual += netProfit;
-        candidate.revenueAnnual += netRev;
-        if (candidate.capital > 0) {
-          candidate.roi = (candidate.profitAnnual * 1000) / candidate.capital;
-        }
-      }
-      if (TREE_PLANTING) {
-        if (candidate.srcTown >= 0) OpexBoostTownRating(candidate.srcTown, 700, 35);
-        if (candidate.dstTown >= 0) OpexBoostTownRating(candidate.dstTown, 700, 35);
-      }
-      local result = OpexBuildRoadRoute(this._catalog, this._budget, plan, candidate);
-      OpexSign(anchor, "RB|" + yy + "|" + idx + "|1|" + planOps + "|" + result.opcodes);
-      if (!result.ok) {
-        if (DECISION_LOG) {
-          OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=road src=" + candidate.src + " dst=" + candidate.dst + " reason=build_failed detail=" + result.reason + " error=" + result.error);
-        }
-        if (ABANDON_MEMORY) this._markPairAbandoned(abandonedKey);
-        OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|" + result.reason + "|" + result.error);
-        continue;
-      }
-
-      if (DECISION_LOG) {
-        foreach (d in passDiscards) {
-          OpexDecide("PROJECT_DISCARD", "rank=" + d.rank + " mode=" + d.mode + " src=" + d.src + " dst=" + d.dst + " reason=" + d.reason + (d.extra != "" ? " " + d.extra : ""));
-        }
-        passDiscards = [];
-        local cargoStr = AICargo.GetCargoLabel(candidate.cargo);
-        OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=road kind=" + candidate.kind + " cargo=" + cargoStr + " src=" + candidate.src + " dst=" + candidate.dst + " dist=" + candidate.distance + " cost=" + candidate.capital + " profit=" + candidate.profitAnnual + " roi=" + candidate.roi);
-        OpexDecide("ROAD_BUILD", "line=" + idx + " src=" + candidate.src + " dst=" + candidate.dst + " cargo=" + cargoStr + " dist=" + candidate.distance + " profit=" + candidate.profitAnnual + " cost=" + result.cost + " vehicles=" + result.vehicles.len());
-      }
-
-      OpexSign(anchor, "OF|" + idx + "|" + candidate.revenueAnnual);
-      OpexSign(anchor, "OJ|" + idx + "|" + candidate.runningAnnual);
-      OpexSign(anchor, "OK|" + idx + "|" + candidate.amortAnnual);
-      OpexSign(anchor, "OQ|" + idx + "|" + candidate.carried + "|" + candidate.trains);
-      OpexSign(anchor, "OT|" + idx + "|" + candidate.oneWayDays + "|" + candidate.distance);
-      OpexSign(anchor, "PK|" + idx + "|" + (candidate.kind == "pax" ? "P" : "F")
-                               + "|" + candidate.monthly);
-      OpexSign(anchor, "PC|" + idx + "|" + AICargo.GetCargoLabel(candidate.cargo));
-      OpexSign(anchor, "PM|" + idx + "|R|" + candidate.distance + "|"
-                               + AICargo.GetCargoLabel(candidate.cargo));
-      OpexSign(anchor, "RC|" + yy + "|" + idx + "|1|" + result.cost
-                               + "|" + result.vehicles.len());
-      /* Un feeder est une ligne routiere de RABATTAGE vers un hub rail ou aerien
-       * (candidates.nut:1156), avec ordre OF_TRANSFER au hub. Rien ne le distinguait
-       * d'une liaison ville-a-ville dans la telemetrie : impossible de dire si un seul avait
-       * jamais ete bati. Un panneau par feeder, donc aucun cout quand il n'y en a pas. */
-      if (("isFeeder" in candidate) && candidate.isFeeder) {
-        OpexSign(anchor, "FE|" + idx + "|"
-                                 + ((("hubMode" in candidate) && candidate.hubMode == "air") ? "A" : "T")
-                                 + "|" + ((("joinedHub" in result) && result.joinedHub) ? 1 : 0));
-      }
-      if (ROAD_MULTISTOP) {
-        OpexSign(anchor, "RM|" + yy + "|" + idx + "|1|"
-                                 + result.nStopsA + "|" + result.nStopsB + "|"
-                                 + result.vehicles.len());
-      }
-      this._lines.append({
-        stationA = result.stopA, stationB = result.stopB,
-        originA = candidate.src, originB = candidate.dst,
-        cargo = candidate.cargo,
-        predicted = candidate.profitAnnual, iterations = candidate.iterations,
-        trains = result.vehicles.len(), distance = candidate.distance, year = year,
-        predRevenue = candidate.revenueAnnual, predRunning = candidate.runningAnnual,
-        predAmort = candidate.amortAnnual, predCarried = candidate.carried,
-        predTrains = candidate.trains, predOneWayDays = candidate.oneWayDays,
-        effectiveSpeed = candidate.effectiveSpeed,
-        catalogSpeed = candidate.engine.speed,
-        mode = "road", kind = candidate.kind, depot = result.depot,
-        nStopsA = result.nStopsA, nStopsB = result.nStopsB,
-        capacity = ("capacity" in result) ? result.capacity : 25,
-        srcIndustry = (candidate.kind == "freight" && candidate.srcTown < 0)
-                      ? AIIndustry.GetIndustryID(candidate.src) : -1,
-        dstIndustry = (candidate.kind == "freight" && candidate.dstTown < 0)
-                      ? AIIndustry.GetIndustryID(candidate.dst) : -1,
-        deadStreak = 0, scrapping = false, scrapVehicles = [],
-        isLowRatio = ("isLowRatio" in candidate) ? candidate.isLowRatio : false,
-        opcodeRatio = ("opcodeRatio" in candidate) ? candidate.opcodeRatio : -1,
-        purpose = (("isFeeder" in candidate) && candidate.isFeeder) ? "feeder" : "profit",
-        isFeeder = (("isFeeder" in candidate) && candidate.isFeeder),
-        hubStationId = (("hubStationId" in candidate) ? candidate.hubStationId : -1),
-        lineId = idx,
-      });
-      this._nextLineId++;
-      builtCount++;
-      if (builtCount >= maxBatch) break;
     } else if (mode == "rail") {
       local attempt = this._tryBuildRailProject(year, project, i, builtCount, passDiscards,
                                                  anchor, yy);

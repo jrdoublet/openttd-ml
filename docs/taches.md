@@ -132,8 +132,10 @@ exactement le mécanisme que cette étape doit déjà relire.
   `pending`, `rejected` ou `no_candidate` ; **premier sous-lot fait le 2026-09-07 :** le rail est
   sorti dans `_tryBuildRailProject()`. Son résultat explicite laisse le balayage traiter la
   suspension A* sans ambiguïté, et restitue aussi la liste de refus pour préserver le journal.
-  Les sous-lots eau, flotte et air sont aussi sortis dans leurs tentatives synchrones le
-  2026-09-07. La route reste à extraire avant de considérer l'étape 2 complète ;
+  Les sous-lots eau, flotte, air et route sont sortis dans leurs tentatives synchrones le
+  2026-09-07 : l'étape 2 est terminée. Le balayage ne possède plus les chantiers par mode ; il
+  consomme uniquement les résultats `built`, `pending`, `rejected` ou `no_candidate`, met à jour
+  le compteur et conserve l'ordre historique des refus dans le journal ;
   (3) ajouter l'état C38 et le filtre/re-classement, défaut `0` ; (4) seulement ensuite écrire le
   banc. Ne pas mélanger C38 avec C39, A1 ou une modification du score : le contraste doit mesurer
   exclusivement la cadence de consommation d'un même vivier.
