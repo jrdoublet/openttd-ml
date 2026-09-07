@@ -501,6 +501,56 @@ reste à trancher indépendamment.
   spécifier (comment une offre de subvention devient un candidat scoré, comment elle rivalise
   avec le vivier régulier sans lui voler son classement) avant tout banc.
 
+- 🔶 **C43 / E3 — Audit de toutes les constantes en dur, jamais fait.** Retrouvé le 2026-09-08 :
+  demandé le 2026-09-02, documenté en détail dans `journal_2026-09-02.md` §3 ter, référencé comme
+  item **E3** dans la table d'hygiène du même journal mais **jamais marqué ✅** contrairement à
+  ses voisins E1/E6/E10, et jamais synthétisé dans `taches.md` — même mécanisme de disparition
+  que `docs/cible.md` et C17/C42 ci-dessus.
+
+  **46 `const` dans `ai/OpexAI/`, contre 35 réglages exposés au banc — aucune revue systématique
+  jamais faite.** Chaque constante doit être classée en trois issues : **exposer** (décisionnelle,
+  le banc doit pouvoir la faire varier), **vérifier** (prétend traduire une règle du jeu, à
+  confronter au source), ou **étalonner** (posée à vue, jamais mesurée). ⚠️ **Ne pas toutes
+  exposer** — 46 réglages de plus, c'est 46 configurations mortes de plus, leçon déjà tirée de la
+  suppression de `tree_planting`/`preplan_queue` devenus inutiles.
+
+  **Preuve de priorité, accumulée le jour même** — six constantes révélées fausses ou inertes en
+  une seule revue : `MAX_ROAD_VEHICLES = 8` (son propre commentaire dit « = 2 est la traduction
+  directe de la règle du jeu ») ; `ROAD_SPEED_EFFICIENCY_PCT = 60` (justifiée contre une constante
+  rail supprimée depuis) ; `PROJECT_TOP_K = 64` (jette 81,6 % des candidats acceptés, mesuré) ;
+  `PROJECT_POOL_K = 128` (tronqué à 64 juste après : la moitié du vivier n'est jamais vue) ;
+  `TARGET_HEADWAY_DAYS = 7` (tombe exactement sur une frontière de palier de note) ; `maxBatch = 1`
+  (même pas une constante — un `local` — et c'est le plafond structurel de toute la croissance).
+
+  **4 familles.** Plafonds (14, dont `PROJECT_TOP_K`, `PATHFINDER_MAX_COST`, `CASH_RESERVE_MAX`) ;
+  planchers (13, dont `MIN_SEPARATION`, `ATTEMPT_FLOOR`, `CASH_RESERVE_MIN`) ; calibrations
+  économiques (6, dont `STATION_RATING_PCT`, `TARGET_HEADWAY_DAYS`, `INFRA_LIFE_YEARS`) ; coûts
+  d'opcodes (11, dont `PROJECT_RAIL_OPS_PER_ITERATION` — une erreur de dimension déjà avérée : les
+  itérations route facturées au tarif du pathfinder rail).
+
+  **Méthode proposée** (journal, non retouchée) : (1) instrumenter avant d'étalonner — compter
+  combien de fois chaque plafond/plancher mord réellement, c'est ainsi que `PROJECT_TOP_K` a été
+  confondu ; (2) confronter au source tout ce qui prétend traduire une règle du jeu ; (3) n'exposer
+  au banc que ce qui reste décisionnel après les deux étapes précédentes.
+
+  ✅ **Statut vérifié le 2026-09-08 : l'audit n'a jamais été fait.** Spot-check de 9 constantes de
+  la liste dans le code actuel : **8 sur 9 bit-à-bit identiques** à leur valeur du 2026-09-02
+  (`MAX_ROAD_VEHICLES`, `ROAD_SPEED_EFFICIENCY_PCT`, `PROJECT_TOP_K`, `PROJECT_POOL_K`,
+  `TARGET_HEADWAY_DAYS`, `MIN_SEPARATION`, `STATION_RATING_PCT`, `CASH_RESERVE_MAX/MIN`). Seule
+  `PROJECT_RAIL_OPS_PER_ITERATION` a bougé (2700 → 3105, recalibrée ailleurs), mais toujours pas
+  exposée ni documentée comme telle.
+
+  🔴 **Preuve fraîche que le coût de l'inaction est réel, pas théorique.** `PROJECT_TOP_K = 64` est
+  exactement la cause de la raison 1 de l'échec de C38 (post-mortem ci-dessus, 2026-09-07) :
+  `attemptLimit = PROJECT_TOP_K` a fait dégénérer le batch dynamique en balayage quasi exhaustif du
+  vivier (62 tentatives pour 4 constructions, graine 999). La même constante, le même défaut,
+  prédits par cet audit six jours avant qu'ils ne coûtent une régression mesurée de −36,0 % de
+  valeur. **C38 aurait pu être évité, ou mieux conçu dès le départ, si E3 avait été fait avant.**
+
+  Pas de code, pas de mesure au-delà du spot-check ci-dessus : reprendre la méthode proposée en
+  commençant par les constantes des familles 1 et 2 déjà connues pour mordre (`PROJECT_TOP_K`,
+  `PROJECT_POOL_K`, `MIN_SEPARATION`), avant d'attaquer les 40 restantes.
+
 ---
 
 ## Ordre des objectifs
