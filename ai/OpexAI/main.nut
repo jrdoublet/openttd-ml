@@ -642,6 +642,10 @@ class OpexAI extends AIController {
   _lastReportYear = -1;
   _lastAirFleetMonth = -1;
   _lastRepayMonth = -1;
+  /* G2 : une ouverture d'industrie ou fondation de ville rend le catalogue ET le
+   * portefeuille derive perimes. dueCycle = 0 ne suffit pas : catalog peut deja
+   * avoir tourne ce mois-ci et sortir par son garde de cadence. */
+  _portfolioInvalidated = false;
   _startYear = -1;
   _vehiclesToScrap = null;
   _activeSubsidies = null;
@@ -4484,6 +4488,7 @@ function OpexAI::_processEvents()
             if (this._catalog != null) {
               this._catalog._refreshIndustries();
             }
+            this._portfolioInvalidated = true;
             if (this._taskQueue != null) {
               foreach (t in this._taskQueue) {
                 if (t.name == "catalog" || t.name == "projects") t.dueCycle = 0;
@@ -4510,6 +4515,7 @@ function OpexAI::_processEvents()
             if (this._catalog != null) {
               this._catalog._refreshTowns();
             }
+            this._portfolioInvalidated = true;
             if (this._taskQueue != null) {
               foreach (t in this._taskQueue) {
                 if (t.name == "catalog" || t.name == "projects") t.dueCycle = 0;
@@ -4599,7 +4605,10 @@ function OpexAI::_runNextTask()
       if (budgetNow > budgetThen + PORTFOLIO_REFRESH_MIN_GAIN &&
           budgetNow > budgetThen * 2) stale = true;
     }
-    if (this._lastCatalogMonth == ym && this._projects != null && !stale) return false;
+    /* Une invalidation evenementielle prime toujours la cadence mensuelle et le seuil de
+     * tresorerie : le portefeuille est derive du catalogue, pas seulement du capital. */
+    if (this._lastCatalogMonth == ym && this._projects != null && !stale &&
+        !this._portfolioInvalidated) return false;
     this._lastCatalogMonth = ym;
     this._pruneAbandonedPairs(date);
     this._catalog.refresh(this._budget, year);
@@ -4614,6 +4623,7 @@ function OpexAI::_runNextTask()
       this._resizeAirFleets(AIDate.GetYear(AIDate.GetCurrentDate()), fleetPlan);
     }
     this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines, priorPeak, priorHistory, fleetPlan, this._abandonedPairs);
+    this._portfolioInvalidated = false;
     this._ranked = this._projects.rail;
     if (PORTFOLIO_LOG) {
       if (this._projects != null && this._projects.best != null && this._projects.best.len() > 0) {
@@ -4717,6 +4727,9 @@ function OpexAI::_runNextTask()
     return this._tryBuildFeeders(year);
   }
   if (task.name == "projects") {
+    /* Si l'evenement est arrive apres le passage catalog dans le cycle courant, attendre
+     * sa reconstruction plutot que de choisir une ligne dans le vivier devenu obsolete. */
+    if (this._portfolioInvalidated) return false;
     return this._tryBuildProjects(year);
   }
   if (task.name == "expand") {
