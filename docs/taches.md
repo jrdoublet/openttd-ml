@@ -437,6 +437,70 @@ reste à trancher indépendamment.
   mais le défaut est désormais `0` afin de privilégier le profit et de préserver le bassin aérien ;
   `1` reste disponible pour les prochaines mesures ciblées.
 
+- 🔴 **C41 — Scheduler opportuniste : découpage de toutes les tâches (catalogue, candidats,
+  pathfinding, portefeuille) en micro-tâches, avec « je n'ai pas de projet intéressant, je fais
+  autre chose ».** Idée retrouvée le 2026-09-08 : une architecture cible existe déjà pour ça,
+  `docs/cible.md` (2026-09-03), **jamais intégrée au backlog actif ni retouchée depuis** — c'est
+  pour ça qu'elle avait disparu de vue. Sa section 6 (« GÉNÉRATION D'INTENTIONS ») pose un
+  « canal de délestage », armé par une **tension relative** plutôt qu'un seuil absolu, et son
+  étape 6 (« EXÉCUTION INCRÉMENTALE ») pose la règle `while (GetOpsTillSuspend() > coût de la
+  micro-étape suivante) { avancer } sinon Sleep(1)`, avec l'exigence que **chaque micro-étape
+  porte sa propre échéance**, jamais une échéance globale posée à l'entrée — leçon tirée du rejet
+  mesuré deux fois de `rail_search_resumable` (−23,1 % puis −13,3 % de valeur, échéance globale
+  amputant la recherche au lieu de la redistribuer).
+
+  **Ce qui est déjà livré, plus étroit que l'idée générale :** `preplan_queue` (§9, fait le
+  2026-08-31) précalcule tracés A\*/quais/dépôts rail, mais seulement pendant les phases de
+  trésorerie faible (où 87 % des opcodes étaient dormants) — un cas particulier rail-only
+  déclenché par la caisse, pas un scheduler général catalogue/candidats/pathfinding.
+
+  **Ce qui est le complément direct, déjà backlogué et non fait :** C39 ci-dessus (détecter
+  *quand* rafraîchir chaque couche) répond à la moitié « quoi faire » ; C41 répond à la moitié
+  « avec le temps libéré, fais quoi d'autre ». Les deux devraient être spécifiés ensemble : un
+  signal de staleness par couche (C39) alimente naturellement la liste des micro-tâches
+  disponibles pour le canal de délestage (C41).
+
+  ⚠️ **`docs/cible.md` est partiellement périmé, à corriger avant toute reprise.** Son étape 1
+  (« vecteur de tension, instrumentation seule », 🔄 en cours au 2026-09-03) est devenue A1 →
+  `tension_scoring`/`shadow_pricing` (C35) → mesurée, puis **fermée stratégiquement le
+  2026-09-07** (pas par échec technique : refus de converger vers la doctrine `_IsRich`
+  d'AAAHogEx). L'étape 5 du document (« dénominateur composé, conditionné au résultat de
+  l'étape 1 ») est donc caduque telle quelle. Le reste du document (étapes 0, 2, 3, 4, 6, 7 et
+  les sections 5/8 de vérification API) n'est pas concerné par cette fermeture et reste
+  exploitable — mais relire `docs/cible.md` en entier avant de coder, pas seulement la section 6,
+  et vérifier au passage qu'aucune autre référence à la famille tension/prix d'ombre ne s'est
+  glissée ailleurs dans le document.
+
+  Pas de code, pas de mesure : à spécifier (quelles tâches sont éligibles au canal de délestage,
+  comment mesurer leur coût en opcodes, comment garantir qu'une micro-tâche interrompue reste
+  reprenable sans échéance globale) avant tout banc.
+
+- 🔴 **C42 — Reprendre C17 au-delà de la sonde : transformer les offres de subvention non
+  attribuées en candidats, pas seulement les mesurer.** Trouvé le 2026-09-08 en cherchant
+  pourquoi ce sujet avait disparu du backlog : il n'a pas disparu, il est resté **coincé à
+  mi-chemin**. `A7.3`/`C17` (`event_subsidy_probe`, `info.nut:162-169`, `main.nut:4634-4729`) est
+  **fait et marqué ✅ le 2026-09-02** (`journal_2026-09-02.md`) : écoute réelle par événement —
+  `AIEventSubsidyOffer`, `SubsidyOfferExpired`, `SubsidyAwarded`, `SubsidyExpired` — aucun
+  sondage de `AISubsidyList` en boucle, donc le push fonctionne bien comme prévu. Mais c'est une
+  **sonde en lecture seule**, réglage à `0` par défaut : elle mesure les offres et leur adéquation
+  au réseau/vivier existant, elle **ne génère et ne priorise aucun candidat**. Aucun banc de
+  valeur n'existe. C'est resté invisible dans `taches.md` parce que la règle du fichier retire les
+  tâches faites de la liste active — la sonde est sortie parce qu'elle est faite, mais l'étape
+  suivante n'a jamais été écrite comme item ouvert.
+
+  L'étape suivante existe déjà en spécification dans `docs/cible.md` §6 (« GÉNÉRATION
+  D'INTENTIONS », canal *opportuniste* : « subventions non attribuées, si temps restant >
+  chantier estimé ») et §5 (« Les subventions comme opportunité datée : leur grandeur limitante
+  est un temps avant fermeture »). Repli documenté si besoin d'une constante de secours :
+  `180 jours`, emprunté à AdmiralAI (`road/buslinemanager.nut:232-235`), mais à dériver du temps
+  de chantier estimé plutôt qu'à coder en dur.
+
+  ⚠️ **Rappel de contexte, toujours vrai** : AAAHogEx a **0 occurrence** d'`AISubsidy` sur
+  37 531 lignes — ce n'est pas un signal qu'il exploite, donc pas un terrain déjà occupé par
+  l'adversaire de référence. Pas de code, pas de mesure au-delà de la sonde existante : à
+  spécifier (comment une offre de subvention devient un candidat scoré, comment elle rivalise
+  avec le vivier régulier sans lui voler son classement) avant tout banc.
+
 ---
 
 ## Ordre des objectifs
