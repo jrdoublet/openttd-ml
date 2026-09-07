@@ -29,10 +29,12 @@ from bench_v2 import (
 )
 import bench_v2
 
-CONTROL_ARM = "OpexAI[HEAD_before_P1_P5]"
-TREATMENT_ARM = "OpexAI[P1_P5]"
 CONTROL_PACKAGE = "OpexAIHeadPstar"
 TREATMENT_PACKAGE = "OpexAIPstar"
+# OpenTTDLab restitue le nom interne de l'AI dans row["experiment"]["bench_arm"].
+# Les libelles de comparaison doivent donc etre ces noms, pas des alias decoratifs.
+CONTROL_ARM = CONTROL_PACKAGE
+TREATMENT_ARM = TREATMENT_PACKAGE
 
 
 def main():
