@@ -2182,6 +2182,134 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
 }
 
 
+/* C38 etape 2 : tentative synchrone air, incluant les gardes de site et de flotte. */
+function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscards, anchor, yy)
+{
+  if (project == null) return { outcome = "no_candidate", discards = passDiscards };
+  local i = rank;
+      local plan = project.payload;
+      if (builtCount > 0) {
+        if (!OpexAirBatchPlanStillLive(plan, this._lines)) {
+          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "batch_plan_dead", extra = "" });
+          return { outcome = "rejected", discards = passDiscards };
+        }
+        if (!OpexAirBatchSiteStillBuildable(plan.siteA, plan.airport, plan.plane,
+                                             ("reuseA" in plan) && plan.reuseA)) {
+          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "siteA_unbuildable", extra = "" });
+          return { outcome = "rejected", discards = passDiscards };
+        }
+        if (!OpexAirBatchSiteStillBuildable(plan.siteB, plan.airport, plan.plane,
+                                             ("reuseB" in plan) && plan.reuseB)) {
+          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "siteB_unbuildable", extra = "" });
+          return { outcome = "rejected", discards = passDiscards };
+        }
+      }
+      local maxPerYear = AIR_STARTER ? 30 : 5;
+      local maxTotal = AIR_STARTER ? 250 : 25;
+      local airLinesThisYear = 0;
+      local totalAirLines = 0;
+      foreach (line in this._lines) {
+        if (("mode" in line) && line.mode == "air") {
+          totalAirLines++;
+          if (line.year == year) airLinesThisYear++;
+        }
+      }
+      if (airLinesThisYear >= maxPerYear || totalAirLines >= maxTotal) {
+        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "line_cap_reached", extra = "lines_year=" + airLinesThisYear + " total=" + totalAirLines });
+        return { outcome = "rejected", discards = passDiscards };
+      }
+      local abandonedKey = "air|" + plan.siteA.town.tile + "|" + plan.siteB.town.tile;
+      if (ABANDON_MEMORY && (abandonedKey in this._abandonedPairs)) {
+        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "abandoned_pair", extra = "" });
+        return { outcome = "rejected", discards = passDiscards };
+      }
+
+      local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+      local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1) + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
+      local requiredMargin = AIR_MARGIN_V2
+          ? ((newAirports == 2) ? 15000 : (newAirports == 1 ? 6000 : 0))
+          : ((newAirports == 2) ? 30000 : (newAirports == 1 ? 12000 : 2000));
+      local capital = ("capital" in plan) ? plan.capital : (newAirports * plan.airport.price + plan.plane.price);
+      local need = capital + OpexCashReserve() + requiredMargin;
+      if (money < need && REBORROW) money = OpexTryReborrow(need, money);
+      if (money < need) {
+        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
+        return { outcome = "rejected", discards = passDiscards };
+      }
+
+      OpexSign(anchor, "IP|" + yy + "|A|" + project.budgetScore + "|" + project.opcodeScore);
+
+      if (TREE_PLANTING) {
+        OpexBoostTownRating(plan.siteA.town.id, 700, 35);
+        OpexBoostTownRating(plan.siteB.town.id, 700, 35);
+      }
+
+      local planOps = ("planningOpcodes" in project) ? project.planningOpcodes : 0;
+      local result = OpexBuildAirRoute(this._catalog, this._budget, plan);
+      OpexSign(anchor, "OA|" + year + "|" + plan.distance + "|" + planOps + "|" + result.reason);
+      if (result.error != 0) OpexSign(anchor, "OE|A|" + result.error);
+      if (AIR_COST_PROBE) {
+        OpexSign(anchor, "AC|" + this._nextLineId + "|" + result.plannedCapital + "|"
+                               + result.actualCost + "|"
+                               + (("planes" in plan) ? plan.planes : 1) + "|"
+                               + (result.ok ? result.vehicles.len() : 0));
+      }
+      if (!result.ok) {
+        if (DECISION_LOG) {
+          OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=air src=" + plan.siteA.town.tile + " dst=" + plan.siteB.town.tile + " reason=build_failed detail=" + result.reason + " error=" + result.error);
+        }
+        if (ABANDON_MEMORY) this._markPairAbandoned(abandonedKey);
+        return { outcome = "rejected", discards = passDiscards };
+      }
+      if (result.ok) {
+        if (DECISION_LOG) {
+          foreach (d in passDiscards) {
+            OpexDecide("PROJECT_DISCARD", "rank=" + d.rank + " mode=" + d.mode + " src=" + d.src + " dst=" + d.dst + " reason=" + d.reason + (d.extra != "" ? " " + d.extra : ""));
+          }
+          passDiscards = [];
+          local cargoStr = AICargo.GetCargoLabel(this._catalog.paxCargo);
+          OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=air cargo=" + cargoStr + " src=" + plan.siteA.town.tile + " dst=" + plan.siteB.town.tile + " dist=" + plan.distance + " cost=" + plan.capital + " profit=" + plan.economics.profitAnnual + " roi=" + project.roi);
+          OpexDecide("AIR_BUILD", "arm=" + plan.arm + " line=" + this._nextLineId + " src=" + plan.siteA.town.tile + " dst=" + plan.siteB.town.tile + " src_town=" + plan.siteA.town.id + " dst_town=" + plan.siteB.town.id + " dist=" + plan.distance + " profit=" + plan.economics.profitAnnual + " cost=" + plan.capital + " planes=" + result.vehicles.len());
+        }
+        this._airBuilt = true;
+        this._lines.append({
+          stationA = result.stationA, stationB = result.stationB,
+          originA = plan.siteA.town.tile, originB = plan.siteB.town.tile,
+          cargo = this._catalog.paxCargo,
+          predicted = ("economics" in plan && "profitAnnual" in plan.economics) ? plan.economics.profitAnnual : 0,
+          predRevenue = plan.economics.revenueAnnual, predRunning = plan.economics.runningAnnual,
+          predAmort = plan.economics.amortAnnual, predCarried = plan.economics.carried,
+          predTrains = plan.planes, predOneWayDays = plan.economics.oneWayDays,
+          planeCapacity = plan.plane.capacity,
+          sharedAirportA = ("reuseA" in plan) && plan.reuseA,
+          hubRoutesAtBuild = ("hubRoutes" in plan) ? plan.hubRoutes : 0,
+          joinedStopsA = result.joinedStopsA, joinedStopsB = result.joinedStopsB,
+          joinedMonthlyPax = result.joinedMonthlyPax, joinedStopCost = result.joinedStopCost,
+          actualCapital = plan.capital,
+          iterations = 0, trains = result.vehicles.len(), distance = plan.distance, year = year,
+          buildDate = AIDate.GetCurrentDate(),
+          mode = "air", vehicle = result.vehicle, vehicles = result.vehicles,
+          vehCount = result.vehicles.len(),
+          deadStreak = 0, scrapping = false, scrapVehicles = [],
+          lastLiveVehicles = result.vehicles.len(), suspectedCrashes = 0,
+          isLowRatio = false, opcodeRatio = -1,   /* plan, pas de candidat : sans objet */
+          lineId = this._nextLineId,
+        });
+        OpexSign(anchor, "AF|" + this._nextLineId + "|" + result.vehicles.len() + "|"
+                               + plan.economics.profitAnnual);
+        OpexSign(anchor, "AH|" + this._nextLineId + "|"
+                         + ((("reuseA" in plan) && plan.reuseA) ? 1 : 0) + "|"
+                         + plan.capital + "|" + (("hubRoutes" in plan) ? plan.hubRoutes : 0));
+        OpexSign(anchor, "PM|" + this._nextLineId + "|A|" + plan.distance + "|"
+                         + AICargo.GetCargoLabel(this._catalog.paxCargo));
+        this._nextLineId++;
+        return { outcome = "built", discards = passDiscards };
+      }
+
+  return { outcome = "rejected", discards = passDiscards };
+}
+
+
 function OpexAI::_tryBuildProjects(year)
 {
   /* G4§1 : le drapeau peut etre pose entre deux passes par _consumeRailSearch.
@@ -2244,122 +2372,10 @@ function OpexAI::_tryBuildProjects(year)
     }
 
     if (mode == "air") {
-      local plan = project.payload;
-      if (builtCount > 0) {
-        if (!OpexAirBatchPlanStillLive(plan, this._lines)) {
-          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "batch_plan_dead", extra = "" });
-          continue;
-        }
-        if (!OpexAirBatchSiteStillBuildable(plan.siteA, plan.airport, plan.plane,
-                                             ("reuseA" in plan) && plan.reuseA)) {
-          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "siteA_unbuildable", extra = "" });
-          continue;
-        }
-        if (!OpexAirBatchSiteStillBuildable(plan.siteB, plan.airport, plan.plane,
-                                             ("reuseB" in plan) && plan.reuseB)) {
-          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "siteB_unbuildable", extra = "" });
-          continue;
-        }
-      }
-      local maxPerYear = AIR_STARTER ? 30 : 5;
-      local maxTotal = AIR_STARTER ? 250 : 25;
-      local airLinesThisYear = 0;
-      local totalAirLines = 0;
-      foreach (line in this._lines) {
-        if (("mode" in line) && line.mode == "air") {
-          totalAirLines++;
-          if (line.year == year) airLinesThisYear++;
-        }
-      }
-      if (airLinesThisYear >= maxPerYear || totalAirLines >= maxTotal) {
-        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "line_cap_reached", extra = "lines_year=" + airLinesThisYear + " total=" + totalAirLines });
-        continue;
-      }
-      local abandonedKey = "air|" + plan.siteA.town.tile + "|" + plan.siteB.town.tile;
-      if (ABANDON_MEMORY && (abandonedKey in this._abandonedPairs)) {
-        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "abandoned_pair", extra = "" });
-        continue;
-      }
-
-      local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-      local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1) + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
-      local requiredMargin = AIR_MARGIN_V2
-          ? ((newAirports == 2) ? 15000 : (newAirports == 1 ? 6000 : 0))
-          : ((newAirports == 2) ? 30000 : (newAirports == 1 ? 12000 : 2000));
-      local capital = ("capital" in plan) ? plan.capital : (newAirports * plan.airport.price + plan.plane.price);
-      local need = capital + OpexCashReserve() + requiredMargin;
-      if (money < need && REBORROW) money = OpexTryReborrow(need, money);
-      if (money < need) {
-        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
-        continue;
-      }
-
-      OpexSign(anchor, "IP|" + yy + "|A|" + project.budgetScore + "|" + project.opcodeScore);
-
-      if (TREE_PLANTING) {
-        OpexBoostTownRating(plan.siteA.town.id, 700, 35);
-        OpexBoostTownRating(plan.siteB.town.id, 700, 35);
-      }
-
-      local planOps = ("planningOpcodes" in project) ? project.planningOpcodes : 0;
-      local result = OpexBuildAirRoute(this._catalog, this._budget, plan);
-      OpexSign(anchor, "OA|" + year + "|" + plan.distance + "|" + planOps + "|" + result.reason);
-      if (result.error != 0) OpexSign(anchor, "OE|A|" + result.error);
-      if (AIR_COST_PROBE) {
-        OpexSign(anchor, "AC|" + this._nextLineId + "|" + result.plannedCapital + "|"
-                               + result.actualCost + "|"
-                               + (("planes" in plan) ? plan.planes : 1) + "|"
-                               + (result.ok ? result.vehicles.len() : 0));
-      }
-      if (!result.ok) {
-        if (DECISION_LOG) {
-          OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=air src=" + plan.siteA.town.tile + " dst=" + plan.siteB.town.tile + " reason=build_failed detail=" + result.reason + " error=" + result.error);
-        }
-        if (ABANDON_MEMORY) this._markPairAbandoned(abandonedKey);
-        continue;
-      }
-      if (result.ok) {
-        if (DECISION_LOG) {
-          foreach (d in passDiscards) {
-            OpexDecide("PROJECT_DISCARD", "rank=" + d.rank + " mode=" + d.mode + " src=" + d.src + " dst=" + d.dst + " reason=" + d.reason + (d.extra != "" ? " " + d.extra : ""));
-          }
-          passDiscards = [];
-          local cargoStr = AICargo.GetCargoLabel(this._catalog.paxCargo);
-          OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=air cargo=" + cargoStr + " src=" + plan.siteA.town.tile + " dst=" + plan.siteB.town.tile + " dist=" + plan.distance + " cost=" + plan.capital + " profit=" + plan.economics.profitAnnual + " roi=" + project.roi);
-          OpexDecide("AIR_BUILD", "arm=" + plan.arm + " line=" + this._nextLineId + " src=" + plan.siteA.town.tile + " dst=" + plan.siteB.town.tile + " src_town=" + plan.siteA.town.id + " dst_town=" + plan.siteB.town.id + " dist=" + plan.distance + " profit=" + plan.economics.profitAnnual + " cost=" + plan.capital + " planes=" + result.vehicles.len());
-        }
-        this._airBuilt = true;
-        this._lines.append({
-          stationA = result.stationA, stationB = result.stationB,
-          originA = plan.siteA.town.tile, originB = plan.siteB.town.tile,
-          cargo = this._catalog.paxCargo,
-          predicted = ("economics" in plan && "profitAnnual" in plan.economics) ? plan.economics.profitAnnual : 0,
-          predRevenue = plan.economics.revenueAnnual, predRunning = plan.economics.runningAnnual,
-          predAmort = plan.economics.amortAnnual, predCarried = plan.economics.carried,
-          predTrains = plan.planes, predOneWayDays = plan.economics.oneWayDays,
-          planeCapacity = plan.plane.capacity,
-          sharedAirportA = ("reuseA" in plan) && plan.reuseA,
-          hubRoutesAtBuild = ("hubRoutes" in plan) ? plan.hubRoutes : 0,
-          joinedStopsA = result.joinedStopsA, joinedStopsB = result.joinedStopsB,
-          joinedMonthlyPax = result.joinedMonthlyPax, joinedStopCost = result.joinedStopCost,
-          actualCapital = plan.capital,
-          iterations = 0, trains = result.vehicles.len(), distance = plan.distance, year = year,
-          buildDate = AIDate.GetCurrentDate(),
-          mode = "air", vehicle = result.vehicle, vehicles = result.vehicles,
-          vehCount = result.vehicles.len(),
-          deadStreak = 0, scrapping = false, scrapVehicles = [],
-          lastLiveVehicles = result.vehicles.len(), suspectedCrashes = 0,
-          isLowRatio = false, opcodeRatio = -1,   /* plan, pas de candidat : sans objet */
-          lineId = this._nextLineId,
-        });
-        OpexSign(anchor, "AF|" + this._nextLineId + "|" + result.vehicles.len() + "|"
-                               + plan.economics.profitAnnual);
-        OpexSign(anchor, "AH|" + this._nextLineId + "|"
-                         + ((("reuseA" in plan) && plan.reuseA) ? 1 : 0) + "|"
-                         + plan.capital + "|" + (("hubRoutes" in plan) ? plan.hubRoutes : 0));
-        OpexSign(anchor, "PM|" + this._nextLineId + "|A|" + plan.distance + "|"
-                         + AICargo.GetCargoLabel(this._catalog.paxCargo));
-        this._nextLineId++;
+      local attempt = this._tryBuildAirProject(year, project, i, builtCount, passDiscards,
+                                                anchor, yy);
+      passDiscards = attempt.discards;
+      if (attempt.outcome == "built") {
         builtCount++;
         if (builtCount >= maxBatch) break;
       }
