@@ -359,9 +359,9 @@ _lastProjectScanMonth <- -1;
  * actif jusqu'a la lecture unique de abandon_memory dans Start(), comme les autres reglages de
  * decision qui ne changent pas pendant une partie. */
 ABANDON_MEMORY <- true;
-/* C33.3 : Cooldown en jours avant réessai d'une paire abandonnée (0 = infini/permanent). */
+/* C33.3 : Cooldown en jours avant réessai d'une paire abandonnée (defaut 365, adopte ; 0 = permanent). */
 ABANDON_COOLDOWN_DAYS <- 0;
-/* C22 : Filtrer les paires abandonnées dès la génération des candidats (défaut 0). */
+/* C22 : Filtrer les paires abandonnées dès la génération des candidats (defaut 1, adopte). */
 ABANDON_GEN_FILTER <- false;
 
 /* Raccordement de gare : repli actif jusqu'a la lecture unique de station_join dans Start().
@@ -936,7 +936,7 @@ function OpexAI::_markPairAbandoned(key)
   /* G4§1 : signaler qu'un abandon a eu lieu dans cette passe. _tryBuildProjects lit ce
    * drapeau pour declencher la reelection incrementale C36.1 apres un echec, sans
    * dependre de passDiscards qui est garde par DECISION_LOG (defaut 0). */
-  this._hadAbandonsThisPass = true;
+  this._hadAbandonsThisPass <- true;
   if (DECISION_LOG) {
     OpexDecide("ABANDON_PAIR", "key=" + key + " count=" + count + " cooldown=" + (ABANDON_COOLDOWN_DAYS * count));
   }
@@ -1911,7 +1911,7 @@ function OpexAI::_tryBuildMailFeeder(candidate, paxResult, year)
 function OpexAI::_tryBuildProjects(year)
 {
   /* G4§1 : drapeau pose par _markPairAbandoned, lu en fin de passe. */
-  this._hadAbandonsThisPass = false;
+  this._hadAbandonsThisPass <- false;
   if (PORTFOLIO_FRESH_BUDGET && this._projects != null) {
     local initialBudget = this._projects.generationCapitalBudget;
     local cashNow = AICompany.GetBankBalance(AICompany.COMPANY_SELF);

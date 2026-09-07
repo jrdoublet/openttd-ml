@@ -712,7 +712,7 @@ class OpexAIInfo extends AIInfo {
      * donc les decisions. */
     AddSetting({
       name = "rail_search_resumable",
-      description = "Resume rail A* across task-queue turns so other tasks run during a long search (docs/taches.md A4): 1 = sliced, 0 = blocking (default)",
+      description = "Resume rail A* across task-queue turns so other tasks run during a long search (docs/taches.md A4): 1 = sliced (default, adopted), 0 = blocking",
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       flags = AICONFIG_BOOLEAN
@@ -722,10 +722,10 @@ class OpexAIInfo extends AIInfo {
      * En mode rail_search_resumable=1, l'echeance historique etait posee UNE FOIS au demarrage
      * (RAIL_SEARCH_SAFETY_TICKS = 54020). Partagee avec les autres taches, elle expirait et
      * tuait la recherche en DEAD (-27,5 % de gares, §0 undecies sexies).
-     * Si 1, chaque micro-etape porte sa propre echeance de securite locale. Defaut 0. */
+     * Si 1, chaque micro-etape porte sa propre echeance de securite locale. Defaut 1 (adopte). */
     AddSetting({
       name = "rail_micro_deadline",
-      description = "Echeance de securite par micro-etape pour la recherche reprenable (0 = globale historique, 1 = par tranche, C20)",
+      description = "Echeance de securite par micro-etape pour la recherche reprenable (0 = globale historique, 1 = par tranche, C20, defaut adopte)",
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       flags = AICONFIG_BOOLEAN
@@ -761,10 +761,10 @@ class OpexAIInfo extends AIInfo {
 
     /* C33.3 : Delai de reprise sur la memoire d'abandon au lieu d'un bannissement definitif.
      * Si > 0, les paires abandonnees sont expirees apres (abandon_cooldown_days * echecs) jours.
-     * Defaut 0 (bannissement permanent historique). */
+     * Defaut 365 (adopte ; 0 = bannissement permanent historique). */
     AddSetting({
       name = "abandon_cooldown_days",
-      description = "Delai de reprise en jours sur la memoire d'abandon (0 = permanent historique, >0 = cooldown lineaire avec backoff, docs/taches.md C33.3)",
+      description = "Delai de reprise en jours sur la memoire d'abandon (365 = defaut adopte, 0 = permanent historique, >0 = cooldown lineaire avec backoff, docs/taches.md C33.3)",
       min_value = 0, max_value = 5000,
       easy_value = 365, medium_value = 365, hard_value = 365,
       custom_value = 365,
@@ -777,7 +777,7 @@ class OpexAIInfo extends AIInfo {
      * des projets viables (89 % des rejets vivier etaient des abandoned_pair, docs/taches.md C22). */
     AddSetting({
       name = "abandon_gen_filter",
-      description = "Filtrer les paires abandonnees a la generation plutot qu'a l'arbitrage (1 = filtre generation, 0 = arbitrage seul, docs/taches.md C22)",
+      description = "Filtrer les paires abandonnees a la generation plutot qu'a l'arbitrage (1 = filtre generation, defaut adopte; 0 = arbitrage seul, docs/taches.md C22)",
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       flags = AICONFIG_BOOLEAN
@@ -1503,7 +1503,7 @@ Le mode route est donc reconfirme sur l arbre courant.
 
     AddSetting({
       name = "air_joined_stops",
-      description = "C33.2 : Joined drive-through bus stops placed inside airport construction to expand airport catchment into the town (AAAHogEx piece stations): 1 = enabled, 0 = disabled (default)",
+      description = "C33.2 : Joined drive-through bus stops placed inside airport construction to expand airport catchment into the town (AAAHogEx piece stations): 1 = enabled (default, adopted), 0 = disabled",
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       flags = AICONFIG_BOOLEAN
@@ -1617,10 +1617,10 @@ Le mode route est donc reconfirme sur l arbre courant.
     /* C36.1 : Caching incremental du vivier post-chantier.
      * Apres une construction reussie, filtre et reelit les candidats deja decouverts en memoire
      * plutot que de relancer OpexBuildProjects de fond en comble (gain : 15 jours -> 0 jour).
-     * 1 = actif, 0 = regeneration complete historique (defaut). */
+     * 1 = actif (defaut, adopte), 0 = regeneration complete historique. */
     AddSetting({
       name = "portfolio_cache",
-      description = "Incremental portfolio cache after build (docs/taches.md C36.1): 1 = reuse vivier and reselect, 0 = full rebuild (default)",
+      description = "Incremental portfolio cache after build (docs/taches.md C36.1): 1 = reuse vivier and reselect (default, adopted), 0 = full rebuild",
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       flags = AICONFIG_BOOLEAN
