@@ -1476,6 +1476,24 @@ function OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search, join
   plan.planA = planA;
   plan.planB = planB;
 
+  /* Recalibrer avec la longueur effectivement trouvee AVANT de decider si une
+   * seconde voie est necessaire. Sinon un detour peut faire passer le besoin de
+   * une a deux rames apres que la topologie a ete figee : le constructeur ne
+   * dispose alors que du premier depot et ne livre qu'une rame. */
+  local routeDistance = 0;
+  for (local i = 1; i < tiles.len(); i++) {
+    routeDistance += AIMap.DistanceManhattan(tiles[i - 1], tiles[i]);
+  }
+  if (routeDistance > 0) {
+    local economics = OpexLineEconomics(catalog, candidate.cargo, candidate.distance,
+                                        candidate.monthly, candidate.kind, plan.length,
+                                        routeDistance);
+    if (economics != null) {
+      plan.capital = economics.capital;
+      OpexApplyRailEconomics(candidate, economics);
+    }
+  }
+
   if (candidate.trains > 1) {
     local remain = plan.iterationBudget - plan.iterations;
     if (remain < ATTEMPT_FLOOR) remain = ATTEMPT_FLOOR;
@@ -1507,25 +1525,6 @@ function OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search, join
       plan.planB2 = dual.planB;
       plan.depot2 = dual.depot;
       plan.structures2 = dual.structures;
-    }
-  }
-
-  /* G5§1 : recalculer la cinematique avec la distance reelle du trace A*.
-   * candidate.distance est le Manhattan de la generation ; le trace peut devier
-   * (detours, ponts, tunnels). Le meme mecanisme que la route (routeDistance dans
-   * OpexRoadLineEconomics) est desormais applique au rail. */
-  local routeDistance = 0;
-  for (local i = 1; i < tiles.len(); i++) {
-    routeDistance += AIMap.DistanceManhattan(tiles[i - 1], tiles[i]);
-  }
-  if (routeDistance > candidate.distance) {
-    local economics = OpexLineEconomics(catalog, candidate.cargo, candidate.distance,
-                                        candidate.monthly, candidate.kind, plan.length,
-                                        routeDistance);
-    if (economics != null) {
-      plan.capital = economics.capital;
-      OpexApplyRailEconomics(candidate, economics);
-      plan.budgetInfo = OpexIterationBudget(candidate.profitAnnual, 0, plan.iterationBudget);
     }
   }
 
@@ -1793,21 +1792,13 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, join, cashReserve
   result.stationA = planA.station_exit;
   result.stationB = planB.station_exit;
   result.depot = depot;
-  /* fleet_fix : la copie reduite laissait tomber `station_exit` et `lead`. Or
-   * OpexUpgradeRailLineToDoubleTrack relit `original.station_exit` via OpexSameStationEnd : le
-   * passage en double voie etait donc GARANTI de planter des sa premiere execution -- ce qui n'est
-   * jamais arrive, le bloc rail_refleet etant lui-meme injoignable (docs/taches.md S0 nonies).
-   * Rendre le refleet atteignable sans ceci tue l'IA. Les champs ne sont ajoutes que sous
-   * fleet_fix, pour que le bras de controle du banc reste rigoureusement identique. */
-  if (FLEET_FIX) {
-    result.platformA = { anchor = planA.anchor, direction = planA.direction, step = planA.step,
-                         length = planA.length, station_exit = planA.station_exit, lead = planA.lead };
-    result.platformB = { anchor = planB.anchor, direction = planB.direction, step = planB.step,
-                         length = planB.length, station_exit = planB.station_exit, lead = planB.lead };
-  } else {
-    result.platformA = { anchor = planA.anchor, direction = planA.direction, step = planA.step, length = planA.length };
-    result.platformB = { anchor = planB.anchor, direction = planB.direction, step = planB.step, length = planB.length };
-  }
+  /* Le refleet est accessible avec les defauts livres : l'upgrade de seconde
+   * voie relit station_exit et lead via OpexSameStationEnd. Ces metadonnees sont
+   * donc un contrat de la ligne rail, pas une variante conditionnelle a fleet_fix. */
+  result.platformA = { anchor = planA.anchor, direction = planA.direction, step = planA.step,
+                       length = planA.length, station_exit = planA.station_exit, lead = planA.lead };
+  result.platformB = { anchor = planB.anchor, direction = planB.direction, step = planB.step,
+                       length = planB.length, station_exit = planB.station_exit, lead = planB.lead };
   result.doubleTrack <- (okD ? 1 : 0);
   if (okD && depot2 != null) {
     result.depot2 <- depot2;

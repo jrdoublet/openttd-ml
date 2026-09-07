@@ -106,6 +106,16 @@ exactement le mécanisme que cette étape doit déjà relire.
 
   Pas de mesure, pas de code : à spécifier (quel signal de staleness par couche) avant l'étape 3.
 
+- ✅ **C40 — Option de désactivation des nouvelles lignes bus passagers, mesurée.** Raison : elles peuvent
+  cannibaliser le bassin des aéroports, alors que le fret routier et le rabattement vers les hubs
+  restent complémentaires. Le réglage `road_pax_build` ne retire que les candidats
+  ville-à-ville de `OpexRoadPaxCandidates` (`0`), sans couper ni camions, ni feeders, ni lignes
+  existantes. Banc apparié 10 ans × 20 graines (`docs/bench_road_pax_build_10y_20seeds.json`) :
+  à `0`, valeur +2,53 % et profit trimestriel +3,26 %, mais seulement 13/20 et 12/20 graines,
+  respectivement ; score historique −1,73 % (10/20). Les écarts sont sous le seuil de détection,
+  mais le défaut est désormais `0` afin de privilégier le profit et de préserver le bassin aérien ;
+  `1` reste disponible pour les prochaines mesures ciblées.
+
 ---
 
 ## Ordre des objectifs

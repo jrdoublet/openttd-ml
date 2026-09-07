@@ -1068,10 +1068,29 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
     }
   }
 
-  /* 5. Selection et resolution du sac a dos sur le capital restant */
+  /* 5. Avancer le plafond glissant AVANT de filtrer le vivier : un budget qui
+   * remonte doit rendre ses projets accessibles dans cette meme reelection. */
+  local capitalCeiling = capitalBudget;
+  if ("capitalBudgetHistory" in projects && typeof(projects.capitalBudgetHistory) == "array") {
+    projects.capitalBudgetHistory.append(capitalBudget);
+    if (CAPITAL_CEILING_CYCLES > 0) {
+      while (projects.capitalBudgetHistory.len() > CAPITAL_CEILING_CYCLES) {
+        projects.capitalBudgetHistory.remove(0);
+      }
+    }
+    local maxVal = 0;
+    foreach (val in projects.capitalBudgetHistory) {
+      if (val > maxVal) maxVal = val;
+    }
+    projects.capitalBudgetPeak = maxVal;
+    capitalCeiling = maxVal;
+  } else if ("capitalBudgetPeak" in projects) {
+    capitalCeiling = projects.capitalBudgetPeak;
+  }
+
+  /* 6. Selection et resolution du sac a dos sur le capital restant */
   local funded = null;
   local byBudget = [];
-  local capitalCeiling = ("capitalBudgetPeak" in projects) ? projects.capitalBudgetPeak : capitalBudget;
   if (PORTFOLIO_V2) {
     local alternatives = [];
     foreach (key, list in newWinners) {
@@ -1130,25 +1149,6 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   }
 
   AILog.Info("[PORTFOLIO_CACHE] incremental: candidates=" + stats.modeCandidates + " od=" + stats.odProjects + " selected=" + stats.budgetSelected + " remaining=" + remaining);
-
-  /* G1§4 : Avancer la fenetre glissante de capitalCeiling (meme logique que
-   * OpexBuildProjects). Sans cela, le chemin incremental C36.1 gele le pic et
-   * l'historique entre deux reconstructions completes : un ancien pic conserve des
-   * projets inaccessibles au vivier, et un nouveau budget superieur n'elargit pas
-   * le plafond d'admission. */
-  if ("capitalBudgetHistory" in projects && typeof(projects.capitalBudgetHistory) == "array") {
-    projects.capitalBudgetHistory.append(capitalBudget);
-    if (CAPITAL_CEILING_CYCLES > 0) {
-      while (projects.capitalBudgetHistory.len() > CAPITAL_CEILING_CYCLES) {
-        projects.capitalBudgetHistory.remove(0);
-      }
-    }
-    local maxVal = 0;
-    foreach (val in projects.capitalBudgetHistory) {
-      if (val > maxVal) maxVal = val;
-    }
-    projects.capitalBudgetPeak = maxVal;
-  }
 
   projects.all = stats.odProjects;
   projects.best = byOpcodes;

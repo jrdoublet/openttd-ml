@@ -33,6 +33,13 @@ import("pathfinder.rail", "RailPathFinder", 1);
  * chemin d'opcodes reste alors EXACTEMENT celui des campagnes anterieures. */
 ROAD_BUILD_ENABLED <- true;
 
+/* Les bus ville-a-ville sont utiles dans la bande courte, mais peuvent prendre le bassin d'une
+ * liaison aerienne plus rentable. Ce drapeau ne coupe que cette famille de nouveaux candidats :
+ * fret routier, feeders vers les hubs et lignes deja construites restent actifs. Le defaut faux
+ * privilegie le profit des aeroports ; le banc peut reconstituer le bras bus avec
+ * road_pax_build = 1. */
+ROAD_PAX_BUILD_ENABLED <- false;
+
 /* Part du bassin de ville propre aux bus. 86 est le calibrage route adopte au banc.
  * Le reglage road_pax_catchment_pct vaut 0 pour reconstituer le repli rail a 22 % ; une valeur
  * positive ne touche que OpexRoadPaxCandidates, jamais le rail ni le fret. */
@@ -1913,8 +1920,9 @@ function OpexAI::_tryBuildMailFeeder(candidate, paxResult, year)
 
 function OpexAI::_tryBuildProjects(year)
 {
-  /* G4§1 : drapeau pose par _markPairAbandoned, lu en fin de passe. */
-  this._hadAbandonsThisPass = false;
+  /* G4§1 : le drapeau peut etre pose entre deux passes par _consumeRailSearch.
+   * Ne pas le remettre a zero ici : la passe suivante doit alors re-elire le
+   * portefeuille avec la nouvelle memoire d'abandon. */
   if (PORTFOLIO_FRESH_BUDGET && this._projects != null) {
     local initialBudget = this._projects.generationCapitalBudget;
     local cashNow = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
@@ -2415,7 +2423,9 @@ function OpexAI::_tryBuildProjects(year)
           if (builtCount > 0) break;
           return true;
         }
-        candidate.railPlan = start.plan;
+        /* Le candidat n'a pas encore cette cle dans le chemin qui termine sa
+         * recherche dans le meme tour : creation de slot Squirrel avec `<-`. */
+        candidate.railPlan <- start.plan;
       }
       local result = OpexBuildLine(this._catalog, this._budget, candidate, alternativeRatio, join,
                                    OpexCashReserve(), hardCap);
@@ -2560,6 +2570,8 @@ function OpexAI::_tryBuildProjects(year)
      * capitaux a 10 chiffres que le format IB admet deja, |B8 fait 30 caracteres, sous 31. */
     OpexSign(anchor, "IB|" + yy + "|" + this._projects.capitalBudget + "|"
              + this._projects.stats.selectedCapital + "|B" + builtCount);
+    /* L'abandon a maintenant ete consomme par la reelection/reconstruction. */
+    if (hadAbandons) this._hadAbandonsThisPass = false;
     return true;
   }
   return false;
@@ -4004,7 +4016,9 @@ function OpexAI::_continueRailSearch()
     return;
   }
   if (state.kind == "upgrade") {
-    state.search = slice;
+    /* `search` n'existe pas dans l'etat initial : en Squirrel, une nouvelle
+     * cle de table exige `<-`, sinon le premier upgrade leve une exception. */
+    state.search <- slice;
     state.pathfinder = null;
     state.phase = "build";
     return;
@@ -4760,6 +4774,7 @@ function OpexAI::Start()
   /* Lu ici comme les autres reglages de decision : catalog.refresh le consulte des le premier
    * cycle annuel, qui a lieu apres Start(). */
   ROAD_BUILD_ENABLED = AIController.GetSetting("road_mode") != 0;
+  ROAD_PAX_BUILD_ENABLED = AIController.GetSetting("road_pax_build") != 0;
   TOWN_GROWTH_ENABLED = AIController.GetSetting("town_growth") != 0;
   local roadPaxCatchment = AIController.GetSetting("road_pax_catchment_pct");
   if (roadPaxCatchment > 0) ROAD_PAX_CATCHMENT_SHARE_PCT = roadPaxCatchment;
@@ -4881,6 +4896,7 @@ function OpexAI::Start()
   if (DECISION_LOG) {
     OpexDecide("SETTINGS", "road_cheap_trace=" + ROAD_CHEAP_TRACE
                + " raw=" + AIController.GetSetting("road_cheap_trace")
+               + " road_pax_build=" + ROAD_PAX_BUILD_ENABLED
                + " road_pax_voirie=" + ROAD_PAX_VOIRIE
                + " road_pax_overlap=" + ROAD_PAX_OVERLAP);
   }

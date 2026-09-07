@@ -153,12 +153,12 @@ function OpexStationRatingForHeadway(headwayDays)
  * recherche de site, il vaut le quai reellement trouvable : wagons, locomotive, capital et profit
  * sont alors recalcules sur cette longueur, jamais sur le souhait initial. */
 /* G5§1 : routeDistance (optionnel) : longueur reelle du trace A*, pour recalibrage post-recherche.
- * Quand fourni et > distance, il remplace distance pour le temps de trajet, la vitesse et le
+ * Quand fourni et > 0, il remplace distance pour le temps de trajet, la vitesse et le
  * cout de voie. `distance` (Manhattan entre extremites) reste la distance TARIFAIRE, exactement
  * comme OpexRoadLineEconomics distingue deja les deux. */
 function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPlatformLength = 0, routeDistance = null)
 {
-  local travelDist = (routeDistance != null && routeDistance > distance) ? routeDistance : distance;
+  local travelDist = (routeDistance != null && routeDistance > 0) ? routeDistance : distance;
   if (!(cargo in catalog.wagonByCargo)) return null;
   if (!(cargo in catalog.locoByCargoWagons)) return null;
   local wagon = catalog.wagonByCargo[cargo];

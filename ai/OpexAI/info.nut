@@ -10,7 +10,7 @@ class OpexAIInfo extends AIInfo {
 
   /* Les reglages debug_signs et pathfinder_sleep_ticks existent pour NE PAS POLLUER une partie
    * partagee avec des joueurs humains (loan_repay_floor_k, pathfinder_hard_cap_k,
-   * abandon_memory, abandon_gen_filter, air_joined_stops, station_join, join_max_distance, join_place, origin_sitable, basin_share, reborrow, road_mode, road_pax_catchment_pct, road_refleet, road_multistop, marginal_fleet, astar_cost, probe_negative et pax_near, eux, sont des parametres de conception exposes au banc,
+   * abandon_memory, abandon_gen_filter, air_joined_stops, station_join, join_max_distance, join_place, origin_sitable, basin_share, reborrow, road_mode, road_pax_build, road_pax_catchment_pct, road_refleet, road_multistop, marginal_fleet, astar_cost, probe_negative et pax_near, eux, sont des parametres de conception exposes au banc,
    * pas des bridages).
    * Entre IA, la regle est l'inverse : jouer a armes egales,
    * donc ne jamais s'auto-handicaper face a un adversaire qui ne se bride pas. Un handicap non intentionnel
@@ -961,6 +961,19 @@ Le mode route est donc reconfirme sur l arbre courant.
       description = "Build short road lines (bus town-town, and truck freight industry-industry / industry-town): 1 = enabled, 0 = rail-only baseline",
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* Hypothese C40 : les bus directs ville-a-ville peuvent cannibaliser le bassin des
+     * aeroports. 0 conserve fret et rabattement, et ne touche ni l'aerien ni les lignes deja
+     * ouvertes ; il ne retire que la famille OpexRoadPaxCandidates du vivier des nouveaux
+     * projets. Le defaut 0 privilegie le profit des aeroports ; 1 reconstitue le bras bus du
+     * banc apparie. */
+    AddSetting({
+      name = "road_pax_build",
+      description = "Build new town-to-town passenger bus lines: 0 = disabled by default to preserve airport demand, 1 = enabled; freight and hub feeders stay enabled",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
 

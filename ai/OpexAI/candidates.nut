@@ -1663,7 +1663,10 @@ function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null)
   if (catalog.roadType < 0) return { all = 0, best = [], stats = stats, opcodes = 0 };
 
   budget.begin();
-  OpexRoadPaxCandidates(catalog, lines, all, stats, abandonedPairs);
+  /* L'option n'exclut que les nouvelles liaisons bus pax ville-a-ville. Les camions et les
+   * feeders restent dans le portefeuille : ils ne sont pas les concurrents des aeroports que
+   * l'experience cherche a isoler. */
+  if (ROAD_PAX_BUILD_ENABLED) OpexRoadPaxCandidates(catalog, lines, all, stats, abandonedPairs);
   OpexRoadFreightCandidates(catalog, lines, all, stats, abandonedPairs);
   /* C32 : les feeders reviennent a l'arbitrage. C29.3 les avait sortis d'ici pour deux motifs,
    * tous deux traites : la collision de cle OD (ils ont desormais leur propre espace de cles,
