@@ -140,6 +140,12 @@ exactement le mécanisme que cette étape doit déjà relire.
   banc. Ne pas mélanger C38 avec C39, A1 ou une modification du score : le contraste doit mesurer
   exclusivement la cadence de consommation d'un même vivier.
 
+  **Étape 3a — fondation (2026-09-07).** Le réglage booléen
+  `portfolio_dynamic_batch` est exposé, défaut `0`, lu une fois au démarrage et accepté par
+  `sweeps/bench_v2.py`. `_dynamicBatch` réserve l'état qui devra survivre à une suspension A*.
+  Le réglage est encore inerte : les smokes du défaut et du bras `=1` passent tous deux avant le
+  raccordement de la machine de batch.
+
   **Validation avant adoption :** diagnostic 5 graines × 6 ans avec `decision_log=1`, qui doit
   montrer des batches `built > 1`, zéro répétition d'identité et des motifs d'arrêt bornés ; puis
   banc apparié 20 graines × 10 ans, `portfolio_dynamic_batch=0` contre `1`, sur les défauts du

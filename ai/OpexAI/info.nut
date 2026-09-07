@@ -1627,6 +1627,16 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = 0
     });
 
+    /* C38 : ne pas augmenter arbitrairement portfolio_max_batch. Cette option relit le budget
+     * et reélit le vivier après chaque succès ; 0 garde exactement le passage unitaire livré. */
+    AddSetting({
+      name = "portfolio_dynamic_batch",
+      description = "C38: rebuild the affordable portfolio after each successful project: 1 = dynamic batch, 0 = historical single-project pass (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* C36.1 : Caching incremental du vivier post-chantier.
      * Apres une construction reussie, filtre et reelit les candidats deja decouverts en memoire
      * plutot que de relancer OpexBuildProjects de fond en comble (gain : 15 jours -> 0 jour).

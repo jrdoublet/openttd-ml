@@ -456,6 +456,10 @@ PORTFOLIO_V2 <- true;
  * portfolio_max_batch dans Start() : 1 garde le break apres le premier succes, donc le chemin
  * livre reste strictement le meme. */
 PORTFOLIO_MAX_BATCH <- 1;
+/* C38 : le batch dynamique re-classe le vivier apres chaque succes contre la caisse vivante.
+ * Il reste desactive jusqu'au diagnostic puis au banc apparie ; a 0 le chemin livre ne porte
+ * aucun etat de batch supplementaire. */
+PORTFOLIO_DYNAMIC_BATCH <- false;
 /* Gain absolu minimal avant de rejouer la generation : en dessous, le cout en opcodes ne vaut pas
  * la peine d'etre paye pour quelques milliers de livres. */
 const PORTFOLIO_REFRESH_MIN_GAIN = 50000;
@@ -641,6 +645,8 @@ class OpexAI extends AIController {
    * patron que _railExpansion : l'etat vit ici, il est repris en TETE de _runNextTask, et on
    * termine en remettant _railSearch = null. Le pathfinder lui-meme est dans state.pathfinder. */
   _railSearch = null;
+  /* C38 : etat transitoire d'un batch dynamique, necessaire si un A* rail rend la main. */
+  _dynamicBatch = null;
   /* Le diagnostic mono-bus (_roadDiag, _reportRoad, echantillon trimestriel RQ/RE/RI) a ete retire
    * le 2026-08-29 : il servait a trouver pourquoi UNE liaison ne chargeait rien, la reponse est
    * connue et documentee (builder_road.nut), et les lignes routieres rejoignent desormais _lines,
@@ -4904,6 +4910,7 @@ function OpexAI::Start()
   LOOP_BUDGET = AIController.GetSetting("loop_budget") != 0;
   PORTFOLIO_V2 = AIController.GetSetting("portfolio_v2") != 0;
   PORTFOLIO_MAX_BATCH = AIController.GetSetting("portfolio_max_batch");
+  PORTFOLIO_DYNAMIC_BATCH = AIController.GetSetting("portfolio_dynamic_batch") != 0;
   PORTFOLIO_FLOOR_PCT = AIController.GetSetting("portfolio_floor_pct");
   FLEET_FIX = AIController.GetSetting("fleet_fix") != 0;
   ECONOMY_FIX = AIController.GetSetting("economy_fix") != 0;
