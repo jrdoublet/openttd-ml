@@ -58,6 +58,56 @@ pauvres, leur aiguillage ne travaillerait pas chez nous » ne tient plus. Détai
 
 ---
 
+## 🆕 Candidats identifiés le 2026-09-06 (avant la revue de code / A1)
+
+Deux idées posées en discussion, pas encore codées ni mesurées. À trancher pendant l'étape 3 de
+`docs/revue_code_2026-09-06_plan.md` (portefeuille/sac à dos), pas avant : les deux touchent
+exactement le mécanisme que cette étape doit déjà relire.
+
+- 🔴 **C38 — Batch de portefeuille dynamique par filtre + re-classement, au lieu d'un plafond
+  fixe.** `portfolio_max_batch` (plafond fixe 1 à 8) a été **mesuré et rejeté**
+  (`docs/journal_2026-09-02.md` §0 vicies : −3,8 % valeur, **11/20 graines en nuls exacts**). Le
+  mécanisme identifié à l'époque : (a) un passage réussi régénère de toute façon tout le
+  portefeuille, donc empiler N projets dans un seul passage fusionne des cycles au lieu d'en
+  ajouter ; (b) le batch ne dépassait jamais 2 même à plafond 8, parce que `capitalBudget` est
+  figé à la génération et que la caisse était vidée entre deux passages par des tâches
+  concurrentes (l'aérien avait alors son propre `maxBatch` séparé, hors comptabilité du
+  portefeuille). Depuis, **C36.2 a fait disparaître la cause (b)** : `air_portfolio=1` (défaut
+  adopté) désactive la tâche aérienne dédiée et fait passer l'aérien par le **même** appel de
+  portefeuille (`main.nut:4631-4636`) — donc plus de tirage de caisse hors comptabilité de ce
+  côté-là. Reste la cause (a).
+
+  Proposition : remplacer la boucle `while (builtCount < maxBatch)` par une boucle qui, après
+  chaque construction réussie, (1) retire le projet construit et les candidats devenus invalides
+  (déjà fait par `OpexIncrementalCandidateStillValid`, cf. `portfolio_cache`), (2) recalcule la
+  trésorerie mobilisable réelle (`AICompany.GetBankBalance` + emprunt disponible, pas un
+  instantané figé), (3) re-classe le reste du vivier sur ce budget frais, et continue tant qu'un
+  projet finançable reste — pas de N fixe. C'est le pendant, à l'intérieur d'un seul passage, de
+  ce que `portfolio_cache` (C36.1) fait déjà entre deux passages.
+
+  ⚠️ **Ne pas reproposer un plafond fixe plus grand** — c'est exactement la piste rejetée. Mesurer
+  la nouvelle version contre le défaut actuel (combo intégral + `air_portfolio=1`), pas contre le
+  vieux banc de 2026-09-02 qui datait d'avant C36.2.
+
+- 🔴 **C39 — Détecter quand un rafraîchissement (catalogue, candidats, portefeuille, sac à dos)
+  est réellement nécessaire, plutôt que de coupler les quatre.** Aujourd'hui chaque couche a sa
+  propre règle de fraîcheur bricolée séparément : le catalogue se rafraîchit sur un cycle annuel
+  fixe (`catalog` task), les candidats sont regénérés en bloc ou filtrés un par un
+  (`OpexIncrementalCandidateStillValid` sous `portfolio_cache`), et le sac à dos est refait à
+  chaque appel de `OpexBuildProjects`/`OpexIncrementalUpdateProjects` sans distinguer « rien n'a
+  changé qui justifie un nouveau classement » de « une ligne vient de fermer, tout le paysage a
+  bougé ». `portfolio_cache` (C36.1) a montré que l'incrémental peut remplacer un rebuild complet
+  sans perte (cf. banc factoriel), mais seulement au niveau portefeuille. L'idée : généraliser le
+  principe aux 4 couches avec un critère de staleness propre à chacune (le catalogue n'a pas
+  besoin d'être refait à la même cadence que le sac à dos), pour ne payer le rafraîchissement
+  cher que là où il change réellement la décision. Rejoint
+  [[catalogue_churn_et_cout]] (rafraîchir richement, ne pas optimiser — donc le gain visé ici est
+  la *décision de déclenchement*, pas la réduction du coût d'un rafraîchissement individuel).
+
+  Pas de mesure, pas de code : à spécifier (quel signal de staleness par couche) avant l'étape 3.
+
+---
+
 ## Ordre des objectifs
 
 1. **Maximiser le profit attendu par opcode.**
