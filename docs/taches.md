@@ -324,6 +324,62 @@ reste à trancher indépendamment.
   améliore aussi le classement du chemin par défaut et ferme un 🟠 de la revue jamais corrigé.
   Mesurable seul.
 
+  **P1.1 — supprimer le facteur rail ×1,7 au profit d'un devis physique avant l'élection**
+  (prérequis de pérennisation de P1). Le facteur est aujourd'hui une valeur historique affirmée dans
+  le backlog et le journal du 2026-09-04, mais son artefact source
+  `docs/opexai_prix_rail_terrain` n'est plus présent : il ne doit donc pas devenir une constante de
+  modèle durable. Concevoir un passage en deux étages : (1) préfiltre économique bon marché ; (2)
+  pour les seuls rails encore compétitifs, calcul du tracé puis `AITestMode`/`AIAccounting` avant le
+  filtre de finançabilité et la réélection. Le devis obtenu devient `quotedCapital` du candidat et
+  remplace toute correction empirique. Mesurer séparément le coût d'opcodes, les ratios
+  devis-réel par mode et l'effet apparié de `capital_calibration=0` contre le devis physique ; ne
+  pas étendre le devis anticipé à tous les candidats sans borne d'opcodes. Tant que P1.1 n'est pas
+  fait, ×1,7 reste un repli temporaire rail-only, jamais une règle globale.
+
+  **P1.2 — proposition du 2026-09-08, non codée, non mesurée : rendre le « préfiltre économique bon
+  marché » de P1.1 sensible au terrain, par sonde en ligne quasi droite.** Aujourd'hui ce préfiltre
+  est `candidate.distance` (Manhattan/vol d'oiseau) + `RAIL_TERRAIN_FACTOR = 170` fixe
+  (`economy.nut:29,247`) — **aucune lecture de terrain**, vérifié : ni `AITile.GetHeight`, ni
+  `IsWaterTile/IsCoastTile`, ni aucun scan de corridor n'existe dans `ai/OpexAI` en amont du
+  pathfinding rail (`candidates.nut:98-121` n'utilise que la distance). L'idée : avant de lancer
+  P1.1 étape (2) (le devis physique complet, cher), parcourir le trajet direct ou quasi-direct
+  tuile par tuile avec `AITile.GetHeight`/`IsWaterTile`/`IsCoastTile` (coût négligeable, pas de
+  pathfinding, pas de mutation), classer chaque tuile plat/complexe (pente à franchir, eau, relief),
+  et dériver du **nombre de segments complexes** — pas de leur résolution — une estimation de coût
+  et d'itérations attendues bien meilleure que la distance seule, sans jamais faire tourner l'A\*
+  sur ces segments.
+
+  ⚠️ **Deux précédents à connaître avant de recoder ceci, tous deux montrent que le principe est
+  valide mais jamais allé jusqu'au bout :**
+  - [[ponts_tunnels_v3]] (décision 2026-08-27) : `estimated_cost`, un candidat pour ce rôle de
+    « proxy de terrain gratuit », a été écarté précisément parce qu'un signal calculé *avant* le
+    pathfinding **ne peut structurellement contenir aucune information de terrain** s'il n'inclut
+    pas lui-même une lecture de tuiles — sa linéarité en distance (R² = 0,995) l'a confirmé. Toute
+    version de P1.2 doit donc lire le terrain elle-même (via `AITile`), jamais dériver un proxy
+    d'une formule économique existante.
+  - Les features `corridor_water`/`corridor_height` de la campagne v3 (même mémoire) : échantillon
+    de tuiles le long du corridor direct, **AUC univariée 0,72–0,76** pour prédire `PATHLIM` (eau,
+    inconstructible, dénivelé) — donc un signal réel, pas nul. Mais jamais branché comme sonde
+    vivante dans une IA : utilisé hors-ligne, en ML, sur les lignes déjà construites de la campagne
+    v3 (`ai/TrainLineAI`, aujourd'hui gelée). **Jamais porté dans `ai/OpexAI`, jamais utilisé pour
+    piloter un classement ou un budget d'itérations en jeu.** C'est donc une piste neuve pour
+    OpexAI, pas une piste réfutée.
+
+  ⛔ **Doit répondre à l'objection [[pathfinder_budget_contrainte]] avant tout code.** « Le
+  pathfinder n'est pas le goulot » ; les trois voies de réduction du **coût d'exécution** du
+  pathfinder sont épuisées (relever le budget ❌, redistribuer ❌ A4 −23 %, segmenter 🟡 A5 nul).
+  P1.2 n'est **pas** une quatrième voie de ce type : son objectif n'est pas de rendre l'A\* moins
+  cher à exécuter, c'est de rendre le **classement pré-pathfinding** plus juste (P1/P1.1), pour que
+  moins de tentatives coûteuses soient lancées sur des candidats mal notés — un objectif différent,
+  mais qui doit être démontré au banc, pas supposé.
+
+  **Protocole suggéré, à écrire avant tout code de production :** (1) mesurer d'abord hors-ligne le
+  coût opcodes d'un scan `AITile` le long du Manhattan pour un échantillon de candidats déjà connus
+  (comparer au coût d'un A\* complet sur les mêmes) ; (2) vérifier que le nombre de segments
+  complexes corrèle avec l'écart devis-modèle réel mesuré par P1.1 mieux que la distance seule ;
+  seulement alors (3) le brancher comme étage 0 du préfiltre à deux étages de P1.1, jamais comme
+  remplacement du devis physique complet.
+
   **P2 — piloter la tentative, pas la construction.** La ressource rare n'est pas le nombre de
   constructions mais le nombre de **tentatives** (chaque tentative = planification payée). Deux
   gardes, et surtout **pas** un plafond fixe : (a) abandon du batch après *k* refus **consécutifs**
