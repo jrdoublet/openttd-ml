@@ -31,11 +31,14 @@ import bench_v2
 
 CONTROL_ARM = "OpexAI[HEAD_before_P1_P5]"
 TREATMENT_ARM = "OpexAI[P1_P5]"
+CONTROL_PACKAGE = "OpexAIHeadPstar"
+TREATMENT_PACKAGE = "OpexAIPstar"
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--control-dir", type=Path, required=True)
+    parser.add_argument("--treatment-dir", type=Path, required=True)
     parser.add_argument("--control-revision", required=True)
     parser.add_argument("--years", type=int, default=10)
     parser.add_argument("--seeds", nargs="+", type=int, default=list(SEEDS))
@@ -44,9 +47,11 @@ def main():
                         default=Path("docs/bench_pstar_10y_20seeds.json"))
     args = parser.parse_args()
     control_ai = args.control_dir / "ai" / "OpexAI"
-    current_ai = ROOT / "ai" / "OpexAI"
+    treatment_ai = args.treatment_dir / "ai" / "OpexAI"
     if not control_ai.is_dir():
         parser.error(f"AI témoin introuvable : {control_ai}")
+    if not treatment_ai.is_dir():
+        parser.error(f"AI traité introuvable : {treatment_ai}")
     if args.years <= 0 or args.max_workers <= 0:
         parser.error("--years et --max-workers doivent être strictement positifs")
     if len(set(args.seeds)) != len(args.seeds):
@@ -59,8 +64,8 @@ def main():
         bench_v2.CHECKPOINT_PATH.unlink()
     enable_savegame_cleanup()
     arms = {
-        CONTROL_ARM: local_folder(str(control_ai), "OpexAI", ()),
-        TREATMENT_ARM: local_folder(str(current_ai), "OpexAI", ()),
+        CONTROL_ARM: local_folder(str(control_ai), CONTROL_PACKAGE, ()),
+        TREATMENT_ARM: local_folder(str(treatment_ai), TREATMENT_PACKAGE, ()),
     }
     rows = list(run_experiments(
         openttd_version=OPENTTD_VERSION,
@@ -80,7 +85,7 @@ def main():
         "purpose": "P1-P5 against the Git HEAD immediately before their implementation",
         "control_revision": args.control_revision,
         "control_source": str(args.control_dir),
-        "treatment_source": str(current_ai),
+        "treatment_source": str(treatment_ai),
         "openttd_version": OPENTTD_VERSION,
         "opengfx_version": OPENGFX_VERSION,
         "years": args.years,
