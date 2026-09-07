@@ -635,6 +635,9 @@ class OpexAI extends AIController {
   _vehiclesToScrap = null;
   _activeSubsidies = null;
   _subsidyStats = null;
+  /* G4§1 : drapeau pose par _markPairAbandoned dans _tryBuildProjects, lu en fin de passe
+   * pour declencher la reelection incrementale sans dependre de DECISION_LOG. */
+  _hadAbandonsThisPass = false;
 
   constructor()
   {
@@ -936,7 +939,7 @@ function OpexAI::_markPairAbandoned(key)
   /* G4§1 : signaler qu'un abandon a eu lieu dans cette passe. _tryBuildProjects lit ce
    * drapeau pour declencher la reelection incrementale C36.1 apres un echec, sans
    * dependre de passDiscards qui est garde par DECISION_LOG (defaut 0). */
-  this._hadAbandonsThisPass <- true;
+  this._hadAbandonsThisPass = true;
   if (DECISION_LOG) {
     OpexDecide("ABANDON_PAIR", "key=" + key + " count=" + count + " cooldown=" + (ABANDON_COOLDOWN_DAYS * count));
   }
@@ -1911,7 +1914,7 @@ function OpexAI::_tryBuildMailFeeder(candidate, paxResult, year)
 function OpexAI::_tryBuildProjects(year)
 {
   /* G4§1 : drapeau pose par _markPairAbandoned, lu en fin de passe. */
-  this._hadAbandonsThisPass <- false;
+  this._hadAbandonsThisPass = false;
   if (PORTFOLIO_FRESH_BUDGET && this._projects != null) {
     local initialBudget = this._projects.generationCapitalBudget;
     local cashNow = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
