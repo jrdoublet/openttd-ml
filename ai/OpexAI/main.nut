@@ -2079,6 +2079,109 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
 
 }
 
+/* C38 etape 2 : tentative synchrone eau, au meme contrat que le rail. */
+function OpexAI::_tryBuildWaterProject(year, project, rank, builtCount, passDiscards, anchor, yy)
+{
+  if (project == null) return { outcome = "no_candidate", discards = passDiscards };
+  local i = rank;
+      if (this._waterBuilt || this._catalog.ships.len() == 0 || this._catalog.paxCargo < 0) {
+        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "water", src = project.src, dst = project.dst, reason = "water_unavailable", extra = "" });
+        return { outcome = "rejected", discards = passDiscards };
+      }
+      local plan = project.payload;
+      if (builtCount > 0 && (!OpexWaterBatchSiteStillBuildable(plan.siteA) ||
+                             !OpexWaterBatchSiteStillBuildable(plan.siteB))) {
+        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "water", src = plan.siteA.town.id, dst = plan.siteB.town.id, reason = "batch_site_unbuildable", extra = "" });
+        return { outcome = "rejected", discards = passDiscards };
+      }
+      local capital = 2 * this._catalog.costDock + this._catalog.costWaterDepot + this._catalog.maxShipPrice;
+      local need = capital + OpexCashReserve() + WATER_CAPITAL_MARGIN;
+      local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+      if (money < need && REBORROW) money = OpexTryReborrow(need, money);
+      if (money < need) {
+        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "water", src = plan.siteA.town.id, dst = plan.siteB.town.id, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
+        return { outcome = "rejected", discards = passDiscards };
+      }
+
+      OpexSign(anchor, "IP|" + yy + "|W|" + project.budgetScore + "|" + project.opcodeScore);
+      local planOps = ("planningOpcodes" in project) ? project.planningOpcodes : 0;
+      local result = OpexBuildWaterRoute(this._catalog, this._budget, plan);
+      if (result.ok) OpexSign(anchor, "OM|W|" + year + "|" + plan.distance + "|" + planOps);
+      else OpexSign(anchor, "ON|W|" + result.reason + "|" + result.error);
+      if (!result.ok) {
+        if (DECISION_LOG) {
+          OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=water src=" + plan.siteA.town.id + " dst=" + plan.siteB.town.id + " reason=build_failed detail=" + result.reason + " error=" + result.error);
+        }
+        return { outcome = "rejected", discards = passDiscards };
+      }
+      if (result.ok) {
+        if (DECISION_LOG) {
+          foreach (d in passDiscards) {
+            OpexDecide("PROJECT_DISCARD", "rank=" + d.rank + " mode=" + d.mode + " src=" + d.src + " dst=" + d.dst + " reason=" + d.reason + (d.extra != "" ? " " + d.extra : ""));
+          }
+          passDiscards = [];
+          local cargoStr = AICargo.GetCargoLabel(this._catalog.paxCargo);
+          OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=water cargo=" + cargoStr + " src=" + result.dockA + " dst=" + result.dockB + " dist=" + plan.distance + " cost=" + capital + " roi=" + project.roi);
+          OpexDecide("WATER_BUILD", "line=" + this._nextLineId + " src=" + result.dockA + " dst=" + result.dockB + " cargo=" + cargoStr + " dist=" + plan.distance + " cost=" + capital);
+        }
+        this._waterBuilt = true;
+        this._lines.append({
+          stationA = result.dockA, stationB = result.dockB,
+          originA = result.dockA, originB = result.dockB,
+          cargo = this._catalog.paxCargo,
+          predicted = 0, iterations = 0, trains = 1, distance = plan.distance, year = year,
+          mode = "water", vehicle = result.vehicle, vehicles = [result.vehicle],
+          isLowRatio = false, opcodeRatio = -1,   /* plan, pas de candidat : sans objet */
+          lineId = this._nextLineId,
+        });
+        OpexSign(anchor, "PM|" + this._nextLineId + "|W|" + plan.distance + "|"
+                         + AICargo.GetCargoLabel(this._catalog.paxCargo));
+        this._nextLineId++;
+        return { outcome = "built", discards = passDiscards };
+      }
+  return { outcome = "rejected", discards = passDiscards };
+}
+
+/* C38 etape 2 : une croissance de flotte est une tentative synchrone de portefeuille. */
+function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
+{
+  if (project == null) return { outcome = "no_candidate", discards = passDiscards };
+  local i = rank;
+  /* C34.2 : les gardes de refus ont deja ete franchies en mode a blanc ; il ne reste que le
+   * test de tresorerie du portefeuille, sans droit de tirage anticipe. */
+  local entry = project.payload;
+  local line = entry.line;
+  local need = entry.planePrice + OpexCashReserve();
+  local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  if (money < need && REBORROW) money = OpexTryReborrow(need, money);
+  if (money < need) {
+    if (DECISION_LOG) passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst, reason = "insufficient_cash", extra = "" });
+    return { outcome = "rejected", discards = passDiscards };
+  }
+  local added = 0;
+  for (local k = 0; k < entry.want; k++) {
+    local grown = OpexAirAddPlane(line);
+    if (grown.added <= 0) break;
+    added += grown.added;
+    local haveNow = (("vehCount" in line) ? line.vehCount : 0) + grown.added;
+    line.vehCount <- haveNow;
+    line.trains = haveNow;
+    if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < need) break;
+  }
+  if (added <= 0) return { outcome = "rejected", discards = passDiscards };
+
+  line.lastAirFleetYear <- year;
+  line.lastAirFleetDate <- AIDate.GetCurrentDate();
+  if (DECISION_LOG) {
+    OpexDecide("FLEET_PROJECT", "action=grow line=" + line.lineId + " added=" + added
+               + " want=" + entry.want + " price=" + entry.planePrice
+               + " profit=" + project.profitAnnual + " roi=" + project.roi);
+  }
+  AILog.Info("[FLEET_PROJECT] line=" + line.lineId + " added=" + added);
+  return { outcome = "built", discards = passDiscards };
+}
+
+
 function OpexAI::_tryBuildProjects(year)
 {
   /* G4§1 : le drapeau peut etre pose entre deux passes par _consumeRailSearch.
@@ -2131,38 +2234,9 @@ function OpexAI::_tryBuildProjects(year)
     local modeChar = mode == "rail" ? "T" : (mode == "road" ? "R" : (mode == "air" ? "A" : "W"));
 
     if (mode == "fleet") {
-      /* C34.2 : achat d'avion elu par le portefeuille. Les gardes de refus ont deja ete franchies
-       * en mode a blanc ; il ne reste que le test de tresorerie, qui est desormais celui du
-       * portefeuille et non un droit de tirage anticipe. */
-      local entry = project.payload;
-      local line = entry.line;
-      local need = entry.planePrice + OpexCashReserve();
-      local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-      if (money < need && REBORROW) money = OpexTryReborrow(need, money);
-      if (money < need) {
-        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst, reason = "insufficient_cash", extra = "" });
-        continue;
-      }
-      local added = 0;
-      for (local k = 0; k < entry.want; k++) {
-        local grown = OpexAirAddPlane(line);
-        if (grown.added <= 0) break;
-        added += grown.added;
-        local haveNow = (("vehCount" in line) ? line.vehCount : 0) + grown.added;
-        line.vehCount <- haveNow;
-        line.trains = haveNow;
-        if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < need) break;
-      }
-      if (added > 0) {
-        local yy2 = year % 100;
-        line.lastAirFleetYear <- year;
-        line.lastAirFleetDate <- AIDate.GetCurrentDate();
-        if (DECISION_LOG) {
-          OpexDecide("FLEET_PROJECT", "action=grow line=" + line.lineId + " added=" + added
-                     + " want=" + entry.want + " price=" + entry.planePrice
-                     + " profit=" + project.profitAnnual + " roi=" + project.roi);
-        }
-        AILog.Info("[FLEET_PROJECT] line=" + line.lineId + " added=" + added);
+      local attempt = this._tryBuildFleetProject(year, project, i, passDiscards);
+      passDiscards = attempt.discards;
+      if (attempt.outcome == "built") {
         builtCount++;
         if (builtCount >= maxBatch) break;
       }
@@ -2490,59 +2564,10 @@ function OpexAI::_tryBuildProjects(year)
         if (builtCount >= maxBatch) break;
       }
     } else if (mode == "water") {
-      if (this._waterBuilt || this._catalog.ships.len() == 0 || this._catalog.paxCargo < 0) {
-        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "water", src = project.src, dst = project.dst, reason = "water_unavailable", extra = "" });
-        continue;
-      }
-      local plan = project.payload;
-      if (builtCount > 0 && (!OpexWaterBatchSiteStillBuildable(plan.siteA) ||
-                             !OpexWaterBatchSiteStillBuildable(plan.siteB))) {
-        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "water", src = plan.siteA.town.id, dst = plan.siteB.town.id, reason = "batch_site_unbuildable", extra = "" });
-        continue;
-      }
-      local capital = 2 * this._catalog.costDock + this._catalog.costWaterDepot + this._catalog.maxShipPrice;
-      local need = capital + OpexCashReserve() + WATER_CAPITAL_MARGIN;
-      local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-      if (money < need && REBORROW) money = OpexTryReborrow(need, money);
-      if (money < need) {
-        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "water", src = plan.siteA.town.id, dst = plan.siteB.town.id, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
-        continue;
-      }
-
-      OpexSign(anchor, "IP|" + yy + "|W|" + project.budgetScore + "|" + project.opcodeScore);
-      local planOps = ("planningOpcodes" in project) ? project.planningOpcodes : 0;
-      local result = OpexBuildWaterRoute(this._catalog, this._budget, plan);
-      if (result.ok) OpexSign(anchor, "OM|W|" + year + "|" + plan.distance + "|" + planOps);
-      else OpexSign(anchor, "ON|W|" + result.reason + "|" + result.error);
-      if (!result.ok) {
-        if (DECISION_LOG) {
-          OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=water src=" + plan.siteA.town.id + " dst=" + plan.siteB.town.id + " reason=build_failed detail=" + result.reason + " error=" + result.error);
-        }
-        continue;
-      }
-      if (result.ok) {
-        if (DECISION_LOG) {
-          foreach (d in passDiscards) {
-            OpexDecide("PROJECT_DISCARD", "rank=" + d.rank + " mode=" + d.mode + " src=" + d.src + " dst=" + d.dst + " reason=" + d.reason + (d.extra != "" ? " " + d.extra : ""));
-          }
-          passDiscards = [];
-          local cargoStr = AICargo.GetCargoLabel(this._catalog.paxCargo);
-          OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=water cargo=" + cargoStr + " src=" + result.dockA + " dst=" + result.dockB + " dist=" + plan.distance + " cost=" + capital + " roi=" + project.roi);
-          OpexDecide("WATER_BUILD", "line=" + this._nextLineId + " src=" + result.dockA + " dst=" + result.dockB + " cargo=" + cargoStr + " dist=" + plan.distance + " cost=" + capital);
-        }
-        this._waterBuilt = true;
-        this._lines.append({
-          stationA = result.dockA, stationB = result.dockB,
-          originA = result.dockA, originB = result.dockB,
-          cargo = this._catalog.paxCargo,
-          predicted = 0, iterations = 0, trains = 1, distance = plan.distance, year = year,
-          mode = "water", vehicle = result.vehicle, vehicles = [result.vehicle],
-          isLowRatio = false, opcodeRatio = -1,   /* plan, pas de candidat : sans objet */
-          lineId = this._nextLineId,
-        });
-        OpexSign(anchor, "PM|" + this._nextLineId + "|W|" + plan.distance + "|"
-                         + AICargo.GetCargoLabel(this._catalog.paxCargo));
-        this._nextLineId++;
+      local attempt = this._tryBuildWaterProject(year, project, i, builtCount, passDiscards,
+                                                  anchor, yy);
+      passDiscards = attempt.discards;
+      if (attempt.outcome == "built") {
         builtCount++;
         if (builtCount >= maxBatch) break;
       }
