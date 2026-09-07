@@ -1,0 +1,99 @@
+{
+ "arm": "OpexAI[portfolio_dynamic_batch=1,decision_log=1]",
+ "years": 6,
+ "seeds": [
+  42,
+  100,
+  7,
+  999,
+  2026
+ ],
+ "reports": [
+  {
+   "seed": 100,
+   "run_ok": true,
+   "company_value": 2383566,
+   "profit_year": 856350,
+   "n_stations": 54,
+   "n_vehicles": 111,
+   "continue_events": 29,
+   "multi_build_events": 18,
+   "max_built": 6,
+   "max_attempted": 32,
+   "stop_reasons": {
+    "rail_pending": 9,
+    "opcode_budget": 13,
+    "no_financeable": 3,
+    "no_success": 2
+   }
+  },
+  {
+   "seed": 2026,
+   "run_ok": true,
+   "company_value": 2123067,
+   "profit_year": 1306041,
+   "n_stations": 39,
+   "n_vehicles": 80,
+   "continue_events": 19,
+   "multi_build_events": 6,
+   "max_built": 3,
+   "max_attempted": 49,
+   "stop_reasons": {
+    "rail_pending": 7,
+    "opcode_budget": 9,
+    "no_financeable": 5,
+    "no_success": 1
+   }
+  },
+  {
+   "seed": 42,
+   "run_ok": true,
+   "company_value": 1850224,
+   "profit_year": 752840,
+   "n_stations": 72,
+   "n_vehicles": 100,
+   "continue_events": 21,
+   "multi_build_events": 11,
+   "max_built": 6,
+   "max_attempted": 51,
+   "stop_reasons": {
+    "rail_pending": 9,
+    "opcode_budget": 12,
+    "no_financeable": 4
+   }
+  },
+  {
+   "seed": 7,
+   "run_ok": true,
+   "company_value": 2455953,
+   "profit_year": 1032598,
+   "n_stations": 41,
+   "n_vehicles": 78,
+   "continue_events": 17,
+   "multi_build_events": 12,
+   "max_built": 6,
+   "max_attempted": 26,
+   "stop_reasons": {
+    "rail_pending": 8,
+    "opcode_budget": 5
+   }
+  },
+  {
+   "seed": 999,
+   "run_ok": true,
+   "company_value": 3592760,
+   "profit_year": 1232634,
+   "n_stations": 64,
+   "n_vehicles": 111,
+   "continue_events": 23,
+   "multi_build_events": 9,
+   "max_built": 4,
+   "max_attempted": 62,
+   "stop_reasons": {
+    "rail_pending": 8,
+    "opcode_budget": 13,
+    "no_financeable": 3
+   }
+  }
+ ]
+}

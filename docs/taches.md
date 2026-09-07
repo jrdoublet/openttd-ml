@@ -44,7 +44,103 @@ ressource dominante — ROI quand l'argent manque, profit par temps de VM quand 
 profit brut quand les deux abondent — reste techniquement cohérente, mais elle est trop proche de
 l'aiguillage pauvre/riche d'AAAHogEx. OpexAI ne doit pas converger vers sa doctrine pour combler
 l'écart. La proposition et ses prérequis sont archivés dans `docs/journal_2026-09-07.md` ;
-`tension_scoring` et `shadow_pricing` restent à 0. **Le prochain candidat est C38.**
+`tension_scoring` et `shadow_pricing` restent à 0. **C38 a depuis été mesuré et rejeté ; le
+prochain candidat est C39.**
+
+### 🔍 Détail archivé (2026-09-08) — pourquoi les prix d'ombre (C35) n'ont pas marché, et ce qu'il
+faudrait pour que ça marche
+
+Réponse détaillée à la question « pourquoi shadow_pricing a-t-il échoué, et quel est le cadre
+théorique correct ? ». Trois strates de causes, à ne pas confondre entre elles.
+
+**1. Échec empirique mesuré (C35.3, `docs/bench_c35_3_shadow_pricing_3y.json`, 2026-09-05).**
+Score officiel **+29,4 pts** (357,6 vs 328,2, 3/5 victoires), note de gare **+13,5 pts**, réseau
+plus étendu (+7,6 gares), résilience spectaculaire sur la graine aride 2026 (+166 % valeur,
++114 % profit, +138 pts score) — **mais valeur moyenne −11,2 % et profit −25,6 % sur les cartes
+riches.** Mécanisme identifié (C35.4, `journal_2026-09-05.md` §0 trenonagies point 7) :
+`OpexKnapsackComputeBound` (`projects.nut:468`) calcule bien un vrai prix d'ombre pour le capital
+— le ratio profit/capital du candidat critique dans le tri par densité, la borne de Dantzig
+classique sur un sac à dos fractionnel. Mais la généralisation aux 4 ressources (capital, opcodes,
+slots véhicules, foncier) résout **quatre relaxations 1D indépendantes sur tout le vivier de
+candidats**, pas sur la décision réelle du cycle (`portfolio_max_batch=1`, alternatives modales en
+conflit sur un même O-D). Une ressource peut donc recevoir un prix strictement positif parce que
+le vivier hypothétique la sature, alors qu'aucune décision réalisable de ce cycle ne la sature. Les
+quatre taxes s'additionnent sans coordination → **triple taxation** sur les cartes riches (plusieurs
+contraintes semblent actives ensemble sans l'être réellement), effet inverse sur les cartes pauvres
+(une seule contrainte compte vraiment, d'où le +166 % sur 2026). `shadow_pricing` reste à 0 pour
+cette raison précise — pas une hygiène de réglage, un défaut structurel identifié et non corrigé.
+
+**2. Bugs d'implémentation trouvés ensuite** (revue de code 2026-09-06/07,
+`journal_2026-09-07.md`, section « étape 4 : tension et prix d'ombre »). Même la théorie juste
+serait cassée par le code livré :
+- 🔴 **Mélange de scores dans des contextes et unités différentes.** Après le premier chantier,
+  `portfolio_cache` (C36.1) recopie l'ancien `tensionScore` des candidats conservés (coût réduit
+  £/an) à côté du score neuf des candidats régénérés (formule continue sans unité) —
+  triés ensemble comme si c'était comparable (`projects.nut:1000-1108`). Sous `shadow_pricing`,
+  le chemin incrémental ne rappelle même jamais `OpexTensionComputeShadowPrices()`
+  (`projects.nut:1250-1311`).
+- 🟠 **`moneyFlow` réintroduit les dépenses de chantier passées** dans un calcul censé ne
+  représenter que les engagements futurs (`tension.nut:125-131`, `GetQuarterlyIncome +
+  GetQuarterlyExpenses`), ce qui peut rendre la tension infinie juste après un investissement —
+  précisément la réaction retardée que le code dit vouloir interdire.
+- 🟡 **`capitalBudget = 0` est remplacé par une valeur positive** (`ctx.moneyAvailable` ou 1000,
+  `tension.nut:535-540`) dans le calcul du dual, donc le prix d'ombre peut annoncer que l'argent ne
+  mord pas exactement quand aucun capital n'est mobilisable.
+- 🟡 **154 lignes mortes** de l'ancien régime macro rejeté (`OpexTensionMacroRegime`,
+  `OpexProjectScoreForRegime`, `tension.nut:311-472`) restent en place, sans appel mais trompeuses
+  pour la maintenance.
+
+Aucun de ces bugs n'a été corrigé. Ils s'ajoutent à C35.4, pas à sa place.
+
+**3. Le cadre théorique correct** (`journal_2026-09-05.md` §0 trenonagies point 4-6). Un prix
+d'ombre valide est le **multiplicateur de Lagrange** de la contrainte $r$ dans le programme
+**réellement résolu à chaque cycle** — pas dans une relaxation artificielle du vivier entier.
+Conditions nécessaires, aucune actuellement remplie ensemble :
+
+1. **Dualiser le vrai problème.** Sac à dos 0/1 multi-contraintes (capital, opcodes, slots,
+   foncier) avec **conflits** (alternatives modales exclusives sur un même O-D) et **débit
+   unitaire** (`portfolio_max_batch=1`, bientôt dynamique avec C38) — jamais quatre relaxations 1D
+   séparées sur un ensemble de candidats qui ne seront jamais tous choisis ensemble.
+2. **Respecter la complementary slackness** : $\lambda_r > 0$ **seulement si** la contrainte $r$
+   est effectivement saturée par la solution du cycle en cours. C'est exactement la condition que
+   C35.3/C35.4 viole.
+3. **Corriger le biais de prédiction avant, pas après** — voir D4 ci-dessous. En ratio, une
+   surestimation du profit se compense en partie entre numérateur et dénominateur ; en coût réduit
+   (`profit − Σ λ_r a_ir`), le profit est au numérateur nu.
+4. **Se prémunir contre la surestimation des λ** (problème classique du sous-gradient
+   lagrangien) : si les λ sont surestimés, tous les coûts réduits deviennent négatifs et plus rien
+   ne se construit — il faut un repli sur le profit brut ou un facteur d'amortissement.
+
+La plomberie de base existe déjà (`OpexKnapsackComputeBound` fait un dual correct pour le capital
+seul). Ce qui manque n'est pas le calcul, c'est la **coordination jointe des quatre duaux sur le
+problème réel avec conflits** — c'est-à-dire C35.4, jamais fait.
+
+**4. D4 — le prérequis prédiction est fait, mais seulement pour un mode.** `D4` (recalibrage
+physique de l'estimateur **routier passagers**, `journal_2026-09-05.md` §0 quattuornonagies, banc
+10 ans × 5 graines, 1980 enregistrements) est **fait et validé le 2026-09-05** : ratio revenu
+réel/prédit **0,31 → 0,94**, profit réel/prédit **0,13 → 0,93**, part sous la moitié écrasée
+**83 % → 2 %**. Le texte source précise explicitement : *« sans jamais toucher au rail fret ni à
+l'aérien »*. Portée réelle :
+
+| mode | biais mesuré | statut |
+|---|---|---|
+| pax routier | 0,31–0,55 avant D4 | ✅ corrigé par D4 (2026-09-05) |
+| fret | ~0,98 (2026-08-28) | déjà correct, rien à faire |
+| pax rail | corrigé par la traction (§0 bis, `4a8e15e`) | déjà correct |
+| aérien | **1,16 à 1,48** (sur-performe sa prédiction) | ❌ jamais corrigé, sens de biais opposé |
+
+D4 lève donc le blocage précis identifié §0 trenonagies point 6.1 (le pax routier était le mode qui
+mentait le plus dans le sens dangereux — sur-optimiste). L'aérien reste biaisé dans l'autre sens
+(sous-optimiste), ce qui est moins dangereux pour un coût réduit (ça pénaliserait l'air, pas
+l'inverse) mais reste non corrigé si quelqu'un rouvre ce dossier.
+
+**Conclusion : même avec D4 acquis, rien ne relance `shadow_pricing` tel quel.** Il resterait à
+rouvrir C35.4 (coordination jointe des duaux) et les 4 bugs de contexte de la revue 2026-09-06/07,
+ce que la décision stratégique du 2026-09-07 (ci-dessus) ferme explicitement — le motif de
+l'abandon final n'est pas technique (les blocages techniques restent d'ailleurs non résolus, pas
+prouvés insurmontables), c'est le refus de faire converger OpexAI vers la doctrine pauvre/riche
+d'AAAHogEx. **Ne pas rouvrir cette piste sans une décision explicite de l'utilisateur sur ce point
+précis.**
 
 ### Comment lire les chiffres de ce document sans se tromper
 
@@ -66,12 +162,12 @@ l'écart. La proposition et ses prérequis sont archivés dans `docs/journal_202
 
 ## 🆕 Candidats identifiés le 2026-09-06 (avant la revue de code / A1)
 
-Deux idées posées en discussion, pas encore codées ni mesurées. À trancher pendant l'étape 3 de
-`docs/revue_code_2026-09-06_plan.md` (portefeuille/sac à dos), pas avant : les deux touchent
-exactement le mécanisme que cette étape doit déjà relire.
+Deux idées initialement posées en discussion avant l'étape 3 de
+`docs/revue_code_2026-09-06_plan.md` (portefeuille/sac à dos). C38 est désormais close ; C39
+reste à trancher indépendamment.
 
-- 🔴 **C38 — Batch de portefeuille dynamique par filtre + re-classement, au lieu d'un plafond
-  fixe.** `portfolio_max_batch` (plafond fixe 1 à 8) a été **mesuré et rejeté**
+- ❌ **C38 — Batch de portefeuille dynamique par filtre + re-classement, au lieu d'un plafond
+  fixe — implémenté, mesuré et rejeté le 2026-09-07.** `portfolio_max_batch` (plafond fixe 1 à 8) a été **mesuré et rejeté**
   (`docs/journal_2026-09-02.md` §0 vicies : −3,8 % valeur, **11/20 graines en nuls exacts**). Le
   mécanisme identifié à l'époque : (a) un passage réussi régénère de toute façon tout le
   portefeuille, donc empiler N projets dans un seul passage fusionne des cycles au lieu d'en
@@ -151,6 +247,21 @@ exactement le mécanisme que cette étape doit déjà relire.
   banc apparié 20 graines × 10 ans, `portfolio_dynamic_batch=0` contre `1`, sur les défauts du
   commit courant. Rejeter si le mécanisme reste presque toujours inerte, réduit significativement
   valeur/profit, augmente les erreurs de script, ou reproduit la baisse de volume du batch fixe.
+
+  **Verdict.** L'implémentation complète garde une identité par projet, relit
+  `OpexAvailableCapital()`, revalide le même vivier, appelle `OpexReselectProjects()`, survit au
+  rail suspendu et s'arrête sur budget d'opcodes ou 64 tentatives de sécurité. Le diagnostic
+  5×6 est fonctionnel : 0 erreur, `max_built=2..6` et batches multiples sur les cinq graines
+  (`docs/diag_c38_dynamic_batch_6y_5seeds.json`). Mais le banc apparié 20×10 est nettement
+  défavorable (`docs/bench_c38_dynamic_batch_10y_20seeds.json`) : contre le bras dynamique, le
+  défaut gagne 19/20 graines en valeur et 17/20 en score et profit annuel ; le dynamique vaut en
+  moyenne 7,44 M£ contre 11,63 M£ (−36,0 % brut), produit 1,55 M£ contre 2,01 M£ de profit annuel
+  (−22,7 % brut), 142,2 contre 176,0 véhicules et 73,4 contre 85,0 gares. Les différences
+  appariées en faveur du défaut sont +56,3 % valeur (t≈5,98), +13,1 % score (t≈4,17), +29,4 %
+  profit annuel (t≈3,22). La note médiane seule est légèrement meilleure pour le dynamique
+  (+0,5 %). Le mécanisme n'est donc ni inerte
+  ni instable : il accélère réellement les batches, mais cannibalise la trajectoire économique.
+  `portfolio_dynamic_batch` reste à `0` par défaut ; ne pas l'activer sans nouvelle hypothèse.
 
 - 🔴 **C39 — Détecter quand un rafraîchissement (catalogue, candidats, portefeuille, sac à dos)
   est réellement nécessaire, plutôt que de coupler les quatre.** Aujourd'hui chaque couche a sa

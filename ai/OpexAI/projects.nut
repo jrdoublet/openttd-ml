@@ -963,6 +963,58 @@ function OpexIncrementalCandidateStillValid(p, lines, abandonedPairs = null)
   return true;
 }
 
+/* C38 : cle stable d'une tentative au sein d'un batch. Les plans air/eau sont des objets
+ * regenerables ; l'identite doit donc reposer sur le mode, les extremites, le cargo et le type,
+ * jamais sur l'adresse du payload. La flotte cible une ligne existante. */
+function OpexProjectAttemptKey(p)
+{
+  if (p == null) return "none";
+  local mode = ("mode" in p) ? p.mode : "unknown";
+  if (mode == "fleet" && ("payload" in p) && p.payload != null &&
+      ("line" in p.payload) && p.payload.line != null && ("lineId" in p.payload.line)) {
+    return "fleet|" + p.payload.line.lineId;
+  }
+  local src = ("src" in p) ? p.src : -1;
+  local dst = ("dst" in p) ? p.dst : -1;
+  local cargo = ("cargo" in p) ? p.cargo : -1;
+  local kind = ("kind" in p) ? p.kind : "";
+  return mode + "|" + src + "|" + dst + "|" + cargo + "|" + kind;
+}
+
+/* Retire du vivier incremental les projets deja essayes dans le batch courant, puis rejoue la
+ * seule contrainte de capital. Le filtre porte sur les deux representations afin de garder le
+ * chemin portfolio_v2 et le solveur historique coherents. */
+function OpexDynamicBatchReselect(projects, lines, attempted, capitalBudget, abandonedPairs = null)
+{
+  if (projects == null) return null;
+  if (("candidateGroups" in projects) && projects.candidateGroups != null) {
+    local filteredGroups = {};
+    foreach (groupKey, entry in projects.candidateGroups) {
+      local source = (typeof(entry) == "array") ? entry : [entry];
+      local kept = [];
+      foreach (p in source) {
+        if (p == null) continue;
+        if (!OpexIncrementalCandidateStillValid(p, lines, abandonedPairs)) continue;
+        local key = OpexProjectAttemptKey(p);
+        if (!(key in attempted)) kept.push(p);
+      }
+      if (kept.len() > 0) filteredGroups[groupKey] <- kept;
+    }
+    projects.candidateGroups = filteredGroups;
+  }
+  if (("budgetCandidates" in projects) && projects.budgetCandidates != null) {
+    local filteredBudget = [];
+    foreach (p in projects.budgetCandidates) {
+      if (p == null) continue;
+      if (!OpexIncrementalCandidateStillValid(p, lines, abandonedPairs)) continue;
+      local key = OpexProjectAttemptKey(p);
+      if (!(key in attempted)) filteredBudget.push(p);
+    }
+    projects.budgetCandidates = filteredBudget;
+  }
+  return OpexReselectProjects(projects, capitalBudget);
+}
+
 /* C36.1 : Caching incremental du vivier post-chantier.
  * Au lieu de reconstruire tout le portefeuille ex nihilo apres chaque ligne achevee (15 jours
  * d'attente sur A* et scan aerien), filtre les candidats existants en memoire, injecte les
