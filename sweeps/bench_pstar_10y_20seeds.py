@@ -35,6 +35,7 @@ TREATMENT_PACKAGE = "OpexAIPstar"
 # Les libelles de comparaison doivent donc etre ces noms, pas des alias decoratifs.
 CONTROL_ARM = CONTROL_PACKAGE
 TREATMENT_ARM = TREATMENT_PACKAGE
+LOAD_FAILURE_MARKER = "Unable to load the script."
 
 
 def main():
@@ -81,7 +82,8 @@ def main():
         ),
     ))
     summary = summarise(rows)
-    failed = [record for record in summary if not record["run_ok"]]
+    failed = [record for record in summary if not record["run_ok"]
+              or LOAD_FAILURE_MARKER in (record.get("openttd_output") or "")]
     arm_names = list(arms)
     payload = {
         "purpose": "P1-P5 against the Git HEAD immediately before their implementation",
