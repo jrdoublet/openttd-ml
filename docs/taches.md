@@ -263,6 +263,97 @@ reste à trancher indépendamment.
   ni instable : il accélère réellement les batches, mais cannibalise la trajectoire économique.
   `portfolio_dynamic_batch` reste à `0` par défaut ; ne pas l'activer sans nouvelle hypothèse.
 
+  ### 🔬 Post-mortem C38 (2026-09-08) — pourquoi ça a échoué, et par où reprendre
+
+  Deux faits cadrent tout le diagnostic et écartent les explications faciles. **Le mécanisme
+  n'est pas inerte** (6 à 18 batches multiples par partie, `max_built` 3 à 6). Et **la note de
+  gare médiane est légèrement meilleure** sous C38 (167,2 contre 166,3), avec une CV plus basse
+  (1,41 % contre 1,74 %). Ce n'est donc pas « il construit n'importe quoi » : c'est « il construit
+  moins ». Le déficit est purement en volume (−19,2 % véhicules, −13,6 % gares) — exactement la
+  métrique que C38 devait augmenter. La CV explose par ailleurs : valeur 27,4 → 36,6 %,
+  `performance_history` 5,1 → **14,9 %**.
+
+  **Raison 1 — le batch dégénère en balayage quasi exhaustif du vivier** *(vérifié dans le code)*.
+  `attemptLimit = PROJECT_TOP_K`, et `PROJECT_TOP_K = 64` (`projects.nut:16`). C38 ne remplace donc
+  pas un plafond de 1 par un plafond adaptatif : il le remplace par **64**. Le « pas de N fixe » de
+  la spec s'est traduit par N = tout le vivier. Le diag le confirme : **62 tentatives pour 4
+  constructions** (graine 999), 51 pour 6 (graine 42), 49 pour 3 (graine 2026). Taux de réussite
+  8 à 23 %.
+
+  **Raison 2 — c'est l'opcode qui ferme le batch, pas l'épuisement du vivier** *(vérifié au diag)*.
+  Motifs de clôture agrégés sur les 5 graines : `opcode_budget` **52/112 (46 %)**, `rail_pending`
+  41/112 (37 %), `no_financeable` seulement **15/112 (13 %)**, `no_success` 4/112. Le batch ne
+  s'arrête pas parce qu'il a fini son travail, il s'arrête parce qu'il a brûlé le débit du tick.
+  Sous la philosophie flux (10 k opcodes/tick, non reportables, cf. [[philosophie_opcodes_ressource]]),
+  chaque tentative ratée est un tick où rien ne se construit. **C38 a augmenté le coût en opcodes
+  par décision**, alors que le goulot déclaré du projet est précisément le débit du contrôleur.
+
+  **Raison 3 — le filtre de finançabilité ment dès la première construction** *(hypothèse forte,
+  cohérente avec le code et une mesure existante ; à confirmer au journal de décision)*.
+  `OpexDynamicBatchReselect` re-classe via `OpexReselectProjects(projects, capitalBudget)` sur le
+  capital **modèle** du candidat ; le devis réel n'arrive que pendant la tentative. Or la revue du
+  2026-09-06 l'avait déjà noté (§5 item 4 🟠, « le devis réel rail protège la trésorerie, pas le
+  classement économique ») et le rail est mesuré à **1,7× son prix modèle**
+  ([[opexai_prix_rail_terrain]]). Caisse pleine, l'erreur de 70 % ne mord pas ; caisse vidée par la
+  première construction, **toutes** les décisions suivantes tombent dans la bande d'erreur : le
+  re-classement rend des dizaines de projets « finançables » qui échouent un par un au devis réel.
+  C'est exactement la signature observée aux raisons 1 et 2.
+
+  **Raison 4 — un cycle vaut par son observation, pas par son re-classement** *(structurel)*. La
+  spec supposait que le coût d'un passage unitaire était le re-tri. Entre deux passages mensuels il
+  se passe autre chose : les villes grandissent, le fret s'accumule, la ligne construite commence à
+  produire, les notes de gare bougent. Six constructions dans un même passage sont décidées sur
+  **une seule observation du monde**, seule la caisse étant rafraîchie — six décisions sur
+  information gelée au lieu de six décisions informées. C'est la même cause que le rejet du plafond
+  fixe (« fusionner des chantiers réduit le nombre de cycles de décision ») : C38 croyait ne laisser
+  que la cause (a) après C36.2, mais **(a) était la cause dominante** et C38 ne l'a pas traitée.
+
+  **Raison 5 — la valeur d'option de la trésorerie est dépensée.** Vider la caisse en un passage
+  supprime la capacité de saisir le mois suivant un meilleur projet (nouvel avion disponible, ville
+  qui franchit un seuil). Cadre : investissement irréversible sous information qui arrive ⇒
+  l'optimum investit **moins** que le NPV myope (valeur d'option d'attente, Dixit–Pindyck). Le cash
+  laissé par `batch=1` n'est pas de l'oisiveté, c'est une option. Cohérent avec l'explosion de la
+  CV : C38 rend la trajectoire bien plus dépendante du hasard des premiers mois.
+
+  #### Perspectives, par rapport coût/information
+
+  **P1 — corriger le devis avant toute reprise du batch** (prérequis, pas variante). Faire porter le
+  filtre de finançabilité sur un capital corrigé du biais **par mode** (rail ×1,7 déjà mesuré), ou
+  sur le devis réel quand il existe. C'est la doctrine D4 — recalibrage physique par mode, jamais de
+  multiplicateur global — appliquée au **capital** au lieu du revenu. Gain indépendant de C38 :
+  améliore aussi le classement du chemin par défaut et ferme un 🟠 de la revue jamais corrigé.
+  Mesurable seul.
+
+  **P2 — piloter la tentative, pas la construction.** La ressource rare n'est pas le nombre de
+  constructions mais le nombre de **tentatives** (chaque tentative = planification payée). Deux
+  gardes, et surtout **pas** un plafond fixe : (a) abandon du batch après *k* refus **consécutifs**
+  — le refus consécutif est le signal du régime d'erreur de devis ; (b) budget d'opcodes réservé au
+  batch plutôt que la totalité du tick. Sans P1, P2 ne masque que le symptôme.
+
+  **P3 — retourner l'hypothèse : plus de passages, pas des passages plus gros.** Le goulot mesuré
+  (61,2 % des transitions mensuelles sans construction malgré ≥300 k£) ne se remplit pas en
+  épaississant le passage — C38 vient de le prouver à −36 %. La direction opposée est non testée et
+  **déjà pointée par deux constats non corrigés** de la revue étape 2 : item 1 🔴 « une paire
+  abandonnée ne déclenche pas la réélection incrémentale par défaut », item 3 🟡 « l'invalidation
+  événementielle ne force pas la reconstruction mensuelle du portefeuille ». Ce sont des défauts de
+  **fréquence** de décision, pas de taille de lot, et les corriger garde l'observation fraîche entre
+  deux décisions.
+
+  **P4 — vérifier la pollution de la mémoire d'abandon.** Est-ce qu'un refus interne au batch
+  (rejeté faute de caisse, pas pour son mérite) alimente C22/C33.3 ? Si oui, C38 empoisonnait le
+  vivier à 10-16× la cadence normale — ce qui expliquerait à lui seul les −13,6 % de gares — et ce
+  serait une taxe silencieuse **aussi sur le chemin par défaut**, à plus faible dose. Vérifiable
+  dans `docs/diag_c38_dynamic_batch_6y_5seeds.jsonl` (⚠️ 746 Mo, ne pas ouvrir en entier).
+
+  **P5 — ⛔ deux pistes à ne PAS rouvrir.** Un seuil de réservation sur le ratio qui monte quand la
+  caisse baisse — la formalisation naturelle de la raison 5 — **est** un prix d'ombre du capital :
+  famille A1/`shadow_pricing`, fermée stratégiquement le 2026-09-07, pas à rouvrir sans décision
+  explicite de l'utilisateur. Et un plafond fixe plus grand est déjà réfuté (−3,8 %, 11/20 nuls
+  exacts).
+
+  **Ordre suggéré : P1 seul au banc** (il vaut par lui-même), puis P4 en lecture de journal
+  (gratuit), puis P3. **C38 ne se re-mesure qu'après P1.**
+
 - 🔴 **C39 — Détecter quand un rafraîchissement (catalogue, candidats, portefeuille, sac à dos)
   est réellement nécessaire, plutôt que de coupler les quatre.** Aujourd'hui chaque couche a sa
   propre règle de fraîcheur bricolée séparément : le catalogue se rafraîchit sur un cycle annuel
