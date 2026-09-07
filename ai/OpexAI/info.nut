@@ -1013,9 +1013,9 @@ Le mode route est donc reconfirme sur l arbre courant.
      * supplementaire en projets plus gros, donc moins nombreux. */
     AddSetting({
       name = "knapsack_roi",
-      description = "Knapsack maximises annual PROFIT instead of annual revenue, and branches on profit density: 1 = enabled, 0 = revenue (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "Legacy knapsack maximises annual PROFIT and branches on profit density (default). 0 = legacy revenue objective, for comparison only.",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
@@ -1587,9 +1587,9 @@ Le mode route est donc reconfirme sur l arbre courant.
 
     AddSetting({
       name = "portfolio_v2",
-      description = "Portfolio selection on profit per pound of affordable capital, modal choice after the capital test, and regeneration when capital grows: 1 = v2, 0 = revenue knapsack, monthly only (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "Portfolio selection on profit per pound of affordable capital, modal choice after the capital test, and regeneration when capital grows (default). 0 = legacy revenue knapsack, for comparison only.",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 

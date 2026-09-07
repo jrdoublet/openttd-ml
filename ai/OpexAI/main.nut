@@ -169,7 +169,11 @@ AIR_MARGIN_V2 <- false;
  * (economy.nut:261) sans qu'on remonte d'un cran. 1 = objectif ET ordre de branchement en profit.
  * Consequence attendue, mesuree par le banc : donner plus de capital cesse de degrader le choix
  * (docs/taches.md S0 undecies septies). */
-KNAPSACK_ROI <- false;
+/* G1 : le chemin historique reste disponible pour les comparaisons, mais ne doit plus etre
+ * le comportement courant : il maximise le revenu au lieu du profit. Le portefeuille v2 est
+ * le defaut et n'appelle pas le sac a dos ; cette valeur protege aussi tout retour explicite
+ * au solveur historique. */
+KNAPSACK_ROI <- true;
 /* docs/taches.md S0 undecies nonies (2026-09-03) : le vivier est rempli sans test de
  * financabilite, sur budgetScore seul (une DENSITE). L'aerien y occupait 43 % des 128 places pour
  * 0 selection en 16 ans -- structurellement trop cher pour tout capitalBudget observe (~131 000 £
@@ -422,8 +426,8 @@ LOOP_BUDGET <- false;
 const LOOP_BUDGET_FLOOR = 2000;
 const LOOP_BUDGET_MAX_TASKS = 8;
 
-/* Portefeuille v2 (revue du portefeuille, docs/taches.md S0 sexies et S0 septies) : repli FAUX
- * jusqu'a la lecture unique de portfolio_v2 dans Start(). Defaut 0 : chemin historique inchange.
+/* Portefeuille v2 (revue du portefeuille, docs/taches.md S0 sexies et S0 septies) : repli
+ * temporaire jusqu'a la lecture unique de portfolio_v2 dans Start(). Defaut 1 : chemin corrige.
  * Sous 1, quatre defauts confirmes tombent ensemble --
  *   - l'election modale par couple O/D se fait APRES le test de capital, pas avant ;
  *   - l'objectif passe du revenu total au PROFIT par livre de capital ;
@@ -433,7 +437,7 @@ const LOOP_BUDGET_MAX_TASKS = 8;
  *     topologie en etoile de builder_air sans rien apporter a un batch de taille 1.
  * Plus la regeneration du portefeuille des que le capital mobilisable a materiellement grandi,
  * au lieu d'attendre le mois suivant. */
-PORTFOLIO_V2 <- false;
+PORTFOLIO_V2 <- true;
 /* Taille du batch du portefeuille. Repli 1 jusqu'a la lecture unique de
  * portfolio_max_batch dans Start() : 1 garde le break apres le premier succes, donc le chemin
  * livre reste strictement le meme. */

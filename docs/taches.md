@@ -35,10 +35,16 @@ Journée de mesure : `air_hub_fix` adopté (défaut de type, §0 octovicies), `t
 une seconde fois (D1), `air_demand_cap` et `air_demand_plan` **tous deux rejetés** (§3 undecies
 bis, §0 trigesies), lecture d'AAAHogEx sur le dimensionnement aérien (§0 novemvicies).
 
-**L'item de tête est A1** — le dénominateur du classement dépendant de la ressource rare. Trois
-mesures indépendantes y convergent désormais, et l'objection qui le bloquait est tombée : à
-**10 ans, 18 graines sur 20 passent le test `_IsRich` d'AAAHogEx**, donc l'argument « nous sommes
-pauvres, leur aiguillage ne travaillerait pas chez nous » ne tient plus. Détail dans le tableau A.
+**Historique au 2026-09-03 : l'item de tête était A1**, le dénominateur du classement dépendant de
+la ressource rare. Trois mesures indépendantes y convergeaient et, à 10 ans, 18 graines sur 20
+passaient le test `_IsRich` d'AAAHogEx.
+
+**Décision du 2026-09-07 : ne pas implémenter A1 sous cette forme.** L'approche par délai de la
+ressource dominante — ROI quand l'argent manque, profit par temps de VM quand les opcodes mordent,
+profit brut quand les deux abondent — reste techniquement cohérente, mais elle est trop proche de
+l'aiguillage pauvre/riche d'AAAHogEx. OpexAI ne doit pas converger vers sa doctrine pour combler
+l'écart. La proposition et ses prérequis sont archivés dans `docs/journal_2026-09-07.md` ;
+`tension_scoring` et `shadow_pricing` restent à 0. **Le prochain candidat est C38.**
 
 ### Comment lire les chiffres de ce document sans se tromper
 
