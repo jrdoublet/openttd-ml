@@ -1357,6 +1357,37 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
 /* Famille 4 (Transferts / Feeders) : ville satellite libre -> Gare Hub ou Aéroport existant.
  * Les bus acheminent les passagers vers le hub avec un ordre de transfert (OF_TRANSFER),
  * décuplant le flux capté par les lignes ferroviaires et aériennes longue distance. */
+/* G12.3 : l'emprise qui concurrence un feeder appartient au hub deja construit, pas au
+ * catalogue courant. Les arrets joints C33.2 sont dans le meme StationID : chacun agrandit le
+ * rayon effectif jusqu'a son propre rayon de collecte. */
+function OpexHubPaxCatchmentRadius(hub)
+{
+  local radius = (hub.mode == "rail")
+      ? AIStation.GetCoverageRadius(AIStation.STATION_TRAIN)
+      : AIStation.GetCoverageRadius(AIStation.STATION_AIRPORT);
+  if (radius < 1) radius = 4;
+
+  if (hub.mode == "air" && ("airportTile" in hub) &&
+      AIAirport.IsAirportTile(hub.airportTile)) {
+    local airportType = AIAirport.GetAirportType(hub.airportTile);
+    local w = AIAirport.GetAirportWidth(airportType);
+    local h = AIAirport.GetAirportHeight(airportType);
+    local airportRadius = AIAirport.GetAirportCoverageRadius(airportType);
+    if (airportRadius > 0) radius = airportRadius + w + h - 2;
+  }
+
+  if (AIStation.IsValidStation(hub.stationId) &&
+      AIStation.HasStationType(hub.stationId, AIStation.STATION_BUS_STOP)) {
+    local busRadius = AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP);
+    local stops = AITileList_StationType(hub.stationId, AIStation.STATION_BUS_STOP);
+    for (local tile = stops.Begin(); !stops.IsEnd(); tile = stops.Next()) {
+      local stopRadius = AIMap.DistanceManhattan(hub.tile, tile) + busRadius;
+      if (stopRadius > radius) radius = stopRadius;
+    }
+  }
+  return radius;
+}
+
 function OpexRoadFeederCandidates(catalog, lines, out, stats, abandonedPairs = null)
 {
   local cargo = catalog.paxCargo;
@@ -1415,6 +1446,8 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats, abandonedPairs = n
         hubMap[st] <- {
           stationId = st,
           tile = end.tile,
+          airportTile = (line.mode == "air")
+              ? ((end.tile == line.stationA) ? line.originA : line.originB) : null,
           /* C31.3 : la ville du hub ne depend pas de la ville candidate. La resoudre ici, une fois
            * par hub, au lieu d'un AITile.GetClosestTown(hub.tile) par couple (ville, hub). */
           townId = AITile.GetClosestTown(end.tile),
@@ -1436,6 +1469,9 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats, abandonedPairs = n
       h.lineCount++;
       if (line.mode == "air") {
         h.airLines++;
+        /* Le premier contributeur du StationID peut etre rail : l'aeroport reel doit alors
+         * remplacer le repli null du hub mixte. */
+        h.airportTile = (end.tile == line.stationA) ? line.originA : line.originB;
         if (rev > 0) h.totalAirRevenue += rev;
         if (carried > 0) h.totalAirCarried += carried;
         h.mode = "air";
@@ -1519,13 +1555,10 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats, abandonedPairs = n
       local monthly = OpexTownBusCatchment(towns[i], marginalProd);
       if (monthly <= 0) continue;
       if (ROAD_PAX_OVERLAP) {
-        /* Le hub (aeroport) a deja un bassin. Les maisons dans le chevauchement marchent
-         * jusqu'au tarmac ; un feeder a 5 tuiles n'apporte rien. */
-        local airR = 4;
-        if (catalog.airport != null && ("coverage" in catalog.airport)) {
-          airR = catalog.airport.coverage;
-        }
-        local oHub = OpexRoadCatchmentOverlapFrac(distance, ROAD_PAX_CATCHMENT_RADIUS, airR);
+        /* Le rayon vient de l'aeroport/rail reel et de ses arrets joints, pas du premier
+         * aeroport du catalogue mensuel. */
+        local hubRadius = OpexHubPaxCatchmentRadius(hub);
+        local oHub = OpexRoadCatchmentOverlapFrac(distance, ROAD_PAX_CATCHMENT_RADIUS, hubRadius);
         if (oHub > 0.25) continue;
         monthly = (monthly.tofloat() * (1.0 - oHub)).tointeger();
         if (monthly <= 0) continue;
