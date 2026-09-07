@@ -1150,6 +1150,8 @@ function OpexAI::_tryBuildAir(year)
       iterations = 0, trains = result.vehicles.len(), distance = plan.distance, year = year,
       buildDate = AIDate.GetCurrentDate(),
       mode = "air", vehicle = result.vehicle, vehicles = result.vehicles,
+      vehCount = result.vehicles.len(),
+      deadStreak = 0, scrapping = false, scrapVehicles = [],
       lastLiveVehicles = result.vehicles.len(), suspectedCrashes = 0,
       isLowRatio = false, opcodeRatio = -1,   /* plan, pas de candidat : sans objet */
       lineId = this._nextLineId,
@@ -2127,6 +2129,8 @@ function OpexAI::_tryBuildProjects(year)
           iterations = 0, trains = result.vehicles.len(), distance = plan.distance, year = year,
           buildDate = AIDate.GetCurrentDate(),
           mode = "air", vehicle = result.vehicle, vehicles = result.vehicles,
+          vehCount = result.vehicles.len(),
+          deadStreak = 0, scrapping = false, scrapVehicles = [],
           lastLiveVehicles = result.vehicles.len(), suspectedCrashes = 0,
           isLowRatio = false, opcodeRatio = -1,   /* plan, pas de candidat : sans objet */
           lineId = this._nextLineId,
@@ -2616,6 +2620,7 @@ function OpexAI::_reportLines(year)
     local line = this._lines[i];
     local stationA = AIStation.GetStationID(line.stationA);
     local stationB = AIStation.GetStationID(line.stationB);
+    local vehicleType = OpexLineVehicleType(line);
     /* fleet_fix : ce `continue` sautait la ligne AVANT toute mise a jour de deadStreak, vehCount,
      * lastProfit, lastRevenue et lastLiveVehicles. Une gare A devenue invalide (demolie, tuile
      * passee a autrui) gelait donc l'etat de la ligne POUR TOUJOURS : _scrapDeadLines s'appuyant
@@ -2627,9 +2632,11 @@ function OpexAI::_reportLines(year)
      * On compte desormais la gare perdue comme une annee morte : la ligne rejoint le chemin normal
      * de ferraillage au lieu de pourrir en silence. */
     if (!AIStation.IsValidStation(stationA)) {
-      if (FLEET_FIX) {
+      if (FLEET_FIX || vehicleType == AIVehicle.VT_AIR) {
         local streak = ("deadStreak" in line) ? line.deadStreak : 0;
         line.deadStreak <- streak + 1;
+        if (!("scrapping" in line)) line.scrapping <- false;
+        if (!("scrapVehicles" in line)) line.scrapVehicles <- [];
         OpexSign(anchor, "OZ|" + line.lineId + "|" + year + "|SA|" + line.deadStreak);
       }
       continue;
@@ -2651,7 +2658,6 @@ function OpexAI::_reportLines(year)
     local runCost = 0;
     local vehCount = 0;
     local isFreight = ("kind" in line) && line.kind == "freight";
-    local vehicleType = OpexLineVehicleType(line);
     local diagSlot = 0;
     /* Une gare jointe possede un seul StationID : AIVehicleList_Station melangerait les lignes.
      * La liste figee a la construction est l'attribution correcte ; le helper ne consulte la gare
@@ -2826,6 +2832,17 @@ function OpexAI::_reportLines(year)
       if (line.deadStreak > 0) {
         OpexSign(anchor, "DL|" + year + "|" + line.lineId + "|" + line.deadStreak);
       }
+    } else if (vehicleType == AIVehicle.VT_AIR) {
+      /* G10 : une ligne air n'a pas de signal industrie. Son bilan annuel est donc la mesure
+       * directe de sa viabilite. Deux pertes consecutives, comme le seuil fret, evitent de
+       * vendre un appareil sur une seule annee de mise en route ou de fluctuation du trafic. */
+      local priorStreak = ("deadStreak" in line) ? line.deadStreak : 0;
+      local nextStreak = profit < 0 ? priorStreak + 1 : 0;
+      if ("deadStreak" in line) line.deadStreak = nextStreak;
+      else line.deadStreak <- nextStreak;
+      if (!("scrapping" in line)) line.scrapping <- false;
+      if (!("scrapVehicles" in line)) line.scrapVehicles <- [];
+      if (nextStreak > 0) OpexSign(anchor, "DL|" + year + "|" + line.lineId + "|" + nextStreak);
     }
   }
 }
@@ -3100,19 +3117,21 @@ function OpexAI::_triggerScrapLine(line, criterion)
   line.deadStreak = DEAD_STREAK_THRESHOLD;
   local anchor = AIMap.GetTileIndex(1, 1);
   local year = AIDate.GetYear(AIDate.GetCurrentDate());
-  local stationA = AIStation.GetStationID(line.stationA);
   local ids = [];
   local vehicleType = OpexLineVehicleType(line);
-  if (AIStation.IsValidStation(stationA)) {
-    local vehicles = OpexLineVehicleIds(line, stationA);
-    foreach (v in vehicles) {
-      if (!AIVehicle.IsValidVehicle(v)) continue;
-      if (AIVehicle.GetVehicleType(v) != vehicleType) continue;
-      AIVehicle.SendVehicleToDepot(v);
-      ids.append(v);
-      if (EVENT_DEPOT_SELL && this._vehiclesToScrap != null) {
-        this._vehiclesToScrap.rawset(v, line.lineId);
-      }
+  /* Les lignes air gardent leurs IDs de flotte. Meme si l'aeroport A est invalide, les avions
+   * doivent rejoindre un hangar et etre vendus ; une liste par gare serait alors vide et
+   * retirerait seulement la ligne logique en laissant les couts d'exploitation actifs. */
+  local stationA = AIStation.GetStationID(line.stationA);
+  local vehicles = ("vehicles" in line) ? line.vehicles
+      : (AIStation.IsValidStation(stationA) ? OpexLineVehicleIds(line, stationA) : []);
+  foreach (v in vehicles) {
+    if (!AIVehicle.IsValidVehicle(v)) continue;
+    if (AIVehicle.GetVehicleType(v) != vehicleType) continue;
+    AIVehicle.SendVehicleToDepot(v);
+    ids.append(v);
+    if (EVENT_DEPOT_SELL && this._vehiclesToScrap != null) {
+      this._vehiclesToScrap.rawset(v, line.lineId);
     }
   }
   line.scrapVehicles = ids;
@@ -3131,7 +3150,7 @@ function OpexAI::_scrapDeadLines(year)
 
   for (local i = 0; i < this._lines.len(); i++) {
     local line = this._lines[i];
-    if (!("deadStreak" in line)) continue;  // pax/avion/bateau : jamais candidates
+    if (!("deadStreak" in line)) continue;
 
     if (!line.scrapping && line.deadStreak >= DEAD_STREAK_THRESHOLD) {
       this._triggerScrapLine(line, "dead_streak");
