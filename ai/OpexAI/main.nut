@@ -929,7 +929,7 @@ function OpexAbandonedPairKey(candidate)
   } else if (candidate.kind == "freight") {
     src = AIIndustry.GetIndustryID(candidate.src);
     dst = AIIndustry.GetIndustryID(candidate.dst);
-    /* G2§1 : Pour du fret vers une ville, GetIndustryID retourne -1 (invalide).
+    /* G9§1 : Pour du fret vers une ville, GetIndustryID retourne -1 (invalide).
      * La cle devenait freight|cargo|sourceId|-1, partagee par TOUTES les villes du
      * meme producteur/cargo : un seul echec bannissait la famille entiere pendant
      * au moins un an. On utilise dstTown (pose par les generateurs) prefixe "t"
@@ -1643,7 +1643,7 @@ function OpexAI::_tryBuildFeeders(year)
     if (!isHubTown && OpexTownRoadLineCount(this._lines, candidate.src) >= 4) { rejectStats.townCount++; continue; }
 
     local abandonedKey = OpexAbandonedPairKey(candidate);
-    if (ABANDON_MEMORY && (abandonedKey in this._abandonedPairs)) { rejectStats.abandoned++; continue; }
+    if (ABANDON_GEN_FILTER && ABANDON_MEMORY && (abandonedKey in this._abandonedPairs)) { rejectStats.abandoned++; continue; }
 
     local slot = ("feederSlot" in candidate) ? candidate.feederSlot : 0;
     local yearsElapsed = (this._startYear >= 0) ? (year - this._startYear) : 0;
@@ -2196,7 +2196,7 @@ function OpexAI::_tryBuildProjects(year)
         }
       }
       local abandonedKey = OpexAbandonedPairKey(candidate);
-      if (ABANDON_MEMORY && (abandonedKey in this._abandonedPairs)) {
+      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && (abandonedKey in this._abandonedPairs)) {
         if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "abandoned_pair", extra = "" });
         continue;
       }
@@ -2343,7 +2343,7 @@ function OpexAI::_tryBuildProjects(year)
         continue;
       }
       local abandonedKey = OpexAbandonedPairKey(candidate);
-      if (ABANDON_MEMORY && (abandonedKey in this._abandonedPairs)) {
+      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && (abandonedKey in this._abandonedPairs)) {
         if (DECISION_LOG) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "abandoned_pair", extra = "" });
         continue;
       }

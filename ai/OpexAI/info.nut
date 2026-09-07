@@ -777,7 +777,7 @@ class OpexAIInfo extends AIInfo {
      * des projets viables (89 % des rejets vivier etaient des abandoned_pair, docs/taches.md C22). */
     AddSetting({
       name = "abandon_gen_filter",
-      description = "Filtrer les paires abandonnees a la generation plutot qu'a l'arbitrage (1 = filtre generation, defaut adopte; 0 = arbitrage seul, docs/taches.md C22)",
+      description = "Appliquer les paires abandonnees comme filtre rail/route/feeders (generation, portefeuille et execution ; 1 = filtre actif, defaut adopte ; 0 = memoire de diagnostic sans exclusion, docs/taches.md C22)",
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       flags = AICONFIG_BOOLEAN

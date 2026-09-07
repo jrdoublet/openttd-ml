@@ -878,7 +878,7 @@ function OpexIncrementalCandidateStillValid(p, lines, abandonedPairs = null)
         local aKey2 = "air|" + plan.siteB.town.tile + "|" + plan.siteA.town.tile;
         if ((aKey1 in abandonedPairs) || (aKey2 in abandonedPairs)) return false;
       }
-    } else if (mode == "road" || mode == "rail") {
+    } else if (ABANDON_GEN_FILTER && ABANDON_MEMORY && (mode == "road" || mode == "rail")) {
       if (("payload" in p) && p.payload != null) {
         local aKey = OpexAbandonedPairKey(p.payload);
         if (aKey in abandonedPairs) return false;
@@ -1333,11 +1333,11 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
   if (!SHADOW_PRICING) {
     if (PORTFOLIO_V2) {
       foreach (candidate in rail.candidates) {
-        if (abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) continue;
+        if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) continue;
         OpexProjectRememberAll(winners, OpexProjectFromCandidate(candidate, tensionCtx), stats);
       }
       foreach (candidate in road.candidates) {
-        if (abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) continue;
+        if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) continue;
         OpexProjectRememberAll(winners, OpexProjectFromCandidate(candidate, tensionCtx), stats);
       }
       foreach (plan in airPlans) {
@@ -1353,11 +1353,11 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
       }
     } else {
       foreach (candidate in rail.candidates) {
-        if (abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) continue;
+        if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) continue;
         OpexProjectRemember(winners, OpexProjectFromCandidate(candidate, tensionCtx), stats);
       }
       foreach (candidate in road.candidates) {
-        if (abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) continue;
+        if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) continue;
         OpexProjectRemember(winners, OpexProjectFromCandidate(candidate, tensionCtx), stats);
       }
       foreach (plan in airPlans) {
