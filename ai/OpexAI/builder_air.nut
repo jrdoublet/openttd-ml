@@ -610,7 +610,11 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
     /* En soute, les avions de ligne transportent ~15% de fret postal sans refit */
     totalIncomePerUnit = paxIncome + (mailIncome * 15) / 100;
   }
-  local incomePerUnit = totalIncomePerUnit;
+  /* D4 par mode : le tarif moteur est exact, mais le rendement observe des
+   * lignes air|pax depasse de 4,27 % la prediction mediane. Corriger ici,
+   * avant revenu/profit/ROI, conserve une seule economie coherente pour le
+   * classement, le chantier et la reconciliation post-construction. */
+  local incomePerUnit = (totalIncomePerUnit * AIR_PAX_REVENUE_CALIBRATION_PCT) / 100.0;
   local airportMaintenanceAnnual =
       infrastructureMaintenance ? 12 * newAirportCount * airport.maintenance : 0;
   local airportAmortAnnual = (newAirportCount * airport.price * INFRA_AMORT_PCT / 100) / 30;

@@ -140,6 +140,40 @@ function OpexProjectScore(value, cost)
   return (value.tofloat() * 1000.0) / cost;
 }
 
+/* P1 : cout a comparer a la tresorerie mobilisable. `budgetCapital` reste le
+ * cout economique utilise par les scores historiques ; il ne faut pas y
+ * injecter un multiplicateur global. Pour le rail, le repli temporaire est
+ * 1,7x le devis modele ; P1.1 doit le remplacer par un devis physique avant
+ * l'election. Si le trace a deja fourni un devis reel, le candidat porte
+ * `capitalIsActual` et ce montant remplace le facteur. Les marges et le capital
+ * immobilise ne sont pas des travaux de voie : ils restent inchanges. */
+function OpexProjectFinanceCapital(project)
+{
+  if (project == null || !("budgetCapital" in project)) return 0;
+  local financeCapital = project.budgetCapital;
+  if (!CAPITAL_CALIBRATION || !("mode" in project) || project.mode != "rail") {
+    return financeCapital;
+  }
+
+  local capital = ("capital" in project) ? project.capital : 0;
+  local modelCapital = capital;
+  if (capital <= 0) return financeCapital;
+  local capitalIsActual = ("capitalIsActual" in project) && project.capitalIsActual;
+  if (!capitalIsActual && ("payload" in project) && project.payload != null
+      && ("capitalIsActual" in project.payload)) {
+    capitalIsActual = project.payload.capitalIsActual;
+    if (capitalIsActual && ("capital" in project.payload)
+        && project.payload.capital > 0) {
+      capital = project.payload.capital;
+    }
+  }
+  local nonConstructionCapital = financeCapital - modelCapital;
+  if (nonConstructionCapital < 0) nonConstructionCapital = 0;
+  if (capitalIsActual) return capital + nonConstructionCapital;
+
+  return ((capital * 170) / 100) + nonConstructionCapital;
+}
+
 function OpexProjectFromCandidate(candidate, tensionCtx = null)
 {
   if (candidate == null || candidate.profitAnnual <= 0 || candidate.revenueAnnual <= 0 ||
@@ -415,7 +449,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
    * ni de l'inflation : a 0 il reproduit exactement le comportement mesure ci-dessus. */
   local bestProfit = 0;
   foreach (project in alternatives) {
-    if (project.budgetCapital > capitalBudget) continue;
+    if (OpexProjectFinanceCapital(project) > capitalBudget) continue;
     if (project.profitAnnual > bestProfit) bestProfit = project.profitAnnual;
   }
   local floorProfit = 0;
@@ -426,10 +460,10 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
   local affordable = [];
   local scoreKey = (TENSION_SCORING || SHADOW_PRICING) ? "tensionScore" : "fundScore";
   foreach (project in alternatives) {
-    if (project.budgetCapital > capitalBudget) continue;
+    if (OpexProjectFinanceCapital(project) > capitalBudget) continue;
     if (project.profitAnnual < floorProfit) continue;
     if (!TENSION_SCORING && !SHADOW_PRICING) {
-      project.fundScore <- OpexProjectScore(project.profitAnnual, project.budgetCapital);
+      project.fundScore <- OpexProjectScore(project.profitAnnual, OpexProjectFinanceCapital(project));
     }
     OpexProjectInsert(affordable, project, scoreKey, limit);
   }
@@ -439,9 +473,9 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
    * batir du tout. */
   if (affordable.len() == 0 && floorProfit > 0) {
     foreach (project in alternatives) {
-      if (project.budgetCapital > capitalBudget) continue;
+      if (OpexProjectFinanceCapital(project) > capitalBudget) continue;
       if (!TENSION_SCORING && !SHADOW_PRICING) {
-        project.fundScore <- OpexProjectScore(project.profitAnnual, project.budgetCapital);
+        project.fundScore <- OpexProjectScore(project.profitAnnual, OpexProjectFinanceCapital(project));
       }
       OpexProjectInsert(affordable, project, scoreKey, limit);
     }
@@ -477,7 +511,7 @@ function OpexBuildMultimodalBudgetPool(winners, stats, capitalCeiling, scoreFiel
   foreach (key, project in winners) {
     if (project == null) continue;
     stats.odProjects++;
-    if (POOL_FINANCEABLE && project.budgetCapital > capitalCeiling) {
+    if (POOL_FINANCEABLE && OpexProjectFinanceCapital(project) > capitalCeiling) {
       stats.poolInfundable++;
       if (DECISION_LOG && (project.mode in infundableByMode)) infundableByMode[project.mode]++;
       continue;
@@ -544,8 +578,9 @@ function OpexKnapsackComputeBound(candidates, n, startIdx, cap)
   for (local j = startIdx; j < n; j++) {
     local p = candidates[j];
     local pv = KNAPSACK_ROI ? p.profitAnnual : p.revenueAnnual;
-    if (p.budgetCapital > 0) {
-      local d = pv.tofloat() / p.budgetCapital;
+    local financeCapital = OpexProjectFinanceCapital(p);
+    if (financeCapital > 0) {
+      local d = pv.tofloat() / financeCapital;
       if (d > maxDensity) maxDensity = d;
     }
   }
@@ -621,14 +656,15 @@ function OpexKnapsackSearch(state, idx, currentCapital, currentRevenue, currentR
   foreach (k in conflictKeys) {
     if (k in state.originsUsed) { hasConflict = true; break; }
   }
-  local canInclude = !hasConflict && (currentCapital + p.budgetCapital <= state.capitalBudget);
+  local financeCapital = OpexProjectFinanceCapital(p);
+  local canInclude = !hasConflict && (currentCapital + financeCapital <= state.capitalBudget);
   if (canInclude && p.mode == "road" && currentRoad >= state.maxRoad) canInclude = false;
 
   if (canInclude) {
     currentItems.append(p);
     foreach (k in conflictKeys) state.originsUsed[k] <- true;
     local objValue = (TENSION_SCORING || SHADOW_PRICING || KNAPSACK_ROI) ? p.profitAnnual : p.revenueAnnual;
-    OpexKnapsackSearch(state, idx + 1, currentCapital + p.budgetCapital,
+    OpexKnapsackSearch(state, idx + 1, currentCapital + financeCapital,
                        currentRevenue + objValue,
                        p.mode == "road" ? currentRoad + 1 : currentRoad, currentItems);
     foreach (k in conflictKeys) delete state.originsUsed[k];
@@ -824,7 +860,7 @@ function OpexReselectProjects(projects, capitalBudget)
   local selectedCap = 0;
   foreach (project in funded) {
     selectedRev += project.revenueAnnual;
-    selectedCap += project.budgetCapital;
+    selectedCap += OpexProjectFinanceCapital(project);
   }
   projects.stats.selectedRevenue = selectedRev;
   projects.stats.selectedCapital = selectedCap;
@@ -1172,7 +1208,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   local selectedCap = 0;
   foreach (p in funded) {
     selectedRev += p.revenueAnnual;
-    selectedCap += p.budgetCapital;
+    selectedCap += OpexProjectFinanceCapital(p);
   }
   stats.selectedRevenue = selectedRev;
   stats.selectedCapital = selectedCap;
@@ -1453,7 +1489,7 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
   local selectedCap = 0;
   foreach (p in funded) {
     selectedRev += p.revenueAnnual;
-    selectedCap += p.budgetCapital;
+    selectedCap += OpexProjectFinanceCapital(p);
   }
   stats.selectedRevenue = selectedRev;
   stats.selectedCapital = selectedCap;

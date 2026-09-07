@@ -179,13 +179,13 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    /* A7.5 : Invalidation et rafraichissement reactif du catalogue via ET_INDUSTRY_OPEN et ET_TOWN_FOUNDED
-     * (1 = actif, 0 = cycle annuel classique/defaut). */
+    /* P3 / A7.5 : Invalidation et rafraichissement reactif du catalogue via
+     * ET_INDUSTRY_OPEN et ET_TOWN_FOUNDED (1 = actif par defaut). */
     AddSetting({
       name = "event_catalog_invalidate",
-      description = "Rafraichissement reactif du catalogue lors de l'ouverture d'industrie ou fondation de ville (docs/taches.md A7.5): 1 = actif, 0 = cycle annuel classique (defaut)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "P3: rebuild catalog and portfolio immediately after an industry opens or a town is founded; 1 = enabled (default), 0 = monthly cycle only",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
@@ -1038,6 +1038,17 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
+    /* P1 : repli empirique rail-only temporaire. L'artefact source du ×1,7
+     * n'est plus dans l'arbre ; P1.1 doit le remplacer par le devis physique
+     * avant élection. Les autres modes ne sont pas multiplies. */
+    AddSetting({
+      name = "capital_calibration",
+      description = "Use mode-specific physical capital calibration for affordability (rail 170%; default). 0 = historical model-cost control",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* docs/taches.md S3 undecies (2026-09-03), diagnostic docs/diag_airserved_probe.json.
      * OpexBuildAirRoute calcule les StationID puis rend les TUILES (`builder_air.nut:831-832` puis
      * `:898-899`). main.nut lit bien ces champs comme des tuiles ; le code de hub, non. La garde
@@ -1233,6 +1244,18 @@ Le mode route est donc reconfirme sur l arbre courant.
       min_value = 0, max_value = 20,
       easy_value = 6, medium_value = 6, hard_value = 6,
       custom_value = 6,
+      flags = 0
+    });
+
+    /* D4 par mode : l'aerien passagers realise un revenu median 1,0427 fois
+     * celui predit (diag_road_purpose, 10 ans x 5 graines). 104 corrige ce
+     * biais sans modifier route, rail ou fret ; 100 reconstitue le controle. */
+    AddSetting({
+      name = "air_pax_revenue_calibration_pct",
+      description = "Air passenger revenue calibration percent: 104 = measured default; 100 = uncalibrated control",
+      min_value = 1, max_value = 200,
+      easy_value = 104, medium_value = 104, hard_value = 104,
+      custom_value = 104,
       flags = 0
     });
 
@@ -1635,6 +1658,25 @@ Le mode route est donc reconfirme sur l arbre courant.
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
+    });
+
+    /* P2 : gardes du batch dynamique. Elles sont sans effet tant que C38 est
+     * eteint ; 0 reconstitue l'ancien comportement pour chaque dimension. */
+    AddSetting({
+      name = "dynamic_batch_reject_limit",
+      description = "P2: stop a dynamic batch after this many consecutive rejected attempts; 0 = legacy unlimited scan",
+      min_value = 0, max_value = 16,
+      easy_value = 3, medium_value = 3, hard_value = 3,
+      custom_value = 3,
+      flags = 0
+    });
+    AddSetting({
+      name = "dynamic_batch_ops_budget_pct",
+      description = "P2: maximum share of the current tick available to a dynamic batch; 0 = legacy 2500-opcode floor only",
+      min_value = 0, max_value = 90,
+      easy_value = 50, medium_value = 50, hard_value = 50,
+      custom_value = 50,
+      flags = 0
     });
 
     /* C36.1 : Caching incremental du vivier post-chantier.

@@ -48,6 +48,11 @@ ROAD_PAX_CATCHMENT_SHARE_PCT <- 86;
 ROAD_STOP_CATCHMENT_HOUSES <- 10;
 /* D4 : Dwell time de chargement/dechargement a la station pour les bus passagers (jours) */
 ROAD_PAX_STOP_DWELL_DAYS <- 6;
+/* D4, extension aerienne : le diagnostic 10 ans x 5 graines
+ * (docs/diag_road_purpose.json) donne revenu reel/predit median = 1,0427 pour
+ * air|pax. Le modele etait donc legerement conservateur. Ce facteur ne touche
+ * que le revenu passager aerien, avant le calcul du profit et des scores. */
+AIR_PAX_REVENUE_CALIBRATION_PCT <- 104;
 /* C27 : Sortir les bonus du numerateur de densite du portefeuille (adopte) */
 CLEAN_DENSITY_SCORE <- true;
 /* C28 : Maximum glissant sur les N derniers cycles pour capitalCeiling (defaut 24) */
@@ -186,6 +191,10 @@ KNAPSACK_ROI <- true;
  * detection (t=1,48 et 1,52), et median_station_rating perd significativement au test des signes
  * (5/20, p=0,041). Rien n'est casse -- le gain de valeur n'est simplement pas encore prouve. */
 POOL_FINANCEABLE <- true;
+/* P1 : repli empirique temporaire du filtre de finançabilité. Le ×1,7 rail
+ * est consigné sans artefact source encore présent ; P1.1 doit le remplacer
+ * par un devis physique avant élection. Les autres modes restent à 1,0. */
+CAPITAL_CALIBRATION <- true;
 /* docs/taches.md S3 undecies (2026-09-03) : les lignes aeriennes rangent des TUILES d'aeroport
  * dans stationA/stationB, mais le code de hub de builder_air.nut les lisait comme des StationID.
  * Consequence mesuree graine 42 : la garde `alreadyConnected` toujours fausse -> NEUF liaisons sur
@@ -226,8 +235,9 @@ EVENT_INDUSTRY_CLOSE <- false;
 EVENT_SUBSIDY_PROBE <- false;
 /* A7.4 : Alerte et diagnostic convois perdus/bloques via ET_VEHICLE_LOST */
 EVENT_VEHICLE_LOST <- false;
-/* A7.5 : Invalidation reactif catalogue via ET_INDUSTRY_OPEN et ET_TOWN_FOUNDED */
-EVENT_CATALOG_INVALIDATE <- false;
+/* P3 / A7.5 : une nouvelle ville ou industrie rend le portefeuille obsolete.
+ * Le rafraichissement reactif est rare et evite d'attendre le prochain mois. */
+EVENT_CATALOG_INVALIDATE <- true;
 const CASH_RESERVE_STATIC = 25000;
 const CASH_RESERVE_MIN = 5000;
 const CASH_RESERVE_MAX = 25000;
@@ -461,6 +471,12 @@ PORTFOLIO_MAX_BATCH <- 1;
  * aucun etat de batch supplementaire. */
 PORTFOLIO_DYNAMIC_BATCH <- false;
 const DYNAMIC_BATCH_OPS_FLOOR = 2500;
+/* P2 : le bras C38 ne doit pas balayer tout le vivier sur une rafale de refus,
+ * ni consommer tout le tick. Ces controles ne sont lus que pour le bras
+ * dynamique ; 0 reconstitue respectivement l'ancien balayage et son garde
+ * absolu de 2 500 opcodes. */
+DYNAMIC_BATCH_REJECT_LIMIT <- 3;
+DYNAMIC_BATCH_OPS_BUDGET_PCT <- 50;
 /* Gain absolu minimal avant de rejouer la generation : en dessous, le cout en opcodes ne vaut pas
  * la peine d'etre paye pour quelques milliers de livres. */
 const PORTFOLIO_REFRESH_MIN_GAIN = 50000;
@@ -769,6 +785,19 @@ function OpexAttemptReasonCode(reason)
   if (reason == "ORDFAIL") return "R";
   if (reason == "NOTRAIN") return "V";
   return "X";
+}
+
+/* P4 : la memoire d'abandon ne doit retenir que les impossibilites durables.
+ * Un constructeur peut constater une caisse insuffisante APRES le garde du
+ * portefeuille (prix reel, re-emprunt refuse ou cout devenu plus eleve que le
+ * devis). Ce refus est transitoire : le memoriser retire injustement la paire
+ * du vivier, dans le batch comme sur le chemin unitaire. */
+function OpexBuildFailureIsAbandonable(result)
+{
+  if (result == null) return false;
+  if (("reason" in result) && result.reason == "CASH") return false;
+  if (("error" in result) && result.error == AIError.ERR_NOT_ENOUGH_CASH) return false;
+  return true;
 }
 
 /* Le station_id est l'identite de bassin, pas la tuile de quai : deux lignes raccordees ont des
@@ -1144,7 +1173,7 @@ function OpexAI::_tryBuildAir(year)
       /* air_abandon : sans cette memorisation, le cycle suivant re-scanne tous les sites pour
        * reproposer EXACTEMENT le meme bestPlan et echouer de la meme facon. Le chemin
        * portefeuille memorise deja ses echecs (voir plus bas) ; ce chemin-ci ne le faisait pas. */
-      if (AIR_ABANDON && ABANDON_MEMORY) {
+      if (AIR_ABANDON && ABANDON_MEMORY && OpexBuildFailureIsAbandonable(result)) {
         this._markPairAbandoned("air|" + plan.siteA.town.tile + "|" + plan.siteB.town.tile);
       }
       break;
@@ -1762,7 +1791,7 @@ function OpexAI::_tryBuildFeeders(year)
     }
     local result = OpexBuildRoadRoute(this._catalog, this._budget, plan, candidate);
     if (!result.ok) {
-      if (ABANDON_MEMORY) this._markPairAbandoned(abandonedKey);
+      if (ABANDON_MEMORY && OpexBuildFailureIsAbandonable(result)) this._markPairAbandoned(abandonedKey);
       OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|" + result.reason + "|" + result.error);
       rejectStats.buildFail++;
       continue;
@@ -2265,7 +2294,7 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
         if (DECISION_LOG) {
           OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=air src=" + plan.siteA.town.tile + " dst=" + plan.siteB.town.tile + " reason=build_failed detail=" + result.reason + " error=" + result.error);
         }
-        if (ABANDON_MEMORY) this._markPairAbandoned(abandonedKey);
+        if (ABANDON_MEMORY && OpexBuildFailureIsAbandonable(result)) this._markPairAbandoned(abandonedKey);
         return { outcome = "rejected", discards = passDiscards };
       }
       if (result.ok) {
@@ -2437,7 +2466,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         if (DECISION_LOG) {
           OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=road src=" + candidate.src + " dst=" + candidate.dst + " reason=build_failed detail=" + result.reason + " error=" + result.error);
         }
-        if (ABANDON_MEMORY) this._markPairAbandoned(abandonedKey);
+        if (ABANDON_MEMORY && OpexBuildFailureIsAbandonable(result)) this._markPairAbandoned(abandonedKey);
         OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|" + result.reason + "|" + result.error);
         return { outcome = "rejected", discards = passDiscards };
       }
@@ -2530,7 +2559,22 @@ function OpexAI::_refreshDynamicBatch(year)
 function OpexAI::_dynamicBatchBuilt(year)
 {
   this._dynamicBatch.built++;
+  this._dynamicBatch.consecutiveRejects = 0;
   this._refreshDynamicBatch(year);
+}
+
+/* P2 : seul un refus effectivement tente compte. Une recherche rail pending
+ * rend la main sans appeler ce helper ; un succes remet la serie a zero. */
+function OpexAI::_dynamicBatchRejected()
+{
+  if (!PORTFOLIO_DYNAMIC_BATCH || this._dynamicBatch == null) return false;
+  this._dynamicBatch.consecutiveRejects++;
+  if (DYNAMIC_BATCH_REJECT_LIMIT > 0
+      && this._dynamicBatch.consecutiveRejects >= DYNAMIC_BATCH_REJECT_LIMIT) {
+    this._dynamicBatch.stopReason = "consecutive_rejects";
+    return true;
+  }
+  return false;
 }
 
 function OpexAI::_stopDynamicBatch(reason, year)
@@ -2542,6 +2586,8 @@ function OpexAI::_stopDynamicBatch(reason, year)
   if (DECISION_LOG) {
     OpexDecide("DYNAMIC_BATCH", "action=stop reason=" + reason + " built="
                + this._dynamicBatch.built + " attempted=" + this._dynamicBatch.attemptedCount
+               + " rejects=" + this._dynamicBatch.consecutiveRejects
+               + " ops_floor=" + this._dynamicBatch.opsFloor
                + " budget_before=" + this._dynamicBatch.initialBudget + " budget_after=" + after
                + " remaining=" + remaining);
   }
@@ -2578,7 +2624,8 @@ function OpexAI::_tryBuildProjects(year)
   if (PORTFOLIO_DYNAMIC_BATCH && this._dynamicBatch == null) {
     this._dynamicBatch = {
       attempted = {}, attemptedCount = 0, built = 0,
-      initialBudget = OpexAvailableCapital(), attemptLimit = PROJECT_TOP_K,
+      consecutiveRejects = 0,
+      initialBudget = OpexAvailableCapital(), opsFloor = DYNAMIC_BATCH_OPS_FLOOR,
       stopReason = null, pendingLogged = false,
       sourceCandidateGroups = (this._projects != null && ("candidateGroups" in this._projects))
           ? this._projects.candidateGroups : null,
@@ -2601,10 +2648,18 @@ function OpexAI::_tryBuildProjects(year)
   local yy = year % 100;
   local builtCount = 0;
   local passDiscards = [];
+  /* P2 : fractionner le tick. Le plancher historique protege toujours les
+   * autres taches quand le pourcentage est nul ou que le tick est deja court. */
+  local dynamicOpsFloor = DYNAMIC_BATCH_OPS_FLOOR;
+  if (PORTFOLIO_DYNAMIC_BATCH && DYNAMIC_BATCH_OPS_BUDGET_PCT > 0) {
+    local opsNow = AIController.GetOpsTillSuspend();
+    local reserved = (opsNow * (100 - DYNAMIC_BATCH_OPS_BUDGET_PCT)) / 100;
+    if (reserved > dynamicOpsFloor) dynamicOpsFloor = reserved;
+  }
+  if (PORTFOLIO_DYNAMIC_BATCH) this._dynamicBatch.opsFloor = dynamicOpsFloor;
   /* 1 conserve le break historique. Au-dela, chaque candidat apres le premier succes passe les
    * revalidations de son mode contre this._lines, la carte et la tresorerie vivantes. */
-  local maxBatch = PORTFOLIO_DYNAMIC_BATCH ? this._dynamicBatch.attemptLimit
-                                            : PORTFOLIO_MAX_BATCH;
+  local maxBatch = PORTFOLIO_MAX_BATCH;
 
   /* A4 : un A* termine au tour precedent a depose un railPlan sur le candidat stocke. On le
    * consomme AVANT le balayage du portefeuille, qui a pu etre regenere entre-temps. */
@@ -2629,11 +2684,15 @@ function OpexAI::_tryBuildProjects(year)
       if (outcome == "built") {
         builtCount++;
         if (PORTFOLIO_DYNAMIC_BATCH) this._dynamicBatchBuilt(year);
+      } else if (PORTFOLIO_DYNAMIC_BATCH && outcome == "failed") {
+        this._dynamicBatchRejected();
       }
     }
   }
 
-  if (builtCount < maxBatch && this._projects != null && this._projects.best.len() > 0) {
+  if ((PORTFOLIO_DYNAMIC_BATCH || builtCount < maxBatch)
+      && this._projects != null && this._projects.best.len() > 0
+      && (!PORTFOLIO_DYNAMIC_BATCH || this._dynamicBatch.stopReason == null)) {
   local logDiscardsThisPass = false;
   /* Le calcul du mois courant coute DEUX appels d'API et tournait a chaque passage, reglage
    * eteint compris. Ici le comportement depend des opcodes consommes : tout ce qui ne sert
@@ -2650,11 +2709,7 @@ function OpexAI::_tryBuildProjects(year)
     if (project == null) continue;
 
     if (PORTFOLIO_DYNAMIC_BATCH) {
-      if (this._dynamicBatch.attemptedCount >= this._dynamicBatch.attemptLimit) {
-        this._dynamicBatch.stopReason = "attempt_limit";
-        break;
-      }
-      if (AIController.GetOpsTillSuspend() < DYNAMIC_BATCH_OPS_FLOOR) {
+      if (AIController.GetOpsTillSuspend() < dynamicOpsFloor) {
         this._dynamicBatch.stopReason = "opcode_budget";
         break;
       }
@@ -2677,6 +2732,9 @@ function OpexAI::_tryBuildProjects(year)
           this._dynamicBatchBuilt(year);
           i = -1;
         } else if (builtCount >= maxBatch) break;
+      } else if (PORTFOLIO_DYNAMIC_BATCH && attempt.outcome == "rejected"
+                 && this._dynamicBatchRejected()) {
+        break;
       }
       continue;
     }
@@ -2691,6 +2749,9 @@ function OpexAI::_tryBuildProjects(year)
           this._dynamicBatchBuilt(year);
           i = -1;
         } else if (builtCount >= maxBatch) break;
+      } else if (PORTFOLIO_DYNAMIC_BATCH && attempt.outcome == "rejected"
+                 && this._dynamicBatchRejected()) {
+        break;
       }
     } else if (mode == "road") {
       local attempt = this._tryBuildRoadProject(year, project, i, passDiscards, anchor, yy);
@@ -2701,6 +2762,9 @@ function OpexAI::_tryBuildProjects(year)
           this._dynamicBatchBuilt(year);
           i = -1;
         } else if (builtCount >= maxBatch) break;
+      } else if (PORTFOLIO_DYNAMIC_BATCH && attempt.outcome == "rejected"
+                 && this._dynamicBatchRejected()) {
+        break;
       }
     } else if (mode == "rail") {
       local attempt = this._tryBuildRailProject(year, project, i, liveBuiltCount, passDiscards,
@@ -2718,6 +2782,9 @@ function OpexAI::_tryBuildProjects(year)
           this._dynamicBatchBuilt(year);
           i = -1;
         } else if (builtCount >= maxBatch) break;
+      } else if (PORTFOLIO_DYNAMIC_BATCH && attempt.outcome == "rejected"
+                 && this._dynamicBatchRejected()) {
+        break;
       }
     } else if (mode == "water") {
       local attempt = this._tryBuildWaterProject(year, project, i, liveBuiltCount, passDiscards,
@@ -2729,6 +2796,9 @@ function OpexAI::_tryBuildProjects(year)
           this._dynamicBatchBuilt(year);
           i = -1;
         } else if (builtCount >= maxBatch) break;
+      } else if (PORTFOLIO_DYNAMIC_BATCH && attempt.outcome == "rejected"
+                 && this._dynamicBatchRejected()) {
+        break;
       }
     }
   }
@@ -4846,6 +4916,12 @@ function OpexAI::_runNextTask()
      * tresorerie : le portefeuille est derive du catalogue, pas seulement du capital. */
     if (this._lastCatalogMonth == ym && this._projects != null && !stale &&
         !this._portfolioInvalidated) return false;
+    if (DECISION_LOG) {
+      local refreshReason = this._portfolioInvalidated ? "event"
+          : (stale ? "capital" : "month");
+      OpexDecide("PORTFOLIO_REFRESH", "reason=" + refreshReason + " budget="
+                 + OpexAvailableCapital());
+    }
     this._lastCatalogMonth = ym;
     this._pruneAbandonedPairs(date);
     this._catalog.refresh(this._budget, year);
@@ -5031,6 +5107,8 @@ function OpexAI::Start()
   if (roadStopHouses > 0) ROAD_STOP_CATCHMENT_HOUSES = roadStopHouses;
   local roadPaxDwell = AIController.GetSetting("road_pax_dwell_days");
   if (roadPaxDwell >= 0) ROAD_PAX_STOP_DWELL_DAYS = roadPaxDwell;
+  local airPaxCalibration = AIController.GetSetting("air_pax_revenue_calibration_pct");
+  if (airPaxCalibration > 0) AIR_PAX_REVENUE_CALIBRATION_PCT = airPaxCalibration;
   ROAD_REFLEET = AIController.GetSetting("road_refleet") != 0;
   ROAD_MULTISTOP = AIController.GetSetting("road_multistop") != 0;
   MARGINAL_FLEET = AIController.GetSetting("marginal_fleet") != 0;
@@ -5047,6 +5125,10 @@ function OpexAI::Start()
   PORTFOLIO_V2 = AIController.GetSetting("portfolio_v2") != 0;
   PORTFOLIO_MAX_BATCH = AIController.GetSetting("portfolio_max_batch");
   PORTFOLIO_DYNAMIC_BATCH = AIController.GetSetting("portfolio_dynamic_batch") != 0;
+  local dynamicRejectLimit = AIController.GetSetting("dynamic_batch_reject_limit");
+  if (dynamicRejectLimit >= 0) DYNAMIC_BATCH_REJECT_LIMIT = dynamicRejectLimit;
+  local dynamicOpsBudget = AIController.GetSetting("dynamic_batch_ops_budget_pct");
+  if (dynamicOpsBudget >= 0) DYNAMIC_BATCH_OPS_BUDGET_PCT = dynamicOpsBudget;
   PORTFOLIO_FLOOR_PCT = AIController.GetSetting("portfolio_floor_pct");
   FLEET_FIX = AIController.GetSetting("fleet_fix") != 0;
   ECONOMY_FIX = AIController.GetSetting("economy_fix") != 0;
@@ -5088,6 +5170,7 @@ function OpexAI::Start()
   AIR_MARGIN_V2 = AIController.GetSetting("air_margin_v2") != 0;
   KNAPSACK_ROI = AIController.GetSetting("knapsack_roi") != 0;
   POOL_FINANCEABLE = AIController.GetSetting("pool_financeable") != 0;
+  CAPITAL_CALIBRATION = AIController.GetSetting("capital_calibration") != 0;
   AIR_HUB_FIX = AIController.GetSetting("air_hub_fix") != 0;
   TENSION_PROBE = AIController.GetSetting("tension_probe") != 0;
   if (TENSION_PROBE) {

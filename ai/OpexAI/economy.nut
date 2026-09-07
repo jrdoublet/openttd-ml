@@ -407,6 +407,9 @@ function OpexApplyRailActualCapital(candidate, actualCapital)
   local previousAmort = candidate.amortAnnual;
   local infrastructureDelta = actualCapital - previousCapital;
   candidate.capital = actualCapital;
+  /* P1 : les appels ulterieurs au filtre de finançabilité doivent preferer ce
+   * devis/ce coût physique au facteur empirique rail. */
+  candidate.capitalIsActual <- true;
   candidate.amortAnnual = previousAmort
       + ((infrastructureDelta * INFRA_AMORT_PCT / 100) / INFRA_LIFE_YEARS);
   candidate.profitAnnual = candidate.revenueAnnual - candidate.runningAnnual - candidate.amortAnnual;

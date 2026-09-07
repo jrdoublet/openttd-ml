@@ -386,26 +386,48 @@ reste à trancher indépendamment.
   — le refus consécutif est le signal du régime d'erreur de devis ; (b) budget d'opcodes réservé au
   batch plutôt que la totalité du tick. Sans P1, P2 ne masque que le symptôme.
 
+  **Implémentation P2 (en attente de mesure).** Sous `portfolio_dynamic_batch=1` seulement,
+  `dynamic_batch_reject_limit=3` arrête après trois refus consécutifs (un succès remet le compteur
+  à zéro ; un rail `pending` ne compte pas) et `dynamic_batch_ops_budget_pct=50` limite le batch à
+  la moitié du tick courant. Les deux réglages acceptent `0` comme contrôle historique. Il n'y a
+  plus de plafond fixe de 64 tentatives : l'ensemble local `attempted` et le vivier fini bornent la
+  passe. `DYNAMIC_BATCH` publie maintenant la série de refus et le plancher d'opcodes. Mesurer P2
+  contre C38+P1, jamais contre le chemin unitaire.
+
   **P3 — retourner l'hypothèse : plus de passages, pas des passages plus gros.** Le goulot mesuré
   (61,2 % des transitions mensuelles sans construction malgré ≥300 k£) ne se remplit pas en
-  épaississant le passage — C38 vient de le prouver à −36 %. La direction opposée est non testée et
-  **déjà pointée par deux constats non corrigés** de la revue étape 2 : item 1 🔴 « une paire
-  abandonnée ne déclenche pas la réélection incrémentale par défaut », item 3 🟡 « l'invalidation
-  événementielle ne force pas la reconstruction mensuelle du portefeuille ». Ce sont des défauts de
-  **fréquence** de décision, pas de taille de lot, et les corriger garde l'observation fraîche entre
-  deux décisions.
+  épaississant le passage — C38 vient de le prouver à −36 %. La direction opposée était pointée par
+  deux constats de la revue étape 2 : item 1 🔴 « une paire abandonnée ne déclenche pas la
+  réélection incrémentale par défaut », item 3 🟡 « l'invalidation événementielle ne force pas la
+  reconstruction mensuelle du portefeuille ». Ce sont des défauts de **fréquence** de décision,
+  pas de taille de lot ; ils sont désormais implémentés ci-dessous et restent à mesurer.
 
-  **P4 — vérifier la pollution de la mémoire d'abandon.** Est-ce qu'un refus interne au batch
-  (rejeté faute de caisse, pas pour son mérite) alimente C22/C33.3 ? Si oui, C38 empoisonnait le
-  vivier à 10-16× la cadence normale — ce qui expliquerait à lui seul les −13,6 % de gares — et ce
-  serait une taxe silencieuse **aussi sur le chemin par défaut**, à plus faible dose. Vérifiable
-  dans `docs/diag_c38_dynamic_batch_6y_5seeds.jsonl` (⚠️ 746 Mo, ne pas ouvrir en entier).
+  **Implémentation P3 (en attente de mesure).** Un abandon pose `_hadAbandonsThisPass`, ce qui
+  déclenche `OpexIncrementalUpdateProjects()` à la fin du passage même sans journal de décision.
+  `event_catalog_invalidate=1` devient le défaut : une ouverture d'industrie ou fondation de ville
+  marque le portefeuille obsolète, réveille `catalog` et `projects`, et contourne le garde mensuel
+  pour appeler `OpexBuildProjects()` immédiatement. `PORTFOLIO_REFRESH` expose le motif
+  `event|capital|month` au journal. Mesurer `event_catalog_invalidate=0` contre `1` sur le chemin
+  unitaire P1, sans `portfolio_dynamic_batch`.
 
-  **P5 — ⛔ deux pistes à ne PAS rouvrir.** Un seuil de réservation sur le ratio qui monte quand la
-  caisse baisse — la formalisation naturelle de la raison 5 — **est** un prix d'ombre du capital :
-  famille A1/`shadow_pricing`, fermée stratégiquement le 2026-09-07, pas à rouvrir sans décision
-  explicite de l'utilisateur. Et un plafond fixe plus grand est déjà réfuté (−3,8 %, 11/20 nuls
-  exacts).
+  **P4 — pollution de la mémoire d'abandon, corrigée (à mesurer).** Les gardes explicites
+  `insufficient_cash` sortaient déjà sans appeler C22/C33.3. En revanche, après ce garde, les
+  constructeurs air et route pouvaient encore retourner `CASH` (ou `ERR_NOT_ENOUGH_CASH`, si le
+  devis était devenu trop bas) ; le chemin générique les mémorisait alors comme échecs durables.
+  `OpexBuildFailureIsAbandonable()` exclut maintenant ces deux cas, dans le batch C38 **et** le
+  chemin unitaire. Le journal C38 historique contient 792 refus `insufficient_cash`, aucun
+  `detail=CASH`, et 47 232 occurrences de `abandoned_pair` : il ne journalise pas l'événement
+  d'écriture C22, donc il ne permet pas d'attribuer ces occurrences aux refus de caisse. Mesurer
+  P4 avec `abandon_memory=1`, avant/après ce correctif, sur le chemin unitaire P1 ; C38 ne doit
+  être repris qu'après P1.
+
+  **P5 — ⛔ deux pistes fermées et garde-fou appliqué.** Un seuil de réservation sur le ratio qui
+  monte quand la caisse baisse — la formalisation naturelle de la raison 5 — **est** un prix
+  d'ombre du capital : famille A1/`shadow_pricing`, fermée stratégiquement le 2026-09-07.
+  `shadow_pricing=0`, `portfolio_dynamic_batch=0` et `portfolio_max_batch=1` restent les défauts.
+  Les interrupteurs demeurent seulement des contrôles de banc ; ne pas les activer ni relever le
+  plafond fixe sans décision explicite de l'utilisateur. Le plafond supérieur est déjà réfuté
+  (−3,8 %, 11/20 nuls exacts).
 
   **Ordre suggéré : P1 seul au banc** (il vaut par lui-même), puis P4 en lecture de journal
   (gratuit), puis P3. **C38 ne se re-mesure qu'après P1.**
