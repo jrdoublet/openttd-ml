@@ -95,6 +95,47 @@ exactement le mécanisme que cette étape doit déjà relire.
   la nouvelle version contre le défaut actuel (combo intégral + `air_portfolio=1`), pas contre le
   vieux banc de 2026-09-02 qui datait d'avant C36.2.
 
+  **Préparation d'implémentation — 2026-09-07.** C38 doit être un réglage isolé
+  `portfolio_dynamic_batch`, défaut `0`. À `0`, `_tryBuildProjects()` conserve littéralement son
+  passage actuel et `portfolio_max_batch=1`; aucun re-classement ou appel d'API supplémentaire ne
+  doit être payé. À `1`, le plafond fixe ne décide plus de l'arrêt. Le passage devient une petite
+  machine d'état :
+
+  1. élire le premier projet finançable du portefeuille courant ;
+  2. tenter ce projet une seule fois et mémoriser son identité dans un ensemble local
+     `attempted`, afin qu'un refus non quarantainé ne puisse pas boucler ;
+  3. après un succès, recalculer immédiatement le capital mobilisable réel (caisse + emprunt
+     encore disponible − réserve), filtrer le vivier avec `OpexIncrementalCandidateStillValid`,
+     puis rejouer `OpexReselectProjects` sur ce budget frais ;
+  4. continuer tant qu'un projet non tenté reste finançable ; arrêter sur vivier vide, balayage
+     sans succès, recherche rail A* suspendue, ou budget d'opcodes de sécurité atteint.
+
+  Le rail reprenable impose de conserver l'état logique du batch (`attempted`, nombre construit,
+  budget initial) entre `_startRailSearch()` et `_consumeRailSearch()`. Une recherche `pending`
+  rend la main ; elle ne doit ni être comptée comme un échec, ni autoriser un deuxième projet rail.
+  À son retour, succès ou abandon déclenche le même filtre + re-classement que les constructions
+  synchrones. En revanche un arrêt volontaire du batch clôt l'état : le cycle suivant repart d'un
+  portefeuille normal, sans liste noire persistante.
+
+  **Invariants à préserver :** une identité O/D/mode n'est tentée qu'une fois par batch ; la caisse
+  est relue après chaque mutation ; les plafonds annuels par mode restent applicables ; aucun plan
+  rail déjà calculé n'est réutilisé après une autre construction ; les plans air/eau repassent leur
+  préflight vivant ; les abandons alimentent toujours C22/C33.3 ; `IB|...|B<n>` reste la source de
+  vérité du nombre construit. Ajouter un événement `DYNAMIC_BATCH` avec `action=continue|stop`,
+  `reason`, `built`, `attempted`, `budget_before`, `budget_after` et `remaining`.
+
+  **Découpage recommandé :** (1) extraire un helper unique de capital mobilisable ; (2) extraire
+  du grand `for` une tentative qui retourne `built`, `pending`, `rejected` ou `no_candidate` ;
+  (3) ajouter l'état C38 et le filtre/re-classement, défaut `0` ; (4) seulement ensuite écrire le
+  banc. Ne pas mélanger C38 avec C39, A1 ou une modification du score : le contraste doit mesurer
+  exclusivement la cadence de consommation d'un même vivier.
+
+  **Validation avant adoption :** diagnostic 5 graines × 6 ans avec `decision_log=1`, qui doit
+  montrer des batches `built > 1`, zéro répétition d'identité et des motifs d'arrêt bornés ; puis
+  banc apparié 20 graines × 10 ans, `portfolio_dynamic_batch=0` contre `1`, sur les défauts du
+  commit courant. Rejeter si le mécanisme reste presque toujours inerte, réduit significativement
+  valeur/profit, augmente les erreurs de script, ou reproduit la baisse de volume du batch fixe.
+
 - 🔴 **C39 — Détecter quand un rafraîchissement (catalogue, candidats, portefeuille, sac à dos)
   est réellement nécessaire, plutôt que de coupler les quatre.** Aujourd'hui chaque couche a sa
   propre règle de fraîcheur bricolée séparément : le catalogue se rafraîchit sur un cycle annuel
