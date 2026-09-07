@@ -429,6 +429,14 @@ reste à trancher indépendamment.
   plafond fixe sans décision explicite de l'utilisateur. Le plafond supérieur est déjà réfuté
   (−3,8 %, 11/20 nuls exacts).
 
+  **Banc conjoint P1--P5 (2026-09-08).** Contrôle `HEAD` pré-P1--P5 contre le paquet courant,
+  20 graines appariées × 10 ans, tous les 40 runs valides : valeur moyenne 11,63 M£ → 12,86 M£
+  (**+9,62 %**, traitement gagnant 15/20), score 818,1 → 839,4 (+2,54 %, 14/20), profit annuel
+  2,01 M£ → 2,18 M£ (+7,92 %, 16/20) et note médiane 166,3 → 166,7 (+0,20 %, 14/20).
+  Voir `docs/bench_pstar_10y_20seeds.json`. C'est une validation du **paquet** seulement : elle
+  ne permet pas d'attribuer le gain à P1, P3 ou P4 séparément ; P2 reste éteint par défaut et P5
+  ne modifie pas le comportement d'exécution.
+
   **Ordre suggéré : P1 seul au banc** (il vaut par lui-même), puis P4 en lecture de journal
   (gratuit), puis P3. **C38 ne se re-mesure qu'après P1.**
 
