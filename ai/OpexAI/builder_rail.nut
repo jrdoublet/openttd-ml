@@ -1510,6 +1510,25 @@ function OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search, join
     }
   }
 
+  /* G5§1 : recalculer la cinematique avec la distance reelle du trace A*.
+   * candidate.distance est le Manhattan de la generation ; le trace peut devier
+   * (detours, ponts, tunnels). Le meme mecanisme que la route (routeDistance dans
+   * OpexRoadLineEconomics) est desormais applique au rail. */
+  local routeDistance = 0;
+  for (local i = 1; i < tiles.len(); i++) {
+    routeDistance += AIMap.DistanceManhattan(tiles[i - 1], tiles[i]);
+  }
+  if (routeDistance > candidate.distance) {
+    local economics = OpexLineEconomics(catalog, candidate.cargo, candidate.distance,
+                                        candidate.monthly, candidate.kind, plan.length,
+                                        routeDistance);
+    if (economics != null) {
+      plan.capital = economics.capital;
+      OpexApplyRailEconomics(candidate, economics);
+      plan.budgetInfo = OpexIterationBudget(candidate.profitAnnual, 0, plan.iterationBudget);
+    }
+  }
+
   plan.ok = true;
   plan.reason = "OK";
   return plan;

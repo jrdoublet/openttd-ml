@@ -385,6 +385,23 @@ function OpexAirFootprintIsFlat(anchor, airport)
   return true;
 }
 
+/* G7§2 : Sonde AITestMode de nivelabilite, sans modifier la carte ni depenser de tresorerie.
+ * Retourne true si LevelTiles REUSSIRAIT (terrain deja plat, ou nivelable, ou autorisation
+ * achetable). Utilise par OpexAirFindSite pendant la generation, avant election. */
+function OpexAirCanLevelFootprint(anchor, airport, townId = -1)
+{
+  local end = OpexAirFootprintEnd(anchor, airport);
+  if (!AIMap.IsValidTile(end)) return false;
+  if (OpexAirFootprintIsFlat(anchor, airport)) return true;
+  local probe = AITestMode();
+  if (AITile.LevelTiles(anchor, end)) return true;
+  local err = AIError.GetLastError();
+  if (err == AITile.ERR_AREA_ALREADY_FLAT) return true;
+  /* L'autorite locale refuse mais un boost arbre le resoudrait au moment de construire. */
+  if (err == AIError.ERR_LOCAL_AUTHORITY_REFUSES && townId >= 0) return true;
+  return false;
+}
+
 /* Nivellement REEL (pas AITestMode) de l'emprise exacte, puis verification min=max.
  * LevelTiles en test ne change pas la carte ; BuildAirport ne terrasse pas. */
 function OpexAirLevelFootprint(anchor, airport, townId = -1)
@@ -439,10 +456,9 @@ function OpexAirFindSite(town, airport, probes)
             if (err == AIError.ERR_LOCAL_AUTHORITY_REFUSES &&
                 OpexAirFootprintIsFlat(cachedAnchor, airport)) {
               ok = true;
-            } else if (OpexAirLevelFootprint(cachedAnchor, airport, town.id)) {
-              local probe = AITestMode();
-              ok = AIAirport.BuildAirport(cachedAnchor, airport.type, AIStation.STATION_NEW);
-              if (!ok && AIError.GetLastError() == AIError.ERR_LOCAL_AUTHORITY_REFUSES) ok = true;
+            } else if (OpexAirCanLevelFootprint(cachedAnchor, airport, town.id)) {
+              /* G7§2 : test-mode seulement ; le terrassement reel est fait par le constructeur. */
+              ok = true;
             }
           }
         } else {
@@ -539,10 +555,9 @@ function OpexAirFindSite(town, airport, probes)
               ok = true;
             } else if (execLevels < 3) {
               execLevels++;
-              if (OpexAirLevelFootprint(anchor, airport, town.id)) {
-                local probe = AITestMode();
-                ok = AIAirport.BuildAirport(anchor, airport.type, AIStation.STATION_NEW);
-                if (!ok && AIError.GetLastError() == AIError.ERR_LOCAL_AUTHORITY_REFUSES) ok = true;
+              /* G7§2 : test-mode seulement ; le terrassement reel est fait par le constructeur. */
+              if (OpexAirCanLevelFootprint(anchor, airport, town.id)) {
+                ok = true;
               }
             }
           }
@@ -1174,7 +1189,11 @@ function OpexAirRollback(airportA, airportB, planes)
   foreach (plane in planes) {
     if (AIVehicle.IsValidVehicle(plane)) AIVehicle.SellVehicle(plane);
   }
+  /* G7§1 : l'ancien code ne retirait que airportB. airportA -- toujours passe en premier
+   * argument par les appelants quand il est neuf -- n'etait jamais retire, laissant un
+   * aeroport orphelin sur la carte apres chaque echec BFAIL/STNFAIL/HANGAR/PLANE/ORDFAIL/START. */
   if (airportB != null && AIAirport.IsAirportTile(airportB)) AIAirport.RemoveAirport(airportB);
+  if (airportA != null && AIAirport.IsAirportTile(airportA)) AIAirport.RemoveAirport(airportA);
 }
 
 /* C33.2 : Pose d'arrets de bus traversants joints a la gare de l'aeroport (modele AAAHogEx piece stations).
@@ -1402,7 +1421,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
   if (!AIVehicle.IsValidVehicle(plane)) {
     result.error = AIError.GetLastError();
     result.opcodes += budget.end("build_aircraft");
-    OpexAirRollback(reuseA ? null : airportA, airportB, []);
+    OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, []);
     result.actualCost = costs != null ? costs.GetCosts() : 0;
     result.reason = "PLANE";
     return result;
@@ -1417,7 +1436,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
   if (!ordersOk) {
     result.error = !okOrderA ? errorA : errorB;
     result.opcodes += budget.end("build_aircraft");
-    OpexAirRollback(reuseA ? null : airportA, airportB, [plane]);
+    OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, [plane]);
     result.actualCost = costs != null ? costs.GetCosts() : 0;
     result.reason = "ORDFAIL";
     return result;
@@ -1438,7 +1457,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
     if (!AIVehicle.StartStopVehicle(aircraft)) {
       result.error = AIError.GetLastError();
       result.opcodes += budget.end("build_aircraft");
-      OpexAirRollback(reuseA ? null : airportA, airportB, built);
+      OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, built);
       result.actualCost = costs != null ? costs.GetCosts() : 0;
       result.reason = "START";
       return result;

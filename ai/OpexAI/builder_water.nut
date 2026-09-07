@@ -403,17 +403,33 @@ function OpexBuildWaterRoute(catalog, budget, plan)
   }
 
   budget.begin();
+  /* G7§4 : utiliser le navire elu par OpexWaterEconomics (meilleur ROI), pas le plus gros.
+   * L'ancien code choisissait par capacite maximale, ce qui pouvait elire un navire lent
+   * et cher dont le ROI n'avait jamais ete chiffre par le portefeuille. On valide la
+   * capacite reelle de refit dans le depot et on retombe sur le scan uniquement en echec. */
   local chosen = null;
   local chosenCapacity = 0;
-  foreach (candidate in catalog.ships) {
-    if (candidate.maxOrderDistance > 0 && orderDistance > candidate.maxOrderDistance) continue;
-    local capacity = AIVehicle.GetBuildWithRefitCapacity(depot, candidate.id, catalog.paxCargo);
-    if (capacity > chosenCapacity ||
-        (capacity == chosenCapacity && capacity > 0 &&
-         (chosen == null || candidate.speed > chosen.speed ||
-          (candidate.speed == chosen.speed && candidate.price < chosen.price)))) {
-      chosen = candidate;
-      chosenCapacity = capacity;
+  if (("economics" in plan) && plan.economics != null && ("ship" in plan.economics)) {
+    local elected = plan.economics.ship;
+    if (elected.maxOrderDistance <= 0 || orderDistance <= elected.maxOrderDistance) {
+      local cap = AIVehicle.GetBuildWithRefitCapacity(depot, elected.id, catalog.paxCargo);
+      if (cap > 0) {
+        chosen = elected;
+        chosenCapacity = cap;
+      }
+    }
+  }
+  if (chosen == null) {
+    foreach (candidate in catalog.ships) {
+      if (candidate.maxOrderDistance > 0 && orderDistance > candidate.maxOrderDistance) continue;
+      local capacity = AIVehicle.GetBuildWithRefitCapacity(depot, candidate.id, catalog.paxCargo);
+      if (capacity > chosenCapacity ||
+          (capacity == chosenCapacity && capacity > 0 &&
+           (chosen == null || candidate.speed > chosen.speed ||
+            (candidate.speed == chosen.speed && candidate.price < chosen.price)))) {
+        chosen = candidate;
+        chosenCapacity = capacity;
+      }
     }
   }
   if (chosen == null || chosenCapacity <= 0) {

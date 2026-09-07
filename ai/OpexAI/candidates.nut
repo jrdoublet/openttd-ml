@@ -823,7 +823,9 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
         local townSinks = catalog.townAcceptors[cargo];
         foreach (town in townSinks) {
           if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
-            local pairKey = "freight|" + cargo + "|" + source.id + "|" + AIIndustry.GetIndustryID(town.tile);
+            /* G2§1 : utiliser "t" + town.id au lieu de GetIndustryID (qui retourne -1
+             * pour une ville), en coherence avec OpexAbandonedPairKey. */
+            local pairKey = "freight|" + cargo + "|" + source.id + "|t" + town.id;
             if (pairKey in abandonedPairs) continue;
           }
           stats.pairsTotal++;
@@ -1329,7 +1331,8 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
         local distance = AIMap.DistanceManhattan(source.tile, towns[t].tile);
         if (distance < ROAD_MIN_DISTANCE || distance > ROAD_MAX_DISTANCE) continue;
         if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
-          local pairKey = "freight|" + cargo + "|" + source.id + "|" + AIIndustry.GetIndustryID(towns[t].tile);
+          /* G2§1 : "t" + towns[t].id, en coherence avec OpexAbandonedPairKey. */
+          local pairKey = "freight|" + cargo + "|" + source.id + "|t" + towns[t].id;
           if (pairKey in abandonedPairs) continue;
         }
         local key = t + "|" + cargo;
@@ -1498,8 +1501,13 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats, abandonedPairs = n
         local startYear = ("startYear" in catalog) ? catalog.startYear : 1970;
         if (currYear - startYear < 2) continue;
       }
-      local feederKey = "feeder|" + towns[i].id + "|" + hub.stationId + "|" + existingCount;
-      if (abandonedPairs != null && (feederKey in abandonedPairs)) continue;
+      /* G2§2 : aligner le filtre feeders sur la meme garde que les candidats
+       * ordinaires. Sans ABANDON_GEN_FILTER, abandon_gen_filter=0 doit pouvoir
+       * ramener les paires abandonnees a l'arbitrage seul. */
+      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
+        local feederKey = "feeder|" + towns[i].id + "|" + hub.stationId + "|" + existingCount;
+        if (feederKey in abandonedPairs) continue;
+      }
 
       stats.pairsInBand++;
       /* Part de la production restant à capter après les arrêts déjà construits */

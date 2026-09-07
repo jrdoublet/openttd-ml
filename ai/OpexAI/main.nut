@@ -911,6 +911,17 @@ function OpexAbandonedPairKey(candidate)
   } else if (candidate.kind == "freight") {
     src = AIIndustry.GetIndustryID(candidate.src);
     dst = AIIndustry.GetIndustryID(candidate.dst);
+    /* G2§1 : Pour du fret vers une ville, GetIndustryID retourne -1 (invalide).
+     * La cle devenait freight|cargo|sourceId|-1, partagee par TOUTES les villes du
+     * meme producteur/cargo : un seul echec bannissait la famille entiere pendant
+     * au moins un an. On utilise dstTown (pose par les generateurs) prefixe "t"
+     * pour distinguer ville/industrie sans collision d'identifiants. */
+    if (dst < 0 && ("dstTown" in candidate) && candidate.dstTown >= 0) {
+      dst = "t" + candidate.dstTown;
+    }
+    if (src < 0 && ("srcTown" in candidate) && candidate.srcTown >= 0) {
+      src = "t" + candidate.srcTown;
+    }
   }
   return candidate.kind + "|" + candidate.cargo + "|" + src + "|" + dst;
 }
@@ -922,6 +933,10 @@ function OpexAI::_markPairAbandoned(key)
   local count = (key in this._abandonCounts) ? (this._abandonCounts[key] + 1) : 1;
   this._abandonCounts[key] <- count;
   this._abandonedPairs[key] <- { date = now, count = count };
+  /* G4§1 : signaler qu'un abandon a eu lieu dans cette passe. _tryBuildProjects lit ce
+   * drapeau pour declencher la reelection incrementale C36.1 apres un echec, sans
+   * dependre de passDiscards qui est garde par DECISION_LOG (defaut 0). */
+  this._hadAbandonsThisPass = true;
   if (DECISION_LOG) {
     OpexDecide("ABANDON_PAIR", "key=" + key + " count=" + count + " cooldown=" + (ABANDON_COOLDOWN_DAYS * count));
   }
@@ -1895,6 +1910,8 @@ function OpexAI::_tryBuildMailFeeder(candidate, paxResult, year)
 
 function OpexAI::_tryBuildProjects(year)
 {
+  /* G4§1 : drapeau pose par _markPairAbandoned, lu en fin de passe. */
+  this._hadAbandonsThisPass = false;
   if (PORTFOLIO_FRESH_BUDGET && this._projects != null) {
     local initialBudget = this._projects.generationCapitalBudget;
     local cashNow = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
@@ -2353,7 +2370,15 @@ function OpexAI::_tryBuildProjects(year)
       local need = candidate.capital + OpexCashReserve();
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
       if (money < need && REBORROW) money = OpexTryReborrow(need, money);
-      if (money < need) {
+      local lowCash = (money < need);
+      /* G3§2 : pour le chemin reprenable sans railPlan, la recherche A* ne coute aucune
+       * tresorerie et le cash peut arriver pendant les tranches. On ne saute que le chemin
+       * non reprenable (construction immediate). _consumeRailSearch verifiera la caisse a
+       * la fin. Cela active aussi la branche isPreplanOrLowCash de OpexDynamicHardCap, qui
+       * remonte au plafond dur pour exploiter les opcodes dormants pendant l'attente. */
+      local willStartSearch = RAIL_SEARCH_RESUMABLE
+          && !(("railPlan" in candidate) && candidate.railPlan != null);
+      if (lowCash && !willStartSearch) {
         if (DECISION_LOG) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
         continue;
       }
@@ -2362,8 +2387,8 @@ function OpexAI::_tryBuildProjects(year)
 
       local isPaxNear = PAX_NEAR && ("paxNear" in candidate) && candidate.paxNear;
       local alternativeRatio = isPaxNear ? 0 : MIN_RATIO;
-      local hardCap = OpexDynamicHardCap(this._lines.len(), false);
-      if (TREE_PLANTING && candidate.kind == "pax") {
+      local hardCap = OpexDynamicHardCap(this._lines.len(), lowCash);
+      if (!lowCash && TREE_PLANTING && candidate.kind == "pax") {
         OpexBoostTownRating(candidate.src, 700, 35);
         OpexBoostTownRating(candidate.dst, 700, 35);
       }
@@ -2477,13 +2502,11 @@ function OpexAI::_tryBuildProjects(year)
   }
   }
 
-  local hadAbandons = false;
-  foreach (d in passDiscards) {
-    if (d.reason == "plan_failed" || d.reason == "build_failed" || d.reason == "pair_already_served") {
-      hadAbandons = true;
-      break;
-    }
-  }
+  /* G4§1 : l'ancien chemin deduisait hadAbandons de passDiscards, dont le remplissage
+   * est garde par DECISION_LOG (defaut 0). Le drapeau _hadAbandonsThisPass est pose
+   * directement par _markPairAbandoned, couvrant tous les chemins (air, route, rail
+   * bloquant et reprenable via _consumeRailSearch). */
+  local hadAbandons = this._hadAbandonsThisPass;
 
   if (builtCount > 0 || hadAbandons) {
     local fleetPlan = null;
@@ -3499,17 +3522,11 @@ function OpexAI::_findLineById(lineId)
  * la demande pax surestimee du catalogue. */
 function OpexAI::_expandRailLines(year)
 {
-  /* fleet_fix : la garde d'entree coupait TOUT sur !RAIL_EXPAND, y compris le bloc RAIL_REFLEET
+  /* G6§1 : la garde d'entree coupait TOUT sur !RAIL_EXPAND, y compris le bloc RAIL_REFLEET
    * plus bas -- seul site d'appel de OpexBuildSecondTrain et OpexUpgradeRailLineToDoubleTrack.
    * Avec les defauts livres (rail_expand = 0, rail_refleet = 1) aucune ligne rail ne pouvait donc
-   * JAMAIS gagner un second train ni une seconde voie, alors qu'info.nut annonce la
-   * fonctionnalite active. On n'ecarte desormais que la partie expansion de wagons, en laissant
-   * passer le refleet. */
-  if (FLEET_FIX) {
-    if ((!RAIL_EXPAND && !RAIL_REFLEET) || this._railExpansion != null) return;
-  } else {
-    if (!RAIL_EXPAND || this._railExpansion != null) return;
-  }
+   * JAMAIS gagner un second train ni une seconde voie. Desormais inconditionnel. */
+  if ((!RAIL_EXPAND && !RAIL_REFLEET) || this._railExpansion != null) return;
   /* Une recherche A* en cours (ligne neuve ou upgrade) : ne pas en empiler une seconde. */
   if (RAIL_SEARCH_RESUMABLE && this._railSearch != null) return;
   this._budget.begin();
@@ -3519,10 +3536,10 @@ function OpexAI::_expandRailLines(year)
   local nPersistent = 0;
   local nPositive = 0;
   foreach (line in this._lines) {
-    /* fleet_fix : quand on n'est entre QUE pour le refleet (rail_expand = 0, rail_refleet = 1),
+    /* G6§1 : quand on n'est entre QUE pour le refleet (rail_expand = 0, rail_refleet = 1),
      * l'expansion de wagons ne doit pas s'exercer -- on ne fait que traverser vers le bloc
      * RAIL_REFLEET, `best` restant nul. */
-    if (FLEET_FIX && !RAIL_EXPAND) break;
+    if (!RAIL_EXPAND) break;
     if ((("mode" in line) && line.mode != "rail") || !("wagons" in line) || !("platformLength" in line) ||
         !("loco" in line) || !("kind" in line)) continue;
     if (line.trains != 1 || !("vehCount" in line) || line.vehCount != 1) continue;
@@ -3999,10 +4016,18 @@ function OpexAI::_consumeRailSearch(year)
   local state = this._railSearch;
   local candidate = state.candidate;
   local join = state.join;
-  local need = candidate.capital + OpexCashReserve();
-  local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  if (money < need && REBORROW) money = OpexTryReborrow(need, money);
-  if (money < need) return "cash";
+  /* G3§1 : Un plan en echec (ABND/NOPA/DEAD) n'a besoin d'aucune tresorerie : OpexBuildLine
+   * retourne immediatement sans construction. Le test de cash ne doit pas bloquer un plan
+   * invalide en phase build indefiniment, sinon _railSearch ne se libere jamais et le
+   * pipeline rail est neutralise (l'echec n'est pas non plus transmis a C22). */
+  local planFailed = ("railPlan" in candidate) && candidate.railPlan != null
+                     && !candidate.railPlan.ok;
+  if (!planFailed) {
+    local need = candidate.capital + OpexCashReserve();
+    local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+    if (money < need && REBORROW) money = OpexTryReborrow(need, money);
+    if (money < need) return "cash";
+  }
 
   if (TREE_PLANTING && candidate.kind == "pax") {
     OpexBoostTownRating(candidate.src, 700, 35);
@@ -4674,15 +4699,11 @@ function OpexAI::_runNextTask()
     return this._tryBuildProjects(year);
   }
   if (task.name == "expand") {
-    /* fleet_fix : la tache portait UNIQUEMENT sur RAIL_EXPAND, alors que le bloc RAIL_REFLEET
+    /* G6§1 : la tache portait UNIQUEMENT sur RAIL_EXPAND, alors que le bloc RAIL_REFLEET
      * (second train, passage en double voie) vit a l'interieur de _expandRailLines. La desactiver
-     * sur !RAIL_EXPAND rendait donc rail_refleet injoignable malgre son defaut a 1
-     * (docs/taches.md S0 nonies, trouvaille 1). */
-    if (FLEET_FIX) {
-      if (!RAIL_EXPAND && !RAIL_REFLEET) { task.enabled = false; return false; }
-    } else {
-      if (!RAIL_EXPAND) { task.enabled = false; return false; }
-    }
+     * sur !RAIL_EXPAND rendait donc rail_refleet injoignable malgre son defaut a 1.
+     * Desormais inconditionnel : on ne desactive que si les DEUX sont eteints. */
+    if (!RAIL_EXPAND && !RAIL_REFLEET) { task.enabled = false; return false; }
     this._expandRailLines(year);
     return true;
   }

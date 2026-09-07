@@ -152,8 +152,13 @@ function OpexStationRatingForHeadway(headwayDays)
  * choisir la rame jusqu'au maximum du jeu, puis lui donner le quai voulu avec sa marge. Apres la
  * recherche de site, il vaut le quai reellement trouvable : wagons, locomotive, capital et profit
  * sont alors recalcules sur cette longueur, jamais sur le souhait initial. */
-function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPlatformLength = 0)
+/* G5§1 : routeDistance (optionnel) : longueur reelle du trace A*, pour recalibrage post-recherche.
+ * Quand fourni et > distance, il remplace distance pour le temps de trajet, la vitesse et le
+ * cout de voie. `distance` (Manhattan entre extremites) reste la distance TARIFAIRE, exactement
+ * comme OpexRoadLineEconomics distingue deja les deux. */
+function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPlatformLength = 0, routeDistance = null)
 {
+  local travelDist = (routeDistance != null && routeDistance > distance) ? routeDistance : distance;
   if (!(cargo in catalog.wagonByCargo)) return null;
   if (!(cargo in catalog.locoByCargoWagons)) return null;
   local wagon = catalog.wagonByCargo[cargo];
@@ -183,9 +188,9 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   local referenceLoco = choices[maxWagons - 1];
   if (referenceLoco == null) return null;
 
-  local referenceSpeed = OpexRailEffectiveSpeed(referenceLoco, wagon, maxWagons, distance);
+  local referenceSpeed = OpexRailEffectiveSpeed(referenceLoco, wagon, maxWagons, travelDist);
   if (referenceSpeed < 1) return null;
-  local referenceOneWayDays = distance.tofloat() / (0.036 * referenceSpeed);
+  local referenceOneWayDays = travelDist.tofloat() / (0.036 * referenceSpeed);
   if (referenceOneWayDays < 1) referenceOneWayDays = 1;
   local referenceRoundTripDays = 2 * referenceOneWayDays;
   local referenceTrips = OpexLoadedTripsPerMonth(referenceOneWayDays, referenceRoundTripDays,
@@ -198,9 +203,9 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
 
   local loco = choices[wagons - 1];
   if (loco == null) return null;
-  local effectiveSpeed = OpexRailEffectiveSpeed(loco, wagon, wagons, distance);
+  local effectiveSpeed = OpexRailEffectiveSpeed(loco, wagon, wagons, travelDist);
   if (effectiveSpeed < 1) return null;
-  local oneWayDays = distance.tofloat() / (0.036 * effectiveSpeed);
+  local oneWayDays = travelDist.tofloat() / (0.036 * effectiveSpeed);
   if (oneWayDays < 1) oneWayDays = 1;
   local roundTripDays = 2 * oneWayDays;
   local tripsPerMonth = OpexLoadedTripsPerMonth(oneWayDays, roundTripDays, kind == "pax");
@@ -214,9 +219,9 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
     wagons = correctedWagons;
     loco = choices[wagons - 1];
     if (loco == null) return null;
-    effectiveSpeed = OpexRailEffectiveSpeed(loco, wagon, wagons, distance);
+    effectiveSpeed = OpexRailEffectiveSpeed(loco, wagon, wagons, travelDist);
     if (effectiveSpeed < 1) return null;
-    oneWayDays = distance.tofloat() / (0.036 * effectiveSpeed);
+    oneWayDays = travelDist.tofloat() / (0.036 * effectiveSpeed);
     if (oneWayDays < 1) oneWayDays = 1;
     roundTripDays = 2 * oneWayDays;
     tripsPerMonth = OpexLoadedTripsPerMonth(oneWayDays, roundTripDays, kind == "pax");
@@ -240,7 +245,7 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
    * sous-estimait le capital rail et gonflait donc son ROI FACE A LA ROUTE, dans un portefeuille
    * qui compare precisement les deux sur ce nombre (docs/taches.md S0 octies). */
   local effectiveTrackCost = (catalog.costTrackPerTile * RAIL_TERRAIN_FACTOR) / 100;
-  local infraCost = distance * effectiveTrackCost + 2 * platformLength * catalog.costStation;
+  local infraCost = travelDist * effectiveTrackCost + 2 * platformLength * catalog.costStation;
   if (PRICING_RAIL_DEPOT && ("costRailDepot" in catalog)) infraCost += catalog.costRailDepot;
   local locoLife = loco.ageYears > 0 ? loco.ageYears : 20;
   local best = null;

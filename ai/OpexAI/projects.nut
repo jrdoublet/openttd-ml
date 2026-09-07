@@ -533,35 +533,23 @@ function OpexKnapsackComputeBound(candidates, n, startIdx, cap)
 {
   local bound = 0;
   local rem = cap;
-  if (TENSION_SCORING || SHADOW_PRICING) {
-    local maxDensity = 0.0;
-    for (local j = startIdx; j < n; j++) {
-      local p = candidates[j];
-      local pv = p.profitAnnual;
-      if (p.budgetCapital > 0) {
-        local d = pv.tofloat() / p.budgetCapital;
-        if (d > maxDensity) maxDensity = d;
-      }
-    }
-    return (maxDensity * rem).tointeger();
-  }
 
+  /* G1§1 : l'ancien remplissage glouton suivait l'ordre du tri composite
+   * (75 % budgetScore + 25 % opcodeScore). Cet ordre n'est PAS la densite pure de
+   * l'objectif : opcodeScore peut intervertir deux items de densites differentes, et la
+   * borne gloutonne devient alors une SOUS-estimation -- l'elagage coupe des solutions
+   * valides. Le chemin tension utilisait deja maxDensity * rem, qui est une borne
+   * superieure correcte. On unifie les deux chemins. */
+  local maxDensity = 0.0;
   for (local j = startIdx; j < n; j++) {
     local p = candidates[j];
-    /* La borne doit majorer la MEME grandeur que l'objectif, sinon l'elagage coupe des
-     * solutions valides. Voir OpexKnapsackSearch pour le choix revenu/profit. */
     local pv = KNAPSACK_ROI ? p.profitAnnual : p.revenueAnnual;
-    if (p.budgetCapital <= rem) {
-      rem -= p.budgetCapital;
-      bound += pv;
-    } else {
-      if (rem > 0 && p.budgetCapital > 0) {
-        bound += ((pv.tofloat() * rem) / p.budgetCapital).tointeger();
-      }
-      break;
+    if (p.budgetCapital > 0) {
+      local d = pv.tofloat() / p.budgetCapital;
+      if (d > maxDensity) maxDensity = d;
     }
   }
-  return bound;
+  return (maxDensity * rem).tointeger();
 }
 
 function OpexProjectConflictKeys(p)
@@ -1142,6 +1130,25 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   }
 
   AILog.Info("[PORTFOLIO_CACHE] incremental: candidates=" + stats.modeCandidates + " od=" + stats.odProjects + " selected=" + stats.budgetSelected + " remaining=" + remaining);
+
+  /* G1§4 : Avancer la fenetre glissante de capitalCeiling (meme logique que
+   * OpexBuildProjects). Sans cela, le chemin incremental C36.1 gele le pic et
+   * l'historique entre deux reconstructions completes : un ancien pic conserve des
+   * projets inaccessibles au vivier, et un nouveau budget superieur n'elargit pas
+   * le plafond d'admission. */
+  if ("capitalBudgetHistory" in projects && typeof(projects.capitalBudgetHistory) == "array") {
+    projects.capitalBudgetHistory.append(capitalBudget);
+    if (CAPITAL_CEILING_CYCLES > 0) {
+      while (projects.capitalBudgetHistory.len() > CAPITAL_CEILING_CYCLES) {
+        projects.capitalBudgetHistory.remove(0);
+      }
+    }
+    local maxVal = 0;
+    foreach (val in projects.capitalBudgetHistory) {
+      if (val > maxVal) maxVal = val;
+    }
+    projects.capitalBudgetPeak = maxVal;
+  }
 
   projects.all = stats.odProjects;
   projects.best = byOpcodes;
