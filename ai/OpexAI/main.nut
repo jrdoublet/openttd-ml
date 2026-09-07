@@ -1945,6 +1945,140 @@ function OpexAI::_tryBuildMailFeeder(candidate, paxResult, year)
   return true;
 }
 
+/* C38 etape 2 : une tentative rail est une transaction explicite. Le balayage decide
+ * seulement quoi faire ensuite ; cette fonction decide si le candidat a ete construit,
+ * refuse, ou suspendu par A*. `passDiscards` reste une reference partagee pour
+ * conserver le journal dans le meme ordre que le passage historique. */
+function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDiscards, anchor, yy)
+{
+  if (project == null) return { outcome = "no_candidate", discards = passDiscards };
+  local i = rank;
+      local candidate = project.payload;
+      if (builtCount > 0 && ("railPlan" in candidate)) {
+        /* Le trace A* memorise vise la carte de la generation. Le premier chantier peut avoir
+         * occupe un quai, un depot ou une tuile du trace ; le jeter force OpexBuildLine a
+         * replanifier sur la carte vivante. Inerte pour maxBatch=1, precedent mesure. */
+        candidate.railPlan = null;
+      }
+      /* Une recherche est deja en cours (autre candidat, ou upgrade) : ne pas en lancer une
+       * seconde, et laisser air/route du portefeuille tourner. */
+      if (RAIL_SEARCH_RESUMABLE && this._railSearch != null) {
+        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "search_in_progress", extra = "" });
+        return { outcome = "rejected", discards = passDiscards };
+      }
+      local abandonedKey = OpexAbandonedPairKey(candidate);
+      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && (abandonedKey in this._abandonedPairs)) {
+        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "abandoned_pair", extra = "" });
+        return { outcome = "rejected", discards = passDiscards };
+      }
+
+      local close = this._tooClose(candidate);
+      local join = null;
+      local placeJoin = ("placeJoin" in candidate) ? candidate.placeJoin : null;
+      if (close.hard >= 0) {
+        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "too_close_hard", extra = "" });
+        return { outcome = "rejected", discards = passDiscards };
+      }
+
+      if (placeJoin != null) {
+        join = placeJoin;
+        local joinEnd = join.candidateEnd;
+        local refuse = null;
+        if (!AIStation.IsValidStation(join.stationId)) refuse = "N";
+        else {
+          foreach (conflict in close.conflicts) {
+            if (conflict.end != joinEnd || conflict.stationId != join.stationId) {
+              refuse = "M";
+              break;
+            }
+          }
+        }
+        if (refuse == null && JOIN_MAX_DISTANCE > 0 && candidate.distance >= JOIN_MAX_DISTANCE) {
+          refuse = "D";
+        }
+        if (refuse != null) {
+          join = null;
+          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "place_join_refuse", extra = "refuse=" + refuse });
+          return { outcome = "rejected", discards = passDiscards };
+        }
+      } else if (close.blocking >= 0) {
+        if (STATION_JOIN) {
+          join = OpexFindStationJoin(candidate, close.conflicts);
+          if ("refuse" in join) {
+            join = null;
+          } else if (JOIN_MAX_DISTANCE > 0 && candidate.distance >= JOIN_MAX_DISTANCE) {
+            join = null;
+          }
+        }
+        if (join == null) {
+          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "too_close_no_join", extra = "" });
+          return { outcome = "rejected", discards = passDiscards };
+        }
+      }
+
+      local need = candidate.capital + OpexCashReserve();
+      local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+      if (money < need && REBORROW) money = OpexTryReborrow(need, money);
+      local lowCash = (money < need);
+      /* G3§2 : pour le chemin reprenable sans railPlan, la recherche A* ne coute aucune
+       * tresorerie et le cash peut arriver pendant les tranches. On ne saute que le chemin
+       * non reprenable (construction immediate). _consumeRailSearch verifiera la caisse a
+       * la fin. Cela active aussi la branche isPreplanOrLowCash de OpexDynamicHardCap, qui
+       * remonte au plafond dur pour exploiter les opcodes dormants pendant l'attente. */
+      local willStartSearch = RAIL_SEARCH_RESUMABLE
+          && !(("railPlan" in candidate) && candidate.railPlan != null);
+      if (lowCash && !willStartSearch) {
+        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
+        return { outcome = "rejected", discards = passDiscards };
+      }
+
+      OpexSign(anchor, "IP|" + yy + "|T|" + project.budgetScore + "|" + project.opcodeScore);
+
+      local isPaxNear = PAX_NEAR && ("paxNear" in candidate) && candidate.paxNear;
+      local alternativeRatio = isPaxNear ? 0 : MIN_RATIO;
+      local hardCap = OpexDynamicHardCap(this._lines.len(), lowCash);
+      if (!lowCash && TREE_PLANTING && candidate.kind == "pax") {
+        OpexBoostTownRating(candidate.src, 700, 35);
+        OpexBoostTownRating(candidate.dst, 700, 35);
+      }
+      local posPacked = i * TOP_K + this._projects.best.len();
+      if (RAIL_SEARCH_RESUMABLE &&
+          !(("railPlan" in candidate) && candidate.railPlan != null)) {
+        if (DECISION_LOG) {
+          foreach (d in passDiscards) {
+            OpexDecide("PROJECT_DISCARD", "rank=" + d.rank + " mode=" + d.mode + " src=" + d.src + " dst=" + d.dst + " reason=" + d.reason + (d.extra != "" ? " " + d.extra : ""));
+          }
+          passDiscards = [];
+          local cargoStr = AICargo.GetCargoLabel(candidate.cargo);
+          OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=rail kind=" + candidate.kind + " cargo=" + cargoStr + " src=" + candidate.src + " dst=" + candidate.dst + " dist=" + candidate.distance + " cost=" + candidate.capital + " profit=" + candidate.profitAnnual + " roi=" + candidate.roi);
+        }
+        local start = this._startRailSearch(candidate, join, placeJoin, alternativeRatio,
+                                            hardCap, posPacked);
+        if (start.pending) return { outcome = "pending", discards = passDiscards };
+        /* Le candidat n'a pas encore cette cle dans le chemin qui termine sa
+         * recherche dans le meme tour : creation de slot Squirrel avec `<-`. */
+        candidate.railPlan <- start.plan;
+      }
+      local result = OpexBuildLine(this._catalog, this._budget, candidate, alternativeRatio, join,
+                                   OpexCashReserve(), hardCap);
+      if (result.reason == "CASH") {
+        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "cash_at_build", extra = "" });
+        return { outcome = "rejected", discards = passDiscards };
+      }
+      if (("railPlan" in candidate)) candidate.railPlan = null;
+      if (DECISION_LOG && !RAIL_SEARCH_RESUMABLE) {
+        foreach (d in passDiscards) {
+          OpexDecide("PROJECT_DISCARD", "rank=" + d.rank + " mode=" + d.mode + " src=" + d.src + " dst=" + d.dst + " reason=" + d.reason + (d.extra != "" ? " " + d.extra : ""));
+        }
+        passDiscards = [];
+        local cargoStr = AICargo.GetCargoLabel(candidate.cargo);
+        OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=rail kind=" + candidate.kind + " cargo=" + cargoStr + " src=" + candidate.src + " dst=" + candidate.dst + " dist=" + candidate.distance + " cost=" + candidate.capital + " profit=" + candidate.profitAnnual + " roi=" + candidate.roi);
+      }
+      local recorded = this._recordRailAttempt(candidate, result, join, placeJoin, posPacked, year);
+      return { outcome = recorded ? "built" : "rejected", discards = passDiscards };
+
+}
+
 function OpexAI::_tryBuildProjects(year)
 {
   /* G4§1 : le drapeau peut etre pose entre deux passes par _consumeRailSearch.
@@ -2342,135 +2476,16 @@ function OpexAI::_tryBuildProjects(year)
       builtCount++;
       if (builtCount >= maxBatch) break;
     } else if (mode == "rail") {
-      local candidate = project.payload;
-      if (builtCount > 0 && ("railPlan" in candidate)) {
-        /* Le trace A* memorise vise la carte de la generation. Le premier chantier peut avoir
-         * occupe un quai, un depot ou une tuile du trace ; le jeter force OpexBuildLine a
-         * replanifier sur la carte vivante. Inerte pour maxBatch=1, precedent mesure. */
-        candidate.railPlan = null;
+      local attempt = this._tryBuildRailProject(year, project, i, builtCount, passDiscards,
+                                                 anchor, yy);
+      passDiscards = attempt.discards;
+      if (attempt.outcome == "pending") {
+        /* En batch historique > 1, le portefeuille doit etre regenere avant de reprendre un
+         * A* suspendu. Le defaut unitaire conserve le retour immediat d'origine. */
+        if (builtCount > 0) break;
+        return true;
       }
-      /* Une recherche est deja en cours (autre candidat, ou upgrade) : ne pas en lancer une
-       * seconde, et laisser air/route du portefeuille tourner. */
-      if (RAIL_SEARCH_RESUMABLE && this._railSearch != null) {
-        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "search_in_progress", extra = "" });
-        continue;
-      }
-      local abandonedKey = OpexAbandonedPairKey(candidate);
-      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && (abandonedKey in this._abandonedPairs)) {
-        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "abandoned_pair", extra = "" });
-        continue;
-      }
-
-      local close = this._tooClose(candidate);
-      local join = null;
-      local placeJoin = ("placeJoin" in candidate) ? candidate.placeJoin : null;
-      if (close.hard >= 0) {
-        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "too_close_hard", extra = "" });
-        continue;
-      }
-
-      if (placeJoin != null) {
-        join = placeJoin;
-        local joinEnd = join.candidateEnd;
-        local refuse = null;
-        if (!AIStation.IsValidStation(join.stationId)) refuse = "N";
-        else {
-          foreach (conflict in close.conflicts) {
-            if (conflict.end != joinEnd || conflict.stationId != join.stationId) {
-              refuse = "M";
-              break;
-            }
-          }
-        }
-        if (refuse == null && JOIN_MAX_DISTANCE > 0 && candidate.distance >= JOIN_MAX_DISTANCE) {
-          refuse = "D";
-        }
-        if (refuse != null) {
-          join = null;
-          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "place_join_refuse", extra = "refuse=" + refuse });
-          continue;
-        }
-      } else if (close.blocking >= 0) {
-        if (STATION_JOIN) {
-          join = OpexFindStationJoin(candidate, close.conflicts);
-          if ("refuse" in join) {
-            join = null;
-          } else if (JOIN_MAX_DISTANCE > 0 && candidate.distance >= JOIN_MAX_DISTANCE) {
-            join = null;
-          }
-        }
-        if (join == null) {
-          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "too_close_no_join", extra = "" });
-          continue;
-        }
-      }
-
-      local need = candidate.capital + OpexCashReserve();
-      local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-      if (money < need && REBORROW) money = OpexTryReborrow(need, money);
-      local lowCash = (money < need);
-      /* G3§2 : pour le chemin reprenable sans railPlan, la recherche A* ne coute aucune
-       * tresorerie et le cash peut arriver pendant les tranches. On ne saute que le chemin
-       * non reprenable (construction immediate). _consumeRailSearch verifiera la caisse a
-       * la fin. Cela active aussi la branche isPreplanOrLowCash de OpexDynamicHardCap, qui
-       * remonte au plafond dur pour exploiter les opcodes dormants pendant l'attente. */
-      local willStartSearch = RAIL_SEARCH_RESUMABLE
-          && !(("railPlan" in candidate) && candidate.railPlan != null);
-      if (lowCash && !willStartSearch) {
-        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
-        continue;
-      }
-
-      OpexSign(anchor, "IP|" + yy + "|T|" + project.budgetScore + "|" + project.opcodeScore);
-
-      local isPaxNear = PAX_NEAR && ("paxNear" in candidate) && candidate.paxNear;
-      local alternativeRatio = isPaxNear ? 0 : MIN_RATIO;
-      local hardCap = OpexDynamicHardCap(this._lines.len(), lowCash);
-      if (!lowCash && TREE_PLANTING && candidate.kind == "pax") {
-        OpexBoostTownRating(candidate.src, 700, 35);
-        OpexBoostTownRating(candidate.dst, 700, 35);
-      }
-      local posPacked = i * TOP_K + this._projects.best.len();
-      if (RAIL_SEARCH_RESUMABLE &&
-          !(("railPlan" in candidate) && candidate.railPlan != null)) {
-        if (DECISION_LOG) {
-          foreach (d in passDiscards) {
-            OpexDecide("PROJECT_DISCARD", "rank=" + d.rank + " mode=" + d.mode + " src=" + d.src + " dst=" + d.dst + " reason=" + d.reason + (d.extra != "" ? " " + d.extra : ""));
-          }
-          passDiscards = [];
-          local cargoStr = AICargo.GetCargoLabel(candidate.cargo);
-          OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=rail kind=" + candidate.kind + " cargo=" + cargoStr + " src=" + candidate.src + " dst=" + candidate.dst + " dist=" + candidate.distance + " cost=" + candidate.capital + " profit=" + candidate.profitAnnual + " roi=" + candidate.roi);
-        }
-        local start = this._startRailSearch(candidate, join, placeJoin, alternativeRatio,
-                                            hardCap, posPacked);
-        if (start.pending) {
-          /* Une ligne a deja ete posee dans ce passage (maxBatch>1) : regenere le
-           * portefeuille avant de rendre la main, sinon le sac a dos reste fige sur
-           * des origines deja prises. */
-          if (builtCount > 0) break;
-          return true;
-        }
-        /* Le candidat n'a pas encore cette cle dans le chemin qui termine sa
-         * recherche dans le meme tour : creation de slot Squirrel avec `<-`. */
-        candidate.railPlan <- start.plan;
-      }
-      local result = OpexBuildLine(this._catalog, this._budget, candidate, alternativeRatio, join,
-                                   OpexCashReserve(), hardCap);
-      if (result.reason == "CASH") {
-        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "cash_at_build", extra = "" });
-        continue;
-      }
-      if (("railPlan" in candidate)) candidate.railPlan = null;
-      if (DECISION_LOG && !RAIL_SEARCH_RESUMABLE) {
-        foreach (d in passDiscards) {
-          OpexDecide("PROJECT_DISCARD", "rank=" + d.rank + " mode=" + d.mode + " src=" + d.src + " dst=" + d.dst + " reason=" + d.reason + (d.extra != "" ? " " + d.extra : ""));
-        }
-        passDiscards = [];
-        local cargoStr = AICargo.GetCargoLabel(candidate.cargo);
-        OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=rail kind=" + candidate.kind + " cargo=" + cargoStr + " src=" + candidate.src + " dst=" + candidate.dst + " dist=" + candidate.distance + " cost=" + candidate.capital + " profit=" + candidate.profitAnnual + " roi=" + candidate.roi);
-      }
-      local recorded = this._recordRailAttempt(candidate, result, join, placeJoin, posPacked, year);
-      if (recorded) {
+      if (attempt.outcome == "built") {
         builtCount++;
         if (builtCount >= maxBatch) break;
       }

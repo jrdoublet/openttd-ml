@@ -129,7 +129,10 @@ exactement le mécanisme que cette étape doit déjà relire.
   borné à zéro, et remplace les cinq duplications de génération, re-sélection, cache et
   rafraîchissement. Cette extraction est volontairement neutre : aucun réglage C38 n'est encore
   lu et le batch reste unitaire. (2) extraire du grand `for` une tentative qui retourne `built`,
-  `pending`, `rejected` ou `no_candidate` ;
+  `pending`, `rejected` ou `no_candidate` ; **premier sous-lot fait le 2026-09-07 :** le rail est
+  sorti dans `_tryBuildRailProject()`. Son résultat explicite laisse le balayage traiter la
+  suspension A* sans ambiguïté, et restitue aussi la liste de refus pour préserver le journal.
+  Air, route, eau et flotte restent à extraire avant de considérer l'étape 2 complète ;
   (3) ajouter l'état C38 et le filtre/re-classement, défaut `0` ; (4) seulement ensuite écrire le
   banc. Ne pas mélanger C38 avec C39, A1 ou une modification du score : le contraste doit mesurer
   exclusivement la cadence de consommation d'un même vivier.
