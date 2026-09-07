@@ -847,26 +847,44 @@ function OpexRoadTryJoinStop(stop, stationId, vehType, noTile, added)
            AIRoad.BuildRoadStation(tile, front, vehType, stationId);
     }
     if (!ok) continue;
+    /* Cette tentative peut poser deux aretes avant d'echouer a poser/join l'arret. Ne pas
+     * reporter ces aretes sur le candidat perpendiculaire suivant ni les laisser au caller si
+     * aucun arret n'est finalement retourne. */
+    local addedStart = added.len();
     if (!AIRoad.AreRoadTilesConnected(stop.front, front)) {
       local builtFront = AIRoad.BuildRoad(stop.front, front);
       if (AIRoad.AreRoadTilesConnected(stop.front, front) && builtFront) {
         added.append({ from = stop.front, to = front });
       }
     }
-    if (!AIRoad.AreRoadTilesConnected(stop.front, front)) continue;
+    if (!AIRoad.AreRoadTilesConnected(stop.front, front)) {
+      for (local i = added.len() - 1; i >= addedStart; i--) AIRoad.RemoveRoad(added[i].from, added[i].to);
+      added.resize(addedStart);
+      continue;
+    }
     if (!AIRoad.AreRoadTilesConnected(front, tile)) {
       local builtStub = AIRoad.BuildRoad(front, tile);
       if (AIRoad.AreRoadTilesConnected(front, tile) && builtStub) {
         added.append({ from = front, to = tile });
       }
     }
-    if (!AIRoad.AreRoadTilesConnected(front, tile)) continue;
-    if (!AIRoad.BuildRoadStation(tile, front, vehType, stationId)) continue;
+    if (!AIRoad.AreRoadTilesConnected(front, tile)) {
+      for (local i = added.len() - 1; i >= addedStart; i--) AIRoad.RemoveRoad(added[i].from, added[i].to);
+      added.resize(addedStart);
+      continue;
+    }
+    if (!AIRoad.BuildRoadStation(tile, front, vehType, stationId)) {
+      for (local i = added.len() - 1; i >= addedStart; i--) AIRoad.RemoveRoad(added[i].from, added[i].to);
+      added.resize(addedStart);
+      continue;
+    }
     if (!AIRoad.IsRoadStationTile(tile) ||
         AIStation.GetStationID(tile) != stationId ||
         AIRoad.GetRoadStationFrontTile(tile) != front ||
         !AIRoad.AreRoadTilesConnected(tile, front)) {
       if (AIRoad.IsRoadStationTile(tile)) AIRoad.RemoveRoadStation(tile);
+      for (local i = added.len() - 1; i >= addedStart; i--) AIRoad.RemoveRoad(added[i].from, added[i].to);
+      added.resize(addedStart);
       continue;
     }
     return { tile = tile, front = front };
@@ -892,7 +910,7 @@ function OpexRoadFindOrBuildTruckStop(catalog, stopTile, frontTile, stationId)
       if (truckStops.HasItem(t) &&
           AIRoad.IsRoadStationTile(t) &&
           AIRoad.AreRoadTilesConnected(t, frontTile)) {
-        return { tile = t, front = frontTile, isNew = false, roadBuilt = false };
+        return { tile = t, front = frontTile, isNew = false, added = [] };
       }
     }
   }
@@ -918,7 +936,8 @@ function OpexRoadFindOrBuildTruckStop(catalog, stopTile, frontTile, stationId)
       if (AIRoad.IsRoadStationTile(t) &&
           AIStation.GetStationID(t) == stationId &&
           AIRoad.AreRoadTilesConnected(t, frontTile)) {
-        return { tile = t, front = frontTile, isNew = true, roadBuilt = roadBuilt };
+        local added = roadBuilt ? [{ from = frontTile, to = t }] : [];
+        return { tile = t, front = frontTile, isNew = true, added = added };
       }
       if (AIRoad.IsRoadStationTile(t)) AIRoad.RemoveRoadStation(t);
     }
@@ -926,9 +945,10 @@ function OpexRoadFindOrBuildTruckStop(catalog, stopTile, frontTile, stationId)
   }
 
   /* 3. Voisins perpendiculaires a l'arret via OpexRoadTryJoinStop */
-  local join = OpexRoadTryJoinStop({ tile = stopTile, front = frontTile }, stationId, vehType, {}, []);
+  local joinAdded = [];
+  local join = OpexRoadTryJoinStop({ tile = stopTile, front = frontTile }, stationId, vehType, {}, joinAdded);
   if (join != null) {
-    return { tile = join.tile, front = join.front, isNew = true, roadBuilt = true };
+    return { tile = join.tile, front = join.front, isNew = true, added = joinAdded };
   }
 
   /* 4. Voisins de la tuile routiere suivante connectee a frontTile */
@@ -956,7 +976,8 @@ function OpexRoadFindOrBuildTruckStop(catalog, stopTile, frontTile, stationId)
         if (AIRoad.IsRoadStationTile(t2) &&
             AIStation.GetStationID(t2) == stationId &&
             AIRoad.AreRoadTilesConnected(t2, f2)) {
-          return { tile = t2, front = f2, isNew = true, roadBuilt = roadBuilt };
+          local added = roadBuilt ? [{ from = f2, to = t2 }] : [];
+          return { tile = t2, front = f2, isNew = true, added = added };
         }
         if (AIRoad.IsRoadStationTile(t2)) AIRoad.RemoveRoadStation(t2);
       }

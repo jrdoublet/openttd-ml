@@ -1807,6 +1807,26 @@ function OpexAI::_tryBuildFeeders(year)
   return false;
 }
 
+/* G11 : le placement d'un arret camion peut ajouter une ou deux aretes. Les supprimer a partir
+ * de la liste exacte, en ordre inverse, evite de laisser une branche orpheline tout en ne touchant
+ * jamais la voirie qui precedait la tentative. */
+function OpexMailRollbackStop(stop)
+{
+  if (stop == null || !stop.isNew) return;
+  if (AIRoad.IsRoadStationTile(stop.tile)) AIRoad.RemoveRoadStation(stop.tile);
+  if ("added" in stop) {
+    for (local i = stop.added.len() - 1; i >= 0; i--) {
+      AIRoad.RemoveRoad(stop.added[i].from, stop.added[i].to);
+    }
+  }
+}
+
+function OpexMailRollbackStops(stopA, stopB)
+{
+  OpexMailRollbackStop(stopB);
+  OpexMailRollbackStop(stopA);
+}
+
 function OpexAI::_tryBuildMailFeeder(candidate, paxResult, year)
 {
   if (!FEEDER_MAIL_DUPLICATE) return false;
@@ -1838,38 +1858,21 @@ function OpexAI::_tryBuildMailFeeder(candidate, paxResult, year)
   // 2. Trouver ou construire l'arret camion cote hub (B)
   local mailStopB = OpexRoadFindOrBuildTruckStop(this._catalog, stopB, frontB, stationB);
   if (mailStopB == null) {
-    if (mailStopA.isNew && AIRoad.IsRoadStationTile(mailStopA.tile)) {
-      AIRoad.RemoveRoadStation(mailStopA.tile);
-      if (mailStopA.roadBuilt) AIRoad.RemoveRoad(mailStopA.front, mailStopA.tile);
-    }
+    OpexMailRollbackStops(mailStopA, null);
     return false;
   }
 
   // 3. Verifier la capacite refit
   local capacity = OpexRoadRefitCapacity(paxResult.depot, mailEngine, mailCargo);
   if (capacity <= 0) {
-    if (mailStopA.isNew && AIRoad.IsRoadStationTile(mailStopA.tile)) {
-      AIRoad.RemoveRoadStation(mailStopA.tile);
-      if (mailStopA.roadBuilt) AIRoad.RemoveRoad(mailStopA.front, mailStopA.tile);
-    }
-    if (mailStopB.isNew && AIRoad.IsRoadStationTile(mailStopB.tile)) {
-      AIRoad.RemoveRoadStation(mailStopB.tile);
-      if (mailStopB.roadBuilt) AIRoad.RemoveRoad(mailStopB.front, mailStopB.tile);
-    }
+    OpexMailRollbackStops(mailStopA, mailStopB);
     return false;
   }
 
   // 4. Construire le camion postal dans le depot partage
   local truck = AIVehicle.BuildVehicleWithRefit(paxResult.depot, mailEngine.id, mailCargo);
   if (!AIVehicle.IsValidVehicle(truck)) {
-    if (mailStopA.isNew && AIRoad.IsRoadStationTile(mailStopA.tile)) {
-      AIRoad.RemoveRoadStation(mailStopA.tile);
-      if (mailStopA.roadBuilt) AIRoad.RemoveRoad(mailStopA.front, mailStopA.tile);
-    }
-    if (mailStopB.isNew && AIRoad.IsRoadStationTile(mailStopB.tile)) {
-      AIRoad.RemoveRoadStation(mailStopB.tile);
-      if (mailStopB.roadBuilt) AIRoad.RemoveRoad(mailStopB.front, mailStopB.tile);
-    }
+    OpexMailRollbackStops(mailStopA, mailStopB);
     return false;
   }
 
@@ -1878,19 +1881,16 @@ function OpexAI::_tryBuildMailFeeder(candidate, paxResult, year)
   local orderB = AIOrder.AppendOrder(truck, mailStopB.tile, AIOrder.OF_TRANSFER);
   if (!orderA || !orderB || AIOrder.GetOrderCount(truck) != 2) {
     AIVehicle.SellVehicle(truck);
-    if (mailStopA.isNew && AIRoad.IsRoadStationTile(mailStopA.tile)) {
-      AIRoad.RemoveRoadStation(mailStopA.tile);
-      if (mailStopA.roadBuilt) AIRoad.RemoveRoad(mailStopA.front, mailStopA.tile);
-    }
-    if (mailStopB.isNew && AIRoad.IsRoadStationTile(mailStopB.tile)) {
-      AIRoad.RemoveRoadStation(mailStopB.tile);
-      if (mailStopB.roadBuilt) AIRoad.RemoveRoad(mailStopB.front, mailStopB.tile);
-    }
+    OpexMailRollbackStops(mailStopA, mailStopB);
     return false;
   }
 
   // 6. Demarrer le camion postal
-  AIVehicle.StartStopVehicle(truck);
+  if (!AIVehicle.StartStopVehicle(truck)) {
+    AIVehicle.SellVehicle(truck);
+    OpexMailRollbackStops(mailStopA, mailStopB);
+    return false;
+  }
 
   // 7. Enregistrer la ligne postale
   local yy = year % 100;

@@ -165,7 +165,8 @@ function OpexWaterHasRange(catalog, orderDistance)
   return false;
 }
 
-/* BFS 4 voisins avec rectangle x/y explicite. */
+/* BFS 4 voisins avec rectangle x/y explicite. Retourne la longueur navigable minimale en
+ * tuiles d'eau, ou -1 si les deux acces ne sont pas connectes dans le budget borne. */
 function OpexWaterFindConnection(siteA, siteB)
 {
   local ax = AIMap.GetTileX(siteA.dock);
@@ -178,12 +179,13 @@ function OpexWaterFindConnection(siteA, siteB)
   local maxY = min(AIMap.GetMapSizeY() - 1, max(ay, by) + WATER_BFS_MARGIN);
   local queue = [];
   local seen = {};
-  foreach (water in siteA.waterTiles) { queue.append(water); seen.rawset(water, true); }
+  foreach (water in siteA.waterTiles) { queue.append(water); seen.rawset(water, 0); }
   local head = 0;
   local offsets = [[1, 0], [-1, 0], [0, 1], [0, -1]];
   while (head < queue.len() && head < WATER_BFS_MAX_NODES) {
     local current = queue[head++];
-    if (OpexWaterContains(siteB.waterTiles, current)) return true;
+    local distance = seen[current];
+    if (OpexWaterContains(siteB.waterTiles, current)) return distance;
     local x = AIMap.GetTileX(current);
     local y = AIMap.GetTileY(current);
     foreach (offset in offsets) {
@@ -193,10 +195,10 @@ function OpexWaterFindConnection(siteA, siteB)
       local next = AIMap.GetTileIndex(nx, ny);
       if (!AITile.IsWaterTile(next)) continue;
       if (!AIMarine.AreWaterTilesConnected(current, next)) continue;
-      if (!(next in seen)) { seen.rawset(next, true); queue.append(next); }
+      if (!(next in seen)) { seen.rawset(next, distance + 1); queue.append(next); }
     }
   }
-  return false;
+  return -1;
 }
 
 /* Le depot est cherche apres la pose des docks, dans le composant deja prouve. AITestMode voit
@@ -298,8 +300,10 @@ function OpexWaterPlans(catalog, lines = null, projects = null)
     local site = OpexWaterFindSite(towns[i], probes);
     if (site != null) sites.append(site);
   }
-  /* La connectivite maritime est couteuse. On classe d'abord toutes les paires sur leur ROI,
-   * puis on ne lance le BFS que sur un petit bassin economique. */
+  /* G11 : le BFS sert aussi a l'economie. Le limiter apres un classement Manhattan pouvait
+   * elire un detour cotier comme s'il etait direct et ecarter une paire reellement meilleure.
+   * Le bassin est deja borne par WATER_TOWN_POOL ; chaque paire admissible est donc chiffree
+   * avec sa longueur navigable avant son classement. */
   local ranked = [];
   for (local a = 0; a < sites.len(); a++) {
     for (local b = a + 1; b < sites.len(); b++) {
@@ -309,9 +313,11 @@ function OpexWaterPlans(catalog, lines = null, projects = null)
                                                       sites[a].dock, sites[b].dock);
       if (orderDistance < 0 || !OpexWaterHasRange(catalog, orderDistance)) continue;
       local monthlyPax = ((sites[a].town.pop + sites[b].town.pop) * 22) / 100;
-      local economics = OpexWaterEconomics(catalog, distance, orderDistance, monthlyPax);
+      local waterDistance = OpexWaterFindConnection(sites[a], sites[b]);
+      if (waterDistance < 0) continue;
+      local economics = OpexWaterEconomics(catalog, waterDistance, orderDistance, monthlyPax);
       if (economics == null || economics.profitAnnual <= 0) continue;
-      local plan = { siteA = sites[a], siteB = sites[b], distance = distance,
+      local plan = { siteA = sites[a], siteB = sites[b], distance = waterDistance,
                      orderDistance = orderDistance, economics = economics };
       local pos = ranked.len();
       while (pos > 0 && (ranked[pos - 1].economics.roi < economics.roi ||
@@ -323,7 +329,6 @@ function OpexWaterPlans(catalog, lines = null, projects = null)
   }
   local best = null;
   foreach (plan in ranked) {
-    if (!OpexWaterFindConnection(plan.siteA, plan.siteB)) continue;
     if (projects != null) projects.append(plan);
     if (best == null) best = plan;
   }
@@ -384,7 +389,7 @@ function OpexBuildWaterRoute(catalog, budget, plan)
   }
   local realA = { dock = dockA, waterTiles = accessA.fronts };
   local realB = { dock = dockB, waterTiles = accessB.fronts };
-  if (!OpexWaterFindConnection(realA, realB)) {
+  if (OpexWaterFindConnection(realA, realB) < 0) {
     result.opcodes += budget.end("build_water_depot");
     OpexWaterRollback(dockA, dockB, null, null); result.reason = "NOWATER"; return result;
   }
