@@ -946,11 +946,24 @@ reste à trancher indépendamment.
   rejets contre seulement **10 728 candidats gardés** (`VIVIER_GEN.kept`, toutes générations
   routières confondues) sur les mêmes graines — un rapport d'environ 46 rejets pour 1 candidat
   retenu, cohérent sur les 5 graines (67 608 à 151 488 chacune, jamais proche de 0). C'est de
-  loin le plus gros motif de rejet routier nommé (devant `road_no_monthly` à 378 504). Candidat
-  clair pour l'étape 3 (banc) : `AITile.GetCargoAcceptance` à 8 sur une zone de couverture
-  camion coupe la quasi-totalité des candidats fret industrie→ville avant même le test de
-  distance ou de profit — **valeur non vérifiée contre le source du jeu, non remise en cause
-  depuis sa pose.**
+  loin le plus gros motif de rejet routier nommé (devant `road_no_monthly` à 378 504).
+
+  ⚠️ **CORRIGÉ (2026-09-08, avant tout banc) : `ROAD_ACCEPTANCE_MIN` n'est PAS un candidat
+  d'étalonnage — erreur commise en écrivant ce paragraphe, retirée avant de dépenser un banc
+  dessus (même famille d'erreur que la fausse alerte `rail_refleet` corrigée plus haut le même
+  jour).** Le commentaire du code (`candidates.nut:1004-1006`, déjà présent, pas relu avant
+  d'écrire ce paragraphe) dit explicitement : `AITile.GetCargoAcceptance` rend une acceptation
+  en huitièmes d'unité, et **le moteur exige 8 (une unité pleine) pour qu'une livraison paie
+  quoi que ce soit** — en dessous, la gare afficherait une acceptation sans qu'aucune livraison
+  ne rapporte. Si ce commentaire est exact, la constante ne traduit pas un choix de conception
+  mais une règle du moteur : l'abaisser ferait construire des lignes qui dépensent du capital
+  sur du fret jamais payé, un résultat de banc **prévisible d'avance**, pas une question ouverte.
+  L'énorme volume de rejets n'est alors pas la preuve d'un filtre trop strict — c'est la
+  démographie réelle de la carte (peu de villes ont une acceptation pleine unité pour un cargo
+  donné dans le rayon camion), et `ROAD_ACCEPTANCE_MIN` fait exactement son travail en les
+  écartant avant qu'ils ne gaspillent du capital. **Pas de banc lancé.** Reste à faire si besoin :
+  vérifier la règle « le moteur exige 8 » contre le source OpenTTD (`station_cmd.cpp` ou
+  équivalent) plutôt que contre le seul commentaire du dépôt, avant de la citer comme acquise.
 
   🔶 **Reste à faire pour clore famille 2** : les 10 autres constantes n'ont pas de compteur
   binaire prêt à l'emploi (à la différence des deux ci-dessus) — `ATTEMPT_FLOOR`,
