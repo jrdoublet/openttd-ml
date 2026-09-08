@@ -1,0 +1,49 @@
+{
+ "purpose": "C43/E3 famille 2 : ROAD_MIN_DISTANCE (=5) / ROAD_MAX_DISTANCE (=25), comptes bruts via VIVIER_REJECT",
+ "caveat": "Pas de ratio contre produced/kept -- meme piege de denominateur que road_town_rejected (les rejets arrivent avant le pairsInBand++ de leur propre boucle).",
+ "seeds": [
+  1,
+  42,
+  73,
+  100,
+  2026
+ ],
+ "years": 6,
+ "arm": "OpexAI[decision_log=1]",
+ "errors": [],
+ "total_kept": 162,
+ "reject_reason_counts": {
+  "no_monthly": 6619,
+  "distance_short": 2714,
+  "distance_long": 196274,
+  "profit_non_positive": 58354,
+  "ratio_too_low": 16172,
+  "road_no_monthly": 5086,
+  "road_town_rejected": 6507,
+  "road_distance_long": 422806,
+  "origin_served": 12889,
+  "road_profit_too_low": 6
+ },
+ "road_min_distance": {
+  "constant": 5,
+  "n_rejected_total": 0,
+  "per_seed": {
+   "1": 0,
+   "42": 0,
+   "73": 0,
+   "100": 0,
+   "2026": 0
+  }
+ },
+ "road_max_distance": {
+  "constant": 25,
+  "n_rejected_total": 422806,
+  "per_seed": {
+   "1": 99753,
+   "42": 55389,
+   "73": 91931,
+   "100": 81960,
+   "2026": 93773
+  }
+ }
+}

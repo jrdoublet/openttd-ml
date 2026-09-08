@@ -1504,10 +1504,49 @@ reste à trancher indépendamment.
   préfiltre qui ne trouve jamais rien à exclure est cohérent avec un post-filtre qui ne rejette
   jamais rien sur la même fenêtre — pas une découverte indépendante. Aucun banc.
 
-  🔶 **Reste à faire pour clore famille 2** : 3 constantes sans compteur binaire prêt à l'emploi —
-  `ROAD_MIN_DISTANCE`, `DEAD_STREAK_THRESHOLD`,
-  `SCRAP_TIMEOUT_YEARS` — demandent une instrumentation nouvelle et ciblée avant de pouvoir être
-  classées.
+  ✅ **`ROAD_MIN_DISTANCE = 5` (candidates.nut) mesurée, inerte — mais sa jumelle
+  `ROAD_MAX_DISTANCE = 25` est le plus gros motif de rejet routier trouvé dans tout l'audit
+  (2026-09-08).** Aucune télémétrie existante ne couvrait le test `distance < ROAD_MIN_DISTANCE ||
+  distance > ROAD_MAX_DISTANCE`, unique et non gardé par un réglage, présent à 4 sites (pax
+  ville-ville, fret industrie-industrie, fret industrie-ville, feeder). Compteurs
+  `roadDistanceShort`/`roadDistanceLong` ajoutés au `stats` partagé, publiés par le panneau
+  `VIVIER_REJECT` existant (`road_distance_short`/`road_distance_long`).
+
+  🔴 **Crash trouvé et corrigé avant toute mesure.** Le premier smoke a planté : *« the index
+  'roadDistanceLong' does not exist »*. `OpexRoadFeederCandidates()` (et ses sœurs) sont appelées
+  depuis **quatre** endroits distincts, chacun avec sa PROPRE table `stats` littérale — le premier
+  correctif n'en avait mis à jour qu'un. Trois autres corrigés après coup : `feederStats`
+  (chemin portefeuille incrémental, `projects.nut:1184`), `OpexProjectEmptyRoad()` (placeholder,
+  `projects.nut:1336`), et `_tryBuildFeeders()` (tâche feeder dédiée, `main.nut:2047`) — cette
+  dernière aurait planté l'IA en jeu réel dès le premier feeder candidat à plus de 25 tuiles,
+  crash reproduit via le chemin portefeuille dans ce diagnostic.
+
+  5 graines × 6 ans (`docs/diag_road_min_distance_6y_5seeds.json`,
+  `sweeps/diag_road_min_distance.py`), 0 erreur après correctif :
+
+  | | n total | par graine (1/42/73/100/2026) |
+  |---|---:|---|
+  | `ROAD_MIN_DISTANCE` (`road_distance_short`) | **0** | 0/0/0/0/0 |
+  | `ROAD_MAX_DISTANCE` (`road_distance_long`) | **422 806** | 99 753 / 55 389 / 91 931 / 81 960 / 93 773 |
+
+  **`ROAD_MIN_DISTANCE` ne mord jamais** — même verdict que `ROAD_MIN_PROFIT_ANNUAL`/
+  `ATTEMPT_FLOOR` (mécanisme atteignable, jamais déclenché). **`ROAD_MAX_DISTANCE` mord
+  massivement et de loin le plus fort de tous les motifs routiers nommés mesurés dans cet audit**
+  — plus de 60× `road_town_rejected` (6 507) et bien au-delà du `road_distance_long` équivalent
+  côté rail (196 274, constante différente, `MAX_DISTANCE`). Cohérent sur les 5 graines (55 389 à
+  99 753, jamais proche de 0). `ROAD_MAX_DISTANCE` n'est **pas** dans la liste des 12 planchers de
+  famille 2 (c'est un plafond) — comme `CASH_RESERVE_MAX` plus haut, à ajouter à une future passe
+  famille 1 plutôt qu'ici. Aucun banc sur `ROAD_MIN_DISTANCE` (no-op mesuré) ; `ROAD_MAX_DISTANCE`
+  mériterait sa propre investigation compte tenu de son ampleur.
+
+  📌 **Note en passant, hors périmètre** : ce diagnostic montre aussi `road_profit_too_low = 6`
+  (contre 0 mesuré dans le diagnostic `ROAD_MIN_PROFIT_ANNUAL` d'origine, `2562e96`) — écart minime
+  (6 sur des centaines de milliers d'évaluations) probablement dû aux correctifs commis entre les
+  deux mesures ; ne change pas le verdict « ne mord jamais » de `ROAD_MIN_PROFIT_ANNUAL`.
+
+  🔶 **Reste à faire pour clore famille 2** : 2 constantes sans compteur binaire prêt à l'emploi —
+  `DEAD_STREAK_THRESHOLD`, `SCRAP_TIMEOUT_YEARS` — demandent une instrumentation nouvelle et ciblée
+  avant de pouvoir être classées.
 
 ---
 
