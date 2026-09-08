@@ -1453,6 +1453,14 @@ reste à trancher indépendamment.
   portefeuille) — sans cela, changer 50 000 £ serait à nouveau une valeur posée à vue, pas mieux
   fondée que l'actuelle.
 
+  ⏸️ **En attente de C41 avant toute nouvelle évaluation (décidé par l'utilisateur, 2026-09-08).**
+  C41 (§ ci-dessus, C41.0 à C41.10 faits) construit précisément un ordonnancement opportuniste des
+  rafraîchissements (catalogue, candidats, portefeuille, sac à dos) — le même terrain que
+  `PORTFOLIO_REFRESH_MIN_GAIN`, qui gouverne aujourd'hui QUAND le portefeuille se rejoue selon la
+  croissance de capital. Si C41 change ce mécanisme de déclenchement, remesurer ou retoucher ce
+  seuil maintenant risque de porter sur un chemin bientôt remplacé. Reprendre ce sujet seulement
+  une fois C41 stabilisé.
+
   🔶 **Reste à faire pour clore famille 2** : 5 constantes sans compteur binaire prêt à l'emploi —
   `PAX_NEAR_MIN_PROFIT`, `ORIGIN_SEPARATION`, `ROAD_MIN_DISTANCE`, `DEAD_STREAK_THRESHOLD`,
   `SCRAP_TIMEOUT_YEARS` — demandent une instrumentation nouvelle et ciblée avant de pouvoir être
