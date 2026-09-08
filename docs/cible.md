@@ -573,6 +573,12 @@ première frontière candidate est donc l'index d'origines servies, et non le ca
 les puits industriels. Cette découpe conserve l'ordre de production actuel ; elle sert à
 dimensionner un état reprenable et ne reporte encore aucun travail du scheduler.
 
+**Index fret (C41.18, apparié 5×6).** L'index spatial d'origines rail+route déjà servies conserve
+la predicate historique (`DistanceManhattan < ORIGIN_SEPARATION`) mais évite son scan par
+ville/industrie. Il divise par 5,5 la tranche de préparation et par 1,86 la génération route
+totale, sans échec sur 10 parties. La valeur et le profit annuel sont compatibles avec un effet
+neutre à favorable mais encore trop dispersés : défaut OFF jusqu'au banc officiel 20×10.
+
 **C39.4 — cause des avions non retenus (2026-09-08).** La sonde
 `c39_air_reason_probe=0` sépare les filtres éliminatoires de la sélection finale des combos. Sa
 trace 5 graines × 6 ans (`results/diag_c39_air_reason_6y_5seeds.json`) est saine : les cinq annonces

@@ -420,6 +420,38 @@ function OpexOriginServed(lines, tile, includeRoad)
   return false;
 }
 
+/* C41.18 : index spatial exact de la meme predicate que OpexOriginServed(..., true).
+ * ORIGIN_SEPARATION = 3 est petit : materialiser son losange de rayon 2 pour chaque extremite
+ * economise les appels DistanceManhattan repetees sur toutes les villes et industries. Ce helper
+ * est volontairement local au fret route ; rail, feeders et controles de construction gardent
+ * l'autorite historique OpexOriginServed. */
+function OpexRoadFreightServedIndex(lines)
+{
+  local served = {};
+  local width = AIMap.GetMapSizeX();
+  local height = AIMap.GetMapSizeY();
+  local radius = ORIGIN_SEPARATION - 1;
+  foreach (line in lines) {
+    if (("mode" in line) && line.mode != "rail" && line.mode != "road") continue;
+    local origins = [line.originA, line.originB];
+    foreach (origin in origins) {
+      local ox = AIMap.GetTileX(origin);
+      local oy = AIMap.GetTileY(origin);
+      for (local dx = -radius; dx <= radius; dx++) {
+        local x = ox + dx;
+        if (x < 0 || x >= width) continue;
+        local dyLimit = radius - abs(dx);
+        for (local dy = -dyLimit; dy <= dyLimit; dy++) {
+          local y = oy + dy;
+          if (y < 0 || y >= height) continue;
+          served.rawset(AIMap.GetTileIndex(x, y), true);
+        }
+      }
+    }
+  }
+  return served;
+}
+
 /* DE LA GUILLOTINE AU FILET (2026-08-29). L'exclusion ci-dessus, ecrite le 2026-08-28, rejetait la
  * paire des qu'UNE de ses deux extremites etait servie. Mesure sur 20 ans, graine 42
  * (results/opex_road_20y_42.json) : a partir de 1982 elle ecarte 213 a 242 paires par an et il ne
@@ -1287,13 +1319,16 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
   local preparationMark = profile != null ? OpexOpsMeasureBegin() : null;
   local industries = catalog.industries;
   local towns = catalog.towns;
+  local servedIndex = C41_ROAD_FREIGHT_SERVED_INDEX ? OpexRoadFreightServedIndex(lines) : null;
   local servedIndustry = [];
   for (local i = 0; i < industries.len(); i++) {
-    servedIndustry.append(OpexOriginServed(lines, industries[i].tile, true));
+    servedIndustry.append(servedIndex != null
+        ? (industries[i].tile in servedIndex) : OpexOriginServed(lines, industries[i].tile, true));
   }
   local servedTown = [];
   for (local i = 0; i < towns.len(); i++) {
-    servedTown.append(OpexOriginServed(lines, towns[i].tile, true));
+    servedTown.append(servedIndex != null
+        ? (towns[i].tile in servedIndex) : OpexOriginServed(lines, towns[i].tile, true));
   }
 
   /* L'acceptation d'une ville ne depend que du couple (ville, cargo) : la calculer une fois par
