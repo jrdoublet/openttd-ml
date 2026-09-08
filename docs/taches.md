@@ -336,6 +336,69 @@ reste à trancher indépendamment.
   pas étendre le devis anticipé à tous les candidats sans borne d'opcodes. Tant que P1.1 n'est pas
   fait, ×1,7 reste un repli temporaire rail-only, jamais une règle globale.
 
+  **Implémentation (2026-09-08), non adoptée.** `rail_prequote=1` lance, avant l'élection, un
+  `OpexPlanRailRoute` puis le même devis `AITestMode`/`AIAccounting` que le constructeur pour au
+  plus les deux meilleurs candidats rail sans `placeJoin`, avec un plafond de 2 500 itérations par
+  devis. Le montant est porté dans `quotedCapital`, appliqué à `capital` avec
+  `capitalIsActual=1`, puis lu par le filtre de finançabilité ; le plan est jeté, afin de ne pas
+  réutiliser un tracé potentiellement périmé au chantier. Un échec ou un join garde le repli ×1,7.
+  `P1_1_QUOTE` et `P1_1_QUOTE_SUMMARY` journalisent les ratios et opcodes. Le diagnostic
+  5 graines × 6 ans est sain (0 erreur / 0 faillite,
+  `docs/diag_p1_1_prequote_6y_5seeds.json`), mais ne constitue pas un verdict de performance : le
+  réglage reste à `0` jusqu'au banc apparié requis.
+
+  🔴 **Diagnostic comparatif fait le 2026-09-08 — verdict net, pas besoin du banc officiel.**
+  `OpexAI[rail_prequote=0]` contre `OpexAI[rail_prequote=1]`, 5 graines × 6 ans
+  (`docs/diag_p1_1_prequote_paired_6y_5seeds.json`) : `company_value` **−30,7 %** en moyenne
+  (−18,4 / −48,8 / −34,2 / −9,7 / −42,2 % par graine, **5/5 négatives**), `profit_year` −29,6 %,
+  `performance_history` −19,5 %, `n_vehicles` −39,7 %, `n_stations` −26,6 %. Magnitude 2 à 3× le
+  plancher de détection (~15 %) sur les cinq graines : le signe est tranché sans test des signes,
+  le banc apparié 20×10 n'aurait rien ajouté. `rail_prequote` reste à `0`.
+
+  **Mécanisme identifié.** `OpexPrequoteRailCandidates()` est appelée dans `OpexBuildProjects()`
+  — le rebuild **complet** du portefeuille, pas le chemin incrémental — et paie pour jusqu'à 2
+  candidats un A\* borné (2 500 itérations) plus un vrai devis `AITestMode`, puis **jette le
+  plan** (« afin de ne pas réutiliser un tracé potentiellement périmé au chantier », commentaire
+  ci-dessus). Si le candidat est ensuite élu, le pathfinder repart de zéro. Ce coût était pensé
+  pour un rebuild complet rare ; P3 (`event_catalog_invalidate`, adopté juste avant) rend
+  justement ces rebuilds fréquents (ouverture d'industrie, fondation de ville, abandon de paire).
+  Chaque déclenchement de P3 fait donc payer une recherche + un devis qui partent à la poubelle —
+  une composition non anticipée entre deux des cinq leviers P1-P5, pas un bug isolé de P1.1.
+
+  🔴 **P1.3 — garder le plan calculé, et le calculer par petits morceaux plutôt qu'en un bloc
+  synchrone ; ne classer un candidat qu'une fois son trajet entièrement calculé et costé.**
+  Proposition de l'utilisateur (2026-09-08), pas codée, pas mesurée. Deux volets :
+
+  1. **Ne plus jeter le plan.** La raison du jet (staleness au chantier) est réelle mais traitée
+     ailleurs dans ce code par une revalidation à l'usage, pas par le jet systématique — le même
+     principe que `OpexIncrementalCandidateStillValid` pour le vivier incrémental (C36.1). Garder
+     `plan` sur le candidat (`quotedPlan`), et au moment de la construction réelle, revalider
+     qu'il reste applicable (quais toujours libres, tracé toujours sans obstacle nouveau) avant de
+     le réutiliser ; ne recalculer que si la revalidation échoue. Coupe le double paiement de l'A\*
+     sur le chemin qui aboutit, sans réintroduire le risque qui justifiait le jet.
+  2. **Calculer par petits morceaux, classer seulement une fois costé** — l'idée de
+     `docs/cible.md` §6 (« EXÉCUTION INCRÉMENTALE ») appliquée au devis lui-même, pas seulement à
+     la construction. Au lieu de payer 2 500 itérations + un devis `AITestMode` d'un coup pendant
+     le rebuild (un bloc synchrone qui vole le débit du contrôleur au moment précis où P3 le
+     sollicite déjà plus souvent), fractionner le calcul en tranches réutilisant la machinerie
+     existante (segments de `rail_segmented_search`/A5, état repris comme `rail_search_resumable`)
+     et le brancher sur le canal de délestage opportuniste de **C41** (ci-dessous) : une tranche de
+     devis avance quand l'IA n'a rien de mieux à faire de son budget d'opcodes du tick, jamais en
+     bloquant un rebuild. **Le candidat n'entre dans le classement du portefeuille qu'une fois son
+     devis physique complet** — jamais sur une estimation partielle — ce qui élimine par
+     construction le problème du plan périmé entre le devis et l'élection : s'il est classé, son
+     devis est frais par définition.
+
+  ⛔ **Piège déjà payé deux fois à ne pas reproduire** : `rail_search_resumable` a été rejeté
+  précisément parce qu'une **échéance globale posée à l'entrée** amputait la recherche au lieu de
+  la redistribuer (−23,1 % puis −13,3 %/−27,5 % gares, [[pathfinder_budget_contrainte]],
+  `docs/cible.md` §2.1). Toute reprise de P1.3 doit donner à **chaque tranche sa propre échéance**,
+  jamais une échéance globale sur l'ensemble du devis — c'est la même leçon, pas une nouvelle.
+
+  Dépend de C41 (le canal de délestage n'existe pas encore) pour le volet 2 ; le volet 1 (garder
+  le plan + revalider) est indépendant et peut être fait seul, avant C41, comme premier correctif
+  mesurable de P1.1.
+
   **P1.2 — proposition du 2026-09-08, non codée, non mesurée : rendre le « préfiltre économique bon
   marché » de P1.1 sensible au terrain, par sonde en ligne quasi droite.** Aujourd'hui ce préfiltre
   est `candidate.distance` (Manhattan/vol d'oiseau) + `RAIL_TERRAIN_FACTOR = 170` fixe
