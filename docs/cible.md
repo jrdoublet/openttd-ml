@@ -191,8 +191,9 @@ score(a) = profit_attendu(a) / denominateur(a)
 - **La dérivée première plutôt que l'état instantané.** Le flux est le terme qui manque
   aujourd'hui à toutes nos décisions ; la fenêtre glissante est la bonne idée, sa longueur doit
   juste être dérivée du bruit mesuré, pas fixée à 60 jours.
-- **Deux canaux de génération, régulier et de délestage.** Utile — à condition que le déclencheur
-  soit une tension comparée aux autres, jamais un seuil absolu.
+- **Deux canaux de travail, régulier et événementiel.** Le second sert à entretenir une couche
+  réellement périmée, avec une tâche coalescée et repriseable. La famille « tension relative /
+  prix d'ombre » a été fermée stratégiquement : elle ne pilote plus le déclenchement de C41.
 - **La simulation à blanc existe vraiment** : `AITestMode`, et AAAHogEx s'en sert comme d'un
   outil. ⚠️ **Piège vérifié chez nous** : `AIAccounting` compte le coût **simulé** d'un
   `AITestMode` ; le bouclier est un `AIAccounting` imbriqué.
@@ -218,17 +219,10 @@ score(a) = profit_attendu(a) / denominateur(a)
 │  ⚠️ pas de « temps d'attente aux signaux » : l'API ne l'expose pas              │
 └───────────────────────────────┬────────────────────────────────────────────────┘
                                 ▼
-┌─ 1. VECTEUR DE TENSION ────────────────────────────────────────────────────────┐
-│  tension(r,a) = cout_r(a) / (dispo_r − engagements_r + flux_r × tau(a))         │
-│  tau(a) endogène · flux SIGNÉ · dénominateur ≤ 0 ⇒ ∞ (sentinelle)              │
-│  ⚠️ ÉTAPE EN COURS : instrumentation seule, aucune décision touchée.            │
-│     Question à trancher : la contrainte dominante VARIE-T-ELLE ?                │
-└───────────────────────────────┬────────────────────────────────────────────────┘
-                                ▼
 ┌─ 2. GÉNÉRATION D'INTENTIONS ───────────────────────────────────────────────────┐
 │  régulier : fret · interurbain pax · densification de l'existant                │
 │  opportuniste : subventions non attribuées, si temps restant > chantier estimé  │
-│  délestage : armé par une tension RELATIVE, jamais par un seuil absolu          │
+│  maintenance C41 : couche stale coalescée, coût borné, échéance propre          │
 └───────────────────────────────┬────────────────────────────────────────────────┘
                                 ▼
 ┌─ 3. FILTRES ÉLIMINATOIRES BON MARCHÉ  ◀── DÉPLACÉ AVANT L'ESTIMATION ──────────┐
@@ -534,6 +528,37 @@ sonde). Le coût est environ 380 fois celui du sous-catalogue ciblé, pour aucun
 reste donc à 0 et C41.4 doit d'abord ventiler `OpexWaterPlans` (sites, paires, BFS, économie) afin
 d'établir si l'absence de plans est structurelle ou si une étape précise peut être réduite ; aucune
 fusion ou micro-tâche active de candidats eau n'est autorisée avant ce diagnostic.
+
+**Mise à jour C41.11–C41.15 (2026-09-08) — ce que les mesures changent.** Les ledgers
+passifs C41.11/C41.12 ont mesuré 28,1 % d'opcodes initiaux non utilisés et des couches stale
+jusqu'à 61 jours. Mais C41.13/C41.14 ont ensuite tranché le point crucial : ce slack n'est pas
+disponible dans le *même tick* que les 56 fenêtres où une micro-tâche ciblée devrait être admise.
+Il ne faut donc pas bâtir C41 sur « utiliser le reliquat ». Une micro-tâche utile doit disposer de
+sa propre tranche normale de scheduler, entre deux tâches existantes, et ne jamais interrompre un
+calcul en cours.
+
+`catalog.water` puis `catalog.road` ont servi de pilotes de contrat, non de priorités produit.
+Le second isole bien `EngineAvailable` route et acquitte seulement sa révision de catalogue ;
+cependant le comparatif apparié C41.15 5×6 est défavorable (OFF +1,00 % de valeur sur 5/5 graines,
+OFF +16,7 % de profit trimestriel sur 4/5). C'est cohérent avec le modèle : tant que le rebuild
+historique régénère plus tard candidats, portefeuille et sélection, le sous-catalogue ciblé ajoute
+un coût sans offrir de consommateur aval immédiatement frais. `c41_road_refresh` reste donc à 0
+et aucun banc officiel n'est justifié.
+
+**Priorité d'architecture C41.** Le gain attendu n'est pas dans les sous-catalogues eux-mêmes,
+mais dans une chaîne dont chaque frontière peut être reprise et acquittée séparément :
+
+```text
+candidats par mode/origine → pricing/scoring → portefeuille (fusion) →
+sélection sous capital (« sac à dos ») → devis et trajet incrémentaux
+```
+
+La prochaine sonde doit profiler cette chaîne, en commençant par les candidats route, pour isoler
+les sous-étapes et leurs dépendances. Une tranche future ne sera active que si elle (1) possède un
+checkpoint sérialisable, (2) porte sa propre échéance, (3) ne réexécute pas au rebuild le travail
+déjà acquitté et (4) passe un diagnostic apparié 5×6 avant le banc officiel 20×10. Le pathfinding
+reste particulièrement sensible : les tentatives à échéance globale ont déjà été rejetées ; seul
+un état local repris par micro-étape est recevable.
 
 **C39.4 — cause des avions non retenus (2026-09-08).** La sonde
 `c39_air_reason_probe=0` sépare les filtres éliminatoires de la sélection finale des combos. Sa
