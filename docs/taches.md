@@ -437,8 +437,46 @@ reste à trancher indépendamment.
   ne permet pas d'attribuer le gain à P1, P3 ou P4 séparément ; P2 reste éteint par défaut et P5
   ne modifie pas le comportement d'exécution.
 
-  **Ordre suggéré : P1 seul au banc** (il vaut par lui-même), puis P4 en lecture de journal
-  (gratuit), puis P3. **C38 ne se re-mesure qu'après P1.**
+  **Banc factoriel 2³ P1×P3×P4 — attribution faite (2026-09-08).** P4 n'était pas un réglage au
+  moment du banc conjoint (fonction inconditionnelle) ; exposé pour l'occasion derrière
+  `abandon_memory_transient_guard` (défaut 1, reproduit bit-à-bit le comportement livré, vérifié
+  au smoke). Les 8 bras tournent sur le **même dossier** `ai/OpexAI`, aucun arbre Git dupliqué.
+  20 graines × 10 ans, 160 parties, **0 échec** (`docs/bench_p1p3p4_factorial_10y_20seeds.json`,
+  `sweeps/bench_p1p3p4_factorial_10y_20seeds.py`).
+
+  | facteur | Δ `company_value` | Δ `profit_year` | Δ score | t (CV) | victoires/80 |
+  |---|---:|---:|---:|---:|---:|
+  | **P1 `capital_calibration`** | **+8,69 %** | **+8,21 %** | **+3,28 %** | **4,70** | **59/80** |
+  | P3 `event_catalog_invalidate` | +0,79 % | +1,83 % | +0,56 % | 1,76 (limite) | 54/80 |
+  | P4 `abandon_memory_transient_guard` | −0,03 % | −0,11 % | +0,03 % | −0,89 | **1/80** |
+
+  **P1 porte pratiquement tout le paquet.** Effet fort et significatif sur les 4 paires appariées
+  × 20 graines, quel que soit l'état de P3 (+8,88 % à P3=0, +9,28 % à P3=1) : corriger le devis
+  rail (biais ×1,7) était bien le bon prérequis, exactement la raison 3 du post-mortem C38.
+  Comparaison directe des coins extrêmes (tout à 1 contre tout à 0, sur le même dossier) : +9,05 %
+  valeur (15/20), +9,43 % profit (14/20) — cohérent avec le +9,62 %/+7,92 % du banc conjoint par
+  diff d'arbre Git, bon signe de robustesse méthodologique entre les deux approches.
+
+  **P3 a un effet réel mais marginal**, à la limite de la significativité (t≈1,76-1,95), et
+  légèrement plus fort quand P1 est déjà actif (+0,60 % → +0,97 % de synergie, pas une interaction
+  dramatique).
+
+  🔴 **P4 est mesurablement inerte.** Sur les 4 paires appariées, **2 sont bit-à-bit identiques** :
+  quand `event_catalog_invalidate=1`, activer ou non P4 ne change strictement rien, pas une seule
+  graine sur 40. Le mécanisme que P4 corrige (mémoriser à tort un refus de caisse transitoire)
+  semble déjà neutralisé par le rafraîchissement événementiel de P3 avant d'avoir l'occasion de
+  mordre — cohérent avec 1/80 victoires sur l'ensemble du plan, un niveau d'inertie qu'on ne voit
+  nulle part ailleurs dans ce document. Reste actif par défaut (aucun coût mesuré), mais ne
+  justifie pas d'effort supplémentaire.
+
+  **Conséquence : P1.1 (devis physique rail, remplacer le facteur ×1,7) redevient la suite
+  logique évidente** — c'est le seul des trois leviers dont l'effet est assez fort pour mériter
+  d'être approfondi. P3 mérite d'être gardé sans urgence de le pousser plus loin. P4 n'a plus
+  besoin d'être défendu ni creusé.
+
+  **Ordre suggéré, mis à jour : P1.1 devient la priorité**, pas un nouveau candidat du backlog.
+  L'ancien « P1 seul au banc, puis P4, puis P3 » est **caduc** — l'attribution est faite, l'ordre
+  suggéré répondait à une question maintenant tranchée.
 
 - 🔴 **C39 — Détecter quand un rafraîchissement (catalogue, candidats, portefeuille, sac à dos)
   est réellement nécessaire, plutôt que de coupler les quatre.** Aujourd'hui chaque couche a sa
