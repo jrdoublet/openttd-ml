@@ -1920,12 +1920,21 @@ Ne pas oublier deux composantes gratuites de la note de compagnie : **emprunt à
     court et un étage 2 déclenché à la main.
 
 
-- 🔶 **Supprimer `air_starter`, toujours proposé inerte par la mesure du 2026-09-02**
-  (`bench_rail_refleet_vs_aaahogex_5y.json` et `_v2`, écart-type des différences appariées =
-  **0,0** sur 20 graines). Même traitement que `tree_planting` ci-dessous : retirer le code
-  gardé, la constante, sa relecture dans `Start()`, l'entrée `info.nut` et la liste blanche de
-  `bench_v2.py`. ⚠️ Retirer le code **mort** ne décale pas les trajectoires, mais retirer une
-  **lecture de réglage** en décale, donc prévoir un banc de non-régression avant de conclure.
+- ✅ **`air_starter` supprimé (2026-09-08).** Toujours proposé inerte par la mesure du
+  2026-09-02 (`bench_rail_refleet_vs_aaahogex_5y.json` et `_v2`, écart-type des différences
+  appariées = **0,0** sur 20 graines) — mais **vérifié site par site avant suppression**, à la
+  différence de `rail_refleet` ci-dessous (leçon du 2026-09-08) : `_tryBuildAir` (tâche
+  « starter ») est bien inatteignable au défaut (`air_portfolio=1` désactive cette tâche,
+  C34.1), donc ses plafonds ne jouaient jamais ; `_tryBuildAirProject` (chemin portefeuille
+  vivant) est lui atteignable et rejette réellement sur `line_cap_reached`, mais l'horizon
+  5 ans du banc n'approchait jamais ni 5/25 ni 30/250 lignes — le réglage n'avait donc
+  simplement rien à trancher, pas de code mort caché. Les deux sites sont **collapsés sur la
+  valeur par défaut (=1)** (30/250, `maxBatch`=12) plutôt que supprimés comme `tree_planting`
+  (défaut 0) : le défaut livré ne change pas. `margin`, calculé mais jamais lu dans
+  `_tryBuildAir`, et `AIR_CAPITAL_MARGIN` (`builder_air.nut`), devenue sans usage, retirés au
+  passage. Réglage, constante et lecture `Start()` retirés (`240caa9`) ; liste blanche de
+  `bench_v2.py` laissée en l'état, comme `road_cost_probe`/`rail_refleet` avant elle, entortillée
+  sur la même ligne que les ajouts simultanés d'une session concurrente.
 
   **`rail_refleet` RETIRÉ de cet item (corrigé le 2026-09-08).** Il était embarqué dans le même
   bench 2026-09-02 avec `air_starter`, sur la foi de la revue de code (§0 nonies : « TOUTE la
@@ -1940,10 +1949,12 @@ Ne pas oublier deux composantes gratuites de la note de compagnie : **emprunt à
   réglage précis. Même erreur répétée dans le commentaire du réglage `fleet_fix`
   (`info.nut`/`main.nut`) et corrigée le même jour.
 
-- 🔶 **Supprimer le réglage `tree_planting` et le chemin préventif qu'il garde (demandé le
-  2026-09-01).** La question est **tranchée**, le réglage n'a donc plus de raison d'exister : la
-  plantation ne doit avoir lieu **que** quand une ville nous refuse un aéroport. Laisser un
-  paramètre inutile encombre `info.nut` et la liste blanche du banc.
+- ✅ **`tree_planting` et son chemin préventif supprimés (2026-09-08, `c74e37f`)**, demandé le
+  2026-09-01. La question était **tranchée**, le réglage n'avait donc plus de raison d'exister :
+  la plantation n'a lieu **que** quand une ville nous refuse un aéroport. Vérifié après coup
+  (2026-09-08) que le recours réactif reste intact : `OpexBoostTownRating` est toujours appelé
+  aux 5 sites de `builder_air.nut`, tous déclenchés uniquement par un vrai
+  `ERR_LOCAL_AUTHORITY_REFUSES`, aucun n'était derrière le drapeau retiré.
 
   Ce qu'il faut retirer :
   1. les **sept sites préventifs** gardés par `TREE_PLANTING` dans `main.nut`
