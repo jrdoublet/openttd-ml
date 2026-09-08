@@ -1372,8 +1372,46 @@ reste à trancher indépendamment.
   paragraphe (le plancher `LOOP_BUDGET_FLOOR` lui-même, qui n'a de sens qu'une fois `loop_budget`
   activé).
 
-  🔶 **Reste à faire pour clore famille 2** : 6 constantes sans compteur binaire prêt à l'emploi —
-  `PORTFOLIO_REFRESH_MIN_GAIN`,
+  🔴 **`PORTFOLIO_REFRESH_MIN_GAIN = 50 000` (main.nut) mesuré, mord réellement et fortement —
+  candidat sérieux, à la différence des verdicts précédents (2026-09-08).** La condition de
+  rafraîchissement « capital » est un ET entre un plancher absolu (`PORTFOLIO_REFRESH_MIN_GAIN`) et
+  un doublement (`budgetNow > budgetThen * 2`) ; la télémétrie existante (`PORTFOLIO_REFRESH
+  reason=capital`) ne montre que les cas où LES DEUX tiennent ensemble, pas si le plancher bloque
+  seul un rafraîchissement que le doublement aurait autorisé. Compteurs cumulatifs ajoutés
+  (`portfolio_refresh_probe`, défaut 0, aucun changement de comportement), delta annuel publié par
+  la tâche `report` (panneau `PORTFOLIO_REFRESH_PROBE`) — même schéma que `cash_reserve_probe`.
+
+  5 graines × 6 ans (`docs/diag_portfolio_refresh_probe_6y_5seeds.json`,
+  `sweeps/diag_portfolio_refresh_probe.py`) : **454 évaluations réelles**, 0 erreur.
+
+  | | n | % des évaluations |
+  |---|---:|---:|
+  | `gain_ok` (plancher seul tiendrait) | 63 | 13,9 % |
+  | `double_ok` (doublement tient) | 31 | 6,8 % |
+  | `double_only` (doublement tient, plancher **bloque**) | 28 | 6,2 % |
+
+  Par graine (checks/gain_ok/double_ok/double_only) : 1 → 90/10/0/0 ; 42 → 119/2/5/4 ;
+  73 → 87/16/4/3 ; 100 → 79/19/4/3 ; 2026 → 79/16/18/**18** (aucun rafraîchissement « capital »
+  n'a eu lieu sur cette graine dans la fenêtre : `double_ok` et `double_only` sont identiques).
+
+  **Sur les 31 fois où le capital a doublé depuis la dernière génération, le plancher de 50 000 £
+  bloque 28 fois (90,3 %)** — seuls 3 rafraîchissements « capital » ont eu lieu sur 30 graine-années.
+  Contrairement à `MIN_SEPARATION`/`ROAD_MIN_PROFIT_ANNUAL`/`ATTEMPT_FLOOR`/`LOOP_BUDGET_FLOOR` en
+  familles 1/2 (jamais déclenchés) et à `ROAD_ACCEPTANCE_FULL_UNIT` (règle moteur, pas une
+  calibration), **`PORTFOLIO_REFRESH_MIN_GAIN` est un vrai frein actif, pas redondant avec le
+  doublement.** Le commentaire du code (« le coût en opcodes ne vaut pas la peine d'être payé pour
+  quelques milliers de livres ») ne cite aucun calcul d'opcodes précis pour justifier 50 000 — à la
+  différence de `ROAD_ACCEPTANCE_FULL_UNIT` (règle moteur vérifiée), c'est une valeur posée à vue,
+  jamais mesurée contre le coût réel d'un rafraîchissement (`OpexCatalog.refresh()`).
+
+  🔶 **Candidat pour l'étape 3 (banc), pas encore banché.** Question ouverte, pas tranchée par ce
+  diagnostic : le plancher protège-t-il un coût en opcodes réel qui justifierait de bloquer 90 %
+  des doublements, ou est-il trop conservateur et retarde-t-il des rafraîchissements de portefeuille
+  rentables ? Avant tout banc, chiffrer le coût réel d'un `OpexCatalog.refresh()` (déjà mesuré
+  ailleurs : §« Catalogue : churn et coût », 21 492 opcodes) pour comparer au gain retenu, plutôt
+  que de deviner une nouvelle valeur.
+
+  🔶 **Reste à faire pour clore famille 2** : 5 constantes sans compteur binaire prêt à l'emploi —
   `PAX_NEAR_MIN_PROFIT`, `ORIGIN_SEPARATION`, `ROAD_MIN_DISTANCE`, `DEAD_STREAK_THRESHOLD`,
   `SCRAP_TIMEOUT_YEARS` — demandent une instrumentation nouvelle et ciblée avant de pouvoir être
   classées.

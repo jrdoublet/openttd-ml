@@ -1,0 +1,293 @@
+{
+ "seeds": [
+  1,
+  42,
+  73,
+  100,
+  2026
+ ],
+ "years": 6,
+ "arm": "OpexAI[portfolio_refresh_probe=1]",
+ "errors": [],
+ "total_checks": 454,
+ "total_gain_ok": 63,
+ "total_double_ok": 31,
+ "total_double_only": 28,
+ "pct_gain_ok": 13.876651982378855,
+ "pct_double_ok": 6.828193832599119,
+ "pct_double_only": 6.167400881057269,
+ "per_seed": {
+  "1": {
+   "checks": 90,
+   "gain_ok": 10,
+   "double_ok": 0,
+   "double_only": 0
+  },
+  "42": {
+   "checks": 119,
+   "gain_ok": 2,
+   "double_ok": 5,
+   "double_only": 4
+  },
+  "73": {
+   "checks": 87,
+   "gain_ok": 16,
+   "double_ok": 4,
+   "double_only": 3
+  },
+  "100": {
+   "checks": 79,
+   "gain_ok": 19,
+   "double_ok": 4,
+   "double_only": 3
+  },
+  "2026": {
+   "checks": 79,
+   "gain_ok": 16,
+   "double_ok": 18,
+   "double_only": 18
+  }
+ },
+ "yearly": [
+  {
+   "seed": 1,
+   "year": "1970",
+   "checks": 0,
+   "gain_ok": 0,
+   "double_ok": 0,
+   "double_only": 0
+  },
+  {
+   "seed": 1,
+   "year": "1971",
+   "checks": 54,
+   "gain_ok": 0,
+   "double_ok": 0,
+   "double_only": 0
+  },
+  {
+   "seed": 1,
+   "year": "1972",
+   "checks": 11,
+   "gain_ok": 2,
+   "double_ok": 0,
+   "double_only": 0
+  },
+  {
+   "seed": 1,
+   "year": "1973",
+   "checks": 8,
+   "gain_ok": 1,
+   "double_ok": 0,
+   "double_only": 0
+  },
+  {
+   "seed": 1,
+   "year": "1974",
+   "checks": 8,
+   "gain_ok": 3,
+   "double_ok": 0,
+   "double_only": 0
+  },
+  {
+   "seed": 1,
+   "year": "1975",
+   "checks": 9,
+   "gain_ok": 4,
+   "double_ok": 0,
+   "double_only": 0
+  },
+  {
+   "seed": 42,
+   "year": "1970",
+   "checks": 0,
+   "gain_ok": 0,
+   "double_ok": 0,
+   "double_only": 0
+  },
+  {
+   "seed": 42,
+   "year": "1971",
+   "checks": 54,
+   "gain_ok": 0,
+   "double_ok": 1,
+   "double_only": 1
+  },
+  {
+   "seed": 42,
+   "year": "1972",
+   "checks": 17,
+   "gain_ok": 0,
+   "double_ok": 0,
+   "double_only": 0
+  },
+  {
+   "seed": 42,
+   "year": "1973",
+   "checks": 30,
+   "gain_ok": 0,
+   "double_ok": 3,
+   "double_only": 3
+  },
+  {
+   "seed": 42,
+   "year": "1974",
+   "checks": 10,
+   "gain_ok": 1,
+   "double_ok": 1,
+   "double_only": 0
+  },
+  {
+   "seed": 42,
+   "year": "1975",
+   "checks": 8,
+   "gain_ok": 1,
+   "double_ok": 0,
+   "double_only": 0
+  },
+  {
+   "seed": 73,
+   "year": "1970",
+   "checks": 0,
+   "gain_ok": 0,
+   "double_ok": 0,
+   "double_only": 0
+  },
+  {
+   "seed": 73,
+   "year": "1971",
+   "checks": 51,
+   "gain_ok": 0,
+   "double_ok": 2,
+   "double_only": 2
+  },
+  {
+   "seed": 73,
+   "year": "1972",
+   "checks": 12,
+   "gain_ok": 1,
+   "double_ok": 2,
+   "double_only": 1
+  },
+  {
+   "seed": 73,
+   "year": "1973",
+   "checks": 9,
+   "gain_ok": 4,
+   "double_ok": 0,
+   "double_only": 0
+  },
+  {
+   "seed": 73,
+   "year": "1974",
+   "checks": 9,
+   "gain_ok": 6,
+   "double_ok": 0,
+   "double_only": 0
+  },
+  {
+   "seed": 73,
+   "year": "1975",
+   "checks": 6,
+   "gain_ok": 5,
+   "double_ok": 0,
+   "double_only": 0
+  },
+  {
+   "seed": 100,
+   "year": "1970",
+   "checks": 0,
+   "gain_ok": 0,
+   "double_ok": 0,
+   "double_only": 0
+  },
+  {
+   "seed": 100,
+   "year": "1971",
+   "checks": 41,
+   "gain_ok": 1,
+   "double_ok": 4,
+   "double_only": 3
+  },
+  {
+   "seed": 100,
+   "year": "1972",
+   "checks": 10,
+   "gain_ok": 6,
+   "double_ok": 0,
+   "double_only": 0
+  },
+  {
+   "seed": 100,
+   "year": "1973",
+   "checks": 11,
+   "gain_ok": 2,
+   "double_ok": 0,
+   "double_only": 0
+  },
+  {
+   "seed": 100,
+   "year": "1974",
+   "checks": 9,
+   "gain_ok": 6,
+   "double_ok": 0,
+   "double_only": 0
+  },
+  {
+   "seed": 100,
+   "year": "1975",
+   "checks": 8,
+   "gain_ok": 4,
+   "double_ok": 0,
+   "double_only": 0
+  },
+  {
+   "seed": 2026,
+   "year": "1970",
+   "checks": 0,
+   "gain_ok": 0,
+   "double_ok": 0,
+   "double_only": 0
+  },
+  {
+   "seed": 2026,
+   "year": "1971",
+   "checks": 49,
+   "gain_ok": 0,
+   "double_ok": 18,
+   "double_only": 18
+  },
+  {
+   "seed": 2026,
+   "year": "1972",
+   "checks": 8,
+   "gain_ok": 2,
+   "double_ok": 0,
+   "double_only": 0
+  },
+  {
+   "seed": 2026,
+   "year": "1973",
+   "checks": 8,
+   "gain_ok": 4,
+   "double_ok": 0,
+   "double_only": 0
+  },
+  {
+   "seed": 2026,
+   "year": "1974",
+   "checks": 8,
+   "gain_ok": 4,
+   "double_ok": 0,
+   "double_only": 0
+  },
+  {
+   "seed": 2026,
+   "year": "1975",
+   "checks": 6,
+   "gain_ok": 6,
+   "double_ok": 0,
+   "double_only": 0
+  }
+ ]
+}
