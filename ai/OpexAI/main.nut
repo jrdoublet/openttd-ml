@@ -830,6 +830,12 @@ PORTFOLIO_REFRESH_PROBE_CHECKS <- 0;
 PORTFOLIO_REFRESH_PROBE_GAIN_OK <- 0;
 PORTFOLIO_REFRESH_PROBE_DOUBLE_OK <- 0;
 PORTFOLIO_REFRESH_PROBE_DOUBLE_ONLY <- 0;
+/* Cout reel d'un OpexCatalog.refresh() sur le code/graines actuels, plutot que de reutiliser la
+ * mesure du 2026-08-28 (docs/taches.md C43/E3, [[catalogue_churn_et_cout]]) telle quelle. Mesure
+ * autonome (OpexOpsMeasureBegin/End, budget.nut) pour ne pas imbriquer les begin()/end() internes
+ * a refresh(), non reentrants. */
+PORTFOLIO_REFRESH_PROBE_REFRESH_OPS <- 0;
+PORTFOLIO_REFRESH_PROBE_REFRESH_COUNT <- 0;
 
 function OpexPortfolioRefreshProbeLog(fields)
 {
@@ -1049,6 +1055,8 @@ class OpexAI extends AIController {
   _portfolioRefreshProbeLastGainOk = 0;
   _portfolioRefreshProbeLastDoubleOk = 0;
   _portfolioRefreshProbeLastDoubleOnly = 0;
+  _portfolioRefreshProbeLastRefreshOps = 0;
+  _portfolioRefreshProbeLastRefreshCount = 0;
   _lastAirFleetMonth = -1;
   _lastRepayMonth = -1;
   /* G2 : une ouverture d'industrie ou fondation de ville rend le catalogue ET le
@@ -5714,7 +5722,14 @@ function OpexAI::_runNextTask()
     }
     this._lastCatalogMonth = ym;
     this._pruneAbandonedPairs(date);
-    this._catalog.refresh(this._budget, year);
+    if (PORTFOLIO_REFRESH_PROBE) {
+      local refreshMark = OpexOpsMeasureBegin();
+      this._catalog.refresh(this._budget, year);
+      PORTFOLIO_REFRESH_PROBE_REFRESH_OPS += OpexOpsMeasureEnd(refreshMark);
+      PORTFOLIO_REFRESH_PROBE_REFRESH_COUNT++;
+    } else {
+      this._catalog.refresh(this._budget, year);
+    }
     local priorPeak = (this._projects != null && ("capitalBudgetPeak" in this._projects))
         ? this._projects.capitalBudgetPeak : 0;
     local priorHistory = (this._projects != null && ("capitalBudgetHistory" in this._projects))
@@ -5892,8 +5907,13 @@ function OpexAI::_runNextTask()
       this._portfolioRefreshProbeLastGainOk = PORTFOLIO_REFRESH_PROBE_GAIN_OK;
       this._portfolioRefreshProbeLastDoubleOk = PORTFOLIO_REFRESH_PROBE_DOUBLE_OK;
       this._portfolioRefreshProbeLastDoubleOnly = PORTFOLIO_REFRESH_PROBE_DOUBLE_ONLY;
+      local refreshOps = PORTFOLIO_REFRESH_PROBE_REFRESH_OPS - this._portfolioRefreshProbeLastRefreshOps;
+      local refreshCount = PORTFOLIO_REFRESH_PROBE_REFRESH_COUNT - this._portfolioRefreshProbeLastRefreshCount;
+      this._portfolioRefreshProbeLastRefreshOps = PORTFOLIO_REFRESH_PROBE_REFRESH_OPS;
+      this._portfolioRefreshProbeLastRefreshCount = PORTFOLIO_REFRESH_PROBE_REFRESH_COUNT;
       OpexPortfolioRefreshProbeLog("year=" + year + " checks=" + checks + " gain_ok=" + gainOk
-                                   + " double_ok=" + doubleOk + " double_only=" + doubleOnly);
+                                   + " double_ok=" + doubleOk + " double_only=" + doubleOnly
+                                   + " refresh_ops=" + refreshOps + " refresh_count=" + refreshCount);
     }
     this._reportYear(year, this._ranked);
     this._reportLines(year);
