@@ -1356,7 +1356,9 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
           prequoteOps = 0, prequoteAttempted = 0, prequoteQuoted = 0, prequoteFailed = 0,
           insertOps = 0, insertedProjects = 0 } : null;
   local railGenerationMark = railProfile != null ? OpexOpsMeasureBegin() : null;
-  local rail = OpexBuildCandidates(catalog, budget, lines, abandonedPairs);
+  local railCandidateProfile = C41_RAIL_CANDIDATE_PROFILE
+      ? { paxOps = 0, freightOps = 0, topKOps = 0 } : null;
+  local rail = OpexBuildCandidates(catalog, budget, lines, abandonedPairs, railCandidateProfile);
   if (railProfile != null) {
     railProfile.generationOps = OpexOpsMeasureEnd(railGenerationMark);
     railProfile.generationCandidates = rail.candidates.len();

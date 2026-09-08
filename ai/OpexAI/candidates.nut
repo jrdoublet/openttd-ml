@@ -911,7 +911,7 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
 /* Construit et classe tous les candidats. Rend la liste triee par rapport decroissant.
  * `lines` (this._lines de main.nut) sert a exclure les origines deja desservies avant meme de
  * calculer un candidat -- voir OpexOriginServed ci-dessus. */
-function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null)
+function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, profile = null)
 {
   local all = [];
   /* Comptes de rejet : ils se trouvent ici, avant que TOP_K ne masque les candidats restants.
@@ -944,17 +944,23 @@ function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null)
     stats.placeJoinAccepted <- 0;
   }
 
+  local paxMark = profile != null ? OpexOpsMeasureBegin() : null;
   budget.begin();
   OpexPaxCandidates(catalog, lines, all, stats, abandonedPairs);
   local opsPax = budget.end("cand_pax");
+  if (profile != null) profile.paxOps += OpexOpsMeasureEnd(paxMark);
 
+  local freightMark = profile != null ? OpexOpsMeasureBegin() : null;
   budget.begin();
   OpexFreightCandidates(catalog, lines, all, stats, abandonedPairs);
   local opsFreight = budget.end("cand_freight");
+  if (profile != null) profile.freightOps += OpexOpsMeasureEnd(freightMark);
 
+  local topKMark = profile != null ? OpexOpsMeasureBegin() : null;
   budget.begin();
   local best = OpexTopK(all, TOP_K);
   local opsRank = budget.end("cand_rank");
+  if (profile != null) profile.topKOps += OpexOpsMeasureEnd(topKMark);
 
   stats.topKOmitted = all.len() - best.len();
 
@@ -990,7 +996,8 @@ function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null)
   }
 
   return { all = all.len(), candidates = all, best = best,
-           bands = OpexBands(all), stats = stats, opcodes = opsPax + opsFreight + opsRank };
+           bands = OpexBands(all), stats = stats, opcodes = opsPax + opsFreight + opsRank,
+           profile = profile };
 }
 
 /* Meilleur rapport atteint dans chaque bande de distance.

@@ -1079,6 +1079,15 @@ reste à trancher indépendamment.
   sous-profiler `OpexBuildCandidates` (préparation, boucles de paires et économie), avant toute
   tentative sur le portefeuille ou le sac à dos.
 
+  ✅ **C41.23 — sous-profil des candidats rail, 5 graines × 6 ans.** Le diagnostic passif
+  `results/diag_c41_23_rail_candidate_profile_6y_5seeds.json` est sain : **297** générations,
+  sans erreur, pour 620,82 M opcodes. Les paires **passagers** prennent **458,46 M (73,9 %)**,
+  le fret **159,38 M (25,7 %)** et `TopK` seulement **3,00 M (0,5 %)**. Les 24 921 candidats
+  produits restent dans le même ordre de grandeur que C41.22 ; la sonde n'a pas modifié le
+  vivier. Prochaine micro-tâche : sous-profiler `OpexPaxCandidates` rail — préparation des villes
+  et services existants, paires ville×ville, puis économie — avant de proposer un index ou un
+  filtre.
+
   ✅ **C39.4 — les cinq avions « rejetés » sont dominés, non invalides.** La sonde
   `c39_air_reason_probe=0`, sur 5 graines × 6 ans
   (`results/diag_c39_air_reason_6y_5seeds.json`), est saine : les cinq notifications sont le moteur
