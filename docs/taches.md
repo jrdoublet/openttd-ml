@@ -2042,7 +2042,26 @@ borné~~ / ~~l'item **7**~~ / ~~l'item **4**~~.
   | min / max | 0,828 / 2,155 (plus de valeur impossible) |
 
   Par graine, direction et magnitude cohérentes : 1 → 1,257 ; 42 → 1,203 ; 73 → 1,216 ;
-  100 → 1,154 ; 2026 → 1,257. **La route coûte réellement ~21 % de plus que son devis modèle**,
+  100 → 1,154 ; 2026 → 1,257.
+
+  ⚠️ **CORRIGÉ (2026-09-08, `2562e96`) : les comptes ci-dessus sont gonflés, trouvé en
+  fiabilisant C41.10.** Les panneaux `RP|` sont des `AISign` : ils s'accumulent sur la carte, et
+  `chunks["SIGN"]` à chaque checkpoint mensuel en donne le jeu COMPLET accumulé jusque-là (vérifié
+  empiriquement : croissance monotone 0 → 3 035 sur les 72 checkpoints d'une partie de 6 ans). Le
+  script concaténait `signs` de **toutes** les lignes de checkpoint au lieu de lire seulement la
+  dernière (déjà complète) — chaque tentative réelle était donc comptée une fois par mois restant
+  après sa pose, sur-pondérant les tentatives précoces plutôt qu'un simple facteur uniforme.
+  Corrigé, re-mesuré sur les mêmes 5 graines × 6 ans
+  (`docs/diag_road_cost_probe_6y_5seeds_v2.json`) : **145 tentatives, 109 avec capital modèle > 0
+  et succès** (pas 6 329/4 812 — le vrai échantillon), ratio moyen **1,238** (médiane 1,183,
+  écart-type 0,304, min 0,708, max 3,976), cohérent par graine (1 → 1,217 ; 42 → 1,288 ;
+  73 → 1,228 ; 100 → 1,146 ; 2026 → 1,279). **Le verdict qualitatif tient** — la route coûte
+  réellement **~24 % de plus** que son devis modèle (contre ~21 % annoncé avant correction, un
+  écart minime au vu de l'échantillon 44× plus petit) — donc `capital_calibration`'s
+  `biasPct=121` (route) n'est **pas** retouché : suffisamment proche du 1,238 corrigé, bien dans
+  son écart-type. Seule la précision affichée (n, écart-type) était fausse, pas la conclusion.
+
+  **La route coûte réellement ~21-24 % de plus que son devis modèle**,
   un biais réel mais plus petit que le rail (×1,7). `OpexProjectFinanceCapital`
   (`projects.nut:160`) ne corrige **que** `project.mode == "rail"` — la route n'a aucune
   protection de finançabilité, exposée à la même Raison 3 que C38 (le filtre de finançabilité
