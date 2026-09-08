@@ -1004,12 +1004,19 @@ reste à trancher indépendamment.
   local et qui porte déjà 83,7 % du coût dans la configuration route par défaut. Ne pas oublier
   les passagers : ils reviennent en tête de backlog dès que le contrat fret est validé.
 
-  🔬 **C41.17 — profil interne de `OpexRoadFreightCandidates` (en cours).** Le réglage passif
-  `c41_road_freight_profile=0` découpe sans modifier le vivier : préparation (origines déjà
-  servies et rayon de stop), boucles producteur→industrie et producteur→ville, cette dernière
-  incluant le cache d'acceptation. Il ne constitue pas encore une reprise incrémentale : le
-  checkpoint futur devra préserver l'ordre cargo→source→puits, les filtres d'abandon et le cache
-  d'acceptation, puis passer le diagnostic apparié 5×6 avant toute activation.
+  ✅ **C41.17 — profil interne de `OpexRoadFreightCandidates`, 5 graines × 6 ans.** Le réglage
+  passif `c41_road_freight_profile=0` découpe sans modifier les règles du vivier : préparation
+  (origines déjà servies et rayon de stop), boucles producteur→industrie et producteur→ville,
+  cette dernière incluant le cache d'acceptation. Le diagnostic
+  `results/diag_c41_17_road_freight_profile_6y_5seeds.json` est sain : **281** générations,
+  **236** candidats et aucune erreur. Les intervalles mesurés totalisent 25,13 M opcodes : la
+  préparation coûte **16,74 M (66,6 %)**, les puits urbains **7,34 M (29,2 %)** et les puits
+  industriels **1,06 M (4,2 %)**. Le total fret de référence reste celui de C41.16 : cette sonde
+  n'imbrique volontairement pas une mesure globale avec les sous-mesures, car un suspend peut
+  compter une frontière de tick deux fois. Prochaine micro-tâche : un index local des origines
+  desservies, construit une fois par génération puis consulté pour industries et villes ; il devra
+  préserver `OpexOriginServed` (rail + route, distance stricte `< ORIGIN_SEPARATION`) et passer un
+  diagnostic apparié 5×6 avant toute activation.
 
   ✅ **C39.4 — les cinq avions « rejetés » sont dominés, non invalides.** La sonde
   `c39_air_reason_probe=0`, sur 5 graines × 6 ans

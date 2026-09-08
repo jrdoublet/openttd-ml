@@ -567,8 +567,11 @@ frontière de génération et isoler d'abord les boucles fret, non le tri ni le 
 
 **Sous-profil fret (C41.17, sonde).** `OpexRoadFreightCandidates` expose trois tranches passives :
 préparation des états déjà desservis, puits industriels, puis puits urbains avec acceptation
-mémorisée. Cette découpe conserve l'ordre de production actuel ; elle sert à dimensionner un état
-reprenable et ne reporte encore aucun travail du scheduler.
+mémorisée. Le diagnostic 5×6 (`results/diag_c41_17_road_freight_profile_6y_5seeds.json`) mesure
+25,13 M opcodes dans ces tranches : préparation 66,6 %, villes 29,2 %, industries 4,2 %. La
+première frontière candidate est donc l'index d'origines servies, et non le cache d'acceptation ni
+les puits industriels. Cette découpe conserve l'ordre de production actuel ; elle sert à
+dimensionner un état reprenable et ne reporte encore aucun travail du scheduler.
 
 **C39.4 — cause des avions non retenus (2026-09-08).** La sonde
 `c39_air_reason_probe=0` sépare les filtres éliminatoires de la sélection finale des combos. Sa
