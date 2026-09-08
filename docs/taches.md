@@ -780,13 +780,55 @@ graines gagnées et −87,8 %**. Ces fonctionnalités existent et tournent ; ell
 l'écart.
 
 ✅ **Multiplication des Corridors Longue Distance & Réseau Hub-to-Hub Dès 30 000 £** — Interconnexion directe des aéroports du réseau (Hub-to-Hub à coût marginal d'1 avion seul ~30k £) et extensions étoilées (Hub-and-Spoke à 1 aéroport + 1 avion ~92k £), portant le plafond de routes par grand aéroport à 12.
+  ✅ **Validé isolément le 2026-09-08** — voir le bloc ci-dessous, `air_hub` : +104,7 % de valeur,
+  20/20 graines, banc officiel 20×10.
 ✅ **Toile de Feeder Buses Satellites Vers les Hubs** — Raccordement systématique des 3 à 5 villages satellites (dès 200 habitants dans un rayon de 40 tuiles) avec ordres de transfert OpenTTD (`AIOrder.OF_TRANSFER | AIOrder.OF_UNLOAD`), saturation des lignes mères et bonus d'évaluation de +60 % ROI.
+  🔴 **Réglage censé l'isoler prouvé mort le 2026-09-08** — voir le bloc ci-dessous, `feeder_enabled` :
+  0,0 % d'écart, 20/20 graines bit-à-bit identiques. Le mécanisme lui-même reste non testé, faute
+  de levier fonctionnel.
 ✅ **Montée en Flotte Agressive & Clonage Fiable** — Algorithme de redimensionnement de flotte mensuel en continu, acquisition automatique d'avions supplémentaires dès rentabilité/fonds disponibles, et fallback résilient `BuildVehicleWithRefit` + `ShareOrders`.
+  ⚫ **Toujours non testable** — aucun réglage n'a jamais existé pour isoler ce mécanisme (vérifié
+  dans le commit d'origine `b4ef8dd` : aucun ajout à `info.nut`).
 ⚠️ **Banc 1v1 Face-à-Face Multi-Graines 5 Ans** — Performance moyenne de **1 135 658 £** de valeur d'entreprise (pics à **1,72 M£** et **1,63 M£**), **331 903 £/an** de bénéfices nets ($+116\%$), flotte moyenne de **42,6 véhicules** ($+255\%$) et solvabilité **100% (5/5 sans faillite)**.
   **Ces chiffres ne comparent rien** : ils décrivent OpexAI seul, sur 5 graines, sans les valeurs
   d'AAAHogEx sur ces mêmes graines, et les pourcentages sont relatifs à une baseline OpexAI
   antérieure — pas à l'adversaire. À 3 ans sur 20 graines, AAAHogEx est à 4,9 M£ contre 0,60 M£
   pour nous. Ne pas citer cette ligne comme une victoire.
+
+### 🔬 Retest officiel des trois items, 2026-09-08
+
+Demandé pour tester correctement les paramètres du 2026-09-01, isolément et au seuil officiel
+(20 graines × 10 ans). `docs/bench_sep01_features_10y_20seeds.json`, 3 bras, 0 échec sur 60 parties.
+
+**`air_hub` (corridors hub-to-hub) — validé, effet énorme.**
+
+| métrique | delta (défaut vs `air_hub=0`) | t | victoires |
+|---|---:|---:|---:|
+| `company_value` | **+104,7 %** | **10,22** | **20/20** |
+| `profit_year` | **+133,8 %** | **13,59** | **20/20** |
+| `performance_history` | +21,8 % | 6,07 | 20/20 |
+| note de gare | +3,0 % | 1,42 | 9/20 |
+
+Le plus gros effet mesuré dans toute cette campagne de bancs. Réutiliser une gare aéroport
+existante pour une nouvelle destination, au lieu d'en construire deux neuves, plus que **double**
+la valeur d'entreprise à 10 ans, sur les 20 graines sans exception — vérifié sur plusieurs graines
+individuelles : ni faillite ni run dégradé, juste structurellement plus de véhicules et de gares.
+C'était affirmé depuis le 2026-09-01 sans jamais avoir été mesuré isolément ; c'est maintenant fait.
+
+**`feeder_enabled` (toile de feeders) — réglage mort, ne teste rien.** 0,0 % d'écart sur toutes les
+métriques, les 20 graines bit-à-bit identiques entre `OpexAI` et `OpexAI[feeder_enabled=0]`. Ce
+n'est pas un bug du banc : vérifié dans le code (`main.nut:5060-5064`), `feeder_portfolio=1`
+(adopté depuis C32/C36.2) désactive la tâche dédiée que gate `feeder_enabled`, et génère les
+feeders **inconditionnellement** par le chemin portefeuille (`OpexRoadFeederCandidates`,
+`candidates.nut:1709`). Commentaire du code lui-même : « sous feeder_portfolio, le rabattement est
+arbitré par le portefeuille. Laisser AUSSI la tâche dédiée active bâtirait la même ligne deux
+fois ». **Le mécanisme des feeders lui-même n'a donc pas été testé** — il n'existe actuellement
+aucun levier propre pour le désactiver (`feeder_portfolio=0` ne coupe pas les feeders, il bascule
+juste vers l'ancienne tâche dédiée). Candidat direct au nettoyage de code mort, dans l'esprit de
+E2 (`rail_refleet`/`air_starter`, §8) : `feeder_enabled`, sa lecture dans `Start()` et son entrée
+`info.nut` peuvent sortir sans risque de régression, puisqu'ils ne changent déjà plus rien.
+
+**Montée en flotte agressive** — toujours non testable, aucun levier n'a jamais existé.
 
 ---
 
