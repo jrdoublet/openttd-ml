@@ -1164,36 +1164,48 @@ reste à trancher indépendamment.
   `OpexOpsMeasureBegin()`/`OpexOpsMeasureEnd()`, `budget.nut`, sans passer par l'instance
   partagée `OpexBudget` — `OpexReselectProjects`/`OpexDynamicBatchReselect` n'ont pas de
   paramètre `budget`, et la classe est explicitement non réentrante). Diagnostic dédié
-  (`sweeps/diag_topk_opcode_cost.py`, `docs/diag_topk_opcode_cost_6y_5seeds.json`, 5 graines ×
-  6 ans, ~17 000-20 000 appels par bras) comparant `project_top_k=32`, le défaut 64 et
-  `project_top_k_dynamic=1` (86-101) :
+  (`sweeps/diag_topk_opcode_cost.py`) comparant `project_top_k=32`, le défaut 64 et
+  `project_top_k_dynamic=1` (86-101).
+
+  ⚠️ **CORRIGÉ (2026-09-08, `2562e96`) : le tableau et le nombre d'appels initiaux étaient
+  gonflés** (même bug de duplication par ligne de checkpoint que `road_cost_probe` et les deux
+  familles C43/E3 — `openttd_output` identique à chaque mois, comptait chaque appel ~72×). Le coût
+  BRUT moyen par appel (`mean_sel_ops`, une moyenne, invariante à une duplication uniforme au sein
+  d'une même partie) est resté proche ; **le coût par candidat retenu, lui, a changé de forme** —
+  re-mesuré ci-dessous (`docs/diag_topk_opcode_cost_6y_5seeds_v2.json`, mêmes graines × 6 ans,
+  **~270-280 appels réels par bras/chemin, pas 17 000-20 000**) :
 
   | variante | coût brut moyen/appel (chemin `build`) | équivalent en ticks (÷10 000) | opcodes/candidat retenu |
   |---|---:|---:|---:|
-  | `32` | 60 072 | ~6,0 | 4 252 |
-  | **64 (défaut)** | 92 947 | ~9,3 | 3 095 |
-  | dynamique (86-101) | 120 805 | ~12,1 | **2 355** |
+  | `32` | 64 970 (était 60 072) | ~6,5 (était ~6,0) | 3 607 (était 4 252) |
+  | **64 (défaut)** | 89 199 (était 92 947) | ~8,9 (était ~9,3) | **2 696** (était 3 095) |
+  | dynamique (86-101) | 121 323 (était 120 805) | ~12,1 (inchangé) | 3 012 (était **2 355**) |
 
-  **Le coût brut par appel augmente clairement et régulièrement avec la largeur de la fenêtre** —
-  confirme directement l'hypothèse « le calcul mord sur la construction » : passer de 64 au
-  dynamique coûte **+30 % d'opcodes bruts par appel**, près de **12 ticks entiers** pour une seule
-  sélection, répété sur des milliers d'appels en 6 ans. Contre-intuitif en revanche :
-  **l'efficacité PAR CANDIDAT RETENU s'améliore avec une fenêtre plus large** (4 252 → 3 095 →
-  2 355 opcodes/candidat) — un coût fixe par appel (tri, gestion de liste) s'amortit sur plus de
-  slots retenus ; ce n'est pas une preuve que la sélection devient meilleure, juste que son coût
-  fixe se dilue.
+  **Le coût brut par appel augmente toujours clairement avec la largeur de la fenêtre** — ce
+  volet-là est confirmé sous les deux mesures : passer de 64 au dynamique coûte **+36 %
+  d'opcodes bruts par appel** (contre +30 % annoncé), ~12 ticks pour une seule sélection.
 
-  🔚 **Verdict complet sur toute la piste `PROJECT_TOP_K` : chaque diagnostic économique trouve
-  maintenant son mécanisme propre, mesuré et non plus supposé.** `32` perd surtout en qualité de
-  sélection (économise le plus d'opcodes bruts — ~6,0 ticks — mais coupe le plus de candidats
-  potentiellement bons, ce qui domine sa perte de −23,8 %). Le dynamique perd surtout en taxe
-  opcodes (paie le plus cher par appel — ~12,1 ticks, +30 % vs 64 — sur des milliers d'appels, ce
-  qui mord directement sur le débit disponible pour construire, cohérent avec sa perte plus
-  modérée mais toujours négative de −8,0 %). **`64` n'est pas arbitraire a posteriori** : il tombe
-  entre les deux coûts opposés (qualité de sélection contre taxe opcodes), ce qui explique
-  pourquoi ni resserrer ni élargir ne le bat clairement dans les deux diagnostics. `project_top_k`
-  reste à `64` par défaut, `project_top_k_dynamic` à `0` ; aucun banc officiel 20×10 nécessaire,
-  les deux diagnostics et l'instrumentation opcodes convergent déjà vers la même conclusion.
+  🔴 **Mais le second volet s'inverse.** L'ancien tableau affirmait une amélioration monotone de
+  l'efficacité par candidat retenu avec l'élargissement (4 252 → 3 095 → **2 355**, le dynamique
+  donné comme le PLUS efficace). La mesure corrigée montre l'inverse en forme : **64 est le
+  MEILLEUR sur ce critère** (2 696 opcodes/candidat), `32` et le dynamique étant tous deux moins
+  efficaces (3 607 et 3 012). Le coût fixe par appel ne se dilue donc pas indéfiniment avec la
+  largeur — 64 est un vrai point d'équilibre sur CE critère aussi, pas seulement un compromis entre
+  deux coûts qui varient en sens opposé.
+
+  🔚 **Verdict sur `PROJECT_TOP_K`, révisé après correctif — la conclusion pratique ne change pas,
+  son argumentaire si.** `32` reste perdant (le moins d'opcodes bruts par appel, ~6,5 ticks, mais
+  aussi le pire en opcodes/candidat, 3 607 — donc mauvais sur les deux axes, pas seulement sur la
+  qualité de sélection). Le dynamique reste perdant aussi (le plus cher par appel, ~12,1 ticks,
+  **et** moins efficace par candidat que 64, 3 012 contre 2 696 — il ne compense donc PAS son
+  surcoût brut par une meilleure dilution, contrairement à ce que l'ancien tableau suggérait).
+  `64` gagne sur les deux mesures simultanément dans les données corrigées, ce qui est un
+  argument **plus fort** en sa faveur que l'ancien « tombe entre deux coûts opposés ». `project_top_k`
+  reste à `64` par défaut, `project_top_k_dynamic` à `0` ; toujours pas de banc officiel 20×10
+  nécessaire — les diagnostics économiques (`docs/diag_topk_32v64_6y_5seeds.json`,
+  `docs/diag_topk_dynamic_6y_5seeds.json`, non affectés par ce bug : ils passent par
+  `bench_v2.summarise()` qui ne lit que le dernier checkpoint) et l'instrumentation opcodes
+  corrigée convergent toujours vers la même conclusion.
 
   🔶 **Reste ouvert, non repris ici** : item 1 (croiser delta × taille de carte, seulement 5
   points, insuffisant) et item 3 (chercher une forme de fonction dynamique meilleure que

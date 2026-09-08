@@ -1,0 +1,72 @@
+{
+ "purpose": "Isolate the pure opcode cost of the selection window size (VIVIER sel_ops), independent of economic outcome",
+ "seeds": [
+  1,
+  42,
+  73,
+  100,
+  2026
+ ],
+ "years": 6,
+ "arms": [
+  "OpexAI[project_top_k=32,decision_log=1]",
+  "OpexAI[decision_log=1]",
+  "OpexAI[project_top_k_dynamic=1,decision_log=1]"
+ ],
+ "summary": {
+  "OpexAI[project_top_k=32,decision_log=1]": {
+   "build": {
+    "n_calls": 278,
+    "mean_sel_ops": 64970.30575539568,
+    "median_sel_ops": 66418.0,
+    "mean_selected": 26.26618705035971,
+    "mean_considered": 282.3561151079137,
+    "mean_ops_per_selected": 3607.044108992841
+   },
+   "incremental": {
+    "n_calls": 233,
+    "mean_sel_ops": 71063.8626609442,
+    "median_sel_ops": 73314,
+    "mean_selected": 24.261802575107296,
+    "mean_considered": 333.1931330472103,
+    "mean_ops_per_selected": 4451.164656327972
+   }
+  },
+  "OpexAI[decision_log=1]": {
+   "build": {
+    "n_calls": 279,
+    "mean_sel_ops": 89198.88888888889,
+    "median_sel_ops": 89242,
+    "mean_selected": 50.25089605734767,
+    "mean_considered": 265.59139784946234,
+    "mean_ops_per_selected": 2695.8400162131325
+   },
+   "incremental": {
+    "n_calls": 243,
+    "mean_sel_ops": 91909.5925925926,
+    "median_sel_ops": 90283,
+    "mean_selected": 45.75308641975309,
+    "mean_considered": 303.9753086419753,
+    "mean_ops_per_selected": 3702.418755713709
+   }
+  },
+  "OpexAI[project_top_k_dynamic=1,decision_log=1]": {
+   "build": {
+    "n_calls": 272,
+    "mean_sel_ops": 121322.93014705883,
+    "median_sel_ops": 121097.5,
+    "mean_selected": 68.6029411764706,
+    "mean_considered": 271.0367647058824,
+    "mean_ops_per_selected": 3012.3009025735278
+   },
+   "incremental": {
+    "n_calls": 237,
+    "mean_sel_ops": 119018.47679324895,
+    "median_sel_ops": 108428,
+    "mean_selected": 59.666666666666664,
+    "mean_considered": 308.9662447257384,
+    "mean_ops_per_selected": 4370.37967761753
+   }
+  }
+ }
+}
