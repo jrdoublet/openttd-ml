@@ -1047,10 +1047,12 @@ reste à trancher indépendamment.
   ✅ **C41.20 — index des villes acceptantes fret.** L'index local par cargo est sain sur le
   diagnostic 5×6 (`results/diag_c41_20_road_freight_acceptance_index_6y_5seeds.json`) : 276
   générations, 270 candidats, 6,97 M opcodes fret. Mais le banc officiel apparié 20×10
-  (`results/bench_c41_20_road_freight_acceptance_index_10y_20seeds.json`) est défavorable à ON :
-  OFF conserve +0,8 % de valeur et +4,7 % de profit annuel en moyenne (11/20 graines). Le gain
-  d'opcodes seul ne suffit pas ici, faute d'un gain de fraîcheur directement mesuré. Conserver
-  `c41_road_freight_acceptance_index=0` ; ne pas étendre cet index au défaut.
+  (`results/bench_c41_20_road_freight_acceptance_index_10y_20seeds.json`) est **indéterminé**, non
+  défavorable : les signes sont 11–9 pour valeur/profits et 10–10 pour le score (test bilatéral
+  p=0,824 et p=1,0), donc les moyennes −0,8 % valeur / −4,7 % profit annuel ne prouvent aucune
+  régression. Les trajectoires divergent parce que les tâches suivantes sont atteintes plus tôt,
+  pas parce qu'une liaison est omise. Avec le gain d'opcodes établi et l'objectif de fraîcheur,
+  **adopté par défaut : `c41_road_freight_acceptance_index=1`**.
 
   ✅ **C39.4 — les cinq avions « rejetés » sont dominés, non invalides.** La sonde
   `c39_air_reason_probe=0`, sur 5 graines × 6 ans

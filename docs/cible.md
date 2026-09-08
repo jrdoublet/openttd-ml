@@ -585,10 +585,10 @@ filtres de distance/abandon jusqu'à l'acceptation, et aucun ne devient candidat
 La prochaine frontière est donc un index des villes acceptantes par cargo ; il doit rester local à
 une génération et reproduire les compteurs de rejet de la boucle historique.
 
-**Index acceptation (C41.20, 20×10).** Malgré un gain d'opcodes net au 5×6, l'index des villes
-acceptantes donne un léger signal économique négatif au banc officiel (valeur −0,8 %, profit
-annuel −4,7 %). Il reste désactivé : l'économie d'opcodes n'est adoptée que lorsqu'elle ne dégrade
-pas la trajectoire mesurée.
+**Index acceptation (C41.20, 20×10).** Le léger écart moyen (valeur −0,8 %, profit annuel −4,7 %)
+ne passe pas le test des signes : 11–9, p=0,824. Il est compatible avec le bruit de trajectoire
+créé par la cadence plus rapide, tandis que le gain d'opcodes est établi. L'index est donc livré à
+ON par défaut, conformément à l'objectif de fraîcheur.
 
 **C39.4 — cause des avions non retenus (2026-09-08).** La sonde
 `c39_air_reason_probe=0` sépare les filtres éliminatoires de la sélection finale des combos. Sa
