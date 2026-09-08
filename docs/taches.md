@@ -1353,8 +1353,27 @@ reste à trancher indépendamment.
   supposé, mais la petitesse de l'échantillon (21) mérite une note : moins définitif que le
   0/3 923 de `MIN_SEPARATION`.
 
-  🔶 **Reste à faire pour clore famille 2** : 7 constantes sans compteur binaire prêt à l'emploi —
-  `LOOP_BUDGET_FLOOR`, `PORTFOLIO_REFRESH_MIN_GAIN`,
+  ✅ **`LOOP_BUDGET_FLOOR = 2000` (main.nut) classée sans nouvelle mesure — inerte au défaut,
+  vérifié par lecture de code seule (2026-09-08).** `LOOP_BUDGET_FLOOR`/`LOOP_BUDGET_MAX_TASKS`
+  ne sont lus que dans la boucle `while (AIController.GetOpsTillSuspend() > LOOP_BUDGET_FLOOR &&
+  drained < LOOP_BUDGET_MAX_TASKS)`, elle-même entièrement à l'intérieur d'un `if (LOOP_BUDGET)`
+  (`main.nut:6162`). Le réglage `loop_budget` vaut **0 par défaut** (`info.nut:1554`) : le chemin
+  livré passe par le `else` — une seule tâche par tick, sans drainage (comportement historique,
+  décrit dans le code lui-même comme jetant « les ~9 700 [opcodes] restants » du tick). **Sur le
+  défaut, `LOOP_BUDGET_FLOOR` ne s'évalue jamais** — même verdict que `PROJECT_POOL_K` et
+  `TARGET_HEADWAY_DAYS` en famille 1, `DYNAMIC_BATCH_OPS_FLOOR` en famille 2 (mécanisme vivant
+  mais inatteignable au défaut), pas celui d'`ATTEMPT_FLOOR`/`MIN_SEPARATION` (atteignable mais
+  jamais déclenché). Aucun banc, aucune instrumentation neuve.
+
+  🔶 **Distinct et hors périmètre de cette passe : `loop_budget` lui-même reste une question
+  ouverte.** Le commentaire du code présente `loop_budget=1` comme jouant « à la manière
+  d'AAAHogEx » (drainer le tick au lieu d'une tâche puis dormir) — une piste de performance déjà
+  motivée dans le code, jamais banchée à ma connaissance. Ne pas confondre avec la question de ce
+  paragraphe (le plancher `LOOP_BUDGET_FLOOR` lui-même, qui n'a de sens qu'une fois `loop_budget`
+  activé).
+
+  🔶 **Reste à faire pour clore famille 2** : 6 constantes sans compteur binaire prêt à l'emploi —
+  `PORTFOLIO_REFRESH_MIN_GAIN`,
   `PAX_NEAR_MIN_PROFIT`, `ORIGIN_SEPARATION`, `ROAD_MIN_DISTANCE`, `DEAD_STREAK_THRESHOLD`,
   `SCRAP_TIMEOUT_YEARS` — demandent une instrumentation nouvelle et ciblée avant de pouvoir être
   classées.
