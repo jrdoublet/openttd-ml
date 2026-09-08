@@ -1461,8 +1461,27 @@ reste à trancher indépendamment.
   seuil maintenant risque de porter sur un chemin bientôt remplacé. Reprendre ce sujet seulement
   une fois C41 stabilisé.
 
-  🔶 **Reste à faire pour clore famille 2** : 5 constantes sans compteur binaire prêt à l'emploi —
-  `PAX_NEAR_MIN_PROFIT`, `ORIGIN_SEPARATION`, `ROAD_MIN_DISTANCE`, `DEAD_STREAK_THRESHOLD`,
+  ✅ **`PAX_NEAR_MIN_PROFIT = -200` (candidates.nut) classée sans nouvelle mesure — inerte au
+  défaut, vérifié par lecture de code seule (2026-09-08).** Utilisée dans une seule condition,
+  `if (PAX_NEAR && kind == "pax" && distance <= PAX_NEAR_MAX_DISTANCE && economics.profitAnnual >
+  PAX_NEAR_MIN_PROFIT)` (`candidates.nut:184`), elle-même entièrement à l'intérieur du bloc
+  `economics.profitAnnual <= 0`. `PAX_NEAR` vaut **0 par défaut** (`info.nut:884`) : le
+  court-circuit `&&` empêche même de lire `PAX_NEAR_MIN_PROFIT` sur le chemin livré. Même verdict
+  que `LOOP_BUDGET_FLOOR`/`DYNAMIC_BATCH_OPS_FLOOR`/`PROJECT_POOL_K`/`TARGET_HEADWAY_DAYS`
+  (mécanisme vivant mais inatteignable au défaut). Les deux autres constantes de la même famille
+  (`PAX_NEAR_MAX_ATTEMPTS_PER_YEAR`, `PAX_NEAR_RATIO`) partagent exactement la même garde — inertes
+  pour la même raison, pas la peine de les auditer séparément. Aucun banc, aucune instrumentation
+  neuve.
+
+  🔶 **Distinct et hors périmètre : `pax_near` lui-même est un réglage motivé, pas un chemin
+  mort par accident.** Le commentaire du code cite une mesure (« sondage à 40 000 itérations a
+  trouvé 11/11 rentables en dernière année ») justifiant l'existence de cette famille de
+  candidats pax quasi-rentables — contrairement à `loop_budget`, dont le commentaire ne cite
+  aucune mesure. Reste à savoir si `pax_near=1` a jamais été banché à son propre défaut ; hors
+  périmètre de cet audit de constantes.
+
+  🔶 **Reste à faire pour clore famille 2** : 4 constantes sans compteur binaire prêt à l'emploi —
+  `ORIGIN_SEPARATION`, `ROAD_MIN_DISTANCE`, `DEAD_STREAK_THRESHOLD`,
   `SCRAP_TIMEOUT_YEARS` — demandent une instrumentation nouvelle et ciblée avant de pouvoir être
   classées.
 
