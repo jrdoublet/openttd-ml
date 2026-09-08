@@ -1480,8 +1480,32 @@ reste à trancher indépendamment.
   aucune mesure. Reste à savoir si `pax_near=1` a jamais été banché à son propre défaut ; hors
   périmètre de cet audit de constantes.
 
-  🔶 **Reste à faire pour clore famille 2** : 4 constantes sans compteur binaire prêt à l'emploi —
-  `ORIGIN_SEPARATION`, `ROAD_MIN_DISTANCE`, `DEAD_STREAK_THRESHOLD`,
+  ✅ **`ORIGIN_SEPARATION = 3` (main.nut) classée sans nouvelle mesure — inerte dans la fenêtre
+  déjà mesurée par famille 1 (2026-09-08).** Utilisée dans `OpexAI::_tooClose()` (`main.nut:1874`)
+  selon deux tests : test 1 (identité d'origine, `ORIGIN_SEPARATION`) rend `hard` si les DEUX
+  extrémités du candidat servent une origine déjà desservie — un `return` anticipé, **avant** même
+  que le test 2 (filet physique `MIN_SEPARATION`) ne s'exécute ; sinon `blocking` si une seule
+  extrémité correspond (test 1 ou test 2, indifféremment). `close.hard >= 0` produit le motif
+  `too_close_hard` ; `close.blocking >= 0` avec jointure impossible produit `too_close_no_join`
+  (`station_join=0` par défaut — `info.nut:1022` — donc `STATION_JOIN` court-circuité, la voie
+  « sans appel » est **inconditionnelle** sur le chemin livré, aucun cas ne peut échapper au
+  panneau en silence).
+
+  **Ces deux motifs sont EXACTEMENT ceux déjà comptés par la mesure `MIN_SEPARATION` de famille 1**
+  (`docs/diag_constants_binding_6y_5seeds_v2.json`, corrigée le 2026-09-08 : 0 rejet sur 3 923,
+  `too_close_no_join` et `too_close_hard` absents de `discard_reason_counts`
+  `{build_failed: 1795, plan_failed: 56, search_in_progress: 1729, abandoned_pair: 343}`). Comme
+  `hard` est **exclusivement** produit par le test `ORIGIN_SEPARATION` (le `return` anticipé
+  empêche le test 2 de jamais y contribuer) et que `blocking` combine les deux tests sans jamais
+  passer inaperçu au défaut, ce zéro couvre l'intégralité du rôle d'`ORIGIN_SEPARATION` dans
+  `_tooClose` — aucune nouvelle mesure requise, la donnée existait déjà avant même de poser la
+  question. `OpexOriginServed`/`OpexOriginService` (candidates.nut, préfiltre à la génération)
+  testent la même condition plus tôt dans le pipeline pour épargner le calcul économique ; un
+  préfiltre qui ne trouve jamais rien à exclure est cohérent avec un post-filtre qui ne rejette
+  jamais rien sur la même fenêtre — pas une découverte indépendante. Aucun banc.
+
+  🔶 **Reste à faire pour clore famille 2** : 3 constantes sans compteur binaire prêt à l'emploi —
+  `ROAD_MIN_DISTANCE`, `DEAD_STREAK_THRESHOLD`,
   `SCRAP_TIMEOUT_YEARS` — demandent une instrumentation nouvelle et ciblée avant de pouvoir être
   classées.
 
