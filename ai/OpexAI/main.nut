@@ -323,7 +323,11 @@ function OpexC41RailDepotFrontFacts(depot)
 function OpexC41RailLocalLinks(center, exclude = null)
 {
   local facts = { rail = 0, branches = 0, links = -1 };
-  if (!AIMap.IsValidTile(center) || !AIRail.IsRailTile(center)) return facts;
+  /* C41.10 : AIMap.IsValidTile leve une erreur Squirrel sur `null` au lieu de rendre faux --
+   * crash reproduit le 2026-09-08 (ligne sans platformA2/B2 emettant VehicleLost, leadA2 null
+   * passe ici depuis le sondage C41.9 dans _processEvents). Garde ajoutee, aucun changement pour
+   * un center non-null : le comportement pour toute tuile valide est inchange. */
+  if (center == null || !AIMap.IsValidTile(center) || !AIRail.IsRailTile(center)) return facts;
   facts.rail = 1;
   local xStep = AIMap.GetTileIndex(1, 0);
   local yStep = AIMap.GetTileIndex(0, 1);
@@ -338,16 +342,24 @@ function OpexC41RailLocalLinks(center, exclude = null)
   return facts;
 }
 
-/* C41.10 : repare le seul raccord manquant trouve par C41.9 -- une branche physiquement presente
- * (tuile de rail) mais AreTilesConnected(exclude, center, neighbor) faux -- uniquement si UNE
- * seule branche est candidate. Meme prudence que C41.8 pour les aiguillages a plusieurs
- * branches, ou C41.7 ne permet pas encore de choisir une sortie sure : 0 ou plusieurs candidats
- * n'est jamais tente. D'abord AITestMode (le meme AIRail.BuildRail que le reel, sans le payer ni
- * modifier la carte) ; commande reelle seulement si ce test reussit. AreTilesConnected est
- * revérifié APRES la pose reelle : une commande acceptee par le moteur ne garantit pas la
+/* C41.10 : repare le seul raccord manquant trouve par C41.9 -- PAS n'importe quelle branche non
+ * reconnue, seulement le cas ou l'approche n'a RECONNU AUCUNE branche sortante du tout
+ * (OpexC41RailLocalLinks(center, exclude).links == 0), exactement le critere de C41.9. Verifie
+ * au smoke le 2026-09-08 : un premier essai qui acceptait toute branche non connectee, meme aux
+ * cotes de branches deja reconnues (links >= 1), s'est revele reparer des jonctions hors du
+ * perimetre du constat C41.9 (a2/b2/depot avec links=1 ou 2, jamais 0) des le premier VehicleLost
+ * rencontre -- au-dela de « ce seul raccord », contrairement a la consigne. Corrige avant tout
+ * autre test.
+ *
+ * Uniquement si UNE seule branche est candidate. Meme prudence que C41.8 pour les aiguillages a
+ * plusieurs branches, ou C41.7 ne permet pas encore de choisir une sortie sure : 0 ou plusieurs
+ * candidats n'est jamais tente. D'abord AITestMode (le meme AIRail.BuildRail que le reel, sans le
+ * payer ni modifier la carte) ; commande reelle seulement si ce test reussit. AreTilesConnected
+ * est revérifié APRES la pose reelle : une commande acceptee par le moteur ne garantit pas la
  * connexion recherchee (une piece compatible mais differente peut satisfaire BuildRail).
  * -3 = position illisible (tuiles invalides, pas adjacentes, ou centre non-rail).
- * -2 = 0 ou plusieurs branches candidates (rien a faire, ou ambigu -- jamais tente).
+ * -2 = links != 0 (hors perimetre C41.9), ou 0/plusieurs branches candidates (rien a faire, ou
+ *      ambigu -- jamais tente).
  *  0 = AITestMode refuse la pose.
  *  1 = pose reelle et connexion confirmees.
  *  2 = pose reelle acceptee mais connexion toujours absente (a investiguer). */
@@ -355,6 +367,8 @@ function OpexC41RepairJunction(center, exclude)
 {
   if (center == null || exclude == null || !AIMap.IsValidTile(center) || !AIMap.IsValidTile(exclude)
       || AIMap.DistanceManhattan(exclude, center) != 1 || !AIRail.IsRailTile(center)) return -3;
+  local facts = OpexC41RailLocalLinks(center, exclude);
+  if (facts.links != 0) return -2;
   local xStep = AIMap.GetTileIndex(1, 0);
   local yStep = AIMap.GetTileIndex(0, 1);
   local offsets = [xStep, -xStep, yStep, -yStep];
@@ -364,7 +378,6 @@ function OpexC41RepairJunction(center, exclude)
     local neighbor = center + offset;
     if (!AIMap.IsValidTile(neighbor) || AIMap.DistanceManhattan(center, neighbor) != 1 ||
         neighbor == exclude || !AIRail.IsRailTile(neighbor)) continue;
-    if (AIRail.AreTilesConnected(exclude, center, neighbor)) continue;
     nCandidates++;
     candidate = neighbor;
   }
