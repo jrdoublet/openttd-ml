@@ -1,0 +1,541 @@
+{
+ "openttd_version": "15.3",
+ "opengfx_version": "7.1",
+ "years": 6,
+ "seeds": [
+  42,
+  100,
+  7,
+  999,
+  12345
+ ],
+ "arms": [
+  "OpexAI[c39_invalidation_probe=1,c41_revision_probe=1,c41_road_refresh=0]",
+  "OpexAI[c39_invalidation_probe=1,c41_revision_probe=1,c41_road_refresh=1]"
+ ],
+ "openttd_config": "[difficulty]\nnumber_towns = 3\nindustry_density = 4\n[economy]\ninflation = false\ntown_growth_rate = 2\n[game_creation]\nstarting_year = 1970\nmap_x = 8\nmap_y = 8\n",
+ "design": "paired OFF/ON; both arms activate C39/C41 revisions, only c41_road_refresh differs",
+ "summary": [
+  {
+   "arm": "OpexAI[c39_invalidation_probe=1,c41_revision_probe=1,c41_road_refresh=0]",
+   "seed": 100,
+   "repeat": 0,
+   "last_date": "1975-12-01",
+   "company_value": 4352923,
+   "performance_history": 586,
+   "income_last_year": 365932,
+   "expenses_last_year": -66334,
+   "profit": 299598,
+   "profit_year": 1103729,
+   "median_station_rating": 150,
+   "n_station_ratings": 79,
+   "money": 2075555,
+   "current_loan": 0,
+   "n_vehicles": 129,
+   "n_stations": 64,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 72,
+   "run_ok": true,
+   "failure_reason": null,
+   "c41_road_refreshes": [],
+   "c41_road_refresh_count": 0,
+   "c41_road_refresh_ops": 0,
+   "c41_road_refresh_age_days": []
+  },
+  {
+   "arm": "OpexAI[c39_invalidation_probe=1,c41_revision_probe=1,c41_road_refresh=0]",
+   "seed": 12345,
+   "repeat": 0,
+   "last_date": "1975-12-01",
+   "company_value": 4989020,
+   "performance_history": 599,
+   "income_last_year": 371883,
+   "expenses_last_year": -61272,
+   "profit": 310611,
+   "profit_year": 1213200,
+   "median_station_rating": 166,
+   "n_station_ratings": 75,
+   "money": 3022207,
+   "current_loan": 0,
+   "n_vehicles": 138,
+   "n_stations": 62,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 72,
+   "run_ok": true,
+   "failure_reason": null,
+   "c41_road_refreshes": [],
+   "c41_road_refresh_count": 0,
+   "c41_road_refresh_ops": 0,
+   "c41_road_refresh_age_days": []
+  },
+  {
+   "arm": "OpexAI[c39_invalidation_probe=1,c41_revision_probe=1,c41_road_refresh=0]",
+   "seed": 42,
+   "repeat": 0,
+   "last_date": "1975-12-01",
+   "company_value": 2874260,
+   "performance_history": 673,
+   "income_last_year": 372409,
+   "expenses_last_year": -48675,
+   "profit": 323734,
+   "profit_year": 1064470,
+   "median_station_rating": 174.0,
+   "n_station_ratings": 84,
+   "money": 847874,
+   "current_loan": 0,
+   "n_vehicles": 140,
+   "n_stations": 79,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 72,
+   "run_ok": true,
+   "failure_reason": null,
+   "c41_road_refreshes": [],
+   "c41_road_refresh_count": 0,
+   "c41_road_refresh_ops": 0,
+   "c41_road_refresh_age_days": []
+  },
+  {
+   "arm": "OpexAI[c39_invalidation_probe=1,c41_revision_probe=1,c41_road_refresh=0]",
+   "seed": 7,
+   "repeat": 0,
+   "last_date": "1975-12-01",
+   "company_value": 5925151,
+   "performance_history": 713,
+   "income_last_year": 529973,
+   "expenses_last_year": -70771,
+   "profit": 459202,
+   "profit_year": 1675217,
+   "median_station_rating": 170.0,
+   "n_station_ratings": 70,
+   "money": 3706503,
+   "current_loan": 0,
+   "n_vehicles": 140,
+   "n_stations": 61,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 72,
+   "run_ok": true,
+   "failure_reason": null,
+   "c41_road_refreshes": [],
+   "c41_road_refresh_count": 0,
+   "c41_road_refresh_ops": 0,
+   "c41_road_refresh_age_days": []
+  },
+  {
+   "arm": "OpexAI[c39_invalidation_probe=1,c41_revision_probe=1,c41_road_refresh=0]",
+   "seed": 999,
+   "repeat": 0,
+   "last_date": "1975-12-01",
+   "company_value": 6333845,
+   "performance_history": 695,
+   "income_last_year": 416635,
+   "expenses_last_year": -64845,
+   "profit": 351790,
+   "profit_year": 1477280,
+   "median_station_rating": 170.0,
+   "n_station_ratings": 86,
+   "money": 4150812,
+   "current_loan": 0,
+   "n_vehicles": 163,
+   "n_stations": 74,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 72,
+   "run_ok": true,
+   "failure_reason": null,
+   "c41_road_refreshes": [],
+   "c41_road_refresh_count": 0,
+   "c41_road_refresh_ops": 0,
+   "c41_road_refresh_age_days": []
+  },
+  {
+   "arm": "OpexAI[c39_invalidation_probe=1,c41_revision_probe=1,c41_road_refresh=1]",
+   "seed": 100,
+   "repeat": 0,
+   "last_date": "1975-12-01",
+   "company_value": 4332887,
+   "performance_history": 583,
+   "income_last_year": 334808,
+   "expenses_last_year": -66387,
+   "profit": 268421,
+   "profit_year": 1080719,
+   "median_station_rating": 158.5,
+   "n_station_ratings": 80,
+   "money": 2029794,
+   "current_loan": 0,
+   "n_vehicles": 138,
+   "n_stations": 66,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 72,
+   "run_ok": true,
+   "failure_reason": null,
+   "c41_road_refreshes": [
+    {
+     "date": "1975-4-20",
+     "kind": "C41_ROAD_REFRESH",
+     "revision": "1",
+     "ops": "3338",
+     "cargo_engines": "11",
+     "staleness_age_days": "14",
+     "slack_ops_available": "8713",
+     "slack_ops_used": "3338"
+    },
+    {
+     "date": "1975-6-23",
+     "kind": "C41_ROAD_REFRESH",
+     "revision": "2",
+     "ops": "3819",
+     "cargo_engines": "11",
+     "staleness_age_days": "14",
+     "slack_ops_available": "1500",
+     "slack_ops_used": "1500"
+    }
+   ],
+   "c41_road_refresh_count": 2,
+   "c41_road_refresh_ops": 7157,
+   "c41_road_refresh_age_days": [
+    14,
+    14
+   ]
+  },
+  {
+   "arm": "OpexAI[c39_invalidation_probe=1,c41_revision_probe=1,c41_road_refresh=1]",
+   "seed": 12345,
+   "repeat": 0,
+   "last_date": "1975-12-01",
+   "company_value": 4969457,
+   "performance_history": 598,
+   "income_last_year": 349527,
+   "expenses_last_year": -61484,
+   "profit": 288043,
+   "profit_year": 1187288,
+   "median_station_rating": 168,
+   "n_station_ratings": 75,
+   "money": 2989908,
+   "current_loan": 0,
+   "n_vehicles": 133,
+   "n_stations": 62,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 72,
+   "run_ok": true,
+   "failure_reason": null,
+   "c41_road_refreshes": [
+    {
+     "date": "1975-3-18",
+     "kind": "C41_ROAD_REFRESH",
+     "revision": "1",
+     "ops": "3339",
+     "cargo_engines": "11",
+     "staleness_age_days": "12",
+     "slack_ops_available": "1526",
+     "slack_ops_used": "1526"
+    },
+    {
+     "date": "1975-5-6",
+     "kind": "C41_ROAD_REFRESH",
+     "revision": "2",
+     "ops": "3819",
+     "cargo_engines": "11",
+     "staleness_age_days": "2",
+     "slack_ops_available": "302",
+     "slack_ops_used": "302"
+    }
+   ],
+   "c41_road_refresh_count": 2,
+   "c41_road_refresh_ops": 7158,
+   "c41_road_refresh_age_days": [
+    12,
+    2
+   ]
+  },
+  {
+   "arm": "OpexAI[c39_invalidation_probe=1,c41_revision_probe=1,c41_road_refresh=1]",
+   "seed": 42,
+   "repeat": 0,
+   "last_date": "1975-12-01",
+   "company_value": 2814259,
+   "performance_history": 667,
+   "income_last_year": 283005,
+   "expenses_last_year": -48127,
+   "profit": 234878,
+   "profit_year": 994462,
+   "median_station_rating": 171.5,
+   "n_station_ratings": 84,
+   "money": 879929,
+   "current_loan": 0,
+   "n_vehicles": 134,
+   "n_stations": 77,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 72,
+   "run_ok": true,
+   "failure_reason": null,
+   "c41_road_refreshes": [
+    {
+     "date": "1975-1-23",
+     "kind": "C41_ROAD_REFRESH",
+     "revision": "1",
+     "ops": "3339",
+     "cargo_engines": "11",
+     "staleness_age_days": "22",
+     "slack_ops_available": "3304",
+     "slack_ops_used": "3304"
+    },
+    {
+     "date": "1975-8-17",
+     "kind": "C41_ROAD_REFRESH",
+     "revision": "2",
+     "ops": "3818",
+     "cargo_engines": "11",
+     "staleness_age_days": "0",
+     "slack_ops_available": "8525",
+     "slack_ops_used": "3818"
+    }
+   ],
+   "c41_road_refresh_count": 2,
+   "c41_road_refresh_ops": 7157,
+   "c41_road_refresh_age_days": [
+    22,
+    0
+   ]
+  },
+  {
+   "arm": "OpexAI[c39_invalidation_probe=1,c41_revision_probe=1,c41_road_refresh=1]",
+   "seed": 7,
+   "repeat": 0,
+   "last_date": "1975-12-01",
+   "company_value": 5797730,
+   "performance_history": 720,
+   "income_last_year": 419076,
+   "expenses_last_year": -69995,
+   "profit": 349081,
+   "profit_year": 1575620,
+   "median_station_rating": 168.0,
+   "n_station_ratings": 74,
+   "money": 3617277,
+   "current_loan": 0,
+   "n_vehicles": 141,
+   "n_stations": 66,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 72,
+   "run_ok": true,
+   "failure_reason": null,
+   "c41_road_refreshes": [
+    {
+     "date": "1974-6-3",
+     "kind": "C41_ROAD_REFRESH",
+     "revision": "1",
+     "ops": "3338",
+     "cargo_engines": "11",
+     "staleness_age_days": "1",
+     "slack_ops_available": "7199",
+     "slack_ops_used": "3338"
+    }
+   ],
+   "c41_road_refresh_count": 1,
+   "c41_road_refresh_ops": 3338,
+   "c41_road_refresh_age_days": [
+    1
+   ]
+  },
+  {
+   "arm": "OpexAI[c39_invalidation_probe=1,c41_revision_probe=1,c41_road_refresh=1]",
+   "seed": 999,
+   "repeat": 0,
+   "last_date": "1975-12-01",
+   "company_value": 6318536,
+   "performance_history": 699,
+   "income_last_year": 419367,
+   "expenses_last_year": -64080,
+   "profit": 355287,
+   "profit_year": 1477169,
+   "median_station_rating": 168,
+   "n_station_ratings": 85,
+   "money": 4246247,
+   "current_loan": 0,
+   "n_vehicles": 151,
+   "n_stations": 71,
+   "months_of_bankruptcy": 0,
+   "n_savegames": 72,
+   "run_ok": true,
+   "failure_reason": null,
+   "c41_road_refreshes": [
+    {
+     "date": "1975-4-5",
+     "kind": "C41_ROAD_REFRESH",
+     "revision": "1",
+     "ops": "3338",
+     "cargo_engines": "11",
+     "staleness_age_days": "1",
+     "slack_ops_available": "6248",
+     "slack_ops_used": "3338"
+    },
+    {
+     "date": "1975-5-23",
+     "kind": "C41_ROAD_REFRESH",
+     "revision": "2",
+     "ops": "3818",
+     "cargo_engines": "11",
+     "staleness_age_days": "11",
+     "slack_ops_available": "9497",
+     "slack_ops_used": "3818"
+    }
+   ],
+   "c41_road_refresh_count": 2,
+   "c41_road_refresh_ops": 7156,
+   "c41_road_refresh_age_days": [
+    1,
+    11
+   ]
+  }
+ ],
+ "failed_runs": [],
+ "statistics": {
+  "OpexAI[c39_invalidation_probe=1,c41_revision_probe=1,c41_road_refresh=0]": {
+   "company_value": {
+    "n": 5,
+    "mean": 4895039.8,
+    "median": 4989020,
+    "standard_deviation": 1370908.767099,
+    "standard_error": 613089.038837,
+    "standard_error_percent": 12.5247,
+    "coefficient_of_variation_percent": 28.00608
+   },
+   "performance_history": {
+    "n": 5,
+    "mean": 653.2,
+    "median": 673,
+    "standard_deviation": 57.377696,
+    "standard_error": 25.660086,
+    "standard_error_percent": 3.928366,
+    "coefficient_of_variation_percent": 8.784093
+   },
+   "profit": {
+    "n": 5,
+    "mean": 348987,
+    "median": 323734,
+    "standard_deviation": 64623.733527,
+    "standard_error": 28900.612225,
+    "standard_error_percent": 8.281286,
+    "coefficient_of_variation_percent": 18.517519
+   },
+   "profit_year": {
+    "n": 5,
+    "mean": 1306779.2,
+    "median": 1213200,
+    "standard_deviation": 261494.327886,
+    "standard_error": 116943.818577,
+    "standard_error_percent": 8.949011,
+    "coefficient_of_variation_percent": 20.010598
+   },
+   "median_station_rating": {
+    "n": 5,
+    "mean": 166.0,
+    "median": 170.0,
+    "standard_deviation": 9.380832,
+    "standard_error": 4.195235,
+    "standard_error_percent": 2.52725,
+    "coefficient_of_variation_percent": 5.651103
+   }
+  },
+  "OpexAI[c39_invalidation_probe=1,c41_revision_probe=1,c41_road_refresh=1]": {
+   "company_value": {
+    "n": 5,
+    "mean": 4846573.8,
+    "median": 4969457,
+    "standard_deviation": 1367538.728031,
+    "standard_error": 611581.911548,
+    "standard_error_percent": 12.618851,
+    "coefficient_of_variation_percent": 28.216608
+   },
+   "performance_history": {
+    "n": 5,
+    "mean": 653.4,
+    "median": 667,
+    "standard_deviation": 60.673718,
+    "standard_error": 27.134111,
+    "standard_error_percent": 4.152757,
+    "coefficient_of_variation_percent": 9.285846
+   },
+   "profit": {
+    "n": 5,
+    "mean": 299142,
+    "median": 288043,
+    "standard_deviation": 52064.849188,
+    "standard_error": 23284.108405,
+    "standard_error_percent": 7.783631,
+    "coefficient_of_variation_percent": 17.404727
+   },
+   "profit_year": {
+    "n": 5,
+    "mean": 1263051.6,
+    "median": 1187288,
+    "standard_deviation": 252324.661397,
+    "standard_error": 112843.019057,
+    "standard_error_percent": 8.934157,
+    "coefficient_of_variation_percent": 19.977383
+   },
+   "median_station_rating": {
+    "n": 5,
+    "mean": 166.8,
+    "median": 168.0,
+    "standard_deviation": 4.881086,
+    "standard_error": 2.182888,
+    "standard_error_percent": 1.308686,
+    "coefficient_of_variation_percent": 2.926311
+   }
+  }
+ },
+ "paired_comparisons": [
+  {
+   "arm_a": "OpexAI[c39_invalidation_probe=1,c41_revision_probe=1,c41_road_refresh=0]",
+   "arm_b": "OpexAI[c39_invalidation_probe=1,c41_revision_probe=1,c41_road_refresh=1]",
+   "shared_seeds": [
+    7,
+    42,
+    100,
+    999,
+    12345
+   ],
+   "metrics": {
+    "company_value": {
+     "n": 5,
+     "mean_difference": 48466,
+     "mean_difference_percent": 1.000005,
+     "standard_deviation": 47723.116013,
+     "standard_error": 21342.426301,
+     "arm_a_beats_arm_b": 5
+    },
+    "performance_history": {
+     "n": 5,
+     "mean_difference": -0.2,
+     "mean_difference_percent": -0.030609,
+     "standard_deviation": 5.263079,
+     "standard_error": 2.35372,
+     "arm_a_beats_arm_b": 3
+    },
+    "profit": {
+     "n": 5,
+     "mean_difference": 49845,
+     "mean_difference_percent": 16.662655,
+     "standard_deviation": 47678.486275,
+     "standard_error": 21322.467275,
+     "arm_a_beats_arm_b": 4
+    },
+    "profit_year": {
+     "n": 5,
+     "mean_difference": 43727.6,
+     "mean_difference_percent": 3.46206,
+     "standard_deviation": 40190.39571,
+     "standard_error": 17973.69137,
+     "arm_a_beats_arm_b": 5
+    },
+    "median_station_rating": {
+     "n": 5,
+     "mean_difference": -0.8,
+     "mean_difference_percent": -0.479616,
+     "standard_deviation": 4.671723,
+     "standard_error": 2.089258,
+     "arm_a_beats_arm_b": 3
+    }
+   }
+  }
+ ]
+}

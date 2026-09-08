@@ -117,7 +117,7 @@ function OpexWaterFindDockAccess(land)
 }
 
 /* Les probes sont partagees equitablement : une cote sans dock ne mange pas tout le budget. */
-function OpexWaterFindSite(town, probes)
+function OpexWaterFindSite(town, probes, profile = null)
 {
   local coverage = AIStation.GetCoverageRadius(AIStation.STATION_DOCK);
   local allowance = probes.townsLeft > 0
@@ -135,12 +135,19 @@ function OpexWaterFindSite(town, probes)
         if (!OpexWaterInMap(x, y)) continue;
         local dock = AIMap.GetTileIndex(x, y);
         if (!AITile.IsCoastTile(dock)) continue;
+        if (profile != null) profile.coast_candidates++;
         if (AIMap.DistanceManhattan(town.tile, dock) > coverage) continue;
         local waterTiles = OpexWaterAdjacentTiles(dock);
         if (waterTiles.len() == 0) continue;
+        if (profile != null) profile.navigable_coast_candidates++;
         if (used >= allowance || probes.left <= 0) return null;
         local ok = false;
+        local testMark = profile != null ? OpexOpsMeasureBegin() : null;
         { local probe = AITestMode(); ok = AIMarine.BuildDock(dock, AIStation.STATION_NEW); }
+        if (profile != null) {
+          profile.dock_test_ops += OpexOpsMeasureEnd(testMark);
+          profile.dock_tests++;
+        }
         used++;
         probes.left--;
         if (ok) return { town = town, dock = dock, waterTiles = waterTiles };
@@ -288,17 +295,27 @@ function OpexWaterEconomics(catalog, distance, orderDistance, monthlyPax)
   return best;
 }
 
-function OpexWaterPlans(catalog, lines = null, projects = null)
+function OpexWaterPlans(catalog, lines = null, projects = null, profile = null)
 {
   if (catalog.ships.len() == 0 || catalog.paxCargo < 0) return null;
+  local mark = profile != null ? OpexOpsMeasureBegin() : null;
   local towns = OpexWaterSortedTowns(catalog.towns);
+  if (profile != null) profile.town_sort_ops = OpexOpsMeasureEnd(mark);
   local limit = towns.len() < WATER_TOWN_POOL ? towns.len() : WATER_TOWN_POOL;
   local sites = [];
   local probes = { left = WATER_MAX_SITE_PROBES, townsLeft = limit };
+  mark = profile != null ? OpexOpsMeasureBegin() : null;
   for (local i = 0; i < limit; i++) {
+    if (profile != null) profile.towns_considered++;
     if (OpexWaterTownServed(towns[i], lines)) continue;
-    local site = OpexWaterFindSite(towns[i], probes);
+    local site = OpexWaterFindSite(towns[i], probes, C41_WATER_SITE_PROFILE ? profile : null);
     if (site != null) sites.append(site);
+  }
+  if (profile != null) {
+    profile.site_ops = OpexOpsMeasureEnd(mark);
+    profile.site_scan_filter_ops = profile.site_ops - profile.dock_test_ops;
+    profile.sites_found = sites.len();
+    mark = OpexOpsMeasureBegin();
   }
   /* G11 : le BFS sert aussi a l'economie. Le limiter apres un classement Manhattan pouvait
    * elire un detour cotier comme s'il etait direct et ecarter une paire reellement meilleure.
@@ -307,16 +324,30 @@ function OpexWaterPlans(catalog, lines = null, projects = null)
   local ranked = [];
   for (local a = 0; a < sites.len(); a++) {
     for (local b = a + 1; b < sites.len(); b++) {
+      if (profile != null) profile.pairs_considered++;
       local distance = AIMap.DistanceManhattan(sites[a].town.tile, sites[b].town.tile);
       if (distance < WATER_TOWN_MIN_DISTANCE) continue;
       local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_WATER,
                                                       sites[a].dock, sites[b].dock);
       if (orderDistance < 0 || !OpexWaterHasRange(catalog, orderDistance)) continue;
+      if (profile != null) profile.pairs_after_range++;
       local monthlyPax = ((sites[a].town.pop + sites[b].town.pop) * 22) / 100;
+      local bfsMark = profile != null ? OpexOpsMeasureBegin() : null;
       local waterDistance = OpexWaterFindConnection(sites[a], sites[b]);
+      if (profile != null) {
+        profile.bfs_ops += OpexOpsMeasureEnd(bfsMark);
+        profile.bfs_attempts++;
+      }
       if (waterDistance < 0) continue;
+      if (profile != null) profile.bfs_connected++;
+      local economicsMark = profile != null ? OpexOpsMeasureBegin() : null;
       local economics = OpexWaterEconomics(catalog, waterDistance, orderDistance, monthlyPax);
+      if (profile != null) {
+        profile.economics_ops += OpexOpsMeasureEnd(economicsMark);
+        profile.economics_attempts++;
+      }
       if (economics == null || economics.profitAnnual <= 0) continue;
+      if (profile != null) profile.positive_economics++;
       local plan = { siteA = sites[a], siteB = sites[b], distance = waterDistance,
                      orderDistance = orderDistance, economics = economics };
       local pos = ranked.len();
@@ -326,6 +357,10 @@ function OpexWaterPlans(catalog, lines = null, projects = null)
       ranked.insert(pos, plan);
       if (ranked.len() > WATER_PROJECT_POOL) ranked.pop();
     }
+  }
+  if (profile != null) {
+    profile.pair_total_ops = OpexOpsMeasureEnd(mark);
+    profile.pair_filter_rank_ops = profile.pair_total_ops - profile.bfs_ops - profile.economics_ops;
   }
   local best = null;
   foreach (plan in ranked) {

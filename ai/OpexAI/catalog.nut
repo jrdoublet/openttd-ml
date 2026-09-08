@@ -230,6 +230,8 @@ class OpexCatalog {
   /* C41.2 : meme filtre unitaire que _refreshWater(), sans enumerer le catalogue entier. */
   function isWaterEngineRelevant(engine);
   function _refreshRoad();
+  /* C41.15 : point d'entree cible, homologue de refreshWater(). */
+  function refreshRoad(budget);
   function _cargoArray(list);
 }
 
@@ -653,6 +655,15 @@ function OpexCatalog::_refreshRoad()
     this.roadEngineByCargo.rawset(cargo, best);
     if (best.price > this.maxRoadVehiclePrice) this.maxRoadVehiclePrice = best.price;
   }
+}
+
+/* C41.15 : ne touche ni cargos, ni villes, ni les autres modes. Les candidats route et le
+ * portefeuille restent volontairement sales : seul le catalogue materiel est acquitte. */
+function OpexCatalog::refreshRoad(budget)
+{
+  budget.begin();
+  this._refreshRoad();
+  return budget.end("cat_road_targeted");
 }
 
 function OpexCatalog::_refreshCargos()

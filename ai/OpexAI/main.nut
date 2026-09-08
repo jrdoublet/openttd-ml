@@ -114,6 +114,22 @@ C41_WATER_REFRESH <- false;
 C41_WATER_PRECHECK <- false;
 /* C41.3 : sonde passive du cout de OpexWaterPlans apres C41.1/C41.2. */
 C41_WATER_CANDIDATE_PROBE <- false;
+/* C41.3a : ventile la sonde eau en sites, paires, BFS et economie ; aucun candidat persistant. */
+C41_WATER_PLANS_PROFILE <- false;
+/* C41.3b : sous-ventilation de la phase dominante sites : filtre carte vs AITestMode dock. */
+C41_WATER_SITE_PROFILE <- false;
+/* C41.11 : ledger passif du scheduler. Il n'admet ni ne reporte aucune tache. */
+C41_SLACK_LEDGER <- false;
+/* C41.12 : age de fraicheur par couche entre premier salissement coalesce et acquittement. */
+C41_STALENESS_LEDGER <- false;
+/* C41.13 : croise passivement les couches encore sales avec le reliquat d'opcodes du scheduler.
+ * Il ne choisit ni ne reporte aucune tache : il borne d'abord le canal de delestage possible. */
+C41_OPPORTUNITY_LEDGER <- false;
+/* C41.14 : contrat passif d'admission d'une micro-tache. Le seul pilote declare est le petit
+ * refresh water ; ajouter route/rail/air exige d'abord leur point d'entree cible et son cout. */
+C41_ADMISSION_LEDGER <- false;
+/* C41.15 : rafraichissement cible du materiel route apres EngineAvailable route. */
+C41_ROAD_REFRESH <- false;
 /* C41.4 : sonde strictement passive des vehicules perdus. Contrairement a A7.4,
  * elle n'ecrit ni compteur de ligne ni signe, et n'arme aucune tache. */
 C41_VEHICLE_LOST_PROBE <- false;
@@ -196,6 +212,32 @@ function OpexC39Log(kind, fields)
   local date = AIDate.GetCurrentDate();
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " " + kind + " " + fields);
+}
+
+/* C41.11 reste lisible sans activer le bus C39 : il mesure le scheduler historique lui-meme. */
+function OpexC41SchedulerLog(kind, fields)
+{
+  if (!C41_SLACK_LEDGER && !C41_OPPORTUNITY_LEDGER && !C41_ADMISSION_LEDGER) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " " + kind + " " + fields);
+}
+
+function OpexC41StalenessLog(kind, fields)
+{
+  if (!C41_STALENESS_LEDGER) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " " + kind + " " + fields);
+}
+
+/* Contrat C41.14 : le hint est une borne prudente d'admission, pas une moyenne ni un budget
+ * reservé. Le scheduler ne le lit pas encore pour executer : cette phase mesure seulement si le
+ * point d'entree cible pourrait tenir dans le reliquat du tick courant. */
+function OpexC41MicrotaskOpsHint(layer)
+{
+  if (layer == "catalog.water") return 350;
+  return -1;
 }
 
 /* C41.4 reste observable sans armer C39 : c'est un inventaire de l'evenement, pas une
@@ -1067,6 +1109,10 @@ class OpexAI extends AIController {
    * Il est strictement observatoire dans cette tranche : `_runNextTask` ne le lit
    * jamais pour choisir ou eviter un travail. */
   _staleness = null;
+  _c41SlackLedger = null;
+  _c41OpportunityLedger = null;
+  _c41AdmissionLedger = null;
+  _c41LastTaskName = "idle";
   _startYear = -1;
   _vehiclesToScrap = null;
   /* C41.8 : ensemble coalescé par ligne, consommé par une seule micro-tâche. */
@@ -1107,13 +1153,25 @@ class OpexAI extends AIController {
         catalog = { cargos = 0, towns = 0, industries = 0, rail = 0, road = 0, air = 0, water = 0 },
         candidates = { rail = 0, road = 0, air = 0, water = 0 }, portfolio = 0, selection = 0,
       },
+      /* C41.3a : horodatage du premier salissement coalescé de catalog.water. Les revisions
+       * restent l'autorite ; ces deux scalaires ne servent qu'a mesurer sa fraicheur. */
+      waterCatalogDirtyDate = -1, waterCatalogDirtyTick = -1,
+      dirtySince = {
+        catalog = { cargos = -1, towns = -1, industries = -1, rail = -1, road = -1, air = -1, water = -1 },
+        candidates = { rail = -1, road = -1, air = -1, water = -1 }, portfolio = -1, selection = -1,
+      },
     };
+    this._c41SlackLedger = {};
+    this._c41OpportunityLedger = {};
+    this._c41AdmissionLedger = {};
     /* Priorite : donnees et stop-loss, croissance des flottes existantes avant nouveaux projets,
      * portefeuille multimodal ROI, croissance urbaine, dette. */
     this._taskQueue = [
       { name = "catalog", dueCycle = 0, enabled = true },
       /* C41.1 est arme par un EngineAvailable eau ; hors evenement, aucun scan periodique. */
       { name = "c41_water", dueCycle = 2147483647, enabled = false },
+      /* C41.15 : meme contrat etroit que l'eau, sans reconstruire les candidats route. */
+      { name = "c41_road", dueCycle = 2147483647, enabled = false },
       /* C41.8 : ne travaille qu'une ligne rail explicitement signalée par VehicleLost. */
       { name = "c41_rail_signals", dueCycle = 2147483647, enabled = false },
       /* C41.10 : idem, réparation de raccord au lieu de pose PBS. */
@@ -1154,6 +1212,11 @@ class OpexAI extends AIController {
   function _tryBuildProjects(year);
   function _tryTownGrowth(year);
   function _runNextTask();
+  function _runNextTaskWithSlackLedger();
+  function _logC41SlackLedger(year);
+  function _recordC41StaleOpportunity(slackLeft);
+  function _logC41OpportunityLedger(year);
+  function _logC41AdmissionLedger(year);
   function _reportYear(year, ranked);
   function _reportLines(year);
   function _scrapDeadLines(year);
@@ -5001,6 +5064,11 @@ function OpexAI::_markDirty(reason, catalogLayers = null, candidateLayers = null
       if (layer in this._staleness.catalog) {
         if (C41_REVISION_PROBE && targetedRelevant && !this._staleness.catalog[layer]) {
           this._staleness.revisions.catalog[layer]++;
+          this._staleness.dirtySince.catalog[layer] = AIDate.GetCurrentDate();
+          if (layer == "water") {
+            this._staleness.waterCatalogDirtyDate = AIDate.GetCurrentDate();
+            this._staleness.waterCatalogDirtyTick = AIController.GetTick();
+          }
           revisionBumped = true;
         }
         this._staleness.catalog[layer] = true;
@@ -5012,6 +5080,7 @@ function OpexAI::_markDirty(reason, catalogLayers = null, candidateLayers = null
       if (layer in this._staleness.candidates) {
         if (C41_REVISION_PROBE && targetedRelevant && !this._staleness.candidates[layer]) {
           this._staleness.revisions.candidates[layer]++;
+          this._staleness.dirtySince.candidates[layer] = AIDate.GetCurrentDate();
           revisionBumped = true;
         }
         this._staleness.candidates[layer] = true;
@@ -5021,6 +5090,7 @@ function OpexAI::_markDirty(reason, catalogLayers = null, candidateLayers = null
   if (portfolio) {
     if (C41_REVISION_PROBE && targetedRelevant && !this._staleness.portfolio) {
       this._staleness.revisions.portfolio++;
+      this._staleness.dirtySince.portfolio = AIDate.GetCurrentDate();
       revisionBumped = true;
     }
     this._staleness.portfolio = true;
@@ -5028,6 +5098,7 @@ function OpexAI::_markDirty(reason, catalogLayers = null, candidateLayers = null
   if (selection) {
     if (C41_REVISION_PROBE && targetedRelevant && !this._staleness.selection) {
       this._staleness.revisions.selection++;
+      this._staleness.dirtySince.selection = AIDate.GetCurrentDate();
       revisionBumped = true;
     }
     this._staleness.selection = true;
@@ -5058,6 +5129,21 @@ function OpexAI::_markDirty(reason, catalogLayers = null, candidateLayers = null
     if (waterDirty && this._taskQueue != null) {
       foreach (task in this._taskQueue) {
         if (task.name == "c41_water") {
+          task.enabled = true;
+          task.dueCycle = this._taskCycle;
+          break;
+        }
+      }
+    }
+  }
+  /* C41.15 : `catalog.road` n'est sali par C39 que pour EngineAvailable route. Le routeur reste
+   * generique, mais cette garde rend la tache inerte pour toute future invalidation plus large. */
+  if (C41_ROAD_REFRESH && targetedRelevant && catalogLayers != null) {
+    local roadDirty = false;
+    foreach (layer in catalogLayers) if (layer == "road") roadDirty = true;
+    if (roadDirty && this._taskQueue != null) {
+      foreach (task in this._taskQueue) {
+        if (task.name == "c41_road") {
           task.enabled = true;
           task.dueCycle = this._taskCycle;
           break;
@@ -5105,6 +5191,8 @@ function OpexAI::_logStalenessRefresh(reason)
   local top = OpexC39ProjectSignature(this._projects);
   local topBefore = this._staleness.topBeforeCaptured ? this._staleness.topBefore : top;
   local topChanged = topBefore != top;
+  local waterAgeDays = this._staleness.waterCatalogDirtyDate >= 0
+      ? AIDate.GetCurrentDate() - this._staleness.waterCatalogDirtyDate : -1;
   OpexC39Log("C39_REFRESH", "reason=" + reason + " events=" + this._staleness.events
              + " cat=" + cat + " cand=" + cand + " portfolio=" + (this._staleness.portfolio ? 1 : 0)
              + " selection=" + (this._staleness.selection ? 1 : 0) + " towns=" + towns
@@ -5130,6 +5218,36 @@ function OpexAI::_logStalenessRefresh(reason)
    * portefeuille ; il peut donc acquitter toutes les couches. Les micro-taches futures ne
    * copieront que leurs propres revisions. */
   if (C41_REVISION_PROBE) {
+    /* C41.12 : publier AVANT de remettre les dates a blanc. Seules les revisions reellement
+     * marquees ont un horodatage >= 0 ; une invalidation prefiltrée n'est pas un faux age. */
+    if (C41_STALENESS_LEDGER) {
+      foreach (layer in ["cargos", "towns", "industries", "rail", "road", "air", "water"]) {
+        local since = this._staleness.dirtySince.catalog[layer];
+        if (since >= 0) {
+          OpexC41StalenessLog("C41_STALENESS_ACK", "layer=catalog." + layer + " method=full"
+                              + " revision=" + this._staleness.revisions.catalog[layer]
+                              + " age_days=" + (AIDate.GetCurrentDate() - since));
+        }
+      }
+      foreach (layer in ["rail", "road", "air", "water"]) {
+        local since = this._staleness.dirtySince.candidates[layer];
+        if (since >= 0) {
+          OpexC41StalenessLog("C41_STALENESS_ACK", "layer=candidates." + layer + " method=full"
+                              + " revision=" + this._staleness.revisions.candidates[layer]
+                              + " age_days=" + (AIDate.GetCurrentDate() - since));
+        }
+      }
+      if (this._staleness.dirtySince.portfolio >= 0) {
+        OpexC41StalenessLog("C41_STALENESS_ACK", "layer=portfolio method=full revision="
+                            + this._staleness.revisions.portfolio + " age_days="
+                            + (AIDate.GetCurrentDate() - this._staleness.dirtySince.portfolio));
+      }
+      if (this._staleness.dirtySince.selection >= 0) {
+        OpexC41StalenessLog("C41_STALENESS_ACK", "layer=selection method=full revision="
+                            + this._staleness.revisions.selection + " age_days="
+                            + (AIDate.GetCurrentDate() - this._staleness.dirtySince.selection));
+      }
+    }
     this._staleness.acknowledged.catalog = {
       cargos = this._staleness.revisions.catalog.cargos, towns = this._staleness.revisions.catalog.towns,
       industries = this._staleness.revisions.catalog.industries, rail = this._staleness.revisions.catalog.rail,
@@ -5144,7 +5262,8 @@ function OpexAI::_logStalenessRefresh(reason)
     this._staleness.acknowledged.selection = this._staleness.revisions.selection;
     if (this._staleness.events > 0) {
       OpexC39Log("C41_ACK", "reason=" + reason + " "
-                 + OpexC41RevisionSnapshot(this._staleness.acknowledged));
+                 + OpexC41RevisionSnapshot(this._staleness.acknowledged)
+                 + " water_staleness_age_days=" + waterAgeDays);
     }
   }
   this._staleness.catalog = { cargos = false, towns = false, industries = false, rail = false,
@@ -5160,6 +5279,12 @@ function OpexAI::_logStalenessRefresh(reason)
   this._staleness.events = 0;
   this._staleness.topBefore = "none";
   this._staleness.topBeforeCaptured = false;
+  this._staleness.waterCatalogDirtyDate = -1;
+  this._staleness.waterCatalogDirtyTick = -1;
+  this._staleness.dirtySince = {
+    catalog = { cargos = -1, towns = -1, industries = -1, rail = -1, road = -1, air = -1, water = -1 },
+    candidates = { rail = -1, road = -1, air = -1, water = -1 }, portfolio = -1, selection = -1,
+  };
 }
 
 /* Event moteur exact : CRASH_TRAIN est emis dans train_cmd.cpp au moment ou deux trains
@@ -5631,12 +5756,142 @@ function OpexAI::_processEvents()
   }
 }
 
+/* C41.11 : enveloppe strictement observatoire. `slack_ops_used` est borne au reliquat disponible
+ * au debut du passage : un calcul qui franchit un tick ne transforme pas les ticks suivants en
+ * slack retroactif. Les continuations rail precedant la selection sont rangees explicitement dans
+ * `continuation`, afin de ne pas les attribuer abusivement a la tache choisie ensuite. */
+function OpexAI::_runNextTaskWithSlackLedger()
+{
+  if ((!C41_SLACK_LEDGER && !C41_OPPORTUNITY_LEDGER && !C41_ADMISSION_LEDGER)
+      || this._c41SlackLedger == null) {
+    return this._runNextTask();
+  }
+  local mark = OpexOpsMeasureBegin();
+  local hadContinuation = this._railExpansion != null || this._railSearch != null;
+  local ran = this._runNextTask();
+  local ops = OpexOpsMeasureEnd(mark);
+  if (C41_SLACK_LEDGER) {
+    local category = hadContinuation ? "continuation" : this._c41LastTaskName;
+    if (category == null) category = "idle";
+    local entry = (category in this._c41SlackLedger) ? this._c41SlackLedger[category]
+        : { calls = 0, ran = 0, ops = 0, slackAvailable = 0, slackUsed = 0, slackLeft = 0 };
+    entry.calls++;
+    if (ran) entry.ran++;
+    entry.ops += ops;
+    entry.slackAvailable += mark.left;
+    entry.slackUsed += ops < mark.left ? ops : mark.left;
+    entry.slackLeft += ops < mark.left ? mark.left - ops : 0;
+    this._c41SlackLedger.rawset(category, entry);
+  }
+  /* C41.13 : apres la tache historique, seules les couches encore sales sont admissibles au
+   * delestage. Une meme tranche peut etre une opportunite pour plusieurs couches : le total par
+   * couche n'est donc volontairement pas un budget global, mais une borne superieure par choix. */
+  this._recordC41StaleOpportunity(ops < mark.left ? mark.left - ops : 0);
+  return ran;
+}
+
+/* Publication annuelle, hors des passages mesures : au plus une ligne par categorie et par an.
+ * Reset apres publication afin que chaque ligne decrive une fenetre comparable. */
+function OpexAI::_logC41SlackLedger(year)
+{
+  if (!C41_SLACK_LEDGER || this._c41SlackLedger == null) return;
+  foreach (task, entry in this._c41SlackLedger) {
+    OpexC41SchedulerLog("C41_SLACK_LEDGER", "year=" + year + " task=" + task
+                        + " calls=" + entry.calls + " ran=" + entry.ran + " ops=" + entry.ops
+                        + " slack_ops_available=" + entry.slackAvailable
+                        + " slack_ops_used=" + entry.slackUsed
+                        + " slack_ops_left=" + entry.slackLeft);
+  }
+  this._c41SlackLedger = {};
+}
+
+/* C41.13 : photographie sans cout de carte ni de catalogue. Les dates sont posees seulement par
+ * C41.0 au premier evenement d'une rafale ; une couche sans date ne produit donc pas de faux
+ * point de fraicheur. */
+function OpexAI::_recordC41StaleOpportunity(slackLeft)
+{
+  if ((!C41_OPPORTUNITY_LEDGER && !C41_ADMISSION_LEDGER) || this._staleness == null) return;
+  local now = AIDate.GetCurrentDate();
+  foreach (layer in ["cargos", "towns", "industries", "rail", "road", "air", "water"]) {
+    local since = this._staleness.dirtySince.catalog[layer];
+    if (since < 0) continue;
+    local key = "catalog." + layer;
+    if (C41_OPPORTUNITY_LEDGER && this._c41OpportunityLedger != null) {
+      local entry = (key in this._c41OpportunityLedger) ? this._c41OpportunityLedger[key]
+          : { observations = 0, staleDays = 0, maxStaleDays = 0, slackLeft = 0 };
+      local age = now - since;
+      entry.observations++;
+      entry.staleDays += age;
+      if (age > entry.maxStaleDays) entry.maxStaleDays = age;
+      entry.slackLeft += slackLeft;
+      this._c41OpportunityLedger.rawset(key, entry);
+    }
+    local hint = OpexC41MicrotaskOpsHint(key);
+    if (C41_ADMISSION_LEDGER && hint > 0 && this._c41AdmissionLedger != null) {
+      local admission = (key in this._c41AdmissionLedger) ? this._c41AdmissionLedger[key]
+          : { checks = 0, fits = 0, maxSlackLeft = 0, targetOps = hint };
+      admission.checks++;
+      if (slackLeft >= hint) admission.fits++;
+      if (slackLeft > admission.maxSlackLeft) admission.maxSlackLeft = slackLeft;
+      this._c41AdmissionLedger.rawset(key, admission);
+    }
+  }
+  foreach (layer in ["rail", "road", "air", "water"]) {
+    local since = this._staleness.dirtySince.candidates[layer];
+    if (since < 0) continue;
+    local key = "candidates." + layer;
+    local entry = (key in this._c41OpportunityLedger) ? this._c41OpportunityLedger[key]
+        : { observations = 0, staleDays = 0, maxStaleDays = 0, slackLeft = 0 };
+    local age = now - since;
+    entry.observations++;
+    entry.staleDays += age;
+    if (age > entry.maxStaleDays) entry.maxStaleDays = age;
+    entry.slackLeft += slackLeft;
+    this._c41OpportunityLedger.rawset(key, entry);
+  }
+  foreach (layer in ["portfolio", "selection"]) {
+    local since = this._staleness.dirtySince[layer];
+    if (since < 0) continue;
+    local entry = (layer in this._c41OpportunityLedger) ? this._c41OpportunityLedger[layer]
+        : { observations = 0, staleDays = 0, maxStaleDays = 0, slackLeft = 0 };
+    local age = now - since;
+    entry.observations++;
+    entry.staleDays += age;
+    if (age > entry.maxStaleDays) entry.maxStaleDays = age;
+    entry.slackLeft += slackLeft;
+    this._c41OpportunityLedger.rawset(layer, entry);
+  }
+}
+
+function OpexAI::_logC41AdmissionLedger(year)
+{
+  if (!C41_ADMISSION_LEDGER || this._c41AdmissionLedger == null) return;
+  foreach (layer, entry in this._c41AdmissionLedger) {
+    OpexC41SchedulerLog("C41_ADMISSION_LEDGER", "year=" + year + " layer=" + layer
+                        + " target_ops=" + entry.targetOps + " checks=" + entry.checks
+                        + " fits=" + entry.fits + " max_slack_ops_left=" + entry.maxSlackLeft);
+  }
+  this._c41AdmissionLedger = {};
+}
+
+function OpexAI::_logC41OpportunityLedger(year)
+{
+  if (!C41_OPPORTUNITY_LEDGER || this._c41OpportunityLedger == null) return;
+  foreach (layer, entry in this._c41OpportunityLedger) {
+    OpexC41SchedulerLog("C41_OPPORTUNITY_LEDGER", "year=" + year + " layer=" + layer
+                        + " observations=" + entry.observations + " stale_days_sum=" + entry.staleDays
+                        + " max_stale_days=" + entry.maxStaleDays + " slack_ops_left=" + entry.slackLeft);
+  }
+  this._c41OpportunityLedger = {};
+}
+
 /* File CONTINUE : le scan reprend apres la derniere tache choisie, meme si un A* a franchi le
  * changement d'annee. Le calendrier ne decide plus RIEN : quand le suffixe de la table est fini,
  * _taskCycle avance et le scan repart a zero. Chaque tache se reporte par dueCycle, donc aucun
  * item ne peut affamer ceux places apres lui et le dernier rend litteralement la main au premier. */
 function OpexAI::_runNextTask()
 {
+  if (C41_SLACK_LEDGER || C41_OPPORTUNITY_LEDGER || C41_ADMISSION_LEDGER) this._c41LastTaskName = "idle";
   if (DECISION_LOG) {
     _currentTaskName = null;
     _currentTaskLogged = false;
@@ -5675,6 +5930,7 @@ function OpexAI::_runNextTask()
   }
   if (task == null) return false;
   this._taskCursor = (taskIndex + 1) % this._taskQueue.len();
+  if (C41_SLACK_LEDGER || C41_OPPORTUNITY_LEDGER || C41_ADMISSION_LEDGER) this._c41LastTaskName = task.name;
 
   /* Defaut : exactement une execution par tour continu. Une tache inutile peut choisir plus loin. */
   task.dueCycle = this._taskCycle + 1;
@@ -5787,21 +6043,90 @@ function OpexAI::_runNextTask()
       return false;
     }
     local revision = this._staleness.revisions.catalog.water;
+    /* Le slack est seulement le reliquat du tick d'admission. Si la tache traverse un tick,
+     * ses opcodes ulterieurs sont comptabilises dans `ops`, jamais abuses comme slack initial. */
+    local slackOpsAvailable = AIController.GetOpsTillSuspend();
     local ops = this._catalog.refreshWater(this._budget);
+    local stalenessAgeDays = this._staleness.waterCatalogDirtyDate >= 0
+        ? AIDate.GetCurrentDate() - this._staleness.waterCatalogDirtyDate : -1;
     this._staleness.acknowledged.catalog.water = revision;
     this._staleness.catalog.water = false;
     OpexC39Log("C41_WATER_REFRESH", "revision=" + revision + " ops=" + ops
-               + " ships=" + this._catalog.ships.len());
+               + " ships=" + this._catalog.ships.len()
+               + " staleness_age_days=" + stalenessAgeDays
+               + " slack_ops_available=" + slackOpsAvailable
+               + " slack_ops_used=" + (ops < slackOpsAvailable ? ops : slackOpsAvailable));
+    if (C41_STALENESS_LEDGER) {
+      OpexC41StalenessLog("C41_STALENESS_ACK", "layer=catalog.water method=targeted revision="
+                          + revision + " age_days=" + stalenessAgeDays);
+    }
+    this._staleness.waterCatalogDirtyDate = -1;
+    this._staleness.waterCatalogDirtyTick = -1;
+    this._staleness.dirtySince.catalog.water = -1;
     /* C41.3 : OpexWaterPlans travaille dans un tableau temporaire. Ses tests de docks sont sous
      * AITestMode ; aucun projet persistant ni revision aval n'est modifie dans cette tranche. */
     if (C41_WATER_CANDIDATE_PROBE) {
       local plans = [];
+      local profile = C41_WATER_PLANS_PROFILE ? {
+        town_sort_ops = 0, site_ops = 0, pair_total_ops = 0, pair_filter_rank_ops = 0,
+        bfs_ops = 0, economics_ops = 0, towns_considered = 0, sites_found = 0,
+        pairs_considered = 0, pairs_after_range = 0, bfs_attempts = 0,
+        bfs_connected = 0, economics_attempts = 0, positive_economics = 0,
+        dock_test_ops = 0, site_scan_filter_ops = 0, coast_candidates = 0,
+        navigable_coast_candidates = 0, dock_tests = 0,
+      } : null;
       this._budget.begin();
-      OpexWaterPlans(this._catalog, this._lines, plans);
+      OpexWaterPlans(this._catalog, this._lines, plans, profile);
       local planOps = this._budget.end("project_water_targeted_probe");
       OpexC39Log("C41_WATER_PLANS", "revision=" + revision + " ops=" + planOps
                  + " plans=" + plans.len());
+      if (profile != null) {
+        OpexC39Log("C41_WATER_PLAN_PROFILE", "revision=" + revision + " ops=" + planOps
+                   + " slack_ops_available=" + slackOpsAvailable
+                   + " slack_ops_used=" + ((ops + planOps) < slackOpsAvailable
+                                             ? (ops + planOps) : slackOpsAvailable)
+                   + " town_sort_ops=" + profile.town_sort_ops + " site_ops=" + profile.site_ops
+                   + " pair_total_ops=" + profile.pair_total_ops
+                   + " pair_filter_rank_ops=" + profile.pair_filter_rank_ops
+                   + " bfs_ops=" + profile.bfs_ops + " economics_ops=" + profile.economics_ops
+                   + " towns=" + profile.towns_considered + " sites=" + profile.sites_found
+                   + " pairs=" + profile.pairs_considered + " range=" + profile.pairs_after_range
+                   + " bfs=" + profile.bfs_attempts + " connected=" + profile.bfs_connected
+                   + " economics=" + profile.economics_attempts
+                   + " positive=" + profile.positive_economics
+                   + " dock_test_ops=" + profile.dock_test_ops
+                   + " site_scan_filter_ops=" + profile.site_scan_filter_ops
+                   + " coast=" + profile.coast_candidates
+                   + " navigable_coast=" + profile.navigable_coast_candidates
+                   + " dock_tests=" + profile.dock_tests);
+      }
     }
+    return true;
+  }
+  if (task.name == "c41_road") {
+    /* C41.15 : un seul acquittement, sans candidats/portefeuille/re-election. */
+    task.dueCycle = 2147483647;
+    if (!C41_ROAD_REFRESH || !C41_REVISION_PROBE || this._staleness == null ||
+        this._staleness.revisions.catalog.road <= this._staleness.acknowledged.catalog.road) {
+      return false;
+    }
+    local revision = this._staleness.revisions.catalog.road;
+    local slackOpsAvailable = AIController.GetOpsTillSuspend();
+    local ops = this._catalog.refreshRoad(this._budget);
+    local stalenessAgeDays = this._staleness.dirtySince.catalog.road >= 0
+        ? AIDate.GetCurrentDate() - this._staleness.dirtySince.catalog.road : -1;
+    this._staleness.acknowledged.catalog.road = revision;
+    this._staleness.catalog.road = false;
+    OpexC39Log("C41_ROAD_REFRESH", "revision=" + revision + " ops=" + ops
+               + " cargo_engines=" + this._catalog.roadEngineByCargo.len()
+               + " staleness_age_days=" + stalenessAgeDays
+               + " slack_ops_available=" + slackOpsAvailable
+               + " slack_ops_used=" + (ops < slackOpsAvailable ? ops : slackOpsAvailable));
+    if (C41_STALENESS_LEDGER) {
+      OpexC41StalenessLog("C41_STALENESS_ACK", "layer=catalog.road method=targeted revision="
+                          + revision + " age_days=" + stalenessAgeDays);
+    }
+    this._staleness.dirtySince.catalog.road = -1;
     return true;
   }
   if (this._projects == null) {
@@ -5916,6 +6241,10 @@ function OpexAI::_runNextTask()
                                    + " double_ok=" + doubleOk + " double_only=" + doubleOnly
                                    + " refresh_ops=" + refreshOps + " refresh_count=" + refreshCount);
     }
+    /* C41.11 : le rapport exclut son propre cout, publie au plus une fois par an. */
+    this._logC41SlackLedger(year);
+    this._logC41OpportunityLedger(year);
+    this._logC41AdmissionLedger(year);
     this._reportYear(year, this._ranked);
     this._reportLines(year);
     return true;
@@ -6140,6 +6469,15 @@ function OpexAI::Start()
   C41_WATER_PRECHECK = AIController.GetSetting("c41_water_precheck") != 0;
   C41_WATER_CANDIDATE_PROBE = AIController.GetSetting("c41_water_candidate_probe") != 0
       && C41_WATER_PRECHECK;
+  C41_WATER_PLANS_PROFILE = AIController.GetSetting("c41_water_plans_profile") != 0
+      && C41_WATER_CANDIDATE_PROBE;
+  C41_WATER_SITE_PROFILE = AIController.GetSetting("c41_water_site_profile") != 0
+      && C41_WATER_PLANS_PROFILE;
+  C41_SLACK_LEDGER = AIController.GetSetting("c41_slack_ledger") != 0;
+  C41_STALENESS_LEDGER = AIController.GetSetting("c41_staleness_ledger") != 0;
+  C41_OPPORTUNITY_LEDGER = AIController.GetSetting("c41_opportunity_ledger") != 0;
+  C41_ADMISSION_LEDGER = AIController.GetSetting("c41_admission_ledger") != 0;
+  C41_ROAD_REFRESH = AIController.GetSetting("c41_road_refresh") != 0;
   C41_RAIL_LOST_PROBE = AIController.GetSetting("c41_rail_lost_probe") != 0;
   C41_RAIL_LOST_TOPOLOGY_PROBE = AIController.GetSetting("c41_rail_lost_topology_probe") != 0;
   C41_RAIL_LOST_PHYSICAL_PROBE = AIController.GetSetting("c41_rail_lost_physical_probe") != 0;
@@ -6159,6 +6497,11 @@ function OpexAI::Start()
   if (C41_WATER_REFRESH && this._taskQueue != null) {
     foreach (task in this._taskQueue) {
       if (task.name == "c41_water") { task.enabled = true; break; }
+    }
+  }
+  if (C41_ROAD_REFRESH && this._taskQueue != null) {
+    foreach (task in this._taskQueue) {
+      if (task.name == "c41_road") { task.enabled = true; break; }
     }
   }
   VIVIER_RATIO_FILTER = AIController.GetSetting("vivier_ratio_filter") != 0;
@@ -6231,13 +6574,13 @@ function OpexAI::Start()
        * On draine desormais le tick tant qu'il reste de quoi travailler. */
       local drained = 0;
       while (AIController.GetOpsTillSuspend() > LOOP_BUDGET_FLOOR && drained < LOOP_BUDGET_MAX_TASKS) {
-        if (!this._runNextTask()) break;
+        if (!this._runNextTaskWithSlackLedger()) break;
         drained++;
       }
       /* Le plancher garde de la marge pour ne pas etre suspendu au milieu d'une transaction, et
        * le plafond de taches empeche un tour de file entierement compose de taches inutiles de
        * bruler le budget en pur ordonnancement. */
-      if (drained == 0) this._runNextTask();
+      if (drained == 0) this._runNextTaskWithSlackLedger();
       /* AUCUN Sleep ici, et c'est deliberé. Le Sleep de fin de tour rendait la main alors qu'il
        * restait du budget, ce qui est un auto-handicap face a une IA qui ne dort pas entre ses
        * chunks (docs/philosophie_armes_egales : les bridages servent aux parties avec des HUMAINS,
@@ -6245,7 +6588,7 @@ function OpexAI::Start()
        * nous reprend au tick suivant exactement ou il nous avait laisses : la boucle reste donc
        * bornee, et la partie avance normalement. */
     } else {
-      this._runNextTask();
+      this._runNextTaskWithSlackLedger();
       AIController.Sleep(1);
     }
   }

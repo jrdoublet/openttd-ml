@@ -933,6 +933,58 @@ reste à trancher indépendamment.
   revoir seulement si une fenêtre de mesure plus large le retrouve. Pas de banc 20×10 : rien à
   comparer tant qu'aucune réparation réelle n'a été observée.
 
+  ✅ **Reproduction élargie : réparation réelle confirmée (6 graines × 10 ans).**
+  `docs/diag_c41_10_junction_repair_10y_6seeds.json` observe 85 diagnostics de connectivité,
+  80 armements/exécutions et zéro erreur. Un seul cas entre exactement dans le périmètre C41.9 :
+  graine 42, ligne 13, véhicule 66, le 1973-06-24 (`a_links=0`, alors que les cinq autres points
+  ont une liaison). La micro-tâche du 1973-07-05 retourne `a=1` ; le même véhicule observe ensuite
+  `a_links=1` le 1973-11-30, et les 14 exécutions ultérieures sur cette ligne retournent toutes
+  `-2`. La séquence `AITestMode` → pose réelle → connexion persistante est donc reproduite sans
+  élargir la portée. **C41.10 est techniquement clos comme réparation expérimentale ciblée** ; le
+  réglage reste à 0. Toute adoption par défaut exige désormais le banc officiel apparié 20×10,
+  car cette mesure établit la sûreté et l'effet local, non le gain de valeur global.
+
+  ✅ **C41.11–C41.12 — deux mesures passives du scheduler, 5 graines × 6 ans.**
+  Le ledger C41.11 (`docs/diag_c41_11_slack_ledger_6y_5seeds.json`) observe 31 599 961
+  opcodes de slack initial, dont 8 882 429 (28,1 %) restent inemployés après la tâche historique.
+  Ils sont surtout laissés par `scrap`, `report`, `refleet`, `projects`, `repay`, `catalog` et
+  `air_fleet`; `expand`, à l'inverse, les épuise. C41.12
+  (`docs/diag_c41_12_staleness_ledger_6y_5seeds.json`) confirme 140 acquittements propres, avec
+  un âge de 17 à 61 jours avant le rebuild historique. Ces chiffres sont des contraintes de
+  conception, non une promesse de gain de profit : le but est d'acheter des opcodes utiles et de
+  réduire l'âge des données sans voler le travail critique.
+
+  ✅ **C41.13–C41.14 — le contrat générique est préparé, mais l'admission est refusée par la
+  mesure.** C41.13 (`docs/diag_c41_13_opportunity_ledger_6y_5seeds.json`) donne 0 reliquat dans
+  ses 62 agrégats de couche stale à 6 ans. Son extension 5×10
+  (`docs/diag_c41_13_opportunity_ledger_10y_5seeds.json`) voit bien 16 851 opcodes cumulés pour
+  `catalog.water`, mais une somme annuelle ne prouve pas qu'une tranche individuelle peut payer
+  un refresh. C41.14 introduit donc le contrat réutilisable « couche + coût prudent + admission
+  dans le reliquat », sans exécuter de travail supplémentaire. Son seul pilote est
+  `catalog.water` à **350 opcodes** (le refresh mesuré vaut ~315–337) : 5×6, puis 5×10
+  (`docs/diag_c41_14_admission_ledger_6y_5seeds.json` et
+  `docs/diag_c41_14_admission_ledger_10y_5seeds.json`) sont sans erreur et comptent **0 admission
+  sur 56 fenêtres** à 10 ans. Le slack agrégé ne peut donc pas être réservé pour une donnée stale
+  dans le tick même. Ne pas encore modifier les priorités ni activer le refresh. Pour ajouter
+  route, rail ou air, il faudra d'abord leur point d'entrée de catalogue isolé et sa mesure de
+  coût ; `OpexWaterPlans` (~114–122 k opcodes) est explicitement hors contrat.
+
+  ✅ **C41.15 — catalogue matériel route ciblé, diagnostic 5 graines × 6 ans.**
+  `c41_road_refresh=0` expose `OpexCatalog::refreshRoad()` et arme la micro-tâche seulement pour
+  un `AIEvent.ET_ENGINE_AVAILABLE` de type route ; elle acquitte uniquement `catalog.road`, jamais
+  les candidats, le portefeuille ou la sélection. Le diagnostic
+  `docs/diag_c41_15_road_refresh_6y_5seeds.json` est sain : **9 refreshes**, **31 967 opcodes**
+  (≈3 552 chacun) et des âges de 0 à 22 jours (médiane 1 jour). Les ouvertures/fermetures
+  d'industrie restent séparées (`catalog.industries` + candidats route), ce qui confirme le
+  périmètre. Le comparatif apparié 5×6
+  (`docs/diag_c41_15_road_refresh_paired_6y_5seeds.json`) retrouve les **9** refreshes (31 966
+  opcodes) mais donne le mauvais signal : le contrôle OFF dépasse ON en valeur sur les **5/5**
+  graines (+1,00 % en moyenne), en profit trimestriel sur 4/5 (+16,7 %) et en profit annuel sur
+  5/5 (+3,46 %). La fréquence est trop faible et la dispersion trop forte pour estimer un effet
+  précis, mais son signe ne justifie pas un banc officiel 20×10. Conserver le réglage à 0 et ne
+  pas étendre ce type de préemption ; la fraîcheur seule ne compense pas forcément le déplacement
+  temporel des autres tâches.
+
   ✅ **C39.4 — les cinq avions « rejetés » sont dominés, non invalides.** La sonde
   `c39_air_reason_probe=0`, sur 5 graines × 6 ans
   (`docs/diag_c39_air_reason_6y_5seeds.json`), est saine : les cinq notifications sont le moteur

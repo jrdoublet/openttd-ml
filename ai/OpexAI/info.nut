@@ -276,6 +276,69 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C41.3a : attributer le cout de la sonde aux etapes physiques, sans changer son resultat. */
+    AddSetting({
+      name = "c41_water_plans_profile",
+      description = "C41.3a probe: split temporary water-plan cost into sites, pairs, BFS and economics; requires c41_water_candidate_probe=1; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* C41.3b : ne change que les compteurs internes au profile C41.3a. */
+    AddSetting({
+      name = "c41_water_site_profile",
+      description = "C41.3b probe: split water site search into coastline filtering and test-mode dock commands; requires c41_water_plans_profile=1; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* C41.11 : audit annuel du budget perdu par le scheduler historique, sans le modifier. */
+    AddSetting({
+      name = "c41_slack_ledger",
+      description = "C41.11 probe: aggregate scheduler task opcode use and initial slack annually; no scheduling change; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* C41.12 : ages par couche, seulement au moment d'un acquittement effectif. */
+    AddSetting({
+      name = "c41_staleness_ledger",
+      description = "C41.12 probe: log coalesced staleness age for each layer when actually acknowledged; no scheduling change; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* C41.13 : combien de reliquat le scheduler historique laisse aux couches encore stale. */
+    AddSetting({
+      name = "c41_opportunity_ledger",
+      description = "C41.13 probe: aggregate opcode slack observed while each C41 layer remains stale; no scheduling change; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* C41.14 : pilote d'admission, aucune tache supplementaire n'est executee ici. */
+    AddSetting({
+      name = "c41_admission_ledger",
+      description = "C41.14 probe: count stale targeted-catalog microtasks that fit their declared opcode hint; no scheduling change; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* C41.15 : invalide seulement le materiel route, pas les candidats derives. */
+    AddSetting({
+      name = "c41_road_refresh",
+      description = "C41.15 experimental: refresh only catalog.road after a road EngineAvailable; requires C39/C41 probes; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* C41.4 : inventaire passif des vehicules perdus, independant de l'alerte A7.4. */
     AddSetting({
       name = "c41_vehicle_lost_probe",

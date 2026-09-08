@@ -10,6 +10,7 @@ C41_RAIL_JUNCTION_ARM/C41_RAIL_JUNCTION_REPAIR (code par point : -3 illisible, -
 faire, 0 test refuse, 1 pose+connexion confirmees, 2 pose acceptee mais toujours deconnecte).
 """
 import argparse
+import json
 import re
 from pathlib import Path
 
@@ -65,32 +66,46 @@ def main():
     parser.add_argument("--years", type=int, default=6)
     parser.add_argument("--out", type=Path,
                         default=Path("docs/diag_c41_10_junction_repair_6y_5seeds.json"))
+    parser.add_argument("--checkpoint", type=Path,
+                        help="recompose le rapport depuis un checkpoint JSONL deja termine")
     args = parser.parse_args()
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    bench_v2.CHECKPOINT_PATH = args.out.with_suffix(".jsonl")
-    if bench_v2.CHECKPOINT_PATH.exists():
-        bench_v2.CHECKPOINT_PATH.unlink()
-    enable_savegame_cleanup()
 
     arm_name = "OpexAI[c41_rail_lost_connectivity_probe=1,c41_rail_lost_junction_repair=1]"
-    arms = build_arms([arm_name])
-    cfg = make_cfg(1970)
-
-    rows = list(run_experiments(
-        openttd_version=OPENTTD_VERSION,
-        opengfx_version=OPENGFX_VERSION,
-        max_workers=3,
-        result_processor=keep,
-        experiments=[
-            {"seed": seed, "days": 365 * args.years, "openttd_config": cfg,
-             "ais": (arms[arm_name],), "bench_run": [arm_name, seed, 0]}
-            for seed in args.seeds
-        ],
-        ai_libraries=(
-            bananas_ai_library("51554648", "Queue.FibonacciHeap"),
-            bananas_ai_library("5046524c", "Pathfinder.Rail"),
-        ),
-    ))
+    if args.checkpoint is None:
+        bench_v2.CHECKPOINT_PATH = args.out.with_suffix(".jsonl")
+        if bench_v2.CHECKPOINT_PATH.exists():
+            bench_v2.CHECKPOINT_PATH.unlink()
+        enable_savegame_cleanup()
+        arms = build_arms([arm_name])
+        cfg = make_cfg(1970)
+        rows = list(run_experiments(
+            openttd_version=OPENTTD_VERSION,
+            opengfx_version=OPENGFX_VERSION,
+            max_workers=3,
+            result_processor=keep,
+            experiments=[
+                {"seed": seed, "days": 365 * args.years, "openttd_config": cfg,
+                 "ais": (arms[arm_name],), "bench_run": [arm_name, seed, 0]}
+                for seed in args.seeds
+            ],
+            ai_libraries=(
+                bananas_ai_library("51554648", "Queue.FibonacciHeap"),
+                bananas_ai_library("5046524c", "Pathfinder.Rail"),
+            ),
+        ))
+    else:
+        with args.checkpoint.open() as fh:
+            rows = [json.loads(line) for line in fh if line.strip()]
+        rows = [row for row in rows if row["run"][1] in args.seeds]
+        expected_rows = args.years * 12
+        by_seed = {}
+        for row in rows:
+            by_seed.setdefault(row["run"][1], 0)
+            by_seed[row["run"][1]] += 1
+        incomplete = [seed for seed in args.seeds if by_seed.get(seed, 0) != expected_rows]
+        if incomplete:
+            raise ValueError("checkpoint incomplet pour les graines: " + ", ".join(map(str, incomplete)))
 
     by_run = {}
     for row in rows:
@@ -147,7 +162,6 @@ def main():
         "arm_events": arms_events,
         "repair_events": repairs,
     }
-    import json
     with open(args.out, "w") as fh:
         json.dump(payload, fh, indent=1, ensure_ascii=False)
 

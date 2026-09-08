@@ -56,7 +56,7 @@ def parse_trace(output):
             continue
         year, month, day, kind, rest = match.groups()
         if kind not in ("C39_DIRTY", "C39_REFRESH", "C39_DECISION_DELTA", "C39_ENGINE_DELTA",
-                        "C41_REVISION", "C41_ACK", "C41_WATER_REFRESH", "C41_WATER_PLANS", "C41_VEHICLE_LOST", "C41_RAIL_LOST", "C41_RAIL_LOST_TOPOLOGY", "C41_RAIL_LOST_PHYSICAL", "C41_RAIL_SIGNAL_ARM", "C41_RAIL_SIGNAL_REPAIR", "C41_RAIL_LOST_CONNECTIVITY",
+                        "C41_REVISION", "C41_ACK", "C41_WATER_REFRESH", "C41_ROAD_REFRESH", "C41_WATER_PLANS", "C41_WATER_PLAN_PROFILE", "C41_SLACK_LEDGER", "C41_STALENESS_ACK", "C41_OPPORTUNITY_LEDGER", "C41_ADMISSION_LEDGER", "C41_VEHICLE_LOST", "C41_RAIL_LOST", "C41_RAIL_LOST_TOPOLOGY", "C41_RAIL_LOST_PHYSICAL", "C41_RAIL_SIGNAL_ARM", "C41_RAIL_SIGNAL_REPAIR", "C41_RAIL_LOST_CONNECTIVITY",
                         "C39_AIR_ENGINE_REASON"):
             continue
         events.append({
@@ -91,6 +91,20 @@ def main():
                         help="active le prefiltre experimental C41.2 (implique C41.1)")
     parser.add_argument("--c41-water-candidate-probe", action="store_true",
                         help="active la sonde C41.3 de plans eau (implique C41.1/C41.2)")
+    parser.add_argument("--c41-water-plans-profile", action="store_true",
+                        help="active C41.3a : ventilation sites/paires/BFS/economie et metriques de fraicheur")
+    parser.add_argument("--c41-water-site-profile", action="store_true",
+                        help="active C41.3b : sous-ventilation filtre cotier vs AITestMode dock")
+    parser.add_argument("--c41-slack-ledger", action="store_true",
+                        help="active C41.11 : ledger annuel passif du slack par categorie de scheduler")
+    parser.add_argument("--c41-staleness-ledger", action="store_true",
+                        help="active C41.12 : age passif de chaque couche au moment de son acquittement")
+    parser.add_argument("--c41-opportunity-ledger", action="store_true",
+                        help="active C41.13 : slack observe pendant que chaque couche reste stale")
+    parser.add_argument("--c41-admission-ledger", action="store_true",
+                        help="active C41.14 : admissibilite passive de la micro-tache catalogue ciblee")
+    parser.add_argument("--c41-road-refresh", action="store_true",
+                        help="active C41.15 : refresh cible du catalogue route apres EngineAvailable route")
     parser.add_argument("--c41-vehicle-lost-probe", action="store_true",
                         help="active la sonde C41.4 d'attribution passive VehicleLost")
     parser.add_argument("--c41-rail-lost-probe", action="store_true",
@@ -130,14 +144,30 @@ def main():
     if args.c41_rail_lost_connectivity_probe:
         settings.append(("c41_rail_lost_connectivity_probe", 1))
     if (args.c41_revision_probe or args.c41_water_refresh or args.c41_water_precheck
-            or args.c41_water_candidate_probe):
+            or args.c41_water_candidate_probe or args.c41_water_plans_profile or args.c41_water_site_profile
+            or args.c41_staleness_ledger or args.c41_opportunity_ledger or args.c41_admission_ledger
+            or args.c41_road_refresh):
         settings.append(("c41_revision_probe", 1))
-    if args.c41_water_refresh or args.c41_water_precheck or args.c41_water_candidate_probe:
+    if args.c41_water_refresh or args.c41_water_precheck or args.c41_water_candidate_probe or args.c41_water_plans_profile or args.c41_water_site_profile:
         settings.append(("c41_water_refresh", 1))
-    if args.c41_water_precheck or args.c41_water_candidate_probe:
+    if args.c41_water_precheck or args.c41_water_candidate_probe or args.c41_water_plans_profile or args.c41_water_site_profile:
         settings.append(("c41_water_precheck", 1))
-    if args.c41_water_candidate_probe:
+    if args.c41_water_candidate_probe or args.c41_water_plans_profile or args.c41_water_site_profile:
         settings.append(("c41_water_candidate_probe", 1))
+    if args.c41_water_plans_profile or args.c41_water_site_profile:
+        settings.append(("c41_water_plans_profile", 1))
+    if args.c41_water_site_profile:
+        settings.append(("c41_water_site_profile", 1))
+    if args.c41_slack_ledger:
+        settings.append(("c41_slack_ledger", 1))
+    if args.c41_staleness_ledger:
+        settings.append(("c41_staleness_ledger", 1))
+    if args.c41_opportunity_ledger:
+        settings.append(("c41_opportunity_ledger", 1))
+    if args.c41_admission_ledger:
+        settings.append(("c41_admission_ledger", 1))
+    if args.c41_road_refresh:
+        settings.append(("c41_road_refresh", 1))
     ai = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", tuple(settings))
     experiments = [
         {"seed": seed, "days": 365 * args.years, "openttd_config": make_cfg(1970), "ais": (ai,)}
@@ -171,7 +201,13 @@ def main():
         c41_revisions = [event for event in trace if event["kind"] == "C41_REVISION"]
         c41_acks = [event for event in trace if event["kind"] == "C41_ACK"]
         c41_water_refreshes = [event for event in trace if event["kind"] == "C41_WATER_REFRESH"]
+        c41_road_refreshes = [event for event in trace if event["kind"] == "C41_ROAD_REFRESH"]
         c41_water_plan_probes = [event for event in trace if event["kind"] == "C41_WATER_PLANS"]
+        c41_water_plan_profiles = [event for event in trace if event["kind"] == "C41_WATER_PLAN_PROFILE"]
+        c41_slack_ledger = [event for event in trace if event["kind"] == "C41_SLACK_LEDGER"]
+        c41_staleness_acks = [event for event in trace if event["kind"] == "C41_STALENESS_ACK"]
+        c41_opportunity_ledger = [event for event in trace if event["kind"] == "C41_OPPORTUNITY_LEDGER"]
+        c41_admission_ledger = [event for event in trace if event["kind"] == "C41_ADMISSION_LEDGER"]
         c41_vehicle_lost = [event for event in trace if event["kind"] == "C41_VEHICLE_LOST"]
         c41_rail_lost = [event for event in trace if event["kind"] == "C41_RAIL_LOST"]
         c41_rail_lost_topology = [event for event in trace if event["kind"] == "C41_RAIL_LOST_TOPOLOGY"]
@@ -196,9 +232,29 @@ def main():
             "c41_acknowledgements": len(c41_acks),
             "c41_water_refreshes": len(c41_water_refreshes),
             "c41_water_ops": sum(int(event["fields"].get("ops", 0)) for event in c41_water_refreshes),
+            "c41_road_refreshes": len(c41_road_refreshes),
+            "c41_road_ops": sum(int(event["fields"].get("ops", 0)) for event in c41_road_refreshes),
+            "c41_road_staleness_age_days": [int(event["fields"].get("staleness_age_days", -1))
+                                             for event in c41_road_refreshes],
             "c41_water_plan_probes": len(c41_water_plan_probes),
             "c41_water_plan_ops": sum(int(event["fields"].get("ops", 0)) for event in c41_water_plan_probes),
             "c41_water_plans": sum(int(event["fields"].get("plans", 0)) for event in c41_water_plan_probes),
+            "c41_water_plan_profiles": len(c41_water_plan_profiles),
+            "c41_water_staleness_age_days": [int(event["fields"].get("staleness_age_days", -1))
+                                              for event in c41_water_refreshes],
+            "c41_water_slack_ops_used": sum(int(event["fields"].get("slack_ops_used", 0))
+                                              for event in c41_water_refreshes),
+            "c41_water_profile_slack_ops_used": sum(int(event["fields"].get("slack_ops_used", 0))
+                                                      for event in c41_water_plan_profiles),
+            "c41_water_profile_ops": {
+                key: sum(int(event["fields"].get(key, 0)) for event in c41_water_plan_profiles)
+                for key in ("town_sort_ops", "site_ops", "site_scan_filter_ops", "dock_test_ops",
+                            "pair_total_ops", "pair_filter_rank_ops", "bfs_ops", "economics_ops")
+            },
+            "c41_slack_ledger": [event["fields"] for event in c41_slack_ledger],
+            "c41_staleness_acknowledgements": [event["fields"] for event in c41_staleness_acks],
+            "c41_opportunity_ledger": [event["fields"] for event in c41_opportunity_ledger],
+            "c41_admission_ledger": [event["fields"] for event in c41_admission_ledger],
             "c41_vehicle_lost": len(c41_vehicle_lost),
             "c41_vehicle_lost_mapped": sum(event["fields"].get("orphan") == "0" for event in c41_vehicle_lost),
             "c41_vehicle_lost_orphan": sum(event["fields"].get("orphan") == "1" for event in c41_vehicle_lost),
@@ -245,7 +301,13 @@ def main():
     c41_revisions = [event for event in all_events if event["kind"] == "C41_REVISION"]
     c41_acks = [event for event in all_events if event["kind"] == "C41_ACK"]
     c41_water_refreshes = [event for event in all_events if event["kind"] == "C41_WATER_REFRESH"]
+    c41_road_refreshes = [event for event in all_events if event["kind"] == "C41_ROAD_REFRESH"]
     c41_water_plan_probes = [event for event in all_events if event["kind"] == "C41_WATER_PLANS"]
+    c41_water_plan_profiles = [event for event in all_events if event["kind"] == "C41_WATER_PLAN_PROFILE"]
+    c41_slack_ledger = [event for event in all_events if event["kind"] == "C41_SLACK_LEDGER"]
+    c41_staleness_acks = [event for event in all_events if event["kind"] == "C41_STALENESS_ACK"]
+    c41_opportunity_ledger = [event for event in all_events if event["kind"] == "C41_OPPORTUNITY_LEDGER"]
+    c41_admission_ledger = [event for event in all_events if event["kind"] == "C41_ADMISSION_LEDGER"]
     c41_vehicle_lost = [event for event in all_events if event["kind"] == "C41_VEHICLE_LOST"]
     c41_rail_lost = [event for event in all_events if event["kind"] == "C41_RAIL_LOST"]
     c41_rail_lost_topology = [event for event in all_events if event["kind"] == "C41_RAIL_LOST_TOPOLOGY"]
@@ -273,9 +335,29 @@ def main():
         "c41_acknowledgements": len(c41_acks),
         "c41_water_refreshes": len(c41_water_refreshes),
         "c41_water_ops": sum(int(event["fields"].get("ops", 0)) for event in c41_water_refreshes),
+        "c41_road_refreshes": len(c41_road_refreshes),
+        "c41_road_ops": sum(int(event["fields"].get("ops", 0)) for event in c41_road_refreshes),
+        "c41_road_staleness_age_days": [int(event["fields"].get("staleness_age_days", -1))
+                                          for event in c41_road_refreshes],
         "c41_water_plan_probes": len(c41_water_plan_probes),
         "c41_water_plan_ops": sum(int(event["fields"].get("ops", 0)) for event in c41_water_plan_probes),
         "c41_water_plans": sum(int(event["fields"].get("plans", 0)) for event in c41_water_plan_probes),
+        "c41_water_plan_profiles": len(c41_water_plan_profiles),
+        "c41_water_staleness_age_days": [int(event["fields"].get("staleness_age_days", -1))
+                                          for event in c41_water_refreshes],
+        "c41_water_slack_ops_used": sum(int(event["fields"].get("slack_ops_used", 0))
+                                          for event in c41_water_refreshes),
+        "c41_water_profile_slack_ops_used": sum(int(event["fields"].get("slack_ops_used", 0))
+                                                  for event in c41_water_plan_profiles),
+        "c41_water_profile_ops": {
+            key: sum(int(event["fields"].get(key, 0)) for event in c41_water_plan_profiles)
+            for key in ("town_sort_ops", "site_ops", "site_scan_filter_ops", "dock_test_ops",
+                        "pair_total_ops", "pair_filter_rank_ops", "bfs_ops", "economics_ops")
+        },
+        "c41_slack_ledger": [event["fields"] for event in c41_slack_ledger],
+        "c41_staleness_acknowledgements": [event["fields"] for event in c41_staleness_acks],
+        "c41_opportunity_ledger": [event["fields"] for event in c41_opportunity_ledger],
+        "c41_admission_ledger": [event["fields"] for event in c41_admission_ledger],
         "c41_vehicle_lost": len(c41_vehicle_lost),
         "c41_vehicle_lost_mapped": sum(event["fields"].get("orphan") == "0" for event in c41_vehicle_lost),
         "c41_vehicle_lost_orphan": sum(event["fields"].get("orphan") == "1" for event in c41_vehicle_lost),
@@ -318,11 +400,24 @@ def main():
         "settings": {"c39_invalidation_probe": 1, "c39_decision_delta_probe": 1,
                      "c39_air_reason_probe": int(args.c39_air_reason_probe),
                      "c41_revision_probe": int(args.c41_revision_probe or args.c41_water_refresh
-                                                or args.c41_water_precheck or args.c41_water_candidate_probe),
+                                                or args.c41_water_precheck or args.c41_water_candidate_probe
+                                                or args.c41_water_plans_profile or args.c41_water_site_profile
+                                                or args.c41_staleness_ledger or args.c41_opportunity_ledger
+                                                or args.c41_admission_ledger or args.c41_road_refresh),
                      "c41_water_refresh": int(args.c41_water_refresh or args.c41_water_precheck
-                                                or args.c41_water_candidate_probe),
-                     "c41_water_precheck": int(args.c41_water_precheck or args.c41_water_candidate_probe),
-                     "c41_water_candidate_probe": int(args.c41_water_candidate_probe),
+                                                or args.c41_water_candidate_probe or args.c41_water_plans_profile
+                                                or args.c41_water_site_profile),
+                     "c41_water_precheck": int(args.c41_water_precheck or args.c41_water_candidate_probe
+                                                or args.c41_water_plans_profile or args.c41_water_site_profile),
+                     "c41_water_candidate_probe": int(args.c41_water_candidate_probe or args.c41_water_plans_profile
+                                                        or args.c41_water_site_profile),
+                     "c41_water_plans_profile": int(args.c41_water_plans_profile or args.c41_water_site_profile),
+                     "c41_water_site_profile": int(args.c41_water_site_profile),
+                     "c41_slack_ledger": int(args.c41_slack_ledger),
+                     "c41_staleness_ledger": int(args.c41_staleness_ledger),
+                     "c41_opportunity_ledger": int(args.c41_opportunity_ledger),
+                     "c41_admission_ledger": int(args.c41_admission_ledger),
+                     "c41_road_refresh": int(args.c41_road_refresh),
                      "c41_vehicle_lost_probe": int(args.c41_vehicle_lost_probe or args.c41_rail_lost_probe),
                      "c41_rail_lost_probe": int(args.c41_rail_lost_probe or args.c41_rail_lost_topology_probe or args.c41_rail_lost_physical_probe or args.c41_rail_lost_signal_repair),
                      "c41_rail_lost_topology_probe": int(args.c41_rail_lost_topology_probe),
