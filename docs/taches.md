@@ -1404,36 +1404,54 @@ reste à trancher indépendamment.
   différence de `ROAD_ACCEPTANCE_FULL_UNIT` (règle moteur vérifiée), c'est une valeur posée à vue,
   jamais mesurée contre le coût réel d'un rafraîchissement (`OpexCatalog.refresh()`).
 
-  🔴 **Comparaison faite (2026-09-08) : la prémisse du réglage est contredite par une mesure déjà
-  publiée.** [[catalogue_churn_et_cout]] (2026-08-28, `ai/CatalogProbe/`, `docs/catalogue_churn.json`,
-  carte 42 villes/~45 industries) a déjà chiffré le coût exact d'`OpexCatalog.refresh()` :
-  **21 492 opcodes = 2,1 ticks = 0,0080 % du budget ANNUEL** (0,096 % mensuel) — et concluait déjà,
-  indépendamment de ce sujet : *« le coût est négligeable à toute fréquence raisonnable […]
-  rafraîchir richement, ne PAS optimiser »*. Le commentaire de `PORTFOLIO_REFRESH_MIN_GAIN`
-  affirme l'inverse : *« en dessous, le coût en opcodes ne vaut pas la peine d'être payé pour
-  quelques milliers de livres »*. **Les deux ne peuvent pas être vrais en même temps** — la mesure
-  de 2026-08-28 dit que 2,1 ticks sont négligeables à N'IMPORTE QUEL gain, y compris quelques
-  milliers de livres ; le réglage de famille 2 suppose au contraire qu'un gain sous 50 000 £ ne
-  couvre pas ce coût. Aucun calcul dans le code ne relie jamais le seuil de 50 000 £ à un coût en
-  opcodes précis — c'est une valeur posée à vue (§ ci-dessus), maintenant en contradiction directe
-  avec une mesure existante, pas seulement non vérifiée.
+  🔴 **CORRIGÉ (2026-09-08) : le verdict « mal calibré » ci-dessus reposait sur une mesure
+  fausse, remplacée par une mesure directe sur le code actuel.** La comparaison précédente
+  réutilisait [[catalogue_churn_et_cout]] (2026-08-28, `ai/CatalogProbe/`) telle quelle —
+  21 492 opcodes — sans vérifier que cette IA-sonde reproduisait fidèlement le vrai
+  `OpexCatalog.refresh()`. Elle ne le fait pas : `CatalogProbe` réimplémente une version
+  simplifiée (population des villes, comptage de moteurs, un score de paires basique), pas les
+  vraies `_refreshTowns`/`_refreshIndustries`/`_refreshRail`/`_refreshAir`/`_refreshWater`/
+  `_refreshCargos` de `catalog.nut`, nettement plus riches.
 
-  ⚠️ **Bémol avant de conclure : la mesure de coût date du 2026-08-28, sur UNE carte précise.** Le
-  coût de `refresh()` est dominé à 87 % par les paires de villes en O(N²) (18 708/21 492 opcodes) ;
-  les graines de ce diagnostic ont 39 à 52 villes selon la mesure `project_top_k_dynamic` plus haut
-  dans ce document — du même ordre de grandeur que les 42 de la mesure de coût, donc la conclusion
-  « négligeable » tient probablement encore, mais n'a pas été rechiffrée sur les 5 graines exactes
-  de ce diagnostic ni sur le code actuel.
+  **Mesure directe faite (2026-09-08)** : `refresh()` s'auto-chronomètre déjà en interne par
+  sous-phase (`budget.begin()/end("cat_*")`, sans jamais rien journaliser) ; enveloppé
+  entièrement par `OpexOpsMeasureBegin()/End()` (mesure autonome, ne touche pas l'instance
+  partagée non réentrante) dans la tâche `catalog`, sous `portfolio_refresh_probe=1` (même
+  réglage que le diagnostic précédent, étendu). 5 graines × 6 ans
+  (`docs/diag_portfolio_refresh_probe_6y_5seeds_v2.json`), **239 rafraîchissements réels
+  mesurés, 0 erreur** :
 
-  🔶 **Verdict : le plancher de 50 000 £ semble mal calibré (bloque 90 % des doublements pour un
-  coût qu'une mesure indépendante dit négligeable), mais ceci reste une inférence, pas une mesure
-  de l'effet économique.** Avant de toucher au code par défaut : (1) rechiffrer le coût de
-  `refresh()` sur les graines/le code actuels plutôt que de réutiliser une mesure de 11 jours plus
-  ancienne telle quelle ; (2) diagnostic apparié (5 graines × 6 ans) `PORTFOLIO_REFRESH_MIN_GAIN=0`
-  (ou une valeur nettement plus basse, ex. 5 000) contre le défaut 50 000, sur `company_value` et
-  `performance_history` — la question posée par ce paragraphe est « le seuil est-il trop haut au
-  regard du coût », pas encore « est-ce que le baisser aide vraiment » : ce second point exige sa
-  propre mesure économique avant tout changement de défaut.
+  | | valeur |
+  |---|---:|
+  | coût moyen par rafraîchissement | **263 246 opcodes = 26,3 ticks** |
+  | comparé à `CatalogProbe` (2026-08-28) | **×12,2** (21 492 → 263 246) |
+  | total sur 30 graine-années | 62 915 815 opcodes |
+  | rafraîchissements / graine-année | ~8,0 (239 / 30) |
+  | part du budget annuel (≈270 M opcodes/an) | **≈0,78 %** en cumulé (contre 0,0080 % annoncé) |
+
+  Cohérent par graine (260 973 à 268 741 opcodes moyens, jamais loin de 263 246) — **la mesure
+  précédente sous-évaluait le coût réel d'un facteur ~12, probablement parce que `CatalogProbe`
+  ne simule pas le travail économique réel** (candidats, notes de gare, acceptation de cargo,
+  etc.) que `_refreshTowns`/`_refreshIndustries`/`_refreshRail` font vraiment.
+
+  🔴 **Le verdict s'inverse : la prémisse du réglage n'est PAS contredite, elle est plausible.**
+  26,3 ticks est un coût réel et non négligeable sous la philosophie flux — plus de deux ticks et
+  demi entiers d'un seul rafraîchissement, avec `LOOP_BUDGET` éteint par défaut (une seule tâche
+  par tick, cf. `LOOP_BUDGET_FLOOR` ci-dessus), donc plusieurs ticks consécutifs suspendus sur ce
+  seul appel plutôt que sur une tentative de construction. Le raisonnement du commentaire
+  (« l'opcode ne vaut pas la peine d'être payé pour quelques milliers de livres ») n'est plus
+  contredit par une mesure indépendante — il est maintenant cohérent avec elle. **Le chiffre
+  précis de 50 000 £ reste néanmoins non vérifié** : aucun calcul dans le code ne relie encore ce
+  montant à ce coût en opcodes précis (26,3 ticks vaut-il 50 000 £ ou 20 000 £ ? aucune conversion
+  n'existe dans ce projet entre opcodes et livres). C'est desormais une vraie question ouverte, pas
+  une conclusion dans un sens ou dans l'autre — ni « mal calibré », ni « confirmé juste ».
+
+  🔶 **Verdict final sur ce sujet : pas de banc, pas de changement de défaut.** La correction
+  retire l'argument qui aurait motivé de tester une valeur plus basse. Rouvrir seulement si une
+  future mesure établit un lien quantifié entre coût en opcodes et gain en capital (par exemple :
+  combien de £ de construction manquée représentent 26,3 ticks perdus, en moyenne, dans ce
+  portefeuille) — sans cela, changer 50 000 £ serait à nouveau une valeur posée à vue, pas mieux
+  fondée que l'actuelle.
 
   🔶 **Reste à faire pour clore famille 2** : 5 constantes sans compteur binaire prêt à l'emploi —
   `PAX_NEAR_MIN_PROFIT`, `ORIGIN_SEPARATION`, `ROAD_MIN_DISTANCE`, `DEAD_STREAK_THRESHOLD`,

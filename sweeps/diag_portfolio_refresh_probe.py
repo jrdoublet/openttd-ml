@@ -110,12 +110,16 @@ def main():
             f = ev["fields"]
             yearly.append({"seed": seed, "year": f["year"],
                            "checks": int(f["checks"]), "gain_ok": int(f["gain_ok"]),
-                           "double_ok": int(f["double_ok"]), "double_only": int(f["double_only"])})
+                           "double_ok": int(f["double_ok"]), "double_only": int(f["double_only"]),
+                           "refresh_ops": int(f.get("refresh_ops", 0)),
+                           "refresh_count": int(f.get("refresh_count", 0))})
 
     total_checks = sum(r["checks"] for r in yearly)
     total_gain_ok = sum(r["gain_ok"] for r in yearly)
     total_double_ok = sum(r["double_ok"] for r in yearly)
     total_double_only = sum(r["double_only"] for r in yearly)
+    total_refresh_ops = sum(r["refresh_ops"] for r in yearly)
+    total_refresh_count = sum(r["refresh_count"] for r in yearly)
 
     per_seed = {}
     for seed in args.seeds:
@@ -125,6 +129,8 @@ def main():
             "gain_ok": sum(r["gain_ok"] for r in seed_rows),
             "double_ok": sum(r["double_ok"] for r in seed_rows),
             "double_only": sum(r["double_only"] for r in seed_rows),
+            "refresh_ops": sum(r["refresh_ops"] for r in seed_rows),
+            "refresh_count": sum(r["refresh_count"] for r in seed_rows),
         }
 
     payload = {
@@ -135,6 +141,9 @@ def main():
         "pct_gain_ok": (100.0 * total_gain_ok / total_checks) if total_checks else None,
         "pct_double_ok": (100.0 * total_double_ok / total_checks) if total_checks else None,
         "pct_double_only": (100.0 * total_double_only / total_checks) if total_checks else None,
+        "total_refresh_ops": total_refresh_ops, "total_refresh_count": total_refresh_count,
+        "mean_refresh_ops": (total_refresh_ops / float(total_refresh_count))
+                            if total_refresh_count else None,
         "per_seed": per_seed,
         "yearly": yearly,
     }
@@ -146,6 +155,8 @@ def main():
           f"total_double_ok={total_double_ok} total_double_only={total_double_only}"
           if total_checks else "no checks captured")
     print("pct:", payload["pct_gain_ok"], payload["pct_double_ok"], payload["pct_double_only"])
+    print(f"total_refresh_count={total_refresh_count} total_refresh_ops={total_refresh_ops} "
+          f"mean_refresh_ops={payload['mean_refresh_ops']}")
     print("errors:", errors)
     print("per_seed:", per_seed)
     print("out", args.out)
