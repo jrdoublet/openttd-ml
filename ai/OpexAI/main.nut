@@ -96,6 +96,38 @@ AIR_JOINED_STOPS <- false;
 PORTFOLIO_FRESH_BUDGET <- false;
 /* C36.1 : Caching incremental du vivier post-chantier. */
 PORTFOLIO_CACHE <- false;
+/* C39.0 : sonde passive du bus d'invalidation. A 1, les evenements marquent les
+ * dependances qui SERAIENT rafraichies et journalisent la passe mensuelle actuelle ;
+ * ils ne changent ni sa cadence, ni les candidats, ni les decisions. */
+C39_INVALIDATION_PROBE <- false;
+/* C39.3 : sonde de l'effet réel d'une invalidation sur le catalogue et le premier projet. */
+C39_DECISION_DELTA_PROBE <- false;
+/* C39.4 : explique pourquoi un EngineAvailable air n'est pas retenu par les combos. */
+C39_AIR_REASON_PROBE <- false;
+/* C39.2 : premier consommateur actif, limite aux nouveaux moteurs ; reste experimental. */
+C39_ENGINE_REFRESH <- false;
+/* C41.0 : registre passif revision/acquittement pour les futures micro-taches ciblees. */
+C41_REVISION_PROBE <- false;
+/* C41.1 : consomme seulement catalog.water ; candidat/portefeuille restent au flux historique. */
+C41_WATER_REFRESH <- false;
+/* C41.2 : prefiltre local un moteur eau avant d'armer C41.1 ; experimental et eteint. */
+C41_WATER_PRECHECK <- false;
+/* C41.3 : sonde passive du cout de OpexWaterPlans apres C41.1/C41.2. */
+C41_WATER_CANDIDATE_PROBE <- false;
+/* C41.4 : sonde strictement passive des vehicules perdus. Contrairement a A7.4,
+ * elle n'ecrit ni compteur de ligne ni signe, et n'arme aucune tache. */
+C41_VEHICLE_LOST_PROBE <- false;
+/* C41.5 : détail rail de C41.4 ; aucune réparation, seulement l'état observable au Lost. */
+C41_RAIL_LOST_PROBE <- false;
+/* C41.6 : corrélation de topologie persistée des mêmes Lost rail, sans action. */
+C41_RAIL_LOST_TOPOLOGY_PROBE <- false;
+/* C41.7 : lecture locale des approches/depots d'une ligne double en Lost, sans route ni mutation. */
+C41_RAIL_LOST_PHYSICAL_PROBE <- false;
+/* C41.8 : réparation expérimentale, idempotente et limitée aux approches simples d'une ligne
+ * double ayant réellement émis VehicleLost. */
+C41_RAIL_LOST_SIGNAL_REPAIR <- false;
+/* C41.9 : sonde locale de connectivite, sans recherche de chemin ni commande. */
+C41_RAIL_LOST_CONNECTIVITY_PROBE <- false;
 /* air_fleet_probe : _resizeAirFleets n'emet que ses SUCCES (FG|). Quand une ligne aerienne
  * n'grandit pas, la cause est invisible. FR| donne le premier refus rencontre, une fois par ligne
  * et par an. */
@@ -150,6 +182,214 @@ function OpexDecide(kind, fields)
   }
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " " + kind + " " + fields);
+}
+
+/* C39.0 : le journal de la sonde est indépendant de DECISION_LOG. Ce dernier instrumente toute
+ * l'IA et change son budget d'opcodes ; C39 doit pouvoir observer le seul routeur passif. */
+function OpexC39Log(kind, fields)
+{
+  if (!C39_INVALIDATION_PROBE) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " " + kind + " " + fields);
+}
+
+/* C41.4 reste observable sans armer C39 : c'est un inventaire de l'evenement, pas une
+ * invalidation de catalogue. */
+function OpexC41VehicleLostLog(fields)
+{
+  if (!C41_VEHICLE_LOST_PROBE) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " C41_VEHICLE_LOST " + fields);
+}
+
+function OpexC41RailLostLog(fields)
+{
+  if (!C41_RAIL_LOST_PROBE) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " C41_RAIL_LOST " + fields);
+}
+
+function OpexC41RailLostTopologyLog(fields)
+{
+  if (!C41_RAIL_LOST_TOPOLOGY_PROBE) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " C41_RAIL_LOST_TOPOLOGY " + fields);
+}
+
+function OpexC41RailLostPhysicalLog(fields)
+{
+  if (!C41_RAIL_LOST_PHYSICAL_PROBE) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " C41_RAIL_LOST_PHYSICAL " + fields);
+}
+
+function OpexC41RailSignalRepairLog(kind, fields)
+{
+  if (!C41_RAIL_LOST_SIGNAL_REPAIR) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " " + kind + " " + fields);
+}
+
+function OpexC41RailLostConnectivityLog(fields)
+{
+  if (!C41_RAIL_LOST_CONNECTIVITY_PROBE) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " C41_RAIL_LOST_CONNECTIVITY " + fields);
+}
+
+function OpexC41RailApproachLead(platform, fallbackExit = null)
+{
+  if (platform == null) return null;
+  local exit = ("station_exit" in platform) ? platform.station_exit : fallbackExit;
+  if (exit == null) return null;
+  if ("lead" in platform) return platform.lead;
+  if (("anchor" in platform) && ("step" in platform) && ("length" in platform)) {
+    return exit == platform.anchor ? exit - platform.step : exit + platform.step;
+  }
+  return null;
+}
+
+/* Un fait local par quai : la voie de sortie existe-t-elle, combien de branches porte-t-elle,
+ * et quel signal regarde le quai ? -1 signifie que l'approche ne peut pas etre lue. */
+function OpexC41RailApproachFacts(platform, fallbackExit = null)
+{
+  local facts = { rail = 0, tracks = 0, signal = -1 };
+  if (platform == null) return facts;
+  local exit = ("station_exit" in platform) ? platform.station_exit : fallbackExit;
+  if (exit == null) return facts;
+  local lead = OpexC41RailApproachLead(platform, fallbackExit);
+  /* Les plateformes secondaires anciennes enregistrent ancre/pas/longueur mais pas lead.
+   * stationA2/B2 est leur sortie persistée : on reconstitue exactement le voisin immediat,
+   * sans explorer la carte. */
+  if (lead == null) return facts;
+  if (!AIMap.IsValidTile(lead) || !AIMap.IsValidTile(exit) || AIMap.DistanceManhattan(lead, exit) != 1) return facts;
+  facts.rail = AIRail.IsRailTile(lead) ? 1 : 0;
+  if (!facts.rail) return facts;
+  facts.tracks = OpexTileTrackCount(lead);
+  facts.signal = AIRail.GetSignalType(lead, exit);
+  return facts;
+}
+
+/* C41.8 : PBS seulement. Une approche a deux branches est un aiguillage : le moteur refuse
+ * souvent d'y poser un signal et C41.7 ne permet pas encore d'en choisir une branche sure.
+ * 2=deja PBS, 1=pose, 0=refus, -1=emplacement non eligible, -2=signal non-PBS existant. */
+function OpexC41BuildPbsAtApproach(platform, fallbackExit = null)
+{
+  if (platform == null) return -1;
+  local exit = ("station_exit" in platform) ? platform.station_exit : fallbackExit;
+  local lead = OpexC41RailApproachLead(platform, fallbackExit);
+  if (exit == null || lead == null || !AIMap.IsValidTile(exit) || !AIMap.IsValidTile(lead) ||
+      AIMap.DistanceManhattan(lead, exit) != 1 || !AIRail.IsRailTile(lead) ||
+      AIRail.IsRailStationTile(lead) || AIRail.IsRailDepotTile(lead) || OpexTileTrackCount(lead) != 1) return -1;
+  local type = AIRail.GetSignalType(lead, exit);
+  if (type == AIRail.SIGNALTYPE_PBS) return 2;
+  if (type != AIRail.SIGNALTYPE_NONE) return -2;
+  return AIRail.BuildSignal(lead, exit, AIRail.SIGNALTYPE_PBS) ? 1 : 0;
+}
+
+function OpexC41RailDepotFrontFacts(depot)
+{
+  local facts = { rail = 0, tracks = 0 };
+  if (!AIMap.IsValidTile(depot) || !AIRail.IsRailDepotTile(depot)) return facts;
+  local front = AIRail.GetRailDepotFrontTile(depot);
+  if (!AIMap.IsValidTile(front)) return facts;
+  facts.rail = AIRail.IsRailTile(front) ? 1 : 0;
+  if (facts.rail) facts.tracks = OpexTileTrackCount(front);
+  return facts;
+}
+
+/* Compte au plus les quatre voisins contigus. Si `exclude` est fourni (sortie de quai ou depot),
+ * `links` est le nombre de branches que le moteur reconnait reellement reliees de l'autre cote de
+ * la tuile centrale. Ce n'est pas un pathfinding global. */
+function OpexC41RailLocalLinks(center, exclude = null)
+{
+  local facts = { rail = 0, branches = 0, links = -1 };
+  if (!AIMap.IsValidTile(center) || !AIRail.IsRailTile(center)) return facts;
+  facts.rail = 1;
+  local xStep = AIMap.GetTileIndex(1, 0);
+  local yStep = AIMap.GetTileIndex(0, 1);
+  local offsets = [xStep, -xStep, yStep, -yStep];
+  if (exclude != null && AIMap.IsValidTile(exclude) && AIMap.DistanceManhattan(exclude, center) == 1) facts.links = 0;
+  foreach (offset in offsets) {
+    local neighbor = center + offset;
+    if (!AIMap.IsValidTile(neighbor) || AIMap.DistanceManhattan(center, neighbor) != 1 || !AIRail.IsRailTile(neighbor)) continue;
+    facts.branches++;
+    if (facts.links >= 0 && neighbor != exclude && AIRail.AreTilesConnected(exclude, center, neighbor)) facts.links++;
+  }
+  return facts;
+}
+
+/* C41.4/C41.5 : l'attribution ne consulte que l'identite deja persistee par la ligne.
+ * Elle ne reconstruit pas un voisinage de gares et ne modifie jamais la table retournee. */
+function OpexC41PersistedLineForVehicle(lines, vehicle)
+{
+  if (lines == null) return null;
+  foreach (line in lines) {
+    if (line == null || !("vehicles" in line) || line.vehicles == null) continue;
+    foreach (knownVehicle in line.vehicles) if (knownVehicle == vehicle) return line;
+  }
+  return null;
+}
+
+function OpexC39ProjectSignature(projects)
+{
+  if (projects == null || !("best" in projects) || projects.best == null || projects.best.len() == 0) {
+    return "none";
+  }
+  local project = projects.best[0];
+  return project.mode + ":" + project.src + ":" + project.dst;
+}
+
+function OpexC41RevisionSnapshot(revisions)
+{
+  return "c=" + revisions.catalog.cargos + "," + revisions.catalog.towns + ","
+         + revisions.catalog.industries + "," + revisions.catalog.rail + ","
+         + revisions.catalog.road + "," + revisions.catalog.air + ","
+         + revisions.catalog.water + " d=" + revisions.candidates.rail + ","
+         + revisions.candidates.road + "," + revisions.candidates.air + ","
+         + revisions.candidates.water + " p=" + revisions.portfolio + " s="
+         + revisions.selection;
+}
+
+/* Le moteur a-t-il survécu au filtre propre à son mode ? Ce n'est pas une décision de
+ * construction : C39.3 mesure précisément si le catalogue aurait une raison de propager l'event. */
+function OpexC39CatalogUsesEngine(catalog, engine, mode)
+{
+  if (catalog == null) return false;
+  if (mode == "rail") {
+    if (catalog.railLocos != null) foreach (loco in catalog.railLocos) if (loco.id == engine) return true;
+    if (catalog.wagonByCargo != null) foreach (cargo, wagon in catalog.wagonByCargo) if (wagon.id == engine) return true;
+  } else if (mode == "road") {
+    if (catalog.roadEngineByCargo != null) foreach (cargo, vehicle in catalog.roadEngineByCargo) if (vehicle.id == engine) return true;
+  } else if (mode == "air") {
+    if (catalog.plane != null && catalog.plane.id == engine) return true;
+    if (catalog.airCombos != null) foreach (combo in catalog.airCombos) if (combo.plane.id == engine) return true;
+  } else if (mode == "water") {
+    if (catalog.ships != null) foreach (ship in catalog.ships) if (ship.id == engine) return true;
+  }
+  return false;
+}
+
+/* `retained=0` air signifie seulement que le moteur n'est pas le gagnant de `airCombos`.
+ * Cette sonde separe les filtres eliminatoires de la domination capacite/vitesse, sans modifier
+ * l'algorithme de selection. */
+function OpexC39AirEngineReason(catalog, engine)
+{
+  if (catalog == null || !AIEngine.IsValidEngine(engine)) return "invalid";
+  if (!AIEngine.IsBuildable(engine)) return "not_buildable";
+  if (catalog.paxCargo < 0 || !AIEngine.CanRefitCargo(engine, catalog.paxCargo)) return "no_pax_refit";
+  local planeType = AIEngine.GetPlaneType(engine);
+  if (planeType != AIAirport.PT_SMALL_PLANE && planeType != AIAirport.PT_BIG_PLANE) return "unsupported_type";
+  if (AIEngine.GetCapacity(engine) <= 0) return "zero_capacity";
+  if (OpexC39CatalogUsesEngine(catalog, engine, "air")) return "selected";
+  return "dominated";
 }
 
 /* Reserve de tresorerie dynamique : adaptee a la taille de la flotte pour liberer le capital
@@ -705,8 +945,14 @@ class OpexAI extends AIController {
    * portefeuille derive perimes. dueCycle = 0 ne suffit pas : catalog peut deja
    * avoir tourne ce mois-ci et sortir par son garde de cadence. */
   _portfolioInvalidated = false;
+  /* C39.0 : etat plat, coalescable et serialisable de ce qui est devenu stale.
+   * Il est strictement observatoire dans cette tranche : `_runNextTask` ne le lit
+   * jamais pour choisir ou eviter un travail. */
+  _staleness = null;
   _startYear = -1;
   _vehiclesToScrap = null;
+  /* C41.8 : ensemble coalescé par ligne, consommé par une seule micro-tâche. */
+  _c41RailSignalLines = null;
   _activeSubsidies = null;
   _subsidyStats = null;
   /* G4§1 : drapeau pose par _markPairAbandoned dans _tryBuildProjects, lu en fin de passe
@@ -723,11 +969,32 @@ class OpexAI extends AIController {
     this._vehiclesToScrap = {};
     OpexAirResetSiteCache();
     this._activeSubsidies = {};
+    this._c41RailSignalLines = {};
     this._subsidyStats = { offers = 0, expiredWithoutAward = 0, awardedSelf = 0, awardedOther = 0, matchedPool = 0 };
+    this._staleness = {
+      catalog = { cargos = false, towns = false, industries = false, rail = false,
+                  road = false, air = false, water = false },
+      candidates = { rail = false, road = false, air = false, water = false },
+      portfolio = false, selection = false,
+      reasons = {}, towns = {}, industries = {}, engines = {}, engineModes = {}, events = 0,
+      topBefore = "none", topBeforeCaptured = false,
+      revisions = {
+        catalog = { cargos = 0, towns = 0, industries = 0, rail = 0, road = 0, air = 0, water = 0 },
+        candidates = { rail = 0, road = 0, air = 0, water = 0 }, portfolio = 0, selection = 0,
+      },
+      acknowledged = {
+        catalog = { cargos = 0, towns = 0, industries = 0, rail = 0, road = 0, air = 0, water = 0 },
+        candidates = { rail = 0, road = 0, air = 0, water = 0 }, portfolio = 0, selection = 0,
+      },
+    };
     /* Priorite : donnees et stop-loss, croissance des flottes existantes avant nouveaux projets,
      * portefeuille multimodal ROI, croissance urbaine, dette. */
     this._taskQueue = [
       { name = "catalog", dueCycle = 0, enabled = true },
+      /* C41.1 est arme par un EngineAvailable eau ; hors evenement, aucun scan periodique. */
+      { name = "c41_water", dueCycle = 2147483647, enabled = false },
+      /* C41.8 : ne travaille qu'une ligne rail explicitement signalée par VehicleLost. */
+      { name = "c41_rail_signals", dueCycle = 2147483647, enabled = false },
       { name = "report", dueCycle = 0, enabled = true },
       { name = "scrap", dueCycle = 0, enabled = true },
       /* fleet_before_new : la croissance de flotte passe AVANT la construction de lignes neuves.
@@ -780,6 +1047,10 @@ class OpexAI extends AIController {
   function _consumeRailUpgrade();
   function _findLineById(lineId);
   function _processEvents();
+  function _markDirty(reason, catalogLayers = null, candidateLayers = null,
+                      portfolio = false, selection = false, affectedKind = null, affectedId = -1,
+                      affectedMode = null, targetedRelevant = true);
+  function _logStalenessRefresh(reason);
   function _markPairAbandoned(key);
   function _pruneAbandonedPairs(now);
 }
@@ -4588,6 +4859,185 @@ function OpexAI::_consumeRailUpgrade()
   this._railSearch = null;
 }
 
+/* C39.0 : note une invalidation sans la consommer. Les listes sont volontairement passees par
+ * valeur, ce qui garde l'etat serialisable et le routeur sans dependance aux objets de plan.
+ * Cette tranche ne change AUCUN dueCycle, ni `_portfolioInvalidated`, ni un candidat. */
+function OpexAI::_markDirty(reason, catalogLayers = null, candidateLayers = null,
+                            portfolio = false, selection = false, affectedKind = null,
+                            affectedId = -1, affectedMode = null, targetedRelevant = true)
+{
+  if (!C39_INVALIDATION_PROBE || this._staleness == null) return;
+  local revisionBumped = false;
+  if (C39_DECISION_DELTA_PROBE && !this._staleness.topBeforeCaptured) {
+    this._staleness.topBefore = OpexC39ProjectSignature(this._projects);
+    this._staleness.topBeforeCaptured = true;
+  }
+  if (catalogLayers != null) {
+    foreach (layer in catalogLayers) {
+      if (layer in this._staleness.catalog) {
+        if (C41_REVISION_PROBE && targetedRelevant && !this._staleness.catalog[layer]) {
+          this._staleness.revisions.catalog[layer]++;
+          revisionBumped = true;
+        }
+        this._staleness.catalog[layer] = true;
+      }
+    }
+  }
+  if (candidateLayers != null) {
+    foreach (layer in candidateLayers) {
+      if (layer in this._staleness.candidates) {
+        if (C41_REVISION_PROBE && targetedRelevant && !this._staleness.candidates[layer]) {
+          this._staleness.revisions.candidates[layer]++;
+          revisionBumped = true;
+        }
+        this._staleness.candidates[layer] = true;
+      }
+    }
+  }
+  if (portfolio) {
+    if (C41_REVISION_PROBE && targetedRelevant && !this._staleness.portfolio) {
+      this._staleness.revisions.portfolio++;
+      revisionBumped = true;
+    }
+    this._staleness.portfolio = true;
+  }
+  if (selection) {
+    if (C41_REVISION_PROBE && targetedRelevant && !this._staleness.selection) {
+      this._staleness.revisions.selection++;
+      revisionBumped = true;
+    }
+    this._staleness.selection = true;
+  }
+  this._staleness.events++;
+  if (reason in this._staleness.reasons) this._staleness.reasons[reason]++;
+  else this._staleness.reasons.rawset(reason, 1);
+  if (affectedId >= 0) {
+    if (affectedKind == "town") this._staleness.towns.rawset("" + affectedId, true);
+    else if (affectedKind == "industry") this._staleness.industries.rawset("" + affectedId, true);
+    else if (affectedKind == "engine") {
+      this._staleness.engines.rawset("" + affectedId, true);
+      if (affectedMode != null) this._staleness.engineModes.rawset("" + affectedId, affectedMode);
+    }
+  }
+  OpexC39Log("C39_DIRTY", "reason=" + reason + " catalog=" + (catalogLayers != null ? catalogLayers.len() : 0)
+             + " candidates=" + (candidateLayers != null ? candidateLayers.len() : 0)
+             + " portfolio=" + (portfolio ? 1 : 0) + " selection=" + (selection ? 1 : 0)
+             + " id=" + affectedId);
+  if (C41_REVISION_PROBE && revisionBumped) {
+    OpexC39Log("C41_REVISION", OpexC41RevisionSnapshot(this._staleness.revisions));
+  }
+  /* C41.1 : le routeur ne fait aucun rafraichissement. Il arme seulement la micro-tache eau ;
+   * `catalog.water` reste son unique dependance et son unique acquittement futur. */
+  if (C41_WATER_REFRESH && targetedRelevant && catalogLayers != null) {
+    local waterDirty = false;
+    foreach (layer in catalogLayers) if (layer == "water") waterDirty = true;
+    if (waterDirty && this._taskQueue != null) {
+      foreach (task in this._taskQueue) {
+        if (task.name == "c41_water") {
+          task.enabled = true;
+          task.dueCycle = this._taskCycle;
+          break;
+        }
+      }
+    }
+  }
+}
+
+/* C39.0 : photographie coalescée juste avant de jeter l'etat, apres la regeneration mensuelle
+ * historique. La signature du premier projet ne sert pas encore a DECIDER : elle donne au
+ * diagnostic le resultat auquel les futures invalidations devront etre comparees. */
+function OpexAI::_logStalenessRefresh(reason)
+{
+  if (!C39_INVALIDATION_PROBE || this._staleness == null) return;
+  local cat = "";
+  foreach (layer in ["cargos", "towns", "industries", "rail", "road", "air", "water"]) {
+    if (!this._staleness.catalog[layer]) continue;
+    /* `slice`/`substr` differs between Squirrel builds; names explicites gardent la sonde
+     * compatible avec l'API embarquee d'OpenTTD. */
+    if (layer == "cargos") cat += "c";
+    else if (layer == "towns") cat += "t";
+    else if (layer == "industries") cat += "i";
+    else if (layer == "rail") cat += "r";
+    else if (layer == "road") cat += "d";
+    else if (layer == "air") cat += "a";
+    else if (layer == "water") cat += "w";
+  }
+  if (cat == "") cat = "-";
+  local cand = "";
+  foreach (layer in ["rail", "road", "air", "water"]) {
+    if (!this._staleness.candidates[layer]) continue;
+    if (layer == "rail") cand += "r";
+    else if (layer == "road") cand += "d";
+    else if (layer == "air") cand += "a";
+    else if (layer == "water") cand += "w";
+  }
+  if (cand == "") cand = "-";
+  local towns = 0;
+  foreach (key, value in this._staleness.towns) towns++;
+  local industries = 0;
+  foreach (key, value in this._staleness.industries) industries++;
+  local engines = 0;
+  foreach (key, value in this._staleness.engines) engines++;
+  local top = OpexC39ProjectSignature(this._projects);
+  local topBefore = this._staleness.topBeforeCaptured ? this._staleness.topBefore : top;
+  local topChanged = topBefore != top;
+  OpexC39Log("C39_REFRESH", "reason=" + reason + " events=" + this._staleness.events
+             + " cat=" + cat + " cand=" + cand + " portfolio=" + (this._staleness.portfolio ? 1 : 0)
+             + " selection=" + (this._staleness.selection ? 1 : 0) + " towns=" + towns
+             + " industries=" + industries + " engines=" + engines + " top=" + top);
+  if (C39_DECISION_DELTA_PROBE && this._staleness.events > 0) {
+    OpexC39Log("C39_DECISION_DELTA", "events=" + this._staleness.events + " top_before="
+               + topBefore + " top_after=" + top + " top_changed=" + (topChanged ? 1 : 0));
+    foreach (engine, mode in this._staleness.engineModes) {
+      OpexC39Log("C39_ENGINE_DELTA", "engine=" + engine + " mode=" + mode + " retained="
+                 + (OpexC39CatalogUsesEngine(this._catalog, engine.tointeger(), mode) ? 1 : 0)
+                 + " top_changed=" + (topChanged ? 1 : 0));
+      if (C39_AIR_REASON_PROBE && mode == "air") {
+        local engineId = engine.tointeger();
+        local planeType = AIEngine.IsValidEngine(engineId) ? AIEngine.GetPlaneType(engineId) : -1;
+        local capacity = AIEngine.IsValidEngine(engineId) ? AIEngine.GetCapacity(engineId) : -1;
+        OpexC39Log("C39_AIR_ENGINE_REASON", "engine=" + engine + " reason="
+                   + OpexC39AirEngineReason(this._catalog, engineId) + " plane_type="
+                   + planeType + " capacity=" + capacity);
+      }
+    }
+  }
+  /* C41.0 : le rebuild historique vient effectivement de refaire tout le catalogue et le
+   * portefeuille ; il peut donc acquitter toutes les couches. Les micro-taches futures ne
+   * copieront que leurs propres revisions. */
+  if (C41_REVISION_PROBE) {
+    this._staleness.acknowledged.catalog = {
+      cargos = this._staleness.revisions.catalog.cargos, towns = this._staleness.revisions.catalog.towns,
+      industries = this._staleness.revisions.catalog.industries, rail = this._staleness.revisions.catalog.rail,
+      road = this._staleness.revisions.catalog.road, air = this._staleness.revisions.catalog.air,
+      water = this._staleness.revisions.catalog.water,
+    };
+    this._staleness.acknowledged.candidates = {
+      rail = this._staleness.revisions.candidates.rail, road = this._staleness.revisions.candidates.road,
+      air = this._staleness.revisions.candidates.air, water = this._staleness.revisions.candidates.water,
+    };
+    this._staleness.acknowledged.portfolio = this._staleness.revisions.portfolio;
+    this._staleness.acknowledged.selection = this._staleness.revisions.selection;
+    if (this._staleness.events > 0) {
+      OpexC39Log("C41_ACK", "reason=" + reason + " "
+                 + OpexC41RevisionSnapshot(this._staleness.acknowledged));
+    }
+  }
+  this._staleness.catalog = { cargos = false, towns = false, industries = false, rail = false,
+                              road = false, air = false, water = false };
+  this._staleness.candidates = { rail = false, road = false, air = false, water = false };
+  this._staleness.portfolio = false;
+  this._staleness.selection = false;
+  this._staleness.reasons = {};
+  this._staleness.towns = {};
+  this._staleness.industries = {};
+  this._staleness.engines = {};
+  this._staleness.engineModes = {};
+  this._staleness.events = 0;
+  this._staleness.topBefore = "none";
+  this._staleness.topBeforeCaptured = false;
+}
+
 /* Event moteur exact : CRASH_TRAIN est emis dans train_cmd.cpp au moment ou deux trains
  * entrent en collision. XC garde la ligne, le vehicule, la tuile et les victimes ; RX reste le
  * filet annuel pour toute disparition sans evenement reconnu. */
@@ -4640,6 +5090,13 @@ function OpexAI::_processEvents()
     }
 
     if (eventType == AIEvent.ET_INDUSTRY_CLOSE) {
+      if (C39_INVALIDATION_PROBE) {
+        local probeEvt = AIEventIndustryClose.Convert(event);
+        if (probeEvt != null) {
+          this._markDirty("industry_close", ["industries"], ["rail", "road"], true, true,
+                          "industry", probeEvt.GetIndustryID());
+        }
+      }
       if (EVENT_INDUSTRY_CLOSE) {
         local indEvt = AIEventIndustryClose.Convert(event);
         if (indEvt != null) {
@@ -4774,6 +5231,129 @@ function OpexAI::_processEvents()
     }
 
     if (eventType == AIEvent.ET_VEHICLE_LOST) {
+      /* C41.4 : mesurer d'abord la qualite de l'attribution evenement -> ligne avant de
+       * concevoir une reparation. La lecture de _lines est volontairement directe : un
+       * vehicule absent de cette persistance est un orphelin a compter, pas a deviner via
+       * une recherche de stations couteuse. */
+      if (C41_VEHICLE_LOST_PROBE) {
+        local probeEvt = AIEventVehicleLost.Convert(event);
+        if (probeEvt != null) {
+          local probeVehicle = probeEvt.GetVehicleID();
+          local probeLine = OpexC41PersistedLineForVehicle(this._lines, probeVehicle);
+          local probeLineId = probeLine != null ? probeLine.lineId : -1;
+          local probeMode = probeLine != null && ("mode" in probeLine) ? probeLine.mode : "orphan";
+          local probeValid = AIVehicle.IsValidVehicle(probeVehicle);
+          OpexC41VehicleLostLog("vehicle=" + probeVehicle +
+                                " valid=" + (probeValid ? 1 : 0) +
+                                " line=" + probeLineId + " mode=" + probeMode +
+                                " orphan=" + (probeLineId < 0 ? 1 : 0));
+          /* C41.5 : seuls les Lost rail attribues et encore vivants ont des ordres et un depot
+           * interpretables. `target_line` dit un fait (destination de l'ordre dans les deux
+           * gares persistees), jamais que la voie est praticable. */
+          if (C41_RAIL_LOST_PROBE && probeValid && probeLine != null && probeMode == "rail") {
+            local orderCount = AIOrder.GetOrderCount(probeVehicle);
+            local currentOrder = AIOrder.ResolveOrderPosition(probeVehicle, AIOrder.ORDER_CURRENT);
+            local orderValid = currentOrder >= 0 && currentOrder < orderCount
+                && AIOrder.IsValidVehicleOrder(probeVehicle, currentOrder);
+            local target = orderValid ? AIOrder.GetOrderDestination(probeVehicle, currentOrder) : -1;
+            local targetStation = AIMap.IsValidTile(target) ? AIStation.GetStationID(target) : -1;
+            local stationA = OpexLineStationId(probeLine, "A");
+            local stationB = OpexLineStationId(probeLine, "B");
+            local targetLine = targetStation == stationA || targetStation == stationB;
+            local location = AIVehicle.GetLocation(probeVehicle);
+            local depot = ("depot" in probeLine) && probeLine.depot != null ? probeLine.depot : -1;
+            local depotValid = AIMap.IsValidTile(depot) && AIRail.IsRailDepotTile(depot);
+            OpexC41RailLostLog("vehicle=" + probeVehicle + " line=" + probeLineId
+                               + " state=" + AIVehicle.GetState(probeVehicle)
+                               + " orders=" + orderCount + " current=" + currentOrder
+                               + " order_valid=" + (orderValid ? 1 : 0)
+                               + " target=" + target + " target_line=" + (targetLine ? 1 : 0)
+                               + " location=" + location
+                               + " location_rail=" + (AIMap.IsValidTile(location) && AIRail.IsRailTile(location) ? 1 : 0)
+                               + " location_depot=" + (AIMap.IsValidTile(location) && AIRail.IsRailDepotTile(location) ? 1 : 0)
+                               + " depot=" + depot + " depot_valid=" + (depotValid ? 1 : 0));
+            /* C41.6 : uniquement les attributs deja stockes a la construction/extension. Les
+             * compteurs de signaux ne le sont pas ; les inventer ou rescanner le trace serait une
+             * autre sonde, pas une propriete de cette ligne. */
+            if (C41_RAIL_LOST_TOPOLOGY_PROBE) {
+              local depot2 = ("depot2" in probeLine) && probeLine.depot2 != null ? probeLine.depot2 : -1;
+              local depot2Valid = AIMap.IsValidTile(depot2) && AIRail.IsRailDepotTile(depot2);
+              local vehicleCount = ("vehicles" in probeLine) && probeLine.vehicles != null
+                  ? probeLine.vehicles.len() : 0;
+              OpexC41RailLostTopologyLog("vehicle=" + probeVehicle + " line=" + probeLineId
+                                         + " double_track=" + (("doubleTrack" in probeLine && probeLine.doubleTrack == 1) ? 1 : 0)
+                                         + " depot2_valid=" + (depot2Valid ? 1 : 0)
+                                         + " platform=" + (("platformLength" in probeLine) ? probeLine.platformLength : 0)
+                                         + " vehicles=" + vehicleCount
+                                         + " trains=" + (("trains" in probeLine) ? probeLine.trains : 0)
+                                         + " wagons=" + (("wagons" in probeLine) ? probeLine.wagons : 0)
+                                         + " kind=" + (("kind" in probeLine) ? probeLine.kind : "unknown"));
+            }
+            if (C41_RAIL_LOST_PHYSICAL_PROBE) {
+              local approachA = OpexC41RailApproachFacts(("platformA" in probeLine) ? probeLine.platformA : null);
+              local approachB = OpexC41RailApproachFacts(("platformB" in probeLine) ? probeLine.platformB : null);
+              local approachA2 = OpexC41RailApproachFacts(("platformA2" in probeLine) ? probeLine.platformA2 : null,
+                                                          ("stationA2" in probeLine) ? probeLine.stationA2 : null);
+              local approachB2 = OpexC41RailApproachFacts(("platformB2" in probeLine) ? probeLine.platformB2 : null,
+                                                          ("stationB2" in probeLine) ? probeLine.stationB2 : null);
+              local depotFacts = OpexC41RailDepotFrontFacts(depot);
+              local depot2Tile = ("depot2" in probeLine) && probeLine.depot2 != null ? probeLine.depot2 : -1;
+              local depot2Facts = OpexC41RailDepotFrontFacts(depot2Tile);
+              OpexC41RailLostPhysicalLog("vehicle=" + probeVehicle + " line=" + probeLineId
+                                         + " a_rail=" + approachA.rail + " a_tracks=" + approachA.tracks + " a_signal=" + approachA.signal
+                                         + " b_rail=" + approachB.rail + " b_tracks=" + approachB.tracks + " b_signal=" + approachB.signal
+                                         + " a2_rail=" + approachA2.rail + " a2_tracks=" + approachA2.tracks + " a2_signal=" + approachA2.signal
+                                         + " b2_rail=" + approachB2.rail + " b2_tracks=" + approachB2.tracks + " b2_signal=" + approachB2.signal
+                                         + " depot_front_rail=" + depotFacts.rail + " depot_front_tracks=" + depotFacts.tracks
+                                         + " depot2_front_rail=" + depot2Facts.rail + " depot2_front_tracks=" + depot2Facts.tracks);
+            }
+            if (C41_RAIL_LOST_CONNECTIVITY_PROBE) {
+              local exitA = ("platformA" in probeLine && probeLine.platformA != null && ("station_exit" in probeLine.platformA)) ? probeLine.platformA.station_exit : null;
+              local exitB = ("platformB" in probeLine && probeLine.platformB != null && ("station_exit" in probeLine.platformB)) ? probeLine.platformB.station_exit : null;
+              local leadA = OpexC41RailApproachLead(("platformA" in probeLine) ? probeLine.platformA : null);
+              local leadB = OpexC41RailApproachLead(("platformB" in probeLine) ? probeLine.platformB : null);
+              local leadA2 = OpexC41RailApproachLead(("platformA2" in probeLine) ? probeLine.platformA2 : null,
+                                                     ("stationA2" in probeLine) ? probeLine.stationA2 : null);
+              local leadB2 = OpexC41RailApproachLead(("platformB2" in probeLine) ? probeLine.platformB2 : null,
+                                                     ("stationB2" in probeLine) ? probeLine.stationB2 : null);
+              local a = OpexC41RailLocalLinks(leadA, exitA);
+              local b = OpexC41RailLocalLinks(leadB, exitB);
+              local a2 = OpexC41RailLocalLinks(leadA2, ("stationA2" in probeLine) ? probeLine.stationA2 : null);
+              local b2 = OpexC41RailLocalLinks(leadB2, ("stationB2" in probeLine) ? probeLine.stationB2 : null);
+              local front = depotValid ? AIRail.GetRailDepotFrontTile(depot) : null;
+              local depotLinks = OpexC41RailLocalLinks(front, depot);
+              local depot2 = ("depot2" in probeLine) && probeLine.depot2 != null ? probeLine.depot2 : -1;
+              local front2 = AIMap.IsValidTile(depot2) && AIRail.IsRailDepotTile(depot2) ? AIRail.GetRailDepotFrontTile(depot2) : null;
+              local depot2Links = OpexC41RailLocalLinks(front2, depot2);
+              local vehicleLinks = OpexC41RailLocalLinks(location);
+              OpexC41RailLostConnectivityLog("vehicle=" + probeVehicle + " line=" + probeLineId
+                                             + " a_branches=" + a.branches + " a_links=" + a.links
+                                             + " b_branches=" + b.branches + " b_links=" + b.links
+                                             + " a2_branches=" + a2.branches + " a2_links=" + a2.links
+                                             + " b2_branches=" + b2.branches + " b2_links=" + b2.links
+                                             + " depot_branches=" + depotLinks.branches + " depot_links=" + depotLinks.links
+                                             + " depot2_branches=" + depot2Links.branches + " depot2_links=" + depot2Links.links
+                                             + " vehicle_rail=" + vehicleLinks.rail + " vehicle_branches=" + vehicleLinks.branches);
+            }
+            /* C41.8 : l'evenement ne construit rien. Il coalesce l'identite stable de la ligne
+             * et reveille la micro-tache qui executera au plus une reparation ciblee. */
+            if (C41_RAIL_LOST_SIGNAL_REPAIR && ("doubleTrack" in probeLine) && probeLine.doubleTrack == 1 &&
+                this._c41RailSignalLines != null) {
+              this._c41RailSignalLines.rawset("" + probeLineId, true);
+              if (this._taskQueue != null) {
+                foreach (signalTask in this._taskQueue) {
+                  if (signalTask.name == "c41_rail_signals") {
+                    signalTask.enabled = true;
+                    signalTask.dueCycle = this._taskCycle;
+                    break;
+                  }
+                }
+              }
+              OpexC41RailSignalRepairLog("C41_RAIL_SIGNAL_ARM", "line=" + probeLineId + " vehicle=" + probeVehicle);
+            }
+          }
+        }
+      }
       if (EVENT_VEHICLE_LOST) {
         local lostEvt = AIEventVehicleLost.Convert(event);
         if (lostEvt != null) {
@@ -4806,6 +5386,13 @@ function OpexAI::_processEvents()
     }
 
     if (eventType == AIEvent.ET_INDUSTRY_OPEN) {
+      if (C39_INVALIDATION_PROBE) {
+        local probeEvt = AIEventIndustryOpen.Convert(event);
+        if (probeEvt != null) {
+          this._markDirty("industry_open", ["industries"], ["rail", "road"], true, true,
+                          "industry", probeEvt.GetIndustryID());
+        }
+      }
       if (EVENT_CATALOG_INVALIDATE) {
         local indEvt = AIEventIndustryOpen.Convert(event);
         if (indEvt != null) {
@@ -4833,6 +5420,13 @@ function OpexAI::_processEvents()
     }
 
     if (eventType == AIEvent.ET_TOWN_FOUNDED) {
+      if (C39_INVALIDATION_PROBE) {
+        local probeEvt = AIEventTownFounded.Convert(event);
+        if (probeEvt != null) {
+          this._markDirty("town_founded", ["towns"], ["rail", "road", "air", "water"],
+                          true, true, "town", probeEvt.GetTownID());
+        }
+      }
       if (EVENT_CATALOG_INVALIDATE) {
         local townEvt = AIEventTownFounded.Convert(event);
         if (townEvt != null) {
@@ -4851,6 +5445,42 @@ function OpexAI::_processEvents()
             if (this._taskQueue != null) {
               foreach (t in this._taskQueue) {
                 if (t.name == "catalog" || t.name == "projects") t.dueCycle = 0;
+              }
+            }
+          }
+        }
+      }
+      continue;
+    }
+
+    if (eventType == AIEvent.ET_ENGINE_AVAILABLE) {
+      if (C39_INVALIDATION_PROBE || C39_ENGINE_REFRESH) {
+        local engineEvt = AIEventEngineAvailable.Convert(event);
+        if (engineEvt != null) {
+          local engine = engineEvt.GetEngineID();
+          local vehicleType = AIEngine.IsValidEngine(engine) ? AIEngine.GetVehicleType(engine) : -1;
+          local mode = null;
+          if (vehicleType == AIVehicle.VT_RAIL) mode = "rail";
+          else if (vehicleType == AIVehicle.VT_ROAD) mode = "road";
+          else if (vehicleType == AIVehicle.VT_AIR) mode = "air";
+          else if (vehicleType == AIVehicle.VT_WATER) mode = "water";
+          if (mode != null) {
+            /* La sonde reste la seule à conserver l'état/les IDs. C39.2 consomme le chemin
+             * historique sans changer les cas industrie déjà couverts par P3. */
+            if (C39_INVALIDATION_PROBE) {
+              /* C41.2 ne consulte le predicat que pour son bras actif ; C39 conserve toujours
+               * la trace exhaustive de l'evenement, y compris un moteur ensuite filtre. */
+              local targetedRelevant = !(C41_WATER_REFRESH && C41_WATER_PRECHECK && mode == "water")
+                  || this._catalog.isWaterEngineRelevant(engine);
+              this._markDirty("engine_available", [mode], [mode], true, true, "engine", engine,
+                              mode, targetedRelevant);
+            }
+            if (C39_ENGINE_REFRESH) {
+              this._portfolioInvalidated = true;
+              if (this._taskQueue != null) {
+                foreach (t in this._taskQueue) {
+                  if (t.name == "catalog" || t.name == "projects") t.dueCycle = 0;
+                }
               }
             }
           }
@@ -4936,9 +5566,9 @@ function OpexAI::_runNextTask()
      * tresorerie : le portefeuille est derive du catalogue, pas seulement du capital. */
     if (this._lastCatalogMonth == ym && this._projects != null && !stale &&
         !this._portfolioInvalidated) return false;
+    local refreshReason = this._portfolioInvalidated ? "event"
+        : (stale ? "capital" : "month");
     if (DECISION_LOG) {
-      local refreshReason = this._portfolioInvalidated ? "event"
-          : (stale ? "capital" : "month");
       OpexDecide("PORTFOLIO_REFRESH", "reason=" + refreshReason + " budget="
                  + OpexAvailableCapital());
     }
@@ -4956,6 +5586,7 @@ function OpexAI::_runNextTask()
       this._resizeAirFleets(AIDate.GetYear(AIDate.GetCurrentDate()), fleetPlan);
     }
     this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines, priorPeak, priorHistory, fleetPlan, this._abandonedPairs);
+    this._logStalenessRefresh(refreshReason);
     this._portfolioInvalidated = false;
     this._ranked = this._projects.rail;
     if (PORTFOLIO_LOG) {
@@ -4991,6 +5622,32 @@ function OpexAI::_runNextTask()
              + this._projects.stats.selectedCapital);
     return true;
   }
+  if (task.name == "c41_water") {
+    /* C41.1 : aucun merge de candidats ni re-election n'est encore correct. La tache consomme
+     * exclusivement la revision qu'elle a vraiment reconstruite. */
+    task.dueCycle = 2147483647;
+    if (!C41_WATER_REFRESH || !C41_REVISION_PROBE || this._staleness == null ||
+        this._staleness.revisions.catalog.water <= this._staleness.acknowledged.catalog.water) {
+      return false;
+    }
+    local revision = this._staleness.revisions.catalog.water;
+    local ops = this._catalog.refreshWater(this._budget);
+    this._staleness.acknowledged.catalog.water = revision;
+    this._staleness.catalog.water = false;
+    OpexC39Log("C41_WATER_REFRESH", "revision=" + revision + " ops=" + ops
+               + " ships=" + this._catalog.ships.len());
+    /* C41.3 : OpexWaterPlans travaille dans un tableau temporaire. Ses tests de docks sont sous
+     * AITestMode ; aucun projet persistant ni revision aval n'est modifie dans cette tranche. */
+    if (C41_WATER_CANDIDATE_PROBE) {
+      local plans = [];
+      this._budget.begin();
+      OpexWaterPlans(this._catalog, this._lines, plans);
+      local planOps = this._budget.end("project_water_targeted_probe");
+      OpexC39Log("C41_WATER_PLANS", "revision=" + revision + " ops=" + planOps
+                 + " plans=" + plans.len());
+    }
+    return true;
+  }
   if (this._projects == null) {
     /* `_taskCycle` (et non `+ 1`) laissait la tache due au cycle COURANT. Or le cycle n'avance que
      * lorsque le balayage depuis _taskCursor ne trouve plus rien de du : une tache qui reste
@@ -5001,6 +5658,31 @@ function OpexAI::_runNextTask()
      * S0 sexies). */
     task.dueCycle = this._taskCycle + 1;
     return false;
+  }
+  if (task.name == "c41_rail_signals") {
+    task.dueCycle = 2147483647;
+    if (!C41_RAIL_LOST_SIGNAL_REPAIR || this._c41RailSignalLines == null) return false;
+    local lineId = -1;
+    foreach (pendingLine, ignored in this._c41RailSignalLines) { lineId = pendingLine.tointeger(); break; }
+    if (lineId < 0) { task.enabled = false; return false; }
+    delete this._c41RailSignalLines["" + lineId];
+    local line = this._findLineById(lineId);
+    if (line == null || !("mode" in line) || line.mode != "rail" ||
+        !("doubleTrack" in line) || line.doubleTrack != 1) {
+      OpexC41RailSignalRepairLog("C41_RAIL_SIGNAL_REPAIR", "line=" + lineId + " status=stale");
+      return false;
+    }
+    local a = OpexC41BuildPbsAtApproach(("platformA" in line) ? line.platformA : null);
+    local b = OpexC41BuildPbsAtApproach(("platformB" in line) ? line.platformB : null);
+    local a2 = OpexC41BuildPbsAtApproach(("platformA2" in line) ? line.platformA2 : null,
+                                         ("stationA2" in line) ? line.stationA2 : null);
+    local b2 = OpexC41BuildPbsAtApproach(("platformB2" in line) ? line.platformB2 : null,
+                                         ("stationB2" in line) ? line.stationB2 : null);
+    OpexC41RailSignalRepairLog("C41_RAIL_SIGNAL_REPAIR", "line=" + lineId + " a=" + a + " b=" + b
+                               + " a2=" + a2 + " b2=" + b2);
+    if (this._c41RailSignalLines.len() > 0) task.dueCycle = this._taskCycle + 1;
+    else task.enabled = false;
+    return a == 1 || b == 1 || a2 == 1 || b2 == 1;
   }
   if (task.name == "report") {
     if (this._lastReportYear == year) return false;
@@ -5227,6 +5909,32 @@ function OpexAI::Start()
   EVENT_SUBSIDY_PROBE = AIController.GetSetting("event_subsidy_probe") != 0;
   EVENT_VEHICLE_LOST = AIController.GetSetting("event_vehicle_lost") != 0;
   EVENT_CATALOG_INVALIDATE = AIController.GetSetting("event_catalog_invalidate") != 0;
+  C39_INVALIDATION_PROBE = AIController.GetSetting("c39_invalidation_probe") != 0;
+  C39_DECISION_DELTA_PROBE = AIController.GetSetting("c39_decision_delta_probe") != 0;
+  C39_AIR_REASON_PROBE = AIController.GetSetting("c39_air_reason_probe") != 0;
+  C39_ENGINE_REFRESH = AIController.GetSetting("c39_engine_refresh") != 0;
+  C41_REVISION_PROBE = AIController.GetSetting("c41_revision_probe") != 0;
+  C41_WATER_REFRESH = AIController.GetSetting("c41_water_refresh") != 0;
+  C41_WATER_PRECHECK = AIController.GetSetting("c41_water_precheck") != 0;
+  C41_WATER_CANDIDATE_PROBE = AIController.GetSetting("c41_water_candidate_probe") != 0
+      && C41_WATER_PRECHECK;
+  C41_RAIL_LOST_PROBE = AIController.GetSetting("c41_rail_lost_probe") != 0;
+  C41_RAIL_LOST_TOPOLOGY_PROBE = AIController.GetSetting("c41_rail_lost_topology_probe") != 0;
+  C41_RAIL_LOST_PHYSICAL_PROBE = AIController.GetSetting("c41_rail_lost_physical_probe") != 0;
+  C41_RAIL_LOST_SIGNAL_REPAIR = AIController.GetSetting("c41_rail_lost_signal_repair") != 0;
+  C41_RAIL_LOST_CONNECTIVITY_PROBE = AIController.GetSetting("c41_rail_lost_connectivity_probe") != 0;
+  if (C41_RAIL_LOST_TOPOLOGY_PROBE) C41_RAIL_LOST_PROBE = true;
+  if (C41_RAIL_LOST_PHYSICAL_PROBE) C41_RAIL_LOST_PROBE = true;
+  if (C41_RAIL_LOST_SIGNAL_REPAIR) C41_RAIL_LOST_PROBE = true;
+  if (C41_RAIL_LOST_CONNECTIVITY_PROBE) C41_RAIL_LOST_PROBE = true;
+  C41_VEHICLE_LOST_PROBE = AIController.GetSetting("c41_vehicle_lost_probe") != 0
+      || C41_RAIL_LOST_PROBE || C41_RAIL_LOST_TOPOLOGY_PROBE || C41_RAIL_LOST_PHYSICAL_PROBE
+      || C41_RAIL_LOST_SIGNAL_REPAIR || C41_RAIL_LOST_CONNECTIVITY_PROBE;
+  if (C41_WATER_REFRESH && this._taskQueue != null) {
+    foreach (task in this._taskQueue) {
+      if (task.name == "c41_water") { task.enabled = true; break; }
+    }
+  }
   VIVIER_RATIO_FILTER = AIController.GetSetting("vivier_ratio_filter") != 0;
   ROAD_FLEET_FIX = AIController.GetSetting("road_fleet_fix") != 0;
   AIR_FLEET_LINE_PRICE = AIController.GetSetting("air_fleet_line_price") != 0;

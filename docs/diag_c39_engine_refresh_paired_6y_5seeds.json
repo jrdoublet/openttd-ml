@@ -1,0 +1,25 @@
+{
+ "openttd_version": "15.3",
+ "years": 6,
+ "seeds": [42, 100, 7, 999, 12345],
+ "arms": ["OpexAI", "OpexAI[c39_engine_refresh=1]"],
+ "method": "five isolated paired runs; values are baseline minus treatment at the final save",
+ "run_status": "10/10 OK; no bankruptcy or NoAI error",
+ "sources": [
+  "docs/diag_c39_engine_refresh_seed42_6y.json",
+  "docs/diag_c39_engine_refresh_seed100_6y.json",
+  "docs/diag_c39_engine_refresh_seed7_6y.json",
+  "docs/diag_c39_engine_refresh_seed999_6y.json",
+  "docs/diag_c39_engine_refresh_seed12345_6y.json"
+ ],
+ "baseline_minus_engine_refresh": {
+  "company_value": {"mean": 55092.8, "percent_of_baseline_mean": 1.056585, "baseline_wins": 3},
+  "performance_history": {"mean": 6.2, "percent_of_baseline_mean": 0.903263, "baseline_wins": 3},
+  "profit": {"mean": -4701.4, "percent_of_baseline_mean": -1.323361, "baseline_wins": 2},
+  "profit_year": {"mean": -18643.6, "percent_of_baseline_mean": -1.342337, "baseline_wins": 2},
+  "median_station_rating": {"mean": 2.0, "percent_of_baseline_mean": 1.184834, "baseline_wins": 4},
+  "n_vehicles": {"mean": 1.2, "percent_of_baseline_mean": 0.865801, "baseline_wins": 2},
+  "n_stations": {"mean": 6.0, "percent_of_baseline_mean": 8.547009, "baseline_wins": 4}
+ },
+ "conclusion": "Inconclusive at 5x6: the engine refresh loses 1.06% value on average but gains 1.32% quarterly profit; neither signal is stable enough for a 20x10 adoption benchmark. c39_engine_refresh remains 0."
+}

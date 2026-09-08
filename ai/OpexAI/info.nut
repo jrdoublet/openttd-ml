@@ -200,6 +200,136 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C39.0 : sonde sans changement de decision. Elle enregistre quelles couches un
+     * futur invalidateur evenementiel aurait salies ; la cadence mensuelle et les decisions
+     * existantes restent identiques quand elle vaut 0 (defaut). */
+    AddSetting({
+      name = "c39_invalidation_probe",
+      description = "C39.0: log coalesced event invalidations without changing refreshes or decisions; 1 = probe, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* C39.3 : exige c39_invalidation_probe=1 ; compare le top avant/apres rebuild et indique
+     * si le moteur annonce a effectivement ete retenu par son sous-catalogue. */
+    AddSetting({
+      name = "c39_decision_delta_probe",
+      description = "C39.3 probe: with c39_invalidation_probe=1, log catalog retention and top-project deltas; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* C39.4 : explique les moteurs air non retenus, avec c39_invalidation_probe=1. */
+    AddSetting({
+      name = "c39_air_reason_probe",
+      description = "C39.4 probe: with c39_invalidation_probe=1, log why an air engine was not selected; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* C39.2 : consommer EngineAvailable par le scheduler historique, sans inclure les
+     * industries déjà traitées par P3. Expérimental jusqu'au diagnostic apparié. */
+    AddSetting({
+      name = "c39_engine_refresh",
+      description = "C39.2 experimental: rebuild catalog/portfolio after EngineAvailable; 1 = enabled, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* C41.0 : registre de versions passif, qui exige la sonde C39 pour recevoir les evenements. */
+    AddSetting({
+      name = "c41_revision_probe",
+      description = "C41.0 probe: with c39_invalidation_probe=1, log coalesced revisions and full-refresh acknowledgements; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* C41.1 : demande aussi c39_invalidation_probe=1 et c41_revision_probe=1. */
+    AddSetting({
+      name = "c41_water_refresh",
+      description = "C41.1 experimental: refresh only catalog.water after a water EngineAvailable; requires C39/C41 probes; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* C41.2 : conserve C41.1 mesurable sans prefiltre ; demande aussi son reglage actif. */
+    AddSetting({
+      name = "c41_water_precheck",
+      description = "C41.2 experimental: skip C41.1 for water engines not buildable/refittable to passengers; requires c41_water_refresh=1; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* C41.3 : demande C41.1/C41.2 ; ne modifie aucun candidat ni portefeuille. */
+    AddSetting({
+      name = "c41_water_candidate_probe",
+      description = "C41.3 probe: measure temporary OpexWaterPlans after C41.1/C41.2; requires c41_water_refresh=1; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* C41.4 : inventaire passif des vehicules perdus, independant de l'alerte A7.4. */
+    AddSetting({
+      name = "c41_vehicle_lost_probe",
+      description = "C41.4 probe: log VehicleLost line/mode/orphan attribution only; no repair, no scheduling; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* C41.5 : cause observable d'un Lost rail, sans inferrer un blocage de signal. */
+    AddSetting({
+      name = "c41_rail_lost_probe",
+      description = "C41.5 probe: log rail Lost order, position and depot facts only; no repair or scheduling; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* C41.6 : attributs topologiques déjà persistés d'une ligne rail perdue. */
+    AddSetting({
+      name = "c41_rail_lost_topology_probe",
+      description = "C41.6 probe: log persisted rail Lost topology only; no map scan, repair or scheduling; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* C41.7 : sondage local des sorties de quai et fronts de depot d'un Lost rail. */
+    AddSetting({
+      name = "c41_rail_lost_physical_probe",
+      description = "C41.7 probe: log local rail approaches and depot fronts only; no path search, repair or scheduling; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* C41.8 : reparation PBS uniquement, sur les approches simples d'une ligne double perdue. */
+    AddSetting({
+      name = "c41_rail_lost_signal_repair",
+      description = "C41.8 experimental: after rail VehicleLost, add PBS only on eligible single-track approaches; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* C41.9 : connectivite locale des approches et depots d'un Lost rail. */
+    AddSetting({
+      name = "c41_rail_lost_connectivity_probe",
+      description = "C41.9 probe: log local rail branch connectivity after VehicleLost; no path search, repair or scheduling; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* D3.1 : Filtre eliminatoire ratio_too_low dans le vivier
      * (1 = actif/defaut historique, 0 = inactif, preserve les candidats a profit>0). */
     AddSetting({

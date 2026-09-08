@@ -307,6 +307,10 @@ Second lot de conseils, **vérifié dans le source du moteur** (`github.com/Open
 | `AIEventVehicleLost`, `AIEventVehicleUnprofitable`, `AIEventIndustryClose`, `AIEventTownFounded` | ✅ **tous les quatre existent** | `script_event_types.hpp:573,639,705,879` |
 | `AIEventTownStyleAnnounce` | ❌ **n'existe pas** dans les 34 classes d'événements de 15.3 | `script_event_types.hpp` |
 | 🟢 **non cité, et directement utile** : `AIEventSubsidyOffer`, `SubsidyOfferExpired`, `SubsidyAwarded`, `SubsidyExpired` | ✅ existent | idem |
+| `AIEventEnginePreview`, `AIEventEngineAvailable`, événements `Company*`, `AIEventExclusiveTransportRights`, `AIEventRoadReconstruction` | ✅ existent | `script_event.hpp`, `script_event_types.hpp` |
+| `AIEventStationFirstWait` | ❌ n'existe pas ; le type réel est `AIEventStationFirstVehicle`, première visite par un véhicule | `script_event.hpp:41`, `script_event_types.hpp:713-751` |
+| `AIEventScript` / `ET_SCRIPT` | ❌ n'existent pas dans l'API standard 15.3 | liste exhaustive de `ScriptEventType`, `script_event.hpp:21-57` |
+| `AIEventController.HasEvents()` | ❌ n'existe pas ; utiliser `IsEventWaiting()` puis `GetNextEvent()` | `script_event.hpp:86-97` |
 | `AISignal.SIGNALTYPE_PBS` | ❌ **il n'y a pas de classe `AISignal`** ; c'est `AIRail.SIGNALTYPE_PBS` | `script_rail.hpp:74`, liste des classes de l'API |
 | `AICompany.BuyLandArea` (« acheter du terrain pour verrouiller un corridor ») | ❌ **n'existe pas** — aucune méthode d'achat de terrain dans `AITile` (`IsBuildable … PlantTree, DemolishTile, LevelTiles, GetBuildCost`) ni dans `AICompany` | `script_tile.hpp`, `script_company.hpp` |
 | « interroger la demande via le graphe interne (LinkGraph) » | ❌ **aucun `script_linkgraph.hpp`** dans l'API. Le plus proche existant est `AICargoMonitor` (cargo ramassé/livré par compagnie) | liste des classes de l'API 15.3 |
@@ -364,3 +368,251 @@ script.script_max_opcode_till_suspend   def = 10000   max = 250000
 - ✅ **La résilience Save/Load par états plats est juste**, et rejoint la leçon d'A4 : ce qui ne
   se sérialise pas (curseurs, échéances globales, objets complexes) est précisément ce qui nous a
   déjà coûté deux bancs.
+
+### 8.4 C39 — bus d'invalidation événementiel et réconciliation périodique (2026-09-08)
+
+Cette section est normative pour l'architecture future. Le moteur publie les événements dans la
+file propre à l'instance du script. OpexAI la consomme déjà correctement avec
+`AIEventController.IsEventWaiting()`, `GetNextEvent()`, `GetEventType()` puis la méthode statique
+`.Convert(event)` de la classe spécialisée (`main.nut:4609-4874`).
+
+**Séparer impérativement notification et exécution.** `_processEvents()` doit rester un routeur
+léger : convertir l'événement, extraire ses identifiants, fusionner l'invalidation dans un état
+plat et armer une tâche. Il ne doit ni reconstruire un catalogue complet, ni générer des milliers
+de candidats, ni lancer un pathfinder. Ces travaux appartiennent à la file C41, qui peut les
+prioriser, les découper et les reprendre.
+
+```text
+AIEventController
+    -> routeur d'événements (aucun travail lourd)
+        -> invalidations coalescées + objets concernés
+            -> tâches urgentes de maintenance
+            -> sous-catalogues sales
+                -> candidats sales par mode / origine
+                    -> portefeuille sale
+                        -> sélection sale
+```
+
+**Grandes catégories et effets :**
+
+- **monde** (`IndustryOpen/Close`, `TownFounded`) : actualiser uniquement les entités touchées,
+  puis les familles de candidats qui en dépendent ;
+- **matériel** (`EnginePreview/Available`) : évaluer le prototype ou rafraîchir uniquement rail,
+  route, air ou eau selon le type du moteur ;
+- **véhicules** (`Crashed`, `Lost`, `WaitingInDepot`, `Unprofitable`, `AutoReplaced`) : alimenter
+  les tâches de réparation, retrait, renouvellement et mise à jour d'identifiants ;
+- **concurrence/infrastructure** (`Company*`, `ExclusiveTransportRights`, `RoadReconstruction`) :
+  invalider les plans physiques ou les villes réellement concernés ;
+- **subventions** (`Subsidy*`) : maintenir un registre d'opportunités datées et produire un
+  candidat ciblé, sans balayage régulier de `AISubsidyList`.
+
+**Révisions minimales :** `catalogRevision` par sous-catalogue (`cargos`, `towns`, `industries`,
+`rail`, `road`, `air`, `water`), `candidateRevision` par mode, `portfolioRevision`, puis
+`selectionRevision`. Une tâche mémorise les révisions consommées ; elle ne repart que si une
+dépendance a changé. Plusieurs événements avant son exécution sont coalescés en une seule passe,
+avec un ensemble d'IDs affectés quand une mise à jour locale est possible.
+
+**Filet périodique obligatoire.** Aucun événement 15.3 ne couvre l'évolution mensuelle de la
+production/population, la disponibilité des ponts, tout changement de carte concurrent, l'âge des
+véhicules ou l'expiration interne de la mémoire d'abandon. Une resynchronisation rare couvre aussi
+le chargement d'une sauvegarde, car les événements en attente ne constituent pas un état durable.
+La doctrine est donc *event-driven + reconciliation*, jamais « événements seulement ».
+
+Cette couche C39 dit **quoi est devenu périmé**. C41 dira **quand et avec quelle tranche d'opcodes
+le recalculer**. Les futures tâches de renouvellement de véhicules, audit des ponts, exploitation
+des subventions et devis rail fractionné doivent toutes entrer par cette même interface ; ne pas
+ajouter une nouvelle boucle périodique autonome pour chacune.
+
+**État de livraison (C39.0, 2026-09-08).** La première tranche est une sonde passive, activable
+seulement par `c39_invalidation_probe=1` (défaut `0`). Elle met en oeuvre cet état plat sous
+`_staleness` et le point unique `_markDirty()`, puis consigne directement `C39_DIRTY` et le résumé
+coalescé `C39_REFRESH` dans `AILog` (sans dépendre de `decision_log`). `IndustryOpen/Close`, `TownFounded` et
+`EngineAvailable` y sont raccordés. L'état n'est encore consommé par aucune tâche : aucune
+invalidation ne déclenche de calcul et la cadence mensuelle historique est conservée. C'est le
+contrat de base pour étendre le routeur sans créer d'effets de bord avant C41.
+
+La trace C39.1 (5 graines × 6 ans, `docs/diag_c39_events_6y_5seeds.json`) a reçu 43
+notifications sans erreur : 32 moteurs, 6 fermetures et 5 ouvertures d'industrie. 28 refreshes
+en ont absorbé au moins une, jusqu'à trois dans une même passe. Elle valide donc le format de
+coalescence et désigne `EngineAvailable` comme premier consommateur actif à mesurer ; aucune ville
+n'a été fondée dans cet échantillon, donc ce cas doit rester passif jusqu'à une trace appropriée.
+
+**C39.3 (2026-09-08) précise le seuil de propagation, sans changer le jeu.** Sous
+`c39_decision_delta_probe=1` et la sonde C39.0, l'IA retient la signature du meilleur projet avant
+la première notification d'une rafale. Après le rebuild mensuel historique, elle écrit la signature
+après, son changement éventuel, et pour chaque `EngineAvailable` si le moteur est retenu par le
+sous-catalogue de son mode. La trace dédiée 5 graines × 6 ans
+(`docs/diag_c39_decision_delta_6y_5seeds.json`) compte 23 rétentions sur 32 moteurs : rail 5/5,
+route 13/13, eau 5/9, air 0/5. Ainsi, la future tâche ciblée pourra éliminer les moteurs filtrés
+avant de propager l'invalidation. Les 18 changements de premier projet sur 29 rafales sont un
+signal de sensibilité du portefeuille, **pas** une attribution causale à un moteur : une rafale peut
+inclure d'autres événements et le monde change pendant le cycle mensuel. C39.3 reste par conséquent
+une instrumentation, pas une autorisation de réactiver le rebuild complet C39.2.
+
+### 8.5 C41.0 — registre de révisions et acquittements (contrat avant exécution ciblée)
+
+La première tranche C41 ne doit ni avancer un pathfinder, ni tenter un « rebuild ciblé » fictif :
+le catalogue ne propose aujourd'hui que `refresh()`, qui appelle toutes ses sous-régénérations.
+Elle établit donc le contrat qui rendra une telle exécution vérifiable : pour chaque couche
+catalogue (`cargos`, `towns`, `industries`, `rail`, `road`, `air`, `water`) et candidat
+(`rail`, `road`, `air`, `water`), plus portefeuille et sélection, conserver deux entiers primitifs
+et sérialisables : `revision` et `acknowledgedRevision`.
+
+- Au premier événement qui salit une couche encore propre, incrémenter sa révision ; les autres
+  événements de la rafale n'ajoutent pas de travail.
+- Une tâche ne peut acquitter que les révisions de ses dépendances réellement reconstruites. Elle
+  ne touche jamais aux révisions d'une autre couche.
+- Le rebuild complet historique constitue l'unique exception transitoire : il acquitte toutes les
+  couches connues, parce qu'il les a effectivement recalculées. Cette compatibilité disparaîtra au
+  fur et à mesure que les sous-régénérations publiques existeront.
+- Après chargement de sauvegarde, l'absence de file d'événements impose une réconciliation qui
+  produit de nouvelles révisions ; ne pas supposer qu'un acquittement antérieur décrit encore le
+  monde courant.
+
+C41.0 sera instrumenté et désactivé par défaut. Aucun `dueCycle`, aucune priorité et aucune
+décision de construction ne doivent dépendre du registre tant que sa trace n'a pas confirmé
+coalescence et acquittement. C41.1 pourra ensuite rendre publique une unique sous-régénération de
+matériel — `rail`, `road`, `air` ou `water` — et comparer ce chemin au rebuild complet ; les mondes
+(villes/industries) et le pathfinding restent hors de cette première mesure.
+
+**État de livraison C41.0 (2026-09-08).** `c41_revision_probe=0` ajoute le registre passif à
+`_staleness`, sans modifier la file. La trace 5 graines × 6 ans
+(`docs/diag_c41_revision_6y_5seeds.json`) est saine : 47 notifications font progresser 42
+révisions de couche, puis les 30 rebuilds qui absorbent une rafale produisent exactement 30
+acquittements. L'écart 42/30 est attendu : une même rafale peut rendre plusieurs couches sales,
+mais une couche ne progresse qu'une fois avant son acquittement. C41.1 doit maintenant exposer et
+mesurer un seul sous-catalogue de matériel ; il ne doit pas encore toucher villes, industries,
+candidats, portefeuille ou pathfinding.
+
+**Contrat C41.1 — eau.** Une nouvelle disponibilité de navire arme une seule micro-tâche
+`catalog.water`. Elle appelle seulement la sous-régénération eau, enregistre son coût d'opcodes,
+puis acquitte **uniquement** `catalog.water` et le remet propre. `candidates.water`, portefeuille
+et sélection restent volontairement sales : `OpexWaterPlans` peut être régénéré isolément, mais
+son insertion dans le vivier multimodal et son classement demandent une opération de fusion qui
+n'existe pas encore. Le rebuild historique les traitera donc comme avant. Cette tranche ne doit ni
+construire, ni reclasser, ni modifier le budget ; son réglage reste à `0` et son intérêt est le
+coût/ordonnancement réel du sous-catalogue, pas une performance de jeu.
+
+**État de livraison C41.1 (2026-09-08).** `c41_water_refresh=0` arme la micro-tâche seulement
+après `EngineAvailable` eau, mesure `cat_water_targeted`, puis acquitte et nettoie seulement
+`catalog.water`. La trace 5 graines × 6 ans (`docs/diag_c41_water_6y_5seeds.json`) est saine : les
+9 notifications eau ont produit 9 sous-régénérations, pour 2 923 opcodes au total, soit 315 à 337
+par passe. Aucun candidat ni portefeuille n'est réélu. La tâche s'exécute encore pour les 9
+annonces, parce que la rétention du moteur n'est connue qu'après lecture du sous-catalogue ; C41.2
+devra rendre ce filtre local et éviter les 4/9 rafraîchissements qui avaient ensuite été rejetés
+dans la trace C39.3.
+
+**C41.2 (implémenté, non exécuté à la demande, 2026-09-08).**
+`c41_water_precheck=0` garde C41.1 comme contrôle. À `1`, le routeur conserve la trace C39 de
+tout `EngineAvailable`, mais n'incrémente ni n'arme la branche C41 eau si le moteur n'est pas à la
+fois valide, constructible, de type eau et refittable passagers. Ce prédicat reprend exactement
+les critères de `_refreshWater()`, sans énumérer le catalogue. Les événements filtrés ne sont donc
+pas acquittés fictivement : ils ne produisent pas de révision C41. Aucun test ou diagnostic C41.2
+n'a été lancé dans cette tranche ; il faudra comparer C41.1 et C41.2 sur la même trace avant toute
+extension vers les candidats.
+
+**Mesure C41.2 (2026-09-08, 5 graines × 6 ans).** Le contrôle C41.1
+(`docs/diag_c41_water_precheck_baseline_6y_5seeds.json`) exécute 9 rafraîchissements eau pour
+2 923 opcodes. Le préfiltre C41.2
+(`docs/diag_c41_water_precheck_treatment_6y_5seeds.json`) en exécute 5 pour 1 576 opcodes : les
+4 moteurs rejetés sont bien évités, soit −44,4 % de passes et **−46,1 % d'opcodes**, sans erreur.
+Les deux traces observent les mêmes 9 annonces eau, 5 retenues / 4 filtrées. C'est une validation
+de coût et de routage, pas un banc de valeur ; l'étape suivante reste la sonde passive de
+`OpexWaterPlans` avant toute fusion dans le portefeuille.
+
+**Contrat C41.3 — plans eau passifs.** Après le sous-catalogue C41.1/C41.2, la même micro-tâche
+peut appeler `OpexWaterPlans()` dans un tableau temporaire, mesurer `project_water_targeted_probe`
+et consigner le nombre de plans. Ses tests de construction sont sous `AITestMode`, donc aucun dock
+ni véhicule ne doit être créé. La sonde ne touche ni `this._projects`, ni les acquittements
+`candidates.water`/portefeuille/sélection. Elle doit rester limitée au préfiltre C41.2 et fournir
+le coût réel avant que C41.4 puisse concevoir une fusion de vivier.
+
+**Mesure C41.3 (2026-09-08, 5 graines × 6 ans) : ne pas propager.** La trace
+`docs/diag_c41_water_plans_6y_5seeds.json` est saine mais éliminatoire : les 5 moteurs eau
+retenus déclenchent 5 sondes, **0 plan**, et consomment 593 273 opcodes (113 896 à 122 419 par
+sonde). Le coût est environ 380 fois celui du sous-catalogue ciblé, pour aucun candidat. C41.3
+reste donc à 0 et C41.4 doit d'abord ventiler `OpexWaterPlans` (sites, paires, BFS, économie) afin
+d'établir si l'absence de plans est structurelle ou si une étape précise peut être réduite ; aucune
+fusion ou micro-tâche active de candidats eau n'est autorisée avant ce diagnostic.
+
+**C39.4 — cause des avions non retenus (2026-09-08).** La sonde
+`c39_air_reason_probe=0` sépare les filtres éliminatoires de la sélection finale des combos. Sa
+trace 5 graines × 6 ans (`docs/diag_c39_air_reason_6y_5seeds.json`) est saine : les cinq annonces
+concernent le même moteur 233, un gros avion passagers de capacité 260 (`plane_type=3`), et les
+cinq motifs sont `dominated`. Il est donc valide, constructible et refittable, mais perd contre un
+avion déjà meilleur selon la règle gros avion → capacité → vitesse. Ne pas implémenter un
+préfiltre air « moteur invalide » : une future optimisation devra comparer ce moteur aux gagnants
+du catalogue avant d'armer une régénération.
+
+**C41.4 — contrat de départ `VehicleLost`.** Avant toute stratégie de renouvellement ou de
+réparation, `c41_vehicle_lost_probe=0` observe séparément de l'ancien A7.4 l'événement
+`AIEventVehicleLost`. Son seul effet est une ligne `C41_VEHICLE_LOST` avec l'identifiant, la
+validité, l'attribution persistée à une ligne, le mode et le booléen `orphan`. Elle ne doit pas
+incrémenter de compteur, poser de signe, salir une couche, modifier une révision ou programmer une
+micro-tâche. Cette première mesure distingue une réparation future faisable (ligne/mode connus)
+d'un problème d'observabilité (orphelin) sans introduire de recherche globale de stations.
+
+**Mesure C41.4 (2026-09-08, 5 graines × 6 ans).** Le smoke 3 × 2 ans est sain (un événement,
+ligne rail attribuée). La trace `docs/diag_c41_vehicle_lost_6y_5seeds.json` est également saine :
+**29 `VehicleLost`**, 29 véhicules encore valides, **29/29 lignes attribuées**, tous en mode rail,
+et aucun orphelin ni erreur. Cette couverture rend une future maintenance rail ciblée possible,
+mais ne renseigne pas encore sa cause. La prochaine tranche doit mesurer, pour chaque événement,
+l'ordre courant, la position, un éventuel dépôt et l'état du chemin ; ne pas armer de réparation,
+de refleet ou de régénération de catalogue avant ce diagnostic.
+
+**C41.5 — faits rail avant toute inférence.** Le réglage `c41_rail_lost_probe=0` ajoute au
+diagnostic C41.4 l'état numérique du véhicule, son ordre courant, la destination, la position et
+la validité du dépôt. La trace 5 × 6 (`docs/diag_c41_rail_lost_6y_5seeds.json`) est saine : les
+29 notifications viennent de seulement **4 couples ligne-véhicule**, récurrents ; chacune porte
+deux ordres valides, dont la destination appartient à la ligne, et un dépôt rail valide. Écarter
+donc ordre hors-ligne et dépôt manquant, mais ne pas conclure à un signal bloqué : l'API ne le
+rend pas observable. La suite est une corrélation passive avec la topologie persistée de ces
+lignes (double voie, second dépôt, longueur de quai et signaux).
+
+**C41.6 — concentration topologique (2026-09-08).** La sonde
+`c41_rail_lost_topology_probe=0` ne relit que l'état persisté d'une ligne. La trace 5 × 6
+(`docs/diag_c41_rail_lost_topology_6y_5seeds.json`) est saine : les 29 événements, et les quatre
+couples ligne-véhicule qui les répètent, sont tous sur des lignes **fret à double voie**, deux
+rames, deux véhicules persistés et second dépôt valide (quais 3–4, 2–3 wagons). La défaillance
+est donc concentrée dans la géométrie ou l'exploitation de la double voie, non dans les ordres,
+un dépôt absent ou une voie simple. C41.7 devra lire seulement les tuiles déjà référencées par ces
+lignes (sorties de quais, fronts de dépôts et jonctions) pour vérifier connexion et signalisation ;
+aucun scan global ni geste correctif n'est encore autorisé.
+
+**C41.7 — cause locale observable (2026-09-08).** La sonde
+`c41_rail_lost_physical_probe=0` vérifie sans pathfinding les approches déjà persistées des quais
+et les fronts des dépôts. La trace 5 × 6
+(`docs/diag_c41_rail_lost_physical_6y_5seeds.json`) est saine : les 29 occurrences gardent les
+quatre approches rail et les deux fronts de dépôt valides. Mais les quatre appels
+`AIRail.GetSignalType(lead, station_exit)` rendent tous `SIGNALTYPE_NONE` (255). Le code confirme
+la cause structurelle : la pose de signaux est conditionnée à `join != null`, alors que la double
+voie ordinaire reçoit deux rames et aucun signal d'approche. Une future C41.8 pourra seulement
+réparer de façon idempotente les approches d'une ligne double ayant effectivement émis `Lost`,
+derrière un réglage expérimental et une mesure appariée ; aucune régénération de catalogue ou
+réparation globale n'est autorisée.
+
+**C41.8 — contrat de réparation PBS, non exécuté.** `c41_rail_lost_signal_repair=0` transforme
+seulement l'événement d'une ligne double attribuée en entrée coalescée de `c41_rail_signals`.
+Cette micro-tâche pose un `AIRail.SIGNALTYPE_PBS` uniquement sur les approches à une branche et
+orienté vers le quai ; elle reconnaît un PBS existant et refuse de remplacer un signal non-PBS.
+Les approches à deux branches restent intactes, car leur sortie sûre n'est pas établie. Aucun
+chemin n'est recherché et aucune couche C39/C41, flotte, véhicule ou portefeuille ne change.
+Implémenté le 2026-09-08 sans smoke ni mesure à la demande : son activation exige d'abord un
+smoke, puis une trace appariée avant toute décision de défaut.
+
+**Verdict C41.8 (2026-09-08) : PBS d'approche rejeté.** Le smoke est sain, mais le diagnostic
+apparié 5 × 6 oppose 29 `VehicleLost` sur 4 couples ligne-véhicule dans le contrôle à **45 sur
+10** avec la réparation PBS (les trois graines actives se dégradent). Les 10 PBS sont bien posés
+et les reprises suivantes les reconnaissent, donc ce n'est pas un défaut d'idempotence. Le réglage
+reste à 0 : l'hypothèse « signal d'approche manquant » est insuffisante, voire perturbatrice. Ne
+pas lancer le banc officiel ni étendre la réparation ; isoler plutôt la géométrie et le choix de
+branche de la double voie avant toute nouvelle commande.
+
+**C41.9 — premier défaut géométrique prouvé (2026-09-08).** La sonde
+`c41_rail_lost_connectivity_probe=0` appelle seulement `AIRail.AreTilesConnected` entre les
+voisins immédiats des approches et dépôts. Trace 5 × 6 saine : parmi 28 pertes, quatre répétitions
+du couple graine 7 / ligne 18 / véhicule 115 ont `a_links=0` — la tuile d'approche A existe mais
+ne mène à aucune branche reconnue hors du quai. Toutes les autres approches et dépôts vus dans les
+24 autres pertes ont au moins un lien sortant. C41.10 pourra donc réparer **uniquement** ce
+raccord local, d'abord dans `AITestMode`, puis par une commande identique si le test réussit.
+Cette piste ne couvre pas encore les 24 autres cas et ne doit pas déclencher de réparation globale.

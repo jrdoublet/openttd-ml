@@ -1,0 +1,1240 @@
+{
+ "openttd_version": "15.3",
+ "years": 2,
+ "seeds": [
+  42,
+  100,
+  7
+ ],
+ "settings": {
+  "c39_invalidation_probe": 1,
+  "c39_decision_delta_probe": 1,
+  "decision_log": 0
+ },
+ "warning": "Diagnostic trace only: C39 probes write AILog; not a value benchmark.",
+ "summary": {
+  "c39_dirty": 0,
+  "c39_refresh": 69,
+  "refreshes_with_events": 0,
+  "decision_deltas": 0,
+  "top_changed_after_event": 0,
+  "engine_deltas": 0,
+  "engines_retained": 0,
+  "dirty_reasons": {},
+  "errors": []
+ },
+ "per_seed": {
+  "42": {
+   "c39_dirty": 0,
+   "c39_refresh": 24,
+   "refreshes_with_events": 0,
+   "decision_deltas": 0,
+   "top_changed_after_event": 0,
+   "engine_deltas": 0,
+   "engines_retained": 0,
+   "dirty_reasons": {},
+   "errors": [],
+   "trace": [
+    {
+     "date": "1970-01-16",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "air:33442:24869"
+     },
+     "raw": "OPEX 1970-1-16 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=air:33442:24869"
+    },
+    {
+     "date": "1970-03-02",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "air:10926:24869"
+     },
+     "raw": "OPEX 1970-3-2 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=air:10926:24869"
+    },
+    {
+     "date": "1970-03-28",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "road:10926:12711"
+     },
+     "raw": "OPEX 1970-3-28 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=road:10926:12711"
+    },
+    {
+     "date": "1970-04-29",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "road:24869:23338"
+     },
+     "raw": "OPEX 1970-4-29 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=road:24869:23338"
+    },
+    {
+     "date": "1970-06-03",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "air:10926:59980"
+     },
+     "raw": "OPEX 1970-6-3 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=air:10926:59980"
+    },
+    {
+     "date": "1970-07-01",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "road:44107:45637"
+     },
+     "raw": "OPEX 1970-7-1 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=road:44107:45637"
+    },
+    {
+     "date": "1970-08-01",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "road:37944:39241"
+     },
+     "raw": "OPEX 1970-8-1 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=road:37944:39241"
+    },
+    {
+     "date": "1970-08-28",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "road:63361:59522"
+     },
+     "raw": "OPEX 1970-8-28 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=road:63361:59522"
+    },
+    {
+     "date": "1970-09-21",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "none"
+     },
+     "raw": "OPEX 1970-9-21 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=none"
+    },
+    {
+     "date": "1970-10-15",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "road:63361:59522"
+     },
+     "raw": "OPEX 1970-10-15 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=road:63361:59522"
+    },
+    {
+     "date": "1970-11-18",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "road:5258:5537"
+     },
+     "raw": "OPEX 1970-11-18 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=road:5258:5537"
+    },
+    {
+     "date": "1970-12-15",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "none"
+     },
+     "raw": "OPEX 1970-12-15 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=none"
+    },
+    {
+     "date": "1971-01-17",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "none"
+     },
+     "raw": "OPEX 1971-1-17 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=none"
+    },
+    {
+     "date": "1971-02-16",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "rail:21920:37550"
+     },
+     "raw": "OPEX 1971-2-16 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=rail:21920:37550"
+    },
+    {
+     "date": "1971-03-23",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "air:24869:59980"
+     },
+     "raw": "OPEX 1971-3-23 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=air:24869:59980"
+    },
+    {
+     "date": "1971-04-19",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "none"
+     },
+     "raw": "OPEX 1971-4-19 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=none"
+    },
+    {
+     "date": "1971-05-17",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "rail:19055:26996"
+     },
+     "raw": "OPEX 1971-5-17 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=rail:19055:26996"
+    },
+    {
+     "date": "1971-06-16",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "road:28461:23338"
+     },
+     "raw": "OPEX 1971-6-16 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=road:28461:23338"
+    },
+    {
+     "date": "1971-07-19",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "none"
+     },
+     "raw": "OPEX 1971-7-19 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=none"
+    },
+    {
+     "date": "1971-08-26",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "none"
+     },
+     "raw": "OPEX 1971-8-26 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=none"
+    },
+    {
+     "date": "1971-09-16",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "none"
+     },
+     "raw": "OPEX 1971-9-16 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=none"
+    },
+    {
+     "date": "1971-10-19",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "rail:19055:26996"
+     },
+     "raw": "OPEX 1971-10-19 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=rail:19055:26996"
+    },
+    {
+     "date": "1971-12-02",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "air:10926:59980"
+     },
+     "raw": "OPEX 1971-12-2 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=air:10926:59980"
+    },
+    {
+     "date": "1971-12-25",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "road:16485:15697"
+     },
+     "raw": "OPEX 1971-12-25 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=road:16485:15697"
+    }
+   ]
+  },
+  "100": {
+   "c39_dirty": 0,
+   "c39_refresh": 23,
+   "refreshes_with_events": 0,
+   "decision_deltas": 0,
+   "top_changed_after_event": 0,
+   "engine_deltas": 0,
+   "engines_retained": 0,
+   "dirty_reasons": {},
+   "errors": [],
+   "trace": [
+    {
+     "date": "1970-01-14",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "air:18741:50103"
+     },
+     "raw": "OPEX 1970-1-14 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=air:18741:50103"
+    },
+    {
+     "date": "1970-02-20",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "road:30443:29411"
+     },
+     "raw": "OPEX 1970-2-20 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=road:30443:29411"
+    },
+    {
+     "date": "1970-03-17",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "none"
+     },
+     "raw": "OPEX 1970-3-17 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=none"
+    },
+    {
+     "date": "1970-04-14",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "none"
+     },
+     "raw": "OPEX 1970-4-14 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=none"
+    },
+    {
+     "date": "1970-05-15",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "none"
+     },
+     "raw": "OPEX 1970-5-15 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=none"
+    },
+    {
+     "date": "1970-06-13",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "none"
+     },
+     "raw": "OPEX 1970-6-13 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=none"
+    },
+    {
+     "date": "1970-07-16",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "air:50103:59176"
+     },
+     "raw": "OPEX 1970-7-16 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=air:50103:59176"
+    },
+    {
+     "date": "1970-08-15",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "none"
+     },
+     "raw": "OPEX 1970-8-15 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=none"
+    },
+    {
+     "date": "1970-09-10",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "capital",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "air:59176:21717"
+     },
+     "raw": "OPEX 1970-9-10 C39_REFRESH reason=capital events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=air:59176:21717"
+    },
+    {
+     "date": "1970-10-03",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "air:18741:46727"
+     },
+     "raw": "OPEX 1970-10-3 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=air:18741:46727"
+    },
+    {
+     "date": "1970-11-01",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "road:46727:45452"
+     },
+     "raw": "OPEX 1970-11-1 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=road:46727:45452"
+    },
+    {
+     "date": "1970-12-07",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "air:21717:55398"
+     },
+     "raw": "OPEX 1970-12-7 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=air:21717:55398"
+    },
+    {
+     "date": "1971-01-06",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "road:24247:22184"
+     },
+     "raw": "OPEX 1971-1-6 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=road:24247:22184"
+    },
+    {
+     "date": "1971-02-15",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "air:18741:21717"
+     },
+     "raw": "OPEX 1971-2-15 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=air:18741:21717"
+    },
+    {
+     "date": "1971-03-18",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "road:30443:29411"
+     },
+     "raw": "OPEX 1971-3-18 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=road:30443:29411"
+    },
+    {
+     "date": "1971-04-19",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "road:9822:9298"
+     },
+     "raw": "OPEX 1971-4-19 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=road:9822:9298"
+    },
+    {
+     "date": "1971-05-24",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "road:32953:32205"
+     },
+     "raw": "OPEX 1971-5-24 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=road:32953:32205"
+    },
+    {
+     "date": "1971-06-28",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "rail:4696:6172"
+     },
+     "raw": "OPEX 1971-6-28 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=rail:4696:6172"
+    },
+    {
+     "date": "1971-08-05",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "rail:4696:6172"
+     },
+     "raw": "OPEX 1971-8-5 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=rail:4696:6172"
+    },
+    {
+     "date": "1971-09-09",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "capital",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "road:38199:37435"
+     },
+     "raw": "OPEX 1971-9-9 C39_REFRESH reason=capital events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=road:38199:37435"
+    },
+    {
+     "date": "1971-10-14",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "air:21717:22803"
+     },
+     "raw": "OPEX 1971-10-14 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=air:21717:22803"
+    },
+    {
+     "date": "1971-11-23",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "air:21717:22803"
+     },
+     "raw": "OPEX 1971-11-23 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=air:21717:22803"
+    },
+    {
+     "date": "1971-12-31",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "rail:11388:29583"
+     },
+     "raw": "OPEX 1971-12-31 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=rail:11388:29583"
+    }
+   ]
+  },
+  "7": {
+   "c39_dirty": 0,
+   "c39_refresh": 22,
+   "refreshes_with_events": 0,
+   "decision_deltas": 0,
+   "top_changed_after_event": 0,
+   "engine_deltas": 0,
+   "engines_retained": 0,
+   "dirty_reasons": {},
+   "errors": [],
+   "trace": [
+    {
+     "date": "1970-01-19",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "air:26585:59620"
+     },
+     "raw": "OPEX 1970-1-19 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=air:26585:59620"
+    },
+    {
+     "date": "1970-02-24",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "road:23268:26589"
+     },
+     "raw": "OPEX 1970-2-24 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=road:23268:26589"
+    },
+    {
+     "date": "1970-03-29",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "fleet:26589:61159"
+     },
+     "raw": "OPEX 1970-3-29 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=fleet:26589:61159"
+    },
+    {
+     "date": "1970-04-25",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "air:59620:48244"
+     },
+     "raw": "OPEX 1970-4-25 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=air:59620:48244"
+    },
+    {
+     "date": "1970-05-22",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "rail:46222:42659"
+     },
+     "raw": "OPEX 1970-5-22 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=rail:46222:42659"
+    },
+    {
+     "date": "1970-06-18",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "none"
+     },
+     "raw": "OPEX 1970-6-18 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=none"
+    },
+    {
+     "date": "1970-07-18",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "air:59620:48244"
+     },
+     "raw": "OPEX 1970-7-18 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=air:59620:48244"
+    },
+    {
+     "date": "1970-08-20",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "none"
+     },
+     "raw": "OPEX 1970-8-20 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=none"
+    },
+    {
+     "date": "1970-09-21",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "air:26585:55623"
+     },
+     "raw": "OPEX 1970-9-21 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=air:26585:55623"
+    },
+    {
+     "date": "1970-10-19",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "rail:46222:42659"
+     },
+     "raw": "OPEX 1970-10-19 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=rail:46222:42659"
+    },
+    {
+     "date": "1970-11-24",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "rail:46222:42659"
+     },
+     "raw": "OPEX 1970-11-24 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=rail:46222:42659"
+    },
+    {
+     "date": "1970-12-20",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "air:59620:40749"
+     },
+     "raw": "OPEX 1970-12-20 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=air:59620:40749"
+    },
+    {
+     "date": "1971-01-19",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "air:59620:40749"
+     },
+     "raw": "OPEX 1971-1-19 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=air:59620:40749"
+    },
+    {
+     "date": "1971-02-22",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "air:8356:48244"
+     },
+     "raw": "OPEX 1971-2-22 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=air:8356:48244"
+    },
+    {
+     "date": "1971-03-24",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "air:40749:29665"
+     },
+     "raw": "OPEX 1971-3-24 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=air:40749:29665"
+    },
+    {
+     "date": "1971-04-24",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "road:26585:20954"
+     },
+     "raw": "OPEX 1971-4-24 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=road:26585:20954"
+    },
+    {
+     "date": "1971-05-28",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "air:19926:48244"
+     },
+     "raw": "OPEX 1971-5-28 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=air:19926:48244"
+    },
+    {
+     "date": "1971-06-29",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "air:53372:11056"
+     },
+     "raw": "OPEX 1971-6-29 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=air:53372:11056"
+    },
+    {
+     "date": "1971-08-05",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "air:59620:48244"
+     },
+     "raw": "OPEX 1971-8-5 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=air:59620:48244"
+    },
+    {
+     "date": "1971-09-11",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "air:59728:40749"
+     },
+     "raw": "OPEX 1971-9-11 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=air:59728:40749"
+    },
+    {
+     "date": "1971-10-19",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "road:7125:5317"
+     },
+     "raw": "OPEX 1971-10-19 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=road:7125:5317"
+    },
+    {
+     "date": "1971-12-02",
+     "kind": "C39_REFRESH",
+     "fields": {
+      "reason": "month",
+      "events": "0",
+      "cat": "-",
+      "cand": "-",
+      "portfolio": "0",
+      "selection": "0",
+      "towns": "0",
+      "industries": "0",
+      "engines": "0",
+      "top": "rail:2699:16754"
+     },
+     "raw": "OPEX 1971-12-2 C39_REFRESH reason=month events=0 cat=- cand=- portfolio=0 selection=0 towns=0 industries=0 engines=0 top=rail:2699:16754"
+    }
+   ]
+  }
+ }
+}
