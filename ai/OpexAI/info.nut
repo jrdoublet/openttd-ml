@@ -341,6 +341,17 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C43/E3 famille 2 : CASH_RESERVE_MIN mord-il ? Compteurs cumulatifs, publies en delta annuel
+     * par la tache "report" (OpexCashReserve() est appelee trop souvent pour journaliser chaque
+     * appel). */
+    AddSetting({
+      name = "cash_reserve_probe",
+      description = "C43/E3 probe: count CASH_RESERVE_MIN/MAX binds in OpexCashReserve() per year; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* D3.1 : Filtre eliminatoire ratio_too_low dans le vivier
      * (1 = actif/defaut historique, 0 = inactif, preserve les candidats a profit>0). */
     AddSetting({

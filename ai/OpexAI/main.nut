@@ -563,6 +563,21 @@ EVENT_CATALOG_INVALIDATE <- true;
 const CASH_RESERVE_STATIC = 25000;
 const CASH_RESERVE_MIN = 5000;
 const CASH_RESERVE_MAX = 25000;
+/* C43/E3 famille 2 : CASH_RESERVE_MIN mord-il ? OpexCashReserve() est appelee tres souvent (a
+ * chaque decision de construction), donc journaliser chaque appel serait bruyant -- compteurs
+ * cumulatifs, publies une fois par an en delta par la tache "report". */
+CASH_RESERVE_PROBE <- false;
+CASH_RESERVE_PROBE_CALLS <- 0;
+CASH_RESERVE_PROBE_MIN_BINDS <- 0;
+CASH_RESERVE_PROBE_MAX_BINDS <- 0;
+
+function OpexCashReserveProbeLog(fields)
+{
+  if (!CASH_RESERVE_PROBE) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " CASH_RESERVE_PROBE " + fields);
+}
 
 function OpexCashReserve()
 {
@@ -588,9 +603,14 @@ function OpexCashReserve()
   }
   local reserve;
   local quarterlyBuffer = totalRunning / 4;
-  if (quarterlyBuffer < CASH_RESERVE_MIN) reserve = CASH_RESERVE_MIN;
-  else if (quarterlyBuffer > CASH_RESERVE_MAX) reserve = CASH_RESERVE_MAX;
-  else reserve = quarterlyBuffer;
+  if (CASH_RESERVE_PROBE) CASH_RESERVE_PROBE_CALLS++;
+  if (quarterlyBuffer < CASH_RESERVE_MIN) {
+    reserve = CASH_RESERVE_MIN;
+    if (CASH_RESERVE_PROBE) CASH_RESERVE_PROBE_MIN_BINDS++;
+  } else if (quarterlyBuffer > CASH_RESERVE_MAX) {
+    reserve = CASH_RESERVE_MAX;
+    if (CASH_RESERVE_PROBE) CASH_RESERVE_PROBE_MAX_BINDS++;
+  } else reserve = quarterlyBuffer;
   /* Le plafond d'un mois d'entretien (decision utilisateur) prime sur le plancher CASH_RESERVE_MIN :
    * totalRunning / 12 est toujours < totalRunning / 4, donc ce plafond mord des que l'entretien
    * annuel passe sous 60 000 £, y compris jusqu'a 0 flotte vide. Assume, pas une marge de securite. */
@@ -1005,6 +1025,10 @@ class OpexAI extends AIController {
   _nextLineId = 0;
   _lastCatalogMonth = -1;
   _lastReportYear = -1;
+  /* C43/E3 famille 2 : dernier compte cumulatif publie, pour ne journaliser que le delta annuel. */
+  _cashReserveProbeLastCalls = 0;
+  _cashReserveProbeLastMinBinds = 0;
+  _cashReserveProbeLastMaxBinds = 0;
   _lastAirFleetMonth = -1;
   _lastRepayMonth = -1;
   /* G2 : une ouverture d'industrie ou fondation de ville rend le catalogue ET le
@@ -5820,6 +5844,16 @@ function OpexAI::_runNextTask()
     }
     OpexSign(AIMap.GetTileIndex(1, 1), "LB|" + (year % 100) + "|"
              + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
+    if (CASH_RESERVE_PROBE) {
+      local calls = CASH_RESERVE_PROBE_CALLS - this._cashReserveProbeLastCalls;
+      local minBinds = CASH_RESERVE_PROBE_MIN_BINDS - this._cashReserveProbeLastMinBinds;
+      local maxBinds = CASH_RESERVE_PROBE_MAX_BINDS - this._cashReserveProbeLastMaxBinds;
+      this._cashReserveProbeLastCalls = CASH_RESERVE_PROBE_CALLS;
+      this._cashReserveProbeLastMinBinds = CASH_RESERVE_PROBE_MIN_BINDS;
+      this._cashReserveProbeLastMaxBinds = CASH_RESERVE_PROBE_MAX_BINDS;
+      OpexCashReserveProbeLog("year=" + year + " calls=" + calls + " min_binds=" + minBinds
+                              + " max_binds=" + maxBinds);
+    }
     this._reportYear(year, this._ranked);
     this._reportLines(year);
     return true;
@@ -6050,6 +6084,7 @@ function OpexAI::Start()
   C41_RAIL_LOST_SIGNAL_REPAIR = AIController.GetSetting("c41_rail_lost_signal_repair") != 0;
   C41_RAIL_LOST_CONNECTIVITY_PROBE = AIController.GetSetting("c41_rail_lost_connectivity_probe") != 0;
   C41_RAIL_LOST_JUNCTION_REPAIR = AIController.GetSetting("c41_rail_lost_junction_repair") != 0;
+  CASH_RESERVE_PROBE = AIController.GetSetting("cash_reserve_probe") != 0;
   if (C41_RAIL_LOST_TOPOLOGY_PROBE) C41_RAIL_LOST_PROBE = true;
   if (C41_RAIL_LOST_PHYSICAL_PROBE) C41_RAIL_LOST_PROBE = true;
   if (C41_RAIL_LOST_SIGNAL_REPAIR) C41_RAIL_LOST_PROBE = true;
