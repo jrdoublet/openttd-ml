@@ -227,7 +227,6 @@ AIR_DEMAND_PLAN <- false;
 AIR_FLEET_CADENCE_DAYS <- 7;
 /* C14 : tampon de cargo au sol pour achat proportionnel (-1 = inactif/defaut). */
 AIR_FLEET_BUFFER <- -1;
-TREE_PLANTING <- false;
 PAX_FULL_LOAD <- true;
 AIR_FULL_LOAD <- false;
 COMPLEX_CARGO <- true;
@@ -1170,11 +1169,6 @@ function OpexAI::_tryBuildAir(year)
       }
     }
 
-    if (TREE_PLANTING) {
-      OpexBoostTownRating(plan.siteA.town.id, 700, 35);
-      OpexBoostTownRating(plan.siteB.town.id, 700, 35);
-    }
-
     local result = OpexBuildAirRoute(this._catalog, this._budget, plan);
     local anchor = AIMap.GetTileIndex(1, 1);
     OpexSign(anchor, "OA|" + year + "|" + plan.distance + "|" + planOps + "|" + result.reason);
@@ -1312,10 +1306,6 @@ function OpexAI::_tryTownGrowth(year)
     local townTile = AITown.GetLocation(townId);
     local townPop = AITown.GetPopulation(townId);
     if (townPop < 100) continue;
-
-    if (TREE_PLANTING) {
-      OpexBoostTownRating(townId, 100, 15);
-    }
 
     local cx = AIMap.GetTileX(townTile);
     local cy = AIMap.GetTileY(townTile);
@@ -1808,10 +1798,6 @@ function OpexAI::_tryBuildFeeders(year)
         }
       }
     }
-    if (TREE_PLANTING) {
-      if (candidate.srcTown >= 0) OpexBoostTownRating(candidate.srcTown, 700, 35);
-      if (candidate.dstTown >= 0) OpexBoostTownRating(candidate.dstTown, 700, 35);
-    }
     local result = OpexBuildRoadRoute(this._catalog, this._budget, plan, candidate);
     if (ROAD_COST_PROBE) {
       OpexSign(anchor, "RP|" + idx + "|" + result.plannedCapital + "|" + result.actualCost
@@ -2117,10 +2103,6 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
                                        + (join == null ? "map" : "join"));
         }
       }
-      if (!lowCash && TREE_PLANTING && candidate.kind == "pax") {
-        OpexBoostTownRating(candidate.src, 700, 35);
-        OpexBoostTownRating(candidate.dst, 700, 35);
-      }
       local posPacked = i * TOP_K + this._projects.best.len();
       if (RAIL_SEARCH_RESUMABLE &&
           !(("railPlan" in candidate) && candidate.railPlan != null)) {
@@ -2319,11 +2301,6 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
 
       OpexSign(anchor, "IP|" + yy + "|A|" + project.budgetScore + "|" + project.opcodeScore);
 
-      if (TREE_PLANTING) {
-        OpexBoostTownRating(plan.siteA.town.id, 700, 35);
-        OpexBoostTownRating(plan.siteB.town.id, 700, 35);
-      }
-
       local planOps = ("planningOpcodes" in project) ? project.planningOpcodes : 0;
       local result = OpexBuildAirRoute(this._catalog, this._budget, plan);
       OpexSign(anchor, "OA|" + year + "|" + plan.distance + "|" + planOps + "|" + result.reason);
@@ -2499,10 +2476,6 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         if (candidate.capital > 0) {
           candidate.roi = (candidate.profitAnnual * 1000) / candidate.capital;
         }
-      }
-      if (TREE_PLANTING) {
-        if (candidate.srcTown >= 0) OpexBoostTownRating(candidate.srcTown, 700, 35);
-        if (candidate.dstTown >= 0) OpexBoostTownRating(candidate.dstTown, 700, 35);
       }
       local result = OpexBuildRoadRoute(this._catalog, this._budget, plan, candidate);
       OpexSign(anchor, "RB|" + yy + "|" + idx + "|1|" + planOps + "|" + result.opcodes);
@@ -4414,10 +4387,6 @@ function OpexAI::_consumeRailSearch(year)
     if (money < need) return "cash";
   }
 
-  if (TREE_PLANTING && candidate.kind == "pax") {
-    OpexBoostTownRating(candidate.src, 700, 35);
-    OpexBoostTownRating(candidate.dst, 700, 35);
-  }
   local result = OpexBuildLine(this._catalog, this._budget, candidate, state.alternativeRatio,
                                join, OpexCashReserve(), state.hardCap);
   /* Ne pas jeter le plan sur CASH : on reessaiera au prochain tour, sans refaire l'A*. */
@@ -5233,7 +5202,6 @@ function OpexAI::Start()
   AIR_DEMAND_CAP = AIController.GetSetting("air_demand_cap") != 0;
   AIR_DEMAND_PLAN = AIController.GetSetting("air_demand_plan") != 0;
   DYNAMIC_PATHFINDER_CAP = AIController.GetSetting("dynamic_pathfinder_cap") != 0;
-  TREE_PLANTING = AIController.GetSetting("tree_planting") != 0;
   PAX_FULL_LOAD = AIController.GetSetting("pax_full_load") != 0;
   AIR_FULL_LOAD = AIController.GetSetting("air_full_load") != 0;
   COMPLEX_CARGO = AIController.GetSetting("complex_cargo") != 0;
