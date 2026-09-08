@@ -1219,7 +1219,7 @@ reste à trancher indépendamment.
   | constante | rejets totaux | par graine (1/42/73/100/2026) |
   |---|---:|---|
   | `ROAD_MIN_PROFIT_ANNUAL` | **0** | 0/0/0/0/0 |
-  | `ROAD_ACCEPTANCE_FULL_UNIT` | **495 216** | 151 488 / 94 176 / 67 608 / 86 544 / 95 400 |
+  | `ROAD_ACCEPTANCE_FULL_UNIT` | **495 216** ⚠️ gonflé, voir correctif ci-dessous | 151 488 / 94 176 / 67 608 / 86 544 / 95 400 |
 
   ⚠️ **Piège de dénominateur rencontré et documenté dans le script, pas de pourcentage de
   morsure fiable calculé.** `stats.townRejected` s'incrémente dans la boucle industrie × ville
@@ -1229,13 +1229,23 @@ reste à trancher indépendamment.
   (rejets / produced total) donnait 1 456 % — signal du même genre de confusion que
   `rejected > 0` pour `PROJECT_TOP_K` en famille 1. Corrigé en ne publiant que les comptes bruts.
 
-  **`ROAD_MIN_PROFIT_ANNUAL` ne mord jamais** dans cette fenêtre (5 graines × 6 ans, 180 864
+  ⚠️ **CORRIGÉ (2026-09-08, `2562e96`) : les comptes 180 864/10 728/495 216 sont gonflés**, même
+  bug de duplication par ligne de checkpoint que `road_cost_probe` et famille 1. Re-mesuré sur les
+  mêmes graines (`docs/diag_family2_floors_6y_5seeds_v2.json`) : **2 511 candidats produits, 148
+  gardés, 6 813 rejets `ROAD_ACCEPTANCE_FULL_UNIT`** (1 → 2 104 ; 42 → 1 308 ; 73 → 939 ;
+  100 → 1 137 ; 2026 → 1 325) — pas 180 864/10 728/495 216. `ROAD_MIN_PROFIT_ANNUAL` reste à
+  **0** sous la mesure corrigée : le zéro tient, seule l'échelle était fausse.
+
+  **`ROAD_MIN_PROFIT_ANNUAL` ne mord jamais** dans cette fenêtre (5 graines × 6 ans, 2 511
   candidats produits) — même verdict que `MIN_SEPARATION` en famille 1 : mécanisme vivant,
-  jamais déclenché. **`ROAD_ACCEPTANCE_FULL_UNIT` mord énormément et systématiquement** : 495 216
-  rejets contre seulement **10 728 candidats gardés** (`VIVIER_GEN.kept`, toutes générations
-  routières confondues) sur les mêmes graines — un rapport d'environ 46 rejets pour 1 candidat
-  retenu, cohérent sur les 5 graines (67 608 à 151 488 chacune, jamais proche de 0). C'est de
-  loin le plus gros motif de rejet routier nommé (devant `road_no_monthly` à 378 504).
+  jamais déclenché. **`ROAD_ACCEPTANCE_FULL_UNIT` mord énormément et systématiquement** : 6 813
+  rejets contre seulement **148 candidats gardés** (`VIVIER_GEN.kept`, toutes générations
+  routières confondues) sur les mêmes graines — un rapport d'environ **46 rejets pour 1 candidat
+  retenu, quasiment identique au chiffre gonflé** (495 216/10 728 ≈ 46,15 contre 6 813/148 ≈
+  46,03) : ce ratio spécifique était fiable même avant correction, la duplication étant uniforme
+  au sein de chaque partie. Cohérent sur les 5 graines (939 à 2 104, jamais proche de 0). C'est de
+  loin le plus gros motif de rejet routier nommé (devant `road_no_monthly`, 5 222 corrigé contre
+  378 504 gonflé).
 
   ⚠️ **CORRIGÉ (2026-09-08, avant tout banc) : `ROAD_ACCEPTANCE_FULL_UNIT` n'est PAS un candidat
   d'étalonnage — erreur commise en écrivant ce paragraphe, retirée avant de dépenser un banc
