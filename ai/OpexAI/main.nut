@@ -822,6 +822,22 @@ DYNAMIC_BATCH_OPS_BUDGET_PCT <- 50;
 /* Gain absolu minimal avant de rejouer la generation : en dessous, le cout en opcodes ne vaut pas
  * la peine d'etre paye pour quelques milliers de livres. */
 const PORTFOLIO_REFRESH_MIN_GAIN = 50000;
+/* C43/E3 famille 2 : PORTFOLIO_REFRESH_MIN_GAIN mord-il independamment du doublement (l'autre
+ * moitie de la condition ET) ? Compteurs cumulatifs, publies en delta annuel par la tache
+ * "report", meme schema que CASH_RESERVE_PROBE. */
+PORTFOLIO_REFRESH_PROBE <- false;
+PORTFOLIO_REFRESH_PROBE_CHECKS <- 0;
+PORTFOLIO_REFRESH_PROBE_GAIN_OK <- 0;
+PORTFOLIO_REFRESH_PROBE_DOUBLE_OK <- 0;
+PORTFOLIO_REFRESH_PROBE_DOUBLE_ONLY <- 0;
+
+function OpexPortfolioRefreshProbeLog(fields)
+{
+  if (!PORTFOLIO_REFRESH_PROBE) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " PORTFOLIO_REFRESH_PROBE " + fields);
+}
 /* Plancher de profit absolu du portefeuille v2, en POURCENTAGE du meilleur profit finançable du
  * moment. Repli 0 (= tri au seul ratio) jusqu'a la lecture de portfolio_floor_pct dans Start().
  * Voir projects.nut::OpexProjectSelectAffordable pour le mecanisme et la mesure qui l'impose. */
@@ -1029,6 +1045,10 @@ class OpexAI extends AIController {
   _cashReserveProbeLastCalls = 0;
   _cashReserveProbeLastMinBinds = 0;
   _cashReserveProbeLastMaxBinds = 0;
+  _portfolioRefreshProbeLastChecks = 0;
+  _portfolioRefreshProbeLastGainOk = 0;
+  _portfolioRefreshProbeLastDoubleOk = 0;
+  _portfolioRefreshProbeLastDoubleOnly = 0;
   _lastAirFleetMonth = -1;
   _lastRepayMonth = -1;
   /* G2 : une ouverture d'industrie ou fondation de ville rend le catalogue ET le
@@ -5670,8 +5690,17 @@ function OpexAI::_runNextTask()
       local budgetThen = this._projects.capitalBudget;
       /* Seuil relatif ET absolu : on ne rejoue pas la generation pour quelques milliers de livres,
        * mais un doublement du capital mobilisable rouvre le vivier. */
-      if (budgetNow > budgetThen + PORTFOLIO_REFRESH_MIN_GAIN &&
-          budgetNow > budgetThen * 2) stale = true;
+      local gainOk = budgetNow > budgetThen + PORTFOLIO_REFRESH_MIN_GAIN;
+      local doubleOk = budgetNow > budgetThen * 2;
+      if (PORTFOLIO_REFRESH_PROBE) {
+        PORTFOLIO_REFRESH_PROBE_CHECKS++;
+        if (gainOk) PORTFOLIO_REFRESH_PROBE_GAIN_OK++;
+        if (doubleOk) PORTFOLIO_REFRESH_PROBE_DOUBLE_OK++;
+        /* C43/E3 : le seul cas ou PORTFOLIO_REFRESH_MIN_GAIN bloque reellement un rafraichissement
+         * que le doublement aurait seul autorise -- utile seulement si budgetThen < MIN_GAIN. */
+        if (doubleOk && !gainOk) PORTFOLIO_REFRESH_PROBE_DOUBLE_ONLY++;
+      }
+      if (gainOk && doubleOk) stale = true;
     }
     /* Une invalidation evenementielle prime toujours la cadence mensuelle et le seuil de
      * tresorerie : le portefeuille est derive du catalogue, pas seulement du capital. */
@@ -5853,6 +5882,18 @@ function OpexAI::_runNextTask()
       this._cashReserveProbeLastMaxBinds = CASH_RESERVE_PROBE_MAX_BINDS;
       OpexCashReserveProbeLog("year=" + year + " calls=" + calls + " min_binds=" + minBinds
                               + " max_binds=" + maxBinds);
+    }
+    if (PORTFOLIO_REFRESH_PROBE) {
+      local checks = PORTFOLIO_REFRESH_PROBE_CHECKS - this._portfolioRefreshProbeLastChecks;
+      local gainOk = PORTFOLIO_REFRESH_PROBE_GAIN_OK - this._portfolioRefreshProbeLastGainOk;
+      local doubleOk = PORTFOLIO_REFRESH_PROBE_DOUBLE_OK - this._portfolioRefreshProbeLastDoubleOk;
+      local doubleOnly = PORTFOLIO_REFRESH_PROBE_DOUBLE_ONLY - this._portfolioRefreshProbeLastDoubleOnly;
+      this._portfolioRefreshProbeLastChecks = PORTFOLIO_REFRESH_PROBE_CHECKS;
+      this._portfolioRefreshProbeLastGainOk = PORTFOLIO_REFRESH_PROBE_GAIN_OK;
+      this._portfolioRefreshProbeLastDoubleOk = PORTFOLIO_REFRESH_PROBE_DOUBLE_OK;
+      this._portfolioRefreshProbeLastDoubleOnly = PORTFOLIO_REFRESH_PROBE_DOUBLE_ONLY;
+      OpexPortfolioRefreshProbeLog("year=" + year + " checks=" + checks + " gain_ok=" + gainOk
+                                   + " double_ok=" + doubleOk + " double_only=" + doubleOnly);
     }
     this._reportYear(year, this._ranked);
     this._reportLines(year);
@@ -6085,6 +6126,7 @@ function OpexAI::Start()
   C41_RAIL_LOST_CONNECTIVITY_PROBE = AIController.GetSetting("c41_rail_lost_connectivity_probe") != 0;
   C41_RAIL_LOST_JUNCTION_REPAIR = AIController.GetSetting("c41_rail_lost_junction_repair") != 0;
   CASH_RESERVE_PROBE = AIController.GetSetting("cash_reserve_probe") != 0;
+  PORTFOLIO_REFRESH_PROBE = AIController.GetSetting("portfolio_refresh_probe") != 0;
   if (C41_RAIL_LOST_TOPOLOGY_PROBE) C41_RAIL_LOST_PROBE = true;
   if (C41_RAIL_LOST_PHYSICAL_PROBE) C41_RAIL_LOST_PROBE = true;
   if (C41_RAIL_LOST_SIGNAL_REPAIR) C41_RAIL_LOST_PROBE = true;

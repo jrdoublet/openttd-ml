@@ -352,6 +352,17 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C43/E3 famille 2 : PORTFOLIO_REFRESH_MIN_GAIN mord-il independamment du doublement (l'autre
+     * moitie de la condition ET du rafraichissement "capital") ? Compteurs cumulatifs, delta
+     * annuel par "report", meme schema que cash_reserve_probe. */
+    AddSetting({
+      name = "portfolio_refresh_probe",
+      description = "C43/E3 probe: count PORTFOLIO_REFRESH_MIN_GAIN vs doubling threshold checks per year; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* D3.1 : Filtre eliminatoire ratio_too_low dans le vivier
      * (1 = actif/defaut historique, 0 = inactif, preserve les candidats a profit>0). */
     AddSetting({
