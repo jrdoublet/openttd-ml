@@ -227,7 +227,7 @@ def parse_args():
     parser.add_argument("--seeds", nargs="+", type=int, default=list(SEEDS), help="graines OpenTTD")
     parser.add_argument("--years", type=int, default=YEARS, help="duree en annees")
     parser.add_argument("--starting-year", type=int, default=STARTING_YEAR, help="annee de depart")
-    parser.add_argument("--out", type=Path, default=Path("docs/bench_c14_c15_trajectory_10y.json"), help="JSON final")
+    parser.add_argument("--out", type=Path, default=Path("results/bench_c14_c15_trajectory_10y.json"), help="JSON final")
     parser.add_argument("--max-workers", type=int, default=MAX_WORKERS, help="workers paralleles")
     args = parser.parse_args()
     try:

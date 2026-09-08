@@ -28,7 +28,7 @@
  * Devenu le reglage `rail_min_distance` pour que le banc puisse opposer 5 a 25 en une campagne.
  * Repli 25 (comportement livre) jusqu'a la lecture unique dans Start().
  *
- * MESURE le 2026-09-02 (docs/bench_rail_min_distance_3y.json, 20 graines x 3 ans, apparie) : NUL.
+ * MESURE le 2026-09-02 (results/bench_rail_min_distance_3y.json, 20 graines x 3 ans, apparie) : NUL.
  * company_value -0,6 % (t = 0,12), profit_year -1,0 % (t = 0,17), et surtout le compte de signes
  * vaut 8/20, 9/20, 11/20, 7/20, 10/20 -- la signature exacte du rebattage de trajectoires. Le
  * reglage AGIT (les valeurs par graine different, il n'est pas inerte), mais son effet est de
@@ -82,7 +82,7 @@ const PAX_NEAR_RATIO = 1;
  *
  * Deux tables, memes abcisses. astar_cost=0 : noeuds 13.4 (TrainLineAI). astar_cost=1 :
  * iterations AMORTIES par succes, fenetre +/-12 tuiles autour de chaque noeud, 227 tentatives
- * (docs/opex_attempt_distance_20y_5seeds.json). ATTEMPT_MULTIPLIER reste 4 : p95(iter OK) /
+ * (results/opex_attempt_distance_20y_5seeds.json). ATTEMPT_MULTIPLIER reste 4 : p95(iter OK) /
  * amort <= 2,7 sur toutes les bandes, donc 4x couvre la queue d'une tentative isolee. Le
  * plancher 2000 absorbe le court (4*310=1240 < 2000). Recalibrer les noeuds SANS ce M
  * reproduirait "budgets 50-400, zero ligne".
@@ -387,7 +387,7 @@ function OpexTopK(all, k)
 }
 
 /* Exclusion a la GENERATION plutot qu'au FILTRAGE (2026-08-28). Mesure sur graine 42/20 ans
- * (docs/opex_full_campaign_20y.json) : les stalles restants de la campagne sont 20/20 candidats du
+ * (results/opex_full_campaign_20y.json) : les stalles restants de la campagne sont 20/20 candidats du
  * TOP_K rejetes par _tooClose (main.nut) pour la MEME raison -- une origine deja desservie, jamais
  * une proximite physique (near=20/far=0 a chaque annee bloquee). Le classement n'a alors aucune
  * chance de contenir un candidat constructible : TOP_K entier gaspille sur des origines mortes.
@@ -422,7 +422,7 @@ function OpexOriginServed(lines, tile, includeRoad)
 
 /* DE LA GUILLOTINE AU FILET (2026-08-29). L'exclusion ci-dessus, ecrite le 2026-08-28, rejetait la
  * paire des qu'UNE de ses deux extremites etait servie. Mesure sur 20 ans, graine 42
- * (docs/opex_road_20y_42.json) : a partir de 1982 elle ecarte 213 a 242 paires par an et il ne
+ * (results/opex_road_20y_42.json) : a partir de 1982 elle ecarte 213 a 242 paires par an et il ne
  * reste que 0 a 3 candidats classes -- la regle "un seul raccordement par origine" a consomme la
  * carte, et huit annees ne produisent que six lignes. Elle emportait aussi station_join, ecrit le
  * meme jour pour recuperer exactement ce vivier : 0 tentative en 20 ans, parce que le candidat
@@ -504,7 +504,7 @@ function OpexShareBasin(amount, lines, stationId, cargo)
  * ligne, moyenne 22 % sur 9 lignes pax reelles. C'etait le biais deja signale, non calibre, dans
  * le commentaire precedent : AITown.GetLastMonthProduction porte sur la ville ENTIERE, une gare
  * n'en couvre qu'un rayon local. Domine le gap x10 predit/reel bien plus que STATION_RATING_PCT
- * (~1,4x seulement) : voir docs/opex_predict_vs_actual.json.
+ * (~1,4x seulement) : voir results/opex_predict_vs_actual.json.
  * Ne s'applique QU'aux paires de villes : une industrie produit depuis une seule tuile, elle n'a
  * pas cette dilution geometrique -- non mesure ici, donc non touche. */
 const TOWN_CATCHMENT_SHARE_PCT = 22;
@@ -950,7 +950,7 @@ function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null)
 /* Meilleur rapport atteint dans chaque bande de distance.
  *
  * Diagnostic, pas decision : il sert a confronter la FORME de notre modele a la courbe mesuree
- * sur la campagne v3 (optimum profit/iteration a 48-63 tuiles, docs/opex_cost_model.json). Si
+ * sur la campagne v3 (optimum profit/iteration a 48-63 tuiles, results/opex_cost_model.json). Si
  * notre modele prefere systematiquement une autre bande, c'est lui qui est faux, pas la mesure. */
 BAND_EDGES <- [25, 45, 70, 110, 200];
 
@@ -996,7 +996,7 @@ ROAD_TOP_K <- 48;
 /* Repere historique de profit, conserve pour RS et les campagnes comparables. Il ne coupe plus
  * aucun candidat rentable avant l'arbitrage modal : profitTooLow compte les projets sous ce
  * repere, tandis que profitAnnual <= 0 reste le seul rejet economique. Mesure 2026-08-30
- * (docs/opex_road_predict_vs_actual.json) : 12 pax, mediane reel/predit 3,91 ; fret temoin 1,21.
+ * (results/opex_road_predict_vs_actual.json) : 12 pax, mediane reel/predit 3,91 ; fret temoin 1,21.
  * La valeur n'est donc plus un parametre de decision.
  */
 const ROAD_MIN_PROFIT_ANNUAL = 1000;
@@ -1012,7 +1012,7 @@ const ROAD_ACCEPTANCE_FULL_UNIT = 8;
 /* Cout en "iterations equivalentes" d'une tentative routiere, pour rester dans la meme unite que
  * le rail (1 iteration ~ 2 700 opcodes).
  *
- * Mesure 2026-08-30 (docs/opex_road_rb_calibrate.json, panneau RB, campagne TRACEX 5 graines,
+ * Mesure 2026-08-30 (results/opex_road_rb_calibrate.json, panneau RB, campagne TRACEX 5 graines,
  * n = 10). Plan OK mediane 31 440 opcodes (~11,7 iter) contre 20+d ~ 42,5 (rapport 0,29).
  * BASE impliquee plan seul : -9. TRACEX 70-107 k. Le build (mediane 287 k) est maintenant inclus
  * dans expectedOpcodes, comme la transaction rail : l'unite commune ne sert qu'a ordonner sous
@@ -1167,7 +1167,7 @@ function OpexTownFeederServed(lines, townTile, hubStationId)
  *
  * OpexTownFeederCount etait rappele pour CHAQUE couple (ville, hub) et reparcourait a chaque fois
  * toutes les lignes en appelant AITile.GetClosestTown. Sur l'etat mesure -- 57 villes, jusqu'a
- * 45 hubs (docs/diag_1v1_10y.json.gz), 14 feeders -- cela fait de l'ordre de 36 000 appels API par
+ * 45 hubs (results/diag_1v1_10y.json.gz), 14 feeders -- cela fait de l'ordre de 36 000 appels API par
  * execution de la tache, pour un resultat qui ne depend que des lignes. L'index le rend en
  * O(lignes) : un seul appel GetClosestTown par ligne heritee, aucun pour les lignes posees depuis
  * C29 puisqu'elles portent `srcTown` (main.nut:1552).
@@ -1692,7 +1692,10 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats, abandonedPairs = n
 
 /* Classement routier complet. Rendu a part de celui du rail : les deux ne partagent ni leur unite
  * de cout (cf. ROAD_PLAN_ITERATIONS_BASE) ni leur phase de construction. */
-function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null)
+/* C41.16 : `profile` est fourni seulement par la sonde du scheduler. Il n'influence jamais les
+ * filtres, l'ordre ni le vivier ; les compteurs mesurent les trois familles et le TopK qui suit
+ * le budget historique. */
+function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null, profile = null)
 {
   local all = [];
   local stats = {
@@ -1708,15 +1711,29 @@ function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null)
   /* L'option n'exclut que les nouvelles liaisons bus pax ville-a-ville. Les camions et les
    * feeders restent dans le portefeuille : ils ne sont pas les concurrents des aeroports que
    * l'experience cherche a isoler. */
-  if (ROAD_PAX_BUILD_ENABLED) OpexRoadPaxCandidates(catalog, lines, all, stats, abandonedPairs);
+  if (ROAD_PAX_BUILD_ENABLED) {
+    local mark = profile != null ? OpexOpsMeasureBegin() : null;
+    OpexRoadPaxCandidates(catalog, lines, all, stats, abandonedPairs);
+    if (profile != null) profile.paxOps += OpexOpsMeasureEnd(mark);
+  }
+  local freightMark = profile != null ? OpexOpsMeasureBegin() : null;
   OpexRoadFreightCandidates(catalog, lines, all, stats, abandonedPairs);
+  if (profile != null) profile.freightOps += OpexOpsMeasureEnd(freightMark);
   /* C32 : les feeders reviennent a l'arbitrage. C29.3 les avait sortis d'ici pour deux motifs,
    * tous deux traites : la collision de cle OD (ils ont desormais leur propre espace de cles,
    * prefixe "feeder|" dans OpexProjectRemember, donc ils n'evincent plus l'aerien) et
    * l'ecrasement par l'opcodeScore aerien -- qui est precisement ce que l'arbitrage doit
    * trancher, pas contourner. Sous feeder_portfolio = 0, comportement C29 conserve. */
-  if (FEEDER_PORTFOLIO) OpexRoadFeederCandidates(catalog, lines, all, stats, abandonedPairs);
+  if (FEEDER_PORTFOLIO) {
+    local feederMark = profile != null ? OpexOpsMeasureBegin() : null;
+    OpexRoadFeederCandidates(catalog, lines, all, stats, abandonedPairs);
+    if (profile != null) profile.feederOps += OpexOpsMeasureEnd(feederMark);
+  }
   local ops = budget.end("cand_road");
+
+  local topKMark = profile != null ? OpexOpsMeasureBegin() : null;
+  local best = OpexTopK(all, ROAD_TOP_K);
+  if (profile != null) profile.topKOps += OpexOpsMeasureEnd(topKMark);
 
   if (DECISION_LOG) {
     OpexDecide("VIVIER_GEN", "mode=road produced=" + stats.pairsInBand + " kept=" + all.len());
@@ -1746,8 +1763,8 @@ function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null)
   /* Le cout de CETTE annee, pas le cumul : budget.get() totalise depuis le debut de la partie, et
    * c'est le debit annuel qui dit si la generation routiere merite sa place. Il est paye meme les
    * annees ou rien n'est bati, donc le panneau RN le porte sans condition (main.nut). */
-  return { all = all.len(), candidates = all, best = OpexTopK(all, ROAD_TOP_K),
-           stats = stats, opcodes = ops };
+  return { all = all.len(), candidates = all, best = best,
+           stats = stats, opcodes = ops, profile = profile };
 }
 
 /* Rehausse la reputation municipale aupres de l'autorite locale en plantant des arbres.

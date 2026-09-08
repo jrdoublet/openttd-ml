@@ -103,7 +103,7 @@ n'existe plus, les lignes routières sont dans `_lines`.
 ## Liaison aérienne
 
 Le catalogue essaie `AT_LARGE`, puis `AT_SMALL` et `AT_COMMUTER` **s'ils sont encore
-valides**. Vanilla 15.3 (`docs/catalogue_churn_1950_2000.json`) : SMALL n'est plus
+valides**. Vanilla 15.3 (`results/catalogue_churn_1950_2000.json`) : SMALL n'est plus
 constructible dès 1960 ; en 1970 c'est LARGE (+ HELIPORT). COMMUTER arrive en 1983,
 INTERNATIONAL en **1990** — après une campagne de 20 ans. Un gros avion n'est jamais
 retenu pour une piste courte. Parmi les moteurs constructibles et refittables en
@@ -196,7 +196,7 @@ l'état courant du véhicule dans `VEHS`.
 - la route est une phase annuelle (plusieurs lignes), `road_mode` défaut 1 — voir `docs/opexai_route.md` ;
 - passagers uniquement pour l'air et l'eau ; la route fait aussi du fret camion ;
 - classements rail et route séparés : `ROAD_PLAN_ITERATIONS_BASE` mesuré (rapport plan 0,29),
-  pas unifié — un ratio unique affamerait le rail (`docs/opex_road_rb_calibrate.json`) ;
+  pas unifié — un ratio unique affamerait le rail (`results/opex_road_rb_calibrate.json`) ;
 - aucun canal, écluse ou bouée ; une paire sans composante d'eau naturelle commune est ignorée
   (le trick des pseudo-canaux — inonder du terrain sec, `docs/mecanique_jeu.md` §13 — n'est pas
   un plan : un bateau pax ne le justifie pas, coût opcode/argent non mesuré) ;

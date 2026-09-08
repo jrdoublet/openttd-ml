@@ -89,7 +89,7 @@ def main():
     seeds = tuple(args.seeds) if args.seeds else SEEDS
     if args.out is None:
         tag = "10seeds" if args.seeds is None else "s" + "-".join(str(s) for s in seeds)
-        args.out = ROOT / "docs" / f"bench_c36_3_cheap_site_{args.years}y_{tag}.json"
+        args.out = ROOT / "results" / f"bench_c36_3_cheap_site_{args.years}y_{tag}.json"
     args.out.parent.mkdir(parents=True, exist_ok=True)
     bench_v2.CHECKPOINT_PATH = args.out.with_suffix(".jsonl")
     if bench_v2.CHECKPOINT_PATH.exists():

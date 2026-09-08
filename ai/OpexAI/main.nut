@@ -49,7 +49,7 @@ ROAD_STOP_CATCHMENT_HOUSES <- 10;
 /* D4 : Dwell time de chargement/dechargement a la station pour les bus passagers (jours) */
 ROAD_PAX_STOP_DWELL_DAYS <- 6;
 /* D4, extension aerienne : le diagnostic 10 ans x 5 graines
- * (docs/diag_road_purpose.json) donne revenu reel/predit median = 1,0427 pour
+ * (results/diag_road_purpose.json) donne revenu reel/predit median = 1,0427 pour
  * air|pax. Le modele etait donc legerement conservateur. Ce facteur ne touche
  * que le revenu passager aerien, avant le calcul du profit et des scores. */
 AIR_PAX_REVENUE_CALIBRATION_PCT <- 104;
@@ -130,6 +130,8 @@ C41_OPPORTUNITY_LEDGER <- false;
 C41_ADMISSION_LEDGER <- false;
 /* C41.15 : rafraichissement cible du materiel route apres EngineAvailable route. */
 C41_ROAD_REFRESH <- false;
+/* C41.16 : ventilation passive de la generation de candidats route historique. */
+C41_ROAD_CANDIDATE_PROFILE <- false;
 /* C41.4 : sonde strictement passive des vehicules perdus. Contrairement a A7.4,
  * elle n'ecrit ni compteur de ligne ni signe, et n'arme aucune tache. */
 C41_VEHICLE_LOST_PROBE <- false;
@@ -508,7 +510,7 @@ DYNAMIC_CASH_RESERVE <- true;
  * ne rien changer tant que le banc n'a pas tranche -- voir OpexCashReserve() plus bas. */
 RESERVE_MAINT_CAP <- false;
 /* Marges de tresorerie exigees EN PLUS de la reserve, sur le chemin aerien. Decision utilisateur
- * du 2026-09-03, tirée du diagnostic 1v1 (docs/diag_1v1_decisions.json) : la marge de 30 000 £ est
+ * du 2026-09-03, tirée du diagnostic 1v1 (results/diag_1v1_decisions.json) : la marge de 30 000 £ est
  * d'un ordre de grandeur au-dessus de la reserve (~7 000 £), donc c'est elle qui gate reellement.
  *   refleet (croissance d'une ligne existante) : 2 000 -> 0, il n'y a rien a couvrir ;
  *   2 aeroports neufs : 30 000 -> 15 000 (valeur demandee) ;
@@ -700,7 +702,7 @@ require("builder_road.nut");
  * etaient a distance <5 de la MEME origine deja servie (couverts desormais par ORIGIN_SEPARATION
  * ci-dessous, avec precision, pas par ce filet) ; les 16 % restants, a distance 5-14, rejetaient
  * une ville VOISINE mais DIFFERENTE -- un faux positif du au seuil de 15, bien au-dela de tout
- * recouvrement de bassin plausible. Voir docs/opex_full_campaign_20y.json (signs GT/GN). */
+ * recouvrement de bassin plausible. Voir results/opex_full_campaign_20y.json (signs GT/GN). */
 const MIN_SEPARATION = 10;
 
 /* Identite d'origine : candidate.src/dst est TOUJOURS la tuile exacte du catalogue (ville ou
@@ -791,7 +793,7 @@ ABANDON_GEN_FILTER <- false;
 STATION_JOIN <- false;
 /* Porte H1 : 0 = pas de plafond (v1 inerte). N = rejeter la jointure si
  * candidate.distance >= N, sans A*. Defaut 0. Valeur de travail 50
- * (docs/opex_join_pop.json). Inerte si station_join = 0. */
+ * (results/opex_join_pop.json). Inerte si station_join = 0. */
 JOIN_MAX_DISTANCE <- 0;
 /* H2 : joindre au lieu, pas en repli _tooClose. Defaut 0. Les candidats
  * naissent d'une gare rail OpexAI vers une origine libre dans 25-75
@@ -924,7 +926,7 @@ FLEET_FIX <- false;
  * profit predit NUL. Sous 1, il exige en plus un surplus couvrant le capital que le portefeuille
  * s'est deja engage a depenser.
  *
- * MESURE le 2026-09-02 (docs/bench_growth_yields_3y.json, 20 graines x 3 ans, apparie) : REJETE.
+ * MESURE le 2026-09-02 (results/bench_growth_yields_3y.json, 20 graines x 3 ans, apparie) : REJETE.
  * company_value +4,8 % pour le controle (t = 1,33, 9/20 : nul), profit_year −0,3 % (nul), mais
  * median_station_rating +10,4 % pour le controle (t = 2,97, 15/20 : REEL et defavorable a la
  * variante), et la graine 2026 s'effondre a company_value = 1. Lecture : le `profitAnnual = 0`
@@ -937,7 +939,7 @@ GROWTH_YIELDS <- false;
  * qu'en rabotant maxCapital chez l'appelant. Voir le commentaire de la boucle de dimensionnement
  * (builder_air.nut) pour le raisonnement complet et le banc a -11,5 % qu'il corrige.
  *
- * ADOPTE le 2026-09-02, defaut 1 (docs/bench_air_margin_3y.json, 20 graines x 3 ans, apparie) :
+ * ADOPTE le 2026-09-02, defaut 1 (results/bench_air_margin_3y.json, 20 graines x 3 ans, apparie) :
  * company_value +1,3 % (t = 0,26), profit_year -1,6 % (t = -0,28), toutes metriques sous t = 1,2.
  * NEUTRE, donc adopte pour la JUSTESSE, pas pour la performance -- ne revendiquer aucun gain. Le
  * defaut vise est reel mais son cout est nul, ce qui est coherent avec loop_budget nul : le gachis
@@ -950,7 +952,7 @@ AIR_MARGIN <- true;
  * reproposer exactement la meme paire et echouer de la meme facon. Le chemin portefeuille, lui,
  * memorisait deja ses echecs.
  *
- * ADOPTE le 2026-09-02, defaut 1 (docs/bench_air_abandon_3y.json, 20 graines x 3 ans, apparie) :
+ * ADOPTE le 2026-09-02, defaut 1 (results/bench_air_abandon_3y.json, 20 graines x 3 ans, apparie) :
  * company_value +6,1 %, profit_year +6,8 %, profit +4,0 %. Les t restent sous 2 (1,90 / 1,89 /
  * 1,95) mais le TEST DES SIGNES tranche : la variante gagne 18/20, 19/20 et 19/20, soit
  * p = 4e-4 et 4e-5. L'effet est petit et CONSTANT, pas grand et bruyant -- et sur une plateforme
@@ -1007,7 +1009,7 @@ MARGINAL_FLEET <- false;
 /* air_roi_order (2026-09-03) : ordre de service de la croissance de flotte aerienne.
  * _resizeAirFleets parcourait _lines dans l'ordre de CONSTRUCTION -- ce n'etait pas une decision
  * de conception, juste l'ordre du tableau. Consequence mesuree (5 graines x 3 ans,
- * docs/diag_airfleet_monthly_5s3y.json) : la premiere ligne aerienne ouverte capte la tresorerie
+ * results/diag_airfleet_monthly_5s3y.json) : la premiere ligne aerienne ouverte capte la tresorerie
  * a chaque passage, et les autres ne grandissent JAMAIS -- 0 croissance sur 3 graines / 5, et
  * +1 avion par an au mieux ailleurs. Aucun effet compose n'apparait nulle part.
  * 1 (defaut) sert d'abord la ligne au meilleur profit PAR APPAREIL, donc celle qui rembourse
@@ -1563,7 +1565,7 @@ function OpexAI::_tryBuildAir(year)
     if (borrowable < 0) borrowable = 0;
     local baseReserve = OpexCashReserve();
     /* ⚠️ NE PAS « CORRIGER » CE 2 000 EN LE PORTANT A LA MARGE MAXIMALE. Essaye et MESURE le
-     * 2026-09-02 (docs/bench_lotE_air_marge_3y.json) : -11,5 % de valeur (t = -2,66), -9,8 % de
+     * 2026-09-02 (results/bench_lotE_air_marge_3y.json) : -11,5 % de valeur (t = -2,66), -9,8 % de
      * note officielle (t = -3,25), -11,2 % de gares.
      *
      * Le defaut apparent est reel : le test d'acceptation plus bas exige `requiredMargin` (jusqu'a
@@ -1909,7 +1911,7 @@ function OpexAI::_tryTownGrowth(year)
 /* Precalcule le trace des meilleurs candidats en avance pendant les ticks d'opcodes dormants. */
 /* Une extremite deja desservie par nous ne merite pas un second raccordement.
  *
- * Deux tests distincts, mesure du 2026-08-28 a l'appui (docs/opex_full_campaign_20y.json,
+ * Deux tests distincts, mesure du 2026-08-28 a l'appui (results/opex_full_campaign_20y.json,
  * signs GT/GN) :
  *  1. Identite d'origine (ORIGIN_SEPARATION, serre) : la MEME ville/industrie deja servie, quel
  *     que soit l'endroit ou sa gare a fini par etre posee. C'etait 84 % des rejets sous l'ancien
@@ -3369,7 +3371,7 @@ function OpexAI::_tryBuildProjects(year)
  * hors TOP_K. On ne joint pas, on n'emprunte pas.
  *
  * Budget : alternativeRatio 0, chemin Z, HARD_ITERATION_CAP (40 000). Le premier
- * sondage (docs/opex_probe_negative_20y_5seeds.json) passait MIN_RATIO et tombait
+ * sondage (results/opex_probe_negative_20y_5seeds.json) passait MIN_RATIO et tombait
  * au plancher 2000 : 48/52 ABND, mediane 123 tuiles. Le volume des rejets est le
  * long ; 2000 ne le mesure pas. 0 n'ajoute aucun parametre a OpexBuildLine, donc
  * le chemin d'opcodes du classement reste intact.
@@ -3792,7 +3794,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     }
     /* Croissance d'une ligne aerienne EXISTANTE : aucun aeroport a batir, donc rien que
      * cette marge doive couvrir. 88 refus insufficient_cash pour 3 acceptations mesures
-     * sur 3 parties x 2 ans (docs/diag_1v1_decisions.json). */
+     * sur 3 parties x 2 ans (results/diag_1v1_decisions.json). */
     local need = planePrice + OpexCashReserve() + (AIR_MARGIN_V2 ? 0 : 2000);
     local addedThisPass = 0;
     // (d) au plus un avion par ligne et par an sous marginal_fleet=1 ; 4 (repli actuel) sous 0.
@@ -5998,6 +6000,15 @@ function OpexAI::_runNextTask()
       this._resizeAirFleets(AIDate.GetYear(AIDate.GetCurrentDate()), fleetPlan);
     }
     this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines, priorPeak, priorHistory, fleetPlan, this._abandonedPairs);
+    if (C41_ROAD_CANDIDATE_PROFILE && this._projects != null && ("road" in this._projects) &&
+        this._projects.road != null && ("profile" in this._projects.road) &&
+        this._projects.road.profile != null) {
+      local profile = this._projects.road.profile;
+      OpexC39Log("C41_ROAD_CANDIDATE_PROFILE", "ops=" + this._projects.road.opcodes
+                 + " pax_ops=" + profile.paxOps + " freight_ops=" + profile.freightOps
+                 + " feeder_ops=" + profile.feederOps + " topk_ops=" + profile.topKOps
+                 + " candidates=" + this._projects.road.all);
+    }
     this._logStalenessRefresh(refreshReason);
     this._portfolioInvalidated = false;
     this._ranked = this._projects.rail;
@@ -6478,6 +6489,7 @@ function OpexAI::Start()
   C41_OPPORTUNITY_LEDGER = AIController.GetSetting("c41_opportunity_ledger") != 0;
   C41_ADMISSION_LEDGER = AIController.GetSetting("c41_admission_ledger") != 0;
   C41_ROAD_REFRESH = AIController.GetSetting("c41_road_refresh") != 0;
+  C41_ROAD_CANDIDATE_PROFILE = AIController.GetSetting("c41_road_candidate_profile") != 0;
   C41_RAIL_LOST_PROBE = AIController.GetSetting("c41_rail_lost_probe") != 0;
   C41_RAIL_LOST_TOPOLOGY_PROBE = AIController.GetSetting("c41_rail_lost_topology_probe") != 0;
   C41_RAIL_LOST_PHYSICAL_PROBE = AIController.GetSetting("c41_rail_lost_physical_probe") != 0;

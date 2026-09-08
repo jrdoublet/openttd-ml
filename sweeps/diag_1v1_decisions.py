@@ -194,7 +194,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--years", type=int, default=2)
     parser.add_argument("--seeds", nargs="+", type=int, default=[42, 100, 7])
-    parser.add_argument("--out", type=Path, default=ROOT / "docs" / "diag_1v1_decisions.json")
+    parser.add_argument("--out", type=Path, default=ROOT / "results" / "diag_1v1_decisions.json")
     parser.add_argument("--workers", type=int, default=3)
     parser.add_argument("--only", choices=("OpexAI", "AAAHogEx"), default=None,
                         help="ne faire tourner qu'une seule IA (le vivier ne concerne que la notre)")

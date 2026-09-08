@@ -595,7 +595,7 @@ function OpexTensionComputeShadowPrices(ctx, candidates, capitalBudget)
  * pas additionner des Dantzig 1D independants. Complementary slackness est une
  * propriete de la ressource, pas de la taille du projet.
  *
- * Limite mesurée (docs/diag_c35_4_weak_3y.json, banc 20×10) : a_ops est
+ * Limite mesurée (results/diag_c35_4_weak_3y.json, banc 20×10) : a_ops est
  * incommensurable (air 1e5, route 2.87e5, rail ~3e7) et le Dantzig vivier
  * saturé pose λ_ops > 0 en permanence, ce qui annule le rail sur les graines
  * faibles. Ne pas « corriger » par un filtre densité < λ_argent ni par un

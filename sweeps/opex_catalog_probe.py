@@ -1,7 +1,7 @@
 """Sonde de catalogue 1950-2000 (taches.md S4 item 6).
 
 CatalogProbe ne joue pas : un rafraichissement annuel, panneaux CA/CB/CO/CP/CE.
-La mesure 1970-1989 est docs/catalogue_churn.json ; celle-ci allonge jusqu'a 2000
+La mesure 1970-1989 est results/catalogue_churn.json ; celle-ci allonge jusqu'a 2000
 pour l'electrification, INTERNATIONAL (1990) et le debut du parc (1950).
 """
 import argparse
@@ -149,7 +149,7 @@ def parse_args():
 def main():
     args = parse_args()
     result_path = args.output if args.output is not None else (
-        ROOT / "docs" / f"catalogue_churn_1950_{1949 + args.years}.json")
+        ROOT / "results" / f"catalogue_churn_1950_{1949 + args.years}.json")
     if not result_path.is_absolute():
         result_path = ROOT / result_path
     experiments = [{
@@ -191,7 +191,7 @@ def main():
         "openttd_config": CFG,
         "note": "CatalogProbe, starting_year=1950, config gelee sinon. "
                 "CE = locos par type de rail (pas wagons). "
-                "La sonde 1970-1989 reste docs/catalogue_churn.json.",
+                "La sonde 1970-1989 reste results/catalogue_churn.json.",
         "runs": runs,
     }
     result_path.write_text(json.dumps(payload, indent=2))

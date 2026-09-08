@@ -177,6 +177,6 @@ if __name__ == "__main__":
         else:
             print("    (donnees incompletes -- pas de profit_ligne calculable)")
 
-    with open("docs/phase2_profit_ligne.json", "w") as f:
+    with open("results/phase2_profit_ligne.json", "w") as f:
         json.dump(records, f, indent=2)
-    print("\nEcrit dans docs/phase2_profit_ligne.json")
+    print("\nEcrit dans results/phase2_profit_ligne.json")

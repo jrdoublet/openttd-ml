@@ -182,7 +182,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--years", type=int, default=2)
     parser.add_argument("--seeds", nargs="+", type=int, default=[42, 100, 7])
-    parser.add_argument("--out", type=Path, default=ROOT / "docs" / "diag_1v1_monthly.json")
+    parser.add_argument("--out", type=Path, default=ROOT / "results" / "diag_1v1_monthly.json")
     parser.add_argument("--workers", type=int, default=3)
     args = parser.parse_args()
 

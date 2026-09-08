@@ -1,6 +1,6 @@
 """Chiffre la sur-estimation de l'etage 1, et teste la cause qui lui etait attribuee.
 
-CONTEXTE. Le banc apparie du 2026-08-29 (docs/bench_v2_vivier.json) a montre que rouvrir le vivier
+CONTEXTE. Le banc apparie du 2026-08-29 (results/bench_v2_vivier.json) a montre que rouvrir le vivier
 de candidats fait batir l'IA beaucoup plus (+37,2 % de vehicules, 18 graines sur 20) sans creer de
 valeur (company_value -0,3 %). La cause SOUPCONNEE etait nommee dans ai/OpexAI/candidates.nut
 (commentaire BIAIS CONNU) : quand une extremite reutilise une origine deja desservie, `monthly`

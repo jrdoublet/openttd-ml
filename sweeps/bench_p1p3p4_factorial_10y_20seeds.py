@@ -1,7 +1,7 @@
 """Banc factoriel 2^3 : P1 (capital_calibration) x P3 (event_catalog_invalidate) x
 P4 (abandon_memory_transient_guard), sur le meme dossier ai/OpexAI (docs/taches.md, C38).
 
-Objet : le banc conjoint P1--P5 (docs/bench_pstar_10y_20seeds.json, 2026-09-08) a mesure
+Objet : le banc conjoint P1--P5 (results/bench_pstar_10y_20seeds.json, 2026-09-08) a mesure
 +9,62% de valeur (15/20) et +7,92% de profit annuel (16/20) pour le paquet complet contre
 HEAD pre-P1--P5, mais ne permet pas d'attribuer le gain a P1, P3 ou P4 separement -- piege
 deja identifie dans ce projet (revue 2026-09-06 etape 1, item 2). P4 n'etait pas un reglage
@@ -42,7 +42,7 @@ from bench_v2 import (
 import bench_v2
 
 YEARS = 10
-OUT = ROOT / "docs" / "bench_p1p3p4_factorial_10y_20seeds.json"
+OUT = ROOT / "results" / "bench_p1p3p4_factorial_10y_20seeds.json"
 LOAD_FAILURE_MARKER = "Unable to load the script."
 
 FACTOR_NAMES = ("capital_calibration", "event_catalog_invalidate", "abandon_memory_transient_guard")
@@ -83,7 +83,7 @@ def main():
               or LOAD_FAILURE_MARKER in (record.get("openttd_output") or "")]
     payload = {
         "purpose": "Isolate P1/P3/P4 main effects and interactions (2^3 factorial) on the same "
-                   "ai/OpexAI folder, following the P1-P5 joint bench (docs/bench_pstar_10y_20seeds.json)",
+                   "ai/OpexAI folder, following the P1-P5 joint bench (results/bench_pstar_10y_20seeds.json)",
         "factors": list(FACTOR_NAMES),
         "openttd_version": OPENTTD_VERSION,
         "opengfx_version": OPENGFX_VERSION,

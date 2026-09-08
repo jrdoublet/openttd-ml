@@ -12,7 +12,7 @@ Deux sources, deux niveaux de confiance :
     via les panneaux OZ|line|year|profit et OO|line|year|revenu qu'OpexSign pose deja (defaut
     debug_signs=1, philosophie "armes egales").
   - load_unload_ticks vient du chunk VEHS brut (champ NON VERIFIE par ce projet avant ce script :
-    present dans le dump docs/phase2_vehs_explore.json mais jamais lu jusqu'ici). A traiter comme
+    present dans le dump results/phase2_vehs_explore.json mais jamais lu jusqu'ici). A traiter comme
     une piste, pas un fait etabli -- imprime brut, jamais transforme en conclusion silencieuse.
 
 report ne tourne qu'UNE FOIS PAR AN (_lastReportYear), donc l'annee N+1 ne voit que le profit
@@ -99,7 +99,7 @@ def parse_signs(chunks):
 
 
 def parse_aircraft(chunks, owner=0):
-    """VEHS brut, type=3 (avion), champs de docs/phase2_vehs_explore.json. load_unload_ticks NON
+    """VEHS brut, type=3 (avion), champs de results/phase2_vehs_explore.json. load_unload_ticks NON
     VERIFIE semantiquement par ce projet -- lu ici pour la premiere fois."""
     result = []
     for key, vehicle in (chunks.get("VEHS") or {}).items():
@@ -137,7 +137,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--years", type=int, default=3)
     parser.add_argument("--seeds", nargs="+", type=int, default=[42])
-    parser.add_argument("--out", type=Path, default=ROOT / "docs" / "diag_air_vehicles.json")
+    parser.add_argument("--out", type=Path, default=ROOT / "results" / "diag_air_vehicles.json")
     args = parser.parse_args()
 
     ai = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI",

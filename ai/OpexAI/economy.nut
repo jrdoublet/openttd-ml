@@ -19,7 +19,7 @@
 /* Note de gare supposee en regime etabli, en pourcent.
  * CALIBRE le 2026-08-28 sur 9 lignes pax reelles (2 campagnes de 10 ans, graine 42, OpenTTD
  * 15.3) : AIStation.GetCargoRating() mesure en regime etabli donne 49-55 par ligne (moyenne
- * 52,8), tres loin des 75 supposes ici avant. Voir docs/opex_predict_vs_actual.json et le rapport
+ * 52,8), tres loin des 75 supposes ici avant. Voir results/opex_predict_vs_actual.json et le rapport
  * de la tache "predit vs reel" pour le detail ligne par ligne. */
 const STATION_RATING_PCT = 50;
 

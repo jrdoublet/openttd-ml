@@ -24,7 +24,7 @@ SEEDS = tuple(range(1001, 1051))
 # a produit un PAIROOR (graine 1020, moins de 200 paires eligibles sur cette carte). Un PAIROOR
 # est un echec de configuration, pas de terrain : il pollue la classe negative du classifieur.
 RANKS = (0, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180)
-RAW, TABLE = "docs/phase2_hurdle_campaign_v1.json", "data/phase2_hurdle_v1.csv"
+RAW, TABLE = "results/phase2_hurdle_campaign_v1.json", "data/phase2_hurdle_v1.csv"
 STATUS=re.compile(r"^TRLN\|(\d+)\|(\w+)\|(\w+)\|(\d+)/(\d+)$")
 DETAIL=re.compile(r"^TRLN\|(\d+)\|T(\d+)-(\d+)\|D(\d+)\|C(-?\d+)$")
 VEH=re.compile(r"^TRLN\|(\d+)\|V(-?\d+)$")

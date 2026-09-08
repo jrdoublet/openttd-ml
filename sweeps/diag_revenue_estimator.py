@@ -159,7 +159,7 @@ def main():
     parser.add_argument("--seeds", nargs="+", type=int, default=DEFAULT_SEEDS)
     parser.add_argument("--years", type=int, default=3)
     parser.add_argument("--max-workers", type=int, default=3)
-    parser.add_argument("--out", type=str, default="docs/diag_revenue_estimator_3y_20seeds.json")
+    parser.add_argument("--out", type=str, default="results/diag_revenue_estimator_3y_20seeds.json")
     args = parser.parse_args()
 
     enable_savegame_cleanup()

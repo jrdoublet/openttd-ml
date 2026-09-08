@@ -41,7 +41,7 @@ def parse_args():
     parser.add_argument("--years", type=int, default=DEFAULT_YEARS, help="Duree en annees (defaut: 2)")
     parser.add_argument("--starting-year", type=int, default=1970, help="Annee de depart (defaut: 1970)")
     parser.add_argument("--max-workers", type=int, default=3, help="Workers paralleles (defaut: 3)")
-    parser.add_argument("--out", type=Path, default=Path("docs/smoke_ci.json"), help="Fichier de sortie JSON")
+    parser.add_argument("--out", type=Path, default=Path("results/smoke_ci.json"), help="Fichier de sortie JSON")
     return parser.parse_args()
 
 

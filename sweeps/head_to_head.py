@@ -121,7 +121,7 @@ def main():
     parser.add_argument("--seeds", type=int, nargs="+", default=None)
     parser.add_argument("--years", type=int, default=5)
     parser.add_argument("--starting-year", type=int, default=1970)
-    parser.add_argument("--out", type=Path, default=Path("docs/head_to_head_results.json"))
+    parser.add_argument("--out", type=Path, default=Path("results/head_to_head_results.json"))
     parser.add_argument("--setting", action="append", default=[], metavar="CLE=VALEUR",
                         help="Réglage OpexAI supplémentaire, répétable")
     args = parser.parse_args()

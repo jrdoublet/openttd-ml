@@ -111,7 +111,7 @@ def main():
                 opex_events.append({"date": dt, "kind": kind, "rest": rest})
 
     # Enregistrer dans un JSON pour analyse complete
-    out_path = Path("/work/docs/diag_year1_inspect.json")
+    out_path = Path("/work/results/diag_year1_inspect.json")
     with open(out_path, "w") as f:
         json.dump({
             "hog_events": hog_events,

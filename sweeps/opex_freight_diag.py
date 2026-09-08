@@ -12,7 +12,7 @@ Instrumentation ajoutee dans main.nut::_reportLines pour trancher, chaque annee 
   - VS|idx|year|state|order                 (etat du vehicule, index d'ordre courant : 0=source, 1=puits)
   - VL|idx|year|speed|load                  (vitesse courante, chargement du cargo de la ligne)
 
-Court (4 ans) : les donnees deja recueillies (docs/opex_predict_vs_actual_postfix_freight.json)
+Court (4 ans) : les donnees deja recueillies (results/opex_predict_vs_actual_postfix_freight.json)
 montrent l'effondrement de la note du puits des la premiere mesure post-construction, donc 4 ans
 suffisent a observer construction + collapse pour au moins 2 lignes fret.
 
@@ -26,7 +26,7 @@ from pathlib import Path
 from openttdlab import bananas_ai_library, local_folder, run_experiments
 
 ROOT = Path("/work")
-RESULT = ROOT / "docs" / "opex_freight_diag.json"
+RESULT = ROOT / "results" / "opex_freight_diag.json"
 
 OPENTTD_VERSION, OPENGFX_VERSION = "15.3", "7.1"
 SEED = 42

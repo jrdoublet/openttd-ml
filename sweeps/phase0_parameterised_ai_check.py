@@ -89,7 +89,7 @@ if __name__ == "__main__":
     else:
         print("-> IDENTIQUE : suspect, le parametre ne semble pas avoir eu d'effet.")
 
-    with open("docs/phase0_parameterised_ai_check.json", "w") as f:
+    with open("results/phase0_parameterised_ai_check.json", "w") as f:
         json.dump({
             str(v): [dict(r) for r in sorted(by_param[v], key=lambda r: r["date"])]
             for v in by_param

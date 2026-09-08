@@ -2,7 +2,7 @@
 
 `data/phase2_hurdle_v1.csv` is one row per isolated single-company attempt. CSV is used rather
 than Parquet because 1,000 rows are small, the result is directly inspectable/versionable, and no
-column needs nested types. `docs/phase2_hurdle_campaign_v1.json` is the raw run record.
+column needs nested types. `results/phase2_hurdle_campaign_v1.json` is the raw run record.
 
 ## Identifiers and split
 
@@ -89,7 +89,7 @@ tirée du débit de calibration Phase 0 (12,8 s/partie avec trAIns). L'écart vi
 `TrainLineAI` : aux rangs élevés, le pathfinder consomme une grande partie de son budget avant
 d'échouer en `PATHLIM`. À reprendre dans tout dimensionnement de campagne future.
 
-**`data/` est dans `.gitignore`** : le CSV n'est pas versionné, seul `docs/phase2_hurdle_campaign_v1.json`
+**`data/` est dans `.gitignore`** : le CSV n'est pas versionné, seul `results/phase2_hurdle_campaign_v1.json`
 l'est. Le CSV se régénère depuis le JSON brut — mais la campagne elle-même ne se régénère
 fidèlement qu'à version de `main.nut` et configuration OpenTTD constantes (voir la nuance en
 section 3.8 de `docs/phase3_ml.md`).

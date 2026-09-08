@@ -16,7 +16,7 @@ from openttdlab import bananas_ai_library, local_folder, run_experiments
 
 INFRA_LIFE_YEARS = 30  # hypothese documentee dans docs/methode.md
 
-# Configuration historique volontairement épinglée : docs/phase2_tick_shift_sweep.json
+# Configuration historique volontairement épinglée : results/phase2_tick_shift_sweep.json
 # a été produit en 1950/densité 2. La config révisée pour les nouveaux travaux est documentée
 # dans la table des décisions figées du README.md et la note de révision de docs/methode.md.
 OPENTTD_CONFIG = """
@@ -44,7 +44,7 @@ DELAYS = (0, 25, 50, 75, 100, 150, 200)
 SOURCE_AI_DIR = "ai/TrainLineAI"
 SCRATCH_AI_DIR = "/tmp/openttd-ml-scratch_tickdelay_sweep"
 SCRATCH_AI_NAME = "TrainLineAITickShiftSweep"
-OUTPUT_JSON = "docs/phase2_tick_shift_sweep.json"
+OUTPUT_JSON = "results/phase2_tick_shift_sweep.json"
 
 STATUS_RE = re.compile(r"^TRLN\|(\d+)\|(\w+)\|(\w+)\|(\d+)/(\d+)$")
 DETAIL_RE = re.compile(r"^TRLN\|(\d+)\|T(\d+)-(\d+)\|D(\d+)\|C(-?\d+)$")

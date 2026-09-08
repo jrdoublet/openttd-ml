@@ -42,7 +42,7 @@ def fields(text):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--out", type=Path, default=ROOT / "docs" / "diag_c38_dynamic_batch_6y_5seeds.json")
+    parser.add_argument("--out", type=Path, default=ROOT / "results" / "diag_c38_dynamic_batch_6y_5seeds.json")
     parser.add_argument("--max-workers", type=int, default=3)
     args = parser.parse_args()
     bench_v2.CHECKPOINT_PATH = args.out.with_suffix(".jsonl")

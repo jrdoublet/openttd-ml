@@ -9,7 +9,7 @@ liste ; l'historique reste dans les journaux `docs/journal_*.md`.
 
 **OpexAI perd contre AAAHogEx, très largement, et ce document contient plusieurs passages plus
 anciens qui donnent l'impression inverse.** Mesure de référence actuelle :
-`docs/bench_1v1_3y_1aeefe1_20seeds.json` — 20 graines × 3 ans, départ 1970, lecture appariée,
+`results/bench_1v1_3y_1aeefe1_20seeds.json` — 20 graines × 3 ans, départ 1970, lecture appariée,
 0 échec de script :
 
 | métrique | écart apparié OpexAI vs AAAHogEx | graines gagnées |
@@ -53,7 +53,7 @@ faudrait pour que ça marche
 Réponse détaillée à la question « pourquoi shadow_pricing a-t-il échoué, et quel est le cadre
 théorique correct ? ». Trois strates de causes, à ne pas confondre entre elles.
 
-**1. Échec empirique mesuré (C35.3, `docs/bench_c35_3_shadow_pricing_3y.json`, 2026-09-05).**
+**1. Échec empirique mesuré (C35.3, `results/bench_c35_3_shadow_pricing_3y.json`, 2026-09-05).**
 Score officiel **+29,4 pts** (357,6 vs 328,2, 3/5 victoires), note de gare **+13,5 pts**, réseau
 plus étendu (+7,6 gares), résilience spectaculaire sur la graine aride 2026 (+166 % valeur,
 +114 % profit, +138 pts score) — **mais valeur moyenne −11,2 % et profit −25,6 % sur les cartes
@@ -253,8 +253,8 @@ reste à trancher indépendamment.
   `OpexAvailableCapital()`, revalide le même vivier, appelle `OpexReselectProjects()`, survit au
   rail suspendu et s'arrête sur budget d'opcodes ou 64 tentatives de sécurité. Le diagnostic
   5×6 est fonctionnel : 0 erreur, `max_built=2..6` et batches multiples sur les cinq graines
-  (`docs/diag_c38_dynamic_batch_6y_5seeds.json`). Mais le banc apparié 20×10 est nettement
-  défavorable (`docs/bench_c38_dynamic_batch_10y_20seeds.json`) : contre le bras dynamique, le
+  (`results/diag_c38_dynamic_batch_6y_5seeds.json`). Mais le banc apparié 20×10 est nettement
+  défavorable (`results/bench_c38_dynamic_batch_10y_20seeds.json`) : contre le bras dynamique, le
   défaut gagne 19/20 graines en valeur et 17/20 en score et profit annuel ; le dynamique vaut en
   moyenne 7,44 M£ contre 11,63 M£ (−36,0 % brut), produit 1,55 M£ contre 2,01 M£ de profit annuel
   (−22,7 % brut), 142,2 contre 176,0 véhicules et 73,4 contre 85,0 gares. Les différences
@@ -345,11 +345,11 @@ reste à trancher indépendamment.
   réutiliser un tracé potentiellement périmé au chantier. Un échec ou un join garde le repli ×1,7.
   `P1_1_QUOTE` et `P1_1_QUOTE_SUMMARY` journalisent les ratios et opcodes. Le diagnostic
   5 graines × 6 ans est sain (0 erreur / 0 faillite,
-  `docs/diag_p1_1_prequote_6y_5seeds.json`). Son verdict comparatif est consigné juste après.
+  `results/diag_p1_1_prequote_6y_5seeds.json`). Son verdict comparatif est consigné juste après.
 
   🔴 **Diagnostic comparatif fait le 2026-09-08 — verdict net, pas besoin du banc officiel.**
   `OpexAI[rail_prequote=0]` contre `OpexAI[rail_prequote=1]`, 5 graines × 6 ans
-  (`docs/diag_p1_1_prequote_paired_6y_5seeds.json`) : `company_value` **−30,7 %** en moyenne
+  (`results/diag_p1_1_prequote_paired_6y_5seeds.json`) : `company_value` **−30,7 %** en moyenne
   (−18,4 / −48,8 / −34,2 / −9,7 / −42,2 % par graine, **5/5 négatives**), `profit_year` −29,6 %,
   `performance_history` −19,5 %, `n_vehicles` −39,7 %, `n_stations` −26,6 %. Magnitude 2 à 3× le
   plancher de détection (~15 %) sur les cinq graines : le signe est tranché sans test des signes,
@@ -406,12 +406,12 @@ reste à trancher indépendamment.
   de remettre le plan à `OpexBuildLine`; un join tardif ou une revalidation négative le jette et
   force le chemin normal. `P1_3_PLAN` journalise `reuse` ou `invalidate`. Smoke 3×2 sain, puis
   diagnostic apparié 5×6 contre `rail_prequote_keep_plan=0` : 0 erreur et métriques exactement
-  identiques sur les cinq graines (`docs/diag_p1_3_keep_plan_paired_6y_5seeds.json`). Ce dernier
+  identiques sur les cinq graines (`results/diag_p1_3_keep_plan_paired_6y_5seeds.json`). Ce dernier
   ne collecte pas les opcodes : il établit la non-régression fonctionnelle, pas encore le gain de
   débit qui déciderait de l'adoption.
 
   🔴 **P1.1 + P1.3 volet 1 — REJETÉS ENSEMBLE, banc officiel fait (2026-09-08).**
-  `docs/bench_p1_3_keep_plan_10y_20seeds.json`, 20 graines × 10 ans, 0 échec :
+  `results/bench_p1_3_keep_plan_10y_20seeds.json`, 20 graines × 10 ans, 0 échec :
   `OpexAI` (défaut livré) contre `OpexAI[rail_prequote=1,rail_prequote_keep_plan=1]`.
 
   | métrique | delta (défaut vs P1.1+P1.3) | t | victoires du défaut |
@@ -484,7 +484,7 @@ reste à trancher indépendamment.
   (`AITile.GetSlope`/`IsWaterTile`/`IsCoastTile`, aucun A\*, aucune mutation), branchée dans
   `OpexPrequoteRailCandidates()` derrière `rail_terrain_probe` (défaut 0, lecture seule). Journal
   `P1_2_TERRAIN` apparié à `P1_1_QUOTE` par (graine, src, dst) et corrélé hors-ligne
-  (`sweeps/diag_p1_2_terrain_probe.py`, `docs/diag_p1_2_terrain_probe_6y_5seeds.json`, 5 graines ×
+  (`sweeps/diag_p1_2_terrain_probe.py`, `results/diag_p1_2_terrain_probe_6y_5seeds.json`, 5 graines ×
   6 ans, n=23 paires candidat/devis) :
 
   | signal | corrélation avec l'écart devis/modèle |
@@ -571,7 +571,7 @@ reste à trancher indépendamment.
   20 graines appariées × 10 ans, tous les 40 runs valides : valeur moyenne 11,63 M£ → 12,86 M£
   (**+9,62 %**, traitement gagnant 15/20), score 818,1 → 839,4 (+2,54 %, 14/20), profit annuel
   2,01 M£ → 2,18 M£ (+7,92 %, 16/20) et note médiane 166,3 → 166,7 (+0,20 %, 14/20).
-  Voir `docs/bench_pstar_10y_20seeds.json`. C'est une validation du **paquet** seulement : elle
+  Voir `results/bench_pstar_10y_20seeds.json`. C'est une validation du **paquet** seulement : elle
   ne permet pas d'attribuer le gain à P1, P3 ou P4 séparément ; P2 reste éteint par défaut et P5
   ne modifie pas le comportement d'exécution.
 
@@ -579,7 +579,7 @@ reste à trancher indépendamment.
   moment du banc conjoint (fonction inconditionnelle) ; exposé pour l'occasion derrière
   `abandon_memory_transient_guard` (défaut 1, reproduit bit-à-bit le comportement livré, vérifié
   au smoke). Les 8 bras tournent sur le **même dossier** `ai/OpexAI`, aucun arbre Git dupliqué.
-  20 graines × 10 ans, 160 parties, **0 échec** (`docs/bench_p1p3p4_factorial_10y_20seeds.json`,
+  20 graines × 10 ans, 160 parties, **0 échec** (`results/bench_p1p3p4_factorial_10y_20seeds.json`,
   `sweeps/bench_p1p3p4_factorial_10y_20seeds.py`).
 
   | facteur | Δ `company_value` | Δ `profit_year` | Δ score | t (CV) | victoires/80 |
@@ -680,10 +680,10 @@ reste à trancher indépendamment.
   projet. Elle ne lit cet état dans aucune décision et ne touche ni `dueCycle`, ni
   `_portfolioInvalidated`, ni les candidats : cadence et résultat du jeu restent donc ceux du flux
   historique. Smoke activé 3 graines × 2 ans sain, sans erreur ni faillite
-  (`docs/smoke_c39_0_probe_2y_3seeds.json`).
+  (`results/smoke_c39_0_probe_2y_3seeds.json`).
 
   **C39.1 — trace dédiée faite (5 graines × 6 ans).** Le diagnostic AILog
-  `docs/diag_c39_events_6y_5seeds.json`, avec seulement `c39_invalidation_probe=1`, est sain :
+  `results/diag_c39_events_6y_5seeds.json`, avec seulement `c39_invalidation_probe=1`, est sain :
   **43** notifications sont reçues sans erreur, dont **32 `EngineAvailable`**, 6 fermetures et 5
   ouvertures d'industrie ; aucune fondation de ville sur cet horizon. Elles sont absorbées par
   **28** rebuilds : 19 avec un événement, 4 avec deux et 5 avec trois, donc la coalescence est
@@ -696,7 +696,7 @@ reste à trancher indépendamment.
   portefeuille obsolète et réveille `catalog`/`projects`, exactement comme le chemin P3, mais sans
   toucher aux industries. Le réglage reste à `0`. Smoke 3 graines × 2 ans sain ; diagnostic
   apparié 5 graines × 6 ans, 10/10 parties saines
-  (`docs/diag_c39_engine_refresh_paired_6y_5seeds.json`) : valeur **−1,06 %** pour le traitement
+  (`results/diag_c39_engine_refresh_paired_6y_5seeds.json`) : valeur **−1,06 %** pour le traitement
   (3/5 graines baseline gagnantes), profit trimestriel **+1,32 %** (traitement 3/5) et profit
   annuel **+1,34 %** (traitement 3/5). Les signes opposés et faibles ne justifient pas un banc
   officiel 20×10 ; conserver l'observation C39 et attendre C41 pour ne pas multiplier les rebuilds
@@ -707,7 +707,7 @@ reste à trancher indépendamment.
   projet au premier événement d'une rafale, puis journalise après le rebuild historique
   `C39_DECISION_DELTA` et, pour chaque moteur, `C39_ENGINE_DELTA` (`mode`, retenu ou filtré par son
   sous-catalogue). La trace 5 graines × 6 ans est saine, sans erreur
-  (`docs/diag_c39_decision_delta_6y_5seeds.json`) : 32 moteurs, dont **23 retenus** — rail 5/5,
+  (`results/diag_c39_decision_delta_6y_5seeds.json`) : 32 moteurs, dont **23 retenus** — rail 5/5,
   route 13/13, eau 5/9, air 0/5 — et 18 changements de top sur les 29 rafales. Ces changements ne
   prouvent pas une causalité moteur : une rafale peut contenir industries et la passe mensuelle
   historique continue aussi de voir le monde évoluer. Ils confirment cependant qu'un filtrage par
@@ -722,7 +722,7 @@ reste à trancher indépendamment.
   cannibaliser le bassin des aéroports, alors que le fret routier et le rabattement vers les hubs
   restent complémentaires. Le réglage `road_pax_build` ne retire que les candidats
   ville-à-ville de `OpexRoadPaxCandidates` (`0`), sans couper ni camions, ni feeders, ni lignes
-  existantes. Banc apparié 10 ans × 20 graines (`docs/bench_road_pax_build_10y_20seeds.json`) :
+  existantes. Banc apparié 10 ans × 20 graines (`results/bench_road_pax_build_10y_20seeds.json`) :
   à `0`, valeur +2,53 % et profit trimestriel +3,26 %, mais seulement 13/20 et 12/20 graines,
   respectivement ; score historique −1,73 % (10/20). Les écarts sont sous le seuil de détection,
   mais le défaut est désormais `0` afin de privilégier le profit et de préserver le bassin aérien ;
@@ -762,7 +762,7 @@ reste à trancher indépendamment.
 
   ✅ **C41.0 — registre passif livré et tracé.** `c41_revision_probe=0` enrichit `_staleness` de
   révisions et acquittements par couche. La trace 5 graines × 6 ans
-  (`docs/diag_c41_revision_6y_5seeds.json`) est saine : 47 notifications, 42 progressions de
+  (`results/diag_c41_revision_6y_5seeds.json`) est saine : 47 notifications, 42 progressions de
   révision et 30 acquittements, exactement un par rebuild qui absorbe une rafale. L'écart est
   normal : une rafale peut salir plusieurs couches, chacune une seule fois. Aucun `dueCycle`,
   ordre de file ou choix n'a changé. **Prochaine tranche : C41.1, une seule sous-régénération de
@@ -781,7 +781,7 @@ reste à trancher indépendamment.
   seul point d'entrée public `OpexCatalog::refreshWater()` et une micro-tâche armée par événement,
   pas par sondage. Elle mesure et acquitte seulement `catalog.water`; les candidats eau,
   portefeuille et sélection restent sales jusqu'au rebuild habituel. Trace saine 5 graines × 6 ans
-  (`docs/diag_c41_water_6y_5seeds.json`) : 9 annonces eau → 9 rafraîchissements, **2 923 opcodes**
+  (`results/diag_c41_water_6y_5seeds.json`) : 9 annonces eau → 9 rafraîchissements, **2 923 opcodes**
   au total (315–337 chacun), aucune erreur. Ce n'est pas un banc de valeur. Limite maintenant
   démontrée : le filtre d'acceptation est connu après la régénération, donc les 9 annonces sont
   encore payées ; C41.2 doit l'extraire avant de planifier afin d'éviter les 4/9 rafraîchissements
@@ -798,8 +798,8 @@ reste à trancher indépendamment.
   micro-régénérations eau, 2 923 opcodes. Préfiltre C41.2 : 5, 1 576 opcodes, sans erreur ; les
   deux bras voient 9 annonces eau, dont 5 retenues et 4 filtrées. Donc **−4/9 passes (−44,4 %) et
   −1 347 opcodes (−46,1 %)**. Les fichiers
-  `docs/diag_c41_water_precheck_baseline_6y_5seeds.json` et
-  `docs/diag_c41_water_precheck_treatment_6y_5seeds.json` sont des diagnostics de coût, pas un
+  `results/diag_c41_water_precheck_baseline_6y_5seeds.json` et
+  `results/diag_c41_water_precheck_treatment_6y_5seeds.json` sont des diagnostics de coût, pas un
   banc de valeur. Étape suivante : sonder `OpexWaterPlans` sans le fusionner au portefeuille.
 
   **C41.3 — contrat avant code : sonde de plans eau.** Après le préfiltre C41.2, appeler
@@ -809,7 +809,7 @@ reste à trancher indépendamment.
   future génération doit être découpée avant toute fusion ciblée.
 
   ❌ **C41.3 — sonde de plans eau : propagation rejetée.** Trace saine 5 graines × 6 ans
-  (`docs/diag_c41_water_plans_6y_5seeds.json`) : 5 moteurs retenus → 5 sondes,
+  (`results/diag_c41_water_plans_6y_5seeds.json`) : 5 moteurs retenus → 5 sondes,
   **0 plan** et **593 273 opcodes** (113 896–122 419 par sonde). C'est ~380× le coût de
   `catalog.water` ciblé (315–337 opcodes), sans candidat à fusionner. Conserver le réglage
   `c41_water_candidate_probe=0`; ne pas coder C41.4 comme fusion de portefeuille. La prochaine
@@ -823,7 +823,7 @@ reste à trancher indépendamment.
   (`event_vehicle_lost`). La recherche est limitée aux identifiants de véhicules déjà persistés
   dans `this._lines` : une absence est mesurée comme orphelin plutôt que devinée par une recherche
   coûteuse. Smoke 3 graines × 2 ans sain (1 événement, rail attribué), puis trace 5 graines × 6
-  ans saine (`docs/diag_c41_vehicle_lost_6y_5seeds.json`) : **29 événements**, tous valides,
+  ans saine (`results/diag_c41_vehicle_lost_6y_5seeds.json`) : **29 événements**, tous valides,
   tous attribués, tous rail, **0 orphelin**, sans erreur. La fréquence est donc réelle mais
   concentrée ; prochaine étape : une sonde rail expliquant la cause du `Lost` (ordre, dépôt,
   chemin/voie) avant de programmer une réparation ou un renouvellement.
@@ -832,7 +832,7 @@ reste à trancher indépendamment.
   sonde C41.4 et journalise, pour le rail attribué encore valide, l'état, le nombre/indice/objectif
   de l'ordre, la position et la validité du dépôt. Aucun de ces faits ne prétend détecter une
   attente de signal, absente de l'API. Smoke sain ; la trace 5 graines × 6 ans
-  (`docs/diag_c41_rail_lost_6y_5seeds.json`) donne les mêmes **29** notifications sans erreur,
+  (`results/diag_c41_rail_lost_6y_5seeds.json`) donne les mêmes **29** notifications sans erreur,
   mais seulement **4 couples ligne-véhicule** répétés 4, 7, 8 et 10 fois. Les 29 ont deux ordres
   valides, une destination dans la ligne et un dépôt rail valide. Ce n'est donc pas un ordre
   corrompu ou un dépôt manquant. La prochaine sonde doit corréler ces quatre lignes à leur
@@ -842,7 +842,7 @@ reste à trancher indépendamment.
   ✅ **C41.6 — topologie persistée, mesurée.** `c41_rail_lost_topology_probe=0` complète C41.5
   sans scan de carte : voie double, second dépôt, quai, flotte, rames, wagons et nature de ligne.
   Smoke puis trace 5 graines × 6 ans
-  (`docs/diag_c41_rail_lost_topology_6y_5seeds.json`) sont sains. Les **29** notifications et les
+  (`results/diag_c41_rail_lost_topology_6y_5seeds.json`) sont sains. Les **29** notifications et les
   **4** couples récurrents sont **tous** fret, double voie, deux rames, deux véhicules persistés
   et second dépôt valide (quais 3–4, 2–3 wagons). La piste ordre/dépôt/voie unique est donc
   écartée. **Suite : C41.7**, sonde physique bornée aux tuiles de sortie de gare, jonction et
@@ -852,7 +852,7 @@ reste à trancher indépendamment.
   ✅ **C41.7 — approches et signalisation lues, cause localisée.**
   `c41_rail_lost_physical_probe=0` lit seulement les quatre approches de quai et les fronts des
   dépôts déjà référencés. Smoke et trace 5 graines × 6 ans
-  (`docs/diag_c41_rail_lost_physical_6y_5seeds.json`) sont sains : les 29 occurrences ont les
+  (`results/diag_c41_rail_lost_physical_6y_5seeds.json`) sont sains : les 29 occurrences ont les
   quatre approches rail valides (2 puis 1 branche aux deux extrémités de chaque voie) et les deux
   fronts de dépôt valides (2 branches). En revanche, les **quatre signaux d'approche** sont tous
   `AIRail.SIGNALTYPE_NONE` (valeur 255). Le défaut est donc localisé : la construction de double
@@ -873,9 +873,9 @@ reste à trancher indépendamment.
 
   ❌ **C41.8 — diagnostic apparié : ne pas propager.** Smoke 3 graines × 2 ans sain : 2
   micro-tâches et 2 PBS posés, sans erreur. Le contrôle 5 graines × 6 ans
-  (`docs/diag_c41_rail_signal_repair_baseline_6y_5seeds.json`) compte **29** `VehicleLost` sur
+  (`results/diag_c41_rail_signal_repair_baseline_6y_5seeds.json`) compte **29** `VehicleLost` sur
   4 couples ligne-véhicule ; le traitement PBS
-  (`docs/diag_c41_rail_signal_repair_6y_5seeds.json`) en compte **45** sur 10 couples. La pose
+  (`results/diag_c41_rail_signal_repair_6y_5seeds.json`) en compte **45** sur 10 couples. La pose
   est bien idempotente (10 PBS posés, puis 43 réparations dont les PBS sont reconnus), mais
   l'indicateur empirique se dégrade dans les trois graines actives. Conserver
   `c41_rail_lost_signal_repair=0` ; ni banc 20×10 ni adoption par défaut ne sont justifiés.
@@ -885,7 +885,7 @@ reste à trancher indépendamment.
   ✅ **C41.9 — connectivité locale mesurée.** `c41_rail_lost_connectivity_probe=0` ne lit que
   les quatre voisins de chaque approche et front de dépôt, via `AIRail.AreTilesConnected`, sans
   pathfinding ni commande. Smoke sain. Dans la trace 5 graines × 6 ans
-  (`docs/diag_c41_rail_lost_connectivity_6y_5seeds.json`), 28 pertes et 4 couples sont observés,
+  (`results/diag_c41_rail_lost_connectivity_6y_5seeds.json`), 28 pertes et 4 couples sont observés,
   sans erreur. **4 pertes** du même couple (graine 7, ligne 18, véhicule 115) ont `a_links=0` :
   l'approche A porte bien une voie mais aucune branche sortante physiquement reconnue vers le
   réseau. Les 24 autres ont une sortie à toutes les approches et aux deux dépôts. C41.10 doit
@@ -922,7 +922,7 @@ reste à trancher indépendamment.
      candidate.
 
   ✅ **5 graines × 6 ans après les deux correctifs**
-  (`docs/diag_c41_10_junction_repair_6y_5seeds.json`, mêmes graines que la mesure C41.9 —
+  (`results/diag_c41_10_junction_repair_6y_5seeds.json`, mêmes graines que la mesure C41.9 —
   `[42, 100, 7, 999, 12345]`) : **0 erreur, 0 mort de script.** 41 pertes rail double-voie
   observées, 40 armées (une ligne non double-voie), 40 exécutions de la micro-tâche — **toutes
   rendent -2 sur les six points** (`links != 0` partout dans cette fenêtre précise : aucune
@@ -934,7 +934,7 @@ reste à trancher indépendamment.
   comparer tant qu'aucune réparation réelle n'a été observée.
 
   ✅ **Reproduction élargie : réparation réelle confirmée (6 graines × 10 ans).**
-  `docs/diag_c41_10_junction_repair_10y_6seeds.json` observe 85 diagnostics de connectivité,
+  `results/diag_c41_10_junction_repair_10y_6seeds.json` observe 85 diagnostics de connectivité,
   80 armements/exécutions et zéro erreur. Un seul cas entre exactement dans le périmètre C41.9 :
   graine 42, ligne 13, véhicule 66, le 1973-06-24 (`a_links=0`, alors que les cinq autres points
   ont une liaison). La micro-tâche du 1973-07-05 retourne `a=1` ; le même véhicule observe ensuite
@@ -945,25 +945,25 @@ reste à trancher indépendamment.
   car cette mesure établit la sûreté et l'effet local, non le gain de valeur global.
 
   ✅ **C41.11–C41.12 — deux mesures passives du scheduler, 5 graines × 6 ans.**
-  Le ledger C41.11 (`docs/diag_c41_11_slack_ledger_6y_5seeds.json`) observe 31 599 961
+  Le ledger C41.11 (`results/diag_c41_11_slack_ledger_6y_5seeds.json`) observe 31 599 961
   opcodes de slack initial, dont 8 882 429 (28,1 %) restent inemployés après la tâche historique.
   Ils sont surtout laissés par `scrap`, `report`, `refleet`, `projects`, `repay`, `catalog` et
   `air_fleet`; `expand`, à l'inverse, les épuise. C41.12
-  (`docs/diag_c41_12_staleness_ledger_6y_5seeds.json`) confirme 140 acquittements propres, avec
+  (`results/diag_c41_12_staleness_ledger_6y_5seeds.json`) confirme 140 acquittements propres, avec
   un âge de 17 à 61 jours avant le rebuild historique. Ces chiffres sont des contraintes de
   conception, non une promesse de gain de profit : le but est d'acheter des opcodes utiles et de
   réduire l'âge des données sans voler le travail critique.
 
   ✅ **C41.13–C41.14 — le contrat générique est préparé, mais l'admission est refusée par la
-  mesure.** C41.13 (`docs/diag_c41_13_opportunity_ledger_6y_5seeds.json`) donne 0 reliquat dans
+  mesure.** C41.13 (`results/diag_c41_13_opportunity_ledger_6y_5seeds.json`) donne 0 reliquat dans
   ses 62 agrégats de couche stale à 6 ans. Son extension 5×10
-  (`docs/diag_c41_13_opportunity_ledger_10y_5seeds.json`) voit bien 16 851 opcodes cumulés pour
+  (`results/diag_c41_13_opportunity_ledger_10y_5seeds.json`) voit bien 16 851 opcodes cumulés pour
   `catalog.water`, mais une somme annuelle ne prouve pas qu'une tranche individuelle peut payer
   un refresh. C41.14 introduit donc le contrat réutilisable « couche + coût prudent + admission
   dans le reliquat », sans exécuter de travail supplémentaire. Son seul pilote est
   `catalog.water` à **350 opcodes** (le refresh mesuré vaut ~315–337) : 5×6, puis 5×10
-  (`docs/diag_c41_14_admission_ledger_6y_5seeds.json` et
-  `docs/diag_c41_14_admission_ledger_10y_5seeds.json`) sont sans erreur et comptent **0 admission
+  (`results/diag_c41_14_admission_ledger_6y_5seeds.json` et
+  `results/diag_c41_14_admission_ledger_10y_5seeds.json`) sont sans erreur et comptent **0 admission
   sur 56 fenêtres** à 10 ans. Le slack agrégé ne peut donc pas être réservé pour une donnée stale
   dans le tick même. Ne pas encore modifier les priorités ni activer le refresh. Pour ajouter
   route, rail ou air, il faudra d'abord leur point d'entrée de catalogue isolé et sa mesure de
@@ -973,11 +973,11 @@ reste à trancher indépendamment.
   `c41_road_refresh=0` expose `OpexCatalog::refreshRoad()` et arme la micro-tâche seulement pour
   un `AIEvent.ET_ENGINE_AVAILABLE` de type route ; elle acquitte uniquement `catalog.road`, jamais
   les candidats, le portefeuille ou la sélection. Le diagnostic
-  `docs/diag_c41_15_road_refresh_6y_5seeds.json` est sain : **9 refreshes**, **31 967 opcodes**
+  `results/diag_c41_15_road_refresh_6y_5seeds.json` est sain : **9 refreshes**, **31 967 opcodes**
   (≈3 552 chacun) et des âges de 0 à 22 jours (médiane 1 jour). Les ouvertures/fermetures
   d'industrie restent séparées (`catalog.industries` + candidats route), ce qui confirme le
   périmètre. Le comparatif apparié 5×6
-  (`docs/diag_c41_15_road_refresh_paired_6y_5seeds.json`) retrouve les **9** refreshes (31 966
+  (`results/diag_c41_15_road_refresh_paired_6y_5seeds.json`) retrouve les **9** refreshes (31 966
   opcodes) mais donne le mauvais signal : le contrôle OFF dépasse ON en valeur sur les **5/5**
   graines (+1,00 % en moyenne), en profit trimestriel sur 4/5 (+16,7 %) et en profit annuel sur
   5/5 (+3,46 %). La fréquence est trop faible et la dispersion trop forte pour estimer un effet
@@ -985,9 +985,28 @@ reste à trancher indépendamment.
   pas étendre ce type de préemption ; la fraîcheur seule ne compense pas forcément le déplacement
   temporel des autres tâches.
 
+  ✅ **C41.16 — profil passif de `OpexBuildRoadCandidates`, 5 graines × 6 ans.**
+  Le réglage `c41_road_candidate_profile=0` ventile la génération historique sans modifier le
+  vivier, sa sélection ou sa cadence : passagers, fret, feeders et `TopK` sont mesurés séparément.
+  `results/diag_c41_16_road_candidate_profile_6y_5seeds.json` est sain : 276 générations, 29,31 M
+  opcodes et 235 candidats produits. Le **fret** consomme 24,53 M (83,7 %), les **feeders** 4,76 M
+  (16,2 %), `TopK` 13 840 (0,05 %) ; la famille passagers est à zéro car
+  `road_pax_build=0` dans cette configuration. Ainsi, le prochain contrat de reprise doit porter
+  sur les boucles de fret, avant le portefeuille/sac à dos, et non sur le classement `TopK`.
+
+  ⏸️ **C41 — `OpexRoadPaxCandidates` reporté, malgré son coût dominant.** Le profil jumeau avec
+  `road_pax_build=1` (`results/diag_c41_16_road_candidate_profile_pax_6y_5seeds.json`) est sain :
+  254 générations pour 209,15 M opcodes, dont **180,70 M (86,4 %)** pour les passagers, 24,60 M
+  (11,8 %) pour le fret, 3,86 M (1,8 %) pour les feeders et 0,06 % pour `TopK`. C'est donc le
+  goulot principal, mais il reste hors de la première reprise C41 : ses couples ville-ville,
+  contraintes de desserte et calculs de captage demandent un checkpoint plus délicat. Commencer
+  volontairement par `OpexRoadFreightCandidates`, dont le périmètre producteur→accepteur est plus
+  local et qui porte déjà 83,7 % du coût dans la configuration route par défaut. Ne pas oublier
+  les passagers : ils reviennent en tête de backlog dès que le contrat fret est validé.
+
   ✅ **C39.4 — les cinq avions « rejetés » sont dominés, non invalides.** La sonde
   `c39_air_reason_probe=0`, sur 5 graines × 6 ans
-  (`docs/diag_c39_air_reason_6y_5seeds.json`), est saine : les cinq notifications sont le moteur
+  (`results/diag_c39_air_reason_6y_5seeds.json`), est saine : les cinq notifications sont le moteur
   233, `plane_type=3`, capacité 260, et donnent toutes `reason=dominated`. Il est donc passagers,
   constructible et d'un type admis, mais n'est le meilleur dans aucun combo aéroport ; le catalogue
   préfère déjà un autre gros avion, puis capacité et vitesse. Ne pas confondre « non retenu » avec
@@ -1089,7 +1108,7 @@ reste à trancher indépendamment.
   dans le code livré : panneau `VIVIER` (`considered`/`selected`/`rejected` par appel de sélection)
   pour TOP_K, panneau `PROJECT_DISCARD` (`reason=too_close_no_join`/`too_close_hard`) pour
   MIN_SEPARATION. Juste un diagnostic `decision_log=1` et un script d'agrégation
-  (`sweeps/diag_constants_binding.py`, `docs/diag_constants_binding_6y_5seeds.json`, 5 graines ×
+  (`sweeps/diag_constants_binding.py`, `results/diag_constants_binding_6y_5seeds.json`, 5 graines ×
   6 ans, 35 784 appels de sélection, 245 448 rejets, 14 760 lignes construites).
 
   ⚠️ **Piège méthodologique rencontré et corrigé en cours de route** : le premier critère
@@ -1103,7 +1122,7 @@ reste à trancher indépendamment.
   IDENTIQUE à chaque ligne de checkpoint mensuel d'une même partie, pas une tranche par
   checkpoint — le script parcourait `series` entière et comptait donc chaque événement une fois
   par mois de jeu restant (~72× pour 6 ans). Corrigé et re-mesuré sur les mêmes graines
-  (`docs/diag_constants_binding_6y_5seeds_v2.json`) : **522 appels de sélection réels** (279
+  (`results/diag_constants_binding_6y_5seeds_v2.json`) : **522 appels de sélection réels** (279
   `build` + 243 `incremental`), 3 923 rejets, 200 lignes construites — pas 35 784/245 448/14 760.
   ⚠️ La re-mesure porte aussi sur le code **actuel** (post plusieurs correctifs commis entre-temps
   le même jour), pas une répétition à l'identique du code du 2026-09-02 : les deux effets se
@@ -1169,12 +1188,12 @@ reste à trancher indépendamment.
   8-128) ; diagnostics 5 graines × 6 ans, pas de banc officiel 20×10 lancé (les deux signes sous
   ou proches du plancher de détection ne le justifiaient pas).
 
-  **`project_top_k=32` (fenêtre réduite de moitié)** — `docs/diag_topk_32v64_6y_5seeds.json` :
+  **`project_top_k=32` (fenêtre réduite de moitié)** — `results/diag_topk_32v64_6y_5seeds.json` :
   moyenne **−23,8 %**, mais seulement **2 graines sur 5 gagnantes** pour 32 (+1,4 %, **−27,8 %**,
   +4,2 %, **−58,7 %**, **−38,3 %**). Signal net, bien au-dessus du plancher (~15 %), mais pas
   unanime — les pertes sont massives, les gains marginaux.
 
-  **`project_top_k_dynamic=1`** (nouveau mécanisme, décrit ci-dessous) — `docs/diag_topk_dynamic_6y_5seeds.json` :
+  **`project_top_k_dynamic=1`** (nouveau mécanisme, décrit ci-dessous) — `results/diag_topk_dynamic_6y_5seeds.json` :
   moyenne **−8,0 %**, 2 graines sur 5 gagnantes également (−10,8 %, +2,1 %, −6,4 %, +0,4 %,
   **−25,4 %**). Sous le plancher de détection, ne permet pas de conclure à un effet réel à ce
   stade. Contre-intuitif : élargir la fenêtre (considérer plus de candidats ne peut structurellement
@@ -1224,7 +1243,7 @@ reste à trancher indépendamment.
   familles C43/E3 — `openttd_output` identique à chaque mois, comptait chaque appel ~72×). Le coût
   BRUT moyen par appel (`mean_sel_ops`, une moyenne, invariante à une duplication uniforme au sein
   d'une même partie) est resté proche ; **le coût par candidat retenu, lui, a changé de forme** —
-  re-mesuré ci-dessous (`docs/diag_topk_opcode_cost_6y_5seeds_v2.json`, mêmes graines × 6 ans,
+  re-mesuré ci-dessous (`results/diag_topk_opcode_cost_6y_5seeds_v2.json`, mêmes graines × 6 ans,
   **~270-280 appels réels par bras/chemin, pas 17 000-20 000**) :
 
   | variante | coût brut moyen/appel (chemin `build`) | équivalent en ticks (÷10 000) | opcodes/candidat retenu |
@@ -1254,8 +1273,8 @@ reste à trancher indépendamment.
   `64` gagne sur les deux mesures simultanément dans les données corrigées, ce qui est un
   argument **plus fort** en sa faveur que l'ancien « tombe entre deux coûts opposés ». `project_top_k`
   reste à `64` par défaut, `project_top_k_dynamic` à `0` ; toujours pas de banc officiel 20×10
-  nécessaire — les diagnostics économiques (`docs/diag_topk_32v64_6y_5seeds.json`,
-  `docs/diag_topk_dynamic_6y_5seeds.json`, non affectés par ce bug : ils passent par
+  nécessaire — les diagnostics économiques (`results/diag_topk_32v64_6y_5seeds.json`,
+  `results/diag_topk_dynamic_6y_5seeds.json`, non affectés par ce bug : ils passent par
   `bench_v2.summarise()` qui ne lit que le dernier checkpoint) et l'instrumentation opcodes
   corrigée convergent toujours vers la même conclusion.
 
@@ -1278,7 +1297,7 @@ reste à trancher indépendamment.
   (candidates.nut:1007) mesurés, aucun nouveau code de jeu** — panneaux `VIVIER_GEN`/
   `VIVIER_REJECT` déjà livrés (`reason=road_profit_too_low`/`road_town_rejected`),
   `sweeps/diag_family2_floors.py`, 5 graines × 6 ans
-  (`docs/diag_family2_floors_6y_5seeds.json`) :
+  (`results/diag_family2_floors_6y_5seeds.json`) :
 
   | constante | rejets totaux | par graine (1/42/73/100/2026) |
   |---|---:|---|
@@ -1295,7 +1314,7 @@ reste à trancher indépendamment.
 
   ⚠️ **CORRIGÉ (2026-09-08, `2562e96`) : les comptes 180 864/10 728/495 216 sont gonflés**, même
   bug de duplication par ligne de checkpoint que `road_cost_probe` et famille 1. Re-mesuré sur les
-  mêmes graines (`docs/diag_family2_floors_6y_5seeds_v2.json`) : **2 511 candidats produits, 148
+  mêmes graines (`results/diag_family2_floors_6y_5seeds_v2.json`) : **2 511 candidats produits, 148
   gardés, 6 813 rejets `ROAD_ACCEPTANCE_FULL_UNIT`** (1 → 2 104 ; 42 → 1 308 ; 73 → 939 ;
   100 → 1 137 ; 2026 → 1 325) — pas 180 864/10 728/495 216. `ROAD_MIN_PROFIT_ANNUAL` reste à
   **0** sous la mesure corrigée : le zéro tient, seule l'échelle était fausse.
@@ -1356,7 +1375,7 @@ reste à trancher indépendamment.
   (`DYNAMIC_CASH_RESERVE=true` par défaut — vérifié cette fois avant d'écrire quoi que ce soit,
   leçon `rail_refleet` plus haut).
 
-  5 graines × 6 ans (`docs/diag_cash_reserve_probe_6y_5seeds.json`,
+  5 graines × 6 ans (`results/diag_cash_reserve_probe_6y_5seeds.json`,
   `sweeps/diag_cash_reserve_probe.py`) : **11 172 appels réels**, 0 erreur.
 
   | | mordu | % |
@@ -1387,7 +1406,7 @@ reste à trancher indépendamment.
   `C`=plafond dur, `N`=forme fermée non bornée) déjà porté sur **chaque tentative rail, réussie ou
   non**, par le panneau `OR|` livré (`main.nut:4779`, `_recordRailAttempt`). Script de lecture
   seule (`sweeps/diag_attempt_floor.py`), 5 graines × 6 ans
-  (`docs/diag_attempt_floor_6y_5seeds.json`) :
+  (`results/diag_attempt_floor_6y_5seeds.json`) :
 
   | path | n | % |
   |---|---:|---:|
@@ -1433,7 +1452,7 @@ reste à trancher indépendamment.
   (`portfolio_refresh_probe`, défaut 0, aucun changement de comportement), delta annuel publié par
   la tâche `report` (panneau `PORTFOLIO_REFRESH_PROBE`) — même schéma que `cash_reserve_probe`.
 
-  5 graines × 6 ans (`docs/diag_portfolio_refresh_probe_6y_5seeds.json`,
+  5 graines × 6 ans (`results/diag_portfolio_refresh_probe_6y_5seeds.json`,
   `sweeps/diag_portfolio_refresh_probe.py`) : **454 évaluations réelles**, 0 erreur.
 
   | | n | % des évaluations |
@@ -1470,7 +1489,7 @@ reste à trancher indépendamment.
   entièrement par `OpexOpsMeasureBegin()/End()` (mesure autonome, ne touche pas l'instance
   partagée non réentrante) dans la tâche `catalog`, sous `portfolio_refresh_probe=1` (même
   réglage que le diagnostic précédent, étendu). 5 graines × 6 ans
-  (`docs/diag_portfolio_refresh_probe_6y_5seeds_v2.json`), **239 rafraîchissements réels
+  (`results/diag_portfolio_refresh_probe_6y_5seeds_v2.json`), **239 rafraîchissements réels
   mesurés, 0 erreur** :
 
   | | valeur |
@@ -1544,7 +1563,7 @@ reste à trancher indépendamment.
   panneau en silence).
 
   **Ces deux motifs sont EXACTEMENT ceux déjà comptés par la mesure `MIN_SEPARATION` de famille 1**
-  (`docs/diag_constants_binding_6y_5seeds_v2.json`, corrigée le 2026-09-08 : 0 rejet sur 3 923,
+  (`results/diag_constants_binding_6y_5seeds_v2.json`, corrigée le 2026-09-08 : 0 rejet sur 3 923,
   `too_close_no_join` et `too_close_hard` absents de `discard_reason_counts`
   `{build_failed: 1795, plan_failed: 56, search_in_progress: 1729, abandoned_pair: 343}`). Comme
   `hard` est **exclusivement** produit par le test `ORIGIN_SEPARATION` (le `return` anticipé
@@ -1573,7 +1592,7 @@ reste à trancher indépendamment.
   dernière aurait planté l'IA en jeu réel dès le premier feeder candidat à plus de 25 tuiles,
   crash reproduit via le chemin portefeuille dans ce diagnostic.
 
-  5 graines × 6 ans (`docs/diag_road_min_distance_6y_5seeds.json`,
+  5 graines × 6 ans (`results/diag_road_min_distance_6y_5seeds.json`,
   `sweeps/diag_road_min_distance.py`), 0 erreur après correctif :
 
   | | n total | par graine (1/42/73/100/2026) |
@@ -1642,7 +1661,7 @@ l'écart.
 ### 🔬 Retest officiel des trois items, 2026-09-08
 
 Demandé pour tester correctement les paramètres du 2026-09-01, isolément et au seuil officiel
-(20 graines × 10 ans). `docs/bench_sep01_features_10y_20seeds.json`, 3 bras, 0 échec sur 60 parties.
+(20 graines × 10 ans). `results/bench_sep01_features_10y_20seeds.json`, 3 bras, 0 échec sur 60 parties.
 
 **`air_hub` (corridors hub-to-hub) — validé, effet énorme.**
 
@@ -1727,7 +1746,7 @@ servies restent coupées sans appel. La règle de fond est intacte : **jamais de
 la même origine**. Toute la relaxation est commandée par le réglage `station_join`, donc `0`
 reproduit exactement le comportement d'avant.
 
-Graine 42, 20 ans (`docs/opex_join_20y_42.json` contre `docs/opex_road_20y_42.json`) :
+Graine 42, 20 ans (`results/opex_join_20y_42.json` contre `results/opex_road_20y_42.json`) :
 
 | | avant | après |
 |---|---|---|
@@ -1737,7 +1756,7 @@ Graine 42, 20 ans (`docs/opex_join_20y_42.json` contre `docs/opex_road_20y_42.js
 | `company_value` | 2 391 044 | 3 385 161 |
 | utilisation du budget d'opcodes | ~29 % | ~46,5 % |
 
-**Et le banc apparié, 20 graines × 20 ans** (`docs/bench_v2_vivier.json`, bras
+**Et le banc apparié, 20 graines × 20 ans** (`results/bench_v2_vivier.json`, bras
 `OpexAI[station_join=0]` contre `OpexAI`) **dit non** :
 
 | métrique | delta | t | graines gagnées | verdict |
@@ -1756,7 +1775,7 @@ comportement par défaut ne change pas tant que la cause ci-dessous n'est pas co
 
 **La cause supposée a été mesurée, et ce n'est pas elle** (2026-08-29,
 `sweeps/opex_join_bias.py`, 10 graines × 20 ans, 155 lignes rail,
-`docs/opex_join_factor_20y_10seeds.json` → `docs/opex_join_bias.json`).
+`results/opex_join_factor_20y_10seeds.json` → `results/opex_join_bias.json`).
 
 Le rapport brut *revenu réel / revenu prédit* semblait donner **×1,53** en défaveur des lignes à
 origine servie (IC 95 % [1,23 ; 2,02]), soit exactement le facteur cherché. C'est une illusion de
@@ -1803,8 +1822,8 @@ pas plus de valeur ».
    2) ne tombe plus à 0,00 au-delà de 100 tuiles (médianes 2,40 / 1,49 / 0,89 / 0,72, n petit).
    Le classement n'est plus celui du banc vivier.
 2. ✅ **Rejouer le banc apparié `station_join` sur cet étage 1** — fait
-   (`docs/bench_join_after_traction.json`, paire
-   `docs/bench_join_after_traction_paired.json`). Même v1, `origin_sitable=0`.
+   (`results/bench_join_after_traction.json`, paire
+   `results/bench_join_after_traction_paired.json`). Même v1, `origin_sitable=0`.
 
    | métrique | delta | t | graines | verdict |
    |---|---|---|---|---|
@@ -1826,14 +1845,14 @@ pas plus de valeur ».
    orientation : 39 → **71** OK (5,5 % → 15,7 %), SITE 692 → 393, JOINPATH 0.
    Il reste **361** SITE au quai joint à `nClear=0` — c'est le spread, et le
    spread n'est pas la suite. 5/5 plus de véhicules, 4/5 moins de valeur (cinq
-   graines, pas un banc). `docs/opex_join_parallel_20y_5seeds.json`.
+   graines, pas un banc). `results/opex_join_parallel_20y_5seeds.json`.
 4. ⚠️ Ne **pas** corriger `monthly` pour une origine servie sur la foi du chiffre brut : c'est le
    piège que cette mesure vient de désamorcer. Le partage de stock **une fois la gare jointe**
    (plusieurs lignes, même `StationID`) est un autre terme, lui encore ouvert (§2.9.3).
 5. ✅ **Étape 0 + H1 porte 50 tuiles** (2026-08-30). Population
-   (`docs/opex_join_pop.json`) : jointes 63 tuiles / 0,80 vs neuves 43 / 1,19.
+   (`results/opex_join_pop.json`) : jointes 63 tuiles / 0,80 vs neuves 43 / 1,19.
    <50 paie (1,12) ; ≥100 : 0,07. `join_max_distance` défaut 0 ; à 50, 5 graines
-   (`docs/opex_join_cap50_20y_5seeds.json`) : 29 jointures, dist. 37, D=1035.
+   (`results/opex_join_cap50_20y_5seeds.json`) : 29 jointures, dist. 37, D=1035.
    Coupe le vivier (véhicules − vs parallèle). **Ne bat pas `join=0`** (2 graines
    −30 %). Pas de banc n=20.
 6. ✅ **H2 joindre au lieu + signaux PBS** (2026-08-30). `join_place` défaut
@@ -1841,7 +1860,7 @@ pas plus de valeur ».
    (bande 25–75), join attaché à la génération, quai parallèle 1–4,
    `JOINPATH` dédié. PBS devant les quais joints et sur l'aiguillage
    dépôt (1 jonction / jointure : le dépôt). 5 graines
-   (`docs/opex_join_place_20y_5seeds.json`) : 50 jointures, dist. 50,
+   (`results/opex_join_place_20y_5seeds.json`) : 50 jointures, dist. 50,
    réel/prédit an 2 **−0,16**. Médiane valeur **−64 %** vs `join=0`
    (5/5, graine 100 −92 %). Le TOP_K se remplit de H2 (43–143 classés,
    7–14 OK), SITEA explose (spread au quai joint). Moins de véhicules
@@ -1851,7 +1870,7 @@ pas plus de valeur ».
    plus de signal sur l'aiguillage (item 9.4).
 7. ✅ **Rejeu join + double voie** (2026-08-30). La 2e voie dédiée s'applique
    aussi à une jointure (quai voisin ignoré, `JOINPATH`). 5 graines × 20 ans
-   contre `docs/opex_double_track_20y_5seeds.json` (join=0, médiane **5,73 M**) :
+   contre `results/opex_double_track_20y_5seeds.json` (join=0, médiane **5,73 M**) :
 
    | | médiane | vs join=0 | graines | jointures | DT |
    |---|---:|---:|---:|---:|---:|
@@ -1861,9 +1880,9 @@ pas plus de valeur ».
 
    0 `XC`/`RX`, emprunt 0, pas deux trains sur une voie. Même piège : plus de
    construction, moins de valeur. ⚠️ **Défauts 0.** Pas un banc n=20. Pas de spread.
-   Preuves : `docs/opex_join_dt_20y_5seeds.json`,
-   `docs/opex_join_cap50_dt_20y_5seeds.json`,
-   `docs/opex_join_place_dt_20y_5seeds.json`.
+   Preuves : `results/opex_join_dt_20y_5seeds.json`,
+   `results/opex_join_cap50_dt_20y_5seeds.json`,
+   `results/opex_join_place_dt_20y_5seeds.json`.
 
 ⚠️ **Effet de bord à ne pas attribuer au mode route :** le rail affamé reprend la trésorerie, et
 les lignes routières passent de 6 à 3 sur la graine 42. Le +9,3 % du mode route a été mesuré avec
@@ -1900,14 +1919,14 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
 1. ✅ **Écart prédit/réel du fret : retiré, c'était une fausse alerte (2026-08-28).** L'affirmation
    « ~4-6x » n'était appuyée par aucune donnée citée dans `docs/opexai_croissance.md`. En creusant :
    la mesure existait déjà, commise dans `abd641b` en même temps que le correctif du puits fret
-   (`docs/opex_predict_vs_actual_postfix_freight_v2.json`), simplement jamais recroisée avec
+   (`results/opex_predict_vs_actual_postfix_freight_v2.json`), simplement jamais recroisée avec
    l'affirmation écrite ensuite. Sur les 5 lignes fret à ≥3 ans de données stables : ratio
    prédit/réel moyen **0,98** (0,79-1,30) — `STATION_RATING_PCT = 50` calibré sur le pax tient
    aussi pour le fret, sans facteur correctif propre. Les 2 ratios à 1,8-2,4x observés sont des
    lignes à 1 an de données (ligne neuve ou industrie en fin de vie), pas un biais de modèle.
    Détail dans `docs/opexai_croissance.md` §2 et §8.
 2. **Ne pas enfermer la ville dans nos propres voies** — la mesure existe
-   (`docs/opex_town_growth.json`, 2026-08-30) : les villes desservies n'estagnent **pas**
+   (`results/opex_town_growth.json`, 2026-08-30) : les villes desservies n'estagnent **pas**
    comme classe. Le barème 15.3 accélère avec 1–5 gares actives. ⚠️ **Reste dernier** :
    pas de contrainte de tracé rail. Un effet local (maisons coincées par nos voies) n'est
    pas isolé.
@@ -1952,9 +1971,9 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
    Ce résultat pèse aussi sur le §5 : les graines en échec portent une grande part de la
    dispersion (moyenne 1 248 532 contre 2 907 102 pour les saines), donc **corriger l'emprunt
    resserrerait le banc lui-même** et abaisserait le plancher de détection de tout ce qui vient
-   après. Données dans `docs/bench_v2.json`.
+   après. Données dans `results/bench_v2.json`.
 
-   ### Diagnostic (`docs/opexai_emprunt.json`, 6 graines × 20 ans, panneaux `LB`/`LF`)
+   ### Diagnostic (`results/opexai_emprunt.json`, 6 graines × 20 ans, panneaux `LB`/`LF`)
 
    ❌ **Une hypothèse réfutée d'abord.** `_tryRepayLoan` est appelé à `main.nut:828`, juste après
    `_tryBuild`, donc au creux annuel de trésorerie — on pouvait croire que la construction lui
@@ -1975,7 +1994,7 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
    année sur 4 graines / 6) et descendre à 200 passerait sous le prix de la plus grosse ligne :
    300 est le genou.
 
-   ### Verdict du banc apparié (`docs/bench_v2_emprunt.json`, 20 graines × 20 ans)
+   ### Verdict du banc apparié (`results/bench_v2_emprunt.json`, 20 graines × 20 ans)
 
    | | plancher 1 M | plancher 300 k |
    |---|---:|---:|
@@ -1996,12 +2015,12 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
    vise.
 
    ⚠️ **Reste 1 graine (42) à 230 000 SUR CE BANC.** Sur l'arbre courant elle solde tout en 1975
-   (`docs/opex_reborrow_20y_42.json`). Descendre le plancher sous 300 passerait sous le coût de
+   (`results/opex_reborrow_20y_42.json`). Descendre le plancher sous 300 passerait sous le coût de
    la plus grosse ligne ; l'item 8 (réemprunt) ne paie pas : le trou est vide.
 
 8. ✅ **Réemprunt à la demande : écrit, mesuré, défaut 0 — le trou est vide** (2026-08-29, nuit).
    `OpexTryReborrow` tire le palier manquant aux quatre portes de cash, derrière `reborrow`.
-   5 graines × 20 ans (`docs/opex_reborrow_20y_42.json`, `docs/opex_reborrow_20y_4seeds.json`) :
+   5 graines × 20 ans (`results/opex_reborrow_20y_42.json`, `results/opex_reborrow_20y_4seeds.json`) :
    **412 `GC`, 0 tirage `GL`, 0 `GC` avec de l'emprunt encore disponible.** Tous les blocages
    cash sont des années où l'emprunt est déjà au plafond 300 000. Dès que le remboursement
    commence, plus aucun `GC`. Le mur n'est pas l'absence de réemprunt, c'est le plafond
@@ -2073,7 +2092,7 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
    **4 → 1**, itérations gaspillées **240 000 → 40 000**, années franchies **7 → 0**, 7 candidats
    écartés par la mémoire. La cadence annuelle est entièrement récupérée, ce qui était l'objet.
 
-   **Verdict du banc (`docs/bench_v2_join.json`, 3 bras × 20 graines × 20 ans, ~25 min) : AUCUN
+   **Verdict du banc (`results/bench_v2_join.json`, 3 bras × 20 graines × 20 ans, ~25 min) : AUCUN
    EFFET DÉCELABLE, dans aucune comparaison.** Bras A = contrôle `[60,0,0]`, B = `[40,1,0]`,
    C = défauts `[40,1,1]`.
 
@@ -2102,7 +2121,7 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
    Réglage `probe_negative` : après `_tryBuild`, au plus une paire rail rejetée pour
    profit prédit ≤ 0 est force-construite sur le cash restant, budget `ATTEMPT_FLOOR`.
    PX marque la ligne ; elle ne contamine pas la calibration des lignes classées.
-   5 graines × 20 ans (`docs/opex_probe_negative_20y_5seeds.json`) :
+   5 graines × 20 ans (`results/opex_probe_negative_20y_5seeds.json`) :
 
    | | |
    |---|---|
@@ -2132,7 +2151,7 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
    ✅ **Suite : même sondage, plafond dur 40 000** (2026-08-30, soir).
    `alternativeRatio = 0` → chemin Z, `HARD_ITERATION_CAP`. Aucun paramètre
    ajouté à `OpexBuildLine` : le classement ne change pas d'opcodes.
-   5 graines × 20 ans (`docs/opex_probe_negative_hardcap_20y_5seeds.json`) :
+   5 graines × 20 ans (`results/opex_probe_negative_hardcap_20y_5seeds.json`) :
 
    | | plancher 2 000 | plafond 40 000 |
    |---|---:|---:|
@@ -2160,10 +2179,10 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
    ✅ **Retuning pax borné : écrit, mesuré, défaut 0** (2026-08-30, nuit).
    Réglage `pax_near` : pax, ≤100 tuiles, prédit dans (−200, 0], ratio = 1,
    au plus 1 tentative/an au plafond dur. 5 graines
-   (`docs/opex_pax_near_20y_5seeds.json`) : 21 lignes, toutes pax, 38–97 tuiles,
+   (`results/opex_pax_near_20y_5seeds.json`) : 21 lignes, toutes pax, 38–97 tuiles,
    prédit −197…−13. Le mécanisme est chirurgical.
 
-   Banc apparié 20 graines × 20 ans (`docs/bench_pax_near.json`) :
+   Banc apparié 20 graines × 20 ans (`results/bench_pax_near.json`) :
 
    | métrique | delta | t | graines | verdict |
    |---|---|---|---|---|
@@ -2187,7 +2206,7 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
    1. ✅ **Instrumenter le REFUS de jointure — fait (2026-08-30).** `OpexFindStationJoin` rend
       `{ refuse = M|K|R|N|E }` au lieu de `null`. Panneau `OB|R` (multi / kind / role / other),
       gated comme `OB|J`. 5 graines × 20 ans, `station_join=1`
-      (`docs/opex_join_refuse_20y_5seeds.json`) :
+      (`results/opex_join_refuse_20y_5seeds.json`) :
 
       | | M | K | R | other | tentatives | OK | JOINPATH |
       |---|---:|---:|---:|---:|---:|---:|---:|
@@ -2204,7 +2223,7 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
       JOINPATH reste 0, le reste est le spread, et ce n'est pas la suite.
    3. ✅ **Le profit prédit d'une ligne jointe — `basin_share` mesuré, défaut 0.** La production
       de l'extrémité jointe est divisée par (n+1). Banc apparié 20 graines × 20 ans
-      (`docs/bench_basin_share.json`, paire `docs/bench_basin_share_paired.json`), les deux
+      (`results/bench_basin_share.json`, paire `results/bench_basin_share_paired.json`), les deux
       bras à `station_join=1` :
 
       | métrique | delta | t | graines | verdict |
@@ -2226,38 +2245,38 @@ détection et vente des lignes fret mortes (`e884358`), exclusion d'origine + pl
       `CmdBuildSingleSignal` refuse tout `TracksOverlap` (erreur 2050). Pont /
       tunnel → `SJ` skip ; commande refusée → `JF` + rollback. Détecteurs `RX`
       (perte annuelle hors rebut) et `XC` (`CRASH_TRAIN`).
-      Capacité 5×20 ans (`docs/opex_capacity_signal_fix_20y_5seeds.json` contre
-      `docs/opex_capacity_signal_failures_v2_20y_5seeds.json`) : 33 `SF` au slot
+      Capacité 5×20 ans (`results/opex_capacity_signal_fix_20y_5seeds.json` contre
+      `results/opex_capacity_signal_failures_v2_20y_5seeds.json`) : 33 `SF` au slot
       1 → **148/148**, 0 `SF`, 0 `RX`. Jointure `station_join=1`
-      (`docs/opex_junction_signal_fix_20y_5seeds.json` contre
-      `docs/opex_station_junction_baseline_20y_5seeds.json`) : 5 PBS / 11 refus
+      (`results/opex_junction_signal_fix_20y_5seeds.json` contre
+      `results/opex_station_junction_baseline_20y_5seeds.json`) : 5 PBS / 11 refus
       → **9 / 0**, 3 skip, 0 `JF`, 0 `SIGFAIL`, 0 `XC`. ⚠️ **Défaut
       `station_join` 0.** Ce n'est pas une jonction de voie. Pas de spread.
       🔴 **La commande réussit, la valeur non.** 20 graines × 20 ans contre
-      `bench_road_current` (`docs/bench_after_pbs.json`) : −94,9 % / t = −20,9 /
+      `bench_road_current` (`results/bench_after_pbs.json`) : −94,9 % / t = −20,9 /
       0/20. PBS bidirectionnels sur voie unique dédiée. Ne pas en faire une
       baseline. Remplacé par la double voie (item 9.5).
    5. ✅ **Double voie v1** (2026-08-30). Deux trains sur une voie se rencontrent.
       `OpexTryDoubleTrack` : quai parallèle, A* avec `ignored_tiles`, dépôt
       propre, un convoi par voie, plafond 2. Échec → un train. Pas de PBS de
       capacité. 5 graines × 20 ans
-      (`docs/opex_double_track_20y_5seeds.json`) : **64/92** doubles, 128
+      (`results/opex_double_track_20y_5seeds.json`) : **64/92** doubles, 128
       trains, 0 ligne à deux convois sur une voie, 0 `XC` / `RX`, emprunt 0.
       Médiane valeur **5,73 M** (5/5 au-dessus de `opex_town_growth_20y_5seeds`).
       Skip : 17 quai, 9 chemin, 2 voie.
       Banc apparié 20×20 vs `bench_road_current`
-      (`docs/bench_double_track.json`) : valeur **+55,5 %**, t = 5,27, 17/20 ;
+      (`results/bench_double_track.json`) : valeur **+55,5 %**, t = 5,27, 17/20 ;
       note **−9,0 %**, t = −2,32, 8/20 ; véhicules −39 %. **Gardé** ; la note
       s'améliorera plus tard.
       ⚠️ Ce banc est pré-correctif : le premier convoi était démarré dans
       `OpexBuildTrains`, puis arrêté par le second `StartStopVehicle` du commit :
       44/44 lignes restées à un train avaient un profit nul.
-      ✅ **Banc corrigé** (`docs/bench_double_track_startfix.json`, 20×20 contre
+      ✅ **Banc corrigé** (`results/bench_double_track_startfix.json`, 20×20 contre
       `bench_road_current`) : valeur **+125,1 %**, t = **13,31**, **20/20** ; note
       **+17,6 %**, t = **6,05**, 18/20 ; revenu dernière année **+49,2 %**,
       t = **7,61**, 19/20 ; véhicules −34,1 %, t = −8,19 ; gares +1,8 %, nul.
       Emprunt et insolvabilité 0/20. C'est la baseline courante. Son smoke 5×20
-      (`docs/opex_double_track_startfix_20y_5seeds.json`) a 35/39 lignes à un train
+      (`results/opex_double_track_startfix_20y_5seeds.json`) a 35/39 lignes à un train
       profitables, 64/93 doubles, 0 `RX` / `XC` / `SIGFAIL`.
 
 **Priorité de fait, révisée le 2026-08-30 (join H2, rejeu DT)** : H1, H2 et
@@ -2275,7 +2294,7 @@ borné~~ / ~~l'item **7**~~ / ~~l'item **4**~~.
 
 - ✅ **Le modèle économique, volet PASSAGERS** (`economy.nut`/`candidates.nut`) : mesuré et corrigé
   le 2026-08-28 sur 9 lignes pax réelles (2 campagnes de 10 ans, graine 42, 15.3) — voir
-  `docs/opex_predict_vs_actual.json` et `sweeps/opex_predict_vs_actual.py`. Le gap ~10x se
+  `results/opex_predict_vs_actual.json` et `sweeps/opex_predict_vs_actual.py`. Le gap ~10x se
   décompose en `STATION_RATING_PCT` trop optimiste (75 supposé contre ~53 mesuré, facteur ~1,4x
   seulement) ET, dominant, `AITown.GetLastMonthProduction` compté sur la ville ENTIÈRE alors
   qu'une gare n'en capte qu'un rayon local (facteur ~4,5x résiduel, mesuré 8-37 % selon la ligne).
@@ -2292,14 +2311,14 @@ borné~~ / ~~l'item **7**~~ / ~~l'item **4**~~.
      Détection sur performance réelle (note + revenu, 2 ans consécutifs) puis vente des convois une
      fois le seuil confirmé.
 - ✅ **Le modèle économique, volet FRET** : le « reste ouvert ~4-6x » précédemment noté ici est
-  **retiré (2026-08-28)**, faute de fondement — `docs/opex_predict_vs_actual_postfix_freight_v2.json`
+  **retiré (2026-08-28)**, faute de fondement — `results/opex_predict_vs_actual_postfix_freight_v2.json`
   (commis dans `abd641b`, jamais recroisé avec l'affirmation avant cette relecture) donne un ratio
   prédit/réel moyen de **0,98** sur les 5 lignes fret à ≥3 ans de données stables.
   `STATION_RATING_PCT = 50` (calibré sur le pax) tient donc aussi pour le fret, sans facteur
   correctif propre à identifier. Détail dans `docs/opexai_croissance.md` §2 et §8.
 - ✅🔶 **Le modèle de coût A\*** (`candidates.nut`) : préalable distance ✅, recalibrage conjoint
   ✅ mesuré, **défaut `astar_cost=0`**. 5 graines × 20 ans
-  (`docs/opex_attempt_distance_20y_5seeds.json`) : **227/227** tentatives avec distance, 101 OK,
+  (`results/opex_attempt_distance_20y_5seeds.json`) : **227/227** tentatives avec distance, 101 OK,
   12 ABND, 111 SITEA/B/AB. **Chiffré d'abord sur 52 succès, puis sur 227 tentatives :**
 
   | bande | n | P(OK) | P(OK\|A\*) | SITE | ABND | itér. amorties / succès | ratio réel/modèle |
@@ -2320,14 +2339,14 @@ borné~~ / ~~l'item **7**~~ / ~~l'item **4**~~.
   ✅ **Recalibrage conjoint fait, défaut 0** (2026-08-30). Nœuds v2 = itérations amorties
   (+/−12 tuiles) ; `ATTEMPT_MULTIPLIER` **reste 4** (p95/amort ≤ 2,7). Réglage `astar_cost`.
 
-  5 graines × 20 ans (`docs/opex_astar_cost1_20y_5seeds.json`) : 13–20 lignes, médiane 51→47
+  5 graines × 20 ans (`results/opex_astar_cost1_20y_5seeds.json`) : 13–20 lignes, médiane 51→47
   tuiles, tentatives 227→149, ABND 12→7. Le piège « budgets 50–400, zéro ligne » est évité.
 
-  **Banc apparié 20 graines post-traction 20 ans** (`docs/bench_astar_cost.json`) :
+  **Banc apparié 20 graines post-traction 20 ans** (`results/bench_astar_cost.json`) :
   - `company_value` : −8,9 % (t = −1,86, 7/20)
   - `gares` : −7,9 % (t = −3,23, 4/20)
 
-  **Ré-évaluation sur architecture continue (2026-08-31, `docs/bench_astar_cost_5y.json`, 20 graines × 5 ans)** :
+  **Ré-évaluation sur architecture continue (2026-08-31, `results/bench_astar_cost_5y.json`, 20 graines × 5 ans)** :
   
   | métrique | Contrôle (`astar_cost=0`) | Traitement (`astar_cost=1`) | Delta | t | Graines | Verdict |
   |---|---|---|---|---|---|---|
@@ -2343,8 +2362,8 @@ borné~~ / ~~l'item **7**~~ / ~~l'item **4**~~.
   (§4.3) : 0,96 vs catalogue, 1,18 vs traction — le 70 % était trop pessimiste, pas de
   retuning.
 - ✅ **`ROAD_SPEED_EFFICIENCY_PCT = 60` : mesuré, pas retuné** (2026-08-30). Panneau `RY`,
-  5 graines × 20 ans (`docs/opex_road_speed_yield_20y_5seeds.json`,
-  `docs/opex_road_speed_yield.json`). n = **53** ligne-années en marche (6 lignes,
+  5 graines × 20 ans (`results/opex_road_speed_yield_20y_5seeds.json`,
+  `results/opex_road_speed_yield.json`). n = **53** ligne-années en marche (6 lignes,
   0 sur 12345). Fret **1,00** vs catalogue, pax **0,75**. Réel / 60 % :
   **1,27** pax, **1,71** fret. Instantané, pas un temps de trajet. Le 60 % est
   pessimiste en croisière, comme le 70 % rail. ⚠️ **Pas de retuning.** Ce n'est
@@ -2367,7 +2386,7 @@ borné~~ / ~~l'item **7**~~ / ~~l'item **4**~~.
   (comme air/rail, aucun bouclier nécessaire — pas d'`AITestMode` interne à
   `OpexBuildRoadRoute`), panneau `RP|` à chacune des 12 sorties de la fonction, échecs compris.
 
-  5 graines × 6 ans (`docs/diag_road_cost_probe_6y_5seeds.json`, `sweeps/diag_road_cost_probe.py`) :
+  5 graines × 6 ans (`results/diag_road_cost_probe_6y_5seeds.json`, `sweeps/diag_road_cost_probe.py`) :
   **6 329 tentatives, 4 812 avec capital modèle > 0 et succès, 1 517 échecs.** Ratio réel/modèle :
 
   | | valeur |
@@ -2388,7 +2407,7 @@ borné~~ / ~~l'item **7**~~ / ~~l'item **4**~~.
   dernière (déjà complète) — chaque tentative réelle était donc comptée une fois par mois restant
   après sa pose, sur-pondérant les tentatives précoces plutôt qu'un simple facteur uniforme.
   Corrigé, re-mesuré sur les mêmes 5 graines × 6 ans
-  (`docs/diag_road_cost_probe_6y_5seeds_v2.json`) : **145 tentatives, 109 avec capital modèle > 0
+  (`results/diag_road_cost_probe_6y_5seeds_v2.json`) : **145 tentatives, 109 avec capital modèle > 0
   et succès** (pas 6 329/4 812 — le vrai échantillon), ratio moyen **1,238** (médiane 1,183,
   écart-type 0,304, min 0,708, max 3,976), cohérent par graine (1 → 1,217 ; 42 → 1,288 ;
   73 → 1,228 ; 100 → 1,146 ; 2026 → 1,279). **Le verdict qualitatif tient** — la route coûte
@@ -2410,7 +2429,7 @@ borné~~ / ~~l'item **7**~~ / ~~l'item **4**~~.
   multiplicateur fixe pour l'instant.
 
   **Diagnostic apparié 5 graines × 6 ans**
-  (`docs/diag_capital_calibration_road_6y_5seeds.json`,
+  (`results/diag_capital_calibration_road_6y_5seeds.json`,
   `sweeps/diag_capital_calibration_road_6y_5seeds.py`), `capital_calibration=0` (aucune
   correction, aucun mode) contre `capital_calibration=1` (défaut, rail + route désormais) —
   **mesure le paquet complet, n'isole pas la contribution marginale de la route** (le rail
@@ -2438,7 +2457,7 @@ borné~~ / ~~l'item **7**~~ / ~~l'item **4**~~.
 ## 5. Banc
 
 - ✅ **Banc multi-graines construit et exécuté (2026-08-29)** — `sweeps/bench_v2.py`,
-  résultats dans `docs/bench_v2.json` : 20 graines × 20 ans, OpexAI et AAAHogEx (campagne
+  résultats dans `results/bench_v2.json` : 20 graines × 20 ans, OpexAI et AAAHogEx (campagne
   interrompue volontairement avant AdmiralAI et trAIns, jugées obsolètes). Le script apporte la
   notion d'**arm** (une IA OU une variante paramétrée d'OpexAI via `ai_params`, ex.
   `OpexAI[pathfinder_sleep_ticks=1]`), le nettoyage des sauvegardes, un checkpoint `.jsonl`, les
@@ -2455,13 +2474,13 @@ borné~~ / ~~l'item **7**~~ / ~~l'item **4**~~.
   | OpexAI *(mesure d'origine, archivée)* | 2 527 171 | 32,6 % | 7,30 % | 408 | 20,4 % |
   | AAAHogEx | 225 430 986 | 16,2 % | 3,62 % | 897 | 0,5 % |
 
-  ✅ **Référence de l'arbre : `docs/bench_double_track_startfix.json`.** Apparié
+  ✅ **Référence de l'arbre : `results/bench_double_track_startfix.json`.** Apparié
   20×20 contre `bench_road_current` : `company_value` **+125,1 %**, t = **13,31**,
   **20/20** ; `performance_history` **+17,6 %**, t = **6,05**, 18/20 ; revenu
   dernière année **+49,2 %**, t = **7,61**, 19/20 ; véhicules **−34,1 %**, t =
   **−8,19**, 0/20. Emprunt / insolvabilité 0 / 0. La double voie est gardée ;
-  `docs/bench_double_track.json` reste le bras pré-correctif. `docs/bench_v2.json` et
-  `docs/opexai_plafonnement_mesure.json` restent historiques.
+  `results/bench_double_track.json` reste le bras pré-correctif. `results/bench_v2.json` et
+  `results/opexai_plafonnement_mesure.json` restent historiques.
 
   ✅ **Contrat rail 1--2 trains aligne (2026-08-31).** Le modele ne cote plus 3--8
   rames que le constructeur ne peut pas poser; `rail_cost_probe` confirme 62/97
@@ -2472,7 +2491,7 @@ borné~~ / ~~l'item **7**~~ / ~~l'item **4**~~.
   inchangée (`bench_double_track_startfix`).
 
   🔴 **HEAD + PBS (`e027037`) n'est pas une baseline.** 20 graines contre
-  `bench_road_current` (`docs/bench_after_pbs.json`) : `company_value` **−94,9 %**,
+  `bench_road_current` (`results/bench_after_pbs.json`) : `company_value` **−94,9 %**,
   t = **−20,9**, **0/20** ; `performance_history` **−77,7 %**, t = **−25,0**.
   9 graines à `company_value=1`, 20/20 encore empruntées, 5 insolvables, 0 erreur
   de script. Les campagnes 5 graines « 148/148, 0 SF » mesuraient la commande,
@@ -2576,7 +2595,7 @@ Ne pas oublier deux composantes gratuites de la note de compagnie : **emprunt à
 - **La reprise sur préfixe façon `RetryToBuild`**, en clean-room.
   Les **64 `TRKFAIL` / ~145 M** (453 par itération contre 156) sont **TrainLineAI 13.4**,
   campagne v3 une ligne par compagnie (2026-08-28), pas OpexAI 15.3. Sur l'arbre
-  courant, 5 graines × 20 ans : **2/173** (`docs/opex_road_multistop_20y_5seeds.json`),
+  courant, 5 graines × 20 ans : **2/173** (`results/opex_road_multistop_20y_5seeds.json`),
   **2/175** (TRACEX), **3/227** (distance). `abandon_memory` ne retient que `ABND` :
   graine 4096, 1988, deux tentatives à 69 tuiles (10 000 puis 27 950 itérations).
   Ce n'est plus le meilleur rendement identifié. Ne pas copier AAAHogEx pour deux
@@ -2674,7 +2693,7 @@ Ne pas oublier deux composantes gratuites de la note de compagnie : **emprunt à
   3. la déclaration `AddSetting` dans `info.nut` ;
   4. l'entrée `"tree_planting"` de la liste blanche de `sweeps/bench_v2.py` (~ligne 141).
 
-  ✅ **Débloqué le 2026-09-03.** La seule raison de garder le réglage était que le −22,1 % qui l'avait condamné portait sur un garde mort (`AITown.GetRating` est un enum 0-8). Le garde réparé, D1 a refait la mesure : `tree_planting=1` reste **négatif** (−12,1 % de `company_value`, −13,4 % de `profit_year`, 13/20 graines perdantes, `docs/bench_tree_planting_recalibrated_3y.json`). La question est tranchée deux fois, par deux mesures indépendantes dont l'une sur un mécanisme réparé : **le chemin préventif part, la plantation au refus municipal reste**. Suivi en E8.
+  ✅ **Débloqué le 2026-09-03.** La seule raison de garder le réglage était que le −22,1 % qui l'avait condamné portait sur un garde mort (`AITown.GetRating` est un enum 0-8). Le garde réparé, D1 a refait la mesure : `tree_planting=1` reste **négatif** (−12,1 % de `company_value`, −13,4 % de `profit_year`, 13/20 graines perdantes, `results/bench_tree_planting_recalibrated_3y.json`). La question est tranchée deux fois, par deux mesures indépendantes dont l'une sur un mécanisme réparé : **le chemin préventif part, la plantation au refus municipal reste**. Suivi en E8.
 
   ⚠️ **Ne PAS toucher** au recours réactif de `builder_air.nut` (`517` et `540`) : il n'est pas
   derrière le drapeau, il ne se déclenche qu'après un vrai `ERR_LOCAL_AUTHORITY_REFUSES` renvoyé
@@ -2687,7 +2706,7 @@ Ne pas oublier deux composantes gratuites de la note de compagnie : **emprunt à
   c'est une divergence de trajectoire. Ne pas re-mesurer pour « valider » la suppression.
 
   Motivation mesurée : banc apparié 20 graines × 3 ans
-  (`docs/bench_treeplanting_3y_20seeds.json`), couper la plantation préventive vaut
+  (`results/bench_treeplanting_3y_20seeds.json`), couper la plantation préventive vaut
   `company_value` **+22,1 %** (t = 2,42, 17/20 graines), `profit` +26,8 % (t = 2,09),
   `profit_year` +20,1 %, et resserre la dispersion (CV 63,8 % → 50,7 %).
 
@@ -2720,11 +2739,11 @@ Ne pas oublier deux composantes gratuites de la note de compagnie : **emprunt à
   ~1 000 appels → 45, une économie), côté fret toutes les industries sont évaluées d'avance et
   `OpexMakeCandidate` est appelée même à `monthly = 0` (un surcoût) ; les compteurs eux-mêmes sont
   du bruit (~8 400 incréments/an, ~0,02 % du budget annuel). Comme un décalage d'opcodes déplace
-  les frontières de tick, la trajectoire diverge : **`docs/bench_v2.json` n'est plus la baseline de
+  les frontières de tick, la trajectoire diverge : **`results/bench_v2.json` n'est plus la baseline de
   l'arbre courant.**
 
   **Fait** : 20 graines × 20 ans rejouées sur le seul bras `OpexAI`
-  (`docs/bench_v2_opex_rebaseline.json`), fusionnées dans `docs/bench_v2.json` — `AAAHogEx` est
+  (`results/bench_v2_opex_rebaseline.json`), fusionnées dans `results/bench_v2.json` — `AAAHogEx` est
   conservé tel quel, il n'a pas bougé. Statistiques et comparaisons appariées recalculées par les
   fonctions de `sweeps/bench_v2.py` elles-mêmes. L'ancien bras est archivé dans le bloc
   `rebaseline.previous_opexai` du même fichier (stats + les 20 valeurs par graine).
@@ -2751,10 +2770,10 @@ Ne pas oublier deux composantes gratuites de la note de compagnie : **emprunt à
 
 - ✅ **Re-baseliner les durcissements inconditionnels du raccordement** (2026-08-30).
   `AreTilesConnected` après chaque `BuildRail` et `StartStopVehicle` reporté s'appliquent
-  aussi à `station_join=0`. Ils sont dans `docs/bench_road_current.json`, puis
-  dans l'arbre courant `docs/bench_double_track.json` (20×20, défauts, double voie).
-  `docs/bench_v2.json` (vs AAAHogEx) et `docs/opexai_plafonnement_mesure.json`
-  restent historiques. ⚠️ **Ne pas prendre `docs/bench_after_pbs.json` pour
+  aussi à `station_join=0`. Ils sont dans `results/bench_road_current.json`, puis
+  dans l'arbre courant `results/bench_double_track.json` (20×20, défauts, double voie).
+  `results/bench_v2.json` (vs AAAHogEx) et `results/opexai_plafonnement_mesure.json`
+  restent historiques. ⚠️ **Ne pas prendre `results/bench_after_pbs.json` pour
   successeur** : c'est le banc HEAD+PBS, 20/20 sous `bench_road_current`, voir §5.
 
 - ✅ **Chemin d'API dans `docs/opexai_raccordement_gare.md`** : la note citait
@@ -2803,11 +2822,11 @@ mesurée : `docs/opexai_route.md`, banc PH **+9,3 %**.
   Jointure aussi (item 0.7) : ne paie pas, défauts 0.
 - 🔴 **File dynamique `catalogue -> lignes rentables -> reste de la file` rejetee en l'etat**
   (2026-08-31). Le premier essai round-robin payait toutes les taches tous les dix jours et perdait
-  11,1 % de valeur (`docs/bench_continuous_queue.json`). La correction `dueYear`/`enabled` reporte
+  11,1 % de valeur (`results/bench_continuous_queue.json`). La correction `dueYear`/`enabled` reporte
   bien les taches inutiles au cycle futur, mais son banc 5 graines x 20 ans baisse l'utilisation
   mesuree des opcodes de 9,6 % **et** le profit d'exploitation de 7,2 %, la performance de 9,6 %
   (0/5) et la valeur de 18,3 % (0/5) : ne pas l'adopter sur ce seul argument
-  (`docs/opex_queue_deferred_20y_5seeds.json`).
+  (`results/opex_queue_deferred_20y_5seeds.json`).
 
   L'idee inspiree d'AAAHogEx a ensuite ete testee directement : catalogue, classement rentable,
   construction sans pause de la ligne 1 puis 2 puis 3, file circulaire, et conservation du
@@ -2822,7 +2841,7 @@ mesurée : `docs/opexai_route.md`, banc PH **+9,3 %**.
   d'accumulation de cash (où 87 % des opcodes étaient dormants), l'IA précalcule les tracés A*, les quais
   et la double voie des meilleurs candidats. Dès que la trésorerie atteint le capital requis, la construction
   s'effectue instantanément.
-  **Banc apparié 5 graines × 5 ans (`docs/bench_preplan_queue_5y.json`)** :
+  **Banc apparié 5 graines × 5 ans (`results/bench_preplan_queue_5y.json`)** :
   - Valeur d'entreprise : **+3,63 %** (+11 374 £), **5/5 graines gagnantes**
   - Profit annuel : **+4,86 %** (+5 194 £), **5/5 graines gagnantes**
   - Profit dernier trimestre : **+4,85 %** (+1 293 £), **5/5 graines gagnantes**
@@ -2851,7 +2870,7 @@ mesurée : `docs/opexai_route.md`, banc PH **+9,3 %**.
   - **Banc 20 graines × 5 ans** : Valeur d'entreprise moyenne en hausse de **+17,5 %** (**298 631 £** vs **254 040 £**).
 - ⚪ **Planter des arbres pour augmenter la réputation municipale (`tree_planting`) — ÉCARTÉ (2026-08-31)** :
   Implémentation du module `OpexBoostTownRating` (plantant des arbres pour relever la note locale au-dessus de 100).
-  **Banc apparié 20 graines × 5 ans (`docs/bench_tree_planting_5y.json`)** :
+  **Banc apparié 20 graines × 5 ans (`results/bench_tree_planting_5y.json`)** :
   - `company_value` : **−17,05 %** (−84 572 £), $t = −6,62$, **0/20 graines gagnantes** (20/20 défavorables).
   - `profit` : **−31,57 %** (−12 490 £), $t = −7,19$, **0/20 graines gagnantes**.
   - `profit_year` : **−25,94 %** (−40 051 £), $t = −6,57$, **0/20 graines gagnantes**.
@@ -2863,7 +2882,7 @@ mesurée : `docs/opexai_route.md`, banc PH **+9,3 %**.
   2026-08-31 et le 2026-09-01, le code est repassé à `TREE_PLANTING <- true` (`main.nut:68`) et
   `custom_value = 1` (`info.nut`) — **ce document disait 0 pendant que le code faisait 1**, et
   personne ne l'a vu pendant une journée entière de travail bâti sur cette base. Remesuré à
-  3 ans, la perte est confirmée (`docs/bench_treeplanting_3y_20seeds.json`, 20 graines) :
+  3 ans, la perte est confirmée (`results/bench_treeplanting_3y_20seeds.json`, 20 graines) :
   `company_value` **+22,1 %** en coupant (t = 2,42, **17/20 graines**), `profit` +26,8 %
   (t = 2,09), `profit_year` +20,1 %, et la dispersion se resserre (CV 63,8 % → 50,7 %). Défaut
   remis à **0** partout.
@@ -2879,7 +2898,7 @@ mesurée : `docs/opexai_route.md`, banc PH **+9,3 %**.
   que si une ville nous refuse un aéroport**. Le nettoyage du réglage devenu inutile est en §8.
 - ⚪ **Ordre de chargement passagers rail (`pax_full_load`) — MAINTENU PAR DÉFAUT (2026-08-31)** :
   Comparaison entre le plein chargement forcé aux deux bouts (`pax_full_load=1`, `OF_FULL_LOAD_ANY`) et le départ partiel rapide (`pax_full_load=0`, `OF_NONE`).
-  **Banc apparié 20 graines × 5 ans (`docs/bench_pax_full_load_5y.json`)** :
+  **Banc apparié 20 graines × 5 ans (`results/bench_pax_full_load_5y.json`)** :
   - `company_value` : **+0,21 %** (+1 055 £), $t = +0,61$, 8/20 wins pour A, 8/20 wins pour B, 4 nuls.
   - `performance_history` : **+0,31 %** (+0,8 pt), $t = +0,63$.
   - `profit` : **−0,16 %**, $t = −0,06$.
@@ -2890,9 +2909,9 @@ mesurée : `docs/opexai_route.md`, banc PH **+9,3 %**.
   Indexation au catalogue des villes acceptatrices pour les marchandises transformées (`Goods`, `Food`, `Water`, `Mail`) et génération des corridors Industrie $\rightarrow$ Ville dans `OpexFreightCandidates`.
   Permet d'alimenter les industries secondaires (Aciérie, Scierie, Raffinerie, Usine) et d'évacuer les marchandises à haute valeur ajoutée vers les centres urbains.
 
-  🔴 **Chiffre d'origine périmé.** Banc apparié 20 graines × **5 ans seulement** (`docs/bench_complex_cargo_5y.json`) — sous le seuil officiel de validation du projet (`AGENTS.md` : « banc officiel 20 graines × 10 ans apparié avant toute adoption par défaut ») : `company_value` +4,27 % ($t=2,29$, $p<0,05$), `performance_history` +5,38 % ($t=3,10$, $p<0,01$, 16/20 graines gagnantes), `profit` +4,85 % ($t=1,71$), `profit_year` +3,81 % ($t=1,90$).
+  🔴 **Chiffre d'origine périmé.** Banc apparié 20 graines × **5 ans seulement** (`results/bench_complex_cargo_5y.json`) — sous le seuil officiel de validation du projet (`AGENTS.md` : « banc officiel 20 graines × 10 ans apparié avant toute adoption par défaut ») : `company_value` +4,27 % ($t=2,29$, $p<0,05$), `performance_history` +5,38 % ($t=3,10$, $p<0,01$, 16/20 graines gagnantes), `profit` +4,85 % ($t=1,71$), `profit_year` +3,81 % ($t=1,90$).
 
-  ✅ **Retest officiel 20 graines × 10 ans (2026-09-08, `docs/bench_complex_cargo_10y_20seeds.json`), `OpexAI[complex_cargo=0]` contre `OpexAI[complex_cargo=1]` sur le dossier courant, 0 échec sur 40 parties : AUCUN EFFET SIGNIFICATIF.**
+  ✅ **Retest officiel 20 graines × 10 ans (2026-09-08, `results/bench_complex_cargo_10y_20seeds.json`), `OpexAI[complex_cargo=0]` contre `OpexAI[complex_cargo=1]` sur le dossier courant, 0 échec sur 40 parties : AUCUN EFFET SIGNIFICATIF.**
 
   | métrique | delta (0 vs 1) | t | victoires de `0` sur 20 |
   |---|---:|---:|---:|

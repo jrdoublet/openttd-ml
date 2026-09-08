@@ -51,7 +51,7 @@ def main():
     parser.add_argument("--months", type=int, default=24)
     parser.add_argument("--seeds", nargs="+", type=int, default=[42, 999, 7, 1024, 314])
     parser.add_argument("--workers", type=int, default=3)
-    parser.add_argument("--out", type=Path, default=ROOT / "docs" / "diag_amorcage.json")
+    parser.add_argument("--out", type=Path, default=ROOT / "results" / "diag_amorcage.json")
     args = parser.parse_args()
 
     enable_savegame_cleanup()

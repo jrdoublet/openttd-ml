@@ -30,7 +30,7 @@ import bench_v2
 
 YEARS = 6
 SEEDS = (1, 42, 73, 100, 2026)
-OUT = ROOT / "docs" / "diag_capital_calibration_road_6y_5seeds.json"
+OUT = ROOT / "results" / "diag_capital_calibration_road_6y_5seeds.json"
 
 ARM_NAMES = ("OpexAI[capital_calibration=0]", "OpexAI[capital_calibration=1]")
 

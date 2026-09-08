@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE_AI = ROOT / "ai" / "TrainLineAI"
 SCRATCH = Path("/tmp/openttd-ml-pathfinder-structures-20260827")
 NAME = "TrainLineAIStructureMeasure20260827"
-OUTPUT = ROOT / "docs" / "phase3_pathfinder_structures.json"
+OUTPUT = ROOT / "results" / "phase3_pathfinder_structures.json"
 
 CFG = """[difficulty]
 number_towns = 3

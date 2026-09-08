@@ -22,7 +22,7 @@ map_y = 8
 DAYS = 365 * 10
 SEEDS = (42, 1, 7, 100, 2026)
 RANKS = (50, 100, 200, 300, 400)
-OUTPUT_JSON = "docs/phase2_rank_boundary_probe.json"
+OUTPUT_JSON = "results/phase2_rank_boundary_probe.json"
 STATUS_RE = re.compile(r"^TRLN\|(\d+)\|(\w+)\|(\w+)\|(\d+)/(\d+)$")
 BARRIER_RE = re.compile(r"^TRLN\|(\d+)\|B(\d+)\|([MO])$")
 

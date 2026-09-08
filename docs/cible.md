@@ -425,7 +425,7 @@ coalescé `C39_REFRESH` dans `AILog` (sans dépendre de `decision_log`). `Indust
 invalidation ne déclenche de calcul et la cadence mensuelle historique est conservée. C'est le
 contrat de base pour étendre le routeur sans créer d'effets de bord avant C41.
 
-La trace C39.1 (5 graines × 6 ans, `docs/diag_c39_events_6y_5seeds.json`) a reçu 43
+La trace C39.1 (5 graines × 6 ans, `results/diag_c39_events_6y_5seeds.json`) a reçu 43
 notifications sans erreur : 32 moteurs, 6 fermetures et 5 ouvertures d'industrie. 28 refreshes
 en ont absorbé au moins une, jusqu'à trois dans une même passe. Elle valide donc le format de
 coalescence et désigne `EngineAvailable` comme premier consommateur actif à mesurer ; aucune ville
@@ -436,7 +436,7 @@ n'a été fondée dans cet échantillon, donc ce cas doit rester passif jusqu'à
 la première notification d'une rafale. Après le rebuild mensuel historique, elle écrit la signature
 après, son changement éventuel, et pour chaque `EngineAvailable` si le moteur est retenu par le
 sous-catalogue de son mode. La trace dédiée 5 graines × 6 ans
-(`docs/diag_c39_decision_delta_6y_5seeds.json`) compte 23 rétentions sur 32 moteurs : rail 5/5,
+(`results/diag_c39_decision_delta_6y_5seeds.json`) compte 23 rétentions sur 32 moteurs : rail 5/5,
 route 13/13, eau 5/9, air 0/5. Ainsi, la future tâche ciblée pourra éliminer les moteurs filtrés
 avant de propager l'invalidation. Les 18 changements de premier projet sur 29 rafales sont un
 signal de sensibilité du portefeuille, **pas** une attribution causale à un moteur : une rafale peut
@@ -471,7 +471,7 @@ matériel — `rail`, `road`, `air` ou `water` — et comparer ce chemin au rebu
 
 **État de livraison C41.0 (2026-09-08).** `c41_revision_probe=0` ajoute le registre passif à
 `_staleness`, sans modifier la file. La trace 5 graines × 6 ans
-(`docs/diag_c41_revision_6y_5seeds.json`) est saine : 47 notifications font progresser 42
+(`results/diag_c41_revision_6y_5seeds.json`) est saine : 47 notifications font progresser 42
 révisions de couche, puis les 30 rebuilds qui absorbent une rafale produisent exactement 30
 acquittements. L'écart 42/30 est attendu : une même rafale peut rendre plusieurs couches sales,
 mais une couche ne progresse qu'une fois avant son acquittement. C41.1 doit maintenant exposer et
@@ -489,7 +489,7 @@ coût/ordonnancement réel du sous-catalogue, pas une performance de jeu.
 
 **État de livraison C41.1 (2026-09-08).** `c41_water_refresh=0` arme la micro-tâche seulement
 après `EngineAvailable` eau, mesure `cat_water_targeted`, puis acquitte et nettoie seulement
-`catalog.water`. La trace 5 graines × 6 ans (`docs/diag_c41_water_6y_5seeds.json`) est saine : les
+`catalog.water`. La trace 5 graines × 6 ans (`results/diag_c41_water_6y_5seeds.json`) est saine : les
 9 notifications eau ont produit 9 sous-régénérations, pour 2 923 opcodes au total, soit 315 à 337
 par passe. Aucun candidat ni portefeuille n'est réélu. La tâche s'exécute encore pour les 9
 annonces, parce que la rétention du moteur n'est connue qu'après lecture du sous-catalogue ; C41.2
@@ -506,9 +506,9 @@ n'a été lancé dans cette tranche ; il faudra comparer C41.1 et C41.2 sur la m
 extension vers les candidats.
 
 **Mesure C41.2 (2026-09-08, 5 graines × 6 ans).** Le contrôle C41.1
-(`docs/diag_c41_water_precheck_baseline_6y_5seeds.json`) exécute 9 rafraîchissements eau pour
+(`results/diag_c41_water_precheck_baseline_6y_5seeds.json`) exécute 9 rafraîchissements eau pour
 2 923 opcodes. Le préfiltre C41.2
-(`docs/diag_c41_water_precheck_treatment_6y_5seeds.json`) en exécute 5 pour 1 576 opcodes : les
+(`results/diag_c41_water_precheck_treatment_6y_5seeds.json`) en exécute 5 pour 1 576 opcodes : les
 4 moteurs rejetés sont bien évités, soit −44,4 % de passes et **−46,1 % d'opcodes**, sans erreur.
 Les deux traces observent les mêmes 9 annonces eau, 5 retenues / 4 filtrées. C'est une validation
 de coût et de routage, pas un banc de valeur ; l'étape suivante reste la sonde passive de
@@ -522,7 +522,7 @@ ni véhicule ne doit être créé. La sonde ne touche ni `this._projects`, ni le
 le coût réel avant que C41.4 puisse concevoir une fusion de vivier.
 
 **Mesure C41.3 (2026-09-08, 5 graines × 6 ans) : ne pas propager.** La trace
-`docs/diag_c41_water_plans_6y_5seeds.json` est saine mais éliminatoire : les 5 moteurs eau
+`results/diag_c41_water_plans_6y_5seeds.json` est saine mais éliminatoire : les 5 moteurs eau
 retenus déclenchent 5 sondes, **0 plan**, et consomment 593 273 opcodes (113 896 à 122 419 par
 sonde). Le coût est environ 380 fois celui du sous-catalogue ciblé, pour aucun candidat. C41.3
 reste donc à 0 et C41.4 doit d'abord ventiler `OpexWaterPlans` (sites, paires, BFS, économie) afin
@@ -560,9 +560,14 @@ déjà acquitté et (4) passe un diagnostic apparié 5×6 avant le banc officiel
 reste particulièrement sensible : les tentatives à échéance globale ont déjà été rejetées ; seul
 un état local repris par micro-étape est recevable.
 
+**Premier profil de la chaîne (C41.16, 5×6).** `OpexBuildRoadCandidates` a été ventilé sans
+modifier sa sortie : fret 83,7 % des 29,31 M opcodes, feeders 16,2 %, `TopK` 0,05 % ; la branche
+passagers n'était pas active (`road_pax_build=0`). Le prochain découpage doit donc conserver la
+frontière de génération et isoler d'abord les boucles fret, non le tri ni le sac à dos.
+
 **C39.4 — cause des avions non retenus (2026-09-08).** La sonde
 `c39_air_reason_probe=0` sépare les filtres éliminatoires de la sélection finale des combos. Sa
-trace 5 graines × 6 ans (`docs/diag_c39_air_reason_6y_5seeds.json`) est saine : les cinq annonces
+trace 5 graines × 6 ans (`results/diag_c39_air_reason_6y_5seeds.json`) est saine : les cinq annonces
 concernent le même moteur 233, un gros avion passagers de capacité 260 (`plane_type=3`), et les
 cinq motifs sont `dominated`. Il est donc valide, constructible et refittable, mais perd contre un
 avion déjà meilleur selon la règle gros avion → capacité → vitesse. Ne pas implémenter un
@@ -578,7 +583,7 @@ micro-tâche. Cette première mesure distingue une réparation future faisable (
 d'un problème d'observabilité (orphelin) sans introduire de recherche globale de stations.
 
 **Mesure C41.4 (2026-09-08, 5 graines × 6 ans).** Le smoke 3 × 2 ans est sain (un événement,
-ligne rail attribuée). La trace `docs/diag_c41_vehicle_lost_6y_5seeds.json` est également saine :
+ligne rail attribuée). La trace `results/diag_c41_vehicle_lost_6y_5seeds.json` est également saine :
 **29 `VehicleLost`**, 29 véhicules encore valides, **29/29 lignes attribuées**, tous en mode rail,
 et aucun orphelin ni erreur. Cette couverture rend une future maintenance rail ciblée possible,
 mais ne renseigne pas encore sa cause. La prochaine tranche doit mesurer, pour chaque événement,
@@ -587,7 +592,7 @@ de refleet ou de régénération de catalogue avant ce diagnostic.
 
 **C41.5 — faits rail avant toute inférence.** Le réglage `c41_rail_lost_probe=0` ajoute au
 diagnostic C41.4 l'état numérique du véhicule, son ordre courant, la destination, la position et
-la validité du dépôt. La trace 5 × 6 (`docs/diag_c41_rail_lost_6y_5seeds.json`) est saine : les
+la validité du dépôt. La trace 5 × 6 (`results/diag_c41_rail_lost_6y_5seeds.json`) est saine : les
 29 notifications viennent de seulement **4 couples ligne-véhicule**, récurrents ; chacune porte
 deux ordres valides, dont la destination appartient à la ligne, et un dépôt rail valide. Écarter
 donc ordre hors-ligne et dépôt manquant, mais ne pas conclure à un signal bloqué : l'API ne le
@@ -596,7 +601,7 @@ lignes (double voie, second dépôt, longueur de quai et signaux).
 
 **C41.6 — concentration topologique (2026-09-08).** La sonde
 `c41_rail_lost_topology_probe=0` ne relit que l'état persisté d'une ligne. La trace 5 × 6
-(`docs/diag_c41_rail_lost_topology_6y_5seeds.json`) est saine : les 29 événements, et les quatre
+(`results/diag_c41_rail_lost_topology_6y_5seeds.json`) est saine : les 29 événements, et les quatre
 couples ligne-véhicule qui les répètent, sont tous sur des lignes **fret à double voie**, deux
 rames, deux véhicules persistés et second dépôt valide (quais 3–4, 2–3 wagons). La défaillance
 est donc concentrée dans la géométrie ou l'exploitation de la double voie, non dans les ordres,
@@ -607,7 +612,7 @@ aucun scan global ni geste correctif n'est encore autorisé.
 **C41.7 — cause locale observable (2026-09-08).** La sonde
 `c41_rail_lost_physical_probe=0` vérifie sans pathfinding les approches déjà persistées des quais
 et les fronts des dépôts. La trace 5 × 6
-(`docs/diag_c41_rail_lost_physical_6y_5seeds.json`) est saine : les 29 occurrences gardent les
+(`results/diag_c41_rail_lost_physical_6y_5seeds.json`) est saine : les 29 occurrences gardent les
 quatre approches rail et les deux fronts de dépôt valides. Mais les quatre appels
 `AIRail.GetSignalType(lead, station_exit)` rendent tous `SIGNALTYPE_NONE` (255). Le code confirme
 la cause structurelle : la pose de signaux est conditionnée à `join != null`, alors que la double

@@ -245,7 +245,7 @@ villes, donc légitime comme feature).
 vérifié empiriquement — pas encore exploité.** `old_economy` (`PLYR`) est company-level, inutilisable
 tel quel pour une cible par ligne (déjà noté plus haut). Vérification directe du chunk `VEHS` d'une
 partie avec `TrainLineAI` (`sweeps/phase2_vehs_explore.py`, dump complet dans
-`docs/phase2_vehs_explore.json`) :
+`results/phase2_vehs_explore.json`) :
 - `profit_this_year`/`profit_last_year` sont bien présents, mais uniquement sur l'enregistrement du
   **véhicule de tête** (la locomotive) de chaque train — les wagons du même consist ont ces deux
   champs à 0. Cohérent avec la comptabilité de profit d'OpenTTD, qui l'attribue au véhicule de tête
@@ -294,7 +294,7 @@ amortissement(coût de construction)`.** Assemble les deux morceaux vérifiés c
 d'exploitation par véhicule de tête, coût de construction du panneau de détail) en une seule
 métrique comparable à un profit annuel complet, capital inclus. Implémenté et testé sur des
 parties réelles dans `sweeps/phase2_profit_ligne.py` — résultats dans
-`docs/phase2_profit_ligne.json`.
+`results/phase2_profit_ligne.json`.
 
 **Piège vérifié en séparant infrastructure et véhicules : `AIAccounting` ne s'imbrique PAS.**
 Première version : amortir tout le coût de construction (voie + gares + dépôt + véhicules) sur
@@ -337,7 +337,7 @@ et pas `profit_this_year`, voir plus bas ("Unité manquante").
 ## Quatre bugs réels trouvés en creusant un signal suspect (2026-08-25, revue externe)
 
 Un examen des trois premières valeurs de `sum_profit_this_year` de la campagne
-(`docs/phase2_trainline_run.json`) a révélé une anomalie : trois lignes de graines et distances
+(`results/phase2_trainline_run.json`) a révélé une anomalie : trois lignes de graines et distances
 différentes (77, 88, 33 tuiles) donnaient **exactement** -924600, au franc près. Une coïncidence
 à ce niveau de précision n'existe pas — c'est le signe d'une variable confondue à 100 %, pas d'un
 signal de ligne. L'anomalie suivait `engine_rank` et rien d'autre. Investigation menée en suivant
@@ -423,7 +423,7 @@ une fois le chemin trouvé — plus aucune activité du pathfinder ne peut être
 **Vérifié empiriquement** : le même cas `no_path_found` rapporte maintenant `C0` (au lieu de
 55 856 940). Effet de bord sur les lignes *réussies* : le coût de la ligne de test (graine 42,
 `A0/B1/E0`) est passé de **1 964 441 à 62 241** — un facteur ~31. **Toutes les données de coût de
-la campagne précédente (`docs/phase2_trainline_run.json`, `docs/phase2_profit_ligne.json`,
+la campagne précédente (`results/phase2_trainline_run.json`, `results/phase2_profit_ligne.json`,
 la visualisation) étaient gonflées par ce bug et ont été regénérées.**
 
 ### Bug 4 (non résolu) — le chargement de cargo reste à zéro même avec les trois corrections ci-dessus
@@ -624,7 +624,7 @@ corriger avec une contrainte dure. Nouveau script `sweeps/phase2_multiline_contr
 graine 42, même config, `pair_rank`/`line_index`=0..N-1 pour N compagnies simultanées ;
 `pair_rank`=0/`line_index`=0 est le point de référence fixe présent dans toutes les tailles).
 
-**Mesure brute (avant correctif, `docs/phase2_multiline_control.json`)** — `profit_ligne` de la
+**Mesure brute (avant correctif, `results/phase2_multiline_control.json`)** — `profit_ligne` de la
 ligne `pair_rank`=0 (toujours T6-2, coût 41520, inchangé) selon le nombre de compagnies
 simultanées dans la même partie :
 
@@ -670,7 +670,7 @@ peuvent stimuler des villes proches même si elles ne partagent aucune ville. La
 villes disjointes évite les terminus communs, **pas** ces effets de croissance entre voisins; ce
 confondant reste à mesurer avant d'interpréter une expérience multi-lignes comme indépendante.
 
-**Vérification après correctif (`docs/phase2_multiline_verify.json`, N=1 et 15 seulement — les
+**Vérification après correctif (`results/phase2_multiline_verify.json`, N=1 et 15 seulement — les
 deux extrêmes suffisent)** :
 
 | N compagnies | profit_ligne (pair_rank=0) |
@@ -708,7 +708,7 @@ construit. Pas encore vérifié empiriquement (nécessiterait d'instrumenter les
 sélection de paire et de la première commande de jeu, ancien code vs nouveau, même graine) —
 reporté, pas résolu.
 
-**Contrôle isolé du décalage de ticks (`docs/phase2_tick_shift_control.json`, 2026-08-26).** Deux
+**Contrôle isolé du décalage de ticks (`results/phase2_tick_shift_control.json`, 2026-08-26).** Deux
 parties à une seule compagnie, graine 42/configuration inchangée, `pair_rank`=0 : seul
 `line_index` varie entre 0 et 1. La seconde exécute donc le `Sleep(6000)` déjà présent dans
 `Start()` avant la sélection/construction. Le smoke test AILog (`sweeps/debug_ai.py`) confirme que
@@ -726,7 +726,7 @@ pas expliquer ce delta de profit. Le contrôle **soutient** donc une sensibilit�
 prudence méthodologique sur les comparaisons inter-versions et, pour une preuve stricte, isoler un
 décalage qui préserve aussi tous les champs de construction mesurés.
 
-**Contrôle de déterminisme intra-batch (`docs/phase2_determinism_control.json`, 2026-08-26).**
+**Contrôle de déterminisme intra-batch (`results/phase2_determinism_control.json`, 2026-08-26).**
 Deux dicos d'expérience distincts mais littéralement identiques (graine 42, une compagnie isolée,
 `num_trains`=2, `wagons_per_train`=2, `engine_rank`=1, `pair_rank`=0 et `line_index`=0) ont été
 lancés dans le même appel `run_experiments()` avec `max_workers`=3. Précaution de parsing :
@@ -743,7 +743,7 @@ il renforce donc l'attribution de ce delta à la différence de timing intention
 pas à lui seul d'identifier le mécanisme interne exact (RNG partagé, croissance ou autre effet du
 temps écoulé), ni de lever la réserve sur les $15 de coût de construction du contrôle précédent.
 
-**Contrôle de petit décalage fixe (`docs/phase2_tick_shift_small_control.json`, 2026-08-26).**
+**Contrôle de petit décalage fixe (`results/phase2_tick_shift_small_control.json`, 2026-08-26).**
 Pour isoler un délai bien plus petit sans changer le `STAGGER_TICKS` de production, une copie
 temporaire de l'IA a reçu seulement un `this.Sleep(100)` inconditionnel au point de l'ancien
 échelonnement (et un nom d'enregistrement temporaire distinct, nécessaire pour éviter une
@@ -762,7 +762,7 @@ qu'à une autre dynamique temporelle. L'écart n'est manifestement pas supposabl
 taille du délai (le contrôle `Sleep(6000)` avait un delta plus faible) ; aucun essai bonus à 10 ticks
 n'a été lancé.
 
-**Balayage fin du décalage et contrôle date/âge (`docs/phase2_tick_shift_sweep.json`,
+**Balayage fin du décalage et contrôle date/âge (`results/phase2_tick_shift_sweep.json`,
 2026-08-26).** Sept parties isolées ont balayé `Sleep(0,25,50,75,100,150,200)` ; le point 0 emploie
 l'IA de production, les autres une copie `/tmp` avec un réglage scratch `debug_delay_ticks`. Le
 smoke test du point 200 confirme T6-2. Les sept constructions sont strictement identiques dans les
@@ -793,7 +793,7 @@ instantanés IA au démarrage puis les 1959-11-04..05 / 1979-11-04..07 / 1999-11
 la fin fixe des parties de dix ans. Le chunk `CITY` 13.4 a été inspecté directement dans un vrai savegame : il ne
 contient pas de champ population. La sonde temporaire a donc écrit `AITown.GetPopulation` dans des
 panneaux `SIGN`, canal déjà validé; les nombres bruts et les histogrammes sont dans
-`docs/phase0_town_distribution.json`.
+`results/phase0_town_distribution.json`.
 
 Vérification 13.4 par génération puis relecture de `openttd.cfg` : `number_towns` accepte 0..4 et
 clamp 5/6 à 4; **4 est le mode `custom_town_number`**, pas « très dense » (son défaut généré 1
@@ -816,7 +816,7 @@ le pool de villes sans hausser artificiellement la taille typique; le départ 19
 médiane modeste. **Décision figée révisée pour les futures cartes** : `number_towns=3`,
 `starting_year=1970`, `town_growth_rate=2` explicitement, `industry_density=4`, `inflation=false`
 et `map_x`/`map_y=8` inchangés. Aucun réglage de croissance non mesuré n'est ajouté. Cette rupture
-de distribution rend tous les `docs/phase2_*.json` existants (1950/densité 2) **non comparables**
+de distribution rend tous les `results/phase2_*.json` existants (1950/densité 2) **non comparables**
 aux futures campagnes : ils sont conservés comme historique, jamais réécrits.
 
 Enfin `TrainLineAI` applique maintenant réellement le plancher `minPopulation=500` :
@@ -838,7 +838,7 @@ Les scripts de contrôle/investigation historiques `phase2_tick_shift_control.py
 *Risque 1 — le seuil population coupe-t-il la plage de `pair_rank` ?* En excluant les villes sous
 500 on supprime le bas du classement gravitaire, donc potentiellement les couples lointains entre
 petites villes qui fournissaient la classe négative du gradient `pair_rank`. Comptage par étage de
-filtre (`sweeps/phase0_pair_eligibility.py`, `docs/phase0_pair_eligibility.json`, sonde SIGN
+filtre (`sweeps/phase0_pair_eligibility.py`, `results/phase0_pair_eligibility.json`, sonde SIGN
 reproduisant les constantes de `main.nut`, sans construction), 8 graines par configuration,
 médianes :
 
@@ -860,7 +860,7 @@ configuration n'est pas mesuré ici et demanderait une vraie campagne.
 *Risque 2 — l'amplitude de timing s'effondre-t-elle avec des villes plus grandes ?* Le test
 décisif : rejouer le balayage `Sleep(0/25/50/75/100/150/200)` sous la nouvelle configuration, sur
 **trois lignes différentes** (une ligne unique pourrait se trouver par hasard dans un régime
-marginal). `sweeps/phase2_tick_shift_sweep_v2.py`, `docs/phase2_tick_shift_sweep_v2.json` :
+marginal). `sweeps/phase2_tick_shift_sweep_v2.py`, `results/phase2_tick_shift_sweep_v2.json` :
 
 | Ligne (rang 0) | amplitude `profit_ligne` |
 |---|---:|
@@ -919,7 +919,7 @@ L'idée : attendre après le preflight jusqu'à un tick cible fixe, pour que la 
 construction tombe toujours au même tick absolu.
 
 *Distribution mesurée d'abord* (`sweeps/phase2_preflight_distribution.py`,
-`docs/phase2_preflight_distribution.json`, 30 routes, plusieurs graines × plusieurs `pair_rank`
+`results/phase2_preflight_distribution.json`, 30 routes, plusieurs graines × plusieurs `pair_rank`
 dont des rangs élevés, config 1970/densité 3) : tick de première mutation **min 678, médiane 957,
 p90 2806, max 4397**. Les 391 ticks du sondage précédent étaient donc un cas particulièrement
 favorable, pas un ordre de grandeur représentatif.
@@ -946,7 +946,7 @@ tick mesuré. Longueur maximale 20 caractères, sous la limite dure de 31. Une l
 comparable à une ligne `M` et doit être filtrée ou traitée à part dans toute analyse.
 
 *Validation — le test décisif* (`sweeps/phase2_barrier_validation.py`,
-`docs/phase2_barrier_validation.json`) : même balayage `Sleep(0/25/50/75/100/150/200)` injecté au
+`results/phase2_barrier_validation.json`) : même balayage `Sleep(0/25/50/75/100/150/200)` injecté au
 tout début, sur les trois mêmes lignes que `phase2_tick_shift_sweep_v2.json`, barrière active.
 
 | Ligne (rang 0) | amplitude avant barrière | amplitude après barrière |

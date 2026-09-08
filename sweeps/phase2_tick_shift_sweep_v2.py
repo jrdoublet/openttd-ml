@@ -39,7 +39,7 @@ DENOMINATOR_LINES = tuple((seed, rank) for seed in (1, 2, 3, 7, 42) for rank in 
 SOURCE_AI_DIR = "ai/TrainLineAI"
 SCRATCH_AI_DIR = "/tmp/openttd-ml-scratch_tickdelay_sweep_v2"
 SCRATCH_AI_NAME = "TrainLineAITickShiftSweepV2"
-OUTPUT_JSON = "docs/phase2_tick_shift_sweep_v2.json"
+OUTPUT_JSON = "results/phase2_tick_shift_sweep_v2.json"
 STATUS_RE = re.compile(r"^TRLN\|(\d+)\|(\w+)\|(\w+)\|(\d+)/(\d+)$")
 DETAIL_RE = re.compile(r"^TRLN\|(\d+)\|T(\d+)-(\d+)\|D(\d+)\|C(-?\d+)$")
 VEHICLE_COST_RE = re.compile(r"^TRLN\|(\d+)\|V(-?\d+)$")
@@ -198,8 +198,8 @@ if __name__ == "__main__":
     new_spread = max(baseline_profits) - min(baseline_profits)
     for sweep in sweeps:
         sweep["amplitude_over_new_between_line_spread"] = sweep["amplitude"] / new_spread
-    old_delay = json.load(open("docs/phase2_tick_shift_sweep.json"))
-    old_pair = json.load(open("docs/phase2_pair_rank_run.json"))
+    old_delay = json.load(open("results/phase2_tick_shift_sweep.json"))
+    old_pair = json.load(open("results/phase2_pair_rank_run.json"))
     old_amplitude = max(r["profit_ligne"] for r in old_delay) - min(r["profit_ligne"] for r in old_delay)
     old_profits = [r["profit_ligne"] for r in old_pair if "profit_ligne" in r]
     old_spread = max(old_profits) - min(old_profits)
@@ -210,9 +210,9 @@ if __name__ == "__main__":
                "sweeps": sweeps, "between_line_denominator_new_config": {"design": "five seeds x pair ranks 0 and 5, unshifted isolated games",
                    "records": denominator, "successful_profit_count": len(baseline_profits), "profit_min": min(baseline_profits),
                    "profit_max": max(baseline_profits), "spread": new_spread},
-               "old_config_ratio_historical": {"amplitude": old_amplitude, "amplitude_source": "docs/phase2_tick_shift_sweep.json",
+               "old_config_ratio_historical": {"amplitude": old_amplitude, "amplitude_source": "results/phase2_tick_shift_sweep.json",
                    "between_line_profit_min": min(old_profits), "between_line_profit_max": max(old_profits),
-                   "between_line_spread": old_spread, "spread_source": "docs/phase2_pair_rank_run.json (81 measurable rows)",
+                   "between_line_spread": old_spread, "spread_source": "results/phase2_pair_rank_run.json (81 measurable rows)",
                    "ratio": old_amplitude / old_spread},
                "interpretation": {"new_ratio_range": [min(ratios), max(ratios)],
                    "verdict": "Absolute timing amplitudes did not collapse under the larger-town config. They are below the full new between-line spread (roughly 1/7 to 1/4), not near one, but remain material for individual-trial prediction."}}

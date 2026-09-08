@@ -232,6 +232,6 @@ if __name__ == "__main__":
     n_pairoor = sum(1 for r in records if r.get("reason") == "PAIROOR")
     print(f"\n{n_success}/{len(records)} success, {n_pairoor} pair_rank_out_of_range")
 
-    with open("docs/phase2_pair_rank_run.json", "w") as f:
+    with open("results/phase2_pair_rank_run.json", "w") as f:
         json.dump(records, f, indent=2)
-    print("\nEcrit dans docs/phase2_pair_rank_run.json")
+    print("\nEcrit dans results/phase2_pair_rank_run.json")

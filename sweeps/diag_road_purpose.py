@@ -75,7 +75,7 @@ def main():
     parser.add_argument("--years", type=int, default=10)
     parser.add_argument("--seeds", nargs="+", type=int, default=[42, 999, 7, 1024, 314])
     parser.add_argument("--workers", type=int, default=3)
-    parser.add_argument("--out", type=Path, default=ROOT / "docs" / "diag_road_purpose.json")
+    parser.add_argument("--out", type=Path, default=ROOT / "results" / "diag_road_purpose.json")
     args = parser.parse_args()
 
     enable_savegame_cleanup()

@@ -13,7 +13,7 @@ from openttdlab import bananas_ai_library, local_folder, run_experiments
 
 INFRA_LIFE_YEARS = 30  # hypothese documentee dans docs/methode.md
 
-# Configuration historique volontairement épinglée : docs/phase2_determinism_control.json
+# Configuration historique volontairement épinglée : results/phase2_determinism_control.json
 # a été produit en 1950/densité 2. La config révisée pour les nouveaux travaux est documentée
 # dans la table des décisions figées du README.md et la note de révision de docs/methode.md.
 OPENTTD_CONFIG = """
@@ -38,7 +38,7 @@ ENGINE_RANK = 1
 PAIR_RANK = 0
 LINE_INDEX = 0
 N_RUNS = 2
-OUTPUT_JSON = "docs/phase2_determinism_control.json"
+OUTPUT_JSON = "results/phase2_determinism_control.json"
 
 STATUS_RE = re.compile(r"^TRLN\|(\d+)\|(\w+)\|(\w+)\|(\d+)/(\d+)$")
 DETAIL_RE = re.compile(r"^TRLN\|(\d+)\|T(\d+)-(\d+)\|D(\d+)\|C(-?\d+)$")

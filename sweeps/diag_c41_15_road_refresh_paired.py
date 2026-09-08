@@ -60,7 +60,7 @@ def main():
     if len(set(args.seeds)) != len(args.seeds):
         parser.error("--seeds ne doit pas contenir de doublon")
 
-    out = args.out or ROOT / "docs" / f"diag_c41_15_road_refresh_paired_{args.years}y_{len(args.seeds)}seeds.json"
+    out = args.out or ROOT / "results" / f"diag_c41_15_road_refresh_paired_{args.years}y_{len(args.seeds)}seeds.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     bench_v2.CHECKPOINT_PATH = out.with_suffix(".jsonl")
     if bench_v2.CHECKPOINT_PATH.exists():

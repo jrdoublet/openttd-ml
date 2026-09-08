@@ -101,6 +101,6 @@ if __name__ == "__main__":
     # Seulement les chunks pertinents pour cette verification -- les chunks carte (MAP*, RAIL,
     # ROAD, ...) pesent plusieurs centaines de Ko a eux seuls et n'apportent rien ici.
     relevant = {k: chunks[k] for k in ("SIGN", "VEHS", "ORDR", "STNN", "PLYR") if k in chunks}
-    with open("docs/phase2_vehs_explore.json", "w") as f:
+    with open("results/phase2_vehs_explore.json", "w") as f:
         json.dump(relevant, f, indent=2, default=str)
-    print("\nDump (chunks pertinents seulement) ecrit dans docs/phase2_vehs_explore.json")
+    print("\nDump (chunks pertinents seulement) ecrit dans results/phase2_vehs_explore.json")

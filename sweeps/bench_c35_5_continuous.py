@@ -41,7 +41,7 @@ def main():
     args = parser.parse_args()
     seeds = tuple(args.seeds) if args.seeds else bench_v2.SEEDS
     out = args.out if args.out is not None else (
-        ROOT / "docs" / f"bench_c35_5_continuous_{args.years}y_{len(seeds)}seeds.json"
+        ROOT / "results" / f"bench_c35_5_continuous_{args.years}y_{len(seeds)}seeds.json"
     )
 
     bench_v2.CHECKPOINT_PATH = out.with_suffix(".jsonl")

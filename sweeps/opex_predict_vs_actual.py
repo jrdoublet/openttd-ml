@@ -15,7 +15,7 @@ from pathlib import Path
 from openttdlab import bananas_ai_library, local_folder, run_experiments
 
 ROOT = Path("/work")
-RESULT = ROOT / "docs" / "opex_predict_vs_actual.json"
+RESULT = ROOT / "results" / "opex_predict_vs_actual.json"
 
 OPENTTD_VERSION, OPENGFX_VERSION = "15.3", "7.1"
 SEED = 42

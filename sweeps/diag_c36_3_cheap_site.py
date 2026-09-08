@@ -79,7 +79,7 @@ def keep(row):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--out", default=str(ROOT / "docs" / "diag_c36_3_cheap_site_y1.json"))
+    parser.add_argument("--out", default=str(ROOT / "results" / "diag_c36_3_cheap_site_y1.json"))
     args = parser.parse_args()
     enable_savegame_cleanup()
     arms = {

@@ -339,6 +339,15 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C41.16 : aucune regeneration supplementaire, seulement une ventilation de la passe normale. */
+    AddSetting({
+      name = "c41_road_candidate_profile",
+      description = "C41.16 probe: split normal road-candidate generation into pax, freight, feeder and TopK opcodes; no scheduling change; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* C41.4 : inventaire passif des vehicules perdus, independant de l'alerte A7.4. */
     AddSetting({
       name = "c41_vehicle_lost_probe",
@@ -439,7 +448,7 @@ class OpexAIInfo extends AIInfo {
     /* C14 : Desserrer le gain de la boucle de croissance aerienne
      * (-1 = inactif, >=0 = tampon de cargo au sol avant achat proportionnel).
      * ADOPTE a 0 le 2026-09-04 (docs/taches.md, 0 septquadragesies) : balayage factoriel
-     * 18 bras x 20 graines x 10 ans (docs/bench_c14_c15_trajectory_10y.json) montre que la VALEUR
+     * 18 bras x 20 graines x 10 ans (results/bench_c14_c15_trajectory_10y.json) montre que la VALEUR
      * du tampon est indifferente (0 = 50 = +40 % de profit) -- seul le fait d'armer le mecanisme
      * compte. buffer=0 est donc le bras le plus simple qui capte le gain : +40,4 % de profit a
      * 10 ans, 17/20 graines, p=0,002. */
@@ -466,7 +475,7 @@ class OpexAIInfo extends AIInfo {
     /* D3.2 : Assainissement de profit_non_positive via le taux d'amortissement de l'infrastructure
      * (docs/taches.md D3.2). Dans OpenTTD, l'infrastructure ne s'amortit pas dans les comptes ;
      * deduire 1/30e du capital infra par an de profitAnnual rejette des candidats rentables sous
-     * profit_non_positive. Valide au banc 20 graines x 10 ans (docs/bench_d3_2_infra_amort_10y_20seeds.json) :
+     * profit_non_positive. Valide au banc 20 graines x 10 ans (results/bench_d3_2_infra_amort_10y_20seeds.json) :
      * valeur moyenne +10,0 % (t = +2,09, p < 0,05), profit annuel moyen +10,5 % (14 victoires sur 20 graines).
      * Defaut adopte a 0 (zero amortissement fictif d'infrastructure). */
     AddSetting({
@@ -512,7 +521,7 @@ class OpexAIInfo extends AIInfo {
 
     /* C27 : Sortir les bonus du numerateur de densite (fret monopole/chaine, feeder reseau)
      * pour retablir l'equite modale face a l'aerien dans budgetScore/opcodeScore (docs/taches.md C27).
-     * Valide au banc (docs/diag_c27_feeders.json): valeur mediane +17.8%, profit median +26.4%,
+     * Valide au banc (results/diag_c27_feeders.json): valeur mediane +17.8%, profit median +26.4%,
      * feeders vers aeroports en hausse (+13.5%, 37 -> 42), lignes air +47.1% (87 -> 128). Defaut 1. */
     AddSetting({
       name = "clean_density_score",
@@ -702,7 +711,7 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
 
-    /* C43/E3 : sature a 77,4%/70,1% des appels de selection (docs/diag_constants_binding_6y_5seeds.json,
+    /* C43/E3 : sature a 77,4%/70,1% des appels de selection (results/diag_constants_binding_6y_5seeds.json,
      * 2026-09-08) -- mord fort. Jamais retouche depuis 2026-09-02 avant cette mesure ; expose pour
      * le banc factoriel 32 contre 64. */
     AddSetting({
@@ -800,7 +809,7 @@ class OpexAIInfo extends AIInfo {
      * DEFAUT 300 (= 300 000) DEPUIS LE 2026-08-29, apres mesure au banc apparie -- voir le verdict
      * en fin de commentaire. Il valait 1000 avant, et c'est ce que reproche la mesure ci-dessous.
      *
-     * CE QUE LA MESURE DU 2026-08-29 REPROCHE A CETTE VALEUR (docs/opexai_emprunt.json, 6 graines
+     * CE QUE LA MESURE DU 2026-08-29 REPROCHE A CETTE VALEUR (results/opexai_emprunt.json, 6 graines
      * x 20 ans, panneaux LB/LF) : la tresorerie d'OpexAI reste entre 50 000 et 400 000 pendant
      * DIX A QUATORZE ANS. Le plancher est donc hors d'atteinte pendant toute la phase de
      * croissance, et l'emprunt initial de 300 000 court a 5 % sans qu'aucun remboursement ne
@@ -823,7 +832,7 @@ class OpexAIInfo extends AIInfo {
      * un candidat plus cher que sa tresorerie renonce a la ligne. Le plancher 300 couvre la
      * plus grosse ligne observee (248 106) donc le trou est borne tant que reborrow reste a 0.
      *
-     * VERDICT DU BANC APPARIE (docs/bench_v2_emprunt.json, 20 graines x 20 ans, OpexAI contre
+     * VERDICT DU BANC APPARIE (results/bench_v2_emprunt.json, 20 graines x 20 ans, OpexAI contre
      * OpexAI[loan_repay_floor_k=300]) : adopte.
      *   - Metrique directe, la seule decisive ici : graines a emprunt residuel 3/20 -> 1/20, et
      *     emprunt total residuel 900 000 -> 230 000. Les graines 100 et 4096 passent de 300 000 a
@@ -838,7 +847,7 @@ class OpexAIInfo extends AIInfo {
      *     deux bras sont BIT A BIT identiques -- la ou la tresorerie franchissait le million d'un
      *     coup, abaisser le plancher ne change litteralement rien.
      *   - Reste 1 graine (42) a 230 000 SUR CE BANC. Sur l'arbre courant elle solde tout en 1975
-     *     (docs/opex_reborrow_20y_42.json). Descendre le plancher sous 300 passerait sous le
+     *     (results/opex_reborrow_20y_42.json). Descendre le plancher sous 300 passerait sous le
      *     cout de la plus grosse ligne ; `reborrow` (ci-dessous) ne paie pas : le trou
      *     "desendetter puis manquer d'argent" est vide. */
     AddSetting({
@@ -863,8 +872,8 @@ class OpexAIInfo extends AIInfo {
      * en cours paierait de l'interet pour de l'argent qui ne construit pas. Le remboursement
      * annuel (_tryRepayLoan) et ce tirage sont le meme levier, dans les deux sens.
      *
-     * VERDICT (5 graines x 20 ans, docs/opex_reborrow_20y_42.json et
-     * docs/opex_reborrow_20y_4seeds.json) : 412 GC, 0 tirage, 0 GC avec de l'emprunt encore
+     * VERDICT (5 graines x 20 ans, results/opex_reborrow_20y_42.json et
+     * results/opex_reborrow_20y_4seeds.json) : 412 GC, 0 tirage, 0 GC avec de l'emprunt encore
      * disponible. Tous les blocages cash sont des annees ou l'emprunt est DEJA au plafond
      * (300 000). Des que le remboursement commence, plus aucun GC. Le mur n'est pas l'absence
      * de reemprunt, c'est le plafond d'emprunt lui-meme -- deja nomme au mur n deg 1. Un banc
@@ -883,14 +892,14 @@ class OpexAIInfo extends AIInfo {
      *
      * CE QUE 1 FAIT. OpexRailIterations lit KNOT_ITERATIONS_V2 : iterations
      * amorties par succes, fenetre +/-12 tuiles, 227 tentatives sous 15.3
-     * (docs/opex_attempt_distance_20y_5seeds.json). ATTEMPT_MULTIPLIER reste 4 :
+     * (results/opex_attempt_distance_20y_5seeds.json). ATTEMPT_MULTIPLIER reste 4 :
      * p95(iter OK)/amort <= 2,7. Le plancher 2000 absorbe le court.
      *
-     * 5 graines (docs/opex_astar_cost1_20y_5seeds.json) : on construit encore
+     * 5 graines (results/opex_astar_cost1_20y_5seeds.json) : on construit encore
      * (13-20 lignes), mediane 51->47 tuiles, tentatives et ABND baissent.
      * Le piege "budgets 50-400, zero ligne" est evite.
      *
-     * VERDICT n=20 (docs/bench_astar_cost.json) : company_value -8,9 %, t = -1,86,
+     * VERDICT n=20 (results/bench_astar_cost.json) : company_value -8,9 %, t = -1,86,
      * 7/20 -- sous le plancher ~15 %. performance_history -5,3 %, t = -1,81.
      * Gares -7,9 %, t = -3,23, 4/20 : CA c'est etabli. MIN_RATIO coupe le long
      * sans le remplacer 1:1 par du court. Defaut 0. OpexAI[astar_cost=1] rallume. */
@@ -931,12 +940,12 @@ class OpexAIInfo extends AIInfo {
      * entrent au classement (ratio = 1, sous MIN_RATIO). _tryBuild en tente au plus
      * une par an au plafond dur. Fret et pax >100 restent rejetes a profit<=0.
      *
-     * POURQUOI CES BORNES. Sondage a 40 000 iterations (docs/opex_probe_negative_hardcap_20y_5seeds.json) :
+     * POURQUOI CES BORNES. Sondage a 40 000 iterations (results/opex_probe_negative_hardcap_20y_5seeds.json) :
      * 11/11 pax <=100 rentables en derniere annee (predit -146..-9, reel 10-20 k) ;
      * >100 tuiles, mediane reelle 0. Lever le filtre partout readmettrait le long
      * du vivier. -200 couvre l'echantillon sans ouvrir le gouffre.
      *
-     * VERDICT n=20 (docs/bench_pax_near.json) : company_value +0,6 %, t = 0,10,
+     * VERDICT n=20 (results/bench_pax_near.json) : company_value +0,6 %, t = 0,10,
      * 8/20 -- nul. performance_history +4,7 %, t = 1,42, 14/20 -- sous le
      * plancher ~12 %. Gares +10,5 %, t = 4,27, 17/20 : CA c'est etabli, on
      * construit plus pour la meme valeur. C'est le vivier. Defaut 0.
@@ -994,7 +1003,7 @@ class OpexAIInfo extends AIInfo {
     /* Pathfinding segmente (docs/taches.md A5). Sonde 2026-09-03 : 40 % des tentatives
      * rail meurent en ABND. A3 a plafonne a 10k, donc l'objectif n'est plus d'accelerer
      * les succes mais de convertir les abandons. Port de TrainLineAI-segmented.
-     * Banc 20 graines x 10 ans (docs/bench_rail_segmented_10y.json) : le mecanisme
+     * Banc 20 graines x 10 ans (results/bench_rail_segmented_10y.json) : le mecanisme
      * marche (+13 % de gares, +5,5 % de vehicules) mais la valeur est NEUTRE
      * (-3,4 %, t = -0,86, 7/20, p = 0,26 -- non significatif).
      * Defaut 1 par decision de l'utilisateur du 2026-09-03 : on garde le reseau plus
@@ -1051,15 +1060,15 @@ class OpexAIInfo extends AIInfo {
      *
      * DEFAUT 0 DEPUIS LE 2026-08-29, CONFIRME APRES TRACTION. Le mecanisme marche : le vivier ne
      * s'eteint plus, les jointures ont lieu. Deux bancs apparies, 20 graines x 20 ans :
-     *   - avant traction (docs/bench_v2_vivier.json) : vehicules +37,2 %, t = 5,94, 18/20 ;
+     *   - avant traction (results/bench_v2_vivier.json) : vehicules +37,2 %, t = 5,94, 18/20 ;
      *     company_value -0,3 %, t = -0,03 ;
-     *   - apres traction (docs/bench_join_after_traction.json) : vehicules +23,6 %, t = 3,50,
+     *   - apres traction (results/bench_join_after_traction.json) : vehicules +23,6 %, t = 3,50,
      *     17/20 ; gares -11,9 %, t = -3,61 (reemploi du StationID) ; company_value +5,9 %,
      *     t = 0,96, 11/20 -- sous le plancher ~15 %. Sans la graine 1337 (+132 %) il reste
      *     +1,6 %, t = 0,34. On construit plus, sur moins de gares, pour la meme valeur.
      *
      * CE QUI N'EST PAS LA CAUSE. Le double comptage de monthly a une origine servie a ete mesure
-     * (docs/opex_join_bias.json) et, une fois type, distance et epoque neutralises, son intervalle
+     * (results/opex_join_bias.json) et, une fois type, distance et epoque neutralises, son intervalle
      * contient 1. Corriger monthly sur ce chiffre brut serait le piege deja desamorce.
      *
      * SUITE : basin_share a ete mesure, defaut 0, et ne paie pas (les jointures sont
@@ -1068,15 +1077,15 @@ class OpexAIInfo extends AIInfo {
      * docs/aaahogex_rail_join.md reste la note d'idees, pas un plan.
      *
      * REFUS (2026-08-30). OB|R decompose le null : 196 M, 75 K, 0 R, 41 other, 705
-     * tentatives, 39 OK, 0 JOINPATH (docs/opex_join_refuse_20y_5seeds.json). R meurt
+     * tentatives, 39 OK, 0 JOINPATH (results/opex_join_refuse_20y_5seeds.json). R meurt
      * a la generation. JOINPATH est vide. Les echecs sont SITEA/SITEB.
      *
      * RENDEMENT (2026-08-30). OpexJoinPlatformPlans cherche offset 1-4, pas le spread.
      * 39 -> 71 OK (5,5 % -> 15,7 %), SITE 692 -> 393, 361 nClear=0 restants au quai
-     * joint (docs/opex_join_parallel_20y_5seeds.json). 5/5 plus de vehicules, 4/5
+     * joint (results/opex_join_parallel_20y_5seeds.json). 5/5 plus de vehicules, 4/5
      * moins de valeur. Le spread n'est pas la suite.
      *
-     * H1 (2026-08-30). Population encore longue (docs/opex_join_pop.json).
+     * H1 (2026-08-30). Population encore longue (results/opex_join_pop.json).
      * join_max_distance=50 : 29 OK, dist 37, D=1035. Coupe le vivier, ne bat
      * pas join=0. Defaut 0. H2 (join_place) mesure, ne paie pas. */
     AddSetting({
@@ -1090,7 +1099,7 @@ class OpexAIInfo extends AIInfo {
     /* Porte H1 sur la jointure. Defaut 0 : pas de plafond, la v1 inchangee.
      * N > 0 : si OpexFindStationJoin a reussi mais candidate.distance >= N,
      * rejet tooClose historique, zero A*. Inerte si station_join = 0.
-     * Valeur de travail 50 (docs/opex_join_pop.json) : jointures <50 tuiles
+     * Valeur de travail 50 (results/opex_join_pop.json) : jointures <50 tuiles
      * reel/pred 1,12, 2 trains ; >=100 : 0,07 et 4 trains. Ne pas baisser
      * MIN_RATIO global. OpexAI[station_join=1,join_max_distance=50]. */
     AddSetting({
@@ -1110,7 +1119,7 @@ class OpexAIInfo extends AIInfo {
      * primaire, JOINPATH dedie. PBS sur quais joints et aiguillage depot.
      * Independant de station_join (v1 = repli _tooClose).
      *
-     * 5 graines (docs/opex_join_place_20y_5seeds.json) : 50 OK, dist 50,
+     * 5 graines (results/opex_join_place_20y_5seeds.json) : 50 OK, dist 50,
      * reel/pred an 2 -0,16. Mediane company_value -64 % vs join=0
      * (5/5, graine 100 -92 %). TOP_K pollue, SITEA au quai joint.
      * Moins de vehicules ET moins de valeur. Pas de banc n=20.
@@ -1131,7 +1140,7 @@ class OpexAIInfo extends AIInfo {
      * disparaissent. Le puits n'est PAS filtre : le couper enlevait des paires urbaines encore
      * constructibles.
      *
-     * VERDICT DU BANC APPARIE (docs/bench_noplan_sitable.json contre docs/bench_traction_new.json,
+     * VERDICT DU BANC APPARIE (results/bench_noplan_sitable.json contre results/bench_traction_new.json,
      * 20 graines x 20 ans) : pas d'effet etabli. company_value +4,0 % (t = 0,50, 11/20),
      * performance_history +1,9 % (t = 0,85), vehicules -1,1 %. Sous le plancher de detection.
      * Le minimum recule (1,79 M -> 1,18 M) et le CV passe de 0,28 a 0,34. La graine 42 seule
@@ -1151,7 +1160,7 @@ class OpexAIInfo extends AIInfo {
      * production de CETTE extremite est divisee par (lignes rail deja sur ce StationID pour ce
      * cargo + 1). Le dest fret n'est PAS divise. Inerte si station_join = 0.
      *
-     * VERDICT (docs/bench_basin_share.json, paire docs/bench_basin_share_paired.json, 20 graines
+     * VERDICT (results/bench_basin_share.json, paire results/bench_basin_share_paired.json, 20 graines
      * x 20 ans, les deux bras a station_join=1) : pas d'effet etabli en valeur.
      * company_value +5,5 % (t = 0,89, 11/20), performance_history +3,8 % (t = 1,11), sous le
      * plancher. Les vehicules ne bougent pas (+0,2 %, t = 0,04). Les gares REBONDISSENT
@@ -1189,7 +1198,7 @@ class OpexAIInfo extends AIInfo {
      * modele economique tranche desormais chaque cas, sans plancher de profit eliminatoire avant
      * l'arbitrage modal.
      *
-     * VERDICT DU BANC APPARIE (docs/bench_v2_road.json, 20 graines x 20 ans, OpexAI contre
+     * VERDICT DU BANC APPARIE (results/bench_v2_road.json, 20 graines x 20 ans, OpexAI contre
      * OpexAI[road_mode=0]) : ADOPTE, sur la metrique que le projet a designee comme la bonne entre
      * variantes d'OpexAI.
      *   - performance_history : +36,6 points appariés (+9,3 %), t = 2,03, la route gagne sur
@@ -1200,22 +1209,22 @@ class OpexAIInfo extends AIInfo {
      *     concluant, et entierement otage d'une seule graine -- voir ci-dessous.
      *
      * 🔴 LE PRIX A CONNAITRE ETAIT une graine sur vingt (8675309) a 1, sur le banc d'adoption
-     * (docs/bench_v2_road.json, pre-traction). SUR L'ARBRE COURANT ce n'est plus vrai
-     * (docs/bench_road_8675309.json) : 2 368 267 contre 2 282 217 a road_mode=0, emprunt 0,
+     * (results/bench_v2_road.json, pre-traction). SUR L'ARBRE COURANT ce n'est plus vrai
+     * (results/bench_road_8675309.json) : 2 368 267 contre 2 282 217 a road_mode=0, emprunt 0,
      * months_of_bankruptcy 0. Les deux bras sont identiques au 1er janvier 1971. Campagne
      * 20 ans : 0 tentative routiere -- le continue-not-break de la traction laisse le rail
      * prendre le cash residual, le break cash de la route ne s'exerce plus. Pas de garde-fou
-     * a ecrire. Re-baseline 2026-08-30 : `docs/bench_road_current.json`, 20 graines × 20 ans,
+     * a ecrire. Re-baseline 2026-08-30 : `results/bench_road_current.json`, 20 graines × 20 ans,
 `road_mode=1` contre `road_mode=0` avec traction et `road_pax_catchment_pct=86` :
 performance_history +70,35 (+15,3 %), t = 5,65, 18/20 ; company_value +13,5 %, t = 2,24.
 Le mode route est donc reconfirme sur l arbre courant.
      *
      * SITEA/B (2026-08-30). OpexRoadSites saute les tuiles non constructibles : 48 sondes
      * etaient brulees sur des maisons/industries qui ont du cargo. 5 graines : SITE
-     * 14/18 -> 0, OK 2 -> 6 (docs/opex_road_sitable_20y_5seeds.json).
+     * 14/18 -> 0, OK 2 -> 6 (results/opex_road_sitable_20y_5seeds.json).
      *
      * TRACEX (2026-08-30). 32 L (contre 12) et facade vers l'autre bout. nLong=0.
-     * 5 graines : TRACEX 5->2, OK 6->8, pax 2->4 (docs/opex_road_tracex_20y_5seeds.json). */
+     * 5 graines : TRACEX 5->2, OK 6->8, pax 2->4 (results/opex_road_tracex_20y_5seeds.json). */
     AddSetting({
       name = "road_mode",
       description = "Build short road lines (bus town-town, and truck freight industry-industry / industry-town): 1 = enabled, 0 = rail-only baseline",
@@ -1285,7 +1294,7 @@ Le mode route est donc reconfirme sur l arbre courant.
      * rempli sur budgetScore (une densite) sans jamais tester la financabilite.
      *
      * ADOPTE le 2026-09-03 par decision utilisateur, MALGRE un banc d'isolation NEUTRE (20 graines
-     * x 3 ans, docs/bench_pool_financeable_iso_3y_20seeds.json) : company_value +8,1 % (t=1,48,
+     * x 3 ans, results/bench_pool_financeable_iso_3y_20seeds.json) : company_value +8,1 % (t=1,48,
      * NS), profit_year +11,7 % (t=1,52, NS), aucune moyenne ne franchit le plancher de detection.
      * Le test des signes isole deux effets reels sous ce plancher : profit du dernier trimestre
      * gagne (16/20, p=0,012) mais median_station_rating perd (5/20, p=0,041). La structure ne
@@ -1349,7 +1358,7 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
-    /* docs/taches.md S3 undecies (2026-09-03), diagnostic docs/diag_airserved_probe.json.
+    /* docs/taches.md S3 undecies (2026-09-03), diagnostic results/diag_airserved_probe.json.
      * OpexBuildAirRoute calcule les StationID puis rend les TUILES (`builder_air.nut:831-832` puis
      * `:898-899`). main.nut lit bien ces champs comme des tuiles ; le code de hub, non. La garde
      * `alreadyConnected` comparait donc un StationID a une tuile et etait structurellement
@@ -1473,7 +1482,7 @@ Le mode route est donc reconfirme sur l arbre courant.
 
     /* Part de la production totale d une ville qu un arret de bus capte, en pourcentage.
      *
-     * 86 est adopte apres le banc apparie 20 graines (docs/bench_road_pax_catchment.json) :
+     * 86 est adopte apres le banc apparie 20 graines (results/bench_road_pax_catchment.json) :
      * performance_history +22,2 points (+4,19 %), t = 2,48, 14/20 graines gagnantes ;
      * company_value -1,32 %, sans effet etabli. Le 0 reconstitue le calibrage rail historique
      * a 22 %. Ce reglage ne change que OpexRoadPaxCandidates, jamais le rail ni le fret. */
@@ -1542,7 +1551,7 @@ Le mode route est donc reconfirme sur l arbre courant.
      * MESURE DU TROU, plusieurs campagnes graine 42 : opex_road_20y_42 ligne pax 15
      * (2 en 1985, 1 en 1986, 0 en 1987-89, 9000/an puis notes 54 -> -1) ;
      * opex_join_20y_42 COAL 2->1->0 pour 8 ans vides.
-     * VERDICT (docs/opex_refleet_20y_4seeds.json, graine 42, 20 ans) : COAL 15 passe 2->1
+     * VERDICT (results/opex_refleet_20y_4seeds.json, graine 42, 20 ans) : COAL 15 passe 2->1
      * en 1982 et 1988 ; RF ajoute 1 chaque fois, rating 22->61 puis 29->67, jamais a zero.
      * Defaut 1. OpexAI[road_refleet=0] rallume l'abandon silencieux. */
     AddSetting({
@@ -1693,7 +1702,7 @@ Le mode route est donc reconfirme sur l arbre courant.
      *     presque toujours le profit absolu et baisse le roi : le modele livre donc au portefeuille
      *     la variante la plus gourmande en capital de toutes celles qu'il a evaluees.
      *
-     * ADOPTE AU BANC LE 2026-09-02 (docs/bench_isolation_3y_20seeds.json, 20 graines x 3 ans,
+     * ADOPTE AU BANC LE 2026-09-02 (results/bench_isolation_3y_20seeds.json, 20 graines x 3 ans,
      * lecture appariee, reglage isole) : profit_year +21,1 % (t = 2,09, 14/20),
      * performance_history +16,1 % (t = 3,01, 15/20), company_value +11,7 % (t = 1,47, 12/20).
      * Les deux premieres depassent leur plancher de detection et priment sur company_value dans
@@ -1704,7 +1713,7 @@ Le mode route est donc reconfirme sur l arbre courant.
      * constante nouvelle), et la variante est choisie sur le meme objectif que celui qui
      * l'arbitrera -- le profit par livre de capital. */
     /* Correctifs de pricing, decoupes en TROIS reglages pour que le banc puisse les isoler.
-     * Groupes, ils ont ete mesures NUISIBLES le 2026-09-02 (docs/bench_pricing_3y_20seeds.json,
+     * Groupes, ils ont ete mesures NUISIBLES le 2026-09-02 (results/bench_pricing_3y_20seeds.json,
      * 20 graines x 3 ans) : company_value -14,8 %, profit_year -22,7 %, performance_history
      * -18,7 % (t = -3,82). Il reste a savoir lequel des trois porte la degradation.
      *
@@ -1800,7 +1809,7 @@ Le mode route est donc reconfirme sur l arbre courant.
 
     AddSetting({
       name = "air_cheap_site",
-      description = "C36.3 cheap airport footprint filter (IsBuildableRectangle + water/river/coast + C4) before AITestMode: 1 = enabled (default, adopted 20x10 docs/bench_c36_3_cheap_site_10y_20seeds.json: profit +27.4% t=3.68 14/6), 0 = historical",
+      description = "C36.3 cheap airport footprint filter (IsBuildableRectangle + water/river/coast + C4) before AITestMode: 1 = enabled (default, adopted 20x10 results/bench_c36_3_cheap_site_10y_20seeds.json: profit +27.4% t=3.68 14/6), 0 = historical",
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       flags = AICONFIG_BOOLEAN
@@ -1857,7 +1866,7 @@ Le mode route est donc reconfirme sur l arbre courant.
     /* Plancher de profit ABSOLU du portefeuille v2, en pourcentage du meilleur profit finançable
      * du moment. N'a d'effet que sous portfolio_v2 = 1.
      *
-     * POURQUOI IL EXISTE. Banc du 2026-09-02 (docs/bench_isolation_3y_20seeds.json, reglage
+     * POURQUOI IL EXISTE. Banc du 2026-09-02 (results/bench_isolation_3y_20seeds.json, reglage
      * isole) : le tri au seul ratio profit/capital est le SEUL des quatre reglages a bouger le
      * volume -- 21,4 -> 27,2 gares, +27 % -- mais il coute -24,4 % de valeur et -30,7 % de profit
      * annuel. Un ratio favorise les tout petits projets bon marche, dont le profit absolu est
@@ -1889,17 +1898,17 @@ Le mode route est donc reconfirme sur l arbre courant.
      * exactement le passage historique : le premier succes regenere le portefeuille et arrete
      * la boucle. Les valeurs superieures ne reutilisent les plans figes qu apres revalidation
      * contre la carte et la tresorerie vivantes (main.nut). La borne 8 est volontairement petite :
-     * mesure du 2026-09-02 sur docs/diag_vivier_3y.json (5 graines x 3 ans, defauts), le sac a dos
+     * mesure du 2026-09-02 sur results/diag_vivier_3y.json (5 graines x 3 ans, defauts), le sac a dos
      * finance 203 projets pour 43 construits, mais la MEDIANE des portefeuilles n'en finance qu'UN
      * et le maximum observe est 14.
      *
-     * MESURE, ET REGLAGE ECARTE (2026-09-02, docs/bench_portfolio_max_batch_3y.json, 20 graines
+     * MESURE, ET REGLAGE ECARTE (2026-09-02, results/bench_portfolio_max_batch_3y.json, 20 graines
      * x 3 ans, apparie) : batch 4 contre 1 donne company_value -3,8 % (t = -1,77), profit_year
      * -4,8 %, n_stations -7,9 % (t = -2,04) et n_vehicles -9,5 % (t = -2,94). Test des signes :
      * 11 graines sur 20 sont des NULS EXACTS -- le batch ne se declenche jamais chez elles -- et
      * sur les 9 restantes le batch perd 6 fois contre 3 (p = 0,51 ; p = 0,11 sur le volume).
      *
-     * POURQUOI C'EST NUL, verifie aux panneaux (docs/diag_batch8_5seeds.json) : un passage REUSSI
+     * POURQUOI C'EST NUL, verifie aux panneaux (results/diag_batch8_5seeds.json) : un passage REUSSI
      * regenere lui-meme le portefeuille. Batir deux projets dans le meme passage ne fait donc pas
      * un chantier de plus, il FUSIONNE deux cycles en un -- le nombre de tentatives baisse au lieu
      * de monter (0/5 graines en hausse). Et meme a 8, le batch ne depasse jamais DEUX : la

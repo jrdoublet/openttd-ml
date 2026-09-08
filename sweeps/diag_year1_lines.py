@@ -193,7 +193,7 @@ def keep(row):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--out", type=Path, default=ROOT / "docs" / "diag_year1_lines.json")
+    parser.add_argument("--out", type=Path, default=ROOT / "results" / "diag_year1_lines.json")
     args = parser.parse_args()
 
     cfg = make_cfg(1970)

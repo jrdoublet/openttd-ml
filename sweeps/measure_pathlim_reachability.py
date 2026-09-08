@@ -17,7 +17,7 @@ CHECKPOINTS = ROOT / "data" / "phase2_hurdle_v3_checkpoints"
 SCRATCH_ROOT = Path("/tmp/openttd-ml-pathlim-300k-20260827")
 # This is a generated diagnostic artifact, kept outside all protected data/docs paths.
 # Keeping it in /work means Docker's --rm cannot discard completed measurements.
-RESULT = ROOT / "docs" / "phase3_pathlim_reachability.json"
+RESULT = ROOT / "results" / "phase3_pathlim_reachability.json"
 
 CFG = """[difficulty]
 number_towns = 3

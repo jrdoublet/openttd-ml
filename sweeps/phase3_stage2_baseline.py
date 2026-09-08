@@ -28,7 +28,7 @@ from sklearn.preprocessing import StandardScaler
 
 ROOT = Path(__file__).resolve().parents[1]
 CSV_PATH = ROOT / "data" / "phase2_hurdle_v2.csv"
-OUTPUT_PATH = ROOT / "docs" / "phase3_stage2_baseline.json"
+OUTPUT_PATH = ROOT / "results" / "phase3_stage2_baseline.json"
 
 TARGET_COLUMN = "profit_ligne"
 GROUP_COLUMN = "seed"

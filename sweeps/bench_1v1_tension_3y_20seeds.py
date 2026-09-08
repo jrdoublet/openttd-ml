@@ -43,7 +43,7 @@ def main():
 
     seeds = tuple(args.seeds) if args.seeds else CANONICAL_SEEDS
     out = args.out if args.out is not None else (
-        ROOT / "docs" / f"bench_1v1_{args.years}y_tension_{len(seeds)}seeds.json"
+        ROOT / "results" / f"bench_1v1_{args.years}y_tension_{len(seeds)}seeds.json"
     )
 
     bench_v2.CHECKPOINT_PATH = out.with_suffix(".jsonl")

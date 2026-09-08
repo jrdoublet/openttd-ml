@@ -204,7 +204,7 @@ def main():
     parser.add_argument("--max-workers", type=int, default=3)
     args = parser.parse_args()
     out = args.out if args.out is not None else (
-        ROOT / "docs" / f"diag_c35_4_weak_{args.years}y.json"
+        ROOT / "results" / f"diag_c35_4_weak_{args.years}y.json"
     )
     bench_v2.CHECKPOINT_PATH = out.with_suffix(".jsonl")
     if bench_v2.CHECKPOINT_PATH.exists():

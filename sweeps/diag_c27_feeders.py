@@ -100,7 +100,7 @@ def main():
     parser.add_argument("--years", type=int, default=DEFAULT_YEARS)
     parser.add_argument("--seeds", nargs="+", type=int, default=list(DEFAULT_SEEDS))
     parser.add_argument("--workers", type=int, default=3)
-    parser.add_argument("--out", type=Path, default=ROOT / "docs" / "diag_c27_feeders.json")
+    parser.add_argument("--out", type=Path, default=ROOT / "results" / "diag_c27_feeders.json")
     args = parser.parse_args()
 
     enable_savegame_cleanup()

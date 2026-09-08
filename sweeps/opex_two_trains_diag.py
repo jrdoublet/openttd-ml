@@ -27,7 +27,7 @@ from pathlib import Path
 from openttdlab import bananas_ai_library, local_folder, run_experiments
 
 ROOT = Path("/work")
-RESULT = ROOT / "docs" / "opex_two_trains_diag.json"
+RESULT = ROOT / "results" / "opex_two_trains_diag.json"
 
 OPENTTD_VERSION, OPENGFX_VERSION = "15.3", "7.1"
 # Plusieurs graines : une seule ne tranche rien (docs/taches.md, banc monograine insuffisant).

@@ -47,7 +47,7 @@ def main():
     parser.add_argument("--seeds", nargs="+", type=int, default=list(SEEDS))
     parser.add_argument("--max-workers", type=int, default=3)
     parser.add_argument("--out", type=Path,
-                        default=Path("docs/bench_pstar_10y_20seeds.json"))
+                        default=Path("results/bench_pstar_10y_20seeds.json"))
     args = parser.parse_args()
     control_ai = args.control_dir / "ai" / "OpexAI"
     treatment_ai = args.treatment_dir / "ai" / "OpexAI"

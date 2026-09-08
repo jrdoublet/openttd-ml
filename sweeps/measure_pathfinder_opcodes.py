@@ -41,7 +41,7 @@ AI_LIBRARY = "ai-library/5046524c"
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_AI = ROOT / "ai" / "TrainLineAI"
 DEBUG_HARNESS = ROOT / "sweeps" / "debug_ai.py"
-OUTPUT = ROOT / "docs" / "phase3_pathfinder_opcodes.json"
+OUTPUT = ROOT / "results" / "phase3_pathfinder_opcodes.json"
 RAW_LOG_DIR = ROOT / "sweeps" / "pathfinder_opcode_measurement_logs_20260827"
 
 OPS = re.compile(r"PFOPS\|(\d+)\|(\d+)\|(\d+)\|(\d+)\|(\d+)")

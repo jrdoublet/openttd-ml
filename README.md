@@ -34,7 +34,7 @@ contient des moteurs plus rapides, plus chers et plus nombreux. `engine_rank` ne
 les mêmes locomotives et les coûts de construction ne sont pas directement comparables. Les JSON
 antérieurs en 1950/densité 2 restent des artefacts historiques; les mesures 1970/densité 3 forment
 une campagne distincte et ne doivent pas être mélangées avec elles. Sonde 1950-2000
-(`docs/catalogue_churn_1950_2000.json`) : l'électrique est là dès **1967**, INTERNATIONAL en
+(`results/catalogue_churn_1950_2000.json`) : l'électrique est là dès **1967**, INTERNATIONAL en
 **1990**, monorail en **2000**. Une campagne de 20 ans depuis 1970 a déjà l'électrique et ne
 voit pas INTERNATIONAL.
 
@@ -132,7 +132,7 @@ parties_par_jour_vps = 24 * 3600 / 12.8 ≈ 6 750 parties/jour
 ### Laptop / sharding — non applicable
 
 La section 2 de la spec ignore l'installation portable pour cette phase. Sans second point de
-mesure, `docs/phase0_laptop.json`, le calcul de `ratio_sharding` et le test de déterminisme
+mesure, `results/phase0_laptop.json`, le calcul de `ratio_sharding` et le test de déterminisme
 inter-machines (section 5) ne s'appliquent pas — VPS seul pour l'instant. À reprendre si une
 seconde machine est ajoutée au projet.
 
@@ -190,7 +190,7 @@ l'expérience. Les deux trajectoires `money` sont identiques jusqu'au premier ac
 (1950-04-01, 78794 vs 44265 — la version à 8 bus dépense nettement plus en achat initial, cohérent),
 puis divergent tout le reste de la partie : **83911 vs 69076 en fin de run**, sur une carte et une
 graine strictement identiques. Le paramètre atteint donc bien l'IA et change effectivement le
-résultat. Détail complet dans `docs/phase0_parameterised_ai_check.json`.
+résultat. Détail complet dans `results/phase0_parameterised_ai_check.json`.
 
 ## TrainLineAI (Phase 2 — préparatoire)
 
@@ -239,14 +239,14 @@ silencieusement. A servi à trouver et corriger plusieurs bugs (voir `docs/metho
 `profit_this_year`/`profit_last_year` (uniquement sur le véhicule de tête de chaque train — les
 wagons ont ces champs à 0), avant d'investir dans une cible de profit ligne-level construite en
 sommant ces champs par ligne (`old_economy` est company-level, non exploitable tel quel). Dump
-filtré dans `docs/phase2_vehs_explore.json`. Détail, y compris la nuance profit d'exploitation
+filtré dans `results/phase2_vehs_explore.json`. Détail, y compris la nuance profit d'exploitation
 (hors voie/gares/infrastructure) vs coût de construction, dans `docs/methode.md`.
 
 `sweeps/phase2_trainline_run.py` : campagne de bout en bout (12 tentatives, 4 graines × 3
 combinaisons de rangs, **re-baselinée sur 6 ans** après la correction de trois bugs réels — voir
 plus bas), vérifie que les trois panneaux se lisent correctement via le chunk `SIGN` sur un vrai
 batch (pas un cas isolé), et calcule `profit_ligne` pour chaque ligne construite (voir ci-dessous).
-Résultats bruts dans `docs/phase2_trainline_run.json`, visualisation (jauges + nuage distance/coût
+Résultats bruts dans `results/phase2_trainline_run.json`, visualisation (jauges + nuage distance/coût
 + barres de profit par ligne + table complète) dans `docs/phase2_trainline_run.html`. À 6 ans, les
 12 tentatives sont toutes résolues (0 en attente) : 6 lignes construites, 6 échecs (4
 `no_path_found`, 2 `station_build_failed`).
@@ -305,7 +305,7 @@ le même `AIAccounting`, avant/après l'achat des trains — détail dans `docs/
 `AICompany.GetBankBalance` avant/après essayé pour le coût de construction et rejeté : pollué par
 les intérêts du prêt maximal emprunté au premier tick (`GetBankBalance` dérive de 2100 sur ~27
 jours sans aucune construction, `AIAccounting.GetCosts()` rapporte correctement 0 sur la même
-fenêtre) — détail dans `docs/methode.md`. Résultats dans `docs/phase2_profit_ligne.json`.
+fenêtre) — détail dans `docs/methode.md`. Résultats dans `results/phase2_profit_ligne.json`.
 
 Détails complets, bugs trouvés/corrigés, et ce qui a été testé et rejeté (`Save()`, sortie
 console) : `docs/methode.md`, section **IA (Phase 2 — préparatoire)**.
@@ -410,7 +410,7 @@ campagne, au même titre que 1950 → 1970. Chaque ligne signale désormais dans
 a respecté la barrière (`M`) ou l'a dépassée (`O`) — une ligne `O` n'est pas comparable aux
 autres.
 
-La baseline fraîche `docs/phase2_baseline_v3.json` est la première campagne à cible
+La baseline fraîche `results/phase2_baseline_v3.json` est la première campagne à cible
 temporellement reproductible sur tout son domaine échantillonné : 100 lignes isolées, 75 construites / 25 échecs (19 `PATHLIM`, 6
 `TRKFAIL`). Les buckets 0–24, 25–49, 50–74 et 75–120 réussissent à 88 %, 88 %, 68 % et 56 %.
 Les 75 lignes bâties sont normalisées (`M`; 0 `O`) et forment la nouvelle cible comparable.
@@ -456,7 +456,7 @@ mémoire Netdata sur le conteneur.
 - [x] Conteneur VPS avec limites CPU/mémoire, volume de cache persistant
 - [ ] Alerte Netdata — **pas encore faite**, Netdata non déployé sur ce VPS
 - [ ] WSL2 plafonné sur le portable — non applicable (portable ignoré en phase 0)
-- [x] `docs/phase0_vps.json` produit — `docs/phase0_laptop.json` non applicable
+- [x] `results/phase0_vps.json` produit — `results/phase0_laptop.json` non applicable
 - [x] `max_workers` optimal déterminé sur le VPS (3) — non applicable sur portable
 - [ ] Déterminisme inter-machines — non applicable, une seule machine pour l'instant
 - [x] MD5 de trAIns noté et épinglé (`c4c069dc797674e545411b59867ad0c2`)

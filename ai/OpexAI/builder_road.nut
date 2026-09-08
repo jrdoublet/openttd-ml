@@ -245,7 +245,7 @@ function OpexRoadIsForbidden(tile, stopA, stopB)
   return tile == stopA.tile || tile == stopB.tile;
 }
 
-/* Bug mesure le 2026-08-28 (docs/opex_bus_diag_*.json, signs RT/RL/RQ) : sur la paire 27<->33,
+/* Bug mesure le 2026-08-28 (results/opex_bus_diag_*.json, signs RT/RL/RQ) : sur la paire 27<->33,
  * siteA.front == (54,27), siteA.tile == (55,27), et le trace horizontal siteA.front -> corner
  * (56,27) marche PRECISEMENT sur siteA.tile au passage. AITestMode/BuildRoad valident cette case
  * comme route plate ordinaire (rien n'y est encore construit), mais BuildRoadStation la remplace
@@ -296,7 +296,7 @@ function OpexRoadFindDepot(trace, stopA, stopB, driveThrough = false)
     if (!(edge.from in onTrace)) onTrace.rawset(edge.from, true);
     if (!(edge.to in onTrace)) onTrace.rawset(edge.to, true);
   }
-  /* Experience du 2026-08-28 (cf. docs/opex_bus_diag_*.json) : chercher a partir de la fin du trace
+  /* Experience du 2026-08-28 (cf. results/opex_bus_diag_*.json) : chercher a partir de la fin du trace
    * (cote siteB) plutot que du debut echoue purement et simplement (DEPOT, aucun site
    * constructible sur toute cette moitie) -- le terrain degage n'existe qu'aux abords immediats
    * des arrets, pas au milieu du trace. Le depot doit donc rester cherche depuis le debut. */
@@ -310,7 +310,7 @@ function OpexRoadFindDepot(trace, stopA, stopB, driveThrough = false)
        * trace commence toujours la), donc sans ce filet le depot s'y accroche systematiquement --
        * meme facade que l'arret, puis a 1 seule tuile d'elle une fois ce cas exclu. Le bus ne
        * chargeait toujours rien apres 4 ans dans les deux configurations (rating -1, RW=0
-       * constant, ordre bloque sur stopA, campagne graine 42 -- docs/opex_bus_diag_*.json). Le
+       * constant, ordre bloque sur stopA, campagne graine 42 -- results/opex_bus_diag_*.json). Le
        * trace a 24 tuiles de facades candidates ; ROAD_DEPOT_MIN_STOP_DISTANCE ecarte tout le
        * voisinage immediat des deux arrets, pas seulement leur facade exacte. */
       /* DT : l'arret EST sur le trace, stop.front aussi. Mesurer au corps (tile) sinon

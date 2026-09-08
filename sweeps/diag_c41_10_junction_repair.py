@@ -1,7 +1,7 @@
 """C41.10 : verifie que la reparation transactionnelle de raccord agit sur le seul cas connu
 (graine 7, ligne 18, vehicule 115, docs/taches.md C41.9) et n'agit PAS sur les 24 autres pertes
 sans coupure locale. Memes graines que le diagnostic C41.9
-(docs/diag_c41_rail_lost_connectivity_6y_5seeds.json) pour reproduire le meme cas :
+(results/diag_c41_rail_lost_connectivity_6y_5seeds.json) pour reproduire le meme cas :
 [42, 100, 7, 999, 12345], 6 ans.
 
 Arm : OpexAI[c41_rail_lost_connectivity_probe=1,c41_rail_lost_junction_repair=1] -- la sonde
@@ -65,7 +65,7 @@ def main():
     parser.add_argument("--seeds", nargs="+", type=int, default=[42, 100, 7, 999, 12345])
     parser.add_argument("--years", type=int, default=6)
     parser.add_argument("--out", type=Path,
-                        default=Path("docs/diag_c41_10_junction_repair_6y_5seeds.json"))
+                        default=Path("results/diag_c41_10_junction_repair_6y_5seeds.json"))
     parser.add_argument("--checkpoint", type=Path,
                         help="recompose le rapport depuis un checkpoint JSONL deja termine")
     args = parser.parse_args()

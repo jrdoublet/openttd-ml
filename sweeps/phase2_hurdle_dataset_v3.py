@@ -57,7 +57,7 @@ DAYS, INFRA_LIFE_YEARS = 3650, 30
 # engine_rank <=6 (au-dela, ENGOOR sur certaines graines -- voir info.nut).
 SEEDS = tuple(range(1001, 1101))
 RANKS = (0, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180)
-RAW, TABLE = "docs/phase2_hurdle_campaign_v3.json", "data/phase2_hurdle_v3.csv"
+RAW, TABLE = "results/phase2_hurdle_campaign_v3.json", "data/phase2_hurdle_v3.csv"
 CHECKPOINT_DIR = "data/phase2_hurdle_v3_checkpoints"
 CONFIGURATION_FAILURES = frozenset(("PAIROOR", "ENGOOR"))
 

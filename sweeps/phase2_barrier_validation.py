@@ -38,7 +38,7 @@ HISTORICAL_AMPLITUDES = {"seed42_rank0": 1219072, "seed1_rank0": 1583360, "seed7
 SOURCE_AI_DIR = "ai/TrainLineAI"
 SCRATCH_AI_DIR = "/tmp/openttd-ml-barrier-validation"
 SCRATCH_AI_NAME = "TrainLineAIBarrierValidation"
-OUTPUT_JSON = "docs/phase2_barrier_validation.json"
+OUTPUT_JSON = "results/phase2_barrier_validation.json"
 STATUS_RE = re.compile(r"^TRLN\|(\d+)\|(\w+)\|(\w+)\|(\d+)/(\d+)$")
 DETAIL_RE = re.compile(r"^TRLN\|(\d+)\|T(\d+)-(\d+)\|D(\d+)\|C(-?\d+)$")
 VEHICLE_COST_RE = re.compile(r"^TRLN\|(\d+)\|V(-?\d+)$")
@@ -183,7 +183,7 @@ if __name__ == "__main__":
     payload = {"config": {"number_towns": 3, "starting_year": 1970, "town_growth_rate": 2,
                            "industry_density": 4, "inflation": False, "map": "256x256"},
                "delays": list(DELAYS), "design": "Current production AI copied to /tmp; scratch-only delay executes before all production Start work, while production stagger and barrier remain active.",
-               "historical_baseline_source": "docs/phase2_tick_shift_sweep_v2.json",
+               "historical_baseline_source": "results/phase2_tick_shift_sweep_v2.json",
                "sweeps": sweeps,
                "verdict": {"all_barrier_normalized": all_normalized, "all_profit_amplitudes_zero": all_zero,
                            "conclusion": "Barrier absorbed every tested delay; the sweep no longer changes profit_ligne." if all_normalized and all_zero else "Barrier did not fully normalize this sweep; inspect per-route flags, ticks and amplitudes."}}

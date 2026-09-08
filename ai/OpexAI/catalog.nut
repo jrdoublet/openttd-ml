@@ -1,7 +1,7 @@
 /* Etage 0 : le catalogue.
  *
- * Mesure 2026-08-28 (docs/catalogue_churn.json, 1970-1989) : un rafraichissement complet
- * coute ~21 500 opcodes. Sonde 1950-2000 (docs/catalogue_churn_1950_2000.json) : electrique
+ * Mesure 2026-08-28 (results/catalogue_churn.json, 1970-1989) : un rafraichissement complet
+ * coute ~21 500 opcodes. Sonde 1950-2000 (results/catalogue_churn_1950_2000.json) : electrique
  * 1967, INTERNATIONAL 1990, monorail 2000, maglev pas encore. Une campagne 1970-1989 a deja
  * l'electrique ; elle ne voit pas INTERNATIONAL. On prend le DERNIER type de rail disponible
  * (ci-dessous) : en 1970 c'est ELECTRIC, en 2000 ce serait MONO -- hors de nos 20 ans.
@@ -131,7 +131,7 @@ function OpexRailAcceleration(loco, wagon, wagons, speed)
  *
  * Les virages, pentes, ponts et temps de chargement restent INCONNUS avant A*. Le source impose
  * 61 km/h sur un angle droit et 111 a courbure 2 ; aucun pourcentage de virages n'est invente.
- * Mesure 2026-08-30 (docs/opex_speed_yield.json, n=832) : mediane reel/catalogue 0,96,
+ * Mesure 2026-08-30 (results/opex_speed_yield.json, n=832) : mediane reel/catalogue 0,96,
  * reel/traction 1,18. Le 70 % etait trop pessimiste. Pas de retuning. */
 function OpexRailEffectiveSpeed(loco, wagon, wagons, distance)
 {
@@ -240,7 +240,7 @@ class OpexCatalog {
  * Necessaire a l'etage 1 : sans la vitesse du convoi on ne sait pas estimer le temps de trajet,
  * donc pas les penalites de retard, qui sont la moitie du revenu (docs/mecanique_jeu.md §1-2).
  * Le parc evolue reellement : sur 20 ans le nombre de moteurs routiers passe de 12 a 22 et les
- * avions de 13 a 18 (docs/catalogue_churn.json) -- d'ou le rafraichissement annuel. */
+ * avions de 13 a 18 (results/catalogue_churn.json) -- d'ou le rafraichissement annuel. */
 function OpexCatalog::_refreshRail()
 {
   this.loco = null;
@@ -259,7 +259,7 @@ function OpexCatalog::_refreshRail()
 
   /* Dernier type disponible. 1970 = ELECTRIC (intro 1967). 2000 = MONO : ne pas
    * allonger une campagne jusque-la sans figer le type. Maglev pas encore en 2000
-   * (docs/catalogue_churn_1950_2000.json). */
+   * (results/catalogue_churn_1950_2000.json). */
   local types = AIRailTypeList();
   types.Valuate(AIRail.IsRailTypeAvailable);
   types.KeepValue(1);
@@ -617,7 +617,7 @@ function OpexCatalog::_refreshRoad()
   /* Deux passes plutot qu'une boucle imbriquee sur AIEngineList : les predicats chers
    * (IsBuildable, CanRunOnRoad, HasPowerOnRoad, IsArticulated) sont evalues UNE fois par moteur,
    * et seul CanRefitCargo -- le seul qui depende du cargo -- est repaye pour chaque paire. Sur le
-   * parc mesure (12 a 22 moteurs routiers en 20 ans, docs/catalogue_churn.json) et une douzaine de
+   * parc mesure (12 a 22 moteurs routiers en 20 ans, results/catalogue_churn.json) et une douzaine de
    * cargos, cela reste tres en dessous du budget annuel du catalogue. */
   local usable = [];
   local engines = AIEngineList(AIVehicle.VT_ROAD);

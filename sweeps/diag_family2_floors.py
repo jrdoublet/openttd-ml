@@ -72,7 +72,7 @@ def main():
     parser.add_argument("--seeds", nargs="+", type=int, default=[1, 42, 73, 100, 2026])
     parser.add_argument("--years", type=int, default=6)
     parser.add_argument("--out", type=Path,
-                        default=Path("docs/diag_family2_floors_6y_5seeds.json"))
+                        default=Path("results/diag_family2_floors_6y_5seeds.json"))
     args = parser.parse_args()
     args.out.parent.mkdir(parents=True, exist_ok=True)
     bench_v2.CHECKPOINT_PATH = args.out.with_suffix(".jsonl")

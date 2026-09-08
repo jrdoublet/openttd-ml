@@ -18,7 +18,7 @@ Prérequis : phase 2 terminée (✅), campagne de graines lancée (✅), jeu de 
 Le verrou est levé. Ce qui suit documente la réponse obtenue, pas un travail à faire.
 
 **Les champs `VEHS` existent bien**, vérifiés sur un savegame réel (`sweeps/phase2_vehs_explore.py`,
-dump filtré dans `docs/phase2_vehs_explore.json`) : `VEHS.<id>.train[0].common[0]` expose
+dump filtré dans `results/phase2_vehs_explore.json`) : `VEHS.<id>.train[0].common[0]` expose
 `profit_this_year` et `profit_last_year`. Nuance qui n'était pas anticipée : **seul le véhicule de
 tête** du convoi porte ces champs, les wagons les ont à 0 — il faut donc filtrer sur
 `unitnumber != 0`, sinon on somme des zéros.
@@ -117,7 +117,7 @@ million à zéro.
   suffit, ce qui divise le coût de campagne d'autant.
 - **Deux ruptures de campagne à ne jamais mélanger** : 1950/densité 2 → 1970/densité 3, puis
   pré-barrière → post-barrière (les profits changent en valeur puisque la construction tombe au
-  tick 11000 et non vers 950). Les `docs/phase2_*.json` antérieurs sont des artefacts historiques.
+  tick 11000 et non vers 950). Les `results/phase2_*.json` antérieurs sont des artefacts historiques.
 - **Réserve honnête** : normaliser *quand* la construction démarre rend les runs comparables entre
   eux ; ça ne rend pas la simulation insensible au timing absolu. Le mécanisme exact de la
   sensibilité chaotique reste non identifié.
@@ -345,7 +345,7 @@ imbattable et le classifieur inutile.
 
 ### Résultat de la ligne de base étage 1 — **[FAIT le 27/08]**
 
-`sweeps/phase3_stage1_baseline.py`, résultats complets dans `docs/phase3_stage1_baseline.json`.
+`sweeps/phase3_stage1_baseline.py`, résultats complets dans `results/phase3_stage1_baseline.json`.
 1997 lignes (les 3 `PAIROOR` exclues), `GroupKFold(5)` par graine, 12 features pré-construction.
 
 | Modèle | AUC ROC (moy. ± é.-t. sur 5 plis) |

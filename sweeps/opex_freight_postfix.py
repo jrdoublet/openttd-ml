@@ -1,10 +1,10 @@
 """Verification post-correctif (2026-08-28) : meme protocole exact que
-docs/opex_predict_vs_actual_postfix_freight.json (seed 42, 10 ans, meme config gelee), mais avec
+results/opex_predict_vs_actual_postfix_freight.json (seed 42, 10 ans, meme config gelee), mais avec
 le correctif applique dans builder_rail.nut::OpexBuildTrains -- le puits d'une ligne fret ne pose
 plus OF_FULL_LOAD_ANY (seule la source, qui produit reellement le cargo, continue de le faire).
 
 Avant le correctif, les 3 lignes fret de cette graine s'effondraient (note -1, revenu 0) des la
-2e annee suivant la construction -- diagnostic dans docs/opex_freight_diag.json (train bloque en
+2e annee suivant la construction -- diagnostic dans results/opex_freight_diag.json (train bloque en
 VS_AT_STATION a l'ordre du puits). Ce script confirme si la note et le revenu restent reels plus
 longtemps apres le correctif.
 """
@@ -15,7 +15,7 @@ from pathlib import Path
 from openttdlab import bananas_ai_library, local_folder, run_experiments
 
 ROOT = Path("/work")
-RESULT = ROOT / "docs" / "opex_predict_vs_actual_postfix_freight_v2.json"
+RESULT = ROOT / "results" / "opex_predict_vs_actual_postfix_freight_v2.json"
 
 OPENTTD_VERSION, OPENGFX_VERSION = "15.3", "7.1"
 SEED = 42

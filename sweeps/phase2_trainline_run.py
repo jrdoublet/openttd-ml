@@ -218,6 +218,6 @@ if __name__ == "__main__":
             f"profit_ligne={rec.get('profit_ligne','-')}"
         )
 
-    with open("docs/phase2_trainline_run.json", "w") as f:
+    with open("results/phase2_trainline_run.json", "w") as f:
         json.dump(records, f, indent=2)
-    print("\nEcrit dans docs/phase2_trainline_run.json")
+    print("\nEcrit dans results/phase2_trainline_run.json")

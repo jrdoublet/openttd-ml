@@ -509,7 +509,7 @@ function OpexProjectRememberAll(winners, project, stats)
 function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
 {
   /* 🔴 LE PLANCHER DE PROFIT ABSOLU, ET POURQUOI IL EXISTE (banc du 2026-09-02,
-   * docs/bench_isolation_3y_20seeds.json). Le tri au seul RATIO profit/capital a ete mesure isole :
+   * results/bench_isolation_3y_20seeds.json). Le tri au seul RATIO profit/capital a ete mesure isole :
    * il fait bien ce qu'on lui demandait sur le volume -- 21,4 -> 27,2 gares, +27 %, le SEUL des
    * quatre reglages a le bouger -- mais il coute -24,4 % de valeur et -30,7 % de profit annuel.
    *
@@ -1345,8 +1345,11 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
 {
   local rail = OpexBuildCandidates(catalog, budget, lines, abandonedPairs);
   local railPrequote = OpexPrequoteRailCandidates(catalog, budget, rail);
+  /* C41.16 : mesure seulement les etapes de generation route pendant la passe historique. */
+  local roadProfile = C41_ROAD_CANDIDATE_PROFILE
+      ? { paxOps = 0, freightOps = 0, feederOps = 0, topKOps = 0 } : null;
   local road = ROAD_BUILD_ENABLED
-      ? OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs) : OpexProjectEmptyRoad();
+      ? OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs, roadProfile) : OpexProjectEmptyRoad();
 
   local capitalBudget = OpexAvailableCapital();
 

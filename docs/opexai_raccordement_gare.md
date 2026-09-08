@@ -1,14 +1,14 @@
 # OpexAI — raccordement à une gare existante (tranche v1)
 
 **État au 2026-08-29 (nuit).** Le code est dans `master`, commandé par `station_join`, **défaut 0**.
-Le banc vivier (`docs/bench_v2_vivier.json`) : +37,2 % de véhicules (t = 5,94), valeur nulle. Rejeu
-après traction (`docs/bench_join_after_traction.json`, paire
-`docs/bench_join_after_traction_paired.json`) : véhicules **+23,6 %, t = 3,50, 17/20** ; gares
+Le banc vivier (`results/bench_v2_vivier.json`) : +37,2 % de véhicules (t = 5,94), valeur nulle. Rejeu
+après traction (`results/bench_join_after_traction.json`, paire
+`results/bench_join_after_traction_paired.json`) : véhicules **+23,6 %, t = 3,50, 17/20** ; gares
 **−11,9 %, t = −3,61** (réemploi) ; `company_value` +5,9 %, t = 0,96, sous le plancher. **La
 construction survit, la valeur non.** `origin_sitable=0` sur les deux bras.
 
 Le partage de bassin (`basin_share`) est mesuré et **ne paie pas**
-(`docs/bench_basin_share_paired.json`) : valeur sous le plancher, véhicules nuls, gares
+(`results/bench_basin_share_paired.json`) : valeur sous le plancher, véhicules nuls, gares
 +12,9 % (t = 3,67) — les jointures sont déclassées, pas allégées. Défaut 0. AAAHogEx joint
 autrement (groupe + spread). Idées : `docs/aaahogex_rail_join.md`. Le spread n'est pas la
 suite tant que la v1 ne paie pas.
@@ -38,7 +38,7 @@ Une ligne raccordée conserve ses deux tuiles de quai propres, mais l'une retour
 
 Deux contrôles de la même passe s'appliquent aussi quand `station_join=0`. Après chaque `BuildRail`, `AIRail.AreTilesConnected` vérifie le raccordement réel : une ligne auparavant déclarée construite peut donc désormais finir en `TRKFAIL`, ce qui est voulu car le succès de l'appel ne garantit pas une voie utilisable. De même, `StartStopVehicle` est reporté après toute la boucle de construction afin qu'un rollback puisse encore vendre une transaction incomplète. Ces deux protections changent le comportement de toutes les lignes, pas seulement des lignes jointes.
 
-**Re-baseline (2026-08-30).** Ils sont dans `docs/bench_road_current.json` (route ON, 3,13 M). L'arbre courant est `docs/bench_double_track.json` (double voie, 4,86 M, +55 % apparié). `docs/bench_v2.json` reste historique. `docs/bench_after_pbs.json` n'est **pas** une référence : PBS y tombe 20/20.
+**Re-baseline (2026-08-30).** Ils sont dans `results/bench_road_current.json` (route ON, 3,13 M). L'arbre courant est `results/bench_double_track.json` (double voie, 4,86 M, +55 % apparié). `results/bench_v2.json` reste historique. `results/bench_after_pbs.json` n'est **pas** une référence : PBS y tombe 20/20.
 
 ## Limites reportées
 
@@ -50,7 +50,7 @@ AAAHogEx joint autrement : un nouveau quai **dans le spread d'un groupe de gare*
 
 `OpexFindStationJoin` dit maintenant *pourquoi* il refuse : panneau `OB|R` (M / K / R / other),
 lu par `sweeps/opex_full_campaign.py`. Cinq graines × 20 ans, `station_join=1`
-(`docs/opex_join_refuse_20y_5seeds.json`) : 196 M, 75 K, **0 R**, 41 other, 705 tentatives,
+(`results/opex_join_refuse_20y_5seeds.json`) : 196 M, 75 K, **0 R**, 41 other, 705 tentatives,
 39 OK, **0 JOINPATH**. Les rôles fret inverses meurent à la génération. JOINPATH est vide.
 Le rendement restant est SITEA/SITEB sur un quai parallèle, pas un A\* invalidé après coup.
 
@@ -58,14 +58,14 @@ Le rendement restant est SITEA/SITEB sur un quai parallèle, pas un A\* invalid�
 
 `OpexJoinPlatformPlans` ne colle plus au seul voisin : offsets 1 à 4, même orientation, même
 longueur. Ce n'est pas le scan d'enveloppe. 5 graines × 20 ans
-(`docs/opex_join_parallel_20y_5seeds.json` contre `docs/opex_join_refuse_20y_5seeds.json`) :
+(`results/opex_join_parallel_20y_5seeds.json` contre `results/opex_join_refuse_20y_5seeds.json`) :
 39 → 71 jointures OK (5,5 % → 15,7 %), SITE 692 → 393, JOINPATH toujours 0. Il reste 361
 échecs au quai joint avec `nClear=0` — autre orientation / enveloppe, c'est-à-dire le spread,
 explicitement pas la suite. 5/5 plus de véhicules, 4/5 moins de valeur. Défaut `station_join` 0.
 
 ## Population jointe (étape 0) et porte H1 (2026-08-30)
 
-`docs/opex_join_pop.json` (même campagne parallèle, pas un nouveau run) :
+`results/opex_join_pop.json` (même campagne parallèle, pas un nouveau run) :
 
 | | n | dist. médiane | trains | réel/prédit (an 2) |
 |---|---:|---:|---:|---:|
@@ -75,7 +75,7 @@ explicitement pas la suite. 5/5 plus de véhicules, 4/5 moins de valeur. Défaut
 | jointes ≥ 100 | 7 | 109 | 4 | **0,07** |
 
 Encore du long. H1 : `join_max_distance`, défaut **0**. À 50, rejet tooClose **sans A\***
-(panneau `OB|R` champ D). 5 graines (`docs/opex_join_cap50_20y_5seeds.json`) :
+(panneau `OB|R` champ D). 5 graines (`results/opex_join_cap50_20y_5seeds.json`) :
 jointures OK 71 → **29**, dist. 63 → **37**, D = 1035. Contre le parallèle : moins
 de véhicules, plus de valeur (on arrête le vivier). Contre `join=0` (campagne
 villes) : médiane valeur **plate**, 2 graines à **−30 %**. ⚠️ **Pas de banc n=20.**
@@ -92,8 +92,8 @@ L'objet join est attaché à la génération : `_tryBuild` ne repasse pas par
 (mesure H2 ci-dessous encore sur l'ancien placement).
 
 5 graines × 20 ans, `join_place=1` seul
-(`docs/opex_join_place_20y_5seeds.json`) contre `join=0`
-(`docs/opex_town_growth_20y_5seeds.json`) :
+(`results/opex_join_place_20y_5seeds.json`) contre `join=0`
+(`results/opex_town_growth_20y_5seeds.json`) :
 
 | | n | dist. médiane | trains | réel/prédit (an 2) |
 |---|---:|---:|---:|---:|
@@ -127,7 +127,7 @@ une voie simple rollback (`JF`, `SIGFAIL`) avant les trains. `JOINPATH`
 inchangé.
 
 Baseline `station_join=1`, `join_max_distance=50`
-(`docs/opex_station_junction_baseline_20y_5seeds.json`) : 4 jointes, 5 PBS /
-11 refus. Après (`docs/opex_junction_signal_fix_20y_5seeds.json`) : 3 jointes,
+(`results/opex_station_junction_baseline_20y_5seeds.json`) : 4 jointes, 5 PBS /
+11 refus. Après (`results/opex_junction_signal_fix_20y_5seeds.json`) : 3 jointes,
 **9 / 0**, 3 skip, 0 `JF`, 0 `SIGFAIL`, 0 `RX`, 0 `XC`. Ce n'est pas une
 jonction de voie. ⚠️ **Défaut `station_join` 0.** Pas de spread.

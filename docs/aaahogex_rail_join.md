@@ -5,7 +5,7 @@ méthode seulement** : rien de ce fichier n'est à recopier. OpexAI a déjà une
 (`docs/opexai_raccordement_gare.md`) qui n'emprunte presque rien de ce modèle.
 
 **Quand s'en servir.** La v1 OpexAI a été retestée après traction (construction +23,6 % de
-véhicules, valeur nulle) **et** après partage de bassin (`docs/bench_basin_share_paired.json`) :
+véhicules, valeur nulle) **et** après partage de bassin (`results/bench_basin_share_paired.json`) :
 valeur toujours sous le plancher, véhicules nuls, gares +12,9 %. Le spread convertirait des
 `NOPLAN` en jointures sur ce classement-là. Ne pas l'allumer tant que la v1 ne paie pas.
 
@@ -32,7 +32,7 @@ Conséquences :
 - Un groupe **virtuel** (aucun quai encore posé) n'est pas une jointure.
 
 OpexAI a maintenant ce compte, derrière `basin_share` (défaut 0) : production de l'extrémité
-jointe divisée par (n+1). **Mesuré, et ça ne paie pas** (`docs/bench_basin_share_paired.json`) :
+jointe divisée par (n+1). **Mesuré, et ça ne paie pas** (`results/bench_basin_share_paired.json`) :
 les jointures sont déclassées, l'IA repose des gares neuves, les véhicules ne baissent pas.
 
 ---

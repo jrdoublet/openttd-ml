@@ -38,7 +38,7 @@ NUM_TRAINS, WAGONS_PER_TRAIN, ENGINE_RANK = 2, 2, 1
 SOURCE_AI_DIR = "ai/TrainLineAI"
 SCRATCH_AI_DIR = "/tmp/openttd-ml-preflight-distribution"
 SCRATCH_AI_NAME = "TrainLineAIPreflightDistribution"
-OUTPUT_JSON = "docs/phase2_preflight_distribution.json"
+OUTPUT_JSON = "results/phase2_preflight_distribution.json"
 STATUS_RE = re.compile(r"^TRLN\|(\d+)\|(\w+)\|(\w+)\|(\d+)/(\d+)$")
 BARRIER_RE = re.compile(r"^TRLN\|(\d+)\|B(\d+)\|([MO])$")
 

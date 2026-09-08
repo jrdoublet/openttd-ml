@@ -1518,7 +1518,7 @@ def result_path_for(args):
     if args.output is not None:
         return args.output if args.output.is_absolute() else ROOT / args.output
     suffix = "_".join(str(seed) for seed in args.seeds)
-    return ROOT / "docs" / f"opex_full_campaign_{args.years}y_{suffix}.json"
+    return ROOT / "results" / f"opex_full_campaign_{args.years}y_{suffix}.json"
 
 
 def main():

@@ -21,7 +21,7 @@ map_y = 8
 """
 SEEDS = (42, 1, 7, 100, 2026)
 RANKS = (0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 90, 100, 110, 120, 150)
-SCRATCH, NAME, OUTPUT = "/tmp/openttd-ml-preflight-distribution-v2", "TrainLineAIPreflightDistributionV2", "docs/phase2_preflight_distribution_v2.json"
+SCRATCH, NAME, OUTPUT = "/tmp/openttd-ml-preflight-distribution-v2", "TrainLineAIPreflightDistributionV2", "results/phase2_preflight_distribution_v2.json"
 STATUS = re.compile(r"^TRLN\|(\d+)\|(\w+)\|(\w+)\|(\d+)/(\d+)$")
 BARRIER = re.compile(r"^TRLN\|(\d+)\|B(\d+)\|([MO])$")
 

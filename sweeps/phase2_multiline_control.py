@@ -39,8 +39,8 @@ from openttdlab import run_experiments, bananas_ai_library, local_folder
 
 INFRA_LIFE_YEARS = 30  # hypothese assumee, documentee dans docs/methode.md (voir phase2_profit_ligne.py)
 
-# Configuration historique volontairement épinglée : docs/phase2_multiline_control.json et
-# docs/phase2_multiline_verify.json ont été produits en 1950/densité 2. La config révisée
+# Configuration historique volontairement épinglée : results/phase2_multiline_control.json et
+# results/phase2_multiline_verify.json ont été produits en 1950/densité 2. La config révisée
 # pour les nouveaux travaux est documentée dans README.md et la note de révision de docs/methode.md.
 OPENTTD_CONFIG = """
 [difficulty]
@@ -60,8 +60,8 @@ DAYS = 365 * 10  # duree de partie Phase 0 -- voir README.md
 SEED = 42
 N_VALUES = (1, 15)      # etape 3 (verification post-correctif) : N=5 saute, les deux extremes
                         # suffisent a confirmer l'effet -- voir docs/methode.md
-OUTPUT_JSON = "docs/phase2_multiline_verify.json"  # etape 1 (controle pre-correctif) ecrivait
-                        # docs/phase2_multiline_control.json avec N_VALUES=(1,5,15) -- change ici
+OUTPUT_JSON = "results/phase2_multiline_verify.json"  # etape 1 (controle pre-correctif) ecrivait
+                        # results/phase2_multiline_control.json avec N_VALUES=(1,5,15) -- change ici
                         # a la main pour la re-verification post-correctif (meme script, cf. plan)
 NUM_TRAINS = 2
 WAGONS_PER_TRAIN = 2

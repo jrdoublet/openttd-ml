@@ -17,7 +17,7 @@ from openttdlab import bananas_ai_library, local_folder, run_experiments
 ROOT = Path("/work")
 SOURCE_AI = ROOT / "ai" / "TrainLineAI-segmented"
 CHECKPOINTS = ROOT / "data" / "phase2_hurdle_v3_checkpoints"
-RESULT = ROOT / "docs" / "phase3_pathlim_segmented.json"
+RESULT = ROOT / "results" / "phase3_pathlim_segmented.json"
 CFG = """[difficulty]
 number_towns = 3
 industry_density = 4

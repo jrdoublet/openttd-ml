@@ -4,8 +4,8 @@ Item 1 bis.1 : le plancher ROAD_MIN_PROFIT_ANNUAL = 1000 coupait, sur n = 1, une
 pax predite a ~1000 et payee 7-11 k. Ce script ne relance pas OpenTTD : il lit les
 campagnes qui ont pose OF/OZ, pour sortir de n = 1 sans recalibrer.
 
-Sources : docs/opex_join_factor_20y_10seeds.json (10 graines, n pax le plus large)
-et docs/opex_road_20y_42.json (premiere campagne route, deux pax dont une morte).
+Sources : results/opex_join_factor_20y_10seeds.json (10 graines, n pax le plus large)
+et results/opex_road_20y_42.json (premiere campagne route, deux pax dont une morte).
 Le fret est le temoin : meme ROAD_SPEED_EFFICIENCY_PCT, pas de TOWN_CATCHMENT.
 """
 import json
@@ -13,11 +13,11 @@ from pathlib import Path
 
 ROOT = Path("/work") if Path("/work").exists() else Path(__file__).resolve().parents[1]
 SOURCES = (
-    ROOT / "docs" / "opex_join_factor_20y_10seeds.json",
-    ROOT / "docs" / "opex_road_20y_42.json",
+    ROOT / "results" / "opex_join_factor_20y_10seeds.json",
+    ROOT / "results" / "opex_road_20y_42.json",
 )
-FLOOR_SOURCE = ROOT / "docs" / "opex_join_parallel_20y_5seeds.json"
-RESULT = ROOT / "docs" / "opex_road_predict_vs_actual.json"
+FLOOR_SOURCE = ROOT / "results" / "opex_join_parallel_20y_5seeds.json"
+RESULT = ROOT / "results" / "opex_road_predict_vs_actual.json"
 
 
 def median(xs):

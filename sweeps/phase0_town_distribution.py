@@ -22,7 +22,7 @@ SEEDS = (1, 2, 3, 4, 5, 6, 7, 42)
 SOURCE_AI_DIR = "ai/TrainLineAI"
 SCRATCH_AI_DIR = "/tmp/openttd-ml-town-population-probe"
 PROBE_AI_NAME = "TownPopulationProbe"
-OUTPUT_JSON = "docs/phase0_town_distribution.json"
+OUTPUT_JSON = "results/phase0_town_distribution.json"
 
 # Confirme par une sonde du openttd.cfg reellement genere puis relu par le binaire 13.4 : 0..4
 # sont conserves, 5 et 6 sont clamped a 4. La valeur 4 est le mode custom et lit

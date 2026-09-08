@@ -80,5 +80,5 @@ if __name__ == "__main__":
         }
         print(workers, report["runs"][workers])
 
-    with open(f"docs/phase0_{MACHINE}.json", "w") as f:
+    with open(f"results/phase0_{MACHINE}.json", "w") as f:
         json.dump(report, f, indent=2)

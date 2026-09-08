@@ -6,9 +6,9 @@ carte 256x256, depart 1970, inflation desactivee.
 
 Cette campagne etablit des mecanismes, pas un gain de performance. Les panneaux ajoutes modifient
 les ticks et peuvent donc modifier le chemin deterministe d'une graine ; ses valeurs finales ne
-sont pas comparables chiffre a chiffre au banc. `docs/bench_v2.json` n'est plus
+sont pas comparables chiffre a chiffre au banc. `results/bench_v2.json` n'est plus
 la reference de l'arbre ; l'arbre courant est
-`docs/bench_double_track.json`. Aucun reglage de production n'a ete modifie.
+`results/bench_double_track.json`. Aucun reglage de production n'a ete modifie.
 Les totaux 1989 ci-dessous (dont 45,2 % `profit<=0`) sont un mecanisme d'alors ;
 le 45,2 % est marque perime dans `docs/taches.md` item 7.
 
@@ -128,7 +128,7 @@ revenu brut. A vingt ans, le fret est calibre a 1,001 ; le revenu passagers est 
 | Passagers | 9 | 123 600 | 101 128 | 1,222 |
 | Fret | 40 | 1 101 708 | 1 100 755 | 1,001 |
 
-Le repere a dix ans de docs/opex_predict_vs_actual*.json est environ 1,18 (pax) et 0,98 (fret).
+Le repere a dix ans de results/opex_predict_vs_actual*.json est environ 1,18 (pax) et 0,98 (fret).
 A vingt ans, le fret tient a l'incertitude de ce petit echantillon pres ; le pax reste optimiste.
 Ce n'est pas une validation de changement de constante.
 

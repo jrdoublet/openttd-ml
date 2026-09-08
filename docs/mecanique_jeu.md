@@ -37,7 +37,7 @@ Chaque cargo a ses deux délais. Exemples cités : **passagers = 0 jour rapide /
 > **Conséquence pour OpexAI.** Les passagers n'ont **aucune fenêtre de grâce** : la pénalité court
 > dès le premier jour de transport. Sur une ligne longue et lente, le revenu unitaire s'effondre
 > avant même le seuil tardif. C'est le vrai mécanisme derrière l'effondrement du rendement à longue
-> distance qu'on mesure dans `docs/opex_cost_model.json` — ce n'est pas seulement le coût de
+> distance qu'on mesure dans `results/opex_cost_model.json` — ce n'est pas seulement le coût de
 > recherche qui explose, c'est aussi le revenu unitaire qui fond. **Les deux jouent dans le même
 > sens**, ce qui renforce le choix de lignes moyennes.
 >
@@ -93,7 +93,7 @@ pente.
 > **Ce que la formule confirme de nos choix.** Le revenu est **linéaire en distance** et
 > **décroissant en temps** : à vitesse donnée, `D · T(D/v)` monte puis retombe, ce qui donne bien un
 > optimum de distance intermédiaire — le même que celui mesuré empiriquement à 48-63 tuiles
-> (`docs/opex_cost_model.json`). Les deux lectures, l'analytique et la mesure, concordent.
+> (`results/opex_cost_model.json`). Les deux lectures, l'analytique et la mesure, concordent.
 >
 > Et pour les passagers, `d₁ = 0` veut dire qu'**il n'y a pas de palier plat** : chaque tranche de
 > 2,5 jours coûte un point de `T` dès le départ. C'est pourquoi une desserte routière **courte** de
@@ -206,7 +206,7 @@ peut donc pas compter les pentes, ponts, tunnels ou virages sans faire fuiter le
 pathfinding dans le classement. Les plafonds du moteur restent 61 km/h pour un angle droit et
 111 km/h pour une courbure 2 ; OpexAI n'invente pas une proportion de virages.
 
-✅ **Mesure 2026-08-30** (`docs/opex_speed_yield.json`, panneau `RV`, n = 832) : médiane
+✅ **Mesure 2026-08-30** (`results/opex_speed_yield.json`, panneau `RV`, n = 832) : médiane
 réelle / catalogue **0,96**, réelle / traction **1,18**. 20 % des instantanés ≤ 61 km/h,
 53 % ≥ 150. L'hypothèse « pas de fraction de virages » tient en médiane. L'ancien 70 %
 était trop pessimiste. ⚠️ Pas de retuning.
@@ -366,7 +366,7 @@ C'est le point le plus dangereux de la page pour une IA ferroviaire : **une lign
 d'une ville tuerait la croissance de la ville qui nous nourrit.** Le dommage serait différé,
 invisible dans l'immédiat, et frapperait précisément la source qu'on a payé cher à raccorder.
 
-⚠️ **Mesure 2026-08-30** (`docs/opex_town_growth.json`) : les villes desservies n'estagnent
+⚠️ **Mesure 2026-08-30** (`results/opex_town_growth.json`) : les villes desservies n'estagnent
 **pas** comme classe. Un effet local (maisons coincées par nos voies) n'est pas isolé.
 L'item 2 du backlog **reste dernier** — pas de contrainte de tracé.
 
@@ -391,7 +391,7 @@ Siège social : `256 / 4 tuiles / (6 − niveau)` passagers, `196 / 4 tuiles / (
 > 4. **Poser de la route autour d'une ville desservie est un investissement de croissance** — bon
 >    marché en opcodes, sans pathfinding long.
 > 5. **Éviter d'enfermer la ville** : la page le dit, la mesure 2026-08-30 ne voit **pas**
->    de stagnation de classe (`docs/opex_town_growth.json`). L'item 2 du backlog reste
+>    de stagnation de classe (`results/opex_town_growth.json`). L'item 2 du backlog reste
 >    dernier — pas de contrainte de tracé tant qu'un effet local n'est pas isolé.
 >
 > ⚠️ **Piège opérationnel** : une gare **sans transfert depuis 50 jours** coûte **−15 par mois** de
@@ -406,7 +406,7 @@ fait `m >>= 1` : **160, 210, 150, 110, 80, 50**, puis `/ (num_houses/50 + 1)`, e
 si city. n = 0 : **11/12** du temps la ville ne grandit pas (`Chance16(1,12)`) — le 320 n'est
 donc pas plus rapide que le 420.
 
-✅ **Mesure 2026-08-30** (`docs/opex_town_growth.json`, panneau `TV`, 5 graines × 20 ans).
+✅ **Mesure 2026-08-30** (`results/opex_town_growth.json`, panneau `TV`, 5 graines × 20 ans).
 Ville desservie = `GetClosestTown` d'une de nos gares. Le set desservi passe de ~5 à 25–34
 villes : la médiane est **diluée** par les petites qu'on ajoute. Graine 42 : 424 → 1118
 (×2,64) malgré +20 villes — elles ne stagnent pas. Les libres baissent (0,58–0,87) surtout
@@ -436,7 +436,7 @@ de ses points. »
 > de cargo. AAAHogEx en construit 245 gares et 1 200 véhicules — il sature donc toutes les
 > composantes, et AdmiralAI aussi presque. **Cela explique la saturation observée** (870 contre 896
 > pour une valeur d'entreprise 3,7× supérieure) et **confirme que `company_value` est la bonne
-> métrique** de comparaison, pas la note. Voir `docs/bench_v1.json`.
+> métrique** de comparaison, pas la note. Voir `results/bench_v1.json`.
 >
 > Deux composantes gratuites à ne pas oublier quand même : **rembourser l'emprunt** (5 %) et
 > **livrer 8 types de cargo** (5 %) — cette dernière plaide pour ne pas faire que du passager.
@@ -471,7 +471,7 @@ Les six points sont clos. Le 4 est relu en 15.3 : inchangé.
    **est** la formule 15.3 (`ChangeIndustryProduction`, `Chance16I(1,22)`,
    seuils 153/204). Pas de recalibrage empirique à faire. Recessions :
    `difficulty.economy = false`, distinct malgré le nom.
-3. ✅ **Rendement de vitesse effectif** (2026-08-30, `docs/opex_speed_yield.json`) :
+3. ✅ **Rendement de vitesse effectif** (2026-08-30, `results/opex_speed_yield.json`) :
    médiane réelle / catalogue **0,96** (n = 832), réelle / traction **1,18**.
    Le plafond 61 km/h apparaît (20 % des instantanés) mais n'est pas le régime
    médian. `TILES_PER_DAY = 2` a déjà été remplacé par `0,036 × effectiveSpeed`.
@@ -498,8 +498,8 @@ Les six points sont clos. Le 4 est relu en 15.3 : inchangé.
      mesurées 49–55). ⚠️ Pas de retuning. Vanilla : le callback NewGRF
      `StationRatingCalc` n'existe pas chez nous.
 5. ✅ Barème de croissance / gares actives, lu dans le source 15.3 et mesuré
-   (`docs/opex_town_growth.json`, 2026-08-30).
-6. ✅ **Sonde de catalogue 1950-2000** (2026-08-30, `docs/catalogue_churn_1950_2000.json`) :
+   (`results/opex_town_growth.json`, 2026-08-30).
+6. ✅ **Sonde de catalogue 1950-2000** (2026-08-30, `results/catalogue_churn_1950_2000.json`) :
    électrique 1967, INTERNATIONAL 1990, monorail 2000, maglev pas encore. Une
    campagne 1970-1989 a déjà l'électrique. `catalog.nut` prend le dernier type de
    rail : MONO en 2000 serait un piège, hors de nos 20 ans.
@@ -750,16 +750,16 @@ OpenTTD 15, l’équivalent est le **path signal** (PBS), pas ce trio TTDPatch. 
 plus sur une ligne dédiée à plusieurs trains.
 
 > **Conséquence.** Deux trains sur une voie unique se rencontrent. PBS bidirectionnel tous les
-> huit slots l'a confirmé au banc (`docs/bench_after_pbs.json` : −94,9 %, 0/20) : ce n'est plus
+> huit slots l'a confirmé au banc (`results/bench_after_pbs.json` : −94,9 %, 0/20) : ce n'est plus
 > posé. `trains > 1` exige une **deuxième voie dédiée** (quai parallèle, A* qui ignore la première,
 > dépôt propre, un convoi par voie, plafond 2). Échec → un seul train, pas de collision. Une
 > jointure a le même droit à la 2e voie ; le rejeu 5×20 ans ne paie pas (défauts join 0).
 > Sur une jointure, `OpexPlaceJoinSignals` reste sur une voie
 > simple, jamais l’aiguillage (`TracksOverlap`). `DT` mesure la pose ; `SJ`/`JF` la jointure ;
 > `XC` / `RX` les collisions. `JOINPATH` refuse toujours la voie partagée. Cinq graines × vingt
-> ans (`docs/opex_double_track_20y_5seeds.json`) : 64/92 doubles, 0 `XC`, 0 `RX`, emprunt 0,
-> médiane 5,73 M. Banc 20×20 vs `docs/bench_road_current.json`
-> (`docs/bench_double_track.json`) : valeur +55,5 % (t = 5,27, 17/20), note −9,0 %
+> ans (`results/opex_double_track_20y_5seeds.json`) : 64/92 doubles, 0 `XC`, 0 `RX`, emprunt 0,
+> médiane 5,73 M. Banc 20×20 vs `results/bench_road_current.json`
+> (`results/bench_double_track.json`) : valeur +55,5 % (t = 5,27, 17/20), note −9,0 %
 > (t = −2,32). **Processus gardé** ; la note se retravaillera.
 
 ### 12.3 Gares — hors de la ligne principale

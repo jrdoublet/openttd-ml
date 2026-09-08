@@ -50,7 +50,7 @@ Repris du rail, avec trois écarts, chacun justifié :
   c'est la règle du jeu. Le levier de volume est le **multistop** (`road_multistop`, défaut 0) :
   mesuré, le second arrêt se pose, les 4 véhicules ne paient pas (§7 item 4).
 - **`ROAD_SPEED_EFFICIENCY_PCT = 60`.** Mesuré le 2026-08-30, **pas retuné**.
-  Panneau `RY`, n = 53 (`docs/opex_road_speed_yield.json`). Fret en marche =
+  Panneau `RY`, n = 53 (`results/opex_road_speed_yield.json`). Fret en marche =
   catalogue (1,00) ; pax 0,75. Réel / 60 % : 1,27 pax, 1,71 fret. Instantané,
   pas un temps de trajet. Le 60 % est pessimiste en croisière. Le **0,75 pax**
   est le plafond 3/4 du modèle réaliste sur un L d'axes (`mecanique_jeu.md` §2),
@@ -66,7 +66,7 @@ dernier ramassage — un bus qui attend d'être plein détruit ce que la ligne a
 
 ## 4. 🔴 Les quatre bugs que la mise en service a révélés
 
-Tous mesurés sur la campagne graine 42 (`docs/opex_road_20y_42.json`), tous corrigés.
+Tous mesurés sur la campagne graine 42 (`results/opex_road_20y_42.json`), tous corrigés.
 
 1. **`clone` est un mot réservé de Squirrel.** `local clone = ...` fait échouer la compilation du
    fichier entier. L'échec est presque muet : une ligne dans la sortie OpenTTD, aucun panneau, une
@@ -104,7 +104,7 @@ mode route au banc.**
   ment pas. La prudence reste assurée par l'industrie source en souffrance et par
   `DEAD_STREAK_THRESHOLD` années consécutives.
 
-## 6. Ce que la mesure donne (graine 42, 20 ans, `docs/opex_road_20y_42.json`)
+## 6. Ce que la mesure donne (graine 42, 20 ans, `results/opex_road_20y_42.json`)
 
 **4 lignes routières, dont 3 de fret**, toutes vivantes à la dernière année avec leurs 2 véhicules :
 
@@ -132,12 +132,12 @@ candidats. Négligeable devant les ~270 M d'opcodes annuels.
 
 ## 6 bis. Le verdict du banc apparié
 
-**Re-baseline courant (2026-08-30, `docs/bench_road_current.json`) :** 20 graines × 20 ans,
+**Re-baseline courant (2026-08-30, `results/bench_road_current.json`) :** 20 graines × 20 ans,
 route active contre `road_mode=0`, avec traction et `road_pax_catchment_pct=86`.
 `performance_history` **+15,3 %** (+70,35), t = **5,65**, 18/20 ; `company_value`
 **+13,5 %**, t = **2,24**, 13/20. Le mode route est reconfirmé.
 
-### Mesure historique (`docs/bench_v2_road.json`)
+### Mesure historique (`results/bench_v2_road.json`)
 
 20 graines × 20 ans, `OpexAI` contre `OpexAI[road_mode=0]`. Les deux bras portent le
 renouvellement automatique et le correctif de ligne morte : le banc isole donc **le mode route
@@ -157,11 +157,11 @@ hasard qu'une fois sur cent.
 plutôt que par bruit diffus :
 
 > 🔴 **Une graine sur vingt payait très cher — et ça ne survit pas à la traction.** Sur
-> `docs/bench_v2_road.json`, 8675309 tombait de 1 460 136 à **1**. C'était la seule insolvabilité
+> `results/bench_v2_road.json`, 8675309 tombait de 1 460 136 à **1**. C'était la seule insolvabilité
 > du banc. Divergence 1974 (165 793) → 1975 (104 677) pendant que le bras sans route restait à
 > 155 000, puis érosion jusqu'à `company_value = 1` en 1985, cash collé à `CASH_RESERVE`.
 >
-> Sur l'arbre courant (`docs/bench_road_8675309.json`, 20 ans, même graine) : **2 368 267** avec
+> Sur l'arbre courant (`results/bench_road_8675309.json`, 20 ans, même graine) : **2 368 267** avec
 > la route contre **2 282 217** sans, emprunt 0, `months_of_bankruptcy` 0. Identiques au
 > 1er janvier 1971. Campagne parallèle : **0 tentative routière** — des candidats sont classés
 > (2 à 4/an en 1970-75) mais le `break` cash de `_tryBuildRoads` les coupe, et après le
@@ -175,7 +175,7 @@ plutôt que par bruit diffus :
 ✅ **Bassin pax route adopté (2026-08-30).** `road_pax_catchment_pct=86` devient le défaut :
 `performance_history` +4,19 % (+22,2 points), t = 2,48, 14/20 graines ; `company_value`
 −1,32 %, sans effet établi. `0` reconstitue le contrôle historique à 22 %. Le réglage ne
-touche ni le rail ni le fret. Résultats : `docs/bench_road_pax_catchment.json`.
+touche ni le rail ni le fret. Résultats : `results/bench_road_pax_catchment.json`.
 
 Items **fermés** : 0 (graine qui coulait, §6 bis), 1 (plancher pax, mesuré pas retuné),
 2 (SITEA/B, sondes sur des maisons), 2 bis (TRACEX, 32 L + façade), 3 (classement
@@ -186,7 +186,7 @@ retuné). L'item 2 du backlog général (villes enfermées) reste dernier.
 
 1. ✅ **Le plancher `ROAD_MIN_PROFIT_ANNUAL = 1000` : mesuré, pas retuné** (2026-08-30).
    12 lignes pax, médiane réel/prédit **3,91** (revenu 2,29). Fret n = 6 : **1,21 / 1,03**.
-   `docs/opex_road_predict_vs_actual.json`. Ce n'est pas la vitesse (le fret la partage).
+   `results/opex_road_predict_vs_actual.json`. Ce n'est pas la vitesse (le fret la partage).
    Ce n'est pas `ROAD_SPEED_EFFICIENCY_PCT` : `RY` donne pax 0,75 vs catalogue
    (1,27 vs 60 %), pas un ×4. C'est `TOWN_CATCHMENT_SHARE_PCT = 22` calé sur le
    rail, appliqué à un arrêt dans la ville.
@@ -196,31 +196,31 @@ retuné). L'item 2 du backlog général (villes enfermées) reste dernier.
 2. ✅ **`SITEA` / `SITEB` : on sondait des maisons** (2026-08-30).
    `GetCargoProduction` est vrai sur le bâtiment, `IsBuildable` non. 48 sondes y passent.
    Filtre `IsBuildable` + plat, comme `OpexStationPlans`. 5 graines :
-   SITE 14/18 → **0/11**, OK 2 → 6 (`docs/opex_road_sitable_20y_5seeds.json`).
+   SITE 14/18 → **0/11**, OK 2 → 6 (`results/opex_road_sitable_20y_5seeds.json`).
    TRACEX ensuite (2 bis). Le rayon et le plafond de sondes n'étaient pas le levier.
 2 bis. ✅ **TRACEX** (2026-08-30). 32 L (plus le plafond à 12) et façade tournée
    vers l'autre extrémité. `nLong = 0`. TRACEX 5→2, OK 6→8, pax 2→4
-   (`docs/opex_road_tracex_20y_5seeds.json`). Les 2 restants sont un L à travers
+   (`results/opex_road_tracex_20y_5seeds.json`). Les 2 restants sont un L à travers
    un bâtiment. Pas Pathfinder.Road.
 3. ✅ **Le classement routier et le classement rail ne sont pas à unifier**
-   (2026-08-30). Panneau `RB`, n = 10, `docs/opex_road_rb_calibrate.json`.
+   (2026-08-30). Panneau `RB`, n = 10, `results/opex_road_rb_calibrate.json`.
    Plan OK médiane 31 440 opcodes contre `20+d` ≈ 42,5 iter (rapport 0,29).
    Un ratio route sur le plan réel (68 k–710 k) écrase le rail (médiane 5 040,
    `MIN_RATIO` 500). ⚠️ Pas de retuning de `BASE`. Le rail d'abord (§2) tient.
 4. ✅ **Le multistop : le second arrêt se pose, les 4 véhicules ne paient pas**
    (2026-08-30). Réglage `road_multistop`, défaut 0. Identifiant du primaire, pas
    `STATION_JOIN_ADJACENT` nu. 5 graines contre TRACEX
-   (`docs/opex_road_multistop_20y_5seeds.json`) : extra A 7/8, extra B 8/8, les
+   (`results/opex_road_multistop_20y_5seeds.json`) : extra A 7/8, extra B 8/8, les
    deux 7/8. La ligne pax appariée (12345 L22) **8 905 → 1 781** à 4 bus. ⚠️
    Défaut 0. Le ×5 du wiki n'est pas là.
 5. ✅ **Rebâtir la flotte d'une ligne tombée à zéro véhicule.** Réglage `road_refleet`, défaut 1.
    Le trou n'était pas n = 1 (pax 15 de `opex_road_20y_42.json` : 2→1→0, 9 000/an ; COAL de
-   `opex_join_20y_42.json` : vide huit ans). Sur l'arbre courant (`docs/opex_refleet_20y_4seeds.json`,
+   `opex_join_20y_42.json` : vide huit ans). Sur l'arbre courant (`results/opex_refleet_20y_4seeds.json`,
    graine 42) la ligne COAL 15 passe 2→1 en 1982 et 1988 : `RF` ajoute 1 chaque fois, la note
    revient à 67, **jamais à zéro**. Auto-renouvellement ne suffit pas : il ne remplace pas un
    véhicule détruit. `OpexAI[road_refleet=0]` rallume l'abandon.
 6. ✅ **`ROAD_SPEED_EFFICIENCY_PCT = 60` : mesuré, pas retuné** (2026-08-30).
-   Panneau `RY`, 5 graines (`docs/opex_road_speed_yield.json`). n = 53
+   Panneau `RY`, 5 graines (`results/opex_road_speed_yield.json`). n = 53
    (6 lignes, 0 sur 12345). Fret **1,00** vs catalogue, pax **0,75**.
    Réel / 60 % : **1,27** pax, **1,71** fret. Instantané, pas un temps de
    trajet. ⚠️ Pas de retuning. Le 3,91 pax n'est pas ceci.

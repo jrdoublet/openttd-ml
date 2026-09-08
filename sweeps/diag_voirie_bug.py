@@ -136,7 +136,7 @@ def main():
     parser.add_argument("--max-workers", type=int, default=3)
     args = parser.parse_args()
     out = args.out if args.out is not None else (
-        ROOT / "docs" / (
+        ROOT / "results" / (
             f"diag_voirie_bug_{args.years}y_s"
             + "-".join(str(s) for s in args.seeds)
             + ".json"

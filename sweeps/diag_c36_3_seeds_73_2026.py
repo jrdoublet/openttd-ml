@@ -77,9 +77,9 @@ def main():
     parser.add_argument("--out", type=Path, default=None)
     args = parser.parse_args()
     out = args.out if args.out is not None else (
-        ROOT / "docs" / "diag_c36_3_seeds_73_2026.json"
+        ROOT / "results" / "diag_c36_3_seeds_73_2026.json"
         if args.seeds == list(SEEDS) and args.years == 1
-        else ROOT / "docs" / f"diag_c36_3_s{'-'.join(map(str, args.seeds))}_{args.years}y.json"
+        else ROOT / "results" / f"diag_c36_3_s{'-'.join(map(str, args.seeds))}_{args.years}y.json"
     )
     bench_v2.CHECKPOINT_PATH = out.with_suffix(".jsonl")
     if bench_v2.CHECKPOINT_PATH.exists():

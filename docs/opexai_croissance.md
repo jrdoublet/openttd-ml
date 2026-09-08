@@ -46,7 +46,7 @@ prédit/réel.** §9 affirmait un écart fret résiduel de « ~4-6x » non ident
 n'était appuyée par aucune mesure citée dans ce document — en la creusant, la mesure existait déjà
 mais n'avait jamais été exploitée : `sweeps/opex_freight_postfix.py` avait tourné (graine 42,
 10 ans, code complet post-tous-correctifs) et écrit
-`docs/opex_predict_vs_actual_postfix_freight_v2.json`, commis dans `abd641b` en même temps que le
+`results/opex_predict_vs_actual_postfix_freight_v2.json`, commis dans `abd641b` en même temps que le
 correctif lui-même — la donnée était disponible dès ce commit, simplement jamais recroisée avec
 l'affirmation « ~4-6x » écrite ensuite dans `9c5e39f`.
 
@@ -68,7 +68,7 @@ deux lignes à 1 an de données (ratios 2,39 et 1,82) sont un effet de fenêtre 
 manquant : une ligne neuve ou en fin de vie n'a pas eu le temps de stabiliser sa note ni sa
 production source. **`STATION_RATING_PCT = 50` (calibré sur le pax) tient donc aussi pour le fret**,
 sans facteur correctif propre — la piste « facteur fret non identifié » de §9 est écartée, pas
-juste non trouvée. Donnée source : `docs/opex_predict_vs_actual_postfix_freight_v2.json`, déjà
+juste non trouvée. Donnée source : `results/opex_predict_vs_actual_postfix_freight_v2.json`, déjà
 présente dans le dépôt depuis `abd641b`.
 
 ## 3. `MIN_SEPARATION` bloquait la croissance sur de faux positifs
@@ -132,8 +132,8 @@ correctif de diagnostic seul). Commit `e884358`.
 ## 6. `TOP_K` saturé par des origines déjà servies
 
 Item 3 du backlog (`docs/taches.md` §2), traité le 2026-08-28. Baseline préservée dans
-`docs/opex_full_campaign_20y_before_topk_fix.json` (avant tout correctif de cette section) ;
-`docs/opex_full_campaign_20y.json` reflète l'état final (exclusion d'origine + `MIN_RATIO`).
+`results/opex_full_campaign_20y_before_topk_fix.json` (avant tout correctif de cette section) ;
+`results/opex_full_campaign_20y.json` reflète l'état final (exclusion d'origine + `MIN_RATIO`).
 Sur la campagne graine 42/20 ans,
 les stalles de croissance (12 lignes bloquées 3 ans, 1984-1986) étaient mesurées comme 20/20
 candidats du `TOP_K` rejetés par `_tooClose` pour la MÊME raison — une origine déjà desservie,
