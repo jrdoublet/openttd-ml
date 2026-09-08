@@ -785,10 +785,6 @@ reste à trancher indépendamment.
   déjà toute réutilisation d'origine servie en amont, avant que ce garde n'ait l'occasion de
   s'appliquer.
 
-  `TARGET_HEADWAY_DAYS` reste délibérément non instrumenté à cette passe : pas de signal binaire
-  mord/ne-mord-pas simple pour lui — il faudrait mesurer la sensibilité au seuil d'arrondi
-  (`OpexCeilDiv`) plutôt qu'un compteur de rejet, hors périmètre ici.
-
   ✅ **`PROJECT_POOL_K = 128` confirmé inerte sur le chemin par défaut — pas de banc nécessaire.**
   Ses deux seuls appelants, `OpexBuildMultimodalBudgetPool` (`projects.nut:1269`, `1556`), ne sont
   atteints que dans la branche `else` (legacy) de `OpexIncrementalUpdateProjects` et
@@ -796,6 +792,36 @@ reste à trancher indépendamment.
   (`info.nut`). Différent du cas `MIN_SEPARATION` (mécanisme atteignable qui ne mord jamais) :
   ici c'est le **code lui-même qui est inatteignable** en configuration par défaut. Changer
   `PROJECT_POOL_K` serait un no-op garanti par construction, pas seulement par la mesure.
+
+  ✅ **`TARGET_HEADWAY_DAYS = 7` réglé le 2026-09-08, par traçage de code seul — pas de banc, pas
+  de diagnostic nécessaire.** Le vrai choix du nombre de trains (`candidate.trains`,
+  `economy.nut:252-301`) vient d'une boucle qui teste `trains = 1..MAX_RAIL_TRAINS` et garde la
+  variante au **meilleur ROI** ; `TARGET_HEADWAY_DAYS` n'y intervient nulle part.
+  `trainsForHeadway = OpexCeilDiv(roundTripDays, TARGET_HEADWAY_DAYS)` (ligne 303) est calculé
+  **après coup**, séparément de `best`, et stocké sur le candidat. Tous ses lecteurs vérifiés
+  (`grep` exhaustif, `candidates.nut:258,296,347`, `main.nut:4498`) : le seul usage réel est le
+  panneau `PT|` (`main.nut:4498`) — pure télémétrie via `OpexSign`, jamais relu par une décision.
+
+  **La note de gare réellement appliquée (`OpexStationRatingForHeadway(best.headwayDays)`) ne
+  dépend donc jamais de `TARGET_HEADWAY_DAYS`.** L'inquiétude d'origine de l'audit (« tombe
+  exactement sur une frontière de palier de note ») ne s'applique pas comme craint — la valeur 7
+  ne pilote ni le nombre de trains choisi, ni la note qui en résulte. Le vrai problème de
+  frontière documenté ailleurs (`economy.nut:99-105`, sous `ECONOMY_FIX`) porte sur un mécanisme
+  distinct — l'ancre de calibration `STATION_RATING_PCT=50` — dont la tâche de mesure reste
+  ouverte, indépendamment de `TARGET_HEADWAY_DAYS`.
+
+  🔶 **Candidat au nettoyage, pas à un réglage.** Comme `PROJECT_POOL_K`, c'est un cas de code
+  mort, pas de mauvais calibrage : changer la valeur de `TARGET_HEADWAY_DAYS` ne changerait
+  strictement rien au comportement livré. `TARGET_HEADWAY_DAYS`, `trainsForHeadway` et le panneau
+  `PT|` qui le porte sont candidats à sortir, dans l'esprit E2 (`rail_refleet`/`air_starter`).
+
+  🔚 **Les trois constantes des « familles 1/2 » identifiées comme suspectes par l'audit du
+  2026-09-02 sont maintenant toutes réglées** : `PROJECT_TOP_K` mord fort et son mécanisme est
+  compris (défaut 64 conservé, taxe opcodes contre qualité de sélection) ; `MIN_SEPARATION` ne
+  mord jamais (mécanisme vivant, jamais déclenché) ; `PROJECT_POOL_K` et `TARGET_HEADWAY_DAYS`
+  sont tous deux du code mort sur le chemin par défaut (mécanismes inatteignables, pas de
+  mauvais calibrage). Reste ~40 constantes non auditées dans les autres familles (calibrations
+  économiques, coûts d'opcodes) — aucun candidat aussi bien motivé qu'eux pour l'instant.
 
   🔴 **Étape 3 (banc) faite pour `PROJECT_TOP_K`, deux variantes, 2026-09-08 — ni l'une ni l'autre
   ne bat clairement le défaut.** `PROJECT_TOP_K` exposé (réglage `project_top_k`, défaut 64,
