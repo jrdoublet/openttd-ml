@@ -1438,17 +1438,20 @@ Le mode route est donc reconfirme sur l arbre courant.
      * le classement est le PROFIT par livre de capital mobilisable, le sac a dos est remplace par
      * « le meilleur projet finançable », et le portefeuille est regenere des que le capital
      * mobilisable a materiellement grandi. */
-    /* Correctifs de flotte. Revue flotte et entretien, docs/taches.md S0 nonies -- trois defauts
+    /* Correctifs de flotte. Revue flotte et entretien, docs/taches.md S0 nonies -- deux defauts
      * qui visent tous le meme symptome mesure : 3,26 vehicules par gare contre 2,71 chez
      * AAAHogEx, et 8x moins de gares.
      *
+     * ⚠️ CORRIGE (2026-09-08) : cette liste comptait un 3e point sous 0 (« rail_refleet est
+     * INJOIGNABLE »), affirmant que son bloc vivait derriere un return anticipe commande par
+     * rail_expand, atteignable seulement sous fleet_fix=1. C'etait deja faux au moment de
+     * l'ecrire : le commit 3a15646 (« fix items G1 G7 from code review », 2026-09-07 11:10) a
+     * rendu cette garde INCONDITIONNELLE dans _expandRailLines et dans la tache "expand"
+     * (commentaire G6§1, main.nut) -- rail_refleet est reellement atteignable au defaut livre
+     * (rail_expand=0, rail_refleet=1), independamment de fleet_fix. docs/taches.md repetait la
+     * meme erreur (proposait de retirer rail_refleet comme code mort) ; corrige le meme jour.
+     *
      * 0 (defaut, comportement historique) :
-     *   - rail_refleet est INJOIGNABLE. Son bloc (second train, passage en double voie, seuls
-     *     sites d'appel de OpexBuildSecondTrain et OpexUpgradeRailLineToDoubleTrack) vit a
-     *     l'interieur de _expandRailLines, derriere un return anticipe commande par rail_expand
-     *     dont le defaut est 0 ; et _runNextTask desactive la tache definitivement sur le meme
-     *     critere. Avec les defauts livres, AUCUNE ligne rail ne peut donc jamais gagner un second
-     *     train ni une seconde voie -- alors que rail_refleet vaut 1 et est annonce actif.
      *   - toute ligne routiere neuve achete une seconde flotte complete dans son propre cycle de
      *     construction : vehCount n'est ecrit que par _reportLines, une fois par an, et la file
      *     execute projects puis refleet dans le meme cycle, donc la ligne arrive avec have = 0

@@ -510,17 +510,23 @@ SHADOW_PRICING <- false;
 
 /* Correctifs de flotte (revue flotte et entretien, docs/taches.md S0 nonies) : repli FAUX jusqu'a
  * la lecture unique de fleet_fix dans Start(). Defaut 0 : chemin historique inchange. Sous 1,
- * trois defauts mesures tombent ensemble --
- *   1. rail_refleet redevient ATTEIGNABLE. Son bloc vit a l'interieur de _expandRailLines, derriere
- *      un return anticipe commande par rail_expand (defaut 0), et _runNextTask desactivait la tache
- *      sur le meme critere. Avec les defauts livres, aucune ligne rail ne pouvait donc jamais
- *      gagner un second train ni une seconde voie, alors qu'info.nut annonce rail_refleet actif.
- *   2. une ligne routiere neuve n'achete plus une seconde flotte complete dans son propre cycle de
+ * deux defauts mesures tombent ensemble --
+ *   1. une ligne routiere neuve n'achete plus une seconde flotte complete dans son propre cycle de
  *      construction : `vehCount` n'etant ecrit qu'une fois par an, elle arrivait au refleet avec
  *      have = 0 et se faisait reconstruire, ordres dupliques compris.
- *   3. `isAnyWaiting` ne prend plus un vehicule en chargement pour un embouteillage. Sous
+ *   2. `isAnyWaiting` ne prend plus un vehicule en chargement pour un embouteillage. Sous
  *      OF_FULL_LOAD_ANY c'est l'etat normal d'un camion, et les trois heuristiques de croissance
- *      exigeant !isAnyWaiting, le signal etait inverse par rapport a son intention. */
+ *      exigeant !isAnyWaiting, le signal etait inverse par rapport a son intention.
+ *
+ * ⚠️ CORRIGE (2026-09-08) : cette liste comptait un 3e point, « rail_refleet redevient
+ * ATTEIGNABLE », decrit comme derriere fleet_fix. C'etait deja faux au moment de l'ecrire : le
+ * commit 3a15646 (« fix items G1 G7 from code review », 2026-09-07 11:10) a rendu la garde
+ * d'entree de _expandRailLines et la tache "expand" INCONDITIONNELLES (voir le commentaire
+ * G6§1 sur _expandRailLines) -- rail_refleet est reellement atteignable au defaut livre
+ * (rail_expand=0, rail_refleet=1), independamment de fleet_fix. docs/taches.md et le
+ * commentaire de la reglage `fleet_fix` (info.nut) repetaient la meme erreur ; corriges le
+ * meme jour. Ne pas retirer `rail_refleet` comme code mort (§8 taches.md le proposait par
+ * erreur). */
 FLEET_FIX <- false;
 
 /* La croissance urbaine cede le pas au portefeuille (docs/taches.md S0 septies et S0 decies) :

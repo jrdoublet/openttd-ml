@@ -1920,15 +1920,25 @@ Ne pas oublier deux composantes gratuites de la note de compagnie : **emprunt à
     court et un étage 2 déclenché à la main.
 
 
-- 🔶 **Supprimer aussi `rail_refleet` et `air_starter`, PROUVÉS INERTES par la mesure
-  (2026-09-02).** Écart-type des différences appariées = **0,0** sur 20 graines : basculer l'un ou
-  l'autre ne change pas un bit du résultat (`bench_rail_refleet_vs_aaahogex_5y.json` et `_v2`).
-  C'est la confirmation indépendante de la revue de code (§0 nonies : « TOUTE la fonctionnalité
-  `rail_refleet` est du code injoignable »). Même traitement que `tree_planting` ci-dessous :
-  retirer le code gardé, la constante, sa relecture dans `Start()`, l'entrée `info.nut` et la
-  liste blanche de `bench_v2.py`. ⚠️ Retirer le code **mort** ne décale pas les trajectoires
-  (vérifié le 2026-09-02 : 20/20 graines bit-identiques après suppression de 766 lignes) — mais
-  retirer une **lecture de réglage** en décale, donc prévoir un banc de non-régression.
+- 🔶 **Supprimer `air_starter`, toujours proposé inerte par la mesure du 2026-09-02**
+  (`bench_rail_refleet_vs_aaahogex_5y.json` et `_v2`, écart-type des différences appariées =
+  **0,0** sur 20 graines). Même traitement que `tree_planting` ci-dessous : retirer le code
+  gardé, la constante, sa relecture dans `Start()`, l'entrée `info.nut` et la liste blanche de
+  `bench_v2.py`. ⚠️ Retirer le code **mort** ne décale pas les trajectoires, mais retirer une
+  **lecture de réglage** en décale, donc prévoir un banc de non-régression avant de conclure.
+
+  **`rail_refleet` RETIRÉ de cet item (corrigé le 2026-09-08).** Il était embarqué dans le même
+  bench 2026-09-02 avec `air_starter`, sur la foi de la revue de code (§0 nonies : « TOUTE la
+  fonctionnalité `rail_refleet` est du code injoignable »). **Cette affirmation est fausse
+  depuis le commit `3a15646`** (« fix items G1 G7 from code review », 2026-09-07 11:10) : la
+  garde d'entrée de `_expandRailLines` et la tâche `"expand"` sont désormais
+  **inconditionnelles** (commentaire `G6§1`, `main.nut`) — `rail_refleet` est réellement
+  atteignable au défaut livré (`rail_expand=0, rail_refleet=1`), indépendamment de `fleet_fix`.
+  Le bench du 2026-09-02 mesurait donc le code *avant* ce correctif ; il ne décrit plus le
+  comportement actuel et ne peut plus servir à trancher `rail_refleet`. **Ne pas le supprimer.**
+  Une nouvelle mesure (bench apparié, code actuel) serait nécessaire avant toute décision sur ce
+  réglage précis. Même erreur répétée dans le commentaire du réglage `fleet_fix`
+  (`info.nut`/`main.nut`) et corrigée le même jour.
 
 - 🔶 **Supprimer le réglage `tree_planting` et le chemin préventif qu'il garde (demandé le
   2026-09-01).** La question est **tranchée**, le réglage n'a donc plus de raison d'exister : la
