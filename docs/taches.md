@@ -836,20 +836,47 @@ reste à trancher indépendamment.
   diagnostic sans `decision_log=1` si la question posée porte sur CE QUE le mécanisme a fait, pas
   seulement sur le résultat économique final.**
 
-  🔶 **À analyser plus tard — pourquoi ni 32 ni le dynamique (86-101) ne battent 64, et ce que ça
-  dit du bon calibrage.** Trois pistes non explorées, notées pour reprise :
-  1. Croiser le delta par graine avec villes+industries de cette graine — le dynamique gagne-t-il
-     sur les cartes petites (top_k proche de 64, donc proche du défaut) et perd-il sur les grandes
-     (top_k loin de 64, donc le coût de calcul domine) ? Seulement 5 points, insuffisant en l'état,
-     mais le motif à chercher est là.
-  2. Isoler le coût d'opcodes pur d'une fenêtre plus large (nombre d'insertions dans
-     `OpexProjectInsert`, coût du tri dans `OpexKnapsackSolve`) indépendamment de l'effet sur la
-     qualité de sélection, pour savoir si l'hypothèse « le calcul mord sur la construction » est
-     mesurable directement plutôt que déduite du seul résultat économique.
-  3. Tester une borne dynamique **asymétrique** (par exemple minimum 64, maximum scalé) plutôt que
-     `villes + industries` brut — puisque 64 fixe n'est battu ni par plus petit ni par plus grand
-     tel que testé, la bonne forme de la fonction reste à trouver, si tant est qu'il y en ait une
-     meilleure que la constante actuelle.
+  ✅ **Item 2 fait le 2026-09-08 — le coût opcodes pur est isolé, et confirme le mécanisme.**
+  Instrumentation `sel_ops` ajoutée au panneau `VIVIER` (mesure autonome
+  `OpexOpsMeasureBegin()`/`OpexOpsMeasureEnd()`, `budget.nut`, sans passer par l'instance
+  partagée `OpexBudget` — `OpexReselectProjects`/`OpexDynamicBatchReselect` n'ont pas de
+  paramètre `budget`, et la classe est explicitement non réentrante). Diagnostic dédié
+  (`sweeps/diag_topk_opcode_cost.py`, `docs/diag_topk_opcode_cost_6y_5seeds.json`, 5 graines ×
+  6 ans, ~17 000-20 000 appels par bras) comparant `project_top_k=32`, le défaut 64 et
+  `project_top_k_dynamic=1` (86-101) :
+
+  | variante | coût brut moyen/appel (chemin `build`) | équivalent en ticks (÷10 000) | opcodes/candidat retenu |
+  |---|---:|---:|---:|
+  | `32` | 60 072 | ~6,0 | 4 252 |
+  | **64 (défaut)** | 92 947 | ~9,3 | 3 095 |
+  | dynamique (86-101) | 120 805 | ~12,1 | **2 355** |
+
+  **Le coût brut par appel augmente clairement et régulièrement avec la largeur de la fenêtre** —
+  confirme directement l'hypothèse « le calcul mord sur la construction » : passer de 64 au
+  dynamique coûte **+30 % d'opcodes bruts par appel**, près de **12 ticks entiers** pour une seule
+  sélection, répété sur des milliers d'appels en 6 ans. Contre-intuitif en revanche :
+  **l'efficacité PAR CANDIDAT RETENU s'améliore avec une fenêtre plus large** (4 252 → 3 095 →
+  2 355 opcodes/candidat) — un coût fixe par appel (tri, gestion de liste) s'amortit sur plus de
+  slots retenus ; ce n'est pas une preuve que la sélection devient meilleure, juste que son coût
+  fixe se dilue.
+
+  🔚 **Verdict complet sur toute la piste `PROJECT_TOP_K` : chaque diagnostic économique trouve
+  maintenant son mécanisme propre, mesuré et non plus supposé.** `32` perd surtout en qualité de
+  sélection (économise le plus d'opcodes bruts — ~6,0 ticks — mais coupe le plus de candidats
+  potentiellement bons, ce qui domine sa perte de −23,8 %). Le dynamique perd surtout en taxe
+  opcodes (paie le plus cher par appel — ~12,1 ticks, +30 % vs 64 — sur des milliers d'appels, ce
+  qui mord directement sur le débit disponible pour construire, cohérent avec sa perte plus
+  modérée mais toujours négative de −8,0 %). **`64` n'est pas arbitraire a posteriori** : il tombe
+  entre les deux coûts opposés (qualité de sélection contre taxe opcodes), ce qui explique
+  pourquoi ni resserrer ni élargir ne le bat clairement dans les deux diagnostics. `project_top_k`
+  reste à `64` par défaut, `project_top_k_dynamic` à `0` ; aucun banc officiel 20×10 nécessaire,
+  les deux diagnostics et l'instrumentation opcodes convergent déjà vers la même conclusion.
+
+  🔶 **Reste ouvert, non repris ici** : item 1 (croiser delta × taille de carte, seulement 5
+  points, insuffisant) et item 3 (chercher une forme de fonction dynamique meilleure que
+  `villes + industries` brut, par exemple une borne asymétrique) — moins prioritaires maintenant
+  que le mécanisme est compris ; à reprendre seulement si `PROJECT_TOP_K` redevient un sujet
+  d'intérêt.
 
 ---
 
