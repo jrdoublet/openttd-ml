@@ -1666,6 +1666,35 @@ borné~~ / ~~l'item **7**~~ / ~~l'item **4**~~.
   `vehicle.roadveh_acceleration_model` défaut **1 = réaliste**, absent du
   CFG. Virage d'axe : plafond 3/4. Le 0,75 pax de `RY` est ce plafond sur
   le L, pas un retuning. Pas de modèle de traction route.
+- ✅ **Biais de coût route : mesuré proprement, jamais corrigé (2026-09-08).** Symétrique du
+  ×1,7 rail ([[opexai_prix_rail_terrain]]) mais jamais sondé — `OpexBuildRoadRoute` n'avait
+  pas d'équivalent à `air_cost_probe`/`rail_cost_probe`. Un premier essai
+  (`sweeps/diag_road_cost_bias.py`, `9e95822`) appariait deux panneaux existants
+  (`PROJECT_CHOSEN` modèle vs `ROAD_BUILD` réel) via un **delta de solde bancaire**, contaminé
+  par la trésorerie environnante : moyenne 1,207 mais écart-type 0,492 et **min −0,161
+  (impossible)**. Remplacé par `road_cost_probe` (`d24c0eb`), sondage `AIAccounting` isolé
+  (comme air/rail, aucun bouclier nécessaire — pas d'`AITestMode` interne à
+  `OpexBuildRoadRoute`), panneau `RP|` à chacune des 12 sorties de la fonction, échecs compris.
+
+  5 graines × 6 ans (`docs/diag_road_cost_probe_6y_5seeds.json`, `sweeps/diag_road_cost_probe.py`) :
+  **6 329 tentatives, 4 812 avec capital modèle > 0 et succès, 1 517 échecs.** Ratio réel/modèle :
+
+  | | valeur |
+  |---|---:|
+  | moyenne | **1,214** |
+  | médiane | 1,181 |
+  | écart-type | 0,162 (contre 0,492 en bruité) |
+  | min / max | 0,828 / 2,155 (plus de valeur impossible) |
+
+  Par graine, direction et magnitude cohérentes : 1 → 1,257 ; 42 → 1,203 ; 73 → 1,216 ;
+  100 → 1,154 ; 2026 → 1,257. **La route coûte réellement ~21 % de plus que son devis modèle**,
+  un biais réel mais plus petit que le rail (×1,7). `OpexProjectFinanceCapital`
+  (`projects.nut:160`) ne corrige **que** `project.mode == "rail"` — la route n'a aucune
+  protection de finançabilité, exposée à la même Raison 3 que C38 (le filtre de finançabilité
+  ment sur le capital modèle) mais à une échelle plus faible. **Non corrigé** : mesure seule pour
+  l'instant, pas de décision d'étendre `capital_calibration` à la route ni de devis physique
+  route (pendant de P1.1). À évaluer avant toute nouvelle tâche qui dépend de la finançabilité
+  route.
 
 ---
 
