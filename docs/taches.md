@@ -893,21 +893,45 @@ reste à trancher indépendamment.
   `AITestMode` puis commande réelle uniquement si le test confirme la même connexion ; ne pas
   toucher aux 24 cas où cette sonde locale ne trouve pas de coupure.
 
-  ✅ **C41.10 — réparation de raccord implémentée, non testée à la demande.**
+  ✅ **C41.10 — réparation de raccord implémentée et testée (2026-09-08).**
   `c41_rail_lost_junction_repair=0` ne fait rien par défaut. À `1`, arme la même ligne rail double
   que C41.8 (cause distincte du même `VehicleLost`, coalescage identique par `lineId`, une seule
-  ligne par cycle de tâche). `OpexC41RepairJunction(center, exclude)` relit les six points déjà
-  mesurés par C41.9 (quais A/B, A2/B2, deux dépôts) et ne tente une réparation que si **une seule**
-  branche voisine de `center` est physiquement une tuile de rail mais non reconnue connectée via
-  `AreTilesConnected(exclude, center, neighbor)` — 0 ou plusieurs candidats est laissé intact
-  (même prudence que C41.8 sur les aiguillages à deux branches, cf. C41.7). Séquence : le même
-  `AIRail.BuildRail(exclude, center, candidate)` d'abord sous `AITestMode` (aucun coût, aucune
-  tuile modifiée) ; commande réelle seulement si ce test réussit ; `AreTilesConnected` revérifié
-  après la pose réelle, car une commande acceptée par le moteur ne garantit pas la connexion
-  recherchée. Panneau `C41_RAIL_JUNCTION_REPAIR` (un code par point : -3 position illisible,
-  -2 ambigu/rien à faire, 0 test refusé, 1 posé et confirmé, 2 posé mais toujours déconnecté).
-  **Aucun smoke, diagnostic ni banc n'a été lancé**, conformément à la consigne établie sur toute
-  la série C41 ; attendre le signal avant toute exécution.
+  ligne par cycle de tâche). `OpexC41RepairJunction(center, exclude)` ne tente une réparation que
+  sur le **même critère que C41.9** — `OpexC41RailLocalLinks(center, exclude).links == 0`
+  (aucune branche sortante reconnue du tout) — **et** une seule branche candidate. Séquence : le
+  même `AIRail.BuildRail(exclude, center, candidate)` d'abord sous `AITestMode` (aucun coût,
+  aucune tuile modifiée) ; commande réelle seulement si ce test réussit ; `AreTilesConnected`
+  revérifié après la pose réelle, car une commande acceptée par le moteur ne garantit pas la
+  connexion recherchée. Panneau `C41_RAIL_JUNCTION_REPAIR` (un code par point : -3 position
+  illisible, -2 hors périmètre C41.9 ou ambigu, 0 test refusé, 1 posé et confirmé, 2 posé mais
+  toujours déconnecté).
+
+  🔴 **Deux défauts trouvés et corrigés par le premier smoke (seed 7, 6 ans), avant tout autre
+  test :**
+  1. **Crash.** `AIMap.IsValidTile(center)` lève une erreur Squirrel sur `null` au lieu de rendre
+     faux ; `OpexC41RailLocalLinks` n'avait pas de garde sur `center`. Reproduit via le sondage
+     C41.9 lui-même dans `_processEvents` (une ligne sans `platformA2`/`B2` émettant
+     `VehicleLost` lui passe un `leadA2` nul) — pas du code que j'ai écrit pour l'appel qui
+     plante, mais la garde manquante appartient à la fonction partagée ; corrigée là, sans
+     changement de comportement pour un `center` non nul.
+  2. **Portée trop large.** La première version acceptait N'IMPORTE QUELLE branche non connectée,
+     même à côté de branches déjà reconnues (`links >= 1`) — plus large que la consigne (« CE SEUL
+     raccord », le critère `links == 0` propre à C41.9). Le smoke non corrigé l'a démontré : il a
+     réparé 3 jonctions dès le premier `VehicleLost` (ligne 11, graine 7), dont les `links` valaient
+     1 ou 2, jamais 0. Corrigé en exigeant `links == 0` avant même de chercher une branche
+     candidate.
+
+  ✅ **5 graines × 6 ans après les deux correctifs**
+  (`docs/diag_c41_10_junction_repair_6y_5seeds.json`, mêmes graines que la mesure C41.9 —
+  `[42, 100, 7, 999, 12345]`) : **0 erreur, 0 mort de script.** 41 pertes rail double-voie
+  observées, 40 armées (une ligne non double-voie), 40 exécutions de la micro-tâche — **toutes
+  rendent -2 sur les six points** (`links != 0` partout dans cette fenêtre précise : aucune
+  n'est reproduite dans les conditions exactes du constat C41.9 original, cohérent avec le
+  principe déjà établi que la réparation elle-même déplace la trajectoire — cf. §5). Le mécanisme
+  est donc **vérifié sûr et inerte par construction hors de son périmètre exact** ; le cas
+  réparable proprement dit (graine 7, ligne 18, véhicule 115 du constat C41.9) reste rare — à
+  revoir seulement si une fenêtre de mesure plus large le retrouve. Pas de banc 20×10 : rien à
+  comparer tant qu'aucune réparation réelle n'a été observée.
 
   ✅ **C39.4 — les cinq avions « rejetés » sont dominés, non invalides.** La sonde
   `c39_air_reason_probe=0`, sur 5 graines × 6 ans
