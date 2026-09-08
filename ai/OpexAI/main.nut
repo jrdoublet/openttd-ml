@@ -84,6 +84,9 @@ RAIL_COST_PROBE <- false;
 /* Symetrique aerien de RAIL_COST_PROBE : un panneau AC| par tentative, reussie ou non. C'est le
  * seul moyen de chiffrer le nivellement et les aeroports batis puis rases (§0 unvicies). */
 AIR_COST_PROBE <- false;
+/* Symetrique route de RAIL_COST_PROBE/AIR_COST_PROBE, jamais construit avant (docs/taches.md,
+ * retrouve le 2026-09-08). Panneau RP| par tentative, reussie ou non (RC| deja pris). */
+ROAD_COST_PROBE <- false;
 /* air_presite : sonder les deux sites en AITestMode avant d'engager le capital du premier
  * aeroport. Inerte par defaut jusqu'au verdict du banc. */
 AIR_PRESITE <- false;
@@ -1410,6 +1413,10 @@ function OpexAI::_tryTownGrowth(year)
     }
 
     local result = OpexBuildRoadRoute(this._catalog, this._budget, plan, candidate);
+    if (ROAD_COST_PROBE) {
+      OpexSign(anchor, "RP|" + townId + "|" + result.plannedCapital + "|" + result.actualCost
+                             + "|" + (result.ok ? result.vehicles.len() : 0));
+    }
     if (!result.ok) {
       if (DECISION_LOG) {
         OpexDecide("TOWN_GROWTH", "action=fail town=" + townId + " stations=" + currentCount
@@ -1806,6 +1813,10 @@ function OpexAI::_tryBuildFeeders(year)
       if (candidate.dstTown >= 0) OpexBoostTownRating(candidate.dstTown, 700, 35);
     }
     local result = OpexBuildRoadRoute(this._catalog, this._budget, plan, candidate);
+    if (ROAD_COST_PROBE) {
+      OpexSign(anchor, "RP|" + idx + "|" + result.plannedCapital + "|" + result.actualCost
+                             + "|" + (result.ok ? result.vehicles.len() : 0));
+    }
     if (!result.ok) {
       if (ABANDON_MEMORY && OpexBuildFailureIsAbandonable(result)) this._markPairAbandoned(abandonedKey);
       OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|" + result.reason + "|" + result.error);
@@ -2495,6 +2506,10 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
       }
       local result = OpexBuildRoadRoute(this._catalog, this._budget, plan, candidate);
       OpexSign(anchor, "RB|" + yy + "|" + idx + "|1|" + planOps + "|" + result.opcodes);
+      if (ROAD_COST_PROBE) {
+        OpexSign(anchor, "RP|" + idx + "|" + result.plannedCapital + "|" + result.actualCost
+                               + "|" + (result.ok ? result.vehicles.len() : 0));
+      }
       if (!result.ok) {
         if (DECISION_LOG) {
           OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=road src=" + candidate.src + " dst=" + candidate.dst + " reason=build_failed detail=" + result.reason + " error=" + result.error);
@@ -5174,6 +5189,7 @@ function OpexAI::Start()
   PRICING_ROAD_OPS = AIController.GetSetting("pricing_road_ops") != 0;
   RAIL_COST_PROBE = AIController.GetSetting("rail_cost_probe") != 0;
   AIR_COST_PROBE = AIController.GetSetting("air_cost_probe") != 0;
+  ROAD_COST_PROBE = AIController.GetSetting("road_cost_probe") != 0;
   AIR_PRESITE = AIController.GetSetting("air_presite") != 0;
   PORTFOLIO_FRESH_BUDGET = AIController.GetSetting("portfolio_fresh_budget") != 0;
   PORTFOLIO_CACHE = AIController.GetSetting("portfolio_cache") != 0;

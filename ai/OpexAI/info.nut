@@ -61,6 +61,17 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* Symetrique de air_cost_probe : la route n'a jamais eu de sonde de cout reel equivalente
+     * (docs/taches.md, retrouve le 2026-09-08). AIAccounting isole les vraies commandes de
+     * OpexBuildRoadRoute -- aucun AITestMode interne, pas de bouclier necessaire. */
+    AddSetting({
+      name = "road_cost_probe",
+      description = "Emit per-attempt road model capital versus actual cost (AIAccounting-isolated), including failed/rolled-back attempts: 1 = measurement only, 0 = no extra signs (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* Le catalogue mensuel fige le capital AVANT les taches air et air_fleet. Sur la graine 42,
      * 295 000 GBP a la generation devenaient 24 013 GBP au passage projects : le sac a dos
      * optimisait donc un budget qui n'existait plus. Ce bras ne rejoue que la selection bon marche
