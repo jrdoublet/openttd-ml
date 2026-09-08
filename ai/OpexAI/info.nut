@@ -1049,6 +1049,34 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
+    AddSetting({
+      name = "rail_prequote",
+      description = "P1.1 experimental control: quote the best eligible rail candidates before affordability selection; rejected at -30.7% value in paired 5x6 and disabled by default",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "rail_prequote_keep_plan",
+      description = "P1.3: reuse a prequoted rail plan only after a full AITestMode revalidation at build time; 0 = discard it historically",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* P1.2 : sonde de terrain en lecture seule, aucune decision. Marche le trajet quasi-direct
+     * candidate.src -> candidate.dst avant tout pathfinding, compte les tuiles complexes (pente,
+     * eau, cote) et les segments complexes, journalise P1_2_TERRAIN pour correler hors-ligne avec
+     * le devis P1_1_QUOTE sur les memes candidats. N'existe que sous rail_prequote=1. */
+    AddSetting({
+      name = "rail_terrain_probe",
+      description = "P1.2 read-only probe: cheap straight-line terrain scan (slope/water) logged alongside P1.1's real quote for offline correlation; 0 = inactive (default), no live decision impact",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* P4 (docs/taches.md, added 2026-09-08 solely to isolate P4 in the P1xP3xP4 factorial
      * without duplicating a Git tree): gates OpexBuildFailureIsAbandonable's exclusion of
      * transient cash refusals (CASH / ERR_NOT_ENOUGH_CASH) from the abandon memory.

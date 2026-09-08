@@ -195,6 +195,16 @@ POOL_FINANCEABLE <- true;
  * est consigné sans artefact source encore présent ; P1.1 doit le remplacer
  * par un devis physique avant élection. Les autres modes restent à 1,0. */
 CAPITAL_CALIBRATION <- true;
+/* P1.1 : devis physique anticipé, rejeté à −30,7 % sur le diagnostic apparié
+ * 5×6. Gardé uniquement comme contrôle expérimental de P1.3. */
+RAIL_PREQUOTE <- false;
+/* P1.3 volet 1 : conserve le plan de P1.1 puis le revalide au chantier.
+ * Experimental et inerte tant que rail_prequote=0. */
+RAIL_PREQUOTE_KEEP_PLAN <- false;
+/* P1.2 : sonde de terrain en lecture seule (docs/taches.md), aucune decision live. */
+RAIL_TERRAIN_PROBE <- false;
+const RAIL_PREQUOTE_MAX_CANDIDATES = 2;
+const RAIL_PREQUOTE_HARD_CAP = 2500;
 /* P4 : n'exclut de la memoire d'abandon que les refus transitoires de caisse
  * (CASH / ERR_NOT_ENOUGH_CASH) survenus apres le garde du portefeuille. Reglage
  * ajoute le 2026-09-08 uniquement pour isoler P4 au banc factoriel P1xP3xP4 sans
@@ -2079,6 +2089,23 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
       local isPaxNear = PAX_NEAR && ("paxNear" in candidate) && candidate.paxNear;
       local alternativeRatio = isPaxNear ? 0 : MIN_RATIO;
       local hardCap = OpexDynamicHardCap(this._lines.len(), lowCash);
+      /* P1.3 : le devis P1.1 porte le chemin complet. Le reutiliser seulement
+       * apres une revalidation AITestMode sur la carte vivante ; un join decide
+       * au chantier n'etait pas dans le devis et force donc une replannification. */
+      if (RAIL_PREQUOTE_KEEP_PLAN && ("quotedPlan" in candidate) && candidate.quotedPlan != null) {
+        if (join == null && OpexRailQuotedPlanStillBuildable(candidate.quotedPlan, join)) {
+          candidate.railPlan <- candidate.quotedPlan;
+          candidate.quotedPlan = null;
+          if (DECISION_LOG) OpexDecide("P1_3_PLAN", "action=reuse src=" + candidate.src
+                                       + " dst=" + candidate.dst);
+        } else {
+          candidate.quotedPlan = null;
+          candidate.capitalIsActual = false;
+          if (DECISION_LOG) OpexDecide("P1_3_PLAN", "action=invalidate src=" + candidate.src
+                                       + " dst=" + candidate.dst + " reason="
+                                       + (join == null ? "map" : "join"));
+        }
+      }
       if (!lowCash && TREE_PLANTING && candidate.kind == "pax") {
         OpexBoostTownRating(candidate.src, 700, 35);
         OpexBoostTownRating(candidate.dst, 700, 35);
@@ -5177,6 +5204,9 @@ function OpexAI::Start()
   KNAPSACK_ROI = AIController.GetSetting("knapsack_roi") != 0;
   POOL_FINANCEABLE = AIController.GetSetting("pool_financeable") != 0;
   CAPITAL_CALIBRATION = AIController.GetSetting("capital_calibration") != 0;
+  RAIL_PREQUOTE = AIController.GetSetting("rail_prequote") != 0;
+  RAIL_PREQUOTE_KEEP_PLAN = AIController.GetSetting("rail_prequote_keep_plan") != 0;
+  RAIL_TERRAIN_PROBE = AIController.GetSetting("rail_terrain_probe") != 0;
   ABANDON_MEMORY_TRANSIENT_GUARD = AIController.GetSetting("abandon_memory_transient_guard") != 0;
   AIR_HUB_FIX = AIController.GetSetting("air_hub_fix") != 0;
   TENSION_PROBE = AIController.GetSetting("tension_probe") != 0;

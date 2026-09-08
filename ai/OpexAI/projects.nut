@@ -174,6 +174,69 @@ function OpexProjectFinanceCapital(project)
   return ((capital * 170) / 100) + nonConstructionCapital;
 }
 
+/* P1.1 : le ×1,7 n'est qu'un repli. Pour les quelques meilleurs rails du
+ * préfiltre, on peut payer un A* borné et le même devis AITestMode que le
+ * constructeur AVANT l'élection. Le plan n'est volontairement pas conservé :
+ * il peut devenir périmé entre le rafraîchissement et le chantier. */
+function OpexPrequoteRailCandidates(catalog, budget, rail)
+{
+  local result = { attempted = 0, quoted = 0, failed = 0, skippedJoin = 0, opcodes = 0 };
+  if (!RAIL_PREQUOTE || rail == null || !("best" in rail) || rail.best == null) return result;
+
+  foreach (candidate in rail.best) {
+    if (result.attempted >= RAIL_PREQUOTE_MAX_CANDIDATES) break;
+    /* Le rattachement à une gare existante dépend de l'état vivant de
+     * OpexAI::_tooClose. Le devis sans ce join serait faux : garder ×1,7. */
+    if (("placeJoin" in candidate) && candidate.placeJoin != null) {
+      result.skippedJoin++;
+      continue;
+    }
+    result.attempted++;
+    if (RAIL_TERRAIN_PROBE && DECISION_LOG) {
+      budget.begin();
+      local scan = OpexRailTerrainScanProbe(candidate.src, candidate.dst);
+      local scanOpcodes = budget.end("p1_2_terrain_scan");
+      OpexDecide("P1_2_TERRAIN", "src=" + candidate.src + " dst=" + candidate.dst
+                 + " distance=" + candidate.distance + " tiles=" + scan.tilesScanned
+                 + " complex_tiles=" + scan.complexTiles + " complex_segments="
+                 + scan.complexSegments + " water_tiles=" + scan.waterTiles
+                 + " slope_tiles=" + scan.slopeTiles + " ops=" + scanOpcodes);
+    }
+    budget.begin();
+    local plan = OpexPlanRailRoute(catalog, budget, candidate, MIN_RATIO, null,
+                                   RAIL_PREQUOTE_HARD_CAP);
+    result.opcodes += budget.end("p1_1_prequote_plan");
+    if (!plan.ok) {
+      result.failed++;
+      continue;
+    }
+
+    budget.begin();
+    local actualCapital = OpexQuoteRailCapital(catalog, candidate, plan, null);
+    result.opcodes += budget.end("p1_1_prequote_devis");
+    if (actualCapital <= 0) {
+      result.failed++;
+      continue;
+    }
+    OpexApplyRailActualCapital(candidate, actualCapital);
+    candidate.quotedCapital <- actualCapital;
+    candidate.quotedAtDate <- AIDate.GetCurrentDate();
+    if (RAIL_PREQUOTE_KEEP_PLAN) candidate.quotedPlan <- plan;
+    result.quoted++;
+    if (DECISION_LOG) {
+      OpexDecide("P1_1_QUOTE", "src=" + candidate.src + " dst=" + candidate.dst
+                 + " model=" + plan.capital + " quoted=" + actualCapital
+                 + " ops=" + result.opcodes);
+    }
+  }
+  if (DECISION_LOG && result.attempted > 0) {
+    OpexDecide("P1_1_QUOTE_SUMMARY", "attempted=" + result.attempted
+               + " quoted=" + result.quoted + " failed=" + result.failed
+               + " join_skipped=" + result.skippedJoin + " ops=" + result.opcodes);
+  }
+  return result;
+}
+
 function OpexProjectFromCandidate(candidate, tensionCtx = null)
 {
   if (candidate == null || candidate.profitAnnual <= 0 || candidate.revenueAnnual <= 0 ||
@@ -1262,6 +1325,7 @@ function OpexProjectEmptyRoad()
 function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCapitalHistory = null, fleetPlan = null, abandonedPairs = null)
 {
   local rail = OpexBuildCandidates(catalog, budget, lines, abandonedPairs);
+  local railPrequote = OpexPrequoteRailCandidates(catalog, budget, rail);
   local road = ROAD_BUILD_ENABLED
       ? OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs) : OpexProjectEmptyRoad();
 
@@ -1324,6 +1388,8 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
     odProjects = 0, budgetConsidered = 0, budgetSelected = 0,
     budgetRejected = 0, selectedRevenue = 0, selectedCapital = 0,
     knapsackNodes = 0, knapsackExact = true, poolInfundable = 0,
+    railPrequoteAttempted = railPrequote.attempted, railPrequoteQuoted = railPrequote.quoted,
+    railPrequoteFailed = railPrequote.failed, railPrequoteOpcodes = railPrequote.opcodes,
   };
   /* Branchement explicite plutot qu'une fonction passee dans un local : ce depot a deja paye
    * plusieurs echecs Squirrel silencieux, et ici une IA morte ressemblerait exactement a une IA

@@ -1605,6 +1605,104 @@ function OpexSimulateRailInfraCost(plan, join)
   return simulatedInfra;
 }
 
+/* Capital total correspondant exactement au devis rail : infrastructure simulée,
+ * dépôt et véhicules. Partagé par P1.1 (avant élection) et par le constructeur
+ * (avant engagement), afin qu'ils ne divergent pas. */
+function OpexQuoteRailCapital(catalog, candidate, plan, join)
+{
+  local realInfra = OpexSimulateRailInfraCost(plan, join);
+  if (realInfra <= 0) return 0;
+  local depotCost = catalog.costRailDepot + 2 * catalog.costTrackPerTile;
+  local vehicleCost = ("vehicleCost" in candidate) ? candidate.vehicleCost : 0;
+  if (vehicleCost <= 0 && ("loco" in candidate) && candidate.loco != null &&
+      (candidate.cargo in catalog.wagonByCargo)) {
+    vehicleCost = candidate.trains * (candidate.loco.price
+        + candidate.wagons * catalog.wagonByCargo[candidate.cargo].price);
+  }
+  return realInfra + depotCost + vehicleCost;
+}
+
+/* P1.2 : sonde de terrain bon marche, en lecture seule, AVANT tout pathfinding. Marche le trajet
+ * quasi-direct (en L : tout le delta X puis tout le delta Y -- pas de vraie diagonale, ca reste
+ * "quasi-direct" comme demande, et ca evite l'arithmetique d'un vrai Bresenham pour un gain
+ * marginal) entre srcTile et dstTile, classe chaque tuile echantillonnee plat/complexe (pente non
+ * plate via AITile.GetSlope, eau ou cote via IsWaterTile/IsCoastTile) et compte les SEGMENTS
+ * complexes (des runs contigus de tuiles complexes), jamais leur resolution -- aucun AITestMode,
+ * aucune mutation, aucun A*. Objet : verifier si ce comptage correle avec l'ecart devis/modele
+ * (P1_1_QUOTE) mieux que la seule distance, avant d'envisager de le brancher au classement. */
+function OpexRailTerrainScanProbe(srcTile, dstTile)
+{
+  local x0 = AIMap.GetTileX(srcTile);
+  local y0 = AIMap.GetTileY(srcTile);
+  local x1 = AIMap.GetTileX(dstTile);
+  local y1 = AIMap.GetTileY(dstTile);
+  local dx = x1 - x0;
+  local dy = y1 - y0;
+  local absDx = dx < 0 ? -dx : dx;
+  local absDy = dy < 0 ? -dy : dy;
+  local steps = absDx + absDy;
+  local result = { tilesScanned = 0, complexTiles = 0, waterTiles = 0, slopeTiles = 0,
+                   complexSegments = 0 };
+  if (steps == 0) return result;
+
+  local wasComplex = false;
+  for (local i = 0; i <= steps; i++) {
+    local x, y;
+    if (i <= absDx) {
+      x = x0 + (dx > 0 ? i : -i);
+      y = y0;
+    } else {
+      x = x1;
+      local j = i - absDx;
+      y = y0 + (dy > 0 ? j : -j);
+    }
+    local tile = AIMap.GetTileIndex(x, y);
+    result.tilesScanned++;
+    local isWater = AITile.IsWaterTile(tile) || AITile.IsCoastTile(tile);
+    local isSlope = AITile.GetSlope(tile) != AITile.SLOPE_FLAT;
+    if (isWater) result.waterTiles++;
+    if (isSlope) result.slopeTiles++;
+    local isComplex = isWater || isSlope;
+    if (isComplex) {
+      result.complexTiles++;
+      if (!wasComplex) result.complexSegments++;
+    }
+    wasComplex = isComplex;
+  }
+  return result;
+}
+
+/* P1.3 volet 1 : un devis conserve ne vaut que si sa geometrie est encore
+ * constructible. Rejoue les memes commandes d'infrastructure dans AITestMode,
+ * sans A* et sans mutation. Le plan n'est reutilisable que pour le meme join. */
+function OpexRailQuotedPlanStillBuildable(plan, join)
+{
+  if (plan == null || !("ok" in plan) || !plan.ok || plan.planA == null ||
+      plan.planB == null || plan.tiles == null || plan.tiles.len() < 3) return false;
+  local ok = false;
+  {
+    local testMode = AITestMode();
+    local planA = plan.planA;
+    local planB = plan.planB;
+    local tiles = plan.tiles;
+    for (local i = 0; i < planA.length; i++) AITile.DemolishTile(planA.anchor + planA.step * i);
+    for (local i = 0; i < planB.length; i++) AITile.DemolishTile(planB.anchor + planB.step * i);
+    local okA = AIRail.BuildRailStation(planA.anchor, planA.direction, 1, planA.length,
+                                        plan.joinA ? join.stationId : AIStation.STATION_NEW);
+    local okB = AIRail.BuildRailStation(planB.anchor, planB.direction, 1, planB.length,
+                                        !plan.joinA && join != null ? join.stationId : AIStation.STATION_NEW);
+    if (okA && okB) {
+      local trackFailed = OpexBuildTrack(tiles, plan.structures);
+      local last = tiles.len() - 1;
+      local connected = trackFailed == 0
+          && AIRail.AreTilesConnected(planA.station_exit, tiles[1], tiles[2])
+          && AIRail.AreTilesConnected(tiles[last - 2], tiles[last - 1], planB.station_exit);
+      if (connected) ok = OpexBuildDepot(tiles) != null;
+    }
+  }
+  return ok;
+}
+
 /* Execute la construction reelle d'un plan precalcule ou valide. */
 function OpexExecuteRailPlan(catalog, budget, candidate, plan, join, cashReserve)
 {
@@ -1634,15 +1732,8 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, join, cashReserve
   local joinA = plan.joinA;
 
   if (RAIL_DEVIS) {
-    local realInfra = OpexSimulateRailInfraCost(plan, join);
-    if (realInfra > 0) {
-      local depotCost = catalog.costRailDepot + 2 * catalog.costTrackPerTile;
-      local vehicleCost = ("vehicleCost" in candidate) ? candidate.vehicleCost : 0;
-      if (vehicleCost <= 0 && ("loco" in candidate) && candidate.loco != null &&
-          (candidate.cargo in catalog.wagonByCargo)) {
-        vehicleCost = candidate.trains * (candidate.loco.price + candidate.wagons * catalog.wagonByCargo[candidate.cargo].price);
-      }
-      local realCapital = realInfra + depotCost + vehicleCost;
+    local realCapital = OpexQuoteRailCapital(catalog, candidate, plan, join);
+    if (realCapital > 0) {
       result.capital = realCapital;
       /* G3 : le devis est une information economique, pas uniquement un garde de cash. */
       OpexApplyRailActualCapital(candidate, realCapital);
