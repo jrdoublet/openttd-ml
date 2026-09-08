@@ -148,18 +148,24 @@ function OpexProjectScore(value, cost)
 
 /* P1 : cout a comparer a la tresorerie mobilisable. `budgetCapital` reste le
  * cout economique utilise par les scores historiques ; il ne faut pas y
- * injecter un multiplicateur global. Pour le rail, le repli temporaire est
- * 1,7x le devis modele ; P1.1 doit le remplacer par un devis physique avant
- * l'election. Si le trace a deja fourni un devis reel, le candidat porte
- * `capitalIsActual` et ce montant remplace le facteur. Les marges et le capital
- * immobilise ne sont pas des travaux de voie : ils restent inchanges. */
+ * injecter un multiplicateur global. Repli temporaire par mode, mesure au
+ * sondage AIAccounting-isole (jamais un devis physique) : rail 1,7x
+ * (docs/opexai_prix_rail_terrain.md), route 1,21x (docs/taches.md, mesure du
+ * 2026-09-08 sur road_cost_probe, 5 graines x 6 ans, 4 812 tentatives). P1.1
+ * doit remplacer le rail par un devis physique avant l'election ; la route
+ * n'a pas d'equivalent. Si le trace a deja fourni un devis reel, le candidat
+ * porte `capitalIsActual` et ce montant remplace le facteur. Les marges et le
+ * capital immobilise ne sont pas des travaux de voie : ils restent inchanges. */
 function OpexProjectFinanceCapital(project)
 {
   if (project == null || !("budgetCapital" in project)) return 0;
   local financeCapital = project.budgetCapital;
-  if (!CAPITAL_CALIBRATION || !("mode" in project) || project.mode != "rail") {
-    return financeCapital;
-  }
+  if (!CAPITAL_CALIBRATION || !("mode" in project)) return financeCapital;
+
+  local biasPct = 0;
+  if (project.mode == "rail") biasPct = 170;
+  else if (project.mode == "road") biasPct = 121;
+  else return financeCapital;
 
   local capital = ("capital" in project) ? project.capital : 0;
   local modelCapital = capital;
@@ -177,7 +183,7 @@ function OpexProjectFinanceCapital(project)
   if (nonConstructionCapital < 0) nonConstructionCapital = 0;
   if (capitalIsActual) return capital + nonConstructionCapital;
 
-  return ((capital * 170) / 100) + nonConstructionCapital;
+  return ((capital * biasPct) / 100) + nonConstructionCapital;
 }
 
 /* P1.1 : le ×1,7 n'est qu'un repli. Pour les quelques meilleurs rails du
