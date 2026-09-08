@@ -185,7 +185,7 @@ function OpexRoadSites(center, townId, cargo, vehType, coverage, wantProduction,
         local value = wantProduction
             ? AITile.GetCargoProduction(tile, cargo, 1, 1, coverage)
             : AITile.GetCargoAcceptance(tile, cargo, 1, 1, coverage);
-        if (requireCargo && (wantProduction ? (value <= 0) : (value < ROAD_ACCEPTANCE_MIN))) continue;
+        if (requireCargo && (wantProduction ? (value <= 0) : (value < ROAD_ACCEPTANCE_FULL_UNIT))) continue;
         nCargo++;
         /* CheckFlatLandRoadStop ne regarde QUE la tuile de l'arret. Un batiment d'industrie ou
          * une maison a du cargo et brule le plafond de 48 sondes : 12 tuiles x 4 facades, et

@@ -1001,10 +1001,13 @@ ROAD_TOP_K <- 48;
  */
 const ROAD_MIN_PROFIT_ANNUAL = 1000;
 
-/* Seuil d'acceptation d'une ville pour un cargo. AITile.GetCargoAcceptance rend une acceptation en
- * huitiemes d'unite ; le moteur exige 8 (une unite pleine) pour livrer quoi que ce soit. En dessous
- * la gare accepterait le cargo a l'affichage sans que la livraison paie. */
-const ROAD_ACCEPTANCE_MIN = 8;
+/* Pas un plancher de calibration -- une regle moteur. AITile.GetCargoAcceptance rend une
+ * acceptation en huitiemes d'unite ; le moteur exige 8 (une unite pleine) pour livrer quoi que
+ * ce soit. En dessous la gare accepterait le cargo a l'affichage sans que la livraison paie.
+ * Renomme le 2026-09-08 (ex ROAD_ACCEPTANCE_MIN) apres avoir failli etre confondu avec les
+ * planchers reglables de la famille 2 de l'audit C43/E3 (docs/taches.md) -- jamais expose en
+ * reglage, et ne doit pas l'etre : l'abaisser ferait construire des lignes qui ne paient jamais. */
+const ROAD_ACCEPTANCE_FULL_UNIT = 8;
 
 /* Cout en "iterations equivalentes" d'une tentative routiere, pour rester dans la meme unite que
  * le rail (1 iteration ~ 2 700 opcodes).
@@ -1343,7 +1346,7 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
           acceptance = AITile.GetCargoAcceptance(towns[t].tile, cargo, 1, 1, truckCoverage);
           acceptanceCache.rawset(key, acceptance);
         }
-        if (acceptance < ROAD_ACCEPTANCE_MIN) { stats.townRejected++; continue; }
+        if (acceptance < ROAD_ACCEPTANCE_FULL_UNIT) { stats.townRejected++; continue; }
         stats.pairsInBand++;
         local candidate = OpexMakeRoadCandidate(catalog, "freight", cargo, source.tile,
                                                 towns[t].tile, -1, towns[t].id, distance, monthly,

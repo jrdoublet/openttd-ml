@@ -915,13 +915,13 @@ reste à trancher indépendamment.
   #### Famille 2 (planchers) — démarrée le 2026-09-08
 
   12 planchers restants après `MIN_SEPARATION` (famille 1, ne mord jamais) : `ATTEMPT_FLOOR`,
-  `PAX_NEAR_MIN_PROFIT`, `ROAD_MIN_DISTANCE`, `ROAD_MIN_PROFIT_ANNUAL`, `ROAD_ACCEPTANCE_MIN`,
+  `PAX_NEAR_MIN_PROFIT`, `ROAD_MIN_DISTANCE`, `ROAD_MIN_PROFIT_ANNUAL`, `ROAD_ACCEPTANCE_FULL_UNIT`,
   `CASH_RESERVE_MIN`, `LOOP_BUDGET_FLOOR`, `DYNAMIC_BATCH_OPS_FLOOR`,
   `PORTFOLIO_REFRESH_MIN_GAIN`, `ORIGIN_SEPARATION`, plus deux seuils apparentés
   (`DEAD_STREAK_THRESHOLD`, `SCRAP_TIMEOUT_YEARS`). Même méthode que famille 1 : instrumenter
   avec la télémétrie déjà livrée avant d'écrire le moindre code de jeu.
 
-  ✅ **`ROAD_MIN_PROFIT_ANNUAL = 1000` (candidates.nut:1002) et `ROAD_ACCEPTANCE_MIN = 8`
+  ✅ **`ROAD_MIN_PROFIT_ANNUAL = 1000` (candidates.nut:1002) et `ROAD_ACCEPTANCE_FULL_UNIT = 8`
   (candidates.nut:1007) mesurés, aucun nouveau code de jeu** — panneaux `VIVIER_GEN`/
   `VIVIER_REJECT` déjà livrés (`reason=road_profit_too_low`/`road_town_rejected`),
   `sweeps/diag_family2_floors.py`, 5 graines × 6 ans
@@ -930,7 +930,7 @@ reste à trancher indépendamment.
   | constante | rejets totaux | par graine (1/42/73/100/2026) |
   |---|---:|---|
   | `ROAD_MIN_PROFIT_ANNUAL` | **0** | 0/0/0/0/0 |
-  | `ROAD_ACCEPTANCE_MIN` | **495 216** | 151 488 / 94 176 / 67 608 / 86 544 / 95 400 |
+  | `ROAD_ACCEPTANCE_FULL_UNIT` | **495 216** | 151 488 / 94 176 / 67 608 / 86 544 / 95 400 |
 
   ⚠️ **Piège de dénominateur rencontré et documenté dans le script, pas de pourcentage de
   morsure fiable calculé.** `stats.townRejected` s'incrémente dans la boucle industrie × ville
@@ -942,13 +942,13 @@ reste à trancher indépendamment.
 
   **`ROAD_MIN_PROFIT_ANNUAL` ne mord jamais** dans cette fenêtre (5 graines × 6 ans, 180 864
   candidats produits) — même verdict que `MIN_SEPARATION` en famille 1 : mécanisme vivant,
-  jamais déclenché. **`ROAD_ACCEPTANCE_MIN` mord énormément et systématiquement** : 495 216
+  jamais déclenché. **`ROAD_ACCEPTANCE_FULL_UNIT` mord énormément et systématiquement** : 495 216
   rejets contre seulement **10 728 candidats gardés** (`VIVIER_GEN.kept`, toutes générations
   routières confondues) sur les mêmes graines — un rapport d'environ 46 rejets pour 1 candidat
   retenu, cohérent sur les 5 graines (67 608 à 151 488 chacune, jamais proche de 0). C'est de
   loin le plus gros motif de rejet routier nommé (devant `road_no_monthly` à 378 504).
 
-  ⚠️ **CORRIGÉ (2026-09-08, avant tout banc) : `ROAD_ACCEPTANCE_MIN` n'est PAS un candidat
+  ⚠️ **CORRIGÉ (2026-09-08, avant tout banc) : `ROAD_ACCEPTANCE_FULL_UNIT` n'est PAS un candidat
   d'étalonnage — erreur commise en écrivant ce paragraphe, retirée avant de dépenser un banc
   dessus (même famille d'erreur que la fausse alerte `rail_refleet` corrigée plus haut le même
   jour).** Le commentaire du code (`candidates.nut:1004-1006`, déjà présent, pas relu avant
@@ -960,9 +960,18 @@ reste à trancher indépendamment.
   sur du fret jamais payé, un résultat de banc **prévisible d'avance**, pas une question ouverte.
   L'énorme volume de rejets n'est alors pas la preuve d'un filtre trop strict — c'est la
   démographie réelle de la carte (peu de villes ont une acceptation pleine unité pour un cargo
-  donné dans le rayon camion), et `ROAD_ACCEPTANCE_MIN` fait exactement son travail en les
-  écartant avant qu'ils ne gaspillent du capital. **Pas de banc lancé.** Reste à faire si besoin :
-  vérifier la règle « le moteur exige 8 » contre le source OpenTTD (`station_cmd.cpp` ou
+  donné dans le rayon camion), et `ROAD_ACCEPTANCE_FULL_UNIT` fait exactement son travail en les
+  écartant avant qu'ils ne gaspillent du capital. **Pas de banc lancé.**
+
+  **Renommée `ROAD_ACCEPTANCE_MIN` → `ROAD_ACCEPTANCE_FULL_UNIT` (2026-09-08,
+  `candidates.nut`/`builder_road.nut`, 3 sites)**, demandé par l'utilisateur : le suffixe `_MIN`
+  la rangeait visuellement avec les planchers réglables de la famille 2 ci-dessus
+  (`CASH_RESERVE_MIN`, `ATTEMPT_FLOOR`…) et a directement causé la confusion qui a produit ce
+  paragraphe de correction. `_FULL_UNIT` porte le fait dans le nom : 8 = une unité pleine
+  d'acceptation, pas un seuil choisi. Jamais exposée en réglage (vérifié avant renommage,
+  absente d'`info.nut`) — rien à retirer côté banc.
+
+  Reste à faire si besoin : vérifier la règle « le moteur exige 8 » contre le source OpenTTD (`station_cmd.cpp` ou
   équivalent) plutôt que contre le seul commentaire du dépôt, avant de la citer comme acquise.
 
   🔶 **Reste à faire pour clore famille 2** : les 10 autres constantes n'ont pas de compteur
