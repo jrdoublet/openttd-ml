@@ -142,6 +142,8 @@ C41_ROAD_FREIGHT_TOWN_PROFILE <- false;
 C41_ROAD_FREIGHT_ACCEPTANCE_INDEX <- false;
 /* C41.21 : ventilation passive des deux generations de feeders. */
 C41_ROAD_FEEDER_PROFILE <- false;
+/* C41.22 : cout et debit du pipeline rail vers le portefeuille, sans preemption. */
+C41_RAIL_PORTFOLIO_PROFILE <- false;
 /* C41.4 : sonde strictement passive des vehicules perdus. Contrairement a A7.4,
  * elle n'ecrit ni compteur de ligne ni signe, et n'arme aucune tache. */
 C41_VEHICLE_LOST_PROBE <- false;
@@ -6045,6 +6047,22 @@ function OpexAI::_runNextTask()
         OpexC39Log("C41_ROAD_FEEDER_PROFILE", "build_ops=" + profile.feederOps);
       }
     }
+    if (C41_RAIL_PORTFOLIO_PROFILE && this._projects != null && ("stats" in this._projects)
+        && this._projects.stats != null && ("railProfile" in this._projects.stats)) {
+      local railProfile = this._projects.stats.railProfile;
+      OpexC39Log("C41_RAIL_PORTFOLIO_PROFILE", "generation_ops=" + railProfile.generationOps
+                 + " generation_candidates=" + railProfile.generationCandidates
+                 + " topk_candidates=" + railProfile.topKCandidates
+                 + " prequote_ops=" + railProfile.prequoteOps
+                 + " prequote_attempted=" + railProfile.prequoteAttempted
+                 + " prequote_quoted=" + railProfile.prequoteQuoted
+                 + " prequote_failed=" + railProfile.prequoteFailed
+                 + " insert_ops=" + railProfile.insertOps
+                 + " inserted_projects=" + railProfile.insertedProjects
+                 + " selection_ops=" + this._projects.stats.selectionOpcodes
+                 + " selection_considered=" + this._projects.stats.budgetConsidered
+                 + " selection_selected=" + this._projects.stats.budgetSelected);
+    }
     this._logStalenessRefresh(refreshReason);
     this._portfolioInvalidated = false;
     this._ranked = this._projects.rail;
@@ -6532,6 +6550,7 @@ function OpexAI::Start()
   C41_ROAD_FREIGHT_TOWN_PROFILE = AIController.GetSetting("c41_road_freight_town_profile") != 0;
   C41_ROAD_FREIGHT_ACCEPTANCE_INDEX = AIController.GetSetting("c41_road_freight_acceptance_index") != 0;
   C41_ROAD_FEEDER_PROFILE = AIController.GetSetting("c41_road_feeder_profile") != 0;
+  C41_RAIL_PORTFOLIO_PROFILE = AIController.GetSetting("c41_rail_portfolio_profile") != 0;
   C41_RAIL_LOST_PROBE = AIController.GetSetting("c41_rail_lost_probe") != 0;
   C41_RAIL_LOST_TOPOLOGY_PROBE = AIController.GetSetting("c41_rail_lost_topology_probe") != 0;
   C41_RAIL_LOST_PHYSICAL_PROBE = AIController.GetSetting("c41_rail_lost_physical_probe") != 0;

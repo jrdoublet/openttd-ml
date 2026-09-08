@@ -1348,8 +1348,28 @@ function OpexProjectEmptyRoad()
 
 function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCapitalHistory = null, fleetPlan = null, abandonedPairs = null)
 {
+  /* C41.22 : intervalles disjoints du chemin rail historique. Le pre-devis peut etre inactif
+   * par reglage : publier alors son zero est justement necessaire pour ne pas attribuer son cout
+   * hypothetique au comportement par defaut. */
+  local railProfile = C41_RAIL_PORTFOLIO_PROFILE
+      ? { generationOps = 0, generationCandidates = 0, topKCandidates = 0,
+          prequoteOps = 0, prequoteAttempted = 0, prequoteQuoted = 0, prequoteFailed = 0,
+          insertOps = 0, insertedProjects = 0 } : null;
+  local railGenerationMark = railProfile != null ? OpexOpsMeasureBegin() : null;
   local rail = OpexBuildCandidates(catalog, budget, lines, abandonedPairs);
+  if (railProfile != null) {
+    railProfile.generationOps = OpexOpsMeasureEnd(railGenerationMark);
+    railProfile.generationCandidates = rail.candidates.len();
+    railProfile.topKCandidates = rail.best.len();
+  }
+  local railPrequoteMark = railProfile != null ? OpexOpsMeasureBegin() : null;
   local railPrequote = OpexPrequoteRailCandidates(catalog, budget, rail);
+  if (railProfile != null) {
+    railProfile.prequoteOps = OpexOpsMeasureEnd(railPrequoteMark);
+    railProfile.prequoteAttempted = railPrequote.attempted;
+    railProfile.prequoteQuoted = railPrequote.quoted;
+    railProfile.prequoteFailed = railPrequote.failed;
+  }
   /* C41.16/C41.17 : mesure seulement les etapes de generation route pendant la passe historique. */
   local roadProfile = (C41_ROAD_CANDIDATE_PROFILE || C41_ROAD_FREIGHT_PROFILE || C41_ROAD_FREIGHT_TOWN_PROFILE || C41_ROAD_FEEDER_PROFILE)
       ? { paxOps = 0, freightOps = 0, feederOps = 0, topKOps = 0,
@@ -1421,6 +1441,7 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
     railPrequoteAttempted = railPrequote.attempted, railPrequoteQuoted = railPrequote.quoted,
     railPrequoteFailed = railPrequote.failed, railPrequoteOpcodes = railPrequote.opcodes,
   };
+  if (railProfile != null) stats.railProfile <- railProfile;
   /* Branchement explicite plutot qu'une fonction passee dans un local : ce depot a deja paye
    * plusieurs echecs Squirrel silencieux, et ici une IA morte ressemblerait exactement a une IA
    * nulle au banc. */
@@ -1511,9 +1532,15 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
 
   if (!SHADOW_PRICING) {
     if (PORTFOLIO_V2) {
+      local railInsertMark = railProfile != null ? OpexOpsMeasureBegin() : null;
+      local railProjectsBefore = stats.modeCandidates;
       foreach (candidate in rail.candidates) {
         if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) continue;
         OpexProjectRememberAll(winners, OpexProjectFromCandidate(candidate, tensionCtx), stats);
+      }
+      if (railProfile != null) {
+        railProfile.insertOps = OpexOpsMeasureEnd(railInsertMark);
+        railProfile.insertedProjects = stats.modeCandidates - railProjectsBefore;
       }
       foreach (candidate in road.candidates) {
         if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) continue;
@@ -1531,9 +1558,15 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
         }
       }
     } else {
+      local railInsertMark = railProfile != null ? OpexOpsMeasureBegin() : null;
+      local railProjectsBefore = stats.modeCandidates;
       foreach (candidate in rail.candidates) {
         if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) continue;
         OpexProjectRemember(winners, OpexProjectFromCandidate(candidate, tensionCtx), stats);
+      }
+      if (railProfile != null) {
+        railProfile.insertOps = OpexOpsMeasureEnd(railInsertMark);
+        railProfile.insertedProjects = stats.modeCandidates - railProjectsBefore;
       }
       foreach (candidate in road.candidates) {
         if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) continue;

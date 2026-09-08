@@ -390,6 +390,14 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    AddSetting({
+      name = "c41_rail_portfolio_profile",
+      description = "C41.22 probe: split rail generation, prequote, portfolio insertion and selection opcodes; no scheduling change; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* C41.4 : inventaire passif des vehicules perdus, independant de l'alerte A7.4. */
     AddSetting({
       name = "c41_vehicle_lost_probe",

@@ -1068,6 +1068,17 @@ reste à trancher indépendamment.
   d'aéroport. Le diagnostic d'intégration avec ce défaut
   (`results/diag_c41_21_feeder_candidates_off_6y_5seeds.json`) est sain sur les 5 graines.
 
+  ✅ **C41.22 — profil du pipeline rail vers le portefeuille, 5 graines × 6 ans.** La sonde
+  passive `c41_rail_portfolio_profile=0` est saine dans
+  `results/diag_c41_22_rail_portfolio_profile_6y_5seeds.json` : **296** reconstructions de
+  portefeuille, sans erreur. La génération `OpexBuildCandidates` absorbe **619,78 M opcodes**
+  (2,09 M par reconstruction) pour 24 905 candidats ; l'insertion/déduplication rail n'en prend
+  que **6,66 M**, et la sélection multimodale **25,08 M**. Le pré-devis rail est explicitement à
+  **zéro** (`rail_prequote=0`) : son coût A*/devis n'appartient donc pas au chemin par défaut.
+  La génération représente 95,1 % de ces trois intervalles mesurés ; le prochain contrat doit
+  sous-profiler `OpexBuildCandidates` (préparation, boucles de paires et économie), avant toute
+  tentative sur le portefeuille ou le sac à dos.
+
   ✅ **C39.4 — les cinq avions « rejetés » sont dominés, non invalides.** La sonde
   `c39_air_reason_probe=0`, sur 5 graines × 6 ans
   (`results/diag_c39_air_reason_6y_5seeds.json`), est saine : les cinq notifications sont le moteur
