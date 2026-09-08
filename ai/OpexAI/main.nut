@@ -2048,6 +2048,7 @@ function OpexAI::_tryBuildFeeders(year)
     pairsInBand = 0, noMonthly = 0, noEngine = 0, townRejected = 0,
     economicsUnavailable = 0, profitTooLow = 0, accepted = 0,
     feederHubs = 0, feederCandidates = 0,
+    roadDistanceShort = 0, roadDistanceLong = 0,
   };
   /* C31.2 : la generation de feeders etait comptabilisee tant qu'elle vivait dans
    * OpexBuildRoadCandidates (budget "cand_road"). C29.3 l'en a sortie -- a juste titre, pour

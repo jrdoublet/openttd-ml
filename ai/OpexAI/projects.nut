@@ -1185,6 +1185,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
       pairsInBand = 0, noMonthly = 0, noEngine = 0, townRejected = 0,
       economicsUnavailable = 0, profitTooLow = 0, accepted = 0,
       feederHubs = 0, feederCandidates = 0,
+      roadDistanceShort = 0, roadDistanceLong = 0,
     };
     OpexRoadFeederCandidates(catalog, lines, freshFeeders, feederStats, abandonedPairs);
     if (("road" in projects) && ("stats" in projects.road)) {
@@ -1334,7 +1335,8 @@ function OpexProjectEmptyRoad()
     all = 0, candidates = [], best = [],
     stats = { pairsInBand = 0, noMonthly = 0, noEngine = 0, townRejected = 0,
               economicsUnavailable = 0, profitTooLow = 0, accepted = 0,
-              feederHubs = 0, feederCandidates = 0 },
+              feederHubs = 0, feederCandidates = 0,
+              roadDistanceShort = 0, roadDistanceLong = 0 },
     opcodes = 0,
   };
 }
