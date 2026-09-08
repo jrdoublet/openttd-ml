@@ -1088,6 +1088,15 @@ reste à trancher indépendamment.
   et services existants, paires ville×ville, puis économie — avant de proposer un index ou un
   filtre.
 
+  ✅ **C41.24 — sous-profil pax rail, 5 graines × 6 ans.** La sonde passive
+  `results/diag_c41_24_rail_pax_profile_6y_5seeds.json` est saine sur **297** générations.
+  La préparation villes/services coûte **4,35 M** opcodes ; le balayage des paires en coûte
+  **468,32 M**, dont **437,31 M (93,4 %)** dans `OpexMakeCandidate`. Les **268 332** paires
+  parcourues appellent toutes ce dernier helper : les gardes de desserte ne les écartent presque
+  jamais dans cette fenêtre. Le résidu du balayage hors appel vaut seulement 31,01 M. Prochaine
+  micro-tâche : ventiler `OpexMakeCandidate` pax entre siteabilité de l'origine et économie, puis
+  chercher un cache exact seulement sur le poste qui domine.
+
   ✅ **C39.4 — les cinq avions « rejetés » sont dominés, non invalides.** La sonde
   `c39_air_reason_probe=0`, sur 5 graines × 6 ans
   (`results/diag_c39_air_reason_6y_5seeds.json`), est saine : les cinq notifications sont le moteur

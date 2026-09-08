@@ -721,7 +721,7 @@ function OpexPlaceJoinFreight(catalog, lines, out, stats, industries, served, ab
 }
 
 /* Paires de villes pour les passagers. */
-function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null)
+function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null)
 {
   local cargo = catalog.paxCargo;
   if (cargo < 0) return;
@@ -729,6 +729,7 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null)
   local n = towns.len();
   local produced = [];
   local served = [];
+  local preparationMark = profile != null ? OpexOpsMeasureBegin() : null;
   for (local i = 0; i < n; i++) {
     local p = AITown.GetLastMonthProduction(towns[i].id, cargo);
     if (p <= 0 && towns[i].pop > 0) p = (towns[i].pop * 22) / 100;
@@ -738,6 +739,8 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null)
     if (service != null) stats.townsServed++; else stats.townsUnserved++;
   }
   if (JOIN_PLACE) OpexPlaceJoinPax(catalog, lines, out, stats, towns, produced, served, cargo, abandonedPairs);
+  if (profile != null) profile.paxPreparationOps += OpexOpsMeasureEnd(preparationMark);
+  local pairTotalMark = profile != null ? OpexOpsMeasureBegin() : null;
   for (local a = 0; a < n; a++) {
     for (local b = a + 1; b < n; b++) {
       if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
@@ -748,6 +751,7 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null)
         if (pairKey in abandonedPairs) continue;
       }
       stats.pairsTotal++;
+      if (profile != null) profile.paxPairsScanned++;
       local sa = served[a];
       local sb = served[b];
       /* Les deux extremites servies, ou le bras de controle du banc (station_join = 0) : rejet
@@ -790,8 +794,13 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null)
        * Ce que la mesure designe a sa place est dans docs/taches.md : le profit reel vaut 1,47 fois
        * le predit sous 50 tuiles, 0,41 entre 50 et 75, et la MEDIANE tombe a 0,00 au-dela de 100.
        * Corriger `monthly` ici serait donc traiter le mauvais terme. */
+      local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
       local candidate = OpexMakeCandidate(catalog, "pax", cargo, towns[a].tile, towns[b].tile,
                                           monthly, originServed, stats);
+      if (profile != null) {
+        profile.paxCandidateOps += OpexOpsMeasureEnd(candidateMark);
+        profile.paxCandidateCalls++;
+      }
       if (candidate != null) {
         if (JOIN_PLACE && (OpexAbandonedPairKey(candidate) in stats.placeJoinKeys)) {
           /* H2 porte deja le join ; ne pas occuper un second slot TOP_K. */
@@ -801,6 +810,7 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null)
       }
     }
   }
+  if (profile != null) profile.paxPairTotalOps += OpexOpsMeasureEnd(pairTotalMark);
 }
 
 /* Industries : on n'apparie que des couples producteur/accepteur du MEME cargo, ce qui garde
@@ -911,7 +921,7 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
 /* Construit et classe tous les candidats. Rend la liste triee par rapport decroissant.
  * `lines` (this._lines de main.nut) sert a exclure les origines deja desservies avant meme de
  * calculer un candidat -- voir OpexOriginServed ci-dessus. */
-function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, profile = null)
+function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, profile = null, paxProfile = null)
 {
   local all = [];
   /* Comptes de rejet : ils se trouvent ici, avant que TOP_K ne masque les candidats restants.
@@ -946,7 +956,7 @@ function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, prof
 
   local paxMark = profile != null ? OpexOpsMeasureBegin() : null;
   budget.begin();
-  OpexPaxCandidates(catalog, lines, all, stats, abandonedPairs);
+  OpexPaxCandidates(catalog, lines, all, stats, abandonedPairs, paxProfile);
   local opsPax = budget.end("cand_pax");
   if (profile != null) profile.paxOps += OpexOpsMeasureEnd(paxMark);
 
