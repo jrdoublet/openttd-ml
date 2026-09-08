@@ -1296,8 +1296,41 @@ reste à trancher indépendamment.
   vivant mais inatteignable au défaut), pas que `MIN_SEPARATION`/`ROAD_MIN_PROFIT_ANNUAL`
   (mécanisme atteignable qui ne mord jamais). Aucun banc, aucune instrumentation neuve.
 
-  🔶 **Reste à faire pour clore famille 2** : 9 constantes sans compteur binaire prêt à l'emploi —
-  `ATTEMPT_FLOOR`, `CASH_RESERVE_MIN`, `LOOP_BUDGET_FLOOR`, `PORTFOLIO_REFRESH_MIN_GAIN`,
+  ✅ **`CASH_RESERVE_MIN = 5000` (main.nut) instrumenté et mesuré (2026-09-08).** Pas de compteur
+  prêt à l'emploi — `OpexCashReserve()` est appelée à quasiment chaque décision de construction,
+  trop souvent pour journaliser chaque appel. Compteurs cumulatifs ajoutés (`cash_reserve_probe`,
+  défaut 0, aucun changement de comportement), publiés en delta annuel par la tâche `report`
+  existante (panneau `CASH_RESERVE_PROBE`). Confirmé atteignable au défaut avant d'instrumenter
+  (`DYNAMIC_CASH_RESERVE=true` par défaut — vérifié cette fois avant d'écrire quoi que ce soit,
+  leçon `rail_refleet` plus haut).
+
+  5 graines × 6 ans (`docs/diag_cash_reserve_probe_6y_5seeds.json`,
+  `sweeps/diag_cash_reserve_probe.py`) : **11 172 appels réels**, 0 erreur.
+
+  | | mordu | % |
+  |---|---:|---:|
+  | `CASH_RESERVE_MIN` (plancher) | 285 | **2,55 %** |
+  | `CASH_RESERVE_MAX` (plafond, constante voisine, pas la cible de cette passe) | 7 286 | **65,2 %** |
+
+  Par graine (min/max) : 1 → 2,3 %/66,8 % ; 42 → 7,5 %/38,2 % ; 73 → 1,5 %/68,3 % ;
+  100 → 0,9 %/76,1 % ; 2026 → 1,8 %/69,6 %.
+
+  **`CASH_RESERVE_MIN` mord réellement mais reste minoritaire** (0,9 à 7,5 % selon la graine,
+  jamais zéro comme `MIN_SEPARATION`/`ROAD_MIN_PROFIT_ANNUAL`, jamais dominant non plus) : un
+  résultat intermédiaire, différent des deux verdicts binaires vus jusqu'ici en famille 2. Pas de
+  banc — la question posée (« mord-il ? ») a sa réponse ; retoucher sa valeur resterait à
+  justifier séparément si le sujet redevient prioritaire.
+
+  🔴 **Trouvaille inattendue, hors périmètre de cette passe : `CASH_RESERVE_MAX` domine largement
+  et mérite sa propre investigation.** La réserve dynamique est plafonnée à 25 000 £ (identique à
+  `CASH_RESERVE_STATIC`) dans **65,2 % des appels**, cohérent sur les 5 graines (jamais sous
+  38 %) — la flotte a l'air d'être assez grosse assez tôt pour que l'entretien trimestriel dépasse
+  systématiquement ce plafond, plus souvent qu'il ne tombe sous le plancher. `CASH_RESERVE_MAX`
+  n'était pas dans la liste des 12 planchers de famille 2 (c'est un plafond, famille 1) — à ajouter
+  à une future passe famille 1 plutôt qu'ici.
+
+  🔶 **Reste à faire pour clore famille 2** : 8 constantes sans compteur binaire prêt à l'emploi —
+  `ATTEMPT_FLOOR`, `LOOP_BUDGET_FLOOR`, `PORTFOLIO_REFRESH_MIN_GAIN`,
   `PAX_NEAR_MIN_PROFIT`, `ORIGIN_SEPARATION`, `ROAD_MIN_DISTANCE`, `DEAD_STREAK_THRESHOLD`,
   `SCRAP_TIMEOUT_YEARS` — demandent une instrumentation nouvelle et ciblée avant de pouvoir être
   classées.
