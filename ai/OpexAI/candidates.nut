@@ -452,6 +452,20 @@ function OpexRoadFreightServedIndex(lines)
   return served;
 }
 
+/* C41.20 : les villes qui n'acceptent pas une unite pleine ne pourront jamais devenir un puits
+ * fret. La liste est construite une fois par cargo et garde l'ordre croissant historique des
+ * villes ; la boucle source->ville conserve donc l'ordre de tous les candidats admissibles. */
+function OpexRoadFreightAcceptedTowns(towns, servedTown, cargo, truckCoverage)
+{
+  local accepted = [];
+  for (local t = 0; t < towns.len(); t++) {
+    if (servedTown[t]) continue;
+    local acceptance = AITile.GetCargoAcceptance(towns[t].tile, cargo, 1, 1, truckCoverage);
+    if (acceptance >= ROAD_ACCEPTANCE_FULL_UNIT) accepted.append(t);
+  }
+  return accepted;
+}
+
 /* DE LA GUILLOTINE AU FILET (2026-08-29). L'exclusion ci-dessus, ecrite le 2026-08-28, rejetait la
  * paire des qu'UNE de ses deux extremites etait servie. Mesure sur 20 ans, graine 42
  * (results/opex_road_20y_42.json) : a partir de 1982 elle ecarte 213 a 242 paires par an et il ne
@@ -1346,6 +1360,11 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
      * une ville pour un cargo qu'aucune industrie ne produit utilement en volume. */
     if (cargo == catalog.paxCargo) continue;
     local sinks = (cargo in catalog.acceptors) ? catalog.acceptors[cargo] : [];
+    /* C41.20 : la liste est locale au cargo et a cette generation. Les appels API anticipes sont
+     * purs ; ils ne changent ni l'industrie, ni le filtre de distance, ni l'ordre des candidats. */
+    local townTargets = C41_ROAD_FREIGHT_ACCEPTANCE_INDEX
+        ? OpexRoadFreightAcceptedTowns(towns, servedTown, cargo, truckCoverage) : null;
+    if (townTargets != null) stats.townAcceptancePrefiltered += towns.len() - townTargets.len();
 
     foreach (si in sources) {
       if (servedIndustry[si]) continue;
@@ -1376,9 +1395,11 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
        * dans la mesure globale town, qui peut traverser un suspend. */
       local townMark = (profile != null && !C41_ROAD_FREIGHT_TOWN_PROFILE)
           ? OpexOpsMeasureBegin() : null;
-      for (local t = 0; t < towns.len(); t++) {
+      local townCount = townTargets != null ? townTargets.len() : towns.len();
+      for (local ti = 0; ti < townCount; ti++) {
+        local t = townTargets != null ? townTargets[ti] : ti;
         if (profile != null && C41_ROAD_FREIGHT_TOWN_PROFILE) profile.freightTownScanned++;
-        if (servedTown[t]) continue;
+        if (townTargets == null && servedTown[t]) continue;
         local distance = AIMap.DistanceManhattan(source.tile, towns[t].tile);
         if (distance < ROAD_MIN_DISTANCE) { stats.roadDistanceShort++; continue; }
       if (distance > ROAD_MAX_DISTANCE) { stats.roadDistanceLong++; continue; }
@@ -1387,19 +1408,25 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
           local pairKey = "freight|" + cargo + "|" + source.id + "|t" + towns[t].id;
           if (pairKey in abandonedPairs) continue;
         }
-        local key = t + "|" + cargo;
         local acceptance;
-        if (key in acceptanceCache) {
-          acceptance = acceptanceCache[key];
-          if (profile != null && C41_ROAD_FREIGHT_TOWN_PROFILE) profile.freightTownAcceptanceHits++;
+        if (townTargets != null) {
+          /* L'index a deja verifie acceptance >= 8. Ne pas reecrire townRejected : son compteur
+           * historique de paires filtrees n'est pertinent que sur le chemin exhaustif OFF. */
+          acceptance = ROAD_ACCEPTANCE_FULL_UNIT;
         } else {
-          local acceptanceMark = (profile != null && C41_ROAD_FREIGHT_TOWN_PROFILE)
-              ? OpexOpsMeasureBegin() : null;
-          acceptance = AITile.GetCargoAcceptance(towns[t].tile, cargo, 1, 1, truckCoverage);
-          acceptanceCache.rawset(key, acceptance);
-          if (acceptanceMark != null) {
-            profile.freightTownAcceptanceOps += OpexOpsMeasureEnd(acceptanceMark);
-            profile.freightTownAcceptanceMisses++;
+          local key = t + "|" + cargo;
+          if (key in acceptanceCache) {
+            acceptance = acceptanceCache[key];
+            if (profile != null && C41_ROAD_FREIGHT_TOWN_PROFILE) profile.freightTownAcceptanceHits++;
+          } else {
+            local acceptanceMark = (profile != null && C41_ROAD_FREIGHT_TOWN_PROFILE)
+                ? OpexOpsMeasureBegin() : null;
+            acceptance = AITile.GetCargoAcceptance(towns[t].tile, cargo, 1, 1, truckCoverage);
+            acceptanceCache.rawset(key, acceptance);
+            if (acceptanceMark != null) {
+              profile.freightTownAcceptanceOps += OpexOpsMeasureEnd(acceptanceMark);
+              profile.freightTownAcceptanceMisses++;
+            }
           }
         }
         if (acceptance < ROAD_ACCEPTANCE_FULL_UNIT) { stats.townRejected++; continue; }
@@ -1759,7 +1786,7 @@ function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null, 
 {
   local all = [];
   local stats = {
-    pairsInBand = 0, noMonthly = 0, noEngine = 0, townRejected = 0,
+    pairsInBand = 0, noMonthly = 0, noEngine = 0, townRejected = 0, townAcceptancePrefiltered = 0,
     economicsUnavailable = 0, profitTooLow = 0, accepted = 0,
     feederHubs = 0, feederCandidates = 0,
     /* C43/E3 famille 2 : ROAD_MIN_DISTANCE/ROAD_MAX_DISTANCE mordent-elles ? */
@@ -1811,6 +1838,9 @@ function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null, 
     }
     if (stats.townRejected > 0) {
       OpexDecide("VIVIER_REJECT", "reason=road_town_rejected n=" + stats.townRejected);
+    }
+    if (stats.townAcceptancePrefiltered > 0) {
+      OpexDecide("VIVIER_REJECT", "reason=road_town_acceptance_prefiltered n=" + stats.townAcceptancePrefiltered);
     }
     if (stats.economicsUnavailable > 0) {
       OpexDecide("VIVIER_REJECT", "reason=road_economics_unavailable n=" + stats.economicsUnavailable);

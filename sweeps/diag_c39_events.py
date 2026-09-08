@@ -113,6 +113,8 @@ def main():
                         help="active C41.18 : index local des origines rail/route servies du fret")
     parser.add_argument("--c41-road-freight-town-profile", action="store_true",
                         help="active C41.19 : detail acceptation/economie des puits urbains fret")
+    parser.add_argument("--c41-road-freight-acceptance-index", action="store_true",
+                        help="active C41.20 : index des villes a acceptation pleine par cargo fret")
     parser.add_argument("--road-pax-build", action="store_true",
                         help="active les candidats passagers route pour un diagnostic de cout")
     parser.add_argument("--c41-vehicle-lost-probe", action="store_true",
@@ -186,6 +188,8 @@ def main():
         settings.append(("c41_road_freight_served_index", 1))
     if args.c41_road_freight_town_profile:
         settings.append(("c41_road_freight_town_profile", 1))
+    if args.c41_road_freight_acceptance_index:
+        settings.append(("c41_road_freight_acceptance_index", 1))
     if args.road_pax_build:
         settings.append(("road_pax_build", 1))
     ai = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", tuple(settings))
@@ -454,6 +458,7 @@ def main():
                      "c41_road_freight_profile": int(args.c41_road_freight_profile),
                      "c41_road_freight_served_index": int(args.c41_road_freight_served_index),
                      "c41_road_freight_town_profile": int(args.c41_road_freight_town_profile),
+                     "c41_road_freight_acceptance_index": int(args.c41_road_freight_acceptance_index),
                      "road_pax_build": int(args.road_pax_build),
                      "c41_vehicle_lost_probe": int(args.c41_vehicle_lost_probe or args.c41_rail_lost_probe),
                      "c41_rail_lost_probe": int(args.c41_rail_lost_probe or args.c41_rail_lost_topology_probe or args.c41_rail_lost_physical_probe or args.c41_rail_lost_signal_repair),

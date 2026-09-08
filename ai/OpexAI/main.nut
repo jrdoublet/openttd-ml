@@ -138,6 +138,8 @@ C41_ROAD_FREIGHT_PROFILE <- false;
 C41_ROAD_FREIGHT_SERVED_INDEX <- false;
 /* C41.19 : profil passif interne des puits urbains du fret route. */
 C41_ROAD_FREIGHT_TOWN_PROFILE <- false;
+/* C41.20 : index experimental des puits urbains acceptant le cargo fret. */
+C41_ROAD_FREIGHT_ACCEPTANCE_INDEX <- false;
 /* C41.4 : sonde strictement passive des vehicules perdus. Contrairement a A7.4,
  * elle n'ecrit ni compteur de ligne ni signe, et n'arme aucune tache. */
 C41_VEHICLE_LOST_PROBE <- false;
@@ -6517,6 +6519,7 @@ function OpexAI::Start()
   C41_ROAD_FREIGHT_PROFILE = AIController.GetSetting("c41_road_freight_profile") != 0;
   C41_ROAD_FREIGHT_SERVED_INDEX = AIController.GetSetting("c41_road_freight_served_index") != 0;
   C41_ROAD_FREIGHT_TOWN_PROFILE = AIController.GetSetting("c41_road_freight_town_profile") != 0;
+  C41_ROAD_FREIGHT_ACCEPTANCE_INDEX = AIController.GetSetting("c41_road_freight_acceptance_index") != 0;
   C41_RAIL_LOST_PROBE = AIController.GetSetting("c41_rail_lost_probe") != 0;
   C41_RAIL_LOST_TOPOLOGY_PROBE = AIController.GetSetting("c41_rail_lost_topology_probe") != 0;
   C41_RAIL_LOST_PHYSICAL_PROBE = AIController.GetSetting("c41_rail_lost_physical_probe") != 0;
