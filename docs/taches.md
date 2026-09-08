@@ -1691,10 +1691,37 @@ borné~~ / ~~l'item **7**~~ / ~~l'item **4**~~.
   un biais réel mais plus petit que le rail (×1,7). `OpexProjectFinanceCapital`
   (`projects.nut:160`) ne corrige **que** `project.mode == "rail"` — la route n'a aucune
   protection de finançabilité, exposée à la même Raison 3 que C38 (le filtre de finançabilité
-  ment sur le capital modèle) mais à une échelle plus faible. **Non corrigé** : mesure seule pour
-  l'instant, pas de décision d'étendre `capital_calibration` à la route ni de devis physique
-  route (pendant de P1.1). À évaluer avant toute nouvelle tâche qui dépend de la finançabilité
-  route.
+  ment sur le capital modèle) mais à une échelle plus faible.
+
+  **Corrigé (2026-09-08, `3e79056`).** `OpexProjectFinanceCapital` porte désormais un
+  multiplicateur par mode (`biasPct`) au lieu du garde `mode == "rail"` : rail ×1,7 inchangé,
+  route ×1,21 nouveau. La route n'a pas de chemin `capitalIsActual` (pas de devis physique
+  avant l'élection, contrairement au P1.1 rail) : elle prend systématiquement le
+  multiplicateur fixe pour l'instant.
+
+  **Diagnostic apparié 5 graines × 6 ans**
+  (`docs/diag_capital_calibration_road_6y_5seeds.json`,
+  `sweeps/diag_capital_calibration_road_6y_5seeds.py`), `capital_calibration=0` (aucune
+  correction, aucun mode) contre `capital_calibration=1` (défaut, rail + route désormais) —
+  **mesure le paquet complet, n'isole pas la contribution marginale de la route** (le rail
+  était déjà corrigé par défaut avant ce commit) :
+
+  | métrique | Δ moyenne | victoires `=1` |
+  |---|---:|---:|
+  | `company_value` | +6,05 % | 3/5 |
+  | `performance_history` | −0,64 % | 2/5 |
+  | `profit` | +0,11 % | 2/5 |
+  | `profit_year` | −0,62 % | 2/5 |
+  | `median_station_rating` | +1,32 % | 4/5 |
+
+  **Aucun signal détectable à cette échelle** : toutes les magnitudes sont sous le plancher de
+  détection habituel (~15 % `company_value`, ~12 % `performance_history`,
+  [[banc_monograine_insuffisant]]), aucune métrique ne bascule à l'unanimité des graines. Cohérent
+  avec un biais route (×1,21) nettement plus petit que le rail (×1,7) : le correctif est **adopté
+  comme correction de principe** (même traitement que le rail : la finançabilité doit refléter le
+  coût réel, indépendamment d'un gain agrégé mesurable au diagnostic), pas comme un gain de
+  performance revendiqué. Banc officiel 20 graines × 10 ans pas encore lancé — à faire si une
+  décision agrégée est nécessaire plus tard.
 
 ---
 
