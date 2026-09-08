@@ -789,6 +789,14 @@ reste à trancher indépendamment.
   mord/ne-mord-pas simple pour lui — il faudrait mesurer la sensibilité au seuil d'arrondi
   (`OpexCeilDiv`) plutôt qu'un compteur de rejet, hors périmètre ici.
 
+  ✅ **`PROJECT_POOL_K = 128` confirmé inerte sur le chemin par défaut — pas de banc nécessaire.**
+  Ses deux seuls appelants, `OpexBuildMultimodalBudgetPool` (`projects.nut:1269`, `1556`), ne sont
+  atteints que dans la branche `else` (legacy) de `OpexIncrementalUpdateProjects` et
+  `OpexBuildProjects`, sous `portfolio_v2=0`. Or `portfolio_v2=1` est le défaut vérifié
+  (`info.nut`). Différent du cas `MIN_SEPARATION` (mécanisme atteignable qui ne mord jamais) :
+  ici c'est le **code lui-même qui est inatteignable** en configuration par défaut. Changer
+  `PROJECT_POOL_K` serait un no-op garanti par construction, pas seulement par la mesure.
+
   🔴 **Étape 3 (banc) faite pour `PROJECT_TOP_K`, deux variantes, 2026-09-08 — ni l'une ni l'autre
   ne bat clairement le défaut.** `PROJECT_TOP_K` exposé (réglage `project_top_k`, défaut 64,
   8-128) ; diagnostics 5 graines × 6 ans, pas de banc officiel 20×10 lancé (les deux signes sous
