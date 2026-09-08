@@ -357,12 +357,12 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    /* C41.18 : optimisation locale, desactivee jusqu'au comparatif appaire. */
+    /* C41.18 : index valide par le banc appaire officiel 20x10 ; les sondes restent separees. */
     AddSetting({
       name = "c41_road_freight_served_index",
-      description = "C41.18 experimental: index served rail/road origins for freight road candidates; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "C41.18: index served rail/road origins for freight road candidates; 1 = on (default), 0 = off",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 

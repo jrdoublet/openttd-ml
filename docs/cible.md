@@ -577,7 +577,8 @@ dimensionner un état reprenable et ne reporte encore aucun travail du scheduler
 la predicate historique (`DistanceManhattan < ORIGIN_SEPARATION`) mais évite son scan par
 ville/industrie. Il divise par 5,5 la tranche de préparation et par 1,86 la génération route
 totale, sans échec sur 10 parties. La valeur et le profit annuel sont compatibles avec un effet
-neutre à favorable mais encore trop dispersés : défaut OFF jusqu'au banc officiel 20×10.
+neutre à favorable. Le banc officiel 20×10 (40/40) confirme −47,8 % d'opcodes de génération route,
+sans signal économique négatif ; l'index fret est donc livré à ON par défaut.
 
 **C39.4 — cause des avions non retenus (2026-09-08).** La sonde
 `c39_air_reason_probe=0` sépare les filtres éliminatoires de la sélection finale des combos. Sa

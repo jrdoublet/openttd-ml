@@ -1026,9 +1026,13 @@ reste à trancher indépendamment.
   `results/diag_c41_18_road_freight_served_index_paired_6y_5seeds.json` est sain (10/10) : la
   préparation tombe de **17,07 M à 3,09 M opcodes (−81,9 %)** et la génération route de **31,06 M
   à 16,69 M (−46,3 %)**. ON dépasse OFF en valeur sur 4/5 graines (+13,0 % en moyenne) et en profit
-  annuel sur 3/5 (+3,7 %), sans preuve assez large pour en déduire un gain économique. Garder le
-  défaut à 0 ; l'optimisation est prête pour le banc officiel apparié 20×10, qui seul peut autoriser
-  son adoption par défaut.
+  annuel sur 3/5 (+3,7 %), sans preuve assez large pour en déduire un gain économique. Le banc
+  officiel apparié 20×10 (`results/bench_c41_18_road_freight_served_index_10y_20seeds.json`) est
+  ensuite sain (40/40) et confirme le gain : **235,06 M → 122,67 M opcodes (−47,8 %)**, dont la
+  préparation **136,03 M → 25,59 M (−81,2 %)**. Les résultats économiques ne régressent pas : ON
+  gagne +1,0 % en valeur, +2,7 % en profit trimestriel et +2,3 % en profit annuel en moyenne ; les
+  écarts sont dispersés mais ne contredisent pas l'objectif prioritaire d'opcodes et de fraîcheur.
+  **Adopté par défaut : `c41_road_freight_served_index=1`.**
 
   ✅ **C39.4 — les cinq avions « rejetés » sont dominés, non invalides.** La sonde
   `c39_air_reason_probe=0`, sur 5 graines × 6 ans
