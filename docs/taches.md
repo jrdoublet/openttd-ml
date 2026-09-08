@@ -1404,12 +1404,36 @@ reste à trancher indépendamment.
   différence de `ROAD_ACCEPTANCE_FULL_UNIT` (règle moteur vérifiée), c'est une valeur posée à vue,
   jamais mesurée contre le coût réel d'un rafraîchissement (`OpexCatalog.refresh()`).
 
-  🔶 **Candidat pour l'étape 3 (banc), pas encore banché.** Question ouverte, pas tranchée par ce
-  diagnostic : le plancher protège-t-il un coût en opcodes réel qui justifierait de bloquer 90 %
-  des doublements, ou est-il trop conservateur et retarde-t-il des rafraîchissements de portefeuille
-  rentables ? Avant tout banc, chiffrer le coût réel d'un `OpexCatalog.refresh()` (déjà mesuré
-  ailleurs : §« Catalogue : churn et coût », 21 492 opcodes) pour comparer au gain retenu, plutôt
-  que de deviner une nouvelle valeur.
+  🔴 **Comparaison faite (2026-09-08) : la prémisse du réglage est contredite par une mesure déjà
+  publiée.** [[catalogue_churn_et_cout]] (2026-08-28, `ai/CatalogProbe/`, `docs/catalogue_churn.json`,
+  carte 42 villes/~45 industries) a déjà chiffré le coût exact d'`OpexCatalog.refresh()` :
+  **21 492 opcodes = 2,1 ticks = 0,0080 % du budget ANNUEL** (0,096 % mensuel) — et concluait déjà,
+  indépendamment de ce sujet : *« le coût est négligeable à toute fréquence raisonnable […]
+  rafraîchir richement, ne PAS optimiser »*. Le commentaire de `PORTFOLIO_REFRESH_MIN_GAIN`
+  affirme l'inverse : *« en dessous, le coût en opcodes ne vaut pas la peine d'être payé pour
+  quelques milliers de livres »*. **Les deux ne peuvent pas être vrais en même temps** — la mesure
+  de 2026-08-28 dit que 2,1 ticks sont négligeables à N'IMPORTE QUEL gain, y compris quelques
+  milliers de livres ; le réglage de famille 2 suppose au contraire qu'un gain sous 50 000 £ ne
+  couvre pas ce coût. Aucun calcul dans le code ne relie jamais le seuil de 50 000 £ à un coût en
+  opcodes précis — c'est une valeur posée à vue (§ ci-dessus), maintenant en contradiction directe
+  avec une mesure existante, pas seulement non vérifiée.
+
+  ⚠️ **Bémol avant de conclure : la mesure de coût date du 2026-08-28, sur UNE carte précise.** Le
+  coût de `refresh()` est dominé à 87 % par les paires de villes en O(N²) (18 708/21 492 opcodes) ;
+  les graines de ce diagnostic ont 39 à 52 villes selon la mesure `project_top_k_dynamic` plus haut
+  dans ce document — du même ordre de grandeur que les 42 de la mesure de coût, donc la conclusion
+  « négligeable » tient probablement encore, mais n'a pas été rechiffrée sur les 5 graines exactes
+  de ce diagnostic ni sur le code actuel.
+
+  🔶 **Verdict : le plancher de 50 000 £ semble mal calibré (bloque 90 % des doublements pour un
+  coût qu'une mesure indépendante dit négligeable), mais ceci reste une inférence, pas une mesure
+  de l'effet économique.** Avant de toucher au code par défaut : (1) rechiffrer le coût de
+  `refresh()` sur les graines/le code actuels plutôt que de réutiliser une mesure de 11 jours plus
+  ancienne telle quelle ; (2) diagnostic apparié (5 graines × 6 ans) `PORTFOLIO_REFRESH_MIN_GAIN=0`
+  (ou une valeur nettement plus basse, ex. 5 000) contre le défaut 50 000, sur `company_value` et
+  `performance_history` — la question posée par ce paragraphe est « le seuil est-il trop haut au
+  regard du coût », pas encore « est-ce que le baisser aide vraiment » : ce second point exige sa
+  propre mesure économique avant tout changement de défaut.
 
   🔶 **Reste à faire pour clore famille 2** : 5 constantes sans compteur binaire prêt à l'emploi —
   `PAX_NEAR_MIN_PROFIT`, `ORIGIN_SEPARATION`, `ROAD_MIN_DISTANCE`, `DEAD_STREAK_THRESHOLD`,
