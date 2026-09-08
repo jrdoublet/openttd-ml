@@ -399,6 +399,41 @@ reste à trancher indépendamment.
   le plan + revalider) est indépendant et peut être fait seul, avant C41, comme premier correctif
   mesurable de P1.1.
 
+  **Volet 1 implémenté (2026-09-08), non adopté.** Sous
+  `rail_prequote=1, rail_prequote_keep_plan=1`, le candidat conserve `quotedPlan`. À l'exécution,
+  `OpexRailQuotedPlanStillBuildable()` rejoue gares, voie et dépôt en `AITestMode`, sans A*, avant
+  de remettre le plan à `OpexBuildLine`; un join tardif ou une revalidation négative le jette et
+  force le chemin normal. `P1_3_PLAN` journalise `reuse` ou `invalidate`. Smoke 3×2 sain, puis
+  diagnostic apparié 5×6 contre `rail_prequote_keep_plan=0` : 0 erreur et métriques exactement
+  identiques sur les cinq graines (`docs/diag_p1_3_keep_plan_paired_6y_5seeds.json`). Ce dernier
+  ne collecte pas les opcodes : il établit la non-régression fonctionnelle, pas encore le gain de
+  débit qui déciderait de l'adoption.
+
+  🔴 **P1.1 + P1.3 volet 1 — REJETÉS ENSEMBLE, banc officiel fait (2026-09-08).**
+  `docs/bench_p1_3_keep_plan_10y_20seeds.json`, 20 graines × 10 ans, 0 échec :
+  `OpexAI` (défaut livré) contre `OpexAI[rail_prequote=1,rail_prequote_keep_plan=1]`.
+
+  | métrique | delta (défaut vs P1.1+P1.3) | t | victoires du défaut |
+  |---|---:|---:|---:|
+  | `company_value` | **+47,87 %** | **7,86** | **20/20** |
+  | `profit_year` | +43,52 % | 10,96 | 20/20 |
+  | `performance_history` | +18,47 % | 7,83 | 19/20 |
+  | note de gare | +2,46 % | 2,02 | 9/20 |
+
+  **Le défaut gagne sur les 20 graines sans exception, magnitude énorme.** Confirme et aggrave
+  même le diagnostic 5×6 de P1.1 seul (−30,7 %) : garder le plan (P1.3 volet 1) **ne sauve pas**
+  la régression de P1.1. C'est cohérent avec le mécanisme identifié — volet 1 n'évite que la
+  double recherche pour un candidat *effectivement élu* après devis, une part mineure du
+  problème ; le gros du dégât vient des devis payés à **chaque** rebuild déclenché par P3 pour des
+  candidats jamais élus, que volet 1 ne touche pas. Seul le volet 2 (calcul par tranches sur le
+  canal de délestage de C41, classement uniquement une fois costé) s'attaquerait à la vraie cause
+  — et il reste bloqué sur C41, qui n'existe pas.
+
+  ⚫ **P1.1 clos, faute de piste restante actionnable.** `rail_prequote` et
+  `rail_prequote_keep_plan` restent tous deux à `0`. Ne pas rouvrir ce fil sans construire C41
+  d'abord — toute nouvelle tentative sur le volet 1 seul reproduirait ce même verdict, la cause
+  dominante n'étant pas dans ce volet.
+
   **P1.2 — proposition du 2026-09-08, non codée, non mesurée : rendre le « préfiltre économique bon
   marché » de P1.1 sensible au terrain, par sonde en ligne quasi droite.** Aujourd'hui ce préfiltre
   est `candidate.distance` (Manhattan/vol d'oiseau) + `RAIL_TERRAIN_FACTOR = 170` fixe
