@@ -348,6 +348,15 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C41.17 : sous-ventilation uniquement ; elle implique implicitement le profil route. */
+    AddSetting({
+      name = "c41_road_freight_profile",
+      description = "C41.17 probe: split freight road candidates into preparation, industry sinks and town sinks opcodes; no scheduling change; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* C41.4 : inventaire passif des vehicules perdus, independant de l'alerte A7.4. */
     AddSetting({
       name = "c41_vehicle_lost_probe",

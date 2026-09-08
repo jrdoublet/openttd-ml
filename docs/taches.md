@@ -1004,6 +1004,13 @@ reste à trancher indépendamment.
   local et qui porte déjà 83,7 % du coût dans la configuration route par défaut. Ne pas oublier
   les passagers : ils reviennent en tête de backlog dès que le contrat fret est validé.
 
+  🔬 **C41.17 — profil interne de `OpexRoadFreightCandidates` (en cours).** Le réglage passif
+  `c41_road_freight_profile=0` découpe sans modifier le vivier : préparation (origines déjà
+  servies et rayon de stop), boucles producteur→industrie et producteur→ville, cette dernière
+  incluant le cache d'acceptation. Il ne constitue pas encore une reprise incrémentale : le
+  checkpoint futur devra préserver l'ordre cargo→source→puits, les filtres d'abandon et le cache
+  d'acceptation, puis passer le diagnostic apparié 5×6 avant toute activation.
+
   ✅ **C39.4 — les cinq avions « rejetés » sont dominés, non invalides.** La sonde
   `c39_air_reason_probe=0`, sur 5 graines × 6 ans
   (`results/diag_c39_air_reason_6y_5seeds.json`), est saine : les cinq notifications sont le moteur

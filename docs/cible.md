@@ -565,6 +565,11 @@ modifier sa sortie : fret 83,7 % des 29,31 M opcodes, feeders 16,2 %, `TopK` 0,0
 passagers n'était pas active (`road_pax_build=0`). Le prochain découpage doit donc conserver la
 frontière de génération et isoler d'abord les boucles fret, non le tri ni le sac à dos.
 
+**Sous-profil fret (C41.17, sonde).** `OpexRoadFreightCandidates` expose trois tranches passives :
+préparation des états déjà desservis, puits industriels, puis puits urbains avec acceptation
+mémorisée. Cette découpe conserve l'ordre de production actuel ; elle sert à dimensionner un état
+reprenable et ne reporte encore aucun travail du scheduler.
+
 **C39.4 — cause des avions non retenus (2026-09-08).** La sonde
 `c39_air_reason_probe=0` sépare les filtres éliminatoires de la sélection finale des combos. Sa
 trace 5 graines × 6 ans (`results/diag_c39_air_reason_6y_5seeds.json`) est saine : les cinq annonces

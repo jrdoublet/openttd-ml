@@ -56,7 +56,7 @@ def parse_trace(output):
             continue
         year, month, day, kind, rest = match.groups()
         if kind not in ("C39_DIRTY", "C39_REFRESH", "C39_DECISION_DELTA", "C39_ENGINE_DELTA",
-                        "C41_REVISION", "C41_ACK", "C41_WATER_REFRESH", "C41_ROAD_REFRESH", "C41_ROAD_CANDIDATE_PROFILE", "C41_WATER_PLANS", "C41_WATER_PLAN_PROFILE", "C41_SLACK_LEDGER", "C41_STALENESS_ACK", "C41_OPPORTUNITY_LEDGER", "C41_ADMISSION_LEDGER", "C41_VEHICLE_LOST", "C41_RAIL_LOST", "C41_RAIL_LOST_TOPOLOGY", "C41_RAIL_LOST_PHYSICAL", "C41_RAIL_SIGNAL_ARM", "C41_RAIL_SIGNAL_REPAIR", "C41_RAIL_LOST_CONNECTIVITY",
+                        "C41_REVISION", "C41_ACK", "C41_WATER_REFRESH", "C41_ROAD_REFRESH", "C41_ROAD_CANDIDATE_PROFILE", "C41_ROAD_FREIGHT_PROFILE", "C41_WATER_PLANS", "C41_WATER_PLAN_PROFILE", "C41_SLACK_LEDGER", "C41_STALENESS_ACK", "C41_OPPORTUNITY_LEDGER", "C41_ADMISSION_LEDGER", "C41_VEHICLE_LOST", "C41_RAIL_LOST", "C41_RAIL_LOST_TOPOLOGY", "C41_RAIL_LOST_PHYSICAL", "C41_RAIL_SIGNAL_ARM", "C41_RAIL_SIGNAL_REPAIR", "C41_RAIL_LOST_CONNECTIVITY",
                         "C39_AIR_ENGINE_REASON"):
             continue
         events.append({
@@ -107,6 +107,8 @@ def main():
                         help="active C41.15 : refresh cible du catalogue route apres EngineAvailable route")
     parser.add_argument("--c41-road-candidate-profile", action="store_true",
                         help="active C41.16 : ventilation passive pax/fret/feeder/TopK des candidats route")
+    parser.add_argument("--c41-road-freight-profile", action="store_true",
+                        help="active C41.17 : ventilation passive preparation/fret industrie/fret ville")
     parser.add_argument("--road-pax-build", action="store_true",
                         help="active les candidats passagers route pour un diagnostic de cout")
     parser.add_argument("--c41-vehicle-lost-probe", action="store_true",
@@ -174,6 +176,8 @@ def main():
         settings.append(("c41_road_refresh", 1))
     if args.c41_road_candidate_profile:
         settings.append(("c41_road_candidate_profile", 1))
+    if args.c41_road_freight_profile:
+        settings.append(("c41_road_freight_profile", 1))
     if args.road_pax_build:
         settings.append(("road_pax_build", 1))
     ai = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", tuple(settings))
@@ -211,6 +215,7 @@ def main():
         c41_water_refreshes = [event for event in trace if event["kind"] == "C41_WATER_REFRESH"]
         c41_road_refreshes = [event for event in trace if event["kind"] == "C41_ROAD_REFRESH"]
         c41_road_candidate_profiles = [event for event in trace if event["kind"] == "C41_ROAD_CANDIDATE_PROFILE"]
+        c41_road_freight_profiles = [event for event in trace if event["kind"] == "C41_ROAD_FREIGHT_PROFILE"]
         c41_water_plan_probes = [event for event in trace if event["kind"] == "C41_WATER_PLANS"]
         c41_water_plan_profiles = [event for event in trace if event["kind"] == "C41_WATER_PLAN_PROFILE"]
         c41_slack_ledger = [event for event in trace if event["kind"] == "C41_SLACK_LEDGER"]
@@ -246,6 +251,7 @@ def main():
             "c41_road_staleness_age_days": [int(event["fields"].get("staleness_age_days", -1))
                                              for event in c41_road_refreshes],
             "c41_road_candidate_profiles": [event["fields"] for event in c41_road_candidate_profiles],
+            "c41_road_freight_profiles": [event["fields"] for event in c41_road_freight_profiles],
             "c41_water_plan_probes": len(c41_water_plan_probes),
             "c41_water_plan_ops": sum(int(event["fields"].get("ops", 0)) for event in c41_water_plan_probes),
             "c41_water_plans": sum(int(event["fields"].get("plans", 0)) for event in c41_water_plan_probes),
@@ -313,6 +319,7 @@ def main():
     c41_water_refreshes = [event for event in all_events if event["kind"] == "C41_WATER_REFRESH"]
     c41_road_refreshes = [event for event in all_events if event["kind"] == "C41_ROAD_REFRESH"]
     c41_road_candidate_profiles = [event for event in all_events if event["kind"] == "C41_ROAD_CANDIDATE_PROFILE"]
+    c41_road_freight_profiles = [event for event in all_events if event["kind"] == "C41_ROAD_FREIGHT_PROFILE"]
     c41_water_plan_probes = [event for event in all_events if event["kind"] == "C41_WATER_PLANS"]
     c41_water_plan_profiles = [event for event in all_events if event["kind"] == "C41_WATER_PLAN_PROFILE"]
     c41_slack_ledger = [event for event in all_events if event["kind"] == "C41_SLACK_LEDGER"]
@@ -351,6 +358,7 @@ def main():
         "c41_road_staleness_age_days": [int(event["fields"].get("staleness_age_days", -1))
                                           for event in c41_road_refreshes],
         "c41_road_candidate_profiles": [event["fields"] for event in c41_road_candidate_profiles],
+        "c41_road_freight_profiles": [event["fields"] for event in c41_road_freight_profiles],
         "c41_water_plan_probes": len(c41_water_plan_probes),
         "c41_water_plan_ops": sum(int(event["fields"].get("ops", 0)) for event in c41_water_plan_probes),
         "c41_water_plans": sum(int(event["fields"].get("plans", 0)) for event in c41_water_plan_probes),
@@ -431,6 +439,7 @@ def main():
                      "c41_admission_ledger": int(args.c41_admission_ledger),
                      "c41_road_refresh": int(args.c41_road_refresh),
                      "c41_road_candidate_profile": int(args.c41_road_candidate_profile),
+                     "c41_road_freight_profile": int(args.c41_road_freight_profile),
                      "road_pax_build": int(args.road_pax_build),
                      "c41_vehicle_lost_probe": int(args.c41_vehicle_lost_probe or args.c41_rail_lost_probe),
                      "c41_rail_lost_probe": int(args.c41_rail_lost_probe or args.c41_rail_lost_topology_probe or args.c41_rail_lost_physical_probe or args.c41_rail_lost_signal_repair),

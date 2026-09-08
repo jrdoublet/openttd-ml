@@ -1345,9 +1345,10 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
 {
   local rail = OpexBuildCandidates(catalog, budget, lines, abandonedPairs);
   local railPrequote = OpexPrequoteRailCandidates(catalog, budget, rail);
-  /* C41.16 : mesure seulement les etapes de generation route pendant la passe historique. */
-  local roadProfile = C41_ROAD_CANDIDATE_PROFILE
-      ? { paxOps = 0, freightOps = 0, feederOps = 0, topKOps = 0 } : null;
+  /* C41.16/C41.17 : mesure seulement les etapes de generation route pendant la passe historique. */
+  local roadProfile = (C41_ROAD_CANDIDATE_PROFILE || C41_ROAD_FREIGHT_PROFILE)
+      ? { paxOps = 0, freightOps = 0, feederOps = 0, topKOps = 0,
+          freightPreparationOps = 0, freightIndustryOps = 0, freightTownOps = 0 } : null;
   local road = ROAD_BUILD_ENABLED
       ? OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs, roadProfile) : OpexProjectEmptyRoad();
 

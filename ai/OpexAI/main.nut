@@ -132,6 +132,8 @@ C41_ADMISSION_LEDGER <- false;
 C41_ROAD_REFRESH <- false;
 /* C41.16 : ventilation passive de la generation de candidats route historique. */
 C41_ROAD_CANDIDATE_PROFILE <- false;
+/* C41.17 : sous-ventilation passive du fret producteur->accepteur. */
+C41_ROAD_FREIGHT_PROFILE <- false;
 /* C41.4 : sonde strictement passive des vehicules perdus. Contrairement a A7.4,
  * elle n'ecrit ni compteur de ligne ni signe, et n'arme aucune tache. */
 C41_VEHICLE_LOST_PROBE <- false;
@@ -6000,14 +6002,23 @@ function OpexAI::_runNextTask()
       this._resizeAirFleets(AIDate.GetYear(AIDate.GetCurrentDate()), fleetPlan);
     }
     this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines, priorPeak, priorHistory, fleetPlan, this._abandonedPairs);
-    if (C41_ROAD_CANDIDATE_PROFILE && this._projects != null && ("road" in this._projects) &&
+    if ((C41_ROAD_CANDIDATE_PROFILE || C41_ROAD_FREIGHT_PROFILE) && this._projects != null && ("road" in this._projects) &&
         this._projects.road != null && ("profile" in this._projects.road) &&
         this._projects.road.profile != null) {
       local profile = this._projects.road.profile;
-      OpexC39Log("C41_ROAD_CANDIDATE_PROFILE", "ops=" + this._projects.road.opcodes
-                 + " pax_ops=" + profile.paxOps + " freight_ops=" + profile.freightOps
-                 + " feeder_ops=" + profile.feederOps + " topk_ops=" + profile.topKOps
-                 + " candidates=" + this._projects.road.all);
+      if (C41_ROAD_CANDIDATE_PROFILE) {
+        OpexC39Log("C41_ROAD_CANDIDATE_PROFILE", "ops=" + this._projects.road.opcodes
+                   + " pax_ops=" + profile.paxOps + " freight_ops=" + profile.freightOps
+                   + " feeder_ops=" + profile.feederOps + " topk_ops=" + profile.topKOps
+                   + " candidates=" + this._projects.road.all);
+      }
+      if (C41_ROAD_FREIGHT_PROFILE) {
+        OpexC39Log("C41_ROAD_FREIGHT_PROFILE", "road_ops=" + this._projects.road.opcodes
+                   + " preparation_ops=" + profile.freightPreparationOps
+                   + " industry_ops=" + profile.freightIndustryOps
+                   + " town_ops=" + profile.freightTownOps
+                   + " candidates=" + this._projects.road.all);
+      }
     }
     this._logStalenessRefresh(refreshReason);
     this._portfolioInvalidated = false;
@@ -6490,6 +6501,7 @@ function OpexAI::Start()
   C41_ADMISSION_LEDGER = AIController.GetSetting("c41_admission_ledger") != 0;
   C41_ROAD_REFRESH = AIController.GetSetting("c41_road_refresh") != 0;
   C41_ROAD_CANDIDATE_PROFILE = AIController.GetSetting("c41_road_candidate_profile") != 0;
+  C41_ROAD_FREIGHT_PROFILE = AIController.GetSetting("c41_road_freight_profile") != 0;
   C41_RAIL_LOST_PROBE = AIController.GetSetting("c41_rail_lost_probe") != 0;
   C41_RAIL_LOST_TOPOLOGY_PROBE = AIController.GetSetting("c41_rail_lost_topology_probe") != 0;
   C41_RAIL_LOST_PHYSICAL_PROBE = AIController.GetSetting("c41_rail_lost_physical_probe") != 0;

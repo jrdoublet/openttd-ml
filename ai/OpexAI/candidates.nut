@@ -1280,8 +1280,11 @@ function OpexRoadPaxCandidates(catalog, lines, out, stats, abandonedPairs = null
  *
  * Aucune dilution de bassin n'est appliquee au producteur : une industrie produit depuis une seule
  * tuile, elle n'a pas la dilution geometrique d'une ville (cf. TOWN_CATCHMENT_SHARE_PCT). */
-function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = null)
+/* C41.17 : `profile` ne sert qu'a separer le cout du fret en checkpoints candidats. Les trois
+ * tranches restent synchrones : aucune ne modifie le vivier ni n'est reprise entre deux tours. */
+function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null)
 {
+  local preparationMark = profile != null ? OpexOpsMeasureBegin() : null;
   local industries = catalog.industries;
   local towns = catalog.towns;
   local servedIndustry = [];
@@ -1300,6 +1303,7 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
   /* Rayon d'une aire de chargement : c'est bien l'empreinte de la gare qu'on projette de poser,
    * pas un rayon arbitraire autour du centre administratif. Lu une fois, il ne change jamais. */
   local truckCoverage = AIStation.GetCoverageRadius(AIStation.STATION_TRUCK_STOP);
+  if (profile != null) profile.freightPreparationOps += OpexOpsMeasureEnd(preparationMark);
 
   foreach (cargo, sources in catalog.producers) {
     if (!(cargo in catalog.roadEngineByCargo)) { stats.noEngine++; continue; }
@@ -1314,6 +1318,7 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
       local monthly = AIIndustry.GetLastMonthProduction(source.id, cargo);
       if (monthly <= 0) { stats.noMonthly++; continue; }
 
+      local industryMark = profile != null ? OpexOpsMeasureBegin() : null;
       foreach (di in sinks) {
         if (di == si || servedIndustry[di]) continue;
         local distance = AIMap.DistanceManhattan(source.tile, industries[di].tile);
@@ -1330,7 +1335,9 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
                                                 stats, isTransformer);
         if (candidate != null) out.append(candidate);
       }
+      if (profile != null) profile.freightIndustryOps += OpexOpsMeasureEnd(industryMark);
 
+      local townMark = profile != null ? OpexOpsMeasureBegin() : null;
       for (local t = 0; t < towns.len(); t++) {
         if (servedTown[t]) continue;
         local distance = AIMap.DistanceManhattan(source.tile, towns[t].tile);
@@ -1356,6 +1363,7 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
                                                 stats);
         if (candidate != null) out.append(candidate);
       }
+      if (profile != null) profile.freightTownOps += OpexOpsMeasureEnd(townMark);
     }
   }
 }
@@ -1716,9 +1724,14 @@ function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null, 
     OpexRoadPaxCandidates(catalog, lines, all, stats, abandonedPairs);
     if (profile != null) profile.paxOps += OpexOpsMeasureEnd(mark);
   }
-  local freightMark = profile != null ? OpexOpsMeasureBegin() : null;
-  OpexRoadFreightCandidates(catalog, lines, all, stats, abandonedPairs);
-  if (profile != null) profile.freightOps += OpexOpsMeasureEnd(freightMark);
+  /* Les marques C41.17 internes ne doivent jamais etre imbriquees dans une mesure globale :
+   * un suspend peut sinon faire compter le tick-frontiere deux fois. C41.16 porte deja le total
+   * fret de reference ; C41.17 ne publie que ses intervalles disjoints. */
+  local freightMark = (profile != null && !C41_ROAD_FREIGHT_PROFILE) ? OpexOpsMeasureBegin() : null;
+  OpexRoadFreightCandidates(catalog, lines, all, stats, abandonedPairs, profile);
+  if (freightMark != null) {
+    profile.freightOps += OpexOpsMeasureEnd(freightMark);
+  }
   /* C32 : les feeders reviennent a l'arbitrage. C29.3 les avait sortis d'ici pour deux motifs,
    * tous deux traites : la collision de cle OD (ils ont desormais leur propre espace de cles,
    * prefixe "feeder|" dans OpexProjectRemember, donc ils n'evincent plus l'aerien) et
