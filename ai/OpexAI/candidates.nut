@@ -1244,7 +1244,8 @@ function OpexRoadPaxCandidates(catalog, lines, out, stats, abandonedPairs = null
       if (roadLinesPerTown[b] >= maxLinesB) continue;
       if (OpexRoadPairServed(lines, towns[a].tile, towns[b].tile)) continue;
       local distance = AIMap.DistanceManhattan(towns[a].tile, towns[b].tile);
-      if (distance < ROAD_MIN_DISTANCE || distance > ROAD_MAX_DISTANCE) continue;
+      if (distance < ROAD_MIN_DISTANCE) { stats.roadDistanceShort++; continue; }
+      if (distance > ROAD_MAX_DISTANCE) { stats.roadDistanceLong++; continue; }
       if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
         local tA = towns[a].id;
         local tB = towns[b].id;
@@ -1316,7 +1317,8 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
       foreach (di in sinks) {
         if (di == si || servedIndustry[di]) continue;
         local distance = AIMap.DistanceManhattan(source.tile, industries[di].tile);
-        if (distance < ROAD_MIN_DISTANCE || distance > ROAD_MAX_DISTANCE) continue;
+        if (distance < ROAD_MIN_DISTANCE) { stats.roadDistanceShort++; continue; }
+      if (distance > ROAD_MAX_DISTANCE) { stats.roadDistanceLong++; continue; }
         if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
           local pairKey = "freight|" + cargo + "|" + source.id + "|" + industries[di].id;
           if (pairKey in abandonedPairs) continue;
@@ -1332,7 +1334,8 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
       for (local t = 0; t < towns.len(); t++) {
         if (servedTown[t]) continue;
         local distance = AIMap.DistanceManhattan(source.tile, towns[t].tile);
-        if (distance < ROAD_MIN_DISTANCE || distance > ROAD_MAX_DISTANCE) continue;
+        if (distance < ROAD_MIN_DISTANCE) { stats.roadDistanceShort++; continue; }
+      if (distance > ROAD_MAX_DISTANCE) { stats.roadDistanceLong++; continue; }
         if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
           /* G9§1 : "t" + towns[t].id, en coherence avec OpexAbandonedPairKey. */
           local pairKey = "freight|" + cargo + "|" + source.id + "|t" + towns[t].id;
@@ -1517,7 +1520,8 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats, abandonedPairs = n
       if (isHubTown) {
         if (distance > 16) continue;
       } else {
-        if (distance < ROAD_MIN_DISTANCE || distance > ROAD_MAX_DISTANCE) continue;
+        if (distance < ROAD_MIN_DISTANCE) { stats.roadDistanceShort++; continue; }
+      if (distance > ROAD_MAX_DISTANCE) { stats.roadDistanceLong++; continue; }
       }
 
       /* Nombre de feeders autorisés pour cette ville :
@@ -1695,6 +1699,8 @@ function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null)
     pairsInBand = 0, noMonthly = 0, noEngine = 0, townRejected = 0,
     economicsUnavailable = 0, profitTooLow = 0, accepted = 0,
     feederHubs = 0, feederCandidates = 0,
+    /* C43/E3 famille 2 : ROAD_MIN_DISTANCE/ROAD_MAX_DISTANCE mordent-elles ? */
+    roadDistanceShort = 0, roadDistanceLong = 0,
   };
   if (catalog.roadType < 0) return { all = 0, best = [], stats = stats, opcodes = 0 };
 
@@ -1728,6 +1734,12 @@ function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null)
     }
     if (stats.profitTooLow > 0) {
       OpexDecide("VIVIER_REJECT", "reason=road_profit_too_low n=" + stats.profitTooLow);
+    }
+    if (stats.roadDistanceShort > 0) {
+      OpexDecide("VIVIER_REJECT", "reason=road_distance_short n=" + stats.roadDistanceShort);
+    }
+    if (stats.roadDistanceLong > 0) {
+      OpexDecide("VIVIER_REJECT", "reason=road_distance_long n=" + stats.roadDistanceLong);
     }
   }
 
