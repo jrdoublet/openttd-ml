@@ -974,14 +974,22 @@ reste à trancher indépendamment.
   Reste à faire si besoin : vérifier la règle « le moteur exige 8 » contre le source OpenTTD (`station_cmd.cpp` ou
   équivalent) plutôt que contre le seul commentaire du dépôt, avant de la citer comme acquise.
 
-  🔶 **Reste à faire pour clore famille 2** : les 10 autres constantes n'ont pas de compteur
-  binaire prêt à l'emploi (à la différence des deux ci-dessus) — `ATTEMPT_FLOOR`,
-  `CASH_RESERVE_MIN`, `LOOP_BUDGET_FLOOR`, `DYNAMIC_BATCH_OPS_FLOOR`,
-  `PORTFOLIO_REFRESH_MIN_GAIN`, `PAX_NEAR_MIN_PROFIT`, `ORIGIN_SEPARATION`, `ROAD_MIN_DISTANCE`
-  demandent une instrumentation nouvelle et ciblée avant de pouvoir être classées. Note :
-  `DYNAMIC_BATCH_OPS_FLOOR` est peut-être déjà répondue par le post-mortem C38 (motifs de
-  clôture `opcode_budget` 52/112, ci-dessus) — à vérifier avant d'instrumenter à nouveau plutôt
-  que de dupliquer la mesure.
+  ✅ **`DYNAMIC_BATCH_OPS_FLOOR = 2500` (main.nut:661) classée sans nouvelle mesure — répondue
+  par le post-mortem C38 déjà écrit plus haut.** Vérifié le 2026-09-08 : la condition
+  `AIController.GetOpsTillSuspend() < dynamicOpsFloor` (`main.nut:3006`) est *exactement* ce qui
+  produit `stopReason = "opcode_budget"`, le motif de clôture déjà compté à **52/112 (46 %)** des
+  passages du batch dynamique sur 5 graines (§ post-mortem C38 ci-dessus). La constante mord donc
+  fort et directement — mais uniquement sous `PORTFOLIO_DYNAMIC_BATCH=1`, **désactivé par défaut**
+  (`main.nut:728`, C38 jamais adopté après sa régression de −36,0 %). **Sur le chemin livré, elle
+  est inerte** : même verdict que `PROJECT_POOL_K`/`TARGET_HEADWAY_DAYS` en famille 1 (mécanisme
+  vivant mais inatteignable au défaut), pas que `MIN_SEPARATION`/`ROAD_MIN_PROFIT_ANNUAL`
+  (mécanisme atteignable qui ne mord jamais). Aucun banc, aucune instrumentation neuve.
+
+  🔶 **Reste à faire pour clore famille 2** : 9 constantes sans compteur binaire prêt à l'emploi —
+  `ATTEMPT_FLOOR`, `CASH_RESERVE_MIN`, `LOOP_BUDGET_FLOOR`, `PORTFOLIO_REFRESH_MIN_GAIN`,
+  `PAX_NEAR_MIN_PROFIT`, `ORIGIN_SEPARATION`, `ROAD_MIN_DISTANCE`, `DEAD_STREAK_THRESHOLD`,
+  `SCRAP_TIMEOUT_YEARS` — demandent une instrumentation nouvelle et ciblée avant de pouvoir être
+  classées.
 
 ---
 
