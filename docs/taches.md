@@ -478,6 +478,45 @@ reste à trancher indépendamment.
   seulement alors (3) le brancher comme étage 0 du préfiltre à deux étages de P1.1, jamais comme
   remplacement du devis physique complet.
 
+  🔴 **Étapes 1+2 faites (2026-09-08), verdict : REFUTÉ tel que conçu.** `OpexRailTerrainScanProbe()`
+  implémentée (`builder_rail.nut`), marche le trajet quasi-direct en L avant tout pathfinding
+  (`AITile.GetSlope`/`IsWaterTile`/`IsCoastTile`, aucun A\*, aucune mutation), branchée dans
+  `OpexPrequoteRailCandidates()` derrière `rail_terrain_probe` (défaut 0, lecture seule). Journal
+  `P1_2_TERRAIN` apparié à `P1_1_QUOTE` par (graine, src, dst) et corrélé hors-ligne
+  (`sweeps/diag_p1_2_terrain_probe.py`, `docs/diag_p1_2_terrain_probe_6y_5seeds.json`, 5 graines ×
+  6 ans, n=23 paires candidat/devis) :
+
+  | signal | corrélation avec l'écart devis/modèle |
+  |---|---:|
+  | `complex_segments` (pente + eau combinées) | **−0,12** — quasi nulle, **pire que la distance seule** |
+  | `distance` seule | −0,23 |
+  | `water_tiles` seuls | **+0,43** — à la limite de la significativité pour n=23 |
+
+  **Étape 2 échoue : compter pente et eau ensemble dilue le signal au lieu de le renforcer.**
+  Cohérent avec [[ponts_tunnels_v3]] (campagne v3 : l'eau était déjà le prédicteur dominant de
+  `PATHLIM`, AUC 0,76 contre 0,72 pour le dénivelé — la pente porte moins d'information que
+  l'eau). Le seul signal qui tient est **l'eau seule**, à la frontière de la significativité — une
+  piste étroite qui rejoint une intuition déjà documentée, pas une découverte, et trop faible pour
+  justifier une suite immédiate.
+
+  **Étape 1 échoue aussi, et pour une raison inattendue.** `scan_opcodes_mean = 2495` contre
+  `quote_pass_total_opcodes_mean = 1677` pour 2 candidats (≈838/candidat) — **la sonde coûte plus
+  cher par candidat que le vrai devis A\*+`AITestMode`** sur cet échantillon. Explication probable :
+  à 6 ans, les candidats prequotés sont encore courts et faciles, donc le vrai A\* converge presque
+  aussi vite qu'une marche linéaire ; la prémisse « scan quasi-gratuit » suppose implicitement des
+  candidats où l'A\* est cher, pas ceux qu'on observe tôt en partie.
+
+  ⚫ **P1.2 clos, refuté tel que conçu.** Ne pas brancher en production (étape 3). Ne pas rouvrir
+  sans un signal neuf — par exemple isoler l'eau seule sur un échantillon plus grand, ou mesurer
+  sur des candidats plus tardifs/plus longs où l'A\* est réellement coûteux — plutôt que de refaire
+  la même mesure en espérant un résultat différent.
+
+  🔚 **Famille P1 close.** P1 (`capital_calibration`) adopté et dominant (+8,69 %, factoriel). P1.1
+  (`rail_prequote`), P1.3 volet 1 (`rail_prequote_keep_plan`) et P1.2 (`rail_terrain_probe`) tous
+  les trois testés et rejetés. Le seul chemin restant théoriquement ouvert — P1.3 volet 2, calcul
+  par tranches via le canal de délestage de C41 — reste bloqué sur un prérequis qui n'existe pas ;
+  ne pas le reprendre sans construire C41 d'abord.
+
   **P2 — piloter la tentative, pas la construction.** La ressource rare n'est pas le nombre de
   constructions mais le nombre de **tentatives** (chaque tentative = planification payée). Deux
   gardes, et surtout **pas** un plafond fixe : (a) abandon du batch après *k* refus **consécutifs**
