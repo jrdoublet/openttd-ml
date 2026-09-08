@@ -1034,6 +1034,16 @@ reste à trancher indépendamment.
   écarts sont dispersés mais ne contredisent pas l'objectif prioritaire d'opcodes et de fraîcheur.
   **Adopté par défaut : `c41_road_freight_served_index=1`.**
 
+  ✅ **C41.19 — sous-profil des puits urbains fret, 5 graines × 6 ans.** La sonde passive
+  `c41_road_freight_town_profile=0` est saine : 286 générations et aucune erreur dans
+  `results/diag_c41_19_road_freight_town_profile_6y_5seeds.json`. Sur **322 430** villes parcourues
+  depuis un producteur, seules **6 383 (2,0 %)** atteignent `GetCargoAcceptance` (192 351 opcodes),
+  et **aucune** ne passe ensuite à `OpexMakeRoadCandidate`. Le résidu est donc la boucle
+  producteur×ville, en particulier les distances et filtres qui précèdent l'acceptation ; ni le
+  cache d'acceptation ni l'économie ne méritent une micro-tâche. Prochaine étape : mesurer puis,
+  si elle est rentable, indexer une fois les villes qui acceptent chaque cargo, sans changer
+  l'ordre source→ville des candidats admis ni les compteurs de rejet historiques.
+
   ✅ **C39.4 — les cinq avions « rejetés » sont dominés, non invalides.** La sonde
   `c39_air_reason_probe=0`, sur 5 graines × 6 ans
   (`results/diag_c39_air_reason_6y_5seeds.json`), est saine : les cinq notifications sont le moteur

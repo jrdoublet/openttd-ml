@@ -1372,8 +1372,12 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
       }
       if (profile != null) profile.freightIndustryOps += OpexOpsMeasureEnd(industryMark);
 
-      local townMark = profile != null ? OpexOpsMeasureBegin() : null;
+      /* C41.19 pose des marques internes autour des deux appels chers : ne jamais les imbriquer
+       * dans la mesure globale town, qui peut traverser un suspend. */
+      local townMark = (profile != null && !C41_ROAD_FREIGHT_TOWN_PROFILE)
+          ? OpexOpsMeasureBegin() : null;
       for (local t = 0; t < towns.len(); t++) {
+        if (profile != null && C41_ROAD_FREIGHT_TOWN_PROFILE) profile.freightTownScanned++;
         if (servedTown[t]) continue;
         local distance = AIMap.DistanceManhattan(source.tile, towns[t].tile);
         if (distance < ROAD_MIN_DISTANCE) { stats.roadDistanceShort++; continue; }
@@ -1387,18 +1391,31 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
         local acceptance;
         if (key in acceptanceCache) {
           acceptance = acceptanceCache[key];
+          if (profile != null && C41_ROAD_FREIGHT_TOWN_PROFILE) profile.freightTownAcceptanceHits++;
         } else {
+          local acceptanceMark = (profile != null && C41_ROAD_FREIGHT_TOWN_PROFILE)
+              ? OpexOpsMeasureBegin() : null;
           acceptance = AITile.GetCargoAcceptance(towns[t].tile, cargo, 1, 1, truckCoverage);
           acceptanceCache.rawset(key, acceptance);
+          if (acceptanceMark != null) {
+            profile.freightTownAcceptanceOps += OpexOpsMeasureEnd(acceptanceMark);
+            profile.freightTownAcceptanceMisses++;
+          }
         }
         if (acceptance < ROAD_ACCEPTANCE_FULL_UNIT) { stats.townRejected++; continue; }
         stats.pairsInBand++;
+        local candidateMark = (profile != null && C41_ROAD_FREIGHT_TOWN_PROFILE)
+            ? OpexOpsMeasureBegin() : null;
         local candidate = OpexMakeRoadCandidate(catalog, "freight", cargo, source.tile,
                                                 towns[t].tile, -1, towns[t].id, distance, monthly,
                                                 stats);
+        if (candidateMark != null) {
+          profile.freightTownCandidateOps += OpexOpsMeasureEnd(candidateMark);
+          profile.freightTownAcceptedPairs++;
+        }
         if (candidate != null) out.append(candidate);
       }
-      if (profile != null) profile.freightTownOps += OpexOpsMeasureEnd(townMark);
+      if (townMark != null) profile.freightTownOps += OpexOpsMeasureEnd(townMark);
     }
   }
 }
@@ -1762,7 +1779,8 @@ function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null, 
   /* Les marques C41.17 internes ne doivent jamais etre imbriquees dans une mesure globale :
    * un suspend peut sinon faire compter le tick-frontiere deux fois. C41.16 porte deja le total
    * fret de reference ; C41.17 ne publie que ses intervalles disjoints. */
-  local freightMark = (profile != null && !C41_ROAD_FREIGHT_PROFILE) ? OpexOpsMeasureBegin() : null;
+  local freightMark = (profile != null && !C41_ROAD_FREIGHT_PROFILE && !C41_ROAD_FREIGHT_TOWN_PROFILE)
+      ? OpexOpsMeasureBegin() : null;
   OpexRoadFreightCandidates(catalog, lines, all, stats, abandonedPairs, profile);
   if (freightMark != null) {
     profile.freightOps += OpexOpsMeasureEnd(freightMark);

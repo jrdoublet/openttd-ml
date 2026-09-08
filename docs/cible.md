@@ -580,6 +580,11 @@ totale, sans échec sur 10 parties. La valeur et le profit annuel sont compatibl
 neutre à favorable. Le banc officiel 20×10 (40/40) confirme −47,8 % d'opcodes de génération route,
 sans signal économique négatif ; l'index fret est donc livré à ON par défaut.
 
+**Puits urbains fret (C41.19, 5×6).** Seulement 2,0 % des couples producteur×ville passent les
+filtres de distance/abandon jusqu'à l'acceptation, et aucun ne devient candidat durant la fenêtre.
+La prochaine frontière est donc un index des villes acceptantes par cargo ; il doit rester local à
+une génération et reproduire les compteurs de rejet de la boucle historique.
+
 **C39.4 — cause des avions non retenus (2026-09-08).** La sonde
 `c39_air_reason_probe=0` sépare les filtres éliminatoires de la sélection finale des combos. Sa
 trace 5 graines × 6 ans (`results/diag_c39_air_reason_6y_5seeds.json`) est saine : les cinq annonces
