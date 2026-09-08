@@ -1224,17 +1224,6 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
-    /* Politique de capacite aerienne, sans priorite modale :
-     * 1 = marge de depart reduite, plafond de lignes releve et expansion de flotte (defaut) ;
-     * 0 = politique de capacite historique lente (1 ligne/an, max 5). */
-    AddSetting({
-      name = "air_starter",
-      description = "Air capacity policy: 1 = aggressive fleet/line caps (default), 0 = historical slow capacity (1/yr, max 5)",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
     /* Reutilisation d'un aeroport existant comme hub. Defaut 0 tant que le gain marginal
      * (un aeroport + un avion) n'a pas ete etabli au banc face aux paires disjointes. */
     AddSetting({

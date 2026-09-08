@@ -230,7 +230,6 @@ AIR_FLEET_BUFFER <- -1;
 PAX_FULL_LOAD <- true;
 AIR_FULL_LOAD <- false;
 COMPLEX_CARGO <- true;
-AIR_STARTER <- true;
 /* Bras experimental : reutiliser un aeroport rentable pour une nouvelle destination. */
 AIR_HUB <- true;
 RAIL_REFLEET <- true;
@@ -1078,11 +1077,9 @@ function OpexAI::_tryBuildAir(year)
     }
     return;
   }
-  local maxPerYear = AIR_STARTER ? 30 : 5;
-  local maxTotal = AIR_STARTER ? 250 : 25;
-  local margin = AIR_STARTER ? 2000 : AIR_CAPITAL_MARGIN;
-
-  local maxBatch = AIR_STARTER ? 12 : 3;
+  local maxPerYear = 30;
+  local maxTotal = 250;
+  local maxBatch = 12;
   local builtCount = 0;
   while (builtCount < maxBatch) {
     local airLinesThisYear = 0;
@@ -2272,8 +2269,8 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
           return { outcome = "rejected", discards = passDiscards };
         }
       }
-      local maxPerYear = AIR_STARTER ? 30 : 5;
-      local maxTotal = AIR_STARTER ? 250 : 25;
+      local maxPerYear = 30;
+      local maxTotal = 250;
       local airLinesThisYear = 0;
       local totalAirLines = 0;
       foreach (line in this._lines) {
@@ -5211,7 +5208,6 @@ function OpexAI::Start()
   PAX_FULL_LOAD = AIController.GetSetting("pax_full_load") != 0;
   AIR_FULL_LOAD = AIController.GetSetting("air_full_load") != 0;
   COMPLEX_CARGO = AIController.GetSetting("complex_cargo") != 0;
-  AIR_STARTER = AIController.GetSetting("air_starter") != 0;
   AIR_HUB = AIController.GetSetting("air_hub") != 0;
   local airMaxDist = AIController.GetSetting("air_max_distance");
   if (airMaxDist >= 0) AIR_MAX_DISTANCE = airMaxDist;

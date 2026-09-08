@@ -15,7 +15,6 @@ AIR_SITE_RADIUS <- 25;
 AIR_TOWN_MIN_DISTANCE <- 32;
 AIR_MAX_SITE_PROBES <- 1500;
 AIR_MAX_PLANES_PER_ROUTE <- 16;
-AIR_CAPITAL_MARGIN <- 50000;
 AIR_PLAN_DIAG_SEQ <- 0;
 /* Plafond de distance aerienne (0 = illimite, docs/taches.md C6 supprime) */
 AIR_MAX_DISTANCE <- 0;
