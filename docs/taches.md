@@ -756,6 +756,39 @@ reste à trancher indépendamment.
   commençant par les constantes des familles 1 et 2 déjà connues pour mordre (`PROJECT_TOP_K`,
   `PROJECT_POOL_K`, `MIN_SEPARATION`), avant d'attaquer les 40 restantes.
 
+  ✅ **Étape 1 (instrumenter) faite le 2026-09-08 pour `PROJECT_TOP_K` et `MIN_SEPARATION` — verdict
+  contrasté, aucun nouveau code de jeu nécessaire.** Les deux avaient déjà une télémétrie complète
+  dans le code livré : panneau `VIVIER` (`considered`/`selected`/`rejected` par appel de sélection)
+  pour TOP_K, panneau `PROJECT_DISCARD` (`reason=too_close_no_join`/`too_close_hard`) pour
+  MIN_SEPARATION. Juste un diagnostic `decision_log=1` et un script d'agrégation
+  (`sweeps/diag_constants_binding.py`, `docs/diag_constants_binding_6y_5seeds.json`, 5 graines ×
+  6 ans, 35 784 appels de sélection, 245 448 rejets, 14 760 lignes construites).
+
+  ⚠️ **Piège méthodologique rencontré et corrigé en cours de route** : le premier critère
+  (`rejected > 0`) donnait 100 % de morsure sur un dry-run — **faux**, il confond le plancher de
+  profit relatif (`PORTFOLIO_FLOOR_PCT`, appliqué *avant* TOP_K dans `OpexProjectSelectAffordable`)
+  avec la troncature de TOP_K lui-même. Le seul critère correct est `selected >= TOP_K` : la liste
+  bornée (`OpexProjectInsert`) ne retire un candidat que si elle est déjà pleine.
+
+  **`PROJECT_TOP_K = 64` mord fort et systématiquement** : saturé exactement à 64 sur **77,4 %**
+  des appels du chemin `build` (14 832/19 152) et **70,1 %** du chemin `incremental`
+  (11 664/16 632). Plus de 7 appels sur 10 auraient gardé un candidat de plus si la fenêtre était
+  plus large — confirme, avec une mesure propre, ce que l'audit du 2026-09-02 suspectait déjà.
+  **Justifie le banc factoriel** (32 contre 64 sous réglage, voir ci-dessous).
+
+  **`MIN_SEPARATION = 10` ne mord JAMAIS** : **0 rejet sur 245 448** motifs de rejet enregistrés,
+  sur 14 760 lignes construites, 5 graines × 6 ans. `too_close_no_join` et `too_close_hard` sont
+  **absents** de la distribution des motifs observés (`build_failed`, `search_in_progress`,
+  `abandoned_pair`, `plan_failed`, `insufficient_cash`, `town_road_line_cap`). Le mécanisme tourne
+  mais ne rejette jamais rien dans cette fenêtre de mesure. **Changer sa valeur serait un no-op
+  mesuré, pas supposé — pas de banc dessus.** Cohérent avec le fait que `station_join=0` bloque
+  déjà toute réutilisation d'origine servie en amont, avant que ce garde n'ait l'occasion de
+  s'appliquer.
+
+  `TARGET_HEADWAY_DAYS` reste délibérément non instrumenté à cette passe : pas de signal binaire
+  mord/ne-mord-pas simple pour lui — il faudrait mesurer la sensibilité au seuil d'arrondi
+  (`OpexCeilDiv`) plutôt qu'un compteur de rejet, hors périmètre ici.
+
 ---
 
 ## Ordre des objectifs
