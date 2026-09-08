@@ -116,23 +116,27 @@ def main():
     for key, series in by_run.items():
         _arm, seed, _rep = key
         series.sort(key=lambda r: r["date"])
-        for row in series:
-            for ev in parse_opex_decisions(row.get("openttd_output")):
-                f = ev["fields"]
-                if ev["kind"] == "VIVIER_GEN" and f.get("mode") == "road":
-                    produced = int(f["produced"])
-                    gen_calls.append({"seed": seed, "produced": produced, "kept": int(f["kept"])})
-                    per_seed_produced[seed] += produced
-                    per_seed_kept[seed] += int(f["kept"])
-                    n_gen_calls_by_seed[seed] += 1
-                elif ev["kind"] == "VIVIER_REJECT":
-                    reason = f["reason"]
-                    n = int(f["n"])
-                    reject_reasons[reason] += n
-                    if reason == "road_profit_too_low":
-                        per_seed_profit_too_low[seed] += n
-                    elif reason == "road_town_rejected":
-                        per_seed_town_rejected[seed] += n
+        # C41.10 (docs/taches.md, 2026-09-08) : openttd_output est IDENTIQUE a chaque ligne de
+        # checkpoint mensuel d'une meme partie (verifie empiriquement). Parcourir `series`
+        # comptait donc chaque evenement une fois par mois du jeu (~72x pour 6 ans). Corrige :
+        # une seule lecture par (graine, arm), depuis la derniere ligne.
+        output = series[-1].get("openttd_output") if series else None
+        for ev in parse_opex_decisions(output):
+            f = ev["fields"]
+            if ev["kind"] == "VIVIER_GEN" and f.get("mode") == "road":
+                produced = int(f["produced"])
+                gen_calls.append({"seed": seed, "produced": produced, "kept": int(f["kept"])})
+                per_seed_produced[seed] += produced
+                per_seed_kept[seed] += int(f["kept"])
+                n_gen_calls_by_seed[seed] += 1
+            elif ev["kind"] == "VIVIER_REJECT":
+                reason = f["reason"]
+                n = int(f["n"])
+                reject_reasons[reason] += n
+                if reason == "road_profit_too_low":
+                    per_seed_profit_too_low[seed] += n
+                elif reason == "road_town_rejected":
+                    per_seed_town_rejected[seed] += n
 
     total_produced = sum(per_seed_produced.values())
     total_kept = sum(per_seed_kept.values())

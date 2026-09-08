@@ -81,7 +81,14 @@ def main():
     all_attempts = []
     for key, series in by_run.items():
         _arm, seed, _rep = key
-        all_signs = [s for row in series for s in row["signs"]]
+        # C41.10 (docs/taches.md, 2026-09-08) : les signes s'accumulent sur la carte, donc chaque
+        # ligne de checkpoint mensuel contient le jeu COMPLET des signes deja poses -- pas
+        # seulement les nouveaux depuis le mois precedent. Concatener toutes les lignes compte
+        # chaque signe une fois par mois restant apres sa pose (bien pire qu'un facteur uniforme :
+        # ca sur-pondere les tentatives precoces). Corrige : ne lire que la DERNIERE ligne, deja
+        # complete (verifie empiriquement : la croissance est monotone, 0 -> 3035 sur 72 lignes).
+        series.sort(key=lambda r: r["date"])
+        all_signs = series[-1]["signs"] if series else []
         for a in parse_rp(all_signs):
             a["seed"] = seed
             all_attempts.append(a)

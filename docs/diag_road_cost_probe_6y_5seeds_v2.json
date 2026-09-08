@@ -1,0 +1,1051 @@
+{
+  "summary": {
+    "n_attempts_total": 145,
+    "n_ok_with_planned_capital": 109,
+    "n_failed": 36,
+    "ratio_mean": 1.2376638301871294,
+    "ratio_median": 1.1828285634898583,
+    "ratio_stdev": 0.30448855127112895,
+    "ratio_min": 0.7079759862778731,
+    "ratio_max": 3.976212578324437,
+    "per_seed": {
+      "1": {
+        "n": 16,
+        "mean": 1.2165239263125163
+      },
+      "42": {
+        "n": 27,
+        "mean": 1.2881863872294361
+      },
+      "73": {
+        "n": 24,
+        "mean": 1.22799118241723
+      },
+      "100": {
+        "n": 19,
+        "mean": 1.1462994552579433
+      },
+      "2026": {
+        "n": 23,
+        "mean": 1.2786288776646793
+      }
+    }
+  },
+  "attempts": [
+    {
+      "planned": 8334,
+      "actual": 14239,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 1
+    },
+    {
+      "planned": 7056,
+      "actual": 8602,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 1
+    },
+    {
+      "planned": 6843,
+      "actual": 187,
+      "vehicles": 0,
+      "ok": false,
+      "seed": 1
+    },
+    {
+      "planned": 6843,
+      "actual": 1850,
+      "vehicles": 0,
+      "ok": false,
+      "seed": 1
+    },
+    {
+      "planned": 6843,
+      "actual": 710,
+      "vehicles": 0,
+      "ok": false,
+      "seed": 1
+    },
+    {
+      "planned": 6843,
+      "actual": 770,
+      "vehicles": 0,
+      "ok": false,
+      "seed": 1
+    },
+    {
+      "planned": 6914,
+      "actual": 7292,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 1
+    },
+    {
+      "planned": 7056,
+      "actual": 8167,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 1
+    },
+    {
+      "planned": 7766,
+      "actual": 10784,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 1
+    },
+    {
+      "planned": 6914,
+      "actual": 8990,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 1
+    },
+    {
+      "planned": 7340,
+      "actual": 8081,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 1
+    },
+    {
+      "planned": 6843,
+      "actual": 187,
+      "vehicles": 0,
+      "ok": false,
+      "seed": 1
+    },
+    {
+      "planned": 7127,
+      "actual": 1115,
+      "vehicles": 0,
+      "ok": false,
+      "seed": 1
+    },
+    {
+      "planned": 7411,
+      "actual": 9019,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 1
+    },
+    {
+      "planned": 7695,
+      "actual": 10496,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 1
+    },
+    {
+      "planned": 6914,
+      "actual": 7662,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 1
+    },
+    {
+      "planned": 6914,
+      "actual": 7576,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 1
+    },
+    {
+      "planned": 7127,
+      "actual": 7748,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 1
+    },
+    {
+      "planned": 7198,
+      "actual": 8514,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 1
+    },
+    {
+      "planned": 7127,
+      "actual": 1257,
+      "vehicles": 0,
+      "ok": false,
+      "seed": 1
+    },
+    {
+      "planned": 8902,
+      "actual": 5930,
+      "vehicles": 0,
+      "ok": false,
+      "seed": 1
+    },
+    {
+      "planned": 7269,
+      "actual": 187,
+      "vehicles": 0,
+      "ok": false,
+      "seed": 1
+    },
+    {
+      "planned": 6843,
+      "actual": 1339,
+      "vehicles": 0,
+      "ok": false,
+      "seed": 1
+    },
+    {
+      "planned": 6843,
+      "actual": 767,
+      "vehicles": 0,
+      "ok": false,
+      "seed": 1
+    },
+    {
+      "planned": 7269,
+      "actual": 10691,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 1
+    },
+    {
+      "planned": 6843,
+      "actual": 187,
+      "vehicles": 0,
+      "ok": false,
+      "seed": 1
+    },
+    {
+      "planned": 7056,
+      "actual": 9181,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 1
+    },
+    {
+      "planned": 7269,
+      "actual": 187,
+      "vehicles": 0,
+      "ok": false,
+      "seed": 1
+    },
+    {
+      "planned": 8902,
+      "actual": 5855,
+      "vehicles": 0,
+      "ok": false,
+      "seed": 1
+    },
+    {
+      "planned": 6843,
+      "actual": 187,
+      "vehicles": 0,
+      "ok": false,
+      "seed": 1
+    },
+    {
+      "planned": 6843,
+      "actual": 823,
+      "vehicles": 0,
+      "ok": false,
+      "seed": 1
+    },
+    {
+      "planned": 7127,
+      "actual": 1257,
+      "vehicles": 0,
+      "ok": false,
+      "seed": 1
+    },
+    {
+      "planned": 6843,
+      "actual": 187,
+      "vehicles": 0,
+      "ok": false,
+      "seed": 1
+    },
+    {
+      "planned": 9328,
+      "actual": 6604,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 1
+    },
+    {
+      "planned": 6985,
+      "actual": 7520,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 42
+    },
+    {
+      "planned": 7269,
+      "actual": 8761,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 42
+    },
+    {
+      "planned": 7766,
+      "actual": 9610,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 42
+    },
+    {
+      "planned": 6985,
+      "actual": 7763,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 42
+    },
+    {
+      "planned": 10953,
+      "actual": 13908,
+      "vehicles": 2,
+      "ok": true,
+      "seed": 42
+    },
+    {
+      "planned": 6985,
+      "actual": 7561,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 42
+    },
+    {
+      "planned": 11276,
+      "actual": 13374,
+      "vehicles": 2,
+      "ok": true,
+      "seed": 42
+    },
+    {
+      "planned": 7056,
+      "actual": 7262,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 42
+    },
+    {
+      "planned": 11401,
+      "actual": 16151,
+      "vehicles": 2,
+      "ok": true,
+      "seed": 42
+    },
+    {
+      "planned": 6843,
+      "actual": 8077,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 42
+    },
+    {
+      "planned": 6985,
+      "actual": 8952,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 42
+    },
+    {
+      "planned": 7695,
+      "actual": 2185,
+      "vehicles": 0,
+      "ok": false,
+      "seed": 42
+    },
+    {
+      "planned": 6843,
+      "actual": 187,
+      "vehicles": 0,
+      "ok": false,
+      "seed": 42
+    },
+    {
+      "planned": 7198,
+      "actual": 187,
+      "vehicles": 0,
+      "ok": false,
+      "seed": 42
+    },
+    {
+      "planned": 7198,
+      "actual": 8238,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 42
+    },
+    {
+      "planned": 7340,
+      "actual": 7965,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 42
+    },
+    {
+      "planned": 6985,
+      "actual": 9087,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 42
+    },
+    {
+      "planned": 7411,
+      "actual": 9924,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 42
+    },
+    {
+      "planned": 7056,
+      "actual": 7804,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 42
+    },
+    {
+      "planned": 7127,
+      "actual": 9043,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 42
+    },
+    {
+      "planned": 6914,
+      "actual": 8765,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 42
+    },
+    {
+      "planned": 6843,
+      "actual": 6604,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 42
+    },
+    {
+      "planned": 7198,
+      "actual": 187,
+      "vehicles": 0,
+      "ok": false,
+      "seed": 42
+    },
+    {
+      "planned": 7837,
+      "actual": 10477,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 42
+    },
+    {
+      "planned": 6914,
+      "actual": 8118,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 42
+    },
+    {
+      "planned": 7482,
+      "actual": 2009,
+      "vehicles": 0,
+      "ok": false,
+      "seed": 42
+    },
+    {
+      "planned": 7482,
+      "actual": 10545,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 42
+    },
+    {
+      "planned": 6843,
+      "actual": 1234,
+      "vehicles": 0,
+      "ok": false,
+      "seed": 42
+    },
+    {
+      "planned": 7127,
+      "actual": 7879,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 42
+    },
+    {
+      "planned": 6914,
+      "actual": 7262,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 42
+    },
+    {
+      "planned": 6843,
+      "actual": 1949,
+      "vehicles": 0,
+      "ok": false,
+      "seed": 42
+    },
+    {
+      "planned": 6843,
+      "actual": 7976,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 42
+    },
+    {
+      "planned": 6914,
+      "actual": 1472,
+      "vehicles": 0,
+      "ok": false,
+      "seed": 42
+    },
+    {
+      "planned": 8618,
+      "actual": 34267,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 42
+    },
+    {
+      "planned": 7127,
+      "actual": 7191,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 42
+    },
+    {
+      "planned": 6914,
+      "actual": 823,
+      "vehicles": 0,
+      "ok": false,
+      "seed": 42
+    },
+    {
+      "planned": 7695,
+      "actual": 11144,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 73
+    },
+    {
+      "planned": 7127,
+      "actual": 9046,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 73
+    },
+    {
+      "planned": 7198,
+      "actual": 835,
+      "vehicles": 0,
+      "ok": false,
+      "seed": 73
+    },
+    {
+      "planned": 7695,
+      "actual": 546,
+      "vehicles": 0,
+      "ok": false,
+      "seed": 73
+    },
+    {
+      "planned": 6843,
+      "actual": 1114,
+      "vehicles": 0,
+      "ok": false,
+      "seed": 73
+    },
+    {
+      "planned": 7056,
+      "actual": 0,
+      "vehicles": 0,
+      "ok": false,
+      "seed": 73
+    },
+    {
+      "planned": 6914,
+      "actual": 7982,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 73
+    },
+    {
+      "planned": 8263,
+      "actual": 12419,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 73
+    },
+    {
+      "planned": 6914,
+      "actual": 7879,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 73
+    },
+    {
+      "planned": 6843,
+      "actual": 8538,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 73
+    },
+    {
+      "planned": 7198,
+      "actual": 8148,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 73
+    },
+    {
+      "planned": 7198,
+      "actual": 8193,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 73
+    },
+    {
+      "planned": 6985,
+      "actual": 7793,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 73
+    },
+    {
+      "planned": 6843,
+      "actual": 8148,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 73
+    },
+    {
+      "planned": 7127,
+      "actual": 8376,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 73
+    },
+    {
+      "planned": 6843,
+      "actual": 8582,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 73
+    },
+    {
+      "planned": 7056,
+      "actual": 8830,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 73
+    },
+    {
+      "planned": 7198,
+      "actual": 9959,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 73
+    },
+    {
+      "planned": 7553,
+      "actual": 10658,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 73
+    },
+    {
+      "planned": 6985,
+      "actual": 7819,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 73
+    },
+    {
+      "planned": 6914,
+      "actual": 7632,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 73
+    },
+    {
+      "planned": 6985,
+      "actual": 7718,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 73
+    },
+    {
+      "planned": 7979,
+      "actual": 10174,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 73
+    },
+    {
+      "planned": 6914,
+      "actual": 7905,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 73
+    },
+    {
+      "planned": 6843,
+      "actual": 557,
+      "vehicles": 0,
+      "ok": false,
+      "seed": 73
+    },
+    {
+      "planned": 6843,
+      "actual": 7976,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 73
+    },
+    {
+      "planned": 6985,
+      "actual": 7868,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 73
+    },
+    {
+      "planned": 6843,
+      "actual": 8639,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 73
+    },
+    {
+      "planned": 8334,
+      "actual": 11305,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 73
+    },
+    {
+      "planned": 7198,
+      "actual": 8133,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 100
+    },
+    {
+      "planned": 7553,
+      "actual": 9404,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 100
+    },
+    {
+      "planned": 6914,
+      "actual": 8346,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 100
+    },
+    {
+      "planned": 7340,
+      "actual": 7875,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 100
+    },
+    {
+      "planned": 7056,
+      "actual": 1484,
+      "vehicles": 0,
+      "ok": false,
+      "seed": 100
+    },
+    {
+      "planned": 6843,
+      "actual": 8062,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 100
+    },
+    {
+      "planned": 7198,
+      "actual": 8410,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 100
+    },
+    {
+      "planned": 7908,
+      "actual": 9786,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 100
+    },
+    {
+      "planned": 6985,
+      "actual": 8698,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 100
+    },
+    {
+      "planned": 6843,
+      "actual": 7804,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 100
+    },
+    {
+      "planned": 7269,
+      "actual": 8380,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 100
+    },
+    {
+      "planned": 7127,
+      "actual": 7221,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 100
+    },
+    {
+      "planned": 7411,
+      "actual": 2520,
+      "vehicles": 0,
+      "ok": false,
+      "seed": 100
+    },
+    {
+      "planned": 7198,
+      "actual": 8391,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 100
+    },
+    {
+      "planned": 6914,
+      "actual": 7505,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 100
+    },
+    {
+      "planned": 6914,
+      "actual": 7812,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 100
+    },
+    {
+      "planned": 7127,
+      "actual": 7797,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 100
+    },
+    {
+      "planned": 6843,
+      "actual": 7262,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 100
+    },
+    {
+      "planned": 7127,
+      "actual": 9147,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 100
+    },
+    {
+      "planned": 7198,
+      "actual": 7969,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 100
+    },
+    {
+      "planned": 6985,
+      "actual": 7419,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 100
+    },
+    {
+      "planned": 8334,
+      "actual": 11032,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 2026
+    },
+    {
+      "planned": 6914,
+      "actual": 8739,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 2026
+    },
+    {
+      "planned": 11024,
+      "actual": 15737,
+      "vehicles": 2,
+      "ok": true,
+      "seed": 2026
+    },
+    {
+      "planned": 7127,
+      "actual": 9165,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 2026
+    },
+    {
+      "planned": 6914,
+      "actual": 8047,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 2026
+    },
+    {
+      "planned": 7624,
+      "actual": 9898,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 2026
+    },
+    {
+      "planned": 6914,
+      "actual": 7576,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 2026
+    },
+    {
+      "planned": 6843,
+      "actual": 7753,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 2026
+    },
+    {
+      "planned": 7056,
+      "actual": 8361,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 2026
+    },
+    {
+      "planned": 6843,
+      "actual": 7479,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 2026
+    },
+    {
+      "planned": 6843,
+      "actual": 9044,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 2026
+    },
+    {
+      "planned": 7482,
+      "actual": 13307,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 2026
+    },
+    {
+      "planned": 7056,
+      "actual": 11124,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 2026
+    },
+    {
+      "planned": 7198,
+      "actual": 10192,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 2026
+    },
+    {
+      "planned": 7482,
+      "actual": 11121,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 2026
+    },
+    {
+      "planned": 7837,
+      "actual": 10464,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 2026
+    },
+    {
+      "planned": 6985,
+      "actual": 8795,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 2026
+    },
+    {
+      "planned": 6843,
+      "actual": 1543,
+      "vehicles": 0,
+      "ok": false,
+      "seed": 2026
+    },
+    {
+      "planned": 7127,
+      "actual": 7262,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 2026
+    },
+    {
+      "planned": 7056,
+      "actual": 8529,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 2026
+    },
+    {
+      "planned": 6914,
+      "actual": 7520,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 2026
+    },
+    {
+      "planned": 6914,
+      "actual": 8578,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 2026
+    },
+    {
+      "planned": 7411,
+      "actual": 7576,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 2026
+    },
+    {
+      "planned": 6843,
+      "actual": 823,
+      "vehicles": 0,
+      "ok": false,
+      "seed": 2026
+    },
+    {
+      "planned": 6914,
+      "actual": 9589,
+      "vehicles": 1,
+      "ok": true,
+      "seed": 2026
+    }
+  ]
+}

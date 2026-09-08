@@ -110,19 +110,24 @@ def main():
     for key, series in by_run.items():
         _arm, seed, _rep = key
         series.sort(key=lambda r: r["date"])
-        for row in series:
-            for ev in parse_opex_decisions(row.get("openttd_output")):
-                f = ev["fields"]
-                if ev["kind"] == "VIVIER":
-                    vivier_rows.append({
-                        "seed": seed, "path": f["path"],
-                        "considered": int(f["considered"]), "selected": int(f["selected"]),
-                        "rejected": int(f["rejected"]),
-                    })
-                elif ev["kind"] == "PROJECT_DISCARD":
-                    discard_reasons[f["reason"]] += 1
-                elif ev["kind"] == "PROJECT_CHOSEN":
-                    chosen_count += 1
+        # C41.10 (docs/taches.md, 2026-09-08) : openttd_output est IDENTIQUE (meme capture du
+        # sous-processus) a chaque ligne de checkpoint mensuel d'une meme partie -- verifie
+        # empiriquement (longueur identique sur 72 lignes d'une partie de 6 ans). Parcourir
+        # `series` comptait donc chaque evenement une fois par mois du jeu (~72x pour 6 ans).
+        # Corrige : le lire une seule fois par (graine, arm), depuis la derniere ligne.
+        output = series[-1].get("openttd_output") if series else None
+        for ev in parse_opex_decisions(output):
+            f = ev["fields"]
+            if ev["kind"] == "VIVIER":
+                vivier_rows.append({
+                    "seed": seed, "path": f["path"],
+                    "considered": int(f["considered"]), "selected": int(f["selected"]),
+                    "rejected": int(f["rejected"]),
+                })
+            elif ev["kind"] == "PROJECT_DISCARD":
+                discard_reasons[f["reason"]] += 1
+            elif ev["kind"] == "PROJECT_CHOSEN":
+                chosen_count += 1
 
     # PROJECT_TOP_K : sur combien d'appels de selection un candidat a-t-il ete rejete
     # uniquement parce que la fenetre etait pleine (rejected > 0) ?
