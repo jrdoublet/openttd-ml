@@ -912,6 +912,55 @@ reste à trancher indépendamment.
   que le mécanisme est compris ; à reprendre seulement si `PROJECT_TOP_K` redevient un sujet
   d'intérêt.
 
+  #### Famille 2 (planchers) — démarrée le 2026-09-08
+
+  12 planchers restants après `MIN_SEPARATION` (famille 1, ne mord jamais) : `ATTEMPT_FLOOR`,
+  `PAX_NEAR_MIN_PROFIT`, `ROAD_MIN_DISTANCE`, `ROAD_MIN_PROFIT_ANNUAL`, `ROAD_ACCEPTANCE_MIN`,
+  `CASH_RESERVE_MIN`, `LOOP_BUDGET_FLOOR`, `DYNAMIC_BATCH_OPS_FLOOR`,
+  `PORTFOLIO_REFRESH_MIN_GAIN`, `ORIGIN_SEPARATION`, plus deux seuils apparentés
+  (`DEAD_STREAK_THRESHOLD`, `SCRAP_TIMEOUT_YEARS`). Même méthode que famille 1 : instrumenter
+  avec la télémétrie déjà livrée avant d'écrire le moindre code de jeu.
+
+  ✅ **`ROAD_MIN_PROFIT_ANNUAL = 1000` (candidates.nut:1002) et `ROAD_ACCEPTANCE_MIN = 8`
+  (candidates.nut:1007) mesurés, aucun nouveau code de jeu** — panneaux `VIVIER_GEN`/
+  `VIVIER_REJECT` déjà livrés (`reason=road_profit_too_low`/`road_town_rejected`),
+  `sweeps/diag_family2_floors.py`, 5 graines × 6 ans
+  (`docs/diag_family2_floors_6y_5seeds.json`) :
+
+  | constante | rejets totaux | par graine (1/42/73/100/2026) |
+  |---|---:|---|
+  | `ROAD_MIN_PROFIT_ANNUAL` | **0** | 0/0/0/0/0 |
+  | `ROAD_ACCEPTANCE_MIN` | **495 216** | 151 488 / 94 176 / 67 608 / 86 544 / 95 400 |
+
+  ⚠️ **Piège de dénominateur rencontré et documenté dans le script, pas de pourcentage de
+  morsure fiable calculé.** `stats.townRejected` s'incrémente dans la boucle industrie × ville
+  de `OpexRoadFreightCandidates`, **avant** le `pairsInBand++` de cette boucle précise ; le champ
+  `VIVIER_GEN.produced` agrège `pairsInBand` de plusieurs boucles distinctes (fret
+  industrie-industrie, fret industrie-ville, pax, feeders). Un premier calcul naïf
+  (rejets / produced total) donnait 1 456 % — signal du même genre de confusion que
+  `rejected > 0` pour `PROJECT_TOP_K` en famille 1. Corrigé en ne publiant que les comptes bruts.
+
+  **`ROAD_MIN_PROFIT_ANNUAL` ne mord jamais** dans cette fenêtre (5 graines × 6 ans, 180 864
+  candidats produits) — même verdict que `MIN_SEPARATION` en famille 1 : mécanisme vivant,
+  jamais déclenché. **`ROAD_ACCEPTANCE_MIN` mord énormément et systématiquement** : 495 216
+  rejets contre seulement **10 728 candidats gardés** (`VIVIER_GEN.kept`, toutes générations
+  routières confondues) sur les mêmes graines — un rapport d'environ 46 rejets pour 1 candidat
+  retenu, cohérent sur les 5 graines (67 608 à 151 488 chacune, jamais proche de 0). C'est de
+  loin le plus gros motif de rejet routier nommé (devant `road_no_monthly` à 378 504). Candidat
+  clair pour l'étape 3 (banc) : `AITile.GetCargoAcceptance` à 8 sur une zone de couverture
+  camion coupe la quasi-totalité des candidats fret industrie→ville avant même le test de
+  distance ou de profit — **valeur non vérifiée contre le source du jeu, non remise en cause
+  depuis sa pose.**
+
+  🔶 **Reste à faire pour clore famille 2** : les 10 autres constantes n'ont pas de compteur
+  binaire prêt à l'emploi (à la différence des deux ci-dessus) — `ATTEMPT_FLOOR`,
+  `CASH_RESERVE_MIN`, `LOOP_BUDGET_FLOOR`, `DYNAMIC_BATCH_OPS_FLOOR`,
+  `PORTFOLIO_REFRESH_MIN_GAIN`, `PAX_NEAR_MIN_PROFIT`, `ORIGIN_SEPARATION`, `ROAD_MIN_DISTANCE`
+  demandent une instrumentation nouvelle et ciblée avant de pouvoir être classées. Note :
+  `DYNAMIC_BATCH_OPS_FLOOR` est peut-être déjà répondue par le post-mortem C38 (motifs de
+  clôture `opcode_budget` 52/112, ci-dessus) — à vérifier avant d'instrumenter à nouveau plutôt
+  que de dupliquer la mesure.
+
 ---
 
 ## Ordre des objectifs
