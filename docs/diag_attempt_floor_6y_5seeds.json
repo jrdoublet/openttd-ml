@@ -1,0 +1,37 @@
+{
+ "seeds": [
+  1,
+  42,
+  73,
+  100,
+  2026
+ ],
+ "years": 6,
+ "arm": "OpexAI[decision_log=1]",
+ "n_attempts_total": 21,
+ "path_counts": {
+  "C": 21
+ },
+ "pct_by_path": {
+  "C": 100.0
+ },
+ "attempt_floor_iterations_mean": null,
+ "attempt_floor_budget_sample": [],
+ "per_seed_path": {
+  "1": {
+   "C": 3
+  },
+  "42": {
+   "C": 5
+  },
+  "73": {
+   "C": 5
+  },
+  "100": {
+   "C": 4
+  },
+  "2026": {
+   "C": 4
+  }
+ }
+}

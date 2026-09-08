@@ -1329,8 +1329,32 @@ reste à trancher indépendamment.
   n'était pas dans la liste des 12 planchers de famille 2 (c'est un plafond, famille 1) — à ajouter
   à une future passe famille 1 plutôt qu'ici.
 
-  🔶 **Reste à faire pour clore famille 2** : 8 constantes sans compteur binaire prêt à l'emploi —
-  `ATTEMPT_FLOOR`, `LOOP_BUDGET_FLOOR`, `PORTFOLIO_REFRESH_MIN_GAIN`,
+  ✅ **`ATTEMPT_FLOOR = 2000` (builder_rail.nut) mesuré, aucun nouveau code de jeu (2026-09-08).**
+  Déjà entièrement instrumenté avant même de commencer : `OpexIterationBudget()`
+  (`builder_rail.nut:112`) renvoie un `path` (`Z`=pas d'alternative, `F`=plancher `ATTEMPT_FLOOR`,
+  `C`=plafond dur, `N`=forme fermée non bornée) déjà porté sur **chaque tentative rail, réussie ou
+  non**, par le panneau `OR|` livré (`main.nut:4779`, `_recordRailAttempt`). Script de lecture
+  seule (`sweeps/diag_attempt_floor.py`), 5 graines × 6 ans
+  (`docs/diag_attempt_floor_6y_5seeds.json`) :
+
+  | path | n | % |
+  |---|---:|---:|
+  | `C` (plafond dur) | **21** | **100 %** |
+  | `F` (`ATTEMPT_FLOOR`) | 0 | 0 % |
+
+  Par graine : 1 → 3/3 ; 42 → 5/5 ; 73 → 5/5 ; 100 → 4/4 ; 2026 → 4/4 — **toujours `C`, jamais
+  `F`, sur les 21 tentatives observées.** ⚠️ **Échantillon petit** (le rail est rare dans cette
+  fenêtre : 21 tentatives contre 522 appels `VIVIER`, 11 172 appels `OpexCashReserve` sur les
+  mêmes graines/années) — les lignes rail que l'IA choisit d'attaquer semblent systématiquement
+  assez rentables pour que `ATTEMPT_MULTIPLIER × profitAnnual × 1000 / alternativeRatio` dépasse
+  toujours le plafond dynamique, jamais assez bas pour tomber sous 2 000. **Même verdict que
+  `MIN_SEPARATION`/`ROAD_MIN_PROFIT_ANNUAL` : mécanisme atteignable, jamais déclenché dans cette
+  fenêtre.** Pas de banc — changer sa valeur serait un no-op mesuré sur cet échantillon, pas
+  supposé, mais la petitesse de l'échantillon (21) mérite une note : moins définitif que le
+  0/3 923 de `MIN_SEPARATION`.
+
+  🔶 **Reste à faire pour clore famille 2** : 7 constantes sans compteur binaire prêt à l'emploi —
+  `LOOP_BUDGET_FLOOR`, `PORTFOLIO_REFRESH_MIN_GAIN`,
   `PAX_NEAR_MIN_PROFIT`, `ORIGIN_SEPARATION`, `ROAD_MIN_DISTANCE`, `DEAD_STREAK_THRESHOLD`,
   `SCRAP_TIMEOUT_YEARS` — demandent une instrumentation nouvelle et ciblée avant de pouvoir être
   classées.
