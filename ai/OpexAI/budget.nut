@@ -13,6 +13,23 @@
 
 OPS_PER_TICK <- 10000;
 
+/* Mesure d'opcodes sans passer par l'instance partagee OpexBudget : chaque appel cree son propre
+ * "mark" local, donc aucun risque de reentrance meme dans une fonction qui ne recoit pas `budget`
+ * (OpexReselectProjects, OpexDynamicBatchReselect). Meme formule que OpexBudget.end(). */
+function OpexOpsMeasureBegin()
+{
+  return { tick = AIController.GetTick(), left = AIController.GetOpsTillSuspend() };
+}
+
+function OpexOpsMeasureEnd(mark)
+{
+  local left = AIController.GetOpsTillSuspend();
+  local elapsed = AIController.GetTick() - mark.tick;
+  return elapsed <= 0
+    ? mark.left - left
+    : mark.left + (elapsed - 1) * OPS_PER_TICK + (OPS_PER_TICK - left);
+}
+
 class OpexBudget {
   totals = null;   // categorie -> opcodes cumules
   _tick = 0;

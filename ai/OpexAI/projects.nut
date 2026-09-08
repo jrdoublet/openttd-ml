@@ -852,7 +852,8 @@ function OpexLogVivier(path, candidates, stats, capitalBudget, capitalRemaining)
     OpexDecide("VIVIER", "path=" + path + " considered=" + stats.budgetConsidered
                + " selected=" + stats.budgetSelected + " rejected=" + stats.budgetRejected
                + " infundable=" + stats.poolInfundable
-               + " budget=" + capitalBudget + " remaining=" + capitalRemaining);
+               + " budget=" + capitalBudget + " remaining=" + capitalRemaining
+               + " sel_ops=" + (("selectionOpcodes" in stats) ? stats.selectionOpcodes : -1));
   }
   if (candidates == null) return;
   if (DECISION_LOG) {
@@ -903,6 +904,7 @@ function OpexReselectProjects(projects, capitalBudget)
 {
   local funded = null;
   local considered = 0;
+  local opsMark = OpexOpsMeasureBegin();
   if (PORTFOLIO_V2) {
     local alternatives = [];
     foreach (key, list in projects.candidateGroups) {
@@ -920,6 +922,7 @@ function OpexReselectProjects(projects, capitalBudget)
     projects.stats.knapsackNodes = knapsack.nodes;
     projects.stats.knapsackExact = knapsack.exact;
   }
+  projects.stats.selectionOpcodes <- OpexOpsMeasureEnd(opsMark);
 
   projects.stats.budgetConsidered = considered;
   projects.stats.budgetSelected = funded.len();
@@ -1248,6 +1251,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   /* 6. Selection et resolution du sac a dos sur le capital restant */
   local funded = null;
   local byBudget = [];
+  local opsMark = OpexOpsMeasureBegin();
   if (PORTFOLIO_V2) {
     local alternatives = [];
     foreach (key, list in newWinners) {
@@ -1271,6 +1275,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
     stats.budgetSelected = funded.len();
     stats.budgetRejected = byBudget.len() - funded.len();
   }
+  stats.selectionOpcodes <- OpexOpsMeasureEnd(opsMark);
 
   /* 5. Cloture des statistiques et du capital restant */
   local selectedRev = 0;
@@ -1531,6 +1536,7 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
 
   local funded = null;
   local byBudget = [];
+  local opsMark = OpexOpsMeasureBegin();
   if (PORTFOLIO_V2) {
     /* Toutes les alternatives de tous les couples, aplaties : c'est le test de capital qui
      * tranchera, pas une election modale prealable au ratio. */
@@ -1556,6 +1562,7 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
     stats.budgetSelected = funded.len();
     stats.budgetRejected = byBudget.len() - funded.len();
   }
+  stats.selectionOpcodes <- OpexOpsMeasureEnd(opsMark);
 
   local selectedRev = 0;
   local selectedCap = 0;
