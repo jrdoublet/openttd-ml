@@ -1764,16 +1764,34 @@ mesurée : `docs/opexai_route.md`, banc PH **+9,3 %**.
   
   **Conclusion** : Le dimensionnement de la longueur des convois par OpexAI (`trainsForVolume` / `OpexRailNominalMaxWagons`) est déjà ajusté au tonnage mensuel des villes reliées. Le départ partiel immédiat fait rouler des convois à demi-vides dont les coûts de fonctionnement fixes absorbent le léger gain de rotation.
   ⚠️ **Défaut `pax_full_load=1` strictement maintenu.**
-- ✅ **Gestion des marchandises complexes et chaînes de transformation secondaire (`complex_cargo`) — ADOPTÉ (2026-08-31)** :
+- ⚠️ **Gestion des marchandises complexes et chaînes de transformation secondaire (`complex_cargo`) — adopté le 2026-08-31 sur un banc sous le seuil officiel, NE RÉPLIQUE PAS à 10 ans (retest 2026-09-08).**
   Indexation au catalogue des villes acceptatrices pour les marchandises transformées (`Goods`, `Food`, `Water`, `Mail`) et génération des corridors Industrie $\rightarrow$ Ville dans `OpexFreightCandidates`.
   Permet d'alimenter les industries secondaires (Aciérie, Scierie, Raffinerie, Usine) et d'évacuer les marchandises à haute valeur ajoutée vers les centres urbains.
-  **Banc apparié 20 graines × 5 ans (`docs/bench_complex_cargo_5y.json`)** :
-  - `company_value` : **+4,27 %** (+21 181 £), **$t = +2,29$** ($p < 0,05$), 12/20 graines gagnantes.
-  - `performance_history` : **+5,38 %** (+13,6 points), **$t = +3,10$** ($p < 0,01$), **16/20 graines gagnantes**.
-  - `profit` : **+4,85 %** (+1 853 £), $t = +1,71$, 12/20 graines gagnantes.
-  - `profit_year` : **+3,81 %** (+5 863 £), $t = +1,90$, 14/20 graines gagnantes.
-  
-  ⚠️ **Réglage `complex_cargo = 1` activé par défaut.**
+
+  🔴 **Chiffre d'origine périmé.** Banc apparié 20 graines × **5 ans seulement** (`docs/bench_complex_cargo_5y.json`) — sous le seuil officiel de validation du projet (`AGENTS.md` : « banc officiel 20 graines × 10 ans apparié avant toute adoption par défaut ») : `company_value` +4,27 % ($t=2,29$, $p<0,05$), `performance_history` +5,38 % ($t=3,10$, $p<0,01$, 16/20 graines gagnantes), `profit` +4,85 % ($t=1,71$), `profit_year` +3,81 % ($t=1,90$).
+
+  ✅ **Retest officiel 20 graines × 10 ans (2026-09-08, `docs/bench_complex_cargo_10y_20seeds.json`), `OpexAI[complex_cargo=0]` contre `OpexAI[complex_cargo=1]` sur le dossier courant, 0 échec sur 40 parties : AUCUN EFFET SIGNIFICATIF.**
+
+  | métrique | delta (0 vs 1) | t | victoires de `0` sur 20 |
+  |---|---:|---:|---:|
+  | `company_value` | −3,98 % | −1,14 | 9 |
+  | `profit_year` | −4,42 % | −1,30 | 8 |
+  | `profit` | −3,32 % | −0,73 | 9 |
+  | `performance_history` | −1,06 % | −1,28 | 9 |
+  | note de gare | −0,69 % | −0,90 | 6 |
+
+  Le signe penche pour `complex_cargo=1` en moyenne, mais aucun $t$ n'approche la
+  significativité, et le compte de victoires (9/20, 9/20, 8/20, 6/20) est proche du hasard pur —
+  la signature d'une moyenne tirée par quelques graines à forte variance, pas d'un effet réel.
+  Même motif que le pathfinder segmenté (A5, [[pathfinder_segmente_prototype]]) : un gain mesuré
+  tôt (ici à 5 ans) qui s'évapore à l'horizon officiel. Pas de mode d'échec identifié — le
+  mécanisme tourne, il ne rapporte simplement pas ce qu'annonçait le premier banc.
+
+  ⚠️ **`complex_cargo = 1` reste le défaut** — résultat nul, pas négatif, et la fonctionnalité ne
+  coûte rien de mesurable ; pas de raison de désactiver un vrai mécanisme de jeu sur un null
+  result. Non exploré : si la carte 8×8 à `industry_density=4` du banc limite le nombre
+  d'industries secondaires générées, ce qui bornerait structurellement l'effet mesurable ici sans
+  que ça dise quoi que ce soit sur une carte plus dense.
 
 ---
 
