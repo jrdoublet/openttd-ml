@@ -2062,7 +2062,10 @@ borné~~ / ~~l'item **7**~~ / ~~l'item **4**~~.
   (`sweeps/diag_road_cost_bias.py`, `9e95822`) appariait deux panneaux existants
   (`PROJECT_CHOSEN` modèle vs `ROAD_BUILD` réel) via un **delta de solde bancaire**, contaminé
   par la trésorerie environnante : moyenne 1,207 mais écart-type 0,492 et **min −0,161
-  (impossible)**. Remplacé par `road_cost_probe` (`d24c0eb`), sondage `AIAccounting` isolé
+  (impossible)**. ⚠️ Ce script a aussi le bug de duplication par ligne de checkpoint corrigé le
+  2026-09-08 (`2562e96`) dans les trois autres — non retouché ici, la méthode elle-même étant déjà
+  disqualifiée par ce qui précède ; pas de nouvelle mesure à en tirer. Remplacé par
+  `road_cost_probe` (`d24c0eb`), sondage `AIAccounting` isolé
   (comme air/rail, aucun bouclier nécessaire — pas d'`AITestMode` interne à
   `OpexBuildRoadRoute`), panneau `RP|` à chacune des 12 sorties de la fonction, échecs compris.
 
