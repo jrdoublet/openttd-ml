@@ -382,6 +382,14 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    AddSetting({
+      name = "c41_road_feeder_profile",
+      description = "C41.21 probe: split feeder generation in road build and fresh portfolio injection; no scheduling change; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* C41.4 : inventaire passif des vehicules perdus, independant de l'alerte A7.4. */
     AddSetting({
       name = "c41_vehicle_lost_probe",
@@ -617,6 +625,17 @@ class OpexAIInfo extends AIInfo {
       description = "Rabattement arbitre au portefeuille au lieu d'une tache dediee (docs/taches.md C32): 1 = portefeuille (defaut), 0 = tache dediee",
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* Les aeroports construisent deja leurs arrets de captage joints (`air_joined_stops`) ; la
+     * generation historique de lignes bus ville->hub est donc exclue par defaut. Le bras 1
+     * demeure disponible pour rejouer cette strategie explicitement au banc. */
+    AddSetting({
+      name = "feeder_candidates",
+      description = "Generate new town-to-hub feeder bus candidates: 0 = disabled by default; airport joined stops remain active, 1 = legacy feeder candidate strategy",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
 

@@ -1187,7 +1187,12 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
       feederHubs = 0, feederCandidates = 0,
       roadDistanceShort = 0, roadDistanceLong = 0,
     };
+    local feederRefreshMark = C41_ROAD_FEEDER_PROFILE ? OpexOpsMeasureBegin() : null;
     OpexRoadFeederCandidates(catalog, lines, freshFeeders, feederStats, abandonedPairs);
+    if (feederRefreshMark != null) {
+      OpexC39Log("C41_ROAD_FEEDER_REFRESH_PROFILE", "ops=" + OpexOpsMeasureEnd(feederRefreshMark)
+                 + " candidates=" + freshFeeders.len());
+    }
     if (("road" in projects) && ("stats" in projects.road)) {
       projects.road.stats.feederHubs = feederStats.feederHubs;
       projects.road.stats.feederCandidates = feederStats.feederCandidates;
@@ -1346,7 +1351,7 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
   local rail = OpexBuildCandidates(catalog, budget, lines, abandonedPairs);
   local railPrequote = OpexPrequoteRailCandidates(catalog, budget, rail);
   /* C41.16/C41.17 : mesure seulement les etapes de generation route pendant la passe historique. */
-  local roadProfile = (C41_ROAD_CANDIDATE_PROFILE || C41_ROAD_FREIGHT_PROFILE || C41_ROAD_FREIGHT_TOWN_PROFILE)
+  local roadProfile = (C41_ROAD_CANDIDATE_PROFILE || C41_ROAD_FREIGHT_PROFILE || C41_ROAD_FREIGHT_TOWN_PROFILE || C41_ROAD_FEEDER_PROFILE)
       ? { paxOps = 0, freightOps = 0, feederOps = 0, topKOps = 0,
           freightPreparationOps = 0, freightIndustryOps = 0, freightTownOps = 0,
           freightTownScanned = 0, freightTownAcceptanceHits = 0, freightTownAcceptanceMisses = 0,

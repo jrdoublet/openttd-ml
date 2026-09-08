@@ -1054,6 +1054,20 @@ reste à trancher indépendamment.
   pas parce qu'une liaison est omise. Avec le gain d'opcodes établi et l'objectif de fraîcheur,
   **adopté par défaut : `c41_road_freight_acceptance_index=1`**.
 
+  ✅ **C41.21 — feeders : périmètre et arrêt du vivier historique.** Le profil passif 5×6
+  (`results/diag_c41_21_road_feeder_profile_6y_5seeds.json`) trouve deux générations de l'ancien
+  vivier ville→hub : **278** dans la passe route (4,98 M opcodes) et **245** lors de la
+  régénération incrémentale fraîche (4,51 M), pour seulement **135** candidats frais au total.
+  Elles sont toutefois hors de la stratégie actuelle : `OpexAirBuildJoinedStops` pose dès la
+  création de chaque aéroport des arrêts de bus joints à sa station, qui étendent directement son
+  captage urbain sans ligne routière ni véhicule. Le nouveau réglage
+  **`feeder_candidates=0` (défaut)** court-circuite uniquement les *nouveaux* candidats feeders
+  ville→hub, dans les deux passes ; il ne touche ni ces arrêts joints, ni les lignes existantes.
+  `feeder_candidates=1` conserve le bras historique pour un banc dédié ultérieur. Cela retire
+  environ 9,49 M opcodes de génération sur ce diagnostic sans sacrifier la fraîcheur du captage
+  d'aéroport. Le diagnostic d'intégration avec ce défaut
+  (`results/diag_c41_21_feeder_candidates_off_6y_5seeds.json`) est sain sur les 5 graines.
+
   ✅ **C39.4 — les cinq avions « rejetés » sont dominés, non invalides.** La sonde
   `c39_air_reason_probe=0`, sur 5 graines × 6 ans
   (`results/diag_c39_air_reason_6y_5seeds.json`), est saine : les cinq notifications sont le moteur
@@ -1728,18 +1742,11 @@ la valeur d'entreprise à 10 ans, sur les 20 graines sans exception — vérifi�
 individuelles : ni faillite ni run dégradé, juste structurellement plus de véhicules et de gares.
 C'était affirmé depuis le 2026-09-01 sans jamais avoir été mesuré isolément ; c'est maintenant fait.
 
-**`feeder_enabled` (toile de feeders) — réglage mort, ne teste rien.** 0,0 % d'écart sur toutes les
-métriques, les 20 graines bit-à-bit identiques entre `OpexAI` et `OpexAI[feeder_enabled=0]`. Ce
-n'est pas un bug du banc : vérifié dans le code (`main.nut:5060-5064`), `feeder_portfolio=1`
-(adopté depuis C32/C36.2) désactive la tâche dédiée que gate `feeder_enabled`, et génère les
-feeders **inconditionnellement** par le chemin portefeuille (`OpexRoadFeederCandidates`,
-`candidates.nut:1709`). Commentaire du code lui-même : « sous feeder_portfolio, le rabattement est
-arbitré par le portefeuille. Laisser AUSSI la tâche dédiée active bâtirait la même ligne deux
-fois ». **Le mécanisme des feeders lui-même n'a donc pas été testé** — il n'existe actuellement
-aucun levier propre pour le désactiver (`feeder_portfolio=0` ne coupe pas les feeders, il bascule
-juste vers l'ancienne tâche dédiée). Candidat direct au nettoyage de code mort, dans l'esprit de
-E2 (`rail_refleet`/`air_starter`, §8) : `feeder_enabled`, sa lecture dans `Start()` et son entrée
-`info.nut` peuvent sortir sans risque de régression, puisqu'ils ne changent déjà plus rien.
+**`feeder_enabled` (tâche dédiée) — réglage historique sans effet sous portefeuille.** Avec
+`feeder_portfolio=1`, la tâche dédiée reste éteinte, donc ce réglage ne pilote pas le vivier.
+Depuis C41.21, **`feeder_candidates`** est le levier explicite : `0` retire les nouveaux candidats
+ville→hub (défaut), `1` réactive la stratégie historique. Les arrêts joints aux aéroports ne sont
+contrôlés que par `air_joined_stops` et restent indépendants.
 
 **Montée en flotte agressive** — toujours non testable, aucun levier n'a jamais existé.
 

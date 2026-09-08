@@ -1483,6 +1483,10 @@ function OpexHubPaxCatchmentRadius(hub)
 
 function OpexRoadFeederCandidates(catalog, lines, out, stats, abandonedPairs = null)
 {
+  /* Les arrets joints poses a la creation d'un aeroport assurent le captage local sans une
+   * ligne bus supplementaire. Le reglage ne retire jamais ces arrets ni les lignes existantes :
+   * il coupe uniquement l'ancien vivier de nouveaux rabattements ville->hub. */
+  if (!FEEDER_CANDIDATES_ENABLED) return;
   local cargo = catalog.paxCargo;
   if (cargo < 0 || !(cargo in catalog.roadEngineByCargo)) return;
   local towns = catalog.towns;

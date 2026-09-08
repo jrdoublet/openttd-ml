@@ -140,6 +140,8 @@ C41_ROAD_FREIGHT_SERVED_INDEX <- false;
 C41_ROAD_FREIGHT_TOWN_PROFILE <- false;
 /* C41.20 : index experimental des puits urbains acceptant le cargo fret. */
 C41_ROAD_FREIGHT_ACCEPTANCE_INDEX <- false;
+/* C41.21 : ventilation passive des deux generations de feeders. */
+C41_ROAD_FEEDER_PROFILE <- false;
 /* C41.4 : sonde strictement passive des vehicules perdus. Contrairement a A7.4,
  * elle n'ecrit ni compteur de ligne ni signe, et n'arme aucune tache. */
 C41_VEHICLE_LOST_PROBE <- false;
@@ -174,6 +176,11 @@ PORTFOLIO_LOG <- false;
 FLEET_BEFORE_NEW <- false;
 /* Construction dediee de rabattages vers les hubs (docs/taches.md C1). */
 FEEDER_ENABLED <- true;
+/* Les aeroports neufs recoivent deja leurs arrets de bus joints dans leur ville
+ * (`AIR_JOINED_STOPS`), sans vehicule ni correspondance. Les anciens candidats ville->hub
+ * restent disponibles seulement pour rejouer leur strategie au banc ; ils sont exclus par
+ * defaut du vivier et de sa regeneration incrementale. */
+FEEDER_CANDIDATES_ENABLED <- false;
 /* C32 : rabattement arbitre au portefeuille (1) au lieu de la tache dediee (0). */
 FEEDER_PORTFOLIO <- true;
 /* C34.1 : construction aerienne arbitree par le portefeuille seul (1) au lieu de la tache dediee. */
@@ -6008,7 +6015,7 @@ function OpexAI::_runNextTask()
       this._resizeAirFleets(AIDate.GetYear(AIDate.GetCurrentDate()), fleetPlan);
     }
     this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines, priorPeak, priorHistory, fleetPlan, this._abandonedPairs);
-    if ((C41_ROAD_CANDIDATE_PROFILE || C41_ROAD_FREIGHT_PROFILE || C41_ROAD_FREIGHT_TOWN_PROFILE) && this._projects != null && ("road" in this._projects) &&
+    if ((C41_ROAD_CANDIDATE_PROFILE || C41_ROAD_FREIGHT_PROFILE || C41_ROAD_FREIGHT_TOWN_PROFILE || C41_ROAD_FEEDER_PROFILE) && this._projects != null && ("road" in this._projects) &&
         this._projects.road != null && ("profile" in this._projects.road) &&
         this._projects.road.profile != null) {
       local profile = this._projects.road.profile;
@@ -6033,6 +6040,9 @@ function OpexAI::_runNextTask()
                    + " acceptance_ops=" + profile.freightTownAcceptanceOps
                    + " accepted_pairs=" + profile.freightTownAcceptedPairs
                    + " candidate_ops=" + profile.freightTownCandidateOps);
+      }
+      if (C41_ROAD_FEEDER_PROFILE) {
+        OpexC39Log("C41_ROAD_FEEDER_PROFILE", "build_ops=" + profile.feederOps);
       }
     }
     this._logStalenessRefresh(refreshReason);
@@ -6492,6 +6502,7 @@ function OpexAI::Start()
   PROJECT_TOP_K_DYNAMIC = AIController.GetSetting("project_top_k_dynamic") != 0;
   RAIL_REFLEET = AIController.GetSetting("rail_refleet") != 0;
   FEEDER_ENABLED = AIController.GetSetting("feeder_enabled") != 0;
+  FEEDER_CANDIDATES_ENABLED = AIController.GetSetting("feeder_candidates") != 0;
   EVENT_DEPOT_SELL = AIController.GetSetting("event_depot_sell") != 0;
   EVENT_INDUSTRY_CLOSE = AIController.GetSetting("event_industry_close") != 0;
   EVENT_SUBSIDY_PROBE = AIController.GetSetting("event_subsidy_probe") != 0;
@@ -6520,6 +6531,7 @@ function OpexAI::Start()
   C41_ROAD_FREIGHT_SERVED_INDEX = AIController.GetSetting("c41_road_freight_served_index") != 0;
   C41_ROAD_FREIGHT_TOWN_PROFILE = AIController.GetSetting("c41_road_freight_town_profile") != 0;
   C41_ROAD_FREIGHT_ACCEPTANCE_INDEX = AIController.GetSetting("c41_road_freight_acceptance_index") != 0;
+  C41_ROAD_FEEDER_PROFILE = AIController.GetSetting("c41_road_feeder_profile") != 0;
   C41_RAIL_LOST_PROBE = AIController.GetSetting("c41_rail_lost_probe") != 0;
   C41_RAIL_LOST_TOPOLOGY_PROBE = AIController.GetSetting("c41_rail_lost_topology_probe") != 0;
   C41_RAIL_LOST_PHYSICAL_PROBE = AIController.GetSetting("c41_rail_lost_physical_probe") != 0;
