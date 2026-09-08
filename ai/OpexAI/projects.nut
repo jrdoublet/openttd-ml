@@ -13,7 +13,13 @@
  */
 
 const PROJECT_POOL_K = 128;
-const PROJECT_TOP_K = 64;
+/* C43/E3 (docs/taches.md) : sature a 77,4%/70,1% des appels de selection (VIVIER, 5x6, 2026-09-08)
+ * -- mord fort. Rendu reglable pour le banc factoriel 32 contre 64, jamais retouche depuis 2026-09-02
+ * avant cette mesure. */
+PROJECT_TOP_K <- 64;
+/* Propose par l'utilisateur le 2026-09-08 : caler PROJECT_TOP_K sur villes+industries de la carte
+ * plutot que sur une constante fixe. Defaut 0 : aucun changement de comportement. */
+PROJECT_TOP_K_DYNAMIC <- false;
 
 /* Mesures communes. Le pathfinder rail consomme environ 2 700 opcodes par iteration. Pour les
  * autres modes, la partie plan est mesuree pendant la generation ; les constantes ci-dessous

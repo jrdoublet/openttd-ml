@@ -465,6 +465,29 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
 
+    /* C43/E3 : sature a 77,4%/70,1% des appels de selection (docs/diag_constants_binding_6y_5seeds.json,
+     * 2026-09-08) -- mord fort. Jamais retouche depuis 2026-09-02 avant cette mesure ; expose pour
+     * le banc factoriel 32 contre 64. */
+    AddSetting({
+      name = "project_top_k",
+      description = "Taille de la fenetre de selection du portefeuille (64 = defaut mesure, 2026-09-08 : sature a 70-77% des appels)",
+      min_value = 8, max_value = 128,
+      easy_value = 64, medium_value = 64, hard_value = 64,
+      custom_value = 64,
+      step_size = 8,
+      flags = 0
+    });
+
+    /* Propose par l'utilisateur le 2026-09-08 : caler la fenetre sur villes+industries de la
+     * carte (borne 16-128) au lieu de project_top_k fixe. Inerte a 0 (defaut). */
+    AddSetting({
+      name = "project_top_k_dynamic",
+      description = "Cale PROJECT_TOP_K sur (villes + industries) de la carte, borne 16-128, au lieu du reglage fixe project_top_k: 1 = dynamique, 0 = fixe (defaut)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     AddSetting({
       name = "feeder_enabled",
       description = "Tache dediee de rabattage bus vers les hubs aeriens/ferroviaires (docs/taches.md C1): 1 = active (defaut), 0 = desactive",

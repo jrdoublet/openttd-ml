@@ -152,6 +152,16 @@ def parse_opex_variant(name):
                 raise ValueError("portfolio_floor_pct doit etre entre 0 et 100")
             if value % 5:
                 raise ValueError("portfolio_floor_pct doit etre un multiple de 5 (step_size)")
+        elif key == "project_top_k":
+            # Memes bornes que ai/OpexAI/info.nut : docs/taches.md C43/E3, sature a 70-77% des
+            # appels de selection au defaut 64 (mesure du 2026-09-08).
+            if not 8 <= value <= 128:
+                raise ValueError("project_top_k doit etre entre 8 et 128")
+            if value % 8:
+                raise ValueError("project_top_k doit etre un multiple de 8 (step_size)")
+        elif key == "project_top_k_dynamic":
+            if value not in (0, 1):
+                raise ValueError("project_top_k_dynamic est booleen : 0 ou 1")
         elif key == "portfolio_max_batch":
             # Memes bornes que ai/OpexAI/info.nut : sans ce garde, le moteur pourrait borner la
             # valeur sans que le nom de l'arm dans le JSON dise ce qui a vraiment ete joue.

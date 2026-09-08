@@ -5231,6 +5231,9 @@ function OpexAI::Start()
   if (afb >= -1) AIR_FLEET_BUFFER = afb;
   local rtf = AIController.GetSetting("rail_terrain_factor");
   if (rtf > 0) RAIL_TERRAIN_FACTOR = rtf;
+  local ptk = AIController.GetSetting("project_top_k");
+  if (ptk > 0) PROJECT_TOP_K = ptk;
+  PROJECT_TOP_K_DYNAMIC = AIController.GetSetting("project_top_k_dynamic") != 0;
   RAIL_REFLEET = AIController.GetSetting("rail_refleet") != 0;
   FEEDER_ENABLED = AIController.GetSetting("feeder_enabled") != 0;
   EVENT_DEPOT_SELL = AIController.GetSetting("event_depot_sell") != 0;

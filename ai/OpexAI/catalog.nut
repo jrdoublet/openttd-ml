@@ -736,6 +736,20 @@ function OpexCatalog::refresh(budget, year)
   this._refreshIndustries();
   budget.end("cat_industries");
 
+  /* Propose du 2026-09-08 (docs/taches.md C43/E3) : au lieu d'une fenetre de selection fixe,
+   * la caler sur le contenu reel de la carte plutot que sur une constante posee a vue. Inerte a
+   * 0 (defaut) : PROJECT_TOP_K reste au reglage project_top_k, comme avant cette mecanique. */
+  if (PROJECT_TOP_K_DYNAMIC) {
+    local dynamic = this.towns.len() + this.industries.len();
+    if (dynamic < 16) dynamic = 16;
+    if (dynamic > 128) dynamic = 128;
+    PROJECT_TOP_K = dynamic;
+    if (DECISION_LOG) {
+      OpexDecide("TOP_K_DYNAMIC", "towns=" + this.towns.len() + " industries="
+                 + this.industries.len() + " top_k=" + PROJECT_TOP_K);
+    }
+  }
+
   budget.begin();
   this._refreshAir();
   budget.end("cat_air");

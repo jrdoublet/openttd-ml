@@ -789,6 +789,68 @@ reste à trancher indépendamment.
   mord/ne-mord-pas simple pour lui — il faudrait mesurer la sensibilité au seuil d'arrondi
   (`OpexCeilDiv`) plutôt qu'un compteur de rejet, hors périmètre ici.
 
+  🔴 **Étape 3 (banc) faite pour `PROJECT_TOP_K`, deux variantes, 2026-09-08 — ni l'une ni l'autre
+  ne bat clairement le défaut.** `PROJECT_TOP_K` exposé (réglage `project_top_k`, défaut 64,
+  8-128) ; diagnostics 5 graines × 6 ans, pas de banc officiel 20×10 lancé (les deux signes sous
+  ou proches du plancher de détection ne le justifiaient pas).
+
+  **`project_top_k=32` (fenêtre réduite de moitié)** — `docs/diag_topk_32v64_6y_5seeds.json` :
+  moyenne **−23,8 %**, mais seulement **2 graines sur 5 gagnantes** pour 32 (+1,4 %, **−27,8 %**,
+  +4,2 %, **−58,7 %**, **−38,3 %**). Signal net, bien au-dessus du plancher (~15 %), mais pas
+  unanime — les pertes sont massives, les gains marginaux.
+
+  **`project_top_k_dynamic=1`** (nouveau mécanisme, décrit ci-dessous) — `docs/diag_topk_dynamic_6y_5seeds.json` :
+  moyenne **−8,0 %**, 2 graines sur 5 gagnantes également (−10,8 %, +2,1 %, −6,4 %, +0,4 %,
+  **−25,4 %**). Sous le plancher de détection, ne permet pas de conclure à un effet réel à ce
+  stade. Contre-intuitif : élargir la fenêtre (considérer plus de candidats ne peut structurellement
+  pas dégrader le classement lui-même) ne gagne pourtant pas nettement — cohérent avec l'hypothèse
+  que le coût de calcul d'une fenêtre plus large mord sur le même budget d'opcodes que la
+  construction, plutôt qu'avec un gain de qualité de classement qui l'emporterait.
+
+  **`project_top_k_dynamic` — mécanisme implémenté (2026-09-08), proposé par l'utilisateur : caler
+  la fenêtre sur le contenu réel de la carte plutôt qu'une constante fixe.** `PROJECT_TOP_K =
+  clamp(catalog.towns.len() + catalog.industries.len(), 16, 128)`, recalculé à chaque
+  rafraîchissement du catalogue (`OpexCatalog::refresh()`, annuel), journalisé par
+  `TOP_K_DYNAMIC`. Défaut `0` (inerte, comportement fixe inchangé).
+
+  🔴 **Piège méthodologique rencontré et corrigé le 2026-09-08, à retenir** : la calibration
+  initiale n'avait vérifié le mécanisme que sur **une seule graine** (42 : villes=42,
+  industries=47 → top_k=89), généralisée à tort en « la carte donne top_k=89 » comme si c'était une
+  propriété de la config plutôt qu'un point de mesure unique — et le diagnostic comparatif avait
+  tourné **sans `decision_log=1`**, donc sans aucune preuve des valeurs réellement utilisées par
+  graine. Vérification demandée par l'utilisateur, faite après coup sur les 5 graines du
+  diagnostic : les comptes varient bien, comme attendu d'une génération procédurale par graine —
+
+  | graine | villes | industries | top_k dynamique |
+  |---|---:|---:|---:|
+  | 1 | 44 | 48 | 92 |
+  | 42 | 42 | 47 | 89 |
+  | 73 | 47 | 52 | 99 |
+  | 100 | 39 | 47 | 86 |
+  | 2026 | 49 | 52 | 101 |
+
+  Le mécanisme s'est donc bien adapté par carte pendant le diagnostic (86 à 101, jamais une
+  constante déguisée) ; le résultat du diagnostic (−8,0 %, 2/5) reste valide, seule la glose
+  « → 89 » l'était pas. **Leçon générale, au-delà de ce cas précis : vérifier un mécanisme
+  dynamique sur plusieurs graines avant de le décrire par une seule valeur, et ne jamais lancer un
+  diagnostic sans `decision_log=1` si la question posée porte sur CE QUE le mécanisme a fait, pas
+  seulement sur le résultat économique final.**
+
+  🔶 **À analyser plus tard — pourquoi ni 32 ni le dynamique (86-101) ne battent 64, et ce que ça
+  dit du bon calibrage.** Trois pistes non explorées, notées pour reprise :
+  1. Croiser le delta par graine avec villes+industries de cette graine — le dynamique gagne-t-il
+     sur les cartes petites (top_k proche de 64, donc proche du défaut) et perd-il sur les grandes
+     (top_k loin de 64, donc le coût de calcul domine) ? Seulement 5 points, insuffisant en l'état,
+     mais le motif à chercher est là.
+  2. Isoler le coût d'opcodes pur d'une fenêtre plus large (nombre d'insertions dans
+     `OpexProjectInsert`, coût du tri dans `OpexKnapsackSolve`) indépendamment de l'effet sur la
+     qualité de sélection, pour savoir si l'hypothèse « le calcul mord sur la construction » est
+     mesurable directement plutôt que déduite du seul résultat économique.
+  3. Tester une borne dynamique **asymétrique** (par exemple minimum 64, maximum scalé) plutôt que
+     `villes + industries` brut — puisque 64 fixe n'est battu ni par plus petit ni par plus grand
+     tel que testé, la bonne forme de la fonction reste à trouver, si tant est qu'il y en ait une
+     meilleure que la constante actuelle.
+
 ---
 
 ## Ordre des objectifs
