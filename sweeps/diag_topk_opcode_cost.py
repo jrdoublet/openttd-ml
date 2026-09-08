@@ -105,16 +105,19 @@ def main():
     for key, series in by_run.items():
         arm, _seed, _rep = key
         series.sort(key=lambda r: r["date"])
-        for row in series:
-            for ev in parse_opex_decisions(row.get("openttd_output")):
-                if ev["kind"] != "VIVIER":
-                    continue
-                f = ev["fields"]
-                by_arm_path[arm][f["path"]].append({
-                    "considered": int(f["considered"]),
-                    "selected": int(f["selected"]),
-                    "sel_ops": int(f["sel_ops"]),
-                })
+        # C41.10 (docs/taches.md, 2026-09-08) : openttd_output est identique a chaque ligne de
+        # checkpoint mensuel d'une meme partie -- une seule lecture par (graine, arm), derniere
+        # ligne, sous peine de compter chaque evenement une fois par mois restant.
+        output = series[-1].get("openttd_output") if series else None
+        for ev in parse_opex_decisions(output):
+            if ev["kind"] != "VIVIER":
+                continue
+            f = ev["fields"]
+            by_arm_path[arm][f["path"]].append({
+                "considered": int(f["considered"]),
+                "selected": int(f["selected"]),
+                "sel_ops": int(f["sel_ops"]),
+            })
 
     summary = {}
     for arm, paths in by_arm_path.items():

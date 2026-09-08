@@ -1046,20 +1046,33 @@ reste à trancher indépendamment.
   avec la troncature de TOP_K lui-même. Le seul critère correct est `selected >= TOP_K` : la liste
   bornée (`OpexProjectInsert`) ne retire un candidat que si elle est déjà pleine.
 
-  **`PROJECT_TOP_K = 64` mord fort et systématiquement** : saturé exactement à 64 sur **77,4 %**
-  des appels du chemin `build` (14 832/19 152) et **70,1 %** du chemin `incremental`
-  (11 664/16 632). Plus de 7 appels sur 10 auraient gardé un candidat de plus si la fenêtre était
-  plus large — confirme, avec une mesure propre, ce que l'audit du 2026-09-02 suspectait déjà.
-  **Justifie le banc factoriel** (32 contre 64 sous réglage, voir ci-dessous).
+  ⚠️ **CORRIGÉ (2026-09-08, `2562e96`) : les comptes 35 784/245 448/14 760 et les deux pourcentages
+  ci-dessous sont gonflés.** `openttd_output` (capture AILog complète du sous-processus) est
+  IDENTIQUE à chaque ligne de checkpoint mensuel d'une même partie, pas une tranche par
+  checkpoint — le script parcourait `series` entière et comptait donc chaque événement une fois
+  par mois de jeu restant (~72× pour 6 ans). Corrigé et re-mesuré sur les mêmes graines
+  (`docs/diag_constants_binding_6y_5seeds_v2.json`) : **522 appels de sélection réels** (279
+  `build` + 243 `incremental`), 3 923 rejets, 200 lignes construites — pas 35 784/245 448/14 760.
+  ⚠️ La re-mesure porte aussi sur le code **actuel** (post plusieurs correctifs commis entre-temps
+  le même jour), pas une répétition à l'identique du code du 2026-09-02 : les deux effets se
+  mélangent, mais le verdict qualitatif ne bouge pas (voir ci-dessous).
 
-  **`MIN_SEPARATION = 10` ne mord JAMAIS** : **0 rejet sur 245 448** motifs de rejet enregistrés,
-  sur 14 760 lignes construites, 5 graines × 6 ans. `too_close_no_join` et `too_close_hard` sont
-  **absents** de la distribution des motifs observés (`build_failed`, `search_in_progress`,
-  `abandoned_pair`, `plan_failed`, `insufficient_cash`, `town_road_line_cap`). Le mécanisme tourne
-  mais ne rejette jamais rien dans cette fenêtre de mesure. **Changer sa valeur serait un no-op
-  mesuré, pas supposé — pas de banc dessus.** Cohérent avec le fait que `station_join=0` bloque
-  déjà toute réutilisation d'origine servie en amont, avant que ce garde n'ait l'occasion de
-  s'appliquer.
+  **`PROJECT_TOP_K = 64` mord fort et systématiquement** : saturé exactement à 64 sur **71,3 %**
+  des appels du chemin `build` (199/279, corrigé — était 77,4 % / 14 832/19 152) et **65,0 %** du
+  chemin `incremental` (158/243, corrigé — était 70,1 % / 11 664/16 632). Plus de 6 appels sur 10
+  auraient gardé un candidat de plus si la fenêtre était plus large — confirme, avec une mesure
+  propre, ce que l'audit du 2026-09-02 suspectait déjà. **Justifie le banc factoriel** (32 contre
+  64 sous réglage, voir ci-dessous).
+
+  **`MIN_SEPARATION = 10` ne mord JAMAIS** : **0 rejet sur 3 923** motifs de rejet enregistrés
+  (corrigé — était 245 448), sur 200 lignes construites (corrigé — était 14 760), 5 graines ×
+  6 ans. `too_close_no_join` et `too_close_hard` sont **absents** de la distribution des motifs
+  observés (`build_failed`, `search_in_progress`, `abandoned_pair`, `plan_failed`,
+  `insufficient_cash`, `town_road_line_cap`). Le mécanisme tourne mais ne rejette jamais rien
+  dans cette fenêtre de mesure — le zéro tient sous les deux mesures, seule l'échelle change.
+  **Changer sa valeur serait un no-op mesuré, pas supposé — pas de banc dessus.** Cohérent avec le
+  fait que `station_join=0` bloque déjà toute réutilisation d'origine servie en amont, avant que ce
+  garde n'ait l'occasion de s'appliquer.
 
   ✅ **`PROJECT_POOL_K = 128` confirmé inerte sur le chemin par défaut — pas de banc nécessaire.**
   Ses deux seuls appelants, `OpexBuildMultimodalBudgetPool` (`projects.nut:1269`, `1556`), ne sont
