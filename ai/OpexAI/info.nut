@@ -1049,6 +1049,18 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
+    /* P4 (docs/taches.md, added 2026-09-08 solely to isolate P4 in the P1xP3xP4 factorial
+     * without duplicating a Git tree): gates OpexBuildFailureIsAbandonable's exclusion of
+     * transient cash refusals (CASH / ERR_NOT_ENOUGH_CASH) from the abandon memory.
+     * 0 reproduces the pre-P4 behaviour where any build failure is memorised as durable. */
+    AddSetting({
+      name = "abandon_memory_transient_guard",
+      description = "P4: exclude transient cash refusals (CASH / ERR_NOT_ENOUGH_CASH) from the abandon memory; 1 = enabled (default), 0 = historical (any failure is durable)",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* docs/taches.md S3 undecies (2026-09-03), diagnostic docs/diag_airserved_probe.json.
      * OpexBuildAirRoute calcule les StationID puis rend les TUILES (`builder_air.nut:831-832` puis
      * `:898-899`). main.nut lit bien ces champs comme des tuiles ; le code de hub, non. La garde

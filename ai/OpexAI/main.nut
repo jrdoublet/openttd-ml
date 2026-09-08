@@ -195,6 +195,11 @@ POOL_FINANCEABLE <- true;
  * est consigné sans artefact source encore présent ; P1.1 doit le remplacer
  * par un devis physique avant élection. Les autres modes restent à 1,0. */
 CAPITAL_CALIBRATION <- true;
+/* P4 : n'exclut de la memoire d'abandon que les refus transitoires de caisse
+ * (CASH / ERR_NOT_ENOUGH_CASH) survenus apres le garde du portefeuille. Reglage
+ * ajoute le 2026-09-08 uniquement pour isoler P4 au banc factoriel P1xP3xP4 sans
+ * dupliquer d'arbre Git ; 0 reproduit le comportement historique pre-P4. */
+ABANDON_MEMORY_TRANSIENT_GUARD <- true;
 /* docs/taches.md S3 undecies (2026-09-03) : les lignes aeriennes rangent des TUILES d'aeroport
  * dans stationA/stationB, mais le code de hub de builder_air.nut les lisait comme des StationID.
  * Consequence mesuree graine 42 : la garde `alreadyConnected` toujours fausse -> NEUF liaisons sur
@@ -795,6 +800,7 @@ function OpexAttemptReasonCode(reason)
 function OpexBuildFailureIsAbandonable(result)
 {
   if (result == null) return false;
+  if (!ABANDON_MEMORY_TRANSIENT_GUARD) return true;
   if (("reason" in result) && result.reason == "CASH") return false;
   if (("error" in result) && result.error == AIError.ERR_NOT_ENOUGH_CASH) return false;
   return true;
@@ -5171,6 +5177,7 @@ function OpexAI::Start()
   KNAPSACK_ROI = AIController.GetSetting("knapsack_roi") != 0;
   POOL_FINANCEABLE = AIController.GetSetting("pool_financeable") != 0;
   CAPITAL_CALIBRATION = AIController.GetSetting("capital_calibration") != 0;
+  ABANDON_MEMORY_TRANSIENT_GUARD = AIController.GetSetting("abandon_memory_transient_guard") != 0;
   AIR_HUB_FIX = AIController.GetSetting("air_hub_fix") != 0;
   TENSION_PROBE = AIController.GetSetting("tension_probe") != 0;
   if (TENSION_PROBE) {
