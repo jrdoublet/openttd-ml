@@ -128,6 +128,10 @@ C41_RAIL_LOST_PHYSICAL_PROBE <- false;
 C41_RAIL_LOST_SIGNAL_REPAIR <- false;
 /* C41.9 : sonde locale de connectivite, sans recherche de chemin ni commande. */
 C41_RAIL_LOST_CONNECTIVITY_PROBE <- false;
+/* C41.10 : reparation transactionnelle du seul raccord manque identifie par C41.9 (une branche
+ * candidate non ambigue) -- AITestMode d'abord, commande reelle seulement si le meme raccord
+ * reussit en test. */
+C41_RAIL_LOST_JUNCTION_REPAIR <- false;
 /* air_fleet_probe : _resizeAirFleets n'emet que ses SUCCES (FG|). Quand une ligne aerienne
  * n'grandit pas, la cause est invisible. FR| donne le premier refus rencontre, une fois par ligne
  * et par an. */
@@ -244,6 +248,14 @@ function OpexC41RailLostConnectivityLog(fields)
              + AIDate.GetDayOfMonth(date) + " C41_RAIL_LOST_CONNECTIVITY " + fields);
 }
 
+function OpexC41RailJunctionRepairLog(kind, fields)
+{
+  if (!C41_RAIL_LOST_JUNCTION_REPAIR) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " " + kind + " " + fields);
+}
+
 function OpexC41RailApproachLead(platform, fallbackExit = null)
 {
   if (platform == null) return null;
@@ -324,6 +336,47 @@ function OpexC41RailLocalLinks(center, exclude = null)
     if (facts.links >= 0 && neighbor != exclude && AIRail.AreTilesConnected(exclude, center, neighbor)) facts.links++;
   }
   return facts;
+}
+
+/* C41.10 : repare le seul raccord manquant trouve par C41.9 -- une branche physiquement presente
+ * (tuile de rail) mais AreTilesConnected(exclude, center, neighbor) faux -- uniquement si UNE
+ * seule branche est candidate. Meme prudence que C41.8 pour les aiguillages a plusieurs
+ * branches, ou C41.7 ne permet pas encore de choisir une sortie sure : 0 ou plusieurs candidats
+ * n'est jamais tente. D'abord AITestMode (le meme AIRail.BuildRail que le reel, sans le payer ni
+ * modifier la carte) ; commande reelle seulement si ce test reussit. AreTilesConnected est
+ * revérifié APRES la pose reelle : une commande acceptee par le moteur ne garantit pas la
+ * connexion recherchee (une piece compatible mais differente peut satisfaire BuildRail).
+ * -3 = position illisible (tuiles invalides, pas adjacentes, ou centre non-rail).
+ * -2 = 0 ou plusieurs branches candidates (rien a faire, ou ambigu -- jamais tente).
+ *  0 = AITestMode refuse la pose.
+ *  1 = pose reelle et connexion confirmees.
+ *  2 = pose reelle acceptee mais connexion toujours absente (a investiguer). */
+function OpexC41RepairJunction(center, exclude)
+{
+  if (center == null || exclude == null || !AIMap.IsValidTile(center) || !AIMap.IsValidTile(exclude)
+      || AIMap.DistanceManhattan(exclude, center) != 1 || !AIRail.IsRailTile(center)) return -3;
+  local xStep = AIMap.GetTileIndex(1, 0);
+  local yStep = AIMap.GetTileIndex(0, 1);
+  local offsets = [xStep, -xStep, yStep, -yStep];
+  local candidate = null;
+  local nCandidates = 0;
+  foreach (offset in offsets) {
+    local neighbor = center + offset;
+    if (!AIMap.IsValidTile(neighbor) || AIMap.DistanceManhattan(center, neighbor) != 1 ||
+        neighbor == exclude || !AIRail.IsRailTile(neighbor)) continue;
+    if (AIRail.AreTilesConnected(exclude, center, neighbor)) continue;
+    nCandidates++;
+    candidate = neighbor;
+  }
+  if (nCandidates != 1) return -2;
+  local testOk = false;
+  {
+    local testMode = AITestMode();
+    testOk = AIRail.BuildRail(exclude, center, candidate);
+  }
+  if (!testOk) return 0;
+  if (!AIRail.BuildRail(exclude, center, candidate)) return 0;
+  return AIRail.AreTilesConnected(exclude, center, candidate) ? 1 : 2;
 }
 
 /* C41.4/C41.5 : l'attribution ne consulte que l'identite deja persistee par la ligne.
@@ -953,6 +1006,8 @@ class OpexAI extends AIController {
   _vehiclesToScrap = null;
   /* C41.8 : ensemble coalescé par ligne, consommé par une seule micro-tâche. */
   _c41RailSignalLines = null;
+  /* C41.10 : même schéma, réparation de raccord au lieu de pose PBS. */
+  _c41RailJunctionLines = null;
   _activeSubsidies = null;
   _subsidyStats = null;
   /* G4§1 : drapeau pose par _markPairAbandoned dans _tryBuildProjects, lu en fin de passe
@@ -970,6 +1025,7 @@ class OpexAI extends AIController {
     OpexAirResetSiteCache();
     this._activeSubsidies = {};
     this._c41RailSignalLines = {};
+    this._c41RailJunctionLines = {};
     this._subsidyStats = { offers = 0, expiredWithoutAward = 0, awardedSelf = 0, awardedOther = 0, matchedPool = 0 };
     this._staleness = {
       catalog = { cargos = false, towns = false, industries = false, rail = false,
@@ -995,6 +1051,8 @@ class OpexAI extends AIController {
       { name = "c41_water", dueCycle = 2147483647, enabled = false },
       /* C41.8 : ne travaille qu'une ligne rail explicitement signalée par VehicleLost. */
       { name = "c41_rail_signals", dueCycle = 2147483647, enabled = false },
+      /* C41.10 : idem, réparation de raccord au lieu de pose PBS. */
+      { name = "c41_rail_junction", dueCycle = 2147483647, enabled = false },
       { name = "report", dueCycle = 0, enabled = true },
       { name = "scrap", dueCycle = 0, enabled = true },
       /* fleet_before_new : la croissance de flotte passe AVANT la construction de lignes neuves.
@@ -5351,6 +5409,22 @@ function OpexAI::_processEvents()
               }
               OpexC41RailSignalRepairLog("C41_RAIL_SIGNAL_ARM", "line=" + probeLineId + " vehicle=" + probeVehicle);
             }
+            /* C41.10 : arme independamment de C41.8 -- raccord manquant et signal manquant sont
+             * deux causes distinctes du meme VehicleLost. Meme schema de coalescage. */
+            if (C41_RAIL_LOST_JUNCTION_REPAIR && ("doubleTrack" in probeLine) && probeLine.doubleTrack == 1 &&
+                this._c41RailJunctionLines != null) {
+              this._c41RailJunctionLines.rawset("" + probeLineId, true);
+              if (this._taskQueue != null) {
+                foreach (junctionTask in this._taskQueue) {
+                  if (junctionTask.name == "c41_rail_junction") {
+                    junctionTask.enabled = true;
+                    junctionTask.dueCycle = this._taskCycle;
+                    break;
+                  }
+                }
+              }
+              OpexC41RailJunctionRepairLog("C41_RAIL_JUNCTION_ARM", "line=" + probeLineId + " vehicle=" + probeVehicle);
+            }
           }
         }
       }
@@ -5684,6 +5758,45 @@ function OpexAI::_runNextTask()
     else task.enabled = false;
     return a == 1 || b == 1 || a2 == 1 || b2 == 1;
   }
+  if (task.name == "c41_rail_junction") {
+    task.dueCycle = 2147483647;
+    if (!C41_RAIL_LOST_JUNCTION_REPAIR || this._c41RailJunctionLines == null) return false;
+    local lineId = -1;
+    foreach (pendingLine, ignored in this._c41RailJunctionLines) { lineId = pendingLine.tointeger(); break; }
+    if (lineId < 0) { task.enabled = false; return false; }
+    delete this._c41RailJunctionLines["" + lineId];
+    local line = this._findLineById(lineId);
+    if (line == null || !("mode" in line) || line.mode != "rail" ||
+        !("doubleTrack" in line) || line.doubleTrack != 1) {
+      OpexC41RailJunctionRepairLog("C41_RAIL_JUNCTION_REPAIR", "line=" + lineId + " status=stale");
+      return false;
+    }
+    local exitA = ("platformA" in line && line.platformA != null && ("station_exit" in line.platformA)) ? line.platformA.station_exit : null;
+    local exitB = ("platformB" in line && line.platformB != null && ("station_exit" in line.platformB)) ? line.platformB.station_exit : null;
+    local leadA = OpexC41RailApproachLead(("platformA" in line) ? line.platformA : null);
+    local leadB = OpexC41RailApproachLead(("platformB" in line) ? line.platformB : null);
+    local leadA2 = OpexC41RailApproachLead(("platformA2" in line) ? line.platformA2 : null,
+                                           ("stationA2" in line) ? line.stationA2 : null);
+    local leadB2 = OpexC41RailApproachLead(("platformB2" in line) ? line.platformB2 : null,
+                                           ("stationB2" in line) ? line.stationB2 : null);
+    local a = OpexC41RepairJunction(leadA, exitA);
+    local b = OpexC41RepairJunction(leadB, exitB);
+    local a2 = OpexC41RepairJunction(leadA2, ("stationA2" in line) ? line.stationA2 : null);
+    local b2 = OpexC41RepairJunction(leadB2, ("stationB2" in line) ? line.stationB2 : null);
+    local depot = ("depot" in line) ? line.depot : null;
+    local front = (depot != null && AIMap.IsValidTile(depot) && AIRail.IsRailDepotTile(depot))
+        ? AIRail.GetRailDepotFrontTile(depot) : null;
+    local depotRepair = OpexC41RepairJunction(front, depot);
+    local depot2 = ("depot2" in line) && line.depot2 != null ? line.depot2 : -1;
+    local front2 = (AIMap.IsValidTile(depot2) && AIRail.IsRailDepotTile(depot2))
+        ? AIRail.GetRailDepotFrontTile(depot2) : null;
+    local depot2Repair = OpexC41RepairJunction(front2, depot2);
+    OpexC41RailJunctionRepairLog("C41_RAIL_JUNCTION_REPAIR", "line=" + lineId + " a=" + a + " b=" + b
+                                 + " a2=" + a2 + " b2=" + b2 + " depot=" + depotRepair + " depot2=" + depot2Repair);
+    if (this._c41RailJunctionLines.len() > 0) task.dueCycle = this._taskCycle + 1;
+    else task.enabled = false;
+    return a == 1 || b == 1 || a2 == 1 || b2 == 1 || depotRepair == 1 || depot2Repair == 1;
+  }
   if (task.name == "report") {
     if (this._lastReportYear == year) return false;
     this._lastReportYear = year;
@@ -5923,13 +6036,15 @@ function OpexAI::Start()
   C41_RAIL_LOST_PHYSICAL_PROBE = AIController.GetSetting("c41_rail_lost_physical_probe") != 0;
   C41_RAIL_LOST_SIGNAL_REPAIR = AIController.GetSetting("c41_rail_lost_signal_repair") != 0;
   C41_RAIL_LOST_CONNECTIVITY_PROBE = AIController.GetSetting("c41_rail_lost_connectivity_probe") != 0;
+  C41_RAIL_LOST_JUNCTION_REPAIR = AIController.GetSetting("c41_rail_lost_junction_repair") != 0;
   if (C41_RAIL_LOST_TOPOLOGY_PROBE) C41_RAIL_LOST_PROBE = true;
   if (C41_RAIL_LOST_PHYSICAL_PROBE) C41_RAIL_LOST_PROBE = true;
   if (C41_RAIL_LOST_SIGNAL_REPAIR) C41_RAIL_LOST_PROBE = true;
   if (C41_RAIL_LOST_CONNECTIVITY_PROBE) C41_RAIL_LOST_PROBE = true;
+  if (C41_RAIL_LOST_JUNCTION_REPAIR) C41_RAIL_LOST_PROBE = true;
   C41_VEHICLE_LOST_PROBE = AIController.GetSetting("c41_vehicle_lost_probe") != 0
       || C41_RAIL_LOST_PROBE || C41_RAIL_LOST_TOPOLOGY_PROBE || C41_RAIL_LOST_PHYSICAL_PROBE
-      || C41_RAIL_LOST_SIGNAL_REPAIR || C41_RAIL_LOST_CONNECTIVITY_PROBE;
+      || C41_RAIL_LOST_SIGNAL_REPAIR || C41_RAIL_LOST_CONNECTIVITY_PROBE || C41_RAIL_LOST_JUNCTION_REPAIR;
   if (C41_WATER_REFRESH && this._taskQueue != null) {
     foreach (task in this._taskQueue) {
       if (task.name == "c41_water") { task.enabled = true; break; }

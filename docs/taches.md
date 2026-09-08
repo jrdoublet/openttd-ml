@@ -893,6 +893,22 @@ reste à trancher indépendamment.
   `AITestMode` puis commande réelle uniquement si le test confirme la même connexion ; ne pas
   toucher aux 24 cas où cette sonde locale ne trouve pas de coupure.
 
+  ✅ **C41.10 — réparation de raccord implémentée, non testée à la demande.**
+  `c41_rail_lost_junction_repair=0` ne fait rien par défaut. À `1`, arme la même ligne rail double
+  que C41.8 (cause distincte du même `VehicleLost`, coalescage identique par `lineId`, une seule
+  ligne par cycle de tâche). `OpexC41RepairJunction(center, exclude)` relit les six points déjà
+  mesurés par C41.9 (quais A/B, A2/B2, deux dépôts) et ne tente une réparation que si **une seule**
+  branche voisine de `center` est physiquement une tuile de rail mais non reconnue connectée via
+  `AreTilesConnected(exclude, center, neighbor)` — 0 ou plusieurs candidats est laissé intact
+  (même prudence que C41.8 sur les aiguillages à deux branches, cf. C41.7). Séquence : le même
+  `AIRail.BuildRail(exclude, center, candidate)` d'abord sous `AITestMode` (aucun coût, aucune
+  tuile modifiée) ; commande réelle seulement si ce test réussit ; `AreTilesConnected` revérifié
+  après la pose réelle, car une commande acceptée par le moteur ne garantit pas la connexion
+  recherchée. Panneau `C41_RAIL_JUNCTION_REPAIR` (un code par point : -3 position illisible,
+  -2 ambigu/rien à faire, 0 test refusé, 1 posé et confirmé, 2 posé mais toujours déconnecté).
+  **Aucun smoke, diagnostic ni banc n'a été lancé**, conformément à la consigne établie sur toute
+  la série C41 ; attendre le signal avant toute exécution.
+
   ✅ **C39.4 — les cinq avions « rejetés » sont dominés, non invalides.** La sonde
   `c39_air_reason_probe=0`, sur 5 graines × 6 ans
   (`docs/diag_c39_air_reason_6y_5seeds.json`), est saine : les cinq notifications sont le moteur

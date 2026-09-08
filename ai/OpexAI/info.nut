@@ -330,6 +330,17 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C41.10 : repare le seul raccord quai/depot->voie manquant trouve par C41.9 (une branche
+     * candidate non ambigue seulement), sous AITestMode d'abord puis commande reelle seulement
+     * si ce meme raccord reussit en test. */
+    AddSetting({
+      name = "c41_rail_lost_junction_repair",
+      description = "C41.10 experimental: after rail VehicleLost, repair one unambiguous missing local rail junction under AITestMode then for real only if the same junction succeeds; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* D3.1 : Filtre eliminatoire ratio_too_low dans le vivier
      * (1 = actif/defaut historique, 0 = inactif, preserve les candidats a profit>0). */
     AddSetting({
