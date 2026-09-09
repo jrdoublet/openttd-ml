@@ -126,6 +126,8 @@ C41_WATER_SITE_PROFILE <- false;
 WATER_LAKES_CONNECTIVITY <- true;
 /* C41.11 : ledger passif du scheduler. Il n'admet ni ne reporte aucune tache. */
 C41_SLACK_LEDGER <- false;
+/* C41 : attribution mensuelle du temps du controleur, uniquement pour diagnostic. */
+C41_MONTHLY_BUSY_LEDGER <- false;
 /* C41.12 : age de fraicheur par couche entre premier salissement coalesce et acquittement. */
 C41_STALENESS_LEDGER <- false;
 /* C41.13 : croise passivement les couches encore sales avec le reliquat d'opcodes du scheduler.
@@ -1175,6 +1177,8 @@ class OpexAI extends AIController {
    * jamais pour choisir ou eviter un travail. */
   _staleness = null;
   _c41SlackLedger = null;
+  _c41MonthlyBusyLedger = null;
+  _c41MonthlyBusyMonth = -1;
   _c41OpportunityLedger = null;
   _c41AdmissionLedger = null;
   _c41LastTaskName = "idle";
@@ -5834,9 +5838,18 @@ function OpexAI::_processEvents()
  * coexistent, une categorie jointe conserve l'incertitude plutot que de fabriquer une attribution. */
 function OpexAI::_runNextTaskWithSlackLedger()
 {
-  if ((!C41_SLACK_LEDGER && !C41_OPPORTUNITY_LEDGER && !C41_ADMISSION_LEDGER)
+  if ((!C41_SLACK_LEDGER && !C41_MONTHLY_BUSY_LEDGER && !C41_OPPORTUNITY_LEDGER && !C41_ADMISSION_LEDGER)
       || this._c41SlackLedger == null) {
     return this._runNextTask();
+  }
+  if (C41_MONTHLY_BUSY_LEDGER) {
+    local date = AIDate.GetCurrentDate();
+    local ym = AIDate.GetYear(date) * 12 + AIDate.GetMonth(date);
+    if (this._c41MonthlyBusyMonth != ym) {
+      if (this._c41MonthlyBusyMonth >= 0) this._logC41MonthlyBusyLedger();
+      this._c41MonthlyBusyMonth = ym;
+      this._c41MonthlyBusyLedger = {};
+    }
   }
   local mark = OpexOpsMeasureBegin();
   local continuationCategory = null;
@@ -5849,9 +5862,9 @@ function OpexAI::_runNextTaskWithSlackLedger()
   }
   local ran = this._runNextTask();
   local ops = OpexOpsMeasureEnd(mark);
+  local category = continuationCategory != null ? continuationCategory : this._c41LastTaskName;
+  if (category == null) category = "idle";
   if (C41_SLACK_LEDGER) {
-    local category = continuationCategory != null ? continuationCategory : this._c41LastTaskName;
-    if (category == null) category = "idle";
     local entry = (category in this._c41SlackLedger) ? this._c41SlackLedger[category]
         : { calls = 0, ran = 0, ops = 0, slackAvailable = 0, slackUsed = 0, slackLeft = 0 };
     entry.calls++;
@@ -5862,11 +5875,32 @@ function OpexAI::_runNextTaskWithSlackLedger()
     entry.slackLeft += ops < mark.left ? mark.left - ops : 0;
     this._c41SlackLedger.rawset(category, entry);
   }
+  if (C41_MONTHLY_BUSY_LEDGER) {
+    local entry = (category in this._c41MonthlyBusyLedger) ? this._c41MonthlyBusyLedger[category]
+        : { calls = 0, ran = 0, ops = 0 };
+    entry.calls++;
+    if (ran) entry.ran++;
+    entry.ops += ops;
+    this._c41MonthlyBusyLedger.rawset(category, entry);
+  }
   /* C41.13 : apres la tache historique, seules les couches encore sales sont admissibles au
    * delestage. Une meme tranche peut etre une opportunite pour plusieurs couches : le total par
    * couche n'est donc volontairement pas un budget global, mais une borne superieure par choix. */
   this._recordC41StaleOpportunity(ops < mark.left ? mark.left - ops : 0);
   return ran;
+}
+
+/* Publie a l'entree du mois suivant : ainsi toutes les tranches du mois clos sont attribuees
+ * a leur tache effective, y compris une continuation rail qui precede la file. */
+function OpexAI::_logC41MonthlyBusyLedger()
+{
+  if (!C41_MONTHLY_BUSY_LEDGER || this._c41MonthlyBusyLedger == null) return;
+  local year = this._c41MonthlyBusyMonth / 12;
+  local month = this._c41MonthlyBusyMonth % 12 + 1;
+  foreach (task, entry in this._c41MonthlyBusyLedger) {
+    OpexC41SchedulerLog("C41_MONTH_BUSY", "year=" + year + " month=" + month + " task=" + task
+                        + " calls=" + entry.calls + " ran=" + entry.ran + " ops=" + entry.ops);
+  }
 }
 
 /* Publication annuelle, hors des passages mesures : au plus une ligne par categorie et par an.
@@ -5970,7 +6004,7 @@ function OpexAI::_logC41OpportunityLedger(year)
  * item ne peut affamer ceux places apres lui et le dernier rend litteralement la main au premier. */
 function OpexAI::_runNextTask()
 {
-  if (C41_SLACK_LEDGER || C41_OPPORTUNITY_LEDGER || C41_ADMISSION_LEDGER) this._c41LastTaskName = "idle";
+  if (C41_SLACK_LEDGER || C41_MONTHLY_BUSY_LEDGER || C41_OPPORTUNITY_LEDGER || C41_ADMISSION_LEDGER) this._c41LastTaskName = "idle";
   if (DECISION_LOG) {
     _currentTaskName = null;
     _currentTaskLogged = false;
@@ -6009,7 +6043,7 @@ function OpexAI::_runNextTask()
   }
   if (task == null) return false;
   this._taskCursor = (taskIndex + 1) % this._taskQueue.len();
-  if (C41_SLACK_LEDGER || C41_OPPORTUNITY_LEDGER || C41_ADMISSION_LEDGER) this._c41LastTaskName = task.name;
+  if (C41_SLACK_LEDGER || C41_MONTHLY_BUSY_LEDGER || C41_OPPORTUNITY_LEDGER || C41_ADMISSION_LEDGER) this._c41LastTaskName = task.name;
 
   /* Defaut : exactement une execution par tour continu. Une tache inutile peut choisir plus loin. */
   task.dueCycle = this._taskCycle + 1;
@@ -6869,6 +6903,7 @@ function OpexAI::Start()
       && C41_WATER_PLANS_PROFILE;
   WATER_LAKES_CONNECTIVITY = AIController.GetSetting("water_lakes_connectivity") != 0;
   C41_SLACK_LEDGER = AIController.GetSetting("c41_slack_ledger") != 0;
+  C41_MONTHLY_BUSY_LEDGER = AIController.GetSetting("c41_monthly_busy_ledger") != 0;
   C41_STALENESS_LEDGER = AIController.GetSetting("c41_staleness_ledger") != 0;
   C41_OPPORTUNITY_LEDGER = AIController.GetSetting("c41_opportunity_ledger") != 0;
   C41_ADMISSION_LEDGER = AIController.GetSetting("c41_admission_ledger") != 0;

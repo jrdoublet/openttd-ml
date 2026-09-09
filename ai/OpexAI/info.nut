@@ -321,6 +321,14 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    AddSetting({
+      name = "c41_monthly_busy_ledger",
+      description = "C41 probe: monthly opcode attribution by scheduler task; no scheduling change; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* C41.12 : ages par couche, seulement au moment d'un acquittement effectif. */
     AddSetting({
       name = "c41_staleness_ledger",

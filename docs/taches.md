@@ -75,6 +75,14 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   le contrat « couche + coût prudent + admission », mais la mesure a **refusé** l'admission : 0
   reliquat exploitable). Reportés : ⏸️ `OpexRoadPaxCandidates` (coût dominant, profil fait),
   ⏸️ C41.45 (dimensionnement de rame fret hors vitesse).
+  **Mesure avant orchestrateur (2026-09-09) :** la sonde passive
+  `c41_monthly_busy_ledger` attribue les opcodes de chaque mois à la tâche/continuation effective.
+  Duel partagé 5 graines × 3 ans (`results/diag_1v1_shared_month_busy_3y_5seeds.json`), critère
+  strict « ≥300 k£ en caisse et aucune construction » : seulement 2 mois qualifiés (tous deux
+  seed 7), mais **8,48 M / 12,00 M opcodes = 70,6 %** sont `rail_search`; `catalog` = 15,0 % et
+  `town_growth` = 14,0 %. Conclusion : la cible mesurée est la continuation de recherche rail,
+  **pas** la génération monolithique générale. Ne pas écrire d'orchestrateur global avant d'avoir
+  rendu cette continuation préemptible/mesurable séparément ; l'échantillon de mois reste petit.
 
 - 🔴 **C42 — Transformer les offres de subvention non attribuées en candidats.** `C17`/`A7.3`
   (`event_subsidy_probe`) est fait : écoute par événement, aucun sondage en boucle. Mais c'est une
