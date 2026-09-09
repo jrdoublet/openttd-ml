@@ -613,12 +613,19 @@ class OpexAIInfo extends AIInfo {
      * OpexBuildLine reutilise deja un railPlan existant sans replanification (la meme
      * absence de revalidation que le chemin actuel de nouvelles tentatives sur cash) --
      * voir docs/04_arbitrage_rail_search.md pour l'analyse complete. Aucun changement de
-     * dueCycle, aucune priorite touchee -- correctif de blocage, pas un arbitrage. */
+     * dueCycle, aucune priorite touchee -- correctif de blocage, pas un arbitrage.
+     * ADOPTE au banc officiel 20x10 (2026-09-09, results/bench_c41_47_rail_cash_release_10y_20seeds.json,
+     * 0 echec) : le diagnostic 5x6 etait NUL, mais le banc apparie donne un test des signes
+     * tres significatif sur les 5 metriques -- profit/profit_year 19/20 (p<0.0001),
+     * company_value/performance_history 16/20 (p=0.012), note mediane 15/20 (p=0.041).
+     * Les t sur la difference moyenne restent faibles (|t|<1.5, direction tres coherente,
+     * amplitude bruitee par graine) : lire le test des signes, pas la moyenne, a cette taille
+     * d'effet -- meme seuil que celui qui a fait adopter le mode route. */
     AddSetting({
       name = "c41_rail_cash_release",
-      description = "C41.47: release _railSearch immediately when the only reason build() cannot proceed is insufficient cash, so other rail candidates and _expandRailLines are no longer blocked; the pending railPlan is kept on the candidate for reuse; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "C41.47: release _railSearch immediately when the only reason build() cannot proceed is insufficient cash, so other rail candidates and _expandRailLines are no longer blocked; the pending railPlan is kept on the candidate for reuse; 1 = on (default, adopted 20x10 bench 2026-09-09), 0 = off",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 

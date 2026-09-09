@@ -209,8 +209,9 @@ C41_RAIL_SLICE_LEDGER <- false;
 /* C41.47 : pendant de la garde G3S1 (plan en echec) applique au blocage tresorerie --
  * _consumeRailSearch() libere _railSearch des le premier blocage cash au lieu de le garder
  * indefiniment, ce qui debloque _expandRailLines et les AUTRES candidats rail du portefeuille.
- * candidate.railPlan est conserve. Correctif de blocage, pas un arbitrage. */
-C41_RAIL_CASH_RELEASE <- false;
+ * candidate.railPlan est conserve. Correctif de blocage, pas un arbitrage.
+ * ADOPTE au banc officiel 20x10 (2026-09-09) : voir info.nut pour les chiffres. */
+C41_RAIL_CASH_RELEASE <- true;
 /* C41.48 : sonde passive a chaque frontiere de tranche segmentee (CONT/done=false). Rien n'est
  * coupe ; mesure si un test de domination (C41.49) aurait meme l'occasion de se declencher. */
 C41_RAIL_DOMINATION_PROBE <- false;
@@ -1874,16 +1875,16 @@ function OpexGetServedTowns(lines)
  * construit 5 - n stations de bus pour porter le total a 5 (plafond de croissance maximale OpenTTD). */
 function OpexAI::_tryTownGrowth(year)
 {
-  if (!TOWN_GROWTH_ENABLED || this._catalog.roadType < 0 || this._catalog.paxCargo < 0) return;
+  if (!TOWN_GROWTH_ENABLED || this._catalog.roadType < 0 || this._catalog.paxCargo < 0) return false;
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  if (money < OpexCashReserve() + 25000) return;
+  if (money < OpexCashReserve() + 25000) return false;
 
   local engine = (this._catalog.paxCargo in this._catalog.roadEngineByCargo)
       ? this._catalog.roadEngineByCargo[this._catalog.paxCargo] : null;
-  if (engine == null) return;
+  if (engine == null) return false;
 
   local servedTowns = OpexGetServedTowns(this._lines);
-  if (servedTowns.len() == 0) return;
+  if (servedTowns.len() == 0) return false;
 
   local anchor = AIMap.GetTileIndex(1, 1);
 
@@ -2031,8 +2032,9 @@ function OpexAI::_tryTownGrowth(year)
       lineId = this._nextLineId,
     });
     this._nextLineId++;
-    break;
+    return true;
   }
+  return false;
 }
 
 /* Precalcule le trace des meilleurs candidats en avance pendant les ticks d'opcodes dormants. */
@@ -6805,7 +6807,10 @@ function OpexAI::_runNextTask()
   if (task.name == "refleet") { this._refleetRoadLines(year); return true; }
   if (task.name == "town_growth") {
     if (!TOWN_GROWTH_ENABLED) { task.enabled = false; return false; }
-    this._tryTownGrowth(year);
+    /* Une tentative sans construction ne consomme pas un slot du drain de tick : la tache a
+     * deja avance son curseur/dueCycle, donc l'appel recursif selectionne la suivante. `false`
+     * ne peut pas etre remonte au caller, car il signifie historiquement « arreter le drain ». */
+    if (!this._tryTownGrowth(year)) return this._runNextTask();
     return true;
   }
   if (task.name == "repay") {

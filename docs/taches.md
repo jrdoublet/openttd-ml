@@ -92,7 +92,7 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   `"cash"`. Pendant ces 5 mois `_railSearch` reste non nul, donc `_expandRailLines` sort par sa
   garde (`main.nut:4417`) et **aucune autre recherche rail ne peut démarrer** : le canal rail est
   gelé. C'est la même forme que le blocage par plan en échec déjà corrigé (garde `planFailed`,
-  G3§1), motif trésorerie non couvert (**C41.47**, codé, diagnostic NUL — voir plus bas). **Ce
+  G3§1), motif trésorerie non couvert (**C41.47**, codé et ADOPTÉ au banc 20×10 — voir plus bas). **Ce
   correctif ne demande aucun dénominateur commun et précède l'arbitrage.**
   ⚠️ `rail_search_resumable` est **déjà à 1, adopté** (`info.nut:1167`) et les rejets −23,1 % /
   −13,3 % ont été soignés par C20 (`rail_micro_deadline=1`) : il n'y a rien à rouvrir.
@@ -114,28 +114,28 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   gatée sur `C41_SLACK_LEDGER/OPPORTUNITY/ADMISSION` — `c41_rail_slice_ledger=1` seul n'aurait rien
   émis. Corrigé par un gate dédié (`OpexC41RailSliceLog`), comme les sondes rail-lost.
 
-  ⚠️ **C41.47 — codé et diagnostiqué (2026-09-09), résultat NUL — ne pas conclure, ne pas
-  bencher tout de suite.** `c41_rail_cash_release=0` (défaut) ; à `1`, `_consumeRailSearch()`
-  libère `_railSearch` dès le premier blocage trésorerie (N=0, symétrique de `planFailed` G3§1),
-  `candidate.railPlan` conservé. Deux points laissés ouverts par le contrat tranchés à
-  l'implémentation : N=0, et **aucune revalidation à ajouter** — `OpexBuildLine` réutilise déjà
-  `candidate.railPlan` sans replanification (`builder_rail.nut:1918`), donc le risque « carte
-  périmée » est préexistant à ce correctif, pas introduit par lui. Effet vérifié dans le code (pas
-  seulement mesuré) : tant que `_railSearch` est non nul, `_tryBuildRailProject` rejette TOUT
-  autre candidat rail (`reason=search_in_progress`, `main.nut:2574`) et `_expandRailLines` sort
-  (`main.nut:4445`) — le gel touche tout le canal, pas seulement la ligne élue.
-  **Diagnostic 5×6 apparié control/treatment** (`results/diag_c41_47_rail_cash_release_6y_5seeds.json`,
-  0 échec) : `cash_releases` ne se déclenche que sur 3 graines/5 (motif rare, ~0,6/graine/6 ans).
-  **Total de lignes rail construites strictement identique (14/14).** Sur les 3 graines où le
-  correctif agit, délai moyen élection→construction **pire deux fois sur trois** (+305 %, +8 %) et
-  **meilleur une fois** (−21 %, +1 ligne construite) ; `RAIL_EXPAND` recule (6→4). **Aucun signal
-  directionnel net** — 2 graines sur 5 ne divergent jamais (sorties byte-identiques), l'échantillon
-  utile n'est que de 3, bien sous le plancher de détection habituel
-  ([[banc_monograine_insuffisant]]), et toute divergence de comportement recompose la trajectoire
-  RNG en aval (butterfly effect classique du projet) — un délai « pire » sur une graine ne prouve
-  pas le mécanisme mauvais. **Ce que ça confirme : le code fonctionne (mécanisme déclenché, 0
-  crash, 0 régression de volume total).** **Ce que ça ne tranche pas : la valeur.** Défaut inchangé
-  (`0`). Prochaine étape si repris : **banc officiel 20×10**, pas un second diagnostic 5×6.
+  ✅ **C41.47 — ADOPTÉ au banc officiel 20×10 (2026-09-09) : le diagnostic 5×6 était NUL mais
+  sous-puissant, pas un vrai résultat.** `c41_rail_cash_release=1` (défaut, était `0`) :
+  `_consumeRailSearch()` libère `_railSearch` dès le premier blocage trésorerie (N=0, symétrique
+  de `planFailed` G3§1), `candidate.railPlan` conservé. Deux points laissés ouverts par le
+  contrat tranchés à l'implémentation : N=0, et **aucune revalidation à ajouter** —
+  `OpexBuildLine` réutilise déjà `candidate.railPlan` sans replanification (`builder_rail.nut:1918`),
+  donc le risque « carte périmée » est préexistant à ce correctif, pas introduit par lui. Effet
+  vérifié dans le code (pas seulement mesuré) : tant que `_railSearch` est non nul,
+  `_tryBuildRailProject` rejette TOUT autre candidat rail (`reason=search_in_progress`,
+  `main.nut:2574`) et `_expandRailLines` sort (`main.nut:4445`) — le gel touche tout le canal, pas
+  seulement la ligne élue.
+  **Diagnostic 5×6** (`results/diag_c41_47_rail_cash_release_6y_5seeds.json`) était NUL : total de
+  lignes construites identique (14/14), délai mixte, 2 graines/5 sans jamais diverger — échantillon
+  utile de 3, sous le plancher de détection ([[banc_monograine_insuffisant]]).
+  **Banc officiel 20×10** (`results/bench_c41_47_rail_cash_release_10y_20seeds.json`, 0 échec) :
+  test des signes **net et cohérent sur les 5 métriques** — `profit`/`profit_year` **19/20
+  (p<0,0001)**, `company_value`/`performance_history` 16/20 (p=0,012, même seuil que l'adoption du
+  mode route), `median_station_rating` 15/20 (p=0,041). Les t sur la différence moyenne restent
+  faibles (|t|<1,5, direction cohérente mais amplitude bruitée par graine) — lire le test des
+  signes, pas la moyenne, exactement le cas que documente [[banc_monograine_insuffisant]]. Le
+  diagnostic 5×6 avait simplement un échantillon utile trop petit (3 graines) pour voir un effet
+  net à 20. **Défaut passé à `1`** (`info.nut`, `main.nut`).
 
   ✅ **C41.48 — sonde livrée et mesurée (2026-09-09), à l'opposé de C41.14 : il y a bien matière
   à arbitrer.** `c41_rail_domination_probe=0` (défaut) journalise à chaque frontière de tranche

@@ -162,7 +162,7 @@ dans ce ledger (accumulateur unique par conception).
 gatée sur `C41_SLACK_LEDGER/OPPORTUNITY/ADMISSION` — `c41_rail_slice_ledger=1` seul n'émettait
 donc RIEN. Corrigé par un gate dédié (`OpexC41RailSliceLog`), comme les sondes rail-lost.
 
-### ✅ C41.47 — Libérer l'état rail quand le blocage est la trésorerie *(correctif, codé 2026-09-09)*
+### ✅ C41.47 — Libérer l'état rail quand le blocage est la trésorerie *(ADOPTÉ, banc officiel 20×10, 2026-09-09)*
 
 `c41_rail_cash_release=0`. À `1`, `_consumeRailSearch()` libère `_railSearch` **dès le premier
 blocage trésorerie constaté** — précheck (`money < need`) ou échec `CASH` à l'exécution du plan —
@@ -224,7 +224,36 @@ il peut simplement avoir fait construire une AUTRE ligne d'abord, décalant tout
 diagnostic ne tranche rien dans un sens ou dans l'autre — il confirme seulement que le code
 fonctionne (le mécanisme se déclenche, aucun crash, aucune régression de volume total) et qu'il
 faut le banc officiel 20×10 pour lire un signal, exactement comme le contrat l'annonçait.**
-**Défaut inchangé (`0`) en attendant.**
+
+#### ✅ Banc officiel 20×10 (2026-09-09) — ADOPTÉ. Le diagnostic 5×6 était sous-puissant, pas faux.
+
+`results/bench_c41_47_rail_cash_release_10y_20seeds.json`, 20 graines × 10 ans, apparié, 0 échec.
+Contrairement au diagnostic 5×6 (14/14 constructions identiques, délai mixte), le test des signes
+sur les 5 métriques de succès est **cohérent et significatif dans le même sens sur toutes** :
+
+| métrique | victoires du correctif | p (test des signes) | t (différence moyenne) |
+|---|---:|---:|---:|
+| `profit` | **19/20** | **p<0,0001** | −1,46 |
+| `profit_year` | **19/20** | **p<0,0001** | −0,94 |
+| `company_value` | 16/20 | p=0,012 | −0,68 |
+| `performance_history` | 16/20 | p=0,012 | 0,80 |
+| `median_station_rating` | 15/20 | p=0,041 | 0,95 |
+
+**Aucun |t| ne dépasse 1,5** — la différence moyenne est noyée dans le bruit inter-graines — mais
+le **test des signes est net sur toutes les métriques**, exactement le motif que
+[[banc_monograine_insuffisant]] décrit : *« une moyenne peut être tirée par 2-3 graines
+divergentes alors que le compte de victoires est proche du hasard »* — sauf qu'ici c'est
+l'inverse, le compte de victoires est **loin** du hasard (p<0,0001 pour profit) pendant que la
+moyenne reste bruitée. Seuil identique à celui qui avait fait adopter le mode route (16/20,
+p=0,012, [[opexai_mode_route]]).
+
+**Pourquoi le diagnostic 5×6 avait raté ça** : 2 graines sur 5 n'ont jamais divergé du tout
+(`cash_releases=0`), laissant un échantillon utile de 3 — bien en dessous de tout seuil de
+détection. Le banc à 20 graines a le pouvoir statistique que le diagnostic n'avait pas ; ce n'est
+pas une contradiction, c'est exactement pourquoi le contrat exigeait le banc avant de conclure.
+
+**Adopté par défaut** (`easy/medium/hard/custom_value = 1` dans `info.nut`, `C41_RAIL_CASH_RELEASE
+<- true` dans `main.nut`).
 
 ### ✅ C41.48 — Sonde de comparaison à la frontière de segment *(passif, codé et mesuré 2026-09-09)*
 
@@ -315,12 +344,12 @@ continuer  ssi  profitAnnuel_rail / E[itérations restantes]  ≥  taux_référe
 ## 5. Critère de clôture
 
 ✅ C41.46 livré et lu (§1.1bis) ; ✅ C41.48 livré et lu (§C41.48, 973 frontières avec alternative
-sur 30 graines-années) ; ⚠️ C41.47 codé, diagnostic 5×6 **NUL** (14/14 constructions identiques,
-délai mixte) — banc officiel 20×10 non lancé faute de signal directionnel à confirmer ; C41.49
-**non codé**, sa justification d'origine (arrêt optimal en opcodes) affaiblie par C41.46 et à
-reformuler en délai de construction avant d'écrire quoi que ce soit. ⚠️ Le volume est la métrique
-n°1 (~85 % de l'écart avec AAAHogEx) : toute variante qui coupe des recherches sans augmenter le
-nombre de constructions est un échec, même si elle économise des opcodes.
+sur 30 graines-années) ; ✅ **C41.47 ADOPTÉ** (diagnostic 5×6 sous-puissant et NUL, mais banc
+officiel 20×10 net sur les 5 métriques — profit/profit_year 19/20, p<0,0001) ; C41.49 **non
+codé**, sa justification d'origine (arrêt optimal en opcodes) affaiblie par C41.46 et à reformuler
+en délai de construction avant d'écrire quoi que ce soit. ⚠️ Le volume est la métrique n°1 (~85 %
+de l'écart avec AAAHogEx) : toute variante qui coupe des recherches sans augmenter le nombre de
+constructions est un échec, même si elle économise des opcodes.
 
 🆕 **Question ouverte par C41.46, à trancher avant de prioriser C41.49** : `task_ops` (76,7 % du
 total cumulé, croissant avec la maturité de la partie) n'est pas ventilé par tâche dans ce ledger.
