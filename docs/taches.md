@@ -83,6 +83,13 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   `town_growth` = 14,0 %. Conclusion : la cible mesurée est la continuation de recherche rail,
   **pas** la génération monolithique générale. Ne pas écrire d'orchestrateur global avant d'avoir
   rendu cette continuation préemptible/mesurable séparément ; l'échantillon de mois reste petit.
+  **Town growth — correctif de slot rejeté au banc officiel (2026-09-10).** Variante
+  `town_growth_skip_noop=1` (un échec `TRACEX`/`DEPOTX` lance la tâche suivante dans le même
+  drain) contre historique `=0`, 20 graines × 10 ans, 40/40 saines : l'historique gagne
+  **14/20** graines et +34,4 points de `performance_history` (+4,37 %), avec +562 k£ de valeur
+  moyenne. `results/bench_town_growth_skip_noop_10y_20seeds.json`. Ne pas adopter : la règle
+  « seul le travail bâti consomme un tour » semble intuitive, mais la cadence historique obtient
+  un meilleur portefeuille à l'échelle de la partie.
 
   📝 **C41.46–C41.49 — contrat écrit avant code (2026-09-09) :
   [`docs/04_arbitrage_rail_search.md`](04_arbitrage_rail_search.md).** Suite directe de la mesure

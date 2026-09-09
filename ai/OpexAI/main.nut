@@ -1875,16 +1875,16 @@ function OpexGetServedTowns(lines)
  * construit 5 - n stations de bus pour porter le total a 5 (plafond de croissance maximale OpenTTD). */
 function OpexAI::_tryTownGrowth(year)
 {
-  if (!TOWN_GROWTH_ENABLED || this._catalog.roadType < 0 || this._catalog.paxCargo < 0) return false;
+  if (!TOWN_GROWTH_ENABLED || this._catalog.roadType < 0 || this._catalog.paxCargo < 0) return;
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  if (money < OpexCashReserve() + 25000) return false;
+  if (money < OpexCashReserve() + 25000) return;
 
   local engine = (this._catalog.paxCargo in this._catalog.roadEngineByCargo)
       ? this._catalog.roadEngineByCargo[this._catalog.paxCargo] : null;
-  if (engine == null) return false;
+  if (engine == null) return;
 
   local servedTowns = OpexGetServedTowns(this._lines);
-  if (servedTowns.len() == 0) return false;
+  if (servedTowns.len() == 0) return;
 
   local anchor = AIMap.GetTileIndex(1, 1);
 
@@ -2032,9 +2032,8 @@ function OpexAI::_tryTownGrowth(year)
       lineId = this._nextLineId,
     });
     this._nextLineId++;
-    return true;
+    break;
   }
-  return false;
 }
 
 /* Precalcule le trace des meilleurs candidats en avance pendant les ticks d'opcodes dormants. */
@@ -6807,10 +6806,7 @@ function OpexAI::_runNextTask()
   if (task.name == "refleet") { this._refleetRoadLines(year); return true; }
   if (task.name == "town_growth") {
     if (!TOWN_GROWTH_ENABLED) { task.enabled = false; return false; }
-    /* Une tentative sans construction ne consomme pas un slot du drain de tick : la tache a
-     * deja avance son curseur/dueCycle, donc l'appel recursif selectionne la suivante. `false`
-     * ne peut pas etre remonte au caller, car il signifie historiquement « arreter le drain ». */
-    if (!this._tryTownGrowth(year)) return this._runNextTask();
+    this._tryTownGrowth(year);
     return true;
   }
   if (task.name == "repay") {
