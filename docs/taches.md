@@ -92,8 +92,8 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   `"cash"`. Pendant ces 5 mois `_railSearch` reste non nul, donc `_expandRailLines` sort par sa
   garde (`main.nut:4417`) et **aucune autre recherche rail ne peut démarrer** : le canal rail est
   gelé. C'est la même forme que le blocage par plan en échec déjà corrigé (garde `planFailed`,
-  G3§1), motif trésorerie non couvert (**C41.47**, pas encore codé). **Ce correctif ne demande
-  aucun dénominateur commun et précède l'arbitrage.**
+  G3§1), motif trésorerie non couvert (**C41.47**, codé, diagnostic NUL — voir plus bas). **Ce
+  correctif ne demande aucun dénominateur commun et précède l'arbitrage.**
   ⚠️ `rail_search_resumable` est **déjà à 1, adopté** (`info.nut:1167`) et les rejets −23,1 % /
   −13,3 % ont été soignés par C20 (`rail_micro_deadline=1`) : il n'y a rien à rouvrir.
 
@@ -113,8 +113,31 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   🐛 Piège trouvé au premier smoke test : le premier essai journalisait via `OpexC41SchedulerLog`,
   gatée sur `C41_SLACK_LEDGER/OPPORTUNITY/ADMISSION` — `c41_rail_slice_ledger=1` seul n'aurait rien
   émis. Corrigé par un gate dédié (`OpexC41RailSliceLog`), comme les sondes rail-lost.
-  **Reste** : C41.47 (libération trésorerie, non codé), C41.48/C41.49 (sonde puis test de
-  domination, probablement moins prioritaires que prévu vu ce qui précède).
+
+  ⚠️ **C41.47 — codé et diagnostiqué (2026-09-09), résultat NUL — ne pas conclure, ne pas
+  bencher tout de suite.** `c41_rail_cash_release=0` (défaut) ; à `1`, `_consumeRailSearch()`
+  libère `_railSearch` dès le premier blocage trésorerie (N=0, symétrique de `planFailed` G3§1),
+  `candidate.railPlan` conservé. Deux points laissés ouverts par le contrat tranchés à
+  l'implémentation : N=0, et **aucune revalidation à ajouter** — `OpexBuildLine` réutilise déjà
+  `candidate.railPlan` sans replanification (`builder_rail.nut:1918`), donc le risque « carte
+  périmée » est préexistant à ce correctif, pas introduit par lui. Effet vérifié dans le code (pas
+  seulement mesuré) : tant que `_railSearch` est non nul, `_tryBuildRailProject` rejette TOUT
+  autre candidat rail (`reason=search_in_progress`, `main.nut:2574`) et `_expandRailLines` sort
+  (`main.nut:4445`) — le gel touche tout le canal, pas seulement la ligne élue.
+  **Diagnostic 5×6 apparié control/treatment** (`results/diag_c41_47_rail_cash_release_6y_5seeds.json`,
+  0 échec) : `cash_releases` ne se déclenche que sur 3 graines/5 (motif rare, ~0,6/graine/6 ans).
+  **Total de lignes rail construites strictement identique (14/14).** Sur les 3 graines où le
+  correctif agit, délai moyen élection→construction **pire deux fois sur trois** (+305 %, +8 %) et
+  **meilleur une fois** (−21 %, +1 ligne construite) ; `RAIL_EXPAND` recule (6→4). **Aucun signal
+  directionnel net** — 2 graines sur 5 ne divergent jamais (sorties byte-identiques), l'échantillon
+  utile n'est que de 3, bien sous le plancher de détection habituel
+  ([[banc_monograine_insuffisant]]), et toute divergence de comportement recompose la trajectoire
+  RNG en aval (butterfly effect classique du projet) — un délai « pire » sur une graine ne prouve
+  pas le mécanisme mauvais. **Ce que ça confirme : le code fonctionne (mécanisme déclenché, 0
+  crash, 0 régression de volume total).** **Ce que ça ne tranche pas : la valeur.** Défaut inchangé
+  (`0`). Prochaine étape si repris : **banc officiel 20×10**, pas un second diagnostic 5×6.
+  **Reste** : C41.48/C41.49 (sonde puis test de domination, probablement moins prioritaires que
+  prévu vu C41.46 ci-dessus).
 
 - 🔴 **C42 — Transformer les offres de subvention non attribuées en candidats.** `C17`/`A7.3`
   (`event_subsidy_probe`) est fait : écoute par événement, aucun sondage en boucle. Mais c'est une

@@ -162,19 +162,69 @@ dans ce ledger (accumulateur unique par conception).
 gatée sur `C41_SLACK_LEDGER/OPPORTUNITY/ADMISSION` — `c41_rail_slice_ledger=1` seul n'émettait
 donc RIEN. Corrigé par un gate dédié (`OpexC41RailSliceLog`), comme les sondes rail-lost.
 
-### C41.47 — Libérer l'état rail quand le blocage est la trésorerie *(correctif, pas arbitrage)*
+### ✅ C41.47 — Libérer l'état rail quand le blocage est la trésorerie *(correctif, codé 2026-09-09)*
 
-`c41_rail_cash_release=0`. À `1`, un `_railSearch` en `phase == "build"` bloqué sur `"cash"` depuis
-plus de `N` passes **conserve son plan** (déposé sur le candidat, comme aujourd'hui via
-`candidate.railPlan`) mais **libère `_railSearch`**, de sorte que `_expandRailLines` et une nouvelle
-recherche redeviennent possibles. Le plan est revalidé avant construction (la carte a bougé).
+`c41_rail_cash_release=0`. À `1`, `_consumeRailSearch()` libère `_railSearch` **dès le premier
+blocage trésorerie constaté** — précheck (`money < need`) ou échec `CASH` à l'exécution du plan —
+au lieu de le garder indéfiniment. `candidate.railPlan` **n'est pas effacé**.
 
-C'est le pendant exact de la garde `planFailed` de G3§1, appliqué au second motif de blocage.
-*À trancher dans le contrat, avant code* : `N` (0 = libération immédiate), et **où le plan
-conservé est revalidé** — sans revalidation on reconstruit sur une carte périmée, avec revalidation
-à chaque tour on repaie une partie de l'A\*.
-*Mesure* : diagnostic 5×6 sur le délai élection→construction rail et le nombre de `RAIL_EXPAND`,
-puis **banc officiel 20×10** (ce correctif change l'entrelacement, donc les décisions).
+**Décisions tranchées à l'implémentation** (les deux points laissés ouverts par le contrat) :
+- **`N = 0` (libération immédiate)**, symétrique de `planFailed` (G3§1) qui ne temporise pas non
+  plus — dès qu'un blocage cash est établi comme la seule cause, il n'y a rien à gagner à attendre.
+- **Aucune revalidation supplémentaire à ajouter, parce qu'il n'y en a pas aujourd'hui non plus.**
+  `OpexBuildLine` réutilise déjà `candidate.railPlan` **sans replanification** dès qu'il est
+  présent (`builder_rail.nut:1918`) — c'est le chemin emprunté à CHAQUE nouvelle tentative tant
+  que `_railSearch` reste bloqué sur cash, avec ou sans ce correctif. Le risque « carte périmée »
+  est donc préexistant et inchangé par ce correctif ; il n'est pas dans son périmètre.
+
+**Effet secondaire vérifié en lisant le code (pas seulement le candidat bloqué)** :
+`_tryBuildRailProject` rejette **tout autre candidat rail** avec `reason=search_in_progress` tant
+que `this._railSearch != null` (`main.nut:2574`), et `_expandRailLines` sort immédiatement dans le
+même cas (`main.nut:4445`). Le gel touche donc tout le canal rail, pas seulement la ligne élue —
+confirmé en observant `cash_releases=1` avec un `delay` bien plus court côté `treatment` au smoke
+test 2 ans (`2` jours contre `155`/`3` côté `control`, une seule graine, non concluant seul).
+
+🐛 Piège identique à C41.46, évité d'emblée : `OpexC41RailCashReleaseLog` a son propre gate dédié
+(`C41_RAIL_CASH_RELEASE`), pas `OpexC41SchedulerLog`.
+
+*Mesure* : diagnostic 5×6 apparié control/treatment sur le délai élection→construction rail et le
+nombre de `RAIL_EXPAND` (`sweeps/diag_c41_47_rail_cash_release.py`,
+`results/diag_c41_47_rail_cash_release_6y_5seeds.json`), puis **banc officiel 20×10** (ce
+correctif change l'entrelacement, donc les décisions).
+
+#### ⚠️ Diagnostic mesuré (2026-09-09) — NUL, pas le gain espéré. Ne pas conclure à ce stade.
+
+0 échec, 5 graines × 6 ans, appariées control/treatment. `cash_releases` ne se déclenche que sur
+**3 graines sur 5** — c'est un motif rare (≈0,6 déclenchement/graine sur 6 ans), cohérent avec
+l'unique cas observé dans la chronologie de départ.
+
+| graine | builds (C/T) | expands (C/T) | releases (T) | délai moyen jours (C/T) |
+|---:|---:|---:|---:|---:|
+| 7 | 3/3 | 1/1 | 0 | 443,0 / 443,0 (identiques : jamais de release) |
+| 42 | 3/3 | 2/1 | 1 | **73,0 / 295,7** |
+| 100 | 3/2 | 1/0 | 1 | 383,7 / **413,5** |
+| 999 | 1/1 | 0/0 | 0 | 182,0 / 182,0 (identiques) |
+| 12345 | 4/5 | 2/2 | 1 | 117,0 / **92,2** |
+| **total** | **14/14** | **6/4** | 3 | — |
+
+**Total de lignes rail construites strictement identique (14/14).** Sur les 3 graines où le
+correctif s'est réellement déclenché, le délai moyen est **pire deux fois sur trois** (42 : +305 %,
+100 : +8 %) et **meilleur une fois** (12345 : −21 %, avec un cinquième train construit en plus).
+`RAIL_EXPAND` recule (6 → 4), sans qu'on sache si c'est un effet réel ou le bruit d'une
+réordonnance qui décale tout le reste de la partie. **N'est pas un gain net mesuré : c'est un
+résultat mixte, sans signal directionnel net, avec un signe défavorable sur le délai (2 pertes
+contre 1 gain) et sur `RAIL_EXPAND`.**
+
+⚠️ **Interprétation, pas verdict.** Deux graines sur cinq ne divergent JAMAIS (`releases=0`,
+sorties byte-identiques) : l'échantillon utile est en réalité de 3 graines, bien en dessous du
+plancher de détection habituel ([[banc_monograine_insuffisant]]). Toute divergence de
+comportement — même corrective — recompose la trajectoire RNG en aval (butterfly effect classique
+de ce projet), donc un délai « pire » sur une graine ne prouve pas que le mécanisme est mauvais :
+il peut simplement avoir fait construire une AUTRE ligne d'abord, décalant tout le reste. **Ce
+diagnostic ne tranche rien dans un sens ou dans l'autre — il confirme seulement que le code
+fonctionne (le mécanisme se déclenche, aucun crash, aucune régression de volume total) et qu'il
+faut le banc officiel 20×10 pour lire un signal, exactement comme le contrat l'annonçait.**
+**Défaut inchangé (`0`) en attendant.**
 
 ### C41.48 — Sonde de comparaison à la frontière de segment *(passif)*
 

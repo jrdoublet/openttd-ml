@@ -206,6 +206,11 @@ C41_RAIL_LOST_JUNCTION_REPAIR <- false;
  * file executee dans la MEME passe de _runNextTask (main.nut A4) -- le ledger C41.11 agrege les
  * deux des que _railSearch est non nul en entree de passe. Purement observatoire. */
 C41_RAIL_SLICE_LEDGER <- false;
+/* C41.47 : pendant de la garde G3S1 (plan en echec) applique au blocage tresorerie --
+ * _consumeRailSearch() libere _railSearch des le premier blocage cash au lieu de le garder
+ * indefiniment, ce qui debloque _expandRailLines et les AUTRES candidats rail du portefeuille.
+ * candidate.railPlan est conserve. Correctif de blocage, pas un arbitrage. */
+C41_RAIL_CASH_RELEASE <- false;
 /* air_fleet_probe : _resizeAirFleets n'emet que ses SUCCES (FG|). Quand une ligne aerienne
  * n'grandit pas, la cause est invisible. FR| donne le premier refus rencontre, une fois par ligne
  * et par an. */
@@ -295,6 +300,17 @@ function OpexC41RailSliceLog(fields)
   local date = AIDate.GetCurrentDate();
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " C41_RAIL_SLICE_LEDGER " + fields);
+}
+
+/* C41.47 : un evenement par liberation, pas un accumulateur annuel -- les liberations sont
+ * rares (motif observe : quelques par partie), la mesure interessante est LEQUEL candidat et
+ * QUAND, pas un total. */
+function OpexC41RailCashReleaseLog(fields)
+{
+  if (!C41_RAIL_CASH_RELEASE) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " C41_RAIL_CASH_RELEASE " + fields);
 }
 
 function OpexC41StalenessLog(kind, fields)
@@ -4942,13 +4958,32 @@ function OpexAI::_consumeRailSearch(year)
     local need = candidate.capital + OpexCashReserve();
     local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
     if (money < need && REBORROW) money = OpexTryReborrow(need, money);
-    if (money < need) return "cash";
+    if (money < need) {
+      /* C41.47 : pendant de la garde G3S1 ci-dessus, applique au motif tresorerie -- des le
+       * premier blocage constate, liberer _railSearch pour que _expandRailLines et les AUTRES
+       * candidats rail du portefeuille ne soient plus geles (main.nut:4445, 2574). candidate.
+       * railPlan n'est PAS efface : OpexBuildLine le reutilise deja sans replanification quand
+       * la carte n'a pas change (main G3S2), donc rien a revalider en plus du chemin existant. */
+      if (C41_RAIL_CASH_RELEASE) {
+        this._railSearch = null;
+        OpexC41RailCashReleaseLog("reason=precheck src=" + candidate.src + " dst=" + candidate.dst
+                                  + " need=" + need + " money=" + money);
+      }
+      return "cash";
+    }
   }
 
   local result = OpexBuildLine(this._catalog, this._budget, candidate, state.alternativeRatio,
                                join, OpexCashReserve(), state.hardCap);
   /* Ne pas jeter le plan sur CASH : on reessaiera au prochain tour, sans refaire l'A*. */
-  if (result.reason == "CASH") return "cash";
+  if (result.reason == "CASH") {
+    if (C41_RAIL_CASH_RELEASE) {
+      this._railSearch = null;
+      OpexC41RailCashReleaseLog("reason=build_cash src=" + candidate.src + " dst=" + candidate.dst
+                                + " capital=" + candidate.capital);
+    }
+    return "cash";
+  }
   candidate.railPlan = null;
   local built = this._recordRailAttempt(candidate, result, join, state.placeJoin,
                                         state.posPacked, year);
@@ -7034,6 +7069,7 @@ function OpexAI::Start()
   C41_RAIL_LOST_CONNECTIVITY_PROBE = AIController.GetSetting("c41_rail_lost_connectivity_probe") != 0;
   C41_RAIL_LOST_JUNCTION_REPAIR = AIController.GetSetting("c41_rail_lost_junction_repair") != 0;
   C41_RAIL_SLICE_LEDGER = AIController.GetSetting("c41_rail_slice_ledger") != 0;
+  C41_RAIL_CASH_RELEASE = AIController.GetSetting("c41_rail_cash_release") != 0;
   CASH_RESERVE_PROBE = AIController.GetSetting("cash_reserve_probe") != 0;
   PORTFOLIO_REFRESH_PROBE = AIController.GetSetting("portfolio_refresh_probe") != 0;
   if (C41_RAIL_LOST_TOPOLOGY_PROBE) C41_RAIL_LOST_PROBE = true;

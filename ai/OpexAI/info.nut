@@ -602,6 +602,26 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C41.47 : pendant exact de la garde G3S1 (plan en echec), applique au second motif de
+     * blocage -- la tresorerie. _consumeRailSearch() laisse aujourd'hui _railSearch non nul
+     * indefiniment tant que money < need, ce qui bloque _expandRailLines (main.nut:4445, "ne
+     * pas empiler une seconde recherche") ET tout autre candidat rail du portefeuille
+     * (_tryBuildRailProject, reason=search_in_progress) -- pas seulement le candidat bloque.
+     * N=0 (liberation immediate, comme G3S1) : des le premier blocage tresorerie constate
+     * (pre-verification OU echec CASH a l'execution du plan), _railSearch est libere.
+     * candidate.railPlan N'EST PAS efface : la revalidation en resulte gratuitement, car
+     * OpexBuildLine reutilise deja un railPlan existant sans replanification (la meme
+     * absence de revalidation que le chemin actuel de nouvelles tentatives sur cash) --
+     * voir docs/04_arbitrage_rail_search.md pour l'analyse complete. Aucun changement de
+     * dueCycle, aucune priorite touchee -- correctif de blocage, pas un arbitrage. */
+    AddSetting({
+      name = "c41_rail_cash_release",
+      description = "C41.47: release _railSearch immediately when the only reason build() cannot proceed is insufficient cash, so other rail candidates and _expandRailLines are no longer blocked; the pending railPlan is kept on the candidate for reuse; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* C43/E3 famille 2 : CASH_RESERVE_MIN mord-il ? Compteurs cumulatifs, publies en delta annuel
      * par la tache "report" (OpexCashReserve() est appelee trop souvent pour journaliser chaque
      * appel). */
