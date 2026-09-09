@@ -1115,6 +1115,14 @@ reste à trancher indépendamment.
   préparation, avant tout cache ; il faut d'abord savoir si une clé par cargo, longueur et rame
   serait réellement réutilisable.
 
+  ✅ **C41.27 — vitesse effective pax rail, 5 graines × 6 ans.** Le diagnostic passif
+  `results/diag_c41_27_rail_pax_speed_profile_6y_5seeds.json` est sain sur **300** générations.
+  Les 394 662 appels à `OpexRailEffectiveSpeed` coûtent **308,27 M opcodes**, soit **85,3 %** des
+  361,59 M de préparation économique ; seuls 20 624 appels (5,2 %) proviennent de la correction
+  de wagons. Le prochain contrat doit ventiler la vitesse effective entre vitesse de croisière,
+  accélération et intégration, puis mesurer la réutilisation exacte des clés
+  `(loco,wagon,nombre de wagons,distance)` avant de mettre un cache.
+
   ✅ **C39.4 — les cinq avions « rejetés » sont dominés, non invalides.** La sonde
   `c39_air_reason_probe=0`, sur 5 graines × 6 ans
   (`results/diag_c39_air_reason_6y_5seeds.json`), est saine : les cinq notifications sont le moteur

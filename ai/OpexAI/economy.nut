@@ -189,7 +189,12 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   local referenceLoco = choices[maxWagons - 1];
   if (referenceLoco == null) return null;
 
+  local speedMark = profile != null ? OpexOpsMeasureBegin() : null;
   local referenceSpeed = OpexRailEffectiveSpeed(referenceLoco, wagon, maxWagons, travelDist);
+  if (profile != null) {
+    profile.paxSpeedOps += OpexOpsMeasureEnd(speedMark);
+    profile.paxSpeedCalls++;
+  }
   if (referenceSpeed < 1) return null;
   local referenceOneWayDays = travelDist.tofloat() / (0.036 * referenceSpeed);
   if (referenceOneWayDays < 1) referenceOneWayDays = 1;
@@ -204,7 +209,12 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
 
   local loco = choices[wagons - 1];
   if (loco == null) return null;
+  speedMark = profile != null ? OpexOpsMeasureBegin() : null;
   local effectiveSpeed = OpexRailEffectiveSpeed(loco, wagon, wagons, travelDist);
+  if (profile != null) {
+    profile.paxSpeedOps += OpexOpsMeasureEnd(speedMark);
+    profile.paxSpeedCalls++;
+  }
   if (effectiveSpeed < 1) return null;
   local oneWayDays = travelDist.tofloat() / (0.036 * effectiveSpeed);
   if (oneWayDays < 1) oneWayDays = 1;
@@ -220,7 +230,13 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
     wagons = correctedWagons;
     loco = choices[wagons - 1];
     if (loco == null) return null;
+    speedMark = profile != null ? OpexOpsMeasureBegin() : null;
     effectiveSpeed = OpexRailEffectiveSpeed(loco, wagon, wagons, travelDist);
+    if (profile != null) {
+      profile.paxSpeedOps += OpexOpsMeasureEnd(speedMark);
+      profile.paxSpeedCalls++;
+      profile.paxCorrectedSpeedCalls++;
+    }
     if (effectiveSpeed < 1) return null;
     oneWayDays = travelDist.tofloat() / (0.036 * effectiveSpeed);
     if (oneWayDays < 1) oneWayDays = 1;

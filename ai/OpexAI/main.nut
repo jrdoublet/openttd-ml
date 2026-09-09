@@ -152,6 +152,8 @@ C41_RAIL_PAX_PROFILE <- false;
 C41_RAIL_PAX_CANDIDATE_PROFILE <- false;
 /* C41.26 : sous-ventilation passive de l'economie pax rail. */
 C41_RAIL_PAX_ECONOMICS_PROFILE <- false;
+/* C41.27 : detail passif vitesse effective dans l'economie pax rail. */
+C41_RAIL_PAX_SPEED_PROFILE <- false;
 /* C41.4 : sonde strictement passive des vehicules perdus. Contrairement a A7.4,
  * elle n'ecrit ni compteur de ligne ni signe, et n'arme aucune tache. */
 C41_VEHICLE_LOST_PROBE <- false;
@@ -6110,6 +6112,15 @@ function OpexAI::_runNextTask()
                  + " loop_calls=" + profile.paxEconomicsLoopCalls
                  + " post_ops=" + profile.paxEconomicsPostOps);
     }
+    if (C41_RAIL_PAX_SPEED_PROFILE && this._projects != null && ("rail" in this._projects)
+        && this._projects.rail != null && ("profile" in this._projects.rail)
+        && this._projects.rail.profile != null) {
+      local profile = this._projects.rail.profile;
+      OpexC39Log("C41_RAIL_PAX_SPEED_PROFILE", "setup_ops=" + profile.paxEconomicsSetupOps
+                 + " speed_ops=" + profile.paxSpeedOps
+                 + " speed_calls=" + profile.paxSpeedCalls
+                 + " corrected_speed_calls=" + profile.paxCorrectedSpeedCalls);
+    }
     this._logStalenessRefresh(refreshReason);
     this._portfolioInvalidated = false;
     this._ranked = this._projects.rail;
@@ -6602,6 +6613,7 @@ function OpexAI::Start()
   C41_RAIL_PAX_PROFILE = AIController.GetSetting("c41_rail_pax_profile") != 0;
   C41_RAIL_PAX_CANDIDATE_PROFILE = AIController.GetSetting("c41_rail_pax_candidate_profile") != 0;
   C41_RAIL_PAX_ECONOMICS_PROFILE = AIController.GetSetting("c41_rail_pax_economics_profile") != 0;
+  C41_RAIL_PAX_SPEED_PROFILE = AIController.GetSetting("c41_rail_pax_speed_profile") != 0;
   C41_RAIL_LOST_PROBE = AIController.GetSetting("c41_rail_lost_probe") != 0;
   C41_RAIL_LOST_TOPOLOGY_PROBE = AIController.GetSetting("c41_rail_lost_topology_probe") != 0;
   C41_RAIL_LOST_PHYSICAL_PROBE = AIController.GetSetting("c41_rail_lost_physical_probe") != 0;
