@@ -218,6 +218,14 @@ comme `SuperLib.Tile.CostToFlattern` et AAAHogEx. Après correction,
 sur 263 tentatives et 22,4 % d'échecs. **Adopté sans banc officiel 20×10 sur validation explicite
 de l'utilisateur**, le défaut étant géométrique et le diagnostic univoque.
 
+✅ **Air — invalidation d'une ancre de cache refusée (2026-09-09, décision utilisateur).** Après
+un échec réel, `OpexAirInvalidateCachedSite` efface seulement la clé `(ville, type)` qui pointe
+encore vers cette ancre ; une recherche ultérieure ne peut donc pas la traiter comme valide.
+Diagnostic `results/diag_air_afail_cache_invalidate_6y_5seeds.json` : 204 succès dans les deux
+bras, 263 → 262 tentatives et 59 → 58 échecs. **Pas un gain de volume mesuré**, mais adopté pour
+conserver l'invariant « un refus réel invalide une prédiction » sur validation explicite de
+l'utilisateur.
+
 ❌ **Pas des candidats, ne pas rouvrir** : temps de trajet **rail** (`OpexRailEffectiveSpeed` fait
 déjà croisière dichotomique + accélération + intégration, cache adopté au banc — SuperLib serait une
 régression) ; **note municipale** (`OpexBoostTownRating` compare déjà le bon enum depuis le

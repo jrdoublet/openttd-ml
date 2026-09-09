@@ -33,6 +33,17 @@ function OpexAirResetSiteCache()
   AIR_SITE_CACHE.clear();
 }
 
+/* Un test de site n'est qu'une prediction : si le chantier reel le contredit, ne jamais
+ * re-servir exactement cette ancre au prochain rafraichissement. On efface seulement l'entree
+ * qui pointe encore vers l'ancre refusee (un autre calcul peut deja l'avoir remplacee), afin de
+ * forcer la recherche d'une alternative dans cette meme ville et pour ce meme type d'aeroport. */
+function OpexAirInvalidateCachedSite(site, airport)
+{
+  if (!AIR_SITE_CACHE_ENABLED || site == null) return;
+  local key = site.town.id + "_" + airport.type;
+  if (key in AIR_SITE_CACHE && AIR_SITE_CACHE[key] == site.anchor) delete AIR_SITE_CACHE[key];
+}
+
 /* Distance euclidienne exacte à vol d'oiseau pour la cinématique et le paiement aérien :
  * sqrt(dx^2 + dy^2) approximé par 0.414 * min(dx, dy) + max(dx, dy) */
 function OpexFlightDistance(tileA, tileB)
@@ -1432,6 +1443,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
     OpexAirLevelFootprint(plan.siteB.anchor, airport, plan.siteB.town.id);
     local errB = OpexAirSiteRefusal(plan.siteB, airport.type);
     if (errB != 0) {
+      OpexAirInvalidateCachedSite(plan.siteB, airport);
       result.error = errB;
       result.actualCost = costs != null ? costs.GetCosts() : 0;
       result.opcodes += budget.end("build_airports");
@@ -1440,6 +1452,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
     }
     local errA = OpexAirSiteRefusal(plan.siteA, airport.type);
     if (errA != 0) {
+      OpexAirInvalidateCachedSite(plan.siteA, airport);
       result.error = errA;
       result.actualCost = costs != null ? costs.GetCosts() : 0;
       result.opcodes += budget.end("build_airports");
@@ -1464,6 +1477,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
     if (okA && AIAirport.IsAirportTile(plan.siteA.anchor)) airportA = plan.siteA.anchor;
   }
   if (airportA == null) {
+    if (!reuseA) OpexAirInvalidateCachedSite(plan.siteA, airport);
     result.error = AIError.GetLastError();
     result.opcodes += budget.end("build_airports");
     result.actualCost = costs != null ? costs.GetCosts() : 0;
@@ -1488,6 +1502,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
   }
   result.opcodes += budget.end("build_airports");
   if (airportB == null) {
+    if (!reuseB) OpexAirInvalidateCachedSite(plan.siteB, airport);
     result.error = AIError.GetLastError();
     local keepOrphan = (AIGameSettings.GetValue("economy.infrastructure_maintenance") == 0);
     if (!keepOrphan) {
