@@ -456,9 +456,9 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "c41_rail_pax_cruise_cache",
-      description = "C41.30: cache rail pax cruise speed by (loco, wagon, wagons) within one candidate generation; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "C41.30: cache rail pax cruise speed by (loco, wagon, wagons) within one candidate generation; 1 = on (default), 0 = off",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
