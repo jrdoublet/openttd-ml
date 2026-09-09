@@ -3,6 +3,9 @@ __pycache__/
 .venv/
 *.png
 
+# Artefacts locaux de diagnostics et benchmarks : volumineux et regenerables.
+results/
+
 # IA tierce de reference, lue pour comparaison seulement (GPL v3, Rei Ishibashi).
 # Volontairement NON versionnee : la copier ici rendrait le depot derive de la GPL v3.
 ai/AAAHogEx-115/
@@ -25,4 +28,3 @@ docs/diag_1v1_10y.json
 # Rejeu graine 1 avec journaux de decision complets : versionne en .gz a cote.
 docs/replay_seed1_y1.json
 scratch/
-
