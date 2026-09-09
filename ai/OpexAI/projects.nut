@@ -1356,7 +1356,7 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
           prequoteOps = 0, prequoteAttempted = 0, prequoteQuoted = 0, prequoteFailed = 0,
           insertOps = 0, insertedProjects = 0 } : null;
   local railGenerationMark = railProfile != null ? OpexOpsMeasureBegin() : null;
-  local railCandidateProfile = (C41_RAIL_CANDIDATE_PROFILE || C41_RAIL_PAX_PROFILE || C41_RAIL_PAX_CANDIDATE_PROFILE || C41_RAIL_PAX_ECONOMICS_PROFILE || C41_RAIL_PAX_SPEED_PROFILE || C41_RAIL_PAX_SPEED_DETAIL_PROFILE || C41_RAIL_PAX_CRUISE_PROFILE || C41_RAIL_FREIGHT_PROFILE || C41_RAIL_FREIGHT_CANDIDATE_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_PROFILE)
+  local railCandidateProfile = (C41_RAIL_CANDIDATE_PROFILE || C41_RAIL_PAX_PROFILE || C41_RAIL_PAX_CANDIDATE_PROFILE || C41_RAIL_PAX_ECONOMICS_PROFILE || C41_RAIL_PAX_SPEED_PROFILE || C41_RAIL_PAX_SPEED_DETAIL_PROFILE || C41_RAIL_PAX_CRUISE_PROFILE || C41_RAIL_FREIGHT_PROFILE || C41_RAIL_FREIGHT_CANDIDATE_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_DETAIL_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_SETUP_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_CONSIST_PROFILE || C41_RAIL_FREIGHT_CRUISE_PROFILE || C41_RAIL_FREIGHT_SPEED_DETAIL_PROFILE)
       ? { paxOps = 0, freightOps = 0, topKOps = 0,
           paxPreparationOps = 0, paxPairTotalOps = 0, paxCandidateOps = 0,
           paxPairsScanned = 0, paxCandidateCalls = 0,
@@ -1370,14 +1370,30 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
           freightPreparationOps = 0, freightIndustryOps = 0, freightTownOps = 0,
           freightIndustryCandidateOps = 0, freightIndustryCandidateCalls = 0,
           freightTownCandidateOps = 0, freightTownCandidateCalls = 0,
-          freightEconomicsOps = 0, freightEconomicsCalls = 0 } : null;
+          freightEconomicsOps = 0, freightEconomicsCalls = 0,
+          /* C41.34 : les trois phases de OpexLineEconomics, mais uniquement pour fret.
+           * Ne pas reutiliser les compteurs pax : le meme helper sert aux deux familles. */
+          freightEconomicsSetupOps = 0, freightEconomicsSetupCalls = 0,
+          freightEconomicsLoopOps = 0, freightEconomicsLoopCalls = 0,
+          freightEconomicsPostOps = 0, freightEconomicsPostCalls = 0,
+          freightEconomicsReferenceOps = 0, freightEconomicsReferenceCalls = 0,
+          freightEconomicsConsistOps = 0, freightEconomicsConsistCalls = 0,
+          freightEconomicsCapitalOps = 0, freightEconomicsCapitalCalls = 0,
+          freightEconomicsConsistInitialSpeedOps = 0, freightEconomicsConsistInitialSpeedCalls = 0,
+          freightEconomicsConsistCorrectedSpeedOps = 0, freightEconomicsConsistCorrectedSpeedCalls = 0,
+          freightCruiseKeys = {}, freightCruiseCalls = 0, freightCruiseUniqueKeys = 0,
+          freightCruiseCacheableHits = 0,
+          freightAccelerationOps = 0, freightAccelerationCalls = 0,
+          freightIntegrationOps = 0, freightIntegrationCalls = 0 } : null;
   local railPaxProfile = C41_RAIL_PAX_PROFILE ? railCandidateProfile : null;
-  local railPaxCandidateProfile = (C41_RAIL_PAX_CANDIDATE_PROFILE || C41_RAIL_PAX_ECONOMICS_PROFILE || C41_RAIL_PAX_SPEED_PROFILE || C41_RAIL_PAX_SPEED_DETAIL_PROFILE || C41_RAIL_PAX_CRUISE_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_PROFILE)
+  local railPaxCandidateProfile = (C41_RAIL_PAX_CANDIDATE_PROFILE || C41_RAIL_PAX_ECONOMICS_PROFILE || C41_RAIL_PAX_SPEED_PROFILE || C41_RAIL_PAX_SPEED_DETAIL_PROFILE || C41_RAIL_PAX_CRUISE_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_DETAIL_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_SETUP_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_CONSIST_PROFILE)
       ? railCandidateProfile : null;
-  /* C41.30 : cache epuise apres cette generation ; aucun moteur/cargo/terrain d'une passe
-   * suivante ne peut reutiliser une valeur ancienne. */
+  /* C41.30/C41.38 : caches epuises apres cette generation ; aucun moteur/cargo/terrain d'une
+   * passe suivante ne peut reutiliser une valeur ancienne. Les tables pax/fret sont separees :
+   * l'AB fret ne change donc pas la cadence pax. */
   local railPaxCruiseCache = C41_RAIL_PAX_CRUISE_CACHE ? {} : null;
-  local rail = OpexBuildCandidates(catalog, budget, lines, abandonedPairs, railCandidateProfile, railPaxProfile, railPaxCandidateProfile, railPaxCruiseCache);
+  local railFreightCruiseCache = C41_RAIL_FREIGHT_CRUISE_CACHE ? {} : null;
+  local rail = OpexBuildCandidates(catalog, budget, lines, abandonedPairs, railCandidateProfile, railPaxProfile, railPaxCandidateProfile, railPaxCruiseCache, railFreightCruiseCache);
   if (railProfile != null) {
     railProfile.generationOps = OpexOpsMeasureEnd(railGenerationMark);
     railProfile.generationCandidates = rail.candidates.len();

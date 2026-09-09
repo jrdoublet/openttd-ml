@@ -159,6 +159,12 @@ function OpexStationRatingForHeadway(headwayDays)
 function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPlatformLength = 0, routeDistance = null, profile = null, cruiseCache = null)
 {
   local setupMark = profile != null ? OpexOpsMeasureBegin() : null;
+  local freightDetail = profile != null && kind == "freight" && C41_RAIL_FREIGHT_ECONOMICS_DETAIL_PROFILE;
+  local freightSetupDetail = profile != null && kind == "freight" && C41_RAIL_FREIGHT_ECONOMICS_SETUP_PROFILE;
+  local freightConsistDetail = profile != null && kind == "freight" && C41_RAIL_FREIGHT_ECONOMICS_CONSIST_PROFILE;
+  local freightCruiseProfile = profile != null && kind == "freight" && C41_RAIL_FREIGHT_CRUISE_PROFILE;
+  local freightSpeedDetailProfile = profile != null && kind == "freight" && C41_RAIL_FREIGHT_SPEED_DETAIL_PROFILE;
+  local freightAccelerationCache = kind == "freight" && C41_RAIL_FREIGHT_ACCELERATION_CACHE;
   local travelDist = (routeDistance != null && routeDistance > 0) ? routeDistance : distance;
   if (!(cargo in catalog.wagonByCargo)) return null;
   if (!(cargo in catalog.locoByCargoWagons)) return null;
@@ -177,6 +183,7 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
    * jamais sur les moteurs : pour chaque nombre de rames elle compare le revenu de la note issue du
    * bareme au capital et au cout courant. Le gagnant est le profit maximal, et l'egalite garde moins
    * de trains parce qu'ils n'apportent alors aucun point de note ni cargo supplementaire. */
+  local referenceMark = freightSetupDetail ? OpexOpsMeasureBegin() : null;
   local choices = catalog.locoByCargoWagons[cargo];
   local maxWagons = choices.len();
   /* Le cache catalogue va jusqu'a station_spread ; une longueur imposee apres recherche doit
@@ -190,7 +197,7 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   if (referenceLoco == null) return null;
 
   local speedMark = profile != null ? OpexOpsMeasureBegin() : null;
-  local referenceSpeed = OpexRailEffectiveSpeed(referenceLoco, wagon, maxWagons, travelDist, profile, cruiseCache);
+  local referenceSpeed = OpexRailEffectiveSpeed(referenceLoco, wagon, maxWagons, travelDist, profile, cruiseCache, freightCruiseProfile, freightSpeedDetailProfile, freightAccelerationCache);
   if (profile != null) {
     profile.paxSpeedOps += OpexOpsMeasureEnd(speedMark);
     profile.paxSpeedCalls++;
@@ -201,6 +208,11 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   local referenceRoundTripDays = 2 * referenceOneWayDays;
   local referenceTrips = OpexLoadedTripsPerMonth(referenceOneWayDays, referenceRoundTripDays,
                                                   kind == "pax");
+  if (freightSetupDetail) {
+    profile.freightEconomicsReferenceOps += OpexOpsMeasureEnd(referenceMark);
+    profile.freightEconomicsReferenceCalls++;
+  }
+  local consistMark = freightSetupDetail ? OpexOpsMeasureBegin() : null;
   local calibrationOffered = (monthlyUnits * STATION_RATING_PCT) / 100.0;
   if (calibrationOffered <= 0) return null;
   local wagons = OpexCeilDiv(calibrationOffered, wagon.capacity * referenceTrips);
@@ -210,10 +222,12 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   local loco = choices[wagons - 1];
   if (loco == null) return null;
   speedMark = profile != null ? OpexOpsMeasureBegin() : null;
-  local effectiveSpeed = OpexRailEffectiveSpeed(loco, wagon, wagons, travelDist, profile, cruiseCache);
+  local effectiveSpeed = OpexRailEffectiveSpeed(loco, wagon, wagons, travelDist, profile, cruiseCache, freightCruiseProfile, freightSpeedDetailProfile, freightAccelerationCache);
   if (profile != null) {
-    profile.paxSpeedOps += OpexOpsMeasureEnd(speedMark);
+    local speedOps = OpexOpsMeasureEnd(speedMark);
+    profile.paxSpeedOps += speedOps;
     profile.paxSpeedCalls++;
+    if (freightConsistDetail) { profile.freightEconomicsConsistInitialSpeedOps += speedOps; profile.freightEconomicsConsistInitialSpeedCalls++; }
   }
   if (effectiveSpeed < 1) return null;
   local oneWayDays = travelDist.tofloat() / (0.036 * effectiveSpeed);
@@ -231,11 +245,13 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
     loco = choices[wagons - 1];
     if (loco == null) return null;
     speedMark = profile != null ? OpexOpsMeasureBegin() : null;
-    effectiveSpeed = OpexRailEffectiveSpeed(loco, wagon, wagons, travelDist, profile, cruiseCache);
+    effectiveSpeed = OpexRailEffectiveSpeed(loco, wagon, wagons, travelDist, profile, cruiseCache, freightCruiseProfile, freightSpeedDetailProfile, freightAccelerationCache);
     if (profile != null) {
-      profile.paxSpeedOps += OpexOpsMeasureEnd(speedMark);
+      local speedOps = OpexOpsMeasureEnd(speedMark);
+      profile.paxSpeedOps += speedOps;
       profile.paxSpeedCalls++;
       profile.paxCorrectedSpeedCalls++;
+      if (freightConsistDetail) { profile.freightEconomicsConsistCorrectedSpeedOps += speedOps; profile.freightEconomicsConsistCorrectedSpeedCalls++; }
     }
     if (effectiveSpeed < 1) return null;
     oneWayDays = travelDist.tofloat() / (0.036 * effectiveSpeed);
@@ -243,7 +259,12 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
     roundTripDays = 2 * oneWayDays;
     tripsPerMonth = OpexLoadedTripsPerMonth(oneWayDays, roundTripDays, kind == "pax");
   }
+  if (freightSetupDetail) {
+    profile.freightEconomicsConsistOps += OpexOpsMeasureEnd(consistMark);
+    profile.freightEconomicsConsistCalls++;
+  }
 
+  local capitalMark = freightSetupDetail ? OpexOpsMeasureBegin() : null;
   local perTrain = wagons * wagon.capacity;
   /* Le modele de cycle conserve les jours fractionnaires, mais l'API de revenu et le moteur
    * comptent des jours calendaires entiers. Arrondir vers le haut evite de crediter un trajet de
@@ -265,7 +286,18 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   local infraCost = travelDist * effectiveTrackCost + 2 * platformLength * catalog.costStation;
   if (PRICING_RAIL_DEPOT && ("costRailDepot" in catalog)) infraCost += catalog.costRailDepot;
   local locoLife = loco.ageYears > 0 ? loco.ageYears : 20;
-  if (profile != null) profile.paxEconomicsSetupOps += OpexOpsMeasureEnd(setupMark);
+  if (freightSetupDetail) {
+    profile.freightEconomicsCapitalOps += OpexOpsMeasureEnd(capitalMark);
+    profile.freightEconomicsCapitalCalls++;
+  }
+  if (profile != null) {
+    local setupOps = OpexOpsMeasureEnd(setupMark);
+    profile.paxEconomicsSetupOps += setupOps;
+    if (freightDetail) {
+      profile.freightEconomicsSetupOps += setupOps;
+      profile.freightEconomicsSetupCalls++;
+    }
+  }
   local loopMark = profile != null ? OpexOpsMeasureBegin() : null;
   local best = null;
   for (local trains = 1; trains <= MAX_RAIL_TRAINS; trains++) {
@@ -319,8 +351,13 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
     }
   }
   if (profile != null) {
-    profile.paxEconomicsLoopOps += OpexOpsMeasureEnd(loopMark);
+    local loopOps = OpexOpsMeasureEnd(loopMark);
+    profile.paxEconomicsLoopOps += loopOps;
     profile.paxEconomicsLoopCalls++;
+    if (freightDetail) {
+      profile.freightEconomicsLoopOps += loopOps;
+      profile.freightEconomicsLoopCalls++;
+    }
   }
   if (best == null) return null;
   local postMark = profile != null ? OpexOpsMeasureBegin() : null;
@@ -353,7 +390,14 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
     roi = best.roi,
     profitAnnual = best.profitAnnual,
   };
-  if (profile != null) profile.paxEconomicsPostOps += OpexOpsMeasureEnd(postMark);
+  if (profile != null) {
+    local postOps = OpexOpsMeasureEnd(postMark);
+    profile.paxEconomicsPostOps += postOps;
+    if (freightDetail) {
+      profile.freightEconomicsPostOps += postOps;
+      profile.freightEconomicsPostCalls++;
+    }
+  }
   return result;
 }
 

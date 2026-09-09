@@ -165,6 +165,14 @@ C41_RAIL_FREIGHT_PROFILE <- false;
 /* C41.32 : coût des candidats dans les deux branches fret rail. */
 C41_RAIL_FREIGHT_CANDIDATE_PROFILE <- false;
 C41_RAIL_FREIGHT_ECONOMICS_PROFILE <- false;
+C41_RAIL_FREIGHT_ECONOMICS_DETAIL_PROFILE <- false;
+C41_RAIL_FREIGHT_ECONOMICS_SETUP_PROFILE <- false;
+C41_RAIL_FREIGHT_ECONOMICS_CONSIST_PROFILE <- false;
+/* C41.37/C41.38 : reutilisation exacte puis cache de croisiere fret, local a une generation. */
+C41_RAIL_FREIGHT_CRUISE_PROFILE <- false;
+C41_RAIL_FREIGHT_CRUISE_CACHE <- false;
+C41_RAIL_FREIGHT_SPEED_DETAIL_PROFILE <- false;
+C41_RAIL_FREIGHT_ACCELERATION_CACHE <- false;
 /* C41.4 : sonde strictement passive des vehicules perdus. Contrairement a A7.4,
  * elle n'ecrit ni compteur de ligne ni signe, et n'arme aucune tache. */
 C41_VEHICLE_LOST_PROBE <- false;
@@ -6178,6 +6186,54 @@ function OpexAI::_runNextTask()
       OpexC39Log("C41_RAIL_FREIGHT_ECONOMICS_PROFILE", "ops=" + profile.freightEconomicsOps
                  + " calls=" + profile.freightEconomicsCalls);
     }
+    if (C41_RAIL_FREIGHT_ECONOMICS_DETAIL_PROFILE && this._projects != null && ("rail" in this._projects)
+        && this._projects.rail != null && ("profile" in this._projects.rail) && this._projects.rail.profile != null) {
+      local profile = this._projects.rail.profile;
+      OpexC39Log("C41_RAIL_FREIGHT_ECONOMICS_DETAIL_PROFILE", "ops=" + profile.freightEconomicsOps
+                 + " calls=" + profile.freightEconomicsCalls
+                 + " setup_ops=" + profile.freightEconomicsSetupOps
+                 + " setup_calls=" + profile.freightEconomicsSetupCalls
+                 + " loop_ops=" + profile.freightEconomicsLoopOps
+                 + " loop_calls=" + profile.freightEconomicsLoopCalls
+                 + " post_ops=" + profile.freightEconomicsPostOps
+                 + " post_calls=" + profile.freightEconomicsPostCalls);
+    }
+    if (C41_RAIL_FREIGHT_ECONOMICS_SETUP_PROFILE && this._projects != null && ("rail" in this._projects)
+        && this._projects.rail != null && ("profile" in this._projects.rail) && this._projects.rail.profile != null) {
+      local profile = this._projects.rail.profile;
+      OpexC39Log("C41_RAIL_FREIGHT_ECONOMICS_SETUP_PROFILE", "ops=" + profile.freightEconomicsOps
+                 + " calls=" + profile.freightEconomicsCalls
+                 + " reference_ops=" + profile.freightEconomicsReferenceOps
+                 + " reference_calls=" + profile.freightEconomicsReferenceCalls
+                 + " consist_ops=" + profile.freightEconomicsConsistOps
+                 + " consist_calls=" + profile.freightEconomicsConsistCalls
+                 + " capital_ops=" + profile.freightEconomicsCapitalOps
+                 + " capital_calls=" + profile.freightEconomicsCapitalCalls);
+    }
+    if (C41_RAIL_FREIGHT_ECONOMICS_CONSIST_PROFILE && this._projects != null && ("rail" in this._projects)
+        && this._projects.rail != null && ("profile" in this._projects.rail) && this._projects.rail.profile != null) {
+      local profile = this._projects.rail.profile;
+      OpexC39Log("C41_RAIL_FREIGHT_ECONOMICS_CONSIST_PROFILE", "ops=" + profile.freightEconomicsOps
+                 + " initial_speed_ops=" + profile.freightEconomicsConsistInitialSpeedOps
+                 + " initial_speed_calls=" + profile.freightEconomicsConsistInitialSpeedCalls
+                 + " corrected_speed_ops=" + profile.freightEconomicsConsistCorrectedSpeedOps
+                 + " corrected_speed_calls=" + profile.freightEconomicsConsistCorrectedSpeedCalls);
+    }
+    if (C41_RAIL_FREIGHT_CRUISE_PROFILE && this._projects != null && ("rail" in this._projects)
+        && this._projects.rail != null && ("profile" in this._projects.rail) && this._projects.rail.profile != null) {
+      local profile = this._projects.rail.profile;
+      OpexC39Log("C41_RAIL_FREIGHT_CRUISE_PROFILE", "cruise_calls=" + profile.freightCruiseCalls
+                 + " unique_keys=" + profile.freightCruiseUniqueKeys
+                 + " cacheable_hits=" + profile.freightCruiseCacheableHits);
+    }
+    if (C41_RAIL_FREIGHT_SPEED_DETAIL_PROFILE && this._projects != null && ("rail" in this._projects)
+        && this._projects.rail != null && ("profile" in this._projects.rail) && this._projects.rail.profile != null) {
+      local profile = this._projects.rail.profile;
+      OpexC39Log("C41_RAIL_FREIGHT_SPEED_DETAIL_PROFILE", "acceleration_ops=" + profile.freightAccelerationOps
+                 + " acceleration_calls=" + profile.freightAccelerationCalls
+                 + " integration_ops=" + profile.freightIntegrationOps
+                 + " integration_calls=" + profile.freightIntegrationCalls);
+    }
     this._logStalenessRefresh(refreshReason);
     this._portfolioInvalidated = false;
     this._ranked = this._projects.rail;
@@ -6677,6 +6733,13 @@ function OpexAI::Start()
   C41_RAIL_FREIGHT_PROFILE = AIController.GetSetting("c41_rail_freight_profile") != 0;
   C41_RAIL_FREIGHT_CANDIDATE_PROFILE = AIController.GetSetting("c41_rail_freight_candidate_profile") != 0;
   C41_RAIL_FREIGHT_ECONOMICS_PROFILE = AIController.GetSetting("c41_rail_freight_economics_profile") != 0;
+  C41_RAIL_FREIGHT_ECONOMICS_DETAIL_PROFILE = AIController.GetSetting("c41_rail_freight_economics_detail_profile") != 0;
+  C41_RAIL_FREIGHT_ECONOMICS_SETUP_PROFILE = AIController.GetSetting("c41_rail_freight_economics_setup_profile") != 0;
+  C41_RAIL_FREIGHT_ECONOMICS_CONSIST_PROFILE = AIController.GetSetting("c41_rail_freight_economics_consist_profile") != 0;
+  C41_RAIL_FREIGHT_CRUISE_PROFILE = AIController.GetSetting("c41_rail_freight_cruise_profile") != 0;
+  C41_RAIL_FREIGHT_CRUISE_CACHE = AIController.GetSetting("c41_rail_freight_cruise_cache") != 0;
+  C41_RAIL_FREIGHT_SPEED_DETAIL_PROFILE = AIController.GetSetting("c41_rail_freight_speed_detail_profile") != 0;
+  C41_RAIL_FREIGHT_ACCELERATION_CACHE = AIController.GetSetting("c41_rail_freight_acceleration_cache") != 0;
   C41_RAIL_LOST_PROBE = AIController.GetSetting("c41_rail_lost_probe") != 0;
   C41_RAIL_LOST_TOPOLOGY_PROBE = AIController.GetSetting("c41_rail_lost_topology_probe") != 0;
   C41_RAIL_LOST_PHYSICAL_PROBE = AIController.GetSetting("c41_rail_lost_physical_probe") != 0;

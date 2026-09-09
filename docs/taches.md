@@ -1185,6 +1185,40 @@ reste à trancher indépendamment.
   `OpexLineEconomics` prend **111,56 M** opcodes pour **30 534** appels. Prochaine micro-tâche :
   ventiler sa préparation, son choix de rame et sa finalisation pour le fret, avant tout cache.
 
+  ✅ **C41.34 — ventilation de l'économie fret rail, 5 graines × 6 ans.** Le collecteur passif
+  `c41_rail_freight_economics_detail_profile=1` mesure séparément la préparation, la boucle de
+  choix du nombre de rames et la finalisation de `OpexLineEconomics`, uniquement lorsque
+  `kind == "freight"` ; il ne touche ni le calcul ni les décisions. Le smoke 1×1 est sain, puis
+  `results/diag_c41_34_rail_freight_economics_detail_6y_5seeds.json` termine **5/5** parties sans
+  erreur. Moyenne par graine : **22,00 M** opcodes pour **5 991** appels ; la préparation prend
+  **18,47 M** (**83,9 %**), la boucle des 1–2 rames **1,91 M** (**8,7 %**) et la finalisation
+  **0,71 M** (**3,2 %**). Le reliquat hors sous-phases est **0,91 M** (**4,2 %**). La prochaine
+  micro-tâche doit donc ventiler la préparation (vitesse/référence, dimensionnement de rame et
+  capital) avant d'envisager un cache ; la boucle et la finalisation ne sont pas des cibles
+  prioritaires.
+
+  ✅ **C41.37 — réutilisation exacte de croisière fret rail, 5 graines × 6 ans.** La sonde
+  passive `c41_rail_freight_cruise_profile=1` est saine (**5/5**) dans
+  `results/diag_c41_37_rail_freight_cruise_profile_6y_5seeds.json`. Les **92 943** appels de
+  croisière fret n'emploient que **13 582** clés exactes `(locomotive,wagon,wagons)` : **79 361**
+  appels (**85,39 %**) sont donc réutilisables à l'intérieur de leur génération. C41.38 introduit
+  un cache fret séparé, éphémère et à `0` par défaut ; son AB apparié 5×6 est requis avant tout
+  changement de défaut, puis le banc officiel 20×10.
+
+  ✅ **C41.38 — cache de croisière fret rail : adopté par défaut.** L'AB apparié 5 graines × 6 ans
+  `results/diag_c41_38_rail_freight_cruise_cache_paired_6y_5seeds.json` est sain (**10/10**).
+  Il réduit le coût de génération des candidats rail de **93,18 M** à **86,34 M** opcodes par
+  graine (**−7,34 %**, soit −6,84 M), mais OFF conserve **+644 509 £** de valeur moyenne
+  (**+11,88 %**) et gagne **5/5** graines. Le calcul est exactement inchangé : cette divergence
+  vient de la cadence des décisions, comme pour C41.30. Le signal défavorable est assez net pour
+  appelait un banc officiel avant décision. Celui-ci, `results/bench_c41_38_rail_freight_cruise_cache_10y_20seeds.json`,
+  est valide (**40/40**) : ON gagne **+66 693 £** de valeur (**+0,48 %**, 10–10 graines),
+  la note (+1,18) et le score (+11,05), tandis que OFF a +0,83 % de profit annuel (11–9) et
+  +1,23 % de profit trimestriel (13–7). Aucun de ces écarts n'atteint le plancher de détection ;
+  ils sont compatibles avec la divergence de calendrier, pas avec une altération de l'économie.
+  Le gain d'opcodes, fondé sur une clé exacte et sans état stale, justifie donc
+  **`c41_rail_freight_cruise_cache=1` par défaut.**
+
   ✅ **C39.4 — les cinq avions « rejetés » sont dominés, non invalides.** La sonde
   `c39_air_reason_probe=0`, sur 5 graines × 6 ans
   (`results/diag_c39_air_reason_6y_5seeds.json`), est saine : les cinq notifications sont le moteur

@@ -133,7 +133,7 @@ function OpexRailAcceleration(loco, wagon, wagons, speed)
  * 61 km/h sur un angle droit et 111 a courbure 2 ; aucun pourcentage de virages n'est invente.
  * Mesure 2026-08-30 (results/opex_speed_yield.json, n=832) : mediane reel/catalogue 0,96,
  * reel/traction 1,18. Le 70 % etait trop pessimiste. Pas de retuning. */
-function OpexRailEffectiveSpeed(loco, wagon, wagons, distance, profile = null, cruiseCache = null)
+function OpexRailEffectiveSpeed(loco, wagon, wagons, distance, profile = null, cruiseCache = null, freightCruiseProfile = false, freightSpeedDetailProfile = false, freightAccelerationCache = false)
 {
   if (profile != null) {
     local key = loco.id + "|" + wagon.id + "|" + wagons + "|" + distance;
@@ -148,27 +148,46 @@ function OpexRailEffectiveSpeed(loco, wagon, wagons, distance, profile = null, c
       profile.paxCruiseKeys[cruiseKey] <- true;
       profile.paxCruiseUniqueKeys++;
     }
+    /* C41.37 : exactement la cle que le cache fret proposera, mais isolee du pax. */
+    if (freightCruiseProfile) {
+      if (cruiseKey in profile.freightCruiseKeys) profile.freightCruiseCacheableHits++;
+      else {
+        profile.freightCruiseKeys[cruiseKey] <- true;
+        profile.freightCruiseUniqueKeys++;
+      }
+    }
   }
   local cruiseKey = loco.id + "|" + wagon.id + "|" + wagons;
   local cruise = null;
   if (cruiseCache != null && cruiseKey in cruiseCache) {
-    cruise = cruiseCache[cruiseKey];
+    cruise = cruiseCache[cruiseKey].cruise;
   } else {
     local cruiseMark = profile != null ? OpexOpsMeasureBegin() : null;
     cruise = OpexRailCruiseSpeed(loco, wagon, wagons);
     if (profile != null) {
       profile.paxCruiseOps += OpexOpsMeasureEnd(cruiseMark);
       profile.paxCruiseCalls++;
+      if (freightCruiseProfile) profile.freightCruiseCalls++;
     }
-    if (cruiseCache != null) cruiseCache[cruiseKey] <- cruise;
+    if (cruiseCache != null) cruiseCache[cruiseKey] <- { cruise = cruise };
   }
   if (cruise < 1 || distance < 1) return 0;
 
   local halfSpeed = cruise / 2;
   if (halfSpeed < 1) halfSpeed = 1;
-  local accelerationMark = profile != null ? OpexOpsMeasureBegin() : null;
-  local acceleration = OpexRailAcceleration(loco, wagon, wagons, halfSpeed);
-  if (profile != null) profile.paxAccelerationOps += OpexOpsMeasureEnd(accelerationMark);
+  local acceleration = null;
+  if (freightAccelerationCache && cruiseCache != null && cruiseKey in cruiseCache && ("acceleration" in cruiseCache[cruiseKey])) {
+    acceleration = cruiseCache[cruiseKey].acceleration;
+  } else {
+    local accelerationMark = profile != null ? OpexOpsMeasureBegin() : null;
+    acceleration = OpexRailAcceleration(loco, wagon, wagons, halfSpeed);
+    if (profile != null) {
+      local accelerationOps = OpexOpsMeasureEnd(accelerationMark);
+      profile.paxAccelerationOps += accelerationOps;
+      if (freightSpeedDetailProfile) { profile.freightAccelerationOps += accelerationOps; profile.freightAccelerationCalls++; }
+    }
+    if (freightAccelerationCache && cruiseCache != null) cruiseCache[cruiseKey].acceleration <- acceleration;
+  }
   if (acceleration < 1) return 0;
   local integrationMark = profile != null ? OpexOpsMeasureBegin() : null;
   local speedPerDay = acceleration * 148.0 / 256.0;
@@ -187,7 +206,11 @@ function OpexRailEffectiveSpeed(loco, wagon, wagons, distance, profile = null, c
     return 0;
   }
   local result = distance / (0.036 * travelDays);
-  if (profile != null) profile.paxIntegrationOps += OpexOpsMeasureEnd(integrationMark);
+  if (profile != null) {
+    local integrationOps = OpexOpsMeasureEnd(integrationMark);
+    profile.paxIntegrationOps += integrationOps;
+    if (freightSpeedDetailProfile) { profile.freightIntegrationOps += integrationOps; profile.freightIntegrationCalls++; }
+  }
   return result;
 }
 

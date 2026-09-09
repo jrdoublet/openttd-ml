@@ -178,7 +178,9 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   }
 
   local economicsMark = profile != null ? OpexOpsMeasureBegin() : null;
-  local freightEconomicsMark = (kind == "freight" && C41_RAIL_FREIGHT_ECONOMICS_PROFILE) ? OpexOpsMeasureBegin() : null;
+  /* C41.33 donne le total ; C41.34 le republie avec ses sous-phases afin que les sorties
+   * précoces de OpexLineEconomics restent visibles comme reliquat de préparation. */
+  local freightEconomicsMark = (kind == "freight" && (C41_RAIL_FREIGHT_ECONOMICS_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_DETAIL_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_SETUP_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_CONSIST_PROFILE)) ? OpexOpsMeasureBegin() : null;
   local economics = OpexLineEconomics(catalog, cargo, distance, monthly, kind, 0, null, profile, cruiseCache);
   if (profile != null) {
     profile.paxEconomicsOps += OpexOpsMeasureEnd(economicsMark);
@@ -831,7 +833,7 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
 
 /* Industries : on n'apparie que des couples producteur/accepteur du MEME cargo, ce qui garde
  * l'etage 1 lineaire en nombre d'industries plutot que quadratique sur tout le catalogue. */
-function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null)
+function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, cruiseCache = null)
 {
   local preparationMark = profile != null ? OpexOpsMeasureBegin() : null;
   local industries = catalog.industries;
@@ -884,7 +886,7 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
         if (originServed) stats.pairsOneServed++;
         local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
         local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
-                                            industries[di].tile, monthly, originServed, stats, isTransformer, profile);
+                                            industries[di].tile, monthly, originServed, stats, isTransformer, profile, cruiseCache);
         if (profile != null) {
           profile.freightIndustryCandidateOps += OpexOpsMeasureEnd(candidateMark);
           profile.freightIndustryCandidateCalls++;
@@ -934,7 +936,7 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
           if (originServed) stats.pairsOneServed++;
           local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
           local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
-                                              town.tile, townMonthly, originServed, stats, false, profile);
+                                              town.tile, townMonthly, originServed, stats, false, profile, cruiseCache);
           if (profile != null) {
             profile.freightTownCandidateOps += OpexOpsMeasureEnd(candidateMark);
             profile.freightTownCandidateCalls++;
@@ -953,7 +955,7 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
 /* Construit et classe tous les candidats. Rend la liste triee par rapport decroissant.
  * `lines` (this._lines de main.nut) sert a exclure les origines deja desservies avant meme de
  * calculer un candidat -- voir OpexOriginServed ci-dessus. */
-function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, profile = null, paxProfile = null, paxCandidateProfile = null, paxCruiseCache = null)
+function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, profile = null, paxProfile = null, paxCandidateProfile = null, paxCruiseCache = null, freightCruiseCache = null)
 {
   local all = [];
   /* Comptes de rejet : ils se trouvent ici, avant que TOP_K ne masque les candidats restants.
@@ -994,7 +996,7 @@ function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, prof
 
   local freightMark = profile != null ? OpexOpsMeasureBegin() : null;
   budget.begin();
-  OpexFreightCandidates(catalog, lines, all, stats, abandonedPairs, profile);
+  OpexFreightCandidates(catalog, lines, all, stats, abandonedPairs, profile, freightCruiseCache);
   local opsFreight = budget.end("cand_freight");
   if (profile != null) profile.freightOps += OpexOpsMeasureEnd(freightMark);
 
