@@ -1166,6 +1166,13 @@ reste à trancher indépendamment.
   borné à une génération et le gain d'opcodes libère du budget pour des candidats plus frais.
   **`c41_rail_pax_cruise_cache=1` devient le défaut.**
 
+  ✅ **C41.31 — sous-profil fret rail, 5 graines × 6 ans.** Le diagnostic passif
+  `results/diag_c41_31_rail_freight_profile_6y_5seeds.json` est sain (**5/5**). Sur **315**
+  générations, la préparation (services déjà présents et éventuels joins) vaut seulement
+  **6,36 M** opcodes. Les boucles industrie→industrie et industrie→ville prennent respectivement
+  **86,71 M** et **83,44 M** : le prochain contrat doit ventiler, dans chacune, les gardes de paire
+  et `OpexMakeCandidate`/l'économie. Aucun filtre ni index n'est justifié avant cette mesure.
+
   ✅ **C39.4 — les cinq avions « rejetés » sont dominés, non invalides.** La sonde
   `c39_air_reason_probe=0`, sur 5 graines × 6 ans
   (`results/diag_c39_air_reason_6y_5seeds.json`), est saine : les cinq notifications sont le moteur

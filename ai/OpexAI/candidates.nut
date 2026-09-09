@@ -826,8 +826,9 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
 
 /* Industries : on n'apparie que des couples producteur/accepteur du MEME cargo, ce qui garde
  * l'etage 1 lineaire en nombre d'industries plutot que quadratique sur tout le catalogue. */
-function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null)
+function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null)
 {
+  local preparationMark = profile != null ? OpexOpsMeasureBegin() : null;
   local industries = catalog.industries;
   local served = [];
   for (local i = 0; i < industries.len(); i++) {
@@ -836,6 +837,7 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
     if (service != null) stats.industriesServed++; else stats.industriesUnserved++;
   }
   if (JOIN_PLACE) OpexPlaceJoinFreight(catalog, lines, out, stats, industries, served, abandonedPairs);
+  if (profile != null) profile.freightPreparationOps += OpexOpsMeasureEnd(preparationMark);
   foreach (cargo, sources in catalog.producers) {
     local hasIndustrySinks = (cargo in catalog.acceptors);
     local hasTownSinks = COMPLEX_CARGO && (cargo in catalog.townAcceptors);
@@ -849,6 +851,7 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
       if (BASIN_SHARE && ss != null) {
         monthly = OpexShareBasin(monthly, lines, ss.stationId, cargo);
       }
+      local industryMark = profile != null ? OpexOpsMeasureBegin() : null;
       foreach (di in sinks) {
         if (di == si) continue;
         if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
@@ -884,9 +887,11 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
           }
         }
       }
+      if (profile != null) profile.freightIndustryOps += OpexOpsMeasureEnd(industryMark);
 
       /* Livraison des marchandises complexes aux villes acceptatrices (Goods, Food, Mail, etc.) */
       if (hasTownSinks) {
+        local townMark = profile != null ? OpexOpsMeasureBegin() : null;
         local townSinks = catalog.townAcceptors[cargo];
         foreach (town in townSinks) {
           if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
@@ -924,6 +929,7 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
             out.append(candidate);
           }
         }
+        if (profile != null) profile.freightTownOps += OpexOpsMeasureEnd(townMark);
       }
     }
   }
@@ -973,7 +979,7 @@ function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, prof
 
   local freightMark = profile != null ? OpexOpsMeasureBegin() : null;
   budget.begin();
-  OpexFreightCandidates(catalog, lines, all, stats, abandonedPairs);
+  OpexFreightCandidates(catalog, lines, all, stats, abandonedPairs, profile);
   local opsFreight = budget.end("cand_freight");
   if (profile != null) profile.freightOps += OpexOpsMeasureEnd(freightMark);
 
