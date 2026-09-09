@@ -1,0 +1,170 @@
+2026-02-07 - Version 41
+
+Fix:
+- Only suggest airport placement where noise town is the same as given town
+  when a noise limit has been given.
+- Exit early if bank balance is already equal to desired amount.
+- Guard against null response from various GetName() calls occurring for
+  logging.
+
+Change:
+- ReadStrFrom*() would throw with a null exception if an invalid id is
+  passed to it. Now it instead returns an empty string.
+- Now uses OpenTTD API 15 (AIBridge.GetBridgeType is called instead of AIBridge.GetBridgeID)
+
+Thanks to Xaric for noticing and reporting the ReadStrFrom* null pointer exception issue.
+
+2017-04-01 - Version 40
+
+Fix:
+- RoadPathFinder::FindPath and ::GetFindPathError was not responding as
+documented
+- RoadBuilder timeout was not working
+- Road::GrowStation was connecting added stop in a suboptimal way
+- A few debug messages printed using AILog was fixed to use the Log system
+
+Thanks to yorg for debugging and posting patches that contributed towards
+solving the timeout problem.
+
+2015-06-16 - Version 39
+
+Fix:
+- Station.CostToDemolishStation was wrongly referencing a method in PAXLink
+  which was not yet ported to SuperLib.
+
+Feature:
+- New method Tile::CostToClearTiles that return the cost to demolish all
+  tiles in the provided list.
+
+2014-03-23 - Version 38
+
+Fix:
+- Some internal code relied on some sub libraries being imported.
+
+2014-03-09 - Version 37
+
+Fix:
+- Crash if Direction::GetDirString was supplied with an invalid direction
+
+Feature:
+- New method Direction::GetDirectionToTileApprox which gets the direction from
+  tile1 to tile 2, and always returns a direction even if not exactly on one
+  of the 8 DIR_* directions.
+- New method Helper::Trim(string): removes leading/trailing spaces of string
+- New methods to get/print SuperLib version
+
+2013-07-20 - Version 36
+
+Fix:
+- Money.Inflate was discarding amounts below 100 money units.
+
+Feature:
+- Method to check if OpenTTD is affected by FS#5561 (DoCommands returning
+id 0 for all objects created in world gen)
+
+2013-07-19 - Version 35
+
+Change:
+- Require minimum r25621 to consider StoryBook existing. r25620 and r25621
+fixes two important bugs of the StoryBook. Before that it is better to fall
+back to GSGoal.Question than annoying users with these known bugs.
+
+2013-07-19 - Version 34
+
+Fix:
+- Reduce risk of overflow in money.nut
+
+Feature:
+- Allow clearing all signs except one tile
+
+2013-07-19 - Version 33
+
+Fix:
+- The NoBuild custom RPF had usage of GS API (roadpathfinder.nut)
+- Fix: Station.IsCargoSupplied used GS API calls (station.nut)
+
+2013-07-15 - Version 32
+
+Fix:
+- AI version of SuperLib 30 and 31 was not working because OpenTTD
+interpreted GSGoal in story.nut too early (and killed the AI because of that)
+
+2013-07-15 - Version 31
+
+Fix:
+- Detection of if StoryBook API exist gave false positives on 1.3.x RCs
+released later in time than the introduction of StoryBook. Now look for
+cargodist as a sign that StoryBook also exist. (a check for the revision
+when StoryBook and CargoDist was introduced in trunk filters out old patch
+CargoDist builds)
+
+2013-07-15 - Version 30
+
+Feature:
+- Story.NewStoryPage2 - returns an array with both page id and page elements
+
+Fix:
+- Airport::GetNumAircraftInAirportQueue didn't support heliports.
+- Use improved Money::BurnMoney by Kogut
+- Document return value of BuildNextToRoad
+
+2013-06-09 - Version 29
+
+Feature:
+- New helper methods to work with the GSStoryBook api (not available for AIs)
+
+2013-05-19 - Version 28
+
+Feature:
+- Two methods mainly intended for GSes who set cargo goals for checking if a
+  town is a desert or snow town which uses [AI|GS]Tile.GetTerrainType if it
+  is available and transparently fall back to a heuristic when OpenTTD 1.3.0
+  or older is used.
+	- Town.IsDesertTown
+	- Town.IsSnowTown
+- Helper.GetOpenTTDVersion - a direct copy of GetVersion in AiLibCommon
+  However, in general it is better to check for the availability of APIs
+  directly rather than using this method. (solution proposed by krinn)
+  For example:
+    if ("GetTerrainType" in AITile) { /* do something */ }
+
+
+2012-11-17 - Version 27
+
+Fixes:
+- The value set via RoadBuilder::SetEstimateMultiplier was not used passed
+  along to the pathfinder. (thanks to 11Runner for reporting this bug)
+- The Airport sub library wrongly assumed that the log class have been
+  imported as "Log".
+
+Other:
+- Replaced the tar building script with a newer one which automatically
+  include the version number in the tar files.
+- Include changelog.txt in version control.
+
+
+2012-09-29 - Version 26
+
+Features:
+- Add: BuildAirportForIndustry - a function that builds an airport for an
+  industry
+- Feature: Road.FixRoadStopFront - a function that tries to adjust the road
+  infront of a road stop so a depot can be added without blocking the ability to connect it to the world
+- Add: Road.RemoveRoadInfrontOfRemovedRoadStopOrDepot that makes use of
+  RemoveRoadFull unless it may damage used road in which case it falls back
+  to RemoveRoad
+
+Fixes:
+- Fix: remove debug signs that the library spawned under some conditions even
+  without the debug sign setting being active.
+- Fix: Tile.IsBuildOnSlope_Flat returned true on steep slopes
+- Fix: When removing road stations, road bits could be left behind on sloped
+  terrain
+
+
+2012-08-19 - Version 25
+
+Feature: Road, RoadBuilder and RoadPathFinder sub libraries are now available
+  in the nogo edition of SuperLib
+
+Other news: new methods in Station and Helper sub libraries

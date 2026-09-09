@@ -19,6 +19,51 @@
 JOIN_PLACE_MAX <- 75;
 TOP_K <- 20;
 MIN_RATIO <- 500;
+const PAX_BAND_ALL = 0;
+const PAX_BAND_AIR_ONLY = 1;
+const PAX_BAND_AIR_RAIL = 2;
+const PAX_BAND_RAIL_ONLY = 3;
+const PAX_BAND_ROUTE_ONLY = 4;
+
+/* Lots fret dynamiques : les IDs et le nombre de cargos dependent du climat et
+ * des NewGRF. La valeur comparee est le revenu brut d'un meme trajet de 20
+ * tuiles, sans retard, afin de classer le prix du cargo et non la qualite d'une
+ * liaison particuliere. Le cargoId ne sert qu'a rendre les ex-aequo stables. */
+function OpexFreightCargoOrder(catalog)
+{
+  local ranked = [];
+  if (catalog == null || catalog.producers == null) return ranked;
+  foreach (cargo, sources in catalog.producers) {
+    if (sources == null || sources.len() == 0 || cargo == catalog.paxCargo) continue;
+    /* Un cargo peut exister dans le climat/NewGRF sans etre encore produit
+     * (marchandises avant alimentation d'une usine, par exemple). Il ne doit
+     * pas bloquer un lot au seul motif que son tarif est eleve. */
+    local active = false;
+    foreach (si in sources) {
+      if (si >= 0 && si < catalog.industries.len()
+          && AIIndustry.GetLastMonthProduction(catalog.industries[si].id, cargo) > 0) {
+        active = true;
+        break;
+      }
+    }
+    if (!active) continue;
+    local hasSink = (cargo in catalog.acceptors)
+        || (COMPLEX_CARGO && cargo in catalog.townAcceptors);
+    if (!hasSink) continue;
+    local hasRail = catalog.wagonByCargo != null && (cargo in catalog.wagonByCargo);
+    local hasRoad = catalog.roadEngineByCargo != null && (cargo in catalog.roadEngineByCargo);
+    if (!hasRail && !hasRoad) continue;
+    ranked.append({ cargo = cargo, price = AICargo.GetCargoIncome(cargo, 20, 0) });
+  }
+  ranked.sort(function(a, b) {
+    if (a.price != b.price) return a.price > b.price ? -1 : 1;
+    if (a.cargo == b.cargo) return 0;
+    return a.cargo < b.cargo ? -1 : 1;
+  });
+  local cargos = [];
+  foreach (entry in ranked) cargos.append(entry.cargo);
+  return cargos;
+}
 VIVIER_RATIO_FILTER <- true;
 CLEAN_DENSITY_SCORE <- true;
 /* C29.1 + C29.2 : Deverrouillage du rabattement (feeders) vers hubs aeriens et ferroviaires */
@@ -131,17 +176,10 @@ function OpexPlaneSpeedDivisor()
 
 function OpexTicksPerDay(catalog)
 {
-  if (catalog == null) return 74.0;
-  local nowDate = AIDate.GetCurrentDate();
-  local nowTick = AIController.GetTick();
-  if (catalog._ticksAnchorDate < 0) {
-    catalog._ticksAnchorDate = nowDate;
-    catalog._ticksAnchorTick = nowTick;
-    return 74.0;
-  }
-  local days = nowDate - catalog._ticksAnchorDate;
-  local ticks = nowTick - catalog._ticksAnchorTick;
-  if (days > 0 && ticks > 0) return ticks.tofloat() / days.tofloat();
+  /* AIController.GetTick n'est pas une horloge moteur continue : il n'avance
+   * pas pendant toutes les suspensions du script. Le banc 1024^2 donnait ainsi
+   * 18 ticks/jour apres le premier refresh contre les 74 ticks calendaires du
+   * moteur, quadruplant artificiellement les manoeuvres aeroportuaires. */
   return 74.0;
 }
 
@@ -186,6 +224,31 @@ function OpexGetEpochVehicle(vehicleType, cargoId, railType = -1)
   }
   list.Valuate(AIEngine.GetMaxSpeed);
   return list.Begin();
+}
+
+/* Profil ferroviaire pax de reference. Une locomotive ne transporte pas elle-meme
+ * les passagers : la filtrer par CanRefitCargo elimine les locomotives ordinaires
+ * et ne laisse, selon l'epoque, que les automotrices. Le catalogue a deja resolu
+ * locomotive + wagon + vitesse soutenable ; reutiliser cette autorite evite aussi
+ * de comparer l'avion a la seule vitesse de pointe d'une locomotive a vide. */
+function OpexGetEpochRailProfile(catalog, cargoId, distance = 20)
+{
+  if (catalog == null || cargoId < 0) return null;
+  if (!(cargoId in catalog.wagonByCargo) || !(cargoId in catalog.locoByCargoWagons)) return null;
+  local wagon = catalog.wagonByCargo[cargoId];
+  local choices = catalog.locoByCargoWagons[cargoId];
+  if (wagon == null || choices == null || choices.len() == 0) return null;
+  local wagons = choices.len() >= 2 ? 2 : 1;
+  local loco = choices[wagons - 1];
+  if (loco == null) return null;
+  local speed = OpexRailEffectiveSpeed(loco, wagon, wagons, distance);
+  if (speed < 1) return null;
+  return {
+    id = loco.id,
+    speed = speed,
+    price = loco.price + wagons * wagon.price,
+    wagons = wagons,
+  };
 }
 
 function OpexAirManeuverDays(engineId, srcType, dstType, ticksPerDay, planeDiv)
@@ -242,10 +305,7 @@ function OpexComputeRoadToRailDistance(catalog, bestBus, bestTrain, ticksPerDay)
   if (catalog.platformLength > 0) kGare = catalog.costStation * catalog.platformLength;
   local cTile = (catalog.costTrackPerTile * RAIL_TERRAIN_FACTOR) / 100;
   local kBus = AIEngine.GetPrice(bestBus);
-  local kTrain = AIEngine.GetPrice(bestTrain);
-  if (catalog.paxCargo in catalog.wagonByCargo) {
-    kTrain += 2 * catalog.wagonByCargo[catalog.paxCargo].price;
-  }
+  local kTrain = bestTrain.price;
   local nBus = 2;
   local num = 2 * (kGare - kStop) + (kTrain - nBus * kBus);
 
@@ -262,7 +322,7 @@ function OpexComputeRoadToRailDistance(catalog, bestBus, bestTrain, ticksPerDay)
   if (M < 1) M = 1;
 
   local vBus = AIEngine.GetMaxSpeed(bestBus).tofloat() * 0.8;
-  local vRail = AIEngine.GetMaxSpeed(bestTrain).tofloat();
+  local vRail = bestTrain.speed.tofloat();
   local tauBus = OpexDaysPerTile(vBus, ticksPerDay);
   local tauRail = OpexDaysPerTile(vRail, ticksPerDay);
   local refD = 20;
@@ -272,9 +332,12 @@ function OpexComputeRoadToRailDistance(catalog, bestBus, bestTrain, ticksPerDay)
   local incBus = AICargo.GetCargoIncome(catalog.paxCargo, refD, transitBus.tointeger());
   local deltaM = incRail - incBus;
   if (deltaM <= 0) return roadMin;
+  /* GetCargoIncome livre ici le gain TOTAL a refD, pas un gain par tuile.
+   * L'equation qui isole d doit soustraire deux coefficients par tuile. */
+  local deltaPerTile = deltaM.tofloat() / refD.tofloat();
 
   /* r_cible = 0,40 : ROI annuel vise pour amortir le capital fixe ferroviaire. */
-  local denom = ((12 * M * deltaM * 100) / 40) - cTile;
+  local denom = ((12.0 * M * deltaPerTile * 100.0) / 40.0) - cTile;
   if (denom <= 0) return roadMin;
   if (num <= 0) return roadMin;
   local d = num / denom;
@@ -286,7 +349,7 @@ function OpexComputeRailToAirDistance(bestTrain, bestPlane, ticksPerDay, airport
 {
   if (bestTrain == null || bestPlane == null) return OpexMapManhattanSpan();
   local planeDiv = OpexPlaneSpeedDivisor();
-  local vRail = AIEngine.GetMaxSpeed(bestTrain).tofloat();
+  local vRail = bestTrain.speed.tofloat();
   local vAir = AIEngine.GetMaxSpeed(bestPlane).tofloat() / planeDiv;
   local tauRail = OpexDaysPerTile(vRail, ticksPerDay);
   local tauAir = OpexDaysPerTile(vAir, ticksPerDay);
@@ -326,11 +389,13 @@ function OpexRefreshEpochBounds(catalog)
   if (roadMin < 1) roadMin = 1;
 
   local bestBus = (pax >= 0) ? OpexGetEpochVehicle(AIVehicle.VT_ROAD, pax) : null;
-  local bestTrain = (pax >= 0) ? OpexGetEpochVehicle(AIVehicle.VT_RAIL, pax, catalog.railType) : null;
+  local bestTrain = (pax >= 0) ? OpexGetEpochRailProfile(catalog, pax, 20) : null;
   local bestPlane = (pax >= 0) ? OpexGetEpochVehicle(AIVehicle.VT_AIR, pax) : null;
 
   local roadMax = OpexComputeRoadToRailDistance(catalog, bestBus, bestTrain, tpd);
   if (roadMax < roadMin) roadMax = roadMin;
+  local mapSpan = OpexMapManhattanSpan();
+  if (roadMax > mapSpan) roadMax = mapSpan;
 
   local iterCap = (HARD_ITERATION_CAP * 12) / 10;
   local railMax = OpexRailDistanceForIterations(iterCap);
@@ -358,7 +423,7 @@ function OpexRefreshEpochBounds(catalog)
   local vAirEff = 0.0;
   if (bestPlane != null && bestTrain != null) {
     railAir = OpexComputeRailToAirDistance(bestTrain, bestPlane, tpd, airportType);
-    vRail = AIEngine.GetMaxSpeed(bestTrain);
+    vRail = bestTrain.speed;
     vAirEff = AIEngine.GetMaxSpeed(bestPlane).tofloat() / OpexPlaneSpeedDivisor();
     tFixe = OpexAirManeuverDays(bestPlane, airportType, airportType, tpd, OpexPlaneSpeedDivisor());
   } else if (bestPlane != null) {
@@ -366,10 +431,11 @@ function OpexRefreshEpochBounds(catalog)
   }
 
   local airMax = bestPlane ? OpexComputeAirMaxDistance(bestPlane, tpd, airportType, pax) : 0;
-  local mapSpan = OpexMapManhattanSpan();
   if (airMax > mapSpan) airMax = mapSpan;
   if (railAir > mapSpan) railAir = mapSpan;
   if (railMax > mapSpan) railMax = mapSpan;
+  if (railAir < roadMax) railAir = roadMax;
+  if (railAir > railMax) railAir = railMax;
 
   catalog.bounds = {
     roadMin = roadMin,
@@ -429,12 +495,29 @@ function OpexRoadDistanceAllowed(catalog, distance, stats)
   return true;
 }
 
-function OpexAirPairInBand(catalog, manhattan, flightDistance)
+function OpexAirPairInBand(catalog, manhattan, flightDistance, paxBand = PAX_BAND_ALL)
 {
   local b = OpexCatalogBounds(catalog);
-  if (manhattan < b.airMin) return false;
+  if (paxBand == PAX_BAND_AIR_ONLY) {
+    if (manhattan <= b.railMax) return false;
+  } else if (paxBand == PAX_BAND_AIR_RAIL) {
+    if (manhattan < b.railAirOverlapMin || manhattan > b.railMax) return false;
+  } else if (manhattan < b.airMin) {
+    return false;
+  }
   if (b.airMax > 0 && flightDistance > b.airMax) return false;
   return true;
+}
+
+function OpexRailPaxPairInBand(bounds, distance, paxBand)
+{
+  if (paxBand == PAX_BAND_AIR_RAIL) {
+    return distance >= bounds.railAirOverlapMin && distance <= bounds.railMax;
+  }
+  if (paxBand == PAX_BAND_RAIL_ONLY) {
+    return distance >= bounds.railMin && distance < bounds.railAirOverlapMin;
+  }
+  return distance >= bounds.railMin && distance <= bounds.railMax;
 }
 
 /* Une origine rail est constructible s'il existe, dans le bassin, une tuile de TERRE qui voit
@@ -904,7 +987,7 @@ function OpexJoinPlaceMaxDistance()
  * dans la bande. L'objet join est attache ici, _tryBuild ne le redecouvre
  * pas via _tooClose. Une seule paire par ville libre (la gare la plus
  * proche), jamais deux gares sur la meme origine. */
-function OpexPlaceJoinPax(catalog, lines, out, stats, towns, produced, served, cargo, abandonedPairs = null)
+function OpexPlaceJoinPax(catalog, lines, out, stats, towns, produced, served, cargo, abandonedPairs = null, paxBand = PAX_BAND_ALL)
 {
   local maxDist = OpexJoinPlaceMaxDistance();
   local bounds = OpexCatalogBounds(catalog);
@@ -931,7 +1014,7 @@ function OpexPlaceJoinPax(catalog, lines, out, stats, towns, produced, served, c
     local bestD = 0;
     foreach (st in stations) {
       local d = AIMap.DistanceManhattan(st.tile, towns[t].tile);
-      if (d < bounds.railMin || d > maxDist) continue;
+      if (!OpexRailPaxPairInBand(bounds, d, paxBand) || d > maxDist) continue;
       if (best == null || d < bestD) {
         best = st;
         bestD = d;
@@ -962,7 +1045,7 @@ function OpexPlaceJoinPax(catalog, lines, out, stats, towns, produced, served, c
 /* H2 fret : un puits libre rejoint la source existante la plus proche du
  * meme cargo (candidateEnd A) ; une source libre rejoint le puits existant
  * le plus proche (candidateEnd B). Roles v1, pas d'inversion. */
-function OpexPlaceJoinFreight(catalog, lines, out, stats, industries, served, abandonedPairs = null)
+function OpexPlaceJoinFreight(catalog, lines, out, stats, industries, served, abandonedPairs = null, freightCargo = null)
 {
   local maxDist = OpexJoinPlaceMaxDistance();
   local bounds = OpexCatalogBounds(catalog);
@@ -989,6 +1072,7 @@ function OpexPlaceJoinFreight(catalog, lines, out, stats, industries, served, ab
   }
 
   foreach (cargo, sinkIdxs in catalog.acceptors) {
+    if (freightCargo != null && cargo != freightCargo) continue;
     foreach (di in sinkIdxs) {
       if (served[di] != null) continue;
       local sink = industries[di];
@@ -1025,6 +1109,7 @@ function OpexPlaceJoinFreight(catalog, lines, out, stats, industries, served, ab
   }
 
   foreach (cargo, srcIdxs in catalog.producers) {
+    if (freightCargo != null && cargo != freightCargo) continue;
     foreach (si in srcIdxs) {
       if (served[si] != null) continue;
       local source = industries[si];
@@ -1061,7 +1146,7 @@ function OpexPlaceJoinFreight(catalog, lines, out, stats, industries, served, ab
 }
 
 /* Paires de villes pour les passagers. */
-function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, candidateProfile = null, cruiseCache = null)
+function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, candidateProfile = null, cruiseCache = null, paxBand = PAX_BAND_ALL)
 {
   local cargo = catalog.paxCargo;
   if (cargo < 0) return;
@@ -1078,7 +1163,7 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
     served.append(service);
     if (service != null) stats.townsServed++; else stats.townsUnserved++;
   }
-  if (JOIN_PLACE) OpexPlaceJoinPax(catalog, lines, out, stats, towns, produced, served, cargo, abandonedPairs);
+  if (JOIN_PLACE) OpexPlaceJoinPax(catalog, lines, out, stats, towns, produced, served, cargo, abandonedPairs, paxBand);
   if (profile != null) profile.paxPreparationOps += OpexOpsMeasureEnd(preparationMark);
   local pairTotalMark = profile != null ? OpexOpsMeasureBegin() : null;
   local bounds = OpexCatalogBounds(catalog);
@@ -1090,7 +1175,7 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
     local neighbors = grid.GetCandidatesFor(a);
     foreach (b in neighbors) {
       local pairDistance = AIMap.DistanceManhattan(towns[a].tile, towns[b].tile);
-      if (pairDistance < bounds.railMin || pairDistance > bounds.railMax) continue;
+      if (!OpexRailPaxPairInBand(bounds, pairDistance, paxBand)) continue;
       if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
         local tA = towns[a].id;
         local tB = towns[b].id;
@@ -1163,7 +1248,7 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
 
 /* Industries : on n'apparie que des couples producteur/accepteur du MEME cargo, ce qui garde
  * l'etage 1 lineaire en nombre d'industries plutot que quadratique sur tout le catalogue. */
-function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, cruiseCache = null)
+function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, cruiseCache = null, freightCargo = null)
 {
   /* C41.44 : les lignes sont immuables pendant une generation ; une ville peut donc reutiliser
    * exactement son resultat OpexOriginService, y compris null et l'etat blocked. */
@@ -1176,9 +1261,10 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
     served.append(service);
     if (service != null) stats.industriesServed++; else stats.industriesUnserved++;
   }
-  if (JOIN_PLACE) OpexPlaceJoinFreight(catalog, lines, out, stats, industries, served, abandonedPairs);
+  if (JOIN_PLACE) OpexPlaceJoinFreight(catalog, lines, out, stats, industries, served, abandonedPairs, freightCargo);
   if (profile != null) profile.freightPreparationOps += OpexOpsMeasureEnd(preparationMark);
   foreach (cargo, sources in catalog.producers) {
+    if (freightCargo != null && cargo != freightCargo) continue;
     local hasIndustrySinks = (cargo in catalog.acceptors);
     local hasTownSinks = COMPLEX_CARGO && (cargo in catalog.townAcceptors);
     if (!hasIndustrySinks && !hasTownSinks) continue;
@@ -1306,7 +1392,7 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
 /* Construit et classe tous les candidats. Rend la liste triee par rapport decroissant.
  * `lines` (this._lines de main.nut) sert a exclure les origines deja desservies avant meme de
  * calculer un candidat -- voir OpexOriginServed ci-dessus. */
-function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, profile = null, paxProfile = null, paxCandidateProfile = null, paxCruiseCache = null, freightCruiseCache = null, generatePax = true, generateFreight = true)
+function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, profile = null, paxProfile = null, paxCandidateProfile = null, paxCruiseCache = null, freightCruiseCache = null, generatePax = true, generateFreight = true, paxBand = PAX_BAND_ALL, freightCargo = null)
 {
   local all = [];
   /* Comptes de rejet : ils se trouvent ici, avant que TOP_K ne masque les candidats restants.
@@ -1342,7 +1428,7 @@ function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, prof
   local paxMark = profile != null ? OpexOpsMeasureBegin() : null;
   budget.begin();
   if (generatePax) {
-    OpexPaxCandidates(catalog, lines, all, stats, abandonedPairs, paxProfile, paxCandidateProfile, paxCruiseCache);
+    OpexPaxCandidates(catalog, lines, all, stats, abandonedPairs, paxProfile, paxCandidateProfile, paxCruiseCache, paxBand);
   }
   local opsPax = budget.end("cand_pax");
   if (profile != null) profile.paxOps += OpexOpsMeasureEnd(paxMark);
@@ -1350,7 +1436,7 @@ function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, prof
   local freightMark = profile != null ? OpexOpsMeasureBegin() : null;
   budget.begin();
   if (generateFreight) {
-    OpexFreightCandidates(catalog, lines, all, stats, abandonedPairs, profile, freightCruiseCache);
+    OpexFreightCandidates(catalog, lines, all, stats, abandonedPairs, profile, freightCruiseCache, freightCargo);
   }
   local opsFreight = budget.end("cand_freight");
   if (profile != null) profile.freightOps += OpexOpsMeasureEnd(freightMark);
@@ -1701,7 +1787,11 @@ function OpexRoadPaxCandidates(catalog, lines, out, stats, abandonedPairs = null
       if (roadLinesPerTown[b] >= maxLinesB) continue;
       if (OpexRoadPairServed(lines, towns[a].tile, towns[b].tile)) continue;
       local distance = AIMap.DistanceManhattan(towns[a].tile, towns[b].tile);
-      if (!OpexRoadDistanceAllowed(catalog, distance, stats)) continue;
+      if (distance < roadBounds.roadMin || distance > roadBounds.roadMax) {
+        if (distance < roadBounds.roadMin) stats.roadDistanceShort++;
+        else stats.roadDistanceLong++;
+        continue;
+      }
       if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
         local tA = towns[a].id;
         local tB = towns[b].id;
@@ -1738,7 +1828,7 @@ function OpexRoadPaxCandidates(catalog, lines, out, stats, abandonedPairs = null
  * tuile, elle n'a pas la dilution geometrique d'une ville (cf. TOWN_CATCHMENT_SHARE_PCT). */
 /* C41.17 : `profile` ne sert qu'a separer le cout du fret en checkpoints candidats. Les trois
  * tranches restent synchrones : aucune ne modifie le vivier ni n'est reprise entre deux tours. */
-function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null)
+function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, freightCargo = null)
 {
   local preparationMark = profile != null ? OpexOpsMeasureBegin() : null;
   local industries = catalog.industries;
@@ -1765,6 +1855,7 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
   if (profile != null) profile.freightPreparationOps += OpexOpsMeasureEnd(preparationMark);
 
   foreach (cargo, sources in catalog.producers) {
+    if (freightCargo != null && cargo != freightCargo) continue;
     if (!(cargo in catalog.roadEngineByCargo)) { stats.noEngine++; continue; }
     /* Les passagers sont traites par la famille 1 : les inclure ici apparierait une industrie a
      * une ville pour un cargo qu'aucune industrie ne produit utilement en volume. */
@@ -2193,7 +2284,7 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats, abandonedPairs = n
 /* C41.16 : `profile` est fourni seulement par la sonde du scheduler. Il n'influence jamais les
  * filtres, l'ordre ni le vivier ; les compteurs mesurent les trois familles et le TopK qui suit
  * le budget historique. */
-function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null, profile = null)
+function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null, profile = null, freightCargo = null)
 {
   local all = [];
   local stats = {
@@ -2219,7 +2310,7 @@ function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null, 
    * fret de reference ; C41.17 ne publie que ses intervalles disjoints. */
   local freightMark = (profile != null && !C41_ROAD_FREIGHT_PROFILE && !C41_ROAD_FREIGHT_TOWN_PROFILE)
       ? OpexOpsMeasureBegin() : null;
-  OpexRoadFreightCandidates(catalog, lines, all, stats, abandonedPairs, profile);
+  OpexRoadFreightCandidates(catalog, lines, all, stats, abandonedPairs, profile, freightCargo);
   if (freightMark != null) {
     profile.freightOps += OpexOpsMeasureEnd(freightMark);
   }

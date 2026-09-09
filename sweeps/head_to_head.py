@@ -1,9 +1,11 @@
 """Face-a-face OpexAI / AAAHogEx dans une seule partie OpenTTD partagee."""
 import argparse
 import json
+import math
 from pathlib import Path
 import statistics
 
+import openttdlab
 from openttdlab import bananas_ai_library, local_folder, run_experiments
 
 from bench_v2 import (
@@ -18,6 +20,7 @@ from bench_v2 import (
 
 ROOT = Path("/work")
 VEHICLE_MODES = {0: "rail", 1: "road", 2: "water", 3: "air"}
+CAPTURE_OUTPUT = False
 
 
 def first(value):
@@ -107,12 +110,14 @@ def keep(row):
             "n_stations": sum(station_owner(station) == owner for station in stations.values()),
             "modes": mode_profit(vehicles, owner),
         })
-    return ({
+    record = {
         "date": str(row["date"]),
         "companies": companies,
-        "openttd_output": row.get("output") or "",
         "signs": [s["name"] for s in chunks.get("SIGN", {}).values()] if "SIGN" in chunks else [],
-    },)
+    }
+    if CAPTURE_OUTPUT:
+        record["openttd_output"] = row.get("output") or ""
+    return (record,)
 
 
 def main():
@@ -121,10 +126,32 @@ def main():
     parser.add_argument("--seeds", type=int, nargs="+", default=None)
     parser.add_argument("--years", type=int, default=5)
     parser.add_argument("--starting-year", type=int, default=1970)
+    parser.add_argument("--map-size", type=int, default=256,
+                        help="Longueur de cote, puissance de deux (defaut : 256)")
+    parser.add_argument("--capture-output", action="store_true",
+                        help="Capture les journaux Script niveau 4 dans le JSON (diagnostic seulement)")
     parser.add_argument("--out", type=Path, default=Path("results/head_to_head_results.json"))
     parser.add_argument("--setting", action="append", default=[], metavar="CLE=VALEUR",
                         help="Réglage OpexAI supplémentaire, répétable")
     args = parser.parse_args()
+
+    global CAPTURE_OUTPUT
+    CAPTURE_OUTPUT = args.capture_output
+
+    if args.map_size < 64 or args.map_size & (args.map_size - 1):
+        parser.error("--map-size doit etre une puissance de deux d'au moins 64")
+    map_exponent = int(math.log2(args.map_size))
+
+    if CAPTURE_OUTPUT:
+        real_check_output = openttdlab.subprocess.check_output
+
+        def check_output_with_script_debug(command, *rest, **kwargs):
+            command = tuple(command)
+            if any(str(arg).startswith("-vnull") for arg in command):
+                command = command[:1] + ("-d", "script=4") + command[1:]
+            return real_check_output(command, *rest, **kwargs)
+
+        openttdlab.subprocess.check_output = check_output_with_script_debug
 
     seeds = args.seeds if args.seeds is not None else ([args.seed] if args.seed is not None else [42])
 
@@ -147,6 +174,11 @@ def main():
     )
     aaahogex = local_folder(str(ROOT / "ai" / "AAAHogEx-115"), "AAAHogEx", ())
     cfg = make_cfg(args.starting_year)
+    default_map = "map_x = 8\nmap_y = 8\n"
+    requested_map = f"map_x = {map_exponent}\nmap_y = {map_exponent}\n"
+    if default_map not in cfg:
+        raise RuntimeError("configuration de carte par defaut introuvable dans make_cfg")
+    cfg = cfg.replace(default_map, requested_map, 1)
     
     experiments = tuple(
         {
@@ -185,6 +217,8 @@ def main():
         "seeds": seeds,
         "years": args.years,
         "starting_year": args.starting_year,
+        "map_size": args.map_size,
+        "map_exponent": map_exponent,
         "arms": list(arm_names),
         "opex_settings": opex_settings,
         "shared_game": True,
@@ -194,13 +228,14 @@ def main():
                 "date": record["date"],
                 "companies": record["companies"],
                 "signs": record.get("signs", []),
+                **({"openttd_output": record.get("openttd_output", "")} if CAPTURE_OUTPUT else {}),
             }
             for record in rows
         ],
     }
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(payload, indent=1) + "\n")
-    print(f"=== FACE-A-FACE PARTAGE ({args.starting_year}, {args.years} ANS, {len(seeds)} GRAINES) ===")
+    print(f"=== FACE-A-FACE PARTAGE ({args.starting_year}, {args.years} ANS, {len(seeds)} GRAINES, {args.map_size}x{args.map_size}) ===")
     for record in rows:
         print(f"--- Run {record['date']} ---")
         for company in record["companies"]:

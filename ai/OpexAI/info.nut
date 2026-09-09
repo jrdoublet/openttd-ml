@@ -294,6 +294,24 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* Reconstruction du BFS maritime sur MinchinWeb.Lakes (2026-09-09, docs/taches.md).
+     * 1 = connectivite memorisee (un seul bassin explore par partie, sans marge de
+     * bounding-box) + distance Manhattan pour le revenu (corrige un bug de tarification :
+     * l'ancien code payait sur la distance navigable, pas la distance a vol d'oiseau entre
+     * stations) + MinchinWeb.GetDockFrontTiles pour l'acces aux quais (pente reelle, pas un
+     * scan aveugle des 4 cardinaux). 0 = comportement historique complet, bugs inclus --
+     * conserve pour A/B, pas pour un usage courant. Un bug de regression (tuiles de quai
+     * passees a Lakes au lieu des tuiles d'eau adjacentes) a ete trouve et corrige avant tout
+     * banc ; smoke test + graine 24 (connue construire une ligne d'eau) revérifiés sains apres
+     * correctif. Pas encore de banc officiel 20x10 apparie. */
+    AddSetting({
+      name = "water_lakes_connectivity",
+      description = "Water BFS rebuilt on MinchinWeb.Lakes: 1 = memorised basin connectivity + correct Manhattan revenue distance + slope-aware dock access (default), 0 = historical BFS-only behaviour (kept for A/B)",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* C41.11 : audit annuel du budget perdu par le scheduler historique, sans le modifier. */
     AddSetting({
       name = "c41_slack_ledger",
@@ -1943,7 +1961,7 @@ Le mode route est donc reconfirme sur l arbre courant.
 
     AddSetting({
       name = "staged_bootstrap",
-      description = "Etaler la prospection au demarrage (fret+air, puis route, puis rail pax). 1 = actif (defaut), 0 = generation monolithique",
+      description = "Cascade pax par distance: air seul, air+rail, rail seul, route seule; fret au premier tour. 1 = actif (defaut), 0 = monolithique",
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       flags = AICONFIG_BOOLEAN

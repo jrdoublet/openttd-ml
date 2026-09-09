@@ -815,7 +815,7 @@ function OpexAirPlanBetter(plan, bestPlan)
  * Le filtre est place APRES les tests de distance et AVANT OpexAirEconomics : les paires
  * ecartees pour distance ne paient pas la concatenation, et celles qui restent evitent le
  * calcul cher. */
-function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, abandoned = null)
+function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, abandoned = null, paxBand = PAX_BAND_ALL)
 {
   local t0_all = AIController.GetTick();
   local l0_all = AIController.GetOpsTillSuspend();
@@ -913,7 +913,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
                                                         sites[a].anchor, sites[b].anchor);
         local flightDistance = OpexFlightDistance(sites[a].anchor, sites[b].anchor);
         if (distance < minDist) continue;
-        if (!OpexAirPairInBand(catalog, distance, flightDistance)) continue;
+        if (!OpexAirPairInBand(catalog, distance, flightDistance, paxBand)) continue;
         if (AIR_MAX_DISTANCE > 0 && flightDistance > AIR_MAX_DISTANCE) continue;
         if (plane.maxOrderDistance > 0 && flightDistance > plane.maxOrderDistance) {
           continue;
@@ -1089,7 +1089,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
         local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR,
                                                         hub.anchor, site.anchor);
         local flightDistance = OpexFlightDistance(hub.anchor, site.anchor);
-        if (!OpexAirPairInBand(catalog, distance, flightDistance)) continue;
+        if (!OpexAirPairInBand(catalog, distance, flightDistance, paxBand)) continue;
         if (AIR_MAX_DISTANCE > 0 && flightDistance > AIR_MAX_DISTANCE) continue;
         if (plane.maxOrderDistance > 0 && flightDistance > plane.maxOrderDistance) continue;
         if (abandoned != null
@@ -1146,7 +1146,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
         if (distance < 20) continue;
         local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR, hub1.anchor, hub2.anchor);
         local flightDistance = OpexFlightDistance(hub1.anchor, hub2.anchor);
-        if (!OpexAirPairInBand(catalog, distance, flightDistance)) continue;
+        if (!OpexAirPairInBand(catalog, distance, flightDistance, paxBand)) continue;
         if (AIR_MAX_DISTANCE > 0 && flightDistance > AIR_MAX_DISTANCE) continue;
         if (plane.maxOrderDistance > 0 && flightDistance > plane.maxOrderDistance) continue;
         if (abandoned != null

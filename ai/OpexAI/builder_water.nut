@@ -1,4 +1,15 @@
 /* Liaison maritime passagers v1 : pas de canal, ecluse ni bouee. */
+require("lib_water.nut");
+
+/* WATER_LAKES_CONNECTIVITY : declaree et defaut fixe dans main.nut (pres des autres drapeaux
+ * C41_WATER_*), lue depuis le reglage info.nut "water_lakes_connectivity" dans OpexAI::Start().
+ * 1 = MinchinWeb.Lakes pour la connectivite (memorisee, sans marge de bounding-box) + distance
+ *     Manhattan pour le revenu (corrige le bug de tarification, voir OpexWaterEconomics) et
+ *     MinchinWeb.GetDockFrontTiles pour l'acces aux quais (calcul de pente correct au lieu du
+ *     scan aveugle des 4 cardinaux).
+ * 0 = comportement historique complet (BFS maison pour tout, bug de tarification inclus),
+ *     conserve pour A/B. */
+
 WATER_TOWN_POOL <- 12;
 WATER_TOWN_MIN_DISTANCE <- 45;
 WATER_MAX_SITE_PROBES <- 720;
@@ -114,6 +125,22 @@ function OpexWaterFindDockAccess(land)
     if (fronts.len() > 0) return { waterPart = waterPart, fronts = fronts };
   }
   return null;
+}
+
+/* Bascule sur le calcul de pente de MinchinWeb.GetDockFrontTiles (lib_water.nut) plutot que le
+ * scan aveugle des 4 cardinaux de OpexWaterFindDockAccess -- une gare exige une pente cotiere
+ * orientee vers l'eau, GetDockFrontTiles la derive de AITile.GetSlope(land) au lieu de la
+ * deviner. Seul `.fronts` du retour de OpexWaterFindDockAccess est utilise par les appelants
+ * (verifie) : la forme de retour ({fronts=[...]}) reste donc compatible sans adapter les
+ * appelants. `waterPart` n'a jamais ete lu ailleurs, absent du chemin neuf. */
+function OpexWaterDockAccess(land)
+{
+  if (WATER_LAKES_CONNECTIVITY) {
+    local fronts = _MinchinWeb_Marine_.GetDockFrontTiles(land);
+    if (fronts.len() == 0) return null;
+    return { fronts = fronts };
+  }
+  return OpexWaterFindDockAccess(land);
 }
 
 /* Les probes sont partagees equitablement : une cote sans dock ne mange pas tout le budget. */
@@ -249,7 +276,13 @@ function OpexWaterFindDepot(siteA, siteB)
 
 /* Economie maritime avant construction. La capacite du catalogue est une approximation de refit,
  * comme pour la route ; le constructeur relit la capacite exacte dans le depot. */
-function OpexWaterEconomics(catalog, distance, orderDistance, monthlyPax)
+/* `navigableDistance` (tuiles d'eau reellement parcourues, ex-BFS/desormais Lakes+BFS reduit)
+ * sert au temps de trajet -- un detour cotier doit rester lent. `tariffDistance` (Manhattan
+ * entre les deux quais) sert UNIQUEMENT au revenu : le jeu paie sur la distance a vol d'oiseau
+ * entre stations, jamais sur la distance parcourue (bug corrige le 2026-09-09, voir
+ * docs/taches.md -- avant ce correctif, `AICargo.GetCargoIncome` etait appele avec la distance
+ * navigable, surpayant systematiquement les routes maritimes sinueuses). */
+function OpexWaterEconomics(catalog, navigableDistance, tariffDistance, orderDistance, monthlyPax)
 {
   local best = null;
   foreach (ship in catalog.ships) {
@@ -257,17 +290,19 @@ function OpexWaterEconomics(catalog, distance, orderDistance, monthlyPax)
     if (ship.maxOrderDistance > 0 && orderDistance > ship.maxOrderDistance) continue;
     local effectiveSpeed = ship.speed / 2;
     if (effectiveSpeed < 1) effectiveSpeed = 1;
-    local oneWayDays = (distance * 1000) / (36 * effectiveSpeed);
+    local oneWayDays = (navigableDistance * 1000) / (36 * effectiveSpeed);
     if (oneWayDays < 1) oneWayDays = 1;
     local roundTripDays = 2 * oneWayDays;
     local headwayDays = roundTripDays;
-    local tripsPerMonth = 30 / oneWayDays;
-    if (tripsPerMonth < 1) tripsPerMonth = 1;
+    /* Division entiere Squirrel corrigee (bug 2026-09-09) : un aller simple de 35 jours donnait
+     * 30/35 = 0, force a 1, ce qui triplait la capacite transportee sur les longs trajets. */
+    local tripsPerMonth = 30.0 / oneWayDays.tofloat();
+    if (tripsPerMonth < 1.0) tripsPerMonth = 1.0;
     local stationRating = OpexStationRatingForHeadway(headwayDays);
     local offered = (monthlyPax * stationRating) / 100;
-    local monthlyCapacity = ship.capacity * tripsPerMonth;
+    local monthlyCapacity = (ship.capacity * tripsPerMonth).tointeger();
     local carried = offered < monthlyCapacity ? offered : monthlyCapacity;
-    local income = AICargo.GetCargoIncome(catalog.paxCargo, distance, oneWayDays);
+    local income = AICargo.GetCargoIncome(catalog.paxCargo, tariffDistance, oneWayDays);
     local revenueAnnual = 12 * carried * income;
     local infraCapital = 2 * catalog.costDock + catalog.costWaterDepot;
     local capital = infraCapital + ship.price;
@@ -315,6 +350,27 @@ function OpexWaterPlans(catalog, lines = null, projects = null, profile = null)
     profile.site_ops = OpexOpsMeasureEnd(mark);
     profile.site_scan_filter_ops = profile.site_ops - profile.dock_test_ops;
     profile.sites_found = sites.len();
+    /* Champs neufs (2026-09-09) : main.nut construit la table `profile` avec un ensemble figé
+     * de cles a zero (isolation en cours, ce fichier ne peut pas y ajouter les siennes) --
+     * on les cree ici au besoin, avant tout `=`/`+=` dessus dans lib_water.nut, sinon
+     * "the index 'lakes_init_ops' does not exist" au premier profilage. */
+    if (!("lakes_init_ops" in profile)) {
+      profile.lakes_init_ops <- 0;
+      profile.lakes_query_ops <- 0;
+      profile.lakes_queries <- 0;
+      profile.lakes_connected <- 0;
+      profile.lakes_fallback_navigable <- 0;
+      /* Calibration de WATER_LAKES_ITERATIONS (2026-09-09) : combien d'iterations reelles
+       * FindPath consomme, ventile par issue -- un budget correctement dimensionne doit
+       * couvrir le max des cas "connecte" sans jamais approcher "exhausted". */
+      profile.lakes_iterations_connected_sum <- 0;
+      profile.lakes_iterations_connected_n <- 0;
+      profile.lakes_iterations_connected_max <- 0;
+      profile.lakes_iterations_no_path_sum <- 0;
+      profile.lakes_iterations_no_path_n <- 0;
+      profile.lakes_iterations_no_path_max <- 0;
+      profile.lakes_iterations_exhausted_n <- 0;
+    }
     mark = OpexOpsMeasureBegin();
   }
   /* G11 : le BFS sert aussi a l'economie. Le limiter apres un classement Manhattan pouvait
@@ -332,23 +388,65 @@ function OpexWaterPlans(catalog, lines = null, projects = null, profile = null)
       if (orderDistance < 0 || !OpexWaterHasRange(catalog, orderDistance)) continue;
       if (profile != null) profile.pairs_after_range++;
       local monthlyPax = ((sites[a].town.pop + sites[b].town.pop) * 22) / 100;
-      local bfsMark = profile != null ? OpexOpsMeasureBegin() : null;
-      local waterDistance = OpexWaterFindConnection(sites[a], sites[b]);
-      if (profile != null) {
-        profile.bfs_ops += OpexOpsMeasureEnd(bfsMark);
-        profile.bfs_attempts++;
+
+      /* Distance TARIFAIRE (Manhattan entre quais, pas entre centres-villes) : corrige
+       * inconditionnellement (bug independant du choix Lakes/BFS ci-dessous), voir
+       * OpexWaterEconomics. */
+      local tariffDistance = AIMap.DistanceManhattan(sites[a].dock, sites[b].dock);
+      local navigableDistance = -1;
+
+      if (WATER_LAKES_CONNECTIVITY) {
+        /* Etage 1 : connectivite memorisee par bassin (MinchinWeb.Lakes), sans marge de
+         * bounding-box -- une paire au-dela de l'ancien WATER_BFS_MARGIN=24 n'est plus ecartee
+         * a tort. Instance persistante pour toute la partie (voir lib_water.nut). */
+        local connected = OpexWaterLakesConnected(sites[a].waterTiles, sites[b].waterTiles, profile);
+        if (connected != true) continue;
+        if (profile != null) profile.lakes_connected++;
+        /* Etage 2 : la paire est deja confirmee connectee -- ce BFS ne sert plus qu'a chiffrer
+         * la distance navigable reelle pour le temps de trajet ; sa marge fixe WATER_BFS_MARGIN
+         * n'est plus un point de defaillance de connectivite, seulement un plafond de precision
+         * sur la mesure. */
+        local bfsMark = profile != null ? OpexOpsMeasureBegin() : null;
+        navigableDistance = OpexWaterFindConnection(sites[a], sites[b]);
+        if (profile != null) {
+          profile.bfs_ops += OpexOpsMeasureEnd(bfsMark);
+          profile.bfs_attempts++;
+        }
+        if (navigableDistance < 0) {
+          /* Rare : Lakes prouve la connexion (recherche non bornee geographiquement) mais le
+           * BFS borne n'a pas trouve le chemin dans sa fenetre WATER_BFS_MARGIN/WATER_BFS_MAX_NODES.
+           * Repli conservateur : la distance tarifaire (Manhattan, toujours <= la distance
+           * navigable reelle) sert de plancher plutot que d'abandonner une paire deja
+           * confirmee viable et deja payee en sondage de sites. */
+          navigableDistance = tariffDistance;
+          if (profile != null) profile.lakes_fallback_navigable++;
+        } else if (profile != null) {
+          profile.bfs_connected++;
+        }
+      } else {
+        /* Comportement historique : un seul BFS fait connectivite ET distance, les deux
+         * bornees par WATER_BFS_MARGIN. */
+        local bfsMark = profile != null ? OpexOpsMeasureBegin() : null;
+        navigableDistance = OpexWaterFindConnection(sites[a], sites[b]);
+        if (profile != null) {
+          profile.bfs_ops += OpexOpsMeasureEnd(bfsMark);
+          profile.bfs_attempts++;
+        }
+        if (navigableDistance < 0) continue;
+        if (profile != null) profile.bfs_connected++;
       }
-      if (waterDistance < 0) continue;
-      if (profile != null) profile.bfs_connected++;
+
       local economicsMark = profile != null ? OpexOpsMeasureBegin() : null;
-      local economics = OpexWaterEconomics(catalog, waterDistance, orderDistance, monthlyPax);
+      local economics = OpexWaterEconomics(catalog, navigableDistance, tariffDistance,
+                                            orderDistance, monthlyPax);
       if (profile != null) {
         profile.economics_ops += OpexOpsMeasureEnd(economicsMark);
         profile.economics_attempts++;
       }
       if (economics == null || economics.profitAnnual <= 0) continue;
       if (profile != null) profile.positive_economics++;
-      local plan = { siteA = sites[a], siteB = sites[b], distance = waterDistance,
+      local plan = { siteA = sites[a], siteB = sites[b], distance = navigableDistance,
+                     tariffDistance = tariffDistance,
                      orderDistance = orderDistance, economics = economics };
       local pos = ranked.len();
       while (pos > 0 && (ranked[pos - 1].economics.roi < economics.roi ||
@@ -416,14 +514,19 @@ function OpexBuildWaterRoute(catalog, budget, plan)
 
   /* Les fronts et leur composant sont relus apres les constructions reelles. */
   budget.begin();
-  local accessA = OpexWaterFindDockAccess(dockA);
-  local accessB = OpexWaterFindDockAccess(dockB);
+  local accessA = OpexWaterDockAccess(dockA);
+  local accessB = OpexWaterDockAccess(dockB);
   if (accessA == null || accessB == null) {
     result.opcodes += budget.end("build_water_depot");
     OpexWaterRollback(dockA, dockB, null, null); result.reason = "NOWATER"; return result;
   }
   local realA = { dock = dockA, waterTiles = accessA.fronts };
   local realB = { dock = dockB, waterTiles = accessB.fronts };
+  /* Volontairement laisse sur le BFS existant, pas OpexWaterLakesConnected : ici on reverifie
+   * la geometrie EXACTE des quais reellement construits (fronts issus de la pente reelle),
+   * pas seulement les tuiles de quai deja validees par Lakes en amont -- les deux docks sont
+   * les memes tuiles que celles interrogees au tri des paires, donc une nouvelle requete Lakes
+   * ne ferait qu'un hit de cache sans rien verifier de neuf ici. */
   if (OpexWaterFindConnection(realA, realB) < 0) {
     result.opcodes += budget.end("build_water_depot");
     OpexWaterRollback(dockA, dockB, null, null); result.reason = "NOWATER"; return result;

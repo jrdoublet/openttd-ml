@@ -32,7 +32,8 @@ import("pathfinder.rail", "RailPathFinder", 1);
  * decision. Le defaut vrai est celui de info.nut ; 0 reconstitue la baseline sans route, dont le
  * chemin d'opcodes reste alors EXACTEMENT celui des campagnes anterieures. */
 ROAD_BUILD_ENABLED <- true;
-/* Etalement du vivier au demarrage (fret+air, route, rail pax). Lu dans Start(). */
+/* Cascade pax par distance decroissante : air seul, air+rail, rail seul,
+ * route seule. Le fret accompagne la premiere passe. */
 STAGED_BOOTSTRAP <- true;
 
 /* Les bus ville-a-ville sont utiles dans la bande courte, mais peuvent prendre le bassin d'une
@@ -120,6 +121,9 @@ C41_WATER_CANDIDATE_PROBE <- false;
 C41_WATER_PLANS_PROFILE <- false;
 /* C41.3b : sous-ventilation de la phase dominante sites : filtre carte vs AITestMode dock. */
 C41_WATER_SITE_PROFILE <- false;
+/* BFS maritime reconstruit sur MinchinWeb.Lakes (2026-09-09) -- voir docs/taches.md et
+ * ai/OpexAI/lib_water.nut. Defaut aligne sur info.nut (custom_value = 1). */
+WATER_LAKES_CONNECTIVITY <- true;
 /* C41.11 : ledger passif du scheduler. Il n'admet ni ne reporte aucune tache. */
 C41_SLACK_LEDGER <- false;
 /* C41.12 : age de fraicheur par couche entre premier salissement coalesce et acquittement. */
@@ -1123,6 +1127,8 @@ class OpexAI extends AIController {
   _projects = null;
   _generationStage = 0;
   _generationStageMonth = -1;
+  _lastFreightCargo = -1;
+  _bootstrapFreightCargo = -1;
   _loadedFromSave = false;
   _recomputeEpochBounds = false;
   /* Transaction asynchrone d'expansion rail : le train roule vers son depot pendant que la
@@ -1224,6 +1230,8 @@ class OpexAI extends AIController {
     this._c41AdmissionLedger = {};
     this._generationStage = 0;
     this._generationStageMonth = -1;
+    this._lastFreightCargo = -1;
+    this._bootstrapFreightCargo = -1;
     this._loadedFromSave = false;
     this._recomputeEpochBounds = false;
     /* Priorite : donnees et stop-loss, croissance des flottes existantes avant nouveaux projets,
@@ -6602,8 +6610,42 @@ function OpexAI::_rebuildProjects(fleetPlan)
       this._generationStageMonth = AIDate.GetYear(date) * 12 + AIDate.GetMonth(date);
     }
   }
+  local freightCargo = null;
+  local freightCargos = OpexFreightCargoOrder(this._catalog);
+  if (freightCargos.len() > 0) {
+    if (stage > OPEX_STAGE_AIR_ONLY && stage <= OPEX_STAGE_ROUTE_ONLY
+        && this._bootstrapFreightCargo >= 0) {
+      freightCargo = this._bootstrapFreightCargo;
+    } else {
+      local nextCargo = 0;
+      if (this._lastFreightCargo >= 0) {
+        for (local i = 0; i < freightCargos.len(); i++) {
+          if (freightCargos[i] == this._lastFreightCargo) {
+            nextCargo = (i + 1) % freightCargos.len();
+            break;
+          }
+        }
+      }
+      freightCargo = freightCargos[nextCargo];
+    }
+  }
   this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines,
-      priorPeak, priorHistory, fleetPlan, this._abandonedPairs, stage, prior);
+      priorPeak, priorHistory, fleetPlan, this._abandonedPairs, stage, prior,
+      freightCargo, freightCargos);
+  local actualFreightCargo = (this._projects != null && ("freightCargo" in this._projects))
+      ? this._projects.freightCargo : freightCargo;
+  if (stage == OPEX_STAGE_AIR_ONLY && actualFreightCargo != null) {
+    this._bootstrapFreightCargo = actualFreightCargo;
+  }
+  /* Le bootstrap utilise le meme premier cargo pour son rail (etape 0) puis
+   * sa route (etape 3). Ensuite chaque passe complete ne porte que sur le
+   * cargo suivant : prior reste null en regime complet, donc le portefeuille
+   * ne regrossit jamais par accumulation des anciens lots fret. */
+  if (freightCargos.len() > 0
+      && (stage == OPEX_STAGE_ROUTE_ONLY || stage == OPEX_STAGE_COMPLETE)) {
+    if (actualFreightCargo != null) this._lastFreightCargo = actualFreightCargo;
+    if (stage == OPEX_STAGE_ROUTE_ONLY) this._bootstrapFreightCargo = -1;
+  }
   if (STAGED_BOOTSTRAP && this._generationStage < OPEX_STAGE_COMPLETE) {
     this._generationStage++;
     if (DECISION_LOG) {
@@ -6629,6 +6671,8 @@ function OpexAI::Save()
     version = 1,
     generationStage = this._generationStage,
     generationStageMonth = this._generationStageMonth,
+    lastFreightCargo = this._lastFreightCargo,
+    bootstrapFreightCargo = this._bootstrapFreightCargo,
     nextLineId = this._nextLineId,
     lastCatalogMonth = this._lastCatalogMonth,
     lastReportYear = this._lastReportYear,
@@ -6645,6 +6689,8 @@ function OpexAI::Load(version, data)
   if (data == null) return;
   if ("generationStage" in data) this._generationStage = data.generationStage;
   if ("generationStageMonth" in data) this._generationStageMonth = data.generationStageMonth;
+  if ("lastFreightCargo" in data) this._lastFreightCargo = data.lastFreightCargo;
+  if ("bootstrapFreightCargo" in data) this._bootstrapFreightCargo = data.bootstrapFreightCargo;
   if ("nextLineId" in data) this._nextLineId = data.nextLineId;
   if ("lastCatalogMonth" in data) this._lastCatalogMonth = data.lastCatalogMonth;
   if ("lastReportYear" in data) this._lastReportYear = data.lastReportYear;
@@ -6812,6 +6858,7 @@ function OpexAI::Start()
       && C41_WATER_CANDIDATE_PROBE;
   C41_WATER_SITE_PROFILE = AIController.GetSetting("c41_water_site_profile") != 0
       && C41_WATER_PLANS_PROFILE;
+  WATER_LAKES_CONNECTIVITY = AIController.GetSetting("water_lakes_connectivity") != 0;
   C41_SLACK_LEDGER = AIController.GetSetting("c41_slack_ledger") != 0;
   C41_STALENESS_LEDGER = AIController.GetSetting("c41_staleness_ledger") != 0;
   C41_OPPORTUNITY_LEDGER = AIController.GetSetting("c41_opportunity_ledger") != 0;

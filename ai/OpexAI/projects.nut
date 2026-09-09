@@ -12,12 +12,12 @@
  * l'ouverture de nouvelles lignes dans l'ordonnanceur.
  */
 
-/* Bootstrap sequentiel du vivier : fret+air long, route locale, rail pax, puis regime
- * complet. Les etapes accumulent candidateGroups au lieu de les ecraser. */
-const OPEX_STAGE_FREIGHT_AIR = 0;
-const OPEX_STAGE_ROAD_LOCAL = 1;
-const OPEX_STAGE_RAIL_PAX = 2;
-const OPEX_STAGE_COMPLETE = 3;
+/* Cascade pax par distance decroissante. Le fret accompagne la premiere passe. */
+const OPEX_STAGE_AIR_ONLY = 0;
+const OPEX_STAGE_AIR_RAIL = 1;
+const OPEX_STAGE_RAIL_ONLY = 2;
+const OPEX_STAGE_ROUTE_ONLY = 3;
+const OPEX_STAGE_COMPLETE = 4;
 
 const PROJECT_POOL_K = 128;
 /* C43/E3 (docs/taches.md) : sature a 77,4%/70,1% des appels de selection (VIVIER, 5x6, 2026-09-08)
@@ -1380,18 +1380,70 @@ function OpexCloneCandidateGroups(source)
   return winners;
 }
 
-function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCapitalHistory = null, fleetPlan = null, abandonedPairs = null, generationStage = null, priorProjects = null)
+/* Les etapes du bootstrap conservent les familles deja generees, mais une
+ * construction peut avoir rendu une paire desservie entre deux etapes. Passer
+ * les objets bruts par la meme validation que le cache incremental avant de les
+ * reinjecter empeche le projet qui vient d'etre construit de revenir en tete. */
+function OpexStagedCandidateStillValid(candidate, lines, abandonedPairs = null)
+{
+  if (candidate == null) return false;
+  local project = OpexProjectFromCandidate(candidate, null);
+  return project != null && OpexIncrementalCandidateStillValid(project, lines, abandonedPairs);
+}
+
+function OpexStagedAirPlanStillValid(catalog, plan, lines, abandonedPairs = null)
+{
+  if (plan == null) return false;
+  local project = OpexProjectFromAir(catalog, plan, 0, null);
+  return project != null && OpexIncrementalCandidateStillValid(project, lines, abandonedPairs);
+}
+
+function OpexStagedWaterPlanStillValid(catalog, plan, lines, abandonedPairs = null)
+{
+  if (plan == null) return false;
+  local project = OpexProjectFromWater(catalog, plan, 0, null);
+  return project != null && OpexIncrementalCandidateStillValid(project, lines, abandonedPairs);
+}
+
+function OpexMergeRailCandidateSet(base, extra)
+{
+  if (base == null) return extra;
+  if (extra == null) return base;
+  foreach (candidate in extra.candidates) base.candidates.append(candidate);
+  base.all = base.candidates.len();
+  base.best = OpexTopK(base.candidates, TOP_K);
+  base.bands = OpexBands(base.candidates);
+  base.opcodes += extra.opcodes;
+  if (("stats" in base) && base.stats != null && ("stats" in extra) && extra.stats != null) {
+    foreach (key, value in extra.stats) {
+      local valueType = typeof value;
+      if ((valueType == "integer" || valueType == "float") && (key in base.stats)) {
+        base.stats[key] += value;
+      }
+    }
+  }
+  return base;
+}
+
+function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCapitalHistory = null, fleetPlan = null, abandonedPairs = null, generationStage = null, priorProjects = null, freightCargo = null, freightCargoOrder = null)
 {
   if (generationStage == null) generationStage = OPEX_STAGE_COMPLETE;
-  local doFreight = (generationStage == OPEX_STAGE_FREIGHT_AIR || generationStage == OPEX_STAGE_COMPLETE);
-  local doPaxRail = (generationStage == OPEX_STAGE_RAIL_PAX || generationStage == OPEX_STAGE_COMPLETE);
-  local doRoad = (generationStage == OPEX_STAGE_ROAD_LOCAL || generationStage == OPEX_STAGE_COMPLETE);
-  local doAir = (generationStage == OPEX_STAGE_FREIGHT_AIR || generationStage == OPEX_STAGE_COMPLETE);
-  local doWater = doAir;
+  local doFreight = (generationStage == OPEX_STAGE_AIR_ONLY || generationStage == OPEX_STAGE_COMPLETE);
+  local doPaxRail = (generationStage == OPEX_STAGE_AIR_RAIL || generationStage == OPEX_STAGE_RAIL_ONLY || generationStage == OPEX_STAGE_COMPLETE);
+  local doRoad = (generationStage == OPEX_STAGE_ROUTE_ONLY || generationStage == OPEX_STAGE_COMPLETE);
+  local doAir = (generationStage == OPEX_STAGE_AIR_ONLY || generationStage == OPEX_STAGE_AIR_RAIL || generationStage == OPEX_STAGE_COMPLETE);
+  local doWater = (generationStage == OPEX_STAGE_ROUTE_ONLY || generationStage == OPEX_STAGE_COMPLETE);
+  local paxBand = generationStage == OPEX_STAGE_AIR_RAIL ? PAX_BAND_AIR_RAIL
+      : (generationStage == OPEX_STAGE_RAIL_ONLY ? PAX_BAND_RAIL_ONLY : PAX_BAND_ALL);
+  local airBand = generationStage == OPEX_STAGE_AIR_ONLY ? PAX_BAND_AIR_ONLY
+      : (generationStage == OPEX_STAGE_AIR_RAIL ? PAX_BAND_AIR_RAIL : PAX_BAND_ALL);
   if (DECISION_LOG) {
     OpexDecide("BOOTSTRAP_STAGE", "stage=" + generationStage
                + " freight=" + (doFreight ? 1 : 0) + " pax_rail=" + (doPaxRail ? 1 : 0)
-               + " road=" + (doRoad ? 1 : 0) + " air=" + (doAir ? 1 : 0));
+               + " road=" + (doRoad ? 1 : 0) + " air=" + (doAir ? 1 : 0)
+               + " freight_cargo=" + (freightCargo != null ? freightCargo : -1)
+               + " freight_label=" + (freightCargo != null ? AICargo.GetCargoLabel(freightCargo) : "none")
+               + " freight_price=" + (freightCargo != null ? AICargo.GetCargoIncome(freightCargo, 20, 0) : 0));
   }
   /* C41.22 : intervalles disjoints du chemin rail historique. Le pre-devis peut etre inactif
    * par reglage : publier alors son zero est justement necessaire pour ne pas attribuer son cout
@@ -1442,11 +1494,19 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
   local railFreightCruiseCache = C41_RAIL_FREIGHT_CRUISE_CACHE ? {} : null;
   local rail;
   if (doPaxRail || doFreight) {
-    rail = OpexBuildCandidates(catalog, budget, lines, abandonedPairs, railCandidateProfile, railPaxProfile, railPaxCandidateProfile, railPaxCruiseCache, railFreightCruiseCache, doPaxRail, doFreight);
-    if (doPaxRail && !doFreight && priorProjects != null && ("rail" in priorProjects)
+    rail = OpexBuildCandidates(catalog, budget, lines, abandonedPairs, railCandidateProfile, railPaxProfile, railPaxCandidateProfile, railPaxCruiseCache, railFreightCruiseCache, doPaxRail, doFreight, paxBand, freightCargo);
+    if (priorProjects != null && ("rail" in priorProjects)
         && priorProjects.rail != null && ("candidates" in priorProjects.rail)) {
       local merged = [];
-      foreach (c in priorProjects.rail.candidates) merged.append(c);
+      foreach (c in priorProjects.rail.candidates) {
+        /* Une passe pax de repli a pu avoir lieu a l'etape 0. L'etape pax
+         * normale vient de la regenerer avec l'etat courant : ne conserver
+         * ici que le fret herite pour ne pas dupliquer chaque paire pax. */
+        local replaced = generationStage == OPEX_STAGE_AIR_RAIL && c.kind == "pax";
+        if (!replaced && OpexStagedCandidateStillValid(c, lines, abandonedPairs)) {
+          merged.append(c);
+        }
+      }
       foreach (c in rail.candidates) merged.append(c);
       rail.candidates = merged;
       rail.best = OpexTopK(merged, TOP_K);
@@ -1454,8 +1514,57 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
     }
   } else if (priorProjects != null && ("rail" in priorProjects) && priorProjects.rail != null) {
     rail = priorProjects.rail;
+    local liveRail = [];
+    foreach (c in rail.candidates) {
+      if (OpexStagedCandidateStillValid(c, lines, abandonedPairs)) liveRail.append(c);
+    }
+    rail.candidates = liveRail;
+    rail.best = OpexTopK(liveRail, TOP_K);
+    rail.all = liveRail.len();
   } else {
     rail = OpexEmptyRailCandidates();
+  }
+  /* Un cargo actif peut encore ne produire aucun candidat admissible (aucun
+   * puits, distance, economie ou site). Comme pour le repli pax air->air+rail,
+   * essayer immediatement les cargos suivants par prix, sans regenerer le pax
+   * ni l'air deja calcules. Le premier lot fret non vide devient le lot reel
+   * de ce portefeuille. */
+  if (doFreight && freightCargo != null && freightCargoOrder != null
+      && freightCargoOrder.len() > 1) {
+    local hasFreight = false;
+    foreach (candidate in rail.candidates) {
+      if (candidate.kind == "freight") { hasFreight = true; break; }
+    }
+    if (!hasFreight) {
+      local start = -1;
+      for (local i = 0; i < freightCargoOrder.len(); i++) {
+        if (freightCargoOrder[i] == freightCargo) { start = i; break; }
+      }
+      local tried = 1;
+      for (local offset = 1; offset < freightCargoOrder.len(); offset++) {
+        local idx = start >= 0 ? (start + offset) % freightCargoOrder.len() : offset - 1;
+        local nextCargo = freightCargoOrder[idx];
+        local extraFreight = OpexBuildCandidates(catalog, budget, lines, abandonedPairs,
+            railCandidateProfile, null, null, null, railFreightCruiseCache,
+            false, true, PAX_BAND_ALL, nextCargo);
+        tried++;
+        if (extraFreight.candidates.len() == 0) continue;
+        local previousCargo = freightCargo;
+        rail = OpexMergeRailCandidateSet(rail, extraFreight);
+        freightCargo = nextCargo;
+        hasFreight = true;
+        if (DECISION_LOG) {
+          OpexDecide("FREIGHT_CARGO_FALLBACK", "from=" + previousCargo
+                     + " to=" + freightCargo + " label=" + AICargo.GetCargoLabel(freightCargo)
+                     + " tried=" + tried + " candidates=" + extraFreight.candidates.len());
+        }
+        break;
+      }
+      if (!hasFreight && DECISION_LOG) {
+        OpexDecide("FREIGHT_CARGO_FALLBACK", "from=" + freightCargo
+                   + " to=none tried=" + tried + " candidates=0");
+      }
+    }
   }
   if (railProfile != null) {
     railProfile.generationOps = OpexOpsMeasureEnd(railGenerationMark);
@@ -1480,9 +1589,16 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
           freightTownAcceptanceOps = 0, freightTownAcceptedPairs = 0, freightTownCandidateOps = 0 } : null;
   local road;
   if (doRoad && ROAD_BUILD_ENABLED) {
-    road = OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs, roadProfile);
+    road = OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs, roadProfile, freightCargo);
   } else if (priorProjects != null && ("road" in priorProjects) && priorProjects.road != null) {
     road = priorProjects.road;
+    local liveRoad = [];
+    foreach (c in road.candidates) {
+      if (OpexStagedCandidateStillValid(c, lines, abandonedPairs)) liveRoad.append(c);
+    }
+    road.candidates = liveRoad;
+    road.best = OpexTopK(liveRoad, ROAD_TOP_K);
+    road.all = liveRoad.len();
   } else {
     road = OpexProjectEmptyRoad();
   }
@@ -1528,14 +1644,53 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
   local airOps = 0;
   if (doAir && ((catalog.airCombos != null && catalog.airCombos.len() > 0) || catalog.airport != null)) {
     budget.begin();
-    airPlan = OpexAirPlans(catalog, lines, 0, airPlans, abandonedPairs);
+    airPlan = OpexAirPlans(catalog, lines, 0, airPlans, abandonedPairs, airBand);
     airOps = budget.end("project_air");
+    if (generationStage == OPEX_STAGE_AIR_RAIL && priorProjects != null
+        && ("airPlans" in priorProjects) && priorProjects.airPlans != null) {
+      foreach (plan in priorProjects.airPlans) {
+        if (OpexStagedAirPlanStillValid(catalog, plan, lines, abandonedPairs)) airPlans.append(plan);
+      }
+      if (airPlans.len() > 0) airPlan = airPlans[0];
+    }
   } else if (!doAir && priorProjects != null) {
     airPlan = ("airPlan" in priorProjects) ? priorProjects.airPlan : null;
     if (("airPlans" in priorProjects) && priorProjects.airPlans != null) {
-      foreach (plan in priorProjects.airPlans) airPlans.append(plan);
+      foreach (plan in priorProjects.airPlans) {
+        if (OpexStagedAirPlanStillValid(catalog, plan, lines, abandonedPairs)) airPlans.append(plan);
+      }
     }
+    airPlan = airPlans.len() > 0 ? airPlans[0] : null;
     airOps = ("airPlanningOpcodes" in priorProjects) ? priorProjects.airPlanningOpcodes : 0;
+  }
+
+  /* L'air reste le pax prioritaire de l'etape initiale. Une liste vide signifie
+   * qu'aucun plan pax aerien n'a franchi ses filtres ; dans ce seul cas, ouvrir
+   * le rail pax maintenant plutot que laisser un premier vivier 100 % fret. */
+  if (generationStage == OPEX_STAGE_AIR_ONLY && airPlans.len() == 0) {
+    budget.begin();
+    airPlan = OpexAirPlans(catalog, lines, 0, airPlans, abandonedPairs, PAX_BAND_AIR_RAIL);
+    airOps += budget.end("project_air_overlap_fallback");
+    local paxFallback = OpexBuildCandidates(catalog, budget, lines, abandonedPairs,
+        railCandidateProfile, railPaxProfile, railPaxCandidateProfile,
+        railPaxCruiseCache, railFreightCruiseCache, true, false, PAX_BAND_AIR_RAIL);
+    rail = OpexMergeRailCandidateSet(rail, paxFallback);
+    local fallbackPrequote = OpexPrequoteRailCandidates(catalog, budget, paxFallback);
+    railPrequote.attempted += fallbackPrequote.attempted;
+    railPrequote.quoted += fallbackPrequote.quoted;
+    railPrequote.failed += fallbackPrequote.failed;
+    railPrequote.skippedJoin += fallbackPrequote.skippedJoin;
+    railPrequote.opcodes += fallbackPrequote.opcodes;
+    if (railProfile != null) {
+      railProfile.generationCandidates = rail.candidates.len();
+      railProfile.topKCandidates = rail.best.len();
+      railProfile.prequoteAttempted = railPrequote.attempted;
+      railProfile.prequoteQuoted = railPrequote.quoted;
+      railProfile.prequoteFailed = railPrequote.failed;
+    }
+    if (DECISION_LOG) {
+      OpexDecide("BOOTSTRAP_PAX_FALLBACK", "air=0 rail_pax=" + paxFallback.candidates.len());
+    }
   }
 
   local waterPlan = null;
@@ -1548,8 +1703,11 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
   } else if (!doWater && priorProjects != null) {
     waterPlan = ("waterPlan" in priorProjects) ? priorProjects.waterPlan : null;
     if (("waterPlans" in priorProjects) && priorProjects.waterPlans != null) {
-      foreach (plan in priorProjects.waterPlans) waterPlans.append(plan);
+      foreach (plan in priorProjects.waterPlans) {
+        if (OpexStagedWaterPlanStillValid(catalog, plan, lines, abandonedPairs)) waterPlans.append(plan);
+      }
     }
+    waterPlan = waterPlans.len() > 0 ? waterPlans[0] : null;
     waterOps = ("waterPlanningOpcodes" in priorProjects) ? priorProjects.waterPlanningOpcodes : 0;
   }
 
@@ -1785,6 +1943,7 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
       airPlans = airPlans, waterPlans = waterPlans,
       airPlanningOpcodes = airOps, waterPlanningOpcodes = waterOps,
       generationStage = generationStage,
+      freightCargo = freightCargo,
     };
   }
   return {
@@ -1796,5 +1955,6 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
     airPlans = airPlans, waterPlans = waterPlans,
     airPlanningOpcodes = airOps, waterPlanningOpcodes = waterOps,
     generationStage = generationStage,
+    freightCargo = freightCargo,
   };
 }

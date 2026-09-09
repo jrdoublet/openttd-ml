@@ -47,6 +47,219 @@ l'écart. La proposition et ses prérequis sont archivés dans `docs/journal_202
 `tension_scoring` et `shadow_pricing` restent à 0. **C38 a depuis été mesuré et rejeté ; le
 prochain candidat est C39.**
 
+### 🆕 Revue externe `docs/00_conseils.md` (2026-09-09) — une priorité décidée, deux gaps ouverts, le reste déjà couvert
+
+Lecture d'une synthèse générique de bonnes pratiques NoAI (wiki OpenTTD + benchmark *Redirect
+Left*), filtrée contre l'état réel du code avant d'en tirer des tâches (voir `AGENTS.md`, section
+« Filtrer une revue externe » pour le détail de ce qui est déjà fait ou déjà écarté).
+
+**Priorité retenue (décision utilisateur, 2026-09-09) : reconstruire `builder_water.nut` sur une
+bibliothèque externe déjà vendorisée, plutôt que corriger le BFS maison à la pièce.**
+`ai/library/MinchinWeb_s_MetaLibrary-11/Lakes.nut` et `Marine.nut` ciblent des défauts confirmés
+dans [`docs/01_opex_builder_water_review.md`](01_opex_builder_water_review.md), revérifiés dans le
+code livré aujourd'hui (pas une version antérieure) — **avec une correction : le premier point
+listé par la revue externe est FAUX, `WATER_CAPITAL_MARGIN` n'est pas un slot mort.** C'est un
+`<-` global visible depuis tout `ai/OpexAI/` : la revue (et ma première reprise de son contenu)
+n'avait grepé que `builder_water.nut` seul. Il EST lu, ailleurs :
+- `projects.nut:413` (`budgetCapital = economics.capital + WATER_CAPITAL_MARGIN`, la marge de
+  financement du portefeuille) et `main.nut:2672` (`need = capital + OpexCashReserve() +
+  WATER_CAPITAL_MARGIN`, le garde-fou de trésorerie avant construction). **Pas une tâche.**
+
+Les deux bugs qui restent, confirmés par lecture directe de la fonction (pas par la revue seule) :
+- `tripsPerMonth = 30 / oneWayDays` (`builder_water.nut:264`) : division entière Squirrel — un
+  aller simple de 35 jours donne `0`, forcé à `1`, ce qui triple artificiellement la capacité
+  transportée sur les longs trajets maritimes.
+- `WATER_BFS_MARGIN = 24` cases (`builder_water.nut:183-186, 219-222`) : marge de bounding-box
+  fixe autour du BFS de connectivité — un détour côtier de plus de 24 cases (péninsule, baie) fait
+  échouer une connexion qui existe réellement, et `MinchinWeb.Lakes` mémorise les bassins déjà
+  explorés au lieu de refaire un BFS borné à chaque paire de sites.
+- 🆕 **Un 4ᵉ bug, trouvé le 2026-09-09 en relisant `OpexWaterEconomics` en entier (absent de la
+  revue externe) :** `OpexWaterPlans` (`:344`) passe `waterDistance` (longueur navigable trouvée
+  par le BFS) à `OpexWaterEconomics`, qui l'utilise à la fois pour `oneWayDays` (correct, c'est un
+  temps de trajet) **et** pour `AICargo.GetCargoIncome(catalog.paxCargo, distance, oneWayDays)`
+  (`:270`, incorrect — le jeu paie sur la distance **Manhattan** entre stations, jamais sur la
+  distance parcourue). Une route maritime sinueuse est donc systématiquement surpayée.
+
+**Design d'intégration retenu le 2026-09-09 (état historique avant implémentation).**
+`Lakes.GetPathLength()` ne rend PAS
+une distance navigable : c'est `AITile.GetDistanceManhattanToTile` (`Extras.nut:397-404`, vérifié
+en lisant `Lakes.nut` en entier) — donc `Lakes` seul ne suffit pas à remplacer le BFS partout.
+Architecture à deux étages : `Lakes` (une seule instance **persistante pour toute la partie** —
+son constructeur peuple `_map` avec une entrée par tuile de la carte entière, ~65 536 `AddItem`
+sur 256×256, donc à créer une fois, pas par génération) filtre la connectivité sur toutes les
+paires candidates et fournit directement la distance Manhattan pour le revenu (corrige le 4ᵉ bug
+de facto) ; notre BFS actuel, conservé mais réduit aux seules paires déjà confirmées connectées,
+devait ne plus servir qu'à chiffrer la vraie distance navigable pour `oneWayDays`. L'audit de
+clôture ci-dessous montre que sa marge reste en réalité matérielle : son échec déclenche un repli
+économique optimiste pendant la planification, puis un rejet pendant la construction.
+`Marine.nut` (aucune dépendance externe) remplace
+`OpexWaterAdjacentTiles`/`OpexWaterFindDockAccess`/`OpexWaterFindDepot`.
+`Queue.FibonacciHeap-3` (GPLv2, fourni par l'utilisateur) est vendorisé dans `ai/library/` et
+débloque `Lakes` ; `ShipPathfinder`/`Waterbody.Check` restent bloqués par `graph.aystar` v6
+(absent, seule une v4 en cache) mais ne sont pas nécessaires ici (pas de bouées, pas de canal dans
+le design v1 de `builder_water.nut`).
+
+✅ **Isolation levée (2026-09-09) :** le nouveau comportement est maintenant exposé par le réglage
+`water_lakes_connectivity` dans `info.nut`, avec `1` par défaut pour tous les niveaux. La bascule
+locale provisoire décrite dans l'historique ci-dessous n'est donc plus un travail restant.
+
+✅ **Socle implémenté (2026-09-09) : `builder_water.nut` + `lib_water.nut` (nouveau), testé.**
+`water_lakes_connectivity=1` par défaut via `info.nut`. Chemin complet :
+smoke test officiel (3 graines × 2 ans) sain, plus une régression réelle trouvée et corrigée avant
+tout banc — voir juste en dessous.
+
+🔴 **Bug trouvé et corrigé avant tout banc : `_MinchinWeb_Lakes_::AddPoint` refuse toute tuile
+terre (groupe -1 immédiat), et `OpexWaterLakesConnected` recevait les tuiles de QUAI (terre), pas
+les tuiles d'eau adjacentes (`site.waterTiles`).** Conséquence : `FindPath` sortait sur son tout
+premier garde, silencieusement, `connected=false` sur 100 % des paires, sans erreur ni panneau —
+plus aucune ligne d'eau n'aurait jamais été construite. Trouvé par test contrôlé : graine 24
+(connue construire une ligne d'eau, `docs/opexai_multimodal.md`), bascule à `0` → construit
+(dist=74, roi=838) ; même graine, bascule à `1` (code neuf) → rien. Corrigé en passant
+`site.waterTiles` (déjà calculées par `OpexWaterFindSite`) au lieu de `site.dock` ;
+`OpexWaterLakesConnected` prend maintenant des tableaux de tuiles, pas des tuiles seules. Après
+correctif, la graine 24 reconstruit la même paire (roi=961, différent de 838 car le 4ᵉ bug de
+tarification — Manhattan vs distance navigable — est corrigé en même temps). Aucune leçon
+générale au-delà du cas : erreur de transcription locale, pas un défaut de la bibliothèque source.
+
+✅ **`WATER_LAKES_ITERATIONS` calibré par mesure, pas deviné (2026-09-09).** Instrumentation
+permanente ajoutée (`_lastIterationsUsed` sur `_MinchinWeb_Lakes_`, remontée dans `profile` par
+`OpexWaterLakesConnected` — champs `lakes_iterations_{connected,no_path}_{sum,n,max}` et
+`lakes_iterations_exhausted_n`, actifs seulement si `profile != null`, coût nul sinon). Mesure
+ponctuelle (profil branché temporairement sur l'appel réel `projects.nut::OpexProjects`, retiré
+après coup — pas un changement permanent) : 8 graines × 6 ans, 240 cycles mensuels, **27 requêtes
+Lakes réelles** — la rareté de candidats côtiers déjà notée plus haut se confirme, peu de paires
+à chiffrer même sur 8 graines. Connecté (25/27) : 1 à 4 itérations, moyenne 1,12 — quasi gratuit.
+Non connecté (2/27) : 4 à **153** itérations au pire, moyenne 98,5. Budget épuisé
+(`exhausted`) : **0/27**, jamais atteint. L'ancien `2000` était donc surdimensionné d'un facteur
+~13 par rapport au pire cas mesuré. Retenu : **500** (~3,3× le pire cas observé — pas 153 pile,
+l'échantillon est petit et rien ne garantit qu'une carte/config non échantillonnée ne demande pas
+plus). Reverifié : graine 24 reconstruit la même ligne avec `WATER_LAKES_ITERATIONS=500`.
+Si `lakes_iterations_exhausted_n` se met à mordre sur un banc plus large, remonter la valeur —
+l'instrumentation reste en place pour le détecter, pas besoin de redeviner à l'aveugle.
+
+⚠️ **Toujours pas de banc officiel 20×10 apparié** (règle `AGENTS.md`) : ce qui précède est un
+smoke test + une mesure de calibration, pas une validation de performance. Le réglage
+`water_lakes_connectivity` est désormais exposé dans `info.nut` et vaut déjà `1` par défaut ; ce
+défaut ne pourra être considéré comme adopté proprement qu'après le banc A/B officiel.
+
+🔎 **Audit de clôture du nouveau `water_builder` (2026-09-09) — chantier non fini.** Le code est
+branché et les trois apports annoncés sont présents (connectivité Lakes persistante, distance
+tarifaire Manhattan séparée de la distance navigable, fronts de quai dépendant de la pente), mais
+les points suivants empêchent de clore le chantier :
+
+- **La génération de sites reste le goulot en amont de Lakes.** Le diagnostic versionné
+  `results/diag_c41_3b_water_site_profile_6y_5seeds.json` compte 5 sondes, 591 918 opcodes et
+  **0 plan**. La recherche de sites en consomme 557 253 (94,1 %), dont 557 109 dans le simple
+  scan/filtrage, contre seulement 144 dans les commandes de test de quai ; aucune paire n'atteint
+  le BFS ou l'économie. `OpexWaterFindSite` ne visite que le rayon de couverture autour de la
+  tuile centrale de la ville (`r <= coverage`) : le nouveau moteur de connectivité ne change rien
+  si aucune côte admissible n'est trouvée à cette étape. Il faut d'abord redessiner ou mesurer
+  cette recherche de côte, puis refaire le diagnostic 5×6.
+- **Le repli de distance après succès de Lakes n'est pas conservateur.** Si Lakes prouve la
+  connexion mais que `OpexWaterFindConnection` échoue dans sa fenêtre bornée, le code remplace la
+  distance navigable par la distance Manhattan tarifaire. Celle-ci est un *plancher* de la vraie
+  longueur navigable : elle sous-estime `oneWayDays` et peut surestimer capacité, revenu et ROI.
+  Une paire sans distance navigable mesurée ne doit pas être classée avec ce minorant comme si
+  c'était sa distance réelle.
+- **La construction réintroduit le faux négatif du BFS borné.** Après construction des quais,
+  `OpexBuildWaterLine` exige de nouveau que `OpexWaterFindConnection(realA, realB)` réussisse et
+  rollbacke sinon avec `NOWATER`. Une paire admise grâce à Lakes parce que son détour dépasse la
+  bounding-box peut donc encore échouer exactement pour cette raison au moment de construire.
+  La revalidation doit utiliser les fronts réels sans remettre le BFS borné en position de juge
+  de connectivité.
+- **La correction de division mensuelle est incomplète.** `30.0 / oneWayDays.tofloat()` supprime
+  bien la division entière, mais le clamp `if (tripsPerMonth < 1.0) tripsPerMonth = 1.0` crédite
+  encore tout trajet de plus de 30 jours d'au moins un voyage mensuel complet. Conserver la valeur
+  fractionnaire (et vérifier la convention aller simple/aller-retour) avant conversion de la
+  capacité transportée.
+- **Le passage aux grandes cartes n'est pas qualifié.** Le constructeur de Lakes ajoute une
+  entrée `AIList` par tuile : 65 536 entrées en 256², 1 048 576 en 1024² et 4 194 304 en 2048².
+  L'instance est heureusement persistante et paresseuse, mais aucun diagnostic mémoire/opcodes sur
+  1024² n'est documenté. Ce point est un risque à mesurer, pas encore un bug démontré.
+- **Validation runtime du présent audit non obtenue.** Deux tentatives de smoke sur la graine 24,
+  3 ans, carte 256², ont expiré pendant le téléchargement BaNaNaS avant le lancement d'OpenTTD.
+  Aucun nouveau résultat n'a été produit ; ce timeout externe ne valide ni n'invalide le code.
+
+**Critère de clôture eau :** corriger ou trancher les quatre incohérences fonctionnelles ci-dessus,
+obtenir au diagnostic 5 graines × 6 ans des paires qui atteignent réellement connectivité et
+économie (avec au moins une construction sur une graine contrôlée), qualifier le coût sur 1024²,
+puis exécuter le banc officiel apparié 20 graines × 10 ans avant de confirmer le défaut à `1`.
+
+⚠️ **Deux pistes envisagées en cours de discussion (2026-09-09) ont été vérifiées FAUSSES avant
+tout code — à ne pas rouvrir sans nouvelle mesure :**
+- **Temps de trajet RAIL via `SuperLib.Engine.GetFullSpeedTraveltime` : hors périmètre.**
+  `catalog.nut::OpexRailEffectiveSpeed` fait déjà une recherche dichotomique de croisière +
+  accélération + intégration, cache adopté par défaut sur banc officiel 20×10 (C41.30 pax,
+  C41.38/C41.40 fret, voir la série C41 ci-dessous). SuperLib n'a qu'une formule à un terme
+  (`maxSpeed/27`) : la copier pour le rail serait une régression, pas un gain. Détail complet
+  dans `AGENTS.md`, section « Bibliothèques tierces ».
+- **Note municipale (`SuperLib.Town.TownRatingAllowStationBuilding`) : pas un bug à corriger,
+  déjà fait le 2026-09-02.** `OpexBoostTownRating` compare déjà `AITown.GetRating` au bon enum
+  (`TOWN_RATING_MEDIOCRE`) — voir [[aitown_getrating_est_un_enum]]. Le seul usage neuf possible
+  de `SuperLib.Town` serait un **filtre proactif** (écarter une ville sous le seuil de refus
+  avant de dépenser des opcodes en recherche de site, ce qui n'existe nulle part aujourd'hui) —
+  non mesuré, pas de tâche ouverte tant que personne n'a chiffré combien de candidats touchent
+  une ville sous ce seuil.
+
+🆕 **Idée retenue pour une reprise future : filtre proactif de note municipale à l'entrée du
+vivier de candidats (route/rail/eau).** Aujourd'hui `AITown.GetRating` n'est appelé qu'une seule
+fois dans tout le code (`OpexBoostTownRating`), et uniquement en réaction à un
+`ERR_LOCAL_AUTHORITY_REFUSES` déjà survenu (`builder_air.nut`, `main.nut`). Rien n'écarte en
+amont une ville dont la note est déjà sous le seuil de refus (note brute ≤ `RATING_VERYPOOR`,
+docs `src/town_cmd.cpp:3930`) avant de dépenser des opcodes en recherche de site/pathfinding pour
+elle — alors que `AITown.GetRating` est une lecture native quasi gratuite (aucun `AITestMode`
+requis). `SuperLib.Town::TownRatingAllowStationBuilding(town_id)` (`town.nut:57-61`, autonome,
+sans dépendance) donne directement ce test : `rating == TOWN_RATING_NONE || rating >
+TOWN_RATING_VERY_POOR`.
+
+**Avant de coder quoi que ce soit (discipline `AGENTS.md`), un diagnostic doit répondre à deux
+questions :** (1) combien de candidats du vivier actuel touchent une ville sous ce seuil, sur un
+échantillon de graines représentatif — si c'est rare, le filtre est un no-op coûteux à maintenir
+pour rien, comme `MIN_SEPARATION` en C43 ; (2) est-ce qu'un rejet précoce sur ce seul critère
+risque d'écarter une ville qui aurait justement mérité le recours réactif existant
+(`OpexBoostTownRating`) plutôt qu'un simple abandon — les deux mécanismes doivent rester
+cohérents, pas se substituer l'un à l'autre sans le vouloir. Non chiffré, non implémenté : à
+traiter comme une micro-tâche C4x si repris (numérotation à vérifier contre le dernier `C` utilisé
+dans ce document au moment de la reprise).
+
+**Plan de réutilisation des bibliothèques, priorisé le 2026-09-09 (rien d'implémenté à ce
+stade)** — licences vérifiées fichier par fichier (GPLv2 pour SuperLib, permissive maison pour
+MinchinWeb sauf `Pathfinder.Road.nut` en LGPLv2.1 ; les trois autorisent la copie), et graphe de
+dépendances vérifié : `engine.nut`/`town.nut`/`station.nut`/`airport.nut` sont chacun autonomes
+(copiables fonction par fonction), seul le bloc eau a une dépendance interne (`Constants`) :
+1. **Air — `airportDelayDays`** (`builder_air.nut::OpexAirTripModel`) : constante fixe à 3.0
+   jours quel que soit le type d'aéroport, contre la table par type de
+   `SuperLib.Engine.GetAircraftTravelTime` (5 à 10 jours). ⚠️ SuperLib documente lui-même ces
+   valeurs comme devinées — un diagnostic du délai réel par type d'aéroport doit précéder tout
+   remplacement. L'air pèse ~64 % du capital : seul item où le gain potentiel justifie la mesure.
+2. **Route** : pas un bon candidat — `OpexRoadLineEconomics` est déjà dérate
+   (`ROAD_SPEED_EFFICIENCY_PCT`), SuperLib n'a rien de meilleur. Le vrai sujet est l'audit C43/E3
+   de cette constante, déjà ouvert, pas un remplacement de modèle.
+3. **Catchment de gare** (`SuperLib.Station::GetAcceptanceCoverageTiles`/`GetSupplyCoverageTiles`)
+   contre les approximations `road_pax_catchment_pct`/`road_stop_catchment_houses`. Pas chiffré.
+4. **Eau** — voir ci-dessus, le chantier principal.
+5. **Aéroports** (`SuperLib.Airport`) — le poste le plus cher (64 % du capital) et le plus
+   défaillant, mais le plus gros morceau (1117 lignes). Après l'eau.
+6. **`Pathfinder.Road.nut`** (LGPLv2.1, seul fichier hors GPLv2/MIT du lot) — en dernier.
+
+**Gaps réels non liés au builder d'eau, pas encore vérifiés :**
+- Robustesse aux réglages de partie non testée : aucune recherche de `forbid_90_degree_turns` ni
+  de garde pour un type de véhicule désactivé (`max_trains=0`, etc.) dans `ai/OpexAI/*.nut`. Sans
+  conséquence pour le banc actuel (config figée dans `sweeps/`, ces réglages n'y apparaissent
+  jamais), mais un vrai trou si le projet publie un jour l'IA pour des parties avec joueurs
+  humains aux réglages variables.
+- Aucun interrupteur `enable_rail`/`enable_road`/`enable_air`/`enable_water` en `info.nut` : le
+  portefeuille suppose toujours les quatre modes disponibles. Même remarque — pertinent pour une
+  éventuelle publication, pas pour le banc contre AAAHogEx.
+
+Le reste de `00_conseils.md` (IDs de cargo/rail en dur, limite de 31 caractères d'`AISign`,
+capture de closure, arrêts routiers traversants, droits exclusifs) est soit déjà résolu dans le
+code, soit déjà mesuré et écarté, soit hors sujet pour une IA qui ne joue pas contre des humains
+(le throttling CPU défensif façon `Sleep()` contredit [[philosophie_opcodes_ressource]]) — détail
+complet dans `AGENTS.md`. Pas de tâche à en tirer.
+
+---
+
 ### 🔍 Détail archivé (2026-09-08) — pourquoi les prix d'ombre (C35) n'ont pas marché, et ce qu'il
 faudrait pour que ça marche
 
@@ -751,6 +964,17 @@ reste à trancher indépendamment.
   signal de staleness par couche (C39) alimente naturellement la liste des micro-tâches
   disponibles pour le canal de délestage (C41).
 
+  🔎 **Audit de clôture (2026-09-09) — C41 n'est pas fini.** Plusieurs tranches spécialisées sont
+  réellement livrées et certaines adoptées après banc officiel (notamment les caches rail
+  C41.30, C41.38, C41.40 et C41.44), mais elles ne réalisent pas l'objectif de cet item racine :
+  il n'existe toujours pas de scheduler général et reprenable pour catalogue, candidats,
+  pathfinding et portefeuille. Le gestionnaire `c41_water` dit encore explicitement qu'aucun
+  merge de candidats ni aucune réélection n'est correct et ne fait qu'un rafraîchissement ciblé ;
+  `OpexRoadPaxCandidates`, mesuré comme goulot dominant quand il est actif, reste reporté plus bas ;
+  C41.45 reste également en attente. Ne pas fermer C41 en agrégeant le nombre de sous-items verts :
+  la clôture exige le contrat transversal annoncé ici, un diagnostic 5×6 montrant qu'il est admis
+  et progresse réellement, puis un banc officiel 20×10 avant activation par défaut.
+
   **C41.0 — première tranche arrêtée (2026-09-08), avant code.** Ne pas brancher directement
   une fausse tâche ciblée : `OpexCatalog::refresh()` appelle aujourd'hui toutes les sous-méthodes
   et aucun rafraîchissement partiel public n'existe. Poser d'abord un registre passif, coalescé et
@@ -1210,14 +1434,40 @@ reste à trancher indépendamment.
   Il réduit le coût de génération des candidats rail de **93,18 M** à **86,34 M** opcodes par
   graine (**−7,34 %**, soit −6,84 M), mais OFF conserve **+644 509 £** de valeur moyenne
   (**+11,88 %**) et gagne **5/5** graines. Le calcul est exactement inchangé : cette divergence
-  vient de la cadence des décisions, comme pour C41.30. Le signal défavorable est assez net pour
-  appelait un banc officiel avant décision. Celui-ci, `results/bench_c41_38_rail_freight_cruise_cache_10y_20seeds.json`,
+  vient de la cadence des décisions, comme pour C41.30. Ce signal préliminaire appelait un banc
+  officiel avant décision. Celui-ci, `results/bench_c41_38_rail_freight_cruise_cache_10y_20seeds.json`,
   est valide (**40/40**) : ON gagne **+66 693 £** de valeur (**+0,48 %**, 10–10 graines),
   la note (+1,18) et le score (+11,05), tandis que OFF a +0,83 % de profit annuel (11–9) et
   +1,23 % de profit trimestriel (13–7). Aucun de ces écarts n'atteint le plancher de détection ;
   ils sont compatibles avec la divergence de calendrier, pas avec une altération de l'économie.
   Le gain d'opcodes, fondé sur une clé exacte et sans état stale, justifie donc
   **`c41_rail_freight_cruise_cache=1` par défaut.**
+
+  ✅ **C41.39 — détail de vitesse fret rail, 5 graines × 6 ans.** La sonde passive
+  `c41_rail_freight_speed_detail_profile=1` est saine (**5/5**) dans
+  `results/diag_c41_39_rail_freight_speed_detail_6y_5seeds.json`. Après le cache de croisière,
+  l'accélération coûte **1,87 M** opcodes par graine pour **17 071** appels ; l'intégration ne
+  coûte que **1,03 M** pour les mêmes appels. L'accélération est la cible suivante : elle dépend
+  exactement de `(locomotive,wagon,wagons)` et de la demi-croisière elle-même déterminée par cette
+  clé ; l'intégration, qui dépend aussi de la distance, n'est pas mise en cache.
+
+  🔄 **C41.40 — cache d'accélération fret rail.** Le cache réutilise la table éphémère de C41.38,
+  toujours vidée après une génération, et mémorise l'accélération sous la même clé exacte. Le smoke
+  est sain (**2/2**) ; l'AB 5 graines × 6 ans est sain (**10/10**) et favorise ON sur valeur
+  (+5,45 %), profit annuel (+9,38 %), profit trimestriel (+10,92 %), score (+30,6) et note (+5,4).
+  Le réglage est passé à `1` par défaut à la demande de l'utilisateur. Le banc officiel apparié
+  20 graines × 10 ans `results/bench_c41_40_rail_freight_acceleration_cache_10y_20seeds.json`
+  est valide (**40/40**) : ON gagne **+122 454 £** de valeur (**+0,88 %**, 11–9 graines),
+  **+12 621 £** de profit annuel (+0,55 %, 11–9) et +7,8 points de score ; le profit trimestriel
+  est indécis (+481 £ pour ON, 12–8 pour OFF). Aucun écart ne franchit le plancher de détection.
+  Le cache est exact, éphémère, et son défaut à `1` est confirmé.
+
+  ⏸️ **C41.45 — sous-profiler le dimensionnement de rame fret hors vitesse (non prioritaire).**
+  Après C41.38/C41.40, le cache de vitesse effective complète est écarté : seulement **6,6 %**
+  des appels réemploient exactement la clé `(locomotive,wagon,wagons,distance)`. Il reste environ
+  **11 M d'opcodes par graine** dans le dimensionnement hors vitesse. Quand le rail redeviendra
+  prioritaire, ventiler passivement le calibrage initial, la correction de wagons et le capital,
+  avant toute optimisation ; ne pas introduire de cache approximatif.
 
   ✅ **C39.4 — les cinq avions « rejetés » sont dominés, non invalides.** La sonde
   `c39_air_reason_probe=0`, sur 5 graines × 6 ans
@@ -1833,6 +2083,157 @@ reste à trancher indépendamment.
   🔶 **Reste à faire pour clore famille 2** : 2 constantes sans compteur binaire prêt à l'emploi —
   `DEAD_STREAK_THRESHOLD`, `SCRAP_TIMEOUT_YEARS` — demandent une instrumentation nouvelle et ciblée
   avant de pouvoir être classées.
+
+- 🔴 **C44 — La ressource rationnée n'est ni le capital ni les opcodes : c'est le TOUR DE CYCLE, et
+  il n'est facturé nulle part.** Constat de lecture de code du 2026-09-09 (aucune mesure neuve :
+  relecture du code livré + des mesures C35/C37 déjà au dossier), posé en fiche parce que quatre
+  tentatives successives ont buté dessus sans jamais le nommer.
+
+  **Ce que le classement facture aujourd'hui — vérifié dans le code, pas supposé :**
+
+  | ressource | facturée à l'élection ? | où |
+  |---|---|---|
+  | capital | ✅ oui, et c'est la seule | `fundScore = profitAnnual × 1000 / financeCapital` (`projects.nut:541`), densité pure |
+  | opcodes | 🟡 calculés partout, absents du score qui élit | `opcodeScore` ne remplit qu'un **second vivier** `byOpcodes` (`projects.nut:955`, `1308`, `1678`) : hygiène d'admission |
+  | temps calendaire de chantier | ❌ **aucun champ** | pas de `buildDays` ; `TILES_PER_DAY` (`economy.nut:12`) est le temps de **trajet des véhicules** pour le revenu, pas la durée du chantier |
+  | tour de cycle (`maxBatch=1`) | ❌ **rien** | c'est pourtant lui qu'un projet élu consomme entièrement |
+
+  `expectedOpcodes` (`projects.nut:28-32`, `258-266`) ne couvre que **la pose**, pas la découverte
+  (`planningOpcodes` est un champ séparé) : air **100 k**, eau **100 k**, route **287 k**, flotte
+  **287 k**, rail `min(iters, HARD_ITERATION_CAP=10 000) × 3 105 + 200 000` → jusqu'à **~31 M**.
+
+  Les opcodes contraignent bien quelque chose, mais **l'exécution, pas le choix** : plafond de
+  dépense (`DYNAMIC_BATCH_OPS_FLOOR = 2500`, `DYNAMIC_BATCH_OPS_BUDGET_PCT = 50`,
+  `HARD_ITERATION_CAP = 10 000`, `LOOP_BUDGET` défaut 0), jamais un prix dans le rang.
+
+  **Conséquence déjà mesurée** (C37 §2, `journal_2026-09-06.md`) : un bus de 5 tuiles à ROI 6 490
+  prend le rang 0 sur la densité **avant même qu'`opcodeScore` ait la parole** ; à `maxBatch=1` ce
+  rang 0 occupe tout le passage, puis le mois suivant. Le coût d'opportunité réel n'est pas les
+  287 k opcodes de pose — c'est **le profit aérien forclos pendant le verrou** (graine 7 : 1 ligne
+  aérienne en 1970 contre 5 au témoin ; −77 % de valeur à 3 ans).
+
+  ⛔ **Cinq formulations déjà écartées — ne pas les reproposer** (grep obligatoire avant toute reco,
+  cf. [[feedback_lire_refutes_avant_conseiller]]) :
+  1. **C35 / prix d'ombre** — `λ_ops × a_ops` en £ absolues : `a_ops` incommensurable (air 100 k,
+     route 287 k, rail ~31 M) → **0 rail sur 4 graines /4**, valeur −11,2 %. `shadow_pricing = 0`.
+  2. **Les deux « corrections » de C35.4** — surplus capital-seul et filtre densité `< λ_argent` :
+     **7/7 défaites** chacune à 6 ans. Interdiction déjà écrite en commentaire dans `tension.nut`.
+  3. **A1 / dénominateur variable selon la ressource rare** — décliné le 2026-09-07 pour raison de
+     doctrine (converge vers l'aiguillage pauvre/riche d'AAAHogEx).
+  4. **C37 / verrou calendaire route-rail** — abandonné le 2026-09-06 : l'HOL de 18 mois qui le
+     motivait était un artefact `TRACEX`+voirie depuis réparé, et un second terme calendaire
+     redouble C35.
+  5. 🆕 **Empreinte `K/C_dispo + Ops/Φ_an`** (`docs/02_empreinte.md`) — analysée le 2026-09-09,
+     **écartée**. À α=1 elle **est** le classement actuel (`C_dispo` est constant sur tous les
+     candidats d'un cycle, donc `ΔP/(K/C) ∝ ΔP/K`) : la seule information neuve qu'elle injecte
+     est le terme opcodes, c'est-à-dire exactement le `a_ops` incommensurable du point 1. Elle
+     garde un ratio — donc la densité, ce que le journal demande de préserver — mais un facteur
+     300 entre modes est une propriété du coefficient, pas de l'algèbre : dès que `f_capital → 0`,
+     c'est-à-dire dans le régime « riche » qu'elle vend comme son gain, le rang tend vers
+     `ΔP/Ops` et le rail devrait rapporter 300× l'air pour exister. De plus `expectedOps` est
+     documenté comme biaisé (`projects.nut:262` : rail surestimé ×4 à 7 avant le plafond C21 ;
+     `:276` : route sous-estimée). Sa garde de solvabilité existe déjà (`pool_financeable`) et sa
+     boucle gloutonne « de 1 à n » est morte à `maxBatch=1`.
+
+  **Ce que la fiche demande** : facturer le **tour de cycle** — la seule ressource réellement
+  rationnée — et non une n-ième pondération capital/opcodes. Aucune implémentation proposée à ce
+  stade ; deux contraintes qu'une solution devra respecter, héritées de `journal_2026-09-06.md`
+  §6 : (1) **garder le classement par densité** (c'est lui qui élit le rail et la flotte) ;
+  (2) **ne pas additionner de terme en opcodes bruts**.
+
+  🔗 **Dépendance à noter** : `maxBatch = 1` n'est même pas une constante — c'est un `local`
+  (relevé en C43/E3) — et c'est lui qui rend le tour de cycle rare. Toute reprise de C44 doit dire
+  si elle price cette rareté ou si elle la supprime.
+
+- 🔴 **C45 — Implémenter `Save()`/`Load()`.** Demandé par l'utilisateur le 2026-09-09.
+  `OpexAI::Save`/`OpexAI::Load` n'existent nulle part dans `main.nut` — vérifié par grep, pas
+  supposé. Chaque clichage (bancs, `OpenTTDLab`, autosave en jeu réel) émet
+  `[script:3] [W] Save function is not implemented`, déjà repéré dans `docs/methode.md` (« Save()/
+  Load() : ne remonte pas via OpenTTDLab ») mais jamais traité comme un manque à corriger — jusqu'ici
+  contourné en lisant l'état directement dans les chunks du savegame (`AIPL`, `VEHS`, `STNN`…),
+  qui restent la source de vérité pour les bancs quoi qu'il arrive.
+
+  **Pourquoi ça compte maintenant, pas juste un warning cosmétique** : sans `Save()`/`Load()`,
+  une partie **rechargée** (reprise après redémarrage du jeu, ou après un crash du binaire) perd
+  tout l'état interne d'OpexAI — `_taskQueue`, `_staleness`, `_abandonedPairs`,
+  `_c41*Ledger`, `_lines`, `_nextLineId`, etc. L'IA repart de zéro dans une partie qui a déjà des
+  gares et des trains à elle, avec un risque de double-comptage ou de désynchronisation (ex. :
+  `_nextLineId` qui recommence à 0 alors que des lignes existent déjà, cf. le bug de collision
+  d'indice déjà documenté pour cette même variable en `main.nut`).
+
+  **Portée à trancher avant de coder** : `Save()` doit retourner une table serialisable
+  (Squirrel : pas de fonctions, pas de classes dans les valeurs) — décider quels champs de
+  `OpexAI` sont *reconstruits sans perte* depuis les chunks du jeu au prochain `Load()` (donc pas
+  besoin de les sérialiser) contre ceux qui sont *de l'état de décision pur* (donc perdus sans
+  sérialisation explicite). Probablement reconstructible depuis le jeu : `_lines` (dérivable de
+  `VEHS`/`STNN` filtrés par `owner`, déjà fait pour les diagnostics `sweeps/`), `_catalog`
+  (rafraîchi au premier cycle de toute façon). Probablement pas reconstructible sans perte :
+  `_taskQueue` (dueCycle par tâche), `_staleness` (revisions/acknowledged), `_abandonedPairs`,
+  `_nextLineId`, les compteurs C41 (`_c41SlackLedger` etc.) — perdre ces derniers dégraderait
+  silencieusement le comportement au rechargement (ex. : toutes les tâches redeviennent dues
+  d'un coup) sans crasher, donc sans se faire remarquer.
+
+  Non chiffré, non implémenté : à cadrer (quels champs, quel format) avant tout code.
+
+- 🔴 **C46 — OpexAI ne construit rien sur une carte 1024² : cause trouvée, non corrigée.**
+  Demandé par l'utilisateur le 2026-09-09 : rejeu graine 42, carte 1024×1024 (`map_x=map_y=10`,
+  seule différence avec la config figée 256×256), 1 an, `-d script=4` capturé pour OpexAI et
+  AAAHogEx (même config, même graine). AAAHogEx tourne normalement (485 Ko de journal, gares et
+  véhicules qui croissent). OpexAI produit 5 lignes `OPEX` puis plus rien pour tout le reste de la
+  fenêtre testée (jusqu'à 30 jours simulés) — pas un crash (`fatal=0`, aucun message d'erreur NoAI),
+  le processus tourne, mais le scheduler ne rend jamais la main aux autres tâches.
+
+  **Cause localisée par bissection avec des marqueurs temporaires** (posés puis retirés, aucun
+  résidu dans le code livré) : `catalog.refresh()` se termine (59 ticks, cher mais fini) et révèle
+  **731 villes, 871 industries** sur cette carte — `number_towns` est une densité
+  ([[opexai_multimodal]] et le run de calibration 2026-08-26 le documentaient déjà pour 256², ~15×
+  plus de villes ici, cohérent avec le facteur d'aire ×16). `OpexBuildProjects` est appelé
+  (premier cycle, `this._projects == null`, rien à incrémenter) et **n'en ressort jamais** dans la
+  fenêtre testée. Bissection affinée : le blocage est dans `OpexPaxCandidates`
+  (`candidates.nut:742`), précisément dans
+
+  ```
+  for (local a = 0; a < n; a++) {
+    for (local b = a + 1; b < n; b++) { ... OpexMakeCandidate(...) ... }
+  }
+  ```
+
+  un **double balayage O(n²) non borné sur `catalog.towns`**, sans plafond équivalent à
+  `WATER_TOWN_POOL` (eau) ou au filtrage précoce de l'aérien. Sur 256² (~50 villes), ≈ 1225 paires
+  — invisible. Sur cette carte (731 villes), ≈ **266 815 paires**, chacune passant par
+  `OpexMakeCandidate` (économie complète, potentiellement la recherche de croisière ferroviaire
+  C41.27-30) — un facteur ~218× sur le nombre de paires par rapport au régime déjà mesuré partout
+  ailleurs dans ce document.
+
+  ⚠️ **Précision importante, corrigée après une question de l'utilisateur en cours de diagnostic**
+  (« je croyais qu'on avait découpé la tâche de candidats en micro-tâches ») : c'est vrai, et ça
+  ne contredit pas le diagnostic — `OpexIncrementalUpdateProjects` (`portfolio_v2=1` par défaut,
+  `projects.nut:1137`) existe précisément pour ÉVITER de refaire ce balayage à chaque cycle : il
+  filtre/réutilise `projects.candidateGroups` déjà généré, sans jamais rappeler
+  `OpexBuildCandidates`. Vérifié en lisant son corps. Mais il a besoin d'un vivier existant pour
+  incrémenter dessus — sur le tout premier cycle (`this._projects == null`), il n'y a rien à
+  incrémenter, et c'est `OpexBuildProjects` (génération complète) qui s'exécute, inévitablement.
+  Le vrai trou n'est donc pas l'absence de découpage en tâches (le scheduler à tâches nommées
+  existe, catalog/air/projects/etc.), c'est que **la primitive de génération elle-même
+  (`OpexPaxCandidates`) n'a jamais été rendue résumable en interne**, contrairement au pathfinder
+  A* rail (`rail_search_resumable`, état repris en tête de `_runNextTask`) ou à l'expansion rail
+  (`_railExpansion`, transaction asynchrone qui continue la file pendant que le train roule) — les
+  deux précédents que ce projet a déjà construits pour exactement cette raison. Le moteur NoAI
+  suspend et reprend la boucle automatiquement tick par tick (elle ne plante pas, elle progresse),
+  mais sans point de rendu explicite au scheduler, elle monopolise `_runNextTask` pendant
+  potentiellement des dizaines de milliers de ticks avant que `report`/`repay`/`scrap` ne puissent
+  jamais s'exécuter — a fortiori avant qu'une seule ligne ne soit construite.
+
+  **Non corrigé.** Deux pistes possibles, ni l'une ni l'autre implémentée ni évaluée : (1) plafonner
+  le nombre de villes soumises à `OpexPaxCandidates` (même principe que `WATER_TOWN_POOL`,
+  probablement un tri par population puis un top-N — mais choisir N sans écarter les paires
+  rentables sur une grande carte demande réflexion, pas une valeur posée à vue) ; (2) rendre le
+  double balayage résumable en interne, sur le modèle de `_railSearch`/`_railExpansion` (état repris
+  en tête de `_runNextTask`, indices `a`/`b` persistés entre tranches) — plus proche de la
+  philosophie du scheduler existant, mais ne réduit pas le travail total, seulement son impact sur
+  la réactivité des autres tâches. `OpexFreightCandidates` et `OpexBuildRoadCandidates` n'ont pas
+  été vérifiés mais partagent vraisemblablement la même forme (à confirmer avant de choisir une
+  piste, pas après).
 
 ---
 
