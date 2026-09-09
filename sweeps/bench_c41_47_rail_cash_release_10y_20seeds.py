@@ -1,16 +1,21 @@
 """Banc officiel apparié C41.47 : libération immédiate de `_railSearch` sur blocage trésorerie
-seul (`c41_rail_cash_release`), OFF vs ON. Les deux bras gardent `decision_log=1` pour compter
-PROJECT_CHOSEN/RAIL_BUILD/RAIL_EXPAND/C41_RAIL_CASH_RELEASE (voir
-docs/04_arbitrage_rail_search.md §C41.47). Le diagnostic 5×6 était NUL (14/14 constructions
-identiques, délai mixte) — ce banc est le seul moyen tranché par le contrat de conclure.
-Vingt graines sur dix ans, trois CPU au plus.
+seul (`c41_rail_cash_release`), OFF vs ON (voir docs/04_arbitrage_rail_search.md §C41.47). Le
+diagnostic 5×6 était NUL (14/14 constructions identiques, délai mixte) — ce banc est le seul
+moyen tranché par le contrat de conclure. Vingt graines sur dix ans, trois CPU au plus.
+
+⚠️ PAS de `decision_log=1` ni de `-d script=4` ici, contrairement aux diagnostics 5×6 : à 20
+graines × 10 ans × 2 bras, le volume d'AILog fait exploser le checkpoint (13 Go en ~6 min lors
+d'un premier essai, disque tombé à 873 Mo libres avant d'être tué). Les métriques du verdict
+(company_value, performance_history, profit, profit_year, median_station_rating) viennent du
+chunk PLYR de la sauvegarde, pas d'AILog -- ce banc n'en a pas besoin. `c41_event_counts` reste
+tenté par précaution (comme `bench_c41_10_junction_repair_10y_20seeds.py`) mais sera
+probablement vide sans le flag de debug ; ce n'est pas le verdict.
 """
 import argparse
 import re
 from pathlib import Path
 import sys
 
-import openttdlab
 from openttdlab import bananas_ai_library, run_experiments
 
 ROOT = Path("/work") if Path("/work").exists() else Path(__file__).resolve().parents[1]
@@ -32,21 +37,9 @@ from bench_v2 import (
 )
 import bench_v2
 
-_real_check_output = openttdlab.subprocess.check_output
-
-
-def _check_output_with_script_debug(args, *rest, **kwargs):
-    args = tuple(args)
-    if any(str(arg).startswith("-vnull") for arg in args):
-        args = args[:1] + ("-d", "script=4") + args[1:]
-    return _real_check_output(args, *rest, **kwargs)
-
-
-openttdlab.subprocess.check_output = _check_output_with_script_debug
-
 ARMS = (
-    "OpexAI[decision_log=1,c41_rail_cash_release=0]",
-    "OpexAI[decision_log=1,c41_rail_cash_release=1]",
+    "OpexAI[c41_rail_cash_release=0]",
+    "OpexAI[c41_rail_cash_release=1]",
 )
 EVENT_RE = re.compile(r"OPEX \d+-\d+-\d+ (RAIL_BUILD|RAIL_EXPAND|C41_RAIL_CASH_RELEASE)")
 
@@ -100,7 +93,7 @@ def main():
         "seeds": args.seeds,
         "arms": list(ARMS),
         "openttd_config": cfg,
-        "design": "paired OFF/ON; both arms set decision_log=1",
+        "design": "paired OFF/ON; no decision_log (savegame-chunk metrics only, see module docstring)",
         "success_metrics": list(SUCCESS_METRICS),
         "summary": summary,
         "failed_runs": [
