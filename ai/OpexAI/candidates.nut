@@ -16,6 +16,12 @@
  * recalcule a chaque refresh de catalogue (et sur ET_ENGINE_AVAILABLE) dans
  * catalog.bounds : geometrie des bassins, egalite cinematique rail/air, plafond
  * A* inverse. Le reglage `rail_min_distance` n'alimente plus le filtre. */
+/* Memo du predicat origin_sitable, keye par (srcTile * 64 + cargo). Slot de table racine, PAS
+ * un `local` de fichier : OpexMakeCandidate le lit, et ce depot a deja verifie deux fois
+ * qu'une closure ne capture pas une `local` englobante (voir ::REASON_CODES dans
+ * ai/TrainLineAI/main.nut). Vide a chaque OpexBuildCandidates, donc jamais stale. */
+::OpexSitableCache <- {};
+
 JOIN_PLACE_MAX <- 75;
 TOP_K <- 20;
 MIN_RATIO <- 500;
@@ -576,12 +582,40 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   }
   /* Source seulement, et seulement si origin_sitable = 1. Les 7 a 15 SITEA mesures etaient
    * tous du fret a nCargo=0 cote A. Filtrer aussi le puits enlevait des paires urbaines encore
-   * constructibles. A 0, le classement est celui d'avant le filtre (SITEA reste possible). */
-  local sitableMark = (profile != null && ORIGIN_SITABLE) ? OpexOpsMeasureBegin() : null;
-  local sitable = !ORIGIN_SITABLE || OpexRailOriginSitable(srcTile, cargo, catalog.railCoverage, true);
-  if (profile != null && ORIGIN_SITABLE) {
-    profile.paxSitableOps += OpexOpsMeasureEnd(sitableMark);
-    profile.paxSitableCalls++;
+   * constructibles. A 0, le classement est celui d'avant le filtre (SITEA reste possible).
+   *
+   * MEMO (2026-09-09) : le predicat ne depend que de (srcTile, cargo), jamais de dstTile. Dans
+   * la boucle de paires, srcTile est invariant sur toute la liste de voisins d'une meme ville
+   * source : sans memo, le balayage en anneaux (jusqu'a ~225 tuiles, un appel natif chacune)
+   * etait refait une fois PAR PAIRE au lieu d'une fois par source. Table videe a chaque
+   * OpexBuildCandidates -- aucune donnee stale possible : une gare ou un rail bati pres de la
+   * source change le resultat, et la generation suivante le recalcule.
+   * Cle entiere plutot que chaine : NUM_CARGO <= 64 dans OpenTTD, donc srcTile * 64 + cargo est
+   * injectif, et evite de construire une chaine a chaque paire (ce qui aurait coute presque
+   * aussi cher que le cas ou le predicat repond des le premier anneau).
+   * ⚠️ profile.paxSitableCalls compte desormais les CALCULS reels, pas les invocations : c'est
+   * ce qu'on veut mesurer, mais ce n'est plus comparable aux releves anterieurs au memo.
+   *
+   * MESURE (2026-09-09, 3 graines x 2 ans, 256x256, c41_rail_pax_candidate_profile=1) :
+   * graine 42 865 calculs pour 4 298 appels (5,0x), graine 100 920 pour 4 398 (4,8x),
+   * graine 7 1 148 pour 6 197 (5,4x) -- ~100 opcodes par calcul reel. Le facteur de
+   * reutilisation est borne par le nombre de voisins a portee d'une ville source : il vaut
+   * ~5 sur 256x256 et croit avec la taille de carte, donc le gain est le plus grand la ou il
+   * sert le plus (C46, cartes 1024x1024). */
+  local sitable = true;
+  if (ORIGIN_SITABLE) {
+    local sitableKey = srcTile * 64 + cargo;
+    if (sitableKey in ::OpexSitableCache) {
+      sitable = ::OpexSitableCache[sitableKey];
+    } else {
+      local sitableMark = profile != null ? OpexOpsMeasureBegin() : null;
+      sitable = OpexRailOriginSitable(srcTile, cargo, catalog.railCoverage, true);
+      if (profile != null) {
+        profile.paxSitableOps += OpexOpsMeasureEnd(sitableMark);
+        profile.paxSitableCalls++;
+      }
+      ::OpexSitableCache[sitableKey] <- sitable;
+    }
   }
   if (!sitable) {
     stats.unsitable++;
@@ -1394,6 +1428,13 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
  * calculer un candidat -- voir OpexOriginServed ci-dessus. */
 function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, profile = null, paxProfile = null, paxCandidateProfile = null, paxCruiseCache = null, freightCruiseCache = null, generatePax = true, generateFreight = true, paxBand = PAX_BAND_ALL, freightCargo = null)
 {
+  /* Memo origin_sitable vide a chaque passe de generation : une gare ou un rail bati depuis la
+   * derniere passe change le predicat, donc rien n'est reporte d'une passe a l'autre. Portee
+   * volontairement plus courte que celle des caches de croisiere (crees dans OpexBuildProjects
+   * et passes en parametre) : ici on evite de toucher dix signatures pour un gain deja capte a
+   * l'interieur d'une seule passe, ou srcTile est invariant sur toute la liste de voisins. */
+  ::OpexSitableCache = {};
+
   local all = [];
   /* Comptes de rejet : ils se trouvent ici, avant que TOP_K ne masque les candidats restants.
    * Une table explicite evite une closure imbriquee, non portable dans le Squirrel du scenario. */

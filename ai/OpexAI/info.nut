@@ -1320,13 +1320,35 @@ class OpexAIInfo extends AIInfo {
      * 20 graines x 20 ans) : pas d'effet etabli. company_value +4,0 % (t = 0,50, 11/20),
      * performance_history +1,9 % (t = 0,85), vehicules -1,1 %. Sous le plancher de detection.
      * Le minimum recule (1,79 M -> 1,18 M) et le CV passe de 0,28 a 0,34. La graine 42 seule
-     * recule de 28 %. 0 reste le bras historique EXACT du classement ; 1 pour rejouer le
-     * mecanisme sans relire le code. */
+     * recule de 28 %.
+     *
+     * ⚠️ DEFAUT PASSE A 1 LE 2026-09-09 (decision utilisateur), sur deux arguments :
+     *   1. Le banc n'a jamais montre de BAISSE : moyenne POSITIVE (+4,0 %) et non significative.
+     *      Ce qui bloquait etait la dispersion (minimum, CV) et la graine 42 seule -- or une
+     *      graine ne tranche rien (docs/taches.md, banc mono-graine insuffisant). Mecaniquement,
+     *      le filtre n'ecarte que des sources qui ne peuvent PAS recevoir de gare utile : une
+     *      baisse de profit reelle signalerait un faux negatif du predicat, pas un cout du filtre.
+     *   2. Le contexte a change : le banc d'aout portait sur 256x256, ou les opcodes n'etaient pas
+     *      la contrainte mordante. C46 (carte 1024x1024) a etabli l'inverse sur grande carte --
+     *      economiser 23 NOPLAN et leurs ~14 M d'opcodes par SITEA vaut aujourd'hui bien plus.
+     *
+     * A/B APPARIE SUR LE CODE ACTUEL (2026-09-09, 5 graines x 3 ans, apres l'indexation spatiale
+     * et la refonte des candidats -- le verdict d'aout portait sur une version anterieure) :
+     * valeur +1,1 % (ON gagne 4/5 graines), profit/an -0,7 %, score -1,8 %. AUCUNE baisse de
+     * profit : pas de signal de faux negatif du predicat.
+     * ⚠️ MAIS le VOLUME baisse : vehicules -7,7 %, gares -5,7 %. Or le volume est precisement
+     * l'ecart n°1 identifie contre AAAHogEx (~85 % de l'ecart de profit vient de 8x moins de
+     * vehicules et de gares, docs/taches.md en tete). Le filtre retire donc des lignes qui
+     * n'apportaient pas de valeur a 3 ans, mais il pousse dans le mauvais sens sur la metrique
+     * que le projet cherche a redresser. A surveiller au banc officiel 20x10 : si la valeur ne
+     * compense pas la perte de volume a 10 ans, revenir a 0.
+     * 5 graines x 3 ans est un diagnostic, PAS le banc officiel (20 graines x 10 ans apparie).
+     * 0 reste le bras historique EXACT du classement, conserve pour l'A/B. */
     AddSetting({
       name = "origin_sitable",
-      description = "Drop rail candidates whose source has no land tile seeing the cargo: 1 = enabled, 0 = historical ranking (measured default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "Drop rail candidates whose source has no land tile seeing the cargo: 1 = enabled (default since 2026-09-09), 0 = historical ranking",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
