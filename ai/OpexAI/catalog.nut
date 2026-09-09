@@ -265,6 +265,12 @@ class OpexCatalog {
   costRoadTruckStop = 0;
   costRoadDepot = 0;
 
+  /* Frontieres modales de l'epoque (OpexRefreshEpochBounds). Null avant le
+   * premier refresh ; les generateurs passent par OpexCatalogBounds. */
+  bounds = null;
+  _ticksAnchorDate = -1;
+  _ticksAnchorTick = -1;
+
   constructor()
   {
     this.towns = [];
@@ -278,6 +284,9 @@ class OpexCatalog {
     this.locoByCargoWagons = {};
     this.ships = [];
     this.roadEngineByCargo = {};
+    this.bounds = null;
+    this._ticksAnchorDate = -1;
+    this._ticksAnchorTick = -1;
   }
 
   function refresh(budget, year);
@@ -862,4 +871,8 @@ function OpexCatalog::refresh(budget, year)
     this._refreshRoad();
     budget.end("cat_road");
   }
+
+  budget.begin();
+  OpexRefreshEpochBounds(this);
+  budget.end("cat_bounds");
 }

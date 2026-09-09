@@ -2,8 +2,8 @@ class OpexAIInfo extends AIInfo {
   function GetAuthor()      { return "openttd-ml"; }
   function GetName()        { return "OpexAI"; }
   function GetDescription() { return "IA multimodale : meilleur ROI par origine/destination, puis revenu maximise sous contraintes de capital et d'opcodes."; }
-  function GetVersion()     { return 6; }
-  function GetDate()        { return "2026-09-01"; }
+  function GetVersion()     { return 7; }
+  function GetDate()        { return "2026-09-09"; }
   function CreateInstance() { return "OpexAI"; }
   function GetShortName()   { return "OPEX"; }
   function GetAPIVersion()  { return "13"; }
@@ -1933,12 +1933,20 @@ Le mode route est donc reconfirme sur l arbre courant.
 
     AddSetting({
       name = "rail_min_distance",
-      description = "Minimum tile distance for a rail candidate. 25 = as shipped; 5 restores the rail/road overlap band that the file's own comments describe (see docs/taches.md 0 septdecies)",
+      description = "Legacy setting, ignored: rail bands now come from catalog.bounds (epoch kinematics). Kept so existing benches still load.",
       min_value = 5, max_value = 40,
       easy_value = 25, medium_value = 25, hard_value = 25,
       custom_value = 25,
       step_size = 1,
       flags = 0
+    });
+
+    AddSetting({
+      name = "staged_bootstrap",
+      description = "Etaler la prospection au demarrage (fret+air, puis route, puis rail pax). 1 = actif (defaut), 0 = generation monolithique",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
     });
 
     AddSetting({

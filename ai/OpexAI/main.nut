@@ -32,6 +32,8 @@ import("pathfinder.rail", "RailPathFinder", 1);
  * decision. Le defaut vrai est celui de info.nut ; 0 reconstitue la baseline sans route, dont le
  * chemin d'opcodes reste alors EXACTEMENT celui des campagnes anterieures. */
 ROAD_BUILD_ENABLED <- true;
+/* Etalement du vivier au demarrage (fret+air, route, rail pax). Lu dans Start(). */
+STAGED_BOOTSTRAP <- true;
 
 /* Les bus ville-a-ville sont utiles dans la bande courte, mais peuvent prendre le bassin d'une
  * liaison aerienne plus rentable. Ce drapeau ne coupe que cette famille de nouveaux candidats :
@@ -736,6 +738,7 @@ HARD_ITERATION_CAP <- 10000;
 require("budget.nut");
 require("catalog.nut");
 require("economy.nut");
+require("spatial.nut");
 require("candidates.nut");
 require("tension.nut");
 require("projects.nut");
@@ -1118,6 +1121,10 @@ class OpexAI extends AIController {
   _taskCycle = 0;
   _ranked = null;
   _projects = null;
+  _generationStage = 0;
+  _generationStageMonth = -1;
+  _loadedFromSave = false;
+  _recomputeEpochBounds = false;
   /* Transaction asynchrone d'expansion rail : le train roule vers son depot pendant que la
    * boucle principale continue par pas de dix jours. Jamais de Sleep bloquant dans la tache. */
   _railExpansion = null;
@@ -1215,6 +1222,10 @@ class OpexAI extends AIController {
     this._c41SlackLedger = {};
     this._c41OpportunityLedger = {};
     this._c41AdmissionLedger = {};
+    this._generationStage = 0;
+    this._generationStageMonth = -1;
+    this._loadedFromSave = false;
+    this._recomputeEpochBounds = false;
     /* Priorite : donnees et stop-loss, croissance des flottes existantes avant nouveaux projets,
      * portefeuille multimodal ROI, croissance urbaine, dette. */
     this._taskQueue = [
@@ -3361,16 +3372,14 @@ function OpexAI::_tryBuildProjects(year)
     }
     if (PORTFOLIO_DYNAMIC_BATCH && batchBuilt > 0) {
       /* Chaque succes a deja filtre et re-classe sur le budget vivant. */
+    } else if (STAGED_BOOTSTRAP && this._generationStage < OPEX_STAGE_COMPLETE) {
+      this._rebuildProjects(fleetPlan);
     } else if (PORTFOLIO_CACHE && this._projects != null && (("budgetCandidates" in this._projects) || ("candidateGroups" in this._projects))) {
       local budgetNow = OpexAvailableCapital();
 
       this._projects = OpexIncrementalUpdateProjects(this._projects, this._catalog, this._budget, this._lines, budgetNow, fleetPlan, this._abandonedPairs);
     } else {
-      local priorPeak = (this._projects != null && ("capitalBudgetPeak" in this._projects))
-          ? this._projects.capitalBudgetPeak : 0;
-      local priorHistory = (this._projects != null && ("capitalBudgetHistory" in this._projects))
-          ? this._projects.capitalBudgetHistory : null;
-      this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines, priorPeak, priorHistory, fleetPlan, this._abandonedPairs);
+      this._rebuildProjects(fleetPlan);
     }
     this._ranked = this._projects.rail;
     if (PORTFOLIO_LOG) OpexLogPortfolioRank(this._projects);
@@ -5770,6 +5779,8 @@ function OpexAI::_processEvents()
     }
 
     if (eventType == AIEvent.ET_ENGINE_AVAILABLE) {
+      this._recomputeEpochBounds = true;
+      if (this._catalog != null) OpexRefreshEpochBounds(this._catalog);
       if (C39_INVALIDATION_PROBE || C39_ENGINE_REFRESH) {
         local engineEvt = AIEventEngineAvailable.Convert(event);
         if (engineEvt != null) {
@@ -6038,17 +6049,22 @@ function OpexAI::_runNextTask()
     } else {
       this._catalog.refresh(this._budget, year);
     }
-    local priorPeak = (this._projects != null && ("capitalBudgetPeak" in this._projects))
-        ? this._projects.capitalBudgetPeak : 0;
-    local priorHistory = (this._projects != null && ("capitalBudgetHistory" in this._projects))
-        ? this._projects.capitalBudgetHistory : null;
     local fleetPlan = null;
     if (FLEET_PORTFOLIO) {
       /* Mode a blanc : meme decision que la tache air_fleet, sans achat ni test de tresorerie. */
       fleetPlan = [];
       this._resizeAirFleets(AIDate.GetYear(AIDate.GetCurrentDate()), fleetPlan);
     }
-    this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines, priorPeak, priorHistory, fleetPlan, this._abandonedPairs);
+    if (this._recomputeEpochBounds) {
+      OpexRefreshEpochBounds(this._catalog);
+      this._recomputeEpochBounds = false;
+    }
+    this._rebuildProjects(fleetPlan);
+    if (this._catalog != null && this._catalog.bounds != null) {
+      local b = this._catalog.bounds;
+      OpexSign(AIMap.GetTileIndex(1, 2), "EB|" + b.roadMin + "|" + b.railMin
+               + "|" + b.railAirOverlapMin + "|" + b.railMax);
+    }
     if ((C41_ROAD_CANDIDATE_PROFILE || C41_ROAD_FREIGHT_PROFILE || C41_ROAD_FREIGHT_TOWN_PROFILE || C41_ROAD_FEEDER_PROFILE) && this._projects != null && ("road" in this._projects) &&
         this._projects.road != null && ("profile" in this._projects.road) &&
         this._projects.road.profile != null) {
@@ -6570,6 +6586,77 @@ function OpexAI::_runNextTask()
   return false;
 }
 
+function OpexAI::_rebuildProjects(fleetPlan)
+{
+  local priorPeak = (this._projects != null && ("capitalBudgetPeak" in this._projects))
+      ? this._projects.capitalBudgetPeak : 0;
+  local priorHistory = (this._projects != null && ("capitalBudgetHistory" in this._projects))
+      ? this._projects.capitalBudgetHistory : null;
+  local stage = OPEX_STAGE_COMPLETE;
+  local prior = null;
+  if (STAGED_BOOTSTRAP && this._generationStage < OPEX_STAGE_COMPLETE) {
+    stage = this._generationStage;
+    prior = this._projects;
+    if (this._generationStageMonth < 0) {
+      local date = AIDate.GetCurrentDate();
+      this._generationStageMonth = AIDate.GetYear(date) * 12 + AIDate.GetMonth(date);
+    }
+  }
+  this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines,
+      priorPeak, priorHistory, fleetPlan, this._abandonedPairs, stage, prior);
+  if (STAGED_BOOTSTRAP && this._generationStage < OPEX_STAGE_COMPLETE) {
+    this._generationStage++;
+    if (DECISION_LOG) {
+      OpexDecide("BOOTSTRAP_ADVANCE", "next=" + this._generationStage
+                 + " funded=" + this._projects.best.len());
+    }
+    local b = (this._catalog != null && this._catalog.bounds != null)
+        ? this._catalog.bounds : null;
+    if (b != null) {
+      OpexSign(AIMap.GetTileIndex(1, 2), "BS|" + (this._generationStage - 1)
+               + "|" + b.railMin + "|" + b.railMax + "|" + b.airMin);
+    }
+  }
+}
+
+function OpexAI::Save()
+{
+  local abandoned = {};
+  if (this._abandonedPairs != null) {
+    foreach (key, val in this._abandonedPairs) abandoned[key] <- val;
+  }
+  return {
+    version = 1,
+    generationStage = this._generationStage,
+    generationStageMonth = this._generationStageMonth,
+    nextLineId = this._nextLineId,
+    lastCatalogMonth = this._lastCatalogMonth,
+    lastReportYear = this._lastReportYear,
+    startYear = this._startYear,
+    abandonedPairs = abandoned,
+    airBuilt = this._airBuilt,
+    waterBuilt = this._waterBuilt,
+  };
+}
+
+function OpexAI::Load(version, data)
+{
+  this._loadedFromSave = true;
+  if (data == null) return;
+  if ("generationStage" in data) this._generationStage = data.generationStage;
+  if ("generationStageMonth" in data) this._generationStageMonth = data.generationStageMonth;
+  if ("nextLineId" in data) this._nextLineId = data.nextLineId;
+  if ("lastCatalogMonth" in data) this._lastCatalogMonth = data.lastCatalogMonth;
+  if ("lastReportYear" in data) this._lastReportYear = data.lastReportYear;
+  if ("startYear" in data) this._startYear = data.startYear;
+  if ("airBuilt" in data) this._airBuilt = data.airBuilt;
+  if ("waterBuilt" in data) this._waterBuilt = data.waterBuilt;
+  if ("abandonedPairs" in data && data.abandonedPairs != null) {
+    this._abandonedPairs = {};
+    foreach (key, val in data.abandonedPairs) this._abandonedPairs[key] <- val;
+  }
+}
+
 function OpexAI::Start()
 {
   AICompany.SetName("OpexAI");
@@ -6638,7 +6725,8 @@ function OpexAI::Start()
   GROWTH_YIELDS = AIController.GetSetting("growth_yields") != 0;
   AIR_MARGIN = AIController.GetSetting("air_margin") != 0;
   AIR_ABANDON = AIController.GetSetting("air_abandon") != 0;
-  MIN_DISTANCE = AIController.GetSetting("rail_min_distance");
+  STAGED_BOOTSTRAP = AIController.GetSetting("staged_bootstrap") != 0;
+  if (!STAGED_BOOTSTRAP) this._generationStage = OPEX_STAGE_COMPLETE;
   PRICING_ROAD_RATING = AIController.GetSetting("pricing_road_rating") != 0;
   PRICING_RAIL_DEPOT = AIController.GetSetting("pricing_rail_depot") != 0;
   PRICING_ROAD_OPS = AIController.GetSetting("pricing_road_ops") != 0;
