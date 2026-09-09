@@ -1097,6 +1097,15 @@ reste à trancher indépendamment.
   micro-tâche : ventiler `OpexMakeCandidate` pax entre siteabilité de l'origine et économie, puis
   chercher un cache exact seulement sur le poste qui domine.
 
+  ✅ **C41.25 — siteabilité contre économie pax rail, 5 graines × 6 ans.** Le diagnostic passif
+  `results/diag_c41_25_rail_pax_candidate_profile_6y_5seeds.json` est sain sur **291**
+  générations. La siteabilité d'origine est explicitement à **zéro** car `origin_sitable=0` est
+  le comportement par défaut ; elle ne peut donc expliquer aucun coût observé. À l'inverse,
+  `OpexLineEconomics` absorbe **404,03 M opcodes** pour **182 112** appels (≈2 218 opcodes par
+  appel). C'est l'essentiel du coût de candidature pax ; les paires plus courtes sont écartées
+  avant l'économie. Prochaine micro-tâche : sous-profiler `OpexLineEconomics` pax (moteur,
+  capacité, revenu et amortissement) avant d'envisager un mémoïsage exact par couple.
+
   ✅ **C39.4 — les cinq avions « rejetés » sont dominés, non invalides.** La sonde
   `c39_air_reason_probe=0`, sur 5 graines × 6 ans
   (`results/diag_c39_air_reason_6y_5seeds.json`), est saine : les cinq notifications sont le moteur

@@ -1356,12 +1356,14 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
           prequoteOps = 0, prequoteAttempted = 0, prequoteQuoted = 0, prequoteFailed = 0,
           insertOps = 0, insertedProjects = 0 } : null;
   local railGenerationMark = railProfile != null ? OpexOpsMeasureBegin() : null;
-  local railCandidateProfile = (C41_RAIL_CANDIDATE_PROFILE || C41_RAIL_PAX_PROFILE)
+  local railCandidateProfile = (C41_RAIL_CANDIDATE_PROFILE || C41_RAIL_PAX_PROFILE || C41_RAIL_PAX_CANDIDATE_PROFILE)
       ? { paxOps = 0, freightOps = 0, topKOps = 0,
           paxPreparationOps = 0, paxPairTotalOps = 0, paxCandidateOps = 0,
-          paxPairsScanned = 0, paxCandidateCalls = 0 } : null;
+          paxPairsScanned = 0, paxCandidateCalls = 0,
+          paxSitableOps = 0, paxSitableCalls = 0, paxEconomicsOps = 0, paxEconomicsCalls = 0 } : null;
   local railPaxProfile = C41_RAIL_PAX_PROFILE ? railCandidateProfile : null;
-  local rail = OpexBuildCandidates(catalog, budget, lines, abandonedPairs, railCandidateProfile, railPaxProfile);
+  local railPaxCandidateProfile = C41_RAIL_PAX_CANDIDATE_PROFILE ? railCandidateProfile : null;
+  local rail = OpexBuildCandidates(catalog, budget, lines, abandonedPairs, railCandidateProfile, railPaxProfile, railPaxCandidateProfile);
   if (railProfile != null) {
     railProfile.generationOps = OpexOpsMeasureEnd(railGenerationMark);
     railProfile.generationCandidates = rail.candidates.len();

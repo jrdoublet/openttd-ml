@@ -148,7 +148,7 @@ function OpexRailOriginSitable(tile, cargo, coverage, wantProduction)
   return false;
 }
 
-function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, originServed, stats, isTransformer = false)
+function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, originServed, stats, isTransformer = false, profile = null)
 {
   if (monthly <= 0) {
     stats.noMonthly++;
@@ -157,7 +157,13 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   /* Source seulement, et seulement si origin_sitable = 1. Les 7 a 15 SITEA mesures etaient
    * tous du fret a nCargo=0 cote A. Filtrer aussi le puits enlevait des paires urbaines encore
    * constructibles. A 0, le classement est celui d'avant le filtre (SITEA reste possible). */
-  if (ORIGIN_SITABLE && !OpexRailOriginSitable(srcTile, cargo, catalog.railCoverage, true)) {
+  local sitableMark = (profile != null && ORIGIN_SITABLE) ? OpexOpsMeasureBegin() : null;
+  local sitable = !ORIGIN_SITABLE || OpexRailOriginSitable(srcTile, cargo, catalog.railCoverage, true);
+  if (profile != null && ORIGIN_SITABLE) {
+    profile.paxSitableOps += OpexOpsMeasureEnd(sitableMark);
+    profile.paxSitableCalls++;
+  }
+  if (!sitable) {
     stats.unsitable++;
     return null;
   }
@@ -171,7 +177,12 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
     return null;
   }
 
+  local economicsMark = profile != null ? OpexOpsMeasureBegin() : null;
   local economics = OpexLineEconomics(catalog, cargo, distance, monthly, kind);
+  if (profile != null) {
+    profile.paxEconomicsOps += OpexOpsMeasureEnd(economicsMark);
+    profile.paxEconomicsCalls++;
+  }
   if (economics == null) {
     stats.economicsUnavailable++;
     return null;
@@ -721,7 +732,7 @@ function OpexPlaceJoinFreight(catalog, lines, out, stats, industries, served, ab
 }
 
 /* Paires de villes pour les passagers. */
-function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null)
+function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, candidateProfile = null)
 {
   local cargo = catalog.paxCargo;
   if (cargo < 0) return;
@@ -796,7 +807,7 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
        * Corriger `monthly` ici serait donc traiter le mauvais terme. */
       local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
       local candidate = OpexMakeCandidate(catalog, "pax", cargo, towns[a].tile, towns[b].tile,
-                                          monthly, originServed, stats);
+                                          monthly, originServed, stats, false, candidateProfile);
       if (profile != null) {
         profile.paxCandidateOps += OpexOpsMeasureEnd(candidateMark);
         profile.paxCandidateCalls++;
@@ -921,7 +932,7 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
 /* Construit et classe tous les candidats. Rend la liste triee par rapport decroissant.
  * `lines` (this._lines de main.nut) sert a exclure les origines deja desservies avant meme de
  * calculer un candidat -- voir OpexOriginServed ci-dessus. */
-function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, profile = null, paxProfile = null)
+function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, profile = null, paxProfile = null, paxCandidateProfile = null)
 {
   local all = [];
   /* Comptes de rejet : ils se trouvent ici, avant que TOP_K ne masque les candidats restants.
@@ -956,7 +967,7 @@ function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, prof
 
   local paxMark = profile != null ? OpexOpsMeasureBegin() : null;
   budget.begin();
-  OpexPaxCandidates(catalog, lines, all, stats, abandonedPairs, paxProfile);
+  OpexPaxCandidates(catalog, lines, all, stats, abandonedPairs, paxProfile, paxCandidateProfile);
   local opsPax = budget.end("cand_pax");
   if (profile != null) profile.paxOps += OpexOpsMeasureEnd(paxMark);
 
