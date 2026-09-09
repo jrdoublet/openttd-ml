@@ -84,6 +84,38 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   **pas** la génération monolithique générale. Ne pas écrire d'orchestrateur global avant d'avoir
   rendu cette continuation préemptible/mesurable séparément ; l'échantillon de mois reste petit.
 
+  📝 **C41.46–C41.49 — contrat écrit avant code (2026-09-09) :
+  [`docs/04_arbitrage_rail_search.md`](04_arbitrage_rail_search.md).** Suite directe de la mesure
+  ci-dessus, sur la chronologie `results/diag_1v1_shared_timeline_2y_seed42.json`. Quatre tranches,
+  toutes à défaut `0`. 🔑 **Trouvaille qui réordonne le travail** : l'unique ligne rail de la partie
+  a mis **9 mois** à naître — 4 mois d'A\*, puis **5 mois** en `phase == "build"` bloquée sur
+  `"cash"`. Pendant ces 5 mois `_railSearch` reste non nul, donc `_expandRailLines` sort par sa
+  garde (`main.nut:4417`) et **aucune autre recherche rail ne peut démarrer** : le canal rail est
+  gelé. C'est la même forme que le blocage par plan en échec déjà corrigé (garde `planFailed`,
+  G3§1), motif trésorerie non couvert (**C41.47**, pas encore codé). **Ce correctif ne demande
+  aucun dénominateur commun et précède l'arbitrage.**
+  ⚠️ `rail_search_resumable` est **déjà à 1, adopté** (`info.nut:1167`) et les rejets −23,1 % /
+  −13,3 % ont été soignés par C20 (`rail_micro_deadline=1`) : il n'y a rien à rouvrir.
+
+  ✅ **C41.46 — fait et mesuré (2026-09-09), et ça renverse le §1.1 de départ.**
+  `c41_rail_slice_ledger=0` (défaut) encadre isolément le seul appel `_continueRailSearch()` et
+  sépare, par différence avec la mesure totale de la passe, les opcodes **nets** de la tranche A\*
+  de ceux de la tâche de file exécutée dans la même passe — le ledger C41.11 les agrégeait sous
+  `rail_search`. Diagnostic 5 graines × 6 ans, `results/diag_c41_46_rail_slice_ledger_6y_5seeds.json`,
+  0 échec : **part nette 45,0 % en 1971 → 13,1 % en 1975, cumul 23,3 %** (`done_rate` 1,5 % —
+  quasi aucune tranche n'achève sa recherche dans l'année où elle est comptée). Les 79,7 %/70,6 %
+  mesurés précédemment surestimaient donc massivement le coût réel de l'A\* rail : le gros du
+  « coût rail_search » est en fait la tâche de file qui tourne à côté (`catalog`/`projects` les
+  plus probables, non prouvé — ce ledger est un accumulateur unique, pas ventilé par tâche
+  coïncidente). **Conséquence : le gisement d'opcodes visé par C41.49 est ~3× plus faible
+  qu'estimé et continue de baisser ; la question à instruire avant lui n'est plus « faut-il couper
+  l'A\* » mais « quelle tâche de file gonfle le coût, et pourquoi » — un sujet C39, pas C41.**
+  🐛 Piège trouvé au premier smoke test : le premier essai journalisait via `OpexC41SchedulerLog`,
+  gatée sur `C41_SLACK_LEDGER/OPPORTUNITY/ADMISSION` — `c41_rail_slice_ledger=1` seul n'aurait rien
+  émis. Corrigé par un gate dédié (`OpexC41RailSliceLog`), comme les sondes rail-lost.
+  **Reste** : C41.47 (libération trésorerie, non codé), C41.48/C41.49 (sonde puis test de
+  domination, probablement moins prioritaires que prévu vu ce qui précède).
+
 - 🔴 **C42 — Transformer les offres de subvention non attribuées en candidats.** `C17`/`A7.3`
   (`event_subsidy_probe`) est fait : écoute par événement, aucun sondage en boucle. Mais c'est une
   **sonde en lecture seule, défaut 0** — elle mesure, elle ne génère ni ne priorise aucun candidat.

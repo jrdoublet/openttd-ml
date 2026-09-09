@@ -202,6 +202,10 @@ C41_RAIL_LOST_CONNECTIVITY_PROBE <- false;
  * candidate non ambigue) -- AITestMode d'abord, commande reelle seulement si le meme raccord
  * reussit en test. */
 C41_RAIL_LOST_JUNCTION_REPAIR <- false;
+/* C41.46 : separe les opcodes nets d'une tranche _continueRailSearch() de ceux de la tache de
+ * file executee dans la MEME passe de _runNextTask (main.nut A4) -- le ledger C41.11 agrege les
+ * deux des que _railSearch est non nul en entree de passe. Purement observatoire. */
+C41_RAIL_SLICE_LEDGER <- false;
 /* air_fleet_probe : _resizeAirFleets n'emet que ses SUCCES (FG|). Quand une ligne aerienne
  * n'grandit pas, la cause est invisible. FR| donne le premier refus rencontre, une fois par ligne
  * et par an. */
@@ -280,6 +284,17 @@ function OpexC41SchedulerLog(kind, fields)
   local date = AIDate.GetCurrentDate();
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " " + kind + " " + fields);
+}
+
+/* C41.46 : sonde independante de la famille C41.11/13/14 -- son propre gate, comme les sondes
+ * rail-lost ci-dessous. OpexC41SchedulerLog aurait silencieusement avale ces lignes tant qu'aucun
+ * des trois autres flags n'est actif (piege trouve au premier smoke test). */
+function OpexC41RailSliceLog(fields)
+{
+  if (!C41_RAIL_SLICE_LEDGER) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " C41_RAIL_SLICE_LEDGER " + fields);
 }
 
 function OpexC41StalenessLog(kind, fields)
@@ -1181,6 +1196,13 @@ class OpexAI extends AIController {
   _c41MonthlyBusyMonth = -1;
   _c41OpportunityLedger = null;
   _c41AdmissionLedger = null;
+  /* C41.46 : accumulateur unique (pas par categorie) -- separe la tranche A* nette de la tache de
+   * file executee dans la meme passe de _runNextTask. Les trois champs _c41RailSliceLast* sont un
+   * scratch REMIS A -1/0 a chaque passe, lu par le wrapper juste apres _runNextTask(). */
+  _c41RailSliceLedger = null;
+  _c41RailSliceLastOps = -1;
+  _c41RailSliceLastIterDelta = 0;
+  _c41RailSliceLastDone = false;
   _c41LastTaskName = "idle";
   _startYear = -1;
   _vehiclesToScrap = null;
@@ -1292,6 +1314,8 @@ class OpexAI extends AIController {
   function _recordC41StaleOpportunity(slackLeft);
   function _logC41OpportunityLedger(year);
   function _logC41AdmissionLedger(year);
+  function _recordC41RailSliceLedger(netOps, taskOps, iterDelta, done);
+  function _logC41RailSliceLedger(year);
   function _reportYear(year, ranked);
   function _reportLines(year);
   function _scrapDeadLines(year);
@@ -5838,7 +5862,8 @@ function OpexAI::_processEvents()
  * coexistent, une categorie jointe conserve l'incertitude plutot que de fabriquer une attribution. */
 function OpexAI::_runNextTaskWithSlackLedger()
 {
-  if ((!C41_SLACK_LEDGER && !C41_MONTHLY_BUSY_LEDGER && !C41_OPPORTUNITY_LEDGER && !C41_ADMISSION_LEDGER)
+  if ((!C41_SLACK_LEDGER && !C41_MONTHLY_BUSY_LEDGER && !C41_OPPORTUNITY_LEDGER && !C41_ADMISSION_LEDGER
+       && !C41_RAIL_SLICE_LEDGER)
       || this._c41SlackLedger == null) {
     return this._runNextTask();
   }
@@ -5882,6 +5907,16 @@ function OpexAI::_runNextTaskWithSlackLedger()
     if (ran) entry.ran++;
     entry.ops += ops;
     this._c41MonthlyBusyLedger.rawset(category, entry);
+  }
+  /* C41.46 : this._c41RailSliceLastOps a ete mesure INDEPENDAMMENT dans _runNextTask, pendant le
+   * meme appel que `ops` ci-dessus (OpexOpsMeasureBegin/End ne partagent aucun etat -- imbrication
+   * sure, voir budget.nut). Sentinelle -1 = aucune tranche A* cette passe. La difference donne les
+   * opcodes de la tache de file jouee dans la MEME passe, jamais mesures separement jusqu'ici. */
+  if (C41_RAIL_SLICE_LEDGER && this._c41RailSliceLastOps >= 0) {
+    local taskOps = ops - this._c41RailSliceLastOps;
+    if (taskOps < 0) taskOps = 0;
+    this._recordC41RailSliceLedger(this._c41RailSliceLastOps, taskOps,
+                                   this._c41RailSliceLastIterDelta, this._c41RailSliceLastDone);
   }
   /* C41.13 : apres la tache historique, seules les couches encore sales sont admissibles au
    * delestage. Une meme tranche peut etre une opportunite pour plusieurs couches : le total par
@@ -5998,6 +6033,39 @@ function OpexAI::_logC41OpportunityLedger(year)
   this._c41OpportunityLedger = {};
 }
 
+/* C41.46 : accumulateur UNIQUE (pas par categorie, contrairement aux autres ledgers C41) -- il
+ * n'existe qu'un seul canal de recherche rail a la fois (this._railSearch), donc rien a ventiler. */
+function OpexAI::_recordC41RailSliceLedger(netOps, taskOps, iterDelta, done)
+{
+  if (this._c41RailSliceLedger == null) {
+    this._c41RailSliceLedger = { calls = 0, notDoneCalls = 0, netOps = 0, taskOps = 0, iterDelta = 0 };
+  }
+  local entry = this._c41RailSliceLedger;
+  entry.calls++;
+  if (!done) entry.notDoneCalls++;
+  entry.netOps += netOps;
+  entry.taskOps += taskOps;
+  entry.iterDelta += iterDelta;
+}
+
+/* Publication annuelle, comme C41.11. `not_done_calls` = tranches qui n'ont PAS atteint
+ * slice.done (recherche toujours en "search" apres l'appel) ; calls - not_done_calls = tranches
+ * qui ont termine leur recherche (transition vers phase "build") cette annee. */
+function OpexAI::_logC41RailSliceLedger(year)
+{
+  if (!C41_RAIL_SLICE_LEDGER || this._c41RailSliceLedger == null
+      || this._c41RailSliceLedger.calls == 0) {
+    this._c41RailSliceLedger = null;
+    return;
+  }
+  local entry = this._c41RailSliceLedger;
+  OpexC41RailSliceLog("year=" + year + " calls=" + entry.calls
+                      + " not_done_calls=" + entry.notDoneCalls
+                      + " net_ops=" + entry.netOps + " task_ops=" + entry.taskOps
+                      + " iter_delta=" + entry.iterDelta);
+  this._c41RailSliceLedger = null;
+}
+
 /* File CONTINUE : le scan reprend apres la derniere tache choisie, meme si un A* a franchi le
  * changement d'annee. Le calendrier ne decide plus RIEN : quand le suffixe de la table est fini,
  * _taskCycle avance et le scan repart a zero. Chaque tache se reporte par dueCycle, donc aucun
@@ -6005,6 +6073,9 @@ function OpexAI::_logC41OpportunityLedger(year)
 function OpexAI::_runNextTask()
 {
   if (C41_SLACK_LEDGER || C41_MONTHLY_BUSY_LEDGER || C41_OPPORTUNITY_LEDGER || C41_ADMISSION_LEDGER) this._c41LastTaskName = "idle";
+  /* C41.46 : sentinelle -1 = aucune tranche A* mesuree cette passe. Remise a chaque passage,
+   * lue par _runNextTaskWithSlackLedger juste apres le retour de cette fonction. */
+  if (C41_RAIL_SLICE_LEDGER) this._c41RailSliceLastOps = -1;
   if (DECISION_LOG) {
     _currentTaskName = null;
     _currentTaskLogged = false;
@@ -6017,7 +6088,26 @@ function OpexAI::_runNextTask()
   /* A4 : avancer l'A* d'une tranche PUIS continuer la file, comme _railExpansion. Retourner
    * ici sans encherner les autres taches reconstituerait le gel (rien d'autre ne tourne tant
    * que la recherche n'a pas fini). */
-  if (this._railSearch != null) this._continueRailSearch();
+  if (this._railSearch != null) {
+    /* C41.46 : n'encadrer que les passes qui font REELLEMENT avancer l'A* -- phase == "search".
+     * phase == "build" retourne immediatement pour kind == "primary" (le cout reel est ailleurs,
+     * dans _consumeRailSearch via la tache "projects") ou execute _consumeRailUpgrade() pour
+     * kind == "upgrade", qui n'est pas une tranche de recherche. Aucun des deux n'est comptabilise
+     * dans ce ledger : le confondre fausserait "iterations cumulees" et "tranches non terminees". */
+    if (C41_RAIL_SLICE_LEDGER && this._railSearch.phase == "search") {
+      local sliceState = this._railSearch;
+      local spentBefore = sliceState.spent;
+      local sliceMark = OpexOpsMeasureBegin();
+      this._continueRailSearch();
+      this._c41RailSliceLastOps = OpexOpsMeasureEnd(sliceMark);
+      this._c41RailSliceLastIterDelta = sliceState.spent - spentBefore;
+      /* sliceState reste la MEME table (mutee en place par _continueRailSearch) : phase != "search"
+       * signifie que cette tranche a atteint slice.done et fait basculer la recherche en "build". */
+      this._c41RailSliceLastDone = (sliceState.phase != "search");
+    } else {
+      this._continueRailSearch();
+    }
+  }
   local year = AIDate.GetYear(AIDate.GetCurrentDate());
   local task = null;
   local taskIndex = -1;
@@ -6562,6 +6652,7 @@ function OpexAI::_runNextTask()
     this._logC41SlackLedger(year);
     this._logC41OpportunityLedger(year);
     this._logC41AdmissionLedger(year);
+    this._logC41RailSliceLedger(year);
     this._reportYear(year, this._ranked);
     this._reportLines(year);
     return true;
@@ -6942,6 +7033,7 @@ function OpexAI::Start()
   C41_RAIL_LOST_SIGNAL_REPAIR = AIController.GetSetting("c41_rail_lost_signal_repair") != 0;
   C41_RAIL_LOST_CONNECTIVITY_PROBE = AIController.GetSetting("c41_rail_lost_connectivity_probe") != 0;
   C41_RAIL_LOST_JUNCTION_REPAIR = AIController.GetSetting("c41_rail_lost_junction_repair") != 0;
+  C41_RAIL_SLICE_LEDGER = AIController.GetSetting("c41_rail_slice_ledger") != 0;
   CASH_RESERVE_PROBE = AIController.GetSetting("cash_reserve_probe") != 0;
   PORTFOLIO_REFRESH_PROBE = AIController.GetSetting("portfolio_refresh_probe") != 0;
   if (C41_RAIL_LOST_TOPOLOGY_PROBE) C41_RAIL_LOST_PROBE = true;

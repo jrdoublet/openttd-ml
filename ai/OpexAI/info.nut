@@ -586,6 +586,22 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C41.46 : le ledger C41.11 etiquette toute la passe "rail_search" des que _railSearch est
+     * non nul en entree, mais _runNextTask avance une tranche A* PUIS execute une tache de file
+     * dans le MEME passage (main.nut, commentaire A4) -- les deux cout sont donc agreges. Cette
+     * sonde encadre isolement le seul appel _continueRailSearch() pour separer : opcodes nets de
+     * la tranche A*, opcodes de la tache de file dans la meme passe, iterations cumulees de
+     * l'annee, et le nombre de tranches qui n'ont PAS atteint slice.done (recherche encore en
+     * cours apres l'appel) contre celles qui l'ont atteint. Aucun dueCycle, aucune borne, aucune
+     * decision modifiee -- purement observatoire (docs/04_arbitrage_rail_search.md). */
+    AddSetting({
+      name = "c41_rail_slice_ledger",
+      description = "C41.46 probe: separate net rail A* slice opcodes from same-pass task opcodes and count slices that did not reach slice.done; no scheduling change; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* C43/E3 famille 2 : CASH_RESERVE_MIN mord-il ? Compteurs cumulatifs, publies en delta annuel
      * par la tache "report" (OpexCashReserve() est appelee trop souvent pour journaliser chaque
      * appel). */
