@@ -56,7 +56,7 @@ def parse_trace(output):
             continue
         year, month, day, kind, rest = match.groups()
         if kind not in ("C39_DIRTY", "C39_REFRESH", "C39_DECISION_DELTA", "C39_ENGINE_DELTA",
-                        "C41_REVISION", "C41_ACK", "C41_WATER_REFRESH", "C41_ROAD_REFRESH", "C41_ROAD_CANDIDATE_PROFILE", "C41_ROAD_FREIGHT_PROFILE", "C41_ROAD_FREIGHT_TOWN_PROFILE", "C41_ROAD_FEEDER_PROFILE", "C41_ROAD_FEEDER_REFRESH_PROFILE", "C41_RAIL_PORTFOLIO_PROFILE", "C41_RAIL_CANDIDATE_PROFILE", "C41_RAIL_PAX_PROFILE", "C41_RAIL_PAX_CANDIDATE_PROFILE", "C41_WATER_PLANS", "C41_WATER_PLAN_PROFILE", "C41_SLACK_LEDGER", "C41_STALENESS_ACK", "C41_OPPORTUNITY_LEDGER", "C41_ADMISSION_LEDGER", "C41_VEHICLE_LOST", "C41_RAIL_LOST", "C41_RAIL_LOST_TOPOLOGY", "C41_RAIL_LOST_PHYSICAL", "C41_RAIL_SIGNAL_ARM", "C41_RAIL_SIGNAL_REPAIR", "C41_RAIL_LOST_CONNECTIVITY",
+                        "C41_REVISION", "C41_ACK", "C41_WATER_REFRESH", "C41_ROAD_REFRESH", "C41_ROAD_CANDIDATE_PROFILE", "C41_ROAD_FREIGHT_PROFILE", "C41_ROAD_FREIGHT_TOWN_PROFILE", "C41_ROAD_FEEDER_PROFILE", "C41_ROAD_FEEDER_REFRESH_PROFILE", "C41_RAIL_PORTFOLIO_PROFILE", "C41_RAIL_CANDIDATE_PROFILE", "C41_RAIL_PAX_PROFILE", "C41_RAIL_PAX_CANDIDATE_PROFILE", "C41_RAIL_PAX_ECONOMICS_PROFILE", "C41_WATER_PLANS", "C41_WATER_PLAN_PROFILE", "C41_SLACK_LEDGER", "C41_STALENESS_ACK", "C41_OPPORTUNITY_LEDGER", "C41_ADMISSION_LEDGER", "C41_VEHICLE_LOST", "C41_RAIL_LOST", "C41_RAIL_LOST_TOPOLOGY", "C41_RAIL_LOST_PHYSICAL", "C41_RAIL_SIGNAL_ARM", "C41_RAIL_SIGNAL_REPAIR", "C41_RAIL_LOST_CONNECTIVITY",
                         "C39_AIR_ENGINE_REASON"):
             continue
         events.append({
@@ -125,6 +125,8 @@ def main():
                         help="active C41.24 : sous-ventilation preparation/paires/candidats pax rail")
     parser.add_argument("--c41-rail-pax-candidate-profile", action="store_true",
                         help="active C41.25 : sous-ventilation siteabilite/economie pax rail")
+    parser.add_argument("--c41-rail-pax-economics-profile", action="store_true",
+                        help="active C41.26 : sous-ventilation preparation/boucle/finalisation economie pax rail")
     parser.add_argument("--road-pax-build", action="store_true",
                         help="active les candidats passagers route pour un diagnostic de cout")
     parser.add_argument("--c41-vehicle-lost-probe", action="store_true",
@@ -210,6 +212,8 @@ def main():
         settings.append(("c41_rail_pax_profile", 1))
     if args.c41_rail_pax_candidate_profile:
         settings.append(("c41_rail_pax_candidate_profile", 1))
+    if args.c41_rail_pax_economics_profile:
+        settings.append(("c41_rail_pax_economics_profile", 1))
     if args.road_pax_build:
         settings.append(("road_pax_build", 1))
     ai = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", tuple(settings))
@@ -483,6 +487,7 @@ def main():
                      "c41_rail_candidate_profile": int(args.c41_rail_candidate_profile),
                      "c41_rail_pax_profile": int(args.c41_rail_pax_profile),
                      "c41_rail_pax_candidate_profile": int(args.c41_rail_pax_candidate_profile),
+                     "c41_rail_pax_economics_profile": int(args.c41_rail_pax_economics_profile),
                      "road_pax_build": int(args.road_pax_build),
                      "c41_vehicle_lost_probe": int(args.c41_vehicle_lost_probe or args.c41_rail_lost_probe),
                      "c41_rail_lost_probe": int(args.c41_rail_lost_probe or args.c41_rail_lost_topology_probe or args.c41_rail_lost_physical_probe or args.c41_rail_lost_signal_repair),

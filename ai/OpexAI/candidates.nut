@@ -178,7 +178,7 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   }
 
   local economicsMark = profile != null ? OpexOpsMeasureBegin() : null;
-  local economics = OpexLineEconomics(catalog, cargo, distance, monthly, kind);
+  local economics = OpexLineEconomics(catalog, cargo, distance, monthly, kind, 0, null, profile);
   if (profile != null) {
     profile.paxEconomicsOps += OpexOpsMeasureEnd(economicsMark);
     profile.paxEconomicsCalls++;

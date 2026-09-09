@@ -1106,6 +1106,15 @@ reste à trancher indépendamment.
   avant l'économie. Prochaine micro-tâche : sous-profiler `OpexLineEconomics` pax (moteur,
   capacité, revenu et amortissement) avant d'envisager un mémoïsage exact par couple.
 
+  ✅ **C41.26 — sous-profil de l'économie pax rail, 5 graines × 6 ans.** Le diagnostic passif
+  `results/diag_c41_26_rail_pax_economics_profile_6y_5seeds.json` est sain sur **293**
+  générations : **431,14 M** opcodes pour 183 307 appels. La préparation de rame/capacité/voie
+  prend **336,56 M (78,1 %)** ; la boucle de choix d'un ou deux trains **54,69 M (12,7 %)** ; la
+  finalisation **22,25 M (5,2 %)**. Le reliquat couvre les gardes et transitions entre ces
+  intervalles. Prochaine micro-tâche : sous-profiler les calculs de vitesse et de rame de la
+  préparation, avant tout cache ; il faut d'abord savoir si une clé par cargo, longueur et rame
+  serait réellement réutilisable.
+
   ✅ **C39.4 — les cinq avions « rejetés » sont dominés, non invalides.** La sonde
   `c39_air_reason_probe=0`, sur 5 graines × 6 ans
   (`results/diag_c39_air_reason_6y_5seeds.json`), est saine : les cinq notifications sont le moteur

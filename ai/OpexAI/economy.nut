@@ -156,8 +156,9 @@ function OpexStationRatingForHeadway(headwayDays)
  * Quand fourni et > 0, il remplace distance pour le temps de trajet, la vitesse et le
  * cout de voie. `distance` (Manhattan entre extremites) reste la distance TARIFAIRE, exactement
  * comme OpexRoadLineEconomics distingue deja les deux. */
-function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPlatformLength = 0, routeDistance = null)
+function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPlatformLength = 0, routeDistance = null, profile = null)
 {
+  local setupMark = profile != null ? OpexOpsMeasureBegin() : null;
   local travelDist = (routeDistance != null && routeDistance > 0) ? routeDistance : distance;
   if (!(cargo in catalog.wagonByCargo)) return null;
   if (!(cargo in catalog.locoByCargoWagons)) return null;
@@ -248,6 +249,8 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   local infraCost = travelDist * effectiveTrackCost + 2 * platformLength * catalog.costStation;
   if (PRICING_RAIL_DEPOT && ("costRailDepot" in catalog)) infraCost += catalog.costRailDepot;
   local locoLife = loco.ageYears > 0 ? loco.ageYears : 20;
+  if (profile != null) profile.paxEconomicsSetupOps += OpexOpsMeasureEnd(setupMark);
+  local loopMark = profile != null ? OpexOpsMeasureBegin() : null;
   local best = null;
   for (local trains = 1; trains <= MAX_RAIL_TRAINS; trains++) {
     local headwayDays = roundTripDays / trains;
@@ -299,11 +302,16 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
                immobilise = immobilise, roi = roi };
     }
   }
+  if (profile != null) {
+    profile.paxEconomicsLoopOps += OpexOpsMeasureEnd(loopMark);
+    profile.paxEconomicsLoopCalls++;
+  }
   if (best == null) return null;
+  local postMark = profile != null ? OpexOpsMeasureBegin() : null;
   local trainsForHeadway = OpexCeilDiv(roundTripDays, TARGET_HEADWAY_DAYS);
   local trainsForVolume = OpexCeilDiv(best.offered, perTrain * tripsPerMonth);
 
-  return {
+  local result = {
     oneWayDays = oneWayDays,
     incomeDays = incomeDays,
     trains = best.trains,
@@ -329,6 +337,8 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
     roi = best.roi,
     profitAnnual = best.profitAnnual,
   };
+  if (profile != null) profile.paxEconomicsPostOps += OpexOpsMeasureEnd(postMark);
+  return result;
 }
 
 /* Rendement physique d'UNE rame existante, sans attribuer une seconde fois le prix des voies et
