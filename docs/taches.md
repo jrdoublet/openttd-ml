@@ -1173,6 +1173,13 @@ reste à trancher indépendamment.
   **86,71 M** et **83,44 M** : le prochain contrat doit ventiler, dans chacune, les gardes de paire
   et `OpexMakeCandidate`/l'économie. Aucun filtre ni index n'est justifié avant cette mesure.
 
+  ✅ **C41.32 — gardes contre candidat fret rail, 5 graines × 6 ans.** Le diagnostic
+  `results/diag_c41_32_rail_freight_candidate_profile_6y_5seeds.json` est sain (**5/5**).
+  Dans industrie→industrie, `OpexMakeCandidate` prend **91,52 M** des **96,80 M** opcodes
+  (94,5 %, 46 805 appels) : la prochaine coupe doit viser son économie. Dans industrie→ville,
+  il ne prend que **10,53 M** des **77,61 M** (5 614 appels) ; les gardes de cette branche
+  représentent 86,4 %, mais aucun index ne doit être proposé avant de connaître leur garde exacte.
+
   ✅ **C39.4 — les cinq avions « rejetés » sont dominés, non invalides.** La sonde
   `c39_air_reason_probe=0`, sur 5 graines × 6 ans
   (`results/diag_c39_air_reason_6y_5seeds.json`), est saine : les cinq notifications sont le moteur

@@ -877,8 +877,13 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
         local isTransformer = ("isTransformer" in industries[di]) && industries[di].isTransformer;
         local originServed = ss != null || sd != null;
         if (originServed) stats.pairsOneServed++;
+        local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
         local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
                                             industries[di].tile, monthly, originServed, stats, isTransformer);
+        if (profile != null) {
+          profile.freightIndustryCandidateOps += OpexOpsMeasureEnd(candidateMark);
+          profile.freightIndustryCandidateCalls++;
+        }
         if (candidate != null) {
           if (JOIN_PLACE && (OpexAbandonedPairKey(candidate) in stats.placeJoinKeys)) {
             /* H2 porte deja le join ; ne pas occuper un second slot TOP_K. */
@@ -922,8 +927,13 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
           if (townMonthly <= 0) continue;
           local originServed = ss != null || st != null;
           if (originServed) stats.pairsOneServed++;
+          local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
           local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
                                               town.tile, townMonthly, originServed, stats, false);
+          if (profile != null) {
+            profile.freightTownCandidateOps += OpexOpsMeasureEnd(candidateMark);
+            profile.freightTownCandidateCalls++;
+          }
           if (candidate != null) {
             candidate.dstTown <- town.id;
             out.append(candidate);
