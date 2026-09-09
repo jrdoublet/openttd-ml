@@ -1132,6 +1132,14 @@ reste à trancher indépendamment.
   ses clés propres `(loco,wagon,wagons)` avant de retenir un cache de croisière, plus simple et
   plus largement réutilisable qu'un cache de vitesse finale.
 
+  ✅ **C41.29 — réutilisation de croisière pax rail, 5 graines × 6 ans.** Le diagnostic passif
+  `results/diag_c41_29_rail_pax_cruise_profile_6y_5seeds.json` est sain sur **290** générations.
+  Les 382 341 recherches de croisière (242,78 M opcodes) n'emploient que **1 335** clés
+  `(loco,wagon,wagons)` : **381 006 appels (99,65 %)** sont des répétitions dans leur génération.
+  Un cache éphémère, vidé à chaque `OpexBuildCandidates`, est donc exact, minuscule et ne porte
+  aucune donnée stale. Prochaine micro-tâche : l'introduire derrière un réglage C41.30, puis
+  diagnostic apparié 5×6 avant toute activation par défaut.
+
   ✅ **C39.4 — les cinq avions « rejetés » sont dominés, non invalides.** La sonde
   `c39_air_reason_probe=0`, sur 5 graines × 6 ans
   (`results/diag_c39_air_reason_6y_5seeds.json`), est saine : les cinq notifications sont le moteur

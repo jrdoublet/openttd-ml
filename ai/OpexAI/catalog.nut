@@ -142,10 +142,19 @@ function OpexRailEffectiveSpeed(loco, wagon, wagons, distance, profile = null)
       profile.paxSpeedKeys[key] <- true;
       profile.paxSpeedUniqueKeys++;
     }
+    local cruiseKey = loco.id + "|" + wagon.id + "|" + wagons;
+    if (cruiseKey in profile.paxCruiseKeys) profile.paxCruiseCacheableHits++;
+    else {
+      profile.paxCruiseKeys[cruiseKey] <- true;
+      profile.paxCruiseUniqueKeys++;
+    }
   }
   local cruiseMark = profile != null ? OpexOpsMeasureBegin() : null;
   local cruise = OpexRailCruiseSpeed(loco, wagon, wagons);
-  if (profile != null) profile.paxCruiseOps += OpexOpsMeasureEnd(cruiseMark);
+  if (profile != null) {
+    profile.paxCruiseOps += OpexOpsMeasureEnd(cruiseMark);
+    profile.paxCruiseCalls++;
+  }
   if (cruise < 1 || distance < 1) return 0;
 
   local halfSpeed = cruise / 2;

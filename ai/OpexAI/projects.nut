@@ -1356,7 +1356,7 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
           prequoteOps = 0, prequoteAttempted = 0, prequoteQuoted = 0, prequoteFailed = 0,
           insertOps = 0, insertedProjects = 0 } : null;
   local railGenerationMark = railProfile != null ? OpexOpsMeasureBegin() : null;
-  local railCandidateProfile = (C41_RAIL_CANDIDATE_PROFILE || C41_RAIL_PAX_PROFILE || C41_RAIL_PAX_CANDIDATE_PROFILE || C41_RAIL_PAX_ECONOMICS_PROFILE || C41_RAIL_PAX_SPEED_PROFILE || C41_RAIL_PAX_SPEED_DETAIL_PROFILE)
+  local railCandidateProfile = (C41_RAIL_CANDIDATE_PROFILE || C41_RAIL_PAX_PROFILE || C41_RAIL_PAX_CANDIDATE_PROFILE || C41_RAIL_PAX_ECONOMICS_PROFILE || C41_RAIL_PAX_SPEED_PROFILE || C41_RAIL_PAX_SPEED_DETAIL_PROFILE || C41_RAIL_PAX_CRUISE_PROFILE)
       ? { paxOps = 0, freightOps = 0, topKOps = 0,
           paxPreparationOps = 0, paxPairTotalOps = 0, paxCandidateOps = 0,
           paxPairsScanned = 0, paxCandidateCalls = 0,
@@ -1365,9 +1365,10 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
           paxEconomicsPostOps = 0, paxSpeedOps = 0, paxSpeedCalls = 0,
           paxCorrectedSpeedCalls = 0, paxCruiseOps = 0, paxAccelerationOps = 0,
           paxIntegrationOps = 0, paxSpeedKeys = {}, paxSpeedUniqueKeys = 0,
-          paxSpeedCacheableHits = 0 } : null;
+          paxSpeedCacheableHits = 0, paxCruiseKeys = {}, paxCruiseCalls = 0,
+          paxCruiseUniqueKeys = 0, paxCruiseCacheableHits = 0 } : null;
   local railPaxProfile = C41_RAIL_PAX_PROFILE ? railCandidateProfile : null;
-  local railPaxCandidateProfile = (C41_RAIL_PAX_CANDIDATE_PROFILE || C41_RAIL_PAX_ECONOMICS_PROFILE || C41_RAIL_PAX_SPEED_PROFILE || C41_RAIL_PAX_SPEED_DETAIL_PROFILE)
+  local railPaxCandidateProfile = (C41_RAIL_PAX_CANDIDATE_PROFILE || C41_RAIL_PAX_ECONOMICS_PROFILE || C41_RAIL_PAX_SPEED_PROFILE || C41_RAIL_PAX_SPEED_DETAIL_PROFILE || C41_RAIL_PAX_CRUISE_PROFILE)
       ? railCandidateProfile : null;
   local rail = OpexBuildCandidates(catalog, budget, lines, abandonedPairs, railCandidateProfile, railPaxProfile, railPaxCandidateProfile);
   if (railProfile != null) {

@@ -156,6 +156,8 @@ C41_RAIL_PAX_ECONOMICS_PROFILE <- false;
 C41_RAIL_PAX_SPEED_PROFILE <- false;
 /* C41.28 : detail et reutilisation exacte des calculs de vitesse pax rail. */
 C41_RAIL_PAX_SPEED_DETAIL_PROFILE <- false;
+/* C41.29 : reutilisation exacte de la vitesse de croisiere pax rail. */
+C41_RAIL_PAX_CRUISE_PROFILE <- false;
 /* C41.4 : sonde strictement passive des vehicules perdus. Contrairement a A7.4,
  * elle n'ecrit ni compteur de ligne ni signe, et n'arme aucune tache. */
 C41_VEHICLE_LOST_PROBE <- false;
@@ -6134,6 +6136,15 @@ function OpexAI::_runNextTask()
                  + " unique_keys=" + profile.paxSpeedUniqueKeys
                  + " cacheable_hits=" + profile.paxSpeedCacheableHits);
     }
+    if (C41_RAIL_PAX_CRUISE_PROFILE && this._projects != null && ("rail" in this._projects)
+        && this._projects.rail != null && ("profile" in this._projects.rail)
+        && this._projects.rail.profile != null) {
+      local profile = this._projects.rail.profile;
+      OpexC39Log("C41_RAIL_PAX_CRUISE_PROFILE", "cruise_ops=" + profile.paxCruiseOps
+                 + " cruise_calls=" + profile.paxCruiseCalls
+                 + " unique_keys=" + profile.paxCruiseUniqueKeys
+                 + " cacheable_hits=" + profile.paxCruiseCacheableHits);
+    }
     this._logStalenessRefresh(refreshReason);
     this._portfolioInvalidated = false;
     this._ranked = this._projects.rail;
@@ -6628,6 +6639,7 @@ function OpexAI::Start()
   C41_RAIL_PAX_ECONOMICS_PROFILE = AIController.GetSetting("c41_rail_pax_economics_profile") != 0;
   C41_RAIL_PAX_SPEED_PROFILE = AIController.GetSetting("c41_rail_pax_speed_profile") != 0;
   C41_RAIL_PAX_SPEED_DETAIL_PROFILE = AIController.GetSetting("c41_rail_pax_speed_detail_profile") != 0;
+  C41_RAIL_PAX_CRUISE_PROFILE = AIController.GetSetting("c41_rail_pax_cruise_profile") != 0;
   C41_RAIL_LOST_PROBE = AIController.GetSetting("c41_rail_lost_probe") != 0;
   C41_RAIL_LOST_TOPOLOGY_PROBE = AIController.GetSetting("c41_rail_lost_topology_probe") != 0;
   C41_RAIL_LOST_PHYSICAL_PROBE = AIController.GetSetting("c41_rail_lost_physical_probe") != 0;
