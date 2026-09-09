@@ -1140,6 +1140,20 @@ reste à trancher indépendamment.
   aucune donnée stale. Prochaine micro-tâche : l'introduire derrière un réglage C41.30, puis
   diagnostic apparié 5×6 avant toute activation par défaut.
 
+  ✅ **C41.30 — cache de croisière pax rail, diagnostic apparié 5 graines × 6 ans.**
+  `c41_rail_pax_cruise_cache=1` crée un dictionnaire éphémère dans la seule passe
+  `OpexBuildCandidates` rail, indexé par `(locomotive,wagon,nombre de wagons)`. La vitesse de
+  croisière ne dépend d'aucune donnée de carte, de distance ou de temps ; le dictionnaire est donc
+  exact et détruit à la fin de la génération, sans donnée stale. Le banc
+  `results/diag_c41_30_rail_pax_cruise_cache_paired_6y_5seeds_profiled.json`, avec télémétrie
+  identique dans les deux bras, termine **10/10** parties sans erreur. Les opcodes de génération
+  rail passent de **127,73 M** à **90,24 M** en moyenne par graine (**−29,35 %**, soit
+  −37,49 M). Les écarts économiques restent sans signe cohérent à ce stade (OFF gagne 2/5 graines
+  pour valeur, score, profit trimestriel et annuel) : le cache modifie la cadence et donc les dates
+  de décision, il n'est pas censé créer un profit. **Réglage conservé à 0 par défaut** jusqu'au banc
+  officiel apparié 20×10 ; le gain d'opcodes et la fraîcheur de génération justifient cet essai,
+  pas encore l'adoption.
+
   ✅ **C39.4 — les cinq avions « rejetés » sont dominés, non invalides.** La sonde
   `c39_air_reason_probe=0`, sur 5 graines × 6 ans
   (`results/diag_c39_air_reason_6y_5seeds.json`), est saine : les cinq notifications sont le moteur

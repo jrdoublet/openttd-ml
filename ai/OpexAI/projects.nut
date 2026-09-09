@@ -1370,7 +1370,10 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
   local railPaxProfile = C41_RAIL_PAX_PROFILE ? railCandidateProfile : null;
   local railPaxCandidateProfile = (C41_RAIL_PAX_CANDIDATE_PROFILE || C41_RAIL_PAX_ECONOMICS_PROFILE || C41_RAIL_PAX_SPEED_PROFILE || C41_RAIL_PAX_SPEED_DETAIL_PROFILE || C41_RAIL_PAX_CRUISE_PROFILE)
       ? railCandidateProfile : null;
-  local rail = OpexBuildCandidates(catalog, budget, lines, abandonedPairs, railCandidateProfile, railPaxProfile, railPaxCandidateProfile);
+  /* C41.30 : cache epuise apres cette generation ; aucun moteur/cargo/terrain d'une passe
+   * suivante ne peut reutiliser une valeur ancienne. */
+  local railPaxCruiseCache = C41_RAIL_PAX_CRUISE_CACHE ? {} : null;
+  local rail = OpexBuildCandidates(catalog, budget, lines, abandonedPairs, railCandidateProfile, railPaxProfile, railPaxCandidateProfile, railPaxCruiseCache);
   if (railProfile != null) {
     railProfile.generationOps = OpexOpsMeasureEnd(railGenerationMark);
     railProfile.generationCandidates = rail.candidates.len();

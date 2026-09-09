@@ -133,7 +133,7 @@ function OpexRailAcceleration(loco, wagon, wagons, speed)
  * 61 km/h sur un angle droit et 111 a courbure 2 ; aucun pourcentage de virages n'est invente.
  * Mesure 2026-08-30 (results/opex_speed_yield.json, n=832) : mediane reel/catalogue 0,96,
  * reel/traction 1,18. Le 70 % etait trop pessimiste. Pas de retuning. */
-function OpexRailEffectiveSpeed(loco, wagon, wagons, distance, profile = null)
+function OpexRailEffectiveSpeed(loco, wagon, wagons, distance, profile = null, cruiseCache = null)
 {
   if (profile != null) {
     local key = loco.id + "|" + wagon.id + "|" + wagons + "|" + distance;
@@ -149,11 +149,18 @@ function OpexRailEffectiveSpeed(loco, wagon, wagons, distance, profile = null)
       profile.paxCruiseUniqueKeys++;
     }
   }
-  local cruiseMark = profile != null ? OpexOpsMeasureBegin() : null;
-  local cruise = OpexRailCruiseSpeed(loco, wagon, wagons);
-  if (profile != null) {
-    profile.paxCruiseOps += OpexOpsMeasureEnd(cruiseMark);
-    profile.paxCruiseCalls++;
+  local cruiseKey = loco.id + "|" + wagon.id + "|" + wagons;
+  local cruise = null;
+  if (cruiseCache != null && cruiseKey in cruiseCache) {
+    cruise = cruiseCache[cruiseKey];
+  } else {
+    local cruiseMark = profile != null ? OpexOpsMeasureBegin() : null;
+    cruise = OpexRailCruiseSpeed(loco, wagon, wagons);
+    if (profile != null) {
+      profile.paxCruiseOps += OpexOpsMeasureEnd(cruiseMark);
+      profile.paxCruiseCalls++;
+    }
+    if (cruiseCache != null) cruiseCache[cruiseKey] <- cruise;
   }
   if (cruise < 1 || distance < 1) return 0;
 

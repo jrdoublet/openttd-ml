@@ -158,6 +158,8 @@ C41_RAIL_PAX_SPEED_PROFILE <- false;
 C41_RAIL_PAX_SPEED_DETAIL_PROFILE <- false;
 /* C41.29 : reutilisation exacte de la vitesse de croisiere pax rail. */
 C41_RAIL_PAX_CRUISE_PROFILE <- false;
+/* C41.30 : cache de croisiere pax, limite a une generation de candidats rail. */
+C41_RAIL_PAX_CRUISE_CACHE <- false;
 /* C41.4 : sonde strictement passive des vehicules perdus. Contrairement a A7.4,
  * elle n'ecrit ni compteur de ligne ni signe, et n'arme aucune tache. */
 C41_VEHICLE_LOST_PROBE <- false;
@@ -6640,6 +6642,7 @@ function OpexAI::Start()
   C41_RAIL_PAX_SPEED_PROFILE = AIController.GetSetting("c41_rail_pax_speed_profile") != 0;
   C41_RAIL_PAX_SPEED_DETAIL_PROFILE = AIController.GetSetting("c41_rail_pax_speed_detail_profile") != 0;
   C41_RAIL_PAX_CRUISE_PROFILE = AIController.GetSetting("c41_rail_pax_cruise_profile") != 0;
+  C41_RAIL_PAX_CRUISE_CACHE = AIController.GetSetting("c41_rail_pax_cruise_cache") != 0;
   C41_RAIL_LOST_PROBE = AIController.GetSetting("c41_rail_lost_probe") != 0;
   C41_RAIL_LOST_TOPOLOGY_PROBE = AIController.GetSetting("c41_rail_lost_topology_probe") != 0;
   C41_RAIL_LOST_PHYSICAL_PROBE = AIController.GetSetting("c41_rail_lost_physical_probe") != 0;

@@ -156,7 +156,7 @@ function OpexStationRatingForHeadway(headwayDays)
  * Quand fourni et > 0, il remplace distance pour le temps de trajet, la vitesse et le
  * cout de voie. `distance` (Manhattan entre extremites) reste la distance TARIFAIRE, exactement
  * comme OpexRoadLineEconomics distingue deja les deux. */
-function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPlatformLength = 0, routeDistance = null, profile = null)
+function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPlatformLength = 0, routeDistance = null, profile = null, cruiseCache = null)
 {
   local setupMark = profile != null ? OpexOpsMeasureBegin() : null;
   local travelDist = (routeDistance != null && routeDistance > 0) ? routeDistance : distance;
@@ -190,7 +190,7 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   if (referenceLoco == null) return null;
 
   local speedMark = profile != null ? OpexOpsMeasureBegin() : null;
-  local referenceSpeed = OpexRailEffectiveSpeed(referenceLoco, wagon, maxWagons, travelDist, profile);
+  local referenceSpeed = OpexRailEffectiveSpeed(referenceLoco, wagon, maxWagons, travelDist, profile, cruiseCache);
   if (profile != null) {
     profile.paxSpeedOps += OpexOpsMeasureEnd(speedMark);
     profile.paxSpeedCalls++;
@@ -210,7 +210,7 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   local loco = choices[wagons - 1];
   if (loco == null) return null;
   speedMark = profile != null ? OpexOpsMeasureBegin() : null;
-  local effectiveSpeed = OpexRailEffectiveSpeed(loco, wagon, wagons, travelDist, profile);
+  local effectiveSpeed = OpexRailEffectiveSpeed(loco, wagon, wagons, travelDist, profile, cruiseCache);
   if (profile != null) {
     profile.paxSpeedOps += OpexOpsMeasureEnd(speedMark);
     profile.paxSpeedCalls++;
@@ -231,7 +231,7 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
     loco = choices[wagons - 1];
     if (loco == null) return null;
     speedMark = profile != null ? OpexOpsMeasureBegin() : null;
-    effectiveSpeed = OpexRailEffectiveSpeed(loco, wagon, wagons, travelDist, profile);
+    effectiveSpeed = OpexRailEffectiveSpeed(loco, wagon, wagons, travelDist, profile, cruiseCache);
     if (profile != null) {
       profile.paxSpeedOps += OpexOpsMeasureEnd(speedMark);
       profile.paxSpeedCalls++;

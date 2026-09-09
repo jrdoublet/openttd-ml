@@ -148,7 +148,7 @@ function OpexRailOriginSitable(tile, cargo, coverage, wantProduction)
   return false;
 }
 
-function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, originServed, stats, isTransformer = false, profile = null)
+function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, originServed, stats, isTransformer = false, profile = null, cruiseCache = null)
 {
   if (monthly <= 0) {
     stats.noMonthly++;
@@ -178,7 +178,7 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   }
 
   local economicsMark = profile != null ? OpexOpsMeasureBegin() : null;
-  local economics = OpexLineEconomics(catalog, cargo, distance, monthly, kind, 0, null, profile);
+  local economics = OpexLineEconomics(catalog, cargo, distance, monthly, kind, 0, null, profile, cruiseCache);
   if (profile != null) {
     profile.paxEconomicsOps += OpexOpsMeasureEnd(economicsMark);
     profile.paxEconomicsCalls++;
@@ -732,7 +732,7 @@ function OpexPlaceJoinFreight(catalog, lines, out, stats, industries, served, ab
 }
 
 /* Paires de villes pour les passagers. */
-function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, candidateProfile = null)
+function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, candidateProfile = null, cruiseCache = null)
 {
   local cargo = catalog.paxCargo;
   if (cargo < 0) return;
@@ -807,7 +807,7 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
        * Corriger `monthly` ici serait donc traiter le mauvais terme. */
       local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
       local candidate = OpexMakeCandidate(catalog, "pax", cargo, towns[a].tile, towns[b].tile,
-                                          monthly, originServed, stats, false, candidateProfile);
+                                          monthly, originServed, stats, false, candidateProfile, cruiseCache);
       if (profile != null) {
         profile.paxCandidateOps += OpexOpsMeasureEnd(candidateMark);
         profile.paxCandidateCalls++;
@@ -932,7 +932,7 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
 /* Construit et classe tous les candidats. Rend la liste triee par rapport decroissant.
  * `lines` (this._lines de main.nut) sert a exclure les origines deja desservies avant meme de
  * calculer un candidat -- voir OpexOriginServed ci-dessus. */
-function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, profile = null, paxProfile = null, paxCandidateProfile = null)
+function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, profile = null, paxProfile = null, paxCandidateProfile = null, paxCruiseCache = null)
 {
   local all = [];
   /* Comptes de rejet : ils se trouvent ici, avant que TOP_K ne masque les candidats restants.
@@ -967,7 +967,7 @@ function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, prof
 
   local paxMark = profile != null ? OpexOpsMeasureBegin() : null;
   budget.begin();
-  OpexPaxCandidates(catalog, lines, all, stats, abandonedPairs, paxProfile, paxCandidateProfile);
+  OpexPaxCandidates(catalog, lines, all, stats, abandonedPairs, paxProfile, paxCandidateProfile, paxCruiseCache);
   local opsPax = budget.end("cand_pax");
   if (profile != null) profile.paxOps += OpexOpsMeasureEnd(paxMark);
 
