@@ -211,6 +211,9 @@ C41_RAIL_SLICE_LEDGER <- false;
  * indefiniment, ce qui debloque _expandRailLines et les AUTRES candidats rail du portefeuille.
  * candidate.railPlan est conserve. Correctif de blocage, pas un arbitrage. */
 C41_RAIL_CASH_RELEASE <- false;
+/* C41.48 : sonde passive a chaque frontiere de tranche segmentee (CONT/done=false). Rien n'est
+ * coupe ; mesure si un test de domination (C41.49) aurait meme l'occasion de se declencher. */
+C41_RAIL_DOMINATION_PROBE <- false;
 /* air_fleet_probe : _resizeAirFleets n'emet que ses SUCCES (FG|). Quand une ligne aerienne
  * n'grandit pas, la cause est invisible. FR| donne le premier refus rencontre, une fois par ligne
  * et par an. */
@@ -311,6 +314,17 @@ function OpexC41RailCashReleaseLog(fields)
   local date = AIDate.GetCurrentDate();
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " C41_RAIL_CASH_RELEASE " + fields);
+}
+
+/* C41.48 : un evenement par frontiere de tranche -- la frequence de declenchement EST la
+ * mesure (repond a "sur combien de frontieres le test C41.49 aurait-il seulement l'occasion
+ * de s'appliquer ?"), donc pas d'agregat qui la masquerait. */
+function OpexC41RailDominationLog(fields)
+{
+  if (!C41_RAIL_DOMINATION_PROBE) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " C41_RAIL_DOMINATION_PROBE " + fields);
 }
 
 function OpexC41StalenessLog(kind, fields)
@@ -4916,7 +4930,50 @@ function OpexAI::_continueRailSearch()
   } else {
     this._budget.end("build_search");
   }
-  if (!slice.done) return;
+  if (!slice.done) {
+    /* C41.48 : sonde passive a chaque frontiere de tranche (slice.stop == "CONT" ici, la SEULE
+     * valeur qui rend done=false -- OpexSegmentedResult, builder_rail.nut). Rien n'est coupe :
+     * mesure si un test de domination (C41.49) aurait seulement l'occasion de se declencher.
+     * kind == "primary" seulement : une recherche d'upgrade n'a ni candidate ni profit/capital
+     * au meme sens (state.line, pas state.candidate). */
+    if (C41_RAIL_DOMINATION_PROBE && state.kind == "primary"
+        && ("segmented" in state) && state.segmented != null) {
+      local seg = state.segmented;
+      local prefixLen = (seg.prefix != null) ? seg.prefix.len() : 0;
+      local distRemaining = -1;
+      if (prefixLen > 0) {
+        distRemaining = AIMap.DistanceManhattan(seg.prefix[prefixLen - 1], seg.destinationCenter);
+      }
+      /* Le meilleur projet FINANCABLE, pas seulement le mieux classe : rang 0 peut deja etre
+       * le candidat rail en cours de recherche (capital estime, pas encore construit) ou un
+       * projet hors de portee de la caisse -- OpexAvailableCapital() est la meme formule
+       * centralisee que _consumeRailSearch/_tryBuildProjects utilisent pour decider. */
+      local bestRank = -1;
+      local bestMode = "none";
+      local bestScore = 0;
+      local bestCost = 0;
+      if (this._projects != null && this._projects.best != null) {
+        local available = OpexAvailableCapital();
+        for (local i = 0; i < this._projects.best.len(); i++) {
+          local p = this._projects.best[i];
+          if (p == null || p.capital > available) continue;
+          bestRank = i;
+          bestMode = p.mode;
+          bestScore = ((TENSION_SCORING || SHADOW_PRICING) && ("tensionScore" in p)) ? p.tensionScore : p.budgetScore;
+          bestCost = p.capital;
+          break;
+        }
+      }
+      OpexC41RailDominationLog("src=" + state.candidate.src + " dst=" + state.candidate.dst
+          + " spent=" + state.spent + " remaining=" + (state.iterationBudget - state.spent)
+          + " segments=" + slice.segments + " backtracks=" + slice.backtracks
+          + " prefix_len=" + prefixLen + " dist_remaining=" + distRemaining
+          + " rail_profit=" + state.candidate.profitAnnual + " rail_capital=" + state.candidate.capital
+          + " best_rank=" + bestRank + " best_mode=" + bestMode + " best_score=" + bestScore
+          + " best_cost=" + bestCost);
+    }
+    return;
+  }
 
   if (DECISION_LOG) {
     OpexDecide("RAIL_SEARCH", "type=resumable outcome=" + slice.stop + " iters=" + state.spent + " budget=" + state.iterationBudget);
@@ -7070,6 +7127,7 @@ function OpexAI::Start()
   C41_RAIL_LOST_JUNCTION_REPAIR = AIController.GetSetting("c41_rail_lost_junction_repair") != 0;
   C41_RAIL_SLICE_LEDGER = AIController.GetSetting("c41_rail_slice_ledger") != 0;
   C41_RAIL_CASH_RELEASE = AIController.GetSetting("c41_rail_cash_release") != 0;
+  C41_RAIL_DOMINATION_PROBE = AIController.GetSetting("c41_rail_domination_probe") != 0;
   CASH_RESERVE_PROBE = AIController.GetSetting("cash_reserve_probe") != 0;
   PORTFOLIO_REFRESH_PROBE = AIController.GetSetting("portfolio_refresh_probe") != 0;
   if (C41_RAIL_LOST_TOPOLOGY_PROBE) C41_RAIL_LOST_PROBE = true;

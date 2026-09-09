@@ -226,20 +226,58 @@ fonctionne (le mécanisme se déclenche, aucun crash, aucune régression de volu
 faut le banc officiel 20×10 pour lire un signal, exactement comme le contrat l'annonçait.**
 **Défaut inchangé (`0`) en attendant.**
 
-### C41.48 — Sonde de comparaison à la frontière de segment *(passif)*
+### ✅ C41.48 — Sonde de comparaison à la frontière de segment *(passif, codé et mesuré 2026-09-09)*
 
-`c41_rail_domination_probe=0`. À chaque `OpexSegmentedResult(…, "CONT", false)`, journaliser sans
-rien couper : itérations dépensées (`state.spent`), budget restant, segments franchis, longueur du
+`c41_rail_domination_probe=0`. À chaque frontière de tranche segmentée (`slice.done == false`,
+la seule valeur produite par `OpexSegmentedResult(…, "CONT", false)`), journalise sans rien
+couper : itérations dépensées (`state.spent`), budget restant, segments franchis, longueur du
 préfixe, distance Manhattan restante jusqu'au but, profit annuel prévu et capital du candidat rail,
-et **le meilleur projet finançable prêt à bâtir au même instant** (rang, mode, `score`, coût).
+et **le meilleur projet finançable prêt à bâtir au même instant** — scan de `this._projects.best`
+dans l'ordre de rang, premier dont `capital ≤ OpexAvailableCapital()` (même formule centralisée que
+`_consumeRailSearch`/`_tryBuildProjects`), donc *réellement* finançable, pas seulement le mieux
+classé. Uniquement `kind == "primary"` (une recherche d'upgrade n'a ni candidat ni profit/capital
+au même sens).
 
-*Répond à* : le test de domination aurait-il seulement changé une décision ? Sur combien de
-frontières ? C'est le même garde-fou qui a fait échouer C41.14 (**0 admission sur 56 fenêtres**) —
-mesurer la fréquence de déclenchement **avant** d'écrire la règle.
+#### Résultat mesuré — **à l'opposé de C41.14, il y a bien matière à arbitrer**
 
-### C41.49 — Le test lui-même *(seulement si C41.48 montre des déclenchements)*
+5 graines × 6 ans, `results/diag_c41_48_rail_domination_probe_6y_5seeds.json`, 0 échec :
 
-`c41_rail_domination=0`. À la frontière de segment uniquement :
+| graine | frontières | avec alternative financable | dont *autre* projet (pas le candidat lui-même) |
+|---:|---:|---:|---:|
+| 7 | 221 | 193 (87,3 %) | 159 |
+| 42 | 270 | 219 (81,1 %) | 159 |
+| 100 | 320 | 209 (65,3 %) | 151 |
+| 999 | 290 | 283 (97,6 %) | 250 |
+| 12345 | 410 | 301 (73,4 %) | 254 |
+| **total** | **1 511** | **1 205 (79,8 %)** | **973 (64,4 % du total, 80,7 % des "avec alt")** |
+
+**973 frontières sur 30 graines-années (~32/graine-année) où une AUTRE ligne financée et prête à
+bâtir existe pendant que l'A\* rail continue.** Ce n'est pas le motif de C41.14 (0 admission sur
+56 fenêtres) : là où C41.14 cherchait un reliquat d'opcodes à admettre pour une micro-tâche de
+rafraîchissement, ici la question porte sur un **arbitrage de capital et de temps de construction**,
+et le matériau existe en abondance. `rail_profit` moyen (26 k–45 k£/an selon la graine) et
+`best_cost` moyen (50 k–56 k£) sont du même ordre de grandeur que le candidat rail lui-même
+(`rail_capital` 48 k–53 k£) — les alternatives ne sont pas des miettes.
+
+⚠️ **Nuance qui pèse sur la suite** : croisé avec C41.46, le gisement d'opcodes visé par C41.49 est
+modeste et décroissant (23,3 % cumulé, en baisse). **La fréquence élevée ici ne dit donc pas
+« C41.49 économiserait beaucoup d'opcodes »** — elle dit « il y a souvent un choix réel à faire ».
+Si C41.49 vaut la peine, c'est probablement pour une raison différente de celle du contrat
+d'origine : **rediriger du capital vers un projet prêt plus tôt** (effet sur le volume construit,
+la métrique n°1 du projet), pas économiser du calcul. À trancher explicitement avant d'écrire
+C41.49 — la règle proposée plus bas visait l'arrêt optimal en opcodes ; sa justification a changé.
+
+### C41.49 — Le test lui-même *(C41.48 montre des déclenchements — 973/30 graines-années — mais lire la nuance ci-dessus avant de coder)*
+
+⚠️ **Ne pas coder tel quel sans re-trancher la justification.** La règle ci-dessous a été conçue
+comme un arrêt optimal en **opcodes** ([[philosophie-opcodes-ressource]]). C41.46 a depuis montré
+que le gisement d'opcodes net de l'A\* rail est faible et décroissant (23,3 % cumulé) — couper des
+recherches pour ce motif rapporterait peu. Si C41.49 se justifie, c'est plutôt par le **volume**
+(rediriger du capital vers un projet prêt plus tôt), la métrique n°1 du projet — mais alors le
+dénominateur `E[itérations restantes]` n'est plus la bonne unité de comparaison : il faudrait
+comparer des **délais de construction**, pas des opcodes. Cette reformulation n'est pas faite.
+
+`c41_rail_domination=0`. À la frontière de segment uniquement (forme originale, à revoir) :
 
 ```
 continuer  ssi  profitAnnuel_rail / E[itérations restantes]  ≥  taux_référence
@@ -276,11 +314,13 @@ continuer  ssi  profitAnnuel_rail / E[itérations restantes]  ≥  taux_référe
 
 ## 5. Critère de clôture
 
-✅ C41.46 livré et lu (§1.1bis) ; C41.48 reste à livrer ; C41.47 adopté ou rejeté **au banc
-officiel 20×10** ; C41.49 écrit seulement si C41.48 montre des frontières où la décision aurait
-changé, et adopté seulement au banc. ⚠️ Le volume est la métrique n°1 (~85 % de l'écart avec
-AAAHogEx) : toute variante qui coupe des recherches sans augmenter le nombre de constructions est
-un échec, même si elle économise des opcodes.
+✅ C41.46 livré et lu (§1.1bis) ; ✅ C41.48 livré et lu (§C41.48, 973 frontières avec alternative
+sur 30 graines-années) ; ⚠️ C41.47 codé, diagnostic 5×6 **NUL** (14/14 constructions identiques,
+délai mixte) — banc officiel 20×10 non lancé faute de signal directionnel à confirmer ; C41.49
+**non codé**, sa justification d'origine (arrêt optimal en opcodes) affaiblie par C41.46 et à
+reformuler en délai de construction avant d'écrire quoi que ce soit. ⚠️ Le volume est la métrique
+n°1 (~85 % de l'écart avec AAAHogEx) : toute variante qui coupe des recherches sans augmenter le
+nombre de constructions est un échec, même si elle économise des opcodes.
 
 🆕 **Question ouverte par C41.46, à trancher avant de prioriser C41.49** : `task_ops` (76,7 % du
 total cumulé, croissant avec la maturité de la partie) n'est pas ventilé par tâche dans ce ledger.

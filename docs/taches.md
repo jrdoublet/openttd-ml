@@ -136,8 +136,28 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   pas le mécanisme mauvais. **Ce que ça confirme : le code fonctionne (mécanisme déclenché, 0
   crash, 0 régression de volume total).** **Ce que ça ne tranche pas : la valeur.** Défaut inchangé
   (`0`). Prochaine étape si repris : **banc officiel 20×10**, pas un second diagnostic 5×6.
-  **Reste** : C41.48/C41.49 (sonde puis test de domination, probablement moins prioritaires que
-  prévu vu C41.46 ci-dessus).
+
+  ✅ **C41.48 — sonde livrée et mesurée (2026-09-09), à l'opposé de C41.14 : il y a bien matière
+  à arbitrer.** `c41_rail_domination_probe=0` (défaut) journalise à chaque frontière de tranche
+  segmentée (`slice.done==false`) : itérations dépensées/restantes, segments franchis, préfixe,
+  distance restante, profit/capital du candidat rail, et **le meilleur projet réellement
+  finançable** (`OpexAvailableCapital()`, même formule que le chemin de construction réel) prêt à
+  bâtir au même instant. Diagnostic 5×6, `results/diag_c41_48_rail_domination_probe_6y_5seeds.json`,
+  0 échec : **1 511 frontières sur 30 graines-années, 1 205 (79,8 %) avec une alternative
+  finançable, dont 973 (80,7 % de ces 1 205) une AUTRE ligne — pas juste le candidat rail lui-même
+  qui se voit "finançable" avant d'être construit.** `rail_profit` moyen 26–45 k£/an,
+  `best_cost` moyen 50–56 k£, `rail_capital` 48–53 k£ : ordres de grandeur comparables, pas des
+  miettes. **Contrairement à C41.14 (0 admission sur 56 fenêtres), le matériau pour un test de
+  domination existe en abondance.**
+  ⚠️ **Mais croisé avec C41.46, ce n'est pas un feu vert pour C41.49 tel qu'écrit dans le contrat**
+  : le gisement d'opcodes que cette règle visait à économiser est modeste et décroissant (23,3 %
+  cumulé). La fréquence élevée ici dit « il y a souvent un choix réel », pas « économiser des
+  opcodes ici rapporte beaucoup ». Si C41.49 se justifie, c'est plutôt pour rediriger du **capital**
+  vers un projet prêt plus tôt (effet volume, la métrique n°1), ce qui change le dénominateur de la
+  règle proposée (délai de construction, pas itérations/opcodes) — **reformulation non faite,
+  à trancher avant tout code.**
+  **Reste** : C41.49 non codé, sa justification d'origine affaiblie, à reformuler avant d'écrire
+  quoi que ce soit.
 
 - 🔴 **C42 — Transformer les offres de subvention non attribuées en candidats.** `C17`/`A7.3`
   (`event_subsidy_probe`) est fait : écoute par événement, aucun sondage en boucle. Mais c'est une

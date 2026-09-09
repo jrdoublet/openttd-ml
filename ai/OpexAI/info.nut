@@ -622,6 +622,21 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C41.48 : sonde passive a chaque frontiere de tranche du pathfinder rail segmente --
+     * OpexAdvanceSegmentedSearch() rend CONT/done=false, donc _continueRailSearch() rentre dans
+     * son `if (!slice.done) return;` (main.nut). Rien n'est coupe : la question posee est
+     * seulement « le test de domination C41.49 aurait-il seulement change une decision, et sur
+     * combien de frontieres ? » -- le meme garde-fou qui a fait echouer C41.14 (0 admission sur
+     * 56 fenetres, docs/taches.md). Uniquement kind == "primary" (une recherche d'upgrade n'a pas
+     * de candidat/profit associe au meme sens). docs/04_arbitrage_rail_search.md. */
+    AddSetting({
+      name = "c41_rail_domination_probe",
+      description = "C41.48 probe: at every segmented rail search slice boundary, log spent/remaining iterations, prefix length, remaining Manhattan distance, the rail candidate's forecast profit/capital, and the best affordable project ready to build at that instant; no search is cut, no decision changes; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* C43/E3 famille 2 : CASH_RESERVE_MIN mord-il ? Compteurs cumulatifs, publies en delta annuel
      * par la tache "report" (OpexCashReserve() est appelee trop souvent pour journaliser chaque
      * appel). */
