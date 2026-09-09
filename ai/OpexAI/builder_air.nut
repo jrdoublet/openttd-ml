@@ -364,7 +364,13 @@ function OpexAirFootprintCheapOk(anchor, airport)
 
 function OpexAirFootprintEnd(anchor, airport)
 {
-  return anchor + AIMap.GetTileIndex(airport.width - 1, airport.height - 1);
+  /* AITile.LevelTiles prend le coin terminal de TERRASSEMENT, pas la derniere
+   * tuile de l'aeroport. Pour une emprise w x h il est donc a +(w,h) :
+   * SuperLib.Tile.CostToFlattern et AAAHogEx::AirStation.Build emploient tous
+   * deux cette convention. L'ancienne borne +(w-1,h-1) laissait la rangee et
+   * la colonne finales en pente, puis BuildAirport echouait ERR_FLAT_LAND_REQUIRED
+   * bien que notre sonde ait annonce le site nivelable. */
+  return anchor + AIMap.GetTileIndex(airport.width, airport.height);
 }
 
 function OpexAirFootprintIsFlat(anchor, airport)

@@ -5829,8 +5829,9 @@ function OpexAI::_processEvents()
 
 /* C41.11 : enveloppe strictement observatoire. `slack_ops_used` est borne au reliquat disponible
  * au debut du passage : un calcul qui franchit un tick ne transforme pas les ticks suivants en
- * slack retroactif. Les continuations rail precedant la selection sont rangees explicitement dans
- * `continuation`, afin de ne pas les attribuer abusivement a la tache choisie ensuite. */
+ * slack retroactif. Les continuations rail precedant la selection sont rangees explicitement par
+ * nature, afin de ne pas les attribuer abusivement a la tache choisie ensuite. Si les deux etats
+ * coexistent, une categorie jointe conserve l'incertitude plutot que de fabriquer une attribution. */
 function OpexAI::_runNextTaskWithSlackLedger()
 {
   if ((!C41_SLACK_LEDGER && !C41_OPPORTUNITY_LEDGER && !C41_ADMISSION_LEDGER)
@@ -5838,11 +5839,18 @@ function OpexAI::_runNextTaskWithSlackLedger()
     return this._runNextTask();
   }
   local mark = OpexOpsMeasureBegin();
-  local hadContinuation = this._railExpansion != null || this._railSearch != null;
+  local continuationCategory = null;
+  if (this._railExpansion != null && this._railSearch != null) {
+    continuationCategory = "rail_expansion+rail_search";
+  } else if (this._railSearch != null) {
+    continuationCategory = "rail_search";
+  } else if (this._railExpansion != null) {
+    continuationCategory = "rail_expansion";
+  }
   local ran = this._runNextTask();
   local ops = OpexOpsMeasureEnd(mark);
   if (C41_SLACK_LEDGER) {
-    local category = hadContinuation ? "continuation" : this._c41LastTaskName;
+    local category = continuationCategory != null ? continuationCategory : this._c41LastTaskName;
     if (category == null) category = "idle";
     local entry = (category in this._c41SlackLedger) ? this._c41SlackLedger[category]
         : { calls = 0, ran = 0, ops = 0, slackAvailable = 0, slackUsed = 0, slackLeft = 0 };

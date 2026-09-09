@@ -208,6 +208,16 @@ Licences vérifiées fichier par fichier, graphe de dépendances vérifié ; con
    tentatives), mais le plus gros morceau (1117 lignes).
 4. **`Pathfinder.Road.nut`** — seul fichier LGPLv2.1 du lot, en dernier.
 
+✅ **Air — rectangle de nivellement corrigé (2026-09-09, adoption utilisateur).** Le diagnostic
+`results/diag_air_afail_6y_5seeds.json` (5 graines × 6 ans) comptait 2 054
+`ERR_FLAT_LAND_REQUIRED` sur 2 254 tentatives air (92,2 % d'échecs). La trace 1v1 seed 42 a montré
+qu'AAAHogEx construisait ensuite dans 13 des 22 villes rejetées par Opex. La cause était la borne
+`+(width-1,height-1)` de `OpexAirFootprintEnd` : `AITile.LevelTiles` attend `+(width,height)`,
+comme `SuperLib.Tile.CostToFlattern` et AAAHogEx. Après correction,
+`results/diag_air_afail_rect_end_6y_5seeds.json` donne 38 erreurs de terrain non plat, 204 succès
+sur 263 tentatives et 22,4 % d'échecs. **Adopté sans banc officiel 20×10 sur validation explicite
+de l'utilisateur**, le défaut étant géométrique et le diagnostic univoque.
+
 ❌ **Pas des candidats, ne pas rouvrir** : temps de trajet **rail** (`OpexRailEffectiveSpeed` fait
 déjà croisière dichotomique + accélération + intégration, cache adopté au banc — SuperLib serait une
 régression) ; **note municipale** (`OpexBoostTownRating` compare déjà le bon enum depuis le
