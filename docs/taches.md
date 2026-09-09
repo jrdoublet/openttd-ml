@@ -1154,6 +1154,18 @@ reste à trancher indépendamment.
   officiel apparié 20×10 ; le gain d'opcodes et la fraîcheur de génération justifient cet essai,
   pas encore l'adoption.
 
+  ⚪ **C41.30 — banc officiel apparié 20 graines × 10 ans : non adopté par défaut.** Le banc
+  `results/bench_c41_30_rail_pax_cruise_cache_10y_20seeds.json` est valide (**40/40** parties).
+  Le bénéfice technique se confirme : **200,47 M → 141,19 M** opcodes rail par graine
+  (**−29,57 %**). Mais OFF garde **+770 455 £ de valeur** (**+6,29 %**, t=2,07) et gagne
+  **14/20** graines ; le profit annuel est aussi en faveur de OFF (+4,06 %, t=1,22), tandis que
+  le score est indécis et la note de gare favorise légèrement ON. Ce n'est pas la preuve d'une
+  liaison manquante : le calcul économique reste exact, mais le changement de cadence déplace les
+  dates de décision. Face au signal valeur, ne pas échanger la trajectoire économique contre les
+  opcodes sans un mécanisme explicite qui emploie ce budget pour de la fraîcheur utile.
+  **`c41_rail_pax_cruise_cache=0` reste donc le défaut ;** le cache demeure disponible pour un
+  futur contrat de cadence/rafraîchissement rail.
+
   ✅ **C39.4 — les cinq avions « rejetés » sont dominés, non invalides.** La sonde
   `c39_air_reason_probe=0`, sur 5 graines × 6 ans
   (`results/diag_c39_air_reason_6y_5seeds.json`), est saine : les cinq notifications sont le moteur
