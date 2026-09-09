@@ -1356,7 +1356,7 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
           prequoteOps = 0, prequoteAttempted = 0, prequoteQuoted = 0, prequoteFailed = 0,
           insertOps = 0, insertedProjects = 0 } : null;
   local railGenerationMark = railProfile != null ? OpexOpsMeasureBegin() : null;
-  local railCandidateProfile = (C41_RAIL_CANDIDATE_PROFILE || C41_RAIL_PAX_PROFILE || C41_RAIL_PAX_CANDIDATE_PROFILE || C41_RAIL_PAX_ECONOMICS_PROFILE || C41_RAIL_PAX_SPEED_PROFILE || C41_RAIL_PAX_SPEED_DETAIL_PROFILE || C41_RAIL_PAX_CRUISE_PROFILE || C41_RAIL_FREIGHT_PROFILE || C41_RAIL_FREIGHT_CANDIDATE_PROFILE)
+  local railCandidateProfile = (C41_RAIL_CANDIDATE_PROFILE || C41_RAIL_PAX_PROFILE || C41_RAIL_PAX_CANDIDATE_PROFILE || C41_RAIL_PAX_ECONOMICS_PROFILE || C41_RAIL_PAX_SPEED_PROFILE || C41_RAIL_PAX_SPEED_DETAIL_PROFILE || C41_RAIL_PAX_CRUISE_PROFILE || C41_RAIL_FREIGHT_PROFILE || C41_RAIL_FREIGHT_CANDIDATE_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_PROFILE)
       ? { paxOps = 0, freightOps = 0, topKOps = 0,
           paxPreparationOps = 0, paxPairTotalOps = 0, paxCandidateOps = 0,
           paxPairsScanned = 0, paxCandidateCalls = 0,
@@ -1369,9 +1369,10 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
           paxCruiseUniqueKeys = 0, paxCruiseCacheableHits = 0,
           freightPreparationOps = 0, freightIndustryOps = 0, freightTownOps = 0,
           freightIndustryCandidateOps = 0, freightIndustryCandidateCalls = 0,
-          freightTownCandidateOps = 0, freightTownCandidateCalls = 0 } : null;
+          freightTownCandidateOps = 0, freightTownCandidateCalls = 0,
+          freightEconomicsOps = 0, freightEconomicsCalls = 0 } : null;
   local railPaxProfile = C41_RAIL_PAX_PROFILE ? railCandidateProfile : null;
-  local railPaxCandidateProfile = (C41_RAIL_PAX_CANDIDATE_PROFILE || C41_RAIL_PAX_ECONOMICS_PROFILE || C41_RAIL_PAX_SPEED_PROFILE || C41_RAIL_PAX_SPEED_DETAIL_PROFILE || C41_RAIL_PAX_CRUISE_PROFILE)
+  local railPaxCandidateProfile = (C41_RAIL_PAX_CANDIDATE_PROFILE || C41_RAIL_PAX_ECONOMICS_PROFILE || C41_RAIL_PAX_SPEED_PROFILE || C41_RAIL_PAX_SPEED_DETAIL_PROFILE || C41_RAIL_PAX_CRUISE_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_PROFILE)
       ? railCandidateProfile : null;
   /* C41.30 : cache epuise apres cette generation ; aucun moteur/cargo/terrain d'une passe
    * suivante ne peut reutiliser une valeur ancienne. */

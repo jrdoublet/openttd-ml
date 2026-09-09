@@ -178,10 +178,15 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   }
 
   local economicsMark = profile != null ? OpexOpsMeasureBegin() : null;
+  local freightEconomicsMark = (kind == "freight" && C41_RAIL_FREIGHT_ECONOMICS_PROFILE) ? OpexOpsMeasureBegin() : null;
   local economics = OpexLineEconomics(catalog, cargo, distance, monthly, kind, 0, null, profile, cruiseCache);
   if (profile != null) {
     profile.paxEconomicsOps += OpexOpsMeasureEnd(economicsMark);
     profile.paxEconomicsCalls++;
+  }
+  if (freightEconomicsMark != null) {
+    profile.freightEconomicsOps += OpexOpsMeasureEnd(freightEconomicsMark);
+    profile.freightEconomicsCalls++;
   }
   if (economics == null) {
     stats.economicsUnavailable++;
@@ -879,7 +884,7 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
         if (originServed) stats.pairsOneServed++;
         local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
         local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
-                                            industries[di].tile, monthly, originServed, stats, isTransformer);
+                                            industries[di].tile, monthly, originServed, stats, isTransformer, profile);
         if (profile != null) {
           profile.freightIndustryCandidateOps += OpexOpsMeasureEnd(candidateMark);
           profile.freightIndustryCandidateCalls++;
@@ -929,7 +934,7 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
           if (originServed) stats.pairsOneServed++;
           local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
           local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
-                                              town.tile, townMonthly, originServed, stats, false);
+                                              town.tile, townMonthly, originServed, stats, false, profile);
           if (profile != null) {
             profile.freightTownCandidateOps += OpexOpsMeasureEnd(candidateMark);
             profile.freightTownCandidateCalls++;

@@ -1180,6 +1180,11 @@ reste à trancher indépendamment.
   il ne prend que **10,53 M** des **77,61 M** (5 614 appels) ; les gardes de cette branche
   représentent 86,4 %, mais aucun index ne doit être proposé avant de connaître leur garde exacte.
 
+  ✅ **C41.33 — économie fret rail, 5 graines × 6 ans.** Le diagnostic
+  `results/diag_c41_33_rail_freight_economics_6y_5seeds.json` est sain (**5/5**) :
+  `OpexLineEconomics` prend **111,56 M** opcodes pour **30 534** appels. Prochaine micro-tâche :
+  ventiler sa préparation, son choix de rame et sa finalisation pour le fret, avant tout cache.
+
   ✅ **C39.4 — les cinq avions « rejetés » sont dominés, non invalides.** La sonde
   `c39_air_reason_probe=0`, sur 5 graines × 6 ans
   (`results/diag_c39_air_reason_6y_5seeds.json`), est saine : les cinq notifications sont le moteur
