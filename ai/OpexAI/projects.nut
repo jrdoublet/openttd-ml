@@ -1356,7 +1356,7 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
           prequoteOps = 0, prequoteAttempted = 0, prequoteQuoted = 0, prequoteFailed = 0,
           insertOps = 0, insertedProjects = 0 } : null;
   local railGenerationMark = railProfile != null ? OpexOpsMeasureBegin() : null;
-  local railCandidateProfile = (C41_RAIL_CANDIDATE_PROFILE || C41_RAIL_PAX_PROFILE || C41_RAIL_PAX_CANDIDATE_PROFILE || C41_RAIL_PAX_ECONOMICS_PROFILE || C41_RAIL_PAX_SPEED_PROFILE || C41_RAIL_PAX_SPEED_DETAIL_PROFILE || C41_RAIL_PAX_CRUISE_PROFILE || C41_RAIL_FREIGHT_PROFILE || C41_RAIL_FREIGHT_CANDIDATE_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_DETAIL_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_SETUP_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_CONSIST_PROFILE || C41_RAIL_FREIGHT_CRUISE_PROFILE || C41_RAIL_FREIGHT_SPEED_DETAIL_PROFILE)
+  local railCandidateProfile = (C41_RAIL_CANDIDATE_PROFILE || C41_RAIL_PAX_PROFILE || C41_RAIL_PAX_CANDIDATE_PROFILE || C41_RAIL_PAX_ECONOMICS_PROFILE || C41_RAIL_PAX_SPEED_PROFILE || C41_RAIL_PAX_SPEED_DETAIL_PROFILE || C41_RAIL_PAX_CRUISE_PROFILE || C41_RAIL_FREIGHT_PROFILE || C41_RAIL_FREIGHT_CANDIDATE_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_DETAIL_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_SETUP_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_CONSIST_PROFILE || C41_RAIL_FREIGHT_CRUISE_PROFILE || C41_RAIL_FREIGHT_SPEED_DETAIL_PROFILE || C41_RAIL_FREIGHT_EFFECTIVE_SPEED_PROFILE || C41_RAIL_FREIGHT_TOWN_GUARDS_PROFILE)
       ? { paxOps = 0, freightOps = 0, topKOps = 0,
           paxPreparationOps = 0, paxPairTotalOps = 0, paxCandidateOps = 0,
           paxPairsScanned = 0, paxCandidateCalls = 0,
@@ -1367,7 +1367,7 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
           paxIntegrationOps = 0, paxSpeedKeys = {}, paxSpeedUniqueKeys = 0,
           paxSpeedCacheableHits = 0, paxCruiseKeys = {}, paxCruiseCalls = 0,
           paxCruiseUniqueKeys = 0, paxCruiseCacheableHits = 0,
-          freightPreparationOps = 0, freightIndustryOps = 0, freightTownOps = 0,
+          freightPreparationOps = 0, freightIndustryOps = 0, freightTownOps = 0, freightTownGuardsOps = 0, freightTownGuardsCalls = 0, freightTownServiceOps = 0, freightTownServiceCalls = 0,
           freightIndustryCandidateOps = 0, freightIndustryCandidateCalls = 0,
           freightTownCandidateOps = 0, freightTownCandidateCalls = 0,
           freightEconomicsOps = 0, freightEconomicsCalls = 0,
@@ -1384,7 +1384,9 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
           freightCruiseKeys = {}, freightCruiseCalls = 0, freightCruiseUniqueKeys = 0,
           freightCruiseCacheableHits = 0,
           freightAccelerationOps = 0, freightAccelerationCalls = 0,
-          freightIntegrationOps = 0, freightIntegrationCalls = 0 } : null;
+          freightIntegrationOps = 0, freightIntegrationCalls = 0,
+          freightSpeedKeys = {}, freightSpeedCalls = 0, freightSpeedUniqueKeys = 0,
+          freightSpeedCacheableHits = 0 } : null;
   local railPaxProfile = C41_RAIL_PAX_PROFILE ? railCandidateProfile : null;
   local railPaxCandidateProfile = (C41_RAIL_PAX_CANDIDATE_PROFILE || C41_RAIL_PAX_ECONOMICS_PROFILE || C41_RAIL_PAX_SPEED_PROFILE || C41_RAIL_PAX_SPEED_DETAIL_PROFILE || C41_RAIL_PAX_CRUISE_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_DETAIL_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_SETUP_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_CONSIST_PROFILE)
       ? railCandidateProfile : null;

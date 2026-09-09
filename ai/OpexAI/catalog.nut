@@ -133,7 +133,7 @@ function OpexRailAcceleration(loco, wagon, wagons, speed)
  * 61 km/h sur un angle droit et 111 a courbure 2 ; aucun pourcentage de virages n'est invente.
  * Mesure 2026-08-30 (results/opex_speed_yield.json, n=832) : mediane reel/catalogue 0,96,
  * reel/traction 1,18. Le 70 % etait trop pessimiste. Pas de retuning. */
-function OpexRailEffectiveSpeed(loco, wagon, wagons, distance, profile = null, cruiseCache = null, freightCruiseProfile = false, freightSpeedDetailProfile = false, freightAccelerationCache = false)
+function OpexRailEffectiveSpeed(loco, wagon, wagons, distance, profile = null, cruiseCache = null, freightCruiseProfile = false, freightSpeedDetailProfile = false, freightAccelerationCache = false, freightEffectiveSpeedProfile = false)
 {
   if (profile != null) {
     local key = loco.id + "|" + wagon.id + "|" + wagons + "|" + distance;
@@ -141,6 +141,11 @@ function OpexRailEffectiveSpeed(loco, wagon, wagons, distance, profile = null, c
     else {
       profile.paxSpeedKeys[key] <- true;
       profile.paxSpeedUniqueKeys++;
+    }
+    if (freightEffectiveSpeedProfile) {
+      if (key in profile.freightSpeedKeys) profile.freightSpeedCacheableHits++;
+      else { profile.freightSpeedKeys[key] <- true; profile.freightSpeedUniqueKeys++; }
+      profile.freightSpeedCalls++;
     }
     local cruiseKey = loco.id + "|" + wagon.id + "|" + wagons;
     if (cruiseKey in profile.paxCruiseKeys) profile.paxCruiseCacheableHits++;

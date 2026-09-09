@@ -165,6 +165,7 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   local freightCruiseProfile = profile != null && kind == "freight" && C41_RAIL_FREIGHT_CRUISE_PROFILE;
   local freightSpeedDetailProfile = profile != null && kind == "freight" && C41_RAIL_FREIGHT_SPEED_DETAIL_PROFILE;
   local freightAccelerationCache = kind == "freight" && C41_RAIL_FREIGHT_ACCELERATION_CACHE;
+  local freightEffectiveSpeedProfile = profile != null && kind == "freight" && C41_RAIL_FREIGHT_EFFECTIVE_SPEED_PROFILE;
   local travelDist = (routeDistance != null && routeDistance > 0) ? routeDistance : distance;
   if (!(cargo in catalog.wagonByCargo)) return null;
   if (!(cargo in catalog.locoByCargoWagons)) return null;
@@ -197,7 +198,7 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   if (referenceLoco == null) return null;
 
   local speedMark = profile != null ? OpexOpsMeasureBegin() : null;
-  local referenceSpeed = OpexRailEffectiveSpeed(referenceLoco, wagon, maxWagons, travelDist, profile, cruiseCache, freightCruiseProfile, freightSpeedDetailProfile, freightAccelerationCache);
+  local referenceSpeed = OpexRailEffectiveSpeed(referenceLoco, wagon, maxWagons, travelDist, profile, cruiseCache, freightCruiseProfile, freightSpeedDetailProfile, freightAccelerationCache, freightEffectiveSpeedProfile);
   if (profile != null) {
     profile.paxSpeedOps += OpexOpsMeasureEnd(speedMark);
     profile.paxSpeedCalls++;
@@ -222,7 +223,7 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   local loco = choices[wagons - 1];
   if (loco == null) return null;
   speedMark = profile != null ? OpexOpsMeasureBegin() : null;
-  local effectiveSpeed = OpexRailEffectiveSpeed(loco, wagon, wagons, travelDist, profile, cruiseCache, freightCruiseProfile, freightSpeedDetailProfile, freightAccelerationCache);
+  local effectiveSpeed = OpexRailEffectiveSpeed(loco, wagon, wagons, travelDist, profile, cruiseCache, freightCruiseProfile, freightSpeedDetailProfile, freightAccelerationCache, freightEffectiveSpeedProfile);
   if (profile != null) {
     local speedOps = OpexOpsMeasureEnd(speedMark);
     profile.paxSpeedOps += speedOps;
@@ -245,7 +246,7 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
     loco = choices[wagons - 1];
     if (loco == null) return null;
     speedMark = profile != null ? OpexOpsMeasureBegin() : null;
-    effectiveSpeed = OpexRailEffectiveSpeed(loco, wagon, wagons, travelDist, profile, cruiseCache, freightCruiseProfile, freightSpeedDetailProfile, freightAccelerationCache);
+    effectiveSpeed = OpexRailEffectiveSpeed(loco, wagon, wagons, travelDist, profile, cruiseCache, freightCruiseProfile, freightSpeedDetailProfile, freightAccelerationCache, freightEffectiveSpeedProfile);
     if (profile != null) {
       local speedOps = OpexOpsMeasureEnd(speedMark);
       profile.paxSpeedOps += speedOps;

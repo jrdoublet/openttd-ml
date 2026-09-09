@@ -835,6 +835,9 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
  * l'etage 1 lineaire en nombre d'industries plutot que quadratique sur tout le catalogue. */
 function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, cruiseCache = null)
 {
+  /* C41.44 : les lignes sont immuables pendant une generation ; une ville peut donc reutiliser
+   * exactement son resultat OpexOriginService, y compris null et l'etat blocked. */
+  local townServiceCache = C41_RAIL_FREIGHT_TOWN_SERVICE_CACHE ? {} : null;
   local preparationMark = profile != null ? OpexOpsMeasureBegin() : null;
   local industries = catalog.industries;
   local served = [];
@@ -906,24 +909,38 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
         local townMark = profile != null ? OpexOpsMeasureBegin() : null;
         local townSinks = catalog.townAcceptors[cargo];
         foreach (town in townSinks) {
+          local townGuardMark = (profile != null && C41_RAIL_FREIGHT_TOWN_GUARDS_PROFILE) ? OpexOpsMeasureBegin() : null;
           if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
             /* G9§1 : utiliser "t" + town.id au lieu de GetIndustryID (qui retourne -1
              * pour une ville), en coherence avec OpexAbandonedPairKey. */
             local pairKey = "freight|" + cargo + "|" + source.id + "|t" + town.id;
-            if (pairKey in abandonedPairs) continue;
+            if (pairKey in abandonedPairs) {
+              if (townGuardMark != null) { profile.freightTownGuardsOps += OpexOpsMeasureEnd(townGuardMark); profile.freightTownGuardsCalls++; }
+              continue;
+            }
           }
           stats.pairsTotal++;
-          local st = OpexOriginService(lines, town.tile);
+          local townServiceMark = (profile != null && C41_RAIL_FREIGHT_TOWN_GUARDS_PROFILE) ? OpexOpsMeasureBegin() : null;
+          local st = null;
+          if (townServiceCache != null && town.id in townServiceCache) st = townServiceCache[town.id];
+          else {
+            st = OpexOriginService(lines, town.tile);
+            if (townServiceCache != null) townServiceCache[town.id] <- st;
+          }
+          if (townServiceMark != null) { profile.freightTownServiceOps += OpexOpsMeasureEnd(townServiceMark); profile.freightTownServiceCalls++; }
           if ((ss != null && st != null) || (!STATION_JOIN && (ss != null || st != null))) {
             stats.pairsOriginServed++;
+            if (townGuardMark != null) { profile.freightTownGuardsOps += OpexOpsMeasureEnd(townGuardMark); profile.freightTownGuardsCalls++; }
             continue;
           }
           if (ss != null && !OpexOriginJoinable(ss, "freight", cargo, "A")) {
             stats.pairsJoinImpossible++;
+            if (townGuardMark != null) { profile.freightTownGuardsOps += OpexOpsMeasureEnd(townGuardMark); profile.freightTownGuardsCalls++; }
             continue;
           }
           if (st != null && !OpexOriginJoinable(st, "freight", cargo, "B")) {
             stats.pairsJoinImpossible++;
+            if (townGuardMark != null) { profile.freightTownGuardsOps += OpexOpsMeasureEnd(townGuardMark); profile.freightTownGuardsCalls++; }
             continue;
           }
           local townMonthly = monthly;
@@ -931,7 +948,11 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
             /* Industrie de transformation activement approvisionnée en amont */
             townMonthly = 45;
           }
-          if (townMonthly <= 0) continue;
+          if (townMonthly <= 0) {
+            if (townGuardMark != null) { profile.freightTownGuardsOps += OpexOpsMeasureEnd(townGuardMark); profile.freightTownGuardsCalls++; }
+            continue;
+          }
+          if (townGuardMark != null) { profile.freightTownGuardsOps += OpexOpsMeasureEnd(townGuardMark); profile.freightTownGuardsCalls++; }
           local originServed = ss != null || st != null;
           if (originServed) stats.pairsOneServed++;
           local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;

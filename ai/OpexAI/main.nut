@@ -173,6 +173,9 @@ C41_RAIL_FREIGHT_CRUISE_PROFILE <- false;
 C41_RAIL_FREIGHT_CRUISE_CACHE <- false;
 C41_RAIL_FREIGHT_SPEED_DETAIL_PROFILE <- false;
 C41_RAIL_FREIGHT_ACCELERATION_CACHE <- false;
+C41_RAIL_FREIGHT_EFFECTIVE_SPEED_PROFILE <- false;
+C41_RAIL_FREIGHT_TOWN_GUARDS_PROFILE <- false;
+C41_RAIL_FREIGHT_TOWN_SERVICE_CACHE <- false;
 /* C41.4 : sonde strictement passive des vehicules perdus. Contrairement a A7.4,
  * elle n'ecrit ni compteur de ligne ni signe, et n'arme aucune tache. */
 C41_VEHICLE_LOST_PROBE <- false;
@@ -6234,6 +6237,17 @@ function OpexAI::_runNextTask()
                  + " integration_ops=" + profile.freightIntegrationOps
                  + " integration_calls=" + profile.freightIntegrationCalls);
     }
+    if (C41_RAIL_FREIGHT_EFFECTIVE_SPEED_PROFILE && this._projects != null && ("rail" in this._projects)
+        && this._projects.rail != null && ("profile" in this._projects.rail) && this._projects.rail.profile != null) {
+      local profile = this._projects.rail.profile;
+      OpexC39Log("C41_RAIL_FREIGHT_EFFECTIVE_SPEED_PROFILE", "calls=" + profile.freightSpeedCalls
+                 + " unique_keys=" + profile.freightSpeedUniqueKeys + " cacheable_hits=" + profile.freightSpeedCacheableHits);
+    }
+    if (C41_RAIL_FREIGHT_TOWN_GUARDS_PROFILE && this._projects != null && ("rail" in this._projects)
+        && this._projects.rail != null && ("profile" in this._projects.rail) && this._projects.rail.profile != null) {
+      local profile = this._projects.rail.profile;
+      OpexC39Log("C41_RAIL_FREIGHT_TOWN_GUARDS_PROFILE", "ops=" + profile.freightTownGuardsOps + " calls=" + profile.freightTownGuardsCalls + " service_ops=" + profile.freightTownServiceOps + " service_calls=" + profile.freightTownServiceCalls);
+    }
     this._logStalenessRefresh(refreshReason);
     this._portfolioInvalidated = false;
     this._ranked = this._projects.rail;
@@ -6740,6 +6754,9 @@ function OpexAI::Start()
   C41_RAIL_FREIGHT_CRUISE_CACHE = AIController.GetSetting("c41_rail_freight_cruise_cache") != 0;
   C41_RAIL_FREIGHT_SPEED_DETAIL_PROFILE = AIController.GetSetting("c41_rail_freight_speed_detail_profile") != 0;
   C41_RAIL_FREIGHT_ACCELERATION_CACHE = AIController.GetSetting("c41_rail_freight_acceleration_cache") != 0;
+  C41_RAIL_FREIGHT_EFFECTIVE_SPEED_PROFILE = AIController.GetSetting("c41_rail_freight_effective_speed_profile") != 0;
+  C41_RAIL_FREIGHT_TOWN_GUARDS_PROFILE = AIController.GetSetting("c41_rail_freight_town_guards_profile") != 0;
+  C41_RAIL_FREIGHT_TOWN_SERVICE_CACHE = AIController.GetSetting("c41_rail_freight_town_service_cache") != 0;
   C41_RAIL_LOST_PROBE = AIController.GetSetting("c41_rail_lost_probe") != 0;
   C41_RAIL_LOST_TOPOLOGY_PROBE = AIController.GetSetting("c41_rail_lost_topology_probe") != 0;
   C41_RAIL_LOST_PHYSICAL_PROBE = AIController.GetSetting("c41_rail_lost_physical_probe") != 0;

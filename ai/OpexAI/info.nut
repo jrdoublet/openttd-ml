@@ -491,6 +491,9 @@ class OpexAIInfo extends AIInfo {
     AddSetting({ name = "c41_rail_freight_cruise_cache", description = "C41.38: cache freight cruise speed by (loco, wagon, wagons) within one candidate generation; 1 = on (default), 0 = off", easy_value = 1, medium_value = 1, hard_value = 1, custom_value = 1, flags = AICONFIG_BOOLEAN });
     AddSetting({ name = "c41_rail_freight_speed_detail_profile", description = "C41.39 probe: split freight effective speed into acceleration and integration; 1 = on, 0 = off (default)", easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0, flags = AICONFIG_BOOLEAN });
     AddSetting({ name = "c41_rail_freight_acceleration_cache", description = "C41.40: cache freight acceleration within one candidate generation; 1 = on (default), 0 = off", easy_value = 1, medium_value = 1, hard_value = 1, custom_value = 1, flags = AICONFIG_BOOLEAN });
+    AddSetting({ name = "c41_rail_freight_effective_speed_profile", description = "C41.41 probe: count exact reusable freight effective-speed keys; 1 = on, 0 = off (default)", easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0, flags = AICONFIG_BOOLEAN });
+    AddSetting({ name = "c41_rail_freight_town_guards_profile", description = "C41.42 probe: measure freight industry-to-town guards; 1 = on, 0 = off (default)", easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0, flags = AICONFIG_BOOLEAN });
+    AddSetting({ name = "c41_rail_freight_town_service_cache", description = "C41.44: cache freight town service within one candidate generation; 1 = on, 0 = off (default)", easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0, flags = AICONFIG_BOOLEAN });
 
     /* C41.4 : inventaire passif des vehicules perdus, independant de l'alerte A7.4. */
     AddSetting({
