@@ -133,15 +133,28 @@ function OpexRailAcceleration(loco, wagon, wagons, speed)
  * 61 km/h sur un angle droit et 111 a courbure 2 ; aucun pourcentage de virages n'est invente.
  * Mesure 2026-08-30 (results/opex_speed_yield.json, n=832) : mediane reel/catalogue 0,96,
  * reel/traction 1,18. Le 70 % etait trop pessimiste. Pas de retuning. */
-function OpexRailEffectiveSpeed(loco, wagon, wagons, distance)
+function OpexRailEffectiveSpeed(loco, wagon, wagons, distance, profile = null)
 {
+  if (profile != null) {
+    local key = loco.id + "|" + wagon.id + "|" + wagons + "|" + distance;
+    if (key in profile.paxSpeedKeys) profile.paxSpeedCacheableHits++;
+    else {
+      profile.paxSpeedKeys[key] <- true;
+      profile.paxSpeedUniqueKeys++;
+    }
+  }
+  local cruiseMark = profile != null ? OpexOpsMeasureBegin() : null;
   local cruise = OpexRailCruiseSpeed(loco, wagon, wagons);
+  if (profile != null) profile.paxCruiseOps += OpexOpsMeasureEnd(cruiseMark);
   if (cruise < 1 || distance < 1) return 0;
 
   local halfSpeed = cruise / 2;
   if (halfSpeed < 1) halfSpeed = 1;
+  local accelerationMark = profile != null ? OpexOpsMeasureBegin() : null;
   local acceleration = OpexRailAcceleration(loco, wagon, wagons, halfSpeed);
+  if (profile != null) profile.paxAccelerationOps += OpexOpsMeasureEnd(accelerationMark);
   if (acceleration < 1) return 0;
+  local integrationMark = profile != null ? OpexOpsMeasureBegin() : null;
   local speedPerDay = acceleration * 148.0 / 256.0;
   local startDays = cruise / speedPerDay;
   local startDistance = 0.036 * (cruise / 2.0) * startDays;
@@ -153,8 +166,13 @@ function OpexRailEffectiveSpeed(loco, wagon, wagons, distance)
     local peak = sqrt(distance * speedPerDay / 0.036);
     travelDays = 2 * peak / speedPerDay;
   }
-  if (travelDays <= 0) return 0;
-  return distance / (0.036 * travelDays);
+  if (travelDays <= 0) {
+    if (profile != null) profile.paxIntegrationOps += OpexOpsMeasureEnd(integrationMark);
+    return 0;
+  }
+  local result = distance / (0.036 * travelDays);
+  if (profile != null) profile.paxIntegrationOps += OpexOpsMeasureEnd(integrationMark);
+  return result;
 }
 
 class OpexCatalog {

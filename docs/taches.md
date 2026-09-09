@@ -1123,6 +1123,15 @@ reste à trancher indépendamment.
   accélération et intégration, puis mesurer la réutilisation exacte des clés
   `(loco,wagon,nombre de wagons,distance)` avant de mettre un cache.
 
+  ✅ **C41.28 — détail vitesse et réutilisation exacte pax rail, 5 graines × 6 ans.** Le
+  diagnostic passif `results/diag_c41_28_rail_pax_speed_detail_profile_6y_5seeds.json` est sain
+  sur **289** générations. La recherche dichotomique de vitesse de croisière coûte **241,85 M
+  opcodes (79,1 %)** ; l'accélération 42,33 M et l'intégration 21,79 M. Même avec la clé complète
+  `(loco,wagon,wagons,distance)`, 255 172 des 380 459 appels (**67,1 %**) sont répétables dans leur
+  génération. La croisière ne dépend toutefois pas de `distance` : prochaine micro-tâche, compter
+  ses clés propres `(loco,wagon,wagons)` avant de retenir un cache de croisière, plus simple et
+  plus largement réutilisable qu'un cache de vitesse finale.
+
   ✅ **C39.4 — les cinq avions « rejetés » sont dominés, non invalides.** La sonde
   `c39_air_reason_probe=0`, sur 5 graines × 6 ans
   (`results/diag_c39_air_reason_6y_5seeds.json`), est saine : les cinq notifications sont le moteur

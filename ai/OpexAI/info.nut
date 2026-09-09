@@ -438,6 +438,14 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    AddSetting({
+      name = "c41_rail_pax_speed_detail_profile",
+      description = "C41.28 probe: split rail pax speed into cruise, acceleration and integration; count exact reusable keys; no scheduling change; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* C41.4 : inventaire passif des vehicules perdus, independant de l'alerte A7.4. */
     AddSetting({
       name = "c41_vehicle_lost_probe",
