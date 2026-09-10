@@ -2351,6 +2351,15 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
+    /* Format de sauvegarde experimental : le banc doit encore mesurer son cout et sa fidelite. */
+    AddSetting({
+      name = "save_full_state",
+      description = "Full decision-state persistence in savegames (experimental; benchmark measurement in progress)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* Ticks de sommeil apres chaque bloc de PATH_CHUNK (50) iterations d'A*.
      *
      * Defaut 0 = AUCUN bridage. Choisi PAR PRINCIPE (armes egales entre IA), PAS par la mesure --

@@ -1037,15 +1037,91 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   🔗 `maxBatch = 1` n'est même pas une constante — c'est un `local` — et c'est lui qui rend le tour
   de cycle rare. Toute reprise doit dire si elle price cette rareté ou la supprime.
 
-- 🔴 **C45 — Implémenter `Save()`/`Load()`.** `OpexAI::Save`/`Load` n'existent nulle part (vérifié
-  par grep) : chaque clichage émet `[script:3] [W] Save function is not implemented`. Sans eux, une
-  partie **rechargée** perd tout l'état interne (`_taskQueue`, `_staleness`, `_abandonedPairs`,
-  `_nextLineId`, ledgers C41, `_lines`) et l'IA repart de zéro dans un monde qui a déjà ses gares —
-  double-comptage et désynchronisation silencieuse.
-  **À cadrer avant de coder** : quels champs sont *reconstructibles sans perte* depuis les chunks
-  (`_lines` dérivable de `VEHS`/`STNN` par `owner`, `_catalog` rafraîchi au premier cycle) contre
-  l'**état de décision pur** qui serait perdu (dueCycle, révisions `_staleness`, `_abandonedPairs`,
-  `_nextLineId`, compteurs C41) — perdre les seconds dégrade sans crasher, donc sans se voir.
+- 🟡 **C45 — `Save()`/`Load()` : le symptôme était éteint, le fond ne l'était pas. Traité le 2026-09-10.**
+
+  ⛔ **La prémisse de cette fiche était FAUSSE au moment où on l'a relue** : « `OpexAI::Save`/`Load`
+  n'existent nulle part (vérifié par grep) ». Ils ont été ajoutés le **2026-09-09 à 17 h 24**
+  (`1c12fd5`) ; le journal d'erreur qui avait motivé la fiche datait du **même jour à 06 h 50**
+  (`[script:3] [0] [W] Save function is not implemented`, retrouvé dans
+  `results/bench_c41_30_*.json`).
+  ✅ **Contrôle explicite fait avant de coder**, même harnais sur deux arbres, 60 jours de jeu :
+  arbre d'avant `1c12fd5` ⇒ **4 avertissements** ; arbre courant ⇒ **0 octet de sortie**.
+  🔑 **Règle de méthode, troisième illustration en deux jours** : une fiche de backlog vieillit
+  comme une mesure d'archive. Vérifier la prémisse avant d'ouvrir le chantier, pas après.
+
+  ### Ce qui n'allait vraiment pas, et qui est corrigé
+
+  1. 🐛 **`Start()` écrasait `_startYear`** (`main.nut`, ligne du `AIDate.GetYear(...)` initial) : au
+     rechargement, l'année de départ sauvegardée était perdue et `yearsElapsed` repartait à **0**,
+     donc toute la logique d'époque avec.
+  2. 🐛 **`Start()` reprenait l'emprunt maximal** juste après : une partie rechargée qui avait
+     remboursé se **réendettait d'office**, sans décision.
+  3. 🐛 **`_lines` n'était ni sauvé ni reconstruit** : au retour de `Load()`, l'IA reprenait une
+     partie **aveugle sur son propre réseau** — `OpexGetServedTowns(this._lines)` vide, exclusion
+     des origines servies vide, ferraillage sans objet.
+  4. 🐛 **`_loadedFromSave` était écrit et jamais lu** (3 sites). C'est lui qui manquait aux points
+     1 et 2 ; il a maintenant un usage.
+
+  **Livré** : réglage `save_full_state` (défaut 0) ; `Save()` inchangé à 0, et à 1 il ajoute
+  `lines` (**par référence** : le sérialiseur du moteur parcourt la structure, une recopie coûterait
+  des opcodes sous le budget qui tue le script), `abandonCounts`, `lastRepayMonth`, `taskCycle`,
+  `taskCursor`, `vehiclesToScrap`, `taskDue` **clé par nom de tâche** (l'ordre de la file peut
+  changer d'une version à l'autre) ; `Load()` range les lignes brutes dans `_pendingLines` sans
+  toucher au monde ; nouvelle `_reconcileAfterLoad()` appelée depuis `Start()` qui valide chaque
+  ligne contre le monde réel et journalise **une** ligne de preuve.
+
+  ### Contraintes du moteur, vérifiées dans la source OpenTTD 15.3 (`src/script/script_instance.cpp`)
+
+  Racine = table obligatoire ; types admis : entier, chaîne, tableau, table, booléen, `null` — **pas
+  de flottant** (`You tried to save an unsupported type. No data saved.`) ; profondeur ≤ **25** ;
+  chaînes ≤ **254** caractères ; `Save()` tourne **sous budget d'opcodes** (`This script took too
+  long to Save.` tue le script) ; `Save()`/`Load()` s'exécutent sous `DisableDoCommandScope` ; et
+  🔑 **l'ordre est constructeur → `Load()` → `Start()`** — c'est pourquoi la réconciliation ne peut
+  pas vivre dans `Load()`.
+  ⚠️ Le flottant est donc **arrondi**, pas jeté : une métrique prédite perdue en silence au
+  rechargement serait pire que sa troncature.
+
+  ### Preuve : test de rechargement réel, à harnais nouveau
+
+  `sweeps/save_load_roundtrip.py` (nouveau) : phase A joue 3 ans en conservant les sauvegardes,
+  phase B **recharge** une sauvegarde de milieu de partie et rejoue 2 ans, avec `-d script=4`.
+  🔑 **`openttdlab` ne sait pas charger une sauvegarde** : le script remplace le `-g` nu par
+  `-g <sauvegarde>` dans l'appel au binaire, et **retire `start_ai` du `game_start.scr`**, sans quoi
+  une deuxième compagnie OpexAI démarre à côté de celle qu'on recharge.
+
+  Même graine, même sauvegarde rechargée (1971-07-01, 44 gares / 56 véhicules / 491 368 £) :
+
+  | | `save_full_state=0` | `save_full_state=1` |
+  |---|---|---|
+  | ligne de preuve au chargement | `LOAD_RECONCILE saved=0 kept=0` | **`saved=25 kept=25 dropped=0 vehicles_purged=1`** |
+  | gares 2 ans après la reprise | 85 (**+41**) | **69 (+25)** |
+  | véhicules | 136 | 111 |
+  | valeur de compagnie | 3 091 320 £ | **3 223 325 £** |
+
+  ✅ **`Load()` est prouvé appelé** — et il fallait ce marqueur : le moteur ne journalise **que les
+  échecs** de chargement, il n'existe aucun message de succès. ✅ Aucun motif d'erreur
+  (`unsupported type`, `too deep`, `too long to Save`, `script died`) dans aucune des deux phases :
+  `_lines` passe le sérialiseur tel quel.
+  ⚠️ **Ce que ce test ne dit PAS** : que les 41 gares du bras 0 sont des **doublons**. Il montre que
+  sans persistance l'IA construit 64 % de gares en plus pour **moins** de valeur, ce qui est
+  *cohérent* avec une reconstruction par-dessus son propre réseau — la nature des gares n'est pas
+  mesurée, et c'est **une graine, un rechargement**.
+  ⚠️ **Confondant trouvé par le harnais, à connaître** : recharger une sauvegarde en headless fait
+  apparaître une **compagnie fantôme** (`is_ai=0`, ~100 000 £ jamais mouvementés) ; `-D` ne la
+  supprime pas. Elle n'a rien construit ici, mais elle interdit de lire les agrégats « toutes
+  compagnies » d'une phase B.
+
+  ### Reste
+
+  - ⬜ **Banc officiel 20×10 apparié `save_full_state=0` vs `1`** (non-régression : le réglage ne
+    peut se voir qu'au rechargement, or le banc ne recharge jamais — il vérifie que la charge utile
+    supplémentaire ne déplace pas la trajectoire). Contrôle déjà fait au smoke 3×2 : **les deux bras
+    donnent des chiffres identiques au véhicule près**.
+  - ⬜ Si neutre, **passer le défaut à 1** : le bénéfice n'existe qu'en partie humaine rechargée,
+    le coût mesuré est nul.
+  - ⬜ Non persistés et assumés : `_staleness`, ledgers C41/C48/C49, `_railSearch`, `_projects`,
+    `_catalog` (télémétrie ou reconstruits au premier cycle). `_activeSubsidies` reste **à trancher**
+    (relisible par API, mais les compteurs historiques ne le sont pas).
 
 - 🔴 **C46 — OpexAI ne construit rien sur une carte 1024².** Diagnostic du 2026-09-09 (graine 42,
   1 an, `-d script=4`, AAAHogEx tournant normalement sur la même carte).

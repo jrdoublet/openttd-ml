@@ -275,6 +275,8 @@ FEEDER_ENABLED <- true;
 FEEDER_CANDIDATES_ENABLED <- false;
 /* C32 : rabattement arbitre au portefeuille (1) au lieu de la tache dediee (0). */
 FEEDER_PORTFOLIO <- true;
+/* Persistance complete de l'etat de decision : repli prudent tant que le banc ne l'a pas valide. */
+SAVE_FULL_STATE <- false;
 /* C34.1 : construction aerienne arbitree par le portefeuille seul (1) au lieu de la tache dediee. */
 AIR_PORTFOLIO <- true;
 /* C34.2 : croissance de flotte aerienne arbitree par le portefeuille (1) au lieu de la tache dediee. */
@@ -1289,6 +1291,8 @@ class OpexAI extends AIController {
   _lines = null;        // [{stationA, stationB, cargo, predicted, iterations, trains, lineId, ...
                          //   deadStreak, scrapping, scrapVehicles (fret uniquement, cf.
                          //   _reportLines / _scrapDeadLines)}]
+  /* Lignes brutes de Save : aucune lecture du monde dans Load(), la reconciliation attend Start(). */
+  _pendingLines = null;
   /* Paires qui ont rendu ABND : table indexee par cle chaine, donc test O(1), et volontairement
    * petite (quelques abandons par partie) plutot qu'un historique de toutes les tentatives. */
   _abandonedPairs = null;
@@ -1401,6 +1405,7 @@ class OpexAI extends AIController {
     this._budget = OpexBudget();
     this._catalog = OpexCatalog();
     this._lines = [];
+    this._pendingLines = null;
     this._waterSiteCatalog = { cursor = 0, towns = {} };
     this._abandonedPairs = {};
     this._abandonCounts = {};
@@ -7731,6 +7736,74 @@ function OpexAI::Save()
   if (this._abandonedPairs != null) {
     foreach (key, val in this._abandonedPairs) abandoned[key] <- val;
   }
+  /* A 0, conserver exactement le format historique : la charge complete est experimentale et
+   * le serialiseur execute Save() sous budget d'opcodes. */
+  if (!SAVE_FULL_STATE) return {
+    version = 1,
+    generationStage = this._generationStage,
+    generationStageMonth = this._generationStageMonth,
+    lastFreightCargo = this._lastFreightCargo,
+    bootstrapFreightCargo = this._bootstrapFreightCargo,
+    nextLineId = this._nextLineId,
+    lastCatalogMonth = this._lastCatalogMonth,
+    lastReportYear = this._lastReportYear,
+    startYear = this._startYear,
+    abandonedPairs = abandoned,
+    airBuilt = this._airBuilt,
+    waterBuilt = this._waterBuilt,
+    waterSiteCatalog = this._waterSiteCatalog,
+  };
+
+  local taskDue = {};
+  if (this._taskQueue != null) {
+    foreach (task in this._taskQueue) taskDue[task.name] <- task.dueCycle;
+  }
+  /* Les lignes sont normalement donnees telles quelles au serialiseur. Certains modeles
+   * economiques (surtout air) laissent toutefois des flottants dans des metriques predites,
+   * type que le format de sauvegarde OpenTTD refuse. Une projection superficielle n'est faite
+   * que dans ce cas : les champs scalarises restants sont tous serialisables; les tableaux
+   * (VehicleID) et tables des lignes actuelles ne contiennent que des entiers/booleens/null. */
+  local saveLines = this._lines;
+  local projectedLines = null;
+  if (this._lines != null) {
+    for (local i = 0; i < this._lines.len(); i++) {
+      local line = this._lines[i];
+      local needsProjection = line != null && typeof line == "table";
+      if (needsProjection) {
+        needsProjection = false;
+        foreach (key, val in line) {
+          local valType = typeof val;
+          if (valType != "integer" && valType != "string" && valType != "bool" &&
+              valType != "null" && valType != "array" && valType != "table") {
+            needsProjection = true;
+            break;
+          }
+        }
+      }
+      if (needsProjection) {
+        if (projectedLines == null) {
+          projectedLines = [];
+          for (local prior = 0; prior < i; prior++) projectedLines.append(this._lines[prior]);
+        }
+        local serializableLine = {};
+        foreach (key, val in line) {
+          local valType = typeof val;
+          if (valType == "integer" || valType == "string" || valType == "bool" ||
+              valType == "null" || valType == "array" || valType == "table") {
+            serializableLine[key] <- val;
+          } else if (valType == "float") {
+            /* Le format de sauvegarde n'admet pas le flottant : arrondir CONSERVE le champ (une
+             * metrique predite), alors que le jeter le perdrait en silence au rechargement. */
+            serializableLine[key] <- val.tointeger();
+          }
+        }
+        projectedLines.append(serializableLine);
+      } else if (projectedLines != null) {
+        projectedLines.append(line);
+      }
+    }
+  }
+  if (projectedLines != null) saveLines = projectedLines;
   return {
     version = 1,
     generationStage = this._generationStage,
@@ -7745,6 +7818,14 @@ function OpexAI::Save()
     airBuilt = this._airBuilt,
     waterBuilt = this._waterBuilt,
     waterSiteCatalog = this._waterSiteCatalog,
+    lines = saveLines,
+    abandonCounts = this._abandonCounts,
+    lastRepayMonth = this._lastRepayMonth,
+    taskCycle = this._taskCycle,
+    taskCursor = this._taskCursor,
+    vehiclesToScrap = this._vehiclesToScrap,
+    taskDue = taskDue,
+    stateVersion = 1,
   };
 }
 
@@ -7770,6 +7851,63 @@ function OpexAI::Load(version, data)
     this._abandonedPairs = {};
     foreach (key, val in data.abandonedPairs) this._abandonedPairs[key] <- val;
   }
+  if ("lines" in data) this._pendingLines = data.lines;
+  if ("abandonCounts" in data && data.abandonCounts != null) this._abandonCounts = data.abandonCounts;
+  if ("lastRepayMonth" in data) this._lastRepayMonth = data.lastRepayMonth;
+  if ("taskCycle" in data) this._taskCycle = data.taskCycle;
+  if ("taskCursor" in data) this._taskCursor = data.taskCursor;
+  if ("vehiclesToScrap" in data && data.vehiclesToScrap != null) this._vehiclesToScrap = data.vehiclesToScrap;
+  /* Cle par nom : l'ordre de la file peut evoluer entre deux versions de l'IA. */
+  if ("taskDue" in data && data.taskDue != null && this._taskQueue != null) {
+    foreach (task in this._taskQueue) {
+      if (task.name in data.taskDue) task.dueCycle = data.taskDue[task.name];
+    }
+  }
+}
+
+/* Load tourne trop tot et sous DisableDoCommandScope : la verification du monde est donc faite
+ * ici, apres les reglages. Les stationA/stationB sont des TUILES, jamais des StationID. */
+function OpexAI::_reconcileAfterLoad()
+{
+  local saved = 0;
+  local kept = 0;
+  local dropped = 0;
+  local purgedVehicles = 0;
+  local liveLines = [];
+  if (this._pendingLines != null) {
+    foreach (line in this._pendingLines) {
+      saved++;
+      if (line == null || !("stationA" in line) || !("stationB" in line) ||
+          !AIMap.IsValidTile(line.stationA) || !AIMap.IsValidTile(line.stationB)) {
+        dropped++;
+        continue;
+      }
+      local stationA = AIStation.GetStationID(line.stationA);
+      local stationB = AIStation.GetStationID(line.stationB);
+      if (!AIStation.IsValidStation(stationA) || !AIStation.IsValidStation(stationB) ||
+          !AICompany.IsMine(AITile.GetOwner(line.stationA)) ||
+          !AICompany.IsMine(AITile.GetOwner(line.stationB))) {
+        dropped++;
+        continue;
+      }
+      /* Les camions sont identifies par leurs ordres : ne pas reecrire le champ vehicles d'une
+       * ligne route, meme si une ancienne version l'a laisse dans la table. */
+      if ((!("mode" in line) || line.mode != "road") && ("vehicles" in line) && line.vehicles != null) {
+        local liveVehicles = [];
+        foreach (vehicle in line.vehicles) {
+          if (AIVehicle.IsValidVehicle(vehicle)) liveVehicles.append(vehicle);
+          else purgedVehicles++;
+        }
+        line.vehicles = liveVehicles;
+      }
+      liveLines.append(line);
+      kept++;
+    }
+  }
+  this._lines = liveLines;
+  this._pendingLines = null;
+  /* Sans sonde : cette unique preuve doit toujours accompagner un rechargement, jamais une partie neuve. */
+  OpexDecide("LOAD_RECONCILE", "saved=" + saved + " kept=" + kept + " dropped=" + dropped + " vehicles_purged=" + purgedVehicles);
 }
 
 function OpexAI::Start()
@@ -7780,6 +7918,7 @@ function OpexAI::Start()
   /* Lu une seule fois : le reglage ne change pas en cours de partie, et OpexSign est appele des
    * dizaines de fois par an. Un GetSetting par appel serait du gaspillage pur. */
   DEBUG_SIGNS = AIController.GetSetting("debug_signs") != 0;
+  SAVE_FULL_STATE = AIController.GetSetting("save_full_state") != 0;
   /* Exprime en milliers dans le reglage : AddSetting ne porte que des entiers, et un pas de
    * 50 000 sur une plage de 0 a 2 000 000 serait illisible en unites brutes. */
   LOAN_REPAY_FLOOR = AIController.GetSetting("loan_repay_floor_k") * 1000;
@@ -8031,6 +8170,7 @@ function OpexAI::Start()
   ROAD_CHEAP_TRACE = AIController.GetSetting("road_cheap_trace") != 0;
   ROAD_PAX_VOIRIE = AIController.GetSetting("road_pax_voirie") != 0;
   ROAD_PAX_OVERLAP = AIController.GetSetting("road_pax_overlap") != 0;
+  if (this._loadedFromSave) this._reconcileAfterLoad();
   if (DECISION_LOG) {
     OpexDecide("SETTINGS", "road_cheap_trace=" + ROAD_CHEAP_TRACE
                + " raw=" + AIController.GetSetting("road_cheap_trace")
@@ -8060,10 +8200,16 @@ function OpexAI::Start()
   /* L'emprunt maximal des le depart : la note de compagnie recompense l'emprunt a zero (5 %),
    * mais une ligne non construite faute de tresorerie coute bien davantage. Le remboursement
    * viendra quand la tresorerie le permettra. */
-  this._startYear = AIDate.GetYear(AIDate.GetCurrentDate());
-  AICompany.SetLoanAmount(AICompany.GetMaxLoanAmount());
-  if (DECISION_LOG) {
-    OpexDecide("LOAN", "action=initial_borrow amount=" + AICompany.GetLoanAmount() + " max_loan=" + AICompany.GetMaxLoanAmount());
+  if (!this._loadedFromSave || this._startYear < 0) {
+    /* Une sauvegarde porte son annee de debut : ne pas remettre yearsElapsed a zero au reload. */
+    this._startYear = AIDate.GetYear(AIDate.GetCurrentDate());
+  }
+  if (!this._loadedFromSave) {
+    /* Le reload reprend la dette effectivement choisie : ne pas reemprunter sans decision. */
+    AICompany.SetLoanAmount(AICompany.GetMaxLoanAmount());
+    if (DECISION_LOG) {
+      OpexDecide("LOAN", "action=initial_borrow amount=" + AICompany.GetLoanAmount() + " max_loan=" + AICompany.GetMaxLoanAmount());
+    }
   }
 
   while (true) {
