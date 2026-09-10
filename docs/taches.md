@@ -319,6 +319,100 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   reclasse les 89,3 % de (c) en dénominateur de round-robin et arme une hypothèse nulle sur le
   réfuté `portfolio_max_batch` : voir la fiche C39 ci-dessus. **Plus rien à faire ici.**
 
+- 🔴 **C54 — 🔑 Une flotte massivement improductive, jamais mesurée jusqu'ici.**
+  📝 Mesuré le 2026-09-10, `results/diag_station_fleet_10y_5seeds.json` (2 bras × 5 graines × 10 ans,
+  0 échec, lecture des chunks `STNN`/`VEHS`/`ORDR`, aucune sonde de jeu).
+
+  | mode | flotte v2=1 | profit ≤ 0 | part | flotte v2=0 | profit ≤ 0 | part |
+  |---|---:|---:|---:|---:|---:|---:|
+  | **rail** | 87 | 67 | **77,0 %** | 39 | 30 | **76,9 %** |
+  | **avion** | 598 | 306 | **51,2 %** | 572 | 288 | **50,3 %** |
+  | route | 305 | 76 | 24,9 % | 229 | 56 | 24,5 % |
+
+  🔑 **Plus des 3/4 des trains et la moitié des avions ne rapportent rien ou perdent de l'argent**,
+  et **les taux sont identiques dans les deux bras** : ce n'est pas un défaut de `portfolio_v2`,
+  c'est un **état permanent de l'IA**. 374 véhicules sur 991 à profit ≤ 0 sur le chemin par défaut.
+  🔗 **Lien direct avec C52** : `ET_VEHICLE_UNPROFITABLE` n'est **écouté nulle part**. L'IA n'a aucun
+  moyen de s'apercevoir qu'un véhicule ne gagne rien, donc elle ne le remplace ni ne le supprime.
+  **C52 passe du nettoyage à la piste principale.**
+  ⚠️ **Réserves** : `profit_this_year` est un profit **en cours d'année** — un véhicule récent ou en
+  trajet peut apparaître à 0 sans être déficitaire ; croiser avec `profit_last_year` et l'âge avant
+  de conclure. Et « ≤ 0 » agrège nuls et négatifs, qui n'ont pas le même sens.
+
+- ⚪ **C51 bis — la dissociation volume/valeur, expliquée (2026-09-10).**
+  Le banc 20×10 montrait +30,4 % de gares pour un profit inchangé, soit **−23,0 % de profit par
+  gare** (18/20, p=0,0004). Chaîne complète, par mesures directes :
+  1. **La composition du réseau change**, elle ne fait pas que grossir. Effectifs recalculés depuis
+     les distributions brutes (détection par **valeur**, `> 0`) :
+
+     | mode | v2=1 | v2=0 | écart |
+     |---|---:|---:|---:|
+     | bus | 364 | 344 | +20 |
+     | **camion** | **68** | **2** | **+66** |
+     | **rail** | **42** | **14** | **+28** |
+     | avion | 133 | 129 | +4 |
+
+     `portfolio_v2=1` **ouvre deux canaux** que le legacy n'utilisait quasiment pas.
+  2. Ces canaux sont les plus déficitaires (C54) : la flotte rail passe de 39 à 87 véhicules, dont
+     **77 % à profit ≤ 0**.
+  ⇒ **+66 gares camion et +28 gares rail → +48 trains dont 37 improductifs → profit total inchangé
+  malgré +30 % de gares.**
+
+  ⛔ **Cinq hypothèses testées et ÉLIMINÉES avant celle-là — ne pas les reproposer** : gares mortes
+  (12 contre 4), gares non desservies (**aucune** gare non notée n'est à zéro visiteur), engorgement
+  (46 contre 45, effectifs identiques), gares de destination (**réfutée** : les non notées chargent
+  et ne déchargent jamais), chargement trop lent (les notes sont **meilleures** dans v2=1).
+  ⛔ **« Cannibalisation » a été affirmée puis RETIRÉE** : c'était une déduction par élimination,
+  sans mesure de flux.
+
+  🔑 **114 des 133 aéroports sont joints à un arrêt de bus** (86 %), identiquement dans les deux
+  bras. **Toute analyse par mode DOIT séparer les gares monomodales des multimodales** — sinon le
+  revenu aérien de 114 gares est compté comme routier.
+
+  🐛 **Trois contresens de structure de chunk commis dans la journée, tous du même type** — prescrire
+  avant de vérifier : (a) champ `waiting` **inexistant** (le stock vit dans `max_waiting_cargo` et
+  des paquets `CAPA`/`CAPY` non joints) ; (b) détection de mode par **présence de clé** alors que
+  `STNN` est un enregistrement **à variantes** — 3 modes sur 4 comptaient le total ; (c)
+  `truck_stops`/`bus_stops` pris pour des **listes** alors que ce sont des **scalaires** de
+  sentinelle **0**, d'où 64 % du réseau invisible.
+  ✅ **Ce qui a permis de les attraper** : exiger la publication des **distributions brutes** des
+  discriminants, et une **garde anti-dégénérescence** (« un mode égale le total », « > 10 % sans
+  mode », « seuil de quartile nul »). Les trois défauts ont été signalés par ces gardes, pas par un
+  test qui échoue. **À reproduire dans toute sonde de chunk.**
+
+- 🔴 **C52 — Finir le chantier des événements : en brancher le maximum.**
+  📝 Noté le 2026-09-10 sur demande utilisateur. **État constaté dans le code** (`ai/OpexAI/main.nut`) :
+
+  | événement | branché ? | ce qu'il fait réellement |
+  |---|---|---|
+  | `ET_VEHICLE_LOST` | oui, `main.nut:6142` | **entièrement sous sondes** (`C41_VEHICLE_LOST_PROBE`, `C41_RAIL_LOST_PROBE`), toutes à défaut 0 ; le réglage `event_vehicle_lost` est lui-même à **0** (`info.nut:186`). Il journalise, **il ne répare pas** |
+  | `ET_VEHICLE_CRASHED` | oui, `main.nut:5960` | **uniquement `CRASH_TRAIN`** — un avion ou un camion détruit ne déclenche rien |
+  | `ET_VEHICLE_WAITING_IN_DEPOT` | oui | présent |
+  | **`ET_VEHICLE_UNPROFITABLE`** | **NON** | jamais écouté |
+  | `ET_INDUSTRY_OPEN` / `ET_INDUSTRY_CLOSE` / `ET_TOWN_FOUNDED` / `ET_ENGINE_AVAILABLE` / famille `ET_SUBSIDY_*` | oui | déjà exploités (invalidation, C42) |
+
+  🔑 **Conséquence en configuration par défaut : une desserte peut disparaître sans que l'IA le
+  remarque.** Un véhicule perdu ne produit aucune réaction, un véhicule non rentable n'est jamais
+  signalé, et un camion ou un avion détruit passe inaperçu. C'est un candidat direct pour les gares
+  qui ont du fret mais aucune note (~46 sur 5 graines × 10 ans, C51/diagnostic qualité).
+  **Reste** : recenser l'`AIEventType` complet de l'API 15.3, décider pour chacun « écouté / ignoré,
+  et pourquoi », puis brancher. ⚠️ Chaque branchement est un **changement de comportement** : un
+  réglage par famille, banc 20×10, jamais un lot global.
+  ⚠️ Ne pas confondre avec C42 (subventions), déjà cadré à part.
+
+- 🔴 **C53 — S'inspirer de `SuperLib.Order` pour la gestion des ordres de véhicules.**
+  📝 Noté le 2026-09-10 sur demande utilisateur. `ai/library/SuperLib-41/` est **présente dans le
+  dépôt** et contient `order.nut` et `vehicle.nut`. OpexAI **ne l'utilise pas** — elle n'apparaît
+  que dans des commentaires (`builder_air.nut:380`).
+  ⚠️ **Contrainte déjà tranchée, à ne pas rouvrir** : l'import live de SuperLib **n'est pas
+  possible** (mismatch de `GetAPIVersion`, voir `AGENTS.md` et `lib_water.nut:28-37`). La décision
+  du dépôt est de **transcrire le source utile**, comme cela a été fait pour MinchinWeb. Toute
+  reprise passe donc par de la copie annotée, pas par `import(...)`.
+  **Reste** : lire `order.nut` / `vehicle.nut`, lister ce qui manque à notre gestion d'ordres
+  (partage d'ordres, dépôt, rendez-vous, refit), et dire ce qui vaut la transcription.
+  🔗 Lien direct avec **C52** : si les ordres sont mal formés, le véhicule se perd — et l'événement
+  qui le signale n'est pas branché.
+
 - 🔴 **C51 — `portfolio_v2=1` est le défaut et n'a JAMAIS été validé au banc.**
   📝 Archéologie faite le 2026-09-10, banc lancé le même jour.
 
