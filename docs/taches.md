@@ -1007,6 +1007,47 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   complète), un pré-score bon marché avant `OpexLineEconomics` (comme le fait l'eau) pourrait être
   nécessaire — heuristique, donc banc obligatoire.
 
+  ### ✅ (a) FAIT le 2026-09-10 — **oui, le fret est resté quadratique**, et le plafond est pire qu'annoncé
+
+  Vérifié par lecture de code (audit Codex + recoupement manuel des trois boucles). **Aucune
+  campagne** : la forme se lit dans le source.
+
+  | générateur | forme réelle | grille spatiale ? |
+  |---|---|---|
+  | `OpexPaxCandidates` | indexée | **oui** (`candidates.nut:1206`) |
+  | route **pax** | indexée | **oui** (`candidates.nut:1820`) |
+  | `OpexFreightCandidates` (rail) | `foreach (si in sources) { foreach (di in sinks) … }` par cargo, **produit cartésien** (`candidates.nut:1300-1315`) | **non** |
+  | `OpexBuildRoadCandidates` → `OpexRoadFreightCandidates` | même produit cartésien (`candidates.nut:1911-1921`) | **non** |
+
+  🔑 **Le chiffre de la fiche (~379 000) était optimiste** : le code ne casse pas la symétrie et les
+  flux sont orientés, donc le pire cas industrie→industrie est **871 × 870 = 757 770** paires
+  visitées, auxquelles s'ajoutent les livraisons industrie→ville, **871 × 731 = 636 701** — soit un
+  **plafond de 1 394 471 paires visitées avant tout filtre**, pour le rail comme pour la route.
+  🔑 **Le filtre de distance ne sauve rien** : `OpexRoadDistanceAllowed` est testé **à l'intérieur**
+  de la boucle interne (`candidates.nut:1920`), donc il réduit les paires *retenues*, jamais les
+  paires *visitées*. C'est exactement le défaut que `1c12fd5` a corrigé pour le pax.
+  ⇒ **(a) est close : la cause du blocage en 1024² est encore présente dans les deux canaux fret.**
+
+  ### Correctif proposé, et sa classification — à faire, pas encore fait
+
+  Réutiliser `OpexSpatialGrid` (`spatial.nut:44`, elle n'a besoin que du champ `.tile` malgré son
+  nom centré villes) sur les puits d'un cargo : maille `bounds.railMax` pour le fret rail,
+  `roadGenMax` pour le fret routier, et ne demander que les 9 cellules voisines de chaque source.
+  ⚠️ **Condition impérative pour que ce soit neutre** : remettre les indices retenus **dans l'ordre
+  original de `sinks`** avant `OpexMakeCandidate`, sinon l'ordre d'insertion dans le vivier change
+  et la trajectoire du banc bouge.
+  📐 **Classification, à respecter avant d'adopter** (le dépôt confond souvent les deux) :
+  - **correctif de complexité NEUTRE** — même ensemble et même ordre de candidats, seulement moins
+    de paires visitées : contrôle de non-régression + diagnostic 5×6 suffisent ;
+  - **heuristique** — tout ce qui change l'ensemble ou l'ordre : top-M par source, score
+    revenu/distance, pré-score de profit non prouvé conservateur : **banc officiel 20×10 apparié
+    obligatoire**.
+  Le pré-score bon marché évoqué en (b) tombe dans la seconde catégorie **sauf** s'il est démontré
+  qu'il ne peut écarter aucun candidat à profit positif.
+  ⛔ **Ne pas confondre avec « l'eau fait déjà un pré-score »** : ce que fait `builder_water.nut` est
+  un **pré-filtre de faisabilité** (distance minimale, portée du navire, connectivité), pas un score
+  de profit bon marché.
+
 ---
 
 ## 🔴 Mode eau — chantier NON FINI (audit de clôture 2026-09-09)
