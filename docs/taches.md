@@ -511,10 +511,64 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   remarque.** Un véhicule perdu ne produit aucune réaction, un véhicule non rentable n'est jamais
   signalé, et un camion ou un avion détruit passe inaperçu. C'est un candidat direct pour les gares
   qui ont du fret mais aucune note (~46 sur 5 graines × 10 ans, C51/diagnostic qualité).
-  **Reste** : recenser l'`AIEventType` complet de l'API 15.3, décider pour chacun « écouté / ignoré,
-  et pourquoi », puis brancher. ⚠️ Chaque branchement est un **changement de comportement** : un
-  réglage par famille, banc 20×10, jamais un lot global.
   ⚠️ Ne pas confondre avec C42 (subventions), déjà cadré à part.
+
+  ### ✅ ÉTAPE 1 FAITE le 2026-09-10 — recensement, couverture, et les tâches candidates
+
+  Recensement de l'`AIEventType` complet de l'API 15.3 (source lue :
+  `src/script/api/script_event_types.hpp` d'OpenTTD 15.3) croisé avec `_processEvents`
+  (`main.nut:5970-6435`). **Aucune campagne** : lecture de code et de source.
+
+  **Ce que nous captons vraiment : 11 branches sur ~35 types d'événements.**
+
+  | événement | branche | réglage / défaut | effet RÉEL |
+  |---|---|---|---|
+  | `ET_VEHICLE_CRASHED` | `main.nut:5977` | aucun réglage | ⚠️ **`CRASH_TRAIN` seulement** ; pose un panneau, **ne répare rien** |
+  | `ET_VEHICLE_WAITING_IN_DEPOT` | `:5997` | `event_depot_sell` = **0** | vend un véhicule déjà marqué au rebut — **action réelle** |
+  | `ET_INDUSTRY_CLOSE` | `:6018` | `event_industry_close` = **0** | `_triggerScrapLine()` sur les lignes liées — **action réelle** |
+  | 4 × `ET_SUBSIDY_*` | `:6048`, `:6099`, `:6120`, `:6141` | `event_subsidy_probe` = **0** | comptage seul, **aucun candidat généré** (c'est C42) |
+  | `ET_VEHICLE_LOST` | `:6159` | `event_vehicle_lost` = **0** + sondes C41 à 0 | **journalise, ne répare pas** |
+  | `ET_INDUSTRY_OPEN` | `:6330` | `event_catalog_invalidate` = **1** | rafraîchit + invalide le portefeuille |
+  | `ET_TOWN_FOUNDED` | `:6364` | `event_catalog_invalidate` = **1** | idem |
+  | `ET_ENGINE_AVAILABLE` | `:6398` | inconditionnel (+ `c39_engine_refresh`) | recalcule les bornes d'époque |
+
+  **Jamais écoutés, et qui comptent** : `ET_VEHICLE_UNPROFITABLE`, `ET_VEHICLE_AUTOREPLACED`,
+  `ET_AIRCRAFT_DEST_TOO_FAR`, `ET_STATION_FIRST_VEHICLE`, `ET_DISASTER_ZEPPELINER_*`,
+  `ET_ENGINE_PREVIEW`, `ET_ROAD_RECONSTRUCTION`, `ET_EXCLUSIVE_TRANSPORT_RIGHTS`.
+  **Jamais écoutés, et à ignorer sans regret** : famille compagnie (fusion, faillite, renommage),
+  `ET_ADMIN_PORT`, `ET_WINDOW_WIDGET_CLICK`, `ET_GOAL_QUESTION_ANSWER`, `ET_STORYPAGE_*` — interface
+  joueur ou Game Script, hors IA autonome.
+  ⚠️ **Aucun événement n'est rendu impossible par notre configuration figée** : `make_cfg`
+  (`sweeps/bench_v2.py:46-57`) ne fixe que villes, industries, inflation, croissance, année et
+  taille de carte — elle ne désactive ni les catastrophes ni un type de véhicule. Ce qu'on ne peut
+  pas dire sans mesure, c'est la **fréquence** des événements rares (zeppelin, destination air trop
+  loin) dans le banc.
+
+  ### Tâches candidates, triées par valeur/risque décroissant
+
+  Chacune = **un réglage booléen à défaut 0, un diagnostic 5×6, puis un banc 20×10 apparié**.
+  ⛔ Jamais de lot « événements » global : l'effet ne serait pas attribuable.
+
+  | # | famille | geste | symptôme visé | risque |
+  |---|---|---|---|---|
+  | 1 | `ET_VEHICLE_AUTOREPLACED` | remplacer l'ancien ID par le nouveau dans `line.vehicles`, `scrapVehicles`, `_vehiclesToScrap` | inventaires de flotte qui pointent vers un ID mort | **aucun** (cohérence d'état) |
+  | 2 | `ET_VEHICLE_CRASHED` | étendre la branche existante aux autres motifs que `CRASH_TRAIN` et réveiller la reconstitution déjà écrite | camion détruit à un passage à niveau, avion détruit : ligne vidée sans réaction | faible |
+  | 3 | `ET_VEHICLE_LOST` (rail) | armer **une seule** des micro-réparations déjà écrites (signal **ou** jonction), pas les deux | convois perdus/bloqués | faible |
+  | 4 | `ET_VEHICLE_UNPROFITABLE` | compteur par ligne, puis `_triggerScrapLine()` au-delà d'un seuil | 🔑 **les 10 véhicules sur 191 jamais rentables, dont un qui perd de l'argent 9 ans de suite** | moyen |
+  | 5 | `ET_AIRCRAFT_DEST_TOO_FAR` | mettre la ligne au rebut ou rétablir des ordres cohérents | avion aux ordres inexécutables | fort |
+  | 6 | `ET_DISASTER_ZEPPELINER_*` | marquer l'aéroport bloqué, suspendre son expansion, lever au *cleared* | piste bloquée | faible en marquage, fort si les ordres changent |
+  | 7 | `ET_STATION_FIRST_VEHICLE` | **sonde seule** : mode, cargo, ligne, note initiale | établir si les ~46 gares fret sans note ont jamais été desservies | **aucun** |
+  | 8 | subventions | offre → candidat de portefeuille | rendement des subventions | fort — **c'est C42, pas C52** |
+  | 9 | `ET_ROAD_RECONSTRUCTION` | sonde de corrélation ville / lignes routières / véhicules perdus | la voirie municipale explique-t-elle des pertes ? | **aucun** |
+
+  🔑 **Les trois premières sont à coût de comportement quasi nul** : elles ne créent pas de
+  stratégie, elles branchent une réaction **déjà écrite** sur un événement qui existe déjà. C'est là
+  qu'il faut commencer — et #1 et #7 et #9 ne changent rien du tout au comportement, ce qui les rend
+  adoptables sur un simple contrôle de non-régression.
+  ⚠️ **Piège vérifié** : `ET_VEHICLE_LOST` est déjà capté et son code de réparation existe, mais il
+  est **entièrement sous sondes à défaut 0** — « brancher » ici veut dire *promouvoir une sonde en
+  action*, pas écrire du neuf. Ne pas les armer toutes d'un coup : le dépôt a déjà payé le prix d'un
+  changement qui en faisait deux.
 
 - 🔴 **C53 — S'inspirer de `SuperLib.Order` pour la gestion des ordres de véhicules.**
   📝 Noté le 2026-09-10 sur demande utilisateur. `ai/library/SuperLib-41/` est **présente dans le
