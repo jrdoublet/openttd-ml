@@ -710,6 +710,16 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C54 : inventaire annuel passif des ordres et profits reels des vehicules, lu via
+     * l'API jeu plutot que les chunks de sauvegarde. */
+    AddSetting({
+      name = "c54_vehicle_orders_probe",
+      description = "C54 probe: annually log each company vehicle's API orders, distinct station destinations, real-currency profits, depot state, and persisted line; no orders, vehicles, or scheduling are changed; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* C48.1 : ventile le cout interne de la regeneration incrementale du portefeuille apres
      * construction. Mesure seulement : aucune selection, construction ou planification ne change. */
     AddSetting({

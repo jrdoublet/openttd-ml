@@ -319,7 +319,61 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   reclasse les 89,3 % de (c) en dénominateur de round-robin et arme une hypothèse nulle sur le
   réfuté `portfolio_max_batch` : voir la fiche C39 ci-dessus. **Plus rien à faire ici.**
 
-- 🔴 **C54 — 🔑 Une flotte massivement improductive, jamais mesurée jusqu'ici.**
+- ⚠️ **C54 — CHIFFRE PRINCIPAL RETIRÉ le 2026-09-10. Les « 77 % » étaient un artefact de comptage.**
+  ⛔ **La version ci-dessous (barrée) a été commitée dans `8c2cecc` puis réfutée le jour même par une
+  sonde EN JEU** (`c54_vehicle_orders_probe`, `results/diag_c54_vehicle_orders_10y_5seeds.json`,
+  5 graines × 10 ans, 0 échec). **Ne pas citer les taux de la version barrée.**
+
+  🔑 **Le chunk `VEHS` ne compte pas des véhicules.** Comparaison API contre chunks, dernière année :
+
+  | mode | API (véhicules réels) | chunks `VEHS` | écart |
+  |---|---:|---:|---:|
+  | rail | **20** | 70 | −50 (**wagons**) |
+  | avion | **236** | 538 | **−302** (**ombres et rotors**) |
+  | route | **222** | 277 | −55 |
+
+  Wagons, ombres d'avion et rotors d'hélicoptère sont des entités du pool à **profit nul par
+  construction**. J'avais compté **306** « avions à profit ≤ 0 » sur 538 : il y a **302 ombres**.
+  Les deux nombres coïncident presque exactement — le taux mesurait le remplissage du pool, pas la
+  rentabilité.
+
+  ✅ **Les vrais taux, sur véhicules API et `profit_last_year` par année** (191 véhicules classés,
+  au moins une année pleine) :
+
+  | mode | jamais positif | devenu négatif | irrégulier | toujours positif | total |
+  |---|---:|---:|---:|---:|---:|
+  | avion | 0 | 2 | 29 | **63** | 94 |
+  | rail | 1 | 1 | 1 | 5 | 8 |
+  | route | **9** | 14 | 34 | 32 | 89 |
+
+  **10 « jamais positifs » sur 191, soit 5,2 %** — dont 9 routiers. Et **100 « toujours positifs »**,
+  là où la mesure par chunks n'en trouvait que 2. ⚠️ Effectifs faibles en rail (8 classés).
+
+  ✅ **Ce qui reste vrai et vaut la peine** : quelques véhicules routiers sont durablement
+  déficitaires — `vid=42` fait −136, −400, −475, −283… **neuf années consécutives**. Peu nombreux,
+  mais jamais corrigés, ce qui rejoint **C52** (`ET_VEHICLE_UNPROFITABLE` n'est écouté nulle part).
+
+  ❌ **Hypothèse « ordres mal donnés » RÉFUTÉE, nettement.** `distinct_dest = 2` pour **tous** les
+  véhicules, **tous modes, toutes années, zéro exception** (`under_2_distinct_dest = 0` partout).
+  Les ordres sont bien formés. Lu par `AIOrder.IsGotoStationOrder` + `GetOrderDestination`, sans
+  supposition de format.
+
+  ❌ **« 98 % de véhicules routiers orphelins » RETIRÉ — artefact de sonde.** Ma sonde cherchait
+  chaque véhicule dans `line.vehicles`. **Les lignes routières ne portent pas ce champ, par
+  conception documentée** (`OpexLineVehicleIds`, `main.nut`) : elles identifient leurs camions **par
+  les ORDRES**, précisément pour ne pas ferrailler les véhicules des lignes voisines partageant un
+  arrêt. Le 98 % mesurait « la route n'utilise pas le champ interrogé ».
+
+  🔑 **RÈGLE DE MÉTHODE, à appliquer désormais** : pour toute grandeur **chaînée ou à variantes**
+  (ordres, identité d'un véhicule dans le temps, appartenance à une ligne), **utiliser l'API du jeu,
+  pas la lecture de chunk**. Six campagnes de lecture de sauvegarde ont buté **quatre fois** sur des
+  structures mal supposées (`waiting` inexistant ; mode détecté par présence de clé sur un
+  enregistrement à variantes ; `truck_stops` pris pour une liste ; `orders` sans correspondance dans
+  `ORDR`). Les grandeurs **scalaires par gare** (notes, backlog, dimensions) se lisent en revanche
+  très bien dans les chunks. ⚠️ Contrepartie assumée : une sonde en jeu consomme des opcodes et
+  déplace donc la trajectoire.
+
+  ~~Version d'origine, RÉFUTÉE :~~ 🔑 **Une flotte massivement improductive, jamais mesurée.**
   📝 Mesuré le 2026-09-10, `results/diag_station_fleet_10y_5seeds.json` (2 bras × 5 graines × 10 ans,
   0 échec, lecture des chunks `STNN`/`VEHS`/`ORDR`, aucune sonde de jeu).
 

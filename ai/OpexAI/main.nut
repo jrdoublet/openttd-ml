@@ -189,6 +189,8 @@ C41_RAIL_FREIGHT_TOWN_SERVICE_CACHE <- false;
 C41_VEHICLE_LOST_PROBE <- false;
 /* C41.5 : détail rail de C41.4 ; aucune réparation, seulement l'état observable au Lost. */
 C41_RAIL_LOST_PROBE <- false;
+/* C54 : inventaire annuel des vehicules via API, strictement inerte hors reglage dedie. */
+C54_VEHICLE_ORDERS_PROBE <- false;
 /* C41.6 : corrélation de topologie persistée des mêmes Lost rail, sans action. */
 C41_RAIL_LOST_TOPOLOGY_PROBE <- false;
 /* C41.7 : lecture locale des approches/depots d'une ligne double en Lost, sans route ni mutation. */
@@ -471,6 +473,15 @@ function OpexC41RailLostLog(fields)
   local date = AIDate.GetCurrentDate();
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " C41_RAIL_LOST " + fields);
+}
+
+/* Gate C54 autonome : AIDate et AILog ne sont atteignables que si le reglage C54 est actif. */
+function OpexC54VehicleOrdersLog(fields)
+{
+  if (!C54_VEHICLE_ORDERS_PROBE) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " C54_VEHICLE_ORDERS " + fields);
 }
 
 function OpexC41RailLostTopologyLog(fields)
@@ -1486,6 +1497,7 @@ class OpexAI extends AIController {
   function _logC39PassClockLedger(year);
   function _recordC49ScarcityPass(best, builtRanks, attemptedRanks, passDiscards);
   function _logC49ScarcityLedger(year);
+  function _logC54VehicleOrders(year);
   function _logC48IncrementalLedger(year);
   function _reportYear(year, ranked);
   function _reportLines(year);
@@ -6827,6 +6839,41 @@ function OpexAI::_logC49ScarcityLedger(year)
       decision_attempted = 0, decision_unattempted = 0, none = 0 };
 }
 
+/* La tache "report" publie au premier passage de l'annee suivante : year=1971 decrit donc
+ * l'annee de jeu 1970, et la derniere annee de la partie n'est jamais publiee. Tous les appels
+ * API couteux sont apres ce garde C54, afin que le defaut false n'atteigne aucune API ajoutee. */
+function OpexAI::_logC54VehicleOrders(year)
+{
+  if (!C54_VEHICLE_ORDERS_PROBE) return;
+  local vehicles = AIVehicleList();
+  foreach (vehicle, _ in vehicles) {
+    local vehicleType = AIVehicle.GetVehicleType(vehicle);
+    local mode = vehicleType == AIVehicle.VT_RAIL ? "rail"
+        : vehicleType == AIVehicle.VT_ROAD ? "road"
+        : vehicleType == AIVehicle.VT_AIR ? "air"
+        : vehicleType == AIVehicle.VT_WATER ? "water" : "invalid";
+    local orders = AIOrder.GetOrderCount(vehicle);
+    local destinations = {};
+    for (local position = 0; position < orders; position++) {
+      /* IsGotoStationOrder exclut depot, waypoint et conditionnel avant GetOrderDestination. */
+      if (!AIOrder.IsGotoStationOrder(vehicle, position)) continue;
+      local destination = AIOrder.GetOrderDestination(vehicle, position);
+      destinations.rawset(destination, true);
+    }
+    local line = OpexC41PersistedLineForVehicle(this._lines, vehicle);
+    local lineId = line != null && ("lineId" in line) ? line.lineId : -1;
+    /* GetProfit* est en livres reelles via API, contrairement a VEHS (~256 x livres). */
+    OpexC54VehicleOrdersLog("phase=vehicle year=" + year + " vid=" + vehicle
+        + " mode=" + mode + " engine=" + AIVehicle.GetEngineType(vehicle)
+        + " age=" + AIVehicle.GetAge(vehicle) + " max_age=" + AIVehicle.GetMaxAge(vehicle)
+        + " orders=" + orders + " distinct_dest=" + destinations.len()
+        + " profit_last=" + AIVehicle.GetProfitLastYear(vehicle)
+        + " profit_this=" + AIVehicle.GetProfitThisYear(vehicle)
+        + " in_depot=" + (AIVehicle.IsStoppedInDepot(vehicle) ? 1 : 0)
+        + " line=" + lineId);
+  }
+}
+
 /* C48.1 : tous les compteurs de volume sont explicites dans chaque ligne :
  * lines = lines.len() a l'entree (total), groups/projects_scanned/retained = rejeu des groupes,
  * fresh_feeders = feeders produits, fleet_plan = elements lus, air_plans = plans produits,
@@ -7498,6 +7545,7 @@ function OpexAI::_runNextTask()
     this._logC39PassClockLedger(year);
     if (C48_PROJECT_ATTEMPT_LEDGER) this._logC48ProjectAttemptLedger(year);
     if (C49_SCARCITY_LEDGER) this._logC49ScarcityLedger(year);
+    if (C54_VEHICLE_ORDERS_PROBE) this._logC54VehicleOrders(year);
     if (C48_INCREMENTAL_PROFILE) this._logC48IncrementalLedger(year);
     this._reportYear(year, this._ranked);
     this._reportLines(year);
@@ -7913,6 +7961,7 @@ function OpexAI::Start()
   C39_PASS_CLOCK_LEDGER = AIController.GetSetting("c39_pass_clock_ledger") != 0;
   C48_PROJECT_ATTEMPT_LEDGER = AIController.GetSetting("c48_project_attempt_ledger") != 0;
   C49_SCARCITY_LEDGER = AIController.GetSetting("c49_scarcity_ledger") != 0;
+  C54_VEHICLE_ORDERS_PROBE = AIController.GetSetting("c54_vehicle_orders_probe") != 0;
   if (C49_SCARCITY_LEDGER) {
     this._c49ScarcityLedger = { passes = 0, cash = 0, vehicles = 0, site = 0,
         decision_attempted = 0, decision_unattempted = 0, none = 0 };
