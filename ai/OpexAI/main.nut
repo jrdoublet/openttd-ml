@@ -215,6 +215,16 @@ C41_RAIL_CASH_RELEASE <- true;
 /* C41.48 : sonde passive a chaque frontiere de tranche segmentee (CONT/done=false). Rien n'est
  * coupe ; mesure si un test de domination (C41.49) aurait meme l'occasion de se declencher. */
 C41_RAIL_DOMINATION_PROBE <- false;
+/* C41.49 (reformule 2026-09-10, docs/04_arbitrage_rail_search.md) : sonde passive dans
+ * _tryBuildProjects, active seulement pendant une recherche rail (kind=="primary",
+ * phase=="search", meme garde que C41.48). Ne coupe rien : mesure si le fallthrough du
+ * portefeuille (un candidat rail rejete search_in_progress n'interrompt pas la boucle) essaie et
+ * construit deja les alternatives non-rail que C41.48 voit financables a la frontiere -- avant
+ * d'ecrire une regle de decision, savoir si elle a deja lieu par defaut. */
+C41_PROJECTS_FALLTHROUGH_PROBE <- false;
+/* C39.5 : sonde passive de cadence de la tache projects. Le repli 0 ne doit ajouter ni appel
+ * d'API ni calcul au chemin livre ; voir docs/05_cadence_projects_rail_search.md. */
+C39_PROJECTS_CADENCE_PROBE <- false;
 /* air_fleet_probe : _resizeAirFleets n'emet que ses SUCCES (FG|). Quand une ligne aerienne
  * n'grandit pas, la cause est invisible. FR| donne le premier refus rencontre, une fois par ligne
  * et par an. */
@@ -326,6 +336,26 @@ function OpexC41RailDominationLog(fields)
   local date = AIDate.GetCurrentDate();
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " C41_RAIL_DOMINATION_PROBE " + fields);
+}
+
+/* C41.49 : son propre gate, comme C41.46/C41.47/C41.48 -- OpexC41SchedulerLog et
+ * OpexC41RailDominationLog l'auraient sinon silencieusement avale (piege deja trouve trois fois). */
+function OpexC41ProjectsFallthroughLog(fields)
+{
+  if (!C41_PROJECTS_FALLTHROUGH_PROBE) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " C41_PROJECTS_FALLTHROUGH_PROBE " + fields);
+}
+
+/* C39.5 : gate propre -- ne jamais reutiliser celui d'une autre sonde, sinon armer seulement
+ * c39_projects_cadence_probe rendrait le canal silencieux. */
+function OpexC39ProjectsCadenceLog(fields)
+{
+  if (!C39_PROJECTS_CADENCE_PROBE) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " C39_PROJECTS_CADENCE " + fields);
 }
 
 function OpexC41StalenessLog(kind, fields)
@@ -1236,6 +1266,10 @@ class OpexAI extends AIController {
   _c41RailSliceLastIterDelta = 0;
   _c41RailSliceLastDone = false;
   _c41LastTaskName = "idle";
+  _c39CadenceLastDate = null;
+  _c39CadenceLastTick = null;
+  _c39CadenceLastCycle = null;
+  _c39FinanceableSince = null;
   _startYear = -1;
   _vehiclesToScrap = null;
   /* C41.8 : ensemble coalescé par ligne, consommé par une seule micro-tâche. */
@@ -1287,6 +1321,10 @@ class OpexAI extends AIController {
     this._c41SlackLedger = {};
     this._c41OpportunityLedger = {};
     this._c41AdmissionLedger = {};
+    this._c39CadenceLastDate = -1;
+    this._c39CadenceLastTick = -1;
+    this._c39CadenceLastCycle = -1;
+    this._c39FinanceableSince = {};
     this._generationStage = 0;
     this._generationStageMonth = -1;
     this._lastFreightCargo = -1;
@@ -1339,6 +1377,7 @@ class OpexAI extends AIController {
   function _tryBuildFeeders(year);
   function _tryBuildMailFeeder(candidate, paxResult, year);
   function _tryBuildProjects(year);
+  function _c39StampFinanceable(capital = null, isProjectsTurn = false);
   function _tryTownGrowth(year);
   function _runNextTask();
   function _runNextTaskWithSlackLedger();
@@ -3230,6 +3269,58 @@ function OpexAI::_stopDynamicBatch(reason, year)
 }
 
 
+/* C39.5 : conserve, par cle stable, le premier jour de la fenetre courante ou un projet du
+ * vivier est finançable. La table neuve purge les projets sortis du vivier et borne la memoire.
+ *
+ * C39.5b : chaque valeur est desormais une table {since, topSince, turns, topTurns} au lieu
+ * d'une date seule, pour separer les trois causes du delai D2 (cadence / file par rang /
+ * concurrence caisse) :
+ *   - since    : date du premier jour finançable (comportement d'origine, inchange) ;
+ *   - topSince : date du premier jour ou ce projet etait le MEILLEUR projet finançable, i.e. le
+ *                premier de this._projects.best (indice le plus bas) dont capital <= available ;
+ *                -1 tant qu'il ne l'a jamais ete. Meme definition que bestRank de C41.48
+ *                (C41_RAIL_DOMINATION_PROBE) : rester comparable entre les deux sondes ;
+ *   - turns / topTurns : nombre de dispatches de la tache `projects` observes depuis since /
+ *                topSince. Incrementes uniquement quand isProjectsTurn est vrai, pour ne compter
+ *                que les tours de `projects` et pas l'appel fait depuis la tache `catalog`
+ *                (qui, lui, ne fait qu'horodater since/topSince avant le premier tour utile).
+ *
+ * capital : optionnel. L'appelant du site de dispatch de `projects` a deja calcule
+ * OpexAvailableCapital() pour sa propre ligne de journal (capital=) ; le lui laisser passer evite
+ * de le recalculer ici. L'appel depuis la tache `catalog` (qui n'emet aucun log) continue de le
+ * calculer lui-meme en laissant capital a null. */
+function OpexAI::_c39StampFinanceable(capital = null, isProjectsTurn = false)
+{
+  if (!C39_PROJECTS_CADENCE_PROBE) return 0;
+  local available = (capital != null) ? capital : OpexAvailableCapital();
+  local date = AIDate.GetCurrentDate();
+  local stamped = {};
+  local topFound = false;
+  if (this._projects != null && this._projects.best != null) {
+    local limit = this._projects.best.len() < 64 ? this._projects.best.len() : 64;
+    for (local i = 0; i < limit; i++) {
+      local project = this._projects.best[i];
+      if (project == null || project.capital > available) continue;
+      local isTop = !topFound;
+      topFound = true;
+      local key = OpexProjectAttemptKey(project);
+      local prev = (key in this._c39FinanceableSince) ? this._c39FinanceableSince[key] : null;
+      local since = (prev != null) ? prev.since : date;
+      local topSince = (prev != null) ? prev.topSince : -1;
+      if (isTop && topSince == -1) topSince = date;
+      local turns = (prev != null) ? prev.turns : 0;
+      local topTurns = (prev != null) ? prev.topTurns : 0;
+      if (isProjectsTurn) {
+        turns++;
+        if (isTop) topTurns++;
+      }
+      stamped[key] <- { since = since, topSince = topSince, turns = turns, topTurns = topTurns };
+    }
+  }
+  this._c39FinanceableSince = stamped;
+  return stamped.len();
+}
+
 function OpexAI::_tryBuildProjects(year)
 {
   /* C38 : l'etat ne nait que pour le bras experimental. Il survivra a un A* suspendu ; le
@@ -3274,6 +3365,20 @@ function OpexAI::_tryBuildProjects(year)
    * revalidations de son mode contre this._lines, la carte et la tresorerie vivantes. */
   local maxBatch = PORTFOLIO_MAX_BATCH;
 
+  /* C41.49 : meme garde que C41.48 (kind=="primary", phase=="search") -- la sonde ne regarde
+   * que la fenetre ou l'A* rail est en vol, pas la phase "build" (deja couverte par
+   * _consumeRailSearch/C41.47) ni un upgrade. Rien n'est coupe : fallthroughAttempted/Built
+   * comptent ce que la boucle ci-dessous fait DEJA des candidats non-rail. */
+  local fallthroughProbeActive = C41_PROJECTS_FALLTHROUGH_PROBE && this._railSearch != null
+      && this._railSearch.kind == "primary" && this._railSearch.phase == "search";
+  local fallthroughAttempted = 0;
+  local fallthroughBuilt = 0;
+  if (fallthroughProbeActive) {
+    OpexC41ProjectsFallthroughLog("phase=entry invalidated="
+        + (this._portfolioInvalidated ? 1 : 0) + " best_len="
+        + ((this._projects != null) ? this._projects.best.len() : -1));
+  }
+
   /* A4 : un A* termine au tour precedent a depose un railPlan sur le candidat stocke. On le
    * consomme AVANT le balayage du portefeuille, qui a pu etre regenere entre-temps. */
   if (PORTFOLIO_DYNAMIC_BATCH && RAIL_SEARCH_RESUMABLE && this._railSearch != null &&
@@ -3292,6 +3397,36 @@ function OpexAI::_tryBuildProjects(year)
     local outcome = this._consumeRailSearch(year);
     if (PORTFOLIO_DYNAMIC_BATCH && outcome == "cash") return true;
     if (outcome != "cash") {
+      if (C39_PROJECTS_CADENCE_PROBE && outcome == "built") {
+        local railCandidate = this._railSearch.candidate;
+        /* railCandidate est le payload brut, pas le projet : il n'a pas de slot mode, donc
+         * OpexProjectAttemptKey() produirait la cle incompatible unknown|... au lieu de rail|.... */
+        local key = "rail|" + railCandidate.src + "|" + railCandidate.dst + "|"
+            + railCandidate.cargo + "|" + railCandidate.kind;
+        local railRank = -1;
+        if (this._projects != null && this._projects.best != null) {
+          for (local i = 0; i < this._projects.best.len(); i++) {
+            local project = this._projects.best[i];
+            if (project != null && OpexProjectAttemptKey(project) == key) {
+              railRank = i;
+              break;
+            }
+          }
+        }
+        /* C39.5b : meme forme d'entry que les 5 sites generiques ; la cle reste construite a la
+         * main (commentaire ci-dessus), seul le contenu lu change. */
+        local entry = (key in this._c39FinanceableSince) ? this._c39FinanceableSince[key] : null;
+        local daysSinceFinanceable = (entry != null)
+            ? AIDate.GetCurrentDate() - entry.since : -1;
+        local daysSinceTop = (entry != null && entry.topSince != -1)
+            ? AIDate.GetCurrentDate() - entry.topSince : -1;
+        local turnsSinceFinanceable = (entry != null) ? entry.turns : -1;
+        local turnsSinceTop = (entry != null && entry.topSince != -1) ? entry.topTurns : -1;
+        OpexC39ProjectsCadenceLog("phase=built mode=rail rank=" + railRank
+            + " days_since_financeable=" + daysSinceFinanceable + " days_since_top=" + daysSinceTop
+            + " turns_since_financeable=" + turnsSinceFinanceable + " turns_since_top=" + turnsSinceTop
+            + " rail_search=1 capital_after=" + OpexAvailableCapital());
+      }
       if (PORTFOLIO_DYNAMIC_BATCH) this._dynamicBatch.pendingLogged = false;
       this._railSearch = null;
       if (outcome == "built") {
@@ -3339,7 +3474,27 @@ function OpexAI::_tryBuildProjects(year)
     if (mode == "fleet") {
       local attempt = this._tryBuildFleetProject(year, project, i, passDiscards);
       passDiscards = attempt.discards;
+      if (fallthroughProbeActive) {
+        fallthroughAttempted++;
+        if (attempt.outcome == "built") fallthroughBuilt++;
+      }
       if (attempt.outcome == "built") {
+        if (C39_PROJECTS_CADENCE_PROBE) {
+          local key = OpexProjectAttemptKey(project);
+          /* C39.5b : entry porte since/topSince/turns/topTurns (cf. _c39StampFinanceable) au lieu
+           * d'une date seule, pour separer cadence, file d'attente par rang et concurrence caisse. */
+          local entry = (key in this._c39FinanceableSince) ? this._c39FinanceableSince[key] : null;
+          local daysSinceFinanceable = (entry != null)
+              ? AIDate.GetCurrentDate() - entry.since : -1;
+          local daysSinceTop = (entry != null && entry.topSince != -1)
+              ? AIDate.GetCurrentDate() - entry.topSince : -1;
+          local turnsSinceFinanceable = (entry != null) ? entry.turns : -1;
+          local turnsSinceTop = (entry != null && entry.topSince != -1) ? entry.topTurns : -1;
+          OpexC39ProjectsCadenceLog("phase=built mode=" + project.mode + " rank=" + i
+              + " days_since_financeable=" + daysSinceFinanceable + " days_since_top=" + daysSinceTop
+              + " turns_since_financeable=" + turnsSinceFinanceable + " turns_since_top=" + turnsSinceTop
+              + " rail_search=" + (this._railSearch != null ? 1 : 0) + " capital_after=" + OpexAvailableCapital());
+        }
         builtCount++;
         if (PORTFOLIO_DYNAMIC_BATCH) {
           this._dynamicBatchBuilt(year);
@@ -3356,7 +3511,27 @@ function OpexAI::_tryBuildProjects(year)
       local attempt = this._tryBuildAirProject(year, project, i, liveBuiltCount, passDiscards,
                                                 anchor, yy);
       passDiscards = attempt.discards;
+      if (fallthroughProbeActive) {
+        fallthroughAttempted++;
+        if (attempt.outcome == "built") fallthroughBuilt++;
+      }
       if (attempt.outcome == "built") {
+        if (C39_PROJECTS_CADENCE_PROBE) {
+          local key = OpexProjectAttemptKey(project);
+          /* C39.5b : entry porte since/topSince/turns/topTurns (cf. _c39StampFinanceable) au lieu
+           * d'une date seule, pour separer cadence, file d'attente par rang et concurrence caisse. */
+          local entry = (key in this._c39FinanceableSince) ? this._c39FinanceableSince[key] : null;
+          local daysSinceFinanceable = (entry != null)
+              ? AIDate.GetCurrentDate() - entry.since : -1;
+          local daysSinceTop = (entry != null && entry.topSince != -1)
+              ? AIDate.GetCurrentDate() - entry.topSince : -1;
+          local turnsSinceFinanceable = (entry != null) ? entry.turns : -1;
+          local turnsSinceTop = (entry != null && entry.topSince != -1) ? entry.topTurns : -1;
+          OpexC39ProjectsCadenceLog("phase=built mode=" + project.mode + " rank=" + i
+              + " days_since_financeable=" + daysSinceFinanceable + " days_since_top=" + daysSinceTop
+              + " turns_since_financeable=" + turnsSinceFinanceable + " turns_since_top=" + turnsSinceTop
+              + " rail_search=" + (this._railSearch != null ? 1 : 0) + " capital_after=" + OpexAvailableCapital());
+        }
         builtCount++;
         if (PORTFOLIO_DYNAMIC_BATCH) {
           this._dynamicBatchBuilt(year);
@@ -3369,7 +3544,27 @@ function OpexAI::_tryBuildProjects(year)
     } else if (mode == "road") {
       local attempt = this._tryBuildRoadProject(year, project, i, passDiscards, anchor, yy);
       passDiscards = attempt.discards;
+      if (fallthroughProbeActive) {
+        fallthroughAttempted++;
+        if (attempt.outcome == "built") fallthroughBuilt++;
+      }
       if (attempt.outcome == "built") {
+        if (C39_PROJECTS_CADENCE_PROBE) {
+          local key = OpexProjectAttemptKey(project);
+          /* C39.5b : entry porte since/topSince/turns/topTurns (cf. _c39StampFinanceable) au lieu
+           * d'une date seule, pour separer cadence, file d'attente par rang et concurrence caisse. */
+          local entry = (key in this._c39FinanceableSince) ? this._c39FinanceableSince[key] : null;
+          local daysSinceFinanceable = (entry != null)
+              ? AIDate.GetCurrentDate() - entry.since : -1;
+          local daysSinceTop = (entry != null && entry.topSince != -1)
+              ? AIDate.GetCurrentDate() - entry.topSince : -1;
+          local turnsSinceFinanceable = (entry != null) ? entry.turns : -1;
+          local turnsSinceTop = (entry != null && entry.topSince != -1) ? entry.topTurns : -1;
+          OpexC39ProjectsCadenceLog("phase=built mode=" + project.mode + " rank=" + i
+              + " days_since_financeable=" + daysSinceFinanceable + " days_since_top=" + daysSinceTop
+              + " turns_since_financeable=" + turnsSinceFinanceable + " turns_since_top=" + turnsSinceTop
+              + " rail_search=" + (this._railSearch != null ? 1 : 0) + " capital_after=" + OpexAvailableCapital());
+        }
         builtCount++;
         if (PORTFOLIO_DYNAMIC_BATCH) {
           this._dynamicBatchBuilt(year);
@@ -3390,6 +3585,22 @@ function OpexAI::_tryBuildProjects(year)
         return true;
       }
       if (attempt.outcome == "built") {
+        if (C39_PROJECTS_CADENCE_PROBE) {
+          local key = OpexProjectAttemptKey(project);
+          /* C39.5b : entry porte since/topSince/turns/topTurns (cf. _c39StampFinanceable) au lieu
+           * d'une date seule, pour separer cadence, file d'attente par rang et concurrence caisse. */
+          local entry = (key in this._c39FinanceableSince) ? this._c39FinanceableSince[key] : null;
+          local daysSinceFinanceable = (entry != null)
+              ? AIDate.GetCurrentDate() - entry.since : -1;
+          local daysSinceTop = (entry != null && entry.topSince != -1)
+              ? AIDate.GetCurrentDate() - entry.topSince : -1;
+          local turnsSinceFinanceable = (entry != null) ? entry.turns : -1;
+          local turnsSinceTop = (entry != null && entry.topSince != -1) ? entry.topTurns : -1;
+          OpexC39ProjectsCadenceLog("phase=built mode=" + project.mode + " rank=" + i
+              + " days_since_financeable=" + daysSinceFinanceable + " days_since_top=" + daysSinceTop
+              + " turns_since_financeable=" + turnsSinceFinanceable + " turns_since_top=" + turnsSinceTop
+              + " rail_search=" + (this._railSearch != null ? 1 : 0) + " capital_after=" + OpexAvailableCapital());
+        }
         builtCount++;
         if (PORTFOLIO_DYNAMIC_BATCH) {
           this._dynamicBatchBuilt(year);
@@ -3403,7 +3614,27 @@ function OpexAI::_tryBuildProjects(year)
       local attempt = this._tryBuildWaterProject(year, project, i, liveBuiltCount, passDiscards,
                                                   anchor, yy);
       passDiscards = attempt.discards;
+      if (fallthroughProbeActive) {
+        fallthroughAttempted++;
+        if (attempt.outcome == "built") fallthroughBuilt++;
+      }
       if (attempt.outcome == "built") {
+        if (C39_PROJECTS_CADENCE_PROBE) {
+          local key = OpexProjectAttemptKey(project);
+          /* C39.5b : entry porte since/topSince/turns/topTurns (cf. _c39StampFinanceable) au lieu
+           * d'une date seule, pour separer cadence, file d'attente par rang et concurrence caisse. */
+          local entry = (key in this._c39FinanceableSince) ? this._c39FinanceableSince[key] : null;
+          local daysSinceFinanceable = (entry != null)
+              ? AIDate.GetCurrentDate() - entry.since : -1;
+          local daysSinceTop = (entry != null && entry.topSince != -1)
+              ? AIDate.GetCurrentDate() - entry.topSince : -1;
+          local turnsSinceFinanceable = (entry != null) ? entry.turns : -1;
+          local turnsSinceTop = (entry != null && entry.topSince != -1) ? entry.topTurns : -1;
+          OpexC39ProjectsCadenceLog("phase=built mode=" + project.mode + " rank=" + i
+              + " days_since_financeable=" + daysSinceFinanceable + " days_since_top=" + daysSinceTop
+              + " turns_since_financeable=" + turnsSinceFinanceable + " turns_since_top=" + turnsSinceTop
+              + " rail_search=" + (this._railSearch != null ? 1 : 0) + " capital_after=" + OpexAvailableCapital());
+        }
         builtCount++;
         if (PORTFOLIO_DYNAMIC_BATCH) {
           this._dynamicBatchBuilt(year);
@@ -3414,6 +3645,11 @@ function OpexAI::_tryBuildProjects(year)
         break;
       }
     }
+  }
+  if (fallthroughProbeActive) {
+    OpexC41ProjectsFallthroughLog("phase=exit invalidated="
+        + (this._portfolioInvalidated ? 1 : 0) + " attempted=" + fallthroughAttempted
+        + " built=" + fallthroughBuilt);
   }
   if (DECISION_LOG && builtCount == 0 && logDiscardsThisPass && passDiscards.len() > 0) {
     local maxLog = passDiscards.len() < 3 ? passDiscards.len() : 3;
@@ -6295,6 +6531,9 @@ function OpexAI::_runNextTask()
       this._recomputeEpochBounds = false;
     }
     this._rebuildProjects(fleetPlan);
+    /* C39.5 : le vivier vient d'etre (re)genere. Horodater ici, et pas seulement au prochain
+     * tour projects, pour que D2 mesure toute la fenetre de finançabilite. */
+    if (C39_PROJECTS_CADENCE_PROBE) this._c39StampFinanceable();
     if (this._catalog != null && this._catalog.bounds != null) {
       local b = this._catalog.bounds;
       OpexSign(AIMap.GetTileIndex(1, 2), "EB|" + b.roadMin + "|" + b.railMin
@@ -6565,7 +6804,9 @@ function OpexAI::_runNextTask()
     this._staleness.waterCatalogDirtyTick = -1;
     this._staleness.dirtySince.catalog.water = -1;
     /* C41.3 : OpexWaterPlans travaille dans un tableau temporaire. Ses tests de docks sont sous
-     * AITestMode ; aucun projet persistant ni revision aval n'est modifie dans cette tranche. */
+     * AITestMode ; aucun projet persistant ni revision aval n'est modifie dans cette tranche.
+     * Le catalogue geometrique eau est la seule memoisation voulue : un moteur nouveau ne doit
+     * pas relancer le scan du littoral. */
     if (C41_WATER_CANDIDATE_PROBE) {
       local plans = [];
       local profile = C41_WATER_PLANS_PROFILE ? {
@@ -6599,7 +6840,10 @@ function OpexAI::_runNextTask()
                    + " site_scan_filter_ops=" + profile.site_scan_filter_ops
                    + " coast=" + profile.coast_candidates
                    + " navigable_coast=" + profile.navigable_coast_candidates
-                   + " dock_tests=" + profile.dock_tests);
+                   + " dock_tests=" + profile.dock_tests
+                   + " site_cache_hits=" + profile.site_cache_hits
+                   + " site_cache_misses=" + profile.site_cache_misses
+                   + " site_tiles_visited=" + profile.site_tiles_visited);
       }
     }
     return true;
@@ -6792,6 +7036,30 @@ function OpexAI::_runNextTask()
   if (task.name == "projects") {
     /* Si l'evenement est arrive apres le passage catalog dans le cycle courant, attendre
      * sa reconstruction plutot que de choisir une ligne dans le vivier devenu obsolete. */
+    if (C39_PROJECTS_CADENCE_PROBE) {
+      local date = AIDate.GetCurrentDate();
+      local tick = AIController.GetTick();
+      /* C39.5b : un seul OpexAvailableCapital() par dispatch -- reutilise pour le comptage
+       * finançable ET pour le champ capital= ci-dessous, au lieu de l'appeler deux fois pour la
+       * meme valeur. isProjectsTurn=true : c'est le seul site qui doit avancer turns/topTurns. */
+      local capitalNow = OpexAvailableCapital();
+      local financeable = this._c39StampFinanceable(capitalNow, true);
+      OpexC39ProjectsCadenceLog("phase=dispatch days_since_last="
+          + (this._c39CadenceLastDate >= 0 ? date - this._c39CadenceLastDate : -1)
+          + " ticks_since_last="
+          + (this._c39CadenceLastTick >= 0 ? tick - this._c39CadenceLastTick : -1)
+          + " cycles_since_last="
+          + (this._c39CadenceLastCycle >= 0 ? this._taskCycle - this._c39CadenceLastCycle : -1)
+          + " rail_search=" + (this._railSearch != null ? 1 : 0)
+          + " rail_phase=" + (this._railSearch != null ? this._railSearch.phase : "-")
+          + " rail_kind=" + (this._railSearch != null ? this._railSearch.kind : "-")
+          + " invalidated=" + (this._portfolioInvalidated ? 1 : 0)
+          + " best_len=" + (this._projects != null ? this._projects.best.len() : -1)
+          + " capital=" + capitalNow + " financeable=" + financeable);
+      this._c39CadenceLastDate = date;
+      this._c39CadenceLastTick = tick;
+      this._c39CadenceLastCycle = this._taskCycle;
+    }
     if (this._portfolioInvalidated) return false;
     return this._tryBuildProjects(year);
   }
@@ -7132,6 +7400,8 @@ function OpexAI::Start()
   C41_RAIL_SLICE_LEDGER = AIController.GetSetting("c41_rail_slice_ledger") != 0;
   C41_RAIL_CASH_RELEASE = AIController.GetSetting("c41_rail_cash_release") != 0;
   C41_RAIL_DOMINATION_PROBE = AIController.GetSetting("c41_rail_domination_probe") != 0;
+  C41_PROJECTS_FALLTHROUGH_PROBE = AIController.GetSetting("c41_projects_fallthrough_probe") != 0;
+  C39_PROJECTS_CADENCE_PROBE = AIController.GetSetting("c39_projects_cadence_probe") != 0;
   CASH_RESERVE_PROBE = AIController.GetSetting("cash_reserve_probe") != 0;
   PORTFOLIO_REFRESH_PROBE = AIController.GetSetting("portfolio_refresh_probe") != 0;
   if (C41_RAIL_LOST_TOPOLOGY_PROBE) C41_RAIL_LOST_PROBE = true;

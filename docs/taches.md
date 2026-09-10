@@ -65,6 +65,80 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   **Fait** : C39.0–C39.4 (sondes, trace, `EngineAvailable` non adopté, avions rejetés dominés) ;
   vérification API 15.3 des noms d'événements. **Reste** : le critère de staleness par couche.
 
+  📝 **C39.5 — cadence de `projects` pendant `_railSearch` actif : contrat écrit avant code
+  (2026-09-10), [`docs/05_cadence_projects_rail_search.md`](05_cadence_projects_rail_search.md).**
+  Relais de C41.49 fermée le même jour. ⚠️ **Le cadrage ci-dessous est conservé tel qu'il a été écrit AVANT la mesure — l'étape 1 en a renversé une partie, voir plus bas.**
+  🔑 **Ce que le cadrage ajoute aux données de C41.49, par pure relecture** : les 89,3 % de
+  « (c) jamais tentée » ne sont pas un taux d'échec mais un **dénominateur de round-robin**.
+  (a+b) = 148/1 379 = **10,7 %** est le taux de dispatch observé de `projects`, et la file compte
+  **10 tâches actives** en régime établi — pas 11 : `air` s'auto-désactive à sa première passe sous
+  `air_portfolio=1` (`main.nut:6814`). 1/10 = 10,0 % : le taux mesuré EST le round-robin. Et quand
+  `projects` obtient son tour, il bâtit **96,6 %** du temps (143/148). **Le fallthrough n'est pas
+  cassé, il est cadencé** — reste à savoir si un tour de file dure des jours ou des semaines, ce
+  qu'aucun ledger ne permet de dériver (les deux estimations disponibles diffèrent d'un facteur 2,
+  §1.1 de la fiche : les commandes d'API consomment des jours de jeu sans consommer d'opcodes).
+  ⚠️ **L'hypothèse nulle est armée par un réfuté** : `portfolio_max_batch=4` (banc 20×3 apparié,
+  2026-09-02) a donné **−3,8 % de valeur, −7,9 % de gares**, avec la cause identifiée aux panneaux
+  — un passage réussi régénère lui-même le portefeuille, donc bâtir plus par passe **fusionne deux
+  cycles** au lieu d'en ajouter un, et *le vrai goulot est la concurrence pour la caisse*. Cette
+  fiche rejoue le même geste sur l'axe *fréquence* : elle doit prouver un délai matériel **en jours
+  de jeu** avant tout levier, sinon c'est le même réfuté sous un autre nom.
+  **Étape 1 (telle que cadrée)** : sonde `c39_projects_cadence_probe` (défaut 0, gate DÉDIÉ
+  `OpexC39ProjectsCadenceLog` — piège C41.46), trois points d'instrumentation, D1 délai de dispatch
+  / D2 délai de captation / D3 abstentions **lues au site d'appel** (`main.nut:6847`, l'angle mort
+  de la sonde C41.49). Critère de fermeture écrit d'avance : médiane(D2) ≤ 5 j **et** p90(D2) < 30 j
+  sur ≥ 4 graines/5 → fiche close (30 j = la cadence de régénération mensuelle du vivier).
+  🔑 **Trouvaille de lecture de code, utile hors fiche** : `_consumeRailSearch` ne tourne QUE dans
+  la tâche `projects` (`main.nut:3320-3323`) — la phase `"build"` d'une recherche rail est cadencée
+  par la même horloge que le fallthrough (atténué par C41.47 défaut 1, N=0).
+
+  ✅ **C39.5 étape 1 MESURÉE le 2026-09-10 — et elle renverse le cadrage.** Sonde livrée
+  (`c39_projects_cadence_probe=0` par défaut, `info.nut:675`), diagnostic 5 graines × 6 ans,
+  `results/diag_c39_5_projects_cadence_probe_6y_5seeds.json`, **0 échec**, couverture 98,7 % du
+  temps de jeu. 🐛 Deux défauts trouvés à la relecture/au lancement, tous deux invisibles à
+  l'analyse statique : `railCandidate.mode` sur `_railSearch.candidate` (qui est le **payload**,
+  sans slot `mode` — plantage garanti dès la sonde armée, et clé de vivier incompatible), et
+  `c39_projects_cadence_probe` absent de la liste blanche de `sweeps/bench_v2.py`.
+  **Résultats** — D1, intervalle entre deux tours de `projects` : **4 j** hors recherche rail,
+  **36 j** pendant (médianes 34–44 j sur CHACUNE des 5 graines). D2, délai de captation : **4 j**
+  hors, **192,5 j** pendant. D3 : `_portfolioInvalidated` **inerte (0,14 %)**, mais **vivier vide
+  dans 55,3 % des tours**.
+  🔑 **`cycles_since_last` vaut 1 dans 99,4 % des cas et n'excède JAMAIS 1** : `projects` n'est pas
+  affamé, il obtient son tour à chaque cycle. **C'est le cycle qui dure 5× plus longtemps** — et
+  **65,5 % du temps de jeu (7 073 j sur 10 803) se passe avec `_railSearch != null`**, donc les
+  10 tâches de la file paient ce ralentissement pendant les deux tiers de la partie.
+  ⚠️ **Conséquence : le critère de fermeture est raté (D2 = 64 j contre ≤ 5 j exigés) MAIS les
+  leviers L1/L2 sont écartés aussi** — donner des tours supplémentaires à `projects` prendrait le
+  tour de 9 tâches également pénalisées. Et 55,3 % de vivier vide est un sujet d'**offre**, pas
+  d'ordonnancement. ⛔ Ne pas citer « D2 = 192 j » comme un coût de cadence : la sonde agrège
+  cadence + file d'attente par rang (`PORTFOLIO_MAX_BATCH = 1`) + concurrence pour la caisse.
+  🆕 **Le vrai trou, à instruire ensuite** (`docs/05_...` §4.3) : une passe coûte ~3,6 jours de jeu
+  pendant une recherche rail, alors que la tranche A\* ne pèse que ~146 k opcodes ≈ 0,2 jour
+  (C41.46). **Facteur 15 inexpliqué entre le coût en opcodes et le temps de jeu perdu.** Ça
+  reformule C41.46 : en opcodes la recherche rail pèse 23,3 %, en **jours** elle coûte ~5× le temps
+  de cycle pendant 65 % de la partie — et c'est le jour, pas le tick, qui décide du volume.
+  ⛔ **Aucun banc lancé, aucun levier codé, rien de commité.**
+
+  🔒 **C39.5 FERMÉE le 2026-09-10 sur le levier de cadence — étape 1 bis décisive.** Sonde enrichie
+  (`topSince`/`topTurns` : date et nombre de tours où un projet est **le meilleur finançable**,
+  définition identique à C41.48), diagnostic relancé,
+  `results/diag_c39_5b_projects_cadence_probe_6y_5seeds.json`, 0 échec, 754 dispatches.
+  🔑 **`turns_since_top` = 1 en médiane, 1 au p90, 2 au maximum — dans les DEUX régimes** : dès
+  qu'un projet devient le meilleur candidat finançable, il est bâti au **premier tour de `projects`
+  qui suit**, recherche rail en vol ou non. Le délai brut (173 j sous recherche rail) est du **temps
+  d'attente de rang**, pas de la cadence : un chantier par passe (`PORTFOLIO_MAX_BATCH = 1`).
+  **Accélérer la cadence ne peut produire aucun chantier de plus** — même mécanisme que l'échec de
+  `portfolio_max_batch=4`, retrouvé par l'autre bout. ⛔ Ne pas rouvrir un levier d'ordonnancement
+  sur `projects`.
+  🆕 **Trois questions survivent, aucune de cadence** : (1) le **facteur 15** entre le coût en
+  opcodes d'une tranche A\* (~0,2 j) et les ~3,6 j de jeu qu'elle coûte à chaque passe, pendant
+  65 % de la partie ; (2) **le meilleur finançable n'est PAS ce qui se construit 2 fois sur 3**
+  (`never_top_share` 54,4 % au total, **67,8 % sous recherche rail**) — le candidat de tête du sac
+  à dos est régulièrement injouable et c'est un rang inférieur qui passe, sujet de **qualité de
+  vivier** ; (3) **vivier vide dans 58,6 % des tours**, et la correction de sonde tranche
+  l'ambiguïté — `best_len_missing` = **0,0 %**, c'est une vraie vacuité, pas un objet absent
+  (`_portfolioInvalidated` inerte à 0,27 %).
+
 - 🔴 **C41 — Scheduler opportuniste.** Ossature en place (registre de révisions, ledgers passifs,
   sous-catalogues ciblés) ; longue série de sous-tâches de profilage/cache close — **détail en
   archive, ne pas re-mesurer**.
@@ -166,8 +240,90 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   vers un projet prêt plus tôt (effet volume, la métrique n°1), ce qui change le dénominateur de la
   règle proposée (délai de construction, pas itérations/opcodes) — **reformulation non faite,
   à trancher avant tout code.**
-  **Reste** : C41.49 non codé, sa justification d'origine affaiblie, à reformuler avant d'écrire
-  quoi que ce soit.
+  ✅ **C41.49 reformulé le 2026-09-10** (`docs/04_arbitrage_rail_search.md` §C41.49) : la règle
+  d'arrêt optimal en opcodes est abandonnée, pas juste affaiblie. Lecture du scheduler
+  (`main.nut`) : sous le défaut (`portfolio_dynamic_batch=0`), le canal non-rail **n'est pas
+  gelé** — quand un candidat rail est rejeté `search_in_progress`, `_tryBuildProjects` continue
+  aux rangs suivants dans la même passe et peut déjà bâtir un air/route/eau finançable. Et ce que
+  fait `projects` PENDANT une recherche rail n'a jamais été mesuré : le ledger C41.11 étiquette
+  `rail_search` toute passe où `_railSearch != null`, quelle que soit la tâche réellement
+  dispatchée — donc « `projects` 3/37 en 2 ans » (§0 de la fiche) veut dire 3 fois **hors**
+  fenêtre de recherche rail, pas 3 fois au total.
+
+  ✅ **Étape 0 codée et mesurée en 5×6 (2026-09-10) — (c) domine nettement, 5/5 graines,
+  C41.49 fermé en tant que règle sur l'A\*.** Sonde `c41_projects_fallthrough_probe` (codée,
+  jamais benchée), corrélée à `c41_rail_domination_probe` frontière par frontière
+  (`results/diag_c41_49_projects_fallthrough_probe_6y_5seeds.json`, 0 échec). Sur 1 379
+  frontières « avec alternative finançable » cumulées sur 5 graines (contre 973/1 511 en 6y5s
+  côté C41.48 solo — l'écart vient du coût propre de la sonde combinée, qui déplace la
+  trajectoire comme toujours) :
+  - **(c) jamais tentée sur cette passe précise : 89,3 % (1 231/1 379), 88–90 % sur CHACUNE des
+    5 graines** — `projects` n'est simplement pas dispatchée dans la même passe que la frontière
+    (round-robin ~1/11 tâches actives) ;
+  - **(a) déjà saisie et bâtie : 10,4 % (143/1 379)**, 9,4–11,6 % par graine — le fallthrough
+    existe bel et bien, il capture juste rarement le bon instant ;
+  - **(b) tentée et refusée pour une autre raison : 0,4 % (5/1 379)**, exactement 1 occurrence
+    par graine — la trésorerie/`too_close` n'est quasiment jamais le facteur limitant ici.
+  **Conclusion** : (c) domine à 88–90 % sur les 5 graines, largement au-dessus du seuil de
+  passage du contrat (4/5). Une règle de domination sur l'A\* rail réglerait un non-problème :
+  le canal ne "refuse" quasiment jamais l'alternative (b≈0), il ne l'essaie simplement pas
+  assez souvent. **La fiche C41.49 est fermée en tant qu'arbitrage sur la recherche rail.** Le
+  vrai levier est la cadence de dispatch de `projects` pendant une recherche rail active — un
+  sujet de fraîcheur/ordonnancement, donc **C39**, pas C41. Aucun banc lancé (le contrat
+  l'interdisait avant cette étape ; il n'y a maintenant rien à bancher, seulement une nouvelle
+  fiche C39 à écrire).
+  ⚠️ **Angle mort connu de la sonde** : le champ `invalidated` loggé à l'entrée de
+  `_tryBuildProjects` est mort — le site d'appel (`main.nut:6791-6796`, tâche `"projects"`)
+  filtre déjà `_portfolioInvalidated` avant même d'entrer dans la fonction, donc la sonde ne
+  peut jamais l'y observer à `1`. Ça n'invalide pas le comptage attempted/built ni la
+  classification (a)/(b)/(c) ci-dessus, mais une future fiche C39 sur la cadence de `projects`
+  devra lire `_portfolioInvalidated` **au site d'appel**, pas dans `_tryBuildProjects`.
+  ✅ **Relais écrit le 2026-09-10** : fiche **C39.5**,
+  [`docs/05_cadence_projects_rail_search.md`](05_cadence_projects_rail_search.md) (métrique :
+  délai de construction en jours de jeu, jamais un prix d'ombre en opcodes — ⛔ C35). Elle
+  reclasse les 89,3 % de (c) en dénominateur de round-robin et arme une hypothèse nulle sur le
+  réfuté `portfolio_max_batch` : voir la fiche C39 ci-dessus. **Plus rien à faire ici.**
+
+- ⚪ **C47 — FERMÉE le 2026-09-10, prémisse RÉFUTÉE par sa propre mesure.** La fiche partait de
+  `build_failed = 1 795` sur 5 graines × 6 ans (`results/diag_constants_binding_6y_5seeds_v2.json`,
+  2026-09-08) et d'un ratio annoncé de « ~9 chantiers ratés par ligne ». **Ce chiffre ne se
+  reproduit plus.** Campagne `decision_log=1`, mêmes graines, même durée, code d'aujourd'hui
+  (`results/diag_c47_build_failed_6y_5seeds.json`, 0 échec) :
+
+  | motif | 2026-09-08 | 2026-09-10 |
+  |---|---:|---:|
+  | `search_in_progress` | 1 729 | **451** |
+  | `plan_failed` | 56 | 80 |
+  | **`build_failed`** | **1 795** | **50** |
+  | `insufficient_cash` | (absent) | 44 |
+  | `abandoned_pair` | 343 | 23 |
+  | **total** | **3 923** | **648** |
+
+  **`build_failed` a été divisé par 36, le total des rejets par 6.** Ratio réel : **0,21 échec de
+  construction par ligne non-rail** (50 pour 234), pas 9. La cause la plus probable est
+  l'adoption de **C41.47** (`c41_rail_cash_release=1`) le 2026-09-09, qui libère `_railSearch` dès
+  le premier blocage trésorerie — mais l'écart n'a pas été attribué formellement.
+  ⛔ **La leçon de méthode, à retenir** : une mesure vieille de deux jours dans un document n'est
+  PAS une garantie qu'elle tient encore, exactement comme « un défaut adopté dans un document n'est
+  pas une garantie que le code l'applique ». **Re-mesurer avant de bâtir une fiche sur un chiffre
+  d'archive**, surtout après une adoption qui touche le même chemin.
+
+  ✅ **Ce que la campagne apprend quand même, et qui vaut mieux que la fiche d'origine** :
+  - **`build_failed` est désormais EXCLUSIVEMENT aérien** : 50/50 en `mode=air`, **0 eau, 0 route**
+    (`detail=BFAIL` 38, `AFAIL` 12 ; `AIError` 263 → 44, 258 → 6). Volume trop faible pour être un
+    gisement.
+  - **`search_in_progress` domine à 69,6 %** (451/648). C'est le rejet en bloc de **tout** candidat
+    rail tant qu'une recherche est en vol (`main.nut:2574`), pas seulement de celui qui est
+    cherché.
+  - 🔑 **Ça explique le `never_top` de C39.5** : le classement place des candidats rail au-dessus de
+    ce qui est bâti, et ils sont rejetés en bloc. Cohérent avec l'asymétrie mesurée
+    (`never_top_share` **67,8 %** sous recherche rail contre **24,7 %** hors), et compatible avec
+    C41.48 (le top finançable n'est le candidat *cherché* que 19,3 % du temps — mais les AUTRES
+    candidats rail sont rejetés par le même garde).
+  - **L'IA construit presque exclusivement de l'aérien** : `PROJECT_CHOSEN` non-rail = air 206,
+    route 28. À rapprocher de [[opexai_prix_rail_terrain]] (l'avion prend 64 % du capital).
+  **Suite éventuelle** : le gel en bloc du canal rail est un sujet **C41**, pas une fiche
+  `build_failed`. Ne pas rouvrir C47.
 
 - 🔴 **C42 — Transformer les offres de subvention non attribuées en candidats.** `C17`/`A7.3`
   (`event_subsidy_probe`) est fait : écoute par événement, aucun sondage en boucle. Mais c'est une

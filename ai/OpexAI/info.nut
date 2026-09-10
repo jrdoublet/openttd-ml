@@ -644,6 +644,33 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C41.49 (reformule 2026-09-10, docs/04_arbitrage_rail_search.md) : la regle d'arret optimal
+     * en opcodes est abandonnee -- lire _tryBuildProjects montre que le fallthrough (un candidat
+     * rail rejete search_in_progress n'arrete pas la boucle) essaie deja les autres modes pendant
+     * une recherche rail. Cette sonde, gatee separement de C41.48 (piege C41.46/C41.47 a ne pas
+     * reproduire une troisieme fois), compte combien de candidats non-rail sont tentes/batis
+     * PENDANT la fenetre d'une recherche rail (kind=="primary", phase=="search") -- pour savoir
+     * si les frontieres "avec alternative financable" que C41.48 mesure sont deja saisies,
+     * tentees-et-refusees pour une autre raison, ou jamais tentees. Rien n'est coupe. */
+    AddSetting({
+      name = "c41_projects_fallthrough_probe",
+      description = "C41.49 prep probe: while a primary rail search is in flight, log whether _tryBuildProjects's portfolio scan is invalidated/stale and how many non-rail candidates it attempts and builds in the same pass; no search is cut, no decision changes; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* C39.5 (docs/05_cadence_projects_rail_search.md) : sonde passive de la cadence de
+     * dispatch de `projects`, de la fraicheur des projets finançables et des abstentions.
+     * Elle ne reordonne aucune tache, ne coupe aucune recherche et ne construit rien. */
+    AddSetting({
+      name = "c39_projects_cadence_probe",
+      description = "C39.5 passive probe: log projects dispatch cadence, portfolio invalidation/emptiness, and the delay from first affordable appearance to construction; no task is reordered, no search is cut, no decision changes; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* C43/E3 famille 2 : CASH_RESERVE_MIN mord-il ? Compteurs cumulatifs, publies en delta annuel
      * par la tache "report" (OpexCashReserve() est appelee trop souvent pour journaliser chaque
      * appel). */

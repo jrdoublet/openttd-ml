@@ -296,36 +296,118 @@ d'origine : **rediriger du capital vers un projet prêt plus tôt** (effet sur l
 la métrique n°1 du projet), pas économiser du calcul. À trancher explicitement avant d'écrire
 C41.49 — la règle proposée plus bas visait l'arrêt optimal en opcodes ; sa justification a changé.
 
-### C41.49 — Le test lui-même *(C41.48 montre des déclenchements — 973/30 graines-années — mais lire la nuance ci-dessus avant de coder)*
+### C41.49 (reformulé 2026-09-10) — Le porte-à-faux n'est peut-être pas l'A\*, c'est de savoir si l'alternative saisit déjà sa chance
 
-⚠️ **Ne pas coder tel quel sans re-trancher la justification.** La règle ci-dessous a été conçue
-comme un arrêt optimal en **opcodes** ([[philosophie-opcodes-ressource]]). C41.46 a depuis montré
-que le gisement d'opcodes net de l'A\* rail est faible et décroissant (23,3 % cumulé) — couper des
-recherches pour ce motif rapporterait peu. Si C41.49 se justifie, c'est plutôt par le **volume**
-(rediriger du capital vers un projet prêt plus tôt), la métrique n°1 du projet — mais alors le
-dénominateur `E[itérations restantes]` n'est plus la bonne unité de comparaison : il faudrait
-comparer des **délais de construction**, pas des opcodes. Cette reformulation n'est pas faite.
+⚠️ **La règle d'arrêt optimal en opcodes ci-dessous est abandonnée, pas seulement affaiblie.**
+Elle supposait implicitement que rien d'autre ne peut se construire tant que l'A\* rail tourne.
+Relire `_tryBuildProjects`/`_runNextTask` (main.nut) montre que ce n'est **pas** ce que fait le
+code par défaut — et que la vraie inconnue est ailleurs.
 
-`c41_rail_domination=0`. À la frontière de segment uniquement (forme originale, à revoir) :
+#### Ce que la lecture du scheduler montre (2026-09-10, aucune mesure encore)
 
-```
-continuer  ssi  profitAnnuel_rail / E[itérations restantes]  ≥  taux_référence
-```
+1. **Le canal non-rail n'est pas gelé par défaut.** Sous `portfolio_dynamic_batch=0` (défaut,
+   `main.nut:963`), quand `_tryBuildRailProject` rejette le rang courant en
+   `reason=search_in_progress` (`main.nut:2605-2608`), la boucle de `_tryBuildProjects`
+   **continue aux rangs suivants dans la même passe** (`main.nut:3381-3400`, aucun `break` sur
+   `rejected` hors `PORTFOLIO_DYNAMIC_BATCH`) — un candidat air/route/eau finançable peut donc déjà
+   être bâti PENDANT une recherche rail. Le blocage total avant le premier build (`return true` à
+   `main.nut:3278-3288`) n'existe que sous `portfolio_dynamic_batch=1`, qui n'est pas le défaut.
+   **La phrase de C41.47 « le gel touche tout le canal rail, pas seulement la ligne élue » ne
+   parlait que du canal RAIL** (aucun autre candidat rail ne peut être tenté) — elle a été lue à
+   tort comme couvrant aussi air/route/eau.
+2. **Ce que fait `projects` pendant une recherche rail est invisible dans TOUS les ledgers
+   existants.** `_runNextTaskWithSlackLedger` étiquette `continuationCategory = "rail_search"`
+   dès que `this._railSearch != null`, **avant même de savoir quelle tâche `_runNextTask` va
+   dispatcher** (`main.nut:5973-5983`) — donc chaque passe pendant une recherche rail est comptée
+   `rail_search`, même si c'est en réalité `projects` (ou `catalog`, `town_growth`…) qui a tourné
+   dans cette passe. C'est pour ça que `catalog`/`projects` apparaissent « 3/37 » sur 2 ans
+   (§1.1) : ce sont 3 occurrences **hors** fenêtre de recherche rail, pas 3 occurrences au total.
+   Ce que `projects` fait à l'intérieur de la fenêtre n'a jamais été compté.
+3. **La file est un round-robin strict** (`main.nut:1298-1331`) : 11 tâches actives par défaut
+   (`catalog`, `report`, `scrap`, `air`, `air_fleet`, `feeders`, `projects`, `expand`, `refleet`,
+   `town_growth`, `repay`), chacune due chaque cycle. `projects` devrait donc obtenir ~1 passe sur
+   11, y compris pendant une recherche rail — ce n'est a priori pas un cas rare, mais ce n'est pas
+   mesuré non plus.
+4. **`_portfolioInvalidated` n'est probablement pas le bon suspect.** Le drapeau fait abstenir
+   `projects` (`return false`, `main.nut:6794`), mais les trois chemins qui le posent
+   (`ET_INDUSTRY_OPEN`, `ET_TOWN_FOUNDED`, `ET_ENGINE_AVAILABLE` sous `C39_ENGINE_REFRESH` —
+   `main.nut:5865/5899/5936`) forcent **dans le même geste** `catalog.dueCycle = 0` et
+   `projects.dueCycle = 0` (`main.nut:5868/5902/5939`) : `catalog` est donc due à son tour
+   immédiatement suivant, se rafraîchit et lève le drapeau. La fenêtre d'abstention est courte
+   (un tour de file, pas des mois) — à confirmer, mais ce n'est pas la piste prioritaire.
 
-- **Marginal, jamais total** : `state.spent` est du sunk cost et n'entre pas au dénominateur.
-  C'est la règle d'arrêt optimal de [[philosophie-opcodes-ressource]], pas une comparaison de ROI.
-- **`E[itérations restantes]`** s'estime sur les segments déjà franchis : itérations par tuile de
-  préfixe × distance restante. À calibrer sur la trace C41.48, jamais posée à vue.
-- **`taux_référence`** = profit annuel par itération réalisé par l'IA sur la période récente
-  (les deux membres sont en `profit / itération`).
-- ⛔ **Aucune conversion d'opcodes en £.** C'est ce qui a tué C35 (`λ_ops × a_ops` : 0 rail sur
-  4 graines) et ses deux corrections (7/7 défaites chacune). Si une version de ce test réintroduit
-  un prix d'ombre, elle est déjà réfutée.
-- ⛔ **Aucune échéance globale posée à l'entrée** : c'est la cause diagnostiquée des rejets
-  `rail_search_resumable` (−23,1 % puis −13,3 %), soignée par C20. La borne est ré-évaluée à chaque
-  frontière et ne peut pas amputer une recherche déjà avancée.
+#### Conséquence : la question à trancher n'est plus une règle de décision, c'est une mesure
 
-*Mesure* : diagnostic 5×6, puis **banc officiel apparié 20×10**.
+On ne sait pas, sur les 973 frontières « avec alternative finançable » de C41.48, si c'est :
+
+  **(a)** déjà saisi — `projects` tourne dans la même fenêtre et construit l'alternative, juste
+  après le point de mesure de C41.48 (qui ne regarde que l'instant de la frontière, pas ce qui
+  suit) → **C41.49 est un non-sujet, fermer la fiche** ;
+  **(b)** tenté mais refusé pour une autre raison (trésorerie, `too_close`, vivier déjà épuisé
+  à ce rang) → le correctif porte sur **cette raison précise**, pas sur l'A\* rail ;
+  **(c)** jamais tenté dans la fenêtre utile — `projects` n'a pas eu son tour, ou son vivier
+  (`this._projects.best`) était périmé/vide à ce moment → le correctif est une question de
+  **cadence/fraîcheur de `projects` pendant un `_railSearch` actif**, un sujet C39, pas un arrêt
+  optimal C41.
+
+Coder une règle de domination sur l'A\* avant de savoir laquelle domine reviendrait à traiter un
+problème qui n'existe peut-être pas (a), ou à traiter le mauvais mécanisme (b, c).
+
+#### ✅ Étape 0 — codée, mesurée en 5×6 (2026-09-10), (c) domine : C41.49 fermé en tant que règle sur l'A\*
+
+Réglage `c41_projects_fallthrough_probe=0` (`ai/OpexAI/info.nut`/`main.nut`), gate dédié
+(`OpexC41ProjectsFallthroughLog`, pas `OpexC41SchedulerLog` ni `OpexC41RailDominationLog`).
+Dans `OpexAI::_tryBuildProjects`, uniquement quand `this._railSearch != null &&
+this._railSearch.kind == "primary" && this._railSearch.phase == "search"` (même garde que
+C41.48) : à l'entrée, `_portfolioInvalidated` et `this._projects.best.len()` ; après la boucle,
+combien de candidats **non-rail** ont été tentés et combien ont été **bâtis**.
+
+⚠️ **Angle mort trouvé après coup, sans conséquence sur la mesure ci-dessous** : le champ
+`_portfolioInvalidated` loggé à l'entrée de `_tryBuildProjects` est mort — le site d'appel
+(`main.nut:6791-6796`, tâche `"projects"`) fait `if (this._portfolioInvalidated) return false;`
+**avant** d'appeler `_tryBuildProjects`, donc la sonde ne peut jamais observer `invalidated=1`.
+Ça n'affecte pas le comptage attempted/built ni la classification (a)/(b)/(c) (qui ne dépendent
+que de la présence/absence des logs entry/exit, pas de ce champ), mais une future mesure de
+cadence `projects` devra lire `_portfolioInvalidated` **au site d'appel**, pas dans la fonction.
+
+**Mesure** : diagnostic 5×6, les deux sondes combinées sur la même arm
+(`OpexAI[c41_rail_domination_probe=1,c41_projects_fallthrough_probe=1]`,
+`sweeps/diag_c41_49_projects_fallthrough_probe.py`,
+`results/diag_c41_49_projects_fallthrough_probe_6y_5seeds.json`, 0 échec). Corrélation
+frontière par frontière : comme `_continueRailSearch()` (qui loggue la frontière) s'exécute
+toujours AVANT le dispatch de tâche dans la même passe de `_runNextTask`, au plus une paire
+entry/exit du fallthrough peut s'intercaler avant la frontière suivante, et elle appartient de
+droit à CETTE passe — la corrélation est donc exacte, pas une fenêtre approximative.
+
+| graine | frontières avec alt | (a) captée+bâtie | (b) tentée-refusée | (c) jamais tentée cette passe |
+|---:|---:|---:|---:|---:|
+| 100 | 360 | 34 (9,4 %) | 1 (0,3 %) | 325 (90,3 %) |
+| 12345 | 301 | 35 (11,6 %) | 1 (0,3 %) | 265 (88,0 %) |
+| 42 | 242 | 26 (10,7 %) | 1 (0,4 %) | 215 (88,8 %) |
+| 7 | 193 | 20 (10,4 %) | 1 (0,5 %) | 172 (89,1 %) |
+| 999 | 283 | 28 (9,9 %) | 1 (0,4 %) | 254 (89,8 %) |
+| **cumul** | **1 379** | **143 (10,4 %)** | **5 (0,4 %)** | **1 231 (89,3 %)** |
+
+(le total de frontières avec alternative — 1 379 ici contre 973 en solo C41.48 — bouge parce que
+la sonde combinée change le budget d'opcodes de chaque passe, donc la trajectoire : effet déjà
+documenté, [[banc_monograine_insuffisant]] et §1.1bis, pas une contradiction.)
+
+**(c) domine sur les 5 graines** (88,0 %–90,3 %), largement au-dessus du seuil de passage du
+contrat (4/5). **Conséquence directe** : (b) est quasiment nul (0,3–0,5 %, une seule occurrence
+par graine) — la trésorerie ou `too_close` ne sont PAS le facteur limitant. Une règle de
+domination sur l'A\* rail (la forme C41.49 d'origine, ou même sa version reformulée en délai de
+construction) réglerait un non-problème : le canal ne refuse quasiment jamais l'alternative une
+fois qu'il l'essaie, il ne l'essaie simplement pas assez souvent — `projects` n'est due à son
+tour de round-robin que dans ~10 % des passes qui coïncident avec une frontière utile,
+exactement l'ordre de grandeur attendu d'une file à 11 tâches actives par défaut (§0 point 3).
+
+**🔒 C41.49 est fermé en tant qu'arbitrage sur la recherche rail.** Aucune règle de décision
+n'a été écrite, et il n'y a plus lieu d'en écrire une sous cette forme. Le levier réel est la
+**cadence de dispatch de `projects` pendant une recherche rail active** — un sujet de
+fraîcheur/ordonnancement, donc **C39**, à cadrer dans une fiche séparée avant tout diagnostic ou
+banc : métrique = délai de construction de l'alternative captée en retard (jamais un prix
+d'ombre en opcodes, ⛔ C35 déjà réfuté). Aucun banc officiel n'a été lancé sur ce contrat — il
+n'y avait rien à bancher, seulement cette mesure de cadrage.
 
 ---
 
@@ -338,23 +420,36 @@ continuer  ssi  profitAnnuel_rail / E[itérations restantes]  ≥  taux_référe
 - **Il ne corrige pas `TRACEX`.** Les 20 panneaux `RA|` d'échec rail sont tous en `TRACEX`, comme
   les 442 échecs de `town_growth` — un motif partagé, à instruire séparément.
 - **Il ne touche pas à l'offre du vivier.** Le dernier vivier de la partie (1971-12-15) donne
-  `considered=260 selected=0 rejected=260` avec 52 952 £ en caisse : l'abstention de `projects`
-  (3 tours utiles sur 37) est un problème d'offre, pas d'ordonnancement.
+  `considered=260 selected=0 rejected=260` avec 52 952 £ en caisse : à CET instant précis,
+  l'abstention de `projects` est un problème d'offre, pas d'ordonnancement.
+  ⚠️ **« 3 tours utiles sur 37 » ne veut pas dire que `projects` tourne 3 fois en 2 ans** — voir
+  la reformulation C41.49 : le ledger étiquette `rail_search` toute passe où `_railSearch != null`,
+  quelle que soit la tâche réellement dispatchée dans cette passe, donc ce que `projects` fait
+  PENDANT une recherche rail (l'essentiel des 2 ans) n'a jamais été compté par ce chiffre.
 
 ## 5. Critère de clôture
 
 ✅ C41.46 livré et lu (§1.1bis) ; ✅ C41.48 livré et lu (§C41.48, 973 frontières avec alternative
 sur 30 graines-années) ; ✅ **C41.47 ADOPTÉ** (diagnostic 5×6 sous-puissant et NUL, mais banc
-officiel 20×10 net sur les 5 métriques — profit/profit_year 19/20, p<0,0001) ; C41.49 **non
-codé**, sa justification d'origine (arrêt optimal en opcodes) affaiblie par C41.46 et à reformuler
-en délai de construction avant d'écrire quoi que ce soit. ⚠️ Le volume est la métrique n°1 (~85 %
-de l'écart avec AAAHogEx) : toute variante qui coupe des recherches sans augmenter le nombre de
-constructions est un échec, même si elle économise des opcodes.
+officiel 20×10 net sur les 5 métriques — profit/profit_year 19/20, p<0,0001) ; ✅ **C41.49
+FERMÉ le 2026-09-10, sans règle de décision écrite.** Étape 0 codée (`c41_projects_fallthrough_probe`)
+et mesurée en 5×6, corrélée à C41.48 : sur 1 379 frontières « avec alternative finançable »,
+**(c) jamais tentée sur cette passe précise domine à 88,0–90,3 % sur les 5 graines** (contre
+10,4 % captée+bâtie, 0,4 % tentée-et-refusée) — la cadence de dispatch de `projects`
+(round-robin ~1/11 tâches), pas un défaut de comparaison sur l'A\*. Aucun banc officiel : le
+contrat l'excluait avant cette étape, et il n'y a maintenant rien à bancher sous cette forme.
+⚠️ Le volume reste la métrique n°1 (~85 % de l'écart avec AAAHogEx) : le relais de cette fiche
+est la tâche C39.5 sur la cadence de `projects` pendant `_railSearch` actif — **cadrée le
+2026-09-10 dans [`docs/05_cadence_projects_rail_search.md`](05_cadence_projects_rail_search.md)**,
+pas à rouvrir ici. ⚠️ Cette fiche-là commence par relire les chiffres ci-dessus autrement : les
+89,3 % de (c) sont le **dénominateur d'un round-robin à 10 tâches actives** (pas 11 — `air`
+s'auto-désactive), et (a+b) = 10,7 % coïncide avec 1/10 ; `projects` bâtit 96,6 % des fois où il
+tourne. Le fallthrough n'est donc pas cassé, il est cadencé.
 
-🆕 **Question ouverte par C41.46, à trancher avant de prioriser C41.49** : `task_ops` (76,7 % du
-total cumulé, croissant avec la maturité de la partie) n'est pas ventilé par tâche dans ce ledger.
-Avant d'écrire un test de domination pour l'A\* — dont le gisement mesuré est maintenant 23,3 %,
-pas 79,7 % — instrumenter *quelle* tâche de file coïncide avec une recherche rail en cours (nom de
-tâche + coût, réutilisable via `this._c41LastTaskName` déjà disponible dans
-`_runNextTaskWithSlackLedger`) est probablement plus rentable : si c'est `catalog`/`projects`
-(hypothèse la plus probable, cf. C41.22), c'est un sujet C39 de fraîcheur, pas un arbitrage C41.
+🆕 **Question ouverte par C41.46, en partie répondue par l'étape 0 C41.49 ci-dessus** :
+`task_ops` (76,7 % du total cumulé, croissant avec la maturité de la partie) n'est toujours pas
+ventilé par tâche dans le ledger C41.11/C41.46. La corrélation frontière-par-frontière de
+C41.49 confirme indirectement l'hypothèse (`catalog`/`projects` la plus probable, cf. C41.22) :
+`projects` n'obtient un tour dans la fenêtre utile que ~10 % du temps, cohérent avec un
+round-robin à 11 tâches — mais ne prouve pas encore lequel de `catalog` ou `town_growth` occupe
+le reste. Un sujet C39 de fraîcheur/cadence, pas un arbitrage C41.
