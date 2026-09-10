@@ -411,6 +411,19 @@ empirique pour garder le défaut à 1** — décision à réexaminer.
   les tests de quai. **Aucune paire n'atteint le BFS ni l'économie.** `OpexWaterFindSite` ne visite
   que `r <= coverage` autour de la tuile centrale : si aucune côte admissible n'est trouvée là, le
   moteur de connectivité est hors-sujet. Redessiner ou mesurer cette recherche **d'abord**.
+  - 🔴 **Architecture à faire avant toute nouvelle tentative de défaut eau** : séparer la
+    découverte maritime du portefeuille. Une tâche dédiée de l'ordonnanceur consomme une tranche
+    bornée de tuiles et de `BuildDock`, reprend ses curseurs par ville et alimente un catalogue
+    positif/négatif. `OpexWaterPlans` doit devenir un lecteur pur de ce catalogue : aucune
+    exploration de carte ni `AITestMode` pendant la reconstruction mensuelle du portefeuille.
+    Les premiers essais intégrés au portefeuille (catalogue, curseur Manhattan, fronts réels,
+    plusieurs sites) ont été **rejetés** : `results/diag_water_catalog_fronts_multisite_6y_5seeds.json`,
+    10/10 parties saines mais historique gagnant 5/5, valeur +181 % et profit annuel +89 %.
+    Hypothèse à vérifier : le coût et le décalage de ticks du scan restent injectés dans le canal
+    de décision général avant qu'une paire eau existe. Instrumenter d'abord la tâche dédiée
+    (tuiles, villes terminées, sites, composants, première paire connectée), puis diagnostic 5×6
+    **uniquement sur accord explicite** ; banc officiel 20×10 seulement si le diagnostic produit
+    des paires connectées et de l'économie atteignable.
 - **Le repli de distance après succès de Lakes n'est pas conservateur** (contrairement à ce que son
   commentaire affirme). Manhattan est un **plancher** de la longueur navigable : l'utiliser comme
   distance navigable sous-estime `oneWayDays`, donc **surestime** capacité, revenu et ROI. Une paire
