@@ -319,6 +319,98 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   reclasse les 89,3 % de (c) en dénominateur de round-robin et arme une hypothèse nulle sur le
   réfuté `portfolio_max_batch` : voir la fiche C39 ci-dessus. **Plus rien à faire ici.**
 
+- 🔴 **C51 — `portfolio_v2=1` est le défaut et n'a JAMAIS été validé au banc.**
+  📝 Archéologie faite le 2026-09-10, banc lancé le même jour.
+
+  **Les faits, avec leurs sources :**
+  - `portfolio_v2=1` est devenu le défaut le **2026-09-07**, par la « Résolution G1 »
+    (`docs/journal_2026-09-07.md:886-899`) — **une revue de code, pas une mesure**. Le journal écrit
+    lui-même : *« Le banc 10 ans × 20 graines demandé doit être exécuté dans l'environnement qui
+    contient OpenTTDLab ; l'environnement courant ne fournit pas ce paquet. »*
+  - **Ce banc n'a jamais été exécuté.** Seul candidat, `bench_post_review_fixes_v2_10y_20seeds.jsonl`
+    (2026-09-07) : **un seul bras** (`OpexAI`, 12 graines), pas de `.json` final — il ne compare
+    rien. Vérifié aussi que les 4 archives `.tar.gz` de `results/` sont des diagnostics mono-bras
+    `OpexAI[decision_log=1]` sans rapport.
+  - La seule mesure appariée existante de ce réglage, **20 graines × 3 ans du 2026-09-02**
+    (`results/bench_floor_3y_20seeds.json`, `docs/journal_2026-09-02.md:317`), donnait
+    **−16,2 % de valeur** contre le contrôle, sous le titre *« ❌ `portfolio_v2` NON ADOPTABLE,
+    même réparé »*.
+
+  ⚠️ **Ce n'est PAS établi comme une régression** : la mesure de −16,2 % porte sur l'arbre
+  d'avant-G1, et G1 a corrigé de vrais défauts du chemin v2 (borne du sac à dos qui sous-estimait
+  l'optimum fractionnaire, second tri revenu/opcode parasite, ordre de `capitalBudgetHistory`).
+  **Le v2 d'après-G1 n'est pas le v2 mesuré** — même leçon que C47. Ce qui est établi, c'est que
+  **le chemin par défaut d'aujourd'hui n'a jamais été mesuré**, et que tout ce qui a été mesuré
+  depuis (C39.5, C39.6, C48, C48.1, C49) tourne dessus.
+
+  ### 🔑 Confondant à connaître AVANT de lire le banc — écrit d'avance
+
+  **Le bras `portfolio_v2=0` n'est pas « le même code sans v2 ».** Il emprunte la branche legacy,
+  et c'est **la seule** où vivent `pool_financeable` et `knapsack_roi` — deux réglages à défaut 1,
+  donc **inertes sous `portfolio_v2=1`** (vérifié le 2026-09-10, voir
+  [[opexai_vivier_financabilite]]). Le banc compare donc en réalité :
+
+  | bras | ce qui tourne vraiment |
+  |---|---|
+  | `portfolio_v2=1` | sélection V2, `pool_financeable` et `knapsack_roi` **morts** |
+  | `portfolio_v2=0` | sélection legacy **+ `pool_financeable=1` + `knapsack_roi=1` actifs** |
+
+  ⛔ **Un écart mesuré ne sera donc PAS attribuable à `portfolio_v2` seul.** Trois réglages changent
+  d'état d'un bras à l'autre. Le banc répond à « le chemin par défaut est-il meilleur que le chemin
+  legacy complet ? », ce qui est la question opérationnelle — mais **ne pas le rapporter comme
+  l'effet de `portfolio_v2`**. Isoler demanderait un troisième bras
+  `portfolio_v2=0,pool_financeable=0,knapsack_roi=0`.
+
+  ### Lecture pré-enregistrée
+
+  Banc en cours : `OpexAI[portfolio_v2=1]` contre `OpexAI[portfolio_v2=0]`, 20 graines × 10 ans,
+  sortie `results/bench_portfolio_v2_10y_20seeds.json`. **Test des signes d'abord, moyennes
+  ensuite** ([[banc_monograine_insuffisant]]).
+  - ✅ **v2=1 gagne** (signes ≥ 15/20, p < 0,05 sur les métriques de volume) → le défaut est enfin
+    justifié, question close.
+  - 🔴 **v2=1 perd nettement** → régression sur le chemin par défaut depuis le 2026-09-07, à
+    remonter en priorité absolue : toutes les fiches ouvertes reposent dessus.
+  - 🟡 **Neutre** → le défaut n'est ni justifié ni nuisible ; on le conserve (incumbent) en actant
+    que l'argument de G1 porte sur la **correction du code**, pas sur une mesure de valeur.
+  ### ✅ VERDICT (2026-09-10) — le défaut est justifié, et le −16,2 % ne se reproduit pas
+
+  `results/bench_portfolio_v2_10y_20seeds.json`, 20 graines × 10 ans apparié, **40/40 parties
+  saines**. Lecture au test des signes d'abord, comme pré-enregistré :
+
+  | métrique | v2=1 | v2=0 | écart | signes | p |
+  |---|---:|---:|---:|---:|---:|
+  | **`n_stations`** | 89 | 68 | **+30,4 %** | **18/20** | **0,0004** |
+  | `performance_history` | 796 | 772 | +3,0 % | **17/20** | **0,0026** |
+  | `n_vehicles` | 184 | 163 | +12,7 % | **16/20** | **0,0118** |
+  | `median_station_rating` | 158 | 145 | +8,9 % | **15/19** | **0,0192** |
+  | `profit_year` | 2 572 890 | 2 521 661 | +2,0 % | 12/20 | 0,50 |
+  | `company_value` | 14 877 298 | 15 334 811 | −3,0 % | 9/20 | 1,00 |
+
+  ✅ **Critère de fermeture atteint** : les deux métriques de volume passent le seuil pré-enregistré
+  (≥ 15/20, p < 0,05). **Le défaut `portfolio_v2=1` est justifié**, et le **−16,2 % du 2026-09-02
+  ne se reproduit pas** — l'argument de revue de code de G1 était bon, et les correctifs qu'il a
+  apportés au chemin v2 ont changé la donne. **Cinquième illustration du jour** qu'une mesure
+  d'archive ne se transporte pas : ici dans le sens favorable.
+  🔑 **Et le gain porte exactement sur la métrique n°1** : +30,4 % de gares, ~85 % de l'écart avec
+  AAAHogEx venant du volume.
+
+  ⚠️ **Deux réserves à ne pas escamoter :**
+  1. **Le confondant pré-enregistré tient** : trois réglages changent d'état entre les bras
+     (`portfolio_v2`, plus `pool_financeable` et `knapsack_roi` qui ne vivent que dans la branche
+     legacy). Le résultat dit « **le chemin par défaut bat le chemin legacy complet** », **pas**
+     « `portfolio_v2` vaut +30 % de gares ». Isoler demanderait un bras
+     `portfolio_v2=0,pool_financeable=0,knapsack_roi=0`.
+  2. 🔑 **Le volume ne s'est PAS converti en valeur** : +30,4 % de gares et +12,7 % de véhicules,
+     mais `profit_year` +2,0 % (12/20, non significatif) et `company_value` **−3,0 %** (9/20,
+     p = 1,00). L'IA construit beaucoup plus sans gagner plus. **Ne pas citer ce banc comme un gain
+     de valeur** — c'est un gain de volume neutre en valeur, et cette dissociation est en soi un
+     résultat à instruire.
+
+  ⚠️ Correctif de volume appliqué **à la copie isolée seulement** : le checkpoint n'écrit plus
+  `openttd_output` (recopié sur ~36 lignes par partie). 92 Ko après une minute contre plusieurs
+  centaines de Mo auparavant. **À porter proprement dans `sweeps/bench_v2.py` si le résultat le
+  confirme** — c'est la cause des fichiers géants qu'on archive depuis des jours.
+
 - 🔴 **C49 — Dénominateur variable, piloté par la cause prochaine d'un non-chantier.**
   📝 **DÉCISION UTILISATEUR EXPLICITE du 2026-09-10** : on instruit cette piste. ⚠️ **Elle LÈVE le
   refus doctrinal du 2026-09-07** (« A1 / dénominateur variable selon la ressource rare — décliné

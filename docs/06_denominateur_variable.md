@@ -334,3 +334,54 @@ des non-chantiers **même après correction**.
   écrire `max_aircraft` / `max_roadveh` / `max_trains` / `max_ships` à une valeur basse et **forcer
   le régime `vehicles` en 6 ans**. Même chemin de code, atteignable dans nos moyens.
   **Aucune adoption de C49 sans que cette branche ait été exécutée au moins une fois.**
+
+
+---
+
+## 11. 🔑 Le mécanisme de C49 est déjà connu — et déjà bencé sur 3 ans (trouvé le 2026-09-10)
+
+Avant de coder l'étape 2, relecture de `OpexProjectSelectAffordable` (`projects.nut:516`). Son
+commentaire décrit **mot pour mot** l'argument du §4 : *« un ratio favorise les tout petits projets
+bon marché… comme on n'en bâtit qu'UN par cycle, chaque cycle est consommé par une ligne médiocre
+et les gros projets rentables ne sont jamais atteints »*.
+
+Le correctif existe déjà : **`portfolio_floor_pct`**, un plancher de profit absolu **relatif** au
+meilleur projet finançable (donc sans constante d'époque, de carte ni d'inflation). Il a été bencé
+— 20 graines × 3 ans, `results/bench_floor_3y_20seeds.json`, `docs/journal_2026-09-02.md:317` :
+
+| plancher | valeur vs contrôle |
+|---|---:|
+| 0 % (défaut actuel) | **−16,2 %** |
+| 25 % | −8,8 % |
+| 50 % | **+0,1 %** |
+| 75 % | −0,9 %, `performance_history` **−12,4 %** |
+
+Verdict de l'époque : *« le plancher répare bien ce qu'il devait réparer, mais ne produit aucun
+gain »*. Défaut maintenu à 0.
+
+### 11.1 Pourquoi ça ne ferme pas C49 — et ce que ça lui impose
+
+🔑 **Ce banc fait 3 ans.** Or C49 mesure que `cash` domine jusqu'en 1972 et que la bascule vers
+`decision` se produit **à partir de 1973** (§9, §10). Un banc de 3 ans teste donc exactement la
+phase où la trésorerie **est** la ressource rare — celle où le dénominateur par capital est
+**correct**. Il est structurellement aveugle au régime que C49 vise.
+
+✅ **Prédiction falsifiable, à écrire dans le contrat de l'étape 2** : l'effet de C49 doit être
+**nul ou négatif sur les trois premières années** et n'apparaître que dans la seconde moitié d'un
+banc 10 ans. **Si on l'observe dès l'année 1, on mesure autre chose** — et il faudra le dire au
+lieu d'encaisser le gain.
+
+⚠️ **Et une mise en garde que la courbe impose** : 0 → −16,2 %, 25 → −8,8 %, 50 → +0,1 %,
+75 → −0,9 % avec `performance_history` −12,4 %. **Elle culmine vers 50 et redescend.** Or un
+classement au profit purement absolu équivaut à un plancher de 100 — **du côté descendant de la
+courbe**. L'étape 2 ne doit donc **pas** basculer sur le profit absolu nu ; le régime `decision`
+doit viser un dénominateur **intermédiaire** entre le ratio et le profit absolu. La forme exacte
+est à trancher dans le contrat de l'étape 2, pas à l'implémentation.
+
+### 11.2 Piste connexe, moins chère, à ne pas confondre avec C49
+
+`portfolio_floor_pct` est **déjà implémenté, déjà sur le chemin par défaut, et c'est un seul
+entier**. Le rebencer sur **10 ans** (et non 3) répondrait à la même question que C49 pour une
+fraction du coût, et testerait la même intuition. ⚠️ Ce n'est pas C49 — un plancher **filtre**
+l'admission au classement, un dénominateur **réordonne**. Mais si le plancher à 50 % rend un gain
+net sur 10 ans, C49 devient un raffinement d'un problème déjà résolu, et il faudra le dire.
