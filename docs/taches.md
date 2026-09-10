@@ -529,6 +529,47 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   🔗 Lien direct avec **C52** : si les ordres sont mal formés, le véhicule se perd — et l'événement
   qui le signale n'est pas branché.
 
+  🔴 **AJOUT du 2026-09-10 (demande utilisateur) — l'origine de la fiche, et le vrai test à faire.**
+  L'idée ne venait pas de SuperLib : elle vient de ce qu'**AAAHogEx donne des ordres différents des
+  nôtres, avec beaucoup de chargement complet**. ⇒ **À tester : imiter les ordres d'AAAHogEx**, sous
+  réglage dédié et au banc officiel 20×10, au lieu de se limiter à une revue de bibliothèque.
+  ⚠️ **Attention, C54 ne réfute PAS cette piste** : il a montré que nos ordres sont bien *formés*
+  (`distinct_dest = 2` partout, zéro exception) — il n'a rien dit de leurs **drapeaux**, qui sont
+  précisément le sujet ici.
+  📊 **Recensement statique fait le 2026-09-10** (`grep -rho "OF_[A-Z_]*"`), à prendre pour ce qu'il
+  est — un comptage de **sites d'appel**, pas d'ordres réellement posés en partie :
+
+  | drapeau | AAAHogEx | OpexAI |
+  |---|---:|---:|
+  | `OF_NON_STOP_INTERMEDIATE` | **14** | **0** |
+  | `OF_FULL_LOAD_ANY` | 3 (conditionnels) | 14 (sous `pax_full_load` / `air_full_load`) |
+  | `OF_NO_LOAD` | 6 | 0 |
+  | `OF_UNLOAD` | 5 | 1 |
+  | `OF_TRANSFER` | 2 | 8 |
+  | `OF_SERVICE_IF_NEEDED` | 4 | 0 |
+  | `OF_NONE` | 0 | 16 |
+
+  🔑 **Deux différences structurelles sautent aux yeux, et aucune n'est celle qu'on croyait** :
+  1. **`OF_NON_STOP_INTERMEDIATE` : 14 sites chez elle, ZÉRO chez nous.** Elle pose du non-stop
+     partout ; nos ordres ne le portent jamais. C'est un candidat plus net que le chargement
+     complet.
+  2. **Le chargement complet est chez elle une DÉCISION PAR LIAISON** (`isSrcFullLoadOrder` /
+     `isDestFullLoadOrder`, `route.nut:2137` et `:2163`, plus `trainroute.nut:1330` en dur pour le
+     rail), alors que chez nous c'est un **drapeau global de configuration**. La question n'est donc
+     pas « plus ou moins de full load » mais « **qui décide, et sur quel critère** ».
+  ⚠️ **Ne pas conclure du tableau que nous en faisons déjà plus qu'elle** : 14 sites d'appel gardés
+  par deux réglages peuvent produire moins d'ordres réels que 3 sites conditionnels appelés à chaque
+  liaison.
+  ### Étapes
+  1. ⬜ **Mesurer les ordres réellement posés, pas les sites d'appel** — les drapeaux vivent dans le
+     chunk `ORDR` des sauvegardes, et le banc 1v1 en produit déjà des dizaines : comptage par IA et
+     par mode, sans lancer une seule partie neuve. ⚠️ [[banc_aaahogex_openttd15]] et la règle de
+     méthode de C54 : `ORDR` est un enregistrement à variantes, publier les distributions brutes et
+     une garde anti-dégénérescence avant d'y croire.
+  2. ⬜ Lire `route.nut:2100-2180` d'AAAHogEx pour extraire **le critère** de `isSrcFullLoadOrder`.
+  3. ⬜ Un réglage par différence (non-stop d'abord, critère de full load ensuite), défaut 0, un seul
+     changement à la fois, banc 20×10 apparié.
+
 - 🔴 **C51 — `portfolio_v2=1` est le défaut et n'a JAMAIS été validé au banc.**
   📝 Archéologie faite le 2026-09-10, banc lancé le même jour.
 
