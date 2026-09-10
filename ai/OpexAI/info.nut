@@ -312,6 +312,22 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    AddSetting({
+      name = "water_site_catalog",
+      description = "Experimental persistent per-town water dock-site catalogue: 1 = cache valid sites and exhaustive negative scans, 0 = historical rescan (default; current benchmark winner)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "water_discovery_real_fronts",
+      description = "Experimental water discovery: use slope-derived dock fronts before BuildDock; 0 = cardinal adjacency (default), 1 = real dock fronts",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* C41.11 : audit annuel du budget perdu par le scheduler historique, sans le modifier. */
     AddSetting({
       name = "c41_slack_ledger",

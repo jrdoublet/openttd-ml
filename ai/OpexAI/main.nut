@@ -124,6 +124,12 @@ C41_WATER_SITE_PROFILE <- false;
 /* BFS maritime reconstruit sur MinchinWeb.Lakes (2026-09-09) -- voir docs/taches.md et
  * ai/OpexAI/lib_water.nut. Defaut aligne sur info.nut (custom_value = 1). */
 WATER_LAKES_CONNECTIVITY <- true;
+/* Catalogue persistant par ville des sites de dock (positifs et negatifs exhaustifs). Le
+ * reglage 0 conserve le rescannage historique uniquement pour le banc apparie. */
+WATER_SITE_CATALOG <- false;
+/* Fronts de quai calculés à la découverte : expérimental jusqu'au diagnostic, car il change
+ * l'éligibilité des sites eau. */
+WATER_DISCOVERY_REAL_FRONTS <- false;
 /* C41.11 : ledger passif du scheduler. Il n'admet ni ne reporte aucune tache. */
 C41_SLACK_LEDGER <- false;
 /* C41 : attribution mensuelle du temps du controleur, uniquement pour diagnostic. */
@@ -1289,6 +1295,9 @@ class OpexAI extends AIController {
   _abandonCounts = null;
   _airBuilt = false;
   _waterBuilt = false;
+  /* Catalogue geometrie eau : { cursor, towns = { townId = { sites = [{dock, waterTiles}] } } }.
+   * Les entrees sans site sont les negatifs exhaustifs ; voir builder_water.nut. */
+  _waterSiteCatalog = null;
   /* Ordonnanceur permanent : une tache utile et due par tour de file. dueCycle reporte le
    * travail inutile a un tour futur ; le calendrier du jeu ne reordonne jamais la file. */
   _taskQueue = null;
@@ -1392,6 +1401,7 @@ class OpexAI extends AIController {
     this._budget = OpexBudget();
     this._catalog = OpexCatalog();
     this._lines = [];
+    this._waterSiteCatalog = { cursor = 0, towns = {} };
     this._abandonedPairs = {};
     this._abandonCounts = {};
     this._vehiclesToScrap = {};
@@ -7366,10 +7376,11 @@ function OpexAI::_runNextTask()
         pairs_considered = 0, pairs_after_range = 0, bfs_attempts = 0,
         bfs_connected = 0, economics_attempts = 0, positive_economics = 0,
         dock_test_ops = 0, site_scan_filter_ops = 0, coast_candidates = 0,
-        navigable_coast_candidates = 0, dock_tests = 0,
+        navigable_coast_candidates = 0, dock_tests = 0, site_cache_hits = 0,
+        site_cache_misses = 0, site_tiles_visited = 0,
       } : null;
       this._budget.begin();
-      OpexWaterPlans(this._catalog, this._lines, plans, profile);
+      OpexWaterPlans(this._catalog, this._lines, plans, profile, this._waterSiteCatalog);
       local planOps = this._budget.end("project_water_targeted_probe");
       OpexC39Log("C41_WATER_PLANS", "revision=" + revision + " ops=" + planOps
                  + " plans=" + plans.len());
@@ -7684,7 +7695,7 @@ function OpexAI::_rebuildProjects(fleetPlan)
   }
   this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines,
       priorPeak, priorHistory, fleetPlan, this._abandonedPairs, stage, prior,
-      freightCargo, freightCargos);
+      freightCargo, freightCargos, this._waterSiteCatalog);
   local actualFreightCargo = (this._projects != null && ("freightCargo" in this._projects))
       ? this._projects.freightCargo : freightCargo;
   if (stage == OPEX_STAGE_AIR_ONLY && actualFreightCargo != null) {
@@ -7733,6 +7744,7 @@ function OpexAI::Save()
     abandonedPairs = abandoned,
     airBuilt = this._airBuilt,
     waterBuilt = this._waterBuilt,
+    waterSiteCatalog = this._waterSiteCatalog,
   };
 }
 
@@ -7750,6 +7762,10 @@ function OpexAI::Load(version, data)
   if ("startYear" in data) this._startYear = data.startYear;
   if ("airBuilt" in data) this._airBuilt = data.airBuilt;
   if ("waterBuilt" in data) this._waterBuilt = data.waterBuilt;
+  if ("waterSiteCatalog" in data && data.waterSiteCatalog != null &&
+      ("towns" in data.waterSiteCatalog)) {
+    this._waterSiteCatalog = data.waterSiteCatalog;
+  }
   if ("abandonedPairs" in data && data.abandonedPairs != null) {
     this._abandonedPairs = {};
     foreach (key, val in data.abandonedPairs) this._abandonedPairs[key] <- val;
@@ -7913,6 +7929,8 @@ function OpexAI::Start()
   C41_WATER_SITE_PROFILE = AIController.GetSetting("c41_water_site_profile") != 0
       && C41_WATER_PLANS_PROFILE;
   WATER_LAKES_CONNECTIVITY = AIController.GetSetting("water_lakes_connectivity") != 0;
+  WATER_SITE_CATALOG = AIController.GetSetting("water_site_catalog") != 0;
+  WATER_DISCOVERY_REAL_FRONTS = AIController.GetSetting("water_discovery_real_fronts") != 0;
   C41_SLACK_LEDGER = AIController.GetSetting("c41_slack_ledger") != 0;
   C41_MONTHLY_BUSY_LEDGER = AIController.GetSetting("c41_monthly_busy_ledger") != 0;
   C41_STALENESS_LEDGER = AIController.GetSetting("c41_staleness_ledger") != 0;

@@ -1002,6 +1002,42 @@ empirique pour garder le défaut à 1** — décision à réexaminer.
     (tuiles, villes terminées, sites, composants, première paire connectée), puis diagnostic 5×6
     **uniquement sur accord explicite** ; banc officiel 20×10 seulement si le diagnostic produit
     des paires connectées et de l'économie atteignable.
+  - ✅ **VERDICT du banc officiel de `water_site_catalog` — dépouillé le 2026-09-10 au soir**, il
+    dormait sur le disque depuis le matin sans être lu.
+    `results/bench_water_site_catalog_20x10.json`, 20 graines × 10 ans apparié, **40/40 parties
+    saines**, `water_site_catalog=0` (historique) contre `=1` (catalogue).
+    Lecture au test des signes d'abord :
+
+    | métrique | OFF (`0`) | ON (`1`) | écart | signes (OFF) | p |
+    |---|---:|---:|---:|---:|---:|
+    | **`n_stations`** | 93,5 | 84,5 | **+10,6 %** | **15/20** | **0,041** |
+    | `n_station_ratings` | 106,3 | 97,3 | +9,2 % | 14/20 | 0,115 |
+    | `n_vehicles` | 192,1 | 181,0 | +6,1 % | 11/20 (1 nul) | 0,82 |
+    | `profit_year` | 2 714 331 | 2 536 495 | +7,0 % | 12/20 | 0,50 |
+    | `company_value` | 15 973 360 | 15 354 327 | +4,0 % | 12/20 | 0,50 |
+    | `performance_history` | 824,0 | 802,0 | +2,8 % | 13/20 | 0,26 |
+    | `median_station_rating` | 161,5 | 155,1 | +4,1 % | 10/20 | 1,00 |
+    | `profit` (trimestre) | 692 041 | 661 045 | +4,7 % | 7/20 | 0,26 |
+
+    ❌ **`water_site_catalog=1` NON ADOPTABLE, et le défaut 0 est confirmé.** Aucune métrique de
+    valeur n'est significative dans un sens ou dans l'autre (12/20 sur la valeur et le profit
+    annuel, p = 0,50 ; le profit trimestriel va même **dans l'autre sens au signe** — ON gagne
+    13/20 pour une moyenne inférieure, p = 0,26 : deux ou trois graines portent la moyenne, la
+    mise en garde [[banc_monograine_insuffisant]] jouant ici sur 20 graines). Mais la
+    **seule métrique qui passe le seuil est un coût** : −10,6 % de gares, 15/20, p = 0,041 — et
+    c'est la métrique n°1 du projet. Le catalogue **paie son scan en volume sans rien rendre**,
+    exactement comme le disait le diagnostic 5×6 ; le banc long le confirme en atténué (le 5×6 le
+    voyait à +181 % de valeur pour l'historique, la version longue ne retient qu'un coût de
+    volume).
+    🔑 **Cohérent avec l'hypothèse déjà écrite ci-dessus** : le scan reste injecté dans le canal de
+    décision général avant qu'une paire eau existe, donc il déplace l'horloge de décision des dix
+    tâches (même mécanique que C48) pour un mode qui ne produit rien.
+    📌 **Sort du code, décidé le 2026-09-10** : la branche expérimentale (`water_site_catalog`,
+    `water_discovery_real_fronts`, `WATER_MAX_SITE_TILES`, `WATER_MAX_SITES_PER_TOWN`, curseur
+    persistant + `Save`/`Load` du catalogue) est **commitée à défaut 0**, pas supprimée : c'est la
+    moitié « lecteur de catalogue » de l'architecture visée ci-dessus, et elle est mesurée. Elle ne
+    devient réutilisable que **le jour où la découverte passe dans une tâche dédiée** — la
+    rebrancher telle quelle dans le portefeuille est déjà réfutée deux fois.
 - **Le repli de distance après succès de Lakes n'est pas conservateur** (contrairement à ce que son
   commentaire affirme). Manhattan est un **plancher** de la longueur navigable : l'utiliser comme
   distance navigable sous-estime `oneWayDays`, donc **surestime** capacité, revenu et ROI. Une paire

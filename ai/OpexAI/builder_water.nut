@@ -11,8 +11,19 @@ require("lib_water.nut");
  *     conserve pour A/B. */
 
 WATER_TOWN_POOL <- 12;
+/* En mode catalogue, ce n'est plus un filtre des 12 plus grosses villes : c'est la largeur
+ * d'une tranche de decouverte. Le curseur persistant avance a chaque portefeuille et les sites
+ * trouves dans les tranches precedentes restent disponibles pour les paires. */
+WATER_TOWN_DISCOVERY_SLICE <- 12;
 WATER_TOWN_MIN_DISTANCE <- 45;
 WATER_MAX_SITE_PROBES <- 720;
+/* Budget primaire de découverte : tuiles géométriquement inspectées, distinct des AITestMode
+ * BuildDock (`WATER_MAX_SITE_PROBES`). Une tranche s'arrête ici et reprend sa ville au tick de
+ * portefeuille suivant. */
+WATER_MAX_SITE_TILES <- 96;
+/* Un premier quai peut être dans le mauvais bassin. Le catalogue conserve plusieurs options
+ * géométriques d'une même ville afin que les paires puissent choisir le composant connecté. */
+WATER_MAX_SITES_PER_TOWN <- 3;
 WATER_MAX_WATER_TILES <- 8;
 WATER_MAX_DEPOT_PROBES <- 96;
 WATER_BFS_MARGIN <- 24;
@@ -81,6 +92,23 @@ function OpexWaterAdjacentTiles(dock)
   return out;
 }
 
+/* Fronts que le quai projeté exposera réellement. GetDockFrontTiles est valable avant la
+ * construction ; il lit la pente du terrain. Le filtre navigable conserve le contrat des BFS
+ * et de Lakes, sans accepter une simple case d'eau isolée. */
+function OpexWaterDiscoveryFronts(dock)
+{
+  if (!WATER_DISCOVERY_REAL_FRONTS) return OpexWaterAdjacentTiles(dock);
+  local out = [];
+  foreach (front in _MinchinWeb_Marine_.GetDockFrontTiles(dock)) {
+    if (out.len() >= WATER_MAX_WATER_TILES) break;
+    if (!OpexWaterIsNavigable(front)) continue;
+    local duplicate = false;
+    foreach (known in out) if (known == front) duplicate = true;
+    if (!duplicate) out.append(front);
+  }
+  return out;
+}
+
 /* Acces reel : land et waterPart sont des tuiles de station. Les fronts sont toutes les cases eau
  * cardinales autour de waterPart, sauf land ; aucun test de connectivite ne relie station et eau. */
 function OpexWaterFindDockAccess(land)
@@ -143,8 +171,10 @@ function OpexWaterDockAccess(land)
   return OpexWaterFindDockAccess(land);
 }
 
-/* Les probes sont partagees equitablement : une cote sans dock ne mange pas tout le budget. */
-function OpexWaterFindSite(town, probes, profile = null)
+/* Les probes sont partagees equitablement : une cote sans dock ne mange pas tout le budget.
+ * `complete` est indispensable au catalogue persistant : une ville interrompue par le budget
+ * n'est pas une ville sans quai. */
+function OpexWaterFindSiteLegacy(town, probes, profile = null)
 {
   local coverage = AIStation.GetCoverageRadius(AIStation.STATION_DOCK);
   local allowance = probes.townsLeft > 0
@@ -164,10 +194,10 @@ function OpexWaterFindSite(town, probes, profile = null)
         if (!AITile.IsCoastTile(dock)) continue;
         if (profile != null) profile.coast_candidates++;
         if (AIMap.DistanceManhattan(town.tile, dock) > coverage) continue;
-        local waterTiles = OpexWaterAdjacentTiles(dock);
+        local waterTiles = OpexWaterDiscoveryFronts(dock);
         if (waterTiles.len() == 0) continue;
         if (profile != null) profile.navigable_coast_candidates++;
-        if (used >= allowance || probes.left <= 0) return null;
+        if (used >= allowance || probes.left <= 0) return { site = null, complete = false };
         local ok = false;
         local testMark = profile != null ? OpexOpsMeasureBegin() : null;
         { local probe = AITestMode(); ok = AIMarine.BuildDock(dock, AIStation.STATION_NEW); }
@@ -177,11 +207,119 @@ function OpexWaterFindSite(town, probes, profile = null)
         }
         used++;
         probes.left--;
-        if (ok) return { town = town, dock = dock, waterTiles = waterTiles };
+        if (ok) return { site = { town = town, dock = dock, waterTiles = waterTiles }, complete = true };
       }
     }
   }
-  return null;
+  return { site = null, complete = true };
+}
+
+/* Découverte reprise au tile près. Le losange est énuméré directement : une tuile hors du
+ * catchment ne peut donc jamais atteindre IsCoastTile. `scan` est sérialisable et ne contient
+ * que la position dans le losange. */
+function OpexWaterFindSiteSlice(town, probes, scan, slots, profile = null)
+{
+  local coverage = AIStation.GetCoverageRadius(AIStation.STATION_DOCK);
+  local tx = AIMap.GetTileX(town.tile);
+  local ty = AIMap.GetTileY(town.tile);
+  local visited = 0;
+  local sites = [];
+  while (scan.r <= coverage && visited < WATER_MAX_SITE_TILES && sites.len() < slots) {
+    local dy = scan.r - abs(scan.dx);
+    local signedDy = scan.side == 0 ? dy : -dy;
+    local x = tx + scan.dx;
+    local y = ty + signedDy;
+    /* Avancer avant les appels API : tout retour par budget reprend à la tuile suivante sans
+     * rebalayer les filtres déjà payés. */
+    if (dy != 0 && scan.side == 0) {
+      scan.side = 1;
+    } else {
+      scan.side = 0;
+      scan.dx++;
+      if (scan.dx > scan.r) { scan.r++; scan.dx = -scan.r; }
+    }
+    if (!OpexWaterInMap(x, y)) continue;
+    visited++;
+    if (profile != null) profile.site_tiles_visited++;
+    local dock = AIMap.GetTileIndex(x, y);
+    if (!AITile.IsCoastTile(dock)) continue;
+    if (profile != null) profile.coast_candidates++;
+    local waterTiles = OpexWaterDiscoveryFronts(dock);
+    if (waterTiles.len() == 0) continue;
+    if (profile != null) profile.navigable_coast_candidates++;
+    if (probes.left <= 0) return { sites = sites, complete = false, scan = scan };
+    local ok = false;
+    local testMark = profile != null ? OpexOpsMeasureBegin() : null;
+    { local probe = AITestMode(); ok = AIMarine.BuildDock(dock, AIStation.STATION_NEW); }
+    if (profile != null) {
+      profile.dock_test_ops += OpexOpsMeasureEnd(testMark);
+      profile.dock_tests++;
+    }
+    probes.left--;
+    if (ok) sites.append({ town = town, dock = dock, waterTiles = waterTiles });
+  }
+  return { sites = sites, complete = scan.r > coverage || sites.len() >= slots, scan = scan };
+}
+
+/* Le littoral ne depend ni des moteurs ni de l'economie. Ce catalogue, possede par OpexAI et
+ * persiste dans Save(), evite donc de repayer le scan a chaque reconstruction mensuelle. On ne
+ * memorise un negatif que si toute la zone de couverture a ete parcourue ; sinon le budget de
+ * probes reprend legitimement la recherche lors d'une passe ulterieure. Les objets `town` eux-
+ * memes sont recrees par catalog.nut : le cache ne conserve que la geometrie stable. */
+function OpexWaterCatalogSites(town, siteCatalog, probes, profile = null)
+{
+  if (siteCatalog == null) {
+    local legacy = OpexWaterFindSiteLegacy(town, probes, profile);
+    return legacy.site != null ? [legacy.site] : [];
+  }
+  if (town.id in siteCatalog.towns && ("complete" in siteCatalog.towns[town.id])
+      && siteCatalog.towns[town.id].complete) {
+    if (profile != null) profile.site_cache_hits++;
+    local saved = siteCatalog.towns[town.id];
+    local out = [];
+    foreach (entry in saved.sites) {
+      out.append({ town = town, dock = entry.dock, waterTiles = entry.waterTiles });
+    }
+    return out;
+  }
+
+  if (profile != null) profile.site_cache_misses++;
+  local saved = (town.id in siteCatalog.towns) ? siteCatalog.towns[town.id]
+      : { sites = [], complete = false, scan = { r = 0, dx = 0, side = 0 } };
+  /* Migration des sauvegardes du premier prototype de cache, qui ne portait pas de curseur. */
+  if (!("complete" in saved)) saved.complete <- saved.sites.len() > 0;
+  if (!("scan" in saved)) saved.scan <- { r = 0, dx = 0, side = 0 };
+  local slots = WATER_MAX_SITES_PER_TOWN - saved.sites.len();
+  if (slots <= 0) { saved.complete = true; return []; }
+  local found = OpexWaterFindSiteSlice(town, probes, saved.scan, slots,
+                                        C41_WATER_SITE_PROFILE ? profile : null);
+  saved.scan = found.scan;
+  local sites = [];
+  foreach (site in found.sites) {
+    sites.append(site);
+    saved.sites.append({ dock = site.dock, waterTiles = site.waterTiles });
+  }
+  if (found.complete || saved.sites.len() >= WATER_MAX_SITES_PER_TOWN) {
+    /* Une entrée vide n'est négative qu'après le losange entier. */
+    saved.complete = true;
+  }
+  siteCatalog.towns.rawset(town.id, saved);
+  return sites;
+}
+
+/* Tous les sites positifs deja trouves participent aux paires. Les objets ville sont toujours
+ * ceux du catalogue courant : aucune reference perimee n'est conservee dans la sauvegarde. */
+function OpexWaterCatalogKnownSites(towns, lines, siteCatalog)
+{
+  local sites = [];
+  if (siteCatalog == null) return sites;
+  foreach (town in towns) {
+    if (OpexWaterTownServed(town, lines) || !(town.id in siteCatalog.towns)) continue;
+    foreach (entry in siteCatalog.towns[town.id].sites) {
+      sites.append({ town = town, dock = entry.dock, waterTiles = entry.waterTiles });
+    }
+  }
+  return sites;
 }
 
 function OpexWaterContains(tiles, tile)
@@ -330,22 +468,34 @@ function OpexWaterEconomics(catalog, navigableDistance, tariffDistance, orderDis
   return best;
 }
 
-function OpexWaterPlans(catalog, lines = null, projects = null, profile = null)
+function OpexWaterPlans(catalog, lines = null, projects = null, profile = null, siteCatalog = null)
 {
   if (catalog.ships.len() == 0 || catalog.paxCargo < 0) return null;
   local mark = profile != null ? OpexOpsMeasureBegin() : null;
   local towns = OpexWaterSortedTowns(catalog.towns);
   if (profile != null) profile.town_sort_ops = OpexOpsMeasureEnd(mark);
-  local limit = towns.len() < WATER_TOWN_POOL ? towns.len() : WATER_TOWN_POOL;
-  local sites = [];
+  local historical = siteCatalog == null;
+  local limit = towns.len() < (historical ? WATER_TOWN_POOL : WATER_TOWN_DISCOVERY_SLICE)
+      ? towns.len() : (historical ? WATER_TOWN_POOL : WATER_TOWN_DISCOVERY_SLICE);
+  local sites = historical ? [] : OpexWaterCatalogKnownSites(towns, lines, siteCatalog);
   local probes = { left = WATER_MAX_SITE_PROBES, townsLeft = limit };
   mark = profile != null ? OpexOpsMeasureBegin() : null;
-  for (local i = 0; i < limit; i++) {
+  local start = 0;
+  if (!historical && towns.len() > 0 && ("cursor" in siteCatalog)) {
+    start = siteCatalog.cursor % towns.len();
+  }
+  for (local step = 0; step < limit; step++) {
+    local i = historical ? step : (start + step) % towns.len();
     if (profile != null) profile.towns_considered++;
     if (OpexWaterTownServed(towns[i], lines)) continue;
-    local site = OpexWaterFindSite(towns[i], probes, C41_WATER_SITE_PROFILE ? profile : null);
-    if (site != null) sites.append(site);
+    local wasKnownComplete = !historical && (towns[i].id in siteCatalog.towns)
+        && siteCatalog.towns[towns[i].id].complete;
+    local townSites = OpexWaterCatalogSites(towns[i], siteCatalog, probes,
+                                             C41_WATER_SITE_PROFILE ? profile : null);
+    /* Une entree deja connue est deja dans `sites`; ne pas la dupliquer. */
+    if (historical || !wasKnownComplete) foreach (site in townSites) sites.append(site);
   }
+  if (!historical && towns.len() > 0) siteCatalog.cursor <- (start + limit) % towns.len();
   if (profile != null) {
     profile.site_ops = OpexOpsMeasureEnd(mark);
     profile.site_scan_filter_ops = profile.site_ops - profile.dock_test_ops;
