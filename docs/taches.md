@@ -112,7 +112,23 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   tour de 9 tâches également pénalisées. Et 55,3 % de vivier vide est un sujet d'**offre**, pas
   d'ordonnancement. ⛔ Ne pas citer « D2 = 192 j » comme un coût de cadence : la sonde agrège
   cadence + file d'attente par rang (`PORTFOLIO_MAX_BATCH = 1`) + concurrence pour la caisse.
-  🆕 **Le vrai trou, à instruire ensuite** (`docs/05_...` §4.3) : une passe coûte ~3,6 jours de jeu
+  ❌ **CORRIGÉ le 2026-09-10 par C39.6 — le « facteur 15 » ci-dessous est FAUX, faute d'unité de ma
+  part** (74 ticks/jour supposés contre **18,48 mesurés**). Sonde `c39_pass_clock_ledger` (défaut 0),
+  `results/diag_c39_6_pass_clock_6y_5seeds.json`, 5×6, 0 échec. 🔑 **Les jours SONT les opcodes** :
+  part de la tranche A\* = 22,4 % des jours / 22,3 % des ticks / **22,9 % des opcodes**, et
+  186 k opcodes par jour de jeu (= 10 k/tick × 18,5 ticks/jour). Aucun coût caché en jours d'API ;
+  [[philosophie_opcodes_ressource]] tient.
+  ⚠️ **Et le ×4,4 « passe avec tranche vs sans » est un ARTEFACT DE MATURITÉ** : par année, le
+  rapport tombe de **4,84 (1971) à 0,91 (1975)** — en fin de partie une passe avec recherche rail
+  ne coûte plus rien de plus. Même forme que l'effondrement 45 %→13 % de C41.46.
+  🔑 **Le vrai effet : le coût d'une passe est multiplié par ~15 en cinq ans** (0,39 → 5,92 j/passe
+  hors tranche). C'est ça qui étire l'horloge de décision, c'est cohérent avec les 2,09 M opcodes
+  par reconstruction de catalogue (C41.22), et **c'est indépendant du canal rail**. Sujet à
+  instruire ; couverture de la sonde 81,9 % (ledger annuel, dernière année partielle perdue).
+  ⚠️ Tension non résolue : C39.5 donne D1 = 35,5 j contre 2 j (médianes) alors qu'en 1975 les deux
+  régimes coûtent pareil par passe. **Ne pas citer les deux comme s'ils se corroboraient.**
+
+  ~~Version d'origine, réfutée~~ (`docs/05_...` §4.3) : une passe coûte ~3,6 jours de jeu
   pendant une recherche rail, alors que la tranche A\* ne pèse que ~146 k opcodes ≈ 0,2 jour
   (C41.46). **Facteur 15 inexpliqué entre le coût en opcodes et le temps de jeu perdu.** Ça
   reformule C41.46 : en opcodes la recherche rail pèse 23,3 %, en **jours** elle coûte ~5× le temps

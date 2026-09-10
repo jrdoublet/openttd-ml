@@ -225,6 +225,12 @@ C41_PROJECTS_FALLTHROUGH_PROBE <- false;
 /* C39.5 : sonde passive de cadence de la tache projects. Le repli 0 ne doit ajouter ni appel
  * d'API ni calcul au chemin livre ; voir docs/05_cadence_projects_rail_search.md. */
 C39_PROJECTS_CADENCE_PROBE <- false;
+/* C39.6 (docs/05_cadence_projects_rail_search.md §4.3) : mesure le delta date/tick/opcodes d'une
+ * passe de _runNextTask, decompose entre la seule tranche A* et la tache de file jouee dans la
+ * MEME passe, ventile par nom de tache et par presence de tranche. Reglage NOUVEAU et
+ * INDEPENDANT de C41_RAIL_SLICE_LEDGER : ne pas etendre ce dernier, sa mesure est deja publiee.
+ * Le repli 0 ne doit ajouter ni appel d'API ni calcul au chemin livre. */
+C39_PASS_CLOCK_LEDGER <- false;
 /* air_fleet_probe : _resizeAirFleets n'emet que ses SUCCES (FG|). Quand une ligne aerienne
  * n'grandit pas, la cause est invisible. FR| donne le premier refus rencontre, une fois par ligne
  * et par an. */
@@ -356,6 +362,17 @@ function OpexC39ProjectsCadenceLog(fields)
   local date = AIDate.GetCurrentDate();
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " C39_PROJECTS_CADENCE " + fields);
+}
+
+/* C39.6 : gate propre, INDEPENDANT de C39_PROJECTS_CADENCE_PROBE et de C41_RAIL_SLICE_LEDGER --
+ * ne jamais reutiliser le gate d'une autre sonde (piege deja trouve trois fois dans ce depot :
+ * un canal reutilise reste silencieux tant que SA propre variante n'est pas armee). */
+function OpexC39PassClockLog(fields)
+{
+  if (!C39_PASS_CLOCK_LEDGER) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " C39_PASS_CLOCK " + fields);
 }
 
 function OpexC41StalenessLog(kind, fields)
@@ -1266,6 +1283,15 @@ class OpexAI extends AIController {
   _c41RailSliceLastIterDelta = 0;
   _c41RailSliceLastDone = false;
   _c41LastTaskName = "idle";
+  /* C39.6 : scratch de la SEULE tranche A* pour la passe courante -- meme patron que
+   * _c41RailSliceLast* : sentinelle -1 = aucune tranche cette passe, remise a chaque entree dans
+   * _runNextTask, lue par _runNextTaskWithSlackLedger juste apres son retour. Independant des
+   * champs _c41RailSliceLast* ci-dessus (reglages differents, duree de vie identique). */
+  _c39PassClockSliceDays = -1;
+  _c39PassClockSliceTicks = -1;
+  _c39PassClockSliceOps = -1;
+  /* C39.6 : accumulateur annuel, cle = "<nom de tache>|slice" ou "<nom de tache>|noslice". */
+  _c39PassClockLedger = null;
   _c39CadenceLastDate = null;
   _c39CadenceLastTick = null;
   _c39CadenceLastCycle = null;
@@ -1321,6 +1347,7 @@ class OpexAI extends AIController {
     this._c41SlackLedger = {};
     this._c41OpportunityLedger = {};
     this._c41AdmissionLedger = {};
+    this._c39PassClockLedger = {};
     this._c39CadenceLastDate = -1;
     this._c39CadenceLastTick = -1;
     this._c39CadenceLastCycle = -1;
@@ -1387,6 +1414,8 @@ class OpexAI extends AIController {
   function _logC41AdmissionLedger(year);
   function _recordC41RailSliceLedger(netOps, taskOps, iterDelta, done);
   function _logC41RailSliceLedger(year);
+  function _recordC39PassClockLedger(key, days, ticks, ops, sliceDays, sliceTicks, sliceOps);
+  function _logC39PassClockLedger(year);
   function _reportYear(year, ranked);
   function _reportLines(year);
   function _scrapDeadLines(year);
@@ -6193,7 +6222,7 @@ function OpexAI::_processEvents()
 function OpexAI::_runNextTaskWithSlackLedger()
 {
   if ((!C41_SLACK_LEDGER && !C41_MONTHLY_BUSY_LEDGER && !C41_OPPORTUNITY_LEDGER && !C41_ADMISSION_LEDGER
-       && !C41_RAIL_SLICE_LEDGER)
+       && !C41_RAIL_SLICE_LEDGER && !C39_PASS_CLOCK_LEDGER)
       || this._c41SlackLedger == null) {
     return this._runNextTask();
   }
@@ -6207,6 +6236,10 @@ function OpexAI::_runNextTaskWithSlackLedger()
     }
   }
   local mark = OpexOpsMeasureBegin();
+  /* C39.6 : date AVANT l'appel mesure, pour le delta jours de la passe entiere. mark.tick sert
+   * aussi de tick de depart : pas de second AIController.GetTick(), c'est deja celui capture par
+   * OpexOpsMeasureBegin() ci-dessus. */
+  local c39DateBefore = C39_PASS_CLOCK_LEDGER ? AIDate.GetCurrentDate() : -1;
   local continuationCategory = null;
   if (this._railExpansion != null && this._railSearch != null) {
     continuationCategory = "rail_expansion+rail_search";
@@ -6247,6 +6280,28 @@ function OpexAI::_runNextTaskWithSlackLedger()
     if (taskOps < 0) taskOps = 0;
     this._recordC41RailSliceLedger(this._c41RailSliceLastOps, taskOps,
                                    this._c41RailSliceLastIterDelta, this._c41RailSliceLastDone);
+  }
+  /* C39.6 : this._c39PassClockSlice{Days,Ticks,Ops} ont ete mesures INDEPENDAMMENT dans
+   * _runNextTask, pendant le meme appel que `ops`/`c39DateBefore` ci-dessus (meme garantie de
+   * non-partage d'etat que C41.46). Sentinelle -1 sur _c39PassClockSliceOps = aucune tranche A*
+   * cette passe -- la cle "|slice" contre "|noslice" porte cette information, les trois champs
+   * slice_* valent alors 0. La cle est this._c41LastTaskName ("idle" si nul), PAS `category` :
+   * `category` fusionne les continuations rail (C41.11), alors qu'ici la tranche est deja portee
+   * separement par la cle slice/noslice et on veut le nom de la VRAIE tache de file. ⚠️ Sous
+   * loop_budget=0 (defaut), la boucle principale fait un Sleep(1) APRES cet appel mesure : ce
+   * Sleep n'est donc jamais compte dans days/ticks. A 74 ticks/jour c'est negligeable devant les
+   * 3,6 jours mesures (docs/05_cadence_projects_rail_search.md §4.3), mais le prochain lecteur
+   * doit le savoir. */
+  if (C39_PASS_CLOCK_LEDGER) {
+    local passDays = AIDate.GetCurrentDate() - c39DateBefore;
+    local passTicks = AIController.GetTick() - mark.tick;
+    local hasSlice = this._c39PassClockSliceOps >= 0;
+    local taskName = this._c41LastTaskName != null ? this._c41LastTaskName : "idle";
+    local c39Key = taskName + "|" + (hasSlice ? "slice" : "noslice");
+    this._recordC39PassClockLedger(c39Key, passDays, passTicks, ops,
+        hasSlice ? this._c39PassClockSliceDays : 0,
+        hasSlice ? this._c39PassClockSliceTicks : 0,
+        hasSlice ? this._c39PassClockSliceOps : 0);
   }
   /* C41.13 : apres la tache historique, seules les couches encore sales sont admissibles au
    * delestage. Une meme tranche peut etre une opportunite pour plusieurs couches : le total par
@@ -6396,16 +6451,55 @@ function OpexAI::_logC41RailSliceLedger(year)
   this._c41RailSliceLedger = null;
 }
 
+/* C39.6 : accumulateur PAR CLE (contrairement a C41.46, canal rail unique) -- la cle croise le
+ * nom de tache de file et la presence d'une tranche A* dans la meme passe. */
+function OpexAI::_recordC39PassClockLedger(key, days, ticks, ops, sliceDays, sliceTicks, sliceOps)
+{
+  if (this._c39PassClockLedger == null) this._c39PassClockLedger = {};
+  local entry = (key in this._c39PassClockLedger) ? this._c39PassClockLedger[key]
+      : { passes = 0, days = 0, ticks = 0, ops = 0, sliceDays = 0, sliceTicks = 0, sliceOps = 0 };
+  entry.passes++;
+  entry.days += days;
+  entry.ticks += ticks;
+  entry.ops += ops;
+  entry.sliceDays += sliceDays;
+  entry.sliceTicks += sliceTicks;
+  entry.sliceOps += sliceOps;
+  this._c39PassClockLedger.rawset(key, entry);
+}
+
+/* Publication annuelle, comme les autres ledgers C39/C41 : une ligne par cle, reset apres
+ * publication pour que chaque ligne decrive une fenetre comparable (meme motif que
+ * _logC41SlackLedger / _logC41RailSliceLedger). */
+function OpexAI::_logC39PassClockLedger(year)
+{
+  if (!C39_PASS_CLOCK_LEDGER || this._c39PassClockLedger == null) return;
+  foreach (key, entry in this._c39PassClockLedger) {
+    OpexC39PassClockLog("phase=annual year=" + year + " key=" + key
+                        + " passes=" + entry.passes + " days=" + entry.days
+                        + " ticks=" + entry.ticks + " ops=" + entry.ops
+                        + " slice_days=" + entry.sliceDays + " slice_ticks=" + entry.sliceTicks
+                        + " slice_ops=" + entry.sliceOps);
+  }
+  this._c39PassClockLedger = {};
+}
+
 /* File CONTINUE : le scan reprend apres la derniere tache choisie, meme si un A* a franchi le
  * changement d'annee. Le calendrier ne decide plus RIEN : quand le suffixe de la table est fini,
  * _taskCycle avance et le scan repart a zero. Chaque tache se reporte par dueCycle, donc aucun
  * item ne peut affamer ceux places apres lui et le dernier rend litteralement la main au premier. */
 function OpexAI::_runNextTask()
 {
-  if (C41_SLACK_LEDGER || C41_MONTHLY_BUSY_LEDGER || C41_OPPORTUNITY_LEDGER || C41_ADMISSION_LEDGER) this._c41LastTaskName = "idle";
+  if (C41_SLACK_LEDGER || C41_MONTHLY_BUSY_LEDGER || C41_OPPORTUNITY_LEDGER || C41_ADMISSION_LEDGER || C39_PASS_CLOCK_LEDGER) this._c41LastTaskName = "idle";
   /* C41.46 : sentinelle -1 = aucune tranche A* mesuree cette passe. Remise a chaque passage,
    * lue par _runNextTaskWithSlackLedger juste apres le retour de cette fonction. */
   if (C41_RAIL_SLICE_LEDGER) this._c41RailSliceLastOps = -1;
+  /* C39.6 : meme patron, scratch INDEPENDANT des champs _c41RailSliceLast* ci-dessus. */
+  if (C39_PASS_CLOCK_LEDGER) {
+    this._c39PassClockSliceDays = -1;
+    this._c39PassClockSliceTicks = -1;
+    this._c39PassClockSliceOps = -1;
+  }
   if (DECISION_LOG) {
     _currentTaskName = null;
     _currentTaskLogged = false;
@@ -6424,16 +6518,30 @@ function OpexAI::_runNextTask()
      * dans _consumeRailSearch via la tache "projects") ou execute _consumeRailUpgrade() pour
      * kind == "upgrade", qui n'est pas une tranche de recherche. Aucun des deux n'est comptabilise
      * dans ce ledger : le confondre fausserait "iterations cumulees" et "tranches non terminees". */
-    if (C41_RAIL_SLICE_LEDGER && this._railSearch.phase == "search") {
+    if ((C41_RAIL_SLICE_LEDGER || C39_PASS_CLOCK_LEDGER) && this._railSearch.phase == "search") {
       local sliceState = this._railSearch;
       local spentBefore = sliceState.spent;
+      /* C39.6 : date/tick AVANT l'appel, pour le delta de la SEULE tranche. sliceMark.tick sert
+       * de tick de depart -- pas de second AIController.GetTick(). */
+      local c39SliceDateBefore = C39_PASS_CLOCK_LEDGER ? AIDate.GetCurrentDate() : -1;
       local sliceMark = OpexOpsMeasureBegin();
       this._continueRailSearch();
-      this._c41RailSliceLastOps = OpexOpsMeasureEnd(sliceMark);
-      this._c41RailSliceLastIterDelta = sliceState.spent - spentBefore;
-      /* sliceState reste la MEME table (mutee en place par _continueRailSearch) : phase != "search"
-       * signifie que cette tranche a atteint slice.done et fait basculer la recherche en "build". */
-      this._c41RailSliceLastDone = (sliceState.phase != "search");
+      /* C39.6 reutilise ce MEME sliceOps que C41.46 -- pas de second begin()/end() pour la meme
+       * tranche, les deux sondes partagent la seule mesure d'opcodes necessaire. */
+      local sliceOps = OpexOpsMeasureEnd(sliceMark);
+      if (C41_RAIL_SLICE_LEDGER) {
+        this._c41RailSliceLastOps = sliceOps;
+        this._c41RailSliceLastIterDelta = sliceState.spent - spentBefore;
+        /* sliceState reste la MEME table (mutee en place par _continueRailSearch) : phase !=
+         * "search" signifie que cette tranche a atteint slice.done et fait basculer la recherche
+         * en "build". */
+        this._c41RailSliceLastDone = (sliceState.phase != "search");
+      }
+      if (C39_PASS_CLOCK_LEDGER) {
+        this._c39PassClockSliceDays = AIDate.GetCurrentDate() - c39SliceDateBefore;
+        this._c39PassClockSliceTicks = AIController.GetTick() - sliceMark.tick;
+        this._c39PassClockSliceOps = sliceOps;
+      }
     } else {
       this._continueRailSearch();
     }
@@ -6463,7 +6571,7 @@ function OpexAI::_runNextTask()
   }
   if (task == null) return false;
   this._taskCursor = (taskIndex + 1) % this._taskQueue.len();
-  if (C41_SLACK_LEDGER || C41_MONTHLY_BUSY_LEDGER || C41_OPPORTUNITY_LEDGER || C41_ADMISSION_LEDGER) this._c41LastTaskName = task.name;
+  if (C41_SLACK_LEDGER || C41_MONTHLY_BUSY_LEDGER || C41_OPPORTUNITY_LEDGER || C41_ADMISSION_LEDGER || C39_PASS_CLOCK_LEDGER) this._c41LastTaskName = task.name;
 
   /* Defaut : exactement une execution par tour continu. Une tache inutile peut choisir plus loin. */
   task.dueCycle = this._taskCycle + 1;
@@ -6991,6 +7099,7 @@ function OpexAI::_runNextTask()
     this._logC41OpportunityLedger(year);
     this._logC41AdmissionLedger(year);
     this._logC41RailSliceLedger(year);
+    this._logC39PassClockLedger(year);
     this._reportYear(year, this._ranked);
     this._reportLines(year);
     return true;
@@ -7402,6 +7511,7 @@ function OpexAI::Start()
   C41_RAIL_DOMINATION_PROBE = AIController.GetSetting("c41_rail_domination_probe") != 0;
   C41_PROJECTS_FALLTHROUGH_PROBE = AIController.GetSetting("c41_projects_fallthrough_probe") != 0;
   C39_PROJECTS_CADENCE_PROBE = AIController.GetSetting("c39_projects_cadence_probe") != 0;
+  C39_PASS_CLOCK_LEDGER = AIController.GetSetting("c39_pass_clock_ledger") != 0;
   CASH_RESERVE_PROBE = AIController.GetSetting("cash_reserve_probe") != 0;
   PORTFOLIO_REFRESH_PROBE = AIController.GetSetting("portfolio_refresh_probe") != 0;
   if (C41_RAIL_LOST_TOPOLOGY_PROBE) C41_RAIL_LOST_PROBE = true;

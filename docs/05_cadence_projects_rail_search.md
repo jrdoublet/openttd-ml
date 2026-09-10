@@ -253,7 +253,58 @@ plus important de cette mesure :
    (mêmes règles des deux côtés), **mais ne les sépare pas** : ne pas citer les 192 jours comme un
    coût de cadence pur.
 
-### 4.3 🆕 Le trou qui s'ouvre : d'où viennent 3,6 jours par passe ?
+### 4.3 ❌ ERREUR CORRIGÉE — le « facteur 15 » n'existe pas, c'était une faute d'unité
+
+⛔ **Le §4.3 d'origine (conservé plus bas, barré) affirmait un facteur ~15 inexpliqué entre le coût
+en opcodes d'une tranche A\* et les jours de jeu qu'elle coûte. C'est FAUX, et l'erreur est de moi :
+j'avais converti les ticks en jours à 74 ticks/jour.** La sonde C39.6
+(`c39_pass_clock_ledger=0` par défaut, `results/diag_c39_6_pass_clock_6y_5seeds.json`, 5 graines ×
+6 ans, 0 échec) mesure directement le rapport : **18,48 ticks par jour**, pas 74. Une tranche de
+~150 k opcodes vaut donc ~14,6 ticks ≈ **0,79 jour**, pas 0,2 jour. L'écart se referme entièrement.
+
+🔑 **Et la mesure va plus loin : les jours SONT les opcodes.** Sur les passes contenant une tranche
+A\*, la part de la tranche vaut **22,4 % des jours, 22,3 % des ticks, 22,9 % des opcodes** — la même
+proportion à trois chiffres près. Cumul : 1,668 G d'opcodes pour 8 967 jours, soit **186 k opcodes
+par jour de jeu** = 10 k/tick × 18,5 ticks/jour. **Il n'y a aucun coût caché en jours d'API.**
+[[philosophie_opcodes_ressource]] tient : l'opcode reste la ressource, et le jour n'en est qu'une
+autre unité.
+
+### 4.3 bis ✅ Ce que C39.6 trouve vraiment — et le confondant qui tue la conclusion facile
+
+En cumul, une passe coûte **3,54 jours** quand une tranche A\* y tourne contre **0,81 jour** sinon
+(×4,4), et chaque tâche de file suit : `projects` 9,60 j/passe contre 2,12, `catalog` 8,35 contre
+2,03, `town_growth` 7,48 contre 2,30. Tentant d'en conclure que la recherche rail ralentit tout.
+
+⚠️ **Le contrôle année par année dit le contraire** (relecture du journal brut par année) :
+
+| année | j/passe avec tranche | j/passe sans | rapport |
+|---|---:|---:|---:|
+| 1971 | 1,88 | 0,39 | **4,84** |
+| 1972 | 2,57 | 0,82 | 3,16 |
+| 1973 | 3,97 | 2,26 | 1,75 |
+| 1974 | 4,71 | 4,29 | 1,10 |
+| 1975 | 5,40 | 5,92 | **0,91** |
+
+**Le rapport s'effondre de 4,84 à 0,91.** En fin de partie, une passe avec recherche rail ne coûte
+plus rien de plus qu'une passe sans. Le ×4,4 cumulé est donc **un artefact de maturité**, pas un
+effet de la recherche rail — exactement la même forme que l'effondrement 45 % → 13 % de la part
+nette de l'A\* mesuré par C41.46.
+
+🔑 **Le vrai effet, lui, est énorme et n'a rien à voir avec le rail : le coût d'une passe est
+multiplié par ~15 en cinq ans** (0,39 → 5,92 jours pour les passes sans tranche). C'est **ça** qui
+étire l'horloge de décision, et c'est cohérent avec le coût d'une reconstruction de catalogue
+(2,09 M opcodes, C41.22) qui croît avec la carte. **C'est le sujet à instruire**, et il est
+indépendant du canal rail.
+
+⚠️ **Tension résiduelle non résolue** : C39.5 mesure D1 = 35,5 j sous recherche rail contre 2 j
+hors (médianes), alors qu'en 1975 les deux régimes coûtent le même prix par passe. Médianes contre
+moyennes et distributions très étalées expliquent peut-être l'écart, ce n'est pas démontré.
+**Ne pas citer les deux chiffres côte à côte comme s'ils se corroboraient.**
+
+⚠️ Couverture de C39.6 : **81,9 %** du temps de jeu (contre 98,7 % pour C39.5) — le ledger est
+publié annuellement par la tâche `report`, donc la dernière année partielle est perdue.
+
+### ~~4.3 (version d'origine, RÉFUTÉE ci-dessus)~~ : d'où viennent 3,6 jours par passe ?
 
 Une passe coûte ~0,74 jour hors recherche rail et ~3,6 jours pendant. Or la tranche A\* mesurée par
 C41.46 vaut ~146 k opcodes (250,5 M / 1 710 tranches), soit ~15 ticks ≈ **0,2 jour**. **Il manque

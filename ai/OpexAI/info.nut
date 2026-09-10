@@ -671,6 +671,23 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C39.6 (docs/05_cadence_projects_rail_search.md §4.3) : le facteur ~15 mesure entre le cout en
+     * opcodes d'une tranche A* (~146 k, C41.46) et le temps de jeu qu'une passe de _runNextTask
+     * fait perdre pendant une recherche rail (~3,6 j contre ~0,74 j hors recherche) reste
+     * inexplique. Cette sonde mesure, a CHAQUE passe, le delta de date/tick/opcodes de la passe
+     * entiere et, separement, celui de la seule tranche _continueRailSearch() (meme garde que
+     * C41.46 : phase == "search"), ventile par nom de tache de file ET par presence ou non d'une
+     * tranche dans la passe. Reglage NOUVEAU et INDEPENDANT de c41_rail_slice_ledger : ce dernier a
+     * deja produit une mesure publiee (opcodes), sa semantique ne doit pas changer. Aucun dueCycle,
+     * aucune borne, aucune decision modifiee -- purement observatoire. */
+    AddSetting({
+      name = "c39_pass_clock_ledger",
+      description = "C39.6 probe: measure game days/ticks/opcodes per _runNextTask pass, split between the rail A* slice alone and the same-pass queued task, bucketed by task name and slice/noslice; no scheduling change; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* C43/E3 famille 2 : CASH_RESERVE_MIN mord-il ? Compteurs cumulatifs, publies en delta annuel
      * par la tache "report" (OpexCashReserve() est appelee trop souvent pour journaliser chaque
      * appel). */
