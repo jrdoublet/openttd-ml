@@ -434,6 +434,68 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   mode », « seuil de quartile nul »). Les trois défauts ont été signalés par ces gardes, pas par un
   test qui échoue. **À reproduire dans toute sonde de chunk.**
 
+- 🔴 **C55 — L'assouplissement du 2026-08-29 n'a jamais été appliqué à la ROUTE.**
+  📝 Ouverte le 2026-09-10 par lecture de code, **sans campagne**.
+
+  ### Le fait
+
+  `OpexOriginServed` (`ai/OpexAI/candidates.nut:868`) écarte une paire dont une extrémité est à
+  moins de `ORIGIN_SEPARATION = 3` d'une origine déjà servie. Son commentaire dit que l'exclusion a
+  été **« RAMENÉE À SON NOYAU le 2026-08-29 : elle ne vaut plus que pour les paires dont les DEUX
+  extrémités sont servies »**.
+
+  🔑 **Cet assouplissement n'a été appliqué qu'au RAIL.** Deux règles cohabitent dans
+  `OpexIncrementalCandidateStillValid` (`ai/OpexAI/projects.nut`) :
+
+  | mode | règle en vigueur | lignes |
+  |---|---|---|
+  | **route** (hors feeders) | `OriginServed(src)` **OU** `OriginServed(dst)` → rejet, `includeRoad = true` | `1042-1043` |
+  | rail | `OriginServed(src)` **ET** `OriginServed(dst)` → rejet, `includeRoad = false` | `1051` |
+
+  Une **seule** extrémité servie suffit donc à écarter une paire routière — et `includeRoad = true`
+  fait qu'une ligne routière verrouille **ses propres** origines.
+
+  ### Pourquoi c'est probablement le mur observé en partie
+
+  - La note d'archive ([[opexai_plafonnement]], campagne 20 ans graine 42) mesure **213 à 242 paires
+    écartées par an** à partir de 1982, avec **0 à 3 candidats classés/an** : *« la règle un seul
+    raccordement par origine a consommé la carte »*.
+  - **La route est notre mode dominant** : 364 gares de bus sur 495 (mesuré le 2026-09-10).
+  - **Le vivier est vide dans 58,6 % des tours de `projects`** (C39.5b) et 61,8 % des passes n'ont
+    rien à classer (C49) — le symptôme, re-mesuré aujourd'hui sans avoir été relié à cette cause.
+  - 🔑 **C'est une deuxième boucle négative**, après celle du coût de régénération (C48) : plus l'IA
+    construit de lignes routières, plus elle se ferme définitivement de terrain.
+  - 🔗 [[opexai_plafonnement]] établit aussi que **`station_join` est structurellement inerte** (0
+    tentative en 20 ans) **à cause de cette règle** : elle supprime le candidat à la génération avant
+    que la jointure puisse être proposée. Corriger C55 pourrait le rendre atteignable.
+
+  ### ⛔ Ce que la fiche ne propose PAS
+
+  **Ne pas supprimer la règle.** Son commentaire justifie explicitement `includeRoad = true` :
+  *« sans quoi il rebâtirait chaque année la même paire »*. Le levier envisagé est de faire passer le
+  **OU** en **ET** pour la route, comme c'est déjà le cas pour le rail — pas de retirer la garde.
+
+  ⚠️ **Le piège à instruire avant tout code** : l'anti-doublon de secours, `OpexRoadPairServed`
+  (`projects.nut:1044`), n'est appliqué **que si `p.kind == "pax"`**. Pour le **fret routier**, il
+  n'y a donc **aucune** protection de rechange — assouplir sans traiter ce cas rouvrirait la
+  reconstruction annuelle de la même paire, un défaut connu et corrigé. Et le fret routier est
+  précisément le canal que `portfolio_v2=1` ouvre en grand (68 gares camion contre 2).
+
+  ### Étapes
+
+  1. ⬜ **Mesurer d'abord, sans changer de décision** : combien de candidats routiers seraient
+     récupérés par le passage OU → ET, par année, et combien d'entre eux seraient des **doublons
+     exacts** d'une ligne existante. Une sonde de comptage suffit ; c'est le chiffre qui dit si le
+     levier vaut quelque chose et s'il est dangereux.
+  2. ⬜ Traiter le cas **fret routier** (pas de `OpexRoadPairServed`) avant toute relaxation.
+  3. ⬜ Levier sous réglage dédié, défaut 0, **un seul changement**.
+  4. ⬜ Banc officiel **20×10 apparié**, test des signes avant les moyennes.
+
+  ⚠️ **La mesure d'archive date du 2026-08-29, sur UNE graine, avant `portfolio_v2=1` par défaut
+  (07/09).** Les 213-242 paires/an sont à re-mesurer : c'est exactement la leçon de C47, où un
+  chiffre de deux jours s'était effondré d'un facteur 36. Le symptôme actuel (vivier vide 58,6 %)
+  est en revanche mesuré sur le code d'aujourd'hui.
+
 - 🔴 **C52 — Finir le chantier des événements : en brancher le maximum.**
   📝 Noté le 2026-09-10 sur demande utilisateur. **État constaté dans le code** (`ai/OpexAI/main.nut`) :
 
