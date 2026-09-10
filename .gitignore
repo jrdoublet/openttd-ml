@@ -28,3 +28,7 @@ docs/diag_1v1_10y.json
 # Rejeu graine 1 avec journaux de decision complets : versionne en .gz a cote.
 docs/replay_seed1_y1.json
 scratch/
+
+# Dossier de travail du test de rechargement (sweeps/save_load_roundtrip.py) : cache OpenTTD
+# et sauvegardes des deux phases, regenerables.
+.scratch_saveload/
