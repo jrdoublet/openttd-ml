@@ -83,13 +83,16 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   `town_growth` = 14,0 %. Conclusion : la cible mesurée est la continuation de recherche rail,
   **pas** la génération monolithique générale. Ne pas écrire d'orchestrateur global avant d'avoir
   rendu cette continuation préemptible/mesurable séparément ; l'échantillon de mois reste petit.
-  **Town growth — correctif de slot rejeté au banc officiel (2026-09-10).** Variante
-  `town_growth_skip_noop=1` (un échec `TRACEX`/`DEPOTX` lance la tâche suivante dans le même
-  drain) contre historique `=0`, 20 graines × 10 ans, 40/40 saines : l'historique gagne
-  **14/20** graines et +34,4 points de `performance_history` (+4,37 %), avec +562 k£ de valeur
-  moyenne. `results/bench_town_growth_skip_noop_10y_20seeds.json`. Ne pas adopter : la règle
-  « seul le travail bâti consomme un tour » semble intuitive, mais la cadence historique obtient
-  un meilleur portefeuille à l'échelle de la partie.
+  **Town growth — banc de slot corrigé, résultat nul (2026-09-10).** Le premier fichier
+  `bench_town_growth_skip_noop_10y_20seeds.json` est **invalide** : le skip était inconditionnel,
+  mais `town_growth_skip_noop=0` n'était ni déclaré dans `info.nut`, ni lu dans `Start()` ; les
+  deux bras ne pouvaient donc pas isoler la variante. Banc refait avec réglage déclaré et lu,
+  20 graines × 10 ans, 40/40 saines : historique `0` moins skip `1` = valeur **−233 k£**
+  (skip +1,47 %, 12/20), score +7,3 (historique 12/20), profit annuel +30,5 k£ (skip 11/20),
+  note −1,38 (skip 11/20). Chaque moyenne est très inférieure à son erreur standard et aucun
+  signe ne dépasse 12/20 : **ni rejet ni adoption**. Défaut 0 conservé ;
+  `results/bench_town_growth_skip_noop_correct_10y_20seeds.json`. Le skip ne retire pas le coût
+  des traces `TRACEX`/`DEPOTX` déjà consommé dans `_tryTownGrowth` : ce coût reste un sujet séparé.
 
   📝 **C41.46–C41.49 — contrat écrit avant code (2026-09-09) :
   [`docs/04_arbitrage_rail_search.md`](04_arbitrage_rail_search.md).** Suite directe de la mesure

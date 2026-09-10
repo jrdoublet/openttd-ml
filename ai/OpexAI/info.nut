@@ -1521,6 +1521,14 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
+    AddSetting({
+      name = "town_growth_skip_noop",
+      description = "After an empty town-growth attempt, run the next task immediately: 1 = skip slot, 0 = historical scheduling (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     
     /* Réserve de trésorerie dynamique adaptée aux coûts d'entretien réels (15 000 à 50 000 £).
      * Libère jusqu'à 35 000 £ au démarrage pour accélérer l'investissement initial. */

@@ -1140,6 +1140,7 @@ PAX_NEAR <- false;
 /* Croissance urbaine : repli VRAI jusqu'a la lecture unique de town_growth dans Start().
  * Complete avec 5-n stations de bus pour chaque ville desservie comptant n gares/aeroports. */
 TOWN_GROWTH_ENABLED <- true;
+TOWN_GROWTH_SKIP_NOOP <- false;
 
 
 /* Ligne fret morte (2026-08-28) : une industrie source qui ferme NE garantit PAS l'effondrement --
@@ -6806,7 +6807,8 @@ function OpexAI::_runNextTask()
   if (task.name == "refleet") { this._refleetRoadLines(year); return true; }
   if (task.name == "town_growth") {
     if (!TOWN_GROWTH_ENABLED) { task.enabled = false; return false; }
-    this._tryTownGrowth(year);
+    if (TOWN_GROWTH_SKIP_NOOP && !this._tryTownGrowth(year)) return this._runNextTask();
+    else this._tryTownGrowth(year);
     return true;
   }
   if (task.name == "repay") {
@@ -6964,6 +6966,7 @@ function OpexAI::Start()
   ROAD_BUILD_ENABLED = AIController.GetSetting("road_mode") != 0;
   ROAD_PAX_BUILD_ENABLED = AIController.GetSetting("road_pax_build") != 0;
   TOWN_GROWTH_ENABLED = AIController.GetSetting("town_growth") != 0;
+  TOWN_GROWTH_SKIP_NOOP = AIController.GetSetting("town_growth_skip_noop") != 0;
   local roadPaxCatchment = AIController.GetSetting("road_pax_catchment_pct");
   if (roadPaxCatchment > 0) ROAD_PAX_CATCHMENT_SHARE_PCT = roadPaxCatchment;
   local roadStopHouses = AIController.GetSetting("road_stop_catchment_houses");
