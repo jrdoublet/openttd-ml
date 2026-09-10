@@ -1111,14 +1111,23 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   supprime pas. Elle n'a rien construit ici, mais elle interdit de lire les agrégats « toutes
   compagnies » d'une phase B.
 
-  ### Reste
+  ### ✅ Banc officiel : coût NUL, défaut passé à 1
 
-  - ⬜ **Banc officiel 20×10 apparié `save_full_state=0` vs `1`** (non-régression : le réglage ne
-    peut se voir qu'au rechargement, or le banc ne recharge jamais — il vérifie que la charge utile
-    supplémentaire ne déplace pas la trajectoire). Contrôle déjà fait au smoke 3×2 : **les deux bras
-    donnent des chiffres identiques au véhicule près**.
-  - ⬜ Si neutre, **passer le défaut à 1** : le bénéfice n'existe qu'en partie humaine rechargée,
-    le coût mesuré est nul.
+  `results/bench_save_full_state_10y_20seeds.json`, 20 graines × 10 ans apparié, **40/40 parties
+  saines**, `save_full_state=0` contre `=1` : **les VINGT graines sont identiques au bit près** sur
+  `company_value`, `profit_year`, `performance_history`, `n_stations`, `n_vehicles` et
+  `median_station_rating`. Écart 0,00 % partout, 20 égalités sur 20.
+  🔑 **C'est le résultat attendu et c'est ce qui autorise l'adoption** : `Save()` construit sa table
+  en temps quasi constant et la sérialisation est faite par le moteur, hors de l'horloge de décision
+  de l'IA. Le réglage **ne peut se voir qu'au rechargement**, et le banc ne recharge jamais.
+  ⚠️ **Le piège « deux bras identiques » ([[opexai_vivier_financabilite]]) est écarté par une mesure
+  indépendante** : le même mécanisme d'armement produit `LOAD_RECONCILE saved=25` à 1 et `saved=0`
+  à 0 dans le test de rechargement. Le réglage atteint bien l'IA ; s'il ne changeait rien, ce serait
+  faute d'effet en partie neuve, ce qui est précisément la thèse.
+  ⇒ **Défaut 1 adopté le 2026-09-10** (`info.nut` et `main.nut` alignés) : bénéfice mesuré au
+  rechargement, coût mesuré nul.
+
+  ### Reste
   - ⬜ Non persistés et assumés : `_staleness`, ledgers C41/C48/C49, `_railSearch`, `_projects`,
     `_catalog` (télémétrie ou reconstruits au premier cycle). `_activeSubsidies` reste **à trancher**
     (relisible par API, mais les compteurs historiques ne le sont pas).

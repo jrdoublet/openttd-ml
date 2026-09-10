@@ -275,8 +275,9 @@ FEEDER_ENABLED <- true;
 FEEDER_CANDIDATES_ENABLED <- false;
 /* C32 : rabattement arbitre au portefeuille (1) au lieu de la tache dediee (0). */
 FEEDER_PORTFOLIO <- true;
-/* Persistance complete de l'etat de decision : repli prudent tant que le banc ne l'a pas valide. */
-SAVE_FULL_STATE <- false;
+/* C45 : persistance complete de l'etat de decision. Defaut aligne sur info.nut (custom_value = 1),
+ * adopte au banc officiel 20x10 apparie -- les vingt graines identiques au bit pres. */
+SAVE_FULL_STATE <- true;
 /* C34.1 : construction aerienne arbitree par le portefeuille seul (1) au lieu de la tache dediee. */
 AIR_PORTFOLIO <- true;
 /* C34.2 : croissance de flotte aerienne arbitree par le portefeuille (1) au lieu de la tache dediee. */

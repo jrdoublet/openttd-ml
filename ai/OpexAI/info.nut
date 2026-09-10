@@ -2351,12 +2351,14 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
-    /* Format de sauvegarde experimental : le banc doit encore mesurer son cout et sa fidelite. */
+    /* Defaut 1 depuis le 2026-09-10 : banc officiel 20x10 apparie 0 contre 1, 40/40 parties saines,
+     * les VINGT graines identiques au bit pres sur toutes les metriques -- cout nul en partie neuve.
+     * Le gain n'existe qu'au rechargement (cf. C45), ou il est mesure. */
     AddSetting({
       name = "save_full_state",
-      description = "Full decision-state persistence in savegames (experimental; benchmark measurement in progress)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "Persist the full decision state in savegames: 1 = save built lines and scheduler state so a reloaded game resumes on its own network (default), 0 = historical minimal payload",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
