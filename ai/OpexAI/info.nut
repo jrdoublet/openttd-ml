@@ -726,6 +726,15 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C55 etape 1 : sonde seule du verrou OR des candidats route non-feeder. */
+    AddSetting({
+      name = "c55_origin_relax_probe",
+      description = "C55 step 1 probe: annually count road origin-served OR rejections and the one-endpoint cases a future OR-to-AND rule could recover; no candidate, rejection, build, or scheduling change; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* C54 : inventaire annuel passif des ordres et profits reels des vehicules, lu via
      * l'API jeu plutot que les chunks de sauvegarde. */
     AddSetting({

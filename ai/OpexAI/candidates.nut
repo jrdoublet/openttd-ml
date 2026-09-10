@@ -1909,14 +1909,34 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
     if (townTargets != null) stats.townAcceptancePrefiltered += towns.len() - townTargets.len();
 
     foreach (si in sources) {
-      if (servedIndustry[si]) continue;
+      if (servedIndustry[si]) {
+        /* Le code livre saute toute la source. Sous sonde, enumerer seulement les paires
+         * qu'il aurait sautees permet de compter ce filtre sans changer son continue. */
+        if (C55_ORIGIN_RELAX_PROBE) {
+          local source = industries[si];
+          foreach (di in sinks) {
+            if (di != si) OpexC55OriginRelaxObserve("freight", lines, source.tile,
+                industries[di].tile, true, servedIndustry[di]);
+          }
+          for (local ti = 0; ti < towns.len(); ti++) {
+            OpexC55OriginRelaxObserve("freight", lines, source.tile, towns[ti].tile,
+                true, servedTown[ti]);
+          }
+        }
+        continue;
+      }
       local source = industries[si];
       local monthly = AIIndustry.GetLastMonthProduction(source.id, cargo);
       if (monthly <= 0) { stats.noMonthly++; continue; }
 
       local industryMark = profile != null ? OpexOpsMeasureBegin() : null;
       foreach (di in sinks) {
-        if (di == si || servedIndustry[di]) continue;
+        if (di == si) continue;
+        if (C55_ORIGIN_RELAX_PROBE) OpexC55OriginRelaxObserve("freight", lines,
+            source.tile, industries[di].tile, false, servedIndustry[di]);
+        if (servedIndustry[di]) {
+          continue;
+        }
         local distance = AIMap.DistanceManhattan(source.tile, industries[di].tile);
         if (!OpexRoadDistanceAllowed(catalog, distance, stats)) continue;
         if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
@@ -1936,11 +1956,23 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
        * dans la mesure globale town, qui peut traverser un suspend. */
       local townMark = (profile != null && !C41_ROAD_FREIGHT_TOWN_PROFILE)
           ? OpexOpsMeasureBegin() : null;
+      /* L'index C41.20 saute les villes deja servies avant la boucle. Les enumerer ici sous
+       * sonde conserve exactement cet index et rend ce second site de rejet visible. */
+      if (C55_ORIGIN_RELAX_PROBE && townTargets != null) {
+        for (local ti = 0; ti < towns.len(); ti++) {
+          OpexC55OriginRelaxObserve("freight", lines, source.tile, towns[ti].tile,
+              false, servedTown[ti]);
+        }
+      }
       local townCount = townTargets != null ? townTargets.len() : towns.len();
       for (local ti = 0; ti < townCount; ti++) {
         local t = townTargets != null ? townTargets[ti] : ti;
         if (profile != null && C41_ROAD_FREIGHT_TOWN_PROFILE) profile.freightTownScanned++;
-        if (townTargets == null && servedTown[t]) continue;
+        if (C55_ORIGIN_RELAX_PROBE && townTargets == null) OpexC55OriginRelaxObserve("freight",
+            lines, source.tile, towns[t].tile, false, servedTown[t]);
+        if (townTargets == null && servedTown[t]) {
+          continue;
+        }
         local distance = AIMap.DistanceManhattan(source.tile, towns[t].tile);
         if (!OpexRoadDistanceAllowed(catalog, distance, stats)) continue;
         if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {

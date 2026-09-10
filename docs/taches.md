@@ -483,13 +483,66 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
 
   ### Étapes
 
-  1. ⬜ **Mesurer d'abord, sans changer de décision** : combien de candidats routiers seraient
-     récupérés par le passage OU → ET, par année, et combien d'entre eux seraient des **doublons
-     exacts** d'une ligne existante. Une sonde de comptage suffit ; c'est le chiffre qui dit si le
-     levier vaut quelque chose et s'il est dangereux.
-  2. ⬜ Traiter le cas **fret routier** (pas de `OpexRoadPairServed`) avant toute relaxation.
-  3. ⬜ Levier sous réglage dédié, défaut 0, **un seul changement**.
+  1. ✅ **FAIT le 2026-09-11** — voir le verdict ci-dessous.
+  2. 🔴 **OBLIGATOIRE, plus optionnel** : traiter le cas **fret routier** (pas de
+     `OpexRoadPairServed`) avant toute relaxation — c'est là, et **seulement là**, que le levier a
+     de la matière.
+  3. ⬜ Levier sous réglage dédié, défaut 0, **un seul changement**, **sur le fret routier**.
   4. ⬜ Banc officiel **20×10 apparié**, test des signes avant les moyennes.
+
+  ### ✅ ÉTAPE 1 MESURÉE le 2026-09-11 — et elle réfute la moitié de la fiche
+
+  Sonde `c55_origin_relax_probe` (défaut 0, gate dédié `OpexC55OriginRelaxLog`), 7 points
+  d'instrumentation posés là où le filtre d'origine frappe réellement des candidats routiers :
+  le garde incrémental (`projects.nut:1045`) et les **quatre** voies d'exclusion du fret routier
+  (`candidates.nut:1912`, `:1934`, `:1961`, `:1971`). Diagnostic 5 graines × 6 ans,
+  `results/diag_c55_origin_relax_6y_5seeds.json`, **0 échec**.
+
+  | année | vus | rejets | % rejet | `both_served` | `one_served` | dont **pax** | `duplicate` |
+  |---|---:|---:|---:|---:|---:|---:|---:|
+  | 1971 | 14 754 | 2 984 | 20,2 % | 232 | 2 752 | **0** | 0 |
+  | 1972 | 14 351 | 5 973 | 41,6 % | 689 | 5 284 | **0** | 0 |
+  | 1973 | 12 824 | 5 754 | 44,9 % | 802 | 4 952 | **0** | 0 |
+  | 1974 | 9 635 | 4 641 | 48,2 % | 735 | 3 906 | **0** | 0 |
+  | 1975 | 9 097 | 4 735 | **52,1 %** | 879 | 3 856 | **0** | 0 |
+  | **cumul** | **60 661** | **24 087** | | **3 337** | **20 750** | **0** | **0** |
+
+  🔑 **1. Le levier existe : 86,1 % des rejets n'ont qu'UNE extrémité servie**, donc seraient
+  récupérés par le passage OU → ET. Et le **taux de rejet monte de 20,2 % à 52,1 % en cinq ans** —
+  c'est bien la signature d'une carte qui se ferme, mesurée sur le code d'aujourd'hui et non sur
+  l'archive du 2026-08-29.
+
+  🔴 **2. Mais il est ENTIÈREMENT dans le FRET routier : `one_served_pax = 0`**, sur les 5 graines,
+  toutes les années, sans exception. **La thèse de la fiche — « la route pax est notre mode
+  dominant, donc c'est elle que la règle ferme » — est réfutée.**
+  **Pourquoi**, vérifié dans le code après coup : la génération pax routière n'appelle
+  **jamais** `OpexOriginServed`. Elle se garde avec `OpexRoadPairServed` (les **deux** extrémités,
+  `candidates.nut:1829`) et un plafond de lignes par ville (`4 + pop/300`). Le verrou pax est donc
+  **ailleurs**, et le OU → ET ne le touche pas.
+  ⇒ Conséquence directe : **l'étape 2 (fret routier sans anti-doublon de rechange) n'est plus une
+  précaution, c'est le sujet lui-même.** `OpexRoadPairServed` n'est appliqué qu'à `p.kind == "pax"`
+  (`projects.nut:1053`), donc relâcher côté fret sans filet est exactement le geste que la fiche
+  redoutait.
+
+  🟡 **3. `duplicate_exact = 0`** sur les 20 750 : aucune paire récupérable ne tombe sur les deux
+  extrémités d'une ligne routière existante. ⚠️ **Ne pas surinterpréter** : la clé disponible au site
+  d'appel est `OpexRoadPairServed` — une proximité géométrique aux origines des lignes routières, pas
+  une identité `(cargo, tuileA, tuileB)`. Un zéro signifie « ces paires fret ne recouvrent pas les
+  lignes routières existantes », pas « aucune reconstruction annuelle possible ».
+
+  ### ⚠️ Ce que cette mesure ne dit pas, et les deux biais à connaître
+
+  - Elle ne dit **pas** si les candidats récupérés seraient rentables, constructibles, élus, ni s'ils
+    amélioreraient la valeur. Elle ne simule aucune décision ET : c'était le contrat.
+  - Les compteurs sont des **expositions au filtre**, pas des paires uniques : une même paire revue à
+    chaque régénération est comptée à chaque fois. Les **proportions** sont l'information ; les
+    valeurs absolues ne sont pas un nombre de lignes perdues.
+  - 🔑 **La sonde déplace la trajectoire quand elle est à 1** : au site incrémental elle évalue les
+    deux prédicats alors que le code livré court-circuite au premier, et au site « source servie »
+    elle énumère les paires que le code saute. **Ne jamais comparer les métriques de partie entre un
+    bras sondé et un bras normal.** À 0 elle est inerte (smoke 3×2 identique au véhicule près).
+  - Reste ouvert, si on veut comprendre le **vrai** verrou pax : ventiler `both_served` par site
+    d'appel, et instrumenter `OpexRoadPairServed` + le plafond `4 + pop/300` côté génération.
 
   ⚠️ **La mesure d'archive date du 2026-08-29, sur UNE graine, avant `portfolio_v2=1` par défaut
   (07/09).** Les 213-242 paires/an sont à re-mesurer : c'est exactement la leçon de C47, où un

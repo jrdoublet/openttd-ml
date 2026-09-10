@@ -247,6 +247,9 @@ C48_PROJECT_ATTEMPT_LEDGER <- false;
  * Le repli 0 ne doit atteindre ni lecture de tresorerie finale, ni plafond de vehicules, ni
  * allocation de ledger. */
 C49_SCARCITY_LEDGER <- false;
+/* C55 etape 1 : mesure seule du filtre OR route. Le ledger est nul hors sonde. */
+C55_ORIGIN_RELAX_PROBE <- false;
+C55_ORIGIN_RELAX_LEDGER <- null;
 /* C48.1 (fiche C48.1) : profil passif des phases internes de
  * OpexIncrementalUpdateProjects. Le ledger reste null hors sonde : le repli 0 n'alloue aucune
  * table et n'atteint ni marqueur d'opcodes ni appel d'API supplementaire. */
@@ -364,6 +367,35 @@ function OpexC49ScarcityLog(fields)
   local date = AIDate.GetCurrentDate();
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " C49_SCARCITY " + fields);
+}
+
+/* C55 : gate dedie et autonome. Ne jamais reutiliser le gate C49 : la sonde doit publier seule. */
+function OpexC55OriginRelaxLog(fields)
+{
+  if (!C55_ORIGIN_RELAX_PROBE) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " C55_ORIGIN_RELAX " + fields);
+}
+
+/* Observe une paire au point meme ou le filtre d'origine route la voit. Cette fonction ne
+ * retourne rien et n'ecrit que le ledger de sonde ; elle ne participe a aucun predicat. */
+function OpexC55OriginRelaxObserve(kind, lines, src, dst, srcServed, dstServed)
+{
+  if (!C55_ORIGIN_RELAX_PROBE || C55_ORIGIN_RELAX_LEDGER == null) return;
+  C55_ORIGIN_RELAX_LEDGER.candidates_seen++;
+  if (!srcServed && !dstServed) return;
+  C55_ORIGIN_RELAX_LEDGER.rejected_total++;
+  if (srcServed && dstServed) {
+    C55_ORIGIN_RELAX_LEDGER.both_served++;
+    return;
+  }
+  C55_ORIGIN_RELAX_LEDGER.one_served++;
+  if (kind == "pax") C55_ORIGIN_RELAX_LEDGER.one_served_pax++;
+  else C55_ORIGIN_RELAX_LEDGER.one_served_freight++;
+  /* Cle disponible ici : meme paire geometrique, dans un sens ou dans l'autre, a moins de
+   * ORIGIN_SEPARATION des deux originA/originB d'une ligne route existante. */
+  if (OpexRoadPairServed(lines, src, dst)) C55_ORIGIN_RELAX_LEDGER.duplicate_exact++;
 }
 
 function OpexC49VehicleType(mode)
@@ -6855,6 +6887,40 @@ function OpexAI::_logC49ScarcityLedger(year)
       decision_attempted = 0, decision_unattempted = 0, none = 0 };
 }
 
+/* C55 : le report de debut d'annee publie l'annee ecoulee. La ligne summary est cumulative ;
+ * la derniere ligne du log est donc aussi la synthese de fin de partie lisible sans jointure. */
+function OpexAI::_logC55OriginRelaxLedger(year)
+{
+  if (!C55_ORIGIN_RELAX_PROBE || C55_ORIGIN_RELAX_LEDGER == null) return;
+  local entry = C55_ORIGIN_RELAX_LEDGER;
+  OpexC55OriginRelaxLog("phase=annual year=" + year + " candidates_seen=" + entry.candidates_seen
+      + " rejected_total=" + entry.rejected_total + " both_served=" + entry.both_served
+      + " one_served=" + entry.one_served + " one_served_pax=" + entry.one_served_pax
+      + " one_served_freight=" + entry.one_served_freight
+      + " duplicate_exact=" + entry.duplicate_exact);
+  entry.total_candidates_seen += entry.candidates_seen;
+  entry.total_rejected_total += entry.rejected_total;
+  entry.total_both_served += entry.both_served;
+  entry.total_one_served += entry.one_served;
+  entry.total_one_served_pax += entry.one_served_pax;
+  entry.total_one_served_freight += entry.one_served_freight;
+  entry.total_duplicate_exact += entry.duplicate_exact;
+  OpexC55OriginRelaxLog("phase=summary year=" + year + " candidates_seen=" + entry.total_candidates_seen
+      + " rejected_total=" + entry.total_rejected_total + " both_served=" + entry.total_both_served
+      + " one_served=" + entry.total_one_served + " one_served_pax=" + entry.total_one_served_pax
+      + " one_served_freight=" + entry.total_one_served_freight
+      + " duplicate_exact=" + entry.total_duplicate_exact);
+  C55_ORIGIN_RELAX_LEDGER = {
+    candidates_seen = 0, rejected_total = 0, both_served = 0, one_served = 0,
+    one_served_pax = 0, one_served_freight = 0, duplicate_exact = 0,
+    total_candidates_seen = entry.total_candidates_seen, total_rejected_total = entry.total_rejected_total,
+    total_both_served = entry.total_both_served, total_one_served = entry.total_one_served,
+    total_one_served_pax = entry.total_one_served_pax,
+    total_one_served_freight = entry.total_one_served_freight,
+    total_duplicate_exact = entry.total_duplicate_exact,
+  };
+}
+
 /* La tache "report" publie au premier passage de l'annee suivante : year=1971 decrit donc
  * l'annee de jeu 1970, et la derniere annee de la partie n'est jamais publiee. Tous les appels
  * API couteux sont apres ce garde C54, afin que le defaut false n'atteigne aucune API ajoutee. */
@@ -7562,6 +7628,7 @@ function OpexAI::_runNextTask()
     this._logC39PassClockLedger(year);
     if (C48_PROJECT_ATTEMPT_LEDGER) this._logC48ProjectAttemptLedger(year);
     if (C49_SCARCITY_LEDGER) this._logC49ScarcityLedger(year);
+    if (C55_ORIGIN_RELAX_PROBE) this._logC55OriginRelaxLedger(year);
     if (C54_VEHICLE_ORDERS_PROBE) this._logC54VehicleOrders(year);
     if (C48_INCREMENTAL_PROFILE) this._logC48IncrementalLedger(year);
     this._reportYear(year, this._ranked);
@@ -8119,11 +8186,21 @@ function OpexAI::Start()
   C39_PASS_CLOCK_LEDGER = AIController.GetSetting("c39_pass_clock_ledger") != 0;
   C48_PROJECT_ATTEMPT_LEDGER = AIController.GetSetting("c48_project_attempt_ledger") != 0;
   C49_SCARCITY_LEDGER = AIController.GetSetting("c49_scarcity_ledger") != 0;
+  C55_ORIGIN_RELAX_PROBE = AIController.GetSetting("c55_origin_relax_probe") != 0;
   C54_VEHICLE_ORDERS_PROBE = AIController.GetSetting("c54_vehicle_orders_probe") != 0;
   if (C49_SCARCITY_LEDGER) {
     this._c49ScarcityLedger = { passes = 0, cash = 0, vehicles = 0, site = 0,
         decision_attempted = 0, decision_unattempted = 0, none = 0 };
     this._c49ScarcityRegime = "cash";
+  }
+  if (C55_ORIGIN_RELAX_PROBE) {
+    C55_ORIGIN_RELAX_LEDGER = {
+      candidates_seen = 0, rejected_total = 0, both_served = 0, one_served = 0,
+      one_served_pax = 0, one_served_freight = 0, duplicate_exact = 0,
+      total_candidates_seen = 0, total_rejected_total = 0, total_both_served = 0,
+      total_one_served = 0, total_one_served_pax = 0, total_one_served_freight = 0,
+      total_duplicate_exact = 0,
+    };
   }
   C48_INCREMENTAL_PROFILE = AIController.GetSetting("c48_incremental_profile") != 0;
   CASH_RESERVE_PROBE = AIController.GetSetting("cash_reserve_probe") != 0;
