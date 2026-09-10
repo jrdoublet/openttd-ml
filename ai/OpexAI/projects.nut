@@ -1143,6 +1143,14 @@ function OpexDynamicBatchReselect(projects, lines, attempted, capitalBudget, aba
  * Execution : < 1 tick (< 500 opcodes, 0 jour). */
 function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capitalBudget, fleetPlan = null, abandonedPairs = null)
 {
+  local c48TotalMark = null;
+  local c48TotalDate = 0;
+  local c48Lines = 0;
+  if (C48_INCREMENTAL_PROFILE) {
+    c48TotalDate = AIDate.GetCurrentDate();
+    c48TotalMark = OpexOpsMeasureBegin();
+    c48Lines = lines.len();
+  }
   local stats = {
     odProjects = 0,
     modeCandidates = 0,
@@ -1160,16 +1168,38 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
 
   local tensionCtx = null;
   if (TENSION_SCORING || SHADOW_PRICING) {
+    local c48Mark = null;
+    local c48Date = 0;
+    if (C48_INCREMENTAL_PROFILE) {
+      c48Date = AIDate.GetCurrentDate();
+      c48Mark = OpexOpsMeasureBegin();
+    }
     tensionCtx = OpexTensionContext(projects);
+    if (C48_INCREMENTAL_PROFILE) {
+      local c48Days = AIDate.GetCurrentDate() - c48Date;
+      OpexC48IncrementalRecord("tension_ctx", OpexOpsMeasureEnd(c48Mark), c48Days,
+          0, 0, 0, 0, 0, 0, 0, 0, 0);
+    }
   }
 
   local newWinners = {};
 
   /* 1. Filtrer les candidats existants du vivier */
   if (("candidateGroups" in projects) && projects.candidateGroups != null) {
+    local c48Mark = null;
+    local c48Date = 0;
+    local c48Groups = 0;
+    local c48Scanned = 0;
+    local c48Retained = 0;
+    if (C48_INCREMENTAL_PROFILE) {
+      c48Date = AIDate.GetCurrentDate();
+      c48Mark = OpexOpsMeasureBegin();
+    }
     foreach (key, entry in projects.candidateGroups) {
+      if (C48_INCREMENTAL_PROFILE) c48Groups++;
       local list = (typeof entry == "array") ? entry : [entry];
       foreach (p in list) {
+        if (C48_INCREMENTAL_PROFILE) c48Scanned++;
         if (p == null) continue;
         /* La flotte et les feeders sont regeneres frais ci-dessous */
         if (p.mode == "fleet") continue;
@@ -1181,12 +1211,24 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
         } else {
           OpexProjectRemember(newWinners, p, stats);
         }
+        if (C48_INCREMENTAL_PROFILE) c48Retained++;
       }
+    }
+    if (C48_INCREMENTAL_PROFILE) {
+      local c48Days = AIDate.GetCurrentDate() - c48Date;
+      OpexC48IncrementalRecord("groups_replay", OpexOpsMeasureEnd(c48Mark), c48Days,
+          0, c48Groups, c48Scanned, c48Retained, 0, 0, 0, 0, 0);
     }
   }
 
   /* 2. Injection des rabattements (feeders) frais vers les hubs */
   if (FEEDER_PORTFOLIO && ("roadType" in catalog) && catalog.roadType >= 0) {
+    local c48Mark = null;
+    local c48Date = 0;
+    if (C48_INCREMENTAL_PROFILE) {
+      c48Date = AIDate.GetCurrentDate();
+      c48Mark = OpexOpsMeasureBegin();
+    }
     local freshFeeders = [];
     local feederStats = {
       pairsInBand = 0, noMonthly = 0, noEngine = 0, townRejected = 0,
@@ -1214,10 +1256,21 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
         }
       }
     }
+    if (C48_INCREMENTAL_PROFILE) {
+      local c48Days = AIDate.GetCurrentDate() - c48Date;
+      OpexC48IncrementalRecord("feeders", OpexOpsMeasureEnd(c48Mark), c48Days,
+          0, 0, 0, 0, freshFeeders.len(), 0, 0, 0, 0);
+    }
   }
 
   /* 3. Injection des projets de croissance de flotte (refleet) frais */
   if (FLEET_PORTFOLIO && fleetPlan != null) {
+    local c48Mark = null;
+    local c48Date = 0;
+    if (C48_INCREMENTAL_PROFILE) {
+      c48Date = AIDate.GetCurrentDate();
+      c48Mark = OpexOpsMeasureBegin();
+    }
     foreach (entry in fleetPlan) {
       local p = OpexProjectFromFleet(entry, tensionCtx);
       if (p != null) {
@@ -1228,10 +1281,21 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
         }
       }
     }
+    if (C48_INCREMENTAL_PROFILE) {
+      local c48Days = AIDate.GetCurrentDate() - c48Date;
+      OpexC48IncrementalRecord("fleet", OpexOpsMeasureEnd(c48Mark), c48Days,
+          0, 0, 0, 0, 0, fleetPlan.len(), 0, 0, 0);
+    }
   }
 
   /* 4. Injection des projets aeriens frais (notamment les lignes hub ouvertes par un nouvel aeroport) */
   if (AIR_PORTFOLIO && ((catalog.airCombos != null && catalog.airCombos.len() > 0) || catalog.airport != null)) {
+    local c48Mark = null;
+    local c48Date = 0;
+    if (C48_INCREMENTAL_PROFILE) {
+      c48Date = AIDate.GetCurrentDate();
+      c48Mark = OpexOpsMeasureBegin();
+    }
     local freshAirPlans = [];
     OpexAirPlans(catalog, lines, 0, freshAirPlans, abandonedPairs);
     local airOpsPerPlan = (freshAirPlans.len() > 0) ? (PROJECT_AIR_TRANSACTION_OPS / freshAirPlans.len()) : PROJECT_AIR_TRANSACTION_OPS;
@@ -1244,6 +1308,11 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
           OpexProjectRemember(newWinners, p, stats);
         }
       }
+    }
+    if (C48_INCREMENTAL_PROFILE) {
+      local c48Days = AIDate.GetCurrentDate() - c48Date;
+      OpexC48IncrementalRecord("air", OpexOpsMeasureEnd(c48Mark), c48Days,
+          0, 0, 0, 0, 0, 0, freshAirPlans.len(), 0, 0);
     }
   }
 
@@ -1270,6 +1339,13 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   /* 6. Selection et resolution du sac a dos sur le capital restant */
   local funded = null;
   local byBudget = [];
+  local c48SelectionMark = null;
+  local c48SelectionDate = 0;
+  local c48Alternatives = 0;
+  if (C48_INCREMENTAL_PROFILE) {
+    c48SelectionDate = AIDate.GetCurrentDate();
+    c48SelectionMark = OpexOpsMeasureBegin();
+  }
   local opsMark = OpexOpsMeasureBegin();
   if (PORTFOLIO_V2) {
     local alternatives = [];
@@ -1278,6 +1354,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
       foreach (project in list) alternatives.push(project);
     }
     funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);
+    if (C48_INCREMENTAL_PROFILE) c48Alternatives = alternatives.len();
     stats.budgetConsidered = alternatives.len();
     stats.budgetSelected = funded.len();
     stats.budgetRejected = alternatives.len() - funded.len();
@@ -1295,6 +1372,11 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
     stats.budgetRejected = byBudget.len() - funded.len();
   }
   stats.selectionOpcodes <- OpexOpsMeasureEnd(opsMark);
+  if (C48_INCREMENTAL_PROFILE) {
+    local c48Days = AIDate.GetCurrentDate() - c48SelectionDate;
+    OpexC48IncrementalRecord("selection", OpexOpsMeasureEnd(c48SelectionMark), c48Days,
+        0, 0, 0, 0, 0, 0, 0, c48Alternatives, funded.len());
+  }
 
   /* 5. Cloture des statistiques et du capital restant */
   local selectedRev = 0;
@@ -1338,6 +1420,13 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   projects.capitalRemaining = remaining;
   projects.candidateGroups = newWinners;
   projects.budgetCandidates = byBudget;
+  /* Les six mesures de phase sont imbriquees dans total (OpexOpsMeasureBegin/End ne partage
+   * aucun etat) : total - somme(phases) est le reste de la fonction, PAS un double comptage. */
+  if (C48_INCREMENTAL_PROFILE) {
+    local c48Days = AIDate.GetCurrentDate() - c48TotalDate;
+    OpexC48IncrementalRecord("total", OpexOpsMeasureEnd(c48TotalMark), c48Days,
+        c48Lines, 0, 0, 0, 0, 0, 0, 0, 0);
+  }
   return projects;
 }
 

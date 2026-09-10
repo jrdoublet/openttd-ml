@@ -318,6 +318,64 @@ pendant 65 % de la partie, alors qu'elle ne pèse que 23,3 % des opcodes.** [[ph
 tient toujours pour le budget par tick, mais **le tick n'est pas le jour**, et c'est le jour qui
 décide du volume. La prochaine mesure est là, pas dans un levier de file.
 
+### 4.3 ter ❌ DEUXIÈME CORRECTION — le §4.1 attribue l'effet à la mauvaise cause
+
+⛔ **Le §4.1 conclut que « le cycle passe de 7,4 à 36,3 jours dès qu'une recherche rail est en
+vol ». C'est une CONFUSION : les deux régimes ne sont pas comparés à âge de partie égal.**
+Ventilation annuelle (`results/diag_c39_6b_pass_clock_6y_5seeds.json`, 0 échec) :
+
+| année | passes avec tranche | sans | **part avec tranche** | j/passe avec | sans |
+|---|---:|---:|---:|---:|---:|
+| 1971 | 396 | 2 458 | **13,9 %** | 1,88 | 0,39 |
+| 1972 | 369 | 1 044 | 26,1 % | 2,57 | 0,82 |
+| 1973 | 266 | 321 | 45,3 % | 3,97 | 2,26 |
+| 1974 | 284 | 106 | 72,8 % | 4,71 | 4,29 |
+| 1975 | 306 | 36 | **89,5 %** | 5,40 | 5,92 |
+
+🔑 **La part des passes sous recherche rail passe de 13,9 % à 89,5 %.** Comparer `rail_search=1` à
+`rail_search=0` sur toute la partie revient donc à **comparer la fin de partie au début**. Les
+« 35,5 j contre 2 j » de D1 (§4.1) mesurent la maturité, pas la recherche rail — la tension signalée
+en §4.3 bis est ainsi résolue, et pas en faveur de ma conclusion d'origine.
+
+### 4.3 quater 🔑 LE RÉSULTAT : le débit de décision s'effondre d'un facteur 9
+
+Une passe = une décision. Ventilation annuelle du même diagnostic :
+
+| année | passes | jours | **passes / 100 jours** |
+|---|---:|---:|---:|
+| 1971 | 2 854 | 1 699 | **168,0** |
+| 1972 | 1 413 | 1 801 | 78,5 |
+| 1973 | 587 | 1 783 | 32,9 |
+| 1974 | 390 | 1 794 | 21,7 |
+| 1975 | 342 | 1 866 | **18,3** |
+
+**L'IA prend 9,2 fois moins de décisions par unité de temps de jeu en cinq ans** — d'une passe
+toutes les 14 heures de jeu à une passe tous les 5,5 jours. Avec 10 tâches dans la file, un tour
+complet passe de ~6 jours à ~55 jours. **C'est le mécanisme du plafond de volume**, la métrique n°1
+(~85 % de l'écart avec AAAHogEx). Ces chiffres reposent sur de gros effectifs (2 854 → 342 passes),
+contrairement aux ratios par tâche ci-dessous.
+
+**Où part le coût** (opcodes par passe **hors** tranche A\*, pour ne pas imputer l'A\* à la tâche) :
+
+| tâche | 1971 | 1975 | croissance |
+|---|---:|---:|---:|
+| `projects` | 147 k | **2 696 k** | ×18,4 |
+| `catalog` | 164 k | **2 782 k** | ×17,0 |
+| `town_growth` | 253 k | 1 964 k | ×7,8 |
+| `air_fleet` | 69 k | 266 k | ×3,8 |
+
+`catalog` à 2,78 M recoupe exactement les **2,09 M opcodes par reconstruction** de C41.22. Mais le
+suspect désigné n'était pas le bon : **`projects` coûte autant et croît plus vite**, alors que la
+fiche C39 visait le rafraîchissement du catalogue.
+
+⚠️ **Effectifs minuscules en 1975** (3 à 5 passes par tâche, 5 graines cumulées) : les ratios par
+tâche sont indicatifs, le facteur 9 du débit ne l'est pas.
+⚠️ **`report` affiche ×251 : c'est un artefact de la sonde**, qui journalise annuellement le ledger
+qu'elle accumule — le coût croît avec le nombre de clés. Ne pas le lire comme un résultat.
+⚠️ **Décalage d'étiquette** : la tâche `report` publie au premier passage de l'année suivante, donc
+`year=1971` décrit l'année de jeu 1970. La 6ᵉ année n'est jamais publiée, d'où les 81,9 % de
+couverture.
+
 ### 4.4 ✅ Étape 1 bis (2026-09-10) — la décomposition tranche : **ce n'est PAS la cadence**
 
 La sonde a été enrichie pour séparer les trois causes que §4.2 point 3 refusait de confondre :

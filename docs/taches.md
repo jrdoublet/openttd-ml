@@ -125,8 +125,27 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   hors tranche). C'est ça qui étire l'horloge de décision, c'est cohérent avec les 2,09 M opcodes
   par reconstruction de catalogue (C41.22), et **c'est indépendant du canal rail**. Sujet à
   instruire ; couverture de la sonde 81,9 % (ledger annuel, dernière année partielle perdue).
-  ⚠️ Tension non résolue : C39.5 donne D1 = 35,5 j contre 2 j (médianes) alors qu'en 1975 les deux
-  régimes coûtent pareil par passe. **Ne pas citer les deux comme s'ils se corroboraient.**
+  ❌ **Tension RÉSOLUE le 2026-09-10, et pas en ma faveur** (`results/diag_c39_6b_pass_clock_6y_5seeds.json`,
+  ventilation année × tâche) : **la part des passes sous recherche rail passe de 13,9 % (1971) à
+  89,5 % (1975)**. Comparer `rail_search=1` à `rail_search=0` sur toute la partie revient donc à
+  **comparer la fin de partie au début**. Les « 35,5 j contre 2 j » de C39.5 mesurent la maturité,
+  pas la recherche rail. ⛔ **Deuxième conclusion à moi corrigée dans la journée** (après le facteur
+  15) : ne pas conditionner sur un état dont la fréquence dérive avec le temps sans contrôler l'âge
+  de partie.
+
+  🔑 **LE RÉSULTAT DE LA JOURNÉE — le débit de décision s'effondre d'un facteur 9,2.**
+  Une passe = une décision. Par année : **168,0 passes/100 jours en 1971 → 18,3 en 1975**
+  (2 854 → 342 passes, gros effectifs, pas un artefact). Un tour complet des 10 tâches passe de
+  ~6 jours à **~55 jours**. C'est le mécanisme du **plafond de volume**, la métrique n°1.
+  **Où part le coût** (opcodes/passe hors tranche A\*) : `projects` 147 k → **2 696 k (×18,4)**,
+  `catalog` 164 k → **2 782 k (×17,0)**, `town_growth` 253 k → 1 964 k (×7,8). `catalog` recoupe
+  les 2,09 M par reconstruction de C41.22 — mais **le suspect désigné n'était pas le bon :
+  `projects` coûte autant et croît plus vite**, alors que la fiche C39 vise le rafraîchissement du
+  catalogue.
+  ⚠️ Effectifs de 1975 minuscules (3 à 5 passes par tâche) : les ratios par tâche sont indicatifs,
+  le facteur 9 du débit ne l'est pas. ⚠️ `report` ×251 est un **artefact de la sonde** (elle
+  journalise le ledger qu'elle accumule). ⚠️ Décalage d'étiquette : `year=1971` décrit l'année de
+  jeu 1970 (publication au premier passage de l'année suivante), la 6ᵉ année n'est jamais publiée.
 
   ~~Version d'origine, réfutée~~ (`docs/05_...` §4.3) : une passe coûte ~3,6 jours de jeu
   pendant une recherche rail, alors que la tranche A\* ne pèse que ~146 k opcodes ≈ 0,2 jour
@@ -299,6 +318,122 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   délai de construction en jours de jeu, jamais un prix d'ombre en opcodes — ⛔ C35). Elle
   reclasse les 89,3 % de (c) en dénominateur de round-robin et arme une hypothèse nulle sur le
   réfuté `portfolio_max_batch` : voir la fiche C39 ci-dessus. **Plus rien à faire ici.**
+
+- 🔴 **C48 — Le coût de `projects` n'est PAS le balayage : c'est la régénération qu'il déclenche.**
+  📝 Ouverte et mesurée le 2026-09-10. Sonde `c48_project_attempt_ledger` (défaut 0, gate dédié
+  `OpexC48ProjectAttemptLog`) : encadre les 5 sites de tentative de `_tryBuildProjects`
+  (fleet/air/road/rail/eau) en opcodes et en jours, plus la fonction entière, plus la profondeur de
+  balayage — ventilé **par année** dès la conception. Diagnostic 5 graines × 6 ans, 0 échec,
+  `results/diag_c48_project_attempt_6y_5seeds.json`.
+
+  | année | passes | tent./passe | `best_len` | bâti/passe | kops/passe | **% hors tentatives** |
+  |---|---:|---:|---:|---:|---:|---:|
+  | 1971 | 353 | 1,05 | 6,2 | 0,147 | 185 | **58,2 %** |
+  | 1972 | 171 | 0,96 | 18,2 | 0,327 | 420 | 80,6 % |
+  | 1973 | 55 | 1,80 | 64,0 | 0,891 | 1 693 | 83,3 % |
+  | 1974 | 46 | 3,65 | 62,9 | 2 298 | 0,935 | 93,6 % |
+  | 1975 | 36 | 6,89 | 55,0 | 0,944 | 2 750 | **93,5 %** |
+
+  ❌ **Hypothèse de départ réfutée.** Je pensais que le coût venait d'un balayage plus profond
+  payant une replanification complète par tentative ratée. Le balayage s'approfondit bien (1,05 →
+  **6,89** tentatives par passe, ×6,6), **mais les tentatives ne sont que 6,5 % du coût en 1975** :
+  **93,5 % des opcodes de `_tryBuildProjects` sont dépensés HORS des tentatives.**
+
+  🔑 **Où ils vont, vérifié dans le code** (`main.nut:3802-3819`) : après un succès
+  (`builtCount > 0`), `_tryBuildProjects` **régénère lui-même le portefeuille** —
+  `_resizeAirFleets` à blanc puis `OpexIncrementalUpdateProjects` sous `portfolio_cache=1`
+  (défaut), qui rebalaie les groupes de candidats et régénère feeders, plans de flotte et plans
+  aériens (`projects.nut:1170-1249`).
+
+  🔑 **Et c'est une BOUCLE DE RÉTROACTION**, la décomposition le montre : le coût de régénération
+  par chantier croît ×3,7 (carte qui se remplit, cohérent avec C41.22 et les boucles en
+  O(villes × lignes)), **et** la part des passes qui bâtissent monte de **0,147 à 0,944**. Moins de
+  passes ⇒ chaque passe trouve presque toujours de quoi bâtir ⇒ chaque chantier paie une
+  régénération ⇒ moins de passes. ×3,7 × ×6,4 = **×24 sur le coût hors tentatives par passe**, ce
+  qui reconstitue le ×15 du coût par passe et le ×9,2 du débit de décision (C39.6b).
+
+  ⚠️ **Réserves** : effectifs faibles en fin de partie (36 à 55 passes/an, 5 graines cumulées).
+  Le champ `max_rank_per_pass` est **contaminé par la sentinelle −1** des passes sans tentative
+  (d'où le −0,04 de 1972) — lire `attempts_per_pass`, pas lui.
+  ⚠️ **Ne pas en déduire un levier** : `portfolio_max_batch` (−3,8 %) et `portfolio_dynamic_batch`
+  (−36,0 %) ont déjà attaqué « bâtir plus par passe » et perdu ; `portfolio_cache` (C36.1, adopté)
+  est déjà la version incrémentale de cette régénération. **Le sujet est le COÛT de la
+  régénération incrémentale, jamais profilé, pas la fréquence des chantiers.**
+  ✅ **C48.1 — profil livré et mesuré le 2026-09-10 : la cause racine est ALGORITHMIQUE.**
+  Sonde `c48_incremental_profile` (défaut 0, gate dédié `OpexC48IncrementalLog`, 7 phases encadrées
+  dans `OpexIncrementalUpdateProjects`), 5 graines × 6 ans, 0 échec,
+  `results/diag_c48_1_incremental_profile_6y_5seeds.json`.
+
+  **Deux phases font 94 % du coût, toutes les années** (`feeders`, `fleet`, `tension_ctx` : ~0 % ;
+  reste de la fonction : 0,1–0,2 %) :
+
+  | année | kops/appel | `air` | `groups_replay` | `selection` |
+  |---|---:|---:|---:|---:|
+  | 1971 | 573 | 48,7 % | 44,8 % | 6,3 % |
+  | 1973 | 1 458 | 38,1 % | 51,9 % | 9,7 % |
+  | 1975 | 2 355 | 50,0 % | 43,9 % | 5,9 % |
+
+  🔑 **Le volume traité NE croît PAS — c'est le coût unitaire qui explose**, et il suit le nombre de
+  **nos propres lignes** :
+
+  | grandeur | 1971 | 1975 | facteur |
+  |---|---:|---:|---:|
+  | lignes existantes (par appel) | 9,4 | 56,8 | **×6,0** |
+  | plans aériens traités / appel | 202 | 166 | ×0,8 |
+  | **opcodes par plan aérien** | 1 379 | 7 078 | **×5,1** |
+  | projets rejoués / appel | 297 | 236 | ×0,8 |
+  | **opcodes par projet rejoué** | 863 | 4 371 | **×5,1** |
+
+  🔑 **Vérifié dans le code, pas déduit** : `OpexIncrementalCandidateStillValid`
+  (`projects.nut`) fait `foreach (line in lines)` pour **chaque** candidat retenu — le test de
+  doublon balaie toutes les lignes bâties. Le rejeu est donc en **O(projets × lignes)**, et
+  `OpexAirPlans` a la même forme (scans répétés sur villes et lignes, `builder_air.nut:835-1148`).
+  Coût unitaire ×5,1 contre nombre de lignes ×6,0 : **linéaire en nombre de lignes**, à la mesure
+  près.
+
+  **La chaîne complète est refermée** : régénération en O(objets × lignes) (C48.1) × payée sur
+  94 % des passes en fin de partie (C48) ⇒ coût par passe ×15 ⇒ **débit de décision ÷9,2**
+  (C39.6b) ⇒ plafond de volume, la métrique n°1. **Plus l'IA construit, moins elle peut décider.**
+
+  🆕 **Piste jamais tentée, et hors de la liste noire** : le balayage linéaire des lignes est une
+  **structure de données**, pas une règle de décision. Un index exact (par cargo/origine/destination)
+  rendrait le même verdict à coût constant. ⚠️ Mais ⛔ « un cache exact change quand même la
+  trajectoire » (C41.30, C41.38, memo `origin_sitable`) : moins d'opcodes ⇒ cadence différente ⇒
+  chiffres différents à calcul identique. **Ça se banche comme tout le reste (20×10 apparié), ça ne
+  se suppose pas.** Les douze leviers déjà réfutés portaient tous sur *ce que* le portefeuille
+  choisit ; celui-ci ne change *rien* à ce qu'il choisit.
+  ⚠️ Effectifs faibles en fin de partie (29 à 47 appels/an, 5 graines cumulées).
+
+  📋 **RESTE À FAIRE sur C48, par ordre :**
+  1. ⬜ **Contrat avant code** pour l'index exact des lignes : quelle clé (cargo + origine +
+     destination ? les deux sens ?), qui la maintient (construction, abandon, revente), et
+     **comment prouver l'équivalence** du verdict avec le balayage actuel. Un index qui répond
+     « déjà bâtie » différemment ne serait plus un changement de structure mais un changement de
+     décision — et retomberait dans la liste noire.
+  2. ⬜ **Sonde d'équivalence avant tout banc** : faire tourner les deux implémentations côte à côte
+     sous un réglage, journaliser tout désaccord de verdict. Zéro désaccord attendu ; un seul
+     suffit à arrêter la piste.
+  3. ⬜ **Banc officiel 20 graines × 10 ans apparié**, lu au **test des signes** avant les moyennes.
+     ⛔ Ne pas conclure d'un 5×6 : C41.47 est le précédent d'un diagnostic 5×6 NUL et sous-puissant
+     démenti par un banc 20×10 net (19/20, p<0,0001).
+  4. ⬜ **`OpexAirPlans` a la même forme** (`builder_air.nut:835-1148`, scans répétés sur villes et
+     lignes) et pèse ~50 % du coût — au moins autant que `groups_replay`. **Ne pas traiter
+     `groups_replay` seul en croyant avoir réglé le sujet** : à lui seul il ne rend que ~44 %.
+  5. ⬜ Question non instruite : le coût unitaire suit le nombre de lignes **à la mesure près**
+     (×5,1 contre ×6,0), mais rien ne prouve que la relation est causale plutôt que corrélée à la
+     maturité. Une régression coût-unitaire contre `lines.len()` à âge de partie constant
+     trancherait.
+
+  ⚠️ **Deux réglages exposés sont du CODE MORT sous `portfolio_v2=1`** (vérifié 2026-09-10) :
+  `pool_financeable` (adopté par décision utilisateur le 2026-09-03) et `knapsack_roi` (défaut 1)
+  ne sont lus que dans la branche legacy, injoignable. **Leurs bancs comparaient deux bras
+  identiques** — ne pas citer leurs résultats. Détail dans
+  [`docs/journal_2026-09-10.md`](journal_2026-09-10.md) §3.
+
+  📕 **Échecs et leçons de la journée** : [`docs/journal_2026-09-10.md`](journal_2026-09-10.md) —
+  trois conclusions rétractées (erreur d'unité, confondant de maturité, mauvais coupable), une
+  fiche bâtie sur un chiffre d'archive périmé, quatre défauts d'agent rattrapés en relecture, et
+  les erreurs d'infrastructure (tmpfs, guetteurs, cohabitation de sessions).
 
 - ⚪ **C47 — FERMÉE le 2026-09-10, prémisse RÉFUTÉE par sa propre mesure.** La fiche partait de
   `build_failed = 1 795` sur 5 graines × 6 ans (`results/diag_constants_binding_6y_5seeds_v2.json`,

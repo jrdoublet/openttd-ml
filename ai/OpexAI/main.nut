@@ -231,6 +231,15 @@ C39_PROJECTS_CADENCE_PROBE <- false;
  * INDEPENDANT de C41_RAIL_SLICE_LEDGER : ne pas etendre ce dernier, sa mesure est deja publiee.
  * Le repli 0 ne doit ajouter ni appel d'API ni calcul au chemin livre. */
 C39_PASS_CLOCK_LEDGER <- false;
+/* C48 (fiche C48) : ventilation passive des tentatives de _tryBuildProjects. Les dates et
+ * marqueurs d'opcodes restent strictement derriere ce drapeau afin que le chemin livre n'ajoute
+ * aucun appel d'API ni calcul. */
+C48_PROJECT_ATTEMPT_LEDGER <- false;
+/* C48.1 (fiche C48.1) : profil passif des phases internes de
+ * OpexIncrementalUpdateProjects. Le ledger reste null hors sonde : le repli 0 n'alloue aucune
+ * table et n'atteint ni marqueur d'opcodes ni appel d'API supplementaire. */
+C48_INCREMENTAL_PROFILE <- false;
+C48_INCREMENTAL_LEDGER <- null;
 /* air_fleet_probe : _resizeAirFleets n'emet que ses SUCCES (FG|). Quand une ligne aerienne
  * n'grandit pas, la cause est invisible. FR| donne le premier refus rencontre, une fois par ligne
  * et par an. */
@@ -320,6 +329,26 @@ function OpexC41RailSliceLog(fields)
   local date = AIDate.GetCurrentDate();
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " C41_RAIL_SLICE_LEDGER " + fields);
+}
+
+/* C48 : gate dedie, independant de C39/C41. Une sonde armee seule ne doit jamais etre absorbee
+ * par le flag d'une autre fiche. */
+function OpexC48ProjectAttemptLog(fields)
+{
+  if (!C48_PROJECT_ATTEMPT_LEDGER) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " C48_PROJECT_ATTEMPT " + fields);
+}
+
+/* C48.1 : gate dedie. Ne jamais reutiliser celui des tentatives C48 : une sonde armee seule
+ * doit publier ses propres lignes. */
+function OpexC48IncrementalLog(fields)
+{
+  if (!C48_INCREMENTAL_PROFILE) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " C48_INCREMENTAL " + fields);
 }
 
 /* C41.47 : un evenement par liberation, pas un accumulateur annuel -- les liberations sont
@@ -1292,6 +1321,9 @@ class OpexAI extends AIController {
   _c39PassClockSliceOps = -1;
   /* C39.6 : accumulateur annuel, cle = "<nom de tache>|slice" ou "<nom de tache>|noslice". */
   _c39PassClockLedger = null;
+  /* C48 : deux accumulateurs annuels distincts : une ligne par tentative et la vue par passe. */
+  _c48AttemptLedger = null;
+  _c48PassLedger = null;
   _c39CadenceLastDate = null;
   _c39CadenceLastTick = null;
   _c39CadenceLastCycle = null;
@@ -1416,6 +1448,7 @@ class OpexAI extends AIController {
   function _logC41RailSliceLedger(year);
   function _recordC39PassClockLedger(key, days, ticks, ops, sliceDays, sliceTicks, sliceOps);
   function _logC39PassClockLedger(year);
+  function _logC48IncrementalLedger(year);
   function _reportYear(year, ranked);
   function _reportLines(year);
   function _scrapDeadLines(year);
@@ -3352,6 +3385,16 @@ function OpexAI::_c39StampFinanceable(capital = null, isProjectsTurn = false)
 
 function OpexAI::_tryBuildProjects(year)
 {
+  local c48PassMark = null;
+  local c48BestLen = 0;
+  local c48MaxRank = -1;
+  local c48AttemptsTotal = 0;
+  local c48BuiltThisPass = false;
+  if (C48_PROJECT_ATTEMPT_LEDGER) {
+    c48PassMark = OpexOpsMeasureBegin();
+    c48BestLen = (this._projects != null && this._projects.best != null)
+        ? this._projects.best.len() : 0;
+  }
   /* C38 : l'etat ne nait que pour le bras experimental. Il survivra a un A* suspendu ; le
    * bras livre ne fait aucune allocation ni lecture supplementaire. */
   if (PORTFOLIO_DYNAMIC_BATCH && this._dynamicBatch == null) {
@@ -3419,12 +3462,23 @@ function OpexAI::_tryBuildProjects(year)
                  + " budget_before=" + this._dynamicBatch.initialBudget + " budget_after="
                  + OpexAvailableCapital() + " remaining=" + this._projects.best.len());
     }
+    if (C48_PROJECT_ATTEMPT_LEDGER) {
+      this._recordC48PassLedger(c48AttemptsTotal, OpexOpsMeasureEnd(c48PassMark),
+          c48BuiltThisPass, c48BestLen, c48MaxRank);
+    }
     return true;
   }
   if (RAIL_SEARCH_RESUMABLE && this._railSearch != null &&
       this._railSearch.kind == "primary" && this._railSearch.phase == "build") {
     local outcome = this._consumeRailSearch(year);
-    if (PORTFOLIO_DYNAMIC_BATCH && outcome == "cash") return true;
+    /* Atteignable seulement avec portfolio_dynamic_batch=1 (non-defaut) : conserver le ledger. */
+    if (PORTFOLIO_DYNAMIC_BATCH && outcome == "cash") {
+      if (C48_PROJECT_ATTEMPT_LEDGER) {
+        this._recordC48PassLedger(c48AttemptsTotal, OpexOpsMeasureEnd(c48PassMark),
+            c48BuiltThisPass, c48BestLen, c48MaxRank);
+      }
+      return true;
+    }
     if (outcome != "cash") {
       if (C39_PROJECTS_CADENCE_PROBE && outcome == "built") {
         local railCandidate = this._railSearch.candidate;
@@ -3460,6 +3514,7 @@ function OpexAI::_tryBuildProjects(year)
       this._railSearch = null;
       if (outcome == "built") {
         builtCount++;
+        if (C48_PROJECT_ATTEMPT_LEDGER) c48BuiltThisPass = true;
         if (PORTFOLIO_DYNAMIC_BATCH) this._dynamicBatchBuilt(year);
       } else if (PORTFOLIO_DYNAMIC_BATCH && outcome == "failed") {
         this._dynamicBatchRejected();
@@ -3499,9 +3554,19 @@ function OpexAI::_tryBuildProjects(year)
     local mode = project.mode;
     local modeChar = mode == "rail" ? "T" : (mode == "road" ? "R" : (mode == "air" ? "A" : "W"));
     local liveBuiltCount = PORTFOLIO_DYNAMIC_BATCH ? this._dynamicBatch.built : builtCount;
+    if (C48_PROJECT_ATTEMPT_LEDGER && i > c48MaxRank) c48MaxRank = i;
 
     if (mode == "fleet") {
-      local attempt = this._tryBuildFleetProject(year, project, i, passDiscards);
+      local attempt = null;
+      if (C48_PROJECT_ATTEMPT_LEDGER) {
+        local attemptDate = AIDate.GetCurrentDate();
+        local attemptMark = OpexOpsMeasureBegin();
+        attempt = this._tryBuildFleetProject(year, project, i, passDiscards);
+        this._recordC48AttemptLedger("fleet", attempt.outcome, i,
+            OpexOpsMeasureEnd(attemptMark), AIDate.GetCurrentDate() - attemptDate);
+        c48AttemptsTotal++;
+        if (attempt.outcome == "built") c48BuiltThisPass = true;
+      } else attempt = this._tryBuildFleetProject(year, project, i, passDiscards);
       passDiscards = attempt.discards;
       if (fallthroughProbeActive) {
         fallthroughAttempted++;
@@ -3537,8 +3602,18 @@ function OpexAI::_tryBuildProjects(year)
     }
 
     if (mode == "air") {
-      local attempt = this._tryBuildAirProject(year, project, i, liveBuiltCount, passDiscards,
-                                                anchor, yy);
+      local attempt = null;
+      if (C48_PROJECT_ATTEMPT_LEDGER) {
+        local attemptDate = AIDate.GetCurrentDate();
+        local attemptMark = OpexOpsMeasureBegin();
+        attempt = this._tryBuildAirProject(year, project, i, liveBuiltCount, passDiscards,
+                                           anchor, yy);
+        this._recordC48AttemptLedger("air", attempt.outcome, i,
+            OpexOpsMeasureEnd(attemptMark), AIDate.GetCurrentDate() - attemptDate);
+        c48AttemptsTotal++;
+        if (attempt.outcome == "built") c48BuiltThisPass = true;
+      } else attempt = this._tryBuildAirProject(year, project, i, liveBuiltCount, passDiscards,
+                                                 anchor, yy);
       passDiscards = attempt.discards;
       if (fallthroughProbeActive) {
         fallthroughAttempted++;
@@ -3571,7 +3646,16 @@ function OpexAI::_tryBuildProjects(year)
         break;
       }
     } else if (mode == "road") {
-      local attempt = this._tryBuildRoadProject(year, project, i, passDiscards, anchor, yy);
+      local attempt = null;
+      if (C48_PROJECT_ATTEMPT_LEDGER) {
+        local attemptDate = AIDate.GetCurrentDate();
+        local attemptMark = OpexOpsMeasureBegin();
+        attempt = this._tryBuildRoadProject(year, project, i, passDiscards, anchor, yy);
+        this._recordC48AttemptLedger("road", attempt.outcome, i,
+            OpexOpsMeasureEnd(attemptMark), AIDate.GetCurrentDate() - attemptDate);
+        c48AttemptsTotal++;
+        if (attempt.outcome == "built") c48BuiltThisPass = true;
+      } else attempt = this._tryBuildRoadProject(year, project, i, passDiscards, anchor, yy);
       passDiscards = attempt.discards;
       if (fallthroughProbeActive) {
         fallthroughAttempted++;
@@ -3604,13 +3688,27 @@ function OpexAI::_tryBuildProjects(year)
         break;
       }
     } else if (mode == "rail") {
-      local attempt = this._tryBuildRailProject(year, project, i, liveBuiltCount, passDiscards,
-                                                 anchor, yy);
+      local attempt = null;
+      if (C48_PROJECT_ATTEMPT_LEDGER) {
+        local attemptDate = AIDate.GetCurrentDate();
+        local attemptMark = OpexOpsMeasureBegin();
+        attempt = this._tryBuildRailProject(year, project, i, liveBuiltCount, passDiscards,
+                                            anchor, yy);
+        this._recordC48AttemptLedger("rail", attempt.outcome, i,
+            OpexOpsMeasureEnd(attemptMark), AIDate.GetCurrentDate() - attemptDate);
+        c48AttemptsTotal++;
+        if (attempt.outcome == "built") c48BuiltThisPass = true;
+      } else attempt = this._tryBuildRailProject(year, project, i, liveBuiltCount, passDiscards,
+                                                  anchor, yy);
       passDiscards = attempt.discards;
       if (attempt.outcome == "pending") {
         /* En batch historique > 1, le portefeuille doit etre regenere avant de reprendre un
          * A* suspendu. Le defaut unitaire conserve le retour immediat d'origine. */
         if (!PORTFOLIO_DYNAMIC_BATCH && builtCount > 0) break;
+        if (C48_PROJECT_ATTEMPT_LEDGER) {
+          this._recordC48PassLedger(c48AttemptsTotal, OpexOpsMeasureEnd(c48PassMark),
+              c48BuiltThisPass, c48BestLen, c48MaxRank);
+        }
         return true;
       }
       if (attempt.outcome == "built") {
@@ -3640,8 +3738,18 @@ function OpexAI::_tryBuildProjects(year)
         break;
       }
     } else if (mode == "water") {
-      local attempt = this._tryBuildWaterProject(year, project, i, liveBuiltCount, passDiscards,
-                                                  anchor, yy);
+      local attempt = null;
+      if (C48_PROJECT_ATTEMPT_LEDGER) {
+        local attemptDate = AIDate.GetCurrentDate();
+        local attemptMark = OpexOpsMeasureBegin();
+        attempt = this._tryBuildWaterProject(year, project, i, liveBuiltCount, passDiscards,
+                                             anchor, yy);
+        this._recordC48AttemptLedger("water", attempt.outcome, i,
+            OpexOpsMeasureEnd(attemptMark), AIDate.GetCurrentDate() - attemptDate);
+        c48AttemptsTotal++;
+        if (attempt.outcome == "built") c48BuiltThisPass = true;
+      } else attempt = this._tryBuildWaterProject(year, project, i, liveBuiltCount, passDiscards,
+                                                   anchor, yy);
       passDiscards = attempt.discards;
       if (fallthroughProbeActive) {
         fallthroughAttempted++;
@@ -3748,12 +3856,20 @@ function OpexAI::_tryBuildProjects(year)
           ? this._dynamicBatch.stopReason : "no_financeable";
       this._stopDynamicBatch(reason, year);
     }
+    if (C48_PROJECT_ATTEMPT_LEDGER) {
+      this._recordC48PassLedger(c48AttemptsTotal, OpexOpsMeasureEnd(c48PassMark),
+          c48BuiltThisPass, c48BestLen, c48MaxRank);
+    }
     return true;
   }
   if (PORTFOLIO_DYNAMIC_BATCH) {
     local reason = this._dynamicBatch.stopReason != null
         ? this._dynamicBatch.stopReason : "no_success";
     this._stopDynamicBatch(reason, year);
+  }
+  if (C48_PROJECT_ATTEMPT_LEDGER) {
+    this._recordC48PassLedger(c48AttemptsTotal, OpexOpsMeasureEnd(c48PassMark),
+        c48BuiltThisPass, c48BestLen, c48MaxRank);
   }
   return false;
 }
@@ -6484,6 +6600,112 @@ function OpexAI::_logC39PassClockLedger(year)
   this._c39PassClockLedger = {};
 }
 
+/* C48 : les ops par tentative sont volontairement imbriques dans ops_total de la passe. La
+ * soustraction faite au depouillement mesure le cout hors tentative (balayage, A*, logs) ; ce
+ * n'est pas un double comptage a "corriger". */
+function OpexAI::_recordC48AttemptLedger(mode, outcome, rank, ops, days)
+{
+  if (this._c48AttemptLedger == null) this._c48AttemptLedger = {};
+  local key = mode + "|" + outcome;
+  local entry = (key in this._c48AttemptLedger) ? this._c48AttemptLedger[key]
+      : { attempts = 0, ops = 0, days = 0, rankSum = 0 };
+  entry.attempts++;
+  entry.ops += ops;
+  entry.days += days;
+  entry.rankSum += rank;
+  this._c48AttemptLedger.rawset(key, entry);
+}
+
+function OpexAI::_recordC48PassLedger(attemptsTotal, opsTotal, built, bestLen, maxRank)
+{
+  if (this._c48PassLedger == null) this._c48PassLedger = {};
+  local entry = ("pass" in this._c48PassLedger) ? this._c48PassLedger.pass
+      : { passes = 0, attemptsTotal = 0, opsTotal = 0, built = 0, bestLenSum = 0, maxRankSum = 0 };
+  entry.passes++;
+  entry.attemptsTotal += attemptsTotal;
+  entry.opsTotal += opsTotal;
+  if (built) entry.built++;
+  entry.bestLenSum += bestLen;
+  entry.maxRankSum += maxRank;
+  this._c48PassLedger.rawset("pass", entry);
+}
+
+/* La tache report passe au premier tour de l'annee suivante : year=1971 decrit donc 1970, et
+ * la derniere annee de partie n'est jamais publiee (~82 % de couverture sur six ans). */
+function OpexAI::_logC48ProjectAttemptLedger(year)
+{
+  if (!C48_PROJECT_ATTEMPT_LEDGER) return;
+  if (this._c48AttemptLedger != null) {
+    foreach (key, entry in this._c48AttemptLedger) {
+      OpexC48ProjectAttemptLog("phase=annual year=" + year + " key=" + key
+          + " attempts=" + entry.attempts + " ops=" + entry.ops + " days=" + entry.days
+          + " rank_sum=" + entry.rankSum);
+    }
+  }
+  if (this._c48PassLedger != null && ("pass" in this._c48PassLedger)) {
+    local entry = this._c48PassLedger.pass;
+    OpexC48ProjectAttemptLog("phase=annual_pass year=" + year + " passes=" + entry.passes
+        + " attempts_total=" + entry.attemptsTotal + " ops_total=" + entry.opsTotal
+        + " built=" + entry.built + " best_len_sum=" + entry.bestLenSum
+        + " max_rank_sum=" + entry.maxRankSum);
+  }
+  this._c48AttemptLedger = {};
+  this._c48PassLedger = {};
+}
+
+/* C48.1 : tous les compteurs de volume sont explicites dans chaque ligne :
+ * lines = lines.len() a l'entree (total), groups/projects_scanned/retained = rejeu des groupes,
+ * fresh_feeders = feeders produits, fleet_plan = elements lus, air_plans = plans produits,
+ * alternatives/selected = entree/sortie de la selection. Les champs non pertinents a une phase
+ * valent zero. La tache report publie au premier passage de l'annee suivante : year=1971 decrit
+ * 1970 et la derniere annee n'est jamais publiee (~82 % de couverture sur six ans). */
+function OpexC48IncrementalRecord(step, ops, days, lines, groups, projectsScanned, retained,
+                                  freshFeeders, fleetPlan, airPlans, alternatives, selected)
+{
+  if (!C48_INCREMENTAL_PROFILE) return;
+  if (C48_INCREMENTAL_LEDGER == null) C48_INCREMENTAL_LEDGER = {};
+  local entry = (step in C48_INCREMENTAL_LEDGER) ? C48_INCREMENTAL_LEDGER[step]
+      : { calls = 0, ops = 0, days = 0, lines = 0, groups = 0, projectsScanned = 0,
+          retained = 0, freshFeeders = 0, fleetPlan = 0, airPlans = 0, alternatives = 0,
+          selected = 0 };
+  entry.calls++;
+  entry.ops += ops;
+  entry.days += days;
+  entry.lines += lines;
+  entry.groups += groups;
+  entry.projectsScanned += projectsScanned;
+  entry.retained += retained;
+  entry.freshFeeders += freshFeeders;
+  entry.fleetPlan += fleetPlan;
+  entry.airPlans += airPlans;
+  entry.alternatives += alternatives;
+  entry.selected += selected;
+  C48_INCREMENTAL_LEDGER.rawset(step, entry);
+}
+
+function OpexAI::_logC48IncrementalLedger(year)
+{
+  if (!C48_INCREMENTAL_PROFILE) return;
+  /* Une ligne pour CHACUNE des sept phases, meme si une garde fonctionnelle n'a produit aucun
+   * appel cette annee : le depouillement distingue ainsi zero de "phase absente du journal". */
+  local steps = ["tension_ctx", "groups_replay", "feeders", "fleet", "air", "selection", "total"];
+  foreach (step in steps) {
+    local entry = (C48_INCREMENTAL_LEDGER != null && (step in C48_INCREMENTAL_LEDGER))
+        ? C48_INCREMENTAL_LEDGER[step]
+        : { calls = 0, ops = 0, days = 0, lines = 0, groups = 0, projectsScanned = 0,
+            retained = 0, freshFeeders = 0, fleetPlan = 0, airPlans = 0, alternatives = 0,
+            selected = 0 };
+    OpexC48IncrementalLog("phase=annual year=" + year + " step=" + step
+        + " calls=" + entry.calls + " ops=" + entry.ops + " days=" + entry.days
+        + " lines=" + entry.lines + " groups=" + entry.groups
+        + " projects_scanned=" + entry.projectsScanned + " retained=" + entry.retained
+        + " fresh_feeders=" + entry.freshFeeders + " fleet_plan=" + entry.fleetPlan
+        + " air_plans=" + entry.airPlans + " alternatives=" + entry.alternatives
+        + " selected=" + entry.selected);
+  }
+  C48_INCREMENTAL_LEDGER = null;
+}
+
 /* File CONTINUE : le scan reprend apres la derniere tache choisie, meme si un A* a franchi le
  * changement d'annee. Le calendrier ne decide plus RIEN : quand le suffixe de la table est fini,
  * _taskCycle avance et le scan repart a zero. Chaque tache se reporte par dueCycle, donc aucun
@@ -7100,6 +7322,8 @@ function OpexAI::_runNextTask()
     this._logC41AdmissionLedger(year);
     this._logC41RailSliceLedger(year);
     this._logC39PassClockLedger(year);
+    if (C48_PROJECT_ATTEMPT_LEDGER) this._logC48ProjectAttemptLedger(year);
+    if (C48_INCREMENTAL_PROFILE) this._logC48IncrementalLedger(year);
     this._reportYear(year, this._ranked);
     this._reportLines(year);
     return true;
@@ -7512,6 +7736,8 @@ function OpexAI::Start()
   C41_PROJECTS_FALLTHROUGH_PROBE = AIController.GetSetting("c41_projects_fallthrough_probe") != 0;
   C39_PROJECTS_CADENCE_PROBE = AIController.GetSetting("c39_projects_cadence_probe") != 0;
   C39_PASS_CLOCK_LEDGER = AIController.GetSetting("c39_pass_clock_ledger") != 0;
+  C48_PROJECT_ATTEMPT_LEDGER = AIController.GetSetting("c48_project_attempt_ledger") != 0;
+  C48_INCREMENTAL_PROFILE = AIController.GetSetting("c48_incremental_profile") != 0;
   CASH_RESERVE_PROBE = AIController.GetSetting("cash_reserve_probe") != 0;
   PORTFOLIO_REFRESH_PROBE = AIController.GetSetting("portfolio_refresh_probe") != 0;
   if (C41_RAIL_LOST_TOPOLOGY_PROBE) C41_RAIL_LOST_PROBE = true;

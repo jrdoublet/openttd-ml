@@ -688,6 +688,28 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C48 : explique l'effondrement de cadence C39.6 a l'interieur de _tryBuildProjects :
+     * profondeur de balayage du portefeuille et cout/date de chaque tentative, ventiles par
+     * mode et issue. Les mesures imbriquees sont passives ; aucune selection ni construction ne
+     * change. */
+    AddSetting({
+      name = "c48_project_attempt_ledger",
+      description = "C48 probe: measure _tryBuildProjects portfolio scan depth and per-attempt game days/opcodes by mode and outcome; no project selection, build, or scheduling change; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* C48.1 : ventile le cout interne de la regeneration incrementale du portefeuille apres
+     * construction. Mesure seulement : aucune selection, construction ou planification ne change. */
+    AddSetting({
+      name = "c48_incremental_profile",
+      description = "C48.1 probe: measure OpexIncrementalUpdateProjects opcode/time phases and processed volumes after a build; no portfolio selection, build, or scheduling change; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* C43/E3 famille 2 : CASH_RESERVE_MIN mord-il ? Compteurs cumulatifs, publies en delta annuel
      * par la tache "report" (OpexCashReserve() est appelee trop souvent pour journaliser chaque
      * appel). */

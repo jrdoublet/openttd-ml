@@ -75,6 +75,150 @@ def aggregate_buckets(events):
     return buckets
 
 
+def aggregate_year_buckets(events):
+    """Cumule les lignes annuelles par (annee, tache, slice/noslice)."""
+    buckets = {}
+    for event in events:
+        if event.get("phase") != "annual" or "year" not in event:
+            continue
+        year = int(event["year"])
+        task, slice_status = split_key(event.get("key", "idle|noslice"))
+        entry = buckets.setdefault((year, task, slice_status),
+            {field: 0 for field in SUM_FIELDS})
+        for field in SUM_FIELDS:
+            entry[field] += int(event.get(field, 0))
+    return buckets
+
+
+def per_pass(entry, field):
+    return entry[field] / entry["passes"] if entry["passes"] else None
+
+
+def sum_entries(entries):
+    total = {field: 0 for field in SUM_FIELDS}
+    for entry in entries:
+        for field in SUM_FIELDS:
+            total[field] += entry[field]
+    return total
+
+
+def by_year(year_buckets):
+    rows = []
+    years = sorted({year for year, _, _ in year_buckets})
+    for year in years:
+        sides = {}
+        for status in ("slice", "noslice"):
+            entry = sum_entries(entry for (entry_year, _, entry_status), entry in year_buckets.items()
+                                if entry_year == year and entry_status == status)
+            sides[status] = {
+                "passes": entry["passes"], "days": entry["days"],
+                "ticks": entry["ticks"], "ops": entry["ops"],
+                "days_per_pass": per_pass(entry, "days"),
+            }
+        total = sum_entries(
+            entry for (entry_year, _, _), entry in year_buckets.items() if entry_year == year)
+        slice_dpp = sides["slice"]["days_per_pass"]
+        noslice_dpp = sides["noslice"]["days_per_pass"]
+        rows.append({
+            "year": year,
+            "passes": total["passes"], "days": total["days"],
+            "ticks": total["ticks"], "ops": total["ops"],
+            "slice": sides["slice"], "noslice": sides["noslice"],
+            "slice_to_noslice_days_per_pass_ratio": (
+                slice_dpp / noslice_dpp if slice_dpp is not None and noslice_dpp else None),
+        })
+    return rows
+
+
+def by_year_task(year_buckets):
+    rows = []
+    pairs = {(year, task) for year, task, _ in year_buckets}
+    for year, task in pairs:
+        sides = {}
+        for status in ("slice", "noslice"):
+            entry = year_buckets.get((year, task, status),
+                {field: 0 for field in SUM_FIELDS})
+            sides[status] = {
+                "passes": entry["passes"], "days": entry["days"], "ops": entry["ops"],
+                "days_per_pass": per_pass(entry, "days"),
+                "ops_per_pass": per_pass(entry, "ops"),
+            }
+        total = sum_entries(year_buckets.get((year, task, status),
+            {field: 0 for field in SUM_FIELDS}) for status in ("slice", "noslice"))
+        rows.append({
+            "year": year, "task": task,
+            "passes": total["passes"], "days": total["days"], "ops": total["ops"],
+            "days_per_pass": per_pass(total, "days"),
+            "ops_per_pass": per_pass(total, "ops"),
+            "slice": sides["slice"], "noslice": sides["noslice"],
+        })
+    rows.sort(key=lambda row: (row["year"], -row["days"], row["task"]))
+    return rows
+
+
+def select_growth_years(year_buckets):
+    """Ecarte une derniere annee inachevee : une annee complete couvre pres du maximum annuel."""
+    coverage = {}
+    for (year, _, _), entry in year_buckets.items():
+        total = coverage.setdefault(year, {"days": 0, "ticks": 0})
+        total["days"] += entry["days"]
+        total["ticks"] += entry["ticks"]
+    if not coverage:
+        return None, None
+    max_days = max(value["days"] for value in coverage.values())
+    max_ticks = max(value["ticks"] for value in coverage.values())
+    full_years = [year for year in sorted(coverage)
+                  if (not max_days or coverage[year]["days"] >= 0.9 * max_days)
+                  and (not max_ticks or coverage[year]["ticks"] >= 0.9 * max_ticks)]
+    # If the data are too sparse for the coverage heuristic, retain observed endpoints.
+    candidates = full_years or sorted(coverage)
+    return candidates[0], candidates[-1]
+
+
+def task_growth(year_buckets):
+    from_year, to_year = select_growth_years(year_buckets)
+    if from_year is None:
+        return from_year, to_year, []
+    tasks = {task for _, task, _ in year_buckets}
+    rows = []
+    for task in tasks:
+        first = sum_entries(year_buckets.get((from_year, task, status),
+            {field: 0 for field in SUM_FIELDS}) for status in ("slice", "noslice"))
+        last = sum_entries(year_buckets.get((to_year, task, status),
+            {field: 0 for field in SUM_FIELDS}) for status in ("slice", "noslice"))
+        first_dpp, last_dpp = per_pass(first, "days"), per_pass(last, "days")
+        first_opp, last_opp = per_pass(first, "ops"), per_pass(last, "ops")
+        # A task absent in either endpoint has no meaningful growth value.
+        present_both = first["passes"] > 0 and last["passes"] > 0
+        rows.append({
+            "task": task,
+            "ops_per_pass_from": first_opp if present_both else None,
+            "ops_per_pass_to": last_opp if present_both else None,
+            "ops_per_pass_growth": (last_opp / first_opp
+                if present_both and first_opp not in (None, 0) else None),
+            "days_per_pass_from": first_dpp if present_both else None,
+            "days_per_pass_to": last_dpp if present_both else None,
+            "days_per_pass_growth": (last_dpp / first_dpp
+                if present_both and first_dpp not in (None, 0) else None),
+        })
+    rows.sort(key=lambda row: (row["ops_per_pass_growth"] is None,
+                               -(row["ops_per_pass_growth"] or 0), row["task"]))
+    return from_year, to_year, rows
+
+
+def throughput_by_year(year_buckets):
+    rows = []
+    for year in sorted({year for year, _, _ in year_buckets}):
+        total = sum_entries(entry for (entry_year, _, _), entry in year_buckets.items()
+                            if entry_year == year)
+        rows.append({
+            "year": year, "passes": total["passes"], "days": total["days"],
+            "passes_per_100_days": (100 * total["passes"] / total["days"]
+                if total["days"] else None),
+        })
+    return rows
+
+
 def by_slice_status(buckets):
     totals = {
         "slice": {field: 0 for field in ("passes", "days", "ticks", "ops")},
@@ -154,12 +298,52 @@ def coverage_control(buckets, years, seed_count):
 
 def build_metrics(events, years, seed_count):
     buckets = aggregate_buckets(events)
+    year_buckets = aggregate_year_buckets(events)
+    growth_from_year, growth_to_year, growth = task_growth(year_buckets)
     return {
         "by_slice_status": by_slice_status(buckets),
         "days_per_pass_by_task": days_per_pass_by_task(buckets),
         "slice_decomposition": slice_decomposition(buckets),
         "coverage_control": coverage_control(buckets, years, seed_count),
+        "by_year": by_year(year_buckets),
+        "by_year_task": by_year_task(year_buckets),
+        "growth_from_year": growth_from_year,
+        "growth_to_year": growth_to_year,
+        "task_growth": growth,
+        "throughput_by_year": throughput_by_year(year_buckets),
     }
+
+
+def run_selftest():
+    """Verification sans processus externe des agregations annuelles et de leur ponderation."""
+    output = "\n".join((
+        "OPEX 1970-12-31 C39_PASS_CLOCK phase=annual year=1970 key=alpha|slice passes=2 days=20 ticks=200 ops=100 slice_days=10 slice_ticks=100 slice_ops=50",
+        "OPEX 1970-12-31 C39_PASS_CLOCK phase=annual year=1970 key=alpha|noslice passes=2 days=10 ticks=100 ops=40 slice_days=0 slice_ticks=0 slice_ops=0",
+        "OPEX 1970-12-31 C39_PASS_CLOCK phase=annual year=1970 key=beta|slice passes=8 days=80 ticks=800 ops=30 slice_days=40 slice_ticks=400 slice_ops=15",
+        "OPEX 1971-12-31 C39_PASS_CLOCK phase=annual year=1971 key=alpha|slice passes=10 days=50 ticks=500 ops=1000 slice_days=25 slice_ticks=250 slice_ops=500",
+        "OPEX 1971-12-31 C39_PASS_CLOCK phase=annual year=1971 key=alpha|noslice passes=10 days=50 ticks=500 ops=500 slice_days=0 slice_ticks=0 slice_ops=0",
+        "OPEX 1971-12-31 C39_PASS_CLOCK phase=annual year=1971 key=beta|noslice passes=1 days=10 ticks=100 ops=20 slice_days=0 slice_ticks=0 slice_ops=0",
+    ))
+    metrics = build_metrics(parse_events(output), 2, 1)
+    annual = {row["year"]: row for row in metrics["by_year"]}
+    assert annual[1970]["passes"] == 12 and annual[1970]["days"] == 110
+    assert annual[1970]["slice"]["days_per_pass"] == 10
+    assert annual[1970]["noslice"]["days_per_pass"] == 5
+    assert annual[1970]["slice_to_noslice_days_per_pass_ratio"] == 2
+    alpha = next(row for row in metrics["task_growth"] if row["task"] == "alpha")
+    assert metrics["growth_from_year"] == 1970 and metrics["growth_to_year"] == 1971
+    assert alpha["ops_per_pass_from"] == 35
+    assert alpha["ops_per_pass_to"] == 75
+    assert alpha["ops_per_pass_growth"] == 75 / 35
+    throughput = {row["year"]: row for row in metrics["throughput_by_year"]}
+    assert throughput[1971] == {"year": 1971, "passes": 21, "days": 110,
+                                "passes_per_100_days": 21 * 100 / 110}
+    alpha_total = next(row for row in metrics["days_per_pass_by_task"]
+                       if row["task"] == "alpha" and row["slice_status"] == "slice")
+    # (20 + 50) / (2 + 10), not the unweighted mean of 10 and 5.
+    assert alpha_total["days_per_pass"] == 70 / 12
+    assert alpha_total["days_per_pass"] != (10 + 5) / 2
+    print("selftest passed")
 
 
 def main():
@@ -168,7 +352,11 @@ def main():
     parser.add_argument("--seeds", nargs="+", type=int, default=[100, 12345, 42, 7, 999])
     parser.add_argument("--max-workers", type=int, default=3)
     parser.add_argument("--out", type=Path, default=None)
+    parser.add_argument("--selftest", action="store_true")
     args = parser.parse_args()
+    if args.selftest:
+        run_selftest()
+        return
     if args.years <= 0 or not args.seeds or args.max_workers not in (1, 2, 3):
         parser.error("--years et --seeds non vides ; --max-workers vaut 1, 2 ou 3")
     if len(set(args.seeds)) != len(args.seeds):
@@ -197,7 +385,8 @@ def main():
             "run_ok": record["run_ok"],
             "metrics": build_metrics(events, args.years, 1),
         })
-    failed = [record for record in summary if not record["run_ok"]]
+    failed = [{key: value for key, value in record.items() if key != "openttd_output"}
+              for record in summary if not record["run_ok"]]
     payload = {
         "years": args.years,
         "seeds": args.seeds,
