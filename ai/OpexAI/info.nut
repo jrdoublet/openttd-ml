@@ -700,6 +700,16 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C49 etape 1 : sonde seule. Elle classe, a la fin de chaque passe projects, la cause
+     * prochaine du premier projet non bati ; elle ne reordonne, ne refuse et ne construit rien. */
+    AddSetting({
+      name = "c49_scarcity_ledger",
+      description = "C49 step 1 probe: annually log the end-of-pass marginal blocker of the highest-ranked project not built (cash, vehicles, site, or decision); no project selection, rejection, build, or scheduling change; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* C48.1 : ventile le cout interne de la regeneration incrementale du portefeuille apres
      * construction. Mesure seulement : aucune selection, construction ou planification ne change. */
     AddSetting({

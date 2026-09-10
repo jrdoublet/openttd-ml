@@ -235,6 +235,10 @@ C39_PASS_CLOCK_LEDGER <- false;
  * marqueurs d'opcodes restent strictement derriere ce drapeau afin que le chemin livre n'ajoute
  * aucun appel d'API ni calcul. */
 C48_PROJECT_ATTEMPT_LEDGER <- false;
+/* C49 etape 1 : sonde strictement observatoire de la cause prochaine du projet non bati.
+ * Le repli 0 ne doit atteindre ni lecture de tresorerie finale, ni plafond de vehicules, ni
+ * allocation de ledger. */
+C49_SCARCITY_LEDGER <- false;
 /* C48.1 (fiche C48.1) : profil passif des phases internes de
  * OpexIncrementalUpdateProjects. Le ledger reste null hors sonde : le repli 0 n'alloue aucune
  * table et n'atteint ni marqueur d'opcodes ni appel d'API supplementaire. */
@@ -339,6 +343,36 @@ function OpexC48ProjectAttemptLog(fields)
   local date = AIDate.GetCurrentDate();
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " C48_PROJECT_ATTEMPT " + fields);
+}
+
+/* C49 : gate dedie. Ne jamais reutiliser celui de C48/C39/C41 : armer seulement cette sonde
+ * doit suffire a publier ses lignes. */
+function OpexC49ScarcityLog(fields)
+{
+  if (!C49_SCARCITY_LEDGER) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " C49_SCARCITY " + fields);
+}
+
+function OpexC49VehicleType(mode)
+{
+  if (mode == "rail") return AIVehicle.VT_RAIL;
+  if (mode == "road") return AIVehicle.VT_ROAD;
+  if (mode == "air" || mode == "fleet") return AIVehicle.VT_AIR;
+  if (mode == "water") return AIVehicle.VT_WATER;
+  return -1;
+}
+
+function OpexC49IsMapFailure(passDiscards, rank)
+{
+  foreach (discard in passDiscards) {
+    if (discard.rank != rank) continue;
+    if (discard.reason == "build_failed" || discard.reason == "plan_failed"
+        || discard.reason == "too_close" || discard.reason == "too_close_hard"
+        || discard.reason == "too_close_no_join") return true;
+  }
+  return false;
 }
 
 /* C48.1 : gate dedie. Ne jamais reutiliser celui des tentatives C48 : une sonde armee seule
@@ -1324,6 +1358,8 @@ class OpexAI extends AIController {
   /* C48 : deux accumulateurs annuels distincts : une ligne par tentative et la vue par passe. */
   _c48AttemptLedger = null;
   _c48PassLedger = null;
+  _c49ScarcityLedger = null;
+  _c49ScarcityRegime = "cash";
   _c39CadenceLastDate = null;
   _c39CadenceLastTick = null;
   _c39CadenceLastCycle = null;
@@ -1448,6 +1484,8 @@ class OpexAI extends AIController {
   function _logC41RailSliceLedger(year);
   function _recordC39PassClockLedger(key, days, ticks, ops, sliceDays, sliceTicks, sliceOps);
   function _logC39PassClockLedger(year);
+  function _recordC49ScarcityPass(best, builtRanks, attemptedRanks, passDiscards);
+  function _logC49ScarcityLedger(year);
   function _logC48IncrementalLedger(year);
   function _reportYear(year, ranked);
   function _reportLines(year);
@@ -2718,7 +2756,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
       local join = null;
       local placeJoin = ("placeJoin" in candidate) ? candidate.placeJoin : null;
       if (close.hard >= 0) {
-        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "too_close_hard", extra = "" });
+        if (DECISION_LOG || C49_SCARCITY_LEDGER) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "too_close_hard", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
       }
 
@@ -2753,7 +2791,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
           }
         }
         if (join == null) {
-          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "too_close_no_join", extra = "" });
+          if (DECISION_LOG || C49_SCARCITY_LEDGER) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "too_close_no_join", extra = "" });
           return { outcome = "rejected", discards = passDiscards };
         }
       }
@@ -2864,6 +2902,7 @@ function OpexAI::_tryBuildWaterProject(year, project, rank, builtCount, passDisc
       if (result.ok) OpexSign(anchor, "OM|W|" + year + "|" + plan.distance + "|" + planOps);
       else OpexSign(anchor, "ON|W|" + result.reason + "|" + result.error);
       if (!result.ok) {
+        if (C49_SCARCITY_LEDGER) passDiscards.append({ rank = i, mode = "water", src = plan.siteA.town.id, dst = plan.siteB.town.id, reason = "build_failed", extra = "" });
         if (DECISION_LOG) {
           OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=water src=" + plan.siteA.town.id + " dst=" + plan.siteB.town.id + " reason=build_failed detail=" + result.reason + " error=" + result.error);
         }
@@ -3005,6 +3044,7 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
                                + (result.ok ? result.vehicles.len() : 0));
       }
       if (!result.ok) {
+        if (C49_SCARCITY_LEDGER) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "build_failed", extra = "" });
         if (DECISION_LOG) {
           OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=air src=" + plan.siteA.town.tile + " dst=" + plan.siteB.town.tile + " reason=build_failed detail=" + result.reason + " error=" + result.error);
         }
@@ -3139,6 +3179,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
       local plan = planning.plan;
       local idx = this._nextLineId;
       if (plan == null) {
+        if (C49_SCARCITY_LEDGER) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "plan_failed", extra = "" });
         if (DECISION_LOG) {
           OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=road src=" + candidate.src + " dst=" + candidate.dst + " reason=plan_failed detail=" + planning.reason);
         }
@@ -3177,6 +3218,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
                                + "|" + (result.ok ? result.vehicles.len() : 0));
       }
       if (!result.ok) {
+        if (C49_SCARCITY_LEDGER) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "build_failed", extra = "" });
         if (DECISION_LOG) {
           OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=road src=" + candidate.src + " dst=" + candidate.dst + " reason=build_failed detail=" + result.reason + " error=" + result.error);
         }
@@ -3385,6 +3427,9 @@ function OpexAI::_c39StampFinanceable(capital = null, isProjectsTurn = false)
 
 function OpexAI::_tryBuildProjects(year)
 {
+  local c49Best = null;
+  local c49BuiltRanks = null;
+  local c49AttemptedRanks = null;
   local c48PassMark = null;
   local c48BestLen = 0;
   local c48MaxRank = -1;
@@ -3419,6 +3464,11 @@ function OpexAI::_tryBuildProjects(year)
     /* 30 caracteres au pire : FB|99|2147483647|2147483647|64. */
     OpexSign(AIMap.GetTileIndex(1, 1), "FB|" + (year % 100) + "|" + initialBudget
              + "|" + budgetNow + "|" + this._projects.stats.budgetSelected);
+  }
+  if (C49_SCARCITY_LEDGER) {
+    c49Best = (this._projects != null && this._projects.best != null) ? this._projects.best : null;
+    c49BuiltRanks = {};
+    c49AttemptedRanks = {};
   }
   local anchor = AIMap.GetTileIndex(1, 1);
   local yy = year % 100;
@@ -3466,6 +3516,7 @@ function OpexAI::_tryBuildProjects(year)
       this._recordC48PassLedger(c48AttemptsTotal, OpexOpsMeasureEnd(c48PassMark),
           c48BuiltThisPass, c48BestLen, c48MaxRank);
     }
+    if (C49_SCARCITY_LEDGER) this._recordC49ScarcityPass(c49Best, c49BuiltRanks, c49AttemptedRanks, passDiscards);
     return true;
   }
   if (RAIL_SEARCH_RESUMABLE && this._railSearch != null &&
@@ -3477,6 +3528,7 @@ function OpexAI::_tryBuildProjects(year)
         this._recordC48PassLedger(c48AttemptsTotal, OpexOpsMeasureEnd(c48PassMark),
             c48BuiltThisPass, c48BestLen, c48MaxRank);
       }
+      if (C49_SCARCITY_LEDGER) this._recordC49ScarcityPass(c49Best, c49BuiltRanks, c49AttemptedRanks, passDiscards);
       return true;
     }
     if (outcome != "cash") {
@@ -3510,10 +3562,23 @@ function OpexAI::_tryBuildProjects(year)
             + " turns_since_financeable=" + turnsSinceFinanceable + " turns_since_top=" + turnsSinceTop
             + " rail_search=1 capital_after=" + OpexAvailableCapital());
       }
+      local c49RailCandidate = C49_SCARCITY_LEDGER ? this._railSearch.candidate : null;
       if (PORTFOLIO_DYNAMIC_BATCH) this._dynamicBatch.pendingLogged = false;
       this._railSearch = null;
       if (outcome == "built") {
         builtCount++;
+        if (C49_SCARCITY_LEDGER && c49Best != null) {
+          local railCandidate = c49RailCandidate;
+          for (local i = 0; i < c49Best.len(); i++) {
+            local project = c49Best[i];
+            if (project != null && project.mode == "rail" && project.payload.src == railCandidate.src
+                && project.payload.dst == railCandidate.dst && project.payload.cargo == railCandidate.cargo
+                && project.payload.kind == railCandidate.kind) {
+              c49BuiltRanks.rawset(i, true);
+              break;
+            }
+          }
+        }
         if (C48_PROJECT_ATTEMPT_LEDGER) c48BuiltThisPass = true;
         if (PORTFOLIO_DYNAMIC_BATCH) this._dynamicBatchBuilt(year);
       } else if (PORTFOLIO_DYNAMIC_BATCH && outcome == "failed") {
@@ -3558,6 +3623,7 @@ function OpexAI::_tryBuildProjects(year)
 
     if (mode == "fleet") {
       local attempt = null;
+      if (C49_SCARCITY_LEDGER) c49AttemptedRanks.rawset(i, true);
       if (C48_PROJECT_ATTEMPT_LEDGER) {
         local attemptDate = AIDate.GetCurrentDate();
         local attemptMark = OpexOpsMeasureBegin();
@@ -3568,6 +3634,7 @@ function OpexAI::_tryBuildProjects(year)
         if (attempt.outcome == "built") c48BuiltThisPass = true;
       } else attempt = this._tryBuildFleetProject(year, project, i, passDiscards);
       passDiscards = attempt.discards;
+      if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
       if (fallthroughProbeActive) {
         fallthroughAttempted++;
         if (attempt.outcome == "built") fallthroughBuilt++;
@@ -3603,6 +3670,7 @@ function OpexAI::_tryBuildProjects(year)
 
     if (mode == "air") {
       local attempt = null;
+      if (C49_SCARCITY_LEDGER) c49AttemptedRanks.rawset(i, true);
       if (C48_PROJECT_ATTEMPT_LEDGER) {
         local attemptDate = AIDate.GetCurrentDate();
         local attemptMark = OpexOpsMeasureBegin();
@@ -3615,6 +3683,7 @@ function OpexAI::_tryBuildProjects(year)
       } else attempt = this._tryBuildAirProject(year, project, i, liveBuiltCount, passDiscards,
                                                  anchor, yy);
       passDiscards = attempt.discards;
+      if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
       if (fallthroughProbeActive) {
         fallthroughAttempted++;
         if (attempt.outcome == "built") fallthroughBuilt++;
@@ -3647,6 +3716,7 @@ function OpexAI::_tryBuildProjects(year)
       }
     } else if (mode == "road") {
       local attempt = null;
+      if (C49_SCARCITY_LEDGER) c49AttemptedRanks.rawset(i, true);
       if (C48_PROJECT_ATTEMPT_LEDGER) {
         local attemptDate = AIDate.GetCurrentDate();
         local attemptMark = OpexOpsMeasureBegin();
@@ -3657,6 +3727,7 @@ function OpexAI::_tryBuildProjects(year)
         if (attempt.outcome == "built") c48BuiltThisPass = true;
       } else attempt = this._tryBuildRoadProject(year, project, i, passDiscards, anchor, yy);
       passDiscards = attempt.discards;
+      if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
       if (fallthroughProbeActive) {
         fallthroughAttempted++;
         if (attempt.outcome == "built") fallthroughBuilt++;
@@ -3689,6 +3760,7 @@ function OpexAI::_tryBuildProjects(year)
       }
     } else if (mode == "rail") {
       local attempt = null;
+      if (C49_SCARCITY_LEDGER) c49AttemptedRanks.rawset(i, true);
       if (C48_PROJECT_ATTEMPT_LEDGER) {
         local attemptDate = AIDate.GetCurrentDate();
         local attemptMark = OpexOpsMeasureBegin();
@@ -3701,6 +3773,7 @@ function OpexAI::_tryBuildProjects(year)
       } else attempt = this._tryBuildRailProject(year, project, i, liveBuiltCount, passDiscards,
                                                   anchor, yy);
       passDiscards = attempt.discards;
+      if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
       if (attempt.outcome == "pending") {
         /* En batch historique > 1, le portefeuille doit etre regenere avant de reprendre un
          * A* suspendu. Le defaut unitaire conserve le retour immediat d'origine. */
@@ -3709,6 +3782,7 @@ function OpexAI::_tryBuildProjects(year)
           this._recordC48PassLedger(c48AttemptsTotal, OpexOpsMeasureEnd(c48PassMark),
               c48BuiltThisPass, c48BestLen, c48MaxRank);
         }
+        if (C49_SCARCITY_LEDGER) this._recordC49ScarcityPass(c49Best, c49BuiltRanks, c49AttemptedRanks, passDiscards);
         return true;
       }
       if (attempt.outcome == "built") {
@@ -3739,6 +3813,7 @@ function OpexAI::_tryBuildProjects(year)
       }
     } else if (mode == "water") {
       local attempt = null;
+      if (C49_SCARCITY_LEDGER) c49AttemptedRanks.rawset(i, true);
       if (C48_PROJECT_ATTEMPT_LEDGER) {
         local attemptDate = AIDate.GetCurrentDate();
         local attemptMark = OpexOpsMeasureBegin();
@@ -3751,6 +3826,7 @@ function OpexAI::_tryBuildProjects(year)
       } else attempt = this._tryBuildWaterProject(year, project, i, liveBuiltCount, passDiscards,
                                                    anchor, yy);
       passDiscards = attempt.discards;
+      if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
       if (fallthroughProbeActive) {
         fallthroughAttempted++;
         if (attempt.outcome == "built") fallthroughBuilt++;
@@ -3796,6 +3872,8 @@ function OpexAI::_tryBuildProjects(year)
     }
   }
   }
+
+  if (C49_SCARCITY_LEDGER) this._recordC49ScarcityPass(c49Best, c49BuiltRanks, c49AttemptedRanks, passDiscards);
 
   /* G4§1 : l'ancien chemin deduisait hadAbandons de passDiscards, dont le remplissage
    * est garde par DECISION_LOG (defaut 0). Le drapeau _hadAbandonsThisPass est pose
@@ -6653,6 +6731,102 @@ function OpexAI::_logC48ProjectAttemptLedger(year)
   this._c48PassLedger = {};
 }
 
+/* C49 : une seule cause, pour le premier rang non bati de LA passe. La tresorerie est lue ici,
+ * a la fin : la question est MARGINALE — « given what we just did, what blocked the next one? ».
+ * Une construction qui a consomme du cash rend donc correctement le rang suivant bloque par
+ * TRESORERIE. Un projet non tente ne peut pas etre teste sur la carte sans changer la decision
+ * et consommer des opcodes : `site` n'est attribue qu'a un echec carte deja observe ; `decision`
+ * absorbe ces echecs carte non observes. C'est une limite acceptee, pas une omission. */
+function OpexAI::_recordC49ScarcityPass(best, builtRanks, attemptedRanks, passDiscards)
+{
+  if (!C49_SCARCITY_LEDGER || this._c49ScarcityLedger == null) return;
+  this._c49ScarcityLedger.passes++;
+  if (best == null || best.len() == 0) {
+    this._c49ScarcityLedger.none++;
+    return;
+  }
+
+  local targetRank = -1;
+  for (local i = 0; i < best.len(); i++) {
+    if (!(i in builtRanks)) {
+      targetRank = i;
+      break;
+    }
+  }
+  if (targetRank < 0) {
+    this._c49ScarcityLedger.none++;
+    return;
+  }
+
+  local project = best[targetRank];
+  if (project == null) {
+    this._c49ScarcityLedger.none++;
+    return;
+  }
+  local available = OpexAvailableCapital();
+  if (project.capital > available) {
+    this._c49ScarcityLedger.cash++;
+    return;
+  }
+
+  local vehicleType = OpexC49VehicleType(project.mode);
+  local vehicleMode = project.mode == "fleet" ? "air" : project.mode;
+  local setting = OpexTensionVehicleSetting(vehicleMode);
+  if (vehicleType >= 0 && setting != null && AIGameSettings.IsValid(setting)) {
+    local planned = OpexTensionProjectVehicleCount(project);
+    local cap = AIGameSettings.GetValue(setting);
+    if (AIGroup.GetNumVehicles(AIGroup.GROUP_ALL, vehicleType) + planned > cap) {
+      this._c49ScarcityLedger.vehicles++;
+      return;
+    }
+  }
+
+  if (OpexC49IsMapFailure(passDiscards, targetRank)) {
+    this._c49ScarcityLedger.site++;
+    return;
+  }
+  if (targetRank in attemptedRanks) this._c49ScarcityLedger.decision_attempted++;
+  else this._c49ScarcityLedger.decision_unattempted++;
+}
+
+/* La tache report publie au premier passage de l'annee suivante : year=1971 decrit donc 1970,
+ * et la derniere annee de partie n'est jamais publiee (~82 % de couverture sur six ans). */
+function OpexAI::_logC49ScarcityLedger(year)
+{
+  if (!C49_SCARCITY_LEDGER || this._c49ScarcityLedger == null) return;
+  local entry = this._c49ScarcityLedger;
+  local regime = this._c49ScarcityRegime;
+  local best = entry.cash;
+  local decision = entry.decision_attempted + entry.decision_unattempted;
+  foreach (resource in ["vehicles", "site"]) {
+    if (entry[resource] > best) best = entry[resource];
+  }
+  if (decision > best) best = decision;
+  local leaders = 0;
+  foreach (resource in ["cash", "vehicles", "site"]) {
+    if (entry[resource] == best) leaders++;
+  }
+  if (decision == best) leaders++;
+  if (leaders == 1) {
+    foreach (resource in ["cash", "vehicles", "site"]) {
+      if (entry[resource] == best) {
+        regime = resource;
+        break;
+      }
+    }
+    if (decision == best) regime = "decision";
+  }
+  /* Egalite : ne pas remplacer le regime precedent, hysteresis sans constante. */
+  this._c49ScarcityRegime = regime;
+  OpexC49ScarcityLog("phase=annual year=" + year + " passes=" + entry.passes
+      + " cash=" + entry.cash + " vehicles=" + entry.vehicles + " site=" + entry.site
+      + " decision_attempted=" + entry.decision_attempted
+      + " decision_unattempted=" + entry.decision_unattempted
+      + " none=" + entry.none + " regime=" + regime);
+  this._c49ScarcityLedger = { passes = 0, cash = 0, vehicles = 0, site = 0,
+      decision_attempted = 0, decision_unattempted = 0, none = 0 };
+}
+
 /* C48.1 : tous les compteurs de volume sont explicites dans chaque ligne :
  * lines = lines.len() a l'entree (total), groups/projects_scanned/retained = rejeu des groupes,
  * fresh_feeders = feeders produits, fleet_plan = elements lus, air_plans = plans produits,
@@ -7323,6 +7497,7 @@ function OpexAI::_runNextTask()
     this._logC41RailSliceLedger(year);
     this._logC39PassClockLedger(year);
     if (C48_PROJECT_ATTEMPT_LEDGER) this._logC48ProjectAttemptLedger(year);
+    if (C49_SCARCITY_LEDGER) this._logC49ScarcityLedger(year);
     if (C48_INCREMENTAL_PROFILE) this._logC48IncrementalLedger(year);
     this._reportYear(year, this._ranked);
     this._reportLines(year);
@@ -7737,6 +7912,12 @@ function OpexAI::Start()
   C39_PROJECTS_CADENCE_PROBE = AIController.GetSetting("c39_projects_cadence_probe") != 0;
   C39_PASS_CLOCK_LEDGER = AIController.GetSetting("c39_pass_clock_ledger") != 0;
   C48_PROJECT_ATTEMPT_LEDGER = AIController.GetSetting("c48_project_attempt_ledger") != 0;
+  C49_SCARCITY_LEDGER = AIController.GetSetting("c49_scarcity_ledger") != 0;
+  if (C49_SCARCITY_LEDGER) {
+    this._c49ScarcityLedger = { passes = 0, cash = 0, vehicles = 0, site = 0,
+        decision_attempted = 0, decision_unattempted = 0, none = 0 };
+    this._c49ScarcityRegime = "cash";
+  }
   C48_INCREMENTAL_PROFILE = AIController.GetSetting("c48_incremental_profile") != 0;
   CASH_RESERVE_PROBE = AIController.GetSetting("cash_reserve_probe") != 0;
   PORTFOLIO_REFRESH_PROBE = AIController.GetSetting("portfolio_refresh_probe") != 0;

@@ -319,6 +319,131 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   reclasse les 89,3 % de (c) en dénominateur de round-robin et arme une hypothèse nulle sur le
   réfuté `portfolio_max_batch` : voir la fiche C39 ci-dessus. **Plus rien à faire ici.**
 
+- 🔴 **C49 — Dénominateur variable, piloté par la cause prochaine d'un non-chantier.**
+  📝 **DÉCISION UTILISATEUR EXPLICITE du 2026-09-10** : on instruit cette piste. ⚠️ **Elle LÈVE le
+  refus doctrinal du 2026-09-07** (« A1 / dénominateur variable selon la ressource rare — décliné
+  pour raison de doctrine, converge vers l'aiguillage pauvre/riche d'AAAHogEx »,
+  `taches_archive_2026-09-09.md:2144`). Comme pour `pool_financeable`, **c'est une décision, pas une
+  conclusion de mesure** — ne pas la présenter comme validée par un banc.
+  🐛 Rappel de méthode : j'avais reproposé A1 sans grep préalable, deuxième récidive après
+  `fleet_before_new` ([[feedback_lire_refutes_avant_conseiller]]).
+
+  ### Ce qu'AAAHogEx fait vraiment (vérifié dans le source, mécanisme VIVANT)
+
+  `CalculateProfitModel()` est appelée **à chaque tour** de la boucle principale
+  (`ai/AAAHogEx-115/main.nut:747`), et `GetValue()` (`main.nut:828`) applique le régime au
+  classement des candidats (`main.nut:2858`) :
+
+  | régime | dénominateur | déclencheur (`main.nut:781-806`) |
+  |---|---|---|
+  | `roiBase` | profit / **capital** | pas riche **ou** inflation |
+  | `buildingTimeBase` | profit / **temps de chantier** | riche **et** un type de véhicule a ≥ 100 places libres **et** < 70 % du plafond |
+  | `vehicleProfitBase` | profit / **véhicule** | sinon |
+
+  🔑 **Trois faits qui orientent notre variante** :
+  1. **Sa détection passe par des CONSTANTES** (`room >= 100`, `current < max * 7/10`, `IsRich()`).
+     Il n'y a donc rien à copier si on veut un mécanisme auto-calibrant.
+  2. **Sa ressource rare est le PLAFOND DE VÉHICULES**, pas l'argent : le basculement se lit sur
+     `AIGroup.GetNumVehicles` contre `GetMaxTotalVehicles()`. La richesse n'est qu'une *condition
+     d'entrée* dans les régimes non capitalistiques ; pauvre ou en inflation, il classe par capital
+     — exactement comme nous, tout le temps.
+  3. **Il sait déjà « ne rien construire ce tour »** : en régime ROI il arrête la boucle quand le
+     candidat suivant a `estimate.value < 200` (`main.nut:1054`).
+  ✅ Vérifié aussi que le bloc commenté après `main.nut:807` est une variante **antérieure** placée
+  derrière un `return;` — le code en vigueur est bien celui du tableau, pas du code mort.
+
+  ### Notre variante : l'argmax sur les blocages observés, sans constantes
+
+  Registre glissant à un compteur par ressource, incrémenté quand elle est la **cause prochaine**
+  d'un non-chantier. Dénominateur du classement = ressource en tête du registre. Aucun seuil : un
+  `argmax` sur des faits, qui se recalibre quand la partie change de régime.
+
+  | ressource | événement qui l'incrémente | dénominateur associé | déjà instrumenté ? |
+  |---|---|---|---|
+  | trésorerie | projet mieux classé prêt mais pas finançable | profit / £ (actuel) | oui (`insufficient_cash`) |
+  | **décision** | projet prêt ET finançable, mais `projects` n'a pas eu son tour | **profit / décision** | oui (C39.5, C48) |
+  | temps de chantier | chantier élu occupant N jours pendant lesquels rien d'autre ne se fait | profit / jour de chantier | partiellement |
+  | terrain / site | `build_failed`, `too_close` | profit / tentative | oui |
+  | **plafond de véhicules** *(ajout utilisateur)* | flotte proche de `GetMaxTotalVehicles()` | profit / véhicule | **non** |
+
+  🔑 **La ressource « décision » est neuve et c'est le résultat de la journée** : notre débit chute
+  d'un facteur 9,2 (C39.6b) et devient la contrainte dominante en fin de partie. Si les décisions
+  sont rares, le bon dénominateur n'est plus le profit par livre mais le **profit par décision
+  consommée** — et C48 en donne le prix : une passe qui bâtit paie ~2,7 M opcodes de régénération,
+  une passe qui s'abstient ne coûte presque rien. **Construire consomme une décision future.**
+
+  ### ⛔ Garde-fous imposés par l'archive — à lire avant d'écrire une ligne
+
+  - **Ne pas refaire `shadow_pricing`** (−11,2 % valeur, −25,6 % profit) : des prix duaux 1-D
+    indépendants sur tout le vivier sur-taxent des candidats qui ne peuvent pas être retenus
+    ensemble. Le registre de blocages **ne calcule aucun prix**, il compte des faits — c'est
+    précisément ce qui le distingue.
+  - **Ne pas refaire « surplus capital-seul » ni « filtre densité < λ_argent »** : **7/7 défaites à
+    6 ans** chacun, interdiction déjà écrite dans `ai/OpexAI/tension.nut:600-602`.
+  - **Complementary slackness** : une ressource ne compte que si elle est réellement saturée par la
+    décision du cycle en cours (`taches_archive_2026-09-09.md:340`). Le registre l'implémente
+    empiriquement — c'est son principal argument théorique.
+  - ⚠️ **Mode d'échec n°1, documenté** : une barre surestimée rend tous les coûts réduits négatifs
+    et **plus rien ne se construit** (archive, point 4). **Un repli garantissant la construction
+    après K cycles sans chantier est OBLIGATOIRE**, pas optionnel.
+  - ⚠️ **Douze leviers sur douze ont perdu** sur l'axe « ce que le portefeuille choisit ». Celui-ci
+    en est un. Contrat avant code, critère de fermeture pré-enregistré, banc **20×10 apparié**, test
+    des signes avant les moyennes.
+
+  ### Étapes
+
+  ✅ **Contrat écrit le 2026-09-10 : [`docs/06_denominateur_variable.md`](06_denominateur_variable.md).**
+  Trois points qu'il tranche et qui n'étaient pas acquis :
+  **(a)** la cause prochaine se lit sur **le projet de plus haut rang NON bâti dans la passe**, un
+  seul incrément par passe — compter tous les rejets mesurerait le bruit de `search_in_progress`
+  (69,6 %), que C41.49 a montré bénin ;
+  **(b)** `build_time` est **écarté de la v1** : on ne sait pas l'observer comme cause bloquante
+  sans le confondre avec `decision`, et fabriquer une ressource fantôme fausserait l'argmax ;
+  **(c)** 🔑 si la ressource rare est la **décision**, le dénominateur vaut 1 et le classement
+  devient le **profit ABSOLU** — l'exact opposé de notre ratio permanent, et cohérent avec nos
+  chantiers à 11–13 k£ contre les leurs à 180–220 k£.
+  🔑 **Et une propriété qui rend C49 moins risqué que les réfutés** : un changement de dénominateur
+  ne fait que réordonner, **il ne peut pas affamer le constructeur** — le mode d'échec « plus rien
+  ne se construit » ne concerne que les seuils d'acceptation, hors périmètre.
+
+  1. ✅ ~~Contrat écrit avant code~~ : définition exacte de chaque « cause prochaine », fenêtre du
+     registre (proposition : depuis la dernière régénération, pas une constante de temps), règle de
+     départage en cas d'égalité, et le repli anti-blocage.
+  2. ⬜ **Sonde d'abord, levier ensuite** : un registre à défaut 0 qui **mesure** les causes
+     prochaines **sans changer aucune décision**. Lire quelle ressource domine, et si elle change
+     au cours de la partie. Si une seule ressource domine toujours, la piste se réduit à un
+     dénominateur fixe — et il faudra le dire.
+  3. ⬜ Seulement après lecture : le levier, un réglage, un seul changement.
+  4. ⬜ Banc officiel 20×10 apparié.
+
+  ⚠️ **Les deux `roi` ne sont pas comparables** (vérifié) : le sien vaut
+  `routeIncome * 1000 / (véhicules + construction + coût d'opportunité)`
+  (`estimator.nut:77`), le nôtre `profitAnnual * 1000 / (capital + immobilisé)`
+  (`economy.nut:325-329`), et le nombre qu'il imprime entre parenthèses **omet le coût
+  d'opportunité** (`estimator.nut:247`). Toute comparaison exige de recomposer les deux fractions
+  sur une base homogène.
+
+- 🔴 **C50 — Chronologie comparée 1v1, plus longue et non biaisée.**
+  📝 Script écrit le 2026-09-10, **campagne pas encore lancée** :
+  `sweeps/diag_1v1_chronology.py` (6 ans × 5 graines `100 12345 42 7 999`, `--max-workers 2` car un
+  duel partagé fait tourner deux IA par partie).
+  🔑 **Deux corrections de méthode par rapport à `diag_1v1_shared_timeline.py`** : `decision_log=0`
+  chez nous (le journal nous coûtait des opcodes que l'adversaire ne paie pas, dans une mesure dont
+  le sujet EST notre débit — auto-handicap intégré à l'instrument), et **comptage par delta d'état
+  de jeu**, symétrique pour les deux compagnies, au lieu de compter nos chantiers depuis notre
+  propre journal.
+  **Ce que la version 2 ans / graine 42 disait déjà** (`results/diag_1v1_shared_timeline_2y_seed42.json`) :
+  1970 → AAAHogEx 17 tentées / **10 réussies**, nous **10 chantiers** — jeu égal ; 1971 → 24 / **18**
+  contre **5** — ils accélèrent de 80 %, on chute de 50 %. ⚠️ Une graine, deux ans, partie partagée
+  (concurrence pour le terrain), et notre bras journalisait : indicatif, pas un banc.
+  **Reste** : lancer la campagne (sur `/home`, jamais le tmpfs, avec garde-fou disque), puis voir si
+  l'écart 1970/1971 se creuse comme le prédit le mécanisme C48.
+  **Demandé en plus, à instrumenter** : chronologie côté nous avec trésorerie, profit par ligne,
+  projets refusés pour trésorerie **avec leur ROI**, projets réalisés **avec coût et ROI**. ⚠️ Via
+  une **sonde dédiée** (quelques dizaines de lignes/an), **pas** `decision_log=1` (plusieurs
+  milliers — 1 070 lignes d'`AIR_TOWN_SERVED` sur 2 ans à lui seul), sinon on réintroduit
+  l'auto-handicap qu'on vient de retirer.
+
 - 🔴 **C48 — Le coût de `projects` n'est PAS le balayage : c'est la régénération qu'il déclenche.**
   📝 Ouverte et mesurée le 2026-09-10. Sonde `c48_project_attempt_ledger` (défaut 0, gate dédié
   `OpexC48ProjectAttemptLog`) : encadre les 5 sites de tentative de `_tryBuildProjects`
