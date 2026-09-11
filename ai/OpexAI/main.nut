@@ -389,6 +389,51 @@ function OpexC52AutoreplaceLog(fields)
              + AIDate.GetDayOfMonth(date) + " C52_AUTOREPLACE " + fields);
 }
 
+/* C52 : gate dedie et autonome. La sonde ne publie que son propre ledger annuel. */
+function OpexC52EventExposureLog(fields)
+{
+  if (!C52_EVENT_EXPOSURE_PROBE) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " C52_EVENT_EXPOSURE " + fields);
+}
+
+/* Compte avant toute branche de _processEvents : les continue existants ne doivent jamais
+ * rendre un evenement invisible. Les conversions restent limitees au seul ID necessaire pour
+ * dedoublonner ET_VEHICLE_UNPROFITABLE dans la fenetre annuelle. */
+function OpexC52EventExposureObserve(event, eventType)
+{
+  if (!C52_EVENT_EXPOSURE_PROBE || C52_EVENT_EXPOSURE_LEDGER == null) return;
+  local entry = C52_EVENT_EXPOSURE_LEDGER;
+  if (eventType == AIEvent.ET_VEHICLE_CRASHED) {
+    entry.vehicle_crashed++;
+    local crash = AIEventVehicleCrashed.Convert(event);
+    if (crash != null && crash.GetCrashReason() == AIEventVehicleCrashed.CRASH_TRAIN) {
+      entry.crashed_train++;
+    } else entry.crashed_other++;
+  } else if (eventType == AIEvent.ET_VEHICLE_WAITING_IN_DEPOT) entry.vehicle_waiting_in_depot++;
+  else if (eventType == AIEvent.ET_INDUSTRY_OPEN) entry.industry_open++;
+  else if (eventType == AIEvent.ET_INDUSTRY_CLOSE) entry.industry_close++;
+  else if (eventType == AIEvent.ET_TOWN_FOUNDED) entry.town_founded++;
+  else if (eventType == AIEvent.ET_ENGINE_AVAILABLE) entry.engine_available++;
+  else if (eventType == AIEvent.ET_VEHICLE_LOST) entry.vehicle_lost++;
+  else if (eventType == AIEvent.ET_SUBSIDY_OFFER) entry.subsidy_offer++;
+  else if (eventType == AIEvent.ET_SUBSIDY_OFFER_EXPIRED) entry.subsidy_offer_expired++;
+  else if (eventType == AIEvent.ET_SUBSIDY_AWARDED) entry.subsidy_awarded++;
+  else if (eventType == AIEvent.ET_SUBSIDY_EXPIRED) entry.subsidy_expired++;
+  else if (eventType == AIEvent.ET_VEHICLE_AUTOREPLACED) entry.vehicle_autoreplaced++;
+  else if (eventType == AIEvent.ET_VEHICLE_UNPROFITABLE) {
+    entry.vehicle_unprofitable++;
+    local unprofitable = AIEventVehicleUnprofitable.Convert(event);
+    if (unprofitable != null) entry.unprofitable_vehicles.rawset(unprofitable.GetVehicleID(), true);
+  } else if (eventType == AIEvent.ET_AIRCRAFT_DEST_TOO_FAR) entry.aircraft_dest_too_far++;
+  else if (eventType == AIEvent.ET_STATION_FIRST_VEHICLE) entry.station_first_vehicle++;
+  else if (eventType == AIEvent.ET_ROAD_RECONSTRUCTION) entry.road_reconstruction++;
+  else if (eventType == AIEvent.ET_ENGINE_PREVIEW) entry.engine_preview++;
+  else if (eventType == AIEvent.ET_EXCLUSIVE_TRANSPORT_RIGHTS) entry.exclusive_transport_rights++;
+  else entry.other++;
+}
+
 /* Observe une paire au point meme ou le filtre d'origine route la voit. Cette fonction ne
  * retourne rien et n'ecrit que le ledger de sonde ; elle ne participe a aucun predicat. */
 function OpexC55OriginRelaxObserve(kind, lines, src, dst, srcServed, dstServed)
@@ -882,6 +927,9 @@ EVENT_VEHICLE_AUTOREPLACED <- true;
 /* C52 : sonde annuelle des remappages; le ledger reste nul hors sonde. */
 C52_AUTOREPLACE_LOG <- false;
 C52_AUTOREPLACE_LEDGER <- null;
+/* C52 : sonde passive de frequence des evenements. Le ledger reste nul hors sonde. */
+C52_EVENT_EXPOSURE_PROBE <- false;
+C52_EVENT_EXPOSURE_LEDGER <- null;
 /* P3 / A7.5 : une nouvelle ville ou industrie rend le portefeuille obsolete.
  * Le rafraichissement reactif est rare et evite d'attendre le prochain mois. */
 EVENT_CATALOG_INVALIDATE <- true;
@@ -6038,6 +6086,7 @@ function OpexAI::_processEvents()
     local event = AIEventController.GetNextEvent();
     if (event == null) continue;
     local eventType = event.GetEventType();
+    if (C52_EVENT_EXPOSURE_PROBE) OpexC52EventExposureObserve(event, eventType);
 
     if (eventType == AIEvent.ET_VEHICLE_CRASHED) {
       local crash = AIEventVehicleCrashed.Convert(event);
@@ -7093,6 +7142,35 @@ function OpexAI::_logC52AutoreplaceLedger(year)
   };
 }
 
+function OpexC52EventExposureFields(fields, values)
+{
+  local text = "";
+  foreach (field in fields) text += " " + field + "=" + values[field];
+  return text;
+}
+
+/* C52 : le report de debut d'annee publie la fenetre ecoulee, puis conserve son cumul. */
+function OpexAI::_logC52EventExposureLedger(year)
+{
+  if (!C52_EVENT_EXPOSURE_PROBE || C52_EVENT_EXPOSURE_LEDGER == null) return;
+  local entry = C52_EVENT_EXPOSURE_LEDGER;
+  entry.vehicle_unprofitable_distinct = entry.unprofitable_vehicles.len();
+  OpexC52EventExposureLog("phase=annual year=" + year
+                          + OpexC52EventExposureFields(entry.fields, entry));
+  foreach (field in entry.fields) entry.totals[field] += entry[field];
+  OpexC52EventExposureLog("phase=summary year=" + year
+                          + OpexC52EventExposureFields(entry.fields, entry.totals));
+  C52_EVENT_EXPOSURE_LEDGER = {
+    fields = entry.fields, totals = entry.totals, unprofitable_vehicles = {},
+    vehicle_crashed = 0, crashed_train = 0, crashed_other = 0, vehicle_waiting_in_depot = 0,
+    industry_open = 0, industry_close = 0, town_founded = 0, engine_available = 0,
+    vehicle_lost = 0, subsidy_offer = 0, subsidy_offer_expired = 0, subsidy_awarded = 0,
+    subsidy_expired = 0, vehicle_autoreplaced = 0, vehicle_unprofitable = 0,
+    vehicle_unprofitable_distinct = 0, aircraft_dest_too_far = 0, station_first_vehicle = 0,
+    road_reconstruction = 0, engine_preview = 0, exclusive_transport_rights = 0, other = 0,
+  };
+}
+
 /* La tache "report" publie au premier passage de l'annee suivante : year=1971 decrit donc
  * l'annee de jeu 1970, et la derniere annee de la partie n'est jamais publiee. Tous les appels
  * API couteux sont apres ce garde C54, afin que le defaut false n'atteigne aucune API ajoutee. */
@@ -7802,6 +7880,7 @@ function OpexAI::_runNextTask()
     if (C49_SCARCITY_LEDGER) this._logC49ScarcityLedger(year);
     if (C55_ORIGIN_RELAX_PROBE) this._logC55OriginRelaxLedger(year);
     if (C52_AUTOREPLACE_LOG) this._logC52AutoreplaceLedger(year);
+    if (C52_EVENT_EXPOSURE_PROBE) this._logC52EventExposureLedger(year);
     if (C54_VEHICLE_ORDERS_PROBE) this._logC54VehicleOrders(year);
     if (C48_INCREMENTAL_PROFILE) this._logC48IncrementalLedger(year);
     this._reportYear(year, this._ranked);
@@ -8296,6 +8375,7 @@ function OpexAI::Start()
   EVENT_VEHICLE_LOST = AIController.GetSetting("event_vehicle_lost") != 0;
   EVENT_VEHICLE_AUTOREPLACED = AIController.GetSetting("event_vehicle_autoreplaced") != 0;
   C52_AUTOREPLACE_LOG = AIController.GetSetting("c52_autoreplace_log") != 0;
+  C52_EVENT_EXPOSURE_PROBE = AIController.GetSetting("c52_event_exposure_probe") != 0;
   EVENT_CATALOG_INVALIDATE = AIController.GetSetting("event_catalog_invalidate") != 0;
   C39_INVALIDATION_PROBE = AIController.GetSetting("c39_invalidation_probe") != 0;
   C39_DECISION_DELTA_PROBE = AIController.GetSetting("c39_decision_delta_probe") != 0;
@@ -8386,6 +8466,27 @@ function OpexAI::Start()
       total_events = 0, total_remap_line_vehicles = 0, total_remap_line_vehicle = 0,
       total_remap_scrap_vehicles = 0, total_remap_scrap_index = 0, total_untracked = 0,
       total_rail = 0, total_road = 0, total_air = 0, total_water = 0, total_unknown = 0,
+    };
+  }
+  if (C52_EVENT_EXPOSURE_PROBE) {
+    local c52EventFields = [
+      "vehicle_crashed", "crashed_train", "crashed_other", "vehicle_waiting_in_depot",
+      "industry_open", "industry_close", "town_founded", "engine_available", "vehicle_lost",
+      "subsidy_offer", "subsidy_offer_expired", "subsidy_awarded", "subsidy_expired",
+      "vehicle_autoreplaced", "vehicle_unprofitable", "vehicle_unprofitable_distinct",
+      "aircraft_dest_too_far", "station_first_vehicle", "road_reconstruction", "engine_preview",
+      "exclusive_transport_rights", "other",
+    ];
+    local c52EventTotals = {};
+    foreach (field in c52EventFields) c52EventTotals.rawset(field, 0);
+    C52_EVENT_EXPOSURE_LEDGER = {
+      fields = c52EventFields, totals = c52EventTotals, unprofitable_vehicles = {},
+      vehicle_crashed = 0, crashed_train = 0, crashed_other = 0, vehicle_waiting_in_depot = 0,
+      industry_open = 0, industry_close = 0, town_founded = 0, engine_available = 0,
+      vehicle_lost = 0, subsidy_offer = 0, subsidy_offer_expired = 0, subsidy_awarded = 0,
+      subsidy_expired = 0, vehicle_autoreplaced = 0, vehicle_unprofitable = 0,
+      vehicle_unprofitable_distinct = 0, aircraft_dest_too_far = 0, station_first_vehicle = 0,
+      road_reconstruction = 0, engine_preview = 0, exclusive_transport_rights = 0, other = 0,
     };
   }
   C48_INCREMENTAL_PROFILE = AIController.GetSetting("c48_incremental_profile") != 0;
