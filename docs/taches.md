@@ -798,9 +798,38 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
 
   ### Étapes restantes
 
-  1 sexies. ⬜ **Localiser le point exact dans `OpexWaterPlans`** : `OpexWaterFindSiteSlice`
-     (`builder_water.nut:220`) et le BFS (`:29-30`, `:340-351`). Trois graines reproduisent, dont
-     1337 et 1024 en plus de 2026.
+  ### 🔴 ÉTAPE 1 sexies FAITE le 2026-09-11 — **LE GEL EST DANS MinchinWeb.Lakes**
+
+  Jalons par paire autour des deux étages de la double boucle. Sur les graines 2026 **et** 1337,
+  la dernière ligne du journal entier est **identique** :
+
+  ```
+  C56_TASK PAIR name=lakes_enter pair=1
+  ```
+
+  ⇒ L'IA entre dans `OpexWaterLakesConnected` (`lib_water.nut:557`) — donc dans
+  **`_MinchinWeb_Lakes_`** — dès la **première paire**, et n'en ressort jamais. Le tri des villes et
+  le scan de sites se terminent normalement (`towns=12`). **Le BFS maison n'est jamais atteint.**
+
+  🔴 **CECI RÉFUTE LA PRÉMISSE DU CHANTIER « remplacer le module eau par MinchinWeb ».**
+  `water_lakes_connectivity` vaut **1 par défaut** depuis le 2026-09-09 : la bibliothèque n'est pas
+  le remède envisagé, elle est **déjà en place et c'est elle qui bloque**. Adopter davantage de
+  MinchinWeb (`Pathfinder.Ship`) sans traiter ça reviendrait à étendre le composant fautif.
+
+  **Ce qui reste à établir, et qui n'est PAS mesuré** : *où* exactement dans Lakes.
+  `OpexWaterLakesConnected` fait deux choses (`lib_water.nut:561-562`) — `InitializePath`, puis
+  `FindPath(WATER_LAKES_ITERATIONS)` avec un budget de **500** (`:535`). La boucle de `FindPath` est
+  bornée (`lib_water.nut:191`), donc **le budget ne protège pas de ce gel** : soit `InitializePath`
+  ne rend pas la main (c'est lui qui déclenche la découverte de bassin par inondation), soit **une
+  seule itération** de `FindPath` est elle-même non bornée. 🔑 *Un budget d'itérations ne borne rien
+  si une itération est non bornée.* Hypothèse la plus plausible, **non vérifiée** : une carte à
+  vaste océan connecté fait explorer un bassin entier en un seul pas.
+
+  ⚠️ **Piège d'instrumentation payé TROIS fois dans cette fiche** : `LOOP_TICK` tous les 200 tours
+  (trop espacé), puis les compteurs de paires tous les 500 (jamais atteints avant le gel), puis la
+  granularité par paire — la seule qui ait parlé. *Un compteur périodique ne dit rien de l'unité en
+  cours au moment où le journal se coupe ; seul un jalon « le dernier écrit gagne » nomme le
+  coupable.*
   2. ⬜ **Décider : garde anti-blocage, ou remplacement du module eau** par
      `MinchinWeb.Lakes`/`Pathfinder.Ship`, déjà décidé le 2026-09-09 pour d'autres raisons
      (`AGENTS.md` §3). ⚠️ Décision de conception : ne pas la prendre seul.
