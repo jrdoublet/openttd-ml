@@ -784,12 +784,7 @@ function OpexC41RepairJunction(center, exclude)
  * Elle ne reconstruit pas un voisinage de gares et ne modifie jamais la table retournee. */
 function OpexC41PersistedLineForVehicle(lines, vehicle)
 {
-  if (lines == null) return null;
-  foreach (line in lines) {
-    if (line == null || !("vehicles" in line) || line.vehicles == null) continue;
-    foreach (knownVehicle in line.vehicles) if (knownVehicle == vehicle) return line;
-  }
-  return null;
+  return OpexFindLineForVehicle(lines, vehicle);
 }
 
 function OpexC39ProjectSignature(projects)
@@ -953,6 +948,13 @@ C52_AUTOREPLACE_LEDGER <- null;
 /* C52 : sonde passive de frequence des evenements. Le ledger reste nul hors sonde. */
 C52_EVENT_EXPOSURE_PROBE <- false;
 C52_EVENT_EXPOSURE_LEDGER <- null;
+/* C52 #2 : reaction et reconstitution sur tout crash de vehicule */
+EVENT_VEHICLE_CRASHED <- false;
+C52_CRASH_LOG <- false;
+/* C52 #4 : reaction aux vehicules non rentables chroniques */
+EVENT_VEHICLE_UNPROFITABLE <- false;
+UNPROFITABLE_STREAK_THRESHOLD <- 2;
+C52_UNPROFITABLE_LOG <- false;
 /* P3 / A7.5 : une nouvelle ville ou industrie rend le portefeuille obsolete.
  * Le rafraichissement reactif est rare et evite d'attendre le prochain mois. */
 EVENT_CATALOG_INVALIDATE <- true;
@@ -1513,6 +1515,8 @@ class OpexAI extends AIController {
   _c39FinanceableSince = null;
   _startYear = -1;
   _vehiclesToScrap = null;
+  /* C52 #4 : suivi des annees consecutives de deficit par vehicule */
+  _unprofitableStreaks = null;
   /* C41.8 : ensemble coalescé par ligne, consommé par une seule micro-tâche. */
   _c41RailSignalLines = null;
   /* C41.10 : même schéma, réparation de raccord au lieu de pose PBS. */
@@ -1533,6 +1537,7 @@ class OpexAI extends AIController {
     this._abandonedPairs = {};
     this._abandonCounts = {};
     this._vehiclesToScrap = {};
+    this._unprofitableStreaks = {};
     OpexAirResetSiteCache();
     this._activeSubsidies = {};
     this._c41RailSignalLines = {};
@@ -1762,6 +1767,80 @@ function OpexLineVehicleIds(line, stationId)
   local vehicles = AIVehicleList_Station(stationId);
   for (local v = vehicles.Begin(); !vehicles.IsEnd(); v = vehicles.Next()) ids.append(v);
   return ids;
+}
+
+/* Retrouve la ligne proprietaire d'un vehicule quel que soit son mode (rail, route, air, eau),
+ * y compris pour la route dont les vehicules ne sont pas tous stockes dans line.vehicles. */
+function OpexFindLineForVehicle(lines, vehicle, tile = null)
+{
+  if (lines == null) return null;
+  // 1. Inventaire direct : tableau vehicles, scalaire vehicle, ou scrapVehicles
+  foreach (line in lines) {
+    if (line == null) continue;
+    if (("vehicles" in line) && line.vehicles != null) {
+      foreach (known in line.vehicles) {
+        if (known == vehicle) return line;
+      }
+    }
+    if (("vehicle" in line) && line.vehicle == vehicle) return line;
+    if (("scrapVehicles" in line) && line.scrapVehicles != null) {
+      foreach (known in line.scrapVehicles) {
+        if (known == vehicle) return line;
+      }
+    }
+  }
+  // 2. Si le vehicule est valide, distinction par ordres et stations
+  if (AIVehicle.IsValidVehicle(vehicle)) {
+    local vType = AIVehicle.GetVehicleType(vehicle);
+    local targetMode = (vType == AIVehicle.VT_ROAD) ? "road"
+                     : ((vType == AIVehicle.VT_RAIL) ? "rail"
+                     : ((vType == AIVehicle.VT_AIR) ? "air" : "water"));
+    foreach (line in lines) {
+      if (line == null) continue;
+      if (("mode" in line) && line.mode != targetMode) continue;
+      local stA = ("stationA" in line) ? AIStation.GetStationID(line.stationA) : AIStation.STATION_INVALID;
+      local stB = ("stationB" in line) ? AIStation.GetStationID(line.stationB) : AIStation.STATION_INVALID;
+      if (OpexVehicleServesStation(vehicle, stA) && OpexVehicleServesStation(vehicle, stB)) {
+        return line;
+      }
+    }
+    // Repli : au moins une station desservie
+    foreach (line in lines) {
+      if (line == null) continue;
+      if (("mode" in line) && line.mode != targetMode) continue;
+      local stA = ("stationA" in line) ? AIStation.GetStationID(line.stationA) : AIStation.STATION_INVALID;
+      local stB = ("stationB" in line) ? AIStation.GetStationID(line.stationB) : AIStation.STATION_INVALID;
+      if (OpexVehicleServesStation(vehicle, stA) || OpexVehicleServesStation(vehicle, stB)) {
+        return line;
+      }
+    }
+  }
+  // 3. Repli spatial si une tuile d'evenement est fournie
+  if (tile != null && AIMap.IsValidTile(tile)) {
+    local bestLine = null;
+    local bestDist = 999999;
+    foreach (line in lines) {
+      if (line == null) continue;
+      local stA = ("stationA" in line) ? AIStation.GetStationID(line.stationA) : AIStation.STATION_INVALID;
+      if (AIStation.IsValidStation(stA)) {
+        local distA = AIMap.DistanceManhattan(tile, AIStation.GetLocation(stA));
+        if (distA < bestDist && distA <= 20) {
+          bestDist = distA;
+          bestLine = line;
+        }
+      }
+      local stB = ("stationB" in line) ? AIStation.GetStationID(line.stationB) : AIStation.STATION_INVALID;
+      if (AIStation.IsValidStation(stB)) {
+        local distB = AIMap.DistanceManhattan(tile, AIStation.GetLocation(stB));
+        if (distB < bestDist && distB <= 20) {
+          bestDist = distB;
+          bestLine = line;
+        }
+      }
+    }
+    if (bestLine != null) return bestLine;
+  }
+  return null;
 }
 
 /* Le type de vehicule se deduit du mode de la ligne, et d'un seul endroit : _reportLines et
@@ -4218,9 +4297,13 @@ function OpexAI::_reportLines(year)
     foreach (v in vehicles) {
       if (!AIVehicle.IsValidVehicle(v)) continue;
       if (AIVehicle.GetVehicleType(v) != vehicleType) continue;
-      profit += AIVehicle.GetProfitLastYear(v);
+      local prof = AIVehicle.GetProfitLastYear(v);
+      profit += prof;
       runCost += AIVehicle.GetRunningCost(v);
       vehCount++;
+      if (prof >= 0 && this._unprofitableStreaks != null && (v in this._unprofitableStreaks)) {
+        delete this._unprofitableStreaks[v];
+      }
       /* Diagnostic effondrement fret : etat REEL de CHAQUE convoi (pas juste le premier -- une
        * gare a UNE seule voie, donc un convoi bloque au puits peut faire la queue derriere les
        * autres, qui rendraient "en marche, vitesse 0" sans etre eux-memes la cause). L'ordre
@@ -6145,20 +6228,62 @@ function OpexAI::_processEvents()
 
     if (eventType == AIEvent.ET_VEHICLE_CRASHED) {
       local crash = AIEventVehicleCrashed.Convert(event);
-      if (crash != null && crash.GetCrashReason() == AIEventVehicleCrashed.CRASH_TRAIN) {
+      if (crash != null) {
         local vehicle = crash.GetVehicleID();
-        local lineId = -1;
-        foreach (line in this._lines) {
-          if (!("vehicles" in line)) continue;
-          foreach (known in line.vehicles) {
-            if (known == vehicle) { lineId = line.lineId; break; }
-          }
-          if (lineId >= 0) break;
-        }
+        local reason = crash.GetCrashReason();
         local site = crash.GetCrashSite();
-        OpexSign(AIMap.GetTileIndex(1, 1), "XC|" + (AIDate.GetYear(AIDate.GetCurrentDate()) % 100)
-                 + "|" + lineId + "|" + vehicle + "|" + AIMap.GetTileX(site) + "|"
-                 + AIMap.GetTileY(site) + "|" + crash.GetVictims());
+        local victims = crash.GetVictims();
+        local line = OpexFindLineForVehicle(this._lines, vehicle, site);
+        local lineId = line != null ? line.lineId : -1;
+        local mode = line != null && ("mode" in line) ? line.mode : "unknown";
+
+        if (C52_CRASH_LOG || DECISION_LOG) {
+          OpexDecide("VEHICLE_CRASHED", "vehicle=" + vehicle + " reason=" + reason
+                     + " mode=" + mode + " line=" + lineId + " site=" + site + " victims=" + victims);
+        }
+
+        if (EVENT_VEHICLE_CRASHED) {
+          local year = AIDate.GetYear(AIDate.GetCurrentDate());
+          OpexSign(AIMap.GetTileIndex(1, 1), "XC|" + (year % 100)
+                   + "|" + lineId + "|" + vehicle + "|" + AIMap.GetTileX(site) + "|"
+                   + AIMap.GetTileY(site) + "|" + victims + "|" + reason);
+
+          if (line != null) {
+            if (("vehicles" in line) && line.vehicles != null) {
+              for (local i = 0; i < line.vehicles.len(); i++) {
+                if (line.vehicles[i] == vehicle) {
+                  line.vehicles.remove(i);
+                  break;
+                }
+              }
+            }
+            if (("vehicle" in line) && line.vehicle == vehicle) {
+              line.vehicle = -1;
+            }
+            if (("scrapVehicles" in line) && line.scrapVehicles != null) {
+              for (local i = 0; i < line.scrapVehicles.len(); i++) {
+                if (line.scrapVehicles[i] == vehicle) {
+                  line.scrapVehicles.remove(i);
+                  break;
+                }
+              }
+            }
+            if (("vehCount" in line) && line.vehCount > 0) line.vehCount--;
+            if (("trains" in line) && line.trains > 0) line.trains--;
+            if ("suspectedCrashes" in line) line.suspectedCrashes++;
+            else line.suspectedCrashes <- 1;
+
+            line.needsRefleet <- true;
+          }
+          if (this._vehiclesToScrap != null && (vehicle in this._vehiclesToScrap)) {
+            delete this._vehiclesToScrap[vehicle];
+          }
+        } else if (reason == AIEventVehicleCrashed.CRASH_TRAIN) {
+          local year = AIDate.GetYear(AIDate.GetCurrentDate());
+          OpexSign(AIMap.GetTileIndex(1, 1), "XC|" + (year % 100)
+                   + "|" + lineId + "|" + vehicle + "|" + AIMap.GetTileX(site) + "|"
+                   + AIMap.GetTileY(site) + "|" + victims);
+        }
       }
       continue;
     }
@@ -6272,6 +6397,86 @@ function OpexAI::_processEvents()
             else if (mode == "road") entry.line_road++;
             else if (mode == "air") entry.line_air++;
             else if (mode == "water") entry.line_water++;
+          }
+        }
+      }
+      continue;
+    }
+
+    if (eventType == AIEvent.ET_VEHICLE_UNPROFITABLE) {
+      if (EVENT_VEHICLE_UNPROFITABLE || C52_UNPROFITABLE_LOG) {
+        local unprofitableEvt = AIEventVehicleUnprofitable.Convert(event);
+        if (unprofitableEvt != null) {
+          local vehicle = unprofitableEvt.GetVehicleID();
+          if (AIVehicle.IsValidVehicle(vehicle)) {
+            local age = AIVehicle.GetAge(vehicle);
+            local profitLast = AIVehicle.GetProfitLastYear(vehicle);
+            local line = OpexFindLineForVehicle(this._lines, vehicle);
+            local lineId = (line != null && ("lineId" in line)) ? line.lineId : -1;
+            local mode = (line != null && ("mode" in line)) ? line.mode
+                       : (AIVehicle.GetVehicleType(vehicle) == AIVehicle.VT_ROAD ? "road"
+                       : (AIVehicle.GetVehicleType(vehicle) == AIVehicle.VT_RAIL ? "rail"
+                       : (AIVehicle.GetVehicleType(vehicle) == AIVehicle.VT_AIR ? "air" : "water")));
+
+            if (C52_UNPROFITABLE_LOG || DECISION_LOG) {
+              OpexDecide("VEHICLE_UNPROFITABLE", "vehicle=" + vehicle + " mode=" + mode
+                         + " line=" + lineId + " age=" + age + " profit=" + profitLast);
+            }
+
+            if (EVENT_VEHICLE_UNPROFITABLE) {
+              // Garde demarrage : un vehicule en service depuis moins d'un an est encore en montee en charge.
+              if (age >= 365) {
+                if (this._unprofitableStreaks == null) this._unprofitableStreaks = {};
+                local streak = (vehicle in this._unprofitableStreaks)
+                    ? this._unprofitableStreaks[vehicle] + 1 : 1;
+                this._unprofitableStreaks.rawset(vehicle, streak);
+
+                if (streak >= UNPROFITABLE_STREAK_THRESHOLD) {
+                  if (line != null) {
+                    local have = ("vehCount" in line) ? line.vehCount
+                               : (("vehicles" in line && line.vehicles != null) ? line.vehicles.len()
+                               : (("trains" in line) ? line.trains : 1));
+                    if (have > 1) {
+                      // Ligne multi-vehicules surcapacitaire : retirer ce vehicule specifique pour stopper le deficit.
+                      AIVehicle.SendVehicleToDepot(vehicle);
+                      if (this._vehiclesToScrap != null) {
+                        this._vehiclesToScrap.rawset(vehicle, line.lineId);
+                      }
+                      if ("scrapVehicles" in line && line.scrapVehicles != null) {
+                        line.scrapVehicles.append(vehicle);
+                      }
+                      if ("vehicles" in line && line.vehicles != null) {
+                        for (local i = 0; i < line.vehicles.len(); i++) {
+                          if (line.vehicles[i] == vehicle) {
+                            line.vehicles.remove(i);
+                            break;
+                          }
+                        }
+                      }
+                      if ("vehCount" in line && line.vehCount > 0) line.vehCount--;
+                      if ("trains" in line && line.trains > 1) line.trains--;
+                      if (C52_UNPROFITABLE_LOG || DECISION_LOG) {
+                        OpexDecide("UNPROFITABLE_RETIRE", "vehicle=" + vehicle + " line=" + line.lineId
+                                   + " streak=" + streak + " profit=" + profitLast + " remaining=" + have);
+                      }
+                    } else {
+                      // Ligne a 1 seul vehicule (ou dernier) structurellement deficitaire : fermer la ligne.
+                      this._triggerScrapLine(line, "unprofitable");
+                      if (C52_UNPROFITABLE_LOG || DECISION_LOG) {
+                        OpexDecide("UNPROFITABLE_SCRAP", "line=" + line.lineId + " vehicle=" + vehicle
+                                   + " streak=" + streak + " profit=" + profitLast);
+                      }
+                    }
+                  } else {
+                    // Vehicule orphelin hors ligne
+                    AIVehicle.SendVehicleToDepot(vehicle);
+                    if (this._vehiclesToScrap != null) {
+                      this._vehiclesToScrap.rawset(vehicle, -1);
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -6564,21 +6769,14 @@ function OpexAI::_processEvents()
         if (lostEvt != null) {
           local vehicle = lostEvt.GetVehicleID();
           if (AIVehicle.IsValidVehicle(vehicle)) {
-            local lineId = -1;
-            local vehicleType = AIVehicle.GetVehicleType(vehicle);
-            foreach (line in this._lines) {
-              if (!("vehicles" in line)) continue;
-              foreach (v in line.vehicles) {
-                if (v == vehicle) {
-                  lineId = line.lineId;
-                  if (!("lostCount" in line)) line.lostCount <- 0;
-                  line.lostCount++;
-                  break;
-                }
-              }
-              if (lineId >= 0) break;
-            }
             local loc = AIVehicle.GetLocation(vehicle);
+            local line = OpexFindLineForVehicle(this._lines, vehicle, loc);
+            local lineId = line != null ? line.lineId : -1;
+            local vehicleType = AIVehicle.GetVehicleType(vehicle);
+            if (line != null) {
+              if (!("lostCount" in line)) line.lostCount <- 0;
+              line.lostCount++;
+            }
             if (DECISION_LOG) {
               OpexDecide("VEHICLE_LOST", "vehicle=" + vehicle + " line=" + lineId + " type=" + vehicleType + " tile=" + loc);
             }
@@ -8247,6 +8445,7 @@ function OpexAI::Save()
     taskCycle = this._taskCycle,
     taskCursor = this._taskCursor,
     vehiclesToScrap = this._vehiclesToScrap,
+    unprofitableStreaks = this._unprofitableStreaks,
     taskDue = taskDue,
     stateVersion = 1,
   };
@@ -8280,6 +8479,7 @@ function OpexAI::Load(version, data)
   if ("taskCycle" in data) this._taskCycle = data.taskCycle;
   if ("taskCursor" in data) this._taskCursor = data.taskCursor;
   if ("vehiclesToScrap" in data && data.vehiclesToScrap != null) this._vehiclesToScrap = data.vehiclesToScrap;
+  if ("unprofitableStreaks" in data && data.unprofitableStreaks != null) this._unprofitableStreaks = data.unprofitableStreaks;
   /* Cle par nom : l'ordre de la file peut evoluer entre deux versions de l'IA. */
   if ("taskDue" in data && data.taskDue != null && this._taskQueue != null) {
     foreach (task in this._taskQueue) {
@@ -8480,6 +8680,11 @@ function OpexAI::Start()
   EVENT_VEHICLE_AUTOREPLACED = AIController.GetSetting("event_vehicle_autoreplaced") != 0;
   C52_AUTOREPLACE_LOG = AIController.GetSetting("c52_autoreplace_log") != 0;
   C52_EVENT_EXPOSURE_PROBE = AIController.GetSetting("c52_event_exposure_probe") != 0;
+  EVENT_VEHICLE_CRASHED = AIController.GetSetting("event_vehicle_crashed") != 0;
+  C52_CRASH_LOG = AIController.GetSetting("c52_crash_log") != 0;
+  EVENT_VEHICLE_UNPROFITABLE = AIController.GetSetting("event_vehicle_unprofitable") != 0;
+  UNPROFITABLE_STREAK_THRESHOLD = AIController.GetSetting("unprofitable_streak_threshold");
+  C52_UNPROFITABLE_LOG = AIController.GetSetting("c52_unprofitable_log") != 0;
   C56_TASK_TRACE = AIController.GetSetting("c56_task_trace") != 0;
   if (C56_TASK_TRACE) C56_LOOP_TICK_COUNT = 0;
   EVENT_CATALOG_INVALIDATE = AIController.GetSetting("event_catalog_invalidate") != 0;

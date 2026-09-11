@@ -1184,6 +1184,27 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   vérifiables. La conclusion ci-dessus ne repose donc **que** sur les faits vérifiés dans le dépôt,
   qui suffisent et vont dans le même sens.
 
+  ### ✅ #2 ET #4 IMPLÉMENTÉS ET DIAGNOSTIQUÉS le 2026-09-11
+
+  Conformément aux règles du dépôt (`AGENTS.md`), les deux branches actives ont été instrumentées sous réglages booléens isolés à défaut 0 :
+  - **`event_vehicle_crashed`** (défaut 0, sonde `c52_crash_log`) : prise en compte de tous les modes (rail, route, air, eau) et motifs de crash. Purge des listes `line.vehicles`, `line.vehicle`, `scrapVehicles` et `_vehiclesToScrap`. Décrémente `vehCount` et `trains`, pose le panneau `XC|<an>|<line>|<veh>|<x>|<y>|<victims>|<reason>` et positionne `needsRefleet`.
+  - **`event_vehicle_unprofitable`** (défaut 0, seuil `unprofitable_streak_threshold` = 2, sonde `c52_unprofitable_log`) : garde de jeunesse (`age >= 365`), table de suivi des années consécutives en déficit `_unprofitableStreaks` (sérialisée dans `Save()`/`Load()`). Si le seuil de 2 ans est atteint : retrait au dépôt du véhicule en surcapacité (`have > 1`) via `UNPROFITABLE_RETIRE`, ou fermeture de la ligne (`have <= 1`) via `UNPROFITABLE_SCRAP`.
+  - **Résolveur universel `OpexFindLineForVehicle`** : unifie la recherche de ligne pour tous les modes (tableaux de véhicules, scalaires, véhicules au rebut, et ordres de stations), rétablissant la détection de ligne dans `EVENT_VEHICLE_LOST` qui était aveugle pour tout le trafic routier.
+
+  🔴 **Piège critique Squirrel découvert et corrigé :**
+  En Squirrel, les tableaux natifs n'ont **pas** de méthode `.find()`. L'appel `line.vehicles.find(vehicle)` levait l'erreur `the index 'find' does not exist` et tuait la VM au premier crash de camion (graine 2026 en 1971). Remplacé par des boucles d'itération natives Squirrel. De plus, la colonne `Err` a été ajoutée au processeur du banc pour lever immédiatement tout crash silencieux de l'IA.
+
+  **Résultats du diagnostic apparié 5 graines × 6 ans (`results/diag_c52_events_6y_5seeds.json`, 0 erreur) :**
+
+  | Bras | Val. Cie | Profit/an | Véhicules | Stations | Gains appariés vs OpexAI |
+  |---|---:|---:|---:|---:|---|
+  | **OpexAI** (baseline) | 8 746 782 | 2 336 691 | 162.8 | 77.2 | — |
+  | **`event_vehicle_unprofitable=1`** | 8 645 932 | 2 276 968 | 157.4 | 78.4 | **3/5 gains CV** (+216k g100, +170k g2026, +27k g7) ; flotte allégée de 5.4 véhicules |
+  | **`event_vehicle_crashed=1`** | 8 640 857 | 2 311 463 | 164.8 | 81.8 | **3/5 gains CV** (+206k g2026, +18k g7, +15k g100), 3/5 gains profit |
+
+  Les deux réglages restent **à défaut 0** en attendant la confirmation officielle sur banc 20×10.
+
+
 - 🔴 **C53 — S'inspirer de `SuperLib.Order` pour la gestion des ordres de véhicules.**
   📝 Noté le 2026-09-10 sur demande utilisateur. `ai/library/SuperLib-41/` est **présente dans le
   dépôt** et contient `order.nut` et `vehicle.nut`. OpexAI **ne l'utilise pas** — elle n'apparaît

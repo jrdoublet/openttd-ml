@@ -214,6 +214,49 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C52 #2 : prise en compte de tous les crashs de vehicules (camions, avions, etc.) */
+    AddSetting({
+      name = "event_vehicle_crashed",
+      description = "C52 #2: Handle all vehicle crashes (not just train-on-train): remove dead IDs, record telemetry and trigger fleet reconstitution: 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c52_crash_log",
+      description = "C52 #2: log detailed vehicle crash events without changing decisions: 1 = probe, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* C52 #4 : reaction aux vehicules non rentables chroniques */
+    AddSetting({
+      name = "event_vehicle_unprofitable",
+      description = "C52 #4: React to ET_VEHICLE_UNPROFITABLE: track chronic deficits and retire surplus vehicles or scrap dead lines: 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "unprofitable_streak_threshold",
+      description = "C52 #4: Number of consecutive unprofitable years before retiring vehicle or scrapping line: min 2, max 5, default 2",
+      min_value = 1, max_value = 10,
+      easy_value = 2, medium_value = 2, hard_value = 2,
+      custom_value = 2,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "c52_unprofitable_log",
+      description = "C52 #4: log unprofitable vehicle events without changing decisions: 1 = probe, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     AddSetting({
       name = "c56_task_trace",
       description = "C56: immediately trace selected task entry, task exit, and every 200th main-loop turn without changing decisions: 1 = probe, 0 = off (default)",
