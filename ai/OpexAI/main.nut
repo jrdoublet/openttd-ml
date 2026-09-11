@@ -58,8 +58,6 @@ ROAD_PAX_STOP_DWELL_DAYS <- 6;
 AIR_PAX_REVENUE_CALIBRATION_PCT <- 104;
 /* C27 : Sortir les bonus du numerateur de densite du portefeuille (adopte) */
 CLEAN_DENSITY_SCORE <- true;
-/* C28 : Maximum glissant sur les N derniers cycles pour capitalCeiling (defaut 24) */
-CAPITAL_CEILING_CYCLES <- 24;
 /* C29.1 + C29.2 : Deverrouillage du rabattement (feeders) vers hubs aeriens et ferroviaires */
 FEEDER_UNLOCK <- true;
 /* C29.3 : Pricing du feeder calculé sur le revenu hub et le bassin de captage */
@@ -8758,10 +8756,6 @@ function OpexAI::_runNextTask()
 
 function OpexAI::_rebuildProjects(fleetPlan)
 {
-  local priorPeak = (this._projects != null && ("capitalBudgetPeak" in this._projects))
-      ? this._projects.capitalBudgetPeak : 0;
-  local priorHistory = (this._projects != null && ("capitalBudgetHistory" in this._projects))
-      ? this._projects.capitalBudgetHistory : null;
   local stage = OPEX_STAGE_COMPLETE;
   local prior = null;
   if (STAGED_BOOTSTRAP && this._generationStage < OPEX_STAGE_COMPLETE) {
@@ -8792,7 +8786,7 @@ function OpexAI::_rebuildProjects(fleetPlan)
     }
   }
   this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines,
-      priorPeak, priorHistory, fleetPlan, this._abandonedPairs, stage, prior,
+      fleetPlan, this._abandonedPairs, stage, prior,
       freightCargo, freightCargos, this._waterSiteCatalog, this._activeSubsidies);
   local actualFreightCargo = (this._projects != null && ("freightCargo" in this._projects))
       ? this._projects.freightCargo : freightCargo;
@@ -9342,8 +9336,6 @@ function OpexAI::Start()
   AIR_CADENCE_CAP = AIController.GetSetting("air_cadence_cap") != 0;
   ROAD_LOADING_FIX = AIController.GetSetting("road_loading_fix") != 0;
   CLEAN_DENSITY_SCORE = AIController.GetSetting("clean_density_score") != 0;
-  local ccc = AIController.GetSetting("capital_ceiling_cycles");
-  if (ccc >= 0) CAPITAL_CEILING_CYCLES = ccc;
   local iap = AIController.GetSetting("infra_amort_pct");
   if (iap >= 0) INFRA_AMORT_PCT = iap;
   FEEDER_UNLOCK = AIController.GetSetting("feeder_unlock") != 0;

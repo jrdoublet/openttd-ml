@@ -982,22 +982,6 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    /* C28 : Maximum glissant sur les N derniers cycles pour capitalCeiling (docs/taches.md C28).
-     * Supprime le cliquet infini sans decroissance (mesure fige a 295 000 £), qui continue
-     * d'admettre au vivier des projets inaccessibles quand la compagnie s'appauvrit.
-     * 0 = cliquet infini historique (sans decroissance) ; N > 0 = maximum glissant sur les N
-     * derniers cycles/regenerations. Valide au banc 10 ans : N=24 donne +13.7% valeur mediane,
-     * +4.7% valeur moyenne, 3/5 gains et 0 defaite. Defaut 24 (~2 ans). */
-    AddSetting({
-      name = "capital_ceiling_cycles",
-      description = "Fenetre glissante en cycles pour capitalCeiling (docs/taches.md C28): 0 = cliquet infini historique, N > 0 = max glissant sur N cycles (defaut 24)",
-      min_value = 0, max_value = 120,
-      easy_value = 24, medium_value = 24, hard_value = 24,
-      custom_value = 24,
-      step_size = 1,
-      flags = 0
-    });
-
     /* C29.1 + C29.2 : Deverrouillage du rabattement (feeders) vers hubs aeriens et ferroviaires (docs/taches.md C29).
      * C29.1 : Hubs restreints aux modes lourds passagers (Air + Rail Pax). Fret pur (charbon, fer) et bus exclus.
      * C29.2 : Une ville n'est plus bloquee par une ligne de bus ordinaire ; seul un feeder existant vers CE hub l'exclut.

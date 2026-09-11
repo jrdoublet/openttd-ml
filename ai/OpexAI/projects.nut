@@ -36,7 +36,6 @@ const PROJECT_ROAD_TRANSACTION_OPS = 287000;
 const PROJECT_AIR_TRANSACTION_OPS = 100000;
 const PROJECT_WATER_TRANSACTION_OPS = 100000;
 CLEAN_DENSITY_SCORE <- true;
-CAPITAL_CEILING_CYCLES <- 24;
 
 /* Journal historique conserve mot pour mot pour le chemin tension_probe=0. */
 function OpexLogPortfolioRank(projects)
@@ -997,27 +996,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
     }
   }
 
-  /* 5. Avancer le plafond glissant AVANT de filtrer le vivier : un budget qui
-   * remonte doit rendre ses projets accessibles dans cette meme reelection. */
-  local capitalCeiling = capitalBudget;
-  if ("capitalBudgetHistory" in projects && typeof(projects.capitalBudgetHistory) == "array") {
-    projects.capitalBudgetHistory.append(capitalBudget);
-    if (CAPITAL_CEILING_CYCLES > 0) {
-      while (projects.capitalBudgetHistory.len() > CAPITAL_CEILING_CYCLES) {
-        projects.capitalBudgetHistory.remove(0);
-      }
-    }
-    local maxVal = 0;
-    foreach (val in projects.capitalBudgetHistory) {
-      if (val > maxVal) maxVal = val;
-    }
-    projects.capitalBudgetPeak = maxVal;
-    capitalCeiling = maxVal;
-  } else if ("capitalBudgetPeak" in projects) {
-    capitalCeiling = projects.capitalBudgetPeak;
-  }
-
-  /* 6. Selection et resolution du sac a dos sur le capital restant */
+  /* 5. Selection du portefeuille sur le capital restant */
   local funded = null;
   local byBudget = [];
   local c48SelectionMark = null;
@@ -1047,7 +1026,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
         0, 0, 0, 0, 0, 0, 0, c48Alternatives, funded.len());
   }
 
-  /* 5. Cloture des statistiques et du capital restant */
+  /* 6. Cloture des statistiques et du capital restant */
   local selectedRev = 0;
   local selectedCap = 0;
   foreach (p in funded) {
@@ -1172,7 +1151,7 @@ function OpexMergeRailCandidateSet(base, extra)
   return base;
 }
 
-function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCapitalHistory = null, fleetPlan = null, abandonedPairs = null, generationStage = null, priorProjects = null, freightCargo = null, freightCargoOrder = null, waterSiteCatalog = null, activeSubsidies = null)
+function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPairs = null, generationStage = null, priorProjects = null, freightCargo = null, freightCargoOrder = null, waterSiteCatalog = null, activeSubsidies = null)
 {
   if (generationStage == null) generationStage = OPEX_STAGE_COMPLETE;
   local doFreight = (generationStage == OPEX_STAGE_AIR_ONLY || generationStage == OPEX_STAGE_COMPLETE);
@@ -1355,40 +1334,6 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_road", "-");
 
   local capitalBudget = OpexAvailableCapital();
-
-  /* C28 (docs/taches.md C28) : Remplacement du cliquet sans decroissance par un maximum glissant
-   * sur les N derniers cycles.
-   * L'admission au vivier engage une place pour tout un cycle, elle s'evalue donc sur le meilleur
-   * capital mobilisable recent, et non sur la tresorerie du moment qui suit un achat (creux de cycle).
-   * Mais sous le cliquet infini historique (CAPITAL_CEILING_CYCLES = 0), une compagnie qui
-   * s'appauvrit garde un plafond fige (mesure a 295 000 £) et continue d'admettre des projets
-   * inaccessibles au vivier, ce qui evince les projets abordables.
-   * Sous CAPITAL_CEILING_CYCLES > 0, on retient le maximum sur les N derniers cycles (defaut 24, ~2 ans). */
-  local history = [];
-  if (typeof(priorCapitalPeak) == "array") {
-    priorCapitalHistory = priorCapitalPeak;
-    priorCapitalPeak = 0;
-  }
-  if (priorCapitalHistory != null && typeof(priorCapitalHistory) == "array") {
-    foreach (val in priorCapitalHistory) history.append(val);
-  } else if (priorCapitalPeak > 0) {
-    history.append(priorCapitalPeak);
-  }
-  history.append(capitalBudget);
-
-  local capitalCeiling;
-  if (CAPITAL_CEILING_CYCLES > 0) {
-    while (history.len() > CAPITAL_CEILING_CYCLES) {
-      history.remove(0);
-    }
-    local maxVal = 0;
-    foreach (val in history) {
-      if (val > maxVal) maxVal = val;
-    }
-    capitalCeiling = maxVal;
-  } else {
-    capitalCeiling = (priorCapitalPeak > capitalBudget) ? priorCapitalPeak : capitalBudget;
-  }
 
   local airPlan = null;
   local airPlans = [];
@@ -1648,7 +1593,6 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
     return {
       all = stats.odProjects, best = byOpcodes, stats = stats,
       capitalBudget = capitalBudget, generationCapitalBudget = capitalBudget,
-      capitalBudgetPeak = capitalCeiling, capitalBudgetHistory = history,
       capitalRemaining = remaining, candidateGroups = winners, budgetCandidates = byBudget,
       rail = rail, road = road, airPlan = airPlan, waterPlan = waterPlan,
       airPlans = airPlans, waterPlans = waterPlans,
@@ -1660,8 +1604,7 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_assembly", "-");
   return {
     all = stats.odProjects, best = byOpcodes, stats = stats,
-    capitalBudget = capitalBudget, capitalBudgetPeak = capitalCeiling,
-    capitalBudgetHistory = history,
+    capitalBudget = capitalBudget,
     capitalRemaining = remaining,
     rail = rail, road = road, airPlan = airPlan, waterPlan = waterPlan,
     airPlans = airPlans, waterPlans = waterPlans,
