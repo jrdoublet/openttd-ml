@@ -214,6 +214,14 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    AddSetting({
+      name = "c56_task_trace",
+      description = "C56: immediately trace selected task entry, task exit, and every 200th main-loop turn without changing decisions: 1 = probe, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* P3 / A7.5 : Invalidation et rafraichissement reactif du catalogue via
      * ET_INDUSTRY_OPEN et ET_TOWN_FOUNDED (1 = actif par defaut). */
     AddSetting({

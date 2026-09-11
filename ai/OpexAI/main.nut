@@ -252,6 +252,9 @@ C55_ORIGIN_RELAX_PROBE <- false;
 C55_ORIGIN_RELAX_LEDGER <- null;
 /* C55 etape 2 : relache seulement le verrou d'origine du fret route. */
 C55_FREIGHT_ORIGIN_RELAX <- false;
+/* C56 : trace immediate du dispatch, nulle hors sonde. */
+C56_TASK_TRACE <- false;
+C56_LOOP_TICK_COUNT <- 0;
 /* C48.1 (fiche C48.1) : profil passif des phases internes de
  * OpexIncrementalUpdateProjects. Le ledger reste null hors sonde : le repli 0 n'alloue aucune
  * table et n'atteint ni marqueur d'opcodes ni appel d'API supplementaire. */
@@ -378,6 +381,20 @@ function OpexC55OriginRelaxLog(fields)
   local date = AIDate.GetCurrentDate();
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " C55_ORIGIN_RELAX " + fields);
+}
+
+/* C56 : gate dedie et autonome. Lecture des traces :
+ * - dernier TASK_ENTER name=X sans TASK_EXIT name=X : X ne rend pas la main, blocage dedans ;
+ * - TASK_ENTER/TASK_EXIT apparies jusqu'au bout puis plus rien : blocage hors tache ;
+ * - LOOP_TICK continu sans TASK_ENTER : boucle active, ordonnanceur sans selection ;
+ * - plus aucune trace : script lui-meme plus execute par le moteur. */
+function OpexC56TaskLog(kind, name, cycle)
+{
+  if (!C56_TASK_TRACE) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " C56_TASK " + kind + " name=" + name
+             + " cycle=" + cycle);
 }
 
 /* C52 : gate dedie et autonome. La sonde observe aussi quand la reparation est desarmee. */
@@ -7354,6 +7371,7 @@ function OpexAI::_runNextTask()
     _currentTaskName = task.name;
     _currentTaskLogged = false;
   }
+  if (C56_TASK_TRACE) OpexC56TaskLog("TASK_ENTER", task.name, this._taskCycle);
 
   if (task.name == "catalog") {
     local date = AIDate.GetCurrentDate();
@@ -7386,7 +7404,10 @@ function OpexAI::_runNextTask()
     /* Une invalidation evenementielle prime toujours la cadence mensuelle et le seuil de
      * tresorerie : le portefeuille est derive du catalogue, pas seulement du capital. */
     if (this._lastCatalogMonth == ym && this._projects != null && !stale &&
-        !this._portfolioInvalidated) return false;
+        !this._portfolioInvalidated) {
+      if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
+      return false;
+    }
     local refreshReason = this._portfolioInvalidated ? "event"
         : (stale ? "capital" : "month");
     if (DECISION_LOG) {
@@ -7655,6 +7676,7 @@ function OpexAI::_runNextTask()
     }
     OpexSign(anchor, "IB|" + yy + "|" + this._projects.capitalBudget + "|"
              + this._projects.stats.selectedCapital);
+    if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
     return true;
   }
   if (task.name == "c41_water") {
@@ -7663,6 +7685,7 @@ function OpexAI::_runNextTask()
     task.dueCycle = 2147483647;
     if (!C41_WATER_REFRESH || !C41_REVISION_PROBE || this._staleness == null ||
         this._staleness.revisions.catalog.water <= this._staleness.acknowledged.catalog.water) {
+      if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
       return false;
     }
     local revision = this._staleness.revisions.catalog.water;
@@ -7730,6 +7753,7 @@ function OpexAI::_runNextTask()
                    + " site_tiles_visited=" + profile.site_tiles_visited);
       }
     }
+    if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
     return true;
   }
   if (task.name == "c41_road") {
@@ -7737,6 +7761,7 @@ function OpexAI::_runNextTask()
     task.dueCycle = 2147483647;
     if (!C41_ROAD_REFRESH || !C41_REVISION_PROBE || this._staleness == null ||
         this._staleness.revisions.catalog.road <= this._staleness.acknowledged.catalog.road) {
+      if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
       return false;
     }
     local revision = this._staleness.revisions.catalog.road;
@@ -7756,6 +7781,7 @@ function OpexAI::_runNextTask()
                           + revision + " age_days=" + stalenessAgeDays);
     }
     this._staleness.dirtySince.catalog.road = -1;
+    if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
     return true;
   }
   if (this._projects == null) {
@@ -7767,19 +7793,24 @@ function OpexAI::_runNextTask()
      * ne rend jamais null, mais un seul `return` ajoute la-bas gelait l'IA (docs/taches.md
      * S0 sexies). */
     task.dueCycle = this._taskCycle + 1;
+    if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
     return false;
   }
   if (task.name == "c41_rail_signals") {
     task.dueCycle = 2147483647;
-    if (!C41_RAIL_LOST_SIGNAL_REPAIR || this._c41RailSignalLines == null) return false;
+    if (!C41_RAIL_LOST_SIGNAL_REPAIR || this._c41RailSignalLines == null) {
+      if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
+      return false;
+    }
     local lineId = -1;
     foreach (pendingLine, ignored in this._c41RailSignalLines) { lineId = pendingLine.tointeger(); break; }
-    if (lineId < 0) { task.enabled = false; return false; }
+    if (lineId < 0) { task.enabled = false; if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle); return false; }
     delete this._c41RailSignalLines["" + lineId];
     local line = this._findLineById(lineId);
     if (line == null || !("mode" in line) || line.mode != "rail" ||
         !("doubleTrack" in line) || line.doubleTrack != 1) {
       OpexC41RailSignalRepairLog("C41_RAIL_SIGNAL_REPAIR", "line=" + lineId + " status=stale");
+      if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
       return false;
     }
     local a = OpexC41BuildPbsAtApproach(("platformA" in line) ? line.platformA : null);
@@ -7792,19 +7823,24 @@ function OpexAI::_runNextTask()
                                + " a2=" + a2 + " b2=" + b2);
     if (this._c41RailSignalLines.len() > 0) task.dueCycle = this._taskCycle + 1;
     else task.enabled = false;
+    if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
     return a == 1 || b == 1 || a2 == 1 || b2 == 1;
   }
   if (task.name == "c41_rail_junction") {
     task.dueCycle = 2147483647;
-    if (!C41_RAIL_LOST_JUNCTION_REPAIR || this._c41RailJunctionLines == null) return false;
+    if (!C41_RAIL_LOST_JUNCTION_REPAIR || this._c41RailJunctionLines == null) {
+      if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
+      return false;
+    }
     local lineId = -1;
     foreach (pendingLine, ignored in this._c41RailJunctionLines) { lineId = pendingLine.tointeger(); break; }
-    if (lineId < 0) { task.enabled = false; return false; }
+    if (lineId < 0) { task.enabled = false; if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle); return false; }
     delete this._c41RailJunctionLines["" + lineId];
     local line = this._findLineById(lineId);
     if (line == null || !("mode" in line) || line.mode != "rail" ||
         !("doubleTrack" in line) || line.doubleTrack != 1) {
       OpexC41RailJunctionRepairLog("C41_RAIL_JUNCTION_REPAIR", "line=" + lineId + " status=stale");
+      if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
       return false;
     }
     local exitA = ("platformA" in line && line.platformA != null && ("station_exit" in line.platformA)) ? line.platformA.station_exit : null;
@@ -7831,10 +7867,11 @@ function OpexAI::_runNextTask()
                                  + " a2=" + a2 + " b2=" + b2 + " depot=" + depotRepair + " depot2=" + depot2Repair);
     if (this._c41RailJunctionLines.len() > 0) task.dueCycle = this._taskCycle + 1;
     else task.enabled = false;
+    if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
     return a == 1 || b == 1 || a2 == 1 || b2 == 1 || depotRepair == 1 || depot2Repair == 1;
   }
   if (task.name == "report") {
-    if (this._lastReportYear == year) return false;
+    if (this._lastReportYear == year) { if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle); return false; }
     this._lastReportYear = year;
     if (DECISION_LOG) {
       local bank = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
@@ -7885,9 +7922,10 @@ function OpexAI::_runNextTask()
     if (C48_INCREMENTAL_PROFILE) this._logC48IncrementalLedger(year);
     this._reportYear(year, this._ranked);
     this._reportLines(year);
+    if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
     return true;
   }
-  if (task.name == "scrap") { this._scrapDeadLines(year); return true; }
+  if (task.name == "scrap") { this._scrapDeadLines(year); if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle); return true; }
   if (task.name == "air") {
     /* C34.1 : sous air_portfolio, la construction aerienne passe EXCLUSIVEMENT par le portefeuille.
      * Motif mesure (docs/taches.md 0 novemquinquagesies) : OpexAirPlans est appele DEUX fois par
@@ -7895,8 +7933,8 @@ function OpexAI::_runNextTask()
      * et chaque passage coute ~21 jours de temps de jeu. Sur la graine 1, 11 passages ont mange
      * 63 % de l'annee 1. Eteindre cette tache supprime la moitie du goulot, et l'executeur du
      * portefeuille sait deja batir mode == "air" (main.nut:1839). */
-    if (AIR_PORTFOLIO) { task.enabled = false; return false; }
-    this._tryBuildAir(year); return true;
+    if (AIR_PORTFOLIO) { task.enabled = false; if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle); return false; }
+    this._tryBuildAir(year); if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle); return true;
   }
   if (task.name == "air_fleet") {
     /* C34.2 / C36.2 : sous fleet_portfolio, la croissance de flotte est arbitree par le portefeuille.
@@ -7913,16 +7951,27 @@ function OpexAI::_runNextTask()
           this._ranked = this._projects.rail;
         }
       }
+      if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
       return false;
+    }
+    if (C56_TASK_TRACE) {
+      local resized = this._resizeAirFleets(year);
+      OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
+      return resized;
     }
     return this._resizeAirFleets(year);
   }
   if (task.name == "feeders") {
-    if (!FEEDER_ENABLED) { task.enabled = false; return false; }
+    if (!FEEDER_ENABLED) { task.enabled = false; if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle); return false; }
     /* C32 : sous feeder_portfolio, le rabattement est arbitre par le portefeuille. Laisser AUSSI
      * la tache dediee active batirait la meme ligne deux fois et rendrait l'arbitrage sans objet. */
-    if (FEEDER_PORTFOLIO) { task.enabled = false; return false; }
+    if (FEEDER_PORTFOLIO) { task.enabled = false; if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle); return false; }
     task.dueCycle = this._taskCycle + 1;
+    if (C56_TASK_TRACE) {
+      local builtFeeders = this._tryBuildFeeders(year);
+      OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
+      return builtFeeders;
+    }
     return this._tryBuildFeeders(year);
   }
   if (task.name == "projects") {
@@ -7952,7 +8001,12 @@ function OpexAI::_runNextTask()
       this._c39CadenceLastTick = tick;
       this._c39CadenceLastCycle = this._taskCycle;
     }
-    if (this._portfolioInvalidated) return false;
+    if (this._portfolioInvalidated) { if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle); return false; }
+    if (C56_TASK_TRACE) {
+      local builtProjects = this._tryBuildProjects(year);
+      OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
+      return builtProjects;
+    }
     return this._tryBuildProjects(year);
   }
   if (task.name == "expand") {
@@ -7960,26 +8014,37 @@ function OpexAI::_runNextTask()
      * (second train, passage en double voie) vit a l'interieur de _expandRailLines. La desactiver
      * sur !RAIL_EXPAND rendait donc rail_refleet injoignable malgre son defaut a 1.
      * Desormais inconditionnel : on ne desactive que si les DEUX sont eteints. */
-    if (!RAIL_EXPAND && !RAIL_REFLEET) { task.enabled = false; return false; }
+    if (!RAIL_EXPAND && !RAIL_REFLEET) { task.enabled = false; if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle); return false; }
     this._expandRailLines(year);
+    if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
     return true;
   }
-  if (task.name == "refleet") { this._refleetRoadLines(year); return true; }
+  if (task.name == "refleet") { this._refleetRoadLines(year); if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle); return true; }
   if (task.name == "town_growth") {
-    if (!TOWN_GROWTH_ENABLED) { task.enabled = false; return false; }
-    if (TOWN_GROWTH_SKIP_NOOP && !this._tryTownGrowth(year)) return this._runNextTask();
+    if (!TOWN_GROWTH_ENABLED) { task.enabled = false; if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle); return false; }
+    if (TOWN_GROWTH_SKIP_NOOP && !this._tryTownGrowth(year)) {
+      if (C56_TASK_TRACE) {
+        local nextTask = this._runNextTask();
+        OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
+        return nextTask;
+      }
+      return this._runNextTask();
+    }
     else this._tryTownGrowth(year);
+    if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
     return true;
   }
   if (task.name == "repay") {
     local date = AIDate.GetCurrentDate();
     local ym = year * 12 + AIDate.GetMonth(date);
-    if (this._lastRepayMonth == ym) return false;
+    if (this._lastRepayMonth == ym) { if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle); return false; }
     this._lastRepayMonth = ym;
     this._tryRepayLoan(year);
+    if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
     return true;
   }
   task.enabled = false;
+  if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
   return false;
 }
 
@@ -8376,6 +8441,8 @@ function OpexAI::Start()
   EVENT_VEHICLE_AUTOREPLACED = AIController.GetSetting("event_vehicle_autoreplaced") != 0;
   C52_AUTOREPLACE_LOG = AIController.GetSetting("c52_autoreplace_log") != 0;
   C52_EVENT_EXPOSURE_PROBE = AIController.GetSetting("c52_event_exposure_probe") != 0;
+  C56_TASK_TRACE = AIController.GetSetting("c56_task_trace") != 0;
+  if (C56_TASK_TRACE) C56_LOOP_TICK_COUNT = 0;
   EVENT_CATALOG_INVALIDATE = AIController.GetSetting("event_catalog_invalidate") != 0;
   C39_INVALIDATION_PROBE = AIController.GetSetting("c39_invalidation_probe") != 0;
   C39_DECISION_DELTA_PROBE = AIController.GetSetting("c39_decision_delta_probe") != 0;
@@ -8578,6 +8645,13 @@ function OpexAI::Start()
   }
 
   while (true) {
+    if (C56_TASK_TRACE) {
+      /* C56 : une trace tous les 200 tours pour ne pas noyer le journal. */
+      C56_LOOP_TICK_COUNT++;
+      if (C56_LOOP_TICK_COUNT % 200 == 0) {
+        OpexC56TaskLog("LOOP_TICK", "-", this._taskCycle);
+      }
+    }
     this._processEvents();
     if (LOOP_BUDGET) {
       /* Le budget d'un tick n'est PAS reportable : ce qui n'est pas depense est perdu. L'ancienne
