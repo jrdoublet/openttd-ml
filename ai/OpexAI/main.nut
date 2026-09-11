@@ -1677,6 +1677,7 @@ class OpexAI extends AIController {
   function _markPairAbandoned(key);
   function _markAirFailedSites(plan, result);
   function _pruneAbandonedPairs(now);
+  function _purgeSubsidyFromProjects(subId);
 }
 
 /* Code d'arret compact pour OR. Le panneau contient deja beaucoup de mesures ; un seul caractere
@@ -2045,6 +2046,68 @@ function OpexAI::_pruneAbandonedPairs(now)
   }
   if (toDelete.len() > 0 && DECISION_LOG) {
     OpexDecide("ABANDON_PRUNE", "count=" + toDelete.len() + " remaining=" + this._abandonedPairs.len());
+  }
+}
+
+/* C42 : Purge immediate d'un projet de subvention devenu invalide dans this._projects */
+function OpexAI::_purgeSubsidyFromProjects(subId)
+{
+  if (subId == null || subId < 0) return;
+  if (this._projects == null) return;
+  if (("best" in this._projects) && this._projects.best != null) {
+    for (local i = this._projects.best.len() - 1; i >= 0; i--) {
+      local p = this._projects.best[i];
+      if (p != null && ("payload" in p) && p.payload != null &&
+          ("isSubsidy" in p.payload) && p.payload.isSubsidy &&
+          ("subsidyId" in p.payload) && p.payload.subsidyId == subId) {
+        this._projects.best.remove(i);
+      }
+    }
+  }
+  if (("road" in this._projects) && this._projects.road != null &&
+      ("best" in this._projects.road) && this._projects.road.best != null) {
+    for (local i = this._projects.road.best.len() - 1; i >= 0; i--) {
+      local p = this._projects.road.best[i];
+      if (p != null && ("payload" in p) && p.payload != null &&
+          ("isSubsidy" in p.payload) && p.payload.isSubsidy &&
+          ("subsidyId" in p.payload) && p.payload.subsidyId == subId) {
+        this._projects.road.best.remove(i);
+      }
+    }
+  }
+  if (("budgetCandidates" in this._projects) && this._projects.budgetCandidates != null) {
+    for (local i = this._projects.budgetCandidates.len() - 1; i >= 0; i--) {
+      local p = this._projects.budgetCandidates[i];
+      if (p != null && ("payload" in p) && p.payload != null &&
+          ("isSubsidy" in p.payload) && p.payload.isSubsidy &&
+          ("subsidyId" in p.payload) && p.payload.subsidyId == subId) {
+        this._projects.budgetCandidates.remove(i);
+      }
+    }
+  }
+  if (("candidateGroups" in this._projects) && this._projects.candidateGroups != null) {
+    local key = "subsidy|" + subId;
+    if (key in this._projects.candidateGroups) {
+      delete this._projects.candidateGroups[key];
+    }
+  }
+  if (this._dynamicBatch != null) {
+    if (("sourceBudgetCandidates" in this._dynamicBatch) && this._dynamicBatch.sourceBudgetCandidates != null) {
+      for (local i = this._dynamicBatch.sourceBudgetCandidates.len() - 1; i >= 0; i--) {
+        local p = this._dynamicBatch.sourceBudgetCandidates[i];
+        if (p != null && ("payload" in p) && p.payload != null &&
+            ("isSubsidy" in p.payload) && p.payload.isSubsidy &&
+            ("subsidyId" in p.payload) && p.payload.subsidyId == subId) {
+          this._dynamicBatch.sourceBudgetCandidates.remove(i);
+        }
+      }
+    }
+    if (("sourceCandidateGroups" in this._dynamicBatch) && this._dynamicBatch.sourceCandidateGroups != null) {
+      local key = "subsidy|" + subId;
+      if (key in this._dynamicBatch.sourceCandidateGroups) {
+        delete this._dynamicBatch.sourceCandidateGroups[key];
+      }
+    }
   }
 }
 
@@ -3388,6 +3451,24 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
       }
       local candidate = project.payload;
       local isFeeder = ("isFeeder" in candidate) && candidate.isFeeder;
+      local isSubsidy = ("isSubsidy" in candidate) && candidate.isSubsidy;
+      if (isSubsidy) {
+        local subId = candidate.subsidyId;
+        local today = AIDate.GetCurrentDate();
+        if (!AISubsidy.IsValidSubsidy(subId) || AISubsidy.IsAwarded(subId)
+            || (AISubsidy.GetExpireDate(subId) - today < C42_SUBSIDY_LEAD_DAYS)) {
+          if (DECISION_LOG || C42_SUBSIDY_LOG) {
+            OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=road reason=subsidy_lost sub=" + subId);
+          }
+          if (this._activeSubsidies != null && (subId in this._activeSubsidies)) {
+            delete this._activeSubsidies[subId];
+          }
+          this._purgeSubsidyFromProjects(subId);
+          this._portfolioInvalidated = true;
+          this._hadAbandonsThisPass = true;
+          return { outcome = "rejected", discards = passDiscards };
+        }
+      }
       if (candidate.kind == "pax") {
         local alreadyServed = false;
         if (FEEDER_UNLOCK && isFeeder) {
@@ -3497,11 +3578,51 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
       local netProfit = ("networkProfit" in candidate) ? candidate.networkProfit : 0;
       local netRev = ("networkRevenue" in candidate) ? candidate.networkRevenue : 0;
       OpexApplyRoadEconomics(candidate, economics, actualDist);
+      if (isSubsidy) {
+        candidate.baseRevenueAnnual = economics.revenueAnnual;
+        candidate.baseProfitAnnual = economics.profitAnnual;
+        candidate.baseRoi = economics.roi;
+        local mult = ("subsidyMultiplier" in candidate) ? candidate.subsidyMultiplier : 1.0;
+        local subRev = (economics.revenueAnnual * mult).tointeger();
+        local subProfit = subRev - economics.runningAnnual - economics.amortAnnual;
+        local freightBonus = ("freightBonus" in candidate) ? candidate.freightBonus : 100;
+        local subRoi = (subProfit > 0 && candidate.capital > 0) ? (subProfit * 1000) / candidate.capital : 0;
+        if (freightBonus != 100) subRoi = (subRoi * freightBonus) / 100;
+
+        candidate.subsidyRevenueAnnual = subRev;
+        candidate.subsidyProfitAnnual = subProfit;
+        candidate.subsidyRoi = subRoi;
+
+        // Le candidat actif utilise l'economie subventionnee pour sa premiere annee
+        candidate.revenueAnnual = subRev;
+        candidate.profitAnnual = subProfit;
+        candidate.roi = subRoi;
+      }
       if (netProfit > 0) {
         candidate.profitAnnual += netProfit;
         candidate.revenueAnnual += netRev;
         if (candidate.capital > 0) {
           candidate.roi = (candidate.profitAnnual * 1000) / candidate.capital;
+        }
+        if (isSubsidy) {
+          candidate.subsidyProfitAnnual += netProfit;
+          candidate.subsidyRevenueAnnual += netRev;
+          candidate.subsidyRoi = candidate.roi;
+        }
+      }
+      if (isSubsidy) {
+        local subId = candidate.subsidyId;
+        if (!AISubsidy.IsValidSubsidy(subId) || AISubsidy.IsAwarded(subId)) {
+          if (DECISION_LOG || C42_SUBSIDY_LOG) {
+            OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=road reason=subsidy_lost_during_planning sub=" + subId);
+          }
+          if (this._activeSubsidies != null && (subId in this._activeSubsidies)) {
+            delete this._activeSubsidies[subId];
+          }
+          this._purgeSubsidyFromProjects(subId);
+          this._portfolioInvalidated = true;
+          this._hadAbandonsThisPass = true;
+          return { outcome = "rejected", discards = passDiscards };
         }
       }
       local result = OpexBuildRoadRoute(this._catalog, this._budget, plan, candidate);
@@ -3526,7 +3647,10 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         }
         passDiscards = [];
         local cargoStr = AICargo.GetCargoLabel(candidate.cargo);
-        OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=road kind=" + candidate.kind + " cargo=" + cargoStr + " src=" + candidate.src + " dst=" + candidate.dst + " dist=" + candidate.distance + " cost=" + candidate.capital + " profit=" + candidate.profitAnnual + " roi=" + candidate.roi);
+        local extraSub = (isSubsidy && ("baseProfitAnnual" in candidate))
+            ? (" base_profit=" + candidate.baseProfitAnnual + " base_roi=" + candidate.baseRoi + " mult=" + candidate.subsidyMultiplier)
+            : "";
+        OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=road kind=" + candidate.kind + " cargo=" + cargoStr + " src=" + candidate.src + " dst=" + candidate.dst + " dist=" + candidate.distance + " cost=" + candidate.capital + " profit=" + candidate.profitAnnual + " roi=" + candidate.roi + extraSub);
         OpexDecide("ROAD_BUILD", "line=" + idx + " src=" + candidate.src + " dst=" + candidate.dst + " cargo=" + cargoStr + " dist=" + candidate.distance + " profit=" + candidate.profitAnnual + " cost=" + result.cost + " vehicles=" + result.vehicles.len());
       }
 
@@ -3584,12 +3708,18 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         hubStationId = (("hubStationId" in candidate) ? candidate.hubStationId : -1),
         isSubsidy = (("isSubsidy" in candidate) && candidate.isSubsidy),
         subsidyId = (("subsidyId" in candidate) ? candidate.subsidyId : -1),
+        baseProfit = (isSubsidy && ("baseProfitAnnual" in candidate)) ? candidate.baseProfitAnnual : candidate.profitAnnual,
+        baseRevenue = (isSubsidy && ("baseRevenueAnnual" in candidate)) ? candidate.baseRevenueAnnual : candidate.revenueAnnual,
+        subsidyProfit = (isSubsidy && ("subsidyProfitAnnual" in candidate)) ? candidate.subsidyProfitAnnual : candidate.profitAnnual,
+        subsidyRevenue = (isSubsidy && ("subsidyRevenueAnnual" in candidate)) ? candidate.subsidyRevenueAnnual : candidate.revenueAnnual,
+        subsidyMultiplier = (isSubsidy && ("subsidyMultiplier" in candidate)) ? candidate.subsidyMultiplier : 1.0,
         lineId = idx,
       });
-      if (("isSubsidy" in candidate) && candidate.isSubsidy && this._activeSubsidies != null) {
-        if (candidate.subsidyId in this._activeSubsidies) {
+      if (("isSubsidy" in candidate) && candidate.isSubsidy) {
+        if (this._activeSubsidies != null && (candidate.subsidyId in this._activeSubsidies)) {
           delete this._activeSubsidies[candidate.subsidyId];
         }
+        this._purgeSubsidyFromProjects(candidate.subsidyId);
         if (C42_SUBSIDY_LOG || DECISION_LOG) {
           OpexDecide("C42_SUBSIDY_BUILD", "line=" + idx + " sub=" + candidate.subsidyId
                      + " cargo=" + AICargo.GetCargoLabel(candidate.cargo)
@@ -6845,6 +6975,15 @@ function OpexAI::_processEvents()
               });
             }
 
+            if (C42_SUBSIDIES) {
+              this._portfolioInvalidated = true;
+              if (this._taskQueue != null) {
+                foreach (t in this._taskQueue) {
+                  if (t.name == "catalog" || t.name == "projects") t.dueCycle = 0;
+                }
+              }
+            }
+
             if (C42_SUBSIDY_LOG || DECISION_LOG) {
               local cName = AICargo.GetCargoLabel(cargo);
               OpexDecide("SUBSIDY_OFFER", "sub=" + subId + " cargo=" + cName + " src_t=" + srcType + " src=" + srcId + " dst_t=" + dstType + " dst=" + dstId + " exp=" + expDate + " mult=" + mult + " dur=" + dur + " matched=" + (matchedLine >= 0 ? matchedLine : "none"));
@@ -6868,6 +7007,15 @@ function OpexAI::_processEvents()
           if (this._activeSubsidies != null && (subId in this._activeSubsidies)) {
             delete this._activeSubsidies[subId];
           }
+          if (C42_SUBSIDIES) {
+            this._purgeSubsidyFromProjects(subId);
+            this._portfolioInvalidated = true;
+            if (this._taskQueue != null) {
+              foreach (t in this._taskQueue) {
+                if (t.name == "catalog" || t.name == "projects") t.dueCycle = 0;
+              }
+            }
+          }
           if (C42_SUBSIDY_LOG || DECISION_LOG) {
             OpexDecide("SUBSIDY_OFFER_EXPIRED", "sub=" + subId);
           }
@@ -6884,13 +7032,22 @@ function OpexAI::_processEvents()
         if (subEvt != null) {
           local subId = subEvt.GetSubsidyID();
           local company = AISubsidy.IsValidSubsidy(subId) ? AISubsidy.GetAwardedTo(subId) : -1;
-          local isSelf = (company == AICompany.COMPANY_SELF);
+          local isSelf = (company == AICompany.ResolveCompanyID(AICompany.COMPANY_SELF));
           if (this._subsidyStats != null) {
             if (isSelf) this._subsidyStats.awardedSelf++;
             else this._subsidyStats.awardedOther++;
           }
           if (this._activeSubsidies != null && (subId in this._activeSubsidies)) {
             delete this._activeSubsidies[subId];
+          }
+          if (C42_SUBSIDIES && !isSelf) {
+            this._purgeSubsidyFromProjects(subId);
+            this._portfolioInvalidated = true;
+            if (this._taskQueue != null) {
+              foreach (t in this._taskQueue) {
+                if (t.name == "catalog" || t.name == "projects") t.dueCycle = 0;
+              }
+            }
           }
           if (isSelf) {
             local matchedLine = -1;
@@ -6921,6 +7078,9 @@ function OpexAI::_processEvents()
           local subId = subEvt.GetSubsidyID();
           if (this._activeSubsidies != null && (subId in this._activeSubsidies)) {
             delete this._activeSubsidies[subId];
+          }
+          if (C42_SUBSIDIES) {
+            this._purgeSubsidyFromProjects(subId);
           }
           if (C42_SUBSIDY_LOG || DECISION_LOG) {
             OpexDecide("SUBSIDY_EXPIRED", "sub=" + subId);
