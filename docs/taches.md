@@ -654,12 +654,55 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   - Si la cause est un blocage générique (boucle, budget d'opcodes épuisé, exception avalée), elle
     peut frapper d'autres graines **partiellement**, sans être aussi visible.
 
-  ### Étapes
+  ### ✅ ÉTAPE 1 FAITE le 2026-09-11 — et elle trouve un vrai bug, mais pas la cause complète
 
-  1. ⬜ **Reproduire et diagnostiquer** : rejouer la graine 2026 seule avec `-d script=4` et
-     `decision_log=1` sur 10 ans, et lire ce que fait l'IA après son dernier rapport de 1970.
-     ⚠️ Ne pas partir de l'hypothèse d'un crash : `run_ok` est vrai, donc chercher aussi un
-     blocage silencieux (suspend qui ne revient pas, budget d'opcodes, exception attrapée).
+  Capture `sweeps/diag_c56_seed2026_trace.py` : graine 2026 **et témoin vivant 999**, 10 ans,
+  `-d script=4` + `decision_log=1`, journaux bruts dans `results/c56_seed2026_trace/`.
+
+  🔴 **1. La graine n'est PAS morte de façon déterministe.** Sous ce bras elle finit à **55 gares et
+  82 véhicules** (contre 13 et 22 au banc C55, et 1 seule année journalisée au diagnostic C52).
+  **L'année d'arrêt change avec le bras : 1970, 1972 selon la mesure.** Ce n'est donc pas « une
+  carte impossible », c'est un arrêt dont le déclenchement dépend du déroulé.
+  ⚠️ Conséquence de méthode : **activer une sonde change l'issue de cette graine.** Ne jamais
+  comparer ses métriques entre deux bras.
+
+  🔑 **2. LE BUG TROUVÉ : la mémoire d'abandon est indexée par PAIRE, alors qu'un échec
+  d'aéroport est une propriété du SITE.** Le journal montre **7 échecs de construction aérienne, et
+  les 7 impliquent la même tuile 3308**, à chaque fois avec un partenaire différent :
+
+  | date | paire | erreur |
+  |---|---|---|
+  | 1971-1-30 | 46019 → 3308, 43738 → 3308 | 263 |
+  | 1971-7-10 | 35852 → 3308, 57684 → 3308 | 263 |
+  | 1971-10-13 | 51422 → 3308, 5507 → 3308 | 263 |
+  | 1972-2-3 | 3308 → 39019 | 258 |
+
+  Chaque paire est neuve, donc `_markPairAbandoned` ne bloque **jamais** rien : la clé d'abandon
+  air est `"air|tuileA|tuileB"` (`projects.nut:997`). Le site 3308 est re-planifié et re-tenté
+  indéfiniment — il apparaît **325 fois** dans le journal. Coût mesuré : **92 scans de plans aériens
+  en 2 ans** contre **176 en 10 ans** pour le témoin, soit **2,6× le rythme annuel**, à ~275 000
+  opcodes la passe.
+  ⇒ C'est une **boucle négative** de plus, de la même famille que celles de C48 et C55 : l'IA paie
+  sans cesse pour un échec qu'elle ne mémorise pas au bon niveau.
+  ⚠️ Les codes 263 et 258 ne sont **pas** décodés : le source d'OpenTTD n'est pas sur cette machine
+  et le journal n'écrit que le numéro. Les faire journaliser en clair est un préalable.
+
+  🔴 **3. CE QUI N'EST PAS EXPLIQUÉ, et il ne faut pas faire semblant** : pourquoi l'IA cesse
+  **toute** sortie à 1972-2-23, en plein milieu d'une planification aérienne
+  (`AIR_PLAN_PERF ... plans=193`), alors que la partie continue huit ans de plus. **Aucun message
+  d'erreur, aucune exception, aucune ligne hors du canal `[script:4]`.** La boucle d'opcodes est le
+  suspect naturel — mais ce n'est pas établi. Le bug n°2 explique le gaspillage, **pas l'arrêt**.
+
+  ### Étapes restantes
+
+  1. ⬜ **Trouver pourquoi le script se tait.** Piste n°1 : OpenTTD tue-t-il un script qui dépasse
+     son budget sans rendre la main, et où ce message atterrit-il ? Il n'est pas dans `[script:4]`.
+     Vérifier si openttdlab capture les autres canaux de debug.
+  1 bis. ⬜ Faire journaliser les codes d'erreur en clair (`AIError` → nom), sans quoi chaque
+     diagnostic de construction reste un numéro opaque.
+  2. ⬜ **Corriger le bug n°2 : indexer l'abandon aérien par SITE en plus de la paire**, sous
+     réglage dédié défaut 0, un seul changement, puis banc 20×10.
+     ⚠️ Ne pas supposer que ça règle l'arrêt : ce sont deux sujets.
   2. ⬜ Selon la cause : correctif sous réglage dédié, ou garde anti-blocage.
   3. ⬜ **Décider du sort des graines mortes dans le protocole de banc** : les détecter et les
      signaler, plutôt que de les moyenner en silence. ⚠️ Décision de méthode, à ne pas prendre seul :
