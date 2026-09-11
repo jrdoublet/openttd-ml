@@ -472,7 +472,9 @@ function OpexWaterPlans(catalog, lines = null, projects = null, profile = null, 
 {
   if (catalog.ships.len() == 0 || catalog.paxCargo < 0) return null;
   local mark = profile != null ? OpexOpsMeasureBegin() : null;
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "water_town_sort", "-");
   local towns = OpexWaterSortedTowns(catalog.towns);
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "water_town_sort", "-");
   if (profile != null) profile.town_sort_ops = OpexOpsMeasureEnd(mark);
   local historical = siteCatalog == null;
   local limit = towns.len() < (historical ? WATER_TOWN_POOL : WATER_TOWN_DISCOVERY_SLICE)
@@ -484,7 +486,10 @@ function OpexWaterPlans(catalog, lines = null, projects = null, profile = null, 
   if (!historical && towns.len() > 0 && ("cursor" in siteCatalog)) {
     start = siteCatalog.cursor % towns.len();
   }
+  local c56TownsScanned = 0;
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "water_site_scan", "-");
   for (local step = 0; step < limit; step++) {
+    if (C56_TASK_TRACE) c56TownsScanned++;
     local i = historical ? step : (start + step) % towns.len();
     if (profile != null) profile.towns_considered++;
     if (OpexWaterTownServed(towns[i], lines)) continue;
@@ -495,6 +500,8 @@ function OpexWaterPlans(catalog, lines = null, projects = null, profile = null, 
     /* Une entree deja connue est deja dans `sites`; ne pas la dupliquer. */
     if (historical || !wasKnownComplete) foreach (site in townSites) sites.append(site);
   }
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "water_site_scan",
+                                      "- towns=" + c56TownsScanned);
   if (!historical && towns.len() > 0) siteCatalog.cursor <- (start + limit) % towns.len();
   if (profile != null) {
     profile.site_ops = OpexOpsMeasureEnd(mark);
@@ -528,8 +535,25 @@ function OpexWaterPlans(catalog, lines = null, projects = null, profile = null, 
    * Le bassin est deja borne par WATER_TOWN_POOL ; chaque paire admissible est donc chiffree
    * avec sa longueur navigable avant son classement. */
   local ranked = [];
+  local c56PairsExamined = 0;
+  local c56LakesIn = 0;
+  local c56LakesOut = 0;
+  local c56BfsIn = 0;
+  local c56BfsOut = 0;
+  /* Si lakes_in > lakes_out, le gel est dans MinchinWeb ; si bfs_in > bfs_out,
+   * il est dans le BFS maison. */
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "water_pair_loop", "-");
   for (local a = 0; a < sites.len(); a++) {
     for (local b = a + 1; b < sites.len(); b++) {
+      if (C56_TASK_TRACE) {
+        c56PairsExamined++;
+        if (c56PairsExamined % 500 == 0) {
+          OpexC56TaskLog("WATER_PROBE_COUNTERS", "water_probe_counters",
+                         "- pairs=" + c56PairsExamined + " lakes_in=" + c56LakesIn
+                         + " lakes_out=" + c56LakesOut + " bfs_in=" + c56BfsIn
+                         + " bfs_out=" + c56BfsOut);
+        }
+      }
       if (profile != null) profile.pairs_considered++;
       local distance = AIMap.DistanceManhattan(sites[a].town.tile, sites[b].town.tile);
       if (distance < WATER_TOWN_MIN_DISTANCE) continue;
@@ -549,7 +573,9 @@ function OpexWaterPlans(catalog, lines = null, projects = null, profile = null, 
         /* Etage 1 : connectivite memorisee par bassin (MinchinWeb.Lakes), sans marge de
          * bounding-box -- une paire au-dela de l'ancien WATER_BFS_MARGIN=24 n'est plus ecartee
          * a tort. Instance persistante pour toute la partie (voir lib_water.nut). */
+        if (C56_TASK_TRACE) c56LakesIn++;
         local connected = OpexWaterLakesConnected(sites[a].waterTiles, sites[b].waterTiles, profile);
+        if (C56_TASK_TRACE) c56LakesOut++;
         if (connected != true) continue;
         if (profile != null) profile.lakes_connected++;
         /* Etage 2 : la paire est deja confirmee connectee -- ce BFS ne sert plus qu'a chiffrer
@@ -557,7 +583,9 @@ function OpexWaterPlans(catalog, lines = null, projects = null, profile = null, 
          * n'est plus un point de defaillance de connectivite, seulement un plafond de precision
          * sur la mesure. */
         local bfsMark = profile != null ? OpexOpsMeasureBegin() : null;
+        if (C56_TASK_TRACE) c56BfsIn++;
         navigableDistance = OpexWaterFindConnection(sites[a], sites[b]);
+        if (C56_TASK_TRACE) c56BfsOut++;
         if (profile != null) {
           profile.bfs_ops += OpexOpsMeasureEnd(bfsMark);
           profile.bfs_attempts++;
@@ -577,7 +605,9 @@ function OpexWaterPlans(catalog, lines = null, projects = null, profile = null, 
         /* Comportement historique : un seul BFS fait connectivite ET distance, les deux
          * bornees par WATER_BFS_MARGIN. */
         local bfsMark = profile != null ? OpexOpsMeasureBegin() : null;
+        if (C56_TASK_TRACE) c56BfsIn++;
         navigableDistance = OpexWaterFindConnection(sites[a], sites[b]);
+        if (C56_TASK_TRACE) c56BfsOut++;
         if (profile != null) {
           profile.bfs_ops += OpexOpsMeasureEnd(bfsMark);
           profile.bfs_attempts++;
@@ -606,6 +636,8 @@ function OpexWaterPlans(catalog, lines = null, projects = null, profile = null, 
       if (ranked.len() > WATER_PROJECT_POOL) ranked.pop();
     }
   }
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "water_pair_loop",
+                                      "- pairs=" + c56PairsExamined);
   if (profile != null) {
     profile.pair_total_ops = OpexOpsMeasureEnd(mark);
     profile.pair_filter_rank_ops = profile.pair_total_ops - profile.bfs_ops - profile.economics_ops;
@@ -615,6 +647,10 @@ function OpexWaterPlans(catalog, lines = null, projects = null, profile = null, 
     if (projects != null) projects.append(plan);
     if (best == null) best = plan;
   }
+  if (C56_TASK_TRACE) OpexC56TaskLog("WATER_PROBE_COUNTERS", "water_probe_counters",
+                                      "- pairs=" + c56PairsExamined + " lakes_in=" + c56LakesIn
+                                      + " lakes_out=" + c56LakesOut + " bfs_in=" + c56BfsIn
+                                      + " bfs_out=" + c56BfsOut);
   return best;
 }
 
