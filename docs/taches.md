@@ -825,6 +825,36 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   si une itération est non bornée.* Hypothèse la plus plausible, **non vérifiée** : une carte à
   vaste océan connecté fait explorer un bassin entier en un seul pas.
 
+  ### ✅ ÉTAPE 1 septies FAITE le 2026-09-11 — c'est `FindPath`, et le budget est INOPÉRANT
+
+  Trois jalons dans `lib_water.nut` : de part et d'autre d'`InitializePath`, de part et d'autre de
+  `FindPath`, et à l'intérieur de la boucle d'itérations (les 3 premières puis une sur cent).
+  Résultat **identique sur les graines 2026 et 1337** :
+
+  ```
+  lakes_init_enter → lakes_init_exit → lakes_find_enter → i=0 → i=1 → i=2 → i=100 → (silence)
+  ```
+
+  🔑 **1. `InitializePath` n'est PAS en cause** : il entre et sort. La découverte de bassin par
+  inondation, hypothèse précédente, est **réfutée**.
+  🔑 **2. Ce n'est pas non plus UNE itération non bornée** : la recherche franchit plus de **100**
+  itérations. Elle s'arrête entre la 100ᵉ et la 200ᵉ.
+  🔴 **3. Le budget `WATER_LAKES_ITERATIONS = 500` n'est JAMAIS atteint.** Il ne protège donc de
+  rien : l'IA meurt avant de l'épuiser. **Le compter en itérations est l'erreur** — une itération de
+  `FindPath` (`lib_water.nut:191`) appelle deux fois `_AllGroups` et balaie des tableaux qui
+  grossissent à chaque tour, donc son coût croît avec l'avancement. Un budget en itérations ne borne
+  pas un travail dont l'unité n'a pas de coût borné.
+  ⚠️ Nuance à ne pas perdre : l'IA n'est probablement pas dans une boucle infinie. OpenTTD suspend et
+  reprend un script à court d'opcodes, il ne le tue pas — `FindPath` consomme donc tout le budget de
+  chaque tick pendant **huit années de jeu** sans aboutir. Effet pratique identique à un gel, cause
+  différente, et le correctif doit viser celle-là.
+
+  🔑 **Ce que le correctif doit faire, et il est déjà à moitié en place** : `OpexWaterLakesConnected`
+  traduit déjà « budget épuisé » en `null` (`lib_water.nut:585`), et l'appelant fait
+  `if (connected != true) continue;` — une paire non conclue est simplement sautée. **La mécanique
+  d'abandon existe et est correcte ; seule l'unité du budget est fausse.** Le correctif à la source
+  est donc de borner `FindPath` en **opcodes** et non en itérations.
+
   ⚠️ **Piège d'instrumentation payé TROIS fois dans cette fiche** : `LOOP_TICK` tous les 200 tours
   (trop espacé), puis les compteurs de paires tous les 500 (jamais atteints avant le gel), puis la
   granularité par paire — la seule qui ait parlé. *Un compteur périodique ne dit rien de l'unité en

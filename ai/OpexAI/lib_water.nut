@@ -189,6 +189,10 @@ class _MinchinWeb_Lakes_
 function _MinchinWeb_Lakes_::FindPath(iterations)
 {
   for (local i = 0; i < iterations; i++) {
+    /* C56 : les trois premieres iterations puis une sur cent. Si le journal s'arrete sur un
+     * lakes_iter, le gel est DANS une iteration et le budget ne sert a rien. Volume nul en
+     * partie saine : une partie saine n'examine aucune paire (mesure du 2026-09-11). */
+    if (C56_TASK_TRACE && (i < 3 || i % 100 == 0)) OpexC56TaskLog("PAIR", "lakes_iter", "- i=" + i);
     if (_MinchinWeb_Array_.Compare1D(this._AGroup, [-1]) || _MinchinWeb_Array_.Compare1D(this._BGroup, [-1])) {
       this._lastIterationsUsed = i + 1;
       this._running = false;
@@ -558,8 +562,16 @@ function OpexWaterLakesConnected(waterTilesA, waterTilesB, profile = null)
 {
   local lakes = OpexWaterLakesInstance(profile);
   local mark = profile != null ? OpexOpsMeasureBegin() : null;
+  /* C56 : les deux moities de cette fonction sont des suspects distincts. InitializePath declenche
+   * la decouverte de bassin ; FindPath boucle sous budget. Seul un jalon de part et d'autre de
+   * chacune dit laquelle ne rend pas la main -- le budget de FindPath, lui, ne prouve rien : il
+   * borne le NOMBRE d'iterations, pas le cout d'UNE iteration. */
+  if (C56_TASK_TRACE) OpexC56TaskLog("PAIR", "lakes_init_enter", "-");
   lakes.InitializePath(waterTilesA, waterTilesB);
+  if (C56_TASK_TRACE) OpexC56TaskLog("PAIR", "lakes_init_exit", "-");
+  if (C56_TASK_TRACE) OpexC56TaskLog("PAIR", "lakes_find_enter", "-");
   local result = lakes.FindPath(WATER_LAKES_ITERATIONS);
+  if (C56_TASK_TRACE) OpexC56TaskLog("PAIR", "lakes_find_exit", "-");
   if (profile != null) {
     profile.lakes_query_ops += OpexOpsMeasureEnd(mark);
     profile.lakes_queries++;
