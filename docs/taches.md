@@ -732,11 +732,44 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   ⚠️ `LOOP_TICK` (toutes les 200 itérations) s'est révélé **trop espacé pour servir** : 3 lignes sur
   toute la partie. C'est `TASK_ENTER`/`TASK_EXIT` qui porte tout le diagnostic.
 
-  1 ter. ⬜ **Localiser le point de blocage DANS `catalog`.** Ce qu'on sait : c'est après l'entrée
-     dans la planification aérienne. Ce qu'on ne sait pas : si c'est une boucle infinie, une API qui
-     ne rend pas la main, ou une progression devenue si lente qu'elle ne finit jamais.
-     ⚠️ **Ne pas corriger le bug du site 3308 avant d'avoir répondu** : ce serait perdre la
-     reproduction.
+  ### ✅ ÉTAPE 1 ter FAITE le 2026-09-11 — 🔴 LE GEL EST DANS LA PHASE **EAU**
+
+  Jalons `STAGE_ENTER`/`STAGE_EXIT` posés sur les **cinq** phases de `OpexBuildProjects`
+  (`65cda9c`), délibérément toutes instrumentées et pas seulement les suspectes. Capture
+  `results/c56_seed2026_trace/seed_2026_stage.log` :
+
+  | jalon | date |
+  |---|---|
+  | `TASK_ENTER name=catalog` | 1972-9-3 |
+  | `STAGE_ENTER` / `STAGE_EXIT` **rail** | 1972-9-5 → 9-8 |
+  | `STAGE_ENTER` / `STAGE_EXIT` **route** | 1972-9-8 → 9-8 |
+  | `STAGE_ENTER` / `STAGE_EXIT` **air** | 1972-9-8 → 9-11 |
+  | **`STAGE_ENTER` eau** | **1972-9-11** |
+  | — *dernière ligne du journal entier* — | |
+
+  🔑 **Rail, route et aérien entrent et sortent proprement. L'eau entre et ne sort jamais**, et son
+  `STAGE_ENTER` est **la dernière ligne du journal**, toutes catégories confondues. Le gel est donc
+  dans `OpexWaterPlans` (`projects.nut:1805`), c'est-à-dire dans `builder_water.nut`.
+
+  ⚠️ **Ceci INVALIDE l'hypothèse aérienne** que le premier journal suggérait : l'aérien était le
+  dernier *visible* parce qu'il est la dernière phase **bavarde** avant l'eau, qui est muette. Un
+  raisonnement « la dernière trace nomme le coupable » aurait désigné l'aérien à tort. C'est
+  précisément pourquoi les cinq phases ont été instrumentées, y compris celles qu'on croyait hors de
+  cause.
+
+  🔗 **Le dépôt sait déjà que ce code est défectueux** : `docs/01_opex_builder_water_review.md`
+  recense **deux bugs confirmés** dans le BFS nautique et sa marge de bounding-box, et la décision
+  du 2026-09-09 était de le remplacer par `MinchinWeb.Lakes`/`Pathfinder.Ship` (voir `AGENTS.md`
+  §3). **Cette fiche fournit la première preuve en partie que ce code ne fait pas que mal calculer :
+  il peut ne jamais rendre la main.**
+
+  1 quater. ⬜ **Localiser le point exact dans `OpexWaterPlans`.** Candidats à instrumenter :
+     `OpexWaterFindSiteSlice` (`builder_water.nut:220`, boucle `while` à trois conditions d'arrêt)
+     et le BFS `WATER_BFS_MAX_NODES`/`WATER_BFS_MARGIN` (`:29-30`, `:340-351`).
+     ⚠️ **Toujours ne pas corriger le site 3308 ni l'eau avant d'avoir répondu** : ce serait perdre
+     la reproduction.
+  1 quinquies. ⬜ Vérifier si le gel touche d'autres graines : `water_*` est-il actif par défaut, et
+     combien de graines du banc 20 passent par cette phase ?
   1 bis. ⬜ Faire journaliser les codes d'erreur en clair (`AIError` → nom), sans quoi chaque
      diagnostic de construction reste un numéro opaque.
   2. ⬜ **Corriger le bug n°2 : indexer l'abandon aérien par SITE en plus de la paire**, sous
