@@ -34,7 +34,7 @@ def _check_output_with_script_debug(args, *rest, **kwargs):
 
 openttdlab.subprocess.check_output = _check_output_with_script_debug
 
-ARM = "OpexAI[decision_log=1]"
+DEFAULT_ARM = "OpexAI[decision_log=1]"
 
 
 def keep_output(row):
@@ -60,12 +60,14 @@ def main():
                         help="2026 = la graine morte ; 999 = temoin vivant (94 gares)")
     parser.add_argument("--out-dir", type=Path, default=None)
     parser.add_argument("--max-workers", type=int, default=2)
+    parser.add_argument("--arm", default=DEFAULT_ARM)
+    parser.add_argument("--suffix", default="", help="suffixe de nom de fichier, pour ne pas ecraser une capture precedente")
     args = parser.parse_args()
 
     out_dir = args.out_dir or ROOT / "results" / "c56_seed2026_trace"
     out_dir.mkdir(parents=True, exist_ok=True)
     enable_savegame_cleanup()
-    built = build_arms([ARM])
+    built = build_arms([args.arm])
     rows = list(run_experiments(
         openttd_version=OPENTTD_VERSION,
         opengfx_version=OPENGFX_VERSION,
@@ -83,7 +85,7 @@ def main():
         if key not in latest or row["date"] > latest[key]["date"]:
             latest[key] = row
     for row in latest.values():
-        path = out_dir / f"seed_{row['seed']}.log"
+        path = out_dir / f"seed_{row['seed']}{args.suffix}.log"
         path.write_text(row["output"] or "")
         lines = (row["output"] or "").count("\n")
         print(f"graine {row['seed']:>5} : {lines:>7} lignes, {row['n_stations']:>3} gares, "

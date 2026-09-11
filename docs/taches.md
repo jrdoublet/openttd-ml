@@ -695,9 +695,48 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
 
   ### Étapes restantes
 
-  1. ⬜ **Trouver pourquoi le script se tait.** Piste n°1 : OpenTTD tue-t-il un script qui dépasse
-     son budget sans rendre la main, et où ce message atterrit-il ? Il n'est pas dans `[script:4]`.
-     Vérifier si openttdlab capture les autres canaux de debug.
+  1. ✅ **FAIT le 2026-09-11 — RÉPONDU : le script ne meurt pas, il ne SORT JAMAIS de `catalog`.**
+
+  **a. Il n'y a aucun message perdu à chercher.** `openttdlab` fusionne déjà `stderr` dans `stdout`
+  (`openttdlab.py:409`) et ne filtre rien. S'il existait un message de mort, nous l'aurions.
+
+  🔑 **b. Les deux instruments existants sont aveugles à ce cas précis, par construction :**
+  - `OpexDecide` journalise la tâche **paresseusement** (`main.nut:310-320`) : la ligne
+    `TASK name=` n'est écrite qu'à l'entrée de journal **suivante**. Une tâche qui ne revient
+    jamais n'est donc **jamais** journalisée.
+  - `C39_PASS_CLOCK_LEDGER` et les ledgers C41 publient **annuellement** (`main.nut:6905`) : jamais
+    rien si l'IA se fige en cours d'année.
+  *Un instrument dont le silence coïncide avec le cas intéressant ne mesure rien* — même leçon que
+  la sonde C52 le matin même.
+
+  **c. La sonde écrite pour ça** : `c56_task_trace` (défaut 0, `0452bcc`), qui écrit `TASK_ENTER` /
+  `TASK_EXIT` **immédiatement**. Capture `results/c56_seed2026_trace/seed_2026_tasktrace.log` :
+
+  | trace | cycle | date |
+  |---|---:|---|
+  | `TASK_EXIT name=catalog` | 72 | 1972-7-2 |
+  | `TASK_ENTER name=catalog` | 73 | 1972-7-28 |
+  | `TASK_EXIT name=catalog` | 73 | 1972-8-6 |
+  | **`TASK_ENTER name=catalog`** | **74** | **1972-9-3** |
+  | — **aucun `TASK_EXIT`, jamais** — | | |
+
+  ⇒ **L'IA se fige À L'INTÉRIEUR de la tâche `catalog`**, qui enchaîne sur `_rebuildProjects` puis
+  la planification aérienne (`main.nut:7396-7416`, `:8021-8023`). Après ce dernier `TASK_ENTER`, le
+  journal ne contient plus que de l'activité aérienne (`AIR_FLEET` ×19, `AIR_TOWN_SERVED` ×8) puis
+  le silence. Le dernier scan coûte **529 873 opcodes**, presque le double des ~275 000 habituels.
+  C'est exactement l'hypothèse n°1 de l'instruction de code, et elle était donnée comme « non
+  tranchable par lecture » : c'est la mesure qui a tranché.
+
+  ✅ **Le défaut se reproduit malgré la sonde** (arrêt en 1972 de nouveau) : l'instrument ne masque
+  pas le bug, on peut continuer à creuser.
+  ⚠️ `LOOP_TICK` (toutes les 200 itérations) s'est révélé **trop espacé pour servir** : 3 lignes sur
+  toute la partie. C'est `TASK_ENTER`/`TASK_EXIT` qui porte tout le diagnostic.
+
+  1 ter. ⬜ **Localiser le point de blocage DANS `catalog`.** Ce qu'on sait : c'est après l'entrée
+     dans la planification aérienne. Ce qu'on ne sait pas : si c'est une boucle infinie, une API qui
+     ne rend pas la main, ou une progression devenue si lente qu'elle ne finit jamais.
+     ⚠️ **Ne pas corriger le bug du site 3308 avant d'avoir répondu** : ce serait perdre la
+     reproduction.
   1 bis. ⬜ Faire journaliser les codes d'erreur en clair (`AIError` → nom), sans quoi chaque
      diagnostic de construction reste un numéro opaque.
   2. ⬜ **Corriger le bug n°2 : indexer l'abandon aérien par SITE en plus de la paire**, sous
