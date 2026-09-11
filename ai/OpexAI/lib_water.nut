@@ -188,7 +188,17 @@ class _MinchinWeb_Lakes_
 
 function _MinchinWeb_Lakes_::FindPath(iterations)
 {
+  /* Ajout OpexAI (pas dans la source MinchinWeb) : OpexOpsMeasureEnd() relit un mark immutable,
+   * donc il est sur pour ce controle repete. Sa formule compte explicitement les ticks traverses
+   * lorsque GetOpsTillSuspend() remonte a OPS_PER_TICK, au lieu de soustraire deux restes. */
+  local opsMark = WATER_LAKES_OPS_BUDGET ? OpexOpsMeasureBegin() : null;
   for (local i = 0; i < iterations; i++) {
+    if (opsMark != null && OpexOpsMeasureEnd(opsMark) >= WATER_LAKES_OPS) {
+      /* Meme sortie que le plafond d'iterations : la recherche reste en cours et FindPath
+       * renvoie false, que OpexWaterLakesConnected traduit deja en null pour sauter la paire. */
+      this._lastIterationsUsed = i;
+      return false;
+    }
     /* C56 : les trois premieres iterations puis une sur cent. Si le journal s'arrete sur un
      * lakes_iter, le gel est DANS une iteration et le budget ne sert a rien. Volume nul en
      * partie saine : une partie saine n'examine aucune paire (mesure du 2026-09-11). */
@@ -537,6 +547,8 @@ function _MinchinWeb_Marine_::NearestDepot(TileID)
  * pas 153 pile, l'echantillon est petit). A rementer si `lakes_iterations_exhausted_n` (champ de
  * profil deja cable, voir OpexWaterLakesConnected) se met a mordre sur un banc plus large. */
 WATER_LAKES_ITERATIONS <- 500;
+/* Premier jet non calibre : le banc dira si 50 000 opcodes coupe trop de paires. */
+WATER_LAKES_OPS <- 50000;
 
 function OpexWaterLakesInstance(profile = null)
 {

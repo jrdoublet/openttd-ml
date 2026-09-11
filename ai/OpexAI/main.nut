@@ -124,6 +124,8 @@ C41_WATER_SITE_PROFILE <- false;
 /* BFS maritime reconstruit sur MinchinWeb.Lakes (2026-09-09) -- voir docs/taches.md et
  * ai/OpexAI/lib_water.nut. Defaut aligne sur info.nut (custom_value = 1). */
 WATER_LAKES_CONNECTIVITY <- true;
+/* Coupe experimentale de Lakes en opcodes ; 0 conserve le plafond d'iterations seul. */
+WATER_LAKES_OPS_BUDGET <- false;
 /* Catalogue persistant par ville des sites de dock (positifs et negatifs exhaustifs). Le
  * reglage 0 conserve le rescannage historique uniquement pour le banc apparie. */
 WATER_SITE_CATALOG <- false;
@@ -8460,6 +8462,7 @@ function OpexAI::Start()
   C41_WATER_SITE_PROFILE = AIController.GetSetting("c41_water_site_profile") != 0
       && C41_WATER_PLANS_PROFILE;
   WATER_LAKES_CONNECTIVITY = AIController.GetSetting("water_lakes_connectivity") != 0;
+  WATER_LAKES_OPS_BUDGET = AIController.GetSetting("water_lakes_ops_budget") != 0;
   WATER_SITE_CATALOG = AIController.GetSetting("water_site_catalog") != 0;
   WATER_DISCOVERY_REAL_FRONTS = AIController.GetSetting("water_discovery_real_fronts") != 0;
   C41_SLACK_LEDGER = AIController.GetSetting("c41_slack_ledger") != 0;

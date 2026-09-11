@@ -345,6 +345,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "water_lakes_ops_budget",
+      description = "Experimental MinchinWeb.Lakes opcode budget: 1 = stop an unresolved water search after 50000 opcodes, 0 = iteration-only budget (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "water_site_catalog",
       description = "Experimental persistent per-town water dock-site catalogue: 1 = cache valid sites and exhaustive negative scans, 0 = historical rescan (default; current benchmark winner)",
       easy_value = 0, medium_value = 0, hard_value = 0,
