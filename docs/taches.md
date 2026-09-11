@@ -768,8 +768,45 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
      et le BFS `WATER_BFS_MAX_NODES`/`WATER_BFS_MARGIN` (`:29-30`, `:340-351`).
      ⚠️ **Toujours ne pas corriger le site 3308 ni l'eau avant d'avoir répondu** : ce serait perdre
      la reproduction.
-  1 quinquies. ⬜ Vérifier si le gel touche d'autres graines : `water_*` est-il actif par défaut, et
-     combien de graines du banc 20 passent par cette phase ?
+  ### 🔴 ÉTAPE 1 quinquies FAITE le 2026-09-11 — **3 GRAINES SUR 20 GÈLENT, TOUTES DANS L'EAU**
+
+  `sweeps/diag_c56_freeze_scan.py`, 20 graines × 10 ans, `c56_task_trace=1`, sans `decision_log`.
+  `results/diag_c56_freeze_scan_10y_20seeds.json`.
+
+  | graine | dernière année | phase du gel | gares |
+  |---|---:|---|---:|
+  | 2026 | **1970** | `c56_stage_water` | 25 |
+  | 1337 | **1971** | `c56_stage_water` | 35 |
+  | 1024 | **1972** | `c56_stage_water` | 50 |
+  | *les 17 autres* | 1979 | — | médiane **106** |
+
+  🔑 **Les 20 graines entrent dans la phase eau ; 17 en ressortent, 3 non.** Ce n'est donc pas « le
+  code de l'eau ne tourne jamais » : il tourne partout et se fige sur **15 % des cartes**.
+  🔑 **Les graines gelées perdent les deux tiers de leur développement** : 35 gares en médiane
+  contre 106. Elles ne sont pas « difficiles », elles sont **amputées**.
+  ⇒ **Toutes nos campagnes 20 graines moyennent trois parties mortes depuis des semaines**, et ces
+  trois-là ne peuvent jamais départager deux bras dans un test des signes : elles gèlent avant que
+  le réglage testé ait le temps d'agir. La puissance de détection réelle du banc est de **17
+  graines**, pas 20.
+
+  ⚠️ **PIÈGE DE MESURE PAYÉ UNE FOIS, consigné dans l'en-tête du script** : le premier jet du
+  détecteur annonçait **19 gels sur 20**. Faux. Un `_ENTER` sans `_EXIT` ne prouve rien : une partie
+  saine s'arrête forcément au milieu d'une tâche, puisque la partie se termine sur un nombre de
+  ticks fixe et non sur une frontière de tâche. **C'est l'année de fin qui tranche ; l'appariement
+  ne fait que nommer la phase.** L'auto-test du script couvre désormais les trois cas, dont
+  celui-là nommément.
+
+  ### Étapes restantes
+
+  1 sexies. ⬜ **Localiser le point exact dans `OpexWaterPlans`** : `OpexWaterFindSiteSlice`
+     (`builder_water.nut:220`) et le BFS (`:29-30`, `:340-351`). Trois graines reproduisent, dont
+     1337 et 1024 en plus de 2026.
+  2. ⬜ **Décider : garde anti-blocage, ou remplacement du module eau** par
+     `MinchinWeb.Lakes`/`Pathfinder.Ship`, déjà décidé le 2026-09-09 pour d'autres raisons
+     (`AGENTS.md` §3). ⚠️ Décision de conception : ne pas la prendre seul.
+  3. ⬜ **Sort des graines gelées dans le protocole de banc** : les détecter et les signaler plutôt
+     que de les moyenner en silence. ⚠️ Retirer une graine change la comparabilité avec toutes les
+     campagnes passées — décision de méthode.
   1 bis. ⬜ Faire journaliser les codes d'erreur en clair (`AIError` → nom), sans quoi chaque
      diagnostic de construction reste un numéro opaque.
   2. ⬜ **Corriger le bug n°2 : indexer l'abandon aérien par SITE en plus de la paire**, sous
