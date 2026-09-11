@@ -120,6 +120,22 @@ def keep(row):
 
 ---
 
+## 2 bis. 🔴 Les résultats antérieurs au 2026-09-09 ne font PLUS foi
+
+**Décision utilisateur, 2026-09-11.** Les ~320 fichiers de `results/` produits avant cette date ont
+été archivés (`results/archive_2026-09-0*.tar.gz`) et retirés de l'arbre de travail. La raison n'est
+pas la place disque : **le code a trop changé depuis pour qu'ils mesurent encore l'IA d'aujourd'hui.**
+
+- ⛔ **Ne jamais citer un de ces fichiers comme preuve**, ni dans une fiche, ni dans un commit, ni
+  pour arbitrer une décision. Si un chiffre ancien compte, **le re-mesurer**.
+- ⚠️ Quatre citations de `docs/taches.md` pointent encore vers des fichiers archivés
+  (`bench_floor_3y_20seeds.json`, `bench_1v1_3y_1aeefe1_20seeds.json`,
+  `diag_c41_3b_water_site_profile_6y_5seeds.json`, `diag_constants_binding_6y_5seeds_v2.json`).
+  Elles sont marquées sur place ; les chiffres qu'elles portent sont **à re-mesurer avant tout
+  usage**, pas à reprendre.
+- C'est la généralisation d'une leçon déjà payée deux fois : C47 (un chiffre effondré d'un facteur
+  36 en deux jours) et C55 (une thèse d'archive réfutée sur le code du jour).
+
 ## 3. Bibliothèques tierces vendorisées (`ai/library/`)
 
 `ai/library/SuperLib-41`, `ai/library/MinchinWeb_s_MetaLibrary-11` et `ai/library/Queue.SortedList-3`

@@ -545,9 +545,12 @@ function OpexWaterPlans(catalog, lines = null, projects = null, profile = null, 
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "water_pair_loop", "-");
   for (local a = 0; a < sites.len(); a++) {
     for (local b = a + 1; b < sites.len(); b++) {
+      /* Intervalle ramene de 500 a 10 le 2026-09-11 : a 500, la ligne n'etait JAMAIS atteinte
+       * avant le gel, et la sonde restait muette sur le cas meme qu'elle devait diagnostiquer.
+       * Un appel sain examine 0 paire (moins de deux sites), donc ce pas fin ne coute rien. */
       if (C56_TASK_TRACE) {
         c56PairsExamined++;
-        if (c56PairsExamined % 500 == 0) {
+        if (c56PairsExamined % 10 == 0) {
           OpexC56TaskLog("WATER_PROBE_COUNTERS", "water_probe_counters",
                          "- pairs=" + c56PairsExamined + " lakes_in=" + c56LakesIn
                          + " lakes_out=" + c56LakesOut + " bfs_in=" + c56BfsIn
@@ -573,9 +576,12 @@ function OpexWaterPlans(catalog, lines = null, projects = null, profile = null, 
         /* Etage 1 : connectivite memorisee par bassin (MinchinWeb.Lakes), sans marge de
          * bounding-box -- une paire au-dela de l'ancien WATER_BFS_MARGIN=24 n'est plus ecartee
          * a tort. Instance persistante pour toute la partie (voir lib_water.nut). */
-        if (C56_TASK_TRACE) c56LakesIn++;
+        /* Jalon a CHAQUE paire, pas a intervalle : quand le gel coupe le journal, seule la
+         * DERNIERE ligne ecrite nomme l'etage fautif. Un compteur periodique ne dit rien de la
+         * paire en cours -- c'est l'erreur payee au premier essai. */
+        if (C56_TASK_TRACE) { c56LakesIn++; OpexC56TaskLog("PAIR", "lakes_enter", "- pair=" + c56PairsExamined); }
         local connected = OpexWaterLakesConnected(sites[a].waterTiles, sites[b].waterTiles, profile);
-        if (C56_TASK_TRACE) c56LakesOut++;
+        if (C56_TASK_TRACE) { c56LakesOut++; OpexC56TaskLog("PAIR", "lakes_exit", "- pair=" + c56PairsExamined); }
         if (connected != true) continue;
         if (profile != null) profile.lakes_connected++;
         /* Etage 2 : la paire est deja confirmee connectee -- ce BFS ne sert plus qu'a chiffrer
@@ -583,9 +589,9 @@ function OpexWaterPlans(catalog, lines = null, projects = null, profile = null, 
          * n'est plus un point de defaillance de connectivite, seulement un plafond de precision
          * sur la mesure. */
         local bfsMark = profile != null ? OpexOpsMeasureBegin() : null;
-        if (C56_TASK_TRACE) c56BfsIn++;
+        if (C56_TASK_TRACE) { c56BfsIn++; OpexC56TaskLog("PAIR", "bfs_enter", "- pair=" + c56PairsExamined); }
         navigableDistance = OpexWaterFindConnection(sites[a], sites[b]);
-        if (C56_TASK_TRACE) c56BfsOut++;
+        if (C56_TASK_TRACE) { c56BfsOut++; OpexC56TaskLog("PAIR", "bfs_exit", "- pair=" + c56PairsExamined); }
         if (profile != null) {
           profile.bfs_ops += OpexOpsMeasureEnd(bfsMark);
           profile.bfs_attempts++;
@@ -605,9 +611,9 @@ function OpexWaterPlans(catalog, lines = null, projects = null, profile = null, 
         /* Comportement historique : un seul BFS fait connectivite ET distance, les deux
          * bornees par WATER_BFS_MARGIN. */
         local bfsMark = profile != null ? OpexOpsMeasureBegin() : null;
-        if (C56_TASK_TRACE) c56BfsIn++;
+        if (C56_TASK_TRACE) { c56BfsIn++; OpexC56TaskLog("PAIR", "bfs_enter", "- pair=" + c56PairsExamined); }
         navigableDistance = OpexWaterFindConnection(sites[a], sites[b]);
-        if (C56_TASK_TRACE) c56BfsOut++;
+        if (C56_TASK_TRACE) { c56BfsOut++; OpexC56TaskLog("PAIR", "bfs_exit", "- pair=" + c56PairsExamined); }
         if (profile != null) {
           profile.bfs_ops += OpexOpsMeasureEnd(bfsMark);
           profile.bfs_attempts++;

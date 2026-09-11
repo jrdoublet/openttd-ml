@@ -14,7 +14,7 @@ dans `docs/journal_*.md`.
 ## 🔴 Où en est vraiment OpexAI — À LIRE AVANT TOUT LE RESTE
 
 **OpexAI perd contre AAAHogEx, très largement.** Référence
-(`results/bench_1v1_3y_1aeefe1_20seeds.json`, 20 graines × 3 ans, lecture appariée, 0 échec) :
+(`results/bench_1v1_3y_1aeefe1_20seeds.json` ⛔ **ARCHIVÉ, chiffre à re-mesurer, voir AGENTS.md §2 bis**, 20 graines × 3 ans, lecture appariée, 0 échec) :
 
 | métrique | écart apparié vs AAAHogEx | graines gagnées |
 |---|---:|---:|
@@ -1068,7 +1068,7 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
     rien. Vérifié aussi que les 4 archives `.tar.gz` de `results/` sont des diagnostics mono-bras
     `OpexAI[decision_log=1]` sans rapport.
   - La seule mesure appariée existante de ce réglage, **20 graines × 3 ans du 2026-09-02**
-    (`results/bench_floor_3y_20seeds.json`, `docs/journal_2026-09-02.md:317`), donnait
+    (`results/bench_floor_3y_20seeds.json` ⛔ **ARCHIVÉ, chiffre à re-mesurer, voir AGENTS.md §2 bis**, `docs/journal_2026-09-02.md:317`), donnait
     **−16,2 % de valeur** contre le contrôle, sous le titre *« ❌ `portfolio_v2` NON ADOPTABLE,
     même réparé »*.
 
@@ -1389,7 +1389,7 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   les erreurs d'infrastructure (tmpfs, guetteurs, cohabitation de sessions).
 
 - ⚪ **C47 — FERMÉE le 2026-09-10, prémisse RÉFUTÉE par sa propre mesure.** La fiche partait de
-  `build_failed = 1 795` sur 5 graines × 6 ans (`results/diag_constants_binding_6y_5seeds_v2.json`,
+  `build_failed = 1 795` sur 5 graines × 6 ans (`results/diag_constants_binding_6y_5seeds_v2.json` ⛔ **ARCHIVÉ, chiffre à re-mesurer, voir AGENTS.md §2 bis**,
   2026-09-08) et d'un ratio annoncé de « ~9 chantiers ratés par ligne ». **Ce chiffre ne se
   reproduit plus.** Campagne `decision_log=1`, mêmes graines, même durée, code d'aujourd'hui
   (`results/diag_c47_build_failed_6y_5seeds.json`, 0 échec) :
@@ -1636,7 +1636,7 @@ empirique pour garder le défaut à 1** — décision à réexaminer.
 
 **2. Quatre défauts fonctionnels + un risque, à corriger ou trancher :**
 - **La génération de sites est le goulot en amont, et Lakes n'y change rien.**
-  `results/diag_c41_3b_water_site_profile_6y_5seeds.json` : 591 918 opcodes, **0 plan**, dont
+  `results/diag_c41_3b_water_site_profile_6y_5seeds.json` ⛔ **ARCHIVÉ, chiffre à re-mesurer, voir AGENTS.md §2 bis** : 591 918 opcodes, **0 plan**, dont
   557 253 (94,1 %) dans la recherche de sites — 557 109 dans le seul scan/filtrage contre 144 dans
   les tests de quai. **Aucune paire n'atteint le BFS ni l'économie.** `OpexWaterFindSite` ne visite
   que `r <= coverage` autour de la tuile centrale : si aucune côte admissible n'est trouvée là, le
