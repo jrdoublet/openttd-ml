@@ -684,7 +684,7 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
 
   | # | famille | geste | symptôme visé | risque |
   |---|---|---|---|---|
-  | 1 | `ET_VEHICLE_AUTOREPLACED` | remplacer l'ancien ID par le nouveau dans `line.vehicles`, `scrapVehicles`, `_vehiclesToScrap` | inventaires de flotte qui pointent vers un ID mort | **aucun** (cohérence d'état) |
+  | 1 | `ET_VEHICLE_AUTOREPLACED` ⛔ **HORS FENÊTRE, voir ci-dessous** | remplacer l'ancien ID par le nouveau dans `line.vehicles`, `scrapVehicles`, `_vehiclesToScrap` | inventaires de flotte qui pointent vers un ID mort | **aucun** (cohérence d'état) |
   | 2 | `ET_VEHICLE_CRASHED` | étendre la branche existante aux autres motifs que `CRASH_TRAIN` et réveiller la reconstitution déjà écrite | camion détruit à un passage à niveau, avion détruit : ligne vidée sans réaction | faible |
   | 3 | `ET_VEHICLE_LOST` (rail) | armer **une seule** des micro-réparations déjà écrites (signal **ou** jonction), pas les deux | convois perdus/bloqués | faible |
   | 4 | `ET_VEHICLE_UNPROFITABLE` | compteur par ligne, puis `_triggerScrapLine()` au-delà d'un seuil | 🔑 **les 10 véhicules sur 191 jamais rentables, dont un qui perd de l'argent 9 ans de suite** | moyen |
@@ -702,6 +702,42 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   est **entièrement sous sondes à défaut 0** — « brancher » ici veut dire *promouvoir une sonde en
   action*, pas écrire du neuf. Ne pas les armer toutes d'un coup : le dépôt a déjà payé le prix d'un
   changement qui en faisait deux.
+
+  ### ⛔ #1 EST HORS DE LA FENÊTRE DU BANC — instruit le 2026-09-11, avant tout code
+
+  🔑 **L'événement `ET_VEHICLE_AUTOREPLACED` ne peut pratiquement pas se produire dans un banc
+  1970→1980.** Trois faits qui convergent :
+  - Le renouvellement automatique est bien **actif** et c'est notre seul déclencheur :
+    `AICompany.SetAutoRenewStatus(true)` + `SetAutoRenewMonths(-6)` (`main.nut:8293-8295`).
+    `AIGroup.SetAutoReplace` n'est **jamais** appelé (grep sur `ai/OpexAI/`).
+  - `-6` veut dire « six mois **avant** l'âge maximal ». Le commentaire de ce même bloc, écrit
+    d'après une **campagne 20 ans graine 42** (`main.nut:8280-8286`), mesure qu'**un camion vit
+    ~12 ans** et une locomotive 20 à 30. Premier renouvellement possible : ~11,5 ans.
+  - **OpexAI n'a aucune flotte au 1ᵉʳ janvier 1970** : elle construit après le démarrage. Le premier
+    renouvellement tombe donc vers **1981-1982**, quand le banc officiel s'arrête en **1980**.
+  ⇒ **La correction #1 serait invisible au banc 20×10.** Son classement en tête par valeur est
+  incompatible avec notre protocole de mesure. Elle n'est pas fausse — elle n'est pas *mesurable*
+  ici. Trois issues, à trancher avant d'y consacrer du temps : banc 20 ans (le `YEARS = 20` de
+  `bench_v2.py` est d'ailleurs son propre défaut), sonde préalable qui compte les événements, ou
+  passer à une tâche exposée dans la fenêtre.
+
+  ⚠️ **Ce que la lecture a trouvé en chemin, et qui dépasse #1** (à garder même si #1 est reportée) :
+  - La fiche oublie **`line.vehicle`**, doublon scalaire de l'ID stocké pour l'avion et le bateau
+    (`main.nut:2007`, `:2989`, `:3143`), et lui aussi sérialisé.
+  - 🔑 **Il n'existe aucune reconstruction périodique de `line.vehicles` pour rail, air et eau** :
+    `OpexLineVehicleIds()` rend le tableau mémorisé tel quel (`main.nut:1671`). **Seule la route
+    s'auto-guérit**, en reconstruisant par `AIVehicleList_Station` + ordres (`main.nut:1646-1669`).
+    Le dégât d'un ID mort est donc borné sur la route et persistant ailleurs.
+  - La purge d'après-rechargement (`main.nut:7979-7987`, appelée une fois dans `Start()`) est
+    **destructive** : elle retire l'ID mort sans jamais retrouver le remplaçant, et ne traite ni
+    `line.vehicle`, ni `scrapVehicles`, ni `_vehiclesToScrap`.
+
+  ⚠️ **Réserve de méthode sur cette instruction** : l'investigation déléguée citait abondamment le
+  source d'OpenTTD 15.3 (`src/vehicle.cpp:164`, `src/table/engines.h:223`, `src/autoreplace_cmd.cpp`)
+  — **ce source n'est présent nulle part sur cette machine**, ni dans le dépôt (`src/` n'y contient
+  que du Python), ni dans l'image Docker. Ces références n'ont pas pu être lues et ne sont pas
+  vérifiables. La conclusion ci-dessus ne repose donc **que** sur les faits vérifiés dans le dépôt,
+  qui suffisent et vont dans le même sens.
 
 - 🔴 **C53 — S'inspirer de `SuperLib.Order` pour la gestion des ordres de véhicules.**
   📝 Noté le 2026-09-10 sur demande utilisateur. `ai/library/SuperLib-41/` est **présente dans le
