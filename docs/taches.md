@@ -629,6 +629,42 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   - Le verrou **pax** reste non identifié (l'étape 1 a montré que ce n'est pas `OpexOriginServed`) :
     instrumenter `OpexRoadPairServed` et le plafond `4 + pop/300` côté génération.
 
+- 🔴 **C56 — LA GRAINE 2026 EST MORTE : l'IA s'arrête après 1970, et ça fausse tous nos bancs.**
+  📝 Ouverte le 2026-09-11, **découverte par accident** en mesurant l'exposition des événements C52.
+
+  ### Le fait, mesuré deux fois indépendamment
+
+  | source | ce qu'on voit sur la graine 2026 |
+  |---|---|
+  | `diag_c52_event_exposure_10y_5seeds.json` | **une seule année journalisée (1970)** sur dix, et **zéro** événement de tout type : 0 accident, 0 véhicule non rentable, 0 première desserte, 0 offre de subvention |
+  | `bench_c55_freight_origin_relax_10y_20seeds.json` | **13 gares et 22 véhicules**, contre une **médiane de 94,5 gares** sur les 20 graines — 7 fois moins que la deuxième plus basse (42 gares) |
+
+  ⚠️ **Le run est déclaré `run_ok = True`, sans `failure_reason`.** Ce n'est donc pas une erreur NoAI
+  détectée : l'IA cesse simplement de produire son rapport annuel après 1970. Elle construit 13
+  gares puis ne fait plus rien pendant neuf ans.
+
+  ### Pourquoi c'est prioritaire, au-delà de la graine elle-même
+
+  - 🔑 **Tous nos bancs 20 graines incluent cette graine morte**, qui tire chaque moyenne vers le bas
+    et gonfle la variance appariée. Le banc C55 du même jour affiche un écart-type apparié de
+    2,16 M£ pour une base de 15,1 M£ : une graine à 2,3 M£ au lieu de ~15 M£ y contribue seule.
+  - 🔑 **C'est la seule graine des 20 dont les deux bras C55 étaient STRICTEMENT identiques.**
+    Évidemment : rien ne se passe après 1970, donc aucune divergence n'est possible. Une graine morte
+    est un **poids mort** dans un test des signes — elle ne peut jamais départager deux bras.
+  - Si la cause est un blocage générique (boucle, budget d'opcodes épuisé, exception avalée), elle
+    peut frapper d'autres graines **partiellement**, sans être aussi visible.
+
+  ### Étapes
+
+  1. ⬜ **Reproduire et diagnostiquer** : rejouer la graine 2026 seule avec `-d script=4` et
+     `decision_log=1` sur 10 ans, et lire ce que fait l'IA après son dernier rapport de 1970.
+     ⚠️ Ne pas partir de l'hypothèse d'un crash : `run_ok` est vrai, donc chercher aussi un
+     blocage silencieux (suspend qui ne revient pas, budget d'opcodes, exception attrapée).
+  2. ⬜ Selon la cause : correctif sous réglage dédié, ou garde anti-blocage.
+  3. ⬜ **Décider du sort des graines mortes dans le protocole de banc** : les détecter et les
+     signaler, plutôt que de les moyenner en silence. ⚠️ Décision de méthode, à ne pas prendre seul :
+     retirer une graine d'un banc change la comparabilité avec toutes les campagnes passées.
+
 - 🔴 **C52 — Finir le chantier des événements : en brancher le maximum.**
   📝 Noté le 2026-09-10 sur demande utilisateur. **État constaté dans le code** (`ai/OpexAI/main.nut`) :
 
@@ -755,6 +791,45 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   retrouvé, donc toujours « unknown » quand rien n'est retrouvé, c'est-à-dire exactement dans le cas
   à diagnostiquer. Corrigée pour lire le **type du véhicule**. *Un compteur dont la valeur par défaut
   coïncide avec le cas intéressant ne mesure rien.*
+
+  ### 🔑 EXPOSITION MESURÉE le 2026-09-11 — le classement de la fiche est refait
+
+  `c52_event_exposure_probe` (défaut 0), comptage **avant toute branche** de `_processEvents` donc
+  aucun `continue` ne peut masquer un événement. 5 graines × 10 ans, 0 échec,
+  `results/diag_c52_event_exposure_10y_5seeds.json`.
+
+  | # | événement | occurrences | verdict |
+  |---|---|---:|---|
+  | 4 | `ET_VEHICLE_UNPROFITABLE` | **183 véhicules distincts** | 🥇 **de loin la plus exposée** (~37/graine/10 ans) |
+  | 7 | `ET_STATION_FIRST_VEHICLE` | **359** | 🥈 matière abondante pour la sonde |
+  | 2 | `ET_VEHICLE_CRASHED` | 10 | 🥉 modeste mais voir le 🔑 ci-dessous |
+  | — | `ET_ENGINE_PREVIEW` | 20 | hors fiche, existe |
+  | 5 | `ET_AIRCRAFT_DEST_TOO_FAR` | **0** | ⛔ **aucune exposition** |
+  | 9 | `ET_ROAD_RECONSTRUCTION` | **0** | ⛔ **aucune exposition** |
+  | 1 | `ET_VEHICLE_AUTOREPLACED` | **0** | ⛔ confirme indépendamment le hors-fenêtre établi plus haut |
+  | — | `ET_EXCLUSIVE_TRANSPORT_RIGHTS` | 0 | ⛔ |
+
+  🔑 **1. La tâche #2 ne dit pas ce qu'on croyait : `crashed_train = 0`, `crashed_other = 10`.**
+  **100 % des accidents sont aujourd'hui ignorés** — la seule branche écrite ne traite que
+  `CRASH_TRAIN` (`main.nut:5977`), et il n'y a eu **aucun** accident de train en 50 années de jeu.
+  La fiche présentait #2 comme « étendre aux autres motifs » ; c'est en réalité « la branche
+  existante n'a jamais rien traité ».
+
+  🔴 **2. `ET_VEHICLE_WAITING_IN_DEPOT` : 0 occurrence.** La branche `event_depot_sell`
+  (`main.nut:5997`) ne peut donc **jamais** agir, quel que soit son réglage. C'est un réglage mort,
+  pas un réglage à défaut 0 — à traiter comme tel.
+
+  🔴 **3. Subventions : 81 offres, 0 obtenue, 0 expirée** (`subsidy_awarded = 0` sur les 5 graines).
+  **Nous ne remportons jamais une subvention.** Entrée directe pour C42, et bien plus parlante que
+  le comptage d'offres.
+
+  🟡 **4. `other = 2` par graine, exactement**, sur les 5 graines : deux types non identifiés, une
+  fois chacun, en début de partie. Bénin, mais non identifié — ne pas conclure que le recensement
+  est exhaustif.
+
+  ⇒ **Ordre de travail refait par la mesure : #4, puis #7, puis #2.** #5, #9 et
+  `ET_EXCLUSIVE_TRANSPORT_RIGHTS` sont **abandonnées faute d'exposition** — les rouvrir demanderait
+  d'abord de montrer que l'événement se produit.
 
   ⚠️ **Ce que la lecture a trouvé en chemin, et qui dépasse #1** (à garder même si #1 est reportée) :
   - La fiche oublie **`line.vehicle`**, doublon scalaire de l'ID stocké pour l'avion et le bateau
