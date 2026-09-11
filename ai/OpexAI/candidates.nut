@@ -1962,6 +1962,11 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
       }
       local source = industries[si];
       local sourceBusy = freightBusy != null && (cargo + "|" + source.tile in freightBusy);
+      /* Une source occupee voit DEJA toutes ses paires rejetees plus bas (le "|| sourceBusy" des
+       * deux boucles) : les enumerer quand meme couterait puits + villes opcodes pour rien, dans
+       * la boucle la plus chaude de la generation. Sortir ici ne change aucun candidat produit.
+       * Inerte a reglage 0 : freightBusy y vaut null, donc sourceBusy est toujours faux. */
+      if (sourceBusy) continue;
       local monthly = AIIndustry.GetLastMonthProduction(source.id, cargo);
       if (monthly <= 0) { stats.noMonthly++; continue; }
 
