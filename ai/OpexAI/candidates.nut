@@ -2564,9 +2564,22 @@ function OpexSubsidyMatchingLineId(sub, lines)
   return -1;
 }
 
+/* C42 : Estimation physique du delai de mise en service jusqu'a la 1ere livraison (spec C42, docs/cible.md §5-6) :
+ * - 30j de latence d'arbitrage portefeuille (attente du tour de batch mensuel)
+ * - 30j pour sortie depot et premier chargement complet a l'arret source
+ * - 10j de marge de voirie, carrefours et trafic
+ * - oneWayDays : temps de trajet physique aller simple calcule par OpexRoadLineEconomics.
+ * Repli minimum si oneWayDays inconnu : 75j. */
+function OpexSubsidyChantierDays(oneWayDays = -1)
+{
+  local setupDays = 70; // 30j cycle + 30j chargement/depot + 10j marge
+  if (oneWayDays > 0) return setupDays + oneWayDays;
+  return 75;
+}
+
 /* C42 : Genere des candidats de portefeuille pour les offres de subvention actives.
- * Une subvention multiplie les revenus par subsidy_multiplier (1.5x a 4x) pendant 12 mois
- * des la premiere livraison. */
+ * Une subvention multiplie les revenus par subsidy_multiplier (1.5x a 4x) pendant
+ * difficulty.subsidy_duration annees (0 a 5000 annees, defaut 1 an) des la premiere livraison. */
 function OpexGenerateSubsidyCandidates(catalog, lines, activeSubsidies, stats, abandonedPairs)
 {
   local candidates = [];
@@ -2579,12 +2592,20 @@ function OpexGenerateSubsidyCandidates(catalog, lines, activeSubsidies, stats, a
       ? AIGameSettings.GetValue("difficulty.subsidy_multiplier") : 1;
   local multiplier = (rawMult == 0) ? 1.5 : (rawMult + 1.0);
 
+  // Duree de la subvention : difficulty.subsidy_duration (0 a 5000 annees, defaut 1 an)
+  local subsidyDuration = AIGameSettings.IsValid("difficulty.subsidy_duration")
+      ? AIGameSettings.GetValue("difficulty.subsidy_duration") : 1;
+  if (subsidyDuration <= 0) {
+    multiplier = 1.0;
+    subsidyDuration = 0;
+  }
+
   foreach (subId, sub in activeSubsidies) {
     if (!AISubsidy.IsValidSubsidy(subId) || AISubsidy.IsAwarded(subId)) continue;
 
-    // Garde 1 : Delai restant suffisant avant expiration de l'offre
+    // Garde 1 : Verification rapide de peremption absolue (> 30j minimum)
     local daysLeft = sub.expDate - today;
-    if (daysLeft < C42_SUBSIDY_LEAD_DAYS) continue;
+    if (daysLeft <= 30) continue;
 
     // Garde 2 : Disponibilite du vehicule dans le catalogue routier
     local cargo = sub.cargo;
@@ -2692,13 +2713,30 @@ function OpexGenerateSubsidyCandidates(catalog, lines, activeSubsidies, stats, a
     local economics = OpexRoadLineEconomics(catalog, cargo, distance, monthlyProd, engine, kind);
     if (economics == null || economics.profitAnnual <= 0) continue;
 
-    // Bonus de subvention applique sur les revenus de la premiere annee
+    // Garde temporelle physique : comparaison au temps de chantier estime (spec C42)
+    local chantierDays = OpexSubsidyChantierDays(economics.oneWayDays);
+    if (daysLeft < chantierDays) continue;
+    local slackDays = daysLeft - chantierDays;
+
+    // Horizon d'amortissement (tau) du projet pour lisser le bonus temporaire
     local baseRev = economics.revenueAnnual;
-    local subRev = (baseRev * multiplier).tointeger();
+    local baseProfit = economics.profitAnnual;
+    local totalCapital = economics.capital + (("immobilise" in economics) ? economics.immobilise : 0);
+    local tauYears = (baseProfit > 0 && totalCapital > 0) ? (totalCapital.tofloat() / baseProfit) : 1.0;
+    if (tauYears < 1.0) tauYears = 1.0;
+
+    // Couverture du bonus sur l'horizon d'amortissement :
+    // Si subsidyDuration >= tau, le bonus couvre 100% de la periode de retour sur investissement.
+    // Si subsidyDuration < tau, le bonus n'est percu que sur une fraction (subsidyDuration / tau) de l'horizon.
+    local bonusCoverage = (subsidyDuration > 0)
+        ? ((subsidyDuration.tofloat() < tauYears) ? (subsidyDuration.tofloat() / tauYears) : 1.0)
+        : 0.0;
+    local effectiveMultiplier = 1.0 + (multiplier - 1.0) * bonusCoverage;
+
+    local subRev = (baseRev * effectiveMultiplier).tointeger();
     local subProfit = subRev - economics.runningAnnual - economics.amortAnnual;
     if (subProfit <= 0) continue;
 
-    local totalCapital = economics.capital + (("immobilise" in economics) ? economics.immobilise : 0);
     local freightBonus = (FLAT_BONUS && kind == "freight") ? 140 : 100;
     local effectiveRoi = (subProfit > 0 && totalCapital > 0) ? (subProfit * 1000) / totalCapital : 0;
     if (freightBonus != 100) effectiveRoi = (effectiveRoi * freightBonus) / 100;
@@ -2738,13 +2776,20 @@ function OpexGenerateSubsidyCandidates(catalog, lines, activeSubsidies, stats, a
       ratio = iterations > 0 ? (subProfit * 1000) / iterations : 0,
       isSubsidy = true,
       subsidyId = subId,
-      subsidyMultiplier = multiplier
+      subsidyMultiplier = multiplier,
+      subsidyDuration = subsidyDuration,
+      effectiveMultiplier = effectiveMultiplier,
+      daysLeft = daysLeft,
+      chantierDays = chantierDays,
+      slackDays = slackDays
     });
 
     if (C42_SUBSIDY_LOG || DECISION_LOG) {
       OpexDecide("SUBSIDY_CANDIDATE", "sub=" + subId + " cargo=" + AICargo.GetCargoLabel(cargo)
-                 + " dist=" + distance + " mult=" + multiplier + " profit=" + subProfit
-                 + " roi=" + effectiveRoi + " cap=" + economics.capital);
+                 + " dist=" + distance + " mult=" + multiplier + " dur=" + subsidyDuration
+                 + " effMult=" + effectiveMultiplier + " daysLeft=" + daysLeft
+                 + " chantier=" + chantierDays + " slack=" + slackDays
+                 + " profit=" + subProfit + " roi=" + effectiveRoi + " cap=" + economics.capital);
     }
   }
 

@@ -3455,8 +3455,13 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
       if (isSubsidy) {
         local subId = candidate.subsidyId;
         local today = AIDate.GetCurrentDate();
+        local oneWay = ("oneWayDays" in candidate) ? candidate.oneWayDays : -1;
+        // Au moment de la construction immediate, la latence d'attente de cycle de batch (30j) est deja ecoulee
+        local chantier = ("chantierDays" in candidate)
+            ? (candidate.chantierDays - 30) : (OpexSubsidyChantierDays(oneWay) - 30);
+        if (chantier < 30) chantier = 30;
         if (!AISubsidy.IsValidSubsidy(subId) || AISubsidy.IsAwarded(subId)
-            || (AISubsidy.GetExpireDate(subId) - today < C42_SUBSIDY_LEAD_DAYS)) {
+            || (AISubsidy.GetExpireDate(subId) - today < chantier)) {
           if (DECISION_LOG || C42_SUBSIDY_LOG) {
             OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=road reason=subsidy_lost sub=" + subId);
           }
@@ -3582,7 +3587,9 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         candidate.baseRevenueAnnual = economics.revenueAnnual;
         candidate.baseProfitAnnual = economics.profitAnnual;
         candidate.baseRoi = economics.roi;
-        local mult = ("subsidyMultiplier" in candidate) ? candidate.subsidyMultiplier : 1.0;
+        local mult = ("effectiveMultiplier" in candidate)
+            ? candidate.effectiveMultiplier
+            : (("subsidyMultiplier" in candidate) ? candidate.subsidyMultiplier : 1.0);
         local subRev = (economics.revenueAnnual * mult).tointeger();
         local subProfit = subRev - economics.runningAnnual - economics.amortAnnual;
         local freightBonus = ("freightBonus" in candidate) ? candidate.freightBonus : 100;
@@ -3648,7 +3655,10 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         passDiscards = [];
         local cargoStr = AICargo.GetCargoLabel(candidate.cargo);
         local extraSub = (isSubsidy && ("baseProfitAnnual" in candidate))
-            ? (" base_profit=" + candidate.baseProfitAnnual + " base_roi=" + candidate.baseRoi + " mult=" + candidate.subsidyMultiplier)
+            ? (" base_profit=" + candidate.baseProfitAnnual + " base_roi=" + candidate.baseRoi
+               + " mult=" + candidate.subsidyMultiplier
+               + (("subsidyDuration" in candidate) ? (" dur=" + candidate.subsidyDuration) : "")
+               + (("slackDays" in candidate) ? (" slack=" + candidate.slackDays) : ""))
             : "";
         OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=road kind=" + candidate.kind + " cargo=" + cargoStr + " src=" + candidate.src + " dst=" + candidate.dst + " dist=" + candidate.distance + " cost=" + candidate.capital + " profit=" + candidate.profitAnnual + " roi=" + candidate.roi + extraSub);
         OpexDecide("ROAD_BUILD", "line=" + idx + " src=" + candidate.src + " dst=" + candidate.dst + " cargo=" + cargoStr + " dist=" + candidate.distance + " profit=" + candidate.profitAnnual + " cost=" + result.cost + " vehicles=" + result.vehicles.len());

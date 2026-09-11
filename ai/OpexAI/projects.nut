@@ -1032,7 +1032,9 @@ function OpexIncrementalCandidateStillValid(p, lines, abandonedPairs = null)
       local subId = p.payload.subsidyId;
       if (!AISubsidy.IsValidSubsidy(subId) || AISubsidy.IsAwarded(subId)) return false;
       local today = AIDate.GetCurrentDate();
-      if (AISubsidy.GetExpireDate(subId) - today < C42_SUBSIDY_LEAD_DAYS) return false;
+      local oneWay = ("oneWayDays" in p.payload) ? p.payload.oneWayDays : -1;
+      local chantier = ("chantierDays" in p.payload) ? p.payload.chantierDays : OpexSubsidyChantierDays(oneWay);
+      if (AISubsidy.GetExpireDate(subId) - today < chantier) return false;
       return true;
     }
     local isFeeder = (("payload" in p) && p.payload != null &&
