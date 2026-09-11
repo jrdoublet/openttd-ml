@@ -1202,7 +1202,18 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   | **`event_vehicle_unprofitable=1`** | 8 645 932 | 2 276 968 | 157.4 | 78.4 | **3/5 gains CV** (+216k g100, +170k g2026, +27k g7) ; flotte allégée de 5.4 véhicules |
   | **`event_vehicle_crashed=1`** | 8 640 857 | 2 311 463 | 164.8 | 81.8 | **3/5 gains CV** (+206k g2026, +18k g7, +15k g100), 3/5 gains profit |
 
-  Les deux réglages restent **à défaut 0** en attendant la confirmation officielle sur banc 20×10.
+  **Résultats du banc officiel apparié 20 graines × 10 ans (`results/bench_c52_events_10y_20seeds.json`, 60/60 runs OK, 0 échec, 0 blocage) :**
+
+  | Bras | Val. Entreprise moy. | Profit annuel moy. | Perf. Hist. | Note gares | Bilan apparié vs OpexAI |
+  |---|---:|---:|---:|---:|---|
+  | **OpexAI** (baseline) | 17 157 468 £ | 2 790 495 £ | 865.8 | 162.1 | — |
+  | **`event_vehicle_crashed=1`** | **17 312 119 £** | **2 816 262 £** | **868.0** | 161.6 | 🏆 **Gagnant : +154 650 £ (+0.89 %)**, profit **+25 767 £/an**, **12/20 victoires** (pics à +1.96M g2026, +1.26M g100, +1.26M g65537) |
+  | **`event_vehicle_unprofitable=1`** | 16 952 881 £ | 2 745 808 £ | 865.0 | 155.8 | −204 587 £ (−1.21 %), 7/20 victoires (seuil 2 ans trop agressif pour lignes mono-véhicule) |
+
+  🔑 **Conclusions du banc 20×10 :**
+  - **Zéro blocage :** Aucune suspension, aucun gel et 0 erreur sur les 60 runs de 10 ans. Les détecteurs confirment la parfaite robustesse de l'IA.
+  - **`event_vehicle_crashed=1` est un succès net :** Il sauve des lignes entières qui mouraient silencieusement après un crash au passage à niveau ou sur piste, dégageant des hausses massives sur les graines affectées (+1.96M sur 2026, +1.26M sur 100 et 65537). **Prêt pour adoption.**
+  - **`event_vehicle_unprofitable=1` (seuil 2 ans) :** Fermer des lignes (`UNPROFITABLE_SCRAP`) dès 2 ans de déficit détruit du capital d'infrastructure sur le long terme. Le réglage reste à défaut 0.
 
 
 - 🔴 **C53 — S'inspirer de `SuperLib.Order` pour la gestion des ordres de véhicules.**
