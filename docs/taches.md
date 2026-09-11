@@ -1307,7 +1307,7 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   3. ⬜ Un réglage par différence (non-stop d'abord, critère de full load ensuite), défaut 0, un seul
      changement à la fois, banc 20×10 apparié.
 
-- 🔴 **C51 — `portfolio_v2=1` est le défaut et n'a JAMAIS été validé au banc.**
+- 🟢 **C51 — Validation et clôture du portefeuille v2 (défaut consolidé, legacy supprimé le 2026-09-11).**
   📝 Archéologie faite le 2026-09-10, banc lancé le même jour.
 
   **Les faits, avec leurs sources :**
@@ -1398,6 +1398,24 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   `openttd_output` (recopié sur ~36 lignes par partie). 92 Ko après une minute contre plusieurs
   centaines de Mo auparavant. **À porter proprement dans `sweeps/bench_v2.py` si le résultat le
   confirme** — c'est la cause des fichiers géants qu'on archive depuis des jours.
+
+  ### 🟢 CLÔTURE ET SUPPRESSION DU LEGACY (2026-09-11)
+
+  Décision utilisateur du 2026-09-11 : le résultat du banc 20×10 apparié consolidant le défaut
+  (+30,4 % gares, 18/20, p=0,0004 ; +12,7 % véhicules, 16/20, p=0,0118), le chemin historique
+  (`portfolio_v2=0`) et tout ce qui ne vivait que pour lui sont définitivement supprimés de l'arbre :
+  1. **Algorithme de portefeuille unique** : `OpexBuildProjects`, `OpexReselectProjects` et
+     `OpexIncrementalUpdateProjects` convergent sur la sélection v2 (profit par livre de capital
+     finançable, élection modale après le test de capital, vivier non borné à `PROJECT_POOL_K`).
+  2. **Suppression du code mort orphelin** : `OpexKnapsackSolve`, `OpexKnapsackSearch`,
+     `OpexKnapsackComputeBound`, `OpexProjectConflictKeys`, `OpexBuildMultimodalBudgetPool`,
+     `OpexProjectModeBetter`, `OpexProjectRemember`.
+  3. **Suppression de la plomberie `capital_ceiling_cycles`** : suppression de `capitalBudgetHistory`
+     et `capitalBudgetPeak` (qui ne servaient qu'à l'admission au vivier legacy), et des paramètres
+     associés dans `OpexBuildProjects` / `_rebuildProjects`.
+  4. **Suppression des réglages et flags obsolètes** : `portfolio_v2`, `knapsack_roi`,
+     `pool_financeable`, `capital_ceiling_cycles` retirés de `main.nut`, `info.nut` et de la
+     whitelist `bench_v2.py`.
 
 - 🔴 **C49 — Dénominateur variable, piloté par la cause prochaine d'un non-chantier.**
   📝 **DÉCISION UTILISATEUR EXPLICITE du 2026-09-10** : on instruit cette piste. ⚠️ **Elle LÈVE le

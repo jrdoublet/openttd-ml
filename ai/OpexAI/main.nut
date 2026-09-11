@@ -857,30 +857,6 @@ RESERVE_MAINT_CAP <- false;
  * Defaut a false tant que le banc n'a pas tranche, et reglage SEPARE de reserve_maint_cap pour
  * que la mesure puisse attribuer -- c'est la lecon du lot de treize corrections groupees. */
 AIR_MARGIN_V2 <- false;
-/* C13 : le sac a dos maximise la somme des revenueAnnual (projects.nut:302), donc il ignore
- * entierement les frais de roulement -- deux projets a revenu egal lui sont equivalents meme si
- * l'un paie deux fois plus. profitAnnual et roi existent DEJA sur chaque projet, simplement jamais
- * consultes par l'optimiseur ; et le meme defaut avait ete corrige un etage plus bas
- * (economy.nut:261) sans qu'on remonte d'un cran. 1 = objectif ET ordre de branchement en profit.
- * Consequence attendue, mesuree par le banc : donner plus de capital cesse de degrader le choix
- * (docs/taches.md S0 undecies septies). */
-/* G1 : le chemin historique reste disponible pour les comparaisons, mais ne doit plus etre
- * le comportement courant : il maximise le revenu au lieu du profit. Le portefeuille v2 est
- * le defaut et n'appelle pas le sac a dos ; cette valeur protege aussi tout retour explicite
- * au solveur historique. */
-KNAPSACK_ROI <- true;
-/* docs/taches.md S0 undecies nonies (2026-09-03) : le vivier est rempli sans test de
- * financabilite, sur budgetScore seul (une DENSITE). L'aerien y occupait 43 % des 128 places pour
- * 0 selection en 16 ans -- structurellement trop cher pour tout capitalBudget observe (~131 000 £
- * contre 30-92 000 £). 1 = filtrer l'admission au vivier sur le plafond de capital mobilisable
- * jamais observe, AVANT troncature a PROJECT_POOL_K ; 0 = comportement precedent (classement par
- * densite seule).
- *
- * ADOPTE le 2026-09-03 par decision utilisateur MALGRE un banc d'isolation NEUTRE (20 graines x
- * 3 ans) : company_value +8,1 % et profit_year +11,7 % ne franchissent pas le plancher de
- * detection (t=1,48 et 1,52), et median_station_rating perd significativement au test des signes
- * (5/20, p=0,041). Rien n'est casse -- le gain de valeur n'est simplement pas encore prouve. */
-POOL_FINANCEABLE <- true;
 /* P1 : repli empirique temporaire du filtre de finançabilité. Le ×1,7 rail
  * est consigné sans artefact source encore présent ; P1.1 doit le remplacer
  * par un devis physique avant élection. Les autres modes restent à 1,0. */
@@ -1193,18 +1169,6 @@ LOOP_BUDGET <- false;
 const LOOP_BUDGET_FLOOR = 2000;
 const LOOP_BUDGET_MAX_TASKS = 8;
 
-/* Portefeuille v2 (revue du portefeuille, docs/taches.md S0 sexies et S0 septies) : repli
- * temporaire jusqu'a la lecture unique de portfolio_v2 dans Start(). Defaut 1 : chemin corrige.
- * Sous 1, quatre defauts confirmes tombent ensemble --
- *   - l'election modale par couple O/D se fait APRES le test de capital, pas avant ;
- *   - l'objectif passe du revenu total au PROFIT par livre de capital ;
- *   - le sac a dos 0/1 est remplace par « le meilleur projet finançable », puisque maxBatch = 1
- *     n'en batit qu'un et jetait tout le reste ;
- *   - la contrainte « pas deux projets sur la meme extremite » disparait : elle interdisait la
- *     topologie en etoile de builder_air sans rien apporter a un batch de taille 1.
- * Plus la regeneration du portefeuille des que le capital mobilisable a materiellement grandi,
- * au lieu d'attendre le mois suivant. */
-PORTFOLIO_V2 <- true;
 /* Taille du batch du portefeuille. Repli 1 jusqu'a la lecture unique de
  * portfolio_max_batch dans Start() : 1 garde le break apres le premier succes, donc le chemin
  * livre reste strictement le meme. */
@@ -8079,7 +8043,7 @@ function OpexAI::_runNextTask()
      * (docs/taches.md S0 septies, trouvaille A). On regenere donc aussi des que le capital
      * mobilisable a materiellement grandi depuis la derniere generation. */
     local stale = false;
-    if (PORTFOLIO_V2 && this._projects != null) {
+    if (this._projects != null) {
       local budgetNow = OpexAvailableCapital();
       local budgetThen = this._projects.capitalBudget;
       /* Seuil relatif ET absolu : on ne rejoue pas la generation pour quelques milliers de livres,
@@ -9095,7 +9059,6 @@ function OpexAI::Start()
   FLAT_BONUS = AIController.GetSetting("flat_bonus") != 0;
   AIR_ROI_ORDER = AIController.GetSetting("air_roi_order") != 0;
   LOOP_BUDGET = AIController.GetSetting("loop_budget") != 0;
-  PORTFOLIO_V2 = AIController.GetSetting("portfolio_v2") != 0;
   PORTFOLIO_MAX_BATCH = AIController.GetSetting("portfolio_max_batch");
   PORTFOLIO_DYNAMIC_BATCH = AIController.GetSetting("portfolio_dynamic_batch") != 0;
   local dynamicRejectLimit = AIController.GetSetting("dynamic_batch_reject_limit");
@@ -9144,8 +9107,6 @@ function OpexAI::Start()
   DYNAMIC_CASH_RESERVE = AIController.GetSetting("dynamic_cash_reserve") != 0;
   RESERVE_MAINT_CAP = AIController.GetSetting("reserve_maint_cap") != 0;
   AIR_MARGIN_V2 = AIController.GetSetting("air_margin_v2") != 0;
-  KNAPSACK_ROI = AIController.GetSetting("knapsack_roi") != 0;
-  POOL_FINANCEABLE = AIController.GetSetting("pool_financeable") != 0;
   CAPITAL_CALIBRATION = AIController.GetSetting("capital_calibration") != 0;
   RAIL_PREQUOTE = AIController.GetSetting("rail_prequote") != 0;
   RAIL_PREQUOTE_KEEP_PLAN = AIController.GetSetting("rail_prequote_keep_plan") != 0;

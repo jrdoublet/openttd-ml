@@ -1752,37 +1752,6 @@ Le mode route est donc reconfirme sur l arbre courant.
      * utilisateur du 2026-09-03). Le diagnostic 1v1 montre 88 refus insufficient_cash pour 3
      * acceptations : la marge, jusqu'a 30 000 £, pese un ordre de grandeur de plus que la reserve
      * (~7 000 £). Reglage SEPARE de reserve_maint_cap pour que le banc puisse attribuer. */
-    /* C13 (remarque de grok, 2026-09-02 ; motive par le banc du 2026-09-03). Le sac a dos
-     * maximisait la somme des revenus, jamais du profit -- d'ou le resultat contre-intuitif
-     * "plus de capital fait construire moins" : un objectif de revenu depense le budget
-     * supplementaire en projets plus gros, donc moins nombreux. */
-    AddSetting({
-      name = "knapsack_roi",
-      description = "Legacy knapsack maximises annual PROFIT and branches on profit density (default). 0 = legacy revenue objective, for comparison only.",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* docs/taches.md S0 undecies nonies (2026-09-03) : mesure directe du vivier -- l'aerien y
-     * occupe 43 % des 128 places (56 en moyenne) pour 0 selection par le sac a dos en 16 ans,
-     * parce qu'il coute ~131 000 £ contre un capitalBudget moyen de 40 000 £, et que le vivier est
-     * rempli sur budgetScore (une densite) sans jamais tester la financabilite.
-     *
-     * ADOPTE le 2026-09-03 par decision utilisateur, MALGRE un banc d'isolation NEUTRE (20 graines
-     * x 3 ans, results/bench_pool_financeable_iso_3y_20seeds.json) : company_value +8,1 % (t=1,48,
-     * NS), profit_year +11,7 % (t=1,52, NS), aucune moyenne ne franchit le plancher de detection.
-     * Le test des signes isole deux effets reels sous ce plancher : profit du dernier trimestre
-     * gagne (16/20, p=0,012) mais median_station_rating perd (5/20, p=0,041). La structure ne
-     * casse rien ; elle n'a simplement pas encore prouve de gain de valeur mesurable. */
-    AddSetting({
-      name = "pool_financeable",
-      description = "Filter pool admission on the highest ever-observed mobilisable capital before truncating to PROJECT_POOL_K, instead of ranking by density alone: 1 = enabled (default, adopted 2026-09-03 despite a neutral isolation bench), 0 = rank by density alone",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
     /* P1 : repli empirique rail-only temporaire. L'artefact source du ×1,7
      * n'est plus dans l'arbre ; P1.1 doit le remplacer par le devis physique
      * avant élection. Les autres modes ne sont pas multiplies. */
@@ -2355,8 +2324,8 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
-    /* Plancher de profit ABSOLU du portefeuille v2, en pourcentage du meilleur profit finançable
-     * du moment. N'a d'effet que sous portfolio_v2 = 1.
+    /* Plancher de profit ABSOLU du portefeuille, en pourcentage du meilleur profit finançable
+     * du moment.
      *
      * POURQUOI IL EXISTE. Banc du 2026-09-02 (results/bench_isolation_3y_20seeds.json, reglage
      * isole) : le tri au seul ratio profit/capital est le SEUL des quatre reglages a bouger le
@@ -2370,20 +2339,12 @@ Le mode route est donc reconfirme sur l arbre courant.
      * 100 ne garderait que le meilleur profit absolu. La valeur a retenir est a mesurer. */
     AddSetting({
       name = "portfolio_floor_pct",
-      description = "Portfolio v2 only: minimum annual profit to be ranked, as a percentage of the best affordable project's profit. 0 = pure ratio ranking (default)",
+      description = "Minimum annual profit to be ranked, as a percentage of the best affordable project's profit. 0 = pure ratio ranking (default)",
       min_value = 0, max_value = 100,
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       step_size = 5,
       flags = 0
-    });
-
-    AddSetting({
-      name = "portfolio_v2",
-      description = "Portfolio selection on profit per pound of affordable capital, modal choice after the capital test, and regeneration when capital grows (default). 0 = legacy revenue knapsack, for comparison only.",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      flags = AICONFIG_BOOLEAN
     });
 
     /* Nombre maximum de projets construits dans le meme passage du portefeuille. 1 conserve
