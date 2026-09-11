@@ -735,6 +735,15 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C55 etape 2 : relache seulement le verrou OR du fret route. */
+    AddSetting({
+      name = "c55_freight_origin_relax",
+      description = "C55: relax road freight origin service from OR to AND while keeping one exact same-cargo road or rail hookup per endpoint; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* C54 : inventaire annuel passif des ordres et profits reels des vehicules, lu via
      * l'API jeu plutot que les chunks de sauvegarde. */
     AddSetting({

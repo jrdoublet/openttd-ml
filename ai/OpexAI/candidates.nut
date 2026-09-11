@@ -907,14 +907,48 @@ function OpexRoadFreightServedIndex(lines)
   return served;
 }
 
+/* C55 etape 2 : le fret route remplace la proximite geometrique (< ORIGIN_SEPARATION,
+ * toutes lignes et tous cargos) par l'identite exacte (cargo, tuile) : c'est bien la regle
+ * voulue, un raccordement par origine. Une source et un puits ne portent donc chacun qu'une
+ * ligne par cargo ; aucun decompte de production restante n'est necessaire ici, et il reste
+ * deliberement hors sujet : ne jamais changer deux choses a la fois.
+ * PROPRIETE CLE : busy(cargo, tile) implique une origine route/rail a distance 0, donc
+ * OpexOriginServed(lines, tile, true). Le chemin ON ne peut ainsi rejeter que des candidats
+ * deja rejetes OFF : il en ajoute, sans jamais en retirer. L'index est construit une fois par
+ * generation seulement quand le reglage est actif, jamais dans la boucle cargo x origine x puits. */
+function OpexRoadFreightBusyIndex(lines)
+{
+  local busy = {};
+  foreach (line in lines) {
+    if (!(("mode" in line) && (line.mode == "rail" || line.mode == "road"))) continue;
+    if (!("cargo" in line) || !("originA" in line) || !("originB" in line)) continue;
+    busy.rawset(line.cargo + "|" + line.originA, true);
+    busy.rawset(line.cargo + "|" + line.originB, true);
+  }
+  return busy;
+}
+
+/* Les revalidations incrementale et de construction ne visitent qu'un candidat : parcourir
+ * lines ici evite de payer un index temporaire. */
+function OpexRoadFreightBusy(lines, cargo, tile)
+{
+  foreach (line in lines) {
+    if (!(("mode" in line) && (line.mode == "rail" || line.mode == "road"))) continue;
+    if (("cargo" in line) && line.cargo == cargo &&
+        ((("originA" in line) && line.originA == tile)
+         || (("originB" in line) && line.originB == tile))) return true;
+  }
+  return false;
+}
+
 /* C41.20 : les villes qui n'acceptent pas une unite pleine ne pourront jamais devenir un puits
  * fret. La liste est construite une fois par cargo et garde l'ordre croissant historique des
  * villes ; la boucle source->ville conserve donc l'ordre de tous les candidats admissibles. */
-function OpexRoadFreightAcceptedTowns(towns, servedTown, cargo, truckCoverage)
+function OpexRoadFreightAcceptedTowns(towns, servedTown, cargo, truckCoverage, busy = null)
 {
   local accepted = [];
   for (local t = 0; t < towns.len(); t++) {
-    if (servedTown[t]) continue;
+    if (busy != null ? (cargo + "|" + towns[t].tile in busy) : servedTown[t]) continue;
     local acceptance = AITile.GetCargoAcceptance(towns[t].tile, cargo, 1, 1, truckCoverage);
     if (acceptance >= ROAD_ACCEPTANCE_FULL_UNIT) accepted.append(t);
   }
@@ -1875,6 +1909,7 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
   local industries = catalog.industries;
   local towns = catalog.towns;
   local servedIndex = C41_ROAD_FREIGHT_SERVED_INDEX ? OpexRoadFreightServedIndex(lines) : null;
+  local freightBusy = C55_FREIGHT_ORIGIN_RELAX ? OpexRoadFreightBusyIndex(lines) : null;
   local servedIndustry = [];
   for (local i = 0; i < industries.len(); i++) {
     servedIndustry.append(servedIndex != null
@@ -1905,11 +1940,11 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
     /* C41.20 : la liste est locale au cargo et a cette generation. Les appels API anticipes sont
      * purs ; ils ne changent ni l'industrie, ni le filtre de distance, ni l'ordre des candidats. */
     local townTargets = C41_ROAD_FREIGHT_ACCEPTANCE_INDEX
-        ? OpexRoadFreightAcceptedTowns(towns, servedTown, cargo, truckCoverage) : null;
+        ? OpexRoadFreightAcceptedTowns(towns, servedTown, cargo, truckCoverage, freightBusy) : null;
     if (townTargets != null) stats.townAcceptancePrefiltered += towns.len() - townTargets.len();
 
     foreach (si in sources) {
-      if (servedIndustry[si]) {
+      if (freightBusy == null && servedIndustry[si]) {
         /* Le code livre saute toute la source. Sous sonde, enumerer seulement les paires
          * qu'il aurait sautees permet de compter ce filtre sans changer son continue. */
         if (C55_ORIGIN_RELAX_PROBE) {
@@ -1926,6 +1961,7 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
         continue;
       }
       local source = industries[si];
+      local sourceBusy = freightBusy != null && (cargo + "|" + source.tile in freightBusy);
       local monthly = AIIndustry.GetLastMonthProduction(source.id, cargo);
       if (monthly <= 0) { stats.noMonthly++; continue; }
 
@@ -1933,8 +1969,10 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
       foreach (di in sinks) {
         if (di == si) continue;
         if (C55_ORIGIN_RELAX_PROBE) OpexC55OriginRelaxObserve("freight", lines,
-            source.tile, industries[di].tile, false, servedIndustry[di]);
-        if (servedIndustry[di]) {
+            source.tile, industries[di].tile, sourceBusy, servedIndustry[di]);
+        if (freightBusy != null
+            ? ((servedIndustry[si] && servedIndustry[di]) || sourceBusy ||
+               (cargo + "|" + industries[di].tile in freightBusy)) : servedIndustry[di]) {
           continue;
         }
         local distance = AIMap.DistanceManhattan(source.tile, industries[di].tile);
@@ -1961,7 +1999,7 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
       if (C55_ORIGIN_RELAX_PROBE && townTargets != null) {
         for (local ti = 0; ti < towns.len(); ti++) {
           OpexC55OriginRelaxObserve("freight", lines, source.tile, towns[ti].tile,
-              false, servedTown[ti]);
+              sourceBusy, servedTown[ti]);
         }
       }
       local townCount = townTargets != null ? townTargets.len() : towns.len();
@@ -1969,8 +2007,11 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
         local t = townTargets != null ? townTargets[ti] : ti;
         if (profile != null && C41_ROAD_FREIGHT_TOWN_PROFILE) profile.freightTownScanned++;
         if (C55_ORIGIN_RELAX_PROBE && townTargets == null) OpexC55OriginRelaxObserve("freight",
-            lines, source.tile, towns[t].tile, false, servedTown[t]);
-        if (townTargets == null && servedTown[t]) {
+            lines, source.tile, towns[t].tile, sourceBusy, servedTown[t]);
+        if (freightBusy != null) {
+          if ((servedIndustry[si] && servedTown[t]) || sourceBusy ||
+              (cargo + "|" + towns[t].tile in freightBusy)) continue;
+        } else if (townTargets == null && servedTown[t]) {
           continue;
         }
         local distance = AIMap.DistanceManhattan(source.tile, towns[t].tile);

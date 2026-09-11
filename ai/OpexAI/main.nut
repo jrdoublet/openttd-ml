@@ -250,6 +250,8 @@ C49_SCARCITY_LEDGER <- false;
 /* C55 etape 1 : mesure seule du filtre OR route. Le ledger est nul hors sonde. */
 C55_ORIGIN_RELAX_PROBE <- false;
 C55_ORIGIN_RELAX_LEDGER <- null;
+/* C55 etape 2 : relache seulement le verrou d'origine du fret route. */
+C55_FREIGHT_ORIGIN_RELAX <- false;
 /* C48.1 (fiche C48.1) : profil passif des phases internes de
  * OpexIncrementalUpdateProjects. Le ledger reste null hors sonde : le repli 0 n'alloue aucune
  * table et n'atteint ni marqueur d'opcodes ni appel d'API supplementaire. */
@@ -3208,13 +3210,29 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
           return { outcome = "rejected", discards = passDiscards };
         }
       } else {
-        if (OpexOriginServed(this._lines, candidate.src, true)) {
-          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "src_origin_served", extra = "" });
-          return { outcome = "rejected", discards = passDiscards };
-        }
-        if (OpexOriginServed(this._lines, candidate.dst, true)) {
-          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "dst_origin_served", extra = "" });
-          return { outcome = "rejected", discards = passDiscards };
+        if (C55_FREIGHT_ORIGIN_RELAX && candidate.kind == "freight") {
+          local srcServed = OpexOriginServed(this._lines, candidate.src, true);
+          local dstServed = OpexOriginServed(this._lines, candidate.dst, true);
+          if (srcServed && dstServed) {
+            if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "src_origin_served", extra = "" });
+            return { outcome = "rejected", discards = passDiscards };
+          }
+          /* Un index ne rentabiliserait pas son cout pour ce seul candidat vivant : la boucle
+           * directe sur les lignes est moins chere ici et dans la revalidation incrementale. */
+          if (OpexRoadFreightBusy(this._lines, candidate.cargo, candidate.src) ||
+              OpexRoadFreightBusy(this._lines, candidate.cargo, candidate.dst)) {
+            if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "freight_endpoint_busy", extra = "" });
+            return { outcome = "rejected", discards = passDiscards };
+          }
+        } else {
+          if (OpexOriginServed(this._lines, candidate.src, true)) {
+            if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "src_origin_served", extra = "" });
+            return { outcome = "rejected", discards = passDiscards };
+          }
+          if (OpexOriginServed(this._lines, candidate.dst, true)) {
+            if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "dst_origin_served", extra = "" });
+            return { outcome = "rejected", discards = passDiscards };
+          }
         }
       }
       local abandonedKey = OpexAbandonedPairKey(candidate);
@@ -8187,6 +8205,7 @@ function OpexAI::Start()
   C48_PROJECT_ATTEMPT_LEDGER = AIController.GetSetting("c48_project_attempt_ledger") != 0;
   C49_SCARCITY_LEDGER = AIController.GetSetting("c49_scarcity_ledger") != 0;
   C55_ORIGIN_RELAX_PROBE = AIController.GetSetting("c55_origin_relax_probe") != 0;
+  C55_FREIGHT_ORIGIN_RELAX = AIController.GetSetting("c55_freight_origin_relax") != 0;
   C54_VEHICLE_ORDERS_PROBE = AIController.GetSetting("c54_vehicle_orders_probe") != 0;
   if (C49_SCARCITY_LEDGER) {
     this._c49ScarcityLedger = { passes = 0, cash = 0, vehicles = 0, site = 0,

@@ -1039,7 +1039,14 @@ function OpexIncrementalCandidateStillValid(p, lines, abandonedPairs = null)
       local startYear = 1970;
       if (currCount >= maxFeeders || (slot >= 1 && (currYear - startYear) < 2)) return false;
     } else {
-      if (C55_ORIGIN_RELAX_PROBE) {
+      if (C55_FREIGHT_ORIGIN_RELAX && p.kind == "freight") {
+        local srcServed = OpexOriginServed(lines, p.src, true);
+        local dstServed = OpexOriginServed(lines, p.dst, true);
+        if (srcServed && dstServed) return false;
+        /* Une seule paire est revalidee : une boucle directe evite de construire un index. */
+        if (OpexRoadFreightBusy(lines, p.cargo, p.src) ||
+            OpexRoadFreightBusy(lines, p.cargo, p.dst)) return false;
+      } else if (C55_ORIGIN_RELAX_PROBE) {
         /* Lecture seule : les deux memes predicates que le chemin livre, evalues avant de
          * reprendre exactement son OR. Aucun resultat de selection n'est modifie. */
         local srcServed = OpexOriginServed(lines, p.src, true);
