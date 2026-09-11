@@ -1210,10 +1210,17 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   | **`event_vehicle_crashed=1`** | **17 312 119 £** | **2 816 262 £** | **868.0** | 161.6 | 🏆 **Gagnant : +154 650 £ (+0.89 %)**, profit **+25 767 £/an**, **12/20 victoires** (pics à +1.96M g2026, +1.26M g100, +1.26M g65537) |
   | **`event_vehicle_unprofitable=1`** | 16 952 881 £ | 2 745 808 £ | 865.0 | 155.8 | −204 587 £ (−1.21 %), 7/20 victoires (seuil 2 ans trop agressif pour lignes mono-véhicule) |
 
-  🔑 **Conclusions du banc 20×10 :**
+  🔑 **Conclusions du banc 20×10 et diagnostic du seuil 3 ans :**
   - **Zéro blocage :** Aucune suspension, aucun gel et 0 erreur sur les 60 runs de 10 ans. Les détecteurs confirment la parfaite robustesse de l'IA.
-  - **`event_vehicle_crashed=1` est un succès net :** Il sauve des lignes entières qui mouraient silencieusement après un crash au passage à niveau ou sur piste, dégageant des hausses massives sur les graines affectées (+1.96M sur 2026, +1.26M sur 100 et 65537). **Prêt pour adoption.**
-  - **`event_vehicle_unprofitable=1` (seuil 2 ans) :** Fermer des lignes (`UNPROFITABLE_SCRAP`) dès 2 ans de déficit détruit du capital d'infrastructure sur le long terme. Le réglage reste à défaut 0.
+  - **`event_vehicle_crashed=1` est un succès net :** Il sauve des lignes entières qui mouraient silencieusement après un crash au passage à niveau ou sur piste, dégageant des hausses massives sur les graines affectées (+1.96M sur 2026, +1.26M sur 100 et 65537). Moyenne : **+154 650 £ (+0.89 %)**, **12/20 victoires**. **Prêt pour adoption par défaut.**
+  - **Diagnostic `event_vehicle_unprofitable=1` au seuil de 3 ans (`results/diag_c52_unprof_thresh3_6y_5seeds.json`) :**
+    - Réduit la sévérité : le bilan passe de 2/5 à **3/5 victoires appariées** (+265k sur g100, +266k sur g7, +55k sur g2026), delta moyen ramené de -131k à -105k £.
+    - **Mécanisme de fuite identifié (effet churn)** :
+      1. Si `have > 1`, `UNPROFITABLE_RETIRE` vendait le véhicule mais ne touchait pas à `line.predTrains`. Lors du tour suivant de tâche `refleet`, `_refleetRoadLines` constatait `have < line.predTrains` et rachetait immédiatement un véhicule neuf au prix fort.
+      2. Si `have <= 1`, `UNPROFITABLE_SCRAP` démolissait des lignes jeunes (gares, voirie, etc.) sur de simples creux conjoncturels.
+      3. La gestion au niveau de la ligne entière (`_scrapDeadLines` via `deadStreak` et `srcSuffering`) est déjà plus robuste.
+    - Le réglage reste à défaut 0, seuil calibré à 3.
+
 
 
 - 🔴 **C53 — S'inspirer de `SuperLib.Order` pour la gestion des ordres de véhicules.**
