@@ -484,11 +484,11 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   ### Étapes
 
   1. ✅ **FAIT le 2026-09-11** — voir le verdict ci-dessous.
-  2. 🔴 **OBLIGATOIRE, plus optionnel** : traiter le cas **fret routier** (pas de
-     `OpexRoadPairServed`) avant toute relaxation — c'est là, et **seulement là**, que le levier a
-     de la matière.
-  3. ⬜ Levier sous réglage dédié, défaut 0, **un seul changement**, **sur le fret routier**.
-  4. ⬜ Banc officiel **20×10 apparié**, test des signes avant les moyennes.
+  2. ✅ **FAIT le 2026-09-11** (`04d4004` + `8444c7a`) — et la crainte de la fiche est réfutée :
+     voir « ÉTAPE 2 » ci-dessous. Le vrai risque n'était pas le doublon, c'était le **sur-service**.
+  3. ✅ **FAIT** — `c55_freight_origin_relax`, défaut 0, indissociable de l'étape 2 (le filet
+     n'existe que sous le levier).
+  4. ✅ **FAIT le 2026-09-11 — VERDICT NUL, NON ADOPTÉ.** Défaut maintenu à 0. Voir « ÉTAPE 4 ».
 
   ### ✅ ÉTAPE 1 MESURÉE le 2026-09-11 — et elle réfute la moitié de la fiche
 
@@ -548,6 +548,86 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   (07/09).** Les 213-242 paires/an sont à re-mesurer : c'est exactement la leçon de C47, où un
   chiffre de deux jours s'était effondré d'un facteur 36. Le symptôme actuel (vivier vide 58,6 %)
   est en revanche mesuré sur le code d'aujourd'hui.
+
+  ### ✅ ÉTAPE 2 FAITE le 2026-09-11 — la crainte de la fiche était la mauvaise
+
+  Instruction par lecture de code (investigation déléguée, recoupée à la main sur
+  `main.nut:3210-3218` et `candidates.nut:1802-1829`) **avant d'écrire une ligne**.
+
+  🔴 **1. « Rebâtir la même paire fret chaque année » est IMPOSSIBLE, avec ou sans relaxation.**
+  Deux gardes le couvrent déjà, et aucun n'est `OpexRoadPairServed` :
+  - le **ET lui-même** : une paire identique a ses deux extrémités servies **par sa propre ligne**,
+    donc le ET la rejette ;
+  - le **doublon exact tous modes** de `OpexIncrementalCandidateStillValid`
+    (`projects.nut:1010-1018`) : `line.cargo == p.cargo` **et** `originA/originB == src/dst`. Les
+    lignes routières enregistrent bien `originA = candidate.src` (`main.nut:3328`), et les tuiles
+    de candidat viennent d'identités stables (`AITown.GetLocation` / `AIIndustry.GetLocation`
+    relues à chaque rafraîchissement, `catalog.nut:753-791`).
+  ⇒ **L'avertissement de la fiche (« aucune protection de rechange pour le fret ») était faux.**
+
+  🔑 **2. Le vrai risque, que la fiche ne nommait pas : le SUR-SERVICE.** Sous ET, une industrie
+  source déjà servie reste éligible vers **N** destinations — et
+  `AIIndustry.GetLastMonthProduction` n'est **jamais** décompté de ce qui est déjà capté
+  (`candidates.nut:1928-2015`). N lignes partiraient donc de la même industrie en comptant chacune
+  **toute** sa production. Symétriquement côté destination : le plafond `4 + pop/300` est
+  **pax-only** (`candidates.nut:1802-1829`, et `OpexTownRoadLineCount` exclut explicitement les
+  cargos non-passagers). Le seul frein actuel est la guillotine `servedIndustry[si]`.
+  ⚠️ Côté RAIL, où le ET est déjà en vigueur, rien ne protège non plus : `OpexShareBasin` partage
+  par `StationID`, ignore l'industrie productrice, et `basin_share` est à **0** par défaut.
+
+  **Le filet retenu, et pourquoi il est le bon** : remplacer la **proximité géométrique**
+  (`< ORIGIN_SEPARATION = 3`, toutes lignes tous cargos) par l'**identité exacte, même cargo** —
+  `busy(cargo, tuile)` = « une ligne route **ou rail** de ce cargo a déjà cette tuile exacte pour
+  origine ». Une source porte alors au plus une ligne par cargo, une destination aussi : le
+  sur-service est fermé **sans** introduire de comptabilité de production restante (délibérément
+  hors périmètre — jamais deux changements à la fois).
+
+  🔑 **La propriété qui rend le banc interprétable** : `busy(cargo, tuile)` implique une origine
+  route/rail à distance 0, donc `OpexOriginServed(tuile, true)`. **Le bras ON ne rejette donc que
+  des candidats que OFF rejetait déjà : il ne peut qu'en AJOUTER, jamais en retirer.** Un écart au
+  banc ne peut pas venir d'un candidat perdu.
+
+  Livré sous `c55_freight_origin_relax` (défaut 0), aux **trois** sites où la règle OU frappait le
+  fret : génération (`candidates.nut:1871`), revalidation incrémentale (`projects.nut:1042`),
+  revalidation vive à la construction (`main.nut:3210`). Coût opcodes **nul à défaut** (l'index
+  n'est construit que si le réglage est à 1) ; `8444c7a` ajoute la sortie anticipée d'une source
+  déjà occupée, qui évitait d'énumérer puits + villes pour rien dans la boucle la plus chaude.
+  Smoke 3×2 sur le bras ON : 3/3, aucun crash.
+
+  ### 🔴 ÉTAPE 4 — BANC OFFICIEL : VERDICT NUL, NON ADOPTÉ (2026-09-11)
+
+  `sweeps/bench_c55_freight_origin_relax_10y_20seeds.py`, 20 graines × 10 ans apparié, **0 échec**,
+  `results/bench_c55_freight_origin_relax_10y_20seeds.json`. Test des signes AVANT les moyennes :
+
+  | métrique | écart ON | OFF gagne | p (signes) |
+  |---|---:|---:|---:|
+  | valeur de compagnie | −1,3 % | 11/20 | 0,82 |
+  | profit annuel | −2,3 % | 13/20 | 0,26 |
+  | profit trimestre | −5,5 % | 12/20 | 0,50 |
+  | score officiel | −0,2 % | 8/20 | 0,50 |
+  | note de gare | +0,2 % | 10/20 | 1,00 |
+
+  **Aucune métrique ne s'écarte du hasard.** L'écart-type de la différence appariée est de
+  **2,16 M£ pour une base de 15,1 M£** (14 %) : le levier ne déplace pas la valeur, il rebrasse la
+  trajectoire. Le delta de gares va de **−42 à +51** selon la graine (médiane **−1**, 9 graines en
+  hausse contre 10 en baisse) — signature d'une perturbation chaotique, pas d'une amélioration.
+
+  🔑 **Le résultat qui compte, et qui réfute la thèse restante de la fiche** : l'étape 1 avait
+  mesuré que **86,1 % des rejets étaient récupérables**. Ils le sont bien — 19 graines sur 20
+  changent de trajectoire, donc le levier est vivant — et ils ne rapportent **rien** : +0,8 gare
+  en moyenne sur 88. **Le filtre d'origine n'était donc pas la contrainte mordante.** Le
+  plafonnement de [[opexai_plafonnement]] et le vivier vide de C49 ont une autre cause : ce n'est
+  pas la génération de candidats qui manque, c'est leur élection ou leur financement.
+  ⚠️ Même leçon que le pathfinder segmenté (A5) : *des candidats en plus qui ne paient pas*.
+
+  ### Ce que C55 laisse ouvert
+
+  - 🔴 **Le sur-service n'est TOUJOURS pas traité en configuration par défaut** : à
+    `c55_freight_origin_relax=0`, c'est la guillotine géométrique qui le masque, et le RAIL
+    (où le ET est déjà en vigueur, `basin_share=0`) n'a **aucune** protection. Une comptabilité de
+    production restante par `(cargo, industrie)` reste une tâche à part entière, **non mesurée**.
+  - Le verrou **pax** reste non identifié (l'étape 1 a montré que ce n'est pas `OpexOriginServed`) :
+    instrumenter `OpexRoadPairServed` et le plafond `4 + pop/300` côté génération.
 
 - 🔴 **C52 — Finir le chantier des événements : en brancher le maximum.**
   📝 Noté le 2026-09-10 sur demande utilisateur. **État constaté dans le code** (`ai/OpexAI/main.nut`) :
