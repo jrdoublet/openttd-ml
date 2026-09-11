@@ -1209,9 +1209,19 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
    * "type de dechargement") : les combiner fait echouer AreOrderFlagsValid a coup sur
    * (ERR_PRECONDITION_FAILED) et donc AppendOrder, docs/taches.md C-suite feeders diag
    * 2026-09-02. OF_TRANSFER seul est le comportement voulu : deposer pour ramassage par
-   * une autre ligne, pas livrer definitivement. */
-  local destFlags = ((("isFeeder" in candidate) && candidate.isFeeder)
-      ? AIOrder.OF_TRANSFER : AIOrder.OF_NONE) | nonstopFlag;
+   * une autre ligne, pas livrer definitivement.
+   * C53 : C53_ORDER_NOLOAD interdit tout rechargement parasite au terminus de dechargement (OF_NO_LOAD). */
+  local isFeeder = (("isFeeder" in candidate) && candidate.isFeeder);
+  local isFreight = candidate.kind == "freight";
+  local destFlags = 0;
+  if (isFeeder) {
+    destFlags = AIOrder.OF_TRANSFER | (C53_ORDER_NOLOAD ? AIOrder.OF_NO_LOAD : 0);
+  } else if (isFreight) {
+    destFlags = C53_ORDER_NOLOAD ? (AIOrder.OF_UNLOAD | AIOrder.OF_NO_LOAD) : AIOrder.OF_NONE;
+  } else {
+    destFlags = AIOrder.OF_NONE;
+  }
+  destFlags = destFlags | nonstopFlag;
   local orderB = AIOrder.AppendOrder(first, stopB, destFlags);
   local errorB = orderB ? 0 : AIError.GetLastError();
   if (!orderA || !orderB || AIOrder.GetOrderCount(first) != 2) {
@@ -1339,10 +1349,18 @@ function OpexRoadRefleet(catalog, line, have, target)
     if (!AIVehicle.IsValidVehicle(first)) { result.reason = "VEH"; return result; }
     built.append(first);
     local nonstopFlag = C53_ORDER_NONSTOP ? AIOrder.OF_NON_STOP_INTERMEDIATE : 0;
-    local sourceFlags = ((("kind" in line) && line.kind == "freight")
-                        ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE) | nonstopFlag;
-    local destFlags = ((("isFeeder" in line) && line.isFeeder)
-                      ? AIOrder.OF_TRANSFER : AIOrder.OF_NONE) | nonstopFlag;
+    local isFreight = (("kind" in line) && line.kind == "freight");
+    local isFeeder = (("isFeeder" in line) && line.isFeeder);
+    local sourceFlags = (isFreight ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE) | nonstopFlag;
+    local destFlags = 0;
+    if (isFeeder) {
+      destFlags = AIOrder.OF_TRANSFER | (C53_ORDER_NOLOAD ? AIOrder.OF_NO_LOAD : 0);
+    } else if (isFreight) {
+      destFlags = C53_ORDER_NOLOAD ? (AIOrder.OF_UNLOAD | AIOrder.OF_NO_LOAD) : AIOrder.OF_NONE;
+    } else {
+      destFlags = AIOrder.OF_NONE;
+    }
+    destFlags = destFlags | nonstopFlag;
     if (!AIOrder.AppendOrder(first, line.stationA, sourceFlags) ||
         !AIOrder.AppendOrder(first, line.stationB, destFlags) ||
         AIOrder.GetOrderCount(first) != 2) {

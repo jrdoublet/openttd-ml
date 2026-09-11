@@ -1182,10 +1182,12 @@ function OpexBuildTrains(catalog, cargo, kind, depotTile, exitA, exitB, wanted, 
              failed = true, failure = "LENGTH", error = 0, diag = diag };
   }
   /* Ordres de chargement : pour le fret (sens unique), seule la source attend le plein chargement.
-   * Pour les passagers, PAX_FULL_LOAD=1 force le plein chargement aux deux bouts (patron trAIns). */
+   * Pour les passagers, PAX_FULL_LOAD=1 force le plein chargement aux deux bouts (patron trAIns).
+   * C53 : C53_ORDER_NOLOAD interdit tout rechargement au puits pour les convois de fret (OF_NO_LOAD). */
   local nonstopFlag = C53_ORDER_NONSTOP ? AIOrder.OF_NON_STOP_INTERMEDIATE : 0;
   local flagsA = ((kind == "pax" && !PAX_FULL_LOAD) ? AIOrder.OF_NONE : AIOrder.OF_FULL_LOAD_ANY) | nonstopFlag;
-  local flagsB = ((kind == "freight" || (kind == "pax" && !PAX_FULL_LOAD)) ? AIOrder.OF_NONE : AIOrder.OF_FULL_LOAD_ANY) | nonstopFlag;
+  local destFreightFlags = C53_ORDER_NOLOAD ? (AIOrder.OF_UNLOAD | AIOrder.OF_NO_LOAD) : AIOrder.OF_NONE;
+  local flagsB = ((kind == "freight") ? destFreightFlags : ((kind == "pax" && !PAX_FULL_LOAD) ? AIOrder.OF_NONE : AIOrder.OF_FULL_LOAD_ANY)) | nonstopFlag;
   for (local i = 0; i < wanted; i++) {
     local train = AIVehicle.BuildVehicle(depotTile, loco.id);
     if (!AIVehicle.IsValidVehicle(train)) {

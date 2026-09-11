@@ -1904,6 +1904,17 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C53 : Interdiction de chargement au terminus de fret unidirectionnel (OF_NO_LOAD) :
+     * 1 = actif (ajoute OF_NO_LOAD + OF_UNLOAD/OF_TRANSFER au terminus de fret rail et route, evite l'attente a quai),
+     * 0 = inactif (defaut historique, OF_NONE ou OF_TRANSFER seul). */
+    AddSetting({
+      name = "c53_order_noload",
+      description = "Apply OF_NO_LOAD at sink of unidirectional freight lines: 1 = enabled, 0 = disabled (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* Gestion des marchandises complexes et chaines d'industries secondaires (Goods, Food, Mail, etc.) :
      * 1 = livre les marchandises transformees (usines/raffineries) aux villes acceptatrices (defaut),
      * 0 = fret primaire industrie-industrie uniquement (mode historique). */
