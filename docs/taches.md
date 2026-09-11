@@ -1481,6 +1481,15 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
      `pool_financeable`, `capital_ceiling_cycles` retirés de `main.nut`, `info.nut` et de la
      whitelist `bench_v2.py`.
 
+  ✅ **Revue de la suppression (2026-09-11, `84d049e` + `b5296e3`)** : `budgetCandidates` — le
+  tableau que remplissait l'ancienne branche `portfolio_v2=0` — était resté déclaré mais plus
+  jamais rempli, rendant muets sans erreur 3 consommateurs (purge de subvention, filtre
+  incrémental, save/restore du batch dynamique). Champ et commentaire obsolète supprimés. Les 3
+  scripts de diagnostic autonomes qui référençaient encore `capital_ceiling_cycles`/`portfolio_v2`
+  (`sweeps/diag_c28_ceiling.py`, `diag_station_fleet.py`, `diag_station_quality.py`) interceptent
+  désormais proprement avec un message d'archive, selftests préservés. Rien d'autre trouvé : les 7
+  fonctions mortes annoncées sont bien parties, aucun appelant orphelin.
+
 - 🔴 **C49 — Dénominateur variable, piloté par la cause prochaine d'un non-chantier.**
   📝 **DÉCISION UTILISATEUR EXPLICITE du 2026-09-10** : on instruit cette piste. ⚠️ **Elle LÈVE le
   refus doctrinal du 2026-09-07** (« A1 / dénominateur variable selon la ressource rare — décliné
