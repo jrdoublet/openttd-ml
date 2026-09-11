@@ -997,7 +997,10 @@ function OpexIncrementalCandidateStillValid(p, lines, abandonedPairs = null)
       if (plan != null && ("siteA" in plan) && ("siteB" in plan)) {
         local aKey1 = "air|" + plan.siteA.town.tile + "|" + plan.siteB.town.tile;
         local aKey2 = "air|" + plan.siteB.town.tile + "|" + plan.siteA.town.tile;
-        if ((aKey1 in abandonedPairs) || (aKey2 in abandonedPairs)) return false;
+        local siteAKey = OpexAirSiteAbandonKey(plan.siteA, plan.airport.type);
+        local siteBKey = OpexAirSiteAbandonKey(plan.siteB, plan.airport.type);
+        if ((aKey1 in abandonedPairs) || (aKey2 in abandonedPairs)
+            || (AIR_ABANDON_SITE && ((siteAKey in abandonedPairs) || (siteBKey in abandonedPairs)))) return false;
       }
     } else if (ABANDON_GEN_FILTER && ABANDON_MEMORY && (mode == "road" || mode == "rail")) {
       if (("payload" in p) && p.payload != null) {

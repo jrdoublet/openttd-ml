@@ -980,6 +980,26 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
      signaler, plutôt que de les moyenner en silence. ⚠️ Décision de méthode, à ne pas prendre seul :
      retirer une graine d'un banc change la comparabilité avec toutes les campagnes passées.
 
+  ### ✅ Suite C56, livrée le 2026-09-11 — protocole et erreur air
+
+  `sweeps/bench_v2.py` enregistre désormais `last_year` et `expected_last_year`. Un dernier
+  autosave antérieur à l'année attendue devient `incomplete_run`, donc invalide le banc et reste
+  présent dans son JSON : aucune graine ni aucune observation n'est retirée silencieusement.
+
+  Les refus de construction aérienne publient aussi `error_text` via
+  `AIError.GetLastErrorString()`. La piste « abandon par site » a été implémentée sous
+  `air_abandon_site=0` : seuls `PREA`/`PREB`/`AFAIL`/`BFAIL` mémorisent l'ancre physique, jamais
+  un échec de trésorerie, d'avion ou d'ordres.
+
+  ⚠️ Le premier banc `bench_c56_air_site_abandon_10y_20seeds.json` est une preuve contre une
+  **mauvaise clé**, pas contre le principe : `air_site|anchor` bannissait une tuile pour tous les
+  types d'aéroport, alors que l'emprise dépend du type. Corrigé le même jour en
+  `air_site|airportType|anchor`, et limité aux erreurs physiques durables.
+  Diagnostic corrigé 5×6, `results/diag_c56_air_site_abandon_typed_6y_5seeds.json`, 10/10 saines :
+  le bras historique gagne seulement 3/5 en valeur (+5,0 %) et profit annuel (+5,1 %). **Inconclusif
+  et non prometteur : pas de banc officiel, réglage conservé à 0.** Il faudrait d'abord observer,
+  avec `error_text`, des bannissements durables réellement réutilisés avant de rouvrir ce levier.
+
 - 🔴 **C52 — Finir le chantier des événements : en brancher le maximum.**
   📝 Noté le 2026-09-10 sur demande utilisateur. **État constaté dans le code** (`ai/OpexAI/main.nut`) :
 

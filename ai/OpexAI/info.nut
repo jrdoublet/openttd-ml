@@ -2232,6 +2232,14 @@ Le mode route est donc reconfirme sur l arbre courant.
     });
 
     AddSetting({
+      name = "air_abandon_site",
+      description = "Experimental: remember an airport construction failure by exact site as well as by pair; 1 = enabled, 0 = pair-only historical default",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "air_margin",
       description = "Air authority margin applied per plan inside fleet sizing instead of shaving the global budget: 1 = per plan (default, adopted at bench as neutral-and-correct), 0 = historical",
       easy_value = 1, medium_value = 1, hard_value = 1,

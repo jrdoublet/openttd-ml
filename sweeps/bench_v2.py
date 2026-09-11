@@ -203,7 +203,7 @@ def parse_opex_variant(name):
         elif key == "abandon_cooldown_days":
             if not 0 <= value <= 5000:
                 raise ValueError("abandon_cooldown_days doit etre entre 0 et 5000")
-        elif key in ("abandon_memory", "abandon_gen_filter", "air_joined_stops", "station_join", "join_place", "origin_sitable", "basin_share", "reborrow", "road_mode", "road_pax_build", "road_refleet", "road_multistop", "astar_cost", "probe_negative", "pax_near", "rail_cost_probe", "rail_expand", "town_growth", "dynamic_cash_reserve", "dynamic_pathfinder_cap", "loop_budget", "portfolio_v2", "fleet_fix", "economy_fix", "growth_yields", "air_margin", "air_abandon", "pricing_road_rating", "pricing_rail_depot", "pricing_road_ops", "pax_full_load", "air_full_load", "complex_cargo", "air_hub", "rail_refleet", "marginal_fleet", "air_cost_probe", "air_presite", "portfolio_fresh_budget", "air_fleet_probe", "fleet_before_new", "air_roi_order", "rail_search_resumable", "rail_segmented_search", "rail_micro_deadline", "decision_log", "reserve_maint_cap", "air_margin_v2", "knapsack_roi", "pool_financeable", "air_hub_fix", "air_demand_cap", "air_demand_plan", "event_depot_sell", "event_industry_close", "event_subsidy_probe", "event_vehicle_lost", "event_vehicle_autoreplaced", "event_catalog_invalidate", "c39_invalidation_probe", "c39_decision_delta_probe", "c39_engine_refresh", "c41_revision_probe", "vivier_ratio_filter", "road_fleet_fix", "air_fleet_line_price", "air_cadence_cap", "road_loading_fix", "clean_density_score", "feeder_unlock", "feeder_pricing", "feeder_town_coverage", "feeder_portfolio", "flat_bonus", "air_portfolio", "fleet_portfolio", "tension_scoring", "feeder_mail_duplicate", "feeder_hub_check", "air_site_cache", "air_cheap_site", "road_cheap_trace", "road_pax_voirie", "road_pax_overlap", "shadow_pricing", "portfolio_cache", "portfolio_dynamic_batch", "abandon_memory_transient_guard", "capital_calibration", "rail_prequote", "rail_prequote_keep_plan", "feeder_enabled", "rail_terrain_probe", "road_cost_probe", "water_lakes_connectivity", "water_lakes_ops_budget", "water_site_catalog", "water_discovery_real_fronts", "save_full_state"):
+        elif key in ("abandon_memory", "abandon_gen_filter", "air_joined_stops", "station_join", "join_place", "origin_sitable", "basin_share", "reborrow", "road_mode", "road_pax_build", "road_refleet", "road_multistop", "astar_cost", "probe_negative", "pax_near", "rail_cost_probe", "rail_expand", "town_growth", "dynamic_cash_reserve", "dynamic_pathfinder_cap", "loop_budget", "portfolio_v2", "fleet_fix", "economy_fix", "growth_yields", "air_margin", "air_abandon", "air_abandon_site", "pricing_road_rating", "pricing_rail_depot", "pricing_road_ops", "pax_full_load", "air_full_load", "complex_cargo", "air_hub", "rail_refleet", "marginal_fleet", "air_cost_probe", "air_presite", "portfolio_fresh_budget", "air_fleet_probe", "fleet_before_new", "air_roi_order", "rail_search_resumable", "rail_segmented_search", "rail_micro_deadline", "decision_log", "reserve_maint_cap", "air_margin_v2", "knapsack_roi", "pool_financeable", "air_hub_fix", "air_demand_cap", "air_demand_plan", "event_depot_sell", "event_industry_close", "event_subsidy_probe", "event_vehicle_lost", "event_vehicle_autoreplaced", "event_catalog_invalidate", "c39_invalidation_probe", "c39_decision_delta_probe", "c39_engine_refresh", "c41_revision_probe", "vivier_ratio_filter", "road_fleet_fix", "air_fleet_line_price", "air_cadence_cap", "road_loading_fix", "clean_density_score", "feeder_unlock", "feeder_pricing", "feeder_town_coverage", "feeder_portfolio", "flat_bonus", "air_portfolio", "fleet_portfolio", "tension_scoring", "feeder_mail_duplicate", "feeder_hub_check", "air_site_cache", "air_cheap_site", "road_cheap_trace", "road_pax_voirie", "road_pax_overlap", "shadow_pricing", "portfolio_cache", "portfolio_dynamic_batch", "abandon_memory_transient_guard", "capital_calibration", "rail_prequote", "rail_prequote_keep_plan", "feeder_enabled", "rail_terrain_probe", "road_cost_probe", "water_lakes_connectivity", "water_lakes_ops_budget", "water_site_catalog", "water_discovery_real_fronts", "save_full_state"):
             if value not in (0, 1):
                 raise ValueError(f"{key} est booleen : 0 ou 1")
         elif key in ("c39_air_reason_probe", "c41_water_refresh", "c41_water_precheck", "c41_water_candidate_probe", "c41_water_plans_profile", "c41_water_site_profile", "c41_slack_ledger", "c41_staleness_ledger", "c41_opportunity_ledger", "c41_admission_ledger", "c41_road_refresh", "c41_road_candidate_profile", "c41_road_freight_profile", "c41_road_freight_served_index", "c41_road_freight_acceptance_index", "c41_rail_candidate_profile", "c41_rail_pax_cruise_cache", "c41_rail_freight_profile", "c41_rail_freight_candidate_profile", "c41_rail_freight_economics_profile", "c41_rail_freight_economics_detail_profile", "c41_rail_freight_economics_setup_profile", "c41_rail_freight_economics_consist_profile", "c41_rail_freight_cruise_profile", "c41_rail_freight_cruise_cache", "c41_rail_freight_speed_detail_profile", "c41_rail_freight_acceleration_cache", "c41_rail_freight_effective_speed_profile", "c41_rail_freight_town_guards_profile", "c41_vehicle_lost_probe", "c41_rail_lost_probe", "c41_rail_lost_topology_probe", "c41_rail_lost_physical_probe", "c41_rail_lost_signal_repair", "c41_rail_lost_connectivity_probe", "c41_rail_lost_junction_repair", "c41_rail_slice_ledger", "c41_rail_cash_release", "c41_rail_domination_probe", "c41_projects_fallthrough_probe", "c39_projects_cadence_probe", "c39_pass_clock_ledger", "c48_project_attempt_ledger", "c49_scarcity_ledger", "c55_origin_relax_probe", "c55_freight_origin_relax", "c52_autoreplace_log", "c52_event_exposure_probe", "c56_task_trace", "c54_vehicle_orders_probe", "c48_incremental_profile", "cash_reserve_probe", "portfolio_refresh_probe"):
@@ -409,8 +409,19 @@ def experiments(arms, seeds, years, repeats, starting_year=1970):
     ]
 
 
-def summarise(rows):
-    """Retient le dernier etat de chaque partie, apres qu'une annee soit cloturee."""
+def saved_year(date):
+    """Extrait l'annee d'un autosave OpenTTD, ou None pour un format inattendu."""
+    match = re.match(r"(\d{4})-", str(date))
+    return int(match.group(1)) if match else None
+
+
+def summarise(rows, expected_last_year=None):
+    """Retient le dernier etat de chaque partie et signale une fin prematuree.
+
+    Un script NoAI peut se figer sans que le moteur marque la partie en echec. Le
+    dernier autosave reste alors ancien : c'est un echec de protocole, mais les
+    donnees sont conservees pour le diagnostic et ne sont jamais retirees du banc.
+    """
     by_run = {}
     for row in rows:
         key = tuple(row["run"])
@@ -419,10 +430,20 @@ def summarise(rows):
     for key, series in sorted(by_run.items(), key=lambda item: str(item[0])):
         series.sort(key=lambda row: row["date"])
         final = series[-1]
+        last_year = saved_year(final["date"])
         failure_reason = script_failure_reason(final.get("openttd_output"))
+        if failure_reason is None and expected_last_year is not None and (
+            last_year is None or last_year < expected_last_year
+        ):
+            failure_reason = (
+                "incomplete_run: last autosave year "
+                f"{last_year if last_year is not None else 'unknown'} "
+                f"< expected {expected_last_year}"
+            )
         summary.append({
             "arm": key[0], "seed": key[1], "repeat": key[2],
-            "last_date": final["date"],
+            "last_date": final["date"], "last_year": last_year,
+            "expected_last_year": expected_last_year,
             "company_value": final["company_value"],
             "performance_history": final["performance_history"],
             "income_last_year": final["income_last_year"],
@@ -587,7 +608,7 @@ def main():
             bananas_ai_library("5046524c", "Pathfinder.Rail"),
         ),
     ))
-    summary = summarise(rows)
+    summary = summarise(rows, expected_last_year=args.starting_year + args.years - 1)
     failed_runs = [record for record in summary if not record["run_ok"]]
     payload = {
         "openttd_version": OPENTTD_VERSION,

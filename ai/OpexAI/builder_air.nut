@@ -827,8 +827,16 @@ function OpexAirPlanBetter(plan, bestPlan)
   return plan.economics.profitAnnual > bestPlan.economics.profitAnnual;
 }
 
+/* An anchor only describes the north-west corner. Its buildability depends on
+ * the airport footprint, so the airport type is part of the durable-site key. */
+function OpexAirSiteAbandonKey(site, airportType)
+{
+  return "air_site|" + airportType + "|" + site.anchor;
+}
+
 /* `abandoned` : table des paires dont une construction a deja echoue (cle
- * "air|tileA|tileB", identique a celle de main.nut). null = filtre desactive.
+ * "air|tileA|tileB", identique a celle de main.nut), et optionnellement des
+ * sites exacts et types ("air_site|airportType|anchor"). null = filtre desactive.
  * Le filtre est place APRES les tests de distance et AVANT OpexAirEconomics : les paires
  * ecartees pour distance ne paient pas la concatenation, et celles qui restent evitent le
  * calcul cher. */
@@ -936,8 +944,12 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
           continue;
         }
 
-        if (abandoned != null
-            && (("air|" + sites[a].town.tile + "|" + sites[b].town.tile) in abandoned)) continue;
+        if (abandoned != null) {
+          local pairKey = "air|" + sites[a].town.tile + "|" + sites[b].town.tile;
+          if ((pairKey in abandoned)
+              || (AIR_ABANDON_SITE && ((OpexAirSiteAbandonKey(sites[a], airport.type) in abandoned)
+                  || (OpexAirSiteAbandonKey(sites[b], airport.type) in abandoned)))) continue;
+        }
 
         local popA = sites[a].town.pop;
         local popB = sites[b].town.pop;
@@ -1109,8 +1121,11 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
         if (!OpexAirPairInBand(catalog, distance, flightDistance, paxBand)) continue;
         if (AIR_MAX_DISTANCE > 0 && flightDistance > AIR_MAX_DISTANCE) continue;
         if (plane.maxOrderDistance > 0 && flightDistance > plane.maxOrderDistance) continue;
-        if (abandoned != null
-            && (("air|" + hub.town.tile + "|" + site.town.tile) in abandoned)) continue;
+        if (abandoned != null) {
+          local pairKey = "air|" + hub.town.tile + "|" + site.town.tile;
+          if ((pairKey in abandoned)
+              || (AIR_ABANDON_SITE && (OpexAirSiteAbandonKey(site, airport.type) in abandoned))) continue;
+        }
         local hubMonthly = ((hub.town.pop * 22) / 100) / (hub.routes + 1);
         local newMonthly = (site.town.pop * 22) / 100;
         local monthlyPax = hubMonthly + newMonthly;
@@ -1411,7 +1426,7 @@ function OpexAirBuildJoinedStops(airportTile, stationId, airport, town, paxCargo
  * verifie le budget monetaire. Rend toujours une table, jamais une exception. */
 function OpexBuildAirRoute(catalog, budget, plan)
 {
-  local result = { ok = false, reason = "", opcodes = 0, error = 0, stationA = null,
+  local result = { ok = false, reason = "", opcodes = 0, error = 0, errorText = "", stationA = null,
                    stationB = null, vehicle = null, vehicles = [], actualCost = 0,
                    plannedCapital = (("capital" in plan) ? plan.capital : 0),
                    joinedStopsA = 0, joinedStopsB = 0, joinedMonthlyPax = 0,
@@ -1445,6 +1460,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
     if (errB != 0) {
       OpexAirInvalidateCachedSite(plan.siteB, airport);
       result.error = errB;
+      result.errorText = AIError.GetLastErrorString();
       result.actualCost = costs != null ? costs.GetCosts() : 0;
       result.opcodes += budget.end("build_airports");
       result.reason = "PREB";
@@ -1454,6 +1470,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
     if (errA != 0) {
       OpexAirInvalidateCachedSite(plan.siteA, airport);
       result.error = errA;
+      result.errorText = AIError.GetLastErrorString();
       result.actualCost = costs != null ? costs.GetCosts() : 0;
       result.opcodes += budget.end("build_airports");
       result.reason = "PREA";
@@ -1479,6 +1496,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
   if (airportA == null) {
     if (!reuseA) OpexAirInvalidateCachedSite(plan.siteA, airport);
     result.error = AIError.GetLastError();
+    result.errorText = AIError.GetLastErrorString();
     result.opcodes += budget.end("build_airports");
     result.actualCost = costs != null ? costs.GetCosts() : 0;
     result.reason = reuseA ? "HUB" : "AFAIL";
@@ -1504,6 +1522,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
   if (airportB == null) {
     if (!reuseB) OpexAirInvalidateCachedSite(plan.siteB, airport);
     result.error = AIError.GetLastError();
+    result.errorText = AIError.GetLastErrorString();
     local keepOrphan = (AIGameSettings.GetValue("economy.infrastructure_maintenance") == 0);
     if (!keepOrphan) {
       OpexAirRollback(reuseA ? null : airportA, null, []);
@@ -1533,6 +1552,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
   plane = AIVehicle.BuildVehicleWithRefit(hangar, planeChoice.id, catalog.paxCargo);
   if (!AIVehicle.IsValidVehicle(plane)) {
     result.error = AIError.GetLastError();
+    result.errorText = AIError.GetLastErrorString();
     result.opcodes += budget.end("build_aircraft");
     OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, []);
     result.actualCost = costs != null ? costs.GetCosts() : 0;
@@ -1548,6 +1568,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
   local ordersOk = okOrderA && okOrderB && AIOrder.GetOrderCount(plane) == 2;
   if (!ordersOk) {
     result.error = !okOrderA ? errorA : errorB;
+    result.errorText = AIError.GetLastErrorString();
     result.opcodes += budget.end("build_aircraft");
     OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, [plane]);
     result.actualCost = costs != null ? costs.GetCosts() : 0;
@@ -1569,6 +1590,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
   foreach (aircraft in built) {
     if (!AIVehicle.StartStopVehicle(aircraft)) {
       result.error = AIError.GetLastError();
+      result.errorText = AIError.GetLastErrorString();
       result.opcodes += budget.end("build_aircraft");
       OpexAirRollback(reuseA ? null : airportA, reuseB ? null : airportB, built);
       result.actualCost = costs != null ? costs.GetCosts() : 0;
