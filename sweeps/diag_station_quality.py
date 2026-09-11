@@ -12,6 +12,10 @@ plus de tout, la dilution vient d'ailleurs.
 Les notes STNN.goods.rating sont traitees sur l'echelle 0--255 : bench_v2.station_ratings()
 la documente ainsi pour OpenTTD 15.3. Cette hypothese reste a confirmer au premier diagnostic
 reel en controlant minimum et maximum observes.
+
+ARCHIVE (2026-09-11) : le bras portfolio_v2=0 (chemin legacy) a ete supprime de l'arbre lors de la
+cloture de C51 (docs/taches.md). Ce script ne peut plus configurer l'IA tel quel ; conserve pour
+memoire de la question deja tranchee, pas pour etre relance sans le retoucher.
 """
 import argparse
 import statistics

@@ -4,6 +4,10 @@ Ce script ne lit que les chunks STNN, VEHS et la date du checkpoint final. Il ne
 sondes Squirrel ni du journal OpenTTD, et ne conserve jamais ``openttd_output`` dans son JSON.
 Les totaux « au moins ce mode » comptent une gare multimodale dans chacun de ses services; les
 croisements profit x mode publient separement les gares monomodales et les combinaisons multimodales.
+
+ARCHIVE (2026-09-11) : le bras portfolio_v2=0 (chemin legacy) a ete supprime de l'arbre lors de la
+cloture de C51 (docs/taches.md). Ce script ne peut plus configurer l'IA tel quel ; conserve pour
+memoire de la question deja tranchee, pas pour etre relance sans le retoucher.
 """
 import argparse
 import statistics

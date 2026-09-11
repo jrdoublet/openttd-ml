@@ -2036,16 +2036,6 @@ function OpexAI::_purgeSubsidyFromProjects(subId)
       }
     }
   }
-  if (("budgetCandidates" in this._projects) && this._projects.budgetCandidates != null) {
-    for (local i = this._projects.budgetCandidates.len() - 1; i >= 0; i--) {
-      local p = this._projects.budgetCandidates[i];
-      if (p != null && ("payload" in p) && p.payload != null &&
-          ("isSubsidy" in p.payload) && p.payload.isSubsidy &&
-          ("subsidyId" in p.payload) && p.payload.subsidyId == subId) {
-        this._projects.budgetCandidates.remove(i);
-      }
-    }
-  }
   if (("candidateGroups" in this._projects) && this._projects.candidateGroups != null) {
     local key = "subsidy|" + subId;
     if (key in this._projects.candidateGroups) {
@@ -3760,9 +3750,6 @@ function OpexAI::_stopDynamicBatch(reason, year)
     if (this._dynamicBatch.sourceCandidateGroups != null) {
       this._projects.candidateGroups = this._dynamicBatch.sourceCandidateGroups;
     }
-    if (this._dynamicBatch.sourceBudgetCandidates != null) {
-      this._projects.budgetCandidates = this._dynamicBatch.sourceBudgetCandidates;
-    }
   }
   this._dynamicBatch = null;
   /* Le filtre attempted mutile volontairement le vivier de travail. Une reconstruction
@@ -3858,8 +3845,6 @@ function OpexAI::_tryBuildProjects(year)
       stopReason = null, pendingLogged = false,
       sourceCandidateGroups = (this._projects != null && ("candidateGroups" in this._projects))
           ? this._projects.candidateGroups : null,
-      sourceBudgetCandidates = (this._projects != null && ("budgetCandidates" in this._projects))
-          ? this._projects.budgetCandidates : null,
     };
   }
   /* G4§1 : le drapeau peut etre pose entre deux passes par _consumeRailSearch.
@@ -4302,7 +4287,7 @@ function OpexAI::_tryBuildProjects(year)
       /* Chaque succes a deja filtre et re-classe sur le budget vivant. */
     } else if (STAGED_BOOTSTRAP && this._generationStage < OPEX_STAGE_COMPLETE) {
       this._rebuildProjects(fleetPlan);
-    } else if (PORTFOLIO_CACHE && this._projects != null && (("budgetCandidates" in this._projects) || ("candidateGroups" in this._projects))) {
+    } else if (PORTFOLIO_CACHE && this._projects != null && ("candidateGroups" in this._projects)) {
       local budgetNow = OpexAvailableCapital();
 
       this._projects = OpexIncrementalUpdateProjects(this._projects, this._catalog, this._budget, this._lines, budgetNow, fleetPlan, this._abandonedPairs);

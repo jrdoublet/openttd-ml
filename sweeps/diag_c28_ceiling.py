@@ -12,6 +12,11 @@ Mesure par bras et par graine :
 - company_value, profit_year, n_stations, n_vehicles
 - Rejets vivier infinancables (VIVIER_INFUNDABLE) et evolution du ceiling
 - Chantiers batis par mode (AIR_BUILD, ROAD_BUILD, RAIL_BUILD, FEEDER_BUILD)
+
+ARCHIVE (2026-09-11) : capital_ceiling_cycles a ete retire de info.nut/main.nut lors de la
+suppression du portefeuille legacy (docs/taches.md C51). Ce script ne peut plus configurer l'IA
+tel quel ; conserve pour memoire de la question deja tranchee, pas pour etre relance sans le
+retoucher.
 """
 import argparse
 from collections import Counter, defaultdict

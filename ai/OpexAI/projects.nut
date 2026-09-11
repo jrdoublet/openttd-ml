@@ -593,11 +593,10 @@ function OpexLogVivier(path, candidates, stats, capitalBudget, capitalRemaining)
 }
 
 /* Rejoue UNIQUEMENT la contrainte de capital sur les projets deja produits par le catalogue.
- * budgetCandidates est exactement le vivier deja passe au sac a dos historique ; candidateGroups
- * ne sert qu'a reaplatir les alternatives du chemin portfolio_v2. Aucune planification rail,
- * recherche de site aerien ou generation de route ne repasse ici. Les statistiques sont
- * remplacees ensemble car IG| et IB| doivent decrire la meme solution que best, y compris
- * lorsqu'un sac a dos borne n'a pas prouve son optimum. */
+ * candidateGroups porte le vivier ; cette fonction se contente de reaplatir ses alternatives et
+ * de retester le capital. Aucune planification rail, recherche de site aerien ou generation de
+ * route ne repasse ici. Les statistiques sont remplacees ensemble car IG| et IB| doivent decrire
+ * la meme solution que best, y compris lorsque la selection n'a pas prouve son optimum. */
 function OpexReselectProjects(projects, capitalBudget)
 {
   local funded = null;
@@ -819,16 +818,6 @@ function OpexDynamicBatchReselect(projects, lines, attempted, capitalBudget, aba
     }
     projects.candidateGroups = filteredGroups;
   }
-  if (("budgetCandidates" in projects) && projects.budgetCandidates != null) {
-    local filteredBudget = [];
-    foreach (p in projects.budgetCandidates) {
-      if (p == null) continue;
-      if (!OpexIncrementalCandidateStillValid(p, lines, abandonedPairs)) continue;
-      local key = OpexProjectAttemptKey(p);
-      if (!(key in attempted)) filteredBudget.push(p);
-    }
-    projects.budgetCandidates = filteredBudget;
-  }
   return OpexReselectProjects(projects, capitalBudget);
 }
 
@@ -998,7 +987,6 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
 
   /* 5. Selection du portefeuille sur le capital restant */
   local funded = null;
-  local byBudget = [];
   local c48SelectionMark = null;
   local c48SelectionDate = 0;
   local c48Alternatives = 0;
@@ -1056,7 +1044,6 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   projects.capitalBudget = capitalBudget;
   projects.capitalRemaining = remaining;
   projects.candidateGroups = newWinners;
-  projects.budgetCandidates = byBudget;
   /* Les six mesures de phase sont imbriquees dans total (OpexOpsMeasureBegin/End ne partage
    * aucun etat) : total - somme(phases) est le reste de la fonction, PAS un double comptage. */
   if (C48_INCREMENTAL_PROFILE) {
@@ -1548,7 +1535,6 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
   }
 
   local funded = null;
-  local byBudget = [];
   local opsMark = OpexOpsMeasureBegin();
   /* Toutes les alternatives de tous les couples, aplaties : c'est le test de capital qui
    * tranchera, pas une election modale prealable au ratio. */
@@ -1593,7 +1579,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     return {
       all = stats.odProjects, best = byOpcodes, stats = stats,
       capitalBudget = capitalBudget, generationCapitalBudget = capitalBudget,
-      capitalRemaining = remaining, candidateGroups = winners, budgetCandidates = byBudget,
+      capitalRemaining = remaining, candidateGroups = winners,
       rail = rail, road = road, airPlan = airPlan, waterPlan = waterPlan,
       airPlans = airPlans, waterPlans = waterPlans,
       airPlanningOpcodes = airOps, waterPlanningOpcodes = waterOps,
