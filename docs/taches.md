@@ -721,6 +721,41 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   `bench_v2.py` est d'ailleurs son propre défaut), sonde préalable qui compte les événements, ou
   passer à une tâche exposée dans la fenêtre.
 
+  ### ✅ #1 ÉCRITE ET ADOPTÉE le 2026-09-11 — mais elle ne répare RIEN dans nos fenêtres
+
+  Décision utilisateur : corriger sans banc, puisque aucun banc ne peut la valider. Livré en
+  `f42a164` : `event_vehicle_autoreplaced` (**défaut 1**) remappe l'ancien ID vers le nouveau dans
+  `line.vehicles`, **`line.vehicle`** (le scalaire que la fiche oubliait), `line.scrapVehicles` et
+  la table `_vehiclesToScrap` (ancienne clé supprimée, nouvelle posée avec le même `lineId`, donc
+  un remplaçant n'échappe pas à une mise au rebut déjà décidée). Sonde séparée
+  `c52_autoreplace_log` (défaut 0), qui compte **même quand la réparation est désarmée**.
+
+  **Trois validations, et ce qu'elles prouvent chacune :**
+
+  | validation | résultat | ce qu'elle établit |
+  |---|---|---|
+  | smoke 3×2 | 3/3 | l'enum `AIEvent.ET_VEHICLE_AUTOREPLACED` existe (évalué à chaque tour de boucle) |
+  | non-régression 5×6, OFF vs ON | **35 comparaisons, 0 différence**, journal de décisions identique | inertie stricte dans la fenêtre du banc |
+  | fenêtre 16 ans, 3 graines, sonde à 1 | **33 événements**, 0 crash | `AIEventVehicleAutoReplaced.Convert` et `GetOldVehicleID`/`GetNewVehicleID` existent **et s'exécutent** |
+
+  🔴 **MAIS : 33 événements sur 33 sont `untracked`, et 33 sur 33 sont des véhicules ROUTIERS**
+  (`results/diag_c52_autoreplace_16y_3seeds.json`, ventilation par `AIVehicle.GetVehicleType` du
+  nouvel ID). **Zéro remappage en seize ans.**
+  **Pourquoi, et c'est structurel** : la route est précisément le seul mode qui **ne stocke pas**
+  ses ID et reconstruit sa flotte par gare et par ordres (`main.nut:1646-1669`) — il n'y a rien à y
+  réparer. Les modes qui stockent des ID (rail, air, eau) ont des véhicules qui vivent **20 à 30
+  ans** et ne sont donc pas encore renouvelés à seize ans.
+  ⇒ **La correction est saine, prouvée inoffensive, et sa valeur est LATENTE** : elle ne mordra que
+  sur une partie de 20 ans et plus, quand une locomotive ou un avion sera renouvelé. Gardée à
+  défaut 1 pour cette raison, **pas** parce qu'un gain a été mesuré — il n'y en a aucun.
+  ⚠️ **Ne jamais citer #1 comme une amélioration mesurée.**
+
+  🔑 **Leçon de méthode, la deuxième de la journée après C55** : un sous-cas de la sonde s'était
+  révélé aveugle — la ventilation par mode était déduite de la **ligne** où l'ancien ID avait été
+  retrouvé, donc toujours « unknown » quand rien n'est retrouvé, c'est-à-dire exactement dans le cas
+  à diagnostiquer. Corrigée pour lire le **type du véhicule**. *Un compteur dont la valeur par défaut
+  coïncide avec le cas intéressant ne mesure rien.*
+
   ⚠️ **Ce que la lecture a trouvé en chemin, et qui dépasse #1** (à garder même si #1 est reportée) :
   - La fiche oublie **`line.vehicle`**, doublon scalaire de l'ID stocké pour l'avion et le bateau
     (`main.nut:2007`, `:2989`, `:3143`), et lui aussi sérialisé.

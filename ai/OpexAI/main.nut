@@ -6152,11 +6152,22 @@ function OpexAI::_processEvents()
             entry.remap_scrap_vehicles += remapScrapVehicles;
             entry.remap_scrap_index += remapScrapIndex;
             if (!tracked) entry.untracked++;
-            if (mode == "rail") entry.rail++;
-            else if (mode == "road") entry.road++;
-            else if (mode == "air") entry.air++;
-            else if (mode == "water") entry.water++;
+            /* La ventilation doit venir du VEHICULE, pas de la ligne trouvee : la mesure 16 ans du
+             * 2026-09-11 a rendu 33 evenements tous "untracked", donc tous "unknown" -- un mode
+             * deduit d'une ligne introuvable n'apprend rien, et c'est precisement le cas qu'il faut
+             * diagnostiquer. Le nouvel ID est valide au moment de l'evenement, contrairement a
+             * l'ancien. Lecture faite UNIQUEMENT sous sonde : aucun cout en configuration normale. */
+            local vType = AIVehicle.IsValidVehicle(newVehicle)
+                ? AIVehicle.GetVehicleType(newVehicle) : AIVehicle.VT_INVALID;
+            if (vType == AIVehicle.VT_RAIL) entry.rail++;
+            else if (vType == AIVehicle.VT_ROAD) entry.road++;
+            else if (vType == AIVehicle.VT_AIR) entry.air++;
+            else if (vType == AIVehicle.VT_WATER) entry.water++;
             else entry.unknown++;
+            if (mode == "rail") entry.line_rail++;
+            else if (mode == "road") entry.line_road++;
+            else if (mode == "air") entry.line_air++;
+            else if (mode == "water") entry.line_water++;
           }
         }
       }
@@ -7047,7 +7058,9 @@ function OpexAI::_logC52AutoreplaceLedger(year)
       + " remap_scrap_vehicles=" + entry.remap_scrap_vehicles
       + " remap_scrap_index=" + entry.remap_scrap_index + " untracked=" + entry.untracked
       + " rail=" + entry.rail + " road=" + entry.road + " air=" + entry.air
-      + " water=" + entry.water + " unknown=" + entry.unknown);
+      + " water=" + entry.water + " unknown=" + entry.unknown
+      + " line_rail=" + entry.line_rail + " line_road=" + entry.line_road
+      + " line_air=" + entry.line_air + " line_water=" + entry.line_water);
   entry.total_events += entry.events;
   entry.total_remap_line_vehicles += entry.remap_line_vehicles;
   entry.total_remap_line_vehicle += entry.remap_line_vehicle;
@@ -7070,6 +7083,7 @@ function OpexAI::_logC52AutoreplaceLedger(year)
   C52_AUTOREPLACE_LEDGER = {
     events = 0, remap_line_vehicles = 0, remap_line_vehicle = 0, remap_scrap_vehicles = 0,
     remap_scrap_index = 0, untracked = 0, rail = 0, road = 0, air = 0, water = 0, unknown = 0,
+    line_rail = 0, line_road = 0, line_air = 0, line_water = 0,
     total_events = entry.total_events, total_remap_line_vehicles = entry.total_remap_line_vehicles,
     total_remap_line_vehicle = entry.total_remap_line_vehicle,
     total_remap_scrap_vehicles = entry.total_remap_scrap_vehicles,
@@ -8368,6 +8382,7 @@ function OpexAI::Start()
     C52_AUTOREPLACE_LEDGER = {
       events = 0, remap_line_vehicles = 0, remap_line_vehicle = 0, remap_scrap_vehicles = 0,
       remap_scrap_index = 0, untracked = 0, rail = 0, road = 0, air = 0, water = 0, unknown = 0,
+      line_rail = 0, line_road = 0, line_air = 0, line_water = 0,
       total_events = 0, total_remap_line_vehicles = 0, total_remap_line_vehicle = 0,
       total_remap_scrap_vehicles = 0, total_remap_scrap_index = 0, total_untracked = 0,
       total_rail = 0, total_road = 0, total_air = 0, total_water = 0, total_unknown = 0,
