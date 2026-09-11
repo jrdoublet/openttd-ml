@@ -18,8 +18,6 @@ const OPEX_STAGE_AIR_RAIL = 1;
 const OPEX_STAGE_RAIL_ONLY = 2;
 const OPEX_STAGE_ROUTE_ONLY = 3;
 const OPEX_STAGE_COMPLETE = 4;
-
-const PROJECT_POOL_K = 128;
 /* C43/E3 (docs/taches.md) : sature a 77,4%/70,1% des appels de selection (VIVIER, 5x6, 2026-09-08)
  * -- mord fort. Rendu reglable pour le banc factoriel 32 contre 64, jamais retouche depuis 2026-09-02
  * avant cette mesure. */
@@ -113,12 +111,8 @@ function OpexLogPortfolioRankWithTension(projects)
 }
 
 /* C32 : un feeder n'est pas une desserte origine-destination, c'est un RABATTEMENT vers un hub.
- * Lui laisser la meme cle qu'une liaison pax entre les deux memes points le ferait concourir --
- * et gagner, son ROI reseau etant eleve -- contre la ligne aerienne du hub dans
- * OpexProjectModeBetter, qui n'en garde qu'un par cle. Sous portfolio_v2 = 0 (le defaut),
- * l'eviction est reelle : c'est le motif pour lequel C29.3 les avait sortis du portefeuille.
- * Un prefixe distinct les fait concourir sur le CAPITAL, dans le sac a dos, sans jamais evincer
- * un autre mode sur une cle partagee. */
+ * Un prefixe distinct evite d'evincer ou d'entrer en collision avec une liaison directe entre les
+ * memes villes, permettant la coexistence dans candidateGroups. */
 function OpexProjectKeyFor(project)
 {
   local prefix = "";
@@ -445,41 +439,6 @@ function OpexProjectFromWater(catalog, plan, planningOps, tensionCtx = null)
   return project;
 }
 
-/* Comparaison strictement modale : sous TENSION_SCORING, departage sur tensionScore (loi de Liebig).
- * Sinon : ROI, puis profit, revenu et enfin calcul. */
-function OpexProjectModeBetter(candidate, incumbent)
-{
-  if (incumbent == null) return true;
-  if (TENSION_SCORING || SHADOW_PRICING) {
-    local tCand = ("tensionScore" in candidate) ? candidate.tensionScore : 0.0;
-    local tInc = ("tensionScore" in incumbent) ? incumbent.tensionScore : 0.0;
-    if (tCand != tInc) return tCand > tInc;
-  }
-  if (candidate.roi != incumbent.roi) return candidate.roi > incumbent.roi;
-  if (candidate.profitAnnual != incumbent.profitAnnual) {
-    return candidate.profitAnnual > incumbent.profitAnnual;
-  }
-  if (candidate.revenueAnnual != incumbent.revenueAnnual) {
-    return candidate.revenueAnnual > incumbent.revenueAnnual;
-  }
-  return candidate.expectedOpcodes < incumbent.expectedOpcodes;
-}
-
-function OpexProjectRemember(winners, project, stats)
-{
-  if (project == null) return;
-  stats.modeCandidates++;
-  local key = OpexProjectKeyFor(project);
-  if (!(key in winners)) {
-    winners.rawset(key, project);
-    return;
-  }
-  stats.modeAlternatives++;
-  if (OpexProjectModeBetter(project, winners[key])) {
-    winners[key] = project;
-    stats.modeReplaced++;
-  }
-}
 
 /* portfolio_v2 : garde TOUTES les alternatives modales d'un couple origine/destination au lieu
  * d'en elire une avant le test de capital. Motif (docs/taches.md S0 septies, soupcon 1 confirme) :
@@ -584,283 +543,6 @@ function OpexProjectInsert(best, project, field, limit)
   if (best.len() > limit) best.pop();
 }
 
-/* C36.2 : Construction multimodale du vivier budgetaire.
- * Empeche un mode a faible capital unitaire (ex. rail fret court ou route) de saturer l'integralite
- * des PROJECT_POOL_K places et d'evincer completement l'aerien ou le refleet avant le sac a dos.
- * Phase 1 : reserve des quotas pour les meilleurs projets de chaque mode present.
- * Phase 2 : complete le vivier jusqu'au plafond global avec les meilleurs restants tout mode confondu. */
-function OpexBuildMultimodalBudgetPool(winners, stats, capitalCeiling, scoreField, poolLimit = 128)
-{
-  local byMode = { rail = [], road = [], air = [], water = [], fleet = [] };
-  local infundableByMode = { rail = 0, road = 0, air = 0, water = 0 };
-
-  foreach (key, project in winners) {
-    if (project == null) continue;
-    stats.odProjects++;
-    if (POOL_FINANCEABLE && OpexProjectFinanceCapital(project) > capitalCeiling) {
-      stats.poolInfundable++;
-      if (DECISION_LOG && (project.mode in infundableByMode)) infundableByMode[project.mode]++;
-      continue;
-    }
-    local m = project.mode;
-    if (!(m in byMode)) byMode[m] <- [];
-    OpexProjectInsert(byMode[m], project, scoreField, poolLimit);
-  }
-
-  if (DECISION_LOG && stats.poolInfundable > 0) {
-    OpexDecide("VIVIER_INFUNDABLE", "rail=" + infundableByMode.rail + " road=" + infundableByMode.road
-               + " air=" + infundableByMode.air + " water=" + infundableByMode.water
-               + " total=" + stats.poolInfundable + " ceiling=" + capitalCeiling);
-  }
-
-  local quotas = { air = 16, fleet = 12, road = 24, water = 8, rail = 48 };
-  local byBudget = [];
-  local used = {};
-
-  /* Phase 1 : Reserver les meilleurs de chaque mode */
-  foreach (m, list in byMode) {
-    local q = (m in quotas) ? quotas[m] : 8;
-    local take = list.len() < q ? list.len() : q;
-    for (local i = 0; i < take; i++) {
-      byBudget.append(list[i]);
-      local pKey = list[i].mode + "|" + list[i].src + "|" + list[i].dst;
-      used[pKey] <- true;
-    }
-  }
-
-  /* Phase 2 : Remplir le solde jusqu'a poolLimit avec les meilleurs restants */
-  local remaining = [];
-  foreach (m, list in byMode) {
-    for (local i = 0; i < list.len(); i++) {
-      local pKey = list[i].mode + "|" + list[i].src + "|" + list[i].dst;
-      if (!(pKey in used)) {
-        OpexProjectInsert(remaining, list[i], scoreField, poolLimit);
-      }
-    }
-  }
-
-  for (local i = 0; i < remaining.len() && byBudget.len() < poolLimit; i++) {
-    byBudget.append(remaining[i]);
-  }
-
-  return byBudget;
-}
-
-/* Solveur Knapsack 0/1 borne (Branch & Bound avec borne superieure fractionnaire gloutonne)
- * sur les candidats classes par budgetScore. Le plafond de noeuds protege les opcodes ; le
- * resultat expose donc explicitement si l'optimalite a pu etre prouvee. */
-function OpexKnapsackComputeBound(candidates, n, startIdx, cap)
-{
-  local bound = 0;
-  local rem = cap;
-
-  /* G1§1 : l'ancien remplissage glouton suivait l'ordre du tri composite
-   * (75 % budgetScore + 25 % opcodeScore). Cet ordre n'est PAS la densite pure de
-   * l'objectif : opcodeScore peut intervertir deux items de densites differentes, et la
-   * borne gloutonne devient alors une SOUS-estimation -- l'elagage coupe des solutions
-   * valides. Le chemin tension utilisait deja maxDensity * rem, qui est une borne
-   * superieure correcte. On unifie les deux chemins. */
-  local maxDensity = 0.0;
-  for (local j = startIdx; j < n; j++) {
-    local p = candidates[j];
-    local pv = KNAPSACK_ROI ? p.profitAnnual : p.revenueAnnual;
-    local financeCapital = OpexProjectFinanceCapital(p);
-    if (financeCapital > 0) {
-      local d = pv.tofloat() / financeCapital;
-      if (d > maxDensity) maxDensity = d;
-    }
-  }
-  return (maxDensity * rem).tointeger();
-}
-
-function OpexProjectConflictKeys(p)
-{
-  local keys = [];
-  local mode = p.mode;
-  if (mode == "rail") {
-    /* Deux projets rail ne doivent pas brancher sur la meme industrie ou gare en meme temps */
-    keys.append("rail|" + p.src);
-    keys.append("rail|" + p.dst);
-  } else if (mode == "air") {
-    local s = p.src;
-    local d = p.dst;
-    if (s > d) { local swap = s; s = d; d = swap; }
-    keys.append("air|" + s + "|" + d);
-    local plan = p.payload;
-    if (plan != null) {
-      if (!("reuseA" in plan) || !plan.reuseA) keys.append("new_airport|" + p.src);
-      if (!("reuseB" in plan) || !plan.reuseB) keys.append("new_airport|" + p.dst);
-    }
-  } else if (mode == "road") {
-    local s = p.src;
-    local d = p.dst;
-    if (s > d) { local swap = s; s = d; d = swap; }
-    local isFeeder = (("payload" in p) && p.payload != null && ("isFeeder" in p.payload) && p.payload.isFeeder);
-    if (isFeeder) {
-      local hubId = ("hubStationId" in p.payload) ? p.payload.hubStationId : d;
-      keys.append("feeder_hub|" + hubId);
-      keys.append("feeder|" + s + "|" + d);
-    } else {
-      keys.append("road|" + s + "|" + d);
-    }
-  } else if (mode == "water") {
-    local s = p.src;
-    local d = p.dst;
-    if (s > d) { local swap = s; s = d; d = swap; }
-    keys.append("water|" + s + "|" + d);
-  } else if (mode == "fleet") {
-    if (p.payload != null && ("line" in p.payload) && ("lineId" in p.payload.line)) {
-      keys.append("fleet|" + p.payload.line.lineId);
-    }
-  }
-  return keys;
-}
-
-function OpexKnapsackSearch(state, idx, currentCapital, currentRevenue, currentRoad, currentItems)
-{
-  if (state.nodeCount >= state.maxNodes) {
-    state.truncated = true;
-    return;
-  }
-  state.nodeCount++;
-  if (currentRevenue > state.bestValue) {
-    state.bestValue = currentRevenue;
-    state.bestSolution = [];
-    foreach (item in currentItems) state.bestSolution.append(item);
-  }
-  if (idx >= state.n || currentItems.len() >= state.maxItems) return;
-
-  local remCap = state.capitalBudget - currentCapital;
-  local bound = currentRevenue + OpexKnapsackComputeBound(state.candidates, state.n, idx, remCap);
-  if (bound <= state.bestValue) return;
-
-  local p = state.candidates[idx];
-
-  // Branche 1 : Inclure le projet si finançable et respecte les contraintes modales
-  local conflictKeys = OpexProjectConflictKeys(p);
-  local hasConflict = false;
-  foreach (k in conflictKeys) {
-    if (k in state.originsUsed) { hasConflict = true; break; }
-  }
-  local financeCapital = OpexProjectFinanceCapital(p);
-  local canInclude = !hasConflict && (currentCapital + financeCapital <= state.capitalBudget);
-  if (canInclude && p.mode == "road" && currentRoad >= state.maxRoad) canInclude = false;
-
-  if (canInclude) {
-    currentItems.append(p);
-    foreach (k in conflictKeys) state.originsUsed[k] <- true;
-    local objValue = (TENSION_SCORING || SHADOW_PRICING || KNAPSACK_ROI) ? p.profitAnnual : p.revenueAnnual;
-    OpexKnapsackSearch(state, idx + 1, currentCapital + financeCapital,
-                       currentRevenue + objValue,
-                       p.mode == "road" ? currentRoad + 1 : currentRoad, currentItems);
-    foreach (k in conflictKeys) delete state.originsUsed[k];
-    currentItems.pop();
-  }
-
-  // Branche 2 : Exclure le projet
-  OpexKnapsackSearch(state, idx + 1, currentCapital, currentRevenue, currentRoad, currentItems);
-}
-
-/* Résout le problème du sac à dos 0/1 borné par Branch & Bound.
- * Maximise la somme des revenueAnnual sous contrainte de capitalBudget, maxRoad et maxItems --
- * ou la somme des profitAnnual sous knapsack_roi. Le revenu ignore le roulement : deux projets
- * a revenu egal y sont equivalents meme si l'un paie deux fois plus de frais. Le meme defaut
- * avait deja ete corrige un etage plus bas (economy.nut:261, choix du nombre de convois) sans
- * qu'on remonte d'un cran. Voir docs/taches.md C13. */
-function OpexKnapsackSolve(candidates, capitalBudget, maxRoad = 18, maxItems = 32)
-{
-  if (candidates.len() == 0 || capitalBudget <= 0) {
-    return { projects = [], nodes = 0, exact = true };
-  }
-
-  // Trier les candidats par score composite décroissant (rendement économique et efficacité d'opcodes)
-  /* L'ordre de branchement doit suivre la DENSITE de la grandeur optimisee, sinon la borne
-   * gloutonne majore mal et le Branch & Bound explore dans le desordre. budgetScore est une
-   * densite de REVENU par livre ; sous knapsack_roi on lui substitue la densite de PROFIT. */
-  /* Chemin ETEINT laisse mot pour mot tel qu'il etait, pour que le socle ne glisse pas : ici le
-   * comportement depend des opcodes consommes. Chemin allume : cle precalculee plutot que lue
-   * dans la closure -- ce depot n'a aucun precedent de globale lue depuis un comparateur, et une
-   * passe sur 64 candidats coute moins que deux lectures par comparaison sur ~384 comparaisons. */
-  if (KNAPSACK_ROI) {
-    foreach (c in candidates) {
-      /* Densite de PROFIT par livre, calculee ICI et pas dans les constructeurs : la porter
-       * en champ la ferait payer aux DEUX bras. profitAnnual est deja net du roulement et de
-       * l'amortissement, et le capital rail deja corrige du terrain (RAIL_TERRAIN_FACTOR).
-       * Le bonus fret est REPRIS a l'identique du chemin revenu (voir OpexProjectFromCandidate) :
-       * sans lui, basculer sur le profit retirerait AUSSI la preference fret (jusqu'a x1,89),
-       * et le banc mesurerait deux changements au lieu d'un. */
-      local scoreProfit = c.profitAnnual;
-      if (!CLEAN_DENSITY_SCORE) {
-        if (c.kind == "freight" && ("payload" in c) && c.payload != null
-            && ("freightBonus" in c.payload) && c.payload.freightBonus > 100) {
-          scoreProfit = (scoreProfit * c.payload.freightBonus) / 100;
-        }
-      }
-      local roiScore = OpexProjectScore(scoreProfit, c.budgetCapital);
-      c.sortKey <- (roiScore * 75 + c.opcodeScore * 25).tofloat();
-    }
-    candidates.sort(function(a, b) {
-      if (a.sortKey > b.sortKey) return -1;
-      if (a.sortKey < b.sortKey) return 1;
-      return 0;
-    });
-  } else {
-    candidates.sort(function(a, b) {
-      if ((TENSION_SCORING || SHADOW_PRICING) && ("tensionScore" in a) && ("tensionScore" in b)) {
-        if (a.tensionScore > b.tensionScore) return -1;
-        if (a.tensionScore < b.tensionScore) return 1;
-        return 0;
-      }
-      local va = (a.budgetScore * 75 + a.opcodeScore * 25).tofloat();
-      local vb = (b.budgetScore * 75 + b.opcodeScore * 25).tofloat();
-      if (va > vb) return -1;
-      if (va < vb) return 1;
-      return 0;
-    });
-  }
-
-  local n = candidates.len();
-  if (n > 64) n = 64; // Limiter aux 64 meilleurs candidats
-
-  if (DECISION_LOG) {
-    local airInCand = 0;
-    for (local i = 0; i < n; i++) {
-      local c = candidates[i];
-      if (c.mode == "air") airInCand++;
-      if (i < 10 || c.mode == "air") {
-        local arm = (("payload" in c) && c.payload != null && ("arm" in c.payload)) ? c.payload.arm : "none";
-        OpexDecide("KS_CAND", "i=" + i + " mode=" + c.mode + " arm=" + arm + " src=" + c.src + " dst=" + c.dst
-                   + " cap=" + c.budgetCapital + " rev=" + c.revenueAnnual + " prof=" + c.profitAnnual
-                   + " bScore=" + c.budgetScore + " oScore=" + c.opcodeScore);
-      }
-    }
-    OpexDecide("KS_POOL", "n=" + n + " total=" + candidates.len() + " air=" + airInCand + " budget=" + capitalBudget);
-  }
-
-  local state = {
-    candidates = candidates,
-    n = n,
-    capitalBudget = capitalBudget,
-    maxRoad = maxRoad,
-    maxItems = maxItems,
-    nodeCount = 0,
-    maxNodes = 2000,
-    bestValue = 0,
-    truncated = false,
-    originsUsed = {},
-    bestSolution = [],
-  };
-
-  OpexKnapsackSearch(state, 0, 0, 0, 0, []);
-  if (DECISION_LOG) {
-    local solSummary = "items=" + state.bestSolution.len() + " val=" + state.bestValue;
-    foreach (idx, sol in state.bestSolution) {
-      solSummary += " [" + idx + ":" + sol.mode + ":" + sol.src + "->" + sol.dst + ":cap=" + sol.budgetCapital + "]";
-    }
-    OpexDecide("KS_SOL", solSummary);
-  }
-  return { projects = state.bestSolution, nodes = state.nodeCount, exact = !state.truncated };
-}
 
 function OpexLogVivier(path, candidates, stats, capitalBudget, capitalRemaining)
 {
@@ -922,23 +604,14 @@ function OpexReselectProjects(projects, capitalBudget)
   local funded = null;
   local considered = 0;
   local opsMark = OpexOpsMeasureBegin();
-  if (PORTFOLIO_V2) {
-    local alternatives = [];
-    foreach (key, list in projects.candidateGroups) {
-      foreach (project in list) alternatives.push(project);
-    }
-    funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);
-    considered = alternatives.len();
-    projects.stats.knapsackNodes = 0;
-    projects.stats.knapsackExact = true;
-  } else {
-    local knapsack = OpexKnapsackSolve(projects.budgetCandidates, capitalBudget,
-                                       ROAD_MAX_NEW_LINES_PER_YEAR, PROJECT_TOP_K);
-    funded = knapsack.projects;
-    considered = projects.budgetCandidates.len();
-    projects.stats.knapsackNodes = knapsack.nodes;
-    projects.stats.knapsackExact = knapsack.exact;
+  local alternatives = [];
+  foreach (key, list in projects.candidateGroups) {
+    foreach (project in list) alternatives.push(project);
   }
+  funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);
+  considered = alternatives.len();
+  projects.stats.knapsackNodes = 0;
+  projects.stats.knapsackExact = true;
   projects.stats.selectionOpcodes <- OpexOpsMeasureEnd(opsMark);
 
   projects.stats.budgetConsidered = considered;
@@ -958,27 +631,14 @@ function OpexReselectProjects(projects, capitalBudget)
   projects.capitalRemaining = capitalBudget - selectedCap;
   if (projects.capitalRemaining < 0) projects.capitalRemaining = 0;
 
-  /* Le chemin historique consomme le portefeuille par revenu/opcode apres le sac a dos. */
-  local byOpcodes = funded;
-  if (!PORTFOLIO_V2) {
-    byOpcodes = [];
-    foreach (project in funded) {
-      OpexProjectInsert(byOpcodes, project, "opcodeScore", PROJECT_TOP_K);
-    }
-  }
-  projects.best = byOpcodes;
+  projects.best = funded;
 
   if (DECISION_LOG) {
-    local vivierPool = null;
-    if (PORTFOLIO_V2) {
-      vivierPool = [];
-      if (("candidateGroups" in projects) && projects.candidateGroups != null) {
-        foreach (key, list in projects.candidateGroups) {
-          foreach (project in list) vivierPool.push(project);
-        }
+    local vivierPool = [];
+    if (("candidateGroups" in projects) && projects.candidateGroups != null) {
+      foreach (key, list in projects.candidateGroups) {
+        foreach (project in list) vivierPool.push(project);
       }
-    } else {
-      vivierPool = ("budgetCandidates" in projects) ? projects.budgetCandidates : null;
     }
     OpexLogVivier("reselect", vivierPool, projects.stats, projects.capitalBudget, projects.capitalRemaining);
   }
@@ -1141,8 +801,7 @@ function OpexProjectAttemptKey(p)
 }
 
 /* Retire du vivier incremental les projets deja essayes dans le batch courant, puis rejoue la
- * seule contrainte de capital. Le filtre porte sur les deux representations afin de garder le
- * chemin portfolio_v2 et le solveur historique coherents. */
+ * seule contrainte de capital. */
 function OpexDynamicBatchReselect(projects, lines, attempted, capitalBudget, abandonedPairs = null)
 {
   if (projects == null) return null;
@@ -1244,11 +903,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
         if (("payload" in p) && p.payload != null &&
             ("isFeeder" in p.payload) && p.payload.isFeeder) continue;
         if (!OpexIncrementalCandidateStillValid(p, lines, abandonedPairs)) continue;
-        if (PORTFOLIO_V2) {
-          OpexProjectRememberAll(newWinners, p, stats);
-        } else {
-          OpexProjectRemember(newWinners, p, stats);
-        }
+        OpexProjectRememberAll(newWinners, p, stats);
         if (C48_INCREMENTAL_PROFILE) c48Retained++;
       }
     }
@@ -1287,11 +942,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
     foreach (cand in freshFeeders) {
       local p = OpexProjectFromCandidate(cand, tensionCtx);
       if (p != null) {
-        if (PORTFOLIO_V2) {
-          OpexProjectRememberAll(newWinners, p, stats);
-        } else {
-          OpexProjectRemember(newWinners, p, stats);
-        }
+        OpexProjectRememberAll(newWinners, p, stats);
       }
     }
     if (C48_INCREMENTAL_PROFILE) {
@@ -1312,11 +963,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
     foreach (entry in fleetPlan) {
       local p = OpexProjectFromFleet(entry, tensionCtx);
       if (p != null) {
-        if (PORTFOLIO_V2) {
-          OpexProjectRememberAll(newWinners, p, stats);
-        } else {
-          OpexProjectRemember(newWinners, p, stats);
-        }
+        OpexProjectRememberAll(newWinners, p, stats);
       }
     }
     if (C48_INCREMENTAL_PROFILE) {
@@ -1340,11 +987,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
     foreach (plan in freshAirPlans) {
       local p = OpexProjectFromAir(catalog, plan, airOpsPerPlan, tensionCtx);
       if (p != null) {
-        if (PORTFOLIO_V2) {
-          OpexProjectRememberAll(newWinners, p, stats);
-        } else {
-          OpexProjectRemember(newWinners, p, stats);
-        }
+        OpexProjectRememberAll(newWinners, p, stats);
       }
     }
     if (C48_INCREMENTAL_PROFILE) {
@@ -1385,30 +1028,18 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
     c48SelectionMark = OpexOpsMeasureBegin();
   }
   local opsMark = OpexOpsMeasureBegin();
-  if (PORTFOLIO_V2) {
-    local alternatives = [];
-    foreach (key, list in newWinners) {
-      stats.odProjects++;
-      foreach (project in list) alternatives.push(project);
-    }
-    funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);
-    if (C48_INCREMENTAL_PROFILE) c48Alternatives = alternatives.len();
-    stats.budgetConsidered = alternatives.len();
-    stats.budgetSelected = funded.len();
-    stats.budgetRejected = alternatives.len() - funded.len();
-    stats.knapsackNodes = 0;
-    stats.knapsackExact = true;
-  } else {
-    local scoreField = (TENSION_SCORING || SHADOW_PRICING) ? "tensionScore" : "budgetScore";
-    byBudget = OpexBuildMultimodalBudgetPool(newWinners, stats, capitalCeiling, scoreField, PROJECT_POOL_K);
-    local knapsack = OpexKnapsackSolve(byBudget, capitalBudget, ROAD_MAX_NEW_LINES_PER_YEAR, PROJECT_TOP_K);
-    funded = knapsack.projects;
-    stats.knapsackNodes = knapsack.nodes;
-    stats.knapsackExact = knapsack.exact;
-    stats.budgetConsidered = byBudget.len();
-    stats.budgetSelected = funded.len();
-    stats.budgetRejected = byBudget.len() - funded.len();
+  local alternatives = [];
+  foreach (key, list in newWinners) {
+    stats.odProjects++;
+    foreach (project in list) alternatives.push(project);
   }
+  funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);
+  if (C48_INCREMENTAL_PROFILE) c48Alternatives = alternatives.len();
+  stats.budgetConsidered = alternatives.len();
+  stats.budgetSelected = funded.len();
+  stats.budgetRejected = alternatives.len() - funded.len();
+  stats.knapsackNodes = 0;
+  stats.knapsackExact = true;
   stats.selectionOpcodes <- OpexOpsMeasureEnd(opsMark);
   if (C48_INCREMENTAL_PROFILE) {
     local c48Days = AIDate.GetCurrentDate() - c48SelectionDate;
@@ -1429,22 +1060,11 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   if (remaining < 0) remaining = 0;
 
   local byOpcodes = funded;
-  if (!PORTFOLIO_V2 && !TENSION_SCORING && !SHADOW_PRICING) {
-    byOpcodes = [];
-    foreach (project in funded) {
-      OpexProjectInsert(byOpcodes, project, "opcodeScore", PROJECT_TOP_K);
-    }
-  }
 
   if (DECISION_LOG) {
-    local vivierPool = null;
-    if (PORTFOLIO_V2) {
-      vivierPool = [];
-      foreach (key, list in newWinners) {
-        foreach (project in list) vivierPool.push(project);
-      }
-    } else {
-      vivierPool = byBudget;
+    local vivierPool = [];
+    foreach (key, list in newWinners) {
+      foreach (project in list) vivierPool.push(project);
     }
     OpexLogVivier("incremental", vivierPool, stats, capitalBudget, remaining);
   }
@@ -1935,11 +1555,7 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
         p.tensionScore = score;
         p.shadowScore <- score;
         p.tensionRegime = "shadow";
-        if (PORTFOLIO_V2) {
-          OpexProjectRememberAll(winners, p, stats);
-        } else {
-          OpexProjectRemember(winners, p, stats);
-        }
+        OpexProjectRememberAll(winners, p, stats);
       }
     } else {
       /* C35.2 : le score continu lit le vecteur propre a chaque projet. Ne pas
@@ -1955,97 +1571,53 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
   }
 
   if (!SHADOW_PRICING) {
-    if (PORTFOLIO_V2) {
-      local railInsertMark = railProfile != null ? OpexOpsMeasureBegin() : null;
-      local railProjectsBefore = stats.modeCandidates;
-      foreach (candidate in rail.candidates) {
-        if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) continue;
-        OpexProjectRememberAll(winners, OpexProjectFromCandidate(candidate, tensionCtx), stats);
+    local railInsertMark = railProfile != null ? OpexOpsMeasureBegin() : null;
+    local railProjectsBefore = stats.modeCandidates;
+    foreach (candidate in rail.candidates) {
+      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) continue;
+      OpexProjectRememberAll(winners, OpexProjectFromCandidate(candidate, tensionCtx), stats);
+    }
+    if (railProfile != null) {
+      railProfile.insertOps = OpexOpsMeasureEnd(railInsertMark);
+      railProfile.insertedProjects = stats.modeCandidates - railProjectsBefore;
+    }
+    foreach (candidate in road.candidates) {
+      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) continue;
+      OpexProjectRememberAll(winners, OpexProjectFromCandidate(candidate, tensionCtx), stats);
+    }
+    foreach (plan in airPlans) {
+      OpexProjectRememberAll(winners, OpexProjectFromAir(catalog, plan, airOpsPerPlan, tensionCtx), stats);
+    }
+    foreach (plan in waterPlans) {
+      OpexProjectRememberAll(winners, OpexProjectFromWater(catalog, plan, waterOpsPerPlan, tensionCtx), stats);
+    }
+    if (fleetPlan != null) {
+      foreach (entry in fleetPlan) {
+        OpexProjectRememberAll(winners, OpexProjectFromFleet(entry, tensionCtx), stats);
       }
-      if (railProfile != null) {
-        railProfile.insertOps = OpexOpsMeasureEnd(railInsertMark);
-        railProfile.insertedProjects = stats.modeCandidates - railProjectsBefore;
-      }
-      foreach (candidate in road.candidates) {
-        if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) continue;
-        OpexProjectRememberAll(winners, OpexProjectFromCandidate(candidate, tensionCtx), stats);
-      }
-      foreach (plan in airPlans) {
-        OpexProjectRememberAll(winners, OpexProjectFromAir(catalog, plan, airOpsPerPlan, tensionCtx), stats);
-      }
-      foreach (plan in waterPlans) {
-        OpexProjectRememberAll(winners, OpexProjectFromWater(catalog, plan, waterOpsPerPlan, tensionCtx), stats);
-      }
-      if (fleetPlan != null) {
-        foreach (entry in fleetPlan) {
-          OpexProjectRememberAll(winners, OpexProjectFromFleet(entry, tensionCtx), stats);
-        }
-      }
-      foreach (candidate in subCandidates) {
-        if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) continue;
-        OpexProjectRememberAll(winners, OpexProjectFromCandidate(candidate, tensionCtx), stats);
-      }
-    } else {
-      local railInsertMark = railProfile != null ? OpexOpsMeasureBegin() : null;
-      local railProjectsBefore = stats.modeCandidates;
-      foreach (candidate in rail.candidates) {
-        if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) continue;
-        OpexProjectRemember(winners, OpexProjectFromCandidate(candidate, tensionCtx), stats);
-      }
-      if (railProfile != null) {
-        railProfile.insertOps = OpexOpsMeasureEnd(railInsertMark);
-        railProfile.insertedProjects = stats.modeCandidates - railProjectsBefore;
-      }
-      foreach (candidate in road.candidates) {
-        if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) continue;
-        OpexProjectRemember(winners, OpexProjectFromCandidate(candidate, tensionCtx), stats);
-      }
-      foreach (plan in airPlans) {
-        OpexProjectRemember(winners, OpexProjectFromAir(catalog, plan, airOpsPerPlan, tensionCtx), stats);
-      }
-      foreach (plan in waterPlans) {
-        OpexProjectRemember(winners, OpexProjectFromWater(catalog, plan, waterOpsPerPlan, tensionCtx), stats);
-      }
-      if (fleetPlan != null) {
-        foreach (entry in fleetPlan) {
-          OpexProjectRemember(winners, OpexProjectFromFleet(entry, tensionCtx), stats);
-        }
-      }
-      foreach (candidate in subCandidates) {
-        if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) continue;
-        OpexProjectRemember(winners, OpexProjectFromCandidate(candidate, tensionCtx), stats);
-      }
+    }
+    foreach (candidate in subCandidates) {
+      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) continue;
+      OpexProjectRememberAll(winners, OpexProjectFromCandidate(candidate, tensionCtx), stats);
     }
   }
 
   local funded = null;
   local byBudget = [];
   local opsMark = OpexOpsMeasureBegin();
-  if (PORTFOLIO_V2) {
-    /* Toutes les alternatives de tous les couples, aplaties : c'est le test de capital qui
-     * tranchera, pas une election modale prealable au ratio. */
-    local alternatives = [];
-    foreach (key, list in winners) {
-      stats.odProjects++;
-      foreach (project in list) alternatives.push(project);
-    }
-    funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);
-    stats.budgetConsidered = alternatives.len();
-    stats.budgetSelected = funded.len();
-    stats.budgetRejected = alternatives.len() - funded.len();
-    stats.knapsackNodes = 0;
-    stats.knapsackExact = true;
-  } else {
-    local scoreField = (TENSION_SCORING || SHADOW_PRICING) ? "tensionScore" : "budgetScore";
-    byBudget = OpexBuildMultimodalBudgetPool(winners, stats, capitalCeiling, scoreField, PROJECT_POOL_K);
-    local knapsack = OpexKnapsackSolve(byBudget, capitalBudget, ROAD_MAX_NEW_LINES_PER_YEAR, PROJECT_TOP_K);
-    funded = knapsack.projects;
-    stats.knapsackNodes = knapsack.nodes;
-    stats.knapsackExact = knapsack.exact;
-    stats.budgetConsidered = byBudget.len();
-    stats.budgetSelected = funded.len();
-    stats.budgetRejected = byBudget.len() - funded.len();
+  /* Toutes les alternatives de tous les couples, aplaties : c'est le test de capital qui
+   * tranchera, pas une election modale prealable au ratio. */
+  local alternatives = [];
+  foreach (key, list in winners) {
+    stats.odProjects++;
+    foreach (project in list) alternatives.push(project);
   }
+  funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);
+  stats.budgetConsidered = alternatives.len();
+  stats.budgetSelected = funded.len();
+  stats.budgetRejected = alternatives.len() - funded.len();
+  stats.knapsackNodes = 0;
+  stats.knapsackExact = true;
   stats.selectionOpcodes <- OpexOpsMeasureEnd(opsMark);
 
   local selectedRev = 0;
@@ -2059,28 +1631,12 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
   local remaining = capitalBudget - selectedCap;
   if (remaining < 0) remaining = 0;
 
-  /* portfolio_v2 : on garde l'ordre de financement (profit par livre de capital). Le reclassement
-   * par `opcodeScore` du chemin historique est un classement au REVENU par opcode, et comme un
-   * seul projet est bati par cycle il decidait a lui seul lequel -- en contredisant l'objectif de
-   * profit qu'on vient d'etablir. Sous TENSION_SCORING, la tension opcode est deja integree au
-   * denominateur de Liebig : on conserve egalement l'ordre de tensionScore. */
   local byOpcodes = funded;
-  if (!PORTFOLIO_V2 && !TENSION_SCORING && !SHADOW_PRICING) {
-    byOpcodes = [];
-    foreach (project in funded) {
-      OpexProjectInsert(byOpcodes, project, "opcodeScore", PROJECT_TOP_K);
-    }
-  }
 
   if (DECISION_LOG) {
-    local vivierPool = null;
-    if (PORTFOLIO_V2) {
-      vivierPool = [];
-      foreach (key, list in winners) {
-        foreach (project in list) vivierPool.push(project);
-      }
-    } else {
-      vivierPool = byBudget;
+    local vivierPool = [];
+    foreach (key, list in winners) {
+      foreach (project in list) vivierPool.push(project);
     }
     OpexLogVivier("build", vivierPool, stats, capitalBudget, remaining);
   }
