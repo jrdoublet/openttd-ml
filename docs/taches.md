@@ -1317,8 +1317,13 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
      - **Profit annuel** : £2.92M -> £3.00M (**+2.59%**, médiane **+2.19%**). 11 gains, 1 égalité, 8 pertes (Wilcoxon p=0.5678).
      - **Score NoAI** : 871.0 -> 872.0 (+0.9 pt).
      - **Flotte** : 213.7 -> 216.3 véhicules (+1.2%).
-     - Le signal est globalement positif (+423k£ CV, +75.6k£ profit annuel, médiane +1.57M£), mais la variance inter-graines maintient la p-valeur à 0.258. Le réglage reste sous drapeau dédié (`c53_order_nonstop`).
-  4. ⬜ **Tester l'ajout de `OF_NO_LOAD` au puits de fret unidirectionnel** (`OF_TRANSFER | OF_NO_LOAD` et `OF_UNLOAD | OF_NO_LOAD`) pour éliminer les temps morts à destination.
+  4. 🟩 **Tester l'ajout de `OF_NO_LOAD` au puits de fret unidirectionnel** (`c53_order_noload=0/1`) — fait le 2026-09-11
+     (`results/bench_c53_noload_10y_20seeds.json`) :
+     - **Physique** : NoLoad passe de 0.0% à 12.6% sur route et 40.0% sur rail (exactement égal au taux de FullLoad source).
+     - **Banc 20×10 apparié** : 17 graines sur 20 (85 %) sont **strictement identiques bit-à-bit** (£17.32M -> £17.33M, +0.04% CV, +0.12% profit, 2 gains, 17 nuls, 1 perte, Wilcoxon p=0.7500).
+     - Explication : à un puits pur sans production (ex. centrale thermique ou aciérie sans reprise), le quai n'a aucun cargo à charger ; le convoi repart immédiatement après déchargement même sans `OF_NO_LOAD`. L'ordre n'a d'effet que sur les rares terminus mixtes ou hubs de rabattement.
+     - Réglage conservé sous interrupteur dédié (`c53_order_noload=0`).
+  5. ⬜ **Tester la combinaison complète non-stop + no-load** (`c53_order_nonstop=1,c53_order_noload=1`).
 
 - 🟢 **C51 — Validation et clôture du portefeuille v2 (défaut consolidé, legacy supprimé le 2026-09-11).**
   📝 Archéologie faite le 2026-09-10, banc lancé le même jour.
