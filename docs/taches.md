@@ -1681,14 +1681,15 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   **Suite éventuelle** : le gel en bloc du canal rail est un sujet **C41**, pas une fiche
   `build_failed`. Ne pas rouvrir C47.
 
-- 🔴 **C42 — Transformer les offres de subvention non attribuées en candidats.** `C17`/`A7.3`
-  (`event_subsidy_probe`) est fait : écoute par événement, aucun sondage en boucle. Mais c'est une
-  **sonde en lecture seule, défaut 0** — elle mesure, elle ne génère ni ne priorise aucun candidat.
-  Spécification déjà écrite dans `docs/cible.md` §6 (canal opportuniste : « subventions non
-  attribuées, si temps restant > chantier estimé ») et §5 (« grandeur limitante = temps avant
-  fermeture »). Repli documenté : 180 jours (AdmiralAI), mais à **dériver du chantier estimé**.
-  ⚠️ AAAHogEx a **0 occurrence** d'`AISubsidy` : terrain non occupé par l'adversaire. À spécifier
-  (comment une offre devient un candidat scoré sans voler son classement au vivier) avant tout code.
+- 🟡 **C42 — Transformer les offres de subvention non attribuées en candidats.** Implémenté sur la branche `feat/c42-subsidies` (`c42_subsidies=1`).
+  - **Génération opportuniste (`OpexGenerateSubsidyCandidates`)** : conversion des offres actives en candidats routiers scorés avec le multiplicateur de jeu `difficulty.subsidy_multiplier` (1,5× à 4×) lissé sur la durée `difficulty.subsidy_duration` (0 à 5000 ans) et l'horizon d'amortissement $\tau$.
+  - **Invalidation réactive et purge événementielle** : écoute `ET_SUBSIDY_OFFER`, `ET_SUBSIDY_AWARDED`, `ET_SUBSIDY_OFFER_EXPIRED`, purge atomique des projets zombies (`_purgeSubsidyFromProjects`) et réévaluation immédiate du portefeuille.
+  - **Gardes transactionnelles et correction `ResolveCompanyID`** : vérification de non-attribution et validité à l'entrée de `_tryBuildRoadProject` et juste avant pose. Comparaison de l'attribution avec `AICompany.ResolveCompanyID(AICompany.COMPANY_SELF)` pour reconnaître nos propres victoires.
+  - **Double horizon économique et persistance** : maintien séparé de l'économie de base et de l'économie subventionnée dans le candidat, recalcul post-siting vivant et enregistrement dans `_lines`.
+  - **Filtrage amont des offres déjà couvertes** : détection bidirectionnelle et inter-modes (`OpexSubsidyMatchingLineId`), élimination des doublons et gardes physiques dès la génération.
+  - **Contrôle systématique de l'acceptation destination** : suppression du raccourci `pop < 200`, vérification stricte `AITile.GetCargoAcceptance >= ROAD_ACCEPTANCE_FULL_UNIT` (8) pour éviter les rejets `SITEB` et abandons injustifiés.
+  - **Délai de chantier dérivé et urgence (`OpexSubsidyChantierDays`)** : remplacement du seuil fixe de 180j par l'estimation physique du temps de mise en service ($70\text{j} + \text{oneWayDays}$) et suivi de la marge d'urgence $\text{slackDays}$.
+  - **Validation en cours** : banc officiel 20 graines × 10 ans apparié avant adoption au défaut.
 
 - 🔶 **C43 / E3 — Audit des constantes en dur.** 46 `const` contre 35 réglages exposés, sans revue
   systématique. Trois issues : **exposer** (décisionnelle), **vérifier** (prétend traduire une règle
