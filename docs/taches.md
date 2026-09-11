@@ -1222,6 +1222,35 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
     - Le réglage reste à défaut 0, seuil calibré à 3.
 
 
+- 🔴 **C58 — Post-mortem et audit prédictif via `ET_VEHICLE_UNPROFITABLE` : analyser les mauvais choix d'investissement.**
+  📝 Ouverte le 2026-09-11 sur demande utilisateur, suite aux leçons de C52.
+
+  ### Origine et vocation
+  L'étape d'exposition de C52 a établi qu'`ET_VEHICLE_UNPROFITABLE` est de loin l'événement le plus fréquent (~183 véhicules touchés sur 5 graines × 10 ans). Mais le diagnostic de C52 a aussi montré que s'en servir comme couperet réactif aveugle en jeu (retrait de véhicule ou démolition de ligne) est destructeur de capital (effet churn de rachat immédiat par `_refleetRoadLines`, casse prématurée de lignes d'infrastructure mono-véhicule).
+
+  🔑 **La véritable valeur d'`ET_VEHICLE_UNPROFITABLE` n'est pas réactive en jeu : c'est l'instrument de vérité terrain par excellence pour disséquer les erreurs de nos modèles prédictifs amont.**
+  Lorsqu'une ligne ou un convoi devient déficitaire, qu'est-ce que nos prédictions avaient mal estimé ?
+  1. **Les profits réels vs estimés (`predRevenue`)** : décalage entre le barème théorique de paiement de la cargaison et l'encaissement effectif.
+  2. **Les coûts d'exploitation réels vs estimés (`predRunning`)** : sous-estimation des coûts d'entretien/circulation (`runningCost / day`), détours de tracé, attente excessive.
+  3. **Les flux entrants (`predCarried`)** : surestimation de la production des industries sources (`AIIndustry.GetLastMonthProduction`), de la captation municipale (catchment), ou concurrence/partage de bassin.
+  4. **La vitesse d'aller-retour et temps de rotation (`predOneWayDays`)** : surestimation de la vitesse commerciale réelle (embouteillages routiers, feux, relief, temps d'attente à quai avec `OF_FULL_LOAD`).
+
+  ### Architecture de l'audit
+  1. ⬜ **Instrumentation passive** : sous réglage `c58_unprofitable_audit` (défaut 0), lors de la réception de `ET_VEHICLE_UNPROFITABLE` sur un convoi âgé de ≥ 365 jours :
+     - Résoudre sa ligne via le résolveur universel `OpexFindLineForVehicle`.
+     - Comparer les prédictions initiales stockées sur la ligne (`predRevenue`, `predRunning`, `predCarried`, `predOneWayDays`) aux métriques réelles mesurées par l'API :
+       - `realProfit = AIVehicle.GetProfitLastYear(v)`
+       - `realWaiting = AIStation.GetCargoWaiting(station, cargo)`
+       - `realRunningCost = AIVehicle.GetOperatingCostLastYear(v)`
+       - Ratio de rotation réel vs théorique.
+  2. ⬜ **Classification de l'erreur** dans le journal de diagnostic :
+     - `ERR_SUPPLY_DEFICIT` : le gisement attendu n'est pas au rendez-vous (production industrielle effondrée ou captage surestimé).
+     - `ERR_RUNNING_COST_EXPLOSION` : les coûts d'exploitation réels dépassent largement `predRunning`.
+     - `ERR_SLOW_TURNAROUND` : le convoi met beaucoup plus de temps que `predOneWayDays` pour boucler son trajet (blocage, encombrement).
+     - `ERR_CAPACITY_MISMATCH` : convoi surdimensionné ou sous-rempli.
+  3. ⬜ **Exploitation** : utiliser la distribution empirique des causes pour calibrer les coefficients de sécurité et corriger les formules de rentabilité dans `candidates.nut`, `builder_road.nut`, `builder_rail.nut`, et `builder_air.nut`.
+
+
 
 - 🔴 **C53 — S'inspirer de `SuperLib.Order` pour la gestion des ordres de véhicules.**
   📝 Noté le 2026-09-10 sur demande utilisateur. `ai/library/SuperLib-41/` est **présente dans le
