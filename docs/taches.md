@@ -1707,11 +1707,11 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   - **Filtrage amont des offres déjà couvertes** : détection bidirectionnelle et inter-modes (`OpexSubsidyMatchingLineId`), élimination des doublons et gardes physiques dès la génération.
   - **Contrôle systématique de l'acceptation destination** : suppression du raccourci `pop < 200`, vérification stricte `AITile.GetCargoAcceptance >= ROAD_ACCEPTANCE_FULL_UNIT` (8) pour éviter les rejets `SITEB` et abandons injustifiés.
   - **Délai de chantier dérivé et urgence (`OpexSubsidyChantierDays`)** : remplacement du seuil fixe de 180j par l'estimation physique du temps de mise en service ($70\text{j} + \text{oneWayDays}$) et suivi de la marge d'urgence $\text{slackDays}$.
-  - **Banc officiel 20×10 (`results/bench_c42_subsidies_10y_20seeds.json`, 2026-09-11)** :
-    - 0 échec NoAI (40/40 runs valides).
-    - CV moyen : £17,21M (candidat) vs £17,98M (baseline), soit -4,27% (écart apparié +4,46% en faveur de baseline, 12 victoires baseline vs 8 victoires candidat).
-    - Amélioration nette vs version non corrigée (-6,91%, 2 victoires seulement). Le candidat surperforme fortement sur 3 graines (+26,4% sur graine 123456, +12,9% sur 512, +11,0% sur 65537), mais sous-performe quand les lignes de subvention routières consomment le tour de cycle rare au détriment de l'aérien (illustrant la règle C44).
-    - **Décision** : Fonctionnalité committée et robuste, maintenue sous réglage optionnel (`c42_subsidies = 0` par défaut).
+  - **Banc officiel 20×10 + duel AAAHogEx (`results/bench_c42_duel_10y_20seeds.json`, 2026-09-11)** :
+    - 0 échec NoAI (60/60 parties saines).
+    - **Solo C42 vs Solo Contrôle** : `company_value` -4,54 % (14 victoires contrôle), `profit_year` -7,10 % (15 victoires contrôle, p=0,0414, t=+2,34), `profit` trimestriel -9,51 % (17 victoires contrôle, p=0,0026, t=+2,92). Le volume de gares augmente (+6,2 gares, 102 vs 96) mais la flotte diminue (201 vs 214 véhicules) et la rentabilité globale baisse : les subventions éparses dispersent le capital et consomment le tour de cycle rare au détriment des lignes aériennes/ferroviaires denses (illustration directe de la règle C44).
+    - **Duel partagé C42 vs AAAHogEx** : AAAHogEx l'emporte à 20/20 sur toutes les métriques. En présence d'AAAHogEx sur la carte partagée, OpexAI tombe à 5,67 M£ de valeur et 1,24 M£ de profit annuel (contre 17,20 M£ et 2,79 M£ en solo), tandis qu'AAAHogEx atteint 37,79 M£ de valeur et 10,26 M£ de profit annuel avec une flotte saturante de 1 077 véhicules (contre 158 pour OpexAI).
+    - **Décision** : Fonctionnalité nettoyée et robuste, maintenue désactivée par défaut (`c42_subsidies = 0`).
 
 - 🔶 **C43 / E3 — Audit des constantes en dur.** 46 `const` contre 35 réglages exposés, sans revue
   systématique. Trois issues : **exposer** (décisionnelle), **vérifier** (prétend traduire une règle
