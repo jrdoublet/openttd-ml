@@ -190,6 +190,22 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    AddSetting({
+      name = "event_vehicle_autoreplaced",
+      description = "Repair persisted fleet IDs after ET_VEHICLE_AUTOREPLACED: 1 = enabled (default), 0 = leave historical IDs unchanged",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c52_autoreplace_log",
+      description = "C52: log annual automatic vehicle replacement remaps without changing decisions: 1 = probe, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* P3 / A7.5 : Invalidation et rafraichissement reactif du catalogue via
      * ET_INDUSTRY_OPEN et ET_TOWN_FOUNDED (1 = actif par defaut). */
     AddSetting({

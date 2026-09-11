@@ -380,6 +380,15 @@ function OpexC55OriginRelaxLog(fields)
              + AIDate.GetDayOfMonth(date) + " C55_ORIGIN_RELAX " + fields);
 }
 
+/* C52 : gate dedie et autonome. La sonde observe aussi quand la reparation est desarmee. */
+function OpexC52AutoreplaceLog(fields)
+{
+  if (!C52_AUTOREPLACE_LOG) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " C52_AUTOREPLACE " + fields);
+}
+
 /* Observe une paire au point meme ou le filtre d'origine route la voit. Cette fonction ne
  * retourne rien et n'ecrit que le ledger de sonde ; elle ne participe a aucun predicat. */
 function OpexC55OriginRelaxObserve(kind, lines, src, dst, srcServed, dstServed)
@@ -868,6 +877,11 @@ EVENT_INDUSTRY_CLOSE <- false;
 EVENT_SUBSIDY_PROBE <- false;
 /* A7.4 : Alerte et diagnostic convois perdus/bloques via ET_VEHICLE_LOST */
 EVENT_VEHICLE_LOST <- false;
+/* C52 : remappe les ID de vehicules remplaces automatiquement dans les inventaires persistants. */
+EVENT_VEHICLE_AUTOREPLACED <- true;
+/* C52 : sonde annuelle des remappages; le ledger reste nul hors sonde. */
+C52_AUTOREPLACE_LOG <- false;
+C52_AUTOREPLACE_LEDGER <- null;
 /* P3 / A7.5 : une nouvelle ville ou industrie rend le portefeuille obsolete.
  * Le rafraichissement reactif est rare et evite d'attendre le prochain mois. */
 EVENT_CATALOG_INVALIDATE <- true;
@@ -6066,6 +6080,89 @@ function OpexAI::_processEvents()
       continue;
     }
 
+    if (eventType == AIEvent.ET_VEHICLE_AUTOREPLACED) {
+      if (EVENT_VEHICLE_AUTOREPLACED || C52_AUTOREPLACE_LOG) {
+        local replaceEvt = AIEventVehicleAutoReplaced.Convert(event);
+        if (replaceEvt != null) {
+          local oldVehicle = replaceEvt.GetOldVehicleID();
+          local newVehicle = replaceEvt.GetNewVehicleID();
+          local remapLineVehicles = 0;
+          local remapLineVehicle = 0;
+          local remapScrapVehicles = 0;
+          local remapScrapIndex = 0;
+          local tracked = false;
+          local mode = "unknown";
+          foreach (line in this._lines) {
+            local lineMode = ("mode" in line) ? line.mode : "unknown";
+            if ("vehicles" in line) {
+              local hasNew = false;
+              foreach (vehicle in line.vehicles) {
+                if (vehicle == newVehicle) { hasNew = true; break; }
+              }
+              local i = 0;
+              while (i < line.vehicles.len()) {
+                if (line.vehicles[i] != oldVehicle) { i++; continue; }
+                tracked = true;
+                if (mode == "unknown") mode = lineMode;
+                remapLineVehicles++;
+                if (EVENT_VEHICLE_AUTOREPLACED) {
+                  if (hasNew) line.vehicles.remove(i);
+                  else { line.vehicles[i] = newVehicle; hasNew = true; i++; }
+                } else i++;
+              }
+            }
+            if (("vehicle" in line) && line.vehicle == oldVehicle) {
+              tracked = true;
+              if (mode == "unknown") mode = lineMode;
+              remapLineVehicle++;
+              if (EVENT_VEHICLE_AUTOREPLACED) line.vehicle = newVehicle;
+            }
+            if ("scrapVehicles" in line) {
+              local hasNew = false;
+              foreach (vehicle in line.scrapVehicles) {
+                if (vehicle == newVehicle) { hasNew = true; break; }
+              }
+              local i = 0;
+              while (i < line.scrapVehicles.len()) {
+                if (line.scrapVehicles[i] != oldVehicle) { i++; continue; }
+                tracked = true;
+                if (mode == "unknown") mode = lineMode;
+                remapScrapVehicles++;
+                if (EVENT_VEHICLE_AUTOREPLACED) {
+                  if (hasNew) line.scrapVehicles.remove(i);
+                  else { line.scrapVehicles[i] = newVehicle; hasNew = true; i++; }
+                } else i++;
+              }
+            }
+          }
+          if (this._vehiclesToScrap != null && (oldVehicle in this._vehiclesToScrap)) {
+            tracked = true;
+            remapScrapIndex++;
+            if (EVENT_VEHICLE_AUTOREPLACED) {
+              local lineId = this._vehiclesToScrap[oldVehicle];
+              delete this._vehiclesToScrap[oldVehicle];
+              this._vehiclesToScrap.rawset(newVehicle, lineId);
+            }
+          }
+          if (C52_AUTOREPLACE_LOG && C52_AUTOREPLACE_LEDGER != null) {
+            local entry = C52_AUTOREPLACE_LEDGER;
+            entry.events++;
+            entry.remap_line_vehicles += remapLineVehicles;
+            entry.remap_line_vehicle += remapLineVehicle;
+            entry.remap_scrap_vehicles += remapScrapVehicles;
+            entry.remap_scrap_index += remapScrapIndex;
+            if (!tracked) entry.untracked++;
+            if (mode == "rail") entry.rail++;
+            else if (mode == "road") entry.road++;
+            else if (mode == "air") entry.air++;
+            else if (mode == "water") entry.water++;
+            else entry.unknown++;
+          }
+        }
+      }
+      continue;
+    }
+
     if (eventType == AIEvent.ET_INDUSTRY_CLOSE) {
       if (C39_INVALIDATION_PROBE) {
         local probeEvt = AIEventIndustryClose.Convert(event);
@@ -6939,6 +7036,49 @@ function OpexAI::_logC55OriginRelaxLedger(year)
   };
 }
 
+/* C52 : le report de debut d'annee publie l'annee ecoulee et conserve un resume cumulatif. */
+function OpexAI::_logC52AutoreplaceLedger(year)
+{
+  if (!C52_AUTOREPLACE_LOG || C52_AUTOREPLACE_LEDGER == null) return;
+  local entry = C52_AUTOREPLACE_LEDGER;
+  OpexC52AutoreplaceLog("phase=annual year=" + year + " events=" + entry.events
+      + " remap_line_vehicles=" + entry.remap_line_vehicles
+      + " remap_line_vehicle=" + entry.remap_line_vehicle
+      + " remap_scrap_vehicles=" + entry.remap_scrap_vehicles
+      + " remap_scrap_index=" + entry.remap_scrap_index + " untracked=" + entry.untracked
+      + " rail=" + entry.rail + " road=" + entry.road + " air=" + entry.air
+      + " water=" + entry.water + " unknown=" + entry.unknown);
+  entry.total_events += entry.events;
+  entry.total_remap_line_vehicles += entry.remap_line_vehicles;
+  entry.total_remap_line_vehicle += entry.remap_line_vehicle;
+  entry.total_remap_scrap_vehicles += entry.remap_scrap_vehicles;
+  entry.total_remap_scrap_index += entry.remap_scrap_index;
+  entry.total_untracked += entry.untracked;
+  entry.total_rail += entry.rail;
+  entry.total_road += entry.road;
+  entry.total_air += entry.air;
+  entry.total_water += entry.water;
+  entry.total_unknown += entry.unknown;
+  OpexC52AutoreplaceLog("phase=summary year=" + year + " events=" + entry.total_events
+      + " remap_line_vehicles=" + entry.total_remap_line_vehicles
+      + " remap_line_vehicle=" + entry.total_remap_line_vehicle
+      + " remap_scrap_vehicles=" + entry.total_remap_scrap_vehicles
+      + " remap_scrap_index=" + entry.total_remap_scrap_index
+      + " untracked=" + entry.total_untracked + " rail=" + entry.total_rail
+      + " road=" + entry.total_road + " air=" + entry.total_air
+      + " water=" + entry.total_water + " unknown=" + entry.total_unknown);
+  C52_AUTOREPLACE_LEDGER = {
+    events = 0, remap_line_vehicles = 0, remap_line_vehicle = 0, remap_scrap_vehicles = 0,
+    remap_scrap_index = 0, untracked = 0, rail = 0, road = 0, air = 0, water = 0, unknown = 0,
+    total_events = entry.total_events, total_remap_line_vehicles = entry.total_remap_line_vehicles,
+    total_remap_line_vehicle = entry.total_remap_line_vehicle,
+    total_remap_scrap_vehicles = entry.total_remap_scrap_vehicles,
+    total_remap_scrap_index = entry.total_remap_scrap_index, total_untracked = entry.total_untracked,
+    total_rail = entry.total_rail, total_road = entry.total_road, total_air = entry.total_air,
+    total_water = entry.total_water, total_unknown = entry.total_unknown,
+  };
+}
+
 /* La tache "report" publie au premier passage de l'annee suivante : year=1971 decrit donc
  * l'annee de jeu 1970, et la derniere annee de la partie n'est jamais publiee. Tous les appels
  * API couteux sont apres ce garde C54, afin que le defaut false n'atteigne aucune API ajoutee. */
@@ -7647,6 +7787,7 @@ function OpexAI::_runNextTask()
     if (C48_PROJECT_ATTEMPT_LEDGER) this._logC48ProjectAttemptLedger(year);
     if (C49_SCARCITY_LEDGER) this._logC49ScarcityLedger(year);
     if (C55_ORIGIN_RELAX_PROBE) this._logC55OriginRelaxLedger(year);
+    if (C52_AUTOREPLACE_LOG) this._logC52AutoreplaceLedger(year);
     if (C54_VEHICLE_ORDERS_PROBE) this._logC54VehicleOrders(year);
     if (C48_INCREMENTAL_PROFILE) this._logC48IncrementalLedger(year);
     this._reportYear(year, this._ranked);
@@ -8139,6 +8280,8 @@ function OpexAI::Start()
   EVENT_INDUSTRY_CLOSE = AIController.GetSetting("event_industry_close") != 0;
   EVENT_SUBSIDY_PROBE = AIController.GetSetting("event_subsidy_probe") != 0;
   EVENT_VEHICLE_LOST = AIController.GetSetting("event_vehicle_lost") != 0;
+  EVENT_VEHICLE_AUTOREPLACED = AIController.GetSetting("event_vehicle_autoreplaced") != 0;
+  C52_AUTOREPLACE_LOG = AIController.GetSetting("c52_autoreplace_log") != 0;
   EVENT_CATALOG_INVALIDATE = AIController.GetSetting("event_catalog_invalidate") != 0;
   C39_INVALIDATION_PROBE = AIController.GetSetting("c39_invalidation_probe") != 0;
   C39_DECISION_DELTA_PROBE = AIController.GetSetting("c39_decision_delta_probe") != 0;
@@ -8219,6 +8362,15 @@ function OpexAI::Start()
       total_candidates_seen = 0, total_rejected_total = 0, total_both_served = 0,
       total_one_served = 0, total_one_served_pax = 0, total_one_served_freight = 0,
       total_duplicate_exact = 0,
+    };
+  }
+  if (C52_AUTOREPLACE_LOG) {
+    C52_AUTOREPLACE_LEDGER = {
+      events = 0, remap_line_vehicles = 0, remap_line_vehicle = 0, remap_scrap_vehicles = 0,
+      remap_scrap_index = 0, untracked = 0, rail = 0, road = 0, air = 0, water = 0, unknown = 0,
+      total_events = 0, total_remap_line_vehicles = 0, total_remap_line_vehicle = 0,
+      total_remap_scrap_vehicles = 0, total_remap_scrap_index = 0, total_untracked = 0,
+      total_rail = 0, total_road = 0, total_air = 0, total_water = 0, total_unknown = 0,
     };
   }
   C48_INCREMENTAL_PROFILE = AIController.GetSetting("c48_incremental_profile") != 0;
