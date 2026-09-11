@@ -2622,17 +2622,11 @@ function OpexGenerateSubsidyCandidates(catalog, lines, activeSubsidies, stats, a
     local isPax = AICargo.HasCargoClass(cargo, AICargo.CC_PASSENGERS);
     local kind = isPax ? "pax" : "freight";
     local monthlyProd = 0;
+
+    // 4a. Production a la source
     if (sub.srcType == AISubsidy.SPT_INDUSTRY) {
       monthlyProd = AIIndustry.GetLastMonthProduction(sub.srcId, cargo);
       if (monthlyProd <= 0) continue;
-      if (sub.dstType == AISubsidy.SPT_INDUSTRY) {
-        if (!AIIndustry.IsCargoAccepted(sub.dstId, cargo)) continue;
-      } else if (sub.dstType == AISubsidy.SPT_TOWN && !isPax) {
-        if (AITown.GetPopulation(sub.dstId) < 200) {
-          local truckRadius = AIStation.GetCoverageRadius(AIStation.STATION_TRUCK_STOP);
-          if (AITile.GetCargoAcceptance(dstTile, cargo, 1, 1, truckRadius) < 8) continue;
-        }
-      }
     } else {
       local pop = AITown.GetPopulation(sub.srcId);
       if (pop < 150) continue;
@@ -2641,6 +2635,14 @@ function OpexGenerateSubsidyCandidates(catalog, lines, activeSubsidies, stats, a
         monthlyProd = isPax ? (pop * 15) / 100 : 20;
       }
       if (monthlyProd <= 0) monthlyProd = 20;
+    }
+
+    // 4b. Acceptation a la destination (systematique, cf. C42 revue [P2])
+    if (sub.dstType == AISubsidy.SPT_INDUSTRY) {
+      if (!AIIndustry.IsCargoAccepted(sub.dstId, cargo)) continue;
+    } else if (sub.dstType == AISubsidy.SPT_TOWN && !isPax) {
+      local truckRadius = AIStation.GetCoverageRadius(AIStation.STATION_TRUCK_STOP);
+      if (AITile.GetCargoAcceptance(dstTile, cargo, 1, 1, truckRadius) < ROAD_ACCEPTANCE_FULL_UNIT) continue;
     }
 
     // Garde 5 : Distance Manhattan dans les bornes routieres
