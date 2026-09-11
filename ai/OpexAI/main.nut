@@ -4611,8 +4611,10 @@ function OpexAI::_resizeAirFleets(year, plan = null)
       local recovered = OpexAirRefleetCrashedPlane(line);
       if (recovered.added > 0) {
         local afterCrash = (("vehCount" in line) ? line.vehCount : 0) + recovered.added;
-        line.vehCount <- afterCrash;
-        line.trains <- afterCrash;
+        if ("vehCount" in line) line.vehCount = afterCrash;
+        else line.vehCount <- afterCrash;
+        if ("trains" in line) line.trains = afterCrash;
+        else line.trains <- afterCrash;
         line.needsRefleet = false;
         if (DECISION_LOG || C52_CRASH_LOG) {
           OpexDecide("CRASH_REFLEET", "mode=air line=" + line.lineId + " vehicle=" + line.vehicle);
@@ -4919,26 +4921,105 @@ function OpexAI::_scrapDeadLines(year)
 function OpexAI::_scrapRetiredVehicles(year)
 {
   if (this._vehiclesToRetire == null) return;
-  foreach (vehicle, lineId in this._vehiclesToRetire) {
+  local now = AIDate.GetCurrentDate();
+  local removeTickets = [];
+  local clearStreaks = [];
+  local upgradeTickets = [];
+  foreach (vehicle, savedTicket in this._vehiclesToRetire) {
+    /* Compatibilite : les premieres sauvegardes portent simplement lineId (int).
+     * Les tickets recents ajoutent le calendrier de relance sans invalider ces etats. */
+    local ticket = null;
+    if (typeof savedTicket == "table") ticket = savedTicket;
+    else {
+      ticket = { lineId = savedTicket, startedDate = now, lastSendDate = now, attempts = 0 };
+      upgradeTickets.append({ vehicle = vehicle, ticket = ticket });
+    }
+    local lineId = ("lineId" in ticket) ? ticket.lineId : -1;
     if (!AIVehicle.IsValidVehicle(vehicle)) {
-      delete this._vehiclesToRetire[vehicle];
-      if (this._unprofitableStreaks != null && (vehicle in this._unprofitableStreaks)) {
-        delete this._unprofitableStreaks[vehicle];
+      removeTickets.append(vehicle);
+      clearStreaks.append(vehicle);
+      continue;
+    }
+    local started = ("startedDate" in ticket) ? ticket.startedDate : now;
+    if (AIVehicle.IsStoppedInDepot(vehicle)) {
+      if (AIVehicle.SellVehicle(vehicle)) {
+        removeTickets.append(vehicle);
+        clearStreaks.append(vehicle);
+        if (C52_UNPROFITABLE_LOG || DECISION_LOG) {
+          OpexDecide("UNPROFITABLE_RETIRE", "action=sell vehicle=" + vehicle + " line=" + lineId);
+        }
+        continue;
+      }
+      /* Si la vente echoue durablement meme au depot, laisser tomber dans le
+       * chemin timeout ci-dessous plutot que garder un ticket a vie. */
+      if (now - started < SCRAP_TIMEOUT_YEARS * 365) continue;
+    }
+
+    if (now - started >= SCRAP_TIMEOUT_YEARS * 365) {
+      /* Ne jamais laisser une retraite impossible rendre l'inventaire permanent
+       * mensonger. On annule le retrait, remet le vehicule dans l'inventaire de
+       * la ligne et le redemarre s'il attend finalement au depot. */
+      local line = this._findLineById(lineId);
+      if (line != null) {
+        if (("mode" in line) && line.mode != "road") {
+          if (!("vehicles" in line)) line.vehicles <- [];
+          else if (line.vehicles == null) line.vehicles = [];
+          local known = false;
+          foreach (existing in line.vehicles) {
+            if (existing == vehicle) { known = true; break; }
+          }
+          if (!known) line.vehicles.append(vehicle);
+          if (!("vehicle" in line) || !AIVehicle.IsValidVehicle(line.vehicle)) {
+            if ("vehicle" in line) line.vehicle = vehicle;
+            else line.vehicle <- vehicle;
+          }
+          local restored = line.vehicles.len();
+          if ("vehCount" in line) line.vehCount = restored;
+          else line.vehCount <- restored;
+          if ("trains" in line) line.trains = restored;
+          else line.trains <- restored;
+        } else {
+          /* Une ligne route est inventoriee par ses ordres : un rapport annuel a
+           * pu deja recompter le camion pendant l'attente. Ne pas l'incrementer
+           * aveuglement; relever seulement la cible retiree. */
+          if ("predTrains" in line) {
+            line.predTrains++;
+            if ("vehCount" in line && line.vehCount < line.predTrains) line.vehCount++;
+            if ("trains" in line && line.trains < line.predTrains) line.trains++;
+          }
+        }
+      }
+      if (AIVehicle.IsStoppedInDepot(vehicle)) AIVehicle.StartStopVehicle(vehicle);
+      removeTickets.append(vehicle);
+      clearStreaks.append(vehicle);
+      if (C52_UNPROFITABLE_LOG || DECISION_LOG) {
+        OpexDecide("UNPROFITABLE_RETIRE", "action=cancel_timeout vehicle=" + vehicle + " line=" + lineId);
       }
       continue;
     }
-    if (!AIVehicle.IsStoppedInDepot(vehicle)) continue;
-    if (AIVehicle.SellVehicle(vehicle)) {
-      if (this._vehiclesToScrap != null && (vehicle in this._vehiclesToScrap)) {
-        delete this._vehiclesToScrap[vehicle];
+
+    local lastSend = ("lastSendDate" in ticket) ? ticket.lastSendDate : -1;
+    if (lastSend < 0 || now - lastSend >= 90) {
+      if (AIVehicle.SendVehicleToDepot(vehicle)) {
+        ticket.lastSendDate = now;
+        ticket.attempts = ("attempts" in ticket) ? ticket.attempts + 1 : 1;
       }
-      if (this._unprofitableStreaks != null && (vehicle in this._unprofitableStreaks)) {
-        delete this._unprofitableStreaks[vehicle];
-      }
-      delete this._vehiclesToRetire[vehicle];
-      if (C52_UNPROFITABLE_LOG || DECISION_LOG) {
-        OpexDecide("UNPROFITABLE_RETIRE", "action=sell vehicle=" + vehicle + " line=" + lineId);
-      }
+    }
+  }
+  foreach (vehicle in removeTickets) {
+    if (vehicle in this._vehiclesToRetire) delete this._vehiclesToRetire[vehicle];
+    if (this._vehiclesToScrap != null && (vehicle in this._vehiclesToScrap)) {
+      delete this._vehiclesToScrap[vehicle];
+    }
+  }
+  foreach (upgrade in upgradeTickets) {
+    if (upgrade.vehicle in this._vehiclesToRetire) {
+      this._vehiclesToRetire.rawset(upgrade.vehicle, upgrade.ticket);
+    }
+  }
+  if (this._unprofitableStreaks != null) {
+    foreach (vehicle in clearStreaks) {
+      if (vehicle in this._unprofitableStreaks) delete this._unprofitableStreaks[vehicle];
     }
   }
 }
@@ -4948,8 +5029,12 @@ function OpexAI::_scrapRetiredVehicles(year)
 function OpexAI::_purgeUnprofitableStreaks()
 {
   if (this._unprofitableStreaks == null) return;
+  local stale = [];
   foreach (vehicle, ignored in this._unprofitableStreaks) {
-    if (!AIVehicle.IsValidVehicle(vehicle)) delete this._unprofitableStreaks[vehicle];
+    if (!AIVehicle.IsValidVehicle(vehicle)) stale.append(vehicle);
+  }
+  foreach (vehicle in stale) {
+    if (vehicle in this._unprofitableStreaks) delete this._unprofitableStreaks[vehicle];
   }
 }
 
@@ -5096,8 +5181,10 @@ function OpexAI::_refleetCrashedWaterLines(year)
     if (("scrapping" in line) && line.scrapping) continue;
     local recovered = OpexWaterRefleetCrashedShip(line);
     if (recovered.added > 0) {
-      line.vehCount <- 1;
-      line.trains <- 1;
+      if ("vehCount" in line) line.vehCount = 1;
+      else line.vehCount <- 1;
+      if ("trains" in line) line.trains = 1;
+      else line.trains <- 1;
       line.needsRefleet = false;
       if (DECISION_LOG || C52_CRASH_LOG) {
         OpexDecide("CRASH_REFLEET", "mode=water line=" + line.lineId + " vehicle=" + line.vehicle);
@@ -6607,25 +6694,47 @@ function OpexAI::_processEvents()
                       /* Ligne multi-vehicules surcapacitaire : retrait unitaire, sans
                        * basculer la ligne dans scrapping. La tache scrap vend ensuite
                        * reellement le vehicule, meme si event_depot_sell est desarme. */
-                      AIVehicle.SendVehicleToDepot(vehicle);
-                      if (this._vehiclesToRetire == null) this._vehiclesToRetire = {};
-                      this._vehiclesToRetire.rawset(vehicle, line.lineId);
-                      if ("vehicles" in line && line.vehicles != null) {
-                        for (local i = 0; i < line.vehicles.len(); i++) {
-                          if (line.vehicles[i] == vehicle) {
-                            line.vehicles.remove(i);
-                            break;
+                      if (AIVehicle.SendVehicleToDepot(vehicle)) {
+                        local now = AIDate.GetCurrentDate();
+                        if (this._vehiclesToRetire == null) this._vehiclesToRetire = {};
+                        this._vehiclesToRetire.rawset(vehicle, {
+                          lineId = line.lineId, startedDate = now, lastSendDate = now, attempts = 1
+                        });
+                        if ("vehicles" in line && line.vehicles != null) {
+                          for (local i = 0; i < line.vehicles.len(); i++) {
+                            if (line.vehicles[i] == vehicle) {
+                              line.vehicles.remove(i);
+                              break;
+                            }
                           }
                         }
-                      }
-                      if ("vehCount" in line && line.vehCount > 0) line.vehCount--;
-                      if ("trains" in line && line.trains > 1) line.trains--;
-                      /* Sans cette baisse, _refleetRoadLines reconstruirait au cycle
-                       * suivant exactement le vehicule que cette decision vient de retirer. */
-                      if ("predTrains" in line && line.predTrains > 1) line.predTrains--;
-                      if (C52_UNPROFITABLE_LOG || DECISION_LOG) {
-                        OpexDecide("UNPROFITABLE_RETIRE", "vehicle=" + vehicle + " line=" + line.lineId
-                                   + " streak=" + streak + " profit=" + profitLast + " remaining=" + have);
+                        /* Le scalaire est encore consulte par le resolveur. Ne pas
+                         * lui laisser l'ID en retraite : prendre un pair vivant ou
+                         * la sentinelle deja employee par le handler crash. */
+                        if (("vehicle" in line) && line.vehicle == vehicle) {
+                          local replacement = -1;
+                          if (("vehicles" in line) && line.vehicles != null) {
+                            foreach (candidate in line.vehicles) {
+                              if (AIVehicle.IsValidVehicle(candidate)) {
+                                replacement = candidate;
+                                break;
+                              }
+                            }
+                          }
+                          line.vehicle = replacement;
+                        }
+                        if ("vehCount" in line && line.vehCount > 0) line.vehCount--;
+                        if ("trains" in line && line.trains > 1) line.trains--;
+                        /* Sans cette baisse, _refleetRoadLines reconstruirait au cycle
+                         * suivant exactement le vehicule que cette decision vient de retirer. */
+                        if ("predTrains" in line && line.predTrains > 1) line.predTrains--;
+                        if (C52_UNPROFITABLE_LOG || DECISION_LOG) {
+                          OpexDecide("UNPROFITABLE_RETIRE", "action=send vehicle=" + vehicle + " line=" + line.lineId
+                                     + " streak=" + streak + " profit=" + profitLast + " remaining=" + have);
+                        }
+                      } else if (C52_UNPROFITABLE_LOG || DECISION_LOG) {
+                        OpexDecide("UNPROFITABLE_RETIRE", "action=depot_refused vehicle=" + vehicle
+                                   + " line=" + line.lineId + " streak=" + streak);
                       }
                     } else {
                       // Ligne a 1 seul vehicule (ou dernier) structurellement deficitaire : fermer la ligne.
@@ -6637,12 +6746,19 @@ function OpexAI::_processEvents()
                     }
                   } else {
                     // Vehicule orphelin hors ligne
-                    AIVehicle.SendVehicleToDepot(vehicle);
-                    if (this._vehiclesToRetire == null) this._vehiclesToRetire = {};
-                    this._vehiclesToRetire.rawset(vehicle, -1);
-                    if (C52_UNPROFITABLE_LOG || DECISION_LOG) {
-                      OpexDecide("UNPROFITABLE_RETIRE", "action=orphan vehicle=" + vehicle
-                                 + " streak=" + streak + " profit=" + profitLast);
+                    if (AIVehicle.SendVehicleToDepot(vehicle)) {
+                      local now = AIDate.GetCurrentDate();
+                      if (this._vehiclesToRetire == null) this._vehiclesToRetire = {};
+                      this._vehiclesToRetire.rawset(vehicle, {
+                        lineId = -1, startedDate = now, lastSendDate = now, attempts = 1
+                      });
+                      if (C52_UNPROFITABLE_LOG || DECISION_LOG) {
+                        OpexDecide("UNPROFITABLE_RETIRE", "action=orphan_send vehicle=" + vehicle
+                                   + " streak=" + streak + " profit=" + profitLast);
+                      }
+                    } else if (C52_UNPROFITABLE_LOG || DECISION_LOG) {
+                      OpexDecide("UNPROFITABLE_RETIRE", "action=orphan_depot_refused vehicle=" + vehicle
+                                 + " streak=" + streak);
                     }
                   }
                 }
@@ -8754,13 +8870,21 @@ function OpexAI::_reconcileAfterLoad()
   this._pendingLines = null;
   this._purgeUnprofitableStreaks();
   if (this._vehiclesToRetire != null) {
+    local staleRetireTickets = [];
     foreach (vehicle, ignored in this._vehiclesToRetire) {
-      if (!AIVehicle.IsValidVehicle(vehicle)) delete this._vehiclesToRetire[vehicle];
+      if (!AIVehicle.IsValidVehicle(vehicle)) staleRetireTickets.append(vehicle);
+    }
+    foreach (vehicle in staleRetireTickets) {
+      if (vehicle in this._vehiclesToRetire) delete this._vehiclesToRetire[vehicle];
     }
   }
   if (this._vehiclesToScrap != null) {
+    local staleScrapTickets = [];
     foreach (vehicle, ignored in this._vehiclesToScrap) {
-      if (!AIVehicle.IsValidVehicle(vehicle)) delete this._vehiclesToScrap[vehicle];
+      if (!AIVehicle.IsValidVehicle(vehicle)) staleScrapTickets.append(vehicle);
+    }
+    foreach (vehicle in staleScrapTickets) {
+      if (vehicle in this._vehiclesToScrap) delete this._vehiclesToScrap[vehicle];
     }
   }
   /* Sans sonde : cette unique preuve doit toujours accompagner un rechargement, jamais une partie neuve. */

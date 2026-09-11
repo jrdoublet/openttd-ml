@@ -1095,11 +1095,12 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   ### ✅ #1 ÉCRITE ET ADOPTÉE le 2026-09-11 — mais elle ne répare RIEN dans nos fenêtres
 
   Décision utilisateur : corriger sans banc, puisque aucun banc ne peut la valider. Livré en
-  `f42a164` : `event_vehicle_autoreplaced` (**défaut 1**) remappe l'ancien ID vers le nouveau dans
+  `f42a164` : `ET_VEHICLE_AUTOREPLACED` remappe désormais **toujours** l'ancien ID vers le nouveau dans
   `line.vehicles`, **`line.vehicle`** (le scalaire que la fiche oubliait), `line.scrapVehicles` et
   la table `_vehiclesToScrap` (ancienne clé supprimée, nouvelle posée avec le même `lineId`, donc
-  un remplaçant n'échappe pas à une mise au rebut déjà décidée). Sonde séparée
-  `c52_autoreplace_log` (défaut 0), qui compte **même quand la réparation est désarmée**.
+  un remplaçant n'échappe pas à une mise au rebut déjà décidée). L'ancien réglage
+  `event_vehicle_autoreplaced` est conservé pour compatibilité mais ignoré : l'intégrité des IDs n'est pas optionnelle. Sonde séparée
+  `c52_autoreplace_log` (défaut 0).
 
   **Trois validations, et ce qu'elles prouvent chacune :**
 
@@ -1187,8 +1188,8 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   ### ✅ #2 ET #4 IMPLÉMENTÉS ET DIAGNOSTIQUÉS le 2026-09-11
 
   Conformément aux règles du dépôt (`AGENTS.md`), les deux branches actives ont été instrumentées sous réglages booléens isolés à défaut 0 :
-  - **`event_vehicle_crashed`** (défaut 0, sonde `c52_crash_log`) : prise en compte de tous les modes (rail, route, air, eau) et motifs de crash. Purge des listes `line.vehicles`, `line.vehicle`, `scrapVehicles` et `_vehiclesToScrap`. Décrémente `vehCount` et `trains`, pose le panneau `XC|<an>|<line>|<veh>|<x>|<y>|<victims>|<reason>` et positionne `needsRefleet`.
-  - **`event_vehicle_unprofitable`** (défaut 0, seuil `unprofitable_streak_threshold` = 2, sonde `c52_unprofitable_log`) : garde de jeunesse (`age >= 365`), table de suivi des années consécutives en déficit `_unprofitableStreaks` (sérialisée dans `Save()`/`Load()`). Si le seuil de 2 ans est atteint : retrait au dépôt du véhicule en surcapacité (`have > 1`) via `UNPROFITABLE_RETIRE`, ou fermeture de la ligne (`have <= 1`) via `UNPROFITABLE_SCRAP`.
+  - **`event_vehicle_crashed`** (défaut 0, sonde `c52_crash_log`) : purge les inventaires et les streaks, distingue les crashs confirmés du filet annuel `RX`, et réarme réellement les lignes route, air et eau. Air/eau conservent moteur, dépôt et destinations afin de recréer le dernier véhicule sans template vivant ; le rail est seulement signalé, car reconstituer correctement un consist complet est hors de ce handler.
+  - **`event_vehicle_unprofitable`** (défaut 0, seuil `unprofitable_streak_threshold` = **3**, sonde `c52_unprofitable_log`) : garde de jeunesse (`age >= 365`), table de suivi des années consécutives en déficit `_unprofitableStreaks` (sérialisée et purgée dans `Save()`/`Load()`). Au seuil, un véhicule en surcapacité est envoyé au dépôt puis vendu par une file de retraite autonome (`UNPROFITABLE_RETIRE`), même avec `event_depot_sell=0`; le dernier véhicule suit toujours le chemin explicite de mise au rebut de ligne (`UNPROFITABLE_SCRAP`).
   - **Résolveur universel `OpexFindLineForVehicle`** : unifie la recherche de ligne pour tous les modes (tableaux de véhicules, scalaires, véhicules au rebut, et ordres de stations), rétablissant la détection de ligne dans `EVENT_VEHICLE_LOST` qui était aveugle pour tout le trafic routier.
 
   🔴 **Piège critique Squirrel découvert et corrigé :**
@@ -1208,16 +1209,16 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   |---|---:|---:|---:|---:|---|
   | **OpexAI** (baseline) | 17 157 468 £ | 2 790 495 £ | 865.8 | 162.1 | — |
   | **`event_vehicle_crashed=1`** | **17 312 119 £** | **2 816 262 £** | **868.0** | 161.6 | 🏆 **Gagnant : +154 650 £ (+0.89 %)**, profit **+25 767 £/an**, **12/20 victoires** (pics à +1.96M g2026, +1.26M g100, +1.26M g65537) |
-  | **`event_vehicle_unprofitable=1`** | 16 952 881 £ | 2 745 808 £ | 865.0 | 155.8 | −204 587 £ (−1.21 %), 7/20 victoires (seuil 2 ans trop agressif pour lignes mono-véhicule) |
+  | **`event_vehicle_unprofitable=1`** | 16 952 881 £ | 2 745 808 £ | 865.0 | 155.8 | −204 587 £ (−1.21 %), 7/20 victoires (**résultat historique au seuil 2**, trop agressif pour lignes mono-véhicule) |
 
   🔑 **Conclusions du banc 20×10 et diagnostic du seuil 3 ans :**
   - **Zéro blocage :** Aucune suspension, aucun gel et 0 erreur sur les 60 runs de 10 ans. Les détecteurs confirment la parfaite robustesse de l'IA.
-  - **`event_vehicle_crashed=1` est un succès net :** Il sauve des lignes entières qui mouraient silencieusement après un crash au passage à niveau ou sur piste, dégageant des hausses massives sur les graines affectées (+1.96M sur 2026, +1.26M sur 100 et 65537). Moyenne : **+154 650 £ (+0.89 %)**, **12/20 victoires**. **Prêt pour adoption par défaut.**
+  - **`event_vehicle_crashed=1` : signal positif, insuffisant pour adoption par défaut.** Le delta apparié est **+154 650,55 £** (12/20 victoires), mais sa dispersion est forte (SD 957 485,71 £; SE 214 100,31 £; IC95 t19 ≈ **[−293 461 ; +602 763] £**; test des signes bilatéral p≈0,503). Le résultat brut est conservé, mais ne démontre pas un effet positif généralisable. Les correctifs de cohérence et de reconstitution doivent être re-diagnostiqués avant tout nouveau banc officiel.
   - **Diagnostic `event_vehicle_unprofitable=1` au seuil de 3 ans (`results/diag_c52_unprof_thresh3_6y_5seeds.json`) :**
     - Réduit la sévérité : le bilan passe de 2/5 à **3/5 victoires appariées** (+265k sur g100, +266k sur g7, +55k sur g2026), delta moyen ramené de -131k à -105k £.
     - **Mécanisme de fuite identifié (effet churn)** :
-      1. Si `have > 1`, `UNPROFITABLE_RETIRE` vendait le véhicule mais ne touchait pas à `line.predTrains`. Lors du tour suivant de tâche `refleet`, `_refleetRoadLines` constatait `have < line.predTrains` et rachetait immédiatement un véhicule neuf au prix fort.
-      2. Si `have <= 1`, `UNPROFITABLE_SCRAP` démolissait des lignes jeunes (gares, voirie, etc.) sur de simples creux conjoncturels.
+      1. Dans la version mesurée, si `have > 1`, `UNPROFITABLE_RETIRE` prétendait vendre le véhicule mais ne disposait pas de consommateur autonome avec `event_depot_sell=0`, et ne touchait pas à `line.predTrains`. La version corrigée vend via une file dédiée et abaisse la cible de flotte pour empêcher le rachat immédiat.
+      2. Si `have <= 1`, `UNPROFITABLE_SCRAP` retirait prématurément la ligne logique et ses véhicules sur de simples creux conjoncturels. Les gares, voies et voirie ne sont pas démolies par `_scrapDeadLines`, mais l'infrastructure abandonnée et la perte de service restent coûteuses.
       3. La gestion au niveau de la ligne entière (`_scrapDeadLines` via `deadStreak` et `srcSuffering`) est déjà plus robuste.
     - Le réglage reste à défaut 0, seuil calibré à 3.
 
@@ -1239,13 +1240,13 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   1. ⬜ **Instrumentation passive** : sous réglage `c58_unprofitable_audit` (défaut 0), lors de la réception de `ET_VEHICLE_UNPROFITABLE` sur un convoi âgé de ≥ 365 jours :
      - Résoudre sa ligne via le résolveur universel `OpexFindLineForVehicle`.
      - Comparer les prédictions initiales stockées sur la ligne (`predRevenue`, `predRunning`, `predCarried`, `predOneWayDays`) aux métriques réelles mesurées par l'API :
-       - `realProfit = AIVehicle.GetProfitLastYear(v)`
+       - `AIVehicle.GetProfitLastYear(v)` : relevé par véhicule, puis **somme de tous les véhicules de la ligne** avant comparaison à `predRevenue`/`predRunning`/`predTrains`; ne jamais opposer une prédiction de ligne à un seul véhicule.
        - `realWaiting = AIStation.GetCargoWaiting(station, cargo)`
-       - `realRunningCost = AIVehicle.GetOperatingCostLastYear(v)`
-       - Ratio de rotation réel vs théorique.
+       - `AIVehicle.GetRunningCost(v)` est un **coût nominal annuel**, pas une dépense réalisée : ne pas inventer une API `GetOperatingCostLastYear`. Comparer le profit annuel réel agrégé de la ligne à la prédiction agrégée au même périmètre; si un coût est nécessaire, en déduire une estimation explicitement étiquetée (`revenu implicite = profit + coût nominal`) plutôt que l'appeler « réel ».
+       - Mesurer la rotation par instrumentation : horodater les passages/événements aux deux terminus (ou un cycle d'ordres observé), conserver les timestamps par véhicule puis agréger par ligne. Ce ratio est alors comparable à `predOneWayDays`, sans API imaginaire.
   2. ⬜ **Classification de l'erreur** dans le journal de diagnostic :
      - `ERR_SUPPLY_DEFICIT` : le gisement attendu n'est pas au rendez-vous (production industrielle effondrée ou captage surestimé).
-     - `ERR_RUNNING_COST_EXPLOSION` : les coûts d'exploitation réels dépassent largement `predRunning`.
+     - `ERR_RUNNING_COST_PRESSURE` : le coût nominal agrégé ou le revenu implicite estimé est incohérent avec `predRunning` (signal indicatif, pas une dépense réellement observée).
      - `ERR_SLOW_TURNAROUND` : le convoi met beaucoup plus de temps que `predOneWayDays` pour boucler son trajet (blocage, encombrement).
      - `ERR_CAPACITY_MISMATCH` : convoi surdimensionné ou sous-rempli.
   3. ⬜ **Exploitation** : utiliser la distribution empirique des causes pour calibrer les coefficients de sécurité et corriger les formules de rentabilité dans `candidates.nut`, `builder_road.nut`, `builder_rail.nut`, et `builder_air.nut`.

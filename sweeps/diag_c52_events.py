@@ -26,7 +26,8 @@ ROOT = Path("/work") if Path("/work").exists() else Path(__file__).resolve().par
 sys.path.insert(0, str(ROOT / "sweeps"))
 from bench_v2 import (
     OPENGFX_VERSION, OPENTTD_VERSION, build_arms, enable_savegame_cleanup,
-    experiments, make_cfg, quarter_profit, year_profit, write_json_atomically,
+    experiments, make_cfg, quarter_profit, saved_year, script_failure_reason,
+    year_profit, write_json_atomically,
 )
 
 _real_check_output = openttdlab.subprocess.check_output
@@ -66,6 +67,7 @@ def keep(row):
         0
     ])
     arm, seed, repeat = bench_run[0], bench_run[1], bench_run[2]
+    failure_reason = script_failure_reason(row.get("output", ""))
 
     return ({
         "arm": arm,
@@ -79,11 +81,12 @@ def keep(row):
         "median_station_rating": med_rating,
         "n_vehicles": len(chunks.get("VEHS", {})),
         "n_stations": len(chunks.get("STNN", {})),
-        "error": bool(row.get("error")) or ("The script died unexpectedly" in (row.get("output") or "")),
+        "error": bool(row.get("error")) or bool(failure_reason),
+        "failure_reason": failure_reason,
         "decisions": dict(dec),
     },)
 
-def select_final_rows(rows):
+def select_final_rows(rows, expected_last_year):
     by_run = {}
     for r in rows:
         key = (r["arm"], r["seed"], r["repeat"])
@@ -91,7 +94,27 @@ def select_final_rows(rows):
     final = []
     for key, series in sorted(by_run.items(), key=lambda x: str(x[0])):
         series.sort(key=lambda item: item["date"])
-        final.append(series[-1])
+        last = series[-1]
+        last_year = saved_year(last["date"])
+        incomplete = last_year is None or last_year < expected_last_year
+        last["last_year"] = last_year
+        last["expected_last_year"] = expected_last_year
+        last["incomplete"] = incomplete
+        if incomplete:
+            last["error"] = True
+            incomplete_reason = (
+                f"incomplete_run: last autosave year "
+                f"{last_year if last_year is not None else 'unknown'} < expected {expected_last_year}"
+            )
+            if last.get("failure_reason"):
+                last["failure_reason"] = f"{last['failure_reason']}; {incomplete_reason}"
+            else:
+                last["failure_reason"] = incomplete_reason
+        else:
+            # keep() a deja capture le marqueur fatal du dernier autosave : ne pas
+            # l'ecraser lorsqu'il atteint par hasard l'annee attendue.
+            last["failure_reason"] = last.get("failure_reason") or script_failure_reason(last.get("output", ""))
+        final.append(last)
     return final
 
 def print_comparison(results, arms, seeds):
@@ -153,11 +176,13 @@ def print_comparison(results, arms, seeds):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--years", type=int, default=6)
+    parser.add_argument("--starting-year", type=int, default=1970)
     parser.add_argument("--seeds", nargs="+", type=int, default=[42, 100, 7, 999, 2026])
     parser.add_argument("--arms", nargs="+", default=[
         "OpexAI",
-        "OpexAI[event_vehicle_unprofitable=1]",
-        "OpexAI[event_vehicle_crashed=1]",
+        "OpexAI[event_vehicle_unprofitable=1,c52_unprofitable_log=1]",
+        "OpexAI[event_vehicle_crashed=1,c52_crash_log=1]",
+        "OpexAI[event_vehicle_unprofitable=1,event_vehicle_crashed=1,c52_unprofitable_log=1,c52_crash_log=1]",
     ])
     parser.add_argument("--max-workers", type=int, default=3)
     parser.add_argument("--out", type=Path, default=Path("results/diag_c52_events_6y_5seeds.json"))
@@ -171,13 +196,14 @@ def main():
         opengfx_version=OPENGFX_VERSION,
         max_workers=args.max_workers,
         result_processor=keep,
-        experiments=experiments(built, args.seeds, args.years, 1, 1970),
+        experiments=experiments(built, args.seeds, args.years, 1, args.starting_year),
         ai_libraries=(
             bananas_ai_library("51554648", "Queue.FibonacciHeap"),
             bananas_ai_library("5046524c", "Pathfinder.Rail"),
         ),
     ))
-    rows = select_final_rows(rows)
+    expected_last_year = args.starting_year + args.years - 1
+    rows = select_final_rows(rows, expected_last_year)
 
     print_comparison(rows, args.arms, args.seeds)
 
@@ -187,6 +213,8 @@ def main():
             "years": args.years,
             "seeds": args.seeds,
             "arms": args.arms,
+            "starting_year": args.starting_year,
+            "expected_last_year": expected_last_year,
             "results": rows,
         }
         write_json_atomically(args.out, payload)

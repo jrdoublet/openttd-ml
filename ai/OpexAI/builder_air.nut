@@ -849,9 +849,11 @@ function OpexAirRefleetCrashedPlane(line)
     if (AIVehicle.IsStoppedInDepot(plane)) AIVehicle.SellVehicle(plane);
     result.reason = "START"; return result;
   }
-  if (!("vehicles" in line) || line.vehicles == null) line.vehicles <- [];
+  if (!("vehicles" in line)) line.vehicles <- [];
+  else if (line.vehicles == null) line.vehicles = [];
   line.vehicles.append(plane);
-  line.vehicle <- plane;
+  if ("vehicle" in line) line.vehicle = plane;
+  else line.vehicle <- plane;
   result.added = 1; result.reason = "OK";
   return result;
 }

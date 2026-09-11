@@ -836,9 +836,11 @@ function OpexWaterRefleetCrashedShip(line)
     if (AIVehicle.IsStoppedInDepot(ship)) AIVehicle.SellVehicle(ship);
     result.reason = "START"; return result;
   }
-  if (!("vehicles" in line) || line.vehicles == null) line.vehicles <- [];
+  if (!("vehicles" in line)) line.vehicles <- [];
+  else if (line.vehicles == null) line.vehicles = [];
   line.vehicles.append(ship);
-  line.vehicle <- ship;
+  if ("vehicle" in line) line.vehicle = ship;
+  else line.vehicle <- ship;
   result.added = 1; result.reason = "OK";
   return result;
 }
