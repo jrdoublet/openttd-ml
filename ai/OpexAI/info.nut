@@ -190,15 +190,6 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "c42_subsidy_lead_days",
-      description = "C42: Minimum remaining days before expiration to attempt subsidy line: min 90, max 365, default 180",
-      min_value = 90, max_value = 365,
-      easy_value = 180, medium_value = 180, hard_value = 180,
-      custom_value = 180,
-      flags = 0
-    });
-
-    AddSetting({
       name = "c42_subsidy_log",
       description = "C42: Detailed decision logging for subsidy candidates and awards: 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,

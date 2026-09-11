@@ -2531,25 +2531,26 @@ function OpexBoostTownRating(townId, targetRating = 700, maxTrees = 35)
   }
 }
 
-/* C42 : Verifie si une offre de subvention est deja couverte par une ligne du reseau (tout mode) */
+/* C42 : Verifie si une offre de subvention est deja couverte par une ligne du reseau (tout mode).
+ * Recherche toujours dynamiquement dans les lignes actives vivantes (sans cache fige pour survivre a la mise au rebut). */
 function OpexSubsidyMatchingLineId(sub, lines)
 {
   if (sub == null || lines == null) return -1;
-  if (("matchedLine" in sub) && sub.matchedLine >= 0) return sub.matchedLine;
 
   local cargo = sub.cargo;
   local srcType = sub.srcType;
   local srcId = sub.srcId;
   local dstType = sub.dstType;
   local dstId = sub.dstId;
-  local isPax = AICargo.HasCargoClass(cargo, AICargo.CC_PASSENGERS);
 
   foreach (line in lines) {
+    if (("scrapping" in line) && line.scrapping) continue;
     if (!("cargo" in line) || line.cargo != cargo) continue;
     local tA = ("srcTown" in line && line.srcTown >= 0) ? line.srcTown : (("originA" in line && AIMap.IsValidTile(line.originA)) ? AITile.GetClosestTown(line.originA) : -1);
     local tB = ("dstTown" in line && line.dstTown >= 0) ? line.dstTown : (("originB" in line && AIMap.IsValidTile(line.originB)) ? AITile.GetClosestTown(line.originB) : -1);
 
-    if (isPax && srcType == AISubsidy.SPT_TOWN && dstType == AISubsidy.SPT_TOWN) {
+    // Liaison ville <-> ville (passagers, courrier, valeurs) : verification bidirectionnelle
+    if (srcType == AISubsidy.SPT_TOWN && dstType == AISubsidy.SPT_TOWN) {
       if ((tA == srcId && tB == dstId) || (tA == dstId && tB == srcId)) return line.lineId;
     } else {
       local mSrc = false;
@@ -2679,10 +2680,7 @@ function OpexGenerateSubsidyCandidates(catalog, lines, activeSubsidies, stats, a
 
     // 6a. Offre deja couverte par une ligne existante (tout mode confondu : air, rail, route)
     local matched = OpexSubsidyMatchingLineId(sub, lines);
-    if (matched >= 0) {
-      sub.matchedLine = matched;
-      continue;
-    }
+    if (matched >= 0) continue;
 
     // 6b. Ligne de meme subId deja batie par OpexAI
     local alreadyServed = false;

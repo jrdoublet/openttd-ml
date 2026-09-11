@@ -940,7 +940,6 @@ EVENT_INDUSTRY_CLOSE <- false;
 EVENT_SUBSIDY_PROBE <- false;
 /* C42 : Transformer les offres de subvention en candidats de portefeuille */
 C42_SUBSIDIES <- false;
-C42_SUBSIDY_LEAD_DAYS <- 180;
 C42_SUBSIDY_LOG <- false;
 /* A7.4 : Alerte et diagnostic convois perdus/bloques via ET_VEHICLE_LOST */
 EVENT_VEHICLE_LOST <- false;
@@ -6955,35 +6954,18 @@ function OpexAI::_processEvents()
             local mult = AIGameSettings.IsValid("difficulty.subsidy_multiplier") ? AIGameSettings.GetValue("difficulty.subsidy_multiplier") : -1;
             local dur = AIGameSettings.IsValid("difficulty.subsidy_duration") ? AIGameSettings.GetValue("difficulty.subsidy_duration") : -1;
 
-            local matchedLine = -1;
-            local isPax = AICargo.HasCargoClass(cargo, AICargo.CC_PASSENGERS);
-            foreach (line in this._lines) {
-              if (line.cargo != cargo) continue;
-              local tA = ("srcTown" in line && line.srcTown >= 0) ? line.srcTown : (("originA" in line && AIMap.IsValidTile(line.originA)) ? AITile.GetClosestTown(line.originA) : -1);
-              local tB = ("dstTown" in line && line.dstTown >= 0) ? line.dstTown : (("originB" in line && AIMap.IsValidTile(line.originB)) ? AITile.GetClosestTown(line.originB) : -1);
-              if (isPax && srcType == AISubsidy.SPT_TOWN && dstType == AISubsidy.SPT_TOWN) {
-                if ((tA == srcId && tB == dstId) || (tA == dstId && tB == srcId)) { matchedLine = line.lineId; break; }
-              } else {
-                local mSrc = false;
-                local mDst = false;
-                if (srcType == AISubsidy.SPT_INDUSTRY && ("srcIndustry" in line) && line.srcIndustry == srcId) mSrc = true;
-                else if (srcType == AISubsidy.SPT_TOWN && tA == srcId) mSrc = true;
-                if (dstType == AISubsidy.SPT_INDUSTRY && ("dstIndustry" in line) && line.dstIndustry == dstId) mDst = true;
-                else if (dstType == AISubsidy.SPT_TOWN && tB == dstId) mDst = true;
-                if (mSrc && mDst) { matchedLine = line.lineId; break; }
-              }
-            }
+            local subData = {
+              cargo = cargo, srcType = srcType, srcId = srcId,
+              dstType = dstType, dstId = dstId, expDate = expDate
+            };
+            local matchedLine = OpexSubsidyMatchingLineId(subData, this._lines);
 
             if (this._subsidyStats != null) {
               this._subsidyStats.offers++;
               if (matchedLine >= 0) this._subsidyStats.matchedPool++;
             }
             if (this._activeSubsidies != null) {
-              this._activeSubsidies.rawset(subId, {
-                cargo = cargo, srcType = srcType, srcId = srcId,
-                dstType = dstType, dstId = dstId, expDate = expDate,
-                matchedLine = matchedLine
-              });
+              this._activeSubsidies.rawset(subId, subData);
             }
 
             if (C42_SUBSIDIES) {
@@ -9206,7 +9188,6 @@ function OpexAI::Start()
   EVENT_INDUSTRY_CLOSE = AIController.GetSetting("event_industry_close") != 0;
   EVENT_SUBSIDY_PROBE = AIController.GetSetting("event_subsidy_probe") != 0;
   C42_SUBSIDIES = AIController.GetSetting("c42_subsidies") != 0;
-  C42_SUBSIDY_LEAD_DAYS = AIController.GetSetting("c42_subsidy_lead_days");
   C42_SUBSIDY_LOG = AIController.GetSetting("c42_subsidy_log") != 0;
   EVENT_VEHICLE_LOST = AIController.GetSetting("event_vehicle_lost") != 0;
   /* Compatibilite de sauvegarde/config : l'ancien interrupteur reste declare dans
