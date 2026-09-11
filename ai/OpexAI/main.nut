@@ -2043,16 +2043,6 @@ function OpexAI::_purgeSubsidyFromProjects(subId)
     }
   }
   if (this._dynamicBatch != null) {
-    if (("sourceBudgetCandidates" in this._dynamicBatch) && this._dynamicBatch.sourceBudgetCandidates != null) {
-      for (local i = this._dynamicBatch.sourceBudgetCandidates.len() - 1; i >= 0; i--) {
-        local p = this._dynamicBatch.sourceBudgetCandidates[i];
-        if (p != null && ("payload" in p) && p.payload != null &&
-            ("isSubsidy" in p.payload) && p.payload.isSubsidy &&
-            ("subsidyId" in p.payload) && p.payload.subsidyId == subId) {
-          this._dynamicBatch.sourceBudgetCandidates.remove(i);
-        }
-      }
-    }
     if (("sourceCandidateGroups" in this._dynamicBatch) && this._dynamicBatch.sourceCandidateGroups != null) {
       local key = "subsidy|" + subId;
       if (key in this._dynamicBatch.sourceCandidateGroups) {

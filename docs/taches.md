@@ -1699,7 +1699,7 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   **Suite éventuelle** : le gel en bloc du canal rail est un sujet **C41**, pas une fiche
   `build_failed`. Ne pas rouvrir C47.
 
-- 🟡 **C42 — Transformer les offres de subvention non attribuées en candidats.** Implémenté sur la branche `feat/c42-subsidies` (`c42_subsidies=1`).
+- 🟢 **C42 — Transformer les offres de subvention non attribuées en candidats.** Implémenté sur la branche `feat/c42-subsidies` (`c42_subsidies=1`).
   - **Génération opportuniste (`OpexGenerateSubsidyCandidates`)** : conversion des offres actives en candidats routiers scorés avec le multiplicateur de jeu `difficulty.subsidy_multiplier` (1,5× à 4×) lissé sur la durée `difficulty.subsidy_duration` (0 à 5000 ans) et l'horizon d'amortissement $\tau$.
   - **Invalidation réactive et purge événementielle** : écoute `ET_SUBSIDY_OFFER`, `ET_SUBSIDY_AWARDED`, `ET_SUBSIDY_OFFER_EXPIRED`, purge atomique des projets zombies (`_purgeSubsidyFromProjects`) et réévaluation immédiate du portefeuille.
   - **Gardes transactionnelles et correction `ResolveCompanyID`** : vérification de non-attribution et validité à l'entrée de `_tryBuildRoadProject` et juste avant pose. Comparaison de l'attribution avec `AICompany.ResolveCompanyID(AICompany.COMPANY_SELF)` pour reconnaître nos propres victoires.
@@ -1711,7 +1711,14 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
     - 0 échec NoAI (60/60 parties saines).
     - **Solo C42 vs Solo Contrôle** : `company_value` -4,54 % (14 victoires contrôle), `profit_year` -7,10 % (15 victoires contrôle, p=0,0414, t=+2,34), `profit` trimestriel -9,51 % (17 victoires contrôle, p=0,0026, t=+2,92). Le volume de gares augmente (+6,2 gares, 102 vs 96) mais la flotte diminue (201 vs 214 véhicules) et la rentabilité globale baisse : les subventions éparses dispersent le capital et consomment le tour de cycle rare au détriment des lignes aériennes/ferroviaires denses (illustration directe de la règle C44).
     - **Duel partagé C42 vs AAAHogEx** : AAAHogEx l'emporte à 20/20 sur toutes les métriques. En présence d'AAAHogEx sur la carte partagée, OpexAI tombe à 5,67 M£ de valeur et 1,24 M£ de profit annuel (contre 17,20 M£ et 2,79 M£ en solo), tandis qu'AAAHogEx atteint 37,79 M£ de valeur et 10,26 M£ de profit annuel avec une flotte saturante de 1 077 véhicules (contre 158 pour OpexAI).
-    - **Décision** : Fonctionnalité nettoyée et robuste, maintenue désactivée par défaut (`c42_subsidies = 0`).
+    - **Décision** : Fonctionnalité nettoyée et robuste, intégrée mais désactivée par défaut (`c42_subsidies = 0`). Clôturé le 2026-09-11.
+
+- ⚪ **C42 bis — Amélioration du rendement des subventions et filtrage anti-éviction C44.**
+  - **Constat issu de C42** : Le banc officiel 20×10 montre que les subventions brutes sont contre-productives (-7,1 % de profit annuel, 15 défaites /20, p=0,0414) car elles souffrent de l'éviction du tour de cycle rare (règle C44) : de petites lignes routières éparses monopolisent `maxBatch=1` et le capital face à des liaisons lourdes plus profitables dans la durée.
+  - **Axes d'amélioration identifiés** :
+    1. **Filtrage de rentabilité intrinsèque** : exiger que la ligne soit rentable *même sans subvention* (ou qu'elle dépasse un seuil de profit plancher plus strict) pour éviter les culs-de-sac économiques une fois l'aide expirée.
+    2. **Génération multimodale (Air / Rail / Eau)** : actuellement réservé au routier ; étendre la capture de subvention aux liaisons aériennes ou ferroviaires à fort débit quand la subvention porte sur des distances compatibles.
+    3. **Conditionnement à la tension de portefeuille (anti-éviction C44)** : n'autoriser les subventions routières que lorsque la réserve de capital ou le vivier de projets majeurs est bas, empêchant l'éviction d'un projet lourd prêt à construire.
 
 - 🔶 **C43 / E3 — Audit des constantes en dur.** 46 `const` contre 35 réglages exposés, sans revue
   systématique. Trois issues : **exposer** (décisionnelle), **vérifier** (prétend traduire une règle

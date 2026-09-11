@@ -824,7 +824,7 @@ function OpexDynamicBatchReselect(projects, lines, attempted, capitalBudget, aba
 /* C36.1 : Caching incremental du vivier post-chantier.
  * Au lieu de reconstruire tout le portefeuille ex nihilo apres chaque ligne achevee (15 jours
  * d'attente sur A* et scan aerien), filtre les candidats existants en memoire, injecte les
- * nouveaux feeders / opportunites de flotte, et resout le sac a dos sur la tresorerie restante.
+ * nouveaux feeders / opportunites de flotte, et réélit le portefeuille sur le capital restant.
  * Execution : < 1 tick (< 500 opcodes, 0 jour). */
 function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capitalBudget, fleetPlan = null, abandonedPairs = null)
 {

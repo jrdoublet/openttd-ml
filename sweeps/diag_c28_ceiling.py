@@ -112,7 +112,11 @@ def main():
     parser.add_argument("--out", type=Path, default=ROOT / "results" / "diag_c28_ceiling.json")
     args = parser.parse_args()
 
-    enable_savegame_cleanup()
+    sys.exit(
+        "ARCHIVE (2026-09-11) : capital_ceiling_cycles a ete retire de info.nut/main.nut lors de la "
+        "suppression du portefeuille legacy (docs/taches.md C51). Ce script ne peut plus configurer l'IA "
+        "tel quel ; conserve pour memoire de la question deja tranchee."
+    )
 
     arms = [
         ("control", {"decision_log": 1, "capital_ceiling_cycles": 0}),

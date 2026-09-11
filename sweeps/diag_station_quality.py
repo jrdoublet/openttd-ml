@@ -301,10 +301,11 @@ def main():
     if args.selftest:
         run_selftest()
         return
-    if args.years <= 0 or not args.seeds or args.max_workers not in (1, 2, 3):
-        parser.error("--years et --seeds non vides ; --max-workers vaut 1, 2 ou 3")
-    if len(set(args.seeds)) != len(args.seeds):
-        parser.error("--seeds ne doit pas contenir de doublon")
+    sys.exit(
+        "ARCHIVE (2026-09-11) : le bras portfolio_v2=0 (chemin legacy) a ete supprime de l'arbre lors de la "
+        "cloture de C51 (docs/taches.md). Ce script ne peut plus configurer l'IA tel quel ; conserve pour "
+        "memoire de la question deja tranchee."
+    )
 
     enable_savegame_cleanup()
     rows = list(run_experiments(
