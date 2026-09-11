@@ -242,10 +242,10 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "unprofitable_streak_threshold",
-      description = "C52 #4: Number of consecutive unprofitable years before retiring vehicle or scrapping line: min 2, max 5, default 2",
+      description = "C52 #4: Number of consecutive unprofitable years before retiring vehicle or scrapping line: min 1, max 10, default 3",
       min_value = 1, max_value = 10,
-      easy_value = 2, medium_value = 2, hard_value = 2,
-      custom_value = 2,
+      easy_value = 3, medium_value = 3, hard_value = 3,
+      custom_value = 3,
       flags = 0
     });
 

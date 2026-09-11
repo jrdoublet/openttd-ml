@@ -953,7 +953,7 @@ EVENT_VEHICLE_CRASHED <- false;
 C52_CRASH_LOG <- false;
 /* C52 #4 : reaction aux vehicules non rentables chroniques */
 EVENT_VEHICLE_UNPROFITABLE <- false;
-UNPROFITABLE_STREAK_THRESHOLD <- 2;
+UNPROFITABLE_STREAK_THRESHOLD <- 3;
 C52_UNPROFITABLE_LOG <- false;
 /* P3 / A7.5 : une nouvelle ville ou industrie rend le portefeuille obsolete.
  * Le rafraichissement reactif est rare et evite d'attendre le prochain mois. */
