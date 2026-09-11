@@ -607,6 +607,12 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   | score officiel | −0,2 % | 8/20 | 0,50 |
   | note de gare | +0,2 % | 10/20 | 1,00 |
 
+  ⚠️ **Correction du 2026-09-11 (même jour)** : ces p-values comptaient les ex æquo comme des
+  défaites. Recalculées avec les ex æquo exclus (1 à 3 graines selon la métrique) : valeur de
+  compagnie **p = 0,65** (ON 8 / OFF 11), profit annuel **p = 0,17** (ON 6 / OFF 13), score officiel
+  **p = 1,00** (ON 9 / OFF 8). **Le verdict nul est inchangé**, mais les chiffres publiés plus haut
+  étaient faux. Voir la leçon de lecture dans C56.
+
   **Aucune métrique ne s'écarte du hasard.** L'écart-type de la différence appariée est de
   **2,16 M£ pour une base de 15,1 M£** (14 %) : le levier ne déplace pas la valeur, il rebrasse la
   trajectoire. Le delta de gares va de **−42 à +51** selon la graine (médiane **−1**, 9 graines en
@@ -785,8 +791,45 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
 
   ⇒ **Le gel disparaît sur les deux graines qui le reproduisaient, et la graine saine ne bouge pas
   d'une gare.** Les parties amputées retrouvent un développement normal.
-  ⬜ Banc officiel 20×10 apparié en cours — **le premier de ce dépôt dont les 20 graines jouent
-  réellement dix ans.**
+  ### ✅ BANC OFFICIEL 20×10 — **ADOPTABLE**, mais pas pour la raison qu'affiche la moyenne
+
+  `results/bench_c56_water_lakes_ops_10y_20seeds.json`, 20 graines × 10 ans apparié, **0 échec**.
+  Le premier banc de ce dépôt dont les 20 graines jouent réellement dix ans.
+
+  🔴 **LIRE CE TABLEAU, PAS LA MOYENNE.** Le banc affiche `+13,2 %` de valeur de compagnie. **Ce
+  chiffre ne veut PAS dire « l'IA joue 13 % mieux »** : il est presque entièrement produit par trois
+  parties qui, avant, ne jouaient pas.
+
+  | population | n | ex æquo | médiane (valeur) |
+  |---|---:|---:|---:|
+  | graines qui gelaient (2026, 1337, 1024) | 3 | 1 | **+235,1 %** |
+  | graines déjà saines | 17 | 11 | **+0,0 %** |
+
+  Test des signes, **ex æquo exclus** (c'est leur définition) :
+
+  | métrique | ON gagne | OFF gagne | ex æquo | p |
+  |---|---:|---:|---:|---:|
+  | score officiel | **8** | **0** | 12 | **0,008** |
+  | valeur de compagnie | 7 | 1 | 12 | 0,070 |
+  | profit annuel | 6 | 2 | 12 | 0,289 |
+  | note de gare | 5 | 3 | 12 | 0,727 |
+
+  **Verdict : adopter**, sur trois motifs et aucun d'eux n'est « le gain moyen » :
+  1. il **supprime un mode d'échec dur**, établi causalement (témoin joué dans les mêmes conditions,
+     contrôle sain immobile) ;
+  2. **aucune régression** : sur 20 graines, une seule est en retrait, et 12 sont strictement
+     identiques — le correctif est inerte là où Lakes ne dépasse pas le budget ;
+  3. la direction est **constante sur les quatre métriques**, et significative sur le score officiel.
+
+  ⚠️ `WATER_LAKES_OPS = 50 000` reste **non calibré**. Les 12 ex æquo disent qu'il ne mord presque
+  jamais ; ils ne disent pas qu'il est au bon niveau.
+
+  🔑 **ERREUR DE LECTURE À NE PLUS REFAIRE, commise ici même** : la sortie du banc affiche
+  `wins = 1 / 20`, qui se lit **« le bras A gagne strictement 1 fois sur 20 »** — et **PAS** « le
+  bras B en gagne 19 ». Les **ex æquo ne sont comptés nulle part**. Ici 12 graines sur 20 sont
+  identiques au pound près ; lire 19 victoires là où il y en a 7 transformait un correctif honnête
+  en triomphe imaginaire. **Toujours recompter victoires / défaites / ex æquo avant de conclure d'un
+  `wins = k / n`.**
 
   1 quater. ⬜ ~~**Localiser le point exact dans `OpexWaterPlans`.**~~ Candidats à instrumenter :
      `OpexWaterFindSiteSlice` (`builder_water.nut:220`, boucle `while` à trois conditions d'arrêt)
