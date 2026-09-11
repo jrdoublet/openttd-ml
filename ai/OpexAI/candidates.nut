@@ -2531,6 +2531,39 @@ function OpexBoostTownRating(townId, targetRating = 700, maxTrees = 35)
   }
 }
 
+/* C42 : Verifie si une offre de subvention est deja couverte par une ligne du reseau (tout mode) */
+function OpexSubsidyMatchingLineId(sub, lines)
+{
+  if (sub == null || lines == null) return -1;
+  if (("matchedLine" in sub) && sub.matchedLine >= 0) return sub.matchedLine;
+
+  local cargo = sub.cargo;
+  local srcType = sub.srcType;
+  local srcId = sub.srcId;
+  local dstType = sub.dstType;
+  local dstId = sub.dstId;
+  local isPax = AICargo.HasCargoClass(cargo, AICargo.CC_PASSENGERS);
+
+  foreach (line in lines) {
+    if (!("cargo" in line) || line.cargo != cargo) continue;
+    local tA = ("srcTown" in line && line.srcTown >= 0) ? line.srcTown : (("originA" in line && AIMap.IsValidTile(line.originA)) ? AITile.GetClosestTown(line.originA) : -1);
+    local tB = ("dstTown" in line && line.dstTown >= 0) ? line.dstTown : (("originB" in line && AIMap.IsValidTile(line.originB)) ? AITile.GetClosestTown(line.originB) : -1);
+
+    if (isPax && srcType == AISubsidy.SPT_TOWN && dstType == AISubsidy.SPT_TOWN) {
+      if ((tA == srcId && tB == dstId) || (tA == dstId && tB == srcId)) return line.lineId;
+    } else {
+      local mSrc = false;
+      local mDst = false;
+      if (srcType == AISubsidy.SPT_INDUSTRY && ("srcIndustry" in line) && line.srcIndustry == srcId) mSrc = true;
+      else if (srcType == AISubsidy.SPT_TOWN && tA == srcId) mSrc = true;
+      if (dstType == AISubsidy.SPT_INDUSTRY && ("dstIndustry" in line) && line.dstIndustry == dstId) mDst = true;
+      else if (dstType == AISubsidy.SPT_TOWN && tB == dstId) mDst = true;
+      if (mSrc && mDst) return line.lineId;
+    }
+  }
+  return -1;
+}
+
 /* C42 : Genere des candidats de portefeuille pour les offres de subvention actives.
  * Une subvention multiplie les revenus par subsidy_multiplier (1.5x a 4x) pendant 12 mois
  * des la premiere livraison. */
@@ -2615,11 +2648,20 @@ function OpexGenerateSubsidyCandidates(catalog, lines, activeSubsidies, stats, a
     local maxDist = ("roadGenMax" in roadBounds) ? roadBounds.roadGenMax : roadBounds.roadMax;
     if (distance < roadBounds.roadMin || distance > maxDist) continue;
 
-    // Garde 6 : Verifier si la liaison est deja abandonnee ou deja servie
+    // Garde 6 : Liaison deja desservie par le reseau ou abandonnee
     if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
       local aKey = "subsidy|" + subId;
       if (aKey in abandonedPairs) continue;
     }
+
+    // 6a. Offre deja couverte par une ligne existante (tout mode confondu : air, rail, route)
+    local matched = OpexSubsidyMatchingLineId(sub, lines);
+    if (matched >= 0) {
+      sub.matchedLine = matched;
+      continue;
+    }
+
+    // 6b. Ligne de meme subId deja batie par OpexAI
     local alreadyServed = false;
     foreach (l in lines) {
       if (("isSubsidy" in l) && l.isSubsidy && ("subsidyId" in l) && l.subsidyId == subId) {
@@ -2628,6 +2670,21 @@ function OpexGenerateSubsidyCandidates(catalog, lines, activeSubsidies, stats, a
       }
     }
     if (alreadyServed) continue;
+
+    // 6c. Gardes physiques routieres : ne pas generer de candidat qui sera refuse au batch
+    if (isPax) {
+      if (OpexRoadPairServed(lines, srcTile, dstTile)) continue;
+      if (OpexTownRoadLineCount(lines, srcTile) >= 4 || OpexTownRoadLineCount(lines, dstTile) >= 4) continue;
+    } else {
+      if (C55_FREIGHT_ORIGIN_RELAX) {
+        local srcServed = OpexOriginServed(lines, srcTile, true);
+        local dstServed = OpexOriginServed(lines, dstTile, true);
+        if (srcServed && dstServed) continue;
+        if (OpexRoadFreightBusy(lines, cargo, srcTile) || OpexRoadFreightBusy(lines, cargo, dstTile)) continue;
+      } else {
+        if (OpexOriginServed(lines, srcTile, true) || OpexOriginServed(lines, dstTile, true)) continue;
+      }
+    }
 
     // Evaluation economique de base
     local economics = OpexRoadLineEconomics(catalog, cargo, distance, monthlyProd, engine, kind);

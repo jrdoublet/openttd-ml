@@ -6946,21 +6946,22 @@ function OpexAI::_processEvents()
             local dur = AIGameSettings.IsValid("difficulty.subsidy_duration") ? AIGameSettings.GetValue("difficulty.subsidy_duration") : -1;
 
             local matchedLine = -1;
+            local isPax = AICargo.HasCargoClass(cargo, AICargo.CC_PASSENGERS);
             foreach (line in this._lines) {
               if (line.cargo != cargo) continue;
-              local mSrc = false;
-              local mDst = false;
-              if (srcType == AISubsidy.SPT_INDUSTRY && ("srcIndustry" in line) && line.srcIndustry == srcId) mSrc = true;
-              else if (srcType == AISubsidy.SPT_TOWN) {
-                local tA = ("srcTown" in line && line.srcTown >= 0) ? line.srcTown : (("originA" in line && AIMap.IsValidTile(line.originA)) ? AITile.GetClosestTown(line.originA) : -1);
-                if (tA == srcId) mSrc = true;
+              local tA = ("srcTown" in line && line.srcTown >= 0) ? line.srcTown : (("originA" in line && AIMap.IsValidTile(line.originA)) ? AITile.GetClosestTown(line.originA) : -1);
+              local tB = ("dstTown" in line && line.dstTown >= 0) ? line.dstTown : (("originB" in line && AIMap.IsValidTile(line.originB)) ? AITile.GetClosestTown(line.originB) : -1);
+              if (isPax && srcType == AISubsidy.SPT_TOWN && dstType == AISubsidy.SPT_TOWN) {
+                if ((tA == srcId && tB == dstId) || (tA == dstId && tB == srcId)) { matchedLine = line.lineId; break; }
+              } else {
+                local mSrc = false;
+                local mDst = false;
+                if (srcType == AISubsidy.SPT_INDUSTRY && ("srcIndustry" in line) && line.srcIndustry == srcId) mSrc = true;
+                else if (srcType == AISubsidy.SPT_TOWN && tA == srcId) mSrc = true;
+                if (dstType == AISubsidy.SPT_INDUSTRY && ("dstIndustry" in line) && line.dstIndustry == dstId) mDst = true;
+                else if (dstType == AISubsidy.SPT_TOWN && tB == dstId) mDst = true;
+                if (mSrc && mDst) { matchedLine = line.lineId; break; }
               }
-              if (dstType == AISubsidy.SPT_INDUSTRY && ("dstIndustry" in line) && line.dstIndustry == dstId) mDst = true;
-              else if (dstType == AISubsidy.SPT_TOWN) {
-                local tB = ("dstTown" in line && line.dstTown >= 0) ? line.dstTown : (("originB" in line && AIMap.IsValidTile(line.originB)) ? AITile.GetClosestTown(line.originB) : -1);
-                if (tB == dstId) mDst = true;
-              }
-              if (mSrc && mDst) { matchedLine = line.lineId; break; }
             }
 
             if (this._subsidyStats != null) {
