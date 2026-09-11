@@ -763,7 +763,32 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   §3). **Cette fiche fournit la première preuve en partie que ce code ne fait pas que mal calculer :
   il peut ne jamais rendre la main.**
 
-  1 quater. ⬜ **Localiser le point exact dans `OpexWaterPlans`.** Candidats à instrumenter :
+  ### ✅ CORRECTIF ÉCRIT ET VÉRIFIÉ le 2026-09-11 — `water_lakes_ops_budget` (défaut 0)
+
+  **Le geste** (`c5c9257`) : borner `_MinchinWeb_Lakes_::FindPath` en **opcodes** en plus de son
+  plafond d'itérations, via `OpexOpsMeasureEnd` — qui relit une marque immuable (donc sûr en lecture
+  répétée) et **compte explicitement les ticks traversés**, au lieu de soustraire deux restes de
+  `GetOpsTillSuspend` (qui décroît puis se réinitialise à chaque tick : une soustraction naïve
+  deviendrait négative au passage de tick). Sortie anticipée **identique** à l'épuisement du plafond
+  d'itérations : `return false` sans toucher `_running`, que `OpexWaterLakesConnected` traduit déjà
+  en `null`, et l'appelant saute la paire. **Aucun contrat de retour n'a été modifié.**
+  ⚠️ `WATER_LAKES_OPS = 50 000` est un **premier jet non calibré**, écrit comme tel dans le code.
+
+  **Vérification, témoin joué dans les mêmes conditions** (indispensable : le gel dépend du déroulé,
+  et 1024 ne gèle pas toujours) :
+
+  | graine | OFF | ON |
+  |---|---|---|
+  | 2026 | gelée 1977, **26 gares** | 1979, **109 gares** |
+  | 1337 | gelée 1976, **35 gares** | 1979, **91 gares** |
+  | 1024 (contrôle sain) | 1979, 126 gares | 1979, **126 gares** |
+
+  ⇒ **Le gel disparaît sur les deux graines qui le reproduisaient, et la graine saine ne bouge pas
+  d'une gare.** Les parties amputées retrouvent un développement normal.
+  ⬜ Banc officiel 20×10 apparié en cours — **le premier de ce dépôt dont les 20 graines jouent
+  réellement dix ans.**
+
+  1 quater. ⬜ ~~**Localiser le point exact dans `OpexWaterPlans`.**~~ Candidats à instrumenter :
      `OpexWaterFindSiteSlice` (`builder_water.nut:220`, boucle `while` à trois conditions d'arrêt)
      et le BFS `WATER_BFS_MAX_NODES`/`WATER_BFS_MARGIN` (`:29-30`, `:340-351`).
      ⚠️ **Toujours ne pas corriger le site 3308 ni l'eau avant d'avoir répondu** : ce serait perdre

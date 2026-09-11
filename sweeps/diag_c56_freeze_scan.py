@@ -52,7 +52,10 @@ def _check_output_with_script_debug(args, *rest, **kwargs):
 
 openttdlab.subprocess.check_output = _check_output_with_script_debug
 
-ARM = "OpexAI[c56_task_trace=1]"
+# Le bras doit toujours porter c56_task_trace=1 : c'est lui qui ecrit les jalons dont depend
+# toute la detection. --arm sert a ajouter un reglage a comparer (p. ex. water_lakes_ops_budget=1),
+# pas a retirer la sonde.
+DEFAULT_ARM = "OpexAI[c56_task_trace=1]"
 TRACE_RE = re.compile(r"OPEX (\d+)-\d+-\d+ C56_TASK (TASK|STAGE)_(ENTER|EXIT) name=(\S+)")
 YEAR_RE = re.compile(r"OPEX (\d+)-\d+-\d+ ")
 
@@ -146,7 +149,10 @@ def main():
     parser.add_argument("--out", type=Path, default=None)
     parser.add_argument("--max-workers", type=int, default=3)
     parser.add_argument("--selftest", action="store_true")
+    parser.add_argument("--arm", default=DEFAULT_ARM)
     args = parser.parse_args()
+    if not args.selftest and "c56_task_trace=1" not in args.arm:
+        parser.error("--arm doit contenir c56_task_trace=1 : sans la sonde, aucun gel n'est detectable")
     if args.selftest:
         run_selftest()
         return
@@ -154,7 +160,7 @@ def main():
     out = args.out or ROOT / "results" / f"diag_c56_freeze_scan_{args.years}y_{len(args.seeds)}seeds.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     enable_savegame_cleanup()
-    built = build_arms([ARM])
+    built = build_arms([args.arm])
     rows = list(run_experiments(
         openttd_version=OPENTTD_VERSION,
         opengfx_version=OPENGFX_VERSION,
@@ -180,7 +186,7 @@ def main():
     frozen = [entry for entry in per_seed if entry["frozen"]]
     water_seeds = [entry for entry in per_seed if entry["water_entered"]]
     payload = {
-        "arm": ARM, "years": args.years, "seeds": args.seeds,
+        "arm": args.arm, "years": args.years, "seeds": args.seeds,
         "per_seed": per_seed,
         "frozen_count": len(frozen),
         "water_entered_count": len(water_seeds),
