@@ -1182,11 +1182,10 @@ function OpexBuildTrains(catalog, cargo, kind, depotTile, exitA, exitB, wanted, 
              failed = true, failure = "LENGTH", error = 0, diag = diag };
   }
   /* Ordres de chargement : pour le fret (sens unique), seule la source attend le plein chargement.
-   * Pour les passagers, PAX_FULL_LOAD=1 force le plein chargement aux deux bouts (patron trAIns),
-   * tandis que PAX_FULL_LOAD=0 autorise le chargement partiel immediat (OF_NONE) pour accelerer
-   * la cadence, eviter le pourrissement des passagers et maintenir la note de station. */
-  local flagsA = (kind == "pax" && !PAX_FULL_LOAD) ? AIOrder.OF_NONE : AIOrder.OF_FULL_LOAD_ANY;
-  local flagsB = (kind == "freight" || (kind == "pax" && !PAX_FULL_LOAD)) ? AIOrder.OF_NONE : AIOrder.OF_FULL_LOAD_ANY;
+   * Pour les passagers, PAX_FULL_LOAD=1 force le plein chargement aux deux bouts (patron trAIns). */
+  local nonstopFlag = C53_ORDER_NONSTOP ? AIOrder.OF_NON_STOP_INTERMEDIATE : 0;
+  local flagsA = ((kind == "pax" && !PAX_FULL_LOAD) ? AIOrder.OF_NONE : AIOrder.OF_FULL_LOAD_ANY) | nonstopFlag;
+  local flagsB = ((kind == "freight" || (kind == "pax" && !PAX_FULL_LOAD)) ? AIOrder.OF_NONE : AIOrder.OF_FULL_LOAD_ANY) | nonstopFlag;
   for (local i = 0; i < wanted; i++) {
     local train = AIVehicle.BuildVehicle(depotTile, loco.id);
     if (!AIVehicle.IsValidVehicle(train)) {

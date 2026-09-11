@@ -1200,10 +1200,9 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
    * fret est a SENS UNIQUE, donc un OF_FULL_LOAD_ANY au puits fait attendre pour toujours un
    * chargement de retour qui n'existe pas. La source, elle, garde le plein chargement : le cargo y
    * s'accumule de toute facon, et un camion qui part avec une unite paie son trajet pour rien.
-   * Le pax fait l'inverse du rail et ne charge JAMAIS a plein : sur une ligne courte, la note de
-   * gare depend a 51 % du delai depuis le dernier ramassage (docs/mecanique_jeu.md S3) -- un bus
    * qui attend d'etre plein detruit precisement ce que la ligne a de bon. */
-  local sourceFlags = candidate.kind == "freight" ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE;
+  local nonstopFlag = C53_ORDER_NONSTOP ? AIOrder.OF_NON_STOP_INTERMEDIATE : 0;
+  local sourceFlags = (candidate.kind == "freight" ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE) | nonstopFlag;
   local orderA = AIOrder.AppendOrder(first, stopA, sourceFlags);
   local errorA = orderA ? 0 : AIError.GetLastError();
   /* OF_TRANSFER et OF_UNLOAD sont mutuellement exclusifs (ai_order.hpp:44-47, meme champ
@@ -1211,8 +1210,8 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
    * (ERR_PRECONDITION_FAILED) et donc AppendOrder, docs/taches.md C-suite feeders diag
    * 2026-09-02. OF_TRANSFER seul est le comportement voulu : deposer pour ramassage par
    * une autre ligne, pas livrer definitivement. */
-  local destFlags = (("isFeeder" in candidate) && candidate.isFeeder)
-      ? AIOrder.OF_TRANSFER : AIOrder.OF_NONE;
+  local destFlags = ((("isFeeder" in candidate) && candidate.isFeeder)
+      ? AIOrder.OF_TRANSFER : AIOrder.OF_NONE) | nonstopFlag;
   local orderB = AIOrder.AppendOrder(first, stopB, destFlags);
   local errorB = orderB ? 0 : AIError.GetLastError();
   if (!orderA || !orderB || AIOrder.GetOrderCount(first) != 2) {
@@ -1339,10 +1338,11 @@ function OpexRoadRefleet(catalog, line, have, target)
     local first = AIVehicle.BuildVehicleWithRefit(line.depot, engine.id, line.cargo);
     if (!AIVehicle.IsValidVehicle(first)) { result.reason = "VEH"; return result; }
     built.append(first);
-    local sourceFlags = (("kind" in line) && line.kind == "freight")
-                        ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE;
-    local destFlags = (("isFeeder" in line) && line.isFeeder)
-                      ? AIOrder.OF_TRANSFER : AIOrder.OF_NONE;
+    local nonstopFlag = C53_ORDER_NONSTOP ? AIOrder.OF_NON_STOP_INTERMEDIATE : 0;
+    local sourceFlags = ((("kind" in line) && line.kind == "freight")
+                        ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE) | nonstopFlag;
+    local destFlags = ((("isFeeder" in line) && line.isFeeder)
+                      ? AIOrder.OF_TRANSFER : AIOrder.OF_NONE) | nonstopFlag;
     if (!AIOrder.AppendOrder(first, line.stationA, sourceFlags) ||
         !AIOrder.AppendOrder(first, line.stationB, destFlags) ||
         AIOrder.GetOrderCount(first) != 2) {

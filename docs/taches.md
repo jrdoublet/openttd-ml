@@ -1298,14 +1298,27 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   par deux réglages peuvent produire moins d'ordres réels que 3 sites conditionnels appelés à chaque
   liaison.
   ### Étapes
-  1. ⬜ **Mesurer les ordres réellement posés, pas les sites d'appel** — les drapeaux vivent dans le
-     chunk `ORDR` des sauvegardes, et le banc 1v1 en produit déjà des dizaines : comptage par IA et
-     par mode, sans lancer une seule partie neuve. ⚠️ [[banc_aaahogex_openttd15]] et la règle de
-     méthode de C54 : `ORDR` est un enregistrement à variantes, publier les distributions brutes et
-     une garde anti-dégénérescence avant d'y croire.
-  2. ⬜ Lire `route.nut:2100-2180` d'AAAHogEx pour extraire **le critère** de `isSrcFullLoadOrder`.
-  3. ⬜ Un réglage par différence (non-stop d'abord, critère de full load ensuite), défaut 0, un seul
-     changement à la fois, banc 20×10 apparié.
+  1. 🟩 **Mesurer les ordres réellement posés, pas les sites d'appel** — fait le 2026-09-11
+     (`sweeps/diag_c53_orders.py`). Découvertes techniques fondamentales :
+     - Les ordres vivent dans le chunk `ORDL` (OpenTTD 15.3), pas `ORDR`.
+     - **Indexation 1-based du pointeur d'ordres** : dans `VEHS.common.orders`, la sérialisation OpenTTD
+       encode `0 = nullptr` et `1..N = index + 1`. La clé dans `ORDL` est donc `orders_idx - 1`.
+     - Mesure réelle sur 5 graines × 6 ans : OpexAI contrôle posait **0.0%** de non-stop (route 0/440, rail 0/50),
+       alors qu'AAAHogEx pose **90.2%** de non-stop routier et **19.1%** ferroviaire.
+  2. 🟩 **Lire `route.nut:2100-2180` d'AAAHogEx pour extraire le critère réel** — fait le 2026-09-11 :
+     - `isSrcFullLoadOrder` est toujours `true` en dur (`Route.constructor()`), jamais modulé.
+     - `isDestFullLoadOrder` vaut `true` pour l'aérien (`air.nut:201`) et le routier bi-directionnel (`road.nut:250`), `false` pour le fret unidirectionnel.
+     - **Puits unidirectionnel** : AAAHogEx applique systématiquement `OF_NO_LOAD` au déchargement
+       (`OF_TRANSFER | OF_NO_LOAD` ou `OF_UNLOAD | OF_NO_LOAD`), interdisant aux convois de traîner à quai.
+  3. 🟩 **Tester le non-stop isolé au banc officiel apparié 20×10** (`c53_order_nonstop=0/1`, `bench_v2.py`) — fait le 2026-09-11
+     (`results/bench_c53_nonstop_10y_20seeds.json`) :
+     - **Physique** : le taux de non-stop passe de 0.0% à 100.0% sur rail et route (air reste à 0.0%).
+     - **Valeur d'entreprise** : £17.32M -> £17.75M (**+2.44%**, médiane **+9.00%** de £17.49M à £19.07M). 11 gains, 1 égalité, 8 pertes (Wilcoxon p=0.2579).
+     - **Profit annuel** : £2.92M -> £3.00M (**+2.59%**, médiane **+2.19%**). 11 gains, 1 égalité, 8 pertes (Wilcoxon p=0.5678).
+     - **Score NoAI** : 871.0 -> 872.0 (+0.9 pt).
+     - **Flotte** : 213.7 -> 216.3 véhicules (+1.2%).
+     - Le signal est globalement positif (+423k£ CV, +75.6k£ profit annuel, médiane +1.57M£), mais la variance inter-graines maintient la p-valeur à 0.258. Le réglage reste sous drapeau dédié (`c53_order_nonstop`).
+  4. ⬜ **Tester l'ajout de `OF_NO_LOAD` au puits de fret unidirectionnel** (`OF_TRANSFER | OF_NO_LOAD` et `OF_UNLOAD | OF_NO_LOAD`) pour éliminer les temps morts à destination.
 
 - 🟢 **C51 — Validation et clôture du portefeuille v2 (défaut consolidé, legacy supprimé le 2026-09-11).**
   📝 Archéologie faite le 2026-09-10, banc lancé le même jour.

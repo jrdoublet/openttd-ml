@@ -1893,6 +1893,17 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C53 : Application de OF_NON_STOP_INTERMEDIATE aux ordres des gares routieres et ferroviaires :
+     * 1 = actif (evite les arrets parasites aux arrets/gares intermediaires, comme AAAHogEx),
+     * 0 = inactif (defaut historique, arret possible sur toute plateforme traversee). */
+    AddSetting({
+      name = "c53_order_nonstop",
+      description = "Apply OF_NON_STOP_INTERMEDIATE to road and rail station orders: 1 = enabled, 0 = disabled (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* Gestion des marchandises complexes et chaines d'industries secondaires (Goods, Food, Mail, etc.) :
      * 1 = livre les marchandises transformees (usines/raffineries) aux villes acceptatrices (defaut),
      * 0 = fret primaire industrie-industrie uniquement (mode historique). */

@@ -892,6 +892,7 @@ AIR_FLEET_CADENCE_DAYS <- 7;
 AIR_FLEET_BUFFER <- -1;
 PAX_FULL_LOAD <- true;
 AIR_FULL_LOAD <- false;
+C53_ORDER_NONSTOP <- false;
 COMPLEX_CARGO <- true;
 /* Bras experimental : reutiliser un aeroport rentable pour une nouvelle destination. */
 AIR_HUB <- true;
@@ -2942,8 +2943,9 @@ function OpexAI::_tryBuildMailFeeder(candidate, paxResult, year)
   }
 
   // 5. Ordres : ramassage ville (OF_NONE) -> dechargement transfert hub (OF_TRANSFER)
-  local orderA = AIOrder.AppendOrder(truck, mailStopA.tile, AIOrder.OF_NONE);
-  local orderB = AIOrder.AppendOrder(truck, mailStopB.tile, AIOrder.OF_TRANSFER);
+  local nonstopFlag = C53_ORDER_NONSTOP ? AIOrder.OF_NON_STOP_INTERMEDIATE : 0;
+  local orderA = AIOrder.AppendOrder(truck, mailStopA.tile, AIOrder.OF_NONE | nonstopFlag);
+  local orderB = AIOrder.AppendOrder(truck, mailStopB.tile, AIOrder.OF_TRANSFER | nonstopFlag);
   if (!orderA || !orderB || AIOrder.GetOrderCount(truck) != 2) {
     AIVehicle.SellVehicle(truck);
     OpexMailRollbackStops(mailStopA, mailStopB);
@@ -9098,6 +9100,7 @@ function OpexAI::Start()
   DYNAMIC_PATHFINDER_CAP = AIController.GetSetting("dynamic_pathfinder_cap") != 0;
   PAX_FULL_LOAD = AIController.GetSetting("pax_full_load") != 0;
   AIR_FULL_LOAD = AIController.GetSetting("air_full_load") != 0;
+  C53_ORDER_NONSTOP = AIController.GetSetting("c53_order_nonstop") != 0;
   COMPLEX_CARGO = AIController.GetSetting("complex_cargo") != 0;
   AIR_HUB = AIController.GetSetting("air_hub") != 0;
   local airMaxDist = AIController.GetSetting("air_max_distance");
