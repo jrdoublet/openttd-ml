@@ -1550,6 +1550,7 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
                + " freight_label=" + (freightCargo != null ? AICargo.GetCargoLabel(freightCargo) : "none")
                + " freight_price=" + (freightCargo != null ? AICargo.GetCargoIncome(freightCargo, 20, 0) : 0));
   }
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "c56_stage_rail", "-");
   /* C41.22 : intervalles disjoints du chemin rail historique. Le pre-devis peut etre inactif
    * par reglage : publier alors son zero est justement necessaire pour ne pas attribuer son cout
    * hypothetique au comportement par defaut. */
@@ -1686,6 +1687,8 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
     railProfile.prequoteQuoted = railPrequote.quoted;
     railProfile.prequoteFailed = railPrequote.failed;
   }
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_rail", "-");
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "c56_stage_road", "-");
   /* C41.16/C41.17 : mesure seulement les etapes de generation route pendant la passe historique. */
   local roadProfile = (C41_ROAD_CANDIDATE_PROFILE || C41_ROAD_FREIGHT_PROFILE || C41_ROAD_FREIGHT_TOWN_PROFILE || C41_ROAD_FEEDER_PROFILE)
       ? { paxOps = 0, freightOps = 0, feederOps = 0, topKOps = 0,
@@ -1707,6 +1710,7 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
   } else {
     road = OpexProjectEmptyRoad();
   }
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_road", "-");
 
   local capitalBudget = OpexAvailableCapital();
 
@@ -1747,6 +1751,7 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
   local airPlan = null;
   local airPlans = [];
   local airOps = 0;
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "c56_stage_air", "-");
   if (doAir && ((catalog.airCombos != null && catalog.airCombos.len() > 0) || catalog.airport != null)) {
     budget.begin();
     airPlan = OpexAirPlans(catalog, lines, 0, airPlans, abandonedPairs, airBand);
@@ -1797,10 +1802,12 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
       OpexDecide("BOOTSTRAP_PAX_FALLBACK", "air=0 rail_pax=" + paxFallback.candidates.len());
     }
   }
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_air", "-");
 
   local waterPlan = null;
   local waterPlans = [];
   local waterOps = 0;
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "c56_stage_water", "-");
   if (doWater && catalog.ships.len() > 0 && catalog.paxCargo >= 0) {
     budget.begin();
     waterPlan = OpexWaterPlans(catalog, lines, waterPlans, null,
@@ -1816,6 +1823,7 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
     waterPlan = waterPlans.len() > 0 ? waterPlans[0] : null;
     waterOps = ("waterPlanningOpcodes" in priorProjects) ? priorProjects.waterPlanningOpcodes : 0;
   }
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_water", "-");
 
   local stats = {
     modeCandidates = 0, modeAlternatives = 0, modeReplaced = 0,
@@ -1838,6 +1846,7 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
   local airOpsPerPlan = (airPlans.len() > 0) ? airOps / airPlans.len() : airOps;
   local waterOpsPerPlan = (waterPlans.len() > 0) ? waterOps / waterPlans.len() : waterOps;
 
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "c56_stage_assembly", "-");
   local winners = {};
   local tensionCtx = null;
   if (TENSION_SCORING || SHADOW_PRICING) {
@@ -2040,6 +2049,7 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
   /* Le retour historique reste litteralement intact sous 0. Le bras 1 seul conserve le vivier :
    * cela evite meme de changer la forme de this._projects dans le controle. */
   if (PORTFOLIO_FRESH_BUDGET || PORTFOLIO_CACHE) {
+    if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_assembly", "-");
     return {
       all = stats.odProjects, best = byOpcodes, stats = stats,
       capitalBudget = capitalBudget, generationCapitalBudget = capitalBudget,
@@ -2052,6 +2062,7 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
       freightCargo = freightCargo,
     };
   }
+  if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_assembly", "-");
   return {
     all = stats.odProjects, best = byOpcodes, stats = stats,
     capitalBudget = capitalBudget, capitalBudgetPeak = capitalCeiling,

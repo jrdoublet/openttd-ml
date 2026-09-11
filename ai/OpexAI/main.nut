@@ -385,6 +385,8 @@ function OpexC55OriginRelaxLog(fields)
 
 /* C56 : gate dedie et autonome. Lecture des traces :
  * - dernier TASK_ENTER name=X sans TASK_EXIT name=X : X ne rend pas la main, blocage dedans ;
+ * - dernier STAGE_ENTER name=c56_stage_X sans STAGE_EXIT : blocage dans cette phase du portefeuille ;
+ * - les phases sautees emettent aussi STAGE_EXIT : un jalon manquant signifie toujours un blocage ;
  * - TASK_ENTER/TASK_EXIT apparies jusqu'au bout puis plus rien : blocage hors tache ;
  * - LOOP_TICK continu sans TASK_ENTER : boucle active, ordonnanceur sans selection ;
  * - plus aucune trace : script lui-meme plus execute par le moteur. */
