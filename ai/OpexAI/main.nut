@@ -938,6 +938,10 @@ EVENT_DEPOT_SELL <- false;
 EVENT_INDUSTRY_CLOSE <- false;
 /* A7.3 / C17 : Sonde subventions en lecture seule via AIEventSubsidy* */
 EVENT_SUBSIDY_PROBE <- false;
+/* C42 : Transformer les offres de subvention en candidats de portefeuille */
+C42_SUBSIDIES <- false;
+C42_SUBSIDY_LEAD_DAYS <- 180;
+C42_SUBSIDY_LOG <- false;
 /* A7.4 : Alerte et diagnostic convois perdus/bloques via ET_VEHICLE_LOST */
 EVENT_VEHICLE_LOST <- false;
 /* C52 : remappe les ID de vehicules remplaces automatiquement dans les inventaires persistants. */
@@ -1515,6 +1519,10 @@ class OpexAI extends AIController {
   _c39FinanceableSince = null;
   _startYear = -1;
   _vehiclesToScrap = null;
+  /* Retraites C52 unitaires : distinctes de _vehiclesToScrap, qui est seulement le
+   * raccourci optionnel de vente sur ET_VEHICLE_WAITING_IN_DEPOT. Cette file est
+   * toujours consommee par la tache scrap, y compris quand event_depot_sell=0. */
+  _vehiclesToRetire = null;
   /* C52 #4 : suivi des annees consecutives de deficit par vehicule */
   _unprofitableStreaks = null;
   /* C41.8 : ensemble coalescé par ligne, consommé par une seule micro-tâche. */
@@ -1537,6 +1545,7 @@ class OpexAI extends AIController {
     this._abandonedPairs = {};
     this._abandonCounts = {};
     this._vehiclesToScrap = {};
+    this._vehiclesToRetire = {};
     this._unprofitableStreaks = {};
     OpexAirResetSiteCache();
     this._activeSubsidies = {};
@@ -1645,8 +1654,11 @@ class OpexAI extends AIController {
   function _reportYear(year, ranked);
   function _reportLines(year);
   function _scrapDeadLines(year);
+  function _scrapRetiredVehicles(year);
+  function _purgeUnprofitableStreaks();
   function _triggerScrapLine(line, criterion);
   function _refleetRoadLines(year);
+  function _refleetCrashedWaterLines(year);
   function _resizeAirFleets(year);
   function _expandRailLines(year);
   function _continueRailExpansion();
@@ -1940,6 +1952,9 @@ function OpexFindStationJoin(candidate, conflicts)
  * changement de l'ordre de catalog.towns entre deux rafraichissements. */
 function OpexAbandonedPairKey(candidate)
 {
+  if (("isSubsidy" in candidate) && candidate.isSubsidy) {
+    return "subsidy|" + candidate.subsidyId;
+  }
   if (("isFeeder" in candidate) && candidate.isFeeder) {
     local srcTown = ("srcTown" in candidate && candidate.srcTown >= 0) ? candidate.srcTown : AITile.GetClosestTown(candidate.src);
     local slot = ("feederSlot" in candidate) ? candidate.feederSlot : 0;
@@ -2194,6 +2209,7 @@ function OpexAI::_tryBuildAir(year)
       iterations = 0, trains = result.vehicles.len(), distance = plan.distance, year = year,
       buildDate = AIDate.GetCurrentDate(),
       mode = "air", vehicle = result.vehicle, vehicles = result.vehicles,
+      refleetEngine = AIVehicle.GetEngineType(result.vehicle),
       vehCount = result.vehicles.len(),
       deadStreak = 0, scrapping = false, scrapVehicles = [],
       lastLiveVehicles = result.vehicles.len(), suspectedCrashes = 0,
@@ -3176,6 +3192,8 @@ function OpexAI::_tryBuildWaterProject(year, project, rank, builtCount, passDisc
           cargo = this._catalog.paxCargo,
           predicted = 0, iterations = 0, trains = 1, distance = plan.distance, year = year,
           mode = "water", vehicle = result.vehicle, vehicles = [result.vehicle],
+          depot = result.depot, refleetEngine = AIVehicle.GetEngineType(result.vehicle), vehCount = 1,
+          deadStreak = 0, scrapping = false, scrapVehicles = [],
           isLowRatio = false, opcodeRatio = -1,   /* plan, pas de candidat : sans objet */
           lineId = this._nextLineId,
         });
@@ -3337,6 +3355,7 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
           iterations = 0, trains = result.vehicles.len(), distance = plan.distance, year = year,
           buildDate = AIDate.GetCurrentDate(),
           mode = "air", vehicle = result.vehicle, vehicles = result.vehicles,
+          refleetEngine = AIVehicle.GetEngineType(result.vehicle),
           vehCount = result.vehicles.len(),
           deadStreak = 0, scrapping = false, scrapVehicles = [],
           lastLiveVehicles = result.vehicles.len(), suspectedCrashes = 0,
@@ -3551,6 +3570,8 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         mode = "road", kind = candidate.kind, depot = result.depot,
         nStopsA = result.nStopsA, nStopsB = result.nStopsB,
         capacity = ("capacity" in result) ? result.capacity : 25,
+        srcTown = ("srcTown" in candidate) ? candidate.srcTown : -1,
+        dstTown = ("dstTown" in candidate) ? candidate.dstTown : -1,
         srcIndustry = (candidate.kind == "freight" && candidate.srcTown < 0)
                       ? AIIndustry.GetIndustryID(candidate.src) : -1,
         dstIndustry = (candidate.kind == "freight" && candidate.dstTown < 0)
@@ -3561,8 +3582,20 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         purpose = (("isFeeder" in candidate) && candidate.isFeeder) ? "feeder" : "profit",
         isFeeder = (("isFeeder" in candidate) && candidate.isFeeder),
         hubStationId = (("hubStationId" in candidate) ? candidate.hubStationId : -1),
+        isSubsidy = (("isSubsidy" in candidate) && candidate.isSubsidy),
+        subsidyId = (("subsidyId" in candidate) ? candidate.subsidyId : -1),
         lineId = idx,
       });
+      if (("isSubsidy" in candidate) && candidate.isSubsidy && this._activeSubsidies != null) {
+        if (candidate.subsidyId in this._activeSubsidies) {
+          delete this._activeSubsidies[candidate.subsidyId];
+        }
+        if (C42_SUBSIDY_LOG || DECISION_LOG) {
+          OpexDecide("C42_SUBSIDY_BUILD", "line=" + idx + " sub=" + candidate.subsidyId
+                     + " cargo=" + AICargo.GetCargoLabel(candidate.cargo)
+                     + " mult=" + (("subsidyMultiplier" in candidate) ? candidate.subsidyMultiplier : 1));
+        }
+      }
       this._nextLineId++;
       return { outcome = "built", discards = passDiscards };
 
@@ -4246,6 +4279,7 @@ function OpexAI::_tryBuildProjects(year)
  * C'est exactement la mesure qui manquait a la campagne v3. */
 function OpexAI::_reportLines(year)
 {
+  this._purgeUnprofitableStreaks();
   local anchor = AIMap.GetTileIndex(1, 1);
   for (local i = 0; i < this._lines.len(); i++) {
     local line = this._lines[i];
@@ -4569,6 +4603,25 @@ function OpexAI::_resizeAirFleets(year, plan = null)
   }
   if (AIR_ROI_ORDER) airLines.sort(OpexAirFleetPriorityCompare);
   foreach (line in airLines) {
+    /* Reconstitution de crash : elle passe avant les gardes de croissance
+     * (have=0, profit ancien negatif, cadence), sinon le dernier avion ne peut
+     * jamais redevenir un template. OpexAirRefleetCrashedPlane reconstruit les
+     * ordres depuis les metadonnees durables de la ligne. */
+    if (("needsRefleet" in line) && line.needsRefleet) {
+      local recovered = OpexAirRefleetCrashedPlane(line);
+      if (recovered.added > 0) {
+        local afterCrash = (("vehCount" in line) ? line.vehCount : 0) + recovered.added;
+        line.vehCount <- afterCrash;
+        line.trains <- afterCrash;
+        line.needsRefleet = false;
+        if (DECISION_LOG || C52_CRASH_LOG) {
+          OpexDecide("CRASH_REFLEET", "mode=air line=" + line.lineId + " vehicle=" + line.vehicle);
+        }
+      } else {
+        OpexAirFleetRefusal(line, year, "R");
+      }
+      continue;
+    }
     /* C15 : Cadence d'extension de flotte aerienne.
      * Si AIR_FLEET_CADENCE_DAYS >= 365 : conservation exacte du verrou annuel historique.
      * Sinon : verrou glissant en jours depuis la derniere extension (ou la creation de la ligne). */
@@ -4807,6 +4860,9 @@ function OpexAI::_scrapDeadLines(year)
           if (this._vehiclesToScrap != null && (v in this._vehiclesToScrap)) {
             delete this._vehiclesToScrap[v];
           }
+          if (this._unprofitableStreaks != null && (v in this._unprofitableStreaks)) {
+            delete this._unprofitableStreaks[v];
+          }
           if (DECISION_LOG) {
             OpexDecide("SCRAP_LINE", "action=sell_vehicle line=" + line.lineId + " vehicle=" + v);
           }
@@ -4834,6 +4890,11 @@ function OpexAI::_scrapDeadLines(year)
             if (v in this._vehiclesToScrap) delete this._vehiclesToScrap[v];
           }
         }
+        if (this._unprofitableStreaks != null) {
+          foreach (v in line.scrapVehicles) {
+            if (v in this._unprofitableStreaks) delete this._unprofitableStreaks[v];
+          }
+        }
         toRemove.append(i);  // i = position physique dans _lines, pour le retrait -- pas le sign
         if (DECISION_LOG) {
           local crit = (remaining.len() == 0) ? "all_sold" : "timeout";
@@ -4848,6 +4909,47 @@ function OpexAI::_scrapDeadLines(year)
    * traite dans toRemove. */
   for (local k = toRemove.len() - 1; k >= 0; k--) {
     this._lines.remove(toRemove[k]);
+  }
+}
+
+/* Vente autonome des retraites unitaires C52. Contrairement a la mise au rebut
+ * d'une ligne, la ligne reste exploitee : cette file ne touche ni scrapping ni
+ * ses gares. Elle est deliberement independante de EVENT_DEPOT_SELL, qui ne
+ * sert qu'a accelerer la vente au moment de l'evenement depot. */
+function OpexAI::_scrapRetiredVehicles(year)
+{
+  if (this._vehiclesToRetire == null) return;
+  foreach (vehicle, lineId in this._vehiclesToRetire) {
+    if (!AIVehicle.IsValidVehicle(vehicle)) {
+      delete this._vehiclesToRetire[vehicle];
+      if (this._unprofitableStreaks != null && (vehicle in this._unprofitableStreaks)) {
+        delete this._unprofitableStreaks[vehicle];
+      }
+      continue;
+    }
+    if (!AIVehicle.IsStoppedInDepot(vehicle)) continue;
+    if (AIVehicle.SellVehicle(vehicle)) {
+      if (this._vehiclesToScrap != null && (vehicle in this._vehiclesToScrap)) {
+        delete this._vehiclesToScrap[vehicle];
+      }
+      if (this._unprofitableStreaks != null && (vehicle in this._unprofitableStreaks)) {
+        delete this._unprofitableStreaks[vehicle];
+      }
+      delete this._vehiclesToRetire[vehicle];
+      if (C52_UNPROFITABLE_LOG || DECISION_LOG) {
+        OpexDecide("UNPROFITABLE_RETIRE", "action=sell vehicle=" + vehicle + " line=" + lineId);
+      }
+    }
+  }
+}
+
+/* Les VehicleID sont reutilisables. Ne jamais laisser un streak attache a un ID
+ * mort survivre jusqu'a ce qu'un vehicule sans rapport recupere son numero. */
+function OpexAI::_purgeUnprofitableStreaks()
+{
+  if (this._unprofitableStreaks == null) return;
+  foreach (vehicle, ignored in this._unprofitableStreaks) {
+    if (!AIVehicle.IsValidVehicle(vehicle)) delete this._unprofitableStreaks[vehicle];
   }
 }
 
@@ -4955,11 +5057,15 @@ function OpexAI::_refleetRoadLines(year)
 
     if (have + extraNeeded > target) target = have + extraNeeded;
     if (target > physicalCap) target = physicalCap;
-    if (have >= target) continue;
+    if (have >= target) {
+      if (("needsRefleet" in line) && line.needsRefleet) line.needsRefleet = false;
+      continue;
+    }
     local refill = OpexRoadRefleet(this._catalog, line, have, target);
     if (refill.added > 0) {
       line.vehCount <- refill.after;
       if (("trains" in line) && line.trains < refill.after) line.trains = refill.after;
+      if (refill.after >= target && ("needsRefleet" in line)) line.needsRefleet = false;
     }
     if (DECISION_LOG) {
       if (refill.added > 0) {
@@ -4974,6 +5080,31 @@ function OpexAI::_refleetRoadLines(year)
     }
     OpexSign(anchor, "RF|" + year + "|" + line.lineId + "|" + refill.added + "|"
                      + (refill.added > 0 ? refill.after : refill.reason));
+  }
+}
+
+/* L'eau a une flotte unitaire et un depot propre : le meme contrat durable que
+ * l'air suffit pour reconstruire un navire perdu. Le rail reste volontairement
+ * hors de ce chemin : reconstituer un consist entier exige davantage que le
+ * moteur de la locomotive (wagons, ordres partages et infrastructure), donc il
+ * ne doit pas etre presente comme automatiquement repare. */
+function OpexAI::_refleetCrashedWaterLines(year)
+{
+  foreach (line in this._lines) {
+    if (!("mode" in line) || line.mode != "water" ||
+        !(("needsRefleet" in line) && line.needsRefleet)) continue;
+    if (("scrapping" in line) && line.scrapping) continue;
+    local recovered = OpexWaterRefleetCrashedShip(line);
+    if (recovered.added > 0) {
+      line.vehCount <- 1;
+      line.trains <- 1;
+      line.needsRefleet = false;
+      if (DECISION_LOG || C52_CRASH_LOG) {
+        OpexDecide("CRASH_REFLEET", "mode=water line=" + line.lineId + " vehicle=" + line.vehicle);
+      }
+    } else if (DECISION_LOG || C52_CRASH_LOG) {
+      OpexDecide("CRASH_REFLEET", "mode=water line=" + line.lineId + " reason=" + recovered.reason);
+    }
   }
 }
 
@@ -6270,13 +6401,35 @@ function OpexAI::_processEvents()
             }
             if (("vehCount" in line) && line.vehCount > 0) line.vehCount--;
             if (("trains" in line) && line.trains > 0) line.trains--;
-            if ("suspectedCrashes" in line) line.suspectedCrashes++;
-            else line.suspectedCrashes <- 1;
-
-            line.needsRefleet <- true;
+            /* Un evenement crash est confirme. suspectedCrashes est reserve au
+             * filet annuel RX; le melanger aux deux faisait compter un crash rail
+             * une seconde fois lors de _reportLines. */
+            if ("confirmedCrashes" in line) line.confirmedCrashes++;
+            else line.confirmedCrashes <- 1;
+            if (("mode" in line) && (line.mode == "air" || line.mode == "water" || line.mode == "road")) {
+              line.needsRefleet <- true;
+            } else if (DECISION_LOG || C52_CRASH_LOG) {
+              OpexDecide("CRASH_REFLEET", "mode=" + mode + " line=" + line.lineId + " status=unsupported_consist");
+            }
+            if (("mode" in line) && line.mode == "rail") {
+              /* Le detecteur annuel part du stock apres crash : pas de RX double. */
+              local liveAfterCrash = 0;
+              if ("vehicles" in line && line.vehicles != null) {
+                foreach (known in line.vehicles) {
+                  if (AIVehicle.IsValidVehicle(known) && AIVehicle.GetVehicleType(known) == AIVehicle.VT_RAIL) liveAfterCrash++;
+                }
+              }
+              line.lastLiveVehicles <- liveAfterCrash;
+            }
           }
           if (this._vehiclesToScrap != null && (vehicle in this._vehiclesToScrap)) {
             delete this._vehiclesToScrap[vehicle];
+          }
+          if (this._vehiclesToRetire != null && (vehicle in this._vehiclesToRetire)) {
+            delete this._vehiclesToRetire[vehicle];
+          }
+          if (this._unprofitableStreaks != null && (vehicle in this._unprofitableStreaks)) {
+            delete this._unprofitableStreaks[vehicle];
           }
         } else if (reason == AIEventVehicleCrashed.CRASH_TRAIN) {
           local year = AIDate.GetYear(AIDate.GetCurrentDate());
@@ -6310,7 +6463,10 @@ function OpexAI::_processEvents()
     }
 
     if (eventType == AIEvent.ET_VEHICLE_AUTOREPLACED) {
-      if (EVENT_VEHICLE_AUTOREPLACED || C52_AUTOREPLACE_LOG) {
+      /* Integrite d'inventaire, pas une decision experimentale : le renouvellement
+       * automatique est actif par defaut et les VehicleID peuvent etre reutilises.
+       * Toujours remapper les references, les sondes ne controlent que le log. */
+      {
         local replaceEvt = AIEventVehicleAutoReplaced.Convert(event);
         if (replaceEvt != null) {
           local oldVehicle = replaceEvt.GetOldVehicleID();
@@ -6334,17 +6490,15 @@ function OpexAI::_processEvents()
                 tracked = true;
                 if (mode == "unknown") mode = lineMode;
                 remapLineVehicles++;
-                if (EVENT_VEHICLE_AUTOREPLACED) {
-                  if (hasNew) line.vehicles.remove(i);
-                  else { line.vehicles[i] = newVehicle; hasNew = true; i++; }
-                } else i++;
+                if (hasNew) line.vehicles.remove(i);
+                else { line.vehicles[i] = newVehicle; hasNew = true; i++; }
               }
             }
             if (("vehicle" in line) && line.vehicle == oldVehicle) {
               tracked = true;
               if (mode == "unknown") mode = lineMode;
               remapLineVehicle++;
-              if (EVENT_VEHICLE_AUTOREPLACED) line.vehicle = newVehicle;
+              line.vehicle = newVehicle;
             }
             if ("scrapVehicles" in line) {
               local hasNew = false;
@@ -6357,20 +6511,28 @@ function OpexAI::_processEvents()
                 tracked = true;
                 if (mode == "unknown") mode = lineMode;
                 remapScrapVehicles++;
-                if (EVENT_VEHICLE_AUTOREPLACED) {
-                  if (hasNew) line.scrapVehicles.remove(i);
-                  else { line.scrapVehicles[i] = newVehicle; hasNew = true; i++; }
-                } else i++;
+                if (hasNew) line.scrapVehicles.remove(i);
+                else { line.scrapVehicles[i] = newVehicle; hasNew = true; i++; }
               }
             }
           }
           if (this._vehiclesToScrap != null && (oldVehicle in this._vehiclesToScrap)) {
             tracked = true;
             remapScrapIndex++;
-            if (EVENT_VEHICLE_AUTOREPLACED) {
-              local lineId = this._vehiclesToScrap[oldVehicle];
-              delete this._vehiclesToScrap[oldVehicle];
-              this._vehiclesToScrap.rawset(newVehicle, lineId);
+            local lineId = this._vehiclesToScrap[oldVehicle];
+            delete this._vehiclesToScrap[oldVehicle];
+            this._vehiclesToScrap.rawset(newVehicle, lineId);
+          }
+          if (this._vehiclesToRetire != null && (oldVehicle in this._vehiclesToRetire)) {
+            local lineId = this._vehiclesToRetire[oldVehicle];
+            delete this._vehiclesToRetire[oldVehicle];
+            this._vehiclesToRetire.rawset(newVehicle, lineId);
+          }
+          if (this._unprofitableStreaks != null && (oldVehicle in this._unprofitableStreaks)) {
+            local oldStreak = this._unprofitableStreaks[oldVehicle];
+            delete this._unprofitableStreaks[oldVehicle];
+            if (!(newVehicle in this._unprofitableStreaks) || this._unprofitableStreaks[newVehicle] < oldStreak) {
+              this._unprofitableStreaks.rawset(newVehicle, oldStreak);
             }
           }
           if (C52_AUTOREPLACE_LOG && C52_AUTOREPLACE_LEDGER != null) {
@@ -6424,6 +6586,11 @@ function OpexAI::_processEvents()
             }
 
             if (EVENT_VEHICLE_UNPROFITABLE) {
+              /* Le vehicule conserve ses ordres pendant son trajet au depot et peut
+               * encore etre observe comme deficititaire. Une retraite deja en cours
+               * ne doit ni decrementar une seconde fois les compteurs ni reabaisser
+               * predTrains. */
+              if (this._vehiclesToRetire != null && (vehicle in this._vehiclesToRetire)) continue;
               // Garde demarrage : un vehicule en service depuis moins d'un an est encore en montee en charge.
               if (age >= 365) {
                 if (this._unprofitableStreaks == null) this._unprofitableStreaks = {};
@@ -6437,14 +6604,12 @@ function OpexAI::_processEvents()
                                : (("vehicles" in line && line.vehicles != null) ? line.vehicles.len()
                                : (("trains" in line) ? line.trains : 1));
                     if (have > 1) {
-                      // Ligne multi-vehicules surcapacitaire : retirer ce vehicule specifique pour stopper le deficit.
+                      /* Ligne multi-vehicules surcapacitaire : retrait unitaire, sans
+                       * basculer la ligne dans scrapping. La tache scrap vend ensuite
+                       * reellement le vehicule, meme si event_depot_sell est desarme. */
                       AIVehicle.SendVehicleToDepot(vehicle);
-                      if (this._vehiclesToScrap != null) {
-                        this._vehiclesToScrap.rawset(vehicle, line.lineId);
-                      }
-                      if ("scrapVehicles" in line && line.scrapVehicles != null) {
-                        line.scrapVehicles.append(vehicle);
-                      }
+                      if (this._vehiclesToRetire == null) this._vehiclesToRetire = {};
+                      this._vehiclesToRetire.rawset(vehicle, line.lineId);
                       if ("vehicles" in line && line.vehicles != null) {
                         for (local i = 0; i < line.vehicles.len(); i++) {
                           if (line.vehicles[i] == vehicle) {
@@ -6455,6 +6620,9 @@ function OpexAI::_processEvents()
                       }
                       if ("vehCount" in line && line.vehCount > 0) line.vehCount--;
                       if ("trains" in line && line.trains > 1) line.trains--;
+                      /* Sans cette baisse, _refleetRoadLines reconstruirait au cycle
+                       * suivant exactement le vehicule que cette decision vient de retirer. */
+                      if ("predTrains" in line && line.predTrains > 1) line.predTrains--;
                       if (C52_UNPROFITABLE_LOG || DECISION_LOG) {
                         OpexDecide("UNPROFITABLE_RETIRE", "vehicle=" + vehicle + " line=" + line.lineId
                                    + " streak=" + streak + " profit=" + profitLast + " remaining=" + have);
@@ -6470,8 +6638,11 @@ function OpexAI::_processEvents()
                   } else {
                     // Vehicule orphelin hors ligne
                     AIVehicle.SendVehicleToDepot(vehicle);
-                    if (this._vehiclesToScrap != null) {
-                      this._vehiclesToScrap.rawset(vehicle, -1);
+                    if (this._vehiclesToRetire == null) this._vehiclesToRetire = {};
+                    this._vehiclesToRetire.rawset(vehicle, -1);
+                    if (C52_UNPROFITABLE_LOG || DECISION_LOG) {
+                      OpexDecide("UNPROFITABLE_RETIRE", "action=orphan vehicle=" + vehicle
+                                 + " streak=" + streak + " profit=" + profitLast);
                     }
                   }
                 }
@@ -6514,7 +6685,7 @@ function OpexAI::_processEvents()
     }
 
     if (eventType == AIEvent.ET_SUBSIDY_OFFER) {
-      if (EVENT_SUBSIDY_PROBE) {
+      if (EVENT_SUBSIDY_PROBE || C42_SUBSIDIES) {
         local subEvt = AIEventSubsidyOffer.Convert(event);
         if (subEvt != null) {
           local subId = subEvt.GetSubsidyID();
@@ -6534,9 +6705,15 @@ function OpexAI::_processEvents()
               local mSrc = false;
               local mDst = false;
               if (srcType == AISubsidy.SPT_INDUSTRY && ("srcIndustry" in line) && line.srcIndustry == srcId) mSrc = true;
-              else if (srcType == AISubsidy.SPT_TOWN && ("originA" in line) && line.originA == srcId) mSrc = true;
+              else if (srcType == AISubsidy.SPT_TOWN) {
+                local tA = ("srcTown" in line && line.srcTown >= 0) ? line.srcTown : (("originA" in line && AIMap.IsValidTile(line.originA)) ? AITile.GetClosestTown(line.originA) : -1);
+                if (tA == srcId) mSrc = true;
+              }
               if (dstType == AISubsidy.SPT_INDUSTRY && ("dstIndustry" in line) && line.dstIndustry == dstId) mDst = true;
-              else if (dstType == AISubsidy.SPT_TOWN && ("originB" in line) && line.originB == dstId) mDst = true;
+              else if (dstType == AISubsidy.SPT_TOWN) {
+                local tB = ("dstTown" in line && line.dstTown >= 0) ? line.dstTown : (("originB" in line && AIMap.IsValidTile(line.originB)) ? AITile.GetClosestTown(line.originB) : -1);
+                if (tB == dstId) mDst = true;
+              }
               if (mSrc && mDst) { matchedLine = line.lineId; break; }
             }
 
@@ -6552,7 +6729,7 @@ function OpexAI::_processEvents()
               });
             }
 
-            if (DECISION_LOG) {
+            if (C42_SUBSIDY_LOG || DECISION_LOG) {
               local cName = AICargo.GetCargoLabel(cargo);
               OpexDecide("SUBSIDY_OFFER", "sub=" + subId + " cargo=" + cName + " src_t=" + srcType + " src=" + srcId + " dst_t=" + dstType + " dst=" + dstId + " exp=" + expDate + " mult=" + mult + " dur=" + dur + " matched=" + (matchedLine >= 0 ? matchedLine : "none"));
             }
@@ -6565,7 +6742,7 @@ function OpexAI::_processEvents()
     }
 
     if (eventType == AIEvent.ET_SUBSIDY_OFFER_EXPIRED) {
-      if (EVENT_SUBSIDY_PROBE) {
+      if (EVENT_SUBSIDY_PROBE || C42_SUBSIDIES) {
         local subEvt = AIEventSubsidyOfferExpired.Convert(event);
         if (subEvt != null) {
           local subId = subEvt.GetSubsidyID();
@@ -6575,7 +6752,7 @@ function OpexAI::_processEvents()
           if (this._activeSubsidies != null && (subId in this._activeSubsidies)) {
             delete this._activeSubsidies[subId];
           }
-          if (DECISION_LOG) {
+          if (C42_SUBSIDY_LOG || DECISION_LOG) {
             OpexDecide("SUBSIDY_OFFER_EXPIRED", "sub=" + subId);
           }
           local year = AIDate.GetYear(AIDate.GetCurrentDate());
@@ -6586,7 +6763,7 @@ function OpexAI::_processEvents()
     }
 
     if (eventType == AIEvent.ET_SUBSIDY_AWARDED) {
-      if (EVENT_SUBSIDY_PROBE) {
+      if (EVENT_SUBSIDY_PROBE || C42_SUBSIDIES) {
         local subEvt = AIEventSubsidyAwarded.Convert(event);
         if (subEvt != null) {
           local subId = subEvt.GetSubsidyID();
@@ -6596,7 +6773,22 @@ function OpexAI::_processEvents()
             if (isSelf) this._subsidyStats.awardedSelf++;
             else this._subsidyStats.awardedOther++;
           }
-          if (DECISION_LOG) {
+          if (this._activeSubsidies != null && (subId in this._activeSubsidies)) {
+            delete this._activeSubsidies[subId];
+          }
+          if (isSelf) {
+            local matchedLine = -1;
+            foreach (line in this._lines) {
+              if (("isSubsidy" in line) && line.isSubsidy && ("subsidyId" in line) && line.subsidyId == subId) {
+                matchedLine = line.lineId;
+                line.subsidyAwarded <- true;
+                break;
+              }
+            }
+            if (C42_SUBSIDY_LOG || DECISION_LOG) {
+              OpexDecide("C42_SUBSIDY_WON", "sub=" + subId + " line=" + matchedLine + " company=" + company);
+            }
+          } else if (C42_SUBSIDY_LOG || DECISION_LOG) {
             OpexDecide("SUBSIDY_AWARDED", "sub=" + subId + " company=" + company + " is_self=" + (isSelf ? 1 : 0));
           }
           local year = AIDate.GetYear(AIDate.GetCurrentDate());
@@ -6607,14 +6799,14 @@ function OpexAI::_processEvents()
     }
 
     if (eventType == AIEvent.ET_SUBSIDY_EXPIRED) {
-      if (EVENT_SUBSIDY_PROBE) {
+      if (EVENT_SUBSIDY_PROBE || C42_SUBSIDIES) {
         local subEvt = AIEventSubsidyExpired.Convert(event);
         if (subEvt != null) {
           local subId = subEvt.GetSubsidyID();
           if (this._activeSubsidies != null && (subId in this._activeSubsidies)) {
             delete this._activeSubsidies[subId];
           }
-          if (DECISION_LOG) {
+          if (C42_SUBSIDY_LOG || DECISION_LOG) {
             OpexDecide("SUBSIDY_EXPIRED", "sub=" + subId);
           }
           local year = AIDate.GetYear(AIDate.GetCurrentDate());
@@ -8161,7 +8353,13 @@ function OpexAI::_runNextTask()
     if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
     return true;
   }
-  if (task.name == "scrap") { this._scrapDeadLines(year); if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle); return true; }
+  if (task.name == "scrap") {
+    this._scrapDeadLines(year);
+    this._scrapRetiredVehicles(year);
+    this._purgeUnprofitableStreaks();
+    if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
+    return true;
+  }
   if (task.name == "air") {
     /* C34.1 : sous air_portfolio, la construction aerienne passe EXCLUSIVEMENT par le portefeuille.
      * Motif mesure (docs/taches.md 0 novemquinquagesies) : OpexAirPlans est appele DEUX fois par
@@ -8255,7 +8453,12 @@ function OpexAI::_runNextTask()
     if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
     return true;
   }
-  if (task.name == "refleet") { this._refleetRoadLines(year); if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle); return true; }
+  if (task.name == "refleet") {
+    this._refleetRoadLines(year);
+    this._refleetCrashedWaterLines(year);
+    if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
+    return true;
+  }
   if (task.name == "town_growth") {
     if (!TOWN_GROWTH_ENABLED) { task.enabled = false; if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle); return false; }
     if (TOWN_GROWTH_SKIP_NOOP && !this._tryTownGrowth(year)) {
@@ -8321,7 +8524,7 @@ function OpexAI::_rebuildProjects(fleetPlan)
   }
   this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines,
       priorPeak, priorHistory, fleetPlan, this._abandonedPairs, stage, prior,
-      freightCargo, freightCargos, this._waterSiteCatalog);
+      freightCargo, freightCargos, this._waterSiteCatalog, this._activeSubsidies);
   local actualFreightCargo = (this._projects != null && ("freightCargo" in this._projects))
       ? this._projects.freightCargo : freightCargo;
   if (stage == OPEX_STAGE_AIR_ONLY && actualFreightCargo != null) {
@@ -8445,7 +8648,9 @@ function OpexAI::Save()
     taskCycle = this._taskCycle,
     taskCursor = this._taskCursor,
     vehiclesToScrap = this._vehiclesToScrap,
+    vehiclesToRetire = this._vehiclesToRetire,
     unprofitableStreaks = this._unprofitableStreaks,
+    activeSubsidies = this._activeSubsidies,
     taskDue = taskDue,
     stateVersion = 1,
   };
@@ -8479,7 +8684,9 @@ function OpexAI::Load(version, data)
   if ("taskCycle" in data) this._taskCycle = data.taskCycle;
   if ("taskCursor" in data) this._taskCursor = data.taskCursor;
   if ("vehiclesToScrap" in data && data.vehiclesToScrap != null) this._vehiclesToScrap = data.vehiclesToScrap;
+  if ("vehiclesToRetire" in data && data.vehiclesToRetire != null) this._vehiclesToRetire = data.vehiclesToRetire;
   if ("unprofitableStreaks" in data && data.unprofitableStreaks != null) this._unprofitableStreaks = data.unprofitableStreaks;
+  if ("activeSubsidies" in data && data.activeSubsidies != null) this._activeSubsidies = data.activeSubsidies;
   /* Cle par nom : l'ordre de la file peut evoluer entre deux versions de l'IA. */
   if ("taskDue" in data && data.taskDue != null && this._taskQueue != null) {
     foreach (task in this._taskQueue) {
@@ -8523,12 +8730,39 @@ function OpexAI::_reconcileAfterLoad()
         }
         line.vehicles = liveVehicles;
       }
+      /* Les sauvegardes anterieures a C52 ne portent pas le moteur de secours.
+       * Tant qu'un appareil/navire vit encore, migrer cette metadonnee ici pour
+       * qu'un prochain crash puisse etre reconstruit sans template. */
+      if ((("mode" in line) && (line.mode == "air" || line.mode == "water")) &&
+          !(("refleetEngine" in line) && line.refleetEngine >= 0)) {
+        local template = null;
+        if (("vehicles" in line) && line.vehicles != null) {
+          foreach (vehicle in line.vehicles) {
+            if (AIVehicle.IsValidVehicle(vehicle)) { template = vehicle; break; }
+          }
+        }
+        if (template == null && ("vehicle" in line) && AIVehicle.IsValidVehicle(line.vehicle)) {
+          template = line.vehicle;
+        }
+        if (template != null) line.refleetEngine <- AIVehicle.GetEngineType(template);
+      }
       liveLines.append(line);
       kept++;
     }
   }
   this._lines = liveLines;
   this._pendingLines = null;
+  this._purgeUnprofitableStreaks();
+  if (this._vehiclesToRetire != null) {
+    foreach (vehicle, ignored in this._vehiclesToRetire) {
+      if (!AIVehicle.IsValidVehicle(vehicle)) delete this._vehiclesToRetire[vehicle];
+    }
+  }
+  if (this._vehiclesToScrap != null) {
+    foreach (vehicle, ignored in this._vehiclesToScrap) {
+      if (!AIVehicle.IsValidVehicle(vehicle)) delete this._vehiclesToScrap[vehicle];
+    }
+  }
   /* Sans sonde : cette unique preuve doit toujours accompagner un rechargement, jamais une partie neuve. */
   OpexDecide("LOAD_RECONCILE", "saved=" + saved + " kept=" + kept + " dropped=" + dropped + " vehicles_purged=" + purgedVehicles);
 }
@@ -8676,8 +8910,12 @@ function OpexAI::Start()
   EVENT_DEPOT_SELL = AIController.GetSetting("event_depot_sell") != 0;
   EVENT_INDUSTRY_CLOSE = AIController.GetSetting("event_industry_close") != 0;
   EVENT_SUBSIDY_PROBE = AIController.GetSetting("event_subsidy_probe") != 0;
+  C42_SUBSIDIES = AIController.GetSetting("c42_subsidies") != 0;
+  C42_SUBSIDY_LEAD_DAYS = AIController.GetSetting("c42_subsidy_lead_days");
+  C42_SUBSIDY_LOG = AIController.GetSetting("c42_subsidy_log") != 0;
   EVENT_VEHICLE_LOST = AIController.GetSetting("event_vehicle_lost") != 0;
-  EVENT_VEHICLE_AUTOREPLACED = AIController.GetSetting("event_vehicle_autoreplaced") != 0;
+  /* Compatibilite de sauvegarde/config : l'ancien interrupteur reste declare dans
+   * info.nut mais l'integrite des IDs n'est plus optionnelle, donc il n'est pas lu. */
   C52_AUTOREPLACE_LOG = AIController.GetSetting("c52_autoreplace_log") != 0;
   C52_EVENT_EXPOSURE_PROBE = AIController.GetSetting("c52_event_exposure_probe") != 0;
   EVENT_VEHICLE_CRASHED = AIController.GetSetting("event_vehicle_crashed") != 0;

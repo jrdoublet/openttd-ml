@@ -815,6 +815,47 @@ function OpexAirAddPlane(line)
   return result;
 }
 
+/* Reconstitue un avion perdu sans dependre d'un appareil encore vivant. Le moteur
+ * est memorise dans la ligne a sa construction; les deux aeroports sont des
+ * destinations durables, donc les ordres peuvent etre recrees sans clonage. */
+function OpexAirRefleetCrashedPlane(line)
+{
+  local result = { added = 0, reason = "" };
+  if (!(("refleetEngine" in line) && line.refleetEngine >= 0)) {
+    result.reason = "NOENGINE"; return result;
+  }
+  if (!AIAirport.IsAirportTile(line.stationA) || !AIAirport.IsAirportTile(line.stationB)) {
+    result.reason = "NOAIRPORT"; return result;
+  }
+  local hangar = AIAirport.GetHangarOfAirport(line.stationA);
+  if (!AIMap.IsValidTile(hangar) || !AIAirport.IsHangarTile(hangar)) {
+    result.reason = "HANGAR"; return result;
+  }
+  if (AIVehicle.GetBuildWithRefitCapacity(hangar, line.refleetEngine, line.cargo) <= 0) {
+    result.reason = "REFIT"; return result;
+  }
+  local price = AIEngine.GetPrice(line.refleetEngine);
+  if (price <= 0 || AICompany.GetBankBalance(AICompany.COMPANY_SELF) < price + OpexCashReserve()) {
+    result.reason = "CASH"; return result;
+  }
+  local plane = AIVehicle.BuildVehicleWithRefit(hangar, line.refleetEngine, line.cargo);
+  if (!AIVehicle.IsValidVehicle(plane)) { result.reason = "BUILD"; return result; }
+  local flags = AIR_FULL_LOAD ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE;
+  if (!AIOrder.AppendOrder(plane, line.stationA, flags) ||
+      !AIOrder.AppendOrder(plane, line.stationB, flags) || AIOrder.GetOrderCount(plane) != 2) {
+    AIVehicle.SellVehicle(plane); result.reason = "ORDER"; return result;
+  }
+  if (!AIVehicle.StartStopVehicle(plane)) {
+    if (AIVehicle.IsStoppedInDepot(plane)) AIVehicle.SellVehicle(plane);
+    result.reason = "START"; return result;
+  }
+  if (!("vehicles" in line) || line.vehicles == null) line.vehicles <- [];
+  line.vehicles.append(plane);
+  line.vehicle <- plane;
+  result.added = 1; result.reason = "OK";
+  return result;
+}
+
 /* Evalue et planifie la meilleure liaison aerienne en testant les combinaisons
  * grand aeroport (+gros/petit avion) et petit aeroport (+petit avion strictement). */
 function OpexAirPlanBetter(plan, bestPlan)

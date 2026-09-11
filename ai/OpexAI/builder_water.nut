@@ -805,3 +805,40 @@ function OpexBuildWaterRoute(catalog, budget, plan)
   result.stationA = stationA; result.stationB = stationB; result.depot = depot; result.vehicle = ship;
   return result;
 }
+
+/* Une ligne eau ne porte qu'un navire. Son depot, son moteur et ses deux quais
+ * sont conserves dans la ligne, ce qui permet de reconstruire apres un crash
+ * sans template vivant ni replanification geometrique. */
+function OpexWaterRefleetCrashedShip(line)
+{
+  local result = { added = 0, reason = "" };
+  if (!(("refleetEngine" in line) && line.refleetEngine >= 0) ||
+      !("depot" in line) || !AIMarine.IsWaterDepotTile(line.depot)) {
+    result.reason = "NOMETADATA"; return result;
+  }
+  if (!AIMarine.IsDockTile(line.stationA) || !AIMarine.IsDockTile(line.stationB)) {
+    result.reason = "NODOCK"; return result;
+  }
+  if (AIVehicle.GetBuildWithRefitCapacity(line.depot, line.refleetEngine, line.cargo) <= 0) {
+    result.reason = "REFIT"; return result;
+  }
+  local price = AIEngine.GetPrice(line.refleetEngine);
+  if (price <= 0 || AICompany.GetBankBalance(AICompany.COMPANY_SELF) < price + OpexCashReserve()) {
+    result.reason = "CASH"; return result;
+  }
+  local ship = AIVehicle.BuildVehicleWithRefit(line.depot, line.refleetEngine, line.cargo);
+  if (!AIVehicle.IsValidVehicle(ship)) { result.reason = "BUILD"; return result; }
+  if (!AIOrder.AppendOrder(ship, line.stationA, AIOrder.OF_NONE) ||
+      !AIOrder.AppendOrder(ship, line.stationB, AIOrder.OF_NONE) || AIOrder.GetOrderCount(ship) != 2) {
+    AIVehicle.SellVehicle(ship); result.reason = "ORDER"; return result;
+  }
+  if (!AIVehicle.StartStopVehicle(ship)) {
+    if (AIVehicle.IsStoppedInDepot(ship)) AIVehicle.SellVehicle(ship);
+    result.reason = "START"; return result;
+  }
+  if (!("vehicles" in line) || line.vehicles == null) line.vehicles <- [];
+  line.vehicles.append(ship);
+  line.vehicle <- ship;
+  result.added = 1; result.reason = "OK";
+  return result;
+}

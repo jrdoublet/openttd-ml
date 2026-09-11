@@ -130,6 +130,10 @@ function OpexProjectKeyFor(project)
     return "fleet|" + lid;
   }
   if (("payload" in project) && project.payload != null
+      && ("isSubsidy" in project.payload) && project.payload.isSubsidy) {
+    return "subsidy|" + project.payload.subsidyId;
+  }
+  if (("payload" in project) && project.payload != null
       && ("isFeeder" in project.payload) && project.payload.isFeeder) {
     prefix = "feeder|";
     if ("hubStationId" in project.payload) prefix += project.payload.hubStationId + "|";
@@ -1022,6 +1026,15 @@ function OpexIncrementalCandidateStillValid(p, lines, abandonedPairs = null)
 
   /* 2. Mode route */
   if (mode == "road") {
+    local isSubsidy = (("payload" in p) && p.payload != null &&
+                       ("isSubsidy" in p.payload) && p.payload.isSubsidy);
+    if (isSubsidy) {
+      local subId = p.payload.subsidyId;
+      if (!AISubsidy.IsValidSubsidy(subId) || AISubsidy.IsAwarded(subId)) return false;
+      local today = AIDate.GetCurrentDate();
+      if (AISubsidy.GetExpireDate(subId) - today < C42_SUBSIDY_LEAD_DAYS) return false;
+      return true;
+    }
     local isFeeder = (("payload" in p) && p.payload != null &&
                       ("isFeeder" in p.payload) && p.payload.isFeeder);
     if (isFeeder) {
@@ -1113,6 +1126,10 @@ function OpexProjectAttemptKey(p)
   if (mode == "fleet" && ("payload" in p) && p.payload != null &&
       ("line" in p.payload) && p.payload.line != null && ("lineId" in p.payload.line)) {
     return "fleet|" + p.payload.line.lineId;
+  }
+  if (("payload" in p) && p.payload != null
+      && ("isSubsidy" in p.payload) && p.payload.isSubsidy) {
+    return "subsidy|" + p.payload.subsidyId;
   }
   local src = ("src" in p) ? p.src : -1;
   local dst = ("dst" in p) ? p.dst : -1;
@@ -1533,7 +1550,7 @@ function OpexMergeRailCandidateSet(base, extra)
   return base;
 }
 
-function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCapitalHistory = null, fleetPlan = null, abandonedPairs = null, generationStage = null, priorProjects = null, freightCargo = null, freightCargoOrder = null, waterSiteCatalog = null)
+function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCapitalHistory = null, fleetPlan = null, abandonedPairs = null, generationStage = null, priorProjects = null, freightCargo = null, freightCargoOrder = null, waterSiteCatalog = null, activeSubsidies = null)
 {
   if (generationStage == null) generationStage = OPEX_STAGE_COMPLETE;
   local doFreight = (generationStage == OPEX_STAGE_AIR_ONLY || generationStage == OPEX_STAGE_COMPLETE);
@@ -1849,6 +1866,11 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
   local airOpsPerPlan = (airPlans.len() > 0) ? airOps / airPlans.len() : airOps;
   local waterOpsPerPlan = (waterPlans.len() > 0) ? waterOps / waterPlans.len() : waterOps;
 
+  local subCandidates = [];
+  if (C42_SUBSIDIES && activeSubsidies != null) {
+    subCandidates = OpexGenerateSubsidyCandidates(catalog, lines, activeSubsidies, stats, abandonedPairs);
+  }
+
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "c56_stage_assembly", "-");
   local winners = {};
   local tensionCtx = null;
@@ -1886,6 +1908,10 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
           local p = OpexProjectFromFleet(entry, null);
           if (p != null) allProjects.append(p);
         }
+      }
+      foreach (candidate in subCandidates) {
+        local p = OpexProjectFromCandidate(candidate, null);
+        if (p != null) allProjects.append(p);
       }
       local shadowPrices = OpexTensionComputeShadowPrices(tensionCtx, allProjects, capitalBudget);
       tensionCtx.shadowPrices <- shadowPrices;
@@ -1953,6 +1979,10 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
           OpexProjectRememberAll(winners, OpexProjectFromFleet(entry, tensionCtx), stats);
         }
       }
+      foreach (candidate in subCandidates) {
+        if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) continue;
+        OpexProjectRememberAll(winners, OpexProjectFromCandidate(candidate, tensionCtx), stats);
+      }
     } else {
       local railInsertMark = railProfile != null ? OpexOpsMeasureBegin() : null;
       local railProjectsBefore = stats.modeCandidates;
@@ -1978,6 +2008,10 @@ function OpexBuildProjects(catalog, budget, lines, priorCapitalPeak = 0, priorCa
         foreach (entry in fleetPlan) {
           OpexProjectRemember(winners, OpexProjectFromFleet(entry, tensionCtx), stats);
         }
+      }
+      foreach (candidate in subCandidates) {
+        if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) continue;
+        OpexProjectRemember(winners, OpexProjectFromCandidate(candidate, tensionCtx), stats);
       }
     }
   }

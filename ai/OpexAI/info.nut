@@ -180,6 +180,32 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C42 : Transformer les offres de subvention en candidats de portefeuille */
+    AddSetting({
+      name = "c42_subsidies",
+      description = "C42: Transform unawarded subsidy offers into portfolio candidates: 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c42_subsidy_lead_days",
+      description = "C42: Minimum remaining days before expiration to attempt subsidy line: min 90, max 365, default 180",
+      min_value = 90, max_value = 365,
+      easy_value = 180, medium_value = 180, hard_value = 180,
+      custom_value = 180,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "c42_subsidy_log",
+      description = "C42: Detailed decision logging for subsidy candidates and awards: 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* A7.4 : Alerte et diagnostic des convois perdus/bloques via ET_VEHICLE_LOST
      * (1 = actif, 0 = inactif/defaut). */
     AddSetting({
@@ -192,7 +218,7 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "event_vehicle_autoreplaced",
-      description = "Repair persisted fleet IDs after ET_VEHICLE_AUTOREPLACED: 1 = enabled (default), 0 = leave historical IDs unchanged",
+      description = "Deprecated compatibility setting: ET_VEHICLE_AUTOREPLACED always remaps persisted IDs to prevent VehicleID reuse; value is ignored",
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       flags = AICONFIG_BOOLEAN
@@ -217,7 +243,7 @@ class OpexAIInfo extends AIInfo {
     /* C52 #2 : prise en compte de tous les crashs de vehicules (camions, avions, etc.) */
     AddSetting({
       name = "event_vehicle_crashed",
-      description = "C52 #2: Handle all vehicle crashes (not just train-on-train): remove dead IDs, record telemetry and trigger fleet reconstitution: 1 = on, 0 = off (default)",
+      description = "C52 #2: Handle all vehicle crashes: clean dead IDs; refleet road, air and water from durable metadata; record rail consists for manual recovery: 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN

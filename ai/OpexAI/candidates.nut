@@ -2530,3 +2530,158 @@ function OpexBoostTownRating(townId, targetRating = 700, maxTrees = 35)
     }
   }
 }
+
+/* C42 : Genere des candidats de portefeuille pour les offres de subvention actives.
+ * Une subvention multiplie les revenus par subsidy_multiplier (1.5x a 4x) pendant 12 mois
+ * des la premiere livraison. */
+function OpexGenerateSubsidyCandidates(catalog, lines, activeSubsidies, stats, abandonedPairs)
+{
+  local candidates = [];
+  if (activeSubsidies == null || activeSubsidies.len() == 0) return candidates;
+  local today = AIDate.GetCurrentDate();
+  local roadBounds = OpexCatalogBounds(catalog);
+
+  // Multiplicateur de la partie : difficulty.subsidy_multiplier (0->1.5x, 1->2x, 2->3x, 3->4x)
+  local rawMult = AIGameSettings.IsValid("difficulty.subsidy_multiplier")
+      ? AIGameSettings.GetValue("difficulty.subsidy_multiplier") : 1;
+  local multiplier = (rawMult == 0) ? 1.5 : (rawMult + 1.0);
+
+  foreach (subId, sub in activeSubsidies) {
+    if (!AISubsidy.IsValidSubsidy(subId) || AISubsidy.IsAwarded(subId)) continue;
+
+    // Garde 1 : Delai restant suffisant avant expiration de l'offre
+    local daysLeft = sub.expDate - today;
+    if (daysLeft < C42_SUBSIDY_LEAD_DAYS) continue;
+
+    // Garde 2 : Disponibilite du vehicule dans le catalogue routier
+    local cargo = sub.cargo;
+    if (!(cargo in catalog.roadEngineByCargo)) continue;
+    local engine = catalog.roadEngineByCargo[cargo];
+    if (engine == null) continue;
+
+    // Garde 3 : Localisation source et destination
+    local srcTile = -1;
+    local dstTile = -1;
+    local srcTown = -1;
+    local dstTown = -1;
+
+    if (sub.srcType == AISubsidy.SPT_TOWN) {
+      if (!AITown.IsValidTown(sub.srcId)) continue;
+      srcTile = AITown.GetLocation(sub.srcId);
+      srcTown = sub.srcId;
+    } else if (sub.srcType == AISubsidy.SPT_INDUSTRY) {
+      if (!AIIndustry.IsValidIndustry(sub.srcId)) continue;
+      srcTile = AIIndustry.GetLocation(sub.srcId);
+    }
+
+    if (sub.dstType == AISubsidy.SPT_TOWN) {
+      if (!AITown.IsValidTown(sub.dstId)) continue;
+      dstTile = AITown.GetLocation(sub.dstId);
+      dstTown = sub.dstId;
+    } else if (sub.dstType == AISubsidy.SPT_INDUSTRY) {
+      if (!AIIndustry.IsValidIndustry(sub.dstId)) continue;
+      dstTile = AIIndustry.GetLocation(sub.dstId);
+    }
+
+    if (!AIMap.IsValidTile(srcTile) || !AIMap.IsValidTile(dstTile)) continue;
+
+    // Garde 4 : Production source et acceptation destination
+    local isPax = AICargo.HasCargoClass(cargo, AICargo.CC_PASSENGERS);
+    local kind = isPax ? "pax" : "freight";
+    local monthlyProd = 0;
+    if (sub.srcType == AISubsidy.SPT_INDUSTRY) {
+      monthlyProd = AIIndustry.GetLastMonthProduction(sub.srcId, cargo);
+      if (monthlyProd <= 0) continue;
+      if (sub.dstType == AISubsidy.SPT_INDUSTRY) {
+        if (!AIIndustry.IsCargoAccepted(sub.dstId, cargo)) continue;
+      } else if (sub.dstType == AISubsidy.SPT_TOWN && !isPax) {
+        if (AITown.GetPopulation(sub.dstId) < 200) {
+          local truckRadius = AIStation.GetCoverageRadius(AIStation.STATION_TRUCK_STOP);
+          if (AITile.GetCargoAcceptance(dstTile, cargo, 1, 1, truckRadius) < 8) continue;
+        }
+      }
+    } else {
+      local pop = AITown.GetPopulation(sub.srcId);
+      if (pop < 150) continue;
+      monthlyProd = AITown.GetLastMonthProduction(sub.srcId, cargo);
+      if (monthlyProd <= 0) {
+        monthlyProd = isPax ? (pop * 15) / 100 : 20;
+      }
+      if (monthlyProd <= 0) monthlyProd = 20;
+    }
+
+    // Garde 5 : Distance Manhattan dans les bornes routieres
+    local distance = AIMap.DistanceManhattan(srcTile, dstTile);
+    local maxDist = ("roadGenMax" in roadBounds) ? roadBounds.roadGenMax : roadBounds.roadMax;
+    if (distance < roadBounds.roadMin || distance > maxDist) continue;
+
+    // Garde 6 : Verifier si la liaison est deja abandonnee ou deja servie
+    if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
+      local aKey = "subsidy|" + subId;
+      if (aKey in abandonedPairs) continue;
+    }
+    local alreadyServed = false;
+    foreach (l in lines) {
+      if (("isSubsidy" in l) && l.isSubsidy && ("subsidyId" in l) && l.subsidyId == subId) {
+        alreadyServed = true;
+        break;
+      }
+    }
+    if (alreadyServed) continue;
+
+    // Evaluation economique de base
+    local economics = OpexRoadLineEconomics(catalog, cargo, distance, monthlyProd, engine, kind);
+    if (economics == null || economics.profitAnnual <= 0) continue;
+
+    // Bonus de subvention applique sur les revenus de la premiere annee
+    local baseRev = economics.revenueAnnual;
+    local subRev = (baseRev * multiplier).tointeger();
+    local subProfit = subRev - economics.runningAnnual - economics.amortAnnual;
+    if (subProfit <= 0) continue;
+
+    local totalCapital = economics.capital + (("immobilise" in economics) ? economics.immobilise : 0);
+    local freightBonus = (FLAT_BONUS && kind == "freight") ? 140 : 100;
+    local effectiveRoi = (subProfit > 0 && totalCapital > 0) ? (subProfit * 1000) / totalCapital : 0;
+    if (freightBonus != 100) effectiveRoi = (effectiveRoi * freightBonus) / 100;
+    local iterations = OpexRoadIterations(distance);
+
+    candidates.append({
+      mode = "road",
+      kind = kind,
+      cargo = cargo,
+      src = srcTile,
+      dst = dstTile,
+      srcTown = srcTown,
+      dstTown = dstTown,
+      distance = distance,
+      monthly = monthlyProd,
+      engine = engine,
+      trains = economics.trains,
+      carried = economics.carried,
+      capital = economics.capital,
+      immobilise = ("immobilise" in economics) ? economics.immobilise : 0,
+      roi = effectiveRoi,
+      freightBonus = freightBonus,
+      isTransformer = false,
+      profitAnnual = subProfit,
+      revenueAnnual = subRev,
+      runningAnnual = economics.runningAnnual,
+      amortAnnual = economics.amortAnnual,
+      oneWayDays = economics.oneWayDays,
+      effectiveSpeed = economics.effectiveSpeed,
+      iterations = iterations,
+      ratio = iterations > 0 ? (subProfit * 1000) / iterations : 0,
+      isSubsidy = true,
+      subsidyId = subId,
+      subsidyMultiplier = multiplier
+    });
+
+    if (C42_SUBSIDY_LOG || DECISION_LOG) {
+      OpexDecide("SUBSIDY_CANDIDATE", "sub=" + subId + " cargo=" + AICargo.GetCargoLabel(cargo)
+                 + " dist=" + distance + " mult=" + multiplier + " profit=" + subProfit
+                 + " roi=" + effectiveRoi + " cap=" + economics.capital);
+    }
+  }
+
+  return candidates;
+}
