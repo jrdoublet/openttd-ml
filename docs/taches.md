@@ -1689,7 +1689,11 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   - **Filtrage amont des offres déjà couvertes** : détection bidirectionnelle et inter-modes (`OpexSubsidyMatchingLineId`), élimination des doublons et gardes physiques dès la génération.
   - **Contrôle systématique de l'acceptation destination** : suppression du raccourci `pop < 200`, vérification stricte `AITile.GetCargoAcceptance >= ROAD_ACCEPTANCE_FULL_UNIT` (8) pour éviter les rejets `SITEB` et abandons injustifiés.
   - **Délai de chantier dérivé et urgence (`OpexSubsidyChantierDays`)** : remplacement du seuil fixe de 180j par l'estimation physique du temps de mise en service ($70\text{j} + \text{oneWayDays}$) et suivi de la marge d'urgence $\text{slackDays}$.
-  - **Validation en cours** : banc officiel 20 graines × 10 ans apparié avant adoption au défaut.
+  - **Banc officiel 20×10 (`results/bench_c42_subsidies_10y_20seeds.json`, 2026-09-11)** :
+    - 0 échec NoAI (40/40 runs valides).
+    - CV moyen : £17,21M (candidat) vs £17,98M (baseline), soit -4,27% (écart apparié +4,46% en faveur de baseline, 12 victoires baseline vs 8 victoires candidat).
+    - Amélioration nette vs version non corrigée (-6,91%, 2 victoires seulement). Le candidat surperforme fortement sur 3 graines (+26,4% sur graine 123456, +12,9% sur 512, +11,0% sur 65537), mais sous-performe quand les lignes de subvention routières consomment le tour de cycle rare au détriment de l'aérien (illustrant la règle C44).
+    - **Décision** : Fonctionnalité committée et robuste, maintenue sous réglage optionnel (`c42_subsidies = 0` par défaut).
 
 - 🔶 **C43 / E3 — Audit des constantes en dur.** 46 `const` contre 35 réglages exposés, sans revue
   systématique. Trois issues : **exposer** (décisionnelle), **vérifier** (prétend traduire une règle
