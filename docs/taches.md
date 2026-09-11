@@ -1336,8 +1336,40 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
        - La totalité du gain de rentabilité (+426 k£ CV moyenne, +1.57 M£ CV médiane, +3.0 % profit annuel) provient du non-stop (`c53_order_nonstop=1`).
        - L'ajout de `c53_order_noload` n'apporte aucun gain économique mesurable (+73 k£ au total sur 200 années-graines cumulées), mais introduit une baisse artificielle de la note de gare (`median_station_rating` -1.9 %) car l'interdiction de charger fait déchoir la note d'acceptation de fret au terminus.
   6. 🟩 **Conclusion et arbitrage** :
-     - **`c53_order_nonstop`** : Validé physiquement et économiquement (+2.46% CV, +9.00% médiane, +3.00% profit). Candidat à l'adoption par défaut.
-     - **`c53_order_noload`** : Inerte économiquement (85 à 90 % de seeds identiques), dégrade la note de gare sans gain de rotation. À laisser désactivé par défaut (`c53_order_noload=0`).
+     - **`c53_order_nonstop`** : Validé physiquement et économiquement (+2.46% CV, +9.00% médiane, +3.00% profit). **Adopté par défaut à 1 dans `ai/OpexAI/info.nut` le 2026-09-11.**
+     - **`c53_order_noload`** : Inerte économiquement (85 à 90 % de seeds identiques), dégrade la note de gare sans gain de rotation. Laissé désactivé par défaut (`c53_order_noload=0`).
+
+
+- 🔴 **C59 — Étude sur les ordres de véhicules en fonction du chargement (fret vs passagers), de la distance et du mode de transport.**
+  📝 Ouverte le 2026-09-11 sur demande utilisateur, suite aux enseignements de C53.
+
+  ### Origine et problématique
+  C53 a montré que les ordres uniformes ne se valent pas : `OF_NON_STOP_INTERMEDIATE` apporte un gain franc (+9% de valeur médiane), tandis que `OF_NO_LOAD` au terminus de fret est économiquement inopérant tout en dégradant la note de gare. Aujourd'hui, les drapeaux de chargement d'OpexAI sont pilotés soit par des interrupteurs globaux (`pax_full_load`, `air_full_load`), soit par des décisions figées dans les constructeurs (`builder_road.nut`, `builder_rail.nut`, `builder_air.nut`).
+  
+  Or, la pertinence d'un ordre (chargement complet `OF_FULL_LOAD_ANY`, chargement partiel au fil de l'eau `OF_NONE`, déchargement seul `OF_UNLOAD`, etc.) dépend intimement d'un triplet :
+  1. **Nature de la cargaison (fret vs passagers / courrier)** :
+     - **Passagers / courrier** : liaisons bidirectionnelles symétriques. Le chargement complet (`FULL_LOAD`) immobilise le véhicule jusqu'à remplissage, ce qui espacerait les passages et ferait chuter la note de station (`AITown` déteste l'irrégularité de desserte).
+     - **Fret pondéreux** : flux souvent asymétriques (source vers puits). Si le taux d'émission source est faible, `FULL_LOAD` bloque un véhicule coûteux à quai ; s'il est fort, il maximise le revenu par voyage.
+  2. **Distance de la liaison** :
+     - **Courte distance** (ex: navettes routières de rabattement < 30 tuiles) : la fréquence prime. Le coût de fonctionnement par kilomètre est faible, mais le blocage d'une baie par un véhicule en attente paralyse l'infrastructure partagée.
+     - **Longue distance** (ex: trains lourds interurbains > 100 tuiles, lignes aériennes > 60 tuiles) : le coût de circulation (`runningCost`) domine. Faire voyager un train ou un avion à demi vide est un gaspillage lourd de capital. Le chargement complet y est mathématiquement plus rentable.
+  3. **Mode de transport et capacité d'infrastructure** :
+     - **Route** : faible capacité unitaire, rotation rapide, gares à capacité d'accueil minimale (1-2 baies). Le risque de congestion de quai sous `FULL_LOAD` est maximal.
+     - **Rail** : coût fixe et courant très élevé par convoi, quais multiples. Amortir la rame est crucial, mais un train en attente peut bloquer un aiguillage ou une tête de ligne.
+     - **Air** : goulot d'étranglement sévère sur les pistes et les places de stationnement d'aéroport. Une attente excessive au point de débarquement/embarquement bloque les avions en approche dans les airs.
+     - **Eau** : très grande capacité, très lente vitesse de croisière.
+
+  ### Programme d'étude
+  1. ⬜ **Cartographie empirique** : instrumenter l'outil de décodage `sweeps/diag_c53_orders.py` pour corréler, sur les sauvegardes réelles, le triplet `(mode, type_cargo, distance_manhattan)` avec :
+     - Le taux de remplissage effectif au départ (`VEHS.cargo_count / VEHS.cargo_cap`).
+     - Le temps d'immobilisation moyen à quai.
+     - La rentabilité unitaire de la ligne (`profit / véhicule`).
+     - La note de gare résultante.
+  2. ⬜ **Définition de règles de décision contextuelles** : concevoir une politique dynamique d'ordres par convoi plutôt que par interrupteur global :
+     - Ex: `FULL_LOAD` uniquement si `distance >= seuil_distance(mode)` ET `production_mensuelle >= seuil_production(capacite_vehicule)`.
+  3. ⬜ **Évaluation comparative** :
+     - Diagnostic physique 5 graines × 6 ans pour vérifier les nouveaux ordres par mode/cargo.
+     - Banc officiel apparié 20 graines × 10 ans pour validation économique avant adoption.
 
 - 🟢 **C51 — Validation et clôture du portefeuille v2 (défaut consolidé, legacy supprimé le 2026-09-11).**
   📝 Archéologie faite le 2026-09-10, banc lancé le même jour.

@@ -1894,13 +1894,13 @@ Le mode route est donc reconfirme sur l arbre courant.
     });
 
     /* C53 : Application de OF_NON_STOP_INTERMEDIATE aux ordres des gares routieres et ferroviaires :
-     * 1 = actif (evite les arrets parasites aux arrets/gares intermediaires, comme AAAHogEx),
-     * 0 = inactif (defaut historique, arret possible sur toute plateforme traversee). */
+     * 1 = actif (defaut valide au banc 20x10 le 2026-09-11, evite les arrets parasites comme AAAHogEx),
+     * 0 = inactif (mode historique, arret possible sur toute plateforme traversee). */
     AddSetting({
       name = "c53_order_nonstop",
-      description = "Apply OF_NON_STOP_INTERMEDIATE to road and rail station orders: 1 = enabled, 0 = disabled (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "Apply OF_NON_STOP_INTERMEDIATE to road and rail station orders: 1 = enabled (default), 0 = disabled",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
