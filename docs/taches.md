@@ -635,6 +635,42 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   - Le verrou **pax** reste non identifié (l'étape 1 a montré que ce n'est pas `OpexOriginServed`) :
     instrumenter `OpexRoadPairServed` et le plafond `4 + pop/300` côté génération.
 
+- 🟡 **C57 — Calibrer `WATER_LAKES_OPS`, posé à 50 000 sans aucune mesure.**
+  📝 Ouverte le 2026-09-11 en adoptant C56. **Le correctif est adopté, sa valeur ne l'est pas.**
+
+  ### Le fait
+
+  `WATER_LAKES_OPS = 50 000` (`ai/OpexAI/lib_water.nut`) est un **premier jet**, écrit comme tel
+  dans le code. Il borne `_MinchinWeb_Lakes_::FindPath` en opcodes et empêche le gel — mais rien ne
+  dit qu'il est au bon niveau.
+
+  ⚠️ **Ce que les 12 ex æquo du banc C56 disent, et ce qu'ils ne disent PAS.** Ils disent que le
+  budget **ne mord presque jamais** : sur 12 graines, la trajectoire est identique au pound près.
+  Ils ne disent **pas** que 50 000 est bien choisi. Les deux erreurs possibles sont opposées et
+  aucune n'est mesurée :
+  - **trop haut** → on paie jusqu'à 50 000 opcodes par paire non conclue avant d'abandonner, dans
+    une boucle qui voit toutes les paires de sites ;
+  - **trop bas** → on écarte des liaisons maritimes **réellement connectées**, et l'IA s'interdit
+    des lignes rentables sans jamais le savoir (`connected != true` → `continue`, silencieux).
+
+  ### Étapes
+
+  1. ⬜ **Mesurer d'abord la distribution**, avant de toucher à la valeur : sous sonde, journaliser
+     pour chaque appel à `OpexWaterLakesConnected` les opcodes consommés **et** l'issue (connecté /
+     pas de chemin / budget épuisé). Sans cet histogramme, tout nouveau chiffre serait un deuxième
+     jet aveugle.
+     🔑 La question qui tranche : **la distribution est-elle bimodale ?** Si les recherches qui
+     aboutissent coûtent toutes très peu et que seules les pathologiques explosent, il existe un
+     seuil franc et le réglage est facile. Sinon, il y a un arbitrage réel à faire.
+  2. ⬜ Balayage de la valeur (p. ex. 5 000 / 20 000 / 50 000 / 200 000) sur les graines qui
+     exercent vraiment l'eau, en comptant les paires **perdues** par budget, pas seulement la valeur.
+  3. ⬜ Banc officiel 20×10 apparié sur la valeur retenue si elle diffère de 50 000.
+
+  ⚠️ **Ne pas confondre avec C56** : C56 a établi qu'un budget *en opcodes* est nécessaire — ce point
+  est acquis et mesuré. C57 ne porte que sur le **niveau**.
+  🔗 Lié à [[philosophie_opcodes_ressource]] : c'est exactement un arbitrage opcode contre
+  information.
+
 - 🔴 **C56 — LA GRAINE 2026 EST MORTE : l'IA s'arrête après 1970, et ça fausse tous nos bancs.**
   📝 Ouverte le 2026-09-11, **découverte par accident** en mesurant l'exposition des événements C52.
 

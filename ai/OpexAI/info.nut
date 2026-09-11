@@ -346,9 +346,9 @@ class OpexAIInfo extends AIInfo {
 
     AddSetting({
       name = "water_lakes_ops_budget",
-      description = "Experimental MinchinWeb.Lakes opcode budget: 1 = stop an unresolved water search after 50000 opcodes, 0 = iteration-only budget (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
+      description = "MinchinWeb.Lakes opcode budget: 1 = stop an unresolved water search after 50000 opcodes (default, adopted on the 20x10 bench of 2026-09-11), 0 = iteration-only budget, which can freeze the AI for the rest of the game",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 

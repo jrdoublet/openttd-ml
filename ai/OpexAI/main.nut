@@ -125,7 +125,9 @@ C41_WATER_SITE_PROFILE <- false;
  * ai/OpexAI/lib_water.nut. Defaut aligne sur info.nut (custom_value = 1). */
 WATER_LAKES_CONNECTIVITY <- true;
 /* Coupe experimentale de Lakes en opcodes ; 0 conserve le plafond d'iterations seul. */
-WATER_LAKES_OPS_BUDGET <- false;
+/* C56 : adopte a defaut 1 le 2026-09-11. Sans ce budget, FindPath peut ne jamais rendre la
+ * main et figer l'IA pour le reste de la partie (3 graines du banc sur 20). */
+WATER_LAKES_OPS_BUDGET <- true;
 /* Catalogue persistant par ville des sites de dock (positifs et negatifs exhaustifs). Le
  * reglage 0 conserve le rescannage historique uniquement pour le banc apparie. */
 WATER_SITE_CATALOG <- false;
