@@ -715,13 +715,26 @@ function OpexIncrementalCandidateStillValid(p, lines, abandonedPairs = null)
       local startYear = 1970;
       if (currCount >= maxFeeders || (slot >= 1 && (currYear - startYear) < 2)) return false;
     } else {
-      if (C55_FREIGHT_ORIGIN_RELAX && p.kind == "freight") {
+      if (C55_ROAD_ORIGIN_RELAX) {
+        if (p.kind == "freight") {
+          local srcServed = OpexOriginServed(lines, p.src, true);
+          local dstServed = OpexOriginServed(lines, p.dst, true);
+          if (srcServed && dstServed) return false;
+          if (OpexRoadFreightBusy(lines, p.cargo, p.src) ||
+              OpexRoadFreightBusy(lines, p.cargo, p.dst)) return false;
+        } else if (p.kind == "pax") {
+          if (OpexRoadPairServed(lines, p.src, p.dst)) return false;
+          if (OpexTownRoadLineCount(lines, p.src) >= 4) return false;
+          if (OpexTownRoadLineCount(lines, p.dst) >= 4) return false;
+        }
+      } else if (C55_FREIGHT_ORIGIN_RELAX && p.kind == "freight") {
         local srcServed = OpexOriginServed(lines, p.src, true);
         local dstServed = OpexOriginServed(lines, p.dst, true);
         if (srcServed && dstServed) return false;
         /* Une seule paire est revalidee : une boucle directe evite de construire un index. */
         if (OpexRoadFreightBusy(lines, p.cargo, p.src) ||
             OpexRoadFreightBusy(lines, p.cargo, p.dst)) return false;
+        if (p.kind == "pax" && OpexRoadPairServed(lines, p.src, p.dst)) return false;
       } else if (C55_ORIGIN_RELAX_PROBE) {
         /* Lecture seule : les deux memes predicates que le chemin livre, evalues avant de
          * reprendre exactement son OR. Aucun resultat de selection n'est modifie. */
@@ -729,17 +742,36 @@ function OpexIncrementalCandidateStillValid(p, lines, abandonedPairs = null)
         local dstServed = OpexOriginServed(lines, p.dst, true);
         OpexC55OriginRelaxObserve(p.kind, lines, p.src, p.dst, srcServed, dstServed);
         if (srcServed || dstServed) return false;
+        if (p.kind == "pax" && OpexRoadPairServed(lines, p.src, p.dst)) return false;
       } else {
         if (OpexOriginServed(lines, p.src, true)) return false;
         if (OpexOriginServed(lines, p.dst, true)) return false;
+        if (p.kind == "pax" && OpexRoadPairServed(lines, p.src, p.dst)) return false;
       }
-      if (p.kind == "pax" && OpexRoadPairServed(lines, p.src, p.dst)) return false;
+      local towns = OpexGetCandidateTownEndpoints(p);
+      if (C60_TOWN_RATING_PROBE) {
+        if (towns.srcTown >= 0) OpexC60ObserveTownRating("road", "incremental_valid", towns.srcTown);
+        if (towns.dstTown >= 0) OpexC60ObserveTownRating("road", "incremental_valid", towns.dstTown);
+      }
+      if (C60_TOWN_RATING_FILTER) {
+        if ((towns.srcTown >= 0 && !OpexTownRatingAllowStation(towns.srcTown)) ||
+            (towns.dstTown >= 0 && !OpexTownRatingAllowStation(towns.dstTown))) return false;
+      }
     }
     return true;
   }
 
   /* 3. Mode rail : les deux extremites servies excluent la ligne */
   if (mode == "rail") {
+    local towns = OpexGetCandidateTownEndpoints(p);
+    if (C60_TOWN_RATING_PROBE) {
+      if (towns.srcTown >= 0) OpexC60ObserveTownRating("rail", "incremental_valid", towns.srcTown);
+      if (towns.dstTown >= 0) OpexC60ObserveTownRating("rail", "incremental_valid", towns.dstTown);
+    }
+    if (C60_TOWN_RATING_FILTER) {
+      if ((towns.srcTown >= 0 && !OpexTownRatingAllowStation(towns.srcTown)) ||
+          (towns.dstTown >= 0 && !OpexTownRatingAllowStation(towns.dstTown))) return false;
+    }
     if (OpexOriginServed(lines, p.src, false) && OpexOriginServed(lines, p.dst, false)) {
       return false;
     }
@@ -750,6 +782,16 @@ function OpexIncrementalCandidateStillValid(p, lines, abandonedPairs = null)
   if (mode == "air") {
     local plan = p.payload;
     if (plan == null) return false;
+    if (C60_TOWN_RATING_PROBE) {
+      if (("siteA" in plan) && ("town" in plan.siteA)) OpexC60ObserveTownRating("air", "incremental_valid", plan.siteA.town.id);
+      if ("siteB" in plan && ("town" in plan.siteB)) OpexC60ObserveTownRating("air", "incremental_valid", plan.siteB.town.id);
+    }
+    if (C60_TOWN_RATING_FILTER) {
+      if ((("siteA" in plan) && ("town" in plan.siteA) && OpexTownRatingHopeless(plan.siteA.town.id)) ||
+          (("siteB" in plan) && ("town" in plan.siteB) && OpexTownRatingHopeless(plan.siteB.town.id))) {
+        return false;
+      }
+    }
     if (!OpexAirBatchPlanStillLive(plan, lines)) return false;
     if (!OpexAirBatchSiteStillBuildable(plan.siteA, plan.airport, plan.plane,
                                          ("reuseA" in plan) && plan.reuseA)) {

@@ -274,6 +274,15 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C52 #7 : sonde ET_STATION_FIRST_VEHICLE */
+    AddSetting({
+      name = "c52_station_first_vehicle_log",
+      description = "C52 #7: log ET_STATION_FIRST_VEHICLE events (station, vehicle, mode, cargo, line, initial rating) without changing decisions: 1 = probe, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     AddSetting({
       name = "c56_task_trace",
       description = "C56: immediately trace selected task entry, task exit, and every 200th main-loop turn without changing decisions: 1 = probe, 0 = off (default)",
@@ -839,6 +848,36 @@ class OpexAIInfo extends AIInfo {
     AddSetting({
       name = "c55_freight_origin_relax",
       description = "C55: relax road freight origin service from OR to AND while keeping one exact same-cargo road or rail hookup per endpoint; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* C55 etape 5 : relache le verrou OR de toute la route (fret AND+busy, pax dispense de OpexOriginServed). */
+    AddSetting({
+      name = "c55_road_origin_relax",
+      description = "C55: relax road origin service across all road. Frees PAX from OpexOriginServed to restore star topology, and relaxes Freight from OR to AND with busy check; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* C60 : Sonde d'exposition aux notes municipales. Mesure la frequence a laquelle des
+     * candidats ou chantiers ciblent des villes refusant les gares (rating <= VERY_POOR). */
+    AddSetting({
+      name = "c60_town_rating_probe",
+      description = "C60 probe: measure exposure to municipal authority refusals; logs evaluations by town rating tier and mode; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* C60 : Filtre proactif de note municipale (SuperLib.Town::TownRatingAllowStationBuilding).
+     * Ecarte en amont les villes refusant les constructions de gares avant de lancer les
+     * recherches de site ou le trace routier/ferroviaire. */
+    AddSetting({
+      name = "c60_town_rating_filter",
+      description = "C60 filter: proactively reject candidate town endpoints refusing station building before site search or pathfinding; 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN

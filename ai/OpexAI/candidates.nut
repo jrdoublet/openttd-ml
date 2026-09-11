@@ -553,6 +553,128 @@ function OpexRailOriginSitable(tile, cargo, coverage, wantProduction)
   return false;
 }
 
+/* C60 : Rend true si la tolerance municipale est permissive (difficulty.town_council_tolerance == 0).
+ * Sous ce reglage de partie, OpenTTD autorise toujours la construction de gares et d'infrastructures
+ * independamment de la note de la compagnie. */
+function OpexTownCouncilTolerancePermissive()
+{
+  if (AIGameSettings.IsValid("difficulty.town_council_tolerance")) {
+    return AIGameSettings.GetValue("difficulty.town_council_tolerance") == 0;
+  }
+  return false;
+}
+
+/* C60 : Extrait de facon robuste les IDs de ville aux deux extremites d'un candidat ou projet.
+ * 1. Lit srcTown/dstTown depuis la charge utile ou le candidat direct (couvre la route,
+ *    le rail pax, et le fret a destination/origine urbaine).
+ * 2. Pour les liaisons passager, convertit les tuiles via AITile.GetClosestTown si non renseigne.
+ * Rend { srcTown = ..., dstTown = ... } avec -1 pour les extremites non urbaines. */
+function OpexGetCandidateTownEndpoints(candidate)
+{
+  local res = { srcTown = -1, dstTown = -1 };
+  if (candidate == null) return res;
+
+  local cand = ("payload" in candidate && candidate.payload != null) ? candidate.payload : candidate;
+
+  if (("srcTown" in cand) && cand.srcTown >= 0) res.srcTown = cand.srcTown;
+  if (("dstTown" in cand) && cand.dstTown >= 0) res.dstTown = cand.dstTown;
+
+  local isPax = (("kind" in candidate) && candidate.kind == "pax") ||
+                (("kind" in cand) && cand.kind == "pax");
+
+  if (isPax) {
+    if (res.srcTown < 0) {
+      local sTile = ("src" in candidate) ? candidate.src : (("src" in cand) ? cand.src : -1);
+      if (AIMap.IsValidTile(sTile)) res.srcTown = AITile.GetClosestTown(sTile);
+    }
+    if (res.dstTown < 0) {
+      local dTile = ("dst" in candidate) ? candidate.dst : (("dst" in cand) ? cand.dst : -1);
+      if (AIMap.IsValidTile(dTile)) res.dstTown = AITile.GetClosestTown(dTile);
+    }
+  }
+
+  return res;
+}
+
+/* C60 : Extrait un ID de ville valide depuis une extremite (ID, tuile, ou table). */
+function OpexTownIdFromEndpoint(endpoint)
+{
+  if (endpoint == null) return -1;
+  if (typeof endpoint == "table") {
+    if ("town" in endpoint && "id" in endpoint.town) return endpoint.town.id;
+    if ("srcTown" in endpoint && endpoint.srcTown >= 0) return endpoint.srcTown;
+    if ("dstTown" in endpoint && endpoint.dstTown >= 0) return endpoint.dstTown;
+    if ("tile" in endpoint) return AITile.GetClosestTown(endpoint.tile);
+  }
+  if (AITown.IsValidTown(endpoint)) return endpoint;
+  if (AIMap.IsValidTile(endpoint)) return AITile.GetClosestTown(endpoint);
+  return -1;
+}
+
+/* C60 : Verifie si la note municipale autorise la construction d'une gare.
+ * Adapte de SuperLib.Town::TownRatingAllowStationBuilding.
+ * 1. Si town_council_tolerance == 0 (permissif), OpenTTD autorise toujours la construction.
+ * 2. Sinon, en OpenTTD (town_cmd.cpp), une commune refuse la construction de gare
+ *    (ERR_LOCAL_AUTHORITY_REFUSES) si la note de la compagnie est <= TOWN_RATING_VERY_POOR
+ *    (<= -200 en note brute).
+ * Rend true si tolerance permissive, note == TOWN_RATING_NONE (aucun historique),
+ * ou note > TOWN_RATING_VERY_POOR (POOR, MEDIOCRE, GOOD, etc.). */
+function OpexTownRatingAllowStation(townId)
+{
+  if (OpexTownCouncilTolerancePermissive()) return true;
+  if (!AITown.IsValidTown(townId)) return false;
+  local rating = AITown.GetRating(townId, AICompany.COMPANY_SELF);
+  return rating == AITown.TOWN_RATING_NONE || rating > AITown.TOWN_RATING_VERY_POOR;
+}
+
+/* C60 : Rend true si la commune est sans espoir immediat pour la construction de gare.
+ * 1. Si mode permissif (tolerance == 0) : jamais de refus municipal, donc jamais sans espoir.
+ * 2. Le palier TOWN_RATING_APPALLING couvre les notes brutes de -1000 a -400. Or 40 arbres
+ *    apportent jusqu'a +280 points : une note entre -479 et -400 remonte ainsi au-dessus du
+ *    seuil de -200 (dans TOWN_RATING_POOR). L'API NoAI ne fournissant pas la note brute,
+ *    declarer APPALLING irrecuperable ecarterait des communes que la plantation d'arbres
+ *    reactive peut sauver. On rend donc false pour preserver le recours reactif. */
+function OpexTownRatingHopeless(townId)
+{
+  return false;
+}
+
+/* C60 : Sonde d'observation d'exposition aux notes municipales. */
+function OpexC60ObserveTownRating(mode, phase, townId)
+{
+  if (!AITown.IsValidTown(townId)) return true;
+  local rating = AITown.GetRating(townId, AICompany.COMPANY_SELF);
+  local allowed = (rating == AITown.TOWN_RATING_NONE || rating > AITown.TOWN_RATING_VERY_POOR);
+
+  if (C60_TOWN_RATING_LEDGER != null) {
+    C60_TOWN_RATING_LEDGER.checks++;
+    if (rating == AITown.TOWN_RATING_NONE) C60_TOWN_RATING_LEDGER.none++;
+    else if (rating == AITown.TOWN_RATING_APPALLING) C60_TOWN_RATING_LEDGER.appalling++;
+    else if (rating == AITown.TOWN_RATING_VERY_POOR) C60_TOWN_RATING_LEDGER.very_poor++;
+    else C60_TOWN_RATING_LEDGER.ok++;
+
+    if (mode in C60_TOWN_RATING_LEDGER.by_mode) {
+      C60_TOWN_RATING_LEDGER.by_mode[mode].checks++;
+      if (!allowed) C60_TOWN_RATING_LEDGER.by_mode[mode].refused++;
+    }
+  }
+
+  if (!allowed || (DECISION_LOG && rating != AITown.TOWN_RATING_NONE)) {
+    local rName = (rating == AITown.TOWN_RATING_NONE) ? "none"
+                : ((rating == AITown.TOWN_RATING_APPALLING) ? "appalling"
+                : ((rating == AITown.TOWN_RATING_VERY_POOR) ? "very_poor"
+                : ((rating == AITown.TOWN_RATING_POOR) ? "poor"
+                : ((rating == AITown.TOWN_RATING_MEDIOCRE) ? "mediocre"
+                : ((rating == AITown.TOWN_RATING_GOOD) ? "good"
+                : ((rating == AITown.TOWN_RATING_VERY_GOOD) ? "very_good"
+                : ((rating == AITown.TOWN_RATING_EXCELLENT) ? "excellent"
+                : "outstanding")))))));
+    OpexDecide("TOWN_RATING_EXPOSURE", "mode=" + mode + " phase=" + phase + " town=" + townId + " rating=" + rating + " rating_name=" + rName + " allow=" + (allowed ? 1 : 0));
+  }
+
+  return allowed;
+}
+
 function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, originServed, stats, isTransformer = false, profile = null, cruiseCache = null)
 {
   if (monthly <= 0) {
@@ -1244,6 +1366,13 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
     foreach (b in neighbors) {
       local pairDistance = AIMap.DistanceManhattan(towns[a].tile, towns[b].tile);
       if (!OpexRailPaxPairInBand(bounds, pairDistance, paxBand)) continue;
+      if (C60_TOWN_RATING_PROBE) {
+        OpexC60ObserveTownRating("rail", "candidate_gen", towns[a].id);
+        OpexC60ObserveTownRating("rail", "candidate_gen", towns[b].id);
+      }
+      if (C60_TOWN_RATING_FILTER) {
+        if (!OpexTownRatingAllowStation(towns[a].id) || !OpexTownRatingAllowStation(towns[b].id)) continue;
+      }
       if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
         local tA = towns[a].id;
         local tB = towns[b].id;
@@ -1303,6 +1432,8 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
         profile.paxCandidateCalls++;
       }
       if (candidate != null) {
+        candidate.srcTown <- towns[a].id;
+        candidate.dstTown <- towns[b].id;
         if (JOIN_PLACE && (OpexAbandonedPairKey(candidate) in stats.placeJoinKeys)) {
           /* H2 porte deja le join ; ne pas occuper un second slot TOP_K. */
         } else {
@@ -1437,6 +1568,12 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
             continue;
           }
           if (townGuardMark != null) { profile.freightTownGuardsOps += OpexOpsMeasureEnd(townGuardMark); profile.freightTownGuardsCalls++; }
+          if (C60_TOWN_RATING_PROBE) {
+            OpexC60ObserveTownRating("rail", "candidate_gen", town.id);
+          }
+          if (C60_TOWN_RATING_FILTER) {
+            if (!OpexTownRatingAllowStation(town.id)) continue;
+          }
           local originServed = ss != null || st != null;
           if (originServed) stats.pairsOneServed++;
           local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
@@ -1861,6 +1998,13 @@ function OpexRoadPaxCandidates(catalog, lines, out, stats, abandonedPairs = null
       local maxLinesB = 4 + (towns[b].pop / 300);
       if (roadLinesPerTown[b] >= maxLinesB) continue;
       if (OpexRoadPairServed(lines, towns[a].tile, towns[b].tile)) continue;
+      if (C60_TOWN_RATING_PROBE) {
+        OpexC60ObserveTownRating("road", "candidate_gen", towns[a].id);
+        OpexC60ObserveTownRating("road", "candidate_gen", towns[b].id);
+      }
+      if (C60_TOWN_RATING_FILTER) {
+        if (!OpexTownRatingAllowStation(towns[a].id) || !OpexTownRatingAllowStation(towns[b].id)) continue;
+      }
       local distance = AIMap.DistanceManhattan(towns[a].tile, towns[b].tile);
       if (distance < roadBounds.roadMin || distance > roadBounds.roadMax) {
         if (distance < roadBounds.roadMin) stats.roadDistanceShort++;
@@ -1909,7 +2053,7 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
   local industries = catalog.industries;
   local towns = catalog.towns;
   local servedIndex = C41_ROAD_FREIGHT_SERVED_INDEX ? OpexRoadFreightServedIndex(lines) : null;
-  local freightBusy = C55_FREIGHT_ORIGIN_RELAX ? OpexRoadFreightBusyIndex(lines) : null;
+  local freightBusy = (C55_FREIGHT_ORIGIN_RELAX || C55_ROAD_ORIGIN_RELAX) ? OpexRoadFreightBusyIndex(lines) : null;
   local servedIndustry = [];
   for (local i = 0; i < industries.len(); i++) {
     servedIndustry.append(servedIndex != null
@@ -2049,6 +2193,12 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
         }
         if (acceptance < ROAD_ACCEPTANCE_FULL_UNIT) { stats.townRejected++; continue; }
         stats.pairsInBand++;
+        if (C60_TOWN_RATING_PROBE) {
+          OpexC60ObserveTownRating("road", "candidate_gen", towns[t].id);
+        }
+        if (C60_TOWN_RATING_FILTER) {
+          if (!OpexTownRatingAllowStation(towns[t].id)) continue;
+        }
         local candidateMark = (profile != null && C41_ROAD_FREIGHT_TOWN_PROFILE)
             ? OpexOpsMeasureBegin() : null;
         local candidate = OpexMakeRoadCandidate(catalog, "freight", cargo, source.tile,
@@ -2697,7 +2847,7 @@ function OpexGenerateSubsidyCandidates(catalog, lines, activeSubsidies, stats, a
       if (OpexRoadPairServed(lines, srcTile, dstTile)) continue;
       if (OpexTownRoadLineCount(lines, srcTile) >= 4 || OpexTownRoadLineCount(lines, dstTile) >= 4) continue;
     } else {
-      if (C55_FREIGHT_ORIGIN_RELAX) {
+      if (C55_FREIGHT_ORIGIN_RELAX || C55_ROAD_ORIGIN_RELAX) {
         local srcServed = OpexOriginServed(lines, srcTile, true);
         local dstServed = OpexOriginServed(lines, dstTile, true);
         if (srcServed && dstServed) continue;

@@ -443,6 +443,12 @@ function OpexAirLevelFootprint(anchor, airport, townId = -1)
  * pas seulement contre son coin. */
 function OpexAirFindSite(town, airport, probes)
 {
+  if (C60_TOWN_RATING_PROBE) {
+    OpexC60ObserveTownRating("air", "find_site", town.id);
+  }
+  if (C60_TOWN_RATING_FILTER && OpexTownRatingHopeless(town.id)) {
+    return null;
+  }
   local key = town.id + "_" + airport.type;
   if (AIR_SITE_CACHE_ENABLED && (key in AIR_SITE_CACHE)) {
     local cachedAnchor = AIR_SITE_CACHE[key];

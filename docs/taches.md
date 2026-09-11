@@ -626,14 +626,40 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   pas la génération de candidats qui manque, c'est leur élection ou leur financement.
   ⚠️ Même leçon que le pathfinder segmenté (A5) : *des candidats en plus qui ne paient pas*.
 
+  ### ✅ ÉTAPE 5 : Révélation du bug architectural PAX et conception de `c55_road_origin_relax` (2026-09-12)
+
+  L'analyse approfondie confiée à Gemini 3.1 Pro ([`06_c55_road_origin_relax_diagnostic.md`](file:///home/deploy/.gemini/antigravity-cli/brain/59222989-34af-4ee3-bc76-980fd256fa0b/06_c55_road_origin_relax_diagnostic.md)) a éclairci le mystère du verdict nul de l'étape 4 et du verrou passager :
+
+  1. **Pourquoi le banc fret était neutre (+0,8 gare)** :
+     - Les candidats fret routier débloqués étaient géométriquement valides (86,1 % récupérés), mais économiquement non viables ou surclassés lors de la sélection face au train ou à l'air. Le fret routier ne représente qu'une fraction marginale du réseau d'OpexAI.
+     - Le goulot d'étranglement réel du réseau routier se situe sur les **passagers** (qui représentent ~364 gares sur 495).
+
+  2. **Le bug architectural du PAX routier identifié** :
+     - À l'étape 1, la sonde mesurait `one_served_pax = 0` car elle était placée uniquement là où le code *pensait* filtrer l'origine de manière voulue.
+     - **Génération (`candidates.nut:1856`)** : autorise explicitement une topologie en étoile (jusqu'à `4 + pop/300` lignes par ville) sans jamais appeler `OpexOriginServed`.
+     - **Construction (`main.nut:3422`)** : respecte la même logique, autorisant jusqu'à 4 lignes par commune (`OpexTownRoadLineCount < 4`) sans jamais appeler `OpexOriginServed`.
+     - 🔴 **Le piège dans la revalidation mensuelle (`projects.nut:733`)** :
+       ```squirrel
+       } else {
+         if (OpexOriginServed(lines, p.src, true)) return false;
+         if (OpexOriginServed(lines, p.dst, true)) return false;
+       }
+       ```
+       Comme `p.kind == "pax"` ne satisfaisait pas les branches spécialisées précédentes, il tombait dans le `else` par défaut, qui appliquait la guillotine `OpexOriginServed` (règle OU) sur le PAX !
+     - **Impact direct** : Dès qu'une ville reçoit sa toute première ligne routière, `OpexOriginServed` devient vrai. Tous les candidats passagers ultérieurs générés pour cette commune sont **purgés silencieusement lors du rafraîchissement mensuel**. Cela brise la topologie en étoile et explique directement la vacuité du vivier de projets dans 58 % des tours (C39).
+
+  3. **Conception de `C55_ROAD_ORIGIN_RELAX`** :
+     - Exempter totalement le mode PAX d'`OpexOriginServed` dans `projects.nut` pour harmoniser la revalidation avec `candidates.nut` et `main.nut`.
+     - Garde-fous préservés : `OpexTownRoadLineCount < 4` (évite l'engorgement urbain) et `OpexRoadPairServed(p.src, p.dst)` (interdit les doublons stricts A↔B).
+     - Fret routier : bascule en règle ET (`srcServed && dstServed`) couplée à `OpexRoadFreightBusy`.
+     - Plan : validation par diagnostic 5×6 puis banc officiel 20×10.
+
   ### Ce que C55 laisse ouvert
 
   - 🔴 **Le sur-service n'est TOUJOURS pas traité en configuration par défaut** : à
     `c55_freight_origin_relax=0`, c'est la guillotine géométrique qui le masque, et le RAIL
     (où le ET est déjà en vigueur, `basin_share=0`) n'a **aucune** protection. Une comptabilité de
     production restante par `(cargo, industrie)` reste une tâche à part entière, **non mesurée**.
-  - Le verrou **pax** reste non identifié (l'étape 1 a montré que ce n'est pas `OpexOriginServed`) :
-    instrumenter `OpexRoadPairServed` et le plafond `4 + pop/300` côté génération.
 
 - 🟡 **C57 — Calibrer `WATER_LAKES_OPS`, posé à 50 000 sans aucune mesure.**
   📝 Ouverte le 2026-09-11 en adoptant C56. **Le correctif est adopté, sa valeur ne l'est pas.**
@@ -1061,7 +1087,7 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   | 4 | `ET_VEHICLE_UNPROFITABLE` | compteur par ligne, puis `_triggerScrapLine()` au-delà d'un seuil | 🔑 **les 10 véhicules sur 191 jamais rentables, dont un qui perd de l'argent 9 ans de suite** | moyen |
   | 5 | `ET_AIRCRAFT_DEST_TOO_FAR` | mettre la ligne au rebut ou rétablir des ordres cohérents | avion aux ordres inexécutables | fort |
   | 6 | `ET_DISASTER_ZEPPELINER_*` | marquer l'aéroport bloqué, suspendre son expansion, lever au *cleared* | piste bloquée | faible en marquage, fort si les ordres changent |
-  | 7 | `ET_STATION_FIRST_VEHICLE` | **sonde seule** : mode, cargo, ligne, note initiale | établir si les ~46 gares fret sans note ont jamais été desservies | **aucun** |
+  | 7 | `ET_STATION_FIRST_VEHICLE` | ✅ **sonde livrée** (`c52_station_first_vehicle_log`) : mode, cargo, ligne, note initiale | établir si les ~46 gares fret sans note ont jamais été desservies | **aucun** |
   | 8 | subventions | offre → candidat de portefeuille | rendement des subventions | fort — **c'est C42, pas C52** |
   | 9 | `ET_ROAD_RECONSTRUCTION` | sonde de corrélation ville / lignes routières / véhicules perdus | la voirie municipale explique-t-elle des pertes ? | **aucun** |
 
@@ -1222,6 +1248,14 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
       3. La gestion au niveau de la ligne entière (`_scrapDeadLines` via `deadStreak` et `srcSuffering`) est déjà plus robuste.
     - Le réglage reste à défaut 0, seuil calibré à 3.
 
+  ### ✅ #7 SONDE `ET_STATION_FIRST_VEHICLE` IMPLÉMENTÉE (2026-09-11)
+
+  - **Objectif** : Établir si les ~46 gares fret sans note ont jamais été desservies par un véhicule.
+  - **Implémentation** : Réglage booléen `c52_station_first_vehicle_log` (défaut 0) dans `info.nut`, `main.nut`, et `sweeps/bench_v2.py`.
+  - **Événement et données extraites** : Lors de la réception de `AIEvent.ET_STATION_FIRST_VEHICLE`, capture pour toute station possédée par la compagnie :
+    `station` (ID), `vehicle` (ID), `mode` (rail, road, air, water), `kind` (pax, freight), `cargo` (étiquette), `line` (ID de ligne OpexAI via `OpexFindLineForVehicle`), `rating` (note initiale via `AIStation.HasCargoRating`/`GetCargoRating`, -1 si pas encore notée), `tile` (coordonnées de la gare).
+  - **Sortie** : Émise via `OpexDecide("STATION_FIRST_VEHICLE", ...)` sous `c52_station_first_vehicle_log=1` ou `decision_log=1`. Coût opcodes strictement nul à défaut 0.
+  - **Outil d'analyse** : Script de diagnostic et d'agrégation `sweeps/diag_c52_station_first_vehicle.py` livré avec auto-test (`--selftest` validé). Aucun banc lancé conformément à la consigne.
 
 - 🔴 **C58 — Post-mortem et audit prédictif via `ET_VEHICLE_UNPROFITABLE` : analyser les mauvais choix d'investissement.**
   📝 Ouverte le 2026-09-11 sur demande utilisateur, suite aux leçons de C52.
@@ -1370,6 +1404,53 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   3. ⬜ **Évaluation comparative** :
      - Diagnostic physique 5 graines × 6 ans pour vérifier les nouveaux ordres par mode/cargo.
      - Banc officiel apparié 20 graines × 10 ans pour validation économique avant adoption.
+
+- 🔴 **C60 — Filtre proactif de note municipale (`SuperLib.Town::TownRatingAllowStationBuilding`) : chiffrage d'exposition et garde anti-refus.**
+  📝 Ouverte le 2026-09-11 sur demande utilisateur, formalisant l'idée non chiffrée issue de SuperLib.
+
+  ### Contexte et mécanique du moteur
+  Dans OpenTTD (`town_cmd.cpp::CheckIfAuthorityAllowsNewStation`), une commune refuse la pose d'une gare (`ERR_LOCAL_AUTHORITY_REFUSES`) dès que la note de la compagnie dans la ville est inférieure ou égale à `RATING_VERY_POOR` (note brute ≤ −200), ce qui correspond aux enums NoAI `AITown.TOWN_RATING_VERY_POOR` et `AITown.TOWN_RATING_APPALLING`.
+  `SuperLib.Town::TownRatingAllowStationBuilding(town_id)` teste exactement cette condition en amont :
+  ```squirrel
+  function _SuperLib_Town::TownRatingAllowStationBuilding(town_id) {
+    local rating = AITown.GetRating(town_id, AICompany.COMPANY_SELF);
+    return rating == AITown.TOWN_RATING_NONE || rating > AITown.TOWN_RATING_VERY_POOR;
+  }
+  ```
+  La lecture de `AITown.GetRating` est quasi gratuite en opcodes (accès direct au tableau C++ du moteur).
+
+  ### Chiffrage empirique et analyse de l'exposition (audit des diagnostics historiques)
+  L'audit des diagnostics d'échecs de construction aérienne (`results/diag_air_afail_rect_end_6y_5seeds.json` et `results/diag_air_afail_cache_invalidate_6y_5seeds.json`) via l'outil dédié `sweeps/diag_c60_town_rating_exposure.py` a révélé les éléments suivants :
+  1. **Taux d'échec par refus municipal (`ERR_LOCAL_AUTHORITY_REFUSES`)** :
+     - Sur 59 échecs de construction d'aéroport (263 tentatives), **18 échecs (30,51 %)** sont enregistrés sous `ERR_LOCAL_AUTHORITY_REFUSES` (et 19/58 dans le diagnostic d'invalidation de cache).
+     - ⚠️ **Nuance capitale** : en OpenTTD, `ERR_LOCAL_AUTHORITY_REFUSES` sur un aéroport est un code générique recouvrant à la fois le refus par mauvaise note municipale (≤ −200) **et** le dépassement du plafond de bruit municipal (`station_noise_level`). Ces échecs ne prouvent donc pas à eux seuls une note `APPALLING` ni une hostilité purement réputationnelle.
+  2. **Analyse de la récupérabilité d'`APPALLING`** :
+     - L'échelon `TOWN_RATING_APPALLING` couvre les notes brutes de −1000 à −400.
+     - Une plantation de 40 arbres apporte jusqu'à +280 points de réputation (+7 par arbre, plafond 220).
+     - Une commune dont la note est comprise entre −479 et −400 peut ainsi remonter à plus de −200 (seuil de construction dans `TOWN_RATING_POOR`).
+     - L'API NoAI n'exposant que l'enum (0 à 8) et non la note brute, déclarer `APPALLING` irrécupérable éliminerait des communes que le recours réactif existant (`OpexBoostTownRating`) peut sauver. Le mode aérien conserve donc son recours réactif intact sans filtrage arbitraire proactif.
+  3. **Absence totale de recours réactif sur la route et le rail** :
+     - Contrairement au mode aérien, `builder_road.nut` et `builder_rail.nut` n'ont **aucun appel** à `OpexBoostTownRating`. Tout refus municipal sur un arrêt routier ou ferroviaire aboutit à un échec franc à 100 % après avoir dépensé le chemin A* et les poses d'infrastructures.
+
+  ### Architecture et implémentation consolidées (revue post-C60 intégrée)
+  1. **Fonctions d'évaluation et helpers (`candidates.nut`)** :
+     - `OpexTownCouncilTolerancePermissive()` : détecte si `difficulty.town_council_tolerance == 0` (mode permissif où OpenTTD autorise toute construction indépendamment de la note).
+     - `OpexTownRatingAllowStation(townId)` : test conforme à SuperLib (`NONE` ou `> VERY_POOR`), retourne `true` immédiatement en mode permissif.
+     - `OpexTownRatingHopeless(townId)` : retourne `false` afin de ne pas bloquer les communes `APPALLING` récupérables en mode aérien.
+     - `OpexGetCandidateTownEndpoints(candidate)` : extrait rigoureusement les IDs de communes pour les projets et candidats (route, rail, fret et passagers). Convertit les tuiles d'extrémité via `AITile.GetClosestTown` uniquement pour les liaisons passagers sans `srcTown`/`dstTown` explicites, éliminant tout risque de confusion de type TileIndex/TownID.
+     - Enregistrement systématique de `candidate.srcTown` et `candidate.dstTown` sur les candidats rail passagers dans `OpexBuildRailCandidates`.
+  2. **Sonde passive d'exposition (`c60_town_rating_probe`, défaut 0)** :
+     - Mesure les évaluations par mode (`road`, `rail`, `air`) et par palier de note (`none`, `ok`, `very_poor`, `appalling`).
+     - Publie les événements `TOWN_RATING_EXPOSURE` et un bilan annuel agrégé `C60_TOWN_RATING_SUMMARY`.
+  3. **Filtre proactif universel Route & Rail (`c60_town_rating_filter`, défaut 0)** :
+     - **Passagers et Fret urbain** : écarte en amont dans `OpexIncrementalCandidateStillValid` et dans les pré-contrôles de construction (`_tryBuildRoadProject`, `_tryBuildRailProject`) toute liaison (passagers ou fret portant `dstTown >= 0` / `srcTown >= 0`) touchant une commune où `!OpexTownRatingAllowStation(town)`.
+     - Également actif à la génération de candidats fret dans `OpexBuildCandidates` (rail fret urbain) et `OpexBuildRoadCandidates` (camions fret urbain).
+     - Économie de 100 % des opcodes de tracé A* et de nivellement pour les projets voués au refus.
+  4. **Outil d'analyse (`sweeps/diag_c60_town_rating_exposure.py`)** :
+     - Auto-test `--selftest` validé unitaire.
+     - Analyseur d'échecs historiques `--file` documenté avec mise en garde sur le bruit d'aéroport.
+  5. **Vérification OpenTTD** :
+     - Smoke test validé sous Docker avec filtre actif (`seed=42`, code 0, 48 véhicules, 36 stations, £198 722 de profit annuel).
 
 - 🟢 **C51 — Validation et clôture du portefeuille v2 (défaut consolidé, legacy supprimé le 2026-09-11).**
   📝 Archéologie faite le 2026-09-10, banc lancé le même jour.
@@ -1595,7 +1676,7 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   sur une base homogène.
 
 - 🔴 **C50 — Chronologie comparée 1v1, plus longue et non biaisée.**
-  📝 Script écrit le 2026-09-10, **campagne pas encore lancée** :
+  📝 Script écrit le 2026-09-10, **campagne exécutée le 2026-09-12** :
   `sweeps/diag_1v1_chronology.py` (6 ans × 5 graines `100 12345 42 7 999`, `--max-workers 2` car un
   duel partagé fait tourner deux IA par partie).
   🔑 **Deux corrections de méthode par rapport à `diag_1v1_shared_timeline.py`** : `decision_log=0`
@@ -1603,12 +1684,17 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   le sujet EST notre débit — auto-handicap intégré à l'instrument), et **comptage par delta d'état
   de jeu**, symétrique pour les deux compagnies, au lieu de compter nos chantiers depuis notre
   propre journal.
+
+  ### ⚠️ Piège d'exécution & Optimisation mémoire du harnais (2026-09-12)
+  - **Incident initial** : Le harnais initial sérialisait dans `keep(row)` l'intégralité du dictionnaire `chunks` (contenant la carte complète 256×256 du monde OpenTTD) et la sortie standard complète (100 000+ lignes de log avec `-d script=4`) pour chacune des 72 sauvegardes mensuelles. Sur 5 graines (360 états), le processus parent a dépassé les 2 Go lors du rassemblement IPC, déclenchant un OOM propre sous Docker.
+  - **Correctif radical** : `keep(row)` a été réécrit pour calculer à la volée les compteurs `stations` et `vehicles` et extraire la trace HogEx, en purgeant immédiatement les chunks et les logs texte volumineux. L'empreinte mémoire du harnais est passée de 2 Go à **133 Mo** (< 7 % du plafond).
+  - Validation du harnais : selftest OK, smoke test 1 an OK (`results/smoke_c50.json`).
+
   **Ce que la version 2 ans / graine 42 disait déjà** (`results/diag_1v1_shared_timeline_2y_seed42.json`) :
   1970 → AAAHogEx 17 tentées / **10 réussies**, nous **10 chantiers** — jeu égal ; 1971 → 24 / **18**
   contre **5** — ils accélèrent de 80 %, on chute de 50 %. ⚠️ Une graine, deux ans, partie partagée
   (concurrence pour le terrain), et notre bras journalisait : indicatif, pas un banc.
-  **Reste** : lancer la campagne (sur `/home`, jamais le tmpfs, avec garde-fou disque), puis voir si
-  l'écart 1970/1971 se creuse comme le prédit le mécanisme C48.
+  **Reste** : analyser la trajectoire 6 ans × 5 graines dès la fin du run pour quantifier le décrochage 1970 vs 1971+ face à AAAHogEx.
   **Demandé en plus, à instrumenter** : chronologie côté nous avec trésorerie, profit par ligne,
   projets refusés pour trésorerie **avec leur ROI**, projets réalisés **avec coût et ROI**. ⚠️ Via
   une **sonde dédiée** (quelques dizaines de lignes/an), **pas** `decision_log=1` (plusieurs
@@ -2116,14 +2202,7 @@ régression) ; **note municipale** (`OpexBoostTownRating` compare déjà le bon 
 SuperLib est plus cru) ; `Marine.BuildDepot`, `ShipPathfinder`, `WBC` (dépendent de `graph.aystar`
 v6, absent du disque).
 
-🆕 **Idée non chiffrée : filtre proactif de note municipale.** `AITown.GetRating` n'est appelé qu'une
-fois dans tout le code (`OpexBoostTownRating`), et uniquement **en réaction** à un
-`ERR_LOCAL_AUTHORITY_REFUSES` déjà survenu. Rien n'écarte en amont une ville sous le seuil de refus
-avant de dépenser des opcodes en recherche de site, alors que la lecture est quasi gratuite.
-`SuperLib.Town::TownRatingAllowStationBuilding` donne le test. **Avant de coder** : (1) chiffrer
-combien de candidats touchent une ville sous ce seuil — si c'est rare, c'est un no-op coûteux à
-maintenir, comme `MIN_SEPARATION` ; (2) s'assurer qu'un rejet précoce n'écarte pas une ville qui
-méritait le recours réactif existant.
+- ✅ **Filtre proactif de note municipale (SuperLib) — Traité en C60.** L'exposition empirique a été chiffrée (30,51 % des échecs d'aéroports sont des `ERR_LOCAL_AUTHORITY_REFUSES` créant des boucles de 6 à 8 relances consécutives), la sonde d'observation `c60_town_rating_probe`, le filtre proactif sélectif `c60_town_rating_filter` (sécurisant le recours réactif air et filtrant sec route/rail) et l'analyseur `sweeps/diag_c60_town_rating_exposure.py` sont livrés. Voir fiche **C60**.
 
 ---
 

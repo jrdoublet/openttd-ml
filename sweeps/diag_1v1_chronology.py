@@ -58,10 +58,14 @@ def yearly_states(rows, starting_year=STARTING_YEAR, ending_year=None):
     result = []
     previous = {0: {"stations": 0, "vehicles": 0}, 1: {"stations": 0, "vehicles": 0}}
     for year in sorted(last_by_year):
-        chunks = last_by_year[year].get("chunks", {})
+        row = last_by_year[year]
         companies = {}
         for owner, arm in ((0, "OpexAI"), (1, "AAAHogEx")):
-            current = game_state_counts(chunks, owner)
+            if "counts" in row:
+                current = row["counts"][owner]
+            else:
+                chunks = row.get("chunks", {})
+                current = game_state_counts(chunks, owner)
             companies[arm] = {
                 "owner": owner,
                 "stations_end": current["stations"],
@@ -159,9 +163,20 @@ def cumulative(by_seed):
 
 
 def keep(row):
-    """Conserve les chunks ; la sortie OpenTTD est retiree avant toute serialisation."""
-    return ({"seed": row["experiment"]["seed"], "date": str(row["date"]),
-             "chunks": row.get("chunks", {}), "output": row.get("output", "")},)
+    """Extrait compteurs et trace HogEx en vol ; ne conserve ni chunks bruts ni logs complets."""
+    chunks = row.get("chunks", {})
+    output = row.get("output", "")
+    counts = {
+        0: game_state_counts(chunks, 0),
+        1: game_state_counts(chunks, 1),
+    }
+    trace = parse_hogex_trace(output)
+    return ({
+        "seed": row["experiment"]["seed"],
+        "date": str(row["date"]),
+        "counts": counts,
+        "hogex_trace": trace,
+    },)
 
 
 def run_campaign(args):
@@ -178,6 +193,11 @@ def run_campaign(args):
         return real_check_output(command, *rest, **kwargs)
 
     openttdlab.subprocess.check_output = check_output_with_script_debug
+    import sys
+    sys.path.insert(0, str(ROOT / "sweeps"))
+    from bench_v2 import enable_savegame_cleanup
+    enable_savegame_cleanup()
+
     opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", (("decision_log", 0),))
     hogex = local_folder(str(ROOT / "ai" / AAAHOGEX_DIR), "AAAHogEx", ())
     return list(run_experiments(
@@ -245,7 +265,8 @@ def main():
         seed_rows = sorted((row for row in rows if row["seed"] == seed), key=lambda row: row["date"])
         years = yearly_states(seed_rows, ending_year=STARTING_YEAR + args.years - 1)
         # Une seule capture complete par graine : celle du dernier checkpoint.
-        trace = parse_hogex_trace(seed_rows[-1]["output"]) if seed_rows else {}
+        trace = (seed_rows[-1]["hogex_trace"] if seed_rows and "hogex_trace" in seed_rows[-1]
+                 else parse_hogex_trace(seed_rows[-1].get("output", "")) if seed_rows else {})
         attach_derived_metrics(years, trace)
         by_seed[str(seed)] = {"years": years, "coherence": coherence(years)}
     payload = {"openttd_version": OPENTTD_VERSION, "years_requested": args.years,

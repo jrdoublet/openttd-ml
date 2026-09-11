@@ -254,6 +254,13 @@ C55_ORIGIN_RELAX_PROBE <- false;
 C55_ORIGIN_RELAX_LEDGER <- null;
 /* C55 etape 2 : relache seulement le verrou d'origine du fret route. */
 C55_FREIGHT_ORIGIN_RELAX <- false;
+/* C55 etape 5 : relache le verrou d'origine de toute la route. */
+C55_ROAD_ORIGIN_RELAX <- false;
+/* C60 : Sonde d'exposition aux notes municipales. */
+C60_TOWN_RATING_PROBE <- false;
+/* C60 : Filtre proactif de note municipale (SuperLib). */
+C60_TOWN_RATING_FILTER <- false;
+C60_TOWN_RATING_LEDGER <- null;
 /* C56 : trace immediate du dispatch, nulle hors sonde. */
 C56_TASK_TRACE <- false;
 C56_LOOP_TICK_COUNT <- 0;
@@ -934,6 +941,8 @@ C52_CRASH_LOG <- false;
 EVENT_VEHICLE_UNPROFITABLE <- false;
 UNPROFITABLE_STREAK_THRESHOLD <- 3;
 C52_UNPROFITABLE_LOG <- false;
+/* C52 #7 : sonde ET_STATION_FIRST_VEHICLE */
+C52_STATION_FIRST_VEHICLE_LOG <- false;
 /* P3 / A7.5 : une nouvelle ville ou industrie rend le portefeuille obsolete.
  * Le rafraichissement reactif est rare et evite d'attendre le prochain mois. */
 EVENT_CATALOG_INVALIDATE <- true;
@@ -3026,6 +3035,18 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
         if (DECISION_LOG) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "abandoned_pair", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
       }
+      local towns = OpexGetCandidateTownEndpoints(candidate);
+      if (C60_TOWN_RATING_PROBE) {
+        if (towns.srcTown >= 0) OpexC60ObserveTownRating("rail", "build_precheck", towns.srcTown);
+        if (towns.dstTown >= 0) OpexC60ObserveTownRating("rail", "build_precheck", towns.dstTown);
+      }
+      if (C60_TOWN_RATING_FILTER) {
+        if ((towns.srcTown >= 0 && !OpexTownRatingAllowStation(towns.srcTown)) ||
+            (towns.dstTown >= 0 && !OpexTownRatingAllowStation(towns.dstTown))) {
+          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "town_rating_refusal", extra = "" });
+          return { outcome = "rejected", discards = passDiscards };
+        }
+      }
 
       local close = this._tooClose(candidate);
       local join = null;
@@ -3275,6 +3296,19 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
           return { outcome = "rejected", discards = passDiscards };
         }
       }
+      local townAId = ("siteA" in plan && "town" in plan.siteA && "id" in plan.siteA.town) ? plan.siteA.town.id : -1;
+      local townBId = ("siteB" in plan && "town" in plan.siteB && "id" in plan.siteB.town) ? plan.siteB.town.id : -1;
+      if (C60_TOWN_RATING_PROBE) {
+        if (townAId >= 0) OpexC60ObserveTownRating("air", "build_precheck", townAId);
+        if (townBId >= 0) OpexC60ObserveTownRating("air", "build_precheck", townBId);
+      }
+      if (C60_TOWN_RATING_FILTER) {
+        if ((townAId >= 0 && OpexTownRatingHopeless(townAId)) ||
+            (townBId >= 0 && OpexTownRatingHopeless(townBId))) {
+          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "town_rating_appalling", extra = "" });
+          return { outcome = "rejected", discards = passDiscards };
+        }
+      }
       local maxPerYear = 30;
       local maxTotal = 250;
       local airLinesThisYear = 0;
@@ -3419,6 +3453,18 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
           return { outcome = "rejected", discards = passDiscards };
         }
       }
+      local towns = OpexGetCandidateTownEndpoints(candidate);
+      if (C60_TOWN_RATING_PROBE) {
+        if (towns.srcTown >= 0) OpexC60ObserveTownRating("road", "build_precheck", towns.srcTown);
+        if (towns.dstTown >= 0) OpexC60ObserveTownRating("road", "build_precheck", towns.dstTown);
+      }
+      if (C60_TOWN_RATING_FILTER) {
+        if ((towns.srcTown >= 0 && !OpexTownRatingAllowStation(towns.srcTown)) ||
+            (towns.dstTown >= 0 && !OpexTownRatingAllowStation(towns.dstTown))) {
+          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "town_rating_refusal", extra = "" });
+          return { outcome = "rejected", discards = passDiscards };
+        }
+      }
       if (candidate.kind == "pax") {
         local alreadyServed = false;
         if (FEEDER_UNLOCK && isFeeder) {
@@ -3456,7 +3502,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
           return { outcome = "rejected", discards = passDiscards };
         }
       } else {
-        if (C55_FREIGHT_ORIGIN_RELAX && candidate.kind == "freight") {
+        if ((C55_FREIGHT_ORIGIN_RELAX || C55_ROAD_ORIGIN_RELAX) && candidate.kind == "freight") {
           local srcServed = OpexOriginServed(this._lines, candidate.src, true);
           local dstServed = OpexOriginServed(this._lines, candidate.dst, true);
           if (srcServed && dstServed) {
@@ -7295,6 +7341,40 @@ function OpexAI::_processEvents()
       }
       continue;
     }
+
+    if (eventType == AIEvent.ET_STATION_FIRST_VEHICLE) {
+      if (C52_STATION_FIRST_VEHICLE_LOG || DECISION_LOG) {
+        local sfv = AIEventStationFirstVehicle.Convert(event);
+        if (sfv != null) {
+          local stId = sfv.GetStationID();
+          local vehId = sfv.GetVehicleID();
+          local stLoc = AIStation.IsValidStation(stId) ? AIStation.GetLocation(stId) : -1;
+          local isOurStation = (stLoc >= 0) && AICompany.IsMine(AITile.GetOwner(stLoc));
+          if (isOurStation) {
+            local vehType = AIVehicle.IsValidVehicle(vehId) ? AIVehicle.GetVehicleType(vehId) : -1;
+            local mode = (vehType == AIVehicle.VT_RAIL) ? "rail"
+                       : ((vehType == AIVehicle.VT_ROAD) ? "road"
+                       : ((vehType == AIVehicle.VT_AIR) ? "air"
+                       : ((vehType == AIVehicle.VT_WATER) ? "water" : "unknown")));
+
+            local line = OpexFindLineForVehicle(this._lines, vehId);
+            local lineId = line != null ? (("id" in line) ? line.id : (("lineId" in line) ? line.lineId : -1)) : -1;
+            local cargo = (line != null && ("cargo" in line)) ? line.cargo : (AIVehicle.IsValidVehicle(vehId) ? AIEngine.GetCargoType(AIVehicle.GetEngineType(vehId)) : -1);
+            local cargoStr = AICargo.IsValidCargo(cargo) ? AICargo.GetCargoLabel(cargo) : "none";
+            local lineKind = (line != null && ("kind" in line)) ? line.kind
+                           : (AICargo.IsValidCargo(cargo) && AICargo.HasCargoClass(cargo, AICargo.CC_PASSENGERS) ? "pax" : "freight");
+
+            local initialRating = (AICargo.IsValidCargo(cargo) && AIStation.HasCargoRating(stId, cargo)) ? AIStation.GetCargoRating(stId, cargo) : -1;
+
+            OpexDecide("STATION_FIRST_VEHICLE", "station=" + stId + " vehicle=" + vehId
+                       + " mode=" + mode + " kind=" + lineKind + " cargo=" + cargoStr
+                       + " line=" + lineId + " rating=" + initialRating
+                       + " tile=" + stLoc);
+          }
+        }
+      }
+      continue;
+    }
   }
 }
 
@@ -7749,6 +7829,25 @@ function OpexAI::_logC55OriginRelaxLedger(year)
     total_one_served_freight = entry.total_one_served_freight,
     total_duplicate_exact = entry.total_duplicate_exact,
   };
+}
+
+/* C60 : Le rapport annuel publie le bilan d'exposition aux notes municipales. */
+function OpexAI::_logC60TownRatingLedger(year)
+{
+  if (!C60_TOWN_RATING_PROBE || C60_TOWN_RATING_LEDGER == null) return;
+  local entry = C60_TOWN_RATING_LEDGER;
+  OpexDecide("C60_TOWN_RATING_SUMMARY", "year=" + year
+      + " checks=" + entry.checks
+      + " none=" + entry.none
+      + " ok=" + entry.ok
+      + " very_poor=" + entry.very_poor
+      + " appalling=" + entry.appalling
+      + " road_checks=" + entry.by_mode.road.checks
+      + " road_refused=" + entry.by_mode.road.refused
+      + " rail_checks=" + entry.by_mode.rail.checks
+      + " rail_refused=" + entry.by_mode.rail.refused
+      + " air_checks=" + entry.by_mode.air.checks
+      + " air_refused=" + entry.by_mode.air.refused);
 }
 
 /* C52 : le report de debut d'annee publie l'annee ecoulee et conserve un resume cumulatif. */
@@ -8558,6 +8657,7 @@ function OpexAI::_runNextTask()
     if (C52_EVENT_EXPOSURE_PROBE) this._logC52EventExposureLedger(year);
     if (C54_VEHICLE_ORDERS_PROBE) this._logC54VehicleOrders(year);
     if (C48_INCREMENTAL_PROFILE) this._logC48IncrementalLedger(year);
+    if (C60_TOWN_RATING_PROBE) this._logC60TownRatingLedger(year);
     this._reportYear(year, this._ranked);
     this._reportLines(year);
     if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
@@ -9135,6 +9235,7 @@ function OpexAI::Start()
   EVENT_VEHICLE_UNPROFITABLE = AIController.GetSetting("event_vehicle_unprofitable") != 0;
   UNPROFITABLE_STREAK_THRESHOLD = AIController.GetSetting("unprofitable_streak_threshold");
   C52_UNPROFITABLE_LOG = AIController.GetSetting("c52_unprofitable_log") != 0;
+  C52_STATION_FIRST_VEHICLE_LOG = AIController.GetSetting("c52_station_first_vehicle_log") != 0;
   C56_TASK_TRACE = AIController.GetSetting("c56_task_trace") != 0;
   if (C56_TASK_TRACE) C56_LOOP_TICK_COUNT = 0;
   EVENT_CATALOG_INVALIDATE = AIController.GetSetting("event_catalog_invalidate") != 0;
@@ -9205,6 +9306,19 @@ function OpexAI::Start()
   C49_SCARCITY_LEDGER = AIController.GetSetting("c49_scarcity_ledger") != 0;
   C55_ORIGIN_RELAX_PROBE = AIController.GetSetting("c55_origin_relax_probe") != 0;
   C55_FREIGHT_ORIGIN_RELAX = AIController.GetSetting("c55_freight_origin_relax") != 0;
+  C55_ROAD_ORIGIN_RELAX = AIController.GetSetting("c55_road_origin_relax") != 0;
+  C60_TOWN_RATING_PROBE = AIController.GetSetting("c60_town_rating_probe") != 0;
+  C60_TOWN_RATING_FILTER = AIController.GetSetting("c60_town_rating_filter") != 0;
+  if (C60_TOWN_RATING_PROBE) {
+    C60_TOWN_RATING_LEDGER = {
+      checks = 0, none = 0, ok = 0, very_poor = 0, appalling = 0,
+      by_mode = {
+        road = { checks = 0, refused = 0 },
+        rail = { checks = 0, refused = 0 },
+        air = { checks = 0, refused = 0 }
+      }
+    };
+  }
   C54_VEHICLE_ORDERS_PROBE = AIController.GetSetting("c54_vehicle_orders_probe") != 0;
   if (C49_SCARCITY_LEDGER) {
     this._c49ScarcityLedger = { passes = 0, cash = 0, vehicles = 0, site = 0,

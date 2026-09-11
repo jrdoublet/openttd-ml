@@ -113,7 +113,28 @@ def keep(row):
 ## 2. Règles de modification et outils de code
 
 1. **Création de fichiers hors artifacts** : Toujours utiliser `run_command` avec `cat << 'EOF' > path` ou `write_to_file` SANS ArtifactMetadata si la destination est hors du répertoire d'artifacts.
-2. **Exécution Docker** : Toujours passer par `docker run --rm -v "$PWD":/work -w /work openttd-lab python3 ...`.
+2. **Exécution Docker & Tests (Méthode Canonique)** :
+   - **Limites de ressources et isolation OBLIGATOIRES (Protection du VPS)** :
+     Toujours spécifier `--cpus=3 --memory=2g --memory-swap=2g`. Le VPS ne dispose que de 4 cœurs et 3.7 Go de RAM. Sans `--cpus=3`, la machine gèle entièrement ; sans limitation de mémoire sans swap (`--memory-swap=2g` égal à `--memory`), la saturation entraîne un crash et reboot de l'hôte.
+   - **Volume persistant OBLIGATOIRE** : Toujours monter le volume de cache `openttd-lab-home:/home/lab` en plus du code source. Sans lui, le conteneur n'a pas accès aux binaires OpenTTD et bibliothèques en cache (`/home/lab/.cache`).
+   - **Ligne de commande canonique** :
+     ```bash
+     docker run --rm --cpus=3 --memory=2g --memory-swap=2g -v openttd-lab-home:/home/lab -v "$PWD":/work -w /work openttd-lab python3 ...
+     ```
+   - **Smoke test rapide (1 an × 1 graine)** pour vérifier la compilation Squirrel et l'absence de crash physique :
+     ```bash
+     docker run --rm --cpus=3 --memory=2g --memory-swap=2g -v openttd-lab-home:/home/lab -v "$PWD":/work -w /work openttd-lab python3 sweeps/bench_v2.py --arms "OpexAI[mon_reglage=1]" --seeds 42 --years 1 --out /tmp/smoke.json
+     ```
+   - **Diagnostic standard (5 graines × 6 ans)** :
+     ```bash
+     docker run --rm --cpus=3 --memory=2g --memory-swap=2g -v openttd-lab-home:/home/lab -v "$PWD":/work -w /work openttd-lab python3 sweeps/bench_v2.py --arms "OpexAI" "OpexAI[mon_reglage=1]" --seeds 42 100 999 1234 5678 --years 6 --out results/diag_mon_reglage_6y_5seeds.json
+     ```
+   - **⛔ Pièges à proscrire impérativement** :
+     - 🔴 **Ne JAMAIS omettre `--cpus=3 --memory=2g --memory-swap=2g`** : risque immédiat de saturation CPU/RAM entraînant le freeze et reboot du VPS.
+     - Ne JAMAIS exécuter `openttd` directement en CLI (`openttd` n'est pas dans le `$PATH`, l'image est conçue pour lancer `python3`).
+     - Ne JAMAIS omettre `-v openttd-lab-home:/home/lab`.
+     - Ne JAMAIS improviser un script Python ad-hoc appelant `run_experiments` avec des paramètres incomplets : toujours réutiliser `sweeps/bench_v2.py` ou les scripts existants dans `sweeps/`.
+     - Pour les scripts avec `--selftest` unitaire, l'exécution peut se faire directement sur l'hôte avec `python3 sweeps/<script>.py --selftest` ou dans Docker.
 3. **Validation statistique** : Tout changement dans le comportement IA doit être validé par :
    - Un diagnostic 5 graines × 6 ans pour vérifier les grandeurs physiques et le sens de l'effet.
    - Un banc officiel 20 graines × 10 ans apparié avant toute adoption par défaut.
