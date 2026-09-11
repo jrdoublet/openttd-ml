@@ -1253,7 +1253,7 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
 
 
 
-- 🔴 **C53 — S'inspirer de `SuperLib.Order` pour la gestion des ordres de véhicules.**
+- 🟢 **C53 — S'inspirer d'AAAHogEx et SuperLib pour la gestion des ordres de véhicules (non-stop / no-load).**
   📝 Noté le 2026-09-10 sur demande utilisateur. `ai/library/SuperLib-41/` est **présente dans le
   dépôt** et contient `order.nut` et `vehicle.nut`. OpexAI **ne l'utilise pas** — elle n'apparaît
   que dans des commentaires (`builder_air.nut:380`).
@@ -1323,7 +1323,21 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
      - **Banc 20×10 apparié** : 17 graines sur 20 (85 %) sont **strictement identiques bit-à-bit** (£17.32M -> £17.33M, +0.04% CV, +0.12% profit, 2 gains, 17 nuls, 1 perte, Wilcoxon p=0.7500).
      - Explication : à un puits pur sans production (ex. centrale thermique ou aciérie sans reprise), le quai n'a aucun cargo à charger ; le convoi repart immédiatement après déchargement même sans `OF_NO_LOAD`. L'ordre n'a d'effet que sur les rares terminus mixtes ou hubs de rabattement.
      - Réglage conservé sous interrupteur dédié (`c53_order_noload=0`).
-  5. ⬜ **Tester la combinaison complète non-stop + no-load** (`c53_order_nonstop=1,c53_order_noload=1`).
+  5. 🟩 **Tester la combinaison complète non-stop + no-load** (`c53_order_nonstop=1,c53_order_noload=1`) — fait le 2026-09-11
+     (`results/bench_c53_combo_10y_20seeds.json`) :
+     - **Banc 20×10 apparié** :
+       - Valeur d'entreprise : £17.32M -> £17.75M (**+2.46%**, médiane **+9.00%** de £17.49M à £19.07M), 12 gains, 1 égalité, 7 pertes (Wilcoxon p=0.2253).
+       - Profit annuel : £2.92M -> £3.01M (**+3.00%**, médiane **+3.06%**), 12 gains, 1 égalité, 7 pertes (Wilcoxon p=0.4413).
+       - Flotte : 213.7 -> 216.1 véhicules (+1.15%, médiane +3.30%), 11 gains, 2 égalités, 7 pertes (Wilcoxon p=0.3270).
+       - Stations : 100.0 -> 100.0 (8 gains, 3 égalités, 9 pertes, p=0.9811).
+       - Note médiane de gare : 162.3 -> 159.2 (-1.93%, Wilcoxon p=0.0270).
+     - **Comparaison directe Combo vs Non-Stop seul** :
+       - Sur **18 graines sur 20 (90 %)**, le combo est **strictement identique** à `c53_order_nonstop=1` seul.
+       - La totalité du gain de rentabilité (+426 k£ CV moyenne, +1.57 M£ CV médiane, +3.0 % profit annuel) provient du non-stop (`c53_order_nonstop=1`).
+       - L'ajout de `c53_order_noload` n'apporte aucun gain économique mesurable (+73 k£ au total sur 200 années-graines cumulées), mais introduit une baisse artificielle de la note de gare (`median_station_rating` -1.9 %) car l'interdiction de charger fait déchoir la note d'acceptation de fret au terminus.
+  6. 🟩 **Conclusion et arbitrage** :
+     - **`c53_order_nonstop`** : Validé physiquement et économiquement (+2.46% CV, +9.00% médiane, +3.00% profit). Candidat à l'adoption par défaut.
+     - **`c53_order_noload`** : Inerte économiquement (85 à 90 % de seeds identiques), dégrade la note de gare sans gain de rotation. À laisser désactivé par défaut (`c53_order_noload=0`).
 
 - 🟢 **C51 — Validation et clôture du portefeuille v2 (défaut consolidé, legacy supprimé le 2026-09-11).**
   📝 Archéologie faite le 2026-09-10, banc lancé le même jour.
