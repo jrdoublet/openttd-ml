@@ -100,14 +100,32 @@ def decode_order(order_dict):
     }
 
 
-def extract_orders_from_chunks(chunks, target_owner=0):
-    """Extrait et classe les ordres des vehicules par mode."""
+class OrderExtractionError(RuntimeError):
+    """Erreur levee quand un enregistrement d'ordre attendu ne peut pas etre extrait ou decode (garde anti-degenerescence C53)."""
+    pass
+
+
+def extract_orders_from_chunks(chunks, target_owner=0, fail_closed=True):
+    """Extrait et classe les ordres des vehicules par mode.
+    
+    Anti-degenerescence (C53) :
+    - Compte les vehicules candidats (unitnumber > 0 ou vehicule possedant des ordres).
+    - Separe les vehicules sans ordres (en depot ou non configures) des vehicules avec ordres.
+    - Resout chaque pointeur d'ordres dans ORDL (1-based pointer : index + 1).
+    - Si un pointeur ne resout pas ou si un ordre est corrompu, comptabilise n_vehicles_unresolved_orders
+      et leve OrderExtractionError si fail_closed=True.
+    """
     ordl = chunks.get("ORDL", {})
     vehs = chunks.get("VEHS", {})
 
     vehicle_orders_by_mode = defaultdict(list)
     stats_by_mode = defaultdict(lambda: {
-        "n_vehicles": 0,
+        "n_candidate_vehicles": 0,
+        "n_vehicles_with_orders": 0,
+        "n_vehicles_no_orders": 0,
+        "n_vehicles_unresolved_orders": 0,
+        "n_vehicles_decoded": 0,
+        "n_vehicles": 0,  # alias pour compatibilite
         "n_orders_total": 0,
         "n_station_orders": 0,
         "n_non_stop_station_orders": 0,
@@ -116,6 +134,7 @@ def extract_orders_from_chunks(chunks, target_owner=0):
         "n_transfer_orders": 0,
         "n_depot_orders": 0,
         "chain_lengths": [],
+        "unresolved_errors": [],
         "order_type_counts": Counter(),
         "load_type_counts": Counter(),
         "unload_type_counts": Counter(),
@@ -124,6 +143,8 @@ def extract_orders_from_chunks(chunks, target_owner=0):
     })
 
     iterator = vehs.items() if isinstance(vehs, dict) else enumerate(vehs)
+    all_unresolved_errors = []
+
     for vid, vdata in iterator:
         if not isinstance(vdata, dict):
             continue
@@ -143,21 +164,75 @@ def extract_orders_from_chunks(chunks, target_owner=0):
         if owner is not None and owner != target_owner:
             continue
 
-        orders_idx = common.get("orders")
-        if orders_idx is None or orders_idx <= 0 or orders_idx == 65535 or orders_idx == -1:
-            continue
+        unitnumber = _first(common.get("unitnumber", 0)) or 0
+        orders_idx = _first(common.get("orders"))
 
-        # OpenTTD serialise les pointeurs de pool d'ordres avec 0 = nullptr et 1..N = index + 1
-        ordl_key = str(orders_idx - 1)
-        entry = _first(ordl.get(ordl_key)) if isinstance(ordl, dict) else None
-        if not isinstance(entry, dict):
-            continue
+        is_primary = (unitnumber > 0)
+        has_orders = (orders_idx is not None and orders_idx > 0 and orders_idx != 65535 and orders_idx != -1)
 
-        raw_orders_list = entry.get("orders", [])
-        decoded_orders = [decode_order(o) for o in raw_orders_list if isinstance(o, dict)]
+        # Les wagons et ombres d'avions sont des sous-vehicules normaux sans ordre propre.
+        if not is_primary and not has_orders:
+            continue
 
         st = stats_by_mode[mode]
-        st["n_vehicles"] += 1
+        st["n_candidate_vehicles"] += 1
+
+        if not has_orders:
+            st["n_vehicles_no_orders"] += 1
+            continue
+
+        st["n_vehicles_with_orders"] += 1
+
+        # Resolution dans ORDL (1-based pointer : index + 1, donc cle = orders_idx - 1)
+        ordl_key = str(orders_idx - 1)
+        error_msg = None
+
+        if not isinstance(ordl, dict) or ordl_key not in ordl:
+            error_msg = (
+                f"Vehicule {vid} (unit={unitnumber}, mode={mode}): pointeur d'ordres {orders_idx} "
+                f"non resolu dans ORDL (cle '{ordl_key}' absente, {len(ordl) if isinstance(ordl, dict) else 0} entrees dans ORDL)"
+            )
+        else:
+            entry = _first(ordl.get(ordl_key))
+            if not isinstance(entry, dict):
+                error_msg = (
+                    f"Vehicule {vid} (unit={unitnumber}, mode={mode}): entree ORDL['{ordl_key}'] invalide "
+                    f"(type={type(entry).__name__})"
+                )
+            else:
+                raw_orders_list = entry.get("orders")
+                if not isinstance(raw_orders_list, list):
+                    error_msg = (
+                        f"Vehicule {vid} (unit={unitnumber}, mode={mode}): entree ORDL['{ordl_key}']['orders'] "
+                        f"non liste (type={type(raw_orders_list).__name__})"
+                    )
+
+        if error_msg is not None:
+            st["n_vehicles_unresolved_orders"] += 1
+            st["unresolved_errors"].append(error_msg)
+            all_unresolved_errors.append(error_msg)
+            continue
+
+        # Decodage de la liste d'ordres
+        decoded_orders = []
+        decode_err = None
+        for o_idx, o in enumerate(raw_orders_list):
+            if not isinstance(o, dict) or "type" not in o or "flags" not in o:
+                decode_err = (
+                    f"Vehicule {vid} (unit={unitnumber}, mode={mode}): ordre #{o_idx} dans ORDL['{ordl_key}'] "
+                    f"invalide ou corrompu ({o})"
+                )
+                break
+            decoded_orders.append(decode_order(o))
+
+        if decode_err is not None:
+            st["n_vehicles_unresolved_orders"] += 1
+            st["unresolved_errors"].append(decode_err)
+            all_unresolved_errors.append(decode_err)
+            continue
+
+        st["n_vehicles_decoded"] += 1
+        st["n_vehicles"] = st["n_vehicles_decoded"]
         st["n_orders_total"] += len(decoded_orders)
         st["chain_lengths"].append(len(decoded_orders))
 
@@ -183,9 +258,17 @@ def extract_orders_from_chunks(chunks, target_owner=0):
 
         vehicle_orders_by_mode[mode].append({
             "vehicle_id": str(vid),
+            "unitnumber": unitnumber,
             "order_list_idx": orders_idx,
             "orders": decoded_orders,
         })
+
+    if fail_closed and all_unresolved_errors:
+        err_details = "\n  - ".join(all_unresolved_errors)
+        raise OrderExtractionError(
+            f"Echec d'extraction des ordres ORDL ({len(all_unresolved_errors)} vehicule(s) non resolus) :\n"
+            f"  - {err_details}"
+        )
 
     # Conversion des counters en dictionnaires serialisables
     formatted_stats = {}
@@ -193,7 +276,13 @@ def extract_orders_from_chunks(chunks, target_owner=0):
         n_st = st["n_station_orders"]
         lengths = st["chain_lengths"]
         formatted_stats[mode] = {
-            "n_vehicles": st["n_vehicles"],
+            "n_candidate_vehicles": st["n_candidate_vehicles"],
+            "n_vehicles_with_orders": st["n_vehicles_with_orders"],
+            "n_vehicles_no_orders": st["n_vehicles_no_orders"],
+            "n_vehicles_unresolved_orders": st["n_vehicles_unresolved_orders"],
+            "n_vehicles_decoded": st["n_vehicles_decoded"],
+            "n_vehicles": st["n_vehicles_decoded"],
+            "unresolved_errors": list(st["unresolved_errors"]),
             "n_orders_total": st["n_orders_total"],
             "n_station_orders": n_st,
             "n_non_stop_station_orders": st["n_non_stop_station_orders"],
@@ -222,7 +311,7 @@ def keep(row):
     last_closed = closed[0] if closed else {}
     py = year_profit(closed)
 
-    order_stats = extract_orders_from_chunks(chunks, target_owner=0)
+    order_stats = extract_orders_from_chunks(chunks, target_owner=0, fail_closed=True)
 
     return ({
         "arm": row["experiment"]["bench_arm"],
@@ -239,7 +328,13 @@ def keep(row):
 
 
 def run_selftest():
-    """Selftest pur Python : verifie le decodage conforme du chunk ORDL."""
+    """Selftest rigoureux C53 :
+    1. Decodage binaire des ordres bruts (champs bitmask).
+    2. Filtrage des sous-vehicules (wagons, ombres) et vehicules en depot sans ordres.
+    3. Garde fail-closed sur cle ORDL manquante ou donnee corrompue.
+    4. Validation de bout en bout sur fixture reelle OpenTTD 15.3 (c53_real_chunks_15_3.json).
+    """
+    print("=== 1. Test du decodage binaire des drapeaux OpenTTD ===")
     test_orders = {
         "ord_opex_pax": {"type": 33, "flags": 0, "dest": 10},       # GOTO_STATION, STOP_EVERYWHERE, LOAD_IF_POSSIBLE
         "ord_opex_freight": {"type": 33, "flags": 48, "dest": 11},   # GOTO_STATION, STOP_EVERYWHERE, FULL_LOAD_ANY (48=0x30)
@@ -249,58 +344,120 @@ def run_selftest():
     }
 
     d1 = decode_order(test_orders["ord_opex_pax"])
-    assert d1["order_type"] == "GOTO_STATION"
-    assert d1["non_stop"] == "STOP_EVERYWHERE"
-    assert not d1["is_non_stop"]
-    assert d1["load_type"] == "LOAD_IF_POSSIBLE"
-    assert not d1["is_full_load"]
+    assert d1["order_type"] == "GOTO_STATION" and not d1["is_non_stop"] and not d1["is_full_load"]
 
     d2 = decode_order(test_orders["ord_opex_freight"])
-    assert d2["order_type"] == "GOTO_STATION"
-    assert not d2["is_non_stop"]
-    assert d2["load_type"] == "FULL_LOAD_ANY"
-    assert d2["is_full_load"]
+    assert d2["order_type"] == "GOTO_STATION" and not d2["is_non_stop"] and d2["is_full_load"]
 
     d3 = decode_order(test_orders["ord_aaa_road_src"])
-    assert d3["order_type"] == "GOTO_STATION"
-    assert d3["non_stop"] == "NON_STOP_INTERMEDIATE"
-    assert d3["is_non_stop"]
-    assert d3["is_full_load"]
+    assert d3["order_type"] == "GOTO_STATION" and d3["is_non_stop"] and d3["is_full_load"]
 
     d4 = decode_order(test_orders["ord_aaa_road_dst"])
-    assert d4["order_type"] == "GOTO_STATION"
-    assert d4["is_non_stop"]
-    assert d4["unload_type"] == "TRANSFER"
-    assert d4["is_no_load"]
+    assert d4["order_type"] == "GOTO_STATION" and d4["is_non_stop"] and d4["unload_type"] == "TRANSFER" and d4["is_no_load"]
 
     d5 = decode_order(test_orders["ord_aaa_depot"])
-    assert d5["order_type"] == "GOTO_DEPOT"
-    assert d5["is_non_stop"]
+    assert d5["order_type"] == "GOTO_DEPOT" and d5["is_non_stop"]
+    print("  [OK] Decodage binaire des ordres valide.")
 
-    # Test d'extraction complet avec faux chunks
-    fake_chunks = {
+    print("=== 2. Test du comptage candidat / sous-vehicules / depot sans ordre ===")
+    realistic_synthetic_chunks = {
         "ORDL": {
             "100": {"orders": [test_orders["ord_aaa_road_src"], test_orders["ord_aaa_road_dst"]]},
             "101": {"orders": [test_orders["ord_opex_pax"], test_orders["ord_opex_freight"]]},
+            "102": {"orders": [test_orders["ord_aaa_road_src"], test_orders["ord_aaa_road_dst"]]},
         },
         "VEHS": {
-            "1": {"type": 1, "roadveh": [{"common": {"owner": 0, "orders": 101}}]},
-            "2": {"type": 0, "train": [{"common": {"owner": 0, "orders": 102}}]},
+            # Train : 1 locomotive (unit=1) + 2 wagons (unit=0, sans ordre)
+            "1": {"type": 0, "train": [{"common": {"owner": 0, "unitnumber": 1, "orders": 102}}]},
+            "2": {"type": 0, "train": [{"common": {"owner": 0, "unitnumber": 0, "orders": 0}}]},
+            "3": {"type": 0, "train": [{"common": {"owner": 0, "unitnumber": 0, "orders": 0}}]},
+            # Route : 1 vehicule avec ordre (unit=1) + 1 vehicule en depot sans ordre (unit=2, orders=0)
+            "4": {"type": 1, "roadveh": [{"common": {"owner": 0, "unitnumber": 1, "orders": 101}}]},
+            "5": {"type": 1, "roadveh": [{"common": {"owner": 0, "unitnumber": 2, "orders": 0}}]},
+            # Avion : 1 cellule principale (unit=1) + 1 ombre/rotor (unit=0, orders=0)
+            "6": {"type": 3, "aircraft": [{"common": {"owner": 0, "unitnumber": 1, "orders": 103}}]},
+            "7": {"type": 3, "aircraft": [{"common": {"owner": 0, "unitnumber": 0, "orders": 0}}]},
+            # Effet smoke/spark (type=4, no common)
+            "8": {"type": 4},
+            # Vehicule d'un concurrent (owner=1)
+            "9": {"type": 1, "roadveh": [{"common": {"owner": 1, "unitnumber": 1, "orders": 101}}]},
         }
     }
-    stats = extract_orders_from_chunks(fake_chunks, target_owner=0)
-    assert stats["road"]["n_vehicles"] == 1
-    assert stats["road"]["n_station_orders"] == 2
-    assert stats["road"]["pct_non_stop_station_orders"] == 100.0
-    assert stats["road"]["pct_full_load_station_orders"] == 50.0
-    assert stats["road"]["pct_no_load_station_orders"] == 50.0
 
-    assert stats["train"]["n_vehicles"] == 1
-    assert stats["train"]["n_station_orders"] == 2
-    assert stats["train"]["pct_non_stop_station_orders"] == 0.0
-    assert stats["train"]["pct_full_load_station_orders"] == 50.0
+    stats = extract_orders_from_chunks(realistic_synthetic_chunks, target_owner=0, fail_closed=True)
+    assert stats["train"]["n_candidate_vehicles"] == 1
+    assert stats["train"]["n_vehicles_decoded"] == 1
+    assert stats["train"]["n_vehicles_no_orders"] == 0
+    assert stats["train"]["n_vehicles_unresolved_orders"] == 0
+    assert stats["road"]["n_candidate_vehicles"] == 2
+    assert stats["road"]["n_vehicles_decoded"] == 1
+    assert stats["road"]["n_vehicles_no_orders"] == 1
+    assert stats["road"]["n_vehicles_unresolved_orders"] == 0
+    assert stats["aircraft"]["n_candidate_vehicles"] == 1
+    assert stats["aircraft"]["n_vehicles_decoded"] == 1
+    print("  [OK] Distinction candidats / sans ordre / sous-vehicules validee.")
 
-    print("✅ Selftest diag_c53_orders reussi avec succes (decodage OpenTTD 15.3 valide).")
+    print("=== 3. Test de la garde fail-closed (anti-degenerescence C53) ===")
+    broken_ordl_chunks = {
+        "ORDL": {"10": {"orders": [test_orders["ord_opex_pax"]]}},
+        "VEHS": {
+            "1": {"type": 1, "roadveh": [{"common": {"owner": 0, "unitnumber": 1, "orders": 999}}]},
+        }
+    }
+    try:
+        extract_orders_from_chunks(broken_ordl_chunks, target_owner=0, fail_closed=True)
+        assert False, "Devait lever OrderExtractionError sur cle ORDL manquante"
+    except OrderExtractionError as exc:
+        assert "cle '998' absente" in str(exc)
+        print("  [OK] Fail-closed leve avec succes sur cle ORDL manquante.")
+
+    stats_broken = extract_orders_from_chunks(broken_ordl_chunks, target_owner=0, fail_closed=False)
+    assert stats_broken["road"]["n_candidate_vehicles"] == 1
+    assert stats_broken["road"]["n_vehicles_unresolved_orders"] == 1
+    assert stats_broken["road"]["n_vehicles_decoded"] == 0
+    assert len(stats_broken["road"]["unresolved_errors"]) == 1
+
+    corrupt_ordl_chunks = {
+        "ORDL": {"10": {"orders": [{"not_an_order": 123}]}},
+        "VEHS": {
+            "1": {"type": 1, "roadveh": [{"common": {"owner": 0, "unitnumber": 1, "orders": 11}}]},
+        }
+    }
+    try:
+        extract_orders_from_chunks(corrupt_ordl_chunks, target_owner=0, fail_closed=True)
+        assert False, "Devait lever OrderExtractionError sur ordre corrompu"
+    except OrderExtractionError as exc:
+        assert "invalide ou corrompu" in str(exc)
+        print("  [OK] Fail-closed leve avec succes sur ordre corrompu.")
+
+    print("=== 4. Test sur fixture reelle OpenTTD 15.3 (chunk reel sauvegarde) ===")
+    fixture_path = ROOT / "sweeps" / "fixtures" / "c53_real_chunks_15_3.json"
+    if fixture_path.exists():
+        real_chunks = json.loads(fixture_path.read_text())
+        real_stats = extract_orders_from_chunks(real_chunks, target_owner=0, fail_closed=True)
+        for mode in ("aircraft", "road", "train"):
+            m = real_stats[mode]
+            assert m["n_candidate_vehicles"] > 0, f"Mode {mode} devait avoir des vehicules candidats"
+            assert m["n_vehicles_decoded"] == m["n_candidate_vehicles"], f"Tous les candidats devaient etre decodes pour {mode}"
+            assert m["n_vehicles_unresolved_orders"] == 0, f"Zero ordre non resolu attendu pour {mode}"
+            assert len(m["unresolved_errors"]) == 0
+        print(f"  [OK] Fixture reelle OpenTTD 15.3 ({fixture_path.name}) : 100% resolue sans omission.")
+
+        tampered_chunks = {
+            "VEHS": real_chunks["VEHS"],
+            "ORDL": {k: v for k, v in real_chunks["ORDL"].items() if k != "10"},
+        }
+        try:
+            extract_orders_from_chunks(tampered_chunks, target_owner=0, fail_closed=True)
+            assert False, "Devait lever OrderExtractionError sur fixture reelle alteree"
+        except OrderExtractionError as exc:
+            assert "cle '10' absente" in str(exc)
+            print("  [OK] Fail-closed verifie sur alteration de la fixture reelle OpenTTD 15.3.")
+    else:
+        print(f"  [ATTENTION] Fixture {fixture_path} absente.")
+
+    print("\n✅ Selftest diag_c53_orders valide : decodage, filtres, fail-closed et fixture reelle conformes.")
+
 
 
 def main():
@@ -390,25 +547,37 @@ def main():
 
     print("\n=== SYNTHÈSE DES ORDRES PAR BRAS ET PAR MODE (ÉTAT FINAL) ===")
     summary_by_arm = {}
+    any_unresolved_overall = False
+
     for arm in args.arms:
         arm_rows = results_by_arm[arm]
         summary_by_arm[arm] = {}
         print(f"\n--- Bras : {arm} ---")
         modes = ("aircraft", "road", "train", "ship")
         for mode in modes:
-            vehs_tot = sum(r["order_stats"].get(mode, {}).get("n_vehicles", 0) for r in arm_rows)
+            vehs_cand = sum(r["order_stats"].get(mode, {}).get("n_candidate_vehicles", 0) for r in arm_rows)
+            vehs_dec = sum(r["order_stats"].get(mode, {}).get("n_vehicles_decoded", 0) for r in arm_rows)
+            vehs_no_ord = sum(r["order_stats"].get(mode, {}).get("n_vehicles_no_orders", 0) for r in arm_rows)
+            vehs_unres = sum(r["order_stats"].get(mode, {}).get("n_vehicles_unresolved_orders", 0) for r in arm_rows)
             st_orders_tot = sum(r["order_stats"].get(mode, {}).get("n_station_orders", 0) for r in arm_rows)
             ns_orders_tot = sum(r["order_stats"].get(mode, {}).get("n_non_stop_station_orders", 0) for r in arm_rows)
             fl_orders_tot = sum(r["order_stats"].get(mode, {}).get("n_full_load_orders", 0) for r in arm_rows)
             nl_orders_tot = sum(r["order_stats"].get(mode, {}).get("n_no_load_orders", 0) for r in arm_rows)
             depot_orders_tot = sum(r["order_stats"].get(mode, {}).get("n_depot_orders", 0) for r in arm_rows)
 
+            if vehs_unres > 0:
+                any_unresolved_overall = True
+
             pct_ns = (ns_orders_tot / st_orders_tot * 100.0) if st_orders_tot > 0 else 0.0
             pct_fl = (fl_orders_tot / st_orders_tot * 100.0) if st_orders_tot > 0 else 0.0
             pct_nl = (nl_orders_tot / st_orders_tot * 100.0) if st_orders_tot > 0 else 0.0
 
             summary_by_arm[arm][mode] = {
-                "vehicles_total": vehs_tot,
+                "candidate_vehicles_total": vehs_cand,
+                "decoded_vehicles_total": vehs_dec,
+                "no_orders_vehicles_total": vehs_no_ord,
+                "unresolved_vehicles_total": vehs_unres,
+                "vehicles_total": vehs_dec,
                 "station_orders_total": st_orders_tot,
                 "pct_non_stop": pct_ns,
                 "pct_full_load": pct_fl,
@@ -416,9 +585,14 @@ def main():
                 "depot_orders_total": depot_orders_tot,
             }
 
-            print(f"  [{mode:8}] Vehs: {vehs_tot:>4d} | Gares: {st_orders_tot:>5d} | "
+            print(f"  [{mode:8}] Cand: {vehs_cand:>4d} | Decoded: {vehs_dec:>4d} | "
+                  f"NoOrd: {vehs_no_ord:>2d} | Unres: {vehs_unres:>2d} | "
+                  f"Gares: {st_orders_tot:>5d} | "
                   f"Non-Stop: {pct_ns:>5.1f}% | FullLoad: {pct_fl:>5.1f}% | "
                   f"NoLoad: {pct_nl:>5.1f}% | Depot: {depot_orders_tot:>4d}")
+
+    if any_unresolved_overall:
+        raise SystemExit("FATAL: Diagnostic C53 invalide (des ordres attendus n'ont pas pu etre resolus dans ORDL).")
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     payload = {
