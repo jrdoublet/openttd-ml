@@ -2683,21 +2683,11 @@ function OpexAirBatchPlanStillLive(plan, lines)
   return true;
 }
 
-/* C48 : Verification O(1) avec memoisation par ville des communes deja desservies par l'aerien. */
+/* C48 : Verification O(1) directe par lookup spatial dans idx.airServedTiles. */
 function OpexAirTownServedIndexed(town, idx)
 {
   if (idx == null || town == null) return false;
-  if (town.id in idx.airTownServed) return idx.airTownServed[town.id];
-  local served = false;
-  foreach (line in idx.airLines) {
-    if (AIMap.DistanceManhattan(town.tile, line.originA) < 15 ||
-        AIMap.DistanceManhattan(town.tile, line.originB) < 15) {
-      served = true;
-      break;
-    }
-  }
-  idx.airTownServed[town.id] <- served;
-  return served;
+  return (town.tile in idx.airServedTiles);
 }
 
 /* C48 : Verification O(1) de la capacite du hub aerien via idx.airStationRoutes. */

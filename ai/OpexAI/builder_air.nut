@@ -956,7 +956,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
   }
   local airTownServedMap = {};
   if (C48_INDEXED_REGENERATION || C48_INDEX_SHADOW) {
-    for (local i = 0; i < limit; i++) {
+    for (local i = 0; i < towns.len(); i++) {
       local s = false;
       foreach (line in airLines) {
         if (AIMap.DistanceManhattan(towns[i].tile, line.originA) < 15 ||
@@ -1085,7 +1085,21 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
         local tHubSites0 = AIController.GetTick();
         local lHubSites0 = AIController.GetOpsTillSuspend();
         for (local i = 0; i < towns.len() && sites.len() < AIR_HUB_NEW_SITE_POOL; i++) {
-          if (OpexAirTownServed(towns[i], lines, servedDiag)) continue;
+          local isServed = false;
+          if (C48_INDEX_SHADOW) {
+            local legServed = OpexAirTownServed(towns[i], lines, servedDiag);
+            local idxServed = (towns[i].id in airTownServedMap);
+            if (legServed != idxServed) {
+              AILog.Error("C48 AIR HUB SHADOW MISMATCH! town=" + towns[i].name + " legacy=" + legServed + " indexed=" + idxServed);
+              throw "C48 air hub shadow equivalence mismatch";
+            }
+            isServed = legServed;
+          } else if (C48_INDEXED_REGENERATION && (!DECISION_LOG || servedDiag == null)) {
+            isServed = (towns[i].id in airTownServedMap);
+          } else {
+            isServed = OpexAirTownServed(towns[i], lines, servedDiag);
+          }
+          if (isServed) continue;
           /* Typage : grands aéroports dès 600 hab */
           if (combo.kind == "large" && towns[i].pop < 600) continue;
           if (combo.kind == "small" && towns[i].pop >= 2500) continue;

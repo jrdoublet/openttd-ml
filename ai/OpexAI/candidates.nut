@@ -1079,7 +1079,7 @@ function OpexBuildLineIndex(lines)
     roadFreightBusy = {},  // "cargo|origin" -> true
     airLines = [],         // liste filtree des lignes de mode == "air"
     airPairs = {},         // "min(originA,originB)|max(originA,originB)" -> true
-    airTownServed = {},    // townId -> bool (memoized)
+    airServedTiles = {},   // tile -> true (DistanceManhattan < 15 des origines aeriennes)
     airStationRoutes = {}, // stationId -> count de routes aeriennes
   };
 
@@ -1191,6 +1191,28 @@ function OpexBuildLineIndex(lines)
       }
       if (AIStation.IsValidStation(stB) && stB != stA) {
         idx.airStationRoutes[stB] <- (stB in idx.airStationRoutes) ? idx.airStationRoutes[stB] + 1 : 1;
+      }
+
+      /* C48 : Projection spatiale du disque de Manhattan de rayon 14 (|dx| + |dy| < 15).
+       * Rend le test de desserte aerienne pour toute commune strictement O(1) sans scan de liste. */
+      local airOrigins = [line.originA, line.originB];
+      local airRadius = 14;
+      for (local i = 0; i < 2; i++) {
+        local origin = airOrigins[i];
+        if (!AIMap.IsValidTile(origin)) continue;
+        local ox = AIMap.GetTileX(origin);
+        local oy = AIMap.GetTileY(origin);
+        for (local dx = -airRadius; dx <= airRadius; dx++) {
+          local x = ox + dx;
+          if (x < 0 || x >= width) continue;
+          local dyLimit = airRadius - abs(dx);
+          for (local dy = -dyLimit; dy <= dyLimit; dy++) {
+            local y = oy + dy;
+            if (y < 0 || y >= height) continue;
+            local tile = AIMap.GetTileIndex(x, y);
+            idx.airServedTiles.rawset(tile, true);
+          }
+        }
       }
     }
   }

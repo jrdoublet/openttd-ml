@@ -1814,24 +1814,23 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
      sur la liste brute `lines`, exécutant des scans $O(L)$ répétés. Remplacement par
      `OpexAirBatchPlanStillLiveIndexed`, `OpexAirBatchHubHasCapacityIndexed` et
      `OpexAirTownServedIndexed` (avec mémoïsation $O(1)$ par ville), sous assertion shadow stricte.
-  3. **[P1] Banc officiel non significatif** : Le banc 20×10 apparié donne 12 victoires sur 20 en valeur
-     ($p \approx 0,503$, $t \approx 0,94$) et 11/20 en profit ($p \approx 0,824$), avec −2,55 gares.
-     Ces deltas (< 2 %) sont indissociables du bruit de trajectoire. **Le réglage reste par défaut à 0**.
-  4. **[P2] Reconstruction répétée de l'index dans les candidats staged résolue** : `OpexBuildProjects`
-     instancie l'index une seule fois au niveau du stage et le transmet à `OpexStagedCandidateStillValid`,
-     `OpexStagedAirPlanStillValid`, et `OpexStagedWaterPlanStillValid`, éliminant le coût $O(C \times L)$
-     des réallocations unitaires.
-  5. **[P2] Sortie d'erreur du banc officiel résolue** : `bench_c48_indexed_regeneration_10y_20seeds.py`
-     lève désormais un `SystemExit` non nul si des runs échouent (`if failed:`), aligné sur `bench_v2.py`.
+   3. **[P1] Banc officiel sur commit initial 2b1f351** : Le banc 20×10 apparié mesuré sur `2b1f351` (antérieur aux corrections `b1791a6` des feeders courrier et à l'indexation spatiale aérienne complète) donne 12 victoires sur 20 en valeur
+      ($p \approx 0,503$, $t \approx 0,94$) et 11/20 en profit ($p \approx 0,824$), avec −2,55 gares.
+      Ces deltas (< 2 %) sont indissociables du bruit de trajectoire. **Le réglage reste par défaut à 0**.
+   4. **[P2] Reconstruction répétée de l'index dans les candidats staged résolue** : `OpexBuildProjects`
+      instancie l'index une seule fois au niveau du stage et le transmet à `OpexStagedCandidateStillValid`,
+      `OpexStagedAirPlanStillValid`, et `OpexStagedWaterPlanStillValid`, éliminant le coût $O(C \times L)$
+      des réallocations unitaires.
+   5. **[P2] Sortie d'erreur du banc officiel résolue** : `bench_c48_indexed_regeneration_10y_20seeds.py`
+      lève désormais un `SystemExit` non nul si des runs échouent (`if failed:`), aligné sur `bench_v2.py`.
 
-  📊 **Banc officiel 20 graines × 10 ans apparié (`c48_indexed_regeneration=1` vs `0`)** :
-  `results/bench_c48_indexed_regeneration_10y_20seeds.json` (40 runs, 0 échec).
-  - Valeur d'entreprise : baseline 17,69 M£ → indexé 17,97 M£ (+282 929 £, +1,60 %, SE 299 955 £, $t=0,94$, test des signes 12/20, $p=0,503$).
-  - Profit annuel : baseline 2,893 M£ → indexé 2,904 M£ (+11 739 £, test des signes 11/20, $p=0,824$).
-  - Note de performance : 869,85 vs 870,25.
-  - Flotte : 212,1 véhicules vs 209,3. Gares : 98,1 vs 100,7 (−2,55).
-  - **Verdict** : L'implémentation est corrigée et propre, mais le gain macroscopique n'est pas
-    statistiquement significatif. **C48 reste désactivé par défaut (`c48_indexed_regeneration=0`).**
+   📊 **Banc officiel 20 graines × 10 ans apparié (`c48_indexed_regeneration=1` vs `0`, mesuré sur `2b1f351`)** :
+   `results/bench_c48_indexed_regeneration_10y_20seeds.json` (40 runs, 0 échec).
+   - Valeur d'entreprise : baseline 17,69 M£ → indexé 17,97 M£ (+282 929 £, +1,60 %, SE 299 955 £, $t=0,94$, test des signes 12/20, $p=0,503$).
+   - Profit annuel : baseline 2,893 M£ → indexé 2,904 M£ (+11 739 £, test des signes 11/20, $p=0,824$).
+   - Note de performance : 869,85 vs 870,25.
+   - Flotte : 212,1 véhicules vs 209,3. Gares : 98,1 vs 100,7 (−2,55).
+   - **Verdict** : L'implémentation initiale contenait des défauts identifiés ensuite (feeders courrier, indexation aérienne partielle) et le gain macroscopique mesuré n'était pas statistiquement significatif. **C48 reste désactivé par défaut (`c48_indexed_regeneration=0`).**
 
   ⚠️ **Deux réglages exposés sont du CODE MORT sous `portfolio_v2=1`** (vérifié 2026-09-10) :
   `pool_financeable` (adopté par décision utilisateur le 2026-09-03) et `knapsack_roi` (défaut 1)
