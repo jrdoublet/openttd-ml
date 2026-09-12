@@ -489,29 +489,33 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   3. ✅ **FAIT** — `c55_freight_origin_relax`, défaut 0, indissociable de l'étape 2 (le filet
      n'existe que sous le levier).
   4. ✅ **FAIT le 2026-09-11 — VERDICT NUL, NON ADOPTÉ.** Défaut maintenu à 0. Voir « ÉTAPE 4 ».
-  5. ✅ **FAIT le 2026-09-12 — ÉTAPE 5 : ISOLATION STRICTE PAX ROUTIER ET DÉMONSTRATION CAUSALE COMPLÈTE.**
+  5. ✅ **FAIT le 2026-09-12 — ÉTAPE 5 : ISOLATION STRICTE PAX ROUTIER, RÉSOLUTION DE REVUE (P1/P2) ET CLÔTURE CAUSALE.**
      - **Hypothèse initiale (revue Gemini 3.1 Pro)** : `projects.nut` purgeait les candidats passagers routiers via `OpexOriginServed` lors de la revalidation incrémentale, ce qui brisait la topologie en étoile et était supposé causer les 58 % de viviers vides.
-     - **Critique utilisateur** : Identifier une incohérence locale ne prouve pas le lien causal avec le plafonnement global ni avec les 58 % de viviers vides. Nécessité d'une sonde causale dédiée (`c55_pax_trace_probe`) et d'un réglage séparé (`c55_road_pax_origin_relax`).
+     - **Critique utilisateur & Résolution de la revue (3 P1, 2 P2)** :
+       1. *[P1] Sonde non passive* : La sonde préliminaire émettait `AILog.Info` à chaque candidat épargné dans le bras PaxRelax (1 800 lignes de log). Le contrôle apparié a révélé que ce bavardage perturbait le scheduler et créait un artefact de -12,0 % de CV (sans la sonde, le bras était à +3,3 %). **Résolu** : Sonde rendue 100 % passive en boucle chaude (compteurs mémoire silencieux sans aucun log par candidat).
+       2. *[P1] Entonnoir d'élection incomplet* : Le compteur `elected` intervenait après implantation et rentabilité. **Résolu** : Entonnoir décomposé en 7 étapes : `attempted` → `precheck_ok` → `financeable` → `planned` → `viable` → `built` → `built_profit`.
+       3. *[P1] Troncature de fin de période* : La dernière année n'était pas comptabilisée en l'absence de franchissement de nouvel an. **Résolu** : Flush calendaire garanti au 28-31 décembre dans `_runNextTask`.
+       4. *[P2] Shift modal non isolé* : Remplacement erroné de `roadMax` par `roadGenMax`. **Résolu** : Rétablissement de `roadBounds.roadMax` (diff zéro contre `master`).
+       5. *[P2] Contrôle d'incomplétude* : Ajout de `expected_last_year` dans `diag_c55_pax_isolation.py`.
      - **Découvertes architecturales clés** :
-       1. Dans la configuration par défaut d'OpexAI, **`road_pax_build = 0`** (`info.nut:1768` : *"Build new town-to-town passenger bus lines: 0 = disabled by default to preserve airport demand"*). Les lignes de bus interurbaines ne sont même pas générées (`candidates.nut:1990`).
-       2. Les seules lignes passagers routières construites par défaut sont les **feeders de rabattement vers hub rail/air** (`isFeeder = true`), qui empruntent la branche dédiée (`projects.nut:700`) et **n'appellent JAMAIS `OpexOriginServed`**.
-       3. Par conséquent, en configuration par défaut, aucun candidat passager ne subit la purge d'`OpexOriginServed` !
+       1. Dans la configuration par défaut d'OpexAI, **`road_pax_build = 0`** (`info.nut:1768`). Les lignes de bus interurbaines ne sont jamais générées.
+       2. Les seules lignes passagers routières construites par défaut sont les **feeders de rabattement hub** (`isFeeder = true`), qui empruntent la branche dédiée (`projects.nut:700`) et **n'appellent JAMAIS `OpexOriginServed`**.
+       3. En début de jeu (1970), `roadMin = roadMax = 9` : aucune paire de villes n'est à distance Manhattan 9 (les distances plus courtes sont dans le catchment, les plus longues réservées au train).
      - **Preuve empirique sur banc 5 graines × 6 ans (`results/diag_c55_pax_isolation_6y_5seeds.json`)** :
        | Métrique | 1. Baseline | 2. PaxRelax (`c55_road_pax_origin_relax=1`) | 3. FreightRelax (`c55_freight_origin_relax=1`) |
        |---|---|---|---|
-       | **Company Value (mean)** | 8 207 758 £ | 8 207 758 £ (+0 £, **stricte équivalence**) | 8 206 554 £ (-1 204 £) |
-       | **Profit Year (mean)** | 2 193 287 £ | 2 193 287 £ (+0 £, **stricte équivalence**) | 2 164 508 £ (-28 779 £) |
-       | **Vehicles (mean)** | 164,2 | 164,2 (+0,0) | 154,2 (-10 véhicules, -6 %) |
-       | **PAX Reval Evals** | 0 | 0 | 0 |
-       | **PAX Spared** | 0 | 0 | 0 |
-       | **PAX Elected / Built** | 0 / 0 | 0 / 0 | 0 / 0 |
-     - **Expérience sous `road_pax_build=1` (mode bus interurbain forcé)** :
-       - Un bug masqué a été corrigé à la ligne 2009 de `candidates.nut` : `roadBounds.roadMax` (9 tuiles en 1970) rejetait toutes les paires interurbaines ; remplacé par `OpexRoadDistanceAllowed(catalog, distance, stats)`.
-       - Avec ce correctif, sur 6 ans (graine 42) sous `road_pax_build=1`, `c55_road_pax_origin_relax=1` a épargné 1 800 candidats (`PAX Spared = 1800`), mais **0 candidat épargné n'a été élu ni construit**, car les projets ferroviaires et aériens à haut ROI dominent systématiquement le portefeuille.
-       - La conservation de ces 1 800 candidats dans le portefeuille a alourdi la maintenance et dégradé la valeur de l'entreprise de -12 % (-563 k£) sans aucun gain réseau.
+       | **Company Value (mean)** | 8 735 996 £ | 8 735 996 £ (+0 £, **stricte équivalence 0,0 %**) | 8 600 783 £ (-135 213 £, -1,5 %) |
+       | **Profit Year (mean)** | 2 389 922 £ | 2 389 922 £ (+0 £, **stricte équivalence 0,0 %**) | 2 325 981 £ (-63 941 £, -2,7 %) |
+       | **Vehicles (mean)** | 154,4 | 154,4 (+0,0) | 160,2 (+5,8) |
+       | **Stations (mean)** | 75,8 | 75,8 (+0,0) | 79,8 (+4,0) |
+       | **Station Rating (median)** | 167,0 | 167,0 (+0,0) | 163,0 (-4,0) |
+       | **PAX Funnel (tous stades)** | 0 | 0 | 0 |
+     - **Test apparié sous `road_pax_build=1` (graine 42, 6 ans, sonde passive)** :
+       - Baseline vs PaxRelax : **Stricte équivalence au pound près** (7 815 892 £ vs 7 815 892 £, 156 véhicules, 79 stations).
+       - Avec `roadBounds.roadMax` respecté, 0 candidat interurbain généré en 1970 ; aucun impact.
      - **Conclusion définitive C55** :
-       1. La thèse affirmant que la purge de passagers routiers causait les 58 % de viviers vides en jeu standard est **formellement réfutée** : en jeu standard, ces candidats n'existent pas (`road_pax_build=0`).
-       2. La dégradation économique constatée lors de l'étape 4 venait à 100 % du fret routier (`c55_freight_origin_relax`), qui crée des gares routières excédentaires et sur-dessert les industries au détriment du train.
+       1. La thèse selon laquelle la purge de passagers routiers causait les 58 % de viviers vides est **réfutée**.
+       2. La dégradation économique constatée à l'étape 4 venait à 100 % du fret routier relâché (`c55_freight_origin_relax`), qui disperse le capital sur des gares camions redondantes.
        3. Les réglages `c55_road_pax_origin_relax` et `c55_pax_trace_probe` sont conservés à défaut 0. Le chantier C55 est clos.
 
   ### Ce que C55 laisse ouvert
@@ -663,11 +667,18 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
 
   L'instruction critique de l'utilisateur a exigé de ne pas confondre une incohérence locale avec une démonstration causale. Nous avons donc isolé strictement le PAX (`c55_road_pax_origin_relax`) du Fret (`c55_freight_origin_relax`) et posé une sonde de traçabilité causale complète (`c55_pax_trace_probe`).
 
+  La revue critique a identifié 3 P1 et 2 P2 corrigés avant clôture :
+  - **[P1] Sonde passive** : Élimination des `AILog.Info` par candidat (qui produisaient un artefact de -12,0 % de CV).
+  - **[P1] Entonnoir décomposé** : Découpage fin en 7 phases (`attempted` → `precheck_ok` → `financeable` → `planned` → `viable` → `built` → `built_profit`).
+  - **[P1] Flush calendaire** : Garantie de mesure de l'année finale (1975) au 28-31 décembre.
+  - **[P2] Isolation modale** : Maintien de `roadBounds.roadMax` (diff zéro contre `master`).
+  - **[P2] Validation d'intégrité** : Paramètre `expected_last_year` vérifiant que 15/15 runs sont complets.
+
   **Les résultats empiriques réfutent totalement l'hypothèse de départ pour le jeu standard** :
   1. Dans OpexAI par défaut, **`road_pax_build = 0`** (`info.nut:1768`) : les bus interurbains sont désactivés pour réserver la demande aux aéroports. Seuls les feeders hub existent (`isFeeder = true`), qui empruntent leur propre branche et n'appellent jamais `OpexOriginServed`.
-  2. Sur 5 graines × 6 ans (`results/diag_c55_pax_isolation_6y_5seeds.json`), activer `c55_road_pax_origin_relax=1` produit une **stricte équivalence au pound près** avec la baseline (8 207 758 £ CV, 2 193 287 £ profit, 164,2 véhicules). Zéro candidat n'est revalidé ni purgé par ce filtre.
-  3. Même en forçant `road_pax_build=1` et en corrigeant la troncature à 9 tuiles de `candidates.nut:2009`, les 1 800 candidats épargnés ne sont **jamais élus ni construits** (le train et l'avion absorbent les capitaux et le débit), et leur maintien en mémoire dégrade la performance globale (-12 % CV).
-  4. La dégradation de l'étape 4 venait à 100 % du fret routier relâché (`c55_freight_origin_relax`).
+  2. Sur 5 graines × 6 ans (`results/diag_c55_pax_isolation_6y_5seeds.json`), activer `c55_road_pax_origin_relax=1` produit une **stricte équivalence au pound près** avec la baseline (8 735 996 £ CV, 2 389 922 £ profit, 154,4 véhicules, 75,8 gares). Zéro candidat n'est revalidé ni purgé par ce filtre.
+  3. En contrôle apparié sous `road_pax_build=1` (graine 42, 6 ans, sonde passive), l'identité est stricte (7 815 892 £ vs 7 815 892 £, delta = 0 £) car en 1970 `roadMin = roadMax = 9` (aucune paire de villes à distance 9 n'existe, éliminant tout candidat interurbain par conception économique).
+  4. La dégradation de l'étape 4 venait à 100 % du fret routier relâché (`c55_freight_origin_relax`), qui disperse le capital sur des liaisons routières redondantes (-135 k£ CV, -64 k£ profit, rating -4,0 pts).
 
   **Verdict C55** : Les deux réglages restent à défaut 0. Le plafonnement du vivier par défaut ne provient pas du filtre routier d'origine, mais de l'architecture générale du portefeuille et de la concurrence entre modes. Le chantier C55 est clos.
 

@@ -510,10 +510,34 @@ function OpexC55PaxTraceObserveSpared()
   C55_PAX_TRACE_LEDGER.spared++;
 }
 
-function OpexC55PaxTraceObserveElected()
+function OpexC55PaxTraceObserveAttempted()
 {
   if (!C55_PAX_TRACE_PROBE || C55_PAX_TRACE_LEDGER == null) return;
-  C55_PAX_TRACE_LEDGER.elected++;
+  C55_PAX_TRACE_LEDGER.attempted++;
+}
+
+function OpexC55PaxTraceObservePrecheckOk()
+{
+  if (!C55_PAX_TRACE_PROBE || C55_PAX_TRACE_LEDGER == null) return;
+  C55_PAX_TRACE_LEDGER.precheck_ok++;
+}
+
+function OpexC55PaxTraceObserveFinanceable()
+{
+  if (!C55_PAX_TRACE_PROBE || C55_PAX_TRACE_LEDGER == null) return;
+  C55_PAX_TRACE_LEDGER.financeable++;
+}
+
+function OpexC55PaxTraceObservePlanned()
+{
+  if (!C55_PAX_TRACE_PROBE || C55_PAX_TRACE_LEDGER == null) return;
+  C55_PAX_TRACE_LEDGER.planned++;
+}
+
+function OpexC55PaxTraceObserveViable()
+{
+  if (!C55_PAX_TRACE_PROBE || C55_PAX_TRACE_LEDGER == null) return;
+  C55_PAX_TRACE_LEDGER.viable++;
 }
 
 function OpexC55PaxTraceObserveBuilt(profit)
@@ -1479,6 +1503,8 @@ class OpexAI extends AIController {
   _nextLineId = 0;
   _lastCatalogMonth = -1;
   _lastReportYear = -1;
+  _c55PaxLastYear = -1;
+  _c55PaxLastFlushedYear = -1;
   /* C43/E3 famille 2 : dernier compte cumulatif publie, pour ne journaliser que le delta annuel. */
   _cashReserveProbeLastCalls = 0;
   _cashReserveProbeLastMinBinds = 0;
@@ -3470,6 +3496,10 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         return { outcome = "rejected", discards = passDiscards };
       }
       local candidate = project.payload;
+      local wasPaxSpared = (candidate != null && ("kind" in candidate) && candidate.kind == "pax") &&
+                           (("_c55_pax_spared" in project && project._c55_pax_spared) ||
+                            ("_c55_pax_spared" in candidate && candidate._c55_pax_spared));
+      if (wasPaxSpared) OpexC55PaxTraceObserveAttempted();
       local isFeeder = ("isFeeder" in candidate) && candidate.isFeeder;
       local isSubsidy = ("isSubsidy" in candidate) && candidate.isSubsidy;
       if (isSubsidy) {
@@ -3573,6 +3603,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "abandoned_pair", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
       }
+      if (wasPaxSpared) OpexC55PaxTraceObservePrecheckOk();
 
       local need = candidate.capital + OpexCashReserve() + ROAD_CAPITAL_MARGIN;
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
@@ -3581,6 +3612,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
         return { outcome = "rejected", discards = passDiscards };
       }
+      if (wasPaxSpared) OpexC55PaxTraceObserveFinanceable();
 
       OpexSign(anchor, "IP|" + yy + "|R|" + project.budgetScore + "|" + project.opcodeScore);
 
@@ -3599,6 +3631,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         OpexSign(anchor, "RB|" + yy + "|" + idx + "|1|" + planOps + "|0");
         return { outcome = "rejected", discards = passDiscards };
       }
+      if (wasPaxSpared) OpexC55PaxTraceObservePlanned();
       local actualDist = AIMap.DistanceManhattan(plan.stopA.tile, plan.stopB.tile);
       if (actualDist < 1) actualDist = 1;
       local economics = OpexRoadLineEconomics(this._catalog, candidate.cargo, actualDist,
@@ -3612,6 +3645,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|ECON|0");
         return { outcome = "rejected", discards = passDiscards };
       }
+      if (wasPaxSpared) OpexC55PaxTraceObserveViable();
       local netProfit = ("networkProfit" in candidate) ? candidate.networkProfit : 0;
       local netRev = ("networkRevenue" in candidate) ? candidate.networkRevenue : 0;
       OpexApplyRoadEconomics(candidate, economics, actualDist);
@@ -3664,13 +3698,6 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
           return { outcome = "rejected", discards = passDiscards };
         }
       }
-      local wasPaxSpared = (candidate.kind == "pax") &&
-                           (("_c55_pax_spared" in project && project._c55_pax_spared) ||
-                            (candidate != null && ("_c55_pax_spared" in candidate) && candidate._c55_pax_spared));
-      if (wasPaxSpared) {
-        OpexC55PaxTraceObserveElected();
-        OpexC55PaxTraceLog("C55_PAX_ELECTED", "src=" + candidate.src + " dst=" + candidate.dst + " profit=" + candidate.profitAnnual);
-      }
       local result = OpexBuildRoadRoute(this._catalog, this._budget, plan, candidate);
       OpexSign(anchor, "RB|" + yy + "|" + idx + "|1|" + planOps + "|" + result.opcodes);
       if (ROAD_COST_PROBE) {
@@ -3688,9 +3715,6 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
       }
       if (wasPaxSpared) {
         OpexC55PaxTraceObserveBuilt(candidate.profitAnnual);
-        OpexC55PaxTraceLog("C55_PAX_BUILT", "line=" + idx + " src=" + candidate.src + " dst=" + candidate.dst
-                           + " profit=" + candidate.profitAnnual + " cost=" + result.cost
-                           + " vehicles=" + result.vehicles.len());
       }
 
       if (DECISION_LOG) {
@@ -7890,26 +7914,55 @@ function OpexAI::_logC55PaxTraceLedger(year)
 {
   if (!C55_PAX_TRACE_PROBE || C55_PAX_TRACE_LEDGER == null) return;
   local entry = C55_PAX_TRACE_LEDGER;
-  OpexC55PaxTraceLog("C55_PAX_TRACE", "phase=annual year=" + year + " revalidated=" + entry.revalidated
-      + " origin_blocked=" + entry.origin_blocked + " spared=" + entry.spared
-      + " elected=" + entry.elected + " built=" + entry.built
-      + " built_profit=" + entry.built_profit);
   entry.total_revalidated += entry.revalidated;
   entry.total_origin_blocked += entry.origin_blocked;
   entry.total_spared += entry.spared;
-  entry.total_elected += entry.elected;
+  entry.total_attempted += entry.attempted;
+  entry.total_precheck_ok += entry.precheck_ok;
+  entry.total_financeable += entry.financeable;
+  entry.total_planned += entry.planned;
+  entry.total_viable += entry.viable;
   entry.total_built += entry.built;
   entry.total_built_profit += entry.built_profit;
-  OpexC55PaxTraceLog("C55_PAX_TRACE", "phase=summary year=" + year + " revalidated=" + entry.total_revalidated
-      + " origin_blocked=" + entry.total_origin_blocked + " spared=" + entry.total_spared
-      + " elected=" + entry.total_elected + " built=" + entry.total_built
+
+  OpexC55PaxTraceLog("C55_PAX_TRACE", "phase=annual year=" + year
+      + " revalidated=" + entry.revalidated
+      + " origin_blocked=" + entry.origin_blocked
+      + " spared=" + entry.spared
+      + " attempted=" + entry.attempted
+      + " precheck_ok=" + entry.precheck_ok
+      + " financeable=" + entry.financeable
+      + " planned=" + entry.planned
+      + " viable=" + entry.viable
+      + " built=" + entry.built
+      + " built_profit=" + entry.built_profit);
+
+  OpexC55PaxTraceLog("C55_PAX_TRACE", "phase=summary year=" + year
+      + " revalidated=" + entry.total_revalidated
+      + " origin_blocked=" + entry.total_origin_blocked
+      + " spared=" + entry.total_spared
+      + " attempted=" + entry.total_attempted
+      + " precheck_ok=" + entry.total_precheck_ok
+      + " financeable=" + entry.total_financeable
+      + " planned=" + entry.total_planned
+      + " viable=" + entry.total_viable
+      + " built=" + entry.total_built
       + " built_profit=" + entry.total_built_profit);
+
   C55_PAX_TRACE_LEDGER = {
     revalidated = 0, origin_blocked = 0, spared = 0,
-    elected = 0, built = 0, built_profit = 0,
-    total_revalidated = entry.total_revalidated, total_origin_blocked = entry.total_origin_blocked,
-    total_spared = entry.total_spared, total_elected = entry.total_elected,
-    total_built = entry.total_built, total_built_profit = entry.total_built_profit,
+    attempted = 0, precheck_ok = 0, financeable = 0,
+    planned = 0, viable = 0, built = 0, built_profit = 0,
+    total_revalidated = entry.total_revalidated,
+    total_origin_blocked = entry.total_origin_blocked,
+    total_spared = entry.total_spared,
+    total_attempted = entry.total_attempted,
+    total_precheck_ok = entry.total_precheck_ok,
+    total_financeable = entry.total_financeable,
+    total_planned = entry.total_planned,
+    total_viable = entry.total_viable,
+    total_built = entry.total_built,
+    total_built_profit = entry.total_built_profit,
   };
 }
 
@@ -8114,6 +8167,22 @@ function OpexAI::_runNextTask()
   if (DECISION_LOG) {
     _currentTaskName = null;
     _currentTaskLogged = false;
+  }
+  if (C55_PAX_TRACE_PROBE) {
+    local now = AIDate.GetCurrentDate();
+    local curY = AIDate.GetYear(now);
+    local curM = AIDate.GetMonth(now);
+    local curD = AIDate.GetDayOfMonth(now);
+    if (this._c55PaxLastYear < 0) {
+      this._c55PaxLastYear = curY;
+    } else if (curY > this._c55PaxLastYear) {
+      this._logC55PaxTraceLedger(this._c55PaxLastYear);
+      this._c55PaxLastYear = curY;
+      this._c55PaxLastFlushedYear = -1;
+    } else if (curM == 12 && curD >= 28 && this._c55PaxLastFlushedYear != curY) {
+      this._c55PaxLastFlushedYear = curY;
+      this._logC55PaxTraceLedger(curY);
+    }
   }
   if (this._taskQueue == null || this._taskQueue.len() == 0) return false;
   /* Sonder d'abord la transaction, puis CONTINUER la file dans le meme passage. Retourner ici
@@ -8735,7 +8804,6 @@ function OpexAI::_runNextTask()
     if (C48_PROJECT_ATTEMPT_LEDGER) this._logC48ProjectAttemptLedger(year);
     if (C49_SCARCITY_LEDGER) this._logC49ScarcityLedger(year);
     if (C55_ORIGIN_RELAX_PROBE) this._logC55OriginRelaxLedger(year);
-    if (C55_PAX_TRACE_PROBE) this._logC55PaxTraceLedger(year);
     if (C52_AUTOREPLACE_LOG) this._logC52AutoreplaceLedger(year);
     if (C52_EVENT_EXPOSURE_PROBE) this._logC52EventExposureLedger(year);
     if (C54_VEHICLE_ORDERS_PROBE) this._logC54VehicleOrders(year);
@@ -9395,9 +9463,11 @@ function OpexAI::Start()
   if (C55_PAX_TRACE_PROBE) {
     C55_PAX_TRACE_LEDGER = {
       revalidated = 0, origin_blocked = 0, spared = 0,
-      elected = 0, built = 0, built_profit = 0,
+      attempted = 0, precheck_ok = 0, financeable = 0,
+      planned = 0, viable = 0, built = 0, built_profit = 0,
       total_revalidated = 0, total_origin_blocked = 0, total_spared = 0,
-      total_elected = 0, total_built = 0, total_built_profit = 0,
+      total_attempted = 0, total_precheck_ok = 0, total_financeable = 0,
+      total_planned = 0, total_viable = 0, total_built = 0, total_built_profit = 0,
     };
   }
   C60_TOWN_RATING_PROBE = AIController.GetSetting("c60_town_rating_probe") != 0;

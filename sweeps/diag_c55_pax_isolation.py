@@ -42,7 +42,10 @@ ARM_FREIGHT = "OpexAI[c55_freight_origin_relax=1,c55_pax_trace_probe=1]"
 ARMS = [ARM_BASELINE, ARM_PAX, ARM_FREIGHT]
 
 EVENT_RE = re.compile(r"OPEX \d+-\d+-\d+ C55_PAX_TRACE\s*(.*)")
-FIELDS = ("revalidated", "origin_blocked", "spared", "elected", "built", "built_profit")
+FIELDS = (
+    "revalidated", "origin_blocked", "spared", "attempted",
+    "precheck_ok", "financeable", "planned", "viable", "built", "built_profit"
+)
 
 OPEX_EVENT_RE = re.compile(r"OPEX (\d+)-(\d+)-(\d+) ([A-Z0-9_]+)\s*(.*)$")
 
@@ -83,10 +86,13 @@ def build_trace_metrics(events):
         elif phase == "summary":
             summaries.append((int(event["year"]), numeric(event)))
     by_year = [{"year": year, **annual[year]} for year in sorted(annual)]
-    cumulative = {field: 0 for field in FIELDS}
-    for row in by_year:
-        for field in FIELDS:
-            cumulative[field] += row[field]
+    if summaries:
+        cumulative = dict(summaries[-1][1])
+    else:
+        cumulative = {field: 0 for field in FIELDS}
+        for row in by_year:
+            for field in FIELDS:
+                cumulative[field] += row[field]
     last_summary = ({"year": summaries[-1][0], **summaries[-1][1]}
                     if summaries else {field: 0 for field in FIELDS})
     return {
@@ -107,13 +113,10 @@ def format_delta(val, base):
 
 def run_selftest():
     sample_output = """
-OPEX 1971-1-1 C55_PAX_TRACE phase=annual year=1971 revalidated=12 origin_blocked=5 spared=5 elected=2 built=2 built_profit=15400
-OPEX 1971-1-1 C55_PAX_TRACE phase=summary year=1971 revalidated=12 origin_blocked=5 spared=5 elected=2 built=2 built_profit=15400
-OPEX 1972-1-1 C55_PAX_TRACE phase=annual year=1972 revalidated=20 origin_blocked=8 spared=6 elected=3 built=2 built_profit=16200
-OPEX 1972-1-1 C55_PAX_TRACE phase=summary year=1972 revalidated=32 origin_blocked=13 spared=11 elected=5 built=4 built_profit=31600
-OPEX 1971-5-12 C55_PAX_SPARED src=42 dst=99 profit=7800
-OPEX 1971-5-12 C55_PAX_ELECTED src=42 dst=99 profit=7800
-OPEX 1971-5-12 C55_PAX_BUILT line=3 src=42 dst=99 profit=7800 cost=12000 vehicles=2
+OPEX 1970-12-28 C55_PAX_TRACE phase=annual year=1970 revalidated=12 origin_blocked=5 spared=5 attempted=2 precheck_ok=2 financeable=2 planned=2 viable=2 built=2 built_profit=15400
+OPEX 1970-12-28 C55_PAX_TRACE phase=summary year=1970 revalidated=12 origin_blocked=5 spared=5 attempted=2 precheck_ok=2 financeable=2 planned=2 viable=2 built=2 built_profit=15400
+OPEX 1971-12-28 C55_PAX_TRACE phase=annual year=1971 revalidated=20 origin_blocked=8 spared=6 attempted=3 precheck_ok=3 financeable=2 planned=2 viable=2 built=2 built_profit=16200
+OPEX 1971-12-28 C55_PAX_TRACE phase=summary year=1971 revalidated=32 origin_blocked=13 spared=11 attempted=5 precheck_ok=5 financeable=4 planned=4 viable=4 built=4 built_profit=31600
 """
     events = parse_trace_events(sample_output)
     metrics = build_trace_metrics(events)
@@ -123,16 +126,17 @@ OPEX 1971-5-12 C55_PAX_BUILT line=3 src=42 dst=99 profit=7800 cost=12000 vehicle
     assert metrics["cumulative"]["revalidated"] == 32
     assert metrics["cumulative"]["origin_blocked"] == 13
     assert metrics["cumulative"]["spared"] == 11
-    assert metrics["cumulative"]["elected"] == 5
+    assert metrics["cumulative"]["attempted"] == 5
+    assert metrics["cumulative"]["precheck_ok"] == 5
+    assert metrics["cumulative"]["financeable"] == 4
+    assert metrics["cumulative"]["planned"] == 4
+    assert metrics["cumulative"]["viable"] == 4
     assert metrics["cumulative"]["built"] == 4
     assert metrics["cumulative"]["built_profit"] == 31600
-    assert metrics["last_summary"]["year"] == 1972
+    assert metrics["last_summary"]["year"] == 1971
     assert metrics["last_summary"]["built"] == 4
 
     assert counts["C55_PAX_TRACE"] == 4
-    assert counts["C55_PAX_SPARED"] == 1
-    assert counts["C55_PAX_ELECTED"] == 1
-    assert counts["C55_PAX_BUILT"] == 1
 
     print("Selftest passed successfully!")
 
@@ -172,7 +176,7 @@ def main():
                       bananas_ai_library("5046524c", "Pathfinder.Rail")),
     ))
 
-    summary = summarise(rows)
+    summary = summarise(rows, expected_last_year=1970 + args.years - 1)
 
     by_arm = {arm: [] for arm in args.arms}
     for record in summary:
@@ -208,14 +212,7 @@ def main():
         stns = [r["n_stations"] for r in ok_records]
         ratings = [r["median_station_rating"] for r in ok_records if r.get("median_station_rating")]
 
-        cum_spared = sum(r["trace_metrics"]["cumulative"]["spared"] for r in ok_records)
-        cum_elected = sum(r["trace_metrics"]["cumulative"]["elected"] for r in ok_records)
-        cum_built = sum(r["trace_metrics"]["cumulative"]["built"] for r in ok_records)
-        cum_built_profit = sum(r["trace_metrics"]["cumulative"]["built_profit"] for r in ok_records)
-        cum_origin_blocked = sum(r["trace_metrics"]["cumulative"]["origin_blocked"] for r in ok_records)
-        cum_revalidated = sum(r["trace_metrics"]["cumulative"]["revalidated"] for r in ok_records)
-
-        arm_aggregates[arm] = {
+        agg = {
             "n_runs": len(records),
             "n_ok": len(ok_records),
             "company_value_mean": statistics.mean(cvs) if cvs else 0,
@@ -225,18 +222,15 @@ def main():
             "n_vehicles_mean": statistics.mean(vehs) if vehs else 0,
             "n_stations_mean": statistics.mean(stns) if stns else 0,
             "rating_median": statistics.median(ratings) if ratings else 0,
-            "revalidated_total": cum_revalidated,
-            "origin_blocked_total": cum_origin_blocked,
-            "spared_total": cum_spared,
-            "elected_total": cum_elected,
-            "built_total": cum_built,
-            "built_profit_total": cum_built_profit,
         }
+        for field in FIELDS:
+            agg[f"{field}_total"] = sum(r["trace_metrics"]["cumulative"][field] for r in ok_records)
+        arm_aggregates[arm] = agg
 
     # Print markdown summary
-    print("\n" + "=" * 95)
+    print("\n" + "=" * 105)
     print("DIAGNOSTIC C55 : ISOLATION PAX ROUTIER vs FRET ROUTIER")
-    print("=" * 95)
+    print("=" * 105)
     headers = ["Metrique", "1. Baseline", "2. PaxRelax", "3. FreightRelax", "Delta Pax vs Base"]
     print(f"{headers[0]:<25} | {headers[1]:<16} | {headers[2]:<16} | {headers[3]:<16} | {headers[4]:<20}")
     print("-" * 105)
@@ -270,7 +264,11 @@ def main():
     row("PAX Reval Evals", "revalidated_total")
     row("PAX Origin Blocked", "origin_blocked_total")
     row("PAX Spared", "spared_total")
-    row("PAX Elected", "elected_total")
+    row("PAX Attempted", "attempted_total")
+    row("PAX Precheck OK", "precheck_ok_total")
+    row("PAX Financeable", "financeable_total")
+    row("PAX Planned (Site)", "planned_total")
+    row("PAX Viable (Econ)", "viable_total")
     row("PAX Built", "built_total")
     row("PAX Built Profit", "built_profit_total")
     print("=" * 105)

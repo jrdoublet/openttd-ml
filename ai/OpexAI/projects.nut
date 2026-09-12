@@ -734,8 +734,6 @@ function OpexIncrementalCandidateStillValid(p, lines, abandonedPairs = null)
               if (p.payload != null) p.payload._c55_pax_spared <- true;
               if (C55_PAX_TRACE_PROBE) {
                 OpexC55PaxTraceObserveSpared();
-                local prof = ("profitAnnual" in p) ? p.profitAnnual : 0;
-                OpexC55PaxTraceLog("C55_PAX_SPARED", "src=" + p.src + " dst=" + p.dst + " profit=" + prof);
               }
             }
           }
