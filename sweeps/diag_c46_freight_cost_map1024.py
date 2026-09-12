@@ -1,10 +1,14 @@
-"""Diagnostic de mesure directe du cout de calcul des generateurs fret C46 sur grande carte (1024x1024).
+"""Diagnostic de mesure directe du cout CPU du generateur fret rail C46 sur grande carte (1024x1024).
 
 Compare OFF (c46_freight_grid=0) vs ON (c46_freight_grid=1) sur 5 graines x 1 an.
 Extrait directement depuis les sauvegardes mensuelles (chunk SIGN) :
-1. Le nombre de paires evaluees dans la boucle fret rail (panneau CR|<annee>|<pairsTotal>)
-2. Les opcodes consommes par le generateur fret rail (panneau OP|<annee>|<cand_pax>|<cand_freight>)
-3. Les opcodes consommes par les categories de candidats (panneaux BC|cand_freight et BC|cand_road)
+1. Le nombre de paires evaluees dans la passe rail (panneau CR|<annee>|<pairsTotal>),
+   qui englobe le socle pax (~180 paires identiques aux deux bras) et les paires fret.
+2. Les opcodes consommes specifiquement par le generateur fret rail OpexFreightCandidates
+   (panneau OP|<annee>|<cand_pax>|<cand_freight>, categorie cand_freight du budget).
+
+Note : Le generateur routier (OpexRoadFreightCandidates) releve du budget cand_road
+et fait l'objet d'une boucle distincte.
 """
 import argparse
 from pathlib import Path
@@ -23,6 +27,7 @@ from bench_v2 import (
     experiments,
     make_cfg,
     script_failure_reason,
+    summarise,
     write_json_atomically,
 )
 
@@ -35,6 +40,7 @@ OUT_PATH = ROOT / "results" / "diag_c46_freight_cost_map1024.json"
 
 
 def keep_with_freight_metrics(row):
+    """Extrait les metriques de paires et d'opcodes de generateur depuis les panneaux."""
     chunks = row.get("chunks", {})
     signs = [s.get("name", "") for s in (chunks.get("SIGN") or {}).values()]
 
@@ -87,7 +93,7 @@ def main():
         ),
     ))
 
-    # Regrouper par run et prendre la sauvegarde finale (1970-12-01)
+    # Regroupement et verification de validite calendaire et NoAI
     by_run = {}
     for r in rows:
         key = (r["arm"], r["seed"])
@@ -97,43 +103,50 @@ def main():
     for (arm, seed), series in sorted(by_run.items()):
         series.sort(key=lambda item: item["date"])
         final = series[-1]
+        reason = script_failure_reason(final.get("openttd_output"))
+        is_ok = (reason is None) and (final["date"] == "1971-01-01")
         summary.append({
             "arm": arm,
             "seed": seed,
-            "date": final["date"],
+            "final_date": final["date"],
             "pairs_total": final["pairs_total"],
             "cand_freight_ops": final["cand_freight_ops"],
             "cand_pax_ops": final["cand_pax_ops"],
-            "run_ok": script_failure_reason(final.get("openttd_output")) is None,
+            "run_ok": is_ok,
+            "failure_reason": reason,
         })
 
-    # Statistiques par bras
+    failed = [r for r in summary if not r["run_ok"]]
+    if failed:
+        raise SystemExit(f"Diagnostic invalide: {len(failed)} run(s) en echec NoAI ou tronques.")
+
+    # Statistiques par bras (calculees strictement sur runs valides)
     arm_stats = {}
     for arm in ARMS:
-        recs = [r for r in summary if r["arm"] == arm]
+        recs = [r for r in summary if r["arm"] == arm and r["run_ok"]]
         arm_stats[arm] = {
             "mean_pairs_total": statistics.mean([r["pairs_total"] for r in recs]),
             "mean_cand_freight_ops": statistics.mean([r["cand_freight_ops"] for r in recs]),
         }
 
-    # Comparaisons appariées (OFF vs ON)
+    # Comparaisons appariees (OFF vs ON)
     paired = []
     off_recs = {r["seed"]: r for r in summary if r["arm"] == ARMS[0]}
     on_recs = {r["seed"]: r for r in summary if r["arm"] == ARMS[1]}
 
-    pair_deltas = []
-    ops_deltas = []
+    pair_ratios = []
+    ops_ratios = []
     for s in SEEDS:
         off_r = off_recs[s]
         on_r = on_recs[s]
         pairs_ratio = (off_r["pairs_total"] / on_r["pairs_total"]) if on_r["pairs_total"] > 0 else 0
         ops_ratio = (off_r["cand_freight_ops"] / on_r["cand_freight_ops"]) if on_r["cand_freight_ops"] > 0 else 0
-        pair_deltas.append(pairs_ratio)
-        ops_deltas.append(ops_ratio)
+        pair_ratios.append(pairs_ratio)
+        ops_ratios.append(ops_ratio)
         paired.append({
             "seed": s,
-            "off_pairs": off_r["pairs_total"],
-            "on_pairs": on_r["pairs_total"],
+            "off_pairs_total": off_r["pairs_total"],
+            "on_pairs_total": on_r["pairs_total"],
             "pairs_reduction_factor": round(pairs_ratio, 2),
             "off_cand_freight_ops": off_r["cand_freight_ops"],
             "on_cand_freight_ops": on_r["cand_freight_ops"],
@@ -141,19 +154,29 @@ def main():
         })
 
     payload = {
-        "description": "Mesure directe du cout CPU des generateurs fret sur grande carte 1024x1024 (5 graines x 1 an)",
+        "description": "Mesure directe du cout CPU du generateur fret rail OpexFreightCandidates sur carte 1024x1024 (5 graines x 1 an)",
+        "methodology": (
+            "cand_freight_ops mesure le budget opcodes consomme par le generateur fret rail (panneau OP). "
+            "pairs_total mesure les paires evaluees dans la passe rail (panneau CR), englobant le socle "
+            "pax (identique aux deux bras grace a OpexSpatialGrid) et les paires fret. "
+            "Le generateur routier (cand_road) est separe."
+        ),
+        "total_runs": len(summary),
+        "failed_runs": len(failed),
+        "all_runs_ok": len(failed) == 0,
         "seeds": list(SEEDS),
         "arms": list(ARMS),
         "arm_stats": arm_stats,
-        "mean_pairs_reduction_factor": round(statistics.mean(pair_deltas), 2),
-        "mean_ops_reduction_factor": round(statistics.mean(ops_deltas), 2),
+        "mean_pairs_reduction_factor": round(statistics.mean(pair_ratios), 2),
+        "mean_ops_reduction_factor": round(statistics.mean(ops_ratios), 2),
+        "summary": summary,
         "paired": paired,
     }
     write_json_atomically(OUT_PATH, payload)
     print("Ecrit", OUT_PATH)
-    print(f"\n--- Resultats de charge CPU fret (moyenne sur {len(SEEDS)} graines) ---")
-    print(f"  Paires visitees : OFF={arm_stats[ARMS[0]]['mean_pairs_total']:.0f} vs ON={arm_stats[ARMS[1]]['mean_pairs_total']:.0f} | Reduction: {payload['mean_pairs_reduction_factor']}x")
-    print(f"  Opcodes fret    : OFF={arm_stats[ARMS[0]]['mean_cand_freight_ops']:.0f} vs ON={arm_stats[ARMS[1]]['mean_cand_freight_ops']:.0f} | Reduction: {payload['mean_ops_reduction_factor']}x")
+    print(f"\n--- Charge CPU fret rail mesuree ({len(summary)}/{len(summary)} runs sains, 5 graines) ---")
+    print(f"  Paires evaluees : OFF={arm_stats[ARMS[0]]['mean_pairs_total']:.0f} vs ON={arm_stats[ARMS[1]]['mean_pairs_total']:.0f} | Facteur reduction : {payload['mean_pairs_reduction_factor']}x")
+    print(f"  Opcodes fret    : OFF={arm_stats[ARMS[0]]['mean_cand_freight_ops']:.0f} vs ON={arm_stats[ARMS[1]]['mean_cand_freight_ops']:.0f} | Facteur reduction : {payload['mean_ops_reduction_factor']}x")
 
 
 if __name__ == "__main__":

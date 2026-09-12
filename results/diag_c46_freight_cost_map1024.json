@@ -1,5 +1,9 @@
 {
- "description": "Mesure directe du cout CPU des generateurs fret sur grande carte 1024x1024 (5 graines x 1 an)",
+ "description": "Mesure directe du cout CPU du generateur fret rail OpexFreightCandidates sur carte 1024x1024 (5 graines x 1 an)",
+ "methodology": "cand_freight_ops mesure le budget opcodes consomme par le generateur fret rail (panneau OP). pairs_total mesure les paires evaluees dans la passe rail (panneau CR), englobant le socle pax (identique aux deux bras grace a OpexSpatialGrid) et les paires fret. Le generateur routier (cand_road) est separe.",
+ "total_runs": 10,
+ "failed_runs": 0,
+ "all_runs_ok": true,
  "seeds": [
   42,
   100,
@@ -23,11 +27,113 @@
  },
  "mean_pairs_reduction_factor": 14.65,
  "mean_ops_reduction_factor": 3.68,
+ "summary": [
+  {
+   "arm": "OpexAI[c46_freight_grid=0]",
+   "seed": 42,
+   "final_date": "1971-01-01",
+   "pairs_total": 13113,
+   "cand_freight_ops": 2003998,
+   "cand_pax_ops": 16,
+   "run_ok": true,
+   "failure_reason": null
+  },
+  {
+   "arm": "OpexAI[c46_freight_grid=0]",
+   "seed": 100,
+   "final_date": "1971-01-01",
+   "pairs_total": 11004,
+   "cand_freight_ops": 1701625,
+   "cand_pax_ops": 16,
+   "run_ok": true,
+   "failure_reason": null
+  },
+  {
+   "arm": "OpexAI[c46_freight_grid=0]",
+   "seed": 999,
+   "final_date": "1971-01-01",
+   "pairs_total": 12768,
+   "cand_freight_ops": 1959944,
+   "cand_pax_ops": 16,
+   "run_ok": true,
+   "failure_reason": null
+  },
+  {
+   "arm": "OpexAI[c46_freight_grid=0]",
+   "seed": 1234,
+   "final_date": "1971-01-01",
+   "pairs_total": 10080,
+   "cand_freight_ops": 1545082,
+   "cand_pax_ops": 16,
+   "run_ok": true,
+   "failure_reason": null
+  },
+  {
+   "arm": "OpexAI[c46_freight_grid=0]",
+   "seed": 5678,
+   "final_date": "1971-01-01",
+   "pairs_total": 12314,
+   "cand_freight_ops": 1895685,
+   "cand_pax_ops": 16,
+   "run_ok": true,
+   "failure_reason": null
+  },
+  {
+   "arm": "OpexAI[c46_freight_grid=1]",
+   "seed": 42,
+   "final_date": "1971-01-01",
+   "pairs_total": 869,
+   "cand_freight_ops": 543516,
+   "cand_pax_ops": 16,
+   "run_ok": true,
+   "failure_reason": null
+  },
+  {
+   "arm": "OpexAI[c46_freight_grid=1]",
+   "seed": 100,
+   "final_date": "1971-01-01",
+   "pairs_total": 790,
+   "cand_freight_ops": 491852,
+   "cand_pax_ops": 16,
+   "run_ok": true,
+   "failure_reason": null
+  },
+  {
+   "arm": "OpexAI[c46_freight_grid=1]",
+   "seed": 999,
+   "final_date": "1971-01-01",
+   "pairs_total": 813,
+   "cand_freight_ops": 505649,
+   "cand_pax_ops": 16,
+   "run_ok": true,
+   "failure_reason": null
+  },
+  {
+   "arm": "OpexAI[c46_freight_grid=1]",
+   "seed": 1234,
+   "final_date": "1971-01-01",
+   "pairs_total": 713,
+   "cand_freight_ops": 413103,
+   "cand_pax_ops": 16,
+   "run_ok": true,
+   "failure_reason": null
+  },
+  {
+   "arm": "OpexAI[c46_freight_grid=1]",
+   "seed": 5678,
+   "final_date": "1971-01-01",
+   "pairs_total": 855,
+   "cand_freight_ops": 522474,
+   "cand_pax_ops": 16,
+   "run_ok": true,
+   "failure_reason": null
+  }
+ ],
  "paired": [
   {
    "seed": 42,
-   "off_pairs": 13113,
-   "on_pairs": 869,
+   "off_pairs_total": 13113,
+   "on_pairs_total": 869,
    "pairs_reduction_factor": 15.09,
    "off_cand_freight_ops": 2003998,
    "on_cand_freight_ops": 543516,
@@ -35,8 +141,8 @@
   },
   {
    "seed": 100,
-   "off_pairs": 11004,
-   "on_pairs": 790,
+   "off_pairs_total": 11004,
+   "on_pairs_total": 790,
    "pairs_reduction_factor": 13.93,
    "off_cand_freight_ops": 1701625,
    "on_cand_freight_ops": 491852,
@@ -44,8 +150,8 @@
   },
   {
    "seed": 999,
-   "off_pairs": 12768,
-   "on_pairs": 813,
+   "off_pairs_total": 12768,
+   "on_pairs_total": 813,
    "pairs_reduction_factor": 15.7,
    "off_cand_freight_ops": 1959944,
    "on_cand_freight_ops": 505649,
@@ -53,8 +159,8 @@
   },
   {
    "seed": 1234,
-   "off_pairs": 10080,
-   "on_pairs": 713,
+   "off_pairs_total": 10080,
+   "on_pairs_total": 713,
    "pairs_reduction_factor": 14.14,
    "off_cand_freight_ops": 1545082,
    "on_cand_freight_ops": 413103,
@@ -62,8 +168,8 @@
   },
   {
    "seed": 5678,
-   "off_pairs": 12314,
-   "on_pairs": 855,
+   "off_pairs_total": 12314,
+   "on_pairs_total": 855,
    "pairs_reduction_factor": 14.4,
    "off_cand_freight_ops": 1895685,
    "on_cand_freight_ops": 522474,

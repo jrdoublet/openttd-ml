@@ -2,8 +2,9 @@
 dirigee pour le fret (`c46_freight_grid`), OFF vs ON.
 
 Le bras ON utilise OpexDirectedSpatialGrid pour filtrer les puits de fret
-dans le voisinage de Moore 3x3 en O(sinks), eliminant le terme quadratique
-O(sources x sinks) qui visitait jusqu'a 1,4 million de paires sur 1024^2.
+dans le voisinage de Moore 3x3, supprimant le balayage cartesien global inconditionnel
+O(sources x sinks) (jusqu'a 1,4 million de paires sur 1024^2) au profit d'une
+complexite dependante de la densite locale des voisinages O(sinks + sum q_s log q_s).
 
 Le banc mesure l'impact macroscopique et la viabilite sur 20 graines x 10 ans.
 
