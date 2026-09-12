@@ -787,7 +787,10 @@ function OpexCatalog::_refreshIndustries()
 
   local list = AIIndustryList();
   for (local i = list.Begin(); !list.IsEnd(); i = list.Next()) {
-    this.industries.append({ id = i, tile = AIIndustry.GetLocation(i), type = AIIndustry.GetIndustryType(i) });
+    if (!AIIndustry.IsValidIndustry(i)) continue;
+    local type = AIIndustry.GetIndustryType(i);
+    if (!AIIndustryType.IsValidIndustryType(type)) continue;
+    this.industries.append({ id = i, tile = AIIndustry.GetLocation(i), type = type });
   }
 
   /* Les cargos produits/acceptes se lisent sur le TYPE d'industrie, pas sur l'instance
@@ -798,8 +801,10 @@ function OpexCatalog::_refreshIndustries()
   for (local k = 0; k < this.industries.len(); k++) {
     local type = this.industries[k].type;
     if (!(type in producedByType)) {
-      producedByType.rawset(type, this._cargoArray(AIIndustryType.GetProducedCargo(type)));
-      acceptedByType.rawset(type, this._cargoArray(AIIndustryType.GetAcceptedCargo(type)));
+      local prodList = AIIndustryType.IsValidIndustryType(type) ? AIIndustryType.GetProducedCargo(type) : null;
+      local accList = AIIndustryType.IsValidIndustryType(type) ? AIIndustryType.GetAcceptedCargo(type) : null;
+      producedByType.rawset(type, this._cargoArray(prodList));
+      acceptedByType.rawset(type, this._cargoArray(accList));
     }
     local isTransformer = (producedByType[type].len() > 0 && acceptedByType[type].len() > 0);
     this.industries[k].isTransformer <- isTransformer;
@@ -817,6 +822,7 @@ function OpexCatalog::_refreshIndustries()
 function OpexCatalog::_cargoArray(list)
 {
   local out = [];
+  if (list == null) return out;
   for (local c = list.Begin(); !list.IsEnd(); c = list.Next()) out.append(c);
   return out;
 }
