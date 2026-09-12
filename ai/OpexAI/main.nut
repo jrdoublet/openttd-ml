@@ -282,6 +282,9 @@ C48_INDEX_SHADOW <- false;
 C46_FREIGHT_GRID <- false;
 /* C46 : Mode miroir d'assertion shadow entre grille et parcours cartesien historique. */
 C46_FREIGHT_GRID_SHADOW <- false;
+/* C50 : Sonde chronologique legere (tresorerie, profit par ligne, projets batis et refuses). */
+C50_CHRONOLOGY_PROBE <- false;
+C50_REFUSE_CACHE <- {};
 /* air_fleet_probe : _resizeAirFleets n'emet que ses SUCCES (FG|). Quand une ligne aerienne
  * n'grandit pas, la cause est invisible. FR| donne le premier refus rencontre, une fois par ligne
  * et par an. */
@@ -394,6 +397,34 @@ function OpexC49ScarcityLog(fields)
   local date = AIDate.GetCurrentDate();
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " C49_SCARCITY " + fields);
+}
+
+/* C50 : gate dedie pour la sonde chronologique legere (tresorerie, profit par ligne,
+ * projets batis avec cout/ROI, projets refuses pour tresorerie avec ROI).
+ * Autonome : fonctionne avec decision_log=0. */
+function OpexC50ChronologyLog(fields)
+{
+  if (!C50_CHRONOLOGY_PROBE) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " C50_CHRONO " + fields);
+}
+
+/* C50 : enregistrement deduplique des refus de tresorerie (au plus un log par mois calendaire et par candidat). */
+function OpexC50LogCashRefusal(mode, rank, cost, profit, roi, src, dst, need, money)
+{
+  if (!C50_CHRONOLOGY_PROBE) return;
+  local date = AIDate.GetCurrentDate();
+  local ym = AIDate.GetYear(date) * 12 + AIDate.GetMonth(date);
+  local key = mode + "|" + src + "|" + dst;
+  if ((key in C50_REFUSE_CACHE) && C50_REFUSE_CACHE[key] == ym) return;
+  C50_REFUSE_CACHE[key] <- ym;
+
+  local available = OpexAvailableCapital();
+  local loan = AICompany.GetLoanAmount();
+  OpexC50ChronologyLog("phase=refused_cash mode=" + mode + " rank=" + rank
+      + " cost=" + cost + " profit=" + profit + " roi=" + roi
+      + " need=" + need + " cash=" + money + " loan=" + loan + " available=" + available);
 }
 
 /* C55 : gate dedie et autonome. Ne jamais reutiliser le gate C49 : la sonde doit publier seule. */
@@ -1560,6 +1591,9 @@ class OpexAI extends AIController {
   _c48PassLedger = null;
   _c49ScarcityLedger = null;
   _c49ScarcityRegime = "cash";
+  /* C50 : cache mensuel des refus de tresorerie et memoire du dernier mois de releve tresorerie. */
+  _c50RefuseCache = null;
+  _c50LastTreasuryMonth = null;
   _c39CadenceLastDate = null;
   _c39CadenceLastTick = null;
   _c39CadenceLastCycle = null;
@@ -3216,6 +3250,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
       local willStartSearch = RAIL_SEARCH_RESUMABLE
           && !(("railPlan" in candidate) && candidate.railPlan != null);
       if (lowCash && !willStartSearch) {
+        if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("rail", i, candidate.capital, candidate.profitAnnual, candidate.roi, candidate.src, candidate.dst, need, money);
         if (DECISION_LOG) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
         return { outcome = "rejected", discards = passDiscards };
       }
@@ -3300,6 +3335,7 @@ function OpexAI::_tryBuildWaterProject(year, project, rank, builtCount, passDisc
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
       if (money < need && REBORROW) money = OpexTryReborrow(need, money);
       if (money < need) {
+        if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("water", i, capital, plan.economics.profitAnnual, project.roi, plan.siteA.town.id, plan.siteB.town.id, need, money);
         if (DECISION_LOG) passDiscards.append({ rank = i, mode = "water", src = plan.siteA.town.id, dst = plan.siteB.town.id, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
         return { outcome = "rejected", discards = passDiscards };
       }
@@ -3359,6 +3395,7 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   if (money < need && REBORROW) money = OpexTryReborrow(need, money);
   if (money < need) {
+    if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("fleet", i, project.capital, project.profitAnnual, project.roi, project.src, project.dst, need, money);
     if (DECISION_LOG) passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst, reason = "insufficient_cash", extra = "" });
     return { outcome = "rejected", discards = passDiscards };
   }
@@ -3454,6 +3491,7 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
       local need = capital + OpexCashReserve() + requiredMargin;
       if (money < need && REBORROW) money = OpexTryReborrow(need, money);
       if (money < need) {
+        if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("air", i, capital, plan.economics.profitAnnual, project.roi, plan.siteA.town.tile, plan.siteB.town.tile, need, money);
         if (DECISION_LOG) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
         return { outcome = "rejected", discards = passDiscards };
       }
@@ -3654,6 +3692,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
       if (money < need && REBORROW) money = OpexTryReborrow(need, money);
       if (money < need) {
+        if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("road", i, candidate.capital, candidate.profitAnnual, candidate.roi, candidate.src, candidate.dst, need, money);
         if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
         return { outcome = "rejected", discards = passDiscards };
       }
@@ -4118,11 +4157,33 @@ function OpexAI::_tryBuildProjects(year)
             + " turns_since_financeable=" + turnsSinceFinanceable + " turns_since_top=" + turnsSinceTop
             + " rail_search=1 capital_after=" + OpexAvailableCapital());
       }
-      local c49RailCandidate = C49_SCARCITY_LEDGER ? this._railSearch.candidate : null;
+      local railCandidate = this._railSearch.candidate;
+      local c49RailCandidate = C49_SCARCITY_LEDGER ? railCandidate : null;
       if (PORTFOLIO_DYNAMIC_BATCH) this._dynamicBatch.pendingLogged = false;
       this._railSearch = null;
       if (outcome == "built") {
         builtCount++;
+        if (C50_CHRONOLOGY_PROBE && railCandidate != null) {
+          local railRank = -1;
+          if (this._projects != null && this._projects.best != null) {
+            local key = "rail|" + railCandidate.src + "|" + railCandidate.dst + "|"
+                + railCandidate.cargo + "|" + railCandidate.kind;
+            for (local i = 0; i < this._projects.best.len(); i++) {
+              local project = this._projects.best[i];
+              if (project != null && OpexProjectAttemptKey(project) == key) {
+                railRank = i;
+                break;
+              }
+            }
+          }
+          local railCost = ("capital" in railCandidate) ? railCandidate.capital : 0;
+          local railProf = ("profitAnnual" in railCandidate) ? railCandidate.profitAnnual : 0;
+          local railRoi = ("roi" in railCandidate) ? railCandidate.roi : 0;
+          OpexC50ChronologyLog("phase=project_built mode=rail rank=" + railRank + " line=" + (this._nextLineId - 1)
+              + " cost=" + railCost + " profit=" + railProf + " roi=" + railRoi
+              + " cash_after=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF)
+              + " available=" + OpexAvailableCapital());
+        }
         if (C49_SCARCITY_LEDGER && c49Best != null) {
           local railCandidate = c49RailCandidate;
           for (local i = 0; i < c49Best.len(); i++) {
@@ -4212,6 +4273,13 @@ function OpexAI::_tryBuildProjects(year)
               + " turns_since_financeable=" + turnsSinceFinanceable + " turns_since_top=" + turnsSinceTop
               + " rail_search=" + (this._railSearch != null ? 1 : 0) + " capital_after=" + OpexAvailableCapital());
         }
+        if (C50_CHRONOLOGY_PROBE) {
+          local lineId = ("payload" in project && "line" in project.payload && "lineId" in project.payload.line) ? project.payload.line.lineId : -1;
+          OpexC50ChronologyLog("phase=project_built mode=fleet rank=" + i + " line=" + lineId
+              + " cost=" + project.capital + " profit=" + project.profitAnnual + " roi=" + project.roi
+              + " cash_after=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF)
+              + " available=" + OpexAvailableCapital());
+        }
         builtCount++;
         if (PORTFOLIO_DYNAMIC_BATCH) {
           this._dynamicBatchBuilt(year);
@@ -4261,6 +4329,12 @@ function OpexAI::_tryBuildProjects(year)
               + " turns_since_financeable=" + turnsSinceFinanceable + " turns_since_top=" + turnsSinceTop
               + " rail_search=" + (this._railSearch != null ? 1 : 0) + " capital_after=" + OpexAvailableCapital());
         }
+        if (C50_CHRONOLOGY_PROBE) {
+          OpexC50ChronologyLog("phase=project_built mode=air rank=" + i + " line=" + (this._nextLineId - 1)
+              + " cost=" + project.capital + " profit=" + project.profitAnnual + " roi=" + project.roi
+              + " cash_after=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF)
+              + " available=" + OpexAvailableCapital());
+        }
         builtCount++;
         if (PORTFOLIO_DYNAMIC_BATCH) {
           this._dynamicBatchBuilt(year);
@@ -4304,6 +4378,12 @@ function OpexAI::_tryBuildProjects(year)
               + " days_since_financeable=" + daysSinceFinanceable + " days_since_top=" + daysSinceTop
               + " turns_since_financeable=" + turnsSinceFinanceable + " turns_since_top=" + turnsSinceTop
               + " rail_search=" + (this._railSearch != null ? 1 : 0) + " capital_after=" + OpexAvailableCapital());
+        }
+        if (C50_CHRONOLOGY_PROBE) {
+          OpexC50ChronologyLog("phase=project_built mode=road rank=" + i + " line=" + (this._nextLineId - 1)
+              + " cost=" + project.capital + " profit=" + project.profitAnnual + " roi=" + project.roi
+              + " cash_after=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF)
+              + " available=" + OpexAvailableCapital());
         }
         builtCount++;
         if (PORTFOLIO_DYNAMIC_BATCH) {
@@ -4358,6 +4438,12 @@ function OpexAI::_tryBuildProjects(year)
               + " turns_since_financeable=" + turnsSinceFinanceable + " turns_since_top=" + turnsSinceTop
               + " rail_search=" + (this._railSearch != null ? 1 : 0) + " capital_after=" + OpexAvailableCapital());
         }
+        if (C50_CHRONOLOGY_PROBE) {
+          OpexC50ChronologyLog("phase=project_built mode=rail rank=" + i + " line=" + (this._nextLineId - 1)
+              + " cost=" + project.capital + " profit=" + project.profitAnnual + " roi=" + project.roi
+              + " cash_after=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF)
+              + " available=" + OpexAvailableCapital());
+        }
         builtCount++;
         if (PORTFOLIO_DYNAMIC_BATCH) {
           this._dynamicBatchBuilt(year);
@@ -4403,6 +4489,12 @@ function OpexAI::_tryBuildProjects(year)
               + " days_since_financeable=" + daysSinceFinanceable + " days_since_top=" + daysSinceTop
               + " turns_since_financeable=" + turnsSinceFinanceable + " turns_since_top=" + turnsSinceTop
               + " rail_search=" + (this._railSearch != null ? 1 : 0) + " capital_after=" + OpexAvailableCapital());
+        }
+        if (C50_CHRONOLOGY_PROBE) {
+          OpexC50ChronologyLog("phase=project_built mode=water rank=" + i + " line=" + (this._nextLineId - 1)
+              + " cost=" + project.capital + " profit=" + project.profitAnnual + " roi=" + project.roi
+              + " cash_after=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF)
+              + " available=" + OpexAvailableCapital());
         }
         builtCount++;
         if (PORTFOLIO_DYNAMIC_BATCH) {
@@ -4668,6 +4760,17 @@ function OpexAI::_reportLines(year)
     line.vehCount <- vehCount;
     line.lastProfit <- profit;
     line.lastRevenue <- profit + runCost;
+    if (C50_CHRONOLOGY_PROBE) {
+      local cLabel = AICargo.IsValidCargo(line.cargo) ? AICargo.GetCargoLabel(line.cargo) : "unknown";
+      local lMode = ("mode" in line) ? line.mode : "unknown";
+      local lAge = ("year" in line) ? (year - line.year) : -1;
+      local predProfit = ("predicted" in line) ? line.predicted : 0;
+      local lineRoi = ("roi" in line) ? line.roi : 0;
+      OpexC50ChronologyLog("phase=line_profit year=" + year + " line=" + line.lineId
+          + " mode=" + lMode + " cargo=" + cLabel + " vehs=" + vehCount
+          + " profit=" + profit + " run_cost=" + runCost + " rev=" + (profit + runCost)
+          + " pred_profit=" + predProfit + " roi=" + lineRoi + " age=" + lAge);
+    }
     if (DECISION_LOG) {
       local realRevenue = profit + runCost;
       local predRevenue = ("predRevenue" in line) ? line.predRevenue : 0;
@@ -4763,6 +4866,23 @@ function OpexAI::_reportLines(year)
       if (nextStreak > 0) OpexSign(anchor, "DL|" + year + "|" + line.lineId + "|" + nextStreak);
     }
   }
+  if (C50_CHRONOLOGY_PROBE) {
+    local sumProf = 0;
+    local sumRev = 0;
+    local profCount = 0;
+    local lossCount = 0;
+    foreach (l in this._lines) {
+      local p = ("lastProfit" in l) ? l.lastProfit : 0;
+      local r = ("lastRevenue" in l) ? l.lastRevenue : 0;
+      sumProf += p;
+      sumRev += r;
+      if (p >= 0) profCount++;
+      else lossCount++;
+    }
+    OpexC50ChronologyLog("phase=line_profit_summary year=" + year + " lines=" + this._lines.len()
+        + " prof_sum=" + sumProf + " rev_sum=" + sumRev
+        + " prof_lines=" + profCount + " loss_lines=" + lossCount);
+  }
 }
 
 /* Dimensionnement progressif de l'air. Une prediction de population ne peut plus acheter une
@@ -4776,6 +4896,12 @@ function OpexAI::_reportLines(year)
  * S un an de mauvaise sante, M tresorerie, X l'achat a echoue. */
 function OpexAirFleetRefusal(line, year, code)
 {
+  if (C50_CHRONOLOGY_PROBE && code == "M") {
+    local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+    local stA = ("stationA" in line) ? line.stationA : 0;
+    local stB = ("stationB" in line) ? line.stationB : 0;
+    OpexC50LogCashRefusal("air_fleet", line.lineId, 30000, 0, 0, stA, stB, 30000, money);
+  }
   if (!AIR_FLEET_PROBE && !DECISION_LOG) return;
   if (!("lineId" in line)) return;
   /* rabattage_diag (2026-09-02) : dedup resserre au MOIS, pas a l'annee -- le dedup annuel
@@ -5400,6 +5526,11 @@ function OpexAI::_refleetRoadLines(year)
       line.vehCount <- refill.after;
       if (("trains" in line) && line.trains < refill.after) line.trains = refill.after;
       if (refill.after >= target && ("needsRefleet" in line)) line.needsRefleet = false;
+      if (C50_CHRONOLOGY_PROBE) {
+        OpexC50ChronologyLog("phase=fleet_built mode=road line=" + line.lineId + " added=" + refill.added + " total=" + refill.after + " cash_after=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
+      }
+    } else if (C50_CHRONOLOGY_PROBE && refill.reason == "CASH") {
+      this._logC50CashRefusal("road_refleet", line.lineId, 0, 0, 0, line.stationA, line.stationB, 0, AICompany.GetBankBalance(AICompany.COMPANY_SELF));
     }
     if (DECISION_LOG) {
       if (refill.added > 0) {
@@ -6222,6 +6353,7 @@ function OpexAI::_consumeRailSearch(year)
     local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
     if (money < need && REBORROW) money = OpexTryReborrow(need, money);
     if (money < need) {
+      if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("rail", -1, candidate.capital, candidate.profitAnnual, candidate.roi, candidate.src, candidate.dst, need, money);
       /* C41.47 : pendant de la garde G3S1 ci-dessus, applique au motif tresorerie -- des le
        * premier blocage constate, liberer _railSearch pour que _expandRailLines et les AUTRES
        * candidats rail du portefeuille ne soient plus geles (main.nut:4445, 2574). candidate.
@@ -6240,6 +6372,7 @@ function OpexAI::_consumeRailSearch(year)
                                join, OpexCashReserve(), state.hardCap);
   /* Ne pas jeter le plan sur CASH : on reessaiera au prochain tour, sans refaire l'A*. */
   if (result.reason == "CASH") {
+    if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("rail", -1, candidate.capital, candidate.profitAnnual, candidate.roi, candidate.src, candidate.dst, candidate.capital, AICompany.GetBankBalance(AICompany.COMPANY_SELF));
     if (C41_RAIL_CASH_RELEASE) {
       this._railSearch = null;
       OpexC41RailCashReleaseLog("reason=build_cash src=" + candidate.src + " dst=" + candidate.dst
@@ -7920,6 +8053,44 @@ function OpexAI::_logC49ScarcityLedger(year)
       decision_attempted = 0, decision_unattempted = 0, none = 0 };
 }
 
+/* C50 : suivi mensuel de la tresorerie. 12 lignes par an, leger et sans allocation inutile. */
+function OpexAI::_checkC50MonthlyTreasury(year)
+{
+  if (!C50_CHRONOLOGY_PROBE) return;
+  local c50Date = AIDate.GetCurrentDate();
+  local c50Ym = AIDate.GetYear(c50Date) * 12 + AIDate.GetMonth(c50Date);
+  if (this._c50LastTreasuryMonth == c50Ym) return;
+  this._c50LastTreasuryMonth = c50Ym;
+
+  local bank = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  local loan = AICompany.GetLoanAmount();
+  local available = OpexAvailableCapital();
+  OpexC50ChronologyLog("phase=treasury_monthly year=" + AIDate.GetYear(c50Date) + " month=" + AIDate.GetMonth(c50Date)
+      + " cash=" + bank + " loan=" + loan + " available=" + available);
+}
+
+/* C50 : synthese annuelle de tresorerie au tour de report. */
+function OpexAI::_logC50AnnualReport(year)
+{
+  if (!C50_CHRONOLOGY_PROBE) return;
+  local bank = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  local loan = AICompany.GetLoanAmount();
+  local maxLoan = AICompany.GetMaxLoanAmount();
+  local available = OpexAvailableCapital();
+  local val = 0;
+  OpexC50ChronologyLog("phase=treasury_annual year=" + year + " cash=" + bank
+      + " loan=" + loan + " max_loan=" + maxLoan + " available=" + available
+      + " company_value=" + val + " lines=" + this._lines.len());
+  this._c50RefuseCache = {};
+  C50_REFUSE_CACHE.clear();
+}
+
+/* C50 : enregistrement deduplique des refus de tresorerie (au plus un log par mois calendaire et par candidat). */
+function OpexAI::_logC50CashRefusal(mode, rank, cost, profit, roi, src, dst, need, money)
+{
+  OpexC50LogCashRefusal(mode, rank, cost, profit, roi, src, dst, need, money);
+}
+
 /* C55 : le report de debut d'annee publie l'annee ecoulee. La ligne summary est cumulative ;
  * la derniere ligne du log est donc aussi la synthese de fin de partie lisible sans jointure. */
 function OpexAI::_logC55OriginRelaxLedger(year)
@@ -8305,6 +8476,7 @@ function OpexAI::_runNextTask()
     _currentTaskLogged = false;
   }
   if (C56_TASK_TRACE) OpexC56TaskLog("TASK_ENTER", task.name, this._taskCycle);
+  if (C50_CHRONOLOGY_PROBE) this._checkC50MonthlyTreasury(year);
 
   if (task.name == "catalog") {
     local date = AIDate.GetCurrentDate();
@@ -8854,6 +9026,7 @@ function OpexAI::_runNextTask()
     if (C54_VEHICLE_ORDERS_PROBE) this._logC54VehicleOrders(year);
     if (C48_INCREMENTAL_PROFILE) this._logC48IncrementalLedger(year);
     if (C60_TOWN_RATING_PROBE) this._logC60TownRatingLedger(year);
+    if (C50_CHRONOLOGY_PROBE) this._logC50AnnualReport(year);
     this._reportYear(year, this._ranked);
     this._reportLines(year);
     if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
@@ -9578,6 +9751,11 @@ function OpexAI::Start()
   C48_INDEX_SHADOW = AIController.GetSetting("c48_index_shadow") != 0;
   C46_FREIGHT_GRID = AIController.GetSetting("c46_freight_grid") != 0;
   C46_FREIGHT_GRID_SHADOW = AIController.GetSetting("c46_freight_grid_shadow") != 0;
+  C50_CHRONOLOGY_PROBE = AIController.GetSetting("c50_chronology_probe") != 0;
+  if (C50_CHRONOLOGY_PROBE) {
+    this._c50RefuseCache = {};
+    this._c50LastTreasuryMonth = -1;
+  }
   CASH_RESERVE_PROBE = AIController.GetSetting("cash_reserve_probe") != 0;
   PORTFOLIO_REFRESH_PROBE = AIController.GetSetting("portfolio_refresh_probe") != 0;
   if (C41_RAIL_LOST_TOPOLOGY_PROBE) C41_RAIL_LOST_PROBE = true;

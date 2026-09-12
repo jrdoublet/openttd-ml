@@ -958,6 +958,15 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C50 : Sonde chronologique legere (tresorerie mensuelle/annuelle, profit par ligne, projets batis et refuses pour tresorerie avec cout/ROI). */
+    AddSetting({
+      name = "c50_chronology_probe",
+      description = "C50 probe: lightweight chronological ledger emitting treasury snapshots, line profits, and built vs cash-refused projects with ROI; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* C43/E3 famille 2 : CASH_RESERVE_MIN mord-il ? Compteurs cumulatifs, publies en delta annuel
      * par la tache "report" (OpexCashReserve() est appelee trop souvent pour journaliser chaque
      * appel). */

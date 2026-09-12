@@ -1703,31 +1703,48 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   d'opportunité** (`estimator.nut:247`). Toute comparaison exige de recomposer les deux fractions
   sur une base homogène.
 
-- 🔴 **C50 — Chronologie comparée 1v1, plus longue et non biaisée.**
-  📝 Script écrit le 2026-09-10, **campagne exécutée le 2026-09-12** :
-  `sweeps/diag_1v1_chronology.py` (6 ans × 5 graines `100 12345 42 7 999`, `--max-workers 2` car un
-  duel partagé fait tourner deux IA par partie).
-  🔑 **Deux corrections de méthode par rapport à `diag_1v1_shared_timeline.py`** : `decision_log=0`
-  chez nous (le journal nous coûtait des opcodes que l'adversaire ne paie pas, dans une mesure dont
-  le sujet EST notre débit — auto-handicap intégré à l'instrument), et **comptage par delta d'état
-  de jeu**, symétrique pour les deux compagnies, au lieu de compter nos chantiers depuis notre
-  propre journal.
+- 🟢 **C50 — Chronologie comparée 1v1 et sonde chronologique légère : l'explication du décrochage.** (CLOS le 2026-09-12)
+  📝 **Campagne 1v1 partagée exécutée le 2026-09-12** :
+  `sweeps/diag_1v1_chronology.py` (6 ans × 5 graines `100 12345 42 7 999`, `--max-workers 2`, `decision_log=0`,
+  comptage par delta d'état de jeu symétrique). Preuve : `results/diag_1v1_chronology_6y_5seeds.json`.
 
-  ### ⚠️ Piège d'exécution & Optimisation mémoire du harnais (2026-09-12)
-  - **Incident initial** : Le harnais initial sérialisait dans `keep(row)` l'intégralité du dictionnaire `chunks` (contenant la carte complète 256×256 du monde OpenTTD) et la sortie standard complète (100 000+ lignes de log avec `-d script=4`) pour chacune des 72 sauvegardes mensuelles. Sur 5 graines (360 états), le processus parent a dépassé les 2 Go lors du rassemblement IPC, déclenchant un OOM propre sous Docker.
-  - **Correctif radical** : `keep(row)` a été réécrit pour calculer à la volée les compteurs `stations` et `vehicles` et extraire la trace HogEx, en purgeant immédiatement les chunks et les logs texte volumineux. L'empreinte mémoire du harnais est passée de 2 Go à **133 Mo** (< 7 % du plafond).
-  - Validation du harnais : selftest OK, smoke test 1 an OK (`results/smoke_c50.json`).
+  | Année | OpexAI Gares | OpexAI Véhicules | HogEx Gares | HogEx Véhicules | Ratio Gares (Op/Hog) | Ratio Véhicules (Op/Hog) | Cumul Véhicules |
+  |---|---:|---:|---:|---:|---:|---:|---:|
+  | 1970 | **+148** | **+159** | +72 | +143 | **2,06** | **1,11** | 159 vs 143 |
+  | 1971 | +57 | +97 | **+241** | **+583** | 0,24 | 0,17 | 256 vs 726 |
+  | 1972 | +46 | +85 | **+320** | **+857** | 0,14 | 0,10 | 341 vs 1 583 |
+  | 1973 | +57 | +99 | **+205** | **+823** | 0,28 | 0,12 | 440 vs 2 406 |
+  | 1974 | +33 | +80 | **+65** | **+660** | 0,51 | 0,12 | 520 vs 3 066 |
+  | 1975 | +38 | +96 | **+51** | **+479** | 0,75 | 0,20 | **616 vs 3 545** |
 
-  **Ce que la version 2 ans / graine 42 disait déjà** (`results/diag_1v1_shared_timeline_2y_seed42.json`) :
-  1970 → AAAHogEx 17 tentées / **10 réussies**, nous **10 chantiers** — jeu égal ; 1971 → 24 / **18**
-  contre **5** — ils accélèrent de 80 %, on chute de 50 %. ⚠️ Une graine, deux ans, partie partagée
-  (concurrence pour le terrain), et notre bras journalisait : indicatif, pas un banc.
-  **Reste** : analyser la trajectoire 6 ans × 5 graines dès la fin du run pour quantifier le décrochage 1970 vs 1971+ face à AAAHogEx.
-  **Demandé en plus, à instrumenter** : chronologie côté nous avec trésorerie, profit par ligne,
-  projets refusés pour trésorerie **avec leur ROI**, projets réalisés **avec coût et ROI**. ⚠️ Via
-  une **sonde dédiée** (quelques dizaines de lignes/an), **pas** `decision_log=1` (plusieurs
-  milliers — 1 070 lignes d'`AIR_TOWN_SERVED` sur 2 ans à lui seul), sinon on réintroduit
-  l'auto-handicap qu'on vient de retirer.
+  **Constat macroscopique** : En 1970, OpexAI démarre plus vite (+148 gares et +159 véhicules vs +72 et +143). Mais dès 1971, HogEx accélère brutalement (+583 puis +857 véhicules/an) alors qu'OpexAI reste figé sur un rythme plat (~80-100 véhicules/an), finissant à 616 véhicules contre 3 545 (1,62 véh/gare pour OpexAI vs 3,72 pour HogEx).
+
+  ### Sonde chronologique légère (`c50_chronology_probe=1`, défaut 0)
+  Instrumentée dans `main.nut` (gate dédié `OpexC50ChronologyLog`, 100 % autonome sans `decision_log=1`), mesurée par `sweeps/diag_c50_chronology_probe.py` (5 graines × 6 ans, `results/diag_c50_chronology_probe_6y_5seeds.json`) :
+
+  | Année | Trésorerie dispo moyenne | Projets bâtis (coût total) | Refus Trésorerie | Véhicules flotte ajoutés | Profit lignes (saines / déficitaires) |
+  |---|---:|---:|---:|---:|---:|
+  | 1970 | 66 636 £ | 62 (2 766 561 £) | 4 | 17 | (mesure fin 1ère année) |
+  | 1971 | 96 494 £ | 50 (3 351 929 £) | 4 | 11 | 2 278 976 £ (64 / 19) |
+  | 1972 | 477 502 £ | 56 (4 032 158 £) | 37 | 7 | 4 634 816 £ (119 / 22) |
+  | 1973 | 1 618 983 £ | 39 (2 835 724 £) | **0** | 14 | 8 954 997 £ (171 / 38) |
+  | 1974 | 3 126 448 £ | 36 (2 330 225 £) | **0** | 13 | 10 936 848 £ (229 / 37) |
+  | 1975 | **4 794 306 £** | 30 (1 849 425 £) | **0** | 14 | 10 920 797 £ (273 / 41) |
+
+  ### Les trois leçons causales de la sonde C50 :
+  1. **La trésorerie n'est PAS le facteur limitant après 1971** : Le capital disponible moyen explose (de 66 k£ en 1970 à 4,79 M£ en 1975). Les refus pour trésorerie tombent à **zéro** dès 1973. OpexAI dispose de millions en banque qu'il ne parvient pas à dépenser.
+  2. **Rentabilité écrasante de l'aérien mais érosion du vivier de nouvelles lignes** :
+     - En 1975, l'aérien génère **95,6 % du profit** (10,45 M£ sur 10,92 M£ pour 181 lignes), le rail 2,7 % (291 k£ pour 15 lignes), la route 1,7 % (183 k£ pour 118 lignes).
+     - Le ROI moyen des *nouvelles* lignes aériennes s'effondre d'année en année : 684,5 ‰ (1970) → 568,3 ‰ (1971) → 375,2 ‰ (1972) → 246,8 ‰ (1973) → 183,5 ‰ (1974) → 155,5 ‰ (1975).
+     - Le vivier géographique de lignes neuves faciles et ultra-rentables s'épuise.
+  3. **Blocage structurel de l'expansion de flotte sur les lignes existantes** :
+     - Les projets de renfort de flotte existante (`fleet`) ont un ROI exceptionnel (1 412,7 ‰ en 1970, 1 267,0 ‰ en 1971), 2 à 10 fois supérieur aux nouvelles lignes.
+     - **Pourtant, les projets de flotte tombent à 0 dès 1973** (8 en 1970, 8 en 1971, 2 en 1972, 0 en 1973, 0 en 1974, 0 en 1975), et les renforts de véhicules sont dérisoires (~2,6 véhicules par an et par graine pour ~60 lignes actives !).
+     - **Cause racine identifiée dans le code** :
+       - Aérien : `air_cadence_cap` (actif par défaut, `info.nut:1060`) bride la capacité physique d'un petit aéroport à 1 avion par ligne dès qu'il accueille 2 liaisons (rotation 20j × 2 = 40j > temps de vol). Les 181 lignes aériennes restent donc bridées à 199 avions (1,10 avion/ligne).
+       - Routier : `physicalCap` bride à 2 véhicules par arrêt (1 arrêt = 2 véhicules max), bloquant 118 lignes à 206 véhicules (1,75 véhicule/ligne).
+       - Rail : architecture mono-train (1,13 train/ligne).
+     - **Conclusion** : OpexAI crée des lignes quasiment 1:1 avec ses véhicules, sans pouvoir intensifier le trafic sur ses lignes les plus rentables, pendant que HogEx accumule 3,72 véhicules par gare en exploitant à fond chaque couloir.
 
 - 🟡 **C48 — Le coût de `projects` n'est PAS le balayage : c'est la régénération qu'il déclenche.** (NON SIGNIFICATIF — MAINTENU À DÉFAUT 0 le 2026-09-12)
   📝 Ouverte et mesurée le 2026-09-10. Sonde `c48_project_attempt_ledger` (défaut 0, gate dédié
