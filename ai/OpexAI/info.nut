@@ -835,6 +835,15 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C49 etape 2 : denominateur variable selon la rarete endogene dominante. */
+    AddSetting({
+      name = "c49_variable_denominator",
+      description = "C49 step 2: dynamically adjust project ranking denominator to active scarcity regime (cash: capital, decision: sqrt(capital), vehicles: vehicle count, site: origin count); 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* C55 etape 1 : sonde seule du verrou OR des candidats route non-feeder. */
     AddSetting({
       name = "c55_origin_relax_probe",

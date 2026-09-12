@@ -150,6 +150,36 @@ function OpexProjectScore(value, cost)
   return (value.tofloat() * 1000.0) / cost;
 }
 
+/* C49 etape 2 : score unifie selon le regime de rarete endogene actif. */
+function OpexC49ProjectScore(project, regime)
+{
+  if (project == null) return 0.0;
+  local profit = ("profitAnnual" in project) ? project.profitAnnual : 0;
+  if (profit <= 0) return 0.0;
+  local cap = OpexProjectFinanceCapital(project);
+  if (cap <= 0) return 0.0;
+
+  if (regime == "cash") {
+    return (profit.tofloat() * 1000.0) / cap;
+  }
+  if (regime == "decision") {
+    local sqrtCap = sqrt(cap.tofloat());
+    if (sqrtCap <= 0.0) return 0.0;
+    return (profit.tofloat() * 1000.0) / sqrtCap;
+  }
+  if (regime == "vehicles") {
+    local vehs = OpexTensionProjectVehicleCount(project);
+    if (vehs < 1) vehs = 1;
+    return (profit.tofloat() * 1000.0) / vehs;
+  }
+  if (regime == "site") {
+    local orig = OpexTensionProjectOriginCount(project);
+    if (orig < 1) orig = 1;
+    return (profit.tofloat() * 1000.0) / orig;
+  }
+  return (profit.tofloat() * 1000.0) / cap;
+}
+
 /* P1 : cout a comparer a la tresorerie mobilisable. `budgetCapital` reste le
  * cout economique utilise par les scores historiques ; il ne faut pas y
  * injecter un multiplicateur global. Repli temporaire par mode, mesure au
@@ -507,7 +537,11 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
     if (OpexProjectFinanceCapital(project) > capitalBudget) continue;
     if (project.profitAnnual < floorProfit) continue;
     if (!TENSION_SCORING && !SHADOW_PRICING) {
-      project.fundScore <- OpexProjectScore(project.profitAnnual, OpexProjectFinanceCapital(project));
+      if (C49_VARIABLE_DENOMINATOR) {
+        project.fundScore <- OpexC49ProjectScore(project, C49_CURRENT_REGIME);
+      } else {
+        project.fundScore <- OpexProjectScore(project.profitAnnual, OpexProjectFinanceCapital(project));
+      }
     }
     OpexProjectInsert(affordable, project, scoreKey, limit);
   }
@@ -519,7 +553,11 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
     foreach (project in alternatives) {
       if (OpexProjectFinanceCapital(project) > capitalBudget) continue;
       if (!TENSION_SCORING && !SHADOW_PRICING) {
-        project.fundScore <- OpexProjectScore(project.profitAnnual, OpexProjectFinanceCapital(project));
+        if (C49_VARIABLE_DENOMINATOR) {
+          project.fundScore <- OpexC49ProjectScore(project, C49_CURRENT_REGIME);
+        } else {
+          project.fundScore <- OpexProjectScore(project.profitAnnual, OpexProjectFinanceCapital(project));
+        }
       }
       OpexProjectInsert(affordable, project, scoreKey, limit);
     }

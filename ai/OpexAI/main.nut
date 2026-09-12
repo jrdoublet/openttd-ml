@@ -249,6 +249,9 @@ C48_PROJECT_ATTEMPT_LEDGER <- false;
  * Le repli 0 ne doit atteindre ni lecture de tresorerie finale, ni plafond de vehicules, ni
  * allocation de ledger. */
 C49_SCARCITY_LEDGER <- false;
+/* C49 etape 2 : denominateur variable selon la rarete endogene. */
+C49_VARIABLE_DENOMINATOR <- false;
+C49_CURRENT_REGIME <- "cash";
 /* C55 etape 1 : mesure seule du filtre OR route. Le ledger est nul hors sonde. */
 C55_ORIGIN_RELAX_PROBE <- false;
 C55_ORIGIN_RELAX_LEDGER <- null;
@@ -8180,6 +8183,7 @@ function OpexAI::_logC49ScarcityLedger(year)
   }
   /* Egalite : ne pas remplacer le regime precedent, hysteresis sans constante. */
   this._c49ScarcityRegime = regime;
+  ::C49_CURRENT_REGIME = regime;
   OpexC49ScarcityLog("phase=annual year=" + year + " passes=" + entry.passes
       + " cash=" + entry.cash + " vehicles=" + entry.vehicles + " site=" + entry.site
       + " decision_attempted=" + entry.decision_attempted
@@ -9905,7 +9909,8 @@ function OpexAI::Start()
   C39_PROJECTS_CADENCE_PROBE = AIController.GetSetting("c39_projects_cadence_probe") != 0;
   C39_PASS_CLOCK_LEDGER = AIController.GetSetting("c39_pass_clock_ledger") != 0;
   C48_PROJECT_ATTEMPT_LEDGER = AIController.GetSetting("c48_project_attempt_ledger") != 0;
-  C49_SCARCITY_LEDGER = AIController.GetSetting("c49_scarcity_ledger") != 0;
+  C49_VARIABLE_DENOMINATOR = AIController.GetSetting("c49_variable_denominator") != 0;
+  C49_SCARCITY_LEDGER = AIController.GetSetting("c49_scarcity_ledger") != 0 || C49_VARIABLE_DENOMINATOR;
   C55_ORIGIN_RELAX_PROBE = AIController.GetSetting("c55_origin_relax_probe") != 0;
   C55_FREIGHT_ORIGIN_RELAX = AIController.GetSetting("c55_freight_origin_relax") != 0;
   C55_ROAD_ORIGIN_RELAX = AIController.GetSetting("c55_road_origin_relax") != 0;
@@ -9938,6 +9943,7 @@ function OpexAI::Start()
     this._c49ScarcityLedger = { passes = 0, cash = 0, vehicles = 0, site = 0,
         decision_attempted = 0, decision_unattempted = 0, none = 0 };
     this._c49ScarcityRegime = "cash";
+    ::C49_CURRENT_REGIME = "cash";
   }
   if (C55_ORIGIN_RELAX_PROBE) {
     C55_ORIGIN_RELAX_LEDGER = {

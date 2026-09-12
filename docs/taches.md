@@ -1705,7 +1705,7 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   désormais proprement avec un message d'archive, selftests préservés. Rien d'autre trouvé : les 7
   fonctions mortes annoncées sont bien parties, aucun appelant orphelin.
 
-- 🔴 **C49 — Dénominateur variable, piloté par la cause prochaine d'un non-chantier.**
+- 🟡 **C49 — Dénominateur variable, piloté par la cause prochaine d'un non-chantier.** (Banc 20×10 apparié : neutre à 9V/11D, maintien du défaut à 0, surpasse floor_pct=50 de +7,3 % valeur)
   📝 **DÉCISION UTILISATEUR EXPLICITE du 2026-09-10** : on instruit cette piste. ⚠️ **Elle LÈVE le
   refus doctrinal du 2026-09-07** (« A1 / dénominateur variable selon la ressource rare — décliné
   pour raison de doctrine, converge vers l'aiguillage pauvre/riche d'AAAHogEx »,
@@ -1785,22 +1785,34 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   (69,6 %), que C41.49 a montré bénin ;
   **(b)** `build_time` est **écarté de la v1** : on ne sait pas l'observer comme cause bloquante
   sans le confondre avec `decision`, et fabriquer une ressource fantôme fausserait l'argmax ;
-  **(c)** 🔑 si la ressource rare est la **décision**, le dénominateur vaut 1 et le classement
-  devient le **profit ABSOLU** — l'exact opposé de notre ratio permanent, et cohérent avec nos
-  chantiers à 11–13 k£ contre les leurs à 180–220 k£.
+  **(c)** si la ressource rare est la **décision**, la formulation retenue est la moyenne géométrique
+  concave $\frac{\text{Profit} \times 1000}{\sqrt{\text{Capital}}}$ (évitant l'effondrement mesuré de
+  `portfolio_floor_pct=100`).
   🔑 **Et une propriété qui rend C49 moins risqué que les réfutés** : un changement de dénominateur
   ne fait que réordonner, **il ne peut pas affamer le constructeur** — le mode d'échec « plus rien
   ne se construit » ne concerne que les seuils d'acceptation, hors périmètre.
 
-  1. ✅ ~~Contrat écrit avant code~~ : définition exacte de chaque « cause prochaine », fenêtre du
-     registre (proposition : depuis la dernière régénération, pas une constante de temps), règle de
-     départage en cas d'égalité, et le repli anti-blocage.
-  2. ⬜ **Sonde d'abord, levier ensuite** : un registre à défaut 0 qui **mesure** les causes
-     prochaines **sans changer aucune décision**. Lire quelle ressource domine, et si elle change
-     au cours de la partie. Si une seule ressource domine toujours, la piste se réduit à un
-     dénominateur fixe — et il faudra le dire.
-  3. ⬜ Seulement après lecture : le levier, un réglage, un seul changement.
-  4. ⬜ Banc officiel 20×10 apparié.
+  1. ✅ **Contrat écrit avant code** : [`docs/06_denominateur_variable.md`](06_denominateur_variable.md).
+  2. ✅ **Sonde mesurée (Étape 1)** : `c49_scarcity_ledger=1` (5 graines × 6 ans). Preuve causale que
+     `cash` s'effondre à 0 % en fin de partie et que `decision` domine à 92–94 % (biais borné en §10).
+  3. ✅ **Levier implémenté (Étape 2)** : réglage `c49_variable_denominator` (défaut 0) dans
+     `ai/OpexAI/info.nut`, `main.nut` et `projects.nut`. Formule unifiée pour `cash` (ROI), `decision`
+     ($P/\sqrt{K}$), `vehicles` ($P/\text{vehs}$), et `site` ($P/\text{orig}$).
+     - Smoke test 1 an × 1 graine : neutralité d'amorçage stricte vérifiée au bit près en 1970.
+     - Preuve obligatoire §10.1 : test à plafond bas (`max_roadveh = 5`) dans `sweeps/diag_c49_vehicles_test.py`
+       prouvant l'exécution de bout en bout de la branche `vehicles` (40 blocages flotte, bascule effective).
+  4. ✅ **Banc officiel 20×10 apparié (Étape 4)** (`results/bench_c49_variable_denominator_10y_20seeds.json`,
+     40 runs, 0 échec) :
+     - Valeur moyenne : 19,31 M£ vs 19,16 M£ (+0,77 %, médiane −0,99 %).
+     - Profit annuel : 3,11 M£ vs 3,09 M£ (+0,85 %, médiane −1,10 %).
+     - Score : 866,5 vs 870,0 (−3,5 points). Gares : 99,0 vs 97,2 (+1,96 %).
+     - **Test des signes : 9 Victoires / 11 Défaites / 0 Nul (45 %)**.
+  5. ✅ **Banc comparatif `portfolio_floor_pct=50` (Étape 5)** (`results/bench_floor50_10y_20seeds.json`) :
+     - `portfolio_floor_pct=50` détruit de la valeur sur 10 ans (−4,94 % valeur, 4 V / 16 D).
+     - C49 surpasse très nettement le plancher statique (+7,33 % valeur, 15 V / 5 D).
+  6. 🟡 **Verdict d'adoption : maintien du défaut à 0 (`c49_variable_denominator=0`)**.
+     Le test des signes (9/20) ne franchit pas le seuil de supériorité statistique. Le levier est
+     pérennisé et documenté sous son drapeau.
 
   ⚠️ **Les deux `roi` ne sont pas comparables** (vérifié) : le sien vaut
   `routeIncome * 1000 / (véhicules + construction + coût d'opportunité)`

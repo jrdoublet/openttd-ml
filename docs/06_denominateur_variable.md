@@ -385,3 +385,66 @@ entier**. Le rebencer sur **10 ans** (et non 3) répondrait à la même question
 fraction du coût, et testerait la même intuition. ⚠️ Ce n'est pas C49 — un plancher **filtre**
 l'admission au classement, un dénominateur **réordonne**. Mais si le plancher à 50 % rend un gain
 net sur 10 ans, C49 devient un raffinement d'un problème déjà résolu, et il faudra le dire.
+
+---
+
+## 12. ✅ Étape 2 : Implémentation du Dénominateur Variable (2026-09-12)
+
+Le dénominateur variable a été implémenté selon le plan unifié validé :
+- **Régime `cash` :** $\frac{\text{Profit} \times 1000}{\text{Capital}}$ (ROI historique).
+- **Régime `decision` :** $\frac{\text{Profit} \times 1000}{\sqrt{\text{Capital}}}$ (compromis concave $\sqrt{\text{Profit} \times \text{ROI}}$, évitant le piège fatal du profit pur documenté au §11.1).
+- **Régime `vehicles` :** $\frac{\text{Profit} \times 1000}{\max(1, \text{VehicleCount})}$.
+- **Régime `site` :** $\frac{\text{Profit} \times 1000}{\max(1, \text{OriginCount})}$.
+- **Amorçage neutre en 1970 :** `C49_CURRENT_REGIME` démarre obligatoirement à `"cash"`.
+- **Smoke test 1 an × 1 graine :** Identité bit-à-bit parfaite en 1970 avec la référence (`value=263229`, `score=243`, `profit=192077`, 49 véh., 40 gares sur graine 42).
+
+---
+
+## 13. ✅ Preuve Unitaire Forcée de la Branche `vehicles` (§10.1 du Contrat Validé)
+
+Conformément à l'exigence formelle du §10.1 (*« Aucune adoption de C49 sans que cette branche ait été exécutée au moins une fois »*), un script dédié `sweeps/diag_c49_vehicles_test.py` a été exécuté en forçant des plafonds abaissés dans `openttd.cfg` (`max_roadveh = 5`, `max_aircraft = 5`, `max_trains = 5`, `max_ships = 5`) :
+- **Résultat :** 40 occurrences de blocage flotte enregistrées sur 6 ans.
+- **Bascule effective :** `phase=annual year=1972 passes=16 cash=5 vehicles=6 regime=vehicles`.
+- **Exécution :** La branche de calcul du score $\text{Profit}/\text{Véhicules}$ sous `OpexC49ProjectScore` a été exécutée de bout en bout sans aucune anomalie physique ni division par zéro.
+
+---
+
+## 14. ✅ Banc Officiel Apparié 20 Graines × 10 Ans & Comparaison avec Floor 50%
+
+Deux bancs officiels appariés de 20 graines × 10 ans ont été conduits (40 runs chacun, 0 échec) :
+1. `results/bench_c49_variable_denominator_10y_20seeds.json` : `OpexAI` vs `OpexAI[c49_variable_denominator=1]`
+2. `results/bench_floor50_10y_20seeds.json` : `OpexAI` vs `OpexAI[portfolio_floor_pct=50]`
+
+### 14.1 Bilan Tripartite 20 Graines × 10 Ans
+
+| Variante | Valeur Moyenne (£) | Valeur Médiane (£) | Profit Annuel Moy. (£) | Score Perf. Moy. | Gares Moy. |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Contrôle (OpexAI baseline)** | 19 159 523 | 19 357 762 | 3 086 909 | **870,0** | 97,2 |
+| **C49 (Variable Denominator)** | **19 307 276** | 18 786 955 | **3 113 199** | 866,5 | **99,0** |
+| **Plancher statique (`floor_pct=50`)** | 18 166 713 | 17 952 970 | 2 915 085 | 862,1 | 99,8 |
+
+### 14.2 Analyse Comparative
+
+1. **C49 vs Plancher statique (`portfolio_floor_pct=50`) :**
+   - Valeur : **+7,33 %** (médiane +3,87 %, **15 V / 5 D**)
+   - Profit annuel : **+7,49 %** (médiane +10,51 %, **15 V / 5 D**)
+   - Score : **+4,4 points** (10 V / 10 D)
+   - 🔑 **Verdict sur §11.2 :** `portfolio_floor_pct=50` détruit de la valeur sur 10 ans (−4,94 % vs contrôle, 4 victoires sur 20 seulement). Le dénominateur variable dynamique de C49 surpasse très nettement le plancher statique.
+
+2. **C49 vs Contrôle (OpexAI baseline) :**
+   - Valeur d'entreprise : **+0,77 %** en moyenne globale (+1,60 % en moyenne des ratios, médiane −0,99 %)
+   - Profit annuel : **+0,85 %** en moyenne globale (+1,86 % en moyenne des ratios, médiane −1,10 %)
+   - Score de performance : **−3,5 points** (médiane −5,5 points)
+   - Gares : **+1,96 %** (+1,8 gare en moyenne)
+   - **Test des signes : 9 Victoires / 11 Défaites / 0 Nul (45 % de victoires)**.
+
+### 14.3 Diagnostic Causal du Résultat Neutre
+Le diagnostic fin par année (Étape 3) a révélé la cause physique exacte :
+- En 1970, `_c49ScarcityLedger` enregistre des blocages `decision_unattempted` qui font basculer le régime vers `decision` dès janvier 1971 sur certaines graines (graines 100 et 999), alors même que la trésorerie est encore faible (~50 k£).
+- Cela crée un creux initial d'investissement (−15 % à −30 % en années 2 et 3).
+- Dès 1973-1974, la trésorerie devient effectivement pléthorique et le régime `decision` enclenche une très forte accélération de rattrapage (observée sur la graine 42 qui passe de −31,4 % en 1972 à +14,3 % de profit en 1980).
+- Cependant, sur l'horizon de 10 ans, le retard accumulé lors des années 2 et 3 n'est pas systématiquement effacé sur toutes les graines (9 V / 11 D au test des signes).
+
+### 14.4 Décision d'Adoption
+- ⛔ **Maintien du réglage par défaut à 0 (`c49_variable_denominator=0`)** : le test des signes (9/20) ne satisfait pas le critère pré-enregistré de supériorité statistique.
+- ✅ **Code conservé et pérennisé sous son drapeau** : l'infrastructure mathématique est validée, exempte de régression sur la baseline, et le comportement sur la rareté flotte (§10.1) est certifié conforme.
