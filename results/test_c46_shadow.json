@@ -1,0 +1,41 @@
+{
+ "description": "Validation shadow C46 (c46_freight_grid_shadow=1) sur cartes 256x256 et 1024x1024",
+ "total_runs": 3,
+ "failed_runs": 0,
+ "all_runs_ok": true,
+ "runs": [
+  {
+   "test_name": "seed100_map256_2y",
+   "arm": "OpexAI[c46_freight_grid=1,c46_freight_grid_shadow=1]",
+   "seed": 100,
+   "final_date": "1972-01-01",
+   "company_value": 1251564,
+   "profit_year": 865386,
+   "n_vehicles": 55,
+   "n_stations": 27,
+   "run_ok": true
+  },
+  {
+   "test_name": "seed42_map1024_1y",
+   "arm": "OpexAI[c46_freight_grid=1,c46_freight_grid_shadow=1]",
+   "seed": 42,
+   "final_date": "1971-01-01",
+   "company_value": 122538,
+   "profit_year": 117125,
+   "n_vehicles": 158,
+   "n_stations": 3,
+   "run_ok": true
+  },
+  {
+   "test_name": "seed42_map256_1y",
+   "arm": "OpexAI[c46_freight_grid=1,c46_freight_grid_shadow=1]",
+   "seed": 42,
+   "final_date": "1971-01-01",
+   "company_value": 277574,
+   "profit_year": 214239,
+   "n_vehicles": 47,
+   "n_stations": 34,
+   "run_ok": true
+  }
+ ]
+}

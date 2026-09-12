@@ -1,0 +1,73 @@
+{
+ "description": "Mesure directe du cout CPU des generateurs fret sur grande carte 1024x1024 (5 graines x 1 an)",
+ "seeds": [
+  42,
+  100,
+  999,
+  1234,
+  5678
+ ],
+ "arms": [
+  "OpexAI[c46_freight_grid=0]",
+  "OpexAI[c46_freight_grid=1]"
+ ],
+ "arm_stats": {
+  "OpexAI[c46_freight_grid=0]": {
+   "mean_pairs_total": 11855.8,
+   "mean_cand_freight_ops": 1821266.8
+  },
+  "OpexAI[c46_freight_grid=1]": {
+   "mean_pairs_total": 808,
+   "mean_cand_freight_ops": 495318.8
+  }
+ },
+ "mean_pairs_reduction_factor": 14.65,
+ "mean_ops_reduction_factor": 3.68,
+ "paired": [
+  {
+   "seed": 42,
+   "off_pairs": 13113,
+   "on_pairs": 869,
+   "pairs_reduction_factor": 15.09,
+   "off_cand_freight_ops": 2003998,
+   "on_cand_freight_ops": 543516,
+   "ops_reduction_factor": 3.69
+  },
+  {
+   "seed": 100,
+   "off_pairs": 11004,
+   "on_pairs": 790,
+   "pairs_reduction_factor": 13.93,
+   "off_cand_freight_ops": 1701625,
+   "on_cand_freight_ops": 491852,
+   "ops_reduction_factor": 3.46
+  },
+  {
+   "seed": 999,
+   "off_pairs": 12768,
+   "on_pairs": 813,
+   "pairs_reduction_factor": 15.7,
+   "off_cand_freight_ops": 1959944,
+   "on_cand_freight_ops": 505649,
+   "ops_reduction_factor": 3.88
+  },
+  {
+   "seed": 1234,
+   "off_pairs": 10080,
+   "on_pairs": 713,
+   "pairs_reduction_factor": 14.14,
+   "off_cand_freight_ops": 1545082,
+   "on_cand_freight_ops": 413103,
+   "ops_reduction_factor": 3.74
+  },
+  {
+   "seed": 5678,
+   "off_pairs": 12314,
+   "on_pairs": 855,
+   "pairs_reduction_factor": 14.4,
+   "off_cand_freight_ops": 1895685,
+   "on_cand_freight_ops": 522474,
+   "ops_reduction_factor": 3.63
+  }
+ ]
+}

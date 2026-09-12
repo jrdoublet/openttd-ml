@@ -4,7 +4,10 @@ __pycache__/
 *.png
 
 # Artefacts locaux de diagnostics et benchmarks : volumineux et regenerables.
-results/
+results/*
+!results/bench_c46_freight_grid_10y_20seeds_map1024.json
+!results/test_c46_shadow.json
+!results/diag_c46_freight_cost_map1024.json
 
 # IA tierce de reference, lue pour comparaison seulement (GPL v3, Rei Ishibashi).
 # Volontairement NON versionnee : la copier ici rendrait le depot derive de la GPL v3.

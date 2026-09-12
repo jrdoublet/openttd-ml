@@ -278,9 +278,9 @@ C48_INCREMENTAL_LEDGER <- null;
 C48_INDEXED_REGENERATION <- false;
 /* C48 : Mode miroir d'assertion d'equivalence stricte entre balayage lineaire et index. */
 C48_INDEX_SHADOW <- false;
-/* C46 : Grille spatiale dirigee pour le fret rail et route. */
-C46_FREIGHT_GRID <- true;
-/* C46 : Mode miroir d'assertion d'equivalence stricte fret. */
+/* C46 : Grille spatiale dirigee pour le fret rail et route. Maintenu a 0 par defaut suite au banc 20x10. */
+C46_FREIGHT_GRID <- false;
+/* C46 : Mode miroir d'assertion shadow entre grille et parcours cartesien historique. */
 C46_FREIGHT_GRID_SHADOW <- false;
 /* air_fleet_probe : _resizeAirFleets n'emet que ses SUCCES (FG|). Quand une ligne aerienne
  * n'grandit pas, la cause est invisible. FR| donne le premier refus rencontre, une fois par ligne

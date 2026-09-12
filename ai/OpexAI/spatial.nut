@@ -90,7 +90,15 @@ function OpexSpatialGrid::GetCandidatesFor(townIndex)
  * Cellules de cote S : tout puits a |dx| + |dy| <= S est forcement dans la cellule
  * de la source ou dans l'une de ses 8 voisines de Moore.
  * La grille indexe les puits en O(sinks) et retourne pour une tuile source
- * la liste des indices k de puits ordonnee strictement par index croissant. */
+ * la liste des indices k de puits ordonnee strictement par index croissant.
+ *
+ * Complexite :
+ * - Construction de la grille : O(sinks).
+ * - Par source, GetSortedCandidates copie et trie les q_s puits des 9 cellules : O(q_s log q_s).
+ * - Coût global de generation : O(sinks + sum_{s} q_s log q_s).
+ * - En repartition spatiale standard, q_s << sinks, ce qui supprime le balayage cartesien global
+ *   inconditionnel. Toutefois, dans le pire cas ou les puits seraient tous concentres dans
+ *   ces cellules (q_s ~ sinks), le parcours reste au moins O(sources x sinks). */
 class OpexDirectedSpatialGrid {
   _cells = null;
   _cellSize = 1;
@@ -144,6 +152,9 @@ function OpexDirectedSpatialGrid::Build(items, cellSize, container = null)
   }
 }
 
+/* Retourne les indices k des puits situes dans les 9 cellules voisines de Moore,
+ * tries par ordre d'indice croissant (garantit la parite exacte de vivier avec la boucle historique).
+ * Cout : O(q_s log q_s) avec q_s = nombre de puits dans les 9 cellules. */
 function OpexDirectedSpatialGrid::GetSortedCandidates(srcTile)
 {
   local out = [];

@@ -940,12 +940,12 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    /* C46 : Grille spatiale dirigee pour le fret rail et route (elimine le goulot O(sources x sinks)). */
+    /* C46 : Grille spatiale dirigee pour le fret rail et route. Maintenu a 0 par defaut suite au banc 20x10. */
     AddSetting({
       name = "c46_freight_grid",
-      description = "C46: directed spatial grid indexing for rail and road freight pairs generation; 1 = on (default), 0 = legacy cartesian scan",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
+      description = "C46: directed spatial grid indexing for rail and road freight pairs generation; 1 = on, 0 = off (default, legacy cartesian scan)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
 

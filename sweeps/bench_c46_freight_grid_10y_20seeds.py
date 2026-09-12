@@ -27,7 +27,6 @@ from bench_v2 import (
     build_arms,
     enable_savegame_cleanup,
     experiments,
-    keep,
     make_cfg,
     paired_comparisons,
     summarise,
@@ -40,6 +39,33 @@ ARMS = (
     "OpexAI[c46_freight_grid=1]",
 )
 MAP_SIZE = 10  # 2^10 = 1024x1024
+
+
+def keep_with_freight_telemetry(row):
+    """Enrichit keep(row) des metriques directes de cout de generation fret extraites de SIGN."""
+    chunks = row.get("chunks", {})
+    signs = [s.get("name", "") for s in (chunks.get("SIGN") or {}).values()]
+    cand_freight_ops = 0
+    pairs_total = 0
+    for s in signs:
+        if s.startswith("OP|"):
+            parts = s.split("|")
+            if len(parts) >= 4:
+                try:
+                    cand_freight_ops = int(parts[3])
+                except ValueError:
+                    pass
+        elif s.startswith("CR|"):
+            parts = s.split("|")
+            if len(parts) >= 3:
+                try:
+                    pairs_total = int(parts[2])
+                except ValueError:
+                    pass
+    base = bench_v2.keep(row)[0]
+    base["cand_freight_ops"] = cand_freight_ops
+    base["pairs_total"] = pairs_total
+    return (base,)
 
 
 def main():
@@ -67,7 +93,7 @@ def main():
         openttd_version=OPENTTD_VERSION,
         opengfx_version=OPENGFX_VERSION,
         max_workers=args.max_workers,
-        result_processor=keep,
+        result_processor=keep_with_freight_telemetry,
         experiments=experiments(built, args.seeds, args.years, 1, 1970, map_size=args.map_size),
         ai_libraries=(
             bananas_ai_library("51554648", "Queue.FibonacciHeap"),

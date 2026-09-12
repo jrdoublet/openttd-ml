@@ -2042,8 +2042,8 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
      pour le fret rail et route (`candidates.nut`). Le balayage cartésien global inconditionnel
      ($O(\text{sources} \times \text{sinks})$, jusqu'à 1,4 million de paires visitées avant filtre) est supprimé
      au profit d'un filtrage par cellules voisines.
-  
-  ### ✅ FAIT le 2026-09-12 — Grille spatiale orientée fret adoptée par défaut (`c46_freight_grid=1`)
+
+  ### ✅ FAIT le 2026-09-12 — Grille spatiale fret validée, mesurée et maintenue à défaut 0 (`c46_freight_grid=0`)
 
   - **Architecture spatiale & complexité (`ai/OpexAI/spatial.nut`)** :
     - `OpexDirectedSpatialGrid` stocke les puits de fret (`sinks`, `townSinks`, `townTargets`) indexés
@@ -2051,40 +2051,39 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
     - La construction de la grille s'effectue en $O(\text{sinks})$.
     - La sélection de candidats pour chaque source (`GetSortedCandidates`) filtre les puits dans le
       voisinage de Moore $3 \times 3$ (taille de cellule $S \ge \text{maxDist}$) et applique `out.sort()`,
-      soit un coût en $O(K_{\text{local}} \log K_{\text{local}})$ où $K_{\text{local}}$ est le nombre de puits
-      dans les 9 cellules voisines.
-    - Le coût global de génération devient $O\left(\text{sinks} + \sum_{s \in \text{sources}} K_{\text{local}}(s) \log K_{\text{local}}(s)\right)$.
+      soit un coût en $O(q_s \log q_s)$ où $q_s$ est le nombre de puits dans les 9 cellules voisines.
+    - Le coût global de génération devient $O\left(\text{sinks} + \sum_{s \in \text{sources}} q_s \log q_s\right)$.
       Le balayage cartésien global inconditionnel est éliminé ; le coût effectif dépend désormais de la
       densité locale des voisinages (dans le pire cas théorique où tous les puits seraient concentrés dans
-      les cellules interrogées, le produit sources $\times$ puits subsisterait).
+      les cellules interrogées, $q_s \approx \text{sinks}$ et le parcours reste au moins $O(\text{sources} \times \text{sinks})$).
     - **Preuve d'absence de faux négatifs** : pour toute cible vérifiant la distance de Manhattan
       $|dx| + |dy| \le S$, chaque coordonnée 1D vérifie $|dx| \le S$ et $|dy| \le S$. La cible est donc
       strictement située dans une des 9 cellules adjacentes ou centrale de la source.
     - **Neutralité de vivier et d'itération** : chaque puits inséré enregistre son indice séquentiel
       d'origine $k$, et `GetSortedCandidates` applique `out.sort()`, garantissant un ordre d'itération
       strictement identique à la boucle historique.
-  - **Revue de code critique (Gemini 3.1 Pro)** :
+  - **Revue de code critique (Gemini 3.1 Pro) & Preuves Shadow versionnées** :
     - Preuve mathématique et neutralité validées.
     - Suggestion adoptée : remplacement des clés chaînes `"x:y"` par des entiers signés 32 bits.
-    - Mode shadow (`c46_freight_grid_shadow=1`) validé sur $256^2$ (graines 42, 100) et $1024^2$ (graine 42)
-      avec 0 divergence et 0 assertion levée.
+    - Preuve d'équivalence shadow versionnée dans [`results/test_c46_shadow.json`](file:///home/deploy/projects/openttd-ml/results/test_c46_shadow.json)
+      (`sweeps/test_c46_shadow.py`) : 3/3 runs validés avec 0 mismatch et 0 assertion levée
+      (graine 42 à $256^2$ sur 1 an, graine 100 à $256^2$ sur 2 ans, graine 42 à $1024^2$ sur 1 an).
   - **Fiabilisation sur grande carte (`ai/OpexAI/catalog.nut`)** :
     - Découverte et correction d'un bug présent depuis l'origine (`826a6fa`) : lors des fermetures d'usines
       sur carte $1024^2$ (871 industries), `AIIndustry.GetIndustryType` renvoyait `INDUSTRYTYPE_INVALID` (255)
       dans `_refreshIndustries()`, conduisant à `null.Begin()` dans `_cargoArray()`.
     - Sécurisé par `IsValidIndustry`, `IsValidIndustryType` et garde `null` (`1e357b7`).
-  - **Banc officiel 20 graines × 10 ans apparié sur carte 1024²** (`results/bench_c46_freight_grid_10y_20seeds_map1024.json`, 40/40 runs sains, 0 échec NoAI) :
-    - **Valeur d'entreprise** : 2 930 093 £ (OFF) vs **3 062 473 £ (ON)** (+132 380 £, **+4,52 %**, delta médian **−352 861 £**, victoires ON : **8 / 20**, victoires OFF : 12 / 20)
-    - **Profit annuel** : 381 142 £ (OFF) vs **418 042 £ (ON)** (+36 900 £, **+9,68 %**, delta médian **−13 305 £**, victoires ON : **8 / 20**, victoires OFF : 12 / 20)
-    - **Score de performance** : 334,8 (OFF) vs **341,5 (ON)** (+6,8, delta médian +9,5, victoires ON : **11 / 20**)
-    - **Note de gare médiane** : 109,6 (OFF) vs **121,8 (ON)** (+12,2, delta médian +8,8, victoires ON : **14 / 20**, 2 égalités)
+  - **Mesure directe de la charge CPU et des paires visitées (`results/diag_c46_freight_cost_map1024.json`)** :
+    - Diagnostic 5 graines $\times$ 1 an sur carte $1024^2$ ([`sweeps/diag_c46_freight_cost_map1024.py`](file:///home/deploy/projects/openttd-ml/sweeps/diag_c46_freight_cost_map1024.py)) :
+      - **Paires visitées** : 11 856 (OFF) vs **808 (ON)** -> réduction de **14,65×** du nombre de paires évaluées.
+      - **Opcodes générateur fret** : 1 821 267 (OFF) vs **495 319 (ON)** -> réduction de **3,68×** des opcodes consommés.
+  - **Banc officiel 20 graines × 10 ans apparié sur carte 1024²** ([`results/bench_c46_freight_grid_10y_20seeds_map1024.json`](file:///home/deploy/projects/openttd-ml/results/bench_c46_freight_grid_10y_20seeds_map1024.json), versionné, 40/40 runs sains, 0 échec NoAI) :
+    - **Valeur d'entreprise** : 2 930 093 £ (OFF) vs 3 062 473 £ (ON) (+132 380 £ ± 365 467 £, +4,52 %, delta médian **−352 861 £**, victoires ON : **8 / 20**, victoires OFF : 12 / 20)
+    - **Profit annuel** : 381 142 £ (OFF) vs 418 042 £ (ON) (+36 900 £ ± 49 161 £, +9,68 %, delta médian **−13 305 £**, victoires ON : **8 / 20**, victoires OFF : 12 / 20)
+    - **Score de performance** : 334,8 (OFF) vs 341,5 (ON) (+6,8, delta médian +9,5, victoires ON : 11 / 20)
+    - **Note de gare médiane** : 109,6 (OFF) vs 121,8 (ON) (+12,2, delta médian +8,8, victoires ON : 14 / 20, 2 égalités)
     - **Flotte & Réseau** : 150,7 vs 152,2 véhicules, 51,6 vs 52,5 gares
-    - **Verdict et nuance** : les moyennes positives sur la valeur d'entreprise et le profit sont tirées
-      par de fortes hausses sur les graines favorables, mais les deltas médians négatifs et les 8/20 victoires
-      montrent qu'il ne s'agit pas d'un gain macroscopique systématique graine par graine. L'intérêt principal
-      est algorithmique : la suppression du balayage cartésien global débloque la génération de candidats fret
-      sur les cartes denses tout en garantissant une neutralité de trajectoire stricte sur carte $256^2$.
-      `c46_freight_grid` est activé par défaut (`1`). Chantier **clos et validé**.
+    - **Décision d'arbitrage** : bien que le soulagement du goulot CPU soit massif (division par 3,7× des opcodes et par 14,6× des paires visitées), le banc 20×10 montre que les deltas médians économiques restent négatifs et que le gain moyen est dominé par l'incertitude statistique (erreur standard supérieure au gain). Conformément aux règles méthodologiques du projet, sans gain macroscopique positif avéré, **`c46_freight_grid` est maintenu à 0 par défaut (`c46_freight_grid=0`)**. Chantier **clos et documenté**.
 
 ---
 
