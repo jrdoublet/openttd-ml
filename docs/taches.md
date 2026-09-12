@@ -2039,16 +2039,24 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   **Corrigé** :
   1. `1c12fd5` a introduit l'indexation spatiale pour le pax (`OpexSpatialGrid`).
   2. Le 2026-09-12 (`fd256cf`, `1e357b7`), implémentation de `OpexDirectedSpatialGrid` (`spatial.nut`)
-     pour le fret rail et route (`candidates.nut`). Le goulot quadratique ($O(\text{sources} \times \text{sinks})$,
-     jusqu'à 1,4 million de paires visitées avant filtre) est éliminé et ramené à $O(\text{sinks})$.
+     pour le fret rail et route (`candidates.nut`). Le balayage cartésien global inconditionnel
+     ($O(\text{sources} \times \text{sinks})$, jusqu'à 1,4 million de paires visitées avant filtre) est supprimé
+     au profit d'un filtrage par cellules voisines.
   
   ### ✅ FAIT le 2026-09-12 — Grille spatiale orientée fret adoptée par défaut (`c46_freight_grid=1`)
 
-  - **Architecture spatiale (`ai/OpexAI/spatial.nut`)** :
+  - **Architecture spatiale & complexité (`ai/OpexAI/spatial.nut`)** :
     - `OpexDirectedSpatialGrid` stocke les puits de fret (`sinks`, `townSinks`, `townTargets`) indexés
       par hachage de coordonnées entières 32 bits `(nx << 16) | (ny & 0xFFFF)` sans allocation de chaînes.
-    - Recherche bornée au voisinage de Moore $3 \times 3$ centré sur la source, avec taille de cellule
-      $S \ge \text{maxDist}$ (maille `bounds.railMax` pour le rail, `roadGenMax` pour la route).
+    - La construction de la grille s'effectue en $O(\text{sinks})$.
+    - La sélection de candidats pour chaque source (`GetSortedCandidates`) filtre les puits dans le
+      voisinage de Moore $3 \times 3$ (taille de cellule $S \ge \text{maxDist}$) et applique `out.sort()`,
+      soit un coût en $O(K_{\text{local}} \log K_{\text{local}})$ où $K_{\text{local}}$ est le nombre de puits
+      dans les 9 cellules voisines.
+    - Le coût global de génération devient $O\left(\text{sinks} + \sum_{s \in \text{sources}} K_{\text{local}}(s) \log K_{\text{local}}(s)\right)$.
+      Le balayage cartésien global inconditionnel est éliminé ; le coût effectif dépend désormais de la
+      densité locale des voisinages (dans le pire cas théorique où tous les puits seraient concentrés dans
+      les cellules interrogées, le produit sources $\times$ puits subsisterait).
     - **Preuve d'absence de faux négatifs** : pour toute cible vérifiant la distance de Manhattan
       $|dx| + |dy| \le S$, chaque coordonnée 1D vérifie $|dx| \le S$ et $|dy| \le S$. La cible est donc
       strictement située dans une des 9 cellules adjacentes ou centrale de la source.
@@ -2066,13 +2074,17 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
       dans `_refreshIndustries()`, conduisant à `null.Begin()` dans `_cargoArray()`.
     - Sécurisé par `IsValidIndustry`, `IsValidIndustryType` et garde `null` (`1e357b7`).
   - **Banc officiel 20 graines × 10 ans apparié sur carte 1024²** (`results/bench_c46_freight_grid_10y_20seeds_map1024.json`, 40/40 runs sains, 0 échec NoAI) :
-    - **Valeur d'entreprise** : 2 930 093 £ (OFF) vs **3 062 473 £ (ON)** (+132 380 £, **+4,52 %**, victoires 12/20)
-    - **Profit annuel** : 381 142 £ (OFF) vs **418 042 £ (ON)** (+36 900 £, **+9,68 %**, victoires 12/20)
-    - **Score de performance** : 334,8 (OFF) vs **341,5 (ON)** (+6,8)
-    - **Note de gare médiane** : 109,6 (OFF) vs **121,8 (ON)** (+12,2)
+    - **Valeur d'entreprise** : 2 930 093 £ (OFF) vs **3 062 473 £ (ON)** (+132 380 £, **+4,52 %**, delta médian **−352 861 £**, victoires ON : **8 / 20**, victoires OFF : 12 / 20)
+    - **Profit annuel** : 381 142 £ (OFF) vs **418 042 £ (ON)** (+36 900 £, **+9,68 %**, delta médian **−13 305 £**, victoires ON : **8 / 20**, victoires OFF : 12 / 20)
+    - **Score de performance** : 334,8 (OFF) vs **341,5 (ON)** (+6,8, delta médian +9,5, victoires ON : **11 / 20**)
+    - **Note de gare médiane** : 109,6 (OFF) vs **121,8 (ON)** (+12,2, delta médian +8,8, victoires ON : **14 / 20**, 2 égalités)
     - **Flotte & Réseau** : 150,7 vs 152,2 véhicules, 51,6 vs 52,5 gares
-    - **Verdict** : gain physique net sur tous les indicateurs clés sur grande carte sans régression à $256^2$.
-      `c46_freight_grid` activé par défaut (`1`). Chantier **clos et validé**.
+    - **Verdict et nuance** : les moyennes positives sur la valeur d'entreprise et le profit sont tirées
+      par de fortes hausses sur les graines favorables, mais les deltas médians négatifs et les 8/20 victoires
+      montrent qu'il ne s'agit pas d'un gain macroscopique systématique graine par graine. L'intérêt principal
+      est algorithmique : la suppression du balayage cartésien global débloque la génération de candidats fret
+      sur les cartes denses tout en garantissant une neutralité de trajectoire stricte sur carte $256^2$.
+      `c46_freight_grid` est activé par défaut (`1`). Chantier **clos et validé**.
 
 ---
 
