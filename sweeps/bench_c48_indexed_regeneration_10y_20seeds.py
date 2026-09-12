@@ -107,6 +107,8 @@ def main():
             mean_delta = stats.get("mean_difference", 0)
             pct = stats.get("mean_difference_percent", 0)
             print(f"  {metric:<25}: delta={mean_delta:+12.1f} ({pct:+6.2f}%) | wins={wins}/{n}")
+    if failed:
+        raise SystemExit(f"banc invalide: {len(failed)} run(s) avec une erreur fatale NoAI")
 
 
 if __name__ == "__main__":

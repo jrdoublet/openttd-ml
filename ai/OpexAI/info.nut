@@ -925,9 +925,9 @@ class OpexAIInfo extends AIInfo {
      * Remplace les balayages linéaires O(candidats x lignes) et O(combos x villes x lignes). */
     AddSetting({
       name = "c48_indexed_regeneration",
-      description = "C48: exact O(1) indexing for incremental portfolio revalidation and air planning instead of O(objects x lines) scans; 1 = on (default), 0 = off",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
+      description = "C48: exact O(1) indexing for incremental portfolio revalidation and air planning instead of O(objects x lines) scans; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
 

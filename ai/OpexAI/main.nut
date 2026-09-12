@@ -275,7 +275,7 @@ C56_LOOP_TICK_COUNT <- 0;
 C48_INCREMENTAL_PROFILE <- false;
 C48_INCREMENTAL_LEDGER <- null;
 /* C48 : Indexation exacte du vivier et de la planification aerienne en O(1). */
-C48_INDEXED_REGENERATION <- true;
+C48_INDEXED_REGENERATION <- false;
 /* C48 : Mode miroir d'assertion d'equivalence stricte entre balayage lineaire et index. */
 C48_INDEX_SHADOW <- false;
 /* air_fleet_probe : _resizeAirFleets n'emet que ses SUCCES (FG|). Quand une ligne aerienne
@@ -2680,6 +2680,53 @@ function OpexAirBatchPlanStillLive(plan, lines)
     if ((line.originA == plan.siteA.town.tile && line.originB == plan.siteB.town.tile) ||
         (line.originA == plan.siteB.town.tile && line.originB == plan.siteA.town.tile)) return false;
   }
+  return true;
+}
+
+/* C48 : Verification O(1) avec memoisation par ville des communes deja desservies par l'aerien. */
+function OpexAirTownServedIndexed(town, idx)
+{
+  if (idx == null || town == null) return false;
+  if (town.id in idx.airTownServed) return idx.airTownServed[town.id];
+  local served = false;
+  foreach (line in idx.airLines) {
+    if (AIMap.DistanceManhattan(town.tile, line.originA) < 15 ||
+        AIMap.DistanceManhattan(town.tile, line.originB) < 15) {
+      served = true;
+      break;
+    }
+  }
+  idx.airTownServed[town.id] <- served;
+  return served;
+}
+
+/* C48 : Verification O(1) de la capacite du hub aerien via idx.airStationRoutes. */
+function OpexAirBatchHubHasCapacityIndexed(anchor, plane, idx)
+{
+  if (!AIAirport.IsAirportTile(anchor) ||
+      !OpexAirAirportAcceptsPlane(AIAirport.GetAirportType(anchor), plane.planeType)) return false;
+  local station = AIStation.GetStationID(anchor);
+  if (!AIStation.IsValidStation(station)) return false;
+  local routes = (station in idx.airStationRoutes) ? idx.airStationRoutes[station] : 0;
+  local airportType = AIAirport.GetAirportType(anchor);
+  local maxRoutes = (airportType == AIAirport.AT_SMALL || airportType == AIAirport.AT_COMMUTER) ? 4 : 12;
+  return routes < maxRoutes;
+}
+
+/* C48 : Version O(1) de OpexAirBatchPlanStillLive utilisant la structure d'indexation. */
+function OpexAirBatchPlanStillLiveIndexed(plan, idx)
+{
+  if (idx == null || plan == null) return false;
+  local reuseA = ("reuseA" in plan) && plan.reuseA;
+  local reuseB = ("reuseB" in plan) && plan.reuseB;
+  if (!reuseA && OpexAirTownServedIndexed(plan.siteA.town, idx)) return false;
+  if (!reuseB && OpexAirTownServedIndexed(plan.siteB.town, idx)) return false;
+  if (reuseA && !OpexAirBatchHubHasCapacityIndexed(plan.siteA.anchor, plan.plane, idx)) return false;
+  if (reuseB && !OpexAirBatchHubHasCapacityIndexed(plan.siteB.anchor, plan.plane, idx)) return false;
+  local a = plan.siteA.town.tile;
+  local b = plan.siteB.town.tile;
+  local pairKey = (a < b) ? (a + "|" + b) : (b + "|" + a);
+  if (pairKey in idx.airPairs) return false;
   return true;
 }
 

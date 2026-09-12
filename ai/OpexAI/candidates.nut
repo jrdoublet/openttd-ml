@@ -1078,6 +1078,8 @@ function OpexBuildLineIndex(lines)
     feederCounts = {},     // "townId|hubStationId" -> count
     roadFreightBusy = {},  // "cargo|origin" -> true
     airLines = [],         // liste filtree des lignes de mode == "air"
+    airPairs = {},         // "min(originA,originB)|max(originA,originB)" -> true
+    airTownServed = {},    // townId -> bool (memoized)
     airStationRoutes = {}, // stationId -> count de routes aeriennes
   };
 
@@ -1122,7 +1124,9 @@ function OpexBuildLineIndex(lines)
         }
       }
 
-      if (isFeeder && ("originA" in line)) {
+      /* P1 : Seules les lignes passagers comptent dans feederCounts (conformement a OpexTownFeederCount).
+       * Le courrier (feeder_mail) ne doit pas reduire les quotas de rabattement passagers. */
+      if (isFeeder && isPax && ("originA" in line)) {
         local targetStation = ("hubStationId" in line) ? line.hubStationId : -1;
         if (targetStation < 0 && ("stationB" in line) && AIMap.IsValidTile(line.stationB)) {
           targetStation = AIStation.GetStationID(line.stationB);
@@ -1174,17 +1178,19 @@ function OpexBuildLineIndex(lines)
     // 5. Lignes aeriennes
     if (mode == "air") {
       idx.airLines.append(line);
-      if (("stationA" in line) && AIMap.IsValidTile(line.stationA)) {
-        local stA = AIStation.GetStationID(line.stationA);
-        if (AIStation.IsValidStation(stA)) {
-          idx.airStationRoutes[stA] <- (stA in idx.airStationRoutes) ? idx.airStationRoutes[stA] + 1 : 1;
-        }
+      if (("originA" in line) && ("originB" in line)) {
+        local a = line.originA;
+        local b = line.originB;
+        local pairKey = (a < b) ? (a + "|" + b) : (b + "|" + a);
+        idx.airPairs[pairKey] <- true;
       }
-      if (("stationB" in line) && AIMap.IsValidTile(line.stationB)) {
-        local stB = AIStation.GetStationID(line.stationB);
-        if (AIStation.IsValidStation(stB)) {
-          idx.airStationRoutes[stB] <- (stB in idx.airStationRoutes) ? idx.airStationRoutes[stB] + 1 : 1;
-        }
+      local stA = (("stationA" in line) && AIMap.IsValidTile(line.stationA)) ? AIStation.GetStationID(line.stationA) : -1;
+      local stB = (("stationB" in line) && AIMap.IsValidTile(line.stationB)) ? AIStation.GetStationID(line.stationB) : -1;
+      if (AIStation.IsValidStation(stA)) {
+        idx.airStationRoutes[stA] <- (stA in idx.airStationRoutes) ? idx.airStationRoutes[stA] + 1 : 1;
+      }
+      if (AIStation.IsValidStation(stB) && stB != stA) {
+        idx.airStationRoutes[stB] <- (stB in idx.airStationRoutes) ? idx.airStationRoutes[stB] + 1 : 1;
       }
     }
   }

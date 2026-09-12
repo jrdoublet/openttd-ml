@@ -1729,7 +1729,7 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   milliers — 1 070 lignes d'`AIR_TOWN_SERVED` sur 2 ans à lui seul), sinon on réintroduit
   l'auto-handicap qu'on vient de retirer.
 
-- 🟢 **C48 — Le coût de `projects` n'est PAS le balayage : c'est la régénération qu'il déclenche.** (ADOPTÉ PAR DÉFAUT le 2026-09-12)
+- 🟡 **C48 — Le coût de `projects` n'est PAS le balayage : c'est la régénération qu'il déclenche.** (NON SIGNIFICATIF — MAINTENU À DÉFAUT 0 le 2026-09-12)
   📝 Ouverte et mesurée le 2026-09-10. Sonde `c48_project_attempt_ledger` (défaut 0, gate dédié
   `OpexC48ProjectAttemptLog`) : encadre les 5 sites de tentative de `_tryBuildProjects`
   (fleet/air/road/rail/eau) en opcodes et en jours, plus la fonction entière, plus la profondeur de
@@ -1805,34 +1805,33 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   94 % des passes en fin de partie (C48) ⇒ coût par passe ×15 ⇒ **débit de décision ÷9,2**
   (C39.6b) ⇒ plafond de volume, la métrique n°1. **Plus l'IA construit, moins elle peut décider.**
 
-  ✅ **C48.2 — Implémentation de l'indexation exacte O(1) (`c48_indexed_regeneration`)** :
-  - `OpexBuildLineIndex(lines)` (`candidates.nut`) : construit une structure d'indexation éphémère en $O(L)$
-    au début de chaque passe de régénération incrémentale. Index spatiaux (`servedAny`, `servedRailOnly`
-    avec projection du disque Manhattan < 3), index exacts (`exactLines` par clé cargo+src+dst), compteurs
-    par commune (`townRoadCounts`, `feederCounts`), et index aériens (`airLines`, `airStationRoutes`).
-  - `OpexIndexedCandidateStillValid` (`projects.nut`) : tests de validité de candidat en $O(1)$ strict.
-  - `OpexAirPlans` (`builder_air.nut`) : pré-calcul de `airTownServedMap` en une seule passe amont $O(L_{air})$,
-    éliminant le balayage linéaire dans la boucle imbriquée combos × villes.
+  🔍 **Résolution de la revue critique C48 (3 P1, 2 P2 relevés le 2026-09-12)** :
+  1. **[P1] Feeder courrier dans `feederCounts` résolu** : `candidates.nut` filtrait les arrêts
+     ordinaires par `isPax`, mais pas le bloc `isFeeder`. Avec `feeder_mail_duplicate=1` par défaut,
+     la ligne courrier doublait le décompte et bloquait prématurément le 2e arrêt d'une ville.
+     Correction : `isPax` ajouté au filtre de décompte feeder, sémantique historique restaurée.
+  2. **[P1] Revalidation aérienne résolue en O(1)** : `projects.nut` appelait `OpexAirBatchPlanStillLive`
+     sur la liste brute `lines`, exécutant des scans $O(L)$ répétés. Remplacement par
+     `OpexAirBatchPlanStillLiveIndexed`, `OpexAirBatchHubHasCapacityIndexed` et
+     `OpexAirTownServedIndexed` (avec mémoïsation $O(1)$ par ville), sous assertion shadow stricte.
+  3. **[P1] Banc officiel non significatif** : Le banc 20×10 apparié donne 12 victoires sur 20 en valeur
+     ($p \approx 0,503$, $t \approx 0,94$) et 11/20 en profit ($p \approx 0,824$), avec −2,55 gares.
+     Ces deltas (< 2 %) sont indissociables du bruit de trajectoire. **Le réglage reste par défaut à 0**.
+  4. **[P2] Reconstruction répétée de l'index dans les candidats staged résolue** : `OpexBuildProjects`
+     instancie l'index une seule fois au niveau du stage et le transmet à `OpexStagedCandidateStillValid`,
+     `OpexStagedAirPlanStillValid`, et `OpexStagedWaterPlanStillValid`, éliminant le coût $O(C \times L)$
+     des réallocations unitaires.
+  5. **[P2] Sortie d'erreur du banc officiel résolue** : `bench_c48_indexed_regeneration_10y_20seeds.py`
+     lève désormais un `SystemExit` non nul si des runs échouent (`if failed:`), aligné sur `bench_v2.py`.
 
-  ✅ **C48.3 — Preuve formelle d'équivalence stricte par mode miroir (`c48_index_shadow=1`)** :
-  - Diagnostic 5 graines × 6 ans (`results/diag_c48_shadow_proof_6y_5seeds.json`), `_checkShadow=true`.
-  - Mode miroir actif à chaque décision : assertion directe `assert(resLegacy == resIndexed)`.
-  - **Résultat** : 5/5 runs OK, 0 exception levée, 0 divergence de validité observée. L'équivalence logique
-    est totale et prouvée.
-
-  ✅ **C48.4 — Banc officiel 20 graines × 10 ans apparié (`c48_indexed_regeneration=1` vs `0`)** :
+  📊 **Banc officiel 20 graines × 10 ans apparié (`c48_indexed_regeneration=1` vs `0`)** :
   `results/bench_c48_indexed_regeneration_10y_20seeds.json` (40 runs, 0 échec).
-  - **Valeur d'entreprise** : baseline 17,69 M£ → indexé **17,97 M£** (**+282 929 £**, **+1,60 %**).
-    Médiane : baseline 17,57 M£ → indexé **18,72 M£** (**+1 153 254 £**, **+6,56 %**).
-    Test des signes : **12 victoires, 8 défaites** en faveur de C48.
-  - **Profit annuel** : baseline 2,893 M£ → indexé **2,904 M£** (**+11 739 £**).
-    Médiane : baseline 2,879 M£ → indexé **2,892 M£** (**+12 648 £**).
-    Test des signes : **11 victoires, 9 défaites** en faveur de C48.
-  - **Note de performance** : 869,85 vs 870,25 (stricte parité, -0,4 pt).
-  - **Flotte** : 212,1 véhicules (+2,8) et 98,1 gares.
-  - **Verdict** : L'élimination du goulot algorithmique améliore la réactivité et la performance globale
-    sans aucune régression. **C48 est validé et ADOPTÉ PAR DÉFAUT** (`c48_indexed_regeneration=1` dans `info.nut`
-    et `main.nut`).
+  - Valeur d'entreprise : baseline 17,69 M£ → indexé 17,97 M£ (+282 929 £, +1,60 %, SE 299 955 £, $t=0,94$, test des signes 12/20, $p=0,503$).
+  - Profit annuel : baseline 2,893 M£ → indexé 2,904 M£ (+11 739 £, test des signes 11/20, $p=0,824$).
+  - Note de performance : 869,85 vs 870,25.
+  - Flotte : 212,1 véhicules vs 209,3. Gares : 98,1 vs 100,7 (−2,55).
+  - **Verdict** : L'implémentation est corrigée et propre, mais le gain macroscopique n'est pas
+    statistiquement significatif. **C48 reste désactivé par défaut (`c48_indexed_regeneration=0`).**
 
   ⚠️ **Deux réglages exposés sont du CODE MORT sous `portfolio_v2=1`** (vérifié 2026-09-10) :
   `pool_financeable` (adopté par décision utilisateur le 2026-09-03) et `knapsack_roi` (défaut 1)

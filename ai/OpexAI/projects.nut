@@ -994,7 +994,12 @@ function OpexIndexedCandidateStillValid(p, lineIndex, abandonedPairs = null, upd
         return false;
       }
     }
-    if (!OpexAirBatchPlanStillLive(plan, lineIndex.lines)) return false;
+    if (C48_INDEX_SHADOW) {
+      local liveLegacy = OpexAirBatchPlanStillLive(plan, lineIndex.lines);
+      local liveIndexed = OpexAirBatchPlanStillLiveIndexed(plan, lineIndex);
+      assert(liveLegacy == liveIndexed);
+    }
+    if (!OpexAirBatchPlanStillLiveIndexed(plan, lineIndex)) return false;
     if (!OpexAirBatchSiteStillBuildable(plan.siteA, plan.airport, plan.plane,
                                          ("reuseA" in plan) && plan.reuseA)) {
       return false;
@@ -1366,25 +1371,25 @@ function OpexCloneCandidateGroups(source)
  * construction peut avoir rendu une paire desservie entre deux etapes. Passer
  * les objets bruts par la meme validation que le cache incremental avant de les
  * reinjecter empeche le projet qui vient d'etre construit de revenir en tete. */
-function OpexStagedCandidateStillValid(candidate, lines, abandonedPairs = null)
+function OpexStagedCandidateStillValid(candidate, lines, abandonedPairs = null, lineIndex = null)
 {
   if (candidate == null) return false;
   local project = OpexProjectFromCandidate(candidate, null);
-  return project != null && OpexIncrementalCandidateStillValid(project, lines, abandonedPairs);
+  return project != null && OpexIncrementalCandidateStillValid(project, lines, abandonedPairs, lineIndex);
 }
 
-function OpexStagedAirPlanStillValid(catalog, plan, lines, abandonedPairs = null)
+function OpexStagedAirPlanStillValid(catalog, plan, lines, abandonedPairs = null, lineIndex = null)
 {
   if (plan == null) return false;
   local project = OpexProjectFromAir(catalog, plan, 0, null);
-  return project != null && OpexIncrementalCandidateStillValid(project, lines, abandonedPairs);
+  return project != null && OpexIncrementalCandidateStillValid(project, lines, abandonedPairs, lineIndex);
 }
 
-function OpexStagedWaterPlanStillValid(catalog, plan, lines, abandonedPairs = null)
+function OpexStagedWaterPlanStillValid(catalog, plan, lines, abandonedPairs = null, lineIndex = null)
 {
   if (plan == null) return false;
   local project = OpexProjectFromWater(catalog, plan, 0, null);
-  return project != null && OpexIncrementalCandidateStillValid(project, lines, abandonedPairs);
+  return project != null && OpexIncrementalCandidateStillValid(project, lines, abandonedPairs, lineIndex);
 }
 
 function OpexMergeRailCandidateSet(base, extra)
@@ -1427,6 +1432,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
                + " freight_label=" + (freightCargo != null ? AICargo.GetCargoLabel(freightCargo) : "none")
                + " freight_price=" + (freightCargo != null ? AICargo.GetCargoIncome(freightCargo, 20, 0) : 0));
   }
+  local lineIndex = (C48_INDEXED_REGENERATION || C48_INDEX_SHADOW) ? OpexBuildLineIndex(lines) : null;
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "c56_stage_rail", "-");
   /* C41.22 : intervalles disjoints du chemin rail historique. Le pre-devis peut etre inactif
    * par reglage : publier alors son zero est justement necessaire pour ne pas attribuer son cout
@@ -1486,7 +1492,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
          * normale vient de la regenerer avec l'etat courant : ne conserver
          * ici que le fret herite pour ne pas dupliquer chaque paire pax. */
         local replaced = generationStage == OPEX_STAGE_AIR_RAIL && c.kind == "pax";
-        if (!replaced && OpexStagedCandidateStillValid(c, lines, abandonedPairs)) {
+        if (!replaced && OpexStagedCandidateStillValid(c, lines, abandonedPairs, lineIndex)) {
           merged.append(c);
         }
       }
@@ -1499,7 +1505,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     rail = priorProjects.rail;
     local liveRail = [];
     foreach (c in rail.candidates) {
-      if (OpexStagedCandidateStillValid(c, lines, abandonedPairs)) liveRail.append(c);
+      if (OpexStagedCandidateStillValid(c, lines, abandonedPairs, lineIndex)) liveRail.append(c);
     }
     rail.candidates = liveRail;
     rail.best = OpexTopK(liveRail, TOP_K);
@@ -1579,7 +1585,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     road = priorProjects.road;
     local liveRoad = [];
     foreach (c in road.candidates) {
-      if (OpexStagedCandidateStillValid(c, lines, abandonedPairs)) liveRoad.append(c);
+      if (OpexStagedCandidateStillValid(c, lines, abandonedPairs, lineIndex)) liveRoad.append(c);
     }
     road.candidates = liveRoad;
     road.best = OpexTopK(liveRoad, ROAD_TOP_K);
@@ -1602,7 +1608,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     if (generationStage == OPEX_STAGE_AIR_RAIL && priorProjects != null
         && ("airPlans" in priorProjects) && priorProjects.airPlans != null) {
       foreach (plan in priorProjects.airPlans) {
-        if (OpexStagedAirPlanStillValid(catalog, plan, lines, abandonedPairs)) airPlans.append(plan);
+        if (OpexStagedAirPlanStillValid(catalog, plan, lines, abandonedPairs, lineIndex)) airPlans.append(plan);
       }
       if (airPlans.len() > 0) airPlan = airPlans[0];
     }
@@ -1610,7 +1616,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     airPlan = ("airPlan" in priorProjects) ? priorProjects.airPlan : null;
     if (("airPlans" in priorProjects) && priorProjects.airPlans != null) {
       foreach (plan in priorProjects.airPlans) {
-        if (OpexStagedAirPlanStillValid(catalog, plan, lines, abandonedPairs)) airPlans.append(plan);
+        if (OpexStagedAirPlanStillValid(catalog, plan, lines, abandonedPairs, lineIndex)) airPlans.append(plan);
       }
     }
     airPlan = airPlans.len() > 0 ? airPlans[0] : null;
@@ -1660,7 +1666,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     waterPlan = ("waterPlan" in priorProjects) ? priorProjects.waterPlan : null;
     if (("waterPlans" in priorProjects) && priorProjects.waterPlans != null) {
       foreach (plan in priorProjects.waterPlans) {
-        if (OpexStagedWaterPlanStillValid(catalog, plan, lines, abandonedPairs)) waterPlans.append(plan);
+        if (OpexStagedWaterPlanStillValid(catalog, plan, lines, abandonedPairs, lineIndex)) waterPlans.append(plan);
       }
     }
     waterPlan = waterPlans.len() > 0 ? waterPlans[0] : null;
