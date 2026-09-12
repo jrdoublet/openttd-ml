@@ -862,6 +862,24 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C55 : exemption pure du mode PAX routier de OpexOriginServed dans la revalidation incrementale. */
+    AddSetting({
+      name = "c55_road_pax_origin_relax",
+      description = "C55: strictly exempt road PAX from OpexOriginServed in incremental revalidation (aligns with candidate gen and build caps); 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* C55 : sonde de tracabilite causale des passagers routiers (sauves du filtre, elus, construits). */
+    AddSetting({
+      name = "c55_pax_trace_probe",
+      description = "C55 probe: track lifecycle of road pax candidates spared from OpexOriginServed (spared, elected, built); 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* C60 : Sonde d'exposition aux notes municipales. Mesure la frequence a laquelle des
      * candidats ou chantiers ciblent des villes refusant les gares (rating <= VERY_POOR). */
     AddSetting({

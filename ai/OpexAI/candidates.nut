@@ -2006,11 +2006,7 @@ function OpexRoadPaxCandidates(catalog, lines, out, stats, abandonedPairs = null
         if (!OpexTownRatingAllowStation(towns[a].id) || !OpexTownRatingAllowStation(towns[b].id)) continue;
       }
       local distance = AIMap.DistanceManhattan(towns[a].tile, towns[b].tile);
-      if (distance < roadBounds.roadMin || distance > roadBounds.roadMax) {
-        if (distance < roadBounds.roadMin) stats.roadDistanceShort++;
-        else stats.roadDistanceLong++;
-        continue;
-      }
+      if (!OpexRoadDistanceAllowed(catalog, distance, stats)) continue;
       if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
         local tA = towns[a].id;
         local tB = towns[b].id;

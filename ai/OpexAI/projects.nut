@@ -715,38 +715,55 @@ function OpexIncrementalCandidateStillValid(p, lines, abandonedPairs = null)
       local startYear = 1970;
       if (currCount >= maxFeeders || (slot >= 1 && (currYear - startYear) < 2)) return false;
     } else {
-      if (C55_ROAD_ORIGIN_RELAX) {
-        if (p.kind == "freight") {
-          local srcServed = OpexOriginServed(lines, p.src, true);
-          local dstServed = OpexOriginServed(lines, p.dst, true);
-          if (srcServed && dstServed) return false;
-          if (OpexRoadFreightBusy(lines, p.cargo, p.src) ||
-              OpexRoadFreightBusy(lines, p.cargo, p.dst)) return false;
-        } else if (p.kind == "pax") {
+      if (p.kind == "pax") {
+        local srcServed = OpexOriginServed(lines, p.src, true);
+        local dstServed = OpexOriginServed(lines, p.dst, true);
+        local isOriginBlocked = srcServed || dstServed;
+
+        if (C55_PAX_TRACE_PROBE) {
+          OpexC55PaxTraceObserveRevalidated(isOriginBlocked);
+        }
+
+        if (C55_ROAD_PAX_ORIGIN_RELAX || C55_ROAD_ORIGIN_RELAX) {
           if (OpexRoadPairServed(lines, p.src, p.dst)) return false;
           if (OpexTownRoadLineCount(lines, p.src) >= 4) return false;
           if (OpexTownRoadLineCount(lines, p.dst) >= 4) return false;
+          if (isOriginBlocked) {
+            if (!("_c55_pax_spared" in p) || !p._c55_pax_spared) {
+              p._c55_pax_spared <- true;
+              if (p.payload != null) p.payload._c55_pax_spared <- true;
+              if (C55_PAX_TRACE_PROBE) {
+                OpexC55PaxTraceObserveSpared();
+                local prof = ("profitAnnual" in p) ? p.profitAnnual : 0;
+                OpexC55PaxTraceLog("C55_PAX_SPARED", "src=" + p.src + " dst=" + p.dst + " profit=" + prof);
+              }
+            }
+          }
+        } else {
+          if (C55_ORIGIN_RELAX_PROBE) {
+            OpexC55OriginRelaxObserve("pax", lines, p.src, p.dst, srcServed, dstServed);
+          }
+          if (isOriginBlocked) return false;
+          if (OpexRoadPairServed(lines, p.src, p.dst)) return false;
         }
-      } else if (C55_FREIGHT_ORIGIN_RELAX && p.kind == "freight") {
-        local srcServed = OpexOriginServed(lines, p.src, true);
-        local dstServed = OpexOriginServed(lines, p.dst, true);
-        if (srcServed && dstServed) return false;
-        /* Une seule paire est revalidee : une boucle directe evite de construire un index. */
-        if (OpexRoadFreightBusy(lines, p.cargo, p.src) ||
-            OpexRoadFreightBusy(lines, p.cargo, p.dst)) return false;
-        if (p.kind == "pax" && OpexRoadPairServed(lines, p.src, p.dst)) return false;
-      } else if (C55_ORIGIN_RELAX_PROBE) {
-        /* Lecture seule : les deux memes predicates que le chemin livre, evalues avant de
-         * reprendre exactement son OR. Aucun resultat de selection n'est modifie. */
-        local srcServed = OpexOriginServed(lines, p.src, true);
-        local dstServed = OpexOriginServed(lines, p.dst, true);
-        OpexC55OriginRelaxObserve(p.kind, lines, p.src, p.dst, srcServed, dstServed);
-        if (srcServed || dstServed) return false;
-        if (p.kind == "pax" && OpexRoadPairServed(lines, p.src, p.dst)) return false;
       } else {
-        if (OpexOriginServed(lines, p.src, true)) return false;
-        if (OpexOriginServed(lines, p.dst, true)) return false;
-        if (p.kind == "pax" && OpexRoadPairServed(lines, p.src, p.dst)) return false;
+        /* Fret routier */
+        if (C55_FREIGHT_ORIGIN_RELAX || C55_ROAD_ORIGIN_RELAX) {
+          local srcServed = OpexOriginServed(lines, p.src, true);
+          local dstServed = OpexOriginServed(lines, p.dst, true);
+          if (srcServed && dstServed) return false;
+          /* Une seule paire est revalidee : une boucle directe evite de construire un index. */
+          if (OpexRoadFreightBusy(lines, p.cargo, p.src) ||
+              OpexRoadFreightBusy(lines, p.cargo, p.dst)) return false;
+        } else if (C55_ORIGIN_RELAX_PROBE) {
+          local srcServed = OpexOriginServed(lines, p.src, true);
+          local dstServed = OpexOriginServed(lines, p.dst, true);
+          OpexC55OriginRelaxObserve("freight", lines, p.src, p.dst, srcServed, dstServed);
+          if (srcServed || dstServed) return false;
+        } else {
+          if (OpexOriginServed(lines, p.src, true)) return false;
+          if (OpexOriginServed(lines, p.dst, true)) return false;
+        }
       }
       local towns = OpexGetCandidateTownEndpoints(p);
       if (C60_TOWN_RATING_PROBE) {

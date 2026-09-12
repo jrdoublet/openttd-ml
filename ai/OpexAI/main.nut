@@ -256,6 +256,11 @@ C55_ORIGIN_RELAX_LEDGER <- null;
 C55_FREIGHT_ORIGIN_RELAX <- false;
 /* C55 etape 5 : relache le verrou d'origine de toute la route. */
 C55_ROAD_ORIGIN_RELAX <- false;
+/* C55 : exemption pure du mode PAX routier de OpexOriginServed dans la revalidation. */
+C55_ROAD_PAX_ORIGIN_RELAX <- false;
+/* C55 : sonde de tracabilite causale des passagers routiers (sauves, elus, construits). */
+C55_PAX_TRACE_PROBE <- false;
+C55_PAX_TRACE_LEDGER <- null;
 /* C60 : Sonde d'exposition aux notes municipales. */
 C60_TOWN_RATING_PROBE <- false;
 /* C60 : Filtre proactif de note municipale (SuperLib). */
@@ -392,6 +397,15 @@ function OpexC55OriginRelaxLog(fields)
              + AIDate.GetDayOfMonth(date) + " C55_ORIGIN_RELAX " + fields);
 }
 
+/* C55 : gate autonome pour la tracabilite causale PAX. */
+function OpexC55PaxTraceLog(kind, fields)
+{
+  if (!C55_PAX_TRACE_PROBE) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " " + kind + " " + fields);
+}
+
 /* C56 : gate dedie et autonome. Lecture des traces :
  * - dernier TASK_ENTER name=X sans TASK_EXIT name=X : X ne rend pas la main, blocage dedans ;
  * - dernier STAGE_ENTER name=c56_stage_X sans STAGE_EXIT : blocage dans cette phase du portefeuille ;
@@ -480,6 +494,33 @@ function OpexC55OriginRelaxObserve(kind, lines, src, dst, srcServed, dstServed)
   /* Cle disponible ici : meme paire geometrique, dans un sens ou dans l'autre, a moins de
    * ORIGIN_SEPARATION des deux originA/originB d'une ligne route existante. */
   if (OpexRoadPairServed(lines, src, dst)) C55_ORIGIN_RELAX_LEDGER.duplicate_exact++;
+}
+
+/* C55 : observateurs pour la tracabilite causale PAX */
+function OpexC55PaxTraceObserveRevalidated(isOriginBlocked)
+{
+  if (!C55_PAX_TRACE_PROBE || C55_PAX_TRACE_LEDGER == null) return;
+  C55_PAX_TRACE_LEDGER.revalidated++;
+  if (isOriginBlocked) C55_PAX_TRACE_LEDGER.origin_blocked++;
+}
+
+function OpexC55PaxTraceObserveSpared()
+{
+  if (!C55_PAX_TRACE_PROBE || C55_PAX_TRACE_LEDGER == null) return;
+  C55_PAX_TRACE_LEDGER.spared++;
+}
+
+function OpexC55PaxTraceObserveElected()
+{
+  if (!C55_PAX_TRACE_PROBE || C55_PAX_TRACE_LEDGER == null) return;
+  C55_PAX_TRACE_LEDGER.elected++;
+}
+
+function OpexC55PaxTraceObserveBuilt(profit)
+{
+  if (!C55_PAX_TRACE_PROBE || C55_PAX_TRACE_LEDGER == null) return;
+  C55_PAX_TRACE_LEDGER.built++;
+  C55_PAX_TRACE_LEDGER.built_profit += profit;
 }
 
 function OpexC49VehicleType(mode)
@@ -3623,6 +3664,13 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
           return { outcome = "rejected", discards = passDiscards };
         }
       }
+      local wasPaxSpared = (candidate.kind == "pax") &&
+                           (("_c55_pax_spared" in project && project._c55_pax_spared) ||
+                            (candidate != null && ("_c55_pax_spared" in candidate) && candidate._c55_pax_spared));
+      if (wasPaxSpared) {
+        OpexC55PaxTraceObserveElected();
+        OpexC55PaxTraceLog("C55_PAX_ELECTED", "src=" + candidate.src + " dst=" + candidate.dst + " profit=" + candidate.profitAnnual);
+      }
       local result = OpexBuildRoadRoute(this._catalog, this._budget, plan, candidate);
       OpexSign(anchor, "RB|" + yy + "|" + idx + "|1|" + planOps + "|" + result.opcodes);
       if (ROAD_COST_PROBE) {
@@ -3637,6 +3685,12 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         if (ABANDON_MEMORY && OpexBuildFailureIsAbandonable(result)) this._markPairAbandoned(abandonedKey);
         OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|" + result.reason + "|" + result.error);
         return { outcome = "rejected", discards = passDiscards };
+      }
+      if (wasPaxSpared) {
+        OpexC55PaxTraceObserveBuilt(candidate.profitAnnual);
+        OpexC55PaxTraceLog("C55_PAX_BUILT", "line=" + idx + " src=" + candidate.src + " dst=" + candidate.dst
+                           + " profit=" + candidate.profitAnnual + " cost=" + result.cost
+                           + " vehicles=" + result.vehicles.len());
       }
 
       if (DECISION_LOG) {
@@ -7831,6 +7885,34 @@ function OpexAI::_logC55OriginRelaxLedger(year)
   };
 }
 
+/* C55 : sonde de tracabilite causale PAX routier. */
+function OpexAI::_logC55PaxTraceLedger(year)
+{
+  if (!C55_PAX_TRACE_PROBE || C55_PAX_TRACE_LEDGER == null) return;
+  local entry = C55_PAX_TRACE_LEDGER;
+  OpexC55PaxTraceLog("C55_PAX_TRACE", "phase=annual year=" + year + " revalidated=" + entry.revalidated
+      + " origin_blocked=" + entry.origin_blocked + " spared=" + entry.spared
+      + " elected=" + entry.elected + " built=" + entry.built
+      + " built_profit=" + entry.built_profit);
+  entry.total_revalidated += entry.revalidated;
+  entry.total_origin_blocked += entry.origin_blocked;
+  entry.total_spared += entry.spared;
+  entry.total_elected += entry.elected;
+  entry.total_built += entry.built;
+  entry.total_built_profit += entry.built_profit;
+  OpexC55PaxTraceLog("C55_PAX_TRACE", "phase=summary year=" + year + " revalidated=" + entry.total_revalidated
+      + " origin_blocked=" + entry.total_origin_blocked + " spared=" + entry.total_spared
+      + " elected=" + entry.total_elected + " built=" + entry.total_built
+      + " built_profit=" + entry.total_built_profit);
+  C55_PAX_TRACE_LEDGER = {
+    revalidated = 0, origin_blocked = 0, spared = 0,
+    elected = 0, built = 0, built_profit = 0,
+    total_revalidated = entry.total_revalidated, total_origin_blocked = entry.total_origin_blocked,
+    total_spared = entry.total_spared, total_elected = entry.total_elected,
+    total_built = entry.total_built, total_built_profit = entry.total_built_profit,
+  };
+}
+
 /* C60 : Le rapport annuel publie le bilan d'exposition aux notes municipales. */
 function OpexAI::_logC60TownRatingLedger(year)
 {
@@ -8653,6 +8735,7 @@ function OpexAI::_runNextTask()
     if (C48_PROJECT_ATTEMPT_LEDGER) this._logC48ProjectAttemptLedger(year);
     if (C49_SCARCITY_LEDGER) this._logC49ScarcityLedger(year);
     if (C55_ORIGIN_RELAX_PROBE) this._logC55OriginRelaxLedger(year);
+    if (C55_PAX_TRACE_PROBE) this._logC55PaxTraceLedger(year);
     if (C52_AUTOREPLACE_LOG) this._logC52AutoreplaceLedger(year);
     if (C52_EVENT_EXPOSURE_PROBE) this._logC52EventExposureLedger(year);
     if (C54_VEHICLE_ORDERS_PROBE) this._logC54VehicleOrders(year);
@@ -9307,6 +9390,16 @@ function OpexAI::Start()
   C55_ORIGIN_RELAX_PROBE = AIController.GetSetting("c55_origin_relax_probe") != 0;
   C55_FREIGHT_ORIGIN_RELAX = AIController.GetSetting("c55_freight_origin_relax") != 0;
   C55_ROAD_ORIGIN_RELAX = AIController.GetSetting("c55_road_origin_relax") != 0;
+  C55_ROAD_PAX_ORIGIN_RELAX = AIController.GetSetting("c55_road_pax_origin_relax") != 0;
+  C55_PAX_TRACE_PROBE = AIController.GetSetting("c55_pax_trace_probe") != 0;
+  if (C55_PAX_TRACE_PROBE) {
+    C55_PAX_TRACE_LEDGER = {
+      revalidated = 0, origin_blocked = 0, spared = 0,
+      elected = 0, built = 0, built_profit = 0,
+      total_revalidated = 0, total_origin_blocked = 0, total_spared = 0,
+      total_elected = 0, total_built = 0, total_built_profit = 0,
+    };
+  }
   C60_TOWN_RATING_PROBE = AIController.GetSetting("c60_town_rating_probe") != 0;
   C60_TOWN_RATING_FILTER = AIController.GetSetting("c60_town_rating_filter") != 0;
   if (C60_TOWN_RATING_PROBE) {
