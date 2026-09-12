@@ -1637,12 +1637,27 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
   }
   if (JOIN_PLACE) OpexPlaceJoinFreight(catalog, lines, out, stats, industries, served, abandonedPairs, freightCargo);
   if (profile != null) profile.freightPreparationOps += OpexOpsMeasureEnd(preparationMark);
+  local bounds = OpexCatalogBounds(catalog);
   foreach (cargo, sources in catalog.producers) {
     if (freightCargo != null && cargo != freightCargo) continue;
     local hasIndustrySinks = (cargo in catalog.acceptors);
     local hasTownSinks = COMPLEX_CARGO && (cargo in catalog.townAcceptors);
     if (!hasIndustrySinks && !hasTownSinks) continue;
     local sinks = hasIndustrySinks ? catalog.acceptors[cargo] : [];
+
+    local indGrid = null;
+    local townGrid = null;
+    if (C46_FREIGHT_GRID || C46_FREIGHT_GRID_SHADOW) {
+      if (hasIndustrySinks && sinks.len() > 0) {
+        indGrid = OpexDirectedSpatialGrid();
+        indGrid.Build(sinks, bounds.railMax, industries);
+      }
+      if (hasTownSinks && catalog.townAcceptors[cargo].len() > 0) {
+        townGrid = OpexDirectedSpatialGrid();
+        townGrid.Build(catalog.townAcceptors[cargo], bounds.railMax);
+      }
+    }
+
     foreach (si in sources) {
       local source = industries[si];
       local monthly = AIIndustry.GetLastMonthProduction(source.id, cargo);
@@ -1652,7 +1667,10 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
         monthly = OpexShareBasin(monthly, lines, ss.stationId, cargo);
       }
       local industryMark = profile != null ? OpexOpsMeasureBegin() : null;
-      foreach (di in sinks) {
+      local sinkIndices = (indGrid != null) ? indGrid.GetSortedCandidates(source.tile) : null;
+      local sinkCount = (sinkIndices != null) ? sinkIndices.len() : sinks.len();
+      for (local k = 0; k < sinkCount; k++) {
+        local di = (sinkIndices != null) ? sinks[sinkIndices[k]] : sinks[k];
         if (di == si) continue;
         if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
           local pairKey = "freight|" + cargo + "|" + source.id + "|" + industries[di].id;
@@ -1694,11 +1712,43 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
       }
       if (profile != null) profile.freightIndustryOps += OpexOpsMeasureEnd(industryMark);
 
+      /* C46 shadow validation rail industry */
+      if (C46_FREIGHT_GRID_SHADOW && indGrid != null) {
+        local legCandidates = [];
+        foreach (di in sinks) {
+          if (di != si && AIMap.DistanceManhattan(source.tile, industries[di].tile) <= bounds.railMax) {
+            legCandidates.append(di);
+          }
+        }
+        local gridCandidates = [];
+        if (sinkIndices != null) {
+          foreach (k in sinkIndices) {
+            local di = sinks[k];
+            if (di != si && AIMap.DistanceManhattan(source.tile, industries[di].tile) <= bounds.railMax) {
+              gridCandidates.append(di);
+            }
+          }
+        }
+        if (gridCandidates.len() != legCandidates.len()) {
+          AILog.Error("C46 RAIL FREIGHT SHADOW MISMATCH! cargo=" + cargo + " source=" + source.id + " grid=" + gridCandidates.len() + " leg=" + legCandidates.len());
+          throw "C46 rail freight shadow length mismatch";
+        }
+        for (local m = 0; m < gridCandidates.len(); m++) {
+          if (gridCandidates[m] != legCandidates[m]) {
+            AILog.Error("C46 RAIL FREIGHT SHADOW ORDER MISMATCH at " + m + ": grid=" + gridCandidates[m] + " leg=" + legCandidates[m]);
+            throw "C46 rail freight shadow order mismatch";
+          }
+        }
+      }
+
       /* Livraison des marchandises complexes aux villes acceptatrices (Goods, Food, Mail, etc.) */
       if (hasTownSinks) {
         local townMark = profile != null ? OpexOpsMeasureBegin() : null;
         local townSinks = catalog.townAcceptors[cargo];
-        foreach (town in townSinks) {
+        local townIndices = (townGrid != null) ? townGrid.GetSortedCandidates(source.tile) : null;
+        local townCount = (townIndices != null) ? townIndices.len() : townSinks.len();
+        for (local k = 0; k < townCount; k++) {
+          local town = (townIndices != null) ? townSinks[townIndices[k]] : townSinks[k];
           local townGuardMark = (profile != null && C41_RAIL_FREIGHT_TOWN_GUARDS_PROFILE) ? OpexOpsMeasureBegin() : null;
           if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
             /* G9§1 : utiliser "t" + town.id au lieu de GetIndustryID (qui retourne -1
@@ -1764,6 +1814,34 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
           }
         }
         if (profile != null) profile.freightTownOps += OpexOpsMeasureEnd(townMark);
+
+        /* C46 shadow validation rail town */
+        if (C46_FREIGHT_GRID_SHADOW && townGrid != null) {
+          local legTowns = [];
+          for (local k = 0; k < townSinks.len(); k++) {
+            if (AIMap.DistanceManhattan(source.tile, townSinks[k].tile) <= bounds.railMax) {
+              legTowns.append(townSinks[k].id);
+            }
+          }
+          local gridTowns = [];
+          if (townIndices != null) {
+            foreach (k in townIndices) {
+              if (AIMap.DistanceManhattan(source.tile, townSinks[k].tile) <= bounds.railMax) {
+                gridTowns.append(townSinks[k].id);
+              }
+            }
+          }
+          if (gridTowns.len() != legTowns.len()) {
+            AILog.Error("C46 RAIL TOWN FREIGHT SHADOW MISMATCH! cargo=" + cargo + " source=" + source.id + " grid=" + gridTowns.len() + " leg=" + legTowns.len());
+            throw "C46 rail town freight shadow length mismatch";
+          }
+          for (local m = 0; m < gridTowns.len(); m++) {
+            if (gridTowns[m] != legTowns[m]) {
+              AILog.Error("C46 RAIL TOWN FREIGHT SHADOW ORDER MISMATCH at " + m + ": grid=" + gridTowns[m] + " leg=" + legTowns[m]);
+              throw "C46 rail town freight shadow order mismatch";
+            }
+          }
+        }
       }
     }
   }
@@ -2249,6 +2327,10 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
   local truckCoverage = AIStation.GetCoverageRadius(AIStation.STATION_TRUCK_STOP);
   if (profile != null) profile.freightPreparationOps += OpexOpsMeasureEnd(preparationMark);
 
+  local roadBounds = OpexCatalogBounds(catalog);
+  local roadCap = ("roadGenMax" in roadBounds) ? roadBounds.roadGenMax : roadBounds.roadMax;
+  if (roadCap < 1) roadCap = 1;
+
   foreach (cargo, sources in catalog.producers) {
     if (freightCargo != null && cargo != freightCargo) continue;
     if (!(cargo in catalog.roadEngineByCargo)) { stats.noEngine++; continue; }
@@ -2261,6 +2343,20 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
     local townTargets = C41_ROAD_FREIGHT_ACCEPTANCE_INDEX
         ? OpexRoadFreightAcceptedTowns(towns, servedTown, cargo, truckCoverage, freightBusy) : null;
     if (townTargets != null) stats.townAcceptancePrefiltered += towns.len() - townTargets.len();
+
+    local roadIndGrid = null;
+    local roadTownGrid = null;
+    if (C46_FREIGHT_GRID || C46_FREIGHT_GRID_SHADOW) {
+      if (sinks.len() > 0) {
+        roadIndGrid = OpexDirectedSpatialGrid();
+        roadIndGrid.Build(sinks, roadCap, industries);
+      }
+      local townPool = (townTargets != null) ? townTargets : towns;
+      if (townPool.len() > 0) {
+        roadTownGrid = OpexDirectedSpatialGrid();
+        roadTownGrid.Build(townPool, roadCap, (townTargets != null) ? towns : null);
+      }
+    }
 
     foreach (si in sources) {
       if (freightBusy == null && servedIndustry[si]) {
@@ -2290,7 +2386,10 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
       if (monthly <= 0) { stats.noMonthly++; continue; }
 
       local industryMark = profile != null ? OpexOpsMeasureBegin() : null;
-      foreach (di in sinks) {
+      local sinkIndices = (roadIndGrid != null) ? roadIndGrid.GetSortedCandidates(source.tile) : null;
+      local sinkCount = (sinkIndices != null) ? sinkIndices.len() : sinks.len();
+      for (local k = 0; k < sinkCount; k++) {
+        local di = (sinkIndices != null) ? sinks[sinkIndices[k]] : sinks[k];
         if (di == si) continue;
         if (C55_ORIGIN_RELAX_PROBE) OpexC55OriginRelaxObserve("freight", lines,
             source.tile, industries[di].tile, sourceBusy, servedIndustry[di]);
@@ -2314,6 +2413,35 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
       }
       if (profile != null) profile.freightIndustryOps += OpexOpsMeasureEnd(industryMark);
 
+      /* C46 shadow validation road industry */
+      if (C46_FREIGHT_GRID_SHADOW && roadIndGrid != null) {
+        local legCandidates = [];
+        foreach (di in sinks) {
+          if (di != si && AIMap.DistanceManhattan(source.tile, industries[di].tile) <= roadCap) {
+            legCandidates.append(di);
+          }
+        }
+        local gridCandidates = [];
+        if (sinkIndices != null) {
+          foreach (k in sinkIndices) {
+            local di = sinks[k];
+            if (di != si && AIMap.DistanceManhattan(source.tile, industries[di].tile) <= roadCap) {
+              gridCandidates.append(di);
+            }
+          }
+        }
+        if (gridCandidates.len() != legCandidates.len()) {
+          AILog.Error("C46 ROAD FREIGHT SHADOW MISMATCH! cargo=" + cargo + " source=" + source.id + " grid=" + gridCandidates.len() + " leg=" + legCandidates.len());
+          throw "C46 road freight shadow length mismatch";
+        }
+        for (local m = 0; m < gridCandidates.len(); m++) {
+          if (gridCandidates[m] != legCandidates[m]) {
+            AILog.Error("C46 ROAD FREIGHT SHADOW ORDER MISMATCH at " + m + ": grid=" + gridCandidates[m] + " leg=" + legCandidates[m]);
+            throw "C46 road freight shadow order mismatch";
+          }
+        }
+      }
+
       /* C41.19 pose des marques internes autour des deux appels chers : ne jamais les imbriquer
        * dans la mesure globale town, qui peut traverser un suspend. */
       local townMark = (profile != null && !C41_ROAD_FREIGHT_TOWN_PROFILE)
@@ -2326,9 +2454,12 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
               sourceBusy, servedTown[ti]);
         }
       }
-      local townCount = townTargets != null ? townTargets.len() : towns.len();
-      for (local ti = 0; ti < townCount; ti++) {
-        local t = townTargets != null ? townTargets[ti] : ti;
+      local townPool = (townTargets != null) ? townTargets : towns;
+      local townIndices = (roadTownGrid != null) ? roadTownGrid.GetSortedCandidates(source.tile) : null;
+      local townCount = (townIndices != null) ? townIndices.len() : townPool.len();
+      for (local k = 0; k < townCount; k++) {
+        local ti = (townIndices != null) ? townIndices[k] : k;
+        local t = (townTargets != null) ? townTargets[ti] : ti;
         if (profile != null && C41_ROAD_FREIGHT_TOWN_PROFILE) profile.freightTownScanned++;
         if (C55_ORIGIN_RELAX_PROBE && townTargets == null) OpexC55OriginRelaxObserve("freight",
             lines, source.tile, towns[t].tile, sourceBusy, servedTown[t]);
@@ -2386,6 +2517,37 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
         if (candidate != null) out.append(candidate);
       }
       if (townMark != null) profile.freightTownOps += OpexOpsMeasureEnd(townMark);
+
+      /* C46 shadow validation road town */
+      if (C46_FREIGHT_GRID_SHADOW && roadTownGrid != null) {
+        local legTowns = [];
+        for (local ti = 0; ti < townPool.len(); ti++) {
+          local t = (townTargets != null) ? townTargets[ti] : ti;
+          if (AIMap.DistanceManhattan(source.tile, towns[t].tile) <= roadCap) {
+            legTowns.append(towns[t].id);
+          }
+        }
+        local gridTowns = [];
+        if (townIndices != null) {
+          foreach (k in townIndices) {
+            local ti = k;
+            local t = (townTargets != null) ? townTargets[ti] : ti;
+            if (AIMap.DistanceManhattan(source.tile, towns[t].tile) <= roadCap) {
+              gridTowns.append(towns[t].id);
+            }
+          }
+        }
+        if (gridTowns.len() != legTowns.len()) {
+          AILog.Error("C46 ROAD TOWN FREIGHT SHADOW MISMATCH! cargo=" + cargo + " source=" + source.id + " grid=" + gridTowns.len() + " leg=" + legTowns.len());
+          throw "C46 road town freight shadow length mismatch";
+        }
+        for (local m = 0; m < gridTowns.len(); m++) {
+          if (gridTowns[m] != legTowns[m]) {
+            AILog.Error("C46 ROAD TOWN FREIGHT SHADOW ORDER MISMATCH at " + m + ": grid=" + gridTowns[m] + " leg=" + legTowns[m]);
+            throw "C46 road town freight shadow order mismatch";
+          }
+        }
+      }
     }
   }
 }

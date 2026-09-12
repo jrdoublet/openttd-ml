@@ -278,6 +278,10 @@ C48_INCREMENTAL_LEDGER <- null;
 C48_INDEXED_REGENERATION <- false;
 /* C48 : Mode miroir d'assertion d'equivalence stricte entre balayage lineaire et index. */
 C48_INDEX_SHADOW <- false;
+/* C46 : Grille spatiale dirigee pour le fret rail et route. */
+C46_FREIGHT_GRID <- true;
+/* C46 : Mode miroir d'assertion d'equivalence stricte fret. */
+C46_FREIGHT_GRID_SHADOW <- false;
 /* air_fleet_probe : _resizeAirFleets n'emet que ses SUCCES (FG|). Quand une ligne aerienne
  * n'grandit pas, la cause est invisible. FR| donne le premier refus rencontre, une fois par ligne
  * et par an. */
@@ -9572,6 +9576,8 @@ function OpexAI::Start()
   C48_INCREMENTAL_PROFILE = AIController.GetSetting("c48_incremental_profile") != 0;
   C48_INDEXED_REGENERATION = AIController.GetSetting("c48_indexed_regeneration") != 0;
   C48_INDEX_SHADOW = AIController.GetSetting("c48_index_shadow") != 0;
+  C46_FREIGHT_GRID = AIController.GetSetting("c46_freight_grid") != 0;
+  C46_FREIGHT_GRID_SHADOW = AIController.GetSetting("c46_freight_grid_shadow") != 0;
   CASH_RESERVE_PROBE = AIController.GetSetting("cash_reserve_probe") != 0;
   PORTFOLIO_REFRESH_PROBE = AIController.GetSetting("portfolio_refresh_probe") != 0;
   if (C41_RAIL_LOST_TOPOLOGY_PROBE) C41_RAIL_LOST_PROBE = true;
