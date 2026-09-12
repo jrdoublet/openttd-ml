@@ -1824,13 +1824,14 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
    5. **[P2] Sortie d'erreur du banc officiel résolue** : `bench_c48_indexed_regeneration_10y_20seeds.py`
       lève désormais un `SystemExit` non nul si des runs échouent (`if failed:`), aligné sur `bench_v2.py`.
 
-   📊 **Banc officiel 20 graines × 10 ans apparié (`c48_indexed_regeneration=1` vs `0`, mesuré sur `2b1f351`)** :
+   📊 **Banc officiel 20 graines × 10 ans apparié (`c48_indexed_regeneration=1` vs `0`, mesuré sur `929483b` final)** :
    `results/bench_c48_indexed_regeneration_10y_20seeds.json` (40 runs, 0 échec).
-   - Valeur d'entreprise : baseline 17,69 M£ → indexé 17,97 M£ (+282 929 £, +1,60 %, SE 299 955 £, $t=0,94$, test des signes 12/20, $p=0,503$).
-   - Profit annuel : baseline 2,893 M£ → indexé 2,904 M£ (+11 739 £, test des signes 11/20, $p=0,824$).
-   - Note de performance : 869,85 vs 870,25.
-   - Flotte : 212,1 véhicules vs 209,3. Gares : 98,1 vs 100,7 (−2,55).
-   - **Verdict** : L'implémentation initiale contenait des défauts identifiés ensuite (feeders courrier, indexation aérienne partielle) et le gain macroscopique mesuré n'était pas statistiquement significatif. **C48 reste désactivé par défaut (`c48_indexed_regeneration=0`).**
+   - Valeur d'entreprise : baseline 17,72 M£ → indexé 17,81 M£ (+93 228 £, +0,52 %, SE 303 814 £, $t=0,31$, test des signes 10/20, $p=1,00$).
+   - Profit annuel : baseline 2,894 M£ → indexé 2,981 M£ (+86 509 £, +2,90 %, SE 71 362 £, test des signes 11/20, $p=0,824$).
+   - Note de performance : 869,85 vs 869,55 (−0,30, test des signes 8/20).
+   - Flotte : 210,2 véhicules vs 206,9 (−3,3). Gares : 98,5 vs 98,2 (−0,3).
+   - **Verdict** : L'implémentation est propre, rigoureusement équivalente (mode shadow vérifié, 0 divergence, 0 échec) et macroscopiquement équivalente à la baseline (delta < 1 % sur la CV, égalité exacte 10/20 au test des signes). **Sujet C48 clos et validé ; réglage maintenu à défaut 0 (`c48_indexed_regeneration=0`)** conformément aux règles de non-régression sans gain mesuré.
+   *(Historique : le banc initial sur commit `2b1f351` donnait +282 k£, 12/20, archivé sous `results/bench_c48_indexed_regeneration_10y_20seeds_2b1f351.json`)*.
 
   ⚠️ **Deux réglages exposés sont du CODE MORT sous `portfolio_v2=1`** (vérifié 2026-09-10) :
   `pool_financeable` (adopté par décision utilisateur le 2026-09-03) et `knapsack_roi` (défaut 1)
