@@ -2031,60 +2031,48 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
     `_catalog` (télémétrie ou reconstruits au premier cycle). `_activeSubsidies` reste **à trancher**
     (relisible par API, mais les compteurs historiques ne le sont pas).
 
-- 🔴 **C46 — OpexAI ne construit rien sur une carte 1024².** Diagnostic du 2026-09-09 (graine 42,
+- ✅ **C46 — OpexAI ne construit rien sur une carte 1024².** Diagnostic du 2026-09-09 (graine 42,
   1 an, `-d script=4`, AAAHogEx tournant normalement sur la même carte).
   **Cause** : `catalog.refresh()` révèle **731 villes / 871 industries** (`number_towns` est une
   densité : ~15× plus qu'à 256²), puis `OpexPaxCandidates` ne revient jamais — double balayage de
   paires O(n²) non borné, ~266 815 paires contre ~1 225 à 256².
-  **Partiellement corrigé** : `1c12fd5` a introduit l'indexation spatiale (grille de maille
-  `bounds.railMax`) et `catalog.bounds` à la place des bandes en dur → terme quadratique éliminé
-  pour le pax.
-  **Reste** : (a) **vérifier `OpexFreightCandidates` et `OpexBuildRoadCandidates`** — sur 871
-  industries une forme O(n²) donnerait ~379 000 paires, pire que le pax ; (b) **re-tester une 1024²
-  de bout en bout** : le travail utile reste linéaire mais lourd (~20 000 paires à portée × économie
-  complète), un pré-score bon marché avant `OpexLineEconomics` (comme le fait l'eau) pourrait être
-  nécessaire — heuristique, donc banc obligatoire.
+  **Corrigé** :
+  1. `1c12fd5` a introduit l'indexation spatiale pour le pax (`OpexSpatialGrid`).
+  2. Le 2026-09-12 (`fd256cf`, `1e357b7`), implémentation de `OpexDirectedSpatialGrid` (`spatial.nut`)
+     pour le fret rail et route (`candidates.nut`). Le goulot quadratique ($O(\text{sources} \times \text{sinks})$,
+     jusqu'à 1,4 million de paires visitées avant filtre) est éliminé et ramené à $O(\text{sinks})$.
+  
+  ### ✅ FAIT le 2026-09-12 — Grille spatiale orientée fret adoptée par défaut (`c46_freight_grid=1`)
 
-  ### ✅ (a) FAIT le 2026-09-10 — **oui, le fret est resté quadratique**, et le plafond est pire qu'annoncé
-
-  Vérifié par lecture de code (audit Codex + recoupement manuel des trois boucles). **Aucune
-  campagne** : la forme se lit dans le source.
-
-  | générateur | forme réelle | grille spatiale ? |
-  |---|---|---|
-  | `OpexPaxCandidates` | indexée | **oui** (`candidates.nut:1206`) |
-  | route **pax** | indexée | **oui** (`candidates.nut:1820`) |
-  | `OpexFreightCandidates` (rail) | `foreach (si in sources) { foreach (di in sinks) … }` par cargo, **produit cartésien** (`candidates.nut:1300-1315`) | **non** |
-  | `OpexBuildRoadCandidates` → `OpexRoadFreightCandidates` | même produit cartésien (`candidates.nut:1911-1921`) | **non** |
-
-  🔑 **Le chiffre de la fiche (~379 000) était optimiste** : le code ne casse pas la symétrie et les
-  flux sont orientés, donc le pire cas industrie→industrie est **871 × 870 = 757 770** paires
-  visitées, auxquelles s'ajoutent les livraisons industrie→ville, **871 × 731 = 636 701** — soit un
-  **plafond de 1 394 471 paires visitées avant tout filtre**, pour le rail comme pour la route.
-  🔑 **Le filtre de distance ne sauve rien** : `OpexRoadDistanceAllowed` est testé **à l'intérieur**
-  de la boucle interne (`candidates.nut:1920`), donc il réduit les paires *retenues*, jamais les
-  paires *visitées*. C'est exactement le défaut que `1c12fd5` a corrigé pour le pax.
-  ⇒ **(a) est close : la cause du blocage en 1024² est encore présente dans les deux canaux fret.**
-
-  ### Correctif proposé, et sa classification — à faire, pas encore fait
-
-  Réutiliser `OpexSpatialGrid` (`spatial.nut:44`, elle n'a besoin que du champ `.tile` malgré son
-  nom centré villes) sur les puits d'un cargo : maille `bounds.railMax` pour le fret rail,
-  `roadGenMax` pour le fret routier, et ne demander que les 9 cellules voisines de chaque source.
-  ⚠️ **Condition impérative pour que ce soit neutre** : remettre les indices retenus **dans l'ordre
-  original de `sinks`** avant `OpexMakeCandidate`, sinon l'ordre d'insertion dans le vivier change
-  et la trajectoire du banc bouge.
-  📐 **Classification, à respecter avant d'adopter** (le dépôt confond souvent les deux) :
-  - **correctif de complexité NEUTRE** — même ensemble et même ordre de candidats, seulement moins
-    de paires visitées : contrôle de non-régression + diagnostic 5×6 suffisent ;
-  - **heuristique** — tout ce qui change l'ensemble ou l'ordre : top-M par source, score
-    revenu/distance, pré-score de profit non prouvé conservateur : **banc officiel 20×10 apparié
-    obligatoire**.
-  Le pré-score bon marché évoqué en (b) tombe dans la seconde catégorie **sauf** s'il est démontré
-  qu'il ne peut écarter aucun candidat à profit positif.
-  ⛔ **Ne pas confondre avec « l'eau fait déjà un pré-score »** : ce que fait `builder_water.nut` est
-  un **pré-filtre de faisabilité** (distance minimale, portée du navire, connectivité), pas un score
-  de profit bon marché.
+  - **Architecture spatiale (`ai/OpexAI/spatial.nut`)** :
+    - `OpexDirectedSpatialGrid` stocke les puits de fret (`sinks`, `townSinks`, `townTargets`) indexés
+      par hachage de coordonnées entières 32 bits `(nx << 16) | (ny & 0xFFFF)` sans allocation de chaînes.
+    - Recherche bornée au voisinage de Moore $3 \times 3$ centré sur la source, avec taille de cellule
+      $S \ge \text{maxDist}$ (maille `bounds.railMax` pour le rail, `roadGenMax` pour la route).
+    - **Preuve d'absence de faux négatifs** : pour toute cible vérifiant la distance de Manhattan
+      $|dx| + |dy| \le S$, chaque coordonnée 1D vérifie $|dx| \le S$ et $|dy| \le S$. La cible est donc
+      strictement située dans une des 9 cellules adjacentes ou centrale de la source.
+    - **Neutralité de vivier et d'itération** : chaque puits inséré enregistre son indice séquentiel
+      d'origine $k$, et `GetSortedCandidates` applique `out.sort()`, garantissant un ordre d'itération
+      strictement identique à la boucle historique.
+  - **Revue de code critique (Gemini 3.1 Pro)** :
+    - Preuve mathématique et neutralité validées.
+    - Suggestion adoptée : remplacement des clés chaînes `"x:y"` par des entiers signés 32 bits.
+    - Mode shadow (`c46_freight_grid_shadow=1`) validé sur $256^2$ (graines 42, 100) et $1024^2$ (graine 42)
+      avec 0 divergence et 0 assertion levée.
+  - **Fiabilisation sur grande carte (`ai/OpexAI/catalog.nut`)** :
+    - Découverte et correction d'un bug présent depuis l'origine (`826a6fa`) : lors des fermetures d'usines
+      sur carte $1024^2$ (871 industries), `AIIndustry.GetIndustryType` renvoyait `INDUSTRYTYPE_INVALID` (255)
+      dans `_refreshIndustries()`, conduisant à `null.Begin()` dans `_cargoArray()`.
+    - Sécurisé par `IsValidIndustry`, `IsValidIndustryType` et garde `null` (`1e357b7`).
+  - **Banc officiel 20 graines × 10 ans apparié sur carte 1024²** (`results/bench_c46_freight_grid_10y_20seeds_map1024.json`, 40/40 runs sains, 0 échec NoAI) :
+    - **Valeur d'entreprise** : 2 930 093 £ (OFF) vs **3 062 473 £ (ON)** (+132 380 £, **+4,52 %**, victoires 12/20)
+    - **Profit annuel** : 381 142 £ (OFF) vs **418 042 £ (ON)** (+36 900 £, **+9,68 %**, victoires 12/20)
+    - **Score de performance** : 334,8 (OFF) vs **341,5 (ON)** (+6,8)
+    - **Note de gare médiane** : 109,6 (OFF) vs **121,8 (ON)** (+12,2)
+    - **Flotte & Réseau** : 150,7 vs 152,2 véhicules, 51,6 vs 52,5 gares
+    - **Verdict** : gain physique net sur tous les indicateurs clés sur grande carte sans régression à $256^2$.
+      `c46_freight_grid` activé par défaut (`1`). Chantier **clos et validé**.
 
 ---
 
