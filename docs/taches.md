@@ -1826,11 +1826,11 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
 
    📊 **Banc officiel 20 graines × 10 ans apparié (`c48_indexed_regeneration=1` vs `0`, mesuré sur `929483b` final)** :
    `results/bench_c48_indexed_regeneration_10y_20seeds.json` (40 runs, 0 échec).
-   - Valeur d'entreprise : baseline 17,72 M£ → indexé 17,81 M£ (+93 228 £, +0,52 %, SE 303 814 £, $t=0,31$, test des signes 10/20, $p=1,00$).
+   - Valeur d'entreprise : baseline 17,72 M£ → indexé 17,81 M£ (+93 228 £, +0,52 %, SE 303 814 £, $t=0,31$, test des signes 10/20, $p=1,000$).
    - Profit annuel : baseline 2,894 M£ → indexé 2,981 M£ (+86 509 £, +2,90 %, SE 71 362 £, test des signes 11/20, $p=0,824$).
    - Note de performance : 869,85 vs 869,55 (−0,30, test des signes 8/20).
    - Flotte : 210,2 véhicules vs 206,9 (−3,3). Gares : 98,5 vs 98,2 (−0,3).
-   - **Verdict** : L'implémentation est propre, rigoureusement équivalente (mode shadow vérifié, 0 divergence, 0 échec) et macroscopiquement équivalente à la baseline (delta < 1 % sur la CV, égalité exacte 10/20 au test des signes). **Sujet C48 clos et validé ; réglage maintenu à défaut 0 (`c48_indexed_regeneration=0`)** conformément aux règles de non-régression sans gain mesuré.
+   - **Verdict** : L'implémentation finale est mathématiquement propre, rigoureusement équivalente (mode shadow vérifié sur 1, 2 et 3 ans, 0 divergence) et macroscopiquement équivalente à la baseline (delta < 1 % sur la valeur d'entreprise, égalité parfaite 10/20 au test des signes). **Sujet C48 clos et validé ; réglage maintenu à défaut 0 (`c48_indexed_regeneration=0`)** conformément aux critères d'adoption du projet (équivalent à la baseline, complexité théorique ramenée de $O(L)$ à $O(1)$).
    *(Historique : le banc initial sur commit `2b1f351` donnait +282 k£, 12/20, archivé sous `results/bench_c48_indexed_regeneration_10y_20seeds_2b1f351.json`)*.
 
   ⚠️ **Deux réglages exposés sont du CODE MORT sous `portfolio_v2=1`** (vérifié 2026-09-10) :
