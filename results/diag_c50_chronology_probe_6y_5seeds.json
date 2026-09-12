@@ -13,10 +13,10 @@
   "100": {
    "1970": {
     "treasury": {
-     "available_mean": 81708.8,
-     "available_min": 4701,
+     "available_mean": 76333.2,
+     "available_min": 4666,
      "available_max": 295000,
-     "cash_mean": 89072.9,
+     "cash_mean": 84094.2,
      "end_cash": 300000,
      "end_loan": 300000,
      "end_available": 295000,
@@ -25,19 +25,13 @@
     },
     "projects_built": {
      "total_count": 8,
-     "total_cost": 499674,
+     "total_cost": 542695,
      "by_mode": {
       "air": {
-       "count": 5,
-       "cost": 406615,
-       "profit": 221432,
-       "mean_roi": 520.8
-      },
-      "rail": {
-       "count": 2,
-       "cost": 80025,
-       "profit": 4080,
-       "mean_roi": 50
+       "count": 7,
+       "cost": 529661,
+       "profit": 241771,
+       "mean_roi": 429.9
       },
       "road": {
        "count": 1,
@@ -58,177 +52,214 @@
      }
     },
     "fleet_built": {
-     "refill_events": 3,
-     "vehicles_added": 3
+     "total_events": 3,
+     "total_vehicles_added": 3,
+     "by_mode": {
+      "road": {
+       "events": 3,
+       "added": 3
+      }
+     }
     },
     "lines_summary": {
      "lines": 0,
+     "profit_year": 1969,
      "prof_sum": 0,
      "rev_sum": 0,
      "prof_lines": 0,
      "loss_lines": 0,
      "by_mode": {}
+    },
+    "non_expansion": {
+     "air": {
+      "lines": 0,
+      "planes_total": 0,
+      "cap_physical": 0,
+      "cap_demand": 0,
+      "lines_at_cap": 0,
+      "want_sum": 0,
+      "ref_Y": 0,
+      "ref_C": 0,
+      "ref_Q": 0,
+      "ref_L": 0,
+      "ref_M": 0,
+      "ref_W": 0,
+      "ref_D": 0,
+      "ref_V": 0,
+      "ref_S": 0,
+      "ref_X": 0,
+      "ref_R": 0
+     },
+     "rail": {
+      "lines": 0,
+      "trains_total": 0,
+      "lines_1train": 0,
+      "lines_2trains": 0,
+      "single_track": 0,
+      "double_track": 0,
+      "profitable": 0,
+      "backlog_met": 0,
+      "cash_refused": 0,
+      "prep_failed": 0,
+      "upgrade_failed": 0,
+      "second_built": 0,
+      "double_built": 0
+     },
+     "road": {
+      "lines": 0,
+      "vehs_total": 0,
+      "physical_cap_hit": 0,
+      "congestion_hit": 0,
+      "no_demand": 0,
+      "loss_hit": 0,
+      "cash_refused": 0,
+      "other_refused": 0,
+      "refill_built": 0
+     }
     }
    },
    "1971": {
     "treasury": {
-     "available_mean": 53709,
-     "available_min": 33212,
-     "available_max": 96149,
-     "cash_mean": 72149,
-     "end_cash": 83424,
+     "available_mean": 83495.1,
+     "available_min": 28265,
+     "available_max": 134662,
+     "cash_mean": 104482.7,
+     "end_cash": 88938,
      "end_loan": 300000,
-     "end_available": 72005,
+     "end_available": 75227,
      "end_company_value": 0,
      "months_recorded": 12
     },
     "projects_built": {
-     "total_count": 9,
-     "total_cost": 568856,
+     "total_count": 12,
+     "total_cost": 863487,
      "by_mode": {
       "air": {
-       "count": 8,
-       "cost": 525184,
-       "profit": 159159,
-       "mean_roi": 294.2
+       "count": 11,
+       "cost": 808753,
+       "profit": 235364,
+       "mean_roi": 272.5
       },
       "rail": {
        "count": 1,
-       "cost": 43672,
-       "profit": 20523,
-       "mean_roi": 469
+       "cost": 54734,
+       "profit": 23870,
+       "mean_roi": 436
       }
      }
     },
     "projects_refused_cash": {
-     "total_count": 1,
-     "by_mode": {
-      "rail": {
-       "count": 1,
-       "mean_roi": 484,
-       "mean_need": 62518
-      }
-     }
+     "total_count": 0,
+     "by_mode": {}
     },
     "fleet_built": {
-     "refill_events": 1,
-     "vehicles_added": 1
+     "total_events": 0,
+     "total_vehicles_added": 0,
+     "by_mode": {}
     },
     "lines_summary": {
      "lines": 12,
-     "prof_sum": 364687,
-     "rev_sum": 410366,
-     "prof_lines": 8,
-     "loss_lines": 4,
+     "profit_year": 1970,
+     "prof_sum": 420885,
+     "rev_sum": 475732,
+     "prof_lines": 10,
+     "loss_lines": 2,
      "by_mode": {
       "air": {
-       "lines": 5,
-       "vehs": 5,
-       "profit": 357151,
-       "rev": 392726
+       "lines": 7,
+       "vehs": 7,
+       "profit": 415640,
+       "rev": 465445
       },
       "road": {
        "lines": 5,
        "vehs": 9,
-       "profit": 2492,
-       "rev": 7534
-      },
-      "rail": {
-       "lines": 2,
-       "vehs": 2,
-       "profit": 5044,
-       "rev": 10106
+       "profit": 5245,
+       "rev": 10287
       }
+     }
+    },
+    "non_expansion": {
+     "air": {
+      "lines": 7,
+      "planes_total": 7,
+      "cap_physical": 45,
+      "cap_demand": 45,
+      "lines_at_cap": 0,
+      "want_sum": 1,
+      "ref_Y": 7,
+      "ref_C": 0,
+      "ref_Q": 0,
+      "ref_L": 0,
+      "ref_M": 0,
+      "ref_W": 49,
+      "ref_D": 0,
+      "ref_V": 0,
+      "ref_S": 0,
+      "ref_X": 0,
+      "ref_R": 0
+     },
+     "rail": {
+      "lines": 0,
+      "trains_total": 0,
+      "lines_1train": 0,
+      "lines_2trains": 0,
+      "single_track": 0,
+      "double_track": 0,
+      "profitable": 0,
+      "backlog_met": 0,
+      "cash_refused": 0,
+      "prep_failed": 0,
+      "upgrade_failed": 0,
+      "second_built": 0,
+      "double_built": 0
+     },
+     "road": {
+      "lines": 5,
+      "vehs_total": 6,
+      "physical_cap_hit": 29,
+      "congestion_hit": 1,
+      "no_demand": 11,
+      "loss_hit": 0,
+      "cash_refused": 0,
+      "other_refused": 0,
+      "refill_built": 3
      }
     }
    },
    "1972": {
     "treasury": {
-     "available_mean": 92298.4,
-     "available_min": 70251,
-     "available_max": 116959,
-     "cash_mean": 117298.4,
-     "end_cash": 145110,
+     "available_mean": 303391.2,
+     "available_min": 73682,
+     "available_max": 467139,
+     "cash_mean": 328391.2,
+     "end_cash": 194060,
      "end_loan": 300000,
-     "end_available": 120110,
-     "end_company_value": 0,
-     "months_recorded": 12
-    },
-    "projects_built": {
-     "total_count": 11,
-     "total_cost": 792253,
-     "by_mode": {
-      "air": {
-       "count": 11,
-       "cost": 792253,
-       "profit": 164826,
-       "mean_roi": 194.3
-      }
-     }
-    },
-    "projects_refused_cash": {
-     "total_count": 37,
-     "by_mode": {
-      "air": {
-       "count": 37,
-       "mean_roi": 145.1,
-       "mean_need": 115023
-      }
-     }
-    },
-    "fleet_built": {
-     "refill_events": 0,
-     "vehicles_added": 0
-    },
-    "lines_summary": {
-     "lines": 23,
-     "prof_sum": 677408,
-     "rev_sum": 779754,
-     "prof_lines": 18,
-     "loss_lines": 5,
-     "by_mode": {
-      "air": {
-       "lines": 13,
-       "vehs": 12,
-       "profit": 653548,
-       "rev": 738928
-      },
-      "road": {
-       "lines": 7,
-       "vehs": 12,
-       "profit": 9132,
-       "rev": 15974
-      },
-      "rail": {
-       "lines": 3,
-       "vehs": 4,
-       "profit": 14728,
-       "rev": 24852
-      }
-     }
-    }
-   },
-   "1973": {
-    "treasury": {
-     "available_mean": 284678,
-     "available_min": 115614,
-     "available_max": 409949,
-     "cash_mean": 309678,
-     "end_cash": 140592,
-     "end_loan": 300000,
-     "end_available": 115592,
+     "end_available": 169060,
      "end_company_value": 0,
      "months_recorded": 12
     },
     "projects_built": {
      "total_count": 10,
-     "total_cost": 697730,
+     "total_cost": 617906,
      "by_mode": {
       "air": {
-       "count": 10,
-       "cost": 697730,
-       "profit": 91750,
-       "mean_roi": 125.4
+       "count": 8,
+       "cost": 558184,
+       "profit": 94111,
+       "mean_roi": 163.9
+      },
+      "rail": {
+       "count": 1,
+       "cost": 49135,
+       "profit": 20532,
+       "mean_roi": 417
+      },
+      "road": {
+       "count": 1,
+       "cost": 10587,
+       "profit": 2269,
+       "mean_roi": 214
       }
      }
     },
@@ -237,64 +268,221 @@
      "by_mode": {}
     },
     "fleet_built": {
-     "refill_events": 2,
-     "vehicles_added": 2
+     "total_events": 0,
+     "total_vehicles_added": 0,
+     "by_mode": {}
     },
     "lines_summary": {
-     "lines": 35,
-     "prof_sum": 954788,
-     "rev_sum": 1142693,
-     "prof_lines": 28,
-     "loss_lines": 7,
+     "lines": 24,
+     "profit_year": 1971,
+     "prof_sum": 979293,
+     "rev_sum": 1114936,
+     "prof_lines": 21,
+     "loss_lines": 3,
      "by_mode": {
       "air": {
-       "lines": 24,
-       "vehs": 24,
-       "profit": 938952,
-       "rev": 1109712
+       "lines": 18,
+       "vehs": 18,
+       "profit": 956372,
+       "rev": 1084442
       },
       "road": {
-       "lines": 8,
-       "vehs": 12,
-       "profit": 6768,
-       "rev": 13789
+       "lines": 5,
+       "vehs": 9,
+       "profit": 8218,
+       "rev": 13260
       },
       "rail": {
-       "lines": 3,
-       "vehs": 4,
-       "profit": 9068,
-       "rev": 19192
+       "lines": 1,
+       "vehs": 1,
+       "profit": 14703,
+       "rev": 17234
       }
+     }
+    },
+    "non_expansion": {
+     "air": {
+      "lines": 18,
+      "planes_total": 18,
+      "cap_physical": 116,
+      "cap_demand": 116,
+      "lines_at_cap": 0,
+      "want_sum": 0,
+      "ref_Y": 11,
+      "ref_C": 0,
+      "ref_Q": 0,
+      "ref_L": 13,
+      "ref_M": 0,
+      "ref_W": 150,
+      "ref_D": 0,
+      "ref_V": 0,
+      "ref_S": 0,
+      "ref_X": 0,
+      "ref_R": 0
+     },
+     "rail": {
+      "lines": 1,
+      "trains_total": 1,
+      "lines_1train": 1,
+      "lines_2trains": 0,
+      "single_track": 1,
+      "double_track": 0,
+      "profitable": 0,
+      "backlog_met": 0,
+      "cash_refused": 0,
+      "prep_failed": 0,
+      "upgrade_failed": 0,
+      "second_built": 0,
+      "double_built": 0
+     },
+     "road": {
+      "lines": 5,
+      "vehs_total": 9,
+      "physical_cap_hit": 39,
+      "congestion_hit": 4,
+      "no_demand": 9,
+      "loss_hit": 13,
+      "cash_refused": 0,
+      "other_refused": 0,
+      "refill_built": 0
+     }
+    }
+   },
+   "1973": {
+    "treasury": {
+     "available_mean": 878002.8,
+     "available_min": 581141,
+     "available_max": 1149229,
+     "cash_mean": 903002.8,
+     "end_cash": 704045,
+     "end_loan": 0,
+     "end_available": 679045,
+     "end_company_value": 0,
+     "months_recorded": 12
+    },
+    "projects_built": {
+     "total_count": 11,
+     "total_cost": 676753,
+     "by_mode": {
+      "air": {
+       "count": 11,
+       "cost": 676753,
+       "profit": 31477,
+       "mean_roi": 46
+      }
+     }
+    },
+    "projects_refused_cash": {
+     "total_count": 0,
+     "by_mode": {}
+    },
+    "fleet_built": {
+     "total_events": 1,
+     "total_vehicles_added": 1,
+     "by_mode": {
+      "road": {
+       "events": 1,
+       "added": 1
+      }
+     }
+    },
+    "lines_summary": {
+     "lines": 38,
+     "profit_year": 1972,
+     "prof_sum": 1463892,
+     "rev_sum": 1668743,
+     "prof_lines": 35,
+     "loss_lines": 3,
+     "by_mode": {
+      "air": {
+       "lines": 27,
+       "vehs": 27,
+       "profit": 1414307,
+       "rev": 1606412
+      },
+      "road": {
+       "lines": 9,
+       "vehs": 14,
+       "profit": 8116,
+       "rev": 15800
+      },
+      "rail": {
+       "lines": 2,
+       "vehs": 2,
+       "profit": 41469,
+       "rev": 46531
+      }
+     }
+    },
+    "non_expansion": {
+     "air": {
+      "lines": 27,
+      "planes_total": 27,
+      "cap_physical": 136,
+      "cap_demand": 136,
+      "lines_at_cap": 0,
+      "want_sum": 0,
+      "ref_Y": 9,
+      "ref_C": 0,
+      "ref_Q": 0,
+      "ref_L": 24,
+      "ref_M": 0,
+      "ref_W": 252,
+      "ref_D": 0,
+      "ref_V": 0,
+      "ref_S": 0,
+      "ref_X": 0,
+      "ref_R": 0
+     },
+     "rail": {
+      "lines": 2,
+      "trains_total": 2,
+      "lines_1train": 2,
+      "lines_2trains": 0,
+      "single_track": 2,
+      "double_track": 0,
+      "profitable": 1,
+      "backlog_met": 1,
+      "cash_refused": 0,
+      "prep_failed": 4,
+      "upgrade_failed": 0,
+      "second_built": 0,
+      "double_built": 0
+     },
+     "road": {
+      "lines": 9,
+      "vehs_total": 9,
+      "physical_cap_hit": 40,
+      "congestion_hit": 0,
+      "no_demand": 26,
+      "loss_hit": 12,
+      "cash_refused": 0,
+      "other_refused": 0,
+      "refill_built": 0
      }
     }
    },
    "1974": {
     "treasury": {
-     "available_mean": 814372.8,
-     "available_min": 450075,
-     "available_max": 1161188,
-     "cash_mean": 839372.8,
-     "end_cash": 581663,
+     "available_mean": 1772528.8,
+     "available_min": 1233328,
+     "available_max": 2205552,
+     "cash_mean": 1797528.8,
+     "end_cash": 1354596,
      "end_loan": 0,
-     "end_available": 556663,
+     "end_available": 1329596,
      "end_company_value": 0,
      "months_recorded": 12
     },
     "projects_built": {
-     "total_count": 9,
-     "total_cost": 557681,
+     "total_count": 5,
+     "total_cost": 307615,
      "by_mode": {
       "air": {
-       "count": 8,
-       "cost": 492184,
-       "profit": 14441,
-       "mean_roi": 28.9
-      },
-      "rail": {
-       "count": 1,
-       "cost": 65497,
-       "profit": 24088,
-       "mean_roi": 367
+       "count": 5,
+       "cost": 307615,
+       "profit": 936,
+       "mean_roi": 2.4
       }
      }
     },
@@ -303,58 +491,112 @@
      "by_mode": {}
     },
     "fleet_built": {
-     "refill_events": 3,
-     "vehicles_added": 3
+     "total_events": 2,
+     "total_vehicles_added": 2,
+     "by_mode": {
+      "road": {
+       "events": 2,
+       "added": 2
+      }
+     }
     },
     "lines_summary": {
      "lines": 50,
-     "prof_sum": 1440511,
-     "rev_sum": 1710102,
-     "prof_lines": 43,
-     "loss_lines": 7,
+     "profit_year": 1973,
+     "prof_sum": 1321886,
+     "rev_sum": 1599687,
+     "prof_lines": 45,
+     "loss_lines": 5,
      "by_mode": {
       "air": {
-       "lines": 35,
-       "vehs": 35,
-       "profit": 1423354,
-       "rev": 1672379
+       "lines": 37,
+       "vehs": 37,
+       "profit": 1255088,
+       "rev": 1518343
       },
       "road": {
-       "lines": 12,
-       "vehs": 18,
-       "profit": 9926,
-       "rev": 20368
+       "lines": 11,
+       "vehs": 17,
+       "profit": 9326,
+       "rev": 18810
       },
       "rail": {
-       "lines": 3,
-       "vehs": 4,
-       "profit": 7231,
-       "rev": 17355
+       "lines": 2,
+       "vehs": 2,
+       "profit": 57472,
+       "rev": 62534
       }
+     }
+    },
+    "non_expansion": {
+     "air": {
+      "lines": 37,
+      "planes_total": 37,
+      "cap_physical": 151,
+      "cap_demand": 151,
+      "lines_at_cap": 0,
+      "want_sum": 0,
+      "ref_Y": 10,
+      "ref_C": 0,
+      "ref_Q": 0,
+      "ref_L": 0,
+      "ref_M": 0,
+      "ref_W": 385,
+      "ref_D": 0,
+      "ref_V": 0,
+      "ref_S": 0,
+      "ref_X": 0,
+      "ref_R": 0
+     },
+     "rail": {
+      "lines": 2,
+      "trains_total": 2,
+      "lines_1train": 2,
+      "lines_2trains": 0,
+      "single_track": 2,
+      "double_track": 0,
+      "profitable": 2,
+      "backlog_met": 2,
+      "cash_refused": 0,
+      "prep_failed": 0,
+      "upgrade_failed": 0,
+      "second_built": 0,
+      "double_built": 0
+     },
+     "road": {
+      "lines": 11,
+      "vehs_total": 15,
+      "physical_cap_hit": 41,
+      "congestion_hit": 6,
+      "no_demand": 41,
+      "loss_hit": 9,
+      "cash_refused": 0,
+      "other_refused": 0,
+      "refill_built": 1
      }
     }
    },
    "1975": {
     "treasury": {
-     "available_mean": 1655679.9,
-     "available_min": 1234833,
-     "available_max": 2043938,
-     "cash_mean": 1680679.9,
-     "end_cash": 1358062,
+     "available_mean": 2867731.5,
+     "available_min": 2318807,
+     "available_max": 3470388,
+     "cash_mean": 2892731.5,
+     "end_cash": 2434098,
      "end_loan": 0,
-     "end_available": 1333062,
+     "end_available": 2409098,
      "end_company_value": 0,
      "months_recorded": 12
     },
     "projects_built": {
-     "total_count": 6,
-     "total_cost": 369138,
+     "total_count": 4,
+     "total_cost": 262592,
      "by_mode": {
       "air": {
-       "count": 6,
-       "cost": 369138,
-       "profit": 4371,
-       "mean_roi": 11.3
+       "count": 4,
+       "cost": 262592,
+       "profit": 8256,
+       "mean_roi": 27.2
       }
      }
     },
@@ -363,34 +605,92 @@
      "by_mode": {}
     },
     "fleet_built": {
-     "refill_events": 3,
-     "vehicles_added": 3
+     "total_events": 4,
+     "total_vehicles_added": 4,
+     "by_mode": {
+      "road": {
+       "events": 3,
+       "added": 3
+      },
+      "rail": {
+       "events": 1,
+       "added": 1
+      }
+     }
     },
     "lines_summary": {
-     "lines": 61,
-     "prof_sum": 1421827,
-     "rev_sum": 1746933,
-     "prof_lines": 53,
-     "loss_lines": 8,
+     "lines": 55,
+     "profit_year": 1974,
+     "prof_sum": 1458125,
+     "rev_sum": 1772701,
+     "prof_lines": 51,
+     "loss_lines": 4,
      "by_mode": {
       "air": {
        "lines": 42,
        "vehs": 42,
-       "profit": 1403920,
-       "rev": 1702750
+       "profit": 1390152,
+       "rev": 1688982
       },
       "road": {
-       "lines": 15,
-       "vehs": 23,
-       "profit": 8479,
-       "rev": 22100
+       "lines": 11,
+       "vehs": 19,
+       "profit": 7541,
+       "rev": 18225
       },
       "rail": {
-       "lines": 4,
-       "vehs": 5,
-       "profit": 9428,
-       "rev": 22083
+       "lines": 2,
+       "vehs": 2,
+       "profit": 60432,
+       "rev": 65494
       }
+     }
+    },
+    "non_expansion": {
+     "air": {
+      "lines": 42,
+      "planes_total": 42,
+      "cap_physical": 151,
+      "cap_demand": 151,
+      "lines_at_cap": 0,
+      "want_sum": 0,
+      "ref_Y": 5,
+      "ref_C": 0,
+      "ref_Q": 0,
+      "ref_L": 24,
+      "ref_M": 0,
+      "ref_W": 448,
+      "ref_D": 0,
+      "ref_V": 0,
+      "ref_S": 0,
+      "ref_X": 0,
+      "ref_R": 0
+     },
+     "rail": {
+      "lines": 2,
+      "trains_total": 2,
+      "lines_1train": 2,
+      "lines_2trains": 0,
+      "single_track": 2,
+      "double_track": 0,
+      "profitable": 2,
+      "backlog_met": 1,
+      "cash_refused": 0,
+      "prep_failed": 0,
+      "upgrade_failed": 0,
+      "second_built": 0,
+      "double_built": 0
+     },
+     "road": {
+      "lines": 11,
+      "vehs_total": 19,
+      "physical_cap_hit": 62,
+      "congestion_hit": 8,
+      "no_demand": 28,
+      "loss_hit": 10,
+      "cash_refused": 0,
+      "other_refused": 0,
+      "refill_built": 2
      }
     }
    }
@@ -443,24 +743,82 @@
      }
     },
     "fleet_built": {
-     "refill_events": 3,
-     "vehicles_added": 3
+     "total_events": 5,
+     "total_vehicles_added": 5,
+     "by_mode": {
+      "air": {
+       "events": 2,
+       "added": 2
+      },
+      "road": {
+       "events": 3,
+       "added": 3
+      }
+     }
     },
     "lines_summary": {
      "lines": 0,
+     "profit_year": 1969,
      "prof_sum": 0,
      "rev_sum": 0,
      "prof_lines": 0,
      "loss_lines": 0,
      "by_mode": {}
+    },
+    "non_expansion": {
+     "air": {
+      "lines": 0,
+      "planes_total": 0,
+      "cap_physical": 0,
+      "cap_demand": 0,
+      "lines_at_cap": 0,
+      "want_sum": 0,
+      "ref_Y": 0,
+      "ref_C": 0,
+      "ref_Q": 0,
+      "ref_L": 0,
+      "ref_M": 0,
+      "ref_W": 0,
+      "ref_D": 0,
+      "ref_V": 0,
+      "ref_S": 0,
+      "ref_X": 0,
+      "ref_R": 0
+     },
+     "rail": {
+      "lines": 0,
+      "trains_total": 0,
+      "lines_1train": 0,
+      "lines_2trains": 0,
+      "single_track": 0,
+      "double_track": 0,
+      "profitable": 0,
+      "backlog_met": 0,
+      "cash_refused": 0,
+      "prep_failed": 0,
+      "upgrade_failed": 0,
+      "second_built": 0,
+      "double_built": 0
+     },
+     "road": {
+      "lines": 0,
+      "vehs_total": 0,
+      "physical_cap_hit": 0,
+      "congestion_hit": 0,
+      "no_demand": 0,
+      "loss_hit": 0,
+      "cash_refused": 0,
+      "other_refused": 0,
+      "refill_built": 0
+     }
     }
    },
    "1971": {
     "treasury": {
-     "available_mean": 61285.6,
-     "available_min": 22203,
+     "available_mean": 61200.5,
+     "available_min": 22059,
      "available_max": 125792,
-     "cash_mean": 78799.7,
+     "cash_mean": 78764.6,
      "end_cash": 53571,
      "end_loan": 300000,
      "end_available": 40436,
@@ -469,13 +827,19 @@
     },
     "projects_built": {
      "total_count": 6,
-     "total_cost": 418638,
+     "total_cost": 353628,
      "by_mode": {
       "air": {
-       "count": 6,
-       "cost": 418638,
-       "profit": 203353,
-       "mean_roi": 457.7
+       "count": 5,
+       "cost": 340615,
+       "profit": 144642,
+       "mean_roi": 395.8
+      },
+      "road": {
+       "count": 1,
+       "cost": 13013,
+       "profit": 3297,
+       "mean_roi": 253
       }
      }
     },
@@ -490,11 +854,18 @@
      }
     },
     "fleet_built": {
-     "refill_events": 4,
-     "vehicles_added": 4
+     "total_events": 5,
+     "total_vehicles_added": 5,
+     "by_mode": {
+      "road": {
+       "events": 5,
+       "added": 5
+      }
+     }
     },
     "lines_summary": {
      "lines": 15,
+     "profit_year": 1970,
      "prof_sum": 386033,
      "rev_sum": 438575,
      "prof_lines": 11,
@@ -513,35 +884,88 @@
        "rev": 22926
       }
      }
+    },
+    "non_expansion": {
+     "air": {
+      "lines": 4,
+      "planes_total": 6,
+      "cap_physical": 22,
+      "cap_demand": 22,
+      "lines_at_cap": 0,
+      "want_sum": 6,
+      "ref_Y": 6,
+      "ref_C": 0,
+      "ref_Q": 0,
+      "ref_L": 0,
+      "ref_M": 0,
+      "ref_W": 31,
+      "ref_D": 0,
+      "ref_V": 0,
+      "ref_S": 0,
+      "ref_X": 0,
+      "ref_R": 0
+     },
+     "rail": {
+      "lines": 0,
+      "trains_total": 0,
+      "lines_1train": 0,
+      "lines_2trains": 0,
+      "single_track": 0,
+      "double_track": 0,
+      "profitable": 0,
+      "backlog_met": 0,
+      "cash_refused": 0,
+      "prep_failed": 0,
+      "upgrade_failed": 0,
+      "second_built": 0,
+      "double_built": 0
+     },
+     "road": {
+      "lines": 11,
+      "vehs_total": 6,
+      "physical_cap_hit": 54,
+      "congestion_hit": 1,
+      "no_demand": 20,
+      "loss_hit": 0,
+      "cash_refused": 0,
+      "other_refused": 0,
+      "refill_built": 3
+     }
     }
    },
    "1972": {
     "treasury": {
-     "available_mean": 92115.2,
-     "available_min": 47835,
-     "available_max": 138002,
-     "cash_mean": 117115.2,
-     "end_cash": 52818,
+     "available_mean": 115349.1,
+     "available_min": 55517,
+     "available_max": 195451,
+     "cash_mean": 140244,
+     "end_cash": 161570,
      "end_loan": 300000,
-     "end_available": 27818,
+     "end_available": 137831,
      "end_company_value": 0,
      "months_recorded": 12
     },
     "projects_built": {
      "total_count": 13,
-     "total_cost": 929383,
+     "total_cost": 926561,
      "by_mode": {
       "air": {
-       "count": 12,
-       "cost": 886776,
-       "profit": 315527,
-       "mean_roi": 341.5
+       "count": 10,
+       "cost": 763730,
+       "profit": 333701,
+       "mean_roi": 426.8
       },
       "rail": {
        "count": 1,
-       "cost": 42607,
-       "profit": 12282,
-       "mean_roi": 288
+       "cost": 39785,
+       "profit": 12731,
+       "mean_roi": 319
+      },
+      "fleet": {
+       "count": 2,
+       "cost": 123046,
+       "profit": 110194,
+       "mean_roi": 895
       }
      }
     },
@@ -550,58 +974,106 @@
      "by_mode": {}
     },
     "fleet_built": {
-     "refill_events": 2,
-     "vehicles_added": 2
+     "total_events": 2,
+     "total_vehicles_added": 2,
+     "by_mode": {
+      "air": {
+       "events": 2,
+       "added": 2
+      }
+     }
     },
     "lines_summary": {
      "lines": 26,
-     "prof_sum": 550398,
-     "rev_sum": 657545,
-     "prof_lines": 19,
-     "loss_lines": 7,
+     "profit_year": 1971,
+     "prof_sum": 538145,
+     "rev_sum": 633104,
+     "prof_lines": 17,
+     "loss_lines": 9,
      "by_mode": {
       "air": {
-       "lines": 11,
-       "vehs": 13,
-       "profit": 519239,
-       "rev": 611734
+       "lines": 9,
+       "vehs": 11,
+       "profit": 508418,
+       "rev": 586683
       },
       "road": {
-       "lines": 15,
-       "vehs": 28,
-       "profit": 31159,
-       "rev": 45811
+       "lines": 17,
+       "vehs": 32,
+       "profit": 29727,
+       "rev": 46421
       }
+     }
+    },
+    "non_expansion": {
+     "air": {
+      "lines": 9,
+      "planes_total": 11,
+      "cap_physical": 40,
+      "cap_demand": 40,
+      "lines_at_cap": 0,
+      "want_sum": 0,
+      "ref_Y": 5,
+      "ref_C": 0,
+      "ref_Q": 0,
+      "ref_L": 13,
+      "ref_M": 0,
+      "ref_W": 70,
+      "ref_D": 0,
+      "ref_V": 0,
+      "ref_S": 0,
+      "ref_X": 0,
+      "ref_R": 0
+     },
+     "rail": {
+      "lines": 0,
+      "trains_total": 0,
+      "lines_1train": 0,
+      "lines_2trains": 0,
+      "single_track": 0,
+      "double_track": 0,
+      "profitable": 0,
+      "backlog_met": 0,
+      "cash_refused": 0,
+      "prep_failed": 0,
+      "upgrade_failed": 0,
+      "second_built": 0,
+      "double_built": 0
+     },
+     "road": {
+      "lines": 17,
+      "vehs_total": 29,
+      "physical_cap_hit": 130,
+      "congestion_hit": 3,
+      "no_demand": 26,
+      "loss_hit": 0,
+      "cash_refused": 0,
+      "other_refused": 0,
+      "refill_built": 5
      }
     }
    },
    "1973": {
     "treasury": {
-     "available_mean": 512431.8,
-     "available_min": 237322,
-     "available_max": 927185,
-     "cash_mean": 537431.8,
-     "end_cash": 278718,
+     "available_mean": 475399.9,
+     "available_min": 176737,
+     "available_max": 924387,
+     "cash_mean": 500399.9,
+     "end_cash": 243821,
      "end_loan": 300000,
-     "end_available": 253718,
+     "end_available": 218821,
      "end_company_value": 0,
      "months_recorded": 12
     },
     "projects_built": {
-     "total_count": 7,
-     "total_cost": 536988,
+     "total_count": 8,
+     "total_cost": 607684,
      "by_mode": {
       "air": {
-       "count": 6,
-       "cost": 484638,
-       "profit": 140541,
-       "mean_roi": 283.5
-      },
-      "rail": {
-       "count": 1,
-       "cost": 52350,
-       "profit": 22980,
-       "mean_roi": 438
+       "count": 8,
+       "cost": 607684,
+       "profit": 188148,
+       "mean_roi": 309
       }
      }
     },
@@ -610,64 +1082,118 @@
      "by_mode": {}
     },
     "fleet_built": {
-     "refill_events": 2,
-     "vehicles_added": 2
+     "total_events": 4,
+     "total_vehicles_added": 4,
+     "by_mode": {
+      "road": {
+       "events": 4,
+       "added": 4
+      }
+     }
     },
     "lines_summary": {
-     "lines": 40,
-     "prof_sum": 1151256,
-     "rev_sum": 1341599,
-     "prof_lines": 34,
-     "loss_lines": 6,
+     "lines": 39,
+     "profit_year": 1972,
+     "prof_sum": 1101573,
+     "rev_sum": 1285643,
+     "prof_lines": 29,
+     "loss_lines": 10,
      "by_mode": {
       "air": {
-       "lines": 22,
-       "vehs": 24,
-       "profit": 1109864,
-       "rev": 1280624
+       "lines": 19,
+       "vehs": 23,
+       "profit": 1066432,
+       "rev": 1230077
       },
       "road": {
-       "lines": 17,
-       "vehs": 32,
-       "profit": 30973,
-       "rev": 48025
+       "lines": 19,
+       "vehs": 34,
+       "profit": 36904,
+       "rev": 54798
       },
       "rail": {
        "lines": 1,
        "vehs": 1,
-       "profit": 10419,
-       "rev": 12950
+       "profit": -1763,
+       "rev": 768
       }
+     }
+    },
+    "non_expansion": {
+     "air": {
+      "lines": 19,
+      "planes_total": 23,
+      "cap_physical": 96,
+      "cap_demand": 96,
+      "lines_at_cap": 0,
+      "want_sum": 4,
+      "ref_Y": 12,
+      "ref_C": 0,
+      "ref_Q": 0,
+      "ref_L": 0,
+      "ref_M": 0,
+      "ref_W": 174,
+      "ref_D": 0,
+      "ref_V": 0,
+      "ref_S": 0,
+      "ref_X": 0,
+      "ref_R": 0
+     },
+     "rail": {
+      "lines": 1,
+      "trains_total": 1,
+      "lines_1train": 1,
+      "lines_2trains": 0,
+      "single_track": 1,
+      "double_track": 0,
+      "profitable": 0,
+      "backlog_met": 0,
+      "cash_refused": 0,
+      "prep_failed": 0,
+      "upgrade_failed": 0,
+      "second_built": 0,
+      "double_built": 0
+     },
+     "road": {
+      "lines": 19,
+      "vehs_total": 32,
+      "physical_cap_hit": 144,
+      "congestion_hit": 1,
+      "no_demand": 24,
+      "loss_hit": 36,
+      "cash_refused": 0,
+      "other_refused": 0,
+      "refill_built": 0
      }
     }
    },
    "1974": {
     "treasury": {
-     "available_mean": 1732737.2,
-     "available_min": 1094022,
-     "available_max": 2405285,
-     "cash_mean": 1757737.2,
-     "end_cash": 1119019,
+     "available_mean": 1788846.8,
+     "available_min": 1116793,
+     "available_max": 2587978,
+     "cash_mean": 1813846.8,
+     "end_cash": 1198183,
      "end_loan": 0,
-     "end_available": 1094019,
+     "end_available": 1173183,
      "end_company_value": 0,
      "months_recorded": 12
     },
     "projects_built": {
-     "total_count": 7,
-     "total_cost": 480873,
+     "total_count": 6,
+     "total_cost": 423390,
      "by_mode": {
       "air": {
-       "count": 6,
-       "cost": 435138,
-       "profit": 99032,
-       "mean_roi": 225.3
+       "count": 5,
+       "cost": 373615,
+       "profit": 93673,
+       "mean_roi": 249.4
       },
       "rail": {
        "count": 1,
-       "cost": 45735,
-       "profit": 17263,
-       "mean_roi": 377
+       "cost": 49775,
+       "profit": 24168,
+       "mean_roi": 485
       }
      }
     },
@@ -676,70 +1202,118 @@
      "by_mode": {}
     },
     "fleet_built": {
-     "refill_events": 3,
-     "vehicles_added": 3
+     "total_events": 1,
+     "total_vehicles_added": 1,
+     "by_mode": {
+      "road": {
+       "events": 1,
+       "added": 1
+      }
+     }
     },
     "lines_summary": {
-     "lines": 51,
-     "prof_sum": 1785598,
-     "rev_sum": 2024762,
-     "prof_lines": 46,
-     "loss_lines": 5,
+     "lines": 52,
+     "profit_year": 1973,
+     "prof_sum": 1817280,
+     "rev_sum": 2056555,
+     "prof_lines": 44,
+     "loss_lines": 8,
      "by_mode": {
       "air": {
-       "lines": 28,
+       "lines": 27,
        "vehs": 30,
-       "profit": 1730401,
-       "rev": 1943851
+       "profit": 1783763,
+       "rev": 1997213
       },
       "road": {
-       "lines": 21,
-       "vehs": 38,
-       "profit": 34721,
-       "rev": 55373
+       "lines": 24,
+       "vehs": 43,
+       "profit": 36048,
+       "rev": 59342
       },
       "rail": {
-       "lines": 2,
-       "vehs": 2,
-       "profit": 20476,
-       "rev": 25538
+       "lines": 1,
+       "vehs": 1,
+       "profit": -2531,
+       "rev": 0
       }
+     }
+    },
+    "non_expansion": {
+     "air": {
+      "lines": 27,
+      "planes_total": 31,
+      "cap_physical": 163,
+      "cap_demand": 163,
+      "lines_at_cap": 0,
+      "want_sum": 0,
+      "ref_Y": 8,
+      "ref_C": 0,
+      "ref_Q": 0,
+      "ref_L": 24,
+      "ref_M": 0,
+      "ref_W": 259,
+      "ref_D": 0,
+      "ref_V": 0,
+      "ref_S": 0,
+      "ref_X": 0,
+      "ref_R": 0
+     },
+     "rail": {
+      "lines": 1,
+      "trains_total": 1,
+      "lines_1train": 1,
+      "lines_2trains": 0,
+      "single_track": 1,
+      "double_track": 0,
+      "profitable": 0,
+      "backlog_met": 1,
+      "cash_refused": 0,
+      "prep_failed": 0,
+      "upgrade_failed": 0,
+      "second_built": 0,
+      "double_built": 0
+     },
+     "road": {
+      "lines": 24,
+      "vehs_total": 39,
+      "physical_cap_hit": 129,
+      "congestion_hit": 4,
+      "no_demand": 38,
+      "loss_hit": 40,
+      "cash_refused": 0,
+      "other_refused": 0,
+      "refill_built": 4
      }
     }
    },
    "1975": {
     "treasury": {
-     "available_mean": 3262699.9,
-     "available_min": 2557829,
-     "available_max": 3905136,
-     "cash_mean": 3287699.9,
-     "end_cash": 2582766,
+     "available_mean": 3399497.2,
+     "available_min": 2612674,
+     "available_max": 4090074,
+     "cash_mean": 3424497.2,
+     "end_cash": 2838198,
      "end_loan": 0,
-     "end_available": 2557766,
+     "end_available": 2813198,
      "end_company_value": 0,
      "months_recorded": 12
     },
     "projects_built": {
-     "total_count": 7,
-     "total_cost": 384896,
+     "total_count": 5,
+     "total_cost": 310079,
      "by_mode": {
+      "air": {
+       "count": 4,
+       "cost": 262592,
+       "profit": 57401,
+       "mean_roi": 217.8
+      },
       "rail": {
        "count": 1,
-       "cost": 47768,
-       "profit": 14815,
-       "mean_roi": 310
-      },
-      "air": {
-       "count": 5,
-       "cost": 324115,
-       "profit": 56134,
-       "mean_roi": 169.4
-      },
-      "road": {
-       "count": 1,
-       "cost": 13013,
-       "profit": 3297,
-       "mean_roi": 253
+       "cost": 47487,
+       "profit": 14948,
+       "mean_roi": 314
       }
      }
     },
@@ -748,34 +1322,88 @@
      "by_mode": {}
     },
     "fleet_built": {
-     "refill_events": 1,
-     "vehicles_added": 1
+     "total_events": 4,
+     "total_vehicles_added": 4,
+     "by_mode": {
+      "road": {
+       "events": 4,
+       "added": 4
+      }
+     }
     },
     "lines_summary": {
-     "lines": 61,
-     "prof_sum": 2029719,
-     "rev_sum": 2317704,
-     "prof_lines": 54,
-     "loss_lines": 7,
+     "lines": 59,
+     "profit_year": 1974,
+     "prof_sum": 2062215,
+     "rev_sum": 2340796,
+     "prof_lines": 50,
+     "loss_lines": 9,
      "by_mode": {
       "air": {
-       "lines": 34,
-       "vehs": 36,
-       "profit": 1950840,
-       "rev": 2206980
+       "lines": 32,
+       "vehs": 35,
+       "profit": 2023247,
+       "rev": 2272272
       },
       "road": {
-       "lines": 24,
-       "vehs": 44,
-       "profit": 35689,
-       "rev": 59941
+       "lines": 25,
+       "vehs": 45,
+       "profit": 36520,
+       "rev": 61014
       },
       "rail": {
-       "lines": 3,
-       "vehs": 3,
-       "profit": 43190,
-       "rev": 50783
+       "lines": 2,
+       "vehs": 2,
+       "profit": 2448,
+       "rev": 7510
       }
+     }
+    },
+    "non_expansion": {
+     "air": {
+      "lines": 32,
+      "planes_total": 35,
+      "cap_physical": 209,
+      "cap_demand": 209,
+      "lines_at_cap": 0,
+      "want_sum": 0,
+      "ref_Y": 5,
+      "ref_C": 0,
+      "ref_Q": 0,
+      "ref_L": 12,
+      "ref_M": 0,
+      "ref_W": 345,
+      "ref_D": 0,
+      "ref_V": 0,
+      "ref_S": 0,
+      "ref_X": 0,
+      "ref_R": 0
+     },
+     "rail": {
+      "lines": 2,
+      "trains_total": 2,
+      "lines_1train": 2,
+      "lines_2trains": 0,
+      "single_track": 2,
+      "double_track": 0,
+      "profitable": 0,
+      "backlog_met": 0,
+      "cash_refused": 0,
+      "prep_failed": 0,
+      "upgrade_failed": 0,
+      "second_built": 0,
+      "double_built": 0
+     },
+     "road": {
+      "lines": 25,
+      "vehs_total": 44,
+      "physical_cap_hit": 102,
+      "congestion_hit": 3,
+      "no_demand": 30,
+      "loss_hit": 35,
+      "cash_refused": 0,
+      "other_refused": 0,
+      "refill_built": 1
      }
     }
    }
@@ -783,10 +1411,10 @@
   "42": {
    "1970": {
     "treasury": {
-     "available_mean": 49653.9,
-     "available_min": 2517,
+     "available_mean": 58880.9,
+     "available_min": 3187,
      "available_max": 295000,
-     "cash_mean": 56655.3,
+     "cash_mean": 65478.4,
      "end_cash": 300000,
      "end_loan": 300000,
      "end_available": 295000,
@@ -794,26 +1422,26 @@
      "months_recorded": 12
     },
     "projects_built": {
-     "total_count": 12,
-     "total_cost": 494301,
+     "total_count": 11,
+     "total_cost": 373072,
      "by_mode": {
       "air": {
-       "count": 4,
-       "cost": 312092,
-       "profit": 202868,
-       "mean_roi": 619
+       "count": 2,
+       "cost": 189046,
+       "profit": 144428,
+       "mean_roi": 763.5
       },
       "road": {
-       "count": 6,
-       "cost": 71886,
-       "profit": 19087,
-       "mean_roi": 266
+       "count": 7,
+       "cost": 85396,
+       "profit": 22192,
+       "mean_roi": 260.7
       },
       "rail": {
        "count": 1,
-       "cost": 48800,
-       "profit": 55482,
-       "mean_roi": 1136
+       "cost": 37107,
+       "profit": 3474,
+       "mean_roi": 93
       },
       "fleet": {
        "count": 1,
@@ -824,247 +1452,123 @@
      }
     },
     "projects_refused_cash": {
-     "total_count": 0,
-     "by_mode": {}
+     "total_count": 6,
+     "by_mode": {
+      "rail": {
+       "count": 1,
+       "mean_roi": 1107,
+       "mean_need": 55540
+      },
+      "fleet": {
+       "count": 1,
+       "mean_roi": 1435,
+       "mean_need": 67483
+      },
+      "air": {
+       "count": 4,
+       "mean_roi": 400.8,
+       "mean_need": 69483
+      }
+     }
     },
     "fleet_built": {
-     "refill_events": 3,
-     "vehicles_added": 3
+     "total_events": 8,
+     "total_vehicles_added": 8,
+     "by_mode": {
+      "road": {
+       "events": 7,
+       "added": 7
+      },
+      "air": {
+       "events": 1,
+       "added": 1
+      }
+     }
     },
     "lines_summary": {
      "lines": 0,
+     "profit_year": 1969,
      "prof_sum": 0,
      "rev_sum": 0,
      "prof_lines": 0,
      "loss_lines": 0,
      "by_mode": {}
+    },
+    "non_expansion": {
+     "air": {
+      "lines": 0,
+      "planes_total": 0,
+      "cap_physical": 0,
+      "cap_demand": 0,
+      "lines_at_cap": 0,
+      "want_sum": 0,
+      "ref_Y": 0,
+      "ref_C": 0,
+      "ref_Q": 0,
+      "ref_L": 0,
+      "ref_M": 0,
+      "ref_W": 0,
+      "ref_D": 0,
+      "ref_V": 0,
+      "ref_S": 0,
+      "ref_X": 0,
+      "ref_R": 0
+     },
+     "rail": {
+      "lines": 0,
+      "trains_total": 0,
+      "lines_1train": 0,
+      "lines_2trains": 0,
+      "single_track": 0,
+      "double_track": 0,
+      "profitable": 0,
+      "backlog_met": 0,
+      "cash_refused": 0,
+      "prep_failed": 0,
+      "upgrade_failed": 0,
+      "second_built": 0,
+      "double_built": 0
+     },
+     "road": {
+      "lines": 0,
+      "vehs_total": 0,
+      "physical_cap_hit": 0,
+      "congestion_hit": 0,
+      "no_demand": 0,
+      "loss_hit": 0,
+      "cash_refused": 0,
+      "other_refused": 0,
+      "refill_built": 0
+     }
     }
    },
    "1971": {
     "treasury": {
-     "available_mean": 75323.8,
-     "available_min": 13870,
-     "available_max": 159322,
-     "cash_mean": 93785.1,
-     "end_cash": 67836,
+     "available_mean": 55557.1,
+     "available_min": 21083,
+     "available_max": 92507,
+     "cash_mean": 71392.8,
+     "end_cash": 87503,
      "end_loan": 300000,
-     "end_available": 55397,
-     "end_company_value": 0,
-     "months_recorded": 12
-    },
-    "projects_built": {
-     "total_count": 9,
-     "total_cost": 550337,
-     "by_mode": {
-      "air": {
-       "count": 7,
-       "cost": 496661,
-       "profit": 330991,
-       "mean_roi": 650.3
-      },
-      "road": {
-       "count": 1,
-       "cost": 13510,
-       "profit": 3105,
-       "mean_roi": 229
-      },
-      "rail": {
-       "count": 1,
-       "cost": 40166,
-       "profit": 25155,
-       "mean_roi": 626
-      }
-     }
-    },
-    "projects_refused_cash": {
-     "total_count": 0,
-     "by_mode": {}
-    },
-    "fleet_built": {
-     "refill_events": 3,
-     "vehicles_added": 3
-    },
-    "lines_summary": {
-     "lines": 19,
-     "prof_sum": 389561,
-     "rev_sum": 439319,
-     "prof_lines": 15,
-     "loss_lines": 4,
-     "by_mode": {
-      "air": {
-       "lines": 4,
-       "vehs": 5,
-       "profit": 340944,
-       "rev": 376519
-      },
-      "road": {
-       "lines": 14,
-       "vehs": 23,
-       "profit": 24526,
-       "rev": 36178
-      },
-      "rail": {
-       "lines": 1,
-       "vehs": 1,
-       "profit": 24091,
-       "rev": 26622
-      }
-     }
-    }
-   },
-   "1972": {
-    "treasury": {
-     "available_mean": 344830.6,
-     "available_min": 131199,
-     "available_max": 745912,
-     "cash_mean": 369830.6,
-     "end_cash": 219160,
-     "end_loan": 300000,
-     "end_available": 194160,
-     "end_company_value": 0,
-     "months_recorded": 12
-    },
-    "projects_built": {
-     "total_count": 10,
-     "total_cost": 768386,
-     "by_mode": {
-      "air": {
-       "count": 9,
-       "cost": 718707,
-       "profit": 300049,
-       "mean_roi": 413.3
-      },
-      "rail": {
-       "count": 1,
-       "cost": 49679,
-       "profit": 41907,
-       "mean_roi": 843
-      }
-     }
-    },
-    "projects_refused_cash": {
-     "total_count": 0,
-     "by_mode": {}
-    },
-    "fleet_built": {
-     "refill_events": 2,
-     "vehicles_added": 2
-    },
-    "lines_summary": {
-     "lines": 32,
-     "prof_sum": 827719,
-     "rev_sum": 943901,
-     "prof_lines": 28,
-     "loss_lines": 4,
-     "by_mode": {
-      "air": {
-       "lines": 12,
-       "vehs": 13,
-       "profit": 739852,
-       "rev": 832347
-      },
-      "road": {
-       "lines": 18,
-       "vehs": 31,
-       "profit": 40837,
-       "rev": 56931
-      },
-      "rail": {
-       "lines": 2,
-       "vehs": 3,
-       "profit": 47030,
-       "rev": 54623
-      }
-     }
-    }
-   },
-   "1973": {
-    "treasury": {
-     "available_mean": 1514416.8,
-     "available_min": 833502,
-     "available_max": 2088624,
-     "cash_mean": 1539416.8,
-     "end_cash": 905974,
-     "end_loan": 0,
-     "end_available": 880974,
-     "end_company_value": 0,
-     "months_recorded": 12
-    },
-    "projects_built": {
-     "total_count": 7,
-     "total_cost": 513161,
-     "by_mode": {
-      "air": {
-       "count": 7,
-       "cost": 513161,
-       "profit": 136814,
-       "mean_roi": 262.7
-      }
-     }
-    },
-    "projects_refused_cash": {
-     "total_count": 0,
-     "by_mode": {}
-    },
-    "fleet_built": {
-     "refill_events": 7,
-     "vehicles_added": 7
-    },
-    "lines_summary": {
-     "lines": 46,
-     "prof_sum": 1776744,
-     "rev_sum": 1956577,
-     "prof_lines": 39,
-     "loss_lines": 7,
-     "by_mode": {
-      "air": {
-       "lines": 20,
-       "vehs": 21,
-       "profit": 1667831,
-       "rev": 1817246
-      },
-      "road": {
-       "lines": 23,
-       "vehs": 38,
-       "profit": 39065,
-       "rev": 59359
-      },
-      "rail": {
-       "lines": 3,
-       "vehs": 4,
-       "profit": 69848,
-       "rev": 79972
-      }
-     }
-    }
-   },
-   "1974": {
-    "treasury": {
-     "available_mean": 2913316.9,
-     "available_min": 2228690,
-     "available_max": 3641343,
-     "cash_mean": 2938316.9,
-     "end_cash": 2299671,
-     "end_loan": 0,
-     "end_available": 2274671,
+     "end_available": 77511,
      "end_company_value": 0,
      "months_recorded": 12
     },
     "projects_built": {
      "total_count": 6,
-     "total_cost": 376680,
+     "total_cost": 370700,
      "by_mode": {
       "air": {
        "count": 5,
        "cost": 324115,
-       "profit": 65907,
-       "mean_roi": 203
+       "profit": 148036,
+       "mean_roi": 430
       },
       "rail": {
        "count": 1,
-       "cost": 52565,
-       "profit": 22514,
-       "mean_roi": 428
+       "cost": 46585,
+       "profit": 15015,
+       "mean_roi": 322
       }
      }
     },
@@ -1073,58 +1577,476 @@
      "by_mode": {}
     },
     "fleet_built": {
-     "refill_events": 1,
-     "vehicles_added": 1
+     "total_events": 5,
+     "total_vehicles_added": 5,
+     "by_mode": {
+      "road": {
+       "events": 5,
+       "added": 5
+      }
+     }
     },
     "lines_summary": {
-     "lines": 55,
-     "prof_sum": 2023744,
-     "rev_sum": 2258782,
-     "prof_lines": 47,
+     "lines": 20,
+     "profit_year": 1970,
+     "prof_sum": 335262,
+     "rev_sum": 375232,
+     "prof_lines": 15,
+     "loss_lines": 5,
+     "by_mode": {
+      "air": {
+       "lines": 2,
+       "vehs": 3,
+       "profit": 308757,
+       "rev": 330102
+      },
+      "road": {
+       "lines": 17,
+       "vehs": 31,
+       "profit": 25694,
+       "rev": 41788
+      },
+      "rail": {
+       "lines": 1,
+       "vehs": 1,
+       "profit": 811,
+       "rev": 3342
+      }
+     }
+    },
+    "non_expansion": {
+     "air": {
+      "lines": 2,
+      "planes_total": 3,
+      "cap_physical": 30,
+      "cap_demand": 30,
+      "lines_at_cap": 0,
+      "want_sum": 6,
+      "ref_Y": 3,
+      "ref_C": 0,
+      "ref_Q": 0,
+      "ref_L": 0,
+      "ref_M": 0,
+      "ref_W": 21,
+      "ref_D": 0,
+      "ref_V": 0,
+      "ref_S": 0,
+      "ref_X": 0,
+      "ref_R": 0
+     },
+     "rail": {
+      "lines": 1,
+      "trains_total": 1,
+      "lines_1train": 1,
+      "lines_2trains": 0,
+      "single_track": 1,
+      "double_track": 0,
+      "profitable": 0,
+      "backlog_met": 0,
+      "cash_refused": 0,
+      "prep_failed": 0,
+      "upgrade_failed": 0,
+      "second_built": 0,
+      "double_built": 0
+     },
+     "road": {
+      "lines": 17,
+      "vehs_total": 14,
+      "physical_cap_hit": 96,
+      "congestion_hit": 4,
+      "no_demand": 19,
+      "loss_hit": 0,
+      "cash_refused": 0,
+      "other_refused": 0,
+      "refill_built": 7
+     }
+    }
+   },
+   "1972": {
+    "treasury": {
+     "available_mean": 95984.7,
+     "available_min": 54518,
+     "available_max": 150930,
+     "cash_mean": 120434,
+     "end_cash": 72943,
+     "end_loan": 300000,
+     "end_available": 50146,
+     "end_company_value": 0,
+     "months_recorded": 12
+    },
+    "projects_built": {
+     "total_count": 13,
+     "total_cost": 881928,
+     "by_mode": {
+      "fleet": {
+       "count": 1,
+       "cost": 61523,
+       "profit": 76788,
+       "mean_roi": 1248
+      },
+      "air": {
+       "count": 11,
+       "cost": 808753,
+       "profit": 412205,
+       "mean_roi": 506.1
+      },
+      "road": {
+       "count": 1,
+       "cost": 11652,
+       "profit": 2269,
+       "mean_roi": 194
+      }
+     }
+    },
+    "projects_refused_cash": {
+     "total_count": 0,
+     "by_mode": {}
+    },
+    "fleet_built": {
+     "total_events": 2,
+     "total_vehicles_added": 2,
+     "by_mode": {
+      "air": {
+       "events": 1,
+       "added": 1
+      },
+      "road": {
+       "events": 1,
+       "added": 1
+      }
+     }
+    },
+    "lines_summary": {
+     "lines": 31,
+     "profit_year": 1971,
+     "prof_sum": 451344,
+     "rev_sum": 542535,
+     "prof_lines": 23,
      "loss_lines": 8,
      "by_mode": {
       "air": {
-       "lines": 27,
-       "vehs": 28,
-       "profit": 1869511,
-       "rev": 2068731
+       "lines": 7,
+       "vehs": 9,
+       "profit": 409509,
+       "rev": 473544
       },
       "road": {
-       "lines": 25,
-       "vehs": 47,
-       "profit": 44258,
-       "rev": 69952
+       "lines": 22,
+       "vehs": 41,
+       "profit": 40906,
+       "rev": 63000
       },
       "rail": {
-       "lines": 3,
-       "vehs": 4,
-       "profit": 109975,
-       "rev": 120099
+       "lines": 2,
+       "vehs": 2,
+       "profit": 929,
+       "rev": 5991
       }
+     }
+    },
+    "non_expansion": {
+     "air": {
+      "lines": 7,
+      "planes_total": 9,
+      "cap_physical": 31,
+      "cap_demand": 31,
+      "lines_at_cap": 0,
+      "want_sum": 2,
+      "ref_Y": 6,
+      "ref_C": 0,
+      "ref_Q": 0,
+      "ref_L": 0,
+      "ref_M": 0,
+      "ref_W": 67,
+      "ref_D": 0,
+      "ref_V": 0,
+      "ref_S": 0,
+      "ref_X": 0,
+      "ref_R": 0
+     },
+     "rail": {
+      "lines": 2,
+      "trains_total": 2,
+      "lines_1train": 2,
+      "lines_2trains": 0,
+      "single_track": 2,
+      "double_track": 0,
+      "profitable": 1,
+      "backlog_met": 0,
+      "cash_refused": 0,
+      "prep_failed": 0,
+      "upgrade_failed": 0,
+      "second_built": 0,
+      "double_built": 0
+     },
+     "road": {
+      "lines": 22,
+      "vehs_total": 41,
+      "physical_cap_hit": 169,
+      "congestion_hit": 4,
+      "no_demand": 35,
+      "loss_hit": 39,
+      "cash_refused": 0,
+      "other_refused": 0,
+      "refill_built": 5
+     }
+    }
+   },
+   "1973": {
+    "treasury": {
+     "available_mean": 628414,
+     "available_min": 256363,
+     "available_max": 1163408,
+     "cash_mean": 653414,
+     "end_cash": 367470,
+     "end_loan": 300000,
+     "end_available": 342470,
+     "end_company_value": 0,
+     "months_recorded": 12
+    },
+    "projects_built": {
+     "total_count": 9,
+     "total_cost": 702207,
+     "by_mode": {
+      "air": {
+       "count": 9,
+       "cost": 702207,
+       "profit": 210319,
+       "mean_roi": 297.1
+      }
+     }
+    },
+    "projects_refused_cash": {
+     "total_count": 0,
+     "by_mode": {}
+    },
+    "fleet_built": {
+     "total_events": 5,
+     "total_vehicles_added": 5,
+     "by_mode": {
+      "road": {
+       "events": 5,
+       "added": 5
+      }
+     }
+    },
+    "lines_summary": {
+     "lines": 44,
+     "profit_year": 1972,
+     "prof_sum": 1100644,
+     "rev_sum": 1272142,
+     "prof_lines": 35,
+     "loss_lines": 9,
+     "by_mode": {
+      "air": {
+       "lines": 18,
+       "vehs": 20,
+       "profit": 1045743,
+       "rev": 1188043
+      },
+      "road": {
+       "lines": 24,
+       "vehs": 45,
+       "profit": 42179,
+       "rev": 66315
+      },
+      "rail": {
+       "lines": 2,
+       "vehs": 2,
+       "profit": 12722,
+       "rev": 17784
+      }
+     }
+    },
+    "non_expansion": {
+     "air": {
+      "lines": 18,
+      "planes_total": 20,
+      "cap_physical": 98,
+      "cap_demand": 98,
+      "lines_at_cap": 0,
+      "want_sum": 1,
+      "ref_Y": 11,
+      "ref_C": 0,
+      "ref_Q": 0,
+      "ref_L": 0,
+      "ref_M": 0,
+      "ref_W": 157,
+      "ref_D": 0,
+      "ref_V": 0,
+      "ref_S": 0,
+      "ref_X": 0,
+      "ref_R": 0
+     },
+     "rail": {
+      "lines": 2,
+      "trains_total": 2,
+      "lines_1train": 2,
+      "lines_2trains": 0,
+      "single_track": 2,
+      "double_track": 0,
+      "profitable": 1,
+      "backlog_met": 1,
+      "cash_refused": 4,
+      "prep_failed": 14,
+      "upgrade_failed": 0,
+      "second_built": 0,
+      "double_built": 0
+     },
+     "road": {
+      "lines": 24,
+      "vehs_total": 43,
+      "physical_cap_hit": 189,
+      "congestion_hit": 4,
+      "no_demand": 29,
+      "loss_hit": 33,
+      "cash_refused": 0,
+      "other_refused": 0,
+      "refill_built": 1
+     }
+    }
+   },
+   "1974": {
+    "treasury": {
+     "available_mean": 2090903.4,
+     "available_min": 1292891,
+     "available_max": 2776060,
+     "cash_mean": 2115903.4,
+     "end_cash": 1513299,
+     "end_loan": 0,
+     "end_available": 1488299,
+     "end_company_value": 0,
+     "months_recorded": 12
+    },
+    "projects_built": {
+     "total_count": 5,
+     "total_cost": 296277,
+     "by_mode": {
+      "air": {
+       "count": 3,
+       "cost": 201069,
+       "profit": 45703,
+       "mean_roi": 225
+      },
+      "rail": {
+       "count": 2,
+       "cost": 95208,
+       "profit": 51507,
+       "mean_roi": 542
+      }
+     }
+    },
+    "projects_refused_cash": {
+     "total_count": 0,
+     "by_mode": {}
+    },
+    "fleet_built": {
+     "total_events": 2,
+     "total_vehicles_added": 2,
+     "by_mode": {
+      "road": {
+       "events": 2,
+       "added": 2
+      }
+     }
+    },
+    "lines_summary": {
+     "lines": 59,
+     "profit_year": 1973,
+     "prof_sum": 2196738,
+     "rev_sum": 2438871,
+     "prof_lines": 48,
+     "loss_lines": 11,
+     "by_mode": {
+      "air": {
+       "lines": 27,
+       "vehs": 29,
+       "profit": 2139243,
+       "rev": 2345578
+      },
+      "road": {
+       "lines": 30,
+       "vehs": 56,
+       "profit": 46607,
+       "rev": 77343
+      },
+      "rail": {
+       "lines": 2,
+       "vehs": 2,
+       "profit": 10888,
+       "rev": 15950
+      }
+     }
+    },
+    "non_expansion": {
+     "air": {
+      "lines": 27,
+      "planes_total": 29,
+      "cap_physical": 152,
+      "cap_demand": 152,
+      "lines_at_cap": 0,
+      "want_sum": 0,
+      "ref_Y": 9,
+      "ref_C": 0,
+      "ref_Q": 0,
+      "ref_L": 24,
+      "ref_M": 0,
+      "ref_W": 248,
+      "ref_D": 0,
+      "ref_V": 0,
+      "ref_S": 0,
+      "ref_X": 0,
+      "ref_R": 0
+     },
+     "rail": {
+      "lines": 2,
+      "trains_total": 2,
+      "lines_1train": 2,
+      "lines_2trains": 0,
+      "single_track": 2,
+      "double_track": 0,
+      "profitable": 2,
+      "backlog_met": 1,
+      "cash_refused": 0,
+      "prep_failed": 0,
+      "upgrade_failed": 0,
+      "second_built": 0,
+      "double_built": 0
+     },
+     "road": {
+      "lines": 30,
+      "vehs_total": 53,
+      "physical_cap_hit": 153,
+      "congestion_hit": 3,
+      "no_demand": 20,
+      "loss_hit": 32,
+      "cash_refused": 0,
+      "other_refused": 0,
+      "refill_built": 5
      }
     }
    },
    "1975": {
     "treasury": {
-     "available_mean": 4450724.6,
-     "available_min": 3747572,
-     "available_max": 5212703,
-     "cash_mean": 4475724.6,
-     "end_cash": 3832373,
+     "available_mean": 3687001.4,
+     "available_min": 2995006,
+     "available_max": 4421563,
+     "cash_mean": 3712001.4,
+     "end_cash": 3019978,
      "end_loan": 0,
-     "end_available": 3807373,
+     "end_available": 2994978,
      "end_company_value": 0,
      "months_recorded": 12
     },
     "projects_built": {
-     "total_count": 7,
-     "total_cost": 447161,
+     "total_count": 6,
+     "total_cost": 402138,
      "by_mode": {
       "air": {
-       "count": 7,
-       "cost": 447161,
-       "profit": 85672,
-       "mean_roi": 190.6
+       "count": 6,
+       "cost": 402138,
+       "profit": 93927,
+       "mean_roi": 231.8
       }
      }
     },
@@ -1133,34 +2055,88 @@
      "by_mode": {}
     },
     "fleet_built": {
-     "refill_events": 4,
-     "vehicles_added": 4
+     "total_events": 2,
+     "total_vehicles_added": 2,
+     "by_mode": {
+      "road": {
+       "events": 2,
+       "added": 2
+      }
+     }
     },
     "lines_summary": {
-     "lines": 64,
-     "prof_sum": 1891350,
-     "rev_sum": 2166473,
+     "lines": 65,
+     "profit_year": 1974,
+     "prof_sum": 2003786,
+     "rev_sum": 2267011,
      "prof_lines": 55,
-     "loss_lines": 9,
+     "loss_lines": 10,
      "by_mode": {
       "air": {
-       "lines": 32,
-       "vehs": 33,
-       "profit": 1739398,
-       "rev": 1974193
+       "lines": 30,
+       "vehs": 31,
+       "profit": 1926520,
+       "rev": 2147085
       },
       "road": {
-       "lines": 28,
-       "vehs": 50,
-       "profit": 44581,
-       "rev": 72254
+       "lines": 31,
+       "vehs": 59,
+       "profit": 47402,
+       "rev": 79938
       },
       "rail": {
        "lines": 4,
-       "vehs": 5,
-       "profit": 107371,
-       "rev": 120026
+       "vehs": 4,
+       "profit": 29864,
+       "rev": 39988
       }
+     }
+    },
+    "non_expansion": {
+     "air": {
+      "lines": 30,
+      "planes_total": 32,
+      "cap_physical": 166,
+      "cap_demand": 166,
+      "lines_at_cap": 1,
+      "want_sum": 0,
+      "ref_Y": 3,
+      "ref_C": 6,
+      "ref_Q": 0,
+      "ref_L": 10,
+      "ref_M": 0,
+      "ref_W": 280,
+      "ref_D": 0,
+      "ref_V": 0,
+      "ref_S": 0,
+      "ref_X": 0,
+      "ref_R": 0
+     },
+     "rail": {
+      "lines": 4,
+      "trains_total": 4,
+      "lines_1train": 4,
+      "lines_2trains": 0,
+      "single_track": 4,
+      "double_track": 0,
+      "profitable": 2,
+      "backlog_met": 1,
+      "cash_refused": 0,
+      "prep_failed": 2,
+      "upgrade_failed": 0,
+      "second_built": 0,
+      "double_built": 0
+     },
+     "road": {
+      "lines": 31,
+      "vehs_total": 58,
+      "physical_cap_hit": 158,
+      "congestion_hit": 2,
+      "no_demand": 17,
+      "loss_hit": 35,
+      "cash_refused": 0,
+      "other_refused": 0,
+      "refill_built": 2
      }
     }
    }
@@ -1168,10 +2144,10 @@
   "7": {
    "1970": {
     "treasury": {
-     "available_mean": 70860.2,
+     "available_mean": 72769,
      "available_min": 17615,
      "available_max": 295000,
-     "cash_mean": 79655.9,
+     "cash_mean": 81622.2,
      "end_cash": 300000,
      "end_loan": 300000,
      "end_available": 295000,
@@ -1179,26 +2155,26 @@
      "months_recorded": 12
     },
     "projects_built": {
-     "total_count": 15,
-     "total_cost": 711514,
+     "total_count": 14,
+     "total_cost": 699102,
      "by_mode": {
       "air": {
-       "count": 6,
-       "cost": 451638,
-       "profit": 408698,
-       "mean_roi": 905.2
+       "count": 5,
+       "cost": 390115,
+       "profit": 361657,
+       "mean_roi": 933.2
       },
       "fleet": {
-       "count": 3,
-       "cost": 184569,
-       "profit": 259403,
-       "mean_roi": 1405.3
+       "count": 4,
+       "cost": 246092,
+       "profit": 340496,
+       "mean_roi": 1383.5
       },
       "road": {
-       "count": 6,
-       "cost": 75307,
-       "profit": 18411,
-       "mean_roi": 244
+       "count": 5,
+       "cost": 62895,
+       "profit": 15614,
+       "mean_roi": 247.8
       }
      }
     },
@@ -1213,45 +2189,103 @@
      }
     },
     "fleet_built": {
-     "refill_events": 3,
-     "vehicles_added": 3
+     "total_events": 8,
+     "total_vehicles_added": 8,
+     "by_mode": {
+      "air": {
+       "events": 4,
+       "added": 4
+      },
+      "road": {
+       "events": 4,
+       "added": 4
+      }
+     }
     },
     "lines_summary": {
      "lines": 0,
+     "profit_year": 1969,
      "prof_sum": 0,
      "rev_sum": 0,
      "prof_lines": 0,
      "loss_lines": 0,
      "by_mode": {}
+    },
+    "non_expansion": {
+     "air": {
+      "lines": 0,
+      "planes_total": 0,
+      "cap_physical": 0,
+      "cap_demand": 0,
+      "lines_at_cap": 0,
+      "want_sum": 0,
+      "ref_Y": 0,
+      "ref_C": 0,
+      "ref_Q": 0,
+      "ref_L": 0,
+      "ref_M": 0,
+      "ref_W": 0,
+      "ref_D": 0,
+      "ref_V": 0,
+      "ref_S": 0,
+      "ref_X": 0,
+      "ref_R": 0
+     },
+     "rail": {
+      "lines": 0,
+      "trains_total": 0,
+      "lines_1train": 0,
+      "lines_2trains": 0,
+      "single_track": 0,
+      "double_track": 0,
+      "profitable": 0,
+      "backlog_met": 0,
+      "cash_refused": 0,
+      "prep_failed": 0,
+      "upgrade_failed": 0,
+      "second_built": 0,
+      "double_built": 0
+     },
+     "road": {
+      "lines": 0,
+      "vehs_total": 0,
+      "physical_cap_hit": 0,
+      "congestion_hit": 0,
+      "no_demand": 0,
+      "loss_hit": 0,
+      "cash_refused": 0,
+      "other_refused": 0,
+      "refill_built": 0
+     }
     }
    },
    "1971": {
     "treasury": {
-     "available_mean": 213791.2,
-     "available_min": 95013,
-     "available_max": 392106,
-     "cash_mean": 237591.8,
-     "end_cash": 146264,
+     "available_mean": 275348.3,
+     "available_min": 96490,
+     "available_max": 605346,
+     "cash_mean": 299183.2,
+     "end_cash": 149355,
      "end_loan": 300000,
-     "end_available": 127643,
+     "end_available": 130794,
      "end_company_value": 0,
      "months_recorded": 12
     },
     "projects_built": {
-     "total_count": 15,
-     "total_cost": 1054845,
+     "total_count": 13,
+     "total_cost": 948299,
      "by_mode": {
       "air": {
-       "count": 10,
-       "cost": 747230,
-       "profit": 544237,
-       "mean_roi": 736.9
+       "count": 12,
+       "cost": 886776,
+       "profit": 643798,
+       "mean_roi": 731.9
       },
       "fleet": {
-       "count": 5,
-       "cost": 307615,
-       "profit": 454818,
-       "mean_roi": 1478.2
+       "count": 1,
+       "cost": 61523,
+       "profit": 78497,
+       "mean_roi": 1275
       }
      }
     },
@@ -1260,64 +2294,122 @@
      "by_mode": {}
     },
     "fleet_built": {
-     "refill_events": 1,
-     "vehicles_added": 1
+     "total_events": 4,
+     "total_vehicles_added": 4,
+     "by_mode": {
+      "road": {
+       "events": 3,
+       "added": 3
+      },
+      "air": {
+       "events": 1,
+       "added": 1
+      }
+     }
     },
     "lines_summary": {
-     "lines": 18,
-     "prof_sum": 680791,
-     "rev_sum": 755278,
-     "prof_lines": 16,
-     "loss_lines": 2,
+     "lines": 16,
+     "profit_year": 1970,
+     "prof_sum": 657818,
+     "rev_sum": 732063,
+     "prof_lines": 13,
+     "loss_lines": 3,
      "by_mode": {
       "air": {
-       "lines": 6,
+       "lines": 5,
        "vehs": 9,
-       "profit": 660567,
-       "rev": 724602
+       "profit": 638025,
+       "rev": 702060
       },
       "road": {
-       "lines": 12,
-       "vehs": 21,
-       "profit": 20224,
-       "rev": 30676
+       "lines": 11,
+       "vehs": 20,
+       "profit": 19793,
+       "rev": 30003
       }
+     }
+    },
+    "non_expansion": {
+     "air": {
+      "lines": 5,
+      "planes_total": 9,
+      "cap_physical": 42,
+      "cap_demand": 42,
+      "lines_at_cap": 0,
+      "want_sum": 12,
+      "ref_Y": 9,
+      "ref_C": 0,
+      "ref_Q": 0,
+      "ref_L": 0,
+      "ref_M": 0,
+      "ref_W": 25,
+      "ref_D": 0,
+      "ref_V": 0,
+      "ref_S": 0,
+      "ref_X": 0,
+      "ref_R": 0
+     },
+     "rail": {
+      "lines": 0,
+      "trains_total": 0,
+      "lines_1train": 0,
+      "lines_2trains": 0,
+      "single_track": 0,
+      "double_track": 0,
+      "profitable": 0,
+      "backlog_met": 0,
+      "cash_refused": 0,
+      "prep_failed": 0,
+      "upgrade_failed": 0,
+      "second_built": 0,
+      "double_built": 0
+     },
+     "road": {
+      "lines": 11,
+      "vehs_total": 8,
+      "physical_cap_hit": 55,
+      "congestion_hit": 5,
+      "no_demand": 14,
+      "loss_hit": 0,
+      "cash_refused": 0,
+      "other_refused": 0,
+      "refill_built": 4
      }
     }
    },
    "1972": {
     "treasury": {
-     "available_mean": 1402550.3,
-     "available_min": 404321,
-     "available_max": 2359832,
-     "cash_mean": 1427550.3,
-     "end_cash": 584446,
+     "available_mean": 1756921.8,
+     "available_min": 678135,
+     "available_max": 2814073,
+     "cash_mean": 1781921.8,
+     "end_cash": 703130,
      "end_loan": 0,
-     "end_available": 559446,
+     "end_available": 678130,
      "end_company_value": 0,
      "months_recorded": 12
     },
     "projects_built": {
      "total_count": 10,
-     "total_cost": 704385,
+     "total_cost": 671190,
      "by_mode": {
-      "air": {
-       "count": 8,
-       "cost": 591184,
-       "profit": 265251,
-       "mean_roi": 447.1
-      },
       "fleet": {
-       "count": 1,
-       "cost": 61523,
-       "profit": 106773,
-       "mean_roi": 1735
+       "count": 4,
+       "cost": 246092,
+       "profit": 524698,
+       "mean_roi": 2131.8
       },
       "rail": {
        "count": 1,
-       "cost": 51678,
-       "profit": 63945,
-       "mean_roi": 1237
+       "cost": 51483,
+       "profit": 46170,
+       "mean_roi": 896
+      },
+      "air": {
+       "count": 5,
+       "cost": 373615,
+       "profit": 178238,
+       "mean_roi": 476
       }
      }
     },
@@ -1326,52 +2418,116 @@
      "by_mode": {}
     },
     "fleet_built": {
-     "refill_events": 2,
-     "vehicles_added": 2
-    },
-    "lines_summary": {
-     "lines": 31,
-     "prof_sum": 1712596,
-     "rev_sum": 1896208,
-     "prof_lines": 30,
-     "loss_lines": 1,
+     "total_events": 6,
+     "total_vehicles_added": 6,
      "by_mode": {
       "air": {
-       "lines": 16,
-       "vehs": 24,
-       "profit": 1677153,
-       "rev": 1847913
+       "events": 4,
+       "added": 4
+      },
+      "road": {
+       "events": 2,
+       "added": 2
+      }
+     }
+    },
+    "lines_summary": {
+     "lines": 32,
+     "profit_year": 1971,
+     "prof_sum": 1922465,
+     "rev_sum": 2093405,
+     "prof_lines": 25,
+     "loss_lines": 7,
+     "by_mode": {
+      "air": {
+       "lines": 17,
+       "vehs": 22,
+       "profit": 1890941,
+       "rev": 2047471
       },
       "road": {
        "lines": 15,
-       "vehs": 25,
-       "profit": 35443,
-       "rev": 48295
+       "vehs": 27,
+       "profit": 31524,
+       "rev": 45934
       }
+     }
+    },
+    "non_expansion": {
+     "air": {
+      "lines": 17,
+      "planes_total": 22,
+      "cap_physical": 111,
+      "cap_demand": 111,
+      "lines_at_cap": 0,
+      "want_sum": 10,
+      "ref_Y": 13,
+      "ref_C": 0,
+      "ref_Q": 0,
+      "ref_L": 12,
+      "ref_M": 0,
+      "ref_W": 135,
+      "ref_D": 0,
+      "ref_V": 0,
+      "ref_S": 0,
+      "ref_X": 0,
+      "ref_R": 0
+     },
+     "rail": {
+      "lines": 0,
+      "trains_total": 0,
+      "lines_1train": 0,
+      "lines_2trains": 0,
+      "single_track": 0,
+      "double_track": 0,
+      "profitable": 0,
+      "backlog_met": 0,
+      "cash_refused": 0,
+      "prep_failed": 0,
+      "upgrade_failed": 0,
+      "second_built": 0,
+      "double_built": 0
+     },
+     "road": {
+      "lines": 15,
+      "vehs_total": 25,
+      "physical_cap_hit": 129,
+      "congestion_hit": 3,
+      "no_demand": 19,
+      "loss_hit": 0,
+      "cash_refused": 0,
+      "other_refused": 0,
+      "refill_built": 3
      }
     }
    },
    "1973": {
     "treasury": {
-     "available_mean": 3698665.2,
-     "available_min": 2557934,
-     "available_max": 4765201,
-     "cash_mean": 3723665.2,
-     "end_cash": 2728490,
+     "available_mean": 4242145.5,
+     "available_min": 2980298,
+     "available_max": 5400574,
+     "cash_mean": 4267145.5,
+     "end_cash": 3097788,
      "end_loan": 0,
-     "end_available": 2703490,
+     "end_available": 3072788,
      "end_company_value": 0,
      "months_recorded": 12
     },
     "projects_built": {
-     "total_count": 7,
-     "total_cost": 496661,
+     "total_count": 8,
+     "total_cost": 505450,
      "by_mode": {
       "air": {
        "count": 7,
-       "cost": 496661,
-       "profit": 132034,
-       "mean_roi": 264.3
+       "cost": 463661,
+       "profit": 143828,
+       "mean_roi": 308.6
+      },
+      "rail": {
+       "count": 1,
+       "cost": 41789,
+       "profit": 29079,
+       "mean_roi": 695
       }
      }
     },
@@ -1380,64 +2536,112 @@
      "by_mode": {}
     },
     "fleet_built": {
-     "refill_events": 1,
-     "vehicles_added": 1
+     "total_events": 2,
+     "total_vehicles_added": 2,
+     "by_mode": {
+      "road": {
+       "events": 2,
+       "added": 2
+      }
+     }
     },
     "lines_summary": {
-     "lines": 45,
-     "prof_sum": 2854062,
-     "rev_sum": 3108440,
-     "prof_lines": 36,
-     "loss_lines": 9,
+     "lines": 41,
+     "profit_year": 1972,
+     "prof_sum": 3024543,
+     "rev_sum": 3265049,
+     "prof_lines": 35,
+     "loss_lines": 6,
      "by_mode": {
       "air": {
-       "lines": 24,
-       "vehs": 33,
-       "profit": 2803719,
-       "rev": 3038514
+       "lines": 22,
+       "vehs": 31,
+       "profit": 2991824,
+       "rev": 3212389
       },
       "road": {
-       "lines": 20,
+       "lines": 18,
        "vehs": 32,
-       "profit": 32960,
-       "rev": 50012
+       "profit": 34612,
+       "rev": 52022
       },
       "rail": {
        "lines": 1,
        "vehs": 1,
-       "profit": 17383,
-       "rev": 19914
+       "profit": -1893,
+       "rev": 638
       }
+     }
+    },
+    "non_expansion": {
+     "air": {
+      "lines": 22,
+      "planes_total": 31,
+      "cap_physical": 131,
+      "cap_demand": 131,
+      "lines_at_cap": 1,
+      "want_sum": 23,
+      "ref_Y": 9,
+      "ref_C": 8,
+      "ref_Q": 0,
+      "ref_L": 26,
+      "ref_M": 0,
+      "ref_W": 206,
+      "ref_D": 0,
+      "ref_V": 0,
+      "ref_S": 0,
+      "ref_X": 0,
+      "ref_R": 0
+     },
+     "rail": {
+      "lines": 1,
+      "trains_total": 1,
+      "lines_1train": 1,
+      "lines_2trains": 0,
+      "single_track": 1,
+      "double_track": 0,
+      "profitable": 0,
+      "backlog_met": 0,
+      "cash_refused": 0,
+      "prep_failed": 0,
+      "upgrade_failed": 0,
+      "second_built": 0,
+      "double_built": 0
+     },
+     "road": {
+      "lines": 18,
+      "vehs_total": 30,
+      "physical_cap_hit": 105,
+      "congestion_hit": 9,
+      "no_demand": 33,
+      "loss_hit": 33,
+      "cash_refused": 0,
+      "other_refused": 0,
+      "refill_built": 2
      }
     }
    },
    "1974": {
     "treasury": {
-     "available_mean": 6052916.1,
-     "available_min": 4907969,
-     "available_max": 7100557,
-     "cash_mean": 6077916.1,
-     "end_cash": 5061511,
+     "available_mean": 6843840.2,
+     "available_min": 5704760,
+     "available_max": 8002577,
+     "cash_mean": 6868840.2,
+     "end_cash": 5966171,
      "end_loan": 0,
-     "end_available": 5036511,
+     "end_available": 5941171,
      "end_company_value": 0,
      "months_recorded": 12
     },
     "projects_built": {
      "total_count": 7,
-     "total_cost": 459613,
+     "total_cost": 480161,
      "by_mode": {
-      "rail": {
-       "count": 1,
-       "cost": 57475,
-       "profit": 44920,
-       "mean_roi": 781
-      },
       "air": {
-       "count": 6,
-       "cost": 402138,
-       "profit": 84930,
-       "mean_roi": 211.3
+       "count": 7,
+       "cost": 480161,
+       "profit": 118953,
+       "mean_roi": 245.6
       }
      }
     },
@@ -1446,58 +2650,118 @@
      "by_mode": {}
     },
     "fleet_built": {
-     "refill_events": 4,
-     "vehicles_added": 4
+     "total_events": 1,
+     "total_vehicles_added": 1,
+     "by_mode": {
+      "road": {
+       "events": 1,
+       "added": 1
+      }
+     }
     },
     "lines_summary": {
-     "lines": 54,
-     "prof_sum": 2969842,
-     "rev_sum": 3275825,
-     "prof_lines": 47,
+     "lines": 51,
+     "profit_year": 1973,
+     "prof_sum": 3154089,
+     "rev_sum": 3449931,
+     "prof_lines": 44,
      "loss_lines": 7,
      "by_mode": {
       "air": {
-       "lines": 31,
-       "vehs": 40,
-       "profit": 2870497,
-       "rev": 3155097
+       "lines": 29,
+       "vehs": 38,
+       "profit": 3108705,
+       "rev": 3379075
       },
       "road": {
-       "lines": 22,
-       "vehs": 35,
-       "profit": 34655,
-       "rev": 53507
+       "lines": 20,
+       "vehs": 37,
+       "profit": 34929,
+       "rev": 55339
       },
       "rail": {
-       "lines": 1,
-       "vehs": 1,
-       "profit": 64690,
-       "rev": 67221
+       "lines": 2,
+       "vehs": 2,
+       "profit": 10455,
+       "rev": 15517
       }
+     }
+    },
+    "non_expansion": {
+     "air": {
+      "lines": 29,
+      "planes_total": 38,
+      "cap_physical": 146,
+      "cap_demand": 146,
+      "lines_at_cap": 1,
+      "want_sum": 0,
+      "ref_Y": 7,
+      "ref_C": 12,
+      "ref_Q": 0,
+      "ref_L": 12,
+      "ref_M": 0,
+      "ref_W": 282,
+      "ref_D": 0,
+      "ref_V": 0,
+      "ref_S": 0,
+      "ref_X": 0,
+      "ref_R": 0
+     },
+     "rail": {
+      "lines": 2,
+      "trains_total": 2,
+      "lines_1train": 2,
+      "lines_2trains": 0,
+      "single_track": 2,
+      "double_track": 0,
+      "profitable": 0,
+      "backlog_met": 1,
+      "cash_refused": 0,
+      "prep_failed": 0,
+      "upgrade_failed": 0,
+      "second_built": 0,
+      "double_built": 0
+     },
+     "road": {
+      "lines": 20,
+      "vehs_total": 35,
+      "physical_cap_hit": 113,
+      "congestion_hit": 4,
+      "no_demand": 18,
+      "loss_hit": 27,
+      "cash_refused": 0,
+      "other_refused": 0,
+      "refill_built": 3
      }
     }
    },
    "1975": {
     "treasury": {
-     "available_mean": 8491961.6,
-     "available_min": 7412942,
-     "available_max": 9519867,
-     "cash_mean": 8516961.6,
-     "end_cash": 7648756,
+     "available_mean": 9357557.9,
+     "available_min": 8175696,
+     "available_max": 10453636,
+     "cash_mean": 9382557.9,
+     "end_cash": 8486476,
      "end_loan": 0,
-     "end_available": 7623756,
+     "end_available": 8461476,
      "end_company_value": 0,
      "months_recorded": 12
     },
     "projects_built": {
      "total_count": 5,
-     "total_cost": 340615,
+     "total_cost": 314864,
      "by_mode": {
       "air": {
-       "count": 5,
-       "cost": 340615,
-       "profit": 70934,
-       "mean_roi": 205
+       "count": 4,
+       "cost": 262592,
+       "profit": 58538,
+       "mean_roi": 222.5
+      },
+      "rail": {
+       "count": 1,
+       "cost": 52272,
+       "profit": 21240,
+       "mean_roi": 406
       }
      }
     },
@@ -1506,34 +2770,88 @@
      "by_mode": {}
     },
     "fleet_built": {
-     "refill_events": 5,
-     "vehicles_added": 5
+     "total_events": 2,
+     "total_vehicles_added": 2,
+     "by_mode": {
+      "road": {
+       "events": 2,
+       "added": 2
+      }
+     }
     },
     "lines_summary": {
-     "lines": 62,
-     "prof_sum": 2819097,
-     "rev_sum": 3173301,
-     "prof_lines": 55,
-     "loss_lines": 7,
+     "lines": 59,
+     "profit_year": 1974,
+     "prof_sum": 3000066,
+     "rev_sum": 3346313,
+     "prof_lines": 50,
+     "loss_lines": 9,
      "by_mode": {
       "air": {
-       "lines": 37,
-       "vehs": 46,
-       "profit": 2691663,
-       "rev": 3018953
+       "lines": 36,
+       "vehs": 45,
+       "profit": 2938815,
+       "rev": 3258990
       },
       "road": {
-       "lines": 23,
-       "vehs": 40,
-       "profit": 34597,
-       "rev": 56449
+       "lines": 21,
+       "vehs": 38,
+       "profit": 35617,
+       "rev": 56627
       },
       "rail": {
        "lines": 2,
        "vehs": 2,
-       "profit": 92837,
-       "rev": 97899
+       "profit": 25634,
+       "rev": 30696
       }
+     }
+    },
+    "non_expansion": {
+     "air": {
+      "lines": 36,
+      "planes_total": 45,
+      "cap_physical": 165,
+      "cap_demand": 165,
+      "lines_at_cap": 2,
+      "want_sum": 0,
+      "ref_Y": 7,
+      "ref_C": 15,
+      "ref_Q": 0,
+      "ref_L": 10,
+      "ref_M": 0,
+      "ref_W": 326,
+      "ref_D": 0,
+      "ref_V": 0,
+      "ref_S": 0,
+      "ref_X": 0,
+      "ref_R": 0
+     },
+     "rail": {
+      "lines": 2,
+      "trains_total": 2,
+      "lines_1train": 2,
+      "lines_2trains": 0,
+      "single_track": 2,
+      "double_track": 0,
+      "profitable": 1,
+      "backlog_met": 0,
+      "cash_refused": 0,
+      "prep_failed": 0,
+      "upgrade_failed": 0,
+      "second_built": 0,
+      "double_built": 0
+     },
+     "road": {
+      "lines": 21,
+      "vehs_total": 37,
+      "physical_cap_hit": 78,
+      "congestion_hit": 2,
+      "no_demand": 17,
+      "loss_hit": 24,
+      "cash_refused": 0,
+      "other_refused": 0,
+      "refill_built": 0
      }
     }
    }
@@ -1586,24 +2904,82 @@
      }
     },
     "fleet_built": {
-     "refill_events": 5,
-     "vehicles_added": 5
+     "total_events": 7,
+     "total_vehicles_added": 7,
+     "by_mode": {
+      "road": {
+       "events": 5,
+       "added": 5
+      },
+      "air": {
+       "events": 2,
+       "added": 2
+      }
+     }
     },
     "lines_summary": {
      "lines": 0,
+     "profit_year": 1969,
      "prof_sum": 0,
      "rev_sum": 0,
      "prof_lines": 0,
      "loss_lines": 0,
      "by_mode": {}
+    },
+    "non_expansion": {
+     "air": {
+      "lines": 0,
+      "planes_total": 0,
+      "cap_physical": 0,
+      "cap_demand": 0,
+      "lines_at_cap": 0,
+      "want_sum": 0,
+      "ref_Y": 0,
+      "ref_C": 0,
+      "ref_Q": 0,
+      "ref_L": 0,
+      "ref_M": 0,
+      "ref_W": 0,
+      "ref_D": 0,
+      "ref_V": 0,
+      "ref_S": 0,
+      "ref_X": 0,
+      "ref_R": 0
+     },
+     "rail": {
+      "lines": 0,
+      "trains_total": 0,
+      "lines_1train": 0,
+      "lines_2trains": 0,
+      "single_track": 0,
+      "double_track": 0,
+      "profitable": 0,
+      "backlog_met": 0,
+      "cash_refused": 0,
+      "prep_failed": 0,
+      "upgrade_failed": 0,
+      "second_built": 0,
+      "double_built": 0
+     },
+     "road": {
+      "lines": 0,
+      "vehs_total": 0,
+      "physical_cap_hit": 0,
+      "congestion_hit": 0,
+      "no_demand": 0,
+      "loss_hit": 0,
+      "cash_refused": 0,
+      "other_refused": 0,
+      "refill_built": 0
+     }
     }
    },
    "1971": {
     "treasury": {
-     "available_mean": 78358.2,
+     "available_mean": 83422.5,
      "available_min": 35312,
-     "available_max": 120906,
-     "cash_mean": 98962.5,
+     "available_max": 144742,
+     "cash_mean": 104026.8,
      "end_cash": 66131,
      "end_loan": 300000,
      "end_available": 51914,
@@ -1612,38 +2988,49 @@
     },
     "projects_built": {
      "total_count": 11,
-     "total_cost": 759253,
+     "total_cost": 742753,
      "by_mode": {
       "air": {
        "count": 8,
-       "cost": 574684,
-       "profit": 413150,
-       "mean_roi": 702.6
+       "cost": 558184,
+       "profit": 394105,
+       "mean_roi": 694.1
       },
       "fleet": {
        "count": 3,
        "cost": 184569,
-       "profit": 194932,
-       "mean_roi": 1055.7
+       "profit": 194158,
+       "mean_roi": 1051.3
       }
      }
     },
     "projects_refused_cash": {
-     "total_count": 2,
+     "total_count": 3,
      "by_mode": {
       "air": {
-       "count": 2,
-       "mean_roi": 782,
+       "count": 3,
+       "mean_roi": 775.7,
        "mean_need": 149523
       }
      }
     },
     "fleet_built": {
-     "refill_events": 2,
-     "vehicles_added": 2
+     "total_events": 5,
+     "total_vehicles_added": 5,
+     "by_mode": {
+      "road": {
+       "events": 2,
+       "added": 2
+      },
+      "air": {
+       "events": 3,
+       "added": 3
+      }
+     }
     },
     "lines_summary": {
      "lines": 19,
+     "profit_year": 1970,
      "prof_sum": 457904,
      "rev_sum": 514772,
      "prof_lines": 14,
@@ -1662,41 +3049,76 @@
        "rev": 41326
       }
      }
+    },
+    "non_expansion": {
+     "air": {
+      "lines": 4,
+      "planes_total": 6,
+      "cap_physical": 26,
+      "cap_demand": 26,
+      "lines_at_cap": 0,
+      "want_sum": 17,
+      "ref_Y": 6,
+      "ref_C": 0,
+      "ref_Q": 0,
+      "ref_L": 0,
+      "ref_M": 0,
+      "ref_W": 27,
+      "ref_D": 0,
+      "ref_V": 0,
+      "ref_S": 0,
+      "ref_X": 0,
+      "ref_R": 0
+     },
+     "rail": {
+      "lines": 0,
+      "trains_total": 0,
+      "lines_1train": 0,
+      "lines_2trains": 0,
+      "single_track": 0,
+      "double_track": 0,
+      "profitable": 0,
+      "backlog_met": 0,
+      "cash_refused": 0,
+      "prep_failed": 0,
+      "upgrade_failed": 0,
+      "second_built": 0,
+      "double_built": 0
+     },
+     "road": {
+      "lines": 15,
+      "vehs_total": 10,
+      "physical_cap_hit": 74,
+      "congestion_hit": 2,
+      "no_demand": 5,
+      "loss_hit": 0,
+      "cash_refused": 0,
+      "other_refused": 0,
+      "refill_built": 5
+     }
     }
    },
    "1972": {
     "treasury": {
-     "available_mean": 455713.8,
-     "available_min": 149428,
-     "available_max": 969916,
-     "cash_mean": 480713.8,
-     "end_cash": 216017,
+     "available_mean": 494678.2,
+     "available_min": 206860,
+     "available_max": 979113,
+     "cash_mean": 519678.2,
+     "end_cash": 312892,
      "end_loan": 300000,
-     "end_available": 191017,
+     "end_available": 287892,
      "end_company_value": 0,
      "months_recorded": 12
     },
     "projects_built": {
      "total_count": 12,
-     "total_cost": 837751,
+     "total_cost": 886776,
      "by_mode": {
-      "fleet": {
-       "count": 1,
-       "cost": 61523,
-       "profit": 58654,
-       "mean_roi": 953
-      },
       "air": {
-       "count": 10,
-       "cost": 730730,
-       "profit": 354803,
-       "mean_roi": 479.7
-      },
-      "rail": {
-       "count": 1,
-       "cost": 45498,
-       "profit": 56490,
-       "mean_roi": 1241
+       "count": 12,
+       "cost": 886776,
+       "profit": 413108,
+       "mean_roi": 462.8
       }
      }
     },
@@ -1705,40 +3127,94 @@
      "by_mode": {}
     },
     "fleet_built": {
-     "refill_events": 1,
-     "vehicles_added": 1
+     "total_events": 1,
+     "total_vehicles_added": 1,
+     "by_mode": {
+      "road": {
+       "events": 1,
+       "added": 1
+      }
+     }
     },
     "lines_summary": {
      "lines": 29,
-     "prof_sum": 866695,
-     "rev_sum": 997113,
+     "profit_year": 1971,
+     "prof_sum": 955752,
+     "rev_sum": 1093285,
      "prof_lines": 24,
      "loss_lines": 5,
      "by_mode": {
       "air": {
        "lines": 12,
-       "vehs": 16,
-       "profit": 809688,
-       "rev": 923528
+       "vehs": 17,
+       "profit": 898074,
+       "rev": 1019029
       },
       "road": {
        "lines": 17,
        "vehs": 33,
-       "profit": 57007,
-       "rev": 73585
+       "profit": 57678,
+       "rev": 74256
       }
+     }
+    },
+    "non_expansion": {
+     "air": {
+      "lines": 12,
+      "planes_total": 17,
+      "cap_physical": 52,
+      "cap_demand": 52,
+      "lines_at_cap": 0,
+      "want_sum": 3,
+      "ref_Y": 11,
+      "ref_C": 0,
+      "ref_Q": 0,
+      "ref_L": 13,
+      "ref_M": 0,
+      "ref_W": 96,
+      "ref_D": 0,
+      "ref_V": 0,
+      "ref_S": 0,
+      "ref_X": 0,
+      "ref_R": 0
+     },
+     "rail": {
+      "lines": 0,
+      "trains_total": 0,
+      "lines_1train": 0,
+      "lines_2trains": 0,
+      "single_track": 0,
+      "double_track": 0,
+      "profitable": 0,
+      "backlog_met": 0,
+      "cash_refused": 0,
+      "prep_failed": 0,
+      "upgrade_failed": 0,
+      "second_built": 0,
+      "double_built": 0
+     },
+     "road": {
+      "lines": 17,
+      "vehs_total": 33,
+      "physical_cap_hit": 169,
+      "congestion_hit": 1,
+      "no_demand": 11,
+      "loss_hit": 12,
+      "cash_refused": 0,
+      "other_refused": 0,
+      "refill_built": 2
      }
     }
    },
    "1973": {
     "treasury": {
-     "available_mean": 2084725.2,
-     "available_min": 1070641,
-     "available_max": 2999193,
-     "cash_mean": 2109725.2,
-     "end_cash": 1165456,
+     "available_mean": 2014238.2,
+     "available_min": 1192546,
+     "available_max": 2823688,
+     "cash_mean": 2039238.2,
+     "end_cash": 1310840,
      "end_loan": 0,
-     "end_available": 1140456,
+     "end_available": 1285840,
      "end_company_value": 0,
      "months_recorded": 12
     },
@@ -1749,8 +3225,8 @@
       "air": {
        "count": 8,
        "cost": 591184,
-       "profit": 175780,
-       "mean_roi": 297.9
+       "profit": 163601,
+       "mean_roi": 274.4
       }
      }
     },
@@ -1759,64 +3235,106 @@
      "by_mode": {}
     },
     "fleet_built": {
-     "refill_events": 2,
-     "vehicles_added": 2
+     "total_events": 4,
+     "total_vehicles_added": 4,
+     "by_mode": {
+      "road": {
+       "events": 4,
+       "added": 4
+      }
+     }
     },
     "lines_summary": {
-     "lines": 43,
-     "prof_sum": 2218147,
-     "rev_sum": 2438876,
-     "prof_lines": 34,
-     "loss_lines": 9,
+     "lines": 45,
+     "profit_year": 1972,
+     "prof_sum": 2187920,
+     "rev_sum": 2413833,
+     "prof_lines": 38,
+     "loss_lines": 7,
      "by_mode": {
       "air": {
-       "lines": 22,
-       "vehs": 28,
-       "profit": 2162372,
-       "rev": 2361592
+       "lines": 24,
+       "vehs": 29,
+       "profit": 2130182,
+       "rev": 2336517
       },
       "road": {
-       "lines": 20,
-       "vehs": 37,
-       "profit": 56044,
-       "rev": 75022
-      },
-      "rail": {
-       "lines": 1,
-       "vehs": 1,
-       "profit": -269,
-       "rev": 2262
+       "lines": 21,
+       "vehs": 38,
+       "profit": 57738,
+       "rev": 77316
       }
+     }
+    },
+    "non_expansion": {
+     "air": {
+      "lines": 24,
+      "planes_total": 29,
+      "cap_physical": 120,
+      "cap_demand": 120,
+      "lines_at_cap": 0,
+      "want_sum": 0,
+      "ref_Y": 12,
+      "ref_C": 0,
+      "ref_Q": 0,
+      "ref_L": 13,
+      "ref_M": 0,
+      "ref_W": 216,
+      "ref_D": 0,
+      "ref_V": 0,
+      "ref_S": 0,
+      "ref_X": 0,
+      "ref_R": 0
+     },
+     "rail": {
+      "lines": 0,
+      "trains_total": 0,
+      "lines_1train": 0,
+      "lines_2trains": 0,
+      "single_track": 0,
+      "double_track": 0,
+      "profitable": 0,
+      "backlog_met": 0,
+      "cash_refused": 0,
+      "prep_failed": 0,
+      "upgrade_failed": 0,
+      "second_built": 0,
+      "double_built": 0
+     },
+     "road": {
+      "lines": 21,
+      "vehs_total": 35,
+      "physical_cap_hit": 151,
+      "congestion_hit": 2,
+      "no_demand": 18,
+      "loss_hit": 33,
+      "cash_refused": 0,
+      "other_refused": 0,
+      "refill_built": 1
      }
     }
    },
    "1974": {
     "treasury": {
-     "available_mean": 4118894.6,
-     "available_min": 3206212,
-     "available_max": 5045651,
-     "cash_mean": 4143894.6,
-     "end_cash": 3330729,
+     "available_mean": 4028921.7,
+     "available_min": 2989380,
+     "available_max": 4979965,
+     "cash_mean": 4053921.7,
+     "end_cash": 3014369,
      "end_loan": 0,
-     "end_available": 3305729,
+     "end_available": 2989369,
      "end_company_value": 0,
      "months_recorded": 12
     },
     "projects_built": {
-     "total_count": 7,
-     "total_cost": 455378,
+     "total_count": 6,
+     "total_cost": 369138,
      "by_mode": {
       "air": {
        "count": 6,
-       "cost": 402138,
-       "profit": 101704,
-       "mean_roi": 249
-      },
-      "rail": {
-       "count": 1,
-       "cost": 53240,
-       "profit": 33597,
-       "mean_roi": 631
+       "cost": 369138,
+       "profit": 71378,
+       "mean_roi": 192.8
       }
      }
     },
@@ -1825,58 +3343,101 @@
      "by_mode": {}
     },
     "fleet_built": {
-     "refill_events": 2,
-     "vehicles_added": 2
+     "total_events": 0,
+     "total_vehicles_added": 0,
+     "by_mode": {}
     },
     "lines_summary": {
-     "lines": 56,
-     "prof_sum": 2717153,
-     "rev_sum": 2999002,
-     "prof_lines": 46,
-     "loss_lines": 10,
+     "lines": 57,
+     "profit_year": 1973,
+     "prof_sum": 2517442,
+     "rev_sum": 2797960,
+     "prof_lines": 48,
+     "loss_lines": 9,
      "by_mode": {
       "air": {
-       "lines": 30,
+       "lines": 32,
        "vehs": 36,
-       "profit": 2619786,
-       "rev": 2875926
+       "profit": 2460479,
+       "rev": 2716619
       },
       "road": {
        "lines": 25,
-       "vehs": 44,
-       "profit": 57715,
-       "rev": 80893
-      },
-      "rail": {
-       "lines": 1,
-       "vehs": 1,
-       "profit": 39652,
-       "rev": 42183
+       "vehs": 46,
+       "profit": 56963,
+       "rev": 81341
       }
+     }
+    },
+    "non_expansion": {
+     "air": {
+      "lines": 32,
+      "planes_total": 37,
+      "cap_physical": 174,
+      "cap_demand": 174,
+      "lines_at_cap": 2,
+      "want_sum": 0,
+      "ref_Y": 8,
+      "ref_C": 14,
+      "ref_Q": 0,
+      "ref_L": 22,
+      "ref_M": 0,
+      "ref_W": 274,
+      "ref_D": 0,
+      "ref_V": 0,
+      "ref_S": 0,
+      "ref_X": 0,
+      "ref_R": 0
+     },
+     "rail": {
+      "lines": 0,
+      "trains_total": 0,
+      "lines_1train": 0,
+      "lines_2trains": 0,
+      "single_track": 0,
+      "double_track": 0,
+      "profitable": 0,
+      "backlog_met": 0,
+      "cash_refused": 0,
+      "prep_failed": 0,
+      "upgrade_failed": 0,
+      "second_built": 0,
+      "double_built": 0
+     },
+     "road": {
+      "lines": 25,
+      "vehs_total": 44,
+      "physical_cap_hit": 106,
+      "congestion_hit": 3,
+      "no_demand": 21,
+      "loss_hit": 21,
+      "cash_refused": 0,
+      "other_refused": 0,
+      "refill_built": 4
      }
     }
    },
    "1975": {
     "treasury": {
-     "available_mean": 6110464.5,
-     "available_min": 5190594,
-     "available_max": 7022661,
-     "cash_mean": 6135464.5,
-     "end_cash": 5375971,
+     "available_mean": 6112378.7,
+     "available_min": 5243006,
+     "available_max": 7007808,
+     "cash_mean": 6137378.7,
+     "end_cash": 5267946,
      "end_loan": 0,
-     "end_available": 5350971,
+     "end_available": 5242946,
      "end_company_value": 0,
      "months_recorded": 12
     },
     "projects_built": {
-     "total_count": 5,
-     "total_cost": 307615,
+     "total_count": 7,
+     "total_cost": 463661,
      "by_mode": {
       "air": {
-       "count": 5,
-       "cost": 307615,
-       "profit": 61962,
-       "mean_roi": 201
+       "count": 7,
+       "cost": 463661,
+       "profit": 97364,
+       "mean_roi": 206.6
       }
      }
     },
@@ -1885,34 +3446,82 @@
      "by_mode": {}
     },
     "fleet_built": {
-     "refill_events": 1,
-     "vehicles_added": 1
+     "total_events": 3,
+     "total_vehicles_added": 3,
+     "by_mode": {
+      "road": {
+       "events": 3,
+       "added": 3
+      }
+     }
     },
     "lines_summary": {
-     "lines": 66,
-     "prof_sum": 2758804,
-     "rev_sum": 3088874,
+     "lines": 63,
+     "profit_year": 1974,
+     "prof_sum": 2650575,
+     "rev_sum": 2966668,
      "prof_lines": 56,
-     "loss_lines": 10,
+     "loss_lines": 7,
      "by_mode": {
       "air": {
-       "lines": 36,
-       "vehs": 42,
-       "profit": 2661215,
-       "rev": 2960045
+       "lines": 38,
+       "vehs": 41,
+       "profit": 2588343,
+       "rev": 2880058
       },
       "road": {
-       "lines": 28,
-       "vehs": 49,
-       "profit": 59319,
-       "rev": 85497
-      },
-      "rail": {
-       "lines": 2,
-       "vehs": 2,
-       "profit": 38270,
-       "rev": 43332
+       "lines": 25,
+       "vehs": 46,
+       "profit": 62232,
+       "rev": 86610
       }
+     }
+    },
+    "non_expansion": {
+     "air": {
+      "lines": 38,
+      "planes_total": 42,
+      "cap_physical": 201,
+      "cap_demand": 201,
+      "lines_at_cap": 2,
+      "want_sum": 0,
+      "ref_Y": 6,
+      "ref_C": 20,
+      "ref_Q": 0,
+      "ref_L": 10,
+      "ref_M": 0,
+      "ref_W": 316,
+      "ref_D": 0,
+      "ref_V": 10,
+      "ref_S": 0,
+      "ref_X": 0,
+      "ref_R": 0
+     },
+     "rail": {
+      "lines": 0,
+      "trains_total": 0,
+      "lines_1train": 0,
+      "lines_2trains": 0,
+      "single_track": 0,
+      "double_track": 0,
+      "profitable": 0,
+      "backlog_met": 0,
+      "cash_refused": 0,
+      "prep_failed": 0,
+      "upgrade_failed": 0,
+      "second_built": 0,
+      "double_built": 0
+     },
+     "road": {
+      "lines": 25,
+      "vehs_total": 46,
+      "physical_cap_hit": 119,
+      "congestion_hit": 3,
+      "no_demand": 25,
+      "loss_hit": 28,
+      "cash_refused": 0,
+      "other_refused": 0,
+      "refill_built": 0
      }
     }
    }
@@ -1921,81 +3530,391 @@
  "cumulative": [
   {
    "year": 1970,
-   "mean_available_capital": 66636.5,
-   "projects_built_sum": 62,
-   "projects_built_mean_per_seed": 12.4,
-   "projects_capital_sum": 2766561,
-   "projects_refused_cash_sum": 4,
-   "fleet_vehicles_added_sum": 17,
+   "profit_year_measured": 1969,
+   "mean_available_capital": 67788.5,
+   "projects_built_sum": 60,
+   "projects_built_mean_per_seed": 12,
+   "projects_capital_sum": 2675941,
+   "projects_refused_cash_sum": 10,
+   "fleet_vehicles_added_sum": 31,
+   "fleet_added_by_mode": {
+    "road": 22,
+    "air": 9
+   },
    "total_line_profit_sum": 0,
    "total_line_revenue_sum": 0,
    "loss_lines_sum": 0,
-   "profitable_lines_sum": 0
+   "profitable_lines_sum": 0,
+   "non_expansion": {
+    "air": {
+     "lines_sum": 0,
+     "planes_total_sum": 0,
+     "cap_physical_sum": 0,
+     "cap_demand_sum": 0,
+     "lines_at_cap_sum": 0,
+     "want_sum": 0,
+     "ref_Y": 0,
+     "ref_C": 0,
+     "ref_Q": 0,
+     "ref_L": 0,
+     "ref_M": 0,
+     "ref_W": 0,
+     "ref_D": 0,
+     "ref_V": 0,
+     "ref_S": 0,
+     "ref_X": 0,
+     "ref_R": 0
+    },
+    "rail": {
+     "lines_sum": 0,
+     "trains_total_sum": 0,
+     "lines_1train_sum": 0,
+     "lines_2trains_sum": 0,
+     "single_track_sum": 0,
+     "double_track_sum": 0,
+     "profitable_sum": 0,
+     "backlog_met_sum": 0,
+     "cash_refused_sum": 0,
+     "prep_failed_sum": 0,
+     "upgrade_failed_sum": 0,
+     "second_built_sum": 0,
+     "double_built_sum": 0
+    },
+    "road": {
+     "lines_sum": 0,
+     "vehs_total_sum": 0,
+     "physical_cap_hit_sum": 0,
+     "congestion_hit_sum": 0,
+     "no_demand_sum": 0,
+     "loss_hit_sum": 0,
+     "cash_refused_sum": 0,
+     "other_refused_sum": 0,
+     "refill_built_sum": 0
+    }
+   }
   },
   {
    "year": 1971,
-   "mean_available_capital": 96493.6,
-   "projects_built_sum": 50,
-   "projects_built_mean_per_seed": 10,
-   "projects_capital_sum": 3351929,
+   "profit_year_measured": 1970,
+   "mean_available_capital": 111804.7,
+   "projects_built_sum": 48,
+   "projects_built_mean_per_seed": 9.6,
+   "projects_capital_sum": 3278867,
    "projects_refused_cash_sum": 4,
-   "fleet_vehicles_added_sum": 11,
-   "total_line_profit_sum": 2278976,
-   "total_line_revenue_sum": 2558310,
+   "fleet_vehicles_added_sum": 19,
+   "fleet_added_by_mode": {
+    "road": 15,
+    "air": 4
+   },
+   "total_line_profit_sum": 2257902,
+   "total_line_revenue_sum": 2536374,
    "loss_lines_sum": 19,
-   "profitable_lines_sum": 64
+   "profitable_lines_sum": 63,
+   "non_expansion": {
+    "air": {
+     "lines_sum": 22,
+     "planes_total_sum": 31,
+     "cap_physical_sum": 165,
+     "cap_demand_sum": 165,
+     "lines_at_cap_sum": 0,
+     "want_sum": 42,
+     "ref_Y": 31,
+     "ref_C": 0,
+     "ref_Q": 0,
+     "ref_L": 0,
+     "ref_M": 0,
+     "ref_W": 153,
+     "ref_D": 0,
+     "ref_V": 0,
+     "ref_S": 0,
+     "ref_X": 0,
+     "ref_R": 0
+    },
+    "rail": {
+     "lines_sum": 1,
+     "trains_total_sum": 1,
+     "lines_1train_sum": 1,
+     "lines_2trains_sum": 0,
+     "single_track_sum": 1,
+     "double_track_sum": 0,
+     "profitable_sum": 0,
+     "backlog_met_sum": 0,
+     "cash_refused_sum": 0,
+     "prep_failed_sum": 0,
+     "upgrade_failed_sum": 0,
+     "second_built_sum": 0,
+     "double_built_sum": 0
+    },
+    "road": {
+     "lines_sum": 59,
+     "vehs_total_sum": 44,
+     "physical_cap_hit_sum": 308,
+     "congestion_hit_sum": 13,
+     "no_demand_sum": 69,
+     "loss_hit_sum": 0,
+     "cash_refused_sum": 0,
+     "other_refused_sum": 0,
+     "refill_built_sum": 22
+    }
+   }
   },
   {
    "year": 1972,
-   "mean_available_capital": 477501.7,
-   "projects_built_sum": 56,
-   "projects_built_mean_per_seed": 11.2,
-   "projects_capital_sum": 4032158,
-   "projects_refused_cash_sum": 37,
-   "fleet_vehicles_added_sum": 7,
-   "total_line_profit_sum": 4634816,
-   "total_line_revenue_sum": 5274521,
-   "loss_lines_sum": 22,
-   "profitable_lines_sum": 119
+   "profit_year_measured": 1971,
+   "mean_available_capital": 553265.0,
+   "projects_built_sum": 58,
+   "projects_built_mean_per_seed": 11.6,
+   "projects_capital_sum": 3984361,
+   "projects_refused_cash_sum": 0,
+   "fleet_vehicles_added_sum": 11,
+   "fleet_added_by_mode": {
+    "air": 7,
+    "road": 4
+   },
+   "total_line_profit_sum": 4846999,
+   "total_line_revenue_sum": 5477265,
+   "loss_lines_sum": 32,
+   "profitable_lines_sum": 110,
+   "non_expansion": {
+    "air": {
+     "lines_sum": 63,
+     "planes_total_sum": 77,
+     "cap_physical_sum": 350,
+     "cap_demand_sum": 350,
+     "lines_at_cap_sum": 0,
+     "want_sum": 15,
+     "ref_Y": 46,
+     "ref_C": 0,
+     "ref_Q": 0,
+     "ref_L": 51,
+     "ref_M": 0,
+     "ref_W": 518,
+     "ref_D": 0,
+     "ref_V": 0,
+     "ref_S": 0,
+     "ref_X": 0,
+     "ref_R": 0
+    },
+    "rail": {
+     "lines_sum": 3,
+     "trains_total_sum": 3,
+     "lines_1train_sum": 3,
+     "lines_2trains_sum": 0,
+     "single_track_sum": 3,
+     "double_track_sum": 0,
+     "profitable_sum": 1,
+     "backlog_met_sum": 0,
+     "cash_refused_sum": 0,
+     "prep_failed_sum": 0,
+     "upgrade_failed_sum": 0,
+     "second_built_sum": 0,
+     "double_built_sum": 0
+    },
+    "road": {
+     "lines_sum": 76,
+     "vehs_total_sum": 137,
+     "physical_cap_hit_sum": 636,
+     "congestion_hit_sum": 15,
+     "no_demand_sum": 100,
+     "loss_hit_sum": 64,
+     "cash_refused_sum": 0,
+     "other_refused_sum": 0,
+     "refill_built_sum": 15
+    }
+   }
   },
   {
    "year": 1973,
-   "mean_available_capital": 1618983.4,
-   "projects_built_sum": 39,
-   "projects_built_mean_per_seed": 7.8,
-   "projects_capital_sum": 2835724,
+   "profit_year_measured": 1972,
+   "mean_available_capital": 1647640.1,
+   "projects_built_sum": 44,
+   "projects_built_mean_per_seed": 8.8,
+   "projects_capital_sum": 3083278,
    "projects_refused_cash_sum": 0,
-   "fleet_vehicles_added_sum": 14,
-   "total_line_profit_sum": 8954997,
-   "total_line_revenue_sum": 9988185,
-   "loss_lines_sum": 38,
-   "profitable_lines_sum": 171
+   "fleet_vehicles_added_sum": 16,
+   "fleet_added_by_mode": {
+    "road": 16
+   },
+   "total_line_profit_sum": 8878572,
+   "total_line_revenue_sum": 9905410,
+   "loss_lines_sum": 35,
+   "profitable_lines_sum": 172,
+   "non_expansion": {
+    "air": {
+     "lines_sum": 110,
+     "planes_total_sum": 130,
+     "cap_physical_sum": 581,
+     "cap_demand_sum": 581,
+     "lines_at_cap_sum": 1,
+     "want_sum": 28,
+     "ref_Y": 53,
+     "ref_C": 8,
+     "ref_Q": 0,
+     "ref_L": 63,
+     "ref_M": 0,
+     "ref_W": 1005,
+     "ref_D": 0,
+     "ref_V": 0,
+     "ref_S": 0,
+     "ref_X": 0,
+     "ref_R": 0
+    },
+    "rail": {
+     "lines_sum": 6,
+     "trains_total_sum": 6,
+     "lines_1train_sum": 6,
+     "lines_2trains_sum": 0,
+     "single_track_sum": 6,
+     "double_track_sum": 0,
+     "profitable_sum": 2,
+     "backlog_met_sum": 2,
+     "cash_refused_sum": 4,
+     "prep_failed_sum": 18,
+     "upgrade_failed_sum": 0,
+     "second_built_sum": 0,
+     "double_built_sum": 0
+    },
+    "road": {
+     "lines_sum": 91,
+     "vehs_total_sum": 149,
+     "physical_cap_hit_sum": 629,
+     "congestion_hit_sum": 16,
+     "no_demand_sum": 130,
+     "loss_hit_sum": 147,
+     "cash_refused_sum": 0,
+     "other_refused_sum": 0,
+     "refill_built_sum": 4
+    }
+   }
   },
   {
    "year": 1974,
-   "mean_available_capital": 3126447.5,
-   "projects_built_sum": 36,
-   "projects_built_mean_per_seed": 7.2,
-   "projects_capital_sum": 2330225,
+   "profit_year_measured": 1973,
+   "mean_available_capital": 3305008.2,
+   "projects_built_sum": 29,
+   "projects_built_mean_per_seed": 5.8,
+   "projects_capital_sum": 1876581,
    "projects_refused_cash_sum": 0,
-   "fleet_vehicles_added_sum": 13,
-   "total_line_profit_sum": 10936848,
-   "total_line_revenue_sum": 12268473,
-   "loss_lines_sum": 37,
-   "profitable_lines_sum": 229
+   "fleet_vehicles_added_sum": 6,
+   "fleet_added_by_mode": {
+    "road": 6
+   },
+   "total_line_profit_sum": 11007435,
+   "total_line_revenue_sum": 12343004,
+   "loss_lines_sum": 40,
+   "profitable_lines_sum": 229,
+   "non_expansion": {
+    "air": {
+     "lines_sum": 152,
+     "planes_total_sum": 172,
+     "cap_physical_sum": 786,
+     "cap_demand_sum": 786,
+     "lines_at_cap_sum": 3,
+     "want_sum": 0,
+     "ref_Y": 42,
+     "ref_C": 26,
+     "ref_Q": 0,
+     "ref_L": 82,
+     "ref_M": 0,
+     "ref_W": 1448,
+     "ref_D": 0,
+     "ref_V": 0,
+     "ref_S": 0,
+     "ref_X": 0,
+     "ref_R": 0
+    },
+    "rail": {
+     "lines_sum": 7,
+     "trains_total_sum": 7,
+     "lines_1train_sum": 7,
+     "lines_2trains_sum": 0,
+     "single_track_sum": 7,
+     "double_track_sum": 0,
+     "profitable_sum": 4,
+     "backlog_met_sum": 5,
+     "cash_refused_sum": 0,
+     "prep_failed_sum": 0,
+     "upgrade_failed_sum": 0,
+     "second_built_sum": 0,
+     "double_built_sum": 0
+    },
+    "road": {
+     "lines_sum": 110,
+     "vehs_total_sum": 186,
+     "physical_cap_hit_sum": 542,
+     "congestion_hit_sum": 20,
+     "no_demand_sum": 138,
+     "loss_hit_sum": 129,
+     "cash_refused_sum": 0,
+     "other_refused_sum": 0,
+     "refill_built_sum": 17
+    }
+   }
   },
   {
    "year": 1975,
-   "mean_available_capital": 4794306.1,
-   "projects_built_sum": 30,
-   "projects_built_mean_per_seed": 6,
-   "projects_capital_sum": 1849425,
+   "profit_year_measured": 1974,
+   "mean_available_capital": 5084833.3,
+   "projects_built_sum": 27,
+   "projects_built_mean_per_seed": 5.4,
+   "projects_capital_sum": 1753334,
    "projects_refused_cash_sum": 0,
-   "fleet_vehicles_added_sum": 14,
-   "total_line_profit_sum": 10920797,
-   "total_line_revenue_sum": 12493285,
-   "loss_lines_sum": 41,
-   "profitable_lines_sum": 273
+   "fleet_vehicles_added_sum": 15,
+   "fleet_added_by_mode": {
+    "road": 14,
+    "rail": 1
+   },
+   "total_line_profit_sum": 11174767,
+   "total_line_revenue_sum": 12693489,
+   "loss_lines_sum": 39,
+   "profitable_lines_sum": 262,
+   "non_expansion": {
+    "air": {
+     "lines_sum": 178,
+     "planes_total_sum": 196,
+     "cap_physical_sum": 892,
+     "cap_demand_sum": 892,
+     "lines_at_cap_sum": 5,
+     "want_sum": 0,
+     "ref_Y": 26,
+     "ref_C": 41,
+     "ref_Q": 0,
+     "ref_L": 66,
+     "ref_M": 0,
+     "ref_W": 1715,
+     "ref_D": 0,
+     "ref_V": 10,
+     "ref_S": 0,
+     "ref_X": 0,
+     "ref_R": 0
+    },
+    "rail": {
+     "lines_sum": 10,
+     "trains_total_sum": 10,
+     "lines_1train_sum": 10,
+     "lines_2trains_sum": 0,
+     "single_track_sum": 10,
+     "double_track_sum": 0,
+     "profitable_sum": 5,
+     "backlog_met_sum": 2,
+     "cash_refused_sum": 0,
+     "prep_failed_sum": 2,
+     "upgrade_failed_sum": 0,
+     "second_built_sum": 0,
+     "double_built_sum": 0
+    },
+    "road": {
+     "lines_sum": 113,
+     "vehs_total_sum": 204,
+     "physical_cap_hit_sum": 519,
+     "congestion_hit_sum": 18,
+     "no_demand_sum": 117,
+     "loss_hit_sum": 132,
+     "cash_refused_sum": 0,
+     "other_refused_sum": 0,
+     "refill_built_sum": 5
+    }
+   }
   }
  ],
  "failed_runs": [],

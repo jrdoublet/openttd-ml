@@ -1480,6 +1480,112 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   5. **Vérification OpenTTD** :
      - Smoke test validé sous Docker avec filtre actif (`seed=42`, code 0, 48 véhicules, 36 stations, £198 722 de profit annuel).
 
+- 🔴 **C61 — Remplacer les plafonds de flotte air et route par des capacités physiques temporelles.**
+  📝 Ouverte le 2026-09-12 sur proposition utilisateur, à la suite de C50.
+
+  ### Point de départ et prudence causale
+  C50 montre une flotte très peu dense sur les lignes existantes, alors que la trésorerie cesse
+  d'être limitante. Il ne journalise cependant ni la cible de flotte avant plafond, ni le plafond
+  brut, ni toutes les raisons de refus. Il établit donc l'exposition au problème, **pas encore que
+  les plafonds expliquent chaque renfort absent**. La première étape de C61 est une sonde passive ;
+  supprimer simultanément les deux plafonds rendrait les effets air et route impossibles à
+  attribuer.
+
+  ### Air : une capacité temporelle existe déjà, mais elle partage la piste trop grossièrement
+  - `OpexAirTripModel` (`builder_air.nut`) calcule une rotation à partir de la distance et de la
+    vitesse effective, puis ajoute `airportDelayDays = 3.0`. Ce délai est fixe pour tous les types
+    d'aéroport et n'est pas une mesure réelle du décollage et de l'atterrissage.
+  - `OpexAirportStationDateSpan` applique une cadence par type d'aéroport : 20 jours pour un petit,
+    16 pour un commuter, 10 pour un large, 8 pour un métropolitain, 5 pour un international et 4
+    pour un intercontinental. Cette table vient du modèle d'AAAHogEx ; elle doit être considérée
+    comme une approximation à calibrer, pas comme une constante physique démontrée.
+  - `OpexAirCadenceCap` multiplie cette cadence par le **nombre de lignes** touchant chaque
+    aéroport, prend l'extrémité la plus contrainte, puis calcule
+    `floor(roundTripDays / effectiveSpan) + 1`. Toutes les lignes reçoivent ainsi une part égale de
+    la piste, même si leurs flottes et leurs rotations diffèrent fortement.
+  - `AIR_MAX_PLANES_PER_ROUTE = 16` borne ensuite ce calcul. Quand `air_cadence_cap=0`, la croissance
+    retombe sur 4 avions si un petit aéroport est présent, 16 sinon : désactiver la cadence ne
+    conserve donc pas une autre limite temporelle équivalente.
+  - Les plafonds de demande `air_demand_cap` et `air_demand_plan` sont désactivés par défaut. La
+    suppression de toute capacité aérienne laisserait surtout les gardes de profit, de santé de
+    ligne et de trésorerie réagir après une éventuelle saturation.
+  - Une nouvelle ligne démarre par ailleurs avec un seul avion lorsque `fleet_portfolio=1` ou
+    `marginal_fleet=1`. Faire sauter la constante 16 ne modifie pas ce démarrage minimal.
+
+  **Modèle candidat** : mutualiser l'occupation réelle de chaque piste. Pour un aéroport `a` :
+
+  ```text
+  utilisation(a) = somme_lignes_r [ avions_r * stationSpan(type_a) / roundTripDays_r ]
+  ```
+
+  Un avion supplémentaire sur une ligne n'est admis que si l'utilisation projetée reste sous la
+  capacité, avec une marge de sécurité explicite, aux **deux** extrémités. Ce modèle fait payer à
+  chaque ligne sa fréquence réelle au lieu de diviser arbitrairement la piste par le nombre de
+  lignes. Le plafond 16 ne sera supprimé que si la sonde montre qu'il lie réellement le cap brut,
+  ou remplacé par une garde technique suffisamment haute si elle reste nécessaire.
+
+  ### Route : le plafond actuel n'est pas une capacité temporelle de la ligne
+  - `OpexRoadLineEconomics` calcule déjà `transitDays`, un dwell passagers de 6 jours,
+    `roundTripDays`, `tripsPerMonth` et `vehiclesForVolume` selon la demande.
+  - Cette cible est ensuite écrasée par `OpexRoadPhysicalVehicleCap(1, 1) = 2` au classement.
+    `_refleetRoadLines` réapplique `2 * min(nStopsA, nStopsB)` avec les vrais nombres d'arrêts.
+  - La règle « deux véhicules simultanément par arrêt » est donc utilisée comme plafond du nombre
+    **total** de véhicules sur toute la ligne. Elle confond occupation du terminus et véhicules en
+    transit : une ligne longue peut faire circuler plus de deux véhicules sans en présenter plus
+    de deux simultanément au même arrêt.
+  - `MAX_ROAD_VEHICLES = 8` n'est pas la borne active de ces deux chemins ; modifier cette constante
+    seule ne résout rien.
+
+  Pour les passagers, le premier modèle candidat est :
+
+  ```text
+  slots = 2 * min(nStopsA, nStopsB)
+  serviceCap = floor(slots * roundTripDays / dwellDays)
+  target = min(vehiclesForVolume, serviceCap, places globales disponibles)
+  ```
+
+  Cette formule est une hypothèse dimensionnellement cohérente, pas encore une vérité mesurée : le
+  dwell de 6 jours doit être confronté aux rotations réelles. La construction initiale et le
+  renfort des lignes existantes doivent employer le même contrat de capacité.
+
+  Le fret doit être traité séparément : son `dwellDays` vaut actuellement zéro alors que l'attente
+  sous `OF_FULL_LOAD_ANY` dépend de la production. Aucun quotient temporel fini ne peut en être
+  déduit en l'état. Le premier levier sûr est une croissance incrémentale d'un véhicule, pilotée
+  par le cargo en attente, la rentabilité et une distinction entre véhicule arrêté à quai et
+  véhicule réellement bloqué en ligne. Cette distinction mérite d'être sondée car
+  `road_loading_fix=0` et `fleet_fix=0` font encore compter la vitesse nulle à quai comme attente
+  bloquante dans `_refleetRoadLines`.
+
+  ### Programme d'étude
+  1. ⬜ **Sonde passive annuelle, défaut 0, sans effet sur les décisions.** Agréger pour éviter que
+     le journal ne change matériellement la cadence du contrôleur :
+     - air : flotte présente, cap de cadence **avant** clamp 16, cap final, durée de rotation,
+       types et cadences des deux aéroports, nombre de lignes partagé, utilisation mutualisée
+       proposée et compte des refus `C/Y/L/S/M/W/X/Q` ;
+     - route, séparée passagers/fret : `vehiclesForVolume` avant clamp, cap courant, `serviceCap`
+       proposé, flotte présente/cible, cargo en attente, note, profit, véhicules à quai et bloqués
+       en ligne.
+  2. ⬜ **Lire la sonde sur 5 graines × 6 ans.** Elle doit répondre à trois questions avant tout
+     levier : quelle fraction des lignes atteint vraiment chaque plafond, combien de véhicules la
+     cible non plafonnée demanderait, et quelles autres gardes refusent les renforts.
+  3. ⬜ **Air, bras isolés** : comparer le modèle actuel, `air_cadence_cap=0` comme borne
+     expérimentale seulement, puis la capacité mutualisée. Calibrer séparément les délais par type
+     d'aéroport ; ne pas adopter la borne sans cadence comme défaut.
+  4. ⬜ **Route passagers, bras isolé** : remplacer le plafond 2 par
+     `min(vehiclesForVolume, serviceCap)`, avec croissance progressive pour limiter les achats en
+     rafale et observer les files.
+  5. ⬜ **Route fret, bras distinct** : tester la croissance incrémentale fondée sur les observations
+     réelles ; ne pas la mélanger au levier passagers.
+  6. ⬜ **Validation** : smoke test 1 graine × 1 an pour chaque bras, diagnostic physique 5×6,
+     puis banc officiel apparié 20 graines × 10 ans uniquement pour un bras physiquement sain et
+     économiquement prometteur. Suivre au minimum valeur, profit, véhicules, gares, densité de
+     flotte par ligne, files/blocages et note de gare.
+
+  **Critère de clôture** : chaque plafond historique est soit conservé avec une preuve qu'il
+  représente la contrainte observée, soit remplacé par une capacité temporelle validée. Les défauts
+  ne changent qu'après le banc officiel ; aucun chiffre antérieur au 2026-09-09 ne peut servir à
+  l'arbitrage.
+
 - 🟢 **C51 — Validation et clôture du portefeuille v2 (défaut consolidé, legacy supprimé le 2026-09-11).**
   📝 Archéologie faite le 2026-09-10, banc lancé le même jour.
 
@@ -1703,7 +1809,7 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   d'opportunité** (`estimator.nut:247`). Toute comparaison exige de recomposer les deux fractions
   sur une base homogène.
 
-- 🟢 **C50 — Chronologie comparée 1v1 et sonde chronologique légère : l'explication du décrochage.** (CLOS le 2026-09-12)
+- 🟢 **C50 / C50b — Chronologie comparée 1v1 et sonde chronologique causale : démonstration des verrous d'expansion.** (CLOS le 2026-09-12)
   📝 **Campagne 1v1 partagée exécutée le 2026-09-12** :
   `sweeps/diag_1v1_chronology.py` (6 ans × 5 graines `100 12345 42 7 999`, `--max-workers 2`, `decision_log=0`,
   comptage par delta d'état de jeu symétrique). Preuve : `results/diag_1v1_chronology_6y_5seeds.json`.
@@ -1719,32 +1825,46 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
 
   **Constat macroscopique** : En 1970, OpexAI démarre plus vite (+148 gares et +159 véhicules vs +72 et +143). Mais dès 1971, HogEx accélère brutalement (+583 puis +857 véhicules/an) alors qu'OpexAI reste figé sur un rythme plat (~80-100 véhicules/an), finissant à 616 véhicules contre 3 545 (1,62 véh/gare pour OpexAI vs 3,72 pour HogEx).
 
-  ### Sonde chronologique légère (`c50_chronology_probe=1`, défaut 0)
-  Instrumentée dans `main.nut` (gate dédié `OpexC50ChronologyLog`, 100 % autonome sans `decision_log=1`), mesurée par `sweeps/diag_c50_chronology_probe.py` (5 graines × 6 ans, `results/diag_c50_chronology_probe_6y_5seeds.json`) :
+  ### Sonde chronologique causale C50b (`c50_chronology_probe=1`, défaut 0)
+  Instrumentée dans `main.nut` (gate dédié `OpexC50ChronologyLog`, 100 % autonome sans `decision_log=1`), mesurée par `sweeps/diag_c50_chronology_probe.py` sous harnais strict (`expected_last_year=1975`, vérification des 5 graines, interruption immédiate sur tout échec).
+  Campagne officielle 5 graines (`100 12345 42 7 999`) × 6 ans, 0 échec (`failed_run_count: 0`). Preuve : `results/diag_c50_chronology_probe_6y_5seeds.json` :
 
-  | Année | Trésorerie dispo moyenne | Projets bâtis (coût total) | Refus Trésorerie | Véhicules flotte ajoutés | Profit lignes (saines / déficitaires) |
-  |---|---:|---:|---:|---:|---:|
-  | 1970 | 66 636 £ | 62 (2 766 561 £) | 4 | 17 | (mesure fin 1ère année) |
-  | 1971 | 96 494 £ | 50 (3 351 929 £) | 4 | 11 | 2 278 976 £ (64 / 19) |
-  | 1972 | 477 502 £ | 56 (4 032 158 £) | 37 | 7 | 4 634 816 £ (119 / 22) |
-  | 1973 | 1 618 983 £ | 39 (2 835 724 £) | **0** | 14 | 8 954 997 £ (171 / 38) |
-  | 1974 | 3 126 448 £ | 36 (2 330 225 £) | **0** | 13 | 10 936 848 £ (229 / 37) |
-  | 1975 | **4 794 306 £** | 30 (1 849 425 £) | **0** | 14 | 10 920 797 £ (273 / 41) |
+  | Année (Y) | Année profit mesurée (Y-1) | Capital dispo moyen | Projets bâtis | Refus Trésorerie | Véhicules flotte bâtis (Route / Air / Rail) | Profit total lignes (Y-1) |
+  |---|---|---:|---:|---:|---:|---:|
+  | 1970 | (1969) | 67 788 £ | 60 | 10 | 31 (22 route, 9 air, 0 rail) | 0 £ |
+  | 1971 | 1970 | 111 805 £ | 48 | 4 | 19 (15 route, 4 air, 0 rail) | 2 257 902 £ |
+  | 1972 | 1971 | 553 265 £ | 58 | **0** | 11 (4 route, 7 air, 0 rail) | 4 846 999 £ |
+  | 1973 | 1972 | 1 647 640 £ | 44 | **0** | 16 (16 route, 0 air, 0 rail) | 8 878 572 £ |
+  | 1974 | 1973 | 3 305 008 £ | 29 | **0** | 6 (6 route, 0 air, 0 rail) | 11 007 435 £ |
+  | 1975 | 1974 | **5 084 833 £** | 27 | **0** | 15 (14 route, 0 air, 1 rail) | **11 174 767 £** |
 
-  ### Les trois leçons causales de la sonde C50 :
-  1. **La trésorerie n'est PAS le facteur limitant après 1971** : Le capital disponible moyen explose (de 66 k£ en 1970 à 4,79 M£ en 1975). Les refus pour trésorerie tombent à **zéro** dès 1973. OpexAI dispose de millions en banque qu'il ne parvient pas à dépenser.
-  2. **Rentabilité écrasante de l'aérien mais érosion du vivier de nouvelles lignes** :
-     - En 1975, l'aérien génère **95,6 % du profit** (10,45 M£ sur 10,92 M£ pour 181 lignes), le rail 2,7 % (291 k£ pour 15 lignes), la route 1,7 % (183 k£ pour 118 lignes).
-     - Le ROI moyen des *nouvelles* lignes aériennes s'effondre d'année en année : 684,5 ‰ (1970) → 568,3 ‰ (1971) → 375,2 ‰ (1972) → 246,8 ‰ (1973) → 183,5 ‰ (1974) → 155,5 ‰ (1975).
-     - Le vivier géographique de lignes neuves faciles et ultra-rentables s'épuise.
-  3. **Blocage structurel de l'expansion de flotte sur les lignes existantes** :
-     - Les projets de renfort de flotte existante (`fleet`) ont un ROI exceptionnel (1 412,7 ‰ en 1970, 1 267,0 ‰ en 1971), 2 à 10 fois supérieur aux nouvelles lignes.
-     - **Pourtant, les projets de flotte tombent à 0 dès 1973** (8 en 1970, 8 en 1971, 2 en 1972, 0 en 1973, 0 en 1974, 0 en 1975), et les renforts de véhicules sont dérisoires (~2,6 véhicules par an et par graine pour ~60 lignes actives !).
-     - **Cause racine identifiée dans le code** :
-       - Aérien : `air_cadence_cap` (actif par défaut, `info.nut:1060`) bride la capacité physique d'un petit aéroport à 1 avion par ligne dès qu'il accueille 2 liaisons (rotation 20j × 2 = 40j > temps de vol). Les 181 lignes aériennes restent donc bridées à 199 avions (1,10 avion/ligne).
-       - Routier : `physicalCap` bride à 2 véhicules par arrêt (1 arrêt = 2 véhicules max), bloquant 118 lignes à 206 véhicules (1,75 véhicule/ligne).
-       - Rail : architecture mono-train (1,13 train/ligne).
-     - **Conclusion** : OpexAI crée des lignes quasiment 1:1 avec ses véhicules, sans pouvoir intensifier le trafic sur ses lignes les plus rentables, pendant que HogEx accumule 3,72 véhicules par gare en exploitant à fond chaque couloir.
+  ### Causes racines démontrées et quantifiées par C50b :
+
+  1. **La trésorerie cesse d'être limitante dès 1972** :
+     - Le capital disponible passe de 67 k£ (1970) à 5,08 M£ (1975).
+     - Les refus trésorerie tombent à **0 absolu** dès 1972 sur tous les modes (projets neufs et renforts).
+     - Le décalage temporel entre $Y$ et le profit de $Y-1$ (`profit_year`) montre que le profit passe de 2,26 M£ (1970) à 11,17 M£ (1974), mais plafonne brutalement dès 1973-1974 (£11,00 M → £11,17 M).
+
+  2. **Air : la cause racine du blocage est `ref_W` (`AIR_FLEET_BUFFER`), pas la capacité de l'aéroport** :
+     - Les 178 lignes aériennes actives en 1975 ne totalisent que 196 appareils (1,10 avion/ligne) face à un plafond physique théorique cumulé de 892 avions. Seules 5 lignes atteignent le plafond d'aéroport (`lines_at_cap = 5`).
+     - Le verrou causal numéro 1 est **`ref_W` (stock en attente insuffisant, formule `(maxWait - bottom) / planeCapacity >= 1`)**, qui cumule :
+       - 153 refus en 1971, 518 en 1972, 1 005 en 1973, 1 448 en 1974 et **1 715 refus en 1975**.
+       - Dès 1974, `want_sum` tombe à 0 : aucun avion supplémentaire n'est demandé par le planificateur de flotte !
+     - Les verrous secondaires sont `ref_L` (profit négatif transitoire, 66 à 82 refus/an) et `ref_Y` (verrou de cadence annuelle, 26 à 53 refus/an). `ref_C` (capacité d'aéroport) ne représente que 41 refus en 1975.
+
+  3. **Route : la cause racine est le plafond physique d'arrêt (`phys_cap_hit`)** :
+     - Les lignes routières s'étendent rapidement en 1970-1971 mais sont bloquées par `OpexRoadPhysicalVehicleCap` (2 véhicules max par quai d'arrêt) :
+       - 308 lignes au plafond en 1971, 636 en 1972, 629 en 1973, 542 en 1974, 519 en 1975.
+       - Les refus secondaires sont `loss_hit` (129-147/an) et `no_demand` (100-138/an). Refus trésorerie : 0.
+
+  4. **Rail : blocage par géométrie de station (`prep.reason = "NOSPOT"`) et seuil de backlog** :
+     - Seules 10 lignes ferroviaires ont été bâties sur les 5 graines réunies en 6 ans (2 lignes/graine).
+     - 100 % sont en voie unique avec train unique (`single=10, 1train=10, double=0, 2trains=0`).
+     - Le passage en double voie et l'ajout d'un 2e train sont bloqués :
+       - Le stock en gare atteint rarement le seuil de backlog (`backlog_met` < 2 lignes/an).
+       - Quand le seuil est franchi, la préparation échoue avec `prep.reason = "NOSPOT"` (14 échecs en 1973, graine 42) : les gares terminus urbaines ne disposent pas d'espace contigu libre pour poser un second quai parallèle.
+
+  **Synthèse C50/C50b** : Le décrochage d'OpexAI face à AAAHogEx après 1970 est une **crise de sur-accumulation de capital** (£5,1M dormants) causée par une incapacité à densifier les lignes existantes. L'aérien est verrouillé par la condition de buffer d'attente (`AIR_FLEET_BUFFER`), la route par la limite physique de 2 véhicules par quai, et le rail par l'impossibilité d'étendre ses terminus mono-voie.
 
 - 🟡 **C48 — Le coût de `projects` n'est PAS le balayage : c'est la régénération qu'il déclenche.** (NON SIGNIFICATIF — MAINTENU À DÉFAUT 0 le 2026-09-12)
   📝 Ouverte et mesurée le 2026-09-10. Sonde `c48_project_attempt_ledger` (défaut 0, gate dédié

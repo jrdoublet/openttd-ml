@@ -1,7 +1,8 @@
 """Diagnostic C50 : Sonde chronologique legere (tresorerie, profit par ligne, projets batis et refuses).
 
 Mesure passive sans decision_log=1 : relie le decrochage 1970 -> 1971+ face a AAAHogEx
-a la tresorerie mensuelle, a la rentabilite des lignes existantes, et aux arbitrages de construction.
+a la tresorerie mensuelle, a la rentabilite des lignes existantes, aux arbitrages de construction
+et aux motifs causaux de non-expansion (aerien, ferroviaire, routier).
 """
 import argparse
 from collections import defaultdict
@@ -70,6 +71,7 @@ def process_c50_events(events):
         "projects_built": [],
         "projects_refused_cash": [],
         "fleet_built": [],
+        "non_expansion": {},
     })
 
     for ev in events:
@@ -96,6 +98,7 @@ def process_c50_events(events):
         elif phase == "line_profit_summary":
             bucket["line_profit_summary"] = {
                 "lines": int(ev.get("lines", 0)),
+                "profit_year": int(ev.get("profit_year", yr - 1)),
                 "prof_sum": int(ev.get("prof_sum", 0)),
                 "rev_sum": int(ev.get("rev_sum", 0)),
                 "prof_lines": int(ev.get("prof_lines", 0)),
@@ -104,6 +107,7 @@ def process_c50_events(events):
         elif phase == "line_profit":
             bucket["line_profits"].append({
                 "line": int(ev.get("line", 0)),
+                "profit_year": int(ev.get("profit_year", yr - 1)),
                 "mode": ev.get("mode", "unknown"),
                 "cargo": ev.get("cargo", "unknown"),
                 "vehs": int(ev.get("vehs", 0)),
@@ -143,8 +147,16 @@ def process_c50_events(events):
                 "line": int(ev.get("line", -1)),
                 "added": int(ev.get("added", 0)),
                 "total": int(ev.get("total", 0)),
+                "want": int(ev.get("want", 0)) if "want" in ev else None,
                 "cash_after": int(ev.get("cash_after", 0)),
             })
+        elif phase == "c50b_non_expansion":
+            mode = ev.get("mode", "unknown")
+            bucket["non_expansion"][mode] = {
+                k: int(v) if (v.lstrip("-").isdigit()) else v
+                for k, v in ev.items()
+                if k not in ("phase", "mode", "year", "_log_date", "_log_year")
+            }
 
     yearly_metrics = {}
     for yr, b in sorted(years_data.items()):
@@ -193,10 +205,17 @@ def process_c50_events(events):
             }
         }
 
-        # Fleet built
+        # Fleet built by mode
+        fleet_by_mode = defaultdict(lambda: {"events": 0, "added": 0})
+        for f in b["fleet_built"]:
+            m = f["mode"]
+            fleet_by_mode[m]["events"] += 1
+            fleet_by_mode[m]["added"] += f["added"]
+
         fleet_summary = {
-            "refill_events": len(b["fleet_built"]),
-            "vehicles_added": sum(f["added"] for f in b["fleet_built"]),
+            "total_events": len(b["fleet_built"]),
+            "total_vehicles_added": sum(f["added"] for f in b["fleet_built"]),
+            "by_mode": dict(fleet_by_mode),
         }
 
         # Lines profit
@@ -227,6 +246,7 @@ def process_c50_events(events):
             "projects_refused_cash": refused_summary,
             "fleet_built": fleet_summary,
             "lines_summary": lines_summary,
+            "non_expansion": dict(b["non_expansion"]),
         }
 
     return yearly_metrics
@@ -240,25 +260,86 @@ def aggregate_across_seeds(seeds_metrics):
         built_counts = [sm[yr]["projects_built"]["total_count"] for sm in seeds_metrics.values() if yr in sm]
         built_costs = [sm[yr]["projects_built"]["total_cost"] for sm in seeds_metrics.values() if yr in sm]
         refused_counts = [sm[yr]["projects_refused_cash"]["total_count"] for sm in seeds_metrics.values() if yr in sm]
-        fleet_added = [sm[yr]["fleet_built"]["vehicles_added"] for sm in seeds_metrics.values() if yr in sm]
+        fleet_added = [sm[yr]["fleet_built"]["total_vehicles_added"] for sm in seeds_metrics.values() if yr in sm]
 
         prof_sums = [sm[yr]["lines_summary"].get("prof_sum", 0) for sm in seeds_metrics.values() if yr in sm]
         rev_sums = [sm[yr]["lines_summary"].get("rev_sum", 0) for sm in seeds_metrics.values() if yr in sm]
         loss_counts = [sm[yr]["lines_summary"].get("loss_lines", 0) for sm in seeds_metrics.values() if yr in sm]
         prof_counts = [sm[yr]["lines_summary"].get("prof_lines", 0) for sm in seeds_metrics.values() if yr in sm]
 
+        # Non-expansion aggregation across seeds
+        air_ne = [sm[yr]["non_expansion"].get("air", {}) for sm in seeds_metrics.values() if yr in sm]
+        rail_ne = [sm[yr]["non_expansion"].get("rail", {}) for sm in seeds_metrics.values() if yr in sm]
+        road_ne = [sm[yr]["non_expansion"].get("road", {}) for sm in seeds_metrics.values() if yr in sm]
+
+        # Fleet additions by mode
+        fleet_modes = defaultdict(int)
+        for sm in seeds_metrics.values():
+            if yr in sm:
+                for m, fd in sm[yr]["fleet_built"].get("by_mode", {}).items():
+                    fleet_modes[m] += fd["added"]
+
         cum.append({
             "year": yr,
+            "profit_year_measured": yr - 1,
             "mean_available_capital": round(statistics.mean(avail_means), 1) if avail_means else 0,
             "projects_built_sum": sum(built_counts),
             "projects_built_mean_per_seed": round(statistics.mean(built_counts), 2) if built_counts else 0,
             "projects_capital_sum": sum(built_costs),
             "projects_refused_cash_sum": sum(refused_counts),
             "fleet_vehicles_added_sum": sum(fleet_added),
+            "fleet_added_by_mode": dict(fleet_modes),
             "total_line_profit_sum": sum(prof_sums),
             "total_line_revenue_sum": sum(rev_sums),
             "loss_lines_sum": sum(loss_counts),
             "profitable_lines_sum": sum(prof_counts),
+            "non_expansion": {
+                "air": {
+                    "lines_sum": sum(x.get("lines", 0) for x in air_ne),
+                    "planes_total_sum": sum(x.get("planes_total", 0) for x in air_ne),
+                    "cap_physical_sum": sum(x.get("cap_physical", 0) for x in air_ne),
+                    "cap_demand_sum": sum(x.get("cap_demand", 0) for x in air_ne),
+                    "lines_at_cap_sum": sum(x.get("lines_at_cap", 0) for x in air_ne),
+                    "want_sum": sum(x.get("want_sum", 0) for x in air_ne),
+                    "ref_Y": sum(x.get("ref_Y", 0) for x in air_ne),
+                    "ref_C": sum(x.get("ref_C", 0) for x in air_ne),
+                    "ref_Q": sum(x.get("ref_Q", 0) for x in air_ne),
+                    "ref_L": sum(x.get("ref_L", 0) for x in air_ne),
+                    "ref_M": sum(x.get("ref_M", 0) for x in air_ne),
+                    "ref_W": sum(x.get("ref_W", 0) for x in air_ne),
+                    "ref_D": sum(x.get("ref_D", 0) for x in air_ne),
+                    "ref_V": sum(x.get("ref_V", 0) for x in air_ne),
+                    "ref_S": sum(x.get("ref_S", 0) for x in air_ne),
+                    "ref_X": sum(x.get("ref_X", 0) for x in air_ne),
+                    "ref_R": sum(x.get("ref_R", 0) for x in air_ne),
+                },
+                "rail": {
+                    "lines_sum": sum(x.get("lines", 0) for x in rail_ne),
+                    "trains_total_sum": sum(x.get("trains_total", 0) for x in rail_ne),
+                    "lines_1train_sum": sum(x.get("lines_1train", 0) for x in rail_ne),
+                    "lines_2trains_sum": sum(x.get("lines_2trains", 0) for x in rail_ne),
+                    "single_track_sum": sum(x.get("single_track", 0) for x in rail_ne),
+                    "double_track_sum": sum(x.get("double_track", 0) for x in rail_ne),
+                    "profitable_sum": sum(x.get("profitable", 0) for x in rail_ne),
+                    "backlog_met_sum": sum(x.get("backlog_met", 0) for x in rail_ne),
+                    "cash_refused_sum": sum(x.get("cash_refused", 0) for x in rail_ne),
+                    "prep_failed_sum": sum(x.get("prep_failed", 0) for x in rail_ne),
+                    "upgrade_failed_sum": sum(x.get("upgrade_failed", 0) for x in rail_ne),
+                    "second_built_sum": sum(x.get("second_built", 0) for x in rail_ne),
+                    "double_built_sum": sum(x.get("double_built", 0) for x in rail_ne),
+                },
+                "road": {
+                    "lines_sum": sum(x.get("lines", 0) for x in road_ne),
+                    "vehs_total_sum": sum(x.get("vehs_total", 0) for x in road_ne),
+                    "physical_cap_hit_sum": sum(x.get("physical_cap_hit", 0) for x in road_ne),
+                    "congestion_hit_sum": sum(x.get("congestion_hit", 0) for x in road_ne),
+                    "no_demand_sum": sum(x.get("no_demand", 0) for x in road_ne),
+                    "loss_hit_sum": sum(x.get("loss_hit", 0) for x in road_ne),
+                    "cash_refused_sum": sum(x.get("cash_refused", 0) for x in road_ne),
+                    "other_refused_sum": sum(x.get("other_refused", 0) for x in road_ne),
+                    "refill_built_sum": sum(x.get("refill_built", 0) for x in road_ne),
+                }
+            }
         })
     return cum
 
@@ -300,12 +381,17 @@ def selftest():
 [script:0] OPEX 1970-3-15 C50_CHRONO phase=project_built mode=road rank=0 line=1 cost=20000 profit=10000 roi=500 cash_after=70000 available=65000
 [script:0] OPEX 1970-4-10 C50_CHRONO phase=refused_cash mode=rail rank=1 cost=80000 profit=25000 roi=312 need=80000 cash=70000 loan=100000 available=65000
 [script:0] OPEX 1970-5-2 C50_CHRONO phase=fleet_built mode=road line=1 added=2 total=4 cash_after=66000
-[script:0] OPEX 1970-12-31 C50_CHRONO phase=line_profit year=1970 line=1 mode=road cargo=PASS vehs=4 profit=8500 run_cost=1500 rev=10000 pred_profit=10000 roi=500 age=0
-[script:0] OPEX 1970-12-31 C50_CHRONO phase=line_profit_summary year=1970 lines=1 prof_sum=8500 rev_sum=10000 prof_lines=1 loss_lines=0
-[script:0] OPEX 1970-12-31 C50_CHRONO phase=treasury_annual year=1970 cash=66000 loan=100000 max_loan=300000 available=261000 company_value=125000 lines=1
+[script:0] OPEX 1970-6-10 C50_CHRONO phase=fleet_built mode=air line=2 added=1 total=2 want=1 cash_after=50000
+[script:0] OPEX 1970-7-20 C50_CHRONO phase=fleet_built mode=rail line=3 added=1 total=2 cash_after=30000
+[script:0] OPEX 1970-12-31 C50_CHRONO phase=line_profit year=1971 profit_year=1970 line=1 mode=road cargo=PASS vehs=4 profit=8500 run_cost=1500 rev=10000 pred_profit=10000 roi=500 age=0
+[script:0] OPEX 1970-12-31 C50_CHRONO phase=line_profit_summary year=1971 profit_year=1970 lines=1 prof_sum=8500 rev_sum=10000 prof_lines=1 loss_lines=0
+[script:0] OPEX 1970-12-31 C50_CHRONO phase=treasury_annual year=1970 cash=66000 loan=100000 max_loan=300000 available=261000 company_value=125000 lines=3
+[script:0] OPEX 1970-12-31 C50_CHRONO phase=c50b_non_expansion mode=air year=1970 lines=1 planes_total=2 cap_physical=2 cap_demand=2 lines_at_cap=1 want_sum=0 ref_Y=1 ref_C=1 ref_Q=0 ref_L=0 ref_M=0 ref_W=0 ref_D=0 ref_V=0 ref_S=0 ref_X=0 ref_R=0
+[script:0] OPEX 1970-12-31 C50_CHRONO phase=c50b_non_expansion mode=rail year=1970 lines=1 trains_total=2 lines_1train=0 lines_2trains=1 single_track=0 double_track=1 profitable=1 backlog_met=1 cash_refused=0 prep_failed=0 upgrade_failed=0 second_built=1 double_built=0
+[script:0] OPEX 1970-12-31 C50_CHRONO phase=c50b_non_expansion mode=road year=1970 lines=1 vehs_total=4 physical_cap_hit=1 congestion_hit=0 no_demand=0 loss_hit=0 cash_refused=0 other_refused=0 refill_built=2
 """
     events = parse_events(sample_log)
-    assert len(events) == 8, f"Expected 8 events, got {len(events)}"
+    assert len(events) == 13, f"Expected 13 events, got {len(events)}"
     res = process_c50_events(events)
     assert 1970 in res, "Year 1970 missing from metrics"
     m70 = res[1970]
@@ -314,9 +400,30 @@ def selftest():
     assert m70["projects_built"]["total_count"] == 1
     assert m70["projects_built"]["by_mode"]["road"]["cost"] == 20000
     assert m70["projects_refused_cash"]["total_count"] == 1
-    assert m70["fleet_built"]["vehicles_added"] == 2
-    assert m70["lines_summary"]["prof_sum"] == 8500
-    print("selftest OK: all 8 events parsed and verified.")
+    assert m70["fleet_built"]["total_vehicles_added"] == 4
+    assert m70["fleet_built"]["by_mode"]["road"]["added"] == 2
+    assert m70["fleet_built"]["by_mode"]["air"]["added"] == 1
+    assert m70["fleet_built"]["by_mode"]["rail"]["added"] == 1
+    assert m70["non_expansion"]["air"]["ref_C"] == 1
+    assert m70["non_expansion"]["rail"]["second_built"] == 1
+    assert m70["non_expansion"]["road"]["refill_built"] == 2
+
+    # Verify line profits recorded under year 1971 with profit_year 1970
+    assert 1971 in res, "Year 1971 missing from metrics"
+    m71 = res[1971]
+    assert m71["lines_summary"]["profit_year"] == 1970
+    assert m71["lines_summary"]["prof_sum"] == 8500
+
+    seeds_dict = {100: res}
+    cum = aggregate_across_seeds(seeds_dict)
+    assert len(cum) >= 1
+    cum70 = [c for c in cum if c["year"] == 1970][0]
+    assert cum70["fleet_added_by_mode"]["air"] == 1
+    assert cum70["fleet_added_by_mode"]["rail"] == 1
+    assert cum70["fleet_added_by_mode"]["road"] == 2
+    assert cum70["non_expansion"]["air"]["lines_at_cap_sum"] == 1
+
+    print("selftest OK: all 13 events parsed, structured and verified across modes.")
 
 
 def main():
@@ -355,7 +462,16 @@ def main():
         ),
     ))
 
-    summary = summarise(rows)
+    expected_last_year = 1970 + args.years - 1
+    summary = summarise(rows, expected_last_year=expected_last_year)
+
+    if len(summary) != len(args.seeds):
+        raise SystemExit(f"ABORT: Attendu {len(args.seeds)} graines, obtenu {len(summary)} dans summary")
+
+    failed = [{key: value for key, value in record.items() if key != "openttd_output"}
+              for record in summary if not record["run_ok"]]
+    if failed:
+        raise SystemExit(f"ABORT: {len(failed)} runs ont echoue: {failed}")
 
     results_by_seed = {}
     for record in summary:
@@ -365,9 +481,6 @@ def main():
         results_by_seed[seed] = metrics
 
     cumulative = aggregate_across_seeds(results_by_seed)
-
-    failed = [{key: value for key, value in record.items() if key != "openttd_output"}
-              for record in summary if not record["run_ok"]]
 
     payload = {
         "openttd_version": OPENTTD_VERSION,
