@@ -647,7 +647,8 @@ function OpexReselectProjects(projects, capitalBudget)
 /* C36.1 : Revalidation rapide d'un candidat deja en memoire contre this._lines.
  * Verifie qu'aucune extremite n'est devenue invalide, qu'aucune ligne identique n'a ete batie,
  * et que les contraintes physiques du mode tiennent toujours. */
-function OpexIncrementalCandidateStillValid(p, lines, abandonedPairs = null)
+/* C36.1 : Revalidation rapide d'un candidat deja en memoire contre this._lines (version historique). */
+function OpexLegacyCandidateStillValid(p, lines, abandonedPairs = null)
 {
   if (p == null) return false;
   local mode = p.mode;
@@ -833,6 +834,215 @@ function OpexIncrementalCandidateStillValid(p, lines, abandonedPairs = null)
   return true;
 }
 
+/* C48 : Revalidation exacte en O(1) via OpexBuildLineIndex. */
+function OpexIndexedCandidateStillValid(p, lineIndex, abandonedPairs = null, updateProbes = true)
+{
+  if (p == null) return false;
+  local mode = p.mode;
+
+  /* 0. Candidat abandonne (echec de trace ou depot) */
+  if (abandonedPairs != null) {
+    if (mode == "air") {
+      local plan = p.payload;
+      if (plan != null && ("siteA" in plan) && ("siteB" in plan)) {
+        local aKey1 = "air|" + plan.siteA.town.tile + "|" + plan.siteB.town.tile;
+        local aKey2 = "air|" + plan.siteB.town.tile + "|" + plan.siteA.town.tile;
+        local siteAKey = OpexAirSiteAbandonKey(plan.siteA, plan.airport.type);
+        local siteBKey = OpexAirSiteAbandonKey(plan.siteB, plan.airport.type);
+        if ((aKey1 in abandonedPairs) || (aKey2 in abandonedPairs)
+            || (AIR_ABANDON_SITE && ((siteAKey in abandonedPairs) || (siteBKey in abandonedPairs)))) return false;
+      }
+    } else if (ABANDON_GEN_FILTER && ABANDON_MEMORY && (mode == "road" || mode == "rail")) {
+      if (("payload" in p) && p.payload != null) {
+        local aKey = OpexAbandonedPairKey(p.payload);
+        if (aKey in abandonedPairs) return false;
+      }
+    }
+  }
+
+  /* 1. Doublon exact avec une ligne deja batie */
+  local a = p.src;
+  local b = p.dst;
+  local pKey = (a < b) ? (p.cargo + "|" + a + "|" + b) : (p.cargo + "|" + b + "|" + a);
+  if (pKey in lineIndex.exactLines) return false;
+
+  /* 2. Mode route */
+  if (mode == "road") {
+    local isSubsidy = (("payload" in p) && p.payload != null &&
+                       ("isSubsidy" in p.payload) && p.payload.isSubsidy);
+    if (isSubsidy) {
+      local subId = p.payload.subsidyId;
+      if (!AISubsidy.IsValidSubsidy(subId) || AISubsidy.IsAwarded(subId)) return false;
+      local today = AIDate.GetCurrentDate();
+      local oneWay = ("oneWayDays" in p.payload) ? p.payload.oneWayDays : -1;
+      local chantier = ("chantierDays" in p.payload) ? p.payload.chantierDays : OpexSubsidyChantierDays(oneWay);
+      if (AISubsidy.GetExpireDate(subId) - today < chantier) return false;
+      return true;
+    }
+    local isFeeder = (("payload" in p) && p.payload != null &&
+                      ("isFeeder" in p.payload) && p.payload.isFeeder);
+    if (isFeeder) {
+      local cand = p.payload;
+      local isHubTown = ("isHubTown" in cand) ? cand.isHubTown : false;
+      local maxFeeders = 1;
+      if (isHubTown && FEEDER_TOWN_COVERAGE) {
+        local tId = ("srcTown" in cand && cand.srcTown >= 0) ? cand.srcTown : AITile.GetClosestTown(cand.src);
+        local houses = AITown.IsValidTown(tId) ? AITown.GetHouseCount(tId) : 0;
+        if (houses <= 0 && AITown.IsValidTown(tId)) houses = AITown.GetPopulation(tId) / 25;
+        maxFeeders = OpexCeilDiv(houses, ROAD_STOP_CATCHMENT_HOUSES);
+        if (maxFeeders > 4) maxFeeders = 4;
+        if (maxFeeders < 1) maxFeeders = 1;
+      }
+      local currCount = OpexTownFeederCountIndexed(lineIndex, cand.src, cand.hubStationId);
+      local slot = ("feederSlot" in cand) ? cand.feederSlot : 0;
+      local currYear = AIDate.GetYear(AIDate.GetCurrentDate());
+      local startYear = 1970;
+      if (currCount >= maxFeeders || (slot >= 1 && (currYear - startYear) < 2)) return false;
+    } else {
+      if (p.kind == "pax") {
+        local srcServed = (p.src in lineIndex.servedAny);
+        local dstServed = (p.dst in lineIndex.servedAny);
+        local isOriginBlocked = srcServed || dstServed;
+
+        if (updateProbes && C55_PAX_TRACE_PROBE) {
+          OpexC55PaxTraceObserveRevalidated(isOriginBlocked);
+        }
+
+        if (C55_ROAD_PAX_ORIGIN_RELAX || C55_ROAD_ORIGIN_RELAX) {
+          if (OpexRoadPairServedIndexed(lineIndex, p.src, p.dst)) return false;
+          local tA = AITile.GetClosestTown(p.src);
+          local cntA = (tA in lineIndex.townRoadCounts) ? lineIndex.townRoadCounts[tA] : 0;
+          if (cntA >= 4) return false;
+          local tB = AITile.GetClosestTown(p.dst);
+          local cntB = (tB in lineIndex.townRoadCounts) ? lineIndex.townRoadCounts[tB] : 0;
+          if (cntB >= 4) return false;
+          if (isOriginBlocked) {
+            if (!("_c55_pax_spared" in p) || !p._c55_pax_spared) {
+              p._c55_pax_spared <- true;
+              if (p.payload != null) p.payload._c55_pax_spared <- true;
+              if (updateProbes && C55_PAX_TRACE_PROBE) {
+                OpexC55PaxTraceObserveSpared();
+              }
+            }
+          }
+        } else {
+          if (updateProbes && C55_ORIGIN_RELAX_PROBE) {
+            OpexC55OriginRelaxObserve("pax", lineIndex.lines, p.src, p.dst, srcServed, dstServed);
+          }
+          if (isOriginBlocked) return false;
+          if (OpexRoadPairServedIndexed(lineIndex, p.src, p.dst)) return false;
+        }
+      } else {
+        /* Fret routier */
+        if (C55_FREIGHT_ORIGIN_RELAX || C55_ROAD_ORIGIN_RELAX) {
+          local srcServed = (p.src in lineIndex.servedAny);
+          local dstServed = (p.dst in lineIndex.servedAny);
+          if (srcServed && dstServed) return false;
+          if (((p.cargo + "|" + p.src) in lineIndex.roadFreightBusy) ||
+              ((p.cargo + "|" + p.dst) in lineIndex.roadFreightBusy)) return false;
+        } else if (updateProbes && C55_ORIGIN_RELAX_PROBE) {
+          local srcServed = (p.src in lineIndex.servedAny);
+          local dstServed = (p.dst in lineIndex.servedAny);
+          OpexC55OriginRelaxObserve("freight", lineIndex.lines, p.src, p.dst, srcServed, dstServed);
+          if (srcServed || dstServed) return false;
+        } else {
+          if (p.src in lineIndex.servedAny) return false;
+          if (p.dst in lineIndex.servedAny) return false;
+        }
+      }
+      local towns = OpexGetCandidateTownEndpoints(p);
+      if (updateProbes && C60_TOWN_RATING_PROBE) {
+        if (towns.srcTown >= 0) OpexC60ObserveTownRating("road", "incremental_valid", towns.srcTown);
+        if (towns.dstTown >= 0) OpexC60ObserveTownRating("road", "incremental_valid", towns.dstTown);
+      }
+      if (C60_TOWN_RATING_FILTER) {
+        if ((towns.srcTown >= 0 && !OpexTownRatingAllowStation(towns.srcTown)) ||
+            (towns.dstTown >= 0 && !OpexTownRatingAllowStation(towns.dstTown))) return false;
+      }
+    }
+    return true;
+  }
+
+  /* 3. Mode rail : les deux extremites servies excluent la ligne */
+  if (mode == "rail") {
+    local towns = OpexGetCandidateTownEndpoints(p);
+    if (updateProbes && C60_TOWN_RATING_PROBE) {
+      if (towns.srcTown >= 0) OpexC60ObserveTownRating("rail", "incremental_valid", towns.srcTown);
+      if (towns.dstTown >= 0) OpexC60ObserveTownRating("rail", "incremental_valid", towns.dstTown);
+    }
+    if (C60_TOWN_RATING_FILTER) {
+      if ((towns.srcTown >= 0 && !OpexTownRatingAllowStation(towns.srcTown)) ||
+          (towns.dstTown >= 0 && !OpexTownRatingAllowStation(towns.dstTown))) return false;
+    }
+    if ((p.src in lineIndex.servedRail) && (p.dst in lineIndex.servedRail)) {
+      return false;
+    }
+    return true;
+  }
+
+  /* 4. Mode aerien : validite du plan de lot et constructibilite des sites */
+  if (mode == "air") {
+    local plan = p.payload;
+    if (plan == null) return false;
+    if (updateProbes && C60_TOWN_RATING_PROBE) {
+      if (("siteA" in plan) && ("town" in plan.siteA)) OpexC60ObserveTownRating("air", "incremental_valid", plan.siteA.town.id);
+      if ("siteB" in plan && ("town" in plan.siteB)) OpexC60ObserveTownRating("air", "incremental_valid", plan.siteB.town.id);
+    }
+    if (C60_TOWN_RATING_FILTER) {
+      if ((("siteA" in plan) && ("town" in plan.siteA) && OpexTownRatingHopeless(plan.siteA.town.id)) ||
+          (("siteB" in plan) && ("town" in plan.siteB) && OpexTownRatingHopeless(plan.siteB.town.id))) {
+        return false;
+      }
+    }
+    if (!OpexAirBatchPlanStillLive(plan, lineIndex.lines)) return false;
+    if (!OpexAirBatchSiteStillBuildable(plan.siteA, plan.airport, plan.plane,
+                                         ("reuseA" in plan) && plan.reuseA)) {
+      return false;
+    }
+    if (!OpexAirBatchSiteStillBuildable(plan.siteB, plan.airport, plan.plane,
+                                         ("reuseB" in plan) && plan.reuseB)) {
+      return false;
+    }
+    return true;
+  }
+
+  /* 5. Mode maritime : dock constructible */
+  if (mode == "water") {
+    local plan = p.payload;
+    if (plan == null || !("siteA" in plan) || !("siteB" in plan)) return false;
+    if (!OpexWaterBatchSiteStillBuildable(plan.siteA) ||
+        !OpexWaterBatchSiteStillBuildable(plan.siteB)) {
+      return false;
+    }
+    return true;
+  }
+
+  return true;
+}
+
+/* C36.1 & C48 : Point d'entree unifie de revalidation incrémentale.
+ * Supporte le mode historique, le mode indexé O(1), et le mode miroir (shadow) d'assertion stricte. */
+function OpexIncrementalCandidateStillValid(p, lines, abandonedPairs = null, lineIndex = null)
+{
+  if (C48_INDEX_SHADOW) {
+    local legVal = OpexLegacyCandidateStillValid(p, lines, abandonedPairs);
+    local testIdx = (lineIndex != null) ? lineIndex : OpexBuildLineIndex(lines);
+    local idxVal = OpexIndexedCandidateStillValid(p, testIdx, abandonedPairs, false);
+    if (legVal != idxVal) {
+      AILog.Error("C48 SHADOW MISMATCH! mode=" + p.mode + " cargo=" + p.cargo + " src=" + p.src + " dst=" + p.dst + " legacy=" + legVal + " indexed=" + idxVal);
+      throw "C48 Equivalence violation";
+    }
+    return legVal;
+  }
+
+  if (C48_INDEXED_REGENERATION) {
+    local useIdx = (lineIndex != null) ? lineIndex : OpexBuildLineIndex(lines);
+    return OpexIndexedCandidateStillValid(p, useIdx, abandonedPairs, true);
+  }
+
+  return OpexLegacyCandidateStillValid(p, lines, abandonedPairs);
+}
+
 /* C38 : cle stable d'une tentative au sein d'un batch. Les plans air/eau sont des objets
  * regenerables ; l'identite doit donc reposer sur le mode, les extremites, le cargo et le type,
  * jamais sur l'adresse du payload. La flotte cible une ligne existante. */
@@ -860,6 +1070,7 @@ function OpexProjectAttemptKey(p)
 function OpexDynamicBatchReselect(projects, lines, attempted, capitalBudget, abandonedPairs = null)
 {
   if (projects == null) return null;
+  local lineIndex = (C48_INDEXED_REGENERATION || C48_INDEX_SHADOW) ? OpexBuildLineIndex(lines) : null;
   if (("candidateGroups" in projects) && projects.candidateGroups != null) {
     local filteredGroups = {};
     foreach (groupKey, entry in projects.candidateGroups) {
@@ -867,7 +1078,7 @@ function OpexDynamicBatchReselect(projects, lines, attempted, capitalBudget, aba
       local kept = [];
       foreach (p in source) {
         if (p == null) continue;
-        if (!OpexIncrementalCandidateStillValid(p, lines, abandonedPairs)) continue;
+        if (!OpexIncrementalCandidateStillValid(p, lines, abandonedPairs, lineIndex)) continue;
         local key = OpexProjectAttemptKey(p);
         if (!(key in attempted)) kept.push(p);
       }
@@ -924,6 +1135,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
     }
   }
 
+  local lineIndex = (C48_INDEXED_REGENERATION || C48_INDEX_SHADOW) ? OpexBuildLineIndex(lines) : null;
   local newWinners = {};
 
   /* 1. Filtrer les candidats existants du vivier */
@@ -947,7 +1159,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
         if (p.mode == "fleet") continue;
         if (("payload" in p) && p.payload != null &&
             ("isFeeder" in p.payload) && p.payload.isFeeder) continue;
-        if (!OpexIncrementalCandidateStillValid(p, lines, abandonedPairs)) continue;
+        if (!OpexIncrementalCandidateStillValid(p, lines, abandonedPairs, lineIndex)) continue;
         OpexProjectRememberAll(newWinners, p, stats);
         if (C48_INCREMENTAL_PROFILE) c48Retained++;
       }

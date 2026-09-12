@@ -1063,6 +1063,153 @@ function OpexRoadFreightBusy(lines, cargo, tile)
   return false;
 }
 
+/* C48 : Indexation exacte O(1) de lines pour la revalidation du vivier et la planification.
+ * Construit a la volee en un seul passage O(L) au debut d'une passe de revalidation.
+ * Avec L <= 100, la construction prend < 1 000 opcodes (< 0.05% d'une passe). */
+function OpexBuildLineIndex(lines)
+{
+  local idx = {
+    lines = lines,
+    exactLines = {},       // "cargo|min(a,b)|max(a,b)" -> true
+    servedAny = {},        // tile -> true (DistanceManhattan < 3 sur rail ou road)
+    servedRail = {},       // tile -> true (DistanceManhattan < 3 sur rail seul)
+    townRoadCounts = {},   // townId -> count
+    tileToRoadLines = {},  // tile -> [otherOrigin1, otherOrigin2, ...]
+    feederCounts = {},     // "townId|hubStationId" -> count
+    roadFreightBusy = {},  // "cargo|origin" -> true
+    airLines = [],         // liste filtree des lignes de mode == "air"
+    airStationRoutes = {}, // stationId -> count de routes aeriennes
+  };
+
+  if (lines == null || lines.len() == 0) return idx;
+
+  local width = AIMap.GetMapSizeX();
+  local height = AIMap.GetMapSizeY();
+  local radius = ORIGIN_SEPARATION - 1; // 2
+
+  foreach (line in lines) {
+    if (!("mode" in line)) continue;
+    local mode = line.mode;
+
+    // 1. Doublons exacts (tous modes ayant cargo et originA/B)
+    if (("cargo" in line) && ("originA" in line) && ("originB" in line)) {
+      local a = line.originA;
+      local b = line.originB;
+      local key = (a < b) ? (line.cargo + "|" + a + "|" + b) : (line.cargo + "|" + b + "|" + a);
+      idx.exactLines[key] <- true;
+    }
+
+    // 2. Fret routier ou ferroviaire occupe (OpexRoadFreightBusy)
+    if ((mode == "rail" || mode == "road") && ("cargo" in line) && ("originA" in line) && ("originB" in line)) {
+      idx.roadFreightBusy[line.cargo + "|" + line.originA] <- true;
+      idx.roadFreightBusy[line.cargo + "|" + line.originB] <- true;
+    }
+
+    // 3. Décomptes routiers par ville & feeders
+    if (mode == "road") {
+      local isPax = !("cargo" in line) || line.cargo < 0 || AICargo.HasCargoClass(line.cargo, AICargo.CC_PASSENGERS);
+      local isFeeder = (("isFeeder" in line) && line.isFeeder) || (("purpose" in line) && line.purpose == "feeder");
+
+      if (isPax && ("originA" in line) && ("originB" in line)) {
+        if (isFeeder) {
+          local tA = ("srcTown" in line && line.srcTown >= 0) ? line.srcTown : AITile.GetClosestTown(line.originA);
+          if (tA >= 0) idx.townRoadCounts[tA] <- (tA in idx.townRoadCounts) ? idx.townRoadCounts[tA] + 1 : 1;
+        } else {
+          local tA = AITile.GetClosestTown(line.originA);
+          local tB = AITile.GetClosestTown(line.originB);
+          if (tA >= 0) idx.townRoadCounts[tA] <- (tA in idx.townRoadCounts) ? idx.townRoadCounts[tA] + 1 : 1;
+          if (tB >= 0 && tB != tA) idx.townRoadCounts[tB] <- (tB in idx.townRoadCounts) ? idx.townRoadCounts[tB] + 1 : 1;
+        }
+      }
+
+      if (isFeeder && ("originA" in line)) {
+        local targetStation = ("hubStationId" in line) ? line.hubStationId : -1;
+        if (targetStation < 0 && ("stationB" in line) && AIMap.IsValidTile(line.stationB)) {
+          targetStation = AIStation.GetStationID(line.stationB);
+        }
+        if (targetStation >= 0) {
+          local tA = ("srcTown" in line && line.srcTown >= 0) ? line.srcTown : -1;
+          local tOrig = AITile.GetClosestTown(line.originA);
+          if (tA >= 0) {
+            local fKey = tA + "|" + targetStation;
+            idx.feederCounts[fKey] <- (fKey in idx.feederCounts) ? idx.feederCounts[fKey] + 1 : 1;
+          }
+          if (tOrig >= 0 && tOrig != tA) {
+            local fKey2 = tOrig + "|" + targetStation;
+            idx.feederCounts[fKey2] <- (fKey2 in idx.feederCounts) ? idx.feederCounts[fKey2] + 1 : 1;
+          }
+        }
+      }
+    }
+
+    // 4. Indexation spatiale de proximité (losange de rayon 2) pour rail et road
+    if ((mode == "rail" || mode == "road") && ("originA" in line) && ("originB" in line) &&
+        AIMap.IsValidTile(line.originA) && AIMap.IsValidTile(line.originB)) {
+      local origins = [line.originA, line.originB];
+      local isRoad = (mode == "road");
+      for (local i = 0; i < 2; i++) {
+        local origin = origins[i];
+        local otherOrigin = origins[1 - i];
+        local ox = AIMap.GetTileX(origin);
+        local oy = AIMap.GetTileY(origin);
+        for (local dx = -radius; dx <= radius; dx++) {
+          local x = ox + dx;
+          if (x < 0 || x >= width) continue;
+          local dyLimit = radius - abs(dx);
+          for (local dy = -dyLimit; dy <= dyLimit; dy++) {
+            local y = oy + dy;
+            if (y < 0 || y >= height) continue;
+            local tile = AIMap.GetTileIndex(x, y);
+            idx.servedAny.rawset(tile, true);
+            if (mode == "rail") idx.servedRail.rawset(tile, true);
+            if (isRoad) {
+              if (!(tile in idx.tileToRoadLines)) idx.tileToRoadLines[tile] <- [];
+              idx.tileToRoadLines[tile].append(otherOrigin);
+            }
+          }
+        }
+      }
+    }
+
+    // 5. Lignes aeriennes
+    if (mode == "air") {
+      idx.airLines.append(line);
+      if (("stationA" in line) && AIMap.IsValidTile(line.stationA)) {
+        local stA = AIStation.GetStationID(line.stationA);
+        if (AIStation.IsValidStation(stA)) {
+          idx.airStationRoutes[stA] <- (stA in idx.airStationRoutes) ? idx.airStationRoutes[stA] + 1 : 1;
+        }
+      }
+      if (("stationB" in line) && AIMap.IsValidTile(line.stationB)) {
+        local stB = AIStation.GetStationID(line.stationB);
+        if (AIStation.IsValidStation(stB)) {
+          idx.airStationRoutes[stB] <- (stB in idx.airStationRoutes) ? idx.airStationRoutes[stB] + 1 : 1;
+        }
+      }
+    }
+  }
+
+  return idx;
+}
+
+function OpexRoadPairServedIndexed(idx, tileA, tileB)
+{
+  if (idx == null || !(tileA in idx.tileToRoadLines)) return false;
+  local others = idx.tileToRoadLines[tileA];
+  foreach (otherOrigin in others) {
+    if (AIMap.DistanceManhattan(tileB, otherOrigin) < ORIGIN_SEPARATION) return true;
+  }
+  return false;
+}
+
+function OpexTownFeederCountIndexed(idx, townTile, hubStationId)
+{
+  if (idx == null || !AIStation.IsValidStation(hubStationId)) return 0;
+  local townId = AITile.GetClosestTown(townTile);
+  local fKey = townId + "|" + hubStationId;
+  return (fKey in idx.feederCounts) ? idx.feederCounts[fKey] : 0;
+}
+
 /* C41.20 : les villes qui n'acceptent pas une unite pleine ne pourront jamais devenir un puits
  * fret. La liste est construite une fois par cargo et garde l'ordre croissant historique des
  * villes ; la boucle source->ville conserve donc l'ordre de tous les candidats admissibles. */

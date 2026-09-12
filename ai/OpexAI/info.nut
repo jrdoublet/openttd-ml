@@ -921,6 +921,25 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C48 : Indexation exacte O(1) de la revalidation incrémentale et des plans aériens.
+     * Remplace les balayages linéaires O(candidats x lignes) et O(combos x villes x lignes). */
+    AddSetting({
+      name = "c48_indexed_regeneration",
+      description = "C48: exact O(1) indexing for incremental portfolio revalidation and air planning instead of O(objects x lines) scans; 1 = on (default), 0 = off",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* C48 : Mode miroir vérifiant l'équivalence stricte entre index O(1) et balayage linéaire historique. */
+    AddSetting({
+      name = "c48_index_shadow",
+      description = "C48 shadow mode: assert exact parity between indexed O(1) checks and legacy linear scans; throws on any mismatch; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* C43/E3 famille 2 : CASH_RESERVE_MIN mord-il ? Compteurs cumulatifs, publies en delta annuel
      * par la tache "report" (OpexCashReserve() est appelee trop souvent pour journaliser chaque
      * appel). */

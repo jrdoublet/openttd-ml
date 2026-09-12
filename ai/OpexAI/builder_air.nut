@@ -948,7 +948,26 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
    * artificiellement deficitaires (270 000/an pour deux AT_LARGE). */
   local infrastructureMaintenance =
       AIGameSettings.GetValue("economy.infrastructure_maintenance") != 0;
-  AILog.Info("OpexAirPlans: combos=" + combos.len() + " towns=" + towns.len());
+  local airLines = [];
+  if (lines != null) {
+    foreach (line in lines) {
+      if (("mode" in line) && line.mode == "air") airLines.append(line);
+    }
+  }
+  local airTownServedMap = {};
+  if (C48_INDEXED_REGENERATION || C48_INDEX_SHADOW) {
+    for (local i = 0; i < limit; i++) {
+      local s = false;
+      foreach (line in airLines) {
+        if (AIMap.DistanceManhattan(towns[i].tile, line.originA) < 15 ||
+            AIMap.DistanceManhattan(towns[i].tile, line.originB) < 15) {
+          s = true;
+          break;
+        }
+      }
+      if (s) airTownServedMap[towns[i].id] <- true;
+    }
+  }
 
   foreach (combo in combos) {
     local airport = combo.airport;
@@ -964,7 +983,21 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
       /* Ne filtrer que les lignes aeriennes existantes : un aeroport ne concurrence pas une
        * gare ferroviaire, et exclure les villes deja servies en rail empechait toute
        * construction aerienne sur une carte partiellement couverte. */
-      if (OpexAirTownServed(towns[i], lines, servedDiag)) continue;
+      local isServed = false;
+      if (C48_INDEX_SHADOW) {
+        local legServed = OpexAirTownServed(towns[i], lines, servedDiag);
+        local idxServed = (towns[i].id in airTownServedMap);
+        if (legServed != idxServed) {
+          AILog.Error("C48 AIR SHADOW MISMATCH! town=" + towns[i].name + " legacy=" + legServed + " indexed=" + idxServed);
+          throw "C48 air shadow equivalence mismatch";
+        }
+        isServed = legServed;
+      } else if (C48_INDEXED_REGENERATION && (!DECISION_LOG || servedDiag == null)) {
+        isServed = (towns[i].id in airTownServedMap);
+      } else {
+        isServed = OpexAirTownServed(towns[i], lines, servedDiag);
+      }
+      if (isServed) continue;
       /* Typage selon la population :
        * - Grands aéroports : accessibles dès 600 habitants (suffisant pour alimenter un jet vers un hub)
        * - Petits aéroports : utilisables sur toutes les villes si aucun grand aéroport ne rentre */
