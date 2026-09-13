@@ -129,6 +129,8 @@ function OpexC63ResetLedger()
       waiting_compute = OpexC63OppBucket(), launched = OpexC63OppBucket()
     },
     lastDate = -1,
+    lastKind = "",
+    ledgerYear = -1,
     flushedYear = -1,
     cachedTick = -1,
     cachedDate = -1,
@@ -147,6 +149,7 @@ function OpexC63SpendSlot(mode)
 function OpexC63RecordSpend(mode, planned, actual, ok)
 {
   if (!C63_INVEST_PROBE || C63_INVEST_LEDGER == null) return;
+  OpexC63EnsureYear(AIDate.GetYear(AIDate.GetCurrentDate()));
   local slot = OpexC63SpendSlot(mode);
   if (slot == null) return;
   if (ok) {
@@ -207,10 +210,37 @@ function OpexC63CachedAvailable()
   return available;
 }
 
+function OpexC63YearStart(year)
+{
+  return AIDate.GetDate(year, 1, 1);
+}
+
+function OpexC63EnsureYear(nowYear)
+{
+  if (!C63_INVEST_PROBE || C63_INVEST_LEDGER == null) return;
+  if (nowYear < 1970) return;
+  if (C63_INVEST_LEDGER.ledgerYear < 0) {
+    C63_INVEST_LEDGER.ledgerYear = nowYear;
+    return;
+  }
+  while (C63_INVEST_LEDGER.ledgerYear < nowYear) {
+    local oldYear = C63_INVEST_LEDGER.ledgerYear;
+    local nextStart = OpexC63YearStart(oldYear + 1);
+    if (C63_INVEST_LEDGER.lastDate >= 0 && C63_INVEST_LEDGER.lastKind != "") {
+      local tail = nextStart - C63_INVEST_LEDGER.lastDate - 1;
+      if (tail > 0) OpexC63RecordOpportunity(C63_INVEST_LEDGER.lastKind, tail);
+    }
+    OpexC63FlushLedger(oldYear);
+    if (C63_INVEST_LEDGER.ledgerYear <= oldYear) C63_INVEST_LEDGER.ledgerYear = oldYear + 1;
+  }
+}
+
 function OpexC63NotePass(builtCount, best, passDiscards, railSearching)
 {
   if (!C63_INVEST_PROBE || C63_INVEST_LEDGER == null) return;
   local now = AIDate.GetCurrentDate();
+  local nowYear = AIDate.GetYear(now);
+  OpexC63EnsureYear(nowYear);
   local days = 0;
   if (C63_INVEST_LEDGER.lastDate >= 0 && now >= C63_INVEST_LEDGER.lastDate) {
     days = now - C63_INVEST_LEDGER.lastDate;
@@ -242,13 +272,14 @@ function OpexC63NotePass(builtCount, best, passDiscards, railSearching)
       kind = OpexC63ClassifyOpportunity(reason, OpexC63CachedAvailable(), need, waitingOnly);
     }
   }
+  C63_INVEST_LEDGER.lastKind = kind;
   OpexC63RecordOpportunity(kind, days);
 }
 
 function OpexC63FlushLedger(year)
 {
   if (!C63_INVEST_PROBE || C63_INVEST_LEDGER == null) return;
-  if (year < 0) return;
+  if (year < 1970) return;
   if (C63_INVEST_LEDGER.flushedYear == year) return;
   foreach (mode, slot in C63_INVEST_LEDGER.spend) {
     OpexC63InvestLog("phase=spend year=" + year + " mode=" + mode
@@ -264,10 +295,11 @@ function OpexC63FlushLedger(year)
       + " demand_n=" + o.demand.n + " demand_d=" + o.demand.days
       + " waiting_compute_n=" + o.waiting_compute.n + " waiting_compute_d=" + o.waiting_compute.days
       + " launched_n=" + o.launched.n + " launched_d=" + o.launched.days);
-  local last = C63_INVEST_LEDGER.lastDate;
   OpexC63ResetLedger();
-  C63_INVEST_LEDGER.lastDate = last;
   C63_INVEST_LEDGER.flushedYear = year;
+  C63_INVEST_LEDGER.ledgerYear = year + 1;
+  C63_INVEST_LEDGER.lastDate = OpexC63YearStart(year + 1);
+  C63_INVEST_LEDGER.lastKind = "";
 }
 
 /* C50 : gate dedie pour la sonde chronologique legere (tresorerie, profit par ligne,

@@ -57,6 +57,9 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
     if (DECISION_LOG || C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst, reason = "insufficient_cash", extra = "" });
     return { outcome = "rejected", discards = passDiscards };
   }
+  local plannedFull = ("capital" in project && project.capital > 0)
+      ? project.capital : (entry.planePrice * entry.want);
+  local costs = AIAccounting();
   local added = 0;
   for (local k = 0; k < entry.want; k++) {
     local grown = OpexAirAddPlane(line);
@@ -67,14 +70,21 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
     line.trains = haveNow;
     if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < need) break;
   }
+  local actual = costs.GetCosts();
   if (added <= 0) {
     if (C63_INVEST_PROBE) {
-      OpexC63RecordSpend("fleet", entry.planePrice * entry.want, 0, false);
+      OpexC63RecordSpend("fleet", plannedFull, actual, false);
       passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst, reason = "fleet_grow_failed", extra = "" });
     }
     return { outcome = "rejected", discards = passDiscards };
   }
-  if (C63_INVEST_PROBE) OpexC63RecordSpend("fleet", entry.planePrice * added, entry.planePrice * added, true);
+  if (C63_INVEST_PROBE) {
+    local plannedAdded = entry.planePrice * added;
+    if (plannedAdded > plannedFull) plannedAdded = plannedFull;
+    OpexC63RecordSpend("fleet", plannedAdded, actual, true);
+    local missed = plannedFull - plannedAdded;
+    if (missed > 0) OpexC63RecordSpend("fleet", missed, 0, false);
+  }
 
   line.lastAirFleetYear <- year;
   line.lastAirFleetDate <- AIDate.GetCurrentDate();

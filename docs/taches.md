@@ -283,8 +283,11 @@ télémétrie du bras ON, pas une preuve de performance du défaut.
 Le classifieur ne mappe plus une raison vide vers `waiting_compute` ; les
 `passDiscards` (dont `build_failed` / `insufficient_cash`) sont enregistrés sous le gate
 C63, pas seulement `decision_log`/`c49`. Une passe A* en vol avec un échec air/route
-compte l'échec, pas l'attente. Surplus leftover+lancé 342–375 j : report d'intervalle
-en frontière d'année. Capital immobilisé jusqu'au premier revenu : non mesuré. Eau : 0 ligne.
+compte l'échec, pas l'attente. Les totaux leftover+lancé 342–375 j et l'année 1969
+sur 5/5 graines viennent d'un flush au 28 décembre qui mélangeait les années : retiré.
+Le ledger se ferme au 1er janvier suivant (`OpexC63EnsureYear`) ; la dernière année
+d'une partie qui s'arrête en décembre n'est publiée que si le calendrier passe le
+1er janvier. Capital immobilisé jusqu'au premier revenu : non mesuré. Eau : 0 ligne.
 
 Jours de reliquat 1970–1972 : absent / invalid / unaffordable / wait / lancé.
 Graine 42 = seule graine du smoke 2×3 dont la valeur n'a pas chuté.

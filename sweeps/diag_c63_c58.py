@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import statistics
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -101,6 +102,8 @@ def inventory_from_source():
         and "OpexC63FlushLedger" in probes and "OpexC63NotePass" in probes
         and "OpexC63RecordSpendResult" in probes
         and "OpexC63CachedAvailable" in probes
+        and "OpexC63EnsureYear" in probes
+        and "OpexC63YearStart" in probes
     )
 
     gaps = []
@@ -164,6 +167,12 @@ def attach_physical(chunks):
     """STNN peut compter des gares. len(VEHS) n'est jamais une flotte."""
     stnn = (chunks or {}).get("STNN", {}) or {}
     return {"n_stations": len(stnn)}
+
+
+def year_close_tail(last_date, next_year_start):
+    """Queue (lastDate, 1er janv.] exclusive du 1er janv. : nextStart - lastDate - 1."""
+    tail = next_year_start - last_date - 1
+    return tail if tail > 0 else 0
 
 
 def opportunity_days_exclusive(opp, calendar_days):
@@ -281,6 +290,13 @@ def cohort_key(line):
     return (line.get("mode", "unknown"), int(line.get("age", -1) or -1))
 
 
+def median_ratio(values):
+    """Mediane : moyenne des deux centraux si l'effectif est pair."""
+    if not values:
+        return None
+    return statistics.median(values)
+
+
 def profitable_witnesses(lines):
     """Temoins profitables du meme mode et age ; les seuls perdants ne suffisent pas (C58)."""
     groups = defaultdict(list)
@@ -295,19 +311,51 @@ def profitable_witnesses(lines):
     return witnessed
 
 
+def revenue_shortfall_by_cohort(lines):
+    """Un deficit par cohorte (mode, age) ; l'air/route ne masque pas le rail."""
+    groups = defaultdict(list)
+    for line in lines:
+        groups[cohort_key(line)].append(line)
+    details = []
+    any_short = False
+    for key, cohort in sorted(groups.items()):
+        positive = [row for row in cohort if int(row.get("real_p", 0) or 0) > 0]
+        if not positive:
+            continue
+        ratios = []
+        for row in cohort:
+            pred = int(row.get("pred_p", 0) or 0)
+            if pred > 0:
+                ratios.append(int(row.get("real_p", 0) or 0) / pred)
+        if not ratios:
+            continue
+        med = median_ratio(ratios)
+        short = med < REVENUE_SHORTFALL
+        if short:
+            any_short = True
+        details.append({
+            "mode": key[0], "age": key[1], "median": med,
+            "n": len(ratios), "shortfall": short,
+        })
+    return any_short, details
+
+
 def revenue_shortfall_on_witnessed(lines):
-    witnessed = profitable_witnesses(lines)
-    if not witnessed:
+    """True si une cohorte temoin est sous le seuil. La mediane renvoyee est la plus basse."""
+    any_short, details = revenue_shortfall_by_cohort(lines)
+    if not details:
         return False, None
-    ratios = []
-    for row in witnessed:
-        pred = int(row.get("pred_p", 0) or 0)
-        if pred > 0:
-            ratios.append(int(row.get("real_p", 0) or 0) / pred)
-    if not ratios:
-        return False, None
-    median = sorted(ratios)[len(ratios) // 2]
-    return median < REVENUE_SHORTFALL, median
+    return any_short, min(d["median"] for d in details)
+
+
+def overcost_by_mode(spend_by_mode):
+    hits = []
+    for mode, slot in spend_by_mode.items():
+        planned = int(slot.get("planned_ok", 0) or 0)
+        actual = int(slot.get("actual_ok", 0) or 0)
+        if planned > 0 and actual / planned >= OVERCOST_RATIO:
+            hits.append(mode)
+    return hits
 
 
 def overcost_ratio(spend_by_mode):
@@ -392,10 +440,11 @@ def attribute_year(spend, opp, lines, traps):
             if dominant in ("absent", "invalid", "demand"):
                 return "missing_opportunity"
 
-    cost_ratio = overcost_ratio(spend)
-    has_positive = any(int(row.get("real_p", 0) or 0) > 0 for row in lines)
-    if cost_ratio is not None and cost_ratio >= OVERCOST_RATIO and has_positive:
-        return "overcost"
+    over_modes = overcost_by_mode(spend)
+    if over_modes:
+        has_positive = any(int(row.get("real_p", 0) or 0) > 0 for row in lines)
+        if has_positive:
+            return "overcost"
 
     shortfall, _median = revenue_shortfall_on_witnessed(lines)
     if shortfall:
@@ -420,6 +469,8 @@ def build_joint_table(parsed, calendar_days=365, chunks=None, use_vehs_chunks=Fa
             bucket["spend"], bucket["opp"], opp_check["leftover_days"])
         if fail_trap:
             traps.append(fail_trap)
+        if year < 1970:
+            traps.append("fictional_prestart_year")
         lines = bucket["lines"]
         row = {
             "year": year,
@@ -439,6 +490,8 @@ def build_joint_table(parsed, calendar_days=365, chunks=None, use_vehs_chunks=Fa
         for line in lines:
             grouped[f"{line['mode']}|age={line['age']}"].append(line)
         row["cohorts"] = dict(grouped)
+        _short, cohort_rev = revenue_shortfall_by_cohort(lines)
+        row["cohort_revenue"] = cohort_rev
         row["attribution"] = attribute_year(bucket["spend"], bucket["opp"], lines, traps)
         row["cpu_from_idle_cash"] = False
         table.append(row)
@@ -475,6 +528,21 @@ def run_selftest():
     note = _ai("probes.nut")
     assert 'railSearching && (reason == "" || reason == "search_in_progress")' in note
     assert "else if (railSearching) kind = \"waiting_compute\"" not in note
+    sched = _ai("scheduler.nut")
+    assert "OpexC63FlushLedger(c63y)" not in sched
+    assert "c63d >= 28" not in sched
+    assert "OpexC63EnsureYear" in sched
+    tasks = _ai("scheduler_tasks.nut")
+    assert "OpexC63FlushLedger(year - 1)" not in tasks
+    assert "OpexC63EnsureYear(year)" in tasks
+    flush_src = note[note.index("function OpexC63FlushLedger"):note.index("function OpexC50ChronologyLog")]
+    assert "lastDate = last" not in flush_src
+    assert "year < 1970" in flush_src
+    assert "OpexC63YearStart(year + 1)" in flush_src
+    assert "nextStart - C63_INVEST_LEDGER.lastDate - 1" in note
+    assert year_close_tail(10, 22) == 11
+    assert year_close_tail(21, 22) == 0
+    assert year_close_tail(22, 22) == 0
 
     for path, reason in (
         ("task_air.nut", "build_failed"),
@@ -574,6 +642,15 @@ def run_selftest():
     assert "failures_counted_as_waiting_compute" in wait_fail[0]["traps"], wait_fail[0]
     assert wait_fail[0]["attribution"] == "insufficient"
 
+    prestart = parse_c63_invest(
+        "OPEX 1970-1-1 C63_INVEST phase=opp year=1969 absent_n=1 absent_d=10 "
+        "invalid_n=0 invalid_d=0 unaffordable_n=0 unaffordable_d=0 demand_n=0 demand_d=0 "
+        "waiting_compute_n=0 waiting_compute_d=0 launched_n=0 launched_d=0\n"
+    )
+    pre_table = build_joint_table(prestart, calendar_days=calendar)
+    assert pre_table[0]["year"] == 1969
+    assert "fictional_prestart_year" in pre_table[0]["traps"]
+
     idle = fixtures["idle_cash"]
     idle_parsed = parse_c63_invest(idle["output"])
     idle_table = build_joint_table(idle_parsed, calendar_days=calendar)
@@ -587,6 +664,44 @@ def run_selftest():
     shortfall, _ = revenue_shortfall_on_witnessed(losers[0]["lines"])
     assert shortfall is False
     assert losers[0]["attribution"] != "revenue_model"
+
+    assert median_ratio([0.1, 0.6]) == 0.35
+    assert median_ratio([0.1, 0.5, 0.9]) == 0.5
+    mask_log = "\n".join((
+        "OPEX 1972-1-1 C63_INVEST phase=opp year=1971 absent_n=0 absent_d=0 invalid_n=0 "
+        "invalid_d=0 unaffordable_n=0 unaffordable_d=0 demand_n=0 demand_d=0 "
+        "waiting_compute_n=0 waiting_compute_d=0 launched_n=5 launched_d=365",
+        "OPEX 1972-1-1 C63_INVEST phase=spend year=1971 mode=air planned_ok=100000 "
+        "actual_ok=100000 n_ok=3 planned_fail=0 actual_fail=0 n_fail=0",
+        "OPEX 1972-1-1 C63_INVEST phase=spend year=1971 mode=rail planned_ok=80000 "
+        "actual_ok=80000 n_ok=2 planned_fail=0 actual_fail=0 n_fail=0",
+        "OPEX 1972-1-1 C63_INVEST phase=line year=1971 line=1 mode=air age=1 "
+        "pred_p=100 real_p=150 pred_r=200 real_r=250 vehs=2",
+        "OPEX 1972-1-1 C63_INVEST phase=line year=1971 line=2 mode=air age=1 "
+        "pred_p=100 real_p=160 pred_r=200 real_r=260 vehs=2",
+        "OPEX 1972-1-1 C63_INVEST phase=line year=1971 line=3 mode=rail age=1 "
+        "pred_p=100 real_p=10 pred_r=200 real_r=40 vehs=1",
+        "OPEX 1972-1-1 C63_INVEST phase=line year=1971 line=4 mode=rail age=1 "
+        "pred_p=100 real_p=60 pred_r=200 real_r=80 vehs=1",
+    ))
+    mask = build_joint_table(parse_c63_invest(mask_log), calendar_days=calendar)
+    assert mask[0]["attribution"] == "revenue_model", mask[0]
+    rail_rev = [c for c in mask[0]["cohort_revenue"] if c["mode"] == "rail" and c["age"] == 1][0]
+    assert rail_rev["shortfall"] is True
+    assert abs(rail_rev["median"] - 0.35) < 1e-12
+    air_rev = [c for c in mask[0]["cohort_revenue"] if c["mode"] == "air"][0]
+    assert air_rev["shortfall"] is False
+
+    water_src = _ai("builder_water.nut")
+    assert "AIAccounting" in water_src
+    assert "function OpexWaterStampCost" in water_src
+    assert "function OpexWaterPlannedCapital" in water_src
+    assert "result.ok ? capital : 0" not in _ai("task_water.nut")
+    assert 'OpexC63RecordSpendResult("water"' in _ai("task_water.nut")
+    fleet_src = _ai("task_projects.nut")
+    assert "entry.planePrice * added, entry.planePrice * added" not in fleet_src
+    assert "plannedFull" in fleet_src
+    assert "missed > 0" in fleet_src
 
     print("selftest ok")
     print("named_gaps", ",".join(inv["named_gaps"]))
