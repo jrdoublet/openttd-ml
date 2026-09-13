@@ -1,0 +1,846 @@
+/* C65 : deplace depuis main.nut (passe 1, deplacement pur, aucun corps retouche). */
+/* C42 : Purge immediate d'un projet de subvention devenu invalide dans this._projects */
+function OpexAI::_purgeSubsidyFromProjects(subId)
+{
+  if (subId == null || subId < 0) return;
+  if (this._projects == null) return;
+  if (("best" in this._projects) && this._projects.best != null) {
+    for (local i = this._projects.best.len() - 1; i >= 0; i--) {
+      local p = this._projects.best[i];
+      if (p != null && ("payload" in p) && p.payload != null &&
+          ("isSubsidy" in p.payload) && p.payload.isSubsidy &&
+          ("subsidyId" in p.payload) && p.payload.subsidyId == subId) {
+        this._projects.best.remove(i);
+      }
+    }
+  }
+  if (("road" in this._projects) && this._projects.road != null &&
+      ("best" in this._projects.road) && this._projects.road.best != null) {
+    for (local i = this._projects.road.best.len() - 1; i >= 0; i--) {
+      local p = this._projects.road.best[i];
+      if (p != null && ("payload" in p) && p.payload != null &&
+          ("isSubsidy" in p.payload) && p.payload.isSubsidy &&
+          ("subsidyId" in p.payload) && p.payload.subsidyId == subId) {
+        this._projects.road.best.remove(i);
+      }
+    }
+  }
+  if (("candidateGroups" in this._projects) && this._projects.candidateGroups != null) {
+    local key = "subsidy|" + subId;
+    if (key in this._projects.candidateGroups) {
+      delete this._projects.candidateGroups[key];
+    }
+  }
+  if (this._dynamicBatch != null) {
+    if (("sourceCandidateGroups" in this._dynamicBatch) && this._dynamicBatch.sourceCandidateGroups != null) {
+      local key = "subsidy|" + subId;
+      if (key in this._dynamicBatch.sourceCandidateGroups) {
+        delete this._dynamicBatch.sourceCandidateGroups[key];
+      }
+    }
+  }
+}
+/* C38 etape 2 : une croissance de flotte est une tentative synchrone de portefeuille. */
+function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
+{
+  if (project == null) return { outcome = "no_candidate", discards = passDiscards };
+  local i = rank;
+  /* C34.2 : les gardes de refus ont deja ete franchies en mode a blanc ; il ne reste que le
+   * test de tresorerie du portefeuille, sans droit de tirage anticipe. */
+  local entry = project.payload;
+  local line = entry.line;
+  local need = entry.planePrice + OpexCashReserve();
+  local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  if (money < need && REBORROW) money = OpexTryReborrow(need, money);
+  if (money < need) {
+    if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("fleet", i, project.capital, project.profitAnnual, project.roi, project.src, project.dst, need, money);
+    if (DECISION_LOG) passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst, reason = "insufficient_cash", extra = "" });
+    return { outcome = "rejected", discards = passDiscards };
+  }
+  local added = 0;
+  for (local k = 0; k < entry.want; k++) {
+    local grown = OpexAirAddPlane(line);
+    if (grown.added <= 0) break;
+    added += grown.added;
+    local haveNow = (("vehCount" in line) ? line.vehCount : 0) + grown.added;
+    line.vehCount <- haveNow;
+    line.trains = haveNow;
+    if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < need) break;
+  }
+  if (added <= 0) return { outcome = "rejected", discards = passDiscards };
+
+  line.lastAirFleetYear <- year;
+  line.lastAirFleetDate <- AIDate.GetCurrentDate();
+  if (C50_CHRONOLOGY_PROBE) {
+    OpexC50ChronologyLog("phase=fleet_built mode=air line=" + line.lineId
+        + " added=" + added + " total=" + line.vehCount + " want=" + entry.want
+        + " cash_after=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
+  }
+  if (DECISION_LOG) {
+    OpexDecide("FLEET_PROJECT", "action=grow line=" + line.lineId + " added=" + added
+               + " want=" + entry.want + " price=" + entry.planePrice
+               + " profit=" + project.profitAnnual + " roi=" + project.roi);
+  }
+  AILog.Info("[FLEET_PROJECT] line=" + line.lineId + " added=" + added);
+  return { outcome = "built", discards = passDiscards };
+}
+function OpexAI::_refreshDynamicBatch(year)
+{
+  local before = (this._projects != null && ("capitalBudget" in this._projects))
+      ? this._projects.capitalBudget : OpexAvailableCapital();
+  local after = OpexAvailableCapital();
+  this._projects = OpexDynamicBatchReselect(this._projects, this._lines,
+      this._dynamicBatch.attempted, after, this._abandonedPairs);
+  this._ranked = this._projects.rail;
+  local remaining = this._projects.best.len();
+  if (DECISION_LOG) {
+    OpexDecide("DYNAMIC_BATCH", "action=continue reason=success built="
+               + this._dynamicBatch.built + " attempted=" + this._dynamicBatch.attemptedCount
+               + " budget_before=" + before + " budget_after=" + after
+               + " remaining=" + remaining);
+  }
+}
+function OpexAI::_dynamicBatchBuilt(year)
+{
+  this._dynamicBatch.built++;
+  this._dynamicBatch.consecutiveRejects = 0;
+  this._refreshDynamicBatch(year);
+}
+/* P2 : seul un refus effectivement tente compte. Une recherche rail pending
+ * rend la main sans appeler ce helper ; un succes remet la serie a zero. */
+function OpexAI::_dynamicBatchRejected()
+{
+  if (!PORTFOLIO_DYNAMIC_BATCH || this._dynamicBatch == null) return false;
+  this._dynamicBatch.consecutiveRejects++;
+  if (DYNAMIC_BATCH_REJECT_LIMIT > 0
+      && this._dynamicBatch.consecutiveRejects >= DYNAMIC_BATCH_REJECT_LIMIT) {
+    this._dynamicBatch.stopReason = "consecutive_rejects";
+    return true;
+  }
+  return false;
+}
+function OpexAI::_stopDynamicBatch(reason, year)
+{
+  if (!PORTFOLIO_DYNAMIC_BATCH || this._dynamicBatch == null) return;
+  local after = OpexAvailableCapital();
+  local remaining = (this._projects != null && ("best" in this._projects))
+      ? this._projects.best.len() : 0;
+  if (DECISION_LOG) {
+    OpexDecide("DYNAMIC_BATCH", "action=stop reason=" + reason + " built="
+               + this._dynamicBatch.built + " attempted=" + this._dynamicBatch.attemptedCount
+               + " rejects=" + this._dynamicBatch.consecutiveRejects
+               + " ops_floor=" + this._dynamicBatch.opsFloor
+               + " budget_before=" + this._dynamicBatch.initialBudget + " budget_after=" + after
+               + " remaining=" + remaining);
+  }
+  local built = this._dynamicBatch.built;
+  if (this._projects != null) {
+    if (this._dynamicBatch.sourceCandidateGroups != null) {
+      this._projects.candidateGroups = this._dynamicBatch.sourceCandidateGroups;
+    }
+  }
+  this._dynamicBatch = null;
+  /* Le filtre attempted mutile volontairement le vivier de travail. Une reconstruction
+   * incrementale unique a la cloture restaure les candidats encore valides pour le cycle
+   * suivant, sans liste noire persistante. */
+  if (built > 0 && this._projects != null) {
+    local fleetPlan = null;
+    if (FLEET_PORTFOLIO) {
+      fleetPlan = [];
+      this._resizeAirFleets(year, fleetPlan);
+    }
+    this._projects = OpexIncrementalUpdateProjects(this._projects, this._catalog, this._budget,
+        this._lines, OpexAvailableCapital(), fleetPlan, this._abandonedPairs);
+    this._ranked = this._projects.rail;
+  }
+}
+/* C39.5 : conserve, par cle stable, le premier jour de la fenetre courante ou un projet du
+ * vivier est finançable. La table neuve purge les projets sortis du vivier et borne la memoire.
+ *
+ * C39.5b : chaque valeur est desormais une table {since, topSince, turns, topTurns} au lieu
+ * d'une date seule, pour separer les trois causes du delai D2 (cadence / file par rang /
+ * concurrence caisse) :
+ *   - since    : date du premier jour finançable (comportement d'origine, inchange) ;
+ *   - topSince : date du premier jour ou ce projet etait le MEILLEUR projet finançable, i.e. le
+ *                premier de this._projects.best (indice le plus bas) dont capital <= available ;
+ *                -1 tant qu'il ne l'a jamais ete. Meme definition que bestRank de C41.48
+ *                (C41_RAIL_DOMINATION_PROBE) : rester comparable entre les deux sondes ;
+ *   - turns / topTurns : nombre de dispatches de la tache `projects` observes depuis since /
+ *                topSince. Incrementes uniquement quand isProjectsTurn est vrai, pour ne compter
+ *                que les tours de `projects` et pas l'appel fait depuis la tache `catalog`
+ *                (qui, lui, ne fait qu'horodater since/topSince avant le premier tour utile).
+ *
+ * capital : optionnel. L'appelant du site de dispatch de `projects` a deja calcule
+ * OpexAvailableCapital() pour sa propre ligne de journal (capital=) ; le lui laisser passer evite
+ * de le recalculer ici. L'appel depuis la tache `catalog` (qui n'emet aucun log) continue de le
+ * calculer lui-meme en laissant capital a null. */
+function OpexAI::_c39StampFinanceable(capital = null, isProjectsTurn = false)
+{
+  if (!C39_PROJECTS_CADENCE_PROBE) return 0;
+  local available = (capital != null) ? capital : OpexAvailableCapital();
+  local date = AIDate.GetCurrentDate();
+  local stamped = {};
+  local topFound = false;
+  if (this._projects != null && this._projects.best != null) {
+    local limit = this._projects.best.len() < 64 ? this._projects.best.len() : 64;
+    for (local i = 0; i < limit; i++) {
+      local project = this._projects.best[i];
+      if (project == null || project.capital > available) continue;
+      local isTop = !topFound;
+      topFound = true;
+      local key = OpexProjectAttemptKey(project);
+      local prev = (key in this._c39FinanceableSince) ? this._c39FinanceableSince[key] : null;
+      local since = (prev != null) ? prev.since : date;
+      local topSince = (prev != null) ? prev.topSince : -1;
+      if (isTop && topSince == -1) topSince = date;
+      local turns = (prev != null) ? prev.turns : 0;
+      local topTurns = (prev != null) ? prev.topTurns : 0;
+      if (isProjectsTurn) {
+        turns++;
+        if (isTop) topTurns++;
+      }
+      stamped[key] <- { since = since, topSince = topSince, turns = turns, topTurns = topTurns };
+    }
+  }
+  this._c39FinanceableSince = stamped;
+  return stamped.len();
+}
+function OpexAI::_tryBuildProjects(year)
+{
+  local c49Best = null;
+  local c49BuiltRanks = null;
+  local c49AttemptedRanks = null;
+  local c48PassMark = null;
+  local c48BestLen = 0;
+  local c48MaxRank = -1;
+  local c48AttemptsTotal = 0;
+  local c48BuiltThisPass = false;
+  if (C48_PROJECT_ATTEMPT_LEDGER) {
+    c48PassMark = OpexOpsMeasureBegin();
+    c48BestLen = (this._projects != null && this._projects.best != null)
+        ? this._projects.best.len() : 0;
+  }
+  /* C38 : l'etat ne nait que pour le bras experimental. Il survivra a un A* suspendu ; le
+   * bras livre ne fait aucune allocation ni lecture supplementaire. */
+  if (PORTFOLIO_DYNAMIC_BATCH && this._dynamicBatch == null) {
+    this._dynamicBatch = {
+      attempted = {}, attemptedCount = 0, built = 0,
+      consecutiveRejects = 0,
+      initialBudget = OpexAvailableCapital(), opsFloor = DYNAMIC_BATCH_OPS_FLOOR,
+      stopReason = null, pendingLogged = false,
+      sourceCandidateGroups = (this._projects != null && ("candidateGroups" in this._projects))
+          ? this._projects.candidateGroups : null,
+    };
+  }
+  /* G4§1 : le drapeau peut etre pose entre deux passes par _consumeRailSearch.
+   * Ne pas le remettre a zero ici : la passe suivante doit alors re-elire le
+   * portefeuille avec la nouvelle memoire d'abandon. */
+  if (PORTFOLIO_FRESH_BUDGET && this._projects != null) {
+    local initialBudget = this._projects.generationCapitalBudget;
+    local budgetNow = OpexAvailableCapital();
+    this._projects = OpexReselectProjects(this._projects, budgetNow);
+    /* 30 caracteres au pire : FB|99|2147483647|2147483647|64. */
+    OpexSign(AIMap.GetTileIndex(1, 1), "FB|" + (year % 100) + "|" + initialBudget
+             + "|" + budgetNow + "|" + this._projects.stats.budgetSelected);
+  }
+  if (C49_SCARCITY_LEDGER) {
+    c49Best = (this._projects != null && this._projects.best != null) ? this._projects.best : null;
+    c49BuiltRanks = {};
+    c49AttemptedRanks = {};
+  }
+  local anchor = AIMap.GetTileIndex(1, 1);
+  local yy = year % 100;
+  local builtCount = 0;
+  local passDiscards = [];
+  /* P2 : fractionner le tick. Le plancher historique protege toujours les
+   * autres taches quand le pourcentage est nul ou que le tick est deja court. */
+  local dynamicOpsFloor = DYNAMIC_BATCH_OPS_FLOOR;
+  if (PORTFOLIO_DYNAMIC_BATCH && DYNAMIC_BATCH_OPS_BUDGET_PCT > 0) {
+    local opsNow = AIController.GetOpsTillSuspend();
+    local reserved = (opsNow * (100 - DYNAMIC_BATCH_OPS_BUDGET_PCT)) / 100;
+    if (reserved > dynamicOpsFloor) dynamicOpsFloor = reserved;
+  }
+  if (PORTFOLIO_DYNAMIC_BATCH) this._dynamicBatch.opsFloor = dynamicOpsFloor;
+  /* 1 conserve le break historique. Au-dela, chaque candidat apres le premier succes passe les
+   * revalidations de son mode contre this._lines, la carte et la tresorerie vivantes. */
+  local maxBatch = PORTFOLIO_MAX_BATCH;
+
+  /* C41.49 : meme garde que C41.48 (kind=="primary", phase=="search") -- la sonde ne regarde
+   * que la fenetre ou l'A* rail est en vol, pas la phase "build" (deja couverte par
+   * _consumeRailSearch/C41.47) ni un upgrade. Rien n'est coupe : fallthroughAttempted/Built
+   * comptent ce que la boucle ci-dessous fait DEJA des candidats non-rail. */
+  local fallthroughProbeActive = C41_PROJECTS_FALLTHROUGH_PROBE && this._railSearch != null
+      && this._railSearch.kind == "primary" && this._railSearch.phase == "search";
+  local fallthroughAttempted = 0;
+  local fallthroughBuilt = 0;
+  if (fallthroughProbeActive) {
+    OpexC41ProjectsFallthroughLog("phase=entry invalidated="
+        + (this._portfolioInvalidated ? 1 : 0) + " best_len="
+        + ((this._projects != null) ? this._projects.best.len() : -1));
+  }
+
+  /* A4 : un A* termine au tour precedent a depose un railPlan sur le candidat stocke. On le
+   * consomme AVANT le balayage du portefeuille, qui a pu etre regenere entre-temps. */
+  if (PORTFOLIO_DYNAMIC_BATCH && RAIL_SEARCH_RESUMABLE && this._railSearch != null &&
+      this._railSearch.kind == "primary" && this._railSearch.phase != "build") {
+    if (DECISION_LOG && !this._dynamicBatch.pendingLogged) {
+      this._dynamicBatch.pendingLogged = true;
+      OpexDecide("DYNAMIC_BATCH", "action=stop reason=rail_pending built="
+                 + this._dynamicBatch.built + " attempted=" + this._dynamicBatch.attemptedCount
+                 + " budget_before=" + this._dynamicBatch.initialBudget + " budget_after="
+                 + OpexAvailableCapital() + " remaining=" + this._projects.best.len());
+    }
+    if (C48_PROJECT_ATTEMPT_LEDGER) {
+      this._recordC48PassLedger(c48AttemptsTotal, OpexOpsMeasureEnd(c48PassMark),
+          c48BuiltThisPass, c48BestLen, c48MaxRank);
+    }
+    if (C49_SCARCITY_LEDGER) this._recordC49ScarcityPass(c49Best, c49BuiltRanks, c49AttemptedRanks, passDiscards);
+    return true;
+  }
+  if (RAIL_SEARCH_RESUMABLE && this._railSearch != null &&
+      this._railSearch.kind == "primary" && this._railSearch.phase == "build") {
+    local outcome = this._consumeRailSearch(year);
+    /* Atteignable seulement avec portfolio_dynamic_batch=1 (non-defaut) : conserver le ledger. */
+    if (PORTFOLIO_DYNAMIC_BATCH && outcome == "cash") {
+      if (C48_PROJECT_ATTEMPT_LEDGER) {
+        this._recordC48PassLedger(c48AttemptsTotal, OpexOpsMeasureEnd(c48PassMark),
+            c48BuiltThisPass, c48BestLen, c48MaxRank);
+      }
+      if (C49_SCARCITY_LEDGER) this._recordC49ScarcityPass(c49Best, c49BuiltRanks, c49AttemptedRanks, passDiscards);
+      return true;
+    }
+    if (outcome != "cash") {
+      if (C39_PROJECTS_CADENCE_PROBE && outcome == "built") {
+        local railCandidate = this._railSearch.candidate;
+        /* railCandidate est le payload brut, pas le projet : il n'a pas de slot mode, donc
+         * OpexProjectAttemptKey() produirait la cle incompatible unknown|... au lieu de rail|.... */
+        local key = "rail|" + railCandidate.src + "|" + railCandidate.dst + "|"
+            + railCandidate.cargo + "|" + railCandidate.kind;
+        local railRank = -1;
+        if (this._projects != null && this._projects.best != null) {
+          for (local i = 0; i < this._projects.best.len(); i++) {
+            local project = this._projects.best[i];
+            if (project != null && OpexProjectAttemptKey(project) == key) {
+              railRank = i;
+              break;
+            }
+          }
+        }
+        /* C39.5b : meme forme d'entry que les 5 sites generiques ; la cle reste construite a la
+         * main (commentaire ci-dessus), seul le contenu lu change. */
+        local entry = (key in this._c39FinanceableSince) ? this._c39FinanceableSince[key] : null;
+        local daysSinceFinanceable = (entry != null)
+            ? AIDate.GetCurrentDate() - entry.since : -1;
+        local daysSinceTop = (entry != null && entry.topSince != -1)
+            ? AIDate.GetCurrentDate() - entry.topSince : -1;
+        local turnsSinceFinanceable = (entry != null) ? entry.turns : -1;
+        local turnsSinceTop = (entry != null && entry.topSince != -1) ? entry.topTurns : -1;
+        OpexC39ProjectsCadenceLog("phase=built mode=rail rank=" + railRank
+            + " days_since_financeable=" + daysSinceFinanceable + " days_since_top=" + daysSinceTop
+            + " turns_since_financeable=" + turnsSinceFinanceable + " turns_since_top=" + turnsSinceTop
+            + " rail_search=1 capital_after=" + OpexAvailableCapital());
+      }
+      local railCandidate = this._railSearch.candidate;
+      local c49RailCandidate = C49_SCARCITY_LEDGER ? railCandidate : null;
+      if (PORTFOLIO_DYNAMIC_BATCH) this._dynamicBatch.pendingLogged = false;
+      this._railSearch = null;
+      if (outcome == "built") {
+        builtCount++;
+        if (C50_CHRONOLOGY_PROBE && railCandidate != null) {
+          local railRank = -1;
+          if (this._projects != null && this._projects.best != null) {
+            local key = "rail|" + railCandidate.src + "|" + railCandidate.dst + "|"
+                + railCandidate.cargo + "|" + railCandidate.kind;
+            for (local i = 0; i < this._projects.best.len(); i++) {
+              local project = this._projects.best[i];
+              if (project != null && OpexProjectAttemptKey(project) == key) {
+                railRank = i;
+                break;
+              }
+            }
+          }
+          local railCost = ("capital" in railCandidate) ? railCandidate.capital : 0;
+          local railProf = ("profitAnnual" in railCandidate) ? railCandidate.profitAnnual : 0;
+          local railRoi = ("roi" in railCandidate) ? railCandidate.roi : 0;
+          OpexC50ChronologyLog("phase=project_built mode=rail rank=" + railRank + " line=" + (this._nextLineId - 1)
+              + " cost=" + railCost + " profit=" + railProf + " roi=" + railRoi
+              + " cash_after=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF)
+              + " available=" + OpexAvailableCapital());
+        }
+        if (C49_SCARCITY_LEDGER && c49Best != null) {
+          local railCandidate = c49RailCandidate;
+          for (local i = 0; i < c49Best.len(); i++) {
+            local project = c49Best[i];
+            if (project != null && project.mode == "rail" && project.payload.src == railCandidate.src
+                && project.payload.dst == railCandidate.dst && project.payload.cargo == railCandidate.cargo
+                && project.payload.kind == railCandidate.kind) {
+              c49BuiltRanks.rawset(i, true);
+              break;
+            }
+          }
+        }
+        if (C48_PROJECT_ATTEMPT_LEDGER) c48BuiltThisPass = true;
+        if (PORTFOLIO_DYNAMIC_BATCH) this._dynamicBatchBuilt(year);
+      } else if (PORTFOLIO_DYNAMIC_BATCH && outcome == "failed") {
+        this._dynamicBatchRejected();
+      }
+    }
+  }
+
+  if ((PORTFOLIO_DYNAMIC_BATCH || builtCount < maxBatch)
+      && this._projects != null && this._projects.best.len() > 0
+      && (!PORTFOLIO_DYNAMIC_BATCH || this._dynamicBatch.stopReason == null)) {
+  local logDiscardsThisPass = false;
+  /* Le calcul du mois courant coute DEUX appels d'API et tournait a chaque passage, reglage
+   * eteint compris. Ici le comportement depend des opcodes consommes : tout ce qui ne sert
+   * qu'a journaliser doit vivre DANS la garde, pas seulement l'appel a OpexDecide. */
+  if (DECISION_LOG) {
+    local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
+    if (_lastProjectScanMonth != ym) {
+      _lastProjectScanMonth = ym;
+      logDiscardsThisPass = true;
+    }
+  }
+  for (local i = 0; i < this._projects.best.len(); i++) {
+    local project = this._projects.best[i];
+    if (project == null) continue;
+
+    if (PORTFOLIO_DYNAMIC_BATCH) {
+      if (AIController.GetOpsTillSuspend() < dynamicOpsFloor) {
+        this._dynamicBatch.stopReason = "opcode_budget";
+        break;
+      }
+      local projectKey = OpexProjectAttemptKey(project);
+      if (projectKey in this._dynamicBatch.attempted) continue;
+      this._dynamicBatch.attempted[projectKey] <- true;
+      this._dynamicBatch.attemptedCount++;
+    }
+
+    local mode = project.mode;
+    local modeChar = mode == "rail" ? "T" : (mode == "road" ? "R" : (mode == "air" ? "A" : "W"));
+    local liveBuiltCount = PORTFOLIO_DYNAMIC_BATCH ? this._dynamicBatch.built : builtCount;
+    if (C48_PROJECT_ATTEMPT_LEDGER && i > c48MaxRank) c48MaxRank = i;
+
+    if (mode == "fleet") {
+      local attempt = null;
+      if (C49_SCARCITY_LEDGER) c49AttemptedRanks.rawset(i, true);
+      if (C48_PROJECT_ATTEMPT_LEDGER) {
+        local attemptDate = AIDate.GetCurrentDate();
+        local attemptMark = OpexOpsMeasureBegin();
+        attempt = this._tryBuildFleetProject(year, project, i, passDiscards);
+        this._recordC48AttemptLedger("fleet", attempt.outcome, i,
+            OpexOpsMeasureEnd(attemptMark), AIDate.GetCurrentDate() - attemptDate);
+        c48AttemptsTotal++;
+        if (attempt.outcome == "built") c48BuiltThisPass = true;
+      } else attempt = this._tryBuildFleetProject(year, project, i, passDiscards);
+      passDiscards = attempt.discards;
+      if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
+      if (fallthroughProbeActive) {
+        fallthroughAttempted++;
+        if (attempt.outcome == "built") fallthroughBuilt++;
+      }
+      if (attempt.outcome == "built") {
+        if (C39_PROJECTS_CADENCE_PROBE) {
+          local key = OpexProjectAttemptKey(project);
+          /* C39.5b : entry porte since/topSince/turns/topTurns (cf. _c39StampFinanceable) au lieu
+           * d'une date seule, pour separer cadence, file d'attente par rang et concurrence caisse. */
+          local entry = (key in this._c39FinanceableSince) ? this._c39FinanceableSince[key] : null;
+          local daysSinceFinanceable = (entry != null)
+              ? AIDate.GetCurrentDate() - entry.since : -1;
+          local daysSinceTop = (entry != null && entry.topSince != -1)
+              ? AIDate.GetCurrentDate() - entry.topSince : -1;
+          local turnsSinceFinanceable = (entry != null) ? entry.turns : -1;
+          local turnsSinceTop = (entry != null && entry.topSince != -1) ? entry.topTurns : -1;
+          OpexC39ProjectsCadenceLog("phase=built mode=" + project.mode + " rank=" + i
+              + " days_since_financeable=" + daysSinceFinanceable + " days_since_top=" + daysSinceTop
+              + " turns_since_financeable=" + turnsSinceFinanceable + " turns_since_top=" + turnsSinceTop
+              + " rail_search=" + (this._railSearch != null ? 1 : 0) + " capital_after=" + OpexAvailableCapital());
+        }
+        if (C50_CHRONOLOGY_PROBE) {
+          local lineId = ("payload" in project && "line" in project.payload && "lineId" in project.payload.line) ? project.payload.line.lineId : -1;
+          OpexC50ChronologyLog("phase=project_built mode=fleet rank=" + i + " line=" + lineId
+              + " cost=" + project.capital + " profit=" + project.profitAnnual + " roi=" + project.roi
+              + " cash_after=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF)
+              + " available=" + OpexAvailableCapital());
+        }
+        builtCount++;
+        if (PORTFOLIO_DYNAMIC_BATCH) {
+          this._dynamicBatchBuilt(year);
+          i = -1;
+        } else if (builtCount >= maxBatch) break;
+      } else if (PORTFOLIO_DYNAMIC_BATCH && attempt.outcome == "rejected"
+                 && this._dynamicBatchRejected()) {
+        break;
+      }
+      continue;
+    }
+
+    if (mode == "air") {
+      local attempt = null;
+      if (C49_SCARCITY_LEDGER) c49AttemptedRanks.rawset(i, true);
+      if (C48_PROJECT_ATTEMPT_LEDGER) {
+        local attemptDate = AIDate.GetCurrentDate();
+        local attemptMark = OpexOpsMeasureBegin();
+        attempt = this._tryBuildAirProject(year, project, i, liveBuiltCount, passDiscards,
+                                           anchor, yy);
+        this._recordC48AttemptLedger("air", attempt.outcome, i,
+            OpexOpsMeasureEnd(attemptMark), AIDate.GetCurrentDate() - attemptDate);
+        c48AttemptsTotal++;
+        if (attempt.outcome == "built") c48BuiltThisPass = true;
+      } else attempt = this._tryBuildAirProject(year, project, i, liveBuiltCount, passDiscards,
+                                                 anchor, yy);
+      passDiscards = attempt.discards;
+      if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
+      if (fallthroughProbeActive) {
+        fallthroughAttempted++;
+        if (attempt.outcome == "built") fallthroughBuilt++;
+      }
+      if (attempt.outcome == "built") {
+        if (C39_PROJECTS_CADENCE_PROBE) {
+          local key = OpexProjectAttemptKey(project);
+          /* C39.5b : entry porte since/topSince/turns/topTurns (cf. _c39StampFinanceable) au lieu
+           * d'une date seule, pour separer cadence, file d'attente par rang et concurrence caisse. */
+          local entry = (key in this._c39FinanceableSince) ? this._c39FinanceableSince[key] : null;
+          local daysSinceFinanceable = (entry != null)
+              ? AIDate.GetCurrentDate() - entry.since : -1;
+          local daysSinceTop = (entry != null && entry.topSince != -1)
+              ? AIDate.GetCurrentDate() - entry.topSince : -1;
+          local turnsSinceFinanceable = (entry != null) ? entry.turns : -1;
+          local turnsSinceTop = (entry != null && entry.topSince != -1) ? entry.topTurns : -1;
+          OpexC39ProjectsCadenceLog("phase=built mode=" + project.mode + " rank=" + i
+              + " days_since_financeable=" + daysSinceFinanceable + " days_since_top=" + daysSinceTop
+              + " turns_since_financeable=" + turnsSinceFinanceable + " turns_since_top=" + turnsSinceTop
+              + " rail_search=" + (this._railSearch != null ? 1 : 0) + " capital_after=" + OpexAvailableCapital());
+        }
+        if (C50_CHRONOLOGY_PROBE) {
+          OpexC50ChronologyLog("phase=project_built mode=air rank=" + i + " line=" + (this._nextLineId - 1)
+              + " cost=" + project.capital + " profit=" + project.profitAnnual + " roi=" + project.roi
+              + " cash_after=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF)
+              + " available=" + OpexAvailableCapital());
+        }
+        builtCount++;
+        if (PORTFOLIO_DYNAMIC_BATCH) {
+          this._dynamicBatchBuilt(year);
+          i = -1;
+        } else if (builtCount >= maxBatch) break;
+      } else if (PORTFOLIO_DYNAMIC_BATCH && attempt.outcome == "rejected"
+                 && this._dynamicBatchRejected()) {
+        break;
+      }
+    } else if (mode == "road") {
+      local attempt = null;
+      if (C49_SCARCITY_LEDGER) c49AttemptedRanks.rawset(i, true);
+      if (C48_PROJECT_ATTEMPT_LEDGER) {
+        local attemptDate = AIDate.GetCurrentDate();
+        local attemptMark = OpexOpsMeasureBegin();
+        attempt = this._tryBuildRoadProject(year, project, i, passDiscards, anchor, yy);
+        this._recordC48AttemptLedger("road", attempt.outcome, i,
+            OpexOpsMeasureEnd(attemptMark), AIDate.GetCurrentDate() - attemptDate);
+        c48AttemptsTotal++;
+        if (attempt.outcome == "built") c48BuiltThisPass = true;
+      } else attempt = this._tryBuildRoadProject(year, project, i, passDiscards, anchor, yy);
+      passDiscards = attempt.discards;
+      if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
+      if (fallthroughProbeActive) {
+        fallthroughAttempted++;
+        if (attempt.outcome == "built") fallthroughBuilt++;
+      }
+      if (attempt.outcome == "built") {
+        if (C39_PROJECTS_CADENCE_PROBE) {
+          local key = OpexProjectAttemptKey(project);
+          /* C39.5b : entry porte since/topSince/turns/topTurns (cf. _c39StampFinanceable) au lieu
+           * d'une date seule, pour separer cadence, file d'attente par rang et concurrence caisse. */
+          local entry = (key in this._c39FinanceableSince) ? this._c39FinanceableSince[key] : null;
+          local daysSinceFinanceable = (entry != null)
+              ? AIDate.GetCurrentDate() - entry.since : -1;
+          local daysSinceTop = (entry != null && entry.topSince != -1)
+              ? AIDate.GetCurrentDate() - entry.topSince : -1;
+          local turnsSinceFinanceable = (entry != null) ? entry.turns : -1;
+          local turnsSinceTop = (entry != null && entry.topSince != -1) ? entry.topTurns : -1;
+          OpexC39ProjectsCadenceLog("phase=built mode=" + project.mode + " rank=" + i
+              + " days_since_financeable=" + daysSinceFinanceable + " days_since_top=" + daysSinceTop
+              + " turns_since_financeable=" + turnsSinceFinanceable + " turns_since_top=" + turnsSinceTop
+              + " rail_search=" + (this._railSearch != null ? 1 : 0) + " capital_after=" + OpexAvailableCapital());
+        }
+        if (C50_CHRONOLOGY_PROBE) {
+          OpexC50ChronologyLog("phase=project_built mode=road rank=" + i + " line=" + (this._nextLineId - 1)
+              + " cost=" + project.capital + " profit=" + project.profitAnnual + " roi=" + project.roi
+              + " cash_after=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF)
+              + " available=" + OpexAvailableCapital());
+        }
+        builtCount++;
+        if (PORTFOLIO_DYNAMIC_BATCH) {
+          this._dynamicBatchBuilt(year);
+          i = -1;
+        } else if (builtCount >= maxBatch) break;
+      } else if (PORTFOLIO_DYNAMIC_BATCH && attempt.outcome == "rejected"
+                 && this._dynamicBatchRejected()) {
+        break;
+      }
+    } else if (mode == "rail") {
+      local attempt = null;
+      if (C49_SCARCITY_LEDGER) c49AttemptedRanks.rawset(i, true);
+      if (C48_PROJECT_ATTEMPT_LEDGER) {
+        local attemptDate = AIDate.GetCurrentDate();
+        local attemptMark = OpexOpsMeasureBegin();
+        attempt = this._tryBuildRailProject(year, project, i, liveBuiltCount, passDiscards,
+                                            anchor, yy);
+        this._recordC48AttemptLedger("rail", attempt.outcome, i,
+            OpexOpsMeasureEnd(attemptMark), AIDate.GetCurrentDate() - attemptDate);
+        c48AttemptsTotal++;
+        if (attempt.outcome == "built") c48BuiltThisPass = true;
+      } else attempt = this._tryBuildRailProject(year, project, i, liveBuiltCount, passDiscards,
+                                                  anchor, yy);
+      passDiscards = attempt.discards;
+      if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
+      if (attempt.outcome == "pending") {
+        /* En batch historique > 1, le portefeuille doit etre regenere avant de reprendre un
+         * A* suspendu. Le defaut unitaire conserve le retour immediat d'origine. */
+        if (!PORTFOLIO_DYNAMIC_BATCH && builtCount > 0) break;
+        if (C48_PROJECT_ATTEMPT_LEDGER) {
+          this._recordC48PassLedger(c48AttemptsTotal, OpexOpsMeasureEnd(c48PassMark),
+              c48BuiltThisPass, c48BestLen, c48MaxRank);
+        }
+        if (C49_SCARCITY_LEDGER) this._recordC49ScarcityPass(c49Best, c49BuiltRanks, c49AttemptedRanks, passDiscards);
+        return true;
+      }
+      if (attempt.outcome == "built") {
+        if (C39_PROJECTS_CADENCE_PROBE) {
+          local key = OpexProjectAttemptKey(project);
+          /* C39.5b : entry porte since/topSince/turns/topTurns (cf. _c39StampFinanceable) au lieu
+           * d'une date seule, pour separer cadence, file d'attente par rang et concurrence caisse. */
+          local entry = (key in this._c39FinanceableSince) ? this._c39FinanceableSince[key] : null;
+          local daysSinceFinanceable = (entry != null)
+              ? AIDate.GetCurrentDate() - entry.since : -1;
+          local daysSinceTop = (entry != null && entry.topSince != -1)
+              ? AIDate.GetCurrentDate() - entry.topSince : -1;
+          local turnsSinceFinanceable = (entry != null) ? entry.turns : -1;
+          local turnsSinceTop = (entry != null && entry.topSince != -1) ? entry.topTurns : -1;
+          OpexC39ProjectsCadenceLog("phase=built mode=" + project.mode + " rank=" + i
+              + " days_since_financeable=" + daysSinceFinanceable + " days_since_top=" + daysSinceTop
+              + " turns_since_financeable=" + turnsSinceFinanceable + " turns_since_top=" + turnsSinceTop
+              + " rail_search=" + (this._railSearch != null ? 1 : 0) + " capital_after=" + OpexAvailableCapital());
+        }
+        if (C50_CHRONOLOGY_PROBE) {
+          OpexC50ChronologyLog("phase=project_built mode=rail rank=" + i + " line=" + (this._nextLineId - 1)
+              + " cost=" + project.capital + " profit=" + project.profitAnnual + " roi=" + project.roi
+              + " cash_after=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF)
+              + " available=" + OpexAvailableCapital());
+        }
+        builtCount++;
+        if (PORTFOLIO_DYNAMIC_BATCH) {
+          this._dynamicBatchBuilt(year);
+          i = -1;
+        } else if (builtCount >= maxBatch) break;
+      } else if (PORTFOLIO_DYNAMIC_BATCH && attempt.outcome == "rejected"
+                 && this._dynamicBatchRejected()) {
+        break;
+      }
+    } else if (mode == "water") {
+      local attempt = null;
+      if (C49_SCARCITY_LEDGER) c49AttemptedRanks.rawset(i, true);
+      if (C48_PROJECT_ATTEMPT_LEDGER) {
+        local attemptDate = AIDate.GetCurrentDate();
+        local attemptMark = OpexOpsMeasureBegin();
+        attempt = this._tryBuildWaterProject(year, project, i, liveBuiltCount, passDiscards,
+                                             anchor, yy);
+        this._recordC48AttemptLedger("water", attempt.outcome, i,
+            OpexOpsMeasureEnd(attemptMark), AIDate.GetCurrentDate() - attemptDate);
+        c48AttemptsTotal++;
+        if (attempt.outcome == "built") c48BuiltThisPass = true;
+      } else attempt = this._tryBuildWaterProject(year, project, i, liveBuiltCount, passDiscards,
+                                                   anchor, yy);
+      passDiscards = attempt.discards;
+      if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
+      if (fallthroughProbeActive) {
+        fallthroughAttempted++;
+        if (attempt.outcome == "built") fallthroughBuilt++;
+      }
+      if (attempt.outcome == "built") {
+        if (C39_PROJECTS_CADENCE_PROBE) {
+          local key = OpexProjectAttemptKey(project);
+          /* C39.5b : entry porte since/topSince/turns/topTurns (cf. _c39StampFinanceable) au lieu
+           * d'une date seule, pour separer cadence, file d'attente par rang et concurrence caisse. */
+          local entry = (key in this._c39FinanceableSince) ? this._c39FinanceableSince[key] : null;
+          local daysSinceFinanceable = (entry != null)
+              ? AIDate.GetCurrentDate() - entry.since : -1;
+          local daysSinceTop = (entry != null && entry.topSince != -1)
+              ? AIDate.GetCurrentDate() - entry.topSince : -1;
+          local turnsSinceFinanceable = (entry != null) ? entry.turns : -1;
+          local turnsSinceTop = (entry != null && entry.topSince != -1) ? entry.topTurns : -1;
+          OpexC39ProjectsCadenceLog("phase=built mode=" + project.mode + " rank=" + i
+              + " days_since_financeable=" + daysSinceFinanceable + " days_since_top=" + daysSinceTop
+              + " turns_since_financeable=" + turnsSinceFinanceable + " turns_since_top=" + turnsSinceTop
+              + " rail_search=" + (this._railSearch != null ? 1 : 0) + " capital_after=" + OpexAvailableCapital());
+        }
+        if (C50_CHRONOLOGY_PROBE) {
+          OpexC50ChronologyLog("phase=project_built mode=water rank=" + i + " line=" + (this._nextLineId - 1)
+              + " cost=" + project.capital + " profit=" + project.profitAnnual + " roi=" + project.roi
+              + " cash_after=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF)
+              + " available=" + OpexAvailableCapital());
+        }
+        builtCount++;
+        if (PORTFOLIO_DYNAMIC_BATCH) {
+          this._dynamicBatchBuilt(year);
+          i = -1;
+        } else if (builtCount >= maxBatch) break;
+      } else if (PORTFOLIO_DYNAMIC_BATCH && attempt.outcome == "rejected"
+                 && this._dynamicBatchRejected()) {
+        break;
+      }
+    }
+  }
+  if (fallthroughProbeActive) {
+    OpexC41ProjectsFallthroughLog("phase=exit invalidated="
+        + (this._portfolioInvalidated ? 1 : 0) + " attempted=" + fallthroughAttempted
+        + " built=" + fallthroughBuilt);
+  }
+  if (DECISION_LOG && builtCount == 0 && logDiscardsThisPass && passDiscards.len() > 0) {
+    local maxLog = passDiscards.len() < 3 ? passDiscards.len() : 3;
+    for (local k = 0; k < maxLog; k++) {
+      local d = passDiscards[k];
+      OpexDecide("PROJECT_DISCARD", "rank=" + d.rank + " mode=" + d.mode + " src=" + d.src + " dst=" + d.dst + " reason=" + d.reason + (d.extra != "" ? " " + d.extra : ""));
+    }
+  }
+  }
+
+  if (C49_SCARCITY_LEDGER) this._recordC49ScarcityPass(c49Best, c49BuiltRanks, c49AttemptedRanks, passDiscards);
+
+  /* G4§1 : l'ancien chemin deduisait hadAbandons de passDiscards, dont le remplissage
+   * est garde par DECISION_LOG (defaut 0). Le drapeau _hadAbandonsThisPass est pose
+   * directement par _markPairAbandoned, couvrant tous les chemins (air, route, rail
+   * bloquant et reprenable via _consumeRailSearch). */
+  local hadAbandons = this._hadAbandonsThisPass;
+  local batchBuilt = PORTFOLIO_DYNAMIC_BATCH && this._dynamicBatch != null
+      ? this._dynamicBatch.built : builtCount;
+
+  if (builtCount > 0 || hadAbandons || batchBuilt > 0) {
+    local fleetPlan = null;
+    if (!PORTFOLIO_DYNAMIC_BATCH && FLEET_PORTFOLIO) {
+      /* Mode a blanc : meme decision que la tache air_fleet, sans achat ni test de tresorerie. */
+      fleetPlan = [];
+      this._resizeAirFleets(AIDate.GetYear(AIDate.GetCurrentDate()), fleetPlan);
+    }
+    if (PORTFOLIO_DYNAMIC_BATCH && batchBuilt > 0) {
+      /* Chaque succes a deja filtre et re-classe sur le budget vivant. */
+    } else if (STAGED_BOOTSTRAP && this._generationStage < OPEX_STAGE_COMPLETE) {
+      this._rebuildProjects(fleetPlan);
+    } else if (PORTFOLIO_CACHE && this._projects != null && ("candidateGroups" in this._projects)) {
+      local budgetNow = OpexAvailableCapital();
+
+      this._projects = OpexIncrementalUpdateProjects(this._projects, this._catalog, this._budget, this._lines, budgetNow, fleetPlan, this._abandonedPairs);
+    } else {
+      this._rebuildProjects(fleetPlan);
+    }
+    this._ranked = this._projects.rail;
+    if (PORTFOLIO_LOG) OpexLogPortfolioRank(this._projects);
+    /* `knapsackExact` et le compteur d'imbrications du budget etaient ECRITS ET LUS NULLE PART.
+     * Or maxNodes = 2000 pour n = 64 fait tronquer la recherche couramment : sans ce champ, on ne
+     * peut pas distinguer « le solveur a prouve l'optimum » de « il a epuise son budget de noeuds »
+     * -- l'angle mort qui a laisse survivre quatre defauts du portefeuille (docs/taches.md
+     * S0 septies). Ajoutes au panneau EXISTANT plutot que dans un nouveau : un appel BuildSign de
+     * plus deplace les frontieres de ticks (precedent mesure : un helper devant 57 appels a coute
+     * 3 lignes rail). Longueur maximale d'un panneau : 31 caracteres. */
+    OpexSign(anchor, "IG|" + yy + "|" + this._projects.stats.modeCandidates + "|"
+             + this._projects.stats.odProjects + "|" + this._projects.stats.budgetSelected
+             + "|" + (this._projects.stats.knapsackExact ? 0 : 1)
+             + "|" + this._budget.nested);
+    /* air_fleet_probe : combien de hubs le rabattage voit-il, et combien de candidats feeders
+     * en tire-t-il ? Sans ces deux nombres, un "zero feeder bati" ne dit pas si la generation
+     * est vide ou si l'election les ecarte. */
+    if (AIR_FLEET_PROBE && ("road" in this._projects) && ("stats" in this._projects.road) &&
+        ("feederCandidates" in this._projects.road.stats)) {
+      OpexSign(anchor, "FN|" + yy + "|" + this._projects.road.stats.feederHubs
+                             + "|" + this._projects.road.stats.feederCandidates);
+    }
+    /* B est le nombre reellement construit dans CE passage. On complete IB au lieu d'ajouter un
+     * panneau : ses deux champs historiques restent aux memes positions, et avec les deux
+     * capitaux a 10 chiffres que le format IB admet deja, |B8 fait 30 caracteres, sous 31. */
+    OpexSign(anchor, "IB|" + yy + "|" + this._projects.capitalBudget + "|"
+             + this._projects.stats.selectedCapital + "|B" + batchBuilt);
+    /* L'abandon a maintenant ete consomme par la reelection/reconstruction. */
+    if (hadAbandons) this._hadAbandonsThisPass = false;
+    if (PORTFOLIO_DYNAMIC_BATCH) {
+      local reason = this._dynamicBatch.stopReason != null
+          ? this._dynamicBatch.stopReason : "no_financeable";
+      this._stopDynamicBatch(reason, year);
+    }
+    if (C48_PROJECT_ATTEMPT_LEDGER) {
+      this._recordC48PassLedger(c48AttemptsTotal, OpexOpsMeasureEnd(c48PassMark),
+          c48BuiltThisPass, c48BestLen, c48MaxRank);
+    }
+    return true;
+  }
+  if (PORTFOLIO_DYNAMIC_BATCH) {
+    local reason = this._dynamicBatch.stopReason != null
+        ? this._dynamicBatch.stopReason : "no_success";
+    this._stopDynamicBatch(reason, year);
+  }
+  if (C48_PROJECT_ATTEMPT_LEDGER) {
+    this._recordC48PassLedger(c48AttemptsTotal, OpexOpsMeasureEnd(c48PassMark),
+        c48BuiltThisPass, c48BestLen, c48MaxRank);
+  }
+  return false;
+}
+function OpexAI::_rebuildProjects(fleetPlan)
+{
+  local stage = OPEX_STAGE_COMPLETE;
+  local prior = null;
+  if (STAGED_BOOTSTRAP && this._generationStage < OPEX_STAGE_COMPLETE) {
+    stage = this._generationStage;
+    prior = this._projects;
+    if (this._generationStageMonth < 0) {
+      local date = AIDate.GetCurrentDate();
+      this._generationStageMonth = AIDate.GetYear(date) * 12 + AIDate.GetMonth(date);
+    }
+  }
+  local freightCargo = null;
+  local freightCargos = OpexFreightCargoOrder(this._catalog);
+  if (freightCargos.len() > 0) {
+    if (stage > OPEX_STAGE_AIR_ONLY && stage <= OPEX_STAGE_ROUTE_ONLY
+        && this._bootstrapFreightCargo >= 0) {
+      freightCargo = this._bootstrapFreightCargo;
+    } else {
+      local nextCargo = 0;
+      if (this._lastFreightCargo >= 0) {
+        for (local i = 0; i < freightCargos.len(); i++) {
+          if (freightCargos[i] == this._lastFreightCargo) {
+            nextCargo = (i + 1) % freightCargos.len();
+            break;
+          }
+        }
+      }
+      freightCargo = freightCargos[nextCargo];
+    }
+  }
+  this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines,
+      fleetPlan, this._abandonedPairs, stage, prior,
+      freightCargo, freightCargos, this._waterSiteCatalog, this._activeSubsidies);
+  local actualFreightCargo = (this._projects != null && ("freightCargo" in this._projects))
+      ? this._projects.freightCargo : freightCargo;
+  if (stage == OPEX_STAGE_AIR_ONLY && actualFreightCargo != null) {
+    this._bootstrapFreightCargo = actualFreightCargo;
+  }
+  /* Le bootstrap utilise le meme premier cargo pour son rail (etape 0) puis
+   * sa route (etape 3). Ensuite chaque passe complete ne porte que sur le
+   * cargo suivant : prior reste null en regime complet, donc le portefeuille
+   * ne regrossit jamais par accumulation des anciens lots fret. */
+  if (freightCargos.len() > 0
+      && (stage == OPEX_STAGE_ROUTE_ONLY || stage == OPEX_STAGE_COMPLETE)) {
+    if (actualFreightCargo != null) this._lastFreightCargo = actualFreightCargo;
+    if (stage == OPEX_STAGE_ROUTE_ONLY) this._bootstrapFreightCargo = -1;
+  }
+  if (STAGED_BOOTSTRAP && this._generationStage < OPEX_STAGE_COMPLETE) {
+    this._generationStage++;
+    if (DECISION_LOG) {
+      OpexDecide("BOOTSTRAP_ADVANCE", "next=" + this._generationStage
+                 + " funded=" + this._projects.best.len());
+    }
+    local b = (this._catalog != null && this._catalog.bounds != null)
+        ? this._catalog.bounds : null;
+    if (b != null) {
+      OpexSign(AIMap.GetTileIndex(1, 2), "BS|" + (this._generationStage - 1)
+               + "|" + b.railMin + "|" + b.railMax + "|" + b.airMin);
+    }
+  }
+}
