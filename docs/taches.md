@@ -1,7 +1,7 @@
 # Tâches — réduire l'écart avec AAAHogEx
 
 Revue du **2026-09-13**. Ce fichier contient les décisions actuelles et le prochain travail
-utile. Les travaux terminés et leurs dossiers, y compris les ajouts C65 non committés, sont transférés
+utile. Les travaux terminés et leurs dossiers, y compris C65 (`19609f8`), sont transférés
 dans [le journal du 13 septembre](journal_2026-09-13.md). Les développements antérieurs y sont
 conservés intégralement pour la traçabilité ; seul ce fichier prescrit le travail restant.
 
@@ -104,7 +104,7 @@ Les graines du banc adaptatif sont celles déjà explorées pour découvrir le s
   attribuées à la bonne compagnie, présence et continuité du service. Une sauvegarde du monde
   à la bonne date ne démontre pas à elle seule que l'IA a continué à décider.
 - Figer le **contenu exact de l'arbre**, les réglages, versions, configuration de carte, graines
-  et places des compagnies. C65 est dans l'arbre de travail, pas dans `559cc83` : un SHA seul
+  et places des compagnies. C65 est dans `19609f8` (après `559cc83`) : un SHA seul
   ne décrit donc pas le code courant. Aucun mélange entre référence de ce commit et variante
   du nouvel arbre ; conserver une copie isolée ou une empreinte des sources avec le manifeste.
 - Réutiliser le harnais du duel et les décodeurs existants après correction ; la comparaison
