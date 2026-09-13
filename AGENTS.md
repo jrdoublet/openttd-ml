@@ -183,12 +183,12 @@ supposer qu'une de ces bibliothèques est utilisée sans vérifier l'`import` r�
   and/or sell »), sauf l'en-tête propre de `Pathfinder.Road.nut` qui se déclare **LGPLv2.1**. Les
   trois cas autorisent la copie ; seule obligation : conserver les en-têtes de copyright des
   fichiers copiés.
-- **Copier plutôt qu'importer, si l'API déclarée pose un souci.** `SuperLib` déclare
-  `GetAPIVersion() = "15"` contre le `"13"` d'`OpexAI/info.nut` ; `MinchinWeb` a sa ligne
-  `GetAPIVersion()` commentée. Avant de résoudre ce mismatch, vérifier le **graphe de dépendances
-  inter-fichiers** (grep `_SuperLib_X::`/`MinchinWeb.X.Y(` croisés) : `engine.nut`, `town.nut`,
-  `station.nut`, `airport.nut` sont chacun autonomes (zéro appel vers un autre module), donc
-  copiables fonction par fonction sans emporter le reste de la lib. Seul le bloc eau
+- **Copier plutôt qu'importer, si l'architecture le justifie.** `SuperLib` déclare
+  `GetAPIVersion() = "15"`, désormais aligné avec le `"15"` d'`OpexAI/info.nut` (C62). `MinchinWeb`
+  a sa ligne `GetAPIVersion()` commentée. Même avec l'alignement d'API, vérifier le **graphe de dépendances
+  inter-fichiers** (grep `_SuperLib_X::`/`MinchinWeb.X.Y(` croisés) avant tout import direct :
+  `engine.nut`, `town.nut`, `station.nut`, `airport.nut` sont chacun autonomes (zéro appel vers un autre module),
+  donc copiables fonction par fonction sans emporter le reste de la lib. Seul le bloc eau
   (`Lakes`+`Marine`+`Pathfinder.Ship`+`WBC`, ~2000 lignes) a une dépendance interne
   (`Constants`, et `ShipPathfinder↔WBC` via `OverrideWBC`).
 - **🔴 Avant de toucher au temps de trajet RAIL avec une de ces bibliothèques : LIRE `docs/taches.md`

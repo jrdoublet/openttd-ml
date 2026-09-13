@@ -9,6 +9,7 @@ results/*
 !results/test_c46_shadow.json
 !results/diag_c46_freight_cost_map1024.json
 !results/diag_c50_chronology_probe_6y_5seeds.json
+!results/bench_1v1_5y_20seeds_reference.json
 
 # IA tierce de reference, lue pour comparaison seulement (GPL v3, Rei Ishibashi).
 # Volontairement NON versionnee : la copier ici rendrait le depot derive de la GPL v3.

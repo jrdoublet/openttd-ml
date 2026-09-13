@@ -6,7 +6,7 @@ class OpexAIInfo extends AIInfo {
   function GetDate()        { return "2026-09-09"; }
   function CreateInstance() { return "OpexAI"; }
   function GetShortName()   { return "OPEX"; }
-  function GetAPIVersion()  { return "13"; }
+  function GetAPIVersion()  { return "15"; }
 
   /* Les reglages debug_signs et pathfinder_sleep_ticks existent pour NE PAS POLLUER une partie
    * partagee avec des joueurs humains (loan_repay_floor_k, pathfinder_hard_cap_k,
@@ -976,6 +976,26 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C50b : test causal du plafond routier sur les lignes existantes. La flotte initiale reste
+     * inchangee ; 1 remplace seulement le plafond de croissance 2*min(arrets) par le garde-fou 8. */
+    AddSetting({
+      name = "c50b_road_cap_relax",
+      description = "C50b experiment: allow existing road lines to grow up to 8 vehicles instead of 2 per terminal stop; initial sizing unchanged; 1 = test arm, 0 = current cap (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* C50b : bras causal rail, force la tentative de densification des lignes rentables afin de
+     * separer le seuil de backlog des impossibilites geometriques. Sans effet par defaut. */
+    AddSetting({
+      name = "c50b_rail_backlog_relax",
+      description = "C50b experiment: remove the backlog threshold before attempting a second train on profitable rail lines; 1 = test arm, 0 = current threshold (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* C43/E3 famille 2 : CASH_RESERVE_MIN mord-il ? Compteurs cumulatifs, publies en delta annuel
      * par la tache "report" (OpexCashReserve() est appelee trop souvent pour journaliser chaque
      * appel). */
@@ -1068,6 +1088,17 @@ class OpexAIInfo extends AIInfo {
       description = "Plafond physique de flotte aerienne par la cadence de piste (docs/taches.md C16): 1 = actif (defaut), 0 = inactif",
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* C50 / C16 : Adaptation de air_cadence_cap selon la richesse de la carte en industries
+     * Sur cartes pauvres (< 50 industries), le rail fret est rare et l'aerien est le moteur
+     * principal : debloquer le cadence cap (+7.0% valeur, +11.2% profit, p=0.014). */
+    AddSetting({
+      name = "air_cadence_cap_adaptive",
+      description = "Desactive air_cadence_cap sur cartes pauvres (<50 industries) : 1 = actif, 0 = inactif (defaut)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
 

@@ -289,6 +289,11 @@ C46_FREIGHT_GRID_SHADOW <- false;
 C50_CHRONOLOGY_PROBE <- false;
 C50_REFUSE_CACHE <- {};
 C50_NON_EXPANSION_LEDGER <- null;
+/* C50b : bras comportemental isole. Le classement et la flotte initiale restent bornes a 2 ;
+ * seule la croissance des lignes existantes peut monter jusqu'au garde-fou historique de 8. */
+C50B_ROAD_CAP_RELAX <- false;
+/* C50b : test causal du seuil de backlog avant doublement d'une ligne rail existante. */
+C50B_RAIL_BACKLOG_RELAX <- false;
 
 function OpexC50ResetNonExpansionLedger()
 {
@@ -1055,6 +1060,8 @@ ROAD_FLEET_FIX <- true;
 AIR_FLEET_LINE_PRICE <- true;
 /* C16 : Plafond physique de flotte aerienne derive de la cadence d'absorption de la piste */
 AIR_CADENCE_CAP <- true;
+/* C50 / C16 : Adaptation de air_cadence_cap selon la richesse de la carte en industries (< 50) */
+AIR_CADENCE_CAP_ADAPTIVE <- false;
 /* C26b : Correctif du faux embouteillage lorsque le vehicule est a l'arret a quai en chargement
  * Mesure a 10 ans et 3 ans : DEGRADE le profit de -17,6 % s'il n'est pas couple a MARGINAL_FLEET,
  * car il empile jusqu'a 16 camions sur des arrets a 1 seul quai. Defaut a false. */
@@ -5571,7 +5578,7 @@ function OpexAI::_refleetRoadLines(year)
     local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
     local extraNeeded = 0;
 
-    local physicalCap = OpexRoadPhysicalVehicleCap(
+    local physicalCap = C50B_ROAD_CAP_RELAX ? MAX_ROAD_VEHICLES : OpexRoadPhysicalVehicleCap(
         ("nStopsA" in line) ? line.nStopsA : 1, ("nStopsB" in line) ? line.nStopsB : 1);
     if (have >= physicalCap) {
       if (C50_CHRONOLOGY_PROBE && dedupRoad && C50_NON_EXPANSION_LEDGER != null) {
@@ -5989,7 +5996,8 @@ function OpexAI::_expandRailLines(year)
         local waitingA = ("lastWaitingA" in line) ? line.lastWaitingA : 0;
         local waitingB = ("lastWaitingB" in line) ? line.lastWaitingB : 0;
         local waiting = line.kind == "freight" ? waitingA : waitingA + waitingB;
-        local backlogThreshold = line.kind == "freight" ? (2 * wagon.capacity) : (4 * wagon.capacity);
+        local backlogThreshold = C50B_RAIL_BACKLOG_RELAX ? 0
+            : (line.kind == "freight" ? (2 * wagon.capacity) : (4 * wagon.capacity));
         if (waiting < backlogThreshold) continue;
 
         // Cas 1 : Ligne deja doublee avec depot2 -> ajout immediat du 2e train
@@ -9991,6 +9999,8 @@ function OpexAI::Start()
   C46_FREIGHT_GRID = AIController.GetSetting("c46_freight_grid") != 0;
   C46_FREIGHT_GRID_SHADOW = AIController.GetSetting("c46_freight_grid_shadow") != 0;
   C50_CHRONOLOGY_PROBE = AIController.GetSetting("c50_chronology_probe") != 0;
+  C50B_ROAD_CAP_RELAX = AIController.GetSetting("c50b_road_cap_relax") != 0;
+  C50B_RAIL_BACKLOG_RELAX = AIController.GetSetting("c50b_rail_backlog_relax") != 0;
   if (C50_CHRONOLOGY_PROBE) {
     this._c50RefuseCache = {};
     this._c50LastTreasuryMonth = -1;
@@ -10020,6 +10030,16 @@ function OpexAI::Start()
   ROAD_FLEET_FIX = AIController.GetSetting("road_fleet_fix") != 0;
   AIR_FLEET_LINE_PRICE = AIController.GetSetting("air_fleet_line_price") != 0;
   AIR_CADENCE_CAP = AIController.GetSetting("air_cadence_cap") != 0;
+  AIR_CADENCE_CAP_ADAPTIVE = AIController.GetSetting("air_cadence_cap_adaptive") != 0;
+  if (AIR_CADENCE_CAP_ADAPTIVE) {
+    local nIndustries = AIIndustryList().Count();
+    if (nIndustries < 50) {
+      AIR_CADENCE_CAP = false;
+      AILog.Info("AIR_CADENCE_CAP_ADAPTIVE: nIndustries=" + nIndustries + " (<50) -> AIR_CADENCE_CAP desactive");
+    } else {
+      AILog.Info("AIR_CADENCE_CAP_ADAPTIVE: nIndustries=" + nIndustries + " (>=50) -> AIR_CADENCE_CAP conserve");
+    }
+  }
   ROAD_LOADING_FIX = AIController.GetSetting("road_loading_fix") != 0;
   CLEAN_DENSITY_SCORE = AIController.GetSetting("clean_density_score") != 0;
   local iap = AIController.GetSetting("infra_amort_pct");

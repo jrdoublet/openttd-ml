@@ -32,8 +32,8 @@
  * dans ce depot : ai/AdmiralAI/main.nut:22 et Lakes.nut:98 lui-meme (import("queue.fibonacci_heap",
  * ..., 3)). L'import de MinchinWeb's MetaLibrary elle-meme (import("util.minchinweb", ...)) n'est
  * PAS tente : sa chaine exacte n'est confirmee nulle part dans ce depot, d'ou la copie de source
- * plutot qu'un import live -- coherent avec la decision deja prise pour SuperLib/MinchinWeb
- * (mismatch de GetAPIVersion, voir AGENTS.md).
+ * plutot qu'un import live -- meme si le mismatch historique de GetAPIVersion est resolu via C62
+ * (voir AGENTS.md).
  */
 
 /* Slot de table racine, PAS un `local` de fichier : une methode de classe (le constructeur de

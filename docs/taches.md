@@ -1319,10 +1319,10 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   📝 Noté le 2026-09-10 sur demande utilisateur. `ai/library/SuperLib-41/` est **présente dans le
   dépôt** et contient `order.nut` et `vehicle.nut`. OpexAI **ne l'utilise pas** — elle n'apparaît
   que dans des commentaires (`builder_air.nut:380`).
-  ⚠️ **Contrainte déjà tranchée, à ne pas rouvrir** : l'import live de SuperLib **n'est pas
-  possible** (mismatch de `GetAPIVersion`, voir `AGENTS.md` et `lib_water.nut:28-37`). La décision
-  du dépôt est de **transcrire le source utile**, comme cela a été fait pour MinchinWeb. Toute
-  reprise passe donc par de la copie annotée, pas par `import(...)`.
+  ⚠️ **Contrainte architecturale** : bien que le mismatch de `GetAPIVersion` soit résolu
+  via C62 (API 15 partout), la décision de conception du dépôt reste de **transcrire le source utile**,
+  comme cela a été fait pour MinchinWeb, plutôt qu'un import live monolithique (voir `AGENTS.md §3`).
+  Toute reprise passe donc par de la copie annotée et autonome, pas par `import(...)`.
   **Reste** : lire `order.nut` / `vehicle.nut`, lister ce qui manque à notre gestion d'ordres
   (partage d'ordres, dépôt, rendez-vous, refit), et dire ce qui vaut la transcription.
   🔗 Lien direct avec **C52** : si les ordres sont mal formés, le véhicule se perd — et l'événement
@@ -1483,6 +1483,11 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
 - 🔴 **C61 — Remplacer les plafonds de flotte air et route par des capacités physiques temporelles.**
   📝 Ouverte le 2026-09-12 sur proposition utilisateur, à la suite de C50.
 
+  **Acquis de C50b (20 à 40 graines × 10 ans).** Les suppressions brutes ont déjà été arbitrées :
+  capacité de cadence air neutre, plafond de croissance route 2→8 négatif en valeur, réserve de
+  demande air fortement négative. C61 ne doit pas répéter ces bras ; son objet restant est le
+  modèle temporel mutualisé, avec une cible calculée et une mesure des rotations réelles.
+
   ### Point de départ et prudence causale
   C50 montre une flotte très peu dense sur les lignes existantes, alors que la trésorerie cesse
   d'être limitante. Il ne journalise cependant ni la cible de flotte avant plafond, ni le plafond
@@ -1585,6 +1590,26 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   représente la contrainte observée, soit remplacé par une capacité temporelle validée. Les défauts
   ne changent qu'après le banc officiel ; aucun chiffre antérieur au 2026-09-09 ne peut servir à
   l'arbitrage.
+
+- 🔴 **C62 — Migration de l'API NoAI d'OpexAI vers la version 15 (OpenTTD 15.3).**
+  📝 Ouverte le 2026-09-13 sur demande utilisateur.
+
+  **Contexte & Constat :**
+  - `ai/OpexAI/info.nut` déclare historiquement `GetAPIVersion() { return "13"; }` car le dépôt
+    a commencé sous OpenTTD 13.4.
+  - La plateforme de banc a été migrée vers OpenTTD 15.3 (`bench_v2.py`).
+  - OpenTTD NoAI n'utilise pas de numérotation mineure (`"15.3"` n'existe pas et est rejeté à l'initialisation) :
+    depuis OpenTTD 12, les versions d'API sont des chaînes entières (`"12"`, `"13"`, `"14"`, `"15"`).
+  - Rester en v13 impose à OpenTTD d'exécuter OpexAI à travers une couche de shims de rétrocompatibilité,
+    prive OpexAI des ajouts natifs d'API 14/15, et maintenait un obstacle artificiel (« mismatch de GetAPIVersion »,
+    voir §C53, `AGENTS.md §3` et `lib_water.nut:28-37`) face aux bibliothèques comme `SuperLib-41` qui déclarent `"15"`.
+
+  **Travaux prévus :**
+  1. Passer `GetAPIVersion()` de `"13"` à `"15"` dans `ai/OpexAI/info.nut`.
+  2. Valider par smoke test unitaire (1 an × 1 graine) l'absence de rejet ou warning du moteur NoAI.
+  3. Lancer un diagnostic 5 graines × 6 ans pour vérifier la stricte équivalence physique et économique.
+  4. Actualiser la documentation de dépendance et de mismatch dans `AGENTS.md`, `docs/taches.md` (§C53),
+     `ai/OpexAI/CLAUDE.md` et `ai/OpexAI/lib_water.nut`.
 
 - 🟢 **C51 — Validation et clôture du portefeuille v2 (défaut consolidé, legacy supprimé le 2026-09-11).**
   📝 Archéologie faite le 2026-09-10, banc lancé le même jour.
@@ -1821,7 +1846,7 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
   d'opportunité** (`estimator.nut:247`). Toute comparaison exige de recomposer les deux fractions
   sur une base homogène.
 
-- 🟢 **C50 / C50b — Chronologie comparée 1v1 et sonde chronologique causale : démonstration des verrous d'expansion.** (CLOS le 2026-09-12)
+- 🟢 **C50 / C50b — Chronologie comparée 1v1 et essais causaux des bornes de flotte.** (CLOS le 2026-09-12, conclusions C50b corrigées après 40×10)
   📝 **Campagne 1v1 partagée exécutée le 2026-09-12** :
   `sweeps/diag_1v1_chronology.py` (6 ans × 5 graines `100 12345 42 7 999`, `--max-workers 2`, `decision_log=0`,
   comptage par delta d'état de jeu symétrique). Preuve : `results/diag_1v1_chronology_6y_5seeds.json`.
@@ -1837,46 +1862,133 @@ n°1 identifiée, même si elle tient la valeur à court horizon.
 
   **Constat macroscopique** : En 1970, OpexAI démarre plus vite (+148 gares et +159 véhicules vs +72 et +143). Mais dès 1971, HogEx accélère brutalement (+583 puis +857 véhicules/an) alors qu'OpexAI reste figé sur un rythme plat (~80-100 véhicules/an), finissant à 616 véhicules contre 3 545 (1,62 véh/gare pour OpexAI vs 3,72 pour HogEx).
 
-  ### Sonde chronologique causale C50b (`c50_chronology_probe=1`, défaut 0)
-  Instrumentée dans `main.nut` (gate dédié `OpexC50ChronologyLog`, 100 % autonome sans `decision_log=1`), mesurée par `sweeps/diag_c50_chronology_probe.py` sous harnais strict (`expected_last_year=1975`, vérification des 5 graines, interruption immédiate sur tout échec).
-  Campagne officielle 5 graines (`100 12345 42 7 999`) × 6 ans, 0 échec (`failed_run_count: 0`). Preuve : `results/diag_c50_chronology_probe_6y_5seeds.json` :
+  ### C50b — réexamen causal et invalidation de la première sonde
 
-  | Année (Y) | Année profit mesurée (Y-1) | Capital dispo moyen | Projets bâtis | Refus Trésorerie | Véhicules flotte bâtis (Route / Air / Rail) | Profit total lignes (Y-1) |
-  |---|---|---:|---:|---:|---:|---:|
-  | 1970 | (1969) | 67 788 £ | 60 | 10 | 31 (22 route, 9 air, 0 rail) | 0 £ |
-  | 1971 | 1970 | 111 805 £ | 48 | 4 | 19 (15 route, 4 air, 0 rail) | 2 257 902 £ |
-  | 1972 | 1971 | 553 265 £ | 58 | **0** | 11 (4 route, 7 air, 0 rail) | 4 846 999 £ |
-  | 1973 | 1972 | 1 647 640 £ | 44 | **0** | 16 (16 route, 0 air, 0 rail) | 8 878 572 £ |
-  | 1974 | 1973 | 3 305 008 £ | 29 | **0** | 6 (6 route, 0 air, 0 rail) | 11 007 435 £ |
-  | 1975 | 1974 | **5 084 833 £** | 27 | **0** | 15 (14 route, 0 air, 1 rail) | **11 174 767 £** |
+  La première exploitation de `c50_chronology_probe=1` n'est **pas une preuve causale**. Un test
+  apparié 1 graine × 1 an change déjà l'état final (`results/smoke_c50b_probe_neutrality_1y_seed42.json`) :
+  277 574 £, 214 239 £ de profit annuel, 46 véhicules et 34 gares sans sonde, contre 263 229 £,
+  192 077 £, 49 véhicules et 40 gares avec sonde. Les écritures dans les chemins chauds modifient
+  donc l'ordonnancement. De plus, `phys_cap_hit` additionnait des **passages de lignes** répétés,
+  pas des véhicules empêchés ; le compteur rail ne conservait pas `prep.reason`, et les zéros de
+  trésorerie avaient été agrégés avant d'être décrits à tort comme absolus. La table et les
+  conclusions causales précédentes sont retirées.
 
-  ### Causes racines démontrées et quantifiées par C50b :
+  Le remplacement repose sur des bras comportementaux isolés, tous à défaut 0, et sur
+  `sweeps/bench_c50b_physical.py`, qui lit les flottes primaires et les panneaux `RU` directement
+  dans les sauvegardes sans activer de sonde Squirrel. Diagnostics :
+  `results/diag_c50b_levers_6y_5seeds.json`,
+  `results/diag_c50b_road_factorial_6y_5seeds.json` et
+  `results/diag_c50b_rail_backlog_6y_5seeds.json`. Banc final consolidé :
+  `results/bench_c50b_levers_10y_40seeds.json` (0 échec). La réserve aérienne, déjà décisive après
+  20 graines, n'a pas été prolongée ; les trois bras encore ambigus ont été portés à 40 graines.
 
-  1. **La trésorerie cesse d'être limitante dès 1972** :
-     - Le capital disponible passe de 67 k£ (1970) à 5,08 M£ (1975).
-     - Les refus trésorerie tombent à **0 absolu** dès 1972 sur tous les modes (projets neufs et renforts).
-     - Le décalage temporel entre $Y$ et le profit de $Y-1$ (`profit_year`) montre que le profit passe de 2,26 M£ (1970) à 11,17 M£ (1974), mais plafonne brutalement dès 1973-1974 (£11,00 M → £11,17 M).
+  | Bras (variante − référence) | Paires | Valeur | Profit annuel | Flotte / réseau | Test des signes valeur | Verdict |
+  |---|---:|---:|---:|---:|---:|---|
+  | `air_fleet_buffer=-1` | 20 | **−5,093 M£** | **−666 k£** | +157,6 véhicules ; −19,6 gares | **0 V / 20 D**, p=0,000002 | fortement négatif |
+  | `air_cadence_cap=0` | 40 | +384 k£ | +76 k£ | +8,3 véhicules ; +4,7 gares | 21 V / 19 D, p=0,875 | neutre |
+  | `c50b_road_cap_relax=1` | 40 | **−574 k£** | −2 k£ | **+65,4 véhicules** ; 0 gare | **13 V / 27 D**, p=0,038 | négatif en valeur |
+  | `road_loading_fix=1` | 40 | +296 k£ | +67 k£ | +2,8 véhicules ; +0,9 gare | 24 V / 15 D / 1 N, p=0,200 | non significatif |
 
-  2. **Air : la cause racine du blocage est `ref_W` (`AIR_FLEET_BUFFER`), pas la capacité de l'aéroport** :
-     - Les 178 lignes aériennes actives en 1975 ne totalisent que 196 appareils (1,10 avion/ligne) face à un plafond physique théorique cumulé de 892 avions. Seules 5 lignes atteignent le plafond d'aéroport (`lines_at_cap = 5`).
-     - Le verrou causal numéro 1 est **`ref_W` (stock en attente insuffisant, formule `(maxWait - bottom) / planeCapacity >= 1`)**, qui cumule :
-       - 153 refus en 1971, 518 en 1972, 1 005 en 1973, 1 448 en 1974 et **1 715 refus en 1975**.
-       - Dès 1974, `want_sum` tombe à 0 : aucun avion supplémentaire n'est demandé par le planificateur de flotte !
-     - Les verrous secondaires sont `ref_L` (profit négatif transitoire, 66 à 82 refus/an) et `ref_Y` (verrou de cadence annuelle, 26 à 53 refus/an). `ref_C` (capacité d'aéroport) ne représente que 41 refus en 1975.
+  **Lecture temporelle.** Les JSONL conservent 120 sauvegardes mensuelles par partie. Leur
+  reconstruction annuelle par `sweeps/analyse_c50b_by_year.py` est archivée dans
+  `results/analysis_c50b_by_year.json` :
+  - `air_fleet_buffer=-1` offre d'abord un avantage moyen de valeur (+9,5 % en 1970, +15,3 % en
+    1971, +13,2 % en 1972), mais son écart de profit devient déjà négatif en 1972. La valeur rejoint la
+    référence en 1973, passe significativement sous elle en 1974 (−7,5 %, 5 V / 15 D, p=0,041),
+    puis décroche jusqu'à −29,0 % en 1979. C'est un investissement initial excessif dont la flotte
+    supplémentaire évince durablement l'extension du réseau.
+  - `c50b_road_cap_relax=1` gagne réellement la première année (+4,7 %, 28 V / 11 D / 1 N,
+    p=0,009), puis s'inverse dès 1971 (−6,3 %, 12 V / 28 D, p=0,017). Le pire écart relatif arrive
+    en 1972 (−12,0 %) ; il se résorbe partiellement, sans jamais être récupéré (−3,3 % en 1979).
+  - `air_cadence_cap=0` reste légèrement positif en moyenne (+1,0 à +2,5 %) mais proche du hasard
+    chaque année ; il n'existe ni fenêtre de supériorité nette, ni retournement négatif.
+  - `road_loading_fix=1` ne se retourne pas : son avantage moyen croît lentement d'environ +0,6 %
+    en 1971-1972 à +1,7 % en 1979. Les nombreux nuls initiaux montrent que la branche est peu
+    exposée ; dix ans ne suffisent pas à démontrer un gain généralisable.
 
-  3. **Route : la cause racine est le plafond physique d'arrêt (`phys_cap_hit`)** :
-     - Les lignes routières s'étendent rapidement en 1970-1971 mais sont bloquées par `OpexRoadPhysicalVehicleCap` (2 véhicules max par quai d'arrêt) :
-       - 308 lignes au plafond en 1971, 636 en 1972, 629 en 1973, 542 en 1974, 519 en 1975.
-       - Les refus secondaires sont `loss_hit` (129-147/an) et `no_demand` (100-138/an). Refus trésorerie : 0.
+  **Dépendance à la richesse de la graine.** `sweeps/analyse_c50b_by_richness.py` classe les
+  graines sur la valeur de la **référence seule fin 1971**, puis mesure l'effet relatif en 1979 ;
+  50 000 permutations testent l'écart entre moitiés. Les classements 1970 et 1972 servent de
+  sensibilité (`results/analysis_c50b_by_richness.json`) :
+  - la suppression de `AIR_FLEET_BUFFER` reste négative dans chaque sous-groupe : −26,6 % sur la
+    moitié pauvre et −30,3 % sur la riche. Aucun régime de richesse ne la sauve ;
+  - `air_cadence_cap=0` présente une coupure apparente (+6,8 % pauvre contre −1,1 % riche,
+    interaction p=0,021), mais elle n'est pas monotone (Spearman p=0,286) et disparaît avec le
+    classement 1970 (interaction p=0,832). C'est une piste fragile, impropre à définir un seuil ;
+  - le plafond route relevé reste négatif en valeur dans les deux moitiés (−1,6 % et −4,1 %), sans
+    interaction significative. Son gain de flotte est identique (+65 véhicules) quelle que soit
+    la richesse ;
+  - `road_loading_fix=1` vaut +3,1 % dans la moitié pauvre et +1,1 % dans la riche, sans différence
+    significative. Son effet **physique** est toutefois conditionnel : −3,0 gares dans la moitié
+    pauvre contre +4,8 dans la riche (interaction p=0,002), signal retrouvé avec le classement
+    1972 mais pas 1970. Cela montre une exposition liée à l'état atteint par l'IA, sans démontrer
+    une politique conditionnelle rentable.
 
-  4. **Rail : blocage par géométrie de station (`prep.reason = "NOSPOT"`) et seuil de backlog** :
-     - Seules 10 lignes ferroviaires ont été bâties sur les 5 graines réunies en 6 ans (2 lignes/graine).
-     - 100 % sont en voie unique avec train unique (`single=10, 1train=10, double=0, 2trains=0`).
-     - Le passage en double voie et l'ajout d'un 2e train sont bloqués :
-       - Le stock en gare atteint rarement le seuil de backlog (`backlog_met` < 2 lignes/an).
-       - Quand le seuil est franchi, la préparation échoue avec `prep.reason = "NOSPOT"` (14 échecs en 1973, graine 42) : les gares terminus urbaines ne disposent pas d'espace contigu libre pour poser un second quai parallèle.
+  Aucun interrupteur « si riche/si pauvre » n'est donc adopté. Une telle règle exigerait un seuil
+  défini avant banc, calculable en jeu sans connaître la graine, puis un nouveau 20×10 où le
+  contrôleur bascule réellement le paramètre ; découper a posteriori ces 40 parties ne suffit pas.
 
-  **Synthèse C50/C50b** : Le décrochage d'OpexAI face à AAAHogEx après 1970 est une **crise de sur-accumulation de capital** (£5,1M dormants) causée par une incapacité à densifier les lignes existantes. L'aérien est verrouillé par la condition de buffer d'attente (`AIR_FLEET_BUFFER`), la route par la limite physique de 2 véhicules par quai, et le rail par l'impossibilité d'étendre ses terminus mono-voie.
+  **Reclassement exogène de la carte (proposition utilisateur, 2026-09-12).** Le classement
+  précédent décrit en partie la réussite précoce de l'IA. `sweeps/measure_map_richness.py` le
+  remplace par une IA-sonde passive qui photographie, avant toute construction, le nombre de
+  villes, leur population totale/moyenne/maximale et le nombre d'industries. Les 40 cartes C50b
+  font toutes 256×256 ; la taille de carte ne varie donc pas. Elles couvrent 39–51 villes,
+  25 427–50 901 habitants (652–1 001 habitants par ville en moyenne) et 44–55 industries.
+  Résultats : `results/map_richness_c50b_40seeds.json` et
+  `results/analysis_c50b_by_map_richness.json` ; l'analyse garde chaque composante séparée et
+  utilise comme résumé le rang moyen `nombre de villes / taille moyenne / industries` (20 000
+  permutations).
+
+  - Le score composite ne met en évidence aucune interaction économique démontrée. La réserve
+    aérienne supprimée reste aussi mauvaise dans les cartes pauvres et riches (−28,3 % / −28,6 %).
+    Le plafond route relevé reste négatif (−1,0 % / −4,7 %, interaction p=0,280).
+  - Le seul signal économique net porte sur le **nombre d'industries**, pas sur la richesse
+    composite. Sans plafond de cadence aérienne, les cartes de moins de 50 industries gagnent
+    +7,0 % de valeur et +11,2 % de profit annuel (15 V / 5 D pour les deux, p=0,041), contre
+    −1,3 % et −3,2 % à partir de 50 industries. L'interaction pauvre/riche vaut p=0,014 en valeur
+    et p=0,0025 en profit. Le sens se répète dans les deux blocs déjà constitués : valeur
+    +7,1 % / −2,0 % sur les 20 graines initiales, puis +7,0 % / −0,8 % sur les 20 graines
+    d'extension.
+  - `road_loading_fix=1` est également meilleur sous 50 industries (+3,6 % contre +0,6 %), mais
+    l'écart entre groupes n'est pas significatif (p=0,244). Sa corrélation de rang isolée
+    (p=0,045) fait partie d'une batterie de comparaisons et ne suffit pas à définir une règle.
+
+  Le seuil 50 a été lu **après** le banc et les caractéristiques de carte sont corrélées (villes
+  et industries : r=0,78). Il s'agit donc d'une hypothèse reproductible, pas encore d'un réglage à
+  adopter. Le prochain bras causal à pré-enregistrer est : calculer `AIIndustryList().Count()` au
+  démarrage, mettre `air_cadence_cap=0` uniquement sous 50 industries, conserver le défaut sinon,
+  puis comparer ce contrôleur à la référence sur de nouvelles graines 20×10. Il testerait une
+  vraie politique disponible en jeu et non un découpage a posteriori.
+
+  **Air.** `AIR_FLEET_BUFFER` mord bien : le supprimer achète beaucoup d'avions mais évince des
+  lignes et détruit systématiquement de la valeur. C'est une garde de demande utile, pas la cause
+  d'une sous-densification à corriger. La suppression de la capacité de cadence change peu la
+  flotte et ne produit aucun gain économique reproductible sur 40 graines : 11 V / 9 D puis
+  10 V / 10 D en valeur sur les deux blocs préétablis, tandis que le profit passe de +169 k£ à
+  −17 k£. Ce plafond n'explique pas le décrochage observé face à HogEx.
+
+  **Route.** Relever seulement le plafond de croissance de 2 à 8 véhicules cause bien la hausse de
+  densité recherchée : +65,4 véhicules et 40/40 hausses. Mais la valeur recule significativement,
+  alors que le profit reste inchangé. Le score augmente de 14,9 points (36 V / 3 D / 1 N) et la
+  note de gare de 6,8 points (35 V / 2 D / 3 N) : le plafond arbitre donc valeur contre qualité de
+  service ; il n'est pas la cause d'un manque de croissance rentable. La perte de valeur se
+  reproduit séparément sur les deux blocs (−648 k£ puis −500 k£). Le factoriel 5×6 confirme
+  que `road_loading_fix=1` ne sauve pas le plafond relevé. Seule, cette correction est légèrement
+  positive sur le premier bloc (+537 k£, 14 V / 5 D / 1 N), puis presque neutre sur le second
+  (+55 k£, 10 V / 10 D) ; elle ne franchit pas le seuil statistique après 40 graines. Défaut
+  maintenu à 0.
+
+  **Rail.** Mettre le seuil de backlog à zéro (`c50b_rail_backlog_relax=1`) donne exactement les
+  mêmes cinq parties 6 ans, au bit près, y compris 56 trains et les mêmes motifs `RU` (4 `OK`,
+  5 `NOSPOT`). Le seuil n'est pas limitant. Sur les 20 nouvelles références à 10 ans, le chemin
+  normal produit 28 `OK`, 39 `NOSPOT` et 2 `TRACKFAIL` : la géométrie échoue souvent, mais ni à
+  100 %, ni à cause d'un seuil rarement franchi. C50b ne démontre pas une cause racine rail unique.
+
+  **Verdict C50b.** Les plafonds et gardes testés expliquent certains écarts de densité physique,
+  mais leur suppression brute n'améliore pas la croissance économique : réserve aérienne rejetée,
+  cadence aérienne neutre, plafond routier relevé rejeté, seuil rail non mordant. Tous les défauts
+  restent inchangés. C61 reste ouverte pour évaluer un véritable modèle temporel partagé ; elle ne
+  doit pas partir du principe que faire sauter les bornes actuelles est déjà une amélioration.
 
 - 🟡 **C48 — Le coût de `projects` n'est PAS le balayage : c'est la régénération qu'il déclenche.** (NON SIGNIFICATIF — MAINTENU À DÉFAUT 0 le 2026-09-12)
   📝 Ouverte et mesurée le 2026-09-10. Sonde `c48_project_attempt_ledger` (défaut 0, gate dédié
