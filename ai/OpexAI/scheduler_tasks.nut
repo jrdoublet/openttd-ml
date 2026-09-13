@@ -551,6 +551,7 @@ function OpexAI::_dispatchReport(task, year)
   if (C50_CHRONOLOGY_PROBE) this._logC50AnnualReport(year);
   this._reportYear(year, this._ranked);
   this._reportLines(year);
+  if (C63_INVEST_PROBE) OpexC63FlushLedger(year - 1);
   if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
   return true;
 }

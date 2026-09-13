@@ -285,6 +285,8 @@ function OpexLoadSettings()
   C46_FREIGHT_GRID = AIController.GetSetting("c46_freight_grid") != 0;
   C46_FREIGHT_GRID_SHADOW = AIController.GetSetting("c46_freight_grid_shadow") != 0;
   C50_CHRONOLOGY_PROBE = AIController.GetSetting("c50_chronology_probe") != 0;
+  C63_INVEST_PROBE = AIController.GetSetting("c63_invest_probe") != 0;
+  if (C63_INVEST_PROBE) OpexC63ResetLedger();
   C50B_ROAD_CAP_RELAX = AIController.GetSetting("c50b_road_cap_relax") != 0;
   C50B_RAIL_BACKLOG_RELAX = AIController.GetSetting("c50b_rail_backlog_relax") != 0;
   if (C50_CHRONOLOGY_PROBE) {

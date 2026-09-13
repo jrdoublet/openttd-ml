@@ -187,6 +187,7 @@ function OpexAI::_tryBuildFeeders(year)
       }
     }
     local result = OpexBuildRoadRoute(this._catalog, this._budget, plan, candidate);
+    if (C63_INVEST_PROBE) OpexC63RecordSpendResult("road", result, candidate.capital);
     if (ROAD_COST_PROBE) {
       OpexSign(anchor, "RP|" + idx + "|" + result.plannedCapital + "|" + result.actualCost
                              + "|" + (result.ok ? result.vehicles.len() : 0));

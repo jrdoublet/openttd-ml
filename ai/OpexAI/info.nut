@@ -976,6 +976,16 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C63+C58 : depenses prevues/reelles, recettes predites/reelles, jours d'occasion.
+     * Defaut 0. Compteurs memoire en boucle chaude, AILog annuel (et 28-31 dec.). */
+    AddSetting({
+      name = "c63_invest_probe",
+      description = "C63+C58 probe: annual spend (planned vs actual, including failures), line predicted vs real revenue, and one leftover-kind per pass with days; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* C50b : test causal du plafond routier sur les lignes existantes. La flotte initiale reste
      * inchangee ; 1 remplace seulement le plafond de croissance 2*min(arrets) par le garde-fou 8. */
     AddSetting({

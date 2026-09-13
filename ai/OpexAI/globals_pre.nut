@@ -254,6 +254,9 @@ C46_FREIGHT_GRID <- false;
 C46_FREIGHT_GRID_SHADOW <- false;
 /* C50 : Sonde chronologique legere (tresorerie, profit par ligne, projets batis et refuses). */
 C50_CHRONOLOGY_PROBE <- false;
+/* C63+C58 : ledger annuel depenses / recettes / occasions. Nul hors sonde. */
+C63_INVEST_PROBE <- false;
+C63_INVEST_LEDGER <- null;
 C50_REFUSE_CACHE <- {};
 C50_NON_EXPANSION_LEDGER <- null;
 /* C50b : bras comportemental isole. Le classement et la flotte initiale restent bornes a 2 ;

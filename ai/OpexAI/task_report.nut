@@ -170,6 +170,14 @@ function OpexAI::_reportLines(year)
           + " profit=" + profit + " run_cost=" + runCost + " rev=" + (profit + runCost)
           + " pred_profit=" + predProfit + " roi=" + lineRoi + " age=" + lAge);
     }
+    if (C63_INVEST_PROBE) {
+      local lMode = ("mode" in line) ? line.mode : "unknown";
+      local lAge = ("year" in line) ? (year - line.year) : -1;
+      local predProfit = ("predicted" in line) ? line.predicted : 0;
+      local predRev = ("predRevenue" in line) ? line.predRevenue : 0;
+      OpexC63RecordLine(lMode, lAge, predProfit, profit, predRev, profit + runCost,
+                        vehCount, line.lineId, year - 1);
+    }
     if (DECISION_LOG) {
       local realRevenue = profit + runCost;
       local predRevenue = ("predRevenue" in line) ? line.predRevenue : 0;

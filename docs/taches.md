@@ -74,7 +74,7 @@ les instruments de diagnostic. Ils ne remplacent pas cet objectif.
 
 | Rang | Chantier | Question qui doit être tranchée | Livrable / condition de passage |
 |---|---|---|---|
-| **P0** | C64 : référence et mesure fiables | Quelle est la trajectoire économique actuelle face à AAAHogEx, avec une flotte correctement comptée ? | Harnais qualifié, référence figée ; réutiliser les données valides avant de relancer |
+| **P0** | **C66 : duel fiable et référence reproductible** | Quelle est la trajectoire économique actuelle face à AAAHogEx, avec une flotte correctement comptée ? | Harnais qualifié, référence figée ; réutiliser les données valides avant de relancer |
 | **P1** | **C63 + C58 : investissement et réinvestissement** | Où se perd la croissance à partir de 1971 : coût, revenu capté, occasions absentes ou décisions lentes ? | Un diagnostic commun 5×6, attribution par mode/âge de ligne, puis **un seul** correctif causal |
 | **P2** | C61 + C59 : exploitation des infrastructures rentables | Quelles lignes profitables disposent de demande non servie et d'une capacité réellement disponible ? | Cibler le mode exposé par P1 ; un levier isolé, sans rejouer la suppression brute des plafonds |
 | **P2 conditionnelle** | C39/C41 : coût des décisions utiles | Reste-t-il des projets valides et finançables que le contrôleur traite trop tard ? | Montrer un délai et une occasion perdue sur l'arbre courant avant de modifier la cadence ou les caches |
@@ -84,45 +84,159 @@ La première action est P0, puis le diagnostic commun C63/C58. **Ne pas lancer s
 une nouvelle famille de plafonds, un nouveau score et un orchestrateur général.** Les rangs P2
 restent des suites conditionnelles ; rien ne prouve encore que l'un d'eux est le meilleur levier.
 
+<a id="c66"></a>
+## P0 — C66 : fiabiliser le duel et rendre le rattrapage mesurable
+
+**Statut : à faire.** Fiche ouverte le 2026-09-13 à la demande de l'utilisateur ; elle reprend
+le volet « référence fiable » de C64. C64 conserve uniquement la piste adaptative, différée.
+**But :** pouvoir dire si une modification d'OpexAI améliore son résultat économique **contre
+AAAHogEx**, avec des mesures correctes, des parties complètes et une comparaison reproductible.
+Cette fiche porte sur le harnais et ses preuves ; elle ne change aucune stratégie de jeu.
+
+### C66.1 — Corriger et qualifier les compteurs physiques
+
+**Défaut localisé :** `extract_company_record` dans
+[`bench_1v1_5y_20seeds.py`](../sweeps/bench_1v1_5y_20seeds.py) compte les entrées `VEHS`
+possédées. `vehicle_breakdown` dans `diag_1v1_monthly.py` et `physical_telemetry` dans
+`bench_c50b_physical.py` ne filtrent pas davantage les composants internes. Le champ `type`
+distingue les modes, pas nécessairement la tête d'un véhicule de ses composants.
+
+- ⬜ Définir **un décodeur partagé**, avec un schéma de sortie versionné. Garder le compte brut
+  sous un nom explicite (`vehicle_pool_entries`) ; ajouter les unités pilotables par mode
+  (`primary_vehicles_by_mode`) et le nombre d'entrées non classées. Ne pas changer silencieusement
+  la signification de `n_vehicles` dans les anciens résultats.
+- ⬜ Qualifier les discriminants de tête/composant sur les chunks **réellement produits par
+  OpenTTD 15.3**. Confronter les IDs comptés à un inventaire API pris au même état de jeu : train
+  avec plusieurs wagons, avion avec ses composants, véhicule routier articulé si disponible,
+  bateau. Ne pas deviner une valeur de `subtype`, filtrer sur profit nul ou sur capacité non nulle.
+- ⬜ Compter un train comme une unité pilotable tout en additionnant correctement la capacité
+  de ses wagons. Séparer les capacités **par cargo**, sans additionner passagers et tonnes comme
+  une grandeur comparable. Inclure les véhicules au dépôt dans la flotte possédée ; distinguer
+  « possédé » et « en service » si ce dernier état est effectivement mesurable.
+- ⬜ Vérifier aussi les propriétaires des gares, les gares multimodales et les représentations
+  dictionnaire/liste des chunks. Un champ requis absent doit être signalé, pas transformé en
+  zéro crédible. Une gare multimodale reste une gare dans le total de compagnie.
+
+**Preuve attendue :** fixtures minimales conservées, IDs API et IDs décodés identiques dans
+les cas qualifiés, bilan des composants exclus et zéro entrée inexpliquée. Si un mode n'a pas
+été exercé, le publier comme non qualifié. L'inventaire API sert à qualifier le décodeur sur une
+partie de contrôle ; il n'impose pas une sonde Squirrel lourde dans chaque partie économique.
+Les JSONL du duel actuel ne contiennent pas les chunks nécessaires pour corriger rétroactivement
+sa flotte : préserver les anciens chiffres avec leur avertissement, sans inventer un recomptage.
+
+### C66.2 — Séparer santé du moteur, santé des compagnies et activité de l'IA
+
+**Défauts localisés :** le duel appelle `summarise(rows)` sans `expected_last_year` ; `keep`
+transmet toute la sortie du moteur à OpexAI et une chaîne vide à AAAHogEx. Le détecteur commun
+cherche des marqueurs fatals sans attribution de compagnie. Une erreur d'AAAHogEx pourrait donc
+être imputée à OpexAI, tandis que la ligne AAAHogEx serait déclarée saine.
+
+- ⬜ Conserver le journal moteur **une seule fois par partie**, avec son chemin dans le résultat.
+  Extraire séparément les erreurs de chaque script à partir des identifiants vérifiés du log
+  et de la correspondance script/compagnie du manifeste. Garder une catégorie « non attribuée »
+  si le moteur ne permet pas de trancher ; ne pas affecter l'erreur arbitrairement au joueur 0.
+- ⬜ Contrôler les deux compagnies attendues, l'absence de doublons de checkpoints, les dates
+  réellement disponibles et l'horizon demandé. Passer au minimum `starting_year + years - 1`
+  à `summarise`, puis contrôler le dernier checkpoint attendu selon la cadence de sauvegarde :
+  une sauvegarde de janvier de la dernière année ne suffit pas à prouver une année complète.
+- ⬜ Distinguer les statuts : erreur moteur/timeout, données manquantes, erreur NoAI attribuée,
+  faillite en jeu, fin complète et suspicion de stagnation. La faillite est une issue économique
+  à conserver ; elle ne doit pas disparaître d'une moyenne comme une erreur de collecte.
+- ⬜ Définir un indicateur d'activité à partir des observations disponibles : changements de
+  réseau/flotte, événements ou progression d'une tâche lorsque celle-ci est observable.
+  **Aucune construction pendant plusieurs mois n'est pas une preuve de gel** ; des véhicules
+  peuvent aussi continuer à gagner de l'argent alors que le contrôleur ne progresse plus.
+  Une absence de signal devient une suspicion à diagnostiquer, pas une exclusion automatique.
+
+**Preuve attendue :** cas de contrôle avec erreur OpexAI seule, erreur AAAHogEx seule, log
+ambigu, compagnie absente et horizon tronqué ; attribution correcte et aucune partie manquante
+silencieusement déclarée saine. Les contrôles négatifs peuvent utiliser des fixtures de logs
+réels et des copies tronquées de résultats, sans faire crasher les IA de production.
+
+### C66.3 — Figer une référence réellement reproductible
+
+- ⬜ Créer un manifeste contenant : SHA Git, état modifié, empreinte et copie isolée des sources
+  effectivement exécutées, version/empreinte d'AAAHogEx et des bibliothèques, versions
+  OpenTTD/OpenGFX/OpenTTDLab et image Docker, configuration effective, réglages IA explicites
+  **et défauts**, année initiale, durée, graines, répétitions et places des compagnies.
+- ⬜ Figer les sources **avant** de lancer les parties ; les modifications de l'arbre de travail
+  pendant le banc ne doivent pas contaminer les graines suivantes. C65 illustre pourquoi un
+  SHA sans le contenu modifié ne suffit pas à décrire le programme exécuté.
+- ⬜ Identifier séparément la politique testée, la compagnie et la partie : par exemple
+  `(campaign, policy, seed, repeat, company_slot)`. Les noms « OpexAI » et « AAAHogEx » ne sont
+  pas les deux variantes de stratégie. Refuser les paires dont les configurations diffèrent
+  sur autre chose que l'intervention annoncée.
+- ⬜ Conserver résultats compacts, checkpoints, manifeste, logs uniques et fixtures de décodage.
+  Sorties sous un nom de campagne nouveau ; ne pas écraser la référence 20×5 ni ses JSONL.
+  Les empreintes servent à relier une mesure à son code, pas à affirmer l'équivalence de deux codes.
+
+**Preuve attendue :** deux relances courtes de la même référence isolée produisent les mêmes
+métriques aux mêmes checkpoints. Si elles divergent, documenter et traiter la source de variation
+avant d'attribuer une petite différence à une stratégie ; ne pas sélectionner la meilleure relance.
+
+### C66.4 — Comparer deux politiques, chacune contre le même adversaire
+
+Étendre le harnais existant avec la validation des réglages de `bench_v2.py`, sans écrire un
+nouveau lanceur ad hoc. Pour chaque graine, exécuter **deux parties distinctes** :
+
+| Partie | Compagnie OpexAI | Adversaire | Conditions |
+|---|---|---|---|
+| Témoin | Référence figée | AAAHogEx figée | Même graine, configuration, durée et place |
+| Variante | Même référence + intervention isolée | Même AAAHogEx | Seule l'intervention annoncée diffère |
+
+L'évolution ultérieure d'AAAHogEx peut différer entre les parties parce qu'OpexAI agit autrement :
+c'est une conséquence du duel, pas un défaut d'appariement. Ne pas comparer deux OpexAI jouant
+ensemble, ni la variante seule à une référence jouant contre AAAHogEx. Garder les places fixes
+pour le premier protocole ; une inversion des places serait un bloc de robustesse distinct.
+
+- ⬜ Fixer avant le banc la métrique primaire — **proposition : profit annuel final d'OpexAI** —,
+  l'effet minimal utile et le garde-fou sur la valeur. Conserver les trajectoires annuelles,
+  notamment 1970–1972, pour distinguer gain précoce et destruction de croissance à long terme.
+- ⬜ Rapporter deux comparaisons différentes : `Opex_variante − Opex_témoin` sur chaque graine,
+  puis l'écart `Opex − AAAHogEx` dans chacune des deux parties et son évolution. Une réduction
+  du retard obtenue seulement en dégradant les deux compagnies n'est pas un gain économique
+  d'OpexAI. Rapporter aussi les victoires directes contre AAAHogEx.
+- ⬜ Publier deltas par graine, moyenne et médiane **des deltas**, intervalle d'incertitude,
+  V/D/égalités et test des signes excluant les égalités. Les ratios demandent un dénominateur
+  positif et doivent distinguer rapport de moyennes et moyenne des rapports.
+- ⬜ Garder toutes les graines prévues et tous les statuts. Les erreurs de collecte doivent
+  être résolues ou rendre la comparaison incomplète ; ne pas recalculer discrètement le verdict
+  sur les seules réussites. Les analyses par mode, richesse ou déclenchement restent secondaires.
+
+### C66.5 — Validation progressive et critères de clôture
+
+1. ⬜ **Hors jeu :** fixtures des compteurs, erreurs par compagnie, horizon, appariement et calculs
+   statistiques ; vérifier aussi qu'un réglage inconnu est rejeté et qu'une erreur interrompt
+   proprement le rapport de validation sans effacer les résultats.
+2. ⬜ **Smoke 1 graine × 1 an :** le duel démarre, les deux compagnies et leurs métriques sont
+   présentes. Les scénarios physiques manquants sont qualifiés séparément ; un smoke sans train
+   ne valide pas le compteur des trains. Conserver le tuple de dictionnaires retourné par `keep`.
+3. ⬜ **Contrôle de répétabilité court**, puis **diagnostic 5 graines × 6 ans** sur référence figée.
+   Ce diagnostic peut être partagé avec C63/C58 pour éviter une campagne supplémentaire ;
+   distinguer sa télémétrie instrumentée du résultat économique sans sonde lourde.
+4. ⬜ **Banc officiel 20 graines × 10 ans** quand une variante causale est prête : 40 parties
+   partagées au total, chacune avec deux compagnies, soit 20 paires de politiques. Il valide
+   l'intervention ; un nouveau 20×10 sans variante n'est pas requis pour clore le harnais.
+
+**C66 est close lorsque** le décodeur a sa preuve indépendante, les contrôles négatifs détectent
+et attribuent les échecs, la référence est figée et répétable, le diagnostic 5×6 est complet,
+et le rapport distingue progrès d'OpexAI et évolution du duel. Tout gel suspect non expliqué ou
+mode non qualifié doit être indiqué comme limite, jamais transformé en validation générale.
+Le livrable est un harnais réutilisable et une référence qualifiée pour P1, pas une nouvelle IA.
+Respecter les limites Docker et l'unique campagne consommatrice à la fois, comme en fin de fichier.
+
 <a id="c64"></a>
-## P0 — C64 : consolider la référence, fermer la recherche de seuil de carte
+## C64 — Politique adaptative : en attente d'un mécanisme établi
 
-**Déjà fait.** Duel 20×5 disponible ; banc adaptatif `< 50 industries` exécuté.
-Recomptage de [ce banc](../results/bench_air_cadence_adaptive_10y_20seeds.json) : valeur +3,43 %,
-profit +4,70 %, **9 victoires / 2 défaites / 9 égalités**, p bilatéral = **0,06543** sur les
-11 paires non nulles. Le `p < 0,001` du titre de commit est erroné. Défaut adaptatif 0 confirmé.
-Les graines du banc adaptatif sont celles déjà explorées pour découvrir le seuil : ce n'est
-**pas une validation indépendante**, même si le contrôleur exécute maintenant la règle.
+Le duel 20×5 et le banc `< 50 industries` sont terminés, consignés dans
+[le journal du jour](journal_2026-09-13.md). Leur qualification et le futur comparateur relèvent
+désormais de **C66**. Le défaut adaptatif reste à 0 : 9 V / 2 D / 9 égalités, p=0,06543,
+sur des graines déjà utilisées pour découvrir le seuil, sans validation indépendante.
 
-**À faire, borné à la fiabilité de la prochaine campagne :**
-
-- Qualifier un compteur de véhicules de tête par mode contre `AIVehicleList`, sur un cas
-  contenant train à wagons et avion ; séparer pool, unités pilotables et capacités transportées.
-  Ne pas simplement renommer `physical_telemetry` ni traiter le discriminant de mode comme un
-  filtre de véhicule primaire. Les JSONL du duel ne gardent pas les chunks nécessaires au recomptage.
-- Compléter le contrôle des deux compagnies : horizon attendu explicite, erreurs de script
-  attribuées à la bonne compagnie, présence et continuité du service. Une sauvegarde du monde
-  à la bonne date ne démontre pas à elle seule que l'IA a continué à décider.
-- Figer le **contenu exact de l'arbre**, les réglages, versions, configuration de carte, graines
-  et places des compagnies. C65 est dans `19609f8` (après `559cc83`) : un SHA seul
-  ne décrit donc pas le code courant. Aucun mélange entre référence de ce commit et variante
-  du nouvel arbre ; conserver une copie isolée ou une empreinte des sources avec le manifeste.
-- Réutiliser le harnais du duel et les décodeurs existants après correction ; la comparaison
-  d'une variante exige de pouvoir configurer OpexAI dans ce harnais. Les deux bras du duel sont
-  actuellement les noms des compagnies, pas deux politiques OpexAI concurrentes.
-- Prévoir pour le prochain levier un témoin OpexAI courant et sa variante, **chacun contre
-  AAAHogEx**, avec les mêmes graines, horizon et positions. Lire les deltas de valeur/profit
-  d'OpexAI et l'évolution de l'écart avec l'adversaire. Ajouter le solo seulement pour attribuer
-  un effet de concurrence, pas pour remplacer le verdict partagé.
-
-**En attente :** politique adaptative selon la pression du vivier. Pas de nouvelle campagne
-40×3 pour chercher le meilleur seuil sur les mêmes 40 graines. Toute reprise demandera un
-mécanisme identifié par P1, une règle figée avant mesure et des graines nouvelles. Le score
-primaire doit porter sur toutes les graines prévues ; les seules graines déclenchées sont
-une analyse secondaire, surtout si le déclenchement dépend de l'état produit par la politique.
-
-**Fin de P0 :** mesure qualifiée et protocole prêt. Pas besoin de multiplier les rebaselines
-20×10 sans levier à comparer : le diagnostic P1 peut fournir la première trajectoire corrigée.
+Pas de nouvelle recherche de seuil sur les mêmes 40 graines. Une reprise demande un mécanisme
+identifié par C63/C58, une règle pré-enregistrée et des graines nouvelles. La mesure primaire
+porte sur toutes les graines prévues ; les seules graines déclenchées restent une analyse
+secondaire, particulièrement si le déclenchement dépend de l'état produit par la politique.
 
 <a id="c63"></a>
 <a id="c58"></a>
@@ -145,6 +259,57 @@ réactiver son coût à chaque rebuild en le présentant comme une nouveauté. L
 les sauvegardes et les prédictions enregistrées sur les lignes. Vérifier leur couverture
 avant de supposer qu'elles suffisent : les succès seuls ne donnent pas les dépenses d'échec.
 Ne pas activer aveuglément `decision_log` partout.
+
+**Inventaire du 2026-09-13** (`sweeps/diag_c63_c58.py --selftest`) : les sources existantes
+**ne ferment pas** le tableau joint. `OpexSign` écrase la tuile (1,1) ; un chunk `SIGN` ne
+garde que le dernier nom, donc `RC|` (succès route, coût réel seulement), `AC|`/`RP|`/`DC|`
+(sondes coût défaut 0, panneaux et non AILog) et `OY|`/`OZ|` ne reconstituent pas une série.
+C50 a `pred_profit` pas `pred_revenue`, et `project_built.cost` est le modèle. C49 compte des
+passes, pas des jours. `LINE_REVENUE` est derrière `decision_log`. L'eau n'a pas d'`actualCost`
+(`predicted = 0`). `len(VEHS)` n'est pas une flotte. Quatre trous nommés : dépense prévue vs
+réelle y compris échecs ; recette prédite vs réelle avec témoins profitables ; jours
+d'occasion via `OpexAvailableCapital` ; une sorte de reliquat par passe. Sonde
+`c63_invest_probe` (défaut 0) ajoutée pour ces trous ; agrégation hors-jeu dans
+`sweeps/diag_c63_c58.py`.
+
+**Smoke 2×3 ON/OFF** (`results/c63_c58_probe_onoff_3y_2seeds.json`) : **pas bit-identique**.
+Graine 42 : +0,60 % de valeur ; graine 100 : **−37,6 %**. 0 échec script. Les conclusions
+économiques se lisent sur le bras OFF ; le tableau C63 du diagnostic 5×6 est de la
+télémétrie du bras ON, pas une preuve de performance du défaut.
+
+**Diagnostic 5×6 partagé, reliquat corrigé** (`results/diag_c63_c58_6y_5seeds.json`) :
+5/5 jusqu'à 1975-12-01, 0 échec script. `c63_invest_probe=1` contre AAAHogEx. Années C63 :
+1970–1974 (flush de janvier ; 1975 absent, arrêt au 1er décembre). `len(VEHS)` non utilisé.
+Le classifieur ne mappe plus une raison vide vers `waiting_compute` ; les
+`passDiscards` (dont `build_failed` / `insufficient_cash`) sont enregistrés sous le gate
+C63, pas seulement `decision_log`/`c49`. Une passe A* en vol avec un échec air/route
+compte l'échec, pas l'attente. Surplus leftover+lancé 342–375 j : report d'intervalle
+en frontière d'année. Capital immobilisé jusqu'au premier revenu : non mesuré. Eau : 0 ligne.
+
+Jours de reliquat 1970–1972 : absent / invalid / unaffordable / wait / lancé.
+Graine 42 = seule graine du smoke 2×3 dont la valeur n'a pas chuté.
+
+| Graine | 1970 | 1971 | 1972 | 1970 | 1971 |
+|---:|---|---|---|---|---|
+| 42 | 158 / 45 / 0 / 5 / 143 | 70 / 74 / 0 / 67 / 158 | 208 / 30 / 0 / 47 / 76 | portefeuille vide | **mixte** (inv 35 %, abs 33 %, wait 32 %) ; 6 échecs air, `invalid_n=4` |
+| 100 | 210 / 71 / 0 / 16 / 55 | 207 / 61 / 0 / 10 / 87 | 207 / 56 / 0 / 0 / 99 | portefeuille vide | portefeuille vide (sonde −38 % à 3 ans) |
+| 999 | 86 / 46 / 0 / 17 / 203 | 110 / 50 / 29 / 42 / 133 | 175 / 43 / 0 / 36 / 108 | portefeuille vide | mixte |
+| 1234 | 136 / 50 / 18 / 29 / 109 | 155 / 60 / 0 / 30 / 130 | 60 / 97 / 0 / 0 / 190 | portefeuille vide | portefeuille vide |
+| 5678 | 202 / 67 / 0 / 0 / 83 | 172 / 23 / 0 / 28 / 140 | 27 / 28 / 0 / 26 / 261 | portefeuille vide | portefeuille vide |
+
+`unaffordable` reste rare (18 j en 1970 sur 1234, 29 j en 1971 sur 999). `demand` = 0.
+Recettes, témoins profitables du même mode/âge : air et route en 1970 âge 1, médiane
+réel/prévu **≥ 0,91** (air 1,41 / 1,34 ; route 1,10 / 0,91). Rail âge 1 en 1971 :
+médiane 0,13 / 0,31, **n=7**. Les lignes positives air/route ne sont pas le trou de 1971.
+
+**Décision.** Ce n'est **pas le capital**. Ce n'est **pas le modèle de revenu** air/route.
+Ce n'est pas « caisse ≥ 300 k£ ⇒ CPU ». Ce n'est **pas** « 1971 = attente de calcul » :
+sur la graine 42 le reliquat 1971 se partage entre site/échec (`invalid`), portefeuille
+vide et A*. En 1970, 5/5 graines ont un reliquat **portefeuille vide**. En 1971 la
+pluralité reste le portefeuille vide, sans majorité sur 42 et 999. **Donnée manquante**
+pour un levier : *pourquoi* `best` est vide les jours d'absent (vivier, seuil, déjà
+construit), mesuré **sans** sonde qui déplace la trajectoire. **Pas de correctif, pas
+de C61/C59, pas de C39/C41, pas de devis rail synchrone.** `c63_invest_probe` reste à 0.
 
 Sortie attendue : **un tableau par mode, année et cohorte de lignes**, contenant :
 
@@ -186,9 +351,11 @@ résultat du banc économique final, exécuté sans instrumentation lourde.
 | Projets valides finançables retardés pendant un coût de calcul identifié | C39/C41 ciblée |
 | Pas de cause dominante ou données insuffisantes | Publier les limites et nommer la seule donnée manquante ; ne pas déclarer arbitrairement « capital » ou « CPU » |
 
-**Fin de P1 :** choisir un levier avec mécanisme, périmètre, effet attendu et critère d'arrêt
-écrits ; ou clore explicitement l'hypothèse testée. Le succès du travail n'est pas le nombre
-supplémentaire de sondes créées.
+**Fin de P1 (2026-09-13) :** hypothèse « capital » close. Hypothèse « modèle de revenu
+air/route » close sur les témoins 1970–1971. L'attente A* n'est pas le reliquat 1971
+(graine 42 mixte après correction du classifieur). La seule donnée manquante est
+**pourquoi le portefeuille est vide** les jours `absent`, sans sonde qui déplace. Pas
+de second levier.
 
 <a id="c61"></a>
 <a id="c59"></a>

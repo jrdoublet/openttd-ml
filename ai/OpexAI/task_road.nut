@@ -5,7 +5,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
   if (project == null) return { outcome = "no_candidate", discards = passDiscards };
   local i = rank;
       if (!ROAD_BUILD_ENABLED || this._catalog.roadType < 0) {
-        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = project.src, dst = project.dst, reason = "road_disabled", extra = "" });
+        if (DECISION_LOG || C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "road", src = project.src, dst = project.dst, reason = "road_disabled", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
       }
       local candidate = project.payload;
@@ -45,7 +45,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
       if (C60_TOWN_RATING_FILTER) {
         if ((towns.srcTown >= 0 && !OpexTownRatingAllowStation(towns.srcTown)) ||
             (towns.dstTown >= 0 && !OpexTownRatingAllowStation(towns.dstTown))) {
-          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "town_rating_refusal", extra = "" });
+          if (DECISION_LOG || C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "town_rating_refusal", extra = "" });
           return { outcome = "rejected", discards = passDiscards };
         }
       }
@@ -72,17 +72,17 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
           alreadyServed = OpexRoadPairServed(this._lines, candidate.src, candidate.dst);
         }
         if (alreadyServed) {
-          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "pair_already_served", extra = "" });
+          if (DECISION_LOG || C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "pair_already_served", extra = "" });
           local abandonedKey = OpexAbandonedPairKey(candidate);
           this._markPairAbandoned(abandonedKey);
           return { outcome = "rejected", discards = passDiscards };
         }
         if (OpexTownRoadLineCount(this._lines, candidate.src) >= 4) {
-          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "town_road_line_cap", extra = "" });
+          if (DECISION_LOG || C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "town_road_line_cap", extra = "" });
           return { outcome = "rejected", discards = passDiscards };
         }
         if (!isFeeder && OpexTownRoadLineCount(this._lines, candidate.dst) >= 4) {
-          if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "town_road_line_cap", extra = "" });
+          if (DECISION_LOG || C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "town_road_line_cap", extra = "" });
           return { outcome = "rejected", discards = passDiscards };
         }
       } else {
@@ -90,30 +90,30 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
           local srcServed = OpexOriginServed(this._lines, candidate.src, true);
           local dstServed = OpexOriginServed(this._lines, candidate.dst, true);
           if (srcServed && dstServed) {
-            if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "src_origin_served", extra = "" });
+            if (DECISION_LOG || C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "src_origin_served", extra = "" });
             return { outcome = "rejected", discards = passDiscards };
           }
           /* Un index ne rentabiliserait pas son cout pour ce seul candidat vivant : la boucle
            * directe sur les lignes est moins chere ici et dans la revalidation incrementale. */
           if (OpexRoadFreightBusy(this._lines, candidate.cargo, candidate.src) ||
               OpexRoadFreightBusy(this._lines, candidate.cargo, candidate.dst)) {
-            if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "freight_endpoint_busy", extra = "" });
+            if (DECISION_LOG || C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "freight_endpoint_busy", extra = "" });
             return { outcome = "rejected", discards = passDiscards };
           }
         } else {
           if (OpexOriginServed(this._lines, candidate.src, true)) {
-            if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "src_origin_served", extra = "" });
+            if (DECISION_LOG || C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "src_origin_served", extra = "" });
             return { outcome = "rejected", discards = passDiscards };
           }
           if (OpexOriginServed(this._lines, candidate.dst, true)) {
-            if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "dst_origin_served", extra = "" });
+            if (DECISION_LOG || C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "dst_origin_served", extra = "" });
             return { outcome = "rejected", discards = passDiscards };
           }
         }
       }
       local abandonedKey = OpexAbandonedPairKey(candidate);
       if (ABANDON_GEN_FILTER && ABANDON_MEMORY && (abandonedKey in this._abandonedPairs)) {
-        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "abandoned_pair", extra = "" });
+        if (DECISION_LOG || C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "abandoned_pair", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
       }
       if (wasPaxSpared) OpexC55PaxTraceObservePrecheckOk();
@@ -123,7 +123,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
       if (money < need && REBORROW) money = OpexTryReborrow(need, money);
       if (money < need) {
         if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("road", i, candidate.capital, candidate.profitAnnual, candidate.roi, candidate.src, candidate.dst, need, money);
-        if (DECISION_LOG) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
+        if (DECISION_LOG || C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
         return { outcome = "rejected", discards = passDiscards };
       }
       if (wasPaxSpared) OpexC55PaxTraceObserveFinanceable();
@@ -136,7 +136,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
       local plan = planning.plan;
       local idx = this._nextLineId;
       if (plan == null) {
-        if (C49_SCARCITY_LEDGER) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "plan_failed", extra = "" });
+        if (C49_SCARCITY_LEDGER || C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "plan_failed", extra = "" });
         if (DECISION_LOG) {
           OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=road src=" + candidate.src + " dst=" + candidate.dst + " reason=plan_failed detail=" + planning.reason);
         }
@@ -152,6 +152,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
                                               candidate.monthly, candidate.engine, candidate.kind,
                                               plan.routeDistance);
       if (economics == null || (!isFeeder && economics.profitAnnual <= 0)) {
+        if (C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "unprofitable_after_siting", extra = "" });
         if (DECISION_LOG) {
           OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=road src=" + candidate.src + " dst=" + candidate.dst + " reason=unprofitable_after_siting");
         }
@@ -213,13 +214,14 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         }
       }
       local result = OpexBuildRoadRoute(this._catalog, this._budget, plan, candidate);
+      if (C63_INVEST_PROBE) OpexC63RecordSpendResult("road", result, candidate.capital);
       OpexSign(anchor, "RB|" + yy + "|" + idx + "|1|" + planOps + "|" + result.opcodes);
       if (ROAD_COST_PROBE) {
         OpexSign(anchor, "RP|" + idx + "|" + result.plannedCapital + "|" + result.actualCost
                                + "|" + (result.ok ? result.vehicles.len() : 0));
       }
       if (!result.ok) {
-        if (C49_SCARCITY_LEDGER) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "build_failed", extra = "" });
+        if (C49_SCARCITY_LEDGER || C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "build_failed", extra = "" });
         if (DECISION_LOG) {
           OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=road src=" + candidate.src + " dst=" + candidate.dst + " reason=build_failed detail=" + result.reason + " error=" + result.error);
         }

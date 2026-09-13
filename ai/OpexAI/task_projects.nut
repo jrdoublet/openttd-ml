@@ -54,7 +54,7 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
   if (money < need && REBORROW) money = OpexTryReborrow(need, money);
   if (money < need) {
     if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("fleet", i, project.capital, project.profitAnnual, project.roi, project.src, project.dst, need, money);
-    if (DECISION_LOG) passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst, reason = "insufficient_cash", extra = "" });
+    if (DECISION_LOG || C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst, reason = "insufficient_cash", extra = "" });
     return { outcome = "rejected", discards = passDiscards };
   }
   local added = 0;
@@ -67,7 +67,14 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
     line.trains = haveNow;
     if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < need) break;
   }
-  if (added <= 0) return { outcome = "rejected", discards = passDiscards };
+  if (added <= 0) {
+    if (C63_INVEST_PROBE) {
+      OpexC63RecordSpend("fleet", entry.planePrice * entry.want, 0, false);
+      passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst, reason = "fleet_grow_failed", extra = "" });
+    }
+    return { outcome = "rejected", discards = passDiscards };
+  }
+  if (C63_INVEST_PROBE) OpexC63RecordSpend("fleet", entry.planePrice * added, entry.planePrice * added, true);
 
   line.lastAirFleetYear <- year;
   line.lastAirFleetDate <- AIDate.GetCurrentDate();
@@ -243,8 +250,8 @@ function OpexAI::_tryBuildProjects(year)
     OpexSign(AIMap.GetTileIndex(1, 1), "FB|" + (year % 100) + "|" + initialBudget
              + "|" + budgetNow + "|" + this._projects.stats.budgetSelected);
   }
+  c49Best = (this._projects != null && this._projects.best != null) ? this._projects.best : null;
   if (C49_SCARCITY_LEDGER) {
-    c49Best = (this._projects != null && this._projects.best != null) ? this._projects.best : null;
     c49BuiltRanks = {};
     c49AttemptedRanks = {};
   }
@@ -295,6 +302,7 @@ function OpexAI::_tryBuildProjects(year)
           c48BuiltThisPass, c48BestLen, c48MaxRank);
     }
     if (C49_SCARCITY_LEDGER) this._recordC49ScarcityPass(c49Best, c49BuiltRanks, c49AttemptedRanks, passDiscards);
+    if (C63_INVEST_PROBE) OpexC63NotePass(0, c49Best, passDiscards, true);
     return true;
   }
   if (RAIL_SEARCH_RESUMABLE && this._railSearch != null &&
@@ -307,6 +315,7 @@ function OpexAI::_tryBuildProjects(year)
             c48BuiltThisPass, c48BestLen, c48MaxRank);
       }
       if (C49_SCARCITY_LEDGER) this._recordC49ScarcityPass(c49Best, c49BuiltRanks, c49AttemptedRanks, passDiscards);
+      if (C63_INVEST_PROBE) OpexC63NotePass(0, c49Best, passDiscards, false);
       return true;
     }
     if (outcome != "cash") {
@@ -602,6 +611,10 @@ function OpexAI::_tryBuildProjects(year)
               c48BuiltThisPass, c48BestLen, c48MaxRank);
         }
         if (C49_SCARCITY_LEDGER) this._recordC49ScarcityPass(c49Best, c49BuiltRanks, c49AttemptedRanks, passDiscards);
+        if (C63_INVEST_PROBE) {
+          local railSearching = this._railSearch != null && this._railSearch.phase == "search";
+          OpexC63NotePass(builtCount, c49Best, passDiscards, railSearching);
+        }
         return true;
       }
       if (attempt.outcome == "built") {
@@ -705,6 +718,10 @@ function OpexAI::_tryBuildProjects(year)
   }
 
   if (C49_SCARCITY_LEDGER) this._recordC49ScarcityPass(c49Best, c49BuiltRanks, c49AttemptedRanks, passDiscards);
+  if (C63_INVEST_PROBE) {
+    local railSearching = this._railSearch != null && this._railSearch.phase == "search";
+    OpexC63NotePass(builtCount, c49Best, passDiscards, railSearching);
+  }
 
   /* G4§1 : l'ancien chemin deduisait hadAbandons de passDiscards, dont le remplissage
    * est garde par DECISION_LOG (defaut 0). Le drapeau _hadAbandonsThisPass est pose

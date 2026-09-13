@@ -97,6 +97,179 @@ function OpexC49ScarcityLog(fields)
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " C49_SCARCITY " + fields);
 }
+/* C63+C58 : gate dedie. Compteurs memoire en boucle chaude, AILog seulement au flush annuel. */
+function OpexC63InvestLog(fields)
+{
+  if (!C63_INVEST_PROBE) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " C63_INVEST " + fields);
+}
+
+function OpexC63ModeSpend()
+{
+  return { planned_ok = 0, actual_ok = 0, n_ok = 0, planned_fail = 0, actual_fail = 0, n_fail = 0 };
+}
+
+function OpexC63OppBucket()
+{
+  return { n = 0, days = 0 };
+}
+
+function OpexC63ResetLedger()
+{
+  C63_INVEST_LEDGER = {
+    spend = {
+      rail = OpexC63ModeSpend(), road = OpexC63ModeSpend(),
+      air = OpexC63ModeSpend(), water = OpexC63ModeSpend(), fleet = OpexC63ModeSpend()
+    },
+    opp = {
+      absent = OpexC63OppBucket(), invalid = OpexC63OppBucket(),
+      unaffordable = OpexC63OppBucket(), demand = OpexC63OppBucket(),
+      waiting_compute = OpexC63OppBucket(), launched = OpexC63OppBucket()
+    },
+    lastDate = -1,
+    flushedYear = -1,
+    cachedTick = -1,
+    cachedDate = -1,
+    cachedAvailable = 0,
+    lines = []
+  };
+}
+
+function OpexC63SpendSlot(mode)
+{
+  if (C63_INVEST_LEDGER == null || C63_INVEST_LEDGER.spend == null) return null;
+  if (mode in C63_INVEST_LEDGER.spend) return C63_INVEST_LEDGER.spend[mode];
+  return C63_INVEST_LEDGER.spend.fleet;
+}
+
+function OpexC63RecordSpend(mode, planned, actual, ok)
+{
+  if (!C63_INVEST_PROBE || C63_INVEST_LEDGER == null) return;
+  local slot = OpexC63SpendSlot(mode);
+  if (slot == null) return;
+  if (ok) {
+    slot.planned_ok += planned;
+    slot.actual_ok += actual;
+    slot.n_ok++;
+  } else {
+    slot.planned_fail += planned;
+    slot.actual_fail += actual;
+    slot.n_fail++;
+  }
+}
+
+function OpexC63ClassifyOpportunity(reason, available, need, railSearch)
+{
+  if (railSearch) return "waiting_compute";
+  if (need > available) return "unaffordable";
+  if (reason == "insufficient_cash" || reason == "cash_at_build") return "unaffordable";
+  if (reason == "search_in_progress") return "waiting_compute";
+  if (reason == "line_cap_reached" || reason == "town_road_line_cap" || reason == "no_demand") return "demand";
+  if (reason == null || reason == "") return "invalid";
+  return "invalid";
+}
+
+function OpexC63RecordOpportunity(kind, daysForKind)
+{
+  if (!C63_INVEST_PROBE || C63_INVEST_LEDGER == null) return;
+  if (!(kind in C63_INVEST_LEDGER.opp)) return;
+  C63_INVEST_LEDGER.opp[kind].n++;
+  if (daysForKind > 0) C63_INVEST_LEDGER.opp[kind].days += daysForKind;
+}
+
+function OpexC63RecordLine(mode, age, predProfit, realProfit, predRev, realRev, vehCount, lineId, year)
+{
+  if (!C63_INVEST_PROBE) return;
+  OpexC63InvestLog("phase=line year=" + year + " line=" + lineId + " mode=" + mode
+      + " age=" + age + " pred_p=" + predProfit + " real_p=" + realProfit
+      + " pred_r=" + predRev + " real_r=" + realRev + " vehs=" + vehCount);
+}
+
+function OpexC63RecordSpendResult(mode, result, plannedFallback)
+{
+  if (!C63_INVEST_PROBE || result == null) return;
+  local planned = plannedFallback;
+  if ("plannedCapital" in result) planned = result.plannedCapital;
+  else if ("capital" in result) planned = result.capital;
+  local actual = ("actualCost" in result) ? result.actualCost : 0;
+  OpexC63RecordSpend(mode, planned, actual, result.ok);
+}
+
+function OpexC63CachedAvailable()
+{
+  local today = AIDate.GetCurrentDate();
+  if (C63_INVEST_LEDGER.cachedDate == today) return C63_INVEST_LEDGER.cachedAvailable;
+  local available = OpexAvailableCapital();
+  C63_INVEST_LEDGER.cachedDate = today;
+  C63_INVEST_LEDGER.cachedAvailable = available;
+  return available;
+}
+
+function OpexC63NotePass(builtCount, best, passDiscards, railSearching)
+{
+  if (!C63_INVEST_PROBE || C63_INVEST_LEDGER == null) return;
+  local now = AIDate.GetCurrentDate();
+  local days = 0;
+  if (C63_INVEST_LEDGER.lastDate >= 0 && now >= C63_INVEST_LEDGER.lastDate) {
+    days = now - C63_INVEST_LEDGER.lastDate;
+  }
+  C63_INVEST_LEDGER.lastDate = now;
+  local kind;
+  if (builtCount > 0) kind = "launched";
+  else if (best == null || best.len() == 0) kind = "absent";
+  else {
+    local target = null;
+    local leftoverRank = -1;
+    for (local i = 0; i < best.len(); i++) {
+      if (best[i] != null) { leftoverRank = i; target = best[i]; break; }
+    }
+    if (target == null) kind = "absent";
+    else {
+      local reason = "";
+      if (passDiscards != null) {
+        for (local k = 0; k < passDiscards.len(); k++) {
+          if (("rank" in passDiscards[k]) && passDiscards[k].rank == leftoverRank) {
+            reason = passDiscards[k].reason;
+            break;
+          }
+        }
+        if (reason == "" && passDiscards.len() > 0) reason = passDiscards[0].reason;
+      }
+      local waitingOnly = railSearching && (reason == "" || reason == "search_in_progress");
+      local need = ("capital" in target) ? target.capital : 0;
+      kind = OpexC63ClassifyOpportunity(reason, OpexC63CachedAvailable(), need, waitingOnly);
+    }
+  }
+  OpexC63RecordOpportunity(kind, days);
+}
+
+function OpexC63FlushLedger(year)
+{
+  if (!C63_INVEST_PROBE || C63_INVEST_LEDGER == null) return;
+  if (year < 0) return;
+  if (C63_INVEST_LEDGER.flushedYear == year) return;
+  foreach (mode, slot in C63_INVEST_LEDGER.spend) {
+    OpexC63InvestLog("phase=spend year=" + year + " mode=" + mode
+        + " planned_ok=" + slot.planned_ok + " actual_ok=" + slot.actual_ok + " n_ok=" + slot.n_ok
+        + " planned_fail=" + slot.planned_fail + " actual_fail=" + slot.actual_fail
+        + " n_fail=" + slot.n_fail);
+  }
+  local o = C63_INVEST_LEDGER.opp;
+  OpexC63InvestLog("phase=opp year=" + year
+      + " absent_n=" + o.absent.n + " absent_d=" + o.absent.days
+      + " invalid_n=" + o.invalid.n + " invalid_d=" + o.invalid.days
+      + " unaffordable_n=" + o.unaffordable.n + " unaffordable_d=" + o.unaffordable.days
+      + " demand_n=" + o.demand.n + " demand_d=" + o.demand.days
+      + " waiting_compute_n=" + o.waiting_compute.n + " waiting_compute_d=" + o.waiting_compute.days
+      + " launched_n=" + o.launched.n + " launched_d=" + o.launched.days);
+  local last = C63_INVEST_LEDGER.lastDate;
+  OpexC63ResetLedger();
+  C63_INVEST_LEDGER.lastDate = last;
+  C63_INVEST_LEDGER.flushedYear = year;
+}
+
 /* C50 : gate dedie pour la sonde chronologique legere (tresorerie, profit par ligne,
  * projets batis avec cout/ROI, projets refuses pour tresorerie avec ROI).
  * Autonome : fonctionne avec decision_log=0. */

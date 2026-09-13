@@ -130,6 +130,13 @@ function OpexAI::_runNextTask()
       this._logC55PaxTraceLedger(curY);
     }
   }
+  if (C63_INVEST_PROBE && C63_INVEST_LEDGER != null) {
+    local c63now = AIDate.GetCurrentDate();
+    local c63y = AIDate.GetYear(c63now);
+    local c63m = AIDate.GetMonth(c63now);
+    local c63d = AIDate.GetDayOfMonth(c63now);
+    if (c63m == 12 && c63d >= 28) OpexC63FlushLedger(c63y);
+  }
   if (this._taskQueue == null || this._taskQueue.len() == 0) return false;
   /* Sonder d'abord la transaction, puis CONTINUER la file dans le meme passage. Retourner ici
    * affamait de nouveau le scheduler pendant tout le trajet vers le depot (jusqu'a un an mesure),
