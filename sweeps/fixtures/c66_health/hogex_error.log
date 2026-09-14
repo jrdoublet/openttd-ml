@@ -1,0 +1,5 @@
+[2026-09-14 12:00:00] dbg: [script:0] [0] [I] OPEX 1971-4-8 PROJECT_CHOSEN mode=air
+[2026-09-14 12:00:00] dbg: [script:1] [1] [S] Your script made an error: the index 'HgStation' does not exist
+[2026-09-14 12:00:00] dbg: [script:1] [1] [S] CALLSTACK
+[2026-09-14 12:00:00] dbg: [script:1] [1] [S] *FUNCTION [Start()] aaahogex.tar/aaahogex/main.nut line [10]
+[2026-09-14 12:00:00] dbg: [script:1] [1] [S] The script died unexpectedly

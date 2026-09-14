@@ -13,6 +13,8 @@ STAGED_BOOTSTRAP <- true;
  * privilegie le profit des aeroports ; le banc peut reconstituer le bras bus avec
  * road_pax_build = 1. */
 ROAD_PAX_BUILD_ENABLED <- false;
+/* Ajout d'arrets espaces aux lignes passagers existantes (urbaines et feeders bus -> air). */
+ROAD_PAX_EXTENSIONS <- false;
 /* Part du bassin de ville propre aux bus. 86 est le calibrage route adopte au banc.
  * Le reglage road_pax_catchment_pct vaut 0 pour reconstituer le repli rail a 22 % ; une valeur
  * positive ne touche que OpexRoadPaxCandidates, jamais le rail ni le fret. */
@@ -257,6 +259,9 @@ C50_CHRONOLOGY_PROBE <- false;
 /* C63+C58 : ledger annuel depenses / recettes / occasions. Nul hors sonde. */
 C63_INVEST_PROBE <- false;
 C63_INVEST_LEDGER <- null;
+/* Tunnel mensuel candidats/acceptes/finances/tentes/construits. Defaut 0 : un AILog
+ * par passe projects, sans changer la selection. */
+MONTHLY_FUNNEL <- false;
 C50_REFUSE_CACHE <- {};
 C50_NON_EXPANSION_LEDGER <- null;
 /* C50b : bras comportemental isole. Le classement et la flotte initiale restent bornes a 2 ;

@@ -190,6 +190,31 @@ class TestPhysicalCounters(unittest.TestCase):
         self.assertEqual(len(dec["unresolved_stations"]), 0)
         self.assertEqual(dec["other_owner_stations"], 0)
 
+        stnn_bad = copy.deepcopy(stnn)
+        first_key = next(iter(stnn_bad))
+        stnn_bad[first_key] = "not-a-station"
+        dec_bad = decode_stations(stnn_bad, target_owner=0)
+        self.assertFalse(dec_bad["chunk_valid"])
+        self.assertIn("not_a_dict", dec_bad["chunk_error"])
+        self.assertGreater(len(dec_bad["unresolved_stations"]), 0)
+
+        stnn_all_bad = {key: "not-a-station" for key in list(stnn)[:3]}
+        dec_all_bad = decode_stations(stnn_all_bad, target_owner=0)
+        self.assertFalse(dec_all_bad["chunk_valid"])
+        self.assertEqual(dec_all_bad["total_stations"], 0)
+
+        # Un waypoint sans corps `normal` ne doit pas invalider le chunk.
+        stnn_wp = copy.deepcopy(stnn)
+        stnn_wp["waypoint-only"] = {"waypoint": [{"xy": 1}], "facilities": 0}
+        dec_wp = decode_stations(stnn_wp, target_owner=0)
+        self.assertTrue(dec_wp["chunk_valid"], dec_wp["chunk_error"])
+        self.assertEqual(dec_wp["total_stations"], 24)
+
+        rated = [r for ratings in dec["ratings_by_station"].values() for r in ratings]
+        self.assertEqual(len(rated), 20)
+        self.assertEqual(min(rated), 82)
+        self.assertEqual(max(rated), 203)
+
     def test_fail_closed_on_missing_and_invalid_chunks(self):
         """Vérifie le principe 'fail-closed' : aucun chunk absent ne produit un faux zéro crédible."""
         # Chunk VEHS manquant (None)
@@ -198,6 +223,12 @@ class TestPhysicalCounters(unittest.TestCase):
         self.assertEqual(res_v_none["chunk_error"], "chunk_missing")
         self.assertIsNone(res_v_none["primary_vehicles_count"])
         self.assertIsNone(res_v_none["vehicle_pool_entries"])
+        self.assertIsNone(res_v_none["total_pool_entries"])
+        self.assertIsNone(res_v_none["components_breakdown"])
+        self.assertIsNone(res_v_none["non_company_entries"])
+        self.assertIsNone(res_v_none["capacities_by_cargo"])
+        self.assertIsNone(res_v_none["fleet_status"])
+        self.assertIsNone(res_v_none["primary_vehicles_detail"])
         self.assertEqual(len(res_v_none["unclassified_entries"]), 1)
         self.assertEqual(res_v_none["unclassified_entries"][0]["reason"], "chunk_missing")
 
@@ -214,6 +245,10 @@ class TestPhysicalCounters(unittest.TestCase):
         self.assertEqual(res_s_none["chunk_error"], "chunk_missing")
         self.assertIsNone(res_s_none["total_stations"])
         self.assertIsNone(res_s_none["n_multimodal_stations"])
+        self.assertIsNone(res_s_none["station_ids"])
+        self.assertIsNone(res_s_none["stations_detail"])
+        self.assertIsNone(res_s_none["other_owner_stations"])
+        self.assertIsNone(res_s_none["ratings_by_station"])
         self.assertEqual(len(res_s_none["unresolved_stations"]), 1)
         self.assertEqual(res_s_none["unresolved_stations"][0]["reason"], "chunk_missing")
 
@@ -235,6 +270,8 @@ class TestPhysicalCounters(unittest.TestCase):
         head_common["next"] = 9999
 
         dec = decode_vehicles(vehs_corrupt_target, target_owner=0)
+        self.assertFalse(dec["chunk_valid"])
+        self.assertIn("corrupted_consist_pointer_missing_target", dec["chunk_error"])
         self.assertGreater(len(dec["unclassified_entries"]), 0)
         reasons = [e["reason"] for e in dec["unclassified_entries"]]
         self.assertIn("corrupted_consist_pointer_missing_target", reasons)
@@ -249,6 +286,8 @@ class TestPhysicalCounters(unittest.TestCase):
         wagon_13_common["next"] = 15  # Pointeur vers 14 (15 - 1 = 14 déjà visité)
 
         dec_cycle = decode_vehicles(vehs_cycle, target_owner=0)
+        self.assertFalse(dec_cycle["chunk_valid"])
+        self.assertIn("consist_cycle_detected", dec_cycle["chunk_error"])
         self.assertGreater(len(dec_cycle["unclassified_entries"]), 0)
         reasons_cycle = [e["reason"] for e in dec_cycle["unclassified_entries"]]
         self.assertIn("consist_cycle_detected", reasons_cycle)
@@ -260,9 +299,21 @@ class TestPhysicalCounters(unittest.TestCase):
         vehs_no_common["14"]["train"][0]["common"] = []
 
         dec_no_common = decode_vehicles(vehs_no_common, target_owner=0)
+        self.assertFalse(dec_no_common["chunk_valid"])
         self.assertGreater(len(dec_no_common["unclassified_entries"]), 0)
         reasons_no_common = [e["reason"] for e in dec_no_common["unclassified_entries"]]
         self.assertIn("missing_consist_component_common", reasons_no_common)
+
+        # 4. Composant déjà malformé (non-dict) ciblé par next : pas d'AttributeError.
+        vehs_str_comp = copy.deepcopy(vehs)
+        vehs_str_comp["14"] = "not-a-vehicle"
+        dec_str = decode_vehicles(vehs_str_comp, target_owner=0)
+        self.assertFalse(dec_str["chunk_valid"])
+        reasons_str = [e["reason"] for e in dec_str["unclassified_entries"]]
+        self.assertIn("not_a_dict", reasons_str)
+        self.assertIn("consist_component_not_a_dict", reasons_str)
+        train_str = [v for v in dec_str["primary_vehicles_detail"] if v["index"] == 12][0]
+        self.assertFalse(train_str["consist_valid"])
 
     def test_vehstatus_observables_and_bitmasks(self):
         """Vérifie l'exactitude des masques de bits OpenTTD 15.3 (src/vehicle_base.h)."""

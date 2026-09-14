@@ -1,49 +1,75 @@
 """Diagnostic 1v1 mois par mois : QUOI les deux IA construisent, et COMMENT elles l'exploitent.
 
-Les bancs existants comptent des vehicules et des gares sans jamais dire de quel TYPE ils sont ni
-comment ils sont exploites. Les panneaux de main.nut ne peuvent pas repondre : ils sont les notres,
-AAAHogEx n'en emet aucun. Tout doit donc venir des chunks de sauvegarde, qui eux existent pour les
-deux compagnies.
+En --shared (carte unique OpexAI joueur 0 vs AAAHogEx joueur 1), chaque sauvegarde mensuelle
+extrait les deux compagnies separement depuis PLYR/VEHS/STNN. Les chunks existent pour les deux ;
+les panneaux OpexAI n'existent que pour nous.
 
-Ce que ce harnais ajoute, par mois et par IA :
-  - la repartition des vehicules par MODE (train / route / bateau / avion), qui dit quel type de
-    ligne chaque IA privilegie et a quel moment elle bascule d'un mode a l'autre ;
-  - le CHARGEMENT moyen des vehicules (cargo transporte / capacite), qui dit si les lignes sont
-    exploitees ou si elles roulent a vide ;
-  - le cargo EN ATTENTE dans les gares, qui dit si la demande est captee ou laissee sur le quai ;
-  - le profit par vehicule, qui dit si la flotte est rentable unite par unite ;
-  - la distribution des notes de gare, pas seulement leur mediane.
+Par mois et par IA :
+  - valeur, revenu, depenses, benefice et cargo livre du dernier trimestre clos ;
+  - vehicules physiques par mode, capital roulant et profit par vehicule ;
+  - gares possedees, cargo en attente et notes.
 
-Sortie : un JSON avec une ligne par (IA, graine, mois), et un tableau mensuel imprime.
+Pour OpexAI seulement, `monthly_funnel=1` journalise le tunnel
+candidats → acceptes → finances → tentes → construits, avec le motif de rejet.
+AAAHogEx n'a pas ce tunnel : on lit ses evenements de construction deja emis.
+
+Sortie : un JSON avec une ligne par (IA, graine, mois), et des tableaux mensuels.
 """
 import argparse
-from collections import defaultdict
+from collections import Counter, defaultdict
 import json
 from pathlib import Path
+import re
 import statistics
 import sys
-
-import openttdlab
-from openttdlab import bananas_ai_library, local_folder, run_experiments
 
 ROOT = Path("/work") if Path("/work").exists() else Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "sweeps"))
 from physical_counters import decode_vehicles, decode_stations, VEHICLE_MODES
 
+try:
+    from bench_v2 import make_cfg, quarter_profit, year_profit
+except ImportError:
+    def make_cfg(starting_year=1970, map_size=8):
+        return (
+            "[difficulty]\nnumber_towns = 3\nindustry_density = 4\n[economy]\n"
+            "inflation = false\ntown_growth_rate = 2\n[game_creation]\n"
+            f"starting_year = {starting_year}\nmap_x = {map_size}\nmap_y = {map_size}\n"
+        )
+
+    def quarter_profit(entry):
+        if not isinstance(entry, dict):
+            return None
+        income = entry.get("income")
+        expenses = entry.get("expenses")
+        if income is None or expenses is None:
+            return None
+        return income + expenses
+
+    def year_profit(closed):
+        profits = [quarter_profit(entry) for entry in (closed or [])[:4]]
+        profits = [value for value in profits if value is not None]
+        if not profits:
+            return None
+        return sum(profits)
+
 OPENTTD_VERSION, OPENGFX_VERSION = "15.3", "7.1"
 AAAHOGEX_DIR = "AAAHogEx-115"
+STARTING_YEAR = 1970
+ARMS = ("OpexAI", "AAAHogEx")
 
-CFG = """[difficulty]
-number_towns = 3
-industry_density = 4
-[economy]
-inflation = false
-town_growth_rate = 2
-[game_creation]
-starting_year = 1970
-map_x = 8
-map_y = 8
-"""
+CFG = make_cfg(STARTING_YEAR)
+DIAG_SEEDS = (42, 100, 999, 1234, 5678)
+
+SCRIPT_RE = re.compile(r"\[script:\d+\] \[(\d+)\] \[\w\] (.*)")
+OPEX_RE = re.compile(r"^OPEX (\d+)-(\d+)-(\d+) ([A-Z0-9_]+)\s*(.*)$")
+HOG_DATE_RE = re.compile(r"^(\d+)-(\d+)-(\d+) (.*)$")
+HOG_SUCCESS = ("# RouteBuilder Succeeded", "HgStation.BuildExec succeeded", "Build succeeded")
+HOG_FAIL = ("# RouteBuilder Failed", "HgStation.BuildExec failed")
+CASH_REASONS = frozenset(("insufficient_cash", "cash_at_build"))
+CONSTRUCTION_FAIL = frozenset((
+    "build_failed", "plan_failed", "fleet_grow_failed", "unprofitable_after_siting",
+))
 
 
 def _first(value):
@@ -130,7 +156,7 @@ def station_detail(chunks, owner=0):
             "cargo_waiting": None,
             "rating_median": None,
             "rating_min": None,
-            "n_rated": 0,
+            "n_rated": None,
             "unresolved_stations": len(dec["unresolved_stations"]),
         }
 
@@ -145,15 +171,23 @@ def station_detail(chunks, owner=0):
             continue
         body = _first(station.get("normal"))
         if body is None:
-            body = station
+            continue
         if not isinstance(body, dict):
             continue
         base = _first(body.get("base"))
         if not isinstance(base, dict) or base.get("owner") != owner:
             continue
         for good in body.get("goods") or []:
-            if isinstance(good, dict):
-                waiting += good.get("waiting") or good.get("cargo_count") or 0
+            if not isinstance(good, dict):
+                continue
+            for packet in good.get("cargo") or []:
+                if not isinstance(packet, dict):
+                    continue
+                second = packet.get("second")
+                if isinstance(second, list) and second:
+                    waiting += int(second[0] or 0)
+                elif isinstance(second, (int, float)):
+                    waiting += int(second)
 
     return {
         "schema_version": dec["schema_version"],
@@ -169,78 +203,273 @@ def station_detail(chunks, owner=0):
     }
 
 
+def cargo_delivered(value):
+    """Somme le vecteur cargo OpenTTD 15.3 ; un entier legacy est conserve tel quel."""
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return int(value)
+    if isinstance(value, list):
+        total = 0
+        for item in value:
+            total += int(item or 0)
+        return total
+    return None
+
+
+def player_of(chunks, owner):
+    players = (chunks or {}).get("PLYR") or {}
+    player = players.get(owner)
+    if player is None:
+        player = players.get(str(owner))
+    return player if isinstance(player, dict) and player else None
+
+
+def parse_fields(rest):
+    fields = {}
+    for token in (rest or "").split():
+        if "=" in token:
+            key, _, value = token.partition("=")
+            fields[key] = value
+    return fields
+
+
+def extract_company(chunks, owner, arm, seed, date):
+    """Une compagnie, un mois : economie PLYR + compteurs physiques qualifies."""
+    player = player_of(chunks, owner)
+    closed = (player or {}).get("old_economy") or []
+    last = closed[0] if closed else None
+    income = last.get("income") if isinstance(last, dict) else None
+    expenses = last.get("expenses") if isinstance(last, dict) else None
+    return {
+        "arm": arm,
+        "owner": owner,
+        "seed": seed,
+        "date": str(date),
+        "economy_ok": player is not None,
+        "money": (player or {}).get("money"),
+        "current_loan": (player or {}).get("current_loan"),
+        "company_value": last.get("company_value") if isinstance(last, dict) else None,
+        "performance_history": last.get("performance_history") if isinstance(last, dict) else None,
+        "income": income,
+        "expenses": expenses,
+        "profit": quarter_profit(last) if isinstance(last, dict) else None,
+        "profit_year": year_profit(closed) if closed else None,
+        "delivered_cargo": cargo_delivered(last.get("delivered_cargo") if isinstance(last, dict) else None),
+        "vehicles": vehicle_breakdown(chunks, owner),
+        "stations": station_detail(chunks, owner),
+        "funnel": None,
+        "hogex_builds": None,
+    }
+
+
 def keep(row):
-    chunks = row["chunks"]
-    player = (chunks.get("PLYR") or {}).get(0) or (chunks.get("PLYR") or {}).get("0") or {}
-    closed = player.get("old_economy") or []
-    last = closed[0] if closed else {}
-    signs = [s["name"] for s in chunks.get("SIGN", {}).values()]
-    record = {
-        "arm": row["experiment"]["diag_arm"],
-        "seed": row["experiment"]["seed"],
-        "date": str(row["date"]),
-        "money": player.get("money"),
-        "current_loan": player.get("current_loan"),
-        "company_value": last.get("company_value"),
-        "delivered_cargo": last.get("delivered_cargo"),
-        "vehicles": vehicle_breakdown(chunks),
-        "stations": station_detail(chunks),
-        "signs": signs,
-        "output": row.get("output"),
-    }
-    return (record,)
+    chunks = row.get("chunks", {})
+    date = row.get("date", "")
+    seed = row["experiment"]["seed"]
+    output = row.get("output", "")
+    if row["experiment"].get("shared"):
+        rec0 = extract_company(chunks, 0, "OpexAI", seed, date)
+        rec1 = extract_company(chunks, 1, "AAAHogEx", seed, date)
+        rec0["output"] = output
+        return (rec0, rec1)
+    arm = row["experiment"]["diag_arm"]
+    rec = extract_company(chunks, 0, arm, seed, date)
+    rec["output"] = output
+    rec["signs"] = [s.get("name", "") for s in (chunks.get("SIGN") or {}).values()]
+    return (rec,)
 
 
-def build_arms(seeds, years):
-    arms = {
-        "OpexAI": local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", (("air_fleet_probe", 1),)),
-        "AAAHogEx": local_folder(str(ROOT / "ai" / AAAHOGEX_DIR), "AAAHogEx", ()),
+def parse_opex_funnel(output):
+    """Agège les lignes MONTHLY_FUNNEL par mois calendaire (somme des passes)."""
+    by_month = defaultdict(lambda: {
+        "considered": 0, "accepted": 0, "funded": 0, "attempted": 0, "built": 0,
+        "passes": 0, "rejects": Counter(), "considered_known": 0,
+    })
+    for line in (output or "").splitlines():
+        sm = SCRIPT_RE.search(line)
+        if not sm or int(sm.group(1)) != 0:
+            continue
+        om = OPEX_RE.match(sm.group(2).strip())
+        if not om or om.group(4) != "MONTHLY_FUNNEL":
+            continue
+        year, month = int(om.group(1)), int(om.group(2))
+        fields = parse_fields(om.group(5))
+        slot = by_month[f"{year:04d}-{month:02d}"]
+        slot["passes"] += 1
+        considered = int(fields.get("considered", -1) or -1)
+        if considered >= 0:
+            slot["considered"] += considered
+            slot["considered_known"] += 1
+        for name in ("accepted", "funded", "attempted", "built"):
+            slot[name] += int(fields.get(name, 0) or 0)
+        for key, value in fields.items():
+            if key.startswith("r_"):
+                slot["rejects"][key[2:]] += int(value or 0)
+    return {
+        month: {
+            "considered": slot["considered"] if slot["considered_known"] else None,
+            "accepted": slot["accepted"],
+            "funded": slot["funded"],
+            "attempted": slot["attempted"],
+            "built": slot["built"],
+            "passes": slot["passes"],
+            "rejects": dict(slot["rejects"]),
+        }
+        for month, slot in by_month.items()
     }
+
+
+def parse_hogex_builds(output):
+    """Evenements de construction AAAHogEx deja journalises (pas de tunnel interne)."""
+    by_month = defaultdict(lambda: {"succeeded": 0, "failed": 0, "try_build": 0})
+    for line in (output or "").splitlines():
+        sm = SCRIPT_RE.search(line)
+        if not sm or int(sm.group(1)) != 1:
+            continue
+        hm = HOG_DATE_RE.match(sm.group(2).strip())
+        if not hm:
+            continue
+        year, month, _day, detail = hm.groups()
+        slot = by_month[f"{int(year):04d}-{int(month):02d}"]
+        if any(marker in detail for marker in HOG_SUCCESS):
+            slot["succeeded"] += 1
+        elif any(marker in detail for marker in HOG_FAIL):
+            slot["failed"] += 1
+        if "TryBuild" in detail:
+            slot["try_build"] += 1
+    return dict(by_month)
+
+
+def attach_logs(rows):
+    """Le journal complet n'est fiable que sur la derniere ligne de chaque graine."""
+    last_output = {}
+    for record in rows:
+        if record.get("arm") == "OpexAI" and record.get("output"):
+            last_output[record["seed"]] = record["output"]
+    funnel_by_seed = {seed: parse_opex_funnel(output) for seed, output in last_output.items()}
+    hogex_by_seed = {seed: parse_hogex_builds(output) for seed, output in last_output.items()}
+    for record in rows:
+        record.pop("output", None)
+        month = str(record.get("date", ""))[:7]
+        if record.get("arm") == "OpexAI":
+            record["funnel"] = funnel_by_seed.get(record.get("seed"), {}).get(month)
+        else:
+            record["hogex_builds"] = hogex_by_seed.get(record.get("seed"), {}).get(month)
+    return funnel_by_seed, hogex_by_seed
+
+
+def build_arms(seeds, years, shared=False, funnel=False):
+    from openttdlab import local_folder
+    hogex = local_folder(str(ROOT / "ai" / AAAHOGEX_DIR), "AAAHogEx", ())
+    if shared:
+        opex_params = (("monthly_funnel", 1),) if funnel else ()
+        opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", opex_params)
+        return [
+            {
+                "seed": seed,
+                "days": 365 * years,
+                "openttd_config": CFG,
+                "ais": (opex, hogex),
+                "shared": True,
+                "diag_arm": "duel",
+            }
+            for seed in seeds
+        ]
+    opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", (("air_fleet_probe", 1),))
     return [
         {
             "seed": seed,
             "days": 365 * years,
             "openttd_config": CFG,
-            "ais": (arms[arm],),
+            "ais": (ai,),
             "diag_arm": arm,
+            "shared": False,
         }
         for seed in seeds
-        for arm in arms
+        for arm, ai in (("OpexAI", opex), ("AAAHogEx", hogex))
     ]
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--years", type=int, default=2)
-    parser.add_argument("--seeds", nargs="+", type=int, default=[42, 100, 7])
-    parser.add_argument("--out", type=Path, default=ROOT / "results" / "diag_1v1_monthly.json")
+    parser.add_argument("--seeds", nargs="+", type=int, default=None)
+    parser.add_argument("--out", type=Path, default=None)
     parser.add_argument("--workers", type=int, default=3)
-    parser.add_argument("--selftest", action="store_true", help="Vérifie le décodage physique et le rendu face aux chunks invalides")
+    parser.add_argument("--shared", action="store_true",
+                        help="OpexAI (joueur 0) vs AAAHogEx (joueur 1) sur la meme carte")
+    parser.add_argument("--funnel", action="store_true",
+                        help="Arme monthly_funnel=1 (implique --shared et -d script=4)")
+    parser.add_argument("--selftest", action="store_true",
+                        help="Vérifie le décodage physique et le rendu face aux chunks invalides")
     args = parser.parse_args()
 
     if args.selftest:
         selftest()
         return
 
-    # keep() tourne dans les WORKERS : une liste de module accumulee la n'existe pas dans le
-    # parent. Seule la valeur de retour de run_experiments traverse la frontiere de processus.
+    import openttdlab
+    from openttdlab import bananas_ai_library, local_folder, run_experiments
+    from bench_v2 import enable_savegame_cleanup, write_json_atomically
+
+    shared = args.shared or args.funnel
+    funnel = bool(args.funnel or shared)
+    seeds = args.seeds if args.seeds is not None else (list(DIAG_SEEDS) if shared else [42, 100, 7])
+    default_name = (
+        f"diag_1v1_shared_monthly_{args.years}y_{len(seeds)}seeds.json"
+        if shared else "diag_1v1_monthly.json"
+    )
+    out = args.out or (ROOT / "results" / default_name)
+    out = Path(out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+
+    if shared or funnel:
+        real_check = openttdlab.subprocess.check_output
+
+        def check_output_with_script_debug(cmd, *rest, **kwargs):
+            cmd = tuple(cmd)
+            if any(str(arg).startswith("-vnull") for arg in cmd):
+                cmd = cmd[:1] + ("-d", "script=4") + cmd[1:]
+            return real_check(cmd, *rest, **kwargs)
+
+        openttdlab.subprocess.check_output = check_output_with_script_debug
+        enable_savegame_cleanup()
+
     rows = list(run_experiments(
         openttd_version=OPENTTD_VERSION, opengfx_version=OPENGFX_VERSION,
-        experiments=build_arms(args.seeds, args.years),
+        experiments=build_arms(seeds, args.years, shared=shared, funnel=funnel),
         max_workers=args.workers, result_processor=keep,
         ai_libraries=(
             bananas_ai_library("51554648", "Queue.FibonacciHeap"),
             bananas_ai_library("5046524c", "Pathfinder.Rail"),
         ),
     ))
+    funnel_by_seed, hogex_by_seed = attach_logs(rows)
+    expected_months = expected_calendar_months(args.years)
+    monthly = render_monthly_report(
+        rows,
+        expected_seeds=seeds,
+        expected_months=expected_months,
+    )
+    finals = render_final_comparison(rows, seeds)
 
-    monthly = render_monthly_report(rows)
-
-    args.out.write_text(json.dumps({
-        "openttd_version": OPENTTD_VERSION, "years": args.years, "seeds": args.seeds,
-        "openttd_config": CFG, "rows": rows, "monthly": monthly,
-    }, indent=1))
-    print(f"\necrit {args.out}")
+    payload = {
+        "openttd_version": OPENTTD_VERSION,
+        "years": args.years,
+        "seeds": seeds,
+        "shared_game": shared,
+        "funnel": funnel,
+        "opponent": "AAAHogEx" if shared else None,
+        "openttd_config": CFG,
+        "rows": rows,
+        "monthly": monthly,
+        "funnel_by_seed": funnel_by_seed,
+        "hogex_builds_by_seed": hogex_by_seed,
+        "finals": finals,
+    }
+    write_json_atomically(out, payload)
+    print(f"\necrit {out}")
 
 
 def physical_row_ok(record):
@@ -250,36 +479,56 @@ def physical_row_ok(record):
     return vehs.get("chunk_valid") is True and stns.get("chunk_valid") is True
 
 
-def monthly_aggregates(rows):
+def expected_calendar_months(years, starting_year=STARTING_YEAR):
+    """Mois calendaires attendus pour une campagne de `years` années pleines."""
+    if not years or years < 1:
+        return []
+    return [
+        f"{year}-{month:02d}"
+        for year in range(starting_year, starting_year + years)
+        for month in range(1, 13)
+    ]
+
+
+def monthly_aggregates(rows, expected_seeds=None, expected_months=None, expected_arms=None):
     """Agrège un mois seulement si toutes les lignes attendues sont valides.
 
-    Fail-closed : dès qu'une graine attendue manque ou qu'un chunk est invalide,
-    le mois est incomplet. On ne recalcule pas la moyenne sur les survivantes.
+    Fail-closed : `expected_seeds` (args.seeds) est la liste des graines de la
+    campagne, pas l'ensemble déduit des lignes reçues. Une graine qui n'a
+    produit aucune ligne reste donc attendue. `expected_months` ajoute les
+    mois calendaires même s'ils sont absents des checkpoints.
     """
-    seeds_by_arm = defaultdict(set)
-    for record in rows:
-        if "seed" in record:
-            seeds_by_arm[record["arm"]].add(record["seed"])
-    use_seeds = bool(rows) and all("seed" in record for record in rows)
+    arms = tuple(expected_arms) if expected_arms else ARMS
+    if expected_seeds is not None:
+        expected_set = set(expected_seeds)
+    else:
+        expected_set = {record["seed"] for record in rows if "seed" in record}
 
     per_month = defaultdict(list)
     for record in rows:
         per_month[(record["arm"], record["date"][:7])].append(record)
 
-    months = sorted({date for _, date in per_month})
+    months = sorted(set(expected_months or []) | {date for _, date in per_month})
     cells = []
     for month in months:
-        for arm in ("OpexAI", "AAAHogEx"):
+        for arm in arms:
             month_rows = per_month.get((arm, month), [])
-            expected_n = len(seeds_by_arm[arm]) if use_seeds else len(month_rows)
-            valid_n = sum(1 for record in month_rows if physical_row_ok(record))
-            present = {record["seed"] for record in month_rows} if use_seeds else set()
-            complete = (
-                expected_n > 0
-                and valid_n == expected_n
-                and valid_n == len(month_rows)
-                and (not use_seeds or present == seeds_by_arm[arm])
-            )
+            present = {record["seed"] for record in month_rows if "seed" in record}
+            grouped = defaultdict(list)
+            for record in month_rows:
+                grouped[record.get("seed")].append(record)
+            valid_seeds = {
+                seed for seed, seed_rows in grouped.items()
+                if seed is not None and seed_rows and all(physical_row_ok(r) for r in seed_rows)
+            }
+            if expected_set:
+                expected_n = len(expected_set)
+                valid_n = len(valid_seeds)
+                complete = valid_seeds == expected_set and present == expected_set
+            else:
+                expected_n = len(month_rows)
+                valid_n = sum(1 for record in month_rows if physical_row_ok(record))
+                complete = expected_n > 0 and valid_n == expected_n
             cell = {
                 "month": month,
                 "arm": arm,
@@ -288,15 +537,18 @@ def monthly_aggregates(rows):
                 "n_expected": expected_n,
                 "by_mode": None,
                 "n_stations": None,
+                "cargo_waiting": None,
+                "rating_median": None,
                 "rolling_capital": None,
                 "profit_per_vehicle": None,
+                "company_value": None,
+                "income": None,
+                "expenses": None,
+                "profit": None,
+                "delivered_cargo": None,
+                "funnel": None,
+                "hogex_builds": None,
             }
-            if not month_rows:
-                cell["n_valid"] = 0
-                if not use_seeds:
-                    cell["n_expected"] = 0
-                cells.append(cell)
-                continue
             if complete:
                 mode_totals = {
                     mode: statistics.mean([record["vehicles"]["by_mode"][mode] for record in month_rows])
@@ -317,17 +569,55 @@ def monthly_aggregates(rows):
                     for record in month_rows
                     if record["stations"].get("n_stations") is not None
                 ]
+                waiting = [
+                    record["stations"]["cargo_waiting"]
+                    for record in month_rows
+                    if record["stations"].get("cargo_waiting") is not None
+                ]
+                ratings = [
+                    record["stations"]["rating_median"]
+                    for record in month_rows
+                    if record["stations"].get("rating_median") is not None
+                ]
                 cell["by_mode"] = mode_totals
                 cell["n_stations"] = statistics.mean(stations) if stations else None
+                cell["cargo_waiting"] = statistics.mean(waiting) if waiting else None
+                cell["rating_median"] = statistics.mean(ratings) if ratings else None
                 cell["rolling_capital"] = statistics.mean(caps) if caps else None
                 cell["profit_per_vehicle"] = statistics.mean(ppv) if ppv else None
+                for field in ("company_value", "income", "expenses", "profit", "delivered_cargo"):
+                    values = [record.get(field) for record in month_rows if record.get(field) is not None]
+                    cell[field] = statistics.mean(values) if values else None
+                if arm == "OpexAI":
+                    funnels = [record.get("funnel") for record in month_rows if record.get("funnel")]
+                    if funnels:
+                        cell["funnel"] = {
+                            key: sum(int((slot or {}).get(key, 0) or 0) for slot in funnels)
+                            for key in ("considered", "accepted", "funded", "attempted", "built", "passes")
+                        }
+                        rejects = Counter()
+                        for slot in funnels:
+                            rejects.update((slot or {}).get("rejects") or {})
+                        cell["funnel"]["rejects"] = dict(rejects)
+                else:
+                    builds = [record.get("hogex_builds") for record in month_rows if record.get("hogex_builds")]
+                    if builds:
+                        cell["hogex_builds"] = {
+                            key: sum(int((slot or {}).get(key, 0) or 0) for slot in builds)
+                            for key in ("succeeded", "failed", "try_build")
+                        }
             cells.append(cell)
     return cells
 
 
-def render_monthly_report(rows):
+def render_monthly_report(rows, expected_seeds=None, expected_months=None, expected_arms=None):
     """Affiche le rapport mensuel consolidé. Un mois incomplet s'affiche FAIL v/e."""
-    monthly = monthly_aggregates(rows)
+    monthly = monthly_aggregates(
+        rows,
+        expected_seeds=expected_seeds,
+        expected_months=expected_months,
+        expected_arms=expected_arms,
+    )
     by_key = {(cell["arm"], cell["month"]): cell for cell in monthly}
     months = sorted({cell["month"] for cell in monthly})
 
@@ -338,7 +628,7 @@ def render_monthly_report(rows):
     print("-" * len(header))
     for month in months:
         line = f"{month:<8} |"
-        for arm in ("OpexAI", "AAAHogEx"):
+        for arm in ARMS:
             cell = by_key.get((arm, month))
             if cell is None or (cell["n_expected"] == 0 and cell["n_valid"] == 0):
                 line += f" {'-':>19} {'-':>5} {'-':>9} {'-':>9} |"
@@ -353,7 +643,117 @@ def render_monthly_report(rows):
             ppv_str = f"{cell['profit_per_vehicle']:>9,.0f}" if cell["profit_per_vehicle"] is not None else "FAIL"
             line += f" {mix:>19} {st_str:>5} {cap_str:>9} {ppv_str:>9} |"
         print(line)
+
+    print()
+    eco = (f"{'mois':<8} | {'OpexAI val/rev/dep/prof/cargo':>40}"
+           f" | {'AAAHogEx val/rev/dep/prof/cargo':>40}")
+    print(eco)
+    print("-" * len(eco))
+    for month in months:
+        line = f"{month:<8} |"
+        for arm in ARMS:
+            cell = by_key.get((arm, month))
+            if cell is None or (cell["n_expected"] == 0 and cell["n_valid"] == 0):
+                line += f" {'-':>40} |"
+                continue
+            if not cell["ok"]:
+                line += f" {'FAIL ' + str(cell['n_valid']) + '/' + str(cell['n_expected']):>40} |"
+                continue
+            parts = []
+            for field, width in (("company_value", 9), ("income", 8), ("expenses", 8),
+                                 ("profit", 8), ("delivered_cargo", 5)):
+                value = cell.get(field)
+                parts.append(f"{value:>{width},.0f}" if value is not None else f"{'—':>{width}}")
+            line += " " + "/".join(parts) + " |"
+        print(line)
+
+    print()
+    tun = (f"{'mois':<8} | {'OpexAI cand/acc/fin/tent/ok':>28} {'rejet':>18}"
+           f" | {'AAAHogEx ok/fail/try':>20}")
+    print(tun)
+    print("-" * len(tun))
+    for month in months:
+        opex = by_key.get(("OpexAI", month), {})
+        hogex = by_key.get(("AAAHogEx", month), {})
+        if opex.get("ok") and opex.get("funnel"):
+            fn = opex["funnel"]
+            mix = "/".join(str(int(fn.get(k) or 0)) for k in
+                           ("considered", "accepted", "funded", "attempted", "built"))
+            rejects = fn.get("rejects") or {}
+            top = max(rejects, key=rejects.get) if rejects else "—"
+            top_s = f"{top}:{rejects[top]}" if rejects else "—"
+            opex_s = f"{mix:>28} {top_s:>18}"
+        elif opex.get("ok"):
+            opex_s = f"{'—':>28} {'—':>18}"
+        else:
+            opex_s = f"{'FAIL':>28} {'FAIL':>18}"
+        if hogex.get("ok") and hogex.get("hogex_builds"):
+            hb = hogex["hogex_builds"]
+            hog_s = f"{hb.get('succeeded', 0)}/{hb.get('failed', 0)}/{hb.get('try_build', 0)}"
+        elif hogex.get("ok"):
+            hog_s = "—"
+        else:
+            hog_s = "FAIL"
+        print(f"{month:<8} | {opex_s} | {hog_s:>20}")
     return monthly
+
+
+def _last_ok_record(rows, arm, seed):
+    owned = [record for record in rows
+             if record.get("arm") == arm and record.get("seed") == seed and physical_row_ok(record)]
+    if not owned:
+        return None
+    return sorted(owned, key=lambda record: str(record.get("date", "")))[-1]
+
+
+def render_final_comparison(rows, seeds):
+    """Dernier mois valide par graine : volume, rentabilite unitaire, gares."""
+    print()
+    header = (f"{'graine':<8} | {'valeur O vs A':<28} | {'vehicules O/A':<14} | "
+              f"{'gares O/A':<10} | {'prof/veh O/A':<16} | {'attente O/A':<14}")
+    print(header)
+    print("-" * len(header))
+    finals = []
+    for seed in seeds:
+        opex = _last_ok_record(rows, "OpexAI", seed)
+        hogex = _last_ok_record(rows, "AAAHogEx", seed)
+        if opex is None or hogex is None:
+            print(f"{seed:<8} | FAIL")
+            finals.append({"seed": seed, "ok": False})
+            continue
+        ov, av = opex.get("company_value"), hogex.get("company_value")
+        on = (opex.get("vehicles") or {}).get("n_units")
+        an = (hogex.get("vehicles") or {}).get("n_units")
+        os_ = (opex.get("stations") or {}).get("n_stations")
+        as_ = (hogex.get("stations") or {}).get("n_stations")
+        op = (opex.get("vehicles") or {}).get("profit_per_vehicle")
+        ap = (hogex.get("vehicles") or {}).get("profit_per_vehicle")
+        ow = (opex.get("stations") or {}).get("cargo_waiting")
+        aw = (hogex.get("stations") or {}).get("cargo_waiting")
+        ratio = f"{(ov / av * 100):.0f}%" if ov is not None and av else "—"
+        v_str = f"{ov:>10,.0f} vs {av:>10,.0f} {ratio}" if ov is not None and av is not None else "FAIL"
+        print(f"{seed:<8} | {v_str:<28} | {on:>3} vs {an:<3}     | {os_:>3} vs {as_:<3}  | "
+              f"{(op or 0):>7,.0f} vs {(ap or 0):<6,.0f} | {ow or 0:>5} vs {aw or 0:<5}")
+        finals.append({
+            "seed": seed,
+            "ok": True,
+            "date": opex.get("date"),
+            "opex": {
+                "company_value": ov, "n_units": on, "n_stations": os_,
+                "profit_per_vehicle": op, "cargo_waiting": ow,
+                "by_mode": (opex.get("vehicles") or {}).get("by_mode"),
+                "rolling_capital": (opex.get("vehicles") or {}).get("rolling_capital"),
+                "income": opex.get("income"), "delivered_cargo": opex.get("delivered_cargo"),
+            },
+            "aaahogex": {
+                "company_value": av, "n_units": an, "n_stations": as_,
+                "profit_per_vehicle": ap, "cargo_waiting": aw,
+                "by_mode": (hogex.get("vehicles") or {}).get("by_mode"),
+                "rolling_capital": (hogex.get("vehicles") or {}).get("rolling_capital"),
+                "income": hogex.get("income"), "delivered_cargo": hogex.get("delivered_cargo"),
+            },
+        })
+    return finals
 
 
 def selftest():
@@ -408,7 +808,7 @@ def selftest():
             "stations": {"chunk_valid": True, "n_stations": 8},
         },
     ]
-    mixed = monthly_aggregates(mock_rows)
+    mixed = monthly_aggregates(mock_rows, expected_seeds=[42, 100])
     feb_opex = next(cell for cell in mixed if cell["month"] == "1970-02" and cell["arm"] == "OpexAI")
     feb_aaa = next(cell for cell in mixed if cell["month"] == "1970-02" and cell["arm"] == "AAAHogEx")
     mar_opex = next(cell for cell in mixed if cell["month"] == "1970-03" and cell["arm"] == "OpexAI")
@@ -416,12 +816,112 @@ def selftest():
     assert feb_opex["n_valid"] == 1 and feb_opex["n_expected"] == 2
     assert feb_opex["by_mode"] is None
     assert feb_aaa["ok"] is False
-    assert feb_aaa["n_valid"] == 0 and feb_aaa["n_expected"] == 1
+    assert feb_aaa["n_valid"] == 0 and feb_aaa["n_expected"] == 2
     assert mar_opex["ok"] is True
     assert mar_opex["by_mode"]["rail"] == 3
     assert mar_opex["n_stations"] == 7
+
+    # Graine 100 totalement absente : ne pas conclure 1/1.
+    only_42 = [record for record in mock_rows if record.get("seed") != 100]
+    missing_seed = monthly_aggregates(only_42, expected_seeds=[42, 100])
+    miss_feb = next(cell for cell in missing_seed if cell["month"] == "1970-02" and cell["arm"] == "OpexAI")
+    assert miss_feb["ok"] is False
+    assert miss_feb["n_valid"] == 1 and miss_feb["n_expected"] == 2
+    assert miss_feb["by_mode"] is None
+
+    # Mois calendaire attendu sans aucune ligne.
+    with_jan = monthly_aggregates(
+        mock_rows, expected_seeds=[42, 100], expected_months=["1970-01", "1970-02"],
+    )
+    jan_opex = next(cell for cell in with_jan if cell["month"] == "1970-01" and cell["arm"] == "OpexAI")
+    assert jan_opex["ok"] is False
+    assert jan_opex["n_valid"] == 0 and jan_opex["n_expected"] == 2
+
+    assert cargo_delivered([10, 20, 0, 5]) == 35
+    assert cargo_delivered(12) == 12
+    assert cargo_delivered(None) is None
+
+    missing = extract_company({"PLYR": {}, "VEHS": None, "STNN": None}, 1, "AAAHogEx", 42, "1970-02-01")
+    assert missing["economy_ok"] is False
+    assert missing["company_value"] is None
+    assert missing["delivered_cargo"] is None
+    assert missing["vehicles"]["chunk_valid"] is False
+    assert missing["stations"]["chunk_valid"] is False
+
+    funnel_log = (
+        "[script:4] [0] [I] OPEX 1971-3-8 MONTHLY_FUNNEL considered=40 accepted=8 funded=2 "
+        "attempted=3 built=1 r_insufficient_cash=1 r_build_failed=1\n"
+        "[script:4] [0] [I] OPEX 1971-3-20 MONTHLY_FUNNEL considered=30 accepted=6 funded=1 "
+        "attempted=1 built=0 r_town_rating_refusal=1\n"
+        "[script:4] [1] [I] 1971-3-9 # RouteBuilder Succeeded foo\n"
+        "[script:4] [1] [I] 1971-3-10 HgStation.BuildExec failed AirStation\n"
+        "[script:4] [1] [I] 1971-3-11 #### TryBuild\n"
+    )
+    funnel = parse_opex_funnel(funnel_log)
+    mar = funnel["1971-03"]
+    assert mar["passes"] == 2
+    assert mar["considered"] == 70
+    assert mar["accepted"] == 14
+    assert mar["funded"] == 3
+    assert mar["attempted"] == 4
+    assert mar["built"] == 1
+    assert mar["rejects"]["insufficient_cash"] == 1
+    assert mar["rejects"]["build_failed"] == 1
+    assert mar["rejects"]["town_rating_refusal"] == 1
+    hog = parse_hogex_builds(funnel_log)
+    assert hog["1971-03"]["succeeded"] == 1
+    assert hog["1971-03"]["failed"] == 1
+    assert hog["1971-03"]["try_build"] == 1
+
+    attached = [
+        {"arm": "OpexAI", "owner": 0, "seed": 42, "date": "1971-03-01",
+         "output": funnel_log,
+         "vehicles": {"chunk_valid": True, "by_mode": {"rail": 1, "road": 2, "air": 1, "water": 0},
+                      "rolling_capital": 1, "profit_per_vehicle": 1},
+         "stations": {"chunk_valid": True, "n_stations": 4, "cargo_waiting": 10, "rating_median": 80},
+         "company_value": 1000, "income": 100, "expenses": -20, "profit": 80, "delivered_cargo": 50},
+        {"arm": "AAAHogEx", "owner": 1, "seed": 42, "date": "1971-03-01",
+         "vehicles": {"chunk_valid": True, "by_mode": {"rail": 2, "road": 1, "air": 4, "water": 0},
+                      "rolling_capital": 2, "profit_per_vehicle": 3},
+         "stations": {"chunk_valid": True, "n_stations": 6, "cargo_waiting": 20, "rating_median": 90},
+         "company_value": 2000, "income": 200, "expenses": -40, "profit": 160, "delivered_cargo": 80},
+    ]
+    attach_logs(attached)
+    assert "output" not in attached[0]
+    assert attached[0]["funnel"]["built"] == 1
+    assert attached[1]["hogex_builds"]["succeeded"] == 1
+    shared_cells = monthly_aggregates(attached, expected_seeds=[42], expected_months=["1971-03"])
+    opex_cell = next(cell for cell in shared_cells if cell["arm"] == "OpexAI")
+    hog_cell = next(cell for cell in shared_cells if cell["arm"] == "AAAHogEx")
+    assert opex_cell["ok"] is True
+    assert opex_cell["company_value"] == 1000
+    assert opex_cell["funnel"]["attempted"] == 4
+    assert hog_cell["hogex_builds"]["failed"] == 1
+    assert hog_cell["n_stations"] == 6
+
+    if fixture_path.exists():
+        rec0 = extract_company(c66["chunks"], 0, "OpexAI", 42, "1970-12-01")
+        rec1 = extract_company(c66["chunks"], 1, "AAAHogEx", 42, "1970-12-01")
+        assert rec0["economy_ok"] is True
+        assert rec0["vehicles"]["chunk_valid"] is True
+        assert rec0["stations"]["n_stations"] == 24
+        assert rec0["delivered_cargo"] is not None
+        assert rec1["vehicles"]["chunk_valid"] is True
+        assert rec1["vehicles"]["n_units"] == 0
+        assert rec1["stations"]["n_stations"] == 0
+
+    keep_shared = keep({
+        "chunks": {"PLYR": {}, "VEHS": None, "STNN": None},
+        "date": "1970-02-01",
+        "output": "",
+        "experiment": {"seed": 7, "shared": True},
+    })
+    assert len(keep_shared) == 2
+    assert keep_shared[0]["arm"] == "OpexAI" and keep_shared[0]["owner"] == 0
+    assert keep_shared[1]["arm"] == "AAAHogEx" and keep_shared[1]["owner"] == 1
+
     print("Test d'affichage du rapport mensuel avec lignes corrompues :")
-    render_monthly_report(mock_rows)
+    render_monthly_report(mock_rows, expected_seeds=[42, 100])
     print("Selftest diag_1v1_monthly.py réussi avec succès !")
 
 

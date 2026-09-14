@@ -15,13 +15,13 @@ function OpexAI::_tryBuildWaterProject(year, project, rank, builtCount, passDisc
   if (project == null) return { outcome = "no_candidate", discards = passDiscards };
   local i = rank;
       if (this._waterBuilt || this._catalog.ships.len() == 0 || this._catalog.paxCargo < 0) {
-        if (DECISION_LOG || C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "water", src = project.src, dst = project.dst, reason = "water_unavailable", extra = "" });
+        if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "water", src = project.src, dst = project.dst, reason = "water_unavailable", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
       }
       local plan = project.payload;
       if (builtCount > 0 && (!OpexWaterBatchSiteStillBuildable(plan.siteA) ||
                              !OpexWaterBatchSiteStillBuildable(plan.siteB))) {
-        if (DECISION_LOG || C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "water", src = plan.siteA.town.id, dst = plan.siteB.town.id, reason = "batch_site_unbuildable", extra = "" });
+        if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "water", src = plan.siteA.town.id, dst = plan.siteB.town.id, reason = "batch_site_unbuildable", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
       }
       local capital = 2 * this._catalog.costDock + this._catalog.costWaterDepot + this._catalog.maxShipPrice;
@@ -30,7 +30,7 @@ function OpexAI::_tryBuildWaterProject(year, project, rank, builtCount, passDisc
       if (money < need && REBORROW) money = OpexTryReborrow(need, money);
       if (money < need) {
         if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("water", i, capital, plan.economics.profitAnnual, project.roi, plan.siteA.town.id, plan.siteB.town.id, need, money);
-        if (DECISION_LOG || C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "water", src = plan.siteA.town.id, dst = plan.siteB.town.id, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
+        if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "water", src = plan.siteA.town.id, dst = plan.siteB.town.id, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
         return { outcome = "rejected", discards = passDiscards };
       }
 
@@ -41,7 +41,7 @@ function OpexAI::_tryBuildWaterProject(year, project, rank, builtCount, passDisc
       if (result.ok) OpexSign(anchor, "OM|W|" + year + "|" + plan.distance + "|" + planOps);
       else OpexSign(anchor, "ON|W|" + result.reason + "|" + result.error);
       if (!result.ok) {
-        if (C49_SCARCITY_LEDGER || C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "water", src = plan.siteA.town.id, dst = plan.siteB.town.id, reason = "build_failed", extra = "" });
+        if (C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "water", src = plan.siteA.town.id, dst = plan.siteB.town.id, reason = "build_failed", extra = "" });
         if (DECISION_LOG) {
           OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=water src=" + plan.siteA.town.id + " dst=" + plan.siteB.town.id + " reason=build_failed detail=" + result.reason + " error=" + result.error);
         }

@@ -225,6 +225,8 @@ function OpexAI::_tryBuildFeeders(year)
       hubStationId = candidate.hubStationId,
       srcTown = candidate.srcTown,
       feederSlot = ("feederSlot" in candidate) ? candidate.feederSlot : 0,
+      hubMode = ("hubMode" in candidate) ? candidate.hubMode : "",
+      extraStops = [],
     });
     if (DECISION_LOG) {
       local hubMode = ("hubMode" in candidate) ? candidate.hubMode : "unknown";

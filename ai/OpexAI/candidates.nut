@@ -2131,6 +2131,30 @@ function OpexTownRoadLineCount(lines, townTile)
   return count;
 }
 
+/* Une commune passagers appartient a une seule ligne bus de base. Toute croissance ulterieure
+ * passe par un projet d'extension de CETTE ligne, jamais par une seconde paire qui cannibalise
+ * les memes maisons. Les feeders comptent aussi comme desserte bus de la commune. */
+function OpexTownBusPaxServed(lines, townId)
+{
+  if (lines == null || townId < 0) return false;
+  foreach (line in lines) {
+    if (!("mode" in line) || line.mode != "road") continue;
+    if (("scrapping" in line) && line.scrapping) continue;
+    if (!("cargo" in line) || line.cargo < 0 ||
+        !AICargo.HasCargoClass(line.cargo, AICargo.CC_PASSENGERS)) continue;
+    local srcTown = ("srcTown" in line && line.srcTown >= 0)
+        ? line.srcTown : AITile.GetClosestTown(line.originA);
+    if (srcTown == townId) return true;
+    local isFeeder = (("isFeeder" in line) && line.isFeeder) ||
+                     (("purpose" in line) && line.purpose == "feeder");
+    if (isFeeder) continue;
+    local dstTown = ("dstTown" in line && line.dstTown >= 0)
+        ? line.dstTown : AITile.GetClosestTown(line.originB);
+    if (dstTown == townId) return true;
+  }
+  return false;
+}
+
 /* C29.4 : Compte le nombre de lignes de rabattement (feeders) actives reliant une ville à un hub donné. */
 function OpexTownFeederCount(lines, townTile, hubStationId)
 {
@@ -2231,12 +2255,14 @@ function OpexRoadPaxCandidates(catalog, lines, out, stats, abandonedPairs = null
   local n = towns.len();
   local produced = [];
   local roadLinesPerTown = [];
+  local busServed = [];
   for (local i = 0; i < n; i++) {
     local p = AITown.GetLastMonthProduction(towns[i].id, cargo);
     /* D4 : Calibrage physique de la production mensuelle moyenne de passagers par habitant (~15 % en OpenGFX/OpenTTD) */
     if (p <= 0 && towns[i].pop > 0) p = (towns[i].pop * 15) / 100;
     produced.append(p);
     roadLinesPerTown.append(OpexTownRoadLineCount(lines, towns[i].tile));
+    busServed.append(OpexTownBusPaxServed(lines, towns[i].id));
   }
   local roadBounds = OpexCatalogBounds(catalog);
   local roadCell = ("roadGenMax" in roadBounds) ? roadBounds.roadGenMax : roadBounds.roadMax;
@@ -2244,10 +2270,12 @@ function OpexRoadPaxCandidates(catalog, lines, out, stats, abandonedPairs = null
   local roadGrid = OpexSpatialGrid();
   roadGrid.Build(towns, roadCell);
   for (local a = 0; a < n; a++) {
+    if (busServed[a]) continue;
     local maxLinesA = 4 + (towns[a].pop / 300);
     if (roadLinesPerTown[a] >= maxLinesA) continue;
     local neighbors = roadGrid.GetCandidatesFor(a);
     foreach (b in neighbors) {
+      if (busServed[b]) continue;
       local maxLinesB = 4 + (towns[b].pop / 300);
       if (roadLinesPerTown[b] >= maxLinesB) continue;
       if (OpexRoadPairServed(lines, towns[a].tile, towns[b].tile)) continue;
@@ -2287,6 +2315,178 @@ function OpexRoadPaxCandidates(catalog, lines, out, stats, abandonedPairs = null
       if (candidate != null) out.append(candidate);
     }
   }
+}
+
+function OpexRoadLineTownStopCount(line, townId)
+{
+  local count = 0;
+  local srcTown = ("srcTown" in line && line.srcTown >= 0)
+      ? line.srcTown : AITile.GetClosestTown(line.originA);
+  if (srcTown == townId) count++;
+  local isFeeder = (("isFeeder" in line) && line.isFeeder) ||
+                   (("purpose" in line) && line.purpose == "feeder");
+  local dstTown = ("dstTown" in line && line.dstTown >= 0)
+      ? line.dstTown : AITile.GetClosestTown(line.originB);
+  if (!isFeeder && dstTown == townId) count++;
+  if (("extraStops" in line) && line.extraStops != null) {
+    foreach (stop in line.extraStops) {
+      if (stop != null && ("town" in stop) && stop.town == townId &&
+          ("tile" in stop) && AIRoad.IsRoadStationTile(stop.tile)) count++;
+    }
+  }
+  return count;
+}
+
+function OpexRoadTownStopLimit(townId)
+{
+  if (!AITown.IsValidTown(townId)) return 1;
+  /* Le besoin vient des vraies cases productrices encore non couvertes, selectionnees par
+   * OpexRoadExtensionSite. Le nombre de maisons n'est pas un substitut fiable a cette geometrie. */
+  return 4;
+}
+
+function OpexRoadFindLineById(lines, lineId)
+{
+  if (lines == null) return null;
+  foreach (line in lines) {
+    if (("lineId" in line) && line.lineId == lineId) return line;
+  }
+  return null;
+}
+
+/* Deux nouveaux projets marginaux : ils ajoutent un arret a une ligne existante. Un seul projet
+ * est emis par (ligne, commune) et par generation ; apres construction, la regeneration peut
+ * proposer le quartier non couvert suivant jusqu'au plafond physique de quatre arrets. */
+function OpexRoadExtensionCandidates(catalog, lines, out, stats)
+{
+  local cargo = catalog.paxCargo;
+  if (cargo < 0 || catalog.roadType < 0) return;
+  AIRoad.SetCurrentRoadType(catalog.roadType);
+  foreach (line in lines) {
+    if (!("mode" in line) || line.mode != "road" || !("kind" in line) || line.kind != "pax") continue;
+    if (("scrapping" in line) && line.scrapping) continue;
+    if (!("lineId" in line) || !("stationA" in line) || !("stationB" in line)) continue;
+    if (!AIRoad.IsRoadStationTile(line.stationA) || !AIRoad.IsRoadStationTile(line.stationB)) continue;
+    local currentYear = AIDate.GetYear(AIDate.GetCurrentDate());
+    if (("year" in line) && currentYear <= line.year) continue;
+    if (("lastExtensionYear" in line) && line.lastExtensionYear == currentYear) continue;
+
+    local isFeeder = (("isFeeder" in line) && line.isFeeder) ||
+                     (("purpose" in line) && line.purpose == "feeder");
+    if (isFeeder) {
+      local hubId = ("hubStationId" in line) ? line.hubStationId : AIStation.GetStationID(line.stationB);
+      /* Le type demande est bus -> air. Un feeder rail reste une ligne a deux arrets. */
+      if (!AIStation.IsValidStation(hubId) ||
+          !AIStation.HasStationType(hubId, AIStation.STATION_AIRPORT) ||
+          !FEEDER_TOWN_COVERAGE) continue;
+    }
+
+    local ends = [];
+    local townA = ("srcTown" in line && line.srcTown >= 0)
+        ? line.srcTown : AITile.GetClosestTown(line.originA);
+    if (AITown.IsValidTown(townA)) ends.append({ name = "A", town = townA, anchor = line.stationA });
+    if (!isFeeder) {
+      local townB = ("dstTown" in line && line.dstTown >= 0)
+          ? line.dstTown : AITile.GetClosestTown(line.originB);
+      if (AITown.IsValidTown(townB) && townB != townA) {
+        ends.append({ name = "B", town = townB, anchor = line.stationB });
+      }
+    }
+
+    foreach (end in ends) {
+      if (OpexRoadLineTownStopCount(line, end.town) >= OpexRoadTownStopLimit(end.town)) {
+        if (DECISION_LOG) OpexDecide("ROAD_EXTENSION_SCAN", "line=" + line.lineId
+                                     + " town=" + end.town + " result=limit");
+        continue;
+      }
+      local site = OpexRoadExtensionSite(line, end.town, cargo, end.anchor);
+      if (site == null) {
+        if (DECISION_LOG) OpexDecide("ROAD_EXTENSION_SCAN", "line=" + line.lineId
+                                     + " town=" + end.town + " result=no_site");
+        continue;
+      }
+      local capital = catalog.costRoadBusStop + site.routeDistance * catalog.costRoadPerTile;
+      if (capital < 1) capital = 1;
+      local baseRevenue = ("lastRevenue" in line && line.lastRevenue > 0)
+          ? line.lastRevenue : (("predRevenue" in line) ? line.predRevenue : 0);
+      local baseCarried = ("predCarried" in line && line.predCarried > 0) ? line.predCarried : 0;
+      local revenue = (baseRevenue > 0 && baseCarried > 0)
+          ? (site.value * baseRevenue) / baseCarried : 0;
+      if (revenue <= 0) {
+        local distance = AIMap.DistanceManhattan(site.tile,
+            end.name == "A" ? line.stationB : line.stationA);
+        if (distance < 1) distance = 1;
+        revenue = 12 * site.value * AICargo.GetCargoIncome(cargo, distance, ROAD_PAX_STOP_DWELL_DAYS + 1);
+      }
+      /* La flotte existe deja et son cout annuel ne change pas. La retenue de 20 % paie
+       * conservativement le detour et la capacite perdue pendant l'arret supplementaire. */
+      local amort = ((capital * INFRA_AMORT_PCT / 100) / INFRA_LIFE_YEARS);
+      local profit = (revenue * 80) / 100 - amort;
+      if (profit <= 0) continue;
+      local extensionType = isFeeder ? "feeder_extension" : "bus_pax_extension";
+      out.append({
+        mode = "road", kind = "pax", cargo = cargo,
+        src = site.tile, dst = end.anchor, srcTown = end.town, dstTown = end.town,
+        distance = site.routeDistance, monthly = site.value,
+        engine = catalog.roadEngineByCargo[cargo], capital = capital,
+        revenueAnnual = revenue, profitAnnual = profit, runningAnnual = 0,
+        amortAnnual = amort, carried = site.value, trains = 0,
+        oneWayDays = ROAD_PAX_STOP_DWELL_DAYS, effectiveSpeed = 0,
+        iterations = 1, ratio = profit * 1000,
+        roi = (profit * 1000) / capital,
+        isRoadExtension = true, extensionType = extensionType,
+        targetLineId = line.lineId, extensionTown = end.town,
+        extensionEnd = end.name, extensionSite = site,
+      });
+      if (!("extensionCandidates" in stats)) stats.extensionCandidates <- 0;
+      stats.extensionCandidates++;
+      if (DECISION_LOG) {
+        OpexDecide("ROAD_EXTENSION_CANDIDATE", "line=" + line.lineId
+                   + " type=" + extensionType + " town=" + end.town
+                   + " stop=" + site.tile + " marginal_profit=" + profit);
+      }
+    }
+  }
+}
+
+function OpexRoadExtensionCandidateStillValid(candidate, lines)
+{
+  if (candidate == null || !("targetLineId" in candidate) ||
+      !("extensionSite" in candidate) || !("extensionTown" in candidate)) return false;
+  local line = OpexRoadFindLineById(lines, candidate.targetLineId);
+  if (line == null || (("scrapping" in line) && line.scrapping)) return false;
+  if (!AIRoad.IsRoadStationTile(line.stationA) || !AIRoad.IsRoadStationTile(line.stationB)) return false;
+  if (OpexRoadLineTownStopCount(line, candidate.extensionTown) >=
+      OpexRoadTownStopLimit(candidate.extensionTown)) return false;
+  local currentYear = AIDate.GetYear(AIDate.GetCurrentDate());
+  if (("lastExtensionYear" in line) && line.lastExtensionYear == currentYear) return false;
+  local site = candidate.extensionSite;
+  local driveThrough = !("driveThrough" in site) || site.driveThrough;
+  if (!AIMap.IsValidTile(site.tile) ||
+      (driveThrough && !AIRoad.IsRoadTile(site.tile)) ||
+      (!driveThrough && !AITile.IsBuildable(site.tile)) ||
+      AIRoad.IsRoadStationTile(site.tile) || AIRoad.IsRoadDepotTile(site.tile) ||
+      AITile.GetClosestTown(site.tile) != candidate.extensionTown) return false;
+  if (OpexRoadTileTooClose(site.tile, OpexRoadOurBusTiles(), ROAD_BUS_STOP_MIN_DISTANCE)) return false;
+  local anchor = (("extensionEnd" in candidate) && candidate.extensionEnd == "B")
+      ? line.stationB : line.stationA;
+  if (driveThrough) {
+    local path = OpexRoadBfsPath(anchor, site.tile, 1024, null, site.front);
+    if (path == null || path.len() == 0) return false;
+  } else if (!("trace" in site) || site.trace.len() == 0 ||
+             !OpexRoadTraceBuildable(site.trace)) return false;
+  local ok = false;
+  { local test = AITestMode();
+    if (driveThrough) {
+      ok = AIRoad.BuildDriveThroughRoadStation(site.tile, site.front,
+                                               AIRoad.ROADVEHTYPE_BUS, AIStation.STATION_NEW);
+    } else {
+      ok = AIRoad.BuildRoad(site.front, site.tile) &&
+           AIRoad.BuildRoadStation(site.tile, site.front,
+                                   AIRoad.ROADVEHTYPE_BUS, AIStation.STATION_NEW);
+    }
+  }
+  return ok;
 }
 
 /* Familles 2 et 3 : industrie -> industrie, et industrie -> ville.
@@ -2699,6 +2899,9 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats, abandonedPairs = n
     if (!FEEDER_UNLOCK && OpexOriginServed(lines, towns[i].tile, true)) continue;
     local pop = towns[i].pop;
     if (pop < 200) continue;
+    /* Une ligne passagers existante est etendue ; on ne superpose jamais une seconde ligne de
+     * base (feeder ou ordinaire) sur la meme commune. */
+    if (OpexTownBusPaxServed(lines, towns[i].id)) continue;
     local produced = AITown.GetLastMonthProduction(towns[i].id, cargo);
     if (produced <= 0) continue;
 
@@ -2719,26 +2922,12 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats, abandonedPairs = n
         continue;
       }
 
-      /* Nombre de feeders autorisés pour cette ville :
-       * - Pour la ville du hub sous FEEDER_TOWN_COVERAGE (C29.4) : jusqu'à ceil(maisons / ROAD_STOP_CATCHMENT_HOUSES)
-       *   arrêts de rabattement séparés (plafonné à 4), sur le modèle de couverture intégrale AAAHogEx.
-       * - Pour une ville satellite : exactement 1 feeder (slot 0) pour rabattre le satellite vers le hub. */
+      /* Une seule ligne feeder de base par commune. Les arrets suivants sont des
+       * `feeder_extension` de cette ligne et partagent sa liste d'ordres. */
       local feederEntry = ((townKeyPrefix + hub.stationId) in feederIndex)
           ? feederIndex[townKeyPrefix + hub.stationId] : null;
       local existingCount = (feederEntry != null) ? feederEntry.count : 0;
-      local maxFeeders = 1;
-      if (isHubTown && FEEDER_TOWN_COVERAGE) {
-        local houses = ("houses" in towns[i] && towns[i].houses > 0) ? towns[i].houses : (towns[i].pop / 25);
-        maxFeeders = OpexCeilDiv(houses, ROAD_STOP_CATCHMENT_HOUSES);
-        if (maxFeeders > 4) maxFeeders = 4;
-        if (maxFeeders < 1) maxFeeders = 1;
-      }
-      if (FEEDER_UNLOCK && existingCount >= maxFeeders) continue;
-      if (existingCount >= 1) {
-        local currYear = AIDate.GetYear(AIDate.GetCurrentDate());
-        local startYear = ("startYear" in catalog) ? catalog.startYear : 1970;
-        if (currYear - startYear < 2) continue;
-      }
+      if (existingCount >= 1) continue;
       /* G9§2 : aligner le filtre feeders sur la meme garde que les candidats
        * ordinaires. Sans ABANDON_GEN_FILTER, abandon_gen_filter=0 doit pouvoir
        * ramener les paires abandonnees a l'arbitrage seul. */
@@ -2748,11 +2937,10 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats, abandonedPairs = n
       }
 
       stats.pairsInBand++;
-      /* Part de la production restant à capter après les arrêts déjà construits */
+      /* Premiere couverture de la ligne de base. */
       local houses = ("houses" in towns[i] && towns[i].houses > 0) ? towns[i].houses : (towns[i].pop / 25);
       if (houses <= 0) houses = 1;
-      local remainingHouses = houses - (existingCount * ROAD_STOP_CATCHMENT_HOUSES);
-      if (remainingHouses < 1) remainingHouses = 1;
+      local remainingHouses = houses;
       local marginalProd = (produced * remainingHouses) / houses;
       local monthly = OpexTownBusCatchment(towns[i], marginalProd);
       if (monthly <= 0) continue;
@@ -2896,7 +3084,7 @@ function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null, 
   local stats = {
     pairsInBand = 0, noMonthly = 0, noEngine = 0, townRejected = 0, townAcceptancePrefiltered = 0,
     economicsUnavailable = 0, profitTooLow = 0, accepted = 0,
-    feederHubs = 0, feederCandidates = 0,
+    feederHubs = 0, feederCandidates = 0, extensionCandidates = 0,
     /* C43/E3 famille 2 : ROAD_MIN_DISTANCE/ROAD_MAX_DISTANCE mordent-elles ? */
     roadDistanceShort = 0, roadDistanceLong = 0,
   };
@@ -2911,6 +3099,7 @@ function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null, 
     OpexRoadPaxCandidates(catalog, lines, all, stats, abandonedPairs);
     if (profile != null) profile.paxOps += OpexOpsMeasureEnd(mark);
   }
+  if (ROAD_PAX_EXTENSIONS) OpexRoadExtensionCandidates(catalog, lines, all, stats);
   /* Les marques C41.17 internes ne doivent jamais etre imbriquees dans une mesure globale :
    * un suspend peut sinon faire compter le tick-frontiere deux fois. C41.16 porte deja le total
    * fret de reference ; C41.17 ne publie que ses intervalles disjoints. */

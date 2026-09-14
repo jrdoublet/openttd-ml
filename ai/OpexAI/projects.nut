@@ -127,6 +127,11 @@ function OpexProjectKeyFor(project)
     return "subsidy|" + project.payload.subsidyId;
   }
   if (("payload" in project) && project.payload != null
+      && ("isRoadExtension" in project.payload) && project.payload.isRoadExtension) {
+    return "road_extension|" + project.payload.targetLineId + "|"
+           + project.payload.extensionTown;
+  }
+  if (("payload" in project) && project.payload != null
       && ("isFeeder" in project.payload) && project.payload.isFeeder) {
     prefix = "feeder|";
     if ("hubStationId" in project.payload) prefix += project.payload.hubStationId + "|";
@@ -767,6 +772,11 @@ function OpexLegacyCandidateStillValid(p, lines, abandonedPairs = null)
   /* 0. Candidat abandonne (echec de trace ou depot) */
   if (OpexCandidateIsAbandoned(p, abandonedPairs)) return false;
 
+  if (mode == "road" && ("payload" in p) && p.payload != null &&
+      ("isRoadExtension" in p.payload) && p.payload.isRoadExtension) {
+    return OpexRoadExtensionCandidateStillValid(p.payload, lines);
+  }
+
   /* 1. Doublon exact avec une ligne deja batie */
   foreach (line in lines) {
     if (("cargo" in line) && line.cargo == p.cargo &&
@@ -792,6 +802,11 @@ function OpexLegacyCandidateStillValid(p, lines, abandonedPairs = null)
     }
     local isFeeder = (("payload" in p) && p.payload != null &&
                       ("isFeeder" in p.payload) && p.payload.isFeeder);
+    if (p.kind == "pax") {
+      local endpoints = OpexGetCandidateTownEndpoints(p.payload);
+      if ((endpoints.srcTown >= 0 && OpexTownBusPaxServed(lines, endpoints.srcTown)) ||
+          (endpoints.dstTown >= 0 && OpexTownBusPaxServed(lines, endpoints.dstTown))) return false;
+    }
     if (isFeeder) {
       local cand = p.payload;
       local isHubTown = ("isHubTown" in cand) ? cand.isHubTown : false;
@@ -937,6 +952,11 @@ function OpexIndexedCandidateStillValid(p, lineIndex, abandonedPairs = null, upd
   /* 0. Candidat abandonne (echec de trace ou depot) */
   if (OpexCandidateIsAbandoned(p, abandonedPairs)) return false;
 
+  if (mode == "road" && ("payload" in p) && p.payload != null &&
+      ("isRoadExtension" in p.payload) && p.payload.isRoadExtension) {
+    return OpexRoadExtensionCandidateStillValid(p.payload, lineIndex.lines);
+  }
+
   /* 1. Doublon exact avec une ligne deja batie */
   local a = p.src;
   local b = p.dst;
@@ -958,6 +978,11 @@ function OpexIndexedCandidateStillValid(p, lineIndex, abandonedPairs = null, upd
     }
     local isFeeder = (("payload" in p) && p.payload != null &&
                       ("isFeeder" in p.payload) && p.payload.isFeeder);
+    if (p.kind == "pax") {
+      local endpoints = OpexGetCandidateTownEndpoints(p.payload);
+      if ((endpoints.srcTown >= 0 && OpexTownBusPaxServed(lineIndex.lines, endpoints.srcTown)) ||
+          (endpoints.dstTown >= 0 && OpexTownBusPaxServed(lineIndex.lines, endpoints.dstTown))) return false;
+    }
     if (isFeeder) {
       local cand = p.payload;
       local isHubTown = ("isHubTown" in cand) ? cand.isHubTown : false;
@@ -1139,6 +1164,11 @@ function OpexProjectAttemptKey(p)
   if (("payload" in p) && p.payload != null
       && ("isSubsidy" in p.payload) && p.payload.isSubsidy) {
     return "subsidy|" + p.payload.subsidyId;
+  }
+  if (("payload" in p) && p.payload != null
+      && ("isRoadExtension" in p.payload) && p.payload.isRoadExtension) {
+    return "road_extension|" + p.payload.targetLineId + "|"
+           + p.payload.extensionTown + "|" + p.payload.extensionSite.tile;
   }
   local src = ("src" in p) ? p.src : -1;
   local dst = ("dst" in p) ? p.dst : -1;

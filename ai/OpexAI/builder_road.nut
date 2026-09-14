@@ -39,7 +39,7 @@ ROAD_CHEAP_TRACE_MAX_DIST <- 12;
  * MIN_PAIR = C29.4 / HogEx : sous 6 tuiles le depot (filet de 3) est impossible et
  * CmdBuildRoadStop rend TOO_CLOSE / BSTOP. */
 ROAD_PAX_VOIRIE <- true;
-ROAD_PAX_VOIRIE_MIN_PAIR <- 6;
+ROAD_PAX_VOIRIE_MIN_PAIR <- ROAD_BUS_STOP_MIN_DISTANCE;
 
 function OpexRoadInMap(x, y)
 {
@@ -171,11 +171,11 @@ function OpexRoadSites(center, townId, cargo, vehType, coverage, wantProduction,
         if (!OpexRoadInMap(x, y)) continue;
         local tile = AIMap.GetTileIndex(x, y);
         if (townId >= 0 && AITile.GetClosestTown(tile) != townId) continue;
-        /* C29.4 : Séparation spatiale >= 6 tuiles entre gares routières d une même ville (modèle AAAHogEx) */
+        /* Espacement global minimal entre deux arrets passagers. */
         if (excludeTiles != null && excludeTiles.len() > 0) {
           local tooClose = false;
           foreach (exTile in excludeTiles) {
-            if (AIMap.DistanceManhattan(tile, exTile) < 6) {
+            if (AIMap.DistanceManhattan(tile, exTile) < ROAD_BUS_STOP_MIN_DISTANCE) {
               tooClose = true;
               break;
             }
@@ -458,7 +458,10 @@ function OpexRoadOurBusTiles()
   local out = [];
   local stations = AIStationList(AIStation.STATION_BUS_STOP);
   for (local id = stations.Begin(); !stations.IsEnd(); id = stations.Next()) {
-    out.append(AIStation.GetLocation(id));
+    /* GetLocation ne renvoie qu'une tuile arbitraire de la gare multimodale. Une gare peut avoir
+     * plusieurs quais bus, notamment un arret joint a un aeroport : enumerer les vraies tuiles. */
+    local tiles = AITileList_StationType(id, AIStation.STATION_BUS_STOP);
+    for (local tile = tiles.Begin(); !tiles.IsEnd(); tile = tiles.Next()) out.append(tile);
   }
   return out;
 }
@@ -574,6 +577,43 @@ function OpexRoadPaxVoirieSites(center, townId, cargo, vehType, coverage, otherC
     }
   }
   return out;
+}
+
+/* Cherche un quartier non couvert sur la voirie deja connectee a une ligne. Une extension ne
+ * construit pas une seconde route ni une seconde ligne : elle transforme une tuile de route
+ * existante en arret traversant, puis l'ajoute aux ordres des bus. */
+function OpexRoadExtensionSite(line, townId, cargo, anchor)
+{
+  if (!AITown.IsValidTown(townId) || !AIRoad.IsRoadStationTile(anchor)) return null;
+  local center = AITown.GetLocation(townId);
+  local coverage = AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP);
+  local exclude = OpexRoadOurBusTiles();
+  local sites = OpexRoadPaxVoirieSites(center, townId, cargo, AIRoad.ROADVEHTYPE_BUS,
+                                        coverage, null, true, exclude);
+  foreach (site in sites) {
+    /* Le dernier pas doit suivre l'axe de l'arret traversant projete. Le graphe est borne mais
+     * largement au-dessus des 48 tuiles maximales d'une ligne routiere de base. */
+    local path = OpexRoadBfsPath(anchor, site.tile, 1024, null, site.front);
+    if (path == null || path.len() == 0) continue;
+    return { tile = site.tile, front = site.front, value = site.value,
+             routeDistance = path.len(), driveThrough = true, trace = [] };
+  }
+
+  /* Une petite ville n'a souvent aucune voirie municipale hors du bassin des deux premiers
+   * arrets. Chercher alors un terrain producteur et planifier la courte antenne qui le relie a
+   * la ligne. Sans ce repli, bus_pax_extension existe en theorie mais n'a aucun site reel. */
+  local hunt = OpexRoadSites(center, townId, cargo, AIRoad.ROADVEHTYPE_BUS, coverage,
+                             true, ROAD_TOWN_SEARCH_RADIUS, anchor, true, exclude);
+  foreach (site in hunt.sites) {
+    for (local shape = 0; shape < 2; shape++) {
+      local trace = OpexRoadTrace(anchor, site.front, shape == 0);
+      if (trace.len() == 0 || OpexRoadTraceHitsStop(trace, site.tile)) continue;
+      if (!OpexRoadTraceBuildable(trace)) continue;
+      return { tile = site.tile, front = site.front, value = site.value,
+               routeDistance = trace.len(), driveThrough = false, trace = trace };
+    }
+  }
+  return null;
 }
 
 function OpexRoadPlanPaxVoirie(candidate)
@@ -724,13 +764,24 @@ function OpexRoadPlanFor(catalog, candidate)
   local isFeeder = isFeederEarly;
   local dstWantsProduction = candidate.kind == "pax" && !isFeeder;
 
-  local excludeA = ("existingStops" in candidate) ? candidate.existingStops : null;
+  /* Le filtre est global a toutes nos gares bus, pas limite au couple feeder courant. Le repli
+   * historique de la planification contournait sinon la protection de la voie `voirie`. */
+  local excludeA = null;
+  if (stop.vehType == AIRoad.ROADVEHTYPE_BUS) {
+    excludeA = OpexRoadOurBusTiles();
+    if (("existingStops" in candidate) && candidate.existingStops != null) {
+      foreach (existingTile in candidate.existingStops) excludeA.append(existingTile);
+    }
+  } else if ("existingStops" in candidate) {
+    excludeA = candidate.existingStops;
+  }
   local huntA = OpexRoadSites(candidate.src, candidate.srcTown, candidate.cargo, stop.vehType,
                               coverage, true, radiusA, candidate.dst, true, excludeA);
   local sitesA = huntA.sites;
   if (sitesA.len() == 0) return { plan = null, reason = "SITEA", site = huntA };
   local huntB = OpexRoadSites(candidate.dst, candidate.dstTown, candidate.cargo, stop.vehType,
-                              coverage, dstWantsProduction, radiusB, candidate.src, !isFeeder);
+                              coverage, dstWantsProduction, radiusB, candidate.src, !isFeeder,
+                              excludeA);
   local sitesB = huntB.sites;
   if (sitesB.len() == 0) return { plan = null, reason = "SITEB", site = huntB };
 
@@ -744,6 +795,8 @@ function OpexRoadPlanFor(catalog, candidate)
   // Passe 1 : L direct rapide (0 = horizontal, 1 = vertical)
   foreach (siteA in sitesA) {
     foreach (siteB in sitesB) {
+      if (stop.vehType == AIRoad.ROADVEHTYPE_BUS &&
+          AIMap.DistanceManhattan(siteA.tile, siteB.tile) < ROAD_BUS_STOP_MIN_DISTANCE) continue;
       for (local shape = 0; shape < 2; shape++) {
         if (trials >= ROAD_MAX_TRACE_TRIALS) break;
         trials++;
@@ -768,6 +821,8 @@ function OpexRoadPlanFor(catalog, candidate)
   // Passe 2 : Déviations en escalier (Z et contournements) si tous les L directs échouent
   foreach (siteA in sitesA) {
     foreach (siteB in sitesB) {
+      if (stop.vehType == AIRoad.ROADVEHTYPE_BUS &&
+          AIMap.DistanceManhattan(siteA.tile, siteB.tile) < ROAD_BUS_STOP_MIN_DISTANCE) continue;
       for (local shape = 2; shape < 6; shape++) {
         if (trials >= ROAD_MAX_TRACE_TRIALS * 3) break;
         trials++;
@@ -1032,6 +1087,18 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
   local depot = null;
   local built = [];
 
+  /* Revalidation transactionnelle : entre la generation (eventuellement mise en cache) et le
+   * chantier, une autre ligne peut avoir pose un arret. Ne jamais engager la route dans ce cas. */
+  if (AICargo.HasCargoClass(cargo, AICargo.CC_PASSENGERS)) {
+    local liveBusStops = OpexRoadOurBusTiles();
+    if (OpexRoadTileTooClose(plan.stopA.tile, liveBusStops, ROAD_BUS_STOP_MIN_DISTANCE) ||
+        OpexRoadTileTooClose(plan.stopB.tile, liveBusStops, ROAD_BUS_STOP_MIN_DISTANCE) ||
+        AIMap.DistanceManhattan(plan.stopA.tile, plan.stopB.tile) < ROAD_BUS_STOP_MIN_DISTANCE) {
+      result.reason = "SPACING";
+      return result;
+    }
+  }
+
   budget.begin();
   if (!OpexRoadBuildTrace(plan.trace, added)) {
     result.error = AIError.GetLastError();
@@ -1117,7 +1184,9 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
   /* Multistop (road_multistop, defaut 0) : un arret extra par bout, meme facade, joint au
    * primaire. Le classement reste a MAX_ROAD_VEHICLES = 2 ; les berths supplementaires et les
    * clones ne viennent que si les deux bouts ont double. Un echec d'extra n'annule pas la ligne. */
-  if (ROAD_MULTISTOP && !driveThrough) {
+  /* Un deuxieme quai adjacent est utile au fret, mais constitue precisement un second arret bus
+   * au bassin superpose. Les passagers grandissent desormais par extensions espacees. */
+  if (ROAD_MULTISTOP && !driveThrough && plan.vehType != AIRoad.ROADVEHTYPE_BUS) {
     local noTile = {};
     noTile.rawset(plan.stopA.tile, true);
     noTile.rawset(plan.stopA.front, true);
@@ -1283,6 +1352,148 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
   result.capacity = AIVehicle.GetCapacity(first, cargo);
   result.cost = balanceBefore - AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   result.actualCost = costs.GetCosts();
+  return result;
+}
+
+function OpexRoadOrderPositionForStation(vehicle, stationId)
+{
+  if (!AIVehicle.IsValidVehicle(vehicle) || !AIStation.IsValidStation(stationId)) return -1;
+  local count = AIOrder.GetOrderCount(vehicle);
+  for (local i = 0; i < count; i++) {
+    if (!AIOrder.IsValidVehicleOrder(vehicle, i) || !AIOrder.IsGotoStationOrder(vehicle, i)) continue;
+    local destination = AIOrder.GetOrderDestination(vehicle, i);
+    if (AIStation.GetStationID(destination) == stationId) return i;
+  }
+  return -1;
+}
+
+/* Transaction d'extension d'une ligne bus existante. InsertOrder modifie automatiquement tout
+ * le groupe lorsque les ordres sont partages ; les vehicules non partages sont traites un par un.
+ * En cas d'echec, chaque insertion effectivement faite est retiree avant de demonter l'arret. */
+function OpexBuildRoadExtension(catalog, budget, line, candidate)
+{
+  local result = { ok = false, reason = "", error = 0, stop = null, cost = 0,
+                   actualCost = 0, opcodes = 0 };
+  if (line == null || candidate == null || !("extensionSite" in candidate)) {
+    result.reason = "INVALID"; return result;
+  }
+  local site = candidate.extensionSite;
+  local driveThrough = !("driveThrough" in site) || site.driveThrough;
+  if (!AIMap.IsValidTile(site.tile) ||
+      (driveThrough && !AIRoad.IsRoadTile(site.tile)) ||
+      (!driveThrough && !AITile.IsBuildable(site.tile)) ||
+      AIRoad.IsRoadStationTile(site.tile) || AIRoad.IsRoadDepotTile(site.tile)) {
+    result.reason = "STALE"; return result;
+  }
+  local liveStops = OpexRoadOurBusTiles();
+  if (OpexRoadTileTooClose(site.tile, liveStops, ROAD_BUS_STOP_MIN_DISTANCE)) {
+    result.reason = "SPACING"; return result;
+  }
+  if (!("extensionTown" in candidate) || AITile.GetClosestTown(site.tile) != candidate.extensionTown) {
+    result.reason = "TOWN"; return result;
+  }
+
+  local stationA = AIStation.GetStationID(line.stationA);
+  local stationB = AIStation.GetStationID(line.stationB);
+  if (!AIStation.IsValidStation(stationA) || !AIStation.IsValidStation(stationB)) {
+    result.reason = "STATION"; return result;
+  }
+  local vehicles = OpexLineVehicleIds(line, stationA);
+  if (vehicles.len() == 0) { result.reason = "NOVEH"; return result; }
+
+  AIRoad.SetCurrentRoadType(catalog.roadType);
+  local costs = AIAccounting();
+  local added = [];
+  budget.begin();
+  if (("trace" in site) && site.trace.len() > 0 && !OpexRoadBuildTrace(site.trace, added)) {
+    result.error = AIError.GetLastError();
+    result.opcodes = budget.end("build_road_extension");
+    for (local i = added.len() - 1; i >= 0; i--) AIRoad.RemoveRoad(added[i].from, added[i].to);
+    result.cost = costs.GetCosts(); result.actualCost = result.cost;
+    result.reason = "ROAD"; return result;
+  }
+  local stopBuilt = false;
+  if (driveThrough) {
+    stopBuilt = AIRoad.BuildDriveThroughRoadStation(site.tile, site.front,
+                                                    AIRoad.ROADVEHTYPE_BUS, AIStation.STATION_NEW);
+  } else {
+    local hadStub = AIRoad.AreRoadTilesConnected(site.front, site.tile);
+    local stubBuilt = hadStub || AIRoad.BuildRoad(site.front, site.tile);
+    if (!hadStub && stubBuilt && AIRoad.AreRoadTilesConnected(site.front, site.tile)) {
+      added.append({ from = site.front, to = site.tile });
+    }
+    stopBuilt = stubBuilt && AIRoad.AreRoadTilesConnected(site.front, site.tile) &&
+                AIRoad.BuildRoadStation(site.tile, site.front,
+                                        AIRoad.ROADVEHTYPE_BUS, AIStation.STATION_NEW);
+  }
+  if (!stopBuilt) {
+    result.error = AIError.GetLastError();
+    result.opcodes = budget.end("build_road_extension");
+    for (local i = added.len() - 1; i >= 0; i--) AIRoad.RemoveRoad(added[i].from, added[i].to);
+    result.cost = costs.GetCosts(); result.actualCost = result.cost;
+    result.reason = "STOP"; return result;
+  }
+  local newStation = AIStation.GetStationID(site.tile);
+  if (!AIStation.IsValidStation(newStation) ||
+      !AIRoad.AreRoadTilesConnected(site.tile, site.front)) {
+    result.opcodes = budget.end("build_road_extension");
+    if (AIRoad.IsRoadStationTile(site.tile)) AIRoad.RemoveRoadStation(site.tile);
+    for (local i = added.len() - 1; i >= 0; i--) AIRoad.RemoveRoad(added[i].from, added[i].to);
+    result.cost = costs.GetCosts(); result.actualCost = result.cost;
+    result.reason = "CONNECT"; return result;
+  }
+
+  local changed = [];
+  local flags = C53_ORDER_NONSTOP ? AIOrder.OF_NON_STOP_INTERMEDIATE : AIOrder.OF_NONE;
+  local targetStation = (("extensionEnd" in candidate) && candidate.extensionEnd == "B")
+      ? stationB : stationA;
+  if (("extensionType" in candidate) && candidate.extensionType == "feeder_extension") {
+    targetStation = stationB; // insertion juste avant l'ordre de transfert au hub
+  }
+  local failed = false;
+  foreach (vehicle in vehicles) {
+    if (!AIVehicle.IsValidVehicle(vehicle) ||
+        AIVehicle.GetVehicleType(vehicle) != AIVehicle.VT_ROAD) continue;
+    /* Une insertion sur le premier vehicule a deja modifie tous ses pairs si les ordres sont
+     * partages. Ne surtout pas inserer une seconde fois dans ce cas. */
+    if (OpexVehicleServesStation(vehicle, newStation)) continue;
+    local targetPos = OpexRoadOrderPositionForStation(vehicle, targetStation);
+    if (targetPos < 0) { failed = true; break; }
+    local insertPos = targetPos + 1;
+    if (("extensionType" in candidate) && candidate.extensionType == "feeder_extension") {
+      insertPos = targetPos;
+    }
+    if (!AIOrder.InsertOrder(vehicle, insertPos, site.tile, flags)) {
+      result.error = AIError.GetLastError(); failed = true; break;
+    }
+    changed.append({ vehicle = vehicle, position = insertPos });
+  }
+  if (!failed) {
+    foreach (vehicle in vehicles) {
+      if (AIVehicle.IsValidVehicle(vehicle) &&
+          AIVehicle.GetVehicleType(vehicle) == AIVehicle.VT_ROAD &&
+          !OpexVehicleServesStation(vehicle, newStation)) { failed = true; break; }
+    }
+  }
+  if (failed) {
+    for (local i = changed.len() - 1; i >= 0; i--) {
+      local edit = changed[i];
+      if (AIVehicle.IsValidVehicle(edit.vehicle) &&
+          edit.position < AIOrder.GetOrderCount(edit.vehicle)) {
+        AIOrder.RemoveOrder(edit.vehicle, edit.position);
+      }
+    }
+    if (AIRoad.IsRoadStationTile(site.tile)) AIRoad.RemoveRoadStation(site.tile);
+    for (local i = added.len() - 1; i >= 0; i--) AIRoad.RemoveRoad(added[i].from, added[i].to);
+    result.opcodes = budget.end("build_road_extension");
+    result.cost = costs.GetCosts(); result.actualCost = result.cost;
+    result.reason = "ORDERS"; return result;
+  }
+
+  result.opcodes = budget.end("build_road_extension");
+  result.ok = true; result.reason = "OK"; result.stop = site.tile;
+  result.cost = costs.GetCosts();
+  result.actualCost = result.cost;
   return result;
 }
 

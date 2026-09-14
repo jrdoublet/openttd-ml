@@ -310,17 +310,17 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
       local plan = project.payload;
       if (builtCount > 0) {
         if (!OpexAirBatchPlanStillLive(plan, this._lines)) {
-          if (DECISION_LOG || C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "batch_plan_dead", extra = "" });
+          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "batch_plan_dead", extra = "" });
           return { outcome = "rejected", discards = passDiscards };
         }
         if (!OpexAirBatchSiteStillBuildable(plan.siteA, plan.airport, plan.plane,
                                              ("reuseA" in plan) && plan.reuseA)) {
-          if (DECISION_LOG || C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "siteA_unbuildable", extra = "" });
+          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "siteA_unbuildable", extra = "" });
           return { outcome = "rejected", discards = passDiscards };
         }
         if (!OpexAirBatchSiteStillBuildable(plan.siteB, plan.airport, plan.plane,
                                              ("reuseB" in plan) && plan.reuseB)) {
-          if (DECISION_LOG || C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "siteB_unbuildable", extra = "" });
+          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "siteB_unbuildable", extra = "" });
           return { outcome = "rejected", discards = passDiscards };
         }
       }
@@ -333,7 +333,7 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
       if (C60_TOWN_RATING_FILTER) {
         if ((townAId >= 0 && OpexTownRatingHopeless(townAId)) ||
             (townBId >= 0 && OpexTownRatingHopeless(townBId))) {
-          if (DECISION_LOG || C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "town_rating_appalling", extra = "" });
+          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "town_rating_appalling", extra = "" });
           return { outcome = "rejected", discards = passDiscards };
         }
       }
@@ -348,7 +348,7 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
         }
       }
       if (airLinesThisYear >= maxPerYear || totalAirLines >= maxTotal) {
-        if (DECISION_LOG || C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "line_cap_reached", extra = "lines_year=" + airLinesThisYear + " total=" + totalAirLines });
+        if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "line_cap_reached", extra = "lines_year=" + airLinesThisYear + " total=" + totalAirLines });
         return { outcome = "rejected", discards = passDiscards };
       }
       local abandonedKey = "air|" + plan.siteA.town.tile + "|" + plan.siteB.town.tile;
@@ -357,7 +357,7 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
       if (ABANDON_MEMORY && ((abandonedKey in this._abandonedPairs)
           || (AIR_ABANDON_SITE && ((abandonedSiteA in this._abandonedPairs)
               || (abandonedSiteB in this._abandonedPairs))))) {
-        if (DECISION_LOG || C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "abandoned_pair", extra = "" });
+        if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "abandoned_pair", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
       }
 
@@ -371,7 +371,7 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
       if (money < need && REBORROW) money = OpexTryReborrow(need, money);
       if (money < need) {
         if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("air", i, capital, plan.economics.profitAnnual, project.roi, plan.siteA.town.tile, plan.siteB.town.tile, need, money);
-        if (DECISION_LOG || C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
+        if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
         return { outcome = "rejected", discards = passDiscards };
       }
 
@@ -389,7 +389,7 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
                                + (result.ok ? result.vehicles.len() : 0));
       }
       if (!result.ok) {
-        if (C49_SCARCITY_LEDGER || C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "build_failed", extra = "" });
+        if (C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "build_failed", extra = "" });
         if (DECISION_LOG) {
           OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=air src=" + plan.siteA.town.tile + " dst=" + plan.siteB.town.tile + " reason=build_failed detail=" + result.reason + " error=" + result.error + " error_text=" + result.errorText);
         }

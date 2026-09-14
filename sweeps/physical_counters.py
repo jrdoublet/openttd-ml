@@ -74,6 +74,47 @@ def _get_common(record: dict, chunk_key: str) -> Optional[dict]:
     return common if isinstance(common, dict) else None
 
 
+def _join_reasons(entries: List[dict]) -> Optional[str]:
+    reasons = sorted({entry.get("reason") for entry in entries if entry.get("reason")})
+    return ",".join(reasons) if reasons else None
+
+
+def _vehicle_fail(err: str) -> dict:
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "chunk_valid": False,
+        "chunk_error": err,
+        "vehicle_pool_entries": None,
+        "total_pool_entries": None,
+        "primary_vehicles_count": None,
+        "primary_vehicles_by_mode": {mode: None for mode in VEHICLE_MODES},
+        "qualified_modes": dict(QUALIFIED_MODES),
+        "components_breakdown": None,
+        "unclassified_entries": [{"reason": err}],
+        "non_company_entries": None,
+        "capacities_by_cargo": None,
+        "fleet_status": None,
+        "primary_vehicles_detail": None,
+    }
+
+
+def _station_fail(err: str) -> dict:
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "chunk_valid": False,
+        "chunk_error": err,
+        "total_stations": None,
+        "station_ids": None,
+        "stations_by_facility": {name: None for _, name in FACILITY_BITS},
+        "n_multimodal_stations": None,
+        "multimodal_station_ids": None,
+        "stations_detail": None,
+        "unresolved_stations": [{"reason": err}],
+        "other_owner_stations": None,
+        "ratings_by_station": None,
+    }
+
+
 def decode_vehicles(vehs_chunk: Union[dict, list, None], target_owner: int = 0) -> dict:
     """Décode le chunk VEHS de manière exhaustive et qualifiée.
 
@@ -84,7 +125,8 @@ def decode_vehicles(vehs_chunk: Union[dict, list, None], target_owner: int = 0) 
     Retourne :
         Dictionnaire conforme au schéma 1.1.0 avec :
         - `schema_version` : version du schéma ("1.1.0").
-        - `chunk_valid` : booléen (False si le chunk est absent ou d'un type inattendu).
+        - `chunk_valid` : booléen (False si le chunk est absent, d'un type inattendu,
+          ou si une anomalie interne laisse un comptage incomplet).
         - `chunk_error` : None ou chaîne descriptive de l'erreur ("chunk_missing", etc.).
         - `vehicle_pool_entries` : entrées brutes du pool appartenant à target_owner (None si invalid).
         - `total_pool_entries` : total des entrées du chunk VEHS.
@@ -100,34 +142,7 @@ def decode_vehicles(vehs_chunk: Union[dict, list, None], target_owner: int = 0) 
     """
     if vehs_chunk is None or not isinstance(vehs_chunk, (dict, list)):
         err = "chunk_missing" if vehs_chunk is None else "invalid_chunk_type"
-        return {
-            "schema_version": SCHEMA_VERSION,
-            "chunk_valid": False,
-            "chunk_error": err,
-            "vehicle_pool_entries": None,
-            "total_pool_entries": 0,
-            "primary_vehicles_count": None,
-            "primary_vehicles_by_mode": {mode: None for mode in VEHICLE_MODES},
-            "qualified_modes": dict(QUALIFIED_MODES),
-            "components_breakdown": {
-                "rail_wagons": 0,
-                "aircraft_shadows_rotors": 0,
-                "road_articulated_parts": 0,
-                "water_components": 0,
-            },
-            "unclassified_entries": [{"reason": err}],
-            "non_company_entries": {"effects": 0, "disasters": 0, "other_owners": 0},
-            "capacities_by_cargo": {},
-            "fleet_status": {
-                "stopped": 0,
-                "not_stopped": 0,
-                "running": 0,
-                "hidden": 0,
-                "broken": 0,
-                "crashed": 0,
-            },
-            "primary_vehicles_detail": [],
-        }
+        return _vehicle_fail(err)
 
     # Normalisation en liste de tuples (index_int, record)
     if isinstance(vehs_chunk, dict):
@@ -315,11 +330,15 @@ def decode_vehicles(vehs_chunk: Union[dict, list, None], target_owner: int = 0) 
             visited.add(target_idx)
 
             comp_rec = record_by_index.get(target_idx)
-            if comp_rec is None:
+            if not isinstance(comp_rec, dict):
                 unclassified_entries.append({
                     "index": idx,
                     "target_index": target_idx,
-                    "reason": "corrupted_consist_pointer_missing_target",
+                    "reason": (
+                        "corrupted_consist_pointer_missing_target"
+                        if comp_rec is None
+                        else "consist_component_not_a_dict"
+                    ),
                     "mode": mode,
                     "unitnumber": unitnumber,
                 })
@@ -369,10 +388,11 @@ def decode_vehicles(vehs_chunk: Union[dict, list, None], target_owner: int = 0) 
             "consist_valid": consist_valid,
         })
 
+    anomaly_error = _join_reasons(unclassified_entries)
     return {
         "schema_version": SCHEMA_VERSION,
-        "chunk_valid": True,
-        "chunk_error": None,
+        "chunk_valid": anomaly_error is None,
+        "chunk_error": anomaly_error,
         "vehicle_pool_entries": vehicle_pool_entries,
         "total_pool_entries": total_pool_entries,
         "primary_vehicles_count": sum(primary_counts.values()),
@@ -404,7 +424,8 @@ def decode_stations(stnn_chunk: Union[dict, list, None], target_owner: int = 0) 
     Retourne :
         Dictionnaire conforme au schéma 1.1.0 avec :
         - `schema_version` : version du schéma ("1.1.0").
-        - `chunk_valid` : booléen (False si chunk manquant ou de type inattendu).
+        - `chunk_valid` : booléen (False si chunk manquant, de type inattendu,
+          ou si `unresolved_stations` n'est pas vide).
         - `chunk_error` : None ou chaîne descriptive de l'erreur.
         - `total_stations` : total physique de gares possédées (multimodale = 1, None si invalid).
         - `station_ids` : liste des IDs des gares possédées.
@@ -418,20 +439,7 @@ def decode_stations(stnn_chunk: Union[dict, list, None], target_owner: int = 0) 
     """
     if stnn_chunk is None or not isinstance(stnn_chunk, (dict, list)):
         err = "chunk_missing" if stnn_chunk is None else "invalid_chunk_type"
-        return {
-            "schema_version": SCHEMA_VERSION,
-            "chunk_valid": False,
-            "chunk_error": err,
-            "total_stations": None,
-            "station_ids": [],
-            "stations_by_facility": {name: None for _, name in FACILITY_BITS},
-            "n_multimodal_stations": None,
-            "multimodal_station_ids": [],
-            "stations_detail": [],
-            "unresolved_stations": [{"reason": err}],
-            "other_owner_stations": 0,
-            "ratings_by_station": {},
-        }
+        return _station_fail(err)
 
     if isinstance(stnn_chunk, dict):
         records = []
@@ -461,6 +469,10 @@ def decode_stations(stnn_chunk: Union[dict, list, None], target_owner: int = 0) 
 
         body = _first(stn.get("normal"))
         if body is None:
+            # Les waypoints/bouees partagent STNN sans corps de gare. Les compter
+            # en missing_base invalidait tout le mois (graine 100 des 1972-10).
+            if isinstance(stn, dict) and "waypoint" in stn and not stn.get("normal"):
+                continue
             body = stn
         if not isinstance(body, dict):
             unresolved.append({"id": sid, "reason": "missing_normal_body"})
@@ -494,13 +506,18 @@ def decode_stations(stnn_chunk: Union[dict, list, None], target_owner: int = 0) 
         if is_multimodal:
             multimodal_ids.append(sid)
 
-        # Extraction des notes de gare
+        # Notes des cargos deja ramasses (status bit 0), pas la valeur par defaut 175.
         ratings = []
         for good in body.get("goods") or []:
-            if isinstance(good, dict):
-                r = good.get("rating", 0)
-                if r > 0:
-                    ratings.append(r)
+            if not isinstance(good, dict):
+                continue
+            if (good.get("status") or 0) & 1 == 0:
+                continue
+            if good.get("time_since_pickup", 255) >= 255:
+                continue
+            r = good.get("rating")
+            if r is not None:
+                ratings.append(int(r))
         if ratings:
             ratings_by_station[sid] = ratings
 
@@ -511,10 +528,11 @@ def decode_stations(stnn_chunk: Union[dict, list, None], target_owner: int = 0) 
             "ratings": ratings,
         })
 
+    anomaly_error = _join_reasons(unresolved)
     return {
         "schema_version": SCHEMA_VERSION,
-        "chunk_valid": True,
-        "chunk_error": None,
+        "chunk_valid": anomaly_error is None,
+        "chunk_error": anomaly_error,
         "total_stations": total_stations,
         "station_ids": station_ids,
         "stations_by_facility": facilities_counts,

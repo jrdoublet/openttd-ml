@@ -986,6 +986,16 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* Tunnel mensuel : une ligne AILog par passe projects. Ne change ni selection ni construction.
+     * Compte candidats/acceptes/tentes/construits et les motifs de passDiscards. Defaut 0. */
+    AddSetting({
+      name = "monthly_funnel",
+      description = "Monthly funnel probe: one AILog line per projects pass with considered/accepted/attempted/built and discard reasons; no selection, build, or scheduling change; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* C50b : test causal du plafond routier sur les lignes existantes. La flotte initiale reste
      * inchangee ; 1 remplace seulement le plafond de croissance 2*min(arrets) par le garde-fou 8. */
     AddSetting({
@@ -1867,12 +1877,19 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
-    /* Croissance urbaine : cibler 5 gares/stations par ville desservie en ajoutant des stations de bus.
-     * Defaut 1. S'il y a n gares ferroviaires/aeroports, complete avec 5-n stations de bus
-     * intra-urbaines pour atteindre le plafond de croissance maximale du moteur OpenTTD (CountActiveStations=5). */
+    AddSetting({
+      name = "road_pax_extensions",
+      description = "Add spaced stops to existing passenger bus and bus-to-air feeder lines: 0 = disabled by default after the 20-seed benchmark, 1 = experimental",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    /* Croissance urbaine : poser une ligne bus de base par ville desservie ; les arrets suivants
+     * sont des extensions de cette ligne et non de nouvelles lignes superposees. */
     AddSetting({
       name = "town_growth",
-      description = "Boost served town growth with bus feeder stations (target 5 active stations per town): 1 = enabled (default), 0 = off",
+      description = "Boost served town growth with one base bus line per town; extra coverage uses spaced line extensions: 1 = enabled (default), 0 = off",
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       flags = AICONFIG_BOOLEAN

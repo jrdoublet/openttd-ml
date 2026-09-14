@@ -107,15 +107,17 @@ distingue les modes, pas nécessairement la tête d'un véhicule de ses composan
   `n_vehicles` conserve sa valeur brute dans les enregistrements de sortie pour assurer la
   rétro-compatibilité sans dérive silencieuse. Respect strict du principe **fail-closed** :
   si un chunk est manquant (`None`) ou de type inattendu, `chunk_valid` passe à `False`,
-  `chunk_error` documente la cause, et les compteurs sont passés à `None` (jamais de zéro crédible).
-  `schema_version`, `qualified_modes`, `vehs_chunk_valid`, `stnn_chunk_valid`, `physical_ok`
-  et les causes d'erreur sont conservés dans les métadonnées de sortie de `bench_1v1_5y_20seeds.py`,
-  `diag_1v1_monthly.py` et `bench_c50b_physical.py`. `summarise()` propage `physical_ok` et
-  bascule `run_ok=False` avec `failure_reason` explicite dès qu'un chunk physique est corrompu.
-  Les affichages et calculs de moyennes n'écrasent plus les `None` en zéros masquants.
-  L'agrégation mensuelle de `diag_1v1_monthly.py` est **fail-closed** : si une graine attendue
-  manque ou qu'un chunk du mois est invalide, le mois s'affiche `FAIL v/e` (valide/attendu)
-  et n'est pas moyenné sur les survivantes.
+  `chunk_error` documente la cause, et les compteurs — y compris les secondaires
+  (`fleet_status`, `components_breakdown`, `station_ids`) — sont passés à `None`.
+  Une anomalie interne (pointeur de convoi mort, cycle, composant non-dict, gare
+  non résolue) invalide aussi `chunk_valid` : le comptage partiel n'est plus
+  `physical_ok`. `schema_version`, `qualified_modes`, `vehs_chunk_valid`,
+  `stnn_chunk_valid`, `physical_ok` et les causes d'erreur sont conservés dans les
+  métadonnées de `bench_1v1_5y_20seeds.py`, `diag_1v1_monthly.py` et
+  `bench_c50b_physical.py`. `summarise()` propage `physical_ok` et bascule
+  `run_ok=False` avec `failure_reason` explicite dès qu'un chunk physique est corrompu.
+  L'agrégation mensuelle reçoit `args.seeds` et les mois calendaires attendus : une
+  graine qui n'a produit aucune ligne reste `FAIL v/e`, pas un `1/1` silencieux.
 - [x] Qualifier les discriminants de tête/composant sur les chunks **réellement produits par
   OpenTTD 15.3**. Confrontation formelle et exacte à un inventaire API NoAI indépendant
   (`AIVehicleList`, `AIVehicle.IsPrimaryVehicle(v)`, `AIStationList`, `AIStation.HasStationType`)
@@ -164,27 +166,55 @@ transmet toute la sortie du moteur à OpexAI et une chaîne vide à AAAHogEx. Le
 cherche des marqueurs fatals sans attribution de compagnie. Une erreur d'AAAHogEx pourrait donc
 être imputée à OpexAI, tandis que la ligne AAAHogEx serait déclarée saine.
 
-- ⬜ Conserver le journal moteur **une seule fois par partie**, avec son chemin dans le résultat.
-  Extraire séparément les erreurs de chaque script à partir des identifiants vérifiés du log
-  et de la correspondance script/compagnie du manifeste. Garder une catégorie « non attribuée »
-  si le moteur ne permet pas de trancher ; ne pas affecter l'erreur arbitrairement au joueur 0.
-- ⬜ Contrôler les deux compagnies attendues, l'absence de doublons de checkpoints, les dates
-  réellement disponibles et l'horizon demandé. Passer au minimum `starting_year + years - 1`
-  à `summarise`, puis contrôler le dernier checkpoint attendu selon la cadence de sauvegarde :
-  une sauvegarde de janvier de la dernière année ne suffit pas à prouver une année complète.
-- ⬜ Distinguer les statuts : erreur moteur/timeout, données manquantes, erreur NoAI attribuée,
-  faillite en jeu, fin complète et suspicion de stagnation. La faillite est une issue économique
-  à conserver ; elle ne doit pas disparaître d'une moyenne comme une erreur de collecte.
-- ⬜ Définir un indicateur d'activité à partir des observations disponibles : changements de
-  réseau/flotte, événements ou progression d'une tâche lorsque celle-ci est observable.
-  **Aucune construction pendant plusieurs mois n'est pas une preuve de gel** ; des véhicules
-  peuvent aussi continuer à gagner de l'argent alors que le contrôleur ne progresse plus.
-  Une absence de signal devient une suspicion à diagnostiquer, pas une exclusion automatique.
+- [x] Journal moteur **une seule fois par partie** : `keep` écrit
+  `{out}_engine/seed{S}_r{R}.log` et pose le même `engine_log_path` sur les deux
+  compagnies ; plus de stdout recopié dans le JSON. Parseur
+  [`sweeps/game_health.py`](../sweeps/game_health.py) : `[script:N] [company]`
+  confronté au manifeste des places (script 0 → OpexAI / compagnie 0, script 1 →
+  AAAHogEx / compagnie 1). Script inconnu, company id contradictoire ou marqueur
+  sans identifiant → `unattributed`, jamais joueur 0 par défaut.
+- [x] `summarise(..., expected_last_year=starting_year+years-1)` dans le duel, plus
+  le dernier checkpoint exigé `YYYY-12-01` (`expected_last_checkpoint`). Un
+  1974-01-01 pour un 5 ans 1970 n'est plus une année complète. Contrôle des deux
+  compagnies, des doublons `(arm, date)` et des absents.
+- [x] Statuts distincts : `engine_error`, `missing_data`, `duplicate_checkpoint`,
+  `noai_error`, `horizon_truncated`, `bankrupt`, `stagnation_suspect`, `complete`.
+  `include_in_economic_stats` / `run_ok` reste vrai pour faillite, fin complète et
+  suspicion de gel ; faux pour les erreurs de collecte. `game_ok` est faux dès
+  qu'une compagnie de la partie est en erreur de collecte, même si l'autre est saine.
+- [x] Activité : deltas de flotte, de gares et de valeur. Signal `active` /
+  `earning_without_expansion` / `no_signal`. Pas de construction + valeur qui
+  bouge ≠ gel. `no_signal` sur un horizon complet → `stagnation_suspect`, **pas**
+  une exclusion des moyennes.
 
-**Preuve attendue :** cas de contrôle avec erreur OpexAI seule, erreur AAAHogEx seule, log
-ambigu, compagnie absente et horizon tronqué ; attribution correcte et aucune partie manquante
-silencieusement déclarée saine. Les contrôles négatifs peuvent utiliser des fixtures de logs
-réels et des copies tronquées de résultats, sans faire crasher les IA de production.
+**Preuve :** [`sweeps/test_game_health.py`](../sweeps/test_game_health.py) (20/20
+sur l'hôte) avec les journaux
+[`sweeps/fixtures/c66_health/`](../sweeps/fixtures/c66_health/) — erreur OpexAI
+seule, erreur AAAHogEx seule (Opex reste `complete`), log ambigu non attribué,
+compagnie absente, janvier de dernière année tronqué, décembre complet, faillite
+conservée dans les stats, earning sans expansion, suspicion sans exclusion,
+doublon, fatal moteur. Selftest Docker de
+`bench_1v1_5y_20seeds.py` : `keep` partage le chemin de log et n'impute pas une
+erreur HogEx à Opex. Aucune IA de production n'a été crashée.
+
+**Corrections (revue, 2026-09-14) :** trois P1 et un P2 rouvraient des faux
+positifs de santé.
+
+1. `annotate_summary` ne réhabilite plus un `run_ok=False` de `summarise`
+   (`physical_decode_failure` reste `missing_data`, `game_ok` faux).
+2. `enable_engine_failure_capture` (timeout 1800 s par défaut, avant le cleanup)
+   attrape `CalledProcessError` / `TimeoutExpired` dans le worker et rend des
+   lignes `engine_error` au lieu d'abandonner `run_experiments`. Un crash qui
+   sort 0 avec un marqueur fatal reste lu dans le journal.
+3. Une compagnie présente plus tôt puis absente au dernier checkpoint est
+   `missing_data`, sauf faillite déjà établie.
+4. `earning_without_expansion` exige une variation de valeur dans les 3 derniers
+   pas ; un revenu de février suivi de dix mois figés est `no_signal`.
+5. Le wrapper de capture copie la signature de `_run_experiment` (`__wrapped__` +
+   `__signature__`) ; `enable_savegame_cleanup` retrouve `run_dir`/`i`/
+   `final_screenshot_directory`. Testé en composition (hôte + selftest Docker).
+6. `games[]` est reconstruit via `reconcile_assessment` après `annotate_summary` :
+   un fail-closed physique n'y reste plus `game_ok=true/complete`.
 
 ### C66.3 — Figer une référence réellement reproductible
 
@@ -367,6 +397,48 @@ Une sonde sous gate `c63_invest_probe` ventile les jours d'absence. Deux campagn
 élargir le scan consomme surtout des opcodes. Le levier à trancher est : candidats moins
 chers, réévaluation du cache, ou repêchage des abandonnés — avec les champs déjà
 journalisés (`considered`, `min_cap`, `avail_cap`, compteurs d'étape, cache, abandons).
+
+**Comparaison mensuelle 1v1 partagée (2026-09-14).** Le diagnostic C63 ne conservait
+aucune métrique du joueur 1 : `n_stations` était le total de la carte, les sauvegardes
+étaient nettoyées, `n_ok` comptait une construction réussie plutôt que le tunnel
+candidats → acceptés → financés → tentés → construits. Harnais :
+[`sweeps/diag_1v1_monthly.py --shared`](../sweeps/diag_1v1_monthly.py), sonde
+`monthly_funnel=1` (un AILog par passe projects, défaut 0). Chunks VEHS/STNN/PLYR des
+deux compagnies ; waypoints STNN sans `normal` exclus sans invalider le mois ; notes
+filtrées `status & 1` (plus la valeur par défaut 175) ; attente = paquets `goods.cargo`.
+
+[`results/diag_1v1_shared_monthly_6y_5seeds.json`](../results/diag_1v1_shared_monthly_6y_5seeds.json)
+: 5/5 jusqu'au 1975-12-01, 720 lignes, 0 mois physique `FAIL`. Valeurs OpexAI proches
+du C63 absent (moyenne 2,578 M£, médiane 2,923 M£, 1,639–3,215) : la sonde mensuelle
+ne rejoue pas le −38 % du smoke C63 ON/OFF. **Pas un banc officiel.**
+
+| Graine | Valeur O vs A | Véhicules | Gares | Air O/A | Route O/A | Rail O/A | Note méd. | HogEx mène dès |
+|---:|---|---|---|---|---|---|---|---|
+| 42 | 2,92 vs 10,47 M£ (28 %) | 85 vs 254 | 76 vs 177 | 36 / 47 | 48 / 170 | 1 / 37 | 166 / 190 | 1970-11 |
+| 100 | 2,03 vs 6,98 M£ (29 %) | 63 vs 197 | 50 vs 168 | 34 / 42 | 27 / 116 | 2 / 38 | 166 / 184 | 1971-05 |
+| 999 | 3,21 vs 13,12 M£ (24 %) | 109 vs 353 | 97 vs 234 | 36 / 65 | 69 / 240 | 4 / 48 | 170 / 196 | 1970-08 |
+| 1234 | 1,64 vs 8,81 M£ (19 %) | 64 vs 293 | 60 vs 197 | 23 / 58 | 35 / 194 | 6 / 41 | 170 / 180 | 1971-02 |
+| 5678 | 3,08 vs 15,80 M£ (20 %) | 81 vs 339 | 67 vs 221 | 36 / 72 | 40 / 225 | 5 / 42 | 170 / 196 | 1970-11 |
+
+AAAHogEx gagne **d'abord par le volume et par l'air précoce**, pas par une rentabilité
+unitaire d'un autre ordre. En décembre 1970 elle a déjà plus d'avions (13 vs 4) et une
+valeur supérieure, souvent avec *moins* de véhicules. Le dépassement en nombre d'unités
+n'arrive qu'en 1971. Ensuite la route HogEx explose (2 → 189 véhicules moyens en 1970–1975)
+pendant qu'Opex reste à ~44 bus/camions et ~4 trains. Revenu trimestriel par véhicule
+×1,3–1,8 ; notes de gare meilleures ; attente par gare *plus faible* chez HogEx
+(les quais Opex sont plus chargés, 2,3–3,3 k vs 1,2–1,9 k). Eau : 0 / 1 navire.
+
+Tunnel OpexAI (somme des passes, pas des projets uniques) : 244 705 considérés →
+11 084 acceptés (4,5 %) → 3 170 tentés → 2 862 passés caisse → **213 construits**
+(6,7 % des tentatives, 1,9 % des acceptés). AAAHogEx : 3 312 succès de construction
+journalisés / 104 échecs (97 %). Rejets Opex : `build_failed` 1211, `search_in_progress`
+994, `insufficient_cash` 308, `abandoned_pair` 214, `plan_failed` 181. 1970–1972 :
+caisse / A* / `plan_failed`. 1973–1975 : `build_failed` (1136) et A* (808), le taux
+ok/tentative tombe de 15 % à 4 %. Ce n'est plus « pas de candidat » : le portefeuille
+accepte, la carte refuse.
+
+Pas de correctif. Le levier n'est pas « plus de candidats » ; c'est convertir les
+acceptés en constructions, surtout air précoce et tenues de chantier (`build_failed`).
 
 **Désambiguïsation structurelle (2026-09-14) :** l'amalgame `best=absent` / `selection_empty`
 classait tout `best.len()==0` en `absent`. Corrections en place :

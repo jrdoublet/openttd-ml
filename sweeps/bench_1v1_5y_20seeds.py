@@ -8,6 +8,7 @@ Post-09/09 Reference Benchmark :
 - Sortie : results/bench_1v1_5y_20seeds_reference.json (+ checkpoint .jsonl)
 """
 import argparse
+from collections import defaultdict
 import inspect
 import json
 import math
@@ -17,9 +18,6 @@ import re
 import statistics
 import sys
 
-import openttdlab
-from openttdlab import bananas_ai_library, local_folder, run_experiments
-
 ROOT = Path("/work") if Path("/work").exists() else Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "sweeps"))
 from bench_v2 import (
@@ -28,23 +26,32 @@ from bench_v2 import (
     SEEDS,
     SUCCESS_METRICS,
     arm_statistics,
-    enable_savegame_cleanup,
     make_cfg,
     paired_comparisons,
     quarter_profit,
-    script_failure_reason,
     station_ratings,
     summarise,
-    write_json_atomically,
     year_profit,
 )
 from physical_counters import decode_vehicles, decode_stations
+from game_health import (
+    DEFAULT_ENGINE_TIMEOUT_SEC,
+    assess_game,
+    annotate_summary,
+    enable_engine_failure_capture,
+    engine_log_path_for,
+    expected_last_checkpoint,
+    expected_last_year,
+    reconcile_assessment,
+    write_engine_log,
+)
 import bench_v2
 
 STARTING_YEAR = 1970
 DEFAULT_YEARS = 5
 AAAHOGEX_DIR = "AAAHogEx-115"
 CHECKPOINT_PATH = None
+ENGINE_LOG_DIR = None
 
 ARMS = ("OpexAI", "AAAHogEx")
 
@@ -100,7 +107,11 @@ def station_owner(station):
 
 def extract_company_record(chunks, owner, run_key, date, output=None):
     players = chunks.get("PLYR") or {}
-    player = players.get(owner) or players.get(str(owner)) or {}
+    player = players.get(owner)
+    if player is None:
+        player = players.get(str(owner))
+    company_present = isinstance(player, dict) and bool(player)
+    player = player or {}
     closed = player.get("old_economy") or []
     last_closed = closed[0] if closed else {}
     ratings = station_ratings(chunks, owner=owner)
@@ -141,7 +152,9 @@ def extract_company_record(chunks, owner, run_key, date, output=None):
         "n_multimodal_stations": stn_dec["n_multimodal_stations"] if stnn_valid else None,
         "stations_by_facility": stn_dec["stations_by_facility"] if stnn_valid else None,
         "unresolved_stations": len(stn_dec["unresolved_stations"]),
-        "openttd_output": output,
+        "company_present": company_present,
+        "engine_log_path": None,
+        "openttd_output": None,
     }
 
 
@@ -152,14 +165,23 @@ def keep(row):
     seed = row["experiment"]["seed"]
     repeat = row["experiment"].get("repeat", 0)
 
-    rec0 = extract_company_record(chunks, 0, ["OpexAI", seed, repeat], date, output)
-    rec1 = extract_company_record(chunks, 1, ["AAAHogEx", seed, repeat], date, "")
+    log_path = None
+    if ENGINE_LOG_DIR is not None:
+        log_path = write_engine_log(engine_log_path_for(ENGINE_LOG_DIR, seed, repeat), output)
+
+    rec0 = extract_company_record(chunks, 0, ["OpexAI", seed, repeat], date)
+    rec1 = extract_company_record(chunks, 1, ["AAAHogEx", seed, repeat], date)
+    rec0["engine_log_path"] = log_path
+    rec1["engine_log_path"] = log_path
+    rec0["engine_failure"] = row.get("engine_failure")
+    rec1["engine_failure"] = row.get("engine_failure")
     append_checkpoint(rec0)
     append_checkpoint(rec1)
     return (rec0, rec1)
 
 
 def make_experiments_plan(seeds, years):
+    from openttdlab import local_folder
     cfg = make_cfg(STARTING_YEAR)
     days = 365 * years
     opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", ())
@@ -186,20 +208,31 @@ def main():
     parser.add_argument("--max-workers", type=int, default=3)
     parser.add_argument("--out", type=Path, default=ROOT / "results" / "bench_1v1_5y_20seeds_reference.json")
     parser.add_argument("--selftest", action="store_true", help="Vérifie le décodage et le fail-closed sans lancer OpenTTD")
+    parser.add_argument(
+        "--engine-timeout", type=int, default=DEFAULT_ENGINE_TIMEOUT_SEC,
+        help="Timeout subprocess OpenTTD par partie, en secondes (0 = aucun)",
+    )
     args = parser.parse_args()
 
     if args.selftest:
         selftest()
         return
 
-    global CHECKPOINT_PATH
+    import openttdlab
+    from openttdlab import bananas_ai_library, local_folder, run_experiments
+    from bench_v2 import enable_savegame_cleanup, write_json_atomically
+
+    global CHECKPOINT_PATH, ENGINE_LOG_DIR
     out = args.out
     out.parent.mkdir(parents=True, exist_ok=True)
     CHECKPOINT_PATH = out.with_suffix(".jsonl")
     if CHECKPOINT_PATH.exists():
         CHECKPOINT_PATH.unlink()
+    ENGINE_LOG_DIR = out.with_name(out.stem + "_engine")
+    ENGINE_LOG_DIR.mkdir(parents=True, exist_ok=True)
 
     bench_v2.CHECKPOINT_PATH = CHECKPOINT_PATH
+    enable_engine_failure_capture(timeout_sec=args.engine_timeout)
     enable_savegame_cleanup()
 
     exps = make_experiments_plan(args.seeds, args.years)
@@ -218,9 +251,53 @@ def main():
         ),
     ))
 
-    summary = summarise(rows)
+    last_year = expected_last_year(STARTING_YEAR, args.years)
+    last_checkpoint = expected_last_checkpoint(STARTING_YEAR, args.years)
+    summary = summarise(rows, expected_last_year=last_year)
+
+    by_game = defaultdict(list)
+    for row in rows:
+        run = row.get("run") or []
+        seed = run[1] if len(run) > 1 else row.get("seed")
+        repeat = run[2] if len(run) > 2 else 0
+        by_game[(seed, repeat)].append(row)
+
+    annotated = []
+    games = []
+    for (seed, repeat), recs in sorted(by_game.items()):
+        log_path = next((row.get("engine_log_path") for row in recs if row.get("engine_log_path")), None)
+        assessment = assess_game(
+            recs,
+            starting_year=STARTING_YEAR,
+            years=args.years,
+            engine_log_path=log_path,
+        )
+        part = [record for record in summary if record["seed"] == seed and record.get("repeat", 0) == repeat]
+        part_annotated = annotate_summary(part, recs, assessment)
+        assessment = reconcile_assessment(assessment, part_annotated)
+        annotated.extend(part_annotated)
+        games.append({
+            "seed": seed,
+            "repeat": repeat,
+            "game_ok": assessment["game_ok"],
+            "game_status": assessment["game_status"],
+            "engine_log_path": assessment["engine_log_path"],
+            "expected_last_checkpoint": assessment["expected_last_checkpoint"],
+            "unattributed_errors": assessment["unattributed_errors"],
+            "companies": {
+                name: {
+                    "status": payload["status"],
+                    "run_ok": payload["run_ok"],
+                    "failure_reason": payload["failure_reason"],
+                    "horizon_complete": payload["horizon_complete"],
+                    "activity": payload["activity"]["signal"],
+                }
+                for name, payload in assessment["companies"].items()
+            },
+        })
+    summary = annotated
     for record in summary:
-        record.pop("openttd_output", "")
+        record.pop("openttd_output", None)
     failed = [record for record in summary if not record["run_ok"]]
 
     payload = {
@@ -231,9 +308,19 @@ def main():
         "arms": list(ARMS),
         "design": "Duel partagé OpexAI (joueur 0) vs AAAHogEx (joueur 1)",
         "success_metrics": list(SUCCESS_METRICS),
+        "expected_last_year": last_year,
+        "expected_last_checkpoint": last_checkpoint,
+        "engine_log_dir": str(ENGINE_LOG_DIR),
+        "games": games,
         "summary": summary,
         "failed_runs": [
-            {"arm": record["arm"], "seed": record["seed"], "failure_reason": record["failure_reason"]}
+            {
+                "arm": record["arm"],
+                "seed": record["seed"],
+                "status": record.get("status"),
+                "game_ok": record.get("game_ok"),
+                "failure_reason": record["failure_reason"],
+            }
             for record in failed
         ],
         "statistics": arm_statistics(summary, list(ARMS)),
@@ -244,7 +331,8 @@ def main():
     print("\n" + "=" * 115)
     print(f"BANC 1v1 OPEXAI vs AAAHOGEX (CARTE PARTAGÉE) — BILAN {args.years} ANS ({len(args.seeds)} GRAINES)")
     print("=" * 115)
-    header = f"{'Graine':<8} | {'Valeur Opex vs AAAHogEx':<32} | {'Profit An Opex vs AAA':<28} | {'Score O/A':<14} | {'Véhicules O/A':<16} | {'Gares O/A':<12}"
+    header = (f"{'Graine':<8} | {'Valeur Opex vs AAAHogEx':<32} | {'Profit An Opex vs AAA':<28} | "
+              f"{'Score O/A':<14} | {'Véhicules O/A':<16} | {'Gares O/A':<12} | {'statut O/A':<28}")
     print(header)
     print("-" * len(header))
 
@@ -272,7 +360,9 @@ def main():
         veh_str = f"{op_veh:>3} vs {aa_veh:<3}" if (op_veh is not None and aa_veh is not None) else "FAIL"
         stn_str = f"{op_stn:>3} vs {aa_stn:<3}" if (op_stn is not None and aa_stn is not None) else "FAIL"
 
-        print(f"{s:<8} | {v_str:<32} | {p_str:<28} | {s_str:<14} | {veh_str:<16} | {stn_str:<12}")
+        st_op = op.get("status") or ("OK" if op.get("run_ok") else "FAIL")
+        st_aa = aa.get("status") or ("OK" if aa.get("run_ok") else "FAIL")
+        print(f"{s:<8} | {v_str:<32} | {p_str:<28} | {s_str:<14} | {veh_str:<16} | {stn_str:<12} | {st_op}/{st_aa}")
 
     print("-" * len(header))
 
@@ -306,11 +396,12 @@ def main():
                     print(f"  {metric:<24} : d% = {diff:+.2f}% | Victoires {a} = {wins}/{n} ({pval_str})")
 
     if failed:
-        raise SystemExit(f"Banc invalide : {len(failed)} echec(s) NoAI")
+        raise SystemExit(f"Banc invalide : {len(failed)} echec(s) de sante")
 
 
 def selftest():
     """Vérifie unitairement le comportement d'extract_company_record et de summarise en mode fail-closed."""
+    global ENGINE_LOG_DIR
     # 1. Test sur fixture réelle
     fixture_path = ROOT / "sweeps" / "fixtures" / "c66_control_fixture_15_3.json"
     if fixture_path.exists():
@@ -331,6 +422,8 @@ def selftest():
     assert rec_bad["n_vehicles"] is None, "n_vehicles doit être None sur chunk invalide"
     assert rec_bad["primary_vehicles"] is None, "primary_vehicles doit être None sur chunk invalide"
     assert rec_bad["n_stations"] is None, "n_stations doit être None sur chunk invalide"
+    assert rec_bad["fleet_status"] is None
+    assert rec_bad["stations_by_facility"] is None
 
     # 3. Test summarise sur row corrompue
     summary = summarise([rec_bad])
@@ -340,6 +433,97 @@ def selftest():
     assert s0["physical_ok"] is False, "physical_ok doit être False"
     assert "physical_decode_failure" in s0["failure_reason"], f"failure_reason attendu, reçu: {s0['failure_reason']}"
     assert s0["n_vehicles"] is None, "n_vehicles doit rester None dans summary"
+
+    rec_bad["run"] = ["OpexAI", 99, 0]
+    rec_ok = extract_company_record(
+        {"PLYR": {1: {"old_economy": [{"company_value": 1}]}}, "VEHS": {}, "STNN": {}},
+        1, ["AAAHogEx", 99, 0], "1974-12-01",
+    )
+    rec_ok["run"] = ["AAAHogEx", 99, 0]
+    rec_ok["company_present"] = True
+    rec_ok["primary_vehicles"] = 1
+    rec_ok["n_stations"] = 1
+    rec_ok["months_of_bankruptcy"] = 0
+    rec_bad["company_present"] = True
+    rec_bad["primary_vehicles"] = 0
+    rec_bad["n_stations"] = 0
+    rec_bad["months_of_bankruptcy"] = 0
+    rec_bad["date"] = "1974-12-01"
+    rec_ok["date"] = "1974-12-01"
+    health = assess_game(
+        [rec_bad, rec_ok], starting_year=1974, years=1,
+        engine_log=(ROOT / "sweeps" / "fixtures" / "c66_health" / "clean.log").read_text(),
+    )
+    mixed = annotate_summary(summarise([rec_bad, rec_ok]), [rec_bad, rec_ok], health)
+    opex_line = next(item for item in mixed if item["arm"] == "OpexAI")
+    assert opex_line["run_ok"] is False
+    assert "physical_decode_failure" in (opex_line["failure_reason"] or "")
+    assert opex_line["status"] != "complete"
+    assert opex_line["game_ok"] is False
+
+    # 4. C66.2 : le journal est unique ; une erreur HogEx n'est pas imputée à Opex.
+    import tempfile
+
+    hogex_log = (ROOT / "sweeps" / "fixtures" / "c66_health" / "hogex_error.log").read_text()
+    with tempfile.TemporaryDirectory() as tmp:
+        ENGINE_LOG_DIR = Path(tmp)
+        fake_row = {
+            "chunks": corrupt_chunks,
+            "date": "1974-12-01",
+            "output": hogex_log,
+            "experiment": {"seed": 7, "repeat": 0},
+        }
+        rec0, rec1 = keep(fake_row)
+        assert rec0["engine_log_path"] == rec1["engine_log_path"]
+        assert rec0["openttd_output"] is None and rec1["openttd_output"] is None
+        assert Path(rec0["engine_log_path"]).read_text() == hogex_log
+        rec0["run"] = ["OpexAI", 7, 0]
+        rec1["run"] = ["AAAHogEx", 7, 0]
+        rec0["company_present"] = True
+        rec1["company_present"] = True
+        rec0["primary_vehicles"] = 4
+        rec1["primary_vehicles"] = 8
+        rec0["n_stations"] = 2
+        rec1["n_stations"] = 3
+        rec0["months_of_bankruptcy"] = 0
+        rec1["months_of_bankruptcy"] = 0
+        rec0["company_value"] = 1000
+        rec1["company_value"] = 2000
+        game = assess_game(
+            [rec0, rec1], starting_year=1974, years=1,
+            engine_log_path=rec0["engine_log_path"],
+        )
+        assert game["companies"]["OpexAI"]["status"] != "noai_error"
+        assert game["companies"]["AAAHogEx"]["status"] == "noai_error"
+        assert game["game_ok"] is False
+        annotated = annotate_summary(
+            [
+                {"arm": "OpexAI", "seed": 7, "repeat": 0, "run_ok": True, "failure_reason": None,
+                 "openttd_output": hogex_log},
+                {"arm": "AAAHogEx", "seed": 7, "repeat": 0, "run_ok": True, "failure_reason": None,
+                 "openttd_output": ""},
+            ],
+            [rec0, rec1],
+            game,
+        )
+        assert "openttd_output" not in annotated[0]
+        assert annotated[0]["run_ok"] is True
+        assert annotated[1]["run_ok"] is False
+        ENGINE_LOG_DIR = None
+
+    rec_absent = extract_company_record({"PLYR": {}, "VEHS": {}, "STNN": {}}, 1, ["AAAHogEx", 1, 0], "1974-12-01")
+    assert rec_absent["company_present"] is False
+
+    import inspect
+    import openttdlab
+    from bench_v2 import enable_savegame_cleanup
+    enable_engine_failure_capture(timeout_sec=30)
+    enable_savegame_cleanup()
+    missing = {"run_dir", "i", "final_screenshot_directory"} - set(
+        inspect.signature(openttdlab._run_experiment).parameters
+    )
+    assert not missing, f"composition des wrappers a perdu {missing}"
+
     print("Selftest bench_1v1_5y_20seeds.py réussi avec succès !")
 
 

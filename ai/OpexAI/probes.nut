@@ -97,6 +97,16 @@ function OpexC49ScarcityLog(fields)
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " C49_SCARCITY " + fields);
 }
+/* Tunnel mensuel : gate dedie, independant de C63/C48/decision_log. Un AILog par passe
+ * pour ne pas perdre le mois courant (le jeu s'arrete souvent au 1er decembre). */
+function OpexMonthlyFunnelLog(fields)
+{
+  if (!MONTHLY_FUNNEL) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " MONTHLY_FUNNEL " + fields);
+}
+
 /* C63+C58 : gate dedie. Compteurs memoire en boucle chaude, AILog seulement au flush annuel. */
 function OpexC63InvestLog(fields)
 {

@@ -541,6 +541,9 @@ const ROAD_SPEED_EFFICIENCY_PCT = 60;
 const MAX_ROAD_VEHICLES = 8;
 /* Rayon de couverture d'un arret de bus (7x7). Deux arrets a d < 7 se chevauchent. */
 const ROAD_PAX_CATCHMENT_RADIUS = 3;
+/* Seuil global entre deux arrets bus. Cette constante est aussi verifiee au dernier moment par
+ * le constructeur : un candidat mis en cache ne peut donc pas contourner la regle. */
+const ROAD_BUS_STOP_MIN_DISTANCE = 6;
 ROAD_PAX_OVERLAP <- true;
 
 /* Fraction de l'empreinte A (carre Chebyshev de rayon rA) qui recouvre l'empreinte B,

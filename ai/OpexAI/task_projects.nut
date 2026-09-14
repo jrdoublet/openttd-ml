@@ -20,6 +20,46 @@ function OpexAI::_c63RecordPassAndProbe(builtCount, best, passDiscards, railSear
   this._lastBestCount = emptyNow ? 0 : 1;
 }
 
+function OpexAI::_recordMonthlyFunnelPass(builtCount, best, passDiscards, attempted)
+{
+  if (!MONTHLY_FUNNEL) return;
+  local considered = -1;
+  local accepted = 0;
+  if (this._projects != null) {
+    if (("stats" in this._projects) && this._projects.stats != null
+        && ("budgetConsidered" in this._projects.stats)) {
+      considered = this._projects.stats.budgetConsidered;
+    }
+    if (("best" in this._projects) && this._projects.best != null) {
+      accepted = this._projects.best.len();
+    } else if (best != null) {
+      accepted = best.len();
+    }
+  } else if (best != null) {
+    accepted = best.len();
+  }
+  local rejectFields = "";
+  local cashRejects = 0;
+  if (passDiscards != null) {
+    local counts = {};
+    for (local k = 0; k < passDiscards.len(); k++) {
+      local reason = ("reason" in passDiscards[k]) ? passDiscards[k].reason : "unknown";
+      if (reason == null || reason == "") reason = "unknown";
+      if (reason in counts) counts[reason]++;
+      else counts[reason] <- 1;
+      if (reason == "insufficient_cash" || reason == "cash_at_build") cashRejects++;
+    }
+    foreach (reason, n in counts) {
+      rejectFields += " r_" + reason + "=" + n;
+    }
+  }
+  local funded = attempted - cashRejects;
+  if (funded < 0) funded = 0;
+  OpexMonthlyFunnelLog("considered=" + considered + " accepted=" + accepted
+      + " funded=" + funded + " attempted=" + attempted + " built=" + builtCount
+      + rejectFields);
+}
+
 /* C42 : Purge immediate d'un projet de subvention devenu invalide dans this._projects */
 function OpexAI::_purgeSubsidyFromProjects(subId)
 {
@@ -75,7 +115,7 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
   if (money < need && REBORROW) money = OpexTryReborrow(need, money);
   if (money < need) {
     if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("fleet", i, project.capital, project.profitAnnual, project.roi, project.src, project.dst, need, money);
-    if (DECISION_LOG || C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst, reason = "insufficient_cash", extra = "" });
+    if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst, reason = "insufficient_cash", extra = "" });
     return { outcome = "rejected", discards = passDiscards };
   }
   local plannedFull = ("capital" in project && project.capital > 0)
@@ -289,6 +329,7 @@ function OpexAI::_tryBuildProjects(year)
   local anchor = AIMap.GetTileIndex(1, 1);
   local yy = year % 100;
   local builtCount = 0;
+  local funnelAttempted = 0;
   local passDiscards = [];
   /* P2 : fractionner le tick. Le plancher historique protege toujours les
    * autres taches quand le pourcentage est nul ou que le tick est deja court. */
@@ -334,11 +375,13 @@ function OpexAI::_tryBuildProjects(year)
     }
     if (C49_SCARCITY_LEDGER) this._recordC49ScarcityPass(c49Best, c49BuiltRanks, c49AttemptedRanks, passDiscards);
     if (C63_INVEST_PROBE) this._c63RecordPassAndProbe(0, c49Best, passDiscards, true);
+    this._recordMonthlyFunnelPass(0, c49Best, passDiscards, funnelAttempted);
     return true;
   }
   if (RAIL_SEARCH_RESUMABLE && this._railSearch != null &&
       this._railSearch.kind == "primary" && this._railSearch.phase == "build") {
     local outcome = this._consumeRailSearch(year);
+    if (MONTHLY_FUNNEL) funnelAttempted++;
     /* Atteignable seulement avec portfolio_dynamic_batch=1 (non-defaut) : conserver le ledger. */
     if (PORTFOLIO_DYNAMIC_BATCH && outcome == "cash") {
       if (C48_PROJECT_ATTEMPT_LEDGER) {
@@ -347,6 +390,7 @@ function OpexAI::_tryBuildProjects(year)
       }
       if (C49_SCARCITY_LEDGER) this._recordC49ScarcityPass(c49Best, c49BuiltRanks, c49AttemptedRanks, passDiscards);
       if (C63_INVEST_PROBE) this._c63RecordPassAndProbe(0, c49Best, passDiscards, false);
+      this._recordMonthlyFunnelPass(0, c49Best, passDiscards, funnelAttempted);
       return true;
     }
     if (outcome != "cash") {
@@ -460,6 +504,7 @@ function OpexAI::_tryBuildProjects(year)
     local modeChar = mode == "rail" ? "T" : (mode == "road" ? "R" : (mode == "air" ? "A" : "W"));
     local liveBuiltCount = PORTFOLIO_DYNAMIC_BATCH ? this._dynamicBatch.built : builtCount;
     if (C48_PROJECT_ATTEMPT_LEDGER && i > c48MaxRank) c48MaxRank = i;
+    if (MONTHLY_FUNNEL) funnelAttempted++;
 
     if (mode == "fleet") {
       local attempt = null;
@@ -646,6 +691,7 @@ function OpexAI::_tryBuildProjects(year)
           local railSearching = this._railSearch != null && this._railSearch.phase == "search";
           this._c63RecordPassAndProbe(builtCount, c49Best, passDiscards, railSearching);
         }
+        this._recordMonthlyFunnelPass(builtCount, c49Best, passDiscards, funnelAttempted);
         return true;
       }
       if (attempt.outcome == "built") {
@@ -753,6 +799,7 @@ function OpexAI::_tryBuildProjects(year)
     local railSearching = this._railSearch != null && this._railSearch.phase == "search";
     this._c63RecordPassAndProbe(builtCount, c49Best, passDiscards, railSearching);
   }
+  this._recordMonthlyFunnelPass(builtCount, c49Best, passDiscards, funnelAttempted);
 
   /* G4§1 : l'ancien chemin deduisait hadAbandons de passDiscards, dont le remplissage
    * est garde par DECISION_LOG (defaut 0). Le drapeau _hadAbandonsThisPass est pose

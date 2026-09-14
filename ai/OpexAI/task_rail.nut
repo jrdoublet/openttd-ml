@@ -147,12 +147,12 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
       /* Une recherche est deja en cours (autre candidat, ou upgrade) : ne pas en lancer une
        * seconde, et laisser air/route du portefeuille tourner. */
       if (RAIL_SEARCH_RESUMABLE && this._railSearch != null) {
-        if (DECISION_LOG || C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "search_in_progress", extra = "" });
+        if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "search_in_progress", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
       }
       local abandonedKey = OpexAbandonedPairKey(candidate);
       if (ABANDON_GEN_FILTER && ABANDON_MEMORY && (abandonedKey in this._abandonedPairs)) {
-        if (DECISION_LOG || C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "abandoned_pair", extra = "" });
+        if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "abandoned_pair", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
       }
       local towns = OpexGetCandidateTownEndpoints(candidate);
@@ -163,7 +163,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
       if (C60_TOWN_RATING_FILTER) {
         if ((towns.srcTown >= 0 && !OpexTownRatingAllowStation(towns.srcTown)) ||
             (towns.dstTown >= 0 && !OpexTownRatingAllowStation(towns.dstTown))) {
-          if (DECISION_LOG || C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "town_rating_refusal", extra = "" });
+          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "town_rating_refusal", extra = "" });
           return { outcome = "rejected", discards = passDiscards };
         }
       }
@@ -172,7 +172,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
       local join = null;
       local placeJoin = ("placeJoin" in candidate) ? candidate.placeJoin : null;
       if (close.hard >= 0) {
-        if (DECISION_LOG || C49_SCARCITY_LEDGER || C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "too_close_hard", extra = "" });
+        if (DECISION_LOG || C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "too_close_hard", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
       }
 
@@ -194,7 +194,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
         }
         if (refuse != null) {
           join = null;
-          if (DECISION_LOG || C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "place_join_refuse", extra = "refuse=" + refuse });
+          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "place_join_refuse", extra = "refuse=" + refuse });
           return { outcome = "rejected", discards = passDiscards };
         }
       } else if (close.blocking >= 0) {
@@ -207,7 +207,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
           }
         }
         if (join == null) {
-          if (DECISION_LOG || C49_SCARCITY_LEDGER || C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "too_close_no_join", extra = "" });
+          if (DECISION_LOG || C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "too_close_no_join", extra = "" });
           return { outcome = "rejected", discards = passDiscards };
         }
       }
@@ -225,7 +225,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
           && !(("railPlan" in candidate) && candidate.railPlan != null);
       if (lowCash && !willStartSearch) {
         if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("rail", i, candidate.capital, candidate.profitAnnual, candidate.roi, candidate.src, candidate.dst, need, money);
-        if (DECISION_LOG || C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
+        if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
         return { outcome = "rejected", discards = passDiscards };
       }
 
@@ -272,7 +272,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
       local result = OpexBuildLine(this._catalog, this._budget, candidate, alternativeRatio, join,
                                    OpexCashReserve(), hardCap);
       if (result.reason == "CASH") {
-        if (DECISION_LOG || C63_INVEST_PROBE) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "cash_at_build", extra = "" });
+        if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "cash_at_build", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
       }
       if (("railPlan" in candidate)) candidate.railPlan = null;

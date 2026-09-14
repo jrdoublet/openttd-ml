@@ -32,6 +32,7 @@ function OpexLoadSettings()
    * cycle annuel, qui a lieu apres Start(). */
   ROAD_BUILD_ENABLED = AIController.GetSetting("road_mode") != 0;
   ROAD_PAX_BUILD_ENABLED = AIController.GetSetting("road_pax_build") != 0;
+  ROAD_PAX_EXTENSIONS = AIController.GetSetting("road_pax_extensions") != 0;
   TOWN_GROWTH_ENABLED = AIController.GetSetting("town_growth") != 0;
   TOWN_GROWTH_SKIP_NOOP = AIController.GetSetting("town_growth_skip_noop") != 0;
   local roadPaxCatchment = AIController.GetSetting("road_pax_catchment_pct");
@@ -287,6 +288,7 @@ function OpexLoadSettings()
   C50_CHRONOLOGY_PROBE = AIController.GetSetting("c50_chronology_probe") != 0;
   C63_INVEST_PROBE = AIController.GetSetting("c63_invest_probe") != 0;
   if (C63_INVEST_PROBE) OpexC63ResetLedger();
+  MONTHLY_FUNNEL = AIController.GetSetting("monthly_funnel") != 0;
   C50B_ROAD_CAP_RELAX = AIController.GetSetting("c50b_road_cap_relax") != 0;
   C50B_RAIL_BACKLOG_RELAX = AIController.GetSetting("c50b_rail_backlog_relax") != 0;
   if (C50_CHRONOLOGY_PROBE) {

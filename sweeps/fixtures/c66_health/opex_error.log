@@ -1,0 +1,6 @@
+[2026-08-31 15:38:07] dbg: [script:0] [0] [I] OPEX 1970-2-1 TASK name=road
+[2026-08-31 15:38:07] dbg: [script:1] [1] [I] 1970-2-1 # RouteBuilder Start
+[2026-08-31 15:38:07] dbg: [script:0] [0] [S] Your script made an error: the index 'GetNearestTown' does not exist
+[2026-08-31 15:38:07] dbg: [script:0] [0] [S] CALLSTACK
+[2026-08-31 15:38:07] dbg: [script:0] [0] [S] *FUNCTION [OpexBoostTownRating()] opexai.tar/opexai/candidates.nut line [1135]
+[2026-08-31 15:38:07] dbg: [script:0] [0] [S] *FUNCTION [_tryBuildRoads()] opexai.tar/opexai/main.nut line [663]
