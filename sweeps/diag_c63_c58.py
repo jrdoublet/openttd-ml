@@ -16,10 +16,31 @@ import json
 import re
 import statistics
 import sys
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 
 ROOT = Path("/work") if Path("/work").exists() else Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "sweeps"))
+try:
+    from bench_v2 import quarter_profit, year_profit
+except ImportError:
+    # Permet a --selftest de s'executer en Python pur sur l'hote (sans openttdlab)
+    def quarter_profit(entry):
+        if not isinstance(entry, dict):
+            return None
+        income = entry.get("income")
+        expenses = entry.get("expenses")
+        if income is None or expenses is None:
+            return None
+        return income + expenses
+
+    def year_profit(closed):
+        profits = [quarter_profit(entry) for entry in (closed or [])[:4]]
+        profits = [value for value in profits if value is not None]
+        if not profits:
+            return None
+        return sum(profits)
+
 FIXTURE = ROOT / "sweeps" / "fixtures" / "c63_c58_traces.json"
 
 OPEX_RE = re.compile(r"OPEX (\d+)-(\d+)-(\d+) ([A-Z0-9_]+)\s*(.*)$")
@@ -30,6 +51,17 @@ C49_RE = re.compile(r"OPEX (\d+)-(\d+)-(\d+) C49_SCARCITY\s*(.*)$")
 MODES = ("rail", "road", "air", "water", "fleet")
 LEFTOVER_KINDS = ("absent", "invalid", "unaffordable", "demand", "waiting_compute")
 OPP_KINDS = LEFTOVER_KINDS + ("launched",)
+ABSENT_CAUSES = (
+    "empty_pool",
+    "unprofitable",
+    "already_served",
+    "no_site",
+    "mode_cargo_filter",
+    "selection_empty",
+    "stage_empty",
+    "cache_exhausted",
+    "abandon_filtered",
+)
 DOMINANT = 0.50
 OVERCOST_RATIO = 1.30
 REVENUE_SHORTFALL = 0.50
@@ -104,6 +136,17 @@ def inventory_from_source():
         and "OpexC63CachedAvailable" in probes
         and "OpexC63EnsureYear" in probes
         and "OpexC63YearStart" in probes
+        and "OpexC63RecordEmptyProbe" in probes
+        and "phase=empty_probe year=" in probes
+        and "OpexC63ClassifyAbsent" in probes
+        and "OpexC63ChildLen" in probes
+        and "stage_empty_n=" in probes
+        and "cache_exhausted_n=" in probes
+        and "abandon_filtered_n=" in probes
+        and "function OpexAI::_c63RecordPassAndProbe" in projects
+        and "this._lastBestCount" in projects
+        and "this._lastEmptyProbeMonth" in projects
+        and "OpexC63RecordEmptyProbe" in projects
     )
 
     gaps = []
@@ -206,11 +249,55 @@ def empty_opp():
     return {kind: {"n": 0, "days": 0} for kind in OPP_KINDS}
 
 
+def empty_absent_causes():
+    return {cause: {"n": 0, "days": 0} for cause in ABSENT_CAUSES}
+
+
+def _minmaxmed(values):
+    values = [int(v) for v in values if v is not None]
+    if not values:
+        return None
+    return {
+        "n": len(values),
+        "min": min(values),
+        "max": max(values),
+        "median": int(statistics.median(values)),
+    }
+
+
+def summarise_empty_probes(probes):
+    """Agrège les sondes empty_probe : alternatives, capitaux, cache, abandons."""
+    probes = list(probes or [])
+    if not probes:
+        return {"n": 0, "causes": {}, "n_min_cap_gt_avail": 0}
+    considered = [p.get("considered") for p in probes if p.get("considered", -1) >= 0]
+    min_caps = [p.get("min_cap") for p in probes if p.get("min_cap", -1) >= 0]
+    avails = [p.get("avail_cap") for p in probes if p.get("avail_cap") is not None]
+    n_unaffordable = sum(
+        1 for p in probes
+        if p.get("min_cap", -1) > 0 and p.get("min_cap", -1) > p.get("avail_cap", 0)
+    )
+    return {
+        "n": len(probes),
+        "causes": dict(Counter(p.get("cause") or "?" for p in probes)),
+        "considered": _minmaxmed(considered),
+        "min_cap": _minmaxmed(min_caps),
+        "avail_cap": _minmaxmed(avails),
+        "n_min_cap_gt_avail": n_unaffordable,
+        "cache_scanned_sum": sum(int(p.get("cache_scanned") or 0) for p in probes if int(p.get("cache_scanned") or 0) >= 0),
+        "cache_retained_sum": sum(int(p.get("cache_retained") or 0) for p in probes if int(p.get("cache_retained") or 0) >= 0),
+        "abandon_filtered_sum": sum(int(p.get("abandon_filtered") or 0) for p in probes if int(p.get("abandon_filtered") or 0) >= 0),
+    }
+
+
 def parse_c63_invest(output):
     years = defaultdict(lambda: {
         "spend": {mode: dict(EMPTY_SPEND) for mode in MODES},
         "opp": empty_opp(),
+        "absent_causes": empty_absent_causes(),
+        "opp_absent_seen": False,
         "lines": [],
+        "empty_probes": [],
     })
     for raw in (output or "").splitlines():
         match = C63_RE.search(raw)
@@ -231,6 +318,30 @@ def parse_c63_invest(output):
             for kind in OPP_KINDS:
                 bucket["opp"][kind]["n"] += int(fields.get(kind + "_n", 0) or 0)
                 bucket["opp"][kind]["days"] += int(fields.get(kind + "_d", 0) or 0)
+        elif phase == "opp_absent":
+            bucket["opp_absent_seen"] = True
+            for cause in ABSENT_CAUSES:
+                bucket["absent_causes"][cause]["n"] += int(fields.get(cause + "_n", 0) or 0)
+                bucket["absent_causes"][cause]["days"] += int(fields.get(cause + "_d", 0) or 0)
+        elif phase == "empty_probe":
+            bucket["empty_probes"].append({
+                "stage": int(fields.get("stage", -1) or -1),
+                "cargo": fields.get("cargo", "-1"),
+                "rail_c": int(fields.get("rail_c", 0) or 0),
+                "road_c": int(fields.get("road_c", 0) or 0),
+                "air_p": int(fields.get("air_p", 0) or 0),
+                "water_p": int(fields.get("water_p", 0) or 0),
+                "mode_c": int(fields.get("mode_c", 0) or 0),
+                "considered": int(fields.get("considered", 0) or 0),
+                "selected": int(fields.get("selected", 0) or 0),
+                "min_cap": int(fields.get("min_cap", -1) or -1),
+                "avail_cap": int(fields.get("avail_cap", 0) or 0),
+                "cache_scanned": int(fields.get("cache_scanned", 0) or 0),
+                "cache_retained": int(fields.get("cache_retained", 0) or 0),
+                "abandon_filtered": int(fields.get("abandon_filtered", 0) or 0),
+                "abandon_pairs": int(fields.get("abandon_pairs", 0) or 0),
+                "cause": fields.get("cause", ""),
+            })
         elif phase == "line":
             bucket["lines"].append({
                 "line": int(fields.get("line", -1) or -1),
@@ -472,10 +583,28 @@ def build_joint_table(parsed, calendar_days=365, chunks=None, use_vehs_chunks=Fa
         if year < 1970:
             traps.append("fictional_prestart_year")
         lines = bucket["lines"]
+        absent_causes = bucket.get("absent_causes", empty_absent_causes())
+        total_absent_d = sum(int(absent_causes[c]["days"]) for c in ABSENT_CAUSES)
+        opp_absent_d = int(bucket["opp"]["absent"]["days"])
+        if bucket.get("opp_absent_seen"):
+            if total_absent_d != opp_absent_d:
+                traps.append(
+                    f"absent_causes_do_not_sum: causes={total_absent_d} absent_d={opp_absent_d}"
+                )
+        elif opp_absent_d > 0:
+            traps.append("absent_causes_unlogged")
+        absent_shares = (
+            {c: int(absent_causes[c]["days"]) / total_absent_d for c in ABSENT_CAUSES}
+            if total_absent_d > 0
+            else {}
+        )
+        empty_probes = bucket.get("empty_probes", [])
         row = {
             "year": year,
             "spend": bucket["spend"],
             "opp": bucket["opp"],
+            "absent_causes": absent_causes,
+            "absent_shares": absent_shares,
             "lines": lines,
             "cohorts": {},
             "fleet_vehs": fleet_from_line_rows(lines),
@@ -485,6 +614,8 @@ def build_joint_table(parsed, calendar_days=365, chunks=None, use_vehs_chunks=Fa
             "traps": traps,
             "n_stations": physical.get("n_stations"),
             "capital_immobilized_until_first_revenue": "unmeasured",
+            "empty_probes": empty_probes,
+            "empty_probe_summary": summarise_empty_probes(empty_probes),
         }
         grouped = defaultdict(list)
         for line in lines:
@@ -703,6 +834,69 @@ def run_selftest():
     assert "plannedFull" in fleet_src
     assert "missed > 0" in fleet_src
 
+    classify_abs = note[note.index("function OpexC63ClassifyAbsent"):note.index("function OpexC63ClassifyOpportunity")]
+    assert "OpexC63ChildLen(projects, \"rail\", \"candidates\")" in classify_abs
+    assert "st.railCandidates : 0" not in classify_abs
+    assert "st.roadCandidates : 0" not in classify_abs
+    flush_src = note[note.index("function OpexC63FlushLedger"):note.index("function OpexC50ChronologyLog")]
+    assert "stage_empty_n=" in flush_src
+    assert "cache_exhausted_n=" in flush_src
+    assert "abandon_filtered_n=" in flush_src
+    tp = _ai("task_projects.nut")
+    helper = tp[tp.index("function OpexAI::_c63RecordPassAndProbe"):tp.index("function OpexAI::_purgeSubsidyFromProjects")]
+    assert "this._lastBestCount > 0 || curMonth != this._lastEmptyProbeMonth" in helper
+    assert "OpexC63RecordEmptyProbe" in helper
+    assert 'kind == "absent" || kind == "unaffordable"' in helper
+    stamp = _ai("projects.nut")
+    assert "function OpexProjectsStampSelectionStats" in stamp
+    assert stamp.count("OpexProjectsStampSelectionStats(") >= 4
+
+    cause_log = "\n".join((
+        "OPEX 1972-1-1 C63_INVEST phase=opp year=1971 absent_n=9 absent_d=90 invalid_n=0 "
+        "invalid_d=0 unaffordable_n=0 unaffordable_d=0 demand_n=0 demand_d=0 "
+        "waiting_compute_n=0 waiting_compute_d=0 launched_n=0 launched_d=0",
+        "OPEX 1972-1-1 C63_INVEST phase=opp_absent year=1971 empty_pool_n=1 empty_pool_d=10 "
+        "unprofitable_n=0 unprofitable_d=0 already_served_n=0 already_served_d=0 "
+        "no_site_n=0 no_site_d=0 mode_cargo_filter_n=0 mode_cargo_filter_d=0 "
+        "selection_empty_n=2 selection_empty_d=20 stage_empty_n=3 stage_empty_d=30 "
+        "cache_exhausted_n=1 cache_exhausted_d=15 abandon_filtered_n=2 abandon_filtered_d=15",
+        "OPEX 1972-1-1 C63_INVEST phase=empty_probe year=1971 stage=4 cargo=7 rail_c=12 road_c=4 "
+        "air_p=8 water_p=0 mode_c=24 considered=24 selected=0 min_cap=50000 avail_cap=20000 "
+        "cache_scanned=10 cache_retained=2 abandon_filtered=1 abandon_pairs=3 cause=all_unaffordable",
+    ))
+    cause_table = build_joint_table(parse_c63_invest(cause_log), calendar_days=calendar)
+    assert cause_table[0]["absent_causes"]["stage_empty"]["days"] == 30
+    assert cause_table[0]["absent_causes"]["cache_exhausted"]["days"] == 15
+    assert cause_table[0]["absent_causes"]["abandon_filtered"]["days"] == 15
+    assert not any(t.startswith("absent_causes") for t in cause_table[0]["traps"]), cause_table[0]["traps"]
+    summary = cause_table[0]["empty_probe_summary"]
+    assert summary["n"] == 1
+    assert summary["min_cap"]["median"] == 50000
+    assert summary["avail_cap"]["median"] == 20000
+    assert summary["considered"]["median"] == 24
+    assert summary["n_min_cap_gt_avail"] == 1
+
+    mismatch_log = "\n".join((
+        "OPEX 1972-1-1 C63_INVEST phase=opp year=1971 absent_n=3 absent_d=100 invalid_n=0 "
+        "invalid_d=0 unaffordable_n=0 unaffordable_d=0 demand_n=0 demand_d=0 "
+        "waiting_compute_n=0 waiting_compute_d=0 launched_n=0 launched_d=0",
+        "OPEX 1972-1-1 C63_INVEST phase=opp_absent year=1971 empty_pool_n=1 empty_pool_d=40 "
+        "unprofitable_n=0 unprofitable_d=0 already_served_n=0 already_served_d=0 "
+        "no_site_n=0 no_site_d=0 mode_cargo_filter_n=0 mode_cargo_filter_d=0 "
+        "selection_empty_n=0 selection_empty_d=0 stage_empty_n=0 stage_empty_d=0 "
+        "cache_exhausted_n=0 cache_exhausted_d=0 abandon_filtered_n=0 abandon_filtered_d=0",
+    ))
+    mismatch = build_joint_table(parse_c63_invest(mismatch_log), calendar_days=calendar)
+    assert any(t.startswith("absent_causes_do_not_sum") for t in mismatch[0]["traps"]), mismatch[0]["traps"]
+    assert mismatch[0]["attribution"] == "insufficient"
+
+    unlogged = build_joint_table(parse_c63_invest(
+        "OPEX 1972-1-1 C63_INVEST phase=opp year=1971 absent_n=1 absent_d=10 invalid_n=0 "
+        "invalid_d=0 unaffordable_n=0 unaffordable_d=0 demand_n=0 demand_d=0 "
+        "waiting_compute_n=0 waiting_compute_d=0 launched_n=0 launched_d=0\n"
+    ), calendar_days=calendar)
+    assert "absent_causes_unlogged" in unlogged[0]["traps"]
+
     print("selftest ok")
     print("named_gaps", ",".join(inv["named_gaps"]))
     print("1970_attribution", y70["attribution"])
@@ -731,12 +925,13 @@ def keep_c63(row):
     closed = player.get("old_economy") or []
     last_closed = closed[0] if closed else {}
     stnn = chunks.get("STNN", {}) or {}
+    py = year_profit(closed)
     return ({
         "seed": row["experiment"]["seed"],
         "date": str(row["date"]),
         "company_value": last_closed.get("company_value", 0),
-        "profit_year": last_closed.get("income", 0) + last_closed.get("expenses", 0)
-        if last_closed else 0,
+        "profit_year": py if py is not None else 0,
+        "profit": quarter_profit(last_closed) or 0,
         "n_stations": len(stnn),
         "output": row.get("output", ""),
     },)
@@ -774,7 +969,7 @@ def run_campaign(args):
     rows = list(run_experiments(
         openttd_version=OPENTTD_VERSION,
         opengfx_version=OPENGFX_VERSION,
-        max_workers=1,
+        max_workers=args.workers,
         result_processor=keep_c63,
         experiments=tuple(
             {
@@ -839,6 +1034,7 @@ def main():
     parser.add_argument("--years", type=int, default=6)
     parser.add_argument("--arm", default="OpexAI[c63_invest_probe=1]")
     parser.add_argument("--out", type=Path, default=None)
+    parser.add_argument("--workers", type=int, default=2)
     args = parser.parse_args()
     if args.selftest:
         run_selftest()

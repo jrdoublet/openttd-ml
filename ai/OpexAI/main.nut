@@ -224,9 +224,15 @@ class OpexAI extends AIController {
   /* G4§1 : drapeau pose par _markPairAbandoned dans _tryBuildProjects, lu en fin de passe
    * pour declencher la reelection incrementale sans dependre de DECISION_LOG. */
   _hadAbandonsThisPass = false;
+  /* Consommés par _c63RecordPassAndProbe : sonde empty_probe à la transition
+   * non-vide→vide ou une fois par mois, pas à chaque passe vide. */
+  _lastBestCount = -1;
+  _lastEmptyProbeMonth = -1;
 
   constructor()
   {
+    this._lastBestCount = -1;
+    this._lastEmptyProbeMonth = -1;
     this._budget = OpexBudget();
     this._catalog = OpexCatalog();
     this._lines = [];

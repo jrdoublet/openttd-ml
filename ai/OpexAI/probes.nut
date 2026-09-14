@@ -128,8 +128,20 @@ function OpexC63ResetLedger()
       unaffordable = OpexC63OppBucket(), demand = OpexC63OppBucket(),
       waiting_compute = OpexC63OppBucket(), launched = OpexC63OppBucket()
     },
+    absent_causes = {
+      empty_pool = OpexC63OppBucket(),
+      unprofitable = OpexC63OppBucket(),
+      already_served = OpexC63OppBucket(),
+      no_site = OpexC63OppBucket(),
+      mode_cargo_filter = OpexC63OppBucket(),
+      selection_empty = OpexC63OppBucket(),
+      stage_empty = OpexC63OppBucket(),
+      cache_exhausted = OpexC63OppBucket(),
+      abandon_filtered = OpexC63OppBucket()
+    },
     lastDate = -1,
     lastKind = "",
+    lastAbsentCause = "",
     ledgerYear = -1,
     flushedYear = -1,
     cachedTick = -1,
@@ -163,6 +175,100 @@ function OpexC63RecordSpend(mode, planned, actual, ok)
   }
 }
 
+function OpexC63ChildLen(root, key, inner)
+{
+  if (root == null || !(key in root) || root[key] == null) return -1;
+  local node = root[key];
+  if (inner == null || inner == "") {
+    return node.len();
+  }
+  if (!(inner in node) || node[inner] == null) return -1;
+  return node[inner].len();
+}
+
+function OpexC63StatCount(st, key, fallback)
+{
+  if (st != null && (key in st) && st[key] != null) return st[key];
+  return fallback;
+}
+
+function OpexC63ClassifyAbsent(projects)
+{
+  if (projects == null) return "empty_pool";
+  local st = ("stats" in projects) ? projects.stats : null;
+  if (st != null && ("emptyCause" in st) && st.emptyCause != null && st.emptyCause != "" && st.emptyCause != "all_unaffordable") {
+    return st.emptyCause;
+  }
+  local considered = (st != null && ("budgetConsidered" in st)) ? st.budgetConsidered : 0;
+  if (considered > 0) return "selection_empty";
+
+  if (st != null) {
+    local cacheScanned = OpexC63StatCount(st, "cacheScanned", -1);
+    local cacheRetained = OpexC63StatCount(st, "cacheRetained", -1);
+    if (cacheScanned > 0 && cacheRetained == 0) {
+      return "cache_exhausted";
+    }
+    local abandonFiltered = OpexC63StatCount(st, "abandonFiltered", -1);
+    local modeCandidates = OpexC63StatCount(st, "modeCandidates", -1);
+    if (abandonFiltered > 0 && modeCandidates == 0) {
+      return "abandon_filtered";
+    }
+    local railC = OpexC63StatCount(st, "railCandidates", OpexC63ChildLen(projects, "rail", "candidates"));
+    local roadC = OpexC63StatCount(st, "roadCandidates", OpexC63ChildLen(projects, "road", "candidates"));
+    local airP = OpexC63StatCount(st, "airPlansCount", OpexC63ChildLen(projects, "airPlans", ""));
+    local waterP = OpexC63StatCount(st, "waterPlansCount", OpexC63ChildLen(projects, "waterPlans", ""));
+    if (railC == 0 && roadC == 0 && airP == 0 && waterP == 0) {
+      return "stage_empty";
+    }
+  }
+
+  local unprofitable = 0;
+  local alreadyServed = 0;
+  local noSite = 0;
+  local modeCargoFilter = 0;
+  local pairsTotal = 0;
+
+  if (("rail" in projects) && projects.rail != null && ("stats" in projects.rail) && projects.rail.stats != null) {
+    local rst = projects.rail.stats;
+    if ("pairsTotal" in rst) pairsTotal += rst.pairsTotal;
+    if ("profitNonPositive" in rst) unprofitable += rst.profitNonPositive;
+    if ("ratioTooLow" in rst) unprofitable += rst.ratioTooLow;
+    if ("pairsOriginServed" in rst) alreadyServed += rst.pairsOriginServed;
+    if ("unsitable" in rst) noSite += rst.unsitable;
+    if ("pairsJoinImpossible" in rst) noSite += rst.pairsJoinImpossible;
+    if ("distanceShort" in rst) modeCargoFilter += rst.distanceShort;
+    if ("distanceLong" in rst) modeCargoFilter += rst.distanceLong;
+  }
+
+  if (("road" in projects) && projects.road != null && ("stats" in projects.road) && projects.road.stats != null) {
+    local rdst = projects.road.stats;
+    if ("pairsInBand" in rdst) pairsTotal += rdst.pairsInBand;
+    if ("profitTooLow" in rdst) unprofitable += rdst.profitTooLow;
+    if ("townRejected" in rdst) alreadyServed += rdst.townRejected;
+    if ("roadDistanceShort" in rdst) modeCargoFilter += rdst.roadDistanceShort;
+    if ("roadDistanceLong" in rdst) modeCargoFilter += rdst.roadDistanceLong;
+  }
+
+  if (pairsTotal == 0) return "empty_pool";
+
+  local maxCount = unprofitable;
+  local bestReason = "unprofitable";
+  if (alreadyServed > maxCount) {
+    maxCount = alreadyServed;
+    bestReason = "already_served";
+  }
+  if (noSite > maxCount) {
+    maxCount = noSite;
+    bestReason = "no_site";
+  }
+  if (modeCargoFilter > maxCount) {
+    maxCount = modeCargoFilter;
+    bestReason = "mode_cargo_filter";
+  }
+  if (maxCount == 0) return "empty_pool";
+  return bestReason;
+}
+
 function OpexC63ClassifyOpportunity(reason, available, need, railSearch)
 {
   if (railSearch) return "waiting_compute";
@@ -174,12 +280,17 @@ function OpexC63ClassifyOpportunity(reason, available, need, railSearch)
   return "invalid";
 }
 
-function OpexC63RecordOpportunity(kind, daysForKind)
+function OpexC63RecordOpportunity(kind, daysForKind, absentCause = "")
 {
   if (!C63_INVEST_PROBE || C63_INVEST_LEDGER == null) return;
   if (!(kind in C63_INVEST_LEDGER.opp)) return;
   C63_INVEST_LEDGER.opp[kind].n++;
   if (daysForKind > 0) C63_INVEST_LEDGER.opp[kind].days += daysForKind;
+  if (kind == "absent" && absentCause != "" && ("absent_causes" in C63_INVEST_LEDGER)
+      && (absentCause in C63_INVEST_LEDGER.absent_causes)) {
+    C63_INVEST_LEDGER.absent_causes[absentCause].n++;
+    if (daysForKind > 0) C63_INVEST_LEDGER.absent_causes[absentCause].days += daysForKind;
+  }
 }
 
 function OpexC63RecordLine(mode, age, predProfit, realProfit, predRev, realRev, vehCount, lineId, year)
@@ -228,14 +339,14 @@ function OpexC63EnsureYear(nowYear)
     local nextStart = OpexC63YearStart(oldYear + 1);
     if (C63_INVEST_LEDGER.lastDate >= 0 && C63_INVEST_LEDGER.lastKind != "") {
       local tail = nextStart - C63_INVEST_LEDGER.lastDate - 1;
-      if (tail > 0) OpexC63RecordOpportunity(C63_INVEST_LEDGER.lastKind, tail);
+      if (tail > 0) OpexC63RecordOpportunity(C63_INVEST_LEDGER.lastKind, tail, C63_INVEST_LEDGER.lastAbsentCause);
     }
     OpexC63FlushLedger(oldYear);
     if (C63_INVEST_LEDGER.ledgerYear <= oldYear) C63_INVEST_LEDGER.ledgerYear = oldYear + 1;
   }
 }
 
-function OpexC63NotePass(builtCount, best, passDiscards, railSearching)
+function OpexC63NotePass(builtCount, best, passDiscards, railSearching, projects = null)
 {
   if (!C63_INVEST_PROBE || C63_INVEST_LEDGER == null) return;
   local now = AIDate.GetCurrentDate();
@@ -247,16 +358,40 @@ function OpexC63NotePass(builtCount, best, passDiscards, railSearching)
   }
   C63_INVEST_LEDGER.lastDate = now;
   local kind;
+  local absentCause = "";
   if (builtCount > 0) kind = "launched";
-  else if (best == null || best.len() == 0) kind = "absent";
-  else {
+  else if (best == null || best.len() == 0) {
+    local st = (projects != null && ("stats" in projects)) ? projects.stats : null;
+    local considered = (st != null && ("budgetConsidered" in st)) ? st.budgetConsidered : 0;
+    local minCap = (st != null && ("minCapital" in st)) ? st.minCapital : -1;
+    local avail = OpexC63CachedAvailable();
+
+    if (considered > 0 && minCap > 0 && minCap > avail) {
+      kind = "unaffordable";
+      absentCause = "";
+    } else {
+      kind = "absent";
+      absentCause = OpexC63ClassifyAbsent(projects);
+    }
+  } else {
     local target = null;
     local leftoverRank = -1;
     for (local i = 0; i < best.len(); i++) {
       if (best[i] != null) { leftoverRank = i; target = best[i]; break; }
     }
-    if (target == null) kind = "absent";
-    else {
+    if (target == null) {
+      local st = (projects != null && ("stats" in projects)) ? projects.stats : null;
+      local considered = (st != null && ("budgetConsidered" in st)) ? st.budgetConsidered : 0;
+      local minCap = (st != null && ("minCapital" in st)) ? st.minCapital : -1;
+      local avail = OpexC63CachedAvailable();
+      if (considered > 0 && minCap > 0 && minCap > avail) {
+        kind = "unaffordable";
+        absentCause = "";
+      } else {
+        kind = "absent";
+        absentCause = OpexC63ClassifyAbsent(projects);
+      }
+    } else {
       local reason = "";
       if (passDiscards != null) {
         for (local k = 0; k < passDiscards.len(); k++) {
@@ -273,7 +408,43 @@ function OpexC63NotePass(builtCount, best, passDiscards, railSearching)
     }
   }
   C63_INVEST_LEDGER.lastKind = kind;
-  OpexC63RecordOpportunity(kind, days);
+  C63_INVEST_LEDGER.lastAbsentCause = absentCause;
+  OpexC63RecordOpportunity(kind, days, absentCause);
+}
+
+function OpexC63RecordEmptyProbe(projects, stage, freightCargo, abandonedPairs)
+{
+  if (!C63_INVEST_PROBE) return;
+  if (projects == null) return;
+  local st = ("stats" in projects) ? projects.stats : null;
+  local railCand = OpexC63StatCount(st, "railCandidates", OpexC63ChildLen(projects, "rail", "candidates"));
+  local roadCand = OpexC63StatCount(st, "roadCandidates", OpexC63ChildLen(projects, "road", "candidates"));
+  local airPlans = OpexC63StatCount(st, "airPlansCount", OpexC63ChildLen(projects, "airPlans", ""));
+  local waterPlans = OpexC63StatCount(st, "waterPlansCount", OpexC63ChildLen(projects, "waterPlans", ""));
+  local modeCand = OpexC63StatCount(st, "modeCandidates", -1);
+  local considered = OpexC63StatCount(st, "budgetConsidered", -1);
+  local selected = OpexC63StatCount(st, "budgetSelected", -1);
+  local minCap = OpexC63StatCount(st, "minCapital", -1);
+  local availCap = OpexAvailableCapital();
+  local cacheScanned = OpexC63StatCount(st, "cacheScanned", -1);
+  local cacheRetained = OpexC63StatCount(st, "cacheRetained", -1);
+  local abandonFiltered = OpexC63StatCount(st, "abandonFiltered", -1);
+  local abandonPairs = (abandonedPairs != null) ? abandonedPairs.len() : 0;
+  local emptyCause = "";
+  if (st != null && ("emptyCause" in st) && st.emptyCause != null && st.emptyCause != "") {
+    emptyCause = st.emptyCause;
+  } else {
+    emptyCause = OpexC63ClassifyAbsent(projects);
+  }
+
+  local year = AIDate.GetYear(AIDate.GetCurrentDate());
+  OpexC63InvestLog("phase=empty_probe year=" + year + " stage=" + stage + " cargo=" + freightCargo
+      + " rail_c=" + railCand + " road_c=" + roadCand + " air_p=" + airPlans + " water_p=" + waterPlans
+      + " mode_c=" + modeCand + " considered=" + considered + " selected=" + selected
+      + " min_cap=" + minCap + " avail_cap=" + availCap
+      + " cache_scanned=" + cacheScanned + " cache_retained=" + cacheRetained
+      + " abandon_filtered=" + abandonFiltered + " abandon_pairs=" + abandonPairs
+      + " cause=" + emptyCause);
 }
 
 function OpexC63FlushLedger(year)
@@ -295,11 +466,25 @@ function OpexC63FlushLedger(year)
       + " demand_n=" + o.demand.n + " demand_d=" + o.demand.days
       + " waiting_compute_n=" + o.waiting_compute.n + " waiting_compute_d=" + o.waiting_compute.days
       + " launched_n=" + o.launched.n + " launched_d=" + o.launched.days);
+  if ("absent_causes" in C63_INVEST_LEDGER) {
+    local ac = C63_INVEST_LEDGER.absent_causes;
+    OpexC63InvestLog("phase=opp_absent year=" + year
+        + " empty_pool_n=" + ac.empty_pool.n + " empty_pool_d=" + ac.empty_pool.days
+        + " unprofitable_n=" + ac.unprofitable.n + " unprofitable_d=" + ac.unprofitable.days
+        + " already_served_n=" + ac.already_served.n + " already_served_d=" + ac.already_served.days
+        + " no_site_n=" + ac.no_site.n + " no_site_d=" + ac.no_site.days
+        + " mode_cargo_filter_n=" + ac.mode_cargo_filter.n + " mode_cargo_filter_d=" + ac.mode_cargo_filter.days
+        + " selection_empty_n=" + ac.selection_empty.n + " selection_empty_d=" + ac.selection_empty.days
+        + " stage_empty_n=" + ac.stage_empty.n + " stage_empty_d=" + ac.stage_empty.days
+        + " cache_exhausted_n=" + ac.cache_exhausted.n + " cache_exhausted_d=" + ac.cache_exhausted.days
+        + " abandon_filtered_n=" + ac.abandon_filtered.n + " abandon_filtered_d=" + ac.abandon_filtered.days);
+  }
   OpexC63ResetLedger();
   C63_INVEST_LEDGER.flushedYear = year;
   C63_INVEST_LEDGER.ledgerYear = year + 1;
   C63_INVEST_LEDGER.lastDate = OpexC63YearStart(year + 1);
   C63_INVEST_LEDGER.lastKind = "";
+  C63_INVEST_LEDGER.lastAbsentCause = "";
 }
 
 /* C50 : gate dedie pour la sonde chronologique legere (tresorerie, profit par ligne,

@@ -101,28 +101,61 @@ possédées. `vehicle_breakdown` dans `diag_1v1_monthly.py` et `physical_telemet
 `bench_c50b_physical.py` ne filtrent pas davantage les composants internes. Le champ `type`
 distingue les modes, pas nécessairement la tête d'un véhicule de ses composants.
 
-- ⬜ Définir **un décodeur partagé**, avec un schéma de sortie versionné. Garder le compte brut
-  sous un nom explicite (`vehicle_pool_entries`) ; ajouter les unités pilotables par mode
-  (`primary_vehicles_by_mode`) et le nombre d'entrées non classées. Ne pas changer silencieusement
-  la signification de `n_vehicles` dans les anciens résultats.
-- ⬜ Qualifier les discriminants de tête/composant sur les chunks **réellement produits par
-  OpenTTD 15.3**. Confronter les IDs comptés à un inventaire API pris au même état de jeu : train
-  avec plusieurs wagons, avion avec ses composants, véhicule routier articulé si disponible,
-  bateau. Ne pas deviner une valeur de `subtype`, filtrer sur profit nul ou sur capacité non nulle.
-- ⬜ Compter un train comme une unité pilotable tout en additionnant correctement la capacité
-  de ses wagons. Séparer les capacités **par cargo**, sans additionner passagers et tonnes comme
-  une grandeur comparable. Inclure les véhicules au dépôt dans la flotte possédée ; distinguer
-  « possédé » et « en service » si ce dernier état est effectivement mesurable.
-- ⬜ Vérifier aussi les propriétaires des gares, les gares multimodales et les représentations
-  dictionnaire/liste des chunks. Un champ requis absent doit être signalé, pas transformé en
-  zéro crédible. Une gare multimodale reste une gare dans le total de compagnie.
+- [x] Définir **un décodeur partagé**, avec un schéma de sortie versionné (`sweeps/physical_counters.py`,
+  schéma 1.1.0). Garde le compte brut sous `vehicle_pool_entries`, ajoute les unités pilotables
+  par mode (`primary_vehicles_by_mode`) et le bilan des anomalies (`unclassified_entries`).
+  `n_vehicles` conserve sa valeur brute dans les enregistrements de sortie pour assurer la
+  rétro-compatibilité sans dérive silencieuse. Respect strict du principe **fail-closed** :
+  si un chunk est manquant (`None`) ou de type inattendu, `chunk_valid` passe à `False`,
+  `chunk_error` documente la cause, et les compteurs sont passés à `None` (jamais de zéro crédible).
+  `schema_version`, `qualified_modes`, `vehs_chunk_valid`, `stnn_chunk_valid`, `physical_ok`
+  et les causes d'erreur sont conservés dans les métadonnées de sortie de `bench_1v1_5y_20seeds.py`,
+  `diag_1v1_monthly.py` et `bench_c50b_physical.py`. `summarise()` propage `physical_ok` et
+  bascule `run_ok=False` avec `failure_reason` explicite dès qu'un chunk physique est corrompu.
+  Les affichages et calculs de moyennes n'écrasent plus les `None` en zéros masquants.
+  L'agrégation mensuelle de `diag_1v1_monthly.py` est **fail-closed** : si une graine attendue
+  manque ou qu'un chunk du mois est invalide, le mois s'affiche `FAIL v/e` (valide/attendu)
+  et n'est pas moyenné sur les survivantes.
+- [x] Qualifier les discriminants de tête/composant sur les chunks **réellement produits par
+  OpenTTD 15.3**. Confrontation formelle et exacte à un inventaire API NoAI indépendant
+  (`AIVehicleList`, `AIVehicle.IsPrimaryVehicle(v)`, `AIStationList`, `AIStation.HasStationType`)
+  capturé au **même instant exact** de jeu (autosave `1970-12-01`, graine 42) dans
+  `sweeps/fixtures/c66_control_fixture_15_3.json` via `sweeps/generate_c66_control_fixture.py`
+  (injection garantissant un réveil le 1er du mois sans décalage temporel).
+  Égalité ensembliste exacte :
+  `primary_vehicle_ids` API == `primary_vehicles_detail` décodés (21 unités : IDs 7, 9, 10, 11, 12, 15, 16, 17, 18, 19, 20, 21, 22, 24, 25, 26, 27, 28, 29, 30, 32).
+  `primary_vehicles_by_mode` API == chunks décodés (`rail: 1, road: 17, air: 3, water: 0`).
+  Composants exclus sans résidu : 2 wagons ferroviaires, 3 ombres d'aéronefs, 7 effets, zéro non classé.
+  Le mode bateau est explicitement étiqueté `qualified: False` (non exercé).
+- [x] Compter un train comme une unité pilotable tout en additionnant correctement la capacité
+  de ses wagons. Suivi déterministe de la chaîne de convoi via le pointeur 1-based `next` du
+  format saveload (`val - 1 = index`). Capacités strictement ségrégées **par cargo**
+  (`capacities_by_cargo`), sans somme hétérogène passagers/tonnes.
+  Détection et signalement explicite des corruptions de chaîne : rupture de pointeur
+  (`corrupted_consist_pointer_missing_target`), cycle (`consist_cycle_detected`) ou absence de bloc
+  commun (`missing_consist_component_common`) alimentent `unclassified_entries` et marquent `consist_valid: False`.
+  Observables physiques `vehstatus` strictement conformes à `src/vehicle_base.h` d'OpenTTD 15.3 :
+  `is_hidden` (`0x01`), `is_stopped` (`0x02`), `is_broken` (`0x40`), `is_crashed` (`0x80`).
+  `running` est strictement défini en excluant stopped, hidden, broken et crashed.
+  `fleet_status` expose les observables réels `{stopped, not_stopped, running, hidden, broken, crashed}`.
+- [x] Vérifier aussi les propriétaires des gares, les gares multimodales et les représentations
+  dictionnaire/liste des chunks. Propriétaire extrait strictement de `base.owner` sans repli
+  silencieux (anomalies isolées dans `unresolved_stations`). Une gare multimodale compte pour 1
+  dans `total_stations`, avec détail dans `n_multimodal_stations`, `multimodal_station_ids`,
+  `stations_by_facility` et `stations_detail`. Confrontation exacte API : 24 gares API == 24 gares
+  décryptées (IDs 0 à 23), 4 gares multimodales bus+air (0, 1, 14, 21) comptées 1 fois dans le total,
+  installations identiques (`rail: 2, truck: 6, bus: 16, airport: 4, dock: 0`).
+  Intégré et validé dans `bench_1v1_5y_20seeds.py`, `diag_1v1_monthly.py` et `bench_c50b_physical.py`
+  avec protection contre les valeurs `None` et suites `--selftest` autonomes.
 
-**Preuve attendue :** fixtures minimales conservées, IDs API et IDs décodés identiques dans
-les cas qualifiés, bilan des composants exclus et zéro entrée inexpliquée. Si un mode n'a pas
-été exercé, le publier comme non qualifié. L'inventaire API sert à qualifier le décodeur sur une
-partie de contrôle ; il n'impose pas une sonde Squirrel lourde dans chaque partie économique.
-Les JSONL du duel actuel ne contiennent pas les chunks nécessaires pour corriger rétroactivement
-sa flotte : préserver les anciens chiffres avec leur avertissement, sans inventer un recomptage.
+**Preuve technique :**
+- Suite de tests unitaires et empiriques `sweeps/test_physical_counters.py` validée à 100 % (7/7 tests OK)
+  sur l'hôte et dans Docker avec les limites canoniques (`--cpus=3 --memory=2g --memory-swap=2g`).
+- Fixture de contrôle C66 (`sweeps/fixtures/c66_control_fixture_15_3.json`, générée par
+  `sweeps/generate_c66_control_fixture.py`) intégrant à la fois les chunks bruts et l'inventaire API
+  NoAI indépendant au **même instant exact** (`1970-12-01`), avec assertions automatisées d'égalité ensembliste stricte.
+- Selftests unitaires autonomes validés sur `bench_1v1_5y_20seeds.py --selftest`, `bench_c50b_physical.py --selftest`
+  et `diag_1v1_monthly.py --selftest`.
 
 ### C66.2 — Séparer santé du moteur, santé des compagnies et activité de l'IA
 
@@ -313,6 +346,43 @@ pluralité reste le portefeuille vide, sans majorité sur 42 et 999. **Donnée m
 pour un levier : *pourquoi* `best` est vide les jours d'absent (vivier, seuil, déjà
 construit), mesuré **sans** sonde qui déplace la trajectoire. **Pas de correctif, pas
 de C61/C59, pas de C39/C41, pas de devis rail synchrone.** `c63_invest_probe` reste à 0.
+
+**Ventilation de `best == vide` (sonde d'absence C63/P1, 2026-09-14)** :
+Une sonde sous gate `c63_invest_probe` ventile les jours d'absence. Deux campagnes 5×6,
+à ne pas confondre :
+
+1. **12:03** (`results/diag_c63_c58_6y_5seeds.json`), avant le split unaffordable et
+   `empty_probe` : 2654 j `absent` = 2654 j `selection_empty`. Ce JSON **ne contient pas**
+   `min_cap`, `avail_cap` ni le nombre d'alternatives. Les bornes « 70–164 » / « 63 k£ vs
+   36–48 k£ » citées un temps n'y figurent pas ; elles ne font plus foi.
+2. **12:46** (`results/diag_c63_absent_6y_5seeds.json`), après split et sonde échantillonnée :
+   1939 j `unaffordable` + 911 j `absent` (toujours `selection_empty`). 135 `empty_probe`
+   agrégées : alternatives 81–372 (médiane 233), `min_cap` 15 971–70 806 (médiane 62 653),
+   `avail_cap` 3 693–166 935 (médiane 43 661), 103/135 avec `min_cap > avail_cap`, cause
+   journalisée `all_unaffordable`. `stage_empty` / `cache_exhausted` / `abandon_filtered`
+   restent à 0 j : cette campagne n'exerce pas ces branches. `probe_displaced` reste
+   `null` (pas de ON/OFF apparié de la sonde échantillonnée).
+
+**Ne pas générer davantage de candidats par réflexe.** Si le vivier est hors budget,
+élargir le scan consomme surtout des opcodes. Le levier à trancher est : candidats moins
+chers, réévaluation du cache, ou repêchage des abandonnés — avec les champs déjà
+journalisés (`considered`, `min_cap`, `avail_cap`, compteurs d'étape, cache, abandons).
+
+**Désambiguïsation structurelle (2026-09-14) :** l'amalgame `best=absent` / `selection_empty`
+classait tout `best.len()==0` en `absent`. Corrections en place :
+
+1. **`OpexC63NotePass`** : si `budgetConsidered > 0 && minCapital > available`, `unaffordable`
+   et non `absent`.
+2. **`OpexProjectsStampSelectionStats`** : `minCapital`, comptes rail/route/air/eau, cache,
+   abandons et `emptyCause` sur les trois producteurs, y compris `OpexReselectProjects`.
+3. **`OpexC63ClassifyAbsent`** : un compteur manquant n'est plus traité comme 0 (plus de
+   `stage_empty` systématique). Repli sur `projects.rail` / `road` / `airPlans` / `waterPlans`.
+4. **Sonde `OpexC63RecordEmptyProbe`** : via `_c63RecordPassAndProbe`, à la transition
+   non-vide→vide (`lastKind` absent/unaffordable) ou 1×/mois. Journalise stage, cargo,
+   comptes d'étape, `min_cap`, `avail_cap`, cache et abandons.
+5. **`phase=opp_absent`** écrit les 9 causes, y compris `stage_empty`, `cache_exhausted`,
+   `abandon_filtered`. Le parseur les lit. `absent_d` ≠ somme des causes devient un piège
+   `absent_causes_do_not_sum` / `absent_causes_unlogged`.
 
 Sortie attendue : **un tableau par mode, année et cohorte de lignes**, contenant :
 

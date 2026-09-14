@@ -630,6 +630,54 @@ function OpexLogVivier(path, candidates, stats, capitalBudget, capitalRemaining)
   }
 }
 
+function OpexProjectsStampSelectionStats(stats, projects, alternatives, funded, capitalBudget, extras)
+{
+  local minCap = -1;
+  foreach (p in alternatives) {
+    local cap = OpexProjectFinanceCapital(p);
+    if (minCap < 0 || cap < minCap) minCap = cap;
+  }
+  stats.minCapital <- minCap;
+  stats.railCandidates <- (("rail" in projects) && projects.rail != null && ("candidates" in projects.rail) && projects.rail.candidates != null) ? projects.rail.candidates.len() : 0;
+  stats.roadCandidates <- (("road" in projects) && projects.road != null && ("candidates" in projects.road) && projects.road.candidates != null) ? projects.road.candidates.len() : 0;
+  stats.airPlansCount <- (("airPlans" in projects) && projects.airPlans != null) ? projects.airPlans.len() : 0;
+  stats.waterPlansCount <- (("waterPlans" in projects) && projects.waterPlans != null) ? projects.waterPlans.len() : 0;
+  if (extras != null) {
+    stats.abandonFiltered <- ("abandonFiltered" in extras) ? extras.abandonFiltered : 0;
+    stats.abandonedPairsCount <- ("abandonedPairsCount" in extras) ? extras.abandonedPairsCount : 0;
+    stats.cacheScanned <- ("cacheScanned" in extras) ? extras.cacheScanned : 0;
+    stats.cacheRetained <- ("cacheRetained" in extras) ? extras.cacheRetained : 0;
+  } else {
+    if (!("abandonFiltered" in stats)) stats.abandonFiltered <- 0;
+    if (!("abandonedPairsCount" in stats)) stats.abandonedPairsCount <- 0;
+    if (!("cacheScanned" in stats)) stats.cacheScanned <- 0;
+    if (!("cacheRetained" in stats)) stats.cacheRetained <- 0;
+  }
+  local emptyCause = "";
+  if (funded.len() == 0) {
+    if (alternatives.len() == 0) {
+      local cacheScanned = stats.cacheScanned;
+      local cacheRetained = stats.cacheRetained;
+      local abandonFiltered = stats.abandonFiltered;
+      local modeC = ("modeCandidates" in stats) ? stats.modeCandidates : 0;
+      if (cacheScanned > 0 && cacheRetained == 0) {
+        emptyCause = (abandonFiltered > 0) ? "abandon_filtered" : "cache_exhausted";
+      } else if (abandonFiltered > 0 && modeC == 0) {
+        emptyCause = "abandon_filtered";
+      } else if (stats.railCandidates == 0 && stats.roadCandidates == 0 && stats.airPlansCount == 0 && stats.waterPlansCount == 0) {
+        emptyCause = "stage_empty";
+      } else {
+        emptyCause = "empty_pool";
+      }
+    } else if (minCap > capitalBudget) {
+      emptyCause = "all_unaffordable";
+    } else {
+      emptyCause = "selection_empty";
+    }
+  }
+  stats.emptyCause <- emptyCause;
+}
+
 /* Rejoue UNIQUEMENT la contrainte de capital sur les projets deja produits par le catalogue.
  * candidateGroups porte le vivier ; cette fonction se contente de reaplatir ses alternatives et
  * de retester le capital. Aucune planification rail, recherche de site aerien ou generation de
@@ -667,6 +715,8 @@ function OpexReselectProjects(projects, capitalBudget)
   projects.capitalRemaining = capitalBudget - selectedCap;
   if (projects.capitalRemaining < 0) projects.capitalRemaining = 0;
 
+  OpexProjectsStampSelectionStats(projects.stats, projects, alternatives, funded, capitalBudget, null);
+
   projects.best = funded;
 
   if (DECISION_LOG) {
@@ -682,6 +732,29 @@ function OpexReselectProjects(projects, capitalBudget)
   return projects;
 }
 
+function OpexCandidateIsAbandoned(p, abandonedPairs)
+{
+  if (p == null || abandonedPairs == null) return false;
+  local mode = ("mode" in p) ? p.mode : "";
+  if (mode == "air") {
+    local plan = ("payload" in p) ? p.payload : null;
+    if (plan != null && ("siteA" in plan) && ("siteB" in plan)) {
+      local aKey1 = "air|" + plan.siteA.town.tile + "|" + plan.siteB.town.tile;
+      local aKey2 = "air|" + plan.siteB.town.tile + "|" + plan.siteA.town.tile;
+      local siteAKey = OpexAirSiteAbandonKey(plan.siteA, plan.airport.type);
+      local siteBKey = OpexAirSiteAbandonKey(plan.siteB, plan.airport.type);
+      if ((aKey1 in abandonedPairs) || (aKey2 in abandonedPairs)
+          || (AIR_ABANDON_SITE && ((siteAKey in abandonedPairs) || (siteBKey in abandonedPairs)))) return true;
+    }
+  } else if (ABANDON_GEN_FILTER && ABANDON_MEMORY && (mode == "road" || mode == "rail")) {
+    if (("payload" in p) && p.payload != null) {
+      local aKey = OpexAbandonedPairKey(p.payload);
+      if (aKey in abandonedPairs) return true;
+    }
+  }
+  return false;
+}
+
 /* C36.1 : Revalidation rapide d'un candidat deja en memoire contre this._lines.
  * Verifie qu'aucune extremite n'est devenue invalide, qu'aucune ligne identique n'a ete batie,
  * et que les contraintes physiques du mode tiennent toujours. */
@@ -692,24 +765,7 @@ function OpexLegacyCandidateStillValid(p, lines, abandonedPairs = null)
   local mode = p.mode;
 
   /* 0. Candidat abandonne (echec de trace ou depot) */
-  if (abandonedPairs != null) {
-    if (mode == "air") {
-      local plan = p.payload;
-      if (plan != null && ("siteA" in plan) && ("siteB" in plan)) {
-        local aKey1 = "air|" + plan.siteA.town.tile + "|" + plan.siteB.town.tile;
-        local aKey2 = "air|" + plan.siteB.town.tile + "|" + plan.siteA.town.tile;
-        local siteAKey = OpexAirSiteAbandonKey(plan.siteA, plan.airport.type);
-        local siteBKey = OpexAirSiteAbandonKey(plan.siteB, plan.airport.type);
-        if ((aKey1 in abandonedPairs) || (aKey2 in abandonedPairs)
-            || (AIR_ABANDON_SITE && ((siteAKey in abandonedPairs) || (siteBKey in abandonedPairs)))) return false;
-      }
-    } else if (ABANDON_GEN_FILTER && ABANDON_MEMORY && (mode == "road" || mode == "rail")) {
-      if (("payload" in p) && p.payload != null) {
-        local aKey = OpexAbandonedPairKey(p.payload);
-        if (aKey in abandonedPairs) return false;
-      }
-    }
-  }
+  if (OpexCandidateIsAbandoned(p, abandonedPairs)) return false;
 
   /* 1. Doublon exact avec une ligne deja batie */
   foreach (line in lines) {
@@ -879,24 +935,7 @@ function OpexIndexedCandidateStillValid(p, lineIndex, abandonedPairs = null, upd
   local mode = p.mode;
 
   /* 0. Candidat abandonne (echec de trace ou depot) */
-  if (abandonedPairs != null) {
-    if (mode == "air") {
-      local plan = p.payload;
-      if (plan != null && ("siteA" in plan) && ("siteB" in plan)) {
-        local aKey1 = "air|" + plan.siteA.town.tile + "|" + plan.siteB.town.tile;
-        local aKey2 = "air|" + plan.siteB.town.tile + "|" + plan.siteA.town.tile;
-        local siteAKey = OpexAirSiteAbandonKey(plan.siteA, plan.airport.type);
-        local siteBKey = OpexAirSiteAbandonKey(plan.siteB, plan.airport.type);
-        if ((aKey1 in abandonedPairs) || (aKey2 in abandonedPairs)
-            || (AIR_ABANDON_SITE && ((siteAKey in abandonedPairs) || (siteBKey in abandonedPairs)))) return false;
-      }
-    } else if (ABANDON_GEN_FILTER && ABANDON_MEMORY && (mode == "road" || mode == "rail")) {
-      if (("payload" in p) && p.payload != null) {
-        local aKey = OpexAbandonedPairKey(p.payload);
-        if (aKey in abandonedPairs) return false;
-      }
-    }
-  }
+  if (OpexCandidateIsAbandoned(p, abandonedPairs)) return false;
 
   /* 1. Doublon exact avec une ligne deja batie */
   local a = p.src;
@@ -1180,6 +1219,9 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
 
   local lineIndex = (C48_INDEXED_REGENERATION || C48_INDEX_SHADOW) ? OpexBuildLineIndex(lines) : null;
   local newWinners = {};
+  local cacheScanned = 0;
+  local cacheRetained = 0;
+  local abandonFiltered = 0;
 
   /* 1. Filtrer les candidats existants du vivier */
   if (("candidateGroups" in projects) && projects.candidateGroups != null) {
@@ -1197,14 +1239,20 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
       local list = (typeof entry == "array") ? entry : [entry];
       foreach (p in list) {
         if (C48_INCREMENTAL_PROFILE) c48Scanned++;
+        cacheScanned++;
         if (p == null) continue;
         /* La flotte et les feeders sont regeneres frais ci-dessous */
         if (p.mode == "fleet") continue;
         if (("payload" in p) && p.payload != null &&
             ("isFeeder" in p.payload) && p.payload.isFeeder) continue;
+        if (OpexCandidateIsAbandoned(p, abandonedPairs)) {
+          abandonFiltered++;
+          continue;
+        }
         if (!OpexIncrementalCandidateStillValid(p, lines, abandonedPairs, lineIndex)) continue;
         OpexProjectRememberAll(newWinners, p, stats);
         if (C48_INCREMENTAL_PROFILE) c48Retained++;
+        cacheRetained++;
       }
     }
     if (C48_INCREMENTAL_PROFILE) {
@@ -1337,6 +1385,14 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   stats.selectedCapital = selectedCap;
   local remaining = capitalBudget - selectedCap;
   if (remaining < 0) remaining = 0;
+
+  local stampExtras = {
+    abandonFiltered = abandonFiltered,
+    abandonedPairsCount = (abandonedPairs != null) ? abandonedPairs.len() : 0,
+    cacheScanned = cacheScanned,
+    cacheRetained = cacheRetained
+  };
+  OpexProjectsStampSelectionStats(stats, projects, alternatives, funded, capitalBudget, stampExtras);
 
   local byOpcodes = funded;
 
@@ -1815,11 +1871,15 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     }
   }
 
+  local abandonFiltered = 0;
   if (!SHADOW_PRICING) {
     local railInsertMark = railProfile != null ? OpexOpsMeasureBegin() : null;
     local railProjectsBefore = stats.modeCandidates;
     foreach (candidate in rail.candidates) {
-      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) continue;
+      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) {
+        abandonFiltered++;
+        continue;
+      }
       OpexProjectRememberAll(winners, OpexProjectFromCandidate(candidate, tensionCtx), stats);
     }
     if (railProfile != null) {
@@ -1827,7 +1887,10 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
       railProfile.insertedProjects = stats.modeCandidates - railProjectsBefore;
     }
     foreach (candidate in road.candidates) {
-      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) continue;
+      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) {
+        abandonFiltered++;
+        continue;
+      }
       OpexProjectRememberAll(winners, OpexProjectFromCandidate(candidate, tensionCtx), stats);
     }
     foreach (plan in airPlans) {
@@ -1842,7 +1905,10 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
       }
     }
     foreach (candidate in subCandidates) {
-      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) continue;
+      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) {
+        abandonFiltered++;
+        continue;
+      }
       OpexProjectRememberAll(winners, OpexProjectFromCandidate(candidate, tensionCtx), stats);
     }
   }
@@ -1874,6 +1940,17 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
   stats.selectedCapital = selectedCap;
   local remaining = capitalBudget - selectedCap;
   if (remaining < 0) remaining = 0;
+
+  local stampProjects = {
+    rail = rail, road = road, airPlans = airPlans, waterPlans = waterPlans
+  };
+  local stampExtras = {
+    abandonFiltered = abandonFiltered,
+    abandonedPairsCount = (abandonedPairs != null) ? abandonedPairs.len() : 0,
+    cacheScanned = 0,
+    cacheRetained = 0
+  };
+  OpexProjectsStampSelectionStats(stats, stampProjects, alternatives, funded, capitalBudget, stampExtras);
 
   local byOpcodes = funded;
 

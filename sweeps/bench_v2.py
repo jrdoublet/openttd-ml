@@ -440,7 +440,19 @@ def summarise(rows, expected_last_year=None):
                 f"{last_year if last_year is not None else 'unknown'} "
                 f"< expected {expected_last_year}"
             )
-        summary.append({
+
+        vehs_valid = final.get("vehs_chunk_valid")
+        stnn_valid = final.get("stnn_chunk_valid")
+        physical_ok = None
+        if vehs_valid is not None or stnn_valid is not None:
+            physical_ok = (vehs_valid is not False) and (stnn_valid is not False)
+            if not physical_ok and failure_reason is None:
+                v_err = final.get("vehs_chunk_error") or "invalid_vehs_chunk"
+                s_err = final.get("stnn_chunk_error") or "invalid_stnn_chunk"
+                err_msg = v_err if vehs_valid is False else s_err
+                failure_reason = f"physical_decode_failure: {err_msg}"
+
+        rec = {
             "arm": key[0], "seed": key[1], "repeat": key[2],
             "last_date": final["date"], "last_year": last_year,
             "expected_last_year": expected_last_year,
@@ -459,7 +471,27 @@ def summarise(rows, expected_last_year=None):
             "openttd_output": final["openttd_output"],
             "run_ok": failure_reason is None,
             "failure_reason": failure_reason,
-        })
+        }
+        if physical_ok is not None:
+            rec.update({
+                "physical_counters_version": final.get("physical_counters_version"),
+                "qualified_modes": final.get("qualified_modes"),
+                "physical_ok": physical_ok,
+                "vehs_chunk_valid": vehs_valid,
+                "vehs_chunk_error": final.get("vehs_chunk_error"),
+                "stnn_chunk_valid": stnn_valid,
+                "stnn_chunk_error": final.get("stnn_chunk_error"),
+                "vehicle_pool_entries": final.get("vehicle_pool_entries"),
+                "primary_vehicles": final.get("primary_vehicles"),
+                "primary_vehicles_by_mode": final.get("primary_vehicles_by_mode"),
+                "capacities_by_cargo": final.get("capacities_by_cargo"),
+                "fleet_status": final.get("fleet_status"),
+                "unclassified_vehicles": final.get("unclassified_vehicles"),
+                "n_multimodal_stations": final.get("n_multimodal_stations"),
+                "stations_by_facility": final.get("stations_by_facility"),
+                "unresolved_stations": final.get("unresolved_stations"),
+            })
+        summary.append(rec)
     return summary
 
 

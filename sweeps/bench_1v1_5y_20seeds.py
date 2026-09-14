@@ -38,6 +38,7 @@ from bench_v2 import (
     write_json_atomically,
     year_profit,
 )
+from physical_counters import decode_vehicles, decode_stations
 import bench_v2
 
 STARTING_YEAR = 1970
@@ -103,14 +104,11 @@ def extract_company_record(chunks, owner, run_key, date, output=None):
     closed = player.get("old_economy") or []
     last_closed = closed[0] if closed else {}
     ratings = station_ratings(chunks, owner=owner)
-    vehs = chunks.get("VEHS") or {}
-    stnn = chunks.get("STNN") or {}
+    veh_dec = decode_vehicles(chunks.get("VEHS"), target_owner=owner)
+    stn_dec = decode_stations(chunks.get("STNN"), target_owner=owner)
 
-    vehs_list = vehs.values() if isinstance(vehs, dict) else vehs
-    stnn_list = stnn.values() if isinstance(stnn, dict) else stnn
-
-    n_vehs = sum(1 for v in vehs_list if vehicle_owner(v) == owner)
-    n_stns = sum(1 for s in stnn_list if station_owner(s) == owner)
+    vehs_valid = veh_dec["chunk_valid"]
+    stnn_valid = stn_dec["chunk_valid"]
 
     return {
         "run": run_key,
@@ -126,8 +124,23 @@ def extract_company_record(chunks, owner, run_key, date, output=None):
         "money": player.get("money", 0),
         "current_loan": player.get("current_loan", 0),
         "months_of_bankruptcy": player.get("months_of_bankruptcy", 0),
-        "n_vehicles": n_vehs,
-        "n_stations": n_stns,
+        "physical_counters_version": veh_dec["schema_version"],
+        "qualified_modes": veh_dec["qualified_modes"],
+        "vehs_chunk_valid": vehs_valid,
+        "vehs_chunk_error": veh_dec["chunk_error"],
+        "stnn_chunk_valid": stnn_valid,
+        "stnn_chunk_error": stn_dec["chunk_error"],
+        "n_vehicles": veh_dec["vehicle_pool_entries"] if vehs_valid else None,
+        "vehicle_pool_entries": veh_dec["vehicle_pool_entries"] if vehs_valid else None,
+        "primary_vehicles": veh_dec["primary_vehicles_count"] if vehs_valid else None,
+        "primary_vehicles_by_mode": veh_dec["primary_vehicles_by_mode"] if vehs_valid else None,
+        "capacities_by_cargo": veh_dec["capacities_by_cargo"] if vehs_valid else None,
+        "fleet_status": veh_dec["fleet_status"] if vehs_valid else None,
+        "unclassified_vehicles": len(veh_dec["unclassified_entries"]),
+        "n_stations": stn_dec["total_stations"] if stnn_valid else None,
+        "n_multimodal_stations": stn_dec["n_multimodal_stations"] if stnn_valid else None,
+        "stations_by_facility": stn_dec["stations_by_facility"] if stnn_valid else None,
+        "unresolved_stations": len(stn_dec["unresolved_stations"]),
         "openttd_output": output,
     }
 
@@ -172,7 +185,12 @@ def main():
     parser.add_argument("--seeds", nargs="+", type=int, default=list(SEEDS))
     parser.add_argument("--max-workers", type=int, default=3)
     parser.add_argument("--out", type=Path, default=ROOT / "results" / "bench_1v1_5y_20seeds_reference.json")
+    parser.add_argument("--selftest", action="store_true", help="Vérifie le décodage et le fail-closed sans lancer OpenTTD")
     args = parser.parse_args()
+
+    if args.selftest:
+        selftest()
+        return
 
     global CHECKPOINT_PATH
     out = args.out
@@ -239,18 +257,20 @@ def main():
         op = runs_by_seed.get(("OpexAI", s), {})
         aa = runs_by_seed.get(("AAAHogEx", s), {})
 
-        op_v, aa_v = op.get("company_value", 0) or 0, aa.get("company_value", 0) or 0
-        op_p, aa_p = op.get("profit_year", 0) or 0, aa.get("profit_year", 0) or 0
-        op_s, aa_s = op.get("performance_history", 0) or 0, aa.get("performance_history", 0) or 0
-        op_veh, aa_veh = op.get("n_vehicles", 0) or 0, aa.get("n_vehicles", 0) or 0
-        op_stn, aa_stn = op.get("n_stations", 0) or 0, aa.get("n_stations", 0) or 0
+        op_v, aa_v = op.get("company_value"), aa.get("company_value")
+        op_p, aa_p = op.get("profit_year"), aa.get("profit_year")
+        op_s, aa_s = op.get("performance_history"), aa.get("performance_history")
+        op_veh, aa_veh = op.get("n_vehicles"), aa.get("n_vehicles")
+        op_stn, aa_stn = op.get("n_stations"), aa.get("n_stations")
 
-        ratio_v = (op_v / aa_v * 100) if aa_v > 0 else 0
-        v_str = f"{op_v:>10,.0f} vs {aa_v:>10,.0f} ({ratio_v:>4.1f}%)"
-        p_str = f"{op_p:>8,.0f} vs {aa_p:>8,.0f}"
-        s_str = f"{op_s:>4} vs {aa_s:<4}"
-        veh_str = f"{op_veh:>3} vs {aa_veh:<3}"
-        stn_str = f"{op_stn:>3} vs {aa_stn:<3}"
+        v_str = (
+            f"{op_v:>10,.0f} vs {aa_v:>10,.0f} ({(op_v / aa_v * 100) if aa_v else 0:>4.1f}%)"
+            if (op_v is not None and aa_v is not None) else "FAIL"
+        )
+        p_str = f"{op_p:>8,.0f} vs {aa_p:>8,.0f}" if (op_p is not None and aa_p is not None) else "FAIL"
+        s_str = f"{op_s:>4} vs {aa_s:<4}" if (op_s is not None and aa_s is not None) else "FAIL"
+        veh_str = f"{op_veh:>3} vs {aa_veh:<3}" if (op_veh is not None and aa_veh is not None) else "FAIL"
+        stn_str = f"{op_stn:>3} vs {aa_stn:<3}" if (op_stn is not None and aa_stn is not None) else "FAIL"
 
         print(f"{s:<8} | {v_str:<32} | {p_str:<28} | {s_str:<14} | {veh_str:<16} | {stn_str:<12}")
 
@@ -262,12 +282,14 @@ def main():
         cv = s.get("company_value", {}).get("mean")
         py = s.get("profit_year", {}).get("mean")
         sc = s.get("performance_history", {}).get("mean")
-        nv_list = [r.get("n_vehicles", 0) for r in summary if r["arm"] == arm]
-        ns_list = [r.get("n_stations", 0) for r in summary if r["arm"] == arm]
-        nv = statistics.mean(nv_list) if nv_list else 0
-        ns = statistics.mean(ns_list) if ns_list else 0
+        nv_list = [r["n_vehicles"] for r in summary if r["arm"] == arm and r.get("n_vehicles") is not None and r.get("run_ok", True)]
+        ns_list = [r["n_stations"] for r in summary if r["arm"] == arm and r.get("n_stations") is not None and r.get("run_ok", True)]
+        nv = statistics.mean(nv_list) if nv_list else None
+        ns = statistics.mean(ns_list) if ns_list else None
+        nv_str = f"{nv:>4.1f}" if nv is not None else " N/A"
+        ns_str = f"{ns:>4.1f}" if ns is not None else " N/A"
         if cv is not None:
-            print(f"MOYENNE [{arm:<8}] : CV: {cv:>10,.0f} £ | Profit/an: {py:>8,.0f} £ | Score: {sc:>4.0f} | Véhicules: {nv:>4.1f} | Gares: {ns:>4.1f}")
+            print(f"MOYENNE [{arm:<8}] : CV: {cv:>10,.0f} £ | Profit/an: {py:>8,.0f} £ | Score: {sc:>4.0f} | Véhicules: {nv_str} | Gares: {ns_str}")
 
     print("\n=== COMPARAISON APPARIÉE OPEXAI vs AAAHOGEX ===")
     for comp in payload["paired_comparisons"]:
@@ -285,6 +307,40 @@ def main():
 
     if failed:
         raise SystemExit(f"Banc invalide : {len(failed)} echec(s) NoAI")
+
+
+def selftest():
+    """Vérifie unitairement le comportement d'extract_company_record et de summarise en mode fail-closed."""
+    # 1. Test sur fixture réelle
+    fixture_path = ROOT / "sweeps" / "fixtures" / "c66_control_fixture_15_3.json"
+    if fixture_path.exists():
+        with open(fixture_path) as f:
+            c66 = json.load(f)
+        rec0 = extract_company_record(c66["chunks"], 0, ["OpexAI", 42, 0], "1970-12-01")
+        assert rec0["vehs_chunk_valid"] is True, "Chunk VEHS valide attendu"
+        assert rec0["stnn_chunk_valid"] is True, "Chunk STNN valide attendu"
+        assert rec0["n_vehicles"] == 26, f"26 entrées attendues, reçu {rec0['n_vehicles']}"
+        assert rec0["primary_vehicles"] == 21, f"21 pilotables attendus, reçu {rec0['primary_vehicles']}"
+        assert rec0["n_stations"] == 24, f"24 gares attendues, reçu {rec0['n_stations']}"
+
+    # 2. Test fail-closed sur chunks manquants / invalides
+    corrupt_chunks = {"VEHS": None, "STNN": None, "PLYR": {0: {"old_economy": []}}}
+    rec_bad = extract_company_record(corrupt_chunks, 0, ["OpexAI", 99, 0], "1970-12-01")
+    assert rec_bad["vehs_chunk_valid"] is False, "VEHS None doit être invalide"
+    assert rec_bad["stnn_chunk_valid"] is False, "STNN None doit être invalide"
+    assert rec_bad["n_vehicles"] is None, "n_vehicles doit être None sur chunk invalide"
+    assert rec_bad["primary_vehicles"] is None, "primary_vehicles doit être None sur chunk invalide"
+    assert rec_bad["n_stations"] is None, "n_stations doit être None sur chunk invalide"
+
+    # 3. Test summarise sur row corrompue
+    summary = summarise([rec_bad])
+    assert len(summary) == 1
+    s0 = summary[0]
+    assert s0["run_ok"] is False, "Le run doit être marqué en échec (run_ok=False)"
+    assert s0["physical_ok"] is False, "physical_ok doit être False"
+    assert "physical_decode_failure" in s0["failure_reason"], f"failure_reason attendu, reçu: {s0['failure_reason']}"
+    assert s0["n_vehicles"] is None, "n_vehicles doit rester None dans summary"
+    print("Selftest bench_1v1_5y_20seeds.py réussi avec succès !")
 
 
 if __name__ == "__main__":

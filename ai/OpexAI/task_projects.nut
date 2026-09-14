@@ -1,4 +1,25 @@
 /* C65 : deplace depuis main.nut (passe 1, deplacement pur, aucun corps retouche). */
+function OpexAI::_c63RecordPassAndProbe(builtCount, best, passDiscards, railSearching)
+{
+  if (!C63_INVEST_PROBE) return;
+  OpexC63NotePass(builtCount, best, passDiscards, railSearching, this._projects);
+  local kind = (C63_INVEST_LEDGER != null) ? C63_INVEST_LEDGER.lastKind : "";
+  local emptyNow = (kind == "absent" || kind == "unaffordable");
+  if (emptyNow && this._projects != null) {
+    local curDate = AIDate.GetCurrentDate();
+    local curMonth = AIDate.GetYear(curDate) * 12 + AIDate.GetMonth(curDate);
+    if (this._lastBestCount > 0 || curMonth != this._lastEmptyProbeMonth) {
+      this._lastEmptyProbeMonth = curMonth;
+      local stage = ("generationStage" in this._projects && this._projects.generationStage != null)
+          ? this._projects.generationStage : this._generationStage;
+      local cargo = ("freightCargo" in this._projects && this._projects.freightCargo != null)
+          ? this._projects.freightCargo : -1;
+      OpexC63RecordEmptyProbe(this._projects, stage, cargo, this._abandonedPairs);
+    }
+  }
+  this._lastBestCount = emptyNow ? 0 : 1;
+}
+
 /* C42 : Purge immediate d'un projet de subvention devenu invalide dans this._projects */
 function OpexAI::_purgeSubsidyFromProjects(subId)
 {
@@ -59,7 +80,7 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
   }
   local plannedFull = ("capital" in project && project.capital > 0)
       ? project.capital : (entry.planePrice * entry.want);
-  local costs = AIAccounting();
+  local costs = C63_INVEST_PROBE ? AIAccounting() : null;
   local added = 0;
   for (local k = 0; k < entry.want; k++) {
     local grown = OpexAirAddPlane(line);
@@ -70,7 +91,7 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
     line.trains = haveNow;
     if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < need) break;
   }
-  local actual = costs.GetCosts();
+  local actual = (costs != null) ? costs.GetCosts() : 0;
   if (added <= 0) {
     if (C63_INVEST_PROBE) {
       OpexC63RecordSpend("fleet", plannedFull, actual, false);
@@ -312,7 +333,7 @@ function OpexAI::_tryBuildProjects(year)
           c48BuiltThisPass, c48BestLen, c48MaxRank);
     }
     if (C49_SCARCITY_LEDGER) this._recordC49ScarcityPass(c49Best, c49BuiltRanks, c49AttemptedRanks, passDiscards);
-    if (C63_INVEST_PROBE) OpexC63NotePass(0, c49Best, passDiscards, true);
+    if (C63_INVEST_PROBE) this._c63RecordPassAndProbe(0, c49Best, passDiscards, true);
     return true;
   }
   if (RAIL_SEARCH_RESUMABLE && this._railSearch != null &&
@@ -325,7 +346,7 @@ function OpexAI::_tryBuildProjects(year)
             c48BuiltThisPass, c48BestLen, c48MaxRank);
       }
       if (C49_SCARCITY_LEDGER) this._recordC49ScarcityPass(c49Best, c49BuiltRanks, c49AttemptedRanks, passDiscards);
-      if (C63_INVEST_PROBE) OpexC63NotePass(0, c49Best, passDiscards, false);
+      if (C63_INVEST_PROBE) this._c63RecordPassAndProbe(0, c49Best, passDiscards, false);
       return true;
     }
     if (outcome != "cash") {
@@ -623,7 +644,7 @@ function OpexAI::_tryBuildProjects(year)
         if (C49_SCARCITY_LEDGER) this._recordC49ScarcityPass(c49Best, c49BuiltRanks, c49AttemptedRanks, passDiscards);
         if (C63_INVEST_PROBE) {
           local railSearching = this._railSearch != null && this._railSearch.phase == "search";
-          OpexC63NotePass(builtCount, c49Best, passDiscards, railSearching);
+          this._c63RecordPassAndProbe(builtCount, c49Best, passDiscards, railSearching);
         }
         return true;
       }
@@ -730,7 +751,7 @@ function OpexAI::_tryBuildProjects(year)
   if (C49_SCARCITY_LEDGER) this._recordC49ScarcityPass(c49Best, c49BuiltRanks, c49AttemptedRanks, passDiscards);
   if (C63_INVEST_PROBE) {
     local railSearching = this._railSearch != null && this._railSearch.phase == "search";
-    OpexC63NotePass(builtCount, c49Best, passDiscards, railSearching);
+    this._c63RecordPassAndProbe(builtCount, c49Best, passDiscards, railSearching);
   }
 
   /* G4§1 : l'ancien chemin deduisait hadAbandons de passDiscards, dont le remplissage
