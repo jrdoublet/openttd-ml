@@ -214,8 +214,17 @@ def write_engine_log(path, output):
     return str(path)
 
 
-def engine_log_path_for(log_dir, seed, repeat=0):
-    return Path(log_dir) / f"seed{seed}_r{repeat}.log"
+def engine_log_path_for(log_dir, seed, repeat=0, policy_id=None):
+    """Chemin de journal unique par partie.
+
+    C66.4 exécute deux duels distincts pour une même graine/répétition. Le policy_id
+    devient donc une dimension de l'identité du jeu ; il est nettoyé uniquement pour
+    fabriquer un nom de fichier portable.
+    """
+    if policy_id is None:
+        return Path(log_dir) / f"seed{seed}_r{repeat}.log"
+    safe_policy = re.sub(r"[^A-Za-z0-9_.-]+", "_", str(policy_id)).strip("._-") or "policy"
+    return Path(log_dir) / f"{safe_policy}_seed{seed}_r{repeat}.log"
 
 
 def _marker_in(text):

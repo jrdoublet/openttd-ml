@@ -40,6 +40,7 @@ function OpexAI::_recordMonthlyFunnelPass(builtCount, best, passDiscards, attemp
   }
   local rejectFields = "";
   local cashRejects = 0;
+  local rejectDetails = {};
   if (passDiscards != null) {
     local counts = {};
     for (local k = 0; k < passDiscards.len(); k++) {
@@ -48,8 +49,58 @@ function OpexAI::_recordMonthlyFunnelPass(builtCount, best, passDiscards, attemp
       if (reason in counts) counts[reason]++;
       else counts[reason] <- 1;
       if (reason == "insufficient_cash" || reason == "cash_at_build") cashRejects++;
+      if ((reason == "build_failed" || reason == "plan_failed")
+          && ("detail" in passDiscards[k]) && passDiscards[k].detail != null
+          && passDiscards[k].detail != "") {
+        local mode = ("mode" in passDiscards[k]) ? passDiscards[k].mode : "unknown";
+        local detailKey = reason + "_" + mode + "_" + passDiscards[k].detail;
+        if (detailKey in rejectDetails) rejectDetails[detailKey]++;
+        else rejectDetails[detailKey] <- 1;
+      }
+      if (reason == "build_failed" && ("error" in passDiscards[k])
+          && passDiscards[k].error != null && passDiscards[k].error != 0) {
+        local mode = ("mode" in passDiscards[k]) ? passDiscards[k].mode : "unknown";
+        local errorKey = "build_error_" + mode + "_" + passDiscards[k].error;
+        if (errorKey in rejectDetails) rejectDetails[errorKey]++;
+        else rejectDetails[errorKey] <- 1;
+        /* C63/C58 : en duel partage, 771 == ERR_STATION_TOO_MANY_STATIONS_IN_TOWN.
+         * Pour l'air, OpenTTD rattache la limite a la ville la plus proche de l'ANCRE physique
+         * de l'aeroport, pas necessairement a la ville cible du plan. task_air calcule donc
+         * error_town depuis siteA/siteB.anchor. Sonde pure, sous MONTHLY_FUNNEL. */
+        if (mode == "air" && passDiscards[k].error == AIStation.ERR_STATION_TOO_MANY_STATIONS_IN_TOWN
+            && ("detail" in passDiscards[k])) {
+          local ownAirports = ("error_own_airports" in passDiscards[k])
+              ? passDiscards[k].error_own_airports : -1;
+          if (ownAirports >= 0) {
+            local ownKey = "build_error_air_own_airports_" + ownAirports;
+            if (ownKey in rejectDetails) rejectDetails[ownKey]++;
+            else rejectDetails[ownKey] <- 1;
+          }
+          local townTile = null;
+          if (passDiscards[k].detail == "AFAIL" || passDiscards[k].detail == "PREA") {
+            townTile = passDiscards[k].src;
+          } else if (passDiscards[k].detail == "BFAIL" || passDiscards[k].detail == "PREB") {
+            townTile = passDiscards[k].dst;
+          }
+          if (townTile != null) {
+            local townKey = "build_error_air_town_limit_" + townTile;
+            if (townKey in rejectDetails) rejectDetails[townKey]++;
+            else rejectDetails[townKey] <- 1;
+            local townId = ("error_town" in passDiscards[k]) ? passDiscards[k].error_town : -1;
+            if (townId < 0) townId = AITile.GetClosestTown(townTile);
+            if (townId >= 0) {
+              local townIdKey = "build_error_air_town_id_" + townId;
+              if (townIdKey in rejectDetails) rejectDetails[townIdKey]++;
+              else rejectDetails[townIdKey] <- 1;
+            }
+          }
+        }
+      }
     }
     foreach (reason, n in counts) {
+      rejectFields += " r_" + reason + "=" + n;
+    }
+    foreach (reason, n in rejectDetails) {
       rejectFields += " r_" + reason + "=" + n;
     }
   }

@@ -3,14 +3,23 @@
  * A plane/order/cash failure must not poison either endpoint. */
 function OpexAI::_markAirFailedSites(plan, result)
 {
-  if (!AIR_ABANDON_SITE || plan == null || result == null || !("reason" in result)) return;
+  if ((!AIR_ABANDON_SITE && !AIR_TOWN_LIMIT_MEMORY) || plan == null || result == null || !("reason" in result)) return;
   if (!("airport" in plan) || plan.airport == null || !("error" in result)) return;
+  local reason = result.reason;
+  if (AIR_TOWN_LIMIT_MEMORY && result.error == AIStation.ERR_STATION_TOO_MANY_STATIONS_IN_TOWN) {
+    if ((reason == "PREA" || reason == "AFAIL") && ("siteA" in plan) && plan.siteA != null) {
+      this._markPairAbandoned(OpexAirTownLimitAbandonKey(plan.siteA));
+    }
+    if ((reason == "PREB" || reason == "BFAIL") && ("siteB" in plan) && plan.siteB != null) {
+      this._markPairAbandoned(OpexAirTownLimitAbandonKey(plan.siteB));
+    }
+  }
+  if (!AIR_ABANDON_SITE) return;
   /* Only terrain failures survive a different route, date or town rating. */
   if (result.error != AIError.ERR_FLAT_LAND_REQUIRED
       && result.error != AIError.ERR_LAND_SLOPED_WRONG
       && result.error != AIError.ERR_AREA_NOT_CLEAR
       && result.error != AIError.ERR_SITE_UNSUITABLE) return;
-  local reason = result.reason;
   if ((reason == "PREA" || reason == "AFAIL") && ("siteA" in plan) && plan.siteA != null) {
     this._markPairAbandoned(OpexAirSiteAbandonKey(plan.siteA, plan.airport.type));
   }
@@ -354,7 +363,11 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
       local abandonedKey = "air|" + plan.siteA.town.tile + "|" + plan.siteB.town.tile;
       local abandonedSiteA = OpexAirSiteAbandonKey(plan.siteA, plan.airport.type);
       local abandonedSiteB = OpexAirSiteAbandonKey(plan.siteB, plan.airport.type);
+      local abandonedTownA = OpexAirTownLimitAbandonKey(plan.siteA);
+      local abandonedTownB = OpexAirTownLimitAbandonKey(plan.siteB);
       if (ABANDON_MEMORY && ((abandonedKey in this._abandonedPairs)
+          || (AIR_TOWN_LIMIT_MEMORY && ((!(("reuseA" in plan) && plan.reuseA) && (abandonedTownA in this._abandonedPairs))
+              || (!(("reuseB" in plan) && plan.reuseB) && (abandonedTownB in this._abandonedPairs))))
           || (AIR_ABANDON_SITE && ((abandonedSiteA in this._abandonedPairs)
               || (abandonedSiteB in this._abandonedPairs))))) {
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "abandoned_pair", extra = "" });
@@ -376,6 +389,28 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
       }
 
       OpexSign(anchor, "IP|" + yy + "|A|" + project.budgetScore + "|" + project.opcodeScore);
+      if (AIR_EARLY_SLOT && ("earlySlotBonusPct" in project) && project.earlySlotBonusPct > 0) {
+        local earlyTownA = ("earlySlotTownA" in project) ? project.earlySlotTownA : townAId;
+        local earlyTownB = ("earlySlotTownB" in project) ? project.earlySlotTownB : townBId;
+        OpexSign(anchor, "SK|" + yy + "|" + earlyTownA + "|" + earlyTownB + "|"
+                         + project.earlySlotBonusPct);
+        if (DECISION_LOG) {
+          local earlyScoreKey = (TENSION_SCORING || SHADOW_PRICING) ? "tensionScore" : "fundScore";
+          local earlyBaseScore = project[earlyScoreKey];
+          local earlyBoostedScore = OpexProjectSelectionScore(project, earlyScoreKey);
+          local popA = ("earlySlotPopA" in project) ? project.earlySlotPopA : -1;
+          local popB = ("earlySlotPopB" in project) ? project.earlySlotPopB : -1;
+          OpexDecide("EARLY_SLOT_SELECT", "town_a=" + earlyTownA + " pop_a=" + popA
+                     + " town_b=" + earlyTownB + " pop_b=" + popB
+                     + " claims=" + project.earlySlotClaims
+                     + " bonus_claims=" + project.earlySlotBonusClaims
+                     + " secured_before=" + project.earlySlotServedBefore
+                     + " target=" + AIR_EARLY_SLOT_TARGET_TOWNS
+                     + " bonus_pct=" + project.earlySlotBonusPct
+                     + " base_score=" + earlyBaseScore
+                     + " boosted_score=" + earlyBoostedScore);
+        }
+      }
 
       local planOps = ("planningOpcodes" in project) ? project.planningOpcodes : 0;
       local result = OpexBuildAirRoute(this._catalog, this._budget, plan);
@@ -389,7 +424,28 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
                                + (result.ok ? result.vehicles.len() : 0));
       }
       if (!result.ok) {
-        if (C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "build_failed", extra = "" });
+        local errorAnchor = null;
+        if ((result.reason == "PREA" || result.reason == "AFAIL") && plan.siteA != null) {
+          errorAnchor = plan.siteA.anchor;
+        } else if ((result.reason == "PREB" || result.reason == "BFAIL") && plan.siteB != null) {
+          errorAnchor = plan.siteB.anchor;
+        }
+        local errorTown = (errorAnchor != null && AIMap.IsValidTile(errorAnchor))
+            ? AITile.GetClosestTown(errorAnchor) : -1;
+        local errorOwnAirports = -1;
+        if (result.error == AIStation.ERR_STATION_TOO_MANY_STATIONS_IN_TOWN && errorTown >= 0
+            && (C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL)) {
+          local ownAirports = AIStationList(AIStation.STATION_AIRPORT);
+          ownAirports.Valuate(AIStation.GetNearestTown);
+          ownAirports.KeepValue(errorTown);
+          errorOwnAirports = ownAirports.Count();
+        }
+        if (C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({
+          rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile,
+          reason = "build_failed", detail = result.reason, error = result.error,
+          error_anchor = errorAnchor, error_town = errorTown,
+          error_own_airports = errorOwnAirports, extra = ""
+        });
         if (DECISION_LOG) {
           OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=air src=" + plan.siteA.town.tile + " dst=" + plan.siteB.town.tile + " reason=build_failed detail=" + result.reason + " error=" + result.error + " error_text=" + result.errorText);
         }
@@ -441,6 +497,22 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
                          + plan.capital + "|" + (("hubRoutes" in plan) ? plan.hubRoutes : 0));
         OpexSign(anchor, "PM|" + this._nextLineId + "|A|" + plan.distance + "|"
                          + AICargo.GetCargoLabel(this._catalog.paxCargo));
+        if (AIR_EARLY_SLOT && ("earlySlotBonusPct" in project) && project.earlySlotBonusPct > 0) {
+          local earlyTownA = ("earlySlotTownA" in project) ? project.earlySlotTownA : townAId;
+          local earlyTownB = ("earlySlotTownB" in project) ? project.earlySlotTownB : townBId;
+          OpexSign(anchor, "SB|" + yy + "|" + earlyTownA + "|" + earlyTownB + "|"
+                           + project.earlySlotClaims);
+          if (DECISION_LOG) {
+            OpexDecide("EARLY_SLOT_BUILD", "line=" + this._nextLineId
+                       + " town_a=" + earlyTownA + " town_b=" + earlyTownB
+                       + " claims=" + project.earlySlotClaims
+                       + " bonus_claims=" + project.earlySlotBonusClaims
+                       + " secured_before=" + project.earlySlotServedBefore
+                       + " secured_after=" + (project.earlySlotServedBefore + project.earlySlotClaims)
+                       + " target=" + AIR_EARLY_SLOT_TARGET_TOWNS
+                       + " bonus_pct=" + project.earlySlotBonusPct);
+          }
+        }
         this._nextLineId++;
         return { outcome = "built", discards = passDiscards };
       }

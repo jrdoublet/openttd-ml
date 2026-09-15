@@ -190,7 +190,10 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
       local plan = planning.plan;
       local idx = this._nextLineId;
       if (plan == null) {
-        if (C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "plan_failed", extra = "" });
+        if (C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({
+          rank = i, mode = "road", src = candidate.src, dst = candidate.dst,
+          reason = "plan_failed", detail = planning.reason, extra = ""
+        });
         if (DECISION_LOG) {
           OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=road src=" + candidate.src + " dst=" + candidate.dst + " reason=plan_failed detail=" + planning.reason);
         }
@@ -275,7 +278,10 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
                                + "|" + (result.ok ? result.vehicles.len() : 0));
       }
       if (!result.ok) {
-        if (C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "build_failed", extra = "" });
+        if (C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({
+          rank = i, mode = "road", src = candidate.src, dst = candidate.dst,
+          reason = "build_failed", detail = result.reason, error = result.error, extra = ""
+        });
         if (DECISION_LOG) {
           OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=road src=" + candidate.src + " dst=" + candidate.dst + " reason=build_failed detail=" + result.reason + " error=" + result.error);
         }

@@ -1301,6 +1301,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "feeder_mail_strict_orders",
+      description = "Mail feeder orders: 1 = city no-unload + hub transfer/no-load (default), 0 = legacy orders for causal benchmark",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "air_max_distance",
       description = "Plafond de distance pour les liaisons aeriennes (0 = illimite/defaut, docs/taches.md C6)",
       min_value = 0, max_value = 1000,
@@ -2444,6 +2452,18 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
+    /* C63/C58 (2026-09-15) : en duel partage, ERR_STATION_TOO_MANY_STATIONS_IN_TOWN domine
+     * les echecs aeriens et les memes villes sont retentees des dizaines de fois. Ce reglage
+     * memorise uniquement cette impossibilite au niveau ville avec le cooldown/backoff commun.
+     * Defaut 0 jusqu'au banc causal C66.4. */
+    AddSetting({
+      name = "air_town_limit_memory",
+      description = "Experimental: after ERR_STATION_TOO_MANY_STATIONS_IN_TOWN, temporarily exclude new airports in that town using abandon cooldown/backoff; 1 = enabled, 0 = default",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     AddSetting({
       name = "air_margin",
       description = "Air authority margin applied per plan inside fleet sizing instead of shaving the global budget: 1 = per plan (default, adopted at bench as neutral-and-correct), 0 = historical",
@@ -2474,6 +2494,62 @@ Le mode route est donc reconfirme sur l arbre courant.
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "air_joined_stop_limit",
+      description = "Maximum bus-stop pieces directly joined to each airport station: 2 = current C33.2 behavior (default), 1 = causal split test with remaining urban coverage delegated to real feeder stations",
+      min_value = 0, max_value = 2,
+      easy_value = 2, medium_value = 2, hard_value = 2,
+      custom_value = 2,
+      step_size = 1,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "air_split_feeder_test",
+      description = "Causal airport-town test: restrict new feeders to the airport's own town and bypass only the airport-overlap rejection so one distinct urban feeder station can run; 0 = off/default, 1 = test arm",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "air_early_slot",
+      description = "Experimental early-slot policy: prioritize profitable air projects that claim first airport slots in large towns before competitors can lock both slots; 0 = off/default, 1 = enabled",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "air_early_slot_target_towns",
+      description = "Early-slot target: number of distinct large towns to secure with an Opex airport before the priority bonus stops",
+      min_value = 1, max_value = 16,
+      easy_value = 6, medium_value = 6, hard_value = 6,
+      custom_value = 6,
+      step_size = 1,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "air_early_slot_min_pop",
+      description = "Early-slot minimum town population for a new airport endpoint to receive the priority bonus",
+      min_value = 0, max_value = 10000,
+      easy_value = 1000, medium_value = 1000, hard_value = 1000,
+      custom_value = 1000,
+      step_size = 100,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "air_early_slot_bonus_pct",
+      description = "Early-slot selection-score bonus per newly claimed qualifying town (percent, applied only to project ranking, never to predicted economics)",
+      min_value = 0, max_value = 200,
+      easy_value = 50, medium_value = 50, hard_value = 50,
+      custom_value = 50,
+      step_size = 10,
+      flags = 0
     });
 
     AddSetting({

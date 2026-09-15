@@ -327,11 +327,14 @@ function OpexAI::_tryBuildMailFeeder(candidate, paxResult, year)
     return false;
   }
 
-  // 5. Ordres : ramassage ville (OF_NONE) -> dechargement transfert hub (OF_TRANSFER)
+  // 5. Ordres courrier : meme sens strict que le bus feeder, ville -> hub.
   local nonstopFlag = C53_ORDER_NONSTOP ? AIOrder.OF_NON_STOP_INTERMEDIATE : 0;
-  local noloadFlag = C53_ORDER_NOLOAD ? AIOrder.OF_NO_LOAD : 0;
-  local orderA = AIOrder.AppendOrder(truck, mailStopA.tile, AIOrder.OF_NONE | nonstopFlag);
-  local orderB = AIOrder.AppendOrder(truck, mailStopB.tile, AIOrder.OF_TRANSFER | noloadFlag | nonstopFlag);
+  local sourceFlags = (FEEDER_MAIL_STRICT_ORDERS ? AIOrder.OF_NO_UNLOAD : AIOrder.OF_NONE) | nonstopFlag;
+  local destFlags = AIOrder.OF_TRANSFER
+      | (FEEDER_MAIL_STRICT_ORDERS ? AIOrder.OF_NO_LOAD : (C53_ORDER_NOLOAD ? AIOrder.OF_NO_LOAD : 0))
+      | nonstopFlag;
+  local orderA = AIOrder.AppendOrder(truck, mailStopA.tile, sourceFlags);
+  local orderB = AIOrder.AppendOrder(truck, mailStopB.tile, destFlags);
   if (!orderA || !orderB || AIOrder.GetOrderCount(truck) != 2) {
     AIVehicle.SellVehicle(truck);
     OpexMailRollbackStops(mailStopA, mailStopB);

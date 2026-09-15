@@ -218,24 +218,51 @@ positifs de santé.
 
 ### C66.3 — Figer une référence réellement reproductible
 
-- ⬜ Créer un manifeste contenant : SHA Git, état modifié, empreinte et copie isolée des sources
+- ☑ Créer un manifeste contenant : SHA Git, état modifié, empreinte et copie isolée des sources
   effectivement exécutées, version/empreinte d'AAAHogEx et des bibliothèques, versions
   OpenTTD/OpenGFX/OpenTTDLab et image Docker, configuration effective, réglages IA explicites
   **et défauts**, année initiale, durée, graines, répétitions et places des compagnies.
-- ⬜ Figer les sources **avant** de lancer les parties ; les modifications de l'arbre de travail
+- ☑ Figer les sources **avant** de lancer les parties ; les modifications de l'arbre de travail
   pendant le banc ne doivent pas contaminer les graines suivantes. C65 illustre pourquoi un
   SHA sans le contenu modifié ne suffit pas à décrire le programme exécuté.
-- ⬜ Identifier séparément la politique testée, la compagnie et la partie : par exemple
+- ☑ Identifier séparément la politique testée, la compagnie et la partie : par exemple
   `(campaign, policy, seed, repeat, company_slot)`. Les noms « OpexAI » et « AAAHogEx » ne sont
   pas les deux variantes de stratégie. Refuser les paires dont les configurations diffèrent
   sur autre chose que l'intervention annoncée.
-- ⬜ Conserver résultats compacts, checkpoints, manifeste, logs uniques et fixtures de décodage.
+- ☑ Conserver résultats compacts, checkpoints, manifeste, logs uniques et fixtures de décodage.
   Sorties sous un nom de campagne nouveau ; ne pas écraser la référence 20×5 ni ses JSONL.
   Les empreintes servent à relier une mesure à son code, pas à affirmer l'équivalence de deux codes.
 
 **Preuve attendue :** deux relances courtes de la même référence isolée produisent les mêmes
 métriques aux mêmes checkpoints. Si elles divergent, documenter et traiter la source de variation
 avant d'attribuer une petite différence à une stratégie ; ne pas sélectionner la meilleure relance.
+
+**Preuve réalisée le 2026-09-15.** Le gel est implémenté dans
+`sweeps/campaign_freeze.py`, le lancement hôte dans `sweeps/run_c66_reference.py` et le banc
+`sweeps/bench_1v1_5y_20seeds.py` exécute les copies gelées d'OpexAI/AAAHogEx et les archives
+BaNaNaS gelées. Les campagnes finales de preuve sont `c66_3_repro_a2` et `c66_3_repro_b2`
+(`results/*.json`, `*.jsonl`, `*.manifest.json`, bundles et logs dédiés). Les essais `a/b`
+antérieurs sont conservés mais sont supersédés par `a2/b2`, qui incluent aussi les limites
+Docker dans le manifeste.
+
+- Git : `96e52817e140f67fa5026c34c907ca20f92be130`, arbre modifié explicitement enregistré.
+- Bundle source commun : `7e48a62b6fc47e5b60ed412f25c4f2a49c5457d9c2c2a3bf8cf663f54541417f`.
+- Manifestes : A2 `3603cf10790fd69071f0fb0614ef7fce21cfd8f59429988c81bcd4ae38dd3397`,
+  B2 `7a9abb72d345982a16eee7008cf339fb51f08855f626947ded06330146871120` ; leur SHA diffère
+  normalement car les identifiants/chemins de campagne diffèrent, tandis que Git, runtime,
+  versions, configuration, politique, adversaire, slots, sources et bibliothèques sont identiques.
+- Runtime : OpenTTD 15.3, OpenGFX 7.1, OpenTTDLab 0.0.75, image `openttd-lab`
+  `sha256:f4b2b9b3b7399cbfecacfe03b3b8dda49bff2921de36a61fed4e9441e5d44659`,
+  test local à 6 CPU / 2 Gio / swap 2 Gio. Le lanceur garde 3 CPU par défaut pour le profil VPS.
+- Bibliothèques gelées : Queue.FibonacciHeap v3
+  `c3c80ad59a0cf43b67a7d769484ba10f316b7a0b4a83a28efe5ce82e96066c9b`, Pathfinder.Rail v1
+  `e3ab05b1811c1a57abb4219480f0fffa885efff6be42691c836ec144ab7f8b13`, Graph.AyStar v4
+  `cfc09cdd5877800d57e490832b65cf028db16aef4f1906eb1d625f908ebc49f1` et Queue.BinaryHeap v1
+  `a83eb5002b1246330dfc467dbd1076687d227156a697cc140f6d04515cf3bb67`.
+- Reproductibilité : 26/26 checkpoints identiques après retrait des seuls `campaign_id`,
+  `game_id` et `engine_log_path`; résumés normalisés identiques, comparaisons appariées identiques,
+  `run_ok=true` et `game_ok=true` pour les deux compagnies des deux campagnes, aucun `failed_run`,
+  checkpoint attendu `1970-12-01` atteint. Aucune relance n'a été sélectionnée sur ses performances.
 
 ### C66.4 — Comparer deux politiques, chacune contre le même adversaire
 
@@ -252,34 +279,142 @@ c'est une conséquence du duel, pas un défaut d'appariement. Ne pas comparer de
 ensemble, ni la variante seule à une référence jouant contre AAAHogEx. Garder les places fixes
 pour le premier protocole ; une inversion des places serait un bloc de robustesse distinct.
 
-- ⬜ Fixer avant le banc la métrique primaire — **proposition : profit annuel final d'OpexAI** —,
+- ☑ Fixer avant le banc la métrique primaire — **proposition : profit annuel final d'OpexAI** —,
   l'effet minimal utile et le garde-fou sur la valeur. Conserver les trajectoires annuelles,
   notamment 1970–1972, pour distinguer gain précoce et destruction de croissance à long terme.
-- ⬜ Rapporter deux comparaisons différentes : `Opex_variante − Opex_témoin` sur chaque graine,
+- ☑ Rapporter deux comparaisons différentes : `Opex_variante − Opex_témoin` sur chaque graine,
   puis l'écart `Opex − AAAHogEx` dans chacune des deux parties et son évolution. Une réduction
   du retard obtenue seulement en dégradant les deux compagnies n'est pas un gain économique
   d'OpexAI. Rapporter aussi les victoires directes contre AAAHogEx.
-- ⬜ Publier deltas par graine, moyenne et médiane **des deltas**, intervalle d'incertitude,
+- ☑ Publier deltas par graine, moyenne et médiane **des deltas**, intervalle d'incertitude,
   V/D/égalités et test des signes excluant les égalités. Les ratios demandent un dénominateur
   positif et doivent distinguer rapport de moyennes et moyenne des rapports.
-- ⬜ Garder toutes les graines prévues et tous les statuts. Les erreurs de collecte doivent
+- ☑ Garder toutes les graines prévues et tous les statuts. Les erreurs de collecte doivent
   être résolues ou rendre la comparaison incomplète ; ne pas recalculer discrètement le verdict
   sur les seules réussites. Les analyses par mode, richesse ou déclenchement restent secondaires.
 
+**Preuve du harnais réalisée le 2026-09-15.** `bench_1v1_5y_20seeds.py` accepte désormais une
+variante au format déjà validé par `bench_v2.py` (`OpexAI[cle=valeur]`) et construit, pour chaque
+`(seed, repeat)`, deux parties séparées : référence vs AAAHogEx et variante vs le même AAAHogEx
+gelé. Le plan est validé avant `run_experiments` : graine, répétition, durée, configuration,
+campagne, bundle, slots et descripteur AAAHogEx doivent être identiques ; seuls le descripteur
+OpexAI, `policy_id` et `game_id` peuvent différer. Les logs incluent désormais la politique pour
+éviter toute collision.
+
+Le rapport `policy_comparison` conserve chaque paire et ses quatre statuts, les trajectoires
+annuelles, `variante - référence`, les deux écarts `OpexAI - AAAHogEx` et leur évolution. Les
+agrégats publient moyenne/médiane des deltas, erreur standard et IC normal 95 % lorsque `n > 1`,
+V/D/égalités, test binomial exact des signes hors égalités, ainsi que rapport de moyennes et
+moyenne des rapports en excluant les dénominateurs non positifs. Si une partie prévue manque,
+échoue ou ne fournit pas les métriques de décision pour l'une des quatre lignes, le verdict reste
+`incomplete` même si les autres paires sont exploitables à titre diagnostique.
+
+Smoke final : `results/c66_4_smoke_air_presite_v3.json`, graine 42, 1 an, variante
+`air_presite=1` contre défaut 0. Bundle
+`4d72bcbf53fdca5816bdbc5b8d660ace02b5d26846116b14c82d688cedabb6ec`, manifeste
+`409910194b6b84791cb0d33ee782af44b7babb3a6cf53bb1288340fa7528f1b9`, image
+`openttd-lab:latest` `sha256:f4b2b9b3b7399cbfecacfe03b3b8dda49bff2921de36a61fed4e9441e5d44659`.
+Les 2/2 parties et 4/4 lignes sont `run_ok=true`, `game_ok=true`, sans `failed_run`, avec deux
+`game_id` et deux logs distincts. Le manifeste confirme que la seule différence effective est
+`air_presite: 0 -> 1`. Sur ce smoke, le profit annuel OpexAI vaut 185451 (référence) contre
+190217 (variante), delta +4766 ; l'écart au profit AAAHogEx passe de -158466 à -108129, soit
++50337, tandis que le profit AAAHogEx change aussi entre les deux parties comme attendu dans un
+duel interactif. Le `pass` de ce smoke utilise volontairement `min_useful_primary_delta=0` et
+`value_guard_max_loss_pct=100` : il valide le protocole, **pas** l'intérêt économique de
+`air_presite=1`. Toute campagne causale officielle devra pré-enregistrer des seuils substantifs.
+
 ### C66.5 — Validation progressive et critères de clôture
 
-1. ⬜ **Hors jeu :** fixtures des compteurs, erreurs par compagnie, horizon, appariement et calculs
+1. ☑ **Hors jeu :** fixtures des compteurs, erreurs par compagnie, horizon, appariement et calculs
    statistiques ; vérifier aussi qu'un réglage inconnu est rejeté et qu'une erreur interrompt
    proprement le rapport de validation sans effacer les résultats.
-2. ⬜ **Smoke 1 graine × 1 an :** le duel démarre, les deux compagnies et leurs métriques sont
+2. ☑ **Smoke 1 graine × 1 an :** le duel démarre, les deux compagnies et leurs métriques sont
    présentes. Les scénarios physiques manquants sont qualifiés séparément ; un smoke sans train
    ne valide pas le compteur des trains. Conserver le tuple de dictionnaires retourné par `keep`.
-3. ⬜ **Contrôle de répétabilité court**, puis **diagnostic 5 graines × 6 ans** sur référence figée.
+3. ☑ **Contrôle de répétabilité court**, puis **diagnostic 5 graines × 6 ans** sur référence figée.
    Ce diagnostic peut être partagé avec C63/C58 pour éviter une campagne supplémentaire ;
    distinguer sa télémétrie instrumentée du résultat économique sans sonde lourde.
 4. ⬜ **Banc officiel 20 graines × 10 ans** quand une variante causale est prête : 40 parties
    partagées au total, chacune avec deux compagnies, soit 20 paires de politiques. Il valide
    l'intervention ; un nouveau 20×10 sans variante n'est pas requis pour clore le harnais.
+
+**Validation C66.5 réalisée le 2026-09-15.** La couche hors-jeu passe intégralement :
+`test_physical_counters.py` = 7/7 tests, `test_game_health.py` = 20/20 tests, puis selftest du
+harnais. Elle couvre la confrontation indépendante chunks/API NoAI des compteurs, erreurs NoAI
+attribuées par compagnie, erreur ambiguë non attribuée, crash/timeout moteur, compagnie absente,
+doublon de checkpoint, horizon décembre, faillite économique, appariement C66.4, calculs de
+deltas/ratios/test des signes, rejet d'un réglage inconnu et conservation du JSON écrit avant un
+`SystemExit` de validation.
+
+Smoke final de référence : `results/c66_5_smoke_reference_v1.json`, graine 42, 1 an. Les deux
+compagnies sont `complete`, `run_ok=true`, `game_ok=true`, horizon `1970-12-01`, aucun
+`failed_run`. OpexAI possède au dernier état 1 train, 25 véhicules routiers et 4 avions ; la
+fixture/qualification physique couvre donc rail/route/air sur OpenTTD 15.3. L'eau reste
+explicitement **non qualifiée** (`water=false`) et ne doit pas être présentée comme validée.
+
+Contrôle de répétabilité final : `c66_5_smoke_reference_v1` et
+`c66_5_smoke_reference_v2` utilisent le même bundle
+`bac767e10fa6008668a5da5064e41d143057fda6683a57e781926d1ccec6c238`. Les 26/26 checkpoints
+normalisés sont identiques (0 différence après retrait de `campaign_id`, `game_id` et chemin de
+log), de même que les résumés. Manifestes : v1
+`86d32c6f561ef05e1b9f3765c111908264dcd1ded612d8765f526a70e22b30f6`, v2
+`23d2546310f1a7e1d02e7636fa2be01b7287cdd6ed748a0b5b23e04f1b06d403`.
+
+Diagnostic de référence : `results/c66_5_diag_reference_6y_5seeds.json`, 6 ans, graines
+**42, 100, 999, 1234, 5678**, soit le même échantillon que C63/C58. Bundle identique au smoke,
+manifeste `efbe10f4eeda177f863118da281e2b15abc3ca16d03f300a7e35f176225add32`. Les 5/5 parties et
+10/10 lignes sont `complete`, `run_ok=true`, `game_ok=true`, toutes `active`, horizon attendu
+`1975-12-01`, 0 `failed_run`, 0 erreur de script/non attribuée, 0 véhicule non classé et compteurs
+physiques valides. Rail/route/air sont qualifiés ; eau reste non qualifiée.
+
+À 6 ans, cette **référence sans sonde lourde** reste très derrière AAAHogEx : moyenne OpexAI
+2 532 412 £ de valeur et 737 824 £ de profit annuel contre 12 243 227 £ et 5 354 521 £ pour
+AAAHogEx. Les écarts appariés moyens sont -79,32 % sur `company_value`, -86,22 % sur
+`profit_year`, -40,42 % sur le score et -16,52 % sur la note médiane de gare ; OpexAI ne gagne
+aucune des 5 graines sur ces quatre métriques. Ce diagnostic qualifie la référence et le harnais,
+il ne valide aucune nouvelle stratégie.
+
+Le point 4 reste volontairement **en attente** : aucune variante causale avec seuils substantifs
+pré-enregistrés n'est prête. Conformément au contrat ci-dessus, un 20×10 supplémentaire de la
+référence seule n'apporterait pas de preuve sur une intervention et n'est pas requis pour clore le
+harnais C66.
+
+**Revalidation après C66.4 sur le harnais courant (2026-09-15).** Les preuves ci-dessus ont été
+rejouées après l'ajout du comparateur à deux politiques afin d'éviter de qualifier un ancien
+bundle. La couche hors-jeu reste verte : `test_physical_counters.py` 7/7,
+`test_game_health.py` 20/20, selftest C66.1→C66.4 et `git diff --check`.
+
+Deux smokes consécutifs de référence, `results/c66_5_current_smoke_a.json` et
+`results/c66_5_current_smoke_b.json`, utilisent le même bundle courant
+`87a9a718f9f169400ca475adf95b223ed310dbcd7c20277280622fb7b105e67e`.
+Manifestes respectifs :
+`63dd63ffd820e7e53309ed1b10119c92db82e4f11179b98baa4c3fcab0dade70` et
+`c3563c2b082e837155f5b9fe74348b9fc09717c4e4c724a0b2fdd6cd50a4480d`.
+Les 26/26 checkpoints normalisés sont identiques, avec 0 différence après retrait des seuls
+`campaign_id`, `game_id` et `engine_log_path`, et les résumés normalisés sont identiques.
+Sur le smoke courant OpexAI termine avec 1 train, 22 véhicules routiers et 4 avions ; AAAHogEx
+avec 2 trains, 2 routiers et 14 avions. Rail/route/air sont donc réellement exercés ; eau reste
+explicitement non qualifiée.
+
+Le diagnostic courant est `results/c66_5_current_diag_6y_5seeds.json`, mêmes graines
+42/100/999/1234/5678, 6 ans, **même bundle** que les deux smokes, manifeste
+`ebce3fd0c0c0c000c8ed14012f5f18fcd7694a9ab08599d9da3ef169eacd3d6e`.
+Les 5/5 parties et 10/10 lignes sont `complete`, `run_ok=true`, `game_ok=true`, horizon
+`1975-12-01`, aucun `failed_run`, aucune erreur script/non attribuée, aucun véhicule non classé,
+compteurs physiques valides ; qualification rail/route/air vraie, eau fausse.
+
+À 6 ans sur le bundle courant, OpexAI moyenne 2 942 073 £ de valeur, 850 360 £ de profit annuel,
+score 543 et note médiane de gare 157,1, contre 11 145 231 £, 4 694 956 £, score 821,2 et
+note 185,1 pour AAAHogEx. Les écarts appariés moyens sont respectivement -73,60 %, -81,89 %,
+-33,88 % et -15,13 %, avec 0/5 victoire OpexAI sur chacune de ces quatre métriques.
+Ces chiffres supersèdent les anciens chiffres C66.5 comme qualification du **harnais courant** ;
+ils qualifient la référence mais ne constituent toujours pas un correctif causal.
+
+**Statut C66.5 : harnais qualifié.** Les points 1–3 sont validés sur le code courant. Le point 4
+reste un jalon de validation d'une future intervention : il ne doit être exécuté que lorsqu'un
+mécanisme C63/C58 aura produit une variante unique et des seuils substantifs pré-enregistrés.
+Le lancer aujourd'hui avec `air_presite=1` ou la référence seule transformerait un smoke de
+protocole en faux banc causal.
 
 **C66 est close lorsque** le décodeur a sa preuve indépendante, les contrôles négatifs détectent
 et attribuent les échecs, la référence est figée et répétable, le diagnostic 5×6 est complet,
@@ -439,6 +574,116 @@ accepte, la carte refuse.
 
 Pas de correctif. Le levier n'est pas « plus de candidats » ; c'est convertir les
 acceptés en constructions, surtout air précoce et tenues de chantier (`build_failed`).
+
+**Candidat causal P1 pré-enregistré le 2026-09-15 — `air_town_limit_memory=1`.** Le diagnostic
+détaillé identifie `AIStation.ERR_STATION_TOO_MANY_STATIONS_IN_TOWN` (771) comme cause dominante
+des échecs air : 1 396 occurrences sur 1 590 `build_failed` dans le 5×6 instrumenté OFF. Le
+mécanisme candidat ne change ni score, ni budget, ni demande : après un vrai 771 il mémorise
+temporairement la commune via le cooldown/backoff d'abandon. Le pilote instrumenté réduit 771 de
+1 396 à 114 et `build_failed` de 1 590 à 228 ; ce signal choisit le mécanisme, pas le seuil.
+
+Règle figée avant le prochain 5×6 apparié : primaire `profit_year`, delta moyen variante −
+référence **>= +45 000 £/an** ; garde-fou `company_value`, rapport des moyennes **>= 98 %**
+(perte maximale 2 %). Les 5 graines 42/100/999/1234/5678 doivent toutes être complètes et saines.
+
+**Piste à examiner plus tard autour de l'erreur 771 / `ERR_STATION_TOO_MANY_STATIONS_IN_TOWN`.**
+Ne pas supposer que l'un de ces points est la cause tant qu'il n'est pas confirmé dans OpenTTD et
+sur nos sauvegardes :
+
+- vérifier, dans chaque ville qui déclenche 771, le **nombre réel de stations**, leur propriétaire,
+  leur type et si OpexAI contribue elle-même à saturer la limite locale ;
+- mesurer combien de stations OpexAI y sont **orphelines, inutilisées ou issues de chantiers
+  partiellement abandonnés**, et tester si leur nettoyage libère effectivement la capacité locale ;
+- étudier en priorité un **rattachement / distant join à une station OpexAI existante** plutôt que
+  la création d'une nouvelle entité station, si l'API IA permet de reproduire le mécanisme du
+  `Ctrl` manuel ; comparer notamment avec les mécanismes `station_join` / `air_joined_stops`
+  déjà présents dans OpexAI ;
+- distinguer cette limite de nombre de stations du réglage **Max station spread** : ce dernier
+  concerne a priori l'étendue spatiale d'une station existante et ne doit pas être modifié comme
+  contournement de 771 sans preuve dans le code OpenTTD ;
+- seulement après ces mesures, comparer trois politiques : évitement temporaire de la ville
+  (`air_town_limit_memory`), rattachement à une station existante, ou nettoyage ciblé des stations
+  réellement inutiles. Ne jamais bulldozer une infrastructure active uniquement pour libérer un
+  slot.
+
+**Sonde exacte au moment du 771 (2026-09-15).** `task_air.nut` compte désormais les aéroports
+OpexAI déjà rattachés à la ville de l'ancre qui échoue, et `task_projects.nut` agrège cette valeur
+dans le funnel sous `build_error_air_own_airports_<n>`. La méthode
+`AIStationList(AIStation.STATION_AIRPORT).Valuate(AIStation.GetNearestTown)` est valide en jeu :
+le diagnostic ne plante pas.
+
+- smoke 3 ans seed 42 : `results/diag_771_error_own_airports_seed42_3y_v2.json`,
+  **11 erreurs 771 / 11 avec Opex=0 aéroport dans la ville** ;
+- diagnostic 6 ans seed 42 : `results/diag_771_error_own_airports_seed42_6y_v3.json`,
+  **291 erreurs 771 / 291 avec Opex=0** ;
+- répartition 6 ans : town 15=38, 24=29, 27=35, 30=48, 31=15, 32=10, 34=38,
+  36=44, 38=34.
+
+Conclusion sur cette graine : le 771 observé n'est **pas** une auto-saturation par des aéroports
+OpexAI. Puisque la partie est un duel et que la limite OpenTTD 15.3 est de deux aéroports par ville
+avec `station_noise_level=false`, ces échecs arrivent lorsque les deux slots sont déjà détenus par
+AAAHogEx. Nettoyer des stations OpexAI ne traite donc pas ces cas. Le distant join ne permet pas non
+plus de créer un troisième aéroport : le contrôle de capacité de la ville intervient avant ce
+mécanisme.
+
+Priorités 771 qui en découlent : (1) prendre les slots utiles plus tôt, (2) tester un placement
+périphérique dont l'ancre est rattachée à une ville voisine encore disponible tout en rabattant la
+ville cible, (3) détecter les constructions AAAHogEx et accélérer la prise du slot restant. Ces
+runs sont des **diagnostics instrumentés**, pas des benchmarks économiques d'adoption.
+
+**Correctif feeders bus — ordres unidirectionnels ville → hub (2026-09-15).**
+Bug confirmé dans `builder_road.nut` : les feeders passagers utilisaient `OF_NONE` à la ville et
+`OF_TRANSFER` au hub, avec `OF_NO_LOAD` seulement si le switch global fret `c53_order_noload`
+était actif. Cela permettait de décharger des passagers au mauvais bout et surtout d'en reprendre
+au hub/aéroport au retour. Corrigé dans les deux chemins de création (construction initiale et
+refleet) :
+
+- arrêt ville : `OF_NO_UNLOAD` — chargement disponible uniquement, aucun déchargement ;
+- arrêt hub/aéroport : `OF_TRANSFER | OF_NO_LOAD` — transfert complet vers la gare commune,
+  aucun nouveau chargement, le bus repart vide ;
+- `OF_TRANSFER` est conservé plutôt que `OF_UNLOAD` afin que les passagers restent disponibles
+  pour la correspondance avion/train au lieu d'être traités comme une destination finale.
+
+Smoke fonctionnel : `results/feeder_orders_exercised_s42_3y.json`, seed 42, 3 ans, feeders
+explicitement exercés via `feeder_candidates=1,feeder_hub_check=0`, 2/2 jeux complets,
+`failed_runs=[]`. La divergence économique de ce smoke n'est **pas** une preuve d'adoption du mode
+feeder ; ce run valide seulement que le chemin modifié construit et tourne sans rejet d'ordre.
+
+**Correctif feeders courrier — ordres unidirectionnels ville → hub (2026-09-15).**
+`task_feeders.nut` applique désormais la même sémantique stricte aux feeders courrier, derrière
+le switch causal `feeder_mail_strict_orders` (défaut = 1) :
+
+- arrêt ville : `OF_NO_UNLOAD` — chargement uniquement ;
+- arrêt hub/aéroport : `OF_TRANSFER | OF_NO_LOAD` — transfert complet sans nouveau chargement,
+  le camion repart vide ;
+- `OF_TRANSFER` est conservé : ne pas le remplacer par `OF_UNLOAD`, et ne jamais combiner
+  `OF_TRANSFER | OF_UNLOAD`.
+
+Banc causal rapide : `results/bench_feeder_mail_strict_orders_3y_5seeds.json`, 5 seeds
+(42, 100, 999, 1234, 5678), 3 ans, 1 repeat, 6 CPU / 6 workers, 10 jeux complets,
+`failed_runs=[]`. Les deux bras forcent exactement le même ancien régime feeder
+(`feeder_candidates=1, feeder_portfolio=0, feeder_hub_check=0, feeder_mail_duplicate=1`) et ne
+diffèrent que par `feeder_mail_strict_orders=0/1`.
+
+Résultat strict − legacy :
+
+| Seed | Δ company value | Δ profit_year | Δ rating médian |
+|---:|---:|---:|---:|
+| 42 | -253 864 | -259 667 | 0 |
+| 100 | -158 500 | -162 630 | -24 |
+| 999 | -6 082 | -26 217 | +2 |
+| 1234 | -506 897 | -165 992 | +15,5 |
+| 5678 | -738 604 | -608 338 | +4 |
+
+Moyenne : **−332 789** de company value et **−244 569/an** de `profit_year`.
+Médiane : **−253 864** et **−165 992/an**. Le strict fait **0/5 victoire** sur les deux métriques
+économiques. Le rating médian n'explique pas le signal (delta moyen +0,5). Les seeds 42 et 5678
+terminent en plus avec respectivement 70 k£ et 300 k£ d'emprunt supplémentaire.
+
+Interprétation : la correction fonctionnelle des ordres est valide et reste le comportement par
+défaut, mais dans ce régime **forcé** elle dégrade fortement l'économie à 3 ans. Ce banc expose
+volontairement le chemin feeder courrier ; il ne doit pas être extrapolé tel quel au défaut courant
+où `feeder_candidates=0`, ni pris comme validation économique générale du portefeuille feeder.
 
 **Désambiguïsation structurelle (2026-09-14) :** l'amalgame `best=absent` / `selection_empty`
 classait tout `best.len()==0` en `absent`. Corrections en place :

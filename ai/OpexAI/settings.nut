@@ -69,6 +69,7 @@ function OpexLoadSettings()
   AIR_MARGIN = AIController.GetSetting("air_margin") != 0;
   AIR_ABANDON = AIController.GetSetting("air_abandon") != 0;
   AIR_ABANDON_SITE = AIController.GetSetting("air_abandon_site") != 0;
+  AIR_TOWN_LIMIT_MEMORY = AIController.GetSetting("air_town_limit_memory") != 0;
   STAGED_BOOTSTRAP = AIController.GetSetting("staged_bootstrap") != 0;
   PRICING_ROAD_RATING = AIController.GetSetting("pricing_road_rating") != 0;
   PRICING_RAIL_DEPOT = AIController.GetSetting("pricing_rail_depot") != 0;
@@ -326,6 +327,7 @@ function OpexLoadSettings()
   FEEDER_PRICING = AIController.GetSetting("feeder_pricing") != 0;
   FEEDER_TOWN_COVERAGE = AIController.GetSetting("feeder_town_coverage") != 0;
   FEEDER_MAIL_DUPLICATE = AIController.GetSetting("feeder_mail_duplicate") != 0;
+  FEEDER_MAIL_STRICT_ORDERS = AIController.GetSetting("feeder_mail_strict_orders") != 0;
   FEEDER_HUB_CHECK = AIController.GetSetting("feeder_hub_check") != 0;
   local fhwm = AIController.GetSetting("feeder_hub_wait_max");
   if (fhwm >= 0) FEEDER_HUB_WAIT_MAX = fhwm;
@@ -334,6 +336,16 @@ function OpexLoadSettings()
   AIR_SITE_CACHE_ENABLED = AIController.GetSetting("air_site_cache") != 0;
   AIR_CHEAP_SITE = AIController.GetSetting("air_cheap_site") != 0;
   AIR_JOINED_STOPS = AIController.GetSetting("air_joined_stops") != 0;
+  local ajsl = AIController.GetSetting("air_joined_stop_limit");
+  if (ajsl >= 0) AIR_JOINED_STOP_LIMIT = ajsl;
+  AIR_SPLIT_FEEDER_TEST = AIController.GetSetting("air_split_feeder_test") != 0;
+  AIR_EARLY_SLOT = AIController.GetSetting("air_early_slot") != 0;
+  local aest = AIController.GetSetting("air_early_slot_target_towns");
+  if (aest >= 1) AIR_EARLY_SLOT_TARGET_TOWNS = aest;
+  local aesmp = AIController.GetSetting("air_early_slot_min_pop");
+  if (aesmp >= 0) AIR_EARLY_SLOT_MIN_POP = aesmp;
+  local aesb = AIController.GetSetting("air_early_slot_bonus_pct");
+  if (aesb >= 0) AIR_EARLY_SLOT_BONUS_PCT = aesb;
   ROAD_CHEAP_TRACE = AIController.GetSetting("road_cheap_trace") != 0;
   ROAD_PAX_VOIRIE = AIController.GetSetting("road_pax_voirie") != 0;
   ROAD_PAX_OVERLAP = AIController.GetSetting("road_pax_overlap") != 0;

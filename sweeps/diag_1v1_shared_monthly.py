@@ -29,7 +29,7 @@ import sys
 
 ROOT = Path("/work") if Path("/work").exists() else Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "sweeps"))
-from physical_counters import decode_vehicles, decode_stations, VEHICLE_MODES
+from physical_counters import decode_vehicles, decode_stations, VEHICLE_MODES, FACILITY_BITS
 
 try:
     from bench_v2 import make_cfg, quarter_profit, year_profit
@@ -219,6 +219,40 @@ def station_detail(chunks, owner=0):
     }
 
 
+def station_town_inventory(chunks, owner=0):
+    """Inventaire compact des gares d'une compagnie, groupees par TownID."""
+    stnn = (chunks or {}).get("STNN")
+    if not isinstance(stnn, (dict, list)):
+        return None
+    records = stnn.items() if isinstance(stnn, dict) else enumerate(stnn)
+    towns = defaultdict(lambda: {"count": 0, "stations": []})
+    for sid_raw, station in records:
+        if not isinstance(station, dict):
+            continue
+        body = _first(station.get("normal"))
+        if not isinstance(body, dict):
+            continue
+        base = _first(body.get("base"))
+        if not isinstance(base, dict) or base.get("owner") != owner:
+            continue
+        town = base.get("town")
+        if town is None:
+            continue
+        try:
+            sid = int(sid_raw)
+            town_id = int(town)
+        except (TypeError, ValueError):
+            continue
+        facilities = int(base.get("facilities") or 0)
+        names = [name for bit, name in FACILITY_BITS if facilities & bit]
+        item = {"id": sid, "xy": base.get("xy"), "build_date": base.get("build_date"),
+                "facilities": names, "airport_tile": body.get("airport.tile")}
+        slot = towns[town_id]
+        slot["count"] += 1
+        slot["stations"].append(item)
+    return {str(town_id): value for town_id, value in sorted(towns.items())}
+
+
 def cargo_delivered(value):
     """Somme le vecteur cargo OpenTTD 15.3 ; un entier legacy est conserve tel quel."""
     if value is None:
@@ -293,6 +327,9 @@ def keep(row):
     if row["experiment"].get("shared"):
         rec0 = extract_company(chunks, 0, "OpexAI", seed, date)
         rec1 = extract_company(chunks, 1, "AAAHogEx", seed, date)
+        if row["experiment"].get("town_station_detail"):
+            rec0["stations_by_town"] = station_town_inventory(chunks, 0)
+            rec1["stations_by_town"] = station_town_inventory(chunks, 1)
         rec0["output"] = output
         rec1["output"] = output
         return (rec0, rec1)
@@ -495,11 +532,24 @@ def attach_logs(rows):
     return funnel_by_seed, funnel_detailed_by_seed, hogex_by_seed, hogex_detailed_by_seed
 
 
-def build_arms(seeds, years, shared=False, funnel=False):
+def build_arms(seeds, years, shared=False, funnel=False, air_town_limit_memory=False,
+               town_station_detail=False, air_early_slot=False):
     from openttdlab import local_folder
     hogex = local_folder(str(ROOT / "ai" / AAAHOGEX_DIR), "AAAHogEx", ())
     if shared:
-        opex_params = (("monthly_funnel", 1),) if funnel else ()
+        opex_params = []
+        if funnel:
+            opex_params.append(("monthly_funnel", 1))
+        if air_town_limit_memory:
+            opex_params.append(("air_town_limit_memory", 1))
+        if air_early_slot:
+            opex_params.extend((
+                ("air_early_slot", 1),
+                ("air_early_slot_target_towns", 6),
+                ("air_early_slot_min_pop", 1000),
+                ("air_early_slot_bonus_pct", 50),
+            ))
+        opex_params = tuple(opex_params)
         opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", opex_params)
         return [
             {
@@ -509,6 +559,7 @@ def build_arms(seeds, years, shared=False, funnel=False):
                 "ais": (opex, hogex),
                 "shared": True,
                 "diag_arm": "duel",
+                "town_station_detail": bool(town_station_detail),
             }
             for seed in seeds
         ]
@@ -537,6 +588,12 @@ def main():
                         help="OpexAI (joueur 0) vs AAAHogEx (joueur 1) sur la meme carte")
     parser.add_argument("--funnel", action="store_true",
                         help="Arme monthly_funnel=1 (implique --shared et -d script=4)")
+    parser.add_argument("--air-town-limit-memory", action="store_true",
+                        help="Arme air_town_limit_memory=1 sur OpexAI (implique --shared)")
+    parser.add_argument("--town-station-detail", action="store_true",
+                        help="Conserve l'inventaire STNN par TownID pour diagnostiquer les erreurs 771")
+    parser.add_argument("--air-early-slot", action="store_true",
+                        help="Arme air_early_slot=1 (cible 6 villes, min 1000 hab, bonus 50%% par slot)")
     parser.add_argument("--selftest", action="store_true",
                         help="Verifie le decodage physique et le rendu face aux chunks invalides")
     args = parser.parse_args()
@@ -549,7 +606,7 @@ def main():
     from openttdlab import bananas_ai_library, local_folder, run_experiments
     from bench_v2 import enable_savegame_cleanup, write_json_atomically
 
-    shared = args.shared or args.funnel
+    shared = args.shared or args.funnel or args.air_town_limit_memory or args.town_station_detail or args.air_early_slot
     funnel = bool(args.funnel or shared)
     seeds = args.seeds if args.seeds is not None else (list(DIAG_SEEDS) if shared else [42, 100, 7])
     default_name = (
@@ -574,7 +631,10 @@ def main():
 
     rows = list(run_experiments(
         openttd_version=OPENTTD_VERSION, opengfx_version=OPENGFX_VERSION,
-        experiments=build_arms(seeds, args.years, shared=shared, funnel=funnel),
+        experiments=build_arms(seeds, args.years, shared=shared, funnel=funnel,
+                               air_town_limit_memory=args.air_town_limit_memory,
+                               town_station_detail=args.town_station_detail,
+                               air_early_slot=args.air_early_slot),
         max_workers=args.workers, result_processor=keep,
         ai_libraries=(
             bananas_ai_library("51554648", "Queue.FibonacciHeap"),
@@ -596,6 +656,8 @@ def main():
         "seeds": seeds,
         "shared_game": shared,
         "funnel": funnel,
+        "air_town_limit_memory": bool(args.air_town_limit_memory),
+        "town_station_detail": bool(args.town_station_detail),
         "opponent": "AAAHogEx" if shared else None,
         "openttd_config": CFG_SHARED if shared else make_cfg(STARTING_YEAR),
         "rows": rows,
@@ -1059,7 +1121,8 @@ def selftest():
 
     funnel_log = (
         "[script:4] [0] [I] OPEX 1971-3-8 MONTHLY_FUNNEL considered=40 accepted=8 funded=2 "
-        "attempted=3 built=1 r_insufficient_cash=1 r_build_failed=1\n"
+        "attempted=3 built=1 r_insufficient_cash=1 r_build_failed=1 "
+        "r_build_failed_air_BFAIL=1 r_build_error_air_7=1\n"
         "[script:4] [0] [I] OPEX 1971-3-20 MONTHLY_FUNNEL considered=30 accepted=6 funded=1 "
         "attempted=1 built=0 r_town_rating_refusal=1\n"
         "[script:4] [1] [I] 1971-3-9 # RouteBuilder Succeeded foo\n"
@@ -1076,6 +1139,8 @@ def selftest():
     assert mar["built"] == 1
     assert mar["rejects"]["insufficient_cash"] == 1
     assert mar["rejects"]["build_failed"] == 1
+    assert mar["rejects"]["build_failed_air_BFAIL"] == 1
+    assert mar["rejects"]["build_error_air_7"] == 1
     assert mar["rejects"]["town_rating_refusal"] == 1
     hog = parse_hogex_builds(funnel_log)
     assert hog["1971-03"]["succeeded"] == 1

@@ -492,6 +492,100 @@ function OpexProjectRememberAll(winners, project, stats)
   winners[key].push(project);
 }
 
+/* Early-slot doit observer l'etat VIVANT au moment du choix final, pas au moment
+ * ou OpexAirPlans a genere le candidat. Un vivier peut etre reutilise/reselecte
+ * apres un chantier : une annotation faite plus tot deviendrait alors perimee et
+ * pourrait continuer a bonifier une ville deja securisee. On scanne donc les
+ * aeroports physiques Opex une seule fois par passe de selection. */
+function OpexEarlySlotSelectionState()
+{
+  local state = { servedTowns = {}, servedCount = 0 };
+  if (!AIR_EARLY_SLOT) return state;
+
+  local ownAirports = AIStationList(AIStation.STATION_AIRPORT);
+  for (local st = ownAirports.Begin(); !ownAirports.IsEnd(); st = ownAirports.Next()) {
+    local townId = AIStation.GetNearestTown(st);
+    if (townId < 0 || !AITown.IsValidTown(townId)) continue;
+    if (AITown.GetPopulation(townId) < AIR_EARLY_SLOT_MIN_POP) continue;
+    if (townId in state.servedTowns) continue;
+    state.servedTowns.rawset(townId, true);
+    state.servedCount++;
+  }
+  return state;
+}
+
+function OpexProjectSetEarlySlotField(project, field, value)
+{
+  if (field in project) project[field] = value;
+  else project[field] <- value;
+}
+
+/* Classe uniquement les projets air DEJA rentables. Le town associe au slot est
+ * derive du site physique (meme convention que le diagnostic 771), ce qui evite
+ * de confondre la ville cible commerciale avec la ville qui porte réellement la
+ * limite des deux aeroports. Aucun champ economique n'est modifie. */
+function OpexProjectRefreshEarlySlot(project, state)
+{
+  if (project == null || state == null) return;
+
+  local physicalClaims = 0;
+  local bonusClaims = 0;
+  local claimPopulation = 0;
+  local townA = -1;
+  local townB = -1;
+  local popA = -1;
+  local popB = -1;
+
+  if (AIR_EARLY_SLOT && ("mode" in project) && project.mode == "air"
+      && ("payload" in project) && project.payload != null
+      && state.servedCount < AIR_EARLY_SLOT_TARGET_TOWNS) {
+    local plan = project.payload;
+    local reuseA = ("reuseA" in plan) && plan.reuseA;
+    local reuseB = ("reuseB" in plan) && plan.reuseB;
+    local claimedTowns = {};
+
+    if (("siteA" in plan) && plan.siteA != null && ("town" in plan.siteA)) {
+      townA = AITile.GetClosestTown(plan.siteA.anchor);
+      if (townA < 0) townA = plan.siteA.town.id;
+      if (townA >= 0 && AITown.IsValidTown(townA)) popA = AITown.GetPopulation(townA);
+      if (!reuseA && popA >= AIR_EARLY_SLOT_MIN_POP
+          && !(townA in state.servedTowns) && !(townA in claimedTowns)) {
+        claimedTowns.rawset(townA, true);
+        physicalClaims++;
+        claimPopulation += popA;
+      }
+    }
+
+    if (("siteB" in plan) && plan.siteB != null && ("town" in plan.siteB)) {
+      townB = AITile.GetClosestTown(plan.siteB.anchor);
+      if (townB < 0) townB = plan.siteB.town.id;
+      if (townB >= 0 && AITown.IsValidTown(townB)) popB = AITown.GetPopulation(townB);
+      if (!reuseB && popB >= AIR_EARLY_SLOT_MIN_POP
+          && !(townB in state.servedTowns) && !(townB in claimedTowns)) {
+        claimedTowns.rawset(townB, true);
+        physicalClaims++;
+        claimPopulation += popB;
+      }
+    }
+
+    local remaining = AIR_EARLY_SLOT_TARGET_TOWNS - state.servedCount;
+    bonusClaims = physicalClaims;
+    if (bonusClaims > remaining) bonusClaims = remaining;
+  }
+
+  /* Les claims physiques decrivent ce que le chantier securisera reellement.
+   * Les bonus claims sont bornes par la cible et seuls eux pilotent la prime. */
+  OpexProjectSetEarlySlotField(project, "earlySlotClaims", physicalClaims);
+  OpexProjectSetEarlySlotField(project, "earlySlotBonusClaims", bonusClaims);
+  OpexProjectSetEarlySlotField(project, "earlySlotClaimPopulation", claimPopulation);
+  OpexProjectSetEarlySlotField(project, "earlySlotServedBefore", state.servedCount);
+  OpexProjectSetEarlySlotField(project, "earlySlotBonusPct", AIR_EARLY_SLOT_BONUS_PCT * bonusClaims);
+  OpexProjectSetEarlySlotField(project, "earlySlotTownA", townA);
+  OpexProjectSetEarlySlotField(project, "earlySlotTownB", townB);
+  OpexProjectSetEarlySlotField(project, "earlySlotPopA", popA);
+  OpexProjectSetEarlySlotField(project, "earlySlotPopB", popB);
+}
+
 /* portfolio_v2 : la selection finale.
  *
  * Remplace le sac a dos 0/1 par « le meilleur projet finançable ». Motif (S0 septies, trouvaille
@@ -537,10 +631,12 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
   }
 
   local affordable = [];
+  local earlySlotState = AIR_EARLY_SLOT ? OpexEarlySlotSelectionState() : null;
   local scoreKey = (TENSION_SCORING || SHADOW_PRICING) ? "tensionScore" : "fundScore";
   foreach (project in alternatives) {
     if (OpexProjectFinanceCapital(project) > capitalBudget) continue;
     if (project.profitAnnual < floorProfit) continue;
+    if (AIR_EARLY_SLOT) OpexProjectRefreshEarlySlot(project, earlySlotState);
     if (!TENSION_SCORING && !SHADOW_PRICING) {
       if (C49_VARIABLE_DENOMINATOR) {
         project.fundScore <- OpexC49ProjectScore(project, C49_CURRENT_REGIME);
@@ -548,7 +644,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
         project.fundScore <- OpexProjectScore(project.profitAnnual, OpexProjectFinanceCapital(project));
       }
     }
-    OpexProjectInsert(affordable, project, scoreKey, limit);
+    OpexProjectInsert(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
   }
   /* Filet de securite : si le plancher a tout ecarte -- il ne le peut pas puisque le meilleur
    * projet l'atteint par construction, mais un profitAnnual nul ou negatif rendrait bestProfit nul
@@ -557,6 +653,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
   if (affordable.len() == 0 && floorProfit > 0) {
     foreach (project in alternatives) {
       if (OpexProjectFinanceCapital(project) > capitalBudget) continue;
+      if (AIR_EARLY_SLOT) OpexProjectRefreshEarlySlot(project, earlySlotState);
       if (!TENSION_SCORING && !SHADOW_PRICING) {
         if (C49_VARIABLE_DENOMINATOR) {
           project.fundScore <- OpexC49ProjectScore(project, C49_CURRENT_REGIME);
@@ -564,21 +661,43 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
           project.fundScore <- OpexProjectScore(project.profitAnnual, OpexProjectFinanceCapital(project));
         }
       }
-      OpexProjectInsert(affordable, project, scoreKey, limit);
+      OpexProjectInsert(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
     }
   }
   return affordable;
 }
 
-/* Insertion bornee et stable. field vaut budgetScore pendant la premiere contrainte, opcodeScore
- * pendant la seconde. Les egalites gardent le revenu absolu le plus eleve. */
-function OpexProjectInsert(best, project, field, limit)
+/* Early-slot ne falsifie ni profitAnnual ni revenueAnnual. Le bonus n'existe
+ * qu'au moment du classement, afin de payer temporairement une prime strategique
+ * pour securiser des slots aeroportuaires dans les grandes villes. */
+function OpexProjectSelectionScore(project, field)
 {
+  if (project == null) return 0.0;
+  local score = project[field];
+  if (!AIR_EARLY_SLOT || !("mode" in project) || project.mode != "air") return score;
+  if (!("earlySlotBonusPct" in project)) return score;
+  local bonusPct = project.earlySlotBonusPct;
+  if (bonusPct <= 0) return score;
+  local factor = (100.0 + bonusPct.tofloat()) / 100.0;
+  /* Un score plus grand est toujours meilleur. En shadow pricing, tensionScore
+   * peut etre negatif : le multiplier le rendrait plus negatif et inverserait
+   * la prime. Le rapprocher de zero preserve le sens du bonus. */
+  if (score < 0) return score / factor;
+  return score * factor;
+}
+
+/* Insertion bornee et stable. Early-slot est volontairement opt-in : les tris
+ * intermediaires gardent leur semantique historique, et seule la selection
+ * finançable finale demande la prime strategique. */
+function OpexProjectInsert(best, project, field, limit, applyEarlySlot = false)
+{
+  local projectScore = applyEarlySlot ? OpexProjectSelectionScore(project, field) : project[field];
   local pos = best.len();
   while (pos > 0) {
     local prior = best[pos - 1];
-    if (prior[field] > project[field]) break;
-    if (prior[field] == project[field] && prior.revenueAnnual >= project.revenueAnnual) break;
+    local priorScore = applyEarlySlot ? OpexProjectSelectionScore(prior, field) : prior[field];
+    if (priorScore > projectScore) break;
+    if (priorScore == projectScore && prior.revenueAnnual >= project.revenueAnnual) break;
     pos--;
   }
   best.insert(pos, project);
@@ -748,7 +867,11 @@ function OpexCandidateIsAbandoned(p, abandonedPairs)
       local aKey2 = "air|" + plan.siteB.town.tile + "|" + plan.siteA.town.tile;
       local siteAKey = OpexAirSiteAbandonKey(plan.siteA, plan.airport.type);
       local siteBKey = OpexAirSiteAbandonKey(plan.siteB, plan.airport.type);
+      local townAKey = OpexAirTownLimitAbandonKey(plan.siteA);
+      local townBKey = OpexAirTownLimitAbandonKey(plan.siteB);
       if ((aKey1 in abandonedPairs) || (aKey2 in abandonedPairs)
+          || (AIR_TOWN_LIMIT_MEMORY && ((!(("reuseA" in plan) && plan.reuseA) && (townAKey in abandonedPairs))
+              || (!(("reuseB" in plan) && plan.reuseB) && (townBKey in abandonedPairs))))
           || (AIR_ABANDON_SITE && ((siteAKey in abandonedPairs) || (siteBKey in abandonedPairs)))) return true;
     }
   } else if (ABANDON_GEN_FILTER && ABANDON_MEMORY && (mode == "road" || mode == "rail")) {
@@ -1275,6 +1398,11 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
         if (p.mode == "fleet") continue;
         if (("payload" in p) && p.payload != null &&
             ("isFeeder" in p.payload) && p.payload.isFeeder) continue;
+        /* Early-slot est une priorite transitoire. Apres chaque chantier, le
+         * nombre de villes deja securisees peut changer ; un ancien plan air ne
+         * doit donc jamais conserver un bonus devenu perime. Les plans air sont
+         * regeneres frais un peu plus bas dans cette meme passe. */
+        if (AIR_EARLY_SLOT && p.mode == "air") continue;
         if (OpexCandidateIsAbandoned(p, abandonedPairs)) {
           abandonFiltered++;
           continue;

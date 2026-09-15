@@ -1271,7 +1271,13 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
    * s'accumule de toute facon, et un camion qui part avec une unite paie son trajet pour rien.
    * qui attend d'etre plein detruit precisement ce que la ligne a de bon. */
   local nonstopFlag = C53_ORDER_NONSTOP ? AIOrder.OF_NON_STOP_INTERMEDIATE : 0;
-  local sourceFlags = (candidate.kind == "freight" ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE) | nonstopFlag;
+  local isFeeder = (("isFeeder" in candidate) && candidate.isFeeder);
+  /* Un feeder est strictement unidirectionnel : ville -> hub.
+   * Ville : charger si disponible, sans decharger.
+   * Hub : transferer tout le chargement et repartir vide. */
+  local sourceFlags = (isFeeder
+      ? AIOrder.OF_NO_UNLOAD
+      : (candidate.kind == "freight" ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE)) | nonstopFlag;
   local orderA = AIOrder.AppendOrder(first, stopA, sourceFlags);
   local errorA = orderA ? 0 : AIError.GetLastError();
   /* OF_TRANSFER et OF_UNLOAD sont mutuellement exclusifs (ai_order.hpp:44-47, meme champ
@@ -1280,11 +1286,10 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
    * 2026-09-02. OF_TRANSFER seul est le comportement voulu : deposer pour ramassage par
    * une autre ligne, pas livrer definitivement.
    * C53 : C53_ORDER_NOLOAD interdit tout rechargement parasite au terminus de dechargement (OF_NO_LOAD). */
-  local isFeeder = (("isFeeder" in candidate) && candidate.isFeeder);
   local isFreight = candidate.kind == "freight";
   local destFlags = 0;
   if (isFeeder) {
-    destFlags = AIOrder.OF_TRANSFER | (C53_ORDER_NOLOAD ? AIOrder.OF_NO_LOAD : 0);
+    destFlags = AIOrder.OF_TRANSFER | AIOrder.OF_NO_LOAD;
   } else if (isFreight) {
     destFlags = C53_ORDER_NOLOAD ? (AIOrder.OF_UNLOAD | AIOrder.OF_NO_LOAD) : AIOrder.OF_NONE;
   } else {
@@ -1562,10 +1567,12 @@ function OpexRoadRefleet(catalog, line, have, target)
     local nonstopFlag = C53_ORDER_NONSTOP ? AIOrder.OF_NON_STOP_INTERMEDIATE : 0;
     local isFreight = (("kind" in line) && line.kind == "freight");
     local isFeeder = (("isFeeder" in line) && line.isFeeder);
-    local sourceFlags = (isFreight ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE) | nonstopFlag;
+    local sourceFlags = (isFeeder
+        ? AIOrder.OF_NO_UNLOAD
+        : (isFreight ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE)) | nonstopFlag;
     local destFlags = 0;
     if (isFeeder) {
-      destFlags = AIOrder.OF_TRANSFER | (C53_ORDER_NOLOAD ? AIOrder.OF_NO_LOAD : 0);
+      destFlags = AIOrder.OF_TRANSFER | AIOrder.OF_NO_LOAD;
     } else if (isFreight) {
       destFlags = C53_ORDER_NOLOAD ? (AIOrder.OF_UNLOAD | AIOrder.OF_NO_LOAD) : AIOrder.OF_NONE;
     } else {

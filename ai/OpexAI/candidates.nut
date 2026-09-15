@@ -2791,7 +2791,7 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats, abandonedPairs = n
   /* Les arrets joints poses a la creation d'un aeroport assurent le captage local sans une
    * ligne bus supplementaire. Le reglage ne retire jamais ces arrets ni les lignes existantes :
    * il coupe uniquement l'ancien vivier de nouveaux rabattements ville->hub. */
-  if (!FEEDER_CANDIDATES_ENABLED) return;
+  if (!FEEDER_CANDIDATES_ENABLED && !AIR_SPLIT_FEEDER_TEST) return;
   local cargo = catalog.paxCargo;
   if (cargo < 0 || !(cargo in catalog.roadEngineByCargo)) return;
   local towns = catalog.towns;
@@ -2911,6 +2911,7 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats, abandonedPairs = n
 
     foreach (hub in hubs) {
       local isHubTown = (towns[i].id == hub.townId);
+            if (AIR_SPLIT_FEEDER_TEST && (!isHubTown || hub.mode != "air")) continue;
       local distance = AIMap.DistanceManhattan(towns[i].tile, hub.tile);
 
       /* Distance :
@@ -2944,7 +2945,7 @@ function OpexRoadFeederCandidates(catalog, lines, out, stats, abandonedPairs = n
       local marginalProd = (produced * remainingHouses) / houses;
       local monthly = OpexTownBusCatchment(towns[i], marginalProd);
       if (monthly <= 0) continue;
-      if (ROAD_PAX_OVERLAP) {
+      if (ROAD_PAX_OVERLAP && !(AIR_SPLIT_FEEDER_TEST && isHubTown)) {
         /* Le rayon vient de l'aeroport/rail reel et de ses arrets joints, pas du premier
          * aeroport du catalogue mensuel. */
         local hubRadius = OpexHubPaxCatchmentRadius(hub);

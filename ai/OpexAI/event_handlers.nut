@@ -227,6 +227,27 @@ function OpexAI::_onVehicleUnprofitable(event)
                    : (AIVehicle.GetVehicleType(vehicle) == AIVehicle.VT_ROAD ? "road"
                    : (AIVehicle.GetVehicleType(vehicle) == AIVehicle.VT_RAIL ? "rail"
                    : (AIVehicle.GetVehicleType(vehicle) == AIVehicle.VT_AIR ? "air" : "water")));
+        /* Les feeders sont des lignes de rabattement reseau : leur profit vehicule propre
+         * n'est pas un critere de fermeture. Avec OF_TRANSFER au hub, une partie de la valeur
+         * economique est realisee sur la ligne aval ; les traiter comme une ligne autonome
+         * "unprofitable" pouvait donc envoyer le dernier bus/camion au depot puis le vendre,
+         * tout en laissant les arrets physiques en place. C'est exactement l'etat
+         * "arrets presents, plus aucun vehicule" observe le 2026-09-15.
+         * On ignore donc ce signal uniquement pour les feeders ; les lignes profit classiques
+         * conservent le comportement C52. */
+        local isFeederLine = line != null &&
+            ((("isFeeder" in line) && line.isFeeder) ||
+             (("purpose" in line) && (line.purpose == "feeder" || line.purpose == "feeder_mail")));
+        if (isFeederLine) {
+          if (this._unprofitableStreaks != null && (vehicle in this._unprofitableStreaks)) {
+            delete this._unprofitableStreaks[vehicle];
+          }
+          if (C52_UNPROFITABLE_LOG || DECISION_LOG) {
+            OpexDecide("VEHICLE_UNPROFITABLE", "action=ignore_feeder vehicle=" + vehicle
+                       + " line=" + lineId + " mode=" + mode + " profit=" + profitLast);
+          }
+          return;
+        }
 
         if (C52_UNPROFITABLE_LOG || DECISION_LOG) {
           OpexDecide("VEHICLE_UNPROFITABLE", "vehicle=" + vehicle + " mode=" + mode

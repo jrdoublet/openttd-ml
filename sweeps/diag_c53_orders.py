@@ -21,7 +21,7 @@ from openttdlab import bananas_ai_library, local_folder, run_experiments
 
 ROOT = Path("/work") if Path("/work").exists() else Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "sweeps"))
-from bench_v2 import enable_savegame_cleanup, make_cfg, quarter_profit, year_profit  # noqa: E402
+from bench_v2 import enable_savegame_cleanup, make_cfg  # noqa: E402
 
 OPENTTD_VERSION, OPENGFX_VERSION = "15.3", "7.1"
 DEFAULT_SEEDS = (42, 100, 7, 999, 2026)
@@ -66,6 +66,22 @@ UNLOAD_TYPE_NAMES = {
     2: "TRANSFER",
     4: "NO_UNLOAD",
 }
+
+
+def diag_quarter_profit(entry):
+    if not entry:
+        return None
+    income = entry.get("income")
+    expenses = entry.get("expenses")
+    if income is None or expenses is None:
+        return None
+    return income + expenses if expenses <= 0 else income - expenses
+
+
+def diag_year_profit(closed):
+    profits = [diag_quarter_profit(entry) for entry in (closed or [])[:4]]
+    profits = [value for value in profits if value is not None]
+    return sum(profits) if profits else None
 
 
 def _first(val):
@@ -132,6 +148,7 @@ def extract_orders_from_chunks(chunks, target_owner=0, fail_closed=True):
         "n_full_load_orders": 0,
         "n_no_load_orders": 0,
         "n_transfer_orders": 0,
+        "strict_feeder_chains": [],
         "n_depot_orders": 0,
         "chain_lengths": [],
         "unresolved_errors": [],
@@ -236,6 +253,22 @@ def extract_orders_from_chunks(chunks, target_owner=0, fail_closed=True):
         st["n_orders_total"] += len(decoded_orders)
         st["chain_lengths"].append(len(decoded_orders))
 
+        station_orders = [o for o in decoded_orders if o["order_type"] == "GOTO_STATION"]
+        if len(station_orders) == 2:
+            src_o, dst_o = station_orders
+            if (src_o["load_type"] == "LOAD_IF_POSSIBLE"
+                    and src_o["unload_type"] == "NO_UNLOAD"
+                    and dst_o["load_type"] == "NO_LOAD"
+                    and dst_o["unload_type"] == "TRANSFER"):
+                st["strict_feeder_chains"].append({
+                    "vehicle_id": str(vid),
+                    "unitnumber": unitnumber,
+                    "source_station": src_o["dest"],
+                    "hub_station": dst_o["dest"],
+                    "source_raw_flags": src_o["raw_flags"],
+                    "hub_raw_flags": dst_o["raw_flags"],
+                })
+
         for o in decoded_orders:
             st["raw_type_flags_counts"][(o["raw_type"], o["raw_flags"])] += 1
             st["order_type_counts"][o["order_type"]] += 1
@@ -292,6 +325,8 @@ def extract_orders_from_chunks(chunks, target_owner=0, fail_closed=True):
             "n_no_load_orders": st["n_no_load_orders"],
             "pct_no_load_station_orders": (st["n_no_load_orders"] / n_st * 100.0) if n_st > 0 else 0.0,
             "n_transfer_orders": st["n_transfer_orders"],
+            "n_strict_feeder_order_chains": len(st["strict_feeder_chains"]),
+            "strict_feeder_chains": list(st["strict_feeder_chains"]),
             "n_depot_orders": st["n_depot_orders"],
             "mean_chain_length": statistics.mean(lengths) if lengths else 0.0,
             "order_type_counts": dict(st["order_type_counts"]),
@@ -309,7 +344,7 @@ def keep(row):
     player = chunks.get("PLYR", {}).get(0) or chunks.get("PLYR", {}).get("0")
     closed = (player or {}).get("old_economy") or []
     last_closed = closed[0] if closed else {}
-    py = year_profit(closed)
+    py = diag_year_profit(closed)
 
     order_stats = extract_orders_from_chunks(chunks, target_owner=0, fail_closed=True)
 
@@ -319,11 +354,13 @@ def keep(row):
         "date": str(row.get("date", "")),
         "company_value": last_closed.get("company_value", 0),
         "profit_year": py if py is not None else 0,
-        "profit": quarter_profit(last_closed) or 0,
+        "profit": diag_quarter_profit(last_closed) or 0,
         "performance_history": last_closed.get("performance_history", 0),
         "n_vehicles": len(chunks.get("VEHS", {})),
         "n_stations": len(chunks.get("STNN", {})),
         "order_stats": order_stats,
+                        "signs": [s.get("name", "") for s in (chunks.get("SIGN") or {}).values() if isinstance(s, dict)],
+
     },)
 
 

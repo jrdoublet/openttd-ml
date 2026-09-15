@@ -38,6 +38,9 @@ FEEDER_PRICING <- true;
 FEEDER_TOWN_COVERAGE <- true;
 /* C29.5 : Duplication des bus de rabattement passagers par des camions postaux (modèle AAAHogEx #M1) */
 FEEDER_MAIL_DUPLICATE <- true;
+/* Ordres courrier strictement unidirectionnels ville -> hub : ville sans dechargement,
+ * hub en transfert sans chargement. Defaut adopte = vrai ; le switch existe pour banc causal. */
+FEEDER_MAIL_STRICT_ORDERS <- true;
 /* Conditionnement des feeders au besoin reel du hub (maturite et stock insuffisant) */
 FEEDER_HUB_CHECK <- true;
 FEEDER_HUB_WAIT_MAX <- 100;
@@ -62,6 +65,20 @@ ROAD_COST_PROBE <- false;
 AIR_PRESITE <- false;
 /* C33.2 : Arrets de rabattement joints dans le chantier aeroport */
 AIR_JOINED_STOPS <- false;
+/* Banc causal 2026-09-15 : nombre maximal d'arrets bus annexes partageant directement le
+ * StationID de l'aeroport. Le comportement courant C33.2 est 2 ; 1 permet de comparer
+ * "station aeroport etendue" a "une seule piece jointe + vrais feeders". */
+AIR_JOINED_STOP_LIMIT <- 2;
+/* Banc causal 2026-09-15 : avec un seul arret directement joint a l'aeroport, autoriser
+ * un vrai feeder uniquement dans la ville du hub. Cela isole piece-station vs station
+ * distincte + circulation sans ajouter de rabattements interurbains. */
+AIR_SPLIT_FEEDER_TEST <- false;
+/* Early-slot experimental: prioritise profitable air projects that claim a first
+ * airport in large towns before competitors can consume both town slots. */
+AIR_EARLY_SLOT <- false;
+AIR_EARLY_SLOT_TARGET_TOWNS <- 6;
+AIR_EARLY_SLOT_MIN_POP <- 1000;
+AIR_EARLY_SLOT_BONUS_PCT <- 50;
 /* Refaire le sac a dos contre la caisse vivante, sans repayer la generation des candidats. */
 PORTFOLIO_FRESH_BUDGET <- false;
 /* C36.1 : Caching incremental du vivier post-chantier. */
