@@ -36,6 +36,20 @@ terminée), et la boucle de croissance (`task_air.nut:788-798`, `OpexAirAddPlane
 (`task_report.nut:330`, `AIVehicle.SendVehicleToDepot`) — l'inverse exact de l'intention du correctif G10
 documenté juste à côté (`task_report.nut:264`).
 
+**Clôture B8 — workspace courant, 2026-09-16.** Le constat était encore actif. Le correctif pose
+désormais une garde `line.scrapping` au tout début du `foreach` de `_resizeAirFleets`, **avant**
+`needsRefleet`, puis une seconde garde transactionnelle dans `_tryBuildFleetProject` juste avant
+`OpexAirAddPlane`. La première empêche la création d'un nouveau projet flotte ; la seconde interdit
+la dépense si un projet déjà caché devient stale entre planification et exécution. Le refus est
+observable sous `decision_log` comme `AIR_FLEET reason=scrapping` ou `FLEET_PROJECT
+reason=scrapping`.
+
+`sweeps/test_b8_scrap_lifecycle.py` passe 7/7. Le smoke post-`.nut` sur
+`OpexAI[air_early_slot=1]` est `review_b8_scrap_lifecycle_smoke_2x3.json` (**PASSED 2/2**).
+Le diagnostic `review_b8_scrap_lifecycle_5x6.json` est sain 5/5 mais n'observe aucun cycle de
+rebut AIR sur 1970–1975 ; la propriété « aucun achat pendant scrapping » est donc verrouillée par
+les deux contrats de frontière, pas présentée comme une preuve économique du 5×6.
+
 ### 14.2 — Le mécanisme de mise au rebut d'une ligne aérienne n'existe pas dans `task_air.nut`        [gravité : P3]
 `task_air.nut` ne calcule jamais `deadStreak` ni `lastProfit` pour une ligne aérienne : c'est
 `task_report.nut::_reportLines` (branche `VT_AIR`, lignes 263-274, commentée explicitement `/* G10 : ... */`)
@@ -69,6 +83,15 @@ l'économie de la ligne (`OpexRoadLineEconomics(..., candidate.kind, ...)`) — 
 elle n'est simplement jamais reportée sur `this._lines`. Confirme le constat de l'étape 9 : les lignes
 feeder créées par `task_feeders.nut` sont structurellement hors de portée de toute logique de sélection
 indexée sur `line.kind` (dont `feeder_extension`, dont l'éligibilité vit dans `builder_road.nut`/`candidates.nut`).
+
+**Clôture B4 — workspace courant, 2026-09-16.** Le feeder bus dédié reporte maintenant
+`kind = candidate.kind` dans l'enregistrement de ligne ; le feeder courrier reste volontairement
+sans ce champ afin de ne pas devenir éligible par accident aux extensions pax. Le test statique
+`sweeps/test_b4_feeder_orders.py` verrouille les deux propriétés. Dans le diagnostic réel isolé
+`review_b4_bus_extensions_5x6_ordl.json`, les cinq graines produisent au total 13
+`feeder_extension`, ce qui confirme que la population feeder bus construite par ce chemin atteint
+désormais effectivement `OpexRoadExtensionCandidates`. Aucun défaut/politique n'est adopté sur ce
+5×6 ; il sert uniquement de diagnostic et de preuve de chemin vivant.
 
 ### 14.5 — `feeder_mail_strict_orders` conditionnel côté courrier, correctif inconditionnel côté bus : confirmé        [gravité : P2]
 `task_feeders.nut:332-334` conditionne encore les indicateurs d'ordre du camion postal à

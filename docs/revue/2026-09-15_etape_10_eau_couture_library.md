@@ -105,6 +105,11 @@ plus longue (répartie sur plus de ticks, pas un crash immédiat, mais un coût 
 ni comparé au repère « > 50 Mo = mauvaise IA » cité par `ai/OpexAI/CLAUDE.md`). Aucun banc ni
 sonde du périmètre ne couvre une carte au-delà de 256².
 
+**Réconciliation M4 du 2026-09-16.** Le banc 1024² C46 déjà existant est sain et n'a pas été
+rejoué. Il ne contient toutefois ni RSS/heap externe ni attribution mémoire à Lakes. 10.5 reste
+donc une **question de mesure externe**, pas un défaut technique P1 démontré ; aucun patch de
+`lib_water.nut` n'est justifié.
+
 ## Vérifié, n'est PAS un bug
 
 - **`OpexWaterDockAccess` : seul `.fronts` est lu par l'appelant** — `builder_water.nut:161-163`

@@ -757,6 +757,10 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
     profile.freightEconomicsOps += OpexOpsMeasureEnd(freightEconomicsMark);
     profile.freightEconomicsCalls++;
   }
+  if (EQUIPMENT_ROI_PROBE) {
+    local m3Candidate = { cargo = cargo, distance = distance, monthly = monthly, kind = kind };
+    OpexM3ProbeRailEquipment(catalog, m3Candidate, 0, null, economics, "pre_admission");
+  }
   if (economics == null) {
     stats.economicsUnavailable++;
     return null;
@@ -839,6 +843,8 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
     vehicleCost = economics.vehicleCost,
     immobilise = ("immobilise" in economics) ? economics.immobilise : 0,
     roi = effectiveRoi,
+    /* B6 diagnostic : le bonus de rotation agit sur ratio/TopK en amont, pas sur ce roi. */
+    turnoverBonus = turnoverBonus,
     freightBonus = freightBonus,
     isTransformer = isTransformer,
     profitAnnual = economics.profitAnnual,
@@ -1996,8 +2002,9 @@ function OpexBands(all)
 ROAD_TOP_K <- 48;
 
 /* Repere historique de profit, conserve pour RS et les campagnes comparables. Il ne coupe plus
- * aucun candidat rentable avant l'arbitrage modal : profitTooLow compte les projets sous ce
- * repere, tandis que profitAnnual <= 0 reste le seul rejet economique. Mesure 2026-08-30
+ * aucun candidat rentable avant l'arbitrage modal : profitNonPositive compte le seul rejet
+ * economique, profitBelowFloorKept compte les projets positifs sous ce repere qui RESTENT dans
+ * le vivier. profitTooLow reste un agregat legacy interne pour compatibilite. Mesure 2026-08-30
  * (results/opex_road_predict_vs_actual.json) : 12 pax, mediane reel/predit 3,91 ; fret temoin 1,21.
  * La valeur n'est donc plus un parametre de decision.
  */
@@ -2039,6 +2046,12 @@ function OpexMakeRoadCandidate(catalog, kind, cargo, src, dst, srcTown, dstTown,
     return null;
   }
   local economics = OpexRoadLineEconomics(catalog, cargo, distance, monthly, engine, kind);
+  if (EQUIPMENT_ROI_PROBE) {
+    local m3Candidate = {
+      cargo = cargo, distance = distance, monthly = monthly, kind = kind, engine = engine
+    };
+    OpexM3ProbeRoadEquipment(catalog, m3Candidate, distance, null, economics, "pre_admission");
+  }
   if (economics == null) {
     stats.economicsUnavailable++;
     return null;
@@ -2048,9 +2061,13 @@ function OpexMakeRoadCandidate(catalog, kind, cargo, src, dst, srcTown, dstTown,
    * mais sa rentabilite globale est portee par le reseau aerien/ferroviaire (FEEDER_PRICING). */
   if (!isFeeder && economics.profitAnnual <= 0) {
     stats.profitTooLow++;
+    if ("profitNonPositive" in stats) stats.profitNonPositive++;
     return null;
   }
-  if (!isFeeder && economics.profitAnnual < ROAD_MIN_PROFIT_ANNUAL) stats.profitTooLow++;
+  if (!isFeeder && economics.profitAnnual < ROAD_MIN_PROFIT_ANNUAL) {
+    stats.profitTooLow++;
+    if ("profitBelowFloorKept" in stats) stats.profitBelowFloorKept++;
+  }
   local iterations = OpexRoadIterations(distance);
   local freightBonus = 100;
   if (FLAT_BONUS && kind == "freight") {   /* C32 : voir OpexMakeCandidate */
@@ -2073,6 +2090,10 @@ function OpexMakeRoadCandidate(catalog, kind, cargo, src, dst, srcTown, dstTown,
     distance = distance,
     monthly = monthly,
     engine = engine,
+    /* B3 diagnostic-only : garder la cible brute sans remplacer la cible comportementale. */
+    vehiclesForVolume = economics.vehiclesForVolume,
+    roadBerthCapacity = economics.roadBerthCapacity,
+    roadVehicleCap = economics.roadVehicleCap,
     trains = economics.trains,
     carried = economics.carried,
     capital = economics.capital,
@@ -3084,7 +3105,8 @@ function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null, 
   local all = [];
   local stats = {
     pairsInBand = 0, noMonthly = 0, noEngine = 0, townRejected = 0, townAcceptancePrefiltered = 0,
-    economicsUnavailable = 0, profitTooLow = 0, accepted = 0,
+    economicsUnavailable = 0, profitTooLow = 0, profitNonPositive = 0,
+    profitBelowFloorKept = 0, accepted = 0,
     feederHubs = 0, feederCandidates = 0, extensionCandidates = 0,
     /* C43/E3 famille 2 : ROAD_MIN_DISTANCE/ROAD_MAX_DISTANCE mordent-elles ? */
     roadDistanceShort = 0, roadDistanceLong = 0,
@@ -3143,8 +3165,11 @@ function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null, 
     if (stats.economicsUnavailable > 0) {
       OpexDecide("VIVIER_REJECT", "reason=road_economics_unavailable n=" + stats.economicsUnavailable);
     }
-    if (stats.profitTooLow > 0) {
-      OpexDecide("VIVIER_REJECT", "reason=road_profit_too_low n=" + stats.profitTooLow);
+    if (stats.profitNonPositive > 0) {
+      OpexDecide("VIVIER_REJECT", "reason=road_profit_non_positive n=" + stats.profitNonPositive);
+    }
+    if (stats.profitBelowFloorKept > 0) {
+      OpexDecide("VIVIER_RETAINED", "reason=road_profit_below_floor n=" + stats.profitBelowFloorKept);
     }
     if (stats.roadDistanceShort > 0) {
       OpexDecide("VIVIER_REJECT", "reason=road_distance_short n=" + stats.roadDistanceShort);

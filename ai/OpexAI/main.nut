@@ -32,6 +32,10 @@ require("globals_pre.nut");
 const RAIL_EXPAND_STREAK = 2;
 const RAIL_EXPAND_UTIL_PERMILLE = 850;
 const RAIL_EXPAND_TIMEOUT_DAYS = 120;
+/* Meme enveloppe locale que les signaux d'approche rail
+ * (builder_rail.nut::OpexPlacePathApproachSignal, maxDistance=8). L'expansion ne deroute donc
+ * une rame vers le depot qu'une fois entree dans cette zone locale. */
+const RAIL_EXPAND_APPROACH_TILES = 8;
 
 const RAIL_PREQUOTE_MAX_CANDIDATES = 2;
 const RAIL_PREQUOTE_HARD_CAP = 2500;
@@ -138,6 +142,11 @@ class OpexAI extends AIController {
   _railSearch = null;
   /* C38 : etat transitoire d'un batch dynamique, necessaire si un A* rail rend la main. */
   _dynamicBatch = null;
+  /* 11.6 : _railSearch contient un pathfinder vivant et _dynamicBatch reference _projects.
+   * Ils ne sont pas serialises ; Save/Load ne conserve que leur presence pour forcer une
+   * reconstruction propre du portefeuille apres reload. */
+  _reloadDroppedRailSearch = false;
+  _reloadDroppedDynamicBatch = false;
   /* Le diagnostic mono-bus (_roadDiag, _reportRoad, echantillon trimestriel RQ/RE/RI) a ete retire
    * le 2026-08-29 : il servait a trouver pourquoi UNE liaison ne chargeait rien, la reponse est
    * connue et documentee (builder_road.nut), et les lignes routieres rejoignent desormais _lines,
@@ -468,7 +477,7 @@ function OpexAI::Start()
   if (this._loadedFromSave) this._reconcileAfterLoad();
   if (DECISION_LOG) {
     OpexDecide("SETTINGS", "road_cheap_trace=" + ROAD_CHEAP_TRACE
-               + " raw=" + AIController.GetSetting("road_cheap_trace")
+               + " raw=" + (ROAD_CHEAP_TRACE ? 1 : 0)
                + " road_pax_build=" + ROAD_PAX_BUILD_ENABLED
                + " road_pax_voirie=" + ROAD_PAX_VOIRIE
                + " road_pax_overlap=" + ROAD_PAX_OVERLAP);

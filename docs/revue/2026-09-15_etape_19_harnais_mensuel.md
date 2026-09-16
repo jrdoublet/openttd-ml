@@ -45,3 +45,32 @@ périmètre : pas `docs/taches.md` en entier, pas les journaux, pas `results/`.
 - Le coût opcode réel de l'émission `MONTHLY_FUNNEL` / `MONTHLY_FUNNEL_DETAIL` (probablement `task_projects.nut`) est hors périmètre ici (fichier `.nut`, déjà signalé C66.2 par le plan) : ce fichier ne peut que constater que la sonde est forcée par le script (19.1), pas en chiffrer le coût.
 - `physical_counters.py` (`QUALIFIED_MODES`, `decode_vehicles`, `FACILITY_BITS`) est un fichier distinct hors périmètre strict de l'étape 19 ; seule l'exploitation qu'en fait `diag_1v1_shared_monthly.py` (19.4) relève de cette étape.
 - L'absence d'émetteur `.nut` pour `MONTHLY_FUNNEL_DETAIL` elle-même (côté écriture) a déjà été constatée à l'étape 13 ; 19.3 ne fait que vérifier la conséquence côté lecteur, sans rouvrir la question de l'émetteur.
+
+## Passe de correction ? H5/G0bis, 2026-09-16
+
+Le constat 19.5 est corrig?. Chaque checkpoint OpexAI lit les panneaux de co?t d?j?
+pr?sents et `attach_opcode_deltas()` transforme les compteurs cumulatifs en co?t
+mensuel par graine. Les cellules mensuelles publient `observed_opcodes`,
+`observed_mopcodes`, le d?tail par composante et un ?tat explicite ; aucune valeur
+n'est fabriqu?e pour AAAHogEx.
+
+Validation r?elle : `results/review_h5_monthly_observed_ops_final.json`, 1v1 partag?
+seed 42, 1 an. Les 13/13 checkpoints OpexAI ont
+`observed_opcode_state=available` ; pour chaque mois,
+`observed_opcodes_month == somme(observed_opcode_components_month)`. Exemples :
+f?vrier 93 528 opcodes observ?s (82 000 s?lection + 11 528 planification air) ;
+mars 875 858 (27 000 s?lection + 79 608 planification route + 769 250 build route).
+Le co?t reste volontairement partiel : il ne devient pas un compteur CPU total.
+
+## Passe B2 — 2026-09-16
+
+Les constats 19.1 et 19.2 sont corrigés dans le code courant : `--no-funnel` autorise
+`shared=True` avec `monthly_funnel=0`, et le schéma distingue désormais explicitement les
+stocks moyens par passe (`considered`, `accepted`) des flux mensuels
+(`funded`, `attempted`, `built`) via `metric_kinds`.
+
+19.3 reste une **limite de couverture explicite**, pas une valeur silencieuse : aucun
+`MONTHLY_FUNNEL_DETAIL` n'est émis côté IA, et le lecteur publie
+`funnel_detailed_state=missing_emitter` lorsque la sonde est demandée. Il n'est donc plus
+possible de confondre « aucune activité » avec « métrique non émise ». Aucun chiffre détaillé par
+mode n'est inventé pour fermer artificiellement B2.

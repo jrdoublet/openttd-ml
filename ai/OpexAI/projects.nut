@@ -37,7 +37,8 @@ const PROJECT_AIR_TRANSACTION_OPS = 100000;
 const PROJECT_WATER_TRANSACTION_OPS = 100000;
 CLEAN_DENSITY_SCORE <- true;
 
-/* Journal historique conserve mot pour mot pour le chemin tension_probe=0. */
+/* Le schema historique reste lisible : score/cost conservent leur sens legacy. M1 ajoute
+ * rank_score/finance_capital pour publier aussi les quantites qui classent reellement. */
 function OpexLogPortfolioRank(projects)
 {
   if (!DECISION_LOG) return;
@@ -48,8 +49,20 @@ function OpexLogPortfolioRank(projects)
     local p = projects.best[i];
     if (p == null) continue;
     local cargoStr = ("cargo" in p && p.cargo >= 0) ? AICargo.GetCargoLabel(p.cargo) : "none";
-    local scoreVal = ((TENSION_SCORING || SHADOW_PRICING) && ("tensionScore" in p)) ? p.tensionScore : p.budgetScore;
-    if (DECISION_LOG) OpexDecide("PORTFOLIO_RANK", "rank=" + i + " mode=" + p.mode + " kind=" + p.kind + " cargo=" + cargoStr + " src=" + p.src + " dst=" + p.dst + " dist=" + p.distance + " roi=" + p.roi + " score=" + scoreVal + " cost=" + p.capital + " profit=" + p.profitAnnual);
+    local legacyScore = ((TENSION_SCORING || SHADOW_PRICING) && ("tensionScore" in p))
+        ? p.tensionScore : p.budgetScore;
+    local rankKey = (TENSION_SCORING || SHADOW_PRICING) ? "tensionScore" : "fundScore";
+    local rawRankScore = (rankKey in p) ? p[rankKey] : p.budgetScore;
+    local rankScore = (AIR_EARLY_SLOT && (rankKey in p))
+        ? OpexProjectSelectionScore(p, rankKey) : rawRankScore;
+    local financeCapital = OpexProjectFinanceCapital(p);
+    local turnoverBonus = ("turnoverBonus" in p) ? p.turnoverBonus : 100;
+    local generationRatio = ("generationRatio" in p) ? p.generationRatio : 0;
+    local roadFleet = (p.mode == "road" && ("vehiclesForVolume" in p))
+        ? (" raw_vehs=" + p.vehiclesForVolume + " berth_cap=" + p.payload.roadBerthCapacity
+           + " fleet_cap=" + p.roadVehicleCap + " capped_vehs=" + p.selectedRoadVehicles)
+        : "";
+    if (DECISION_LOG) OpexDecide("PORTFOLIO_RANK", "rank=" + i + " mode=" + p.mode + " kind=" + p.kind + " cargo=" + cargoStr + " src=" + p.src + " dst=" + p.dst + " dist=" + p.distance + " roi=" + p.roi + " turnover_bonus=" + turnoverBonus + " generation_ratio=" + generationRatio + " score=" + legacyScore + " rank_score=" + rankScore + " rank_score_raw=" + rawRankScore + " budget_score=" + p.budgetScore + " cost=" + p.capital + " finance_capital=" + financeCapital + " profit=" + p.profitAnnual + roadFleet);
   }
 }
 
@@ -91,8 +104,20 @@ function OpexLogPortfolioRankWithTension(projects)
     local p = projects.best[i];
     if (p == null) continue;
     local cargoStr = ("cargo" in p && p.cargo >= 0) ? AICargo.GetCargoLabel(p.cargo) : "none";
-    local scoreVal = ((TENSION_SCORING || SHADOW_PRICING) && ("tensionScore" in p)) ? p.tensionScore : p.budgetScore;
-    if (DECISION_LOG) OpexDecide("PORTFOLIO_RANK", "rank=" + i + " mode=" + p.mode + " kind=" + p.kind + " cargo=" + cargoStr + " src=" + p.src + " dst=" + p.dst + " dist=" + p.distance + " roi=" + p.roi + " score=" + scoreVal + " cost=" + p.capital + " profit=" + p.profitAnnual);
+    local legacyScore = ((TENSION_SCORING || SHADOW_PRICING) && ("tensionScore" in p))
+        ? p.tensionScore : p.budgetScore;
+    local rankKey = (TENSION_SCORING || SHADOW_PRICING) ? "tensionScore" : "fundScore";
+    local rawRankScore = (rankKey in p) ? p[rankKey] : p.budgetScore;
+    local rankScore = (AIR_EARLY_SLOT && (rankKey in p))
+        ? OpexProjectSelectionScore(p, rankKey) : rawRankScore;
+    local financeCapital = OpexProjectFinanceCapital(p);
+    local turnoverBonus = ("turnoverBonus" in p) ? p.turnoverBonus : 100;
+    local generationRatio = ("generationRatio" in p) ? p.generationRatio : 0;
+    local roadFleet = (p.mode == "road" && ("vehiclesForVolume" in p))
+        ? (" raw_vehs=" + p.vehiclesForVolume + " berth_cap=" + p.payload.roadBerthCapacity
+           + " fleet_cap=" + p.roadVehicleCap + " capped_vehs=" + p.selectedRoadVehicles)
+        : "";
+    if (DECISION_LOG) OpexDecide("PORTFOLIO_RANK", "rank=" + i + " mode=" + p.mode + " kind=" + p.kind + " cargo=" + cargoStr + " src=" + p.src + " dst=" + p.dst + " dist=" + p.distance + " roi=" + p.roi + " turnover_bonus=" + turnoverBonus + " generation_ratio=" + generationRatio + " score=" + legacyScore + " rank_score=" + rankScore + " rank_score_raw=" + rawRankScore + " budget_score=" + p.budgetScore + " cost=" + p.capital + " finance_capital=" + financeCapital + " profit=" + p.profitAnnual + roadFleet);
   }
   foreach (fields in lines) OpexDecide("TENSION", fields);
   /* Les quatre mesures foncieres cote a cote : le stock d'origines libres (celui qui est
@@ -339,7 +364,18 @@ function OpexProjectFromCandidate(candidate, tensionCtx = null)
     budgetScore = OpexProjectScore(scoreRevenue, budgetCapital),
     opcodeScore = OpexProjectScore(scoreRevenue, expectedOps),
     planningOpcodes = 0,
+    economicsDate = AIDate.GetCurrentDate(),
   };
+  /* B3 diagnostic-only : distinguer la demande brute, la borne appliquee au classement et la
+   * cible retenue. Aucun de ces champs nouveaux n'entre dans un score ou un tri. */
+  if (mode == "road") {
+    project.vehiclesForVolume <- ("vehiclesForVolume" in candidate) ? candidate.vehiclesForVolume : candidate.trains;
+    project.roadVehicleCap <- ("roadVehicleCap" in candidate) ? candidate.roadVehicleCap : candidate.trains;
+    project.selectedRoadVehicles <- candidate.trains;
+  }
+  /* B6 : conserver les composantes de pre-classement comme mesures seulement. */
+  project.turnoverBonus <- ("turnoverBonus" in candidate) ? candidate.turnoverBonus : 100;
+  project.generationRatio <- ("ratio" in candidate) ? candidate.ratio : 0;
   project.tensionScore <- ((TENSION_SCORING || SHADOW_PRICING) && tensionCtx != null)
       ? OpexTensionScore(project, tensionCtx)
       : project.budgetScore;
@@ -712,9 +748,15 @@ function OpexLogVivier(path, candidates, stats, capitalBudget, capitalRemaining)
 {
   if (!DECISION_LOG) return;
   if (DECISION_LOG) {
+    local poolCapital = ("selectionPoolCapital" in stats) ? stats.selectionPoolCapital
+        : (("selectedCapital" in stats) ? stats.selectedCapital : 0);
+    local nextCapital = ("nextProjectCapital" in stats) ? stats.nextProjectCapital : 0;
     OpexDecide("VIVIER", "path=" + path + " considered=" + stats.budgetConsidered
-               + " selected=" + stats.budgetSelected + " rejected=" + stats.budgetRejected
-               + " budget=" + capitalBudget + " remaining=" + capitalRemaining
+               + " selected=" + stats.budgetSelected + " pool_selected=" + stats.budgetSelected
+               + " rejected=" + stats.budgetRejected + " not_selected=" + stats.budgetRejected
+               + " budget=" + capitalBudget + " selection_pool_capital=" + poolCapital
+               + " next_capital=" + nextCapital + " remaining=" + capitalRemaining
+               + " pool_headroom=" + capitalRemaining
                + " sel_ops=" + (("selectionOpcodes" in stats) ? stats.selectionOpcodes : -1));
   }
   if (candidates == null) return;
@@ -815,6 +857,7 @@ function OpexProjectsStampSelectionStats(stats, projects, alternatives, funded, 
  * la meme solution que best, y compris lorsque la selection n'a pas prouve son optimum. */
 function OpexReselectProjects(projects, capitalBudget)
 {
+  local b6BudgetDate = AIDate.GetCurrentDate();
   local funded = null;
   local considered = 0;
   local opsMark = OpexOpsMeasureBegin();
@@ -827,6 +870,7 @@ function OpexReselectProjects(projects, capitalBudget)
   projects.stats.knapsackNodes = 0;
   projects.stats.knapsackExact = false;
   projects.stats.selectionOpcodes <- OpexOpsMeasureEnd(opsMark);
+  OpexB6LogSelectionCausality("reselect", alternatives, funded, capitalBudget, b6BudgetDate);
 
   projects.stats.budgetConsidered = considered;
   projects.stats.budgetSelected = funded.len();
@@ -840,6 +884,11 @@ function OpexReselectProjects(projects, capitalBudget)
   }
   projects.stats.selectedRevenue = selectedRev;
   projects.stats.selectedCapital = selectedCap;
+  if ("selectionPoolCapital" in projects.stats) projects.stats.selectionPoolCapital = selectedCap;
+  else projects.stats.selectionPoolCapital <- selectedCap;
+  local nextProjectCapital = funded.len() > 0 ? OpexProjectFinanceCapital(funded[0]) : 0;
+  if ("nextProjectCapital" in projects.stats) projects.stats.nextProjectCapital = nextProjectCapital;
+  else projects.stats.nextProjectCapital <- nextProjectCapital;
 
   projects.capitalBudget = capitalBudget;
   projects.capitalRemaining = capitalBudget - selectedCap;
@@ -1306,6 +1355,69 @@ function OpexProjectAttemptKey(p)
   return mode + "|" + src + "|" + dst + "|" + cargo + "|" + kind;
 }
 
+/* B6 passive portfolio causality probe. It never changes sorting or admission. */
+function OpexB6LogSelectionCausality(path, alternatives, funded, snapshotBudget, snapshotDate,
+                                    recycledKeys = null)
+{
+  if (!DECISION_LOG) return;
+  local now = AIDate.GetCurrentDate();
+  local liveBudget = OpexAvailableCapital();
+  local flips = 0;
+  local affordable = 0;
+  local bestProfit = null;
+  foreach (p in alternatives) {
+    if (p == null) continue;
+    local cap = OpexProjectFinanceCapital(p);
+    local snapAffordable = cap <= snapshotBudget;
+    local liveAffordable = cap <= liveBudget;
+    if (snapAffordable != liveAffordable) flips++;
+    if (!snapAffordable) continue;
+    affordable++;
+    if (bestProfit == null || p.profitAnnual > bestProfit.profitAnnual) bestProfit = p;
+  }
+  local actual = funded.len() > 0 ? funded[0] : null;
+  local actualProfit = actual != null ? actual.profitAnnual : 0;
+  local actualCap = actual != null ? OpexProjectFinanceCapital(actual) : 0;
+  local actualMode = actual != null ? actual.mode : "none";
+  local actualScore = (actual != null && ("fundScore" in actual)) ? actual.fundScore : 0;
+  local actualRoi = actual != null ? actual.roi : 0;
+  local actualTurnover = (actual != null && ("turnoverBonus" in actual)) ? actual.turnoverBonus : 100;
+  local actualGenerationRatio = (actual != null && ("generationRatio" in actual)) ? actual.generationRatio : 0;
+  local cfProfit = bestProfit != null ? bestProfit.profitAnnual : 0;
+  local cfCap = bestProfit != null ? OpexProjectFinanceCapital(bestProfit) : 0;
+  local cfMode = bestProfit != null ? bestProfit.mode : "none";
+  local cfScore = (bestProfit != null && ("fundScore" in bestProfit)) ? bestProfit.fundScore : 0;
+  local cfRoi = bestProfit != null ? bestProfit.roi : 0;
+  local cfTurnover = (bestProfit != null && ("turnoverBonus" in bestProfit)) ? bestProfit.turnoverBonus : 100;
+  local cfGenerationRatio = (bestProfit != null && ("generationRatio" in bestProfit)) ? bestProfit.generationRatio : 0;
+  local same = (actual != null && bestProfit != null && actual == bestProfit) ? 1 : 0;
+  local actualAge = -1;
+  if (actual != null && ("economicsDate" in actual)) actualAge = now - actual.economicsDate;
+  local actualRecycled = 0;
+  local poolRecycled = 0;
+  if (recycledKeys != null) {
+    if (actual != null && (OpexProjectAttemptKey(actual) in recycledKeys)) actualRecycled = 1;
+    foreach (p in funded) {
+      if (p != null && (OpexProjectAttemptKey(p) in recycledKeys)) poolRecycled++;
+    }
+  }
+  OpexDecide("B6_PORTFOLIO",
+      "path=" + path + " snapshot_budget=" + snapshotBudget + " live_budget=" + liveBudget
+      + " budget_delta=" + (liveBudget - snapshotBudget) + " snapshot_age_days=" + (now - snapshotDate)
+      + " affordability_flips=" + flips + " alternatives=" + alternatives.len()
+      + " affordable_snapshot=" + affordable + " pool_selected=" + funded.len()
+      + " max_batch=" + PORTFOLIO_MAX_BATCH + " floor_pct=" + PORTFOLIO_FLOOR_PCT
+      + " actual_mode=" + actualMode + " actual_profit=" + actualProfit + " actual_cap=" + actualCap
+      + " actual_rank_score=" + actualScore + " actual_roi=" + actualRoi
+      + " actual_turnover_bonus=" + actualTurnover + " actual_generation_ratio=" + actualGenerationRatio
+      + " cf_mode=" + cfMode + " cf_profit=" + cfProfit + " cf_cap=" + cfCap
+      + " cf_rank_score=" + cfScore + " cf_roi=" + cfRoi
+      + " cf_turnover_bonus=" + cfTurnover + " cf_generation_ratio=" + cfGenerationRatio
+      + " same_profit_choice=" + same + " delta_profit=" + (cfProfit - actualProfit)
+      + " actual_age_days=" + actualAge + " actual_recycled=" + actualRecycled
+      + " pool_recycled=" + poolRecycled);
+}
+
 /* Retire du vivier incremental les projets deja essayes dans le batch courant, puis rejoue la
  * seule contrainte de capital. */
 function OpexDynamicBatchReselect(projects, lines, attempted, capitalBudget, abandonedPairs = null)
@@ -1337,6 +1449,7 @@ function OpexDynamicBatchReselect(projects, lines, attempted, capitalBudget, aba
  * Execution : < 1 tick (< 500 opcodes, 0 jour). */
 function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capitalBudget, fleetPlan = null, abandonedPairs = null)
 {
+  local b6BudgetDate = AIDate.GetCurrentDate();
   local c48TotalMark = null;
   local c48TotalDate = 0;
   local c48Lines = 0;
@@ -1356,6 +1469,8 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
     budgetRejected = 0,
     selectedRevenue = 0,
     selectedCapital = 0,
+    selectionPoolCapital = 0,
+    nextProjectCapital = 0,
     knapsackNodes = 0,
     knapsackExact = false,
   };
@@ -1378,6 +1493,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
 
   local lineIndex = (C48_INDEXED_REGENERATION || C48_INDEX_SHADOW) ? OpexBuildLineIndex(lines) : null;
   local newWinners = {};
+  local recycledKeys = {};
   local cacheScanned = 0;
   local cacheRetained = 0;
   local abandonFiltered = 0;
@@ -1414,6 +1530,8 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
           continue;
         }
         if (!OpexIncrementalCandidateStillValid(p, lines, abandonedPairs, lineIndex)) continue;
+        local recycledKey = OpexProjectAttemptKey(p);
+        if (!(recycledKey in recycledKeys)) recycledKeys[recycledKey] <- true;
         OpexProjectRememberAll(newWinners, p, stats);
         if (C48_INCREMENTAL_PROFILE) c48Retained++;
         cacheRetained++;
@@ -1532,6 +1650,8 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   stats.knapsackNodes = 0;
   stats.knapsackExact = false;
   stats.selectionOpcodes <- OpexOpsMeasureEnd(opsMark);
+  OpexB6LogSelectionCausality("incremental", alternatives, funded, capitalBudget, b6BudgetDate,
+                             recycledKeys);
   if (C48_INCREMENTAL_PROFILE) {
     local c48Days = AIDate.GetCurrentDate() - c48SelectionDate;
     OpexC48IncrementalRecord("selection", OpexOpsMeasureEnd(c48SelectionMark), c48Days,
@@ -1547,6 +1667,8 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   }
   stats.selectedRevenue = selectedRev;
   stats.selectedCapital = selectedCap;
+  stats.selectionPoolCapital = selectedCap;
+  stats.nextProjectCapital = funded.len() > 0 ? OpexProjectFinanceCapital(funded[0]) : 0;
   local remaining = capitalBudget - selectedCap;
   if (remaining < 0) remaining = 0;
 
@@ -1589,7 +1711,8 @@ function OpexProjectEmptyRoad()
   return {
     all = 0, candidates = [], best = [],
     stats = { pairsInBand = 0, noMonthly = 0, noEngine = 0, townRejected = 0,
-              economicsUnavailable = 0, profitTooLow = 0, accepted = 0,
+              economicsUnavailable = 0, profitTooLow = 0, profitNonPositive = 0,
+              profitBelowFloorKept = 0, accepted = 0,
               feederHubs = 0, feederCandidates = 0,
               roadDistanceShort = 0, roadDistanceLong = 0 },
     opcodes = 0,
@@ -1852,6 +1975,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_road", "-");
 
   local capitalBudget = OpexAvailableCapital();
+  local capitalBudgetDate = AIDate.GetCurrentDate();
 
   local airPlan = null;
   local airPlans = [];
@@ -1934,6 +2058,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     modeCandidates = 0, modeAlternatives = 0, modeReplaced = 0,
     odProjects = 0, budgetConsidered = 0, budgetSelected = 0,
     budgetRejected = 0, selectedRevenue = 0, selectedCapital = 0,
+    selectionPoolCapital = 0, nextProjectCapital = 0,
     knapsackNodes = 0, knapsackExact = false, poolInfundable = 0,
     railPrequoteAttempted = railPrequote.attempted, railPrequoteQuoted = railPrequote.quoted,
     railPrequoteFailed = railPrequote.failed, railPrequoteOpcodes = railPrequote.opcodes,
@@ -2091,6 +2216,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
   stats.knapsackNodes = 0;
   stats.knapsackExact = false;
   stats.selectionOpcodes <- OpexOpsMeasureEnd(opsMark);
+  OpexB6LogSelectionCausality("build", alternatives, funded, capitalBudget, capitalBudgetDate);
 
   local selectedRev = 0;
   local selectedCap = 0;
@@ -2100,6 +2226,8 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
   }
   stats.selectedRevenue = selectedRev;
   stats.selectedCapital = selectedCap;
+  stats.selectionPoolCapital = selectedCap;
+  stats.nextProjectCapital = funded.len() > 0 ? OpexProjectFinanceCapital(funded[0]) : 0;
   local remaining = capitalBudget - selectedCap;
   if (remaining < 0) remaining = 0;
 

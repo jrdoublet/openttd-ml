@@ -381,3 +381,53 @@ HEAD courant, sans réutiliser de résultat archivé antérieur au 2026-09-09.
   `modeCandidates` courant au lieu des listes de génération potentiellement vieilles du cache.
 - **06.11 et 06.12 différés** : rafraîchir l'économie recyclée ou déplacer le pré-devis rail
   change le classement et exige les bancs comportementaux prévus par la méthode.
+
+## Réconciliation B6 finale — 2026-09-16
+
+M1 a d'abord rendu explicite la différence entre **pool sélectionné** et dépense exécutable :
+`selectedCapital` reste inchangé pour préserver `GROWTH_YIELDS`, tandis que
+`selectionPoolCapital` et `nextProjectCapital` rendent la mesure honnête et
+`IB|` reste rétrocompatible.
+
+Le diagnostic apparié `review_b6_portfolio_causality_paired_5x6.json` établit ensuite :
+
+- **06.2 exposé, non adopté** : 146/501 choix comparables diffèrent du meilleur profit abordable,
+  delta contre-factuel moyen +1 742 £/an, médiane 0, max +23 113. Cela ne prouve pas l'effet aval
+  d'un nouvel objectif. `portfolio_floor_pct` reste 0 ; la variante 50 % a déjà un 20×10
+  post-09/09 défavorable (−4,94 % valeur, 4 V / 16 D).
+- **06.5 actif P2** : 630/639 snapshots diffèrent du capital vivant, âge moyen 4,44 j, max 12 ;
+  50 événements changent l'abordabilité, 1 203 bascules cumulées. Aucune réactivation silencieuse
+  de `portfolio_fresh_budget`.
+- **06.11 actif P3** : 139/345 choix incrémentaux utilisent un projet recyclé ; âge moyen 14,36 j,
+  max 43. L'erreur économique de péremption n'est pas quantifiée, donc aucun refresh adopté.
+- **06.12 dormant** avec `rail_prequote=0`.
+- `PORTFOLIO_MAX_BATCH=1` et `portfolio_floor_pct=0` ont été observés partout.
+
+B6 est clos comme chantier P1 : instrumentation et causalité établies, aucun défaut de politique
+changé et aucun nouveau 20×10 lancé.
+
+### Réconciliation post-M7 — 06.5 / 06.11
+
+La reprise finale de la revue confirme que **06.5 reste un défaut actif mais P2**, pas un P1
+technique à corriger sous la règle courante :
+
+- le full rebuild photographie aujourd'hui le capital à
+  `projects.nut:1977-1978`, avant `OpexAirPlans` (`:1986` et repli `:2011`) et
+  `OpexWaterPlans` (`:2042`), puis passe encore ce snapshot à
+  `OpexProjectSelectAffordable` (`:2212`) ;
+- le 5×6 déjà valide n'est **pas rejoué** : 630/639 événements ont un capital vivant différent,
+  50 événements présentent au moins une bascule d'abordabilité, soit 1 203 bascules cumulées ;
+- la divergence ne permet toutefois pas un chantier « sans argent » : air
+  (`task_air.nut:378-390`), route (`task_road.nut:175-181`), eau
+  (`task_water.nut:27-35`) et flotte (`task_projects.nut:179-185`) refont un contrôle de cash
+  vivant juste avant construction ; rail précontrôle à `task_rail.nut:216-230` et
+  `OpexBuildLine` peut encore rendre `CASH` au dernier instant (`:272-276`).
+
+La causalité est donc **élection/admission sur budget périmé** : perte d'opportunité ou tentative
+qui sera rejetée au chantier, sans corruption de mesure ni dépense P1 non gardée. Re-lire le
+capital avant `OpexProjectSelectAffordable` changerait réellement quel projet est élu ; c'est une
+variante comportementale, pas un correctif P1 à glisser dans cette passe.
+
+**06.11** reste également actif mais P3 : 139/345 sélections incrémentales prennent un projet
+recyclé, âge moyen 14,36 jours et maximum 43 jours. Le banc mesure l'âge mais pas l'erreur
+économique induite ; aucun recalcul de ROI n'est adopté sans mesure dédiée.

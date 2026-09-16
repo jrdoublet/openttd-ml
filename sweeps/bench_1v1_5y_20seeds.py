@@ -256,6 +256,14 @@ def _station_route_index(chunks):
             "owner": base.get("owner"),
             "facilities": base.get("facilities", 0),
             "xy": base.get("xy"),
+            "airport": {
+                "tile": body.get("airport.tile"),
+                "width": body.get("airport.w"),
+                "height": body.get("airport.h"),
+                "type": body.get("airport.type"),
+                "layout": body.get("airport.layout"),
+                "rotation": body.get("airport.rotation"),
+            } if int(base.get("facilities") or 0) & 8 else None,
             "goods": {
                 str(cargo_id): {
                     "rated": bool(
@@ -500,6 +508,7 @@ def extract_line_telemetry(chunks, owner):
                 "station_id": sid,
                 "town_id": station.get("town"),
                 "tile": station.get("xy"),
+                "airport": station.get("airport"),
                 "cargo": cargo_stats,
             })
         line["endpoint_cargo_stats"] = endpoint_cargo_stats
@@ -541,6 +550,7 @@ def build_line_telemetry_report(rows):
         "observed_fields": [
             "mode", "station_ids", "town_ids", "vehicles", "capacity_by_cargo",
             "profit_this_year_gbp", "profit_last_year_gbp", "vehicle_value",
+            "endpoint_cargo_stats.airport.{tile,width,height,type,layout,rotation}",
         ],
         "unavailable_fields": ["revenue", "running_cost"],
         "snapshots": snapshots,
@@ -610,11 +620,17 @@ def keep(row):
     repeat = experiment.get("repeat", 0)
     duel_policy_id = experiment.get("policy_id", "reference")
 
-    log_path = None
-    if ENGINE_LOG_DIR is not None:
-        log_path = write_engine_log(
-            engine_log_path_for(ENGINE_LOG_DIR, seed, repeat, policy_id=duel_policy_id), output
-        )
+    log_path = experiment.get("engine_log_path")
+    if not log_path:
+        engine_log_dir = globals().get("ENGINE_LOG_DIR")
+        engine_log_path_fn = globals().get("engine_log_path_for")
+        if engine_log_dir is not None and engine_log_path_fn is not None:
+            log_path = str(engine_log_path_fn(
+                engine_log_dir, seed, repeat, policy_id=duel_policy_id
+            ))
+    if log_path:
+        with open(log_path, "w", encoding="utf-8") as handle:
+            handle.write(output)
 
     rec0 = extract_company_record(chunks, 0, ["OpexAI", seed, repeat], date)
     rec1 = extract_company_record(chunks, 1, ["AAAHogEx", seed, repeat], date)
@@ -1255,6 +1271,13 @@ def main():
         policy_id=args.policy_id,
         policies=policies,
     )
+    for experiment in exps:
+        experiment["engine_log_path"] = str(engine_log_path_for(
+            ENGINE_LOG_DIR,
+            experiment["seed"],
+            experiment.get("repeat", 0),
+            policy_id=experiment.get("policy_id", args.policy_id),
+        ))
     validate_paired_experiments(exps, [policy["id"] for policy in policies])
     protocol_label = "C66.4" if len(policies) == 2 else "C66.3"
     print(f"=== {protocol_label} campagne {campaign.campaign_id} ===")
@@ -1267,11 +1290,20 @@ def main():
     )
     print(f"Workers: {args.max_workers} | Sortie: {out}")
 
+    result_processor = keep
+    if getattr(keep, "__module__", None) == "__main__":
+        import importlib
+        processor_module = importlib.import_module("bench_1v1_5y_20seeds")
+        processor_module.CHECKPOINT_PATH = CHECKPOINT_PATH
+        processor_module.ENGINE_LOG_DIR = ENGINE_LOG_DIR
+        processor_module.LINE_TELEMETRY = LINE_TELEMETRY
+        result_processor = processor_module.keep
+
     rows = list(run_experiments(
         openttd_version=OPENTTD_VERSION,
         opengfx_version=OPENGFX_VERSION,
         max_workers=args.max_workers,
-        result_processor=keep,
+        result_processor=result_processor,
         experiments=exps,
         ai_libraries=campaign.ai_libraries,
     ))
@@ -1661,11 +1693,12 @@ def selftest():
     hogex_log = (ROOT / "sweeps" / "fixtures" / "c66_health" / "hogex_error.log").read_text()
     with tempfile.TemporaryDirectory() as tmp:
         ENGINE_LOG_DIR = Path(tmp)
+        fake_log_path = engine_log_path_for(ENGINE_LOG_DIR, 7, 0, policy_id="reference")
         fake_row = {
             "chunks": corrupt_chunks,
             "date": "1974-12-01",
             "output": hogex_log,
-            "experiment": {"seed": 7, "repeat": 0},
+            "experiment": {"seed": 7, "repeat": 0, "engine_log_path": str(fake_log_path)},
         }
         rec0, rec1 = keep(fake_row)
         assert rec0["engine_log_path"] == rec1["engine_log_path"]
@@ -1789,6 +1822,10 @@ def selftest():
             "station_id": 0,
             "town_id": 10,
             "tile": 1000,
+            "airport": {
+                "tile": None, "width": None, "height": None,
+                "type": None, "layout": None, "rotation": None,
+            },
             "cargo": {
                 "0": {
                     "rated": True,
@@ -1802,6 +1839,10 @@ def selftest():
             "station_id": 1,
             "town_id": 20,
             "tile": 2000,
+            "airport": {
+                "tile": None, "width": None, "height": None,
+                "type": None, "layout": None, "rotation": None,
+            },
             "cargo": {
                 "0": {
                     "rated": True,

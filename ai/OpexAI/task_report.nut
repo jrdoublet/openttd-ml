@@ -192,6 +192,12 @@ function OpexAI::_reportLines(year)
       local cLabel = AICargo.GetCargoLabel(line.cargo);
       local extra = "";
       if (lMode == "road") {
+        local rawVehs = ("predVehiclesForVolume" in line) ? line.predVehiclesForVolume
+                      : (("predTrains" in line) ? line.predTrains : 0);
+        local predBerthCap = ("predRoadBerthCapacity" in line) ? line.predRoadBerthCapacity
+                          : OpexRoadPhysicalVehicleCap(1, 1);
+        local predVehicleCap = ("predRoadVehicleCap" in line) ? line.predRoadVehicleCap
+                            : (("predTrains" in line) ? line.predTrains : predBerthCap);
         local predVehs = ("predTrains" in line) ? line.predTrains : 0;
         local predCarried = ("predCarried" in line) ? line.predCarried : 0;
         local predDays = ("predOneWayDays" in line) ? line.predOneWayDays : 0;
@@ -209,7 +215,17 @@ function OpexAI::_reportLines(year)
         local waitA = AIStation.IsValidStation(stationA) ? AIStation.GetCargoWaiting(stationA, line.cargo) : -1;
         local waitB = AIStation.IsValidStation(stationB) ? AIStation.GetCargoWaiting(stationB, line.cargo) : -1;
         local cap = ("capacity" in line) ? line.capacity : -1;
-        extra = " pred_vehs=" + predVehs + " dist=" + predDist + " real_dist=" + realDist
+        local nStopsA = ("nStopsA" in line) ? line.nStopsA : 1;
+        local nStopsB = ("nStopsB" in line) ? line.nStopsB : 1;
+        local berthCap = OpexRoadPhysicalVehicleCap(nStopsA, nStopsB);
+        local vehicleCap = C50B_ROAD_CAP_RELAX ? MAX_ROAD_VEHICLES
+            : OpexRoadFleetVehicleCap(nStopsA, nStopsB, predDays, lKind);
+        local extraStops = ("extraStops" in line && line.extraStops != null) ? line.extraStops.len() : 0;
+        extra = " raw_vehs=" + rawVehs + " pred_berth_cap=" + predBerthCap
+              + " pred_vehicle_cap=" + predVehicleCap + " berth_cap=" + berthCap
+              + " vehicle_cap=" + vehicleCap
+              + " pred_vehs=" + predVehs + " n_stops_a=" + nStopsA + " n_stops_b=" + nStopsB
+              + " extra_stops=" + extraStops + " dist=" + predDist + " real_dist=" + realDist
               + " pred_carried=" + predCarried + " pred_days=" + predDays + " pred_speed=" + predSpeed
               + " cat_speed=" + catSpeed + " real_speed=" + roadRealSpeed + " rating_a=" + ratingA
               + " rating_b=" + ratingB + " pop_a=" + popA + " pop_b=" + popB + " prod_a=" + prodA
@@ -316,6 +332,10 @@ function OpexAI::_triggerScrapLine(line, criterion)
   line.deadStreak = DEAD_STREAK_THRESHOLD;
   local anchor = AIMap.GetTileIndex(1, 1);
   local year = AIDate.GetYear(AIDate.GetCurrentDate());
+  /* B8 : chaque NOUVEAU cycle de rebut repart de son annee propre. Cela ecrase aussi un champ
+   * stale provenant d'une ancienne sauvegarde/reprise avant le correctif. */
+  if ("scrapStartYear" in line) line.scrapStartYear = year;
+  else line.scrapStartYear <- year;
   local ids = [];
   local vehicleType = OpexLineVehicleType(line);
   /* Les lignes air gardent leurs IDs de flotte. Meme si l'aeroport A est invalide, les avions
@@ -336,7 +356,10 @@ function OpexAI::_triggerScrapLine(line, criterion)
   line.scrapVehicles = ids;
   if (DECISION_LOG) {
     local m = ("mode" in line) ? line.mode : "unknown";
-    OpexDecide("SCRAP_LINE", "action=start line=" + line.lineId + " mode=" + m + " dead_streak=" + line.deadStreak + " threshold=" + DEAD_STREAK_THRESHOLD + " vehicles=" + ids.len() + " criterion=" + criterion);
+    OpexDecide("SCRAP_LINE", "action=start line=" + line.lineId + " mode=" + m
+               + " dead_streak=" + line.deadStreak + " threshold=" + DEAD_STREAK_THRESHOLD
+               + " vehicles=" + ids.len() + " criterion=" + criterion
+               + " start_year=" + line.scrapStartYear);
   }
   local signCode = (criterion == "industry_close") ? "C" : "2";
   OpexSign(anchor, "DL|" + year + "|" + line.lineId + "|" + signCode);
@@ -379,8 +402,12 @@ function OpexAI::_scrapDeadLines(year)
         else line.scrapping <- false;
         if ("scrapVehicles" in line) line.scrapVehicles = [];
         else line.scrapVehicles <- [];
+        /* Un feeder sauve redevient une ligne normale. Garder l'ancien timer ferait qu'un futur
+         * rebut, parfois plusieurs annees plus tard, serait immediatement considere timeout. */
+        if ("scrapStartYear" in line) delete line.scrapStartYear;
         if (DECISION_LOG) {
-          OpexDecide("FEEDER_RECOVER", "line=" + line.lineId + " action=cancel_scrap");
+          OpexDecide("FEEDER_RECOVER", "line=" + line.lineId
+                     + " action=cancel_scrap scrap_timer_reset=1");
         }
         continue;
       }
@@ -444,7 +471,11 @@ function OpexAI::_scrapDeadLines(year)
         toRemove.append(i);  // i = position physique dans _lines, pour le retrait -- pas le sign
         if (DECISION_LOG) {
           local crit = (remaining.len() == 0) ? "all_sold" : "timeout";
-          OpexDecide("SCRAP_LINE", "action=removed line=" + line.lineId + " criterion=" + crit + " remaining=" + remaining.len());
+          local elapsed = ("scrapStartYear" in line) ? year - line.scrapStartYear : -1;
+          OpexDecide("SCRAP_LINE", "action=removed line=" + line.lineId + " criterion=" + crit
+                     + " remaining=" + remaining.len()
+                     + " start_year=" + (("scrapStartYear" in line) ? line.scrapStartYear : -1)
+                     + " elapsed=" + elapsed);
         }
         OpexSign(anchor, "DL|" + year + "|" + line.lineId + "|" + (remaining.len() == 0 ? "3" : "4"));
       }

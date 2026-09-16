@@ -49,16 +49,29 @@ fonction, quand la voie ne peut pas continuer dans l'axe, sonde jusqu'à 18 long
 (`SEGMENTED_BRIDGE_MIN_LEN=3` à `SEGMENTED_BRIDGE_MAX_LEN=20`, ligne 549) plus 1 tunnel
 (ligne 569-585), chacune une vraie commande `AIBridge.BuildBridge` / `AITunnel.BuildTunnel` simulée
 sous `AITestMode`. Aucun de ces appels n'incrémente `state.iterations` / `sliceSpent`
-(`builder_rail.nut:372-376` et `667-669` : « ce compte est le DENOMINATEUR du classement, il doit
-etre mesure, pas estime ») et aucun ne revérifie `AIController.GetTick() < deadlineTick` avant de
+(`builder_rail.nut:667-669`) et aucun ne revérifie `AIController.GetTick() < deadlineTick` avant de
 continuer — la seule vérification a lieu au sommet de la boucle `while` englobante
-(`builder_rail.nut:681-684`), donc APRÈS que la sonde a déjà consommé ses opcodes. Conséquence
-observable : le compte d'itérations reporté (utilisé pour classer les candidats et pour
-`OpexAvailableCapital`/le classement du portefeuille) sous-estime le coût opcode réel d'une ligne qui
-traverse un obstacle terrain, d'un montant borné (~19 sondes par franchissement) mais réel. En
-pratique la marge `BUILD_TICK_MARGIN=3000` (`task_rail.nut:773`) absorbe largement ce dépassement
-côté horloge — aucun gel observable attendu — mais l'invariant de mesure « spent = travail réel »
-que le fichier revendique lui-même est rompu à chaque franchissement d'obstacle.
+(`builder_rail.nut:681-684`), donc APRÈS que la sonde a déjà consommé ses opcodes. Le compteur
+d'itérations sous-estime donc bien le travail d'une ligne qui traverse un obstacle terrain, d'un
+montant borné (jusqu'à ~19 sondes de structure par franchissement).
+
+**Réconciliation 2026-09-16 : mécanisme confirmé, portée actuelle réduite à un proxy
+diagnostique.** Le commentaire historique appelle encore `state.iterations` le « dénominateur du
+classement », mais le workspace courant ne relit ni `result.iterations` ni `line.iterations` dans
+un classement vivant ou dans `OpexAvailableCapital` : la valeur est publiée par `OR|`, utilisée
+dans les traces d'échec et stockée sur la ligne, sans consommateur métier aval trouvé.
+
+En revanche, le coût H5 réellement exploité par les bancs vient de `OB|A` :
+`result.opcodes`. En mode bloquant, `OpexSearchPath` est entouré par
+`budget.begin()` / `budget.end("build_search")` ; en mode reprenable,
+`_continueRailSearch` entoure chaque `OpexAdvance*` de la même mesure. Les appels
+`OpexLocalStructureChoices` vivent **dans** ces régions mesurées : les sondes pont/tunnel manquent
+au proxy `iterations`, mais pas au coût d'opcodes observé H5.
+
+Ajouter artificiellement les sondes à `state.iterations` ne serait pas une correction de mesure
+neutre : ce champ sert aussi aux bornes `iterationBudget`, `timeSafe` et `sliceIters`, donc le
+modifier changerait le pathfinder et ses trajectoires. Aucun P1 actuel n'est démontré ; 07.2 reste
+une limite connue du canal `OR|`/proxy d'itérations et n'est pas patché.
 
 ## Vérifié, n'est PAS un bug
 

@@ -3,9 +3,9 @@ que sweeps/diag_constants_binding.py (famille 1). MIN_SEPARATION est deja fait (
 ce script couvre les deux planchers routiers qui ont deja une telemetrie complete livree, sans
 aucun nouveau code de jeu :
 
-ROAD_MIN_PROFIT_ANNUAL (candidates.nut:1002, =1000) : panneau VIVIER_GEN mode=road donne le
-denominateur (produced=pairsInBand) ; VIVIER_REJECT reason=road_profit_too_low compte les
-candidats sous le plancher de profit annuel.
+ROAD_MIN_PROFIT_ANNUAL (=1000) : ce repere n'est PLUS un filtre. VIVIER_REJECT
+reason=road_profit_non_positive compte les rejets reels ; VIVIER_RETAINED
+reason=road_profit_below_floor compte les candidats positifs sous le repere mais conserves.
 
 ROAD_ACCEPTANCE_MIN (candidates.nut:1007, =8) : meme denominateur ; VIVIER_REJECT
 reason=road_town_rejected compte les candidats sous le plancher d'acceptance de ville.
@@ -109,7 +109,9 @@ def main():
     reject_reasons = Counter()
     per_seed_kept = Counter()
     per_seed_produced = Counter()
-    per_seed_profit_too_low = Counter()
+    per_seed_profit_non_positive = Counter()
+    per_seed_profit_below_floor_kept = Counter()
+    per_seed_profit_legacy_mixed = Counter()
     per_seed_town_rejected = Counter()
     n_gen_calls_by_seed = Counter()
 
@@ -133,14 +135,22 @@ def main():
                 reason = f["reason"]
                 n = int(f["n"])
                 reject_reasons[reason] += n
-                if reason == "road_profit_too_low":
-                    per_seed_profit_too_low[seed] += n
+                if reason == "road_profit_non_positive":
+                    per_seed_profit_non_positive[seed] += n
+                elif reason == "road_profit_too_low":
+                    # Ancien canal : mélangeait rejets <=0 et candidats positifs conservés.
+                    # Ne jamais le réinterpréter comme un rejet réel.
+                    per_seed_profit_legacy_mixed[seed] += n
                 elif reason == "road_town_rejected":
                     per_seed_town_rejected[seed] += n
+            elif ev["kind"] == "VIVIER_RETAINED" and f.get("reason") == "road_profit_below_floor":
+                per_seed_profit_below_floor_kept[seed] += int(f["n"])
 
     total_produced = sum(per_seed_produced.values())
     total_kept = sum(per_seed_kept.values())
-    total_profit_too_low = reject_reasons.get("road_profit_too_low", 0)
+    total_profit_non_positive = sum(per_seed_profit_non_positive.values())
+    total_profit_below_floor_kept = sum(per_seed_profit_below_floor_kept.values())
+    total_profit_legacy_mixed = sum(per_seed_profit_legacy_mixed.values())
     total_town_rejected = reject_reasons.get("road_town_rejected", 0)
 
     def per_seed_table(counter):
@@ -163,8 +173,12 @@ def main():
         "reject_reason_counts": dict(reject_reasons),
         "road_min_profit_annual": {
             "constant": 1000,
-            "n_rejected_total": total_profit_too_low,
-            "per_seed": per_seed_table(per_seed_profit_too_low),
+            "n_non_positive_rejected_total": total_profit_non_positive,
+            "n_below_floor_kept_total": total_profit_below_floor_kept,
+            "legacy_mixed_total": total_profit_legacy_mixed,
+            "per_seed_non_positive_rejected": per_seed_table(per_seed_profit_non_positive),
+            "per_seed_below_floor_kept": per_seed_table(per_seed_profit_below_floor_kept),
+            "per_seed_legacy_mixed": per_seed_table(per_seed_profit_legacy_mixed),
         },
         "road_acceptance_min": {
             "constant": 8,
@@ -178,8 +192,9 @@ def main():
 
     print(f"n_vivier_gen_calls={len(gen_calls)} total_produced={total_produced} total_kept={total_kept}")
     print("reject_reason_counts:", dict(reject_reasons))
-    print("ROAD_MIN_PROFIT_ANNUAL n_rejected_total:", total_profit_too_low,
-          "per_seed:", dict(per_seed_profit_too_low))
+    print("ROAD_MIN_PROFIT_ANNUAL rejected_non_positive:", total_profit_non_positive,
+          "kept_below_floor:", total_profit_below_floor_kept,
+          "legacy_mixed:", total_profit_legacy_mixed)
     print("ROAD_ACCEPTANCE_MIN n_rejected_total:", total_town_rejected,
           "per_seed:", dict(per_seed_town_rejected))
     print("out", args.out)

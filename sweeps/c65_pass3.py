@@ -94,6 +94,12 @@ def task_to_method(name):
     return "_dispatch" + "".join(part[:1].upper() + part[1:] for part in name.split("_"))
 
 
+def extract_main_task_queue(text):
+    start = text.index("this._taskQueue = [")
+    end = text.index("];", start)
+    return tuple(re.findall(r'\{\s*name\s*=\s*"([^"]+)"', text[start:end]))
+
+
 def function_span(text, name):
     match = re.search(
         r"^function OpexAI::" + re.escape(name) + r"\(\)\n\{",
@@ -377,14 +383,15 @@ def apply():
 
 def run_selftest():
     if HANDLERS_PATH.exists():
-        events = EVENTS_PATH.read_text()
-        sched = SCHEDULER_PATH.read_text()
+        events = EVENTS_PATH.read_text(encoding="utf-8")
+        sched = SCHEDULER_PATH.read_text(encoding="utf-8")
         leftover_tasks = extract_task_branches(sched)
         assert leftover_tasks == [], [t["name"] for t in leftover_tasks]
         for br in extract_event_branches(events):
             assert "Convert(event)" not in br["inner"], br["et"]
-        handlers = HANDLERS_PATH.read_text()
-        tasks = TASKS_PATH.read_text()
+        handlers = HANDLERS_PATH.read_text(encoding="utf-8")
+        tasks = TASKS_PATH.read_text(encoding="utf-8")
+        main = MAIN_PATH.read_text(encoding="utf-8")
         loops = _loop_block_spans(handlers)
         for match in re.finditer(r"\bcontinue\s*;", handlers):
             assert any(a <= match.start() <= b for a, b in loops), (
@@ -395,13 +402,15 @@ def run_selftest():
         for name in EXPECTED_TASKS:
             assert task_to_method(name) in tasks, name
             assert "this." + task_to_method(name) + "(task, year);" in sched
-        assert 'require("event_handlers.nut");' in MAIN_PATH.read_text()
-        assert 'require("scheduler_tasks.nut");' in MAIN_PATH.read_text()
+        assert extract_main_task_queue(main) == EXPECTED_TASKS, extract_main_task_queue(main)
+        assert 'AILog.Error("Unknown scheduler task name: " + task.name);' in sched
+        assert 'require("event_handlers.nut");' in main
+        assert 'require("scheduler_tasks.nut");' in main
         print("selftest ok (deja applique): "
               f"{len(EXPECTED_EVENTS)} events, {len(EXPECTED_TASKS)} tasks")
         return
-    events = EVENTS_PATH.read_text()
-    sched = SCHEDULER_PATH.read_text()
+    events = EVENTS_PATH.read_text(encoding="utf-8")
+    sched = SCHEDULER_PATH.read_text(encoding="utf-8")
     e_branches = extract_event_branches(events)
     t_branches = extract_task_branches(sched)
     assert [item["et"] for item in e_branches] == list(EXPECTED_EVENTS), [

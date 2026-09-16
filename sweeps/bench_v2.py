@@ -32,7 +32,11 @@ import statistics
 import openttdlab
 from openttdlab import bananas_ai, bananas_ai_library, local_folder, run_experiments
 
-from campaign_freeze import effective_ai_settings
+from campaign_freeze import (
+    effective_ai_settings,
+    parse_ai_setting_specs,
+    validate_policy_settings,
+)
 from physical_counters import decode_stations, decode_vehicles
 
 ROOT = Path("/work") if Path("/work").exists() else Path(__file__).resolve().parents[1]
@@ -77,6 +81,14 @@ SUCCESS_METRICS = (
     "primary_vehicles",
 )
 
+# Mesures diagnostiques H5. Ce ne sont PAS des métriques de succès globales :
+# elles couvrent seulement les blocs déjà instrumentés/publies par OpexAI.
+OBSERVED_OPCODE_METRICS = (
+    "observed_opcodes_total",
+    "final_profit_year_per_observed_mopcode",
+    "company_value_per_observed_mopcode",
+)
+
 SCRIPT_FAILURE_MARKERS = (
     "Your script made an error",
     "The script died unexpectedly",
@@ -99,6 +111,7 @@ def parse_opex_variant(name):
     text = match.group(1)
     if not text:
         raise ValueError("une variante OpexAI doit declarer au moins un reglage")
+    setting_specs = parse_ai_setting_specs(ROOT / "ai" / "OpexAI" / "info.nut")
     params = []
     seen = set()
     for assignment in text.split(","):
@@ -227,7 +240,24 @@ def parse_opex_variant(name):
             if value not in (0, 1):
                 raise ValueError(f"{key} est booleen : 0 ou 1")
         else:
-            raise ValueError(f"reglage OpexAI inconnu: {key}")
+            spec = setting_specs.get(key)
+            if spec is None:
+                raise ValueError(f"reglage OpexAI inconnu: {key}")
+            if spec["boolean"]:
+                if value not in (0, 1):
+                    raise ValueError(f"{key} est booleen : 0 ou 1")
+            else:
+                minimum = spec["min_value"]
+                maximum = spec["max_value"]
+                step = spec["step_size"]
+                if minimum is not None and value < minimum:
+                    raise ValueError(f"{key} doit etre >= {minimum}")
+                if maximum is not None and value > maximum:
+                    raise ValueError(f"{key} doit etre <= {maximum}")
+                if step is not None and step > 0:
+                    base = minimum if minimum is not None else 0
+                    if (value - base) % step:
+                        raise ValueError(f"{key} doit respecter un pas de {step} depuis {base}")
         params.append((key, value))
     return tuple(params)
 
@@ -268,6 +298,8 @@ def comparison_setting_audit(resolved):
         if payload.get("ai") == "OpexAI" and payload.get("settings")
     }
     shared = []
+    pairwise = []
+    identical = []
     names = sorted(opex)
     if len(names) >= 2:
         all_keys = set().union(*(set(opex[name]["explicit_nondefault"]) for name in names))
@@ -285,9 +317,32 @@ def comparison_setting_audit(resolved):
                     "value": next(iter(values)),
                     "arms": carriers,
                 })
+        for index, left_name in enumerate(names):
+            for right_name in names[index + 1:]:
+                left = opex[left_name]["settings"]
+                right = opex[right_name]["settings"]
+                candidate_keys = set(left["explicit"]) | set(right["explicit"])
+                announced = sorted(
+                    key for key in candidate_keys
+                    if left["effective"].get(key) != right["effective"].get(key)
+                )
+                differences = validate_policy_settings(
+                    left["effective"],
+                    right["effective"],
+                    intervention_settings=announced,
+                ) if announced else {}
+                pairwise.append({
+                    "arms": [left_name, right_name],
+                    "announced_settings": announced,
+                    "effective_differences": differences,
+                })
+                if not differences:
+                    identical.append([left_name, right_name])
     return {
         "transportable_to_shipped_defaults": not shared,
         "shared_nondefault_explicit": shared,
+        "pairwise_effective_differences": pairwise,
+        "identical_effective_arms": identical,
     }
 
 
@@ -401,6 +456,103 @@ def station_ratings(chunks, owner=0):
     return ratings
 
 
+def portfolio_selection_opcode_stats(chunks):
+    """Lit le cout de selection publie par les panneaux IG|, en milliers d'opcodes.
+
+    Les anciens IG| ont sept champs et restent valides : ils ne contribuent simplement
+    pas a cette mesure. Le huitieme champ est volontairement en k-opcodes afin de tenir
+    sous la limite de 31 caracteres d'AISign sans ajouter un nouveau panneau.
+    """
+    values = []
+    signs = (chunks or {}).get("SIGN") or {}
+    records = signs.values() if isinstance(signs, dict) else signs
+    for sign in records:
+        if not isinstance(sign, dict):
+            continue
+        name = str(sign.get("name", ""))
+        if not name.startswith("IG|"):
+            continue
+        parts = name.split("|")
+        if len(parts) < 8:
+            continue
+        try:
+            value = int(parts[7])
+        except (TypeError, ValueError):
+            continue
+        if value >= 0:
+            values.append(value)
+    return {
+        "selection_kopcodes_samples": len(values),
+        "selection_kopcodes_total": sum(values) if values else None,
+        "selection_kopcodes_mean": (
+            number(statistics.mean(values)) if values else None
+        ),
+        "selection_kopcodes_max": max(values) if values else None,
+    }
+
+
+def observed_opcode_stats(chunks):
+    """Somme les coûts d'opcodes réellement publiés, sans les appeler coût CPU total.
+
+    Périmètre non chevauchant connu :
+      - IG|   : sélection du portefeuille (champ H5 en milliers d'opcodes) ;
+      - OB|A  : tentative rail, planification + construction mesurées par OpexBudget ;
+      - RB|   : planification route + construction route, deux mesures distinctes ;
+      - OA|   : planification air seulement (le build n'est pas publié dans ce panneau) ;
+      - OM|W  : planification eau seulement, et seulement pour les constructions réussies.
+
+    Les anciens formats restent acceptés : un IG sans huitième champ est simplement exclu
+    de la composante sélection ; les autres panneaux gardent leur schéma historique.
+    """
+    components = {
+        "selection": {"samples": 0, "opcodes": 0, "coverage": "IG| field 8; current builds"},
+        "rail_attempt": {"samples": 0, "opcodes": 0, "coverage": "OB|A plan+build attempts"},
+        "road_planning": {"samples": 0, "opcodes": 0, "coverage": "RB| planning on emitted attempts"},
+        "road_build": {"samples": 0, "opcodes": 0, "coverage": "RB| build on emitted attempts"},
+        "air_planning": {"samples": 0, "opcodes": 0, "coverage": "OA| planning only"},
+        "water_planning": {"samples": 0, "opcodes": 0, "coverage": "OM|W planning; successful builds only"},
+    }
+    signs = (chunks or {}).get("SIGN") or {}
+    records = signs.values() if isinstance(signs, dict) else signs
+
+    def add(component, raw, multiplier=1):
+        try:
+            value = int(raw)
+        except (TypeError, ValueError):
+            return
+        if value < 0:
+            return
+        components[component]["samples"] += 1
+        components[component]["opcodes"] += value * multiplier
+
+    for sign in records:
+        if not isinstance(sign, dict):
+            continue
+        name = str(sign.get("name", ""))
+        parts = name.split("|")
+        if name.startswith("IG|") and len(parts) >= 8:
+            add("selection", parts[7], 1000)
+        elif name.startswith("OB|A|") and len(parts) >= 7:
+            add("rail_attempt", parts[5])
+        elif name.startswith("RB|") and len(parts) >= 6:
+            add("road_planning", parts[4])
+            add("road_build", parts[5])
+        elif name.startswith("OA|") and len(parts) >= 5:
+            add("air_planning", parts[3])
+        elif name.startswith("OM|W|") and len(parts) >= 5:
+            add("water_planning", parts[4])
+
+    total = sum(item["opcodes"] for item in components.values())
+    samples = sum(item["samples"] for item in components.values())
+    return {
+        "observed_opcode_schema": "h5.observed-v1",
+        "observed_opcodes_total": total,
+        "observed_opcode_samples": samples,
+        "observed_opcode_components": components,
+        "observed_opcode_complete_cpu": False,
+    }
+
+
 def keep(row):
     """Une ligne par sauvegarde mensuelle, persistee immediatement pour survivre a un crash."""
     chunks = row["chunks"]
@@ -410,6 +562,8 @@ def keep(row):
     ratings = station_ratings(chunks)
     veh_dec = decode_vehicles(chunks.get("VEHS"), target_owner=0)
     stn_dec = decode_stations(chunks.get("STNN"), target_owner=0)
+    selection_ops = portfolio_selection_opcode_stats(chunks)
+    observed_ops = observed_opcode_stats(chunks)
     qualified_primary = None
     unqualified_primary = None
     if veh_dec["chunk_valid"]:
@@ -457,6 +611,8 @@ def keep(row):
         "n_multimodal_stations": stn_dec["n_multimodal_stations"] if stn_dec["chunk_valid"] else None,
         "stations_by_facility": stn_dec["stations_by_facility"] if stn_dec["chunk_valid"] else None,
         "unresolved_stations": len(stn_dec["unresolved_stations"]),
+        **selection_ops,
+        **observed_ops,
         # L'echec de chargement d'une IA est silencieux dans PLYR ; ce log reste donc disponible
         # dans le resume final pour le controle explicite de row["output"].
         "openttd_output": row.get("output"),
@@ -597,6 +753,15 @@ def summarise(rows, expected_last_year=None, expected_savegames=None):
             "n_vehicles": final["n_vehicles"], "n_stations": final["n_stations"],
             "months_of_bankruptcy": final["months_of_bankruptcy"],
             "n_savegames": len(series),
+            "selection_kopcodes_samples": final.get("selection_kopcodes_samples"),
+            "selection_kopcodes_total": final.get("selection_kopcodes_total"),
+            "selection_kopcodes_mean": final.get("selection_kopcodes_mean"),
+            "selection_kopcodes_max": final.get("selection_kopcodes_max"),
+            "observed_opcode_schema": final.get("observed_opcode_schema"),
+            "observed_opcodes_total": final.get("observed_opcodes_total"),
+            "observed_opcode_samples": final.get("observed_opcode_samples"),
+            "observed_opcode_components": final.get("observed_opcode_components"),
+            "observed_opcode_complete_cpu": final.get("observed_opcode_complete_cpu"),
             "openttd_output": final["openttd_output"],
             "run_ok": failure_reason is None,
             "failure_reason": failure_reason,
@@ -623,6 +788,18 @@ def summarise(rows, expected_last_year=None, expected_savegames=None):
                 "stations_by_facility": final.get("stations_by_facility"),
                 "unresolved_stations": final.get("unresolved_stations"),
             })
+        observed_total = rec.get("observed_opcodes_total")
+        if observed_total and observed_total > 0:
+            scale = observed_total / 1_000_000.0
+            rec["final_profit_year_per_observed_mopcode"] = number(
+                rec.get("profit_year") / scale if rec.get("profit_year") is not None else None
+            )
+            rec["company_value_per_observed_mopcode"] = number(
+                rec.get("company_value") / scale if rec.get("company_value") is not None else None
+            )
+        else:
+            rec["final_profit_year_per_observed_mopcode"] = None
+            rec["company_value_per_observed_mopcode"] = None
         summary.append(rec)
     return summary
 
@@ -667,21 +844,22 @@ def dispersion(values):
     }
 
 
-def arm_statistics(summary, arm_names):
+def arm_statistics(summary, arm_names, metrics=SUCCESS_METRICS):
     """Calcule la dispersion sans melanger les arms."""
     return {
         arm: {
             metric: dispersion([
                 r.get(metric) for r in summary if r["arm"] == arm and r.get("run_ok", True)
             ])
-            for metric in SUCCESS_METRICS
+            for metric in metrics
         }
         for arm in arm_names
     }
 
 
-def paired_comparisons(summary, arm_names):
+def paired_comparisons(summary, arm_names, metrics=SUCCESS_METRICS):
     """Compare les moyennes de differences par graine, et non deux moyennes independantes."""
+    metric_names = tuple(metrics)
     per_seed = {}
     for arm in arm_names:
         valid = [record for record in summary if record["arm"] == arm and record.get("run_ok", True)]
@@ -690,7 +868,7 @@ def paired_comparisons(summary, arm_names):
             per_seed[arm, seed] = {
                 metric: statistics.mean([record[metric] for record in records if record[metric] is not None])
                 if any(record[metric] is not None for record in records) else None
-                for metric in SUCCESS_METRICS
+                for metric in metric_names
             }
     comparisons = []
     for index, arm_a in enumerate(arm_names):
@@ -698,8 +876,8 @@ def paired_comparisons(summary, arm_names):
             shared_seeds = sorted(
                 seed for arm, seed in per_seed if arm == arm_a and (arm_b, seed) in per_seed
             )
-            metrics = {}
-            for metric in SUCCESS_METRICS:
+            metric_results = {}
+            for metric in metric_names:
                 pairs = [
                     (per_seed[arm_a, seed][metric], per_seed[arm_b, seed][metric])
                     for seed in shared_seeds
@@ -718,7 +896,7 @@ def paired_comparisons(summary, arm_names):
                 losses = sum(difference < 0 for difference in differences)
                 ties = sum(difference == 0 for difference in differences)
                 sign_p = exact_sign_test_p(wins, losses)
-                metrics[metric] = {
+                metric_results[metric] = {
                     "n": count,
                     "paired_differences": [
                         {
@@ -749,7 +927,7 @@ def paired_comparisons(summary, arm_names):
                 "arm_a": arm_a,
                 "arm_b": arm_b,
                 "shared_seeds": shared_seeds,
-                "metrics": metrics,
+                "metrics": metric_results,
             })
     return comparisons
 
@@ -822,6 +1000,15 @@ def parse_args():
                 "reglage(s) hors-defaut epingle(s) identiquement dans plusieurs arms OpexAI: "
                 f"{details}; utiliser --allow-shared-nondefault pour un essai conditionnel explicite"
             )
+        if args.setting_audit["identical_effective_arms"]:
+            pairs = ", ".join(
+                f"{left} == {right}"
+                for left, right in args.setting_audit["identical_effective_arms"]
+            )
+            parser.error(
+                "bras OpexAI distincts mais reglages effectifs identiques: "
+                f"{pairs}; comparaison causale impossible"
+            )
         args.built_arms = build_arms(args.arms)
     except ValueError as error:
         parser.error(str(error))
@@ -884,6 +1071,24 @@ def main():
             "STNN median_station_rating (0-255, cargos ramasses)"
         ),
         "success_metrics": list(SUCCESS_METRICS),
+        "opcode_observation": {
+            "schema": "h5.observed-v1",
+            "complete_cpu_measurement": False,
+            "metric_names": list(OBSERVED_OPCODE_METRICS),
+            "scope": {
+                "selection": "IG| field 8; portfolio selection only",
+                "rail_attempt": "OB|A; measured plan+build attempt cost",
+                "road_planning": "RB| planning cost on emitted attempts",
+                "road_build": "RB| build cost on emitted attempts",
+                "air_planning": "OA| planning only; air build opcodes are not published",
+                "water_planning": "OM|W planning only and successful builds only",
+            },
+            "ratio_semantics": (
+                "final_profit_year_per_observed_mopcode divides the final rolling-year profit "
+                "by cumulative observed opcodes. Compare only equal horizons and identical "
+                "instrumentation; it is not total-CPU profit/opcode."
+            ),
+        },
         "paired_reading": (
             "mean(A(seed) - B(seed)); les paires annulent la difficulte inter-graines partagee"
         ),
@@ -899,6 +1104,10 @@ def main():
         ],
         "statistics": arm_statistics(summary, args.arms),
         "paired_comparisons": paired_comparisons(summary, args.arms),
+        "opcode_statistics": arm_statistics(summary, args.arms, OBSERVED_OPCODE_METRICS),
+        "paired_opcode_comparisons": paired_comparisons(
+            summary, args.arms, OBSERVED_OPCODE_METRICS
+        ),
         "series": [{key: value for key, value in row.items() if key != "openttd_output"} for row in rows],
     }
     write_json_atomically(out, payload)

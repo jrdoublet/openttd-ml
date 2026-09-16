@@ -36,7 +36,8 @@ function OpexAI::_tryBuildFeeders(year)
   local candidates = [];
   local stats = {
     pairsInBand = 0, noMonthly = 0, noEngine = 0, townRejected = 0,
-    economicsUnavailable = 0, profitTooLow = 0, accepted = 0,
+    economicsUnavailable = 0, profitTooLow = 0, profitNonPositive = 0,
+    profitBelowFloorKept = 0, accepted = 0,
     feederHubs = 0, feederCandidates = 0,
     roadDistanceShort = 0, roadDistanceLong = 0,
   };
@@ -174,6 +175,10 @@ function OpexAI::_tryBuildFeeders(year)
     local economics = OpexRoadLineEconomics(this._catalog, candidate.cargo, actualDist,
                                             candidate.monthly, candidate.engine, candidate.kind,
                                             plan.routeDistance);
+    if (EQUIPMENT_ROI_PROBE) {
+      OpexM3ProbeRoadEquipment(this._catalog, candidate, actualDist, plan.routeDistance,
+                               economics, "feeder_post_route");
+    }
     if (economics != null) {
       local netProfit = ("networkProfit" in candidate) ? candidate.networkProfit : 0;
       local netRev = ("networkRevenue" in candidate) ? candidate.networkRevenue : 0;
@@ -206,9 +211,13 @@ function OpexAI::_tryBuildFeeders(year)
       predicted = candidate.profitAnnual,
       predRevenue = candidate.revenueAnnual, predRunning = candidate.runningAnnual,
       predAmort = candidate.amortAnnual, predCarried = candidate.carried,
+      predVehiclesForVolume = ("vehiclesForVolume" in candidate) ? candidate.vehiclesForVolume : candidate.trains,
+      predRoadBerthCapacity = ("roadBerthCapacity" in candidate) ? candidate.roadBerthCapacity
+                               : OpexRoadPhysicalVehicleCap(1, 1),
+      predRoadVehicleCap = ("roadVehicleCap" in candidate) ? candidate.roadVehicleCap : candidate.trains,
       predTrains = candidate.trains, predOneWayDays = candidate.oneWayDays,
       iterations = candidate.iterations, trains = candidate.trains, distance = candidate.distance,
-      year = year, mode = "road",
+      year = year, mode = "road", kind = candidate.kind,
       vehicles = result.vehicles,
       depot = result.depot,
       capacity = result.capacity,

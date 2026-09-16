@@ -32,7 +32,13 @@ sys.path.insert(0, str(ROOT / "sweeps"))
 from physical_counters import decode_vehicles, decode_stations, VEHICLE_MODES, FACILITY_BITS
 
 try:
-    from bench_v2 import make_cfg, quarter_profit, year_profit
+    from bench_v2 import (
+        make_cfg,
+        observed_opcode_stats,
+        portfolio_selection_opcode_stats,
+        quarter_profit,
+        year_profit,
+    )
 except ImportError:
     def make_cfg(starting_year=1970, map_size=8):
         return (
@@ -56,6 +62,23 @@ except ImportError:
         if not profits:
             return None
         return sum(profits)
+
+    def portfolio_selection_opcode_stats(chunks):
+        return {
+            "selection_kopcodes_samples": 0,
+            "selection_kopcodes_total": None,
+            "selection_kopcodes_mean": None,
+            "selection_kopcodes_max": None,
+        }
+
+    def observed_opcode_stats(chunks):
+        return {
+            "observed_opcode_schema": "h5.observed-v1",
+            "observed_opcodes_total": 0,
+            "observed_opcode_samples": 0,
+            "observed_opcode_components": {},
+            "observed_opcode_complete_cpu": False,
+        }
 
 OPENTTD_VERSION, OPENGFX_VERSION = "15.3", "7.1"
 AAAHOGEX_DIR = "AAAHogEx-115"
@@ -328,6 +351,27 @@ def extract_company(chunks, owner, arm, seed, date):
     last = closed[0] if closed else None
     income = last.get("income") if isinstance(last, dict) else None
     expenses = last.get("expenses") if isinstance(last, dict) else None
+    selection_ops = (
+        portfolio_selection_opcode_stats(chunks)
+        if arm == "OpexAI"
+        else {
+            "selection_kopcodes_samples": None,
+            "selection_kopcodes_total": None,
+            "selection_kopcodes_mean": None,
+            "selection_kopcodes_max": None,
+        }
+    )
+    observed_ops = (
+        observed_opcode_stats(chunks)
+        if arm == "OpexAI"
+        else {
+            "observed_opcode_schema": None,
+            "observed_opcodes_total": None,
+            "observed_opcode_samples": None,
+            "observed_opcode_components": None,
+            "observed_opcode_complete_cpu": None,
+        }
+    )
     return {
         "arm": arm,
         "owner": owner,
@@ -350,6 +394,15 @@ def extract_company(chunks, owner, arm, seed, date):
         # Nouveaux champs pour l'instrumentation OpexAI
         "funnel_detailed": None,  # Pour le suivi détaillé par mode/année
         "hogex_builds_detailed": None,  # Pour le suivi détaillé si nécessaire
+        **selection_ops,
+        **observed_ops,
+        "selection_kopcodes_month": None,
+        "selection_kopcodes_samples_month": None,
+        "selection_opcode_state": "pending" if arm == "OpexAI" else "not_applicable",
+        "observed_opcodes_month": None,
+        "observed_mopcodes_month": None,
+        "observed_opcode_components_month": None,
+        "observed_opcode_state": "pending" if arm == "OpexAI" else "not_applicable",
     }
 
 
@@ -602,6 +655,82 @@ def attach_logs(rows, funnel_requested=None):
     return funnel_by_seed, funnel_detailed_by_seed, hogex_by_seed, hogex_detailed_by_seed
 
 
+def attach_opcode_deltas(rows):
+    """Transforme les compteurs opcode cumules en coût mensuel par graine.
+
+    SIGN est cumulatif dans la sauvegarde. Le total lu a un checkpoint contient donc
+    tous les panneaux precedents ; la difference avec le checkpoint precedent restitue
+    les coûts observés du mois sans ajouter de nouveau panneau.
+    """
+    by_seed = defaultdict(list)
+    for record in rows:
+        if record.get("arm") == "OpexAI":
+            by_seed[record.get("seed")].append(record)
+    for seed_rows in by_seed.values():
+        seed_rows.sort(key=lambda record: str(record.get("date", "")))
+        previous_total = 0
+        previous_samples = 0
+        previous_observed = 0
+        previous_components = {}
+        for record in seed_rows:
+            current_total = record.get("selection_kopcodes_total")
+            current_samples = record.get("selection_kopcodes_samples")
+            if current_total is None or current_samples is None:
+                record["selection_opcode_state"] = "missing_ig_opcode_field"
+            else:
+                delta_total = current_total - previous_total
+                delta_samples = current_samples - previous_samples
+                if delta_total < 0 or delta_samples < 0:
+                    record["selection_opcode_state"] = "counter_regressed"
+                    previous_total = current_total
+                    previous_samples = current_samples
+                else:
+                    record["selection_kopcodes_month"] = delta_total
+                    record["selection_kopcodes_samples_month"] = delta_samples
+                    record["selection_opcode_state"] = "available"
+                    previous_total = current_total
+                    previous_samples = current_samples
+            observed_total = record.get("observed_opcodes_total")
+            components = record.get("observed_opcode_components")
+            if observed_total is None or components is None:
+                record["observed_opcode_state"] = "missing_observed_opcode_fields"
+                continue
+            observed_delta = observed_total - previous_observed
+            if observed_delta < 0:
+                record["observed_opcode_state"] = "counter_regressed"
+                previous_observed = observed_total
+                previous_components = {
+                    name: payload.get("opcodes", 0)
+                    for name, payload in components.items()
+                }
+                continue
+            component_deltas = {}
+            component_regressed = False
+            current_components = {}
+            for name, payload in components.items():
+                current = payload.get("opcodes", 0)
+                previous = previous_components.get(name, 0)
+                delta = current - previous
+                if delta < 0:
+                    component_regressed = True
+                component_deltas[name] = delta
+                current_components[name] = current
+            if component_regressed:
+                record["observed_opcode_state"] = "component_regressed"
+            else:
+                record["observed_opcodes_month"] = observed_delta
+                record["observed_mopcodes_month"] = observed_delta / 1_000_000.0
+                record["observed_opcode_components_month"] = component_deltas
+                record["observed_opcode_state"] = "available"
+            previous_observed = observed_total
+            previous_components = current_components
+    return rows
+
+
+# Nom historique conservé pour les imports/tests existants.
+attach_selection_opcode_deltas = attach_opcode_deltas
+
+
 
 def build_arms(seeds, years, shared=False, funnel=False, air_town_limit_memory=False,
                town_station_detail=False, air_early_slot=False):
@@ -719,6 +848,7 @@ def main():
     funnel_by_seed, funnel_detailed_by_seed, hogex_by_seed, hogex_detailed_by_seed = attach_logs(
         rows, funnel_requested=funnel
     )
+    attach_opcode_deltas(rows)
     expected_months = expected_calendar_months(args.years)
     monthly = render_monthly_report(
         rows,
@@ -869,6 +999,15 @@ def monthly_aggregates(rows, expected_seeds=None, expected_months=None, expected
                 "funnel_detailed_state_counts": None,
                 "hogex_builds": None,
                 "hogex_builds_detailed": None,
+                "selection_kopcodes": None,
+                "selection_kopcodes_samples": None,
+                "selection_opcode_state": None,
+                "selection_opcode_state_counts": None,
+                "observed_opcodes": None,
+                "observed_mopcodes": None,
+                "observed_opcode_components": None,
+                "observed_opcode_state": None,
+                "observed_opcode_state_counts": None,
             }
 
             if arm == "OpexAI" and month_rows:
@@ -880,6 +1019,24 @@ def monthly_aggregates(rows, expected_seeds=None, expected_months=None, expected
                     cell[state_key] = (
                         next(iter(counts)) if len(counts) == 1 else "mixed"
                     )
+                selection_states = Counter(
+                    record.get("selection_opcode_state", "unknown")
+                    for record in month_rows
+                )
+                cell["selection_opcode_state_counts"] = dict(selection_states)
+                cell["selection_opcode_state"] = (
+                    next(iter(selection_states))
+                    if len(selection_states) == 1 else "mixed"
+                )
+                observed_states = Counter(
+                    record.get("observed_opcode_state", "unknown")
+                    for record in month_rows
+                )
+                cell["observed_opcode_state_counts"] = dict(observed_states)
+                cell["observed_opcode_state"] = (
+                    next(iter(observed_states))
+                    if len(observed_states) == 1 else "mixed"
+                )
 
             if complete:
                 qualification_maps = [
@@ -929,6 +1086,44 @@ def monthly_aggregates(rows, expected_seeds=None, expected_months=None, expected
                 cell["rolling_capital_all_primary"] = mean_vehicle("rolling_capital_all_primary")
                 cell["profit_per_vehicle"] = mean_vehicle("profit_per_vehicle")
                 cell["profit_per_vehicle_all_primary"] = mean_vehicle("profit_per_vehicle_all_primary")
+
+                if arm == "OpexAI":
+                    selection_values = [
+                        record.get("selection_kopcodes_month")
+                        for record in month_rows
+                        if record.get("selection_kopcodes_month") is not None
+                    ]
+                    selection_samples = [
+                        record.get("selection_kopcodes_samples_month")
+                        for record in month_rows
+                        if record.get("selection_kopcodes_samples_month") is not None
+                    ]
+                    if selection_values:
+                        cell["selection_kopcodes"] = statistics.mean(selection_values)
+                    if selection_samples:
+                        cell["selection_kopcodes_samples"] = statistics.mean(selection_samples)
+                    observed_values = [
+                        record.get("observed_opcodes_month")
+                        for record in month_rows
+                        if record.get("observed_opcodes_month") is not None
+                    ]
+                    if observed_values:
+                        cell["observed_opcodes"] = statistics.mean(observed_values)
+                        cell["observed_mopcodes"] = cell["observed_opcodes"] / 1_000_000.0
+                    component_names = set()
+                    for record in month_rows:
+                        component_names.update(
+                            (record.get("observed_opcode_components_month") or {}).keys()
+                        )
+                    if component_names:
+                        cell["observed_opcode_components"] = {
+                            name: statistics.mean([
+                                record["observed_opcode_components_month"].get(name, 0)
+                                for record in month_rows
+                                if record.get("observed_opcode_components_month") is not None
+                            ])
+                            for name in sorted(component_names)
+                        }
 
                 if cell["qualified_modes"] is None:
                     cell["qualification_status"] = "unknown"
@@ -1251,6 +1446,44 @@ def selftest():
     assert cargo_delivered([10, 20, 0, 5]) == 35
     assert cargo_delivered(12) == 12
     assert cargo_delivered(None) is None
+
+    opcode_rows = [
+        {
+            "arm": "OpexAI", "seed": 42, "date": "1970-01-01",
+            "selection_kopcodes_total": 12, "selection_kopcodes_samples": 2,
+            "observed_opcodes_total": 15000,
+            "observed_opcode_components": {
+                "selection": {"opcodes": 12000},
+                "road_build": {"opcodes": 3000},
+            },
+        },
+        {
+            "arm": "OpexAI", "seed": 42, "date": "1970-02-01",
+            "selection_kopcodes_total": 20, "selection_kopcodes_samples": 3,
+            "observed_opcodes_total": 26000,
+            "observed_opcode_components": {
+                "selection": {"opcodes": 20000},
+                "road_build": {"opcodes": 6000},
+            },
+        },
+        {
+            "arm": "AAAHogEx", "seed": 42, "date": "1970-02-01",
+            "selection_kopcodes_total": None, "selection_kopcodes_samples": None,
+            "observed_opcodes_total": None, "observed_opcode_components": None,
+        },
+    ]
+    attach_selection_opcode_deltas(opcode_rows)
+    assert opcode_rows[0]["selection_kopcodes_month"] == 12
+    assert opcode_rows[0]["selection_kopcodes_samples_month"] == 2
+    assert opcode_rows[1]["selection_kopcodes_month"] == 8
+    assert opcode_rows[1]["selection_kopcodes_samples_month"] == 1
+    assert opcode_rows[1]["selection_opcode_state"] == "available"
+    assert opcode_rows[0]["observed_opcodes_month"] == 15000
+    assert opcode_rows[1]["observed_opcodes_month"] == 11000
+    assert opcode_rows[1]["observed_opcode_components_month"]["selection"] == 8000
+    assert opcode_rows[1]["observed_opcode_components_month"]["road_build"] == 3000
+    assert opcode_rows[1]["observed_opcode_state"] == "available"
+    assert opcode_rows[2].get("selection_kopcodes_month") is None
 
     missing = extract_company({"PLYR": {}, "VEHS": None, "STNN": None}, 1, "AAAHogEx", 42, "1970-02-01")
     assert missing["economy_ok"] is False

@@ -397,6 +397,7 @@ def selftest():
     m70 = res[1970]
     assert m70["treasury"]["months_recorded"] == 2
     assert m70["treasury"]["available_min"] == 85000
+    assert m70["treasury"]["end_company_value"] == 125000
     assert m70["projects_built"]["total_count"] == 1
     assert m70["projects_built"]["by_mode"]["road"]["cost"] == 20000
     assert m70["projects_refused_cash"]["total_count"] == 1

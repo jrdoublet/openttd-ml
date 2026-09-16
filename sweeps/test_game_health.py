@@ -223,6 +223,36 @@ class TestGameHealth(unittest.TestCase):
         self.assertEqual(game["companies"]["OpexAI"]["status"], "stagnation_suspect")
         self.assertFalse(game["game_ok"])
 
+    def test_recent_one_point_uptick_does_not_hide_net_decline(self):
+        values = [1200, 1160, 1120, 1080, 1040, 1000, 960, 920, 901, 899, 900, 900]
+        records = []
+        for month, value in enumerate(values, start=1):
+            date = f"1974-{month:02d}-01"
+            records.append(_rec(
+                "OpexAI", 77, date,
+                primary_vehicles=4, n_stations=2, company_value=value,
+            ))
+            records.append(_rec(
+                "AAAHogEx", 77, date,
+                primary_vehicles=8 + month, n_stations=4 + month,
+                company_value=2000 + 50 * month,
+            ))
+
+        opex = [row for row in records if row["run"][0] == "OpexAI"]
+        activity = activity_from_series(opex)
+        self.assertEqual(activity["value_increases"], 1)
+        self.assertGreater(activity["value_decreases"], 0)
+        self.assertEqual(activity["net_company_value_change"], -300)
+        self.assertEqual(activity["signal"], "declining_without_expansion")
+
+        game = assess_game(
+            records, starting_year=1974, years=1,
+            engine_log=(FIXTURES / "clean.log").read_text(),
+        )
+        self.assertEqual(game["companies"]["OpexAI"]["status"], "stagnation_suspect")
+        self.assertFalse(game["companies"]["OpexAI"]["run_ok"])
+        self.assertFalse(game["game_ok"])
+
     def test_missing_internal_month_is_protocol_failure(self):
         records = [
             row for row in _monthly_pair(62, last="1970-12-01")

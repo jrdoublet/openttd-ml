@@ -142,6 +142,16 @@ panneau `EX|` et libère `this._railExpansion`. La phase `resume` réessaie `Sta
 indéfiniment : tant qu'elle échoue, ni panneau ni libération, et `_expandRailLines` sort d'entrée
 (l. 306) — donc plus aucun second train ni doublement de voie de toute la partie, sans trace.
 
+**État courant vérifié le 2026-09-16.** Ne pas rouvrir 13.11/13.12 :
+
+- 13.11 est déjà corrigé sur les deux chemins de succès par `rawset` pour les champs
+  `doubleTrack/depot2/stationA2/stationB2/platformA2/platformB2` ;
+- 13.12 est déjà corrigé avec `resumeAttempts`, au plus trois échecs de
+  `StartStopVehicle`, panneau `EX|...|R|`, puis libération de `_railExpansion`.
+
+B5 ajoute une reprise save/reload idempotente qui ne rappelle pas `StartStopVehicle` lorsqu'une
+rame `resume` a déjà quitté le dépôt.
+
 ## Vérifié, n'est PAS un bug
 
 - **G2 / `_hadAbandonsThisPass` (renvoi de l'étape 12) — confirmé sain.** Initialisé à `false`
@@ -200,4 +210,12 @@ indéfiniment : tant qu'elle échoue, ni panneau ni libération, et `_expandRail
 - **`task_road.nut:281`, `task_air.nut:443`, `task_water.nut:44`** — servent de référence au constat
   13.1 (garde correcte, `reason = "build_failed"` normalisé, champs `detail`/`error` renseignés).
   C'est le rail qui s'écarte de la convention, pas l'inverse ; rien à corriger dans ces trois
-  fichiers.
+fichiers.
+
+## Réconciliation M1 — 2026-09-16
+
+Le scheduler émet désormais `IB|yy|budget|selectionPoolCapital|B0` et
+`task_projects` conserve `B<batchBuilt>`. Les trois positions historiques restent
+identiques et le parseur accepte encore les anciens `IB` sans suffixe. Le JSON ajoute
+`selection_pool_capital` et garde `selected_capital` comme alias. Le commentaire
+`IG|` côté scheduler ne prétend plus qu'un solveur B&B inexistant a prouvé un optimum.

@@ -36,7 +36,7 @@ function OpexLoadSettings()
   TOWN_GROWTH_ENABLED = AIController.GetSetting("town_growth") != 0;
   TOWN_GROWTH_SKIP_NOOP = AIController.GetSetting("town_growth_skip_noop") != 0;
   local roadPaxCatchment = AIController.GetSetting("road_pax_catchment_pct");
-  if (roadPaxCatchment > 0) ROAD_PAX_CATCHMENT_SHARE_PCT = roadPaxCatchment;
+  ROAD_PAX_CATCHMENT_SHARE_PCT = (roadPaxCatchment == 0) ? 22 : roadPaxCatchment;
   local roadStopHouses = AIController.GetSetting("road_stop_catchment_houses");
   if (roadStopHouses > 0) ROAD_STOP_CATCHMENT_HOUSES = roadStopHouses;
   local roadPaxDwell = AIController.GetSetting("road_pax_dwell_days");
@@ -291,6 +291,7 @@ function OpexLoadSettings()
   if (C63_INVEST_PROBE) OpexC63ResetLedger();
   MONTHLY_FUNNEL = AIController.GetSetting("monthly_funnel") != 0;
   C50B_ROAD_CAP_RELAX = AIController.GetSetting("c50b_road_cap_relax") != 0;
+  ROAD_TIME_SCALED_CAP = AIController.GetSetting("road_time_scaled_cap") != 0;
   C50B_RAIL_BACKLOG_RELAX = AIController.GetSetting("c50b_rail_backlog_relax") != 0;
   if (C50_CHRONOLOGY_PROBE) {
     OpexC50ResetNonExpansionLedger();
@@ -336,6 +337,8 @@ function OpexLoadSettings()
   AIR_SITE_CACHE_ENABLED = AIController.GetSetting("air_site_cache") != 0;
   AIR_CHEAP_SITE = AIController.GetSetting("air_cheap_site") != 0;
   AIR_JOINED_STOPS = AIController.GetSetting("air_joined_stops") != 0;
+  AIR_CATCHMENT_PROBE = AIController.GetSetting("air_catchment_probe") != 0;
+  EQUIPMENT_ROI_PROBE = AIController.GetSetting("equipment_roi_probe") != 0;
   local ajsl = AIController.GetSetting("air_joined_stop_limit");
   if (ajsl >= 0) AIR_JOINED_STOP_LIMIT = ajsl;
   AIR_SPLIT_FEEDER_TEST = AIController.GetSetting("air_split_feeder_test") != 0;

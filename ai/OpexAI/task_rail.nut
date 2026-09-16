@@ -501,12 +501,18 @@ function OpexAI::_expandRailLines(year)
   this._railExpansion = {
     lineId = best.line.lineId, vehicle = best.vehicle, wagonId = best.wagon.id,
     oldWagons = best.line.wagons, newWagons = best.line.wagons + 1,
+    oldTrainLength = AIVehicle.GetLength(best.vehicle),
+    oldExpansionCount = ("railExpansions" in best.line) ? best.line.railExpansions : 0,
+    decisionYear = year,
     newSpeed = best.newEcon.effectiveSpeed, newOneWayDays = best.newEcon.oneWayDays,
     gain = best.gain, waiting = best.waiting, util = best.util,
     decisionDate = AIDate.GetCurrentDate(), waitDays = waitDays,
     startDate = AIDate.GetCurrentDate(), phase = "approach", dispatchAttempts = 0,
     resumeAttempts = 0,
     temporaryOrder = false, temporaryOrderPosition = -1,
+    /* Frontiere de commit persistable. build_started signifie volontairement "commande peut-etre
+     * partie" : au reload on ne reconstruit jamais un second wagon sur cet etat ambigu. */
+    commitStage = "idle", pendingWagon = -1,
     /* EU porte le cout de selection ; EX ne porte que dispatch + polls + construction, afin
      * que leur somme soit le debit total sans double comptage. */
     ops = 0, cost = 0,
@@ -662,8 +668,11 @@ function OpexAI::_continueRailExpansion()
   }
 
   local cashBefore = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  state.commitStage = "build_started";
+  state.pendingWagon = -1;
   local car = AIVehicle.BuildVehicle(depot, state.wagonId);
   if (!AIVehicle.IsValidVehicle(car)) {
+    state.commitStage = "idle";
     AIVehicle.StartStopVehicle(state.vehicle);
     state.ops += this._budget.end("expand_rail_build");
     line.expandStreak <- 0;
@@ -673,8 +682,12 @@ function OpexAI::_continueRailExpansion()
     return true;
   }
 
+  state.pendingWagon = car;
+  state.commitStage = "wagon_built";
   if (AIVehicle.GetLength(state.vehicle) + AIVehicle.GetLength(car) > line.platformLength * 16) {
     AIVehicle.SellVehicle(car);
+    state.pendingWagon = -1;
+    state.commitStage = "idle";
     AIVehicle.StartStopVehicle(state.vehicle);
     state.ops += this._budget.end("expand_rail_build");
     line.expandStreak <- 0;
@@ -685,6 +698,8 @@ function OpexAI::_continueRailExpansion()
   }
   if (!AIVehicle.MoveWagon(car, 0, state.vehicle, 0)) {
     if (AIVehicle.IsValidVehicle(car)) AIVehicle.SellVehicle(car);
+    state.pendingWagon = -1;
+    state.commitStage = "idle";
     AIVehicle.StartStopVehicle(state.vehicle);
     state.ops += this._budget.end("expand_rail_build");
     line.expandStreak <- 0;
@@ -694,6 +709,8 @@ function OpexAI::_continueRailExpansion()
     return true;
   }
 
+  state.pendingWagon = -1;
+  state.commitStage = "wagon_moved";
   state.cost = cashBefore - AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   line.wagons = state.newWagons;
   line.wagonId <- state.wagonId;
@@ -704,6 +721,7 @@ function OpexAI::_continueRailExpansion()
   local expansionCount = ("railExpansions" in line) ? line.railExpansions : 0;
   line.railExpansions <- expansionCount + 1;
   line.lastExpansionYear <- AIDate.GetYear(AIDate.GetCurrentDate());
+  state.commitStage = "metadata_done";
   state.phase = "resume";
   local resumed = AIVehicle.StartStopVehicle(state.vehicle);
   state.ops += this._budget.end("expand_rail_build");

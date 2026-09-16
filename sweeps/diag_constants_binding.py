@@ -3,8 +3,9 @@ plafond mord reellement avant de le regler"). PROJECT_TOP_K et MIN_SEPARATION on
 telemetrie complete dans le code livre (panneaux VIVIER et PROJECT_DISCARD via OpexDecide/AILog) --
 aucun nouveau code de jeu, juste ce harnais de lecture avec -d script=4 sur le defaut courant.
 
-PROJECT_TOP_K : panneau VIVIER (path=build|reselect|incremental) donne considered/selected/rejected
-pour chaque appel de selection. TOP_K mord un appel donne si rejected > 0 (des candidats existaient
+PROJECT_TOP_K : panneau VIVIER (path=build|reselect|incremental) donne
+considered/selected/not_selected pour chaque appel de selection. Le champ historique rejected reste
+accepte en fallback pour relire les anciens journaux. TOP_K mord un appel donne si not_selected > 0
 au-dela de la fenetre retenue).
 
 MIN_SEPARATION : panneau PROJECT_DISCARD, reason=too_close_no_join, compte face aux autres motifs
@@ -103,7 +104,7 @@ def main():
         key = tuple(row["run"])
         by_run.setdefault(key, []).append(row)
 
-    vivier_rows = []       # {seed, path, considered, selected, rejected}
+    vivier_rows = []       # {seed, path, considered, selected, not_selected}
     discard_reasons = Counter()
     chosen_count = 0
 
@@ -119,22 +120,24 @@ def main():
         for ev in parse_opex_decisions(output):
             f = ev["fields"]
             if ev["kind"] == "VIVIER":
+                not_selected = int(f.get("not_selected", f.get("rejected", 0)))
                 vivier_rows.append({
                     "seed": seed, "path": f["path"],
                     "considered": int(f["considered"]), "selected": int(f["selected"]),
-                    "rejected": int(f["rejected"]),
+                    "not_selected": not_selected,
+                    "rejected": not_selected,  # alias de sortie legacy
                 })
             elif ev["kind"] == "PROJECT_DISCARD":
                 discard_reasons[f["reason"]] += 1
             elif ev["kind"] == "PROJECT_CHOSEN":
                 chosen_count += 1
 
-    # PROJECT_TOP_K : sur combien d'appels de selection un candidat a-t-il ete rejete
-    # uniquement parce que la fenetre etait pleine (rejected > 0) ?
+    # PROJECT_TOP_K : sur combien d'appels de selection un candidat a-t-il ete non selectionne
+    # uniquement parce que la fenetre etait pleine (not_selected > 0) ?
     by_path = {}
     for r in vivier_rows:
         by_path.setdefault(r["path"], []).append(r)
-    # ATTENTION : "rejected" melange deux causes distinctes (plancher de profit relatif
+    # ATTENTION : "not_selected" melange deux causes distinctes (plancher de profit relatif
     # PORTFOLIO_FLOOR_PCT dans OpexProjectSelectAffordable, ET la troncature TOP_K elle-meme).
     # OpexProjectInsert ne pop QUE quand best.len() > limit=TOP_K : donc TOP_K n'a reellement
     # tronque un appel que si selected == TOP_K (64) -- c'est le seul critere correct.
@@ -148,7 +151,8 @@ def main():
             "pct_binding": 100.0 * len(binds) / len(rows_p) if rows_p else None,
             "mean_considered": statistics.mean(r["considered"] for r in rows_p) if rows_p else None,
             "mean_selected": statistics.mean(r["selected"] for r in rows_p) if rows_p else None,
-            "mean_rejected": statistics.mean(r["rejected"] for r in rows_p) if rows_p else None,
+            "mean_not_selected": statistics.mean(r["not_selected"] for r in rows_p) if rows_p else None,
+            "mean_rejected": statistics.mean(r["not_selected"] for r in rows_p) if rows_p else None,
             "max_considered": max((r["considered"] for r in rows_p), default=None),
             "max_selected": max((r["selected"] for r in rows_p), default=None),
             "n_selected_at_cap": sum(1 for r in rows_p if r["selected"] >= 64),
@@ -181,7 +185,7 @@ def main():
     for path, s in top_k_summary.items():
         print(f"  path={path}: n_calls={s['n_calls']} binding(selected>=64)={s['n_binding']} "
               f"({s['pct_binding']:.1f}%) mean_considered={s['mean_considered']:.1f} "
-              f"mean_selected={s['mean_selected']:.1f} mean_rejected={s['mean_rejected']:.1f} "
+              f"mean_selected={s['mean_selected']:.1f} mean_not_selected={s['mean_not_selected']:.1f} "
               f"max_considered={s['max_considered']} max_selected={s['max_selected']}")
     print("=== MIN_SEPARATION (PROJECT_DISCARD) ===")
     print(" reasons:", dict(discard_reasons))

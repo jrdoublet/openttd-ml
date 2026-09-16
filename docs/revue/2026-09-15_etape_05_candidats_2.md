@@ -152,3 +152,26 @@ sont tous des recours réactifs après `AIError.ERR_LOCAL_AUTHORITY_REFUSES`, ja
 - Décision effective à prendre sur G0 (remettre `abandon_gen_filter`/`abandon_cooldown_days` à 0 ou
   bancher isolément) : synthèse, étape 20 — cette étape ne fait que constater que rien n'a bougé côté
   `info.nut`/`settings.nut` depuis le 09-06.
+
+## Réconciliation M1 — 2026-09-16
+
+05.3 est corrigé sans changement de filtre. `profitNonPositive` compte uniquement les
+candidats `profitAnnual <= 0` réellement rejetés ; `profitBelowFloorKept` compte
+les projets positifs sous le repère historique qui restent dans le vivier. Ils sont publiés
+respectivement sous `VIVIER_REJECT reason=road_profit_non_positive` et
+`VIVIER_RETAINED reason=road_profit_below_floor`. L'ancien agrégat `profitTooLow`
+ne sert plus de nombre de rejets publié.
+
+## Réconciliation G0 — 2026-09-16
+
+La décision signalée comme manquante en 05.1 est désormais rendue par l'autorité officielle
+`results/review_g0_c66_4_20x10.json`. Le candidat
+`abandon_gen_filter=0,abandon_cooldown_days=0` a été comparé au courant `1/365` sur
+20 graines appariées × 10 ans. Les 20/20 paires sont complètes ; `profit_year` gagne en moyenne
+**11 264,85 £/an** seulement, avec **11 V / 9 D** et `p_signes=0,823803`, sous le seuil utile
+pré-enregistré de +50 000 £/an. La garde `company_value` passe (+2,759 % en ratio des moyennes),
+mais le verdict officiel est **`fail_primary`**.
+
+G0 est donc **clos sans adoption** : `abandon_gen_filter=1` et
+`abandon_cooldown_days=365` restent les défauts livrés. Le cooldown 0 reste documenté comme
+mémoire permanente, et non comme désactivation de la mémoire.

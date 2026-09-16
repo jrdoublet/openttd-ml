@@ -254,3 +254,127 @@ inatteignable, ce cas ayant déjà provoqué un `return null` en `561-564`.
   (grep) : si l'un d'eux est appelé en chemin chaud, le coût de sonde relevé pour C63 s'applique.
 - **Étape 3 (`catalog.nut`)** — `catalog.costRoadBusStop` (`catalog.nut:684`) fixe l'amplitude du
   biais du constat 08.6 ; sa valeur conditionne la gravité réelle.
+
+## Passe corrective — 2026-09-16
+
+### 08.1 — verdict de sonde rendu décisif
+
+Le défaut était toujours actif dans le workspace courant. Sous `AIR_CHEAP_SITE`, les deux
+chemins de `OpexAirFindSite` (cache et scan nominal) pouvaient remplacer n'importe quelle erreur
+de `AIAirport.BuildAirport(..., STATION_NEW)` par un verdict positif de
+`OpexAirCanLevelFootprint`. Le correctif conserve uniquement les deux erreurs pour lesquelles
+ce repli a un sens dans ce code :
+
+- `AIError.ERR_LOCAL_AUTHORITY_REFUSES` ;
+- `AIError.ERR_FLAT_LAND_REQUIRED`.
+
+Toute autre erreur — en particulier 771 et `ERR_AREA_NOT_CLEAR` — reste donc un échec de la
+sonde et ne peut plus être transformée en « site constructible » parce que le terrain est plat ou
+nivelable. Aucun cache, budget, ordre de scan ni pathfinder n'a été modifié.
+
+Validation après le dernier changement `.nut` :
+
+- smoke obligatoire 2×3 :
+  `results/review_b1_probe_fix_smoke_2x3.json` → **PASSED** ;
+- diagnostic 5×6 :
+  `results/review_b1_probe_fix_5x6.json` → **5/5 parties complètes** ;
+- référence pré-correctif : bras `OpexAI` de
+  `results/review_h5_loop_budget_5x6.json`, mêmes graines
+  `42/100/999/1234/5678`, même horizon 6 ans, exécuté avant toute modification
+  `builder_air.nut`.
+
+Trois graines (100/1234/5678) sont strictement identiques. Les graines 42 et 999 changent :
+la valeur finale baisse respectivement de **462 224 £** et **454 916 £** ; le
+`profit_year` varie de **+108 830 £** et **−271 676 £**. La moyenne 5 graines vaut
+**−183 428 £** sur `company_value` et **−32 569 £/an** sur `profit_year`.
+Le coût opcode observé augmente sur ces deux graines (+14,68 M et +11,69 M), malgré une baisse
+des opcodes de planification air. Cette passe prouve donc un effet causal, **pas** un gain
+économique. 08.1 est conservé comme correction de cohérence du verdict de sonde ; ses résultats
+ne doivent pas être présentés comme une optimisation de performance.
+
+### 08.2 — mémoire de ville non adoptée
+
+Le défaut reste `air_town_limit_memory=0`. L'ancien 5×6
+`results/p1_town_limit_5x6_v1.json`, antérieur à 08.1, était défavorable :
+`company_value` moyen **−267 112 £** (2 gains / 3 pertes) et `profit_year`
+**−76 650 £/an** ; verdict `fail_primary_and_value_guard`. Ce banc ne suffit plus à caractériser
+la base corrigée, précisément parce que 08.1 empêche désormais un 771 de franchir l'élection du
+site. Une tentative de diagnostic C66.4 actuel 0→1 a été préparée avec le protocole pré-enregistré
+(`profit_year +45 000 £/an`, garde valeur −2 %), mais le connecteur a bloqué l'invocation avant
+toute partie. Aucun résultat courant n'est donc inventé et le défaut reste 0.
+
+### 08.3 — pas de faux fallback
+
+La sonde 771 déjà documentée dans `docs/taches.md` montre **291/291** erreurs de la graine 42
+avec zéro aéroport OpexAI dans la ville : les slots sont pris par AAAHogEx. Le distant join ne
+permet pas de créer un troisième aéroport lorsque la limite de ville est déjà atteinte, et nettoyer
+des infrastructures OpexAI ne traite pas ces cas. Le levier « prendre les slots utiles plus tôt »
+est déjà couvert par `early_slot`, adopté séparément. Aucun fallback ni bulldozage n'est ajouté.
+
+## Clôture B9 / G4 résiduel — 2026-09-16
+
+La passe B9 est partie d'une instrumentation **passive et default-off**
+(`air_catchment_probe=0`) avant toute correction de comportement. Le premier 5×6 valide,
+`results/review_b9_air_catchment_5x6.json`, est sain **10/10** et complet jusqu'à 1975.
+L'analyse relit les logs moteur déjà produits par le harnais
+(`results/review_b9_air_catchment_5x6_engine/`) : le champ `openttd_output` n'est pas persisté
+par `keep()`, donc le premier « 0 build / 0 endpoint » était un défaut d'analyse, pas une
+non-exposition AIR. Aucun banc n'a été relancé pour corriger ce point.
+
+Le 5×6 pré-correctif expose **148 builds / 296 endpoints**, sans invariant cassé. Tous les
+aéroports Opex observés sont de type 1, **6×6**, rayon de catchment **5**. L'aéroport seul couvre
+le centre-ville dans environ **19,9 %** des endpoints, l'union station/aéroport/arrêts dans
+environ **84,5 %**. La production pax moyenne mesurée vaut **14,62** sur l'aéroport seul et
+**22,64** sur l'union ; le mail vaut respectivement **16,13** et **25,07**.
+
+### 08.6 — réserve pré-électorale des arrêts joints : corrigé
+
+La mesure a invalidé `catalog.costRoadBusStop` comme estimation honnête du coût d'un arrêt
+traversant joint : sur les builds exposés, le coût réel par arrêt varie approximativement de
+**450 à 2 250 £**. Avant correction, la réserve est inférieure au coût réel sur **41 builds** et
+supérieure sur **11**. Les arrêts joints restent donc une extension optionnelle : coût et demande
+joints restent nuls avant chantier, puis `result.actualCost` et le catchment réel sont
+réconciliés après construction.
+
+### 08.8 — littéraux 22 % : corrigé sans changer la politique
+
+Les trois littéraux `22` du planner ont été remplacés par `TOWN_CATCHMENT_SHARE_PCT`.
+Le modèle livré reste volontairement le proxy population. L'autorité historique
+`results/bench_air_demand_plan_10y.json` a déjà rejeté `air_demand_plan=1` :
+**−51,5 % de `profit_year`**, 5/20 graines gagnantes, `p_signes=0,041`.
+Une variante B9 intermédiaire encore plus conservatrice a supprimé tout AIR Opex dans son 5×6 ;
+elle a été retirée et n'est pas un comportement livré.
+
+### 08.9 — overlap des arrêts joints : corrigé
+
+Avant correction, sur **63 endpoints neufs**, le brut vaut **17,35 pax** en moyenne contre
+**7,21** réellement marginaux ; le double comptage est positif sur **50/63**, +**10,14 pax**
+en moyenne. Le modèle post-chantier utilise maintenant l'union réelle de
+`AITileList_StationCoverage(stationId)` moins le catchment propre de l'aéroport.
+Dans le 5×6 final, `model_error_pax=0` sur **59/59** endpoints neufs.
+
+### 08.10 — unités hétérogènes : corrigé sans adoption de modèle
+
+Sous le default `air_demand_plan=0`, le proxy population n'est plus additionné à une production
+physique. Le marginal physique exact n'est ajouté que sous `AIR_DEMAND_PLAN`, où la base est
+elle-même production-based. `AIR_CATCHMENT_BUILD` garde ces provenances distinctes.
+
+### Placement / comparaison AAAHogEx
+
+Le TownID STNN nécessite un offset dominant **+1**, inféré depuis les mêmes aéroports Opex
+(**247/258** snapshots cohérents dans le 5×6 final), jamais codé en dur. Sur le sous-ensemble
+comparable, AAAHogEx est plus proche du centre : distance rectangle moyenne **6,06** tuiles et
+centre couvert **37,85 %**, contre **7,47** et **20,0 %** pour Opex. La production catchment
+exacte AAAHogEx n'est pas disponible dans les chunks : signal descriptif seulement.
+
+### Validation finale et décision
+
+- B9 + freeze : **17/17** ;
+- selftest B9 et `py_compile` : **OK** ;
+- `git diff --check` : **OK** hors warnings CRLF connus ;
+- smoke `results/review_b9_air_catchment_smoke_2x3_v4.json` : **2/2 OK** ;
+- final `results/review_b9_air_catchment_reconciled_5x6.json` : **10/10**,
+  148 builds / 296 endpoints, horizon complet, zéro invariant cassé.
+
+**B9 est clos.** `air_catchment_probe=0`, `air_demand_plan=0` et `early_slot=1` restent
+inchangés ; aucun nouveau default AIR n'est adopté.

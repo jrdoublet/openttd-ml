@@ -332,7 +332,10 @@ function OpexAI::_logC50AnnualReport(year)
   local loan = AICompany.GetLoanAmount();
   local maxLoan = AICompany.GetMaxLoanAmount();
   local available = OpexAvailableCapital();
-  local val = 0;
+  /* M1 : GetCompanyValue a disparu de l'API NoAI. Le canal annuel doit publier
+   * la valeur observee du trimestre courant, pas un zero sentinelle. */
+  local val = AICompany.GetQuarterlyCompanyValue(
+      AICompany.COMPANY_SELF, AICompany.CURRENT_QUARTER);
   OpexC50ChronologyLog("phase=treasury_annual year=" + year + " cash=" + bank
       + " loan=" + loan + " max_loan=" + maxLoan + " available=" + available
       + " company_value=" + val + " lines=" + this._lines.len());

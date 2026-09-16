@@ -881,10 +881,12 @@ def parse_project_portfolios(all_signs):
             }
             portfolios.append(current)
         elif m := RE_IB.match(sign):
+            selection_pool_capital = int(m.group(3))
             row = {
                 "year": 1900 + int(m.group(1)),
                 "capital_budget": int(m.group(2)),
-                "selected_capital": int(m.group(3)),
+                "selection_pool_capital": selection_pool_capital,
+                "selected_capital": selection_pool_capital,  # alias JSON legacy
                 "built": int(m.group(4)) if m.group(4) is not None else None,
             }
             if current is not None and current["year"] == row["year"]:

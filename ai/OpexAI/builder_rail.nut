@@ -1489,6 +1489,9 @@ function OpexCompleteRailRouteAfterSearch(catalog, candidate, plan, search, join
     local economics = OpexLineEconomics(catalog, candidate.cargo, candidate.distance,
                                         candidate.monthly, candidate.kind, plan.length,
                                         routeDistance);
+    if (EQUIPMENT_ROI_PROBE) {
+      OpexM3ProbeRailEquipment(catalog, candidate, plan.length, routeDistance, economics);
+    }
     if (economics != null) {
       plan.capital = economics.capital;
       OpexApplyRailEconomics(candidate, economics);

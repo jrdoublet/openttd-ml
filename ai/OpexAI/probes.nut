@@ -52,6 +52,15 @@ function OpexDecide(kind, fields)
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " " + kind + " " + fields);
 }
+/* B9/G4 : gate dedie au diagnostic catchment. Ne pas reutiliser DECISION_LOG :
+ * il instrumente toute l'IA et son cout a deja ete mesure comme perturbant. */
+function OpexAirCatchmentLog(kind, fields)
+{
+  if (!AIR_CATCHMENT_PROBE) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " " + kind + " " + fields);
+}
 /* C39.0 : le journal de la sonde est indépendant de DECISION_LOG. Ce dernier instrumente toute
  * l'IA et change son budget d'opcodes ; C39 doit pouvoir observer le seul routeur passif. */
 function OpexC39Log(kind, fields)
@@ -64,7 +73,8 @@ function OpexC39Log(kind, fields)
 /* C41.11 reste lisible sans activer le bus C39 : il mesure le scheduler historique lui-meme. */
 function OpexC41SchedulerLog(kind, fields)
 {
-  if (!C41_SLACK_LEDGER && !C41_OPPORTUNITY_LEDGER && !C41_ADMISSION_LEDGER) return;
+  if (!C41_SLACK_LEDGER && !C41_MONTHLY_BUSY_LEDGER
+      && !C41_OPPORTUNITY_LEDGER && !C41_ADMISSION_LEDGER) return;
   local date = AIDate.GetCurrentDate();
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " " + kind + " " + fields);
@@ -253,7 +263,10 @@ function OpexC63ClassifyAbsent(projects)
   if (("road" in projects) && projects.road != null && ("stats" in projects.road) && projects.road.stats != null) {
     local rdst = projects.road.stats;
     if ("pairsInBand" in rdst) pairsTotal += rdst.pairsInBand;
-    if ("profitTooLow" in rdst) unprofitable += rdst.profitTooLow;
+    /* M1 : un candidat positif sous le repere ROAD_MIN_PROFIT_ANNUAL est conserve,
+     * donc il ne doit pas expliquer un vivier vide comme "unprofitable". */
+    if ("profitNonPositive" in rdst) unprofitable += rdst.profitNonPositive;
+    else if ("profitTooLow" in rdst) unprofitable += rdst.profitTooLow; // vieille forme de sauvegarde
     if ("townRejected" in rdst) alreadyServed += rdst.townRejected;
     if ("roadDistanceShort" in rdst) modeCargoFilter += rdst.roadDistanceShort;
     if ("roadDistanceLong" in rdst) modeCargoFilter += rdst.roadDistanceLong;
@@ -295,11 +308,24 @@ function OpexC63RecordOpportunity(kind, daysForKind, absentCause = "")
   if (!C63_INVEST_PROBE || C63_INVEST_LEDGER == null) return;
   if (!(kind in C63_INVEST_LEDGER.opp)) return;
   C63_INVEST_LEDGER.opp[kind].n++;
-  if (daysForKind > 0) C63_INVEST_LEDGER.opp[kind].days += daysForKind;
   if (kind == "absent" && absentCause != "" && ("absent_causes" in C63_INVEST_LEDGER)
       && (absentCause in C63_INVEST_LEDGER.absent_causes)) {
     C63_INVEST_LEDGER.absent_causes[absentCause].n++;
-    if (daysForKind > 0) C63_INVEST_LEDGER.absent_causes[absentCause].days += daysForKind;
+  }
+  OpexC63AddOpportunityDays(kind, daysForKind, absentCause);
+}
+
+/* Les observations et le temps passe ne sont pas la meme grandeur. Une nouvelle passe compte
+ * l'etat observe MAINTENANT, mais l'intervalle depuis la passe precedente appartient a l'etat
+ * precedent. Cette fonction ajoute donc uniquement une duree, sans fabriquer un compteur n. */
+function OpexC63AddOpportunityDays(kind, daysForKind, absentCause = "")
+{
+  if (!C63_INVEST_PROBE || C63_INVEST_LEDGER == null || daysForKind <= 0) return;
+  if (!(kind in C63_INVEST_LEDGER.opp)) return;
+  C63_INVEST_LEDGER.opp[kind].days += daysForKind;
+  if (kind == "absent" && absentCause != "" && ("absent_causes" in C63_INVEST_LEDGER)
+      && (absentCause in C63_INVEST_LEDGER.absent_causes)) {
+    C63_INVEST_LEDGER.absent_causes[absentCause].days += daysForKind;
   }
 }
 
@@ -347,12 +373,17 @@ function OpexC63EnsureYear(nowYear)
   while (C63_INVEST_LEDGER.ledgerYear < nowYear) {
     local oldYear = C63_INVEST_LEDGER.ledgerYear;
     local nextStart = OpexC63YearStart(oldYear + 1);
+    local carryKind = C63_INVEST_LEDGER.lastKind;
+    local carryAbsentCause = C63_INVEST_LEDGER.lastAbsentCause;
     if (C63_INVEST_LEDGER.lastDate >= 0 && C63_INVEST_LEDGER.lastKind != "") {
       local tail = nextStart - C63_INVEST_LEDGER.lastDate - 1;
-      if (tail > 0) OpexC63RecordOpportunity(C63_INVEST_LEDGER.lastKind, tail, C63_INVEST_LEDGER.lastAbsentCause);
+      if (tail > 0) OpexC63AddOpportunityDays(C63_INVEST_LEDGER.lastKind, tail, C63_INVEST_LEDGER.lastAbsentCause);
     }
     OpexC63FlushLedger(oldYear);
     if (C63_INVEST_LEDGER.ledgerYear <= oldYear) C63_INVEST_LEDGER.ledgerYear = oldYear + 1;
+    C63_INVEST_LEDGER.lastDate = nextStart;
+    C63_INVEST_LEDGER.lastKind = carryKind;
+    C63_INVEST_LEDGER.lastAbsentCause = carryAbsentCause;
   }
 }
 
@@ -366,7 +397,8 @@ function OpexC63NotePass(builtCount, best, passDiscards, railSearching, projects
   if (C63_INVEST_LEDGER.lastDate >= 0 && now >= C63_INVEST_LEDGER.lastDate) {
     days = now - C63_INVEST_LEDGER.lastDate;
   }
-  C63_INVEST_LEDGER.lastDate = now;
+  local previousKind = C63_INVEST_LEDGER.lastKind;
+  local previousAbsentCause = C63_INVEST_LEDGER.lastAbsentCause;
   local kind;
   local absentCause = "";
   if (builtCount > 0) kind = "launched";
@@ -417,9 +449,14 @@ function OpexC63NotePass(builtCount, best, passDiscards, railSearching, projects
       kind = OpexC63ClassifyOpportunity(reason, OpexC63CachedAvailable(), need, waitingOnly);
     }
   }
+  /* 02.1 : days decrit le temps ecoule AVANT cette observation. Le crediter au nouvel etat
+   * decalait tout le ledger d'une passe (absent -> launched devenait du temps launched, etc.).
+   * Compter l'observation courante sans duree, puis attribuer l'intervalle a l'etat precedent. */
+  OpexC63RecordOpportunity(kind, 0, absentCause);
+  if (previousKind != "") OpexC63AddOpportunityDays(previousKind, days, previousAbsentCause);
+  C63_INVEST_LEDGER.lastDate = now;
   C63_INVEST_LEDGER.lastKind = kind;
   C63_INVEST_LEDGER.lastAbsentCause = absentCause;
-  OpexC63RecordOpportunity(kind, days, absentCause);
 }
 
 function OpexC63RecordEmptyProbe(projects, stage, freightCargo, abandonedPairs)

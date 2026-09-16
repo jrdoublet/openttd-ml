@@ -156,7 +156,9 @@ function OpexStationRatingForHeadway(headwayDays)
  * Quand fourni et > 0, il remplace distance pour le temps de trajet, la vitesse et le
  * cout de voie. `distance` (Manhattan entre extremites) reste la distance TARIFAIRE, exactement
  * comme OpexRoadLineEconomics distingue deja les deux. */
-function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPlatformLength = 0, routeDistance = null, profile = null, cruiseCache = null)
+function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPlatformLength = 0,
+                           routeDistance = null, profile = null, cruiseCache = null,
+                           wagonOverride = null, locoChoicesOverride = null)
 {
   local setupMark = profile != null ? OpexOpsMeasureBegin() : null;
   local freightDetail = profile != null && kind == "freight" && C41_RAIL_FREIGHT_ECONOMICS_DETAIL_PROFILE;
@@ -167,9 +169,9 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   local freightAccelerationCache = kind == "freight" && C41_RAIL_FREIGHT_ACCELERATION_CACHE;
   local freightEffectiveSpeedProfile = profile != null && kind == "freight" && C41_RAIL_FREIGHT_EFFECTIVE_SPEED_PROFILE;
   local travelDist = (routeDistance != null && routeDistance > 0) ? routeDistance : distance;
-  if (!(cargo in catalog.wagonByCargo)) return null;
-  if (!(cargo in catalog.locoByCargoWagons)) return null;
-  local wagon = catalog.wagonByCargo[cargo];
+  if (wagonOverride == null && !(cargo in catalog.wagonByCargo)) return null;
+  if (locoChoicesOverride == null && !(cargo in catalog.locoByCargoWagons)) return null;
+  local wagon = wagonOverride != null ? wagonOverride : catalog.wagonByCargo[cargo];
 
   /* Les wagons et la locomotive sont couples. Le maximum de jeu ne sert ici qu'a trouver la rame
    * cible ; son quai voulu est derive plus bas de cette rame et de sa marge. Cela n'autorise PAS a
@@ -185,7 +187,7 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
    * bareme au capital et au cout courant. Le gagnant est le profit maximal, et l'egalite garde moins
    * de trains parce qu'ils n'apportent alors aucun point de note ni cargo supplementaire. */
   local referenceMark = freightSetupDetail ? OpexOpsMeasureBegin() : null;
-  local choices = catalog.locoByCargoWagons[cargo];
+  local choices = locoChoicesOverride != null ? locoChoicesOverride : catalog.locoByCargoWagons[cargo];
   local maxWagons = choices.len();
   /* Le cache catalogue va jusqu'a station_spread ; une longueur imposee apres recherche doit
    * couper cette table a la meme capacite nominale que OpexBuildTrains. */
@@ -502,6 +504,11 @@ function OpexApplyRoadEconomics(candidate, economics, actualDistance = null)
 {
   if (actualDistance != null) candidate.distance = actualDistance;
   candidate.oneWayDays = economics.oneWayDays;
+  /* B3 diagnostic-only : conserver la cible de demande brute et la borne de quai deja calculees.
+   * Elles ne pilotent aucune decision ; `candidate.trains` reste la cible historique plafonnee. */
+  candidate.vehiclesForVolume = economics.vehiclesForVolume;
+  candidate.roadBerthCapacity = economics.roadBerthCapacity;
+  candidate.roadVehicleCap = economics.roadVehicleCap;
   candidate.trains = economics.trains;
   candidate.carried = economics.carried;
   candidate.revenueAnnual = economics.revenueAnnual;
@@ -593,6 +600,22 @@ function OpexRoadPhysicalVehicleCap(nStopsA, nStopsB)
   return 2 * nMin;
 }
 
+/* B3 : `OpexRoadPhysicalVehicleCap` est une capacité SIMULTANÉE aux quais, pas une flotte totale.
+ * Le bras expérimental la remet à l'échelle du temps passé à l'arrêt pour le pax, dont le modèle
+ * possède un dwell explicite. On reste volontairement conservateur : division entière vers le bas
+ * et garde-fou historique MAX_ROAD_VEHICLES. Le fret garde la borne historique car son temps de
+ * chargement dépend du FULL_LOAD et n'est pas modélisé par un dwell constant. */
+function OpexRoadFleetVehicleCap(nStopsA, nStopsB, oneWayDays, kind)
+{
+  local berthCapacity = OpexRoadPhysicalVehicleCap(nStopsA, nStopsB);
+  if (!ROAD_TIME_SCALED_CAP || kind != "pax") return berthCapacity;
+  if (ROAD_PAX_STOP_DWELL_DAYS <= 0 || oneWayDays <= 0) return berthCapacity;
+  local cap = (berthCapacity * oneWayDays) / ROAD_PAX_STOP_DWELL_DAYS;
+  if (cap < berthCapacity) cap = berthCapacity;
+  if (cap > MAX_ROAD_VEHICLES) cap = MAX_ROAD_VEHICLES;
+  return cap;
+}
+
 /* Economie complete d'une ligne routiere. Rend null si le materiel manque pour ce cargo.
  * `engine` vient de catalog.roadEngineByCargo[cargo] ; sa capacite est celle du cargo d'origine
  * (approximation assumee au classement, cf. catalog.nut) -- le constructeur relit la vraie
@@ -629,7 +652,13 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
 
   local vehicles = vehiclesForVolume;
   if (vehicles < 1) vehicles = 1;
-  local roadVehicleCap = MARGINAL_FLEET ? 1 : OpexRoadPhysicalVehicleCap(1, 1);
+  local roadBerthCapacity = OpexRoadPhysicalVehicleCap(1, 1);
+  /* Garder le chemin historique exact sous switch 0 ; le helper temporel n'est appelé que dans
+   * le bras expérimental pour éviter qu'un simple appel supplémentaire ne déplace le budget NoAI. */
+  local roadVehicleCap = MARGINAL_FLEET ? 1 : roadBerthCapacity;
+  if (!MARGINAL_FLEET && ROAD_TIME_SCALED_CAP && kind == "pax") {
+    roadVehicleCap = OpexRoadFleetVehicleCap(1, 1, oneWayDays, kind);
+  }
   if (vehicles > roadVehicleCap) vehicles = roadVehicleCap;
 
   /* pricing_fix : la route n'appliquait JAMAIS OpexStationRatingForHeadway, que le rail
@@ -693,6 +722,9 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
   return {
     oneWayDays = oneWayDays,
     transitDays = transitDays,
+    vehiclesForVolume = vehiclesForVolume,
+    roadBerthCapacity = roadBerthCapacity,
+    roadVehicleCap = roadVehicleCap,
     trains = vehicles,            // meme nom que le rail : _tryBuild/_reportLines sont communs
     carried = carried,
     revenueAnnual = revenueAnnual,
@@ -704,4 +736,118 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
     roi = roi,
     effectiveSpeed = effectiveSpeed,
   };
+}
+
+/* M3/G12 — canal de mesure uniquement. Les alternatives ci-dessous ne sont jamais renvoyees aux
+ * generateurs ni aux constructeurs : elles servent a mesurer le regret du pre-choix catalogue sur
+ * une route qui a deja franchi le site/pathfinding. `native` signifie seulement que la capacite
+ * catalogue porte deja sur le cargo cible ; une alternative refittable reste un PROXY tant qu'un
+ * vehicule n'a pas ete construit/refitte dans un depot. */
+function OpexM3EquipmentLog(text)
+{
+  if (!EQUIPMENT_ROI_PROBE) return;
+  AILog.Info("M3_EQUIP date=" + AIDate.GetCurrentDate() + " " + text);
+}
+
+function OpexM3ProbeRailEquipment(catalog, candidate, fixedPlatformLength, routeDistance,
+                                  selectedEconomics, phase = "post_route")
+{
+  if (!EQUIPMENT_ROI_PROBE || candidate == null ||
+      !(candidate.cargo in catalog.wagonChoicesByCargo)) return;
+  local alternatives = catalog.wagonChoicesByCargo[candidate.cargo];
+  if (alternatives.len() == 0) return;
+  local selectedId = (candidate.cargo in catalog.wagonByCargo)
+      ? catalog.wagonByCargo[candidate.cargo].id : -1;
+  local bestProfit = null;
+  local bestProfitId = -1;
+  local bestRoi = null;
+  local bestRoiId = -1;
+  local viable = 0;
+  foreach (wagon in alternatives) {
+    if (!("m3LocoChoices" in wagon) || wagon.m3LocoChoices == null) continue;
+    local economics = OpexLineEconomics(catalog, candidate.cargo, candidate.distance,
+        candidate.monthly, candidate.kind, fixedPlatformLength, routeDistance, null, null,
+        wagon, wagon.m3LocoChoices);
+    if (economics == null) continue;
+    viable++;
+    if (bestProfit == null || economics.profitAnnual > bestProfit.profitAnnual ||
+        (economics.profitAnnual == bestProfit.profitAnnual && economics.roi > bestProfit.roi)) {
+      bestProfit = economics; bestProfitId = wagon.id;
+    }
+    if (bestRoi == null || economics.roi > bestRoi.roi ||
+        (economics.roi == bestRoi.roi && economics.profitAnnual > bestRoi.profitAnnual)) {
+      bestRoi = economics; bestRoiId = wagon.id;
+    }
+  }
+  local selectedProfit = selectedEconomics != null ? selectedEconomics.profitAnnual : -999999999;
+  local selectedRoi = selectedEconomics != null ? selectedEconomics.roi : -1;
+  OpexM3EquipmentLog("mode=rail phase=" + phase + " cargo=" + candidate.cargo
+      + " choices=" + alternatives.len() + " viable=" + viable + " selected=" + selectedId
+      + " selected_ok=" + (selectedEconomics != null ? 1 : 0)
+      + " selected_profit=" + selectedProfit + " selected_roi=" + selectedRoi
+      + " best_profit_id=" + bestProfitId
+      + " best_profit=" + (bestProfit != null ? bestProfit.profitAnnual : -999999999)
+      + " best_profit_roi=" + (bestProfit != null ? bestProfit.roi : -1)
+      + " best_roi_id=" + bestRoiId
+      + " best_roi=" + (bestRoi != null ? bestRoi.roi : -1)
+      + " best_roi_profit=" + (bestRoi != null ? bestRoi.profitAnnual : -999999999)
+      + " admission_flip=" + ((selectedEconomics == null || selectedEconomics.profitAnnual <= 0)
+          && bestProfit != null && bestProfit.profitAnnual > 0 ? 1 : 0));
+}
+
+function OpexM3ProbeRoadEquipment(catalog, candidate, distance, routeDistance, selectedEconomics, phase)
+{
+  if (!EQUIPMENT_ROI_PROBE || candidate == null ||
+      !(candidate.cargo in catalog.roadEngineChoicesByCargo)) return;
+  local alternatives = catalog.roadEngineChoicesByCargo[candidate.cargo];
+  if (alternatives.len() == 0) return;
+  local selectedId = candidate.engine != null ? candidate.engine.id : -1;
+  local bestProfit = null, bestProfitId = -1;
+  local bestRoi = null, bestRoiId = -1;
+  local bestNativeProfit = null, bestNativeProfitId = -1;
+  local bestNativeRoi = null, bestNativeRoiId = -1;
+  local viable = 0, nativeChoices = 0, refitProxyChoices = 0;
+  foreach (engine in alternatives) {
+    local native = engine.defaultCargo == candidate.cargo;
+    if (native) nativeChoices++; else refitProxyChoices++;
+    local economics = OpexRoadLineEconomics(catalog, candidate.cargo, distance, candidate.monthly,
+                                             engine, candidate.kind, routeDistance);
+    if (economics == null) continue;
+    viable++;
+    if (bestProfit == null || economics.profitAnnual > bestProfit.profitAnnual ||
+        (economics.profitAnnual == bestProfit.profitAnnual && economics.roi > bestProfit.roi)) {
+      bestProfit = economics; bestProfitId = engine.id;
+    }
+    if (bestRoi == null || economics.roi > bestRoi.roi ||
+        (economics.roi == bestRoi.roi && economics.profitAnnual > bestRoi.profitAnnual)) {
+      bestRoi = economics; bestRoiId = engine.id;
+    }
+    if (native && (bestNativeProfit == null || economics.profitAnnual > bestNativeProfit.profitAnnual ||
+        (economics.profitAnnual == bestNativeProfit.profitAnnual && economics.roi > bestNativeProfit.roi))) {
+      bestNativeProfit = economics; bestNativeProfitId = engine.id;
+    }
+    if (native && (bestNativeRoi == null || economics.roi > bestNativeRoi.roi ||
+        (economics.roi == bestNativeRoi.roi && economics.profitAnnual > bestNativeRoi.profitAnnual))) {
+      bestNativeRoi = economics; bestNativeRoiId = engine.id;
+    }
+  }
+  local selectedProfit = selectedEconomics != null ? selectedEconomics.profitAnnual : -999999999;
+  local selectedRoi = selectedEconomics != null ? selectedEconomics.roi : -1;
+  OpexM3EquipmentLog("mode=road phase=" + phase + " cargo=" + candidate.cargo
+      + " choices=" + alternatives.len() + " viable=" + viable + " native_choices=" + nativeChoices
+      + " refit_proxy_choices=" + refitProxyChoices + " selected=" + selectedId
+      + " selected_refit=" + (candidate.engine != null && candidate.engine.defaultCargo != candidate.cargo ? 1 : 0)
+      + " selected_ok=" + (selectedEconomics != null ? 1 : 0)
+      + " selected_profit=" + selectedProfit + " selected_roi=" + selectedRoi
+      + " best_profit_id=" + bestProfitId
+      + " best_profit=" + (bestProfit != null ? bestProfit.profitAnnual : -999999999)
+      + " best_roi_id=" + bestRoiId + " best_roi=" + (bestRoi != null ? bestRoi.roi : -1)
+      + " best_native_profit_id=" + bestNativeProfitId
+      + " best_native_profit=" + (bestNativeProfit != null ? bestNativeProfit.profitAnnual : -999999999)
+      + " best_native_roi_id=" + bestNativeRoiId
+      + " best_native_roi=" + (bestNativeRoi != null ? bestNativeRoi.roi : -1)
+      + " admission_flip=" + ((selectedEconomics == null || selectedEconomics.profitAnnual <= 0)
+          && bestProfit != null && bestProfit.profitAnnual > 0 ? 1 : 0)
+      + " native_admission_flip=" + ((selectedEconomics == null || selectedEconomics.profitAnnual <= 0)
+          && bestNativeProfit != null && bestNativeProfit.profitAnnual > 0 ? 1 : 0));
 }

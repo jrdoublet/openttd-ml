@@ -124,6 +124,7 @@ function OpexAI::_tryBuildAir(year)
     }
 
     local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1) + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
+    if (EQUIPMENT_ROI_PROBE) OpexM3ProbeAirEquipment(this._catalog, plan, "direct_selected");
     local requiredMargin = AIR_MARGIN_V2
           ? ((newAirports == 2) ? 15000 : (newAirports == 1 ? 6000 : 0))
           : ((newAirports == 2) ? 30000 : (newAirports == 1 ? 12000 : 2000));
@@ -376,6 +377,7 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
 
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
       local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1) + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
+      if (EQUIPMENT_ROI_PROBE) OpexM3ProbeAirEquipment(this._catalog, plan, "portfolio_selected");
       local requiredMargin = AIR_MARGIN_V2
           ? ((newAirports == 2) ? 15000 : (newAirports == 1 ? 6000 : 0))
           : ((newAirports == 2) ? 30000 : (newAirports == 1 ? 12000 : 2000));
@@ -527,7 +529,7 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
 /* Cause du refus de croissance d'une flotte aerienne, une seule fois par ligne et par an.
  * Codes : Y deja grandie cette annee, V aucun avion vivant, D ligne morte, L profit negatif,
  * C plafond physique de l'aeroport atteint, Q plafond de demande atteint,
- * S un an de mauvaise sante, M tresorerie, X l'achat a echoue. */
+ * S un an de mauvaise sante, K ligne en cours de rebut, M tresorerie, X l'achat a echoue. */
 function OpexAirFleetRefusal(line, year, code)
 {
   if (C50_CHRONOLOGY_PROBE) {
@@ -572,6 +574,7 @@ function OpexAirFleetRefusal(line, year, code)
     else if (code == "C") reasonStr = "airport_capacity_reached";
     else if (code == "Q") reasonStr = "demand_cap_reached";
     else if (code == "S") reasonStr = "poor_health_streak";
+    else if (code == "K") reasonStr = "scrapping";
     else if (code == "M") reasonStr = "insufficient_cash";
     else if (code == "X") reasonStr = "purchase_failed";
     OpexDecide("AIR_FLEET", "action=refuse line=" + line.lineId + " reason=" + reasonStr + " planes=" + have + " yield=" + yieldVal);
@@ -621,6 +624,13 @@ function OpexAI::_resizeAirFleets(year, plan = null)
   }
   if (AIR_ROI_ORDER) airLines.sort(OpexAirFleetPriorityCompare);
   foreach (line in airLines) {
+    /* B8 / G10 : une ligne en liquidation ne peut recevoir aucun appareil neuf, y compris une
+     * reconstitution de crash. Ce garde doit preceder needsRefleet : pendant la fenetre de vente,
+     * les avions encore vivants peuvent redevenir profitables et remettre deadStreak a zero. */
+    if (("scrapping" in line) && line.scrapping) {
+      OpexAirFleetRefusal(line, year, "K");
+      continue;
+    }
     /* Reconstitution de crash : elle passe avant les gardes de croissance
      * (have=0, profit ancien negatif, cadence), sinon le dernier avion ne peut
      * jamais redevenir un template. OpexAirRefleetCrashedPlane reconstruit les

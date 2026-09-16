@@ -368,6 +368,9 @@ def activity_from_series(series):
         "value_changes": 0,
         "value_increases": 0,
         "value_decreases": 0,
+        "first_company_value": None,
+        "final_company_value": None,
+        "net_company_value_change": None,
         "months_since_fleet_or_network_change": None,
         "months_since_value_change": None,
         "months_since_value_increase": None,
@@ -417,8 +420,21 @@ def activity_from_series(series):
     since_increase = n_steps - last_increase
     recent_expand = since_expand <= ACTIVITY_RECENT_STEPS
     recent_increase = value_increases > 0 and since_increase <= ACTIVITY_RECENT_STEPS
+    first_value = _num(ordered[0].get("company_value"))
+    final_value = _num(ordered[-1].get("company_value"))
+    net_value_change = (
+        final_value - first_value
+        if first_value is not None and final_value is not None
+        else None
+    )
+    net_decline = net_value_change is not None and net_value_change < 0
     if (fleet_changes or network_changes) and recent_expand:
         signal = "active"
+    elif value_decreases and net_decline:
+        # Une hausse ponctuelle recente ne doit pas blanchir une compagnie qui a
+        # perdu de la valeur sur l'ensemble de la fenetre sans aucune expansion.
+        # C'est le faux negatif C56/H4 : 1200 -> 899 -> 900 et flotte/gares stables.
+        signal = "declining_without_expansion"
     elif recent_increase:
         signal = "earning_without_expansion"
     elif value_decreases:
@@ -434,6 +450,9 @@ def activity_from_series(series):
         "value_changes": value_changes,
         "value_increases": value_increases,
         "value_decreases": value_decreases,
+        "first_company_value": first_value,
+        "final_company_value": final_value,
+        "net_company_value_change": net_value_change,
         "months_since_fleet_or_network_change": since_expand,
         "months_since_value_change": since_value,
         "months_since_value_increase": since_increase,

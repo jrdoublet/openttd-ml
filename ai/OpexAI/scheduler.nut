@@ -238,6 +238,7 @@ function OpexAI::_runNextTask()
   if (task.name == "refleet") return this._dispatchRefleet(task, year);
   if (task.name == "town_growth") return this._dispatchTownGrowth(task, year);
   if (task.name == "repay") return this._dispatchRepay(task, year);
+  AILog.Error("Unknown scheduler task name: " + task.name);
   task.enabled = false;
   if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
   return false;

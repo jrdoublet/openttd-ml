@@ -483,6 +483,81 @@ mode non qualifié doit être indiqué comme limite, jamais transformé en valid
 Le livrable est un harnais réutilisable et une référence qualifiée pour P1, pas une nouvelle IA.
 Respecter les limites Docker et l'unique campagne consommatrice à la fois, comme en fin de fichier.
 
+**Clôture H5 / G0bis — 2026-09-16.** Le banc officiel publie maintenant un coût
+**observé**, explicitement distinct d'un coût CPU total. Le schéma h5.observed-v1
+additionne uniquement des blocs déjà mesurés par OpexAI, sans double compte connu :
+sélection portefeuille (IG|, coût réel en milliers d'opcodes), tentative rail
+(OB|A, plan + construction), route (RB|, plan puis construction), planification
+air (OA|) et planification eau des succès (OM|W). Le JSON porte
+observed_opcode_complete_cpu=false, le détail par composante, et deux indicateurs
+à horizon fixe : final_profit_year_per_observed_mopcode et
+company_value_per_observed_mopcode. Ils ne doivent **jamais** être présentés comme
+profit/CPU global : le build air/eau non publié, les tâches de catalogue/scheduler et
+le budget de tick inutilisé restent hors périmètre.
+
+Validation : sweeps/test_campaign_freeze.py **10/10**, selftests
+diag_1v1_shared_monthly.py et bench_1v1_5y_20seeds.py OK, smoke obligatoire
+results/review_h5_final_smoke_2x3.json **PASSED**. Le contrôle 2×3
+results/review_h5_observed_ops_2x3.json est complet (2/2, zéro échec) et vérifie
+observed_opcodes_total == somme(composantes) sur les deux graines. Exemple à 3 ans :
+seed 100 = **44 993 008** opcodes observés, dont **38 569 083** rail ; seed 42 =
+**8 614 882**, sans tentative rail mesurée. Le diagnostic mensuel
+results/review_h5_monthly_observed_ops_final.json reconstitue les deltas depuis les
+panneaux cumulatifs ; 13/13 checkpoints OpexAI ont un état available.
+
+loop_budget=1 a été rejoué causalement sur
+results/review_h5_loop_budget_5x6.json (5 graines × 6 ans). Les **5/5 paires sont
+des égalités exactes** sur valeur, profit annuel, score, flotte primaire, gares,
+observed_opcodes_total et chaque composante observée. Aucun 20×10 n'est justifié :
+le défaut reste 0. Ce résultat ne prouve pas que le slack de tick vaut zéro ; il
+montre au contraire la limite volontaire du schéma, qui mesure le travail exécuté,
+pas les opcodes potentiels abandonnés par Sleep(1).
+
+Le constat rail 07.2 est conservé comme limite du **modèle d'itérations** : les sondes
+locales pont/tunnel ne sont pas ajoutées à state.iterations. Elles ne sont pas
+injectées artificiellement dans ce compteur, car cela modifierait budget et
+comportement du pathfinder. Pour mesurer le coût réel d'une tentative rail, le
+harnais consomme désormais OB|A.result.opcodes.
+
+**Clôture B5 — état rail multi-tick et reload (2026-09-16).** Réconciliation préalable :
+07.1 (libération de `_railSearch` sur CASH), 13.11 (`rawset` des champs double voie manquants)
+et 13.12 (reprise bornée à trois essais) étaient déjà corrigés et n'ont pas été rouverts.
+Les trois écarts actifs ont été traités :
+
+- `RAIL_EXPAND_APPROACH_TILES = 8`, valeur justifiée par la fenêtre locale existante des signaux
+  d'approche rail (`maxDistance=8`) ; `rail_expand` reste à **0** par défaut ;
+- `_railExpansion` est persisté sous forme d'un descriptor scalaire et repris idempotemment sur
+  `approach/depot/resume`. La frontière de commit
+  `idle → build_started → wagon_built → wagon_moved → metadata_done` interdit un second
+  `BuildVehicle` après reload ; un wagon identifié est réutilisé, et une rame déjà repartie n'est
+  jamais togglée une seconde fois ;
+- les objets vivants `_railSearch`/`_dynamicBatch` ne sont pas sérialisés. Save conserve
+  seulement leur présence ; au reload ils sont abandonnés et le catalogue/portefeuille est
+  reconstruit proprement ;
+- les files C41 signal/jonction sont sauvegardées, filtrées aux LineID rail double voie encore
+  valides et leurs micro-tâches sont réarmées seulement lorsqu'il reste du travail.
+
+Validation : `sweeps/test_b5_rail_persistence.py` **11/11**, campagne **10/10**, santé
+**26/26**, compteurs physiques **7/7**, selftests C63/mensuel/C66.4 OK, compilation et
+`git diff --check` OK. Smoke obligatoire
+`results/review_b5_smoke_2x3.json` → **PASSED**.
+
+Deux vrais round-trips sont verts :
+`results/review_b5_save_load_seed42.json` et
+`results/review_b5_save_load_seed42_6y.json`. `LOAD_RECONCILE` prouve positivement la reprise,
+aucun marqueur d'échec moteur/script n'est présent, et les deux ont réellement rencontré
+`rail_search_dropped=1` avant reconstruction. Le diagnostic conditionnel
+`results/review_b5_rail_expand_5x6.json` donne **5/5 runs complets**, zéro
+`protocol_failure`; ce n'est pas un banc d'adoption.
+
+Limites explicites : aucun checkpoint réel n'a intercepté une `_railExpansion` active
+(`rail_expansion_* = 0`) ; ces frontières exactes sont donc couvertes par le test de contrat,
+pas par un save moteur forcé. Aucune sauvegarde historique `stateVersion=1` n'était disponible
+localement ; la compatibilité ancienne repose sur les champs optionnels de `Load()`. Dans la
+fenêtre extrême où Save tombe après `BuildVehicle` mais avant stockage de son VehicleID,
+`build_started` abandonne sans reconstruire : cela peut laisser un wagon libre non identifié,
+mais exclut volontairement le risque plus grave de double construction.
+
 <a id="c64"></a>
 ## C64 — Politique adaptative : en attente d'un mécanisme établi
 
@@ -563,14 +638,30 @@ Recettes, témoins profitables du même mode/âge : air et route en 1970 âge 1,
 réel/prévu **≥ 0,91** (air 1,41 / 1,34 ; route 1,10 / 0,91). Rail âge 1 en 1971 :
 médiane 0,13 / 0,31, **n=7**. Les lignes positives air/route ne sont pas le trou de 1971.
 
-**Décision.** Ce n'est **pas le capital**. Ce n'est **pas le modèle de revenu** air/route.
-Ce n'est pas « caisse ≥ 300 k£ ⇒ CPU ». Ce n'est **pas** « 1971 = attente de calcul » :
-sur la graine 42 le reliquat 1971 se partage entre site/échec (`invalid`), portefeuille
-vide et A*. En 1970, 5/5 graines ont un reliquat **portefeuille vide**. En 1971 la
-pluralité reste le portefeuille vide, sans majorité sur 42 et 999. **Donnée manquante**
-pour un levier : *pourquoi* `best` est vide les jours d'absent (vivier, seuil, déjà
-construit), mesuré **sans** sonde qui déplace la trajectoire. **Pas de correctif, pas
-de C61/C59, pas de C39/C41, pas de devis rail synchrone.** `c63_invest_probe` reste à 0.
+**Décision historique, supersédée le 2026-09-16.** La conclusion précédente
+« ce n'est **pas le capital** » reposait sur le ledger C63 avant correction de 02.1 :
+chaque intervalle était crédité à l'état observé **après** l'intervalle. Elle ne doit plus
+être utilisée comme conclusion actuelle.
+
+**Clôture B2 / diagnostic C63 corrigé.** `OpexC63NotePass` compte désormais
+l'observation courante sans lui attribuer le temps passé depuis la passe précédente ;
+ce temps est crédité à `previousKind`/`previousAbsentCause`. Le passage d'année
+transporte le dernier état sans fabriquer une observation supplémentaire. Le chemin rail
+reprenable enregistre aussi ses outcomes `failed` et `cash` dans `passDiscards`, donc
+`insufficient_cash`/`cash_at_build` ne deviennent plus silencieusement `invalid`.
+
+Le diagnostic final `results/review_b2_c63_real_5x6_v2.json` a été exécuté sur
+**5 graines × 6 ans**, avec **6 workers / 6 CPU**, mémoire/swap **2g/2g** et cache lab
+persistant. Les 5/5 parties atteignent 1975 ; toutes les années C63 closes 1970–1974
+sont présentes, 1975 est explicitement `open_partial_year`, `invariants.ok=true`,
+aucune année close ne manque et aucun `table_trap` n'est observé.
+
+Sur les 25 années-graines closes, le ledger corrigé totalise :
+`unaffordable=1 495 j`, `invalid=1 242 j`, `absent=985 j`,
+`waiting_compute=526 j`, `launched=4 819 j`, `demand=0`.
+Le capital est donc un **facteur mesuré important, surtout en 1970–1971** ; il n'est plus
+exclu par le diagnostic. Ce 5×6 reste instrumenté et n'autorise **aucun changement de
+défaut comportemental**. `c63_invest_probe` reste à 0.
 
 **Ventilation de `best == vide` (sonde d'absence C63/P1, 2026-09-14)** :
 Une sonde sous gate `c63_invest_probe` ventile les jours d'absence. Deux campagnes 5×6,
@@ -691,6 +782,21 @@ périphérique dont l'ancre est rattachée à une ville voisine encore disponibl
 ville cible, (3) détecter les constructions AAAHogEx et accélérer la prise du slot restant. Ces
 runs sont des **diagnostics instrumentés**, pas des benchmarks économiques d'adoption.
 
+**Revue B1 — faux site 771 corrigé (2026-09-16).** Sous `air_cheap_site=1`,
+`BuildAirport` pouvait échouer puis être transformé en succès dès que l'empreinte était
+plate/nivelable. Le repli de nivellement n'est désormais admis que pour
+`ERR_LOCAL_AUTHORITY_REFUSES` et `ERR_FLAT_LAND_REQUIRED`; 771 et les autres erreurs restent
+décisives. Aucun pathfinder ni budget n'a été modifié.
+
+- smoke post-correctif 2×3 : `results/review_b1_probe_fix_smoke_2x3.json` → **PASSED** ;
+- diagnostic 5×6 : `results/review_b1_probe_fix_5x6.json` → **5/5 complets** ;
+- contre la référence pré-correctif, trois graines sont identiques et deux divergent ; delta
+  moyen `company_value = -183 428 £`, `profit_year = -32 569 £/an` : correction de vérité du
+  verdict de sonde, **pas** optimisation économique ;
+- `air_town_limit_memory` reste à 0. Le 5×6 historique antérieur à 08.1 était défavorable et le
+  rerun C66.4 sur la nouvelle base a été bloqué avant toute partie : aucune adoption n'est inférée ;
+- distant join/nettoyage OpexAI ne contournent pas le plafond observé ; `early_slot` reste acquis.
+
 **Décision et explication causale — `air_early_slot` adopté (2026-09-15).** La priorité « prendre
 les slots utiles plus tôt » a été implémentée et **adoptée** ; ne pas rouvrir la décision au motif
 que le nombre final de monopoles AAA converge. Le banc économique officiel
@@ -738,6 +844,24 @@ Smoke fonctionnel : `results/feeder_orders_exercised_s42_3y.json`, seed 42, 3 an
 explicitement exercés via `feeder_candidates=1,feeder_hub_check=0`, 2/2 jeux complets,
 `failed_runs=[]`. La divergence économique de ce smoke n'est **pas** une preuve d'adoption du mode
 feeder ; ce run valide seulement que le chemin modifié construit et tourne sans rejet d'ordre.
+
+**Clôture B4 — extensions feeder bus (2026-09-16).** Une régression restante du correctif ci-dessus
+a été trouvée puis corrigée dans le workspace courant : `feeder_extension` insérait encore un arrêt
+intermédiaire avec `OF_NONE`, et le feeder bus dédié de `task_feeders.nut` ne persistait pas son
+`kind`, ce qui le rendait inéligible à cette extension. Les trois producteurs d'ordres bus utilisent
+désormais les mêmes helpers : ville/intermédiaire `OF_NO_UNLOAD`, hub
+`OF_TRANSFER | OF_NO_LOAD`. Le feeder bus dédié stocke `kind = candidate.kind`; le feeder courrier
+reste volontairement sans `kind` pour ne pas entrer dans le filtre pax.
+
+Preuves : `sweeps/test_b4_feeder_orders.py` 6/6 ; `diag_c53_orders.py --selftest` OK ; smoke
+obligatoire post-`.nut` `results/review_b4_smoke_2x3.json` PASSED ; diagnostic réel
+`results/review_b4_bus_extensions_5x6_ordl.json` sur 5 graines × 6 ans avec feeders isolés :
+**13 `feeder_extension`** réellement construites, 3 `bus_pax_extension`, 12 listes d'ordres feeder
+étendues distinctes observées en fin de partie, `errors=[]` et `invalid_extended_feeders=0` sur les
+cinq graines. ORDL confirme pour chaque chaîne observée `LOAD_IF_POSSIBLE + NO_UNLOAD` sur tous les
+arrêts ville/intermédiaires et `NO_LOAD + TRANSFER` au hub. Le dernier ajout après le smoke est
+uniquement l'inspection Python ORDL, pas du gameplay. **Aucun défaut/politique n'est adopté sur ce
+5×6** ; il s'agit d'une validation ciblée, donc aucun 20×10 n'est requis.
 
 **Correctif feeders courrier — ordres unidirectionnels ville → hub (2026-09-15).**
 `task_feeders.nut` applique désormais la même sémantique stricte aux feeders courrier, derrière
@@ -854,6 +978,14 @@ inconclusif à 21/40. Ajouter des véhicules n'est donc pas en soi le chantier p
   une réforme visant les bus interurbains ne résoudra pas le duel courant. Le fret en chargement
   complet demande une mesure d'attente distincte du dwell passagers ; ne pas diviser par son
   `dwellDays=0`. La cible est du trafic rentable supplémentaire, pas le passage de 2 à 8 véhicules.
+  **B3 clos le 2026-09-16 :** `vehiclesForVolume`, `roadBerthCapacity` et `roadVehicleCap` sont
+  maintenant séparés et instrumentés. `road_time_scaled_cap` reste **0** ; sous 1 le cap temporel
+  ne s'applique qu'au pax et le fret reste à l'ancien cap. Le smoke 2×3 final passe ; le 5×6
+  `review_b3_time_scaled_cap_paired_5x6_v2.json` a 10/10 runs sains et tous les invariants physiques
+  attendus, mais **aucun projet pax n'est classé/choisi** au défaut (`road_pax_build=0`) et les pax
+  `town_growth` ont `raw_vehs <= 1`. La variante est négative (`company_value` -52,1 k£ moyen,
+  `profit_year` -29,1 k£/an, 2 V / 3 D) : pas de 20×10, pas d'adoption. Le switch et la télémétrie
+  sont conservés pour une politique future réellement exposée.
 - **Rail :** la relaxation du seuil de backlog a déjà été inerte. C50b rapporte 39 `NOSPOT`
   pour 28 `OK` et 2 `TRACKFAIL` sur les références d'extension : inspecter les échecs de géométrie
   **si** les lignes concernées sont profitables et demandent réellement un second train.
@@ -901,6 +1033,16 @@ Ne pas les remettre dans la file active sans fait nouveau.
 | C45, reliquat | Décider de la persistance des compteurs de subventions | Besoin au rechargement ; secondaire pour des parties neuves |
 | C42 bis | Filtrage/rendement des subventions | Exposition rentable démontrée ; les subventions brutes restent à 0 |
 | C55, reliquat | Partage de demande et sur-service des bassins | Flux concurrents observés par P1 ; ne pas rouvrir le filtre d'origine |
+
+**Clôture B8 / G10 — 2026-09-16.** Le sous-comptage de flotte AIR avant rapport reste infirmé et
+ne doit pas être rouvert. Le défaut réellement actif était le cycle de vie : une ligne AIR pouvait
+encore produire/exécuter un projet de croissance pendant sa liquidation. Deux gardes symétriques
+ferment maintenant ce chemin (`_resizeAirFleets` puis `_tryBuildFleetProject`). Le timer de rebut
+`scrapStartYear` est recréé à chaque cycle, effacé lors d'un sauvetage feeder et garde son fallback
+pour les anciennes sauvegardes. Test ciblé 7/7 ; smoke `air_early_slot=1` 2×3 PASSED ; diagnostic
+`review_b8_scrap_lifecycle_5x6.json` sain 5/5 mais **sans exposition runtime du rebut** sur
+1970–1975. Ne pas lui attribuer de gain économique et ne pas lancer de 20×10 pour cette correction
+de sûreté. `early_slot` reste inchangé.
 
 ## Eau, bibliothèques et robustesse — conservés, différés
 
@@ -1052,3 +1194,236 @@ Mais le profit/capacité tombe de **66,3 à 53,1 £**. La piste « fréquence de
 **Priorité confirmée : catchment / placement AIR.** Chercher pourquoi AAA capte beaucoup plus de
 passagers/courrier dans les mêmes villes, plutôt que d'augmenter artificiellement la fréquence.
 early_slot reste définitivement adopté et ne doit pas être rouvert.
+
+## Revue 2026-09-16 — clôture M1/B6
+
+**M1 clos.** Vérité des canaux rétablie sans changement métier : vraie `company_value`
+C50, VIVIER reject/retained séparés, capital du pool explicitement nommé avec compatibilité
+IB/JSON, score final et capital de financement exposés honnêtement. Test M1 8/8, selftest C50 OK,
+smoke 2×3 2/2.
+
+**B6 clos sans nouveau défaut adopté.** Le 5×6 apparié
+`results/review_b6_portfolio_causality_paired_5x6.json` est sain 10/10 et mesure
+630/639 snapshots de capital différents du capital vivant, 50 événements
+d'`affordability_flips`, 146/501 choix ratio différents du meilleur profit abordable,
+592 rangs avec `turnoverBonus` non neutre et 139 choix incrémentaux recyclés, âge max
+43 jours. `portfolio_floor_pct` reste 0, `PORTFOLIO_MAX_BATCH` reste 1 et
+`early_slot` reste adopté. Le floor50 a déjà un 20×10 post-09/09 défavorable
+(−4,94 % valeur, 4 V / 16 D) : pas de relance/adoption. 06.5 reste P2 actif mesuré,
+06.11 P3 actif mesuré et 06.12 dormant.
+
+## Revue 2026-09-16 — clôture G0
+
+Le factoriel causal 4 bras × 5 graines × 6 ans
+`results/review_g0_abandon_factorial_4arm_5x6.json` a confirmé que
+`abandon_gen_filter` et `abandon_cooldown_days` sont réellement exposés. Le bras `0/0`
+avait un signal diagnostic positif et a donc été promu vers l'autorité C66.4, sans adoption au
+stade 5×6.
+
+Autorité officielle :
+`results/review_g0_c66_4_20x10.json`, 20 graines × 10 ans × 2 politiques, 40/40 parties
+complètes. Candidat `abandon_gen_filter=0,abandon_cooldown_days=0` contre courant `1/365` :
+
+- primaire `profit_year` : **+11 264,85 £/an** en moyenne ;
+- victoires/défaites : **11/9**, `p_signes=0,823803` ;
+- seuil utile pré-enregistré : **+50 000 £/an**, non atteint ;
+- `company_value` : **+2,759 %** en ratio des moyennes, garde -5 % respectée ;
+- verdict C66.4 : **`fail_primary`**.
+
+Décision : **non-adoption de `0/0`**. Les défauts livrés restent
+`abandon_gen_filter=1` et `abandon_cooldown_days=365`. `early_slot=1` reste la base adoptée.
+Aucun `.nut` n'a été modifié pour cette décision, donc aucun smoke supplémentaire G0 n'était
+nécessaire.
+
+Bundle : `845c5b283d86c05fb3360445596e1967edde1d2cbfcd82fb19f08e7864b1dcb2`.
+Manifest : `78c4ac1fe74189a119f954902b8a24242c44158bd812bc5d9a5792d4d7bb1047`.
+
+## Revue 2026-09-16 — clôture B9 / G4 résiduel
+
+B9 a été traité **measurement-first** avec `air_catchment_probe=0` par défaut. Le premier
+5×6 valide `results/review_b9_air_catchment_5x6.json` est sain **10/10** ; le « 0 événement »
+initial venait du parseur, qui ne relisait pas les logs moteur persistés. L'analyse offline a
+récupéré **148 builds / 296 endpoints** sans rejouer la campagne.
+
+Constats causaux :
+
+- 08.6 : le coût réel d'un arrêt joint traversant varie environ de **450 à 2 250 £/arrêt** ;
+  `BT_BUS_STOP` n'est donc pas une réserve exacte. Les arrêts sont désormais optionnels avant
+  chantier, puis coût réel + catchment réel sont réconciliés ;
+- 08.8 : les trois `22` ont été remplacés par `TOWN_CATCHMENT_SHARE_PCT`, sans changer la
+  politique de demande livrée ;
+- 08.9 : le marginal joint est calculé sur l'union réelle de la station moins le catchment
+  aéroport. Pré-fix : double comptage positif **50/63** endpoints, +**10,14 pax** en moyenne ;
+  post-fix : `model_error_pax=0` sur **59/59** endpoints neufs ;
+- 08.10 : sous `air_demand_plan=0`, le proxy population n'est plus additionné à une production
+  physique. Le marginal physique n'est ajouté que dans le mode production-based.
+
+Le placement reste un signal descriptif : dans le sous-ensemble STNN comparable du 5×6 final,
+AAAHogEx est plus proche du centre (distance rectangle moyenne **6,06**, centre couvert
+**37,85 %**) qu'Opex (**7,47**, **20,0 %**). La production catchment exacte d'AAAHogEx n'est
+pas disponible : aucune politique de placement n'est adoptée sur ce seul constat.
+
+Validation finale : tests B9+freeze **17/17**, selftest B9 OK, `py_compile` OK,
+`git diff --check` OK hors warnings CRLF ; smoke
+`results/review_b9_air_catchment_smoke_2x3_v4.json` **2/2** ; 5×6 final
+`results/review_b9_air_catchment_reconciled_5x6.json` **10/10**, horizon complet,
+148 builds / 296 endpoints, zéro invariant cassé.
+
+**Pas d'adoption AIR.** `air_demand_plan=1` possède déjà une autorité 20×10 défavorable
+(`results/bench_air_demand_plan_10y.json` : **−51,5 % `profit_year`**, 5/20,
+`p=0,041`). Il reste 0, `air_catchment_probe` reste 0 et `early_slot=1` reste adopté.
+
+## Matrice de revue actuelle
+
+| Groupe | Statut | Preuve principale | Suite / limite |
+|---|---|---|---|
+| H1 | fait | règle 20 paires + sign-test C66.4 | ne pas rouvrir sans régression |
+| H2 technique | fait | freeze/pinning + contrat **230 settings** | G0 rendu séparément |
+| H3 | fait | compteurs physiques validés | ne pas rouvrir sans régression |
+| H4 | fait | santé/horizon fail-closed | ne pas rouvrir sans régression |
+| H5 | fait | coût/opcodes observés branchés | mesure partielle, pas CPU total |
+| G0 | fait — non adopté | 20×10 officiel `fail_primary` | garder 1/365 |
+| B1 | fait | sonde AIR 771 + smoke/5×6 | clôture conservée |
+| B2 | fait | diagnostic C63 corrigé + smoke/5×6 | clôture conservée |
+| B3 | fait — expérimental non adopté | `review_b3_time_scaled_cap_paired_5x6_v2.json` | default inchangé |
+| B4 | fait | feeder orders 6/6 + smoke | clôture conservée |
+| B5 | fait | contrats état/reload + validations | clôture conservée |
+| B6 | fait — diagnostic | 10/10 ; 630/639 budgets divergents, 1 203 flips | 06.5 P2 actif mais cash revalidé ; 06.11 P3 ; 06.12 dormant |
+| B7/G11 | restant technique conditionnel | mécanismes 10.1/10.3 confirmés statiquement | priorité seulement si freeze eau actuel reproductible |
+| B8 | fait | contrats rebut 7/7 + smoke ; 5×6 non exposé | ne pas prétendre preuve dynamique du rebut |
+| **B9/G4 résiduel** | **fait** | 17/17 + smoke 2×3 + 5×6 10/10, marginal exact 59/59 | aucun default AIR adopté |
+| M1 | fait | 8/8 + selftest + smoke 2×3 | — |
+| M2 | dormant ou non exposé | flags concernés à 0 | traiter avant réactivation |
+| **M3/G12** | **fait — diagnostic, non adopté** | smoke 2×3 + 5×6 **10/10**, 135 887 événements | AIR P2 exposé ; NewGRF non mesuré ; pas de 20×10 |
+| M4 | fait — diagnostic, non adopté | conformité 5×6 : 10/10 par scénario + contrôle 10/10 | 16.2 P2 backlog ; RAM = mesure externe |
+| M5/G2 résiduel | dormant ou non exposé | `c39_engine_refresh=0` | pas de lot autonome |
+| M6 | dormant ou non exposé | pas d'exposition courante | pas de correctif autonome |
+| M7/11.1 | fait | contrat 15/15/15 + 13/13 + C65 + smoke 2×3 4/4 | fallback inconnu seulement |
+| M7/11.2 | fait dans le workspace courant | `_tryTownGrowth` retourne booléen utile/vide | ne pas rouvrir sans régression |
+| M7/11.3 | dormant ou non exposé | branche inactive | surveiller seulement |
+| M7/11.6–11.7 | fait via B5 | 11/11 + round-trips save/load | expansion active non capturée au checkpoint |
+| M7/11.8 | fait / caduc | symbole obsolète absent | aucune action |
+| G3 résiduel | fait | recalcul post-A* commun blocking/resumable, fret compris | aucune suite |
+| 07.2 rail iterations | limite diagnostique, non P1 | proxy `state.iterations` incomplet ; `OB|A.result.opcodes` complet sur la recherche | ne pas changer le budget/pathfinder pour « corriger » un proxy |
+| 21.1 | P3 inerte | `unitnumber==0` couvre rotor/ombre | cosmétique + test hélico seulement |
+| 21.2 | largement fait | `test_campaign_freeze.py`, contrat 230, guards/fingerprint | intégration freeze complète sans test unitaire isolé |
+| 21.3 | fait | valeur décroissante sans expansion testée fail-closed | aucune suite |
+
+## Revue 2026-09-16 — clôture M3 / G12
+
+M3 a été repris depuis le workspace courant sans modifier les règles de choix livrées.
+`equipment_roi_probe=0` est un canal passif ; le contrat compte désormais **230 réglages**.
+Il conserve les alternatives d'équipement seulement sous probe, compare la pré-sélection contre
+les économies réelles avant admission et après route/site, et sépare explicitement
+`native_choices`, `refit_proxy_choices` et capacité post-refit réellement relue.
+
+Réconciliation :
+
+- locomotive rail : déjà couplée au convoi et départagée physiquement/économiquement ;
+- wagon : toujours unique par cargo sur capacité, mais aucun second wagon n'est exposé en vanilla ;
+- route : 18 cas multi-choix sur 736 comparaisons, jamais de regret ni de flip ;
+- feeder G12 historique : déjà corrigé via le catchment du hub réel ;
+- air : appareil unique par type d'aéroport réellement limitant. La préférence de type d'aéroport
+  reste une politique séparée et n'a pas été touchée.
+
+Validation : freeze+M3+B9 **23/23**, selftests bench/diag OK, `py_compile` et
+`git diff --check` OK. Smoke obligatoire
+`results/review_m3_equipment_roi_smoke_2x3_v5.json` : **4/4**.
+5×6 `results/review_m3_equipment_roi_5x6.json` : **10/10** et 135 887 événements.
+AIR : 79 807 comparaisons multi-choix, 75 742 écarts au meilleur profit, 77 884 au meilleur ROI,
+**2 371 flips d'admission** ; regret profit moyen +7 776,81 £/an.
+
+Le catalogue sélectionne toujours l'avion 228 mais le meilleur profit varie réellement par route
+(principalement 218, 217, 223). Une sélection économique par route est donc une piste P2 concrète,
+pas un « remplacement statique » de moteur. Elle n'est ni implémentée ni adoptée dans ce lot :
+aucun défaut P1 de mesure n'est démontré en vanilla, aucun 20×10 n'est lancé.
+
+Le risque NewGRF reste ouvert au sens compatibilité : ce 5×6 OpenGFX n'expose aucun
+`refit_proxy_choice` et toutes les capacités post-refit observées ont `capacity_delta=0`.
+Il ne faut donc pas présenter ce résultat vanilla comme une validation NewGRF.
+
+Le smoke a aussi permis de corriger le harnais : callback multiprocessing Windows sérialisable,
+chemins de logs moteur injectés/créés explicitement, selftest aligné sur le champ additif
+`endpoint_cargo_stats.airport`. Le contrôle CLI
+`results/review_m3_harness_cli_check_1x1.json` passe.
+
+## Revue 2026-09-16 — clôture M4 conformité NoAI
+
+Nouveau banc ciblé : `sweeps/run_m4_conformity.py`, analyse `sweeps/diag_m4_conformity.py`,
+runner hôte borné à 6 CPU / 2g / 2g avec cache persistant.
+
+`results/review_m4_conformity_2x3.json` a servi de preuve courte ; le résultat descriptif final est
+`results/review_m4_conformity_5x6.json`, complété par le contrôle
+`results/review_m4_conformity_control_5x6.json`.
+
+- **max_trains=0** : 10/10 runs sains ; Opex finalise les cinq graines avec zéro véhicule et zéro
+  station facility rail, mais choisit 30 projets rail et enregistre 15 `NOTRAIN`. C63 totalise
+  176 313 £ de coût rail échoué ; huit années-graines où NOTRAIN est l'unique échec totalisent
+  **120 018 £**. Voie/dépôt ne sont pas comptés séparément. Le contrôle 5×6 est 10/10 ; sur ces
+  cinq graines, `profit_year` moyen vaut −3,70 % et `company_value` moyenne −1,95 % face au
+  contrôle, résultat descriptif sans autorité d'adoption. 16.2 est confirmé mais reste P2 :
+  gaspillage/admission, pas crash ni mensonge de mesure. Aucun garde n'est adopté ;
+- **pf.forbid_90_deg=1** : 10/10 runs sains, zéro erreur NoAI, 34 projets rail choisis et rail
+  construit dans chaque graine (1/4/2/2/2 véhicules). L'hypothèse crash/boucle n'est pas
+  reproduite sur ce périmètre ; les internals `Pathfinder.Rail` restent externes au dépôt ;
+- 16.3 reste clos ; 16.4 reste une preuve RAM externe absente. 10.5 n'est pas exposé par ces runs
+  (zéro véhicule eau). Le 1024² C46 déjà valide n'est pas rejoué et ne contient pas RSS/heap.
+
+**Décision : M4 fait — diagnostic, non adopté.** Aucun `.nut` n'a changé, donc aucun nouveau smoke
+n'est requis. M7/11.1, alors identifié comme prochain lot, est désormais traité ci-dessous.
+
+## Revue 2026-09-16 — clôture M7 / 11.1
+
+Le workspace contenait déjà le patch minimal M7 à reprendre/valider : dans
+`ai/OpexAI/scheduler.nut`, un nom de tâche inconnu produit maintenant
+`AILog.Error("Unknown scheduler task name: " + task.name)` avant la désactivation historique.
+Les 15 tâches connues, leur ordre, leurs `dueCycle` et leurs handlers ne changent pas.
+
+Contrat ajouté/renforcé :
+
+- `sweeps/test_scheduler_task_contract.py` impose l'égalité exacte
+  `_taskQueue` / cascade / handlers et l'ordre log → disable → return ;
+- `sweeps/c65_pass3.py` extrait désormais la vraie file depuis `main.nut` au selftest.
+
+Validation : tests ciblés + freeze **13/13**, C65 selftest
+**14 événements / 15 tâches**, `py_compile` OK, `git diff --check` OK. Le smoke obligatoire
+post-`.nut` `results/review_m7_scheduler_smoke_2x3.json` passe **4/4**, horizon complet, zéro
+erreur NoAI ; les logs moteur ne contiennent aucune occurrence du fallback inconnu.
+
+11.2 est déjà corrigé dans le workspace courant : `_tryTownGrowth` renvoie `true` uniquement
+après une construction et `false` sur les gardes/échecs. 11.3 reste **dormant/non exposé** :
+la mauvaise attribution éventuelle exige `town_growth_skip_noop=1` et un ledger concerné actif,
+alors que les defaults restent à 0. 11.6/11.7 sont clos par B5 ; 11.8 est caduc.
+
+**Décision : M7/11.1 fait.** Aucun réglage/default/politique n'a été modifié ; aucun 5×6 ni 20×10.
+
+## Revue 2026-09-16 — résidus techniques après M7
+
+Le plus gros résidu actif non gelé et hors eau a été repris sans rejouer son banc :
+**B6/06.5**. Le snapshot de capital est encore pris avant la découverte air/eau et reste utilisé à
+la sélection. Le 5×6 déjà validé donne 630/639 différences snapshot/live, 50 événements avec
+flips et 1 203 bascules d'abordabilité.
+
+Ce mécanisme n'est pas promu P1 : les cinq chemins de construction revalident la trésorerie
+vivante (le rail possède en plus le retour `CASH` du builder). Il peut sélectionner un mauvais
+viver ou manquer un projet devenu finançable, mais il ne contourne pas le dernier garde de cash.
+Le déplacer changerait l'admission réelle ; **aucun patch de politique** n'est fait dans cette
+passe. Les tests B6 ciblés passent 5/5 et le selftest du diagnostic est OK.
+
+**06.11** reste P3 mesuré : 139/345 choix incrémentaux recyclés, âge moyen 14,36 j, max 43 j ;
+l'erreur économique correspondante n'est pas encore mesurée. **06.12** reste dormant.
+
+Deux résidus documentaires ont aussi été soldés :
+
+- G3 : blocking et resumable rail appellent le même recalcul post-A* ; `candidate.kind` fait que
+  le fret suit exactement ce chemin ;
+- étape 21 : 21.2 possède maintenant le test unitaire du cœur fail-closed de
+  `campaign_freeze.py` et 21.3 possède les cas de valeur décroissante. La copie complète de
+  campagne/bibliothèques reste une limite de couverture unitaire, pas un P1 courant.
+
+**07.2** a aussi été requalifié sur les consommateurs actuels. Les sondes pont/tunnel ne sont
+toujours pas ajoutées à `state.iterations`, mais ce proxy n'est plus consommé par le classement
+vivant ni par `OpexAvailableCapital`. Le coût H5 du rail vient de `OB|A.result.opcodes`, dont les
+`budget.begin/end` englobent les sondes de structure en mode bloquant comme reprenable. Ajouter
+ces sondes au compteur d'itérations modifierait simultanément les bornes de recherche ; ce ne
+serait pas une correction de mesure neutre. Aucun patch P1.

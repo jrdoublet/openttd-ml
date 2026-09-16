@@ -682,8 +682,6 @@ def run_selftest():
         ("task_road.nut", "insufficient_cash"),
         ("task_water.nut", "build_failed"),
         ("task_water.nut", "insufficient_cash"),
-        ("task_rail.nut", "insufficient_cash"),
-        ("task_rail.nut", "cash_at_build"),
         ("task_projects.nut", "insufficient_cash"),
     ):
         conds = discard_append_conditions(path, reason)
@@ -692,7 +690,13 @@ def run_selftest():
             assert "C63_INVEST_PROBE" in cond, (path, reason, cond)
 
     rail_fail = _ai("task_rail.nut")
-    assert "if (!recorded && C63_INVEST_PROBE)" in rail_fail
+    assert 'return { outcome = "cash", reason = "insufficient_cash", error = 0 };' in rail_fail
+    assert 'return { outcome = "cash", reason = "cash_at_build", error = cashError };' in rail_fail
+    assert "if (!recorded && (DECISION_LOG || C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL))" in rail_fail
+    projects_src = _ai("task_projects.nut")
+    assert 'outcome == "failed" || outcome == "cash"' in projects_src
+    assert "DECISION_LOG || C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL" in projects_src
+    assert "reason = railResult.reason" in projects_src
 
     assert "P1.1" not in json.dumps(inv)
     assert "P1.3" not in json.dumps(inv)
@@ -989,8 +993,11 @@ def run_campaign(args):
             bananas_ai_library("5046524c", "Pathfinder.Rail"),
         ),
     ))
+    expected_last = 1970 + args.years - 1
+    required_closed_years = list(range(1970, expected_last))
     by_seed = {}
     years_seen = set()
+    invariant_errors = []
     for seed in args.seeds:
         seed_rows = sorted((row for row in rows if row["seed"] == seed), key=lambda r: r["date"])
         if not seed_rows:
@@ -1001,6 +1008,30 @@ def run_campaign(args):
         parsed = parse_c63_invest(last.get("output", ""))
         table = build_joint_table(parsed, calendar_days=365)
         c63_years = sorted(parsed)
+        missing_closed_years = [year for year in required_closed_years if year not in c63_years]
+        unexpected_years = [year for year in c63_years if year < 1970 or year > expected_last]
+        table_traps = [
+            {"year": row["year"], "traps": list(row.get("traps") or [])}
+            for row in table
+            if row.get("traps")
+        ]
+        seed_invariant_errors = []
+        if missing_closed_years:
+            seed_invariant_errors.append(
+                "missing_closed_years=" + ",".join(str(year) for year in missing_closed_years)
+            )
+        if unexpected_years:
+            seed_invariant_errors.append(
+                "unexpected_years=" + ",".join(str(year) for year in unexpected_years)
+            )
+        if table_traps:
+            seed_invariant_errors.append("table_traps")
+        if seed_invariant_errors:
+            invariant_errors.append({
+                "seed": seed,
+                "errors": seed_invariant_errors,
+                "table_traps": table_traps,
+            })
         by_seed[str(seed)] = {
             "last_date": last["date"],
             "company_value": last["company_value"],
@@ -1010,8 +1041,12 @@ def run_campaign(args):
             "table": table,
             "c63_years": c63_years,
             "has_1970_1972": {1970, 1971, 1972} <= set(c63_years),
+            "closed_years_required": required_closed_years,
+            "missing_closed_years": missing_closed_years,
+            "open_partial_year": expected_last if expected_last not in c63_years else None,
+            "table_traps": table_traps,
+            "invariants_ok": not seed_invariant_errors,
         }
-    expected_last = 1970 + args.years - 1
     missing_early = [seed for seed, payload in by_seed.items() if not payload["has_1970_1972"]]
     payload = {
         "arm": args.arm,
@@ -1023,6 +1058,15 @@ def run_campaign(args):
         "inventory": inventory_from_source(),
         "by_seed": by_seed,
         "missing_1970_1972": missing_early,
+        "c63_annual_semantics": (
+            "C63 annual rows are emitted only for closed years. The final experiment year may "
+            "remain open/partial at stop and is reported per seed as open_partial_year."
+        ),
+        "invariants": {
+            "ok": not invariant_errors,
+            "errors": invariant_errors,
+            "required_closed_years": required_closed_years,
+        },
         "probe_displaced": None,
     }
     write_json_atomically(out, payload)
@@ -1030,6 +1074,8 @@ def run_campaign(args):
     print("seeds", len(by_seed), "last_years", sorted(years_seen))
     if missing_early:
         print("WARN missing 1970-1972 C63 years for seeds", missing_early)
+    if invariant_errors:
+        raise SystemExit(f"ABORT: invariants C63 invalides: {invariant_errors}")
 
 
 def main():

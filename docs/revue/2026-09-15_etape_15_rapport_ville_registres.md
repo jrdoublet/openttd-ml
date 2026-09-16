@@ -54,6 +54,20 @@ mécanisme est censé garantir. C'est exactement le mode de défaillance que la 
 commentaire de `task_report.nut:420-430` cherche à éviter, déclenché plus tôt que prévu par un
 champ qui survit à un cycle complet sauvetage→re-ferraillage.
 
+**Clôture B8 — workspace courant, 2026-09-16.** Le défaut d'état subsistait. Son scénario feeder
+est aujourd'hui surtout latent sur une partie neuve — les handlers récents ne réinjectent plus les
+feeders déficitaires dans ce chemin — mais il reste faux pour une ancienne sauvegarde et dangereux
+si un futur appelant relance un cycle. `_triggerScrapLine` réécrit donc systématiquement
+`scrapStartYear = year` à chaque **nouveau** rebut ; le sauvetage feeder supprime le champ ; le
+fallback `if (!("scrapStartYear" in line))` reste en place pour charger sans risque un ancien état
+déjà `scrapping`. Les logs de diagnostic exposent `start_year`, `elapsed` et
+`scrap_timer_reset=1`.
+
+Le test ciblé B8 couvre explicitement : réécriture du timer avant `SendVehicleToDepot`, effacement
+au recovery, fallback old-save et calcul du timeout. Le 5×6
+`review_b8_scrap_lifecycle_5x6.json` n'a rencontré aucun `SCRAP_LINE`/`FEEDER_RECOVER`; cette
+absence est documentée comme limite d'exposition, pas comme confirmation dynamique du scénario.
+
 ### 15.3 — `company_value` toujours à 0 dans le rapport C50 : champ jamais alimenté depuis sa création        [gravité : P2]
 `ledgers.nut:335,338` — `local val = 0;` puis
 `OpexC50ChronologyLog("... company_value=" + val + ...)`. Vérifié par `git log -S"local val = 0"` :
@@ -133,3 +147,11 @@ de `return true`, pas un chemin de retour conditionnel oublié.
   (`main.nut`, `scheduler.nut`, `scheduler_tasks.nut`) : étape 11.
 - `Save`/`Load`/`_reconcileAfterLoad` face aux champs persistés (dont `_lastReportYear`,
   `_c48AttemptLedger` et consorts) : étape 11 (`persist.nut`).
+
+## Réconciliation M1 — 2026-09-16
+
+15.3 est corrigé avec l'API NoAI actuelle :
+`AICompany.GetQuarterlyCompanyValue(AICompany.COMPANY_SELF, AICompany.CURRENT_QUARTER)`.
+Le selftest C50 vérifie explicitement une `end_company_value` non sentinelle et le smoke
+M1 2×3 passe sur les graines 42 et 100. Le canal annuel ne publie plus
+`company_value=0` en dur.

@@ -65,6 +65,12 @@ ROAD_COST_PROBE <- false;
 AIR_PRESITE <- false;
 /* C33.2 : Arrets de rabattement joints dans le chantier aeroport */
 AIR_JOINED_STOPS <- false;
+/* B9/G4 : sonde passive post-chantier du catchment AIR. Defaut 0 : aucune tuile
+ * supplementaire n'est inspectee dans le comportement livre. */
+AIR_CATCHMENT_PROBE <- false;
+/* M3/G12 : sonde passive du choix de materiel avant ROI. Elle n'est jamais lue par les
+ * regles de selection ; elle autorise uniquement les comparatifs et logs de diagnostic. */
+EQUIPMENT_ROI_PROBE <- false;
 /* Banc causal 2026-09-15 : nombre maximal d'arrets bus annexes partageant directement le
  * StationID de l'aeroport. Le comportement courant C33.2 est 2 ; 1 permet de comparer
  * "station aeroport etendue" a "une seule piece jointe + vrais feeders". */
@@ -284,6 +290,9 @@ C50_NON_EXPANSION_LEDGER <- null;
 /* C50b : bras comportemental isole. Le classement et la flotte initiale restent bornes a 2 ;
  * seule la croissance des lignes existantes peut monter jusqu'au garde-fou historique de 8. */
 C50B_ROAD_CAP_RELAX <- false;
+/* B3 : test du plafond routier remis à l'échelle par le temps passé à quai. Défaut 0 tant que
+ * le banc apparié n'a pas justifié une adoption. Le fret reste sur la borne historique. */
+ROAD_TIME_SCALED_CAP <- false;
 /* C50b : test causal du seuil de backlog avant doublement d'une ligne rail existante. */
 C50B_RAIL_BACKLOG_RELAX <- false;
 /* air_fleet_probe : _resizeAirFleets n'emet que ses SUCCES (FG|). Quand une ligne aerienne
@@ -406,7 +415,8 @@ C42_SUBSIDIES <- false;
 C42_SUBSIDY_LOG <- false;
 /* A7.4 : Alerte et diagnostic convois perdus/bloques via ET_VEHICLE_LOST */
 EVENT_VEHICLE_LOST <- false;
-/* C52 : remappe les ID de vehicules remplaces automatiquement dans les inventaires persistants. */
+/* C52 : symbole de compatibilite. Le remappage ET_VEHICLE_AUTOREPLACED est maintenant
+ * inconditionnel ; le reglage homonyme est deprecated et sa valeur est ignoree. */
 EVENT_VEHICLE_AUTOREPLACED <- true;
 /* C52 : sonde annuelle des remappages; le ledger reste nul hors sonde. */
 C52_AUTOREPLACE_LOG <- false;
