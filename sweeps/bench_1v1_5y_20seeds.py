@@ -60,6 +60,14 @@ DEFAULT_YEARS = 5
 AAAHOGEX_DIR = "AAAHogEx-115"
 CHECKPOINT_PATH = None
 ENGINE_LOG_DIR = None
+LINE_TELEMETRY = False
+PROFIT_RAW_UNITS_PER_GBP = 256.0
+VEHICLE_VARIANT_BY_MODE = {
+    "rail": "train",
+    "road": "roadveh",
+    "water": "ship",
+    "air": "aircraft",
+}
 
 ARMS = ("OpexAI", "AAAHogEx")
 PRIMARY_METRIC = "profit_year"
@@ -225,6 +233,320 @@ def early_slot_sign_metrics(chunks):
     }
 
 
+def _station_route_index(chunks):
+    """Index passif station -> ville/proprietaire/facilities/qualite cargo depuis STNN."""
+    stnn = (chunks or {}).get("STNN") or {}
+    records = stnn.items() if isinstance(stnn, dict) else enumerate(stnn)
+    result = {}
+    for station_id, station in records:
+        if not isinstance(station, dict):
+            continue
+        body = _first(station.get("normal"))
+        if not isinstance(body, dict):
+            continue
+        base = _first(body.get("base"))
+        if not isinstance(base, dict):
+            continue
+        try:
+            sid = int(station_id)
+        except (TypeError, ValueError):
+            continue
+        result[sid] = {
+            "town": base.get("town"),
+            "owner": base.get("owner"),
+            "facilities": base.get("facilities", 0),
+            "xy": base.get("xy"),
+            "goods": {
+                str(cargo_id): {
+                    "rated": bool(
+                        ((good.get("status") or 0) & 1)
+                        and good.get("time_since_pickup", 255) < 255
+                        and good.get("rating") is not None
+                    ),
+                    "rating": (
+                        int(good["rating"])
+                        if (
+                            ((good.get("status") or 0) & 1)
+                            and good.get("time_since_pickup", 255) < 255
+                            and good.get("rating") is not None
+                        )
+                        else None
+                    ),
+                    "time_since_pickup": good.get("time_since_pickup"),
+                    # OpenTTD: maximum atteint depuis le dernier recalcul de note,
+                    # pas le stock instantane.
+                    "max_waiting_cargo": good.get("max_waiting_cargo"),
+                }
+                for cargo_id, good in enumerate(body.get("goods") or [])
+                if isinstance(good, dict)
+            },
+        }
+    return result
+
+
+def _raw_vehicle_common(chunks, vehicle_index, mode):
+    """Retrouve le common brut correspondant a un vehicule primaire qualifie."""
+    vehs = (chunks or {}).get("VEHS") or {}
+    record = None
+    if isinstance(vehs, dict):
+        record = vehs.get(vehicle_index)
+        if record is None:
+            record = vehs.get(str(vehicle_index))
+    elif isinstance(vehs, list) and 0 <= vehicle_index < len(vehs):
+        record = vehs[vehicle_index]
+    if not isinstance(record, dict):
+        return None
+    variant = VEHICLE_VARIANT_BY_MODE.get(mode)
+    body = _first(record.get(variant)) if variant else None
+    common = _first(body.get("common")) if isinstance(body, dict) else None
+    return common if isinstance(common, dict) else None
+
+
+def _vehicle_station_orders(chunks, common):
+    """Resout les destinations de gare via ORDL, avec ORDR en repli."""
+    raw_head = _first(common.get("orders")) if isinstance(common, dict) else None
+    if raw_head in (None, -1, 65535):
+        return {"readable": False, "reason": "missing_order_head", "order_list_id": None,
+                "station_ids": []}
+
+    ordl = (chunks or {}).get("ORDL")
+    if isinstance(ordl, dict):
+        try:
+            ordl_key = str(int(raw_head) - 1)
+        except (TypeError, ValueError):
+            ordl_key = None
+        entry = ordl.get(ordl_key) if ordl_key is not None else None
+        if isinstance(entry, list):
+            entry = entry[0] if entry else None
+        raw_orders = entry.get("orders") if isinstance(entry, dict) else None
+        if isinstance(raw_orders, list):
+            station_ids = []
+            for raw_order in raw_orders:
+                if not isinstance(raw_order, dict):
+                    return {"readable": False, "reason": "invalid_ordl_order",
+                            "order_list_id": ordl_key, "station_ids": []}
+                raw_type = raw_order.get("type")
+                if not isinstance(raw_type, int) or (raw_type & 0x0F) != 1:
+                    continue
+                dest = raw_order.get("dest")
+                try:
+                    dest = int(dest)
+                except (TypeError, ValueError):
+                    continue
+                if dest not in station_ids:
+                    station_ids.append(dest)
+            if station_ids:
+                return {"readable": True, "reason": None, "order_list_id": ordl_key,
+                        "station_ids": station_ids}
+
+    ordr = (chunks or {}).get("ORDR")
+    if isinstance(ordr, dict):
+        current = raw_head
+        seen = set()
+        station_ids = []
+        for _ in range(128):
+            key = str(current)
+            if key in seen:
+                break
+            seen.add(key)
+            order = ordr.get(key)
+            if isinstance(order, list):
+                order = order[0] if order else None
+            if not isinstance(order, dict):
+                break
+            dest = order.get("dest")
+            try:
+                dest = int(dest)
+            except (TypeError, ValueError):
+                dest = None
+            if dest is not None and dest not in station_ids:
+                station_ids.append(dest)
+            nxt = order.get("next")
+            if nxt is None:
+                break
+            current = nxt
+        if station_ids:
+            return {"readable": True, "reason": None, "order_list_id": str(raw_head),
+                    "station_ids": station_ids}
+
+    return {"readable": False, "reason": "unresolved_order_list",
+            "order_list_id": str(raw_head), "station_ids": []}
+
+
+def extract_line_telemetry(chunks, owner):
+    """Reconstruit passivement les lignes exploitees d'une compagnie."""
+    decoded = decode_vehicles((chunks or {}).get("VEHS"), target_owner=owner)
+    if not decoded.get("chunk_valid"):
+        return {
+            "ok": False,
+            "error": decoded.get("chunk_error"),
+            "lines": [],
+            "unresolved_vehicles": [],
+        }
+
+    stations = _station_route_index(chunks)
+    groups = {}
+    unresolved = []
+    for detail in decoded.get("primary_vehicles_detail") or []:
+        vehicle_id = detail.get("index")
+        mode = detail.get("mode")
+        common = _raw_vehicle_common(chunks, vehicle_id, mode)
+        if common is None:
+            unresolved.append({"vehicle_id": vehicle_id, "mode": mode, "reason": "missing_common"})
+            continue
+
+        orders = _vehicle_station_orders(chunks, common)
+        if not orders["readable"]:
+            unresolved.append({
+                "vehicle_id": vehicle_id,
+                "mode": mode,
+                "reason": orders["reason"],
+                "order_list_id": orders.get("order_list_id"),
+            })
+            continue
+
+        station_ids = [
+            sid for sid in orders["station_ids"]
+            if sid in stations and stations[sid].get("owner") == owner
+        ]
+        if not station_ids:
+            unresolved.append({
+                "vehicle_id": vehicle_id,
+                "mode": mode,
+                "reason": "orders_without_known_station",
+                "order_list_id": orders.get("order_list_id"),
+            })
+            continue
+
+        ordered_station_ids = []
+        for sid in station_ids:
+            if sid not in ordered_station_ids:
+                ordered_station_ids.append(sid)
+        canonical_station_ids = tuple(sorted(ordered_station_ids))
+        ordered_station_tiles = [stations[sid].get("xy") for sid in ordered_station_ids]
+        ordered_town_ids = [stations[sid].get("town") for sid in ordered_station_ids]
+        canonical_town_ids = tuple(sorted(
+            int(town) for town in ordered_town_ids if town is not None
+        ))
+        cargo_signature = tuple(sorted(str(cargo) for cargo in (detail.get("consist_capacities") or {})))
+        group_id = common.get("group_id")
+        valid_group = group_id not in (None, -1, 65535)
+        if owner == 1 and valid_group:
+            # AAAHogEx cree un AIGroup par Route et y place tous ses vehicules.
+            # C'est donc son meilleur line_id local; TownID reste la cle inter-parties.
+            local_key = "group:" + str(group_id)
+            key = ("group", str(group_id))
+        else:
+            local_key = mode + "|" + ",".join(str(value) for value in canonical_station_ids)
+            key = (mode, canonical_station_ids)
+        market_key = mode + "|" + ",".join(str(value) for value in canonical_town_ids)
+        service_key = market_key + "|cargo=" + ",".join(cargo_signature)
+
+        if key not in groups:
+            groups[key] = {
+                "line_key_local": local_key,
+                "group_id": group_id if valid_group else None,
+                "market_key": market_key,
+                "service_key": service_key,
+                "mode": mode,
+                "station_ids": list(canonical_station_ids),
+                "ordered_station_ids": list(ordered_station_ids),
+                "ordered_station_tiles": ordered_station_tiles,
+                "town_ids": list(canonical_town_ids),
+                "ordered_town_ids": ordered_town_ids,
+                "origin_town": ordered_town_ids[0] if ordered_town_ids else None,
+                "destination_town": ordered_town_ids[1] if len(ordered_town_ids) > 1 else None,
+                "endpoint_towns": list(canonical_town_ids),
+                "vehicle_ids": [],
+                "unitnumbers": [],
+                "order_list_ids": [],
+                "vehicles": 0,
+                "capacity_by_cargo": defaultdict(int),
+                "profit_this_year_gbp": 0.0,
+                "profit_last_year_gbp": 0.0,
+                "vehicle_value": 0,
+            }
+        line = groups[key]
+        line["vehicles"] += 1
+        line["vehicle_ids"].append(vehicle_id)
+        line["unitnumbers"].append(common.get("unitnumber"))
+        order_list_id = orders.get("order_list_id")
+        if order_list_id is not None and order_list_id not in line["order_list_ids"]:
+            line["order_list_ids"].append(order_list_id)
+        for cargo, capacity in (detail.get("consist_capacities") or {}).items():
+            line["capacity_by_cargo"][str(cargo)] += capacity
+        raw_this = common.get("profit_this_year")
+        raw_last = common.get("profit_last_year")
+        if isinstance(raw_this, (int, float)):
+            line["profit_this_year_gbp"] += raw_this / PROFIT_RAW_UNITS_PER_GBP
+        if isinstance(raw_last, (int, float)):
+            line["profit_last_year_gbp"] += raw_last / PROFIT_RAW_UNITS_PER_GBP
+        line["vehicle_value"] += detail.get("consist_value") or 0
+
+    lines = []
+    for line in groups.values():
+        line["capacity_by_cargo"] = dict(sorted(line["capacity_by_cargo"].items()))
+        line["cargo_types"] = sorted(line["capacity_by_cargo"].keys(), key=str)
+        endpoint_cargo_stats = []
+        for sid in line["ordered_station_ids"]:
+            station = stations.get(sid) or {}
+            cargo_stats = {}
+            station_goods = station.get("goods") or {}
+            for cargo in line["cargo_types"]:
+                good = station_goods.get(str(cargo))
+                if good is not None:
+                    cargo_stats[str(cargo)] = dict(good)
+            endpoint_cargo_stats.append({
+                "station_id": sid,
+                "town_id": station.get("town"),
+                "tile": station.get("xy"),
+                "cargo": cargo_stats,
+            })
+        line["endpoint_cargo_stats"] = endpoint_cargo_stats
+        line["profit_this_year_gbp"] = round(line["profit_this_year_gbp"], 6)
+        line["profit_last_year_gbp"] = round(line["profit_last_year_gbp"], 6)
+        lines.append(line)
+    lines.sort(key=lambda item: (item["mode"], item["market_key"], item["line_key_local"]))
+    return {"ok": True, "error": None, "lines": lines, "unresolved_vehicles": unresolved}
+
+
+def _annual_line_checkpoint(date):
+    return re.match(r"^\d{4}-12-", str(date)) is not None
+
+
+def build_line_telemetry_report(rows):
+    """Rassemble les snapshots annuels de lignes sans modifier le jeu."""
+    snapshots = []
+    for row in rows:
+        telemetry = row.get("line_telemetry")
+        if not telemetry:
+            continue
+        run = row.get("run") or []
+        year_match = re.match(r"^(\d{4})-", str(row.get("date") or ""))
+        snapshots.append({
+            "duel_policy_id": row.get("duel_policy_id"),
+            "arm": run[0] if run else None,
+            "seed": run[1] if len(run) > 1 else None,
+            "repeat": run[2] if len(run) > 2 else 0,
+            "year": int(year_match.group(1)) if year_match else None,
+            "date": row.get("date"),
+            "ok": telemetry.get("ok"),
+            "error": telemetry.get("error"),
+            "unresolved_vehicles": telemetry.get("unresolved_vehicles", []),
+            "lines": telemetry.get("lines", []),
+        })
+    return {
+        "schema_version": 1,
+        "scope": "annual December savegame post-processing; no NoAI behavior change",
+        "observed_fields": [
+            "mode", "station_ids", "town_ids", "vehicles", "capacity_by_cargo",
+            "profit_this_year_gbp", "profit_last_year_gbp", "vehicle_value",
+        ],
+        "unavailable_fields": ["revenue", "running_cost"],
+        "snapshots": snapshots,
+    }
+
+
 def extract_company_record(chunks, owner, run_key, date, output=None):
     players = chunks.get("PLYR") or {}
     player = players.get(owner)
@@ -295,6 +617,9 @@ def keep(row):
 
     rec0 = extract_company_record(chunks, 0, ["OpexAI", seed, repeat], date)
     rec1 = extract_company_record(chunks, 1, ["AAAHogEx", seed, repeat], date)
+    if LINE_TELEMETRY and _annual_line_checkpoint(date):
+        rec0["line_telemetry"] = extract_line_telemetry(chunks, 0)
+        rec1["line_telemetry"] = extract_line_telemetry(chunks, 1)
     structural = {}
     structural.update(airport_slot_metrics(chunks))
     structural.update(early_slot_sign_metrics(chunks))
@@ -766,6 +1091,7 @@ def main():
     parser.add_argument("--max-workers", type=int, default=3)
     parser.add_argument("--campaign", help="Identifiant C66.3 nouveau ; derive de --out ou horodate si omis")
     parser.add_argument("--policy-id", default="reference", help="Identifiant de la politique OpexAI testee")
+    parser.add_argument("--reference", help="C66.4 : politique de reference explicite, ex. OpexAI[air_early_slot=1]")
     parser.add_argument("--variant", help="C66.4 : ex. OpexAI[air_presite=1]")
     parser.add_argument("--variant-policy-id", help="C66.4 : identifiant stable de la variante")
     parser.add_argument("--primary-metric", choices=list(SUCCESS_METRICS), default=PRIMARY_METRIC)
@@ -775,6 +1101,10 @@ def main():
     parser.add_argument("--docker-image", default=os.environ.get("C66_DOCKER_IMAGE", "openttd-lab"))
     parser.add_argument("--docker-image-id", default=os.environ.get("C66_DOCKER_IMAGE_ID"))
     parser.add_argument("--selftest", action="store_true", help="Vérifie le décodage et le fail-closed sans lancer OpenTTD")
+    parser.add_argument(
+        "--line-telemetry", action="store_true",
+        help="Diagnostic passif annuel: reconstruit les lignes depuis VEHS + ORDL/ORDR + STNN",
+    )
     parser.add_argument(
         "--engine-timeout", type=int, default=DEFAULT_ENGINE_TIMEOUT_SEC,
         help="Timeout subprocess OpenTTD par partie, en secondes (0 = aucun)",
@@ -789,10 +1119,16 @@ def main():
     from openttdlab import run_experiments
     from bench_v2 import enable_savegame_cleanup, write_json_atomically
 
-    global CHECKPOINT_PATH, ENGINE_LOG_DIR
+    global CHECKPOINT_PATH, ENGINE_LOG_DIR, LINE_TELEMETRY
+    LINE_TELEMETRY = bool(args.line_telemetry)
     if args.repeats < 1:
         parser.error("--repeats doit etre >= 1")
-    policies = [{"id": args.policy_id, "role": "reference", "explicit_settings": ()}]
+    reference_settings = ()
+    if args.reference is not None:
+        reference_settings = parse_opex_variant(args.reference)
+        if reference_settings is None:
+            parser.error("--reference doit utiliser le format OpexAI[cle=valeur]")
+    policies = [{"id": args.policy_id, "role": "reference", "explicit_settings": tuple(reference_settings)}]
     intervention_settings = ()
     decision_rule = None
     if args.variant is not None:
@@ -809,7 +1145,16 @@ def main():
             parser.error("--value-guard-max-loss-pct doit etre fixe avant un banc C66.4")
         if args.value_guard_max_loss_pct < 0:
             parser.error("--value-guard-max-loss-pct doit etre >= 0")
-        intervention_settings = tuple(key for key, _ in variant_settings)
+        ref_explicit = dict(reference_settings)
+        var_explicit = dict(variant_settings)
+        intervention_settings = tuple(
+            sorted(
+                key for key in (set(ref_explicit) | set(var_explicit))
+                if ref_explicit.get(key) != var_explicit.get(key)
+            )
+        )
+        if not intervention_settings:
+            parser.error("reference et variante n'annoncent aucune difference de reglage")
         policies.append({
             "id": args.variant_policy_id,
             "role": "variant",
@@ -840,7 +1185,7 @@ def main():
         repeats=args.repeats,
         starting_year=STARTING_YEAR,
         config_text=cfg,
-        opex_explicit_settings=(),
+        opex_explicit_settings=tuple(reference_settings),
         library_specs=LIBRARY_SPECS,
         harness_files=CAMPAIGN_HARNESS_FILES,
         openttd_version=OPENTTD_VERSION,
@@ -1030,6 +1375,7 @@ def main():
         "paired_comparisons": policy_reports[args.policy_id]["paired_comparisons"],
         "policy_reports": policy_reports,
         "policy_comparison": policy_comparison,
+        "line_telemetry": build_line_telemetry_report(rows) if LINE_TELEMETRY else None,
     }
     write_json_atomically(out, payload)
 
@@ -1267,6 +1613,81 @@ def selftest():
     assert signs["early_slot_build_signs"] == 1
     assert signs["early_slot_build_claims"] == 2
     assert signs["air_error_771_signs"] == 1
+
+    # 4c. Telemetrie ligne : AAAHogEx partage un group_id et une liste ORDL entre
+    # les vehicules d'une meme Route. TownID fournit la cle comparable entre parties.
+    line_fixture = {
+        "STNN": {
+            0: {"normal": {"base": {"owner": 1, "town": 10, "facilities": 8, "xy": 1000},
+                           "goods": [
+                               {"status": 1, "time_since_pickup": 5, "rating": 120, "max_waiting_cargo": 40},
+                               {"status": 0, "time_since_pickup": 255, "rating": 175, "max_waiting_cargo": 0},
+                           ]}},
+            1: {"normal": {"base": {"owner": 1, "town": 20, "facilities": 8, "xy": 2000},
+                           "goods": [
+                               {"status": 1, "time_since_pickup": 9, "rating": 90, "max_waiting_cargo": 80},
+                               {"status": 0, "time_since_pickup": 255, "rating": 175, "max_waiting_cargo": 0},
+                           ]}},
+        },
+        "ORDL": {
+            "0": {"orders": [
+                {"type": 1, "flags": 0, "dest": 0},
+                {"type": 1, "flags": 0, "dest": 1},
+            ]},
+        },
+        "VEHS": {
+            0: {"type": 3, "aircraft": {"common": {
+                "owner": 1, "unitnumber": 1, "subtype": 0, "group_id": 7,
+                "orders": 1, "next": 0, "cargo_type": 0, "cargo_cap": 100,
+                "profit_this_year": 25600, "profit_last_year": 12800, "value": 50000,
+            }}},
+            1: {"type": 3, "aircraft": {"common": {
+                "owner": 1, "unitnumber": 2, "subtype": 0, "group_id": 7,
+                "orders": 1, "next": 0, "cargo_type": 0, "cargo_cap": 80,
+                "profit_this_year": 51200, "profit_last_year": 25600, "value": 45000,
+            }}},
+        },
+    }
+    line_diag = extract_line_telemetry(line_fixture, 1)
+    assert line_diag["ok"] is True
+    assert line_diag["unresolved_vehicles"] == []
+    assert len(line_diag["lines"]) == 1
+    line = line_diag["lines"][0]
+    assert line["line_key_local"] == "group:7"
+    assert line["market_key"] == "air|10,20"
+    assert line["vehicles"] == 2
+    assert line["capacity_by_cargo"] == {"0": 180}
+    assert line["profit_this_year_gbp"] == 300.0
+    assert line["ordered_station_tiles"] == [1000, 2000]
+    assert line["endpoint_cargo_stats"] == [
+        {
+            "station_id": 0,
+            "town_id": 10,
+            "tile": 1000,
+            "cargo": {
+                "0": {
+                    "rated": True,
+                    "rating": 120,
+                    "time_since_pickup": 5,
+                    "max_waiting_cargo": 40,
+                },
+            },
+        },
+        {
+            "station_id": 1,
+            "town_id": 20,
+            "tile": 2000,
+            "cargo": {
+                "0": {
+                    "rated": True,
+                    "rating": 90,
+                    "time_since_pickup": 9,
+                    "max_waiting_cargo": 80,
+                },
+            },
+        },
+    ]
+    assert line["profit_last_year_gbp"] == 150.0
 
     import inspect
     import openttdlab

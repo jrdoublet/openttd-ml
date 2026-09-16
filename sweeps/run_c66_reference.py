@@ -26,6 +26,7 @@ def main():
     parser.add_argument("--campaign", required=True)
     parser.add_argument("--image", default="openttd-lab:latest")
     parser.add_argument("--policy-id", default="reference")
+    parser.add_argument("--reference")
     parser.add_argument("--variant")
     parser.add_argument("--variant-policy-id")
     parser.add_argument("--primary-metric")
@@ -36,6 +37,7 @@ def main():
     parser.add_argument("--repeats", type=int)
     parser.add_argument("--max-workers", type=int)
     parser.add_argument("--engine-timeout", type=int)
+    parser.add_argument("--line-telemetry", action="store_true")
     parser.add_argument("--cpus", type=int, default=3)
     parser.add_argument("--out")
     args = parser.parse_args()
@@ -61,8 +63,12 @@ def main():
         benchmark += ["--max-workers", str(args.max_workers)]
     if args.engine_timeout is not None:
         benchmark += ["--engine-timeout", str(args.engine_timeout)]
+    if args.line_telemetry:
+        benchmark += ["--line-telemetry"]
     if args.variant is not None:
         benchmark += ["--variant", args.variant]
+    if args.reference is not None:
+        benchmark += ["--reference", args.reference]
     if args.variant_policy_id is not None:
         benchmark += ["--variant-policy-id", args.variant_policy_id]
     if args.primary_metric is not None:
