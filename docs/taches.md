@@ -631,6 +631,36 @@ périphérique dont l'ancre est rattachée à une ville voisine encore disponibl
 ville cible, (3) détecter les constructions AAAHogEx et accélérer la prise du slot restant. Ces
 runs sont des **diagnostics instrumentés**, pas des benchmarks économiques d'adoption.
 
+**Décision et explication causale — `air_early_slot` adopté (2026-09-15).** La priorité « prendre
+les slots utiles plus tôt » a été implémentée et **adoptée** ; ne pas rouvrir la décision au motif
+que le nombre final de monopoles AAA converge. Le banc économique officiel
+`results/bench_early_slot_20x10_w6.json` (20 seeds × 10 ans, current vs early-slot) donne en 1979
+`profit_year` OpexAI ≈ 1,331 M£ → 1,485 M£, soit **+154 k£/an, +11,6 %**.
+
+Le diagnostic causal passif `results/diag_early_slot_lines_20x10_v1.json` (40/40 parties,
+20/20 paires) et son analyse `results/diag_early_slot_lines_20x10_v1_analysis.json` montrent pourquoi :
+
+- le nombre total de marchés air AAAHogEx converge presque (1979 : **24,20 current vs 23,75
+  early-slot**), mais seulement **12,20** sont encore communs ; environ la moitié du portefeuille a
+  changé ;
+- les marchés AAA `current-only` passent de 6,0/seed en 1972 à 12,0 en 1979 ; ceux qui touchent au
+  moins une ville occupée par OpexAI sous early-slot représentent **62 % de leur profit en 1972**,
+  puis **73–76 % en 1976–1979** ;
+- certaines routes déplacées valent plusieurs centaines de k£/an observés ; le maximum relevé dans
+  le top causal atteint ~951 k£/an ;
+- AAAHogEx compense en partie par de nouveaux marchés : son profit air total peut même être supérieur
+  sous early-slot en 1975–1976. Le mécanisme n'est donc pas « détruire X £ chez AAA », mais une
+  **réallocation précoce des marchés puis une dépendance au chemin** ;
+- un seul endpoint stratégique suffit souvent : en 1979, 8,1 marchés current-only/seed touchent une
+  ville OpexAI, contre seulement 2,6 dont les deux endpoints sont occupés.
+
+Conclusion : **early-slot prive surtout AAAHogEx de certains marchés précoces très rentables autour
+des villes qu'OpexAI sécurise, puis AAA se redéploie ailleurs.** Cela explique qu'un avantage de
+profit OpexAI persiste alors que les compteurs finaux d'aéroports/monopoles se rapprochent. Le détail,
+la méthode de reconstruction VEHS/ORDL/STNN et les limites (`profit_this_year` des véhicules encore
+présents, `group_id` local, pas de revenue/running_cost inventé) sont figés dans
+[`07_air_early_slot_causal_analysis.md`](07_air_early_slot_causal_analysis.md).
+
 **Correctif feeders bus — ordres unidirectionnels ville → hub (2026-09-15).**
 Bug confirmé dans `builder_road.nut` : les feeders passagers utilisaient `OF_NONE` à la ville et
 `OF_TRANSFER` au hub, avec `OF_NO_LOAD` seulement si le switch global fret `c53_order_noload`
@@ -858,3 +888,107 @@ présenter leur conservation comme un nouveau gain mesuré.
 JSON récents, réorganisation documentaire. Aucun changement de comportement IA, aucun défaut
 modifié, aucun nouveau banc lancé. L'[architecture après C65](architecture_opexai.md) donne les
 nouveaux emplacements des fonctions.
+
+
+### Décision 2026-09-15 — `early_slot` adopté économiquement
+
+`early_slot` est désormais considéré comme définitivement adopté sur le plan économique. Il ne constitue plus un chantier de validation ni une priorité de benchmark : les travaux suivants doivent partir de cette stratégie comme base retenue.
+
+Réserve pour une évolution future : OpexAI devra à terme savoir lire la carte au démarrage et décider si `early_slot` est adapté au contexte de la partie. La décision devra probablement s'appuyer au minimum sur la liste des villes, leur population et une mesure de la densité de la carte. Cette adaptation nécessite d'abord des outils de caractérisation de carte ; elle est explicitement hors priorité pour le moment.
+
+Priorité immédiate après cette décision : comparer OpexAI et AAAHogEx ligne par ligne sur les mêmes marchés afin de distinguer l'écart de couverture de marchés de l'écart de productivité à marché comparable.
+
+### Diagnostic 2026-09-15 — OpexAI vs AAAHogEx sur les mêmes marchés
+
+Comparaison terminée sur la télémétrie passive 20×10 déjà disponible, sous la politique
+early_slot adoptée. Analyse :
+[08_opex_vs_aaahogex_same_markets.md](08_opex_vs_aaahogex_same_markets.md).
+
+Fait principal AIR en 1979 :
+
+- OpexAI dessert **44,65 marchés/seed** contre **23,75** pour AAAHogEx, mais reste à
+  **1,02 avion/marché** contre **3,00** ;
+- sur 30 observations même paire de villes + mêmes cargos, AAA a **3,50× plus d'avions**,
+  **2,47× plus de capacité**, gagne en profit sur **28/30** marchés et produit environ
+  **106,5 k£/avion** contre **40,2 k£/avion** pour Opex ;
+- l'âge ne suffit pas : sur 9 marchés apparus la même année chez les deux IA, AAA finit encore
+  avec **3,56× plus d'avions** ;
+- la ROUTE donne le signal inverse sur 108 marchés strictement comparables : Opex gagne 93/108.
+  Le rail n'offre que 4 observations même cargo ; aucune priorité générale n'en découle.
+
+**Nouvelle priorité immédiate : comprendre pourquoi _resizeAirFleets laisse presque toutes les
+lignes AIR Opex à un avion.** Mesurer les refus existants (W, M, C, Y, L/S, etc.) sur le défaut
+actuel early_slot, ligne par ligne, avant de modifier fleet_before_new, le buffer ou un plafond.
+Le maintien de fleet_before_new=0 est commenté avec des bancs du 2026-09-02 ; ces résultats
+antérieurs au 2026-09-09 ne font plus foi selon la règle du dépôt et ne ferment donc pas ce chantier.
+
+### Diagnostic 2026-09-15 — profondeur AIR : W est un symptôme, pas le levier
+
+Le diagnostic 5×6 early_slot montre que W (pas assez de cargo en attente pour proposer un
+renfort) domine très largement les refus de _resizeAirFleets, avec pratiquement aucun refus cash.
+Mais deux expériences causales ferment la piste du desserrage direct :
+
+- air_fleet_buffer=-1 : seed 42 × 3 ans, **−167,9 k£/an** et **−19,3 % de company value** ;
+- seuil expérimental à 50 % d'une capacité : **−240,2 k£/an** et **−32,3 % de value**.
+
+Le mécanisme protège donc réellement l'allocation du capital. Forcer la profondeur de flotte
+consomme le capital qui aurait servi à ouvrir des marchés rentables. Aucun balayage opportuniste de
+seuil n'est poursuivi.
+
+### Diagnostic 2026-09-15 — qualité de service AIR / STNN.goods
+
+Extension passive terminée : chaque endpoint/cargo de ligne expose désormais rating,
+time_since_pickup et max_waiting_cargo. Analyse complète :
+[09_air_service_quality.md](09_air_service_quality.md).
+
+Conclusion :
+
+- l'hypothèse « 1 avion → mauvaise fréquence → mauvais rating → peu de cargo → W » est réfutée ;
+- en 1975, Opex a un pickup **plus récent** qu'AAA (4,6 vs 10,1 jours) mais seulement
+  **60,5 £ de profit/capacité** contre **322,6 £** ;
+- sur 7 marchés strictement identiques en TownID+cargos, AAA a plus de profit/capacité **7/7** et
+  plus de max_waiting/capacité **7/7**, alors qu'Opex a le meilleur rating sur **4/7** ;
+- à **un seul avion** et dans les mêmes bandes de distance, l'écart persiste fortement.
+
+**Nouvelle priorité immédiate : demande/catchment AIR.** Mesurer passivement le type/taille
+d'aéroport, son placement dans la ville et, si disponible sans instrumentation intrusive, la
+production passagers/courrier réellement couverte. Le verrou se situe en amont de W :
+les stations Opex voient beaucoup moins de cargo passer, même sur les mêmes TownID.
+
+### Expérience 2026-09-15 — renforcement AIR ciblé sur la fréquence
+
+Une première variante comportementale minimale a été testée sans remettre en cause early_slot.
+Le mécanisme autorisait, uniquement sur une ligne rentable à **1 avion**, un seul candidat de
+renforcement malgré W lorsque le deuxième avion faisait franchir un palier du modèle existant
+OpexPickupRatingPoints(headwayDays). Tous les caps physiques et l'arbitrage ROI restaient actifs.
+
+Résultats complets :
+[10_air_frequency_variant.md](10_air_frequency_variant.md).
+
+Smoke seed 42 × 3 ans :
+
+- +26,9 k£/an ;
+- +2,89 % de company value ;
+- sous le seuil utile pré-enregistré de +50 k£/an.
+
+5×6 apparié :
+
+- **−123,7 k£/an** en moyenne ;
+- **0/5 victoire** ;
+- company value **−7,12 %** ;
+- verdict fail_primary_and_value_guard.
+
+Le mécanisme a pourtant bien augmenté la fréquence :
+
+- avions/ligne 1975 : **1,013 → 1,058** ;
+- time_since_pickup : **5,84 → 4,51 jours** ;
+- rating : **139,2 → 144,3** ;
+- achats AIR C50 : **20 → 28** ;
+- refus W C50 : **4 806 → 4 566**.
+
+Mais le profit/capacité tombe de **66,3 à 53,1 £**. La piste « fréquence de collecte » est donc
+**écartée**. Aucun 20×10 n'est lancé et le comportement expérimental est retiré.
+
+**Priorité confirmée : catchment / placement AIR.** Chercher pourquoi AAA capte beaucoup plus de
+passagers/courrier dans les mêmes villes, plutôt que d'augmenter artificiellement la fréquence.
+early_slot reste définitivement adopté et ne doit pas être rouvert.
