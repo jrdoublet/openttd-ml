@@ -168,6 +168,10 @@ décisions** sont dans le périmètre (5 635 l.). Le reste est de l'archive d'ex
 recomptage : chaque `.nut` du répertoire apparaît **exactement une fois**, la somme des étapes
 tombe sur 28 868 au fichier près, et aucun fichier n'est oublié ni compté deux fois.
 
+### Addendum — étape 21 (ouverte par la synthèse, tenue le 2026-09-16)
+
+L'étape 20 a identifié un trou de couverture non anticipé par le tableau ci-dessus : `sweeps/physical_counters.py` (546 l.) et `sweeps/campaign_freeze.py` (545 l.), déclarés fichiers de harnais de campagne (`CAMPAIGN_HARNESS_FILES`), plus leurs deux seuls tests unitaires (`test_game_health.py`, `test_physical_counters.py`), n'avaient été lus par aucune des étapes 1 à 19. Voir `docs/revue_code_2026-09-15_correctifs.md`, section « Deux questions que les étapes ont explicitement renvoyées à celle-ci », point 2, pour la décision d'ouverture et le modèle/effort recommandés. Constats et clôture : `docs/revue/2026-09-15_etape_21_harnais_campagne.md`. La couverture totale du plan (Squirrel + Python) n'est pas affectée : ces fichiers Python étaient hors du périmètre chiffré ci-dessus (`sweeps/`, hors étapes 17-19, était explicitement interdit de lecture par les autres étapes), pas oubliés dedans.
+
 ## Sortie attendue par étape
 
 Un fichier `docs/revue/2026-09-15_etape_NN_<nom>.md` — jamais un ajout à un fichier partagé, c'est

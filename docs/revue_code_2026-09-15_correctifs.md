@@ -992,6 +992,8 @@ Jamais en tâche dédiée : greffer sur le commit du groupe qui touche déjà le
 | 17.15 | une compagnie disparue en faillite entre dans la moyenne de `company_value` avec 0 mais est écartée de celle de `profit_year` : deux métriques du même tableau sur des effectifs différents | H1 |
 | 17.16 | le timeout moteur patche `subprocess.check_output` du module entier : un téléchargement lent d'OpenTTD/OpenGFX devient un `engine_failure` de partie | H4 |
 | 17.17 | ~60 réécritures complètes du stdout par partie (1 200 par banc de 20 graines), chacune avec `mkdir(parents=True)` | H4 |
+| 21.1 | constante de rotor d'aéronef fausse (`subtype in (3, 4)`, le vrai rotor vaut `6`), rendue inerte par la garde `unitnumber == 0` (`physical_counters.py:246-251`) | tout commit qui touche `physical_counters.py`, sinon seul |
+| 21.3 | `test_game_health.py` ne teste jamais un `company_value` décroissant à `fleet_changes == 0` — le cas exact que 17.6 corrige | H4, dans le même commit que le correctif 17.6 |
 
 **Modèle pour ce tier, s'il était un jour isolé : Haiku (Codex luna), effort low.** Ne mérite pas
 un passage dédié.
@@ -1081,15 +1083,20 @@ d'abord, puis trancher**, en confirmant avec qui a mesuré le budget « ~2-5 min
 fichiers de harnais de campagne (`CAMPAIGN_HARNESS_FILES`) et portent tout ce dont H3, H4 et le
 gel de campagne dépendent, sans qu'aucune étape ne les ait lus. Idem pour les deux seuls tests
 unitaires du harnais, `test_game_health.py` (428 l.) et `test_physical_counters.py` (448 l.).
-**Verdict : c'est un trou de couverture de la revue, pas un constat.** Le risque est atténué —
-C66.1 documente une qualification par **égalité ensembliste exacte** contre l'API NoAI au même
-instant de jeu (`docs/taches.md:121-131`), et C66.5 rapporte 7/7 + 20/20 tests — mais une
-qualification n'est pas une relecture. **Ouvrir une étape 21 dédiée** : `physical_counters.py`
-en **Opus 5 / high** (les règles de qualification têtes/composants de `:226-257` n'ont jamais été
-confrontées à `src/vehicle_base.h` d'OpenTTD 15.3, et H3 en dépend entièrement),
-`campaign_freeze.py` et les deux fichiers de test en **Sonnet 5 / medium**. Le
-`QUALIFIED_MODES["water"] = False` de `physical_counters.py:50` est en revanche **tranché ici** :
+Le `QUALIFIED_MODES["water"] = False` de `physical_counters.py:50` est **tranché ici** :
 c'est un gating à appliquer chez les consommateurs (H3), pas une question ouverte.
+
+**Étape 21 tenue le 2026-09-16** (`docs/revue/2026-09-15_etape_21_harnais_campagne.md`) :
+le discriminant tête/composant de `physical_counters.py` est confirmé exact bit à bit contre les
+en-têtes amont d'OpenTTD (`GroundVehicleSubtypeFlags`, `AircraftSubType`, `VehState`,
+`StationFacility`) — la clôture C66.1 tient à une relecture fraîche, pas seulement à la confiance
+dans les tests. Trois constats mineurs en sortent (21.1, 21.2, 21.3, détaillés dans le fichier
+d'étape) et sont repris dans le Tier 3 ci-dessous, sauf **21.2** : `campaign_freeze.py` (545 l.,
+le garde-fou fail-closed censé fermer G0 côté C66.4) n'a **aucun test unitaire**, seul fichier du
+lot dans ce cas — à traiter en tâche autonome, Sonnet 5 / medium, avant de compter dessus pour
+fermer H2. Un renvoi confirme aussi H2 depuis l'autre bout : `validate_policy_settings` existe et
+est correct, mais seul `bench_1v1_5y_20seeds.py` l'importe — pas `bench_v2.py`, le banc que H2
+diagnostique comme incapable de prouver ce qu'il a joué (21.6, pas une fiche séparée).
 
 ---
 
@@ -1129,6 +1136,8 @@ signes » de **C66.4** (H1) ; **C66.2/C66.5** reçoivent H4 ; **C57** reçoit B7
 que la *position* du contrôle compte autant que la valeur 50 000 ; **C43/E3** reçoit le mécanisme
 chiffré de `loop_budget` (11.4) ; **C61/C59 volet Route** reçoit le mécanisme de B3, sans lever sa
 condition à P1 ; la **fiche 771** (`docs/taches.md:578-630`) reçoit B1, dont le candidat causal
-pré-enregistré est déjà le §2. Trois points **n'ont aucune fiche** et méritent d'être numérotés :
-le parseur `MONTHLY_FUNNEL_DETAIL` sans émetteur (B2, à supprimer ou à alimenter), la famille de
-conformité NoAI jamais exercée (M4), et l'étape 21 de relecture du harnais non couvert.
+pré-enregistré est déjà le §2. Deux points **n'ont toujours aucune fiche** et méritent d'être
+numérotés : le parseur `MONTHLY_FUNNEL_DETAIL` sans émetteur (B2, à supprimer ou à alimenter), et
+la famille de conformité NoAI jamais exercée (M4). Le troisième point (l'étape 21 de relecture du
+harnais) est clos depuis le 2026-09-16 — voir « Deux questions », point 2, ci-dessus ; il ne reste
+que sa propre tâche autonome (21.2, `campaign_freeze.py` sans test).
