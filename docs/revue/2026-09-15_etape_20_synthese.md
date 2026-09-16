@@ -19,15 +19,24 @@ périmètre : pas `docs/taches.md` en entier, pas les journaux, pas `results/`.
 
 ## Constats
 
-<!-- ### 20.1 — <titre>        [gravité : P1 | P2 | P3]
-`fichier:ligne` — ce que le code fait · ce qu'il prétend faire · conséquence observable. -->
+Le livrable de cette étape n'est pas un fichier de constats supplémentaire : c'est le regroupement
+**par mécanisme** de tous les constats des 19 étapes précédentes, produit dans
+`docs/revue_code_2026-09-15_correctifs.md` (5 tiers, groupes H1-H5/B1-B9/M1-M7, statut des groupes
+G0-G12 du 09-06, ordre d'exécution recommandé, greffes opportunistes vers `docs/taches.md`) —
+conformément à la sortie attendue décrite dans le tableau « Clôture » de
+`docs/revue_code_2026-09-15_plan.md`, qui diffère du squelette générique ci-dessous.
 
-*(à remplir)*
+Un trou de couverture a été identifié au passage (fichiers de harnais de campagne jamais lus par
+aucune étape) et a donné lieu à l'ouverture de l'étape 21, tenue le 2026-09-16 :
+`docs/revue/2026-09-15_etape_21_harnais_campagne.md`.
 
 ## Vérifié, n'est PAS un bug
 
-*(à remplir — ce qui est écrit ici ne sera pas relitigé à la passe de correction)*
+Voir `docs/revue_code_2026-09-15_correctifs.md`, section « Tier « ne pas toucher maintenant » » et
+le tableau de statut des groupes G0-G12.
 
 ## Hors périmètre, à relire ailleurs
 
-*(à remplir — renvoyer vers le numéro d'étape concerné)*
+Voir `docs/revue_code_2026-09-15_correctifs.md`, section « Deux questions que les étapes ont
+explicitement renvoyées à celle-ci » (durée du smoke test ; fichiers de harnais non couverts →
+étape 21).
