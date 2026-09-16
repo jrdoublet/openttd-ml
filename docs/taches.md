@@ -104,8 +104,10 @@ distingue les modes, pas nécessairement la tête d'un véhicule de ses composan
 - [x] Définir **un décodeur partagé**, avec un schéma de sortie versionné (`sweeps/physical_counters.py`,
   schéma 1.1.0). Garde le compte brut sous `vehicle_pool_entries`, ajoute les unités pilotables
   par mode (`primary_vehicles_by_mode`) et le bilan des anomalies (`unclassified_entries`).
-  `n_vehicles` conserve sa valeur brute dans les enregistrements de sortie pour assurer la
-  rétro-compatibilité sans dérive silencieuse. Respect strict du principe **fail-closed** :
+  Depuis la clôture H3 du 2026-09-16, `n_vehicles` désigne la flotte primaire pilotable,
+  identique à `primary_vehicles`; le compte brut reste disponible sous
+  `vehicle_pool_entries`/`total_vehicle_pool_entries`. Respect strict du principe
+  **fail-closed** :
   si un chunk est manquant (`None`) ou de type inattendu, `chunk_valid` passe à `False`,
   `chunk_error` documente la cause, et les compteurs — y compris les secondaires
   (`fleet_status`, `components_breakdown`, `station_ids`) — sont passés à `None`.
@@ -415,6 +417,64 @@ reste un jalon de validation d'une future intervention : il ne doit être exécu
 mécanisme C63/C58 aura produit une variante unique et des seuils substantifs pré-enregistrés.
 Le lancer aujourd'hui avec `air_presite=1` ou la référence seule transformerait un smoke de
 protocole en faux banc causal.
+
+**Revalidation finale H1/H3/H4 — 2026-09-16.** La revue de code a rouvert trois garanties du
+harnais et elles sont désormais refermées sur le code courant :
+
+- **H1 / adoption statistique.** Le verdict C66.4 exige une campagne d'adoption de **20 paires**,
+  puis le test des signes exact bilatéral en premier (**≥ 15/20 victoires et p < 0,05**), puis
+  seulement le seuil sur la moyenne du delta. Une campagne plus courte rend
+  `diagnostic_only` et ne peut plus produire un verdict d'adoption. La couverture statistique
+  est fail-closed : toutes les paires primaires et tous les dénominateurs positifs de la garde de
+  valeur sont requis.
+- **H3 / flotte physique.** `n_vehicles == primary_vehicles` dans les sorties de banc ; les
+  entrées brutes du pool restent séparées. `primary_vehicles` est une métrique commune des
+  agrégats et le smoke teste explicitement la flotte pilotable. Le diagnostic mensuel exclut les
+  modes non qualifiés de ses totaux ; l'eau reste `qualified=false`.
+- **H4 / fail-closed.** Le duel vérifie la grille mensuelle complète, les jeux planifiés sans
+  ligne, l'identité de campagne, l'existence du journal moteur et un plancher d'activité physique.
+  Une stagnation ou une valeur qui décroît sans expansion récente ne rentre plus dans les
+  statistiques économiques. Le timeout ne s'applique plus aux téléchargements OpenTTDLab : il est
+  injecté uniquement pendant `_run_experiment`.
+
+Validation hors jeu rejouée après ces corrections :
+`python sweeps/test_physical_counters.py` = **7/7**,
+`python sweeps/test_game_health.py` = **25/25**,
+`python sweeps/bench_1v1_5y_20seeds.py --selftest` = OK,
+`python sweeps/diag_1v1_shared_monthly.py --selftest` = OK,
+`python -m py_compile ...` = OK et `git diff --check` = OK.
+
+Smoke PR réel : `results/review_h134_smoke_ci_2x3_v3.json`, graines **42/100**, **3 ans**.
+Résultat **PASSED**, 2/2 runs présents, 36 checkpoints contigus par run jusqu'au
+`1972-12-01`, chunks physiques valides et `n_vehicles == primary_vehicles` (52 et 39).
+
+Diagnostic C66.4 de cohérence :
+`results/review_h134_5x6_air_presite_v2.json`, graines **42/100/7/999/2026**, **6 ans**,
+référence contre `air_presite=1`. Le lanceur officiel
+`sweeps/run_c66_reference.py` a imposé CPU=3, mémoire/swap **2g/2g**, image
+`openttd-lab:latest` vérifiée
+`sha256:f4b2b9b3b7399cbfecacfe03b3b8dda49bff2921de36a61fed4e9441e5d44659`.
+Le manifeste `results/review_h134_5x6_air_presite_v2.manifest.json` ne contient qu'une
+différence effective : `air_presite: 0 -> 1`.
+
+Audit du JSON/checkpoint : **10/10 jeux**, **20/20 lignes** `complete/run_ok/game_ok`,
+0 `failed_run`, horizon `1975-12-01`, **1 440** lignes de checkpoint =
+20 séries × 72 mois exacts, 0 trou mensuel, 0 erreur non attribuée, 0 véhicule non classé,
+0 gare non résolue et tous les chunks physiques valides. La flotte primaire observée va de
+51 à 391 véhicules ; le pool brut dépasse la flotte primaire de 34 à 550 entrées selon la
+composition, ce qui confirme que l'ancien dénominateur H3 était matériellement faux.
+
+Le comparateur de politiques rend **5/5 paires complètes**, V/D/E **2/3/0** sur
+`profit_year`, test des signes **p=1,0**, delta moyen **+20 419,8**, garde de valeur
+**+3,578 %**, mais verdict **`diagnostic_only`** : c'est la preuve attendue que H1 interdit une
+décision d'adoption sur le 5×6, même lorsque la moyenne est positive. Ces chiffres valident le
+harnais, **pas** `air_presite=1` ; le 20×10 causal reste requis pour toute adoption réelle.
+
+Limite de traçabilité : le workspace était `git dirty=1` pendant la revue. Le manifeste enregistre
+le SHA Git `769fdf9baed4042b830fbf24393c17a65f530a56`, l'état dirty et le bundle exact
+`fe883b9eb5d43a6a87961ac7cfa03380670e35599f84253285af28021a7da502`, de sorte que la preuve
+reste reproductible sur les sources effectivement exécutées sans prétendre correspondre à HEAD
+propre.
 
 **C66 est close lorsque** le décodeur a sa preuve indépendante, les contrôles négatifs détectent
 et attribuent les échecs, la référence est figée et répétable, le diagnostic 5×6 est complet,

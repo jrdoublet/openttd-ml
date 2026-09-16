@@ -583,8 +583,9 @@ def extract_company_record(chunks, owner, run_key, date, output=None):
         "vehs_chunk_error": veh_dec["chunk_error"],
         "stnn_chunk_valid": stnn_valid,
         "stnn_chunk_error": stn_dec["chunk_error"],
-        "n_vehicles": veh_dec["vehicle_pool_entries"] if vehs_valid else None,
+        "n_vehicles": veh_dec["primary_vehicles_count"] if vehs_valid else None,
         "vehicle_pool_entries": veh_dec["vehicle_pool_entries"] if vehs_valid else None,
+        "total_vehicle_pool_entries": veh_dec["total_pool_entries"] if vehs_valid else None,
         "primary_vehicles": veh_dec["primary_vehicles_count"] if vehs_valid else None,
         "primary_vehicles_by_mode": veh_dec["primary_vehicles_by_mode"] if vehs_valid else None,
         "capacities_by_cargo": veh_dec["capacities_by_cargo"] if vehs_valid else None,
@@ -1027,19 +1028,43 @@ def build_policy_comparison(
         {"seed": pair["seed"], "repeat": pair["repeat"], "statuses": pair["statuses"]}
         for pair in pairs if not pair["complete"]
     ]
-    comparison_complete = len(complete_pairs) == planned and not incomplete_pairs
     primary_stats = aggregates[primary_metric]["policy_delta"]
-    guard_ratio = aggregates[VALUE_GUARD_METRIC]["policy_ratio"]["ratio_of_means_percent_change"]
-    primary_pass = (
+    guard_stats = aggregates[VALUE_GUARD_METRIC]["policy_ratio"]
+    guard_ratio = guard_stats["ratio_of_means_percent_change"]
+    metric_coverage_complete = (
+        primary_stats["n"] == planned
+        and guard_stats["n_positive_denominator"] == planned
+    )
+    comparison_complete = (
+        len(complete_pairs) == planned
+        and not incomplete_pairs
+        and metric_coverage_complete
+    )
+    adoption_sample_complete = planned == 20
+    sign_pass = (
+        primary_stats["wins"] >= 15
+        and primary_stats["sign_test_p"] is not None
+        and primary_stats["sign_test_p"] < 0.05
+        if adoption_sample_complete and comparison_complete else None
+    )
+    primary_mean_pass = (
         primary_stats["mean"] is not None
         and primary_stats["mean"] >= float(min_useful_primary_delta)
+        if comparison_complete else None
+    )
+    primary_pass = (
+        bool(sign_pass and primary_mean_pass)
+        if adoption_sample_complete and comparison_complete else None
     )
     guard_pass = (
         guard_ratio is not None
         and guard_ratio >= -float(value_guard_max_loss_pct)
+        if comparison_complete else None
     )
     if not comparison_complete:
         verdict = "incomplete"
+    elif not adoption_sample_complete:
+        verdict = "diagnostic_only"
     elif primary_pass and guard_pass:
         verdict = "pass"
     elif not primary_pass and not guard_pass:
@@ -1056,21 +1081,39 @@ def build_policy_comparison(
         "primary_metric": primary_metric,
         "value_guard_metric": VALUE_GUARD_METRIC,
         "decision_rule": {
+            "required_pairs": 20,
+            "required_wins": 15,
+            "max_sign_test_p_exclusive": 0.05,
             "min_useful_primary_delta": float(min_useful_primary_delta),
             "value_guard_max_loss_pct": float(value_guard_max_loss_pct),
-            "primary_rule": "mean(variant-reference) >= min_useful_primary_delta",
-            "value_guard_rule": "ratio_of_means(company_value) percent change >= -value_guard_max_loss_pct",
+            "primary_rule": (
+                "first wins>=15/20 and exact two-sided sign-test p<0.05; "
+                "then mean(variant-reference) >= min_useful_primary_delta"
+            ),
+            "value_guard_rule": (
+                "all 20 reference denominators must be positive; then "
+                "ratio_of_means(company_value) percent change >= -value_guard_max_loss_pct"
+            ),
             "all_planned_pairs_required_for_verdict": True,
         },
         "planned_pairs": planned,
         "complete_pairs": len(complete_pairs),
         "comparison_complete": comparison_complete,
+        "adoption_sample_complete": adoption_sample_complete,
+        "metric_coverage_complete": metric_coverage_complete,
         "incomplete_pairs": incomplete_pairs,
+        "statistical_incompleteness": {
+            "primary_metric_n": primary_stats["n"],
+            "value_guard_positive_denominators": guard_stats["n_positive_denominator"],
+            "value_guard_excluded": guard_stats["excluded_nonpositive_or_missing_denominator"],
+        },
         "per_pair": pairs,
         "aggregates": aggregates,
         "air_structural_aggregates": structural_aggregates,
-        "primary_pass": primary_pass if comparison_complete else None,
-        "value_guard_pass": guard_pass if comparison_complete else None,
+        "sign_pass": sign_pass,
+        "primary_mean_pass": primary_mean_pass,
+        "primary_pass": primary_pass,
+        "value_guard_pass": guard_pass,
         "verdict": verdict,
     }
 
@@ -1244,6 +1287,10 @@ def main():
         game_id = row.get("game_id") or f"{campaign.campaign_id}:policy={duel_policy_id}:s{seed}:r{repeat}"
         by_game[game_id].append(row)
 
+    planned_by_game = {experiment["game_id"]: experiment for experiment in exps}
+    missing_game_ids = sorted(set(planned_by_game) - set(by_game))
+    unexpected_game_ids = sorted(set(by_game) - set(planned_by_game))
+
     summary = []
     games = []
     for game_id, recs in sorted(by_game.items()):
@@ -1254,6 +1301,31 @@ def main():
         if len(policy_ids) != 1:
             raise ValueError(f"identité de politique instable dans {game_id}: {policy_ids}")
         duel_policy_id = next(iter(policy_ids))
+        expected_experiment = planned_by_game.get(game_id)
+        identity_error = None
+        if expected_experiment is None:
+            identity_error = f"unexpected_game:{game_id}"
+        else:
+            expected_identity = (
+                expected_experiment.get("campaign_id"),
+                expected_experiment.get("game_id"),
+                expected_experiment.get("source_bundle_sha256"),
+                expected_experiment.get("policy_id"),
+            )
+            observed_identities = {
+                (
+                    row.get("campaign_id"),
+                    row.get("game_id"),
+                    row.get("source_bundle_sha256"),
+                    row.get("duel_policy_id"),
+                )
+                for row in recs
+            }
+            if observed_identities != {expected_identity}:
+                identity_error = (
+                    f"unstable_campaign_identity:{sorted(observed_identities, key=str)} "
+                    f"expected={expected_identity}"
+                )
         log_path = next((row.get("engine_log_path") for row in recs if row.get("engine_log_path")), None)
         assessment = assess_game(
             recs,
@@ -1261,10 +1333,19 @@ def main():
             years=args.years,
             engine_log_path=log_path,
         )
-        part = summarise(recs, expected_last_year=last_year)
+        part = summarise(recs, expected_last_year=last_year, expected_savegames=args.years * 12)
         part = _stamp_structural_metrics(part, recs)
         part_annotated = annotate_summary(part, recs, assessment)
         for record in part_annotated:
+            if record.get("status") == "bankrupt":
+                for metric in SUCCESS_METRICS:
+                    if record.get(metric) is None:
+                        record[metric] = 0
+            if identity_error:
+                record["status"] = "missing_data"
+                record["run_ok"] = False
+                record["include_in_economic_stats"] = False
+                record["failure_reason"] = identity_error
             record.update({
                 "campaign_id": campaign.campaign_id,
                 "policy_id": duel_policy_id if record["arm"] == "OpexAI" else "AAAHogEx",
@@ -1301,6 +1382,46 @@ def main():
     for record in summary:
         record.pop("openttd_output", None)
     failed = [record for record in summary if not record["run_ok"]]
+    for game_id in missing_game_ids:
+        experiment = planned_by_game[game_id]
+        failure = {
+            "arm": "duel",
+            "seed": experiment["seed"],
+            "repeat": experiment.get("repeat", 0),
+            "duel_policy_id": experiment.get("policy_id"),
+            "game_id": game_id,
+            "status": "missing_data",
+            "game_ok": False,
+            "failure_reason": "missing_game:no_rows",
+        }
+        failed.append(failure)
+        games.append({
+            "campaign_id": campaign.campaign_id,
+            "policy_id": experiment.get("policy_id"),
+            "game_id": game_id,
+            "source_bundle_sha256": campaign.bundle_sha256,
+            "seed": experiment["seed"],
+            "repeat": experiment.get("repeat", 0),
+            "game_ok": False,
+            "game_status": "missing_data",
+            "engine_log_path": None,
+            "expected_last_checkpoint": last_checkpoint,
+            "unattributed_errors": [],
+            "companies": {},
+            "failure_reason": "missing_game:no_rows",
+        })
+    for game_id in unexpected_game_ids:
+        if not any(record.get("game_id") == game_id for record in failed):
+            failed.append({
+                "arm": "duel",
+                "seed": None,
+                "repeat": 0,
+                "duel_policy_id": None,
+                "game_id": game_id,
+                "status": "missing_data",
+                "game_ok": False,
+                "failure_reason": "unexpected_game",
+            })
 
     policy_reports = {}
     for policy in policies:
@@ -1367,7 +1488,7 @@ def main():
                 "game_id": record.get("game_id"),
                 "status": record.get("status"),
                 "game_ok": record.get("game_ok"),
-                "failure_reason": record["failure_reason"],
+                "failure_reason": record.get("failure_reason"),
             }
             for record in failed
         ],
@@ -1480,8 +1601,11 @@ def selftest():
         rec0 = extract_company_record(c66["chunks"], 0, ["OpexAI", 42, 0], "1970-12-01")
         assert rec0["vehs_chunk_valid"] is True, "Chunk VEHS valide attendu"
         assert rec0["stnn_chunk_valid"] is True, "Chunk STNN valide attendu"
-        assert rec0["n_vehicles"] == 26, f"26 entrées attendues, reçu {rec0['n_vehicles']}"
+        assert rec0["n_vehicles"] == 21, f"21 pilotables attendus, reçu {rec0['n_vehicles']}"
         assert rec0["primary_vehicles"] == 21, f"21 pilotables attendus, reçu {rec0['primary_vehicles']}"
+        assert rec0["vehicle_pool_entries"] == 26, (
+            f"26 entrées brutes attendues, reçu {rec0['vehicle_pool_entries']}"
+        )
         assert rec0["n_stations"] == 24, f"24 gares attendues, reçu {rec0['n_stations']}"
 
     # 2. Test fail-closed sur chunks manquants / invalides
@@ -1577,7 +1701,8 @@ def selftest():
             game,
         )
         assert "openttd_output" not in annotated[0]
-        assert annotated[0]["run_ok"] is True
+        assert annotated[0]["run_ok"] is False
+        assert annotated[0]["status"] == "missing_data"
         assert annotated[1]["run_ok"] is False
         ENGINE_LOG_DIR = None
 
@@ -1790,7 +1915,9 @@ def selftest():
     )
     primary = comparison["aggregates"]["profit_year"]["policy_delta"]
     assert comparison["comparison_complete"] is True
-    assert comparison["verdict"] == "pass"
+    assert comparison["adoption_sample_complete"] is False
+    assert comparison["verdict"] == "diagnostic_only"
+    assert comparison["primary_pass"] is None
     assert primary["mean"] == 5.0 and primary["median"] == 5.0
     assert (primary["wins"], primary["losses"], primary["ties"]) == (1, 1, 0)
     assert primary["sign_test_n_excluding_ties"] == 2 and primary["sign_test_p"] == 1.0
@@ -1798,6 +1925,69 @@ def selftest():
     assert ratio["n_positive_denominator"] == 2
     assert ratio["ratio_of_means"] != ratio["mean_of_ratios"]
     assert ratio_statistics([(10, 5), (20, 0), (30, -1)])["n_positive_denominator"] == 1
+
+    def synthetic_policy_case(deltas):
+        case_summary = []
+        case_rows = []
+        for seed, delta in enumerate(deltas, start=1):
+            for policy, opex_profit, opex_value in (
+                ("reference", 100, 1000),
+                ("variant", 100 + delta, 1001),
+            ):
+                for arm, profit_value, company_value in (
+                    ("OpexAI", opex_profit, opex_value),
+                    ("AAAHogEx", 90, 1100),
+                ):
+                    record = {
+                        "duel_policy_id": policy,
+                        "policy_id": policy if arm == "OpexAI" else "AAAHogEx",
+                        "arm": arm,
+                        "seed": seed,
+                        "repeat": 0,
+                        "run_ok": True,
+                        "game_ok": True,
+                        "status": "complete",
+                        "failure_reason": None,
+                        "profit_year": profit_value,
+                        "company_value": company_value,
+                        "profit": profit_value // 4,
+                        "performance_history": 100,
+                        "median_station_rating": 100,
+                        "primary_vehicles": 10,
+                    }
+                    case_summary.append(record)
+                    case_rows.append({
+                        **record,
+                        "run": [arm, seed, 0],
+                        "date": "1970-12-01",
+                    })
+        return build_policy_comparison(
+            case_summary,
+            case_rows,
+            seeds=list(range(1, 21)),
+            repeats=1,
+            reference_policy_id="reference",
+            variant_policy_id="variant",
+            primary_metric="profit_year",
+            min_useful_primary_delta=5,
+            value_guard_max_loss_pct=5,
+            starting_year=1970,
+            years=1,
+        )
+
+    adopted = synthetic_policy_case([10] * 15 + [-1] * 5)
+    assert adopted["comparison_complete"] is True
+    assert adopted["adoption_sample_complete"] is True
+    assert adopted["sign_pass"] is True
+    assert adopted["primary_mean_pass"] is True
+    assert adopted["primary_pass"] is True
+    assert adopted["verdict"] == "pass"
+
+    mean_positive_but_signs_fail = synthetic_policy_case([100] * 10 + [-1] * 10)
+    assert mean_positive_but_signs_fail["primary_mean_pass"] is True
+    assert mean_positive_but_signs_fail["sign_pass"] is False
+    assert mean_positive_but_signs_fail["primary_pass"] is False
+    assert mean_positive_but_signs_fail["verdict"] == "fail_primary"
 
     incomplete = build_policy_comparison(
         synthetic_summary[:-1],

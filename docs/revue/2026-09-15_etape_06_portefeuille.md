@@ -349,3 +349,35 @@ le projet inséré en queue est immédiatement retiré par `best.pop()`.
   `projects.nut` : `_portfolioInvalidated` court-circuite bien la garde mensuelle
   (`scheduler_tasks.nut:35-38`) et mène à `_rebuildProjects`. La question restante est en amont,
   sur ce qui pose le drapeau.
+
+## Passe de clôture — 2026-09-16
+
+La configuration des lignes 20-28 reste la photographie utilisée par la revue du 15 septembre ;
+`air_early_slot` a été adopté depuis. Les décisions ci-dessous ont donc été revérifiées sur le
+HEAD courant, sans réutiliser de résultat archivé antérieur au 2026-09-09.
+
+- **06.1 corrigé sans changement de classement** : le scan `bestProfit` n'existe plus quand le
+  plancher vaut 0, le capital est mémorisé par itération, et `minCapital` n'est calculé que pour
+  une sélection vide.
+- **06.2 différé** : remplacer le ratio profit/capital par un objectif de profit change le
+  comportement économique. Il faut un diagnostic 5×6 puis, si le signal tient, le 20×10 apparié.
+- **06.3 corrigé** : les alias `byOpcodes` ont été supprimés ; `best` reçoit directement
+  `funded`.
+- **06.4 non modifié** : `selectedCapital` est aussi lu par `task_town.nut` sous
+  `GROWTH_YIELDS`, et `IB|` a un second émetteur dans `scheduler_tasks.nut`. Une correction
+  locale changerait potentiellement le jeu et laisserait les deux canaux incohérents.
+- **06.5 différé** : relire le budget après la génération modifie l'admission au portefeuille et
+  doit être évalué comme variante comportementale.
+- **06.6 corrigé sur le bras expérimental** : un projet flotte en cache n'est retiré que si un
+  `fleetPlan` frais est effectivement disponible pour le régénérer.
+- **06.7 corrigé côté source de vérité** : les cinq initialisations de `knapsackExact` valent
+  désormais `false`. Le champ legacy reste présent pour compatibilité des parseurs, mais ne peut
+  plus annoncer un optimum prouvé par un solveur supprimé.
+- **06.8 corrigé côté journal** : `VIVIER` ne publie plus `infundable=0`, compteur mort qui
+  se lisait comme une mesure. `budgetRejected` reste la métrique réellement alimentée.
+- **06.9 conservé** : `generationCapitalBudget` décrit la génération complète d'origine ;
+  changer sa sémantique doit être coordonné avec le consommateur `FB|`.
+- **06.10 corrigé** : pour distinguer `stage_empty` de `empty_pool`, la passe utilise le
+  `modeCandidates` courant au lieu des listes de génération potentiellement vieilles du cache.
+- **06.11 et 06.12 différés** : rafraîchir l'économie recyclée ou déplacer le pré-devis rail
+  change le classement et exige les bancs comportementaux prévus par la méthode.

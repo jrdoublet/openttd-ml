@@ -245,6 +245,74 @@ projet, et il déclare sain le seul état qu'il devrait rendre impossible.
 - **Opportuniste** : c'est l'objet exact de C66.2 (`docs/taches.md:162`, « séparer santé du
   moteur, santé des compagnies et activité de l'IA ») et de C66.5 (critères de clôture).
 
+### Clôture H1 / H3 / H4 — 2026-09-16
+
+Ces trois groupes sont **corrigés et revalidés sur le workspace courant**.
+
+**H1 — règle d'adoption réellement appliquée.**
+
+- C66.4 exige désormais **20 paires** pour rendre un verdict d'adoption. Le test des signes exact
+  bilatéral est premier : **≥ 15/20 victoires et p < 0,05** ; le seuil sur la moyenne du delta ne
+  vient qu'ensuite. Un banc plus court reste exploitable mais son verdict est
+  `diagnostic_only`.
+- La comparaison est fail-closed sur la couverture : `primary_metric_n` et le nombre de
+  dénominateurs positifs de la garde de valeur doivent couvrir toutes les paires planifiées.
+- `bench_v2.py` publie maintenant V/D/égalités, `sign_test_n_excluding_ties`,
+  `sign_test_p` et les deltas appariés par graine.
+
+**H3 — le nombre de véhicules est une flotte physique.**
+
+- `n_vehicles` désigne maintenant les véhicules primaires pilotables et vaut
+  `primary_vehicles`; `vehicle_pool_entries` et `total_vehicle_pool_entries` gardent les
+  comptes bruts nécessaires au diagnostic.
+- `primary_vehicles` rejoint `SUCCESS_METRICS`; le smoke teste ce compteur et le diagnostic
+  mensuel applique le gating `qualified_modes`. L'eau reste explicitement non qualifiée.
+- Sur le 5×6 final, le pool brut dépasse la flotte primaire de **34 à 550 entrées** suivant la
+  composition : l'écart H3 n'était donc pas cosmétique.
+
+**H4 — fail-closed jusqu'aux statistiques.**
+
+- la grille mensuelle attendue est contrôlée sans trou ; les jeux planifiés qui ne produisent
+  aucune ligne et les identités de campagne incohérentes deviennent des échecs explicites ;
+- l'absence de journal moteur est un `engine_error` ; le timeout est limité à
+  `_run_experiment` et ne touche plus les téléchargements OpenTTDLab ;
+- une compagnie sans véhicule primaire, sans gare ou avec `company_value <= 1` devient
+  `inactive_company` ; `stagnation_suspect` n'est plus une issue économique admissible ;
+- une valeur qui baisse sans expansion récente est distinguée de
+  `earning_without_expansion` et classée `declining_without_expansion`.
+
+**Validations rejouées.**
+
+- `python sweeps/test_physical_counters.py` → **7/7 OK** ;
+- `python sweeps/test_game_health.py` → **25/25 OK** ;
+- `python sweeps/bench_1v1_5y_20seeds.py --selftest` → OK ;
+- `python sweeps/diag_1v1_shared_monthly.py --selftest` → OK ;
+- compilation Python des harnais concernés → OK ;
+- `git diff --check` → OK.
+
+Smoke réel après les derniers correctifs :
+`results/review_h134_smoke_ci_2x3_v3.json`, **2 graines × 3 ans**, résultat **PASSED**,
+2/2 runs, 36 checkpoints par run, horizon `1972-12-01`, chunks physiques valides.
+
+Diagnostic C66.4 final :
+`results/review_h134_5x6_air_presite_v2.json`, **5 graines × 6 ans**, soit 10 parties
+référence/variante. Audit programmatique : **10/10 jeux**, **20/20 lignes**
+`complete/run_ok/game_ok`, 0 `failed_run`, **1 440 checkpoints = 20 × 72 mois exacts**,
+0 trou, 0 erreur non attribuée, 0 véhicule non classé, 0 gare non résolue. Le manifeste fige
+CPU=3, mémoire/swap=2g/2g, l'image
+`sha256:f4b2b9b3b7399cbfecacfe03b3b8dda49bff2921de36a61fed4e9441e5d44659`
+et une seule différence effective : `air_presite: 0 -> 1`.
+
+La comparaison de politiques donne V/D/E **2/3/0**, `p=1,0`, delta moyen de
+`profit_year` **+20 419,8** et garde de valeur **+3,578 %**, mais rend
+**`diagnostic_only`**. C'est le contrôle attendu : une moyenne positive sur 5 paires ne peut
+plus être prise pour une adoption. Ces nombres valident le harnais, pas `air_presite=1`.
+
+**Limite** : le workspace était dirty pendant la revue. Le manifeste enregistre le SHA Git
+`769fdf9baed4042b830fbf24393c17a65f530a56`, `dirty=1` et le bundle exact
+`fe883b9eb5d43a6a87961ac7cfa03380670e35599f84253285af28021a7da502`. La preuve est donc
+attachée aux sources réellement exécutées, sans prétendre correspondre à un HEAD propre.
+
 ### H5. La métrique nord — profit par opcode — n'est ni mesurée, ni comptée, ni dépensée
 
 **Constats** : 18.5 (P1), 06.1 (P1), 11.4 (P2), 06.3 (P2), 07.2 (P2), 19.5 (P2), 01.8 (P3),

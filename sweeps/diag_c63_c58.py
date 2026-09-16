@@ -919,12 +919,14 @@ map_y = 8
 
 
 def keep_c63(row):
-    """Conserve le journal (C63_INVEST) et la valeur ; pas len(VEHS) comme flotte."""
+    """Conserve le journal C63_INVEST et des compteurs de gare qualifies par proprietaire."""
     chunks = row.get("chunks", {})
     player = chunks.get("PLYR", {}).get(0) or chunks.get("PLYR", {}).get("0") or {}
     closed = player.get("old_economy") or []
     last_closed = closed[0] if closed else {}
-    stnn = chunks.get("STNN", {}) or {}
+    stnn = chunks.get("STNN")
+    from physical_counters import decode_stations
+    stn_dec = decode_stations(stnn, target_owner=0)
     py = year_profit(closed)
     return ({
         "seed": row["experiment"]["seed"],
@@ -932,7 +934,9 @@ def keep_c63(row):
         "company_value": last_closed.get("company_value", 0),
         "profit_year": py if py is not None else 0,
         "profit": quarter_profit(last_closed) or 0,
-        "n_stations": len(stnn),
+        "n_stations": stn_dec["total_stations"] if stn_dec["chunk_valid"] else None,
+        "stnn_chunk_valid": stn_dec["chunk_valid"],
+        "stnn_chunk_error": stn_dec["chunk_error"],
         "output": row.get("output", ""),
     },)
 
@@ -1001,6 +1005,8 @@ def run_campaign(args):
             "last_date": last["date"],
             "company_value": last["company_value"],
             "n_stations": last["n_stations"],
+            "stnn_chunk_valid": last.get("stnn_chunk_valid"),
+            "stnn_chunk_error": last.get("stnn_chunk_error"),
             "table": table,
             "c63_years": c63_years,
             "has_1970_1972": {1970, 1971, 1972} <= set(c63_years),

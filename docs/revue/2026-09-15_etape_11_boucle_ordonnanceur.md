@@ -188,3 +188,23 @@ utilisé dans `task_air.nut` (hors périmètre) ou s'il est mort — voir sectio
 - Le comptage précis 28 vs ~26/29 méthodes sans prototype (enjeu du plan) n'a pas été recompté au-delà
   du grep structurel fait ici ; à confirmer si une étape dédiée au style/aux conventions du code le
   demande.
+
+## Passe de clôture — 2026-09-16
+
+- **11.1** : les 15 noms sont toujours cohérents. Le garde-fou demandé (`AILog.Error` sur nom
+  inconnu) appartient à `scheduler.nut`, hors périmètre de modification de cette passe ; aucun
+  contournement partiel n'a été ajouté dans `main.nut`.
+- **11.2 et 11.3** : les chemins concernés vivent dans `scheduler_tasks.nut`/`task_town.nut`
+  et restent expérimentaux. Ils ne sont pas modifiés ici.
+- **11.4** : `loop_budget` change directement la quantité de travail par tick. Toute adoption
+  reste soumise au diagnostic 5×6 puis au 20×10.
+- **11.5** : les trois familles de deadline restent un constat d'architecture, sans correctif
+  mécanique justifié.
+- **11.6 et 11.7** : le défaut de persistance est confirmé, mais la correction doit choisir entre
+  persister/réconcilier les machines à états et les rendre idempotentes au reload. `persist.nut`
+  n'est pas dans le périmètre de cette passe ; aucune pseudo-persistance partielle n'a été ajoutée.
+  La revue de `task_rail.nut` a néanmoins fermé deux blocages de vivacité indépendants : CASH sur
+  upgrade libère maintenant `_railSearch` selon la politique C41 déjà adoptée, et la phase
+  `resume` d'expansion est bornée à trois essais avec trace `EX|...|R`.
+- **11.8 corrigé** : `_lastAirFleetMonth` n'avait aucun lecteur dans le dépôt et a été retiré de
+  `main.nut`.

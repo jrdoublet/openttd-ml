@@ -32,6 +32,9 @@ import statistics
 import openttdlab
 from openttdlab import bananas_ai, bananas_ai_library, local_folder, run_experiments
 
+from campaign_freeze import effective_ai_settings
+from physical_counters import decode_stations, decode_vehicles
+
 ROOT = Path("/work") if Path("/work").exists() else Path(__file__).resolve().parents[1]
 OPENTTD_VERSION, OPENGFX_VERSION = "15.3", "7.1"
 TRAINS_MD5 = "c4c069dc797674e545411b59867ad0c2"  # identique aux scripts phase0
@@ -71,6 +74,7 @@ SUCCESS_METRICS = (
     "profit",
     "profit_year",
     "median_station_rating",
+    "primary_vehicles",
 )
 
 SCRIPT_FAILURE_MARKERS = (
@@ -160,7 +164,7 @@ def parse_opex_variant(name):
                 raise ValueError("project_top_k doit etre entre 8 et 128")
             if value % 8:
                 raise ValueError("project_top_k doit etre un multiple de 8 (step_size)")
-        elif key in ("project_top_k_dynamic", "c41_rail_freight_town_service_cache"):
+        elif key in ("project_top_k_dynamic", "c41_rail_freight_town_service_cache", "staged_bootstrap"):
             if value not in (0, 1):
                 raise ValueError(f"{key} est booleen : 0 ou 1")
         elif key == "portfolio_max_batch":
@@ -228,15 +232,75 @@ def parse_opex_variant(name):
     return tuple(params)
 
 
+def resolve_opex_arm_settings(name):
+    """Resout et epingle tous les reglages OpexAI contre les defauts de info.nut."""
+    explicit = parse_opex_variant(name)
+    if name != "OpexAI" and explicit is None:
+        return None
+    return effective_ai_settings(ROOT / "ai" / "OpexAI" / "info.nut", explicit or ())
+
+
+def resolved_arm_settings(names):
+    """Metadonnees de reproductibilite : defauts, explicites et valeurs effectives."""
+    resolved = {}
+    for name in names:
+        settings = resolve_opex_arm_settings(name)
+        if settings is None:
+            resolved[name] = {"ai": name, "settings": None}
+            continue
+        defaults = settings["defaults"]
+        explicit = settings["explicit"]
+        resolved[name] = {
+            "ai": "OpexAI",
+            "settings": settings,
+            "explicit_nondefault": {
+                key: value for key, value in explicit.items()
+                if defaults.get(key) != value
+            },
+        }
+    return resolved
+
+
+def comparison_setting_audit(resolved):
+    """Detecte un socle hors-defaut partage qui rend un duel non transportable au defaut livre."""
+    opex = {
+        name: payload for name, payload in resolved.items()
+        if payload.get("ai") == "OpexAI" and payload.get("settings")
+    }
+    shared = []
+    names = sorted(opex)
+    if len(names) >= 2:
+        all_keys = set().union(*(set(opex[name]["explicit_nondefault"]) for name in names))
+        for key in sorted(all_keys):
+            carriers = [
+                name for name in names
+                if key in opex[name]["explicit_nondefault"]
+            ]
+            if len(carriers) < 2:
+                continue
+            values = {opex[name]["explicit_nondefault"][key] for name in carriers}
+            if len(values) == 1:
+                shared.append({
+                    "setting": key,
+                    "value": next(iter(values)),
+                    "arms": carriers,
+                })
+    return {
+        "transportable_to_shipped_defaults": not shared,
+        "shared_nondefault_explicit": shared,
+    }
+
+
 def build_arms(names):
-    """Construit les arms demandes, y compris les variantes parametrees de notre IA."""
+    """Construit les arms demandes avec un snapshot explicite des defauts OpexAI."""
     arms = {}
     for name in names:
         if name in arms:
             raise ValueError(f"arm duplique: {name}")
-        opex_params = parse_opex_variant(name)
-        if name == "OpexAI" or opex_params is not None:
-            arms[name] = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", opex_params or ())
+        opex_settings = resolve_opex_arm_settings(name)
+        if opex_settings is not None:
+            params = tuple(opex_settings["effective"].items())
+            arms[name] = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", params)
         elif name == "trAIns":
             arms[name] = bananas_ai("54524149", "trAIns", ai_params=(), md5=TRAINS_MD5)
         elif name == "AdmiralAI":
@@ -344,6 +408,21 @@ def keep(row):
     closed = (player or {}).get("old_economy") or []
     last_closed = closed[0] if closed else {}
     ratings = station_ratings(chunks)
+    veh_dec = decode_vehicles(chunks.get("VEHS"), target_owner=0)
+    stn_dec = decode_stations(chunks.get("STNN"), target_owner=0)
+    qualified_primary = None
+    unqualified_primary = None
+    if veh_dec["chunk_valid"]:
+        qualified_primary = sum(
+            veh_dec["primary_vehicles_by_mode"][mode]
+            for mode, qualified in veh_dec["qualified_modes"].items()
+            if qualified
+        )
+        unqualified_primary = sum(
+            veh_dec["primary_vehicles_by_mode"][mode]
+            for mode, qualified in veh_dec["qualified_modes"].items()
+            if not qualified
+        )
     record = {
         "run": row["experiment"]["bench_run"],
         "date": str(row["date"]),
@@ -358,8 +437,26 @@ def keep(row):
         "money": (player or {}).get("money"),
         "current_loan": (player or {}).get("current_loan"),
         "months_of_bankruptcy": (player or {}).get("months_of_bankruptcy"),
-        "n_vehicles": len(chunks.get("VEHS", {})),
-        "n_stations": len(chunks.get("STNN", {})),
+        "n_vehicles": veh_dec["primary_vehicles_count"] if veh_dec["chunk_valid"] else None,
+        "n_stations": stn_dec["total_stations"] if stn_dec["chunk_valid"] else None,
+        "physical_counters_version": veh_dec["schema_version"],
+        "qualified_modes": veh_dec["qualified_modes"],
+        "vehs_chunk_valid": veh_dec["chunk_valid"],
+        "vehs_chunk_error": veh_dec["chunk_error"],
+        "stnn_chunk_valid": stn_dec["chunk_valid"],
+        "stnn_chunk_error": stn_dec["chunk_error"],
+        "vehicle_pool_entries": veh_dec["vehicle_pool_entries"] if veh_dec["chunk_valid"] else None,
+        "total_vehicle_pool_entries": veh_dec["total_pool_entries"] if veh_dec["chunk_valid"] else None,
+        "primary_vehicles": veh_dec["primary_vehicles_count"] if veh_dec["chunk_valid"] else None,
+        "qualified_primary_vehicles": qualified_primary,
+        "unqualified_primary_vehicles": unqualified_primary,
+        "primary_vehicles_by_mode": veh_dec["primary_vehicles_by_mode"] if veh_dec["chunk_valid"] else None,
+        "capacities_by_cargo": veh_dec["capacities_by_cargo"] if veh_dec["chunk_valid"] else None,
+        "fleet_status": veh_dec["fleet_status"] if veh_dec["chunk_valid"] else None,
+        "unclassified_vehicles": len(veh_dec["unclassified_entries"]),
+        "n_multimodal_stations": stn_dec["n_multimodal_stations"] if stn_dec["chunk_valid"] else None,
+        "stations_by_facility": stn_dec["stations_by_facility"] if stn_dec["chunk_valid"] else None,
+        "unresolved_stations": len(stn_dec["unresolved_stations"]),
         # L'echec de chargement d'une IA est silencieux dans PLYR ; ce log reste donc disponible
         # dans le resume final pour le controle explicite de row["output"].
         "openttd_output": row.get("output"),
@@ -430,7 +527,7 @@ def saved_year(date):
     return int(match.group(1)) if match else None
 
 
-def summarise(rows, expected_last_year=None):
+def summarise(rows, expected_last_year=None, expected_savegames=None):
     """Retient le dernier etat de chaque partie et signale une fin prematuree.
 
     Un script NoAI peut se figer sans que le moteur marque la partie en echec. Le
@@ -455,6 +552,23 @@ def summarise(rows, expected_last_year=None):
                 f"{last_year if last_year is not None else 'unknown'} "
                 f"< expected {expected_last_year}"
             )
+        if failure_reason is None and expected_savegames is not None:
+            expected_minimum = int(expected_savegames)
+            month_ordinals = []
+            for checkpoint in series:
+                match = re.match(r"(\d{4})-(\d{2})-", str(checkpoint.get("date", "")))
+                if match:
+                    month_ordinals.append(int(match.group(1)) * 12 + int(match.group(2)) - 1)
+            if len(series) < expected_minimum:
+                failure_reason = (
+                    f"incomplete_checkpoints: observed {len(series)} "
+                    f"< minimum {expected_minimum}"
+                )
+            elif len(month_ordinals) != len(series) or any(
+                current - previous != 1
+                for previous, current in zip(month_ordinals, month_ordinals[1:])
+            ):
+                failure_reason = "incomplete_checkpoints: monthly checkpoint sequence is not contiguous"
 
         vehs_valid = final.get("vehs_chunk_valid")
         stnn_valid = final.get("stnn_chunk_valid")
@@ -497,7 +611,10 @@ def summarise(rows, expected_last_year=None):
                 "stnn_chunk_valid": stnn_valid,
                 "stnn_chunk_error": final.get("stnn_chunk_error"),
                 "vehicle_pool_entries": final.get("vehicle_pool_entries"),
+                "total_vehicle_pool_entries": final.get("total_vehicle_pool_entries"),
                 "primary_vehicles": final.get("primary_vehicles"),
+                "qualified_primary_vehicles": final.get("qualified_primary_vehicles"),
+                "unqualified_primary_vehicles": final.get("unqualified_primary_vehicles"),
                 "primary_vehicles_by_mode": final.get("primary_vehicles_by_mode"),
                 "capacities_by_cargo": final.get("capacities_by_cargo"),
                 "fleet_status": final.get("fleet_status"),
@@ -513,6 +630,16 @@ def summarise(rows, expected_last_year=None):
 def number(value):
     """Evite les NaN JSON et garde les sorties stables pour les petits echantillons."""
     return None if value is None else round(value, 6)
+
+
+def exact_sign_test_p(wins, losses):
+    """Test binomial exact bilateral ; les egalites ne portent aucun signe."""
+    n = int(wins) + int(losses)
+    if n == 0:
+        return None
+    tail = min(int(wins), int(losses))
+    probability = 2 * sum(math.comb(n, k) for k in range(tail + 1)) / (2 ** n)
+    return number(min(1.0, probability))
 
 
 def dispersion(values):
@@ -587,16 +714,36 @@ def paired_comparisons(summary, arm_names):
                     standard_deviation / math.sqrt(count) if standard_deviation is not None else None
                 )
                 baseline = statistics.mean([b for _, b in pairs]) if pairs else None
+                wins = sum(difference > 0 for difference in differences)
+                losses = sum(difference < 0 for difference in differences)
+                ties = sum(difference == 0 for difference in differences)
+                sign_p = exact_sign_test_p(wins, losses)
                 metrics[metric] = {
                     "n": count,
+                    "paired_differences": [
+                        {
+                            "seed": seed,
+                            "difference": number(per_seed[arm_a, seed][metric] - per_seed[arm_b, seed][metric]),
+                        }
+                        for seed in shared_seeds
+                        if per_seed[arm_a, seed][metric] is not None
+                        and per_seed[arm_b, seed][metric] is not None
+                    ],
                     "mean_difference": number(mean_difference),
-                    # Le pourcentage rapporte la moyenne des differences a la moyenne de B.
                     "mean_difference_percent": number(
                         100 * mean_difference / baseline if baseline else None
                     ),
                     "standard_deviation": number(standard_deviation),
                     "standard_error": number(standard_error),
-                    "arm_a_beats_arm_b": sum(difference > 0 for difference in differences),
+                    "arm_a_beats_arm_b": wins,
+                    "arm_a_loses_to_arm_b": losses,
+                    "ties": ties,
+                    "sign_test_n_excluding_ties": wins + losses,
+                    "sign_test_p": sign_p,
+                    "protocol_15_of_20_pass": (
+                        wins >= 15 and sign_p is not None and sign_p < 0.05
+                        if count == 20 else None
+                    ),
                 }
             comparisons.append({
                 "arm_a": arm_a,
@@ -605,6 +752,36 @@ def paired_comparisons(summary, arm_names):
                 "metrics": metrics,
             })
     return comparisons
+
+
+def benchmark_completeness(summary, arm_names, seeds, repeats):
+    """Verifie que chaque partie planifiee existe dans le resume final."""
+    expected = {
+        (arm, int(seed), repeat)
+        for arm in arm_names
+        for seed in seeds
+        for repeat in range(repeats)
+    }
+    observed = {
+        (record["arm"], int(record["seed"]), int(record.get("repeat", 0)))
+        for record in summary
+    }
+
+    def records(keys):
+        return [
+            {"arm": arm, "seed": seed, "repeat": repeat}
+            for arm, seed, repeat in sorted(keys, key=str)
+        ]
+
+    missing = expected - observed
+    unexpected = observed - expected
+    return {
+        "ok": not missing and not unexpected,
+        "expected_runs": len(expected),
+        "observed_runs": len(observed & expected),
+        "missing_runs": records(missing),
+        "unexpected_runs": records(unexpected),
+    }
 
 
 def write_json_atomically(path, payload):
@@ -624,12 +801,27 @@ def parse_args():
     parser.add_argument("--max-workers", type=int, default=MAX_WORKERS, help="taille du Pool")
     parser.add_argument("--repeats", type=int, default=1, help="repetitions par arm et graine")
     parser.add_argument("--map-size", type=int, default=8, help="taille de la carte en puissance de 2 (8=256, 10=1024)")
+    parser.add_argument(
+        "--allow-shared-nondefault", action="store_true",
+        help="autorise explicitement un reglage hors-defaut identique sur plusieurs arms OpexAI",
+    )
     args = parser.parse_args()
     if args.years <= 0 or args.max_workers <= 0 or args.repeats <= 0:
         parser.error("--years, --max-workers et --repeats doivent etre strictement positifs")
     if len(set(args.seeds)) != len(args.seeds):
         parser.error("--seeds ne doit pas contenir de doublon")
     try:
+        args.resolved_arm_settings = resolved_arm_settings(args.arms)
+        args.setting_audit = comparison_setting_audit(args.resolved_arm_settings)
+        if args.setting_audit["shared_nondefault_explicit"] and not args.allow_shared_nondefault:
+            details = ", ".join(
+                f"{item['setting']}={item['value']}"
+                for item in args.setting_audit["shared_nondefault_explicit"]
+            )
+            parser.error(
+                "reglage(s) hors-defaut epingle(s) identiquement dans plusieurs arms OpexAI: "
+                f"{details}; utiliser --allow-shared-nondefault pour un essai conditionnel explicite"
+            )
         args.built_arms = build_arms(args.arms)
     except ValueError as error:
         parser.error(str(error))
@@ -656,8 +848,22 @@ def main():
             bananas_ai_library("5046524c", "Pathfinder.Rail"),
         ),
     ))
-    summary = summarise(rows, expected_last_year=args.starting_year + args.years - 1)
+    summary = summarise(
+        rows,
+        expected_last_year=args.starting_year + args.years - 1,
+        expected_savegames=args.years * 12,
+    )
+    completeness = benchmark_completeness(summary, args.arms, args.seeds, args.repeats)
     failed_runs = [record for record in summary if not record["run_ok"]]
+    missing_failures = [
+        {**record, "failure_reason": "missing_run:no_rows"}
+        for record in completeness["missing_runs"]
+    ]
+    unexpected_failures = [
+        {**record, "failure_reason": "unexpected_run"}
+        for record in completeness["unexpected_runs"]
+    ]
+    protocol_failures = failed_runs + missing_failures + unexpected_failures
     payload = {
         "openttd_version": OPENTTD_VERSION,
         "opengfx_version": OPENGFX_VERSION,
@@ -665,6 +871,11 @@ def main():
         "starting_year": args.starting_year,
         "seeds": args.seeds,
         "arms": args.arms,
+        "resolved_arms": args.resolved_arm_settings,
+        "setting_audit": {
+            **args.setting_audit,
+            "shared_nondefault_allowed": bool(args.allow_shared_nondefault),
+        },
         "repeats": args.repeats,
         "openttd_config": cfg,
         "metric": (
@@ -678,12 +889,13 @@ def main():
         ),
         "checkpoint": str(CHECKPOINT_PATH),
         "summary": summary,
+        "completeness": completeness,
         "failed_runs": [
             {
                 "arm": record["arm"], "seed": record["seed"], "repeat": record["repeat"],
                 "failure_reason": record["failure_reason"],
             }
-            for record in failed_runs
+            for record in protocol_failures
         ],
         "statistics": arm_statistics(summary, args.arms),
         "paired_comparisons": paired_comparisons(summary, args.arms),
@@ -700,8 +912,10 @@ def main():
         )
     print("checkpoint", CHECKPOINT_PATH)
     print("ecrit", out)
-    if failed_runs:
-        raise SystemExit(f"banc invalide: {len(failed_runs)} run(s) avec une erreur fatale NoAI")
+    if protocol_failures:
+        raise SystemExit(
+            f"banc invalide: {len(protocol_failures)} run(s) en echec, absent(s) ou inattendu(s)"
+        )
 
 
 if __name__ == "__main__":

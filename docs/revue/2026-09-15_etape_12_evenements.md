@@ -174,3 +174,20 @@ Toute lecture ligne à ligne de `OpexRefreshEpochBounds` (`candidates.nut:388`),
 la boucle `_tryBuildProjects` (`task_projects.nut`) reste à faire par les étapes qui couvrent ces
 fichiers (2, 3, 13) ; ce rapport ne les cite que pour situer la frontière catalogue/portefeuille
 vue depuis `events.nut`/`event_handlers.nut`.
+
+## Passe de clôture — 2026-09-16
+
+- **12.1** : le rafraîchissement moteur sans invalidation du portefeuille reste réel sous
+  `C39_ENGINE_REFRESH=0`. L'activer par défaut change les décisions d'investissement dans le mois ;
+  c'est une variante comportementale à mesurer, et le code fonctionnel est dans
+  `event_handlers.nut`, hors périmètre d'édition de cette passe.
+- **12.2** : même verdict pour la fermeture d'industrie. Un refresh catalogue sans reconstruction
+  immédiate est confirmé ; l'invalidation supplémentaire doit être évaluée avant adoption.
+- **12.3** : aucun correctif de code nécessaire. « untracked » décrit l'absence de suivi interne de
+  l'autoreplace, pas une absence de remapping des véhicules.
+- **V1/V2/V3** restent fermés tels que documentés. En particulier `events.nut::_markDirty` reste
+  un enregistreur de mesure pur ; lui donner un effet fonctionnel mélangerait la sonde C39 et le
+  mécanisme réel `_portfolioInvalidated`.
+
+Aucun changement n'a donc été appliqué à `events.nut` : les deux écarts fonctionnels exigent un
+banc et se trouvent dans `event_handlers.nut`, tandis que les autres constats sont descriptifs.

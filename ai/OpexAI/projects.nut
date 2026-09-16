@@ -620,28 +620,30 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
    * que les projets dont le profit annuel atteint une fraction du MEILLEUR profit finançable du
    * moment. Le plancher est relatif, donc il ne depend ni de l'epoque, ni de la taille de la carte,
    * ni de l'inflation : a 0 il reproduit exactement le comportement mesure ci-dessus. */
-  local bestProfit = 0;
-  foreach (project in alternatives) {
-    if (OpexProjectFinanceCapital(project) > capitalBudget) continue;
-    if (project.profitAnnual > bestProfit) bestProfit = project.profitAnnual;
-  }
   local floorProfit = 0;
-  if (PORTFOLIO_FLOOR_PCT > 0 && bestProfit > 0) {
-    floorProfit = bestProfit * PORTFOLIO_FLOOR_PCT / 100;
+  if (PORTFOLIO_FLOOR_PCT > 0) {
+    local bestProfit = 0;
+    foreach (project in alternatives) {
+      local financeCapital = OpexProjectFinanceCapital(project);
+      if (financeCapital > capitalBudget) continue;
+      if (project.profitAnnual > bestProfit) bestProfit = project.profitAnnual;
+    }
+    if (bestProfit > 0) floorProfit = bestProfit * PORTFOLIO_FLOOR_PCT / 100;
   }
 
   local affordable = [];
   local earlySlotState = AIR_EARLY_SLOT ? OpexEarlySlotSelectionState() : null;
   local scoreKey = (TENSION_SCORING || SHADOW_PRICING) ? "tensionScore" : "fundScore";
   foreach (project in alternatives) {
-    if (OpexProjectFinanceCapital(project) > capitalBudget) continue;
+    local financeCapital = OpexProjectFinanceCapital(project);
+    if (financeCapital > capitalBudget) continue;
     if (project.profitAnnual < floorProfit) continue;
     if (AIR_EARLY_SLOT) OpexProjectRefreshEarlySlot(project, earlySlotState);
     if (!TENSION_SCORING && !SHADOW_PRICING) {
       if (C49_VARIABLE_DENOMINATOR) {
         project.fundScore <- OpexC49ProjectScore(project, C49_CURRENT_REGIME);
       } else {
-        project.fundScore <- OpexProjectScore(project.profitAnnual, OpexProjectFinanceCapital(project));
+        project.fundScore <- OpexProjectScore(project.profitAnnual, financeCapital);
       }
     }
     OpexProjectInsert(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
@@ -652,13 +654,14 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
    * batir du tout. */
   if (affordable.len() == 0 && floorProfit > 0) {
     foreach (project in alternatives) {
-      if (OpexProjectFinanceCapital(project) > capitalBudget) continue;
+      local financeCapital = OpexProjectFinanceCapital(project);
+      if (financeCapital > capitalBudget) continue;
       if (AIR_EARLY_SLOT) OpexProjectRefreshEarlySlot(project, earlySlotState);
       if (!TENSION_SCORING && !SHADOW_PRICING) {
         if (C49_VARIABLE_DENOMINATOR) {
           project.fundScore <- OpexC49ProjectScore(project, C49_CURRENT_REGIME);
         } else {
-          project.fundScore <- OpexProjectScore(project.profitAnnual, OpexProjectFinanceCapital(project));
+          project.fundScore <- OpexProjectScore(project.profitAnnual, financeCapital);
         }
       }
       OpexProjectInsert(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
@@ -711,7 +714,6 @@ function OpexLogVivier(path, candidates, stats, capitalBudget, capitalRemaining)
   if (DECISION_LOG) {
     OpexDecide("VIVIER", "path=" + path + " considered=" + stats.budgetConsidered
                + " selected=" + stats.budgetSelected + " rejected=" + stats.budgetRejected
-               + " infundable=" + stats.poolInfundable
                + " budget=" + capitalBudget + " remaining=" + capitalRemaining
                + " sel_ops=" + (("selectionOpcodes" in stats) ? stats.selectionOpcodes : -1));
   }
@@ -757,9 +759,13 @@ function OpexLogVivier(path, candidates, stats, capitalBudget, capitalRemaining)
 function OpexProjectsStampSelectionStats(stats, projects, alternatives, funded, capitalBudget, extras)
 {
   local minCap = -1;
-  foreach (p in alternatives) {
-    local cap = OpexProjectFinanceCapital(p);
-    if (minCap < 0 || cap < minCap) minCap = cap;
+  /* minCapital ne sert qu'a expliquer une selection vide. Eviter de
+   * rescanner tout le vivier quand un projet financable existe deja. */
+  if (funded.len() == 0) {
+    foreach (p in alternatives) {
+      local cap = OpexProjectFinanceCapital(p);
+      if (minCap < 0 || cap < minCap) minCap = cap;
+    }
   }
   stats.minCapital <- minCap;
   stats.railCandidates <- (("rail" in projects) && projects.rail != null && ("candidates" in projects.rail) && projects.rail.candidates != null) ? projects.rail.candidates.len() : 0;
@@ -788,7 +794,7 @@ function OpexProjectsStampSelectionStats(stats, projects, alternatives, funded, 
         emptyCause = (abandonFiltered > 0) ? "abandon_filtered" : "cache_exhausted";
       } else if (abandonFiltered > 0 && modeC == 0) {
         emptyCause = "abandon_filtered";
-      } else if (stats.railCandidates == 0 && stats.roadCandidates == 0 && stats.airPlansCount == 0 && stats.waterPlansCount == 0) {
+      } else if (modeC == 0) {
         emptyCause = "stage_empty";
       } else {
         emptyCause = "empty_pool";
@@ -819,7 +825,7 @@ function OpexReselectProjects(projects, capitalBudget)
   funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);
   considered = alternatives.len();
   projects.stats.knapsackNodes = 0;
-  projects.stats.knapsackExact = true;
+  projects.stats.knapsackExact = false;
   projects.stats.selectionOpcodes <- OpexOpsMeasureEnd(opsMark);
 
   projects.stats.budgetConsidered = considered;
@@ -1351,7 +1357,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
     selectedRevenue = 0,
     selectedCapital = 0,
     knapsackNodes = 0,
-    knapsackExact = true,
+    knapsackExact = false,
   };
 
   local tensionCtx = null;
@@ -1395,7 +1401,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
         cacheScanned++;
         if (p == null) continue;
         /* La flotte et les feeders sont regeneres frais ci-dessous */
-        if (p.mode == "fleet") continue;
+        if (p.mode == "fleet" && FLEET_PORTFOLIO && fleetPlan != null) continue;
         if (("payload" in p) && p.payload != null &&
             ("isFeeder" in p.payload) && p.payload.isFeeder) continue;
         /* Early-slot est une priorite transitoire. Apres chaque chantier, le
@@ -1524,7 +1530,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   stats.budgetSelected = funded.len();
   stats.budgetRejected = alternatives.len() - funded.len();
   stats.knapsackNodes = 0;
-  stats.knapsackExact = true;
+  stats.knapsackExact = false;
   stats.selectionOpcodes <- OpexOpsMeasureEnd(opsMark);
   if (C48_INCREMENTAL_PROFILE) {
     local c48Days = AIDate.GetCurrentDate() - c48SelectionDate;
@@ -1552,8 +1558,6 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   };
   OpexProjectsStampSelectionStats(stats, projects, alternatives, funded, capitalBudget, stampExtras);
 
-  local byOpcodes = funded;
-
   if (DECISION_LOG) {
     local vivierPool = [];
     foreach (key, list in newWinners) {
@@ -1565,7 +1569,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   AILog.Info("[PORTFOLIO_CACHE] incremental: candidates=" + stats.modeCandidates + " od=" + stats.odProjects + " selected=" + stats.budgetSelected + " remaining=" + remaining);
 
   projects.all = stats.odProjects;
-  projects.best = byOpcodes;
+  projects.best = funded;
   projects.stats = stats;
   projects.capitalBudget = capitalBudget;
   projects.capitalRemaining = remaining;
@@ -1930,7 +1934,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     modeCandidates = 0, modeAlternatives = 0, modeReplaced = 0,
     odProjects = 0, budgetConsidered = 0, budgetSelected = 0,
     budgetRejected = 0, selectedRevenue = 0, selectedCapital = 0,
-    knapsackNodes = 0, knapsackExact = true, poolInfundable = 0,
+    knapsackNodes = 0, knapsackExact = false, poolInfundable = 0,
     railPrequoteAttempted = railPrequote.attempted, railPrequoteQuoted = railPrequote.quoted,
     railPrequoteFailed = railPrequote.failed, railPrequoteOpcodes = railPrequote.opcodes,
   };
@@ -2085,7 +2089,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
   stats.budgetSelected = funded.len();
   stats.budgetRejected = alternatives.len() - funded.len();
   stats.knapsackNodes = 0;
-  stats.knapsackExact = true;
+  stats.knapsackExact = false;
   stats.selectionOpcodes <- OpexOpsMeasureEnd(opsMark);
 
   local selectedRev = 0;
@@ -2110,8 +2114,6 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
   };
   OpexProjectsStampSelectionStats(stats, stampProjects, alternatives, funded, capitalBudget, stampExtras);
 
-  local byOpcodes = funded;
-
   if (DECISION_LOG) {
     local vivierPool = [];
     foreach (key, list in winners) {
@@ -2125,7 +2127,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
   if (PORTFOLIO_FRESH_BUDGET || PORTFOLIO_CACHE) {
     if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_assembly", "-");
     return {
-      all = stats.odProjects, best = byOpcodes, stats = stats,
+      all = stats.odProjects, best = funded, stats = stats,
       capitalBudget = capitalBudget, generationCapitalBudget = capitalBudget,
       capitalRemaining = remaining, candidateGroups = winners,
       rail = rail, road = road, airPlan = airPlan, waterPlan = waterPlan,
@@ -2137,7 +2139,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
   }
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_assembly", "-");
   return {
-    all = stats.odProjects, best = byOpcodes, stats = stats,
+    all = stats.odProjects, best = funded, stats = stats,
     capitalBudget = capitalBudget,
     capitalRemaining = remaining,
     rail = rail, road = road, airPlan = airPlan, waterPlan = waterPlan,

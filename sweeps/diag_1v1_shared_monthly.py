@@ -96,11 +96,7 @@ def _first(value):
 
 
 def vehicle_breakdown(chunks, owner=0):
-    """Vehicules de la compagnie par mode, avec profit et capital immobilise.
-
-    Utilise decode_vehicles de physical_counters pour distinguer les têtes de véhicules
-    de leurs composants internes (wagons, ombres) et éviter les surcomptages.
-    """
+    """Vehicules physiques de la compagnie ; les totaux publies excluent les modes non qualifies."""
     dec = decode_vehicles((chunks or {}).get("VEHS"), target_owner=owner)
     if not dec["chunk_valid"]:
         return {
@@ -109,48 +105,89 @@ def vehicle_breakdown(chunks, owner=0):
             "chunk_valid": False,
             "chunk_error": dec["chunk_error"],
             "by_mode": None,
+            "by_mode_all_primary": None,
             "n_units": None,
+            "n_units_all_primary": None,
+            "unqualified_primary_vehicles": None,
             "vehicle_pool_entries": None,
             "components_breakdown": None,
             "rolling_capital": None,
+            "rolling_capital_all_primary": None,
             "capital_by_mode": None,
+            "capital_by_mode_all_primary": None,
             "capacities_by_cargo": None,
             "profit_total": None,
+            "profit_total_all_primary": None,
             "profit_by_mode": None,
+            "profit_by_mode_all_primary": None,
             "profit_per_vehicle": None,
+            "profit_per_vehicle_all_primary": None,
             "fleet_status": None,
         }
 
-    capital_by_mode = {mode: 0 for mode in VEHICLE_MODES}
-    profit_by_mode = {mode: 0 for mode in VEHICLE_MODES}
-    profits = []
-    capital = 0
+    qualified = dec["qualified_modes"]
+    by_mode_all = dict(dec["primary_vehicles_by_mode"])
+    by_mode = {
+        mode: (count if qualified.get(mode) else None)
+        for mode, count in by_mode_all.items()
+    }
+    capital_all = {mode: 0 for mode in VEHICLE_MODES}
+    profit_all = {mode: 0 for mode in VEHICLE_MODES}
+    capital_qualified = {mode: (0 if qualified.get(mode) else None) for mode in VEHICLE_MODES}
+    profit_qualified = {mode: (0 if qualified.get(mode) else None) for mode in VEHICLE_MODES}
+    all_profits = []
+    qualified_profits = []
+    rolling_all = 0
+    rolling_qualified = 0
 
-    for v in dec["primary_vehicles_detail"]:
-        m = v["mode"]
-        c_val = v["consist_value"]
-        p_yr = v["profit_this_year"]
-        capital += c_val
-        capital_by_mode[m] += c_val
-        profit_by_mode[m] += p_yr
-        profits.append(p_yr)
+    for vehicle in dec["primary_vehicles_detail"]:
+        mode = vehicle["mode"]
+        value = vehicle["consist_value"]
+        profit = vehicle["profit_this_year"]
+        rolling_all += value
+        capital_all[mode] += value
+        profit_all[mode] += profit
+        all_profits.append(profit)
+        if qualified.get(mode):
+            rolling_qualified += value
+            capital_qualified[mode] += value
+            profit_qualified[mode] += profit
+            qualified_profits.append(profit)
 
+    n_qualified = sum(
+        count for mode, count in by_mode_all.items() if qualified.get(mode)
+    )
+    n_all = dec["primary_vehicles_count"]
     return {
         "schema_version": dec["schema_version"],
-        "qualified_modes": dec["qualified_modes"],
+        "qualified_modes": qualified,
         "chunk_valid": True,
-        "by_mode": dec["primary_vehicles_by_mode"],
-        "n_units": dec["primary_vehicles_count"],
+        "chunk_error": None,
+        "by_mode": by_mode,
+        "by_mode_all_primary": by_mode_all,
+        "n_units": n_qualified,
+        "n_units_all_primary": n_all,
+        "unqualified_primary_vehicles": n_all - n_qualified,
         "vehicle_pool_entries": dec["vehicle_pool_entries"],
         "components_breakdown": dec["components_breakdown"],
-        "rolling_capital": capital,
-        "capital_by_mode": capital_by_mode,
+        "rolling_capital": rolling_qualified,
+        "rolling_capital_all_primary": rolling_all,
+        "capital_by_mode": capital_qualified,
+        "capital_by_mode_all_primary": capital_all,
         "capacities_by_cargo": dec["capacities_by_cargo"],
-        "profit_total": sum(profits) if profits else 0,
-        "profit_by_mode": profit_by_mode,
-        "profit_per_vehicle": (statistics.mean(profits) if profits else None),
+        "profit_total": sum(qualified_profits) if qualified_profits else 0,
+        "profit_total_all_primary": sum(all_profits) if all_profits else 0,
+        "profit_by_mode": profit_qualified,
+        "profit_by_mode_all_primary": profit_all,
+        "profit_per_vehicle": (
+            statistics.mean(qualified_profits) if qualified_profits else None
+        ),
+        "profit_per_vehicle_all_primary": (
+            statistics.mean(all_profits) if all_profits else None
+        ),
         "fleet_status": dec["fleet_status"],
     }
+
 
 
 def station_detail(chunks, owner=0):
@@ -342,14 +379,21 @@ def keep(row):
 
 
 def parse_opex_funnel(output):
-    """Âge les lignes MONTHLY_FUNNEL par mois calendaire (somme des passes)."""
+    """Agrege MONTHLY_FUNNEL : stocks moyens par passe, flux sommes sur le mois."""
     by_month = defaultdict(lambda: {
-        "considered": 0, "accepted": 0, "funded": 0, "attempted": 0, "built": 0,
-        "passes": 0, "rejects": Counter(), "considered_known": 0,
+        "considered_sum": 0,
+        "considered_samples": 0,
+        "accepted_sum": 0,
+        "accepted_samples": 0,
+        "funded": 0,
+        "attempted": 0,
+        "built": 0,
+        "passes": 0,
+        "rejects": Counter(),
     })
     for line in (output or "").splitlines():
         sm = SCRIPT_RE.search(line)
-        if not sm or int(sm.group(1)) != 0:  # Seulement OpexAI (joueur 0)
+        if not sm or int(sm.group(1)) != 0:
             continue
         om = OPEX_RE.match(sm.group(2).strip())
         if not om or om.group(4) != "MONTHLY_FUNNEL":
@@ -358,127 +402,128 @@ def parse_opex_funnel(output):
         fields = parse_fields(om.group(5))
         slot = by_month[f"{year:04d}-{month:02d}"]
         slot["passes"] += 1
-        considered = int(fields.get("considered", -1) or -1)
-        if considered >= 0:
-            slot["considered"] += considered
-            slot["considered_known"] += 1
-        for name in ("accepted", "funded", "attempted", "built"):
+        for name in ("considered", "accepted"):
+            if name not in fields:
+                continue
+            value = int(fields.get(name, -1) or 0)
+            if value >= 0:
+                slot[f"{name}_sum"] += value
+                slot[f"{name}_samples"] += 1
+        for name in ("funded", "attempted", "built"):
             slot[name] += int(fields.get(name, 0) or 0)
         for key, value in fields.items():
             if key.startswith("r_"):
                 slot["rejects"][key[2:]] += int(value or 0)
-    return {
-        month: {
-            "considered": slot["considered"] if slot["considered_known"] else None,
-            "accepted": slot["accepted"],
+
+    result = {}
+    for month, slot in by_month.items():
+        considered_samples = slot["considered_samples"]
+        accepted_samples = slot["accepted_samples"]
+        result[month] = {
+            "considered": (
+                slot["considered_sum"] / considered_samples if considered_samples else None
+            ),
+            "accepted": (
+                slot["accepted_sum"] / accepted_samples if accepted_samples else None
+            ),
+            "considered_sum": slot["considered_sum"] if considered_samples else None,
+            "considered_samples": considered_samples,
+            "accepted_sum": slot["accepted_sum"] if accepted_samples else None,
+            "accepted_samples": accepted_samples,
             "funded": slot["funded"],
             "attempted": slot["attempted"],
             "built": slot["built"],
             "passes": slot["passes"],
             "rejects": dict(slot["rejects"]),
+            "metric_kinds": {
+                "considered": "stock_mean_per_pass",
+                "accepted": "stock_mean_per_pass",
+                "funded": "monthly_flow",
+                "attempted": "monthly_flow",
+                "built": "monthly_flow",
+            },
         }
-        for month, slot in by_month.items()
-    }
+    return result
+
 
 
 def parse_opex_funnel_detailed(output):
-    """Âge les lignes MONTHLY_FUNNEL avec suivi détaillé par mode et année.
-    Extrait les compteurs d'instrumentation OpexAI lorsqu'ils sont activés.
-    """
-    # Structure: {year-month: {mode: {considered, accepted, funded, attempted, built, failed, ...}}}
-    by_month_mode = {}
-
+    """Agrege MONTHLY_FUNNEL_DETAIL par mode avec la meme separation stock/flux."""
+    by_month_mode = defaultdict(lambda: defaultdict(lambda: {
+        "considered_sum": 0,
+        "considered_samples": 0,
+        "accepted_sum": 0,
+        "accepted_samples": 0,
+        "funded": 0,
+        "attempted": 0,
+        "built": 0,
+        "failed": 0,
+        "passes": 0,
+        "rejects": Counter(),
+    }))
     for line in (output or "").splitlines():
         sm = SCRIPT_RE.search(line)
-        if not sm or int(sm.group(1)) != 0:  # Seulement OpexAI (joueur 0)
+        if not sm or int(sm.group(1)) != 0:
             continue
         om = OPEX_RE.match(sm.group(2).strip())
-        if not om:
+        if not om or om.group(4) != "MONTHLY_FUNNEL_DETAIL":
             continue
-        # Nous traitons uniquement les lignes MONTHLY_FUNNEL_DETAIL pour ce parseur détaillé
-        if om.group(4) != "MONTHLY_FUNNEL_DETAIL":
-            continue
-
         year, month = int(om.group(1)), int(om.group(2))
-        year_month = f"{year:04d}-{month:02d}"
         fields = parse_fields(om.group(5))
-
-        # Initialiser la structure pour ce mois si nécessaire
-        if year_month not in by_month_mode:
-            by_month_mode[year_month] = {}
-
         mode = fields.get("mode", "unknown")
-        if mode not in by_month_mode[year_month]:
-            by_month_mode[year_month][mode] = {
-                "considered": 0, "accepted": 0, "funded": 0, "attempted": 0, "built": 0,
-                "failed": 0, "rejects": Counter()
-            }
-        slot = by_month_mode[year_month][mode]
-
-        # Compteurs de base
-        considered = int(fields.get("considered", 0) or 0)
-        accepted = int(fields.get("accepted", 0) or 0)
-        funded = int(fields.get("funded", 0) or 0)
-        attempted = int(fields.get("attempted", 0) or 0)
-        built = int(fields.get("built", 0) or 0)
-        failed = int(fields.get("failed", 0) or 0)
-
-        slot["considered"] += considered
-        slot["accepted"] += accepted
-        slot["funded"] += funded
-        slot["attempted"] += attempted
-        slot["built"] += built
-        slot["failed"] += failed
-
-        # Compteurs d'échec par raison
+        slot = by_month_mode[f"{year:04d}-{month:02d}"][mode]
+        slot["passes"] += 1
+        for name in ("considered", "accepted"):
+            if name not in fields:
+                continue
+            value = int(fields.get(name, -1) or 0)
+            if value >= 0:
+                slot[f"{name}_sum"] += value
+                slot[f"{name}_samples"] += 1
+        for name in ("funded", "attempted", "built", "failed"):
+            slot[name] += int(fields.get(name, 0) or 0)
         for key, value in fields.items():
             if key.startswith("r_"):
                 slot["rejects"][key[2:]] += int(value or 0)
 
-    # Convertir en structure finale
     result = {}
-    for year_month, modes_dict in by_month_mode.items():
+    for year_month, modes in by_month_mode.items():
         result[year_month] = {}
-        for mode, slot in modes_dict.items():
-            # Construire le dictionnaire de résultat pour ce mode
-            mode_result = {}
-            considered_val = slot["considered"]
-            accepted_val = slot["accepted"]
-            funded_val = slot["funded"]
-            attempted_val = slot["attempted"]
-            built_val = slot["built"]
-            failed_val = slot["failed"]
-
-            # Inclure les compteurs de base même s'ils sont zéro (pour permettre les tests)
-            # Mais ne pas inclure les modes qui n'ont absolument aucune activité
-            mode_result["considered"] = considered_val
-            mode_result["accepted"] = accepted_val
-            mode_result["funded"] = funded_val
-            mode_result["attempted"] = attempted_val
-            mode_result["built"] = built_val
-            mode_result["failed"] = failed_val
-
-            # Toujours inclure les rejects s'il y en a
-            if slot["rejects"]:
-                mode_result["rejects"] = dict(slot["rejects"])
-
-            # Vérifier si ce mode a une activité significative
-            # Une activité significative signifie: au moins un compteur > 0 OU des rejects
+        for mode, slot in modes.items():
             has_activity = (
-                considered_val > 0 or
-                accepted_val > 0 or
-                funded_val > 0 or
-                attempted_val > 0 or
-                built_val > 0 or
-                failed_val > 0 or
-                bool(slot["rejects"])
+                slot["considered_samples"]
+                or slot["accepted_samples"]
+                or any(slot[name] for name in ("funded", "attempted", "built", "failed"))
+                or slot["rejects"]
             )
-
-            # Ajouter le mode au résultat seulement s'il contient des données significatives
-            if has_activity:
-                result[year_month][mode] = mode_result
-
+            if not has_activity:
+                continue
+            cs = slot["considered_samples"]
+            acs = slot["accepted_samples"]
+            result[year_month][mode] = {
+                "considered": slot["considered_sum"] / cs if cs else None,
+                "accepted": slot["accepted_sum"] / acs if acs else None,
+                "considered_sum": slot["considered_sum"] if cs else None,
+                "considered_samples": cs,
+                "accepted_sum": slot["accepted_sum"] if acs else None,
+                "accepted_samples": acs,
+                "funded": slot["funded"],
+                "attempted": slot["attempted"],
+                "built": slot["built"],
+                "failed": slot["failed"],
+                "passes": slot["passes"],
+                "rejects": dict(slot["rejects"]),
+                "metric_kinds": {
+                    "considered": "stock_mean_per_pass",
+                    "accepted": "stock_mean_per_pass",
+                    "funded": "monthly_flow",
+                    "attempted": "monthly_flow",
+                    "built": "monthly_flow",
+                    "failed": "monthly_flow",
+                },
+            }
     return result
+
 
 
 def parse_hogex_builds(output):
@@ -510,26 +555,52 @@ def parse_hogex_builds_detailed(output):
     return parse_hogex_builds(output)
 
 
-def attach_logs(rows):
-    """Le journal complet n'est fiable que sur la derniere ligne de chaque graine."""
+def attach_logs(rows, funnel_requested=None):
+    """Attache les journaux mensuels et rend l'etat d'instrumentation explicite."""
     last_output = {}
     for record in rows:
         if record.get("arm") == "OpexAI" and record.get("output"):
             last_output[record["seed"]] = record["output"]
     funnel_by_seed = {seed: parse_opex_funnel(output) for seed, output in last_output.items()}
-    funnel_detailed_by_seed = {seed: parse_opex_funnel_detailed(output) for seed, output in last_output.items()}
+    funnel_detailed_by_seed = {
+        seed: parse_opex_funnel_detailed(output) for seed, output in last_output.items()
+    }
     hogex_by_seed = {seed: parse_hogex_builds(output) for seed, output in last_output.items()}
-    hogex_detailed_by_seed = {seed: parse_hogex_builds_detailed(output) for seed, output in last_output.items()}
+    hogex_detailed_by_seed = {
+        seed: parse_hogex_builds_detailed(output) for seed, output in last_output.items()
+    }
+    if funnel_requested is None:
+        funnel_requested = any(funnel_by_seed.values()) or any(funnel_detailed_by_seed.values())
+
     for record in rows:
         record.pop("output", None)
         month = str(record.get("date", ""))[:7]
+        seed = record.get("seed")
         if record.get("arm") == "OpexAI":
-            record["funnel"] = funnel_by_seed.get(record.get("seed"), {}).get(month)
-            record["funnel_detailed"] = funnel_detailed_by_seed.get(record.get("seed"), {}).get(month)
+            funnel_map = funnel_by_seed.get(seed, {})
+            detail_map = funnel_detailed_by_seed.get(seed, {})
+            record["funnel"] = funnel_map.get(month)
+            record["funnel_detailed"] = detail_map.get(month)
+            if not funnel_requested:
+                record["funnel_state"] = "disabled"
+                record["funnel_detailed_state"] = "disabled"
+            elif seed not in last_output:
+                record["funnel_state"] = "missing_log"
+                record["funnel_detailed_state"] = "missing_log"
+            else:
+                record["funnel_state"] = (
+                    "available" if month in funnel_map
+                    else ("no_activity" if funnel_map else "missing_emitter")
+                )
+                record["funnel_detailed_state"] = (
+                    "available" if month in detail_map
+                    else ("no_activity" if detail_map else "missing_emitter")
+                )
         else:
-            record["hogex_builds"] = hogex_by_seed.get(record.get("seed"), {}).get(month)
-            record["hogex_builds_detailed"] = hogex_detailed_by_seed.get(record.get("seed"), {}).get(month)
+            record["hogex_builds"] = hogex_by_seed.get(seed, {}).get(month)
+            record["hogex_builds_detailed"] = hogex_detailed_by_seed.get(seed, {}).get(month)
     return funnel_by_seed, funnel_detailed_by_seed, hogex_by_seed, hogex_detailed_by_seed
+
 
 
 def build_arms(seeds, years, shared=False, funnel=False, air_town_limit_memory=False,
@@ -588,6 +659,8 @@ def main():
                         help="OpexAI (joueur 0) vs AAAHogEx (joueur 1) sur la meme carte")
     parser.add_argument("--funnel", action="store_true",
                         help="Arme monthly_funnel=1 (implique --shared et -d script=4)")
+    parser.add_argument("--no-funnel", action="store_true",
+                        help="En mode --shared, desactive explicitement monthly_funnel")
     parser.add_argument("--air-town-limit-memory", action="store_true",
                         help="Arme air_town_limit_memory=1 sur OpexAI (implique --shared)")
     parser.add_argument("--town-station-detail", action="store_true",
@@ -606,8 +679,10 @@ def main():
     from openttdlab import bananas_ai_library, local_folder, run_experiments
     from bench_v2 import enable_savegame_cleanup, write_json_atomically
 
+    if args.funnel and args.no_funnel:
+        parser.error("--funnel et --no-funnel sont incompatibles")
     shared = args.shared or args.funnel or args.air_town_limit_memory or args.town_station_detail or args.air_early_slot
-    funnel = bool(args.funnel or shared)
+    funnel = bool(args.funnel or (shared and not args.no_funnel))
     seeds = args.seeds if args.seeds is not None else (list(DIAG_SEEDS) if shared else [42, 100, 7])
     default_name = (
         f"diag_1v1_shared_monthly_{args.years}y_{len(seeds)}seeds.json"
@@ -641,7 +716,9 @@ def main():
             bananas_ai_library("5046524c", "Pathfinder.Rail"),
         ),
     ))
-    funnel_by_seed, funnel_detailed_by_seed, hogex_by_seed, hogex_detailed_by_seed = attach_logs(rows)
+    funnel_by_seed, funnel_detailed_by_seed, hogex_by_seed, hogex_detailed_by_seed = attach_logs(
+        rows, funnel_requested=funnel
+    )
     expected_months = expected_calendar_months(args.years)
     monthly = render_monthly_report(
         rows,
@@ -656,6 +733,7 @@ def main():
         "seeds": seeds,
         "shared_game": shared,
         "funnel": funnel,
+        "funnel_explicitly_disabled": bool(args.no_funnel),
         "air_town_limit_memory": bool(args.air_town_limit_memory),
         "town_station_detail": bool(args.town_station_detail),
         "opponent": "AAAHogEx" if shared else None,
@@ -690,14 +768,42 @@ def expected_calendar_months(years, starting_year=STARTING_YEAR):
     ]
 
 
-def monthly_aggregates(rows, expected_seeds=None, expected_months=None, expected_arms=None):
-    """Agrege un mois seulement si toutes les lignes attendues sont valides.
+def _aggregate_funnel_slots(slots, flow_names):
+    """Combine des stocks moyens ponderes par leurs echantillons et des flux additifs."""
+    result = {}
+    for name in ("considered", "accepted"):
+        total = 0.0
+        samples = 0
+        for slot in slots:
+            sample_count = int(slot.get(f"{name}_samples", 0) or 0)
+            raw_sum = slot.get(f"{name}_sum")
+            if raw_sum is None and slot.get(name) is not None:
+                if sample_count <= 0:
+                    sample_count = 1
+                raw_sum = float(slot[name]) * sample_count
+            if raw_sum is not None and sample_count > 0:
+                total += float(raw_sum)
+                samples += sample_count
+        result[name] = total / samples if samples else None
+        result[f"{name}_sum"] = total if samples else None
+        result[f"{name}_samples"] = samples
+    for name in flow_names:
+        result[name] = sum(int(slot.get(name, 0) or 0) for slot in slots)
+    result["passes"] = sum(int(slot.get("passes", 0) or 0) for slot in slots)
+    rejects = Counter()
+    for slot in slots:
+        rejects.update(slot.get("rejects") or {})
+    result["rejects"] = dict(rejects)
+    result["metric_kinds"] = {
+        "considered": "stock_mean_per_pass",
+        "accepted": "stock_mean_per_pass",
+        **{name: "monthly_flow" for name in flow_names},
+    }
+    return result
 
-    Fail-closed : `expected_seeds` (args.seeds) est la liste des graines de la
-    campagne, pas l'ensemble deduit des lignes recues. Une graine qui n'a
-    produit aucune ligne reste donc attendue. `expected_months` ajoute les
-    mois calendaires meme s'ils sont absents des checkpoints.
-    """
+
+def monthly_aggregates(rows, expected_seeds=None, expected_months=None, expected_arms=None):
+    """Agrege un mois seulement si toutes les lignes attendues sont physiquement valides."""
     arms = tuple(expected_arms) if expected_arms else ARMS
     if expected_seeds is not None:
         expected_set = set(expected_seeds)
@@ -729,156 +835,182 @@ def monthly_aggregates(rows, expected_seeds=None, expected_months=None, expected
                 expected_n = len(month_rows)
                 valid_n = sum(1 for record in month_rows if physical_row_ok(record))
                 complete = expected_n > 0 and valid_n == expected_n
+
             cell = {
                 "month": month,
                 "arm": arm,
                 "ok": complete,
                 "n_valid": valid_n,
                 "n_expected": expected_n,
+                "qualified_modes": None,
+                "qualification_status": None,
                 "by_mode": None,
+                "by_mode_all_primary": None,
+                "n_units": None,
+                "n_units_all_primary": None,
+                "unqualified_primary_vehicles": None,
                 "n_stations": None,
                 "cargo_waiting": None,
                 "rating_median": None,
                 "rolling_capital": None,
+                "rolling_capital_all_primary": None,
                 "profit_per_vehicle": None,
+                "profit_per_vehicle_all_primary": None,
                 "company_value": None,
                 "income": None,
                 "expenses": None,
                 "profit": None,
                 "delivered_cargo": None,
                 "funnel": None,
+                "funnel_state": None,
+                "funnel_state_counts": None,
                 "funnel_detailed": None,
+                "funnel_detailed_state": None,
+                "funnel_detailed_state_counts": None,
                 "hogex_builds": None,
                 "hogex_builds_detailed": None,
             }
+
+            if arm == "OpexAI" and month_rows:
+                for state_key in ("funnel_state", "funnel_detailed_state"):
+                    counts = Counter(
+                        record.get(state_key, "unknown") for record in month_rows
+                    )
+                    cell[f"{state_key}_counts"] = dict(counts)
+                    cell[state_key] = (
+                        next(iter(counts)) if len(counts) == 1 else "mixed"
+                    )
+
             if complete:
-                mode_totals = {
-                    mode: statistics.mean([record["vehicles"]["by_mode"][mode] for record in month_rows])
-                    for mode in VEHICLE_MODES
-                }
-                caps = [
-                    record["vehicles"]["rolling_capital"]
+                qualification_maps = [
+                    record["vehicles"].get("qualified_modes")
                     for record in month_rows
-                    if record["vehicles"].get("rolling_capital") is not None
+                    if record.get("vehicles", {}).get("qualified_modes") is not None
                 ]
-                ppv = [
-                    record["vehicles"]["profit_per_vehicle"]
-                    for record in month_rows
-                    if record["vehicles"].get("profit_per_vehicle") is not None
-                ]
-                stations = [
-                    record["stations"]["n_stations"]
-                    for record in month_rows
-                    if record["stations"].get("n_stations") is not None
-                ]
-                waiting = [
-                    record["stations"]["cargo_waiting"]
-                    for record in month_rows
-                    if record["stations"].get("cargo_waiting") is not None
-                ]
-                ratings = [
-                    record["stations"]["rating_median"]
-                    for record in month_rows
-                    if record["stations"].get("rating_median") is not None
-                ]
-                company_values = [
-                    record.get("company_value")
-                    for record in month_rows
-                    if record.get("company_value") is not None
-                ]
-                incomes = [
-                    record.get("income")
-                    for record in month_rows
-                    if record.get("income") is not None
-                ]
-                expenses_list = [
-                    record.get("expenses")
-                    for record in month_rows
-                    if record.get("expenses") is not None
-                ]
-                profits = [
-                    record.get("profit_year")
-                    for record in month_rows
-                    if record.get("profit_year") is not None
-                ]
-                delivered_cargo_list = [
-                    record.get("delivered_cargo")
-                    for record in month_rows
-                    if record.get("delivered_cargo") is not None
-                ]
+                if qualification_maps:
+                    first_qualification = qualification_maps[0]
+                    if all(item == first_qualification for item in qualification_maps):
+                        cell["qualified_modes"] = first_qualification
+
+                mode_totals = {}
+                for mode in VEHICLE_MODES:
+                    values = [
+                        record["vehicles"]["by_mode"].get(mode)
+                        for record in month_rows
+                        if record["vehicles"].get("by_mode") is not None
+                        and record["vehicles"]["by_mode"].get(mode) is not None
+                    ]
+                    mode_totals[mode] = statistics.mean(values) if values else None
                 cell["by_mode"] = mode_totals
-                cell["n_stations"] = statistics.mean(stations) if stations else None
-                cell["cargo_waiting"] = statistics.mean(waiting) if waiting else None
-                cell["rating_median"] = statistics.mean(ratings) if ratings else None
-                cell["profit_per_vehicle"] = statistics.mean(ppv) if ppv else None
-                cell["company_value"] = statistics.mean(company_values) if company_values else None
-                cell["income"] = statistics.mean(incomes) if incomes else None
-                cell["expenses"] = statistics.mean(expenses_list) if expenses_list else None
-                cell["profit"] = statistics.mean(profits) if profits else None
-                cell["delivered_cargo"] = statistics.mean(delivered_cargo_list) if delivered_cargo_list else None
-                if arm == "OpexAI":
-                    funnels = [record.get("funnel") for record in month_rows if record.get("funnel")]
-                    if funnels:
-                        cell["funnel"] = {
-                            key: sum(int((slot or {}).get(key, 0) or 0) for slot in funnels)
-                            for key in ("considered", "accepted", "funded", "attempted", "built", "passes")
-                        }
-                        rejects = Counter()
-                        for slot in funnels:
-                            rejects.update((slot or {}).get("rejects") or {})
-                        cell["funnel"]["rejects"] = dict(rejects)
 
-                    funnels_detailed = [record.get("funnel_detailed") for record in month_rows if record.get("funnel_detailed")]
-                    if funnels_detailed:
-                        # Agréger les données détaillées par mode et année
-                        detailed_agg = defaultdict(lambda: defaultdict(lambda: {
-                            "considered": 0, "accepted": 0, "funded": 0, "attempted": 0, "built": 0, "failed": 0,
-                            "rejects": Counter()
-                        }))
-                        for funnel_dict in funnels_detailed:
-                            for year_month, modes_dict in funnel_dict.items():
-                                for mode, slot in modes_dict.items():
-                                    if slot:  # Ignorer les entrées vides
-                                        agg_slot = detailed_agg[year_month][mode]
-                                        for key in ("considered", "accepted", "funded", "attempted", "built", "failed"):
-                                            if slot.get(key) is not None:
-                                                agg_slot[key] += slot[key]
-                                        for reason, count in (slot.get("rejects") or {}).items():
-                                            agg_slot["rejects"][reason] += count
+                all_mode_totals = {}
+                for mode in VEHICLE_MODES:
+                    values = [
+                        (record["vehicles"].get("by_mode_all_primary") or {}).get(mode)
+                        for record in month_rows
+                        if (record["vehicles"].get("by_mode_all_primary") or {}).get(mode) is not None
+                    ]
+                    all_mode_totals[mode] = statistics.mean(values) if values else None
+                if any(value is not None for value in all_mode_totals.values()):
+                    cell["by_mode_all_primary"] = all_mode_totals
 
-                        # Convertir en structure finale
-                        cell["funnel_detailed"] = {}
-                        for year_month, modes_dict in detailed_agg.items():
-                            cell["funnel_detailed"][year_month] = {}
-                            for mode, slot in modes_dict.items():
-                                if any(v > 0 for v in slot.values() if isinstance(v, int)) or slot["rejects"]:
-                                    cell["funnel_detailed"][year_month][mode] = {
-                                        "considered": slot["considered"] if slot["considered"] > 0 else None,
-                                        "accepted": slot["accepted"] if slot["accepted"] > 0 else None,
-                                        "funded": slot["funded"] if slot["funded"] > 0 else None,
-                                        "attempted": slot["attempted"] if slot["attempted"] > 0 else None,
-                                        "built": slot["built"] if slot["built"] > 0 else None,
-                                        "failed": slot["failed"] if slot["failed"] > 0 else None,
-                                        "rejects": dict(slot["rejects"]) if slot["rejects"] else None,
-                                    }
+                def mean_vehicle(field):
+                    values = [
+                        record["vehicles"].get(field)
+                        for record in month_rows
+                        if record["vehicles"].get(field) is not None
+                    ]
+                    return statistics.mean(values) if values else None
+
+                cell["n_units"] = mean_vehicle("n_units")
+                cell["n_units_all_primary"] = mean_vehicle("n_units_all_primary")
+                cell["unqualified_primary_vehicles"] = mean_vehicle("unqualified_primary_vehicles")
+                cell["rolling_capital"] = mean_vehicle("rolling_capital")
+                cell["rolling_capital_all_primary"] = mean_vehicle("rolling_capital_all_primary")
+                cell["profit_per_vehicle"] = mean_vehicle("profit_per_vehicle")
+                cell["profit_per_vehicle_all_primary"] = mean_vehicle("profit_per_vehicle_all_primary")
+
+                if cell["qualified_modes"] is None:
+                    cell["qualification_status"] = "unknown"
+                elif cell["unqualified_primary_vehicles"]:
+                    cell["qualification_status"] = "qualified_totals_exclude_unqualified_vehicles"
                 else:
-                    builds = [record.get("hogex_builds") for record in month_rows if record.get("hogex_builds")]
+                    cell["qualification_status"] = "qualified_totals"
+
+                def mean_station(field):
+                    values = [
+                        record["stations"].get(field)
+                        for record in month_rows
+                        if record["stations"].get(field) is not None
+                    ]
+                    return statistics.mean(values) if values else None
+
+                cell["n_stations"] = mean_station("n_stations")
+                cell["cargo_waiting"] = mean_station("cargo_waiting")
+                cell["rating_median"] = mean_station("rating_median")
+
+                for field, source_field in (
+                    ("company_value", "company_value"),
+                    ("income", "income"),
+                    ("expenses", "expenses"),
+                    ("profit", "profit_year"),
+                    ("delivered_cargo", "delivered_cargo"),
+                ):
+                    values = [
+                        record.get(source_field)
+                        for record in month_rows
+                        if record.get(source_field) is not None
+                    ]
+                    cell[field] = statistics.mean(values) if values else None
+
+                if arm == "OpexAI":
+                    funnels = [
+                        record.get("funnel") for record in month_rows
+                        if record.get("funnel") is not None
+                    ]
+                    if funnels:
+                        cell["funnel"] = _aggregate_funnel_slots(
+                            funnels, ("funded", "attempted", "built")
+                        )
+
+                    detail_slots = defaultdict(list)
+                    for modes in (
+                        record.get("funnel_detailed") for record in month_rows
+                    ):
+                        if not modes:
+                            continue
+                        for mode, slot in modes.items():
+                            if isinstance(slot, dict):
+                                detail_slots[mode].append(slot)
+                    if detail_slots:
+                        cell["funnel_detailed"] = {
+                            mode: _aggregate_funnel_slots(
+                                slots, ("funded", "attempted", "built", "failed")
+                            )
+                            for mode, slots in sorted(detail_slots.items())
+                        }
+                else:
+                    builds = [
+                        record.get("hogex_builds") for record in month_rows
+                        if record.get("hogex_builds")
+                    ]
                     if builds:
                         cell["hogex_builds"] = {
                             key: sum(int((slot or {}).get(key, 0) or 0) for slot in builds)
                             for key in ("succeeded", "failed", "try_build")
                         }
-
-                    builds_detailed = [record.get("hogex_builds_detailed") for record in month_rows if record.get("hogex_builds_detailed")]
+                    builds_detailed = [
+                        record.get("hogex_builds_detailed") for record in month_rows
+                        if record.get("hogex_builds_detailed")
+                    ]
                     if builds_detailed:
-                        # Pour l'instant, on garde la même structure que les builds normaux
-                        # car AAAHogEx n'a pas de tunnel détaillé
                         cell["hogex_builds_detailed"] = {
                             key: sum(int((slot or {}).get(key, 0) or 0) for slot in builds_detailed)
                             for key in ("succeeded", "failed", "try_build")
                         }
             cells.append(cell)
     return cells
+
 
 
 def render_monthly_report(rows, expected_seeds=None, expected_months=None, expected_arms=None):
@@ -908,7 +1040,11 @@ def render_monthly_report(rows, expected_seeds=None, expected_months=None, expec
                 fail = f"FAIL {cell['n_valid']}/{cell['n_expected']}"
                 line += f" {fail:>19} {'FAIL':>5} {'FAIL':>9} {'FAIL':>9} |"
                 continue
-            mix = "/".join(f"{cell['by_mode'][mode]:.0f}" for mode in VEHICLE_MODES)
+            mix = "/".join(
+                "n/a" if cell["by_mode"].get(mode) is None
+                else f"{cell['by_mode'][mode]:.0f}"
+                for mode in VEHICLE_MODES
+            )
             st_str = f"{cell['n_stations']:>5.1f}" if cell["n_stations"] is not None else "FAIL"
             cap_str = f"{cell['rolling_capital']:>9,.0f}" if cell["rolling_capital"] is not None else "FAIL"
             ppv_str = f"{cell['profit_per_vehicle']:>9,.0f}" if cell["profit_per_vehicle"] is not None else "FAIL"
@@ -948,8 +1084,12 @@ def render_monthly_report(rows, expected_seeds=None, expected_months=None, expec
         hogex = by_key.get(("AAAHogEx", month), {})
         if opex.get("ok") and opex.get("funnel"):
             fn = opex["funnel"]
-            mix = "/".join(str(int(fn.get(k) or 0)) for k in
-                           ("considered", "accepted", "funded", "attempted", "built"))
+            stock = [
+                "n/a" if fn.get(key) is None else f"{float(fn[key]):.1f}"
+                for key in ("considered", "accepted")
+            ]
+            flows = [str(int(fn.get(key) or 0)) for key in ("funded", "attempted", "built")]
+            mix = "/".join(stock + flows)
             rejects = fn.get("rejects") or {}
             top = max(rejects, key=rejects.get) if rejects else "—"
             top_s = f"{top}:{rejects[top]}" if rejects else "—"
@@ -1132,8 +1272,8 @@ def selftest():
     funnel = parse_opex_funnel(funnel_log)
     mar = funnel["1971-03"]
     assert mar["passes"] == 2
-    assert mar["considered"] == 70
-    assert mar["accepted"] == 14
+    assert mar["considered"] == 35  # stock moyen par passe: (40 + 30) / 2
+    assert mar["accepted"] == 7      # stock moyen par passe: (8 + 6) / 2
     assert mar["funded"] == 3
     assert mar["attempted"] == 4
     assert mar["built"] == 1
@@ -1160,8 +1300,8 @@ def selftest():
     )
     funnel_detailed = parse_opex_funnel_detailed(funnel_detailed_log)
     mar_rail = funnel_detailed["1971-03"]["rail"]
-    assert mar_rail["considered"] == 35  # 20 + 15
-    assert mar_rail["accepted"] == 7     # 4 + 3
+    assert mar_rail["considered"] == 17.5  # stock moyen: (20 + 15) / 2
+    assert mar_rail["accepted"] == 3.5      # stock moyen: (4 + 3) / 2
     assert mar_rail["funded"] == 2       # 1 + 1
     assert mar_rail["attempted"] == 3    # 2 + 1
     assert mar_rail["built"] == 1        # 1 + 0

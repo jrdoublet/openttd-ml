@@ -8,6 +8,8 @@ import statistics
 import openttdlab
 from openttdlab import bananas_ai_library, local_folder, run_experiments
 
+from physical_counters import decode_stations, decode_vehicles
+
 from bench_v2 import (
     CFG,
     OPENGFX_VERSION,
@@ -95,6 +97,8 @@ def keep(row):
         closed = player.get("old_economy") or []
         latest = closed[0] if closed else {}
         ratings = station_ratings(chunks, owner)
+        veh_dec = decode_vehicles(vehicles, target_owner=owner)
+        stn_dec = decode_stations(stations, target_owner=owner)
         companies.append({
             "arm": arm,
             "owner": owner,
@@ -106,8 +110,15 @@ def keep(row):
             "money": player.get("money"),
             "current_loan": player.get("current_loan"),
             "months_of_bankruptcy": player.get("months_of_bankruptcy"),
-            "n_vehicles": sum(vehicle_owner(vehicle) == owner for vehicle in vehicles.values()),
-            "n_stations": sum(station_owner(station) == owner for station in stations.values()),
+            "n_vehicles": veh_dec["primary_vehicles_count"] if veh_dec["chunk_valid"] else None,
+            "n_stations": stn_dec["total_stations"] if stn_dec["chunk_valid"] else None,
+            "vehicle_pool_entries": veh_dec["vehicle_pool_entries"] if veh_dec["chunk_valid"] else None,
+            "primary_vehicles_by_mode": veh_dec["primary_vehicles_by_mode"] if veh_dec["chunk_valid"] else None,
+            "qualified_modes": veh_dec["qualified_modes"],
+            "vehs_chunk_valid": veh_dec["chunk_valid"],
+            "vehs_chunk_error": veh_dec["chunk_error"],
+            "stnn_chunk_valid": stn_dec["chunk_valid"],
+            "stnn_chunk_error": stn_dec["chunk_error"],
             "modes": mode_profit(vehicles, owner),
         })
     record = {

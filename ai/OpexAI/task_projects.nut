@@ -184,8 +184,8 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
   }
   local actual = (costs != null) ? costs.GetCosts() : 0;
   if (added <= 0) {
-    if (C63_INVEST_PROBE) {
-      OpexC63RecordSpend("fleet", plannedFull, actual, false);
+    if (C63_INVEST_PROBE) OpexC63RecordSpend("fleet", plannedFull, actual, false);
+    if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) {
       passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst, reason = "fleet_grow_failed", extra = "" });
     }
     return { outcome = "rejected", discards = passDiscards };
@@ -213,27 +213,25 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
   AILog.Info("[FLEET_PROJECT] line=" + line.lineId + " added=" + added);
   return { outcome = "built", discards = passDiscards };
 }
-function OpexAI::_refreshDynamicBatch(year)
+function OpexAI::_refreshDynamicBatch()
 {
-  local before = (this._projects != null && ("capitalBudget" in this._projects))
-      ? this._projects.capitalBudget : OpexAvailableCapital();
-  local after = OpexAvailableCapital();
+  local capitalNow = OpexAvailableCapital();
   this._projects = OpexDynamicBatchReselect(this._projects, this._lines,
-      this._dynamicBatch.attempted, after, this._abandonedPairs);
+      this._dynamicBatch.attempted, capitalNow, this._abandonedPairs);
   this._ranked = this._projects.rail;
   local remaining = this._projects.best.len();
   if (DECISION_LOG) {
     OpexDecide("DYNAMIC_BATCH", "action=continue reason=success built="
                + this._dynamicBatch.built + " attempted=" + this._dynamicBatch.attemptedCount
-               + " budget_before=" + before + " budget_after=" + after
+               + " budget_current=" + capitalNow
                + " remaining=" + remaining);
   }
 }
-function OpexAI::_dynamicBatchBuilt(year)
+function OpexAI::_dynamicBatchBuilt()
 {
   this._dynamicBatch.built++;
   this._dynamicBatch.consecutiveRejects = 0;
-  this._refreshDynamicBatch(year);
+  this._refreshDynamicBatch();
 }
 /* P2 : seul un refus effectivement tente compte. Une recherche rail pending
  * rend la main sans appeler ce helper ; un succes remet la serie a zero. */
@@ -431,7 +429,8 @@ function OpexAI::_tryBuildProjects(year)
   }
   if (RAIL_SEARCH_RESUMABLE && this._railSearch != null &&
       this._railSearch.kind == "primary" && this._railSearch.phase == "build") {
-    local outcome = this._consumeRailSearch(year);
+    local railResult = this._consumeRailSearch(year);
+    local outcome = railResult.outcome;
     if (MONTHLY_FUNNEL) funnelAttempted++;
     /* Atteignable seulement avec portfolio_dynamic_batch=1 (non-defaut) : conserver le ledger. */
     if (PORTFOLIO_DYNAMIC_BATCH && outcome == "cash") {
@@ -477,6 +476,24 @@ function OpexAI::_tryBuildProjects(year)
       }
       local railCandidate = this._railSearch.candidate;
       local c49RailCandidate = C49_SCARCITY_LEDGER ? railCandidate : null;
+      if (outcome == "failed"
+          && (DECISION_LOG || C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL)) {
+        local failRank = -1;
+        if (this._projects != null && this._projects.best != null) {
+          local failKey = "rail|" + railCandidate.src + "|" + railCandidate.dst + "|"
+              + railCandidate.cargo + "|" + railCandidate.kind;
+          for (local i = 0; i < this._projects.best.len(); i++) {
+            local project = this._projects.best[i];
+            if (project != null && OpexProjectAttemptKey(project) == failKey) {
+              failRank = i;
+              break;
+            }
+          }
+        }
+        passDiscards.append({ rank = failRank, mode = "rail", src = railCandidate.src,
+                              dst = railCandidate.dst, reason = railResult.reason,
+                              extra = "", error = railResult.error });
+      }
       if (PORTFOLIO_DYNAMIC_BATCH) this._dynamicBatch.pendingLogged = false;
       this._railSearch = null;
       if (outcome == "built") {
@@ -515,7 +532,7 @@ function OpexAI::_tryBuildProjects(year)
           }
         }
         if (C48_PROJECT_ATTEMPT_LEDGER) c48BuiltThisPass = true;
-        if (PORTFOLIO_DYNAMIC_BATCH) this._dynamicBatchBuilt(year);
+        if (PORTFOLIO_DYNAMIC_BATCH) this._dynamicBatchBuilt();
       } else if (PORTFOLIO_DYNAMIC_BATCH && outcome == "failed") {
         this._dynamicBatchRejected();
       }
@@ -601,7 +618,7 @@ function OpexAI::_tryBuildProjects(year)
         }
         builtCount++;
         if (PORTFOLIO_DYNAMIC_BATCH) {
-          this._dynamicBatchBuilt(year);
+          this._dynamicBatchBuilt();
           i = -1;
         } else if (builtCount >= maxBatch) break;
       } else if (PORTFOLIO_DYNAMIC_BATCH && attempt.outcome == "rejected"
@@ -656,7 +673,7 @@ function OpexAI::_tryBuildProjects(year)
         }
         builtCount++;
         if (PORTFOLIO_DYNAMIC_BATCH) {
-          this._dynamicBatchBuilt(year);
+          this._dynamicBatchBuilt();
           i = -1;
         } else if (builtCount >= maxBatch) break;
       } else if (PORTFOLIO_DYNAMIC_BATCH && attempt.outcome == "rejected"
@@ -706,7 +723,7 @@ function OpexAI::_tryBuildProjects(year)
         }
         builtCount++;
         if (PORTFOLIO_DYNAMIC_BATCH) {
-          this._dynamicBatchBuilt(year);
+          this._dynamicBatchBuilt();
           i = -1;
         } else if (builtCount >= maxBatch) break;
       } else if (PORTFOLIO_DYNAMIC_BATCH && attempt.outcome == "rejected"
@@ -770,7 +787,7 @@ function OpexAI::_tryBuildProjects(year)
         }
         builtCount++;
         if (PORTFOLIO_DYNAMIC_BATCH) {
-          this._dynamicBatchBuilt(year);
+          this._dynamicBatchBuilt();
           i = -1;
         } else if (builtCount >= maxBatch) break;
       } else if (PORTFOLIO_DYNAMIC_BATCH && attempt.outcome == "rejected"
@@ -822,7 +839,7 @@ function OpexAI::_tryBuildProjects(year)
         }
         builtCount++;
         if (PORTFOLIO_DYNAMIC_BATCH) {
-          this._dynamicBatchBuilt(year);
+          this._dynamicBatchBuilt();
           i = -1;
         } else if (builtCount >= maxBatch) break;
       } else if (PORTFOLIO_DYNAMIC_BATCH && attempt.outcome == "rejected"
@@ -880,13 +897,9 @@ function OpexAI::_tryBuildProjects(year)
     }
     this._ranked = this._projects.rail;
     if (PORTFOLIO_LOG) OpexLogPortfolioRank(this._projects);
-    /* `knapsackExact` et le compteur d'imbrications du budget etaient ECRITS ET LUS NULLE PART.
-     * Or maxNodes = 2000 pour n = 64 fait tronquer la recherche couramment : sans ce champ, on ne
-     * peut pas distinguer « le solveur a prouve l'optimum » de « il a epuise son budget de noeuds »
-     * -- l'angle mort qui a laisse survivre quatre defauts du portefeuille (docs/taches.md
-     * S0 septies). Ajoutes au panneau EXISTANT plutot que dans un nouveau : un appel BuildSign de
-     * plus deplace les frontieres de ticks (precedent mesure : un helper devant 57 appels a coute
-     * 3 lignes rail). Longueur maximale d'un panneau : 31 caracteres. */
+    /* Champ knapsackExact legacy : aucun solveur knapsack/B&B n'existe encore. projects.nut
+     * le force donc a false afin que ce panneau ne publie jamais un « optimum prouve » fictif.
+     * Le slot est conserve pour compatibilite des parseurs de panneaux existants. */
     OpexSign(anchor, "IG|" + yy + "|" + this._projects.stats.modeCandidates + "|"
              + this._projects.stats.odProjects + "|" + this._projects.stats.budgetSelected
              + "|" + (this._projects.stats.knapsackExact ? 0 : 1)

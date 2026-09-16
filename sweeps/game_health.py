@@ -45,8 +45,9 @@ STATUSES = (
     "duplicate_checkpoint",
     "noai_error",
     "horizon_truncated",
-    "bankrupt",
+    "inactive_company",
     "stagnation_suspect",
+    "bankrupt",
     "complete",
 )
 
@@ -55,8 +56,9 @@ _STATUS_RANK = {name: index for index, name in enumerate(STATUSES)}
 
 COLLECTION_FAILURES = frozenset((
     "engine_error", "missing_data", "duplicate_checkpoint", "noai_error", "horizon_truncated",
+    "inactive_company", "stagnation_suspect",
 ))
-ECONOMIC_OUTCOMES = frozenset(("complete", "bankrupt", "stagnation_suspect"))
+ECONOMIC_OUTCOMES = frozenset(("complete", "bankrupt"))
 ACTIVITY_RECENT_STEPS = 3
 DEFAULT_ENGINE_TIMEOUT_SEC = 1800
 
@@ -90,6 +92,15 @@ def checkpoint_reaches(last_date, needed):
     if last is None or want is None:
         return False
     return last >= want
+
+
+def expected_checkpoint_dates(starting_year, years):
+    """Dates mensuelles exactes attendues par le duel autosave."""
+    return [
+        f"{year:04d}-{month:02d}-01"
+        for year in range(int(starting_year), int(starting_year) + int(years))
+        for month in range(1, 13)
+    ]
 
 
 def _output_text(value):
@@ -159,8 +170,8 @@ def _preserve_signature(wrapper, original):
     return wrapper
 
 
-def wrap_engine_failure_capture(original):
-    """Enveloppe `_run_experiment` en conservant sa signature pour le wrapper suivant."""
+def wrap_engine_failure_capture(original, timeout_sec=DEFAULT_ENGINE_TIMEOUT_SEC):
+    """Enveloppe `_run_experiment` et limite le timeout à l'exécution d'OpenTTD."""
     if getattr(original, "_opex_engine_failure_capture", False):
         return original
     import subprocess
@@ -170,7 +181,15 @@ def wrap_engine_failure_capture(original):
     def wrapped(*args, **kwargs):
         bound = signature.bind(*args, **kwargs)
         bound.apply_defaults()
+        real_check = subprocess.check_output
+
+        def check_output_with_timeout(*check_args, **check_kwargs):
+            if timeout_sec:
+                check_kwargs.setdefault("timeout", timeout_sec)
+            return real_check(*check_args, **check_kwargs)
+
         try:
+            subprocess.check_output = check_output_with_timeout
             return original(*args, **kwargs)
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
             from dill import dumps, loads
@@ -178,39 +197,28 @@ def wrap_engine_failure_capture(original):
             processor = loads(bound.arguments["result_processor"])
             rows = capture_engine_failure(exc, experiment, processor)
             return dumps(list(rows))
+        finally:
+            subprocess.check_output = real_check
 
     wrapped._opex_engine_failure_capture = True
     return _preserve_signature(wrapped, original)
 
 
 def enable_engine_failure_capture(timeout_sec=DEFAULT_ENGINE_TIMEOUT_SEC):
-    """Intercepte un crash/timeout d'OpenTTD dans le worker et rend des lignes engine_error.
-
-    Doit être appelé AVANT `enable_savegame_cleanup` : le rmtree final a alors encore
-    le répertoire d'expérience si un salvage ultérieur est ajouté, et le catch entoure
-    `check_output` plutôt que le nettoyage. La signature de `_run_experiment` est
-    conservée, sinon le cleanup ne retrouve plus `run_dir`/`i`.
-    """
+    """Intercepte crash/timeout moteur sans toucher aux téléchargements OpenTTDLab."""
     import openttdlab
-
-    real_check = openttdlab.subprocess.check_output
-    if not getattr(real_check, "_opex_engine_timeout", False):
-        def check_output_with_timeout(*args, **kwargs):
-            if timeout_sec:
-                kwargs.setdefault("timeout", timeout_sec)
-            return real_check(*args, **kwargs)
-
-        check_output_with_timeout._opex_engine_timeout = True
-        openttdlab.subprocess.check_output = check_output_with_timeout
-
-    openttdlab._run_experiment = wrap_engine_failure_capture(openttdlab._run_experiment)
+    openttdlab._run_experiment = wrap_engine_failure_capture(
+        openttdlab._run_experiment,
+        timeout_sec=timeout_sec,
+    )
 
 
 def write_engine_log(path, output):
-    """Écrit le stdout du moteur une seule fois par partie (écrase la copie mensuelle)."""
+    """Écrit le stdout du moteur une seule fois par partie."""
     path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(output or "")
+    if not path.exists():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(output or "")
     return str(path)
 
 
@@ -310,37 +318,47 @@ def parse_script_errors(output, slot_map=None):
     }
 
 
-def inspect_checkpoints(records, expected_companies=None):
-    """Doublons (même compagnie, même date) et compagnies absentes du lot."""
+def inspect_checkpoints(records, expected_companies=None, expected_dates=None):
+    """Doublons, compagnies absentes et continuité mensuelle exacte."""
     expected_companies = tuple(expected_companies or ())
+    expected_dates = tuple(expected_dates or ())
     by_key = defaultdict(list)
     names_seen = set()
+    dates_by_company = defaultdict(set)
     for record in records:
         run = record.get("run") or []
         if len(run) < 1:
             continue
         name = run[0]
+        date = str(record.get("date", ""))
         names_seen.add(name)
-        by_key[(name, record.get("date"))].append(record)
+        dates_by_company[name].add(date)
+        by_key[(name, date)].append(record)
     duplicates = [
         {"arm": name, "date": date, "n": len(group)}
         for (name, date), group in sorted(by_key.items())
         if len(group) > 1
     ]
     missing = [name for name in expected_companies if name not in names_seen]
+    missing_checkpoints = {
+        name: [date for date in expected_dates if date not in dates_by_company.get(name, set())]
+        for name in expected_companies
+    }
     return {
         "duplicates": duplicates,
         "missing_companies": missing,
+        "missing_checkpoints": missing_checkpoints,
+        "checkpoint_counts": {
+            name: len(dates_by_company.get(name, set()))
+            for name in expected_companies
+        },
+        "expected_checkpoint_count": len(expected_dates),
         "companies_seen": sorted(names_seen),
     }
 
 
 def activity_from_series(series):
-    """Signal d'activité à partir des observations déjà dans les checkpoints.
-
-    Une flotte/réseau inchangé n'est pas un gel si la valeur bouge encore
-    (les véhicules peuvent gagner sans que le contrôleur construise).
-    """
+    """Signal d'activité : expansion récente ou croissance récente de valeur."""
     ordered = sorted(series, key=lambda row: str(row.get("date", "")))
     empty = {
         "signal": "no_signal",
@@ -348,8 +366,11 @@ def activity_from_series(series):
         "fleet_changes": 0,
         "network_changes": 0,
         "value_changes": 0,
+        "value_increases": 0,
+        "value_decreases": 0,
         "months_since_fleet_or_network_change": None,
         "months_since_value_change": None,
+        "months_since_value_increase": None,
     }
     if len(ordered) < 2:
         return empty
@@ -363,8 +384,11 @@ def activity_from_series(series):
     fleet_changes = 0
     network_changes = 0
     value_changes = 0
+    value_increases = 0
+    value_decreases = 0
     last_expand = 0
     last_value = 0
+    last_increase = 0
     for index, (prev, cur) in enumerate(zip(ordered, ordered[1:]), start=1):
         prev_fleet = _num(prev.get("primary_vehicles"), prev.get("n_vehicles"))
         cur_fleet = _num(cur.get("primary_vehicles"), cur.get("n_vehicles"))
@@ -381,16 +405,24 @@ def activity_from_series(series):
         if prev_val is not None and cur_val is not None and prev_val != cur_val:
             value_changes += 1
             last_value = index
+            if cur_val > prev_val:
+                value_increases += 1
+                last_increase = index
+            else:
+                value_decreases += 1
 
     n_steps = len(ordered) - 1
     since_expand = n_steps - last_expand
     since_value = n_steps - last_value
+    since_increase = n_steps - last_increase
     recent_expand = since_expand <= ACTIVITY_RECENT_STEPS
-    recent_value = since_value <= ACTIVITY_RECENT_STEPS
+    recent_increase = value_increases > 0 and since_increase <= ACTIVITY_RECENT_STEPS
     if (fleet_changes or network_changes) and recent_expand:
         signal = "active"
-    elif value_changes and recent_value:
+    elif recent_increase:
         signal = "earning_without_expansion"
+    elif value_decreases:
+        signal = "declining_without_expansion"
     else:
         signal = "no_signal"
 
@@ -400,8 +432,11 @@ def activity_from_series(series):
         "fleet_changes": fleet_changes,
         "network_changes": network_changes,
         "value_changes": value_changes,
+        "value_increases": value_increases,
+        "value_decreases": value_decreases,
         "months_since_fleet_or_network_change": since_expand,
         "months_since_value_change": since_value,
+        "months_since_value_increase": since_increase,
     }
 
 
@@ -449,6 +484,15 @@ def classify_company(
     unattributed = parsed_errors["unattributed"]
     duplicates = [item for item in checkpoint_report["duplicates"] if item["arm"] == name]
     missing = name in checkpoint_report["missing_companies"]
+    missing_dates = checkpoint_report.get("missing_checkpoints", {}).get(name, [])
+
+    last_vehicles = None if last is None else last.get("primary_vehicles", last.get("n_vehicles"))
+    last_stations = None if last is None else last.get("n_stations")
+    last_value = None if last is None else last.get("company_value")
+    floor_values_known = all(
+        isinstance(value, (int, float))
+        for value in (last_vehicles, last_stations, last_value)
+    )
 
     status = "complete"
     failure_reason = None
@@ -481,15 +525,31 @@ def classify_company(
             f"horizon_truncated: last checkpoint {last_date or 'unknown'} "
             f"< expected {expected_checkpoint}"
         )
+    elif missing_dates:
+        status = "missing_data"
+        failure_reason = (
+            f"missing_checkpoints: company {name} missing {len(missing_dates)}/"
+            f"{checkpoint_report.get('expected_checkpoint_count', '?')} "
+            f"first={missing_dates[0]}"
+        )
     elif bankrupt:
         status = "bankrupt"
+    elif not floor_values_known:
+        status = "missing_data"
+        failure_reason = f"missing_activity_floor: company {name}"
+    elif last_vehicles < 1 or last_stations < 1 or last_value <= 1:
+        status = "inactive_company"
+        failure_reason = (
+            f"inactive_company: vehicles={last_vehicles} stations={last_stations} "
+            f"company_value={last_value}"
+        )
     elif (
-        activity["signal"] == "no_signal"
+        activity["signal"] in ("no_signal", "declining_without_expansion")
         and horizon_ok
         and activity["n_checkpoints"] >= 6
     ):
         status = "stagnation_suspect"
-        failure_reason = None
+        failure_reason = f"stagnation_suspect: activity={activity['signal']}"
 
     include = status in ECONOMIC_OUTCOMES
     return {
@@ -521,6 +581,7 @@ def assess_game(
     slot_map = slot_map or DUEL_SLOT_MAP
     expected_companies = tuple(expected_companies)
     needed = expected_last_checkpoint(starting_year, years)
+    expected_dates = expected_checkpoint_dates(starting_year, years)
     if engine_log is None and engine_log_path:
         try:
             engine_log = Path(engine_log_path).read_text()
@@ -530,10 +591,18 @@ def assess_game(
     engine_error = engine_failure_from_records(records)
     if engine_error is None:
         engine_error = parsed["engine_marker"]
-    if engine_error is None and engine_log_path and engine_log is None:
-        engine_error = f"missing_engine_log:{engine_log_path}"
+    if engine_error is None and engine_log is None:
+        engine_error = (
+            f"missing_engine_log:{engine_log_path}"
+            if engine_log_path else
+            "missing_engine_log:unspecified"
+        )
 
-    report = inspect_checkpoints(records, expected_companies=expected_companies)
+    report = inspect_checkpoints(
+        records,
+        expected_companies=expected_companies,
+        expected_dates=expected_dates,
+    )
     by_arm = defaultdict(list)
     for record in records:
         name = _run_name(record)

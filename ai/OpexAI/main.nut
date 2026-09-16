@@ -163,7 +163,6 @@ class OpexAI extends AIController {
   _portfolioRefreshProbeLastDoubleOnly = 0;
   _portfolioRefreshProbeLastRefreshOps = 0;
   _portfolioRefreshProbeLastRefreshCount = 0;
-  _lastAirFleetMonth = -1;
   _lastRepayMonth = -1;
   /* G2 : une ouverture d'industrie ou fondation de ville rend le catalogue ET le
    * portefeuille derive perimes. dueCycle = 0 ne suffit pas : catalog peut deja
