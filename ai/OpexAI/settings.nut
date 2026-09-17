@@ -74,13 +74,9 @@ function OpexLoadSettings()
   PRICING_ROAD_RATING = AIController.GetSetting("pricing_road_rating") != 0;
   PRICING_RAIL_DEPOT = AIController.GetSetting("pricing_rail_depot") != 0;
   PRICING_ROAD_OPS = AIController.GetSetting("pricing_road_ops") != 0;
-  RAIL_COST_PROBE = AIController.GetSetting("rail_cost_probe") != 0;
-  AIR_COST_PROBE = AIController.GetSetting("air_cost_probe") != 0;
-  ROAD_COST_PROBE = AIController.GetSetting("road_cost_probe") != 0;
   AIR_PRESITE = AIController.GetSetting("air_presite") != 0;
   PORTFOLIO_FRESH_BUDGET = AIController.GetSetting("portfolio_fresh_budget") != 0;
   PORTFOLIO_CACHE = AIController.GetSetting("portfolio_cache") != 0;
-  AIR_FLEET_PROBE = AIController.GetSetting("air_fleet_probe") != 0;
   FLEET_BEFORE_NEW = AIController.GetSetting("fleet_before_new") != 0;
   local tc = AIController.GetSetting("transit_cost");
   if (tc >= 0) TRANSIT_COST_PERMILLE = tc;
@@ -98,10 +94,6 @@ function OpexLoadSettings()
   RAIL_TERRAIN_PROBE = AIController.GetSetting("rail_terrain_probe") != 0;
   ABANDON_MEMORY_TRANSIENT_GUARD = AIController.GetSetting("abandon_memory_transient_guard") != 0;
   AIR_HUB_FIX = AIController.GetSetting("air_hub_fix") != 0;
-  TENSION_PROBE = AIController.GetSetting("tension_probe") != 0;
-  if (TENSION_PROBE) {
-    PORTFOLIO_LOG = true;
-  }
   AIR_DEMAND_CAP = AIController.GetSetting("air_demand_cap") != 0;
   AIR_DEMAND_PLAN = AIController.GetSetting("air_demand_plan") != 0;
   DYNAMIC_PATHFINDER_CAP = AIController.GetSetting("dynamic_pathfinder_cap") != 0;
@@ -129,183 +121,40 @@ function OpexLoadSettings()
   EVENT_INDUSTRY_CLOSE = AIController.GetSetting("event_industry_close") != 0;
   EVENT_SUBSIDY_PROBE = AIController.GetSetting("event_subsidy_probe") != 0;
   C42_SUBSIDIES = AIController.GetSetting("c42_subsidies") != 0;
-  C42_SUBSIDY_LOG = AIController.GetSetting("c42_subsidy_log") != 0;
   EVENT_VEHICLE_LOST = AIController.GetSetting("event_vehicle_lost") != 0;
-  /* Compatibilite de sauvegarde/config : l'ancien interrupteur reste declare dans
-   * info.nut mais l'integrite des IDs n'est plus optionnelle, donc il n'est pas lu. */
-  C52_AUTOREPLACE_LOG = AIController.GetSetting("c52_autoreplace_log") != 0;
-  C52_EVENT_EXPOSURE_PROBE = AIController.GetSetting("c52_event_exposure_probe") != 0;
   EVENT_VEHICLE_CRASHED = AIController.GetSetting("event_vehicle_crashed") != 0;
-  C52_CRASH_LOG = AIController.GetSetting("c52_crash_log") != 0;
   EVENT_VEHICLE_UNPROFITABLE = AIController.GetSetting("event_vehicle_unprofitable") != 0;
   UNPROFITABLE_STREAK_THRESHOLD = AIController.GetSetting("unprofitable_streak_threshold");
-  C52_UNPROFITABLE_LOG = AIController.GetSetting("c52_unprofitable_log") != 0;
-  C52_STATION_FIRST_VEHICLE_LOG = AIController.GetSetting("c52_station_first_vehicle_log") != 0;
-  C56_TASK_TRACE = AIController.GetSetting("c56_task_trace") != 0;
-  if (C56_TASK_TRACE) C56_LOOP_TICK_COUNT = 0;
   EVENT_CATALOG_INVALIDATE = AIController.GetSetting("event_catalog_invalidate") != 0;
-  C39_INVALIDATION_PROBE = AIController.GetSetting("c39_invalidation_probe") != 0;
-  C39_DECISION_DELTA_PROBE = AIController.GetSetting("c39_decision_delta_probe") != 0;
-  C39_AIR_REASON_PROBE = AIController.GetSetting("c39_air_reason_probe") != 0;
   C39_ENGINE_REFRESH = AIController.GetSetting("c39_engine_refresh") != 0;
-  C41_REVISION_PROBE = AIController.GetSetting("c41_revision_probe") != 0;
   C41_WATER_REFRESH = AIController.GetSetting("c41_water_refresh") != 0;
   C41_WATER_PRECHECK = AIController.GetSetting("c41_water_precheck") != 0;
-  C41_WATER_CANDIDATE_PROBE = AIController.GetSetting("c41_water_candidate_probe") != 0
-      && C41_WATER_PRECHECK;
-  C41_WATER_PLANS_PROFILE = AIController.GetSetting("c41_water_plans_profile") != 0
-      && C41_WATER_CANDIDATE_PROBE;
-  C41_WATER_SITE_PROFILE = AIController.GetSetting("c41_water_site_profile") != 0
-      && C41_WATER_PLANS_PROFILE;
   WATER_LAKES_CONNECTIVITY = AIController.GetSetting("water_lakes_connectivity") != 0;
   WATER_LAKES_OPS_BUDGET = AIController.GetSetting("water_lakes_ops_budget") != 0;
   WATER_SITE_CATALOG = AIController.GetSetting("water_site_catalog") != 0;
   WATER_DISCOVERY_REAL_FRONTS = AIController.GetSetting("water_discovery_real_fronts") != 0;
-  C41_SLACK_LEDGER = AIController.GetSetting("c41_slack_ledger") != 0;
-  C41_MONTHLY_BUSY_LEDGER = AIController.GetSetting("c41_monthly_busy_ledger") != 0;
-  C41_STALENESS_LEDGER = AIController.GetSetting("c41_staleness_ledger") != 0;
-  C41_OPPORTUNITY_LEDGER = AIController.GetSetting("c41_opportunity_ledger") != 0;
-  C41_ADMISSION_LEDGER = AIController.GetSetting("c41_admission_ledger") != 0;
   C41_ROAD_REFRESH = AIController.GetSetting("c41_road_refresh") != 0;
-  C41_ROAD_CANDIDATE_PROFILE = AIController.GetSetting("c41_road_candidate_profile") != 0;
-  C41_ROAD_FREIGHT_PROFILE = AIController.GetSetting("c41_road_freight_profile") != 0;
   C41_ROAD_FREIGHT_SERVED_INDEX = AIController.GetSetting("c41_road_freight_served_index") != 0;
-  C41_ROAD_FREIGHT_TOWN_PROFILE = AIController.GetSetting("c41_road_freight_town_profile") != 0;
   C41_ROAD_FREIGHT_ACCEPTANCE_INDEX = AIController.GetSetting("c41_road_freight_acceptance_index") != 0;
-  C41_ROAD_FEEDER_PROFILE = AIController.GetSetting("c41_road_feeder_profile") != 0;
-  C41_RAIL_PORTFOLIO_PROFILE = AIController.GetSetting("c41_rail_portfolio_profile") != 0;
-  C41_RAIL_CANDIDATE_PROFILE = AIController.GetSetting("c41_rail_candidate_profile") != 0;
-  C41_RAIL_PAX_PROFILE = AIController.GetSetting("c41_rail_pax_profile") != 0;
-  C41_RAIL_PAX_CANDIDATE_PROFILE = AIController.GetSetting("c41_rail_pax_candidate_profile") != 0;
-  C41_RAIL_PAX_ECONOMICS_PROFILE = AIController.GetSetting("c41_rail_pax_economics_profile") != 0;
-  C41_RAIL_PAX_SPEED_PROFILE = AIController.GetSetting("c41_rail_pax_speed_profile") != 0;
-  C41_RAIL_PAX_SPEED_DETAIL_PROFILE = AIController.GetSetting("c41_rail_pax_speed_detail_profile") != 0;
-  C41_RAIL_PAX_CRUISE_PROFILE = AIController.GetSetting("c41_rail_pax_cruise_profile") != 0;
   C41_RAIL_PAX_CRUISE_CACHE = AIController.GetSetting("c41_rail_pax_cruise_cache") != 0;
-  C41_RAIL_FREIGHT_PROFILE = AIController.GetSetting("c41_rail_freight_profile") != 0;
-  C41_RAIL_FREIGHT_CANDIDATE_PROFILE = AIController.GetSetting("c41_rail_freight_candidate_profile") != 0;
-  C41_RAIL_FREIGHT_ECONOMICS_PROFILE = AIController.GetSetting("c41_rail_freight_economics_profile") != 0;
-  C41_RAIL_FREIGHT_ECONOMICS_DETAIL_PROFILE = AIController.GetSetting("c41_rail_freight_economics_detail_profile") != 0;
-  C41_RAIL_FREIGHT_ECONOMICS_SETUP_PROFILE = AIController.GetSetting("c41_rail_freight_economics_setup_profile") != 0;
-  C41_RAIL_FREIGHT_ECONOMICS_CONSIST_PROFILE = AIController.GetSetting("c41_rail_freight_economics_consist_profile") != 0;
-  C41_RAIL_FREIGHT_CRUISE_PROFILE = AIController.GetSetting("c41_rail_freight_cruise_profile") != 0;
   C41_RAIL_FREIGHT_CRUISE_CACHE = AIController.GetSetting("c41_rail_freight_cruise_cache") != 0;
-  C41_RAIL_FREIGHT_SPEED_DETAIL_PROFILE = AIController.GetSetting("c41_rail_freight_speed_detail_profile") != 0;
   C41_RAIL_FREIGHT_ACCELERATION_CACHE = AIController.GetSetting("c41_rail_freight_acceleration_cache") != 0;
-  C41_RAIL_FREIGHT_EFFECTIVE_SPEED_PROFILE = AIController.GetSetting("c41_rail_freight_effective_speed_profile") != 0;
-  C41_RAIL_FREIGHT_TOWN_GUARDS_PROFILE = AIController.GetSetting("c41_rail_freight_town_guards_profile") != 0;
   C41_RAIL_FREIGHT_TOWN_SERVICE_CACHE = AIController.GetSetting("c41_rail_freight_town_service_cache") != 0;
-  C41_RAIL_LOST_PROBE = AIController.GetSetting("c41_rail_lost_probe") != 0;
-  C41_RAIL_LOST_TOPOLOGY_PROBE = AIController.GetSetting("c41_rail_lost_topology_probe") != 0;
-  C41_RAIL_LOST_PHYSICAL_PROBE = AIController.GetSetting("c41_rail_lost_physical_probe") != 0;
   C41_RAIL_LOST_SIGNAL_REPAIR = AIController.GetSetting("c41_rail_lost_signal_repair") != 0;
-  C41_RAIL_LOST_CONNECTIVITY_PROBE = AIController.GetSetting("c41_rail_lost_connectivity_probe") != 0;
   C41_RAIL_LOST_JUNCTION_REPAIR = AIController.GetSetting("c41_rail_lost_junction_repair") != 0;
-  C41_RAIL_SLICE_LEDGER = AIController.GetSetting("c41_rail_slice_ledger") != 0;
   C41_RAIL_CASH_RELEASE = AIController.GetSetting("c41_rail_cash_release") != 0;
-  C41_RAIL_DOMINATION_PROBE = AIController.GetSetting("c41_rail_domination_probe") != 0;
-  C41_PROJECTS_FALLTHROUGH_PROBE = AIController.GetSetting("c41_projects_fallthrough_probe") != 0;
-  C39_PROJECTS_CADENCE_PROBE = AIController.GetSetting("c39_projects_cadence_probe") != 0;
-  C39_PASS_CLOCK_LEDGER = AIController.GetSetting("c39_pass_clock_ledger") != 0;
-  C48_PROJECT_ATTEMPT_LEDGER = AIController.GetSetting("c48_project_attempt_ledger") != 0;
   C49_VARIABLE_DENOMINATOR = AIController.GetSetting("c49_variable_denominator") != 0;
-  C49_SCARCITY_LEDGER = AIController.GetSetting("c49_scarcity_ledger") != 0 || C49_VARIABLE_DENOMINATOR;
-  C55_ORIGIN_RELAX_PROBE = AIController.GetSetting("c55_origin_relax_probe") != 0;
   C55_FREIGHT_ORIGIN_RELAX = AIController.GetSetting("c55_freight_origin_relax") != 0;
   C55_ROAD_ORIGIN_RELAX = AIController.GetSetting("c55_road_origin_relax") != 0;
   C55_ROAD_PAX_ORIGIN_RELAX = AIController.GetSetting("c55_road_pax_origin_relax") != 0;
-  C55_PAX_TRACE_PROBE = AIController.GetSetting("c55_pax_trace_probe") != 0;
-  if (C55_PAX_TRACE_PROBE) {
-    C55_PAX_TRACE_LEDGER = {
-      revalidated = 0, origin_blocked = 0, spared = 0,
-      attempted = 0, precheck_ok = 0, financeable = 0,
-      planned = 0, viable = 0, built = 0, built_profit = 0,
-      total_revalidated = 0, total_origin_blocked = 0, total_spared = 0,
-      total_attempted = 0, total_precheck_ok = 0, total_financeable = 0,
-      total_planned = 0, total_viable = 0, total_built = 0, total_built_profit = 0,
-    };
-  }
-  C60_TOWN_RATING_PROBE = AIController.GetSetting("c60_town_rating_probe") != 0;
   C60_TOWN_RATING_FILTER = AIController.GetSetting("c60_town_rating_filter") != 0;
-  if (C60_TOWN_RATING_PROBE) {
-    C60_TOWN_RATING_LEDGER = {
-      checks = 0, none = 0, ok = 0, very_poor = 0, appalling = 0,
-      by_mode = {
-        road = { checks = 0, refused = 0 },
-        rail = { checks = 0, refused = 0 },
-        air = { checks = 0, refused = 0 }
-      }
-    };
-  }
-  C54_VEHICLE_ORDERS_PROBE = AIController.GetSetting("c54_vehicle_orders_probe") != 0;
-  if (C49_SCARCITY_LEDGER) {
-    ::C49_CURRENT_REGIME = "cash";
-  }
-  if (C55_ORIGIN_RELAX_PROBE) {
-    C55_ORIGIN_RELAX_LEDGER = {
-      candidates_seen = 0, rejected_total = 0, both_served = 0, one_served = 0,
-      one_served_pax = 0, one_served_freight = 0, duplicate_exact = 0,
-      total_candidates_seen = 0, total_rejected_total = 0, total_both_served = 0,
-      total_one_served = 0, total_one_served_pax = 0, total_one_served_freight = 0,
-      total_duplicate_exact = 0,
-    };
-  }
-  if (C52_AUTOREPLACE_LOG) {
-    C52_AUTOREPLACE_LEDGER = {
-      events = 0, remap_line_vehicles = 0, remap_line_vehicle = 0, remap_scrap_vehicles = 0,
-      remap_scrap_index = 0, untracked = 0, rail = 0, road = 0, air = 0, water = 0, unknown = 0,
-      line_rail = 0, line_road = 0, line_air = 0, line_water = 0,
-      total_events = 0, total_remap_line_vehicles = 0, total_remap_line_vehicle = 0,
-      total_remap_scrap_vehicles = 0, total_remap_scrap_index = 0, total_untracked = 0,
-      total_rail = 0, total_road = 0, total_air = 0, total_water = 0, total_unknown = 0,
-    };
-  }
-  if (C52_EVENT_EXPOSURE_PROBE) {
-    local c52EventFields = [
-      "vehicle_crashed", "crashed_train", "crashed_other", "vehicle_waiting_in_depot",
-      "industry_open", "industry_close", "town_founded", "engine_available", "vehicle_lost",
-      "subsidy_offer", "subsidy_offer_expired", "subsidy_awarded", "subsidy_expired",
-      "vehicle_autoreplaced", "vehicle_unprofitable", "vehicle_unprofitable_distinct",
-      "aircraft_dest_too_far", "station_first_vehicle", "road_reconstruction", "engine_preview",
-      "exclusive_transport_rights", "other",
-    ];
-    local c52EventTotals = {};
-    foreach (field in c52EventFields) c52EventTotals.rawset(field, 0);
-    C52_EVENT_EXPOSURE_LEDGER = {
-      fields = c52EventFields, totals = c52EventTotals, unprofitable_vehicles = {},
-      vehicle_crashed = 0, crashed_train = 0, crashed_other = 0, vehicle_waiting_in_depot = 0,
-      industry_open = 0, industry_close = 0, town_founded = 0, engine_available = 0,
-      vehicle_lost = 0, subsidy_offer = 0, subsidy_offer_expired = 0, subsidy_awarded = 0,
-      subsidy_expired = 0, vehicle_autoreplaced = 0, vehicle_unprofitable = 0,
-      vehicle_unprofitable_distinct = 0, aircraft_dest_too_far = 0, station_first_vehicle = 0,
-      road_reconstruction = 0, engine_preview = 0, exclusive_transport_rights = 0, other = 0,
-    };
-  }
-  C48_INCREMENTAL_PROFILE = AIController.GetSetting("c48_incremental_profile") != 0;
   C48_INDEXED_REGENERATION = AIController.GetSetting("c48_indexed_regeneration") != 0;
   C48_INDEX_SHADOW = AIController.GetSetting("c48_index_shadow") != 0;
   C46_FREIGHT_GRID = AIController.GetSetting("c46_freight_grid") != 0;
   C46_FREIGHT_GRID_SHADOW = AIController.GetSetting("c46_freight_grid_shadow") != 0;
-  C50_CHRONOLOGY_PROBE = AIController.GetSetting("c50_chronology_probe") != 0;
-  C63_INVEST_PROBE = AIController.GetSetting("c63_invest_probe") != 0;
-  if (C63_INVEST_PROBE) OpexC63ResetLedger();
-  MONTHLY_FUNNEL = AIController.GetSetting("monthly_funnel") != 0;
   C50B_ROAD_CAP_RELAX = AIController.GetSetting("c50b_road_cap_relax") != 0;
   ROAD_TIME_SCALED_CAP = AIController.GetSetting("road_time_scaled_cap") != 0;
   C50B_RAIL_BACKLOG_RELAX = AIController.GetSetting("c50b_rail_backlog_relax") != 0;
-  if (C50_CHRONOLOGY_PROBE) {
-    OpexC50ResetNonExpansionLedger();
-  }
-  CASH_RESERVE_PROBE = AIController.GetSetting("cash_reserve_probe") != 0;
-  PORTFOLIO_REFRESH_PROBE = AIController.GetSetting("portfolio_refresh_probe") != 0;
-  if (C41_RAIL_LOST_TOPOLOGY_PROBE) C41_RAIL_LOST_PROBE = true;
-  if (C41_RAIL_LOST_PHYSICAL_PROBE) C41_RAIL_LOST_PROBE = true;
-  if (C41_RAIL_LOST_SIGNAL_REPAIR) C41_RAIL_LOST_PROBE = true;
-  if (C41_RAIL_LOST_CONNECTIVITY_PROBE) C41_RAIL_LOST_PROBE = true;
-  if (C41_RAIL_LOST_JUNCTION_REPAIR) C41_RAIL_LOST_PROBE = true;
-  C41_VEHICLE_LOST_PROBE = AIController.GetSetting("c41_vehicle_lost_probe") != 0
-      || C41_RAIL_LOST_PROBE || C41_RAIL_LOST_TOPOLOGY_PROBE || C41_RAIL_LOST_PHYSICAL_PROBE
-      || C41_RAIL_LOST_SIGNAL_REPAIR || C41_RAIL_LOST_CONNECTIVITY_PROBE || C41_RAIL_LOST_JUNCTION_REPAIR;
   VIVIER_RATIO_FILTER = AIController.GetSetting("vivier_ratio_filter") != 0;
   ROAD_FLEET_FIX = AIController.GetSetting("road_fleet_fix") != 0;
   AIR_FLEET_LINE_PRICE = AIController.GetSetting("air_fleet_line_price") != 0;
@@ -337,8 +186,6 @@ function OpexLoadSettings()
   AIR_SITE_CACHE_ENABLED = AIController.GetSetting("air_site_cache") != 0;
   AIR_CHEAP_SITE = AIController.GetSetting("air_cheap_site") != 0;
   AIR_JOINED_STOPS = AIController.GetSetting("air_joined_stops") != 0;
-  AIR_CATCHMENT_PROBE = AIController.GetSetting("air_catchment_probe") != 0;
-  EQUIPMENT_ROI_PROBE = AIController.GetSetting("equipment_roi_probe") != 0;
   local ajsl = AIController.GetSetting("air_joined_stop_limit");
   if (ajsl >= 0) AIR_JOINED_STOP_LIMIT = ajsl;
   AIR_SPLIT_FEEDER_TEST = AIController.GetSetting("air_split_feeder_test") != 0;
@@ -352,4 +199,177 @@ function OpexLoadSettings()
   ROAD_CHEAP_TRACE = AIController.GetSetting("road_cheap_trace") != 0;
   ROAD_PAX_VOIRIE = AIController.GetSetting("road_pax_voirie") != 0;
   ROAD_PAX_OVERLAP = AIController.GetSetting("road_pax_overlap") != 0;
+
+  /* --- Sondes de diagnostic unifiees (9 groupes) --- */
+
+  // 1. probe_cost : rail_cost_probe, air_cost_probe, road_cost_probe
+  local probeCost = AIController.GetSetting("probe_cost") != 0;
+  RAIL_COST_PROBE = probeCost;
+  AIR_COST_PROBE = probeCost;
+  ROAD_COST_PROBE = probeCost;
+
+  // 2. probe_scheduler : C41_SLACK, BUSY, STALENESS, OPPORTUNITY, ADMISSION, C39_CLOCK, C48_ATTEMPT, C41_SLICE
+  local probeScheduler = AIController.GetSetting("probe_scheduler") != 0;
+  C41_SLACK_LEDGER = probeScheduler;
+  C41_MONTHLY_BUSY_LEDGER = probeScheduler;
+  C41_STALENESS_LEDGER = probeScheduler;
+  C41_OPPORTUNITY_LEDGER = probeScheduler;
+  C41_ADMISSION_LEDGER = probeScheduler;
+  C39_PASS_CLOCK_LEDGER = probeScheduler;
+  C48_PROJECT_ATTEMPT_LEDGER = probeScheduler;
+  C41_RAIL_SLICE_LEDGER = probeScheduler;
+
+  // 3. probe_candidates_road : profiles pax, freight, town sinks, feeder
+  local probeCandRoad = AIController.GetSetting("probe_candidates_road") != 0;
+  C41_ROAD_CANDIDATE_PROFILE = probeCandRoad;
+  C41_ROAD_FREIGHT_PROFILE = probeCandRoad;
+  C41_ROAD_FREIGHT_TOWN_PROFILE = probeCandRoad;
+  C41_ROAD_FEEDER_PROFILE = probeCandRoad;
+
+  // 4. probe_candidates_rail : profiles pax, freight, speeds, cruise, economics
+  local probeCandRail = AIController.GetSetting("probe_candidates_rail") != 0;
+  C41_RAIL_PORTFOLIO_PROFILE = probeCandRail;
+  C41_RAIL_CANDIDATE_PROFILE = probeCandRail;
+  C41_RAIL_PAX_PROFILE = probeCandRail;
+  C41_RAIL_PAX_CANDIDATE_PROFILE = probeCandRail;
+  C41_RAIL_PAX_ECONOMICS_PROFILE = probeCandRail;
+  C41_RAIL_PAX_SPEED_PROFILE = probeCandRail;
+  C41_RAIL_PAX_SPEED_DETAIL_PROFILE = probeCandRail;
+  C41_RAIL_PAX_CRUISE_PROFILE = probeCandRail;
+  C41_RAIL_FREIGHT_PROFILE = probeCandRail;
+  C41_RAIL_FREIGHT_CANDIDATE_PROFILE = probeCandRail;
+  C41_RAIL_FREIGHT_ECONOMICS_PROFILE = probeCandRail;
+  C41_RAIL_FREIGHT_ECONOMICS_DETAIL_PROFILE = probeCandRail;
+  C41_RAIL_FREIGHT_ECONOMICS_SETUP_PROFILE = probeCandRail;
+  C41_RAIL_FREIGHT_ECONOMICS_CONSIST_PROFILE = probeCandRail;
+  C41_RAIL_FREIGHT_CRUISE_PROFILE = probeCandRail;
+  C41_RAIL_FREIGHT_SPEED_DETAIL_PROFILE = probeCandRail;
+  C41_RAIL_FREIGHT_EFFECTIVE_SPEED_PROFILE = probeCandRail;
+  C41_RAIL_FREIGHT_TOWN_GUARDS_PROFILE = probeCandRail;
+
+  // 5. probe_catalogue : invalidations C39, delta, air reason, C41 revision, water candidate/plans/site
+  local probeCat = AIController.GetSetting("probe_catalogue") != 0;
+  C39_INVALIDATION_PROBE = probeCat;
+  C39_DECISION_DELTA_PROBE = probeCat;
+  C39_AIR_REASON_PROBE = probeCat;
+  C41_REVISION_PROBE = probeCat;
+  /* Emboitement volontaire (perdu puis restaure le 2026-09-17) : sans le precontrole, activer
+   * probe_catalogue ferait executer OpexWaterPlans() pour de vrai (BFS littoral, tests de dock
+   * sous AITestMode) au lieu de rester une sonde passive. */
+  C41_WATER_CANDIDATE_PROBE = probeCat && C41_WATER_PRECHECK;
+  C41_WATER_PLANS_PROFILE = probeCat && C41_WATER_CANDIDATE_PROBE;
+  C41_WATER_SITE_PROFILE = probeCat && C41_WATER_PLANS_PROFILE;
+
+  // 6. probe_rail_search : domination, fallthrough, projects cadence
+  local probeRailSearch = AIController.GetSetting("probe_rail_search") != 0;
+  C41_RAIL_DOMINATION_PROBE = probeRailSearch;
+  C41_PROJECTS_FALLTHROUGH_PROBE = probeRailSearch;
+  C39_PROJECTS_CADENCE_PROBE = probeRailSearch;
+
+  // 7. probe_vehicle_lost : diagnostic vehicules perdus rail/global
+  local probeLost = AIController.GetSetting("probe_vehicle_lost") != 0;
+  C41_RAIL_LOST_TOPOLOGY_PROBE = probeLost;
+  C41_RAIL_LOST_PHYSICAL_PROBE = probeLost;
+  C41_RAIL_LOST_CONNECTIVITY_PROBE = probeLost;
+  C41_RAIL_LOST_PROBE = probeLost || C41_RAIL_LOST_SIGNAL_REPAIR || C41_RAIL_LOST_JUNCTION_REPAIR;
+  C41_VEHICLE_LOST_PROBE = probeLost || C41_RAIL_LOST_PROBE;
+
+  // 8. probe_portfolio : scarcity, chronology, invest C63, funnel, tension, incremental, reserves, origin relax, town rating
+  local probePort = AIController.GetSetting("probe_portfolio") != 0;
+  C49_SCARCITY_LEDGER = probePort || C49_VARIABLE_DENOMINATOR;
+  if (C49_SCARCITY_LEDGER) {
+    ::C49_CURRENT_REGIME = "cash";
+  }
+  C50_CHRONOLOGY_PROBE = probePort;
+  if (C50_CHRONOLOGY_PROBE) {
+    OpexC50ResetNonExpansionLedger();
+  }
+  C63_INVEST_PROBE = probePort;
+  if (C63_INVEST_PROBE) OpexC63ResetLedger();
+  MONTHLY_FUNNEL = probePort;
+  TENSION_PROBE = probePort;
+  if (TENSION_PROBE) {
+    PORTFOLIO_LOG = true;
+  }
+  C48_INCREMENTAL_PROFILE = probePort;
+  CASH_RESERVE_PROBE = probePort;
+  PORTFOLIO_REFRESH_PROBE = probePort;
+  C55_ORIGIN_RELAX_PROBE = probePort;
+  if (C55_ORIGIN_RELAX_PROBE) {
+    C55_ORIGIN_RELAX_LEDGER = {
+      candidates_seen = 0, rejected_total = 0, both_served = 0, one_served = 0,
+      one_served_pax = 0, one_served_freight = 0, duplicate_exact = 0,
+      total_candidates_seen = 0, total_rejected_total = 0, total_both_served = 0,
+      total_one_served = 0, total_one_served_pax = 0, total_one_served_freight = 0,
+      total_duplicate_exact = 0,
+    };
+  }
+  C55_PAX_TRACE_PROBE = probePort;
+  if (C55_PAX_TRACE_PROBE) {
+    C55_PAX_TRACE_LEDGER = {
+      revalidated = 0, origin_blocked = 0, spared = 0,
+      attempted = 0, precheck_ok = 0, financeable = 0,
+      planned = 0, viable = 0, built = 0, built_profit = 0,
+      total_revalidated = 0, total_origin_blocked = 0, total_spared = 0,
+      total_attempted = 0, total_precheck_ok = 0, total_financeable = 0,
+      total_planned = 0, total_viable = 0, total_built = 0, total_built_profit = 0,
+    };
+  }
+  C60_TOWN_RATING_PROBE = probePort;
+  if (C60_TOWN_RATING_PROBE) {
+    C60_TOWN_RATING_LEDGER = {
+      checks = 0, none = 0, ok = 0, very_poor = 0, appalling = 0,
+      by_mode = {
+        road = { checks = 0, refused = 0 },
+        rail = { checks = 0, refused = 0 },
+        air = { checks = 0, refused = 0 }
+      }
+    };
+  }
+
+  // 9. probe_events : C52 autoreplace, exposure, crash, unprofitable, first vehicle, C56 task trace, C42 subsidy, air fleet/catchment, equipment roi, vehicle orders
+  local probeEvents = AIController.GetSetting("probe_events") != 0;
+  C52_AUTOREPLACE_LOG = probeEvents;
+  if (C52_AUTOREPLACE_LOG) {
+    C52_AUTOREPLACE_LEDGER = {
+      events = 0, remap_line_vehicles = 0, remap_line_vehicle = 0, remap_scrap_vehicles = 0,
+      remap_scrap_index = 0, untracked = 0, rail = 0, road = 0, air = 0, water = 0, unknown = 0,
+      line_rail = 0, line_road = 0, line_air = 0, line_water = 0,
+      total_events = 0, total_remap_line_vehicles = 0, total_remap_line_vehicle = 0,
+      total_remap_scrap_vehicles = 0, total_remap_scrap_index = 0, total_untracked = 0,
+      total_rail = 0, total_road = 0, total_air = 0, total_water = 0, total_unknown = 0,
+    };
+  }
+  C52_EVENT_EXPOSURE_PROBE = probeEvents;
+  if (C52_EVENT_EXPOSURE_PROBE) {
+    local c52EventFields = [
+      "vehicle_crashed", "crashed_train", "crashed_other", "vehicle_waiting_in_depot",
+      "industry_open", "industry_close", "town_founded", "engine_available", "vehicle_lost",
+      "subsidy_offer", "subsidy_offer_expired", "subsidy_awarded", "subsidy_expired",
+      "vehicle_autoreplaced", "vehicle_unprofitable", "vehicle_unprofitable_distinct",
+      "aircraft_dest_too_far", "station_first_vehicle", "road_reconstruction", "engine_preview",
+      "exclusive_transport_rights", "other",
+    ];
+    local c52EventTotals = {};
+    foreach (field in c52EventFields) c52EventTotals.rawset(field, 0);
+    C52_EVENT_EXPOSURE_LEDGER = {
+      fields = c52EventFields, totals = c52EventTotals, unprofitable_vehicles = {},
+      vehicle_crashed = 0, crashed_train = 0, crashed_other = 0, vehicle_waiting_in_depot = 0,
+      industry_open = 0, industry_close = 0, town_founded = 0, engine_available = 0,
+      vehicle_lost = 0, subsidy_offer = 0, subsidy_offer_expired = 0, subsidy_awarded = 0,
+      subsidy_expired = 0, vehicle_autoreplaced = 0, vehicle_unprofitable = 0,
+      vehicle_unprofitable_distinct = 0, aircraft_dest_too_far = 0, station_first_vehicle = 0,
+      road_reconstruction = 0, engine_preview = 0, exclusive_transport_rights = 0, other = 0,
+    };
+  }
+  C52_CRASH_LOG = probeEvents;
+  C52_UNPROFITABLE_LOG = probeEvents;
+  C52_STATION_FIRST_VEHICLE_LOG = probeEvents;
+  C56_TASK_TRACE = probeEvents;
+  if (C56_TASK_TRACE) C56_LOOP_TICK_COUNT = 0;
+  C42_SUBSIDY_LOG = probeEvents;
+  AIR_FLEET_PROBE = probeEvents;
+  AIR_CATCHMENT_PROBE = probeEvents;
+  EQUIPMENT_ROI_PROBE = probeEvents;
+  C54_VEHICLE_ORDERS_PROBE = probeEvents;
 }

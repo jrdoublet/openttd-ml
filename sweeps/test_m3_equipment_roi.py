@@ -22,9 +22,9 @@ CANDIDATES = ROOT / "ai" / "OpexAI" / "candidates.nut"
 class TestM3EquipmentRoi(unittest.TestCase):
     def test_probe_is_default_off(self):
         defaults = parse_ai_settings(INFO)
-        self.assertEqual(defaults["equipment_roi_probe"], 0)
+        self.assertEqual(defaults["probe_events"], 0)
         self.assertIn("EQUIPMENT_ROI_PROBE <- false;", GLOBALS.read_text(encoding="utf-8"))
-        self.assertIn('EQUIPMENT_ROI_PROBE = AIController.GetSetting("equipment_roi_probe") != 0;', SETTINGS.read_text(encoding="utf-8"))
+        self.assertIn('EQUIPMENT_ROI_PROBE = probeEvents;', SETTINGS.read_text(encoding="utf-8"))
     def test_current_selection_rules_are_preserved(self):
         src = CATALOG.read_text(encoding="utf-8")
         for token in ("capacity > this.wagonByCargo[cargo].capacity", "engine.capacity > best.capacity", "engine.capacity == best.capacity && engine.speed > best.speed", "(isBig && !bestIsBig)", "if (!replaces && !EQUIPMENT_ROI_PROBE) continue;"):

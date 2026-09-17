@@ -39,38 +39,79 @@ class OpexAIInfo extends AIInfo {
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
-
+    /* --- Sondes de diagnostic unifiees (9 groupes activables independamment) --- */
     AddSetting({
-      name = "rail_cost_probe",
-      description = "Emit per-line rail model capital versus actual construction cost: 1 = measurement only, 0 = no extra signs (default)",
+      name = "probe_cost",
+      description = "Enable construction cost probes (rail, air, road) comparing modelled vs real expense; 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
 
-    /* Symetrique aerien de rail_cost_probe, et il manquait la ou l'argent part le plus :
-     * l'attribution du 2026-09-02 met 64,5 % du capital sur l'avion, mais ce chiffre est le
-     * MODELE (panneau AH|), le seul disponible. AC| donne le cout REEL, nivellement compris, et
-     * il est emis aussi sur ECHEC -- c'est le seul moyen de chiffrer un aeroport bati puis rase
-     * (4 BFAIL sur 20 tentatives au banc, docs/taches.md S0 unvicies). */
     AddSetting({
-      name = "air_cost_probe",
-      description = "Emit per-attempt air model capital versus actual cost, including levelling and rolled-back airports: 1 = measurement only, 0 = no extra signs (default)",
+      name = "probe_scheduler",
+      description = "Enable scheduler opcode and latency diagnostic ledgers (C41, C39, C48); 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
 
-    /* Symetrique de air_cost_probe : la route n'a jamais eu de sonde de cout reel equivalente
-     * (docs/taches.md, retrouve le 2026-09-08). AIAccounting isole les vraies commandes de
-     * OpexBuildRoadRoute -- aucun AITestMode interne, pas de bouclier necessaire. */
     AddSetting({
-      name = "road_cost_probe",
-      description = "Emit per-attempt road model capital versus actual cost (AIAccounting-isolated), including failed/rolled-back attempts: 1 = measurement only, 0 = no extra signs (default)",
+      name = "probe_candidates_road",
+      description = "Enable road candidate generation opcode profiling (pax, freight, town, feeder); 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
+
+    AddSetting({
+      name = "probe_candidates_rail",
+      description = "Enable rail candidate generation profiling (pax, freight, speed, cruise, economics); 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "probe_catalogue",
+      description = "Enable catalogue invalidation and engine availability probes (C39, C41); 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "probe_rail_search",
+      description = "Enable rail A* search state probes (domination, fallthrough, cadence); 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "probe_vehicle_lost",
+      description = "Enable vehicle lost and topology diagnostic probes (C41); 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "probe_portfolio",
+      description = "Enable portfolio, tension, scarcity and treasury chronological probes; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "probe_events",
+      description = "Enable AI event, crash, fleet depth and equipment selection probes; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
 
     /* Le catalogue mensuel fige le capital AVANT les taches air et air_fleet. Sur la graine 42,
      * 295 000 GBP a la generation devenaient 24 013 GBP au passage projects : le sac a dos
@@ -117,14 +158,6 @@ class OpexAIInfo extends AIInfo {
     AddSetting({
       name = "fleet_before_new",
       description = "Serve air fleet growth before building new air lines: 1 = tune what exists first, 0 = historical order (default, measured better)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "air_fleet_probe",
-      description = "Emit the reason an air line's fleet did not grow, once per line per year: 1 = measurement only, 0 = no extra signs (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -189,14 +222,6 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "c42_subsidy_log",
-      description = "C42: Detailed decision logging for subsidy candidates and awards: 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
     /* A7.4 : Alerte et diagnostic des convois perdus/bloques via ET_VEHICLE_LOST
      * (1 = actif, 0 = inactif/defaut). */
     AddSetting({
@@ -215,34 +240,10 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "c52_autoreplace_log",
-      description = "C52: log annual automatic vehicle replacement remaps without changing decisions: 1 = probe, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c52_event_exposure_probe",
-      description = "C52: count annual AI event exposure without changing decisions: 1 = probe, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
     /* C52 #2 : prise en compte de tous les crashs de vehicules (camions, avions, etc.) */
     AddSetting({
       name = "event_vehicle_crashed",
       description = "C52 #2: Handle all vehicle crashes: clean dead IDs; refleet road, air and water from durable metadata; record rail consists for manual recovery: 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c52_crash_log",
-      description = "C52 #2: log detailed vehicle crash events without changing decisions: 1 = probe, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -266,31 +267,6 @@ class OpexAIInfo extends AIInfo {
       flags = 0
     });
 
-    AddSetting({
-      name = "c52_unprofitable_log",
-      description = "C52 #4: log unprofitable vehicle events without changing decisions: 1 = probe, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* C52 #7 : sonde ET_STATION_FIRST_VEHICLE */
-    AddSetting({
-      name = "c52_station_first_vehicle_log",
-      description = "C52 #7: log ET_STATION_FIRST_VEHICLE events (station, vehicle, mode, cargo, line, initial rating) without changing decisions: 1 = probe, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c56_task_trace",
-      description = "C56: immediately trace selected task entry, task exit, and every 200th main-loop turn without changing decisions: 1 = probe, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
     /* P3 / A7.5 : Invalidation et rafraichissement reactif du catalogue via
      * ET_INDUSTRY_OPEN et ET_TOWN_FOUNDED (1 = actif par defaut). */
     AddSetting({
@@ -301,50 +277,11 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    /* C39.0 : sonde sans changement de decision. Elle enregistre quelles couches un
-     * futur invalidateur evenementiel aurait salies ; la cadence mensuelle et les decisions
-     * existantes restent identiques quand elle vaut 0 (defaut). */
-    AddSetting({
-      name = "c39_invalidation_probe",
-      description = "C39.0: log coalesced event invalidations without changing refreshes or decisions; 1 = probe, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* C39.3 : exige c39_invalidation_probe=1 ; compare le top avant/apres rebuild et indique
-     * si le moteur annonce a effectivement ete retenu par son sous-catalogue. */
-    AddSetting({
-      name = "c39_decision_delta_probe",
-      description = "C39.3 probe: with c39_invalidation_probe=1, log catalog retention and top-project deltas; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* C39.4 : explique les moteurs air non retenus, avec c39_invalidation_probe=1. */
-    AddSetting({
-      name = "c39_air_reason_probe",
-      description = "C39.4 probe: with c39_invalidation_probe=1, log why an air engine was not selected; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
     /* C39.2 : consommer EngineAvailable par le scheduler historique, sans inclure les
      * industries déjà traitées par P3. Expérimental jusqu'au diagnostic apparié. */
     AddSetting({
       name = "c39_engine_refresh",
       description = "C39.2 experimental: rebuild catalog/portfolio after EngineAvailable; 1 = enabled, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* C41.0 : registre de versions passif, qui exige la sonde C39 pour recevoir les evenements. */
-    AddSetting({
-      name = "c41_revision_probe",
-      description = "C41.0 probe: with c39_invalidation_probe=1, log coalesced revisions and full-refresh acknowledgements; 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -363,33 +300,6 @@ class OpexAIInfo extends AIInfo {
     AddSetting({
       name = "c41_water_precheck",
       description = "C41.2 experimental: skip C41.1 for water engines not buildable/refittable to passengers; requires c41_water_refresh=1; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* C41.3 : demande C41.1/C41.2 ; ne modifie aucun candidat ni portefeuille. */
-    AddSetting({
-      name = "c41_water_candidate_probe",
-      description = "C41.3 probe: measure temporary OpexWaterPlans after C41.1/C41.2; requires c41_water_refresh=1; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* C41.3a : attributer le cout de la sonde aux etapes physiques, sans changer son resultat. */
-    AddSetting({
-      name = "c41_water_plans_profile",
-      description = "C41.3a probe: split temporary water-plan cost into sites, pairs, BFS and economics; requires c41_water_candidate_probe=1; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* C41.3b : ne change que les compteurs internes au profile C41.3a. */
-    AddSetting({
-      name = "c41_water_site_profile",
-      description = "C41.3b probe: split water site search into coastline filtering and test-mode dock commands; requires c41_water_plans_profile=1; 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -437,72 +347,10 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    /* C41.11 : audit annuel du budget perdu par le scheduler historique, sans le modifier. */
-    AddSetting({
-      name = "c41_slack_ledger",
-      description = "C41.11 probe: aggregate scheduler task opcode use and initial slack annually; no scheduling change; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c41_monthly_busy_ledger",
-      description = "C41 probe: monthly opcode attribution by scheduler task; no scheduling change; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* C41.12 : ages par couche, seulement au moment d'un acquittement effectif. */
-    AddSetting({
-      name = "c41_staleness_ledger",
-      description = "C41.12 probe: log coalesced staleness age for each layer when actually acknowledged; no scheduling change; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* C41.13 : combien de reliquat le scheduler historique laisse aux couches encore stale. */
-    AddSetting({
-      name = "c41_opportunity_ledger",
-      description = "C41.13 probe: aggregate opcode slack observed while each C41 layer remains stale; no scheduling change; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* C41.14 : pilote d'admission, aucune tache supplementaire n'est executee ici. */
-    AddSetting({
-      name = "c41_admission_ledger",
-      description = "C41.14 probe: count stale targeted-catalog microtasks that fit their declared opcode hint; no scheduling change; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
     /* C41.15 : invalide seulement le materiel route, pas les candidats derives. */
     AddSetting({
       name = "c41_road_refresh",
       description = "C41.15 experimental: refresh only catalog.road after a road EngineAvailable; requires C39/C41 probes; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* C41.16 : aucune regeneration supplementaire, seulement une ventilation de la passe normale. */
-    AddSetting({
-      name = "c41_road_candidate_profile",
-      description = "C41.16 probe: split normal road-candidate generation into pax, freight, feeder and TopK opcodes; no scheduling change; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* C41.17 : sous-ventilation uniquement ; elle implique implicitement le profil route. */
-    AddSetting({
-      name = "c41_road_freight_profile",
-      description = "C41.17 probe: split freight road candidates into preparation, industry sinks and town sinks opcodes; no scheduling change; 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -518,90 +366,10 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "c41_road_freight_town_profile",
-      description = "C41.19 probe: count and time freight town acceptance and economics calls; no scheduling change; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
       name = "c41_road_freight_acceptance_index",
       description = "C41.20: preindex full-acceptance towns by freight cargo; 1 = on (default), 0 = off",
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c41_road_feeder_profile",
-      description = "C41.21 probe: split feeder generation in road build and fresh portfolio injection; no scheduling change; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c41_rail_portfolio_profile",
-      description = "C41.22 probe: split rail generation, prequote, portfolio insertion and selection opcodes; no scheduling change; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c41_rail_candidate_profile",
-      description = "C41.23 probe: split normal rail candidates into pax, freight and TopK opcodes; no scheduling change; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c41_rail_pax_profile",
-      description = "C41.24 probe: split rail pax preparation, town-pair scan and candidate calls; no scheduling change; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c41_rail_pax_candidate_profile",
-      description = "C41.25 probe: split rail pax candidate calls into origin sitability and economics; no scheduling change; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c41_rail_pax_economics_profile",
-      description = "C41.26 probe: split rail pax economics into setup, train loop and finalization; no scheduling change; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c41_rail_pax_speed_profile",
-      description = "C41.27 probe: measure effective-speed calls inside rail pax economics; no scheduling change; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c41_rail_pax_speed_detail_profile",
-      description = "C41.28 probe: split rail pax speed into cruise, acceleration and integration; count exact reusable keys; no scheduling change; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c41_rail_pax_cruise_profile",
-      description = "C41.29 probe: count exact reusable cruise keys (loco, wagon, wagons) in rail pax economics; no scheduling change; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
 
@@ -613,88 +381,14 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    AddSetting({
-      name = "c41_rail_freight_profile",
-      description = "C41.31 probe: split rail freight generation into preparation, industry and town sinks; no scheduling change; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c41_rail_freight_candidate_profile",
-      description = "C41.32 probe: split rail freight pair guards from candidate economics; no scheduling change; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c41_rail_freight_economics_profile",
-      description = "C41.33 probe: measure rail freight candidate economics; no scheduling change; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-    AddSetting({ name = "c41_rail_freight_economics_detail_profile", description = "C41.34 probe: split rail freight economics; 1 = on, 0 = off (default)", easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0, flags = AICONFIG_BOOLEAN });
-    AddSetting({ name = "c41_rail_freight_economics_setup_profile", description = "C41.35 probe: split freight economics setup into reference, consist and capital; 1 = on, 0 = off (default)", easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0, flags = AICONFIG_BOOLEAN });
-    AddSetting({ name = "c41_rail_freight_economics_consist_profile", description = "C41.36 probe: split freight consist sizing speed calls and residual; 1 = on, 0 = off (default)", easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0, flags = AICONFIG_BOOLEAN });
-    AddSetting({ name = "c41_rail_freight_cruise_profile", description = "C41.37 probe: count exact reusable freight cruise keys; 1 = on, 0 = off (default)", easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0, flags = AICONFIG_BOOLEAN });
     AddSetting({ name = "c41_rail_freight_cruise_cache", description = "C41.38: cache freight cruise speed by (loco, wagon, wagons) within one candidate generation; 1 = on (default), 0 = off", easy_value = 1, medium_value = 1, hard_value = 1, custom_value = 1, flags = AICONFIG_BOOLEAN });
-    AddSetting({ name = "c41_rail_freight_speed_detail_profile", description = "C41.39 probe: split freight effective speed into acceleration and integration; 1 = on, 0 = off (default)", easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0, flags = AICONFIG_BOOLEAN });
     AddSetting({ name = "c41_rail_freight_acceleration_cache", description = "C41.40: cache freight acceleration within one candidate generation; 1 = on (default), 0 = off", easy_value = 1, medium_value = 1, hard_value = 1, custom_value = 1, flags = AICONFIG_BOOLEAN });
-    AddSetting({ name = "c41_rail_freight_effective_speed_profile", description = "C41.41 probe: count exact reusable freight effective-speed keys; 1 = on, 0 = off (default)", easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0, flags = AICONFIG_BOOLEAN });
-    AddSetting({ name = "c41_rail_freight_town_guards_profile", description = "C41.42 probe: measure freight industry-to-town guards; 1 = on, 0 = off (default)", easy_value = 0, medium_value = 0, hard_value = 0, custom_value = 0, flags = AICONFIG_BOOLEAN });
     AddSetting({ name = "c41_rail_freight_town_service_cache", description = "C41.44: cache freight town service within one candidate generation; 1 = on (default), 0 = off", easy_value = 1, medium_value = 1, hard_value = 1, custom_value = 1, flags = AICONFIG_BOOLEAN });
-
-    /* C41.4 : inventaire passif des vehicules perdus, independant de l'alerte A7.4. */
-    AddSetting({
-      name = "c41_vehicle_lost_probe",
-      description = "C41.4 probe: log VehicleLost line/mode/orphan attribution only; no repair, no scheduling; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* C41.5 : cause observable d'un Lost rail, sans inferrer un blocage de signal. */
-    AddSetting({
-      name = "c41_rail_lost_probe",
-      description = "C41.5 probe: log rail Lost order, position and depot facts only; no repair or scheduling; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* C41.6 : attributs topologiques déjà persistés d'une ligne rail perdue. */
-    AddSetting({
-      name = "c41_rail_lost_topology_probe",
-      description = "C41.6 probe: log persisted rail Lost topology only; no map scan, repair or scheduling; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* C41.7 : sondage local des sorties de quai et fronts de depot d'un Lost rail. */
-    AddSetting({
-      name = "c41_rail_lost_physical_probe",
-      description = "C41.7 probe: log local rail approaches and depot fronts only; no path search, repair or scheduling; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
 
     /* C41.8 : reparation PBS uniquement, sur les approches simples d'une ligne double perdue. */
     AddSetting({
       name = "c41_rail_lost_signal_repair",
       description = "C41.8 experimental: after rail VehicleLost, add PBS only on eligible single-track approaches; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* C41.9 : connectivite locale des approches et depots d'un Lost rail. */
-    AddSetting({
-      name = "c41_rail_lost_connectivity_probe",
-      description = "C41.9 probe: log local rail branch connectivity after VehicleLost; no path search, repair or scheduling; 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -706,22 +400,6 @@ class OpexAIInfo extends AIInfo {
     AddSetting({
       name = "c41_rail_lost_junction_repair",
       description = "C41.10 experimental: after rail VehicleLost, repair one unambiguous missing local rail junction under AITestMode then for real only if the same junction succeeds; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* C41.46 : le ledger C41.11 etiquette toute la passe "rail_search" des que _railSearch est
-     * non nul en entree, mais _runNextTask avance une tranche A* PUIS execute une tache de file
-     * dans le MEME passage (main.nut, commentaire A4) -- les deux cout sont donc agreges. Cette
-     * sonde encadre isolement le seul appel _continueRailSearch() pour separer : opcodes nets de
-     * la tranche A*, opcodes de la tache de file dans la meme passe, iterations cumulees de
-     * l'annee, et le nombre de tranches qui n'ont PAS atteint slice.done (recherche encore en
-     * cours apres l'appel) contre celles qui l'ont atteint. Aucun dueCycle, aucune borne, aucune
-     * decision modifiee -- purement observatoire (docs/04_arbitrage_rail_search.md). */
-    AddSetting({
-      name = "c41_rail_slice_ledger",
-      description = "C41.46 probe: separate net rail A* slice opcodes from same-pass task opcodes and count slices that did not reach slice.done; no scheduling change; 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -754,100 +432,10 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    /* C41.48 : sonde passive a chaque frontiere de tranche du pathfinder rail segmente --
-     * OpexAdvanceSegmentedSearch() rend CONT/done=false, donc _continueRailSearch() rentre dans
-     * son `if (!slice.done) return;` (main.nut). Rien n'est coupe : la question posee est
-     * seulement « le test de domination C41.49 aurait-il seulement change une decision, et sur
-     * combien de frontieres ? » -- le meme garde-fou qui a fait echouer C41.14 (0 admission sur
-     * 56 fenetres, docs/taches.md). Uniquement kind == "primary" (une recherche d'upgrade n'a pas
-     * de candidat/profit associe au meme sens). docs/04_arbitrage_rail_search.md. */
-    AddSetting({
-      name = "c41_rail_domination_probe",
-      description = "C41.48 probe: at every segmented rail search slice boundary, log spent/remaining iterations, prefix length, remaining Manhattan distance, the rail candidate's forecast profit/capital, and the best affordable project ready to build at that instant; no search is cut, no decision changes; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* C41.49 (reformule 2026-09-10, docs/04_arbitrage_rail_search.md) : la regle d'arret optimal
-     * en opcodes est abandonnee -- lire _tryBuildProjects montre que le fallthrough (un candidat
-     * rail rejete search_in_progress n'arrete pas la boucle) essaie deja les autres modes pendant
-     * une recherche rail. Cette sonde, gatee separement de C41.48 (piege C41.46/C41.47 a ne pas
-     * reproduire une troisieme fois), compte combien de candidats non-rail sont tentes/batis
-     * PENDANT la fenetre d'une recherche rail (kind=="primary", phase=="search") -- pour savoir
-     * si les frontieres "avec alternative financable" que C41.48 mesure sont deja saisies,
-     * tentees-et-refusees pour une autre raison, ou jamais tentees. Rien n'est coupe. */
-    AddSetting({
-      name = "c41_projects_fallthrough_probe",
-      description = "C41.49 prep probe: while a primary rail search is in flight, log whether _tryBuildProjects's portfolio scan is invalidated/stale and how many non-rail candidates it attempts and builds in the same pass; no search is cut, no decision changes; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* C39.5 (docs/05_cadence_projects_rail_search.md) : sonde passive de la cadence de
-     * dispatch de `projects`, de la fraicheur des projets finançables et des abstentions.
-     * Elle ne reordonne aucune tache, ne coupe aucune recherche et ne construit rien. */
-    AddSetting({
-      name = "c39_projects_cadence_probe",
-      description = "C39.5 passive probe: log projects dispatch cadence, portfolio invalidation/emptiness, and the delay from first affordable appearance to construction; no task is reordered, no search is cut, no decision changes; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* C39.6 (docs/05_cadence_projects_rail_search.md §4.3) : le facteur ~15 mesure entre le cout en
-     * opcodes d'une tranche A* (~146 k, C41.46) et le temps de jeu qu'une passe de _runNextTask
-     * fait perdre pendant une recherche rail (~3,6 j contre ~0,74 j hors recherche) reste
-     * inexplique. Cette sonde mesure, a CHAQUE passe, le delta de date/tick/opcodes de la passe
-     * entiere et, separement, celui de la seule tranche _continueRailSearch() (meme garde que
-     * C41.46 : phase == "search"), ventile par nom de tache de file ET par presence ou non d'une
-     * tranche dans la passe. Reglage NOUVEAU et INDEPENDANT de c41_rail_slice_ledger : ce dernier a
-     * deja produit une mesure publiee (opcodes), sa semantique ne doit pas changer. Aucun dueCycle,
-     * aucune borne, aucune decision modifiee -- purement observatoire. */
-    AddSetting({
-      name = "c39_pass_clock_ledger",
-      description = "C39.6 probe: measure game days/ticks/opcodes per _runNextTask pass, split between the rail A* slice alone and the same-pass queued task, bucketed by task name and slice/noslice; no scheduling change; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* C48 : explique l'effondrement de cadence C39.6 a l'interieur de _tryBuildProjects :
-     * profondeur de balayage du portefeuille et cout/date de chaque tentative, ventiles par
-     * mode et issue. Les mesures imbriquees sont passives ; aucune selection ni construction ne
-     * change. */
-    AddSetting({
-      name = "c48_project_attempt_ledger",
-      description = "C48 probe: measure _tryBuildProjects portfolio scan depth and per-attempt game days/opcodes by mode and outcome; no project selection, build, or scheduling change; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* C49 etape 1 : sonde seule. Elle classe, a la fin de chaque passe projects, la cause
-     * prochaine du premier projet non bati ; elle ne reordonne, ne refuse et ne construit rien. */
-    AddSetting({
-      name = "c49_scarcity_ledger",
-      description = "C49 step 1 probe: annually log the end-of-pass marginal blocker of the highest-ranked project not built (cash, vehicles, site, or decision); no project selection, rejection, build, or scheduling change; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
     /* C49 etape 2 : denominateur variable selon la rarete endogene dominante. */
     AddSetting({
       name = "c49_variable_denominator",
       description = "C49 step 2: dynamically adjust project ranking denominator to active scarcity regime (cash: capital, decision: sqrt(capital), vehicles: vehicle count, site: origin count); 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* C55 etape 1 : sonde seule du verrou OR des candidats route non-feeder. */
-    AddSetting({
-      name = "c55_origin_relax_probe",
-      description = "C55 step 1 probe: annually count road origin-served OR rejections and the one-endpoint cases a future OR-to-AND rule could recover; no candidate, rejection, build, or scheduling change; 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -880,51 +468,12 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    /* C55 : sonde de tracabilite causale des passagers routiers (sauves du filtre, elus, construits). */
-    AddSetting({
-      name = "c55_pax_trace_probe",
-      description = "C55 probe: track lifecycle of road pax candidates spared from OpexOriginServed (spared, elected, built); 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* C60 : Sonde d'exposition aux notes municipales. Mesure la frequence a laquelle des
-     * candidats ou chantiers ciblent des villes refusant les gares (rating <= VERY_POOR). */
-    AddSetting({
-      name = "c60_town_rating_probe",
-      description = "C60 probe: measure exposure to municipal authority refusals; logs evaluations by town rating tier and mode; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
     /* C60 : Filtre proactif de note municipale (SuperLib.Town::TownRatingAllowStationBuilding).
      * Ecarte en amont les villes refusant les constructions de gares avant de lancer les
      * recherches de site ou le trace routier/ferroviaire. */
     AddSetting({
       name = "c60_town_rating_filter",
       description = "C60 filter: proactively reject candidate town endpoints refusing station building before site search or pathfinding; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* C54 : inventaire annuel passif des ordres et profits reels des vehicules, lu via
-     * l'API jeu plutot que les chunks de sauvegarde. */
-    AddSetting({
-      name = "c54_vehicle_orders_probe",
-      description = "C54 probe: annually log each company vehicle's API orders, distinct station destinations, real-currency profits, depot state, and persisted line; no orders, vehicles, or scheduling are changed; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* C48.1 : ventile le cout interne de la regeneration incrementale du portefeuille apres
-     * construction. Mesure seulement : aucune selection, construction ou planification ne change. */
-    AddSetting({
-      name = "c48_incremental_profile",
-      description = "C48.1 probe: measure OpexIncrementalUpdateProjects opcode/time phases and processed volumes after a build; no portfolio selection, build, or scheduling change; 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -967,35 +516,6 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    /* C50 : Sonde chronologique legere (tresorerie mensuelle/annuelle, profit par ligne, projets batis et refuses pour tresorerie avec cout/ROI). */
-    AddSetting({
-      name = "c50_chronology_probe",
-      description = "C50 probe: lightweight chronological ledger emitting treasury snapshots, line profits, and built vs cash-refused projects with ROI; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* C63+C58 : depenses prevues/reelles, recettes predites/reelles, jours d'occasion.
-     * Defaut 0. Compteurs memoire en boucle chaude, AILog annuel (et 28-31 dec.). */
-    AddSetting({
-      name = "c63_invest_probe",
-      description = "C63+C58 probe: annual spend (planned vs actual, including failures), line predicted vs real revenue, and one leftover-kind per pass with days; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* Tunnel mensuel : une ligne AILog par passe projects. Ne change ni selection ni construction.
-     * Compte candidats/acceptes/tentes/construits et les motifs de passDiscards. Defaut 0. */
-    AddSetting({
-      name = "monthly_funnel",
-      description = "Monthly funnel probe: one AILog line per projects pass with considered/accepted/attempted/built and discard reasons; no selection, build, or scheduling change; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
     /* C50b : test causal du plafond routier sur les lignes existantes. La flotte initiale reste
      * inchangee ; 1 remplace seulement le plafond de croissance 2*min(arrets) par le garde-fou 8. */
     AddSetting({
@@ -1022,28 +542,6 @@ class OpexAIInfo extends AIInfo {
     AddSetting({
       name = "c50b_rail_backlog_relax",
       description = "C50b experiment: remove the backlog threshold before attempting a second train on profitable rail lines; 1 = test arm, 0 = current threshold (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* C43/E3 famille 2 : CASH_RESERVE_MIN mord-il ? Compteurs cumulatifs, publies en delta annuel
-     * par la tache "report" (OpexCashReserve() est appelee trop souvent pour journaliser chaque
-     * appel). */
-    AddSetting({
-      name = "cash_reserve_probe",
-      description = "C43/E3 probe: count CASH_RESERVE_MIN/MAX binds in OpexCashReserve() per year; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* C43/E3 famille 2 : PORTFOLIO_REFRESH_MIN_GAIN mord-il independamment du doublement (l'autre
-     * moitie de la condition ET du rafraichissement "capital") ? Compteurs cumulatifs, delta
-     * annuel par "report", meme schema que cash_reserve_probe. */
-    AddSetting({
-      name = "portfolio_refresh_probe",
-      description = "C43/E3 probe: count PORTFOLIO_REFRESH_MIN_GAIN vs doubling threshold checks per year; 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -2009,15 +1507,6 @@ Le mode route est donc reconfirme sur l arbre courant.
       flags = AICONFIG_BOOLEAN
     });
 
-    /* Sonde A6 : calcul et journal du vecteur, sans effet sur le classement ni la construction. */
-    AddSetting({
-      name = "tension_probe",
-      description = "Log the four-resource tension vector for ranked projects: 1 = measurement only, 0 = no calculation (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
     /* Plafond de croissance derive du flux mensuel reel, instrument separe du plan. */
     AddSetting({
       name = "air_demand_cap",
@@ -2504,22 +1993,6 @@ Le mode route est donc reconfirme sur l arbre courant.
       description = "C33.2 : Joined drive-through bus stops placed inside airport construction to expand airport catchment into the town (AAAHogEx piece stations): 1 = enabled (default, adopted), 0 = disabled",
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "air_catchment_probe",
-      description = "B9/G4 passive AIR catchment probe after successful builds: exact station-union pax/mail production, airport-only production, placement and joined-stop reserve/actuals; 0 = off/default",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "equipment_roi_probe",
-      description = "M3/G12 passive equipment-choice probe: compare current pre-ROI catalog selection with route economics and observed post-refit capacity; 0 = off/default, no selection change",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
 

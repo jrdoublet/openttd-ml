@@ -26,7 +26,7 @@ from diag_b9_air_catchment import analyse
 
 DEFAULT_SEEDS = [42, 100, 999, 1234, 5678]
 POLICY_ID = "b9_catchment_probe"
-SETTINGS = (("air_early_slot", 1), ("air_catchment_probe", 1))
+SETTINGS = (("air_early_slot", 1), ("probe_events", 1))
 
 _real_check_output = openttdlab.subprocess.check_output
 

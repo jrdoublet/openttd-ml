@@ -179,7 +179,7 @@ def main():
 
     enable_savegame_cleanup()
     ai = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI",
-                      (("decision_log", 1), ("tension_probe", 1)))
+                      (("decision_log", 1), ("probe_portfolio", 1)))
     rows = list(run_experiments(
         openttd_version=OPENTTD_VERSION, opengfx_version=OPENGFX_VERSION,
         max_workers=args.workers, result_processor=keep,

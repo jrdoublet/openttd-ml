@@ -739,7 +739,7 @@ def build_arms(seeds, years, shared=False, funnel=False, air_town_limit_memory=F
     if shared:
         opex_params = []
         if funnel:
-            opex_params.append(("monthly_funnel", 1))
+            opex_params.append(("probe_portfolio", 1))
         if air_town_limit_memory:
             opex_params.append(("air_town_limit_memory", 1))
         if air_early_slot:
@@ -763,7 +763,7 @@ def build_arms(seeds, years, shared=False, funnel=False, air_town_limit_memory=F
             }
             for seed in seeds
         ]
-    opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", (("air_fleet_probe", 1),))
+    opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", (("probe_events", 1),))
     return [
         {
             "seed": seed,
