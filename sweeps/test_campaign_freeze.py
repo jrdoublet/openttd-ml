@@ -35,9 +35,11 @@ class TestCampaignFreeze(unittest.TestCase):
     def test_real_info_settings_contract(self):
         defaults = parse_ai_settings(INFO)
         specs = parse_ai_setting_specs(INFO)
-        self.assertEqual(len(defaults), 158)
+        self.assertEqual(len(defaults), 44)
         self.assertEqual(defaults["probe_events"], 0)
         self.assertEqual(defaults["probe_cost"], 0)
+        self.assertEqual(defaults["policy_rail"], 1)
+        self.assertEqual(defaults["policy_caches"], 1)
         self.assertEqual(defaults["air_route_plane_selection"], 1)
         self.assertEqual(set(defaults), set(specs))
         self.assertEqual(defaults["debug_signs"], 1)
@@ -60,20 +62,20 @@ class TestCampaignFreeze(unittest.TestCase):
     def test_generic_specs_reject_invalid_boolean_and_range(self):
         with self.assertRaises(ValueError):
             parse_opex_variant("OpexAI[probe_portfolio=2]")
-        spec = parse_ai_setting_specs(INFO)["dynamic_batch_reject_limit"]
+        spec = parse_ai_setting_specs(INFO)["unprofitable_streak_threshold"]
         self.assertIsNotNone(spec["max_value"])
         with self.assertRaises(ValueError):
             parse_opex_variant(
-                f"OpexAI[dynamic_batch_reject_limit={spec['max_value'] + 1}]"
+                f"OpexAI[unprofitable_streak_threshold={spec['max_value'] + 1}]"
             )
 
     def test_effective_settings_merge_and_unknown_rejection(self):
         resolved = effective_ai_settings(
             INFO,
-            (("air_presite", 1), ("town_growth_skip_noop", 1)),
+            (("road_pax_build", 1), ("town_growth_skip_noop", 1)),
         )
-        self.assertEqual(resolved["defaults"]["air_presite"], 0)
-        self.assertEqual(resolved["effective"]["air_presite"], 1)
+        self.assertEqual(resolved["defaults"]["road_pax_build"], 0)
+        self.assertEqual(resolved["effective"]["road_pax_build"], 1)
         self.assertEqual(resolved["effective"]["town_growth_skip_noop"], 1)
         with self.assertRaises(ValueError):
             effective_ai_settings(INFO, (("does_not_exist", 1),))

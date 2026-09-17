@@ -146,30 +146,11 @@ def parse_opex_variant(name):
                 raise ValueError("pathfinder_hard_cap_k doit etre entre 5 et 100")
             if value % 5:
                 raise ValueError("pathfinder_hard_cap_k doit etre un multiple de 5 (step_size)")
-        elif key == "join_max_distance":
-            if not 0 <= value <= 200:
-                raise ValueError("join_max_distance doit etre entre 0 et 200")
-            if value % 5:
-                raise ValueError("join_max_distance doit etre un multiple de 5 (step_size)")
-        elif key == "transit_cost":
-            # Memes bornes et meme pas que ai/OpexAI/info.nut (docs/taches.md C9) : 0 = neutre
-            # (defaut), 1000 = cout complet.
-            if not 0 <= value <= 2000:
-                raise ValueError("transit_cost doit etre entre 0 et 2000")
-            if value % 50:
-                raise ValueError("transit_cost doit etre un multiple de 50 (step_size)")
         elif key == "road_pax_catchment_pct":
             # 0 garde le calibrage historique a 22 %. Une valeur positive est une sonde route
             # uniquement (info.nut) ; 86 = 22 * le ratio median reel/predit 3,91.
             if not 0 <= value <= 100:
                 raise ValueError("road_pax_catchment_pct doit etre entre 0 et 100")
-        elif key == "portfolio_floor_pct":
-            # Plancher de profit absolu du portefeuille v2, en % du meilleur profit finanÃ§able.
-            # 0 = tri au seul ratio (le comportement mesure a -24,4 % de valeur le 2026-09-02).
-            if not 0 <= value <= 100:
-                raise ValueError("portfolio_floor_pct doit etre entre 0 et 100")
-            if value % 5:
-                raise ValueError("portfolio_floor_pct doit etre un multiple de 5 (step_size)")
         elif key == "project_top_k":
             # Memes bornes que ai/OpexAI/info.nut : docs/taches.md C43/E3, sature a 70-77% des
             # appels de selection au defaut 64 (mesure du 2026-09-08).
@@ -177,38 +158,9 @@ def parse_opex_variant(name):
                 raise ValueError("project_top_k doit etre entre 8 et 128")
             if value % 8:
                 raise ValueError("project_top_k doit etre un multiple de 8 (step_size)")
-        elif key in ("project_top_k_dynamic", "c41_rail_freight_town_service_cache", "staged_bootstrap"):
-            if value not in (0, 1):
-                raise ValueError(f"{key} est booleen : 0 ou 1")
-        elif key == "portfolio_max_batch":
-            # Memes bornes que ai/OpexAI/info.nut : sans ce garde, le moteur pourrait borner la
-            # valeur sans que le nom de l'arm dans le JSON dise ce qui a vraiment ete joue.
-            if not 1 <= value <= 8:
-                raise ValueError("portfolio_max_batch doit etre entre 1 et 8")
-        elif key == "rail_min_distance":
-            # Distance minimale d'un candidat rail. 25 = comportement livre ; 5 rouvre la bande
-            # de chevauchement rail/route que les commentaires du fichier decrivent deja.
-            if not 5 <= value <= 40:
-                raise ValueError("rail_min_distance doit etre entre 5 et 40")
         elif key == "air_fleet_cadence_days":
             if not 0 <= value <= 365:
                 raise ValueError("air_fleet_cadence_days doit etre entre 0 et 365")
-        elif key == "air_max_distance":
-            if not 0 <= value <= 1000:
-                raise ValueError("air_max_distance doit etre entre 0 et 1000")
-        elif key == "air_fleet_buffer":
-            if not -1 <= value <= 500:
-                raise ValueError("air_fleet_buffer doit etre entre -1 et 500")
-            if value >= 0 and value % 5:
-                raise ValueError("air_fleet_buffer doit etre un multiple de 5 (step_size)")
-        elif key == "infra_amort_pct":
-            if not 0 <= value <= 100:
-                raise ValueError("infra_amort_pct doit etre entre 0 et 100")
-            if value % 10:
-                raise ValueError("infra_amort_pct doit etre un multiple de 10 (step_size)")
-        elif key == "decision_friction_permille":
-            if not 0 <= value <= 1000:
-                raise ValueError("decision_friction_permille doit etre entre 0 et 1000")
         elif key == "abandon_cooldown_days":
             if not 0 <= value <= 5000:
                 raise ValueError("abandon_cooldown_days doit etre entre 0 et 5000")
