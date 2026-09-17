@@ -208,6 +208,10 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
       local economics = OpexRoadLineEconomics(this._catalog, candidate.cargo, actualDist,
                                               candidate.monthly, candidate.engine, candidate.kind,
                                               plan.routeDistance);
+      if (EQUIPMENT_ROI_PROBE) {
+        OpexM3ProbeRoadEquipment(this._catalog, candidate, actualDist, plan.routeDistance,
+                                 economics, "post_route");
+      }
       if (economics == null || (!isFeeder && economics.profitAnnual <= 0)) {
         if (C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "unprofitable_after_siting", extra = "" });
         if (DECISION_LOG) {
@@ -305,7 +309,14 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
                + (("subsidyDuration" in candidate) ? (" dur=" + candidate.subsidyDuration) : "")
                + (("slackDays" in candidate) ? (" slack=" + candidate.slackDays) : ""))
             : "";
-        OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=road kind=" + candidate.kind + " cargo=" + cargoStr + " src=" + candidate.src + " dst=" + candidate.dst + " dist=" + candidate.distance + " cost=" + candidate.capital + " profit=" + candidate.profitAnnual + " roi=" + candidate.roi + extraSub);
+        local fleetDiag = ("vehiclesForVolume" in candidate)
+            ? (" raw_vehs=" + candidate.vehiclesForVolume
+               + " berth_cap=" + (("roadBerthCapacity" in candidate) ? candidate.roadBerthCapacity
+                                  : OpexRoadPhysicalVehicleCap(1, 1))
+               + " fleet_cap=" + (("roadVehicleCap" in candidate) ? candidate.roadVehicleCap : candidate.trains)
+               + " capped_vehs=" + candidate.trains)
+            : "";
+        OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=road kind=" + candidate.kind + " cargo=" + cargoStr + " src=" + candidate.src + " dst=" + candidate.dst + " dist=" + candidate.distance + " cost=" + candidate.capital + " profit=" + candidate.profitAnnual + " roi=" + candidate.roi + fleetDiag + extraSub);
         OpexDecide("ROAD_BUILD", "line=" + idx + " src=" + candidate.src + " dst=" + candidate.dst + " cargo=" + cargoStr + " dist=" + candidate.distance + " profit=" + candidate.profitAnnual + " cost=" + result.cost + " vehicles=" + result.vehicles.len());
       }
 
@@ -343,6 +354,10 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         trains = result.vehicles.len(), distance = candidate.distance, year = year,
         predRevenue = candidate.revenueAnnual, predRunning = candidate.runningAnnual,
         predAmort = candidate.amortAnnual, predCarried = candidate.carried,
+        predVehiclesForVolume = ("vehiclesForVolume" in candidate) ? candidate.vehiclesForVolume : candidate.trains,
+        predRoadBerthCapacity = ("roadBerthCapacity" in candidate) ? candidate.roadBerthCapacity
+                               : OpexRoadPhysicalVehicleCap(1, 1),
+        predRoadVehicleCap = ("roadVehicleCap" in candidate) ? candidate.roadVehicleCap : candidate.trains,
         predTrains = candidate.trains, predOneWayDays = candidate.oneWayDays,
         effectiveSpeed = candidate.effectiveSpeed,
         catalogSpeed = candidate.engine.speed,
@@ -479,8 +494,16 @@ function OpexAI::_refleetRoadLines(year)
     local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
     local extraNeeded = 0;
 
+    /* Chemin historique conservé littéralement sous switch 0. */
     local physicalCap = C50B_ROAD_CAP_RELAX ? MAX_ROAD_VEHICLES : OpexRoadPhysicalVehicleCap(
         ("nStopsA" in line) ? line.nStopsA : 1, ("nStopsB" in line) ? line.nStopsB : 1);
+    if (!C50B_ROAD_CAP_RELAX && ROAD_TIME_SCALED_CAP &&
+        ("kind" in line) && line.kind == "pax") {
+      local nStopsA = ("nStopsA" in line) ? line.nStopsA : 1;
+      local nStopsB = ("nStopsB" in line) ? line.nStopsB : 1;
+      local oneWayDays = ("predOneWayDays" in line) ? line.predOneWayDays : 0;
+      physicalCap = OpexRoadFleetVehicleCap(nStopsA, nStopsB, oneWayDays, line.kind);
+    }
     if (have >= physicalCap) {
       if (C50_CHRONOLOGY_PROBE && dedupRoad && C50_NON_EXPANSION_LEDGER != null) {
         C50_NON_EXPANSION_LEDGER.road.physical_cap_hit++;
@@ -505,9 +528,8 @@ function OpexAI::_refleetRoadLines(year)
       extraNeeded = 1;
     }
 
-    /* Un véhicule supplémentaire ne peut ajouter de valeur que s'il trouve
-     * un quai libre (docs/mecanique_jeu S11). Au-delà de physicalCap (2 par quai),
-     * il bloque la voirie et détruit le profit par les coûts d'exploitation. */
+    /* B3 : `physicalCap` garde son ancien nom pour préserver le chemin 0 ; sous le switch pax,
+     * sa valeur devient le plafond temporel de flotte. La capacité de quai reste reportée à part. */
     if (have + extraNeeded > physicalCap) extraNeeded = physicalCap - have;
     if (extraNeeded < 0) extraNeeded = 0;
 

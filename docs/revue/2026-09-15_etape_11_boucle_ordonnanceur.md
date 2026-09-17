@@ -141,6 +141,38 @@ ne sera réparée que si un nouvel événement `VehicleLost` la re-signale. Grav
 compteur de diagnostic : sa perte a un effet de jeu (train resté bloqué plus longtemps), pas seulement
 un effet de mesure.
 
+**Corrigé le 2026-09-16 (B5).** La description historique de 11.6 parlait à tort d'un
+« second train de doublement » : `_railExpansion` pilote aujourd'hui l'ajout asynchrone
+d'**un wagon** à une rame existante. La correction distingue désormais les trois états :
+
+- `_railExpansion` est projeté dans un descriptor sérialisable sans objet VM ni float
+  (`newSpeed`/`newOneWayDays` sont stockés en milli-unités), puis réconcilié après les lignes ;
+- `_railSearch` n'est pas sérialisé : il contient un pathfinder vivant. Save conserve seulement
+  `railSearchPending`; au reload l'état est abandonné et le catalogue/portefeuille est réarmé ;
+- `_dynamicBatch` suit la même règle, car il dépend de `_projects`, non persisté.
+
+La transaction wagon possède une frontière explicite
+`idle → build_started → wagon_built → wagon_moved → metadata_done → resume`.
+`wagon_built` réutilise le VehicleID sauvegardé ; `wagon_moved` est détectable par la longueur
+physique ; les métadonnées sont écrites idempotemment depuis `oldExpansionCount`. L'état ambigu
+`build_started` est **abandonné sans jamais rappeler `BuildVehicle`**. En phase `resume`, une
+rame déjà repartie clôt l'état sans `StartStopVehicle`, évitant le double toggle.
+
+11.7 est corrigé dans la même passe : les deux tables C41 sont clonées dans la sauvegarde,
+filtrées au reload aux LineID encore vivants de lignes rail `doubleTrack==1`, puis les tâches
+`c41_rail_signals`/`c41_rail_junction` sont réactivées et dues au cycle courant si leur file
+reste non vide ; sinon elles repartent disabled/∞.
+
+Preuves : `sweeps/test_b5_rail_persistence.py` **11/11** ; round-trips réels
+`results/review_b5_save_load_seed42.json` et
+`results/review_b5_save_load_seed42_6y.json`, sans marqueur d'échec moteur/script et avec
+`LOAD_RECONCILE` positif. Les deux checkpoints ont réellement abandonné un A* vivant
+(`rail_search_dropped=1`) et la compagnie a continué à construire. Ils n'ont pas capturé une
+`_railExpansion` active au checkpoint : `approach/depot/resume` restent verrouillés par le
+test de contrat, pas démontrés par un save réel. Aucune ancienne sauvegarde `stateVersion=1`
+n'était disponible localement ; la compatibilité ancienne repose sur les lectures gardées par
+`"field" in data`.
+
 ### 11.8 — `_lastAirFleetMonth` : champ déclaré et non persisté, jamais lu dans le périmètre revu        [gravité : P3]
 `main.nut:166` déclare `_lastAirFleetMonth = -1`. Recherche exhaustive dans les quatre fichiers du
 périmètre (`main.nut`, `persist.nut`, `scheduler.nut`, `scheduler_tasks.nut`) : aucune autre occurrence.
@@ -188,3 +220,69 @@ utilisé dans `task_air.nut` (hors périmètre) ou s'il est mort — voir sectio
 - Le comptage précis 28 vs ~26/29 méthodes sans prototype (enjeu du plan) n'a pas été recompté au-delà
   du grep structurel fait ici ; à confirmer si une étape dédiée au style/aux conventions du code le
   demande.
+
+## Passe de clôture — 2026-09-16
+
+- **11.1 — corrigé et validé.** Les 15 noms restent cohérents entre `main.nut`,
+  `scheduler.nut` et les 15 corps `_dispatch*`. Le fallback inconnu conserve exactement sa
+  sémantique historique — `task.enabled = false`, trace C56 éventuelle, `return false` — mais
+  journalise désormais **avant** la désactivation :
+  `AILog.Error("Unknown scheduler task name: " + task.name)`. Aucun nom connu, ordre de file,
+  cadence ou politique n'est modifié.
+- **11.2 — déjà corrigé dans le workspace courant.** `_tryTownGrowth` retourne maintenant
+  explicitement `false` sur les gardes/échecs, `true` après une construction et `false` en fin
+  de parcours. Le réglage `town_growth_skip_noop` peut donc distinguer un tour utile d'un tour
+  vide. Cette correction préexistante est conservée, pas réouverte dans M7/11.1.
+- **11.3 — dormant/non exposé.** La récursion de `_dispatchTownGrowth` subsiste structurellement
+  et peut toujours réattribuer le ledger C41/C39 à la tâche imbriquée, mais seulement avec
+  `town_growth_skip_noop=1` **et** un ledger concerné activé. Les defaults restent à 0 et aucun
+  banc courant ne reproduit cette combinaison ; pas de patch sans exposition.
+- **11.4** : `loop_budget` change directement la quantité de travail par tick. Toute adoption
+  reste soumise au diagnostic 5×6 puis au 20×10.
+- **11.5** : les trois familles de deadline restent un constat d'architecture, sans correctif
+  mécanique justifié.
+- **11.6 et 11.7 — corrigés par B5.** `_railExpansion` est sérialisé/réconcilié par transaction
+  idempotente ; `_railSearch` et `_dynamicBatch` sont explicitement abandonnés puis le
+  portefeuille est réarmé ; les deux files C41 rail sont persistées, filtrées et réarmées au
+  reload. Preuve : `sweeps/test_b5_rail_persistence.py` 11/11 et les round-trips B5 déjà validés.
+- **11.8 corrigé** : `_lastAirFleetMonth` n'avait aucun lecteur dans le dépôt et a été retiré de
+  `main.nut`.
+
+## Clôture H5 — 2026-09-16
+
+- **11.4 mesur? et non adopt?.** Le duel
+  `results/review_h5_loop_budget_5x6.json` compare le d?faut ?
+  `OpexAI[loop_budget=1]` sur 42/100/999/1234/5678, 6 ans. Les 10/10 runs sont
+  complets et sains. Les cinq paires sont strictement identiques sur valeur, profit
+  annuel, score, flotte primaire, gares et sur toutes les composantes d'opcodes
+  effectivement observ?es. Signal nul : pas de 20?10, d?faut conserv? ? 0.
+- Cette neutralit? ne r?fute pas le m?canisme du `Sleep(1)` : le nouveau compteur H5
+  mesure les blocs ex?cut?s, pas le budget de tick non consomm?. Le slack perdu reste
+  donc une quantit? non mesur?e, explicitement exclue de la m?trique.
+
+## Clôture M7 / 11.1 — 2026-09-16
+
+Patch minimal :
+
+- `ai/OpexAI/scheduler.nut` : une seule ligne `AILog.Error` avant le fallback historique ;
+- `sweeps/c65_pass3.py` : extraction de la file réelle de `main.nut` et assertion
+  file/cascade/handlers ;
+- `sweeps/test_scheduler_task_contract.py` : contrat ciblé sur l'alignement exact et l'ordre
+  log → disable → return du fallback inconnu.
+
+Validations :
+
+- `python -m unittest sweeps.test_scheduler_task_contract sweeps.test_campaign_freeze` :
+  **13/13 OK** ;
+- `python sweeps/c65_pass3.py --selftest` :
+  **14 événements / 15 tâches** ;
+- `python -m py_compile ...` : OK ;
+- `git diff --check` : OK, hors avertissements CRLF déjà connus ;
+- smoke post-dernière modification `.nut`,
+  `results/review_m7_scheduler_smoke_2x3.json` : **4/4 runs sains**, deux graines × trois ans,
+  horizon complet, zéro erreur NoAI ; les deux runs Opex construisent du rail et aucun log moteur
+  ne contient `Unknown scheduler task name`.
+
+**Décision : 11.1 est fait.** Aucun 5×6 ni 20×10 : le changement ne touche ni une tâche connue,
+ni un réglage, ni une politique ; il rend uniquement une future désynchronisation explicitement
+diagnostiquable.

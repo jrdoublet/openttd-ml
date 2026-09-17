@@ -139,3 +139,63 @@ recherche. Décision explicitement gelée (« NE PAS ROUVRIR », 2026-08-29).
 - **Mode eau incomplet** : `builder_water.nut`/`lib_water.nut` sont un chantier explicitement non
   fini par ailleurs (voir `docs/taches.md`, hors lecture de cette étape) ; les rollbacks d'eau ont
   été vérifiés existants (16.V2) mais pas la complétude fonctionnelle du mode.
+
+## Clôture dynamique M4 — workspace du 2026-09-16
+
+M4 a finalement été exercé sans modifier le comportement de l'IA, via
+`sweeps/run_m4_conformity.py` + `diag_m4_conformity.py`. Les deux scénarios utilisent les
+defaults courants (`air_early_slot=1`, abandon `1/365`) et activent uniquement les canaux
+diagnostiques `decision_log` + `c63_invest_probe`.
+
+### 16.2 — `vehicle.max_trains=0` : défaut réel, mais P2
+
+Le 2×3 `results/review_m4_conformity_2x3.json` est sain 4/4 et expose déjà quatre
+`RAIL_BUILD_FAIL reason=NOTRAIN error=513` avec 10 147 £ de dépense rail échouée.
+
+Le 5×6 final `results/review_m4_conformity_5x6.json` est **10/10 sain et complet**. OpexAI termine
+les cinq graines avec **0 véhicule rail**, mais choisit 30 projets rail et atteint malgré tout le
+chantier : 15 `RAIL_BUILD_FAIL reason=NOTRAIN error=513`, 2 `TRKFAIL`, 2 `ABND`. Le ledger
+C63 rail totalise `planned_fail=768632`, `actual_fail=176313`, `n_fail=16`. Les compteurs
+physiques finaux donnent aussi **0 station avec facility rail** sur les cinq runs Opex, donc aucun
+train ni gare rail ne persiste après rollback. Le harnais ne compte pas séparément les tuiles de
+voie et dépôts : leur absence persistante n'est donc pas une preuve dynamique disponible.
+
+Surtout, l'analyse année-grain isole huit périodes où **les seuls échecs rail sont NOTRAIN** et où
+`n_fail` est exactement ce nombre : elles cumulent **120 018 £** de coût réel. Exemples : graine
+42/1971 = un NOTRAIN et 10 147 £ ; graine 999/1972 = trois NOTRAIN et 24 732 £ ; graine
+1234/1973 = un NOTRAIN et 21 669 £.
+
+La causalité historique est donc confirmée : l'IA construit l'infrastructure, puis
+`AIVehicle.BuildVehicle` échoue avec le plafond à zéro et le rollback intervient trop tard pour
+éviter le coût réel. Ce n'est néanmoins **pas un P1** selon la grille actuelle : aucun crash,
+aucune corruption de mesure, rollback sain et horizon complet. C'est un défaut P2
+d'admission/politique. Aucun garde `vehicle.max_*` n'est ajouté dans cette passe.
+
+Un contrôle séparé, `results/review_m4_conformity_control_5x6.json`, est lui aussi **10/10 sain**.
+Sur les cinq runs Opex, le `max_trains=0` termine descriptivement à 720 197 £/an de
+`profit_year` moyen contre 747 876,2 £/an au contrôle (−27 679,2 £/an, −3,70 %) et à
+2 182 885,2 £ de `company_value` moyen contre 2 226 222,2 £ (−43 337 £, −1,95 %).
+Ce 5×6 n'a aucune autorité d'adoption : il donne seulement l'ordre de grandeur économique du
+scénario contraint, la preuve causale de 16.2 restant le coût C63 des échecs `NOTRAIN`.
+
+### 16.1 — `pf.forbid_90_deg=1` : robustesse dynamique
+
+Le même 5×6 est **10/10 sain**, sans erreur NoAI, avec 34 projets rail choisis et les cinq parties
+Opex qui construisent encore du rail (1/4/2/2/2 véhicules rail finaux ; C63 `n_ok=11`).
+Les échecs observés sont ABND/TRKFAIL/SITEB/STNFAIL, jamais NOTRAIN. Cela ferme l'hypothèse forte
+« l'option fait crasher ou bloquer l'IA » sur ce périmètre. Le contrôle séparé n'est pas une
+autorité de performance et le banc ne prouve ni la conformité interne de `Pathfinder.Rail`
+(bibliothèque non vendorisée), ni une neutralité économique ; aucun changement de pathfinder
+n'est justifié.
+
+### 16.3 / 16.4 / 10.5
+
+16.3 reste clos. 16.4 reste une **absence de preuve externe**, pas un bug actif : NoAI n'expose
+aucun compteur de heap/RSS. Le banc C46 1024² déjà présent est sain et n'a pas été rejoué, mais
+il ne contient aucune mesure mémoire. Les runs M4 finissent eux-mêmes avec zéro véhicule eau :
+ils n'exposent donc pas 10.5/Lakes. 2048² et RSS/heap restent backlog de banc externe, sans
+promotion en défaut technique courant.
+
+**Décision : M4 est clos comme lot de conformité/diagnostic, sans patch comportemental ni
+adoption.** Aucun `.nut` n'ayant changé, aucun smoke supplémentaire n'est requis pour M4 et aucun
+20×10 n'est justifié.

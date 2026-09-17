@@ -31,6 +31,9 @@ CAMPAIGN_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
 SETTING_BLOCK_RE = re.compile(r"AddSetting\s*\(\s*\{(.*?)\}\s*\)\s*;", re.DOTALL)
 SETTING_NAME_RE = re.compile(r'\bname\s*=\s*"([^"]+)"')
 SETTING_DEFAULT_RE = re.compile(r"\bcustom_value\s*=\s*([^,\n}]+)")
+SETTING_MIN_RE = re.compile(r"\bmin_value\s*=\s*([^,\n}]+)")
+SETTING_MAX_RE = re.compile(r"\bmax_value\s*=\s*([^,\n}]+)")
+SETTING_STEP_RE = re.compile(r"\bstep_size\s*=\s*([^,\n}]+)")
 
 
 @dataclass(frozen=True)
@@ -137,10 +140,17 @@ def git_state(root: Path) -> dict:
     }
 
 
-def parse_ai_settings(info_path: Path) -> dict:
-    """Extract custom_value defaults from AIInfo.GetSettings() declarations."""
+def _int_literal(match):
+    if match is None:
+        return None
+    raw = match.group(1).strip()
+    return int(raw) if re.fullmatch(r"-?\d+", raw) else None
+
+
+def parse_ai_setting_specs(info_path: Path) -> dict:
+    """Extract the effective numeric contract of every AIInfo AddSetting declaration."""
     text = Path(info_path).read_text(encoding="utf-8")
-    defaults = {}
+    specs = {}
     for block in SETTING_BLOCK_RE.findall(text):
         name_match = SETTING_NAME_RE.search(block)
         value_match = SETTING_DEFAULT_RE.search(block)
@@ -148,11 +158,26 @@ def parse_ai_settings(info_path: Path) -> dict:
             continue
         name = name_match.group(1)
         raw = value_match.group(1).strip()
-        value = int(raw) if re.fullmatch(r"-?\d+", raw) else raw
-        if name in defaults and defaults[name] != value:
+        default = int(raw) if re.fullmatch(r"-?\d+", raw) else raw
+        spec = {
+            "default": default,
+            "boolean": "AICONFIG_BOOLEAN" in block,
+            "min_value": _int_literal(SETTING_MIN_RE.search(block)),
+            "max_value": _int_literal(SETTING_MAX_RE.search(block)),
+            "step_size": _int_literal(SETTING_STEP_RE.search(block)),
+        }
+        if name in specs and specs[name] != spec:
             raise ValueError(f"reglage {name!r} declare plusieurs fois avec des defauts differents")
-        defaults[name] = value
-    return dict(sorted(defaults.items()))
+        specs[name] = spec
+    return dict(sorted(specs.items()))
+
+
+def parse_ai_settings(info_path: Path) -> dict:
+    """Extract custom_value defaults from AIInfo.GetSettings() declarations."""
+    return {
+        name: spec["default"]
+        for name, spec in parse_ai_setting_specs(info_path).items()
+    }
 
 
 def effective_ai_settings(info_path: Path, explicit=()) -> dict:
@@ -182,6 +207,9 @@ def validate_policy_settings(reference: dict, candidate: dict, intervention_sett
     unexpected = sorted(set(differences) - allowed)
     if unexpected:
         raise ValueError(f"comparaison invalide: differences non annoncees {unexpected}")
+    missing = sorted(allowed - set(differences))
+    if missing:
+        raise ValueError(f"comparaison invalide: intervention annoncee sans effet {missing}")
     return differences
 
 

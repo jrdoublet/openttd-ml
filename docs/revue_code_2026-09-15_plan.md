@@ -126,6 +126,12 @@ repris du 09-06 : **sol ≈ Opus**, **terra ≈ Sonnet**.
 | 9 | `builder_road.nut` | 1 606 | **Opus 5** / high | Le bug feeders bus du 09-15 (`OF_NONE` en ville et reprise de passagers au hub au retour) vient d'être corrigé ici sur **deux chemins** — construction et refleet : vérifier la symétrie, c'est le genre d'asymétrie qui survit à un correctif. `OpexRoadPhysicalVehicleCap = 2 × min(arrêts)` écrase la cible calculée et confond véhicules au terminus et en transit (chantier C61 connu, la suppression brute a déjà été réfutée par C50b). |
 | 10 | `builder_water.nut`, `lib_water.nut`, **+ couture `ai/library`** | 1 474 | Sonnet 5 / medium | Chantier non fini et assumé — ses incohérences sont déjà listées dans `docs/taches.md`, inutile de les redécouvrir. **La couture est le vrai sujet de l'étape** : `MinchinWeb.Lakes` gèle 3/20 graines (C56), `WATER_LAKES_OPS = 50 000` est un premier jet jamais calibré (C57), le repli Manhattan n'est pas conservateur (il surestime le ROI), le BFS borné est réintroduit comme juge à la construction, et `lib_water.nut:306` porte le **seul `Valuate` du dépôt appelé avec une fonction Squirrel** — la faute n°1 des crashs NoAI (`excessive CPU usage in valuator function`), ici dans du code tiers importé. Grandes cartes 1024²/2048² jamais qualifiées en RAM ni en opcodes. |
 
+> **Mise à jour 2026-09-17 — supersède la suite proposée, pas le constat historique.** La RAM/
+> les opcodes grandes cartes ont depuis été mesurés (10.5/16.4). L'utilisateur a ensuite décidé
+> d'abandonner l'architecture `MinchinWeb.Lakes` : C57 ne sera pas calibré. Le successeur est C67,
+> analyse de carte par blocs 5×5/10×10 et remplacement propre de Lakes ; voir la section C67 de
+> `docs/taches.md`.
+
 ### Couche 7 — orchestration
 
 | # | Fichiers | L. | Modèle / effort | Enjeu |

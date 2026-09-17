@@ -237,6 +237,7 @@ class OpexCatalog {
   railLocos = null;          // profils complets des locomotives avec puissance, masse et TE
   wagonByCargo = null;       // cargo -> {id, capacity, speed, price, weight, fullWeight}
   locoByCargoWagons = null;  // cargo -> [1 wagon..max] -> meilleur profil deja choisi
+  wagonChoicesByCargo = null; // M3 probe only: cargo -> tous les wagons + choix loco associes
   platformLength = 0;        // AIGameSettings station.station_spread, lu une fois par annee
   railCoverage = 0;          // rayon exact de AIStation.STATION_TRAIN, lu avec les autres proprietes rail
   freightTrainMultiplier = 1;
@@ -247,6 +248,7 @@ class OpexCatalog {
   airport = null;      // {type, width, height, coverage, price, maintenance} ou null
   plane = null;        // {id, capacity, speed, price, runningCost, maxOrderDistance} ou null
   airCombos = null;    // [{kind="large"|"small", airport={...}, plane={...}}] ou null
+  airPlaneChoicesByAirport = null; // M3 probe only: airport type -> appareils compatibles
 
   ships = null;        // [{id, capacity, speed, price, runningCost, maxOrderDistance}]
   maxShipPrice = 0;
@@ -259,6 +261,7 @@ class OpexCatalog {
    * moteur mais du cargo (CC_PASSENGERS => arret de bus, sinon aire de chargement), cf.
    * docs/mecanique_jeu.md S11 -- un bus ne chargera JAMAIS sur une aire de chargement camion. */
   roadEngineByCargo = null;
+  roadEngineChoicesByCargo = null; // M3 probe only: cargo -> vehicules compatibles
   maxRoadVehiclePrice = 0;
   costRoadPerTile = 0;
   costRoadBusStop = 0;
@@ -282,8 +285,11 @@ class OpexCatalog {
     this.wagonByCargo = {};
     this.railLocos = [];
     this.locoByCargoWagons = {};
+    this.wagonChoicesByCargo = {};
     this.ships = [];
     this.roadEngineByCargo = {};
+    this.roadEngineChoicesByCargo = {};
+    this.airPlaneChoicesByAirport = {};
     this.bounds = null;
     this._ticksAnchorDate = -1;
     this._ticksAnchorTick = -1;
@@ -306,6 +312,69 @@ class OpexCatalog {
   function _cargoArray(list);
 }
 
+/* M3/G12 : reproduit STRICTEMENT le departage locomotive courant pour un wagon alternatif.
+ * Cette fonction n'est appelee que lorsque equipment_roi_probe=1 ; le chemin livre continue
+ * d'utiliser la boucle historique inline ci-dessous. Le resultat sert uniquement a donner a
+ * OpexLineEconomics un couple wagon/locomotive physiquement coherent pour le diagnostic. */
+function OpexM3RailLocoChoices(railLocos, wagon, maxWagons)
+{
+  local choices = [];
+  if (railLocos == null || railLocos.len() == 0 || maxWagons < 1) return choices;
+  for (local wagons = 1; wagons <= maxWagons; wagons++) {
+    local best = null;
+    local bestSpeed = -1;
+    local bestAcceleration = -1;
+    local topCeiling = railLocos[0].speed;
+    if (wagon.speed > 0 && wagon.speed < topCeiling) topCeiling = wagon.speed;
+    local topSustained = false;
+    foreach (loco in railLocos) {
+      if (topSustained && loco.speed < topCeiling) continue;
+      local ceiling = loco.speed;
+      if (wagon.speed > 0 && wagon.speed < ceiling) ceiling = wagon.speed;
+      local totalWeight = loco.weight + wagons * wagon.fullWeight;
+      local parts = 1 + wagons;
+      local airDrag = 2048 / loco.speed;
+      if (airDrag < 1) airDrag = 1;
+      if (airDrag > 192) airDrag = 192;
+      local airFactor = 14 * airDrag * (1 + (3 * parts) / 20.0) / 1000.0;
+      local low = 0;
+      local high = ceiling;
+      while (low < high) {
+        local middle = (low + high + 1) / 2;
+        local powerForce = (loco.power * 746 * 18) / (middle * 5);
+        local tractiveForce = loco.tractiveEffort * 1000;
+        local force = powerForce < tractiveForce ? powerForce : tractiveForce;
+        local rolling = 15 * (512 + middle) / 512;
+        local resistance = totalWeight * (10 + rolling) + airFactor * middle * middle;
+        if (force > resistance) low = middle;
+        else high = middle - 1;
+      }
+      local cruise = low;
+      if (cruise < 1) continue;
+      if (loco.id == railLocos[0].id && cruise == topCeiling) topSustained = true;
+      local halfSpeed = cruise / 2;
+      if (halfSpeed < 1) halfSpeed = 1;
+      local powerForce = (loco.power * 746 * 18) / (halfSpeed * 5);
+      local tractiveForce = loco.tractiveEffort * 1000;
+      local force = powerForce < tractiveForce ? powerForce : tractiveForce;
+      local rolling = 15 * (512 + halfSpeed) / 512;
+      local resistance = totalWeight * (10 + rolling) + airFactor * halfSpeed * halfSpeed;
+      local acceleration = force > resistance ? (force - resistance) / (totalWeight * 4) : 0;
+      if (best == null || cruise > bestSpeed ||
+          (cruise == bestSpeed && acceleration > bestAcceleration) ||
+          (cruise == bestSpeed && acceleration == bestAcceleration && loco.runningCost < best.runningCost) ||
+          (cruise == bestSpeed && acceleration == bestAcceleration && loco.runningCost == best.runningCost &&
+           loco.price < best.price)) {
+        best = loco;
+        bestSpeed = cruise;
+        bestAcceleration = acceleration;
+      }
+    }
+    choices.append(best);
+  }
+  return choices;
+}
+
 /* Le materiel roulant disponible AUJOURD'HUI, et ce que coute la voie.
  *
  * Necessaire a l'etage 1 : sans la vitesse du convoi on ne sait pas estimer le temps de trajet,
@@ -318,6 +387,7 @@ function OpexCatalog::_refreshRail()
   this.railLocos = [];
   this.wagonByCargo = {};
   this.locoByCargoWagons = {};
+  this.wagonChoicesByCargo = {};
 
   /* `station_spread` est la borne que CmdBuildRailStation controle sur `length`. Dans OpenTTD
    * 15.3 elle est entiere, entre 4 et 64, et vaut 12 dans la configuration gelee ; on lit donc la
@@ -360,18 +430,25 @@ function OpexCatalog::_refreshRail()
       local cargo = AIEngine.GetCargoType(e);
       local capacity = AIEngine.GetCapacity(e);
       if (capacity <= 0) continue;
-      /* Un seul wagon retenu par cargo : le plus capacitaire. */
-      if (!(cargo in this.wagonByCargo) || capacity > this.wagonByCargo[cargo].capacity) {
-        local cargoWeight = AICargo.GetWeight(cargo, capacity);
-        /* Le moteur applique `vehicle.freight_trains` aux seuls cargos fret dans Train::GetWeight.
-         * AICargo.GetWeight livre le poids nu, donc le multiplicateur lu ci-dessus est indispensable
-         * pour que la masse utilisee par le catalogue soit celle du convoi plein reel. */
-        if (AICargo.IsFreight(cargo)) cargoWeight *= this.freightTrainMultiplier;
-        local entry = {
-          id = e, capacity = capacity, speed = AIEngine.GetMaxSpeed(e), price = AIEngine.GetPrice(e),
-          weight = AIEngine.GetWeight(e), fullWeight = AIEngine.GetWeight(e) + cargoWeight,
-          runningCost = AIEngine.GetRunningCost(e), ageYears = AIEngine.GetMaxAge(e) / 365,
-        };
+      /* Un seul wagon retenu par cargo : le plus capacitaire. La sonde M3 conserve en parallele
+       * les alternatives SANS changer ce departage, y compris son premier-gagne en cas d'egalite. */
+      local replaces = !(cargo in this.wagonByCargo) || capacity > this.wagonByCargo[cargo].capacity;
+      if (!replaces && !EQUIPMENT_ROI_PROBE) continue;
+      local cargoWeight = AICargo.GetWeight(cargo, capacity);
+      /* Le moteur applique `vehicle.freight_trains` aux seuls cargos fret dans Train::GetWeight.
+       * AICargo.GetWeight livre le poids nu, donc le multiplicateur lu ci-dessus est indispensable
+       * pour que la masse utilisee par le catalogue soit celle du convoi plein reel. */
+      if (AICargo.IsFreight(cargo)) cargoWeight *= this.freightTrainMultiplier;
+      local entry = {
+        id = e, capacity = capacity, speed = AIEngine.GetMaxSpeed(e), price = AIEngine.GetPrice(e),
+        weight = AIEngine.GetWeight(e), fullWeight = AIEngine.GetWeight(e) + cargoWeight,
+        runningCost = AIEngine.GetRunningCost(e), ageYears = AIEngine.GetMaxAge(e) / 365,
+      };
+      if (EQUIPMENT_ROI_PROBE) {
+        if (!(cargo in this.wagonChoicesByCargo)) this.wagonChoicesByCargo.rawset(cargo, []);
+        this.wagonChoicesByCargo[cargo].append(entry);
+      }
+      if (replaces) {
         if (cargo in this.wagonByCargo) this.wagonByCargo[cargo] = entry;
         else this.wagonByCargo.rawset(cargo, entry);
       }
@@ -493,6 +570,17 @@ function OpexCatalog::_refreshRail()
     }
     this.locoByCargoWagons.rawset(cargo, choices);
   }
+  if (EQUIPMENT_ROI_PROBE) {
+    foreach (cargo, wagons in this.wagonChoicesByCargo) {
+      if (!(cargo in this.wagonByCargo) || !(cargo in this.locoByCargoWagons)) continue;
+      local selectedId = this.wagonByCargo[cargo].id;
+      foreach (wagon in wagons) {
+        wagon.m3LocoChoices <- (wagon.id == selectedId)
+            ? this.locoByCargoWagons[cargo]
+            : OpexM3RailLocoChoices(this.railLocos, wagon, maxWagons);
+      }
+    }
+  }
 }
 
 /* Deux types d'aeroports et appareils :
@@ -503,6 +591,7 @@ function OpexCatalog::_refreshAir()
   this.airport = null;
   this.plane = null;
   this.airCombos = [];
+  this.airPlaneChoicesByAirport = {};
   if (this.paxCargo < 0) return;
 
   local airportLargeTypes = [
@@ -523,6 +612,7 @@ function OpexCatalog::_refreshAir()
   foreach (choice in airportLargeTypes) {
     if (!AIAirport.IsValidAirportType(choice.type)) continue;
     local best = null;
+    local probeChoices = [];
     for (local e = engines.Begin(); !engines.IsEnd(); e = engines.Next()) {
       if (!AIEngine.CanRefitCargo(e, this.paxCargo)) continue;
       local planeType = AIEngine.GetPlaneType(e);
@@ -532,16 +622,19 @@ function OpexCatalog::_refreshAir()
       if (capacity <= 0) continue;
       local isBig = (planeType == AIAirport.PT_BIG_PLANE);
       local bestIsBig = (best != null && best.isBig);
-      if (best == null || (isBig && !bestIsBig) ||
-          (isBig == bestIsBig && (capacity > best.capacity || (capacity == best.capacity && speed > best.speed)))) {
-        best = {
-          id = e, capacity = capacity, speed = speed, price = AIEngine.GetPrice(e),
-          runningCost = AIEngine.GetRunningCost(e),
-          maxOrderDistance = AIEngine.GetMaximumOrderDistance(e),
-          planeType = planeType,
-          isBig = isBig,
-        };
-      }
+      local replaces = best == null || (isBig && !bestIsBig) ||
+          (isBig == bestIsBig && (capacity > best.capacity || (capacity == best.capacity && speed > best.speed)));
+      if (!replaces && !EQUIPMENT_ROI_PROBE) continue;
+      local entry = {
+        id = e, defaultCargo = AIEngine.GetCargoType(e), capacity = capacity, speed = speed,
+        price = AIEngine.GetPrice(e), runningCost = AIEngine.GetRunningCost(e),
+        maxOrderDistance = AIEngine.GetMaximumOrderDistance(e), planeType = planeType, isBig = isBig,
+      };
+      if (EQUIPMENT_ROI_PROBE) probeChoices.append(entry);
+      if (replaces) best = entry;
+    }
+    if (EQUIPMENT_ROI_PROBE && probeChoices.len() > 0) {
+      this.airPlaneChoicesByAirport.rawset(choice.type, probeChoices);
     }
     if (best != null) {
       local ap = {
@@ -567,6 +660,7 @@ function OpexCatalog::_refreshAir()
   foreach (choice in airportSmallTypes) {
     if (!AIAirport.IsValidAirportType(choice.type)) continue;
     local best = null;
+    local probeChoices = [];
     for (local e = engines.Begin(); !engines.IsEnd(); e = engines.Next()) {
       if (!AIEngine.CanRefitCargo(e, this.paxCargo)) continue;
       local planeType = AIEngine.GetPlaneType(e);
@@ -575,16 +669,19 @@ function OpexCatalog::_refreshAir()
       local capacity = AIEngine.GetCapacity(e);
       local speed = AIEngine.GetMaxSpeed(e);
       if (capacity <= 0) continue;
-      if (best == null || capacity > best.capacity ||
-          (capacity == best.capacity && speed > best.speed)) {
-        best = {
-          id = e, capacity = capacity, speed = speed, price = AIEngine.GetPrice(e),
-          runningCost = AIEngine.GetRunningCost(e),
-          maxOrderDistance = AIEngine.GetMaximumOrderDistance(e),
-          planeType = planeType,
-          isBig = false,
-        };
-      }
+      local replaces = best == null || capacity > best.capacity ||
+          (capacity == best.capacity && speed > best.speed);
+      if (!replaces && !EQUIPMENT_ROI_PROBE) continue;
+      local entry = {
+        id = e, defaultCargo = AIEngine.GetCargoType(e), capacity = capacity, speed = speed,
+        price = AIEngine.GetPrice(e), runningCost = AIEngine.GetRunningCost(e),
+        maxOrderDistance = AIEngine.GetMaximumOrderDistance(e), planeType = planeType, isBig = false,
+      };
+      if (EQUIPMENT_ROI_PROBE) probeChoices.append(entry);
+      if (replaces) best = entry;
+    }
+    if (EQUIPMENT_ROI_PROBE && probeChoices.len() > 0) {
+      this.airPlaneChoicesByAirport.rawset(choice.type, probeChoices);
     }
     if (best != null) {
       local ap = {
@@ -672,6 +769,7 @@ function OpexCatalog::_refreshRoad()
 {
   this.roadType = -1;
   this.roadEngineByCargo = {};
+  this.roadEngineChoicesByCargo = {};
   this.maxRoadVehiclePrice = 0;
   this.costRoadPerTile = 0;
   this.costRoadBusStop = 0;
@@ -712,8 +810,10 @@ function OpexCatalog::_refreshRoad()
 
   foreach (cargo in this.cargos) {
     local best = null;
+    local probeChoices = [];
     foreach (engine in usable) {
       if (engine.defaultCargo != cargo && !AIEngine.CanRefitCargo(engine.id, cargo)) continue;
+      if (EQUIPMENT_ROI_PROBE) probeChoices.append(engine);
       /* capacity est celle du cargo D'ORIGINE : apres refit elle peut changer (le GRF decide).
        * C'est une approximation assumee pour le CLASSEMENT ; la valeur qui sert au dimensionnement
        * reel est relue depuis le depot par GetBuildWithRefitCapacity dans builder_road.nut. */
@@ -724,6 +824,7 @@ function OpexCatalog::_refreshRoad()
     }
     if (best == null) continue;
     this.roadEngineByCargo.rawset(cargo, best);
+    if (EQUIPMENT_ROI_PROBE) this.roadEngineChoicesByCargo.rawset(cargo, probeChoices);
     if (best.price > this.maxRoadVehiclePrice) this.maxRoadVehiclePrice = best.price;
   }
 }

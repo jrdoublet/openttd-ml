@@ -1006,6 +1006,17 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
+    /* B3 : contrairement à C50b, ne supprime pas le garde-fou de quai. Pour les lignes pax,
+     * convertit la capacité simultanée en plafond de flotte via la part du cycle passée à l'arrêt.
+     * Défaut 0 jusqu'au protocole d'adoption. */
+    AddSetting({
+      name = "road_time_scaled_cap",
+      description = "B3 experiment: scale pax road fleet cap from simultaneous berth capacity by modeled stop dwell fraction; freight unchanged; 1 = test arm, 0 = historical cap (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
     /* C50b : bras causal rail, force la tentative de densification des lignes rentables afin de
      * separer le seuil de backlog des impossibilites geometriques. Sans effet par defaut. */
     AddSetting({
@@ -2493,6 +2504,22 @@ Le mode route est donc reconfirme sur l arbre courant.
       description = "C33.2 : Joined drive-through bus stops placed inside airport construction to expand airport catchment into the town (AAAHogEx piece stations): 1 = enabled (default, adopted), 0 = disabled",
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "air_catchment_probe",
+      description = "B9/G4 passive AIR catchment probe after successful builds: exact station-union pax/mail production, airport-only production, placement and joined-stop reserve/actuals; 0 = off/default",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "equipment_roi_probe",
+      description = "M3/G12 passive equipment-choice probe: compare current pre-ROI catalog selection with route economics and observed post-refit capacity; 0 = off/default, no selection change",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
 

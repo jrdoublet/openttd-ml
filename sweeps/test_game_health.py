@@ -183,21 +183,111 @@ class TestGameHealth(unittest.TestCase):
         self.assertEqual(activity["fleet_changes"], 0)
         self.assertGreater(activity["value_changes"], 0)
 
-    def test_no_signal_on_complete_horizon_is_suspicion_not_exclusion(self):
+    def test_no_signal_on_complete_horizon_fails_closed(self):
         records = []
         for month in range(1, 13):
             date = f"1974-{month:02d}-01"
             records.append(_rec("OpexAI", 6, date, primary_vehicles=4, n_stations=2, company_value=900))
             records.append(_rec("AAAHogEx", 6, date, primary_vehicles=8, n_stations=4, company_value=2000))
-        # Horizon 1 an : décembre 1974 est complet pour years=1.
         game = assess_game(
             records, starting_year=1974, years=1,
             engine_log=(FIXTURES / "clean.log").read_text(),
         )
         self.assertEqual(game["companies"]["OpexAI"]["status"], "stagnation_suspect")
-        self.assertTrue(game["companies"]["OpexAI"]["include_in_economic_stats"])
-        self.assertTrue(game["game_ok"])
-        self.assertIsNone(game["companies"]["OpexAI"]["failure_reason"])
+        self.assertFalse(game["companies"]["OpexAI"]["include_in_economic_stats"])
+        self.assertFalse(game["companies"]["OpexAI"]["run_ok"])
+        self.assertFalse(game["game_ok"])
+        self.assertIn("stagnation_suspect", game["companies"]["OpexAI"]["failure_reason"])
+
+    def test_declining_value_without_expansion_is_stagnation(self):
+        records = []
+        for month in range(1, 13):
+            date = f"1974-{month:02d}-01"
+            records.append(_rec(
+                "OpexAI", 61, date,
+                primary_vehicles=4, n_stations=2, company_value=1200 - 25 * month,
+            ))
+            records.append(_rec(
+                "AAAHogEx", 61, date,
+                primary_vehicles=8 + month, n_stations=4 + month,
+                company_value=2000 + 50 * month,
+            ))
+        activity = activity_from_series([row for row in records if row["run"][0] == "OpexAI"])
+        self.assertEqual(activity["signal"], "declining_without_expansion")
+        self.assertEqual(activity["fleet_changes"], 0)
+        self.assertGreater(activity["value_decreases"], 0)
+        game = assess_game(
+            records, starting_year=1974, years=1,
+            engine_log=(FIXTURES / "clean.log").read_text(),
+        )
+        self.assertEqual(game["companies"]["OpexAI"]["status"], "stagnation_suspect")
+        self.assertFalse(game["game_ok"])
+
+    def test_recent_one_point_uptick_does_not_hide_net_decline(self):
+        values = [1200, 1160, 1120, 1080, 1040, 1000, 960, 920, 901, 899, 900, 900]
+        records = []
+        for month, value in enumerate(values, start=1):
+            date = f"1974-{month:02d}-01"
+            records.append(_rec(
+                "OpexAI", 77, date,
+                primary_vehicles=4, n_stations=2, company_value=value,
+            ))
+            records.append(_rec(
+                "AAAHogEx", 77, date,
+                primary_vehicles=8 + month, n_stations=4 + month,
+                company_value=2000 + 50 * month,
+            ))
+
+        opex = [row for row in records if row["run"][0] == "OpexAI"]
+        activity = activity_from_series(opex)
+        self.assertEqual(activity["value_increases"], 1)
+        self.assertGreater(activity["value_decreases"], 0)
+        self.assertEqual(activity["net_company_value_change"], -300)
+        self.assertEqual(activity["signal"], "declining_without_expansion")
+
+        game = assess_game(
+            records, starting_year=1974, years=1,
+            engine_log=(FIXTURES / "clean.log").read_text(),
+        )
+        self.assertEqual(game["companies"]["OpexAI"]["status"], "stagnation_suspect")
+        self.assertFalse(game["companies"]["OpexAI"]["run_ok"])
+        self.assertFalse(game["game_ok"])
+
+    def test_missing_internal_month_is_protocol_failure(self):
+        records = [
+            row for row in _monthly_pair(62, last="1970-12-01")
+            if not (row["run"][0] == "OpexAI" and row["date"] == "1970-07-01")
+        ]
+        game = assess_game(
+            records, starting_year=1970, years=1,
+            engine_log=(FIXTURES / "clean.log").read_text(),
+        )
+        self.assertEqual(game["companies"]["OpexAI"]["status"], "missing_data")
+        self.assertFalse(game["companies"]["OpexAI"]["run_ok"])
+        self.assertEqual(
+            game["checkpoint_report"]["missing_checkpoints"]["OpexAI"],
+            ["1970-07-01"],
+        )
+
+    def test_company_without_physical_activity_fails_closed(self):
+        records = _monthly_pair(63, last="1970-12-01")
+        for row in records:
+            if row["run"][0] == "AAAHogEx" and row["date"] == "1970-12-01":
+                row["primary_vehicles"] = 0
+        game = assess_game(
+            records, starting_year=1970, years=1,
+            engine_log=(FIXTURES / "clean.log").read_text(),
+        )
+        self.assertEqual(game["companies"]["AAAHogEx"]["status"], "inactive_company")
+        self.assertFalse(game["companies"]["AAAHogEx"]["run_ok"])
+        self.assertFalse(game["game_ok"])
+
+    def test_missing_engine_log_is_protocol_failure(self):
+        records = _monthly_pair(64, last="1970-12-01")
+        game = assess_game(records, starting_year=1970, years=1)
+        self.assertEqual(game["game_status"], "engine_error")
+        self.assertEqual(game["engine_error"], "missing_engine_log:unspecified")
+        self.assertFalse(game["game_ok"])
 
     def test_duplicate_checkpoint_is_protocol_failure(self):
         records = _monthly_pair(8, last="1974-12-01")
@@ -422,6 +512,37 @@ class TestGameHealth(unittest.TestCase):
             ),
             "ok",
         )
+
+    def test_timeout_patch_is_scoped_to_run_experiment(self):
+        import subprocess
+
+        seen = []
+        real_check = subprocess.check_output
+
+        def sentinel(*args, **kwargs):
+            seen.append(kwargs.get("timeout"))
+            return "ok"
+
+        def original(
+            opengfx_binary, openttd_binary, final_screenshot_directory,
+            openttd_version, opengfx_version, result_processor,
+            run_dir, i, experiment, ai_and_library_filenames,
+            xvfb_run_available, data_extraction_mode,
+        ):
+            return subprocess.check_output(["openttd"])
+
+        try:
+            subprocess.check_output = sentinel
+            wrapped = wrap_engine_failure_capture(original, timeout_sec=17)
+            result = wrapped(
+                "gfx", "openttd", None, "15.3", "7.1", b"processor",
+                "run", 0, b"experiment", (), False, "autosave",
+            )
+            self.assertEqual(result, "ok")
+            self.assertEqual(seen, [17])
+            self.assertIs(subprocess.check_output, sentinel)
+        finally:
+            subprocess.check_output = real_check
 
 
 if __name__ == "__main__":

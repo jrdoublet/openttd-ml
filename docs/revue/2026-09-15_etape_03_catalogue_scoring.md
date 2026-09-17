@@ -107,3 +107,118 @@ même drapeau activé.
   accélération, coût d'exploitation, prix) sans réduire l'ensemble évalué — jugé hors du périmètre
   de G12 tel qu'énoncé par le plan, mais à garder en tête comme le contre-exemple « bien fait » si
   une correction de 03.1–03.3 est un jour engagée.
+
+### Fermeture de la vérification résiduelle G3 — 2026-09-16
+
+La réserve « vérifier que le recalcul post-A* est systématique, fret compris » est maintenant
+fermée. Les deux orchestrations rail convergent vers le même helper :
+
+- le chemin bloquant `OpexPlanRailRoute` termine par
+  `OpexCompleteRailRouteAfterSearch(...)` ;
+- le chemin reprenable appelle le même `OpexCompleteRailRouteAfterSearch` quand ses tranches A*
+  sont terminées ;
+- ce helper somme les tuiles du tracé réel en `routeDistance`
+  (`builder_rail.nut:1484-1487`) puis rappelle **inconditionnellement pour tout candidat**
+  `OpexLineEconomics(..., candidate.kind, ..., routeDistance)` (`:1489-1497`).
+
+`OpexLineEconomics` branche ses détails fret sur `kind == "freight"` mais utilise le même
+`travelDist = routeDistance` pour pax et fret. Il n'existe donc pas de chemin fret qui évite le
+recalage post-tracé. G3 est fermé sans patch supplémentaire.
+
+## Clôture M3 / G12 — workspace du 2026-09-16
+
+La relecture du code courant nuance le constat historique sans le renier :
+
+- **03.1 rail** : la locomotive n'est plus le vieux « fastest wins » ; elle est déjà couplée au
+  nombre de wagons et départagée sur vitesse soutenable, accélération, coût courant puis prix.
+  Le résidu G12 est le **wagon unique par cargo**, encore pré-élu sur capacité ;
+- **03.2 route** : un véhicule unique reste pré-élu par capacité puis vitesse avant
+  `OpexRoadLineEconomics`. La capacité réellement refittée est néanmoins relue après
+  construction ; ce n'est donc pas un mensonge de mesure post-build, mais une réduction amont de
+  l'espace de choix ;
+- **03.3 air** : un appareil unique reste pré-élu par type d'aéroport. Le code conserve aussi une
+  préférence de type séparée : dès qu'un plan sur grand aéroport est viable,
+  `if (bestPlan != null && bestPlan.airport.allowBig) break;`. Le diagnostic M3 **ne mélange pas**
+  cette politique d'aéroport avec la question du choix d'appareil ;
+- le vieux §3 G12 feeder n'est plus actif sous sa forme historique : le catchment du hub est lu
+  sur le hub/station réel (`OpexHubPaxCatchmentRadius(hub)`), pas sur un objet catalogue erroné.
+
+### Instrumentation passive
+
+`equipment_roi_probe` a été ajouté **default-off** ; le contrat de réglages passe de 229 à
+**230**. Quand il vaut 1 uniquement, le catalogue conserve les alternatives
+`wagonChoicesByCargo`, `roadEngineChoicesByCargo` et `airPlaneChoicesByAirport`.
+Les décisions livrées continuent à lire les sélections historiques
+`wagonByCargo` / `roadEngineByCargo` / `airCombos`.
+
+Les événements `M3_EQUIP` séparent :
+
+- `pre_admission` : contrefactuel avant le rejet économique initial ;
+- `post_route` / sélection portfolio : même route/site réel déjà choisi ;
+- `post_refit` : capacité réellement observée après
+  `BuildVehicleWithRefit`, distincte de la capacité catalogue ;
+- `native_choices` et `refit_proxy_choices` : une capacité de cargo d'origine n'est jamais
+  présentée comme une capacité refit exacte.
+
+Le rail peut passer un wagon alternatif + son propre cache de locomotives à
+`OpexLineEconomics` **uniquement pour la sonde**. Route et air réutilisent leurs fonctions
+économiques réelles. Aucun résultat contrefactuel ne revient au générateur, au portefeuille ou au
+constructeur.
+
+### Validation
+
+Contrats :
+
+- `python -m unittest sweeps.test_campaign_freeze sweeps.test_m3_equipment_roi sweeps.test_b9_air_catchment`
+  → **23/23 OK** ;
+- `python sweeps/diag_m3_equipment_roi.py --selftest` → OK ;
+- `python sweeps/bench_1v1_5y_20seeds.py --selftest` → OK ;
+- `py_compile` des tests/runner/analyseur → OK ;
+- `git diff --check` → exit 0, hors avertissements CRLF déjà connus.
+
+Le smoke obligatoire après la dernière modification `.nut`,
+`results/review_m3_equipment_roi_smoke_2x3_v5.json`, est sain sur **4/4 bras**
+(2 graines × 3 ans, OpexAI + AAAHogEx). Il expose 32 320 événements M3, sans erreur NoAI.
+
+Le diagnostic final
+`results/review_m3_equipment_roi_5x6.json` (graines 42/100/999/1234/5678, 6 ans,
+6 workers, lab 6 CPU / 2g / 2g) est **10/10 sain et complet** et contient 135 887 événements :
+
+- **rail** : 55 106 comparaisons, **0 cas multi-choix**, 0 regret, 0 flip d'admission ;
+- **route** : 736 comparaisons, 18 cas multi-choix, **0** différence contre meilleur
+  profit/ROI, 0 flip ; 80 observations post-refit, `capacity_delta=0` partout ;
+- **air** : 79 807 comparaisons, toutes multi-choix ; 75 742 choix courants diffèrent du meilleur
+  profit, 77 884 du meilleur ROI ; sur 78 077 événements pré-admission, **2 371**
+  (~3,0 %) auraient franchi le seuil de profit avec un autre appareil.
+  Le regret de profit contrefactuel moyen est **7 776,81 £/an**, maximum **31 825 £/an**.
+  Les 158 constructions observées ont `capacity_delta=0`.
+
+Le catalogue vanilla choisit l'appareil **228** sur toutes les évaluations M3, alors que le meilleur
+profit dépend réellement de la route : 218 (33 777 cas), 217 (17 823), 223 (13 985), puis plusieurs
+autres IDs. Le bon correctif éventuel n'est donc pas « remplacer 228 par un autre avion statique » :
+ce serait une **politique de sélection économique par route**.
+
+### Mesure vs classement vs politique
+
+**Aucun P1 de vérité de mesure n'est démontré en vanilla.** Le banc ne voit aucun
+`refit_proxy_choice` route/air et aucune différence entre capacité catalogue et capacité
+post-refit sur les véhicules effectivement construits. Rail/route sont presque mono-équipement dans
+ce set. Le risque NewGRF reste néanmoins réel par construction : un GRF peut introduire plusieurs
+engins, modifier capacité après refit, masse, coûts et compatibilités. La sonde est prête à le
+mesurer, mais **ce 5×6 OpenGFX ne mesure pas un NewGRF**.
+
+Le défaut AIR observé est donc un **P2 de pré-sélection/classement**, pas un P1 technique. Une
+politique concrète se dégage — évaluer les appareils compatibles par route avec l'économie réelle —
+mais elle n'est **ni implémentée ni adoptée** dans cette passe. Conformément à la règle de la revue
+(seuls les P1 techniques sont corrigés après ce diagnostic, et aucune adoption depuis un simple
+5×6), aucun 20×10 n'est lancé.
+
+### Correctifs de harnais découverts pendant M3
+
+Le premier smoke a révélé deux défauts du harnais, sans lien avec le comportement OpexAI :
+`keep()` dépendait de globals non sérialisables proprement sous Windows quand le bench était lancé
+comme `__main__`, et son selftest attendait l'ancien schéma sans le champ additif
+`endpoint_cargo_stats.airport`. Le callback CLI est désormais réimporté depuis un module
+sérialisable, le chemin de log est injecté dans l'expérience, les runners créent explicitement leur
+dossier moteur, et le selftest accepte le champ géométrique. Le contrôle CLI
+`results/review_m3_harness_cli_check_1x1.json` passe.

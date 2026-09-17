@@ -26,6 +26,23 @@ périmètre : pas `docs/taches.md` en entier, pas les journaux, pas `results/`.
 · Le chemin est actif par défaut, pas théorique : `feeder_town_coverage = 1` (`info.nut:1285-1290`), `FEEDER_TOWN_COVERAGE <- true` (`globals_pre.nut:38`), et `candidates.nut:2927-2928` écrit noir sur blanc « Une seule ligne feeder de base par commune. Les arrêts suivants sont des `feeder_extension` de cette ligne et partagent sa liste d'ordres. » L'extension **est** le mode de croissance nominal d'un feeder.
 · Conséquence observable : sur toute ligne feeder ayant reçu au moins une extension (panneau `RE|…|F`, `task_road.nut:47-48`), le volume transféré au hub s'effondre pendant que le revenu propre du feeder reste faiblement positif — soit le profil « feeder bâti, hub vide » d'avant le 09-15, mais réapparaissant seulement à partir de la 2ᵉ année de la ligne (`candidates.nut:2372` exige `currentYear > line.year`).
 
+**Clôture B4 — workspace courant, 2026-09-16.** Ce constat était valide au SHA revu mais est
+maintenant corrigé. `builder_road.nut` centralise les indicateurs feeder dans
+`OpexRoadFeederSourceOrderFlags()` et `OpexRoadFeederHubOrderFlags()` ; construction initiale,
+refleet et `OpexBuildRoadExtension()` réutilisent les mêmes helpers. L'extension insère l'arrêt
+ville juste avant le hub avec `NO_UNLOAD`, le hub restant `TRANSFER|NO_LOAD`.
+
+Preuve réelle : `results/review_b4_bus_extensions_5x6_ordl.json`, 5 graines × 6 ans, feeders isolés
+(`feeder_candidates=1, feeder_hub_check=0, feeder_mail_duplicate=0`), produit **13** événements
+`feeder_extension` et **3** `bus_pax_extension`. Les ORDL finaux contiennent 12 listes d'ordres
+feeder étendues distinctes : toutes les étapes ville/intermédiaires sont
+`LOAD_IF_POSSIBLE + NO_UNLOAD`, tous les hubs `NO_LOAD + TRANSFER`, `errors=[]` et
+`invalid_extended_feeders=0` sur les cinq graines. `sweeps/test_b4_feeder_orders.py` passe 6/6 et
+le smoke obligatoire après les dernières modifications `.nut` est
+`results/review_b4_smoke_2x3.json` (PASSED). Le dernier changement après ce smoke est uniquement
+l'inspecteur Python ORDL ; aucun nouveau `.nut` n'a été introduit. Ce 5×6 est une preuve de
+fonctionnement/invariant, **pas** une adoption de politique ou de défaut.
+
 ### 09.2 — `OpexRoadRefleet` reconstruit 2 ordres et efface silencieusement les extensions payées        [gravité : P2]
 `ai/OpexAI/builder_road.nut:1582-1584` — la branche « aucun véhicule survivant » (`template == null`) fait exactement `AppendOrder(first, line.stationA, …)` puis `AppendOrder(first, line.stationB, …)` et exige `GetOrderCount(first) == 2`.
 · Ce qu'elle prétend faire : « reconstitue moteur + ordres comme à la construction » (`:1507-1508`).
@@ -77,7 +94,9 @@ Comparaison ligne à ligne de `builder_road.nut:1273-1299` (construction, `OpexB
 | `\| nonstopFlag` final | `:1298` | `:1581` |
 
 Aucune divergence de logique, d'ordre d'évaluation ni de valeur. Le correctif a bien retiré des deux côtés le conditionnement de `OF_NO_LOAD` à `C53_ORDER_NOLOAD` (défaut `false`, `globals_pre.nut:381`), qui était la cause de la reprise de passagers au hub au retour. Les deux combinaisons produites (`OF_NO_UNLOAD` seul ; `OF_TRANSFER|OF_NO_LOAD`) passent `AreOrderFlagsValid` : les exclusions mutuelles sont `TRANSFER`/`UNLOAD`, `TRANSFER`/`NO_UNLOAD`, `UNLOAD`/`NO_UNLOAD`, `NO_UNLOAD`/`NO_LOAD` et `FULL_LOAD_ANY`/`NO_LOAD` — aucune n'est enfreinte.
-**La régression survivante n'est pas entre ces deux blocs : c'est le troisième site d'ordre, `OpexBuildRoadExtension` (constat 09.1), que le correctif n'a pas visité.**
+**Au SHA revu, la régression survivante n'était pas entre ces deux blocs : c'était le troisième
+site d'ordre, `OpexBuildRoadExtension` (constat 09.1).** Elle est maintenant corrigée dans le
+workspace courant par la centralisation des helpers feeder décrite dans la clôture B4 ci-dessus.
 
 ### 09.B — La lecture `line.isFeeder` seule (sans `|| line.purpose == "feeder"`) est sûre en pratique
 `builder_road.nut:1569` n'utilise que la moitié du prédicat employé partout ailleurs (`candidates.nut:1113, 2117, 2148, 2167, 2212, 2326, 2374, 2813` ; `task_report.nut:357-359` ; `event_handlers.nut:238-240`). Vérifié : les trois seuls producteurs d'enregistrement de ligne feeder posent bien `isFeeder = true` — `task_road.nut:362`, `task_feeders.nut:220`, `task_feeders.nut:371`. Et `persist.nut:30-70 / 175-196` recopie les tables de ligne telles quelles (projection superficielle uniquement pour convertir les flottants), donc le champ survit à une sauvegarde/rechargement. Aucune ligne ne porte `purpose == "feeder"` sans `isFeeder`. Prédicat plus étroit que l'idiome du projet, mais pas faux.
@@ -102,5 +121,36 @@ Le cœur du mécanisme décrit en 09.3 et 09.4 vit dans `economy.nut`, pas dans 
 ### 09.H — `candidates.nut:2366` : les lignes feeder créées par `task_feeders.nut` n'ont pas de champ `kind`
 `OpexRoadExtensionCandidates` exige `("kind" in line) && line.kind == "pax"`. Les enregistrements de `task_feeders.nut:202-230` et `:355-376` posent `mode = "road"` mais **aucun** `kind` (contrairement à `task_road.nut:352`). Ces lignes-là sont donc structurellement inéligibles à `feeder_extension`, alors que les feeders passés par le chemin générique (`candidates.nut:2960-2964` → `task_road.nut:341+`) le sont. Deux populations de feeders au comportement de croissance différent, sans raison apparente. Détermine le rayon d'action réel du constat 09.1. → étape couvrant `task_feeders.nut` / `candidates.nut`.
 
+**Clôture B4 — workspace courant.** Le feeder **bus** de `task_feeders.nut` persiste désormais
+`kind = candidate.kind`, ce qui le rend éligible à `feeder_extension`. Le feeder **courrier** reste
+volontairement sans `kind` afin de ne pas être classé comme une ligne pax et étendu par ce mécanisme.
+Le 5×6 ORDL-aware du 2026-09-16 a effectivement observé 13 `feeder_extension` réelles.
+
 ### 09.I — `task_road.nut:40-47` : `extraStops` grandit, `nStopsA`/`nStopsB` non
 Bookkeeping de l'extension, hors périmètre, mais c'est lui qui rend permanent le `physicalCap = 2` décrit en 09.4 et qui bloque la reconstruction décrite en 09.2. → étape couvrant `task_road.nut`.
+
+## Clôture B3 — 2026-09-16
+
+09.3/09.4 ont été traités sans supprimer le garde-fou de congestion. `vehiclesForVolume` est
+désormais conservé comme cible brute ; `roadBerthCapacity` désigne uniquement la simultanéité de
+quai ; `roadVehicleCap` désigne le plafond de flotte. `road_time_scaled_cap` reste **0 par défaut**.
+Sous 1, le cap temporel est pax-only, conservateur et borné par `MAX_ROAD_VEHICLES`; le fret conserve
+strictement l'ancien cap faute de modèle de chargement démontré. Le chemin `task_road`/refleet,
+les feeders, le ranking, `PROJECT_CHOSEN`, le rapport annuel et la persistance portent ces notions
+sans réutiliser `vehiclesForVolume` comme capacité physique.
+
+Tests : `sweeps/test_b3_road_fleet_targets.py` **12/12**, selftest du diagnostic et compilation
+Python OK, `git diff --check` final OK. Smoke post-dernier `.nut` :
+`results/review_b3_time_scaled_cap_smoke_2x3_v3.json` → **PASSED 2/2**.
+
+Diagnostic apparié final : `results/review_b3_time_scaled_cap_paired_5x6_v2.json` → 5 paires,
+10/10 runs sains/complets. Tous les invariants de séparation passent ; `variant_pax_temporal_cap_exercised`
+est faux pour une raison causale : `road_pax_build=0` au défaut, aucun pax dans ranking/chosen, et
+les lignes pax observées sont `town_growth` avec `raw_vehs <= 1`. La variante n'améliore donc pas
+un mécanisme réellement exposé et donne `company_value` moyen -52 094,8 £, `profit_year`
+-29 119,4 £/an, 2 V / 3 D sur les deux métriques. **Pas de 20×10**, défaut laissé à 0 ; le switch
+et l'instrumentation restent disponibles pour un futur contexte où le pax interurbain serait actif.
+
+Le fichier `results/review_b3_time_scaled_cap_paired_5x6.json` antérieur ne doit pas être cité comme
+preuve : son harnais avait produit une télémétrie B3 vide. Seul le suffixe `_v2` porte la campagne
+diagnostique finale.

@@ -34,6 +34,13 @@ seul ce chemin arme. Mais **dès qu'un bras de banc pose `rail_expand = 1`** —
 qu'appelle G5 — la première expansion de wagons éligible tue le script sur une erreur d'exécution.
 C'est le mode de mort silencieuse décrit dans `CLAUDE.md` (« une erreur Squirrel tue l'IA presque
 en silence »). Ce n'est **pas** une régression C65 : les deux lectures ont été introduites par
+
+**Corrigé le 2026-09-16 (B5).** `main.nut` définit maintenant
+`RAIL_EXPAND_APPROACH_TILES = 8`. La valeur reprend la fenêtre locale déjà utilisée par
+`OpexPlacePathApproachSignal` dans `builder_rail.nut` (`maxDistance=8`). Le test ciblé
+`sweeps/test_b5_rail_persistence.py` vérifie une définition et les deux lectures. Le diagnostic
+conditionnel `results/review_b5_rail_expand_5x6.json` exécute 5 graines × 6 ans avec
+`rail_expand=1` : 5/5 parties complètes et zéro `protocol_failure`. `rail_expand` reste à 0.
 `5a41488` (2026-09-11) sans jamais que la constante existe.
 
 ### 01.2 — Le bras de contrôle `road_pax_catchment_pct = 0` n'existe pas, pour deux raisons indépendantes        [gravité : P1 — constat de mesure]

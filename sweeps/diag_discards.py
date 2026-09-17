@@ -7,6 +7,7 @@ cas) ni endormie (elle evalue 86-89 % des mois) : elle REJETTE. Ce script agrege
 Trois etages, du plus large au plus etroit :
   1. VIVIER_GEN     : paires produites -> candidats retenus ;
   2. VIVIER_REJECT  : pourquoi une paire ne devient pas candidat (motifs cumules) ;
+     VIVIER_RETAINED: mesures sous un repere historique mais CONSERVEES ;
   3. PROJECT_DISCARD: pourquoi un projet classe n'est pas elu -- l'etage decisif, celui ou le
      ratio 30:1 se joue.
 """
@@ -44,6 +45,7 @@ def analyse(output):
     discard = Counter()
     discard_by_mode = defaultdict(Counter)
     vivier = Counter()
+    retained = Counter()
     produced = kept = chosen = 0
     builds = Counter()
     for line in (output or "").splitlines():
@@ -61,6 +63,11 @@ def analyse(output):
                 vivier[f.get("reason", "?")] += int(f.get("n", 0))
             except ValueError:
                 pass
+        elif kind == "VIVIER_RETAINED":
+            try:
+                retained[f.get("reason", "?")] += int(f.get("n", 0))
+            except ValueError:
+                pass
         elif kind == "VIVIER_GEN":
             try:
                 produced += int(f.get("produced", 0))
@@ -72,6 +79,7 @@ def analyse(output):
         elif kind.endswith("_BUILD"):
             builds[kind] += 1
     return {"discard": discard, "discard_by_mode": discard_by_mode, "vivier": vivier,
+            "retained": retained,
             "produced": produced, "kept": kept, "chosen": chosen, "builds": builds}
 
 
@@ -127,6 +135,7 @@ def main():
     args.out.write_text(json.dumps({
         "years": args.years, "seeds": args.seeds,
         "per_seed": {str(s): {"discard": dict(a["discard"]), "vivier": dict(a["vivier"]),
+                              "retained": dict(a["retained"]),
                               "produced": a["produced"], "kept": a["kept"],
                               "chosen": a["chosen"], "builds": dict(a["builds"])}
                      for s, a in per_seed.items()}}, indent=1))

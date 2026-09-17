@@ -78,6 +78,22 @@ function OpexRoadStopKind(cargo)
   return { vehType = AIRoad.ROADVEHTYPE_TRUCK, stationType = AIStation.STATION_TRUCK_STOP };
 }
 
+/* B4 / 09.1 : source unique des ordres du feeder BUS. La ville, y compris tout arret
+ * d'extension intermediaire, charge sans decharger ; le hub transfere puis repart vide. */
+function OpexRoadFeederSourceOrderFlags()
+{
+  local flags = AIOrder.OF_NO_UNLOAD;
+  if (C53_ORDER_NONSTOP) flags = flags | AIOrder.OF_NON_STOP_INTERMEDIATE;
+  return flags;
+}
+
+function OpexRoadFeederHubOrderFlags()
+{
+  local flags = AIOrder.OF_TRANSFER | AIOrder.OF_NO_LOAD;
+  if (C53_ORDER_NONSTOP) flags = flags | AIOrder.OF_NON_STOP_INTERMEDIATE;
+  return flags;
+}
+
 function OpexRoadAppendSegment(trace, from, to)
 {
   local x = AIMap.GetTileX(from);
@@ -740,7 +756,7 @@ function OpexRoadPlanFor(catalog, candidate)
     }
   }
   local isFeederEarly = ("isFeeder" in candidate) && candidate.isFeeder;
-  local cheapOn = ROAD_CHEAP_TRACE || (AIController.GetSetting("road_cheap_trace") != 0);
+  local cheapOn = ROAD_CHEAP_TRACE;
   /* Y compris les feeders : le bus 5 tuiles rang 0 de la graine 7 EST un feeder
    * vers la ville de l'aeroport ; l'exclure renvoyait au TRACEX complet. */
   if (cheapOn && candidate.distance <= ROAD_CHEAP_TRACE_MAX_DIST) {
@@ -1275,9 +1291,9 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
   /* Un feeder est strictement unidirectionnel : ville -> hub.
    * Ville : charger si disponible, sans decharger.
    * Hub : transferer tout le chargement et repartir vide. */
-  local sourceFlags = (isFeeder
-      ? AIOrder.OF_NO_UNLOAD
-      : (candidate.kind == "freight" ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE)) | nonstopFlag;
+  local sourceFlags = isFeeder
+      ? OpexRoadFeederSourceOrderFlags()
+      : ((candidate.kind == "freight" ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE) | nonstopFlag);
   local orderA = AIOrder.AppendOrder(first, stopA, sourceFlags);
   local errorA = orderA ? 0 : AIError.GetLastError();
   /* OF_TRANSFER et OF_UNLOAD sont mutuellement exclusifs (ai_order.hpp:44-47, meme champ
@@ -1289,13 +1305,13 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
   local isFreight = candidate.kind == "freight";
   local destFlags = 0;
   if (isFeeder) {
-    destFlags = AIOrder.OF_TRANSFER | AIOrder.OF_NO_LOAD;
+    destFlags = OpexRoadFeederHubOrderFlags();
   } else if (isFreight) {
     destFlags = C53_ORDER_NOLOAD ? (AIOrder.OF_UNLOAD | AIOrder.OF_NO_LOAD) : AIOrder.OF_NONE;
   } else {
     destFlags = AIOrder.OF_NONE;
   }
-  destFlags = destFlags | nonstopFlag;
+  if (!isFeeder) destFlags = destFlags | nonstopFlag;
   local orderB = AIOrder.AppendOrder(first, stopB, destFlags);
   local errorB = orderB ? 0 : AIError.GetLastError();
   if (!orderA || !orderB || AIOrder.GetOrderCount(first) != 2) {
@@ -1322,6 +1338,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
   if (MARGINAL_FLEET) {
     want = 1;
   } else {
+    /* Gardé inline volontairement : sous B3=0 ce chemin doit conserver son coût/opcode historique. */
     local nMin = result.nStopsA < result.nStopsB ? result.nStopsA : result.nStopsB;
     if (nMin < 1) nMin = 1;
     local berths = 2 * nMin;
@@ -1355,6 +1372,13 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
   result.stationA = stationA; result.stationB = stationB; result.depot = depot;
   result.vehicles = built;
   result.capacity = AIVehicle.GetCapacity(first, cargo);
+  if (EQUIPMENT_ROI_PROBE) {
+    local selectedRefit = ("defaultCargo" in candidate.engine) && candidate.engine.defaultCargo != cargo;
+    OpexM3EquipmentLog("mode=road phase=post_refit selected=" + candidate.engine.id
+        + " cargo=" + cargo + " selected_refit=" + (selectedRefit ? 1 : 0)
+        + " catalog_capacity=" + candidate.engine.capacity + " actual_capacity=" + result.capacity
+        + " capacity_delta=" + (result.capacity - candidate.engine.capacity));
+  }
   result.cost = balanceBefore - AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   result.actualCost = costs.GetCosts();
   return result;
@@ -1454,6 +1478,7 @@ function OpexBuildRoadExtension(catalog, budget, line, candidate)
       ? stationB : stationA;
   if (("extensionType" in candidate) && candidate.extensionType == "feeder_extension") {
     targetStation = stationB; // insertion juste avant l'ordre de transfert au hub
+    flags = OpexRoadFeederSourceOrderFlags();
   }
   local failed = false;
   foreach (vehicle in vehicles) {
@@ -1567,18 +1592,18 @@ function OpexRoadRefleet(catalog, line, have, target)
     local nonstopFlag = C53_ORDER_NONSTOP ? AIOrder.OF_NON_STOP_INTERMEDIATE : 0;
     local isFreight = (("kind" in line) && line.kind == "freight");
     local isFeeder = (("isFeeder" in line) && line.isFeeder);
-    local sourceFlags = (isFeeder
-        ? AIOrder.OF_NO_UNLOAD
-        : (isFreight ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE)) | nonstopFlag;
+    local sourceFlags = isFeeder
+        ? OpexRoadFeederSourceOrderFlags()
+        : ((isFreight ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE) | nonstopFlag);
     local destFlags = 0;
     if (isFeeder) {
-      destFlags = AIOrder.OF_TRANSFER | AIOrder.OF_NO_LOAD;
+      destFlags = OpexRoadFeederHubOrderFlags();
     } else if (isFreight) {
       destFlags = C53_ORDER_NOLOAD ? (AIOrder.OF_UNLOAD | AIOrder.OF_NO_LOAD) : AIOrder.OF_NONE;
     } else {
       destFlags = AIOrder.OF_NONE;
     }
-    destFlags = destFlags | nonstopFlag;
+    if (!isFeeder) destFlags = destFlags | nonstopFlag;
     if (!AIOrder.AppendOrder(first, line.stationA, sourceFlags) ||
         !AIOrder.AppendOrder(first, line.stationB, destFlags) ||
         AIOrder.GetOrderCount(first) != 2) {

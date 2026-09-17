@@ -7,20 +7,10 @@
  * visible un candidat moins rentable par iteration mais financable en capital. */
 TOP_K <- 20;
 CASH_CANDIDATE_SCAN_LIMIT <- TOP_K;
-/* Phase routiere (2026-08-29). La v1 batissait UNE liaison bus passagers et restait desactivee :
- * sur la graine gelee elle mesurait -599/an pendant 19 ans, mais avec des notes d'arret a -1,
- * c'est-a-dire un bus qui n'a jamais charge un seul passager -- le chiffre condamnait un BUG, pas
- * un mode. Le bug est corrige (bit de route perpendiculaire absent des facades) et le mode devient
- * une phase a part entiere : autant de petites lignes courtes que le classement en propose, et
- * surtout du FRET, camions industrie->industrie et industrie->ville, la ou la v1 ne savait faire
- * que du passager.
- *
- * Deux plafonds annuels, tous deux ARBITRAIRES et a trancher au banc :
- *  - le nombre de lignes neuves, parce que chaque ligne immobilise de la tresorerie que le rail --
- *    qui vaut un ordre de grandeur de plus par ligne -- servira l'annee suivante ;
- *  - le nombre de TENTATIVES, parce qu'un plan qui echoue coute quand meme ses sondes de site et
- *    ses validations d'aretes. Sans lui, une annee ou aucun candidat n'est constructible paierait
- *    le plan des douze. */
+/* Compatibilite historique uniquement : ces deux constantes ne sont plus lues par la phase
+ * routiere actuelle. Elles NE constituent donc pas des plafonds actifs et ne doivent pas etre
+ * citees comme tels dans un banc. Conservees pour ne pas casser un ancien script/require qui
+ * referencerait encore leur symbole. */
 ROAD_MAX_NEW_LINES_PER_YEAR <- 36;
 ROAD_MAX_ATTEMPTS_PER_YEAR <- 60;
 /* Seuil de remboursement d'emprunt : sous ce plancher de tresorerie on ne rembourse pas, un

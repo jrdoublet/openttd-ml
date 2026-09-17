@@ -52,16 +52,16 @@ function OpexGetServedTowns(lines)
  * espacees de cette meme ligne, jusqu'au plafond de croissance maximale OpenTTD. */
 function OpexAI::_tryTownGrowth(year)
 {
-  if (!TOWN_GROWTH_ENABLED || this._catalog.roadType < 0 || this._catalog.paxCargo < 0) return;
+  if (!TOWN_GROWTH_ENABLED || this._catalog.roadType < 0 || this._catalog.paxCargo < 0) return false;
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  if (money < OpexCashReserve() + 25000) return;
+  if (money < OpexCashReserve() + 25000) return false;
 
   local engine = (this._catalog.paxCargo in this._catalog.roadEngineByCargo)
       ? this._catalog.roadEngineByCargo[this._catalog.paxCargo] : null;
-  if (engine == null) return;
+  if (engine == null) return false;
 
   local servedTowns = OpexGetServedTowns(this._lines);
-  if (servedTowns.len() == 0) return;
+  if (servedTowns.len() == 0) return false;
 
   local anchor = AIMap.GetTileIndex(1, 1);
 
@@ -214,6 +214,7 @@ function OpexAI::_tryTownGrowth(year)
       lineId = this._nextLineId,
     });
     this._nextLineId++;
-    break;
+    return true;
   }
+  return false;
 }

@@ -37,6 +37,15 @@ Or `validate_policy_settings` est précisément le garde-fou fail-closed censé 
 différence non annoncée) rouvrirait G0 sur le seul chemin qui le ferme aujourd'hui, sans qu'aucun
 test ne le signale.
 
+**Réconciliation 2026-09-16 : constat historique désormais largement corrigé.**
+`sweeps/test_campaign_freeze.py` existe et couvre le cœur fail-closed demandé par cette fiche :
+`parse_ai_settings` sur le vrai `info.nut` (**230 réglages**), `effective_ai_settings`,
+`validate_policy_settings` (différence annoncée, différence parasite, intervention sans effet),
+`fingerprint_tree` et `git_state`. Ces tests ont repassé dans la clôture M7.
+`prepare_frozen_campaign` et `freeze_bananas_libraries` restent sans test unitaire isolé ;
+ils sont exercés par les campagnes C66 gelées, donc la limite restante est une **couverture
+unitaire d'intégration**, pas l'absence totale de garde qui motivait 21.2.
+
 ### 21.3 — `test_game_health.py` ne teste jamais le cas exact que 17.6 dénonce        [gravité : P2]
 17 tests couvrent `game_health.py` (étape 17, H4/17.6-17.9) mais aucun n'utilise une série de
 `company_value` **décroissante** avec `fleet_changes == 0` — c'est-à-dire le signal réel d'un gel
@@ -51,6 +60,12 @@ forme d'entrée qui déclenche `no_signal` — celle qui n'arrive jamais en jeu 
 celle qui arrive (valeur qui s'effonre). Un correctif à 17.6 pourra passer tous les tests existants
 sans ajouter de régression sur le cas qu'il est censé corriger, à moins qu'un cas décroissant soit
 ajouté en même temps.
+
+**Réconciliation 2026-09-16 : fait.** Le workspace courant contient
+`test_declining_value_without_expansion_is_stagnation` et
+`test_recent_one_point_uptick_does_not_hide_net_decline`. La valeur décroissante sans expansion
+produit `declining_without_expansion`, puis `stagnation_suspect` fail-closed. Le trou de test
+21.3 n'existe plus.
 
 ## Vérifié, n'est PAS un bug
 
@@ -120,12 +135,21 @@ d'implémentation quand H2 sera corrigé : câbler `bench_v2.py` sur `effective_
   commentaire. Comportement inchangé aujourd'hui (garde `unitnumber == 0` déjà couvrante) ; ajouter
   un cas hélicoptère (tête + rotor + ombre) aux fixtures ou à un test synthétique pour cesser de
   dépendre de la garde OR pour la correction.
-- **21.2** — Sonnet 5 / medium. Écrire `test_campaign_freeze.py` : `parse_ai_settings` sur
+- **21.2** — **réalisé pour le cœur du contrat**. `test_campaign_freeze.py` couvre `parse_ai_settings` sur
   `info.nut` réel (compte + valeurs connues), `effective_ai_settings` (fusion defaults/explicit,
   rejet d'un réglage explicite inconnu), `validate_policy_settings` (accepte une différence
   annoncée, rejette une différence non annoncée, rejette une intervention sans effet), et
-  `fingerprint_tree`/`git_state` sur un répertoire temporaire minimal.
-- **21.3** — Sonnet 5 / low, à faire **avec** le correctif 17.6 (H4), pas avant : ajouter un test
-  `company_value` décroissant + `fleet_changes == 0` qui doit **ne pas** rester `no_signal` /
-  `stagnation_suspect` une fois 17.6 corrigé ; sert de test de non-régression au correctif, pas de
-  correctif en soi.
+  `fingerprint_tree`/`git_state` sur un répertoire temporaire minimal. Reste seulement la
+  couverture unitaire de `prepare_frozen_campaign` / `freeze_bananas_libraries`.
+- **21.3** — **réalisé avec H4** : les deux cas décroissants du test courant figent le comportement
+  fail-closed.
+
+## Preuves de revue versionnables — 2026-09-17
+
+Les JSON décisifs sous `results/` sont volontairement gitignorés. La revue conserve désormais ces
+preuves sous `evidence/review/` sous forme de gzip **déterministes** (`mtime=0`) et exacts au byte
+près. `evidence/review/index.json` associe à chaque source le SHA256/taille du JSON brut et le
+SHA256/taille de l'archive. `sweeps/package_review_evidence.py` reconstruit le paquet depuis les
+références des documents de revue ; `sweeps/test_review_evidence.py` vérifie couverture,
+décompression, hash brut et recompression déterministe. `results/` reste donc un scratch local,
+mais une conclusion citée par la revue ne dépend plus d'un fichier ignoré non versionnable.

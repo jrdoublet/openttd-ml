@@ -161,6 +161,21 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
    * test de tresorerie du portefeuille, sans droit de tirage anticipe. */
   local entry = project.payload;
   local line = entry.line;
+  /* B8 / G10 : un projet flotte peut devenir stale entre son calcul (ou un cache portefeuille)
+   * et son execution. Revalider ici, au dernier site avant OpexAirAddPlane, garantit qu'aucun
+   * capital n'est depense sur une ligne qui a entre-temps commence sa liquidation. */
+  if (line == null || (("scrapping" in line) && line.scrapping)) {
+    if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) {
+      passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst,
+                            reason = "line_scrapping", extra = "" });
+    }
+    if (DECISION_LOG) {
+      OpexDecide("FLEET_PROJECT", "action=refuse line="
+                 + ((line != null && ("lineId" in line)) ? line.lineId : -1)
+                 + " reason=scrapping");
+    }
+    return { outcome = "rejected", discards = passDiscards };
+  }
   local need = entry.planePrice + OpexCashReserve();
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   if (money < need && REBORROW) money = OpexTryReborrow(need, money);
@@ -184,8 +199,8 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
   }
   local actual = (costs != null) ? costs.GetCosts() : 0;
   if (added <= 0) {
-    if (C63_INVEST_PROBE) {
-      OpexC63RecordSpend("fleet", plannedFull, actual, false);
+    if (C63_INVEST_PROBE) OpexC63RecordSpend("fleet", plannedFull, actual, false);
+    if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) {
       passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst, reason = "fleet_grow_failed", extra = "" });
     }
     return { outcome = "rejected", discards = passDiscards };
@@ -213,27 +228,25 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
   AILog.Info("[FLEET_PROJECT] line=" + line.lineId + " added=" + added);
   return { outcome = "built", discards = passDiscards };
 }
-function OpexAI::_refreshDynamicBatch(year)
+function OpexAI::_refreshDynamicBatch()
 {
-  local before = (this._projects != null && ("capitalBudget" in this._projects))
-      ? this._projects.capitalBudget : OpexAvailableCapital();
-  local after = OpexAvailableCapital();
+  local capitalNow = OpexAvailableCapital();
   this._projects = OpexDynamicBatchReselect(this._projects, this._lines,
-      this._dynamicBatch.attempted, after, this._abandonedPairs);
+      this._dynamicBatch.attempted, capitalNow, this._abandonedPairs);
   this._ranked = this._projects.rail;
   local remaining = this._projects.best.len();
   if (DECISION_LOG) {
     OpexDecide("DYNAMIC_BATCH", "action=continue reason=success built="
                + this._dynamicBatch.built + " attempted=" + this._dynamicBatch.attemptedCount
-               + " budget_before=" + before + " budget_after=" + after
+               + " budget_current=" + capitalNow
                + " remaining=" + remaining);
   }
 }
-function OpexAI::_dynamicBatchBuilt(year)
+function OpexAI::_dynamicBatchBuilt()
 {
   this._dynamicBatch.built++;
   this._dynamicBatch.consecutiveRejects = 0;
-  this._refreshDynamicBatch(year);
+  this._refreshDynamicBatch();
 }
 /* P2 : seul un refus effectivement tente compte. Une recherche rail pending
  * rend la main sans appeler ce helper ; un succes remet la serie a zero. */
@@ -431,8 +444,28 @@ function OpexAI::_tryBuildProjects(year)
   }
   if (RAIL_SEARCH_RESUMABLE && this._railSearch != null &&
       this._railSearch.kind == "primary" && this._railSearch.phase == "build") {
-    local outcome = this._consumeRailSearch(year);
+    local railCandidate = this._railSearch.candidate;
+    local railResult = this._consumeRailSearch(year);
+    local outcome = railResult.outcome;
     if (MONTHLY_FUNNEL) funnelAttempted++;
+    if ((outcome == "failed" || outcome == "cash")
+        && (DECISION_LOG || C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL)) {
+      local failRank = -1;
+      if (this._projects != null && this._projects.best != null) {
+        local failKey = "rail|" + railCandidate.src + "|" + railCandidate.dst + "|"
+            + railCandidate.cargo + "|" + railCandidate.kind;
+        for (local i = 0; i < this._projects.best.len(); i++) {
+          local project = this._projects.best[i];
+          if (project != null && OpexProjectAttemptKey(project) == failKey) {
+            failRank = i;
+            break;
+          }
+        }
+      }
+      passDiscards.append({ rank = failRank, mode = "rail", src = railCandidate.src,
+                            dst = railCandidate.dst, reason = railResult.reason,
+                            extra = "", error = railResult.error });
+    }
     /* Atteignable seulement avec portfolio_dynamic_batch=1 (non-defaut) : conserver le ledger. */
     if (PORTFOLIO_DYNAMIC_BATCH && outcome == "cash") {
       if (C48_PROJECT_ATTEMPT_LEDGER) {
@@ -446,7 +479,6 @@ function OpexAI::_tryBuildProjects(year)
     }
     if (outcome != "cash") {
       if (C39_PROJECTS_CADENCE_PROBE && outcome == "built") {
-        local railCandidate = this._railSearch.candidate;
         /* railCandidate est le payload brut, pas le projet : il n'a pas de slot mode, donc
          * OpexProjectAttemptKey() produirait la cle incompatible unknown|... au lieu de rail|.... */
         local key = "rail|" + railCandidate.src + "|" + railCandidate.dst + "|"
@@ -475,7 +507,6 @@ function OpexAI::_tryBuildProjects(year)
             + " turns_since_financeable=" + turnsSinceFinanceable + " turns_since_top=" + turnsSinceTop
             + " rail_search=1 capital_after=" + OpexAvailableCapital());
       }
-      local railCandidate = this._railSearch.candidate;
       local c49RailCandidate = C49_SCARCITY_LEDGER ? railCandidate : null;
       if (PORTFOLIO_DYNAMIC_BATCH) this._dynamicBatch.pendingLogged = false;
       this._railSearch = null;
@@ -515,7 +546,7 @@ function OpexAI::_tryBuildProjects(year)
           }
         }
         if (C48_PROJECT_ATTEMPT_LEDGER) c48BuiltThisPass = true;
-        if (PORTFOLIO_DYNAMIC_BATCH) this._dynamicBatchBuilt(year);
+        if (PORTFOLIO_DYNAMIC_BATCH) this._dynamicBatchBuilt();
       } else if (PORTFOLIO_DYNAMIC_BATCH && outcome == "failed") {
         this._dynamicBatchRejected();
       }
@@ -601,7 +632,7 @@ function OpexAI::_tryBuildProjects(year)
         }
         builtCount++;
         if (PORTFOLIO_DYNAMIC_BATCH) {
-          this._dynamicBatchBuilt(year);
+          this._dynamicBatchBuilt();
           i = -1;
         } else if (builtCount >= maxBatch) break;
       } else if (PORTFOLIO_DYNAMIC_BATCH && attempt.outcome == "rejected"
@@ -656,7 +687,7 @@ function OpexAI::_tryBuildProjects(year)
         }
         builtCount++;
         if (PORTFOLIO_DYNAMIC_BATCH) {
-          this._dynamicBatchBuilt(year);
+          this._dynamicBatchBuilt();
           i = -1;
         } else if (builtCount >= maxBatch) break;
       } else if (PORTFOLIO_DYNAMIC_BATCH && attempt.outcome == "rejected"
@@ -706,7 +737,7 @@ function OpexAI::_tryBuildProjects(year)
         }
         builtCount++;
         if (PORTFOLIO_DYNAMIC_BATCH) {
-          this._dynamicBatchBuilt(year);
+          this._dynamicBatchBuilt();
           i = -1;
         } else if (builtCount >= maxBatch) break;
       } else if (PORTFOLIO_DYNAMIC_BATCH && attempt.outcome == "rejected"
@@ -770,7 +801,7 @@ function OpexAI::_tryBuildProjects(year)
         }
         builtCount++;
         if (PORTFOLIO_DYNAMIC_BATCH) {
-          this._dynamicBatchBuilt(year);
+          this._dynamicBatchBuilt();
           i = -1;
         } else if (builtCount >= maxBatch) break;
       } else if (PORTFOLIO_DYNAMIC_BATCH && attempt.outcome == "rejected"
@@ -822,7 +853,7 @@ function OpexAI::_tryBuildProjects(year)
         }
         builtCount++;
         if (PORTFOLIO_DYNAMIC_BATCH) {
-          this._dynamicBatchBuilt(year);
+          this._dynamicBatchBuilt();
           i = -1;
         } else if (builtCount >= maxBatch) break;
       } else if (PORTFOLIO_DYNAMIC_BATCH && attempt.outcome == "rejected"
@@ -880,17 +911,15 @@ function OpexAI::_tryBuildProjects(year)
     }
     this._ranked = this._projects.rail;
     if (PORTFOLIO_LOG) OpexLogPortfolioRank(this._projects);
-    /* `knapsackExact` et le compteur d'imbrications du budget etaient ECRITS ET LUS NULLE PART.
-     * Or maxNodes = 2000 pour n = 64 fait tronquer la recherche couramment : sans ce champ, on ne
-     * peut pas distinguer « le solveur a prouve l'optimum » de « il a epuise son budget de noeuds »
-     * -- l'angle mort qui a laisse survivre quatre defauts du portefeuille (docs/taches.md
-     * S0 septies). Ajoutes au panneau EXISTANT plutot que dans un nouveau : un appel BuildSign de
-     * plus deplace les frontieres de ticks (precedent mesure : un helper devant 57 appels a coute
-     * 3 lignes rail). Longueur maximale d'un panneau : 31 caracteres. */
+    /* Champ knapsackExact legacy : aucun solveur knapsack/B&B n'existe encore. projects.nut
+     * le force donc a false afin que ce panneau ne publie jamais un « optimum prouve » fictif.
+     * Le slot est conserve pour compatibilite des parseurs de panneaux existants. */
+    /* H5 : meme schema IG que le chemin scheduler. Le cout de selection est
+     * publie en milliers d'opcodes, sans nouveau panneau. */
     OpexSign(anchor, "IG|" + yy + "|" + this._projects.stats.modeCandidates + "|"
              + this._projects.stats.odProjects + "|" + this._projects.stats.budgetSelected
              + "|" + (this._projects.stats.knapsackExact ? 0 : 1)
-             + "|" + this._budget.nested);
+             + "|" + this._budget.nested + "|" + (this._projects.stats.selectionOpcodes / 1000));
     /* air_fleet_probe : combien de hubs le rabattage voit-il, et combien de candidats feeders
      * en tire-t-il ? Sans ces deux nombres, un "zero feeder bati" ne dit pas si la generation
      * est vide ou si l'election les ecarte. */
@@ -899,9 +928,9 @@ function OpexAI::_tryBuildProjects(year)
       OpexSign(anchor, "FN|" + yy + "|" + this._projects.road.stats.feederHubs
                              + "|" + this._projects.road.stats.feederCandidates);
     }
-    /* B est le nombre reellement construit dans CE passage. On complete IB au lieu d'ajouter un
-     * panneau : ses deux champs historiques restent aux memes positions, et avec les deux
-     * capitaux a 10 chiffres que le format IB admet deja, |B8 fait 30 caracteres, sous 31. */
+    /* M1 : le 3e champ historique est le capital du POOL de selection (jusqu'a PROJECT_TOP_K),
+     * pas un engagement de depense. Sa position reste intacte pour les parseurs historiques.
+     * B est le nombre reellement construit dans CE passage. */
     OpexSign(anchor, "IB|" + yy + "|" + this._projects.capitalBudget + "|"
              + this._projects.stats.selectedCapital + "|B" + batchBuilt);
     /* L'abandon a maintenant ete consomme par la reelection/reconstruction. */
@@ -930,6 +959,10 @@ function OpexAI::_tryBuildProjects(year)
 }
 function OpexAI::_rebuildProjects(fleetPlan)
 {
+  /* B6/06.11 : conserver le vivier cache uniquement comme oracle passif. Le
+   * rebuild normal reste l'unique producteur du nouveau portefeuille. */
+  local b6StaleProjects = (DECISION_LOG && PORTFOLIO_CACHE) ? this._projects : null;
+  local b6StaleDate = AIDate.GetCurrentDate();
   local stage = OPEX_STAGE_COMPLETE;
   local prior = null;
   if (STAGED_BOOTSTRAP && this._generationStage < OPEX_STAGE_COMPLETE) {
@@ -962,6 +995,9 @@ function OpexAI::_rebuildProjects(fleetPlan)
   this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines,
       fleetPlan, this._abandonedPairs, stage, prior,
       freightCargo, freightCargos, this._waterSiteCatalog, this._activeSubsidies);
+  if (stage == OPEX_STAGE_COMPLETE && b6StaleProjects != null) {
+    OpexB6LogFreshEquivalence(b6StaleProjects, this._projects, b6StaleDate);
+  }
   local actualFreightCargo = (this._projects != null && ("freightCargo" in this._projects))
       ? this._projects.freightCargo : freightCargo;
   if (stage == OPEX_STAGE_AIR_ONLY && actualFreightCargo != null) {

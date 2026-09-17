@@ -349,3 +349,142 @@ le projet inséré en queue est immédiatement retiré par `best.pop()`.
   `projects.nut` : `_portfolioInvalidated` court-circuite bien la garde mensuelle
   (`scheduler_tasks.nut:35-38`) et mène à `_rebuildProjects`. La question restante est en amont,
   sur ce qui pose le drapeau.
+
+## Passe de clôture — 2026-09-16
+
+La configuration des lignes 20-28 reste la photographie utilisée par la revue du 15 septembre ;
+`air_early_slot` a été adopté depuis. Les décisions ci-dessous ont donc été revérifiées sur le
+HEAD courant, sans réutiliser de résultat archivé antérieur au 2026-09-09.
+
+- **06.1 corrigé sans changement de classement** : le scan `bestProfit` n'existe plus quand le
+  plancher vaut 0, le capital est mémorisé par itération, et `minCapital` n'est calculé que pour
+  une sélection vide.
+- **06.2 différé** : remplacer le ratio profit/capital par un objectif de profit change le
+  comportement économique. Il faut un diagnostic 5×6 puis, si le signal tient, le 20×10 apparié.
+- **06.3 corrigé** : les alias `byOpcodes` ont été supprimés ; `best` reçoit directement
+  `funded`.
+- **06.4 non modifié** : `selectedCapital` est aussi lu par `task_town.nut` sous
+  `GROWTH_YIELDS`, et `IB|` a un second émetteur dans `scheduler_tasks.nut`. Une correction
+  locale changerait potentiellement le jeu et laisserait les deux canaux incohérents.
+- **06.5 différé** : relire le budget après la génération modifie l'admission au portefeuille et
+  doit être évalué comme variante comportementale.
+- **06.6 corrigé sur le bras expérimental** : un projet flotte en cache n'est retiré que si un
+  `fleetPlan` frais est effectivement disponible pour le régénérer.
+- **06.7 corrigé côté source de vérité et parseur** : les cinq initialisations de `knapsackExact`
+  valent `false`. Le bit IG historique reste émis comme **`selection_not_exact`** ; le parseur ne
+  le nomme plus `knapsack_truncated`, notion qui supposerait un solveur B&B encore actif. La clé
+  JSON historique `knapsack_truncated` est conservée à `null` pour compatibilité de schéma.
+- **06.8 corrigé côté journal** : `VIVIER` ne publie plus `infundable=0`, compteur mort qui
+  se lisait comme une mesure. `budgetRejected` reste la métrique réellement alimentée.
+- **06.9 conservé** : `generationCapitalBudget` décrit la génération complète d'origine ;
+  changer sa sémantique doit être coordonné avec le consommateur `FB|`.
+- **06.10 corrigé** : pour distinguer `stage_empty` de `empty_pool`, la passe utilise le
+  `modeCandidates` courant au lieu des listes de génération potentiellement vieilles du cache.
+- **06.11 et 06.12 différés** : rafraîchir l'économie recyclée ou déplacer le pré-devis rail
+  change le classement et exige les bancs comportementaux prévus par la méthode.
+
+## Réconciliation B6 finale — 2026-09-16
+
+M1 a d'abord rendu explicite la différence entre **pool sélectionné** et dépense exécutable :
+`selectedCapital` reste inchangé pour préserver `GROWTH_YIELDS`, tandis que
+`selectionPoolCapital` et `nextProjectCapital` rendent la mesure honnête et
+`IB|` reste rétrocompatible.
+
+Le diagnostic apparié `review_b6_portfolio_causality_paired_5x6.json` établit ensuite :
+
+- **06.2 exposé, non adopté** : 146/501 choix comparables diffèrent du meilleur profit abordable,
+  delta contre-factuel moyen +1 742 £/an, médiane 0, max +23 113. Cela ne prouve pas l'effet aval
+  d'un nouvel objectif. `portfolio_floor_pct` reste 0 ; la variante 50 % a déjà un 20×10
+  post-09/09 défavorable (−4,94 % valeur, 4 V / 16 D).
+- **06.5 actif P2** : 630/639 snapshots diffèrent du capital vivant, âge moyen 4,44 j, max 12 ;
+  50 événements changent l'abordabilité, 1 203 bascules cumulées. Aucune réactivation silencieuse
+  de `portfolio_fresh_budget`.
+- **06.11 actif P3** : 139/345 choix incrémentaux utilisent un projet recyclé ; âge moyen 14,36 j,
+  max 43. L'erreur économique de péremption n'est pas quantifiée, donc aucun refresh adopté.
+- **06.12 dormant** avec `rail_prequote=0`.
+- `PORTFOLIO_MAX_BATCH=1` et `portfolio_floor_pct=0` ont été observés partout.
+
+B6 est clos comme chantier P1 : instrumentation et causalité établies, aucun défaut de politique
+changé et aucun nouveau 20×10 lancé.
+
+### Clôture 06.5 — budget vivant mesuré puis variante rejetée (2026-09-17)
+
+La reprise finale a d'abord rendu le contre-factuel exact sans changer la politique : sous
+`decision_log=1`, `OpexB6LogSelectionCausality` clone les alternatives puis rejoue le **sélecteur
+courant** `OpexProjectSelectAffordable` avec `OpexAvailableCapital()` au même instant. Les clones
+empêchent le calcul de `fundScore`/`early_slot` de muter le portefeuille réel.
+
+- le full rebuild photographie aujourd'hui le capital à
+  `projects.nut:1977-1978`, avant `OpexAirPlans` (`:1986` et repli `:2011`) et
+  `OpexWaterPlans` (`:2042`), puis passe encore ce snapshot à
+  `OpexProjectSelectAffordable` (`:2212`) ;
+- le nouveau diagnostic passif `results/review_b6_065_live_budget_5x6.json` est sain **10/10** :
+  620/630 événements ont un budget différent, 69 présentent au moins une bascule
+  d'abordabilité, soit 2 695 bascules cumulées ; le sélecteur live change réellement le premier
+  projet **41/630** fois ;
+- sur ces 41 changements, **39** ont un `profitAnnual` supérieur et **2** inférieur ; delta moyen
+  **+25 123,68 £/an**, médiane **+17 322 £/an**, plage −16 623 à +130 030. Le signal local est donc
+  réel et suffisait à tester le levier, sans constituer une preuve économique aval ;
+- la divergence ne permet toutefois pas un chantier « sans argent » : air
+  (`task_air.nut:378-390`), route (`task_road.nut:175-181`), eau
+  (`task_water.nut:27-35`) et flotte (`task_projects.nut:179-185`) refont un contrôle de cash
+  vivant juste avant construction ; rail précontrôle à `task_rail.nut:216-230` et
+  `OpexBuildLine` peut encore rendre `CASH` au dernier instant (`:272-276`).
+
+Le flag existant `portfolio_fresh_budget=1` implémente précisément la variante comportementale
+utile sur le code actuel : juste avant les tentatives, il rappelle `OpexReselectProjects`, qui
+réaplatit `candidateGroups` et utilise le même `OpexProjectSelectAffordable` avec le capital vivant.
+Le 5×6 apparié C66.4 `results/review_b6_065_fresh_budget_c66_4_5x6.json` est complet **5/5** mais
+défavorable : `profit_year` variante−référence moyen **−135 528,6 £/an**, médiane −161 563,
+V/D/E **1/4/0**, et `company_value` **−27,307 %** en ratio des moyennes. Le verdict protocolaire
+reste `diagnostic_only` parce que cinq paires n'ont pas autorité d'adoption ; précisément parce que
+le signal est négatif, il **ne justifie pas** de 20×10.
+
+**Décision 06.5 : clos, candidat non adopté.** `portfolio_fresh_budget` reste **0**. Le budget
+périmé est bien une cause locale de changement d'élection, mais le rafraîchir à cet endroit dégrade
+la trajectoire économique observée ; ne pas réouvrir 06.5 sans mécanisme différent ou fait nouveau.
+Après la dernière modification `.nut` d'instrumentation, le smoke C66.3
+`results/review_b6_065_final_smoke_2x3.json` passe **2/2**, horizon complet et zéro erreur NoAI.
+
+**06.11** reste également actif mais P3 : 139/345 sélections incrémentales prennent un projet
+recyclé, âge moyen 14,36 jours et maximum 43 jours. Le banc mesure l'âge mais pas l'erreur
+économique induite ; aucun recalcul de ROI n'est adopté sans mesure dédiée. Le refresh concurrent
+audité le 2026-09-17 a été retiré : il mettait `null` les subventions et extensions routières, mais
+`OpexIncrementalUpdateProjects` ne régénère ensuite que feeders, flotte et air. Il changeait donc le
+vivier par perte de familles, indépendamment de la fraîcheur économique recherchée.
+
+### Clôture diagnostique 06.11 — économie recyclée (2026-09-17)
+
+La mesure dédiée est désormais disponible dans
+`results/review_b6_0611_join_resolved_5x6.json` (**10/10 runs sains**, cinq graines × six ans),
+sans refresh comportemental. Deux oracles passifs sont utilisés :
+
+- au rebuild complet normal, les objets **réellement recyclés** depuis la génération précédente
+  sont comparés au vivier fraîchement généré uniquement quand leur clé stable est unique des deux
+  côtés ; les absences/ambiguïtés ne sont jamais imputées ;
+- pour le top fret recyclé, l'économie courante est repricée sans modifier l'objet réel puis
+  comparée au runner-up sous le même budget et le même score de sélection. Les joins, subventions,
+  extensions, feeders et autres familles ne sont ni supprimés ni reconstruits artificiellement.
+
+Sur le chemin incrémental, **136/348** élections prennent un top recyclé, âge moyen **15,74 j**,
+maximum **44 j**. Le rebuild fournit 11 100 observations équivalentes `rail_pax` : erreur absolue
+de profit moyenne **608,59 £/an**, maximum **6 969 £/an**, mais biais signé moyen seulement
+**+51,54 £/an** (frais − cache). Pour les tops fret, **127** événements sont sondés ; 117 sont
+repricés exactement, 17 changent de profit, delta moyen **−414,32 £/an**, médiane 0, plage
+**−14 570 à +10 321 £/an**.
+
+Le contre-factuel de décision est local mais actionnable : parmi les cas décidables, **108** gardent
+le même choix et **6** changeraient (4 inversions de classement, 2 candidats qui ne seraient plus
+générés), soit **6/114 = 5,3 %** ; 5 égalités exactes et 8 cas hors oracle restent explicitement
+non tranchés. Cela prouve que la péremption économique peut changer une élection, mais ne prouve
+ni qu'un refresh général améliore la trajectoire aval, ni qu'il est sûr pour toutes les familles.
+
+**Décision 06.11 : diagnostic clos, correctif général non adopté.** `portfolio_cache` reste actif ;
+ne pas réintroduire le refresh rejeté. Un futur correctif comportemental devra préserver exactement
+les métadonnées/constructeurs spéciaux et être évalué séparément ; ce 5×6 n'a aucune autorité de
+promotion et ne justifie pas de 20×10 en l'état.
+
+Validation après la dernière modification `.nut` d'instrumentation : le smoke Docker C66.3
+`results/review_b6_0611_final_smoke_2x3_v2.json` est sain **2/2** (graines 42/100), horizon complet
+pour OpexAI et AAAHogEx, sans erreur script/non attribuée. Il conserve explicitement
+`air_early_slot=1`, `abandon_gen_filter=1` et `abandon_cooldown_days=365`.

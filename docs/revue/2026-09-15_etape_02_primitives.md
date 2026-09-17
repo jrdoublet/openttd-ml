@@ -41,6 +41,12 @@ incohérence n'est pas corrigée. `c63_invest_probe` est à 0 par défaut (`info
 sans impact sur un banc au défaut — mais actif dès que la sonde est armée pour le chantier en
 cours.
 
+**Corrigé le 2026-09-16.** `OpexC63NotePass` sépare désormais le nombre d'observations du temps
+passé : le nouvel état est compté immédiatement, mais `days = now-lastDate` est crédité à
+`previousKind`. `OpexC63EnsureYear` ajoute uniquement la queue temporelle au dernier état,
+flush le ledger, puis transporte cet état au début de l'année suivante sans fabriquer de `n`.
+Le diagnostic 5×6 final `review_b2_c63_real_5x6_v2.json` ne contient aucun trap de durée/état.
+
 ### 02.2 — La jointure de gare rail (`OpexJoinCompatible`) refuse systématiquement toute ligne rail réelle        [gravité : P2]
 `lines.nut:223` (`OpexJoinCompatible`) et `lines.nut:254` (repli identique dans
 `OpexFindStationJoin`) rejettent tout conflit dont la ligne porte une clé `"mode"` :

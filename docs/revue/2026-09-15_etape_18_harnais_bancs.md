@@ -115,3 +115,24 @@ projet (coût/opcode) n'apparaît donc dans aucun des quatre scripts.
   (18.4) toucheraient le format même des JSON de banc consommés par d'autres scripts d'analyse
   (`analyse_c50b_*.py`, hors périmètre de l'étape 18) : tout correctif devra vérifier leur
   compatibilité, à traiter dans une étape ultérieure dédiée au correctif plutôt qu'ici.
+
+## Passe de correction ? H5/G0bis, 2026-09-16
+
+Le constat 18.5 est corrig? dans `bench_v2.py` sans pr?tendre disposer d'un compteur
+CPU global. Le JSON contient d?sormais `opcode_observation` avec
+`complete_cpu_measurement=false`, le d?tail des composantes mesur?es, et les
+statistiques/?carts appari?s sur `observed_opcodes_total`,
+`final_profit_year_per_observed_mopcode` et `company_value_per_observed_mopcode`.
+
+Sources r?elles consomm?es : `IG|` (s?lection), `OB|A` (tentative rail plan+build),
+`RB|` (plan/build route), `OA|` (plan air) et `OM|W` (plan eau des succ?s). Les
+anciens `IG|` ? sept champs restent lisibles et sont simplement d?pourvus de la
+composante s?lection H5. `OB|...` du rapport historique est explicitement distingu?
+de `OB|A|...`.
+
+Preuves : `test_campaign_freeze.py` 10/10 ; smoke 2?3
+`review_h5_final_smoke_2x3.json` PASSED ; `review_h5_observed_ops_2x3.json` complet,
+z?ro ?chec, somme des composantes exactement ?gale au total pour chaque run.
+Une r?gression locale de `paired_comparisons()` d?couverte pendant cette passe
+(masquage du param?tre `metrics`) a ?t? corrig?e avant cl?ture et poss?de maintenant
+un test d?di?.

@@ -378,29 +378,25 @@ def main():
     engine_failure_a = scan_markers(output_a, ENGINE_FAILURE_MARKERS_KNOWN)
     engine_failure_b = scan_markers(output_b, ENGINE_FAILURE_MARKERS_KNOWN)
 
-    # Preuve que Load() a ete appele : cherchee honnetement, pas inventee. cf. le docstring de ce
-    # fichier et le rapport final -- src/script/script_instance.cpp::CallLoad() (verifie sur le
-    # binaire OpenTTD 15.3 lui-meme) ne journalise QUE les echecs (pas de Load(), erreur, trop
-    # long) via ScriptLog::Warning/Error ; il n'existe aucun message moteur de succes. Et
-    # OpexAI::Load() (ai/OpexAI/main.nut) pose `this._loadedFromSave = true` mais n'appelle jamais
-    # AILog/OpexSign avec -- ce flag n'est lu nulle part ailleurs dans le fichier. Donc aucun
-    # journal actuel ne peut prouver positivement l'appel.
+    # Preuve positive de reprise : _reconcileAfterLoad() n'est appele depuis Start() que lorsque
+    # Load() a pose _loadedFromSave=true, et publie toujours OPEX ... LOAD_RECONCILE. Avec
+    # --script-debug=4 ce marqueur AILog.Info est donc une preuve directe exploitable. Le moteur
+    # lui-meme ne journalise toujours que les echecs de CallLoad().
+    load_reconcile_lines = [
+        line.strip()
+        for line in (output_b or "").splitlines()
+        if " LOAD_RECONCILE " in line
+    ]
     load_call_proof = {
         "positive_engine_marker_exists": False,
-        "positive_ai_marker_exists": False,
+        "positive_ai_marker_exists": bool(load_reconcile_lines),
+        "load_reconcile_lines": load_reconcile_lines,
         "explanation": (
-            "OpexAI::Load() (ai/OpexAI/main.nut) fixe this._loadedFromSave = true mais n'appelle "
-            "aucun AILog.Info ni OpexSign : ce flag n'est jamais relu ni journalise ailleurs dans "
-            "le fichier, donc rien ne le rend visible dans les journaux actuels. Cote moteur, "
-            "ScriptInstance::CallLoad() (src/script/script_instance.cpp de l'arbre OpenTTD 15.3, "
-            "verifie directement sur le binaire televerse par ce script) ne produit un message "
-            "QUE dans les cas d'echec (pas de fonction Load(), exception, trop long) via "
-            "ScriptLog::Warning/Error -- il n'existe structurellement aucun message de succes cote "
-            "moteur. L'ABSENCE des motifs d'echec ci-dessous dans le journal de la phase B est donc "
-            "un signe negatif rassurant (aucun echec connu de rechargement de script), MAIS CE "
-            "N'EST PAS UNE PREUVE POSITIVE que Load() a ete appele. Pour obtenir une preuve directe "
-            "il faut ajouter un marqueur explicite (ex: AILog.Info(\"OPEX LOAD_CALLED ...\") en tete "
-            "de OpexAI::Load()) -- deliberement non fait ici, cette mission ne modifie pas ai/."
+            "OpexAI::_reconcileAfterLoad() est appele uniquement si Load() a pose "
+            "_loadedFromSave=true et emet LOAD_RECONCILE sans dependance a decision_log. "
+            "Avec script=4, sa presence est une preuve positive de reprise du script. "
+            "Le moteur OpenTTD, lui, ne publie toujours que les echecs de CallLoad(); leur absence "
+            "reste un controle negatif complementaire."
         ),
         "engine_failure_markers_found_phase_b": engine_failure_b,
     }
@@ -510,7 +506,10 @@ def main():
         f"phase A={len(output_a or '')} octets, phase B={len(output_b or '')} octets"
     )
     print(f"Motifs requis trouves : {'OUI (voir JSON)' if any_markers else 'aucun'}")
-    print("Preuve positive que Load() a ete appele : NON (voir load_call_proof dans le JSON)")
+    print(
+        "Preuve positive que Load() a ete appele : "
+        + ("OUI (LOAD_RECONCILE)" if load_reconcile_lines else "NON")
+    )
     if after["n_companies_total"] > chosen["n_companies_total"]:
         print(
             f"NOTE : {after['n_companies_total'] - chosen['n_companies_total']} compagnie(s) "

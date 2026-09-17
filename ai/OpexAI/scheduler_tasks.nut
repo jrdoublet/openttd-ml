@@ -284,17 +284,16 @@ function OpexAI::_dispatchCatalog(task, year)
   }
   local anchor = AIMap.GetTileIndex(1, 1);
   local yy = year % 100;
-  /* `knapsackExact` et le compteur d'imbrications du budget etaient ECRITS ET LUS NULLE PART.
-   * Or maxNodes = 2000 pour n = 64 fait tronquer la recherche couramment : sans ce champ, on ne
-   * peut pas distinguer « le solveur a prouve l'optimum » de « il a epuise son budget de noeuds »
-   * -- l'angle mort qui a laisse survivre quatre defauts du portefeuille (docs/taches.md
-   * S0 septies). Ajoutes au panneau EXISTANT plutot que dans un nouveau : un appel BuildSign de
-   * plus deplace les frontieres de ticks (precedent mesure : un helper devant 57 appels a coute
-   * 3 lignes rail). Longueur maximale d'un panneau : 31 caracteres. */
+  /* M1 : knapsackExact est un slot legacy de compatibilite. Aucun solveur knapsack/B&B n'existe
+   * dans le chemin courant ; projects.nut le force donc a false afin de ne jamais publier un
+   * « optimum prouve » fictif. */
+  /* Dernier champ : cout reel de CETTE selection en milliers d'opcodes.
+   * On reutilise IG au lieu d'ajouter un BuildSign : la sonde H5 ne doit pas
+   * creer elle-meme une tache/signature CPU supplementaire. */
   OpexSign(anchor, "IG|" + yy + "|" + this._projects.stats.modeCandidates + "|"
            + this._projects.stats.odProjects + "|" + this._projects.stats.budgetSelected
            + "|" + (this._projects.stats.knapsackExact ? 0 : 1)
-           + "|" + this._budget.nested);
+           + "|" + this._budget.nested + "|" + (this._projects.stats.selectionOpcodes / 1000));
   /* air_fleet_probe : combien de hubs le rabattage voit-il, et combien de candidats feeders
    * en tire-t-il ? Sans ces deux nombres, un "zero feeder bati" ne dit pas si la generation
    * est vide ou si l'election les ecarte. */
@@ -303,8 +302,10 @@ function OpexAI::_dispatchCatalog(task, year)
     OpexSign(anchor, "FN|" + yy + "|" + this._projects.road.stats.feederHubs
                            + "|" + this._projects.road.stats.feederCandidates);
   }
+  /* Meme schema que task_projects : le 3e champ reste le capital du pool de selection legacy.
+   * Cette tache ne construit rien elle-meme, donc B0 est exact. */
   OpexSign(anchor, "IB|" + yy + "|" + this._projects.capitalBudget + "|"
-           + this._projects.stats.selectedCapital);
+           + this._projects.stats.selectedCapital + "|B0");
   if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
   return true;
 }

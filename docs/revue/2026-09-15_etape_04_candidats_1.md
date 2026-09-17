@@ -123,4 +123,14 @@ n'a plus les moyens de relire à l'œil.
   (`OpexComputeRoadToRailDistance` : refD=20 ; `OpexRefreshEpochBounds` : busHorizon sur
   refD=25 ; `OpexComputeAirMaxDistance` : horizon sur refD=100) ne sont pas incohérentes en soi,
   mais leur justification respective n'est documentée que pour la première ; à confirmer qu'aucun
-  banc n'a mesuré de sensibilité à ce choix avant de les considérer acquises.
+banc n'a mesuré de sensibilité à ce choix avant de les considérer acquises.
+
+## Réconciliation B6 — 2026-09-16
+
+Le constat 04.3 est corrigé côté **vérité de mesure**, pas par un changement de classement.
+`turnoverBonus` et `generationRatio` sont propagés comme télémétrie ;
+`PORTFOLIO_RANK` publie séparément `roi`, `turnover_bonus`,
+`generation_ratio`, `rank_score` et `finance_capital`.
+Le 5×6 B6 observe 592/2 214 rangs avec bonus non neutre et 164/476 top-5 dont l'ordre de ROI
+diffère de l'ordre `rank_score`. Le bonus de rotation reste un mécanisme amont du TopK rail ;
+aucun alignement comportemental n'est adopté sur cette seule mesure.
