@@ -17,7 +17,7 @@ from diag_m3_equipment_roi import analyse
 
 DEFAULT_SEEDS = [42, 100, 999, 1234, 5678]
 POLICY_ID = "m3_equipment_roi_probe"
-SETTINGS = (("equipment_roi_probe", 1), ("air_early_slot", 1), ("abandon_gen_filter", 1), ("abandon_cooldown_days", 365))
+SETTINGS = (("probe_events", 1), ("air_early_slot", 1), ("abandon_gen_filter", 1), ("abandon_cooldown_days", 365))
 
 _real_check_output = openttdlab.subprocess.check_output
 def _check_output_with_script_debug(args, *rest, **kwargs):

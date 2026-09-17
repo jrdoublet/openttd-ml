@@ -20,10 +20,10 @@ FIXTURE = ROOT / "sweeps" / "fixtures" / "c66_control_fixture_15_3.json"
 class TestB9AirCatchment(unittest.TestCase):
     def test_probe_is_default_off_and_loaded_once(self):
         defaults = parse_ai_settings(INFO)
-        self.assertEqual(defaults["air_catchment_probe"], 0)
+        self.assertEqual(defaults["probe_events"], 0)
         self.assertIn("AIR_CATCHMENT_PROBE <- false;", GLOBALS.read_text(encoding="utf-8"))
         self.assertIn(
-            'AIR_CATCHMENT_PROBE = AIController.GetSetting("air_catchment_probe") != 0;',
+            "AIR_CATCHMENT_PROBE = probeEvents;",
             SETTINGS.read_text(encoding="utf-8"),
         )
 

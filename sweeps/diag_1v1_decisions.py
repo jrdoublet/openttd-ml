@@ -173,7 +173,7 @@ def keep(row):
 def build_experiments(seeds, years, decision_log, only=None, clean_arm=False):
     arms = {
         "OpexAI": local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI",
-                               (("air_fleet_probe", 1), ("decision_log", 1 if decision_log else 0))),
+                               (("probe_events", 1), ("decision_log", 1 if decision_log else 0))),
         "AAAHogEx": local_folder(str(ROOT / "ai" / AAAHOGEX_DIR), "AAAHogEx", ()),
     }
     if clean_arm:

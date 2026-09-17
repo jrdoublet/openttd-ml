@@ -1,5 +1,6 @@
 """Tests du contrat de réglages et du gel de campagne C66."""
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -34,9 +35,9 @@ class TestCampaignFreeze(unittest.TestCase):
     def test_real_info_settings_contract(self):
         defaults = parse_ai_settings(INFO)
         specs = parse_ai_setting_specs(INFO)
-        self.assertEqual(len(defaults), 230)
-        self.assertEqual(defaults["air_catchment_probe"], 0)
-        self.assertEqual(defaults["equipment_roi_probe"], 0)
+        self.assertEqual(len(defaults), 169)
+        self.assertEqual(defaults["probe_events"], 0)
+        self.assertEqual(defaults["probe_cost"], 0)
         self.assertEqual(set(defaults), set(specs))
         self.assertEqual(defaults["debug_signs"], 1)
         self.assertEqual(defaults["road_pax_catchment_pct"], 86)
@@ -57,7 +58,7 @@ class TestCampaignFreeze(unittest.TestCase):
 
     def test_generic_specs_reject_invalid_boolean_and_range(self):
         with self.assertRaises(ValueError):
-            parse_opex_variant("OpexAI[monthly_funnel=2]")
+            parse_opex_variant("OpexAI[probe_portfolio=2]")
         spec = parse_ai_setting_specs(INFO)["dynamic_batch_reject_limit"]
         self.assertIsNotNone(spec["max_value"])
         with self.assertRaises(ValueError):
@@ -188,6 +189,9 @@ class TestCampaignFreeze(unittest.TestCase):
             second = fingerprint_tree(root)
             self.assertEqual(first["sha256"], second["sha256"])
             self.assertEqual([item["path"] for item in first["files"]], ["a.txt", "b.txt"])
+
+        if shutil.which("git") is None:
+            self.skipTest("git absent de ce runtime (ex: image openttd-lab, sans git installe)")
 
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

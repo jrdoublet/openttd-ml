@@ -128,7 +128,7 @@ def inventory_from_source():
         and "GetMaxLoanAmount" in capital
         and "OpexCashReserve" in capital
     )
-    probe_setting = 'name = "c63_invest_probe"' in info
+    probe_setting = 'name = "probe_portfolio"' in info
     helpers = (
         "OpexC63RecordSpend" in probes and "C63_INVEST" in probes
         and "OpexC63FlushLedger" in probes and "OpexC63NotePass" in probes
@@ -966,13 +966,13 @@ def run_campaign(args):
         return real_check(cmd, *rest, **kwargs)
 
     openttdlab.subprocess.check_output = check_output_with_script_debug
-    if "c63_invest_probe=1" not in args.arm:
-        raise SystemExit("--arm doit contenir c63_invest_probe=1")
+    if "probe_portfolio=1" not in args.arm:
+        raise SystemExit("--arm doit contenir probe_portfolio=1")
     out = args.out or (ROOT / "results" / f"diag_c63_c58_{args.years}y_{len(args.seeds)}seeds.json")
     out = Path(out)
     out.parent.mkdir(parents=True, exist_ok=True)
     enable_savegame_cleanup()
-    opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", (("c63_invest_probe", 1),))
+    opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", (("probe_portfolio", 1),))
     hogex = local_folder(str(ROOT / "ai" / "AAAHogEx-115"), "AAAHogEx", ())
     rows = list(run_experiments(
         openttd_version=OPENTTD_VERSION,

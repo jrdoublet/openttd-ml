@@ -38,7 +38,7 @@ from bench_v2 import build_arms, enable_savegame_cleanup, write_json_atomically
 DEFAULT_SEED = 24
 DEFAULT_MAP_SIZES = (8, 9, 10, 11)  # 256, 512, 1024, 2048 carres
 REFERENCE_SETTINGS = (
-    ("c56_task_trace", 1),
+    ("probe_events", 1),
     # Atteindre l'eau sans attendre la cascade de bootstrap. Identique dans les deux bras.
     ("staged_bootstrap", 0),
     ("air_early_slot", 1),
