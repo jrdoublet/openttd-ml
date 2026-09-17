@@ -1,206 +1,148 @@
-/* C65 passe 2 : lecture unique des reglages, deplacee depuis Start().
+/* C65 passe 2 & regroupement macro-politiques : lecture unique des reglages.
  * Fonction libre : n'affecte que des globales. Les mutations d'instance
  * restent dans Start(), juste apres l'appel. */
 function OpexLoadSettings()
 {
-  /* Lu une seule fois : le reglage ne change pas en cours de partie, et OpexSign est appele des
-   * dizaines de fois par an. Un GetSetting par appel serait du gaspillage pur. */
+  /* --- 1. Systeme et persistance --- */
   DEBUG_SIGNS = AIController.GetSetting("debug_signs") != 0;
-  SAVE_FULL_STATE = AIController.GetSetting("save_full_state") != 0;
-  /* Exprime en milliers dans le reglage : AddSetting ne porte que des entiers, et un pas de
-   * 50 000 sur une plage de 0 a 2 000 000 serait illisible en unites brutes. */
-  LOAN_REPAY_FLOOR = AIController.GetSetting("loan_repay_floor_k") * 1000;
-  /* Memes reglages lus UNE fois : OpexIterationBudget et _tryBuild tournent pour chaque candidat,
-   * donc les GetSetting dans ces boucles seraient du debit d'opcodes perdu. */
-  HARD_ITERATION_CAP = AIController.GetSetting("pathfinder_hard_cap_k") * 1000;
-  RAIL_SEARCH_RESUMABLE = AIController.GetSetting("rail_search_resumable") != 0;
-  RAIL_MICRO_DEADLINE = AIController.GetSetting("rail_micro_deadline") != 0;
-  RAIL_SEGMENTED_SEARCH = AIController.GetSetting("rail_segmented_search") != 0;
   DECISION_LOG = AIController.GetSetting("decision_log") != 0;
   PORTFOLIO_LOG = DECISION_LOG;
-  ABANDON_MEMORY = AIController.GetSetting("abandon_memory") != 0;
+  SAVE_FULL_STATE = AIController.GetSetting("save_full_state") != 0;
+
+  /* --- 2. Macro-politiques unifiees (8 groupes) --- */
+
+  // 1. policy_caches : C41 caches cruise, acceleration, town service, served index, cash release, portfolio & air site caches
+  local polCaches = AIController.GetSetting("policy_caches") != 0;
+  C41_ROAD_FREIGHT_SERVED_INDEX = polCaches;
+  C41_ROAD_FREIGHT_ACCEPTANCE_INDEX = polCaches;
+  C41_RAIL_PAX_CRUISE_CACHE = polCaches;
+  C41_RAIL_FREIGHT_CRUISE_CACHE = polCaches;
+  C41_RAIL_FREIGHT_ACCELERATION_CACHE = polCaches;
+  C41_RAIL_FREIGHT_TOWN_SERVICE_CACHE = polCaches;
+  C41_RAIL_CASH_RELEASE = polCaches;
+  PORTFOLIO_CACHE = polCaches;
+  AIR_SITE_CACHE_ENABLED = polCaches;
+
+  // 2. policy_feeders : multimodal urban feeder policy (C29, C32)
+  local polFeeders = AIController.GetSetting("policy_feeders") != 0;
+  FEEDER_ENABLED = polFeeders;
+  FEEDER_UNLOCK = polFeeders;
+  FEEDER_PRICING = polFeeders;
+  FEEDER_PORTFOLIO = polFeeders;
+  FEEDER_TOWN_COVERAGE = polFeeders;
+  FEEDER_MAIL_DUPLICATE = polFeeders;
+  FEEDER_MAIL_STRICT_ORDERS = polFeeders;
+  FEEDER_HUB_CHECK = polFeeders;
+
+  // 3. policy_rail : resumable A*, quotes, micro-deadline, segmented search, refleet, orders, origin sitability
+  local polRail = AIController.GetSetting("policy_rail") != 0;
+  RAIL_DEVIS = polRail;
+  RAIL_SEARCH_RESUMABLE = polRail;
+  RAIL_MICRO_DEADLINE = polRail;
+  RAIL_SEGMENTED_SEARCH = polRail;
+  RAIL_REFLEET = polRail;
+  DYNAMIC_PATHFINDER_CAP = polRail;
+  PAX_FULL_LOAD = polRail;
+  ORIGIN_SITABLE = polRail;
+
+  // 4. policy_road : road mode, street drive-through stops, refleet, fleet fix, overlap filtering
+  local polRoad = AIController.GetSetting("policy_road") != 0;
+  ROAD_BUILD_ENABLED = polRoad;
+  ROAD_REFLEET = polRoad;
+  ROAD_FLEET_FIX = polRoad;
+  PRICING_ROAD_OPS = polRoad;
+  ROAD_PAX_OVERLAP = polRoad;
+  ROAD_PAX_VOIRIE = polRoad;
+
+  // 5. policy_air : air portfolio, fleet portfolio, cadence cap, line price, yield order, cheap site C36.3, joined stops, hubs
+  local polAir = AIController.GetSetting("policy_air") != 0;
+  AIR_PORTFOLIO = polAir;
+  FLEET_PORTFOLIO = polAir;
+  AIR_CADENCE_CAP = polAir;
+  AIR_FLEET_LINE_PRICE = polAir;
+  AIR_ROI_ORDER = polAir;
+  AIR_ABANDON = polAir;
+  AIR_MARGIN = polAir;
+  AIR_CHEAP_SITE = polAir;
+  AIR_JOINED_STOPS = polAir;
+  AIR_HUB = polAir;
+  AIR_HUB_FIX = polAir;
+
+  // 6. policy_abandon : abandon memory, generation filter, transient cash guard (C22, C33)
+  local polAbandon = AIController.GetSetting("policy_abandon") != 0;
+  ABANDON_MEMORY = polAbandon;
+  ABANDON_GEN_FILTER = polAbandon;
+  ABANDON_MEMORY_TRANSIENT_GUARD = polAbandon;
+
+  // 7. policy_portfolio : economy fix, clean density score, staged bootstrap, vivier filter, complex cargo, dynamic reserve
+  local polPort = AIController.GetSetting("policy_portfolio") != 0;
+  ECONOMY_FIX = polPort;
+  CLEAN_DENSITY_SCORE = polPort;
+  STAGED_BOOTSTRAP = polPort;
+  VIVIER_RATIO_FILTER = polPort;
+  COMPLEX_CARGO = polPort;
+  CAPITAL_CALIBRATION = polPort;
+  DYNAMIC_CASH_RESERVE = polPort;
+  C53_ORDER_NONSTOP = polPort;
+  EVENT_CATALOG_INVALIDATE = polPort;
+
+  // 8. policy_vehicle_events : crash recovery, unprofitable retirement (C52)
+  local polVehEvents = AIController.GetSetting("policy_vehicle_events") != 0;
+  EVENT_VEHICLE_CRASHED = polVehEvents;
+  EVENT_VEHICLE_UNPROFITABLE = polVehEvents;
+
+  /* --- 3. Calibrations physiques et options reelles --- */
+
+  LOAN_REPAY_FLOOR = AIController.GetSetting("loan_repay_floor_k") * 1000;
+  HARD_ITERATION_CAP = AIController.GetSetting("pathfinder_hard_cap_k") * 1000;
+
   local acd = AIController.GetSetting("abandon_cooldown_days");
   if (acd >= 0) ABANDON_COOLDOWN_DAYS = acd;
-  ABANDON_GEN_FILTER = AIController.GetSetting("abandon_gen_filter") != 0;
-  STATION_JOIN = AIController.GetSetting("station_join") != 0;
-  JOIN_MAX_DISTANCE = AIController.GetSetting("join_max_distance");
-  JOIN_PLACE = AIController.GetSetting("join_place") != 0;
-  ORIGIN_SITABLE = AIController.GetSetting("origin_sitable") != 0;
-  BASIN_SHARE = AIController.GetSetting("basin_share") != 0;
-  REBORROW = AIController.GetSetting("reborrow") != 0;
-  /* Lu ici comme les autres reglages de decision : catalog.refresh le consulte des le premier
-   * cycle annuel, qui a lieu apres Start(). */
-  ROAD_BUILD_ENABLED = AIController.GetSetting("road_mode") != 0;
-  ROAD_PAX_BUILD_ENABLED = AIController.GetSetting("road_pax_build") != 0;
-  ROAD_PAX_EXTENSIONS = AIController.GetSetting("road_pax_extensions") != 0;
-  TOWN_GROWTH_ENABLED = AIController.GetSetting("town_growth") != 0;
-  TOWN_GROWTH_SKIP_NOOP = AIController.GetSetting("town_growth_skip_noop") != 0;
-  local roadPaxCatchment = AIController.GetSetting("road_pax_catchment_pct");
-  ROAD_PAX_CATCHMENT_SHARE_PCT = (roadPaxCatchment == 0) ? 22 : roadPaxCatchment;
-  local roadStopHouses = AIController.GetSetting("road_stop_catchment_houses");
-  if (roadStopHouses > 0) ROAD_STOP_CATCHMENT_HOUSES = roadStopHouses;
-  local roadPaxDwell = AIController.GetSetting("road_pax_dwell_days");
-  if (roadPaxDwell >= 0) ROAD_PAX_STOP_DWELL_DAYS = roadPaxDwell;
-  local airPaxCalibration = AIController.GetSetting("air_pax_revenue_calibration_pct");
-  if (airPaxCalibration > 0) AIR_PAX_REVENUE_CALIBRATION_PCT = airPaxCalibration;
-  ROAD_REFLEET = AIController.GetSetting("road_refleet") != 0;
-  ROAD_MULTISTOP = AIController.GetSetting("road_multistop") != 0;
-  MARGINAL_FLEET = AIController.GetSetting("marginal_fleet") != 0;
-  FEEDER_PORTFOLIO = AIController.GetSetting("feeder_portfolio") != 0;
-  AIR_PORTFOLIO = AIController.GetSetting("air_portfolio") != 0;
-  FLEET_PORTFOLIO = AIController.GetSetting("fleet_portfolio") != 0;
-  TENSION_SCORING = AIController.GetSetting("tension_scoring") != 0;
-  local dfp = AIController.GetSetting("decision_friction_permille");
-  if (dfp >= 0) TENSION_DECISION_FRICTION = dfp.tofloat() / 1000.0;
-  SHADOW_PRICING = AIController.GetSetting("shadow_pricing") != 0;
-  FLAT_BONUS = AIController.GetSetting("flat_bonus") != 0;
-  AIR_ROI_ORDER = AIController.GetSetting("air_roi_order") != 0;
-  LOOP_BUDGET = AIController.GetSetting("loop_budget") != 0;
-  PORTFOLIO_MAX_BATCH = AIController.GetSetting("portfolio_max_batch");
-  PORTFOLIO_DYNAMIC_BATCH = AIController.GetSetting("portfolio_dynamic_batch") != 0;
-  local dynamicRejectLimit = AIController.GetSetting("dynamic_batch_reject_limit");
-  if (dynamicRejectLimit >= 0) DYNAMIC_BATCH_REJECT_LIMIT = dynamicRejectLimit;
-  local dynamicOpsBudget = AIController.GetSetting("dynamic_batch_ops_budget_pct");
-  if (dynamicOpsBudget >= 0) DYNAMIC_BATCH_OPS_BUDGET_PCT = dynamicOpsBudget;
-  PORTFOLIO_FLOOR_PCT = AIController.GetSetting("portfolio_floor_pct");
-  FLEET_FIX = AIController.GetSetting("fleet_fix") != 0;
-  ECONOMY_FIX = AIController.GetSetting("economy_fix") != 0;
-  GROWTH_YIELDS = AIController.GetSetting("growth_yields") != 0;
-  AIR_MARGIN = AIController.GetSetting("air_margin") != 0;
-  AIR_ABANDON = AIController.GetSetting("air_abandon") != 0;
-  AIR_ABANDON_SITE = AIController.GetSetting("air_abandon_site") != 0;
-  AIR_TOWN_LIMIT_MEMORY = AIController.GetSetting("air_town_limit_memory") != 0;
-  STAGED_BOOTSTRAP = AIController.GetSetting("staged_bootstrap") != 0;
-  PRICING_ROAD_RATING = AIController.GetSetting("pricing_road_rating") != 0;
-  PRICING_RAIL_DEPOT = AIController.GetSetting("pricing_rail_depot") != 0;
-  PRICING_ROAD_OPS = AIController.GetSetting("pricing_road_ops") != 0;
-  AIR_PRESITE = AIController.GetSetting("air_presite") != 0;
-  PORTFOLIO_FRESH_BUDGET = AIController.GetSetting("portfolio_fresh_budget") != 0;
-  PORTFOLIO_CACHE = AIController.GetSetting("portfolio_cache") != 0;
-  FLEET_BEFORE_NEW = AIController.GetSetting("fleet_before_new") != 0;
-  local tc = AIController.GetSetting("transit_cost");
-  if (tc >= 0) TRANSIT_COST_PERMILLE = tc;
-  RAIL_DEVIS = AIController.GetSetting("rail_devis") != 0;
-  RAIL_EXPAND = AIController.GetSetting("rail_expand") != 0;
-  ASTAR_COST_V2 = AIController.GetSetting("astar_cost") != 0;
-  PROBE_NEGATIVE = AIController.GetSetting("probe_negative") != 0;
-  PAX_NEAR = AIController.GetSetting("pax_near") != 0;
-  DYNAMIC_CASH_RESERVE = AIController.GetSetting("dynamic_cash_reserve") != 0;
-  RESERVE_MAINT_CAP = AIController.GetSetting("reserve_maint_cap") != 0;
-  AIR_MARGIN_V2 = AIController.GetSetting("air_margin_v2") != 0;
-  CAPITAL_CALIBRATION = AIController.GetSetting("capital_calibration") != 0;
-  RAIL_PREQUOTE = AIController.GetSetting("rail_prequote") != 0;
-  RAIL_PREQUOTE_KEEP_PLAN = AIController.GetSetting("rail_prequote_keep_plan") != 0;
-  RAIL_TERRAIN_PROBE = AIController.GetSetting("rail_terrain_probe") != 0;
-  ABANDON_MEMORY_TRANSIENT_GUARD = AIController.GetSetting("abandon_memory_transient_guard") != 0;
-  AIR_HUB_FIX = AIController.GetSetting("air_hub_fix") != 0;
-  AIR_DEMAND_CAP = AIController.GetSetting("air_demand_cap") != 0;
-  AIR_DEMAND_PLAN = AIController.GetSetting("air_demand_plan") != 0;
-  DYNAMIC_PATHFINDER_CAP = AIController.GetSetting("dynamic_pathfinder_cap") != 0;
-  PAX_FULL_LOAD = AIController.GetSetting("pax_full_load") != 0;
-  AIR_FULL_LOAD = AIController.GetSetting("air_full_load") != 0;
-  C53_ORDER_NONSTOP = AIController.GetSetting("c53_order_nonstop") != 0;
-  C53_ORDER_NOLOAD = AIController.GetSetting("c53_order_noload") != 0;
-  COMPLEX_CARGO = AIController.GetSetting("complex_cargo") != 0;
-  AIR_HUB = AIController.GetSetting("air_hub") != 0;
-  local airMaxDist = AIController.GetSetting("air_max_distance");
-  if (airMaxDist >= 0) AIR_MAX_DISTANCE = airMaxDist;
-  local afcd = AIController.GetSetting("air_fleet_cadence_days");
-  if (afcd >= 0) AIR_FLEET_CADENCE_DAYS = afcd;
-  local afb = AIController.GetSetting("air_fleet_buffer");
-  if (afb >= -1) AIR_FLEET_BUFFER = afb;
+
   local rtf = AIController.GetSetting("rail_terrain_factor");
   if (rtf > 0) RAIL_TERRAIN_FACTOR = rtf;
+
   local ptk = AIController.GetSetting("project_top_k");
   if (ptk > 0) PROJECT_TOP_K = ptk;
   PROJECT_TOP_K_DYNAMIC = AIController.GetSetting("project_top_k_dynamic") != 0;
-  RAIL_REFLEET = AIController.GetSetting("rail_refleet") != 0;
-  FEEDER_ENABLED = AIController.GetSetting("feeder_enabled") != 0;
-  FEEDER_CANDIDATES_ENABLED = AIController.GetSetting("feeder_candidates") != 0;
-  EVENT_DEPOT_SELL = AIController.GetSetting("event_depot_sell") != 0;
-  EVENT_INDUSTRY_CLOSE = AIController.GetSetting("event_industry_close") != 0;
-  EVENT_SUBSIDY_PROBE = AIController.GetSetting("event_subsidy_probe") != 0;
-  C42_SUBSIDIES = AIController.GetSetting("c42_subsidies") != 0;
-  EVENT_VEHICLE_LOST = AIController.GetSetting("event_vehicle_lost") != 0;
-  EVENT_VEHICLE_CRASHED = AIController.GetSetting("event_vehicle_crashed") != 0;
-  EVENT_VEHICLE_UNPROFITABLE = AIController.GetSetting("event_vehicle_unprofitable") != 0;
-  UNPROFITABLE_STREAK_THRESHOLD = AIController.GetSetting("unprofitable_streak_threshold");
-  EVENT_CATALOG_INVALIDATE = AIController.GetSetting("event_catalog_invalidate") != 0;
-  C39_ENGINE_REFRESH = AIController.GetSetting("c39_engine_refresh") != 0;
-  C41_WATER_REFRESH = AIController.GetSetting("c41_water_refresh") != 0;
-  C41_WATER_PRECHECK = AIController.GetSetting("c41_water_precheck") != 0;
-  WATER_LAKES_CONNECTIVITY = AIController.GetSetting("water_lakes_connectivity") != 0;
-  WATER_LAKES_OPS_BUDGET = AIController.GetSetting("water_lakes_ops_budget") != 0;
-  WATER_SITE_CATALOG = AIController.GetSetting("water_site_catalog") != 0;
-  WATER_DISCOVERY_REAL_FRONTS = AIController.GetSetting("water_discovery_real_fronts") != 0;
-  C41_ROAD_REFRESH = AIController.GetSetting("c41_road_refresh") != 0;
-  C41_ROAD_FREIGHT_SERVED_INDEX = AIController.GetSetting("c41_road_freight_served_index") != 0;
-  C41_ROAD_FREIGHT_ACCEPTANCE_INDEX = AIController.GetSetting("c41_road_freight_acceptance_index") != 0;
-  C41_RAIL_PAX_CRUISE_CACHE = AIController.GetSetting("c41_rail_pax_cruise_cache") != 0;
-  C41_RAIL_FREIGHT_CRUISE_CACHE = AIController.GetSetting("c41_rail_freight_cruise_cache") != 0;
-  C41_RAIL_FREIGHT_ACCELERATION_CACHE = AIController.GetSetting("c41_rail_freight_acceleration_cache") != 0;
-  C41_RAIL_FREIGHT_TOWN_SERVICE_CACHE = AIController.GetSetting("c41_rail_freight_town_service_cache") != 0;
-  C41_RAIL_LOST_SIGNAL_REPAIR = AIController.GetSetting("c41_rail_lost_signal_repair") != 0;
-  C41_RAIL_LOST_JUNCTION_REPAIR = AIController.GetSetting("c41_rail_lost_junction_repair") != 0;
-  C41_RAIL_CASH_RELEASE = AIController.GetSetting("c41_rail_cash_release") != 0;
-  C49_VARIABLE_DENOMINATOR = AIController.GetSetting("c49_variable_denominator") != 0;
-  C55_FREIGHT_ORIGIN_RELAX = AIController.GetSetting("c55_freight_origin_relax") != 0;
-  C55_ROAD_ORIGIN_RELAX = AIController.GetSetting("c55_road_origin_relax") != 0;
-  C55_ROAD_PAX_ORIGIN_RELAX = AIController.GetSetting("c55_road_pax_origin_relax") != 0;
-  C60_TOWN_RATING_FILTER = AIController.GetSetting("c60_town_rating_filter") != 0;
-  C48_INDEXED_REGENERATION = AIController.GetSetting("c48_indexed_regeneration") != 0;
-  C48_INDEX_SHADOW = AIController.GetSetting("c48_index_shadow") != 0;
-  C46_FREIGHT_GRID = AIController.GetSetting("c46_freight_grid") != 0;
-  C46_FREIGHT_GRID_SHADOW = AIController.GetSetting("c46_freight_grid_shadow") != 0;
-  C50B_ROAD_CAP_RELAX = AIController.GetSetting("c50b_road_cap_relax") != 0;
-  ROAD_TIME_SCALED_CAP = AIController.GetSetting("road_time_scaled_cap") != 0;
-  C50B_RAIL_BACKLOG_RELAX = AIController.GetSetting("c50b_rail_backlog_relax") != 0;
-  VIVIER_RATIO_FILTER = AIController.GetSetting("vivier_ratio_filter") != 0;
-  ROAD_FLEET_FIX = AIController.GetSetting("road_fleet_fix") != 0;
-  AIR_FLEET_LINE_PRICE = AIController.GetSetting("air_fleet_line_price") != 0;
-  AIR_CADENCE_CAP = AIController.GetSetting("air_cadence_cap") != 0;
-  AIR_CADENCE_CAP_ADAPTIVE = AIController.GetSetting("air_cadence_cap_adaptive") != 0;
-  if (AIR_CADENCE_CAP_ADAPTIVE) {
-    local nIndustries = AIIndustryList().Count();
-    if (nIndustries < 50) {
-      AIR_CADENCE_CAP = false;
-      AILog.Info("AIR_CADENCE_CAP_ADAPTIVE: nIndustries=" + nIndustries + " (<50) -> AIR_CADENCE_CAP desactive");
-    } else {
-      AILog.Info("AIR_CADENCE_CAP_ADAPTIVE: nIndustries=" + nIndustries + " (>=50) -> AIR_CADENCE_CAP conserve");
-    }
-  }
+
+  ROAD_PAX_BUILD_ENABLED = AIController.GetSetting("road_pax_build") != 0;
   ROAD_LOADING_FIX = AIController.GetSetting("road_loading_fix") != 0;
-  CLEAN_DENSITY_SCORE = AIController.GetSetting("clean_density_score") != 0;
-  local iap = AIController.GetSetting("infra_amort_pct");
-  if (iap >= 0) INFRA_AMORT_PCT = iap;
-  FEEDER_UNLOCK = AIController.GetSetting("feeder_unlock") != 0;
-  FEEDER_PRICING = AIController.GetSetting("feeder_pricing") != 0;
-  FEEDER_TOWN_COVERAGE = AIController.GetSetting("feeder_town_coverage") != 0;
-  FEEDER_MAIL_DUPLICATE = AIController.GetSetting("feeder_mail_duplicate") != 0;
-  FEEDER_MAIL_STRICT_ORDERS = AIController.GetSetting("feeder_mail_strict_orders") != 0;
-  FEEDER_HUB_CHECK = AIController.GetSetting("feeder_hub_check") != 0;
-  local fhwm = AIController.GetSetting("feeder_hub_wait_max");
-  if (fhwm >= 0) FEEDER_HUB_WAIT_MAX = fhwm;
-  local fhmd = AIController.GetSetting("feeder_hub_min_days");
-  if (fhmd >= 0) FEEDER_HUB_MIN_DAYS = fhmd;
-  AIR_SITE_CACHE_ENABLED = AIController.GetSetting("air_site_cache") != 0;
-  AIR_CHEAP_SITE = AIController.GetSetting("air_cheap_site") != 0;
-  AIR_JOINED_STOPS = AIController.GetSetting("air_joined_stops") != 0;
-  local ajsl = AIController.GetSetting("air_joined_stop_limit");
-  if (ajsl >= 0) AIR_JOINED_STOP_LIMIT = ajsl;
-  AIR_SPLIT_FEEDER_TEST = AIController.GetSetting("air_split_feeder_test") != 0;
+
+  local roadPaxCatchment = AIController.GetSetting("road_pax_catchment_pct");
+  ROAD_PAX_CATCHMENT_SHARE_PCT = (roadPaxCatchment == 0) ? 22 : roadPaxCatchment;
+
+  local roadStopHouses = AIController.GetSetting("road_stop_catchment_houses");
+  if (roadStopHouses > 0) ROAD_STOP_CATCHMENT_HOUSES = roadStopHouses;
+
+  local roadPaxDwell = AIController.GetSetting("road_pax_dwell_days");
+  if (roadPaxDwell >= 0) ROAD_PAX_STOP_DWELL_DAYS = roadPaxDwell;
+
   AIR_EARLY_SLOT = AIController.GetSetting("air_early_slot") != 0;
   local aest = AIController.GetSetting("air_early_slot_target_towns");
   if (aest >= 1) AIR_EARLY_SLOT_TARGET_TOWNS = aest;
+
   local aesmp = AIController.GetSetting("air_early_slot_min_pop");
   if (aesmp >= 0) AIR_EARLY_SLOT_MIN_POP = aesmp;
+
   local aesb = AIController.GetSetting("air_early_slot_bonus_pct");
   if (aesb >= 0) AIR_EARLY_SLOT_BONUS_PCT = aesb;
-  ROAD_CHEAP_TRACE = AIController.GetSetting("road_cheap_trace") != 0;
-  ROAD_PAX_VOIRIE = AIController.GetSetting("road_pax_voirie") != 0;
-  ROAD_PAX_OVERLAP = AIController.GetSetting("road_pax_overlap") != 0;
 
-  /* --- Sondes de diagnostic unifiees (9 groupes) --- */
+  local afcd = AIController.GetSetting("air_fleet_cadence_days");
+  if (afcd >= 0) AIR_FLEET_CADENCE_DAYS = afcd;
+
+  local ajsl = AIController.GetSetting("air_joined_stop_limit");
+  if (ajsl >= 0) AIR_JOINED_STOP_LIMIT = ajsl;
+
+  local airPaxCalibration = AIController.GetSetting("air_pax_revenue_calibration_pct");
+  if (airPaxCalibration > 0) AIR_PAX_REVENUE_CALIBRATION_PCT = airPaxCalibration;
+
+  TOWN_GROWTH_ENABLED = AIController.GetSetting("town_growth") != 0;
+  TOWN_GROWTH_SKIP_NOOP = AIController.GetSetting("town_growth_skip_noop") != 0;
+
+  UNPROFITABLE_STREAK_THRESHOLD = AIController.GetSetting("unprofitable_streak_threshold");
+
+  /* --- 4. Sondes de diagnostic unifiees (9 groupes) --- */
 
   // 1. probe_cost : rail_cost_probe, air_cost_probe, road_cost_probe
   local probeCost = AIController.GetSetting("probe_cost") != 0;
@@ -253,12 +195,9 @@ function OpexLoadSettings()
   C39_DECISION_DELTA_PROBE = probeCat;
   C39_AIR_REASON_PROBE = probeCat;
   C41_REVISION_PROBE = probeCat;
-  /* Emboitement volontaire (perdu puis restaure le 2026-09-17) : sans le precontrole, activer
-   * probe_catalogue ferait executer OpexWaterPlans() pour de vrai (BFS littoral, tests de dock
-   * sous AITestMode) au lieu de rester une sonde passive. */
-  C41_WATER_CANDIDATE_PROBE = probeCat && C41_WATER_PRECHECK;
-  C41_WATER_PLANS_PROFILE = probeCat && C41_WATER_CANDIDATE_PROBE;
-  C41_WATER_SITE_PROFILE = probeCat && C41_WATER_PLANS_PROFILE;
+  C41_WATER_CANDIDATE_PROBE = false;
+  C41_WATER_PLANS_PROFILE = false;
+  C41_WATER_SITE_PROFILE = false;
 
   // 6. probe_rail_search : domination, fallthrough, projects cadence
   local probeRailSearch = AIController.GetSetting("probe_rail_search") != 0;
@@ -271,12 +210,12 @@ function OpexLoadSettings()
   C41_RAIL_LOST_TOPOLOGY_PROBE = probeLost;
   C41_RAIL_LOST_PHYSICAL_PROBE = probeLost;
   C41_RAIL_LOST_CONNECTIVITY_PROBE = probeLost;
-  C41_RAIL_LOST_PROBE = probeLost || C41_RAIL_LOST_SIGNAL_REPAIR || C41_RAIL_LOST_JUNCTION_REPAIR;
-  C41_VEHICLE_LOST_PROBE = probeLost || C41_RAIL_LOST_PROBE;
+  C41_RAIL_LOST_PROBE = probeLost;
+  C41_VEHICLE_LOST_PROBE = probeLost;
 
   // 8. probe_portfolio : scarcity, chronology, invest C63, funnel, tension, incremental, reserves, origin relax, town rating
   local probePort = AIController.GetSetting("probe_portfolio") != 0;
-  C49_SCARCITY_LEDGER = probePort || C49_VARIABLE_DENOMINATOR;
+  C49_SCARCITY_LEDGER = probePort;
   if (C49_SCARCITY_LEDGER) {
     ::C49_CURRENT_REGIME = "cash";
   }
@@ -372,4 +311,83 @@ function OpexLoadSettings()
   AIR_CATCHMENT_PROBE = probeEvents;
   EQUIPMENT_ROI_PROBE = probeEvents;
   C54_VEHICLE_ORDERS_PROBE = probeEvents;
+
+  /* --- 5. Pistes formellement abandonnees / constantes neutres verrouillees --- */
+  RAIL_PREQUOTE = false;
+  RAIL_PREQUOTE_KEEP_PLAN = false;
+  RAIL_TERRAIN_PROBE = false;
+  PORTFOLIO_FRESH_BUDGET = false;
+  PORTFOLIO_DYNAMIC_BATCH = false;
+  DYNAMIC_BATCH_REJECT_LIMIT = 3;
+  DYNAMIC_BATCH_OPS_BUDGET_PCT = 50;
+  PORTFOLIO_FLOOR_PCT = 0;
+  TENSION_SCORING = false;
+  SHADOW_PRICING = false;
+  TENSION_DECISION_FRICTION = 0.0;
+  FLAT_BONUS = false;
+  ROAD_CHEAP_TRACE = false;
+  ROAD_MULTISTOP = false;
+  MARGINAL_FLEET = false;
+  ROAD_PAX_EXTENSIONS = false;
+  ROAD_TIME_SCALED_CAP = AIController.GetSetting("road_time_scaled_cap") != 0;
+  C50B_ROAD_CAP_RELAX = false;
+  C50B_RAIL_BACKLOG_RELAX = false;
+  C46_FREIGHT_GRID = false;
+  C46_FREIGHT_GRID_SHADOW = false;
+  C48_INDEXED_REGENERATION = false;
+  C48_INDEX_SHADOW = false;
+  C49_VARIABLE_DENOMINATOR = false;
+  C55_FREIGHT_ORIGIN_RELAX = false;
+  C55_ROAD_ORIGIN_RELAX = false;
+  C55_ROAD_PAX_ORIGIN_RELAX = false;
+  C41_RAIL_LOST_SIGNAL_REPAIR = false;
+  C41_RAIL_LOST_JUNCTION_REPAIR = false;
+  STATION_JOIN = false;
+  JOIN_MAX_DISTANCE = 0;
+  JOIN_PLACE = false;
+  BASIN_SHARE = false;
+  RAIL_EXPAND = AIController.GetSetting("rail_expand") != 0;
+  ASTAR_COST_V2 = false;
+  REBORROW = false;
+  PAX_NEAR = false;
+  PROBE_NEGATIVE = false;
+  AIR_DEMAND_CAP = false;
+  AIR_DEMAND_PLAN = false;
+  AIR_MARGIN_V2 = false;
+  RESERVE_MAINT_CAP = false;
+  AIR_PRESITE = false;
+  AIR_SPLIT_FEEDER_TEST = false;
+  AIR_ABANDON_SITE = false;
+  AIR_TOWN_LIMIT_MEMORY = false;
+  WATER_SITE_CATALOG = false;
+  WATER_DISCOVERY_REAL_FRONTS = false;
+  WATER_LAKES_CONNECTIVITY = false;
+  WATER_LAKES_OPS_BUDGET = false;
+  C39_ENGINE_REFRESH = false;
+  C41_WATER_REFRESH = false;
+  C41_WATER_PRECHECK = false;
+  C41_ROAD_REFRESH = false;
+  LOOP_BUDGET = false;
+  GROWTH_YIELDS = false;
+  PRICING_ROAD_RATING = false;
+  PRICING_RAIL_DEPOT = false;
+  FLEET_FIX = false;
+  EVENT_DEPOT_SELL = false;
+  EVENT_INDUSTRY_CLOSE = false;
+  EVENT_SUBSIDY_PROBE = false;
+  C42_SUBSIDIES = false;
+  EVENT_VEHICLE_LOST = false;
+  C60_TOWN_RATING_FILTER = false;
+  AIR_CADENCE_CAP_ADAPTIVE = false;
+  AIR_MAX_DISTANCE = 0;
+  AIR_FULL_LOAD = false;
+  C53_ORDER_NOLOAD = false;
+  FEEDER_CANDIDATES_ENABLED = false;
+  FLEET_BEFORE_NEW = false;
+  TRANSIT_COST_PERMILLE = 0;
+  INFRA_AMORT_PCT = 0;
+  PORTFOLIO_MAX_BATCH = 1;
+  AIR_FLEET_BUFFER = 0;
+  FEEDER_HUB_WAIT_MAX = 100;
+  FEEDER_HUB_MIN_DAYS = 60;
 }

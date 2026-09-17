@@ -1585,3 +1585,15 @@ réellement `OpexWaterPlans()` au lieu de rester passif). Les deux sont réglés
   Couplage préexistant au regroupement, élargi par lui. Pas un correctif de sûreté ; à traiter
   comme une tâche de conception (séparer le fonctionnel du diagnostic) si `c41_water_refresh` doit
   un jour s'activer indépendamment.
+
+## Revue 2026-09-17 — regroupement des politiques et suppression des pistes abandonnées
+
+Voir [`docs/walkthrough_regroupement_parametres.md`](walkthrough_regroupement_parametres.md) pour le compte rendu détaillé du chantier.
+
+Suite logique du regroupement des sondes :
+- **66 pistes formellement abandonnées / rejetées retirées de `info.nut`** et figées à `false`/neutre dans `settings.nut` (pas de régression ni de code cassé).
+- **~60 réglages adoptés regroupés en 8 macro-politiques `policy_*`** (`policy_caches`, `policy_feeders`, `policy_rail`, `policy_road`, `policy_air`, `policy_abandon`, `policy_portfolio`, `policy_vehicle_events`).
+- **`air_early_slot` basculé à 1 par défaut** dans `info.nut` (alignement sur la décision du 2026-09-15).
+- Surface exposée de `info.nut` réduite de **169 à 44 paramètres** (-1870 lignes nettes).
+- 119 tests unitaires passés ; équivalence bit-à-bit vérifiée par smoke test Docker.
+
