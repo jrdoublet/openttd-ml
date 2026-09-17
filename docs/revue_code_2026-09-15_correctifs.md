@@ -919,18 +919,17 @@ qu'il prétend classer*, et c'est le terrain sur lequel A1 doit être construit.
 **Gravité de groupe : P1**, entièrement à cause de 10.1 et 10.3 : le premier touche C56, le seul
 mode d'échec dur non élucidé du projet ; le second dépense du capital réel.
 
-- **Modèle : Opus 5, effort medium** (Codex sol, medium) pour 10.1 et 10.3 : il faut décider **où**
-  poser le contrôle d'opcodes sans casser la protection contre le gel (C57 dit explicitement
+- **Modèle : Opus 5, effort medium** (Codex sol, medium) pour 10.1 et 10.3 : il fallait décider **où**
+  poser le contrôle d'opcodes sans casser la protection contre le gel (C57 disait explicitement
   « conserver la protection »), et **quel juge fait foi** à la construction. Ce sont deux choix de
   conception, pas deux `if`.
 - **Modèle : Sonnet 5, effort low** pour 10.2 : rendre le repli conservateur **économiquement** et
   non seulement géométriquement (par exemple majorer `oneWayDays` quand le repli est emprunté), en
   s'appuyant sur le compteur qui existe déjà.
 - **10.5 n'est pas un correctif, c'est une mesure** — voir M4.
-- **Opportuniste** : C57 (`docs/taches.md:809`, « calibrer les 50 000 opcodes de Lakes ») ; 10.1
-  montre que le calibrage seul ne suffira pas, la **position** du contrôle compte autant que sa
-  valeur. Ajouter ce point à la fiche. `docs/taches.md:829` prévoit qu'« un gel reproductible
-  reprendrait immédiatement la priorité » : si l'un réapparaît, ce groupe passe en tête.
+- **Historique, supersédé le 2026-09-17** : C57 devait calibrer les 50 000 opcodes de Lakes ; ce
+  travail est abandonné avec l'architecture Lakes. La suite est C67, analyse spatiale de carte par
+  blocs et remplacement propre de la connectivité importée.
 
 **Clôture technique B7 — 2026-09-17.** La condition historique « ne corriger que si un freeze
 actuel est reproduit » est supersédée pour **10.1 et 10.3** : les deux défauts sont directement
@@ -946,8 +945,31 @@ les deux graines. Le scan ciblé `results/review_b7_water_c56_targeted_2x10.json
 10 ans) reste **inconclusif** faute de traces C56 datées ; le parseur publie désormais
 `frozen_count=null`, `measurable_count=0`, `inconclusive_count=2` au lieu de transformer cette
 absence de mesure en « 0 gel ». 10.2 a ensuite été corrigé fail-closed : le fallback Manhattan
-n'alimente plus `OpexWaterEconomics` quand la distance navigable exacte manque. 10.5 reste une
-mesure externe ; aucun default n'est modifié et aucun 20×10 n'est requis.
+n'alimente plus `OpexWaterEconomics` quand la distance navigable exacte manque. 10.5 a ensuite été
+clos par mesure externe RAM/opcodes jusqu'à 2048² ; aucun default n'est modifié et aucun 20×10
+n'est requis.
+
+**Décision d'architecture du 2026-09-17.** Après cette clôture, l'utilisateur abandonne
+`MinchinWeb.Lakes` comme base future. Les correctifs 10.1/10.2/10.3 restent valides pour le chemin
+courant jusqu'à sa migration, et 10.5 reste une mesure historique. En revanche C57 est fermé sans
+suite : ne pas calibrer `WATER_LAKES_OPS`. Le nouveau chantier C67 doit construire une analyse de
+carte commune à l'eau et au terrain par blocs 5×5/10×10 typés, mesurer les deux granularités puis
+migrer les consommateurs avant de retirer les settings/code Lakes.
+
+Cette cartographie doit aussi devenir un **canal de prévision commun aux projets** : coût financier
+probable, ROI corrigé du terrain, coût en opcodes, temps/ticks de décision et de construction,
+risque de faisabilité, choix du mode et corridor de pré-pathfinding. Le type `eau/plat/vallonné/
+montagne/...` ne doit pas remplacer les mesures sous-jacentes : chaque bloc conserve un vecteur de
+caractéristiques physiques, complété par une couche dynamique (villes, industries,
+infrastructures). Les invalidations doivent être locales pour éviter un nouveau scan global.
+
+Contrainte supplémentaire : la construction de cette cartographie est **lazy et opportuniste**.
+Interdiction d'un scan global monolithique au démarrage. Un projet déclenche le calcul des blocs
+qui lui manquent ; ceux-ci sont mémorisés. Le scheduler peut compléter d'autres blocs en arrière-plan
+seulement par tranches strictement bornées lorsque des opcodes sont disponibles et qu'aucune tâche
+plus utile n'est prête (par exemple manque de trésorerie pour construire). Cette tâche de fond doit
+être préemptable/reprenable et une carte partielle doit rester un état valide pour tous les
+consommateurs.
 
 ### B8. Cycle de vie de flotte et de rebut : une ligne en liquidation peut recevoir un avion neuf
 
@@ -1313,11 +1335,19 @@ juste avant la première dépense. `results/review_m4_162_fail_before_spend_5x6.
 sains sous `max_trains=0`, zéro projet rail choisi, zéro `RAIL_BUILD_FAIL`, `actual_fail=0` et
 `pure_notrain_actual_fail=0`. Aucun 20×10 n'est requis pour ce correctif de sûreté/admission.
 
-16.3 demeure clos/non-bug. 16.4 reste une preuve externe manquante : le résultat C46 1024² existant
-est sain mais ne mesure pas RSS/heap, et il n'a pas été rejoué. 10.5 n'est pas exposé par les runs
-M4 (zéro véhicule eau) et reste donc une hypothèse/performance à mesurer, pas un défaut courant
-promu. **M4 est clos comme diagnostic/conformité**, 16.2 étant désormais clos techniquement et la
-mémoire grandes cartes restant en backlog de mesure externe.
+16.3 demeure clos/non-bug. **16.4 / 10.5 est désormais clos comme mesure externe** : le micro-banc
+`WaterMemoryProbe` reproduit l'allocation dominante du constructeur Lakes et la garde vivante pour
+mesurer le RSS du processus. Sur 256²/512²/1024², `results/review_water_memory_10_5_16_4_v3.json`
+donne respectivement 127,44 / 127,64 / 127,94 B par tuile et ~14,001 opcodes/tuile. Le 2048² long
+`results/review_water_memory_2048_long_3x.json` termine 3/3 : delta RSS médian 524 788 KiB
+(128,12 B/tuile), 58 726 159 opcodes nets (14,0014/tuile), 5 872 ticks, HWM processus max
+698 444 KiB. L'échec à horizon court était une allocation non terminée, sans preuve d'OOM ni de
+plafond `AIList`. Aucun changement de comportement/default n'est adopté. **M4 reste clos comme
+diagnostic/conformité**, avec 16.2 clos techniquement et 16.4 clos par mesure.
+
+Cette mesure n'ouvre plus C57 : la décision postérieure est de retirer Lakes lors de C67. Le coût
+mesuré (~128 B/tuile) sert désormais de baseline à battre par la représentation compacte en blocs,
+pas de justification pour optimiser l'`AIList` actuel.
 
 ### M5. G2 résiduel : l'invalidation événementielle reste optionnelle et à 0
 
@@ -1470,7 +1500,7 @@ un passage dédié.
 | **G8** — terrassement d'exploration aérienne non attribué | **FERMÉ (caduc)** | `OpexAirCanLevelFootprint` (`builder_air.nut:407-419`) ouvre un `AITestMode()` avant `LevelTiles` et ne nivelle donc rien réellement ; le commentaire `:580` porte la marque du correctif (« G7§2 : test-mode seulement ; le terrassement réel est fait par le constructeur »). L'exploration ne dépense plus. **Ironie à noter** : c'est ce même correctif qui a créé 08.1, en laissant le verdict de terrain écraser celui de la sonde. |
 | **G9** — quarantaine fret→ville + filtre feeders | **FERMÉ** | Étape 2 : `OpexAbandonedPairKey` (`lines.nut:268-305`) est maintenant symétrique — repli `"t" + srcTown` **et** `"t" + dstTown` — donc plus aucune collision `freight\|cargo\|id\|-1` ; le préfixe `"t"` exclut toute collision avec un ID d'industrie numérique. Étape 5 : `candidates.nut:2674-2677` porte la même clé (commentaire « G9§1 ») et `OpexRoadFeederCandidates` respecte désormais `ABANDON_GEN_FILTER` (`:2932-2938`, « G9§2 »). Les deux volets sont clos aux deux bouts. |
 | **G10** — cycle de vie flotte air/route | **FERMÉ via B8** | Le sous-comptage historique est infirmé et B8 garde maintenant les projets flotte hors des lignes en liquidation ; contrats rebut 7/7 + smoke validés. Le 5×6 n'a pas exposé de rebut réel, limite conservée. |
-| **G11** — constructeur maritime + feeder postal | **FERMÉ sur 10.1/10.2/10.3 techniques** | Budget Lakes interruptible dans les parcours internes + distance navigable inconnue rejetée avant économie + connectivité préflight avant dépense ; tests ciblés/intégration et smoke final sains. Le scan freeze 2026/1337 reste inconclusif faute de traces et n'est pas présenté comme preuve d'absence de gel. Reste 10.5 mesure externe. |
+| **G11** — constructeur maritime + feeder postal | **FERMÉ sur 10.1/10.2/10.3 techniques ; Lakes à remplacer** | Budget Lakes interruptible dans les parcours internes + distance navigable inconnue rejetée avant économie + connectivité préflight avant dépense ; tests ciblés/intégration et smoke final sains. 10.5 est mesuré jusqu'à 2048². Décision ultérieure : abandonner Lakes et C57 ; remplacement traité séparément par C67. |
 | **G12** — catalogue : le matériel élu avant ROI | **FERMÉ comme diagnostic M3, non adopté** | M3 5×6 10/10 : rail non exposé multi-choix, route sans regret, AIR fortement exposé mais P2 de politique route-spécifique. Aucun P1 vanilla, NewGRF non mesuré, aucun 20×10. |
 
 **Compléments de 2026-09-06 hors G0-G12.** *Tier 3 hygiène* : les trois points listés restent
@@ -1566,8 +1596,8 @@ effectifs ; `bench_v2.py` générique n'est pas utilisé comme autorité d'adopt
 
 **Greffes opportunistes vers `docs/taches.md`** (vérifiées par grep ciblé, sans lecture
 intégrale) : rouvrir le volet « consommateurs » de **C66.1** (H3) ; corriger la case « test des
-signes » de **C66.4** (H1) ; **C66.2/C66.5** reçoivent H4 ; **C57** reçoit B7 avec la précision
-que la *position* du contrôle compte autant que la valeur 50 000 ; **C43/E3** reçoit le mécanisme
+signes » de **C66.4** (H1) ; **C66.2/C66.5** reçoivent H4 ; **C57** est désormais supersédé par
+**C67** (analyse de carte par blocs + remplacement de Lakes) ; **C43/E3** reçoit le mécanisme
 chiffré de `loop_budget` (11.4) ; **C61/C59 volet Route** reçoit le mécanisme de B3, sans lever sa
 condition à P1 ; la **fiche 771** (`docs/taches.md:578-630`) reçoit B1, dont le candidat causal
 pré-enregistré est déjà le §2. Les deux anciens trous cités ici sont désormais soldés :

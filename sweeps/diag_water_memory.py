@@ -324,6 +324,8 @@ def summarise_fixture_memory(records: list[dict]) -> dict:
                 "probe_map_width": allocate.get("probe_map_width"),
             })
         resident = [p["resident_rss_delta_kib"] for p in pairs if p["resident_rss_delta_kib"] is not None]
+        complete_resident = [p["resident_rss_delta_kib"] for p in pairs
+                             if p["allocation_complete"] and p["resident_rss_delta_kib"] is not None]
         hwm = [p["peak_hwm_delta_kib"] for p in pairs]
         complete_ops = [p["allocation_opcodes_net"] for p in pairs
                         if p["allocation_complete"] and p["allocation_opcodes_net"] is not None]
@@ -331,6 +333,7 @@ def summarise_fixture_memory(records: list[dict]) -> dict:
                           if p["allocation_complete"] and p["allocation_ticks"] is not None]
         tiles = 1 << (2 * size)
         median_resident = _median(resident)
+        median_complete_resident = _median(complete_resident)
         median_ops = _median(complete_ops)
         scales.append({
             "map_size": size,
@@ -342,8 +345,10 @@ def summarise_fixture_memory(records: list[dict]) -> dict:
             "resident_rss_delta_kib_mean": _mean(resident),
             "resident_rss_delta_kib_min": min(resident) if resident else None,
             "resident_rss_delta_kib_max": max(resident) if resident else None,
+            "resident_complete_rss_delta_kib_median": median_complete_resident,
             "resident_bytes_per_tile_median": (
-                median_resident * 1024.0 / tiles if median_resident is not None else None
+                median_complete_resident * 1024.0 / tiles
+                if median_complete_resident is not None else None
             ),
             "peak_hwm_delta_kib_median": _median(hwm),
             "max_allocate_hwm_kib": max((p["allocate_peak_hwm_kib"] for p in pairs), default=None),
@@ -434,14 +439,22 @@ def selftest():
     assert summary["scales"][0]["local_rss_delta_kib"] == 70, summary
     fixture = [
         {"map_size": 8, "probe_allocate": 0, "repeat": 0,
+         "probe_done": True, "probe_ops": 10,
          "process_memory_kib": {"last": {"VmRSS": 100}, "max_rss_kib": 110, "max_hwm_kib": 120}},
         {"map_size": 8, "probe_allocate": 1, "repeat": 0,
+         "probe_done": True, "probe_ops": 20,
          "process_memory_kib": {"last": {"VmRSS": 180}, "max_rss_kib": 190, "max_hwm_kib": 200}},
     ]
     fixture_summary = summarise_fixture_memory(fixture)
     scale = fixture_summary["scales"][0]
     assert scale["resident_rss_delta_kib_median"] == 80, fixture_summary
+    assert scale["resident_complete_rss_delta_kib_median"] == 80, fixture_summary
     assert scale["resident_bytes_per_tile_median"] == 1.25, fixture_summary
+    fixture[1]["probe_done"] = False
+    incomplete = summarise_fixture_memory(fixture)["scales"][0]
+    assert incomplete["resident_rss_delta_kib_median"] == 80, incomplete
+    assert incomplete["resident_complete_rss_delta_kib_median"] is None, incomplete
+    assert incomplete["resident_bytes_per_tile_median"] is None, incomplete
     print("diag_water_memory selftest OK")
 
 

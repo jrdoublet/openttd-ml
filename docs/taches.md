@@ -78,7 +78,7 @@ les instruments de diagnostic. Ils ne remplacent pas cet objectif.
 | **P1** | **C63 + C58 : investissement et réinvestissement** | Où se perd la croissance à partir de 1971 : coût, revenu capté, occasions absentes ou décisions lentes ? | Un diagnostic commun 5×6, attribution par mode/âge de ligne, puis **un seul** correctif causal |
 | **P2** | C61 + C59 : exploitation des infrastructures rentables | Quelles lignes profitables disposent de demande non servie et d'une capacité réellement disponible ? | Cibler le mode exposé par P1 ; un levier isolé, sans rejouer la suppression brute des plafonds |
 | **P2 conditionnelle** | C39/C41 : coût des décisions utiles | Reste-t-il des projets valides et finançables que le contrôleur traite trop tard ? | Montrer un délai et une occasion perdue sur l'arbre courant avant de modifier la cadence ou les caches |
-| **P3** | C52/C60, eau/C57, autres | Quel effet matériel subsiste hors des priorités ci-dessus ? | Remontée seulement sur exposition mesurée ou défaut bloquant reproductible |
+| **P3** | C52/C60, C67 carte/eau, autres | Quel effet matériel subsiste hors des priorités ci-dessus ? | Remontée seulement sur exposition mesurée ou défaut bloquant reproductible |
 
 La première action est P0, puis le diagnostic commun C63/C58. **Ne pas lancer simultanément
 une nouvelle famille de plafonds, un nouveau score et un orchestrateur général.** Les rangs P2
@@ -1028,7 +1028,8 @@ Ne pas les remettre dans la file active sans fait nouveau.
 |---|---|---|
 | C52 | Revalider les corrections crash/non rentable postérieures au banc ; exploiter la sonde de première arrivée si nécessaire | Défaut de service observé ; pas un objectif de nombre d'événements branchés |
 | C60 | Exposition actuelle route/rail puis diagnostic 5×6 du filtre, encore à 0 après son smoke | Refus municipaux matériellement coûteux ; ne pas inférer cette exposition des seuls refus air, qui incluent le bruit |
-| C57 | Calibrer les 50 000 opcodes de Lakes | Distribution des recherches eau et coût des paires perdues ; conserver la protection contre le gel |
+| C57 | **ABANDONNÉ — ne plus calibrer les 50 000 opcodes de Lakes** | Architecture MinchinWeb.Lakes abandonnée le 2026-09-17 ; ne pas investir dans le réglage d'un composant destiné à être retiré |
+| **C67** | **Analyse spatiale de la carte par blocs + remplacement propre de Lakes** | Concevoir/mesurer la grille 5×5 vs 10×10, le typage des blocs et ses usages eau/terrain avant toute migration comportementale |
 | C43 / E3 | Constantes non tranchées : réserve, `loop_budget`, `pax_near`, seuils de mise au rebut | Constante impliquée par le diagnostic ; pas de balayage général |
 | C45, reliquat | Décider de la persistance des compteurs de subventions | Besoin au rechargement ; secondaire pour des parties neuves |
 | C42 bis | Filtrage/rendement des subventions | Exposition rentable démontrée ; les subventions brutes restent à 0 |
@@ -1044,25 +1045,121 @@ pour les anciennes sauvegardes. Test ciblé 7/7 ; smoke `air_early_slot=1` 2×3 
 1970–1975. Ne pas lui attribuer de gain économique et ne pas lancer de 20×10 pour cette correction
 de sûreté. `early_slot` reste inchangé.
 
-## Eau, bibliothèques et robustesse — P1 techniques clos, résidus différés
+## Eau, bibliothèques et robustesse — P1 techniques clos, architecture Lakes abandonnée
 
-Le code utilise déjà la transcription MinchinWeb dans `lib_water.nut`, avec budget en opcodes.
-Ne pas proposer de recommencer son intégration. La bibliothèque n'apporte pas à elle seule des
-lignes rentables ; le catalogue de sites intégré aux rebuilds a été testé sans justifier son adoption.
+Le code courant utilise encore la transcription MinchinWeb dans `lib_water.nut`, avec budget en
+opcodes. **Décision du 2026-09-17 : ne plus poursuivre cette architecture et supprimer l'import/
+transcription Lakes lors du chantier C67.** Il ne faut donc ni recommencer son intégration ni
+calibrer davantage ses constantes. Le code n'est pas retiré dans cette étape documentaire : il
+reste le chemin courant jusqu'à ce que son remplacement soit implémenté et validé.
+
+La bibliothèque n'apporte pas à elle seule des lignes rentables ; le catalogue de sites intégré aux
+rebuilds a été testé sans justifier son adoption.
 L'ancien essai Lakes du 09/09 précède le correctif de gel C56 et ne tranche pas à lui seul le
 défaut combiné actuel. La revue du 17/09 ferme toutefois deux défauts techniques directement
 observables : 10.1 rend le budget d'opcodes interruptible jusque dans les parcours internes de
 Lakes ; 10.3 déplace le BFS borné de validation des fronts réels avant toute dépense de quai sur
 le chemin Lakes. Aucun réglage ni politique économique n'est changé.
 
-Le dossier eau conserve : découverte de sites séparée du portefeuille, rotations fractionnaires et
-**10.5** (qualification mémoire sur grandes cartes). **10.2 est clos** : quand Lakes confirme la
+Le dossier eau conserve : découverte de sites séparée du portefeuille et rotations fractionnaires.
+**10.5 est clos comme mesure externe** : le micro-banc Lakes donne une pente stable d'environ
+128 B/tuile et 14 opcodes/tuile de 256² à 2048² ; à 2048², 3/3 allocations longues terminent avec
+524 788 KiB de delta RSS médian et 58 726 159 opcodes nets. **10.2 est clos** : quand Lakes confirme la
 connectivité mais que la distance navigable exacte reste inconnue, le candidat est désormais rejeté
-avant `OpexWaterEconomics` au lieu de substituer Manhattan. C57 conserve le calibrage de la **valeur** du budget ; la lacune sur la position des
-contrôles est close. Le scan ciblé des anciennes graines 2026/1337 est inconclusif faute de traces
+avant `OpexWaterEconomics` au lieu de substituer Manhattan. **C57 est abandonné** : la valeur
+`WATER_LAKES_OPS = 50 000` ne sera pas calibrée puisque Lakes doit disparaître. Les corrections
+10.1/10.2/10.3 restent des preuves historiques utiles sur le chemin courant, pas une raison de le
+conserver. Le scan ciblé des anciennes graines 2026/1337 est inconclusif faute de traces
 C56 datées (`frozen_count=null`) et ne doit être lu ni comme reproduction ni comme absence de gel.
 La consigne existante d'accord explicite avant un nouveau diagnostic de découverte maritime reste
 conservée.
+
+### C67 — analyse spatiale de la carte par blocs et remplacement de Lakes
+
+**Décision de conception du 2026-09-17.** Repartir de zéro sur une représentation de carte propre à
+OpexAI, commune à l'analyse du terrain et au futur remplacement de la connectivité Lakes. La carte
+est découpée en blocs carrés réguliers ; deux granularités candidates sont à mesurer, **5×5** et
+**10×10 tuiles**. La taille n'est pas fixée par intuition : le premier livrable de C67 doit comparer
+coût mémoire/opcodes, précision et utilité pour les décisions.
+
+Chaque bloc porte un résumé compact calculé depuis ses tuiles, au minimum : part eau/terre,
+altitudes min/max/moyenne, amplitude de relief, proportion de terrain plat et indicateur de
+pente/irrégularité. À partir de ces mesures, le bloc reçoit un type principal tel que **eau**,
+**côte/mixte**, **plat**, **vallonné** ou **montagne**. Les seuils exacts et l'éventuel typage
+secondaire sont à calibrer sur cartes réelles ; ils ne doivent pas devenir des constantes métier
+avant mesure.
+
+Les blocs forment ensuite un graphe spatial léger de voisinage. Ce niveau grossier doit pouvoir
+servir à plusieurs consommateurs sans dupliquer des scans de carte : présélection de corridors,
+coût/complexité de terrain, détection de grandes zones d'eau et connectivité grossière. Les tests
+fins restent au niveau tuile lorsque la construction l'exige ; C67 n'a pas vocation à remplacer un
+pathfinder exact par une classification grossière.
+
+**Principe d'exécution : cartographie lazy et opportuniste.** C67 ne doit jamais lancer une grosse
+tâche monolithique de cartographie complète au démarrage. Un bloc est calculé lorsqu'un projet a
+besoin de l'étudier ; son résultat est ensuite mis en cache et réutilisé. En dehors de ces demandes,
+la couverture de la carte peut progresser en tâche de fond par petits lots uniquement quand le
+contrôleur dispose d'un budget d'opcodes réellement libre — par exemple lorsqu'aucun projet utile
+n'est constructible faute de trésorerie — sans retarder les tâches métier prioritaires. Le scheduler
+doit donc pouvoir interrompre/reprendre ce remplissage, lui imposer un budget strict par tranche et
+abandonner immédiatement la cartographie de fond dès qu'un travail plus prioritaire apparaît.
+
+La carte peut ainsi rester **partielle** pendant longtemps : les zones pertinentes pour les projets
+réels seront naturellement cartographiées en premier. Aucune décision ne doit supposer que 100 % de
+la carte est déjà connue ; une donnée de bloc absente signifie « à calculer si nécessaire », pas
+« terrain neutre ». Le remplissage opportuniste est un bonus de temps mort, jamais une condition de
+démarrage de l'IA ni un motif pour immobiliser des opcodes qui pourraient servir à une décision ou
+une construction immédiatement utile.
+
+Usages visés au-delà du remplacement de Lakes :
+
+- **prévision économique par projet** : utiliser le corridor de blocs pour estimer plus tôt le coût
+  réel probable de construction, le délai avant mise en service et donc un ROI plus réaliste que les
+  facteurs fixes actuels ;
+- **prévision du coût de décision** : estimer avant le pathfinding exact le nombre d'opcodes et le
+  temps/ticks nécessaires pour étudier puis construire un projet, afin d'ordonner les candidats par
+  valeur attendue mais aussi par coût de calcul ;
+- **pré-pathfinding hiérarchique** : chercher d'abord un corridor grossier dans le graphe de blocs,
+  puis limiter l'A* exact aux zones plausibles au lieu d'explorer la carte sans information globale ;
+- **risque de faisabilité** : dériver un indicateur de difficulté/échec probable à partir du relief,
+  de l'eau, des pentes, de la constructibilité et de la fragmentation du corridor ;
+- **choix du mode de transport** : comparer rail/route/eau/air à partir de la structure physique du
+  corridor avant de lancer des devis lourds pour chaque famille ;
+- **implantation et extensibilité** : repérer les zones adaptées aux gares, dépôts, quais et axes
+  d'approche, ainsi que la place disponible pour double voie, allongement ou branches futures ;
+- **détection de régions naturelles** : agréger les blocs en plaines, massifs, bassins, îles,
+  péninsules ou corridors côtiers pour améliorer la génération même des candidats.
+
+Le **type principal** d'un bloc est seulement une vue simplifiée. La représentation doit conserver
+un vecteur de caractéristiques réutilisable, par exemple `water_ratio`, `buildable_ratio`,
+`height_min/max/mean`, amplitude de relief, densité de pente, bords côtiers et densité
+d'infrastructure. Le typage `eau/plat/montagne/...` est dérivé de ces mesures et ne doit pas faire
+perdre l'information brute nécessaire aux modèles de coût, ROI ou temps.
+
+La carte est conceptuellement séparée en deux couches : une **couche physique** relativement stable
+(eau, altitude, pente, constructibilité) et une **couche dynamique** (villes, industries,
+infrastructures Opex/adverses, gares, voies, routes). Les modifications locales de carte doivent
+invalider seulement les blocs concernés. La cible architecturale devient donc :
+`candidat -> corridor de blocs -> prévision £ / ROI / opcodes / durée / risque -> portefeuille ->
+pathfinding exact seulement pour les candidats retenus`.
+
+Contraintes de conception :
+
+- **aucune structure persistante à une entrée par tuile de la carte entière**, contrairement à
+  Lakes ; à 2048², une grille 5×5 représente au plus ~168 100 blocs et une grille 10×10 ~42 025,
+  contre 4 194 304 tuiles ;
+- construction interruptible/mesurable en opcodes et mémoire, compatible avec les grandes cartes ;
+- représentation indépendante de MinchinWeb, réutilisable par eau **et** analyse générale du
+  terrain ;
+- stratégie explicite de rafraîchissement/invalidation des blocs affectés par les modifications de
+  carte, plutôt qu'une reconstruction globale aveugle ;
+- migration en deux temps : valider la représentation et ses oracles, puis seulement brancher les
+  consommateurs et retirer `water_lakes_connectivity`, `water_lakes_ops_budget` et le code Lakes.
+
+Premier protocole attendu : construire les deux grilles sur 256²/512²/1024²/2048², mesurer
+RAM/opcodes/temps, comparer 5×5 et 10×10, puis vérifier le typage sur un échantillon de blocs et la
+connectivité eau contre un oracle BFS borné/exact. **Aucun default de jeu ou de politique n'est à
+changer avant cette qualification.**
 
 Les autres sujets restent disponibles : catchment réel des gares, placement/bruit d'aéroport,
 jonctions/agrandissement de gare, `station_join`, coût A*, réglages de partie avec mode désactivé,
@@ -1294,13 +1391,15 @@ Validation finale : tests B9+freeze **17/17**, selftest B9 OK, `py_compile` OK,
 | B4 | fait | feeder orders 6/6 + smoke | clôture conservée |
 | B5 | fait | contrats état/reload + validations | clôture conservée |
 | B6 | fait — 06.5 non adopté | passif 10/10 : 41/630 choix changés ; variante 5×6 : −135,5 k£/an, valeur −27,31 %, 1 V / 4 D | garder `portfolio_fresh_budget=0` ; 06.11 P3 mesuré/non adopté, refresh concurrent rejeté ; 06.12 dormant |
-| B7/G11 | fait — 10.1/10.2/10.3 techniques | budget Lakes interruptible + distance inconnue fail-closed + connectivité fail-before-spend ; contrats + smoke final | scan freeze 2026/1337 inconclusif ; 10.5 mesure reste séparé |
+| B7/G11 | fait — 10.1/10.2/10.3 techniques + 10.5 mesuré | budget Lakes interruptible + distance inconnue fail-closed + connectivité fail-before-spend ; RAM/opcodes jusqu'à 2048² | scan freeze 2026/1337 inconclusif ; aucun default eau changé |
 | B8 | fait | contrats rebut 7/7 + smoke ; 5×6 non exposé | ne pas prétendre preuve dynamique du rebut |
 | **B9/G4 résiduel** | **fait** | 17/17 + smoke 2×3 + 5×6 10/10, marginal exact 59/59 | aucun default AIR adopté |
 | M1 | fait | 8/8 + selftest + smoke 2×3 | — |
 | M2 | dormant ou non exposé | flags concernés à 0 | traiter avant réactivation |
 | **M3/G12** | **fait — diagnostic, non adopté** | smoke 2×3 + 5×6 **10/10**, 135 887 événements | AIR P2 exposé ; NewGRF non mesuré ; pas de 20×10 |
-| M4 | fait — diagnostic + 16.2 corrigé | `max_trains=0` post-fix : 10/10 sains, 0 projet rail, 0 build fail, 0 £ failed spend | 16.1 non reproduit ; 16.4/RAM = mesure externe |
+| M4 | fait — diagnostic + 16.2 corrigé + 16.4 mesuré | `max_trains=0` post-fix : 10/10 sains, 0 projet rail, 0 build fail, 0 £ failed spend ; Lakes ~128 B/tuile, ~14 opcodes/tuile | 16.1 non reproduit ; 16.4/10.5 clos comme mesure externe |
+| C57 | abandonné | calibrage Lakes devenu sans objet | supersédé par C67 ; ne pas lancer le banc 50 000 opcodes |
+| **C67** | **ouvert — conception/mesure** | grille 5×5 vs 10×10 + typage eau/relief/plat | qualifier RAM/opcodes/précision puis remplacer Lakes sans modifier les defaults avant preuve |
 | M5/G2 résiduel | dormant ou non exposé | `c39_engine_refresh=0` | pas de lot autonome |
 | M6 | dormant ou non exposé | pas d'exposition courante | pas de correctif autonome |
 | M7/11.1 | fait | contrat 15/15/15 + 13/13 + C65 + smoke 2×3 4/4 | fallback inconnu seulement |
@@ -1374,11 +1473,14 @@ runner hôte borné à 6 CPU / 2g / 2g avec cache persistant.
 - **pf.forbid_90_deg=1** : 10/10 runs sains, zéro erreur NoAI, 34 projets rail choisis et rail
   construit dans chaque graine (1/4/2/2/2 véhicules). L'hypothèse crash/boucle n'est pas
   reproduite sur ce périmètre ; les internals `Pathfinder.Rail` restent externes au dépôt ;
-- 16.3 reste clos ; 16.4 reste une preuve RAM externe absente. 10.5 n'est pas exposé par ces runs
-  (zéro véhicule eau). Le 1024² C46 déjà valide n'est pas rejoué et ne contient pas RSS/heap.
+- 16.3 reste clos ; 16.4/10.5 a ensuite été mesuré par micro-banc constructeur. Les tailles
+  256²/512²/1024² suivent ~128 B/tuile et ~14 opcodes/tuile ; le 2048² long 3× termine 3/3 avec
+  524 788 KiB de delta RSS médian, 58 726 159 opcodes nets et 5 872 ticks. L'ancien horizon court
+  était insuffisant ; aucun OOM/plafond `AIList` n'est démontré.
 
-**Décision : M4 fait — diagnostic, non adopté.** Aucun `.nut` n'a changé, donc aucun nouveau smoke
-n'est requis. M7/11.1, alors identifié comme prochain lot, est désormais traité ci-dessous.
+**Décision : M4 fait — diagnostic + mesure, non adopté.** Aucun `.nut` OpexAI comportemental n'a
+changé pour 16.4, donc aucun nouveau smoke n'est requis. M7/11.1, alors identifié comme prochain lot,
+est désormais traité ci-dessous.
 
 ## Revue 2026-09-16 — clôture M7 / 11.1
 
@@ -1463,7 +1565,7 @@ décidables, **6 changeraient réellement l'élection** (4 inversions de rang, 2
 108 choix inchangés ; 5 égalités et 8 cas hors oracle restent non tranchés. Le refresh concurrent
 qui supprimait subventions/extensions reste rejeté. **Décision : 06.11 clos comme diagnostic P3,
 correctif général non adopté ; `portfolio_cache` reste actif, aucun 20×10.** Les autres restes sont
-mesure/politique (10.5, M3 AIR) ou cosmétique/inert (21.1), pas des correctifs techniques à appliquer
+architecture/mesure (C67), politique (M3 AIR) ou cosmétique/inert (21.1), pas des correctifs techniques à appliquer
 à l'aveugle.
 
 Le smoke Docker final post-`.nut` `results/review_b6_0611_final_smoke_2x3_v2.json` est sain **2/2**

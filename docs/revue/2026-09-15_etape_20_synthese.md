@@ -150,9 +150,11 @@ Aucun `.nut` n'ayant changé pour G0, aucun nouveau smoke n'était requis.
 | M1 | fait | 8/8 + selftest C50 + smoke 2×3 | comportement préservé |
 | B6 | fait — 06.5 et 06.11 mesurés, non adoptés | 06.5 : passif 10/10, 41/630 choix changés ; variante 5×6 −135,5 k£/an. 06.11 : 5×6 10/10, 136/348 tops recyclés, 6/114 décisions fret changeraient après repricing | garder `portfolio_fresh_budget=0` et `portfolio_cache` ; refresh général 06.11 rejeté/non adopté ; 06.12 dormant |
 | **B9 / G4 résiduel** | **fait** | 17/17 + smoke 2×3 + 5×6 final 10/10 ; marginal joint exact 59/59 | aucun default AIR adopté |
-| B7 / G11 | fait — 10.1/10.2/10.3 techniques | budget Lakes interruptible, distance inconnue fail-closed, connectivité fail-before-spend, contrats + smoke final | scan freeze 2026/1337 inconclusif ; 10.5 mesure reste |
+| B7 / G11 | fait — 10.1/10.2/10.3 techniques + 10.5 mesuré | budget Lakes interruptible, distance inconnue fail-closed, connectivité fail-before-spend ; RAM/opcodes Lakes mesurés jusqu'à 2048² | scan freeze 2026/1337 inconclusif ; 10.5 clos comme mesure, aucun default changé |
+| C57 | **abandonné** | le calibrage 50 000 opcodes ne sera pas poursuivi | architecture Lakes destinée à être retirée ; supersédé par C67 |
+| **C67** | **ouvert — architecture/mesure** | analyse de carte par blocs 5×5 ou 10×10, typage eau/terrain/relief | mesurer granularité, RAM/opcodes et précision avant branchement ; remplacera ensuite Lakes |
 | B8 | fait | 7/7 contrats rebut + smoke | 5×6 non exposé : ne pas surinterpréter |
-| M4 | fait — diagnostic + 16.2 corrigé | post-fix `max_trains=0` : 10/10, 0 projet rail, 0 failed spend | 16.1 non reproduit ; RAM externe non mesurée |
+| M4 | fait — diagnostic + 16.2 corrigé + 16.4 mesuré | post-fix `max_trains=0` : 10/10, 0 projet rail, 0 failed spend ; Lakes ~128 B/tuile, ~14 opcodes/tuile jusqu'à 2048² | 16.1 non reproduit ; 16.4/10.5 clos comme mesure externe |
 | M3 / G12 | fait — diagnostic, non adopté | smoke 2×3 + 5×6 10/10, 135 887 événements | AIR P2 exposé ; NewGRF non mesuré ; aucun 20×10 |
 | M7 / 11.1 | fait | contrat 15/15/15 + 13/13 + selftest C65 + smoke 2×3 4/4 | fallback inconnu seulement ; tâches connues inchangées |
 | M7 / 11.2 | fait dans le workspace courant | retours booléens explicites de `_tryTownGrowth` | comportement déjà présent, non rouvert |
@@ -181,8 +183,8 @@ sa vérification post-construction. Le contrat B7 ciblé, la suite commune **61/
 Le diagnostic ciblé `results/review_b7_water_c56_targeted_2x10.json` sur 2026/1337 ne produit pas
 de trace C56 datée et est donc **inconclusif** (`frozen_count=null`, `measurable_count=0`). Le
 diagnostic a été rendu fail-closed pour que cette absence de mesure ne soit jamais convertie en
-« 0 gel ». Aucun default eau n'est changé ; 10.2 a ensuite été corrigé fail-closed et 10.5 reste
-hors de cette clôture.
+« 0 gel ». Aucun default eau n'est changé ; 10.2 a ensuite été corrigé fail-closed. 10.5 a été
+clos séparément par mesure externe RAM/opcodes le 2026-09-17.
 
 ### Preuves de revue versionnables
 
@@ -256,10 +258,35 @@ descriptif seulement, `max_trains=0` vaut en moyenne 720 197 £/an de `profit_ye
 
 `pf.forbid_90_deg=1` ne provoque ni crash ni blocage d'horizon ; 34 projets rail sont choisis et
 du rail est construit dans les cinq graines (1/4/2/2/2 véhicules finaux). Cela ferme le
-crash/gel observable sur ce périmètre, pas les internals de la bibliothèque externe. 16.4 reste
-une mesure externe absente ; 10.5 n'est pas exposé par ces runs (zéro véhicule eau) et le 1024²
-historique sain ne publie pas de RSS/heap. M4 est donc clos sans comportement/default nouveau ni
-20×10.
+crash/gel observable sur ce périmètre, pas les internals de la bibliothèque externe. 16.4 a ensuite
+été mesuré hors de ces runs avec le micro-banc constructeur Lakes : 256²/512²/1024² donnent une
+pente stable proche de 128 B/tuile et 14 opcodes/tuile ; le 2048² long 3× termine 3/3 avec un delta
+RSS médian de 524 788 KiB et 58 726 159 opcodes nets. L'ancien 2048² incomplet était limité par
+l'horizon, pas par un OOM ou un plafond `AIList` démontré. Autorités :
+`results/review_water_memory_10_5_16_4_v3.json` et `results/review_water_memory_2048_long_3x.json`.
+M4/16.4 et 10.5 sont donc clos comme mesure, sans comportement/default nouveau ni 20×10.
+
+**Décision post-clôture du 2026-09-17 : abandon de Lakes.** Le résultat mémoire ne déclenche pas un
+patch local supplémentaire : il conduit à ne plus investir dans cette architecture. C57 est fermé
+sans calibration. Le successeur C67 repart d'une représentation propre à OpexAI, en découpant la
+carte en blocs 5×5 ou 10×10 à typer (eau, côte/mixte, plat, vallonné, montagne) à partir de mesures
+agrégées de terrain. Cette représentation doit devenir un socle commun pour l'analyse de carte et
+le futur remplacement de la connectivité Lakes. La taille de bloc et les seuils de typage restent
+des hypothèses à mesurer, pas de nouveaux defaults.
+
+Le rôle attendu de C67 dépasse l'eau : le corridor de blocs doit fournir un **pré-devis commun**
+aux projets pour estimer coût de construction, ROI, opcodes, durée/ticks, difficulté et risque de
+faisabilité avant l'A* exact. Il pourra aussi guider le choix du mode, le placement/extensibilité des
+infrastructures et un pré-pathfinding hiérarchique. Le type de bloc reste une vue dérivée d'un
+vecteur de mesures ; l'architecture distingue une couche physique stable d'une couche dynamique
+afin de permettre des invalidations locales.
+
+C67 est explicitement **lazy/opportuniste** : pas de scan complet bloquant au démarrage. Les blocs
+sont calculés à la demande lorsqu'un projet traverse une zone inconnue, puis mis en cache. Le
+remplissage hors demande ne doit se faire que par petites tranches interruptibles lorsque le
+scheduler a du budget d'opcodes inutilisé (notamment pendant des périodes sans projet finançable),
+et doit céder immédiatement la priorité à une tâche métier. Une carte partiellement connue est un
+état normal ; les consommateurs doivent distinguer « bloc non encore calculé » d'une valeur réelle.
 
 ### Clôture M7 / 11.1
 

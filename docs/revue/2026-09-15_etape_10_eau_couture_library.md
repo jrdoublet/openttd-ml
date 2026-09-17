@@ -92,23 +92,48 @@ Manhattan — trois ordres de grandeur sous un budget de 10 000 opcodes/tick
 habituellement ce crash. Statut : motif confirmé présent, mais actuellement inerte et, si
 réactivé sans changer les tailles en jeu, sans danger réel de dépassement d'opcodes.
 
-### 10.5 — Grandes cartes (1024²/2048²) : coût RAM/opcodes du graphe Lakes jamais mesuré, proportionnel à la surface        [gravité : P2]
+### 10.5 — Grandes cartes (1024²/2048²) : coût RAM/opcodes de Lakes mesuré, linéaire avec la surface        [gravité : P2]
 `lib_water.nut:147-159` : le constructeur de `_MinchinWeb_Lakes_` peuple `this._map` (un `AIList`)
 avec une entrée par tuile de la carte entière (`for (local i = 0; i < AIMap.GetMapSize(); i++)
 this._map.AddItem(i, -2);`), instance unique et persistante pour toute la partie
 (`::OpexWaterLakes`, `lib_water.nut:527-532`). Le commentaire ne chiffre que le cas 256×256
 (« ~65 536 »). Rien dans `persist.nut` ne sauvegarde `::OpexWaterLakes` : l'instance est
 reconstruite en entier à chaque (re)chargement du script, y compris après un `Load()` de partie.
-À 1024² (~1,05 M tuiles) et 2048² (~4,19 M tuiles), c'est 16× puis 64× plus d'entrées qu'au cas
-mesuré, donc 16×/64× plus de RAM pour cette seule structure et une boucle de construction 16×/64×
-plus longue (répartie sur plus de ticks, pas un crash immédiat, mais un coût jamais échantillonné
-ni comparé au repère « > 50 Mo = mauvaise IA » cité par `ai/OpexAI/CLAUDE.md`). Aucun banc ni
-sonde du périmètre ne couvre une carte au-delà de 256².
+La mesure externe du 2026-09-17 isole ce constructeur avec `sweeps/fixtures/WaterMemoryProbe` et
+`sweeps/diag_water_memory.py`. Chaque taille est comparée à un contrôle sans allocation, la liste
+reste vivante jusqu'à la fin du processus, et le RSS est lu dans `/proc/<pid>/status`. Les résultats
+3× donnent :
 
-**Réconciliation M4 du 2026-09-16.** Le banc 1024² C46 déjà existant est sain et n'a pas été
-rejoué. Il ne contient toutefois ni RSS/heap externe ni attribution mémoire à Lakes. 10.5 reste
-donc une **question de mesure externe**, pas un défaut technique P1 démontré ; aucun patch de
-`lib_water.nut` n'est justifié.
+| carte | tuiles | delta RSS retenu médian | octets/tuile | opcodes nets médians | opcodes/tuile | ticks |
+|---:|---:|---:|---:|---:|---:|---:|
+| 256² | 65 536 | 8 156 KiB | 127,44 | 917 626 | 14,0019 | 91 |
+| 512² | 262 144 | 32 676 KiB | 127,64 | 3 670 414 | 14,0015 | 367 |
+| 1024² | 1 048 576 | 131 008 KiB | 127,94 | 14 681 563 | 14,0014 | 1 468 |
+| 2048² | 4 194 304 | 524 788 KiB | 128,12 | 58 726 159 | 14,0014 | 5 872 |
+
+Le 2048² court n'achevait pas l'allocation avant l'horizon ; il ne s'agissait ni d'un OOM démontré
+ni d'une limite `AIList`. Le rerun isolé à 365 jours termine 3/3 allocations, avec un HWM processus
+maximal de 698 444 KiB. La pente est donc pratiquement linéaire, autour de 128 octets et 14 opcodes
+par tuile. Le coût RAM est celui de la structure persistante isolée, pas la « RAM de l'IA » entière.
+
+**Clôture 10.5 / M4-16.4 du 2026-09-17.** Autorités :
+`results/review_water_memory_10_5_16_4_v3.json` pour 256²/512²/1024² et
+`results/review_water_memory_2048_long_3x.json` pour le 2048² complet. La mesure confirme un coût
+élevé sur très grande carte mais ne démontre pas un défaut fonctionnel ni ne justifie à elle seule
+un changement de politique/default. Aucun patch de `lib_water.nut` n'est adopté.
+
+**Décision d'architecture postérieure à la clôture, 2026-09-17.** L'utilisateur décide d'abandonner
+l'import/transcription de `MinchinWeb.Lakes` plutôt que de poursuivre son optimisation. La mesure
+10.5 reste valide et devient un argument de conception pour le remplacement : une structure
+persistante à une entrée par tuile n'est pas l'architecture souhaitée pour les grandes cartes.
+**C57 est donc abandonné** : `WATER_LAKES_OPS = 50 000` ne sera pas recalibré.
+
+Le remplacement est renvoyé à **C67**, conjointement avec l'analyse générale de la carte : grille de
+blocs 5×5 ou 10×10 (granularité à trancher par mesure), résumé eau/terre/altitude/relief/plat/pente,
+typage principal eau/côte-mixte/plat/vallonné/montagne, puis graphe léger de voisinage exploitable
+par l'eau et les diagnostics de terrain. Le code Lakes courant n'est pas supprimé par cette décision
+documentaire ; il doit rester fonctionnel jusqu'à validation du remplacement et migration de ses
+consommateurs.
 
 ## Vérifié, n'est PAS un bug
 
@@ -168,10 +193,10 @@ dans ce cas au lieu d'un faux « 0 gel ». Cette limite runtime ne rouvre pas 10
 mécanismes étaient directement présents dans le code ; elle interdit seulement de prétendre que
 ce run prouve l'absence actuelle de gel.
 
-**10.2 est clos techniquement** : si Lakes a confirmé la connectivité mais que le BFS de précision
+**10.2 est clos techniquement sur l'implémentation actuelle** : si Lakes a confirmé la connectivité mais que le BFS de précision
 ne fournit pas de `navigableDistance`, le candidat incrémente toujours
 `lakes_fallback_navigable` puis fait `continue` avant `OpexWaterEconomics`; il n'existe plus de
 `navigableDistance = tariffDistance` sur ce chemin. Le contrat ciblé verrouille cette propriété et
-le smoke final `results/review_final_m4_b7_smoke_2x3.json` est sain. **10.5** reste séparé : mesure
-mémoire/opcodes grandes cartes. C57 conserve le calibrage de la valeur du budget, mais plus la
-lacune technique sur la position de ses contrôles.
+le smoke final `results/review_final_m4_b7_smoke_2x3.json` est sain. **10.5 est clos comme mesure** :
+la structure Lakes coûte ~128 B/tuile et ~14 opcodes/tuile sur 256² à 2048². **C57 est abandonné**
+avec Lakes ; la suite est C67, pas un nouveau calibrage de son budget.
