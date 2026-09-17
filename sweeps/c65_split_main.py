@@ -44,7 +44,6 @@ MODULE_ORDER = (
     "probes.nut",
     "scheduler.nut",
     "task_air.nut",
-    "task_feeders.nut",
     "task_projects.nut",
     "task_rail.nut",
     "task_report.nut",
@@ -175,13 +174,6 @@ _assign("task_town.nut", (
     "OpexCountTownStations",
     "OpexGetServedTowns",
     "OpexAI::_tryTownGrowth",
-))
-_assign("task_feeders.nut", (
-    "OpexFeederCandidateCompare",
-    "OpexAI::_tryBuildFeeders",
-    "OpexMailRollbackStop",
-    "OpexMailRollbackStops",
-    "OpexAI::_tryBuildMailFeeder",
 ))
 _assign("task_water.nut", (
     "OpexWaterBatchSiteStillBuildable",

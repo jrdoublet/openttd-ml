@@ -134,9 +134,7 @@ function OpexLogPortfolioRankWithTension(projects)
              + " pool_air=" + ctx.pool.air + " pool_water=" + ctx.pool.water);
 }
 
-/* C32 : un feeder n'est pas une desserte origine-destination, c'est un RABATTEMENT vers un hub.
- * Un prefixe distinct evite d'evincer ou d'entrer en collision avec une liaison directe entre les
- * memes villes, permettant la coexistence dans candidateGroups. */
+/* Cle stable d'un projet dans candidateGroups. */
 function OpexProjectKeyFor(project)
 {
   local prefix = "";
@@ -155,11 +153,6 @@ function OpexProjectKeyFor(project)
       && ("isRoadExtension" in project.payload) && project.payload.isRoadExtension) {
     return "road_extension|" + project.payload.targetLineId + "|"
            + project.payload.extensionTown;
-  }
-  if (("payload" in project) && project.payload != null
-      && ("isFeeder" in project.payload) && project.payload.isFeeder) {
-    prefix = "feeder|";
-    if ("hubStationId" in project.payload) prefix += project.payload.hubStationId + "|";
   }
   return prefix + OpexProjectPairKey(project.kind, project.cargo, project.src, project.dst);
 }
@@ -984,31 +977,11 @@ function OpexLegacyCandidateStillValid(p, lines, abandonedPairs = null)
       if (AISubsidy.GetExpireDate(subId) - today < chantier) return false;
       return true;
     }
-    local isFeeder = (("payload" in p) && p.payload != null &&
-                      ("isFeeder" in p.payload) && p.payload.isFeeder);
     if (p.kind == "pax") {
       local endpoints = OpexGetCandidateTownEndpoints(p.payload);
       if ((endpoints.srcTown >= 0 && OpexTownBusPaxServed(lines, endpoints.srcTown)) ||
           (endpoints.dstTown >= 0 && OpexTownBusPaxServed(lines, endpoints.dstTown))) return false;
     }
-    if (isFeeder) {
-      local cand = p.payload;
-      local isHubTown = ("isHubTown" in cand) ? cand.isHubTown : false;
-      local maxFeeders = 1;
-      if (isHubTown && FEEDER_TOWN_COVERAGE) {
-        local tId = ("srcTown" in cand && cand.srcTown >= 0) ? cand.srcTown : AITile.GetClosestTown(cand.src);
-        local houses = AITown.IsValidTown(tId) ? AITown.GetHouseCount(tId) : 0;
-        if (houses <= 0 && AITown.IsValidTown(tId)) houses = AITown.GetPopulation(tId) / 25;
-        maxFeeders = OpexCeilDiv(houses, ROAD_STOP_CATCHMENT_HOUSES);
-        if (maxFeeders > 4) maxFeeders = 4;
-        if (maxFeeders < 1) maxFeeders = 1;
-      }
-      local currCount = OpexTownFeederCount(lines, cand.src, cand.hubStationId);
-      local slot = ("feederSlot" in cand) ? cand.feederSlot : 0;
-      local currYear = AIDate.GetYear(AIDate.GetCurrentDate());
-      local startYear = 1970;
-      if (currCount >= maxFeeders || (slot >= 1 && (currYear - startYear) < 2)) return false;
-    } else {
       if (p.kind == "pax") {
         local srcServed = OpexOriginServed(lines, p.src, true);
         local dstServed = OpexOriginServed(lines, p.dst, true);
@@ -1056,7 +1029,6 @@ function OpexLegacyCandidateStillValid(p, lines, abandonedPairs = null)
           if (OpexOriginServed(lines, p.src, true)) return false;
           if (OpexOriginServed(lines, p.dst, true)) return false;
         }
-      }
       local towns = OpexGetCandidateTownEndpoints(p);
       if (C60_TOWN_RATING_PROBE) {
         if (towns.srcTown >= 0) OpexC60ObserveTownRating("road", "incremental_valid", towns.srcTown);
@@ -1160,31 +1132,11 @@ function OpexIndexedCandidateStillValid(p, lineIndex, abandonedPairs = null, upd
       if (AISubsidy.GetExpireDate(subId) - today < chantier) return false;
       return true;
     }
-    local isFeeder = (("payload" in p) && p.payload != null &&
-                      ("isFeeder" in p.payload) && p.payload.isFeeder);
     if (p.kind == "pax") {
       local endpoints = OpexGetCandidateTownEndpoints(p.payload);
       if ((endpoints.srcTown >= 0 && OpexTownBusPaxServed(lineIndex.lines, endpoints.srcTown)) ||
           (endpoints.dstTown >= 0 && OpexTownBusPaxServed(lineIndex.lines, endpoints.dstTown))) return false;
     }
-    if (isFeeder) {
-      local cand = p.payload;
-      local isHubTown = ("isHubTown" in cand) ? cand.isHubTown : false;
-      local maxFeeders = 1;
-      if (isHubTown && FEEDER_TOWN_COVERAGE) {
-        local tId = ("srcTown" in cand && cand.srcTown >= 0) ? cand.srcTown : AITile.GetClosestTown(cand.src);
-        local houses = AITown.IsValidTown(tId) ? AITown.GetHouseCount(tId) : 0;
-        if (houses <= 0 && AITown.IsValidTown(tId)) houses = AITown.GetPopulation(tId) / 25;
-        maxFeeders = OpexCeilDiv(houses, ROAD_STOP_CATCHMENT_HOUSES);
-        if (maxFeeders > 4) maxFeeders = 4;
-        if (maxFeeders < 1) maxFeeders = 1;
-      }
-      local currCount = OpexTownFeederCountIndexed(lineIndex, cand.src, cand.hubStationId);
-      local slot = ("feederSlot" in cand) ? cand.feederSlot : 0;
-      local currYear = AIDate.GetYear(AIDate.GetCurrentDate());
-      local startYear = 1970;
-      if (currCount >= maxFeeders || (slot >= 1 && (currYear - startYear) < 2)) return false;
-    } else {
       if (p.kind == "pax") {
         local srcServed = (p.src in lineIndex.servedAny);
         local dstServed = (p.dst in lineIndex.servedAny);
@@ -1235,7 +1187,6 @@ function OpexIndexedCandidateStillValid(p, lineIndex, abandonedPairs = null, upd
           if (p.src in lineIndex.servedAny) return false;
           if (p.dst in lineIndex.servedAny) return false;
         }
-      }
       local towns = OpexGetCandidateTownEndpoints(p);
       if (updateProbes && C60_TOWN_RATING_PROBE) {
         if (towns.srcTown >= 0) OpexC60ObserveTownRating("road", "incremental_valid", towns.srcTown);
@@ -1453,7 +1404,7 @@ function OpexB6LogSelectionCausality(path, alternatives, funded, snapshotBudget,
 /* B6/06.11 -- oracle passif "cache vs generation fraiche".
  *
  * Ne jamais recalculer ici une economie a la main : les familles speciales
- * (subvention, extension, feeder, joins) ont des constructeurs differents et le
+ * (subvention, extension, joins) ont des constructeurs differents et le
  * precedent essai de refresh en perdait certaines. A la place, _rebuildProjects
  * conserve le vivier cache juste avant la regeneration complete normale puis
  * appelle ce helper avec le vivier fraichement produit. Les deux cotes passent
@@ -1465,7 +1416,6 @@ function OpexB6FreshClass(p)
   if (("payload" in p) && p.payload != null) {
     if (("isSubsidy" in p.payload) && p.payload.isSubsidy) return "subsidy";
     if (("isRoadExtension" in p.payload) && p.payload.isRoadExtension) return "road_extension";
-    if (("isFeeder" in p.payload) && p.payload.isFeeder) return "feeder";
   }
   local mode = ("mode" in p) ? p.mode : "unknown";
   local kind = ("kind" in p) ? p.kind : "";
@@ -1753,7 +1703,7 @@ function OpexDynamicBatchReselect(projects, lines, attempted, capitalBudget, aba
 /* C36.1 : Caching incremental du vivier post-chantier.
  * Au lieu de reconstruire tout le portefeuille ex nihilo apres chaque ligne achevee (15 jours
  * d'attente sur A* et scan aerien), filtre les candidats existants en memoire, injecte les
- * nouveaux feeders / opportunites de flotte, et réélit le portefeuille sur le capital restant.
+ * nouvelles opportunites de flotte, et réélit le portefeuille sur le capital restant.
  * Execution : < 1 tick (< 500 opcodes, 0 jour). */
 function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capitalBudget, fleetPlan = null, abandonedPairs = null)
 {
@@ -1795,7 +1745,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
     if (C48_INCREMENTAL_PROFILE) {
       local c48Days = AIDate.GetCurrentDate() - c48Date;
       OpexC48IncrementalRecord("tension_ctx", OpexOpsMeasureEnd(c48Mark), c48Days,
-          0, 0, 0, 0, 0, 0, 0, 0, 0);
+          0, 0, 0, 0, 0, 0, 0, 0);
     }
   }
 
@@ -1824,10 +1774,8 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
         if (C48_INCREMENTAL_PROFILE) c48Scanned++;
         cacheScanned++;
         if (p == null) continue;
-        /* La flotte et les feeders sont regeneres frais ci-dessous */
+        /* La flotte est regeneree fraiche ci-dessous. */
         if (p.mode == "fleet" && FLEET_PORTFOLIO && fleetPlan != null) continue;
-        if (("payload" in p) && p.payload != null &&
-            ("isFeeder" in p.payload) && p.payload.isFeeder) continue;
         /* Early-slot est une priorite transitoire. Apres chaque chantier, le
          * nombre de villes deja securisees peut changer ; un ancien plan air ne
          * doit donc jamais conserver un bonus devenu perime. Les plans air sont
@@ -1851,49 +1799,11 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
     if (C48_INCREMENTAL_PROFILE) {
       local c48Days = AIDate.GetCurrentDate() - c48Date;
       OpexC48IncrementalRecord("groups_replay", OpexOpsMeasureEnd(c48Mark), c48Days,
-          0, c48Groups, c48Scanned, c48Retained, 0, 0, 0, 0, 0);
+          0, c48Groups, c48Scanned, c48Retained, 0, 0, 0, 0);
     }
   }
 
-  /* 2. Injection des rabattements (feeders) frais vers les hubs */
-  if (FEEDER_PORTFOLIO && ("roadType" in catalog) && catalog.roadType >= 0) {
-    local c48Mark = null;
-    local c48Date = 0;
-    if (C48_INCREMENTAL_PROFILE) {
-      c48Date = AIDate.GetCurrentDate();
-      c48Mark = OpexOpsMeasureBegin();
-    }
-    local freshFeeders = [];
-    local feederStats = {
-      pairsInBand = 0, noMonthly = 0, noEngine = 0, townRejected = 0,
-      economicsUnavailable = 0, profitTooLow = 0, accepted = 0,
-      feederHubs = 0, feederCandidates = 0,
-      roadDistanceShort = 0, roadDistanceLong = 0,
-    };
-    local feederRefreshMark = C41_ROAD_FEEDER_PROFILE ? OpexOpsMeasureBegin() : null;
-    OpexRoadFeederCandidates(catalog, lines, freshFeeders, feederStats, abandonedPairs);
-    if (feederRefreshMark != null) {
-      OpexC39Log("C41_ROAD_FEEDER_REFRESH_PROFILE", "ops=" + OpexOpsMeasureEnd(feederRefreshMark)
-                 + " candidates=" + freshFeeders.len());
-    }
-    if (("road" in projects) && ("stats" in projects.road)) {
-      projects.road.stats.feederHubs = feederStats.feederHubs;
-      projects.road.stats.feederCandidates = feederStats.feederCandidates;
-    }
-    foreach (cand in freshFeeders) {
-      local p = OpexProjectFromCandidate(cand, tensionCtx);
-      if (p != null) {
-        OpexProjectRememberAll(newWinners, p, stats);
-      }
-    }
-    if (C48_INCREMENTAL_PROFILE) {
-      local c48Days = AIDate.GetCurrentDate() - c48Date;
-      OpexC48IncrementalRecord("feeders", OpexOpsMeasureEnd(c48Mark), c48Days,
-          0, 0, 0, 0, freshFeeders.len(), 0, 0, 0, 0);
-    }
-  }
-
-  /* 3. Injection des projets de croissance de flotte (refleet) frais */
+  /* 2. Injection des projets de croissance de flotte (refleet) frais */
   if (FLEET_PORTFOLIO && fleetPlan != null) {
     local c48Mark = null;
     local c48Date = 0;
@@ -1910,7 +1820,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
     if (C48_INCREMENTAL_PROFILE) {
       local c48Days = AIDate.GetCurrentDate() - c48Date;
       OpexC48IncrementalRecord("fleet", OpexOpsMeasureEnd(c48Mark), c48Days,
-          0, 0, 0, 0, 0, fleetPlan.len(), 0, 0, 0);
+          0, 0, 0, 0, fleetPlan.len(), 0, 0, 0);
     }
   }
 
@@ -1934,7 +1844,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
     if (C48_INCREMENTAL_PROFILE) {
       local c48Days = AIDate.GetCurrentDate() - c48Date;
       OpexC48IncrementalRecord("air", OpexOpsMeasureEnd(c48Mark), c48Days,
-          0, 0, 0, 0, 0, 0, freshAirPlans.len(), 0, 0);
+          0, 0, 0, 0, 0, freshAirPlans.len(), 0, 0);
     }
   }
 
@@ -1967,7 +1877,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   if (C48_INCREMENTAL_PROFILE) {
     local c48Days = AIDate.GetCurrentDate() - c48SelectionDate;
     OpexC48IncrementalRecord("selection", OpexOpsMeasureEnd(c48SelectionMark), c48Days,
-        0, 0, 0, 0, 0, 0, 0, c48Alternatives, funded.len());
+        0, 0, 0, 0, 0, 0, c48Alternatives, funded.len());
   }
 
   /* 6. Cloture des statistiques et du capital restant */
@@ -2013,7 +1923,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   if (C48_INCREMENTAL_PROFILE) {
     local c48Days = AIDate.GetCurrentDate() - c48TotalDate;
     OpexC48IncrementalRecord("total", OpexOpsMeasureEnd(c48TotalMark), c48Days,
-        c48Lines, 0, 0, 0, 0, 0, 0, 0, 0);
+        c48Lines, 0, 0, 0, 0, 0, 0, 0);
   }
   return projects;
 }
@@ -2025,7 +1935,6 @@ function OpexProjectEmptyRoad()
     stats = { pairsInBand = 0, noMonthly = 0, noEngine = 0, townRejected = 0,
               economicsUnavailable = 0, profitTooLow = 0, profitNonPositive = 0,
               profitBelowFloorKept = 0, accepted = 0,
-              feederHubs = 0, feederCandidates = 0,
               roadDistanceShort = 0, roadDistanceLong = 0 },
     opcodes = 0,
   };
@@ -2264,8 +2173,8 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_rail", "-");
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "c56_stage_road", "-");
   /* C41.16/C41.17 : mesure seulement les etapes de generation route pendant la passe historique. */
-  local roadProfile = (C41_ROAD_CANDIDATE_PROFILE || C41_ROAD_FREIGHT_PROFILE || C41_ROAD_FREIGHT_TOWN_PROFILE || C41_ROAD_FEEDER_PROFILE)
-      ? { paxOps = 0, freightOps = 0, feederOps = 0, topKOps = 0,
+  local roadProfile = (C41_ROAD_CANDIDATE_PROFILE || C41_ROAD_FREIGHT_PROFILE || C41_ROAD_FREIGHT_TOWN_PROFILE)
+      ? { paxOps = 0, freightOps = 0, topKOps = 0,
           freightPreparationOps = 0, freightIndustryOps = 0, freightTownOps = 0,
           freightTownScanned = 0, freightTownAcceptanceHits = 0, freightTownAcceptanceMisses = 0,
           freightTownAcceptanceOps = 0, freightTownAcceptedPairs = 0, freightTownCandidateOps = 0 } : null;

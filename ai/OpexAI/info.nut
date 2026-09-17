@@ -493,7 +493,7 @@ class OpexAIInfo extends AIInfo {
     /* C41.16 : aucune regeneration supplementaire, seulement une ventilation de la passe normale. */
     AddSetting({
       name = "c41_road_candidate_profile",
-      description = "C41.16 probe: split normal road-candidate generation into pax, freight, feeder and TopK opcodes; no scheduling change; 1 = on, 0 = off (default)",
+      description = "C41.16 probe: split normal road-candidate generation into pax, freight and TopK opcodes; no scheduling change; 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -530,14 +530,6 @@ class OpexAIInfo extends AIInfo {
       description = "C41.20: preindex full-acceptance towns by freight cargo; 1 = on (default), 0 = off",
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "c41_road_feeder_profile",
-      description = "C41.21 probe: split feeder generation in road build and fresh portfolio injection; no scheduling change; 1 = on, 0 = off (default)",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
 
@@ -844,7 +836,7 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    /* C55 etape 1 : sonde seule du verrou OR des candidats route non-feeder. */
+    /* C55 etape 1 : sonde seule du verrou OR des candidats route. */
     AddSetting({
       name = "c55_origin_relax_probe",
       description = "C55 step 1 probe: annually count road origin-served OR rejections and the one-endpoint cases a future OR-to-AND rule could recover; no candidate, rejection, build, or scheduling change; 1 = on, 0 = off (default)",
@@ -1144,65 +1136,13 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    /* C27 : Sortir les bonus du numerateur de densite (fret monopole/chaine, feeder reseau)
-     * pour retablir l'equite modale face a l'aerien dans budgetScore/opcodeScore (docs/taches.md C27).
-     * Valide au banc (results/diag_c27_feeders.json): valeur mediane +17.8%, profit median +26.4%,
-     * feeders vers aeroports en hausse (+13.5%, 37 -> 42), lignes air +47.1% (87 -> 128). Defaut 1. */
+    /* C27 : Sortir les bonus du numerateur de densite pour retablir l'equite modale face a
+     * l'aerien dans budgetScore/opcodeScore (docs/taches.md C27). Defaut 1. */
     AddSetting({
       name = "clean_density_score",
       description = "Sort les bonus du numerateur de densite du portefeuille pour retablir l'equite modale (docs/taches.md C27): 1 = densite brute (adopte), 0 = bonus historiques au numerateur",
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* C29.1 + C29.2 : Deverrouillage du rabattement (feeders) vers hubs aeriens et ferroviaires (docs/taches.md C29).
-     * C29.1 : Hubs restreints aux modes lourds passagers (Air + Rail Pax). Fret pur (charbon, fer) et bus exclus.
-     * C29.2 : Une ville n'est plus bloquee par une ligne de bus ordinaire ; seul un feeder existant vers CE hub l'exclut.
-     * 1 = actif (deverrouille), 0 = historique. */
-    AddSetting({
-      name = "feeder_unlock",
-      description = "Deverrouille le rabattement vers les hubs (docs/taches.md C29.1 et C29.2): 1 = actif, 0 = historique",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* C29.3 : Pricing du feeder calculé sur le revenu hub et le bassin de captage (docs/taches.md C29.3).
-     * Prix = revenu de la ligne du hub * part de captage (repli 78 %). Prevention du double compte.
-     * 1 = pricing calcule (defaut), 0 = bonus forfaitaire historique x1.60. */
-    AddSetting({
-      name = "feeder_pricing",
-      description = "Pricing du feeder selon revenu hub et part captee (docs/taches.md C29.3): 1 = calcule (defaut), 0 = bonus x1.60",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* C32 : LES FEEDERS REVIENNENT AU PORTEFEUILLE (docs/taches.md C32).
-     * C29.3 les avait sortis d'OpexBuildRoadCandidates pour deux motifs, tous deux traites ici :
-     * la collision de cle OD (ils ont desormais leur propre espace de cles, prefixe "feeder|" dans
-     * OpexProjectKeyFor, donc ils n'evincent plus l'aerien via OpexProjectModeBetter) et
-     * l'ecrasement par l'opcodeScore aerien -- qui est precisement ce que l'arbitrage doit
-     * trancher, pas contourner. Sous 1, la tache dediee _tryBuildFeeders est eteinte : la laisser
-     * active batirait la meme ligne deux fois.
-     * 1 = arbitre au portefeuille (defaut), 0 = tache dediee hors arbitrage (comportement C29). */
-    AddSetting({
-      name = "feeder_portfolio",
-      description = "Rabattement arbitre au portefeuille au lieu d'une tache dediee (docs/taches.md C32): 1 = portefeuille (defaut), 0 = tache dediee",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* Les aeroports construisent deja leurs arrets de captage joints (`air_joined_stops`) ; la
-     * generation historique de lignes bus ville->hub est donc exclue par defaut. Le bras 1
-     * demeure disponible pour rejouer cette strategie explicitement au banc. */
-    AddSetting({
-      name = "feeder_candidates",
-      description = "Generate new town-to-hub feeder bus candidates: 0 = disabled by default; airport joined stops remain active, 1 = legacy feeder candidate strategy",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
       flags = AICONFIG_BOOLEAN
     });
 
@@ -1275,47 +1215,12 @@ class OpexAIInfo extends AIInfo {
       flags = AICONFIG_BOOLEAN
     });
 
-    /* C32 : SUPPRESSION DES BONUS FORFAITAIRES DE CLASSEMENT (docs/taches.md C32).
-     * Le fret portait jusqu'a x1,89 sur son roi (monopole x1,40 puis chaine x1,35) et un feeder
-     * x1,60 forfaitaire. Un forfait n'est pas une estimation : il deplace le classement sans rien
-     * predire, et C27 avait deja du le sortir du numerateur de densite parce qu'il faussait un
-     * diagnostic entier. Une fois feeder_pricing en place, aucun mode n'a besoin de forfait.
-     * 0 = aucun bonus forfaitaire (defaut), 1 = forfaits historiques. */
+    /* C32 : bonus forfaitaires historiques du fret. */
     AddSetting({
       name = "flat_bonus",
-      description = "Bonus forfaitaires de classement fret x1.89 et feeder x1.60 (docs/taches.md C32): 0 = supprimes (defaut), 1 = historiques",
+      description = "Bonus forfaitaires historiques de classement du fret (docs/taches.md C32): 0 = supprimes (defaut), 1 = actifs",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* C29.4 : Couverture multi-arrêts urbaine pour rabattement (docs/taches.md C29.4).
-     * Jusqu'à ceil(maisons / ROAD_STOP_CATCHMENT_HOUSES) gares distinctes par ville (modèle AAAHogEx).
-     * 1 = active (defaut), 0 = arret unique historique par ville. */
-    AddSetting({
-      name = "feeder_town_coverage",
-      description = "Couverture multi-arrets urbaine rabattement (docs/taches.md C29.4): 1 = active (defaut), 0 = arret unique",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* C29.5 : Duplication des bus de rabattement passagers par des camions postaux (docs/taches.md C29.5).
-     * Double la flotte de rabattement sur l'infrastructure existante (modele AAAHogEx #M1).
-     * 1 = actif (defaut), 0 = desactive. */
-    AddSetting({
-      name = "feeder_mail_duplicate",
-      description = "Double les bus de rabattement avec des camions postaux (docs/taches.md C29.5): 1 = actif (defaut), 0 = desactive",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "feeder_mail_strict_orders",
-      description = "Mail feeder orders: 1 = city no-unload + hub transfer/no-load (default), 0 = legacy orders for causal benchmark",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
       flags = AICONFIG_BOOLEAN
     });
 
@@ -1360,46 +1265,6 @@ class OpexAIInfo extends AIInfo {
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
-    });
-
-    AddSetting({
-      name = "feeder_enabled",
-      description = "Tache dediee de rabattage bus vers les hubs aeriens/ferroviaires (docs/taches.md C1): 1 = active (defaut), 0 = desactive",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* Conditionnement des feeders au besoin reel du hub (evite construction prematuree ou redondante) :
-     * 1 = actif (attend maturite du hub et stock insuffisant, defaut), 0 = aveugle immediat. */
-    AddSetting({
-      name = "feeder_hub_check",
-      description = "Condition feeder build on hub need: 1 = active (require hub maturity and low waiting stock, default), 0 = blind build",
-      easy_value = 1, medium_value = 1, hard_value = 1,
-      custom_value = 1,
-      flags = AICONFIG_BOOLEAN
-    });
-
-    /* Seuil max de passagers en attente au hub pour autoriser un feeder (au-dela, le hub est sature). */
-    AddSetting({
-      name = "feeder_hub_wait_max",
-      description = "Max hub waiting passengers to allow feeder (above this, hub is already saturated)",
-      min_value = 0, max_value = 1000,
-      easy_value = 100, medium_value = 100, hard_value = 100,
-      custom_value = 100,
-      step_size = 10,
-      flags = 0
-    });
-
-    /* Age minimum (en jours) de la ligne du hub avant d'autoriser la construction d'un feeder. */
-    AddSetting({
-      name = "feeder_hub_min_days",
-      description = "Minimum days of hub line operation before building feeder",
-      min_value = 0, max_value = 365,
-      easy_value = 60, medium_value = 60, hard_value = 60,
-      custom_value = 60,
-      step_size = 5,
-      flags = 0
     });
 
     AddSetting({
@@ -1674,7 +1539,7 @@ class OpexAIInfo extends AIInfo {
      * des projets viables (89 % des rejets vivier etaient des abandoned_pair, docs/taches.md C22). */
     AddSetting({
       name = "abandon_gen_filter",
-      description = "Appliquer les paires abandonnees comme filtre rail/route/feeders (generation, portefeuille et execution ; 1 = filtre actif, defaut adopte ; 0 = memoire de diagnostic sans exclusion, docs/taches.md C22)",
+      description = "Appliquer les paires abandonnees comme filtre rail/route (generation, portefeuille et execution ; 1 = filtre actif, defaut adopte ; 0 = memoire de diagnostic sans exclusion, docs/taches.md C22)",
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       flags = AICONFIG_BOOLEAN
@@ -1884,13 +1749,13 @@ Le mode route est donc reconfirme sur l arbre courant.
     });
 
     /* Hypothese C40 : les bus directs ville-a-ville peuvent cannibaliser le bassin des
-     * aeroports. 0 conserve fret et rabattement, et ne touche ni l'aerien ni les lignes deja
-     * ouvertes ; il ne retire que la famille OpexRoadPaxCandidates du vivier des nouveaux
+     * aeroports. 0 conserve le fret et ne touche ni l'aerien ni les lignes deja ouvertes ;
+     * il ne retire que la famille OpexRoadPaxCandidates du vivier des nouveaux
      * projets. Le defaut 0 privilegie le profit des aeroports ; 1 reconstitue le bras bus du
      * banc apparie. */
     AddSetting({
       name = "road_pax_build",
-      description = "Build new town-to-town passenger bus lines: 0 = disabled by default to preserve airport demand, 1 = enabled; freight and hub feeders stay enabled",
+      description = "Build new town-to-town passenger bus lines: 0 = disabled by default to preserve airport demand, 1 = enabled; freight stays enabled",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -1898,7 +1763,7 @@ Le mode route est donc reconfirme sur l arbre courant.
 
     AddSetting({
       name = "road_pax_extensions",
-      description = "Add spaced stops to existing passenger bus and bus-to-air feeder lines: 0 = disabled by default after the 20-seed benchmark, 1 = experimental",
+      description = "Add spaced stops to existing passenger bus lines: 0 = disabled by default after the 20-seed benchmark, 1 = experimental",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
@@ -2524,21 +2389,21 @@ Le mode route est donc reconfirme sur l arbre courant.
     });
 
     AddSetting({
+      name = "air_route_plane_selection",
+      description = "C68 AIR policy: for an otherwise identical route, choose the compatible aircraft with the highest predicted annual profit; 1 = adopted route-specific choice/default, 0 = historical catalog aircraft",
+      easy_value = 1, medium_value = 1, hard_value = 1,
+      custom_value = 1,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "air_joined_stop_limit",
-      description = "Maximum bus-stop pieces directly joined to each airport station: 2 = current C33.2 behavior (default), 1 = causal split test with remaining urban coverage delegated to real feeder stations",
+      description = "Maximum bus-stop pieces directly joined to each airport station (0-2); 2 = current C33.2 behavior (default)",
       min_value = 0, max_value = 2,
       easy_value = 2, medium_value = 2, hard_value = 2,
       custom_value = 2,
       step_size = 1,
       flags = 0
-    });
-
-    AddSetting({
-      name = "air_split_feeder_test",
-      description = "Causal airport-town test: restrict new feeders to the airport's own town and bypass only the airport-overlap rejection so one distinct urban feeder station can run; 0 = off/default, 1 = test arm",
-      easy_value = 0, medium_value = 0, hard_value = 0,
-      custom_value = 0,
-      flags = AICONFIG_BOOLEAN
     });
 
     AddSetting({
@@ -2581,7 +2446,7 @@ Le mode route est donc reconfirme sur l arbre courant.
 
     AddSetting({
       name = "road_pax_overlap",
-      description = "Pax road: unique catchment after 7x7 overlap, hub-town feeders skipped if they sit in the airport catchment, boardings capped by headway accumulation. 1 = enabled (default), 0 = historical A+B",
+      description = "Pax road: unique catchment after 7x7 overlap and boardings capped by headway accumulation. 1 = enabled (default), 0 = historical A+B",
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       flags = AICONFIG_BOOLEAN
@@ -2597,7 +2462,7 @@ Le mode route est donc reconfirme sur l arbre courant.
 
     AddSetting({
       name = "road_cheap_trace",
-      description = "C37 cheap L-corridor probe (2 sites, 2 L) for pax dist<=12 including feeders: use that plan or CHEAPX (banned). 1 = enabled, 0 = historical (default)",
+      description = "C37 cheap L-corridor probe (2 sites, 2 L) for pax dist<=12: use that plan or CHEAPX (banned). 1 = enabled, 0 = historical (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN

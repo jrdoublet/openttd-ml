@@ -232,7 +232,6 @@ function OpexAI::_runNextTask()
   if (task.name == "scrap") return this._dispatchScrap(task, year);
   if (task.name == "air") return this._dispatchAir(task, year);
   if (task.name == "air_fleet") return this._dispatchAirFleet(task, year);
-  if (task.name == "feeders") return this._dispatchFeeders(task, year);
   if (task.name == "projects") return this._dispatchProjects(task, year);
   if (task.name == "expand") return this._dispatchExpand(task, year);
   if (task.name == "refleet") return this._dispatchRefleet(task, year);

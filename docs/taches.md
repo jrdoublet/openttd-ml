@@ -845,6 +845,39 @@ explicitement exercés via `feeder_candidates=1,feeder_hub_check=0`, 2/2 jeux co
 `failed_runs=[]`. La divergence économique de ce smoke n'est **pas** une preuve d'adoption du mode
 feeder ; ce run valide seulement que le chemin modifié construit et tourne sans rejet d'ordre.
 
+> **Décision courante — 2026-09-17 : feeders supprimés.** Les sections feeder ci-dessous sont
+> conservées uniquement comme historique expérimental. Après vérification du code OpenTTD et des
+> mesures B9, les arrêts `air_joined_stops` appartiennent au même `StationID` que l'aéroport et
+> étendent déjà directement son union de catchment. Le second mécanisme de rabattement routier
+> concurrençait donc ce captage sans topologie suffisamment cohérente. Le réglage `feeder_enabled`,
+> la génération/pricing/exécution/refleet feeder, les ordres de transfert dédiés, leur télémétrie
+> et leurs tests actifs ont été retirés du code de production. Les anciens JSON et scripts de
+> diagnostic restent des archives de mesure, pas une politique disponible.
+
+**Re-test apparié de `feeder_candidates` sur la base courante (2026-09-17, historique).**
+`results/review_feeder_candidates_5x6_20260917.json`, 5 graines × 6 ans, compare uniquement
+`feeder_candidates=0` à `1` avec tous les autres défauts courants identiques : **4 défaites / 1
+victoire**, delta moyen `profit_year = -105 350 £/an`, `company_value = -14,36 %`, et score de
+performance inférieur sur **5/5** graines. L'ancien vivier global reste donc désactivé et ne mérite
+pas de 20×10 sur cette base.
+
+La **seed 999 est le contre-exemple à conserver pour étude ultérieure** : `feeder_candidates=1`
+y gagne **+186 326 £/an** de `profit_year` et **+527 221 £** de valeur malgré `-19` points de
+performance. À analyser par propriétés de carte et trajectoire : position de l'aéroport dans la
+ville, production restant hors catchment des pièces jointes, densité/voirie autour des meilleurs
+stops, longueur/coût du feeder et moment où il est construit. L'objectif est d'expliquer pourquoi
+un vrai feeder est utile sur cette carte sans réactiver le vivier global.
+
+**Feeder résiduel hybride (expérimental, 2026-09-17, retiré).** Nouveau switch `air_residual_feeder=0`
+par défaut. Il reprend le modèle observé chez AAAHogEx sans modifier l'ancien
+`air_split_feeder_test` : les arrêts joints restent prioritaires ; seuls les hubs **air** peuvent
+ensuite produire un feeder dans leur propre ville, et seulement si de la production passagers reste
+hors de l'union réelle du `StationID`. Après choix du stop routier, cette production marginale est
+recalculée tuile par tuile avant toute dépense ; un stop devenu redondant est rejeté. Le feeder
+démarre avec **un seul bus**, avec les ordres stricts ville `NO_UNLOAD` → hub
+`TRANSFER|NO_LOAD`; la cible de flotte reste conservée pour le refleet ultérieur. Ce switch doit
+être mesuré apparié avant toute adoption.
+
 **Clôture B4 — extensions feeder bus (2026-09-16).** Une régression restante du correctif ci-dessus
 a été trouvée puis corrigée dans le workspace courant : `feeder_extension` insérait encore un arrêt
 intermédiaire avec `OF_NONE`, et le feeder bus dédié de `task_feeders.nut` ne persistait pas son
@@ -1340,6 +1373,40 @@ nécessaire.
 Bundle : `845c5b283d86c05fb3360445596e1967edde1d2cbfcd82fb19f08e7864b1dcb2`.
 Manifest : `78c4ac1fe74189a119f954902b8a24242c44158bd812bc5d9a5792d4d7bb1047`.
 
+## Revue 2026-09-17 — clôture C68 sélection avion par route
+
+Le résidu AIR de M3/G12 a été converti en switch causal `air_route_plane_selection` : à route,
+sites, type d'aéroport et demande déjà choisis identiques, l'IA compare les appareils compatibles
+avec `OpexAirEconomics` et retient le meilleur `profitAnnual` (ROI en départage). Le chemin `0`
+préserve la sélection catalogue historique.
+
+Validation : smoke `results/review_c68_air_route_plane_smoke_2x3_v3.json` **4/4 sain** ; diagnostic
+`results/review_c68_air_route_plane_5x6.json` **10/10 sain**, 4/5 graines positives,
+**+235 565 £/an** de `profit_year` moyen. L'autorité C66.4
+`results/review_c68_air_route_plane_20x10_v2.json` couvre **20 graines × 10 ans × 2 politiques**,
+40/40 parties complètes : **15 V / 5 D**, `p_signes=0,041389`, delta moyen primaire
+**+128 201 £/an**, supérieur au seuil +50 000 ; `company_value` **+34,206 %** en ratio des moyennes,
+garde -5 % respectée ; verdict **`pass`**.
+
+Décision : **C68 adopté**. `air_route_plane_selection=1` devient le défaut livré. La portée reste
+volontairement minimale : les pré-filtres de paire et la demande éventuelle restent calculés avant
+le choix C68 avec l'appareil catalogue historique.
+
+Validation post-adoption : `results/review_c68_adopted_default_smoke_2x3.json` est **2/2 sain** ;
+son manifeste publie `air_route_plane_selection=1` dans `defaults` et `effective`, sans le réglage
+dans `explicit`. Le défaut adopté est donc bien celui réellement exécuté.
+
+**Suivi à conserver malgré l'adoption :** les cinq graines perdantes sur le primaire final sont
+`7`, `42`, `1337`, `12345` et `424242`. Elles doivent faire l'objet d'une analyse causale détaillée,
+sans urgence mais avant de considérer C68 comme uniformément compris, car la régression peut dépendre
+de propriétés de carte (géométrie/distances, distribution des villes, compatibilité des aéroports),
+du calendrier d'investissement ou des pré-filtres AIR encore évalués avec l'appareil catalogue.
+Le brut annuel baseline/C68/delta pour `profit_year`, `performance_history` et `company_value` est
+extrait dans `results/review_c68_air_route_plane_20x10_v2_annual_metrics.csv`. La graine `7` est le
+cas prioritaire : elle reste défavorable presque tout l'horizon et termine aussi en baisse de valeur ;
+les quatre autres pertes de profit sont surtout tardives et doivent être comparées à la trajectoire
+des choix de routes/appareils avant toute correction supplémentaire.
+
 ## Revue 2026-09-16 — clôture B9 / G4 résiduel
 
 B9 a été traité **measurement-first** avec `air_catchment_probe=0` par défaut. Le premier
@@ -1374,6 +1441,14 @@ Validation finale : tests B9+freeze **17/17**, selftest B9 OK, `py_compile` OK,
 **Pas d'adoption AIR.** `air_demand_plan=1` possède déjà une autorité 20×10 défavorable
 (`results/bench_air_demand_plan_10y.json` : **−51,5 % `profit_year`**, 5/20,
 `p=0,041`). Il reste 0, `air_catchment_probe` reste 0 et `early_slot=1` reste adopté.
+
+**Décision du 2026-09-17 — conserver `air_joined_stops`, retirer les feeders.** La relecture des
+logs B9 confirme que les pièces bus jointes augmentent bien l'union de couverture du `StationID`
+de l'aéroport : ce ne sont pas des terminaux de correspondance nécessitant un bus. Elles captent
+directement le cargo dans leur propre rayon et le rendent disponible à la station aéroportuaire.
+Le mécanisme feeder expérimental a donc été supprimé du code courant, avec son réglage et ses
+branches mortes. `air_joined_stops` reste inchangé fonctionnellement ; ses anciens résultats de
+mesure et les anciens bancs feeder sont conservés pour traçabilité.
 
 ## Matrice de revue actuelle
 

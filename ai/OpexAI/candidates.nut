@@ -72,12 +72,6 @@ function OpexFreightCargoOrder(catalog)
 }
 VIVIER_RATIO_FILTER <- true;
 CLEAN_DENSITY_SCORE <- true;
-/* C29.1 + C29.2 : Deverrouillage du rabattement (feeders) vers hubs aeriens et ferroviaires */
-FEEDER_UNLOCK <- true;
-/* C29.3 : Pricing du feeder calculé sur le revenu hub et le bassin de captage */
-FEEDER_PRICING <- true;
-/* C29.4 : Couverture multi-arrêts urbaine pour rabattement (modèle AAAHogEx) */
-FEEDER_TOWN_COVERAGE <- true;
 PROBE_STASH_K <- 12;
 /* "Presque admis" : predit > -1000. L'echelle du plancher MIN_RATIO * iterations/1000
  * pour une ligne courte (~500*310/1000 = 155) est plus petite ; -1000 reste du meme
@@ -1006,7 +1000,7 @@ function OpexOriginServed(lines, tile, includeRoad)
 /* C41.18 : index spatial exact de la meme predicate que OpexOriginServed(..., true).
  * ORIGIN_SEPARATION = 3 est petit : materialiser son losange de rayon 2 pour chaque extremite
  * economise les appels DistanceManhattan repetees sur toutes les villes et industries. Ce helper
- * est volontairement local au fret route ; rail, feeders et controles de construction gardent
+ * est volontairement local au fret route ; rail et controles de construction gardent
  * l'autorite historique OpexOriginServed. */
 function OpexRoadFreightServedIndex(lines)
 {
@@ -1081,7 +1075,6 @@ function OpexBuildLineIndex(lines)
     servedRail = {},       // tile -> true (DistanceManhattan < 3 sur rail seul)
     townRoadCounts = {},   // townId -> count
     tileToRoadLines = {},  // tile -> [otherOrigin1, otherOrigin2, ...]
-    feederCounts = {},     // "townId|hubStationId" -> count
     roadFreightBusy = {},  // "cargo|origin" -> true
     airLines = [],         // liste filtree des lignes de mode == "air"
     airPairs = {},         // "min(originA,originB)|max(originA,originB)" -> true
@@ -1113,42 +1106,14 @@ function OpexBuildLineIndex(lines)
       idx.roadFreightBusy[line.cargo + "|" + line.originB] <- true;
     }
 
-    // 3. Décomptes routiers par ville & feeders
+    // 3. Décomptes routiers par ville
     if (mode == "road") {
       local isPax = !("cargo" in line) || line.cargo < 0 || AICargo.HasCargoClass(line.cargo, AICargo.CC_PASSENGERS);
-      local isFeeder = (("isFeeder" in line) && line.isFeeder) || (("purpose" in line) && line.purpose == "feeder");
-
       if (isPax && ("originA" in line) && ("originB" in line)) {
-        if (isFeeder) {
-          local tA = ("srcTown" in line && line.srcTown >= 0) ? line.srcTown : AITile.GetClosestTown(line.originA);
-          if (tA >= 0) idx.townRoadCounts[tA] <- (tA in idx.townRoadCounts) ? idx.townRoadCounts[tA] + 1 : 1;
-        } else {
-          local tA = AITile.GetClosestTown(line.originA);
-          local tB = AITile.GetClosestTown(line.originB);
-          if (tA >= 0) idx.townRoadCounts[tA] <- (tA in idx.townRoadCounts) ? idx.townRoadCounts[tA] + 1 : 1;
-          if (tB >= 0 && tB != tA) idx.townRoadCounts[tB] <- (tB in idx.townRoadCounts) ? idx.townRoadCounts[tB] + 1 : 1;
-        }
-      }
-
-      /* P1 : Seules les lignes passagers comptent dans feederCounts (conformement a OpexTownFeederCount).
-       * Le courrier (feeder_mail) ne doit pas reduire les quotas de rabattement passagers. */
-      if (isFeeder && isPax && ("originA" in line)) {
-        local targetStation = ("hubStationId" in line) ? line.hubStationId : -1;
-        if (targetStation < 0 && ("stationB" in line) && AIMap.IsValidTile(line.stationB)) {
-          targetStation = AIStation.GetStationID(line.stationB);
-        }
-        if (targetStation >= 0) {
-          local tA = ("srcTown" in line && line.srcTown >= 0) ? line.srcTown : -1;
-          local tOrig = AITile.GetClosestTown(line.originA);
-          if (tA >= 0) {
-            local fKey = tA + "|" + targetStation;
-            idx.feederCounts[fKey] <- (fKey in idx.feederCounts) ? idx.feederCounts[fKey] + 1 : 1;
-          }
-          if (tOrig >= 0 && tOrig != tA) {
-            local fKey2 = tOrig + "|" + targetStation;
-            idx.feederCounts[fKey2] <- (fKey2 in idx.feederCounts) ? idx.feederCounts[fKey2] + 1 : 1;
-          }
-        }
+        local tA = AITile.GetClosestTown(line.originA);
+        local tB = AITile.GetClosestTown(line.originB);
+        if (tA >= 0) idx.townRoadCounts[tA] <- (tA in idx.townRoadCounts) ? idx.townRoadCounts[tA] + 1 : 1;
+        if (tB >= 0 && tB != tA) idx.townRoadCounts[tB] <- (tB in idx.townRoadCounts) ? idx.townRoadCounts[tB] + 1 : 1;
       }
     }
 
@@ -1234,14 +1199,6 @@ function OpexRoadPairServedIndexed(idx, tileA, tileB)
     if (AIMap.DistanceManhattan(tileB, otherOrigin) < ORIGIN_SEPARATION) return true;
   }
   return false;
-}
-
-function OpexTownFeederCountIndexed(idx, townTile, hubStationId)
-{
-  if (idx == null || !AIStation.IsValidStation(hubStationId)) return 0;
-  local townId = AITile.GetClosestTown(townTile);
-  local fKey = townId + "|" + hubStationId;
-  return (fKey in idx.feederCounts) ? idx.feederCounts[fKey] : 0;
 }
 
 /* C41.20 : les villes qui n'acceptent pas une unite pleine ne pourront jamais devenir un puits
@@ -2038,7 +1995,7 @@ function OpexRoadIterations(distance)
  * rapport annuel et la mise au rebut sont communs), plus ce qu'il faut pour retrouver les sites
  * d'arret : le role de chaque extremite (ville ou industrie) et, pour une ville, son identifiant. */
 function OpexMakeRoadCandidate(catalog, kind, cargo, src, dst, srcTown, dstTown, distance,
-                               monthly, stats, isTransformer = false, isFeeder = false)
+                               monthly, stats, isTransformer = false)
 {
   local engine = (cargo in catalog.roadEngineByCargo) ? catalog.roadEngineByCargo[cargo] : null;
   if (engine == null) {
@@ -2056,15 +2013,13 @@ function OpexMakeRoadCandidate(catalog, kind, cargo, src, dst, srcTown, dstTown,
     stats.economicsUnavailable++;
     return null;
   }
-  /* Le plancher historique reste telemetre mais ne peut plus eliminer un mode avant le ROI.
-   * Pour un feeder, le profit direct routier est souvent negatif sur courte distance (5-10 tuiles),
-   * mais sa rentabilite globale est portee par le reseau aerien/ferroviaire (FEEDER_PRICING). */
-  if (!isFeeder && economics.profitAnnual <= 0) {
+  /* Le plancher historique reste telemetre mais ne peut plus eliminer un mode avant le ROI. */
+  if (economics.profitAnnual <= 0) {
     stats.profitTooLow++;
     if ("profitNonPositive" in stats) stats.profitNonPositive++;
     return null;
   }
-  if (!isFeeder && economics.profitAnnual < ROAD_MIN_PROFIT_ANNUAL) {
+  if (economics.profitAnnual < ROAD_MIN_PROFIT_ANNUAL) {
     stats.profitTooLow++;
     if ("profitBelowFloorKept" in stats) stats.profitBelowFloorKept++;
   }
@@ -2135,18 +2090,9 @@ function OpexTownRoadLineCount(lines, townTile)
   foreach (line in lines) {
     if (!("mode" in line) || line.mode != "road") continue;
     if (("cargo" in line) && line.cargo >= 0 && !AICargo.HasCargoClass(line.cargo, AICargo.CC_PASSENGERS)) continue;
-    local isFeeder = (("isFeeder" in line) && line.isFeeder) ||
-                     (("purpose" in line) && line.purpose == "feeder");
-    if (isFeeder) {
-      if (("srcTown" in line && line.srcTown == townId) ||
-          AITile.GetClosestTown(line.originA) == townId) {
-        count++;
-      }
-    } else {
-      if (AITile.GetClosestTown(line.originA) == townId ||
-          AITile.GetClosestTown(line.originB) == townId) {
-        count++;
-      }
+    if (AITile.GetClosestTown(line.originA) == townId ||
+        AITile.GetClosestTown(line.originB) == townId) {
+      count++;
     }
   }
   return count;
@@ -2154,7 +2100,7 @@ function OpexTownRoadLineCount(lines, townTile)
 
 /* Une commune passagers appartient a une seule ligne bus de base. Toute croissance ulterieure
  * passe par un projet d'extension de CETTE ligne, jamais par une seconde paire qui cannibalise
- * les memes maisons. Les feeders comptent aussi comme desserte bus de la commune. */
+ * les memes maisons. */
 function OpexTownBusPaxServed(lines, townId)
 {
   if (lines == null || townId < 0) return false;
@@ -2166,84 +2112,11 @@ function OpexTownBusPaxServed(lines, townId)
     local srcTown = ("srcTown" in line && line.srcTown >= 0)
         ? line.srcTown : AITile.GetClosestTown(line.originA);
     if (srcTown == townId) return true;
-    local isFeeder = (("isFeeder" in line) && line.isFeeder) ||
-                     (("purpose" in line) && line.purpose == "feeder");
-    if (isFeeder) continue;
     local dstTown = ("dstTown" in line && line.dstTown >= 0)
         ? line.dstTown : AITile.GetClosestTown(line.originB);
     if (dstTown == townId) return true;
   }
   return false;
-}
-
-/* C29.4 : Compte le nombre de lignes de rabattement (feeders) actives reliant une ville à un hub donné. */
-function OpexTownFeederCount(lines, townTile, hubStationId)
-{
-  if (lines == null || !AIStation.IsValidStation(hubStationId)) return 0;
-  local count = 0;
-  local townId = AITile.GetClosestTown(townTile);
-  foreach (line in lines) {
-    if (!("mode" in line) || line.mode != "road") continue;
-    if (("cargo" in line) && line.cargo >= 0 && !AICargo.HasCargoClass(line.cargo, AICargo.CC_PASSENGERS)) continue;
-    local isFeeder = (("isFeeder" in line) && line.isFeeder) ||
-                     (("purpose" in line) && line.purpose == "feeder");
-    if (!isFeeder) continue;
-    local targetStation = ("hubStationId" in line) ? line.hubStationId : -1;
-    if (targetStation < 0 && ("stationB" in line)) {
-      targetStation = AIStation.GetStationID(line.stationB);
-    }
-    if (targetStation == hubStationId) {
-      if (("srcTown" in line && line.srcTown == townId) ||
-          AITile.GetClosestTown(line.originA) == townId) {
-        count++;
-      }
-    }
-  }
-  return count;
-}
-
-/* C29.2 : Verifie si une ville possede deja une ligne de rabattement (feeder) active vers un hub donne.
- * Contrairement a OpexRoadPairServed, les lignes routieres ordinaires (interurbaines) ne bloquent pas
- * le rabattement vers ce hub. */
-function OpexTownFeederServed(lines, townTile, hubStationId)
-{
-  return OpexTownFeederCount(lines, townTile, hubStationId) > 0;
-}
-
-/* C31.3 : index (ville, hub) -> { count, stops }, construit en UN SEUL parcours des lignes.
- *
- * OpexTownFeederCount etait rappele pour CHAQUE couple (ville, hub) et reparcourait a chaque fois
- * toutes les lignes en appelant AITile.GetClosestTown. Sur l'etat mesure -- 57 villes, jusqu'a
- * 45 hubs (results/diag_1v1_10y.json.gz), 14 feeders -- cela fait de l'ordre de 36 000 appels API par
- * execution de la tache, pour un resultat qui ne depend que des lignes. L'index le rend en
- * O(lignes) : un seul appel GetClosestTown par ligne heritee, aucun pour les lignes posees depuis
- * C29 puisqu'elles portent `srcTown` (main.nut:1552).
- *
- * Difference de semantique assumee : l'ancien code rattachait une ligne heritee a une ville par
- * proximite (DistanceManhattan < ORIGIN_SEPARATION), l'index le fait par IDENTITE de ville. C'est
- * le meme test que celui deja applique aux lignes portant `srcTown`, donc l'index est homogene la
- * ou l'ancien code melangeait deux criteres. */
-function OpexBuildFeederIndex(lines)
-{
-  local index = {};
-  if (lines == null) return index;
-  foreach (line in lines) {
-    if (!("mode" in line) || line.mode != "road") continue;
-    if (("cargo" in line) && line.cargo >= 0 && !AICargo.HasCargoClass(line.cargo, AICargo.CC_PASSENGERS)) continue;
-    local isFeeder = (("isFeeder" in line) && line.isFeeder) ||
-                     (("purpose" in line) && line.purpose == "feeder");
-    if (!isFeeder) continue;
-    local hubId = ("hubStationId" in line) ? line.hubStationId : -1;
-    if (hubId < 0 && ("stationB" in line)) hubId = AIStation.GetStationID(line.stationB);
-    if (hubId < 0) continue;
-    local townId = ("srcTown" in line && line.srcTown >= 0)
-        ? line.srcTown : AITile.GetClosestTown(line.originA);
-    local key = townId + "|" + hubId;
-    if (!(key in index)) index[key] <- { count = 0, stops = [] };
-    index[key].count++;
-    if (("stationA" in line) && line.stationA != null) index[key].stops.append(line.stationA);
-  }
-  return index;
 }
 
 /* C23 : Modélisation physique du bassin de captage d'un arrêt de bus (rayon 3 tuiles).
@@ -2344,11 +2217,9 @@ function OpexRoadLineTownStopCount(line, townId)
   local srcTown = ("srcTown" in line && line.srcTown >= 0)
       ? line.srcTown : AITile.GetClosestTown(line.originA);
   if (srcTown == townId) count++;
-  local isFeeder = (("isFeeder" in line) && line.isFeeder) ||
-                   (("purpose" in line) && line.purpose == "feeder");
   local dstTown = ("dstTown" in line && line.dstTown >= 0)
       ? line.dstTown : AITile.GetClosestTown(line.originB);
-  if (!isFeeder && dstTown == townId) count++;
+  if (dstTown == townId) count++;
   if (("extraStops" in line) && line.extraStops != null) {
     foreach (stop in line.extraStops) {
       if (stop != null && ("town" in stop) && stop.town == townId &&
@@ -2392,26 +2263,14 @@ function OpexRoadExtensionCandidates(catalog, lines, out, stats)
     if (("year" in line) && currentYear <= line.year) continue;
     if (("lastExtensionYear" in line) && line.lastExtensionYear == currentYear) continue;
 
-    local isFeeder = (("isFeeder" in line) && line.isFeeder) ||
-                     (("purpose" in line) && line.purpose == "feeder");
-    if (isFeeder) {
-      local hubId = ("hubStationId" in line) ? line.hubStationId : AIStation.GetStationID(line.stationB);
-      /* Le type demande est bus -> air. Un feeder rail reste une ligne a deux arrets. */
-      if (!AIStation.IsValidStation(hubId) ||
-          !AIStation.HasStationType(hubId, AIStation.STATION_AIRPORT) ||
-          !FEEDER_TOWN_COVERAGE) continue;
-    }
-
     local ends = [];
     local townA = ("srcTown" in line && line.srcTown >= 0)
         ? line.srcTown : AITile.GetClosestTown(line.originA);
     if (AITown.IsValidTown(townA)) ends.append({ name = "A", town = townA, anchor = line.stationA });
-    if (!isFeeder) {
-      local townB = ("dstTown" in line && line.dstTown >= 0)
-          ? line.dstTown : AITile.GetClosestTown(line.originB);
-      if (AITown.IsValidTown(townB) && townB != townA) {
-        ends.append({ name = "B", town = townB, anchor = line.stationB });
-      }
+    local townB = ("dstTown" in line && line.dstTown >= 0)
+        ? line.dstTown : AITile.GetClosestTown(line.originB);
+    if (AITown.IsValidTown(townB) && townB != townA) {
+      ends.append({ name = "B", town = townB, anchor = line.stationB });
     }
 
     foreach (end in ends) {
@@ -2444,7 +2303,6 @@ function OpexRoadExtensionCandidates(catalog, lines, out, stats)
       local amort = ((capital * INFRA_AMORT_PCT / 100) / INFRA_LIFE_YEARS);
       local profit = (revenue * 80) / 100 - amort;
       if (profit <= 0) continue;
-      local extensionType = isFeeder ? "feeder_extension" : "bus_pax_extension";
       out.append({
         mode = "road", kind = "pax", cargo = cargo,
         src = site.tile, dst = end.anchor, srcTown = end.town, dstTown = end.town,
@@ -2455,7 +2313,7 @@ function OpexRoadExtensionCandidates(catalog, lines, out, stats)
         oneWayDays = ROAD_PAX_STOP_DWELL_DAYS, effectiveSpeed = 0,
         iterations = 1, ratio = profit * 1000,
         roi = (profit * 1000) / capital,
-        isRoadExtension = true, extensionType = extensionType,
+        isRoadExtension = true, extensionType = "bus_pax_extension",
         targetLineId = line.lineId, extensionTown = end.town,
         extensionEnd = end.name, extensionSite = site,
       });
@@ -2773,328 +2631,6 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
   }
 }
 
-/* Famille 4 (Transferts / Feeders) : ville satellite libre -> Gare Hub ou Aéroport existant.
- * Les bus acheminent les passagers vers le hub avec un ordre de transfert (OF_TRANSFER),
- * décuplant le flux capté par les lignes ferroviaires et aériennes longue distance. */
-/* G12.3 : l'emprise qui concurrence un feeder appartient au hub deja construit, pas au
- * catalogue courant. Les arrets joints C33.2 sont dans le meme StationID : chacun agrandit le
- * rayon effectif jusqu'a son propre rayon de collecte. */
-function OpexHubPaxCatchmentRadius(hub)
-{
-  local radius = (hub.mode == "rail")
-      ? AIStation.GetCoverageRadius(AIStation.STATION_TRAIN)
-      : AIStation.GetCoverageRadius(AIStation.STATION_AIRPORT);
-  if (radius < 1) radius = 4;
-
-  if (hub.mode == "air" && ("airportTile" in hub) &&
-      AIAirport.IsAirportTile(hub.airportTile)) {
-    local airportType = AIAirport.GetAirportType(hub.airportTile);
-    local w = AIAirport.GetAirportWidth(airportType);
-    local h = AIAirport.GetAirportHeight(airportType);
-    local airportRadius = AIAirport.GetAirportCoverageRadius(airportType);
-    if (airportRadius > 0) radius = airportRadius + w + h - 2;
-  }
-
-  if (AIStation.IsValidStation(hub.stationId) &&
-      AIStation.HasStationType(hub.stationId, AIStation.STATION_BUS_STOP)) {
-    local busRadius = AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP);
-    local stops = AITileList_StationType(hub.stationId, AIStation.STATION_BUS_STOP);
-    for (local tile = stops.Begin(); !stops.IsEnd(); tile = stops.Next()) {
-      local stopRadius = AIMap.DistanceManhattan(hub.tile, tile) + busRadius;
-      if (stopRadius > radius) radius = stopRadius;
-    }
-  }
-  return radius;
-}
-
-function OpexRoadFeederCandidates(catalog, lines, out, stats, abandonedPairs = null)
-{
-  /* Les arrets joints poses a la creation d'un aeroport assurent le captage local sans une
-   * ligne bus supplementaire. Le reglage ne retire jamais ces arrets ni les lignes existantes :
-   * il coupe uniquement l'ancien vivier de nouveaux rabattements ville->hub. */
-  if (!FEEDER_CANDIDATES_ENABLED && !AIR_SPLIT_FEEDER_TEST) return;
-  local cargo = catalog.paxCargo;
-  if (cargo < 0 || !(cargo in catalog.roadEngineByCargo)) return;
-  local towns = catalog.towns;
-  local n = towns.len();
-
-  /* air_fleet_probe : ZERO feeder n'a jamais ete bati (mesure du 2026-09-02, 5 graines x 3 ans),
-   * alors que le mecanisme est cable de bout en bout. Impossible de dire si c'est la GENERATION
-   * ou l'ELECTION qui echoue sans compter les deux. `feederHubs` et `feederCandidates` repondent
-   * a la premiere question ; le panneau FE| de main.nut repond a la seconde. */
-  if (!("feederHubs" in stats)) stats.feederHubs <- 0;
-  if (!("feederCandidates" in stats)) stats.feederCandidates <- 0;
-
-  local hubs = [];
-  local hubMap = {};
-  local feedersPerHub = {};
-
-  foreach (line in lines) {
-    if (!("mode" in line)) continue;
-    local isFeeder = (("isFeeder" in line) && line.isFeeder) ||
-                     (("purpose" in line) && line.purpose == "feeder");
-    if (isFeeder) {
-      local hId = ("hubStationId" in line) ? line.hubStationId : -1;
-      if (hId < 0 && ("stationB" in line)) hId = AIStation.GetStationID(line.stationB);
-      if (hId >= 0) {
-        feedersPerHub[hId] <- (hId in feedersPerHub) ? feedersPerHub[hId] + 1 : 1;
-      }
-      continue;
-    }
-
-    if (FEEDER_UNLOCK) {
-      /* C29.1 : Seuls l'aerien passagers et le rail passagers sont des hubs.
-       * Le fret ferroviaire (charbon, minerai, etc.) et le bus ordinaire sont exclus. */
-      if (line.mode == "air") {
-        if (("cargo" in line) && line.cargo != cargo) continue;
-      } else if (line.mode == "rail") {
-        if (!("cargo" in line) || line.cargo != cargo) continue;
-      } else {
-        continue;
-      }
-    } else {
-      if (line.mode != "rail" && line.mode != "air") continue;
-    }
-
-    local stA = OpexLineStationId(line, "A");
-    local stB = OpexLineStationId(line, "B");
-    local rev = ("predRevenue" in line) ? line.predRevenue : (("predicted" in line) ? line.predicted : 0);
-    local carried = ("predCarried" in line) ? line.predCarried : 0;
-
-    local ends = [ { st = stA, tile = line.stationA }, { st = stB, tile = line.stationB } ];
-    foreach (end in ends) {
-      local st = end.st;
-      if (st < 0) continue;
-      if (!(st in hubMap)) {
-        hubMap[st] <- {
-          stationId = st,
-          tile = end.tile,
-          airportTile = (line.mode == "air")
-              ? ((end.tile == line.stationA) ? line.originA : line.originB) : null,
-          /* C31.3 : la ville du hub ne depend pas de la ville candidate. La resoudre ici, une fois
-           * par hub, au lieu d'un AITile.GetClosestTown(hub.tile) par couple (ville, hub). */
-          townId = AITile.GetClosestTown(end.tile),
-          mode = line.mode,
-          totalRevenue = 0,
-          totalCarried = 0,
-          lineCount = 0,
-          airLines = 0,
-          railLines = 0,
-          totalAirRevenue = 0,
-          totalAirCarried = 0,
-          totalRailRevenue = 0,
-          totalRailCarried = 0,
-        };
-      }
-      local h = hubMap[st];
-      if (rev > 0) h.totalRevenue += rev;
-      if (carried > 0) h.totalCarried += carried;
-      h.lineCount++;
-      if (line.mode == "air") {
-        h.airLines++;
-        /* Le premier contributeur du StationID peut etre rail : l'aeroport reel doit alors
-         * remplacer le repli null du hub mixte. */
-        h.airportTile = (end.tile == line.stationA) ? line.originA : line.originB;
-        if (rev > 0) h.totalAirRevenue += rev;
-        if (carried > 0) h.totalAirCarried += carried;
-        h.mode = "air";
-      } else if (line.mode == "rail") {
-        h.railLines++;
-        if (rev > 0) h.totalRailRevenue += rev;
-        if (carried > 0) h.totalRailCarried += carried;
-      }
-    }
-  }
-
-  foreach (st, h in hubMap) {
-    h.existingFeeders <- (st in feedersPerHub) ? feedersPerHub[st] : 0;
-    hubs.append(h);
-  }
-  stats.feederHubs = hubs.len();
-  if (hubs.len() == 0) return;
-
-  /* C31.3 : un seul parcours des lignes pour tout le double balayage ville x hub ci-dessous. */
-  local feederIndex = OpexBuildFeederIndex(lines);
-
-  for (local i = 0; i < n; i++) {
-    if (!FEEDER_UNLOCK && OpexOriginServed(lines, towns[i].tile, true)) continue;
-    local pop = towns[i].pop;
-    if (pop < 200) continue;
-    /* Une ligne passagers existante est etendue ; on ne superpose jamais une seconde ligne de
-     * base (feeder ou ordinaire) sur la meme commune. */
-    if (OpexTownBusPaxServed(lines, towns[i].id)) continue;
-    local produced = AITown.GetLastMonthProduction(towns[i].id, cargo);
-    if (produced <= 0) continue;
-
-    /* C31.3 : towns[i].id EST l'identifiant de la ville (catalog.nut garde AITown.GetLocation),
-     * donc aucun AITile.GetClosestTown n'est necessaire de ce cote non plus. */
-    local townKeyPrefix = towns[i].id + "|";
-
-    foreach (hub in hubs) {
-      local isHubTown = (towns[i].id == hub.townId);
-            if (AIR_SPLIT_FEEDER_TEST && (!isHubTown || hub.mode != "air")) continue;
-      local distance = AIMap.DistanceManhattan(towns[i].tile, hub.tile);
-
-      /* Distance :
-       * - Pour la ville du hub : l'aéroport/gare est implanté dans la ville (distance <= 16 tuiles).
-       * - Pour les villes satellites : bande interurbaine standard 5..25 tuiles (ROAD_MAX_DISTANCE). */
-      if (isHubTown) {
-        if (distance > 16) continue;
-      } else if (!OpexRoadDistanceAllowed(catalog, distance, stats)) {
-        continue;
-      }
-
-      /* Une seule ligne feeder de base par commune. Les arrets suivants sont des
-       * `feeder_extension` de cette ligne et partagent sa liste d'ordres. */
-      local feederEntry = ((townKeyPrefix + hub.stationId) in feederIndex)
-          ? feederIndex[townKeyPrefix + hub.stationId] : null;
-      local existingCount = (feederEntry != null) ? feederEntry.count : 0;
-      if (existingCount >= 1) continue;
-      /* G9§2 : aligner le filtre feeders sur la meme garde que les candidats
-       * ordinaires. Sans ABANDON_GEN_FILTER, abandon_gen_filter=0 doit pouvoir
-       * ramener les paires abandonnees a l'arbitrage seul. */
-      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
-        local feederKey = "feeder|" + towns[i].id + "|" + hub.stationId + "|" + existingCount;
-        if (feederKey in abandonedPairs) continue;
-      }
-
-      stats.pairsInBand++;
-      /* Premiere couverture de la ligne de base. */
-      local houses = ("houses" in towns[i] && towns[i].houses > 0) ? towns[i].houses : (towns[i].pop / 25);
-      if (houses <= 0) houses = 1;
-      local remainingHouses = houses;
-      local marginalProd = (produced * remainingHouses) / houses;
-      local monthly = OpexTownBusCatchment(towns[i], marginalProd);
-      if (monthly <= 0) continue;
-      if (ROAD_PAX_OVERLAP && !(AIR_SPLIT_FEEDER_TEST && isHubTown)) {
-        /* Le rayon vient de l'aeroport/rail reel et de ses arrets joints, pas du premier
-         * aeroport du catalogue mensuel. */
-        local hubRadius = OpexHubPaxCatchmentRadius(hub);
-        local oHub = OpexRoadCatchmentOverlapFrac(distance, ROAD_PAX_CATCHMENT_RADIUS, hubRadius);
-        if (oHub > 0.25) continue;
-        monthly = (monthly.tofloat() * (1.0 - oHub)).tointeger();
-        if (monthly <= 0) continue;
-      }
-
-      local roadMin = OpexCatalogBounds(catalog).roadMin;
-      local candDist = distance < roadMin ? roadMin : distance;
-      local candidate = OpexMakeRoadCandidate(catalog, "pax", cargo, towns[i].tile, hub.tile,
-                                              towns[i].id, -1, candDist, monthly, stats, false, true);
-      if (candidate != null) {
-        stats.feederCandidates++;
-        candidate.isFeeder <- true;
-        candidate.hubStationId <- hub.stationId;
-        candidate.hubMode <- hub.mode;
-        candidate.feederSlot <- existingCount;
-        candidate.isHubTown <- isHubTown;
-
-        /* Collecter les gares pour garantir la séparation spatiale >= 6 tuiles (modèle AAAHogEx) :
-         * - Pour la ville du hub : TOUJOURS exclure l'emplacement du hub (hub.tile) pour que
-         *   l'arrêt de bus de quartier soit posé à >= 6 tuiles de l'aéroport/gare et capte
-         *   un quartier différent !
-         * - Exclure également les arrêts de bus déjà construits dans cette ville vers ce hub. */
-        local existingStops = [];
-        if (isHubTown) {
-          existingStops.append(hub.tile);
-        }
-        /* C31.3 : les arrets deja poses de ce couple (ville, hub) viennent de l'index, qui les a
-         * collectes dans le meme parcours unique que les compteurs. */
-        if (feederEntry != null) {
-          foreach (stopTile in feederEntry.stops) existingStops.append(stopTile);
-        }
-        candidate.existingStops <- existingStops;
-
-        if (FEEDER_PRICING) {
-          /* C29.3 : Pricing economique physique du feeder selon le rendement par passager du hub.
-           * Valeur = passagers apportes par le feeder * (revenu hub / passagers hub).
-           * Plafonne a 78 % (100 - TOWN_CATCHMENT_SHARE_PCT) du revenu total de la ligne du hub. */
-          local hubRev = 0;
-          local hubCarried = 0;
-          if (("airLines" in hub) && hub.airLines > 0) {
-            hubRev = hub.totalAirRevenue;
-            hubCarried = hub.totalAirCarried;
-          } else if (("railLines" in hub) && hub.railLines > 0) {
-            hubRev = hub.totalRailRevenue;
-            hubCarried = hub.totalRailCarried;
-          } else if (("lineCount" in hub) && hub.lineCount > 0) {
-            hubRev = hub.totalRevenue;
-            hubCarried = hub.totalCarried;
-          }
-
-          if (hubRev > 0) {
-            local feederPax = (("carried" in candidate) && candidate.carried > 0) ? candidate.carried : monthly;
-            local maxSharePct = 100 - TOWN_CATCHMENT_SHARE_PCT; /* 78 % */
-            local networkRev = 0;
-
-            if (hubCarried > 0) {
-              /* Rendement physique : passagers feeder * rendement unitaire hub */
-              networkRev = (feederPax * hubRev) / hubCarried;
-              local maxRev = (hubRev * maxSharePct) / 100;
-              if (networkRev > maxRev) networkRev = maxRev;
-            } else {
-              /* Repli si hubCarried n'est pas renseigne : part du bassin communal */
-              local hubPop = AITown.IsValidTown(hub.townId) ? AITown.GetPopulation(hub.townId) : 0;
-              local sharePct = maxSharePct;
-              if (hubPop > 0) {
-                local hubCapturedPax = (hubPop * TOWN_CATCHMENT_SHARE_PCT) / 100;
-                if (hubCapturedPax > 0) {
-                  sharePct = (feederPax * 100) / hubCapturedPax;
-                  if (sharePct > maxSharePct) sharePct = maxSharePct;
-                  if (sharePct < 1) sharePct = 1;
-                }
-              }
-              networkRev = (hubRev * sharePct) / 100;
-            }
-
-            /* Reserve #2 : Prevention du double compte / repartition entre feeders sur le meme hub */
-            local k = ("existingFeeders" in hub) ? hub.existingFeeders : 0;
-            networkRev = networkRev / (k + 1);
-
-            /* Marge operationnelle reseau (~80 % pour l'aerien/rail) */
-            local networkProfit = (networkRev * 80) / 100;
-
-            candidate.networkRevenue <- networkRev;
-            candidate.networkProfit <- networkProfit;
-            candidate.feederBonus <- networkProfit;
-            local totalProfit = candidate.profitAnnual + networkProfit;
-            if (totalProfit <= 0) continue;
-            candidate.profitAnnual = totalProfit;
-            candidate.revenueAnnual += networkRev;
-            candidate.roi = candidate.capital > 0 ? (totalProfit * 1000) / candidate.capital : candidate.roi;
-            candidate.ratio = candidate.iterations > 0 ? (totalProfit * 1000) / candidate.iterations : candidate.ratio;
-          } else {
-            /* Repli historique si aucun revenu de ligne n'est encore disponible sur le hub */
-            if (candidate.profitAnnual <= 0) continue;
-            /* C32 : le forfait x1,60 ne s'applique plus que sous flat_bonus = 1. */
-            if (FLAT_BONUS) {
-              candidate.roi = (candidate.roi * 160) / 100;
-              candidate.ratio = (candidate.ratio * 160) / 100;
-              candidate.feederBonus <- 160;
-              if (!CLEAN_DENSITY_SCORE) {
-                candidate.profitAnnual = (candidate.profitAnnual * 160) / 100;
-                candidate.revenueAnnual = (candidate.revenueAnnual * 160) / 100;
-              }
-            }
-          }
-        } else {
-          /* Bonus ROI forfaitaire historique (+60 %) */
-          if (candidate.profitAnnual <= 0) continue;
-          if (FLAT_BONUS) {   /* C32 */
-            candidate.roi = (candidate.roi * 160) / 100;
-            candidate.ratio = (candidate.ratio * 160) / 100;
-            candidate.feederBonus <- 160;
-            if (!CLEAN_DENSITY_SCORE) {
-              candidate.profitAnnual = (candidate.profitAnnual * 160) / 100;
-              candidate.revenueAnnual = (candidate.revenueAnnual * 160) / 100;
-            }
-          }
-        }
-        out.append(candidate);
-      }
-    }
-  }
-}
-
 /* Classement routier complet. Rendu a part de celui du rail : les deux ne partagent ni leur unite
  * de cout (cf. ROAD_PLAN_ITERATIONS_BASE) ni leur phase de construction. */
 /* C41.16 : `profile` est fourni seulement par la sonde du scheduler. Il n'influence jamais les
@@ -3106,17 +2642,15 @@ function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null, 
   local stats = {
     pairsInBand = 0, noMonthly = 0, noEngine = 0, townRejected = 0, townAcceptancePrefiltered = 0,
     economicsUnavailable = 0, profitTooLow = 0, profitNonPositive = 0,
-    profitBelowFloorKept = 0, accepted = 0,
-    feederHubs = 0, feederCandidates = 0, extensionCandidates = 0,
+    profitBelowFloorKept = 0, accepted = 0, extensionCandidates = 0,
     /* C43/E3 famille 2 : ROAD_MIN_DISTANCE/ROAD_MAX_DISTANCE mordent-elles ? */
     roadDistanceShort = 0, roadDistanceLong = 0,
   };
   if (catalog.roadType < 0) return { all = 0, best = [], stats = stats, opcodes = 0 };
 
   budget.begin();
-  /* L'option n'exclut que les nouvelles liaisons bus pax ville-a-ville. Les camions et les
-   * feeders restent dans le portefeuille : ils ne sont pas les concurrents des aeroports que
-   * l'experience cherche a isoler. */
+  /* L'option n'exclut que les nouvelles liaisons bus pax ville-a-ville. Les camions restent
+   * dans le portefeuille. */
   if (ROAD_PAX_BUILD_ENABLED) {
     local mark = profile != null ? OpexOpsMeasureBegin() : null;
     OpexRoadPaxCandidates(catalog, lines, all, stats, abandonedPairs);
@@ -3131,16 +2665,6 @@ function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null, 
   OpexRoadFreightCandidates(catalog, lines, all, stats, abandonedPairs, profile, freightCargo);
   if (freightMark != null) {
     profile.freightOps += OpexOpsMeasureEnd(freightMark);
-  }
-  /* C32 : les feeders reviennent a l'arbitrage. C29.3 les avait sortis d'ici pour deux motifs,
-   * tous deux traites : la collision de cle OD (ils ont desormais leur propre espace de cles,
-   * prefixe "feeder|" dans OpexProjectRemember, donc ils n'evincent plus l'aerien) et
-   * l'ecrasement par l'opcodeScore aerien -- qui est precisement ce que l'arbitrage doit
-   * trancher, pas contourner. Sous feeder_portfolio = 0, comportement C29 conserve. */
-  if (FEEDER_PORTFOLIO) {
-    local feederMark = profile != null ? OpexOpsMeasureBegin() : null;
-    OpexRoadFeederCandidates(catalog, lines, all, stats, abandonedPairs);
-    if (profile != null) profile.feederOps += OpexOpsMeasureEnd(feederMark);
   }
   local ops = budget.end("cand_road");
 

@@ -40,7 +40,6 @@ RAIL_SEGMENTED_SEARCH <- true;
 /* Journalisation structuree des decisions (decision_log) : repli FAUX. */
 DECISION_LOG <- false;
 _lastAirRefuseMonth <- -1;
-_lastFeederRefuseMonth <- -1;
 _lastProjectScanMonth <- -1;
 /* La memoire est l'autre correctif, independamment des 40 000 iterations. Elle reste un repli
  * actif jusqu'a la lecture unique de abandon_memory dans Start(), comme les autres reglages de

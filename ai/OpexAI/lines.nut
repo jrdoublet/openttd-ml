@@ -270,11 +270,6 @@ function OpexAbandonedPairKey(candidate)
   if (("isSubsidy" in candidate) && candidate.isSubsidy) {
     return "subsidy|" + candidate.subsidyId;
   }
-  if (("isFeeder" in candidate) && candidate.isFeeder) {
-    local srcTown = ("srcTown" in candidate && candidate.srcTown >= 0) ? candidate.srcTown : AITile.GetClosestTown(candidate.src);
-    local slot = ("feederSlot" in candidate) ? candidate.feederSlot : 0;
-    return "feeder|" + srcTown + "|" + candidate.hubStationId + "|" + slot;
-  }
   local src = candidate.src;
   local dst = candidate.dst;
   if (candidate.kind == "pax") {

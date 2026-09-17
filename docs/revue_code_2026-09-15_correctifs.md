@@ -1708,6 +1708,40 @@ avant le smoke final.
 
 Le smoke final post-`.nut` `results/review_final_residuals_smoke_2x3.json` est complet et sain sur
 42/100 ; son manifeste enregistre correctement le workspace courant `dirty=1`. Les preuves citées
+ci-dessus restent valides.
+
+## C68 — sélection économique de l'avion par route, adoptée le 2026-09-17
+
+Le diagnostic M3/G12 montrait un appareil catalogue statique alors que le meilleur profit variait
+par route. C68 introduit `air_route_plane_selection` comme intervention minimale : après le choix
+historique de la paire, des sites, du type d'aéroport et de la demande, les appareils compatibles
+sont réévalués avec `OpexAirEconomics`; meilleur `profitAnnual`, ROI en départage. Sous `0`, le couple
+historique appareil/économie est conservé.
+
+Preuves : smoke post-implémentation `review_c68_air_route_plane_smoke_2x3_v3.json` **4/4 sain** ;
+5×6 `review_c68_air_route_plane_5x6.json` **10/10 sain**, 4/5 graines positives et
+**+235 565 £/an** moyen. L'autorité `review_c68_air_route_plane_20x10_v2.json` est complète
+**20/20** : `profit_year` **+128 201 £/an**, 15 V / 5 D, `p_signes=0,041389`, IC95 du delta moyen
+[12 230,64 ; 244 171,36] ; `company_value` +34,206 % en ratio des moyennes. Les trois conditions
+C66.4 (`sign_pass`, effet moyen >= +50 000, garde valeur >= -5 %) passent ; verdict **`pass`**.
+
+**Décision : adoption.** `air_route_plane_selection=1` devient le défaut livré. Le mécanisme ne
+prétend pas corriger les routes éliminées plus tôt par `maxOrderDistance` de l'appareil catalogue ni
+recalculer `AIR_DEMAND_PLAN` avec l'appareil C68 : ces pré-filtres restent volontairement hors de
+l'intervention causale testée.
+
+Le smoke post-adoption `results/review_c68_adopted_default_smoke_2x3.json` passe **2/2**. Le manifeste
+confirme que C68 vaut 1 dans `defaults` et `effective`, alors que `explicit` contient seulement
+`air_early_slot=1`, `abandon_gen_filter=1` et `abandon_cooldown_days=365`.
+
+Résidu d'analyse explicitement conservé : les pertes finales de `profit_year` sur les graines
+`7`, `42`, `1337`, `12345`, `424242` doivent être expliquées avant toute nouvelle généralisation de
+la politique. L'hypothèse à tester est une interaction avec les propriétés de carte et la trajectoire
+d'investissement, plutôt qu'un simple mauvais choix d'appareil uniforme. Le brut annuel
+baseline/C68/delta des trois métriques principales est exporté dans
+`results/review_c68_air_route_plane_20x10_v2_annual_metrics.csv`. La graine `7` est prioritaire car
+elle termine aussi avec une `company_value` inférieure ; les quatre autres conservent une valeur
+finale supérieure malgré leur perte de profit annuelle.
 par cette revue sont désormais empaquetées sous `evidence/review/` en gzip déterministe. L'index
 conserve les tailles et SHA256 du JSON brut et du gzip ; `sweeps/test_review_evidence.py` vérifie
 décompression, hash brut, couverture des références et recompression déterministe. `results/`

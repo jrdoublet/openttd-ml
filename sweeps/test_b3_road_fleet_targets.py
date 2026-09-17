@@ -32,7 +32,6 @@ class TestB3RoadFleetTargets(unittest.TestCase):
         self.candidates = source("candidates.nut")
         self.projects = source("projects.nut")
         self.road = source("task_road.nut")
-        self.feeders = source("task_feeders.nut")
         self.report = source("task_report.nut")
         self.info = source("info.nut")
         self.settings = source("settings.nut")
@@ -129,13 +128,6 @@ class TestB3RoadFleetTargets(unittest.TestCase):
         self.assertIn("ROAD_TIME_SCALED_CAP", body)
         self.assertIn("OpexRoadFleetVehicleCap(nStopsA, nStopsB, oneWayDays, line.kind)", body)
         self.assertIn("if (target > physicalCap) target = physicalCap", body)
-
-    def test_dedicated_bus_feeder_persists_same_measurements(self):
-        body = function_body(self.feeders, "function OpexAI::_tryBuildFeeders(")
-        self.assertIn("predVehiclesForVolume =", body)
-        self.assertIn("predRoadBerthCapacity =", body)
-        self.assertIn("predRoadVehicleCap =", body)
-        self.assertIn("predTrains = candidate.trains", body)
 
     def test_annual_report_separates_raw_berth_vehicle_cap_and_actual_fleet(self):
         body = function_body(self.report, "function OpexAI::_reportLines(")

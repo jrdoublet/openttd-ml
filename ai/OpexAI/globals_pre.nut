@@ -9,11 +9,11 @@ ROAD_BUILD_ENABLED <- true;
 STAGED_BOOTSTRAP <- true;
 /* Les bus ville-a-ville sont utiles dans la bande courte, mais peuvent prendre le bassin d'une
  * liaison aerienne plus rentable. Ce drapeau ne coupe que cette famille de nouveaux candidats :
- * fret routier, feeders vers les hubs et lignes deja construites restent actifs. Le defaut faux
- * privilegie le profit des aeroports ; le banc peut reconstituer le bras bus avec
+ * le fret routier et les lignes deja construites restent actifs. Le defaut faux privilegie le
+ * profit des aeroports ; le banc peut reconstituer le bras bus avec
  * road_pax_build = 1. */
 ROAD_PAX_BUILD_ENABLED <- false;
-/* Ajout d'arrets espaces aux lignes passagers existantes (urbaines et feeders bus -> air). */
+/* Ajout d'arrets espaces aux lignes passagers existantes. */
 ROAD_PAX_EXTENSIONS <- false;
 /* Part du bassin de ville propre aux bus. 86 est le calibrage route adopte au banc.
  * Le reglage road_pax_catchment_pct vaut 0 pour reconstituer le repli rail a 22 % ; une valeur
@@ -30,21 +30,6 @@ ROAD_PAX_STOP_DWELL_DAYS <- 6;
 AIR_PAX_REVENUE_CALIBRATION_PCT <- 104;
 /* C27 : Sortir les bonus du numerateur de densite du portefeuille (adopte) */
 CLEAN_DENSITY_SCORE <- true;
-/* C29.1 + C29.2 : Deverrouillage du rabattement (feeders) vers hubs aeriens et ferroviaires */
-FEEDER_UNLOCK <- true;
-/* C29.3 : Pricing du feeder calculé sur le revenu hub et le bassin de captage */
-FEEDER_PRICING <- true;
-/* C29.4 : Couverture multi-arrêts urbaine pour rabattement (modèle AAAHogEx) */
-FEEDER_TOWN_COVERAGE <- true;
-/* C29.5 : Duplication des bus de rabattement passagers par des camions postaux (modèle AAAHogEx #M1) */
-FEEDER_MAIL_DUPLICATE <- true;
-/* Ordres courrier strictement unidirectionnels ville -> hub : ville sans dechargement,
- * hub en transfert sans chargement. Defaut adopte = vrai ; le switch existe pour banc causal. */
-FEEDER_MAIL_STRICT_ORDERS <- true;
-/* Conditionnement des feeders au besoin reel du hub (maturite et stock insuffisant) */
-FEEDER_HUB_CHECK <- true;
-FEEDER_HUB_WAIT_MAX <- 100;
-FEEDER_HUB_MIN_DAYS <- 60;
 /* Panneaux de diagnostic : lu UNE fois depuis le reglage dans Start(), pas a chaque appel (57
  * panneaux par an, GetSetting a chaque fois serait du gaspillage d'opcodes pour une valeur qui ne
  * change jamais en cours de partie). Defaut vrai : voir info.nut::debug_signs -- toute
@@ -71,14 +56,12 @@ AIR_CATCHMENT_PROBE <- false;
 /* M3/G12 : sonde passive du choix de materiel avant ROI. Elle n'est jamais lue par les
  * regles de selection ; elle autorise uniquement les comparatifs et logs de diagnostic. */
 EQUIPMENT_ROI_PROBE <- false;
-/* Banc causal 2026-09-15 : nombre maximal d'arrets bus annexes partageant directement le
- * StationID de l'aeroport. Le comportement courant C33.2 est 2 ; 1 permet de comparer
- * "station aeroport etendue" a "une seule piece jointe + vrais feeders". */
+/* C68 : politique causale issue de M3. A sites, aeroport, demande et admission identiques,
+ * choisir l'appareil compatible qui maximise le profit predit de CETTE route. Adoptee apres
+ * autorite 20x10 C66.4 du 2026-09-17. */
+AIR_ROUTE_PLANE_SELECTION <- true;
+/* Nombre maximal d'arrets bus annexes partageant directement le StationID de l'aeroport. */
 AIR_JOINED_STOP_LIMIT <- 2;
-/* Banc causal 2026-09-15 : avec un seul arret directement joint a l'aeroport, autoriser
- * un vrai feeder uniquement dans la ville du hub. Cela isole piece-station vs station
- * distincte + circulation sans ajouter de rabattements interurbains. */
-AIR_SPLIT_FEEDER_TEST <- false;
 /* Early-slot experimental: prioritise profitable air projects that claim a first
  * airport in large towns before competitors can consume both town slots. */
 AIR_EARLY_SLOT <- false;
@@ -148,8 +131,6 @@ C41_ROAD_FREIGHT_SERVED_INDEX <- false;
 C41_ROAD_FREIGHT_TOWN_PROFILE <- false;
 /* C41.20 : index experimental des puits urbains acceptant le cargo fret. */
 C41_ROAD_FREIGHT_ACCEPTANCE_INDEX <- false;
-/* C41.21 : ventilation passive des deux generations de feeders. */
-C41_ROAD_FEEDER_PROFILE <- false;
 /* C41.22 : cout et debit du pipeline rail vers le portefeuille, sans preemption. */
 C41_RAIL_PORTFOLIO_PROFILE <- false;
 /* C41.23 : ventilation passive de la generation rail pax/fret/classement. */
@@ -309,15 +290,6 @@ PORTFOLIO_LOG <- false;
  * Pour l'aerien, la LARGEUR bat la PROFONDEUR : une liaison neuve ouvre un flux entier, un avion
  * de plus n'ajoute qu'une tranche marginale. Le reglage reste comme instrument. */
 FLEET_BEFORE_NEW <- false;
-/* Construction dediee de rabattages vers les hubs (docs/taches.md C1). */
-FEEDER_ENABLED <- true;
-/* Les aeroports neufs recoivent deja leurs arrets de bus joints dans leur ville
- * (`AIR_JOINED_STOPS`), sans vehicule ni correspondance. Les anciens candidats ville->hub
- * restent disponibles seulement pour rejouer leur strategie au banc ; ils sont exclus par
- * defaut du vivier et de sa regeneration incrementale. */
-FEEDER_CANDIDATES_ENABLED <- false;
-/* C32 : rabattement arbitre au portefeuille (1) au lieu de la tache dediee (0). */
-FEEDER_PORTFOLIO <- true;
 /* C45 : persistance complete de l'etat de decision. Defaut aligne sur info.nut (custom_value = 1),
  * adopte au banc officiel 20x10 apparie -- les vingt graines identiques au bit pres. */
 SAVE_FULL_STATE <- true;
@@ -325,7 +297,7 @@ SAVE_FULL_STATE <- true;
 AIR_PORTFOLIO <- true;
 /* C34.2 : croissance de flotte aerienne arbitree par le portefeuille (1) au lieu de la tache dediee. */
 FLEET_PORTFOLIO <- true;
-/* C32 : bonus forfaitaires de classement (fret x1,89, feeder x1,60). 0 = supprimes. */
+/* C32 : bonus forfaitaires de classement du fret. 0 = supprimes. */
 FLAT_BONUS <- false;
 /* Devis réel par AITestMode + AIAccounting avant engagement (docs/taches.md C7). */
 RAIL_DEVIS <- true;

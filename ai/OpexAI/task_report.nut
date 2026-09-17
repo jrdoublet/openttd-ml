@@ -373,46 +373,6 @@ function OpexAI::_scrapDeadLines(year)
     local line = this._lines[i];
     if (!("deadStreak" in line)) continue;
 
-    /* Recuperation des feeders marques pour ferraillage par l'ancien traitement generique
-     * VehicleUnprofitable. Les arrets et le depot existent encore : ne pas vendre le dernier
-     * vehicule d'une ligne de rabattement valide. Cette branche sert aussi aux sauvegardes
-     * deja touchees avant le correctif 2026-09-15. */
-    local isFeederLine =
-        ((("isFeeder" in line) && line.isFeeder) ||
-         (("purpose" in line) && (line.purpose == "feeder" || line.purpose == "feeder_mail")));
-    if (isFeederLine) {
-      local stationA = ("stationA" in line) ? AIStation.GetStationID(line.stationA) : AIStation.STATION_INVALID;
-      local stationB = ("stationB" in line) ? AIStation.GetStationID(line.stationB) : AIStation.STATION_INVALID;
-      local infrastructureValid = AIStation.IsValidStation(stationA)
-          && AIStation.IsValidStation(stationB)
-          && ("depot" in line) && AIRoad.IsRoadDepotTile(line.depot);
-      if (infrastructureValid) {
-        if (("scrapVehicles" in line) && line.scrapVehicles != null) {
-          foreach (v in line.scrapVehicles) {
-            if (this._vehiclesToScrap != null && (v in this._vehiclesToScrap)) delete this._vehiclesToScrap[v];
-            if (this._vehiclesToRetire != null && (v in this._vehiclesToRetire)) delete this._vehiclesToRetire[v];
-            if (this._unprofitableStreaks != null && (v in this._unprofitableStreaks)) delete this._unprofitableStreaks[v];
-            if (AIVehicle.IsValidVehicle(v) && AIVehicle.IsStoppedInDepot(v)) {
-              AIVehicle.StartStopVehicle(v);
-            }
-          }
-        }
-        line.deadStreak = 0;
-        if ("scrapping" in line) line.scrapping = false;
-        else line.scrapping <- false;
-        if ("scrapVehicles" in line) line.scrapVehicles = [];
-        else line.scrapVehicles <- [];
-        /* Un feeder sauve redevient une ligne normale. Garder l'ancien timer ferait qu'un futur
-         * rebut, parfois plusieurs annees plus tard, serait immediatement considere timeout. */
-        if ("scrapStartYear" in line) delete line.scrapStartYear;
-        if (DECISION_LOG) {
-          OpexDecide("FEEDER_RECOVER", "line=" + line.lineId
-                     + " action=cancel_scrap scrap_timer_reset=1");
-        }
-        continue;
-      }
-    }
-
     if (!line.scrapping && line.deadStreak >= DEAD_STREAK_THRESHOLD) {
       this._triggerScrapLine(line, "dead_streak");
     }

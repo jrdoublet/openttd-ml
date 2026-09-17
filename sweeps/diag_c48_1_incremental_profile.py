@@ -33,12 +33,11 @@ openttdlab.subprocess.check_output = _check_output_with_script_debug
 
 ARM = "OpexAI[c48_incremental_profile=1]"
 EVENT_RE = re.compile(r"OPEX \d+-\d+-\d+ C48_INCREMENTAL\s*(.*)")
-STEPS = ("tension_ctx", "groups_replay", "feeders", "fleet", "air", "selection")
+STEPS = ("tension_ctx", "groups_replay", "fleet", "air", "selection")
 FIELDS = ("calls", "ops", "days", "lines", "groups", "projects_scanned", "retained",
-          "fresh_feeders", "fleet_plan", "air_plans", "alternatives", "selected")
+          "fleet_plan", "air_plans", "alternatives", "selected")
 VOLUMES = {
     "groups_replay": ("groups", "projects_scanned", "retained"),
-    "feeders": ("fresh_feeders",),
     "fleet": ("fleet_plan",),
     "air": ("air_plans",),
     "selection": ("alternatives", "selected"),
@@ -107,11 +106,11 @@ def build_metrics(events):
 def run_selftest():
     """Deux annees desequilibrees : prouve que les ratios sont ponderes."""
     output = "\n".join((
-        "OPEX 1971-1-1 C48_INCREMENTAL phase=annual year=1971 step=groups_replay calls=1 ops=100 days=1 lines=0 groups=1 projects_scanned=1 retained=1 fresh_feeders=0 fleet_plan=0 air_plans=0 alternatives=0 selected=0",
-        "OPEX 1971-1-1 C48_INCREMENTAL phase=annual year=1971 step=selection calls=2 ops=400 days=2 lines=0 groups=0 projects_scanned=0 retained=0 fresh_feeders=0 fleet_plan=0 air_plans=0 alternatives=20 selected=4",
-        "OPEX 1971-1-1 C48_INCREMENTAL phase=annual year=1971 step=total calls=1 ops=700 days=3 lines=100 groups=0 projects_scanned=0 retained=0 fresh_feeders=0 fleet_plan=0 air_plans=0 alternatives=0 selected=0",
-        "OPEX 1972-1-1 C48_INCREMENTAL phase=annual year=1972 step=groups_replay calls=9 ops=1800 days=9 lines=0 groups=9 projects_scanned=90 retained=45 fresh_feeders=0 fleet_plan=0 air_plans=0 alternatives=0 selected=0",
-        "OPEX 1972-1-1 C48_INCREMENTAL phase=annual year=1972 step=total calls=9 ops=2200 days=9 lines=2 groups=0 projects_scanned=0 retained=0 fresh_feeders=0 fleet_plan=0 air_plans=0 alternatives=0 selected=0",
+        "OPEX 1971-1-1 C48_INCREMENTAL phase=annual year=1971 step=groups_replay calls=1 ops=100 days=1 lines=0 groups=1 projects_scanned=1 retained=1 fleet_plan=0 air_plans=0 alternatives=0 selected=0",
+        "OPEX 1971-1-1 C48_INCREMENTAL phase=annual year=1971 step=selection calls=2 ops=400 days=2 lines=0 groups=0 projects_scanned=0 retained=0 fleet_plan=0 air_plans=0 alternatives=20 selected=4",
+        "OPEX 1971-1-1 C48_INCREMENTAL phase=annual year=1971 step=total calls=1 ops=700 days=3 lines=100 groups=0 projects_scanned=0 retained=0 fleet_plan=0 air_plans=0 alternatives=0 selected=0",
+        "OPEX 1972-1-1 C48_INCREMENTAL phase=annual year=1972 step=groups_replay calls=9 ops=1800 days=9 lines=0 groups=9 projects_scanned=90 retained=45 fleet_plan=0 air_plans=0 alternatives=0 selected=0",
+        "OPEX 1972-1-1 C48_INCREMENTAL phase=annual year=1972 step=total calls=9 ops=2200 days=9 lines=2 groups=0 projects_scanned=0 retained=0 fleet_plan=0 air_plans=0 alternatives=0 selected=0",
     ))
     metrics = build_metrics(parse_events(output))
     annual = {row["year"]: row for row in metrics["by_year"]}

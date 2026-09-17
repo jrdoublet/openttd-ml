@@ -155,7 +155,7 @@ Aucun `.nut` n'ayant changé pour G0, aucun nouveau smoke n'était requis.
 | **C67** | **ouvert — architecture/mesure** | analyse de carte par blocs 5×5 ou 10×10, typage eau/terrain/relief | mesurer granularité, RAM/opcodes et précision avant branchement ; remplacera ensuite Lakes |
 | B8 | fait | 7/7 contrats rebut + smoke | 5×6 non exposé : ne pas surinterpréter |
 | M4 | fait — diagnostic + 16.2 corrigé + 16.4 mesuré | post-fix `max_trains=0` : 10/10, 0 projet rail, 0 failed spend ; Lakes ~128 B/tuile, ~14 opcodes/tuile jusqu'à 2048² | 16.1 non reproduit ; 16.4/10.5 clos comme mesure externe |
-| M3 / G12 | fait — diagnostic, non adopté | smoke 2×3 + 5×6 10/10, 135 887 événements | AIR P2 exposé ; NewGRF non mesuré ; aucun 20×10 |
+| M3 / G12 → C68 | fait — diagnostic puis politique adoptée | M3 5×6 10/10 ; C68 smoke 4/4, 5×6 10/10, autorité 20×10 20/20 | `air_route_plane_selection=1` adopté ; NewGRF non mesuré |
 | M7 / 11.1 | fait | contrat 15/15/15 + 13/13 + selftest C65 + smoke 2×3 4/4 | fallback inconnu seulement ; tâches connues inchangées |
 | M7 / 11.2 | fait dans le workspace courant | retours booléens explicites de `_tryTownGrowth` | comportement déjà présent, non rouvert |
 | M2 | dormant ou non exposé | options concernées non actives | traiter avant réactivation |
@@ -169,6 +169,21 @@ Aucun `.nut` n'ayant changé pour G0, aucun nouveau smoke n'était requis.
 | Étape 21 / 21.1 | non-bug actif / P3 inerte | garde `unitnumber==0` rend le mauvais littéral rotor sans effet | correction cosmétique/test hélico seulement |
 | Étape 21 / 21.2 | largement fait | `test_campaign_freeze.py` + contrat 230 + guards policy/fingerprint | `prepare_frozen_campaign`/freeze libraries sans test unitaire isolé |
 | Étape 21 / 21.3 | fait | tests valeur décroissante + uptick final | H4 fail-closed conservé |
+
+### Suivi C68 — graines régressives à expliquer
+
+L'adoption C68 reste valide selon la règle pré-enregistrée, mais elle ne doit pas masquer
+l'hétérogénéité inter-cartes. Au checkpoint final 1979, `profit_year` régresse sur cinq graines :
+`7`, `42`, `1337`, `12345`, `424242`. Une analyse ultérieure doit relier ces trajectoires aux
+propriétés de carte et à la séquence de décisions : distances et géométrie des villes, choix/type
+d'aéroport, alternatives d'appareil compatibles, ordre des investissements, routes écartées par le
+`maxOrderDistance` de l'appareil catalogue et demande calculée avant C68. Le cas `7` est prioritaire
+car profit, score et valeur sont durablement plus faibles ; `42`, `1337`, `12345` et `424242`
+montrent plutôt une dégradation tardive du profit malgré une valeur finale encore supérieure.
+
+La table brute annuelle complète (checkpoint de décembre, 1970–1979) est conservée dans
+`results/review_c68_air_route_plane_20x10_v2_annual_metrics.csv`, avec baseline, C68 et delta pour
+`profit_year`, `performance_history` et `company_value` sur les 20 graines.
 
 ### Clôture B7 / G11
 
@@ -220,10 +235,10 @@ inchangés.
 
 ### Clôture M3 / G12
 
-`equipment_roi_probe` est default-off et porte le contrat à **230 settings**. La sonde conserve
+`equipment_roi_probe` est default-off ; avec C68 et le nouveau `air_residual_feeder` expérimental
+default-off, le contrat courant porte **232 settings**. La sonde conserve
 des alternatives uniquement pour le diagnostic, compare avant admission et après route/site, et
-sépare capacité native, proxy de refit et capacité réellement observée. La sélection livrée reste
-inchangée.
+sépare capacité native, proxy de refit et capacité réellement observée.
 
 Le smoke `results/review_m3_equipment_roi_smoke_2x3_v5.json` passe **4/4**. Le 5×6
 `results/review_m3_equipment_roi_5x6.json` passe **10/10**, horizon complet :
@@ -235,8 +250,18 @@ air 79 807 comparaisons toutes multi-choix, 75 742 différences face au meilleur
 Le set vanilla n'expose aucun proxy refit et toutes les capacités réellement relues après refit
 coïncident avec le catalogue. Il n'y a donc pas de P1 de mesure à corriger. Le risque NewGRF reste
 une limite explicitement non mesurée. Le signal air est un P2 de politique : l'appareil 228 est
-pré-élu partout alors que le meilleur profit dépend de la route. Aucun comportement/default n'est
-adopté et aucun 20×10 n'est lancé dans cette passe.
+pré-élu partout alors que le meilleur profit dépend de la route.
+
+**Suite C68 du 17/09 : adoptée.** `air_route_plane_selection` réutilise les alternatives M3 et
+`OpexAirEconomics` pour choisir l'appareil par route, sans changer volontairement les sites/type
+d'aéroport/demande déjà déterminés par le chemin historique. Smoke post-implémentation
+`review_c68_air_route_plane_smoke_2x3_v3.json` : **4/4 sain**. Diagnostic
+`review_c68_air_route_plane_5x6.json` : **10/10**, 4/5 deltas `profit_year` positifs,
+**+235 565 £/an** moyen. Autorité `review_c68_air_route_plane_20x10_v2.json` : **20/20 paires**,
+15 V / 5 D, `p_signes=0,041389`, **+128 201 £/an** moyen, garde valeur **+34,206 %**, verdict
+**`pass`**. Le défaut livré passe donc à `air_route_plane_selection=1`. Le smoke post-adoption
+`review_c68_adopted_default_smoke_2x3.json` passe **2/2** et confirme dans son manifeste que C68=1
+provient du défaut (`defaults=effective=1`) et non d'un override explicite.
 
 ### Clôture M4
 

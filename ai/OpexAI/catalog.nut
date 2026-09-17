@@ -248,7 +248,7 @@ class OpexCatalog {
   airport = null;      // {type, width, height, coverage, price, maintenance} ou null
   plane = null;        // {id, capacity, speed, price, runningCost, maxOrderDistance} ou null
   airCombos = null;    // [{kind="large"|"small", airport={...}, plane={...}}] ou null
-  airPlaneChoicesByAirport = null; // M3 probe only: airport type -> appareils compatibles
+  airPlaneChoicesByAirport = null; // M3/C68: airport type -> appareils compatibles
 
   ships = null;        // [{id, capacity, speed, price, runningCost, maxOrderDistance}]
   maxShipPrice = 0;
@@ -607,6 +607,7 @@ function OpexCatalog::_refreshAir()
   local engines = AIEngineList(AIVehicle.VT_AIR);
   engines.Valuate(AIEngine.IsBuildable);
   engines.KeepValue(1);
+  local keepPlaneChoices = EQUIPMENT_ROI_PROBE || AIR_ROUTE_PLANE_SELECTION;
 
   // 1. Combo Grand Aeroport + Avion compatible
   foreach (choice in airportLargeTypes) {
@@ -624,16 +625,16 @@ function OpexCatalog::_refreshAir()
       local bestIsBig = (best != null && best.isBig);
       local replaces = best == null || (isBig && !bestIsBig) ||
           (isBig == bestIsBig && (capacity > best.capacity || (capacity == best.capacity && speed > best.speed)));
-      if (!replaces && !EQUIPMENT_ROI_PROBE) continue;
+      if (!replaces && !keepPlaneChoices) continue;
       local entry = {
         id = e, defaultCargo = AIEngine.GetCargoType(e), capacity = capacity, speed = speed,
         price = AIEngine.GetPrice(e), runningCost = AIEngine.GetRunningCost(e),
         maxOrderDistance = AIEngine.GetMaximumOrderDistance(e), planeType = planeType, isBig = isBig,
       };
-      if (EQUIPMENT_ROI_PROBE) probeChoices.append(entry);
+      if (keepPlaneChoices) probeChoices.append(entry);
       if (replaces) best = entry;
     }
-    if (EQUIPMENT_ROI_PROBE && probeChoices.len() > 0) {
+    if (keepPlaneChoices && probeChoices.len() > 0) {
       this.airPlaneChoicesByAirport.rawset(choice.type, probeChoices);
     }
     if (best != null) {
@@ -671,16 +672,16 @@ function OpexCatalog::_refreshAir()
       if (capacity <= 0) continue;
       local replaces = best == null || capacity > best.capacity ||
           (capacity == best.capacity && speed > best.speed);
-      if (!replaces && !EQUIPMENT_ROI_PROBE) continue;
+      if (!replaces && !keepPlaneChoices) continue;
       local entry = {
         id = e, defaultCargo = AIEngine.GetCargoType(e), capacity = capacity, speed = speed,
         price = AIEngine.GetPrice(e), runningCost = AIEngine.GetRunningCost(e),
         maxOrderDistance = AIEngine.GetMaximumOrderDistance(e), planeType = planeType, isBig = false,
       };
-      if (EQUIPMENT_ROI_PROBE) probeChoices.append(entry);
+      if (keepPlaneChoices) probeChoices.append(entry);
       if (replaces) best = entry;
     }
-    if (EQUIPMENT_ROI_PROBE && probeChoices.len() > 0) {
+    if (keepPlaneChoices && probeChoices.len() > 0) {
       this.airPlaneChoicesByAirport.rawset(choice.type, probeChoices);
     }
     if (best != null) {

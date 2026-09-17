@@ -981,6 +981,37 @@ function OpexAirPlanBetter(plan, bestPlan)
   return plan.economics.profitAnnual > bestPlan.economics.profitAnnual;
 }
 
+/* C68 : transforme le contre-factuel passif M3 en intervention minimale. Le caller a deja choisi
+ * le type d'aeroport, les sites, la paire et la demande avec le chemin historique. Sous le switch,
+ * on ne change donc que l'appareil et l'economie de cette route, avec exactement le meme modele
+ * OpexAirEconomics que M3. Sous 0, le resultat est strictement le couple historique. */
+function OpexAirChooseRoutePlane(catalog, airport, selectedPlane, distance, monthlyPax,
+                                 infrastructureMaintenance, maxCapital, newAirportCount,
+                                 demandCap)
+{
+  local selectedEconomics = OpexAirEconomics(catalog, airport, selectedPlane, distance, monthlyPax,
+      infrastructureMaintenance, maxCapital, newAirportCount, demandCap);
+  if (!AIR_ROUTE_PLANE_SELECTION || !(airport.type in catalog.airPlaneChoicesByAirport)) {
+    return { plane = selectedPlane, economics = selectedEconomics };
+  }
+
+  local bestPlane = selectedPlane;
+  local bestEconomics = selectedEconomics;
+  foreach (plane in catalog.airPlaneChoicesByAirport[airport.type]) {
+    if (plane.id == selectedPlane.id) continue;
+    if (plane.maxOrderDistance > 0 && distance > plane.maxOrderDistance) continue;
+    local economics = OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
+        infrastructureMaintenance, maxCapital, newAirportCount, demandCap);
+    if (economics == null) continue;
+    if (bestEconomics == null || economics.profitAnnual > bestEconomics.profitAnnual ||
+        (economics.profitAnnual == bestEconomics.profitAnnual && economics.roi > bestEconomics.roi)) {
+      bestPlane = plane;
+      bestEconomics = economics;
+    }
+  }
+  return { plane = bestPlane, economics = bestEconomics };
+}
+
 /* M3/G12 : comparaison PASSIVE du plan air deja elu contre les autres appareils compatibles avec
  * le meme type d'aeroport, sur la meme distance/demande et avec le meme nombre initial d'avions. */
 function OpexM3ProbeAirEquipment(catalog, plan, phase)
@@ -1274,10 +1305,12 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
           OpexSign(AIMap.GetTileIndex(1, 5), "AX|PA=" + popA + "|PB=" + popB + "|MPX=" + monthlyPax);
         }
 
-        local economics = OpexAirEconomics(catalog, airport, plane, flightDistance, monthlyPax,
-                                            infrastructureMaintenance, maxCapital, 2, demandCap);
+        local routeChoice = OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,
+                                                    infrastructureMaintenance, maxCapital, 2, demandCap);
+        local routePlane = routeChoice.plane;
+        local economics = routeChoice.economics;
         if (EQUIPMENT_ROI_PROBE) {
-          OpexM3ProbeAirPreAdmission(catalog, airport, plane, flightDistance, monthlyPax,
+          OpexM3ProbeAirPreAdmission(catalog, airport, routePlane, flightDistance, monthlyPax,
               infrastructureMaintenance, maxCapital, 2, demandCap, economics, "pre_admission_newpair");
         }
         if (economics == null) continue;
@@ -1285,7 +1318,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
         local plan = {
           siteA = sites[a], siteB = sites[b], distance = flightDistance,
           orderDistance = orderDistance,
-          airport = airport, plane = plane,
+          airport = airport, plane = routePlane,
           monthlyPax = monthlyPax, planes = economics.planes, capital = economics.capital, economics = economics,
           reuseA = false, hubRoutes = 0, arm = "newpair",
         };
@@ -1294,7 +1327,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
         if (a == 0 && b == 1) {
           OpexSign(AIMap.GetTileIndex(1, 8), "AY|" + economics.capital + "|"
                                                 + economics.profitAnnual);
-          OpexSign(AIMap.GetTileIndex(1, 9), "AV|" + plane.speed + "|" + plane.capacity
+          OpexSign(AIMap.GetTileIndex(1, 9), "AV|" + routePlane.speed + "|" + routePlane.capacity
                                                 + "|" + economics.planes + "|"
                                                 + economics.oneWayDays.tointeger());
         }
@@ -1464,16 +1497,18 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
           demandCap = demand.cap;
         }
         if (monthlyPax < 10) monthlyPax = 10;
-        local economics = OpexAirEconomics(catalog, airport, plane, flightDistance, monthlyPax,
-                                            infrastructureMaintenance, maxCapital, 1, demandCap);
+        local routeChoice = OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,
+                                                    infrastructureMaintenance, maxCapital, 1, demandCap);
+        local routePlane = routeChoice.plane;
+        local economics = routeChoice.economics;
         if (EQUIPMENT_ROI_PROBE) {
-          OpexM3ProbeAirPreAdmission(catalog, airport, plane, flightDistance, monthlyPax,
+          OpexM3ProbeAirPreAdmission(catalog, airport, routePlane, flightDistance, monthlyPax,
               infrastructureMaintenance, maxCapital, 1, demandCap, economics, "pre_admission_hubsite");
         }
         if (economics == null || economics.profitAnnual <= 0) continue;
         local plan = {
           siteA = hub, siteB = site, distance = flightDistance, orderDistance = orderDistance,
-          airport = airport, plane = plane, monthlyPax = monthlyPax, planes = economics.planes,
+          airport = airport, plane = routePlane, monthlyPax = monthlyPax, planes = economics.planes,
           capital = economics.capital, economics = economics,
           reuseA = true, hubRoutes = hub.routes, arm = "hubsite",
         };
@@ -1525,16 +1560,18 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
           demandCap = demand.cap;
         }
         if (monthlyPax < 10) monthlyPax = 10;
-        local economics = OpexAirEconomics(catalog, airport, plane, flightDistance, monthlyPax,
-                                            infrastructureMaintenance, maxCapital, 0, demandCap);
+        local routeChoice = OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,
+                                                    infrastructureMaintenance, maxCapital, 0, demandCap);
+        local routePlane = routeChoice.plane;
+        local economics = routeChoice.economics;
         if (EQUIPMENT_ROI_PROBE) {
-          OpexM3ProbeAirPreAdmission(catalog, airport, plane, flightDistance, monthlyPax,
+          OpexM3ProbeAirPreAdmission(catalog, airport, routePlane, flightDistance, monthlyPax,
               infrastructureMaintenance, maxCapital, 0, demandCap, economics, "pre_admission_hubhub");
         }
         if (economics == null || economics.profitAnnual <= 0) continue;
         local plan = {
           siteA = hub1, siteB = hub2, distance = flightDistance, orderDistance = orderDistance,
-          airport = airport, plane = plane, monthlyPax = monthlyPax, planes = economics.planes,
+          airport = airport, plane = routePlane, monthlyPax = monthlyPax, planes = economics.planes,
           capital = economics.capital, economics = economics,
           reuseA = true, reuseB = true, hubRoutes = hub1.routes + hub2.routes,
           arm = "hubhub",

@@ -78,22 +78,6 @@ function OpexRoadStopKind(cargo)
   return { vehType = AIRoad.ROADVEHTYPE_TRUCK, stationType = AIStation.STATION_TRUCK_STOP };
 }
 
-/* B4 / 09.1 : source unique des ordres du feeder BUS. La ville, y compris tout arret
- * d'extension intermediaire, charge sans decharger ; le hub transfere puis repart vide. */
-function OpexRoadFeederSourceOrderFlags()
-{
-  local flags = AIOrder.OF_NO_UNLOAD;
-  if (C53_ORDER_NONSTOP) flags = flags | AIOrder.OF_NON_STOP_INTERMEDIATE;
-  return flags;
-}
-
-function OpexRoadFeederHubOrderFlags()
-{
-  local flags = AIOrder.OF_TRANSFER | AIOrder.OF_NO_LOAD;
-  if (C53_ORDER_NONSTOP) flags = flags | AIOrder.OF_NON_STOP_INTERMEDIATE;
-  return flags;
-}
-
 function OpexRoadAppendSegment(trace, from, to)
 {
   local x = AIMap.GetTileX(from);
@@ -428,16 +412,14 @@ function OpexRoadCheapPlan(candidate)
   local coverage = AIStation.GetCoverageRadius(stop.stationType);
   local radiusA = candidate.srcTown >= 0 ? ROAD_TOWN_SEARCH_RADIUS : ROAD_INDUSTRY_SEARCH_RADIUS;
   local radiusB = candidate.dstTown >= 0 ? ROAD_TOWN_SEARCH_RADIUS : ROAD_INDUSTRY_SEARCH_RADIUS;
-  local isFeeder = ("isFeeder" in candidate) && candidate.isFeeder;
   local oldProbes = ROAD_MAX_SITE_PROBES;
   local oldSites = ROAD_MAX_SITES_PER_END;
   ROAD_MAX_SITE_PROBES = 16;
   ROAD_MAX_SITES_PER_END = 2;
   local huntA = OpexRoadSites(candidate.src, candidate.srcTown, candidate.cargo, stop.vehType,
                               coverage, true, radiusA, candidate.dst, true, null);
-  /* Hub d'un feeder : pas une source de cargo, cf. OpexRoadPlanFor. */
   local huntB = OpexRoadSites(candidate.dst, candidate.dstTown, candidate.cargo, stop.vehType,
-                              coverage, !isFeeder, radiusB, candidate.src, !isFeeder);
+                              coverage, true, radiusB, candidate.src, true);
   ROAD_MAX_SITE_PROBES = oldProbes;
   ROAD_MAX_SITES_PER_END = oldSites;
   if (huntA.sites.len() == 0 || huntB.sites.len() == 0) return null;
@@ -636,7 +618,6 @@ function OpexRoadPlanPaxVoirie(candidate)
 {
   local stop = OpexRoadStopKind(candidate.cargo);
   if (stop.vehType != AIRoad.ROADVEHTYPE_BUS) return null;
-  local isFeeder = ("isFeeder" in candidate) && candidate.isFeeder;
   local coverage = AIStation.GetCoverageRadius(stop.stationType);
   local exclude = OpexRoadOurBusTiles();
   if (("existingStops" in candidate) && candidate.existingStops != null) {
@@ -645,16 +626,14 @@ function OpexRoadPlanPaxVoirie(candidate)
   local sitesA = OpexRoadPaxVoirieSites(candidate.src, candidate.srcTown, candidate.cargo,
                                         stop.vehType, coverage, candidate.dst, true, exclude);
   if (sitesA.len() == 0) {
-    if (DECISION_LOG) OpexDecide("VOIRIE_PLAN", "fail=SITEA feeder=" + isFeeder
-                                 + " srcTown=" + candidate.srcTown + " dstTown=" + candidate.dstTown);
+    if (DECISION_LOG) OpexDecide("VOIRIE_PLAN", "fail=SITEA srcTown=" + candidate.srcTown
+                                 + " dstTown=" + candidate.dstTown);
     return null;
   }
-  /* Hub feeder : la tuile d'aeroport ne produit pas de pax, cf. OpexRoadPlanFor. */
   local sitesB = OpexRoadPaxVoirieSites(candidate.dst, candidate.dstTown, candidate.cargo,
-                                        stop.vehType, coverage, candidate.src, !isFeeder, exclude);
+                                        stop.vehType, coverage, candidate.src, true, exclude);
   if (sitesB.len() == 0) {
-    if (DECISION_LOG) OpexDecide("VOIRIE_PLAN", "fail=SITEB feeder=" + isFeeder
-                                 + " srcTown=" + candidate.srcTown + " dstTown=" + candidate.dstTown
+    if (DECISION_LOG) OpexDecide("VOIRIE_PLAN", "fail=SITEB srcTown=" + candidate.srcTown + " dstTown=" + candidate.dstTown
                                  + " nA=" + sitesA.len());
     return null;
   }
@@ -716,7 +695,7 @@ function OpexRoadPlanPaxVoirie(candidate)
     if (DECISION_LOG) {
       OpexDecide("VOIRIE_PLAN", "ok=1 via=" + via + " d=" + pair.d
                  + " route=" + (trace.len() > 0 ? trace.len() : 1)
-                 + " feeder=" + isFeeder + " nA=" + sitesA.len() + " nB=" + sitesB.len()
+                 + " nA=" + sitesA.len() + " nB=" + sitesB.len()
                  + " nClose=" + nClose);
     }
     return { stopA = siteA, stopB = siteB, trace = trace, depot = depot,
@@ -729,8 +708,7 @@ function OpexRoadPlanPaxVoirie(candidate)
     OpexDecide("VOIRIE_PLAN", "fail=DEPOT nA=" + sitesA.len() + " nB=" + sitesB.len()
                + " nPairs=" + pairs.len() + " minD=" + minD + " nClose=" + nClose
                + " nBfs=" + nBfs + " nBfsNoDepot=" + nBfsNoDepot
-               + " nL=" + nL + " nLNoDepot=" + nLNoDepot
-               + " feeder=" + isFeeder);
+               + " nL=" + nL + " nLNoDepot=" + nLNoDepot);
   }
   return null;
 }
@@ -749,20 +727,16 @@ function OpexRoadPlanFor(catalog, candidate)
       local voirie = OpexRoadPlanPaxVoirie(candidate);
       if (voirie != null) return { plan = voirie, reason = "OK" };
       if (DECISION_LOG) {
-        local isFeederFb = ("isFeeder" in candidate) && candidate.isFeeder;
-        OpexDecide("VOIRIE_PLAN", "fail=FALLBACK feeder=" + isFeederFb
-                   + " srcTown=" + candidate.srcTown + " dstTown=" + candidate.dstTown);
+        OpexDecide("VOIRIE_PLAN", "fail=FALLBACK srcTown=" + candidate.srcTown
+                   + " dstTown=" + candidate.dstTown);
       }
     }
   }
-  local isFeederEarly = ("isFeeder" in candidate) && candidate.isFeeder;
   local cheapOn = ROAD_CHEAP_TRACE;
-  /* Y compris les feeders : le bus 5 tuiles rang 0 de la graine 7 EST un feeder
-   * vers la ville de l'aeroport ; l'exclure renvoyait au TRACEX complet. */
   if (cheapOn && candidate.distance <= ROAD_CHEAP_TRACE_MAX_DIST) {
     if (DECISION_LOG) {
       OpexDecide("CHEAP_TRACE", "dist=" + candidate.distance + " kind=" + candidate.kind
-                 + " feeder=" + isFeederEarly + " flag=" + ROAD_CHEAP_TRACE);
+                 + " flag=" + ROAD_CHEAP_TRACE);
     }
     local cheap = OpexRoadCheapPlan(candidate);
     if (cheap != null) return { plan = cheap, reason = "OK" };
@@ -772,15 +746,9 @@ function OpexRoadPlanFor(catalog, candidate)
   local coverage = AIStation.GetCoverageRadius(stop.stationType);
   local radiusA = candidate.srcTown >= 0 ? ROAD_TOWN_SEARCH_RADIUS : ROAD_INDUSTRY_SEARCH_RADIUS;
   local radiusB = candidate.dstTown >= 0 ? ROAD_TOWN_SEARCH_RADIUS : ROAD_INDUSTRY_SEARCH_RADIUS;
-  /* feeder_join : un rabattage DECHARGE au hub, il n'y charge rien. Le defaut pax exigeait que la
-   * tuile de gare PRODUISE des passagers dans un rayon de 5 (dstTown = -1), ce qui rendait SITEB
-   * et bannissait la paire. Et l'acceptation n'est pas davantage le bon test : un aeroport hors
-   * ville n'est pas non plus un puits de la carte d'acceptation. Le bon critere est
-   * geometrique -- une tuile constructible a portee de jointure du hub -- d'ou requireCargo. */
-  local isFeeder = isFeederEarly;
-  local dstWantsProduction = candidate.kind == "pax" && !isFeeder;
+  local dstWantsProduction = candidate.kind == "pax";
 
-  /* Le filtre est global a toutes nos gares bus, pas limite au couple feeder courant. Le repli
+  /* Le filtre est global a toutes nos gares bus. Le repli
    * historique de la planification contournait sinon la protection de la voie `voirie`. */
   local excludeA = null;
   if (stop.vehType == AIRoad.ROADVEHTYPE_BUS) {
@@ -796,7 +764,7 @@ function OpexRoadPlanFor(catalog, candidate)
   local sitesA = huntA.sites;
   if (sitesA.len() == 0) return { plan = null, reason = "SITEA", site = huntA };
   local huntB = OpexRoadSites(candidate.dst, candidate.dstTown, candidate.cargo, stop.vehType,
-                              coverage, dstWantsProduction, radiusB, candidate.src, !isFeeder,
+                              coverage, dstWantsProduction, radiusB, candidate.src, true,
                               excludeA);
   local sitesB = huntB.sites;
   if (sitesB.len() == 0) return { plan = null, reason = "SITEB", site = huntB };
@@ -1155,20 +1123,16 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
     result.actualCost = costs.GetCosts();
     OpexRoadRollback(null, null, null, built, added, extras); result.reason = "ASTOP"; return result;
   }
-  local wantJoinB = ("isFeeder" in candidate) && candidate.isFeeder &&
-                    ("hubStationId" in candidate) &&
-                    AIStation.IsValidStation(candidate.hubStationId);
-  local joinIdB = wantJoinB ? candidate.hubStationId : AIStation.STATION_NEW;
   local okB = false;
   if (driveThrough) {
     okB = AIRoad.BuildDriveThroughRoadStation(plan.stopB.tile, plan.stopB.front,
-                                             plan.vehType, joinIdB);
+                                             plan.vehType, AIStation.STATION_NEW);
   } else {
     AIRoad.BuildRoad(plan.stopB.front, plan.stopB.tile);
     local stubConnectedB = AIRoad.AreRoadTilesConnected(plan.stopB.front, plan.stopB.tile);
     if (stubConnectedB) added.append({ from = plan.stopB.front, to = plan.stopB.tile });
     okB = stubConnectedB && AIRoad.BuildRoadStation(plan.stopB.tile, plan.stopB.front,
-                                                    plan.vehType, joinIdB);
+                                                    plan.vehType, AIStation.STATION_NEW);
   }
   if (okB && AIRoad.IsRoadStationTile(plan.stopB.tile) &&
       (driveThrough || AIRoad.GetRoadStationFrontTile(plan.stopB.tile) == plan.stopB.front) &&
@@ -1179,16 +1143,6 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
     result.actualCost = costs.GetCosts();
     result.reason = "BSTOP"; return result;
   }
-  /* Une jointure DEMANDEE mais NON OBTENUE est pire qu'un echec franc : la ligne roulerait en
-   * deposant son cargo dans le vide. On refuse donc explicitement, avec un motif propre, plutot
-   * que de laisser passer une ligne inutile qui compterait comme un succes au banc. */
-  if (wantJoinB && AIStation.GetStationID(stopB) != candidate.hubStationId) {
-    result.opcodes += budget.end("build_road_stops");
-    OpexRoadRollback(stopA, stopB, null, built, added, extras);
-    result.actualCost = costs.GetCosts();
-    result.reason = "NOJOIN"; return result;
-  }
-  result.joinedHub <- wantJoinB;
   local stationA = AIStation.GetStationID(stopA);
   local stationB = AIStation.GetStationID(stopB);
   if (!AIStation.IsValidStation(stationA) || !AIStation.IsValidStation(stationB) || stationA == stationB) {
@@ -1287,31 +1241,15 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
    * s'accumule de toute facon, et un camion qui part avec une unite paie son trajet pour rien.
    * qui attend d'etre plein detruit precisement ce que la ligne a de bon. */
   local nonstopFlag = C53_ORDER_NONSTOP ? AIOrder.OF_NON_STOP_INTERMEDIATE : 0;
-  local isFeeder = (("isFeeder" in candidate) && candidate.isFeeder);
-  /* Un feeder est strictement unidirectionnel : ville -> hub.
-   * Ville : charger si disponible, sans decharger.
-   * Hub : transferer tout le chargement et repartir vide. */
-  local sourceFlags = isFeeder
-      ? OpexRoadFeederSourceOrderFlags()
-      : ((candidate.kind == "freight" ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE) | nonstopFlag);
+  local sourceFlags = (candidate.kind == "freight" ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE) | nonstopFlag;
   local orderA = AIOrder.AppendOrder(first, stopA, sourceFlags);
   local errorA = orderA ? 0 : AIError.GetLastError();
-  /* OF_TRANSFER et OF_UNLOAD sont mutuellement exclusifs (ai_order.hpp:44-47, meme champ
-   * "type de dechargement") : les combiner fait echouer AreOrderFlagsValid a coup sur
-   * (ERR_PRECONDITION_FAILED) et donc AppendOrder, docs/taches.md C-suite feeders diag
-   * 2026-09-02. OF_TRANSFER seul est le comportement voulu : deposer pour ramassage par
-   * une autre ligne, pas livrer definitivement.
-   * C53 : C53_ORDER_NOLOAD interdit tout rechargement parasite au terminus de dechargement (OF_NO_LOAD). */
+  /* C53 : C53_ORDER_NOLOAD interdit tout rechargement parasite au terminus de dechargement. */
   local isFreight = candidate.kind == "freight";
-  local destFlags = 0;
-  if (isFeeder) {
-    destFlags = OpexRoadFeederHubOrderFlags();
-  } else if (isFreight) {
-    destFlags = C53_ORDER_NOLOAD ? (AIOrder.OF_UNLOAD | AIOrder.OF_NO_LOAD) : AIOrder.OF_NONE;
-  } else {
-    destFlags = AIOrder.OF_NONE;
-  }
-  if (!isFeeder) destFlags = destFlags | nonstopFlag;
+  local destFlags = isFreight
+      ? (C53_ORDER_NOLOAD ? (AIOrder.OF_UNLOAD | AIOrder.OF_NO_LOAD) : AIOrder.OF_NONE)
+      : AIOrder.OF_NONE;
+  destFlags = destFlags | nonstopFlag;
   local orderB = AIOrder.AppendOrder(first, stopB, destFlags);
   local errorB = orderB ? 0 : AIError.GetLastError();
   if (!orderA || !orderB || AIOrder.GetOrderCount(first) != 2) {
@@ -1476,10 +1414,6 @@ function OpexBuildRoadExtension(catalog, budget, line, candidate)
   local flags = C53_ORDER_NONSTOP ? AIOrder.OF_NON_STOP_INTERMEDIATE : AIOrder.OF_NONE;
   local targetStation = (("extensionEnd" in candidate) && candidate.extensionEnd == "B")
       ? stationB : stationA;
-  if (("extensionType" in candidate) && candidate.extensionType == "feeder_extension") {
-    targetStation = stationB; // insertion juste avant l'ordre de transfert au hub
-    flags = OpexRoadFeederSourceOrderFlags();
-  }
   local failed = false;
   foreach (vehicle in vehicles) {
     if (!AIVehicle.IsValidVehicle(vehicle) ||
@@ -1490,9 +1424,6 @@ function OpexBuildRoadExtension(catalog, budget, line, candidate)
     local targetPos = OpexRoadOrderPositionForStation(vehicle, targetStation);
     if (targetPos < 0) { failed = true; break; }
     local insertPos = targetPos + 1;
-    if (("extensionType" in candidate) && candidate.extensionType == "feeder_extension") {
-      insertPos = targetPos;
-    }
     if (!AIOrder.InsertOrder(vehicle, insertPos, site.tile, flags)) {
       result.error = AIError.GetLastError(); failed = true; break;
     }
@@ -1591,19 +1522,11 @@ function OpexRoadRefleet(catalog, line, have, target)
     built.append(first);
     local nonstopFlag = C53_ORDER_NONSTOP ? AIOrder.OF_NON_STOP_INTERMEDIATE : 0;
     local isFreight = (("kind" in line) && line.kind == "freight");
-    local isFeeder = (("isFeeder" in line) && line.isFeeder);
-    local sourceFlags = isFeeder
-        ? OpexRoadFeederSourceOrderFlags()
-        : ((isFreight ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE) | nonstopFlag);
-    local destFlags = 0;
-    if (isFeeder) {
-      destFlags = OpexRoadFeederHubOrderFlags();
-    } else if (isFreight) {
-      destFlags = C53_ORDER_NOLOAD ? (AIOrder.OF_UNLOAD | AIOrder.OF_NO_LOAD) : AIOrder.OF_NONE;
-    } else {
-      destFlags = AIOrder.OF_NONE;
-    }
-    if (!isFeeder) destFlags = destFlags | nonstopFlag;
+    local sourceFlags = (isFreight ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE) | nonstopFlag;
+    local destFlags = isFreight
+        ? (C53_ORDER_NOLOAD ? (AIOrder.OF_UNLOAD | AIOrder.OF_NO_LOAD) : AIOrder.OF_NONE)
+        : AIOrder.OF_NONE;
+    destFlags = destFlags | nonstopFlag;
     if (!AIOrder.AppendOrder(first, line.stationA, sourceFlags) ||
         !AIOrder.AppendOrder(first, line.stationB, destFlags) ||
         AIOrder.GetOrderCount(first) != 2) {
