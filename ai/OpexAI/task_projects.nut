@@ -959,6 +959,10 @@ function OpexAI::_tryBuildProjects(year)
 }
 function OpexAI::_rebuildProjects(fleetPlan)
 {
+  /* B6/06.11 : conserver le vivier cache uniquement comme oracle passif. Le
+   * rebuild normal reste l'unique producteur du nouveau portefeuille. */
+  local b6StaleProjects = (DECISION_LOG && PORTFOLIO_CACHE) ? this._projects : null;
+  local b6StaleDate = AIDate.GetCurrentDate();
   local stage = OPEX_STAGE_COMPLETE;
   local prior = null;
   if (STAGED_BOOTSTRAP && this._generationStage < OPEX_STAGE_COMPLETE) {
@@ -991,6 +995,9 @@ function OpexAI::_rebuildProjects(fleetPlan)
   this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines,
       fleetPlan, this._abandonedPairs, stage, prior,
       freightCargo, freightCargos, this._waterSiteCatalog, this._activeSubsidies);
+  if (stage == OPEX_STAGE_COMPLETE && b6StaleProjects != null) {
+    OpexB6LogFreshEquivalence(b6StaleProjects, this._projects, b6StaleDate);
+  }
   local actualFreightCargo = (this._projects != null && ("freightCargo" in this._projects))
       ? this._projects.freightCargo : freightCargo;
   if (stage == OPEX_STAGE_AIR_ONLY && actualFreightCargo != null) {

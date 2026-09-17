@@ -140,6 +140,8 @@ class _MinchinWeb_Lakes_
   _A = null;
   _B = null;
   _running = null;
+  _opsMark = null;
+  _opsBudgetHit = false;
   _lastIterationsUsed = null; /* diagnostic : combien d'iterations le dernier FindPath a
                                  * reellement consomme avant de conclure -- sert a calibrer
                                  * WATER_LAKES_ITERATIONS sur mesure, pas au juge. */
@@ -182,39 +184,68 @@ class _MinchinWeb_Lakes_
 
   function AddPoint(myTileID);
   function _AllGroups(StartGroupArray);
+  function _OpsBudgetExceeded();
+  function _FinishFindPath(result, iterationsUsed, stopRunning);
+  function _BudgetedMinDistance(TileID, TargetGroups);
   function GetPathLength();
   function _AddNeighbour(NextTile);
 }
 
+function _MinchinWeb_Lakes_::_OpsBudgetExceeded()
+{
+  if (this._opsMark == null || this._opsBudgetHit) return this._opsBudgetHit;
+  if (OpexOpsMeasureEnd(this._opsMark) < WATER_LAKES_OPS) return false;
+  this._opsBudgetHit = true;
+  return true;
+}
+
+function _MinchinWeb_Lakes_::_FinishFindPath(result, iterationsUsed, stopRunning)
+{
+  this._lastIterationsUsed = iterationsUsed;
+  if (stopRunning) this._running = false;
+  this._opsMark = null;
+  this._opsBudgetHit = false;
+  return result;
+}
+
+function _MinchinWeb_Lakes_::_BudgetedMinDistance(TileID, TargetGroups)
+{
+  local minDist = _MinchinWeb_C_.Infinity();
+  local checked = 0;
+  foreach (group in TargetGroups) {
+    if (group < 0) continue;
+    foreach (target, _value in this._group_tiles[group]) {
+      if ((checked++ & 15) == 0 && this._OpsBudgetExceeded()) return null;
+      local distance = AITile.GetDistanceManhattanToTile(TileID, target);
+      if (distance < minDist) minDist = distance;
+    }
+  }
+  return minDist;
+}
+
 function _MinchinWeb_Lakes_::FindPath(iterations)
 {
-  /* Ajout OpexAI (pas dans la source MinchinWeb) : OpexOpsMeasureEnd() relit un mark immutable,
-   * donc il est sur pour ce controle repete. Sa formule compte explicitement les ticks traverses
-   * lorsque GetOpsTillSuspend() remonte a OPS_PER_TICK, au lieu de soustraire deux restes. */
-  local opsMark = WATER_LAKES_OPS_BUDGET ? OpexOpsMeasureBegin() : null;
+  this._opsMark = WATER_LAKES_OPS_BUDGET ? OpexOpsMeasureBegin() : null;
+  this._opsBudgetHit = false;
   for (local i = 0; i < iterations; i++) {
-    if (opsMark != null && OpexOpsMeasureEnd(opsMark) >= WATER_LAKES_OPS) {
+    if (this._OpsBudgetExceeded()) {
       /* Meme sortie que le plafond d'iterations : la recherche reste en cours et FindPath
        * renvoie false, que OpexWaterLakesConnected traduit deja en null pour sauter la paire. */
-      this._lastIterationsUsed = i;
-      return false;
+      return this._FinishFindPath(false, i, false);
     }
     /* C56 : les trois premieres iterations puis une sur cent. Si le journal s'arrete sur un
      * lakes_iter, le gel est DANS une iteration et le budget ne sert a rien. Volume nul en
      * partie saine : une partie saine n'examine aucune paire (mesure du 2026-09-11). */
     if (C56_TASK_TRACE && (i < 3 || i % 100 == 0)) OpexC56TaskLog("PAIR", "lakes_iter", "- i=" + i);
     if (_MinchinWeb_Array_.Compare1D(this._AGroup, [-1]) || _MinchinWeb_Array_.Compare1D(this._BGroup, [-1])) {
-      this._lastIterationsUsed = i + 1;
-      this._running = false;
-      return null;
+      return this._FinishFindPath(null, i + 1, true);
     }
 
     local AAllGroups = this._AllGroups(this._AGroup);
+    if (AAllGroups == null) return this._FinishFindPath(false, i, false);
     foreach (Group in AAllGroups) {
       if (_MinchinWeb_Array_.ContainedIn1D(this._BGroup, Group)) {
-        this._lastIterationsUsed = i + 1;
-        this._running = false;
-        return true;
+        return this._FinishFindPath(true, i + 1, true);
       }
     }
 
@@ -223,79 +254,102 @@ function _MinchinWeb_Lakes_::FindPath(iterations)
     local BAllGroups = array(0);
     AAllGroups = this._AllGroups(this._AGroup);
     BAllGroups = this._AllGroups(this._BGroup);
+    if (AAllGroups == null || BAllGroups == null) return this._FinishFindPath(false, i, false);
 
     foreach (Group in AAllGroups) {
+      if (this._OpsBudgetExceeded()) return this._FinishFindPath(false, i, false);
       ANeighbours = _MinchinWeb_Array_.Append(ANeighbours, this._open_neighbours[Group]);
     }
-    foreach (neighbour in ANeighbours) AEdge.append(neighbour[0]);
-    AEdge = _MinchinWeb_Array_.RemoveDuplicates(AEdge);
+    local AEdgeSeen = {};
+    foreach (neighbour in ANeighbours) {
+      if (this._OpsBudgetExceeded()) return this._FinishFindPath(false, i, false);
+      local edge = neighbour[0];
+      if (!(edge in AEdgeSeen)) {
+        AEdgeSeen.rawset(edge, true);
+        AEdge.append(edge);
+      }
+    }
 
     if (ANeighbours.len() > 0) {
-      local BTileList = AIList();
-      foreach (group in BAllGroups) BTileList.AddList(this._group_tiles[group]);
       local AEdgeHeap = this._heap_class();
       foreach (edge in AEdge) {
-        AEdgeHeap.Insert(edge, _MinchinWeb_Extras_.MinDistance(edge, BTileList));
+        local distance = this._BudgetedMinDistance(edge, BAllGroups);
+        if (distance == null) return this._FinishFindPath(false, i, false);
+        AEdgeHeap.Insert(edge, distance);
       }
       for (local j = 0; j < 12; j++) {
+        if (this._OpsBudgetExceeded()) return this._FinishFindPath(false, i, false);
         if (AEdgeHeap.Count() > 0) {
           local NextNeighbour = AEdgeHeap.Pop();
           local AddedNeighbours = this._AddNeighbour(NextNeighbour);
+          if (AddedNeighbours == null) return this._FinishFindPath(false, i, false);
           foreach (Tile in AddedNeighbours) {
-            if (Tile != null) AEdgeHeap.Insert(Tile, _MinchinWeb_Extras_.MinDistance(Tile, BTileList));
+            if (Tile != null) {
+              local distance = this._BudgetedMinDistance(Tile, BAllGroups);
+              if (distance == null) return this._FinishFindPath(false, i, false);
+              AEdgeHeap.Insert(Tile, distance);
+            }
           }
         }
       }
     } else {
-      this._lastIterationsUsed = i + 1;
-      this._running = false;
-      return null;
+      return this._FinishFindPath(null, i + 1, true);
     }
 
     local BNeighbours = array(0);
     local BEdge = array(0);
     AAllGroups = this._AllGroups(this._AGroup);
     BAllGroups = this._AllGroups(this._BGroup);
+    if (AAllGroups == null || BAllGroups == null) return this._FinishFindPath(false, i, false);
 
     foreach (Group in BAllGroups) {
       if (_MinchinWeb_Array_.ContainedIn1D(this._AGroup, Group)) {
-        this._lastIterationsUsed = i + 1;
-        this._running = false;
-        return true;
+        return this._FinishFindPath(true, i + 1, true);
       }
     }
 
     foreach (Group in BAllGroups) {
+      if (this._OpsBudgetExceeded()) return this._FinishFindPath(false, i, false);
       BNeighbours = _MinchinWeb_Array_.Append(BNeighbours, this._open_neighbours[Group]);
     }
-    foreach (neighbour in BNeighbours) BEdge.append(neighbour[0]);
-    BEdge = _MinchinWeb_Array_.RemoveDuplicates(BEdge);
+    local BEdgeSeen = {};
+    foreach (neighbour in BNeighbours) {
+      if (this._OpsBudgetExceeded()) return this._FinishFindPath(false, i, false);
+      local edge = neighbour[0];
+      if (!(edge in BEdgeSeen)) {
+        BEdgeSeen.rawset(edge, true);
+        BEdge.append(edge);
+      }
+    }
 
     if (BNeighbours.len() > 0) {
-      local ATileList = AIList();
-      foreach (group in AAllGroups) ATileList.AddList(this._group_tiles[group]);
       local BEdgeHeap = this._heap_class();
       foreach (edge in BEdge) {
-        BEdgeHeap.Insert(edge, _MinchinWeb_Extras_.MinDistance(edge, ATileList));
+        local distance = this._BudgetedMinDistance(edge, AAllGroups);
+        if (distance == null) return this._FinishFindPath(false, i, false);
+        BEdgeHeap.Insert(edge, distance);
       }
       for (local j = 0; j < 12; j++) {
+        if (this._OpsBudgetExceeded()) return this._FinishFindPath(false, i, false);
         if (BEdgeHeap.Count() > 0) {
           local NextNeighbour = BEdgeHeap.Pop();
           local AddedNeighbours = this._AddNeighbour(NextNeighbour);
+          if (AddedNeighbours == null) return this._FinishFindPath(false, i, false);
           foreach (Tile in AddedNeighbours) {
-            if (Tile != null) BEdgeHeap.Insert(Tile, _MinchinWeb_Extras_.MinDistance(Tile, ATileList));
+            if (Tile != null) {
+              local distance = this._BudgetedMinDistance(Tile, AAllGroups);
+              if (distance == null) return this._FinishFindPath(false, i, false);
+              BEdgeHeap.Insert(Tile, distance);
+            }
           }
         }
       }
     } else {
-      this._lastIterationsUsed = i + 1;
-      this._running = false;
-      return null;
+      return this._FinishFindPath(null, i + 1, true);
     }
   }
   /* budget d'iterations consomme, toujours en cours */
-  this._lastIterationsUsed = iterations;
-  return false;
+  return this._FinishFindPath(false, iterations, false);
 }
 
 function _MinchinWeb_Lakes_::GetPathLength()
@@ -367,24 +421,28 @@ function _MinchinWeb_Lakes_::AddPoint(myTileID)
 
 function _MinchinWeb_Lakes_::_AllGroups(StartGroupArray)
 {
-  local StartIndex = 0;
-  local ReturnGroup = StartGroupArray;
-  local NextStartIndex = 0;
-  local MoreAdded = true;
-
-  do {
-    MoreAdded = false;
-    NextStartIndex = ReturnGroup.len();
-    for (local i = StartIndex; i < NextStartIndex; i++) {
-      if ((ReturnGroup[i] >= 0) && (this._connections[ReturnGroup[i]].len() > 0)) {
-        ReturnGroup = _MinchinWeb_Array_.Append(ReturnGroup, this._connections[ReturnGroup[i]]);
-        ReturnGroup = _MinchinWeb_Array_.RemoveDuplicates(ReturnGroup);
-        MoreAdded = true;
+  local ReturnGroup = [];
+  local seen = {};
+  foreach (group in StartGroupArray) {
+    if (!(group in seen)) {
+      seen.rawset(group, true);
+      ReturnGroup.append(group);
+    }
+  }
+  local head = 0;
+  local checked = 0;
+  while (head < ReturnGroup.len()) {
+    if ((checked++ & 15) == 0 && this._OpsBudgetExceeded()) return null;
+    local group = ReturnGroup[head++];
+    if (group < 0) continue;
+    foreach (connected in this._connections[group]) {
+      if ((checked++ & 15) == 0 && this._OpsBudgetExceeded()) return null;
+      if (!(connected in seen)) {
+        seen.rawset(connected, true);
+        ReturnGroup.append(connected);
       }
     }
-    StartIndex = NextStartIndex;
-  } while (MoreAdded == true);
-
+  }
   return ReturnGroup;
 }
 
@@ -392,18 +450,28 @@ function _MinchinWeb_Lakes_::_AddNeighbour(NextTile)
 {
   local ReturnTiles = array(0);
   local OnwardTiles = array(0);
+  local onwardSeen = {};
+  local checked = 0;
+
+  /* Phase 1 lecture seule : collecter la frontiere sans modifier le graphe. Si le budget coupe
+   * ici, le cache Lakes reste strictement identique pour la requete suivante. */
   for (local i = 0; i < this._open_neighbours.len(); i++) {
     for (local j = 0; j < this._open_neighbours[i].len(); j++) {
+      if ((checked++ & 15) == 0 && this._OpsBudgetExceeded()) return null;
       if (this._open_neighbours[i][j][0] == NextTile) {
-        OnwardTiles.append(this._open_neighbours[i][j][1]);
-        this._open_neighbours[i] = _MinchinWeb_Array_.RemoveValueAt(this._open_neighbours[i], j);
-        j--;
+        local onward = this._open_neighbours[i][j][1];
+        if (!(onward in onwardSeen)) {
+          onwardSeen.rawset(onward, true);
+          OnwardTiles.append(onward);
+        }
       }
     }
   }
-  OnwardTiles = _MinchinWeb_Array_.RemoveDuplicates(OnwardTiles);
+
   local ConnectedGroups = this._AllGroups([this._map[NextTile]]);
+  if (ConnectedGroups == null) return null;
   for (local i = 0; i < OnwardTiles.len(); i++) {
+    if ((checked++ & 15) == 0 && this._OpsBudgetExceeded()) return null;
     if (this._map[OnwardTiles[i]] != -2) {
       if (_MinchinWeb_Array_.ContainedIn1D(ConnectedGroups, this._map[OnwardTiles[i]])) {
         OnwardTiles = _MinchinWeb_Array_.RemoveValueAt(OnwardTiles, i);
@@ -412,40 +480,68 @@ function _MinchinWeb_Lakes_::_AddNeighbour(NextTile)
     }
   }
 
-  if (OnwardTiles.len() == 0) {
-    return [null];
-  } else {
-    local FromGroup = this._map.GetValue(NextTile);
-    local offsets = [AIMap.GetTileIndex(0, 1), AIMap.GetTileIndex(0, -1),
-                      AIMap.GetTileIndex(1, 0), AIMap.GetTileIndex(-1, 0)];
+  if (OnwardTiles.len() == 0) return [null];
 
-    foreach (OnwardTile in OnwardTiles) {
-      if (AIMarine.AreWaterTilesConnected(NextTile, OnwardTile)) {
-        this._map.SetValue(OnwardTile, FromGroup);
-        this._group_tiles[FromGroup].AddItem(OnwardTile, OnwardTile);
-        ReturnTiles.append(OnwardTile);
-        foreach (offset in offsets) {
-          local next_tile = OnwardTile + offset;
-          if (!AIMap.IsValidTile(next_tile)) continue;
-          if (AIMarine.AreWaterTilesConnected(OnwardTile, next_tile) && (this._map.GetValue(next_tile) != this._map.GetValue(OnwardTile))) {
-            this._open_neighbours[FromGroup].append([OnwardTile, next_tile]);
-          }
-        }
-      }
+  local connectedOnward = [];
+  local connectedSet = {};
+  foreach (OnwardTile in OnwardTiles) {
+    if (this._OpsBudgetExceeded()) return null;
+    if (AIMarine.AreWaterTilesConnected(NextTile, OnwardTile)) {
+      connectedOnward.append(OnwardTile);
+      connectedSet.rawset(OnwardTile, true);
+    }
+  }
+  if (connectedOnward.len() == 0) return [null];
 
-      for (local i = 0; i < this._open_neighbours.len(); i++) {
-        for (local j = 0; j < this._open_neighbours[i].len(); j++) {
-          if (this._open_neighbours[i][j][1] == OnwardTile) {
-            local ActiveFromGroup = this._map.GetValue(this._open_neighbours[i][j][0]);
-            this._connections[FromGroup].append(ActiveFromGroup);
-            this._connections[ActiveFromGroup].append(FromGroup);
-            this._open_neighbours[i] = _MinchinWeb_Array_.RemoveValueAt(this._open_neighbours[i], j);
-            j--;
-            this._connections[ActiveFromGroup] = _MinchinWeb_Array_.RemoveDuplicates(this._connections[ActiveFromGroup]);
-            this._connections[FromGroup] = _MinchinWeb_Array_.RemoveDuplicates(this._connections[FromGroup]);
-          }
-        }
+  /* Phase 2 lecture seule : reconstruire les listes ouvertes et memoriser les connexions entrantes.
+   * Aucune mutation persistante n'arrive avant que les deux scans couteux aient respecte le budget. */
+  local rebuilt = {};
+  local incoming = {};
+  foreach (OnwardTile in connectedOnward) incoming.rawset(OnwardTile, []);
+  for (local i = 0; i < this._open_neighbours.len(); i++) {
+    local keep = [];
+    local changed = false;
+    foreach (edge in this._open_neighbours[i]) {
+      if ((checked++ & 15) == 0 && this._OpsBudgetExceeded()) return null;
+      if (edge[0] == NextTile) {
+        changed = true;
+        continue;
       }
+      if (edge[1] in connectedSet) {
+        changed = true;
+        incoming[edge[1]].append(this._map.GetValue(edge[0]));
+        continue;
+      }
+      keep.append(edge);
+    }
+    if (changed) rebuilt.rawset(i, keep);
+  }
+
+  /* Commit borne : une tuile a au plus quatre voisins cardinaux, donc plus aucun grand parcours
+   * ne se cache apres ce point. */
+  foreach (i, keep in rebuilt) this._open_neighbours[i] = keep;
+  local FromGroup = this._map.GetValue(NextTile);
+  local offsets = [AIMap.GetTileIndex(0, 1), AIMap.GetTileIndex(0, -1),
+                    AIMap.GetTileIndex(1, 0), AIMap.GetTileIndex(-1, 0)];
+  foreach (OnwardTile in connectedOnward) {
+    this._map.SetValue(OnwardTile, FromGroup);
+    this._group_tiles[FromGroup].AddItem(OnwardTile, OnwardTile);
+    ReturnTiles.append(OnwardTile);
+    foreach (offset in offsets) {
+      local next_tile = OnwardTile + offset;
+      if (!AIMap.IsValidTile(next_tile)) continue;
+      if (AIMarine.AreWaterTilesConnected(OnwardTile, next_tile) &&
+          (this._map.GetValue(next_tile) != this._map.GetValue(OnwardTile))) {
+        this._open_neighbours[FromGroup].append([OnwardTile, next_tile]);
+      }
+    }
+    foreach (ActiveFromGroup in incoming[OnwardTile]) {
+      this._connections[FromGroup].append(ActiveFromGroup);
+      this._connections[ActiveFromGroup].append(FromGroup);
+      this._connections[ActiveFromGroup] =
+          _MinchinWeb_Array_.RemoveDuplicates(this._connections[ActiveFromGroup]);
+      this._connections[FromGroup] =
+          _MinchinWeb_Array_.RemoveDuplicates(this._connections[FromGroup]);
     }
   }
   return ReturnTiles;

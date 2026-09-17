@@ -1707,6 +1707,19 @@ function OpexRailQuotedPlanStillBuildable(plan, join)
   return ok;
 }
 
+/* M4/16.2 : ne jamais engager d'infrastructure si OpenTTD n'a plus aucun slot train.
+ * Ce test est volontairement duplique au plus pres de la transaction : task_rail l'utilise avant
+ * de lancer l'A*, mais une recherche reprenable peut terminer plusieurs ticks plus tard, apres
+ * qu'un autre chemin a consomme le dernier slot. */
+function OpexRailVehicleSlotAvailable()
+{
+  local setting = "vehicle.max_trains";
+  if (!AIGameSettings.IsValid(setting)) return true;
+  local cap = AIGameSettings.GetValue(setting);
+  local used = AIGroup.GetNumVehicles(AIGroup.GROUP_ALL, AIVehicle.VT_RAIL);
+  return used < cap;
+}
+
 /* Execute la construction reelle d'un plan precalcule ou valide. */
 function OpexExecuteRailPlan(catalog, budget, candidate, plan, join, cashReserve)
 {
@@ -1750,6 +1763,12 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, join, cashReserve
   if (result.money < need) {
     if (REBORROW) result.money = OpexTryReborrow(need, result.money);
     if (result.money < need) { result.reason = "CASH"; return result; }
+  }
+
+  /* Fail-before-spend : stations, voie, depot et terrassement commencent juste apres. */
+  if (!OpexRailVehicleSlotAvailable()) {
+    result.reason = "NOTRAIN";
+    return result;
   }
 
   local costs = AIAccounting();

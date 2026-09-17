@@ -295,13 +295,15 @@ ne doivent pas être présentés comme une optimisation de performance.
 ### 08.2 — mémoire de ville non adoptée
 
 Le défaut reste `air_town_limit_memory=0`. L'ancien 5×6
-`results/p1_town_limit_5x6_v1.json`, antérieur à 08.1, était défavorable :
-`company_value` moyen **−267 112 £** (2 gains / 3 pertes) et `profit_year`
-**−76 650 £/an** ; verdict `fail_primary_and_value_guard`. Ce banc ne suffit plus à caractériser
-la base corrigée, précisément parce que 08.1 empêche désormais un 771 de franchir l'élection du
-site. Une tentative de diagnostic C66.4 actuel 0→1 a été préparée avec le protocole pré-enregistré
-(`profit_year +45 000 £/an`, garde valeur −2 %), mais le connecteur a bloqué l'invocation avant
-toute partie. Aucun résultat courant n'est donc inventé et le défaut reste 0.
+`results/p1_town_limit_5x6_v1.json`, antérieur à 08.1, n'est plus utilisé comme autorité sur la
+base corrigée. L'autorité courante est le C66.4 officiel
+`results/review_b1_082_town_memory_c66_4_20x10.json` : **20/20 paires complètes**, primaire
+`profit_year`, seuil utile pré-enregistré **+45 000 £/an** et garde valeur **−2 %**.
+
+Le candidat `air_town_limit_memory=1` donne un delta moyen de **−55 605,6 £/an**, médiane
+**−82 543,5 £/an**, **8 victoires / 12 défaites** et test des signes bilatéral **p=0,503445**.
+La garde de `company_value` passe (**+3,297638 %**), mais le primaire échoue : verdict
+**`fail_primary`**. Décision finale : conserver `air_town_limit_memory=0`, sans nouveau 20×10.
 
 ### 08.3 — pas de faux fallback
 

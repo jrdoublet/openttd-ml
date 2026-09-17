@@ -1044,21 +1044,25 @@ pour les anciennes sauvegardes. Test ciblé 7/7 ; smoke `air_early_slot=1` 2×3 
 1970–1975. Ne pas lui attribuer de gain économique et ne pas lancer de 20×10 pour cette correction
 de sûreté. `early_slot` reste inchangé.
 
-## Eau, bibliothèques et robustesse — conservés, différés
+## Eau, bibliothèques et robustesse — P1 techniques clos, résidus différés
 
 Le code utilise déjà la transcription MinchinWeb dans `lib_water.nut`, avec budget en opcodes.
 Ne pas proposer de recommencer son intégration. La bibliothèque n'apporte pas à elle seule des
 lignes rentables ; le catalogue de sites intégré aux rebuilds a été testé sans justifier son adoption.
-L'ancien essai Lakes du 09/09 précède le correctif de gel C56 : il ne tranche pas à lui seul
-le défaut combiné actuel. Aucune modification de défaut eau n'est décidée par cette revue.
+L'ancien essai Lakes du 09/09 précède le correctif de gel C56 et ne tranche pas à lui seul le
+défaut combiné actuel. La revue du 17/09 ferme toutefois deux défauts techniques directement
+observables : 10.1 rend le budget d'opcodes interruptible jusque dans les parcours internes de
+Lakes ; 10.3 déplace le BFS borné de validation des fronts réels avant toute dépense de quai sur
+le chemin Lakes. Aucun réglage ni politique économique n'est changé.
 
-Le dossier eau conserve : découverte de sites séparée du portefeuille, distance navigable au
-lieu du minorant Manhattan, revalidation des fronts réels sans réintroduire le faux négatif du
-BFS borné, rotations fractionnaires et qualification mémoire sur grandes cartes. **Réexaminer
-ces points dans le code au moment de la reprise**. Leur poids dans le retard courant n'est pas
-mesuré ; un gel reproductible reprendrait immédiatement la priorité. C57 conserve le calibrage
-du budget, pas un retour au budget en itérations. La consigne existante d'accord explicite avant
-un nouveau diagnostic de découverte maritime est conservée ; aucun n'est lancé ici.
+Le dossier eau conserve : découverte de sites séparée du portefeuille, rotations fractionnaires et
+**10.5** (qualification mémoire sur grandes cartes). **10.2 est clos** : quand Lakes confirme la
+connectivité mais que la distance navigable exacte reste inconnue, le candidat est désormais rejeté
+avant `OpexWaterEconomics` au lieu de substituer Manhattan. C57 conserve le calibrage de la **valeur** du budget ; la lacune sur la position des
+contrôles est close. Le scan ciblé des anciennes graines 2026/1337 est inconclusif faute de traces
+C56 datées (`frozen_count=null`) et ne doit être lu ni comme reproduction ni comme absence de gel.
+La consigne existante d'accord explicite avant un nouveau diagnostic de découverte maritime reste
+conservée.
 
 Les autres sujets restent disponibles : catchment réel des gares, placement/bruit d'aéroport,
 jonctions/agrandissement de gare, `station_join`, coût A*, réglages de partie avec mode désactivé,
@@ -1209,8 +1213,9 @@ d'`affordability_flips`, 146/501 choix ratio différents du meilleur profit abor
 592 rangs avec `turnoverBonus` non neutre et 139 choix incrémentaux recyclés, âge max
 43 jours. `portfolio_floor_pct` reste 0, `PORTFOLIO_MAX_BATCH` reste 1 et
 `early_slot` reste adopté. Le floor50 a déjà un 20×10 post-09/09 défavorable
-(−4,94 % valeur, 4 V / 16 D) : pas de relance/adoption. 06.5 reste P2 actif mesuré,
-06.11 P3 actif mesuré et 06.12 dormant.
+(−4,94 % valeur, 4 V / 16 D) : pas de relance/adoption. **État final du 17/09 :** 06.5 est clos
+non adopté après son 5×6 comportemental négatif ; 06.11 est clos comme diagnostic P3 après la
+mesure de repricing détaillée plus bas ; 06.12 reste dormant.
 
 ## Revue 2026-09-16 — clôture G0
 
@@ -1288,14 +1293,14 @@ Validation finale : tests B9+freeze **17/17**, selftest B9 OK, `py_compile` OK,
 | B3 | fait — expérimental non adopté | `review_b3_time_scaled_cap_paired_5x6_v2.json` | default inchangé |
 | B4 | fait | feeder orders 6/6 + smoke | clôture conservée |
 | B5 | fait | contrats état/reload + validations | clôture conservée |
-| B6 | fait — diagnostic | 10/10 ; 630/639 budgets divergents, 1 203 flips | 06.5 P2 actif mais cash revalidé ; 06.11 P3 ; 06.12 dormant |
-| B7/G11 | restant technique conditionnel | mécanismes 10.1/10.3 confirmés statiquement | priorité seulement si freeze eau actuel reproductible |
+| B6 | fait — 06.5 non adopté | passif 10/10 : 41/630 choix changés ; variante 5×6 : −135,5 k£/an, valeur −27,31 %, 1 V / 4 D | garder `portfolio_fresh_budget=0` ; 06.11 P3 mesuré/non adopté, refresh concurrent rejeté ; 06.12 dormant |
+| B7/G11 | fait — 10.1/10.2/10.3 techniques | budget Lakes interruptible + distance inconnue fail-closed + connectivité fail-before-spend ; contrats + smoke final | scan freeze 2026/1337 inconclusif ; 10.5 mesure reste séparé |
 | B8 | fait | contrats rebut 7/7 + smoke ; 5×6 non exposé | ne pas prétendre preuve dynamique du rebut |
 | **B9/G4 résiduel** | **fait** | 17/17 + smoke 2×3 + 5×6 10/10, marginal exact 59/59 | aucun default AIR adopté |
 | M1 | fait | 8/8 + selftest + smoke 2×3 | — |
 | M2 | dormant ou non exposé | flags concernés à 0 | traiter avant réactivation |
 | **M3/G12** | **fait — diagnostic, non adopté** | smoke 2×3 + 5×6 **10/10**, 135 887 événements | AIR P2 exposé ; NewGRF non mesuré ; pas de 20×10 |
-| M4 | fait — diagnostic, non adopté | conformité 5×6 : 10/10 par scénario + contrôle 10/10 | 16.2 P2 backlog ; RAM = mesure externe |
+| M4 | fait — diagnostic + 16.2 corrigé | `max_trains=0` post-fix : 10/10 sains, 0 projet rail, 0 build fail, 0 £ failed spend | 16.1 non reproduit ; 16.4/RAM = mesure externe |
 | M5/G2 résiduel | dormant ou non exposé | `c39_engine_refresh=0` | pas de lot autonome |
 | M6 | dormant ou non exposé | pas d'exposition courante | pas de correctif autonome |
 | M7/11.1 | fait | contrat 15/15/15 + 13/13 + C65 + smoke 2×3 4/4 | fallback inconnu seulement |
@@ -1361,8 +1366,11 @@ runner hôte borné à 6 CPU / 2g / 2g avec cache persistant.
   176 313 £ de coût rail échoué ; huit années-graines où NOTRAIN est l'unique échec totalisent
   **120 018 £**. Voie/dépôt ne sont pas comptés séparément. Le contrôle 5×6 est 10/10 ; sur ces
   cinq graines, `profit_year` moyen vaut −3,70 % et `company_value` moyenne −1,95 % face au
-  contrôle, résultat descriptif sans autorité d'adoption. 16.2 est confirmé mais reste P2 :
-  gaspillage/admission, pas crash ni mensonge de mesure. Aucun garde n'est adopté ;
+  contrôle, résultat descriptif sans autorité d'adoption. 16.2 est confirmé comme défaut P2 de
+  gaspillage/admission. Le garde `vehicle.max_trains` est maintenant appliqué avant l'A* puis
+  revalidé juste avant la première dépense. Le rerun ciblé
+  `results/review_m4_162_fail_before_spend_5x6.json` donne 10/10 runs sains, zéro projet rail lancé,
+  zéro `RAIL_BUILD_FAIL`, `actual_fail=0` et `pure_notrain_actual_fail=0` ;
 - **pf.forbid_90_deg=1** : 10/10 runs sains, zéro erreur NoAI, 34 projets rail choisis et rail
   construit dans chaque graine (1/4/2/2/2 véhicules). L'hypothèse crash/boucle n'est pas
   reproduite sur ce périmètre ; les internals `Pathfinder.Rail` restent externes au dépôt ;
@@ -1399,19 +1407,26 @@ alors que les defaults restent à 0. 11.6/11.7 sont clos par B5 ; 11.8 est caduc
 
 ## Revue 2026-09-16 — résidus techniques après M7
 
-Le plus gros résidu actif non gelé et hors eau a été repris sans rejouer son banc :
-**B6/06.5**. Le snapshot de capital est encore pris avant la découverte air/eau et reste utilisé à
-la sélection. Le 5×6 déjà validé donne 630/639 différences snapshot/live, 50 événements avec
-flips et 1 203 bascules d'abordabilité.
+Le plus gros résidu actif non gelé et hors eau a été repris de bout en bout : **B6/06.5**. Le
+snapshot de capital est encore pris avant la découverte air/eau et utilisé à la sélection, mais le
+diagnostic passif actuel mesure maintenant son effet exact :
+`results/review_b6_065_live_budget_5x6.json`, 10/10 parties saines, **41/630** élections changées
+par le capital vivant ; 39/41 ont un profit local supérieur, médiane +17 322 £/an.
 
-Ce mécanisme n'est pas promu P1 : les cinq chemins de construction revalident la trésorerie
-vivante (le rail possède en plus le retour `CASH` du builder). Il peut sélectionner un mauvais
-viver ou manquer un projet devenu finançable, mais il ne contourne pas le dernier garde de cash.
-Le déplacer changerait l'admission réelle ; **aucun patch de politique** n'est fait dans cette
-passe. Les tests B6 ciblés passent 5/5 et le selftest du diagnostic est OK.
+Le candidat comportemental existant `portfolio_fresh_budget=1` a ensuite été testé sans nouveau
+code de politique : `results/review_b6_065_fresh_budget_c66_4_5x6.json`, 5/5 paires complètes.
+Il perd **−135 528,6 £/an** de `profit_year` en moyenne, V/D/E **1/4/0**, et **−27,307 %** de
+`company_value` en ratio des moyennes. Ce 5×6 est `diagnostic_only`, mais son signal négatif suffit
+à **ne pas promouvoir** le candidat en 20×10. `portfolio_fresh_budget` reste 0 et 06.5 est clos
+comme candidat non adopté. Le smoke final post-instrumentation
+`results/review_b6_065_final_smoke_2x3.json` passe **2/2**.
 
-**06.11** reste P3 mesuré : 139/345 choix incrémentaux recyclés, âge moyen 14,36 j, max 43 j ;
-l'erreur économique correspondante n'est pas encore mesurée. **06.12** reste dormant.
+**Étape intermédiaire 06.11, supersédée par la mesure de clôture ci-dessous.** Le premier banc
+n'établissait encore que 139/345 choix incrémentaux recyclés, âge moyen 14,36 j, max 43 j. Le refresh
+comportemental concurrent avait été audité puis retiré parce qu'il supprimait les subventions et
+extensions routières du vivier alors que l'incrémental ne les régénère pas. Le contre-factuel frais
+équivalent a depuis été ajouté en mesure passive et clôt 06.11 sans adopter ce refresh. **06.12**
+reste dormant.
 
 Deux résidus documentaires ont aussi été soldés :
 
@@ -1427,3 +1442,29 @@ vivant ni par `OpexAvailableCapital`. Le coût H5 du rail vient de `OB|A.result.
 `budget.begin/end` englobent les sondes de structure en mode bloquant comme reprenable. Ajouter
 ces sondes au compteur d'itérations modifierait simultanément les bornes de recherche ; ce ne
 serait pas une correction de mesure neutre. Aucun patch P1.
+
+## Revue 2026-09-17 — preuves et résidus techniques
+
+Les JSON cités par la revue sont archivés sous `evidence/review/` en gzip déterministe avec index
+des SHA256 brut/gzip ; `results/` reste un scratch ignoré. Le test d'intégrité vérifie que chaque
+référence de revue est couverte et se décompresse exactement vers son JSON source.
+
+Les derniers résidus neutres ont été corrigés sans nouvelle politique : reset de `passDiscards`
+rail après flush, `EU|` visible en refleet-only, bit IG renommé `selection_not_exact` côté parseur
+et compteur `n_vehicles` du banc 3 ans aligné sur H3. Le smoke final
+`results/review_final_residuals_smoke_2x3.json` est sain ; B7/10.1 et 10.3 sont également clos.
+
+**B6/06.11 est désormais mesuré de bout en bout, sans refresh adopté.** Le diagnostic Docker 5×6
+`results/review_b6_0611_join_resolved_5x6.json` est sain 10/10. Sur 348 sélections incrémentales,
+136 choisissent un top recyclé (âge moyen 15,74 j, max 44). Le rail pax comparable au rebuild frais
+montre une erreur absolue moyenne de 608,59 £/an (max 6 969) mais un biais signé faible (+51,54).
+Sur 127 tops fret recyclés, 117 sont repricés exactement ; 17 changent de profit et, parmi 114 cas
+décidables, **6 changeraient réellement l'élection** (4 inversions de rang, 2 non-générés) contre
+108 choix inchangés ; 5 égalités et 8 cas hors oracle restent non tranchés. Le refresh concurrent
+qui supprimait subventions/extensions reste rejeté. **Décision : 06.11 clos comme diagnostic P3,
+correctif général non adopté ; `portfolio_cache` reste actif, aucun 20×10.** Les autres restes sont
+mesure/politique (10.5, M3 AIR) ou cosmétique/inert (21.1), pas des correctifs techniques à appliquer
+à l'aveugle.
+
+Le smoke Docker final post-`.nut` `results/review_b6_0611_final_smoke_2x3_v2.json` est sain **2/2**
+sur 42/100, avec horizons complets pour OpexAI et AAAHogEx et les réglages de référence conservés.

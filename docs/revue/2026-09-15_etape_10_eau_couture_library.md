@@ -139,3 +139,39 @@ donc une **question de mesure externe**, pas un défaut technique P1 démontré 
   périmètre de cette étape.
 - **Incohérences générales déjà connues du mode eau** (chantier non fini, `docs/taches.md`) :
   volontairement non relistées ici, conformément à la consigne de l'étape.
+
+## Clôture technique B7 / G11 — 2026-09-17
+
+Les deux P1 actifs de cette étape sont corrigés sans changer de réglage ni de politique.
+
+- **10.1** : le budget `WATER_LAKES_OPS` est désormais consulté **à l'intérieur** des parcours
+  coûteux de `FindPath` (`_AllGroups`, construction des arêtes, heaps, calcul des distances et
+  `_AddNeighbour`) au lieu de seulement entre deux itérations externes. `_AllGroups` utilise une
+  file + ensemble `seen`, et `_AddNeighbour` effectue ses grands parcours en lecture seule avant
+  de committer les mutations du graphe ; une coupure de budget ne laisse donc plus un cache Lakes
+  partiellement modifié.
+- **10.3** : sur le chemin Lakes par défaut, les fronts exacts des deux quais candidats sont relus
+  et le BFS borné historique est exécuté **avant le premier `BuildDock`**. Un `NOWATER` échoue donc
+  avant dépense ; la vérification post-construction reste inchangée sur le seul chemin legacy
+  `!WATER_LAKES_CONNECTIVITY`.
+
+Le contrat ciblé `sweeps/test_b7_water_guards.py` passe, tout comme la suite d'intégration commune
+(**61 tests**), les selftests affectés, `py_compile` et `git diff --check`. Le smoke final après le
+dernier changement `.nut`, `results/review_final_residuals_smoke_2x3.json`, est complet et sain
+sur les graines 42 et 100, pour OpexAI comme AAAHogEx.
+
+La tentative ciblée de rejouer les anciennes graines de gel 2026/1337 sur 10 ans est consignée
+dans `results/review_b7_water_c56_targeted_2x10.json`, mais elle est **inconclusive** : le canal
+C56 ne fournit aucun jalon daté (`measurable_count=0`, `inconclusive_count=2`). Le diagnostic
+`diag_c56_freeze_scan.py` a donc été rendu fail-closed : il publie désormais `frozen_count=null`
+dans ce cas au lieu d'un faux « 0 gel ». Cette limite runtime ne rouvre pas 10.1/10.3, dont les
+mécanismes étaient directement présents dans le code ; elle interdit seulement de prétendre que
+ce run prouve l'absence actuelle de gel.
+
+**10.2 est clos techniquement** : si Lakes a confirmé la connectivité mais que le BFS de précision
+ne fournit pas de `navigableDistance`, le candidat incrémente toujours
+`lakes_fallback_navigable` puis fait `continue` avant `OpexWaterEconomics`; il n'existe plus de
+`navigableDistance = tariffDistance` sur ce chemin. Le contrat ciblé verrouille cette propriété et
+le smoke final `results/review_final_m4_b7_smoke_2x3.json` est sain. **10.5** reste séparé : mesure
+mémoire/opcodes grandes cartes. C57 conserve le calibrage de la valeur du budget, mais plus la
+lacune technique sur la position de ses contrôles.

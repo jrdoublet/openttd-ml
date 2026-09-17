@@ -148,11 +148,11 @@ Aucun `.nut` n'ayant changé pour G0, aucun nouveau smoke n'était requis.
 | B4 | fait | contrat feeder orders + smoke | ne pas rouvrir |
 | B5 | fait | 11/11 état/persistance + round-trips | expansion active non capturée au checkpoint |
 | M1 | fait | 8/8 + selftest C50 + smoke 2×3 | comportement préservé |
-| B6 | fait — diagnostic | 10/10 5×6 ; 630/639 budgets divergents, 1 203 flips | 06.5 P2 actif sans dépense P1 ; 06.11 P3 ; 06.12 dormant |
+| B6 | fait — 06.5 et 06.11 mesurés, non adoptés | 06.5 : passif 10/10, 41/630 choix changés ; variante 5×6 −135,5 k£/an. 06.11 : 5×6 10/10, 136/348 tops recyclés, 6/114 décisions fret changeraient après repricing | garder `portfolio_fresh_budget=0` et `portfolio_cache` ; refresh général 06.11 rejeté/non adopté ; 06.12 dormant |
 | **B9 / G4 résiduel** | **fait** | 17/17 + smoke 2×3 + 5×6 final 10/10 ; marginal joint exact 59/59 | aucun default AIR adopté |
-| B7 / G11 | restant technique conditionnel | défauts eau connus | seulement prioritaire si freeze reproductible |
+| B7 / G11 | fait — 10.1/10.2/10.3 techniques | budget Lakes interruptible, distance inconnue fail-closed, connectivité fail-before-spend, contrats + smoke final | scan freeze 2026/1337 inconclusif ; 10.5 mesure reste |
 | B8 | fait | 7/7 contrats rebut + smoke | 5×6 non exposé : ne pas surinterpréter |
-| M4 | fait — diagnostic, non adopté | conformité 5×6 : 10/10 par scénario + contrôle 10/10 | 16.2 P2 prouvé ; RAM externe non mesurée |
+| M4 | fait — diagnostic + 16.2 corrigé | post-fix `max_trains=0` : 10/10, 0 projet rail, 0 failed spend | 16.1 non reproduit ; RAM externe non mesurée |
 | M3 / G12 | fait — diagnostic, non adopté | smoke 2×3 + 5×6 10/10, 135 887 événements | AIR P2 exposé ; NewGRF non mesuré ; aucun 20×10 |
 | M7 / 11.1 | fait | contrat 15/15/15 + 13/13 + selftest C65 + smoke 2×3 4/4 | fallback inconnu seulement ; tâches connues inchangées |
 | M7 / 11.2 | fait dans le workspace courant | retours booléens explicites de `_tryTownGrowth` | comportement déjà présent, non rouvert |
@@ -167,6 +167,31 @@ Aucun `.nut` n'ayant changé pour G0, aucun nouveau smoke n'était requis.
 | Étape 21 / 21.1 | non-bug actif / P3 inerte | garde `unitnumber==0` rend le mauvais littéral rotor sans effet | correction cosmétique/test hélico seulement |
 | Étape 21 / 21.2 | largement fait | `test_campaign_freeze.py` + contrat 230 + guards policy/fingerprint | `prepare_frozen_campaign`/freeze libraries sans test unitaire isolé |
 | Étape 21 / 21.3 | fait | tests valeur décroissante + uptick final | H4 fail-closed conservé |
+
+### Clôture B7 / G11
+
+10.1 et 10.3 sont désormais fermés comme défauts techniques P1. `lib_water.nut` vérifie le budget
+opcodes jusque dans les parcours internes de Lakes et évite de committer une grosse mutation de
+graphe avant la fin des scans bornés. `builder_water.nut` valide les fronts réels et la
+connectivité bornée avant le premier quai sur le chemin Lakes ; le comportement legacy conserve
+sa vérification post-construction. Le contrat B7 ciblé, la suite commune **61/61**, les selftests,
+`py_compile` et `git diff --check` passent. Le smoke final
+`results/review_final_residuals_smoke_2x3.json` est complet et sain.
+
+Le diagnostic ciblé `results/review_b7_water_c56_targeted_2x10.json` sur 2026/1337 ne produit pas
+de trace C56 datée et est donc **inconclusif** (`frozen_count=null`, `measurable_count=0`). Le
+diagnostic a été rendu fail-closed pour que cette absence de mesure ne soit jamais convertie en
+« 0 gel ». Aucun default eau n'est changé ; 10.2 a ensuite été corrigé fail-closed et 10.5 reste
+hors de cette clôture.
+
+### Preuves de revue versionnables
+
+`results/` reste un espace de travail ignoré. Les JSON effectivement cités par la revue sont
+recopiés byte-for-byte sous forme gzip déterministe dans `evidence/review/`. L'index
+`evidence/review/index.json` enregistre, pour chaque preuve, le chemin source, la taille et le
+SHA256 du JSON brut ainsi que ceux du gzip. `sweeps/test_review_evidence.py` décompresse chaque
+archive, revérifie le hash brut et la recompression déterministe : les conclusions de la revue ne
+dépendent donc plus de fichiers locaux gitignorés impossibles à rattacher à une version.
 
 ### Clôture B9 / G4 résiduel
 
@@ -263,12 +288,16 @@ snapshot. Sur 639 événements, 630 diffèrent du capital vivant et 50 événeme
 
 La relecture des derniers sites de chantier borne cependant la gravité : air, route, eau et flotte
 refont un test de cash vivant ; le rail précontrôle le cash et son builder peut encore répondre
-`CASH`. 06.5 est donc un **P2 de classement/admission**, pas une dépense P1 hors budget. Le
-rafraîchir avant la sélection changerait la politique effective ; aucun patch ni nouveau 5×6/20×10
-n'est justifié dans cette passe.
+`CASH`. 06.5 est donc un **P2 de classement/admission**, pas une dépense P1 hors budget. La reprise
+du 17/09 a ensuite mesuré le sélecteur live exact (41/630 choix changés) puis testé le levier existant
+`portfolio_fresh_budget=1` en 5×6 : signal économique négatif, candidat non promu en 20×10 et défaut
+conservé à 0.
 
-06.11 reste P3 mesuré (139/345 choix incrémentaux recyclés, âge moyen 14,36 j, max 43 j) sans
-mesure de l'erreur économique ; 06.12 reste dormant avec `rail_prequote=0`.
+06.11 est également clos comme **diagnostic P3 sans refresh adopté**. Le Docker 5×6
+`results/review_b6_0611_join_resolved_5x6.json` est sain 10/10 : 136/348 tops incrémentaux sont
+recyclés ; sur 127 tops fret sondés, 117 sont repricés exactement et 6/114 cas décidables changeraient
+d'élection (4 inversions de rang, 2 non-générés). Le refresh concurrent reste rejeté car il perdait
+des familles de projets. 06.12 reste dormant avec `rail_prequote=0`.
 
 ### Réconciliation complémentaire
 

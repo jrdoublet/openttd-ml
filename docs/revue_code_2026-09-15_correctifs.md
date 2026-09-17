@@ -16,6 +16,14 @@ correction d'un bug de logique localisé réussit bien à **Sonnet 5** ; un corr
 **méthodologie de mesure**, une **garantie d'optimalité** ou l'**unité d'une grandeur économique**
 mérite **Opus 5**. Mapping Codex : sol ≈ Opus, terra ≈ Sonnet.
 
+> **Réconciliation 2026-09-17 — B6/06.11.** Le défaut de péremption du vivier incrémental est
+> désormais mesuré sans réintroduire le refresh unsafe :
+> `results/review_b6_0611_join_resolved_5x6.json`, 10/10 runs sains. 136/348 sélections
+> incrémentales choisissent un top recyclé ; sur 127 tops fret sondés, 117 sont repricés exactement
+> et 6/114 cas décidables changeraient d'élection. Le signal prouve un effet local de 06.11 mais pas
+> un bénéfice aval d'un refresh général. Le patch concurrent qui perdait subventions/extensions
+> reste retiré ; `portfolio_cache` est conservé et aucun 20×10 n'est lancé.
+
 **Ce que la revue a changé par rapport au 09-06.** Le mode d'échec dominant n'est plus l'erreur de
 calcul, c'est l'**artefact de mesure** — et la revue le retrouve à trois étages superposés : le
 harnais publie des grandeurs qui ne sont pas celles qu'il nomme (Tier 0), le code in-game publie
@@ -316,10 +324,14 @@ La comparaison de politiques donne V/D/E **2/3/0**, `p=1,0`, delta moyen de
 **`diagnostic_only`**. C'est le contrôle attendu : une moyenne positive sur 5 paires ne peut
 plus être prise pour une adoption. Ces nombres valident le harnais, pas `air_presite=1`.
 
-**Limite** : le workspace était dirty pendant la revue. Le manifeste enregistre le SHA Git
+**Limite de cette preuve historique** : le workspace était dirty pendant ce diagnostic précis. Le manifeste enregistre le SHA Git
 `769fdf9baed4042b830fbf24393c17a65f530a56`, `dirty=1` et le bundle exact
 `fe883b9eb5d43a6a87961ac7cfa03380670e35599f84253285af28021a7da502`. La preuve est donc
-attachée aux sources réellement exécutées, sans prétendre correspondre à un HEAD propre.
+attachée aux sources réellement exécutées, sans prétendre correspondre à un HEAD propre. Ce
+`dirty=1` ne décrit pas l'état global ultérieur : le lot courant est parti d'un HEAD
+`b5dd06e3cd47b55bbf508bc0c0bbac2e45e6a582` vérifié propre avant l'autorité B1/08.2. Le smoke
+final post-correctifs enregistre ensuite honnêtement `dirty=1`, puisque les correctifs de cette
+passe sont présents mais non commités.
 
 ### H5. La métrique nord — profit par opcode — n'est ni mesurée, ni comptée, ni dépensée
 
@@ -460,11 +472,13 @@ Delta moyen : `company_value = -183 428 £`, `profit_year = -32 569 £/an`. Le c
 observé augmente sur les deux graines affectées. **Aucun gain économique n'est revendiqué** :
 08.1 est une correction de vérité du verdict de sonde.
 
-08.2 reste au défaut 0. Le 5×6 historique `p1_town_limit_5x6_v1.json`, antérieur à 08.1,
-était défavorable (`company_value -267 112 £`, `profit_year -76 650 £/an`,
-`fail_primary_and_value_guard`). Il ne doit pas être recyclé comme preuve sur la nouvelle base.
-Le rerun C66.4 actuel 0→1, préparé avec les seuils pré-enregistrés, a été bloqué par le connecteur
-avant toute partie ; aucune adoption n'est déduite de cette absence de résultat.
+08.2 reste au défaut 0. Le 5×6 historique `p1_town_limit_5x6_v1.json`, antérieur à 08.1, n'est
+plus recyclé comme preuve sur la nouvelle base. L'autorité actuelle
+`results/review_b1_082_town_memory_c66_4_20x10.json` est complète **20/20** : le candidat
+`air_town_limit_memory=1` donne `profit_year` **−55 605,6 £/an** en moyenne, médiane
+**−82 543,5**, **8 V / 12 D**, `p=0,503445`. La garde de valeur passe à **+3,297638 %**, mais le
+primaire échoue : verdict **`fail_primary`**. `air_town_limit_memory=0` est donc conservé et aucun
+nouveau 20×10 n'est requis.
 
 08.3 reste conception sans code. Les diagnostics 771 existants montrent 291/291 erreurs seed 42
 avec zéro aéroport OpexAI dans la ville : le plafond est déjà consommé par AAAHogEx. Distant join
@@ -918,6 +932,23 @@ mode d'échec dur non élucidé du projet ; le second dépense du capital réel.
   valeur. Ajouter ce point à la fiche. `docs/taches.md:829` prévoit qu'« un gel reproductible
   reprendrait immédiatement la priorité » : si l'un réapparaît, ce groupe passe en tête.
 
+**Clôture technique B7 — 2026-09-17.** La condition historique « ne corriger que si un freeze
+actuel est reproduit » est supersédée pour **10.1 et 10.3** : les deux défauts sont directement
+présents dans le code courant et ont été corrigés. `FindPath` interroge maintenant le budget
+opcodes jusque dans ses boucles internes et ne committe plus une grosse mutation de graphe avant
+d'avoir passé les scans bornés ; le chemin Lakes exécute le BFS de connectivité des fronts réels
+avant le premier `BuildDock`, donc un `NOWATER` n'engage plus les deux quais. Le chemin legacy
+conserve son contrôle post-construction.
+
+Validation : contrat B7 ciblé + suite commune **61/61**, selftests affectés, `py_compile` et
+`git diff --check` OK. Le smoke final `results/review_final_residuals_smoke_2x3.json` est sain sur
+les deux graines. Le scan ciblé `results/review_b7_water_c56_targeted_2x10.json` (2026/1337,
+10 ans) reste **inconclusif** faute de traces C56 datées ; le parseur publie désormais
+`frozen_count=null`, `measurable_count=0`, `inconclusive_count=2` au lieu de transformer cette
+absence de mesure en « 0 gel ». 10.2 a ensuite été corrigé fail-closed : le fallback Manhattan
+n'alimente plus `OpexWaterEconomics` quand la distance navigable exacte manque. 10.5 reste une
+mesure externe ; aucun default n'est modifié et aucun 20×10 n'est requis.
+
 ### B8. Cycle de vie de flotte et de rebut : une ligne en liquidation peut recevoir un avion neuf
 
 **Constats** : 14.1 (P1), 15.2 (P2), 14.2 (P3).
@@ -1276,15 +1307,17 @@ Descriptivement, le scénario `max_trains=0` finit à −3,70 % de `profit_year`
 de `company_value` moyenne face à ce contrôle sur ces cinq graines. Ce résultat n'est pas une
 autorité d'adoption et n'ouvre aucun 20×10.
 
-16.2 reste **P2**, pas P1 : admission d'un mode rendu indisponible par les règles de partie, avec
-rollback correct et aucune corruption de mesure. La consigne de cette passe autorisant uniquement
-les P1 prouvés, aucun garde `vehicle.max_*` n'est ajouté et aucun 20×10 n'est lancé.
+16.2 reste **P2**, pas P1, mais il a ensuite été corrigé explicitement :
+`OpexRailVehicleSlotAvailable()` rejette avant A*/devis et `OpexExecuteRailPlan` refait la garde
+juste avant la première dépense. `results/review_m4_162_fail_before_spend_5x6.json` donne 10/10 runs
+sains sous `max_trains=0`, zéro projet rail choisi, zéro `RAIL_BUILD_FAIL`, `actual_fail=0` et
+`pure_notrain_actual_fail=0`. Aucun 20×10 n'est requis pour ce correctif de sûreté/admission.
 
 16.3 demeure clos/non-bug. 16.4 reste une preuve externe manquante : le résultat C46 1024² existant
 est sain mais ne mesure pas RSS/heap, et il n'a pas été rejoué. 10.5 n'est pas exposé par les runs
 M4 (zéro véhicule eau) et reste donc une hypothèse/performance à mesurer, pas un défaut courant
-promu. **M4 est clos comme diagnostic/conformité, sans adoption**, avec 16.2 conservé en backlog
-P2 et mémoire grandes cartes en backlog de mesure externe.
+promu. **M4 est clos comme diagnostic/conformité**, 16.2 étant désormais clos techniquement et la
+mémoire grandes cartes restant en backlog de mesure externe.
 
 ### M5. G2 résiduel : l'invalidation événementielle reste optionnelle et à 0
 
@@ -1437,7 +1470,7 @@ un passage dédié.
 | **G8** — terrassement d'exploration aérienne non attribué | **FERMÉ (caduc)** | `OpexAirCanLevelFootprint` (`builder_air.nut:407-419`) ouvre un `AITestMode()` avant `LevelTiles` et ne nivelle donc rien réellement ; le commentaire `:580` porte la marque du correctif (« G7§2 : test-mode seulement ; le terrassement réel est fait par le constructeur »). L'exploration ne dépense plus. **Ironie à noter** : c'est ce même correctif qui a créé 08.1, en laissant le verdict de terrain écraser celui de la sonde. |
 | **G9** — quarantaine fret→ville + filtre feeders | **FERMÉ** | Étape 2 : `OpexAbandonedPairKey` (`lines.nut:268-305`) est maintenant symétrique — repli `"t" + srcTown` **et** `"t" + dstTown` — donc plus aucune collision `freight\|cargo\|id\|-1` ; le préfixe `"t"` exclut toute collision avec un ID d'industrie numérique. Étape 5 : `candidates.nut:2674-2677` porte la même clé (commentaire « G9§1 ») et `OpexRoadFeederCandidates` respecte désormais `ABANDON_GEN_FILTER` (`:2932-2938`, « G9§2 »). Les deux volets sont clos aux deux bouts. |
 | **G10** — cycle de vie flotte air/route | **FERMÉ via B8** | Le sous-comptage historique est infirmé et B8 garde maintenant les projets flotte hors des lignes en liquidation ; contrats rebut 7/7 + smoke validés. Le 5×6 n'a pas exposé de rebut réel, limite conservée. |
-| **G11** — constructeur maritime + feeder postal | **CONDITIONNEL** | Les risques eau restent plausibles statiquement, mais le diagnostic courant 5×6 est sain jusqu'à l'horizon. Ne promouvoir B7/G11 qu'avec un **freeze eau actuel reproductible** ; l'évidence historique pré-C56 ne suffit pas. |
+| **G11** — constructeur maritime + feeder postal | **FERMÉ sur 10.1/10.2/10.3 techniques** | Budget Lakes interruptible dans les parcours internes + distance navigable inconnue rejetée avant économie + connectivité préflight avant dépense ; tests ciblés/intégration et smoke final sains. Le scan freeze 2026/1337 reste inconclusif faute de traces et n'est pas présenté comme preuve d'absence de gel. Reste 10.5 mesure externe. |
 | **G12** — catalogue : le matériel élu avant ROI | **FERMÉ comme diagnostic M3, non adopté** | M3 5×6 10/10 : rail non exposé multi-choix, route sans regret, AIR fortement exposé mais P2 de politique route-spécifique. Aucun P1 vanilla, NewGRF non mesuré, aucun 20×10. |
 
 **Compléments de 2026-09-06 hors G0-G12.** *Tier 3 hygiène* : les trois points listés restent
@@ -1587,8 +1620,24 @@ ROI différent de rank_score. 139/345 choix incrémentaux utilisent un projet re
 
 06.2 reste une **politique de classement**, pas un correctif automatique. portfolio_floor_pct=50
 possède déjà une autorité postérieure au 09/09 défavorable (bench_floor50_10y_20seeds.json :
-−4,94 % de valeur, 4 V / 16 D) : non-adoption confirmée et aucun nouveau 20×10. 06.5 reste un P2
-actif mesuré ; 06.11 un P3 actif mesuré.
+−4,94 % de valeur, 4 V / 16 D) : non-adoption confirmée et aucun nouveau 20×10.
+
+**06.5 est désormais clos comme candidat non adopté.** Le diagnostic passif actuel
+`results/review_b6_065_live_budget_5x6.json` rejoue le sélecteur exact sur des clones avec le capital
+vivant : 41/630 choix changent, 39 avec un profit local supérieur, delta médian +17 322 £/an et
+moyen +25 123,68 £/an. Le levier existant `portfolio_fresh_budget=1` a donc été testé sur C66.4
+5×6 apparié (`results/review_b6_065_fresh_budget_c66_4_5x6.json`) : 5/5 paires complètes,
+`profit_year` −135 528,6 £/an moyen, 1 V / 4 D, `company_value` −27,307 % en ratio des moyennes.
+Signal négatif : pas de promotion en 20×10 et défaut conservé à 0. **06.11 est depuis clos comme
+diagnostic P3, sans correctif général adopté.** Le Docker 5×6
+`results/review_b6_0611_join_resolved_5x6.json` mesure le contre-factuel frais équivalent : 136/348
+tops incrémentaux sont recyclés ; 117/127 tops fret sondés sont repricés exactement et 6/114 cas
+décidables changeraient d'élection. Le refresh comportemental concurrent reste rejeté : il supprimait
+les subventions et extensions routières du vivier incrémental sans les régénérer ensuite.
+
+Validation post-instrumentation 06.5 : tests ciblés + selftest du diagnostic, compilation Python,
+`git diff --check`, puis C66.3 `results/review_b6_065_final_smoke_2x3.json` **2/2** complet sans
+erreur NoAI. L'instrumentation reste derrière `decision_log=1` et le défaut de politique reste 0.
 
 Validation B6 : tests M1+B6 13/13, selftest du diagnostic OK, compilation Python OK et smoke
 review_b6_portfolio_causality_smoke_2x3.json 2/2. Les écarts économiques du bras decision_log=1
@@ -1617,3 +1666,19 @@ officiels donnent `sign_pass=false`, `primary_mean_pass=false`,
 la campagne elle-même clôt ce lot sans nouveau smoke. Bundle
 `845c5b283d86c05fb3360445596e1967edde1d2cbfcd82fb19f08e7864b1dcb2`, manifest
 `78c4ac1fe74189a119f954902b8a24242c44158bd812bc5d9a5792d4d7bb1047`.
+
+## Passe résiduelle et preuves versionnables — 2026-09-17
+
+Les résidus techniques hors eau ont été soldés : `task_rail.nut` vide `passDiscards` après les
+deux flushes de `PROJECT_DISCARD`, le panneau `EU|` couvre désormais `RAIL_EXPAND || RAIL_REFLEET`,
+le bit IG historique est parsé comme `selection_not_exact` avec
+`knapsack_truncated=null`, et `bench_1v1_3y_10seeds.py` publie `n_vehicles` via le décodeur physique
+H3. Le contrat ciblé `test_review_residual_contracts.py` est inclus dans la suite **61/61** passée
+avant le smoke final.
+
+Le smoke final post-`.nut` `results/review_final_residuals_smoke_2x3.json` est complet et sain sur
+42/100 ; son manifeste enregistre correctement le workspace courant `dirty=1`. Les preuves citées
+par cette revue sont désormais empaquetées sous `evidence/review/` en gzip déterministe. L'index
+conserve les tailles et SHA256 du JSON brut et du gzip ; `sweeps/test_review_evidence.py` vérifie
+décompression, hash brut, couverture des références et recompression déterministe. `results/`
+reste ignoré, mais les preuves décisives sont maintenant versionnables.

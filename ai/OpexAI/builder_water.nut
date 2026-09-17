@@ -597,13 +597,12 @@ function OpexWaterPlans(catalog, lines = null, projects = null, profile = null, 
           profile.bfs_attempts++;
         }
         if (navigableDistance < 0) {
-          /* Rare : Lakes prouve la connexion (recherche non bornee geographiquement) mais le
-           * BFS borne n'a pas trouve le chemin dans sa fenetre WATER_BFS_MARGIN/WATER_BFS_MAX_NODES.
-           * Repli conservateur : la distance tarifaire (Manhattan, toujours <= la distance
-           * navigable reelle) sert de plancher plutot que d'abandonner une paire deja
-           * confirmee viable et deja payee en sondage de sites. */
-          navigableDistance = tariffDistance;
+          /* B7/10.2 : Lakes prouve la connectivite, mais sans distance navigable exacte on ne sait
+           * pas pricer le temps de trajet. Manhattan est un PLANCHER geometrique : l'utiliser ici
+           * surestimait frequence, capacite et revenu. Echec fail-closed au classement ; le compteur
+           * conserve la mesure des paires Lakes dont le BFS de precision n'a pas abouti. */
           if (profile != null) profile.lakes_fallback_navigable++;
+          continue;
         } else if (profile != null) {
           profile.bfs_connected++;
         }
@@ -695,6 +694,24 @@ function OpexBuildWaterRoute(catalog, budget, plan)
   local dockB = null;
   local depot = null;
   local ship = null;
+
+  /* B7/10.3 : en mode Lakes, la pente permet de connaitre les fronts exacts avant BuildDock.
+   * Le BFS borne reste le juge historique du constructeur, mais echoue avant toute depense. */
+  if (WATER_LAKES_CONNECTIVITY) {
+    local accessA = OpexWaterDockAccess(plan.siteA.dock);
+    local accessB = OpexWaterDockAccess(plan.siteB.dock);
+    if (accessA == null || accessB == null) {
+      result.reason = "NOWATER";
+      return OpexWaterStampCost(result, costs);
+    }
+    local preflightA = { dock = plan.siteA.dock, waterTiles = accessA.fronts };
+    local preflightB = { dock = plan.siteB.dock, waterTiles = accessB.fronts };
+    if (OpexWaterFindConnection(preflightA, preflightB) < 0) {
+      result.reason = "NOWATER";
+      return OpexWaterStampCost(result, costs);
+    }
+  }
+
   budget.begin();
   local okA = AIMarine.BuildDock(plan.siteA.dock, AIStation.STATION_NEW);
   local errorA = okA ? 0 : AIError.GetLastError();
@@ -732,12 +749,9 @@ function OpexBuildWaterRoute(catalog, budget, plan)
   }
   local realA = { dock = dockA, waterTiles = accessA.fronts };
   local realB = { dock = dockB, waterTiles = accessB.fronts };
-  /* Volontairement laisse sur le BFS existant, pas OpexWaterLakesConnected : ici on reverifie
-   * la geometrie EXACTE des quais reellement construits (fronts issus de la pente reelle),
-   * pas seulement les tuiles de quai deja validees par Lakes en amont -- les deux docks sont
-   * les memes tuiles que celles interrogees au tri des paires, donc une nouvelle requete Lakes
-   * ne ferait qu'un hit de cache sans rien verifier de neuf ici. */
-  if (OpexWaterFindConnection(realA, realB) < 0) {
+  /* Le chemin Lakes a deja passe ce meme juge borne avant BuildDock. Le chemin legacy conserve
+   * sa verification historique post-construction. */
+  if (!WATER_LAKES_CONNECTIVITY && OpexWaterFindConnection(realA, realB) < 0) {
     result.opcodes += budget.end("build_water_depot");
     OpexWaterRollback(dockA, dockB, null, null); result.reason = "NOWATER"; return OpexWaterStampCost(result, costs);
   }

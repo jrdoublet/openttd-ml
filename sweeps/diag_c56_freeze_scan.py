@@ -183,17 +183,28 @@ def main():
         verdict.update({"seed": seed, "n_stations": row["n_stations"],
                         "n_vehicles": row["n_vehicles"]})
         per_seed.append(verdict)
-    frozen = [entry for entry in per_seed if entry["frozen"]]
+    measurable = [entry for entry in per_seed if entry["frozen"] is not None]
+    inconclusive = [entry for entry in per_seed if entry["frozen"] is None]
+    frozen = [entry for entry in measurable if entry["frozen"]]
     water_seeds = [entry for entry in per_seed if entry["water_entered"]]
     payload = {
         "arm": args.arm, "years": args.years, "seeds": args.seeds,
         "per_seed": per_seed,
-        "frozen_count": len(frozen),
+        # Fail closed : sans trace datee, "0 gel" serait une conclusion faussement rassurante.
+        "frozen_count": len(frozen) if measurable else None,
+        "measurable_count": len(measurable),
+        "inconclusive_count": len(inconclusive),
         "water_entered_count": len(water_seeds),
     }
     write_json_atomically(out, payload)
     print(f"out {out}")
-    print(f"GELEES : {len(frozen)} / {len(per_seed)}  |  passees par la phase eau : {len(water_seeds)}")
+    if inconclusive:
+        print(
+            f"INCONCLUSIVES : {len(inconclusive)} / {len(per_seed)}  |  "
+            f"mesurables : {len(measurable)}  |  passees par la phase eau : {len(water_seeds)}"
+        )
+    else:
+        print(f"GELEES : {len(frozen)} / {len(per_seed)}  |  passees par la phase eau : {len(water_seeds)}")
     print(f"{'graine':>8} {'gelee':>6} {'phase':>20} {'an.fin':>7} {'eau in/out':>11} {'gares':>6}")
     for entry in per_seed:
         print(f"{entry['seed']:>8} {str(entry['frozen']):>6} {str(entry['frozen_at']):>20} "

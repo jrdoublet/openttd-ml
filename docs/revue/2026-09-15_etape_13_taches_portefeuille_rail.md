@@ -219,3 +219,11 @@ Le scheduler émet désormais `IB|yy|budget|selectionPoolCapital|B0` et
 identiques et le parseur accepte encore les anciens `IB` sans suffixe. Le JSON ajoute
 `selection_pool_capital` et garde `selected_capital` comme alias. Le commentaire
 `IG|` côté scheduler ne prétend plus qu'un solveur B&B inexistant a prouvé un optimum.
+
+**Passe résiduelle 2026-09-17.** Deux écarts rail actifs ont été corrigés sans modifier le choix
+de route : les deux flushes de `PROJECT_DISCARD` remettent désormais `passDiscards=[]`, comme les
+autres modes, ce qui empêche la republication des mêmes rejets au retour de tentative ; et le
+panneau `EU|` est émis sous `RAIL_EXPAND || RAIL_REFLEET`, donc visible sur le chemin default
+refleet-only. Côté harnais, le bit IG historique est exposé comme `selection_not_exact`, avec
+`knapsack_truncated=null`, et le banc 3 ans publie `n_vehicles` via le décodeur physique H3 plutôt
+que le nombre brut d'entrées `VEHS`.

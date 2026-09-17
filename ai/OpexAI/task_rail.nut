@@ -156,6 +156,13 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "abandoned_pair", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
       }
+      /* M4/16.2 : aucun A* ni devis terrain pour un projet qui ne pourra physiquement acheter
+       * aucun train. OpexExecuteRailPlan refait la meme garde juste avant la premiere depense pour
+       * couvrir la course avec une recherche reprenable. */
+      if (!OpexRailVehicleSlotAvailable()) {
+        if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "vehicle_limit", extra = "" });
+        return { outcome = "rejected", discards = passDiscards };
+      }
       local towns = OpexGetCandidateTownEndpoints(candidate);
       if (C60_TOWN_RATING_PROBE) {
         if (towns.srcTown >= 0) OpexC60ObserveTownRating("rail", "build_precheck", towns.srcTown);
@@ -259,6 +266,9 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
           foreach (d in passDiscards) {
             OpexDecide("PROJECT_DISCARD", "rank=" + d.rank + " mode=" + d.mode + " src=" + d.src + " dst=" + d.dst + " reason=" + d.reason + (d.extra != "" ? " " + d.extra : ""));
           }
+          /* Meme contrat qu'air/route/eau : une fois ces rejets publies avant le choix,
+           * ils ne doivent pas etre republies au candidat/tour suivant. */
+          passDiscards = [];
           local cargoStr = AICargo.GetCargoLabel(candidate.cargo);
           OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=rail kind=" + candidate.kind + " cargo=" + cargoStr + " src=" + candidate.src + " dst=" + candidate.dst + " dist=" + candidate.distance + " cost=" + candidate.capital + " profit=" + candidate.profitAnnual + " roi=" + candidate.roi);
         }
@@ -280,6 +290,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
         foreach (d in passDiscards) {
           OpexDecide("PROJECT_DISCARD", "rank=" + d.rank + " mode=" + d.mode + " src=" + d.src + " dst=" + d.dst + " reason=" + d.reason + (d.extra != "" ? " " + d.extra : ""));
         }
+        passDiscards = [];
         local cargoStr = AICargo.GetCargoLabel(candidate.cargo);
         OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=rail kind=" + candidate.kind + " cargo=" + cargoStr + " src=" + candidate.src + " dst=" + candidate.dst + " dist=" + candidate.distance + " cost=" + candidate.capital + " profit=" + candidate.profitAnnual + " roi=" + candidate.roi);
       }
@@ -373,7 +384,10 @@ function OpexAI::_expandRailLines(year)
     }
   }
   local decisionOps = this._budget.end("expand_rail_decide");
-  if (RAIL_EXPAND) {
+  /* La tache est aussi active en refleet-only (default livre : expand=0/refleet=1).
+   * Publier EU dans les deux cas rend son execution observable au lieu de masquer le chemin
+   * par defaut. Les compteurs d'expansion restent naturellement a zero si RAIL_EXPAND=0. */
+  if (RAIL_EXPAND || RAIL_REFLEET) {
     OpexSign(AIMap.GetTileIndex(1, 1), "EU|" + (year % 100) + "|" + nEligible + "|"
              + nSaturated + "|" + nPersistent + "|" + nPositive + "|" + decisionOps);
   }

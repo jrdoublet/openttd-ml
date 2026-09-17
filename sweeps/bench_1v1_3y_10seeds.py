@@ -21,6 +21,7 @@ from openttdlab import bananas_ai_library, local_folder, run_experiments
 ROOT = Path("/work") if Path("/work").exists() else Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "sweeps"))
 from bench_v2 import enable_savegame_cleanup, make_cfg, quarter_profit, year_profit, station_ratings
+from physical_counters import decode_vehicles
 
 OPENTTD_VERSION, OPENGFX_VERSION = "15.3", "7.1"
 AAAHOGEX_DIR = "AAAHogEx-115"
@@ -91,6 +92,7 @@ def keep(row):
     last = closed[0] if closed else {}
     ratings = station_ratings(chunks)
     vehs = vehicle_breakdown(chunks)
+    veh_dec = decode_vehicles(chunks.get("VEHS"), target_owner=0)
     return ({
         "arm": row["experiment"]["bench_arm"],
         "seed": row["experiment"]["seed"],
@@ -102,7 +104,11 @@ def keep(row):
         "delivered_cargo": last.get("delivered_cargo", 0),
         "money": player.get("money", 0),
         "current_loan": player.get("current_loan", 0),
-        "n_vehicles": vehs["n_units"],
+        # H3 : n_vehicles est le nombre d'unites pilotables, pas le nombre brut d'entrees VEHS.
+        # Fail-closed comme les harnais C66 actuels si le chunk physique est incoherent.
+        "n_vehicles": veh_dec["primary_vehicles_count"] if veh_dec["chunk_valid"] else None,
+        "vehs_chunk_valid": veh_dec["chunk_valid"],
+        "vehs_chunk_error": veh_dec["chunk_error"],
         "vehicles_by_mode": vehs["by_mode"],
         "vehicles_capital": vehs["rolling_capital"],
         "n_stations": len(chunks.get("STNN") or {}),

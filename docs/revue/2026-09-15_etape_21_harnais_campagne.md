@@ -143,3 +143,13 @@ d'implémentation quand H2 sera corrigé : câbler `bench_v2.py` sur `effective_
   couverture unitaire de `prepare_frozen_campaign` / `freeze_bananas_libraries`.
 - **21.3** — **réalisé avec H4** : les deux cas décroissants du test courant figent le comportement
   fail-closed.
+
+## Preuves de revue versionnables — 2026-09-17
+
+Les JSON décisifs sous `results/` sont volontairement gitignorés. La revue conserve désormais ces
+preuves sous `evidence/review/` sous forme de gzip **déterministes** (`mtime=0`) et exacts au byte
+près. `evidence/review/index.json` associe à chaque source le SHA256/taille du JSON brut et le
+SHA256/taille de l'archive. `sweeps/package_review_evidence.py` reconstruit le paquet depuis les
+références des documents de revue ; `sweeps/test_review_evidence.py` vérifie couverture,
+décompression, hash brut et recompression déterministe. `results/` reste donc un scratch local,
+mais une conclusion citée par la revue ne dépend plus d'un fichier ignoré non versionnable.

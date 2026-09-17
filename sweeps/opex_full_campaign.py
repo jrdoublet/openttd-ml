@@ -871,12 +871,18 @@ def parse_project_portfolios(all_signs):
     current = None
     for sign in all_signs:
         if m := RE_IG.match(sign):
+            # IG field 5 is a legacy "selection not exact" bit.  The current selector is the
+            # cheap affordable scan (no knapsack/B&B solver exists), so a value of 1 must not be
+            # reported as a real knapsack truncation.  Keep the old JSON key as a null compatibility
+            # placeholder while exposing the bit under its truthful semantics.
+            selection_not_exact = int(m.group(5)) if m.group(5) is not None else None
             current = {
                 "year": 1900 + int(m.group(1)),
                 "mode_candidates": int(m.group(2)),
                 "od_projects": int(m.group(3)),
                 "budget_selected": int(m.group(4)),
-                "knapsack_truncated": int(m.group(5)) if m.group(5) is not None else None,
+                "selection_not_exact": selection_not_exact,
+                "knapsack_truncated": None,
                 "budget_nested": int(m.group(6)) if m.group(6) is not None else None,
             }
             portfolios.append(current)
