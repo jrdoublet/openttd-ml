@@ -920,14 +920,6 @@ function OpexAI::_tryBuildProjects(year)
              + this._projects.stats.odProjects + "|" + this._projects.stats.budgetSelected
              + "|" + (this._projects.stats.knapsackExact ? 0 : 1)
              + "|" + this._budget.nested + "|" + (this._projects.stats.selectionOpcodes / 1000));
-    /* air_fleet_probe : combien de hubs le rabattage voit-il, et combien de candidats feeders
-     * en tire-t-il ? Sans ces deux nombres, un "zero feeder bati" ne dit pas si la generation
-     * est vide ou si l'election les ecarte. */
-    if (AIR_FLEET_PROBE && ("road" in this._projects) && ("stats" in this._projects.road) &&
-        ("feederCandidates" in this._projects.road.stats)) {
-      OpexSign(anchor, "FN|" + yy + "|" + this._projects.road.stats.feederHubs
-                             + "|" + this._projects.road.stats.feederCandidates);
-    }
     /* M1 : le 3e champ historique est le capital du POOL de selection (jusqu'a PROJECT_TOP_K),
      * pas un engagement de depense. Sa position reste intacte pour les parseurs historiques.
      * B est le nombre reellement construit dans CE passage. */

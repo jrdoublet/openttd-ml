@@ -380,3 +380,13 @@ exacte AAAHogEx n'est pas disponible dans les chunks : signal descriptif seuleme
 
 **B9 est clos.** `air_catchment_probe=0`, `air_demand_plan=0` et `early_slot=1` restent
 inchangés ; aucun nouveau default AIR n'est adopté.
+
+### Décision ultérieure — 2026-09-17
+
+La vérification du code OpenTTD et le réemploi des mesures B9 ont confirmé que les arrêts bus
+créés par `air_joined_stops` sont des **pièces du même StationID** que l'aéroport : chacun ajoute
+son rayon bus à l'union de catchment de la station, sans véhicule routier ni transfert. Le feeder
+routier expérimental doublonnait donc un mécanisme de captage déjà actif et a été retiré du code
+de production avec son réglage, son pricing réseau, ses ordres dédiés, son refleet et sa
+télémétrie. Les résultats historiques feeder restent archivés ; `air_joined_stops` demeure le
+mécanisme courant d'extension de catchment aéroportuaire.

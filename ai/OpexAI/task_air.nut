@@ -596,7 +596,7 @@ function OpexAirFleetYield(line)
   return profit / fleet;
 }
 /* Comparateur de tete de file pour la croissance aerienne : meilleur rendement d'abord.
- * Fonction NOMMEE au niveau module, comme OpexFeederCandidateCompare : dans cet environnement
+ * Fonction NOMMEE au niveau module : dans cet environnement
  * Squirrel une closure imbriquee ne capture jamais les locales englobantes. */
 function OpexAirFleetPriorityCompare(a, b)
 {

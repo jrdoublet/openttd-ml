@@ -134,8 +134,8 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
-      name = "policy_feeders",
-      description = "Multimodal feeder policy: bus/mail urban collection to hubs (C29/C32): 1 = enabled (default), 0 = off",
+      name = "air_route_plane_selection",
+      description = "C68 AIR policy: for an otherwise identical route, choose the compatible aircraft with the highest predicted annual profit; 1 = adopted route-specific choice/default, 0 = historical catalog aircraft",
       easy_value = 1, medium_value = 1, hard_value = 1,
       custom_value = 1,
       flags = AICONFIG_BOOLEAN

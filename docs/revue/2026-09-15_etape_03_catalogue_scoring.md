@@ -213,6 +213,33 @@ mais elle n'est **ni implémentée ni adoptée** dans cette passe. Conformément
 (seuls les P1 techniques sont corrigés après ce diagnostic, et aucune adoption depuis un simple
 5×6), aucun 20×10 n'est lancé.
 
+### Suite C68 — politique AIR par route adoptée le 2026-09-17
+
+Le signal M3 ci-dessus a ensuite été transformé en intervention causale isolée
+`air_route_plane_selection`. Sous `0`, la sélection catalogue historique reste inchangée ; sous `1`,
+à paire/site/type d'aéroport/demande déjà choisis identiques, les appareils compatibles sont comparés
+avec `OpexAirEconomics` et celui au meilleur `profitAnnual` est retenu, ROI en départage.
+
+Le smoke post-implémentation `results/review_c68_air_route_plane_smoke_2x3_v3.json` est **4/4 sain**.
+Le diagnostic `results/review_c68_air_route_plane_5x6.json` est **10/10 sain**, avec 4 graines sur 5
+positives et **+235 565 £/an** de `profit_year` moyen contre la référence.
+
+L'autorité officielle `results/review_c68_air_route_plane_20x10_v2.json` passe la règle C66.4
+pré-enregistrée sur **20/20 paires complètes** : **15 V / 5 D**, `p_signes=0,041389`, delta moyen
+`profit_year` **+128 201 £/an** (médiane +117 901,5 ; IC95 [12 230,64 ; 244 171,36]), donc au-dessus
+du seuil utile +50 000 £/an. La garde `company_value` passe largement : ratio des moyennes
+**1,342063**, soit **+34,206 %**. Verdict officiel : **`pass`**.
+
+Décision : **C68 adopté** ; `air_route_plane_selection=1` devient le défaut livré. La limite déjà
+documentée reste vraie : les pré-filtres de paire et `AIR_DEMAND_PLAN` utilisent encore l'appareil
+catalogue historique avant l'intervention C68 ; C68 n'est donc pas présenté comme une refonte globale
+de la génération AIR.
+
+Smoke post-adoption : `results/review_c68_adopted_default_smoke_2x3.json` → **2/2 sain**. Son
+manifeste enregistre `air_route_plane_selection=1` à la fois dans `defaults` et `effective`, tandis
+que le bloc `explicit` ne force que `air_early_slot=1` et abandon `1/365` : le nouveau défaut est
+donc effectivement exercé.
+
 ### Correctifs de harnais découverts pendant M3
 
 Le premier smoke a révélé deux défauts du harnais, sans lien avec le comportement OpexAI :

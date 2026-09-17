@@ -659,18 +659,18 @@ function OpexAI::_logC54VehicleOrders(year)
 }
 /* C48.1 : tous les compteurs de volume sont explicites dans chaque ligne :
  * lines = lines.len() a l'entree (total), groups/projects_scanned/retained = rejeu des groupes,
- * fresh_feeders = feeders produits, fleet_plan = elements lus, air_plans = plans produits,
+ * fleet_plan = elements lus, air_plans = plans produits,
  * alternatives/selected = entree/sortie de la selection. Les champs non pertinents a une phase
  * valent zero. La tache report publie au premier passage de l'annee suivante : year=1971 decrit
  * 1970 et la derniere annee n'est jamais publiee (~82 % de couverture sur six ans). */
 function OpexC48IncrementalRecord(step, ops, days, lines, groups, projectsScanned, retained,
-                                  freshFeeders, fleetPlan, airPlans, alternatives, selected)
+                                  fleetPlan, airPlans, alternatives, selected)
 {
   if (!C48_INCREMENTAL_PROFILE) return;
   if (C48_INCREMENTAL_LEDGER == null) C48_INCREMENTAL_LEDGER = {};
   local entry = (step in C48_INCREMENTAL_LEDGER) ? C48_INCREMENTAL_LEDGER[step]
       : { calls = 0, ops = 0, days = 0, lines = 0, groups = 0, projectsScanned = 0,
-          retained = 0, freshFeeders = 0, fleetPlan = 0, airPlans = 0, alternatives = 0,
+          retained = 0, fleetPlan = 0, airPlans = 0, alternatives = 0,
           selected = 0 };
   entry.calls++;
   entry.ops += ops;
@@ -679,7 +679,6 @@ function OpexC48IncrementalRecord(step, ops, days, lines, groups, projectsScanne
   entry.groups += groups;
   entry.projectsScanned += projectsScanned;
   entry.retained += retained;
-  entry.freshFeeders += freshFeeders;
   entry.fleetPlan += fleetPlan;
   entry.airPlans += airPlans;
   entry.alternatives += alternatives;
@@ -689,20 +688,20 @@ function OpexC48IncrementalRecord(step, ops, days, lines, groups, projectsScanne
 function OpexAI::_logC48IncrementalLedger(year)
 {
   if (!C48_INCREMENTAL_PROFILE) return;
-  /* Une ligne pour CHACUNE des sept phases, meme si une garde fonctionnelle n'a produit aucun
+  /* Une ligne pour CHACUNE des six phases, meme si une garde fonctionnelle n'a produit aucun
    * appel cette annee : le depouillement distingue ainsi zero de "phase absente du journal". */
-  local steps = ["tension_ctx", "groups_replay", "feeders", "fleet", "air", "selection", "total"];
+  local steps = ["tension_ctx", "groups_replay", "fleet", "air", "selection", "total"];
   foreach (step in steps) {
     local entry = (C48_INCREMENTAL_LEDGER != null && (step in C48_INCREMENTAL_LEDGER))
         ? C48_INCREMENTAL_LEDGER[step]
         : { calls = 0, ops = 0, days = 0, lines = 0, groups = 0, projectsScanned = 0,
-            retained = 0, freshFeeders = 0, fleetPlan = 0, airPlans = 0, alternatives = 0,
+            retained = 0, fleetPlan = 0, airPlans = 0, alternatives = 0,
             selected = 0 };
     OpexC48IncrementalLog("phase=annual year=" + year + " step=" + step
         + " calls=" + entry.calls + " ops=" + entry.ops + " days=" + entry.days
         + " lines=" + entry.lines + " groups=" + entry.groups
         + " projects_scanned=" + entry.projectsScanned + " retained=" + entry.retained
-        + " fresh_feeders=" + entry.freshFeeders + " fleet_plan=" + entry.fleetPlan
+        + " fleet_plan=" + entry.fleetPlan
         + " air_plans=" + entry.airPlans + " alternatives=" + entry.alternatives
         + " selected=" + entry.selected);
   }

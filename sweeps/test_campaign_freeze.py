@@ -40,6 +40,7 @@ class TestCampaignFreeze(unittest.TestCase):
         self.assertEqual(defaults["probe_cost"], 0)
         self.assertEqual(defaults["policy_rail"], 1)
         self.assertEqual(defaults["policy_caches"], 1)
+        self.assertEqual(defaults["air_route_plane_selection"], 1)
         self.assertEqual(set(defaults), set(specs))
         self.assertEqual(defaults["debug_signs"], 1)
         self.assertEqual(defaults["road_pax_catchment_pct"], 86)

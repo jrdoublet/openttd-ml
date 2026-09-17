@@ -1,5 +1,5 @@
 /* C65 : deplace depuis main.nut (passe 1, deplacement pur, aucun corps retouche). */
-/* C38 etape 2 : tentative synchrone route, y compris les gardes feeder et le siting vivant. */
+/* C38 etape 2 : tentative synchrone route, y compris le siting vivant. */
 function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor, yy)
 {
   if (project == null) return { outcome = "no_candidate", discards = passDiscards };
@@ -44,8 +44,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         if ("predRevenue" in line) line.predRevenue += candidate.revenueAnnual;
         if ("predicted" in line) line.predicted += candidate.profitAnnual;
         if ("predCarried" in line) line.predCarried += candidate.carried;
-        OpexSign(anchor, "RE|" + yy + "|" + line.lineId + "|" + line.extraStops.len()
-                         + "|" + (candidate.extensionType == "feeder_extension" ? "F" : "P"));
+        OpexSign(anchor, "RE|" + yy + "|" + line.lineId + "|" + line.extraStops.len() + "|P");
         if (DECISION_LOG) {
           OpexDecide("ROAD_EXTENSION", "line=" + line.lineId + " type=" + candidate.extensionType
                      + " town=" + candidate.extensionTown + " stop=" + extension.stop
@@ -57,7 +56,6 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
                            (("_c55_pax_spared" in project && project._c55_pax_spared) ||
                             ("_c55_pax_spared" in candidate && candidate._c55_pax_spared));
       if (wasPaxSpared) OpexC55PaxTraceObserveAttempted();
-      local isFeeder = ("isFeeder" in candidate) && candidate.isFeeder;
       local isSubsidy = ("isSubsidy" in candidate) && candidate.isSubsidy;
       if (isSubsidy) {
         local subId = candidate.subsidyId;
@@ -104,27 +102,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
           }
           return { outcome = "rejected", discards = passDiscards };
         }
-        local alreadyServed = false;
-        if (FEEDER_UNLOCK && isFeeder) {
-          local maxFeeders = 1;
-          local isHubTown = ("isHubTown" in candidate) ? candidate.isHubTown : false;
-          if (isHubTown && FEEDER_TOWN_COVERAGE) {
-            local tId = ("srcTown" in candidate && candidate.srcTown >= 0) ? candidate.srcTown : AITile.GetClosestTown(candidate.src);
-            local houses = AITown.IsValidTown(tId) ? AITown.GetHouseCount(tId) : 0;
-            if (houses <= 0 && AITown.IsValidTown(tId)) houses = AITown.GetPopulation(tId) / 25;
-            maxFeeders = OpexCeilDiv(houses, ROAD_STOP_CATCHMENT_HOUSES);
-            if (maxFeeders > 4) maxFeeders = 4;
-            if (maxFeeders < 1) maxFeeders = 1;
-          }
-          local currentCount = OpexTownFeederCount(this._lines, candidate.src, candidate.hubStationId);
-          local slot = ("feederSlot" in candidate) ? candidate.feederSlot : 0;
-          local yearsElapsed = (this._startYear >= 0) ? (year - this._startYear) : 0;
-          if (currentCount >= maxFeeders || (slot >= 1 && yearsElapsed < 2)) {
-            alreadyServed = true;
-          }
-        } else {
-          alreadyServed = OpexRoadPairServed(this._lines, candidate.src, candidate.dst);
-        }
+        local alreadyServed = OpexRoadPairServed(this._lines, candidate.src, candidate.dst);
         if (alreadyServed) {
           if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "pair_already_served", extra = "" });
           local abandonedKey = OpexAbandonedPairKey(candidate);
@@ -135,7 +113,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
           if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "town_road_line_cap", extra = "" });
           return { outcome = "rejected", discards = passDiscards };
         }
-        if (!isFeeder && OpexTownRoadLineCount(this._lines, candidate.dst) >= 4) {
+        if (OpexTownRoadLineCount(this._lines, candidate.dst) >= 4) {
           if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "town_road_line_cap", extra = "" });
           return { outcome = "rejected", discards = passDiscards };
         }
@@ -212,7 +190,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         OpexM3ProbeRoadEquipment(this._catalog, candidate, actualDist, plan.routeDistance,
                                  economics, "post_route");
       }
-      if (economics == null || (!isFeeder && economics.profitAnnual <= 0)) {
+      if (economics == null || economics.profitAnnual <= 0) {
         if (C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "unprofitable_after_siting", extra = "" });
         if (DECISION_LOG) {
           OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=road src=" + candidate.src + " dst=" + candidate.dst + " reason=unprofitable_after_siting");
@@ -222,8 +200,6 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         return { outcome = "rejected", discards = passDiscards };
       }
       if (wasPaxSpared) OpexC55PaxTraceObserveViable();
-      local netProfit = ("networkProfit" in candidate) ? candidate.networkProfit : 0;
-      local netRev = ("networkRevenue" in candidate) ? candidate.networkRevenue : 0;
       OpexApplyRoadEconomics(candidate, economics, actualDist);
       if (isSubsidy) {
         candidate.baseRevenueAnnual = economics.revenueAnnual;
@@ -246,18 +222,6 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         candidate.revenueAnnual = subRev;
         candidate.profitAnnual = subProfit;
         candidate.roi = subRoi;
-      }
-      if (netProfit > 0) {
-        candidate.profitAnnual += netProfit;
-        candidate.revenueAnnual += netRev;
-        if (candidate.capital > 0) {
-          candidate.roi = (candidate.profitAnnual * 1000) / candidate.capital;
-        }
-        if (isSubsidy) {
-          candidate.subsidyProfitAnnual += netProfit;
-          candidate.subsidyRevenueAnnual += netRev;
-          candidate.subsidyRoi = candidate.roi;
-        }
       }
       if (isSubsidy) {
         local subId = candidate.subsidyId;
@@ -332,15 +296,6 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
                                + AICargo.GetCargoLabel(candidate.cargo));
       OpexSign(anchor, "RC|" + yy + "|" + idx + "|1|" + result.cost
                                + "|" + result.vehicles.len());
-      /* Un feeder est une ligne routiere de RABATTAGE vers un hub rail ou aerien
-       * (candidates.nut:1156), avec ordre OF_TRANSFER au hub. Rien ne le distinguait
-       * d'une liaison ville-a-ville dans la telemetrie : impossible de dire si un seul avait
-       * jamais ete bati. Un panneau par feeder, donc aucun cout quand il n'y en a pas. */
-      if (("isFeeder" in candidate) && candidate.isFeeder) {
-        OpexSign(anchor, "FE|" + idx + "|"
-                                 + ((("hubMode" in candidate) && candidate.hubMode == "air") ? "A" : "T")
-                                 + "|" + ((("joinedHub" in result) && result.joinedHub) ? 1 : 0));
-      }
       if (ROAD_MULTISTOP) {
         OpexSign(anchor, "RM|" + yy + "|" + idx + "|1|"
                                  + result.nStopsA + "|" + result.nStopsB + "|"
@@ -373,10 +328,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         deadStreak = 0, scrapping = false, scrapVehicles = [],
         isLowRatio = ("isLowRatio" in candidate) ? candidate.isLowRatio : false,
         opcodeRatio = ("opcodeRatio" in candidate) ? candidate.opcodeRatio : -1,
-        purpose = (("isFeeder" in candidate) && candidate.isFeeder) ? "feeder" : "profit",
-        isFeeder = (("isFeeder" in candidate) && candidate.isFeeder),
-        hubStationId = (("hubStationId" in candidate) ? candidate.hubStationId : -1),
-        hubMode = (("hubMode" in candidate) ? candidate.hubMode : ""),
+        purpose = "profit",
         extraStops = [],
         isSubsidy = (("isSubsidy" in candidate) && candidate.isSubsidy),
         subsidyId = (("subsidyId" in candidate) ? candidate.subsidyId : -1),

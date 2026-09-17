@@ -72,14 +72,14 @@ function OpexAI::_dispatchCatalog(task, year)
     OpexSign(AIMap.GetTileIndex(1, 2), "EB|" + b.roadMin + "|" + b.railMin
              + "|" + b.railAirOverlapMin + "|" + b.railMax);
   }
-  if ((C41_ROAD_CANDIDATE_PROFILE || C41_ROAD_FREIGHT_PROFILE || C41_ROAD_FREIGHT_TOWN_PROFILE || C41_ROAD_FEEDER_PROFILE) && this._projects != null && ("road" in this._projects) &&
+  if ((C41_ROAD_CANDIDATE_PROFILE || C41_ROAD_FREIGHT_PROFILE || C41_ROAD_FREIGHT_TOWN_PROFILE) && this._projects != null && ("road" in this._projects) &&
       this._projects.road != null && ("profile" in this._projects.road) &&
       this._projects.road.profile != null) {
     local profile = this._projects.road.profile;
     if (C41_ROAD_CANDIDATE_PROFILE) {
       OpexC39Log("C41_ROAD_CANDIDATE_PROFILE", "ops=" + this._projects.road.opcodes
                  + " pax_ops=" + profile.paxOps + " freight_ops=" + profile.freightOps
-                 + " feeder_ops=" + profile.feederOps + " topk_ops=" + profile.topKOps
+                 + " topk_ops=" + profile.topKOps
                  + " candidates=" + this._projects.road.all);
     }
     if (C41_ROAD_FREIGHT_PROFILE) {
@@ -97,9 +97,6 @@ function OpexAI::_dispatchCatalog(task, year)
                  + " acceptance_ops=" + profile.freightTownAcceptanceOps
                  + " accepted_pairs=" + profile.freightTownAcceptedPairs
                  + " candidate_ops=" + profile.freightTownCandidateOps);
-    }
-    if (C41_ROAD_FEEDER_PROFILE) {
-      OpexC39Log("C41_ROAD_FEEDER_PROFILE", "build_ops=" + profile.feederOps);
     }
   }
   if (C41_RAIL_PORTFOLIO_PROFILE && this._projects != null && ("stats" in this._projects)
@@ -294,14 +291,6 @@ function OpexAI::_dispatchCatalog(task, year)
            + this._projects.stats.odProjects + "|" + this._projects.stats.budgetSelected
            + "|" + (this._projects.stats.knapsackExact ? 0 : 1)
            + "|" + this._budget.nested + "|" + (this._projects.stats.selectionOpcodes / 1000));
-  /* air_fleet_probe : combien de hubs le rabattage voit-il, et combien de candidats feeders
-   * en tire-t-il ? Sans ces deux nombres, un "zero feeder bati" ne dit pas si la generation
-   * est vide ou si l'election les ecarte. */
-  if (AIR_FLEET_PROBE && ("road" in this._projects) && ("stats" in this._projects.road) &&
-      ("feederCandidates" in this._projects.road.stats)) {
-    OpexSign(anchor, "FN|" + yy + "|" + this._projects.road.stats.feederHubs
-                           + "|" + this._projects.road.stats.feederCandidates);
-  }
   /* Meme schema que task_projects : le 3e champ reste le capital du pool de selection legacy.
    * Cette tache ne construit rien elle-meme, donc B0 est exact. */
   OpexSign(anchor, "IB|" + yy + "|" + this._projects.capitalBudget + "|"
@@ -603,21 +592,6 @@ function OpexAI::_dispatchAirFleet(task, year)
     return resized;
   }
   return this._resizeAirFleets(year);
-}
-function OpexAI::_dispatchFeeders(task, year)
-{
-
-  if (!FEEDER_ENABLED) { task.enabled = false; if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle); return false; }
-  /* C32 : sous feeder_portfolio, le rabattement est arbitre par le portefeuille. Laisser AUSSI
-   * la tache dediee active batirait la meme ligne deux fois et rendrait l'arbitrage sans objet. */
-  if (FEEDER_PORTFOLIO) { task.enabled = false; if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle); return false; }
-  task.dueCycle = this._taskCycle + 1;
-  if (C56_TASK_TRACE) {
-    local builtFeeders = this._tryBuildFeeders(year);
-    OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
-    return builtFeeders;
-  }
-  return this._tryBuildFeeders(year);
 }
 function OpexAI::_dispatchProjects(task, year)
 {

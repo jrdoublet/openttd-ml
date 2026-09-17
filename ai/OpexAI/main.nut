@@ -324,7 +324,6 @@ class OpexAI extends AIController {
        * L'ordre historique reste joignable par le reglage a 0 pour que le banc puisse trancher. */
       { name = "air", dueCycle = 0, enabled = true },
       { name = "air_fleet", dueCycle = 0, enabled = true },
-      { name = "feeders", dueCycle = 0, enabled = true },
       { name = "projects", dueCycle = 0, enabled = true },
       { name = "expand", dueCycle = 0, enabled = true },
       { name = "refleet", dueCycle = 0, enabled = true },
@@ -336,8 +335,6 @@ class OpexAI extends AIController {
   function Start();
   function _tooClose(candidate);
   function _tryBuildAir(year);
-  function _tryBuildFeeders(year);
-  function _tryBuildMailFeeder(candidate, paxResult, year);
   function _tryBuildProjects(year);
   function _c39StampFinanceable(capital = null, isProjectsTurn = false);
   function _tryTownGrowth(year);
@@ -405,7 +402,6 @@ class OpexAI extends AIController {
   function _dispatchScrap(task, year);
   function _dispatchAir(task, year);
   function _dispatchAirFleet(task, year);
-  function _dispatchFeeders(task, year);
   function _dispatchProjects(task, year);
   function _dispatchExpand(task, year);
   function _dispatchRefleet(task, year);
@@ -425,7 +421,6 @@ require("scheduler.nut");
 require("scheduler_tasks.nut");
 require("settings.nut");
 require("task_air.nut");
-require("task_feeders.nut");
 require("task_projects.nut");
 require("task_rail.nut");
 require("task_report.nut");

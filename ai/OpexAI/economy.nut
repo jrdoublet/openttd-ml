@@ -621,7 +621,8 @@ function OpexRoadFleetVehicleCap(nStopsA, nStopsB, oneWayDays, kind)
  * (approximation assumee au classement, cf. catalog.nut) -- le constructeur relit la vraie
  * capacite apres refit depuis le depot.
  * `routeDistance` (optionnel) : longueur reelle du trace routier decouvert, pour recalibrage post-site (D4). */
-function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, kind, routeDistance = null)
+function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, kind,
+                               routeDistance = null)
 {
   if (engine == null) return null;
   local effectiveSpeed = (engine.speed * ROAD_SPEED_EFFICIENCY_PCT) / 100;
@@ -660,7 +661,6 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
     roadVehicleCap = OpexRoadFleetVehicleCap(1, 1, oneWayDays, kind);
   }
   if (vehicles > roadVehicleCap) vehicles = roadVehicleCap;
-
   /* pricing_fix : la route n'appliquait JAMAIS OpexStationRatingForHeadway, que le rail
    * (OpexLineEconomics) et l'air (builder_air.nut) utilisent tous deux -- elle restait figee a
    * STATION_RATING_PCT = 50 % a plat. Le meme mecanisme physique -- la frequence de passage fixe la

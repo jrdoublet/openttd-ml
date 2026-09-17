@@ -23,16 +23,8 @@ function OpexLoadSettings()
   PORTFOLIO_CACHE = polCaches;
   AIR_SITE_CACHE_ENABLED = polCaches;
 
-  // 2. policy_feeders : multimodal urban feeder policy (C29, C32)
-  local polFeeders = AIController.GetSetting("policy_feeders") != 0;
-  FEEDER_ENABLED = polFeeders;
-  FEEDER_UNLOCK = polFeeders;
-  FEEDER_PRICING = polFeeders;
-  FEEDER_PORTFOLIO = polFeeders;
-  FEEDER_TOWN_COVERAGE = polFeeders;
-  FEEDER_MAIL_DUPLICATE = polFeeders;
-  FEEDER_MAIL_STRICT_ORDERS = polFeeders;
-  FEEDER_HUB_CHECK = polFeeders;
+  // C68: air route plane selection
+  AIR_ROUTE_PLANE_SELECTION = AIController.GetSetting("air_route_plane_selection") != 0;
 
   // 3. policy_rail : resumable A*, quotes, micro-deadline, segmented search, refleet, orders, origin sitability
   local polRail = AIController.GetSetting("policy_rail") != 0;
@@ -166,7 +158,6 @@ function OpexLoadSettings()
   C41_ROAD_CANDIDATE_PROFILE = probeCandRoad;
   C41_ROAD_FREIGHT_PROFILE = probeCandRoad;
   C41_ROAD_FREIGHT_TOWN_PROFILE = probeCandRoad;
-  C41_ROAD_FEEDER_PROFILE = probeCandRoad;
 
   // 4. probe_candidates_rail : profiles pax, freight, speeds, cruise, economics
   local probeCandRail = AIController.GetSetting("probe_candidates_rail") != 0;
@@ -356,7 +347,6 @@ function OpexLoadSettings()
   AIR_MARGIN_V2 = false;
   RESERVE_MAINT_CAP = false;
   AIR_PRESITE = false;
-  AIR_SPLIT_FEEDER_TEST = false;
   AIR_ABANDON_SITE = false;
   AIR_TOWN_LIMIT_MEMORY = false;
   WATER_SITE_CATALOG = false;
@@ -382,12 +372,9 @@ function OpexLoadSettings()
   AIR_MAX_DISTANCE = 0;
   AIR_FULL_LOAD = false;
   C53_ORDER_NOLOAD = false;
-  FEEDER_CANDIDATES_ENABLED = false;
   FLEET_BEFORE_NEW = false;
   TRANSIT_COST_PERMILLE = 0;
   INFRA_AMORT_PCT = 0;
   PORTFOLIO_MAX_BATCH = 1;
   AIR_FLEET_BUFFER = 0;
-  FEEDER_HUB_WAIT_MAX = 100;
-  FEEDER_HUB_MIN_DAYS = 60;
 }

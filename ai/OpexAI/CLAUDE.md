@@ -55,7 +55,6 @@ budget/catalog ; `globals_post.nut` après `builder_road.nut`.
 | `probes.nut` (447) | `OpexSign`, `OpexDecide`, journaux de sondes |
 | `lines.nut` (429) | Identité de ligne, jointure, abandon |
 | `globals_pre.nut` (414) | Globales du bloc avant `require(budget/catalog/…)` |
-| `task_feeders.nut` (382) | Rabattement pax/mail vers les hubs |
 | `events.nut` (357) | `_processEvents` (dispatch), `_markDirty`, sonde C52 |
 | `settings.nut` (336) | `OpexLoadSettings()` : lecture unique des 213 `GetSetting` |
 | `globals_post.nut` (269) | Globales du bloc après `builder_road.nut` |

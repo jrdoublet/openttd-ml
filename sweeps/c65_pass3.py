@@ -76,7 +76,6 @@ EXPECTED_TASKS = (
     "scrap",
     "air",
     "air_fleet",
-    "feeders",
     "projects",
     "expand",
     "refleet",
