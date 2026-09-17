@@ -105,7 +105,7 @@ def main():
         args.screenshots.mkdir(parents=True, exist_ok=True)
 
     ai = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI",
-                      (("air_cost_probe", 1),))
+                      (("probe_cost", 1),))
     experiments = [{"seed": seed, "days": 365 * args.years, "openttd_config": CFG,
                     "ais": (ai,)} for seed in args.seeds]
     rows = list(run_experiments(
@@ -139,7 +139,7 @@ def main():
         "failed_distances": [a["distance"] for a in failures],
     }
     payload = {"openttd_version": OPENTTD_VERSION, "years": args.years, "seeds": args.seeds,
-               "openttd_config": CFG, "air_cost_probe": True,
+               "openttd_config": CFG, "probe_cost": True,
                "screenshots": str(args.screenshots) if args.screenshots else None,
                "summary": summary, "runs": runs}
     args.out.write_text(json.dumps(payload, indent=2))

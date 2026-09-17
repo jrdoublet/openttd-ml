@@ -155,77 +155,42 @@ def main():
         parser.error("--years et --workers doivent etre strictement positifs")
 
     enable_savegame_cleanup()
-    settings = [("c39_invalidation_probe", 1), ("c39_decision_delta_probe", 1),
-                ("c39_air_reason_probe", int(args.c39_air_reason_probe)), ("decision_log", 0)]
+    # 2026-09-17 : les 70 sondes individuelles ont ete regroupees en 9 macro-reglages probe_*
+    # (docs/walkthrough_regroupement_probes.md). Les drapeaux --c41-*/--c39-* ci-dessus restent
+    # un par un pour ne pas casser les invocations existantes, mais ils ne peuvent plus activer
+    # leur sonde individuellement : chacun allume desormais le groupe entier auquel elle appartient.
+    # c39_invalidation_probe et c39_decision_delta_probe etaient deja inconditionnels avant le
+    # regroupement ; probe_catalogue (qui les contient) est donc toujours actif ici, et
+    # --c39-air-reason-probe / --c41-revision-probe / --c41-water-candidate-probe / etc. n'ajoutent
+    # plus rien au-dela de ce qui est deja actif par ce fait.
+    settings = [("probe_catalogue", 1), ("decision_log", 0)]
     if (args.c41_vehicle_lost_probe or args.c41_rail_lost_probe or args.c41_rail_lost_topology_probe
             or args.c41_rail_lost_physical_probe or args.c41_rail_lost_signal_repair
             or args.c41_rail_lost_connectivity_probe):
-        settings.append(("c41_vehicle_lost_probe", 1))
-    if (args.c41_rail_lost_probe or args.c41_rail_lost_topology_probe
-            or args.c41_rail_lost_physical_probe or args.c41_rail_lost_signal_repair
-            or args.c41_rail_lost_connectivity_probe):
-        settings.append(("c41_rail_lost_probe", 1))
-    if args.c41_rail_lost_topology_probe:
-        settings.append(("c41_rail_lost_topology_probe", 1))
-    if args.c41_rail_lost_physical_probe:
-        settings.append(("c41_rail_lost_physical_probe", 1))
+        settings.append(("probe_vehicle_lost", 1))
     if args.c41_rail_lost_signal_repair:
         settings.append(("c41_rail_lost_signal_repair", 1))
-    if args.c41_rail_lost_connectivity_probe:
-        settings.append(("c41_rail_lost_connectivity_probe", 1))
-    if (args.c41_revision_probe or args.c41_water_refresh or args.c41_water_precheck
-            or args.c41_water_candidate_probe or args.c41_water_plans_profile or args.c41_water_site_profile
-            or args.c41_staleness_ledger or args.c41_opportunity_ledger or args.c41_admission_ledger
-            or args.c41_road_refresh):
-        settings.append(("c41_revision_probe", 1))
     if args.c41_water_refresh or args.c41_water_precheck or args.c41_water_candidate_probe or args.c41_water_plans_profile or args.c41_water_site_profile:
         settings.append(("c41_water_refresh", 1))
     if args.c41_water_precheck or args.c41_water_candidate_probe or args.c41_water_plans_profile or args.c41_water_site_profile:
         settings.append(("c41_water_precheck", 1))
-    if args.c41_water_candidate_probe or args.c41_water_plans_profile or args.c41_water_site_profile:
-        settings.append(("c41_water_candidate_probe", 1))
-    if args.c41_water_plans_profile or args.c41_water_site_profile:
-        settings.append(("c41_water_plans_profile", 1))
-    if args.c41_water_site_profile:
-        settings.append(("c41_water_site_profile", 1))
-    if args.c41_slack_ledger:
-        settings.append(("c41_slack_ledger", 1))
-    if args.c41_staleness_ledger:
-        settings.append(("c41_staleness_ledger", 1))
-    if args.c41_opportunity_ledger:
-        settings.append(("c41_opportunity_ledger", 1))
-    if args.c41_admission_ledger:
-        settings.append(("c41_admission_ledger", 1))
+    if (args.c41_slack_ledger or args.c41_staleness_ledger or args.c41_opportunity_ledger
+            or args.c41_admission_ledger):
+        settings.append(("probe_scheduler", 1))
     if args.c41_road_refresh:
         settings.append(("c41_road_refresh", 1))
-    if args.c41_road_candidate_profile:
-        settings.append(("c41_road_candidate_profile", 1))
-    if args.c41_road_freight_profile:
-        settings.append(("c41_road_freight_profile", 1))
     if args.c41_road_freight_served_index:
         settings.append(("c41_road_freight_served_index", 1))
-    if args.c41_road_freight_town_profile:
-        settings.append(("c41_road_freight_town_profile", 1))
     if args.c41_road_freight_acceptance_index:
         settings.append(("c41_road_freight_acceptance_index", 1))
-    if args.c41_road_feeder_profile:
-        settings.append(("c41_road_feeder_profile", 1))
-    if args.c41_rail_portfolio_profile:
-        settings.append(("c41_rail_portfolio_profile", 1))
-    if args.c41_rail_candidate_profile:
-        settings.append(("c41_rail_candidate_profile", 1))
-    if args.c41_rail_pax_profile:
-        settings.append(("c41_rail_pax_profile", 1))
-    if args.c41_rail_pax_candidate_profile:
-        settings.append(("c41_rail_pax_candidate_profile", 1))
-    if args.c41_rail_pax_economics_profile:
-        settings.append(("c41_rail_pax_economics_profile", 1))
-    if args.c41_rail_pax_speed_profile:
-        settings.append(("c41_rail_pax_speed_profile", 1))
-    if args.c41_rail_pax_speed_detail_profile:
-        settings.append(("c41_rail_pax_speed_detail_profile", 1))
-    if args.c41_rail_pax_cruise_profile:
-        settings.append(("c41_rail_pax_cruise_profile", 1))
+    if (args.c41_road_candidate_profile or args.c41_road_freight_profile
+            or args.c41_road_freight_town_profile or args.c41_road_feeder_profile):
+        settings.append(("probe_candidates_road", 1))
+    if (args.c41_rail_portfolio_profile or args.c41_rail_candidate_profile
+            or args.c41_rail_pax_profile or args.c41_rail_pax_candidate_profile
+            or args.c41_rail_pax_economics_profile or args.c41_rail_pax_speed_profile
+            or args.c41_rail_pax_speed_detail_profile or args.c41_rail_pax_cruise_profile):
+        settings.append(("probe_candidates_rail", 1))
     if args.road_pax_build:
         settings.append(("road_pax_build", 1))
     ai = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", tuple(settings))
@@ -469,48 +434,10 @@ def main():
         "openttd_version": OPENTTD_VERSION,
         "years": args.years,
         "seeds": args.seeds,
-        "settings": {"c39_invalidation_probe": 1, "c39_decision_delta_probe": 1,
-                     "c39_air_reason_probe": int(args.c39_air_reason_probe),
-                     "c41_revision_probe": int(args.c41_revision_probe or args.c41_water_refresh
-                                                or args.c41_water_precheck or args.c41_water_candidate_probe
-                                                or args.c41_water_plans_profile or args.c41_water_site_profile
-                                                or args.c41_staleness_ledger or args.c41_opportunity_ledger
-                                                or args.c41_admission_ledger or args.c41_road_refresh),
-                     "c41_water_refresh": int(args.c41_water_refresh or args.c41_water_precheck
-                                                or args.c41_water_candidate_probe or args.c41_water_plans_profile
-                                                or args.c41_water_site_profile),
-                     "c41_water_precheck": int(args.c41_water_precheck or args.c41_water_candidate_probe
-                                                or args.c41_water_plans_profile or args.c41_water_site_profile),
-                     "c41_water_candidate_probe": int(args.c41_water_candidate_probe or args.c41_water_plans_profile
-                                                        or args.c41_water_site_profile),
-                     "c41_water_plans_profile": int(args.c41_water_plans_profile or args.c41_water_site_profile),
-                     "c41_water_site_profile": int(args.c41_water_site_profile),
-                     "c41_slack_ledger": int(args.c41_slack_ledger),
-                     "c41_staleness_ledger": int(args.c41_staleness_ledger),
-                     "c41_opportunity_ledger": int(args.c41_opportunity_ledger),
-                     "c41_admission_ledger": int(args.c41_admission_ledger),
-                     "c41_road_refresh": int(args.c41_road_refresh),
-                     "c41_road_candidate_profile": int(args.c41_road_candidate_profile),
-                     "c41_road_freight_profile": int(args.c41_road_freight_profile),
-                     "c41_road_freight_served_index": int(args.c41_road_freight_served_index),
-                     "c41_road_freight_town_profile": int(args.c41_road_freight_town_profile),
-                     "c41_road_freight_acceptance_index": int(args.c41_road_freight_acceptance_index),
-                     "c41_rail_portfolio_profile": int(args.c41_rail_portfolio_profile),
-                     "c41_rail_candidate_profile": int(args.c41_rail_candidate_profile),
-                     "c41_rail_pax_profile": int(args.c41_rail_pax_profile),
-                     "c41_rail_pax_candidate_profile": int(args.c41_rail_pax_candidate_profile),
-                     "c41_rail_pax_economics_profile": int(args.c41_rail_pax_economics_profile),
-                     "c41_rail_pax_speed_profile": int(args.c41_rail_pax_speed_profile),
-                     "c41_rail_pax_speed_detail_profile": int(args.c41_rail_pax_speed_detail_profile),
-                     "c41_rail_pax_cruise_profile": int(args.c41_rail_pax_cruise_profile),
-                     "road_pax_build": int(args.road_pax_build),
-                     "c41_vehicle_lost_probe": int(args.c41_vehicle_lost_probe or args.c41_rail_lost_probe),
-                     "c41_rail_lost_probe": int(args.c41_rail_lost_probe or args.c41_rail_lost_topology_probe or args.c41_rail_lost_physical_probe or args.c41_rail_lost_signal_repair),
-                     "c41_rail_lost_topology_probe": int(args.c41_rail_lost_topology_probe),
-                     "c41_rail_lost_physical_probe": int(args.c41_rail_lost_physical_probe),
-                     "c41_rail_lost_signal_repair": int(args.c41_rail_lost_signal_repair),
-                     "c41_rail_lost_connectivity_probe": int(args.c41_rail_lost_connectivity_probe),
-                     "decision_log": 0},
+        # Reflete les reglages effectivement envoyes a local_folder() ci-dessus (source unique de
+        # verite depuis le regroupement en 9 probe_* : plus de reconstruction parallele ici, qui
+        # divergeait facilement de ce qui partait vraiment en jeu).
+        "settings": dict(settings),
         "warning": "Diagnostic trace only: C39 probes write AILog; not a value benchmark.",
         "summary": summary,
         "per_seed": per_seed,

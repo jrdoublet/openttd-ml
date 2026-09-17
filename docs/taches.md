@@ -1645,3 +1645,18 @@ architecture/mesure (C67), politique (M3 AIR) ou cosmétique/inert (21.1), pas d
 
 Le smoke Docker final post-`.nut` `results/review_b6_0611_final_smoke_2x3_v2.json` est sain **2/2**
 sur 42/100, avec horizons complets pour OpexAI et AAAHogEx et les réglages de référence conservés.
+
+## Revue 2026-09-17 — relecture du regroupement des sondes (`probe_*`)
+
+Voir [`docs/walkthrough_regroupement_probes.md`](walkthrough_regroupement_probes.md) §5 pour le
+détail. Deux problèmes trouvés et corrigés dans le même chantier : 17 scripts `sweeps/*.py`
+(dont les trois runners de banc) qui passaient encore les 70 anciens noms de sonde, et une garde
+`C41_WATER_PRECHECK` perdue sur les sondes eau (`probe_catalogue=1` sans précontrôle exécutait
+réellement `OpexWaterPlans()` au lieu de rester passif). Les deux sont réglés ; reste ouvert :
+
+- **Découplage `c41_water_refresh` / `probe_catalogue`** : `scheduler_tasks.nut:318` fait dépendre
+  le refresh fonctionnel du catalogue eau de `C41_REVISION_PROBE`, qui n'est plus accessible seul —
+  il faut désormais `probe_catalogue=1`, ce qui allume au passage les 6 autres sondes catalogue.
+  Couplage préexistant au regroupement, élargi par lui. Pas un correctif de sûreté ; à traiter
+  comme une tâche de conception (séparer le fonctionnel du diagnostic) si `c41_water_refresh` doit
+  un jour s'activer indépendamment.

@@ -61,7 +61,7 @@ def main():
     experiments = [{
         "seed": seed, "days": 365 * YEARS, "openttd_config": CFG,
         "ais": (local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI",
-                             (("rail_cost_probe", 1),)),),
+                             (("probe_cost", 1),)),),
     } for seed in SEEDS]
     rows = list(run_experiments(
         openttd_version=OPENTTD_VERSION, opengfx_version=OPENGFX_VERSION, max_workers=3,

@@ -19,7 +19,7 @@ from diag_m4_conformity import analyse_logs, scenario_summary
 DEFAULT_SEEDS = [42, 100, 999, 1234, 5678]
 SETTINGS = (
     ("decision_log", 1),
-    ("c63_invest_probe", 1),
+    ("probe_portfolio", 1),
     ("air_early_slot", 1),
     ("abandon_gen_filter", 1),
     ("abandon_cooldown_days", 365),

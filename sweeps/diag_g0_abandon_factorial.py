@@ -37,7 +37,7 @@ from diag_c63_c58 import parse_c63_invest, summarise_empty_probes
 
 STARTING_YEAR = 1970
 DEFAULT_SEEDS = [42, 100, 999, 1234, 5678]
-SHARED = "air_early_slot=1,decision_log=1,c63_invest_probe=1"
+SHARED = "air_early_slot=1,decision_log=1,probe_portfolio=1"
 CURRENT = f"OpexAI[{SHARED},abandon_gen_filter=1,abandon_cooldown_days=365]"
 NO_FILTER = f"OpexAI[{SHARED},abandon_gen_filter=0,abandon_cooldown_days=365]"
 PERMANENT = f"OpexAI[{SHARED},abandon_gen_filter=1,abandon_cooldown_days=0]"
@@ -45,19 +45,19 @@ NEITHER = f"OpexAI[{SHARED},abandon_gen_filter=0,abandon_cooldown_days=0]"
 ARMS = (CURRENT, NO_FILTER, PERMANENT, NEITHER)
 ARM_PARAMS = {
     CURRENT: (
-        ("air_early_slot", 1), ("decision_log", 1), ("c63_invest_probe", 1),
+        ("air_early_slot", 1), ("decision_log", 1), ("probe_portfolio", 1),
         ("abandon_gen_filter", 1), ("abandon_cooldown_days", 365),
     ),
     NO_FILTER: (
-        ("air_early_slot", 1), ("decision_log", 1), ("c63_invest_probe", 1),
+        ("air_early_slot", 1), ("decision_log", 1), ("probe_portfolio", 1),
         ("abandon_gen_filter", 0), ("abandon_cooldown_days", 365),
     ),
     PERMANENT: (
-        ("air_early_slot", 1), ("decision_log", 1), ("c63_invest_probe", 1),
+        ("air_early_slot", 1), ("decision_log", 1), ("probe_portfolio", 1),
         ("abandon_gen_filter", 1), ("abandon_cooldown_days", 0),
     ),
     NEITHER: (
-        ("air_early_slot", 1), ("decision_log", 1), ("c63_invest_probe", 1),
+        ("air_early_slot", 1), ("decision_log", 1), ("probe_portfolio", 1),
         ("abandon_gen_filter", 0), ("abandon_cooldown_days", 0),
     ),
 }
@@ -367,7 +367,7 @@ def main():
         "shared_settings": {
             "air_early_slot": 1,
             "decision_log": 1,
-            "c63_invest_probe": 1,
+            "probe_portfolio": 1,
         },
         "runner_setting_mode": (
             "explicit-only local_folder params; shipped defaults supply every other setting. "
@@ -386,7 +386,7 @@ def main():
         "paired_comparisons": comparisons,
         "current_vs_alternatives": current_comparisons,
         "limits": [
-            "decision_log and c63_invest_probe are diagnostic instrumentation shared by all arms.",
+            "decision_log and probe_portfolio are diagnostic instrumentation shared by all arms.",
             "ABANDON_PRUNE proves release from memory; repeated ABANDON_PAIR count>1 proves a released/retried key failed again, not that every released key was rebuilt.",
             "abandon_cooldown_days=0 means permanent memory, not memory disabled.",
             "cooldown also applies to AIR abandonment memory; abandon_gen_filter=0 does not disable AIR memory.",

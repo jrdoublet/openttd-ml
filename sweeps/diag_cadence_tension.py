@@ -210,13 +210,13 @@ def main():
         "cadence_365": (
             ("air_fleet_buffer", 0),
             ("air_fleet_cadence_days", 365),
-            ("tension_probe", 1),
+            ("probe_portfolio", 1),
             ("decision_log", 1),
         ),
         "cadence_90": (
             ("air_fleet_buffer", 0),
             ("air_fleet_cadence_days", 90),
-            ("tension_probe", 1),
+            ("probe_portfolio", 1),
             ("decision_log", 1),
         ),
     }
