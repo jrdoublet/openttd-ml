@@ -349,6 +349,11 @@ function OpexAI::_processEvents()
       continue;
     }
 
+    if (eventType == AIEvent.ET_ENGINE_PREVIEW) {
+      this._onEnginePreview(event);
+      continue;
+    }
+
     if (eventType == AIEvent.ET_STATION_FIRST_VEHICLE) {
       this._onStationFirstVehicle(event);
       continue;

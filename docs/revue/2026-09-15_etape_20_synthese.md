@@ -373,3 +373,104 @@ orchestrations de recherche entourent l'appel de recherche d'un `budget.begin/en
 structure sont donc comprises dans cette mesure. 07.2 reste une limite du proxy d'itérations,
 pas un P1 de vérité H5. L'incrémenter modifierait aussi les bornes `iterationBudget/timeSafe` et
 donc le comportement du pathfinder : aucun patch `.nut` n'est justifié dans cette passe.
+
+### Suite AIR post-C68 — moteur multi-équipements (2026-09-18)
+
+C68 reste la baseline adoptée. Le chemin expérimental `air_best_equipment` généralise l’architecture : `OpexAirBestEquipment` devient le point unique de décision avion→demande→flotte→économie pour les trois bras AIR. Les bornes rail↔air viennent désormais d’une enveloppe multi-avions ; le calcul mono-`bestPlane` subsiste seulement comme diagnostic.
+
+Le 5×6 A→D `diag_air_best_equipment_context_opt_6y_5seeds.json` était défavorable (**−75 616,8 £/an** de `profit_year`, 2/5 victoires) et n’a trouvé aucun faux rejet portée/minDist. Après passage à l’unité `(airportType, plane, fleet)`, `diag_air_best_equipment_multi_airport_6y_5seeds.json` passe **10/10** : `company_value` candidat−C68 **+172 925,2 £** moyen (3/5), `profit_year` **+14 463,8 £/an** (2/5). Aucun 20×10 n’est lancé et `air_best_equipment=0` reste le défaut.
+
+`AIR_PLAN_PERF` mesure un surcoût moyen de **+10,87 M** opcodes de planification AIR (**+5,51 %**) et **+11,01 M** d’évaluation (**+5,87 %**) sur six ans. Ce niveau ne justifie pas encore une Pareto/cache. Les suites upgrades, `ET_ENGINE_AVAILABLE`, `ET_ENGINE_PREVIEW`, crash/croissance/upgrade et réévaluation périodique doivent réutiliser le même moteur ; les événements servent seulement de déclencheurs.
+
+### Clôture AIR lifecycle — 2026-09-18
+
+Le chantier demandé est maintenant fermé techniquement. Les lignes existantes, upgrades, croissance,
+reconstruction de crash, `ET_ENGINE_AVAILABLE`, résolution de preview et filet périodique convergent
+tous vers `OpexAirAssessExistingLine` / `OpexAirBestEquipment` / `OpexAirEconomics`. Le preview ne
+conserve qu’un screen pré-EngineID ; une fois l’ID réel connu, il ne peut plus imposer une politique
+parallèle. Les états `currentPrimaryEngine`, `preferredEngine`, `targetFleetSize`, `upgradePending`,
+`upgradeRemaining` et `previewCommitment` sont persistants et migrés au reload avec dirty reason
+`restore`.
+
+Le Pareto est un préfiltre strictement décision-invariant (même compatibilité/capacité/vitesse,
+coûts non supérieurs, portée non inférieure). Instrumentation `AL0..AL9` + `AQ` : évaluations,
+causes (`engine_available`, `preview`, `crash`, `growth`, `upgrade`, `restore`, périodique), achats,
+retraits, commitments, capital/payback et opcodes sont décodés dans `sweeps/bench_v2.py`.
+
+Validation finale du source courant : **55 tests**, `py_compile`, les selftests
+`bench_c50b_physical.py --selftest` et `bench_1v1_5y_20seeds.py --selftest`, puis
+`git diff --check` passent. L’unique smoke Docker final
+`results/smoke_air_lifecycle_final_1y_seed42.json` est **1/1 sain** sous OpenTTD 15.3 / OpenGFX 7.1.
+Le smoke post-timeout `results/smoke_air_lifecycle_post_timeout_1y_seed42.json` est désormais un
+artefact historique. Le petit 2×3
+**4/4** sain, puis `results/diag_air_lifecycle_6y_5seeds.json` **10/10** sain et complet. Le candidat
+perd `company_value` sur **5/5** graines, delta moyen **−946 088,6 £**, et `profit_year` sur 4/5,
+delta moyen **−157 641,2 £/an**. Le planning AIR n’augmente que d’environ **+1,40 %** en moyenne ;
+la régression économique ne peut donc pas être imputée à un simple coût CPU. La flotte candidate
+est nettement plus petite en fin de partie (20–35 avions contre 38–43), piste causale à étudier
+seulement si ce candidat est réouvert.
+
+Limite de protocole : le petit apparié et le 5×6 gardent `air_equipment_regret_probe=1` dans les
+deux bras. Leur `setting_audit` JSON confirme `air_best_equipment` comme seule différence effective, mais
+`transportable_to_shipped_defaults=false` : il s’agit donc de C68 contre le candidat **sous
+instrumentation commune**, pas d’une nouvelle autorité directe sur le shipped default sans sonde.
+Dynamiquement, la campagne exerce les assessments `periodic`, `engine_available` et `preview` ; les
+dirty-causes `crash/growth/upgrade/restore` restent couvertes statiquement, même si growth/upgrades
+sont bien exécutés depuis les targets communes.
+
+Le correctif final du `cancel_timeout` d’une retraite `air_upgrade` est postérieur aux artefacts 2×3
+et 5×6. Le ticket associe désormais l’ancien avion au remplaçant exact construit. Tant que ce
+remplaçant est encore actif dans la ligne, l’ancien n’est pas restauré : le ticket reste actif et la
+retraite continue, donc la flotte de ligne reste à N et aucun second remplaçant n’est acheté. Si le
+remplaçant exact a disparu, seulement alors l’ancien est restauré et la ligne repasse, via la raison
+`retire_rollback`, par `OpexAirAssessExistingLine -> OpexAirBestEquipment -> OpexAirEconomics` ;
+`retireRollback` est incrémenté. Les campagnes acquises avaient
+`retireRollback=0` : cette branche n’y a pas été exercée. Leurs chiffres restent donc les mesures de
+la campagne précédente.
+
+La réconciliation finale a aussi corrigé un défaut fonctionnel distinct révélé par l’analyse du 5×6 :
+`targetFleetSize` n’était pas câblé aux deux appels d’upgrade et le helper cessait son comptage au
+premier ancien avion. Il pouvait donc poursuivre des remplacements 1:1 alors que la cible économique
+avait une profondeur inférieure. Le helper compte maintenant toute la flotte, construit seulement
+jusqu’à la profondeur cible, puis utilise `retireOnly`/`air_upgrade_shrink` sans achat, garde cash ni
+capital portefeuille fictif. Une réduction pure à moteur inchangé est également exécutée quand
+`OpexAirAssessExistingLine -> OpexAirBestEquipment -> OpexAirEconomics` choisit `best.planes < have`.
+`upgradeRemaining` ne fait que refléter le nombre d’étapes physiques restantes ; il ne choisit jamais
+la cible.
+
+Les derniers écarts fonctionnels sont également fermés. La situation courante d’une flotte mixte est
+valorisée appareil par appareil par `OpexAirActualFleetEconomics`, et le payback de transition utilise
+`OpexAirRemainingTransitionCapital` : les appareils cible déjà achetés ne sont plus recomptés comme
+capital futur et seules les sorties physiques prévues contribuent à la revente. Le gain d’une cellule
+est figé dans `upgradeUnitGainAnnual` à chaque assessment ; diminuer `upgradeRemaining` ne gonfle donc
+plus artificiellement les étapes suivantes. Une continuation d’upgrade n’est autorisée que si
+`OpexAirBestEquipment` reconfirme la même `preferredEngine`.
+
+Dans le portefeuille, une étape `retireOnly` à capital zéro est classée avant les investissements et
+n’est pas rejetée par le floor de profit. Côté événements, un avion déjà retiré logiquement qui crashe
+est éliminé de `_vehiclesToRetire` avant toute mutation de ligne ; un autoreplace remappe aussi les
+`replacementVehicle` des tickets. Le crash d’un remplaçant est raccordé au nouvel ID après refleet.
+Le refleet lui-même attend une assessment commune valide et n’achète rien lorsque la flotte restante a
+déjà atteint `targetFleetSize`; le cas `have==0` est réélu par le moteur commun. Enfin, un engagement
+preview `resolved` expire explicitement après `AIR_PREVIEW_COMMITMENT_MAX_DAYS` et ne peut plus geler
+indéfiniment la réévaluation périodique.
+
+Par conséquent, le delta économique du 5×6 (**−946 088,6 £** de valeur moyenne) mesure explicitement
+le **candidat pré-correctif**, qui a exécuté 56 upgrades avec l’ancien chemin. Il ne doit pas être
+présenté comme une mesure de performance du lifecycle final après `targetFleetSize`/shrink/`retireOnly`.
+
+Faits économiques établis sur ce 5×6 historique : `company_value` est négatif sur **5/5** graines
+(moyenne −946 088,6 £, écart-type ≈530,9 k£ ; test des signes bilatéral p=0,0625), `profit_year`
+baisse en moyenne de −157 641,2 £/an et le cash final de −2 387 739,4 £. Le revenu de dernière année
+est inférieur de −36 786,8 £ en moyenne alors que la dépense terminale est légèrement plus faible
+(≈9,6 k£), et la flotte AIR finale moyenne est 25,6 contre 41,2 pour C68. Le mécanisme de coût
+d’opportunité est réel : upgrades et nouveaux projets partagent le même portefeuille et son batch ;
+en revanche l’artefact ne journalise pas le projet contrefactuel évincé, donc sa contribution chiffrée
+n’est **pas démontrée**. Il est démontré que les 56 upgrades pré-correctif faisaient du remplacement
+1:1 sans bénéficier du shrink final ; attribuer une fraction précise des pertes au capital immobilisé,
+au churn ou à la substitution AIR→road reste une **hypothèse**. Les mesures opcodes sont incomplètes
+(`observed_opcode_complete_cpu=false`) et leur variation seed-à-seed n’explique pas à elle seule le
+signe économique. Aucun de ces chiffres n’est une mesure du lifecycle final.
+
+**Verdict : pas de 20×10, pas d’adoption.** `air_route_plane_selection=1` (C68) reste adopté et
+`air_best_equipment=0` reste le default sur tous les niveaux.

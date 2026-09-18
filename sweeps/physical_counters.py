@@ -371,6 +371,7 @@ def decode_vehicles(vehs_chunk: Union[dict, list, None], target_owner: int = 0) 
         primary_details.append({
             "index": idx,
             "mode": mode,
+            "engine_type": common.get("engine_type"),
             "unitnumber": unitnumber,
             "subtype": subtype,
             "vehstatus": vehstatus,

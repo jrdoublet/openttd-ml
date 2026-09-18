@@ -326,6 +326,8 @@ function OpexLoadSettings()
   AIR_CATCHMENT_PROBE = AIController.GetSetting("air_catchment_probe") != 0;
   EQUIPMENT_ROI_PROBE = AIController.GetSetting("equipment_roi_probe") != 0;
   AIR_ROUTE_PLANE_SELECTION = AIController.GetSetting("air_route_plane_selection") != 0;
+  AIR_EQUIPMENT_REGRET_PROBE = AIController.GetSetting("air_equipment_regret_probe") != 0;
+  AIR_BEST_EQUIPMENT = AIController.GetSetting("air_best_equipment") != 0;
   local ajsl = AIController.GetSetting("air_joined_stop_limit");
   if (ajsl >= 0) AIR_JOINED_STOP_LIMIT = ajsl;
   AIR_EARLY_SLOT = AIController.GetSetting("air_early_slot") != 0;

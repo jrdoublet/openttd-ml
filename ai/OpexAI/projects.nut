@@ -173,6 +173,18 @@ function OpexProjectScore(value, cost)
   return (value.tofloat() * 1000.0) / cost;
 }
 
+/* Une retraite retireOnly est une etape de maintenance deja decidee par le moteur AIR commun :
+ * elle ne consomme aucun capital et ne doit pas etre affamee derriere les projets d'investissement
+ * parce que le ratio profit/capital n'a pas de denominateur a zero. Ce helper ne choisit jamais
+ * une cible avion/flotte ; il ne fait qu'identifier l'execution gratuite d'une cible deja persistee. */
+function OpexProjectIsFreeAirRetirement(project)
+{
+  return project != null && ("mode" in project) && project.mode == "fleet"
+      && ("payload" in project) && project.payload != null
+      && ("kind" in project.payload) && project.payload.kind == "upgrade"
+      && ("retireOnly" in project.payload) && project.payload.retireOnly;
+}
+
 /* C49 etape 2 : score unifie selon le regime de rarete endogene actif. */
 function OpexC49ProjectScore(project, regime)
 {
@@ -390,24 +402,31 @@ function OpexProjectFromCandidate(candidate, tensionCtx = null)
  * de moins d'un an ne produirait de projet de flotte -- or l'annee 1 est precisement la cible. */
 function OpexProjectFromFleet(entry, tensionCtx = null)
 {
-  if (entry == null || entry.want <= 0 || entry.planePrice <= 0) return null;
+  if (entry == null || entry.want <= 0) return null;
+  local retireOnly = ("retireOnly" in entry) && entry.retireOnly;
+  if (!retireOnly && entry.planePrice <= 0) return null;
   local line = entry.line;
   local have = ("vehCount" in line && line.vehCount > 0) ? line.vehCount
              : (("vehicles" in line) ? line.vehicles.len() : 0);
   if (have < 1) return null;
 
-  local perPlaneProfit = 0;
-  if (("lastProfit" in line) && line.lastProfit > 0) {
-    perPlaneProfit = line.lastProfit / have;
-  } else if (("predRevenue" in line) && line.predRevenue > 0) {
-    local running = ("predRunning" in line) ? line.predRunning : 0;
-    local planes = ("predTrains" in line && line.predTrains > 0) ? line.predTrains : have;
-    perPlaneProfit = (line.predRevenue - running) / planes;
+  local profit = ("profitAnnual" in entry && entry.profitAnnual > 0) ? entry.profitAnnual : 0;
+  if (profit <= 0) {
+    local perPlaneProfit = 0;
+    if (("lastProfit" in line) && line.lastProfit > 0) {
+      perPlaneProfit = line.lastProfit / have;
+    } else if (("predRevenue" in line) && line.predRevenue > 0) {
+      local running = ("predRunning" in line) ? line.predRunning : 0;
+      local planes = ("predTrains" in line && line.predTrains > 0) ? line.predTrains : have;
+      perPlaneProfit = (line.predRevenue - running) / planes;
+    }
+    if (perPlaneProfit <= 0) return null;
+    profit = perPlaneProfit * entry.want;
   }
-  if (perPlaneProfit <= 0) return null;
-
-  local profit = perPlaneProfit * entry.want;
-  local capital = entry.planePrice * entry.want;
+  /* Une etape de shrink ne construit rien : elle ne doit immobiliser aucun capital fictif. */
+  local capital = retireOnly ? 0 : (entry.planePrice * entry.want);
+  local roiCapital = retireOnly ? 0
+      : (("netCapital" in entry && entry.netCapital > 0) ? entry.netCapital : capital);
   local revenue = profit;
   if (("predRevenue" in line) && line.predRevenue > 0) {
     local planes = ("predTrains" in line && line.predTrains > 0) ? line.predTrains : have;
@@ -418,11 +437,11 @@ function OpexProjectFromFleet(entry, tensionCtx = null)
    * -- c'est exact, et c'est precisement ce que l'arbitrage doit pouvoir voir. */
   local expectedOps = PROJECT_ROAD_TRANSACTION_OPS;
   local project = {
-    mode = "fleet", kind = "fleet", cargo = line.cargo,
+    mode = "fleet", kind = ("kind" in entry ? entry.kind : "fleet"), cargo = line.cargo,
     src = line.stationA, dst = ("stationB" in line) ? line.stationB : line.stationA,
     payload = entry, distance = 0, capital = capital,
     budgetCapital = capital, profitAnnual = profit, revenueAnnual = revenue,
-    roi = capital > 0 ? (profit * 1000) / capital : 0,
+    roi = roiCapital > 0 ? (profit * 1000) / roiCapital : 0,
     expectedOpcodes = expectedOps,
     budgetScore = OpexProjectScore(revenue, capital),
     opcodeScore = OpexProjectScore(revenue, expectedOps),
@@ -672,7 +691,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
   foreach (project in alternatives) {
     local financeCapital = OpexProjectFinanceCapital(project);
     if (financeCapital > capitalBudget) continue;
-    if (project.profitAnnual < floorProfit) continue;
+    if (project.profitAnnual < floorProfit && !OpexProjectIsFreeAirRetirement(project)) continue;
     if (AIR_EARLY_SLOT) OpexProjectRefreshEarlySlot(project, earlySlotState);
     if (!TENSION_SCORING && !SHADOW_PRICING) {
       if (C49_VARIABLE_DENOMINATOR) {
@@ -730,9 +749,18 @@ function OpexProjectSelectionScore(project, field)
 function OpexProjectInsert(best, project, field, limit, applyEarlySlot = false)
 {
   local projectScore = applyEarlySlot ? OpexProjectSelectionScore(project, field) : project[field];
+  local projectFreeRetire = OpexProjectIsFreeAirRetirement(project);
   local pos = best.len();
   while (pos > 0) {
     local prior = best[pos - 1];
+    local priorFreeRetire = OpexProjectIsFreeAirRetirement(prior);
+    /* Capital nul => maintenance avant investissement, independamment du regime de score.
+     * Entre deux maintenances gratuites, conserver l'ordre normal du portefeuille. */
+    if (priorFreeRetire != projectFreeRetire) {
+      if (priorFreeRetire) break;
+      pos--;
+      continue;
+    }
     local priorScore = applyEarlySlot ? OpexProjectSelectionScore(prior, field) : prior[field];
     if (priorScore > projectScore) break;
     if (priorScore == projectScore && prior.revenueAnnual >= project.revenueAnnual) break;

@@ -506,6 +506,33 @@ function OpexAI::_reconcileAfterLoad()
         }
         if (template != null) line.refleetEngine <- AIVehicle.GetEngineType(template);
       }
+      /* AIR lifecycle : les champs de ligne sont generiques et donc deja serialises par Save().
+       * Les anciennes sauvegardes n'en ont simplement pas. Les migrer depuis le materiel VIVANT
+       * (ou, uniquement si tout a disparu, depuis le dernier moteur C52) cree un etat explicite;
+       * cela ne remplace pas la reevaluation economique, qui est forcee juste apres le reload. */
+      if (("mode" in line) && line.mode == "air" && AIR_BEST_EQUIPMENT) {
+        local liveCount = 0;
+        local currentEngine = -1;
+        if (("vehicles" in line) && line.vehicles != null) {
+          foreach (vehicle in line.vehicles) {
+            if (!AIVehicle.IsValidVehicle(vehicle) || AIVehicle.GetVehicleType(vehicle) != AIVehicle.VT_AIR) continue;
+            liveCount++;
+            if (currentEngine < 0) currentEngine = AIVehicle.GetEngineType(vehicle);
+          }
+        }
+        if (("currentPrimaryEngine" in line) && line.currentPrimaryEngine >= 0) currentEngine = line.currentPrimaryEngine;
+        if (currentEngine < 0 && ("refleetEngine" in line) && line.refleetEngine >= 0) currentEngine = line.refleetEngine;
+        line.rawset("currentPrimaryEngine", currentEngine);
+        if (!("preferredEngine" in line) || line.preferredEngine < 0) line.rawset("preferredEngine", currentEngine);
+        if (!("targetFleetSize" in line) || line.targetFleetSize < 1) {
+          line.rawset("targetFleetSize", liveCount > 0 ? liveCount : 1);
+        }
+        if (!("upgradePending" in line)) line.rawset("upgradePending", false);
+        if (!("upgradeRemaining" in line)) line.rawset("upgradeRemaining", 0);
+        if (!("previewCommitment" in line)) line.rawset("previewCommitment", null);
+        line.rawset("airEquipmentDirty", true);
+        line.rawset("airEquipmentDirtyReason", "restore");
+      }
       liveLines.append(line);
       kept++;
     }

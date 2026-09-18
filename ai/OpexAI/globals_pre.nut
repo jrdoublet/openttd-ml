@@ -60,6 +60,40 @@ EQUIPMENT_ROI_PROBE <- false;
  * choisir l'appareil compatible qui maximise le profit predit de CETTE route. Adoptee apres
  * autorite 20x10 C66.4 du 2026-09-17. */
 AIR_ROUTE_PLANE_SELECTION <- true;
+/* Chantier post-C68 : diagnostic passif des faux rejets/proxy avion et de la circularite
+ * avion->demande. N'influence jamais une admission ni un classement. */
+AIR_EQUIPMENT_REGRET_PROBE <- false;
+/* Moteur AIR multi-equipements A-D. Defaut 0 : C68 reste la baseline adoptee. Sous 1,
+ * l'appareil n'est plus choisi apres les filtres : tous les avions compatibles avec les deux
+ * extremites sont evalues avec leur propre demande et OpexAirEconomics. */
+AIR_BEST_EQUIPMENT <- false;
+/* Lifecycle AIR post-C68. Ces seuils ne sont lus que sous AIR_BEST_EQUIPMENT :
+ * le chemin C68/default reste donc identique. */
+AIR_EQUIPMENT_REEVAL_MONTHS <- 12;
+AIR_EQUIPMENT_REEVAL_MAX_PER_PASS <- 1;
+AIR_EQUIPMENT_REEVAL_MIN_OPS <- 3000;
+AIR_UPGRADE_MAX_PAYBACK_MONTHS <- 60;
+AIR_PREVIEW_MAX_PAYBACK_MONTHS <- 60;
+AIR_PREVIEW_COMMITMENT_MAX_DAYS <- 730;
+AIR_LIFECYCLE_LEDGER <- {
+  evaluations = 0, assessmentAccepted = 0,
+  eventInvalidations = 0, periodicEvaluations = 0, deferredEvaluations = 0,
+  engineAvailableEvaluations = 0, previewEvaluations = 0,
+  crashEvaluations = 0, growthEvaluations = 0,
+  upgradeEvaluations = 0, restoreEvaluations = 0,
+  engineAvailableEvents = 0, engineAvailableAffected = 0,
+  growthPlanned = 0, growthExecuted = 0,
+  upgradePlanned = 0, upgradeExecuted = 0,
+  crashExecuted = 0,
+  previewSeen = 0, previewAccepted = 0, previewMatched = 0,
+  previewExecuted = 0, previewAbandoned = 0,
+  previewIdResolved = 0, previewIdMiss = 0,
+  previewAbandonCommon = 0, previewAbandonTimeout = 0,
+  retireQueued = 0, retireRollback = 0,
+  expectedGainAnnual = 0, expectedNetCapital = 0, expectedPaybackMonths = 0,
+  evalOpcodes = 0, eventEvalOpcodes = 0, periodicEvalOpcodes = 0,
+  engineEventOpcodes = 0, previewOpcodes = 0,
+};
 /* Nombre maximal d'arrets bus annexes partageant directement le StationID de l'aeroport. */
 AIR_JOINED_STOP_LIMIT <- 2;
 /* Early-slot experimental: prioritise profitable air projects that claim a first

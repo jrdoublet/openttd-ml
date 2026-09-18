@@ -9,6 +9,41 @@ function OpexAI::_onVehicleCrashed(event)
     local reason = crash.GetCrashReason();
     local site = crash.GetCrashSite();
     local victims = crash.GetVictims();
+    /* Une retraite unitaire a deja retire logiquement ce vehicule de la ligne et
+     * recalcule vehCount/trains. S'il crashe pendant son trajet au depot, ne pas
+     * le retrouver spatialement puis le decrementar une seconde fois, et surtout
+     * ne pas armer needsRefleet pour un appareil que le lifecycle voulait supprimer. */
+    if (this._vehiclesToRetire != null && (vehicle in this._vehiclesToRetire)) {
+      local retiredTicket = this._vehiclesToRetire[vehicle];
+      local retiredLineId = (typeof retiredTicket == "table" && ("lineId" in retiredTicket))
+          ? retiredTicket.lineId : (typeof retiredTicket == "integer" ? retiredTicket : -1);
+      foreach (retiredVehicle, otherTicket in this._vehiclesToRetire) {
+        if (retiredVehicle == vehicle || typeof otherTicket != "table"
+            || !("replacementVehicle" in otherTicket)
+            || otherTicket.replacementVehicle != vehicle) continue;
+        otherTicket.replacementVehicle = -1;
+        otherTicket.rawset("replacementCrashed", true);
+      }
+      delete this._vehiclesToRetire[vehicle];
+      if (this._vehiclesToScrap != null && (vehicle in this._vehiclesToScrap)) {
+        delete this._vehiclesToScrap[vehicle];
+      }
+      if (this._unprofitableStreaks != null && (vehicle in this._unprofitableStreaks)) {
+        delete this._unprofitableStreaks[vehicle];
+      }
+      if (C52_CRASH_LOG || DECISION_LOG) {
+        OpexDecide("VEHICLE_CRASHED", "vehicle=" + vehicle + " reason=" + reason
+                   + " mode=retired line=" + retiredLineId + " site=" + site
+                   + " victims=" + victims + " lifecycle_retired=1");
+      }
+      if (EVENT_VEHICLE_CRASHED) {
+        local year = AIDate.GetYear(AIDate.GetCurrentDate());
+        OpexSign(AIMap.GetTileIndex(1, 1), "XC|" + (year % 100)
+                 + "|" + retiredLineId + "|" + vehicle + "|" + AIMap.GetTileX(site) + "|"
+                 + AIMap.GetTileY(site) + "|" + victims + "|" + reason);
+      }
+      return;
+    }
     local line = OpexFindLineForVehicle(this._lines, vehicle, site);
     local lineId = line != null ? line.lineId : -1;
     local mode = line != null && ("mode" in line) ? line.mode : "unknown";
@@ -53,6 +88,10 @@ function OpexAI::_onVehicleCrashed(event)
         else line.confirmedCrashes <- 1;
         if (("mode" in line) && (line.mode == "air" || line.mode == "water" || line.mode == "road")) {
           line.needsRefleet <- true;
+          if (line.mode == "air" && AIR_BEST_EQUIPMENT) {
+            line.rawset("airEquipmentDirty", true);
+            line.rawset("airEquipmentDirtyReason", "crash");
+          }
         } else if (DECISION_LOG || C52_CRASH_LOG) {
           OpexDecide("CRASH_REFLEET", "mode=" + mode + " line=" + line.lineId + " status=unsupported_consist");
         }
@@ -65,6 +104,17 @@ function OpexAI::_onVehicleCrashed(event)
             }
           }
           line.lastLiveVehicles <- liveAfterCrash;
+        }
+      }
+      /* Si le vehicule detruit etait le remplacant exact d'un ancien avion deja
+       * en retraite, memoriser cette perte dans le ticket. Le prochain refleet
+       * commun remappera l'identite vers le nouvel appareil construit. */
+      if (this._vehiclesToRetire != null) {
+        foreach (retiredVehicle, retireTicket in this._vehiclesToRetire) {
+          if (typeof retireTicket != "table" || !("replacementVehicle" in retireTicket)
+              || retireTicket.replacementVehicle != vehicle) continue;
+          retireTicket.replacementVehicle = -1;
+          retireTicket.rawset("replacementCrashed", true);
         }
       }
       if (this._vehiclesToScrap != null && (vehicle in this._vehiclesToScrap)) {
@@ -174,6 +224,15 @@ function OpexAI::_onVehicleAutoreplaced(event)
         local lineId = this._vehiclesToRetire[oldVehicle];
         delete this._vehiclesToRetire[oldVehicle];
         this._vehiclesToRetire.rawset(newVehicle, lineId);
+      }
+      if (this._vehiclesToRetire != null) {
+        foreach (retireVehicle, retireTicket in this._vehiclesToRetire) {
+          if (typeof retireTicket != "table" || !("replacementVehicle" in retireTicket)
+              || retireTicket.replacementVehicle != oldVehicle) continue;
+          retireTicket.replacementVehicle = newVehicle;
+          if ("replacementCrashed" in retireTicket) retireTicket.replacementCrashed = false;
+          tracked = true;
+        }
       }
       if (this._unprofitableStreaks != null && (oldVehicle in this._unprofitableStreaks)) {
         local oldStreak = this._unprofitableStreaks[oldVehicle];
@@ -747,19 +806,58 @@ function OpexAI::_onTownFounded(event)
 }
 function OpexAI::_onEngineAvailable(event)
 {
-
   this._recomputeEpochBounds = true;
-  if (this._catalog != null) OpexRefreshEpochBounds(this._catalog);
+  local engineEvt = AIEventEngineAvailable.Convert(event);
+  local engine = engineEvt != null ? engineEvt.GetEngineID() : -1;
+  local vehicleType = AIEngine.IsValidEngine(engine) ? AIEngine.GetVehicleType(engine) : -1;
+  local mode = null;
+  if (vehicleType == AIVehicle.VT_RAIL) mode = "rail";
+  else if (vehicleType == AIVehicle.VT_ROAD) mode = "road";
+  else if (vehicleType == AIVehicle.VT_AIR) mode = "air";
+  else if (vehicleType == AIVehicle.VT_WATER) mode = "water";
+  if (AIR_BEST_EQUIPMENT && mode == "air" && this._catalog != null) {
+    local airEventTick0 = AIController.GetTick();
+    local airEventOps0 = AIController.GetOpsTillSuspend();
+    AIR_LIFECYCLE_LEDGER.engineAvailableEvents++;
+    this._catalog._refreshAir();
+    OpexRefreshEpochBounds(this._catalog);
+    local affected = 0;
+    foreach (line in this._lines) {
+      if (!("mode" in line) || line.mode != "air") continue;
+      local relevant = OpexAirEngineRelevantToLine(engine, line);
+      local previewMatch = ("previewCommitment" in line) && line.previewCommitment != null
+          && OpexAirPreviewMatchesEngine(line.previewCommitment, engine);
+      if (previewMatch) {
+        /* ET_ENGINE_AVAILABLE ne classe rien : il raccorde uniquement l'identite opaque du
+         * preview au vrai EngineID, puis invalide la ligne. L'economie sera rejouee par air_fleet. */
+        line.previewCommitment.rawset("resolvedEngine", engine);
+        line.previewCommitment.rawset("resolvedDate", AIDate.GetCurrentDate());
+        line.previewCommitment.rawset("status", "available");
+      }
+      if (relevant || previewMatch) {
+        line.rawset("airEquipmentDirty", true);
+        line.rawset("airEquipmentDirtyReason", "engine_available");
+        affected++;
+      }
+    }
+    AIR_LIFECYCLE_LEDGER.engineAvailableAffected += affected;
+    local airEventTick1 = AIController.GetTick();
+    local airEventOps1 = AIController.GetOpsTillSuspend();
+    local airEventOps = airEventTick1 == airEventTick0 ? airEventOps0 - airEventOps1
+        : airEventOps0 + (airEventTick1 - airEventTick0 - 1) * OPS_PER_TICK + (OPS_PER_TICK - airEventOps1);
+    if (airEventOps > 0) AIR_LIFECYCLE_LEDGER.engineEventOpcodes += airEventOps;
+    this._portfolioInvalidated = true;
+    if (this._taskQueue != null) {
+      foreach (t in this._taskQueue) {
+        if (t.name == "catalog" || t.name == "projects" || t.name == "air_fleet") t.dueCycle = 0;
+      }
+    }
+    if (DECISION_LOG) OpexDecide("AIR_ENGINE_AVAILABLE", "engine=" + engine + " affected=" + affected);
+  } else if (this._catalog != null) {
+    OpexRefreshEpochBounds(this._catalog);
+  }
   if (C39_INVALIDATION_PROBE || C39_ENGINE_REFRESH) {
-    local engineEvt = AIEventEngineAvailable.Convert(event);
     if (engineEvt != null) {
-      local engine = engineEvt.GetEngineID();
-      local vehicleType = AIEngine.IsValidEngine(engine) ? AIEngine.GetVehicleType(engine) : -1;
-      local mode = null;
-      if (vehicleType == AIVehicle.VT_RAIL) mode = "rail";
-      else if (vehicleType == AIVehicle.VT_ROAD) mode = "road";
-      else if (vehicleType == AIVehicle.VT_AIR) mode = "air";
-      else if (vehicleType == AIVehicle.VT_WATER) mode = "water";
       if (mode != null) {
         /* La sonde reste la seule à conserver l'état/les IDs. C39.2 consomme le chemin
          * historique sans changer les cas industrie déjà couverts par P3. */
@@ -781,6 +879,92 @@ function OpexAI::_onEngineAvailable(event)
         }
       }
     }
+  }
+  return;
+}
+
+function OpexAI::_onEnginePreview(event)
+{
+  if (!AIR_BEST_EQUIPMENT || this._catalog == null) return;
+  local preview = AIEventEnginePreview.Convert(event);
+  if (preview == null || preview.GetVehicleType() != AIVehicle.VT_AIR) return;
+  AIR_LIFECYCLE_LEDGER.previewSeen++;
+  if (preview.GetCargoType() != this._catalog.paxCargo) return;
+  local previewPlane = {
+    id = -1, defaultCargo = preview.GetCargoType(), capacity = preview.GetCapacity(),
+    speed = preview.GetMaxSpeed(), price = preview.GetPrice(), runningCost = preview.GetRunningCost(),
+    maxOrderDistance = 0, planeType = AIAirport.PT_SMALL_PLANE, isBig = false,
+  };
+  if (previewPlane.capacity <= 0 || previewPlane.speed <= 0 || previewPlane.price <= 0) return;
+  local previewTick0 = AIController.GetTick();
+  local previewOps0 = AIController.GetOpsTillSuspend();
+  local bestLine = null;
+  local bestAssessment = null;
+  foreach (line in this._lines) {
+    if (!("mode" in line) || line.mode != "air" || (("scrapping" in line) && line.scrapping)) continue;
+    if (("previewCommitment" in line) && line.previewCommitment != null) continue;
+    local assessment = OpexAirAssessPreviewPlane(this._catalog, this._lines, line, previewPlane);
+    if (!assessment.ok) continue;
+    if (bestAssessment == null || assessment.gainAnnual > bestAssessment.gainAnnual
+        || (assessment.gainAnnual == bestAssessment.gainAnnual
+            && assessment.paybackMonths < bestAssessment.paybackMonths)) {
+      bestLine = line;
+      bestAssessment = assessment;
+    }
+  }
+  local previewTick1 = AIController.GetTick();
+  local previewOps1 = AIController.GetOpsTillSuspend();
+  local previewOps = previewTick1 == previewTick0 ? previewOps0 - previewOps1
+      : previewOps0 + (previewTick1 - previewTick0 - 1) * OPS_PER_TICK + (OPS_PER_TICK - previewOps1);
+  if (previewOps > 0) AIR_LIFECYCLE_LEDGER.previewOpcodes += previewOps;
+  if (bestLine == null || bestAssessment == null) return;
+  local need = previewPlane.price + OpexCashReserve();
+  local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+  if (money < need) return;
+  local enginesBeforePreview = OpexAirCatalogEngineIds(this._catalog);
+  local acceptTick0 = AIController.GetTick();
+  local acceptOps0 = AIController.GetOpsTillSuspend();
+  if (!preview.AcceptPreview()) return;
+  bestLine.rawset("previewCommitment", {
+    name = preview.GetName(), capacity = previewPlane.capacity, speed = previewPlane.speed,
+    price = previewPlane.price, runningCost = previewPlane.runningCost,
+    acceptedDate = AIDate.GetCurrentDate(), expectedGainAnnual = bestAssessment.gainAnnual,
+    expectedPaybackMonths = bestAssessment.paybackMonths, targetFleetSize = bestAssessment.targetFleetSize,
+    status = "pending",
+  });
+  AIR_LIFECYCLE_LEDGER.previewAccepted++;
+  /* AcceptPreview rend le prototype constructible pour la compagnie. On profite de cette fenetre
+   * sans politique economique dans l'event : refresh catalogue, raccord d'identite unique, puis
+   * invalidation. L'economie reste dans air_fleet via AssessExistingLine/BestEquipment/Economics. */
+  this._catalog._refreshAir();
+  local resolvedPreview = OpexAirFindAcceptedPreviewEngine(
+      this._catalog, bestLine.previewCommitment, enginesBeforePreview);
+  if (resolvedPreview >= 0) {
+    AIR_LIFECYCLE_LEDGER.previewIdResolved++;
+    bestLine.previewCommitment.rawset("resolvedEngine", resolvedPreview);
+    bestLine.previewCommitment.rawset("resolvedDate", AIDate.GetCurrentDate());
+    bestLine.previewCommitment.rawset("status", "available");
+  } else {
+    AIR_LIFECYCLE_LEDGER.previewIdMiss++;
+  }
+  bestLine.rawset("airEquipmentDirty", true);
+  bestLine.rawset("airEquipmentDirtyReason", "preview");
+  this._portfolioInvalidated = true;
+  if (this._taskQueue != null) {
+    foreach (t in this._taskQueue) {
+      if (t.name == "projects" || t.name == "air_fleet") t.dueCycle = 0;
+    }
+  }
+  local acceptTick1 = AIController.GetTick();
+  local acceptOps1 = AIController.GetOpsTillSuspend();
+  local acceptOps = acceptTick1 == acceptTick0 ? acceptOps0 - acceptOps1
+      : acceptOps0 + (acceptTick1 - acceptTick0 - 1) * OPS_PER_TICK + (OPS_PER_TICK - acceptOps1);
+  if (acceptOps > 0) AIR_LIFECYCLE_LEDGER.previewOpcodes += acceptOps;
+  if (DECISION_LOG) {
+    OpexDecide("AIR_ENGINE_PREVIEW", "action=accept line=" + bestLine.lineId
+               + " name=" + preview.GetName() + " gain=" + bestAssessment.gainAnnual
+               + " payback_months=" + bestAssessment.paybackMonths + " cash=" + money
+               + " resolved_engine=" + resolvedPreview);
   }
   return;
 }

@@ -547,6 +547,254 @@ def observed_opcode_stats(chunks):
     }
 
 
+def air_equipment_diagnostic_stats(chunks):
+    """Decode les panneaux compacts du chantier AIR post-C68."""
+    totals = {
+        "air_pair_seen": 0,
+        "air_proxy_compat_rejected": 0,
+        "air_proxy_compat_rescued": 0,
+        "air_proxy_range_rejected": 0,
+        "air_proxy_range_rescued": 0,
+        "air_proxy_min_rejected": 0,
+        "air_proxy_min_rescued": 0,
+        "air_demand_changed": 0,
+        "air_demand_cap_changed": 0,
+        "air_demand_abs_delta": 0,
+        "air_saved_projects": 0,
+        "air_saved_project_profit_k": 0,
+        "air_saved_selected": 0,
+        "air_saved_selected_profit_k": 0,
+        "air_bound_added_pairs": 0,
+        "air_bound_positive_pairs": 0,
+        "air_bound_positive_profit_k": 0,
+        "air_plan_total_opcodes": 0,
+        "air_plan_eval_opcodes": 0,
+        "air_bound_samples": 0,
+        "air_bound_min_lowered": 0,
+        "air_bound_max_raised": 0,
+        "air_bound_min_delta_sum": 0,
+        "air_bound_max_delta_sum": 0,
+        "air_lifecycle_evaluations": 0,
+        "air_lifecycle_assessment_accepted": 0,
+        "air_lifecycle_periodic_evaluations": 0,
+        "air_lifecycle_deferred_evaluations": 0,
+        "air_lifecycle_event_invalidations": 0,
+        "air_lifecycle_engine_available_evaluations": 0,
+        "air_lifecycle_preview_evaluations": 0,
+        "air_lifecycle_crash_evaluations": 0,
+        "air_lifecycle_growth_evaluations": 0,
+        "air_lifecycle_upgrade_evaluations": 0,
+        "air_lifecycle_restore_evaluations": 0,
+        "air_lifecycle_engine_available_events": 0,
+        "air_lifecycle_engine_available_affected": 0,
+        "air_lifecycle_eval_opcodes": 0,
+        "air_lifecycle_growth_planned": 0,
+        "air_lifecycle_growth_executed": 0,
+        "air_lifecycle_upgrade_planned": 0,
+        "air_lifecycle_upgrade_executed": 0,
+        "air_lifecycle_crash_executed": 0,
+        "air_lifecycle_preview_seen": 0,
+        "air_lifecycle_preview_accepted": 0,
+        "air_lifecycle_preview_matched": 0,
+        "air_lifecycle_preview_executed": 0,
+        "air_lifecycle_preview_abandoned": 0,
+        "air_lifecycle_preview_id_resolved": 0,
+        "air_lifecycle_preview_id_miss": 0,
+        "air_lifecycle_preview_abandon_common": 0,
+        "air_lifecycle_preview_abandon_timeout": 0,
+        "air_lifecycle_retire_queued": 0,
+        "air_lifecycle_retire_rollback": 0,
+        "air_lifecycle_expected_gain_k": 0,
+        "air_lifecycle_expected_net_capital_k": 0,
+        "air_lifecycle_expected_payback_months": 0,
+        "air_lifecycle_event_eval_opcodes": 0,
+        "air_lifecycle_periodic_eval_opcodes": 0,
+        "air_lifecycle_engine_event_opcodes": 0,
+        "air_lifecycle_preview_opcodes": 0,
+        "air_pareto_raw": 0,
+        "air_pareto_kept": 0,
+        "air_pareto_pruned": 0,
+    }
+    signs = (chunks or {}).get("SIGN") or {}
+    records = signs.values() if isinstance(signs, dict) else signs
+    has_compact_air_ops = any(
+        isinstance(sign, dict) and str(sign.get("name", "")).startswith("AO|")
+        for sign in records
+    )
+
+    def ints(parts):
+        try:
+            return [int(value) for value in parts]
+        except (TypeError, ValueError):
+            return None
+
+    for sign in records:
+        if not isinstance(sign, dict):
+            continue
+        name = str(sign.get("name", ""))
+        parts = name.split("|")
+        if parts[0] == "AR0" and len(parts) >= 6:
+            values = ints(parts[1:6])
+            if values is None:
+                continue
+            keys = (
+                "air_pair_seen", "air_proxy_compat_rejected", "air_proxy_compat_rescued",
+                "air_proxy_range_rejected", "air_proxy_range_rescued",
+            )
+            for key, value in zip(keys, values):
+                totals[key] += value
+        elif parts[0] == "AR1" and len(parts) >= 6:
+            values = ints(parts[1:6])
+            if values is None:
+                continue
+            keys = (
+                "air_proxy_min_rejected", "air_proxy_min_rescued", "air_demand_changed",
+                "air_demand_cap_changed", "air_demand_abs_delta",
+            )
+            for key, value in zip(keys, values):
+                totals[key] += value
+        elif parts[0] == "AR2" and len(parts) >= 3:
+            values = ints(parts[1:3])
+            if values is not None:
+                totals["air_saved_projects"] += values[0]
+                totals["air_saved_project_profit_k"] += values[1]
+        elif parts[0] == "AR3" and len(parts) >= 2:
+            values = ints(parts[1:2])
+            if values is not None:
+                totals["air_saved_selected"] += 1
+                totals["air_saved_selected_profit_k"] += values[0]
+        elif parts[0] == "AR4" and len(parts) >= 4:
+            values = ints(parts[1:4])
+            if values is not None:
+                totals["air_bound_added_pairs"] += values[0]
+                totals["air_bound_positive_pairs"] += values[1]
+                totals["air_bound_positive_profit_k"] += values[2]
+        elif parts[0] == "AB" and len(parts) >= 5:
+            values = ints(parts[1:5])
+            if values is None:
+                continue
+            old_min, env_min, old_max, env_max = values
+            totals["air_bound_samples"] += 1
+            if env_min < old_min:
+                totals["air_bound_min_lowered"] += 1
+                totals["air_bound_min_delta_sum"] += old_min - env_min
+            if env_max > old_max:
+                totals["air_bound_max_raised"] += 1
+                totals["air_bound_max_delta_sum"] += env_max - old_max
+        elif parts[0] == "AO" and len(parts) >= 3:
+            values = ints(parts[1:3])
+            if values is not None:
+                totals["air_plan_total_opcodes"] += max(0, values[0])
+                totals["air_plan_eval_opcodes"] += max(0, values[1])
+        elif parts[0] == "AL0" and len(parts) >= 5:
+            values = ints(parts[1:5])
+            if values is not None:
+                keys = (
+                    "air_lifecycle_evaluations", "air_lifecycle_assessment_accepted",
+                    "air_lifecycle_periodic_evaluations", "air_lifecycle_deferred_evaluations",
+                )
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals[key], value)
+        elif parts[0] == "AL1" and len(parts) >= 5:
+            values = ints(parts[1:5])
+            if values is not None:
+                keys = (
+                    "air_lifecycle_event_invalidations", "air_lifecycle_engine_available_events",
+                    "air_lifecycle_engine_available_affected", "air_lifecycle_eval_opcodes",
+                )
+                for key, value in zip(keys, values):
+                    scaled = value * 1000 if key == "air_lifecycle_eval_opcodes" else value
+                    totals[key] = max(totals[key], scaled)
+        elif parts[0] == "AL2" and len(parts) >= 5:
+            values = ints(parts[1:5])
+            if values is not None:
+                keys = (
+                    "air_lifecycle_growth_planned", "air_lifecycle_growth_executed",
+                    "air_lifecycle_upgrade_planned", "air_lifecycle_upgrade_executed",
+                )
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals[key], value)
+        elif parts[0] == "AL3" and len(parts) >= 5:
+            values = ints(parts[1:5])
+            if values is not None:
+                keys = (
+                    "air_lifecycle_crash_executed", "air_lifecycle_preview_seen",
+                    "air_lifecycle_preview_accepted", "air_lifecycle_preview_matched",
+                )
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals[key], value)
+        elif parts[0] == "AL4" and len(parts) >= 5:
+            values = ints(parts[1:5])
+            if values is not None:
+                keys = (
+                    "air_lifecycle_preview_executed", "air_lifecycle_preview_abandoned",
+                    "air_lifecycle_retire_queued", "air_lifecycle_retire_rollback",
+                )
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals[key], value)
+        elif parts[0] == "AL5" and len(parts) >= 4:
+            values = ints(parts[1:4])
+            if values is not None:
+                keys = (
+                    "air_lifecycle_expected_gain_k", "air_lifecycle_expected_net_capital_k",
+                    "air_lifecycle_expected_payback_months",
+                )
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals[key], value)
+        elif parts[0] == "AL6" and len(parts) >= 5:
+            values = ints(parts[1:5])
+            if values is not None:
+                keys = (
+                    "air_lifecycle_event_eval_opcodes", "air_lifecycle_periodic_eval_opcodes",
+                    "air_lifecycle_engine_event_opcodes", "air_lifecycle_preview_opcodes",
+                )
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals[key], value * 1000)
+        elif parts[0] == "AL7" and len(parts) >= 5:
+            values = ints(parts[1:5])
+            if values is not None:
+                keys = (
+                    "air_lifecycle_preview_id_resolved", "air_lifecycle_preview_id_miss",
+                    "air_lifecycle_preview_abandon_common", "air_lifecycle_preview_abandon_timeout",
+                )
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals[key], value)
+        elif parts[0] == "AL8" and len(parts) >= 5:
+            values = ints(parts[1:5])
+            if values is not None:
+                keys = (
+                    "air_lifecycle_engine_available_evaluations", "air_lifecycle_preview_evaluations",
+                    "air_lifecycle_crash_evaluations", "air_lifecycle_growth_evaluations",
+                )
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals[key], value)
+        elif parts[0] == "AL9" and len(parts) >= 3:
+            values = ints(parts[1:3])
+            if values is not None:
+                keys = ("air_lifecycle_upgrade_evaluations", "air_lifecycle_restore_evaluations")
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals[key], value)
+        elif parts[0] == "AQ" and len(parts) >= 4:
+            values = ints(parts[1:4])
+            if values is not None:
+                for key, value in zip(("air_pareto_raw", "air_pareto_kept", "air_pareto_pruned"), values):
+                    totals[key] = max(totals[key], value)
+        elif parts[0] == "AP":
+            fields = {}
+            for field in parts[1:]:
+                if "=" not in field:
+                    continue
+                key, value = field.split("=", 1)
+                try:
+                    fields[key] = int(value)
+                except ValueError:
+                    pass
+            if not has_compact_air_ops:
+                totals["air_plan_total_opcodes"] += max(0, fields.get("T", 0))
+                totals["air_plan_eval_opcodes"] += max(0, fields.get("E", 0))
+    return totals
+
+
 def keep(row):
     """Une ligne par sauvegarde mensuelle, persistee immediatement pour survivre a un crash."""
     chunks = row["chunks"]
@@ -558,6 +806,14 @@ def keep(row):
     stn_dec = decode_stations(chunks.get("STNN"), target_owner=0)
     selection_ops = portfolio_selection_opcode_stats(chunks)
     observed_ops = observed_opcode_stats(chunks)
+    air_equipment_diag = air_equipment_diagnostic_stats(chunks)
+    air_engine_counts = {}
+    if veh_dec["chunk_valid"]:
+        for vehicle in veh_dec["primary_vehicles_detail"]:
+            if vehicle.get("mode") != "air" or vehicle.get("engine_type") is None:
+                continue
+            engine = str(vehicle["engine_type"])
+            air_engine_counts[engine] = air_engine_counts.get(engine, 0) + 1
     qualified_primary = None
     unqualified_primary = None
     if veh_dec["chunk_valid"]:
@@ -599,6 +855,7 @@ def keep(row):
         "qualified_primary_vehicles": qualified_primary,
         "unqualified_primary_vehicles": unqualified_primary,
         "primary_vehicles_by_mode": veh_dec["primary_vehicles_by_mode"] if veh_dec["chunk_valid"] else None,
+        "air_engine_counts": air_engine_counts if veh_dec["chunk_valid"] else None,
         "capacities_by_cargo": veh_dec["capacities_by_cargo"] if veh_dec["chunk_valid"] else None,
         "fleet_status": veh_dec["fleet_status"] if veh_dec["chunk_valid"] else None,
         "unclassified_vehicles": len(veh_dec["unclassified_entries"]),
@@ -607,6 +864,7 @@ def keep(row):
         "unresolved_stations": len(stn_dec["unresolved_stations"]),
         **selection_ops,
         **observed_ops,
+        **air_equipment_diag,
         # L'echec de chargement d'une IA est silencieux dans PLYR ; ce log reste donc disponible
         # dans le resume final pour le controle explicite de row["output"].
         "openttd_output": row.get("output"),
@@ -760,6 +1018,7 @@ def summarise(rows, expected_last_year=None, expected_savegames=None):
             "run_ok": failure_reason is None,
             "failure_reason": failure_reason,
         }
+        rec.update({key: value for key, value in final.items() if key.startswith("air_")})
         if physical_ok is not None:
             rec.update({
                 "physical_counters_version": final.get("physical_counters_version"),

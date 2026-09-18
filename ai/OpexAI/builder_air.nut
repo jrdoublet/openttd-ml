@@ -328,7 +328,8 @@ function OpexAirLiveRoutesAtAirport(airportTile, lines)
 /* Plafond de flotte derive d'un FLUX mensuel, jamais du stock de cargo en attente. */
 function OpexAirDemandCap(line, catalog, lines)
 {
-  local speed = (("plane" in catalog) && catalog.plane != null) ? catalog.plane.speed : 1;
+  local speed = (("planeSpeed" in line) && line.planeSpeed > 0) ? line.planeSpeed : 1;
+  if (!AIR_BEST_EQUIPMENT && ("plane" in catalog) && catalog.plane != null) speed = catalog.plane.speed;
   if (("vehicles" in line) && line.vehicles != null) {
     foreach (v in line.vehicles) {
       if (!AIVehicle.IsValidVehicle(v)) continue;
@@ -339,7 +340,7 @@ function OpexAirDemandCap(line, catalog, lines)
     speed = AIEngine.GetMaxSpeed(AIVehicle.GetEngineType(line.vehicle));
   }
   local capacity = ("planeCapacity" in line) ? line.planeCapacity : 0;
-  if (capacity <= 0 && ("plane" in catalog) && catalog.plane != null) {
+  if (!AIR_BEST_EQUIPMENT && capacity <= 0 && ("plane" in catalog) && catalog.plane != null) {
     capacity = catalog.plane.capacity;
   }
   local distance = OpexFlightDistance(line.stationA, line.stationB);
@@ -375,7 +376,7 @@ function OpexAirPlanDemand(siteA, siteB, plane, catalog, lines)
   local candidate = {
     stationA = siteA.anchor, stationB = siteB.anchor,
     originA = siteA.town.tile, originB = siteB.town.tile,
-    cargo = catalog.paxCargo, planeCapacity = plane.capacity,
+    cargo = catalog.paxCargo, planeCapacity = plane.capacity, planeSpeed = plane.speed,
     vehicles = [],
   };
   return OpexAirDemandCap(candidate, { plane = plane }, lines);
@@ -401,7 +402,8 @@ function OpexAirportStationDateSpan(airportType)
  * dans le ciel (holding pattern), compte tenu de la rotation aller-retour et du partage de piste. */
 function OpexAirCadenceCap(line, catalog, lines)
 {
-  local speed = (("plane" in catalog) && catalog.plane != null) ? catalog.plane.speed : 1;
+  local speed = 1;
+  if (!AIR_BEST_EQUIPMENT && ("plane" in catalog) && catalog.plane != null) speed = catalog.plane.speed;
   local capacity = ("planeCapacity" in line) ? line.planeCapacity : 0;
   if (("vehicles" in line) && line.vehicles != null) {
     foreach (v in line.vehicles) {
@@ -414,7 +416,7 @@ function OpexAirCadenceCap(line, catalog, lines)
     speed = AIEngine.GetMaxSpeed(AIVehicle.GetEngineType(line.vehicle));
     if (capacity <= 0) capacity = AIVehicle.GetCapacity(line.vehicle, line.cargo);
   }
-  if (capacity <= 0 && ("plane" in catalog) && catalog.plane != null) {
+  if (!AIR_BEST_EQUIPMENT && capacity <= 0 && ("plane" in catalog) && catalog.plane != null) {
     capacity = catalog.plane.capacity;
   }
   local distance = OpexFlightDistance(line.stationA, line.stationB);
@@ -709,7 +711,7 @@ function OpexAirFindSite(town, airport, probes)
         if ("tested" in probes) probes.tested++;
         if (ok) {
           if (AIR_SITE_CACHE_ENABLED) AIR_SITE_CACHE[key] <- anchor;
-          return { town = town, anchor = anchor };
+          return { town = town, anchor = anchor, airportType = airport.type };
         }
       }
     }
@@ -723,7 +725,7 @@ function OpexAirFindSite(town, airport, probes)
 /* Economie et dimensionnement optimal de flotte selon les caracteristiques du vehicule. */
 function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
                           infrastructureMaintenance, maxCapital, newAirportCount = 2,
-                          demandCap = 0, fixedPlanes = 0)
+                          demandCap = 0, fixedPlanes = 0, maxPlanesOverride = 0)
 {
   local trip = OpexAirTripModel(plane.speed, plane.capacity, distance);
   local oneWayDays = trip.oneWayDays;
@@ -757,11 +759,13 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
    * garde le calcul existant. */
   local isSmall = (airport.type == AIAirport.AT_SMALL || airport.type == AIAirport.AT_COMMUTER);
   local maxAllowed = (MARGINAL_FLEET || FLEET_PORTFOLIO) ? 1 : ((newAirportCount == 2) ? 3 : (isSmall ? 4 : 6));
+  if (maxPlanesOverride > 0) maxAllowed = maxPlanesOverride;
   if (!MARGINAL_FLEET && !FLEET_PORTFOLIO && AIR_DEMAND_PLAN && demandCap > 0) maxAllowed = demandCap;
-  /* Dimensionnement cible selon le volume passagers */
-  local targetPlanes = OpexCeilDiv(monthlyPax, capacityPerPlane.tointeger());
-  if (targetPlanes < 1) targetPlanes = 1;
-  if (targetPlanes > maxAllowed) targetPlanes = maxAllowed;
+  if (maxPlanesOverride > 0 && AIR_DEMAND_PLAN && demandCap > 0 && demandCap < maxAllowed) maxAllowed = demandCap;
+  /* La profondeur de flotte est une variable de decision. Couper ici a
+   * ceil(demande/capacite) eliminait les configurations ou des avions supplementaires
+   * ameliorent la frequence, puis la station rating et le trafic effectivement offert. */
+  local targetPlanes = maxAllowed;
   /* Apres chantier, la flotte existe deja : mesurer son economie ne doit pas proposer un
    * nombre theorique d'avions different de celui effectivement livre. */
   if (fixedPlanes > 0) targetPlanes = fixedPlanes;
@@ -870,9 +874,9 @@ function OpexAirReserveJoinedStops(catalog, plan)
 /* Ajoute un seul avion a une liaison deja mesuree. Le clonage partage les ordres et ne refait ni
  * recherche de sites ni construction d'infrastructure : c'est le chemin marginal au meilleur
  * profit/opcode. Toute decision de l'appeler reste dans main.nut, apres une annee de donnees. */
-function OpexAirAddPlane(line)
+function OpexAirAddPlane(line, targetEngine = -1)
 {
-  local result = { added = 0, reason = "" };
+  local result = { added = 0, reason = "", vehicle = -1, engine = -1 };
   if (!("vehicles" in line) || line.vehicles.len() == 0) {
     result.reason = "NOVEH"; return result;
   }
@@ -893,7 +897,20 @@ function OpexAirAddPlane(line)
     }
   }
   if (template == null) { result.reason = "NOLIVE"; return result; }
-  local price = AIEngine.GetPrice(AIVehicle.GetEngineType(template));
+  local templateEngine = AIVehicle.GetEngineType(template);
+  local engine = targetEngine >= 0 ? targetEngine : templateEngine;
+  if (!AIEngine.IsValidEngine(engine) || !AIEngine.IsBuildable(engine)
+      || AIEngine.GetVehicleType(engine) != AIVehicle.VT_AIR
+      || !AIEngine.CanRefitCargo(engine, line.cargo)) {
+    result.reason = "ENGINE"; return result;
+  }
+  local planeType = AIEngine.GetPlaneType(engine);
+  local typeA = AIAirport.GetAirportType(line.stationA);
+  local typeB = AIAirport.GetAirportType(line.stationB);
+  if (!OpexAirAirportAcceptsPlane(typeA, planeType) || !OpexAirAirportAcceptsPlane(typeB, planeType)) {
+    result.reason = "COMPAT"; return result;
+  }
+  local price = AIEngine.GetPrice(engine);
   if (price <= 0) { result.reason = "PRICE"; return result; }
   local need = price + OpexCashReserve() + 1000;
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
@@ -903,9 +920,9 @@ function OpexAirAddPlane(line)
       result.reason = "CASH"; return result;
     }
   }
-  local extra = AIVehicle.CloneVehicle(hangar, template, true);
+  local extra = -1;
+  if (engine == templateEngine) extra = AIVehicle.CloneVehicle(hangar, template, true);
   if (!AIVehicle.IsValidVehicle(extra)) {
-    local engine = AIVehicle.GetEngineType(template);
     local cargo = ("cargo" in line) ? line.cargo : 0;
     extra = AIVehicle.BuildVehicleWithRefit(hangar, engine, cargo);
     if (AIVehicle.IsValidVehicle(extra)) {
@@ -922,6 +939,8 @@ function OpexAirAddPlane(line)
   }
   line.vehicles.append(extra);
   result.added = 1;
+  result.vehicle = extra;
+  result.engine = engine;
   result.reason = "OK";
   return result;
 }
@@ -929,10 +948,15 @@ function OpexAirAddPlane(line)
 /* Reconstitue un avion perdu sans dependre d'un appareil encore vivant. Le moteur
  * est memorise dans la ligne a sa construction; les deux aeroports sont des
  * destinations durables, donc les ordres peuvent etre recrees sans clonage. */
-function OpexAirRefleetCrashedPlane(line)
+function OpexAirRefleetCrashedPlane(line, targetEngine = -1)
 {
-  local result = { added = 0, reason = "" };
-  if (!(("refleetEngine" in line) && line.refleetEngine >= 0)) {
+  local result = { added = 0, vehicle = -1, reason = "" };
+  local engine = targetEngine;
+  /* Sous le moteur lifecycle, la reconstruction doit consommer explicitement la cible
+   * persistante de la ligne. `refleetEngine` reste seulement le filet historique C68. */
+  if (!AIR_BEST_EQUIPMENT && engine < 0 && ("refleetEngine" in line)) engine = line.refleetEngine;
+  if (engine < 0 || !AIEngine.IsValidEngine(engine) || !AIEngine.IsBuildable(engine)
+      || AIEngine.GetVehicleType(engine) != AIVehicle.VT_AIR) {
     result.reason = "NOENGINE"; return result;
   }
   if (!AIAirport.IsAirportTile(line.stationA) || !AIAirport.IsAirportTile(line.stationB)) {
@@ -942,14 +966,19 @@ function OpexAirRefleetCrashedPlane(line)
   if (!AIMap.IsValidTile(hangar) || !AIAirport.IsHangarTile(hangar)) {
     result.reason = "HANGAR"; return result;
   }
-  if (AIVehicle.GetBuildWithRefitCapacity(hangar, line.refleetEngine, line.cargo) <= 0) {
+  local planeType = AIEngine.GetPlaneType(engine);
+  if (!OpexAirAirportAcceptsPlane(AIAirport.GetAirportType(line.stationA), planeType)
+      || !OpexAirAirportAcceptsPlane(AIAirport.GetAirportType(line.stationB), planeType)) {
+    result.reason = "COMPAT"; return result;
+  }
+  if (AIVehicle.GetBuildWithRefitCapacity(hangar, engine, line.cargo) <= 0) {
     result.reason = "REFIT"; return result;
   }
-  local price = AIEngine.GetPrice(line.refleetEngine);
+  local price = AIEngine.GetPrice(engine);
   if (price <= 0 || AICompany.GetBankBalance(AICompany.COMPANY_SELF) < price + OpexCashReserve()) {
     result.reason = "CASH"; return result;
   }
-  local plane = AIVehicle.BuildVehicleWithRefit(hangar, line.refleetEngine, line.cargo);
+  local plane = AIVehicle.BuildVehicleWithRefit(hangar, engine, line.cargo);
   if (!AIVehicle.IsValidVehicle(plane)) { result.reason = "BUILD"; return result; }
   local flags = AIR_FULL_LOAD ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE;
   if (!AIOrder.AppendOrder(plane, line.stationA, flags) ||
@@ -965,7 +994,56 @@ function OpexAirRefleetCrashedPlane(line)
   line.vehicles.append(plane);
   if ("vehicle" in line) line.vehicle = plane;
   else line.vehicle <- plane;
-  result.added = 1; result.reason = "OK";
+  result.added = 1; result.vehicle = plane; result.reason = "OK";
+  return result;
+}
+
+/* Construit d'abord le nouvel appareil, puis laisse le caller envoyer UN ancien appareil au
+ * depot via la file de retraite unitaire. Aucun avion en vol n'est vendu ici. */
+function OpexAirUpgradeStepNeedsBuild(line, targetEngine, targetFleetSize)
+{
+  if (targetFleetSize <= 0 || line == null || !("vehicles" in line) || line.vehicles == null) return true;
+  local targetCount = 0;
+  foreach (v in line.vehicles) {
+    if (!AIVehicle.IsValidVehicle(v) || AIVehicle.GetVehicleType(v) != AIVehicle.VT_AIR) continue;
+    if (AIVehicle.GetEngineType(v) == targetEngine) targetCount++;
+  }
+  return targetCount < targetFleetSize;
+}
+
+function OpexAirUpgradeOnePlane(line, targetEngine, targetFleetSize = 0)
+{
+  local result = { added = 0, retireOnly = false, reason = "", oldVehicle = -1, newVehicle = -1 };
+  if (targetEngine < 0 || !("vehicles" in line) || line.vehicles == null) {
+    result.reason = "TARGET"; return result;
+  }
+  local oldVehicle = -1;
+  local anyVehicle = -1;
+  local live = 0;
+  local targetCount = 0;
+  foreach (v in line.vehicles) {
+    if (!AIVehicle.IsValidVehicle(v) || AIVehicle.GetVehicleType(v) != AIVehicle.VT_AIR) continue;
+    if (anyVehicle < 0) anyVehicle = v;
+    live++;
+    if (AIVehicle.GetEngineType(v) == targetEngine) targetCount++;
+    else if (oldVehicle < 0) oldVehicle = v;
+  }
+  if (oldVehicle < 0 && targetFleetSize > 0 && live > targetFleetSize) oldVehicle = anyVehicle;
+  if (oldVehicle < 0) { result.reason = "DONE"; return result; }
+  /* Execute vraiment (engine, fleet depth). Une fois le nombre cible de nouveaux moteurs
+   * atteint, les anciens surnumeraires sont retires progressivement sans nouvel achat. */
+  if (targetFleetSize > 0 && targetCount >= targetFleetSize && live > targetFleetSize) {
+    result.retireOnly = true;
+    result.oldVehicle = oldVehicle;
+    result.reason = "RETIRE";
+    return result;
+  }
+  local grown = OpexAirAddPlane(line, targetEngine);
+  if (grown.added <= 0) { result.reason = grown.reason; return result; }
+  result.added = grown.added;
+  result.oldVehicle = oldVehicle;
+  result.newVehicle = grown.vehicle;
+  result.reason = "OK";
   return result;
 }
 
@@ -1010,6 +1088,762 @@ function OpexAirChooseRoutePlane(catalog, airport, selectedPlane, distance, mont
     }
   }
   return { plane = bestPlane, economics = bestEconomics };
+}
+
+/* Retourne le type d'aeroport REEL d'une extremite deja construite. Un site neuf n'a pas encore
+ * de type propre : son type est celui du profil `airport` que le caller est en train d'evaluer. */
+function OpexAirSiteAirportType(site)
+{
+  if (site != null && ("airportType" in site)) return site.airportType;
+  if (site == null || !("anchor" in site) || !AIMap.IsValidTile(site.anchor)
+      || !AIAirport.IsAirportTile(site.anchor)) return null;
+  return AIAirport.GetAirportType(site.anchor);
+}
+
+/* Resout UNE FOIS le domaine de compatibilite d'une paire. Les anciens helpers faisaient
+ * plusieurs GetAirportType par avion teste ; sur le 5x6 A-D cela ajoutait des millions
+ * d'opcodes sans changer ni la demande ni le classement economique. */
+function OpexAirEquipmentContext(catalog, airport, siteA, siteB)
+{
+  if (catalog == null || airport == null) {
+    return { typeA = null, typeB = null, pool = [] };
+  }
+  local typeA = OpexAirSiteAirportType(siteA);
+  local typeB = OpexAirSiteAirportType(siteB);
+  if (typeA == null) typeA = airport.type;
+  if (typeB == null) typeB = airport.type;
+
+  local poolType = airport.type;
+  if (typeA in catalog.airPlaneChoicesByAirport) poolType = typeA;
+  else if (typeB in catalog.airPlaneChoicesByAirport) poolType = typeB;
+  local pool = null;
+  if (AIR_BEST_EQUIPMENT && ("airParetoChoicesByAirport" in catalog)
+      && catalog.airParetoChoicesByAirport != null && (poolType in catalog.airParetoChoicesByAirport)) {
+    pool = catalog.airParetoChoicesByAirport[poolType];
+  } else {
+    pool = (poolType in catalog.airPlaneChoicesByAirport)
+        ? catalog.airPlaneChoicesByAirport[poolType] : [];
+  }
+  return { typeA = typeA, typeB = typeB, pool = pool };
+}
+
+function OpexAirPlaneFitsEndpoints(airport, plane, siteA, siteB)
+{
+  if (airport == null || plane == null) return false;
+  local typeA = OpexAirSiteAirportType(siteA);
+  local typeB = OpexAirSiteAirportType(siteB);
+  if (typeA == null) typeA = airport.type;
+  if (typeB == null) typeB = airport.type;
+  return OpexAirAirportAcceptsPlane(typeA, plane.planeType)
+      && OpexAirAirportAcceptsPlane(typeB, plane.planeType);
+}
+
+/* Choisit seulement le POOL a examiner. La decision economique reste dans OpexAirBestEquipment.
+ * Pour hubsite/hubhub on part d'un type reel si possible, puis chaque avion est revalide aux deux
+ * extremites. Cela evite qu'un `combo.plane` masque un hub avant meme l'evaluation de la route. */
+function OpexAirEquipmentChoicePool(catalog, airport, siteA, siteB)
+{
+  return OpexAirEquipmentContext(catalog, airport, siteA, siteB).pool;
+}
+
+function OpexAirTechnicalChoiceCount(catalog, airport, siteA, siteB, distance)
+{
+  local count = 0;
+  local context = OpexAirEquipmentContext(catalog, airport, siteA, siteB);
+  foreach (plane in context.pool) {
+    if (!OpexAirAirportAcceptsPlane(context.typeA, plane.planeType)
+        || !OpexAirAirportAcceptsPlane(context.typeB, plane.planeType)) continue;
+    if (plane.maxOrderDistance > 0 && distance > plane.maxOrderDistance) continue;
+    count++;
+  }
+  return count;
+}
+
+/* Garde bon marche pour la DECOUVERTE des hubs. Elle ne choisit aucun appareil : elle prouve
+ * seulement qu'au moins un avion du catalogue peut utiliser les deux types d'aeroport. */
+function OpexAirAnyPlaneFitsAirportTypes(catalog, typeA, typeB)
+{
+  local pool = null;
+  if (typeA in catalog.airPlaneChoicesByAirport) pool = catalog.airPlaneChoicesByAirport[typeA];
+  else if (typeB in catalog.airPlaneChoicesByAirport) pool = catalog.airPlaneChoicesByAirport[typeB];
+  if (pool == null) return false;
+  foreach (plane in pool) {
+    if (OpexAirAirportAcceptsPlane(typeA, plane.planeType)
+        && OpexAirAirportAcceptsPlane(typeB, plane.planeType)) return true;
+  }
+  return false;
+}
+
+/* Avion historique du combo, conserve uniquement pour comparer C68 dans les sondes. Le chemin
+ * AIR_BEST_EQUIPMENT ne l'utilise jamais pour admettre, classer ou dimensionner un projet. */
+function OpexAirLegacyProxyPlane(catalog, airportType)
+{
+  if (catalog == null || !("airCombos" in catalog) || catalog.airCombos == null) return null;
+  foreach (combo in catalog.airCombos) {
+    if (combo.airport != null && combo.airport.type == airportType) return combo.plane;
+  }
+  return null;
+}
+
+/* Le contexte de demande fixe la POLITIQUE de demande de la route, independamment du materiel.
+ * Sous le reglage adopte AIR_DEMAND_PLAN=0, la demande reste le proxy population deja livre.
+ * Sous AIR_DEMAND_PLAN=1, le flux et le cap sont recalcules par appareil dans BestEquipment. */
+function OpexAirDemandContext(siteA, siteB, proxyPlane, catalog, lines, baseMonthlyDemand)
+{
+  local monthlyDemand = baseMonthlyDemand;
+  local demandCap = 0;
+  local perPlane = false;
+  if (AIR_DEMAND_PLAN) {
+    perPlane = true;
+    /* BestEquipment recalculera de toute facon ce flux pour CHAQUE avion. Le proxy historique
+     * n'est utilise ici que pour le diagnostic C68 quand il existe. */
+    if (proxyPlane != null) {
+      local demand = OpexAirPlanDemand(siteA, siteB, proxyPlane, catalog, lines);
+      monthlyDemand = demand.monthlyDemand;
+      demandCap = demand.cap;
+    }
+  }
+  if (monthlyDemand < 10) monthlyDemand = 10;
+  return { monthlyDemand = monthlyDemand, demandCap = demandCap, perPlane = perPlane };
+}
+
+/* Moteur economique AIR unique, sans construction ni mutation d'etat.
+ *
+ * Il evalue chaque appareil reellement compatible avec les DEUX extremites. La source de demande
+ * vient explicitement de demandContext : on ne change donc jamais de modele de demande en meme
+ * temps que de materiel. Quand ce modele est AIR_DEMAND_PLAN, le flux/cap sont recalcules avec
+ * l'appareil teste ; autrement le proxy population adopte reste identique pour tous les appareils.
+ * OpexAirEconomics conserve seul l'optimisation de profondeur de flotte. */
+function OpexAirBestEquipment(catalog, airport, siteA, siteB, distance, lines, demandContext,
+                              infrastructureMaintenance, maxCapital, newAirportCount,
+                              maxPlanesOverride = 0)
+{
+  local bestPlane = null;
+  local bestEconomics = null;
+  local bestMonthlyDemand = 0;
+  local bestDemandCap = 0;
+  local compatibleChoices = 0;
+  local context = OpexAirEquipmentContext(catalog, airport, siteA, siteB);
+  foreach (plane in context.pool) {
+    if (!OpexAirAirportAcceptsPlane(context.typeA, plane.planeType)
+        || !OpexAirAirportAcceptsPlane(context.typeB, plane.planeType)) continue;
+    if (plane.maxOrderDistance > 0 && distance > plane.maxOrderDistance) continue;
+    compatibleChoices++;
+
+    local monthlyDemand = demandContext.monthlyDemand;
+    local demandCap = demandContext.demandCap;
+    if (demandContext.perPlane) {
+      local demand = OpexAirPlanDemand(siteA, siteB, plane, catalog, lines);
+      monthlyDemand = demand.monthlyDemand;
+      demandCap = demand.cap;
+    }
+    if (monthlyDemand < 10) monthlyDemand = 10;
+    local economics = OpexAirEconomics(catalog, airport, plane, distance, monthlyDemand,
+        infrastructureMaintenance, maxCapital, newAirportCount, demandCap, 0, maxPlanesOverride);
+    if (economics == null) continue;
+    if (bestEconomics == null || economics.profitAnnual > bestEconomics.profitAnnual ||
+        (economics.profitAnnual == bestEconomics.profitAnnual && economics.roi > bestEconomics.roi)) {
+      bestPlane = plane;
+      bestEconomics = economics;
+      bestMonthlyDemand = monthlyDemand;
+      bestDemandCap = demandCap;
+    }
+  }
+  return {
+    plane = bestPlane,
+    planes = bestEconomics != null ? bestEconomics.planes : 0,
+    monthlyDemand = bestMonthlyDemand,
+    demandCap = bestDemandCap,
+    economics = bestEconomics,
+    compatibleChoices = compatibleChoices,
+    reason = bestPlane != null ? "ok" : (compatibleChoices == 0 ? "no_compatible_plane" : "no_economics"),
+  };
+}
+
+/* --- AIR lifecycle : les lignes existantes reutilisent exactement le meme moteur. --- */
+function OpexAirPlaneFromEngine(engine, cargo)
+{
+  if (!AIEngine.IsValidEngine(engine) || AIEngine.GetVehicleType(engine) != AIVehicle.VT_AIR) return null;
+  if (cargo >= 0 && !AIEngine.CanRefitCargo(engine, cargo)) return null;
+  local capacity = AIEngine.GetCapacity(engine);
+  if (capacity <= 0) return null;
+  local planeType = AIEngine.GetPlaneType(engine);
+  return {
+    id = engine, defaultCargo = AIEngine.GetCargoType(engine), capacity = capacity,
+    speed = AIEngine.GetMaxSpeed(engine), price = AIEngine.GetPrice(engine),
+    runningCost = AIEngine.GetRunningCost(engine), maxOrderDistance = AIEngine.GetMaximumOrderDistance(engine),
+    planeType = planeType, isBig = planeType == AIAirport.PT_BIG_PLANE,
+  };
+}
+
+function OpexAirCurrentPrimaryEngine(line)
+{
+  local counts = {};
+  local bestEngine = -1;
+  local bestCount = 0;
+  if (("vehicles" in line) && line.vehicles != null) {
+    foreach (v in line.vehicles) {
+      if (!AIVehicle.IsValidVehicle(v) || AIVehicle.GetVehicleType(v) != AIVehicle.VT_AIR) continue;
+      local engine = AIVehicle.GetEngineType(v);
+      local count = (engine in counts) ? counts[engine] + 1 : 1;
+      counts.rawset(engine, count);
+      if (count > bestCount) { bestCount = count; bestEngine = engine; }
+    }
+  }
+  if (bestEngine < 0 && AIR_BEST_EQUIPMENT && ("currentPrimaryEngine" in line)
+      && line.currentPrimaryEngine >= 0) bestEngine = line.currentPrimaryEngine;
+  if (bestEngine < 0 && !AIR_BEST_EQUIPMENT && ("refleetEngine" in line)) bestEngine = line.refleetEngine;
+  return bestEngine;
+}
+
+function OpexAirLineResaleValue(line)
+{
+  local value = 0;
+  if (!("vehicles" in line) || line.vehicles == null) return value;
+  foreach (v in line.vehicles) {
+    if (AIVehicle.IsValidVehicle(v) && AIVehicle.GetVehicleType(v) == AIVehicle.VT_AIR) {
+      value += AIVehicle.GetCurrentValue(v);
+    }
+  }
+  return value;
+}
+
+/* Valorise la flotte REELLE d'une ligne, y compris pendant une transition mixte.
+ * Le modele reste celui d'OpexAirEconomics, mais agrege explicitement les appareils vivants
+ * au lieu de pretendre que toute la flotte utilise le moteur majoritaire. */
+function OpexAirActualFleetEconomics(catalog, line, distance, monthlyPax)
+{
+  if (catalog == null || line == null || !("vehicles" in line) || line.vehicles == null) return null;
+  local monthlyCapacity = 0.0;
+  local departureRate = 0.0;
+  local weightedIncome = 0.0;
+  local weightedRoundTrip = 0.0;
+  local tripsPerMonth = 0.0;
+  local runningAnnual = 0;
+  local amortAnnual = 0;
+  local capital = 0;
+  local planes = 0;
+  foreach (v in line.vehicles) {
+    if (!AIVehicle.IsValidVehicle(v) || AIVehicle.GetVehicleType(v) != AIVehicle.VT_AIR) continue;
+    local plane = OpexAirPlaneFromEngine(AIVehicle.GetEngineType(v), line.cargo);
+    if (plane == null) return null;
+    local trip = OpexAirTripModel(plane.speed, plane.capacity, distance);
+    if (trip.capacityPerPlane <= 0 || trip.roundTripDays <= 0) return null;
+    local incomeDays = OpexCeilDiv(trip.oneWayDays, 1);
+    local paxIncome = AICargo.GetCargoIncome(catalog.paxCargo, distance, incomeDays);
+    local totalIncomePerUnit = paxIncome;
+    if (("mailCargo" in catalog) && catalog.mailCargo >= 0) {
+      local mailIncome = AICargo.GetCargoIncome(catalog.mailCargo, distance, incomeDays);
+      totalIncomePerUnit = paxIncome + (mailIncome * 15) / 100;
+    }
+    local incomePerUnit = (totalIncomePerUnit * AIR_PAX_REVENUE_CALIBRATION_PCT) / 100.0;
+    monthlyCapacity += trip.capacityPerPlane;
+    departureRate += 1.0 / trip.roundTripDays;
+    weightedIncome += trip.capacityPerPlane * incomePerUnit;
+    weightedRoundTrip += trip.capacityPerPlane * trip.roundTripDays;
+    tripsPerMonth += trip.tripsPerMonth;
+    runningAnnual += plane.runningCost;
+    amortAnnual += plane.price / 20;
+    capital += plane.price;
+    planes++;
+  }
+  if (planes <= 0 || monthlyCapacity <= 0 || departureRate <= 0) return null;
+  local headwayDays = 1.0 / departureRate;
+  local stationRating = OpexStationRatingForHeadway(headwayDays);
+  local offered = (monthlyPax * stationRating) / 100.0;
+  local carried = (offered < monthlyCapacity ? offered : monthlyCapacity).tointeger();
+  local incomePerUnit = weightedIncome / monthlyCapacity;
+  local revenueAnnual = (12 * carried * incomePerUnit).tointeger();
+  local profitAnnual = revenueAnnual - runningAnnual - amortAnnual;
+  local roundTripDays = weightedRoundTrip / monthlyCapacity;
+  local immobilise = (TRANSIT_COST_PERMILLE > 0)
+      ? (revenueAnnual * roundTripDays * TRANSIT_COST_PERMILLE) / 365000 : 0;
+  local totalCapital = capital + immobilise;
+  local roi = totalCapital > 0 ? (profitAnnual * 1000) / totalCapital : 0;
+  return {
+    planes = planes, profitAnnual = profitAnnual, revenueAnnual = revenueAnnual,
+    runningAnnual = runningAnnual, amortAnnual = amortAnnual, capital = capital,
+    immobilise = immobilise, roi = roi,
+    oneWayDays = roundTripDays / 2.0, roundTripDays = roundTripDays,
+    headwayDays = headwayDays, stationRating = stationRating, tripsPerMonth = tripsPerMonth,
+    monthlyCapacity = monthlyCapacity, carried = carried,
+  };
+}
+
+/* Capital RESTANT d'une transition deja entamee. Les appareils du moteur cible deja achetes sont
+ * conserves jusqu'a targetFleetSize et ne sont jamais rachetes/recomptes. */
+function OpexAirRemainingTransitionCapital(line, targetEngine, targetFleetSize, targetPrice)
+{
+  local targetVehicles = [];
+  local otherVehicles = [];
+  if (("vehicles" in line) && line.vehicles != null) {
+    foreach (v in line.vehicles) {
+      if (!AIVehicle.IsValidVehicle(v) || AIVehicle.GetVehicleType(v) != AIVehicle.VT_AIR) continue;
+      if (AIVehicle.GetEngineType(v) == targetEngine) targetVehicles.append(v);
+      else otherVehicles.append(v);
+    }
+  }
+  local keepTarget = targetVehicles.len() < targetFleetSize ? targetVehicles.len() : targetFleetSize;
+  local builds = targetFleetSize - keepTarget;
+  if (builds < 0) builds = 0;
+  local resale = 0;
+  foreach (v in otherVehicles) resale += AIVehicle.GetCurrentValue(v);
+  local extraTargets = targetVehicles.len() - targetFleetSize;
+  if (extraTargets > 0) {
+    for (local i = 0; i < extraTargets; i++) resale += AIVehicle.GetCurrentValue(targetVehicles[i]);
+  }
+  local gross = builds * targetPrice;
+  return { builds = builds, gross = gross, resale = resale,
+           net = gross > resale ? gross - resale : 0 };
+}
+
+function OpexAirAirportProfileForType(catalog, airportType)
+{
+  if (catalog != null && ("airAirportChoices" in catalog) && catalog.airAirportChoices != null) {
+    foreach (airport in catalog.airAirportChoices) if (airport.type == airportType) return airport;
+  }
+  if (!AIAirport.IsValidAirportType(airportType)) return null;
+  return {
+    type = airportType,
+    kind = (airportType == AIAirport.AT_SMALL || airportType == AIAirport.AT_COMMUTER) ? "small" : "large",
+    name = "EXISTING", allowBig = airportType != AIAirport.AT_SMALL && airportType != AIAirport.AT_COMMUTER,
+    width = AIAirport.GetAirportWidth(airportType), height = AIAirport.GetAirportHeight(airportType),
+    coverage = AIAirport.GetAirportCoverageRadius(airportType), price = AIAirport.GetPrice(airportType),
+    maintenance = AIAirport.GetMonthlyMaintenanceCost(airportType),
+  };
+}
+
+function OpexAirLineSite(line, which)
+{
+  local anchor = which == 0 ? line.stationA : line.stationB;
+  local origin = which == 0 ? line.originA : line.originB;
+  if (anchor == null || !AIMap.IsValidTile(anchor) || !AIAirport.IsAirportTile(anchor)) return null;
+  local townId = AITile.GetClosestTown(origin);
+  return { anchor = anchor, airportType = AIAirport.GetAirportType(anchor), town = { id = townId, tile = origin } };
+}
+
+function OpexAirLineBaseDemand(line)
+{
+  local townA = AITile.GetClosestTown(line.originA);
+  local townB = AITile.GetClosestTown(line.originB);
+  local popA = townA >= 0 ? AITown.GetPopulation(townA) : 0;
+  local popB = townB >= 0 ? AITown.GetPopulation(townB) : 0;
+  local monthly = ((popA + popB) * TOWN_CATCHMENT_SHARE_PCT) / 100;
+  return monthly < 10 ? 10 : monthly;
+}
+
+function OpexAirLinePhysicalFleetCap(line)
+{
+  local typeA = AIAirport.IsAirportTile(line.stationA) ? AIAirport.GetAirportType(line.stationA) : AIAirport.AT_SMALL;
+  local typeB = AIAirport.IsAirportTile(line.stationB) ? AIAirport.GetAirportType(line.stationB) : AIAirport.AT_SMALL;
+  if (typeA == AIAirport.AT_SMALL || typeA == AIAirport.AT_COMMUTER
+      || typeB == AIAirport.AT_SMALL || typeB == AIAirport.AT_COMMUTER) return 4;
+  return AIR_MAX_PLANES_PER_ROUTE;
+}
+
+/* Compare la configuration vraiment exploitee avec la meilleure configuration disponible. */
+function OpexAirAssessExistingLine(catalog, lines, line, reason = "periodic")
+{
+  local result = {
+    ok = false, reason = "invalid", reasonTag = reason,
+    currentEngine = -1, preferredEngine = -1, targetFleetSize = 0,
+    upgradePending = false, upgradeRemaining = 0,
+    gainAnnual = 0, grossReplacement = 0, resaleValue = 0,
+    netCapital = 0, paybackMonths = 0,
+    currentEconomics = null, targetEconomics = null,
+    monthlyDemand = 0, demandCap = 0,
+  };
+  if (catalog == null || line == null || !("mode" in line) || line.mode != "air") return result;
+  local siteA = OpexAirLineSite(line, 0);
+  local siteB = OpexAirLineSite(line, 1);
+  if (siteA == null || siteB == null) { result.reason = "airport"; return result; }
+  local airport = OpexAirAirportProfileForType(catalog, siteA.airportType);
+  if (airport == null) { result.reason = "airport_profile"; return result; }
+  local currentEngine = OpexAirCurrentPrimaryEngine(line);
+  local currentPlane = OpexAirPlaneFromEngine(currentEngine, line.cargo);
+  local have = 0;
+  if (("vehicles" in line) && line.vehicles != null) {
+    foreach (v in line.vehicles) {
+      if (AIVehicle.IsValidVehicle(v) && AIVehicle.GetVehicleType(v) == AIVehicle.VT_AIR) have++;
+    }
+  }
+  local distance = OpexFlightDistance(line.stationA, line.stationB);
+  local baseDemand = OpexAirLineBaseDemand(line);
+  local demandContext = OpexAirDemandContext(siteA, siteB, currentPlane, catalog, lines, baseDemand);
+  local currentDemand = demandContext.monthlyDemand;
+  local currentCap = demandContext.demandCap;
+  if (demandContext.perPlane && currentPlane != null) {
+    local currentPlanDemand = OpexAirPlanDemand(siteA, siteB, currentPlane, catalog, lines);
+    currentDemand = currentPlanDemand.monthlyDemand;
+    currentCap = currentPlanDemand.cap;
+  }
+  local infraMaintenance = AIGameSettings.GetValue("economy.infrastructure_maintenance") != 0;
+  local currentEconomics = have > 0 ? OpexAirActualFleetEconomics(catalog, line, distance, currentDemand) : {
+    planes = 0, profitAnnual = 0, revenueAnnual = 0, runningAnnual = 0, amortAnnual = 0,
+    capital = 0, immobilise = 0, roi = 0, oneWayDays = 0, roundTripDays = 0,
+    headwayDays = 0, stationRating = 0, tripsPerMonth = 0, monthlyCapacity = 0, carried = 0,
+  };
+  if (currentEconomics == null) { result.reason = "current_economics"; return result; }
+  local fleetCap = OpexAirLinePhysicalFleetCap(line);
+  local best = OpexAirBestEquipment(catalog, airport, siteA, siteB, distance, lines, demandContext,
+      infraMaintenance, 0, 0, fleetCap);
+  if (best.economics == null || best.plane == null) { result.reason = best.reason; return result; }
+
+  /* Si le dernier avion vient de crasher, la ligne n'a plus de configuration courante.
+   * La cible de reconstruction vient tout de meme du moteur commun. */
+  if (have == 0) {
+    local crashTransition = OpexAirRemainingTransitionCapital(line, best.plane.id, best.planes, best.plane.price);
+    local crashGain = best.economics.profitAnnual;
+    local crashPayback = crashGain > 0 ? OpexCeilDiv(crashTransition.net * 12, crashGain) : 999999;
+    result.ok = true; result.reason = "ok"; result.currentEngine = currentEngine;
+    result.preferredEngine = best.plane.id; result.targetFleetSize = best.planes;
+    result.upgradePending = false; result.upgradeRemaining = 0;
+    result.gainAnnual = crashGain; result.grossReplacement = crashTransition.gross;
+    result.resaleValue = crashTransition.resale; result.netCapital = crashTransition.net;
+    result.paybackMonths = crashPayback; result.currentEconomics = currentEconomics;
+    result.targetEconomics = best.economics; result.monthlyDemand = best.monthlyDemand;
+    result.demandCap = best.demandCap;
+    return result;
+  }
+  if (currentPlane == null) { result.reason = "current_engine"; return result; }
+
+  local preferredEngine = currentEngine;
+  local targetFleet = have;
+  local upgradePending = false;
+  local targetEconomics = best.economics;
+  local gainAnnual = best.economics.profitAnnual - currentEconomics.profitAnnual;
+  local transition = OpexAirRemainingTransitionCapital(line, best.plane.id, best.planes, best.plane.price);
+  local grossReplacement = transition.gross;
+  local resale = transition.resale;
+  local netCapital = transition.net;
+  local paybackMonths = gainAnnual > 0 ? OpexCeilDiv(netCapital * 12, gainAnnual) : 999999;
+  local approvedContinuation = ("upgradePending" in line) && line.upgradePending
+      && ("preferredEngine" in line) && line.preferredEngine == best.plane.id;
+  if (best.plane.id == currentEngine) {
+    targetFleet = best.planes;
+    /* Une modernisation progressive peut deja avoir fait du moteur cible le moteur majoritaire.
+     * Apres cancel_timeout, un ancien appareil peut donc redevenir minoritaire sans changer
+     * currentEngine. Reprendre uniquement la cible deja approuvee/persistee quand la cause dediee
+     * retire_rollback l'exige ; le moteur commun vient de confirmer qu'elle reste la meilleure. */
+    if (targetFleet < have) {
+      upgradePending = true;
+      /* Reduction pure de profondeur : aucun achat n'est requis. */
+      grossReplacement = 0;
+      netCapital = 0;
+      paybackMonths = 0;
+    }
+    if (approvedContinuation || reason == "retire_rollback") {
+      upgradePending = true;
+    }
+  } else if (approvedContinuation || (gainAnnual > 0 && paybackMonths <= AIR_UPGRADE_MAX_PAYBACK_MONTHS)) {
+    preferredEngine = best.plane.id;
+    targetFleet = best.planes;
+    upgradePending = true;
+  } else {
+    local currentOptimized = OpexAirEconomics(catalog, airport, currentPlane, distance, currentDemand,
+        infraMaintenance, 0, 0, currentCap, 0, fleetCap);
+    if (currentOptimized != null) {
+      targetFleet = currentOptimized.planes;
+      targetEconomics = currentOptimized;
+      gainAnnual = currentOptimized.profitAnnual - currentEconomics.profitAnnual;
+    } else gainAnnual = 0;
+    netCapital = 0;
+    paybackMonths = 0;
+  }
+  local remaining = 0;
+  if (upgradePending && ("vehicles" in line) && line.vehicles != null) {
+    foreach (v in line.vehicles) {
+      if (AIVehicle.IsValidVehicle(v) && AIVehicle.GetVehicleType(v) == AIVehicle.VT_AIR
+          && AIVehicle.GetEngineType(v) != preferredEngine) remaining++;
+    }
+    local excess = have > targetFleet ? have - targetFleet : 0;
+    if (excess > remaining) remaining = excess;
+  }
+  result.ok = true; result.reason = "ok"; result.currentEngine = currentEngine;
+  result.preferredEngine = preferredEngine; result.targetFleetSize = targetFleet;
+  result.upgradePending = upgradePending && remaining > 0; result.upgradeRemaining = remaining;
+  result.gainAnnual = gainAnnual; result.grossReplacement = grossReplacement;
+  result.resaleValue = resale; result.netCapital = netCapital; result.paybackMonths = paybackMonths;
+  result.currentEconomics = currentEconomics; result.targetEconomics = targetEconomics;
+  result.monthlyDemand = best.monthlyDemand; result.demandCap = best.demandCap;
+  return result;
+}
+
+function OpexAirEngineRelevantToLine(engine, line)
+{
+  if (line == null || !AIEngine.IsValidEngine(engine) || !AIEngine.IsBuildable(engine)
+      || AIEngine.GetVehicleType(engine) != AIVehicle.VT_AIR
+      || !AIEngine.CanRefitCargo(engine, line.cargo)) return false;
+  if (!AIAirport.IsAirportTile(line.stationA) || !AIAirport.IsAirportTile(line.stationB)) return false;
+  local planeType = AIEngine.GetPlaneType(engine);
+  if (!OpexAirAirportAcceptsPlane(AIAirport.GetAirportType(line.stationA), planeType)
+      || !OpexAirAirportAcceptsPlane(AIAirport.GetAirportType(line.stationB), planeType)) return false;
+  local maxDistance = AIEngine.GetMaximumOrderDistance(engine);
+  local distance = OpexFlightDistance(line.stationA, line.stationB);
+  return maxDistance <= 0 || distance <= maxDistance;
+}
+
+function OpexAirPreviewMatchesEngine(commitment, engine)
+{
+  if (commitment == null || !AIEngine.IsValidEngine(engine)) return false;
+  /* Price and running cost are deliberately NOT part of identity. They are economy prices and
+   * may move between the preview offer and the later EngineAvailable event. The stable preview
+   * signature exposed by the API is name/type/capacity/speed; the periodic fallback below also
+   * refuses ambiguous signatures instead of guessing an EngineID. */
+  return AIEngine.GetVehicleType(engine) == AIVehicle.VT_AIR
+      && AIEngine.GetName(engine) == commitment.name
+      && AIEngine.GetCapacity(engine) == commitment.capacity
+      && AIEngine.GetMaxSpeed(engine) == commitment.speed;
+}
+
+/* Le preview ne fournit ni EngineID, ni planeType, ni portee. Cette routine est UNIQUEMENT le
+ * filtre d'acceptation bon marche : lignes a deux aeroports non-small et economie prudente. Une
+ * fois le vrai EngineID connu, elle n'est plus autoritaire ; le lifecycle repasse par
+ * OpexAirAssessExistingLine -> OpexAirBestEquipment -> OpexAirEconomics. */
+function OpexAirAssessPreviewPlane(catalog, lines, line, previewPlane)
+{
+  local out = { ok = false, reason = "invalid", gainAnnual = 0, netCapital = 0,
+    paybackMonths = 999999, targetFleetSize = 0, targetEconomics = null,
+    currentEngine = -1, targetEngine = -1, resaleValue = 0, grossReplacement = 0 };
+  if (catalog == null || line == null || previewPlane == null) return out;
+  local siteA = OpexAirLineSite(line, 0);
+  local siteB = OpexAirLineSite(line, 1);
+  if (siteA == null || siteB == null) { out.reason = "airport"; return out; }
+  if (siteA.airportType == AIAirport.AT_SMALL || siteA.airportType == AIAirport.AT_COMMUTER
+      || siteB.airportType == AIAirport.AT_SMALL || siteB.airportType == AIAirport.AT_COMMUTER) {
+    /* Le preview ne donne pas planeType : sur un petit aeroport, accepter supposerait a tort
+     * que l'appareil futur est PT_SMALL_PLANE. */
+    out.reason = "preview_compat_unknown"; return out;
+  }
+  local currentEngine = OpexAirCurrentPrimaryEngine(line);
+  local currentPlane = OpexAirPlaneFromEngine(currentEngine, line.cargo);
+  if (currentPlane == null) { out.reason = "current_engine"; return out; }
+  local have = 0;
+  if (("vehicles" in line) && line.vehicles != null) {
+    foreach (v in line.vehicles) if (AIVehicle.IsValidVehicle(v)) have++;
+  }
+  if (have < 1) { out.reason = "no_live_fleet"; return out; }
+  local airport = OpexAirAirportProfileForType(catalog, siteA.airportType);
+  local distance = OpexFlightDistance(line.stationA, line.stationB);
+  local baseDemand = OpexAirLineBaseDemand(line);
+  local currentCtx = OpexAirDemandContext(siteA, siteB, currentPlane, catalog, lines, baseDemand);
+  local currentDemand = currentCtx.monthlyDemand;
+  local currentCap = currentCtx.demandCap;
+  if (currentCtx.perPlane) {
+    local d0 = OpexAirPlanDemand(siteA, siteB, currentPlane, catalog, lines);
+    currentDemand = d0.monthlyDemand; currentCap = d0.cap;
+  }
+  local previewDemand = baseDemand;
+  local previewCap = 0;
+  if (AIR_DEMAND_PLAN) {
+    local dp = OpexAirPlanDemand(siteA, siteB, previewPlane, catalog, lines);
+    previewDemand = dp.monthlyDemand; previewCap = dp.cap;
+  }
+  local infraMaintenance = AIGameSettings.GetValue("economy.infrastructure_maintenance") != 0;
+  local currentEconomics = OpexAirEconomics(catalog, airport, currentPlane, distance, currentDemand,
+      infraMaintenance, 0, 0, currentCap, have, 0);
+  local targetEconomics = OpexAirEconomics(catalog, airport, previewPlane, distance, previewDemand,
+      infraMaintenance, 0, 0, previewCap, 0, OpexAirLinePhysicalFleetCap(line));
+  if (currentEconomics == null || targetEconomics == null) { out.reason = "economics"; return out; }
+  local gain = targetEconomics.profitAnnual - currentEconomics.profitAnnual;
+  local gross = targetEconomics.planes * previewPlane.price;
+  local resale = OpexAirLineResaleValue(line);
+  local net = gross > resale ? gross - resale : 0;
+  local payback = gain > 0 ? OpexCeilDiv(net * 12, gain) : 999999;
+  out.ok = gain > 0 && payback <= AIR_PREVIEW_MAX_PAYBACK_MONTHS;
+  out.reason = out.ok ? "ok" : "payback";
+  out.gainAnnual = gain; out.netCapital = net; out.paybackMonths = payback;
+  out.targetFleetSize = targetEconomics.planes; out.targetEconomics = targetEconomics;
+  out.currentEngine = currentEngine; out.targetEngine = previewPlane.id;
+  out.resaleValue = resale; out.grossReplacement = gross;
+  return out;
+}
+
+/* Recherche un EngineID reel correspondant a un engagement preview. Le catalogue est la seule
+ * source : aucun scan global supplementaire et aucun choix economique ici. */
+function OpexAirFindPreviewCommitmentEngine(catalog, line, commitment)
+{
+  if (catalog == null || line == null || commitment == null
+      || !("airPlaneChoicesByAirport" in catalog) || catalog.airPlaneChoicesByAirport == null) return -1;
+  local typeA = AIAirport.IsAirportTile(line.stationA) ? AIAirport.GetAirportType(line.stationA) : -1;
+  local typeB = AIAirport.IsAirportTile(line.stationB) ? AIAirport.GetAirportType(line.stationB) : -1;
+  local pool = null;
+  if (typeA in catalog.airPlaneChoicesByAirport) pool = catalog.airPlaneChoicesByAirport[typeA];
+  else if (typeB in catalog.airPlaneChoicesByAirport) pool = catalog.airPlaneChoicesByAirport[typeB];
+  if (pool == null) return -1;
+  local match = -1;
+  foreach (plane in pool) {
+    if (!OpexAirPreviewMatchesEngine(commitment, plane.id)) continue;
+    /* L'evenement ET_ENGINE_AVAILABLE donne le vrai ID et reste le chemin normal. Le filet
+     * periodique ne doit jamais deviner entre deux moteurs ayant une signature preview identique. */
+    if (match >= 0 && match != plane.id) return -1;
+    match = plane.id;
+  }
+  return match;
+}
+
+/* Snapshot sans economie des EngineID AIR visibles dans le catalogue courant. Une meme machine
+ * peut apparaitre sous plusieurs types d'aeroports ; la table deduplique naturellement les IDs. */
+function OpexAirCatalogEngineIds(catalog)
+{
+  local ids = {};
+  if (catalog == null || !("airPlaneChoicesByAirport" in catalog)
+      || catalog.airPlaneChoicesByAirport == null) return ids;
+  foreach (airportType, choices in catalog.airPlaneChoicesByAirport) {
+    if (choices == null) continue;
+    foreach (plane in choices) ids.rawset(plane.id, true);
+  }
+  return ids;
+}
+
+/* AcceptPreview rend le prototype constructible immediatement. Le vrai EngineID est donc le delta
+ * de catalogue entre avant/apres acceptation, sans aucune politique economique. Cas nominal : un
+ * seul nouvel ID. Si JoinPreview a rendu plusieurs variantes disponibles, la signature stable du
+ * preview sert uniquement a desambiguiser ; sinon on refuse de deviner. */
+function OpexAirFindAcceptedPreviewEngine(catalog, commitment, beforeIds)
+{
+  if (catalog == null || commitment == null || beforeIds == null
+      || !("airPlaneChoicesByAirport" in catalog) || catalog.airPlaneChoicesByAirport == null) return -1;
+  local fresh = {};
+  foreach (airportType, choices in catalog.airPlaneChoicesByAirport) {
+    if (choices == null) continue;
+    foreach (plane in choices) {
+      if (!(plane.id in beforeIds)) fresh.rawset(plane.id, true);
+    }
+  }
+  local only = -1;
+  local count = 0;
+  foreach (engine, ignored in fresh) { only = engine; count++; }
+  if (count == 1) return OpexAirPreviewMatchesEngine(commitment, only) ? only : -1;
+  local match = -1;
+  foreach (engine, ignored in fresh) {
+    if (!OpexAirPreviewMatchesEngine(commitment, engine)) continue;
+    if (match >= 0 && match != engine) return -1;
+    match = engine;
+  }
+  return match;
+}
+
+/* Diagnostic A : un ledger local par appel de OpexAirPlans. Les noms longs ci-dessous sont
+ * volontaires : ils fixent la semantique demandee (PAIR_SEEN, ...), les panneaux AR* n'en sont
+ * qu'une representation compacte lisible dans les savegames de banc. */
+function OpexAirRegretLedger()
+{
+  if (!AIR_EQUIPMENT_REGRET_PROBE) return null;
+  return {
+    pairSeen = 0,
+    compatReject = 0, compatRescue = 0,
+    rangeReject = 0, rangeRescue = 0,
+    minReject = 0, minRescue = 0,
+    demandDiff = 0, demandAbs = 0, capDiff = 0,
+    savedPlans = 0, savedProfit = 0,
+    boundAdded = 0, boundPositive = 0, boundProfit = 0,
+  };
+}
+
+function OpexAirRegretObserveBand(ledger, catalog, manhattan, flightDistance, paxBand)
+{
+  if (ledger == null) return { current = false, envelope = false, added = false };
+  ledger.pairSeen++;
+  local current = OpexAirPairInLegacyBand(catalog, manhattan, flightDistance, paxBand);
+  local envelope = OpexAirPairInBand(catalog, manhattan, flightDistance, paxBand);
+  local added = !current && envelope;
+  if (added) ledger.boundAdded++;
+  return { current = current, envelope = envelope, added = added };
+}
+
+function OpexAirRegretObservePair(ledger, catalog, airport, currentPlane, siteA, siteB,
+                                  flightDistance, minRejected)
+{
+  if (ledger == null) return { rescued = false, compatibleChoices = 0 };
+  local currentFits = OpexAirPlaneFitsEndpoints(airport, currentPlane, siteA, siteB);
+  local compatRejected = !currentFits;
+  local rangeRejected = currentFits && currentPlane.maxOrderDistance > 0
+      && flightDistance > currentPlane.maxOrderDistance;
+  local choices = OpexAirTechnicalChoiceCount(catalog, airport, siteA, siteB, flightDistance);
+  local rescued = choices > 0;
+  if (compatRejected) {
+    ledger.compatReject++;
+    if (rescued) ledger.compatRescue++;
+  }
+  if (rangeRejected) {
+    ledger.rangeReject++;
+    if (rescued) ledger.rangeRescue++;
+  }
+  if (minRejected) {
+    ledger.minReject++;
+    if (rescued) ledger.minRescue++;
+  }
+  return {
+    rescued = rescued && (compatRejected || rangeRejected || minRejected),
+    compatibleChoices = choices,
+  };
+}
+
+function OpexAirRegretObserveDemand(ledger, catalog, siteA, siteB, currentPlane, selectedPlane, lines)
+{
+  if (ledger == null || currentPlane == null || selectedPlane == null) return;
+  local currentDemand = OpexAirPlanDemand(siteA, siteB, currentPlane, catalog, lines);
+  local selectedDemand = OpexAirPlanDemand(siteA, siteB, selectedPlane, catalog, lines);
+  local delta = selectedDemand.monthlyDemand - currentDemand.monthlyDemand;
+  if (delta != 0) {
+    ledger.demandDiff++;
+    ledger.demandAbs += abs(delta);
+  }
+  if (selectedDemand.cap != currentDemand.cap) ledger.capDiff++;
+}
+
+/* Une paire que C68 aurait eliminee sur son avion proxy n'atteint jamais l'economie. La sonde
+ * passive doit pourtant dire si un autre avion l'aurait convertie en projet positif. Ce calcul
+ * n'est execute que sous AIR_EQUIPMENT_REGRET_PROBE et son resultat n'est jamais rendu au caller. */
+function OpexAirRegretEvaluateRescue(ledger, catalog, airport, siteA, siteB, distance, lines,
+                                     demandContext,
+                                     infrastructureMaintenance, maxCapital, newAirportCount,
+                                     proxyState)
+{
+  if (ledger == null || proxyState == null || !proxyState.rescued) return;
+  local choice = OpexAirBestEquipment(catalog, airport, siteA, siteB, distance, lines, demandContext,
+                                      infrastructureMaintenance, maxCapital, newAirportCount);
+  if (choice.economics == null || choice.economics.profitAnnual <= 0) return;
+  ledger.savedPlans++;
+  ledger.savedProfit += choice.economics.profitAnnual;
+}
+
+function OpexAirRegretEvaluateBoundAdded(ledger, catalog, airport, siteA, siteB, distance, lines,
+                                         demandContext,
+                                         infrastructureMaintenance, maxCapital, newAirportCount,
+                                         bandState)
+{
+  if (ledger == null || bandState == null || !bandState.added) return;
+  local choice = OpexAirBestEquipment(catalog, airport, siteA, siteB, distance, lines, demandContext,
+                                      infrastructureMaintenance, maxCapital, newAirportCount);
+  if (choice.economics == null || choice.economics.profitAnnual <= 0) return;
+  ledger.boundPositive++;
+  ledger.boundProfit += choice.economics.profitAnnual;
+}
+
+function OpexAirRegretPublish(ledger)
+{
+  if (ledger == null) return;
+  /* Chaque panneau reste <31 caracteres sur les cartes de banc usuelles. */
+  OpexSign(AIMap.GetTileIndex(2, 2), "AR0|" + ledger.pairSeen + "|" + ledger.compatReject
+      + "|" + ledger.compatRescue + "|" + ledger.rangeReject + "|" + ledger.rangeRescue);
+  OpexSign(AIMap.GetTileIndex(2, 3), "AR1|" + ledger.minReject + "|" + ledger.minRescue
+      + "|" + ledger.demandDiff + "|" + ledger.capDiff + "|" + ledger.demandAbs);
+  OpexSign(AIMap.GetTileIndex(2, 4), "AR2|" + ledger.savedPlans + "|" + (ledger.savedProfit / 1000));
+  OpexSign(AIMap.GetTileIndex(2, 7), "AR4|" + ledger.boundAdded + "|" + ledger.boundPositive
+      + "|" + (ledger.boundProfit / 1000));
+  AILog.Info("AIR_EQUIPMENT_REGRET PAIR_SEEN=" + ledger.pairSeen
+      + " PAIR_REJECT_CATALOG_COMPAT=" + ledger.compatReject
+      + " PAIR_RESCUABLE_COMPAT=" + ledger.compatRescue
+      + " PAIR_REJECT_CATALOG_RANGE=" + ledger.rangeReject
+      + " PAIR_RESCUABLE_BY_OTHER_PLANE=" + ledger.rangeRescue
+      + " PAIR_REJECT_CATALOG_MINDIST=" + ledger.minReject
+      + " PAIR_RESCUABLE_MINDIST=" + ledger.minRescue
+      + " DEMAND_SELECTED_DIFF=" + ledger.demandDiff
+      + " DEMAND_CAP_SELECTED_DIFF=" + ledger.capDiff
+      + " SAVED_PLANS=" + ledger.savedPlans
+      + " BOUND_ADDED=" + ledger.boundAdded + " BOUND_POSITIVE=" + ledger.boundPositive);
 }
 
 /* M3/G12 : comparaison PASSIVE du plan air deja elu contre les autres appareils compatibles avec
@@ -1161,10 +1995,20 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
   local perfProbesCount = 0;
   local perfCheapSkip = 0;
   local perfSitesFound = 0;
+  local regret = OpexAirRegretLedger();
 
-  local combos = (("airCombos" in catalog) && catalog.airCombos != null && catalog.airCombos.len() > 0)
-      ? catalog.airCombos
-      : (catalog.airport != null && catalog.plane != null ? [{ airport = catalog.airport, plane = catalog.plane }] : []);
+  local combos = [];
+  if (AIR_BEST_EQUIPMENT) {
+    if (("airAirportChoices" in catalog) && catalog.airAirportChoices != null) {
+      foreach (airportChoice in catalog.airAirportChoices) {
+        combos.append({ kind = airportChoice.kind, airport = airportChoice });
+      }
+    }
+  } else {
+    combos = (("airCombos" in catalog) && catalog.airCombos != null && catalog.airCombos.len() > 0)
+        ? catalog.airCombos
+        : (catalog.airport != null && catalog.plane != null ? [{ airport = catalog.airport, plane = catalog.plane }] : []);
+  }
   local servedDiag = null;
   if (DECISION_LOG) {
     AIR_PLAN_DIAG_SEQ++;
@@ -1192,6 +2036,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
                  + " null_calls=0 empty_calls=0 nonempty_calls=0 true_calls=0 false_calls=0"
                  + " false_towns_logged=0");
     }
+    OpexAirRegretPublish(regret);
     return null;
   }
 
@@ -1227,10 +2072,12 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
 
   foreach (combo in combos) {
     local airport = combo.airport;
-    local plane = combo.plane;
+    /* Sous BestEquipment, `plane` n'est que le temoin historique des diagnostics C68. */
+    local plane = AIR_BEST_EQUIPMENT ? OpexAirLegacyProxyPlane(catalog, airport.type) : combo.plane;
+    if (!AIR_BEST_EQUIPMENT && plane == null) continue;
     local townPool = AIR_TOWN_POOL;
     local limit = towns.len() < townPool ? towns.len() : townPool;
-    local minDist = (plane.speed >= 400) ? 32 : 30;
+    local minDist = (plane != null && plane.speed >= 400) ? 32 : 30;
     local sites = [];
     local probes = { left = AIR_MAX_SITE_PROBES, townsLeft = limit, tested = 0, cheapSkip = 0 };
     local tSites0 = AIController.GetTick();
@@ -1275,11 +2122,48 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
         local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR,
                                                         sites[a].anchor, sites[b].anchor);
         local flightDistance = OpexFlightDistance(sites[a].anchor, sites[b].anchor);
-        if (distance < minDist) continue;
-        if (!OpexAirPairInBand(catalog, distance, flightDistance, paxBand)) continue;
-        if (AIR_MAX_DISTANCE > 0 && flightDistance > AIR_MAX_DISTANCE) continue;
-        if (plane.maxOrderDistance > 0 && flightDistance > plane.maxOrderDistance) {
-          continue;
+        local proxyState = { rescued = false, compatibleChoices = 0 };
+        if (AIR_EQUIPMENT_REGRET_PROBE || AIR_BEST_EQUIPMENT) {
+          local inBand = OpexAirPairInBand(catalog, distance, flightDistance, paxBand);
+          local bandState = regret != null
+              ? OpexAirRegretObserveBand(regret, catalog, distance, flightDistance, paxBand)
+              : { current = inBand, envelope = false, added = false };
+          if (!inBand) {
+            if ((AIR_MAX_DISTANCE <= 0 || flightDistance <= AIR_MAX_DISTANCE) && bandState.added) {
+              local boundBaseMonthly = ((sites[a].town.pop + sites[b].town.pop)
+                  * TOWN_CATCHMENT_SHARE_PCT) / 100;
+              local boundDemand = OpexAirDemandContext(sites[a], sites[b], plane, catalog, lines,
+                                                        boundBaseMonthly);
+              OpexAirRegretEvaluateBoundAdded(regret, catalog, airport, sites[a], sites[b], flightDistance,
+                                              lines, boundDemand, infrastructureMaintenance, maxCapital, 2,
+                                              bandState);
+            }
+            continue;
+          }
+          if (AIR_MAX_DISTANCE > 0 && flightDistance > AIR_MAX_DISTANCE) continue;
+          if (regret != null) {
+            proxyState = OpexAirRegretObservePair(regret, catalog, airport, plane, sites[a], sites[b],
+                                                  flightDistance, distance < minDist);
+          }
+          if (!AIR_BEST_EQUIPMENT) {
+            if (proxyState.rescued && (distance < minDist
+                || (plane.maxOrderDistance > 0 && flightDistance > plane.maxOrderDistance))) {
+              local rescueBaseMonthly = ((sites[a].town.pop + sites[b].town.pop)
+                  * TOWN_CATCHMENT_SHARE_PCT) / 100;
+              local rescueDemand = OpexAirDemandContext(sites[a], sites[b], plane, catalog, lines,
+                                                         rescueBaseMonthly);
+              OpexAirRegretEvaluateRescue(regret, catalog, airport, sites[a], sites[b], flightDistance,
+                                          lines, rescueDemand, infrastructureMaintenance, maxCapital, 2,
+                                          proxyState);
+            }
+            if (distance < minDist) continue;
+            if (plane.maxOrderDistance > 0 && flightDistance > plane.maxOrderDistance) continue;
+          }
+        } else {
+          if (distance < minDist) continue;
+          if (!OpexAirPairInBand(catalog, distance, flightDistance, paxBand)) continue;
+          if (AIR_MAX_DISTANCE > 0 && flightDistance > AIR_MAX_DISTANCE) continue;
+          if (plane.maxOrderDistance > 0 && flightDistance > plane.maxOrderDistance) continue;
         }
 
         if (abandoned != null) {
@@ -1293,22 +2177,29 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
 
         local popA = sites[a].town.pop;
         local popB = sites[b].town.pop;
-        local monthlyPax = ((popA + popB) * TOWN_CATCHMENT_SHARE_PCT) / 100;
-        local demandCap = 0;
-        if (AIR_DEMAND_PLAN) {
-          local demand = OpexAirPlanDemand(sites[a], sites[b], plane, catalog, lines);
-          monthlyPax = demand.monthlyDemand;
-          demandCap = demand.cap;
-        }
-        if (monthlyPax < 10) monthlyPax = 10;
+        local baseMonthlyPax = ((popA + popB) * TOWN_CATCHMENT_SHARE_PCT) / 100;
+        local demandContext = OpexAirDemandContext(sites[a], sites[b], plane, catalog, lines,
+                                                    baseMonthlyPax);
+        local monthlyPax = demandContext.monthlyDemand;
+        local demandCap = demandContext.demandCap;
         if (a == 0 && b == 1) {
           OpexSign(AIMap.GetTileIndex(1, 5), "AX|PA=" + popA + "|PB=" + popB + "|MPX=" + monthlyPax);
         }
 
-        local routeChoice = OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,
-                                                    infrastructureMaintenance, maxCapital, 2, demandCap);
+        local routeChoice = AIR_BEST_EQUIPMENT
+            ? OpexAirBestEquipment(catalog, airport, sites[a], sites[b], flightDistance, lines, demandContext,
+                                   infrastructureMaintenance, maxCapital, 2)
+            : OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,
+                                      infrastructureMaintenance, maxCapital, 2, demandCap);
         local routePlane = routeChoice.plane;
         local economics = routeChoice.economics;
+        if (AIR_BEST_EQUIPMENT) {
+          monthlyPax = routeChoice.monthlyDemand;
+          demandCap = routeChoice.demandCap;
+        }
+        if (regret != null && routePlane != null) {
+          OpexAirRegretObserveDemand(regret, catalog, sites[a], sites[b], plane, routePlane, lines);
+        }
         if (EQUIPMENT_ROI_PROBE) {
           OpexM3ProbeAirPreAdmission(catalog, airport, routePlane, flightDistance, monthlyPax,
               infrastructureMaintenance, maxCapital, 2, demandCap, economics, "pre_admission_newpair");
@@ -1321,6 +2212,8 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
           airport = airport, plane = routePlane,
           monthlyPax = monthlyPax, planes = economics.planes, capital = economics.capital, economics = economics,
           reuseA = false, hubRoutes = 0, arm = "newpair",
+          proxyRescued = proxyState.rescued,
+          compatibleChoices = AIR_BEST_EQUIPMENT ? routeChoice.compatibleChoices : proxyState.compatibleChoices,
         };
         OpexAirReserveJoinedStops(catalog, plan);
 
@@ -1332,6 +2225,10 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
                                                 + economics.oneWayDays.tointeger());
         }
         if (economics.profitAnnual > 0) {
+          if (regret != null && proxyState.rescued) {
+            regret.savedPlans++;
+            regret.savedProfit += economics.profitAnnual;
+          }
           if (projects != null) projects.append(plan);
           if (OpexAirPlanBetter(plan, bestPlan)) {
             bestPlan = plan;
@@ -1398,7 +2295,9 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
         foreach (end in ends) {
           if (!AIMap.IsValidTile(end.anchor) || !AIAirport.IsAirportTile(end.anchor)) continue;
           local existingType = AIAirport.GetAirportType(end.anchor);
-          if (!OpexAirAirportAcceptsPlane(existingType, plane.planeType)) continue;
+          if (AIR_BEST_EQUIPMENT) {
+            if (!OpexAirAnyPlaneFitsAirportTypes(catalog, airport.type, existingType)) continue;
+          } else if (!OpexAirAirportAcceptsPlane(existingType, plane.planeType)) continue;
           /* Resolution non ambigue : `end.stationId` est une tuile, et `IsValidStation(tuile)`
            * peut etre vrai par pure collision d'indices. On resout toujours depuis l'ancre. */
           local station = AIR_HUB_FIX
@@ -1427,7 +2326,8 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
             hubTown = { id = townId, tile = end.origin, pop = AITown.GetPopulation(townId) };
           }
           seenStations.rawset(station, true);
-          hubs.append({ town = hubTown, anchor = end.anchor, stationId = station, routes = routeCount });
+          hubs.append({ town = hubTown, anchor = end.anchor, stationId = station,
+                        routes = routeCount, airportType = existingType });
         }
       }
       /* Aéroports orphelins : aéroports bâtis sans ligne active (ex: issu d'un BFAIL conservé). */
@@ -1437,7 +2337,9 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
         local loc = AIStation.GetLocation(st);
         if (!AIMap.IsValidTile(loc) || !AIAirport.IsAirportTile(loc)) continue;
         local existingType = AIAirport.GetAirportType(loc);
-        if (!OpexAirAirportAcceptsPlane(existingType, plane.planeType)) continue;
+        if (AIR_BEST_EQUIPMENT) {
+          if (!OpexAirAnyPlaneFitsAirportTypes(catalog, airport.type, existingType)) continue;
+        } else if (!OpexAirAirportAcceptsPlane(existingType, plane.planeType)) continue;
         local townId = AITile.GetClosestTown(loc);
         if (townId < 0) continue;
         local hubTown = null;
@@ -1448,7 +2350,8 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
           hubTown = { id = townId, tile = loc, pop = AITown.GetPopulation(townId) };
         }
         seenStations.rawset(st, true);
-        hubs.append({ town = hubTown, anchor = loc, stationId = st, routes = 0 });
+        hubs.append({ town = hubTown, anchor = loc, stationId = st,
+                      routes = 0, airportType = existingType });
       }
     }
 
@@ -1464,7 +2367,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
         hubFields += hub.town.id + ":" + hub.town.tile;
       }
       OpexDecide("AIR_PLAN_SETS", "scan=" + servedDiag.scan + " combo=" + combo.kind
-                 + " airport_type=" + airport.type + " plane=" + plane.id
+                 + " airport_type=" + airport.type + " plane=" + (plane != null ? plane.id : -1)
                  + " sites_count=" + sites.len() + " sites=" + siteFields
                  + " hubs_count=" + hubs.len() + " hubs=" + hubFields);
     }
@@ -1478,9 +2381,37 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
         local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR,
                                                         hub.anchor, site.anchor);
         local flightDistance = OpexFlightDistance(hub.anchor, site.anchor);
-        if (!OpexAirPairInBand(catalog, distance, flightDistance, paxBand)) continue;
+        local inBand = OpexAirPairInBand(catalog, distance, flightDistance, paxBand);
+        local bandState = regret != null
+            ? OpexAirRegretObserveBand(regret, catalog, distance, flightDistance, paxBand)
+            : { current = inBand, envelope = false, added = false };
+        if (!inBand) {
+          if ((AIR_MAX_DISTANCE <= 0 || flightDistance <= AIR_MAX_DISTANCE) && bandState.added) {
+            local boundBaseMonthly = (((hub.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100)
+                / (hub.routes + 1)) + (site.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100;
+            local boundDemand = OpexAirDemandContext(hub, site, plane, catalog, lines, boundBaseMonthly);
+            OpexAirRegretEvaluateBoundAdded(regret, catalog, airport, hub, site, flightDistance,
+                                            lines, boundDemand, infrastructureMaintenance, maxCapital, 1,
+                                            bandState);
+          }
+          continue;
+        }
         if (AIR_MAX_DISTANCE > 0 && flightDistance > AIR_MAX_DISTANCE) continue;
-        if (plane.maxOrderDistance > 0 && flightDistance > plane.maxOrderDistance) continue;
+        local proxyState = { rescued = false, compatibleChoices = 0 };
+        if (regret != null) {
+          proxyState = OpexAirRegretObservePair(regret, catalog, airport, plane, hub, site,
+                                                flightDistance, false);
+        }
+        if (!AIR_BEST_EQUIPMENT && plane.maxOrderDistance > 0
+            && flightDistance > plane.maxOrderDistance) {
+          local rescueBaseMonthly = (((hub.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100)
+              / (hub.routes + 1)) + (site.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100;
+          local rescueDemand = OpexAirDemandContext(hub, site, plane, catalog, lines, rescueBaseMonthly);
+          OpexAirRegretEvaluateRescue(regret, catalog, airport, hub, site, flightDistance,
+                                      lines, rescueDemand, infrastructureMaintenance, maxCapital, 1,
+                                      proxyState);
+          continue;
+        }
         if (abandoned != null) {
           local pairKey = "air|" + hub.town.tile + "|" + site.town.tile;
           if ((pairKey in abandoned)
@@ -1489,18 +2420,24 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
         }
         local hubMonthly = ((hub.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub.routes + 1);
         local newMonthly = (site.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100;
-        local monthlyPax = hubMonthly + newMonthly;
-        local demandCap = 0;
-        if (AIR_DEMAND_PLAN) {
-          local demand = OpexAirPlanDemand(hub, site, plane, catalog, lines);
-          monthlyPax = demand.monthlyDemand;
-          demandCap = demand.cap;
-        }
-        if (monthlyPax < 10) monthlyPax = 10;
-        local routeChoice = OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,
-                                                    infrastructureMaintenance, maxCapital, 1, demandCap);
+        local baseMonthlyPax = hubMonthly + newMonthly;
+        local demandContext = OpexAirDemandContext(hub, site, plane, catalog, lines, baseMonthlyPax);
+        local monthlyPax = demandContext.monthlyDemand;
+        local demandCap = demandContext.demandCap;
+        local routeChoice = AIR_BEST_EQUIPMENT
+            ? OpexAirBestEquipment(catalog, airport, hub, site, flightDistance, lines, demandContext,
+                                   infrastructureMaintenance, maxCapital, 1)
+            : OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,
+                                      infrastructureMaintenance, maxCapital, 1, demandCap);
         local routePlane = routeChoice.plane;
         local economics = routeChoice.economics;
+        if (AIR_BEST_EQUIPMENT) {
+          monthlyPax = routeChoice.monthlyDemand;
+          demandCap = routeChoice.demandCap;
+        }
+        if (regret != null && routePlane != null) {
+          OpexAirRegretObserveDemand(regret, catalog, hub, site, plane, routePlane, lines);
+        }
         if (EQUIPMENT_ROI_PROBE) {
           OpexM3ProbeAirPreAdmission(catalog, airport, routePlane, flightDistance, monthlyPax,
               infrastructureMaintenance, maxCapital, 1, demandCap, economics, "pre_admission_hubsite");
@@ -1511,9 +2448,15 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
           airport = airport, plane = routePlane, monthlyPax = monthlyPax, planes = economics.planes,
           capital = economics.capital, economics = economics,
           reuseA = true, hubRoutes = hub.routes, arm = "hubsite",
+          proxyRescued = proxyState.rescued,
+          compatibleChoices = AIR_BEST_EQUIPMENT ? routeChoice.compatibleChoices : proxyState.compatibleChoices,
         };
         OpexAirReserveJoinedStops(catalog, plan);
         if (plan.economics.profitAnnual <= 0) continue;
+        if (regret != null && proxyState.rescued) {
+          regret.savedPlans++;
+          regret.savedProfit += economics.profitAnnual;
+        }
         if (projects != null) projects.append(plan);
         if (OpexAirPlanBetter(plan, bestPlan)) bestPlan = plan;
       }
@@ -1545,25 +2488,63 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
         if (distance < 20) continue;
         local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR, hub1.anchor, hub2.anchor);
         local flightDistance = OpexFlightDistance(hub1.anchor, hub2.anchor);
-        if (!OpexAirPairInBand(catalog, distance, flightDistance, paxBand)) continue;
+        local inBand = OpexAirPairInBand(catalog, distance, flightDistance, paxBand);
+        local bandState = regret != null
+            ? OpexAirRegretObserveBand(regret, catalog, distance, flightDistance, paxBand)
+            : { current = inBand, envelope = false, added = false };
+        if (!inBand) {
+          if ((AIR_MAX_DISTANCE <= 0 || flightDistance <= AIR_MAX_DISTANCE) && bandState.added) {
+            local boundBaseMonthly = (((hub1.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100)
+                / (hub1.routes + 1)) + (((hub2.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100)
+                / (hub2.routes + 1));
+            local boundDemand = OpexAirDemandContext(hub1, hub2, plane, catalog, lines,
+                                                      boundBaseMonthly);
+            OpexAirRegretEvaluateBoundAdded(regret, catalog, airport, hub1, hub2, flightDistance,
+                                            lines, boundDemand, infrastructureMaintenance, maxCapital, 0,
+                                            bandState);
+          }
+          continue;
+        }
         if (AIR_MAX_DISTANCE > 0 && flightDistance > AIR_MAX_DISTANCE) continue;
-        if (plane.maxOrderDistance > 0 && flightDistance > plane.maxOrderDistance) continue;
+        local proxyState = { rescued = false, compatibleChoices = 0 };
+        if (regret != null) {
+          proxyState = OpexAirRegretObservePair(regret, catalog, airport, plane, hub1, hub2,
+                                                flightDistance, false);
+        }
+        if (!AIR_BEST_EQUIPMENT && plane.maxOrderDistance > 0
+            && flightDistance > plane.maxOrderDistance) {
+          local rescueBaseMonthly = (((hub1.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100)
+              / (hub1.routes + 1)) + (((hub2.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100)
+              / (hub2.routes + 1));
+          local rescueDemand = OpexAirDemandContext(hub1, hub2, plane, catalog, lines,
+                                                     rescueBaseMonthly);
+          OpexAirRegretEvaluateRescue(regret, catalog, airport, hub1, hub2, flightDistance,
+                                      lines, rescueDemand, infrastructureMaintenance, maxCapital, 0,
+                                      proxyState);
+          continue;
+        }
         if (abandoned != null
             && (("air|" + hub1.town.tile + "|" + hub2.town.tile) in abandoned)) continue;
         local monthly1 = ((hub1.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub1.routes + 1);
         local monthly2 = ((hub2.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub2.routes + 1);
-        local monthlyPax = monthly1 + monthly2;
-        local demandCap = 0;
-        if (AIR_DEMAND_PLAN) {
-          local demand = OpexAirPlanDemand(hub1, hub2, plane, catalog, lines);
-          monthlyPax = demand.monthlyDemand;
-          demandCap = demand.cap;
-        }
-        if (monthlyPax < 10) monthlyPax = 10;
-        local routeChoice = OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,
-                                                    infrastructureMaintenance, maxCapital, 0, demandCap);
+        local baseMonthlyPax = monthly1 + monthly2;
+        local demandContext = OpexAirDemandContext(hub1, hub2, plane, catalog, lines, baseMonthlyPax);
+        local monthlyPax = demandContext.monthlyDemand;
+        local demandCap = demandContext.demandCap;
+        local routeChoice = AIR_BEST_EQUIPMENT
+            ? OpexAirBestEquipment(catalog, airport, hub1, hub2, flightDistance, lines, demandContext,
+                                   infrastructureMaintenance, maxCapital, 0)
+            : OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,
+                                      infrastructureMaintenance, maxCapital, 0, demandCap);
         local routePlane = routeChoice.plane;
         local economics = routeChoice.economics;
+        if (AIR_BEST_EQUIPMENT) {
+          monthlyPax = routeChoice.monthlyDemand;
+          demandCap = routeChoice.demandCap;
+        }
+        if (regret != null && routePlane != null) {
+          OpexAirRegretObserveDemand(regret, catalog, hub1, hub2, plane, routePlane, lines);
+        }
         if (EQUIPMENT_ROI_PROBE) {
           OpexM3ProbeAirPreAdmission(catalog, airport, routePlane, flightDistance, monthlyPax,
               infrastructureMaintenance, maxCapital, 0, demandCap, economics, "pre_admission_hubhub");
@@ -1574,10 +2555,15 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
           airport = airport, plane = routePlane, monthlyPax = monthlyPax, planes = economics.planes,
           capital = economics.capital, economics = economics,
           reuseA = true, reuseB = true, hubRoutes = hub1.routes + hub2.routes,
-          arm = "hubhub",
+          arm = "hubhub", proxyRescued = proxyState.rescued,
+          compatibleChoices = AIR_BEST_EQUIPMENT ? routeChoice.compatibleChoices : proxyState.compatibleChoices,
         };
         OpexAirReserveJoinedStops(catalog, plan);
         if (plan.economics.profitAnnual <= 0) continue;
+        if (regret != null && proxyState.rescued) {
+          regret.savedPlans++;
+          regret.savedProfit += economics.profitAnnual;
+        }
         if (projects != null) projects.append(plan);
         if (OpexAirPlanBetter(plan, bestPlan)) bestPlan = plan;
       }
@@ -1588,7 +2574,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
                + (bestPlan != null && bestPlan.reuseA ? 1 : 0));
     }
     OpexSign(AIMap.GetTileIndex(1, 4), "AE|S=" + sites.len() + "|B=" + (bestPlan != null ? bestPlan.economics.profitAnnual : "NO"));
-    if (bestPlan != null && bestPlan.airport.allowBig) break;
+    if (!AIR_BEST_EQUIPMENT && bestPlan != null && bestPlan.airport.allowBig) break;
   }
   if (DECISION_LOG) {
     OpexDecide("AIR_SERVED_SUMMARY", "scan=" + servedDiag.scan
@@ -1615,6 +2601,10 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
              + " probes=" + perfProbesCount + " cheap_skip=" + perfCheapSkip
              + " sites=" + perfSitesFound);
   OpexSign(AIMap.GetTileIndex(1, 2), "AP|T=" + totalOps + "|S=" + perfOpsSites + "|E=" + perfOpsEval + "|TK=" + elapsedTicks);
+  /* AP peut depasser la limite de 31 caracteres quand les compteurs grossissent. AO publie les
+   * deux mesures requises par le chantier AIR dans un format toujours compact. */
+  OpexSign(AIMap.GetTileIndex(2, 8), "AO|" + totalOps + "|" + perfOpsEval);
+  OpexAirRegretPublish(regret);
   return bestPlan;
 }
 
@@ -1813,7 +2803,13 @@ function OpexBuildAirRoute(catalog, budget, plan)
   local plane = null;
 
   local airport = ("airport" in plan) ? plan.airport : catalog.airport;
-  local planeChoice = ("plane" in plan) ? plan.plane : catalog.plane;
+  /* Sous le moteur multi-equipements, le chantier ne devine JAMAIS un avion depuis le catalogue :
+   * la decision doit avoir ete materialisee par OpexAirBestEquipment dans plan.plane. */
+  local planeChoice = ("plane" in plan) ? plan.plane : (AIR_BEST_EQUIPMENT ? null : catalog.plane);
+  if (AIR_BEST_EQUIPMENT && planeChoice == null) {
+    result.reason = "NO_TARGET_PLANE";
+    return result;
+  }
   local reuseA = ("reuseA" in plan) && plan.reuseA;
   local reuseB = ("reuseB" in plan) && plan.reuseB;
 

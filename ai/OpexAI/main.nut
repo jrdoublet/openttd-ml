@@ -361,6 +361,10 @@ class OpexAI extends AIController {
   function _refleetRoadLines(year);
   function _refleetCrashedWaterLines(year);
   function _resizeAirFleets(year);
+  function _queueAirRetirement(line, vehicle, reason, replacementVehicle = -1);
+  function _abandonAirPreviewCommitment(line, reason, cause = "runtime");
+  function _resolveAirPreviewCommitment(line, engine, assessment, cause = "engine_available");
+  function _honorAirPreviewCommitment(line, engine, kind);
   function _expandRailLines(year);
   function _continueRailExpansion();
   function _startRailSearch(candidate, join, placeJoin, alternativeRatio, hardCap, projectIndex);
@@ -392,6 +396,7 @@ class OpexAI extends AIController {
   function _onIndustryOpen(event);
   function _onTownFounded(event);
   function _onEngineAvailable(event);
+  function _onEnginePreview(event);
   function _onStationFirstVehicle(event);
   function _dispatchCatalog(task, year);
   function _dispatchC41Water(task, year);

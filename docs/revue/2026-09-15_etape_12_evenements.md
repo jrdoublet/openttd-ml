@@ -191,3 +191,64 @@ vue depuis `events.nut`/`event_handlers.nut`.
 
 Aucun changement n'a donc été appliqué à `events.nut` : les deux écarts fonctionnels exigent un
 banc et se trouvent dans `event_handlers.nut`, tandis que les autres constats sont descriptifs.
+
+## Préparation du chantier AIR post-C68 — 2026-09-18
+
+Le moteur AIR multi-équipements fixe la cible fonctionnelle de 12.1 : `ET_ENGINE_AVAILABLE` ne doit pas porter sa propre logique de choix d’appareil. À terme, l’événement doit seulement rafraîchir le catalogue puis invalider/réévaluer de façon ciblée les opportunités et lignes AIR concernées ; la comparaison `(airportType, plane, fleet)` reste dans `OpexAirBestEquipment`/`OpexAirEconomics`. La même règle vaut pour `ET_ENGINE_PREVIEW` : un prototype ou une exclusivité peut déclencher une évaluation anticipée, mais pas une seconde économie AIR.
+
+Cette passe ne modifie pas encore `event_handlers.nut` : C68 reste la baseline, `air_best_equipment` reste default-off après un 5×6 sain mais non concluant économiquement, et aucun 20×10 n’a été lancé. Le couplage exact invalidation catalogue/portefeuille devra être traité avec le lot upgrade/réévaluation.
+
+## Clôture du contrat événements AIR — 2026-09-18
+
+Le lot lifecycle supersède la préparation ci-dessus. Sous `air_best_equipment=1`,
+`ET_ENGINE_AVAILABLE` rafraîchit le catalogue AIR et les bornes, raccorde éventuellement un
+`previewCommitment` au vrai `EngineID`, marque uniquement les lignes physiquement concernées dirty,
+invalide le portefeuille et remet `catalog`/`projects`/`air_fleet` à échéance immédiate. Le handler
+ne contient aucun appel à `OpexAirEconomics`, `OpexAirBestEquipment`,
+`OpexAirAssessExistingLine` ou `OpexAirAssessPreviewPlane` : la décision reste dans le lifecycle.
+
+`ET_ENGINE_PREVIEW` reste une pré-évaluation distincte et prudente, nécessaire parce que l’API ne
+fournit ni `EngineID`, ni `planeType`, ni portée. Il exige une ligne concrète, un gain/payback
+acceptables et le cash `prix + réserve`. Après `AcceptPreview()`, le catalogue est rafraîchi et le
+nouvel EngineID est résolu par delta avant/après, puis vérifié par la signature stable
+nom/type/capacité/vitesse ; les cas ambigus refusent de deviner. La ligne est alors seulement marquée
+dirty. L’engagement ne devient `resolved` qu’après un assessment normal
+`OpexAirAssessExistingLine -> OpexAirBestEquipment -> OpexAirEconomics`; si le moteur commun préfère
+une autre cible, l’engagement est abandonné explicitement. Il est considéré honoré au premier achat
+réel du moteur promis, en `growth` ou `upgrade`.
+
+La clôture finale borne aussi l’état `resolved` : `resolvedDate` n’est fixé qu’à la première
+résolution et, passé `AIR_PREVIEW_COMMITMENT_MAX_DAYS` sans achat réel, l’engagement est abandonné
+explicitement avec raison `timeout`, puis la ligne redevient dirty pour une assessment normale. Un
+preview résolu ne peut donc plus verrouiller indéfiniment une cible.
+
+`ET_VEHICLE_CRASHED` distingue désormais un véhicule encore actif d’un véhicule déjà retiré
+logiquement de la ligne. Si l’ID est une clé de `_vehiclesToRetire`, le ticket est supprimé et le
+handler retourne avant `OpexFindLineForVehicle` : aucun second décrément de `vehCount/trains` et
+aucun `needsRefleet`. Pour un crash AIR actif, la ligne devient dirty avec raison `crash` avant
+reconstitution ; le refleet attend une assessment commune valide, respecte `targetFleetSize` et
+n’achète rien si le crash a déjà ramené la flotte à la profondeur cible.
+
+`ET_VEHICLE_AUTOREPLACED` remappe maintenant les références lifecycle complètes : listes/scalaires
+de ligne, clé éventuelle de `_vehiclesToRetire` **et** chaque `ticket.replacementVehicle`. Si le
+remplaçant exact d’un ticket crashe, le ticket est marqué puis remappé sur l’ID construit par le
+refleet commun ; le timeout ne peut donc plus conclure à tort que le remplaçant a disparu et restaurer
+l’ancien.
+
+Dans `results/diag_air_lifecycle_6y_5seeds.json`, chaque graine expose un preview : **5 vus, 5
+acceptés, 5 EngineID résolus sans ambiguïté**. Les cinq sont ensuite abandonnés explicitement parce
+que le moteur commun préfère une autre configuration (`previewAbandonCommon=5`) ; **0 timeout** et
+0 engagement silencieusement perdu. Un événement `ENGINE_AVAILABLE` est vu par graine et cible au
+total **60 lignes**, donnant 60 réévaluations dédiées. Aucun 20×10 n’est justifié par le verdict
+économique global négatif ; C68/default reste inchangé.
+
+Le 5×6 qui porte ces compteurs a `air_equipment_regret_probe=1` partagé entre les deux bras : son
+`setting_audit` marque `transportable_to_shipped_defaults=false`, tout en confirmant
+`air_best_equipment` comme unique différence effective entre bras. Il expose dynamiquement
+`engine_available` et `preview`, mais aucun crash ; les autres dirty-causes lifecycle sont couvertes
+statiquement plutôt que par cette campagne.
+
+Validation du source final : **55 tests** verts, `py_compile`, les deux selftests historiques et
+`git diff --check` verts ; `results/smoke_air_lifecycle_final_1y_seed42.json` est **1/1 sain**
+sous OpenTTD 15.3 / OpenGFX 7.1. Le 5×6 reste antérieur à ces derniers correctifs events/preview et
+ne constitue pas une preuve dynamique de ces branches rares.

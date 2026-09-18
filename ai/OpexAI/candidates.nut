@@ -379,6 +379,40 @@ function OpexComputeAirMaxDistance(bestPlane, ticksPerDay, airportType, paxCargo
   return rentable;
 }
 
+/* Enveloppe AIR multi-appareils strictement conservatrice. Elle n'elargit ni roadMax ni railMax :
+ * elle cherche seulement, parmi les couples (type aeroport, avion) deja presents dans le catalogue,
+ * le plus petit seuil rail->air plausible et la plus grande portee AIR plausible. */
+function OpexComputeAirBoundsEnvelope(catalog, bestTrain, ticksPerDay, paxCargo, roadMax, railMax, mapSpan)
+{
+  local envRailAir = railMax;
+  local envAirMax = 0;
+  local choices = 0;
+  if (catalog == null || !("airPlaneChoicesByAirport" in catalog)) {
+    return { railAirOverlapMin = envRailAir, airMin = envRailAir, airMax = envAirMax, choices = 0 };
+  }
+  foreach (airportType, planes in catalog.airPlaneChoicesByAirport) {
+    foreach (plane in planes) {
+      local crossover = bestTrain != null
+          ? OpexComputeRailToAirDistance(bestTrain, plane.id, ticksPerDay, airportType)
+          : roadMax;
+      local planeMax = OpexComputeAirMaxDistance(plane.id, ticksPerDay, airportType, paxCargo);
+      if (crossover < envRailAir) envRailAir = crossover;
+      if (planeMax > envAirMax) envAirMax = planeMax;
+      choices++;
+    }
+  }
+  if (envRailAir < roadMax) envRailAir = roadMax;
+  if (envRailAir > railMax) envRailAir = railMax;
+  if (envRailAir > mapSpan) envRailAir = mapSpan;
+  if (envAirMax > mapSpan) envAirMax = mapSpan;
+  return {
+    railAirOverlapMin = envRailAir,
+    airMin = (envRailAir < railMax) ? envRailAir : railMax,
+    airMax = envAirMax,
+    choices = choices,
+  };
+}
+
 function OpexRefreshEpochBounds(catalog)
 {
   if (catalog == null) return;
@@ -417,25 +451,40 @@ function OpexRefreshEpochBounds(catalog)
   if (roadGenMax < roadMin) roadGenMax = roadMin;
 
   local airportType = (catalog.airport != null) ? catalog.airport.type : null;
-  local railAir = railMax;
+  local legacyRailAir = railMax;
   local tFixe = 0.0;
   local vRail = 0;
   local vAirEff = 0.0;
   if (bestPlane != null && bestTrain != null) {
-    railAir = OpexComputeRailToAirDistance(bestTrain, bestPlane, tpd, airportType);
+    legacyRailAir = OpexComputeRailToAirDistance(bestTrain, bestPlane, tpd, airportType);
     vRail = bestTrain.speed;
     vAirEff = AIEngine.GetMaxSpeed(bestPlane).tofloat() / OpexPlaneSpeedDivisor();
     tFixe = OpexAirManeuverDays(bestPlane, airportType, airportType, tpd, OpexPlaneSpeedDivisor());
   } else if (bestPlane != null) {
-    railAir = roadMax;
+    legacyRailAir = roadMax;
   }
 
-  local airMax = bestPlane ? OpexComputeAirMaxDistance(bestPlane, tpd, airportType, pax) : 0;
-  if (airMax > mapSpan) airMax = mapSpan;
-  if (railAir > mapSpan) railAir = mapSpan;
+  local legacyAirMax = bestPlane ? OpexComputeAirMaxDistance(bestPlane, tpd, airportType, pax) : 0;
+  if (legacyAirMax > mapSpan) legacyAirMax = mapSpan;
+  if (legacyRailAir > mapSpan) legacyRailAir = mapSpan;
   if (railMax > mapSpan) railMax = mapSpan;
-  if (railAir < roadMax) railAir = roadMax;
-  if (railAir > railMax) railAir = railMax;
+  if (legacyRailAir < roadMax) legacyRailAir = roadMax;
+  if (legacyRailAir > railMax) legacyRailAir = railMax;
+
+  /* Les bandes AIR du chemin experimente AIR_BEST_EQUIPMENT servent uniquement a prouver qu'une
+   * distance peut etre ignoree : elles prennent alors l'enveloppe de tous les appareils disponibles.
+   * C68 reste une baseline intacte et continue donc a utiliser ses bornes historiques mono-avion. */
+  local envelope = OpexComputeAirBoundsEnvelope(catalog, bestTrain, tpd, pax,
+                                                 roadMax, railMax, mapSpan);
+  local useEnvelope = AIR_BEST_EQUIPMENT && envelope.choices > 0;
+  local railAir = useEnvelope ? envelope.railAirOverlapMin : legacyRailAir;
+  local airMax = useEnvelope ? envelope.airMax : legacyAirMax;
+  catalog.airBoundsEnvelope = envelope;
+  catalog.airBoundsLegacy = {
+    railAirOverlapMin = legacyRailAir,
+    airMin = (legacyRailAir < railMax) ? legacyRailAir : railMax,
+    airMax = legacyAirMax,
+  };
 
   catalog.bounds = {
     roadMin = roadMin,
@@ -452,6 +501,15 @@ function OpexRefreshEpochBounds(catalog)
     tFixeAir = tFixe,
     year = catalog.year,
   };
+
+  if (AIR_EQUIPMENT_REGRET_PROBE) {
+    OpexSign(AIMap.GetTileIndex(2, 6), "AB|" + catalog.airBoundsLegacy.airMin + "|" + catalog.bounds.airMin
+        + "|" + catalog.airBoundsLegacy.airMax + "|" + catalog.bounds.airMax);
+    AILog.Info("AIR_BOUND_REGRET BOUND_CURRENT airMin=" + catalog.airBoundsLegacy.airMin
+        + " airMax=" + catalog.airBoundsLegacy.airMax
+        + " BOUND_ENVELOPE airMin=" + envelope.airMin
+        + " airMax=" + envelope.airMax + " choices=" + envelope.choices);
+  }
 
   if (DECISION_LOG) {
     OpexDecide("EPOCH_BOUNDS", "roadMin=" + roadMin + " roadMax=" + roadMax
@@ -506,6 +564,46 @@ function OpexAirPairInBand(catalog, manhattan, flightDistance, paxBand = PAX_BAN
     return false;
   }
   if (b.airMax > 0 && flightDistance > b.airMax) return false;
+  return true;
+}
+
+/* Pendant passif de OpexAirPairInBand : meme contrat de bandes et meme railMax, mais avec la
+ * seule enveloppe AIR multi-appareils calculee par OpexRefreshEpochBounds sous la sonde. */
+function OpexAirPairInEnvelope(catalog, manhattan, flightDistance, paxBand = PAX_BAND_ALL)
+{
+  if (catalog == null || !("airBoundsEnvelope" in catalog) || catalog.airBoundsEnvelope == null) {
+    return false;
+  }
+  local b = OpexCatalogBounds(catalog);
+  local e = catalog.airBoundsEnvelope;
+  if (paxBand == PAX_BAND_AIR_ONLY) {
+    if (manhattan <= b.railMax) return false;
+  } else if (paxBand == PAX_BAND_AIR_RAIL) {
+    if (manhattan < e.railAirOverlapMin || manhattan > b.railMax) return false;
+  } else if (manhattan < e.airMin) {
+    return false;
+  }
+  if (e.airMax > 0 && flightDistance > e.airMax) return false;
+  return true;
+}
+
+/* Temoin passif de l'ancienne politique mono-avion. Il ne doit jamais servir a l'admission d'un
+ * projet ; la sonde l'utilise seulement pour compter les paires ajoutees par l'enveloppe. */
+function OpexAirPairInLegacyBand(catalog, manhattan, flightDistance, paxBand = PAX_BAND_ALL)
+{
+  if (catalog == null || !("airBoundsLegacy" in catalog) || catalog.airBoundsLegacy == null) {
+    return OpexAirPairInBand(catalog, manhattan, flightDistance, paxBand);
+  }
+  local b = OpexCatalogBounds(catalog);
+  local l = catalog.airBoundsLegacy;
+  if (paxBand == PAX_BAND_AIR_ONLY) {
+    if (manhattan <= b.railMax) return false;
+  } else if (paxBand == PAX_BAND_AIR_RAIL) {
+    if (manhattan < l.railAirOverlapMin || manhattan > b.railMax) return false;
+  } else if (manhattan < l.airMin) {
+    return false;
+  }
+  if (l.airMax > 0 && flightDistance > l.airMax) return false;
   return true;
 }
 

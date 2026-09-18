@@ -219,6 +219,34 @@ function OpexRailEffectiveSpeed(loco, wagon, wagons, distance, profile = null, c
   return result;
 }
 
+/* Safe AIR Pareto prefilter. A choice is removed only when another aircraft has the same
+ * compatibility domain (planeType), capacity and speed, while being no more expensive to buy/run
+ * and having at least the same range. Those inputs make the economic curve decision-equivalent. */
+function OpexAirRangeDominates(a, b)
+{
+  if (a == null || b == null) return false;
+  if (a.planeType != b.planeType || a.capacity != b.capacity || a.speed != b.speed) return false;
+  local rangeA = a.maxOrderDistance == 0 ? 2147483647 : a.maxOrderDistance;
+  local rangeB = b.maxOrderDistance == 0 ? 2147483647 : b.maxOrderDistance;
+  if (a.price > b.price || a.runningCost > b.runningCost || rangeA < rangeB) return false;
+  return a.price < b.price || a.runningCost < b.runningCost || rangeA > rangeB;
+}
+
+function OpexAirSafeParetoChoices(choices)
+{
+  local kept = [];
+  if (choices == null) return kept;
+  foreach (candidate in choices) {
+    local dominated = false;
+    foreach (other in choices) {
+      if (candidate == other) continue;
+      if (OpexAirRangeDominates(other, candidate)) { dominated = true; break; }
+    }
+    if (!dominated) kept.append(candidate);
+  }
+  return kept;
+}
+
 class OpexCatalog {
   towns = null;        // [{id, tile, pop}]
   townAcceptors = null; // cargo -> [{id, tile, pop}]
@@ -248,7 +276,10 @@ class OpexCatalog {
   airport = null;      // {type, width, height, coverage, price, maintenance} ou null
   plane = null;        // {id, capacity, speed, price, runningCost, maxOrderDistance} ou null
   airCombos = null;    // [{kind="large"|"small", airport={...}, plane={...}}] ou null
+  airAirportChoices = null; // types d'aeroport disponibles, sans avion preselectionne
   airPlaneChoicesByAirport = null; // M3/C68: airport type -> appareils compatibles
+  airParetoChoicesByAirport = null; // AIR lifecycle: safe Pareto subset
+  airParetoStats = null; // {raw, kept, pruned}
 
   ships = null;        // [{id, capacity, speed, price, runningCost, maxOrderDistance}]
   maxShipPrice = 0;
@@ -271,6 +302,8 @@ class OpexCatalog {
   /* Frontieres modales de l'epoque (OpexRefreshEpochBounds). Null avant le
    * premier refresh ; les generateurs passent par OpexCatalogBounds. */
   bounds = null;
+  airBoundsEnvelope = null; // enveloppe AIR multi-appareils decisionnelle
+  airBoundsLegacy = null;   // temoin passif de l'ancienne borne mono-bestPlane
   _ticksAnchorDate = -1;
   _ticksAnchorTick = -1;
 
@@ -289,8 +322,13 @@ class OpexCatalog {
     this.ships = [];
     this.roadEngineByCargo = {};
     this.roadEngineChoicesByCargo = {};
+    this.airAirportChoices = [];
     this.airPlaneChoicesByAirport = {};
+    this.airParetoChoicesByAirport = {};
+    this.airParetoStats = { raw = 0, kept = 0, pruned = 0 };
     this.bounds = null;
+    this.airBoundsEnvelope = null;
+    this.airBoundsLegacy = null;
     this._ticksAnchorDate = -1;
     this._ticksAnchorTick = -1;
   }
@@ -591,7 +629,10 @@ function OpexCatalog::_refreshAir()
   this.airport = null;
   this.plane = null;
   this.airCombos = [];
+  this.airAirportChoices = [];
   this.airPlaneChoicesByAirport = {};
+  this.airParetoChoicesByAirport = {};
+  this.airParetoStats = { raw = 0, kept = 0, pruned = 0 };
   if (this.paxCargo < 0) return;
 
   local airportLargeTypes = [
@@ -607,7 +648,8 @@ function OpexCatalog::_refreshAir()
   local engines = AIEngineList(AIVehicle.VT_AIR);
   engines.Valuate(AIEngine.IsBuildable);
   engines.KeepValue(1);
-  local keepPlaneChoices = EQUIPMENT_ROI_PROBE || AIR_ROUTE_PLANE_SELECTION;
+  local keepPlaneChoices = EQUIPMENT_ROI_PROBE || AIR_ROUTE_PLANE_SELECTION
+      || AIR_EQUIPMENT_REGRET_PROBE || AIR_BEST_EQUIPMENT;
 
   // 1. Combo Grand Aeroport + Avion compatible
   foreach (choice in airportLargeTypes) {
@@ -636,6 +678,11 @@ function OpexCatalog::_refreshAir()
     }
     if (keepPlaneChoices && probeChoices.len() > 0) {
       this.airPlaneChoicesByAirport.rawset(choice.type, probeChoices);
+      local pareto = OpexAirSafeParetoChoices(probeChoices);
+      this.airParetoChoicesByAirport.rawset(choice.type, pareto);
+      this.airParetoStats.raw += probeChoices.len();
+      this.airParetoStats.kept += pareto.len();
+      this.airParetoStats.pruned += probeChoices.len() - pareto.len();
     }
     if (best != null) {
       local ap = {
@@ -649,6 +696,7 @@ function OpexCatalog::_refreshAir()
         price = AIAirport.GetPrice(choice.type),
         maintenance = AIAirport.GetMonthlyMaintenanceCost(choice.type),
       };
+      this.airAirportChoices.append(ap);
       this.airCombos.append({ kind = "large", airport = ap, plane = best });
       if (this.airport == null) {
         this.airport = ap;
@@ -683,6 +731,11 @@ function OpexCatalog::_refreshAir()
     }
     if (keepPlaneChoices && probeChoices.len() > 0) {
       this.airPlaneChoicesByAirport.rawset(choice.type, probeChoices);
+      local pareto = OpexAirSafeParetoChoices(probeChoices);
+      this.airParetoChoicesByAirport.rawset(choice.type, pareto);
+      this.airParetoStats.raw += probeChoices.len();
+      this.airParetoStats.kept += pareto.len();
+      this.airParetoStats.pruned += probeChoices.len() - pareto.len();
     }
     if (best != null) {
       local ap = {
@@ -696,6 +749,7 @@ function OpexCatalog::_refreshAir()
         price = AIAirport.GetPrice(choice.type),
         maintenance = AIAirport.GetMonthlyMaintenanceCost(choice.type),
       };
+      this.airAirportChoices.append(ap);
       this.airCombos.append({ kind = "small", airport = ap, plane = best });
       if (this.airport == null) {
         this.airport = ap;

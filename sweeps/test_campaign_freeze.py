@@ -34,10 +34,12 @@ class TestCampaignFreeze(unittest.TestCase):
     def test_real_info_settings_contract(self):
         defaults = parse_ai_settings(INFO)
         specs = parse_ai_setting_specs(INFO)
-        self.assertEqual(len(defaults), 218)
+        self.assertEqual(len(defaults), 220)
         self.assertEqual(defaults["air_catchment_probe"], 0)
         self.assertEqual(defaults["equipment_roi_probe"], 0)
         self.assertEqual(defaults["air_route_plane_selection"], 1)
+        self.assertEqual(defaults["air_equipment_regret_probe"], 0)
+        self.assertEqual(defaults["air_best_equipment"], 0)
         self.assertEqual(set(defaults), set(specs))
         self.assertEqual(defaults["debug_signs"], 1)
         self.assertEqual(defaults["road_pax_catchment_pct"], 86)

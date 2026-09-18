@@ -2397,6 +2397,22 @@ Le mode route est donc reconfirme sur l arbre courant.
     });
 
     AddSetting({
+      name = "air_equipment_regret_probe",
+      description = "Post-C68 passive AIR probe: measure aircraft-proxy range/min-distance/compatibility regret, selected-aircraft demand deltas, and current versus multi-aircraft modal bounds; no admission or ranking change; 0 = off/default",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "air_best_equipment",
+      description = "Experimental unified AIR equipment engine: evaluate every aircraft compatible with both endpoints, apply the active AIR demand policy, and select by annual profit then ROI using OpexAirEconomics; 0 = adopted C68 baseline/default, 1 = A-D candidate",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "air_joined_stop_limit",
       description = "Maximum bus-stop pieces directly joined to each airport station (0-2); 2 = current C33.2 behavior (default)",
       min_value = 0, max_value = 2,

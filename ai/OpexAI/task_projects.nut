@@ -176,36 +176,100 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
     }
     return { outcome = "rejected", discards = passDiscards };
   }
+  local lifecycleKind = ("kind" in entry) ? entry.kind : "legacy";
+  local lifecycleTargetEngine = (AIR_BEST_EQUIPMENT && lifecycleKind == "upgrade"
+      && ("targetEngine" in entry)) ? entry.targetEngine : -1;
+  local lifecycleTargetFleet = (AIR_BEST_EQUIPMENT && lifecycleKind == "upgrade")
+      ? (("targetFleetSize" in entry) ? entry.targetFleetSize
+         : (("targetFleetSize" in line) ? line.targetFleetSize : 0)) : 0;
+  local lifecycleRetireOnly = AIR_BEST_EQUIPMENT && lifecycleKind == "upgrade"
+      && lifecycleTargetEngine >= 0
+      && !OpexAirUpgradeStepNeedsBuild(line, lifecycleTargetEngine, lifecycleTargetFleet);
   local need = entry.planePrice + OpexCashReserve();
-  local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  if (money < need && REBORROW) money = OpexTryReborrow(need, money);
-  if (money < need) {
-    if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("fleet", i, project.capital, project.profitAnnual, project.roi, project.src, project.dst, need, money);
-    if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst, reason = "insufficient_cash", extra = "" });
-    return { outcome = "rejected", discards = passDiscards };
+  if (!lifecycleRetireOnly) {
+    local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+    if (money < need && REBORROW) money = OpexTryReborrow(need, money);
+    if (money < need) {
+      if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("fleet", i, project.capital, project.profitAnnual, project.roi, project.src, project.dst, need, money);
+      if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst, reason = "insufficient_cash", extra = "" });
+      return { outcome = "rejected", discards = passDiscards };
+    }
   }
-  local plannedFull = ("capital" in project && project.capital > 0)
-      ? project.capital : (entry.planePrice * entry.want);
+  local plannedFull = lifecycleRetireOnly ? 0
+      : (("capital" in project && project.capital > 0) ? project.capital : (entry.planePrice * entry.want));
   local costs = C63_INVEST_PROBE ? AIAccounting() : null;
   local added = 0;
-  for (local k = 0; k < entry.want; k++) {
-    local grown = OpexAirAddPlane(line);
-    if (grown.added <= 0) break;
-    added += grown.added;
-    local haveNow = (("vehCount" in line) ? line.vehCount : 0) + grown.added;
-    line.vehCount <- haveNow;
-    line.trains = haveNow;
-    if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < need) break;
+  local lifecycleRetired = false;
+  if (AIR_BEST_EQUIPMENT && lifecycleKind == "upgrade") {
+    local targetEngine = lifecycleTargetEngine;
+    local targetFleetSize = lifecycleTargetFleet;
+    local upgraded = OpexAirUpgradeOnePlane(line, targetEngine, targetFleetSize);
+    if (upgraded.retireOnly) {
+      if (this._queueAirRetirement(line, upgraded.oldVehicle, "air_upgrade_shrink")) {
+        lifecycleRetired = true;
+        if (("upgradeRemaining" in line) && line.upgradeRemaining > 0) line.upgradeRemaining--;
+        if (!("upgradeRemaining" in line) || line.upgradeRemaining <= 0) {
+          line.rawset("upgradePending", false);
+          if (AIEngine.IsValidEngine(targetEngine)) line.rawset("planeCapacity", AIEngine.GetCapacity(targetEngine));
+        }
+        line.rawset("currentPrimaryEngine", OpexAirCurrentPrimaryEngine(line));
+        AIR_LIFECYCLE_LEDGER.upgradeExecuted++;
+      }
+    } else if (upgraded.added > 0) {
+      if (this._queueAirRetirement(line, upgraded.oldVehicle, "air_upgrade", upgraded.newVehicle)) {
+        added = 1;
+        if (("upgradeRemaining" in line) && line.upgradeRemaining > 0) line.upgradeRemaining--;
+        if (!("upgradeRemaining" in line) || line.upgradeRemaining <= 0) {
+          line.rawset("upgradePending", false);
+          if (AIEngine.IsValidEngine(targetEngine)) line.rawset("planeCapacity", AIEngine.GetCapacity(targetEngine));
+        }
+        line.rawset("currentPrimaryEngine", OpexAirCurrentPrimaryEngine(line));
+        AIR_LIFECYCLE_LEDGER.upgradeExecuted++;
+        this._honorAirPreviewCommitment(line, targetEngine, "upgrade");
+      } else {
+        if (this._queueAirRetirement(line, upgraded.newVehicle, "air_upgrade_rollback")) {
+          AIR_LIFECYCLE_LEDGER.retireRollback++;
+        }
+      }
+    }
+  } else {
+    local targetEngine = (AIR_BEST_EQUIPMENT && ("targetEngine" in entry)) ? entry.targetEngine : -1;
+    if (AIR_BEST_EQUIPMENT && (targetEngine < 0 || !AIEngine.IsValidEngine(targetEngine)
+        || !AIEngine.IsBuildable(targetEngine) || !OpexAirEngineRelevantToLine(targetEngine, line))) {
+      line.rawset("airEquipmentDirty", true);
+      line.rawset("airEquipmentDirtyReason", "growth");
+      if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) {
+        passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst,
+                              reason = "target_equipment_missing", extra = "" });
+      }
+      return { outcome = "rejected", discards = passDiscards };
+    }
+    for (local k = 0; k < entry.want; k++) {
+      local grown = OpexAirAddPlane(line, targetEngine);
+      if (grown.added <= 0) break;
+      added += grown.added;
+      local haveNow = (("vehCount" in line) ? line.vehCount : 0) + grown.added;
+      line.vehCount <- haveNow;
+      line.trains = haveNow;
+      if (AICompany.GetBankBalance(AICompany.COMPANY_SELF) < need) break;
+    }
+    if (AIR_BEST_EQUIPMENT && added > 0) {
+      AIR_LIFECYCLE_LEDGER.growthExecuted += added;
+      line.rawset("currentPrimaryEngine", OpexAirCurrentPrimaryEngine(line));
+      this._honorAirPreviewCommitment(line, targetEngine, "growth");
+    }
   }
   local actual = (costs != null) ? costs.GetCosts() : 0;
-  if (added <= 0) {
+  if (added <= 0 && !lifecycleRetired) {
     if (C63_INVEST_PROBE) OpexC63RecordSpend("fleet", plannedFull, actual, false);
     if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) {
       passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst, reason = "fleet_grow_failed", extra = "" });
     }
     return { outcome = "rejected", discards = passDiscards };
   }
-  if (C63_INVEST_PROBE) {
+  if (C63_INVEST_PROBE && lifecycleRetired) {
+    OpexC63RecordSpend("fleet", 0, actual, true);
+  } else if (C63_INVEST_PROBE) {
     local plannedAdded = entry.planePrice * added;
     if (plannedAdded > plannedFull) plannedAdded = plannedFull;
     OpexC63RecordSpend("fleet", plannedAdded, actual, true);
@@ -221,7 +285,9 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
         + " cash_after=" + AICompany.GetBankBalance(AICompany.COMPANY_SELF));
   }
   if (DECISION_LOG) {
-    OpexDecide("FLEET_PROJECT", "action=grow line=" + line.lineId + " added=" + added
+    OpexDecide("FLEET_PROJECT", "action=" + (lifecycleRetired ? "upgrade_retire"
+               : (lifecycleKind == "upgrade" ? "upgrade" : "grow"))
+               + " line=" + line.lineId + " added=" + added
                + " want=" + entry.want + " price=" + entry.planePrice
                + " profit=" + project.profitAnnual + " roi=" + project.roi);
   }

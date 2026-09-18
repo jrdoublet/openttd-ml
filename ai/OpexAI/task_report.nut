@@ -490,10 +490,46 @@ function OpexAI::_scrapRetiredVehicles(year)
     }
 
     if (now - started >= SCRAP_TIMEOUT_YEARS * 365) {
-      /* Ne jamais laisser une retraite impossible rendre l'inventaire permanent
-       * mensonger. On annule le retrait, remet le vehicule dans l'inventaire de
-       * la ligne et le redemarre s'il attend finalement au depot. */
+      /* Une retraite d'upgrade a deja construit son remplacant AVANT de retirer
+       * l'ancien. Tant que ce remplacant exact est encore actif, restaurer
+       * l'ancien creerait une flotte N+1 et pourrait faire racheter un second
+       * remplacant. Dans ce cas on conserve donc la retraite en attente : le
+       * vieil appareil reste hors inventaire de ligne et SellVehicle sera
+       * retente aux passages suivants. Les vieux tickets sans identite du
+       * remplacant suivent la meme politique fail-safe : on ne restaure pas un
+       * ancien appareil tant qu'on ne peut pas prouver que son remplacant a
+       * disparu. */
       local line = this._findLineById(lineId);
+      local isAirUpgrade = line != null && ("mode" in line) && line.mode == "air"
+          && ("reason" in ticket) && ticket.reason == "air_upgrade";
+      local isAirUpgradeShrink = line != null && ("mode" in line) && line.mode == "air"
+          && ("reason" in ticket) && ticket.reason == "air_upgrade_shrink";
+      if (isAirUpgrade) {
+        local hasReplacementIdentity = ("replacementVehicle" in ticket) && ticket.replacementVehicle >= 0;
+        local replacementActive = false;
+        if (hasReplacementIdentity && AIVehicle.IsValidVehicle(ticket.replacementVehicle)
+            && ("vehicles" in line) && line.vehicles != null) {
+          foreach (existing in line.vehicles) {
+            if (existing == ticket.replacementVehicle) { replacementActive = true; break; }
+          }
+        }
+        if (!hasReplacementIdentity || replacementActive) {
+          if ("startedDate" in ticket) ticket.startedDate = now;
+          else ticket.startedDate <- now;
+          if (C52_UNPROFITABLE_LOG || DECISION_LOG) {
+            OpexDecide("UNPROFITABLE_RETIRE", "action=defer_timeout_replacement_active vehicle="
+                       + vehicle + " replacement="
+                       + (hasReplacementIdentity ? ticket.replacementVehicle : -1)
+                       + " line=" + lineId);
+          }
+          continue;
+        }
+      }
+
+      /* Le remplacant d'un air_upgrade est ici prouve absent, ou bien il s'agit
+       * d'une retraite d'un autre type. Restaurer le vehicule ne peut donc pas
+       * doubler ce remplacement. La ligne AIR repasse ensuite par le moteur
+       * commun via retire_rollback. */
       if (line != null) {
         if (("mode" in line) && line.mode != "road") {
           if (!("vehicles" in line)) line.vehicles <- [];
@@ -512,6 +548,13 @@ function OpexAI::_scrapRetiredVehicles(year)
           else line.vehCount <- restored;
           if ("trains" in line) line.trains = restored;
           else line.trains <- restored;
+          if (AIR_BEST_EQUIPMENT && (isAirUpgrade || isAirUpgradeShrink)) {
+            if ("airEquipmentDirty" in line) line.airEquipmentDirty = true;
+            else line.airEquipmentDirty <- true;
+            if ("airEquipmentDirtyReason" in line) line.airEquipmentDirtyReason = "retire_rollback";
+            else line.airEquipmentDirtyReason <- "retire_rollback";
+            AIR_LIFECYCLE_LEDGER.retireRollback++;
+          }
         } else {
           /* Une ligne route est inventoriee par ses ordres : un rapport annuel a
            * pu deja recompter le camion pendant l'attente. Ne pas l'incrementer
