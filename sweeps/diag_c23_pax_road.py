@@ -54,11 +54,13 @@ def records(output, seed):
                 f[k] = v
         # numeric casts
         float_fields = ("pred_rev", "real_rev", "pred_prof", "real_prof", "pred_run", "real_run",
+                        "live_pred_rev", "live_pred_prof", "live_pred_run",
                         "pred_carried", "op_ratio")
         int_fields = ("line", "year", "age", "vehs", "pred_vehs", "dist", "real_dist",
-                      "pred_days", "pred_speed", "cat_speed", "real_speed",
-                      "rating_a", "rating_b", "pop_a", "pop_b", "prod_a", "prod_b",
-                      "wait_a", "wait_b", "cap", "low_ratio")
+                       "pred_days", "pred_speed", "cat_speed", "real_speed",
+                       "rating_a", "rating_b", "pop_a", "pop_b", "prod_a", "prod_b",
+                       "wait_a", "wait_b", "cap", "low_ratio", "active_days", "year_days",
+                       "live_pred_vehs", "live_pred_engine")
         for k in float_fields:
             try:
                 f[k] = float(f.get(k, 0))
@@ -73,10 +75,16 @@ def records(output, seed):
     return out
 
 
+def full_year(r):
+    if r.get("year_days", -1) > 0 and r.get("active_days", -1) >= 0:
+        return r["active_days"] >= r["year_days"]
+    return r.get("age", -1) >= 2
+
+
 def analyze_pax_road(records_list):
-    # Filter for C23: mode == "road", kind == "pax", purpose == "profit", age >= 2, pred_rev > 0
+    # Filter C23: road/pax/profit, annee complete, prediction initiale exploitable.
     c23 = [r for r in records_list if r.get("mode") == "road" and r.get("kind") == "pax"
-           and r.get("purpose", "profit") == "profit" and r.get("age", 0) >= 2
+           and r.get("purpose", "profit") == "profit" and full_year(r)
            and r.get("pred_rev", 0) > 0]
 
     print(f"\n=======================================================")
@@ -89,8 +97,15 @@ def analyze_pax_road(records_list):
 
     # Ratios
     rev_ratios = [r["real_rev"] / r["pred_rev"] for r in c23]
+    live = [r for r in c23 if r.get("live_pred_rev", -1) > 0]
+    live_rev_ratios = [r["real_rev"] / r["live_pred_rev"] for r in live]
     prof_ratios = [r["real_prof"] / r["pred_prof"] for r in c23 if r["pred_prof"] > 0]
     run_ratios = [r["real_run"] / r["pred_run"] for r in c23 if r["pred_run"] > 0]
+    live_run_ratios = [r["real_run"] / r["live_pred_run"] for r in live if r["live_pred_run"] > 0]
+    build_op_ratios = [r["real_prof"] / (r["pred_rev"] - r["pred_run"]) for r in c23
+                       if r["pred_rev"] - r["pred_run"] > 0]
+    live_op_ratios = [r["real_prof"] / (r["live_pred_rev"] - r["live_pred_run"]) for r in live
+                      if r["live_pred_rev"] - r["live_pred_run"] > 0]
     vehs_ratios = [r["vehs"] / r["pred_vehs"] for r in c23 if r["pred_vehs"] > 0]
 
     # Distances
@@ -137,10 +152,14 @@ def analyze_pax_road(records_list):
 
     print("--- 1. BILAN FINANCIER GLOBAL ---")
     print(f"Revenu reel / predit     : {fmt_stat(rev_ratios)}")
+    print(f"Revenu reel / livePred   : {fmt_stat(live_rev_ratios)}")
     print(f"  Agrégé somme(reel)/somme(pred) : {sum(r['real_rev'] for r in c23) / sum(r['pred_rev'] for r in c23):.3f}")
     print(f"  Part sous 0.50                 : {100 * sum(1 for x in rev_ratios if x < 0.5) / len(rev_ratios):.1f} %")
     print(f"Profit reel / predit     : {fmt_stat(prof_ratios)}")
     print(f"Cout fonct reel / predit : {fmt_stat(run_ratios)}")
+    print(f"Cout fonct reel / live   : {fmt_stat(live_run_ratios)}")
+    print(f"Profit exploitation reel/build : {fmt_stat(build_op_ratios)}")
+    print(f"Profit exploitation reel/live  : {fmt_stat(live_op_ratios)}")
     print(f"Flotte reelle / predite  : {fmt_stat(vehs_ratios)}")
 
     print("\n--- 2. TERME PAR TERME ---")
@@ -174,6 +193,8 @@ def analyze_pax_road(records_list):
     summary = {
         "n_useful": len(c23),
         "rev_ratio_median": st.median(rev_ratios),
+        "live_n_useful": len(live),
+        "live_rev_ratio_median": st.median(live_rev_ratios) if live_rev_ratios else None,
         "rev_ratio_agg": sum(r["real_rev"] for r in c23) / sum(r["pred_rev"] for r in c23),
         "rev_ratio_q1": st.quantiles(rev_ratios, n=4)[0] if len(rev_ratios) >= 4 else min(rev_ratios),
         "rev_ratio_q3": st.quantiles(rev_ratios, n=4)[2] if len(rev_ratios) >= 4 else max(rev_ratios),
@@ -182,6 +203,11 @@ def analyze_pax_road(records_list):
         "share_below_half": sum(1 for x in rev_ratios if x < 0.5) / len(rev_ratios),
         "prof_ratio_median": st.median(prof_ratios) if prof_ratios else None,
         "run_ratio_median": st.median(run_ratios) if run_ratios else None,
+        "live_run_ratio_median": st.median(live_run_ratios) if live_run_ratios else None,
+        "build_operating_profit_ratio_median": st.median(build_op_ratios) if build_op_ratios else None,
+        "live_operating_profit_ratio_median": st.median(live_op_ratios) if live_op_ratios else None,
+        "real_loss_count": sum(1 for r in c23 if r["real_prof"] < 0),
+        "real_loss_share": sum(1 for r in c23 if r["real_prof"] < 0) / len(c23),
         "vehs_ratio_median": st.median(vehs_ratios) if vehs_ratios else None,
         "dist_ratio_median": st.median(dist_ratios) if dist_ratios else None,
         "rating_median": st.median(ratings_all) if ratings_all else None,
@@ -196,13 +222,16 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--years", type=int, default=10)
     parser.add_argument("--seeds", nargs="+", type=int, default=[42, 999, 7, 1024, 314])
-    parser.add_argument("--workers", type=int, default=3)
+    parser.add_argument("--workers", type=int, default=6)
     parser.add_argument("--out", type=Path, default=ROOT / "results" / "diag_c23_pax_road.json")
     args = parser.parse_args()
 
     enable_savegame_cleanup()
-    ai = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", (("decision_log", 1), ("road_fleet_fix", 1)))
-    print(f"Lancement de la simulation {len(args.seeds)} graines x {args.years} ans (road_fleet_fix=1)...")
+    ai = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI",
+                      (("decision_log", 1), ("road_fleet_fix", 1),
+                       ("road_pax_build", 1), ("town_growth", 0)))
+    print(f"Lancement de la simulation {len(args.seeds)} graines x {args.years} ans "
+          "(road_pax_build=1, town_growth=0, diagnostic C23)...")
     rows = list(run_experiments(
         openttd_version="15.3", opengfx_version="7.1", max_workers=args.workers,
         result_processor=keep,

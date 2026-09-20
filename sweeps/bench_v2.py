@@ -146,30 +146,11 @@ def parse_opex_variant(name):
                 raise ValueError("pathfinder_hard_cap_k doit etre entre 5 et 100")
             if value % 5:
                 raise ValueError("pathfinder_hard_cap_k doit etre un multiple de 5 (step_size)")
-        elif key == "join_max_distance":
-            if not 0 <= value <= 200:
-                raise ValueError("join_max_distance doit etre entre 0 et 200")
-            if value % 5:
-                raise ValueError("join_max_distance doit etre un multiple de 5 (step_size)")
-        elif key == "transit_cost":
-            # Memes bornes et meme pas que ai/OpexAI/info.nut (docs/taches.md C9) : 0 = neutre
-            # (defaut), 1000 = cout complet.
-            if not 0 <= value <= 2000:
-                raise ValueError("transit_cost doit etre entre 0 et 2000")
-            if value % 50:
-                raise ValueError("transit_cost doit etre un multiple de 50 (step_size)")
         elif key == "road_pax_catchment_pct":
             # 0 garde le calibrage historique a 22 %. Une valeur positive est une sonde route
             # uniquement (info.nut) ; 86 = 22 * le ratio median reel/predit 3,91.
             if not 0 <= value <= 100:
                 raise ValueError("road_pax_catchment_pct doit etre entre 0 et 100")
-        elif key == "portfolio_floor_pct":
-            # Plancher de profit absolu du portefeuille v2, en % du meilleur profit finanÃ§able.
-            # 0 = tri au seul ratio (le comportement mesure a -24,4 % de valeur le 2026-09-02).
-            if not 0 <= value <= 100:
-                raise ValueError("portfolio_floor_pct doit etre entre 0 et 100")
-            if value % 5:
-                raise ValueError("portfolio_floor_pct doit etre un multiple de 5 (step_size)")
         elif key == "project_top_k":
             # Memes bornes que ai/OpexAI/info.nut : docs/taches.md C43/E3, sature a 70-77% des
             # appels de selection au defaut 64 (mesure du 2026-09-08).
@@ -177,38 +158,9 @@ def parse_opex_variant(name):
                 raise ValueError("project_top_k doit etre entre 8 et 128")
             if value % 8:
                 raise ValueError("project_top_k doit etre un multiple de 8 (step_size)")
-        elif key in ("project_top_k_dynamic", "c41_rail_freight_town_service_cache", "staged_bootstrap"):
-            if value not in (0, 1):
-                raise ValueError(f"{key} est booleen : 0 ou 1")
-        elif key == "portfolio_max_batch":
-            # Memes bornes que ai/OpexAI/info.nut : sans ce garde, le moteur pourrait borner la
-            # valeur sans que le nom de l'arm dans le JSON dise ce qui a vraiment ete joue.
-            if not 1 <= value <= 8:
-                raise ValueError("portfolio_max_batch doit etre entre 1 et 8")
-        elif key == "rail_min_distance":
-            # Distance minimale d'un candidat rail. 25 = comportement livre ; 5 rouvre la bande
-            # de chevauchement rail/route que les commentaires du fichier decrivent deja.
-            if not 5 <= value <= 40:
-                raise ValueError("rail_min_distance doit etre entre 5 et 40")
         elif key == "air_fleet_cadence_days":
             if not 0 <= value <= 365:
                 raise ValueError("air_fleet_cadence_days doit etre entre 0 et 365")
-        elif key == "air_max_distance":
-            if not 0 <= value <= 1000:
-                raise ValueError("air_max_distance doit etre entre 0 et 1000")
-        elif key == "air_fleet_buffer":
-            if not -1 <= value <= 500:
-                raise ValueError("air_fleet_buffer doit etre entre -1 et 500")
-            if value >= 0 and value % 5:
-                raise ValueError("air_fleet_buffer doit etre un multiple de 5 (step_size)")
-        elif key == "infra_amort_pct":
-            if not 0 <= value <= 100:
-                raise ValueError("infra_amort_pct doit etre entre 0 et 100")
-            if value % 10:
-                raise ValueError("infra_amort_pct doit etre un multiple de 10 (step_size)")
-        elif key == "decision_friction_permille":
-            if not 0 <= value <= 1000:
-                raise ValueError("decision_friction_permille doit etre entre 0 et 1000")
         elif key == "abandon_cooldown_days":
             if not 0 <= value <= 5000:
                 raise ValueError("abandon_cooldown_days doit etre entre 0 et 5000")
@@ -227,12 +179,6 @@ def parse_opex_variant(name):
         elif key == "air_early_slot_bonus_pct":
             if not 0 <= value <= 200 or value % 10:
                 raise ValueError("air_early_slot_bonus_pct doit etre entre 0 et 200 par pas de 10")
-        elif key in ("abandon_memory", "abandon_gen_filter", "air_joined_stops", "air_early_slot", "station_join", "join_place", "origin_sitable", "basin_share", "reborrow", "road_mode", "road_pax_build", "road_pax_extensions", "road_refleet", "road_multistop", "astar_cost", "probe_negative", "pax_near", "rail_cost_probe", "rail_expand", "town_growth", "dynamic_cash_reserve", "dynamic_pathfinder_cap", "loop_budget", "fleet_fix", "economy_fix", "growth_yields", "air_margin", "air_abandon", "air_abandon_site", "air_town_limit_memory", "pricing_road_rating", "pricing_rail_depot", "pricing_road_ops", "pax_full_load", "air_full_load", "complex_cargo", "air_hub", "rail_refleet", "marginal_fleet", "air_cost_probe", "air_presite", "portfolio_fresh_budget", "air_fleet_probe", "fleet_before_new", "air_roi_order", "rail_search_resumable", "rail_segmented_search", "rail_micro_deadline", "decision_log", "reserve_maint_cap", "air_margin_v2", "air_hub_fix", "air_demand_cap", "air_demand_plan", "event_depot_sell", "event_industry_close", "event_subsidy_probe", "event_vehicle_lost", "event_vehicle_autoreplaced", "event_vehicle_crashed", "event_vehicle_unprofitable", "event_catalog_invalidate", "c39_invalidation_probe", "c39_decision_delta_probe", "c39_engine_refresh", "c41_revision_probe", "vivier_ratio_filter", "road_fleet_fix", "air_fleet_line_price", "air_cadence_cap", "air_cadence_cap_adaptive", "road_loading_fix", "clean_density_score", "flat_bonus", "air_portfolio", "fleet_portfolio", "tension_scoring", "air_site_cache", "air_cheap_site", "road_cheap_trace", "road_pax_voirie", "road_pax_overlap", "shadow_pricing", "portfolio_cache", "portfolio_dynamic_batch", "abandon_memory_transient_guard", "capital_calibration", "rail_prequote", "rail_prequote_keep_plan", "rail_terrain_probe", "road_cost_probe", "water_lakes_connectivity", "water_lakes_ops_budget", "water_site_catalog", "water_discovery_real_fronts", "save_full_state", "c42_subsidies", "c53_order_nonstop", "c53_order_noload", "c60_town_rating_filter", "c48_indexed_regeneration", "c48_index_shadow", "c46_freight_grid", "c46_freight_grid_shadow"):
-            if value not in (0, 1):
-                raise ValueError(f"{key} est booleen : 0 ou 1")
-        elif key in ("c39_air_reason_probe", "c41_water_refresh", "c41_water_precheck", "c41_water_candidate_probe", "c41_water_plans_profile", "c41_water_site_profile", "c41_slack_ledger", "c41_staleness_ledger", "c41_opportunity_ledger", "c41_admission_ledger", "c41_road_refresh", "c41_road_candidate_profile", "c41_road_freight_profile", "c41_road_freight_served_index", "c41_road_freight_acceptance_index", "c41_rail_candidate_profile", "c41_rail_pax_cruise_cache", "c41_rail_freight_profile", "c41_rail_freight_candidate_profile", "c41_rail_freight_economics_profile", "c41_rail_freight_economics_detail_profile", "c41_rail_freight_economics_setup_profile", "c41_rail_freight_economics_consist_profile", "c41_rail_freight_cruise_profile", "c41_rail_freight_cruise_cache", "c41_rail_freight_speed_detail_profile", "c41_rail_freight_acceleration_cache", "c41_rail_freight_effective_speed_profile", "c41_rail_freight_town_guards_profile", "c41_vehicle_lost_probe", "c41_rail_lost_probe", "c41_rail_lost_topology_probe", "c41_rail_lost_physical_probe", "c41_rail_lost_signal_repair", "c41_rail_lost_connectivity_probe", "c41_rail_lost_junction_repair", "c41_rail_slice_ledger", "c41_rail_cash_release", "c41_rail_domination_probe", "c41_projects_fallthrough_probe", "c39_projects_cadence_probe", "c39_pass_clock_ledger", "c48_project_attempt_ledger", "c49_scarcity_ledger", "c49_variable_denominator", "c55_origin_relax_probe", "c55_freight_origin_relax", "c55_road_origin_relax", "c55_road_pax_origin_relax", "c55_pax_trace_probe", "c52_autoreplace_log", "c52_event_exposure_probe", "c52_crash_log", "c52_unprofitable_log", "c52_station_first_vehicle_log", "c56_task_trace", "c54_vehicle_orders_probe", "c48_incremental_profile", "cash_reserve_probe", "portfolio_refresh_probe", "c42_subsidy_log", "c60_town_rating_probe", "c50_chronology_probe", "c50b_road_cap_relax", "c50b_rail_backlog_relax", "c63_invest_probe"):
-            if value not in (0, 1):
-                raise ValueError(f"{key} est booleen : 0 ou 1")
         else:
             spec = setting_specs.get(key)
             if spec is None:
@@ -614,6 +560,111 @@ def air_equipment_diagnostic_stats(chunks):
         "air_pareto_raw": 0,
         "air_pareto_kept": 0,
         "air_pareto_pruned": 0,
+        "air_frontier_route_raw": 0,
+        "air_frontier_route_kept": 0,
+        "air_frontier_lifecycle_raw": 0,
+        "air_frontier_lifecycle_kept": 0,
+        "air_frontier_selected": 0,
+        "air_frontier_replace_selected": 0,
+        "air_frontier_grow_selected": 0,
+        "air_frontier_retire_selected": 0,
+        "air_frontier_stale_rejected": 0,
+        "air_frontier_cash_rejected": 0,
+        "air_frontier_failed_rejected": 0,
+        "air_frontier_selected_continuation_k": 0,
+        "air_frontier_portfolio_raw": 0,
+        "air_frontier_portfolio_affordable": 0,
+        "air_frontier_portfolio_top_selections": 0,
+        "air_frontier_portfolio_top_air_selections": 0,
+        "air_frontier_portfolio_top_continuation_k": 0,
+        "air_frontier_portfolio_top_capital_k": 0,
+        "air_frontier_portfolio_top_profit_k": 0,
+        "air_frontier_continuation_physical_scans": 0,
+        "air_frontier_continuation_conflict_rejected": 0,
+        "air_frontier_continuation_bucket_visits": 0,
+        "air_frontier_continuation_economic_revalues": 0,
+        "air_frontier_continuation_economic_cache_hits": 0,
+        "air_frontier_continuation_economic_profit_removed_k": 0,
+        "air_frontier_continuation_fleet_revalues": 0,
+        "air_frontier_continuation_fleet_cache_hits": 0,
+        "air_frontier_continuation_fleet_profit_removed_k": 0,
+        "air_frontier_interaction_plan_builds": 0,
+        "air_frontier_interaction_plan_cache_hits": 0,
+        "air_frontier_static_fast": 0,
+        "air_frontier_static_fallback": 0,
+        "air_frontier_interactive_visits": 0,
+        "air_frontier_index_build_visits": 0,
+        "air_frontier_plan_candidate_visits": 0,
+        "air_frontier_static_fallback_visits": 0,
+        "air_frontier_interaction_checks": 0,
+        "air_frontier_interaction_mismatches": 0,
+        "air_frontier_interaction_false_negative": 0,
+        "air_frontier_interaction_false_positive": 0,
+        "air_frontier_interaction_kind_mismatch": 0,
+        "air_frontier_assign_calls": 0,
+        "air_frontier_assign_externality_ops": 0,
+        "air_frontier_assign_build_ops": 0,
+        "air_frontier_assign_score_ops": 0,
+        "air_selection_calls": 0,
+        "air_selection_production_calls": 0,
+        "air_selection_diagnostic_calls": 0,
+        "air_selection_diagnostic_counterfactual_calls": 0,
+        "air_selection_generation_calls": 0,
+        "air_selection_lifecycle_calls": 0,
+        "air_selection_budget_reselect_calls": 0,
+        "air_selection_dynamic_batch_calls": 0,
+        "air_selection_execution_calls": 0,
+        "air_selection_production_ops": 0,
+        "air_selection_production_days": 0,
+        "air_selection_diagnostic_ops": 0,
+        "air_selection_diagnostic_days": 0,
+        "air_selection_prepare_ops": 0,
+        "air_selection_prepare_days": 0,
+        "air_selection_prepared_builds": 0,
+        "air_selection_prepared_hits": 0,
+        "air_selection_envelope_builds": 0,
+        "air_selection_envelope_hits": 0,
+        "air_selection_externality_cache_hits": 0,
+        "air_selection_externality_ops": 0,
+        "air_selection_relaxation_ops": 0,
+        "air_selection_ranking_ops": 0,
+        "air_selection_externality_days": 0,
+        "air_selection_relaxation_days": 0,
+        "air_selection_ranking_days": 0,
+        "air_selection_diagnostic_prepare_ops": 0,
+        "air_selection_diagnostic_externality_ops": 0,
+        "air_selection_diagnostic_relaxation_ops": 0,
+        "air_selection_diagnostic_ranking_ops": 0,
+        "air_selection_diagnostic_prepare_days": 0,
+        "air_selection_diagnostic_externality_days": 0,
+        "air_selection_diagnostic_relaxation_days": 0,
+        "air_selection_diagnostic_ranking_days": 0,
+        "air_selection_cover_checks": 0,
+        "air_selection_cover_hits": 0,
+        "air_selection_cover_missing": 0,
+        "air_selection_cover_budget_below": 0,
+        "air_selection_cover_budget_above": 0,
+        "air_selection_cover_raw_state_mismatch": 0,
+        "air_selection_cover_semantic_hits": 0,
+        "air_selection_cover_state_mismatch": 0,
+        "air_frontier_continuation_plan_ops": 0,
+        "air_frontier_continuation_static_ops": 0,
+        "air_frontier_continuation_interactive_ops": 0,
+        "air_frontier_first_upper_checks": 0,
+        "air_frontier_first_upper_violations": 0,
+        "air_frontier_capital_price_samples": 0,
+        "air_frontier_capital_price_positive_samples": 0,
+        "air_frontier_capital_price_bps_sum": 0,
+        "air_frontier_capital_price_bps_max": 0,
+        "air_frontier_capital_price_full_demand_k": 0,
+        "air_frontier_capital_price_budget_k": 0,
+        "air_frontier_possibility_explored": 0,
+        "air_frontier_possibility_deferred": 0,
+        "air_frontier_possibility_materialized": 0,
+        "air_frontier_possibility_reactivated": 0,
+        "air_frontier_possibility_technical_rejected": 0,
+        "air_frontier_exploration_town_pool": 0,
+        "air_frontier_exploration_site_probe_budget": 0,
     }
     signs = (chunks or {}).get("SIGN") or {}
     records = signs.values() if isinstance(signs, dict) else signs
@@ -779,6 +830,262 @@ def air_equipment_diagnostic_stats(chunks):
             if values is not None:
                 for key, value in zip(("air_pareto_raw", "air_pareto_kept", "air_pareto_pruned"), values):
                     totals[key] = max(totals[key], value)
+        elif parts[0] == "CF0" and len(parts) >= 5:
+            values = ints(parts[1:5])
+            if values is not None:
+                keys = (
+                    "air_frontier_route_raw", "air_frontier_route_kept",
+                    "air_frontier_lifecycle_raw", "air_frontier_lifecycle_kept",
+                )
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals[key], value)
+        elif parts[0] == "CF1" and len(parts) >= 5:
+            values = ints(parts[1:5])
+            if values is not None:
+                keys = (
+                    "air_frontier_selected", "air_frontier_replace_selected",
+                    "air_frontier_grow_selected", "air_frontier_retire_selected",
+                )
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals[key], value)
+        elif parts[0] == "CF2" and len(parts) >= 5:
+            values = ints(parts[1:5])
+            if values is not None:
+                keys = (
+                    "air_frontier_stale_rejected", "air_frontier_cash_rejected",
+                    "air_frontier_failed_rejected", "air_frontier_selected_continuation_k",
+                )
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals[key], value)
+        elif parts[0] == "CF3" and len(parts) >= 5:
+            values = ints(parts[1:5])
+            if values is not None:
+                keys = (
+                    "air_frontier_portfolio_raw", "air_frontier_portfolio_affordable",
+                    "air_frontier_portfolio_top_selections", "air_frontier_portfolio_top_air_selections",
+                )
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals[key], value)
+        elif parts[0] == "CF4" and len(parts) >= 4:
+            values = ints(parts[1:4])
+            if values is not None:
+                keys = (
+                    "air_frontier_portfolio_top_continuation_k",
+                    "air_frontier_portfolio_top_capital_k",
+                    "air_frontier_portfolio_top_profit_k",
+                )
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals[key], value)
+        elif parts[0] == "CF5" and len(parts) >= 3:
+            values = ints(parts[1:4]) if len(parts) >= 4 else ints(parts[1:3])
+            if values is not None:
+                keys = [
+                    "air_frontier_continuation_physical_scans",
+                    "air_frontier_continuation_conflict_rejected",
+                ]
+                if len(values) >= 3:
+                    keys.append("air_frontier_continuation_bucket_visits")
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals[key], value)
+        elif parts[0] == "CF6" and len(parts) >= 4:
+            values = ints(parts[1:4])
+            if values is not None:
+                keys = (
+                    "air_frontier_continuation_economic_revalues",
+                    "air_frontier_continuation_economic_cache_hits",
+                    "air_frontier_continuation_economic_profit_removed_k",
+                )
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals[key], value)
+        elif parts[0] == "CF7" and len(parts) >= 4:
+            values = ints(parts[1:4])
+            if values is not None:
+                keys = (
+                    "air_frontier_continuation_fleet_revalues",
+                    "air_frontier_continuation_fleet_cache_hits",
+                    "air_frontier_continuation_fleet_profit_removed_k",
+                )
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals[key], value)
+        elif parts[0] == "CF8" and len(parts) >= 5:
+            values = ints(parts[1:5])
+            if values is not None:
+                keys = (
+                    "air_frontier_interaction_plan_builds",
+                    "air_frontier_interaction_plan_cache_hits",
+                    "air_frontier_static_fast",
+                    "air_frontier_static_fallback",
+                )
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals[key], value)
+        elif parts[0] == "CF9" and len(parts) >= 2:
+            values = ints(parts[1:2])
+            if values is not None:
+                totals["air_frontier_interactive_visits"] = max(
+                    totals["air_frontier_interactive_visits"], values[0]
+                )
+        elif parts[0] == "CF10" and len(parts) >= 4:
+            values = ints(parts[1:4])
+            if values is not None:
+                keys = (
+                    "air_frontier_index_build_visits",
+                    "air_frontier_plan_candidate_visits",
+                    "air_frontier_static_fallback_visits",
+                )
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals[key], value)
+        elif parts[0] == "CF11" and len(parts) >= 6:
+            values = ints(parts[1:6])
+            if values is not None:
+                keys = (
+                    "air_frontier_interaction_checks",
+                    "air_frontier_interaction_mismatches",
+                    "air_frontier_interaction_false_negative",
+                    "air_frontier_interaction_false_positive",
+                    "air_frontier_interaction_kind_mismatch",
+                )
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals[key], value)
+        elif parts[0] == "CF12" and len(parts) >= 5:
+            values = ints(parts[1:5])
+            if values is not None:
+                keys = (
+                    "air_frontier_assign_calls",
+                    "air_frontier_assign_externality_ops",
+                    "air_frontier_assign_build_ops",
+                    "air_frontier_assign_score_ops",
+                )
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals[key], value)
+        elif parts[0] == "CF13" and len(parts) >= 4:
+            values = ints(parts[1:4])
+            if values is not None:
+                keys = (
+                    "air_frontier_continuation_plan_ops",
+                    "air_frontier_continuation_static_ops",
+                    "air_frontier_continuation_interactive_ops",
+                )
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals[key], value)
+        elif parts[0] == "CF14" and len(parts) >= 3:
+            values = ints(parts[1:3])
+            if values is not None:
+                totals["air_frontier_first_upper_checks"] = max(
+                    totals["air_frontier_first_upper_checks"], values[0]
+                )
+                totals["air_frontier_first_upper_violations"] = max(
+                    totals["air_frontier_first_upper_violations"], values[1]
+                )
+        elif parts[0] == "CF15" and len(parts) >= 7:
+            values = ints(parts[1:7])
+            if values is not None:
+                keys = (
+                    "air_frontier_capital_price_samples",
+                    "air_frontier_capital_price_positive_samples",
+                    "air_frontier_capital_price_bps_sum",
+                    "air_frontier_capital_price_bps_max",
+                    "air_frontier_capital_price_full_demand_k",
+                    "air_frontier_capital_price_budget_k",
+                )
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals[key], value)
+        elif parts[0] == "CF16" and len(parts) >= 5:
+            values = ints(parts[1:5])
+            if values is not None:
+                keys = ("air_selection_calls", "air_selection_production_calls",
+                        "air_selection_diagnostic_calls",
+                        "air_selection_diagnostic_counterfactual_calls")
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals[key], value)
+        elif parts[0] == "CF17" and len(parts) >= 6:
+            values = ints(parts[1:6])
+            if values is not None:
+                keys = ("air_selection_generation_calls", "air_selection_lifecycle_calls",
+                        "air_selection_budget_reselect_calls", "air_selection_dynamic_batch_calls",
+                        "air_selection_execution_calls")
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals[key], value)
+        elif parts[0] == "CF18" and len(parts) >= 5:
+            values = ints(parts[1:5])
+            if values is not None:
+                keys = ("air_selection_production_ops", "air_selection_production_days",
+                        "air_selection_diagnostic_ops", "air_selection_diagnostic_days")
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals[key], value)
+        elif parts[0] == "CF19" and len(parts) >= 4:
+            values = ints(parts[1:4])
+            if values is not None:
+                keys = ("air_selection_externality_ops", "air_selection_relaxation_ops",
+                        "air_selection_ranking_ops")
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals[key], value)
+        elif parts[0] == "CF20" and len(parts) >= 4:
+            values = ints(parts[1:4])
+            if values is not None:
+                keys = ("air_selection_externality_days", "air_selection_relaxation_days",
+                        "air_selection_ranking_days")
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals[key], value)
+        elif parts[0] == "CF21" and len(parts) >= 5:
+            values = ints(parts[1:5])
+            if values is not None:
+                keys = ("air_selection_prepare_ops", "air_selection_prepare_days",
+                        "air_selection_prepared_builds", "air_selection_prepared_hits")
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals[key], value)
+        elif parts[0] == "CF22" and len(parts) >= 4:
+            values = ints(parts[1:4])
+            if values is not None:
+                keys = ("air_selection_envelope_builds", "air_selection_envelope_hits",
+                        "air_selection_externality_cache_hits")
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals[key], value)
+        elif parts[0] == "CF23" and len(parts) >= 5:
+            values = ints(parts[1:5])
+            if values is not None:
+                keys = ("air_selection_diagnostic_prepare_ops",
+                        "air_selection_diagnostic_externality_ops",
+                        "air_selection_diagnostic_relaxation_ops",
+                        "air_selection_diagnostic_ranking_ops")
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals[key], value)
+        elif parts[0] == "CF24" and len(parts) >= 5:
+            values = ints(parts[1:5])
+            if values is not None:
+                keys = ("air_selection_diagnostic_prepare_days",
+                        "air_selection_diagnostic_externality_days",
+                        "air_selection_diagnostic_relaxation_days",
+                        "air_selection_diagnostic_ranking_days")
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals[key], value)
+        elif parts[0] == "CF25" and len(parts) >= 5:
+            values = ints(parts[1:5])
+            if values is not None:
+                keys = ("air_frontier_possibility_explored",
+                        "air_frontier_possibility_deferred",
+                        "air_frontier_possibility_materialized",
+                        "air_frontier_possibility_reactivated")
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals[key], value)
+        elif parts[0] == "CF26" and len(parts) >= 4:
+            values = ints(parts[1:4])
+            if values is not None:
+                keys = ("air_frontier_possibility_technical_rejected",
+                        "air_frontier_exploration_town_pool",
+                        "air_frontier_exploration_site_probe_budget")
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals[key], value)
+        elif parts[0] == "CF27" and len(parts) >= 9:
+            values = ints(parts[1:9])
+            if values is not None:
+                keys = ("air_selection_cover_checks", "air_selection_cover_hits",
+                        "air_selection_cover_missing", "air_selection_cover_budget_below",
+                        "air_selection_cover_budget_above",
+                        "air_selection_cover_raw_state_mismatch",
+                        "air_selection_cover_semantic_hits",
+                        "air_selection_cover_state_mismatch")
+                for key, value in zip(keys, values):
+                    totals[key] = max(totals[key], value)
         elif parts[0] == "AP":
             fields = {}
             for field in parts[1:]:
@@ -808,12 +1115,20 @@ def keep(row):
     observed_ops = observed_opcode_stats(chunks)
     air_equipment_diag = air_equipment_diagnostic_stats(chunks)
     air_engine_counts = {}
+    air_capacities_by_cargo = {}
+    air_vehicle_book_value = 0
     if veh_dec["chunk_valid"]:
         for vehicle in veh_dec["primary_vehicles_detail"]:
-            if vehicle.get("mode") != "air" or vehicle.get("engine_type") is None:
+            if vehicle.get("mode") != "air":
                 continue
-            engine = str(vehicle["engine_type"])
-            air_engine_counts[engine] = air_engine_counts.get(engine, 0) + 1
+            engine_type = vehicle.get("engine_type")
+            if engine_type is not None:
+                engine = str(engine_type)
+                air_engine_counts[engine] = air_engine_counts.get(engine, 0) + 1
+            air_vehicle_book_value += int(vehicle.get("consist_value") or 0)
+            for cargo, capacity in (vehicle.get("consist_capacities") or {}).items():
+                key = str(cargo)
+                air_capacities_by_cargo[key] = air_capacities_by_cargo.get(key, 0) + int(capacity)
     qualified_primary = None
     unqualified_primary = None
     if veh_dec["chunk_valid"]:
@@ -855,7 +1170,17 @@ def keep(row):
         "qualified_primary_vehicles": qualified_primary,
         "unqualified_primary_vehicles": unqualified_primary,
         "primary_vehicles_by_mode": veh_dec["primary_vehicles_by_mode"] if veh_dec["chunk_valid"] else None,
+        "air_primary_vehicles": (
+            veh_dec["primary_vehicles_by_mode"].get("air", 0)
+            if veh_dec["chunk_valid"] else None
+        ),
+        "air_airports": (
+            stn_dec["stations_by_facility"].get("airport", 0)
+            if stn_dec["chunk_valid"] else None
+        ),
         "air_engine_counts": air_engine_counts if veh_dec["chunk_valid"] else None,
+        "air_capacities_by_cargo": air_capacities_by_cargo if veh_dec["chunk_valid"] else None,
+        "air_vehicle_book_value": air_vehicle_book_value if veh_dec["chunk_valid"] else None,
         "capacities_by_cargo": veh_dec["capacities_by_cargo"] if veh_dec["chunk_valid"] else None,
         "fleet_status": veh_dec["fleet_status"] if veh_dec["chunk_valid"] else None,
         "unclassified_vehicles": len(veh_dec["unclassified_entries"]),

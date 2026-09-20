@@ -367,8 +367,11 @@ class TestAirLifecycle(unittest.TestCase):
             projects, "function OpexProjectFromFleet", "function OpexProjectFromAir"
         )
         self.assertIn('local retireOnly = ("retireOnly" in entry) && entry.retireOnly', fleet_project)
-        self.assertIn("local capital = retireOnly ? 0", fleet_project)
-        self.assertIn("local roiCapital = retireOnly ? 0", fleet_project)
+        self.assertIn('local cashRequired = ("cashRequired" in entry)', fleet_project)
+        self.assertIn("? entry.cashRequired : (retireOnly ? 0", fleet_project)
+        self.assertIn('local capitalCommitted = ("capitalCommitted" in entry)', fleet_project)
+        self.assertIn("local capital = cashRequired", fleet_project)
+        self.assertIn("local roiCapital = capitalCommitted > 0 ? capitalCommitted : 0", fleet_project)
 
     def test_upgrade_retirement_ticket_tracks_exact_replacement(self):
         main = MAIN.read_text(encoding="utf-8")
@@ -490,7 +493,7 @@ class TestAirLifecycle(unittest.TestCase):
             'evalReason == "upgrade" || evalReason == "retire_rollback"', task
         )
 
-    def test_free_retire_portfolio_is_not_starved_by_score_or_profit_floor(self):
+    def test_free_retire_priority_is_historical_only_not_frontier(self):
         projects = PROJECTS.read_text(encoding="utf-8")
         selector = _section(
             projects,
@@ -515,7 +518,7 @@ class TestAirLifecycle(unittest.TestCase):
             selector,
         )
         self.assertIn(
-            "local projectFreeRetire = OpexProjectIsFreeAirRetirement(project)",
+            "local projectFreeRetire = !capitalProfitTie && OpexProjectIsFreeAirRetirement(project)",
             insert,
         )
         self.assertIn("if (priorFreeRetire != projectFreeRetire)", insert)
@@ -524,8 +527,7 @@ class TestAirLifecycle(unittest.TestCase):
             insert.index("if (priorScore > projectScore)"),
         )
 
-        # Même avec un score nul (capital nul), une maintenance retireOnly doit
-        # précéder un investissement mieux scoré : elle exécute une cible déjà décidée.
+        # Hors frontier, la priorité historique de maintenance est conservée.
         ranked = [
             {"name": "investment", "score": 100.0, "free_retire": False},
         ]
@@ -543,6 +545,12 @@ class TestAirLifecycle(unittest.TestCase):
             pos -= 1
         ranked.insert(pos, project)
         self.assertEqual(ranked[0]["name"], "shrink")
+
+        # Sous frontier (capitalProfitTie=true), la classification free_retire est
+        # neutralisée : seul P_network-lambda*C décide.
+        investment_score = 100.0
+        retire_score = 0.0
+        self.assertGreater(investment_score, retire_score)
 
     def test_retire_only_zero_capital_executes_with_fleet_portfolio_when_bounded_pool_is_full(self):
         defaults = parse_ai_settings(INFO)
@@ -575,17 +583,22 @@ class TestAirLifecycle(unittest.TestCase):
         # explicitement un budgetCapital nul.
         self.assertIn('local retireOnly = ("retireOnly" in entry) && entry.retireOnly', from_fleet)
         self.assertIn("if (!retireOnly && entry.planePrice <= 0) return null", from_fleet)
-        self.assertIn("local capital = retireOnly ? 0", from_fleet)
-        self.assertIn("budgetCapital = capital", from_fleet)
+        self.assertIn('local cashRequired = ("cashRequired" in entry)', from_fleet)
+        self.assertIn("? entry.cashRequired : (retireOnly ? 0", from_fleet)
+        self.assertIn("budgetCapital = cashRequired + safetyMargin", from_fleet)
 
-        # Sélection : capital zéro reste abordable même avec budget nul, le floor
-        # ne peut pas affamer retireOnly, et sa priorité est appliquée AVANT le score.
+        # Sélection historique : capital zéro reste abordable même avec budget nul
+        # et le floor ne peut pas affamer retireOnly. La priorité spéciale est
+        # désactivée lorsque capitalProfitTie active la frontier.
         self.assertIn("if (financeCapital > capitalBudget) continue", selector)
         self.assertIn(
             "project.profitAnnual < floorProfit && !OpexProjectIsFreeAirRetirement(project)",
             selector,
         )
-        self.assertIn("local projectFreeRetire = OpexProjectIsFreeAirRetirement(project)", insert)
+        self.assertIn(
+            "local projectFreeRetire = !capitalProfitTie && OpexProjectIsFreeAirRetirement(project)",
+            insert,
+        )
         self.assertLess(
             insert.index("if (priorFreeRetire != projectFreeRetire)"),
             insert.index("if (priorScore > projectScore)"),
@@ -799,6 +812,8 @@ class TestAirLifecycle(unittest.TestCase):
         self.assertIn("foreach (v in line.vehicles)", actual)
         self.assertIn("AIVehicle.GetEngineType(v)", actual)
         self.assertIn("OpexAirPlaneFromEngine(AIVehicle.GetEngineType(v), line.cargo)", actual)
+        self.assertIn("OpexAirActualFleetEconomicsContext(catalog, line, distance)", actual)
+        self.assertIn("OpexAirFleetEconomicsFromContext(context, monthlyPax)", actual)
         self.assertIn(
             "OpexAirActualFleetEconomics(catalog, line, distance, currentDemand)",
             assessment,
@@ -825,6 +840,80 @@ class TestAirLifecycle(unittest.TestCase):
         target_already_present = 1
         remaining_builds = target_fleet - min(target_already_present, target_fleet)
         self.assertEqual(remaining_builds, 1)
+
+    def test_existing_line_population_demand_is_shared_by_live_hub_routes(self):
+        air = AIR.read_text(encoding="utf-8")
+        demand = _section(
+            air,
+            "function OpexAirLineBaseDemand",
+            "function OpexAirLinePhysicalFleetCap",
+        )
+        self.assertIn("function OpexAirLineBaseDemand(line, lines = null)", demand)
+        self.assertIn("OpexAirLiveRoutesAtAirport(line.stationA, lines)", demand)
+        self.assertIn("OpexAirLiveRoutesAtAirport(line.stationB, lines)", demand)
+        self.assertIn("/ routesA", demand)
+        self.assertIn("/ routesB", demand)
+
+        share_pct = 70
+        pop_a, pop_b = 3000, 1800
+        unshared = ((pop_a + pop_b) * share_pct) // 100
+        shared = ((pop_a * share_pct) // 100) // 3 + ((pop_b * share_pct) // 100) // 3
+        self.assertLess(shared, unshared)
+        self.assertEqual(shared, 1120)
+
+    def test_lifecycle_target_depth_uses_candidate_plane_cadence(self):
+        air = AIR.read_text(encoding="utf-8")
+        cadence = _section(
+            air,
+            "function OpexAirCadenceCap",
+            "function OpexAirAirportAcceptsPlane",
+        )
+        self.assertIn('(\"planeSpeed\" in line)', cadence)
+        self.assertIn("function OpexAirCadenceCapForPlane", cadence)
+        self.assertIn("planeSpeed = plane.speed", cadence)
+
+        best = _section(
+            air,
+            "function OpexAirBestEquipment",
+            "function OpexAirEquipmentChoices",
+        )
+        self.assertIn("cadenceLine = null", best)
+        self.assertIn("OpexAirCadenceCapForPlane(cadenceLine, plane, lines)", best)
+        self.assertIn("candidateMaxPlanes", best)
+
+        choices = _section(
+            air,
+            "function OpexAirEquipmentChoices",
+            "function OpexAirEquipmentFrontier",
+        )
+        self.assertIn("cadenceLine = null", choices)
+        self.assertIn("OpexAirCadenceCapForPlane(cadenceLine, plane, lines)", choices)
+
+        frontier = _section(
+            air,
+            "function OpexAirExistingLineFrontier",
+            "function OpexAirAssessExistingLine",
+        )
+        self.assertIn("local maxPlanes = fleetCap", frontier)
+        self.assertIn("OpexAirCadenceCapForPlane(line, plane, lines)", frontier)
+
+        assessment = _section(
+            air,
+            "function OpexAirAssessExistingLine",
+            "function OpexAirEngineRelevantToLine",
+        )
+        self.assertIn("fleetCap, line", assessment)
+
+    def test_preview_target_depth_uses_candidate_plane_cadence(self):
+        air = AIR.read_text(encoding="utf-8")
+        preview = _section(
+            air,
+            "function OpexAirAssessPreviewPlane",
+            "function OpexAirFindPreviewCommitmentEngine",
+        )
+        self.assertIn("OpexAirLineBaseDemand(line, lines)", preview)
+        self.assertIn("OpexAirCadenceCapForPlane(line, previewPlane, lines)", preview)
+        self.assertIn("targetFleetCap", preview)
 
     def test_approved_upgrade_continuation_requires_common_best_unchanged(self):
         air = AIR.read_text(encoding="utf-8")

@@ -48,7 +48,6 @@ budget/catalog ; `globals_post.nut` après `builder_road.nut`.
 | `ledgers.nut` (707) | Registres annuels C39/C41/C48/C49/C50/C52/C54/C55/C60 |
 | `economy.nut` (704) | Scoring économique (ROI, projections) |
 | `scheduler_tasks.nut` (703) | Un dispatch par tache de file (`_dispatchCatalog`, …) |
-| `tension.nut` (689) | Score de tension capacité/attente |
 | `task_report.nut` (666) | Rapport annuel, ferraillage |
 | `main.nut` (540) | `const`, classe `OpexAI`, `Start()` (file, emprunt, boucle) |
 | `task_road.nut` (491) | Construction et refleet routiers |

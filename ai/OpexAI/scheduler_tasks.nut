@@ -13,7 +13,7 @@ function OpexAI::_dispatchCatalog(task, year)
    * (docs/taches.md S0 septies, trouvaille A). On regenere donc aussi des que le capital
    * mobilisable a materiellement grandi depuis la derniere generation. */
   local stale = false;
-  if (this._projects != null) {
+  if (this._projects != null && !(AIR_CAPITAL_FRONTIER && AIR_BEST_EQUIPMENT)) {
     local budgetNow = OpexAvailableCapital();
     local budgetThen = this._projects.capitalBudget;
     /* Seuil relatif ET absolu : on ne rejoue pas la generation pour quelques milliers de livres,
@@ -577,9 +577,26 @@ function OpexAI::_dispatchAirFleet(task, year)
     if (PORTFOLIO_CACHE && this._projects != null) {
       local fleetPlan = [];
       this._resizeAirFleets(year, fleetPlan);
-      if (fleetPlan.len() > 0) {
+      if (AIR_CAPITAL_FRONTIER && AIR_BEST_EQUIPMENT
+          && ("candidateGroups" in this._projects)
+          && this._projects.candidateGroups != null) {
         local budgetNow = OpexAvailableCapital();
-        this._projects = OpexIncrementalUpdateProjects(this._projects, this._catalog, this._budget, this._lines, budgetNow, fleetPlan, this._abandonedPairs);
+        local fleetChanged = OpexFrontierRefreshFleetGroups(this._projects, fleetPlan);
+        local budgetChanged = !("capitalBudget" in this._projects)
+            || this._projects.capitalBudget != budgetNow;
+        if (fleetChanged) {
+          this._projects = OpexReselectProjects(this._projects, budgetNow,
+              this._catalog, this._lines, "lifecycle");
+          this._ranked = this._projects.rail;
+        } else if (budgetChanged) {
+          if (!OpexFrontierDropLambdaIfAbundant(this._projects, budgetNow))
+            OpexFrontierRefilterStoredScores(this._projects, budgetNow);
+          this._ranked = this._projects.rail;
+        }
+      } else if (fleetPlan.len() > 0) {
+        local budgetNow = OpexAvailableCapital();
+        this._projects = OpexIncrementalUpdateProjects(this._projects, this._catalog,
+            this._budget, this._lines, budgetNow, fleetPlan, this._abandonedPairs);
         this._ranked = this._projects.rail;
       }
     }

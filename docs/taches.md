@@ -1019,6 +1019,26 @@ inconclusif à 21/40. Ajouter des véhicules n'est donc pas en soi le chantier p
   `town_growth` ont `raw_vehs <= 1`. La variante est négative (`company_value` -52,1 k£ moyen,
   `profit_year` -29,1 k£/an, 2 V / 3 D) : pas de 20×10, pas d'adoption. Le switch et la télémétrie
   sont conservés pour une politique future réellement exposée.
+  **Recalage route-profit du 2026-09-18 :** la valeur de `AITile.GetCargoProduction` utilisée après
+  siting était un **nombre de producteurs**, pas un volume mensuel. La conversion utilise désormais
+  `AITown.GetLastMonthProduction / AITown.GetHouseCount`; pour les deux arrêts intra-ville de
+  `town_growth`, l'intersection de leurs bassins est recomptée exactement et l'union suit
+  `|A∪B|=|A|+|B|-|A∩B|` au lieu de supprimer artificiellement les maisons chevauchées. Sur le 5×6
+  Docker `diag_road_unit_overlap_losses_docker_6y_5seeds.json`, les 111 années pleines
+  `town_growth` passent de ~7,04× réel/prédit avant correction à **1,08×** sur la baseline de
+  construction et **1,14×** sur la prévision vivante. La comparaison exploitation vivante
+  (`revenu - running`, donc comparable au profit véhicule) est centrée à **1,03×** ; 19/111 années
+  restent réellement déficitaires et devront être comparées au bénéfice indirect de croissance,
+  pas masquées par un coefficient global.
+
+  Sous-problème économique restant `town_growth` : OpenTTD compte une gare active si son
+  `Station::time_since_load <= 20` **ou** `time_since_unload <= 20`, puis borne l'effet de croissance
+  à cinq gares. `OpexCountTownStations` compte aujourd'hui les StationID existants proches de la
+  ville, sans ce test d'activité. Les deux compteurs exacts existent dans l'état moteur et dans les
+  savegames, mais ne sont pas exposés par l'API NoAI `AIStation`. Ne pas les remplacer par
+  `GetCargoRating`, `GetCargoWaiting` ou un simple test de présence : ce seraient des proxys non
+  équivalents. Prochaine étape si l'on veut valoriser le bénéfice indirect : instrumentation dédiée
+  capable de reconstruire/observer l'activité récente, puis mesure marginale 0→1→…→5 gares actives.
 - **Rail :** la relaxation du seuil de backlog a déjà été inerte. C50b rapporte 39 `NOSPOT`
   pour 28 `OK` et 2 `TRACKFAIL` sur les références d'extension : inspecter les échecs de géométrie
   **si** les lignes concernées sont profitables et demandent réellement un second train.

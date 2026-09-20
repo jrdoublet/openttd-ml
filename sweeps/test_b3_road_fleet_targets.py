@@ -100,16 +100,12 @@ class TestB3RoadFleetTargets(unittest.TestCase):
         self.assertIn("project.selectedRoadVehicles <- candidate.trains", body)
         self.assertIn("budgetScore = OpexProjectScore(scoreRevenue, budgetCapital)", body)
         self.assertIn("opcodeScore = OpexProjectScore(scoreRevenue, expectedOps)", body)
-        for logger in (
-            "function OpexLogPortfolioRank(projects)",
-            "function OpexLogPortfolioRankWithTension(projects)",
-        ):
-            log_body = function_body(self.projects, logger)
-            self.assertIn("raw_vehs=", log_body)
-            self.assertIn("berth_cap=", log_body)
-            self.assertIn("fleet_cap=", log_body)
-            self.assertIn("capped_vehs=", log_body)
-            self.assertIn("p.payload.roadBerthCapacity", log_body)
+        log_body = function_body(self.projects, "function OpexLogPortfolioRank(projects)")
+        self.assertIn("raw_vehs=", log_body)
+        self.assertIn("berth_cap=", log_body)
+        self.assertIn("fleet_cap=", log_body)
+        self.assertIn("capped_vehs=", log_body)
+        self.assertIn("p.payload.roadBerthCapacity", log_body)
 
     def test_road_build_persists_measurements_for_actual_comparison(self):
         body = function_body(self.road, "function OpexAI::_tryBuildRoadProject(")

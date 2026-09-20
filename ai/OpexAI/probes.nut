@@ -329,12 +329,20 @@ function OpexC63AddOpportunityDays(kind, daysForKind, absentCause = "")
   }
 }
 
-function OpexC63RecordLine(mode, age, predProfit, realProfit, predRev, realRev, vehCount, lineId, year)
+function OpexC63RecordLine(mode, age, predProfit, realProfit, predRev, realRev, vehCount, lineId, year,
+                           kind = "unknown", purpose = "profit", activeDays = -1, yearDays = -1,
+                           livePredProfit = -1, livePredRev = -1, livePredRunning = -1,
+                           livePredVehicles = -1, livePredEngine = -1)
 {
   if (!C63_INVEST_PROBE) return;
   OpexC63InvestLog("phase=line year=" + year + " line=" + lineId + " mode=" + mode
       + " age=" + age + " pred_p=" + predProfit + " real_p=" + realProfit
-      + " pred_r=" + predRev + " real_r=" + realRev + " vehs=" + vehCount);
+      + " pred_r=" + predRev + " real_r=" + realRev + " vehs=" + vehCount
+      + " kind=" + kind + " purpose=" + purpose
+      + " active_days=" + activeDays + " year_days=" + yearDays
+      + " live_pred_p=" + livePredProfit + " live_pred_r=" + livePredRev
+      + " live_pred_run=" + livePredRunning + " live_pred_vehs=" + livePredVehicles
+      + " live_pred_engine=" + livePredEngine);
 }
 
 function OpexC63RecordSpendResult(mode, result, plannedFallback)

@@ -21,9 +21,13 @@ class TestAirBestEquipment(unittest.TestCase):
         self.assertEqual(defaults["air_route_plane_selection"], 1)
         self.assertEqual(defaults["air_equipment_regret_probe"], 0)
         self.assertEqual(defaults["air_best_equipment"], 0)
+        self.assertEqual(defaults["air_capital_frontier"], 0)
+        self.assertEqual(defaults["air_capital_frontier_probe"], 0)
         settings = SETTINGS.read_text(encoding="utf-8")
         self.assertIn('AIController.GetSetting("air_equipment_regret_probe")', settings)
         self.assertIn('AIController.GetSetting("air_best_equipment")', settings)
+        self.assertIn('AIController.GetSetting("air_capital_frontier")', settings)
+        self.assertIn('AIController.GetSetting("air_capital_frontier_probe")', settings)
 
     def test_best_equipment_reuses_demand_and_economics(self):
         src = AIR.read_text(encoding="utf-8")
@@ -41,7 +45,15 @@ class TestAirBestEquipment(unittest.TestCase):
 
     def test_all_three_air_arms_use_unified_engine_when_enabled(self):
         src = AIR.read_text(encoding="utf-8")
-        self.assertEqual(src.count("? OpexAirBestEquipment(catalog, airport,"), 3)
+        self.assertEqual(src.count("OpexAirPossibilityRouteChoices(catalog, lines, activePossibility,"), 3)
+        cached = src[
+            src.index("function OpexAirPossibilityRouteChoices"):
+            src.index("function OpexAirMakePossibility")
+        ]
+        self.assertIn("local choices = OpexAirRouteChoices(catalog, possibility.airport,", cached)
+        self.assertIn("return [OpexAirBestEquipment(catalog, airport, siteA, siteB, distance, lines,", src)
+        self.assertIn("if (AIR_CAPITAL_FRONTIER)", src)
+        self.assertIn("return OpexAirEquipmentFrontier(catalog, airport, siteA, siteB, distance, lines,", src)
         for token in ("sites[a], sites[b]", "hub, site", "hub1, hub2"):
             self.assertIn(token, src)
         self.assertIn("OpexAirAnyPlaneFitsAirportTypes", src)

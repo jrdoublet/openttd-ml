@@ -82,17 +82,13 @@ class TestM1MeasurementTruth(unittest.TestCase):
         self.assertGreaterEqual(self.projects.count("nextProjectCapital"), 5)
 
     def test_portfolio_rank_exposes_actual_rank_channel(self):
-        for signature in (
-            "function OpexLogPortfolioRank(projects)",
-            "function OpexLogPortfolioRankWithTension(projects)",
-        ):
-            body = function_body(self.projects, signature)
-            self.assertIn('"fundScore"', body)
-            self.assertIn("OpexProjectFinanceCapital(p)", body)
-            self.assertIn('" score=" + legacyScore', body)
-            self.assertIn('" rank_score="', body)
-            self.assertIn('" budget_score="', body)
-            self.assertIn('" finance_capital="', body)
+        body = function_body(self.projects, "function OpexLogPortfolioRank(projects)")
+        self.assertIn('"fundScore"', body)
+        self.assertIn("OpexProjectFinanceCapital(p)", body)
+        self.assertIn('" score=" + legacyScore', body)
+        self.assertIn('" rank_score="', body)
+        self.assertIn('" budget_score="', body)
+        self.assertIn('" finance_capital="', body)
 
     def test_ib_schema_keeps_legacy_positions_and_has_b_suffix_on_both_paths(self):
         self.assertIn(

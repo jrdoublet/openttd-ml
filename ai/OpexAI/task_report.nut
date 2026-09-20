@@ -159,6 +159,22 @@ function OpexAI::_reportLines(year)
     line.vehCount <- vehCount;
     line.lastProfit <- profit;
     line.lastRevenue <- profit + runCost;
+    /* Repricing vivant strictement de mesure : ne pas ajouter d'appels API au comportement par
+     * defaut. On relit moteur/capacite/flotte/demande uniquement lorsque C63 ou le journal detaille
+     * est actif. La baseline buildPred* reste immuable. */
+    local roadLive = null;
+    if (vehicleType == AIVehicle.VT_ROAD && (C63_INVEST_PROBE || DECISION_LOG)) {
+      roadLive = OpexRoadLivePaxEconomics(this._catalog, line, vehicles);
+      if (roadLive != null) {
+        line.rawset("livePredProfit", roadLive.economics.profitAnnual);
+        line.rawset("livePredRevenue", roadLive.economics.revenueAnnual);
+        line.rawset("livePredRunning", roadLive.economics.runningAnnual);
+        line.rawset("livePredAmort", roadLive.economics.amortAnnual);
+        line.rawset("livePredCarried", roadLive.economics.carried);
+        line.rawset("livePredVehicles", roadLive.vehicles);
+        line.rawset("livePredEngine", roadLive.engine);
+      }
+    }
     if (C50_CHRONOLOGY_PROBE) {
       local cLabel = AICargo.IsValidCargo(line.cargo) ? AICargo.GetCargoLabel(line.cargo) : "unknown";
       local lMode = ("mode" in line) ? line.mode : "unknown";
@@ -172,23 +188,63 @@ function OpexAI::_reportLines(year)
     }
     if (C63_INVEST_PROBE) {
       local lMode = ("mode" in line) ? line.mode : "unknown";
+      local lKind = ("kind" in line) ? line.kind : "unknown";
+      local lPurpose = ("purpose" in line) ? line.purpose : "profit";
       local lAge = ("year" in line) ? (year - line.year) : -1;
-      local predProfit = ("predicted" in line) ? line.predicted : 0;
-      local predRev = ("predRevenue" in line) ? line.predRevenue : 0;
+      local predProfit = ("buildPredProfit" in line) ? line.buildPredProfit
+                       : (("predicted" in line) ? line.predicted : 0);
+      local predRev = ("buildPredRevenue" in line) ? line.buildPredRevenue
+                    : (("predRevenue" in line) ? line.predRevenue : 0);
+      local livePredProfit = roadLive != null ? roadLive.economics.profitAnnual : -1;
+      local livePredRev = roadLive != null ? roadLive.economics.revenueAnnual : -1;
+      local livePredRunning = roadLive != null ? roadLive.economics.runningAnnual : -1;
+      local livePredVehicles = roadLive != null ? roadLive.vehicles : -1;
+      local livePredEngine = roadLive != null ? roadLive.engine : -1;
+      local prevStart = AIDate.GetDate(year - 1, 1, 1);
+      local currStart = AIDate.GetDate(year, 1, 1);
+      local yearDays = currStart - prevStart;
+      local activeDays = -1;
+      if (("buildDate" in line) && line.buildDate != null) {
+        local activeStart = line.buildDate > prevStart ? line.buildDate : prevStart;
+        activeDays = currStart - activeStart;
+        if (activeDays < 0) activeDays = 0;
+        if (activeDays > yearDays) activeDays = yearDays;
+      } else if (lAge >= 2) {
+        activeDays = yearDays;
+      }
       OpexC63RecordLine(lMode, lAge, predProfit, profit, predRev, profit + runCost,
-                        vehCount, line.lineId, year - 1);
+                        vehCount, line.lineId, year - 1, lKind, lPurpose, activeDays, yearDays,
+                        livePredProfit, livePredRev, livePredRunning, livePredVehicles, livePredEngine);
     }
     if (DECISION_LOG) {
       local realRevenue = profit + runCost;
-      local predRevenue = ("predRevenue" in line) ? line.predRevenue : 0;
-      local predProfit = ("predicted" in line) ? line.predicted : 0;
-      local predRunning = ("predRunning" in line) ? line.predRunning : 0;
+      local predRevenue = ("buildPredRevenue" in line) ? line.buildPredRevenue
+                        : (("predRevenue" in line) ? line.predRevenue : 0);
+      local predProfit = ("buildPredProfit" in line) ? line.buildPredProfit
+                       : (("predicted" in line) ? line.predicted : 0);
+      local predRunning = ("buildPredRunning" in line) ? line.buildPredRunning
+                        : (("predRunning" in line) ? line.predRunning : 0);
+      local livePredRevenue = roadLive != null ? roadLive.economics.revenueAnnual : -1;
+      local livePredProfit = roadLive != null ? roadLive.economics.profitAnnual : -1;
+      local livePredRunning = roadLive != null ? roadLive.economics.runningAnnual : -1;
+      local livePredVehicles = roadLive != null ? roadLive.vehicles : -1;
+      local livePredEngine = roadLive != null ? roadLive.engine : -1;
       local isLow = ("isLowRatio" in line && line.isLowRatio) ? 1 : 0;
       local opRatio = ("opcodeRatio" in line) ? line.opcodeRatio : -1;
       local lMode = ("mode" in line) ? line.mode : "unknown";
       local lKind = ("kind" in line) ? line.kind : "unknown";
       local lAge = ("year" in line) ? (year - line.year) : -1;
       local lPurpose = ("purpose" in line) ? line.purpose : "profit";
+      local prevStart = AIDate.GetDate(year - 1, 1, 1);
+      local currStart = AIDate.GetDate(year, 1, 1);
+      local yearDays = currStart - prevStart;
+      local activeDays = -1;
+      if (("buildDate" in line) && line.buildDate != null) {
+        local activeStart = line.buildDate > prevStart ? line.buildDate : prevStart;
+        activeDays = currStart - activeStart;
+        if (activeDays < 0) activeDays = 0;
+        if (activeDays > yearDays) activeDays = yearDays;
+      }
       local cLabel = AICargo.GetCargoLabel(line.cargo);
       local extra = "";
       if (lMode == "road") {
@@ -201,6 +257,9 @@ function OpexAI::_reportLines(year)
         local predVehs = ("predTrains" in line) ? line.predTrains : 0;
         local predCarried = ("predCarried" in line) ? line.predCarried : 0;
         local predDays = ("predOneWayDays" in line) ? line.predOneWayDays : 0;
+        local targetHeadway = ("targetHeadwayDays" in line) ? line.targetHeadwayDays : -1;
+        local targetRating = ("targetStationRating" in line) ? line.targetStationRating : -1;
+        local targetCapacity = ("targetMonthlyCapacity" in line) ? line.targetMonthlyCapacity : -1;
         local predDist = ("distance" in line) ? line.distance : 0;
         local predSpeed = ("effectiveSpeed" in line) ? line.effectiveSpeed.tointeger() : 0;
         local catSpeed = ("catalogSpeed" in line) ? line.catalogSpeed : 0;
@@ -230,8 +289,42 @@ function OpexAI::_reportLines(year)
               + " cat_speed=" + catSpeed + " real_speed=" + roadRealSpeed + " rating_a=" + ratingA
               + " rating_b=" + ratingB + " pop_a=" + popA + " pop_b=" + popB + " prod_a=" + prodA
               + " prod_b=" + prodB + " wait_a=" + waitA + " wait_b=" + waitB + " cap=" + cap;
+      } else if (lMode == "air") {
+        /* Diagnostic passif d'equipement : ces scalaires sont deja maintenus par le lifecycle.
+         * Aucun scan de flotte ni appel NoAI supplementaire ici. air_stable=1 isole les lignes
+         * dont la flotte a atteint exactement la cible modelisee. */
+        local currentEngine = ("currentPrimaryEngine" in line) ? line.currentPrimaryEngine : -1;
+        local preferredEngine = ("preferredEngine" in line) ? line.preferredEngine : -1;
+        local targetFleet = ("targetFleetSize" in line) ? line.targetFleetSize : -1;
+        local targetProfit = ("targetProfitAnnual" in line) ? line.targetProfitAnnual : -1;
+        local currentModelProfit = ("currentModelProfitAnnual" in line) ? line.currentModelProfitAnnual : -1;
+        local upgradePending = ("upgradePending" in line && line.upgradePending) ? 1 : 0;
+        local upgradeRemaining = ("upgradeRemaining" in line) ? line.upgradeRemaining : 0;
+        local predDays = ("predOneWayDays" in line) ? line.predOneWayDays : 0;
+        local targetHeadway = ("targetHeadwayDays" in line) ? line.targetHeadwayDays : -1;
+        local targetRating = ("targetStationRating" in line) ? line.targetStationRating : -1;
+        local targetCapacity = ("targetMonthlyCapacity" in line) ? line.targetMonthlyCapacity : -1;
+        local populationDemand = OpexAirLineBaseDemand(line, this._lines);
+        local measuredDemand = OpexAirDemandCap(line, this._catalog, this._lines);
+        local stable = currentEngine >= 0 && currentEngine == preferredEngine
+            && targetFleet == vehCount && upgradePending == 0 ? 1 : 0;
+        local lastFleetDate = ("lastAirFleetDate" in line) ? line.lastAirFleetDate
+            : (("buildDate" in line) ? line.buildDate : 0);
+        local fullYearStable = stable && lastFleetDate > 0 && lastFleetDate <= prevStart ? 1 : 0;
+        extra = " air_engine=" + currentEngine + " air_preferred_engine=" + preferredEngine
+              + " air_target_fleet=" + targetFleet + " air_target_prof=" + targetProfit
+              + " air_current_model_prof=" + currentModelProfit + " air_upgrade_pending=" + upgradePending
+              + " air_upgrade_remaining=" + upgradeRemaining + " air_pred_days=" + predDays
+              + " air_target_headway=" + targetHeadway + " air_target_rating=" + targetRating
+              + " air_target_capacity=" + targetCapacity + " air_rating_a=" + ratingA
+              + " air_rating_b=" + ratingB
+              + " air_population_demand=" + populationDemand
+              + " air_measured_demand=" + measuredDemand.monthlyDemand
+              + " air_measured_cap=" + measuredDemand.cap
+              + " air_stable=" + stable + " air_last_fleet_date=" + lastFleetDate
+              + " air_full_year_stable=" + fullYearStable;
       }
-      OpexDecide("LINE_REVENUE", "line=" + line.lineId + " mode=" + lMode + " kind=" + lKind + " cargo=" + cLabel + " year=" + year + " age=" + lAge + " pred_rev=" + predRevenue + " real_rev=" + realRevenue + " pred_prof=" + predProfit + " real_prof=" + profit + " pred_run=" + predRunning + " real_run=" + runCost + " vehs=" + vehCount + " low_ratio=" + isLow + " op_ratio=" + opRatio + " purpose=" + lPurpose + extra);
+      OpexDecide("LINE_REVENUE", "line=" + line.lineId + " mode=" + lMode + " kind=" + lKind + " cargo=" + cLabel + " year=" + year + " age=" + lAge + " pred_rev=" + predRevenue + " real_rev=" + realRevenue + " pred_prof=" + predProfit + " real_prof=" + profit + " pred_run=" + predRunning + " real_run=" + runCost + " vehs=" + vehCount + " low_ratio=" + isLow + " op_ratio=" + opRatio + " purpose=" + lPurpose + " active_days=" + activeDays + " year_days=" + yearDays + " live_pred_rev=" + livePredRevenue + " live_pred_prof=" + livePredProfit + " live_pred_run=" + livePredRunning + " live_pred_vehs=" + livePredVehicles + " live_pred_engine=" + livePredEngine + extra);
     }
     if (vehicleType == AIVehicle.VT_RAIL || vehicleType == AIVehicle.VT_AIR) {
       /* Instantane de backlog, complete par l'utilisation annuelle derivee du revenu dans

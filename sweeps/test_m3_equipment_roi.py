@@ -21,11 +21,11 @@ CANDIDATES = ROOT / "ai" / "OpexAI" / "candidates.nut"
 class TestM3EquipmentRoi(unittest.TestCase):
     def test_probe_default_off_and_c68_default_on(self):
         defaults = parse_ai_settings(INFO)
-        self.assertEqual(defaults["equipment_roi_probe"], 0)
+        self.assertEqual(defaults["probe_events"], 0)
         self.assertEqual(defaults["air_route_plane_selection"], 1)
         self.assertIn("EQUIPMENT_ROI_PROBE <- false;", GLOBALS.read_text(encoding="utf-8"))
         self.assertIn("AIR_ROUTE_PLANE_SELECTION <- true;", GLOBALS.read_text(encoding="utf-8"))
-        self.assertIn('EQUIPMENT_ROI_PROBE = AIController.GetSetting("equipment_roi_probe") != 0;', SETTINGS.read_text(encoding="utf-8"))
+        self.assertIn('EQUIPMENT_ROI_PROBE = probeEvents;', SETTINGS.read_text(encoding="utf-8"))
         self.assertIn('AIR_ROUTE_PLANE_SELECTION = AIController.GetSetting("air_route_plane_selection") != 0;', SETTINGS.read_text(encoding="utf-8"))
     def test_current_selection_rules_are_preserved(self):
         src = CATALOG.read_text(encoding="utf-8")
@@ -64,7 +64,9 @@ class TestM3EquipmentRoi(unittest.TestCase):
         self.assertIn("if (!AIR_ROUTE_PLANE_SELECTION || !(airport.type in catalog.airPlaneChoicesByAirport))", src)
         self.assertIn("economics.profitAnnual > bestEconomics.profitAnnual", src)
         self.assertIn("local keepPlaneChoices = EQUIPMENT_ROI_PROBE || AIR_ROUTE_PLANE_SELECTION", catalog)
-        self.assertEqual(src.count("OpexAirChooseRoutePlane(catalog, airport, plane, flightDistance, monthlyPax,"), 3)
+        self.assertIn("function OpexAirRouteChoices", src)
+        self.assertEqual(src.count("local routeChoices = OpexAirRouteChoices(catalog, airport,"), 3)
+        self.assertIn("return [OpexAirChooseRoutePlane(catalog, airport, legacyPlane, distance, monthlyPax,", src)
         self.assertIn('"AV|" + routePlane.speed + "|" + routePlane.capacity', src)
     def test_proxy_labels_and_airport_policy(self):
         probe_src = ECONOMY.read_text(encoding="utf-8") + AIR.read_text(encoding="utf-8")

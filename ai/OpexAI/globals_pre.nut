@@ -67,6 +67,14 @@ AIR_EQUIPMENT_REGRET_PROBE <- false;
  * l'appareil n'est plus choisi apres les filtres : tous les avions compatibles avec les deux
  * extremites sont evalues avec leur propre demande et OpexAirEconomics. */
 AIR_BEST_EQUIPMENT <- false;
+/* Frontiere capital->profit experimentale, sans seuil de richesse ni coefficient de melange.
+ * Sous 1, le moteur AIR conserve les variantes d'equipement non dominees et le portefeuille
+ * estime une seule fois le prix rarete lambda du capital, puis classe chaque chantier sur
+ * profit_reseau_net - lambda * capital_immobilise. La relaxation qui estime lambda peut fractionner
+ * un segment marginal ; les projets reels restent indivisibles et soumis au budget/reserve reels.
+ * Defaut 0 : aucun changement de la baseline C68 ni du candidat AIR lifecycle existant. */
+AIR_CAPITAL_FRONTIER <- false;
+AIR_CAPITAL_FRONTIER_PROBE <- false;
 /* Lifecycle AIR post-C68. Ces seuils ne sont lus que sous AIR_BEST_EQUIPMENT :
  * le chemin C68/default reste donc identique. */
 AIR_EQUIPMENT_REEVAL_MONTHS <- 12;
@@ -93,6 +101,60 @@ AIR_LIFECYCLE_LEDGER <- {
   expectedGainAnnual = 0, expectedNetCapital = 0, expectedPaybackMonths = 0,
   evalOpcodes = 0, eventEvalOpcodes = 0, periodicEvalOpcodes = 0,
   engineEventOpcodes = 0, previewOpcodes = 0,
+};
+/* Frontiere capital->profit : instrumentation cumulative passive. Aucun champ de
+ * ce ledger n'est lu par une decision. */
+AIR_CAPITAL_FRONTIER_LEDGER <- {
+  routeRaw = 0, routeKept = 0,
+  lifecycleRaw = 0, lifecycleKept = 0,
+  lifecycleGrowRaw = 0, lifecycleGrowKept = 0,
+  lifecycleGrowRankSeen = 0, lifecycleGrowUndominated = 0,
+  lifecycleGrowNonNegative = 0, lifecycleGrowFinanceable = 0,
+  lifecycleGrowGroupWinner = 0, lifecycleGrowTop = 0,
+  lifecycleGrowAttempted = 0,
+  /* TEMP_GROW_COMPARE_BEGIN */
+  growCompareSamples = 0, growCompareTopAir = 0,
+  growCompareGrowProfit = 0, growCompareGrowCapital = 0, growCompareGrowScore = 0,
+  growCompareTopProfit = 0, growCompareTopCapital = 0, growCompareTopScore = 0,
+  /* TEMP_GROW_COMPARE_END */
+  portfolioRaw = 0, portfolioAffordable = 0,
+  portfolioTopSelections = 0, portfolioTopAirSelections = 0,
+  portfolioTopCapital = 0, portfolioTopProfit = 0,
+  selected = 0, replaceSelected = 0, growSelected = 0, retireSelected = 0,
+  staleRejected = 0, cashRejected = 0, failedRejected = 0,
+  assignCalls = 0, assignExternalityOps = 0, assignBuildOps = 0, assignScoreOps = 0,
+  capitalPriceSamples = 0, capitalPricePositiveSamples = 0,
+  capitalPriceBpsSum = 0, capitalPriceBpsMax = 0,
+  capitalPriceFullDemandK = 0, capitalPriceBudgetK = 0,
+  possibilityExplored = 0,
+  explorationTownPool = 0, explorationSiteProbeBudget = 0,
+};
+/* Instrumentation cumulative au VRAI point d'entree du selecteur.
+ * Contrairement aux panneaux IG historiques, chaque appel est compte, avec sa
+ * cause et sa nature production/diagnostic. */
+AIR_SELECTION_LEDGER <- {
+  calls = 0, productionCalls = 0, diagnosticCalls = 0,
+  productionOps = 0, productionDays = 0,
+  diagnosticOps = 0, diagnosticDays = 0,
+  generationCalls = 0, generationOps = 0, generationDays = 0,
+  lifecycleCalls = 0, lifecycleOps = 0, lifecycleDays = 0,
+  budgetReselectCalls = 0, budgetReselectOps = 0, budgetReselectDays = 0,
+  dynamicBatchCalls = 0, dynamicBatchOps = 0, dynamicBatchDays = 0,
+  executionCalls = 0, executionOps = 0, executionDays = 0,
+  diagnosticCounterfactualCalls = 0,
+  prepareOps = 0, prepareDays = 0,
+  externalityOps = 0, externalityDays = 0,
+  relaxationOps = 0, relaxationDays = 0,
+  rankingOps = 0, rankingDays = 0,
+  diagnosticPrepareOps = 0, diagnosticPrepareDays = 0,
+  diagnosticExternalityOps = 0, diagnosticExternalityDays = 0,
+  diagnosticRelaxationOps = 0, diagnosticRelaxationDays = 0,
+  diagnosticRankingOps = 0, diagnosticRankingDays = 0,
+  preparedBuilds = 0, preparedHits = 0,
+  envelopeBuilds = 0, envelopeHits = 0, externalityCacheHits = 0,
+  coverChecks = 0, coverHits = 0, coverMissing = 0,
+  coverBudgetBelow = 0, coverBudgetAbove = 0,
+  coverRawStateMismatch = 0, coverSemanticHits = 0, coverStateMismatch = 0,
 };
 /* Nombre maximal d'arrets bus annexes partageant directement le StationID de l'aeroport. */
 AIR_JOINED_STOP_LIMIT <- 2;
@@ -314,8 +376,6 @@ C50B_RAIL_BACKLOG_RELAX <- false;
  * n'grandit pas, la cause est invisible. FR| donne le premier refus rencontre, une fois par ligne
  * et par an. */
 AIR_FLEET_PROBE <- false;
-/* Sonde de tension : aucun calcul ni journal supplementaire sur le chemin par defaut. */
-TENSION_PROBE <- false;
 /* Garde unique du logger de portefeuille : evite un OR supplementaire dans le chemin chaud. */
 PORTFOLIO_LOG <- false;
 /* fleet_before_new : servir la croissance de flotte avant la construction de lignes aeriennes

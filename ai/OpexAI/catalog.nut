@@ -280,6 +280,7 @@ class OpexCatalog {
   airPlaneChoicesByAirport = null; // M3/C68: airport type -> appareils compatibles
   airParetoChoicesByAirport = null; // AIR lifecycle: safe Pareto subset
   airParetoStats = null; // {raw, kept, pruned}
+  airRevision = 0; // invalide les caches economiques AIR quand le catalogue change
 
   ships = null;        // [{id, capacity, speed, price, runningCost, maxOrderDistance}]
   maxShipPrice = 0;
@@ -326,6 +327,7 @@ class OpexCatalog {
     this.airPlaneChoicesByAirport = {};
     this.airParetoChoicesByAirport = {};
     this.airParetoStats = { raw = 0, kept = 0, pruned = 0 };
+    this.airRevision = 0;
     this.bounds = null;
     this.airBoundsEnvelope = null;
     this.airBoundsLegacy = null;
@@ -626,6 +628,7 @@ function OpexCatalog::_refreshRail()
  * 2. Petit aeroport (AT_COMMUTER, AT_SMALL) avec petit avion (PT_SMALL_PLANE) STRICTEMENT (les gros avions y sont interdits). */
 function OpexCatalog::_refreshAir()
 {
+  this.airRevision++;
   this.airport = null;
   this.plane = null;
   this.airCombos = [];

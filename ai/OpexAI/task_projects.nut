@@ -152,6 +152,88 @@ function OpexAI::_purgeSubsidyFromProjects(subId)
     }
   }
 }
+/* P1 frontier : une verification pre-achat peut constater que l'etat arbitre
+ * n'est plus celui du monde vivant. Dans ce cas on ne "tolere" jamais le projet
+ * tant que son gain reste positif : on remplace uniquement le groupe invalide par
+ * sa revision fraiche, puis on rejoue le selecteur global.
+ *
+ * refreshEconomics=false couvre le cas budget-only : aucune economie n'est
+ * reconstruite, mais lambda doit etre recalcule avec la caisse courante.
+ * refreshEconomics=true reconstruit soit la frontiere d'UNE ligne existante,
+ * soit les variantes d'UNE geometrie AIR deja exploree. */
+function OpexAI::_frontierReselectChangedGroup(project, year, reason, refreshEconomics)
+{
+  if (project == null || this._projects == null
+      || !("candidateGroups" in this._projects) || this._projects.candidateGroups == null)
+    return false;
+
+  local groupKey = OpexCapitalFrontierProjectGroupKey(project);
+  if (groupKey == null) return false;
+  local fresh = null;
+
+  if (refreshEconomics) {
+    if (project.mode == "fleet") {
+      local entry = ("payload" in project) ? project.payload : null;
+      local line = entry != null && ("line" in entry) ? entry.line : null;
+      if (line == null) return false;
+      local frontierOptions = OpexAirExistingLineFrontier(
+          this._catalog, this._lines, line, "execution_revalidate");
+      local now = AIDate.GetCurrentDate();
+      line.rawset("lastAirEquipmentEvalDate", now);
+      line.rawset("airEquipmentDirty", false);
+      line.rawset("airEquipmentDirtyReason", "");
+      OpexAirStoreFrontierTransactions(line, frontierOptions, now, "execution_revalidate");
+      local fleetPlan = [];
+      OpexAirAppendFrontierTransactions(line, fleetPlan);
+      fresh = [];
+      foreach (freshEntry in fleetPlan) {
+        local freshProject = OpexProjectFromFleet(freshEntry);
+        if (freshProject != null) fresh.append(freshProject);
+      }
+    } else if (project.mode == "air") {
+      fresh = OpexAirRefreshProjectGroupAlternatives(project, this._catalog, this._lines);
+    }
+  }
+
+  if (fresh != null) {
+    if (AIR_CAPITAL_FRONTIER && AIR_BEST_EQUIPMENT)
+      this._projects.rawset("frontierSelectionCache", {});
+    if (fresh.len() > 0) this._projects.candidateGroups.rawset(groupKey, fresh);
+    else if (groupKey in this._projects.candidateGroups) delete this._projects.candidateGroups[groupKey];
+
+    /* sourceCandidateGroups est le snapshot restaure a la cloture du batch.
+     * Le laisser stale annulerait silencieusement la revalidation economique. */
+    if (this._dynamicBatch != null
+        && ("sourceCandidateGroups" in this._dynamicBatch)
+        && this._dynamicBatch.sourceCandidateGroups != null) {
+      if (fresh.len() > 0) this._dynamicBatch.sourceCandidateGroups.rawset(groupKey, fresh);
+      else if (groupKey in this._dynamicBatch.sourceCandidateGroups)
+        delete this._dynamicBatch.sourceCandidateGroups[groupKey];
+    }
+  }
+
+  if (this._dynamicBatch != null) {
+    local attemptKey = OpexProjectAttemptKey(project);
+    if (attemptKey in this._dynamicBatch.attempted) {
+      delete this._dynamicBatch.attempted[attemptKey];
+      if (this._dynamicBatch.attemptedCount > 0) this._dynamicBatch.attemptedCount--;
+    }
+  }
+
+  local capitalNow = OpexAvailableCapital();
+  this._projects = OpexReselectProjects(
+      this._projects, capitalNow, this._catalog, this._lines, "execution");
+  this._ranked = this._projects.rail;
+  if (DECISION_LOG) {
+    OpexDecide("FRONTIER_RESELECT", "reason=" + reason
+               + " mode=" + project.mode + " group=" + groupKey
+               + " economics=" + (refreshEconomics ? 1 : 0)
+               + " budget=" + capitalNow
+               + " remaining=" + this._projects.best.len());
+  }
+  return true;
+}
+
 /* C38 etape 2 : une croissance de flotte est une tentative synchrone de portefeuille. */
 function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
 {
@@ -176,6 +258,99 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
     }
     return { outcome = "rejected", discards = passDiscards };
   }
+  local isFrontierTransaction = AIR_CAPITAL_FRONTIER && AIR_BEST_EQUIPMENT
+      && ("frontierTransaction" in entry) && entry.frontierTransaction;
+  local frontierAssessment = null;
+  if (isFrontierTransaction) {
+    if (AIR_CAPITAL_FRONTIER_PROBE && ("frontierStepKind" in entry)
+        && entry.frontierStepKind == "grow")
+      AIR_CAPITAL_FRONTIER_LEDGER.lifecycleGrowAttempted++;
+    local entryRevision = ("frontierRevision" in entry) ? entry.frontierRevision : 0;
+    local lineRevision = ("airFrontierRevision" in line) ? line.airFrontierRevision : 0;
+    local invalidated = (("airEquipmentDirty" in line) && line.airEquipmentDirty)
+        || !("airFrontierTransactions" in line)
+        || entryRevision <= 0 || entryRevision != lineRevision;
+    if (invalidated) {
+      if (AIR_CAPITAL_FRONTIER_PROBE) AIR_CAPITAL_FRONTIER_LEDGER.staleRejected++;
+      OpexAirClearFrontierTransactions(line);
+      if (!(("airEquipmentDirty" in line) && line.airEquipmentDirty)) {
+        line.rawset("airEquipmentDirty", true);
+        line.rawset("airEquipmentDirtyReason", "frontier_stale");
+      }
+      if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) {
+        passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst,
+                              reason = "frontier_stale", extra = "revision" });
+      }
+      /* Une revision devenue stale n'est pas un refus economique. Hors crash,
+       * reconstruire immediatement CE groupe evite d'attendre le prochain tour
+       * air_fleet puis de refaire une selection complete sur le meme projet mort. */
+      if (!("needsRefleet" in line) || !line.needsRefleet) {
+        return { outcome = "reselect", discards = passDiscards,
+                 reselectReason = "revision", refreshEconomics = true };
+      }
+      return { outcome = "rejected", discards = passDiscards };
+    }
+    /* Revalider le prochain pas, pas son instantane numerique. Une selection peut
+     * etre suspendue entre deux ticks : prix de revente, demande ou caisse peuvent
+     * alors bouger legerement. Tant que la meme action reste physiquement valide
+     * et n\'est pas dominee par le no-op dans l\'espace signe (deltaC, deltaP),
+     * l\'economie fraiche ci-dessous est celle utilisee pour l\'execution. */
+    local frontierTarget = ("targetEngine" in entry) ? entry.targetEngine : -1;
+    local frontierFleet = ("targetFleetSize" in entry) ? entry.targetFleetSize : 0;
+    local targetPlane = OpexAirPlaneFromEngine(frontierTarget, line.cargo);
+    local distance = (("stationB" in line) && line.stationB != null)
+        ? OpexFlightDistance(line.stationA, line.stationB) : 0;
+    local targetDemand = OpexAirLineBaseDemand(line, this._lines);
+    local targetDemandCap = 0;
+    if (AIR_DEMAND_PLAN && targetPlane != null) {
+      local freshSiteA = OpexAirLineSite(line, 0);
+      local freshSiteB = OpexAirLineSite(line, 1);
+      if (freshSiteA != null && freshSiteB != null) {
+        local freshDemand = OpexAirPlanDemand(freshSiteA, freshSiteB, targetPlane,
+                                             this._catalog, this._lines);
+        targetDemand = freshDemand.monthlyDemand;
+        targetDemandCap = freshDemand.cap;
+      }
+    }
+    local freshStep = targetPlane != null && distance > 0
+        ? OpexAirNextStepEconomics(this._catalog, line, targetPlane, frontierFleet,
+                                   distance, targetDemand)
+        : null;
+    local expectedStep = ("frontierStepKind" in entry) ? entry.frontierStepKind : "none";
+    if (freshStep == null || !freshStep.ok || freshStep.kind != expectedStep
+        || (freshStep.capitalCommitted >= 0 && freshStep.profitDeltaAnnual <= 0)) {
+      if (AIR_CAPITAL_FRONTIER_PROBE) AIR_CAPITAL_FRONTIER_LEDGER.staleRejected++;
+      if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) {
+        passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst,
+                              reason = "frontier_reselect", extra = "economics" });
+      }
+      return { outcome = "reselect", discards = passDiscards,
+               reselectReason = "economics", refreshEconomics = true };
+    }
+    /* Le cache durable ne contient volontairement aucune table economics. Reconstruire
+     * l'assessment transitoire depuis l'etat vivant prouve a la fois la revision et
+     * l'economie du prochain pas, juste avant l'achat. */
+    local retireOnly = freshStep.kind == "retire";
+    local payback = freshStep.capitalCommitted > 0
+        ? OpexCeilDiv(freshStep.capitalCommitted * 12, freshStep.profitDeltaAnnual) : 0;
+    frontierAssessment = {
+      ok = true, reason = "ok", reasonTag = "frontier_execute",
+      currentEngine = OpexAirCurrentPrimaryEngine(line),
+      preferredEngine = frontierTarget,
+      targetFleetSize = frontierFleet,
+      upgradePending = freshStep.kind == "replace" || retireOnly,
+      upgradeRemaining = (freshStep.kind == "replace" || retireOnly) ? 1 : 0,
+      gainAnnual = freshStep.profitDeltaAnnual,
+      grossReplacement = freshStep.cashRequired,
+      resaleValue = freshStep.expectedResale,
+      netCapital = freshStep.capitalCommitted,
+      paybackMonths = payback,
+      currentEconomics = freshStep.currentEconomics,
+      targetEconomics = freshStep.nextEconomics,
+      monthlyDemand = targetDemand,
+      demandCap = targetDemandCap,
+    };
+  }
   local lifecycleKind = ("kind" in entry) ? entry.kind : "legacy";
   local lifecycleTargetEngine = (AIR_BEST_EQUIPMENT && lifecycleKind == "upgrade"
       && ("targetEngine" in entry)) ? entry.targetEngine : -1;
@@ -185,15 +360,31 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
   local lifecycleRetireOnly = AIR_BEST_EQUIPMENT && lifecycleKind == "upgrade"
       && lifecycleTargetEngine >= 0
       && !OpexAirUpgradeStepNeedsBuild(line, lifecycleTargetEngine, lifecycleTargetFleet);
-  local need = entry.planePrice + OpexCashReserve();
+  local cashRequiredNow = frontierAssessment != null
+      ? frontierAssessment.grossReplacement
+      : (("cashRequired" in entry) ? entry.cashRequired : entry.planePrice);
+  local safetyMarginNow = ("safetyMargin" in entry) ? entry.safetyMargin : 0;
+  local need = cashRequiredNow + safetyMarginNow + OpexCashReserve();
   if (!lifecycleRetireOnly) {
     local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
     if (money < need && REBORROW) money = OpexTryReborrow(need, money);
     if (money < need) {
+      if (frontierAssessment != null) {
+        if (AIR_CAPITAL_FRONTIER_PROBE) AIR_CAPITAL_FRONTIER_LEDGER.cashRejected++;
+      }
       if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("fleet", i, project.capital, project.profitAnnual, project.roi, project.src, project.dst, need, money);
       if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst, reason = "insufficient_cash", extra = "" });
       return { outcome = "rejected", discards = passDiscards };
     }
+  }
+  /* Ne persister la cible qu'une fois les gardes d'execution franchis. Un projet
+   * simplement classe mais non finanÃ§able ne doit jamais devenir une politique de
+   * ligne. */
+  if (frontierAssessment != null && !OpexAirApplyLineAssessment(line, frontierAssessment)) {
+    OpexAirClearFrontierTransactions(line);
+    line.rawset("airEquipmentDirty", true);
+    line.rawset("airEquipmentDirtyReason", "frontier_stale");
+    return { outcome = "rejected", discards = passDiscards };
   }
   local plannedFull = lifecycleRetireOnly ? 0
       : (("capital" in project && project.capital > 0) ? project.capital : (entry.planePrice * entry.want));
@@ -236,8 +427,9 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
     local targetEngine = (AIR_BEST_EQUIPMENT && ("targetEngine" in entry)) ? entry.targetEngine : -1;
     if (AIR_BEST_EQUIPMENT && (targetEngine < 0 || !AIEngine.IsValidEngine(targetEngine)
         || !AIEngine.IsBuildable(targetEngine) || !OpexAirEngineRelevantToLine(targetEngine, line))) {
+      if (isFrontierTransaction) OpexAirClearFrontierTransactions(line);
       line.rawset("airEquipmentDirty", true);
-      line.rawset("airEquipmentDirtyReason", "growth");
+      line.rawset("airEquipmentDirtyReason", isFrontierTransaction ? "frontier_stale" : "growth");
       if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) {
         passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst,
                               reason = "target_equipment_missing", extra = "" });
@@ -261,11 +453,36 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
   }
   local actual = (costs != null) ? costs.GetCosts() : 0;
   if (added <= 0 && !lifecycleRetired) {
+    if (frontierAssessment != null) {
+      if (AIR_CAPITAL_FRONTIER_PROBE) AIR_CAPITAL_FRONTIER_LEDGER.failedRejected++;
+      OpexAirClearFrontierTransactions(line);
+      line.rawset("upgradePending", false);
+      line.rawset("upgradeRemaining", 0);
+      line.rawset("airEquipmentDirty", true);
+      line.rawset("airEquipmentDirtyReason", "frontier_failed");
+    }
     if (C63_INVEST_PROBE) OpexC63RecordSpend("fleet", plannedFull, actual, false);
     if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) {
       passDiscards.append({ rank = i, mode = "fleet", src = project.src, dst = project.dst, reason = "fleet_grow_failed", extra = "" });
     }
     return { outcome = "rejected", discards = passDiscards };
+  }
+  if (frontierAssessment != null) {
+    /* Une election de frontiere n'autorise qu'UNE transaction. Forcer une nouvelle
+     * reevaluation avant tout pas suivant evite de transformer la cible strategique
+     * en engagement multi-achats implicite. */
+    line.rawset("upgradePending", false);
+    line.rawset("upgradeRemaining", 0);
+    OpexAirClearFrontierTransactions(line);
+    line.rawset("airEquipmentDirty", true);
+    line.rawset("airEquipmentDirtyReason", "frontier_step");
+    if (AIR_CAPITAL_FRONTIER_PROBE) {
+      AIR_CAPITAL_FRONTIER_LEDGER.selected++;
+      local frontierStepKind = ("frontierStepKind" in entry) ? entry.frontierStepKind : "none";
+      if (frontierStepKind == "replace") AIR_CAPITAL_FRONTIER_LEDGER.replaceSelected++;
+      else if (frontierStepKind == "grow") AIR_CAPITAL_FRONTIER_LEDGER.growSelected++;
+      else if (frontierStepKind == "retire") AIR_CAPITAL_FRONTIER_LEDGER.retireSelected++;
+    }
   }
   if (C63_INVEST_PROBE && lifecycleRetired) {
     OpexC63RecordSpend("fleet", 0, actual, true);
@@ -297,7 +514,7 @@ function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
 function OpexAI::_refreshDynamicBatch()
 {
   local capitalNow = OpexAvailableCapital();
-  this._projects = OpexDynamicBatchReselect(this._projects, this._lines,
+  this._projects = OpexDynamicBatchReselect(this._projects, this._catalog, this._lines,
       this._dynamicBatch.attempted, capitalNow, this._abandonedPairs);
   this._ranked = this._projects.rail;
   local remaining = this._projects.best.len();
@@ -363,13 +580,13 @@ function OpexAI::_stopDynamicBatch(reason, year)
   }
 }
 /* C39.5 : conserve, par cle stable, le premier jour de la fenetre courante ou un projet du
- * vivier est finançable. La table neuve purge les projets sortis du vivier et borne la memoire.
+ * vivier est finanÃ§able. La table neuve purge les projets sortis du vivier et borne la memoire.
  *
  * C39.5b : chaque valeur est desormais une table {since, topSince, turns, topTurns} au lieu
  * d'une date seule, pour separer les trois causes du delai D2 (cadence / file par rang /
  * concurrence caisse) :
- *   - since    : date du premier jour finançable (comportement d'origine, inchange) ;
- *   - topSince : date du premier jour ou ce projet etait le MEILLEUR projet finançable, i.e. le
+ *   - since    : date du premier jour finanÃ§able (comportement d'origine, inchange) ;
+ *   - topSince : date du premier jour ou ce projet etait le MEILLEUR projet finanÃ§able, i.e. le
  *                premier de this._projects.best (indice le plus bas) dont capital <= available ;
  *                -1 tant qu'il ne l'a jamais ete. Meme definition que bestRank de C41.48
  *                (C41_RAIL_DOMINATION_PROBE) : rester comparable entre les deux sondes ;
@@ -440,13 +657,18 @@ function OpexAI::_tryBuildProjects(year)
           ? this._projects.candidateGroups : null,
     };
   }
-  /* G4§1 : le drapeau peut etre pose entre deux passes par _consumeRailSearch.
+  /* G4Â§1 : le drapeau peut etre pose entre deux passes par _consumeRailSearch.
    * Ne pas le remettre a zero ici : la passe suivante doit alors re-elire le
    * portefeuille avec la nouvelle memoire d'abandon. */
   if (PORTFOLIO_FRESH_BUDGET && this._projects != null) {
     local initialBudget = this._projects.generationCapitalBudget;
     local budgetNow = OpexAvailableCapital();
-    this._projects = OpexReselectProjects(this._projects, budgetNow);
+    if (AIR_CAPITAL_FRONTIER && AIR_BEST_EQUIPMENT) {
+      if (!OpexFrontierDropLambdaIfAbundant(this._projects, budgetNow))
+        OpexFrontierRefilterStoredScores(this._projects, budgetNow);
+    } else {
+      this._projects = OpexReselectProjects(this._projects, budgetNow, this._catalog, this._lines);
+    }
     /* 30 caracteres au pire : FB|99|2147483647|2147483647|64. */
     OpexSign(AIMap.GetTileIndex(1, 1), "FB|" + (year % 100) + "|" + initialBudget
              + "|" + budgetNow + "|" + this._projects.stats.budgetSelected);
@@ -672,6 +894,17 @@ function OpexAI::_tryBuildProjects(year)
         fallthroughAttempted++;
         if (attempt.outcome == "built") fallthroughBuilt++;
       }
+      if (attempt.outcome == "reselect") {
+        local refreshed = this._frontierReselectChangedGroup(project, year,
+            ("reselectReason" in attempt) ? attempt.reselectReason : "execution",
+            ("refreshEconomics" in attempt) && attempt.refreshEconomics);
+        if (refreshed) {
+          i = -1;
+          continue;
+        }
+        if (PORTFOLIO_DYNAMIC_BATCH && this._dynamicBatchRejected()) break;
+        continue;
+      }
       if (attempt.outcome == "built") {
         if (C39_PROJECTS_CADENCE_PROBE) {
           local key = OpexProjectAttemptKey(project);
@@ -727,6 +960,17 @@ function OpexAI::_tryBuildProjects(year)
       if (fallthroughProbeActive) {
         fallthroughAttempted++;
         if (attempt.outcome == "built") fallthroughBuilt++;
+      }
+      if (attempt.outcome == "reselect") {
+        local refreshed = this._frontierReselectChangedGroup(project, year,
+            ("reselectReason" in attempt) ? attempt.reselectReason : "execution",
+            ("refreshEconomics" in attempt) && attempt.refreshEconomics);
+        if (refreshed) {
+          i = -1;
+          continue;
+        }
+        if (PORTFOLIO_DYNAMIC_BATCH && this._dynamicBatchRejected()) break;
+        continue;
       }
       if (attempt.outcome == "built") {
         if (C39_PROJECTS_CADENCE_PROBE) {
@@ -949,7 +1193,7 @@ function OpexAI::_tryBuildProjects(year)
   }
   this._recordMonthlyFunnelPass(builtCount, c49Best, passDiscards, funnelAttempted);
 
-  /* G4§1 : l'ancien chemin deduisait hadAbandons de passDiscards, dont le remplissage
+  /* G4Â§1 : l'ancien chemin deduisait hadAbandons de passDiscards, dont le remplissage
    * est garde par DECISION_LOG (defaut 0). Le drapeau _hadAbandonsThisPass est pose
    * directement par _markPairAbandoned, couvrant tous les chemins (air, route, rail
    * bloquant et reprenable via _consumeRailSearch). */
@@ -978,7 +1222,7 @@ function OpexAI::_tryBuildProjects(year)
     this._ranked = this._projects.rail;
     if (PORTFOLIO_LOG) OpexLogPortfolioRank(this._projects);
     /* Champ knapsackExact legacy : aucun solveur knapsack/B&B n'existe encore. projects.nut
-     * le force donc a false afin que ce panneau ne publie jamais un « optimum prouve » fictif.
+     * le force donc a false afin que ce panneau ne publie jamais un Â« optimum prouve Â» fictif.
      * Le slot est conserve pour compatibilite des parseurs de panneaux existants. */
     /* H5 : meme schema IG que le chemin scheduler. Le cout de selection est
      * publie en milliers d'opcodes, sans nouveau panneau. */

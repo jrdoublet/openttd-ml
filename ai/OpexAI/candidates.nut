@@ -165,15 +165,6 @@ function OpexRailDistanceForIterations(maxIter)
   return OpexIsqrt((dLast * dLast * maxIter) / vLast);
 }
 
-function OpexPlaneSpeedDivisor()
-{
-  if (AIGameSettings.IsValid("vehicle.plane_speed")) {
-    local v = AIGameSettings.GetValue("vehicle.plane_speed");
-    if (v > 0) return v.tofloat();
-  }
-  return 4.0;
-}
-
 function OpexTicksPerDay(catalog)
 {
   /* AIController.GetTick n'est pas une horloge moteur continue : il n'avance
@@ -251,24 +242,47 @@ function OpexGetEpochRailProfile(catalog, cargoId, distance = 20)
   };
 }
 
-function OpexAirManeuverDays(engineId, srcType, dstType, ticksPerDay, planeDiv)
+/* Temps hors croisiere mesure sur OpenTTD 15.3 via ORDL.travel_time.
+ * AIEngine.GetMaxSpeed applique DEJA vehicle.plane_speed pour les avions
+ * (script_engine.cpp:114-121) : ne jamais rediviser ici.
+ *
+ * Calibration passive 5x6, aeroport Large -> Large, mediane du residu
+ * travel_time/74 - OpexFlightDistance/(0.036*AIEngine.GetMaxSpeed):
+ *   217=11.6, 218=10.2, 221=11.3, 223=12.2, 228=13.1, 232=10.5 jours.
+ * Le fallback 12.0 est la mediane robuste de l'echantillon. Pour un autre
+ * type d'aeroport, seule la composante taxi est ajustee par la geometrie. */
+function OpexAirManeuverDays(engineId, srcType, dstType, ticksPerDay)
 {
-  local maxSpeed = AIEngine.GetMaxSpeed(engineId).tofloat();
+  local largeDelay = 12.0;
+  switch (engineId) {
+    case 217: largeDelay = 11.6; break;
+    case 218: largeDelay = 10.2; break;
+    case 221: largeDelay = 11.3; break;
+    case 223: largeDelay = 12.2; break;
+    case 228: largeDelay = 13.1; break;
+    case 232: largeDelay = 10.5; break;
+  }
+  if (srcType == null || dstType == null
+      || (srcType == AIAirport.AT_LARGE && dstType == AIAirport.AT_LARGE)) {
+    return largeDelay;
+  }
+
+  local maxSpeed = (engineId >= 0 && AIEngine.IsValidEngine(engineId))
+      ? AIEngine.GetMaxSpeed(engineId).tofloat() : 150.0;
   if (maxSpeed < 1.0) maxSpeed = 1.0;
   local taxiSpeed = 150.0;
   if (maxSpeed < taxiSpeed) taxiSpeed = maxSpeed;
-  taxiSpeed = taxiSpeed / planeDiv;
-  if (taxiSpeed < 1.0) taxiSpeed = 1.0;
-  local groundTiles = 12.0;
+  local largeGroundTiles =
+      2.0 * (AIAirport.GetAirportWidth(AIAirport.AT_LARGE)
+             + AIAirport.GetAirportHeight(AIAirport.AT_LARGE));
+  local groundTiles = largeGroundTiles;
   if (srcType != null && dstType != null && AIAirport.IsValidAirportType(srcType)
       && AIAirport.IsValidAirportType(dstType)) {
     groundTiles = (AIAirport.GetAirportWidth(srcType) + AIAirport.GetAirportHeight(srcType)
                    + AIAirport.GetAirportWidth(dstType) + AIAirport.GetAirportHeight(dstType)).tofloat();
   }
   local tpd = (ticksPerDay > 0) ? ticksPerDay : 74.0;
-  local taxiDays = groundTiles * OpexDaysPerTile(taxiSpeed, tpd);
-  local verticalDays = 300.0 / tpd;
-  return taxiDays + verticalDays;
+  return largeDelay + (groundTiles - largeGroundTiles) * OpexDaysPerTile(taxiSpeed, tpd);
 }
 
 function OpexCargoTransitHorizon(cargo, distance)
@@ -348,12 +362,11 @@ function OpexComputeRoadToRailDistance(catalog, bestBus, bestTrain, ticksPerDay)
 function OpexComputeRailToAirDistance(bestTrain, bestPlane, ticksPerDay, airportType)
 {
   if (bestTrain == null || bestPlane == null) return OpexMapManhattanSpan();
-  local planeDiv = OpexPlaneSpeedDivisor();
   local vRail = bestTrain.speed.tofloat();
-  local vAir = AIEngine.GetMaxSpeed(bestPlane).tofloat() / planeDiv;
+  local vAir = AIEngine.GetMaxSpeed(bestPlane).tofloat();
   local tauRail = OpexDaysPerTile(vRail, ticksPerDay);
   local tauAir = OpexDaysPerTile(vAir, ticksPerDay);
-  local tFixe = OpexAirManeuverDays(bestPlane, airportType, airportType, ticksPerDay, planeDiv);
+  local tFixe = OpexAirManeuverDays(bestPlane, airportType, airportType, ticksPerDay);
   if (tauRail <= tauAir) return OpexMapManhattanSpan();
   local d = tFixe / (tauRail - tauAir);
   if (d < 1.0) d = 1.0;
@@ -363,10 +376,9 @@ function OpexComputeRailToAirDistance(bestTrain, bestPlane, ticksPerDay, airport
 function OpexComputeAirMaxDistance(bestPlane, ticksPerDay, airportType, paxCargo)
 {
   if (bestPlane == null) return 0;
-  local planeDiv = OpexPlaneSpeedDivisor();
-  local vAir = AIEngine.GetMaxSpeed(bestPlane).tofloat() / planeDiv;
+  local vAir = AIEngine.GetMaxSpeed(bestPlane).tofloat();
   local tauAir = OpexDaysPerTile(vAir, ticksPerDay);
-  local tFixe = OpexAirManeuverDays(bestPlane, airportType, airportType, ticksPerDay, planeDiv);
+  local tFixe = OpexAirManeuverDays(bestPlane, airportType, airportType, ticksPerDay);
   local range = AIEngine.GetMaximumOrderDistance(bestPlane);
   local horizon = OpexCargoTransitHorizon(paxCargo, 100);
   local calendarMax = (horizon.tofloat() * 2.5) - tFixe;
@@ -458,8 +470,8 @@ function OpexRefreshEpochBounds(catalog)
   if (bestPlane != null && bestTrain != null) {
     legacyRailAir = OpexComputeRailToAirDistance(bestTrain, bestPlane, tpd, airportType);
     vRail = bestTrain.speed;
-    vAirEff = AIEngine.GetMaxSpeed(bestPlane).tofloat() / OpexPlaneSpeedDivisor();
-    tFixe = OpexAirManeuverDays(bestPlane, airportType, airportType, tpd, OpexPlaneSpeedDivisor());
+    vAirEff = AIEngine.GetMaxSpeed(bestPlane).tofloat();
+    tFixe = OpexAirManeuverDays(bestPlane, airportType, airportType, tpd);
   } else if (bestPlane != null) {
     legacyRailAir = roadMax;
   }
@@ -2279,7 +2291,11 @@ function OpexRoadPaxCandidates(catalog, lines, out, stats, abandonedPairs = null
         if (!OpexTownRatingAllowStation(towns[a].id) || !OpexTownRatingAllowStation(towns[b].id)) continue;
       }
       local distance = AIMap.DistanceManhattan(towns[a].tile, towns[b].tile);
-      if (distance < roadBounds.roadMin || distance > roadBounds.roadMax) {
+      /* road_pax_build est desactive par defaut. Quand ce bras experimental/diagnostique est
+       * explicitement active, la grille est deja construite jusqu'a roadGenMax pour laisser le
+       * bus concourir dans la zone de recouvrement modal. L'ancien test sur roadMax annulait
+       * silencieusement cette intention et rendait C23 presque vide. */
+      if (distance < roadBounds.roadMin || distance > roadCell) {
         if (distance < roadBounds.roadMin) stats.roadDistanceShort++;
         else stats.roadDistanceLong++;
         continue;

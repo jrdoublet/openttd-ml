@@ -110,6 +110,9 @@ function OpexAI::_tryTownGrowth(year)
       kind = "pax",
       distance = dist,
       trains = 1,
+      vehiclesForVolume = 1,
+      roadBerthCapacity = OpexRoadPhysicalVehicleCap(1, 1),
+      roadVehicleCap = OpexRoadPhysicalVehicleCap(1, 1),
       engine = engine,
       capital = 2 * this._catalog.costRoadBusStop + 20 * this._catalog.costRoadPerTile + this._catalog.costRoadDepot + engine.price,
       revenueAnnual = 0,
@@ -119,6 +122,7 @@ function OpexAI::_tryTownGrowth(year)
       oneWayDays = 1,
       iterations = 0,
       profitAnnual = 0,
+      roi = 0,
       effectiveSpeed = engine.speed,
     };
 
@@ -138,7 +142,25 @@ function OpexAI::_tryTownGrowth(year)
     if (actualDist < 1) actualDist = 1;
     candidate.distance = actualDist;
     local routeDist = (plan.routeDistance != null && plan.routeDistance > 0) ? plan.routeDistance : actualDist;
-    candidate.capital = 2 * this._catalog.costRoadBusStop + routeDist * this._catalog.costRoadPerTile + this._catalog.costRoadDepot + candidate.engine.price;
+    local siteDemand = OpexRoadPlanPaxDemand(plan, candidate);
+    local pricedMonthly = siteDemand != null ? siteDemand.total : 0;
+    local pricedA = siteDemand != null ? siteDemand.a : null;
+    local pricedB = siteDemand != null ? siteDemand.b : null;
+    local economics = pricedMonthly > 0
+        ? OpexRoadLineEconomics(this._catalog, candidate.cargo, actualDist, pricedMonthly,
+                                candidate.engine, candidate.kind, routeDist, pricedA, pricedB, 1)
+        : null;
+    if (economics == null) {
+      if (DECISION_LOG) {
+        OpexDecide("TOWN_GROWTH", "action=fail town=" + townId + " stations=" + currentCount
+                   + " reason=economics demand=" + pricedMonthly);
+      }
+      continue;
+    }
+    candidate.monthly <- pricedMonthly;
+    candidate.monthlyA <- pricedA;
+    candidate.monthlyB <- pricedB;
+    OpexApplyRoadEconomics(candidate, economics, actualDist);
 
     local need = candidate.capital + OpexCashReserve();
     money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
@@ -149,9 +171,9 @@ function OpexAI::_tryTownGrowth(year)
       }
       continue;
     }
-    /* growth_yields : la croissance urbaine batit des lignes a profitAnnual = 0 et
-     * revenueAnnual = 0 EXPLICITES (voir le candidat construit ci-dessus). Son rendement est
-     * indirect -- faire grossir la ville pour nourrir les autres lignes -- mais son capital, lui,
+    /* growth_yields : la croissance urbaine garde un rendement INDIRECT -- faire grossir la ville
+     * pour nourrir les autres lignes -- mais sa ligne bus possede desormais aussi une economie
+     * DIRECTE mesuree sur les deux arrets reels. Son capital, lui,
      * est bien reel et immediat. Or le goulot mesure de cette IA est la VITESSE DU CAPITAL :
      * 44,5 % de la valeur d'entreprise dort en caisse, et un seul projet est bati par mois
      * (docs/taches.md S0 decies). Cette depense a rendement nul entre donc en concurrence directe
@@ -190,18 +212,31 @@ function OpexAI::_tryTownGrowth(year)
     local newCount = OpexCountTownStations(townId);
     OpexSign(anchor, "TG|" + (year % 100) + "|" + townId + "|" + currentCount + "|" + newCount);
     if (DECISION_LOG) {
-      OpexDecide("TOWN_GROWTH", "action=build town=" + townId + " stations_before=" + currentCount + " stations_after=" + newCount + " cost=" + candidate.capital);
+      OpexDecide("TOWN_GROWTH", "action=build town=" + townId + " stations_before=" + currentCount + " stations_after=" + newCount + " cost=" + candidate.capital
+                 + " pred_profit=" + candidate.profitAnnual + " pred_revenue=" + candidate.revenueAnnual
+                 + " monthly=" + candidate.monthly);
     }
 
     this._lines.append({
       stationA = result.stopA, stationB = result.stopB,
       originA = candidate.src, originB = candidate.dst,
       cargo = candidate.cargo,
-      predicted = 0, iterations = 0, trains = result.vehicles.len(), distance = dist, year = year,
-      predRevenue = 0, predRunning = 0, predAmort = 0, predCarried = 0, predTrains = 1, predOneWayDays = 1,
-      /* Batie pour la CROISSANCE de la ville, pas pour son profit : son candidat porte
-       * revenueAnnual = 0 EXPLICITE. A exclure nommement d'une comparaison predit/reel, et non
-       * devinee par pred_rev == 0 -- 21 a 23 % des enregistrements du diagnostic. */
+      predicted = candidate.profitAnnual, iterations = 0, trains = result.vehicles.len(), distance = actualDist, year = year,
+      predRevenue = candidate.revenueAnnual, predRunning = candidate.runningAnnual,
+      predAmort = candidate.amortAnnual, predCarried = candidate.carried,
+      predTrains = candidate.trains, predOneWayDays = candidate.oneWayDays,
+      buildPredProfit = candidate.profitAnnual, buildPredRevenue = candidate.revenueAnnual,
+      buildPredRunning = candidate.runningAnnual, buildPredAmort = candidate.amortAnnual,
+      buildPredCarried = candidate.carried, buildPredVehicles = candidate.trains,
+      buildPredOneWayDays = candidate.oneWayDays,
+      livePredProfit = candidate.profitAnnual, livePredRevenue = candidate.revenueAnnual,
+      livePredRunning = candidate.runningAnnual, livePredAmort = candidate.amortAnnual,
+      livePredCarried = candidate.carried, livePredVehicles = result.vehicles.len(),
+      livePredEngine = candidate.engine.id,
+      routeDistance = routeDist,
+      buildDate = AIDate.GetCurrentDate(),
+      /* Batie pour la CROISSANCE de la ville, pas pour son profit direct. `purpose` reste donc
+       * obligatoire pour l'analyse, mais la ligne porte maintenant une vraie prediction directe. */
       purpose = "town_growth",
       effectiveSpeed = engine.speed, catalogSpeed = engine.speed,
       mode = "road", kind = "pax", depot = result.depot,

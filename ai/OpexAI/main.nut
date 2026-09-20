@@ -48,7 +48,6 @@ require("catalog.nut");
 require("economy.nut");
 require("spatial.nut");
 require("candidates.nut");
-require("tension.nut");
 require("projects.nut");
 require("builder_rail.nut");
 require("builder_air.nut");
@@ -454,7 +453,6 @@ function OpexAI::Start()
       }
     }
   }
-  if (TENSION_PROBE) OpexTensionEnable(this._budget);
   if (C49_SCARCITY_LEDGER) {
     this._c49ScarcityLedger = { passes = 0, cash = 0, vehicles = 0, site = 0,
         decision_attempted = 0, decision_unattempted = 0, none = 0 };

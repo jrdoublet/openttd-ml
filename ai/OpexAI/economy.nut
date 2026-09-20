@@ -622,7 +622,8 @@ function OpexRoadFleetVehicleCap(nStopsA, nStopsB, oneWayDays, kind)
  * capacite apres refit depuis le depot.
  * `routeDistance` (optionnel) : longueur reelle du trace routier decouvert, pour recalibrage post-site (D4). */
 function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, kind,
-                               routeDistance = null)
+                               routeDistance = null, monthlyA = null, monthlyB = null,
+                               fixedVehicles = 0)
 {
   if (engine == null) return null;
   local effectiveSpeed = (engine.speed * ROAD_SPEED_EFFICIENCY_PCT) / 100;
@@ -661,6 +662,11 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
     roadVehicleCap = OpexRoadFleetVehicleCap(1, 1, oneWayDays, kind);
   }
   if (vehicles > roadVehicleCap) vehicles = roadVehicleCap;
+  if (fixedVehicles > 0) {
+    vehicles = fixedVehicles;
+    if (vehicles > roadVehicleCap) vehicles = roadVehicleCap;
+    if (vehicles < 1) vehicles = 1;
+  }
   /* pricing_fix : la route n'appliquait JAMAIS OpexStationRatingForHeadway, que le rail
    * (OpexLineEconomics) et l'air (builder_air.nut) utilisent tous deux -- elle restait figee a
    * STATION_RATING_PCT = 50 % a plat. Le meme mecanisme physique -- la frequence de passage fixe la
@@ -684,10 +690,19 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
     /* Flux par rotation : a chaque visite, seulement ce qui s'est accumule pendant le headway,
      * plafonne a la capacite. Deux bus ne doublent pas la demande, ils se partagent le quai. */
     local headwayDays = roundTripDays.tofloat() / vehicles;
-    local waitingOneEnd = (monthlyUnits.tofloat() / 2.0) * headwayDays / 30.0;
-    local pickup = waitingOneEnd < engine.capacity ? waitingOneEnd : engine.capacity.tofloat();
     local visitsOneEnd = vehicles.tofloat() * 30.0 / roundTripDays;
-    local flowCarried = (2.0 * visitsOneEnd * pickup).tointeger();
+    local flowCarried = 0;
+    if (monthlyA != null && monthlyB != null && monthlyA >= 0 && monthlyB >= 0) {
+      local waitingA = monthlyA.tofloat() * headwayDays / 30.0;
+      local waitingB = monthlyB.tofloat() * headwayDays / 30.0;
+      local pickupA = waitingA < engine.capacity ? waitingA : engine.capacity.tofloat();
+      local pickupB = waitingB < engine.capacity ? waitingB : engine.capacity.tofloat();
+      flowCarried = (visitsOneEnd * (pickupA + pickupB)).tointeger();
+    } else {
+      local waitingOneEnd = (monthlyUnits.tofloat() / 2.0) * headwayDays / 30.0;
+      local pickup = waitingOneEnd < engine.capacity ? waitingOneEnd : engine.capacity.tofloat();
+      flowCarried = (2.0 * visitsOneEnd * pickup).tointeger();
+    }
     if (flowCarried < carried) carried = flowCarried;
   }
   /* OpexLoadedTripsPerMonth est aussi partage par la route. Sa capacite moyenne peut etre
@@ -735,6 +750,8 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
     profitAnnual = profitAnnual,
     roi = roi,
     effectiveSpeed = effectiveSpeed,
+    monthlyA = monthlyA,
+    monthlyB = monthlyB,
   };
 }
 

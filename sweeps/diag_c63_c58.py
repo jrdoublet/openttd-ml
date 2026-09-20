@@ -128,7 +128,7 @@ def inventory_from_source():
         and "GetMaxLoanAmount" in capital
         and "OpexCashReserve" in capital
     )
-    probe_setting = 'name = "c63_invest_probe"' in info
+    probe_setting = 'name = "probe_portfolio"' in info
     helpers = (
         "OpexC63RecordSpend" in probes and "C63_INVEST" in probes
         and "OpexC63FlushLedger" in probes and "OpexC63NotePass" in probes
@@ -352,6 +352,10 @@ def parse_c63_invest(output):
                 "pred_r": int(fields.get("pred_r", 0) or 0),
                 "real_r": int(fields.get("real_r", 0) or 0),
                 "vehs": int(fields.get("vehs", 0) or 0),
+                "kind": fields.get("kind", "unknown"),
+                "purpose": fields.get("purpose", "profit"),
+                "active_days": int(fields.get("active_days", -1) or -1),
+                "year_days": int(fields.get("year_days", -1) or -1),
             })
     return dict(years)
 
@@ -946,10 +950,10 @@ def keep_c63(row):
 
 
 def run_campaign(args):
-    """Diagnostic 5x6 partage contre AAAHogEx : c63_invest_probe=1 et -d script=4."""
+    """Diagnostic 5x6 partage contre AAAHogEx : probe_portfolio=1 et -d script=4."""
     if not inventory_from_source()["c63_setting_in_info"]:
         raise SystemExit(
-            "c63_invest_probe n'est pas un reglage : brancher la sonde defaut 0 avant "
+            "probe_portfolio n'est pas un reglage : brancher la sonde defaut 0 avant "
             "la campagne 5x6, ou lancer --selftest."
         )
     import openttdlab
@@ -966,13 +970,13 @@ def run_campaign(args):
         return real_check(cmd, *rest, **kwargs)
 
     openttdlab.subprocess.check_output = check_output_with_script_debug
-    if "c63_invest_probe=1" not in args.arm:
-        raise SystemExit("--arm doit contenir c63_invest_probe=1")
+    if "probe_portfolio=1" not in args.arm:
+        raise SystemExit("--arm doit contenir probe_portfolio=1")
     out = args.out or (ROOT / "results" / f"diag_c63_c58_{args.years}y_{len(args.seeds)}seeds.json")
     out = Path(out)
     out.parent.mkdir(parents=True, exist_ok=True)
     enable_savegame_cleanup()
-    opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", (("c63_invest_probe", 1),))
+    opex = local_folder(str(ROOT / "ai" / "OpexAI"), "OpexAI", (("probe_portfolio", 1),))
     hogex = local_folder(str(ROOT / "ai" / "AAAHogEx-115"), "AAAHogEx", ())
     rows = list(run_experiments(
         openttd_version=OPENTTD_VERSION,
@@ -1084,7 +1088,7 @@ def main():
     parser.add_argument("--inventory", action="store_true")
     parser.add_argument("--seeds", nargs="+", type=int, default=[42, 100, 999, 1234, 5678])
     parser.add_argument("--years", type=int, default=6)
-    parser.add_argument("--arm", default="OpexAI[c63_invest_probe=1]")
+    parser.add_argument("--arm", default="OpexAI[probe_portfolio=1]")
     parser.add_argument("--out", type=Path, default=None)
     parser.add_argument("--workers", type=int, default=2)
     args = parser.parse_args()

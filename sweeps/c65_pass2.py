@@ -69,16 +69,6 @@ FLEET_BLOCK = """  /* La file a ete batie par le constructeur, avant que ce regl
   }
 """
 
-TENSION_BLOCK = """  if (TENSION_PROBE) {
-    PORTFOLIO_LOG = true;
-    OpexTensionEnable(this._budget);
-  }
-"""
-TENSION_GLOBAL = """  if (TENSION_PROBE) {
-    PORTFOLIO_LOG = true;
-  }
-"""
-
 C49_BLOCK = """  if (C49_SCARCITY_LEDGER) {
     this._c49ScarcityLedger = { passes = 0, cash = 0, vehicles = 0, site = 0,
         decision_attempted = 0, decision_unattempted = 0, none = 0 };
@@ -118,7 +108,6 @@ INSTANCE_AFTER_LOAD = (
     STAGED_LINE
     + "\n"
     + FLEET_BLOCK
-    + "  if (TENSION_PROBE) OpexTensionEnable(this._budget);\n"
     + """  if (C49_SCARCITY_LEDGER) {
     this._c49ScarcityLedger = { passes = 0, cash = 0, vehicles = 0, site = 0,
         decision_attempted = 0, decision_unattempted = 0, none = 0 };
@@ -139,7 +128,6 @@ def build_settings_body(region):
     for original, missing in (
         (STAGED_LINE, ""),
         (FLEET_BLOCK, ""),
-        (TENSION_BLOCK, TENSION_GLOBAL),
         (C49_BLOCK, C49_GLOBAL),
         (C50_BLOCK, C50_GLOBAL),
         (WATER_BLOCK, ""),
@@ -204,8 +192,6 @@ def prove_settings(original_main, new_main, settings_text):
         problems.append("Start() n'appelle pas OpexLoadSettings")
     if "this._generationStage" not in start_fn:
         problems.append("Start() a perdu this._generationStage")
-    if "OpexTensionEnable(this._budget)" not in start_fn:
-        problems.append("Start() a perdu OpexTensionEnable")
     if "this._budget" in settings_text:
         problems.append("settings.nut reference this._budget")
     if re.search(r"\bthis\.", settings_text):
@@ -428,11 +414,11 @@ def run_selftest():
         assert "function OpexLoadSettings()" in settings
         assert "this." not in settings
         start = original[start_span(original):]
-        assert setting_keys(start) == ["road_cheap_trace"]
+        assert setting_keys(start) == []
         assert "OpexLoadSettings();" in start
         assert REQUIRE_LINE in original
         n = len(setting_keys(settings))
-        assert n == 213, n  # 214 dans Start d'origine, moins le log
+        assert len(set(setting_keys(settings))) == n
         print(f"selftest settings ok (deja applique): {n} GetSetting")
         if GLOBALS_PRE_PATH.exists():
             leftover = global_stmts(MAIN_PATH.read_text())
@@ -462,13 +448,12 @@ def run_selftest():
         assert "function OpexLoadSettings()" in settings
         assert "this." not in settings
         start = original[start_span(original):]
-        assert setting_keys(start) == ["road_cheap_trace"]
+        assert setting_keys(start) == []
         assert "OpexLoadSettings();" in start
         assert REQUIRE_LINE in original
         n = len(setting_keys(settings))
-        assert n == 213, n  # 214 dans Start d'origine, moins le log
-        print(f"selftest ok (deja applique): {n} GetSetting dans settings.nut, "
-              f"1 log reste dans Start()")
+        assert len(set(setting_keys(settings))) == n
+        print(f"selftest ok (deja applique): {n} GetSetting dans settings.nut")
         return
     _, _, region = load_region(original)
     orig_keys = setting_keys(region)
@@ -518,7 +503,7 @@ def main():
         settings = SETTINGS_PATH.read_text()
         start = main_text[start_span(main_text):]
         problems = []
-        if setting_keys(start) != ["road_cheap_trace"]:
+        if setting_keys(start) != []:
             problems.append(f"Start GetSetting={setting_keys(start)}")
         if "this." in settings:
             problems.append("this. dans settings.nut")

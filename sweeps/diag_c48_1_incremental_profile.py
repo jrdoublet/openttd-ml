@@ -33,7 +33,7 @@ openttdlab.subprocess.check_output = _check_output_with_script_debug
 
 ARM = "OpexAI[c48_incremental_profile=1]"
 EVENT_RE = re.compile(r"OPEX \d+-\d+-\d+ C48_INCREMENTAL\s*(.*)")
-STEPS = ("tension_ctx", "groups_replay", "fleet", "air", "selection")
+STEPS = ("groups_replay", "fleet", "air", "selection")
 FIELDS = ("calls", "ops", "days", "lines", "groups", "projects_scanned", "retained",
           "fleet_plan", "air_plans", "alternatives", "selected")
 VOLUMES = {

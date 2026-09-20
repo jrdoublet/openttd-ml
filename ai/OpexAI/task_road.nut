@@ -183,9 +183,18 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
       if (wasPaxSpared) OpexC55PaxTraceObservePlanned();
       local actualDist = AIMap.DistanceManhattan(plan.stopA.tile, plan.stopB.tile);
       if (actualDist < 1) actualDist = 1;
+      local siteDemand = OpexRoadPlanPaxDemand(plan, candidate);
+      local pricedMonthly = candidate.monthly;
+      local pricedA = null;
+      local pricedB = null;
+      if (siteDemand != null && siteDemand.total > 0) {
+        pricedMonthly = siteDemand.total;
+        pricedA = siteDemand.a;
+        pricedB = siteDemand.b;
+      }
       local economics = OpexRoadLineEconomics(this._catalog, candidate.cargo, actualDist,
-                                              candidate.monthly, candidate.engine, candidate.kind,
-                                              plan.routeDistance);
+                                              pricedMonthly, candidate.engine, candidate.kind,
+                                              plan.routeDistance, pricedA, pricedB);
       if (EQUIPMENT_ROI_PROBE) {
         OpexM3ProbeRoadEquipment(this._catalog, candidate, actualDist, plan.routeDistance,
                                  economics, "post_route");
@@ -200,6 +209,9 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         return { outcome = "rejected", discards = passDiscards };
       }
       if (wasPaxSpared) OpexC55PaxTraceObserveViable();
+      candidate.monthly = pricedMonthly;
+      if (pricedA != null) candidate.rawset("monthlyA", pricedA);
+      if (pricedB != null) candidate.rawset("monthlyB", pricedB);
       OpexApplyRoadEconomics(candidate, economics, actualDist);
       if (isSubsidy) {
         candidate.baseRevenueAnnual = economics.revenueAnnual;
@@ -314,6 +326,18 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
                                : OpexRoadPhysicalVehicleCap(1, 1),
         predRoadVehicleCap = ("roadVehicleCap" in candidate) ? candidate.roadVehicleCap : candidate.trains,
         predTrains = candidate.trains, predOneWayDays = candidate.oneWayDays,
+        /* Baseline de decision immuable. Les champs pred* historiques restent pour compatibilite
+         * avec les politiques existantes et peuvent evoluer (extensions) ; buildPred* ne bouge pas. */
+        buildPredProfit = candidate.profitAnnual, buildPredRevenue = candidate.revenueAnnual,
+        buildPredRunning = candidate.runningAnnual, buildPredAmort = candidate.amortAnnual,
+        buildPredCarried = candidate.carried, buildPredVehicles = candidate.trains,
+        buildPredOneWayDays = candidate.oneWayDays,
+        livePredProfit = candidate.profitAnnual, livePredRevenue = candidate.revenueAnnual,
+        livePredRunning = candidate.runningAnnual, livePredAmort = candidate.amortAnnual,
+        livePredCarried = candidate.carried, livePredVehicles = result.vehicles.len(),
+        livePredEngine = candidate.engine.id,
+        routeDistance = (plan.routeDistance != null && plan.routeDistance > 0) ? plan.routeDistance : actualDist,
+        buildDate = AIDate.GetCurrentDate(),
         effectiveSpeed = candidate.effectiveSpeed,
         catalogSpeed = candidate.engine.speed,
         mode = "road", kind = candidate.kind, depot = result.depot,

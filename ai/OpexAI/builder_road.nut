@@ -713,6 +713,195 @@ function OpexRoadPlanPaxVoirie(candidate)
   return null;
 }
 
+/* AITile.GetCargoProduction ne rend pas des unites/mois mais un NOMBRE DE PRODUCTEURS.
+ * Pour des passagers urbains, on convertit ce compte avec l'intensite REELLE de la ville
+ * courante : production mensuelle totale / nombre de maisons. On obtient ainsi un volume
+ * qui suit naturellement la croissance de la ville, sans coefficient global de recalage. */
+function OpexRoadTownProductionPerHouse(townId, cargo)
+{
+  if (!AITown.IsValidTown(townId) || !AICargo.IsValidCargo(cargo)) return 0.0;
+  local houses = AITown.GetHouseCount(townId);
+  if (houses <= 0) return 0.0;
+  local monthly = AITown.GetLastMonthProduction(townId, cargo);
+  /* Au tout debut d'une partie, le mois precedent peut etre vide. Garder le meme repli
+   * physique que la generation C23, uniquement tant qu'aucune mesure mensuelle n'existe. */
+  if (monthly <= 0) {
+    local pop = AITown.GetPopulation(townId);
+    if (pop > 0) monthly = (pop * 15) / 100;
+  }
+  if (monthly <= 0) return 0.0;
+  return monthly.tofloat() / houses.tofloat();
+}
+
+/* Nombre exact de producteurs appartenant a l'intersection de deux bassins bus carres.
+ * GetCargoProduction(width,height,radius=0) compte directement les producteurs du rectangle
+ * commun : inclusion-exclusion ne depend donc plus du pire cas geometrique aligne de C23. */
+function OpexRoadPaxOverlapProducerCount(tileA, tileB, cargo, coverage)
+{
+  if (!AIMap.IsValidTile(tileA) || !AIMap.IsValidTile(tileB) ||
+      !AICargo.IsValidCargo(cargo) || coverage < 0) return 0;
+  local ax = AIMap.GetTileX(tileA);
+  local ay = AIMap.GetTileY(tileA);
+  local bx = AIMap.GetTileX(tileB);
+  local by = AIMap.GetTileY(tileB);
+  local x0 = (ax - coverage) > (bx - coverage) ? (ax - coverage) : (bx - coverage);
+  local y0 = (ay - coverage) > (by - coverage) ? (ay - coverage) : (by - coverage);
+  local x1 = (ax + coverage) < (bx + coverage) ? (ax + coverage) : (bx + coverage);
+  local y1 = (ay + coverage) < (by + coverage) ? (ay + coverage) : (by + coverage);
+  if (x0 < 0) x0 = 0;
+  if (y0 < 0) y0 = 0;
+  local maxX = AIMap.GetMapSizeX() - 1;
+  local maxY = AIMap.GetMapSizeY() - 1;
+  if (x1 > maxX) x1 = maxX;
+  if (y1 > maxY) y1 = maxY;
+  if (x0 > x1 || y0 > y1) return 0;
+  return AITile.GetCargoProduction(AIMap.GetTileIndex(x0, y0), cargo,
+                                   x1 - x0 + 1, y1 - y0 + 1, 0);
+}
+
+/* Convertit deux comptes de producteurs en demande mensuelle directionnelle.
+ *
+ * town_growth place les deux arrets dans la MEME ville. Avec ROAD_PAX_OVERLAP actif, les
+ * producteurs couverts par les deux arrets sont comptes une seule fois dans le volume total
+ * (|A union B| = |A| + |B| - |A inter B|), puis la production de l'intersection est partagee
+ * symetriquement entre les deux sens. Elle n'est plus artificiellement supprimee.
+ *
+ * Pour deux villes distinctes, chaque bassin utilise simplement l'intensite de sa propre ville. */
+function OpexRoadPaxDemandFromStops(tileA, tileB, cargo, townA, townB, rawA, rawB)
+{
+  if (rawA < 0) rawA = 0;
+  if (rawB < 0) rawB = 0;
+  if (rawA + rawB <= 0) {
+    return { a = 0, b = 0, total = 0, rawA = rawA, rawB = rawB,
+             overlapProducers = 0, unionProducers = 0, rateA = 0.0, rateB = 0.0 };
+  }
+  local rateA = OpexRoadTownProductionPerHouse(townA, cargo);
+  local rateB = OpexRoadTownProductionPerHouse(townB, cargo);
+  if (rateA <= 0.0 && rateB <= 0.0) return null;
+
+  if (ROAD_PAX_OVERLAP && townA == townB && AITown.IsValidTown(townA)) {
+    local coverage = AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP);
+    local overlap = OpexRoadPaxOverlapProducerCount(tileA, tileB, cargo, coverage);
+    if (overlap > rawA) overlap = rawA;
+    if (overlap > rawB) overlap = rawB;
+    local unionProducers = rawA + rawB - overlap;
+    local total = (unionProducers.tofloat() * rateA).tointeger();
+    if (total <= 0 && unionProducers > 0 && rateA > 0.0) total = 1;
+
+    /* unique(A) + 1/2 intersection et unique(B) + 1/2 intersection, sans flottants
+     * intermediaires : 2*raw-overlap est exactement le poids double correspondant. */
+    local weightA = 2 * rawA - overlap;
+    local weightB = 2 * rawB - overlap;
+    local denom = weightA + weightB;
+    local a = denom > 0 ? (total * weightA) / denom : total / 2;
+    local b = total - a;
+    return { a = a, b = b, total = total, rawA = rawA, rawB = rawB,
+             overlapProducers = overlap, unionProducers = unionProducers,
+             rateA = rateA, rateB = rateA };
+  }
+
+  local a = rateA > 0.0 ? (rawA.tofloat() * rateA).tointeger() : 0;
+  local b = rateB > 0.0 ? (rawB.tofloat() * rateB).tointeger() : 0;
+  if (a <= 0 && rawA > 0 && rateA > 0.0) a = 1;
+  if (b <= 0 && rawB > 0 && rateB > 0.0) b = 1;
+  return { a = a, b = b, total = a + b, rawA = rawA, rawB = rawB,
+           overlapProducers = 0, unionProducers = rawA + rawB,
+           rateA = rateA, rateB = rateB };
+}
+
+function OpexRoadPlanPaxDemand(plan, candidate)
+{
+  if (plan == null || candidate == null || !("kind" in candidate) || candidate.kind != "pax"
+      || !("stopA" in plan) || !("stopB" in plan) || plan.stopA == null || plan.stopB == null
+      || !("value" in plan.stopA) || !("value" in plan.stopB)) return null;
+  local rawA = plan.stopA.value;
+  local rawB = plan.stopB.value;
+  local townA = ("srcTown" in candidate && AITown.IsValidTown(candidate.srcTown))
+      ? candidate.srcTown : AITile.GetClosestTown(plan.stopA.tile);
+  local townB = ("dstTown" in candidate && AITown.IsValidTown(candidate.dstTown))
+      ? candidate.dstTown : AITile.GetClosestTown(plan.stopB.tile);
+  return OpexRoadPaxDemandFromStops(plan.stopA.tile, plan.stopB.tile, candidate.cargo,
+                                    townA, townB, rawA, rawB);
+}
+
+/* Recalage DIAGNOSTIQUE d'une ligne pax routiere deja en service. Contrairement au candidat de
+ * construction, on repart du materiel VIVANT : moteur et capacite apres refit sont lus sur les
+ * vehicules reels. Les productions sont relues sur les deux arrets poses, avec le meme rayon que
+ * le siting initial, puis repassees dans le meme modele economique avec la flotte reelle forcee.
+ *
+ * Les lignes ayant des arrets d'extension sont volontairement laissees sans livePred : leur
+ * topologie n'est plus un simple A<->B et les faire rentrer de force dans OpexRoadLineEconomics
+ * donnerait une precision fictive. */
+function OpexRoadLivePaxEconomics(catalog, line, vehicles)
+{
+  if (catalog == null || line == null || vehicles == null ||
+      !("mode" in line) || line.mode != "road" ||
+      !("kind" in line) || line.kind != "pax" ||
+      !("cargo" in line) || !AICargo.IsValidCargo(line.cargo) ||
+      !("stationA" in line) || !("stationB" in line)) return null;
+  if (("extraStops" in line) && line.extraStops != null && line.extraStops.len() > 0) return null;
+
+  local stationA = AIStation.GetStationID(line.stationA);
+  local stationB = AIStation.GetStationID(line.stationB);
+  if (!AIStation.IsValidStation(stationA) || !AIStation.IsValidStation(stationB)) return null;
+
+  local engineId = -1;
+  local actualCapacity = -1;
+  local liveVehicles = 0;
+  foreach (v in vehicles) {
+    if (!AIVehicle.IsValidVehicle(v) || AIVehicle.GetVehicleType(v) != AIVehicle.VT_ROAD) continue;
+    local currentEngine = AIVehicle.GetEngineType(v);
+    local currentCapacity = AIVehicle.GetCapacity(v, line.cargo);
+    if (currentCapacity <= 0) continue;
+    if (engineId < 0) {
+      engineId = currentEngine;
+      actualCapacity = currentCapacity;
+    } else if (currentEngine != engineId || currentCapacity != actualCapacity) {
+      /* Une flotte mixte demanderait une economie par vehicule ; ne pas inventer un moteur moyen. */
+      return null;
+    }
+    liveVehicles++;
+  }
+  if (engineId < 0 || liveVehicles <= 0 || actualCapacity <= 0) return null;
+
+  local coverage = AIStation.GetCoverageRadius(AIStation.STATION_BUS_STOP);
+  local rawA = AITile.GetCargoProduction(line.stationA, line.cargo, 1, 1, coverage);
+  local rawB = AITile.GetCargoProduction(line.stationB, line.cargo, 1, 1, coverage);
+  local distance = AIMap.DistanceManhattan(line.stationA, line.stationB);
+  if (distance < 1) distance = 1;
+  local townA = ("srcTown" in line && AITown.IsValidTown(line.srcTown))
+      ? line.srcTown : AITile.GetClosestTown(line.stationA);
+  local townB = ("dstTown" in line && AITown.IsValidTown(line.dstTown))
+      ? line.dstTown : AITile.GetClosestTown(line.stationB);
+  local demand = OpexRoadPaxDemandFromStops(line.stationA, line.stationB, line.cargo,
+                                             townA, townB, rawA, rawB);
+  if (demand == null || demand.total <= 0) return null;
+  local total = demand.total;
+  local monthlyA = demand.a;
+  local monthlyB = demand.b;
+  local routeDistance = ("routeDistance" in line && line.routeDistance != null && line.routeDistance > 0)
+      ? line.routeDistance : (("distance" in line && line.distance > 0) ? line.distance : distance);
+
+  local engine = {
+    id = engineId,
+    defaultCargo = AIEngine.GetCargoType(engineId),
+    capacity = actualCapacity,
+    speed = AIEngine.GetMaxSpeed(engineId),
+    price = AIEngine.GetPrice(engineId),
+    runningCost = AIEngine.GetRunningCost(engineId),
+    ageYears = AIEngine.GetMaxAge(engineId) / 365,
+  };
+  local economics = OpexRoadLineEconomics(catalog, line.cargo, distance, total, engine, "pax",
+                                           routeDistance, monthlyA, monthlyB, liveVehicles);
+  if (economics == null) return null;
+  return { economics = economics, engine = engineId, vehicles = liveVehicles,
+           monthlyA = monthlyA, monthlyB = monthlyB, monthly = total,
+           rawA = rawA, rawB = rawB,
+           overlapProducers = demand.overlapProducers,
+           unionProducers = demand.unionProducers,
+           rateA = demand.rateA, rateB = demand.rateB };
+}
+
 /* Plan concret d'UN candidat routier. Le candidat porte deja la paire, le cargo et le sens ; il
  * reste a trouver deux sites d'arret reels et un trace multi-variantes qui les relie. */
 function OpexRoadPlanFor(catalog, candidate)

@@ -254,9 +254,9 @@ function OpexAI::_recordC49ScarcityPass(best, builtRanks, attemptedRanks, passDi
 
   local vehicleType = OpexC49VehicleType(project.mode);
   local vehicleMode = project.mode == "fleet" ? "air" : project.mode;
-  local setting = OpexTensionVehicleSetting(vehicleMode);
+  local setting = OpexProjectVehicleLimitSetting(vehicleMode);
   if (vehicleType >= 0 && setting != null && AIGameSettings.IsValid(setting)) {
-    local planned = OpexTensionProjectVehicleCount(project);
+    local planned = OpexProjectVehicleCount(project);
     local cap = AIGameSettings.GetValue(setting);
     if (AIGroup.GetNumVehicles(AIGroup.GROUP_ALL, vehicleType) + planned > cap) {
       this._c49ScarcityLedger.vehicles++;
@@ -688,9 +688,9 @@ function OpexC48IncrementalRecord(step, ops, days, lines, groups, projectsScanne
 function OpexAI::_logC48IncrementalLedger(year)
 {
   if (!C48_INCREMENTAL_PROFILE) return;
-  /* Une ligne pour CHACUNE des six phases, meme si une garde fonctionnelle n'a produit aucun
+  /* Une ligne pour CHACUNE des cinq phases, meme si une garde fonctionnelle n'a produit aucun
    * appel cette annee : le depouillement distingue ainsi zero de "phase absente du journal". */
-  local steps = ["tension_ctx", "groups_replay", "fleet", "air", "selection", "total"];
+  local steps = ["groups_replay", "fleet", "air", "selection", "total"];
   foreach (step in steps) {
     local entry = (C48_INCREMENTAL_LEDGER != null && (step in C48_INCREMENTAL_LEDGER))
         ? C48_INCREMENTAL_LEDGER[step]

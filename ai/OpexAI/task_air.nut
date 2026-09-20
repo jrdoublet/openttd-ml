@@ -331,7 +331,12 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
   if (project == null) return { outcome = "no_candidate", discards = passDiscards };
   local i = rank;
       local plan = project.payload;
-      if (builtCount > 0) {
+      local useCapitalFrontier = AIR_CAPITAL_FRONTIER && AIR_BEST_EQUIPMENT;
+      /* Un seul lambda par portfolio/pass. Ne pas invalider le choix sur une
+       * variation de caisse intra-pass : la garde de financement ci-dessous
+       * utilise toujours la tresorerie vivante, tandis que la revalidation
+       * economique frontier reste obligatoire juste avant la construction. */
+      if (builtCount > 0 || useCapitalFrontier) {
         if (!OpexAirBatchPlanStillLive(plan, this._lines)) {
           if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "batch_plan_dead", extra = "" });
           return { outcome = "rejected", discards = passDiscards };
@@ -388,12 +393,32 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
         return { outcome = "rejected", discards = passDiscards };
       }
 
+      if (useCapitalFrontier) {
+        local freshSelection = OpexAirFreshSelectedProjectEconomics(
+            project, this._catalog, this._lines);
+        local selectedProfit = ("frontierSelectionProfit" in project)
+            ? project.frontierSelectionProfit : OpexCapitalFrontierProjectProfit(project);
+        local selectedShadowCapital = ("frontierSelectionShadowCapital" in project)
+            ? project.frontierSelectionShadowCapital : OpexProjectShadowCapital(project);
+        local selectedFinanceCapital = ("frontierSelectionFinanceCapital" in project)
+            ? project.frontierSelectionFinanceCapital : OpexProjectFinanceCapital(project);
+        if (!freshSelection.ok
+            || freshSelection.networkProfit != selectedProfit
+            || freshSelection.shadowCapital != selectedShadowCapital
+            || freshSelection.financeCapital != selectedFinanceCapital) {
+          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL)
+            passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile,
+                                  dst = plan.siteB.town.tile, reason = "frontier_reselect",
+                                  extra = "economics" });
+          return { outcome = "reselect", discards = passDiscards,
+                   reselectReason = "economics", refreshEconomics = true };
+        }
+      }
+
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
       local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1) + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
       if (EQUIPMENT_ROI_PROBE) OpexM3ProbeAirEquipment(this._catalog, plan, "portfolio_selected");
-      local requiredMargin = AIR_MARGIN_V2
-          ? ((newAirports == 2) ? 15000 : (newAirports == 1 ? 6000 : 0))
-          : ((newAirports == 2) ? 30000 : (newAirports == 1 ? 12000 : 2000));
+      local requiredMargin = OpexAirProjectSafetyMargin(newAirports);
       local capital = ("capital" in plan) ? plan.capital : (newAirports * plan.airport.price + plan.plane.price);
       local need = capital + OpexCashReserve() + requiredMargin;
       if (money < need && REBORROW) money = OpexTryReborrow(need, money);
@@ -414,7 +439,7 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
         OpexSign(anchor, "SK|" + yy + "|" + earlyTownA + "|" + earlyTownB + "|"
                          + project.earlySlotBonusPct);
         if (DECISION_LOG) {
-          local earlyScoreKey = (TENSION_SCORING || SHADOW_PRICING) ? "tensionScore" : "fundScore";
+          local earlyScoreKey = "fundScore";
           local earlyBaseScore = project[earlyScoreKey];
           local earlyBoostedScore = OpexProjectSelectionScore(project, earlyScoreKey);
           local popA = ("earlySlotPopA" in project) ? project.earlySlotPopA : -1;
@@ -669,6 +694,98 @@ function OpexAirApplyLineAssessment(line, assessment)
   return true;
 }
 
+/* Frontier lifecycle P1 : une evaluation produit un VIVIER de transactions et non
+ * une cible durable. Le vivier est garde sur la ligne jusqu'a la prochaine
+ * invalidation afin que deux reconstructions successives du portefeuille voient
+ * exactement les memes occasions. Ne stocker ici que des scalaires serialisables :
+ * les tables economics contiennent des floats et ne doivent jamais entrer dans le
+ * save NoAI via line. */
+function OpexAirClearFrontierTransactions(line)
+{
+  if (line == null) return;
+  if ("airFrontierTransactions" in line) delete line["airFrontierTransactions"];
+  if ("airFrontierRevisionDate" in line) delete line["airFrontierRevisionDate"];
+  if ("airFrontierRevisionReason" in line) delete line["airFrontierRevisionReason"];
+}
+
+function OpexAirStoreFrontierTransactions(line, frontierOptions, now, reason)
+{
+  if (line == null) return 0;
+  local revision = ("airFrontierRevision" in line) ? line.airFrontierRevision + 1 : 1;
+  local transactions = [];
+  if (frontierOptions != null) {
+    foreach (option in frontierOptions) {
+      if (option == null) continue;
+      local payback = option.capitalCommitted > 0
+          ? OpexCeilDiv(option.capitalCommitted * 12, option.profitDeltaAnnual) : 0;
+      transactions.append({
+        kind = option.stepKind == "grow" ? "growth" : "upgrade",
+        want = 1,
+        targetEngine = option.targetEngine,
+        targetFleetSize = option.targetFleetSize,
+        retireOnly = option.retireOnly,
+        planePrice = option.planePrice,
+        cashRequired = option.cashRequired,
+        safetyMargin = option.safetyMargin,
+        capitalCommitted = option.capitalCommitted,
+        expectedResale = option.expectedResale,
+        transitDelta = option.transitDelta,
+        profitDeltaAnnual = option.profitDeltaAnnual,
+        profitAnnual = option.profitDeltaAnnual,
+        netCapital = option.capitalCommitted,
+        paybackMonths = payback,
+        planningOps = 0,
+        executionOps = PROJECT_ROAD_TRANSACTION_OPS,
+        frontierStepKind = option.stepKind,
+        frontierRevision = revision,
+        frontierTransaction = true,
+      });
+    }
+  }
+  line.rawset("airFrontierRevision", revision);
+  line.rawset("airFrontierRevisionDate", now);
+  line.rawset("airFrontierRevisionReason", reason);
+  line.rawset("airFrontierTransactions", transactions);
+  return transactions.len();
+}
+
+function OpexAirAppendFrontierTransactions(line, plan)
+{
+  if (line == null || plan == null || !("airFrontierTransactions" in line)
+      || line.airFrontierTransactions == null) return 0;
+  local revision = ("airFrontierRevision" in line) ? line.airFrontierRevision : 0;
+  local appended = 0;
+  foreach (transaction in line.airFrontierTransactions) {
+    if (transaction == null || !("frontierRevision" in transaction)
+        || transaction.frontierRevision != revision) continue;
+    plan.append({
+      kind = transaction.kind,
+      line = line,
+      want = transaction.want,
+      targetEngine = transaction.targetEngine,
+      targetFleetSize = transaction.targetFleetSize,
+      retireOnly = transaction.retireOnly,
+      planePrice = transaction.planePrice,
+      cashRequired = transaction.cashRequired,
+      safetyMargin = transaction.safetyMargin,
+      capitalCommitted = transaction.capitalCommitted,
+      expectedResale = transaction.expectedResale,
+      transitDelta = transaction.transitDelta,
+      profitDeltaAnnual = transaction.profitDeltaAnnual,
+      profitAnnual = transaction.profitAnnual,
+      netCapital = transaction.netCapital,
+      paybackMonths = transaction.paybackMonths,
+      planningOps = transaction.planningOps,
+      executionOps = transaction.executionOps,
+      frontierStepKind = transaction.frontierStepKind,
+      frontierRevision = transaction.frontierRevision,
+      frontierTransaction = true,
+    });
+    appended++;
+  }
+  return appended;
+}
+
 function OpexAI::_queueAirRetirement(line, vehicle, reason, replacementVehicle = -1)
 {
   if (line == null || !AIVehicle.IsValidVehicle(vehicle)) return false;
@@ -879,6 +996,11 @@ function OpexAI::_resizeAirFleets(year, plan = null)
         }
       }
       local dirty = ("airEquipmentDirty" in line) && line.airEquipmentDirty;
+      /* Une invalidation rend toute la revision precedente ineligible, meme si un
+       * objet project deja classe la reference encore. Le garde d'execution verifie
+       * aussi la revision : effacer ici fixe la duree de vie du cache a
+       * [evaluation, invalidation[. */
+      if (AIR_CAPITAL_FRONTIER && dirty) OpexAirClearFrontierTransactions(line);
       local lastEval = ("lastAirEquipmentEvalDate" in line) ? line.lastAirEquipmentEvalDate : 0;
       local periodic = lastEval <= 0 || (now - lastEval) >= AIR_EQUIPMENT_REEVAL_MONTHS * 30;
       if ((dirty || periodic) && (!commitmentLocksTarget || dirty)) {
@@ -891,7 +1013,22 @@ function OpexAI::_resizeAirFleets(year, plan = null)
         lifecycleEvalsThisPass++;
         local tick0 = AIController.GetTick();
         local ops0 = AIController.GetOpsTillSuspend();
-        local assessment = OpexAirAssessExistingLine(this._catalog, this._lines, line, evalReason);
+        local frontierOptions = null;
+        local hasPreviewCommitment = ("previewCommitment" in line) && line.previewCommitment != null;
+        local frontierReason = evalReason == "periodic" || evalReason == "engine_available"
+            || evalReason == "growth" || evalReason == "upgrade" || evalReason == "event"
+            || evalReason == "preview"
+            || evalReason == "frontier_step" || evalReason == "frontier_stale"
+            || evalReason == "frontier_failed"
+            || evalReason == "restore" || evalReason == "retire_rollback";
+        local useFrontierEval = AIR_CAPITAL_FRONTIER && frontierReason
+            && (!("needsRefleet" in line) || !line.needsRefleet);
+        local assessment = null;
+        if (useFrontierEval) {
+          frontierOptions = OpexAirExistingLineFrontier(this._catalog, this._lines, line, evalReason);
+        } else {
+          assessment = OpexAirAssessExistingLine(this._catalog, this._lines, line, evalReason);
+        }
         local tick1 = AIController.GetTick();
         local ops1 = AIController.GetOpsTillSuspend();
         local evalOps = tick1 == tick0 ? ops0 - ops1
@@ -911,6 +1048,43 @@ function OpexAI::_resizeAirFleets(year, plan = null)
         } else {
           AIR_LIFECYCLE_LEDGER.periodicEvaluations++;
           AIR_LIFECYCLE_LEDGER.periodicEvalOpcodes += evalOps;
+        }
+        if (useFrontierEval) {
+          line.rawset("lastAirEquipmentEvalDate", now);
+          line.rawset("airEquipmentDirty", false);
+          line.rawset("airEquipmentDirtyReason", "");
+          OpexAirStoreFrontierTransactions(line, frontierOptions, now, evalReason);
+          OpexAirAppendFrontierTransactions(line, plan);
+          /* Un preview n'est pas une seconde politique sous frontier. Une fois le
+           * vrai EngineID connu, le moteur commun doit retrouver cet engin dans la
+           * frontiere. L'engagement ne fait que suivre cette identite ; s'il n'y a
+           * plus de transaction positive pour elle, il est abandonne explicitement. */
+          if (hasPreviewCommitment && ("resolvedEngine" in line.previewCommitment)) {
+            local resolvedEngine = line.previewCommitment.resolvedEngine;
+            local previewAssessment = null;
+            if (frontierOptions != null) {
+              foreach (option in frontierOptions) {
+                if (option.targetEngine == resolvedEngine) {
+                  previewAssessment = option.assessment;
+                  break;
+                }
+              }
+            }
+            if (previewAssessment != null) {
+              this._resolveAirPreviewCommitment(line, resolvedEngine, previewAssessment, evalReason);
+            } else {
+              this._abandonAirPreviewCommitment(line, "not_preferred_by_common_engine", evalReason);
+            }
+          }
+          if (DECISION_LOG) {
+            OpexDecide("AIR_FRONTIER", "action=evaluate line=" + line.lineId
+                       + " cause=" + evalReason
+                       + " alternatives=" + (frontierOptions != null ? frontierOptions.len() : 0)
+                       + " ops=" + evalOps);
+          }
+          /* Les alternatives injectees remplacent pour CETTE ligne les chemins
+           * upgrade/growth historiques de la suite de la boucle. */
+          continue;
         }
         if (assessment.ok) {
           OpexAirApplyLineAssessment(line, assessment);
@@ -958,6 +1132,13 @@ function OpexAI::_resizeAirFleets(year, plan = null)
         }
       }
     }
+    /* Sous la frontiere, une cible n'est jamais une autorisation durable. Si la
+     * reevaluation demandee n'a pas pu s'executer (slot/opcodes), aucun ancien
+     * upgrade/growth persiste ne peut passer en dessous et contourner l'election. */
+    if (AIR_CAPITAL_FRONTIER && ("airEquipmentDirty" in line) && line.airEquipmentDirty) {
+      OpexAirFleetRefusal(line, year, "T");
+      continue;
+    }
     /* Reconstitution de crash : elle passe avant les gardes de croissance
      * (have=0, profit ancien negatif, cadence), sinon le dernier avion ne peut
      * jamais redevenir un template. OpexAirRefleetCrashedPlane reconstruit les
@@ -990,6 +1171,11 @@ function OpexAI::_resizeAirFleets(year, plan = null)
           line.rawset("vehCount", crashLive);
           line.rawset("trains", crashLive);
           line.needsRefleet = false;
+          if (AIR_CAPITAL_FRONTIER) {
+            OpexAirClearFrontierTransactions(line);
+            line.rawset("airEquipmentDirty", true);
+            line.rawset("airEquipmentDirtyReason", "frontier_step");
+          }
           if (DECISION_LOG || C52_CRASH_LOG) {
             OpexDecide("CRASH_REFLEET", "mode=air line=" + line.lineId
                        + " action=skip_target_reached live=" + crashLive
@@ -1032,6 +1218,11 @@ function OpexAI::_resizeAirFleets(year, plan = null)
           }
           line.rawset("currentPrimaryEngine", OpexAirCurrentPrimaryEngine(line));
           AIR_LIFECYCLE_LEDGER.crashExecuted++;
+          if (AIR_CAPITAL_FRONTIER) {
+            OpexAirClearFrontierTransactions(line);
+            line.rawset("airEquipmentDirty", true);
+            line.rawset("airEquipmentDirtyReason", "frontier_step");
+          }
         }
         if (DECISION_LOG || C52_CRASH_LOG) {
           OpexDecide("CRASH_REFLEET", "mode=air line=" + line.lineId + " vehicle=" + line.vehicle);
@@ -1039,6 +1230,20 @@ function OpexAI::_resizeAirFleets(year, plan = null)
       } else {
         OpexAirFleetRefusal(line, year, "R");
       }
+      continue;
+    }
+    /* Sous la nouvelle politique, une ligne propre ne retombe JAMAIS sur
+     * upgradePending/targetProfitAnnual. Sa derniere frontiere reste son unique
+     * representation dans le portefeuille jusqu'a invalidation. Une frontiere
+     * vide est elle aussi une decision durable : elle emet zero transaction. */
+    if (AIR_CAPITAL_FRONTIER) {
+      if (!("airFrontierTransactions" in line) || line.airFrontierTransactions == null) {
+        line.rawset("airEquipmentDirty", true);
+        line.rawset("airEquipmentDirtyReason", "frontier_stale");
+        OpexAirFleetRefusal(line, year, "T");
+        continue;
+      }
+      OpexAirAppendFrontierTransactions(line, plan);
       continue;
     }
     /* C15 : Cadence d'extension de flotte aerienne.
@@ -1365,6 +1570,98 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     OpexSign(AIMap.GetTileIndex(11, 8), "AL9|" + AIR_LIFECYCLE_LEDGER.upgradeEvaluations + "|"
              + AIR_LIFECYCLE_LEDGER.restoreEvaluations);
     OpexSign(AIMap.GetTileIndex(9, 9), "AQ|" + paretoRaw + "|" + paretoKept + "|" + paretoPruned);
+    if (AIR_CAPITAL_FRONTIER_PROBE) {
+      OpexSign(AIMap.GetTileIndex(12, 8), "CF0|" + AIR_CAPITAL_FRONTIER_LEDGER.routeRaw + "|"
+               + AIR_CAPITAL_FRONTIER_LEDGER.routeKept + "|"
+               + AIR_CAPITAL_FRONTIER_LEDGER.lifecycleRaw + "|"
+               + AIR_CAPITAL_FRONTIER_LEDGER.lifecycleKept);
+      OpexSign(AIMap.GetTileIndex(13, 8), "CF1|" + AIR_CAPITAL_FRONTIER_LEDGER.selected + "|"
+               + AIR_CAPITAL_FRONTIER_LEDGER.replaceSelected + "|"
+               + AIR_CAPITAL_FRONTIER_LEDGER.growSelected + "|"
+               + AIR_CAPITAL_FRONTIER_LEDGER.retireSelected);
+      // CF2/CF4 gardent un zero reserve pour le format des anciens diagnostics.
+      OpexSign(AIMap.GetTileIndex(14, 8), "CF2|" + AIR_CAPITAL_FRONTIER_LEDGER.staleRejected + "|"
+               + AIR_CAPITAL_FRONTIER_LEDGER.cashRejected + "|"
+               + AIR_CAPITAL_FRONTIER_LEDGER.failedRejected + "|"
+               + 0);
+      OpexSign(AIMap.GetTileIndex(15, 8), "CF3|" + AIR_CAPITAL_FRONTIER_LEDGER.portfolioRaw + "|"
+               + AIR_CAPITAL_FRONTIER_LEDGER.portfolioAffordable + "|"
+               + AIR_CAPITAL_FRONTIER_LEDGER.portfolioTopSelections + "|"
+               + AIR_CAPITAL_FRONTIER_LEDGER.portfolioTopAirSelections);
+      OpexSign(AIMap.GetTileIndex(16, 8), "CF4|"
+               + 0 + "|"
+               + (AIR_CAPITAL_FRONTIER_LEDGER.portfolioTopCapital / 1000) + "|"
+               + (AIR_CAPITAL_FRONTIER_LEDGER.portfolioTopProfit / 1000));
+      OpexSign(AIMap.GetTileIndex(24, 8), "CF12|"
+               + AIR_CAPITAL_FRONTIER_LEDGER.assignCalls + "|"
+               + AIR_CAPITAL_FRONTIER_LEDGER.assignExternalityOps + "|"
+               + AIR_CAPITAL_FRONTIER_LEDGER.assignBuildOps + "|"
+               + AIR_CAPITAL_FRONTIER_LEDGER.assignScoreOps);
+      OpexSign(AIMap.GetTileIndex(27, 8), "CF15|"
+               + AIR_CAPITAL_FRONTIER_LEDGER.capitalPriceSamples + "|"
+               + AIR_CAPITAL_FRONTIER_LEDGER.capitalPricePositiveSamples + "|"
+               + AIR_CAPITAL_FRONTIER_LEDGER.capitalPriceBpsSum + "|"
+               + AIR_CAPITAL_FRONTIER_LEDGER.capitalPriceBpsMax + "|"
+               + AIR_CAPITAL_FRONTIER_LEDGER.capitalPriceFullDemandK + "|"
+               + AIR_CAPITAL_FRONTIER_LEDGER.capitalPriceBudgetK);
+    }
+    if (AIR_CAPITAL_FRONTIER && AIR_BEST_EQUIPMENT) {
+      OpexSign(AIMap.GetTileIndex(28, 8), "CF16|"
+               + AIR_SELECTION_LEDGER.calls + "|" + AIR_SELECTION_LEDGER.productionCalls + "|"
+               + AIR_SELECTION_LEDGER.diagnosticCalls + "|"
+               + AIR_SELECTION_LEDGER.diagnosticCounterfactualCalls);
+      OpexSign(AIMap.GetTileIndex(29, 8), "CF17|"
+               + AIR_SELECTION_LEDGER.generationCalls + "|"
+               + AIR_SELECTION_LEDGER.lifecycleCalls + "|"
+               + AIR_SELECTION_LEDGER.budgetReselectCalls + "|"
+               + AIR_SELECTION_LEDGER.dynamicBatchCalls + "|"
+               + AIR_SELECTION_LEDGER.executionCalls);
+      OpexSign(AIMap.GetTileIndex(30, 8), "CF18|"
+               + AIR_SELECTION_LEDGER.productionOps + "|" + AIR_SELECTION_LEDGER.productionDays + "|"
+               + AIR_SELECTION_LEDGER.diagnosticOps + "|" + AIR_SELECTION_LEDGER.diagnosticDays);
+      OpexSign(AIMap.GetTileIndex(31, 8), "CF19|"
+               + AIR_SELECTION_LEDGER.externalityOps + "|"
+               + AIR_SELECTION_LEDGER.relaxationOps + "|"
+               + AIR_SELECTION_LEDGER.rankingOps);
+      OpexSign(AIMap.GetTileIndex(32, 8), "CF20|"
+               + AIR_SELECTION_LEDGER.externalityDays + "|"
+               + AIR_SELECTION_LEDGER.relaxationDays + "|"
+               + AIR_SELECTION_LEDGER.rankingDays);
+      OpexSign(AIMap.GetTileIndex(33, 8), "CF21|"
+               + AIR_SELECTION_LEDGER.prepareOps + "|" + AIR_SELECTION_LEDGER.prepareDays + "|"
+               + AIR_SELECTION_LEDGER.preparedBuilds + "|" + AIR_SELECTION_LEDGER.preparedHits);
+      OpexSign(AIMap.GetTileIndex(34, 8), "CF22|"
+               + AIR_SELECTION_LEDGER.envelopeBuilds + "|" + AIR_SELECTION_LEDGER.envelopeHits + "|"
+               + AIR_SELECTION_LEDGER.externalityCacheHits);
+      OpexSign(AIMap.GetTileIndex(35, 8), "CF23|"
+               + AIR_SELECTION_LEDGER.diagnosticPrepareOps + "|"
+               + AIR_SELECTION_LEDGER.diagnosticExternalityOps + "|"
+               + AIR_SELECTION_LEDGER.diagnosticRelaxationOps + "|"
+               + AIR_SELECTION_LEDGER.diagnosticRankingOps);
+      OpexSign(AIMap.GetTileIndex(36, 8), "CF24|"
+               + AIR_SELECTION_LEDGER.diagnosticPrepareDays + "|"
+               + AIR_SELECTION_LEDGER.diagnosticExternalityDays + "|"
+               + AIR_SELECTION_LEDGER.diagnosticRelaxationDays + "|"
+               + AIR_SELECTION_LEDGER.diagnosticRankingDays);
+      /* TEMP_GROW_COMPARE_BEGIN: repurpose CF25..27 for one diagnostic run. */
+      OpexSign(AIMap.GetTileIndex(37, 8), "CF25|"
+               + AIR_CAPITAL_FRONTIER_LEDGER.growCompareSamples + "|"
+               + AIR_CAPITAL_FRONTIER_LEDGER.growCompareTopAir + "|"
+               + (AIR_CAPITAL_FRONTIER_LEDGER.growCompareGrowProfit / 1000) + "|"
+               + (AIR_CAPITAL_FRONTIER_LEDGER.growCompareGrowCapital / 1000));
+      OpexSign(AIMap.GetTileIndex(38, 8), "CF26|"
+               + (AIR_CAPITAL_FRONTIER_LEDGER.growCompareGrowScore / 1000) + "|"
+               + (AIR_CAPITAL_FRONTIER_LEDGER.growCompareTopProfit / 1000) + "|"
+               + (AIR_CAPITAL_FRONTIER_LEDGER.growCompareTopCapital / 1000));
+      OpexSign(AIMap.GetTileIndex(39, 8), "CF27|"
+               + (AIR_CAPITAL_FRONTIER_LEDGER.growCompareTopScore / 1000) + "|0|"
+               + AIR_SELECTION_LEDGER.coverMissing + "|" + AIR_SELECTION_LEDGER.coverBudgetBelow + "|"
+               + AIR_SELECTION_LEDGER.coverBudgetAbove + "|"
+               + AIR_SELECTION_LEDGER.coverRawStateMismatch + "|"
+               + AIR_SELECTION_LEDGER.coverSemanticHits + "|"
+               + AIR_SELECTION_LEDGER.coverStateMismatch);
+      /* TEMP_GROW_COMPARE_END */
+    }
   }
   return true;
 }
