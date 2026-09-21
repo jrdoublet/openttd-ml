@@ -250,7 +250,6 @@ function OpexAI::_logC49ScarcityLedger(year)
   }
   /* Egalite : ne pas remplacer le regime precedent, hysteresis sans constante. */
   this._c49ScarcityRegime = regime;
-  ::C49_CURRENT_REGIME = regime;
   OpexC49ScarcityLog("phase=annual year=" + year + " passes=" + entry.passes
       + " cash=" + entry.cash + " vehicles=" + entry.vehicles + " site=" + entry.site
       + " decision_attempted=" + entry.decision_attempted

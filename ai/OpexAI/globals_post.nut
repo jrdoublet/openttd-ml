@@ -122,11 +122,6 @@ PORTFOLIO_REFRESH_PROBE_REFRESH_COUNT <- 0;
  * moment. Repli 0 (= tri au seul ratio) jusqu'a la lecture de portfolio_floor_pct dans Start().
  * Voir projects.nut::OpexProjectSelectAffordable pour le mecanisme et la mesure qui l'impose. */
 PORTFOLIO_FLOOR_PCT <- 0;
-/* A1 (docs/taches.md A1, Option A) : classement du portefeuille par vecteur de tension de Liebig. */
-TENSION_SCORING <- false;
-TENSION_DECISION_FRICTION <- 0.05;
-/* C35.3 (docs/taches.md C35.3) : coût réduit à prix d'ombre dual. */
-SHADOW_PRICING <- false;
 /* Correctifs de flotte (revue flotte et entretien, docs/taches.md S0 nonies) : repli FAUX jusqu'a
  * la lecture unique de fleet_fix dans Start(). Defaut 0 : chemin historique inchange. Sous 1,
  * deux defauts mesures tombent ensemble --

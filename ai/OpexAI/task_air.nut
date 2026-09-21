@@ -363,7 +363,7 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
         OpexSign(anchor, "SK|" + yy + "|" + earlyTownA + "|" + earlyTownB + "|"
                          + project.earlySlotBonusPct);
         if (DECISION_LOG) {
-          local earlyScoreKey = (TENSION_SCORING || SHADOW_PRICING) ? "tensionScore" : "fundScore";
+          local earlyScoreKey = "fundScore";
           local earlyBaseScore = project[earlyScoreKey];
           local earlyBoostedScore = OpexProjectSelectionScore(project, earlyScoreKey);
           local popA = ("earlySlotPopA" in project) ? project.earlySlotPopA : -1;

@@ -861,7 +861,7 @@ function OpexAI::_continueRailSearch()
           if (p == null || p.capital > available) continue;
           bestRank = i;
           bestMode = p.mode;
-          bestScore = ((TENSION_SCORING || SHADOW_PRICING) && ("tensionScore" in p)) ? p.tensionScore : p.budgetScore;
+          bestScore = p.budgetScore;
           bestCost = p.capital;
           break;
         }

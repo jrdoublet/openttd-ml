@@ -49,9 +49,8 @@ function OpexLogPortfolioRank(projects)
     local p = projects.best[i];
     if (p == null) continue;
     local cargoStr = ("cargo" in p && p.cargo >= 0) ? AICargo.GetCargoLabel(p.cargo) : "none";
-    local legacyScore = ((TENSION_SCORING || SHADOW_PRICING) && ("tensionScore" in p))
-        ? p.tensionScore : p.budgetScore;
-    local rankKey = (TENSION_SCORING || SHADOW_PRICING) ? "tensionScore" : "fundScore";
+    local legacyScore = p.budgetScore;
+    local rankKey = "fundScore";
     local rawRankScore = (rankKey in p) ? p[rankKey] : p.budgetScore;
     local rankScore = (AIR_EARLY_SLOT && (rankKey in p))
         ? OpexProjectSelectionScore(p, rankKey) : rawRankScore;
@@ -104,9 +103,8 @@ function OpexLogPortfolioRankWithTension(projects)
     local p = projects.best[i];
     if (p == null) continue;
     local cargoStr = ("cargo" in p && p.cargo >= 0) ? AICargo.GetCargoLabel(p.cargo) : "none";
-    local legacyScore = ((TENSION_SCORING || SHADOW_PRICING) && ("tensionScore" in p))
-        ? p.tensionScore : p.budgetScore;
-    local rankKey = (TENSION_SCORING || SHADOW_PRICING) ? "tensionScore" : "fundScore";
+    local legacyScore = p.budgetScore;
+    local rankKey = "fundScore";
     local rawRankScore = (rankKey in p) ? p[rankKey] : p.budgetScore;
     local rankScore = (AIR_EARLY_SLOT && (rankKey in p))
         ? OpexProjectSelectionScore(p, rankKey) : rawRankScore;
@@ -171,36 +169,6 @@ function OpexProjectScore(value, cost)
 {
   if (value <= 0 || cost <= 0) return 0.0;
   return (value.tofloat() * 1000.0) / cost;
-}
-
-/* C49 etape 2 : score unifie selon le regime de rarete endogene actif. */
-function OpexC49ProjectScore(project, regime)
-{
-  if (project == null) return 0.0;
-  local profit = ("profitAnnual" in project) ? project.profitAnnual : 0;
-  if (profit <= 0) return 0.0;
-  local cap = OpexProjectFinanceCapital(project);
-  if (cap <= 0) return 0.0;
-
-  if (regime == "cash") {
-    return (profit.tofloat() * 1000.0) / cap;
-  }
-  if (regime == "decision") {
-    local sqrtCap = sqrt(cap.tofloat());
-    if (sqrtCap <= 0.0) return 0.0;
-    return (profit.tofloat() * 1000.0) / sqrtCap;
-  }
-  if (regime == "vehicles") {
-    local vehs = OpexTensionProjectVehicleCount(project);
-    if (vehs < 1) vehs = 1;
-    return (profit.tofloat() * 1000.0) / vehs;
-  }
-  if (regime == "site") {
-    local orig = OpexTensionProjectOriginCount(project);
-    if (orig < 1) orig = 1;
-    return (profit.tofloat() * 1000.0) / orig;
-  }
-  return (profit.tofloat() * 1000.0) / cap;
 }
 
 /* P1 : cout a comparer a la tresorerie mobilisable. `budgetCapital` reste le
@@ -306,7 +274,7 @@ function OpexPrequoteRailCandidates(catalog, budget, rail)
   return result;
 }
 
-function OpexProjectFromCandidate(candidate, tensionCtx = null)
+function OpexProjectFromCandidate(candidate)
 {
   if (candidate == null || candidate.profitAnnual <= 0 || candidate.revenueAnnual <= 0 ||
       candidate.capital <= 0) return null;
@@ -369,11 +337,6 @@ function OpexProjectFromCandidate(candidate, tensionCtx = null)
   /* B6 : conserver les composantes de pre-classement comme mesures seulement. */
   project.turnoverBonus <- ("turnoverBonus" in candidate) ? candidate.turnoverBonus : 100;
   project.generationRatio <- ("ratio" in candidate) ? candidate.ratio : 0;
-  project.tensionScore <- ((TENSION_SCORING || SHADOW_PRICING) && tensionCtx != null)
-      ? OpexTensionScore(project, tensionCtx)
-      : project.budgetScore;
-  project.tensionRegime <- ((TENSION_SCORING || SHADOW_PRICING) && tensionCtx != null && ("regime" in tensionCtx))
-      ? tensionCtx.regime : "none";
   return project;
 }
 
@@ -388,7 +351,7 @@ function OpexProjectFromCandidate(candidate, tensionCtx = null)
  * Profit marginal : on prefere le profit REALISE par appareil quand la ligne en a un ; sinon on
  * retombe sur sa prediction (predRevenue - predRunning) par appareil. Sans ce repli, aucune ligne
  * de moins d'un an ne produirait de projet de flotte -- or l'annee 1 est precisement la cible. */
-function OpexProjectFromFleet(entry, tensionCtx = null)
+function OpexProjectFromFleet(entry)
 {
   if (entry == null || entry.want <= 0 || entry.planePrice <= 0) return null;
   local line = entry.line;
@@ -430,15 +393,10 @@ function OpexProjectFromFleet(entry, tensionCtx = null)
     /* B6/06.11 diagnostic-only: horodate l'economie mise en cache. */
     economicsDate = AIDate.GetCurrentDate(),
   };
-  project.tensionScore <- ((TENSION_SCORING || SHADOW_PRICING) && tensionCtx != null)
-      ? OpexTensionScore(project, tensionCtx)
-      : project.budgetScore;
-  project.tensionRegime <- ((TENSION_SCORING || SHADOW_PRICING) && tensionCtx != null && ("regime" in tensionCtx))
-      ? tensionCtx.regime : "none";
   return project;
 }
 
-function OpexProjectFromAir(catalog, plan, planningOps, tensionCtx = null)
+function OpexProjectFromAir(catalog, plan, planningOps)
 {
   if (plan == null || !("economics" in plan)) return null;
   local economics = plan.economics;
@@ -467,15 +425,10 @@ function OpexProjectFromAir(catalog, plan, planningOps, tensionCtx = null)
     planningOpcodes = planningOps,
     economicsDate = AIDate.GetCurrentDate(),
   };
-  project.tensionScore <- ((TENSION_SCORING || SHADOW_PRICING) && tensionCtx != null)
-      ? OpexTensionScore(project, tensionCtx)
-      : project.budgetScore;
-  project.tensionRegime <- ((TENSION_SCORING || SHADOW_PRICING) && tensionCtx != null && ("regime" in tensionCtx))
-      ? tensionCtx.regime : "none";
   return project;
 }
 
-function OpexProjectFromWater(catalog, plan, planningOps, tensionCtx = null)
+function OpexProjectFromWater(catalog, plan, planningOps)
 {
   if (plan == null || !("economics" in plan)) return null;
   local economics = plan.economics;
@@ -500,11 +453,6 @@ function OpexProjectFromWater(catalog, plan, planningOps, tensionCtx = null)
      * permet de mesurer 06.11 au meme titre que rail/route. */
     economicsDate = AIDate.GetCurrentDate(),
   };
-  project.tensionScore <- ((TENSION_SCORING || SHADOW_PRICING) && tensionCtx != null)
-      ? OpexTensionScore(project, tensionCtx)
-      : project.budgetScore;
-  project.tensionRegime <- ((TENSION_SCORING || SHADOW_PRICING) && tensionCtx != null && ("regime" in tensionCtx))
-      ? tensionCtx.regime : "none";
   return project;
 }
 
@@ -668,19 +616,13 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
 
   local affordable = [];
   local earlySlotState = AIR_EARLY_SLOT ? OpexEarlySlotSelectionState() : null;
-  local scoreKey = (TENSION_SCORING || SHADOW_PRICING) ? "tensionScore" : "fundScore";
+  local scoreKey = "fundScore";
   foreach (project in alternatives) {
     local financeCapital = OpexProjectFinanceCapital(project);
     if (financeCapital > capitalBudget) continue;
     if (project.profitAnnual < floorProfit) continue;
     if (AIR_EARLY_SLOT) OpexProjectRefreshEarlySlot(project, earlySlotState);
-    if (!TENSION_SCORING && !SHADOW_PRICING) {
-      if (C49_VARIABLE_DENOMINATOR) {
-        project.fundScore <- OpexC49ProjectScore(project, C49_CURRENT_REGIME);
-      } else {
-        project.fundScore <- OpexProjectScore(project.profitAnnual, financeCapital);
-      }
-    }
+    project.fundScore <- OpexProjectScore(project.profitAnnual, financeCapital);
     OpexProjectInsert(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
   }
   /* Filet de securite : si le plancher a tout ecarte -- il ne le peut pas puisque le meilleur
@@ -692,13 +634,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
       local financeCapital = OpexProjectFinanceCapital(project);
       if (financeCapital > capitalBudget) continue;
       if (AIR_EARLY_SLOT) OpexProjectRefreshEarlySlot(project, earlySlotState);
-      if (!TENSION_SCORING && !SHADOW_PRICING) {
-        if (C49_VARIABLE_DENOMINATOR) {
-          project.fundScore <- OpexC49ProjectScore(project, C49_CURRENT_REGIME);
-        } else {
-          project.fundScore <- OpexProjectScore(project.profitAnnual, financeCapital);
-        }
-      }
+      project.fundScore <- OpexProjectScore(project.profitAnnual, financeCapital);
       OpexProjectInsert(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
     }
   }
@@ -717,10 +653,6 @@ function OpexProjectSelectionScore(project, field)
   local bonusPct = project.earlySlotBonusPct;
   if (bonusPct <= 0) return score;
   local factor = (100.0 + bonusPct.tofloat()) / 100.0;
-  /* Un score plus grand est toujours meilleur. En shadow pricing, tensionScore
-   * peut etre negatif : le multiplier le rendrait plus negatif et inverserait
-   * la prime. Le rapprocher de zero preserve le sens du bonus. */
-  if (score < 0) return score / factor;
   return score * factor;
 }
 
@@ -1464,9 +1396,7 @@ function OpexB6LogRepricedFreightTop(catalog, lines, funded, recycledKeys, capit
       ? OpexProjectSelectionScore(runner, "fundScore") : 0.0;
   local runnerRevenue = runner != null ? runner.revenueAnnual : 0;
   local decision = "unsupported";
-  if (TENSION_SCORING || SHADOW_PRICING || C49_VARIABLE_DENOMINATOR) {
-    decision = "unsupported_scoring";
-  } else if (fresh.status == "ok") {
+  if (fresh.status == "ok") {
     if (freshFinance > capitalBudget) decision = "change_unaffordable";
     else if (runner == null) decision = "keep";
     else if (freshScore > runnerScore) decision = "keep";
@@ -1544,11 +1474,6 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
     knapsackExact = false,
   };
 
-  local tensionCtx = null;
-  if (TENSION_SCORING || SHADOW_PRICING) {
-    tensionCtx = OpexTensionContext(projects);
-  }
-
   local newWinners = {};
   local recycledKeys = {};
   local cacheScanned = 0;
@@ -1588,7 +1513,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   /* 2. Injection des projets de croissance de flotte (refleet) frais */
   if (FLEET_PORTFOLIO && fleetPlan != null) {
     foreach (entry in fleetPlan) {
-      local p = OpexProjectFromFleet(entry, tensionCtx);
+      local p = OpexProjectFromFleet(entry);
       if (p != null) {
         OpexProjectRememberAll(newWinners, p, stats);
       }
@@ -1601,7 +1526,7 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
     OpexAirPlans(catalog, lines, 0, freshAirPlans, abandonedPairs);
     local airOpsPerPlan = (freshAirPlans.len() > 0) ? (PROJECT_AIR_TRANSACTION_OPS / freshAirPlans.len()) : PROJECT_AIR_TRANSACTION_OPS;
     foreach (plan in freshAirPlans) {
-      local p = OpexProjectFromAir(catalog, plan, airOpsPerPlan, tensionCtx);
+      local p = OpexProjectFromAir(catalog, plan, airOpsPerPlan);
       if (p != null) {
         OpexProjectRememberAll(newWinners, p, stats);
       }
@@ -1714,21 +1639,21 @@ function OpexCloneCandidateGroups(source)
 function OpexStagedCandidateStillValid(candidate, lines, abandonedPairs = null)
 {
   if (candidate == null) return false;
-  local project = OpexProjectFromCandidate(candidate, null);
+  local project = OpexProjectFromCandidate(candidate);
   return project != null && OpexIncrementalCandidateStillValid(project, lines, abandonedPairs);
 }
 
 function OpexStagedAirPlanStillValid(catalog, plan, lines, abandonedPairs = null)
 {
   if (plan == null) return false;
-  local project = OpexProjectFromAir(catalog, plan, 0, null);
+  local project = OpexProjectFromAir(catalog, plan, 0);
   return project != null && OpexIncrementalCandidateStillValid(project, lines, abandonedPairs);
 }
 
 function OpexStagedWaterPlanStillValid(catalog, plan, lines, abandonedPairs = null)
 {
   if (plan == null) return false;
-  local project = OpexProjectFromWater(catalog, plan, 0, null);
+  local project = OpexProjectFromWater(catalog, plan, 0);
   return project != null && OpexIncrementalCandidateStillValid(project, lines, abandonedPairs);
 }
 
@@ -2043,83 +1968,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
 
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "c56_stage_assembly", "-");
   local winners = {};
-  local tensionCtx = null;
-  if (TENSION_SCORING || SHADOW_PRICING) {
-    local projMap = { rail = rail, road = road, airPlans = airPlans, waterPlans = waterPlans, fleetPlan = fleetPlan };
-    tensionCtx = OpexTensionContext(projMap);
-    if (SHADOW_PRICING) {
-      local allProjects = [];
-      if (rail != null && ("candidates" in rail)) {
-        foreach (candidate in rail.candidates) {
-          local p = OpexProjectFromCandidate(candidate, null);
-          if (p != null) allProjects.append(p);
-        }
-      }
-      if (road != null && ("candidates" in road)) {
-        foreach (candidate in road.candidates) {
-          local p = OpexProjectFromCandidate(candidate, null);
-          if (p != null) allProjects.append(p);
-        }
-      }
-      if (airPlans != null) {
-        foreach (plan in airPlans) {
-          local p = OpexProjectFromAir(catalog, plan, airOpsPerPlan, null);
-          if (p != null) allProjects.append(p);
-        }
-      }
-      if (waterPlans != null) {
-        foreach (plan in waterPlans) {
-          local p = OpexProjectFromWater(catalog, plan, waterOpsPerPlan, null);
-          if (p != null) allProjects.append(p);
-        }
-      }
-      if (fleetPlan != null) {
-        foreach (entry in fleetPlan) {
-          local p = OpexProjectFromFleet(entry, null);
-          if (p != null) allProjects.append(p);
-        }
-      }
-      foreach (candidate in subCandidates) {
-        local p = OpexProjectFromCandidate(candidate, null);
-        if (p != null) allProjects.append(p);
-      }
-      local shadowPrices = OpexTensionComputeShadowPrices(tensionCtx, allProjects, capitalBudget);
-      tensionCtx.shadowPrices <- shadowPrices;
-      tensionCtx.regime <- "shadow";
-      tensionCtx.dominant <- "shadow";
-      if (DECISION_LOG) {
-        OpexDecide("SHADOW_PRICES", "lambda_argent=" + shadowPrices.argent
-                   + " lambda_ops=" + shadowPrices.opcodes
-                   + " lambda_foncier=" + shadowPrices.foncier
-                   + " lambda_slots_road=" + shadowPrices.slots.road
-                   + " lambda_slots_air=" + shadowPrices.slots.air
-                   + " lambda_slots_rail=" + shadowPrices.slots.rail
-                   + " b_argent=" + shadowPrices.budgetArgent
-                   + " b_ops=" + shadowPrices.budgetOps
-                   + " b_foncier=" + shadowPrices.budgetFoncier);
-      }
-      foreach (p in allProjects) {
-        local score = OpexReducedCostScore(p, shadowPrices);
-        p.tensionScore = score;
-        p.shadowScore <- score;
-        p.tensionRegime = "shadow";
-        OpexProjectRememberAll(winners, p, stats);
-      }
-    } else {
-      /* C35.2 : le score continu lit le vecteur propre a chaque projet. Ne pas
-       * choisir ici une formule unique a partir d'un argmax macro : foncier >= 1
-       * rendait cette bascule presque toujours egale au profit brut et perdait
-       * l'information des trois autres tensions. */
-      tensionCtx.regime <- "continuous";
-      tensionCtx.dominant <- "project";
-      if (DECISION_LOG) {
-        OpexDecide("TENSION_REGIME", "regime=continuous dominant=project");
-      }
-    }
-  }
-
   local abandonFiltered = 0;
-  if (!SHADOW_PRICING) {
     local railInsertMark = railProfile != null ? OpexOpsMeasureBegin() : null;
     local railProjectsBefore = stats.modeCandidates;
     foreach (candidate in rail.candidates) {
@@ -2127,7 +1976,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
         abandonFiltered++;
         continue;
       }
-      OpexProjectRememberAll(winners, OpexProjectFromCandidate(candidate, tensionCtx), stats);
+      OpexProjectRememberAll(winners, OpexProjectFromCandidate(candidate), stats);
     }
     if (railProfile != null) {
       railProfile.insertOps = OpexOpsMeasureEnd(railInsertMark);
@@ -2138,17 +1987,17 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
         abandonFiltered++;
         continue;
       }
-      OpexProjectRememberAll(winners, OpexProjectFromCandidate(candidate, tensionCtx), stats);
+      OpexProjectRememberAll(winners, OpexProjectFromCandidate(candidate), stats);
     }
     foreach (plan in airPlans) {
-      OpexProjectRememberAll(winners, OpexProjectFromAir(catalog, plan, airOpsPerPlan, tensionCtx), stats);
+      OpexProjectRememberAll(winners, OpexProjectFromAir(catalog, plan, airOpsPerPlan), stats);
     }
     foreach (plan in waterPlans) {
-      OpexProjectRememberAll(winners, OpexProjectFromWater(catalog, plan, waterOpsPerPlan, tensionCtx), stats);
+      OpexProjectRememberAll(winners, OpexProjectFromWater(catalog, plan, waterOpsPerPlan), stats);
     }
     if (fleetPlan != null) {
       foreach (entry in fleetPlan) {
-        OpexProjectRememberAll(winners, OpexProjectFromFleet(entry, tensionCtx), stats);
+        OpexProjectRememberAll(winners, OpexProjectFromFleet(entry), stats);
       }
     }
     foreach (candidate in subCandidates) {
@@ -2156,9 +2005,8 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
         abandonFiltered++;
         continue;
       }
-      OpexProjectRememberAll(winners, OpexProjectFromCandidate(candidate, tensionCtx), stats);
+      OpexProjectRememberAll(winners, OpexProjectFromCandidate(candidate), stats);
     }
-  }
 
   local funded = null;
   local opsMark = OpexOpsMeasureBegin();

@@ -218,9 +218,6 @@ C39_PASS_CLOCK_LEDGER <- false;
  * Le repli 0 ne doit atteindre ni lecture de tresorerie finale, ni plafond de vehicules, ni
  * allocation de ledger. */
 C49_SCARCITY_LEDGER <- false;
-/* C49 etape 2 : denominateur variable selon la rarete endogene. */
-C49_VARIABLE_DENOMINATOR <- false;
-C49_CURRENT_REGIME <- "cash";
 /* C55 etape 1 : mesure seule du filtre OR route. Le ledger est nul hors sonde. */
 C55_ORIGIN_RELAX_PROBE <- false;
 C55_ORIGIN_RELAX_LEDGER <- null;

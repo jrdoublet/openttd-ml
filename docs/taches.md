@@ -1802,5 +1802,5 @@ Suite logique du regroupement des sondes :
 - **~60 réglages adoptés regroupés en 8 macro-politiques `policy_*`** (`policy_caches`, `policy_feeders`, `policy_rail`, `policy_road`, `policy_air`, `policy_abandon`, `policy_portfolio`, `policy_vehicle_events`).
 - **`air_early_slot` basculé à 1 par défaut** dans `info.nut` (alignement sur la décision du 2026-09-15).
 - Surface exposée de `info.nut` réduite de **169 à 44 paramètres** (-1870 lignes nettes).
+- **C46, C48 et le scoring tension/shadow pricing ont été retirés du code** : seuls les chemins legacy déjà actifs restent exécutables.
 - 119 tests unitaires passés ; équivalence bit-à-bit vérifiée par smoke test Docker.
-

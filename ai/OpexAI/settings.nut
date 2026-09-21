@@ -206,9 +206,6 @@ function OpexLoadSettings()
   // 8. probe_portfolio : scarcity, chronology, invest C63, funnel, tension, reserves, origin relax, town rating
   local probePort = AIController.GetSetting("probe_portfolio") != 0;
   C49_SCARCITY_LEDGER = probePort;
-  if (C49_SCARCITY_LEDGER) {
-    ::C49_CURRENT_REGIME = "cash";
-  }
   C50_CHRONOLOGY_PROBE = probePort;
   if (C50_CHRONOLOGY_PROBE) {
     OpexC50ResetNonExpansionLedger();
@@ -310,9 +307,6 @@ function OpexLoadSettings()
   DYNAMIC_BATCH_REJECT_LIMIT = 3;
   DYNAMIC_BATCH_OPS_BUDGET_PCT = 50;
   PORTFOLIO_FLOOR_PCT = 0;
-  TENSION_SCORING = false;
-  SHADOW_PRICING = false;
-  TENSION_DECISION_FRICTION = 0.0;
   FLAT_BONUS = false;
   ROAD_CHEAP_TRACE = false;
   ROAD_MULTISTOP = false;
@@ -321,7 +315,6 @@ function OpexLoadSettings()
   ROAD_TIME_SCALED_CAP = AIController.GetSetting("road_time_scaled_cap") != 0;
   C50B_ROAD_CAP_RELAX = false;
   C50B_RAIL_BACKLOG_RELAX = false;
-  C49_VARIABLE_DENOMINATOR = false;
   C55_FREIGHT_ORIGIN_RELAX = false;
   C55_ROAD_ORIGIN_RELAX = false;
   C55_ROAD_PAX_ORIGIN_RELAX = false;
