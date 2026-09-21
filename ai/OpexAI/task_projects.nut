@@ -352,16 +352,6 @@ function OpexAI::_tryBuildProjects(year)
   local c49Best = null;
   local c49BuiltRanks = null;
   local c49AttemptedRanks = null;
-  local c48PassMark = null;
-  local c48BestLen = 0;
-  local c48MaxRank = -1;
-  local c48AttemptsTotal = 0;
-  local c48BuiltThisPass = false;
-  if (C48_PROJECT_ATTEMPT_LEDGER) {
-    c48PassMark = OpexOpsMeasureBegin();
-    c48BestLen = (this._projects != null && this._projects.best != null)
-        ? this._projects.best.len() : 0;
-  }
   /* C38 : l'etat ne nait que pour le bras experimental. Il survivra a un A* suspendu ; le
    * bras livre ne fait aucune allocation ni lecture supplementaire. */
   if (PORTFOLIO_DYNAMIC_BATCH && this._dynamicBatch == null) {
@@ -433,10 +423,6 @@ function OpexAI::_tryBuildProjects(year)
                  + " budget_before=" + this._dynamicBatch.initialBudget + " budget_after="
                  + OpexAvailableCapital() + " remaining=" + this._projects.best.len());
     }
-    if (C48_PROJECT_ATTEMPT_LEDGER) {
-      this._recordC48PassLedger(c48AttemptsTotal, OpexOpsMeasureEnd(c48PassMark),
-          c48BuiltThisPass, c48BestLen, c48MaxRank);
-    }
     if (C49_SCARCITY_LEDGER) this._recordC49ScarcityPass(c49Best, c49BuiltRanks, c49AttemptedRanks, passDiscards);
     if (C63_INVEST_PROBE) this._c63RecordPassAndProbe(0, c49Best, passDiscards, true);
     this._recordMonthlyFunnelPass(0, c49Best, passDiscards, funnelAttempted);
@@ -468,10 +454,6 @@ function OpexAI::_tryBuildProjects(year)
     }
     /* Atteignable seulement avec portfolio_dynamic_batch=1 (non-defaut) : conserver le ledger. */
     if (PORTFOLIO_DYNAMIC_BATCH && outcome == "cash") {
-      if (C48_PROJECT_ATTEMPT_LEDGER) {
-        this._recordC48PassLedger(c48AttemptsTotal, OpexOpsMeasureEnd(c48PassMark),
-            c48BuiltThisPass, c48BestLen, c48MaxRank);
-      }
       if (C49_SCARCITY_LEDGER) this._recordC49ScarcityPass(c49Best, c49BuiltRanks, c49AttemptedRanks, passDiscards);
       if (C63_INVEST_PROBE) this._c63RecordPassAndProbe(0, c49Best, passDiscards, false);
       this._recordMonthlyFunnelPass(0, c49Best, passDiscards, funnelAttempted);
@@ -545,7 +527,6 @@ function OpexAI::_tryBuildProjects(year)
             }
           }
         }
-        if (C48_PROJECT_ATTEMPT_LEDGER) c48BuiltThisPass = true;
         if (PORTFOLIO_DYNAMIC_BATCH) this._dynamicBatchBuilt();
       } else if (PORTFOLIO_DYNAMIC_BATCH && outcome == "failed") {
         this._dynamicBatchRejected();
@@ -585,21 +566,11 @@ function OpexAI::_tryBuildProjects(year)
     local mode = project.mode;
     local modeChar = mode == "rail" ? "T" : (mode == "road" ? "R" : (mode == "air" ? "A" : "W"));
     local liveBuiltCount = PORTFOLIO_DYNAMIC_BATCH ? this._dynamicBatch.built : builtCount;
-    if (C48_PROJECT_ATTEMPT_LEDGER && i > c48MaxRank) c48MaxRank = i;
     if (MONTHLY_FUNNEL) funnelAttempted++;
 
     if (mode == "fleet") {
-      local attempt = null;
       if (C49_SCARCITY_LEDGER) c49AttemptedRanks.rawset(i, true);
-      if (C48_PROJECT_ATTEMPT_LEDGER) {
-        local attemptDate = AIDate.GetCurrentDate();
-        local attemptMark = OpexOpsMeasureBegin();
-        attempt = this._tryBuildFleetProject(year, project, i, passDiscards);
-        this._recordC48AttemptLedger("fleet", attempt.outcome, i,
-            OpexOpsMeasureEnd(attemptMark), AIDate.GetCurrentDate() - attemptDate);
-        c48AttemptsTotal++;
-        if (attempt.outcome == "built") c48BuiltThisPass = true;
-      } else attempt = this._tryBuildFleetProject(year, project, i, passDiscards);
+      local attempt = this._tryBuildFleetProject(year, project, i, passDiscards);
       passDiscards = attempt.discards;
       if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
       if (fallthroughProbeActive) {
@@ -643,19 +614,9 @@ function OpexAI::_tryBuildProjects(year)
     }
 
     if (mode == "air") {
-      local attempt = null;
       if (C49_SCARCITY_LEDGER) c49AttemptedRanks.rawset(i, true);
-      if (C48_PROJECT_ATTEMPT_LEDGER) {
-        local attemptDate = AIDate.GetCurrentDate();
-        local attemptMark = OpexOpsMeasureBegin();
-        attempt = this._tryBuildAirProject(year, project, i, liveBuiltCount, passDiscards,
-                                           anchor, yy);
-        this._recordC48AttemptLedger("air", attempt.outcome, i,
-            OpexOpsMeasureEnd(attemptMark), AIDate.GetCurrentDate() - attemptDate);
-        c48AttemptsTotal++;
-        if (attempt.outcome == "built") c48BuiltThisPass = true;
-      } else attempt = this._tryBuildAirProject(year, project, i, liveBuiltCount, passDiscards,
-                                                 anchor, yy);
+      local attempt = this._tryBuildAirProject(year, project, i, liveBuiltCount, passDiscards,
+                                                anchor, yy);
       passDiscards = attempt.discards;
       if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
       if (fallthroughProbeActive) {
@@ -695,17 +656,8 @@ function OpexAI::_tryBuildProjects(year)
         break;
       }
     } else if (mode == "road") {
-      local attempt = null;
       if (C49_SCARCITY_LEDGER) c49AttemptedRanks.rawset(i, true);
-      if (C48_PROJECT_ATTEMPT_LEDGER) {
-        local attemptDate = AIDate.GetCurrentDate();
-        local attemptMark = OpexOpsMeasureBegin();
-        attempt = this._tryBuildRoadProject(year, project, i, passDiscards, anchor, yy);
-        this._recordC48AttemptLedger("road", attempt.outcome, i,
-            OpexOpsMeasureEnd(attemptMark), AIDate.GetCurrentDate() - attemptDate);
-        c48AttemptsTotal++;
-        if (attempt.outcome == "built") c48BuiltThisPass = true;
-      } else attempt = this._tryBuildRoadProject(year, project, i, passDiscards, anchor, yy);
+      local attempt = this._tryBuildRoadProject(year, project, i, passDiscards, anchor, yy);
       passDiscards = attempt.discards;
       if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
       if (fallthroughProbeActive) {
@@ -745,29 +697,15 @@ function OpexAI::_tryBuildProjects(year)
         break;
       }
     } else if (mode == "rail") {
-      local attempt = null;
       if (C49_SCARCITY_LEDGER) c49AttemptedRanks.rawset(i, true);
-      if (C48_PROJECT_ATTEMPT_LEDGER) {
-        local attemptDate = AIDate.GetCurrentDate();
-        local attemptMark = OpexOpsMeasureBegin();
-        attempt = this._tryBuildRailProject(year, project, i, liveBuiltCount, passDiscards,
-                                            anchor, yy);
-        this._recordC48AttemptLedger("rail", attempt.outcome, i,
-            OpexOpsMeasureEnd(attemptMark), AIDate.GetCurrentDate() - attemptDate);
-        c48AttemptsTotal++;
-        if (attempt.outcome == "built") c48BuiltThisPass = true;
-      } else attempt = this._tryBuildRailProject(year, project, i, liveBuiltCount, passDiscards,
-                                                  anchor, yy);
+      local attempt = this._tryBuildRailProject(year, project, i, liveBuiltCount, passDiscards,
+                                                 anchor, yy);
       passDiscards = attempt.discards;
       if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
       if (attempt.outcome == "pending") {
         /* En batch historique > 1, le portefeuille doit etre regenere avant de reprendre un
          * A* suspendu. Le defaut unitaire conserve le retour immediat d'origine. */
         if (!PORTFOLIO_DYNAMIC_BATCH && builtCount > 0) break;
-        if (C48_PROJECT_ATTEMPT_LEDGER) {
-          this._recordC48PassLedger(c48AttemptsTotal, OpexOpsMeasureEnd(c48PassMark),
-              c48BuiltThisPass, c48BestLen, c48MaxRank);
-        }
         if (C49_SCARCITY_LEDGER) this._recordC49ScarcityPass(c49Best, c49BuiltRanks, c49AttemptedRanks, passDiscards);
         if (C63_INVEST_PROBE) {
           local railSearching = this._railSearch != null && this._railSearch.phase == "search";
@@ -809,19 +747,9 @@ function OpexAI::_tryBuildProjects(year)
         break;
       }
     } else if (mode == "water") {
-      local attempt = null;
       if (C49_SCARCITY_LEDGER) c49AttemptedRanks.rawset(i, true);
-      if (C48_PROJECT_ATTEMPT_LEDGER) {
-        local attemptDate = AIDate.GetCurrentDate();
-        local attemptMark = OpexOpsMeasureBegin();
-        attempt = this._tryBuildWaterProject(year, project, i, liveBuiltCount, passDiscards,
-                                             anchor, yy);
-        this._recordC48AttemptLedger("water", attempt.outcome, i,
-            OpexOpsMeasureEnd(attemptMark), AIDate.GetCurrentDate() - attemptDate);
-        c48AttemptsTotal++;
-        if (attempt.outcome == "built") c48BuiltThisPass = true;
-      } else attempt = this._tryBuildWaterProject(year, project, i, liveBuiltCount, passDiscards,
-                                                   anchor, yy);
+      local attempt = this._tryBuildWaterProject(year, project, i, liveBuiltCount, passDiscards,
+                                                  anchor, yy);
       passDiscards = attempt.discards;
       if (C49_SCARCITY_LEDGER && attempt.outcome == "built") c49BuiltRanks.rawset(i, true);
       if (fallthroughProbeActive) {
@@ -932,20 +860,12 @@ function OpexAI::_tryBuildProjects(year)
           ? this._dynamicBatch.stopReason : "no_financeable";
       this._stopDynamicBatch(reason, year);
     }
-    if (C48_PROJECT_ATTEMPT_LEDGER) {
-      this._recordC48PassLedger(c48AttemptsTotal, OpexOpsMeasureEnd(c48PassMark),
-          c48BuiltThisPass, c48BestLen, c48MaxRank);
-    }
     return true;
   }
   if (PORTFOLIO_DYNAMIC_BATCH) {
     local reason = this._dynamicBatch.stopReason != null
         ? this._dynamicBatch.stopReason : "no_success";
     this._stopDynamicBatch(reason, year);
-  }
-  if (C48_PROJECT_ATTEMPT_LEDGER) {
-    this._recordC48PassLedger(c48AttemptsTotal, OpexOpsMeasureEnd(c48PassMark),
-        c48BuiltThisPass, c48BestLen, c48MaxRank);
   }
   return false;
 }

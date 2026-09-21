@@ -278,40 +278,6 @@ function OpexAirBatchPlanStillLive(plan, lines)
   }
   return true;
 }
-/* C48 : Verification O(1) directe par lookup spatial dans idx.airServedTiles. */
-function OpexAirTownServedIndexed(town, idx)
-{
-  if (idx == null || town == null) return false;
-  return (town.tile in idx.airServedTiles);
-}
-/* C48 : Verification O(1) de la capacite du hub aerien via idx.airStationRoutes. */
-function OpexAirBatchHubHasCapacityIndexed(anchor, plane, idx)
-{
-  if (!AIAirport.IsAirportTile(anchor) ||
-      !OpexAirAirportAcceptsPlane(AIAirport.GetAirportType(anchor), plane.planeType)) return false;
-  local station = AIStation.GetStationID(anchor);
-  if (!AIStation.IsValidStation(station)) return false;
-  local routes = (station in idx.airStationRoutes) ? idx.airStationRoutes[station] : 0;
-  local airportType = AIAirport.GetAirportType(anchor);
-  local maxRoutes = (airportType == AIAirport.AT_SMALL || airportType == AIAirport.AT_COMMUTER) ? 4 : 12;
-  return routes < maxRoutes;
-}
-/* C48 : Version O(1) de OpexAirBatchPlanStillLive utilisant la structure d'indexation. */
-function OpexAirBatchPlanStillLiveIndexed(plan, idx)
-{
-  if (idx == null || plan == null) return false;
-  local reuseA = ("reuseA" in plan) && plan.reuseA;
-  local reuseB = ("reuseB" in plan) && plan.reuseB;
-  if (!reuseA && OpexAirTownServedIndexed(plan.siteA.town, idx)) return false;
-  if (!reuseB && OpexAirTownServedIndexed(plan.siteB.town, idx)) return false;
-  if (reuseA && !OpexAirBatchHubHasCapacityIndexed(plan.siteA.anchor, plan.plane, idx)) return false;
-  if (reuseB && !OpexAirBatchHubHasCapacityIndexed(plan.siteB.anchor, plan.plane, idx)) return false;
-  local a = plan.siteA.town.tile;
-  local b = plan.siteB.town.tile;
-  local pairKey = (a < b) ? (a + "|" + b) : (b + "|" + a);
-  if (pairKey in idx.airPairs) return false;
-  return true;
-}
 /* C38 etape 2 : tentative synchrone air, incluant les gardes de site et de flotte. */
 function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscards, anchor, yy)
 {

@@ -89,15 +89,6 @@ function OpexC41RailSliceLog(fields)
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " C41_RAIL_SLICE_LEDGER " + fields);
 }
-/* C48 : gate dedie, independant de C39/C41. Une sonde armee seule ne doit jamais etre absorbee
- * par le flag d'une autre fiche. */
-function OpexC48ProjectAttemptLog(fields)
-{
-  if (!C48_PROJECT_ATTEMPT_LEDGER) return;
-  local date = AIDate.GetCurrentDate();
-  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
-             + AIDate.GetDayOfMonth(date) + " C48_PROJECT_ATTEMPT " + fields);
-}
 /* C49 : gate dedie. Ne jamais reutiliser celui de C48/C39/C41 : armer seulement cette sonde
  * doit suffire a publier ses lignes. */
 function OpexC49ScarcityLog(fields)
@@ -686,15 +677,6 @@ function OpexC49IsMapFailure(passDiscards, rank)
         || discard.reason == "too_close_no_join") return true;
   }
   return false;
-}
-/* C48.1 : gate dedie. Ne jamais reutiliser celui des tentatives C48 : une sonde armee seule
- * doit publier ses propres lignes. */
-function OpexC48IncrementalLog(fields)
-{
-  if (!C48_INCREMENTAL_PROFILE) return;
-  local date = AIDate.GetCurrentDate();
-  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
-             + AIDate.GetDayOfMonth(date) + " C48_INCREMENTAL " + fields);
 }
 /* C41.47 : un evenement par liberation, pas un accumulateur annuel -- les liberations sont
  * rares (motif observe : quelques par partie), la mesure interessante est LEQUEL candidat et

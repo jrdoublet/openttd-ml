@@ -142,7 +142,7 @@ function OpexLoadSettings()
   AIR_COST_PROBE = probeCost;
   ROAD_COST_PROBE = probeCost;
 
-  // 2. probe_scheduler : C41_SLACK, BUSY, STALENESS, OPPORTUNITY, ADMISSION, C39_CLOCK, C48_ATTEMPT, C41_SLICE
+  // 2. probe_scheduler : C41_SLACK, BUSY, STALENESS, OPPORTUNITY, ADMISSION, C39_CLOCK, C41_SLICE
   local probeScheduler = AIController.GetSetting("probe_scheduler") != 0;
   C41_SLACK_LEDGER = probeScheduler;
   C41_MONTHLY_BUSY_LEDGER = probeScheduler;
@@ -150,7 +150,6 @@ function OpexLoadSettings()
   C41_OPPORTUNITY_LEDGER = probeScheduler;
   C41_ADMISSION_LEDGER = probeScheduler;
   C39_PASS_CLOCK_LEDGER = probeScheduler;
-  C48_PROJECT_ATTEMPT_LEDGER = probeScheduler;
   C41_RAIL_SLICE_LEDGER = probeScheduler;
 
   // 3. probe_candidates_road : profiles pax, freight, town sinks, feeder
@@ -204,7 +203,7 @@ function OpexLoadSettings()
   C41_RAIL_LOST_PROBE = probeLost;
   C41_VEHICLE_LOST_PROBE = probeLost;
 
-  // 8. probe_portfolio : scarcity, chronology, invest C63, funnel, tension, incremental, reserves, origin relax, town rating
+  // 8. probe_portfolio : scarcity, chronology, invest C63, funnel, tension, reserves, origin relax, town rating
   local probePort = AIController.GetSetting("probe_portfolio") != 0;
   C49_SCARCITY_LEDGER = probePort;
   if (C49_SCARCITY_LEDGER) {
@@ -221,7 +220,6 @@ function OpexLoadSettings()
   if (TENSION_PROBE) {
     PORTFOLIO_LOG = true;
   }
-  C48_INCREMENTAL_PROFILE = probePort;
   CASH_RESERVE_PROBE = probePort;
   PORTFOLIO_REFRESH_PROBE = probePort;
   C55_ORIGIN_RELAX_PROBE = probePort;
@@ -325,8 +323,6 @@ function OpexLoadSettings()
   C50B_RAIL_BACKLOG_RELAX = false;
   C46_FREIGHT_GRID = false;
   C46_FREIGHT_GRID_SHADOW = false;
-  C48_INDEXED_REGENERATION = false;
-  C48_INDEX_SHADOW = false;
   C49_VARIABLE_DENOMINATOR = false;
   C55_FREIGHT_ORIGIN_RELAX = false;
   C55_ROAD_ORIGIN_RELAX = false;

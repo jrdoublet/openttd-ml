@@ -214,10 +214,6 @@ C39_PROJECTS_CADENCE_PROBE <- false;
  * INDEPENDANT de C41_RAIL_SLICE_LEDGER : ne pas etendre ce dernier, sa mesure est deja publiee.
  * Le repli 0 ne doit ajouter ni appel d'API ni calcul au chemin livre. */
 C39_PASS_CLOCK_LEDGER <- false;
-/* C48 (fiche C48) : ventilation passive des tentatives de _tryBuildProjects. Les dates et
- * marqueurs d'opcodes restent strictement derriere ce drapeau afin que le chemin livre n'ajoute
- * aucun appel d'API ni calcul. */
-C48_PROJECT_ATTEMPT_LEDGER <- false;
 /* C49 etape 1 : sonde strictement observatoire de la cause prochaine du projet non bati.
  * Le repli 0 ne doit atteindre ni lecture de tresorerie finale, ni plafond de vehicules, ni
  * allocation de ledger. */
@@ -245,15 +241,6 @@ C60_TOWN_RATING_LEDGER <- null;
 /* C56 : trace immediate du dispatch, nulle hors sonde. */
 C56_TASK_TRACE <- false;
 C56_LOOP_TICK_COUNT <- 0;
-/* C48.1 (fiche C48.1) : profil passif des phases internes de
- * OpexIncrementalUpdateProjects. Le ledger reste null hors sonde : le repli 0 n'alloue aucune
- * table et n'atteint ni marqueur d'opcodes ni appel d'API supplementaire. */
-C48_INCREMENTAL_PROFILE <- false;
-C48_INCREMENTAL_LEDGER <- null;
-/* C48 : Indexation exacte du vivier et de la planification aerienne en O(1). */
-C48_INDEXED_REGENERATION <- false;
-/* C48 : Mode miroir d'assertion d'equivalence stricte entre balayage lineaire et index. */
-C48_INDEX_SHADOW <- false;
 /* C46 : Grille spatiale dirigee pour le fret rail et route. Maintenu a 0 par defaut suite au banc 20x10. */
 C46_FREIGHT_GRID <- false;
 /* C46 : Mode miroir d'assertion shadow entre grille et parcours cartesien historique. */

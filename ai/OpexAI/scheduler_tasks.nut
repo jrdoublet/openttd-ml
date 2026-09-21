@@ -530,13 +530,11 @@ function OpexAI::_dispatchReport(task, year)
   this._logC41AdmissionLedger(year);
   this._logC41RailSliceLedger(year);
   this._logC39PassClockLedger(year);
-  if (C48_PROJECT_ATTEMPT_LEDGER) this._logC48ProjectAttemptLedger(year);
   if (C49_SCARCITY_LEDGER) this._logC49ScarcityLedger(year);
   if (C55_ORIGIN_RELAX_PROBE) this._logC55OriginRelaxLedger(year);
   if (C52_AUTOREPLACE_LOG) this._logC52AutoreplaceLedger(year);
   if (C52_EVENT_EXPOSURE_PROBE) this._logC52EventExposureLedger(year);
   if (C54_VEHICLE_ORDERS_PROBE) this._logC54VehicleOrders(year);
-  if (C48_INCREMENTAL_PROFILE) this._logC48IncrementalLedger(year);
   if (C60_TOWN_RATING_PROBE) this._logC60TownRatingLedger(year);
   if (C50_CHRONOLOGY_PROBE) this._logC50AnnualReport(year);
   this._reportYear(year, this._ranked);

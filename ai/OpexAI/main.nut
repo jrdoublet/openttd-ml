@@ -204,8 +204,6 @@ class OpexAI extends AIController {
   /* C39.6 : accumulateur annuel, cle = "<nom de tache>|slice" ou "<nom de tache>|noslice". */
   _c39PassClockLedger = null;
   /* C48 : deux accumulateurs annuels distincts : une ligne par tentative et la vue par passe. */
-  _c48AttemptLedger = null;
-  _c48PassLedger = null;
   _c49ScarcityLedger = null;
   _c49ScarcityRegime = "cash";
   /* C50 : cache mensuel des refus de tresorerie et memoire du dernier mois de releve tresorerie. */

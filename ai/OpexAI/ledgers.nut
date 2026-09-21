@@ -164,56 +164,6 @@ function OpexAI::_logC39PassClockLedger(year)
   }
   this._c39PassClockLedger = {};
 }
-/* C48 : les ops par tentative sont volontairement imbriques dans ops_total de la passe. La
- * soustraction faite au depouillement mesure le cout hors tentative (balayage, A*, logs) ; ce
- * n'est pas un double comptage a "corriger". */
-function OpexAI::_recordC48AttemptLedger(mode, outcome, rank, ops, days)
-{
-  if (this._c48AttemptLedger == null) this._c48AttemptLedger = {};
-  local key = mode + "|" + outcome;
-  local entry = (key in this._c48AttemptLedger) ? this._c48AttemptLedger[key]
-      : { attempts = 0, ops = 0, days = 0, rankSum = 0 };
-  entry.attempts++;
-  entry.ops += ops;
-  entry.days += days;
-  entry.rankSum += rank;
-  this._c48AttemptLedger.rawset(key, entry);
-}
-function OpexAI::_recordC48PassLedger(attemptsTotal, opsTotal, built, bestLen, maxRank)
-{
-  if (this._c48PassLedger == null) this._c48PassLedger = {};
-  local entry = ("pass" in this._c48PassLedger) ? this._c48PassLedger.pass
-      : { passes = 0, attemptsTotal = 0, opsTotal = 0, built = 0, bestLenSum = 0, maxRankSum = 0 };
-  entry.passes++;
-  entry.attemptsTotal += attemptsTotal;
-  entry.opsTotal += opsTotal;
-  if (built) entry.built++;
-  entry.bestLenSum += bestLen;
-  entry.maxRankSum += maxRank;
-  this._c48PassLedger.rawset("pass", entry);
-}
-/* La tache report passe au premier tour de l'annee suivante : year=1971 decrit donc 1970, et
- * la derniere annee de partie n'est jamais publiee (~82 % de couverture sur six ans). */
-function OpexAI::_logC48ProjectAttemptLedger(year)
-{
-  if (!C48_PROJECT_ATTEMPT_LEDGER) return;
-  if (this._c48AttemptLedger != null) {
-    foreach (key, entry in this._c48AttemptLedger) {
-      OpexC48ProjectAttemptLog("phase=annual year=" + year + " key=" + key
-          + " attempts=" + entry.attempts + " ops=" + entry.ops + " days=" + entry.days
-          + " rank_sum=" + entry.rankSum);
-    }
-  }
-  if (this._c48PassLedger != null && ("pass" in this._c48PassLedger)) {
-    local entry = this._c48PassLedger.pass;
-    OpexC48ProjectAttemptLog("phase=annual_pass year=" + year + " passes=" + entry.passes
-        + " attempts_total=" + entry.attemptsTotal + " ops_total=" + entry.opsTotal
-        + " built=" + entry.built + " best_len_sum=" + entry.bestLenSum
-        + " max_rank_sum=" + entry.maxRankSum);
-  }
-  this._c48AttemptLedger = {};
-  this._c48PassLedger = {};
-}
 /* C49 : une seule cause, pour le premier rang non bati de LA passe. La tresorerie est lue ici,
  * a la fin : la question est MARGINALE — « given what we just did, what blocked the next one? ».
  * Une construction qui a consomme du cash rend donc correctement le rang suivant bloque par
@@ -656,54 +606,4 @@ function OpexAI::_logC54VehicleOrders(year)
         + " in_depot=" + (AIVehicle.IsStoppedInDepot(vehicle) ? 1 : 0)
         + " line=" + lineId);
   }
-}
-/* C48.1 : tous les compteurs de volume sont explicites dans chaque ligne :
- * lines = lines.len() a l'entree (total), groups/projects_scanned/retained = rejeu des groupes,
- * fleet_plan = elements lus, air_plans = plans produits,
- * alternatives/selected = entree/sortie de la selection. Les champs non pertinents a une phase
- * valent zero. La tache report publie au premier passage de l'annee suivante : year=1971 decrit
- * 1970 et la derniere annee n'est jamais publiee (~82 % de couverture sur six ans). */
-function OpexC48IncrementalRecord(step, ops, days, lines, groups, projectsScanned, retained,
-                                  fleetPlan, airPlans, alternatives, selected)
-{
-  if (!C48_INCREMENTAL_PROFILE) return;
-  if (C48_INCREMENTAL_LEDGER == null) C48_INCREMENTAL_LEDGER = {};
-  local entry = (step in C48_INCREMENTAL_LEDGER) ? C48_INCREMENTAL_LEDGER[step]
-      : { calls = 0, ops = 0, days = 0, lines = 0, groups = 0, projectsScanned = 0,
-          retained = 0, fleetPlan = 0, airPlans = 0, alternatives = 0,
-          selected = 0 };
-  entry.calls++;
-  entry.ops += ops;
-  entry.days += days;
-  entry.lines += lines;
-  entry.groups += groups;
-  entry.projectsScanned += projectsScanned;
-  entry.retained += retained;
-  entry.fleetPlan += fleetPlan;
-  entry.airPlans += airPlans;
-  entry.alternatives += alternatives;
-  entry.selected += selected;
-  C48_INCREMENTAL_LEDGER.rawset(step, entry);
-}
-function OpexAI::_logC48IncrementalLedger(year)
-{
-  if (!C48_INCREMENTAL_PROFILE) return;
-  /* Une ligne pour CHACUNE des six phases, meme si une garde fonctionnelle n'a produit aucun
-   * appel cette annee : le depouillement distingue ainsi zero de "phase absente du journal". */
-  local steps = ["tension_ctx", "groups_replay", "fleet", "air", "selection", "total"];
-  foreach (step in steps) {
-    local entry = (C48_INCREMENTAL_LEDGER != null && (step in C48_INCREMENTAL_LEDGER))
-        ? C48_INCREMENTAL_LEDGER[step]
-        : { calls = 0, ops = 0, days = 0, lines = 0, groups = 0, projectsScanned = 0,
-            retained = 0, fleetPlan = 0, airPlans = 0, alternatives = 0,
-            selected = 0 };
-    OpexC48IncrementalLog("phase=annual year=" + year + " step=" + step
-        + " calls=" + entry.calls + " ops=" + entry.ops + " days=" + entry.days
-        + " lines=" + entry.lines + " groups=" + entry.groups
-        + " projects_scanned=" + entry.projectsScanned + " retained=" + entry.retained
-        + " fleet_plan=" + entry.fleetPlan
-        + " air_plans=" + entry.airPlans + " alternatives=" + entry.alternatives
-        + " selected=" + entry.selected);
-  }
-  C48_INCREMENTAL_LEDGER = null;
 }

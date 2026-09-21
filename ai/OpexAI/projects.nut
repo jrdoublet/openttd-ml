@@ -940,8 +940,8 @@ function OpexCandidateIsAbandoned(p, abandonedPairs)
 /* C36.1 : Revalidation rapide d'un candidat deja en memoire contre this._lines.
  * Verifie qu'aucune extremite n'est devenue invalide, qu'aucune ligne identique n'a ete batie,
  * et que les contraintes physiques du mode tiennent toujours. */
-/* C36.1 : Revalidation rapide d'un candidat deja en memoire contre this._lines (version historique). */
-function OpexLegacyCandidateStillValid(p, lines, abandonedPairs = null)
+/* C36.1 : Revalidation rapide d'un candidat deja en memoire contre this._lines. */
+function OpexCandidateStillValid(p, lines, abandonedPairs = null)
 {
   if (p == null) return false;
   local mode = p.mode;
@@ -1099,190 +1099,10 @@ function OpexLegacyCandidateStillValid(p, lines, abandonedPairs = null)
   return true;
 }
 
-/* C48 : Revalidation exacte en O(1) via OpexBuildLineIndex. */
-function OpexIndexedCandidateStillValid(p, lineIndex, abandonedPairs = null, updateProbes = true)
+/* C36.1 : Point d'entree unifie de revalidation incrementale. */
+function OpexIncrementalCandidateStillValid(p, lines, abandonedPairs = null)
 {
-  if (p == null) return false;
-  local mode = p.mode;
-
-  /* 0. Candidat abandonne (echec de trace ou depot) */
-  if (OpexCandidateIsAbandoned(p, abandonedPairs)) return false;
-
-  if (mode == "road" && ("payload" in p) && p.payload != null &&
-      ("isRoadExtension" in p.payload) && p.payload.isRoadExtension) {
-    return OpexRoadExtensionCandidateStillValid(p.payload, lineIndex.lines);
-  }
-
-  /* 1. Doublon exact avec une ligne deja batie */
-  local a = p.src;
-  local b = p.dst;
-  local pKey = (a < b) ? (p.cargo + "|" + a + "|" + b) : (p.cargo + "|" + b + "|" + a);
-  if (pKey in lineIndex.exactLines) return false;
-
-  /* 2. Mode route */
-  if (mode == "road") {
-    local isSubsidy = (("payload" in p) && p.payload != null &&
-                       ("isSubsidy" in p.payload) && p.payload.isSubsidy);
-    if (isSubsidy) {
-      local subId = p.payload.subsidyId;
-      if (!AISubsidy.IsValidSubsidy(subId) || AISubsidy.IsAwarded(subId)) return false;
-      local today = AIDate.GetCurrentDate();
-      local oneWay = ("oneWayDays" in p.payload) ? p.payload.oneWayDays : -1;
-      local chantier = ("chantierDays" in p.payload) ? p.payload.chantierDays : OpexSubsidyChantierDays(oneWay);
-      if (AISubsidy.GetExpireDate(subId) - today < chantier) return false;
-      return true;
-    }
-    if (p.kind == "pax") {
-      local endpoints = OpexGetCandidateTownEndpoints(p.payload);
-      if ((endpoints.srcTown >= 0 && OpexTownBusPaxServed(lineIndex.lines, endpoints.srcTown)) ||
-          (endpoints.dstTown >= 0 && OpexTownBusPaxServed(lineIndex.lines, endpoints.dstTown))) return false;
-    }
-      if (p.kind == "pax") {
-        local srcServed = (p.src in lineIndex.servedAny);
-        local dstServed = (p.dst in lineIndex.servedAny);
-        local isOriginBlocked = srcServed || dstServed;
-
-        if (updateProbes && C55_PAX_TRACE_PROBE) {
-          OpexC55PaxTraceObserveRevalidated(isOriginBlocked);
-        }
-
-        if (C55_ROAD_PAX_ORIGIN_RELAX || C55_ROAD_ORIGIN_RELAX) {
-          if (OpexRoadPairServedIndexed(lineIndex, p.src, p.dst)) return false;
-          local tA = AITile.GetClosestTown(p.src);
-          local cntA = (tA in lineIndex.townRoadCounts) ? lineIndex.townRoadCounts[tA] : 0;
-          if (cntA >= 4) return false;
-          local tB = AITile.GetClosestTown(p.dst);
-          local cntB = (tB in lineIndex.townRoadCounts) ? lineIndex.townRoadCounts[tB] : 0;
-          if (cntB >= 4) return false;
-          if (isOriginBlocked) {
-            if (!("_c55_pax_spared" in p) || !p._c55_pax_spared) {
-              p._c55_pax_spared <- true;
-              if (p.payload != null) p.payload._c55_pax_spared <- true;
-              if (updateProbes && C55_PAX_TRACE_PROBE) {
-                OpexC55PaxTraceObserveSpared();
-              }
-            }
-          }
-        } else {
-          if (updateProbes && C55_ORIGIN_RELAX_PROBE) {
-            OpexC55OriginRelaxObserve("pax", lineIndex.lines, p.src, p.dst, srcServed, dstServed);
-          }
-          if (isOriginBlocked) return false;
-          if (OpexRoadPairServedIndexed(lineIndex, p.src, p.dst)) return false;
-        }
-      } else {
-        /* Fret routier */
-        if (C55_FREIGHT_ORIGIN_RELAX || C55_ROAD_ORIGIN_RELAX) {
-          local srcServed = (p.src in lineIndex.servedAny);
-          local dstServed = (p.dst in lineIndex.servedAny);
-          if (srcServed && dstServed) return false;
-          if (((p.cargo + "|" + p.src) in lineIndex.roadFreightBusy) ||
-              ((p.cargo + "|" + p.dst) in lineIndex.roadFreightBusy)) return false;
-        } else if (updateProbes && C55_ORIGIN_RELAX_PROBE) {
-          local srcServed = (p.src in lineIndex.servedAny);
-          local dstServed = (p.dst in lineIndex.servedAny);
-          OpexC55OriginRelaxObserve("freight", lineIndex.lines, p.src, p.dst, srcServed, dstServed);
-          if (srcServed || dstServed) return false;
-        } else {
-          if (p.src in lineIndex.servedAny) return false;
-          if (p.dst in lineIndex.servedAny) return false;
-        }
-      local towns = OpexGetCandidateTownEndpoints(p);
-      if (updateProbes && C60_TOWN_RATING_PROBE) {
-        if (towns.srcTown >= 0) OpexC60ObserveTownRating("road", "incremental_valid", towns.srcTown);
-        if (towns.dstTown >= 0) OpexC60ObserveTownRating("road", "incremental_valid", towns.dstTown);
-      }
-      if (C60_TOWN_RATING_FILTER) {
-        if ((towns.srcTown >= 0 && !OpexTownRatingAllowStation(towns.srcTown)) ||
-            (towns.dstTown >= 0 && !OpexTownRatingAllowStation(towns.dstTown))) return false;
-      }
-    }
-    return true;
-  }
-
-  /* 3. Mode rail : les deux extremites servies excluent la ligne */
-  if (mode == "rail") {
-    local towns = OpexGetCandidateTownEndpoints(p);
-    if (updateProbes && C60_TOWN_RATING_PROBE) {
-      if (towns.srcTown >= 0) OpexC60ObserveTownRating("rail", "incremental_valid", towns.srcTown);
-      if (towns.dstTown >= 0) OpexC60ObserveTownRating("rail", "incremental_valid", towns.dstTown);
-    }
-    if (C60_TOWN_RATING_FILTER) {
-      if ((towns.srcTown >= 0 && !OpexTownRatingAllowStation(towns.srcTown)) ||
-          (towns.dstTown >= 0 && !OpexTownRatingAllowStation(towns.dstTown))) return false;
-    }
-    if ((p.src in lineIndex.servedRail) && (p.dst in lineIndex.servedRail)) {
-      return false;
-    }
-    return true;
-  }
-
-  /* 4. Mode aerien : validite du plan de lot et constructibilite des sites */
-  if (mode == "air") {
-    local plan = p.payload;
-    if (plan == null) return false;
-    if (updateProbes && C60_TOWN_RATING_PROBE) {
-      if (("siteA" in plan) && ("town" in plan.siteA)) OpexC60ObserveTownRating("air", "incremental_valid", plan.siteA.town.id);
-      if ("siteB" in plan && ("town" in plan.siteB)) OpexC60ObserveTownRating("air", "incremental_valid", plan.siteB.town.id);
-    }
-    if (C60_TOWN_RATING_FILTER) {
-      if ((("siteA" in plan) && ("town" in plan.siteA) && OpexTownRatingHopeless(plan.siteA.town.id)) ||
-          (("siteB" in plan) && ("town" in plan.siteB) && OpexTownRatingHopeless(plan.siteB.town.id))) {
-        return false;
-      }
-    }
-    if (C48_INDEX_SHADOW) {
-      local liveLegacy = OpexAirBatchPlanStillLive(plan, lineIndex.lines);
-      local liveIndexed = OpexAirBatchPlanStillLiveIndexed(plan, lineIndex);
-      assert(liveLegacy == liveIndexed);
-    }
-    if (!OpexAirBatchPlanStillLiveIndexed(plan, lineIndex)) return false;
-    if (!OpexAirBatchSiteStillBuildable(plan.siteA, plan.airport, plan.plane,
-                                         ("reuseA" in plan) && plan.reuseA)) {
-      return false;
-    }
-    if (!OpexAirBatchSiteStillBuildable(plan.siteB, plan.airport, plan.plane,
-                                         ("reuseB" in plan) && plan.reuseB)) {
-      return false;
-    }
-    return true;
-  }
-
-  /* 5. Mode maritime : dock constructible */
-  if (mode == "water") {
-    local plan = p.payload;
-    if (plan == null || !("siteA" in plan) || !("siteB" in plan)) return false;
-    if (!OpexWaterBatchSiteStillBuildable(plan.siteA) ||
-        !OpexWaterBatchSiteStillBuildable(plan.siteB)) {
-      return false;
-    }
-    return true;
-  }
-
-  return true;
-}
-
-/* C36.1 & C48 : Point d'entree unifie de revalidation incrémentale.
- * Supporte le mode historique, le mode indexé O(1), et le mode miroir (shadow) d'assertion stricte. */
-function OpexIncrementalCandidateStillValid(p, lines, abandonedPairs = null, lineIndex = null)
-{
-  if (C48_INDEX_SHADOW) {
-    local legVal = OpexLegacyCandidateStillValid(p, lines, abandonedPairs);
-    local testIdx = (lineIndex != null) ? lineIndex : OpexBuildLineIndex(lines);
-    local idxVal = OpexIndexedCandidateStillValid(p, testIdx, abandonedPairs, false);
-    if (legVal != idxVal) {
-      AILog.Error("C48 SHADOW MISMATCH! mode=" + p.mode + " cargo=" + p.cargo + " src=" + p.src + " dst=" + p.dst + " legacy=" + legVal + " indexed=" + idxVal);
-      throw "C48 Equivalence violation";
-    }
-    return legVal;
-  }
-
-  if (C48_INDEXED_REGENERATION) {
-    local useIdx = (lineIndex != null) ? lineIndex : OpexBuildLineIndex(lines);
-    return OpexIndexedCandidateStillValid(p, useIdx, abandonedPairs, true);
-  }
-
-  return OpexLegacyCandidateStillValid(p, lines, abandonedPairs);
+  return OpexCandidateStillValid(p, lines, abandonedPairs);
 }
 
 /* C38 : cle stable d'une tentative au sein d'un batch. Les plans air/eau sont des objets
@@ -1681,7 +1501,6 @@ function OpexB6LogRepricedFreightTop(catalog, lines, funded, recycledKeys, capit
 function OpexDynamicBatchReselect(projects, lines, attempted, capitalBudget, abandonedPairs = null)
 {
   if (projects == null) return null;
-  local lineIndex = (C48_INDEXED_REGENERATION || C48_INDEX_SHADOW) ? OpexBuildLineIndex(lines) : null;
   if (("candidateGroups" in projects) && projects.candidateGroups != null) {
     local filteredGroups = {};
     foreach (groupKey, entry in projects.candidateGroups) {
@@ -1689,7 +1508,7 @@ function OpexDynamicBatchReselect(projects, lines, attempted, capitalBudget, aba
       local kept = [];
       foreach (p in source) {
         if (p == null) continue;
-        if (!OpexIncrementalCandidateStillValid(p, lines, abandonedPairs, lineIndex)) continue;
+        if (!OpexIncrementalCandidateStillValid(p, lines, abandonedPairs)) continue;
         local key = OpexProjectAttemptKey(p);
         if (!(key in attempted)) kept.push(p);
       }
@@ -1708,14 +1527,6 @@ function OpexDynamicBatchReselect(projects, lines, attempted, capitalBudget, aba
 function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capitalBudget, fleetPlan = null, abandonedPairs = null)
 {
   local b6BudgetDate = AIDate.GetCurrentDate();
-  local c48TotalMark = null;
-  local c48TotalDate = 0;
-  local c48Lines = 0;
-  if (C48_INCREMENTAL_PROFILE) {
-    c48TotalDate = AIDate.GetCurrentDate();
-    c48TotalMark = OpexOpsMeasureBegin();
-    c48Lines = lines.len();
-  }
   local stats = {
     odProjects = 0,
     modeCandidates = 0,
@@ -1735,21 +1546,9 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
 
   local tensionCtx = null;
   if (TENSION_SCORING || SHADOW_PRICING) {
-    local c48Mark = null;
-    local c48Date = 0;
-    if (C48_INCREMENTAL_PROFILE) {
-      c48Date = AIDate.GetCurrentDate();
-      c48Mark = OpexOpsMeasureBegin();
-    }
     tensionCtx = OpexTensionContext(projects);
-    if (C48_INCREMENTAL_PROFILE) {
-      local c48Days = AIDate.GetCurrentDate() - c48Date;
-      OpexC48IncrementalRecord("tension_ctx", OpexOpsMeasureEnd(c48Mark), c48Days,
-          0, 0, 0, 0, 0, 0, 0, 0);
-    }
   }
 
-  local lineIndex = (C48_INDEXED_REGENERATION || C48_INDEX_SHADOW) ? OpexBuildLineIndex(lines) : null;
   local newWinners = {};
   local recycledKeys = {};
   local cacheScanned = 0;
@@ -1758,20 +1557,9 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
 
   /* 1. Filtrer les candidats existants du vivier */
   if (("candidateGroups" in projects) && projects.candidateGroups != null) {
-    local c48Mark = null;
-    local c48Date = 0;
-    local c48Groups = 0;
-    local c48Scanned = 0;
-    local c48Retained = 0;
-    if (C48_INCREMENTAL_PROFILE) {
-      c48Date = AIDate.GetCurrentDate();
-      c48Mark = OpexOpsMeasureBegin();
-    }
     foreach (key, entry in projects.candidateGroups) {
-      if (C48_INCREMENTAL_PROFILE) c48Groups++;
       local list = (typeof entry == "array") ? entry : [entry];
       foreach (p in list) {
-        if (C48_INCREMENTAL_PROFILE) c48Scanned++;
         cacheScanned++;
         if (p == null) continue;
         /* La flotte est regeneree fraiche ci-dessous. */
@@ -1785,53 +1573,30 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
           abandonFiltered++;
           continue;
         }
-        if (!OpexIncrementalCandidateStillValid(p, lines, abandonedPairs, lineIndex)) continue;
+        if (!OpexIncrementalCandidateStillValid(p, lines, abandonedPairs)) continue;
         local recycledKey = OpexProjectAttemptKey(p);
         if (!(recycledKey in recycledKeys)) recycledKeys[recycledKey] <- true;
         /* B6/06.11 mesure seulement : marquer les objets qui traversent REELLEMENT
          * le replay incremental. Le champ n'est jamais lu hors du diagnostic. */
         if (DECISION_LOG) p.b6RecycledSinceFresh <- true;
         OpexProjectRememberAll(newWinners, p, stats);
-        if (C48_INCREMENTAL_PROFILE) c48Retained++;
         cacheRetained++;
       }
-    }
-    if (C48_INCREMENTAL_PROFILE) {
-      local c48Days = AIDate.GetCurrentDate() - c48Date;
-      OpexC48IncrementalRecord("groups_replay", OpexOpsMeasureEnd(c48Mark), c48Days,
-          0, c48Groups, c48Scanned, c48Retained, 0, 0, 0, 0);
     }
   }
 
   /* 2. Injection des projets de croissance de flotte (refleet) frais */
   if (FLEET_PORTFOLIO && fleetPlan != null) {
-    local c48Mark = null;
-    local c48Date = 0;
-    if (C48_INCREMENTAL_PROFILE) {
-      c48Date = AIDate.GetCurrentDate();
-      c48Mark = OpexOpsMeasureBegin();
-    }
     foreach (entry in fleetPlan) {
       local p = OpexProjectFromFleet(entry, tensionCtx);
       if (p != null) {
         OpexProjectRememberAll(newWinners, p, stats);
       }
     }
-    if (C48_INCREMENTAL_PROFILE) {
-      local c48Days = AIDate.GetCurrentDate() - c48Date;
-      OpexC48IncrementalRecord("fleet", OpexOpsMeasureEnd(c48Mark), c48Days,
-          0, 0, 0, 0, fleetPlan.len(), 0, 0, 0);
-    }
   }
 
   /* 4. Injection des projets aeriens frais (notamment les lignes hub ouvertes par un nouvel aeroport) */
   if (AIR_PORTFOLIO && ((catalog.airCombos != null && catalog.airCombos.len() > 0) || catalog.airport != null)) {
-    local c48Mark = null;
-    local c48Date = 0;
-    if (C48_INCREMENTAL_PROFILE) {
-      c48Date = AIDate.GetCurrentDate();
-      c48Mark = OpexOpsMeasureBegin();
-    }
     local freshAirPlans = [];
     OpexAirPlans(catalog, lines, 0, freshAirPlans, abandonedPairs);
     local airOpsPerPlan = (freshAirPlans.len() > 0) ? (PROJECT_AIR_TRANSACTION_OPS / freshAirPlans.len()) : PROJECT_AIR_TRANSACTION_OPS;
@@ -1841,22 +1606,10 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
         OpexProjectRememberAll(newWinners, p, stats);
       }
     }
-    if (C48_INCREMENTAL_PROFILE) {
-      local c48Days = AIDate.GetCurrentDate() - c48Date;
-      OpexC48IncrementalRecord("air", OpexOpsMeasureEnd(c48Mark), c48Days,
-          0, 0, 0, 0, 0, freshAirPlans.len(), 0, 0);
-    }
   }
 
   /* 5. Selection du portefeuille sur le capital restant */
   local funded = null;
-  local c48SelectionMark = null;
-  local c48SelectionDate = 0;
-  local c48Alternatives = 0;
-  if (C48_INCREMENTAL_PROFILE) {
-    c48SelectionDate = AIDate.GetCurrentDate();
-    c48SelectionMark = OpexOpsMeasureBegin();
-  }
   local opsMark = OpexOpsMeasureBegin();
   local alternatives = [];
   foreach (key, list in newWinners) {
@@ -1864,7 +1617,6 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
     foreach (project in list) alternatives.push(project);
   }
   funded = OpexProjectSelectAffordable(alternatives, capitalBudget, PROJECT_TOP_K);
-  if (C48_INCREMENTAL_PROFILE) c48Alternatives = alternatives.len();
   stats.budgetConsidered = alternatives.len();
   stats.budgetSelected = funded.len();
   stats.budgetRejected = alternatives.len() - funded.len();
@@ -1874,11 +1626,6 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   OpexB6LogSelectionCausality("incremental", alternatives, funded, capitalBudget, b6BudgetDate,
                              recycledKeys);
   OpexB6LogRepricedFreightTop(catalog, lines, funded, recycledKeys, capitalBudget);
-  if (C48_INCREMENTAL_PROFILE) {
-    local c48Days = AIDate.GetCurrentDate() - c48SelectionDate;
-    OpexC48IncrementalRecord("selection", OpexOpsMeasureEnd(c48SelectionMark), c48Days,
-        0, 0, 0, 0, 0, 0, c48Alternatives, funded.len());
-  }
 
   /* 6. Cloture des statistiques et du capital restant */
   local selectedRev = 0;
@@ -1918,13 +1665,6 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
   projects.capitalBudget = capitalBudget;
   projects.capitalRemaining = remaining;
   projects.candidateGroups = newWinners;
-  /* Les six mesures de phase sont imbriquees dans total (OpexOpsMeasureBegin/End ne partage
-   * aucun etat) : total - somme(phases) est le reste de la fonction, PAS un double comptage. */
-  if (C48_INCREMENTAL_PROFILE) {
-    local c48Days = AIDate.GetCurrentDate() - c48TotalDate;
-    OpexC48IncrementalRecord("total", OpexOpsMeasureEnd(c48TotalMark), c48Days,
-        c48Lines, 0, 0, 0, 0, 0, 0, 0);
-  }
   return projects;
 }
 
@@ -1971,25 +1711,25 @@ function OpexCloneCandidateGroups(source)
  * construction peut avoir rendu une paire desservie entre deux etapes. Passer
  * les objets bruts par la meme validation que le cache incremental avant de les
  * reinjecter empeche le projet qui vient d'etre construit de revenir en tete. */
-function OpexStagedCandidateStillValid(candidate, lines, abandonedPairs = null, lineIndex = null)
+function OpexStagedCandidateStillValid(candidate, lines, abandonedPairs = null)
 {
   if (candidate == null) return false;
   local project = OpexProjectFromCandidate(candidate, null);
-  return project != null && OpexIncrementalCandidateStillValid(project, lines, abandonedPairs, lineIndex);
+  return project != null && OpexIncrementalCandidateStillValid(project, lines, abandonedPairs);
 }
 
-function OpexStagedAirPlanStillValid(catalog, plan, lines, abandonedPairs = null, lineIndex = null)
+function OpexStagedAirPlanStillValid(catalog, plan, lines, abandonedPairs = null)
 {
   if (plan == null) return false;
   local project = OpexProjectFromAir(catalog, plan, 0, null);
-  return project != null && OpexIncrementalCandidateStillValid(project, lines, abandonedPairs, lineIndex);
+  return project != null && OpexIncrementalCandidateStillValid(project, lines, abandonedPairs);
 }
 
-function OpexStagedWaterPlanStillValid(catalog, plan, lines, abandonedPairs = null, lineIndex = null)
+function OpexStagedWaterPlanStillValid(catalog, plan, lines, abandonedPairs = null)
 {
   if (plan == null) return false;
   local project = OpexProjectFromWater(catalog, plan, 0, null);
-  return project != null && OpexIncrementalCandidateStillValid(project, lines, abandonedPairs, lineIndex);
+  return project != null && OpexIncrementalCandidateStillValid(project, lines, abandonedPairs);
 }
 
 function OpexMergeRailCandidateSet(base, extra)
@@ -2032,7 +1772,6 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
                + " freight_label=" + (freightCargo != null ? AICargo.GetCargoLabel(freightCargo) : "none")
                + " freight_price=" + (freightCargo != null ? AICargo.GetCargoIncome(freightCargo, 20, 0) : 0));
   }
-  local lineIndex = (C48_INDEXED_REGENERATION || C48_INDEX_SHADOW) ? OpexBuildLineIndex(lines) : null;
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "c56_stage_rail", "-");
   /* C41.22 : intervalles disjoints du chemin rail historique. Le pre-devis peut etre inactif
    * par reglage : publier alors son zero est justement necessaire pour ne pas attribuer son cout
@@ -2092,7 +1831,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
          * normale vient de la regenerer avec l'etat courant : ne conserver
          * ici que le fret herite pour ne pas dupliquer chaque paire pax. */
         local replaced = generationStage == OPEX_STAGE_AIR_RAIL && c.kind == "pax";
-        if (!replaced && OpexStagedCandidateStillValid(c, lines, abandonedPairs, lineIndex)) {
+        if (!replaced && OpexStagedCandidateStillValid(c, lines, abandonedPairs)) {
           merged.append(c);
         }
       }
@@ -2105,7 +1844,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     rail = priorProjects.rail;
     local liveRail = [];
     foreach (c in rail.candidates) {
-      if (OpexStagedCandidateStillValid(c, lines, abandonedPairs, lineIndex)) liveRail.append(c);
+      if (OpexStagedCandidateStillValid(c, lines, abandonedPairs)) liveRail.append(c);
     }
     rail.candidates = liveRail;
     rail.best = OpexTopK(liveRail, TOP_K);
@@ -2185,7 +1924,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     road = priorProjects.road;
     local liveRoad = [];
     foreach (c in road.candidates) {
-      if (OpexStagedCandidateStillValid(c, lines, abandonedPairs, lineIndex)) liveRoad.append(c);
+      if (OpexStagedCandidateStillValid(c, lines, abandonedPairs)) liveRoad.append(c);
     }
     road.candidates = liveRoad;
     road.best = OpexTopK(liveRoad, ROAD_TOP_K);
@@ -2209,7 +1948,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     if (generationStage == OPEX_STAGE_AIR_RAIL && priorProjects != null
         && ("airPlans" in priorProjects) && priorProjects.airPlans != null) {
       foreach (plan in priorProjects.airPlans) {
-        if (OpexStagedAirPlanStillValid(catalog, plan, lines, abandonedPairs, lineIndex)) airPlans.append(plan);
+        if (OpexStagedAirPlanStillValid(catalog, plan, lines, abandonedPairs)) airPlans.append(plan);
       }
       if (airPlans.len() > 0) airPlan = airPlans[0];
     }
@@ -2217,7 +1956,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     airPlan = ("airPlan" in priorProjects) ? priorProjects.airPlan : null;
     if (("airPlans" in priorProjects) && priorProjects.airPlans != null) {
       foreach (plan in priorProjects.airPlans) {
-        if (OpexStagedAirPlanStillValid(catalog, plan, lines, abandonedPairs, lineIndex)) airPlans.append(plan);
+        if (OpexStagedAirPlanStillValid(catalog, plan, lines, abandonedPairs)) airPlans.append(plan);
       }
     }
     airPlan = airPlans.len() > 0 ? airPlans[0] : null;
@@ -2267,7 +2006,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     waterPlan = ("waterPlan" in priorProjects) ? priorProjects.waterPlan : null;
     if (("waterPlans" in priorProjects) && priorProjects.waterPlans != null) {
       foreach (plan in priorProjects.waterPlans) {
-        if (OpexStagedWaterPlanStillValid(catalog, plan, lines, abandonedPairs, lineIndex)) waterPlans.append(plan);
+        if (OpexStagedWaterPlanStillValid(catalog, plan, lines, abandonedPairs)) waterPlans.append(plan);
       }
     }
     waterPlan = waterPlans.len() > 0 ? waterPlans[0] : null;
