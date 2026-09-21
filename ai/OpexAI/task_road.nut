@@ -87,7 +87,6 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
 
       local need = candidate.capital + OpexCashReserve() + ROAD_CAPITAL_MARGIN;
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-      if (money < need && REBORROW) money = OpexTryReborrow(need, money);
       if (money < need) {
         if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("road", i, candidate.capital, candidate.profitAnnual, candidate.roi, candidate.src, candidate.dst, need, money);
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });

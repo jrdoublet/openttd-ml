@@ -73,8 +73,6 @@ function OpexAI::_tryBuildAir(year)
     }
 
     local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-    local borrowable = REBORROW ? (AICompany.GetMaxLoanAmount() - AICompany.GetLoanAmount()) : 0;
-    if (borrowable < 0) borrowable = 0;
     local baseReserve = OpexCashReserve();
     /* ⚠️ NE PAS « CORRIGER » CE 2 000 EN LE PORTANT A LA MARGE MAXIMALE. Essaye et MESURE le
      * 2026-09-02 (results/bench_lotE_air_marge_3y.json) : -11,5 % de valeur (t = -2,66), -9,8 % de
@@ -91,7 +89,7 @@ function OpexAI::_tryBuildAir(year)
      * La bonne correction passerait par le plan, pas par le budget : soit passer la marge exigee a
      * OpexAirPlans pour qu'il l'applique par plan, soit ne pas `break` sur rejet et reessayer avec
      * un budget rabote. Voir docs/taches.md. */
-    local maxCapital = money + borrowable - baseReserve - 2000;
+    local maxCapital = money - baseReserve - 2000;
     if (maxCapital <= 0) {
       if (DECISION_LOG) {
         local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
@@ -132,7 +130,6 @@ function OpexAI::_tryBuildAir(year)
     local capital = ("capital" in plan) ? plan.capital : (newAirports * plan.airport.price + plan.plane.price);
     local need = capital + baseReserve + requiredMargin;
     if (money < need) {
-      if (REBORROW) money = OpexTryReborrow(need, money);
       if (money < need) {
         if (DECISION_LOG) {
           local ym = year * 12 + AIDate.GetMonth(AIDate.GetCurrentDate());
@@ -351,7 +348,6 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
           : ((newAirports == 2) ? 30000 : (newAirports == 1 ? 12000 : 2000));
       local capital = ("capital" in plan) ? plan.capital : (newAirports * plan.airport.price + plan.plane.price);
       local need = capital + OpexCashReserve() + requiredMargin;
-      if (money < need && REBORROW) money = OpexTryReborrow(need, money);
       if (money < need) {
         if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("air", i, capital, plan.economics.profitAnnual, project.roi, plan.siteA.town.tile, plan.siteB.town.tile, need, money);
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
@@ -753,7 +749,6 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     }
     while (have < maxPlanesForAirport && addedThisPass < maxAddedPerPass) {
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-      if (money < need && REBORROW) money = OpexTryReborrow(need, money);
       if (money < need) { OpexAirFleetRefusal(line, year, "M"); break; }
       local grown = OpexAirAddPlane(line);
       if (grown.added <= 0) { OpexAirFleetRefusal(line, year, "X"); break; }

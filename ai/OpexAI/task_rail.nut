@@ -188,7 +188,6 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
 
       local need = candidate.capital + OpexCashReserve();
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-      if (money < need && REBORROW) money = OpexTryReborrow(need, money);
       local lowCash = (money < need);
       /* G3§2 : pour le chemin reprenable sans railPlan, la recherche A* ne coute aucune
        * tresorerie et le cash peut arriver pendant les tranches. On ne saute que le chemin
@@ -360,7 +359,6 @@ function OpexAI::_expandRailLines(year)
           local trainCost = line.loco.price + line.wagons * wagon.price;
           local need = trainCost + OpexCashReserve();
           local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-          if (money < need && REBORROW) money = OpexTryReborrow(need, money);
           if (money >= need) {
             local secondTrain = OpexBuildSecondTrain(this._catalog, line, OpexCashReserve());
             if (secondTrain.ok) {
@@ -395,7 +393,6 @@ function OpexAI::_expandRailLines(year)
           local trainCost = line.loco.price + line.wagons * wagon.price;
           local need = trackCost + trainCost + OpexCashReserve();
           local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-          if (money < need && REBORROW) money = OpexTryReborrow(need, money);
           if (money >= need) {
             if (RAIL_SEARCH_RESUMABLE) {
               local prep = OpexPrepareUpgradeSearch(line, HARD_ITERATION_CAP);
@@ -452,7 +449,6 @@ function OpexAI::_expandRailLines(year)
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   local need = best.wagon.price + OpexCashReserve();
   if (money < need) {
-    if (REBORROW) money = OpexTryReborrow(need, money);
     if (money < need) return;
   }
 
@@ -856,7 +852,6 @@ function OpexAI::_consumeRailSearch(year)
   if (!planFailed) {
     local need = candidate.capital + OpexCashReserve();
     local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-    if (money < need && REBORROW) money = OpexTryReborrow(need, money);
     if (money < need) {
       if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("rail", -1, candidate.capital, candidate.profitAnnual, candidate.roi, candidate.src, candidate.dst, need, money);
       /* C41.47 : pendant de la garde G3S1 ci-dessus, applique au motif tresorerie -- des le

@@ -79,13 +79,10 @@ PORTFOLIO_MAX_BATCH <- 1;
 /* C38 : le batch dynamique re-classe le vivier apres chaque succes contre la caisse vivante.
  * Il reste desactive jusqu'au diagnostic puis au banc apparie ; a 0 le chemin livre ne porte
  * aucun etat de batch supplementaire. */
-PORTFOLIO_DYNAMIC_BATCH <- false;
 /* P2 : le bras C38 ne doit pas balayer tout le vivier sur une rafale de refus,
  * ni consommer tout le tick. Ces controles ne sont lus que pour le bras
  * dynamique ; 0 reconstitue respectivement l'ancien balayage et son garde
  * absolu de 2 500 opcodes. */
-DYNAMIC_BATCH_REJECT_LIMIT <- 3;
-DYNAMIC_BATCH_OPS_BUDGET_PCT <- 50;
 /* C43/E3 famille 2 : PORTFOLIO_REFRESH_MIN_GAIN mord-il independamment du doublement (l'autre
  * moitie de la condition ET) ? Compteurs cumulatifs, publies en delta annuel par la tache
  * "report", meme schema que CASH_RESERVE_PROBE. */
@@ -206,10 +203,6 @@ MARGINAL_FLEET <- false;
  * 1 (defaut) sert d'abord la ligne au meilleur profit PAR APPAREIL, donc celle qui rembourse
  * l'avion suivant le plus vite ; 0 rend l'ordre historique pour que le banc puisse trancher. */
 AIR_ROI_ORDER <- true;
-/* Reemprunt a la demande : repli FAUX jusqu'a la lecture unique de reborrow dans Start().
- * Defaut 0 : le trou "desendetter puis manquer d'argent" est vide (412 GC a emprunt max,
- * 0 tirage). Sans lui, _tryRepayLoan reste a sens unique. */
-REBORROW <- false;
 /* Item 7 : forcer la construction d'un echantillon de paires rejetees pour profit
  * predit <= 0. Repli FAUX jusqu'a la lecture unique de probe_negative dans Start().
  * Defaut 0 : ce n'est PAS un changement de classement. 1 ne batit qu'apres _tryBuild,

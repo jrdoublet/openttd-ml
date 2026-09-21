@@ -83,7 +83,6 @@ const BUILD_TICK_MARGIN = 3000;
 const LOOP_BUDGET_FLOOR = 2000;
 const LOOP_BUDGET_MAX_TASKS = 8;
 
-const DYNAMIC_BATCH_OPS_FLOOR = 2500;
 /* Gain absolu minimal avant de rejouer la generation : en dessous, le cout en opcodes ne vaut pas
  * la peine d'etre paye pour quelques milliers de livres. */
 const PORTFOLIO_REFRESH_MIN_GAIN = 50000;
@@ -135,13 +134,9 @@ class OpexAI extends AIController {
    * patron que _railExpansion : l'etat vit ici, il est repris en TETE de _runNextTask, et on
    * termine en remettant _railSearch = null. Le pathfinder lui-meme est dans state.pathfinder. */
   _railSearch = null;
-  /* C38 : etat transitoire d'un batch dynamique, necessaire si un A* rail rend la main. */
-  _dynamicBatch = null;
-  /* 11.6 : _railSearch contient un pathfinder vivant et _dynamicBatch reference _projects.
-   * Ils ne sont pas serialises ; Save/Load ne conserve que leur presence pour forcer une
-   * reconstruction propre du portefeuille apres reload. */
+  /* 11.6 : _railSearch contient un pathfinder vivant. Il n'est pas serialise ;
+   * Save/Load conserve sa presence pour forcer une reconstruction propre du portefeuille. */
   _reloadDroppedRailSearch = false;
-  _reloadDroppedDynamicBatch = false;
   /* Le diagnostic mono-bus (_roadDiag, _reportRoad, echantillon trimestriel RQ/RE/RI) a ete retire
    * le 2026-08-29 : il servait a trouver pourquoi UNE liaison ne chargeait rien, la reponse est
    * connue et documentee (builder_road.nut), et les lignes routieres rejoignent desormais _lines,

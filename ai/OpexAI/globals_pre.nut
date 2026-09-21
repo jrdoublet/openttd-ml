@@ -64,7 +64,6 @@ AIR_EARLY_SLOT_TARGET_TOWNS <- 6;
 AIR_EARLY_SLOT_MIN_POP <- 1000;
 AIR_EARLY_SLOT_BONUS_PCT <- 50;
 /* Refaire le sac a dos contre la caisse vivante, sans repayer la generation des candidats. */
-PORTFOLIO_FRESH_BUDGET <- false;
 /* C36.1 : Caching incremental du vivier post-chantier. */
 PORTFOLIO_CACHE <- false;
 /* C39.0 : sonde passive du bus d'invalidation. A 1, les evenements marquent les
@@ -243,7 +242,6 @@ AIR_PORTFOLIO <- true;
 /* C34.2 : croissance de flotte aerienne arbitree par le portefeuille (1) au lieu de la tache dediee. */
 FLEET_PORTFOLIO <- true;
 /* C32 : bonus forfaitaires de classement du fret. 0 = supprimes. */
-FLAT_BONUS <- false;
 /* Devis réel par AITestMode + AIAccounting avant engagement (docs/taches.md C7). */
 RAIL_DEVIS <- true;
 /* Expansion marginale : bras A/B inerte par defaut jusqu'au verdict du banc. */
@@ -255,10 +253,6 @@ _currentTaskLogged <- false;
 /* Reserve de tresorerie dynamique : adaptee a la taille de la flotte pour liberer le capital
  * des les premieres annees (15 000 £ au lieu de 50 000 £) et eviter les soldes oisifs. */
 DYNAMIC_CASH_RESERVE <- true;
-/* Decision utilisateur : la reserve ne doit jamais depasser UN mois d'entretien (totalRunning / 12),
- * contre jusqu'a 3 mois (quarterlyBuffer) ou un forfait fixe selon la branche. Defaut a false pour
- * ne rien changer tant que le banc n'a pas tranche -- voir OpexCashReserve() plus bas. */
-RESERVE_MAINT_CAP <- false;
 /* P1 : repli empirique du filtre de financabilite. Le facteur rail 1,7
  * reste applique au capital de construction estime ; les autres modes restent a 1,0. */
 CAPITAL_CALIBRATION <- true;

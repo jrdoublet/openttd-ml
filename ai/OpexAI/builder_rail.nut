@@ -1634,7 +1634,6 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   result.money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   local need = result.capital + cashReserve;
   if (result.money < need) {
-    if (REBORROW) result.money = OpexTryReborrow(need, result.money);
     if (result.money < need) { result.reason = "CASH"; return result; }
   }
 

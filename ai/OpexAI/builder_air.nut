@@ -833,7 +833,6 @@ function OpexAirAddPlane(line)
   local need = price + OpexCashReserve() + 1000;
   local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   if (money < need) {
-    if (REBORROW) money = OpexTryReborrow(need, money);
     if (money < need) {
       result.reason = "CASH"; return result;
     }

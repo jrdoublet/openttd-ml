@@ -294,12 +294,7 @@ function OpexLoadSettings()
   C54_VEHICLE_ORDERS_PROBE = probeEvents;
 
   /* --- 5. Pistes formellement abandonnees / constantes neutres verrouillees --- */
-  PORTFOLIO_FRESH_BUDGET = false;
-  PORTFOLIO_DYNAMIC_BATCH = false;
-  DYNAMIC_BATCH_REJECT_LIMIT = 3;
-  DYNAMIC_BATCH_OPS_BUDGET_PCT = 50;
   PORTFOLIO_FLOOR_PCT = 0;
-  FLAT_BONUS = false;
   MARGINAL_FLEET = false;
   ROAD_TIME_SCALED_CAP = AIController.GetSetting("road_time_scaled_cap") != 0;
   C55_FREIGHT_ORIGIN_RELAX = false;
@@ -308,12 +303,10 @@ function OpexLoadSettings()
   JOIN_MAX_DISTANCE = 0;
   BASIN_SHARE = false;
   RAIL_EXPAND = AIController.GetSetting("rail_expand") != 0;
-  REBORROW = false;
   PAX_NEAR = false;
   PROBE_NEGATIVE = false;
   OPEX_AIR_CAP_PAD = false;
   OPEX_AIR_PLAN_PAD = false;
-  RESERVE_MAINT_CAP = false;
   OPEX_AIR_SITE_PAD = false;
   OPEX_AIR_TOWN_PAD = false;
   C39_ENGINE_REFRESH = false;

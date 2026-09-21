@@ -781,16 +781,11 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
   else turnoverBonus = 60;
   /* C32 : un forfait n'est pas une estimation. Le monopole (+40 %) et la chaine (+35 %) deplacaient
    * le classement sans rien predire, et C27 avait deja du les sortir du numerateur de densite parce
-   * qu'ils faussaient un diagnostic entier. Sous flat_bonus = 0 (defaut), tous les modes concourent
+   * qu'ils faussaient un diagnostic entier. Tous les modes concourent desormais
    * sur leur ROI estime. */
-  local freightBonus = 100;
-  if (FLAT_BONUS && kind == "freight") {
-    freightBonus = 140;
-    if (isTransformer) freightBonus = (freightBonus * 135) / 100;
-  }
-  local adjustedRoi = (((economics.roi * turnoverBonus) / 100) * freightBonus) / 100;
+  local adjustedRoi = (economics.roi * turnoverBonus) / 100;
   local ratio = opcodeRatio + (adjustedRoi * 15);
-  local effectiveRoi = (economics.roi * freightBonus) / 100;
+  local effectiveRoi = economics.roi;
 
   stats.accepted++;
   return {
@@ -825,7 +820,6 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
     roi = effectiveRoi,
     /* B6 diagnostic : le bonus de rotation agit sur ratio/TopK en amont, pas sur ce roi. */
     turnoverBonus = turnoverBonus,
-    freightBonus = freightBonus,
     isTransformer = isTransformer,
     profitAnnual = economics.profitAnnual,
     /* Detail du calcul, garde pour l'instrumentation predit-vs-reel (cf. main.nut). */
@@ -1521,12 +1515,7 @@ function OpexMakeRoadCandidate(catalog, kind, cargo, src, dst, srcTown, dstTown,
     if ("profitBelowFloorKept" in stats) stats.profitBelowFloorKept++;
   }
   local iterations = OpexRoadIterations(distance);
-  local freightBonus = 100;
-  if (FLAT_BONUS && kind == "freight") {   /* C32 : voir OpexMakeCandidate */
-    freightBonus = 140;
-    if (isTransformer) freightBonus = (freightBonus * 135) / 100;
-  }
-  local effectiveRoi = (economics.roi * freightBonus) / 100;
+  local effectiveRoi = economics.roi;
   stats.accepted++;
   return {
     mode = "road",
@@ -1551,7 +1540,6 @@ function OpexMakeRoadCandidate(catalog, kind, cargo, src, dst, srcTown, dstTown,
     capital = economics.capital,
     immobilise = ("immobilise" in economics) ? economics.immobilise : 0,
     roi = effectiveRoi,
-    freightBonus = freightBonus,
     isTransformer = isTransformer,
     profitAnnual = economics.profitAnnual,
     revenueAnnual = economics.revenueAnnual,
