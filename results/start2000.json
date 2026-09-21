@@ -1,0 +1,47 @@
+{
+ "years": 2,
+ "seeds": [
+  42
+ ],
+ "arm": "OpexAI[probe_portfolio=1]",
+ "per_seed": [
+  {
+   "seed": 42,
+   "run_ok": true,
+   "n_events": 6662,
+   "metrics": {
+    "build_passes": 18,
+    "window_build_passes": 8,
+    "diff_passes": 1,
+    "c2_exposure": 0.125,
+    "c3_checked": 1,
+    "c3_built_anyway_share": 0.0,
+    "c4_median_p_ratio": 1.4959447702971964,
+    "first_diff_year": 2001,
+    "f_median_by_year": {
+     "2000": 210.70604,
+     "2001": 1379.3959
+    },
+    "kdec_median_by_year": {
+     "2000": 8358.0,
+     "2001": 62934.5
+    },
+    "c5_median_real_pred_prof_by_mode": {
+     "road": 0.67261654,
+     "air": 0.8970991
+    },
+    "c5_spread_max_over_min": 1.3337452272583128
+   },
+   "c1": {
+    "air_capital_median": 73014.0,
+    "kdec_crosses_air_year": null,
+    "c49_cash_below_decision_year": null,
+    "c1_gap_years": null
+   },
+   "company_value": 851440,
+   "profit_year": 689798
+  }
+ ],
+ "failed_runs": [],
+ "failed_run_count": 0
+}

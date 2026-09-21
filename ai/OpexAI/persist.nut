@@ -435,6 +435,10 @@ function OpexAI::Save()
   if (projectedLines != null) saveLines = projectedLines;
   local saveObj = {
     version = 1,
+    /* C69/C75 : sans ces dates, tau repart de 0 chantier sur une fenetre de 365 jours et K_dec /
+     * K_pass explosent pendant un an apres chargement (docs/19_rechargement_partie.md). Entiers. */
+    c69BuildDates = C69_BUILD_DATES,
+    c75PassDates = C75_PASS_DATES,
     generationStage = this._generationStage,
     generationStageMonth = this._generationStageMonth,
     lastFreightCargo = this._lastFreightCargo,
@@ -473,6 +477,8 @@ function OpexAI::Save()
 function OpexAI::Load(version, data)
 {
   this._loadedFromSave = true;
+  this._reloadC69BuildDates = ("c69BuildDates" in data) ? data.c69BuildDates : null;
+  this._reloadC75PassDates = ("c75PassDates" in data) ? data.c75PassDates : null;
   if (data == null) return;
   if ("generationStage" in data) this._generationStage = data.generationStage;
   if ("generationStageMonth" in data) this._generationStageMonth = data.generationStageMonth;
@@ -532,6 +538,17 @@ function OpexAI::Load(version, data)
  * ici, apres les reglages. Les stationA/stationB sont des TUILES, jamais des StationID. */
 function OpexAI::_reconcileAfterLoad()
 {
+  /* C69/C75/C70 : restaurer APRES OpexLoadSettings() et les remises a zero de Start(). */
+  if (C69_TRACK_BUILDS && this._reloadC69BuildDates != null && typeof this._reloadC69BuildDates == "array") {
+    C69_BUILD_DATES = this._reloadC69BuildDates;
+  }
+  if (C75_TRACK_PASSES && this._reloadC75PassDates != null && typeof this._reloadC75PassDates == "array") {
+    C75_PASS_DATES = this._reloadC75PassDates;
+  }
+  this._reloadC69BuildDates = null;
+  this._reloadC75PassDates = null;
+  if (C70_MODE_CALIBRATION) OpexC70RecomputeFactors(this._lines);
+
   local saved = 0;
   local kept = 0;
   local dropped = 0;

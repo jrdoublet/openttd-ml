@@ -941,7 +941,7 @@ function OpexComputeOperatingCashFlow(now = null)
   local curYear = AIDate.GetYear(now);
   local curMonth = AIDate.GetMonth(now);
   local curQuarterIdx = (curMonth - 1) / 3;
-  local totalCompletedQuarters = (curYear - 1970) * 4 + curQuarterIdx;
+  local totalCompletedQuarters = (curYear - OPEX_START_YEAR) * 4 + curQuarterIdx;
 
   local F = 0.0;
   local daysCovered = 0;
@@ -951,7 +951,7 @@ function OpexComputeOperatingCashFlow(now = null)
     local curQuarterStartDate = AIDate.GetDate(curYear, curQuarterStartMonth, 1);
     local T = totalCompletedQuarters;
     local windowStartQuarter = T - numQ;
-    local windowStartYear = 1970 + (windowStartQuarter / 4);
+    local windowStartYear = OPEX_START_YEAR + (windowStartQuarter / 4);
     local windowStartMonth = (windowStartQuarter % 4) * 3 + 1;
     local windowStartDate = AIDate.GetDate(windowStartYear, windowStartMonth, 1);
     daysCovered = curQuarterStartDate - windowStartDate;
@@ -987,7 +987,7 @@ function OpexC69ComputeKDec()
   local F = flow.F;
   local daysCovered = flow.daysCovered;
 
-  local startDate = AIDate.GetDate(1970, 1, 1);
+  local startDate = AIDate.GetDate(OPEX_START_YEAR, 1, 1);
   local daysSinceStart = now - startDate;
   if (daysSinceStart < 1) daysSinceStart = 1;
   local D = daysSinceStart < 365 ? daysSinceStart : 365;
@@ -1031,7 +1031,7 @@ function OpexC75RecordPassDate(now = null)
   if (now == null) now = AIDate.GetCurrentDate();
   C75_PASS_DATES.append(now);
 
-  local startDate = AIDate.GetDate(1970, 1, 1);
+  local startDate = AIDate.GetDate(OPEX_START_YEAR, 1, 1);
   local daysSinceStart = now - startDate;
   if (daysSinceStart < 1) daysSinceStart = 1;
   local D = daysSinceStart < 365 ? daysSinceStart : 365;
@@ -1054,7 +1054,7 @@ function OpexC75ComputeKPass(now = null)
   local flow = OpexComputeOperatingCashFlow(now);
   local F = flow.F;
 
-  local startDate = AIDate.GetDate(1970, 1, 1);
+  local startDate = AIDate.GetDate(OPEX_START_YEAR, 1, 1);
   local daysSinceStart = now - startDate;
   if (daysSinceStart < 1) daysSinceStart = 1;
   local D = daysSinceStart < 365 ? daysSinceStart : 365;

@@ -78,3 +78,29 @@ L'année de départ est pourtant connue et sauvegardée : `this._startYear` (`ma
 
 Rien de ceci ne change les bancs (départ en 1970, jamais de rechargement) : pas de nouveau 20×10
 nécessaire pour ces correctifs, seulement les vérifications ci-dessus.
+
+## 6. Correctifs appliqués et vérifiés (2026-09-21)
+
+Appliqués par Claude sur `c69-goulot-decision`, à la demande de l'utilisateur :
+
+1. `C69_BUILD_DATES` et `C75_PASS_DATES` sont sauvegardés (`persist.nut`, `Save`) et restaurés dans
+   `_reconcileAfterLoad()`, c'est-à-dire **après** les remises à zéro de `OpexLoadSettings()` et de
+   `Start()`.
+2. `OpexC70RecomputeFactors` (`projects.nut`) recalcule les facteurs C70 au chargement à partir des
+   cumuls par ligne.
+3. **Troisième défaut trouvé en corrigeant** : après chargement, `c70Real` et `c70Pred` sont des
+   entiers (la sauvegarde arrondit les flottants) ; une ligne sans nouvelle année pleine faisait
+   alors une **division entière** dans le calcul du facteur. Les deux divisions passent par
+   `tofloat()`.
+4. `OPEX_START_YEAR` (posé dans `Start()` depuis `_startYear`) remplace 1970 dans les trois calculs
+   de F et de τ. Les gardes `year < 1970` qui restent ne concernent que la publication de sondes.
+
+| vérification | résultat |
+|---|---|
+| smoke au défaut, départ 1970, graines 42 et 100 × 3 ans | **identique au bit près** au défaut adopté (3 440 770 et 2 078 509 £) |
+| rechargement graine 42, sauvegarde du 1973-01-01 | K_dec 143 k → **154 k£**, K_pass 266 k → **287 k£** ; τ inchangés (28 j, 52 j) |
+| départ en 1950, 2 ans | K_dec = 0 au démarrage, puis 10 à 38 k£ (avant : F = 0 jusqu'en 1970) |
+| départ en 2000, 2 ans | K_dec = 0 au démarrage, puis τ de 38 à 52 j (avant : τ gonflé à 365 j) |
+
+`results/reloadfix_default_smoke.json`, `results/start1950.json`, `results/start2000.json` ; le
+journal du rechargement (`results/reload_fixed_seed42.json`, ~3,7 Mo) n'est pas versionné.

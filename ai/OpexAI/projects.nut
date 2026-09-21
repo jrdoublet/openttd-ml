@@ -167,6 +167,25 @@ function OpexProjectPairKey(kind, cargo, src, dst)
   return kind + "|" + cargo + "|" + src + "|" + dst;
 }
 
+/* C70 : facteurs par mode recalcules depuis les cumuls par ligne (sauvegardes avec les lignes).
+ * Meme formule que le rapport annuel (task_report.nut) : pseudo-ligne a 1. Appele au chargement
+ * pour ne pas repartir de k = 1 jusqu'au rapport suivant. */
+function OpexC70RecomputeFactors(lines)
+{
+  local sums = { rail = [0.0, 0], road = [0.0, 0], air = [0.0, 0], water = [0.0, 0] };
+  if (lines != null) {
+    foreach (line in lines) {
+      if (line == null || !("mode" in line) || !(line.mode in sums)) continue;
+      if (!("c70Pred" in line) || !("c70Real" in line) || line.c70Pred <= 0) continue;
+      sums[line.mode][0] += line.c70Real.tofloat() / line.c70Pred.tofloat();
+      sums[line.mode][1]++;
+    }
+  }
+  foreach (m, acc in sums) {
+    C70_MODE_FACTOR[m] = (acc[0] + 1.0) / (acc[1] + 1).tofloat();
+  }
+}
+
 /* C70 : facteur du mode d'un projet. Un projet de flotte ajoute des avions a une ligne aerienne. */
 function OpexC70Factor(project)
 {

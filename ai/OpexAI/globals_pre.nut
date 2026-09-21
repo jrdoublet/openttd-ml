@@ -267,6 +267,9 @@ C63_INVEST_LEDGER <- null;
 C70_MODE_CALIBRATION <- false;
 C70_MODE_FACTOR <- { rail = 1.0, road = 1.0, air = 1.0, water = 1.0 };
 /* C69 etape 1 : sonde passive goulot de decision P / max(C, F*tau). */
+/* Annee de depart de la compagnie (sauvegardee via _startYear) : base des calculs C69/C75 de F et
+ * de tau. 1970 n'est qu'un repli, pose avant Start(). */
+OPEX_START_YEAR <- 1970;
 C69_BOTTLENECK_PROBE <- false;
 /* C69 etape 2 : levier. C69_TRACK_BUILDS = sonde ou levier : tau exige les dates de chantier. */
 C69_DECISION_BOTTLENECK <- false;
