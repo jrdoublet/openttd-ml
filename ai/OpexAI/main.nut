@@ -37,8 +37,6 @@ const RAIL_EXPAND_TIMEOUT_DAYS = 120;
  * une rame vers le depot qu'une fois entree dans cette zone locale. */
 const RAIL_EXPAND_APPROACH_TILES = 8;
 
-const RAIL_PREQUOTE_MAX_CANDIDATES = 2;
-const RAIL_PREQUOTE_HARD_CAP = 2500;
 const CASH_RESERVE_STATIC = 25000;
 const CASH_RESERVE_MIN = 5000;
 const CASH_RESERVE_MAX = 25000;
@@ -362,10 +360,10 @@ class OpexAI extends AIController {
   function _resizeAirFleets(year);
   function _expandRailLines(year);
   function _continueRailExpansion();
-  function _startRailSearch(candidate, join, placeJoin, alternativeRatio, hardCap, projectIndex);
+  function _startRailSearch(candidate, alternativeRatio, hardCap, projectIndex);
   function _continueRailSearch();
   function _consumeRailSearch(year);
-  function _recordRailAttempt(candidate, result, join, placeJoin, posPacked, year);
+  function _recordRailAttempt(candidate, result, posPacked, year);
   function _startRailUpgradeSearch(line, prep);
   function _consumeRailUpgrade();
   function _findLineById(lineId);

@@ -295,9 +295,6 @@ function OpexLoadSettings()
   C54_VEHICLE_ORDERS_PROBE = probeEvents;
 
   /* --- 5. Pistes formellement abandonnees / constantes neutres verrouillees --- */
-  RAIL_PREQUOTE = false;
-  RAIL_PREQUOTE_KEEP_PLAN = false;
-  RAIL_TERRAIN_PROBE = false;
   PORTFOLIO_FRESH_BUDGET = false;
   PORTFOLIO_DYNAMIC_BATCH = false;
   DYNAMIC_BATCH_REJECT_LIMIT = 3;
@@ -306,16 +303,12 @@ function OpexLoadSettings()
   FLAT_BONUS = false;
   MARGINAL_FLEET = false;
   ROAD_TIME_SCALED_CAP = AIController.GetSetting("road_time_scaled_cap") != 0;
-  C50B_RAIL_BACKLOG_RELAX = false;
   C55_FREIGHT_ORIGIN_RELAX = false;
   C41_RAIL_LOST_SIGNAL_REPAIR = false;
   C41_RAIL_LOST_JUNCTION_REPAIR = false;
-  STATION_JOIN = false;
   JOIN_MAX_DISTANCE = 0;
-  JOIN_PLACE = false;
   BASIN_SHARE = false;
   RAIL_EXPAND = AIController.GetSetting("rail_expand") != 0;
-  ASTAR_COST_V2 = false;
   REBORROW = false;
   PAX_NEAR = false;
   PROBE_NEGATIVE = false;
@@ -333,7 +326,6 @@ function OpexLoadSettings()
   C41_WATER_PRECHECK = false;
   LOOP_BUDGET = false;
   GROWTH_YIELDS = false;
-  PRICING_RAIL_DEPOT = false;
   FLEET_FIX = false;
   EVENT_DEPOT_SELL = false;
   EVENT_INDUSTRY_CLOSE = false;

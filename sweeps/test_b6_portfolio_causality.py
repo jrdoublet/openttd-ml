@@ -125,9 +125,8 @@ class TestB6PortfolioCausality(unittest.TestCase):
 
         reprice = body(self.projects, "function OpexB6RepriceFreightTop(")
         self.assertIn("AIIndustry.GetLastMonthProduction", reprice)
-        self.assertIn('cand.placeJoin.candidateEnd == "A"', reprice)
-        self.assertIn("OpexOriginService(lines, cand.src)", reprice)
-        self.assertIn("service.line.srcIndustry", reprice)
+        self.assertNotIn("placeJoin", reprice)
+        self.assertIn("AIIndustry.GetIndustryID(cand.src)", reprice)
         self.assertIn("OpexLineEconomics(", reprice)
         self.assertIn("OpexRoadLineEconomics(", reprice)
         self.assertIn("cand.isTransformer", reprice)

@@ -118,8 +118,7 @@ supprimé, pas de branche morte à unifier).
 - La plupart des réglages de `info.nut` sont des **drapeaux d'expérience à défaut 0/false/off** :
   du code vivant mais volontairement inerte (hypothèse déjà banquée et rejetée, ou pas encore
   banquée). Vérifier la valeur par défaut avant de signaler "code mort" ou "flag jamais activé".
-  Exemples au 2026-09-13 : `c50b_rail_backlog_relax`
-  `*_cost_probe` (mesure seule).
+  Exemples : les `*_cost_probe` (mesure seule).
 - `OpexProjectFinanceCapital` (`projects.nut`) applique `biasPct` = 170 (rail) / 121 (route) :
   ce sont des **surcoûts réels mesurés** (terrain non pricé par le modèle de coût), pas des nombres
   magiques à supprimer — leur remplacement par un devis physique est un chantier ouvert.

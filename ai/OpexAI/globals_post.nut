@@ -49,29 +49,15 @@ ABANDON_MEMORY <- true;
 ABANDON_COOLDOWN_DAYS <- 0;
 /* C22 : Filtrer les paires abandonnées dès la génération des candidats (defaut 1, adopte). */
 ABANDON_GEN_FILTER <- false;
-/* Raccordement de gare : repli actif jusqu'a la lecture unique de station_join dans Start().
- * Commande AUSSI la relaxation d'origine a la generation (candidates.nut) : les deux moities du
- * meme mecanisme partagent un seul reglage, sans quoi le bras de controle du banc ne reproduirait
- * pas le comportement historique. Repli FAUX depuis le 2026-08-29 : deux bancs (vivier, puis
- * post-traction) montrent un effet de construction sans valeur. Tout le verdict est dans info.nut. */
-STATION_JOIN <- false;
-/* Porte H1 : 0 = pas de plafond (v1 inerte). N = rejeter la jointure si
- * candidate.distance >= N, sans A*. Defaut 0. Valeur de travail 50
- * (results/opex_join_pop.json). Inerte si station_join = 0. */
+/* H1 : constante historique conservee bit-identique. */
 JOIN_MAX_DISTANCE <- 0;
-/* H2 : joindre au lieu, pas en repli _tooClose. Defaut 0. Les candidats
- * naissent d'une gare rail OpexAI vers une origine libre dans 25-75
- * tuiles, avec l'objet join deja attache. Independant de station_join :
- * le banc doit pouvoir attribuer. JOINPATH reste dedie. */
-JOIN_PLACE <- false;
 /* Filtre d'origine sitable : repli ACTIF jusqu'a la lecture unique de origin_sitable dans
  * Start(). Defaut passe a 1 le 2026-09-09 (decision utilisateur) ; 1 ecarte du TOP_K les
  * sources sans tuile de terre voyant le cargo dans leur bassin. Le classement a 0 reste celui
  * d'avant le filtre, conserve pour l'A/B. */
 ORIGIN_SITABLE <- true;
 /* Partage de bassin : repli FAUX jusqu'a la lecture unique de basin_share dans Start().
- * Defaut 0 apres banc apparie : le partage declasse les jointures sans porter de valeur.
- * Inerte si station_join = 0. */
+ * Defaut 0 apres banc apparie. */
 BASIN_SHARE <- false;
 /* Reconstitution de flotte routiere : repli ACTIF jusqu'a la lecture unique de road_refleet
  * dans Start(). Defaut 1 : une ligne a zero vehicule avec l'infrastructure payee est un
@@ -196,11 +182,7 @@ ECONOMY_FIX <- true;
  * inchange. Sous les switches restants, deux incoherences de modele tombent, toutes dans l'arbitrage MULTIMODAL --
  * c'est-a-dire la ou le portefeuille compare rail et route sur des nombres qui n'etaient pas
  * calcules de la meme facon :
- *   1. le capital rail inclut enfin le DEPOT, que builder_rail.nut paie a chaque ligne et que la
- *      route comme l'eau comptent deja. L'omission gonflait le ROI rail face a la route ;
- *   2. l'estimation d'opcodes d'un projet routier ne facture plus ses iterations au tarif du
- *      pathfinder RAIL -- une erreur de dimension qui sous-estimait opcodeScore cote route. */
-PRICING_RAIL_DEPOT <- false;
+ * L'estimation d'opcodes d'un projet routier utilise le tarif du pathfinder routier. */
 PRICING_ROAD_OPS <- true;
 /* Dimensionnement marginal et progressif de flotte (item de tete, 2026-09-01) : repli FAUX
  * jusqu'a la lecture unique de marginal_fleet dans Start(). Defaut 0 : chemin actuel

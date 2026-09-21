@@ -22,7 +22,6 @@
  * ai/TrainLineAI/main.nut). Vide a chaque OpexBuildCandidates, donc jamais stale. */
 ::OpexSitableCache <- {};
 
-JOIN_PLACE_MAX <- 75;
 TOP_K <- 20;
 MIN_RATIO <- 500;
 const PAX_BAND_ALL = 0;
@@ -100,29 +99,13 @@ const PAX_NEAR_RATIO = 1;
  *   distance :    23     33     48     63     81    105     150
  *   iterations:  371    673   2188   4066   7745  15308   53951
  *
- * Deux tables, memes abcisses. astar_cost=0 : noeuds 13.4 (TrainLineAI). astar_cost=1 :
- * iterations AMORTIES par succes, fenetre +/-12 tuiles autour de chaque noeud, 227 tentatives
- * (results/opex_attempt_distance_20y_5seeds.json). ATTEMPT_MULTIPLIER reste 4 : p95(iter OK) /
- * amort <= 2,7 sur toutes les bandes, donc 4x couvre la queue d'une tentative isolee. Le
- * plancher 2000 absorbe le court (4*310=1240 < 2000). Recalibrer les noeuds SANS ce M
- * reproduirait "budgets 50-400, zero ligne".
- *
- *   distance :                 23    33    48    63    81     105     150
- *   v1 (13.4) :               371   673  2188  4066  7745   15308   53951
- *   v2 (amorti 15.3) :        310   690  2500  5400  8200   26000   52000
- *
- * v2 est plus cher a 63 (ABND dans 50-70) et surtout a 105 (8 des 12 ABND au-dela).
- * Le court reste du meme ordre. Le classement a v2 prefere le court, et MIN_RATIO coupe
- * le long. Banc 20 graines : gares -7,9 % (t = -3,23), valeur sous le plancher. Defaut 0.
  */
 KNOT_DISTANCE <- [23, 33, 48, 63, 81, 105, 150];
 KNOT_ITERATIONS_V1 <- [371, 673, 2188, 4066, 7745, 15308, 53951];
-KNOT_ITERATIONS_V2 <- [310, 690, 2500, 5400, 8200, 26000, 52000];
-ASTAR_COST_V2 <- false;
 
 function OpexRailIterations(distance)
 {
-  local knots = ASTAR_COST_V2 ? KNOT_ITERATIONS_V2 : KNOT_ITERATIONS_V1;
+  local knots = KNOT_ITERATIONS_V1;
   local n = KNOT_DISTANCE.len();
   if (distance <= KNOT_DISTANCE[0]) return knots[0];
   for (local i = 1; i < n; i++) {
@@ -146,7 +129,7 @@ function OpexRailIterations(distance)
 function OpexRailDistanceForIterations(maxIter)
 {
   if (maxIter <= 0) return KNOT_DISTANCE[0];
-  local knots = ASTAR_COST_V2 ? KNOT_ITERATIONS_V2 : KNOT_ITERATIONS_V1;
+  local knots = KNOT_ITERATIONS_V1;
   local n = KNOT_DISTANCE.len();
   if (maxIter <= knots[0]) return KNOT_DISTANCE[0];
   for (local i = 1; i < n; i++) {
@@ -1080,27 +1063,7 @@ function OpexRoadFreightAcceptedTowns(towns, servedTown, cargo, truckCoverage, b
   return accepted;
 }
 
-/* DE LA GUILLOTINE AU FILET (2026-08-29). L'exclusion ci-dessus, ecrite le 2026-08-28, rejetait la
- * paire des qu'UNE de ses deux extremites etait servie. Mesure sur 20 ans, graine 42
- * (results/opex_road_20y_42.json) : a partir de 1982 elle ecarte 213 a 242 paires par an et il ne
- * reste que 0 a 3 candidats classes -- la regle "un seul raccordement par origine" a consomme la
- * carte, et huit annees ne produisent que six lignes. Elle emportait aussi station_join, ecrit le
- * meme jour pour recuperer exactement ce vivier : 0 tentative en 20 ans, parce que le candidat
- * mourait un etage plus haut, avant que _tooClose puisse proposer un quai joint.
- *
- * La regle reste entiere -- on ne pose JAMAIS une seconde gare sur une origine deja servie -- mais
- * elle cesse d'etre un rejet : une extremite servie doit desormais etre RECUPEREE par un quai
- * joint, ou le candidat est rejete plus bas par _tooClose. Ce qui reste exclu ici sans appel :
- *  - les DEUX extremites servies (la ligne neuve doublerait un corridor deja tenu) ;
- *  - une origine servie par PLUSIEURS gares distinctes : OpexFindStationJoin exige un objet gare
- *    unique, aucune jointure n'est possible ;
- *  - une origine dont la ligne ne peut pas etre jointe (mode non rail, autre cargo, autre nature,
- *    role fret inverse) -- meme test que OpexJoinCompatible, appele ici pour ne pas le dupliquer.
- *
- * Ce filtre reste un SUR-ENSEMBLE de la decision reelle : il ignore MIN_SEPARATION et l'arbitrage
- * "une seule gare, une seule extremite" que seul _tooClose peut faire une fois les gares baties.
- * Son role est d'eviter de payer OpexLineEconomics pour une jointure structurellement impossible,
- * pas de trancher a la place de _tooClose. */
+/* Une origine rail deja servie exclut la paire avant l'etage economique. */
 
 /* Etat d'une origine face aux lignes RAIL deja baties. Rend null si elle est libre, sinon la ligne
  * qui la sert et l'extremite concernee -- ou une table dont `blocked` est vrai quand plusieurs
@@ -1122,17 +1085,6 @@ function OpexOriginService(lines, tile)
     }
   }
   return found;
-}
-
-/* Une extremite servie merite-t-elle qu'on calcule son economie ? `end` est son role dans le
- * candidat a naitre ("A" = source/premiere ville, "B" = puits/seconde ville). */
-function OpexOriginJoinable(service, kind, cargo, end)
-{
-  if (service.blocked || service.stationId < 0) return false;
-  /* Meme regle que la jointure elle-meme, sans la recopier : OpexJoinCompatible ne lit que
-   * .kind/.cargo du candidat et .line/.end/.lineEnd du conflit. */
-  return OpexJoinCompatible({ kind = kind, cargo = cargo },
-                            { line = service.line, end = end, lineEnd = service.lineEnd });
 }
 
 /* Combien de lignes RAIL utilisent deja ce StationID pour ce cargo. Les modes avec un champ
@@ -1169,175 +1121,6 @@ function OpexShareBasin(amount, lines, stationId, cargo)
  * pas cette dilution geometrique -- non mesure ici, donc non touche. */
 const TOWN_CATCHMENT_SHARE_PCT = 22;
 
-function OpexJoinPlaceMaxDistance()
-{
-  local maxDist = JOIN_PLACE_MAX;
-  if (JOIN_MAX_DISTANCE > 0 && JOIN_MAX_DISTANCE < maxDist) maxDist = JOIN_MAX_DISTANCE;
-  return maxDist;
-}
-
-/* H2 pax : depuis chaque gare rail OpexAI, la ville libre la plus proche
- * dans la bande. L'objet join est attache ici, _tryBuild ne le redecouvre
- * pas via _tooClose. Une seule paire par ville libre (la gare la plus
- * proche), jamais deux gares sur la meme origine. */
-function OpexPlaceJoinPax(catalog, lines, out, stats, towns, produced, served, cargo, abandonedPairs = null, paxBand = PAX_BAND_ALL)
-{
-  local maxDist = OpexJoinPlaceMaxDistance();
-  local bounds = OpexCatalogBounds(catalog);
-  local stations = [];
-  foreach (line in lines) {
-    if (("mode" in line) || !("kind" in line) || line.kind != "pax") continue;
-    if (!("platformA" in line) || !("platformB" in line) || line.cargo != cargo) continue;
-    foreach (lineEnd in ["A", "B"]) {
-      local stationId = OpexLineStationId(line, lineEnd);
-      if (stationId < 0) continue;
-      stations.append({
-        stationId = stationId,
-        platform = lineEnd == "A" ? line.platformA : line.platformB,
-        tile = lineEnd == "A" ? line.stationA : line.stationB,
-        origin = lineEnd == "A" ? line.originA : line.originB,
-      });
-    }
-  }
-  if (stations.len() == 0) return;
-
-  for (local t = 0; t < towns.len(); t++) {
-    if (served[t] != null) continue;
-    local best = null;
-    local bestD = 0;
-    foreach (st in stations) {
-      local d = AIMap.DistanceManhattan(st.tile, towns[t].tile);
-      if (!OpexRailPaxPairInBand(bounds, d, paxBand) || d > maxDist) continue;
-      if (best == null || d < bestD) {
-        best = st;
-        bestD = d;
-      }
-    }
-    if (best == null) continue;
-    stats.placeJoinPairs++;
-    local originTown = AITile.GetClosestTown(best.origin);
-    local originProd = AITown.GetLastMonthProduction(originTown, cargo);
-    local monthly = ((originProd + produced[t]) * TOWN_CATCHMENT_SHARE_PCT) / 100;
-    local candidate = OpexMakeCandidate(catalog, "pax", cargo, best.origin, towns[t].tile,
-                                        monthly, true, stats);
-    if (candidate == null) continue;
-    local key = OpexAbandonedPairKey(candidate);
-    if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (key in abandonedPairs)) continue;
-    if (key in stats.placeJoinKeys) continue;
-    stats.placeJoinKeys[key] <- true;
-    candidate.placeJoin <- {
-      candidateEnd = "A",
-      stationId = best.stationId,
-      platform = best.platform,
-    };
-    stats.placeJoinAccepted++;
-    out.append(candidate);
-  }
-}
-
-/* H2 fret : un puits libre rejoint la source existante la plus proche du
- * meme cargo (candidateEnd A) ; une source libre rejoint le puits existant
- * le plus proche (candidateEnd B). Roles v1, pas d'inversion. */
-function OpexPlaceJoinFreight(catalog, lines, out, stats, industries, served, abandonedPairs = null, freightCargo = null)
-{
-  local maxDist = OpexJoinPlaceMaxDistance();
-  local bounds = OpexCatalogBounds(catalog);
-  local sources = [];
-  local sinks = [];
-  foreach (line in lines) {
-    if (("mode" in line) || !("kind" in line) || line.kind != "freight") continue;
-    if (!("platformA" in line) || !("platformB" in line)) continue;
-    local sidA = OpexLineStationId(line, "A");
-    local sidB = OpexLineStationId(line, "B");
-    if (sidA >= 0) {
-      sources.append({
-        cargo = line.cargo, stationId = sidA, platform = line.platformA,
-        tile = line.stationA, origin = line.originA,
-        srcIndustry = ("srcIndustry" in line) ? line.srcIndustry : -1,
-      });
-    }
-    if (sidB >= 0) {
-      sinks.append({
-        cargo = line.cargo, stationId = sidB, platform = line.platformB,
-        tile = line.stationB, origin = line.originB,
-      });
-    }
-  }
-
-  foreach (cargo, sinkIdxs in catalog.acceptors) {
-    if (freightCargo != null && cargo != freightCargo) continue;
-    foreach (di in sinkIdxs) {
-      if (served[di] != null) continue;
-      local sink = industries[di];
-      local best = null;
-      local bestD = 0;
-      foreach (st in sources) {
-        if (st.cargo != cargo) continue;
-        local d = AIMap.DistanceManhattan(st.tile, sink.tile);
-        if (d < 1 || d > maxDist || d > bounds.railMax) continue;
-        if (best == null || d < bestD) {
-          best = st;
-          bestD = d;
-        }
-      }
-      if (best == null) continue;
-      stats.placeJoinPairs++;
-      local monthly = (best.srcIndustry >= 0)
-          ? AIIndustry.GetLastMonthProduction(best.srcIndustry, cargo) : 0;
-      local candidate = OpexMakeCandidate(catalog, "freight", cargo, best.origin, sink.tile,
-                                          monthly, true, stats);
-      if (candidate == null) continue;
-      local key = OpexAbandonedPairKey(candidate);
-      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (key in abandonedPairs)) continue;
-      if (key in stats.placeJoinKeys) continue;
-      stats.placeJoinKeys[key] <- true;
-      candidate.placeJoin <- {
-        candidateEnd = "A",
-        stationId = best.stationId,
-        platform = best.platform,
-      };
-      stats.placeJoinAccepted++;
-      out.append(candidate);
-    }
-  }
-
-  foreach (cargo, srcIdxs in catalog.producers) {
-    if (freightCargo != null && cargo != freightCargo) continue;
-    foreach (si in srcIdxs) {
-      if (served[si] != null) continue;
-      local source = industries[si];
-      local best = null;
-      local bestD = 0;
-      foreach (st in sinks) {
-        if (st.cargo != cargo) continue;
-        local d = AIMap.DistanceManhattan(st.tile, source.tile);
-        if (d < 1 || d > maxDist || d > bounds.railMax) continue;
-        if (best == null || d < bestD) {
-          best = st;
-          bestD = d;
-        }
-      }
-      if (best == null) continue;
-      stats.placeJoinPairs++;
-      local monthly = AIIndustry.GetLastMonthProduction(source.id, cargo);
-      local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile, best.origin,
-                                          monthly, true, stats);
-      if (candidate == null) continue;
-      local key = OpexAbandonedPairKey(candidate);
-      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (key in abandonedPairs)) continue;
-      if (key in stats.placeJoinKeys) continue;
-      stats.placeJoinKeys[key] <- true;
-      candidate.placeJoin <- {
-        candidateEnd = "B",
-        stationId = best.stationId,
-        platform = best.platform,
-      };
-      stats.placeJoinAccepted++;
-      out.append(candidate);
-    }
-  }
-}
-
 /* Paires de villes pour les passagers. */
 function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, profile = null, candidateProfile = null, cruiseCache = null, paxBand = PAX_BAND_ALL)
 {
@@ -1356,7 +1139,6 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
     served.append(service);
     if (service != null) stats.townsServed++; else stats.townsUnserved++;
   }
-  if (JOIN_PLACE) OpexPlaceJoinPax(catalog, lines, out, stats, towns, produced, served, cargo, abandonedPairs, paxBand);
   if (profile != null) profile.paxPreparationOps += OpexOpsMeasureEnd(preparationMark);
   local pairTotalMark = profile != null ? OpexOpsMeasureBegin() : null;
   local bounds = OpexCatalogBounds(catalog);
@@ -1387,49 +1169,20 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
       if (profile != null) profile.paxPairsScanned++;
       local sa = served[a];
       local sb = served[b];
-      /* Les deux extremites servies, ou le bras de controle du banc (station_join = 0) : rejet
-       * sec, exactement comme avant le 2026-08-29. Le compteur garde donc le meme sens dans les
-       * deux bras. */
-      if ((sa != null && sb != null) || (!STATION_JOIN && (sa != null || sb != null))) {
+      if (sa != null || sb != null) {
         stats.pairsOriginServed++;
         continue;
       }
-      if (sa != null && !OpexOriginJoinable(sa, "pax", cargo, "A")) {
-        stats.pairsJoinImpossible++;
-        continue;
-      }
-      if (sb != null && !OpexOriginJoinable(sb, "pax", cargo, "B")) {
-        stats.pairsJoinImpossible++;
-        continue;
-      }
-      local originServed = sa != null || sb != null;
-      if (originServed) stats.pairsOneServed++;
       /* Une ligne dessert les deux sens, et chaque sens transporte la production de SON
        * origine : le debit utile est la somme, pas le minimum. On ignore encore la croissance de
        * la ville que la desserte provoque (sous-estimation non calibree, plus petite que le
        * facteur ci-dessus d'apres la mesure). */
       local prodA = produced[a];
       local prodB = produced[b];
-      /* basin_share : la ville DEJA servie n'offre plus sa production entiere. Ce n'est PAS le
-       * double comptage mesure (et ecarte) ci-dessous : c'est le partage de stock une fois le
-       * StationID joint, docs/taches.md §2.9.3. */
-      if (BASIN_SHARE && sa != null) prodA = OpexShareBasin(prodA, lines, sa.stationId, cargo);
-      if (BASIN_SHARE && sb != null) prodB = OpexShareBasin(prodB, lines, sb.stationId, cargo);
       local monthly = ((prodA + prodB) * TOWN_CATCHMENT_SHARE_PCT) / 100;
-      /* BIAIS MESURE, ET CE N'EST PAS LUI LE COUPABLE (2026-08-29, sweeps/opex_join_bias.py sur
-       * 10 graines x 20 ans, 155 lignes). Quand `originServed` est vrai, la ville servie voit deja
-       * une partie de sa production partir par la ligne existante et ce calcul la compte une
-       * seconde fois : le rapport brut reel/predit semblait donner x1,53. Mais les lignes a origine
-       * servie sont aussi plus LONGUES (mediane 84 tuiles contre 47) et plus TARDIVES (1981 contre
-       * 1975). Une fois type, distance et epoque neutralises ensemble, il ne reste que x0,81, IC
-       * 95 % [0,63 ; 1,03] -- l'intervalle contient 1. Le double comptage existe peut-etre, il ne
-       * depasse pas le bruit a cet effectif, et il n'explique PAS le verdict du banc.
-       * Ce que la mesure designe a sa place est dans docs/taches.md : le profit reel vaut 1,47 fois
-       * le predit sous 50 tuiles, 0,41 entre 50 et 75, et la MEDIANE tombe a 0,00 au-dela de 100.
-       * Corriger `monthly` ici serait donc traiter le mauvais terme. */
       local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
       local candidate = OpexMakeCandidate(catalog, "pax", cargo, towns[a].tile, towns[b].tile,
-                                          monthly, originServed, stats, false, candidateProfile, cruiseCache);
+                                          monthly, false, stats, false, candidateProfile, cruiseCache);
       if (profile != null) {
         profile.paxCandidateOps += OpexOpsMeasureEnd(candidateMark);
         profile.paxCandidateCalls++;
@@ -1437,11 +1190,7 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
       if (candidate != null) {
         candidate.srcTown <- towns[a].id;
         candidate.dstTown <- towns[b].id;
-        if (JOIN_PLACE && (OpexAbandonedPairKey(candidate) in stats.placeJoinKeys)) {
-          /* H2 porte deja le join ; ne pas occuper un second slot TOP_K. */
-        } else {
-          out.append(candidate);
-        }
+        out.append(candidate);
       }
     }
   }
@@ -1463,7 +1212,6 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
     served.append(service);
     if (service != null) stats.industriesServed++; else stats.industriesUnserved++;
   }
-  if (JOIN_PLACE) OpexPlaceJoinFreight(catalog, lines, out, stats, industries, served, abandonedPairs, freightCargo);
   if (profile != null) profile.freightPreparationOps += OpexOpsMeasureEnd(preparationMark);
   foreach (cargo, sources in catalog.producers) {
     if (freightCargo != null && cargo != freightCargo) continue;
@@ -1490,37 +1238,19 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
         }
         stats.pairsTotal++;
         local sd = served[di];
-        /* Meme regle qu'en pax ci-dessus, roles compris : la source est l'extremite "A" du
-         * candidat a naitre, le puits l'extremite "B". */
-        if ((ss != null && sd != null) || (!STATION_JOIN && (ss != null || sd != null))) {
+        if (ss != null || sd != null) {
           stats.pairsOriginServed++;
           continue;
         }
-        if (ss != null && !OpexOriginJoinable(ss, "freight", cargo, "A")) {
-          stats.pairsJoinImpossible++;
-          continue;
-        }
-        if (sd != null && !OpexOriginJoinable(sd, "freight", cargo, "B")) {
-          stats.pairsJoinImpossible++;
-          continue;
-        }
         local isTransformer = ("isTransformer" in industries[di]) && industries[di].isTransformer;
-        local originServed = ss != null || sd != null;
-        if (originServed) stats.pairsOneServed++;
         local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
         local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
-                                            industries[di].tile, monthly, originServed, stats, isTransformer, profile, cruiseCache);
+                                            industries[di].tile, monthly, false, stats, isTransformer, profile, cruiseCache);
         if (profile != null) {
           profile.freightIndustryCandidateOps += OpexOpsMeasureEnd(candidateMark);
           profile.freightIndustryCandidateCalls++;
         }
-        if (candidate != null) {
-          if (JOIN_PLACE && (OpexAbandonedPairKey(candidate) in stats.placeJoinKeys)) {
-            /* H2 porte deja le join ; ne pas occuper un second slot TOP_K. */
-          } else {
-            out.append(candidate);
-          }
-        }
+        if (candidate != null) out.append(candidate);
       }
       if (profile != null) profile.freightIndustryOps += OpexOpsMeasureEnd(industryMark);
 
@@ -1549,26 +1279,12 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
             if (townServiceCache != null) townServiceCache[town.id] <- st;
           }
           if (townServiceMark != null) { profile.freightTownServiceOps += OpexOpsMeasureEnd(townServiceMark); profile.freightTownServiceCalls++; }
-          if ((ss != null && st != null) || (!STATION_JOIN && (ss != null || st != null))) {
+          if (ss != null || st != null) {
             stats.pairsOriginServed++;
             if (townGuardMark != null) { profile.freightTownGuardsOps += OpexOpsMeasureEnd(townGuardMark); profile.freightTownGuardsCalls++; }
             continue;
           }
-          if (ss != null && !OpexOriginJoinable(ss, "freight", cargo, "A")) {
-            stats.pairsJoinImpossible++;
-            if (townGuardMark != null) { profile.freightTownGuardsOps += OpexOpsMeasureEnd(townGuardMark); profile.freightTownGuardsCalls++; }
-            continue;
-          }
-          if (st != null && !OpexOriginJoinable(st, "freight", cargo, "B")) {
-            stats.pairsJoinImpossible++;
-            if (townGuardMark != null) { profile.freightTownGuardsOps += OpexOpsMeasureEnd(townGuardMark); profile.freightTownGuardsCalls++; }
-            continue;
-          }
           local townMonthly = monthly;
-          if (townMonthly <= 0 && ss != null) {
-            /* Industrie de transformation activement approvisionnée en amont */
-            townMonthly = 45;
-          }
           if (townMonthly <= 0) {
             if (townGuardMark != null) { profile.freightTownGuardsOps += OpexOpsMeasureEnd(townGuardMark); profile.freightTownGuardsCalls++; }
             continue;
@@ -1580,11 +1296,9 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
           if (C60_TOWN_RATING_FILTER) {
             if (!OpexTownRatingAllowStation(town.id)) continue;
           }
-          local originServed = ss != null || st != null;
-          if (originServed) stats.pairsOneServed++;
           local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
           local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
-                                              town.tile, townMonthly, originServed, stats, false, profile, cruiseCache);
+                                              town.tile, townMonthly, false, stats, false, profile, cruiseCache);
           if (profile != null) {
             profile.freightTownCandidateOps += OpexOpsMeasureEnd(candidateMark);
             profile.freightTownCandidateCalls++;
@@ -1618,7 +1332,7 @@ function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, prof
    * Une table explicite evite une closure imbriquee, non portable dans le Squirrel du scenario. */
   local stats = {
     townsServed = 0, townsUnserved = 0, industriesServed = 0, industriesUnserved = 0,
-    pairsTotal = 0, pairsOriginServed = 0, pairsJoinImpossible = 0, pairsOneServed = 0,
+    pairsTotal = 0, pairsOriginServed = 0,
     noMonthly = 0, unsitable = 0,
     distanceShort = 0, distanceLong = 0, economicsUnavailable = 0,
     profitNonPositive = 0, ratioTooLow = 0, accepted = 0, topKOmitted = 0,
@@ -1638,11 +1352,6 @@ function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, prof
     stats.negMin <- 0;
   }
   if (PAX_NEAR) stats.paxNearAdmitted <- 0;
-  if (JOIN_PLACE) {
-    stats.placeJoinKeys <- {};
-    stats.placeJoinPairs <- 0;
-    stats.placeJoinAccepted <- 0;
-  }
 
   local paxMark = profile != null ? OpexOpsMeasureBegin() : null;
   budget.begin();
@@ -1672,9 +1381,6 @@ function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, prof
     OpexDecide("VIVIER_GEN", "mode=rail produced=" + stats.pairsTotal + " kept=" + all.len());
     if (stats.pairsOriginServed > 0) {
       OpexDecide("VIVIER_REJECT", "reason=origin_served n=" + stats.pairsOriginServed);
-    }
-    if (stats.pairsJoinImpossible > 0) {
-      OpexDecide("VIVIER_REJECT", "reason=join_impossible n=" + stats.pairsJoinImpossible);
     }
     if (stats.noMonthly > 0) {
       OpexDecide("VIVIER_REJECT", "reason=no_monthly n=" + stats.noMonthly);

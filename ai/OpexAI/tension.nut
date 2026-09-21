@@ -154,7 +154,6 @@ function OpexTensionContext(projects)
   local originsServed = 0;
   local pairsTotal = 0;
   local separationRejected = 0;
-  local pairsOneServed = 0;
   local pool = { rail = 0, road = 0, air = 0, water = 0 };
   if (projects != null) {
     if (("rail" in projects) && projects.rail != null) {
@@ -167,7 +166,6 @@ function OpexTensionContext(projects)
         if ("industriesServed" in st) originsServed += st.industriesServed;
         if ("pairsTotal" in st) pairsTotal = st.pairsTotal;
         if ("pairsOriginServed" in st) separationRejected = st.pairsOriginServed;
-        if ("pairsOneServed" in st) pairsOneServed = st.pairsOneServed;
       }
     }
     if (("road" in projects) && projects.road != null && ("candidates" in projects.road)) {
@@ -183,8 +181,7 @@ function OpexTensionContext(projects)
     moneyCommitments = commitments, moneyFlow = monthlyNet,
     fleet = scan, limits = limits,
     originsFree = originsFree, originsServed = originsServed,
-    pairsTotal = pairsTotal, separationRejected = separationRejected,
-    pairsOneServed = pairsOneServed, pool = pool,
+    pairsTotal = pairsTotal, separationRejected = separationRejected, pool = pool,
     opcodeFlow = OpexTensionOpcodeFlowPerMonth(),
   };
 }
