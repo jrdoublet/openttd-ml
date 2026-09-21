@@ -1776,36 +1776,6 @@ function OpexBuildAirRoute(catalog, budget, plan)
 
   budget.begin();
 
-  /* air_presite : sonder les DEUX sites avant d'engager la moindre livre. L'ordre historique
-   * batissait A, decouvrait B impossible, puis demolissait A -- 4 BFAIL sur 20 tentatives au banc
-   * du 2026-09-02, tous en premiere annee, quand la tresorerie est au plus juste (§0 unvicies).
-   * Le nivellement des deux sites est deja paye dans le chemin nominal ; ce qu'on economise, c'est
-   * l'aeroport bati puis rase. B est sonde en premier : c'est lui qui echoue. */
-  if (AIR_PRESITE && !reuseA && !reuseB) {
-    OpexAirLevelFootprint(plan.siteA.anchor, airport, plan.siteA.town.id);
-    OpexAirLevelFootprint(plan.siteB.anchor, airport, plan.siteB.town.id);
-    local errB = OpexAirSiteRefusal(plan.siteB, airport.type);
-    if (errB != 0) {
-      OpexAirInvalidateCachedSite(plan.siteB, airport);
-      result.error = errB;
-      result.errorText = AIError.GetLastErrorString();
-      result.actualCost = costs != null ? costs.GetCosts() : 0;
-      result.opcodes += budget.end("build_airports");
-      result.reason = "PREB";
-      return result;
-    }
-    local errA = OpexAirSiteRefusal(plan.siteA, airport.type);
-    if (errA != 0) {
-      OpexAirInvalidateCachedSite(plan.siteA, airport);
-      result.error = errA;
-      result.errorText = AIError.GetLastErrorString();
-      result.actualCost = costs != null ? costs.GetCosts() : 0;
-      result.opcodes += budget.end("build_airports");
-      result.reason = "PREA";
-      return result;
-    }
-  }
-
   if (reuseA) {
     if (AIAirport.IsAirportTile(plan.siteA.anchor) &&
         OpexAirAirportAcceptsPlane(AIAirport.GetAirportType(plan.siteA.anchor),

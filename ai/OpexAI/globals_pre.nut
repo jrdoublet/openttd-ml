@@ -43,9 +43,6 @@ AIR_COST_PROBE <- false;
 /* Symetrique route de RAIL_COST_PROBE/AIR_COST_PROBE, jamais construit avant (docs/taches.md,
  * retrouve le 2026-09-08). Panneau RP| par tentative, reussie ou non (RC| deja pris). */
 ROAD_COST_PROBE <- false;
-/* air_presite : sonder les deux sites en AITestMode avant d'engager le capital du premier
- * aeroport. Inerte par defaut jusqu'au verdict du banc. */
-AIR_PRESITE <- false;
 /* C33.2 : Arrets de rabattement joints dans le chantier aeroport */
 AIR_JOINED_STOPS <- false;
 /* B9/G4 : sonde passive post-chantier du catchment AIR. Defaut 0 : aucune tuile
