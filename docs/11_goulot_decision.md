@@ -600,3 +600,40 @@ avion » remplacé par une ligne neuve) et avec le §17 (plus d'aéroports, moin
 
 **Suite possible** : le 20×10 d'autorité en duel, `c70_c69_bis` contre `c70`, sur le PC de
 l'utilisateur (commande dans `13_banc_c69_20x10_pc.md` §5).
+
+---
+
+## 19. C69 bis — banc d'autorité 20×10 en duel (2026-09-21)
+
+Campagne `c69bis_c70c69bis_vs_c70_10y_20seeds` (PC de l'utilisateur), 20/20 paires complètes :
+`results/c69bis_c70c69bis_vs_c70_10y_20seeds.json`, journal `results/c69bis_step4.log`.
+
+| métrique, `c70_c69_bis` − `c70` | moyenne | médiane | V / D | rappel C69 (§17) |
+|---|---:|---:|---|---|
+| **`profit_year`** | **+111,0 k£/an** (+7,2 %) | +76,4 k£ | **12 / 8** | +87,6 k£, 12 / 8 |
+| `company_value` | −112 k£ (−1,35 %) | −320 k£ | 6 / 14 | −2,2 %, 11 / 9 |
+| véhicules | −8,65 | −9,5 | 4 / 16 | −7,7, 5 / 15 |
+| note de gare médiane | −5,5 | −3 | 7 / 13 | −5,1, 3 / 16 |
+| aéroports OpexAI | +5,05 | | 16 / 2 | +5,65, 19 / 1 |
+
+**Verdict : `fail_primary`** (12/20). C69 bis n'est pas adopté ; `c69_fleet_exempt` reste à 0.
+
+- **L'exemption de flotte ne rend pas les avions en duel** : −8,65 véhicules (4/16), alors que le
+  5×6 solo du §18 en rendait +5,4 sur 5/5. Le levier ouvre toujours ~5 aéroports de plus pour
+  moins de véhicules.
+- **Deux bancs indépendants, même lecture** : écart moyen positif (+88 et +111 k£/an, au-dessus du
+  seuil de +50 k£), mais 12/20 les deux fois. Le gain moyen n'est pas porté par une majorité de
+  graines.
+
+**C69 : non adopté, en pause** (décision utilisateur du 2026-09-21, qui remplace une première
+rédaction « fermé »). Les deux formes du levier échouent au critère d'autorité, mais c'est la
+meilleure tentative de changement de régime ROI → profit à ce jour (C35.4 4/16, C49 9/11, frontière
+λ 0/5) : gain moyen positif sur deux bancs indépendants, non porté par une majorité de graines
+(cumul 24 V / 16 D, p ≈ 0,27). Réglages à 0, code inerte conservé.
+
+**Reprise prévue :**
+
+1. mesurer pourquoi la flotte ne suit pas les lignes ouvertes : refus `W` (attente au sol) contre
+   plafond de cadence (`room`) ; les deux causes testées (plafond de lot, exemption de flotte)
+   sont écartées ;
+2. si C72 est adopté, rebancer C69 bis par-dessus C72, contre C72 seul.
