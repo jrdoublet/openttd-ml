@@ -193,6 +193,15 @@ function OpexAI::_reportLines(year)
          * courante (avions et bus ajoutes ensuite). Sans cette normalisation, le ratio mesure la
          * croissance de flotte, pas l'erreur du modele. */
         local n0 = ("trains0" in line) ? line.trains0 : 0;
+        /* C70 : une ligne brute par ligne mure, pour les medianes hors partie (M1-M4). */
+        OpexC69Log("phase=line_calib year=" + (year - 1) + " mode=" + lMode
+            + " line=" + (("lineId" in line) ? line.lineId : -1) + " age=" + lAge
+            + " pred_p=" + predProfit + " real_p=" + profit
+            + " pred_r=" + predRev + " real_r=" + realRev
+            + " pred_run=" + (("predRunning" in line) ? line.predRunning : 0)
+            + " pred_amort=" + (("predAmort" in line) ? line.predAmort : 0)
+            + " run=" + runCost
+            + " trains0=" + n0 + " vehs=" + vehCount);
         if (n0 > 0 && vehCount > 0) {
           local scale = n0.tofloat() / vehCount.tofloat();
           if (predProfit > 0) {
