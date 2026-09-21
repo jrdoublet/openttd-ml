@@ -650,14 +650,6 @@ function OpexAI::_reportYear(year, ranked)
                            + stats.industriesServed + "|" + stats.industriesUnserved);
   OpexSign(anchor, "CR|" + year + "|" + stats.pairsTotal + "|" + stats.pairsOriginServed
                            + "|" + stats.noMonthly);
-  /* Le devenir des paires a UNE seule extremite servie, que la generation ne jette plus depuis le
-   * 2026-08-29 : combien sont irrecuperables (aucune jointure concevable) et combien poursuivent
-   * vers l'etage economique. La somme des deux est ce que l'ancienne regle coupait a l'aveugle.
-   * Gate sur STATION_JOIN comme GM l'est sur ABANDON_MEMORY : le bras de controle du banc ne doit
-   * pas payer une commande de panneau que l'autre bras ne paie pas. Son absence vaut zero. */
-  if (STATION_JOIN || JOIN_PLACE) {
-    OpexSign(anchor, "CJ|" + year + "|" + stats.pairsJoinImpossible + "|" + stats.pairsOneServed);
-  }
   OpexSign(anchor, "CD|" + year + "|" + stats.distanceShort + "|" + stats.distanceLong);
   OpexSign(anchor, "CE|" + year + "|" + stats.economicsUnavailable + "|"
                            + stats.profitNonPositive + "|" + stats.ratioTooLow);

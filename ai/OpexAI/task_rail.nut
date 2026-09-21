@@ -177,47 +177,13 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
       }
 
       local close = this._tooClose(candidate);
-      local join = null;
-      local placeJoin = ("placeJoin" in candidate) ? candidate.placeJoin : null;
       if (close.hard >= 0) {
         if (DECISION_LOG || C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "too_close_hard", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
       }
-
-      if (placeJoin != null) {
-        join = placeJoin;
-        local joinEnd = join.candidateEnd;
-        local refuse = null;
-        if (!AIStation.IsValidStation(join.stationId)) refuse = "N";
-        else {
-          foreach (conflict in close.conflicts) {
-            if (conflict.end != joinEnd || conflict.stationId != join.stationId) {
-              refuse = "M";
-              break;
-            }
-          }
-        }
-        if (refuse == null && JOIN_MAX_DISTANCE > 0 && candidate.distance >= JOIN_MAX_DISTANCE) {
-          refuse = "D";
-        }
-        if (refuse != null) {
-          join = null;
-          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "place_join_refuse", extra = "refuse=" + refuse });
-          return { outcome = "rejected", discards = passDiscards };
-        }
-      } else if (close.blocking >= 0) {
-        if (STATION_JOIN) {
-          join = OpexFindStationJoin(candidate, close.conflicts);
-          if ("refuse" in join) {
-            join = null;
-          } else if (JOIN_MAX_DISTANCE > 0 && candidate.distance >= JOIN_MAX_DISTANCE) {
-            join = null;
-          }
-        }
-        if (join == null) {
-          if (DECISION_LOG || C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "too_close_no_join", extra = "" });
-          return { outcome = "rejected", discards = passDiscards };
-        }
+      if (close.blocking >= 0) {
+        if (DECISION_LOG || C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "too_close_no_join", extra = "" });
+        return { outcome = "rejected", discards = passDiscards };
       }
 
       local need = candidate.capital + OpexCashReserve();
@@ -255,14 +221,13 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
           local cargoStr = AICargo.GetCargoLabel(candidate.cargo);
           OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=rail kind=" + candidate.kind + " cargo=" + cargoStr + " src=" + candidate.src + " dst=" + candidate.dst + " dist=" + candidate.distance + " cost=" + candidate.capital + " profit=" + candidate.profitAnnual + " roi=" + candidate.roi);
         }
-        local start = this._startRailSearch(candidate, join, placeJoin, alternativeRatio,
-                                            hardCap, posPacked);
+        local start = this._startRailSearch(candidate, alternativeRatio, hardCap, posPacked);
         if (start.pending) return { outcome = "pending", discards = passDiscards };
         /* Le candidat n'a pas encore cette cle dans le chemin qui termine sa
          * recherche dans le meme tour : creation de slot Squirrel avec `<-`. */
         candidate.railPlan <- start.plan;
       }
-      local result = OpexBuildLine(this._catalog, this._budget, candidate, alternativeRatio, join,
+      local result = OpexBuildLine(this._catalog, this._budget, candidate, alternativeRatio,
                                    OpexCashReserve(), hardCap);
       if (result.reason == "CASH") {
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "cash_at_build", extra = "" });
@@ -277,7 +242,7 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
         local cargoStr = AICargo.GetCargoLabel(candidate.cargo);
         OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=rail kind=" + candidate.kind + " cargo=" + cargoStr + " src=" + candidate.src + " dst=" + candidate.dst + " dist=" + candidate.distance + " cost=" + candidate.capital + " profit=" + candidate.profitAnnual + " roi=" + candidate.roi);
       }
-      local recorded = this._recordRailAttempt(candidate, result, join, placeJoin, posPacked, year);
+      local recorded = this._recordRailAttempt(candidate, result, posPacked, year);
       if (!recorded && (DECISION_LOG || C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL)) {
         local failReason = ("reason" in result && result.reason != "") ? result.reason : "build_failed";
         local failError = ("error" in result) ? result.error : 0;
@@ -730,10 +695,9 @@ function OpexAI::_continueRailExpansion()
 /* Demarre une recherche A* ferroviaire reprenable. Premiere tranche dans ce tour ; si elle
  * ne suffit pas, l'etat vit dans this._railSearch et _continueRailSearch reprend au suivant.
  * Fonction de classe, pas une closure : Squirrel ne capture jamais les locales englobantes. */
-function OpexAI::_startRailSearch(candidate, join, placeJoin, alternativeRatio, hardCap, posPacked)
+function OpexAI::_startRailSearch(candidate, alternativeRatio, hardCap, posPacked)
 {
-  local plan = OpexPrepareRailRoute(this._catalog, this._budget, candidate, alternativeRatio,
-                                    join, hardCap);
+  local plan = OpexPrepareRailRoute(this._catalog, this._budget, candidate, alternativeRatio, hardCap);
   if (plan.plansA == null) return { pending = false, plan = plan };
   local pathfinder = null;
   local segmented = null;
@@ -763,8 +727,6 @@ function OpexAI::_startRailSearch(candidate, join, placeJoin, alternativeRatio, 
     safetyDeadline = AIController.GetTick() + RAIL_SEARCH_SAFETY_TICKS,
     plan = plan,
     candidate = candidate,
-    join = join,
-    placeJoin = placeJoin,
     alternativeRatio = alternativeRatio,
     hardCap = hardCap,
     posPacked = posPacked,
@@ -864,8 +826,7 @@ function OpexAI::_continueRailSearch()
   }
 
   if (state.kind == "primary") {
-    local plan = OpexCompleteRailRouteAfterSearch(this._catalog, state.candidate, state.plan,
-                                                  slice, state.join);
+    local plan = OpexCompleteRailRouteAfterSearch(this._catalog, state.candidate, state.plan, slice);
     state.candidate.railPlan <- plan;
     state.pathfinder = null;
     state.phase = "build";
@@ -886,7 +847,6 @@ function OpexAI::_consumeRailSearch(year)
 {
   local state = this._railSearch;
   local candidate = state.candidate;
-  local join = state.join;
   /* G3§1 : Un plan en echec (ABND/NOPA/DEAD) n'a besoin d'aucune tresorerie : OpexBuildLine
    * retourne immediatement sans construction. Le test de cash ne doit pas bloquer un plan
    * invalide en phase build indefiniment, sinon _railSearch ne se libere jamais et le
@@ -914,7 +874,7 @@ function OpexAI::_consumeRailSearch(year)
   }
 
   local result = OpexBuildLine(this._catalog, this._budget, candidate, state.alternativeRatio,
-                               join, OpexCashReserve(), state.hardCap);
+                               OpexCashReserve(), state.hardCap);
   /* Ne pas jeter le plan sur CASH : on reessaiera au prochain tour, sans refaire l'A*. */
   if (result.reason == "CASH") {
     if (C50_CHRONOLOGY_PROBE) this._logC50CashRefusal("rail", -1, candidate.capital, candidate.profitAnnual, candidate.roi, candidate.src, candidate.dst, candidate.capital, AICompany.GetBankBalance(AICompany.COMPANY_SELF));
@@ -927,8 +887,7 @@ function OpexAI::_consumeRailSearch(year)
     return { outcome = "cash", reason = "cash_at_build", error = cashError };
   }
   candidate.railPlan = null;
-  local built = this._recordRailAttempt(candidate, result, join, state.placeJoin,
-                                        state.posPacked, year);
+  local built = this._recordRailAttempt(candidate, result, state.posPacked, year);
   local reason = ("reason" in result && result.reason != "") ? result.reason : "build_failed";
   local error = ("error" in result) ? result.error : 0;
   return { outcome = built ? "built" : "failed", reason = reason, error = error };
@@ -936,7 +895,7 @@ function OpexAI::_consumeRailSearch(year)
 /* Panneaux + enregistrement d'une tentative rail, reussie ou non. Facteur commun au chemin
  * bloquant et au chemin reprenable, pour que le denominateur (result.iterations) et les
  * panneaux OR/OB restent identiques. */
-function OpexAI::_recordRailAttempt(candidate, result, join, placeJoin, posPacked, year)
+function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
 {
   local anchor = AIMap.GetTileIndex(1, 1);
   local yy = year % 100;
@@ -959,8 +918,7 @@ function OpexAI::_recordRailAttempt(candidate, result, join, placeJoin, posPacke
   if (result.reason == "SITEA" || result.reason == "SITEB" || result.reason == "SITEAB") {
     OpexSign(anchor, "PS|" + yy + "|" + this._nextLineId + "|" + posPacked
                             + "|" + result.siteClear + "|" + result.siteCargo + "|"
-                            + result.siteCmd + "|" + result.siteKind + "|"
-                            + result.joinEnd);
+                            + result.siteCmd + "|" + result.siteKind + "|N");
   }
   if (result.error != 0) OpexSign(anchor, "OV|" + this._nextLineId + "|" + result.error);
   if (C63_INVEST_PROBE) {
@@ -1009,13 +967,6 @@ function OpexAI::_recordRailAttempt(candidate, result, join, placeJoin, posPacke
       OpexSign(anchor, "DC|" + idx + "|" + result.capital + "|" + result.actualCost + "|"
                              + candidate.trains + "|" + result.trains + "|"
                              + result.doubleTrack);
-    }
-    if (STATION_JOIN || JOIN_PLACE) {
-      local joinHow = "";
-      if (placeJoin != null) joinHow = "|P";
-      else if (join != null) joinHow = "|T";
-      OpexSign(anchor, "PJ|" + idx + "|" + (join == null ? "N" : join.candidateEnd)
-                               + "|" + (candidate.originServed ? 1 : 0) + joinHow);
     }
     if (isPaxNear) OpexSign(anchor, "PY|" + idx);
 

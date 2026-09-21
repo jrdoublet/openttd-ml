@@ -246,7 +246,6 @@ function OpexC63ClassifyAbsent(projects)
     if ("ratioTooLow" in rst) unprofitable += rst.ratioTooLow;
     if ("pairsOriginServed" in rst) alreadyServed += rst.pairsOriginServed;
     if ("unsitable" in rst) noSite += rst.unsitable;
-    if ("pairsJoinImpossible" in rst) noSite += rst.pairsJoinImpossible;
     if ("distanceShort" in rst) modeCargoFilter += rst.distanceShort;
     if ("distanceLong" in rst) modeCargoFilter += rst.distanceLong;
   }

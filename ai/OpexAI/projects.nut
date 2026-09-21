@@ -127,7 +127,6 @@ function OpexLogPortfolioRankWithTension(projects)
              + " fleet_air=" + ctx.fleet.air + " fleet_water=" + ctx.fleet.water
              + " origins_free=" + ctx.originsFree + " origins_served=" + ctx.originsServed
              + " pairs_total=" + ctx.pairsTotal + " separation_rejected=" + ctx.separationRejected
-             + " pairs_one_served=" + ctx.pairsOneServed
              + " pool_rail=" + ctx.pool.rail + " pool_road=" + ctx.pool.road
              + " pool_air=" + ctx.pool.air + " pool_water=" + ctx.pool.water);
 }
@@ -1254,19 +1253,6 @@ function OpexB6RepriceFreightTop(catalog, lines, project)
   }
   local cand = project.payload;
   local srcIndustry = AIIndustry.GetIndustryID(cand.src);
-  /* placeJoin candidateEnd=A reutilise l'origine d'une ligne existante : cand.src
-   * n'est alors pas la tuile brute de l'industrie. Retrouver la source via la
-   * ligne jointe, sans rien modifier au candidat reel. */
-  if (!AIIndustry.IsValidIndustry(srcIndustry)
-      && ("placeJoin" in cand) && cand.placeJoin != null
-      && ("candidateEnd" in cand.placeJoin) && cand.placeJoin.candidateEnd == "A") {
-    local service = OpexOriginService(lines, cand.src);
-    if (service != null && !("blocked" in service && service.blocked)
-        && ("line" in service) && service.line != null
-        && ("srcIndustry" in service.line)) {
-      srcIndustry = service.line.srcIndustry;
-    }
-  }
   if (!AIIndustry.IsValidIndustry(srcIndustry)) return { status = "no_source_industry", monthly = 0 };
   local monthly = AIIndustry.GetLastMonthProduction(srcIndustry, cand.cargo);
   if (project.mode == "rail") {
@@ -1543,7 +1529,7 @@ function OpexEmptyRailCandidates()
     all = 0, candidates = [], best = [], bands = [0, 0, 0, 0],
     stats = {
       townsServed = 0, townsUnserved = 0, industriesServed = 0, industriesUnserved = 0,
-      pairsTotal = 0, pairsOriginServed = 0, pairsJoinImpossible = 0, pairsOneServed = 0,
+      pairsTotal = 0, pairsOriginServed = 0,
       noMonthly = 0, unsitable = 0,
       distanceShort = 0, distanceLong = 0, economicsUnavailable = 0,
       profitNonPositive = 0, ratioTooLow = 0, accepted = 0, topKOmitted = 0,

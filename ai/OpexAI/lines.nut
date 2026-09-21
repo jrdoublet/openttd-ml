@@ -20,7 +20,6 @@ function OpexAttemptReasonCode(reason)
   if (reason == "ECON") return "F";
   if (reason == "SHORT") return "H";
   if (reason == "NOMATCH") return "M";
-  if (reason == "JOINPATH") return "J";
   if (reason == "STNFAIL") return "S";
   if (reason == "TRKFAIL") return "T";
   if (reason == "DEPFAIL") return "E";
@@ -212,54 +211,6 @@ function OpexRememberClosest(distance, threshold, closest)
 {
   return distance < threshold && (closest < 0 || distance < closest) ? distance : closest;
 }
-/* Le seul partage autorise dans v1 est une ligne rail dont on a garde le plan de quai. Les autres
- * modes ont bien le droit de continuer a proteger leur bassin avec MIN_SEPARATION, mais aucune
- * geometrie rail sure ne peut etre deduite de leur tuile d'aeroport ou de dock. Pour le fret, une
- * source jointe a un puits ferait accepter localement le cargo qui devait voyager : roles egaux
- * seulement. */
-function OpexJoinCompatible(candidate, conflict)
-{
-  local line = conflict.line;
-  if (("mode" in line) || !("platformA" in line) || !("platformB" in line)) return false;
-  if (!("kind" in line) || line.kind != candidate.kind || line.cargo != candidate.cargo) return false;
-  if (candidate.kind == "freight" && conflict.end != conflict.lineEnd) return false;
-  return true;
-}
-/* Un seul objet gare et une seule extremite candidate peuvent etre court-circuites. Si une autre
- * gare physique est aussi dans le disque, la ligne neuve lui volerait son bassin : le filet reste
- * arme. Les doublons de lignes deja jointes ont le meme StationID et sont donc volontairement un
- * seul conflit logique.
- *
- * Succes : table avec candidateEnd / stationId / platform. Refus : { refuse = code }, jamais
- * null -- le null d'avant ne disait pas laquelle des trois conditions avait tue.
- *   M  plusieurs StationID, ou les deux extremites du candidat
- *   K  rail, mais kind ou cargo different
- *   R  meme cargo fret, roles inverses (source contre puits)
- *   N  aucune ligne rail avec un plan de quai (air / dock / etat ancien)
- *   E  conflicts vide (ne devrait pas arriver si blocking >= 0) */
-function OpexFindStationJoin(candidate, conflicts)
-{
-  if (conflicts.len() == 0) return { refuse = "E" };
-  local first = conflicts[0];
-  foreach (conflict in conflicts) {
-    if (conflict.end != first.end || conflict.stationId != first.stationId) return { refuse = "M" };
-  }
-  local refuse = "N";
-  foreach (conflict in conflicts) {
-    if (OpexJoinCompatible(candidate, conflict)) {
-      local platform = conflict.lineEnd == "A" ? conflict.line.platformA : conflict.line.platformB;
-      return { candidateEnd = conflict.end, stationId = conflict.stationId, platform = platform };
-    }
-    local line = conflict.line;
-    if (("mode" in line) || !("platformA" in line) || !("platformB" in line)) continue;
-    if (!("kind" in line) || line.kind != candidate.kind || line.cargo != candidate.cargo) {
-      if (refuse == "N") refuse = "K";
-      continue;
-    }
-    refuse = "R";
-  }
-  return { refuse = refuse };
-}
 /* Les tuiles candidate.src/dst sont des positions, tandis que les identifiants de ville/industrie
  * restent stables si le plan de gare evolue. Les deux types actuels ont ces identifiants ; le
  * repli sur les tuiles garde la fonction sure pour un futur type de candidat. La cle fret reste
@@ -336,44 +287,14 @@ function OpexAI::_pruneAbandonedPairs(now)
   }
 }
 /* Precalcule le trace des meilleurs candidats en avance pendant les ticks d'opcodes dormants. */
-/* Une extremite deja desservie par nous ne merite pas un second raccordement.
- *
- * Deux tests distincts, mesure du 2026-08-28 a l'appui (results/opex_full_campaign_20y.json,
- * signs GT/GN) :
- *  1. Identite d'origine (ORIGIN_SEPARATION, serre) : la MEME ville/industrie deja servie, quel
- *     que soit l'endroit ou sa gare a fini par etre posee. C'etait 84 % des rejets sous l'ancien
- *     test unique -- desormais couvert avec precision, pas par une distance bruitee.
- *  2. Filet physique (MIN_SEPARATION, plus large mais abaisse) : deux gares BATIES reellement
- *     trop proches, meme pour deux origines differentes -- le vrai risque de cannibalisation.
- *
- * Rend trois champs :
- *  - `hard` : distance d'un rejet SANS APPEL, ou -1. Un seul cas depuis le 2026-08-29 -- les DEUX
- *    extremites reutilisent une origine deja servie, c'est-a-dire un corridor deja tenu.
- *  - `blocking` : distance du conflit le plus proche qui EXIGE un quai joint, ou -1 si le candidat
- *    est libre. Reunit les deux tests : une extremite (une seule) sur une origine servie, et le
- *    filet physique MIN_SEPARATION.
- *  - `conflicts` : les gares touchees, pour qu'OpexFindStationJoin arbitre. Une entree par couple
- *    (extremite du candidat, extremite de ligne existante) ; un doublon exact -- meme gare vue par
- *    les deux tests -- est inoffensif, l'arbitrage ne regarde que `end` et `stationId`.
- *
- * HISTOIRE, parce que ce point s'est deja retourne une fois. Le 2026-08-28, le test 1 (identite
- * d'origine) avait ete deplace en amont, a la generation (candidates.nut), pour ne pas gaspiller
- * le TOP_K ; le 2026-08-29 la mesure a montre que ce deplacement tuait le vivier ENTIER a partir
- * de 1982 et rendait station_join inatteignable (0 tentative en 20 ans). La generation ne coupe
- * donc plus que les paires dont les deux bouts sont servis, et le test 1 REVIENT ici -- ou il peut
- * offrir la jointure au lieu de rejeter. La regle de fond n'a pas bouge : jamais deux gares a nous
- * sur la meme origine. */
+/* Verifie les separations d'origine et de gare pour une nouvelle ligne rail. */
 function OpexAI::_tooClose(candidate)
 {
   local entries = [["A", candidate.src], ["B", candidate.dst]];
-  local conflicts = [];
 
-  /* Test 1 : identite d'origine. On distingue les deux extremites du CANDIDAT, parce que "une
-   * seule servie" est desormais recuperable et "les deux servies" ne l'est pas. */
   local originA = -1;
   local originB = -1;
   foreach (line in this._lines) {
-    /* Seules les lignes ferroviaires comptent pour la separation de bassin et gares ferroviaires. */
     if (("mode" in line) && line.mode != "rail") continue;
     foreach (lineEnd in ["A", "B"]) {
       local originTile = lineEnd == "A" ? line.originA : line.originB;
@@ -382,21 +303,14 @@ function OpexAI::_tooClose(candidate)
         if (d >= ORIGIN_SEPARATION) continue;
         if (entry[0] == "A") originA = OpexRememberClosest(d, ORIGIN_SEPARATION, originA);
         else originB = OpexRememberClosest(d, ORIGIN_SEPARATION, originB);
-        /* Une ligne dont la gare n'est plus valide (ferraillee) ne propose aucune jointure : elle
-         * ne peut pas entrer dans `conflicts`, et l'extremite reste donc bloquante sans issue. */
-        local stationId = OpexLineStationId(line, lineEnd);
-        if (stationId < 0) continue;
-        conflicts.append({ end = entry[0], line = line, lineEnd = lineEnd,
-                           stationId = stationId, distance = d });
       }
     }
   }
   if (originA >= 0 && originB >= 0) {
-    return { hard = (originA < originB ? originA : originB), blocking = -1, conflicts = [] };
+    return { hard = (originA < originB ? originA : originB), blocking = -1 };
   }
   local blocking = originA >= 0 ? originA : originB;
 
-  /* Test 2 : filet physique. Depend de la gare BATIE, donc incalculable a la generation. */
   foreach (line in this._lines) {
     if (("mode" in line) && line.mode != "rail") continue;
     foreach (lineEnd in ["A", "B"]) {
@@ -406,14 +320,10 @@ function OpexAI::_tooClose(candidate)
       foreach (entry in entries) {
         local d = AIMap.DistanceManhattan(entry[1], stationTile);
         blocking = OpexRememberClosest(d, MIN_SEPARATION, blocking);
-        if (d < MIN_SEPARATION) {
-          conflicts.append({ end = entry[0], line = line, lineEnd = lineEnd,
-                             stationId = stationId, distance = d });
-        }
       }
     }
   }
-  return { hard = -1, blocking = blocking, conflicts = conflicts };
+  return { hard = -1, blocking = blocking };
 }
 function OpexAI::_findLineById(lineId)
 {

@@ -316,9 +316,7 @@ function OpexLoadSettings()
   C55_ROAD_PAX_ORIGIN_RELAX = false;
   C41_RAIL_LOST_SIGNAL_REPAIR = false;
   C41_RAIL_LOST_JUNCTION_REPAIR = false;
-  STATION_JOIN = false;
   JOIN_MAX_DISTANCE = 0;
-  JOIN_PLACE = false;
   BASIN_SHARE = false;
   RAIL_EXPAND = AIController.GetSetting("rail_expand") != 0;
   REBORROW = false;
