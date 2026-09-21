@@ -283,17 +283,6 @@ DYNAMIC_CASH_RESERVE <- true;
  * contre jusqu'a 3 mois (quarterlyBuffer) ou un forfait fixe selon la branche. Defaut a false pour
  * ne rien changer tant que le banc n'a pas tranche -- voir OpexCashReserve() plus bas. */
 RESERVE_MAINT_CAP <- false;
-/* Marges de tresorerie exigees EN PLUS de la reserve, sur le chemin aerien. Decision utilisateur
- * du 2026-09-03, tirée du diagnostic 1v1 (results/diag_1v1_decisions.json) : la marge de 30 000 £ est
- * d'un ordre de grandeur au-dessus de la reserve (~7 000 £), donc c'est elle qui gate reellement.
- *   refleet (croissance d'une ligne existante) : 2 000 -> 0, il n'y a rien a couvrir ;
- *   2 aeroports neufs : 30 000 -> 15 000 (valeur demandee) ;
- *   1 aeroport neuf   : 12 000 -> 6 000 (moitie, pour que les paliers restent ordonnes : 15 000
- *                       pour deux aeroports contre 12 000 pour un seul n'aurait plus de sens) ;
- *   0 aeroport neuf (les deux reutilises) : 2 000 -> 0, ce n'est pas une construction.
- * Defaut a false tant que le banc n'a pas tranche, et reglage SEPARE de reserve_maint_cap pour
- * que la mesure puisse attribuer -- c'est la lecon du lot de treize corrections groupees. */
-AIR_MARGIN_V2 <- false;
 /* P1 : repli empirique temporaire du filtre de finançabilité. Le ×1,7 rail
  * est consigné sans artefact source encore présent ; P1.1 doit le remplacer
  * par un devis physique avant élection. Les autres modes restent à 1,0. */

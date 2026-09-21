@@ -321,7 +321,6 @@ function OpexLoadSettings()
   PROBE_NEGATIVE = false;
   AIR_DEMAND_CAP = false;
   AIR_DEMAND_PLAN = false;
-  AIR_MARGIN_V2 = false;
   RESERVE_MAINT_CAP = false;
   AIR_PRESITE = false;
   AIR_ABANDON_SITE = false;
