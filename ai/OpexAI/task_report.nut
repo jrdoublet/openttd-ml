@@ -219,12 +219,11 @@ function OpexAI::_reportLines(year)
         local nStopsB = ("nStopsB" in line) ? line.nStopsB : 1;
         local berthCap = OpexRoadPhysicalVehicleCap(nStopsA, nStopsB);
         local vehicleCap = OpexRoadFleetVehicleCap(nStopsA, nStopsB, predDays, lKind);
-        local extraStops = ("extraStops" in line && line.extraStops != null) ? line.extraStops.len() : 0;
         extra = " raw_vehs=" + rawVehs + " pred_berth_cap=" + predBerthCap
               + " pred_vehicle_cap=" + predVehicleCap + " berth_cap=" + berthCap
               + " vehicle_cap=" + vehicleCap
               + " pred_vehs=" + predVehs + " n_stops_a=" + nStopsA + " n_stops_b=" + nStopsB
-              + " extra_stops=" + extraStops + " dist=" + predDist + " real_dist=" + realDist
+              + " dist=" + predDist + " real_dist=" + realDist
               + " pred_carried=" + predCarried + " pred_days=" + predDays + " pred_speed=" + predSpeed
               + " cat_speed=" + catSpeed + " real_speed=" + roadRealSpeed + " rating_a=" + ratingA
               + " rating_b=" + ratingB + " pop_a=" + popA + " pop_b=" + popB + " prod_a=" + prodA

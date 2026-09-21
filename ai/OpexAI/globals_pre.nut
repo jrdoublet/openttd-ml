@@ -13,8 +13,6 @@ STAGED_BOOTSTRAP <- true;
  * profit des aeroports ; le banc peut reconstituer le bras bus avec
  * road_pax_build = 1. */
 ROAD_PAX_BUILD_ENABLED <- false;
-/* Ajout d'arrets espaces aux lignes passagers existantes. */
-ROAD_PAX_EXTENSIONS <- false;
 /* Part du bassin de ville propre aux bus. 86 est le calibrage route adopte au banc.
  * Le reglage road_pax_catchment_pct vaut 0 pour reconstituer le repli rail a 22 % ; une valeur
  * positive ne touche que OpexRoadPaxCandidates, jamais le rail ni le fret. */

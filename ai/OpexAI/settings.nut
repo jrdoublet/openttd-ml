@@ -305,7 +305,6 @@ function OpexLoadSettings()
   PORTFOLIO_FLOOR_PCT = 0;
   FLAT_BONUS = false;
   MARGINAL_FLEET = false;
-  ROAD_PAX_EXTENSIONS = false;
   ROAD_TIME_SCALED_CAP = AIController.GetSetting("road_time_scaled_cap") != 0;
   C50B_RAIL_BACKLOG_RELAX = false;
   C55_FREIGHT_ORIGIN_RELAX = false;
