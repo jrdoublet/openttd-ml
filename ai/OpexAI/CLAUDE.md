@@ -118,8 +118,8 @@ supprimé, pas de branche morte à unifier).
 - La plupart des réglages de `info.nut` sont des **drapeaux d'expérience à défaut 0/false/off** :
   du code vivant mais volontairement inerte (hypothèse déjà banquée et rejetée, ou pas encore
   banquée). Vérifier la valeur par défaut avant de signaler "code mort" ou "flag jamais activé".
-  Exemples au 2026-09-13 : `c50b_road_cap_relax` (banqué, négatif en valeur), `c50b_rail_backlog_relax`
-  (banqué, inerte), `air_cadence_cap_adaptive` (banqué le 2026-09-13 : 9 V / 2 D / 9 ex æquo,
+  Exemples au 2026-09-13 : `c50b_road_cap_relax` (banqué, négatif en valeur),
+  `air_cadence_cap_adaptive` (banqué le 2026-09-13 : 9 V / 2 D / 9 ex æquo,
   non adoptable, son seuil constant est en cours de remplacement — fiche C64), tous les
   `*_cost_probe` (mesure seule).
 - `OpexProjectFinanceCapital` (`projects.nut`) applique `biasPct` = 170 (rail) / 121 (route) :

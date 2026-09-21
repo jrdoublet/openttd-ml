@@ -387,8 +387,7 @@ function OpexAI::_expandRailLines(year)
         local waitingA = ("lastWaitingA" in line) ? line.lastWaitingA : 0;
         local waitingB = ("lastWaitingB" in line) ? line.lastWaitingB : 0;
         local waiting = line.kind == "freight" ? waitingA : waitingA + waitingB;
-        local backlogThreshold = C50B_RAIL_BACKLOG_RELAX ? 0
-            : (line.kind == "freight" ? (2 * wagon.capacity) : (4 * wagon.capacity));
+        local backlogThreshold = line.kind == "freight" ? (2 * wagon.capacity) : (4 * wagon.capacity);
         if (waiting < backlogThreshold) continue;
 
         // Cas 1 : Ligne deja doublee avec depot2 -> ajout immediat du 2e train

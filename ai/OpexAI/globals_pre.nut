@@ -255,7 +255,6 @@ C50B_ROAD_CAP_RELAX <- false;
  * le banc apparié n'a pas justifié une adoption. Le fret reste sur la borne historique. */
 ROAD_TIME_SCALED_CAP <- false;
 /* C50b : test causal du seuil de backlog avant doublement d'une ligne rail existante. */
-C50B_RAIL_BACKLOG_RELAX <- false;
 /* air_fleet_probe : _resizeAirFleets n'emet que ses SUCCES (FG|). Quand une ligne aerienne
  * n'grandit pas, la cause est invisible. FR| donne le premier refus rencontre, une fois par ligne
  * et par an. */
