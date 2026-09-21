@@ -599,18 +599,6 @@ function OpexTownRatingAllowStation(townId)
   return rating == AITown.TOWN_RATING_NONE || rating > AITown.TOWN_RATING_VERY_POOR;
 }
 
-/* C60 : Rend true si la commune est sans espoir immediat pour la construction de gare.
- * 1. Si mode permissif (tolerance == 0) : jamais de refus municipal, donc jamais sans espoir.
- * 2. Le palier TOWN_RATING_APPALLING couvre les notes brutes de -1000 a -400. Or 40 arbres
- *    apportent jusqu'a +280 points : une note entre -479 et -400 remonte ainsi au-dessus du
- *    seuil de -200 (dans TOWN_RATING_POOR). L'API NoAI ne fournissant pas la note brute,
- *    declarer APPALLING irrecuperable ecarterait des communes que la plantation d'arbres
- *    reactive peut sauver. On rend donc false pour preserver le recours reactif. */
-function OpexTownRatingHopeless(townId)
-{
-  return false;
-}
-
 /* C60 : Sonde d'observation d'exposition aux notes municipales. */
 function OpexC60ObserveTownRating(mode, phase, townId)
 {
@@ -1080,9 +1068,6 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
         OpexC60ObserveTownRating("rail", "candidate_gen", towns[a].id);
         OpexC60ObserveTownRating("rail", "candidate_gen", towns[b].id);
       }
-      if (C60_TOWN_RATING_FILTER) {
-        if (!OpexTownRatingAllowStation(towns[a].id) || !OpexTownRatingAllowStation(towns[b].id)) continue;
-      }
       if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
         local tA = towns[a].id;
         local tB = towns[b].id;
@@ -1217,9 +1202,6 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
           if (townGuardMark != null) { profile.freightTownGuardsOps += OpexOpsMeasureEnd(townGuardMark); profile.freightTownGuardsCalls++; }
           if (C60_TOWN_RATING_PROBE) {
             OpexC60ObserveTownRating("rail", "candidate_gen", town.id);
-          }
-          if (C60_TOWN_RATING_FILTER) {
-            if (!OpexTownRatingAllowStation(town.id)) continue;
           }
           local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
           local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
@@ -1579,9 +1561,6 @@ function OpexRoadPaxCandidates(catalog, lines, out, stats, abandonedPairs = null
         OpexC60ObserveTownRating("road", "candidate_gen", towns[a].id);
         OpexC60ObserveTownRating("road", "candidate_gen", towns[b].id);
       }
-      if (C60_TOWN_RATING_FILTER) {
-        if (!OpexTownRatingAllowStation(towns[a].id) || !OpexTownRatingAllowStation(towns[b].id)) continue;
-      }
       local distance = AIMap.DistanceManhattan(towns[a].tile, towns[b].tile);
       if (distance < roadBounds.roadMin || distance > roadBounds.roadMax) {
         if (distance < roadBounds.roadMin) stats.roadDistanceShort++;
@@ -1774,9 +1753,6 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
         stats.pairsInBand++;
         if (C60_TOWN_RATING_PROBE) {
           OpexC60ObserveTownRating("road", "candidate_gen", towns[t].id);
-        }
-        if (C60_TOWN_RATING_FILTER) {
-          if (!OpexTownRatingAllowStation(towns[t].id)) continue;
         }
         local candidateMark = (profile != null && C41_ROAD_FREIGHT_TOWN_PROFILE)
             ? OpexOpsMeasureBegin() : null;

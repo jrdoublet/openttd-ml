@@ -875,10 +875,6 @@ function OpexCandidateStillValid(p, lines, abandonedPairs = null)
         if (towns.srcTown >= 0) OpexC60ObserveTownRating("road", "incremental_valid", towns.srcTown);
         if (towns.dstTown >= 0) OpexC60ObserveTownRating("road", "incremental_valid", towns.dstTown);
       }
-      if (C60_TOWN_RATING_FILTER) {
-        if ((towns.srcTown >= 0 && !OpexTownRatingAllowStation(towns.srcTown)) ||
-            (towns.dstTown >= 0 && !OpexTownRatingAllowStation(towns.dstTown))) return false;
-      }
     }
     return true;
   }
@@ -889,10 +885,6 @@ function OpexCandidateStillValid(p, lines, abandonedPairs = null)
     if (C60_TOWN_RATING_PROBE) {
       if (towns.srcTown >= 0) OpexC60ObserveTownRating("rail", "incremental_valid", towns.srcTown);
       if (towns.dstTown >= 0) OpexC60ObserveTownRating("rail", "incremental_valid", towns.dstTown);
-    }
-    if (C60_TOWN_RATING_FILTER) {
-      if ((towns.srcTown >= 0 && !OpexTownRatingAllowStation(towns.srcTown)) ||
-          (towns.dstTown >= 0 && !OpexTownRatingAllowStation(towns.dstTown))) return false;
     }
     if (OpexOriginServed(lines, p.src, false) && OpexOriginServed(lines, p.dst, false)) {
       return false;
@@ -907,12 +899,6 @@ function OpexCandidateStillValid(p, lines, abandonedPairs = null)
     if (C60_TOWN_RATING_PROBE) {
       if (("siteA" in plan) && ("town" in plan.siteA)) OpexC60ObserveTownRating("air", "incremental_valid", plan.siteA.town.id);
       if ("siteB" in plan && ("town" in plan.siteB)) OpexC60ObserveTownRating("air", "incremental_valid", plan.siteB.town.id);
-    }
-    if (C60_TOWN_RATING_FILTER) {
-      if ((("siteA" in plan) && ("town" in plan.siteA) && OpexTownRatingHopeless(plan.siteA.town.id)) ||
-          (("siteB" in plan) && ("town" in plan.siteB) && OpexTownRatingHopeless(plan.siteB.town.id))) {
-        return false;
-      }
     }
     if (!OpexAirBatchPlanStillLive(plan, lines)) return false;
     if (!OpexAirBatchSiteStillBuildable(plan.siteA, plan.airport, plan.plane,

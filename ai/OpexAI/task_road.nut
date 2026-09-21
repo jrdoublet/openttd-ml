@@ -20,13 +20,6 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         if (towns.srcTown >= 0) OpexC60ObserveTownRating("road", "build_precheck", towns.srcTown);
         if (towns.dstTown >= 0) OpexC60ObserveTownRating("road", "build_precheck", towns.dstTown);
       }
-      if (C60_TOWN_RATING_FILTER) {
-        if ((towns.srcTown >= 0 && !OpexTownRatingAllowStation(towns.srcTown)) ||
-            (towns.dstTown >= 0 && !OpexTownRatingAllowStation(towns.dstTown))) {
-          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "town_rating_refusal", extra = "" });
-          return { outcome = "rejected", discards = passDiscards };
-        }
-      }
       if (candidate.kind == "pax") {
         /* Dernier verrou contre un candidat cache : des qu'une des communes a recu une ligne bus,
          * sa croissance passe exclusivement par une extension de cette ligne. */

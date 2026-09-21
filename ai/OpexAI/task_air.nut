@@ -304,13 +304,6 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
         if (townAId >= 0) OpexC60ObserveTownRating("air", "build_precheck", townAId);
         if (townBId >= 0) OpexC60ObserveTownRating("air", "build_precheck", townBId);
       }
-      if (C60_TOWN_RATING_FILTER) {
-        if ((townAId >= 0 && OpexTownRatingHopeless(townAId)) ||
-            (townBId >= 0 && OpexTownRatingHopeless(townBId))) {
-          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "town_rating_appalling", extra = "" });
-          return { outcome = "rejected", discards = passDiscards };
-        }
-      }
       local maxPerYear = 30;
       local maxTotal = 250;
       local airLinesThisYear = 0;

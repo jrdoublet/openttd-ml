@@ -200,8 +200,6 @@ C55_PAX_TRACE_PROBE <- false;
 C55_PAX_TRACE_LEDGER <- null;
 /* C60 : Sonde d'exposition aux notes municipales. */
 C60_TOWN_RATING_PROBE <- false;
-/* C60 : Filtre proactif de note municipale (SuperLib). */
-C60_TOWN_RATING_FILTER <- false;
 C60_TOWN_RATING_LEDGER <- null;
 /* C56 : trace immediate du dispatch, nulle hors sonde. */
 C56_TASK_TRACE <- false;

@@ -168,13 +168,6 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
         if (towns.srcTown >= 0) OpexC60ObserveTownRating("rail", "build_precheck", towns.srcTown);
         if (towns.dstTown >= 0) OpexC60ObserveTownRating("rail", "build_precheck", towns.dstTown);
       }
-      if (C60_TOWN_RATING_FILTER) {
-        if ((towns.srcTown >= 0 && !OpexTownRatingAllowStation(towns.srcTown)) ||
-            (towns.dstTown >= 0 && !OpexTownRatingAllowStation(towns.dstTown))) {
-          if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "town_rating_refusal", extra = "" });
-          return { outcome = "rejected", discards = passDiscards };
-        }
-      }
 
       local close = this._tooClose(candidate);
       if (close.hard >= 0) {
