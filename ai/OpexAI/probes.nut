@@ -617,48 +617,12 @@ function OpexC55OriginRelaxObserve(kind, lines, src, dst, srcServed, dstServed)
    * ORIGIN_SEPARATION des deux originA/originB d'une ligne route existante. */
   if (OpexRoadPairServed(lines, src, dst)) C55_ORIGIN_RELAX_LEDGER.duplicate_exact++;
 }
-/* C55 : observateurs pour la tracabilite causale PAX */
+/* C55 : observateur des revalidations PAX bloquees par une origine deja servie. */
 function OpexC55PaxTraceObserveRevalidated(isOriginBlocked)
 {
   if (!C55_PAX_TRACE_PROBE || C55_PAX_TRACE_LEDGER == null) return;
   C55_PAX_TRACE_LEDGER.revalidated++;
   if (isOriginBlocked) C55_PAX_TRACE_LEDGER.origin_blocked++;
-}
-function OpexC55PaxTraceObserveSpared()
-{
-  if (!C55_PAX_TRACE_PROBE || C55_PAX_TRACE_LEDGER == null) return;
-  C55_PAX_TRACE_LEDGER.spared++;
-}
-function OpexC55PaxTraceObserveAttempted()
-{
-  if (!C55_PAX_TRACE_PROBE || C55_PAX_TRACE_LEDGER == null) return;
-  C55_PAX_TRACE_LEDGER.attempted++;
-}
-function OpexC55PaxTraceObservePrecheckOk()
-{
-  if (!C55_PAX_TRACE_PROBE || C55_PAX_TRACE_LEDGER == null) return;
-  C55_PAX_TRACE_LEDGER.precheck_ok++;
-}
-function OpexC55PaxTraceObserveFinanceable()
-{
-  if (!C55_PAX_TRACE_PROBE || C55_PAX_TRACE_LEDGER == null) return;
-  C55_PAX_TRACE_LEDGER.financeable++;
-}
-function OpexC55PaxTraceObservePlanned()
-{
-  if (!C55_PAX_TRACE_PROBE || C55_PAX_TRACE_LEDGER == null) return;
-  C55_PAX_TRACE_LEDGER.planned++;
-}
-function OpexC55PaxTraceObserveViable()
-{
-  if (!C55_PAX_TRACE_PROBE || C55_PAX_TRACE_LEDGER == null) return;
-  C55_PAX_TRACE_LEDGER.viable++;
-}
-function OpexC55PaxTraceObserveBuilt(profit)
-{
-  if (!C55_PAX_TRACE_PROBE || C55_PAX_TRACE_LEDGER == null) return;
-  C55_PAX_TRACE_LEDGER.built++;
-  C55_PAX_TRACE_LEDGER.built_profit += profit;
 }
 function OpexC49VehicleType(mode)
 {

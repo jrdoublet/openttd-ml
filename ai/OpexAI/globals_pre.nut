@@ -223,11 +223,7 @@ C55_ORIGIN_RELAX_PROBE <- false;
 C55_ORIGIN_RELAX_LEDGER <- null;
 /* C55 etape 2 : relache seulement le verrou d'origine du fret route. */
 C55_FREIGHT_ORIGIN_RELAX <- false;
-/* C55 etape 5 : relache le verrou d'origine de toute la route. */
-C55_ROAD_ORIGIN_RELAX <- false;
-/* C55 : exemption pure du mode PAX routier de OpexOriginServed dans la revalidation. */
-C55_ROAD_PAX_ORIGIN_RELAX <- false;
-/* C55 : sonde de tracabilite causale des passagers routiers (sauves, elus, construits). */
+/* C55 : sonde de tracabilite des revalidations PAX routieres bloquees par une origine deja servie. */
 C55_PAX_TRACE_PROBE <- false;
 C55_PAX_TRACE_LEDGER <- null;
 /* C60 : Sonde d'exposition aux notes municipales. */

@@ -2176,7 +2176,7 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
   local industries = catalog.industries;
   local towns = catalog.towns;
   local servedIndex = C41_ROAD_FREIGHT_SERVED_INDEX ? OpexRoadFreightServedIndex(lines) : null;
-  local freightBusy = (C55_FREIGHT_ORIGIN_RELAX || C55_ROAD_ORIGIN_RELAX) ? OpexRoadFreightBusyIndex(lines) : null;
+  local freightBusy = C55_FREIGHT_ORIGIN_RELAX ? OpexRoadFreightBusyIndex(lines) : null;
   local servedIndustry = [];
   for (local i = 0; i < industries.len(); i++) {
     servedIndustry.append(servedIndex != null
@@ -2633,7 +2633,7 @@ function OpexGenerateSubsidyCandidates(catalog, lines, activeSubsidies, stats, a
       if (OpexRoadPairServed(lines, srcTile, dstTile)) continue;
       if (OpexTownRoadLineCount(lines, srcTile) >= 4 || OpexTownRoadLineCount(lines, dstTile) >= 4) continue;
     } else {
-      if (C55_FREIGHT_ORIGIN_RELAX || C55_ROAD_ORIGIN_RELAX) {
+      if (C55_FREIGHT_ORIGIN_RELAX) {
         local srcServed = OpexOriginServed(lines, srcTile, true);
         local dstServed = OpexOriginServed(lines, dstTile, true);
         if (srcServed && dstServed) continue;

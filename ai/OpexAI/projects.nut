@@ -923,29 +923,14 @@ function OpexCandidateStillValid(p, lines, abandonedPairs = null)
           OpexC55PaxTraceObserveRevalidated(isOriginBlocked);
         }
 
-        if (C55_ROAD_PAX_ORIGIN_RELAX || C55_ROAD_ORIGIN_RELAX) {
-          if (OpexRoadPairServed(lines, p.src, p.dst)) return false;
-          if (OpexTownRoadLineCount(lines, p.src) >= 4) return false;
-          if (OpexTownRoadLineCount(lines, p.dst) >= 4) return false;
-          if (isOriginBlocked) {
-            if (!("_c55_pax_spared" in p) || !p._c55_pax_spared) {
-              p._c55_pax_spared <- true;
-              if (p.payload != null) p.payload._c55_pax_spared <- true;
-              if (C55_PAX_TRACE_PROBE) {
-                OpexC55PaxTraceObserveSpared();
-              }
-            }
-          }
-        } else {
           if (C55_ORIGIN_RELAX_PROBE) {
             OpexC55OriginRelaxObserve("pax", lines, p.src, p.dst, srcServed, dstServed);
           }
           if (isOriginBlocked) return false;
           if (OpexRoadPairServed(lines, p.src, p.dst)) return false;
-        }
       } else {
         /* Fret routier */
-        if (C55_FREIGHT_ORIGIN_RELAX || C55_ROAD_ORIGIN_RELAX) {
+        if (C55_FREIGHT_ORIGIN_RELAX) {
           local srcServed = OpexOriginServed(lines, p.src, true);
           local dstServed = OpexOriginServed(lines, p.dst, true);
           if (srcServed && dstServed) return false;

@@ -52,10 +52,6 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         }
         return { outcome = "built", discards = passDiscards };
       }
-      local wasPaxSpared = (candidate != null && ("kind" in candidate) && candidate.kind == "pax") &&
-                           (("_c55_pax_spared" in project && project._c55_pax_spared) ||
-                            ("_c55_pax_spared" in candidate && candidate._c55_pax_spared));
-      if (wasPaxSpared) OpexC55PaxTraceObserveAttempted();
       local isSubsidy = ("isSubsidy" in candidate) && candidate.isSubsidy;
       if (isSubsidy) {
         local subId = candidate.subsidyId;
@@ -118,7 +114,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
           return { outcome = "rejected", discards = passDiscards };
         }
       } else {
-        if ((C55_FREIGHT_ORIGIN_RELAX || C55_ROAD_ORIGIN_RELAX) && candidate.kind == "freight") {
+        if (C55_FREIGHT_ORIGIN_RELAX && candidate.kind == "freight") {
           local srcServed = OpexOriginServed(this._lines, candidate.src, true);
           local dstServed = OpexOriginServed(this._lines, candidate.dst, true);
           if (srcServed && dstServed) {
@@ -148,7 +144,6 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "abandoned_pair", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
       }
-      if (wasPaxSpared) OpexC55PaxTraceObservePrecheckOk();
 
       local need = candidate.capital + OpexCashReserve() + ROAD_CAPITAL_MARGIN;
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
@@ -158,7 +153,6 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "road", src = candidate.src, dst = candidate.dst, reason = "insufficient_cash", extra = "need=" + need + " cash=" + money });
         return { outcome = "rejected", discards = passDiscards };
       }
-      if (wasPaxSpared) OpexC55PaxTraceObserveFinanceable();
 
       OpexSign(anchor, "IP|" + yy + "|R|" + project.budgetScore + "|" + project.opcodeScore);
 
@@ -180,7 +174,6 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         OpexSign(anchor, "RB|" + yy + "|" + idx + "|1|" + planOps + "|0");
         return { outcome = "rejected", discards = passDiscards };
       }
-      if (wasPaxSpared) OpexC55PaxTraceObservePlanned();
       local actualDist = AIMap.DistanceManhattan(plan.stopA.tile, plan.stopB.tile);
       if (actualDist < 1) actualDist = 1;
       local economics = OpexRoadLineEconomics(this._catalog, candidate.cargo, actualDist,
@@ -199,7 +192,6 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|ECON|0");
         return { outcome = "rejected", discards = passDiscards };
       }
-      if (wasPaxSpared) OpexC55PaxTraceObserveViable();
       OpexApplyRoadEconomics(candidate, economics, actualDist);
       if (isSubsidy) {
         candidate.baseRevenueAnnual = economics.revenueAnnual;
@@ -256,9 +248,6 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         if (ABANDON_MEMORY && OpexBuildFailureIsAbandonable(result)) this._markPairAbandoned(abandonedKey);
         OpexSign(anchor, "RA|" + yy + "|" + idx + "|1|" + result.reason + "|" + result.error);
         return { outcome = "rejected", discards = passDiscards };
-      }
-      if (wasPaxSpared) {
-        OpexC55PaxTraceObserveBuilt(candidate.profitAnnual);
       }
 
       if (DECISION_LOG) {
