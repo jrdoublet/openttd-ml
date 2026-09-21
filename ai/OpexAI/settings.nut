@@ -216,6 +216,7 @@ function OpexLoadSettings()
   }
   C63_INVEST_PROBE = probePort;
   if (C63_INVEST_PROBE) OpexC63ResetLedger();
+  C70_MODE_CALIBRATION = AIController.GetSetting("c70_mode_calibration") != 0;
   C69_BOTTLENECK_PROBE = probePort;
   if (C69_BOTTLENECK_PROBE) {
     C69_BUILD_DATES = [];

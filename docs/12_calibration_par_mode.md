@@ -108,3 +108,43 @@ rail.
   sur les jeunes lignes, qui ressemblent aux projets classés.
 - **Le rail est rare** : environ 1,4 ligne par partie de 10 ans. Un facteur glissant rail restera à
   1 la plupart du temps, alors que la route atteint 2 à 3 lignes et l'air plusieurs dizaines.
+
+---
+
+## 8. Étape 2 — facteur glissant (2026-09-21)
+
+**Décisions utilisateur** : pseudo-ligne à 1, `k_m = (Σ ratios + 1) / (n + 1)`, calculé sur
+toutes les lignes mûres.
+
+**Implémentation** (`c70_mode_calibration`, défaut 0) :
+
+- Au rapport annuel, chaque ligne de portefeuille cumule son réalisé par convoi initial, diminué
+  de l'amortissement prédit, et son prédit, sur ses années pleines (`age ≥ 2`). Son ratio est
+  `Σ réalisé / Σ prédit`.
+- `k_m` est la moyenne de ces ratios avec une pseudo-ligne à 1. Un projet de flotte prend le
+  facteur de l'air.
+- Le facteur multiplie le profit **au classement seulement**, dans `fundScore` et dans le score
+  C69 : `profitAnnual`, et donc `line.predicted`, restent bruts, pour que le facteur mesure le
+  modèle et non sa propre correction. Les scores de génération (`budgetScore`) ne changent pas.
+
+**Re-mesure**, 20 graines × 10 ans, `c70_mode_calibration=1` et `probe_portfolio=1`, **0 échec** :
+
+| mode | k médian 1972 → 1979 | lignes (M2) | M2 brut | M2 / k de l'année de construction |
+|---|---|---:|---:|---:|
+| air | 1,50 → 1,35 | 398 | 1,40 | **1,11** |
+| route | 1,36 → 1,35 | 59 | 1,51 | 1,51 |
+| rail | 1,00 → 0,93 | 17 | 1,03 | 1,03 |
+
+- **Le facteur en jeu retrouve la mesure hors partie** : air 1,35–1,50 et route 1,35–1,40,
+  contre 1,44 et 1,51 au §7 ; rail à peine sous 1.
+- **Il corrige l'air** : de 1,40 à 1,11 sur les lignes classées avec le facteur actif.
+- **Il ne peut pas corriger la route ni le rail tels qu'ils sont bâtis.** Leurs lignes sont
+  presque toutes construites en 1970-1971, avant qu'une ligne soit mûre (`age ≥ 2`), donc
+  avec `k = 1`. Le rail n'a que 17 lignes, sous le seuil de 20 du §4.
+- Max/min de M2 corrigé : **1,46**, sous 1,5. Mais il est porté par l'air, le seul mode où le
+  facteur a joué.
+
+⚠️ **Lecture honnête** : C5 passe à la lettre (1,46 ≤ 1,5), mais la route reste sous-estimée
+d'environ 1,5 au moment où elle est construite. C69 n'est pas exposé à ce biais tant que ses
+divergences restent aériennes (97 %, C69 §13.3), et les deux premières années sont en régime ROI
+(K_dec < C).

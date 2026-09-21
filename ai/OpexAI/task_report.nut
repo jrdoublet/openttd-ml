@@ -21,6 +21,7 @@ function OpexAI::_reportLines(year)
 {
   this._purgeUnprofitableStreaks();
   local anchor = AIMap.GetTileIndex(1, 1);
+  local c70Sums = C70_MODE_CALIBRATION ? { rail = [0.0, 0], road = [0.0, 0], air = [0.0, 0], water = [0.0, 0] } : null;
   local c69ProfRatios = C69_BOTTLENECK_PROBE ? { rail = [], road = [], air = [], water = [] } : null;
   local c69RevRatios = C69_BOTTLENECK_PROBE ? { rail = [], road = [], air = [], water = [] } : null;
   local c69LineCounts = C69_BOTTLENECK_PROBE ? { rail = 0, road = 0, air = 0, water = 0 } : null;
@@ -180,6 +181,26 @@ function OpexAI::_reportLines(year)
       local predRev = ("predRevenue" in line) ? line.predRevenue : 0;
       OpexC63RecordLine(lMode, lAge, predProfit, profit, predRev, profit + runCost,
                         vehCount, line.lineId, year - 1);
+    }
+    /* C70 : ratio realise/predit par ligne, cumule sur ses annees pleines (age >= 2 : l'annee de
+     * construction est partielle). Par convoi initial, amortissement predit retire du realise
+     * (GetProfitLastYear n'amortit rien). Ratio de sommes : une annee aberrante pese son poids. */
+    if (C70_MODE_CALIBRATION) {
+      local cMode = ("mode" in line) ? line.mode : "unknown";
+      local cAge = ("year" in line) ? (year - line.year) : -1;
+      local cPred = ("predicted" in line) ? line.predicted : 0;
+      local cN0 = ("trains0" in line) ? line.trains0 : 0;
+      if (cAge >= 2 && cPred > 0 && cN0 > 0 && vehCount > 0 && (cMode in c70Sums)) {
+        local cAmort = ("predAmort" in line) ? line.predAmort : 0;
+        local real = profit.tofloat() * cN0 / vehCount - cAmort;
+        if (!("c70Real" in line)) { line.c70Real <- 0.0; line.c70Pred <- 0.0; }
+        line.c70Real += real;
+        line.c70Pred += cPred.tofloat();
+      }
+      if (("c70Pred" in line) && line.c70Pred > 0 && (cMode in c70Sums)) {
+        c70Sums[cMode][0] += line.c70Real / line.c70Pred;
+        c70Sums[cMode][1]++;
+      }
     }
     if (C69_BOTTLENECK_PROBE) {
       local lMode = ("mode" in line) ? line.mode : "unknown";
@@ -341,6 +362,17 @@ function OpexAI::_reportLines(year)
         + " lines=" + this._lines.len()
         + " prof_sum=" + sumProf + " rev_sum=" + sumRev
         + " prof_lines=" + profCount + " loss_lines=" + lossCount);
+  }
+  if (C70_MODE_CALIBRATION) {
+    /* Pseudo-ligne a 1 : k = (somme des ratios + 1) / (n + 1). Sans ligne mure, k = 1 ; la premiere
+     * ligne ne pese que la moitie ; l'effet s'efface a mesure que les lignes s'accumulent. */
+    foreach (m, acc in c70Sums) {
+      C70_MODE_FACTOR[m] = (acc[0] + 1.0) / (acc[1] + 1).tofloat();
+      if (C69_BOTTLENECK_PROBE) {
+        OpexC69Log("phase=c70_factor year=" + year + " mode=" + m + " lines=" + acc[1]
+            + " k=" + C70_MODE_FACTOR[m]);
+      }
+    }
   }
   if (C69_BOTTLENECK_PROBE && C69_PENDING_FOLLOWUPS != null) {
     foreach (item in C69_PENDING_FOLLOWUPS) {

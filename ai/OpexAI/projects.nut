@@ -167,6 +167,22 @@ function OpexProjectPairKey(kind, cargo, src, dst)
   return kind + "|" + cargo + "|" + src + "|" + dst;
 }
 
+/* C70 : facteur du mode d'un projet. Un projet de flotte ajoute des avions a une ligne aerienne. */
+function OpexC70Factor(project)
+{
+  local mode = ("mode" in project) ? project.mode : "unknown";
+  if (mode == "fleet") mode = "air";
+  return (mode in C70_MODE_FACTOR) ? C70_MODE_FACTOR[mode] : 1.0;
+}
+
+/* C70 : profit servant au classement. Le brut reste dans profitAnnual, et donc dans
+ * line.predicted : le facteur mesure le modele, jamais sa propre correction. */
+function OpexC70Profit(project)
+{
+  if (!C70_MODE_CALIBRATION) return project.profitAnnual;
+  return project.profitAnnual * OpexC70Factor(project);
+}
+
 function OpexProjectScore(value, cost)
 {
   if (value <= 0 || cost <= 0) return 0.0;
@@ -688,11 +704,11 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
       if (C49_VARIABLE_DENOMINATOR) {
         project.fundScore <- OpexC49ProjectScore(project, C49_CURRENT_REGIME);
       } else {
-        project.fundScore <- OpexProjectScore(project.profitAnnual, financeCapital);
+        project.fundScore <- OpexProjectScore(C70_MODE_CALIBRATION ? OpexC70Profit(project) : project.profitAnnual, financeCapital);
       }
       if (C69_BOTTLENECK_PROBE) {
         local denom = financeCapital > kDec ? financeCapital : kDec;
-        project.c69Score <- OpexProjectScore(project.profitAnnual, denom);
+        project.c69Score <- OpexProjectScore(OpexC70Profit(project), denom);
         OpexProjectInsert(c69Affordable, project, "c69Score", limit, AIR_EARLY_SLOT);
       }
     }
@@ -712,11 +728,11 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
         if (C49_VARIABLE_DENOMINATOR) {
           project.fundScore <- OpexC49ProjectScore(project, C49_CURRENT_REGIME);
         } else {
-          project.fundScore <- OpexProjectScore(project.profitAnnual, financeCapital);
+          project.fundScore <- OpexProjectScore(C70_MODE_CALIBRATION ? OpexC70Profit(project) : project.profitAnnual, financeCapital);
         }
         if (C69_BOTTLENECK_PROBE) {
           local denom = financeCapital > kDec ? financeCapital : kDec;
-          project.c69Score <- OpexProjectScore(project.profitAnnual, denom);
+          project.c69Score <- OpexProjectScore(OpexC70Profit(project), denom);
           OpexProjectInsert(c69Affordable, project, "c69Score", limit, AIR_EARLY_SLOT);
         }
       }

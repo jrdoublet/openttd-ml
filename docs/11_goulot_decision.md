@@ -391,19 +391,25 @@ registre C49 voit `cash < decision` en 1971-1973.
 attend ». Sa lettre échoue ; son objet, le biais inter-modes du profit absolu, porte sur des
 modes quasi absents des divergences.
 
-### 13.4 Passivité : la sonde n'est pas neutre
+### 13.4 Passivité : aucune variante n'est neutre
 
-Deux répétitions sont identiques au bit près, donc tout écart vient du code. Graine 42, 3 ans :
+Le banc est déterministe : deux lancements séparés de `master` donnent le même résultat au bit
+près. Graine 42, 3 ans :
 
-| bras | valeur | véhicules | gares |
-|---|---:|---:|---:|
-| `master`, `probe_portfolio=0` | 2,54 M£ | 53 | 38 |
-| `master`, `probe_portfolio=1` | 2,74 M£ | 52 | 40 |
-| C69, `probe_portfolio=1` | 2,54 M£ | 47 | 32 |
+| code | `probe_portfolio` | valeur | véhicules | gares |
+|---|---|---:|---:|---:|
+| `master` | 0 | 2,58 M£ | 52 | 38 |
+| `master` | 1 | 2,74 M£ | 52 | 40 |
+| C69 étape 1 | 0 | 2,54 M£ | 53 | 38 |
+| C69 étape 1 | 1 | 2,54 M£ | 47 | 32 |
 
-`probe_portfolio` déplaçait déjà les parties avant C69 (opcodes des sondes → décalage temporel).
-C2–C4 restent valides puisque les deux classements sont calculés dans la même partie ; en
-revanche, **l'étape 3 doit comparer deux bras dans le même état de sonde**.
+(Graine 100 : 2,13 / 1,89 / 2,06 / 1,88 M£.) Même au défaut, où il ne fait que tester des
+drapeaux, le code C69 déplace la partie de −1,7 % : la trajectoire est chaotique, et le moindre
+opcode ajouté la décale, comme à la passe 3 de C65. Les sondes font de même.
+
+**Conséquences.** Aucune mesure mono-graine ne départage deux variantes. C2–C4 restent valides,
+puisque les deux classements sont calculés dans la même partie. L'étape 3 compare deux bras du
+**même code** avec la sonde dans le même état.
 
 ### 13.5 Écarts à l'implémentation décrite
 

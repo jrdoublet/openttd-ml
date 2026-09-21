@@ -263,6 +263,9 @@ C50_CHRONOLOGY_PROBE <- false;
 /* C63+C58 : ledger annuel depenses / recettes / occasions. Nul hors sonde. */
 C63_INVEST_PROBE <- false;
 C63_INVEST_LEDGER <- null;
+/* C70 : facteur realise/predit par mode, recalcule au rapport annuel. 1.0 hors reglage. */
+C70_MODE_CALIBRATION <- false;
+C70_MODE_FACTOR <- { rail = 1.0, road = 1.0, air = 1.0, water = 1.0 };
 /* C69 etape 1 : sonde passive goulot de decision P / max(C, F*tau). */
 C69_BOTTLENECK_PROBE <- false;
 C69_BUILD_DATES <- null;
