@@ -18,8 +18,6 @@ AIR_MAX_PLANES_PER_ROUTE <- 16;
 AIR_PLAN_DIAG_SEQ <- 0;
 /* Plafond de distance aerienne (0 = illimite, docs/taches.md C6 supprime) */
 AIR_MAX_DISTANCE <- 0;
-/* Ordre de chargement passagers aerien (true = OF_FULL_LOAD_ANY, false = OF_NONE) */
-AIR_FULL_LOAD <- false;
 /* Cache de sites d'aeroport par ville et type d'aeroport (C33.1) */
 AIR_SITE_CACHE_ENABLED <- true;
 AIR_SITE_CACHE <- {};
@@ -951,7 +949,7 @@ function OpexAirRefleetCrashedPlane(line)
   }
   local plane = AIVehicle.BuildVehicleWithRefit(hangar, line.refleetEngine, line.cargo);
   if (!AIVehicle.IsValidVehicle(plane)) { result.reason = "BUILD"; return result; }
-  local flags = AIR_FULL_LOAD ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE;
+  local flags = AIOrder.OF_NONE;
   if (!AIOrder.AppendOrder(plane, line.stationA, flags) ||
       !AIOrder.AppendOrder(plane, line.stationB, flags) || AIOrder.GetOrderCount(plane) != 2) {
     AIVehicle.SellVehicle(plane); result.reason = "ORDER"; return result;
@@ -1890,7 +1888,7 @@ function OpexBuildAirRoute(catalog, budget, plan)
     return result;
   }
 
-  local airFlags = AIR_FULL_LOAD ? AIOrder.OF_FULL_LOAD_ANY : AIOrder.OF_NONE;
+  local airFlags = AIOrder.OF_NONE;
   local okOrderA = AIOrder.AppendOrder(plane, airportA, airFlags);
   local errorA = okOrderA ? 0 : AIError.GetLastError();
   local okOrderB = AIOrder.AppendOrder(plane, airportB, airFlags);

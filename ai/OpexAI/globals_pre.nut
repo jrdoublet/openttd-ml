@@ -315,7 +315,6 @@ AIR_FLEET_CADENCE_DAYS <- 7;
 /* C14 : tampon de cargo au sol pour achat proportionnel (-1 = inactif/defaut). */
 AIR_FLEET_BUFFER <- -1;
 PAX_FULL_LOAD <- true;
-AIR_FULL_LOAD <- false;
 C53_ORDER_NONSTOP <- false;
 C53_ORDER_NOLOAD <- false;
 COMPLEX_CARGO <- true;
