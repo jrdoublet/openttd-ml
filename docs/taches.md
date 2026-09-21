@@ -1,16 +1,98 @@
 # Tâches — réduire l'écart avec AAAHogEx
 
-Revue du **2026-09-13**. Ce fichier contient les décisions actuelles et le prochain travail
-utile. Les travaux terminés et leurs dossiers, y compris C65 (`19609f8`), sont transférés
-dans [le journal du 13 septembre](journal_2026-09-13.md). Les développements antérieurs y sont
-conservés intégralement pour la traçabilité ; seul ce fichier prescrit le travail restant.
+État courant actualisé le **2026-09-21**. Ce fichier est la **seule liste autoritaire du
+travail restant**. Les sections datées du 13 au 18 septembre sont conservées pour la traçabilité,
+mais leur ordre de priorité et leurs mentions « à faire » ne prévalent pas sur l'état courant
+ci-dessous.
 
-Avant de rouvrir une piste, rechercher son nom et ses réglages dans ce journal **et** dans
+Avant de rouvrir une piste, rechercher son nom et ses réglages dans
+[le journal du 13 septembre](journal_2026-09-13.md) **et** dans
 [l'archive du 9 septembre](taches_archive_2026-09-09.md). L'archive sert à retrouver les
 implémentations et les raisons des décisions ; **aucun résultat antérieur au 09/09 ne prouve
 la performance actuelle**. Les journaux quotidiens conservent le détail des expériences.
 
-## Où nous en sommes
+## État courant — 2026-09-21
+
+La séquence P0/P1 du 13 septembre est désormais **historique** : C66 est qualifié/clos. Le
+chantier AIR post-C68 sur la frontière capital→profit, `AIR_BEST_EQUIPMENT` et le cycle de vie
+associé est **abandonné le 2026-09-21** après résultats économiques négatifs répétés. La base de
+reprise est `b68fafb` : master + C68 adopté (`air_route_plane_selection=1`) + suppression des
+feeders. Les listes de revue restent des documents historiques ; elles ne doivent plus être lues
+comme une file active.
+
+| Statut courant | Chantier | Travail restant / règle de reprise |
+|---|---|---|
+| **ABANDONNÉ — 2026-09-21** | **AIR post-C68 — frontière capital→profit réseau** | Retour à `b68fafb`. Ne pas reprendre le λ global sans nouvelle formulation et nouvelle preuve indépendante. |
+| **CLOS / RETIRÉ** | **Opcodes AIR / sélecteur de projets** | Les caches, heaps, enveloppes et snapshots ajoutés pour la frontière/lifecycle sont abandonnés avec ces politiques. |
+| **COMMENCÉ — EN PAUSE** | **C61 AIR : délai/capacité aéroport** | Mesurer rotations, attente, demande et occupation avant de toucher `airportDelayDays` ou la cadence. |
+| **COMMENCÉ — AUTRE SESSION** | **C61 Route / town growth** | Recalibrage déjà avancé ; le reliquat sur les stations actives est traité séparément. |
+| **FAIT — 2026-09-20** | **21.1 — constante rotor/hélico** | `AIR_ROTOR=6` aligné, commentaire corrigé et test synthétique hélicoptère tête+ombre+rotor ajouté ; 8/8 hôte et Docker. |
+| **FAIT — 2026-09-20** | **21.2 — `prepare_frozen_campaign`** | Test unitaire isolé du gel complet ajouté : IA, harnais, bibliothèque BaNaNaS synthétique, empreintes, manifeste et descripteur local ; 11/11 hôte, 11 tests dans Docker dont 1 skip Git CLI attendu. |
+| **FAIT — 2026-09-20** | **C45 reliquat — persistance subventions** | L'état comportemental `_activeSubsidies` est déjà persisté par Save/Load au défaut `save_full_state=1`. Les compteurs `_subsidyStats` restent volontairement transitoires : télémétrie uniquement, rapportée seulement sous `EVENT_SUBSIDY_PROBE`, forcé à `false`. |
+| **FAIT — 2026-09-20** | **C52 reliquat — crash/non rentable** | Revalidation courante close : handlers sains, 5×6 complet, aucun défaut de service reproduit ; politique laissée à 0. |
+| **FAIT — 2026-09-20** | **C60 — filtre municipal** | Sonde corrigée pour appliquer le vrai prédicat de tolérance municipale. 5×6 courant : 145 501 contrôles, dont 1 719 notes VERY_POOR/APPALLING, mais 0 refus réel ; filtre laissé désarmé. |
+| **NON DÉMARRÉ** | **C59 — ordres contextuels** | Corréler chargement, attente et profit avant toute politique dynamique. |
+| **NON DÉMARRÉ** | **C61 Rail — géométrie NOSPOT/TRACKFAIL** | Examiner les échecs réellement exposés avant un projet général de jonctions. |
+| **CONCEPTION SEULEMENT** | **C67 — carte par blocs / remplacement de Lakes** | Implémentation non commencée ; d'abord mesurer 5×5 vs 10×10, RAM/opcodes/précision. |
+| **DIFFÉRÉ / CONDITIONNEL** | **C64, C42 bis, C55 reliquat, C43/E3 restant** | Reprendre seulement sur exposition mesurée ; `loop_budget` est déjà clos/non adopté. |
+| **DORMANT / NON EXPOSÉ** | **M2, M5/G2, M6, M7/11.3, B6/06.12** | Aucun lot autonome ; traiter seulement avant réactivation. |
+
+### Clôture AIR post-C68 — frontière, best equipment et cycle de vie (2026-09-21)
+
+La branche expérimentale postérieure à `b68fafb` est archivée sous
+`archive/air-frontier-2026-09-21`. La reprise fonctionnelle repart de `b68fafb`, qui contient C68
+adopté (`air_route_plane_selection=1`) et la suppression des feeders. Les trois pistes suivantes
+sont closes ensemble : `AIR_CAPITAL_FRONTIER`, `AIR_BEST_EQUIPMENT` et le cycle de vie AIR
+upgrade/preview/Pareto/persistance qui dépendait de ce moteur multi-équipements.
+
+La frontière capital→profit n'a pas corrigé le sous-investissement. Sur le 5×6
+`diag_air_capital_frontier_c66_4_5x6_v3.json`, le profit annuel moyen recule d'environ
+**267 k£/an** et le ratio de valeur de compagnie vaut **0,7229** (soit **−27,71 %**). Les variantes
+ultérieures qui corrigent les conflits physiques et l'état économique restent négatives : environ
+**−204 k£/an** sur l'isolat `isolate_air_capital_frontier_econstate_5x6.json`, puis environ
+**−288 k£/an et 0/5 victoire** sur `diag_air_capital_frontier_lifecyclefix_5x6.json`. Le coût en
+opcodes augmente fortement en parallèle ; l'optimiser davantage ne change pas le verdict
+économique.
+
+`AIR_BEST_EQUIPMENT` et le cycle de vie associé ne fournissent pas non plus de candidat à adopter.
+Dans le 5×6 post-lifecycle, la baseline C68 reste devant d'environ **+308 959 £/an de profit annuel**
+et **+1,31 M£ de valeur de compagnie** en moyenne. Le candidat utilise pourtant réellement les
+nouveaux choix d'équipement (le moteur 218 apparaît sur **66/145 avions**) : l'échec ne vient donc
+pas d'un chemin mort ou d'une absence d'exposition.
+
+Leçons conservées pour une éventuelle reprise future :
+
+- un λ global rejoue la famille de formulations déjà réfutée avec C35.4 ; sa cohérence théorique
+  ne suffit pas à produire une meilleure politique sur le réseau réel ;
+- élargir l'ensemble des avions sous un modèle AIR encore biaisé peut produire un **pire argmax** :
+  plus de choix améliore l'optimisation du modèle, pas nécessairement le jeu réel ;
+- la baseline a dérivé pendant l'exploration ; toute nouvelle piste doit repartir explicitement de
+  `b68fafb`/C68 et annoncer son delta exact avant le premier banc ;
+- `air_early_slot` est un mécanisme territorial concurrentiel : son effet doit être jugé en duel,
+  pas dans un 5×6 solo où son coût peut apparaître sans bénéfice de verrouillage adverse ;
+- les optimisations d'opcodes spécifiques à la frontière/lifecycle (caches, heap de λ, enveloppes,
+  snapshots et télémétrie CF) ne sont pas des améliorations autonomes et ne doivent pas être
+  rapatriées sur C68.
+
+Le recalage route et le modèle physique de délai d'aéroport restent des chantiers séparés, chacun
+derrière son propre drapeau et avec son propre 5×6 avant toute adoption.
+
+**Contrôle du ménage `tension.nut` — non rapatrié.** La suppression de `tension.nut`,
+`tension_scoring`, `shadow_pricing` et de leurs chemins morts a été portée puis testée avant commit.
+Le smoke demandé **2 graines × 3 ans** réfute l'hypothèse de neutralité : le candidat nettoyé donne
+sur la graine 42 `value=2 561 481`, `profit_year=1 454 938`, 50 véhicules et 36 gares, contre
+`b68fafb` `value=2 940 277`, `profit_year=1 662 912`, 43 véhicules et 24 gares ; sur la graine 100,
+le candidat donne `value=2 048 722`, `profit_year=1 217 187`, contre `b68fafb` `value=1 803 322`,
+`profit_year=916 336`. Ce n'est donc pas bit-identique.
+
+Le contrôle causal est net : `f9488de`, qui contient tous les rapatriements sûrs précédents mais
+pas le ménage tension, reproduit **exactement `b68fafb` sur les deux graines et les deux métriques**
+du même 2×3 (ainsi que véhicules, gares, score et note). La divergence apparaît donc avec le retrait
+du travail Squirrel mort lui-même. Même avec les drapeaux à 0, enlever ces opérations modifie le
+calendrier d'opcodes/suspensions et finit par changer la simulation. Le ménage tension est par
+conséquent **abandonné comme refactor neutre** et n'est pas conservé sur la branche de retour.
+
+## Référence historique — 2026-09-13
 
 **Le retard économique est établi ; sa cause dominante ne l'est pas encore.** Le duel partagé
 20 graines × 5 ans du 13 septembre donne les résultats suivants, recalculés depuis les
@@ -70,7 +152,10 @@ pas un comptage des chantiers. Le volet véhicules reste soumis à la réserve c
 le mécanisme qui permet de réinvestir.** Le nombre de véhicules, les gares et les opcodes restent
 les instruments de diagnostic. Ils ne remplacent pas cet objectif.
 
-## Ordre de travail
+## Ordre de travail historique — 2026-09-13
+
+> **Supersédé pour la file active par l'état courant du 2026-09-20 ci-dessus.**
+> Ce tableau reste la trace de la séquence qui a mené à C66 puis au diagnostic C63/C58.
 
 | Rang | Chantier | Question qui doit être tranchée | Livrable / condition de passage |
 |---|---|---|---|
@@ -87,8 +172,10 @@ restent des suites conditionnelles ; rien ne prouve encore que l'un d'eux est le
 <a id="c66"></a>
 ## P0 — C66 : fiabiliser le duel et rendre le rattrapage mesurable
 
-**Statut : à faire.** Fiche ouverte le 2026-09-13 à la demande de l'utilisateur ; elle reprend
-le volet « référence fiable » de C64. C64 conserve uniquement la piste adaptative, différée.
+**Statut : CLOS — harnais qualifié.** Fiche ouverte le 2026-09-13 à la demande de l'utilisateur ;
+les preuves C66.1–C66.5 puis H1/H3/H4/H5 ont qualifié le harnais courant. Le point 4 de C66.5
+reste uniquement le jalon d'adoption d'une future variante causale ; il ne rouvre pas C66.
+C64 conserve uniquement la piste adaptative, différée.
 **But :** pouvoir dire si une modification d'OpexAI améliore son résultat économique **contre
 AAAHogEx**, avec des mesures correctes, des parties complètes et une comparaison reproductible.
 Cette fiche porte sur le harnais et ses preuves ; elle ne change aucune stratégie de jeu.
@@ -476,7 +563,7 @@ le SHA Git `769fdf9baed4042b830fbf24393c17a65f530a56`, l'état dirty et le bundl
 reste reproductible sur les sources effectivement exécutées sans prétendre correspondre à HEAD
 propre.
 
-**C66 est close lorsque** le décodeur a sa preuve indépendante, les contrôles négatifs détectent
+**C66 est close :** le décodeur a sa preuve indépendante, les contrôles négatifs détectent
 et attribuent les échecs, la référence est figée et répétable, le diagnostic 5×6 est complet,
 et le rapport distingue progrès d'OpexAI et évolution du duel. Tout gel suspect non expliqué ou
 mode non qualifié doit être indiqué comme limite, jamais transformé en validation générale.
@@ -1053,20 +1140,65 @@ opcodes : le tour ») est retiré**, tout comme le « facteur 15 inexpliqué » 
 
 ## Autres tâches ouvertes, hors séquence prioritaire
 
-Les travaux clos C45/C46/C47/C48/C49/C50/C51/C53/C54/C55/C56/C62/C65 et les étapes déjà
+Les travaux clos C45/C46/C47/C48/C49/C50/C51/C52/C53/C54/C55/C56/C62/C65 et les étapes déjà
 livrées des autres fiches sont consignés dans [le journal du jour](journal_2026-09-13.md).
 Ne pas les remettre dans la file active sans fait nouveau.
 
 | Fiche | Travail restant | Condition de reprise |
 |---|---|---|
-| C52 | Revalider les corrections crash/non rentable postérieures au banc ; exploiter la sonde de première arrivée si nécessaire | Défaut de service observé ; pas un objectif de nombre d'événements branchés |
-| C60 | Exposition actuelle route/rail puis diagnostic 5×6 du filtre, encore à 0 après son smoke | Refus municipaux matériellement coûteux ; ne pas inférer cette exposition des seuls refus air, qui incluent le bruit |
+| C52 | **CLOS 2026-09-20** — corrections crash/non rentable revalidées sur le code courant ; aucun défaut de service reproduit | Rouvrir seulement sur défaut de service observable ; la politique reste à 0 |
+| C60 | **CLOS 2026-09-20** — aucune exposition réelle sous la configuration canonique permissive ; filtre laissé désarmé | Rouvrir seulement si `difficulty.town_council_tolerance` devient non permissif dans le protocole ou si un refus de gare par note est reproduit |
 | C57 | **ABANDONNÉ — ne plus calibrer les 50 000 opcodes de Lakes** | Architecture MinchinWeb.Lakes abandonnée le 2026-09-17 ; ne pas investir dans le réglage d'un composant destiné à être retiré |
 | **C67** | **Analyse spatiale de la carte par blocs + remplacement propre de Lakes** | Concevoir/mesurer la grille 5×5 vs 10×10, le typage des blocs et ses usages eau/terrain avant toute migration comportementale |
-| C43 / E3 | Constantes non tranchées : réserve, `loop_budget`, `pax_near`, seuils de mise au rebut | Constante impliquée par le diagnostic ; pas de balayage général |
-| C45, reliquat | Décider de la persistance des compteurs de subventions | Besoin au rechargement ; secondaire pour des parties neuves |
+| C43 / E3 | Constantes non tranchées : réserve, `pax_near`, seuils de mise au rebut. `loop_budget` est clos/non adopté. | Constante impliquée par le diagnostic ; pas de balayage général |
+| C45, reliquat | **CLOS 2026-09-20** — état actif déjà persisté ; compteurs de sonde volontairement transitoires | Test de contrat `test_c45_subsidy_persistence.py` ; ne pas sérialiser de télémétrie morte |
 | C42 bis | Filtrage/rendement des subventions | Exposition rentable démontrée ; les subventions brutes restent à 0 |
 | C55, reliquat | Partage de demande et sur-service des bassins | Flux concurrents observés par P1 ; ne pas rouvrir le filtre d'origine |
+
+**Clôture C52 — 2026-09-20.** Les diagnostics ont d'abord été remis sur les réglages regroupés
+actuels : `diag_c52_events.py` compare `probe_events=1` à
+`policy_vehicle_events=1,probe_events=1`, et les sondes C52 autonomes passent désormais par
+`probe_events=1`. Les trois selftests de sonde passent, ainsi que **12/12 tests lifecycle ciblés**
+sur crash, retraite, autoreplace et refleet. Le smoke 1×1 est complet et identique entre les deux
+bras. Le diagnostic apparié
+[`diag_c52_revalidate_6y_5seeds.json`](../results/diag_c52_revalidate_6y_5seeds.json) est complet
+**10/10, 0 erreur** : politique active contre désarmée = valeur moyenne **4 902 664 £ vs
+4 824 164 £** (+78 501 £, +1,63 %) et profit annuel **1 328 934 £ vs 1 294 921 £**
+(+34 013 £/an, +2,63 %), avec **2 gains / 2 pertes / 1 égalité** sur les deux métriques.
+Ce 5×6 reste un diagnostic et ne justifie donc aucun changement de défaut.
+
+Le chemin crash est réellement exposé : le bras actif enregistre **7 `VEHICLE_CRASHED` et
+7 `CRASH_REFLEET`**. Le chemin non rentable reçoit **12 `VEHICLE_UNPROFITABLE`** mais aucun
+`UNPROFITABLE_RETIRE`/`UNPROFITABLE_SCRAP` sur six ans ; même le contrôle graine 42 avec seuil
+forcé à 1 reste sans retraite, cohérent avec la garde de jeunesse `age >= 365`. Aucun défaut de
+service n'étant observé, la sonde `ET_STATION_FIRST_VEHICLE` n'a pas été utilisée pour décider.
+Le contrôle supplémentaire 10×5 destiné seulement à forcer l'exposition non rentable a finalement
+été relancé après rétablissement de Docker :
+[`diag_c52_unprofitable_exposure_10y_5seeds.json`](../results/diag_c52_unprofitable_exposure_10y_5seeds.json)
+est complet **5/5, 0 erreur** sous `policy_vehicle_events=1,probe_events=1` avec
+`unprofitable_streak_threshold=1`. Il enregistre **69 `VEHICLE_UNPROFITABLE`**, dont **6
+`UNPROFITABLE_RETIRE` et 2 `UNPROFITABLE_SCRAP`** ; le même banc voit aussi **19
+`VEHICLE_CRASHED` et 19 `CRASH_REFLEET`**. Le chemin non rentable n'est donc pas mort : il agit
+dès qu'un événement atteint aussi les autres gardes d'éligibilité. Ce seuil forcé à 1 reste une
+sonde d'exposition, sans bras de comparaison et sans autorité d'adoption ; la politique et son
+default restent inchangés.
+
+**Clôture C60 — 2026-09-20.** La première mesure courante a semblé montrer 2 790 refus rail,
+mais elle a révélé un défaut de la sonde : `OpexC60ObserveTownRating()` comparait directement
+l'enum de réputation à `VERY_POOR` sans appliquer la garde
+`difficulty.town_council_tolerance == 0`, alors que le vrai prédicat
+`OpexTownRatingAllowStation()` l'applique. Le bras filtre temporaire était donc strictement
+identique au contrôle sur le 5×6 `results/diag_c60_filter_6y_5seeds.json` (5/5 égalités sur
+valeur, profit, véhicules, gares et opcodes observés).
+
+La sonde réutilise désormais le prédicat comportemental exact. Le rerun passif
+`results/diag_c60_current_exposure_6y_5seeds_v2.json` est sain **5/5** et cumule
+**145 501 contrôles** au dernier rapport annuel disponible : route **0**, rail **134 125**,
+air **11 376**. Il observe pourtant **1 290 `VERY_POOR` + 429 `APPALLING`**, mais
+**0 refus réel** dans les trois modes. La configuration canonique est donc permissive sur ce
+point ; C60 n'a aucun levier comportemental à benchmarker davantage. Le filtre reste forcé à
+`false` et aucun 20×10 n'est justifié. Rouvrir uniquement si le protocole passe à une tolérance
+municipale non permissive ou si un refus par note est reproduit.
 
 **Clôture B8 / G10 — 2026-09-16.** Le sous-comptage de flotte AIR avant rapport reste infirmé et
 ne doit pas être rouvert. Le défaut réellement actif était le cycle de vie : une ligne AIR pouvait
@@ -1484,8 +1616,8 @@ mesure et les anciens bancs feeder sont conservés pour traçabilité.
 | M7/11.8 | fait / caduc | symbole obsolète absent | aucune action |
 | G3 résiduel | fait | recalcul post-A* commun blocking/resumable, fret compris | aucune suite |
 | 07.2 rail iterations | limite diagnostique, non P1 | proxy `state.iterations` incomplet ; `OB|A.result.opcodes` complet sur la recherche | ne pas changer le budget/pathfinder pour « corriger » un proxy |
-| 21.1 | P3 inerte | `unitnumber==0` couvre rotor/ombre | cosmétique + test hélico seulement |
-| 21.2 | largement fait | `test_campaign_freeze.py`, contrat 230, guards/fingerprint | intégration freeze complète sans test unitaire isolé |
+| 21.1 | **fait** | `AIR_ROTOR=6` + test synthétique hélicoptère ; 8/8 hôte/Docker | aucune suite |
+| 21.2 | **fait** | `test_campaign_freeze.py` couvre le gel complet ; 11/11 hôte, 11 tests Docker dont 1 skip Git CLI attendu | aucune suite |
 | 21.3 | fait | valeur décroissante sans expansion testée fail-closed | aucune suite |
 
 ## Revue 2026-09-16 — clôture M3 / G12
@@ -1609,9 +1741,9 @@ Deux résidus documentaires ont aussi été soldés :
 
 - G3 : blocking et resumable rail appellent le même recalcul post-A* ; `candidate.kind` fait que
   le fret suit exactement ce chemin ;
-- étape 21 : 21.2 possède maintenant le test unitaire du cœur fail-closed de
-  `campaign_freeze.py` et 21.3 possède les cas de valeur décroissante. La copie complète de
-  campagne/bibliothèques reste une limite de couverture unitaire, pas un P1 courant.
+- étape 21 : 21.1 possède maintenant le cas synthétique hélicoptère tête+ombre+rotor ;
+  21.2 couvre le cœur fail-closed **et** la copie complète campagne/bibliothèques via un faux
+  BaNaNaS sans réseau ; 21.3 possède les cas de valeur décroissante. Les trois reliquats sont clos.
 
 **07.2** a aussi été requalifié sur les consommateurs actuels. Les sondes pont/tunnel ne sont
 toujours pas ajoutées à `state.iterations`, mais ce proxy n'est plus consommé par le classement
@@ -1639,9 +1771,9 @@ Sur 127 tops fret recyclés, 117 sont repricés exactement ; 17 changent de prof
 décidables, **6 changeraient réellement l'élection** (4 inversions de rang, 2 non-générés) contre
 108 choix inchangés ; 5 égalités et 8 cas hors oracle restent non tranchés. Le refresh concurrent
 qui supprimait subventions/extensions reste rejeté. **Décision : 06.11 clos comme diagnostic P3,
-correctif général non adopté ; `portfolio_cache` reste actif, aucun 20×10.** Les autres restes sont
-architecture/mesure (C67), politique (M3 AIR) ou cosmétique/inert (21.1), pas des correctifs techniques à appliquer
-à l'aveugle.
+correctif général non adopté ; `portfolio_cache` reste actif, aucun 20×10.** À cette date, les
+autres restes étaient architecture/mesure (C67), politique (M3 AIR) ou cosmétique/inert (21.1).
+Le reliquat 21.1 a depuis été clos le 2026-09-20.
 
 Le smoke Docker final post-`.nut` `results/review_b6_0611_final_smoke_2x3_v2.json` est sain **2/2**
 sur 42/100, avec horizons complets pour OpexAI et AAAHogEx et les réglages de référence conservés.

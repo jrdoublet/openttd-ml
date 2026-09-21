@@ -1,5 +1,10 @@
 # Étape 13 — Tâches portefeuille et rail
 
+> **Statut au 2026-09-20 : REVUE HISTORIQUE.** Les constats de cette étape ont été réconciliés
+> dans `docs/revue_code_2026-09-15_correctifs.md` et `docs/taches.md`. Ne pas interpréter les
+> formulations « à faire » de cette fiche comme des tâches encore ouvertes sans vérifier la
+> matrice et l'état courant de `docs/taches.md`.
+
 - **SHA revu** : `3642623` (HEAD au moment de la revue ; `7304613` au début de la lecture, seuls les fichiers de revue 14/15 ont bougé entre-temps, ancres inchangées)
 - **Modèle / effort prévus** : Opus 5 / high
 - **Périmètre** : `ai/OpexAI/task_projects.nut`, `task_rail.nut` — 2 103 l.

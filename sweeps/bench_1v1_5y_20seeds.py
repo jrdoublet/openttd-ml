@@ -573,6 +573,26 @@ def extract_company_record(chunks, owner, run_key, date, output=None):
     vehs_valid = veh_dec["chunk_valid"]
     stnn_valid = stn_dec["chunk_valid"]
 
+    air_engine_counts = {}
+    air_capacities_by_cargo = {}
+    air_vehicle_book_value = 0
+    if vehs_valid:
+        for vehicle in veh_dec["primary_vehicles_detail"]:
+            if vehicle.get("mode") != "air":
+                continue
+            engine_type = vehicle.get("engine_type")
+            if engine_type is not None:
+                engine = str(engine_type)
+                air_engine_counts[engine] = air_engine_counts.get(engine, 0) + 1
+            air_vehicle_book_value += int(vehicle.get("consist_value") or 0)
+            for cargo, capacity in (vehicle.get("consist_capacities") or {}).items():
+                key = str(cargo)
+                air_capacities_by_cargo[key] = air_capacities_by_cargo.get(key, 0) + int(capacity)
+
+    # Configuration de campagne vanilla temperee : CargoID 0 == PASS.
+    # Le detail par CargoID reste publie pour rendre cette lecture auditable.
+    air_passenger_capacity = air_capacities_by_cargo.get("0", 0) if vehs_valid else None
+
     return {
         "run": run_key,
         "date": str(date),
@@ -599,6 +619,16 @@ def extract_company_record(chunks, owner, run_key, date, output=None):
         "primary_vehicles": veh_dec["primary_vehicles_count"] if vehs_valid else None,
         "primary_vehicles_by_mode": veh_dec["primary_vehicles_by_mode"] if vehs_valid else None,
         "capacities_by_cargo": veh_dec["capacities_by_cargo"] if vehs_valid else None,
+        "air_primary_vehicles": (
+            veh_dec["primary_vehicles_by_mode"].get("air", 0) if vehs_valid else None
+        ),
+        "air_airports": (
+            stn_dec["stations_by_facility"].get("airport", 0) if stnn_valid else None
+        ),
+        "air_engine_counts": air_engine_counts if vehs_valid else None,
+        "air_capacities_by_cargo": air_capacities_by_cargo if vehs_valid else None,
+        "air_passenger_capacity": air_passenger_capacity,
+        "air_vehicle_book_value": air_vehicle_book_value if vehs_valid else None,
         "fleet_status": veh_dec["fleet_status"] if vehs_valid else None,
         "unclassified_vehicles": len(veh_dec["unclassified_entries"]),
         "n_stations": stn_dec["total_stations"] if stnn_valid else None,

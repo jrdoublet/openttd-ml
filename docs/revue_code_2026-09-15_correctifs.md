@@ -1,5 +1,12 @@
 # Correctifs — revue de code 2026-09-15
 
+> **Statut au 2026-09-20 : SYNTHÈSE HISTORIQUE RÉCONCILIÉE.** L'« Ordre d'exécution recommandé »
+> ci-dessous est la séquence de correction de la revue, **pas la file active actuelle**.
+> Les groupes prioritaires ont été traités/reclassés ; les reliquats encore vivants sont tenus
+> dans `docs/taches.md`. Les reliquats 21.1 et 21.2 sont clos depuis le 2026-09-20 ;
+> C67 reste en conception, et les groupes marqués dormants/non exposés ne doivent pas être
+> transformés en travaux autonomes sans exposition nouvelle.
+
 Synthèse des constats des 19 étapes de revue (`docs/revue_code_2026-09-15_plan.md`, fichiers
 `docs/revue/2026-09-15_etape_01..19_*.md`), regroupés **par mécanisme** et non par étape. Rien
 n'est corrigé par ce document : il priorise, il tranche la gravité de groupe, il propose un ordre
@@ -1454,7 +1461,7 @@ Jamais en tâche dédiée : greffer sur le commit du groupe qui touche déjà le
 | 17.15 | une compagnie disparue en faillite entre dans la moyenne de `company_value` avec 0 mais est écartée de celle de `profit_year` : deux métriques du même tableau sur des effectifs différents | H1 |
 | 17.16 | le timeout moteur patche `subprocess.check_output` du module entier : un téléchargement lent d'OpenTTD/OpenGFX devient un `engine_failure` de partie | H4 |
 | 17.17 | ~60 réécritures complètes du stdout par partie (1 200 par banc de 20 graines), chacune avec `mkdir(parents=True)` | H4 |
-| 21.1 | constante de rotor d'aéronef fausse (`subtype in (3, 4)`, le vrai rotor vaut `6`), rendue inerte par la garde `unitnumber == 0` (`physical_counters.py:246-251`) | tout commit qui touche `physical_counters.py`, sinon seul |
+| 21.1 | **FAIT 2026-09-20** — constante rotor alignée sur `6` + test synthétique hélicoptère tête/ombre/rotor | aucune suite |
 | 21.3 | `test_game_health.py` ne teste jamais un `company_value` décroissant à `fleet_changes == 0` — le cas exact que 17.6 corrige | H4, dans le même commit que le correctif 17.6 |
 
 **Modèle pour ce tier, s'il était un jour isolé : Haiku (Codex luna), effort low.** Ne mérite pas
@@ -1548,14 +1555,16 @@ unitaires du harnais, `test_game_health.py` (428 l.) et `test_physical_counters.
 Le `QUALIFIED_MODES["water"] = False` de `physical_counters.py:50` est **tranché ici** :
 c'est un gating à appliquer chez les consommateurs (H3), pas une question ouverte.
 
-**Étape 21 tenue le 2026-09-16** (`docs/revue/2026-09-15_etape_21_harnais_campagne.md`) :
+**Étape 21 tenue le 2026-09-16, reliquats clos le 2026-09-20**
+(`docs/revue/2026-09-15_etape_21_harnais_campagne.md`) :
 le discriminant tête/composant de `physical_counters.py` est confirmé exact bit à bit contre les
 en-têtes amont d'OpenTTD (`GroundVehicleSubtypeFlags`, `AircraftSubType`, `VehState`,
 `StationFacility`) — la clôture C66.1 tient à une relecture fraîche, pas seulement à la confiance
 dans les tests. Trois constats mineurs en sortent (21.1, 21.2, 21.3, détaillés dans le fichier
 d'étape). **Réconciliation courante** : 21.3 est fermé par les tests H4 de valeur décroissante ;
-21.2 possède désormais `test_campaign_freeze.py` pour le cœur fail-closed (230 réglages,
-résolution/rejet des settings, garde de politique, fingerprint et état Git). La copie complète
+21.1 est aligné sur `AircraftSubType::ROTOR=6` et possède un test synthétique hélicoptère ;
+21.2 possède désormais `test_campaign_freeze.py` pour le cœur fail-closed (contrat courant de
+48 réglages, résolution/rejet des settings, garde de politique, fingerprint et état Git). La copie complète
 `prepare_frozen_campaign` / bibliothèques reste sans test unitaire isolé, mais elle a été exercée
 par les campagnes C66 gelées. Le vieux renvoi 21.6 vers `bench_v2.py` ne rouvre pas H2 :
 les décisions C66.4/G0 passent désormais par le harnais gelé qui résout et compare les réglages
@@ -1603,7 +1612,8 @@ condition à P1 ; la **fiche 771** (`docs/taches.md:578-630`) reçoit B1, dont l
 pré-enregistré est déjà le §2. Les deux anciens trous cités ici sont désormais soldés :
 `MONTHLY_FUNNEL_DETAIL` a été traité avec B2 et la conformité NoAI a été exercée par M4.
 L'étape 21 possède désormais `test_campaign_freeze.py` pour son cœur fail-closed ; seule la copie
-complète campagne/bibliothèques reste sans test unitaire isolé.
+complète campagne/bibliothèques est désormais couverte par un test unitaire isolé sans réseau,
+avec bibliothèque BaNaNaS synthétique et relecture via le descripteur gelé.
 
 **Clôture H5 — 2026-09-16.** G0bis est désormais instrumenté avec un périmètre
 explicite : sélection `IG|`, tentative rail `OB|A`, plan/build route `RB|`,

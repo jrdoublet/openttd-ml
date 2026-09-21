@@ -1,5 +1,12 @@
 # Plan de revue de code — 2026-09-15
 
+> **Statut au 2026-09-20 : REVUE TERMINÉE.** Ce document décrit le plan historique de lecture,
+> pas une file de tâches active. Les constats ont été réconciliés dans
+> `docs/revue_code_2026-09-15_correctifs.md`, puis dans `docs/taches.md`.
+> Toute mention « à faire », ordre d'exécution ou recommandation ci-dessous doit être lue dans
+> son contexte du 15/09 ; la liste autoritaire du travail restant est l'« État courant —
+> 2026-09-20 » de `docs/taches.md`.
+
 Demandée le 2026-09-15, découpée en étapes pour tenir dans le quota. Reprend la forme des deux
 revues précédentes (2026-09-01/02, puis `revue_code_2026-09-06_plan.md` → 40 constats →
 `revue_code_2026-09-06_correctifs.md`) : un lot cohérent par étape, un écrit de constats par

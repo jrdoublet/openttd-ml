@@ -504,6 +504,21 @@ def keep(row):
     stn_dec = decode_stations(chunks.get("STNN"), target_owner=0)
     selection_ops = portfolio_selection_opcode_stats(chunks)
     observed_ops = observed_opcode_stats(chunks)
+    air_engine_counts = {}
+    air_capacities_by_cargo = {}
+    air_vehicle_book_value = 0
+    if veh_dec["chunk_valid"]:
+        for vehicle in veh_dec["primary_vehicles_detail"]:
+            if vehicle.get("mode") != "air":
+                continue
+            engine_type = vehicle.get("engine_type")
+            if engine_type is not None:
+                engine = str(engine_type)
+                air_engine_counts[engine] = air_engine_counts.get(engine, 0) + 1
+            air_vehicle_book_value += int(vehicle.get("consist_value") or 0)
+            for cargo, capacity in (vehicle.get("consist_capacities") or {}).items():
+                key = str(cargo)
+                air_capacities_by_cargo[key] = air_capacities_by_cargo.get(key, 0) + int(capacity)
     qualified_primary = None
     unqualified_primary = None
     if veh_dec["chunk_valid"]:
@@ -545,6 +560,17 @@ def keep(row):
         "qualified_primary_vehicles": qualified_primary,
         "unqualified_primary_vehicles": unqualified_primary,
         "primary_vehicles_by_mode": veh_dec["primary_vehicles_by_mode"] if veh_dec["chunk_valid"] else None,
+        "air_primary_vehicles": (
+            veh_dec["primary_vehicles_by_mode"].get("air", 0)
+            if veh_dec["chunk_valid"] else None
+        ),
+        "air_airports": (
+            stn_dec["stations_by_facility"].get("airport", 0)
+            if stn_dec["chunk_valid"] else None
+        ),
+        "air_engine_counts": air_engine_counts if veh_dec["chunk_valid"] else None,
+        "air_capacities_by_cargo": air_capacities_by_cargo if veh_dec["chunk_valid"] else None,
+        "air_vehicle_book_value": air_vehicle_book_value if veh_dec["chunk_valid"] else None,
         "capacities_by_cargo": veh_dec["capacities_by_cargo"] if veh_dec["chunk_valid"] else None,
         "fleet_status": veh_dec["fleet_status"] if veh_dec["chunk_valid"] else None,
         "unclassified_vehicles": len(veh_dec["unclassified_entries"]),
