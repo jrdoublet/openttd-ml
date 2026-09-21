@@ -145,6 +145,7 @@ class OpexAI extends AIController {
   /* C80 : orchestrateur à double registre (intentions réactives et registre d'exécution). */
   _reactiveQueue = null;
   _activeWorker = null;
+  _railWorkerSteppedThisTick = false;
   /* 11.6 : _railSearch contient un pathfinder vivant et _dynamicBatch reference _projects.
    * Ils ne sont pas serialises ; Save/Load ne conserve que leur presence pour forcer une
    * reconstruction propre du portefeuille apres reload. */
@@ -422,6 +423,7 @@ class OpexAI extends AIController {
   function _clearReactiveQueue();
   function _dispatchReactiveIntention(intention);
   function _c80RunSelfTest();
+  function _advanceRailSearchSliceWithLedgers();
   function enqueue(key, kind, payload);
   function pop();
 }

@@ -573,3 +573,20 @@ exactement comme la branche par défaut (`LOOP_BUDGET` désactivé).
 graine 100 **identique au bit près** entre réglage 0 et 1 (1 803 818 £) ; graine 42 différente
 (2,52 contre 2,74 M£), attendu : l'appel supplémentaire décale les opcodes et la trajectoire est
 chaotique (fiche 11 §13.4). `results/c80_smoke_2x3.json`, `results/c80_smoke_on.json`.
+
+## 11. Tranche 1 livrée : l'A* rail dans le registre (2026-09-21)
+
+Implémentée par agy, relue. Réglage `c80_worker_rail` (défaut 0, effectif seulement sous
+`c80_double_register=1`). Le travailleur `rail_search` référence `_railSearch` (seule source de
+vérité) ; sa tranche passe par `_advanceRailSearchSliceWithLedgers()` (mêmes ledgers C41.46/C39.6),
+puis la file de fond enchaîne dans le même tick ; `_railWorkerSteppedThisTick` empêche
+`_runNextTask` de rejouer la tranche. Correction de relecture : l'extension rail reste avant la
+tranche A*, comme aujourd'hui. Sauvegarde : le pathfinder n'est pas sauvegardé (comme avant), le
+travailleur est abandonné proprement au rechargement. Selftest étendu (intercalation d'une
+intention entre deux tranches) : `C80 selftest ok` sur les deux graines.
+
+**Smoke** (2 × 3 ans, 0 échec) : le bras `c80_double_register=1` seul reproduit au bit près la
+tranche 0 (chemin historique intact). Avec le travailleur : graine 100 1,78 contre 1,80 M£,
+graine 42 2,84 contre 2,74 M£. **Identité non démontrée** : le travailleur ajoute quelques
+centaines d'opcodes par tick pendant une recherche et décale la trajectoire (même effet qu'au §13.4
+de la fiche 11) ; aucune différence de logique n'a été trouvée à la relecture.

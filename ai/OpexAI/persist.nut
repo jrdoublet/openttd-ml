@@ -114,6 +114,14 @@ function OpexSaveActiveWorker(worker)
 {
   if (worker == null || typeof worker != "table") return null;
   if (!("kind" in worker) || !("state" in worker) || worker.state == null || typeof worker.state != "table") return null;
+  if (worker.kind == "rail_search") {
+    /* C80 tranche 1 : _railSearch contient un pathfinder C++ non sérialisable.
+     * On ne sauvegarde pas le pathfinder dans le savegame. */
+    return {
+      kind = worker.kind,
+      state = {}
+    };
+  }
   return {
     kind = worker.kind,
     state = worker.state
@@ -611,6 +619,13 @@ function OpexAI::_reconcileAfterLoad()
   }
   this._reloadDroppedRailSearch = false;
   this._reloadDroppedDynamicBatch = false;
+
+  /* C80 tranche 1 : au rechargement, un travailleur "rail_search" restauré sans
+   * _railSearch (qui n'est pas sauvegardé) doit être abandonné proprement. */
+  if (this._activeWorker != null && this._activeWorker.kind == "rail_search" && this._railSearch == null) {
+    OpexWorkerCancel(this._activeWorker);
+    this._activeWorker = null;
+  }
 
   this._c41RailSignalLines = this._filterPersistedRailRepairQueue(this._c41RailSignalLines);
   this._c41RailJunctionLines = this._filterPersistedRailRepairQueue(this._c41RailJunctionLines);

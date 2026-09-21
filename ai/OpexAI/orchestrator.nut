@@ -194,6 +194,47 @@ function OpexWorkerNoopCancel(worker)
 // Enregistrement du travailleur test noop
 OpexRegisterWorker("noop", OpexWorkerNoopStep, OpexWorkerNoopCancel);
 
+/* Travailleur "rail_search" (Tranche 1 de C80) :
+ * Son state référence la recherche existante (this._railSearch reste la source de vérité).
+ * Step : avance d'une tranche via _advanceRailSearchSliceWithLedgers() (le même appel
+ *        _continueRailSearch avec les mêmes ledgers C41.46/C39.6 qu'aujourd'hui).
+ *        "done" quand la recherche quitte la phase "search" ou que this._railSearch devient null.
+ * Cancel : même effet qu'un abandon actuel de recherche (réutilise le chemin existant,
+ *          remet this._railSearch à null).
+ */
+function OpexWorkerRailSearchStep(worker, opsBudget, deadlineTick)
+{
+  if (worker == null || !("state" in worker) || worker.state == null || typeof worker.state != "table") {
+    return "cancelled";
+  }
+  local ai = ("ai" in worker.state) ? worker.state.ai : null;
+  if (ai == null || ai._railSearch == null) {
+    return "done";
+  }
+  ai._advanceRailSearchSliceWithLedgers();
+  if (ai._railSearch == null || ai._railSearch.phase != "search") {
+    return "done";
+  }
+  return "running";
+}
+
+function OpexWorkerRailSearchCancel(worker)
+{
+  if (worker == null || !("state" in worker) || worker.state == null || typeof worker.state != "table") {
+    return;
+  }
+  local ai = ("ai" in worker.state) ? worker.state.ai : null;
+  if (ai != null) {
+    ai._railSearch = null;
+  }
+  if ("search" in worker.state) {
+    worker.state.search = null;
+  }
+}
+
+// Enregistrement du travailleur rail_search
+OpexRegisterWorker("rail_search", OpexWorkerRailSearchStep, OpexWorkerRailSearchCancel);
+
 /* ============================================================================
  * 3. Intégration dans OpexAI (File de fond, boucle ordonnancée, selftest)
  * ============================================================================ */
@@ -260,6 +301,8 @@ function OpexAI::_dispatchReactiveIntention(intention)
  */
 function OpexAI::_runOrchestratorTick()
 {
+  this._railWorkerSteppedThisTick = false;
+
   // (b) Intention réactive
   if (this._hasReactiveIntentions()) {
     local intention = this._popReactive();
@@ -271,13 +314,28 @@ function OpexAI::_runOrchestratorTick()
 
   // (c) Tranche du travailleur actif s'il y en a un
   if (this._activeWorker != null) {
-    local opsBudget = AIController.GetOpsTillSuspend();
-    local deadlineTick = AIController.GetTick() + BUILD_TICK_MARGIN;
-    local outcome = OpexWorkerStep(this._activeWorker, opsBudget, deadlineTick);
-    if (outcome == "done" || outcome == "cancelled") {
-      this._activeWorker = null;
+    if (this._activeWorker.kind == "rail_search") {
+      /* Ordre d'aujourd'hui (_runNextTask) : l'extension rail avance AVANT la tranche A*. */
+      if (this._railExpansion != null) this._continueRailExpansion();
+      this._railWorkerSteppedThisTick = true;
+      local opsBudget = AIController.GetOpsTillSuspend();
+      local deadlineTick = AIController.GetTick() + BUILD_TICK_MARGIN;
+      local outcome = OpexWorkerStep(this._activeWorker, opsBudget, deadlineTick);
+      if (outcome == "done" || outcome == "cancelled") {
+        this._activeWorker = null;
+      }
+      // ORDRE PRÉSERVÉ (Contrat C80 tranche 1 §3) :
+      // Après la tranche du travailleur rail, on enchaîne avec la file de fond
+      // dans le MÊME tick (pas de return true ici).
+    } else {
+      local opsBudget = AIController.GetOpsTillSuspend();
+      local deadlineTick = AIController.GetTick() + BUILD_TICK_MARGIN;
+      local outcome = OpexWorkerStep(this._activeWorker, opsBudget, deadlineTick);
+      if (outcome == "done" || outcome == "cancelled") {
+        this._activeWorker = null;
+      }
+      return true;
     }
-    return true;
   }
 
   // (d) Sinon file de fond = appel existant
@@ -370,6 +428,70 @@ function OpexAI::_c80RunSelfTest()
 
   if (this._reactiveQueue.len() != 0 || this._activeWorker != null) {
     AILog.Info("C80 selftest FAIL state not clean after selftest");
+    this._clearReactiveQueue();
+    this._activeWorker = null;
+    return false;
+  }
+
+  // 4. Test d'intercalation (Tranche 1) :
+  // Vérifier qu'une intention réactive s'intercale AVANT la tranche suivante
+  // d'un travailleur actif, et que le travailleur reprend ensuite.
+  local interWorker = {
+    kind = "noop",
+    state = {
+      stepCount = 0,
+      targetSteps = 2
+    }
+  };
+  this._activeWorker = interWorker;
+
+  local ir1 = OpexWorkerStep(this._activeWorker, budgetOps, deadlineTick);
+  if (ir1 != "running" || interWorker.state.stepCount != 1) {
+    AILog.Info("C80 selftest FAIL intercalation worker initial step failed");
+    this._clearReactiveQueue();
+    this._activeWorker = null;
+    return false;
+  }
+
+  local interKey = "c80_intercalation_key";
+  this._enqueueReactive(interKey, "noop", { test = true });
+
+  local tickResult = this._runOrchestratorTick();
+  if (!tickResult) {
+    AILog.Info("C80 selftest FAIL intercalation tick returned false");
+    this._clearReactiveQueue();
+    this._activeWorker = null;
+    return false;
+  }
+  if (this._reactiveQueue.has(interKey)) {
+    AILog.Info("C80 selftest FAIL reactive intention was not processed first");
+    this._clearReactiveQueue();
+    this._activeWorker = null;
+    return false;
+  }
+  if (this._activeWorker == null || this._activeWorker.state.stepCount != 1) {
+    local sc = (this._activeWorker != null) ? this._activeWorker.state.stepCount : "null";
+    AILog.Info("C80 selftest FAIL worker advanced during reactive tick, stepCount=" + sc);
+    this._clearReactiveQueue();
+    this._activeWorker = null;
+    return false;
+  }
+
+  local ir2 = OpexWorkerStep(this._activeWorker, budgetOps, deadlineTick);
+  if (ir2 != "done" || interWorker.state.stepCount != 2) {
+    local sc = interWorker.state.stepCount;
+    AILog.Info("C80 selftest FAIL worker resume failed, got " + ir2 + " stepCount=" + sc);
+    this._clearReactiveQueue();
+    this._activeWorker = null;
+    return false;
+  }
+  this._activeWorker = null;
+
+  this._clearReactiveQueue();
+  this._activeWorker = null;
+
+  if (this._reactiveQueue.len() != 0 || this._activeWorker != null) {
+    AILog.Info("C80 selftest FAIL state not clean after intercalation test");
     this._clearReactiveQueue();
     this._activeWorker = null;
     return false;

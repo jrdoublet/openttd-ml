@@ -787,13 +787,30 @@ function OpexAI::_startRailSearch(candidate, join, placeJoin, alternativeRatio, 
     hardCap = hardCap,
     posPacked = posPacked,
   };
+  if (C80_DOUBLE_REGISTER && C80_WORKER_RAIL) {
+    if (this._activeWorker == null || this._activeWorker.kind == "rail_search") {
+      this._activeWorker = {
+        kind = "rail_search",
+        state = {
+          ai = this,
+          search = this._railSearch
+        }
+      };
+    }
+  }
   this._continueRailSearch();
   if (this._railSearch == null) {
+    if (C80_DOUBLE_REGISTER && C80_WORKER_RAIL && this._activeWorker != null && this._activeWorker.kind == "rail_search") {
+      this._activeWorker = null;
+    }
     return { pending = false, plan = (("railPlan" in candidate) ? candidate.railPlan : plan) };
   }
   if (this._railSearch.phase == "build") {
     local completed = candidate.railPlan;
     this._railSearch = null;
+    if (C80_DOUBLE_REGISTER && C80_WORKER_RAIL && this._activeWorker != null && this._activeWorker.kind == "rail_search") {
+      this._activeWorker = null;
+    }
     return { pending = false, plan = completed };
   }
   return { pending = true, plan = null };
@@ -1112,7 +1129,23 @@ function OpexAI::_startRailUpgradeSearch(line, prep)
     line = line,
     prep = prep,
   };
+  if (C80_DOUBLE_REGISTER && C80_WORKER_RAIL) {
+    if (this._activeWorker == null || this._activeWorker.kind == "rail_search") {
+      this._activeWorker = {
+        kind = "rail_search",
+        state = {
+          ai = this,
+          search = this._railSearch
+        }
+      };
+    }
+  }
   this._continueRailSearch();
+  if (this._railSearch == null || this._railSearch.phase != "search") {
+    if (C80_DOUBLE_REGISTER && C80_WORKER_RAIL && this._activeWorker != null && this._activeWorker.kind == "rail_search") {
+      this._activeWorker = null;
+    }
+  }
 }
 function OpexAI::_consumeRailUpgrade()
 {

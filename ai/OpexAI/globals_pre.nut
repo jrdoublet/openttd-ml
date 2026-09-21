@@ -458,3 +458,7 @@ HARD_ITERATION_CAP <- 10000;
 /* C80 tranche 0 : socle de l'orchestrateur à double registre (intentions / exécution).
  * 0 = ordonnanceur historique (défaut), 1 = orchestrateur à double registre actif. */
 C80_DOUBLE_REGISTER <- false;
+
+/* C80 tranche 1 : migration de la recherche A* rail (_railSearch) dans le registre d'exécution.
+ * 0 = désactivé (défaut), 1 = travailleur "rail_search" actif sous c80_double_register=1. */
+C80_WORKER_RAIL <- false;
