@@ -82,13 +82,6 @@ C39_AIR_REASON_PROBE <- false;
 C39_ENGINE_REFRESH <- false;
 /* C41.0 : registre passif revision/acquittement pour les futures micro-taches ciblees. */
 C41_REVISION_PROBE <- false;
-/* BFS maritime reconstruit sur MinchinWeb.Lakes (2026-09-09) -- voir docs/taches.md et
- * ai/OpexAI/lib_water.nut. Defaut aligne sur info.nut (custom_value = 1). */
-WATER_LAKES_CONNECTIVITY <- true;
-/* Coupe experimentale de Lakes en opcodes ; 0 conserve le plafond d'iterations seul. */
-/* C56 : adopte a defaut 1 le 2026-09-11. Sans ce budget, FindPath peut ne jamais rendre la
- * main et figer l'IA pour le reste de la partie (3 graines du banc sur 20). */
-WATER_LAKES_OPS_BUDGET <- true;
 /* C41.11 : ledger passif du scheduler. Il n'admet ni ne reporte aucune tache. */
 C41_SLACK_LEDGER <- false;
 /* C41 : attribution mensuelle du temps du controleur, uniquement pour diagnostic. */

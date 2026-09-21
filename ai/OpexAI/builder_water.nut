@@ -1,15 +1,4 @@
 /* Liaison maritime passagers v1 : pas de canal, ecluse ni bouee. */
-require("lib_water.nut");
-
-/* WATER_LAKES_CONNECTIVITY : declaree et defaut fixe dans main.nut (pres des autres drapeaux
- * C41_WATER_*), lue depuis le reglage info.nut "water_lakes_connectivity" dans OpexAI::Start().
- * 1 = MinchinWeb.Lakes pour la connectivite (memorisee, sans marge de bounding-box) + distance
- *     Manhattan pour le revenu (corrige le bug de tarification, voir OpexWaterEconomics) et
- *     MinchinWeb.GetDockFrontTiles pour l'acces aux quais (calcul de pente correct au lieu du
- *     scan aveugle des 4 cardinaux).
- * 0 = comportement historique complet (BFS maison pour tout, bug de tarification inclus),
- *     conserve pour A/B. */
-
 WATER_TOWN_POOL <- 12;
 WATER_TOWN_MIN_DISTANCE <- 45;
 WATER_MAX_SITE_PROBES <- 720;
@@ -127,24 +116,8 @@ function OpexWaterFindDockAccess(land)
   return null;
 }
 
-/* Bascule sur le calcul de pente de MinchinWeb.GetDockFrontTiles (lib_water.nut) plutot que le
- * scan aveugle des 4 cardinaux de OpexWaterFindDockAccess -- une gare exige une pente cotiere
- * orientee vers l'eau, GetDockFrontTiles la derive de AITile.GetSlope(land) au lieu de la
- * deviner. Seul `.fronts` du retour de OpexWaterFindDockAccess est utilise par les appelants
- * (verifie) : la forme de retour ({fronts=[...]}) reste donc compatible sans adapter les
- * appelants. `waterPart` n'a jamais ete lu ailleurs, absent du chemin neuf. */
-function OpexWaterDockAccess(land)
-{
-  if (WATER_LAKES_CONNECTIVITY) {
-    local fronts = _MinchinWeb_Marine_.GetDockFrontTiles(land);
-    if (fronts.len() == 0) return null;
-    return { fronts = fronts };
-  }
-  return OpexWaterFindDockAccess(land);
-}
-
 /* Les probes sont partagees equitablement : une cote sans dock ne mange pas tout le budget. */
-function OpexWaterFindSite(town, probes, profile = null)
+function OpexWaterFindSite(town, probes)
 {
   local coverage = AIStation.GetCoverageRadius(AIStation.STATION_DOCK);
   local allowance = probes.townsLeft > 0
@@ -162,19 +135,12 @@ function OpexWaterFindSite(town, probes, profile = null)
         if (!OpexWaterInMap(x, y)) continue;
         local dock = AIMap.GetTileIndex(x, y);
         if (!AITile.IsCoastTile(dock)) continue;
-        if (profile != null) profile.coast_candidates++;
         if (AIMap.DistanceManhattan(town.tile, dock) > coverage) continue;
         local waterTiles = OpexWaterAdjacentTiles(dock);
         if (waterTiles.len() == 0) continue;
-        if (profile != null) profile.navigable_coast_candidates++;
         if (used >= allowance || probes.left <= 0) return null;
         local ok = false;
-        local testMark = profile != null ? OpexOpsMeasureBegin() : null;
         { local probe = AITestMode(); ok = AIMarine.BuildDock(dock, AIStation.STATION_NEW); }
-        if (profile != null) {
-          profile.dock_test_ops += OpexOpsMeasureEnd(testMark);
-          profile.dock_tests++;
-        }
         used++;
         probes.left--;
         if (ok) return { town = town, dock = dock, waterTiles = waterTiles };
@@ -330,157 +296,76 @@ function OpexWaterEconomics(catalog, navigableDistance, tariffDistance, orderDis
   return best;
 }
 
-function OpexWaterPlans(catalog, lines = null, projects = null, profile = null)
+function OpexWaterPlans(catalog, lines = null, projects = null)
 {
   if (catalog.ships.len() == 0 || catalog.paxCargo < 0) return null;
-  local mark = profile != null ? OpexOpsMeasureBegin() : null;
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "water_town_sort", "-");
   local towns = OpexWaterSortedTowns(catalog.towns);
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "water_town_sort", "-");
-  if (profile != null) profile.town_sort_ops = OpexOpsMeasureEnd(mark);
   local limit = towns.len() < WATER_TOWN_POOL ? towns.len() : WATER_TOWN_POOL;
   local sites = [];
   local probes = { left = WATER_MAX_SITE_PROBES, townsLeft = limit };
-  mark = profile != null ? OpexOpsMeasureBegin() : null;
   local c56TownsScanned = 0;
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "water_site_scan", "-");
   for (local step = 0; step < limit; step++) {
     if (C56_TASK_TRACE) c56TownsScanned++;
     local i = step;
-    if (profile != null) profile.towns_considered++;
     if (OpexWaterTownServed(towns[i], lines)) continue;
-    local site = OpexWaterFindSite(towns[i], probes, profile);
+    local site = OpexWaterFindSite(towns[i], probes);
     if (site != null) sites.append(site);
   }
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "water_site_scan",
                                       "- towns=" + c56TownsScanned);
-  if (profile != null) {
-    profile.site_ops = OpexOpsMeasureEnd(mark);
-    profile.site_scan_filter_ops = profile.site_ops - profile.dock_test_ops;
-    profile.sites_found = sites.len();
-    /* Champs neufs (2026-09-09) : main.nut construit la table `profile` avec un ensemble figé
-     * de cles a zero (isolation en cours, ce fichier ne peut pas y ajouter les siennes) --
-     * on les cree ici au besoin, avant tout `=`/`+=` dessus dans lib_water.nut, sinon
-     * "the index 'lakes_init_ops' does not exist" au premier profilage. */
-    if (!("lakes_init_ops" in profile)) {
-      profile.lakes_init_ops <- 0;
-      profile.lakes_query_ops <- 0;
-      profile.lakes_queries <- 0;
-      profile.lakes_connected <- 0;
-      profile.lakes_fallback_navigable <- 0;
-      /* Calibration de WATER_LAKES_ITERATIONS (2026-09-09) : combien d'iterations reelles
-       * FindPath consomme, ventile par issue -- un budget correctement dimensionne doit
-       * couvrir le max des cas "connecte" sans jamais approcher "exhausted". */
-      profile.lakes_iterations_connected_sum <- 0;
-      profile.lakes_iterations_connected_n <- 0;
-      profile.lakes_iterations_connected_max <- 0;
-      profile.lakes_iterations_no_path_sum <- 0;
-      profile.lakes_iterations_no_path_n <- 0;
-      profile.lakes_iterations_no_path_max <- 0;
-      profile.lakes_iterations_exhausted_n <- 0;
-    }
-    mark = OpexOpsMeasureBegin();
-  }
+
   /* G11 : le BFS sert aussi a l'economie. Le limiter apres un classement Manhattan pouvait
    * elire un detour cotier comme s'il etait direct et ecarter une paire reellement meilleure.
    * Le bassin est deja borne par WATER_TOWN_POOL ; chaque paire admissible est donc chiffree
    * avec sa longueur navigable avant son classement. */
   local ranked = [];
   local c56PairsExamined = 0;
-  local c56LakesIn = 0;
-  local c56LakesOut = 0;
   local c56BfsIn = 0;
   local c56BfsOut = 0;
-  /* Si lakes_in > lakes_out, le gel est dans MinchinWeb ; si bfs_in > bfs_out,
-   * il est dans le BFS maison. */
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "water_pair_loop", "-");
   for (local a = 0; a < sites.len(); a++) {
     for (local b = a + 1; b < sites.len(); b++) {
       /* Intervalle ramene de 500 a 10 le 2026-09-11 : a 500, la ligne n'etait JAMAIS atteinte
-       * avant le gel, et la sonde restait muette sur le cas meme qu'elle devait diagnostiquer.
-       * Un appel sain examine 0 paire (moins de deux sites), donc ce pas fin ne coute rien. */
+       * avant le gel. Les compteurs Lakes restent a zero : le chemin historique n'utilise que
+       * le BFS maison. */
       if (C56_TASK_TRACE) {
         c56PairsExamined++;
         if (c56PairsExamined % 10 == 0) {
           OpexC56TaskLog("WATER_PROBE_COUNTERS", "water_probe_counters",
-                         "- pairs=" + c56PairsExamined + " lakes_in=" + c56LakesIn
-                         + " lakes_out=" + c56LakesOut + " bfs_in=" + c56BfsIn
+                         "- pairs=" + c56PairsExamined + " lakes_in=0"
+                         + " lakes_out=0 bfs_in=" + c56BfsIn
                          + " bfs_out=" + c56BfsOut);
         }
       }
-      if (profile != null) profile.pairs_considered++;
       local distance = AIMap.DistanceManhattan(sites[a].town.tile, sites[b].town.tile);
       if (distance < WATER_TOWN_MIN_DISTANCE) continue;
       local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_WATER,
                                                       sites[a].dock, sites[b].dock);
       if (orderDistance < 0 || !OpexWaterHasRange(catalog, orderDistance)) continue;
-      if (profile != null) profile.pairs_after_range++;
       local monthlyPax = ((sites[a].town.pop + sites[b].town.pop) * 22) / 100;
 
-      /* Distance TARIFAIRE (Manhattan entre quais, pas entre centres-villes) : corrige
-       * inconditionnellement (bug independant du choix Lakes/BFS ci-dessous), voir
-       * OpexWaterEconomics. */
+      /* Distance TARIFAIRE (Manhattan entre quais, pas entre centres-villes), distincte de la
+       * distance navigable utilisee pour le temps de trajet. */
       local tariffDistance = AIMap.DistanceManhattan(sites[a].dock, sites[b].dock);
       local navigableDistance = -1;
 
-      if (WATER_LAKES_CONNECTIVITY) {
-        /* Etage 1 : connectivite memorisee par bassin (MinchinWeb.Lakes), sans marge de
-         * bounding-box -- une paire au-dela de l'ancien WATER_BFS_MARGIN=24 n'est plus ecartee
-         * a tort. Instance persistante pour toute la partie (voir lib_water.nut). */
-        /* Jalon a CHAQUE paire, pas a intervalle : quand le gel coupe le journal, seule la
-         * DERNIERE ligne ecrite nomme l'etage fautif. Un compteur periodique ne dit rien de la
-         * paire en cours -- c'est l'erreur payee au premier essai. */
-        if (C56_TASK_TRACE) { c56LakesIn++; OpexC56TaskLog("PAIR", "lakes_enter", "- pair=" + c56PairsExamined); }
-        local connected = OpexWaterLakesConnected(sites[a].waterTiles, sites[b].waterTiles, profile);
-        if (C56_TASK_TRACE) { c56LakesOut++; OpexC56TaskLog("PAIR", "lakes_exit", "- pair=" + c56PairsExamined); }
-        if (connected != true) continue;
-        if (profile != null) profile.lakes_connected++;
-        /* Etage 2 : la paire est deja confirmee connectee -- ce BFS ne sert plus qu'a chiffrer
-         * la distance navigable reelle pour le temps de trajet ; sa marge fixe WATER_BFS_MARGIN
-         * n'est plus un point de defaillance de connectivite, seulement un plafond de precision
-         * sur la mesure. */
-        local bfsMark = profile != null ? OpexOpsMeasureBegin() : null;
-        if (C56_TASK_TRACE) { c56BfsIn++; OpexC56TaskLog("PAIR", "bfs_enter", "- pair=" + c56PairsExamined); }
-        navigableDistance = OpexWaterFindConnection(sites[a], sites[b]);
-        if (C56_TASK_TRACE) { c56BfsOut++; OpexC56TaskLog("PAIR", "bfs_exit", "- pair=" + c56PairsExamined); }
-        if (profile != null) {
-          profile.bfs_ops += OpexOpsMeasureEnd(bfsMark);
-          profile.bfs_attempts++;
-        }
-        if (navigableDistance < 0) {
-          /* B7/10.2 : Lakes prouve la connectivite, mais sans distance navigable exacte on ne sait
-           * pas pricer le temps de trajet. Manhattan est un PLANCHER geometrique : l'utiliser ici
-           * surestimait frequence, capacite et revenu. Echec fail-closed au classement ; le compteur
-           * conserve la mesure des paires Lakes dont le BFS de precision n'a pas abouti. */
-          if (profile != null) profile.lakes_fallback_navigable++;
-          continue;
-        } else if (profile != null) {
-          profile.bfs_connected++;
-        }
-      } else {
-        /* Comportement historique : un seul BFS fait connectivite ET distance, les deux
-         * bornees par WATER_BFS_MARGIN. */
-        local bfsMark = profile != null ? OpexOpsMeasureBegin() : null;
-        if (C56_TASK_TRACE) { c56BfsIn++; OpexC56TaskLog("PAIR", "bfs_enter", "- pair=" + c56PairsExamined); }
-        navigableDistance = OpexWaterFindConnection(sites[a], sites[b]);
-        if (C56_TASK_TRACE) { c56BfsOut++; OpexC56TaskLog("PAIR", "bfs_exit", "- pair=" + c56PairsExamined); }
-        if (profile != null) {
-          profile.bfs_ops += OpexOpsMeasureEnd(bfsMark);
-          profile.bfs_attempts++;
-        }
-        if (navigableDistance < 0) continue;
-        if (profile != null) profile.bfs_connected++;
+      if (C56_TASK_TRACE) {
+        c56BfsIn++;
+        OpexC56TaskLog("PAIR", "bfs_enter", "- pair=" + c56PairsExamined);
       }
+      navigableDistance = OpexWaterFindConnection(sites[a], sites[b]);
+      if (C56_TASK_TRACE) {
+        c56BfsOut++;
+        OpexC56TaskLog("PAIR", "bfs_exit", "- pair=" + c56PairsExamined);
+      }
+      if (navigableDistance < 0) continue;
 
-      local economicsMark = profile != null ? OpexOpsMeasureBegin() : null;
       local economics = OpexWaterEconomics(catalog, navigableDistance, tariffDistance,
                                             orderDistance, monthlyPax);
-      if (profile != null) {
-        profile.economics_ops += OpexOpsMeasureEnd(economicsMark);
-        profile.economics_attempts++;
-      }
       if (economics == null || economics.profitAnnual <= 0) continue;
-      if (profile != null) profile.positive_economics++;
       local plan = { siteA = sites[a], siteB = sites[b], distance = navigableDistance,
                      tariffDistance = tariffDistance,
                      orderDistance = orderDistance, economics = economics };
@@ -494,18 +379,14 @@ function OpexWaterPlans(catalog, lines = null, projects = null, profile = null)
   }
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "water_pair_loop",
                                       "- pairs=" + c56PairsExamined);
-  if (profile != null) {
-    profile.pair_total_ops = OpexOpsMeasureEnd(mark);
-    profile.pair_filter_rank_ops = profile.pair_total_ops - profile.bfs_ops - profile.economics_ops;
-  }
   local best = null;
   foreach (plan in ranked) {
     if (projects != null) projects.append(plan);
     if (best == null) best = plan;
   }
   if (C56_TASK_TRACE) OpexC56TaskLog("WATER_PROBE_COUNTERS", "water_probe_counters",
-                                      "- pairs=" + c56PairsExamined + " lakes_in=" + c56LakesIn
-                                      + " lakes_out=" + c56LakesOut + " bfs_in=" + c56BfsIn
+                                      "- pairs=" + c56PairsExamined + " lakes_in=0"
+                                      + " lakes_out=0 bfs_in=" + c56BfsIn
                                       + " bfs_out=" + c56BfsOut);
   return best;
 }
@@ -546,23 +427,6 @@ function OpexBuildWaterRoute(catalog, budget, plan)
   local depot = null;
   local ship = null;
 
-  /* B7/10.3 : en mode Lakes, la pente permet de connaitre les fronts exacts avant BuildDock.
-   * Le BFS borne reste le juge historique du constructeur, mais echoue avant toute depense. */
-  if (WATER_LAKES_CONNECTIVITY) {
-    local accessA = OpexWaterDockAccess(plan.siteA.dock);
-    local accessB = OpexWaterDockAccess(plan.siteB.dock);
-    if (accessA == null || accessB == null) {
-      result.reason = "NOWATER";
-      return OpexWaterStampCost(result, costs);
-    }
-    local preflightA = { dock = plan.siteA.dock, waterTiles = accessA.fronts };
-    local preflightB = { dock = plan.siteB.dock, waterTiles = accessB.fronts };
-    if (OpexWaterFindConnection(preflightA, preflightB) < 0) {
-      result.reason = "NOWATER";
-      return OpexWaterStampCost(result, costs);
-    }
-  }
-
   budget.begin();
   local okA = AIMarine.BuildDock(plan.siteA.dock, AIStation.STATION_NEW);
   local errorA = okA ? 0 : AIError.GetLastError();
@@ -592,17 +456,16 @@ function OpexBuildWaterRoute(catalog, budget, plan)
 
   /* Les fronts et leur composant sont relus apres les constructions reelles. */
   budget.begin();
-  local accessA = OpexWaterDockAccess(dockA);
-  local accessB = OpexWaterDockAccess(dockB);
+  local accessA = OpexWaterFindDockAccess(dockA);
+  local accessB = OpexWaterFindDockAccess(dockB);
   if (accessA == null || accessB == null) {
     result.opcodes += budget.end("build_water_depot");
     OpexWaterRollback(dockA, dockB, null, null); result.reason = "NOWATER"; return OpexWaterStampCost(result, costs);
   }
   local realA = { dock = dockA, waterTiles = accessA.fronts };
   local realB = { dock = dockB, waterTiles = accessB.fronts };
-  /* Le chemin Lakes a deja passe ce meme juge borne avant BuildDock. Le chemin legacy conserve
-   * sa verification historique post-construction. */
-  if (!WATER_LAKES_CONNECTIVITY && OpexWaterFindConnection(realA, realB) < 0) {
+  /* Verification historique de connectivite apres construction des quais. */
+  if (OpexWaterFindConnection(realA, realB) < 0) {
     result.opcodes += budget.end("build_water_depot");
     OpexWaterRollback(dockA, dockB, null, null); result.reason = "NOWATER"; return OpexWaterStampCost(result, costs);
   }
