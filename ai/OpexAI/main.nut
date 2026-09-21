@@ -286,21 +286,6 @@ class OpexAI extends AIController {
       { name = "c41_rail_junction", dueCycle = 2147483647, enabled = false },
       { name = "report", dueCycle = 0, enabled = true },
       { name = "scrap", dueCycle = 0, enabled = true },
-      /* fleet_before_new : la croissance de flotte passe AVANT la construction de lignes neuves.
-       * La note de gare est un multiplicateur, pas un bonus (docs/mecanique_jeu.md S3 : 51 % de la
-       * note vient du delai depuis le dernier ramassage) : une ligne mal servie effondre sa note et
-       * degrade tout ce qu'elle touche. On regle donc l'existant avant d'ajouter une liaison.
-       *
-       * Ce n'est pas un arbitrage, c'est un ORDRE DE SERVICE, et la mesure dit pourquoi : la
-       * croissance de flotte aerienne est refusee 31 fois sur 32 pour TRESORERIE, jamais pour le
-       * plafond de l'aeroport -- 1,6 avion par ligne pour un plafond de 16 (docs/taches.md
-       * S0 quinvicies). Quand `air` passe en premier, il ne reste rien pour `air_fleet`.
-       *
-       * ⚠️ L'echange N'A PAS LIEU ICI : ce constructeur s'execute AVANT Start(), donc avant la
-       * lecture des reglages, et FLEET_BEFORE_NEW y vaut encore son repli. La file est batie dans
-       * l'ordre historique et echangee dans Start(), une fois le reglage connu.
-       *
-       * L'ordre historique reste joignable par le reglage a 0 pour que le banc puisse trancher. */
       { name = "air", dueCycle = 0, enabled = true },
       { name = "air_fleet", dueCycle = 0, enabled = true },
       { name = "projects", dueCycle = 0, enabled = true },
@@ -408,18 +393,6 @@ function OpexAI::Start()
 
   if (!STAGED_BOOTSTRAP) this._generationStage = OPEX_STAGE_COMPLETE;
 
-  /* La file a ete batie par le constructeur, avant que ce reglage ne soit lisible : c'est donc
-   * ici, et seulement ici, que l'ordre de service peut etre echange. */
-  if (FLEET_BEFORE_NEW) {
-    for (local i = 0; i < this._taskQueue.len() - 1; i++) {
-      if (this._taskQueue[i].name == "air" && this._taskQueue[i + 1].name == "air_fleet") {
-        local swap = this._taskQueue[i];
-        this._taskQueue[i] = this._taskQueue[i + 1];
-        this._taskQueue[i + 1] = swap;
-        break;
-      }
-    }
-  }
   if (TENSION_PROBE) OpexTensionEnable(this._budget);
   if (C49_SCARCITY_LEDGER) {
     this._c49ScarcityLedger = { passes = 0, cash = 0, vehicles = 0, site = 0,

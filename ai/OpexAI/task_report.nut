@@ -26,18 +26,8 @@ function OpexAI::_reportLines(year)
     local stationA = AIStation.GetStationID(line.stationA);
     local stationB = AIStation.GetStationID(line.stationB);
     local vehicleType = OpexLineVehicleType(line);
-    /* fleet_fix : ce `continue` sautait la ligne AVANT toute mise a jour de deadStreak, vehCount,
-     * lastProfit, lastRevenue et lastLiveVehicles. Une gare A devenue invalide (demolie, tuile
-     * passee a autrui) gelait donc l'etat de la ligne POUR TOUJOURS : _scrapDeadLines s'appuyant
-     * sur deadStreak, la ligne n'etait jamais ferraillee, ses vehicules saignaient leur cout
-     * d'exploitation toute la partie, et ses deux extremites continuaient de bloquer _tooClose
-     * pour de nouveaux candidats (docs/taches.md S0 nonies). Meme mode d'echec que la ligne OIL_
-     * deja documentee plus bas, sur un chemin que ce correctif ne couvrait pas.
-     *
-     * On compte desormais la gare perdue comme une annee morte : la ligne rejoint le chemin normal
-     * de ferraillage au lieu de pourrir en silence. */
     if (!AIStation.IsValidStation(stationA)) {
-      if (FLEET_FIX || vehicleType == AIVehicle.VT_AIR) {
+      if (vehicleType == AIVehicle.VT_AIR) {
         local streak = ("deadStreak" in line) ? line.deadStreak : 0;
         line.deadStreak <- streak + 1;
         if (!("scrapping" in line)) line.scrapping <- false;

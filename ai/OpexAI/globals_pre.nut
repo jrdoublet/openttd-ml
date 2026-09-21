@@ -228,12 +228,6 @@ AIR_FLEET_PROBE <- false;
 TENSION_PROBE <- false;
 /* Garde unique du logger de portefeuille : evite un OR supplementaire dans le chemin chaud. */
 PORTFOLIO_LOG <- false;
-/* fleet_before_new : servir la croissance de flotte avant la construction de lignes aeriennes
- * neuves. Defaut REMIS A 0 le 2026-09-02 apres deux bancs concordants : -20,4 % de profit annuel
- * a 3 ans (t = -3,53) et -18,3 % de valeur a 10 ans (t = -3,81, 5/15 graines, p = 0,041).
- * Pour l'aerien, la LARGEUR bat la PROFONDEUR : une liaison neuve ouvre un flux entier, un avion
- * de plus n'ajoute qu'une tranche marginale. Le reglage reste comme instrument. */
-FLEET_BEFORE_NEW <- false;
 /* C45 : persistance complete de l'etat de decision. Defaut aligne sur info.nut (custom_value = 1),
  * adopte au banc officiel 20x10 apparie -- les vingt graines identiques au bit pres. */
 SAVE_FULL_STATE <- true;
@@ -289,8 +283,7 @@ AIR_FLEET_LINE_PRICE <- true;
 /* C16 : Plafond physique de flotte aerienne derive de la cadence d'absorption de la piste */
 AIR_CADENCE_CAP <- true;
 /* C26b : Correctif du faux embouteillage lorsque le vehicule est a l'arret a quai en chargement
- * Mesure a 10 ans et 3 ans : DEGRADE le profit de -17,6 % s'il n'est pas couple a MARGINAL_FLEET,
- * car il empile jusqu'a 16 camions sur des arrets a 1 seul quai. Defaut a false. */
+ * Ce correctif reste desactive : il empile jusqu'a 16 camions sur des arrets a 1 seul quai. */
 ROAD_LOADING_FIX <- false;
 /* C52 : symbole de compatibilite. Le remappage ET_VEHICLE_AUTOREPLACED est maintenant
  * inconditionnel ; le reglage homonyme est deprecated et sa valeur est ignoree. */

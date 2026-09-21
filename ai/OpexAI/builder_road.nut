@@ -1138,16 +1138,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
    * ⚠️ Le plafond vient du jeu, pas de nous : un arret n'accueille que DEUX vehicules a la fois,
    * au-dela ils font la queue sur la route et se bloquent (docs/mecanique_jeu.md S11). C'est
    * MAX_ROAD_VEHICLES dans economy.nut qui borne candidate.trains. */
-  /* marginal_fleet = 1 (2026-09-01) : demarrage MINIMAL. On ne clone plus tout de suite jusqu'a
-   * candidate.trains (le plein du modele predictif) -- on part a 1 seul vehicule, et
-   * _refleetRoadLines (main.nut) fait grandir la ligne APRES avoir mesure un profit reel, borne
-   * par OpexRoadPhysicalVehicleCap. Le demarrage minimal garde donc un seul vehicule ici :
-   * il n'a plus de sens d'elargir tout de suite une ligne qu'on vient de retrecir a 1 par principe.
-   * Sous 0 (defaut), ce bloc est un no-op et le chemin d'avant est rigoureusement identique. */
   local want = candidate.trains;
-  if (MARGINAL_FLEET) {
-    want = 1;
-  }
   for (local i = 1; i < want; i++) {
     /* `clone` est un MOT RESERVE de Squirrel (l'operateur de copie) : le nommer ainsi fait echouer
      * la compilation du fichier entier, et l'echec est presque muet -- une seule ligne dans la

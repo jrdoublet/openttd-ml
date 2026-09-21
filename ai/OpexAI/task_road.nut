@@ -239,18 +239,10 @@ function OpexAI::_refleetRoadLines(year)
     if (("expandRetryCycle" in line) && line.expandRetryCycle > this._taskCycle) continue;
     if (!("depot" in line) || !AIRoad.IsRoadDepotTile(line.depot)) continue;
     if (("deadStreak" in line) && line.deadStreak > 0) continue;
-    /* fleet_fix : `vehCount` n'est ecrit que par _reportLines, au plus UNE fois par an, et les
-     * dicts de ligne routiere n'en portent pas a la construction. Or la file execute `projects`
-     * puis `refleet` DANS LE MEME CYCLE : une ligne tout juste batie arrivait donc ici avec
-     * have = 0 face a un target valant sa flotte reelle, et OpexRoadRefleet repartait -- en
-     * sautant la reprise de gabarit faute de have > 0, donc en creant un vehicule avec sa PROPRE
-     * liste d'ordres puis en clonant le reste. Toute ligne routiere neuve achetait ainsi une
-     * seconde flotte complete (docs/taches.md S0 nonies, trouvaille 2). Le repli est desormais la
-     * flotte reellement posee a la construction, pas zero. */
     local have = 0;
     if ("vehCount" in line) {
       have = line.vehCount;
-    } else if ((FLEET_FIX || ROAD_FLEET_FIX) && ("trains" in line)) {
+    } else if (ROAD_FLEET_FIX && ("trains" in line)) {
       have = line.trains;
     }
     local target = ("predTrains" in line) ? line.predTrains : (("trains" in line) ? line.trains : 1);
@@ -274,15 +266,7 @@ function OpexAI::_refleetRoadLines(year)
     foreach (v in vehicles) {
       if (!AIVehicle.IsValidVehicle(v)) continue;
       if (AIVehicle.GetCurrentSpeed(v) == 0) {
-        /* fleet_fix : « vitesse nulle » n'est PAS un embouteillage -- c'est l'etat NORMAL d'un
-         * vehicule en cours de chargement a un arret, et les lignes de fret routier sont baties
-         * avec OF_FULL_LOAD_ANY, donc un camion y passe la majeure partie de son cycle. Les trois
-         * heuristiques de croissance plus bas exigeant toutes !isAnyWaiting, la situation qui
-         * devrait declencher la croissance -- du cargo qui s'accumule pendant qu'un camion fait le
-         * plein -- etait lue comme « deja sature, ne pas grandir ». Le signal etait donc inverse
-         * par rapport a son intention (docs/taches.md S0 nonies, trouvaille 3). On ne compte
-         * desormais comme bloque qu'un vehicule arrete EN LIGNE, pas a quai. */
-        if ((!FLEET_FIX && !ROAD_LOADING_FIX) || AIVehicle.GetState(v) != AIVehicle.VS_AT_STATION) isAnyWaiting = true;
+        if (!ROAD_LOADING_FIX || AIVehicle.GetState(v) != AIVehicle.VS_AT_STATION) isAnyWaiting = true;
         else movingCount++;
       } else movingCount++;
     }
@@ -300,12 +284,6 @@ function OpexAI::_refleetRoadLines(year)
       }
       continue;
     }
-    /* marginal_fleet = 1 : le profit marginal attendu du vehicule supplementaire doit etre
-     * positif -- pas de lastProfit connu et STRICTEMENT positif, pas de croissance au-dela de la
-     * reconstitution du parc d'origine (missing/target calcules plus haut, jamais touches ici).
-     * Sous 0 (defaut) ce garde-fou n'existe pas et les trois heuristiques ci-dessous restent
-     * exactement ce qu'elles etaient. */
-    if (MARGINAL_FLEET && (!("lastProfit" in line) || line.lastProfit <= 0)) continue;
 
     local capacity = ("capacity" in line && line.capacity > 0) ? line.capacity : 25;
     local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);

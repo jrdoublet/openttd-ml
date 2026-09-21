@@ -634,31 +634,6 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     // Condition 1 : Les appareils existants ne doivent pas etre deficitaires
     if (("lastProfit" in line) && line.lastProfit < 0) { OpexAirFleetRefusal(line, year, "L"); continue; }
 
-    /* marginal_fleet = 1 (2026-09-01) : dimensionnement marginal STRICT de l'air. Le commentaire
-     * de cette fonction promettait deja d'attendre un an, d'exiger une charge complete en attente
-     * et de ne jamais ajouter plus d'un avion par an -- mais rien ci-dessus ni ci-dessous ne
-     * verifiait l'age de la ligne ou le fret en attente, et la boucle plus bas autorisait jusqu'a
-     * 4 avions en un seul passage (addedThisPass < 4). Sous 0 (defaut), ce bloc ne change RIEN :
-     * il ajoute seulement des refus supplementaires, jamais un chemin different pour les
-     * conditions deja verifiees plus haut (have, deadStreak, lastProfit < 0). */
-    if (MARGINAL_FLEET && AIR_FLEET_BUFFER < 0) {
-      // (a) la ligne a au moins un an d'existence revolu
-      if (!("year" in line) || (year - line.year) < 1) continue;
-      // (b) lastProfit disponible ET strictement positif (pas seulement "pas negatif")
-      if (!("lastProfit" in line) || line.lastProfit <= 0) continue;
-      // (c) au moins une capacite complete d'avion attend REELLEMENT dans une des deux gares
-      local planeCap = ("planeCapacity" in line && line.planeCapacity > 0) ? line.planeCapacity : 0;
-      if (planeCap <= 0) continue;
-      /* Pas de AIStation.STATION_INVALID ici : jamais utilise ailleurs dans ce projet, on prefere
-       * garder le meme garde-fou "hasB" que le reste du fichier (cf. lastWaitingB plus haut). */
-      local stA = AIStation.GetStationID(line.stationA);
-      local hasB = ("stationB" in line) && line.stationB != null;
-      local stB = hasB ? AIStation.GetStationID(line.stationB) : 0;
-      local waitA = AIStation.IsValidStation(stA) ? AIStation.GetCargoWaiting(stA, line.cargo) : 0;
-      local waitB = (hasB && AIStation.IsValidStation(stB)) ? AIStation.GetCargoWaiting(stB, line.cargo) : 0;
-      if (waitA < planeCap && waitB < planeCap) continue;
-    }
-
     local isSmallAirport = false;
     if ((AIAirport.IsAirportTile(line.stationA) && AIAirport.GetAirportType(line.stationA) == AIAirport.AT_SMALL) ||
         (AIAirport.IsAirportTile(line.stationB) && AIAirport.GetAirportType(line.stationB) == AIAirport.AT_SMALL)) {
@@ -674,15 +649,8 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     if (("deadStreak" in line) && line.deadStreak >= 1) { OpexAirFleetRefusal(line, year, "S"); continue; }
     if (("lastProfit" in line) && line.lastProfit < 0) { OpexAirFleetRefusal(line, year, "L"); continue; }
 
-    /* fleet_fix : cette garde pricait le MEILLEUR avion du catalogue, alors qu'OpexAirAddPlane
-     * clone le gabarit de LA LIGNE (builder_air.nut:224, prix lu sur l'engin du vehicule existant).
-     * Une ligne a helices desservant un petit aeroport, face a un catalogue passe au gros jet,
-     * voyait donc `need` plusieurs fois trop grand : `money < need` -> break, et une ligne
-     * rentable ne grandissait jamais alors que la tresorerie etait la. La garde interne
-     * d'OpexAirAddPlane etant correcte, celle-ci ne produisait que des FAUX NEGATIFS
-     * (docs/taches.md S0 nonies). On price desormais l'avion qu'on va reellement acheter. */
     local planePrice = (this._catalog.plane != null) ? this._catalog.plane.price : 30000;
-    if ((FLEET_FIX || AIR_FLEET_LINE_PRICE) && ("vehicles" in line)) {
+    if (AIR_FLEET_LINE_PRICE && ("vehicles" in line)) {
       foreach (v in line.vehicles) {
         if (!AIVehicle.IsValidVehicle(v) || AIVehicle.GetVehicleType(v) != AIVehicle.VT_AIR) continue;
         local ownPrice = AIEngine.GetPrice(AIVehicle.GetEngineType(v));
@@ -696,8 +664,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     local airMarginPadding = false;
     local need = planePrice + OpexCashReserve() + (airMarginPadding ? 0 : 2000);
     local addedThisPass = 0;
-    // (d) au plus un avion par ligne et par an sous marginal_fleet=1 ; 4 (repli actuel) sous 0.
-    local maxAddedPerPass = MARGINAL_FLEET ? 1 : 4;
+    local maxAddedPerPass = 4;
     /* C14 : Dimensionnement dynamique de flotte par le stock au sol (AAAHogEx route.nut:2896-2921).
      * Si AIR_FLEET_BUFFER >= 0 : calcule buildNum = (maxWait - bottom) / capacity.
      * Si buildNum < 1 : refus W (pas assez de cargo au sol).

@@ -101,26 +101,6 @@ PORTFOLIO_REFRESH_PROBE_REFRESH_COUNT <- 0;
  * moment. Repli 0 (= tri au seul ratio) jusqu'a la lecture de portfolio_floor_pct dans Start().
  * Voir projects.nut::OpexProjectSelectAffordable pour le mecanisme et la mesure qui l'impose. */
 PORTFOLIO_FLOOR_PCT <- 0;
-/* Correctifs de flotte (revue flotte et entretien, docs/taches.md S0 nonies) : repli FAUX jusqu'a
- * la lecture unique de fleet_fix dans Start(). Defaut 0 : chemin historique inchange. Sous 1,
- * deux defauts mesures tombent ensemble --
- *   1. une ligne routiere neuve n'achete plus une seconde flotte complete dans son propre cycle de
- *      construction : `vehCount` n'etant ecrit qu'une fois par an, elle arrivait au refleet avec
- *      have = 0 et se faisait reconstruire, ordres dupliques compris.
- *   2. `isAnyWaiting` ne prend plus un vehicule en chargement pour un embouteillage. Sous
- *      OF_FULL_LOAD_ANY c'est l'etat normal d'un camion, et les trois heuristiques de croissance
- *      exigeant !isAnyWaiting, le signal etait inverse par rapport a son intention.
- *
- * ⚠️ CORRIGE (2026-09-08) : cette liste comptait un 3e point, « rail_refleet redevient
- * ATTEIGNABLE », decrit comme derriere fleet_fix. C'etait deja faux au moment de l'ecrire : le
- * commit 3a15646 (« fix items G1 G7 from code review », 2026-09-07 11:10) a rendu la garde
- * d'entree de _expandRailLines et la tache "expand" INCONDITIONNELLES (voir le commentaire
- * G6§1 sur _expandRailLines) -- rail_refleet est reellement atteignable au defaut livre
- * (rail_expand=0, rail_refleet=1), independamment de fleet_fix. docs/taches.md et le
- * commentaire de la reglage `fleet_fix` (info.nut) repetaient la meme erreur ; corriges le
- * meme jour. Ne pas retirer `rail_refleet` comme code mort (§8 taches.md le proposait par
- * erreur). */
-FLEET_FIX <- false;
 /* La croissance urbaine cede le pas au portefeuille (docs/taches.md S0 septies et S0 decies) :
  * repli FAUX jusqu'a la lecture unique de growth_yields dans Start(). Defaut 0 : chemin
  * historique inchange -- _tryTownGrowth depense des qu'il a de quoi payer, sur des candidats a
@@ -181,19 +161,6 @@ ECONOMY_FIX <- true;
  * calcules de la meme facon :
  * L'estimation d'opcodes d'un projet routier utilise le tarif du pathfinder routier. */
 PRICING_ROAD_OPS <- true;
-/* Dimensionnement marginal et progressif de flotte (item de tete, 2026-09-01) : repli FAUX
- * jusqu'a la lecture unique de marginal_fleet dans Start(). Defaut 0 : chemin actuel
- * rigoureusement inchange -- MAX_ROAD_VEHICLES/plafond 16 route, clonage immediat a
- * candidate.trains, jusqu'a 4 avions/an air, flotte initiale a 3/6 avions. Mesure au banc apparie
- * 20 graines contre AAAHogEx : 8x moins de vehicules ET 8x moins de gares, plus un rendement par
- * vehicule ajoute -31,4 % (6332 £/an contre 9229 £), avec 3,26 vehicules/gare contre 2,71 --
- * capital immobilise plutot que redeploye en nouvelles lignes. Sous 1 : demarrage MINIMAL (1
- * vehicule/avion), croissance seulement apres profit reel mesure, borne par une contrainte
- * physique/marginale (quais route, age+charge+un avion/an en air) plutot que par une constante
- * generique. Voir economy.nut::OpexRoadPhysicalVehicleCap, builder_road.nut (clonage initial),
- * builder_air.nut::OpexAirEconomics (flotte initiale), main.nut::_refleetRoadLines et
- * _resizeAirFleets (croissance). */
-MARGINAL_FLEET <- false;
 /* air_roi_order (2026-09-03) : ordre de service de la croissance de flotte aerienne.
  * _resizeAirFleets parcourait _lines dans l'ordre de CONSTRUCTION -- ce n'etait pas une decision
  * de conception, juste l'ordre du tableau. Consequence mesuree (5 graines x 3 ans,

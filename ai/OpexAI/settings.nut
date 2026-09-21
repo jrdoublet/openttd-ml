@@ -295,7 +295,6 @@ function OpexLoadSettings()
 
   /* --- 5. Pistes formellement abandonnees / constantes neutres verrouillees --- */
   PORTFOLIO_FLOOR_PCT = 0;
-  MARGINAL_FLEET = false;
   ROAD_TIME_SCALED_CAP = AIController.GetSetting("road_time_scaled_cap") != 0;
   C55_FREIGHT_ORIGIN_RELAX = false;
   C41_RAIL_LOST_SIGNAL_REPAIR = false;
@@ -314,11 +313,9 @@ function OpexLoadSettings()
   WATER_OPCODE_COMPAT_FALSE = false;
   LOOP_BUDGET = false;
   GROWTH_YIELDS = false;
-  FLEET_FIX = false;
   C60_TOWN_RATING_FILTER = false;
   AIR_MAX_DISTANCE = 0;
   C53_ORDER_NOLOAD = false;
-  FLEET_BEFORE_NEW = false;
   TRANSIT_COST_PERMILLE = 0;
   INFRA_AMORT_PCT = 0;
   PORTFOLIO_MAX_BATCH = 1;

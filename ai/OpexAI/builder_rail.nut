@@ -1770,7 +1770,7 @@ function OpexExecuteRailPlan(catalog, budget, candidate, plan, cashReserve)
   result.depot = depot;
   /* Le refleet est accessible avec les defauts livres : l'upgrade de seconde
    * voie relit station_exit et lead via OpexSameStationEnd. Ces metadonnees sont
-   * donc un contrat de la ligne rail, pas une variante conditionnelle a fleet_fix. */
+   * donc un contrat de la ligne rail. */
   result.platformA = { anchor = planA.anchor, direction = planA.direction, step = planA.step,
                        length = planA.length, station_exit = planA.station_exit, lead = planA.lead };
   result.platformB = { anchor = planB.anchor, direction = planB.direction, step = planB.step,
