@@ -454,3 +454,7 @@ CASH_RESERVE_PROBE_MAX_BINDS <- 0;
  * par pathfinder_hard_cap_k. Plafonné à 10 000 (docs/taches.md A3, §0 undecies ter) pour
  * éliminer le gel de l'IA pendant des mois sur les recherches chères. */
 HARD_ITERATION_CAP <- 10000;
+
+/* C80 tranche 0 : socle de l'orchestrateur à double registre (intentions / exécution).
+ * 0 = ordonnanceur historique (défaut), 1 = orchestrateur à double registre actif. */
+C80_DOUBLE_REGISTER <- false;

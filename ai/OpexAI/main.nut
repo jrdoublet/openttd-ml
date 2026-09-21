@@ -142,6 +142,9 @@ class OpexAI extends AIController {
   _railSearch = null;
   /* C38 : etat transitoire d'un batch dynamique, necessaire si un A* rail rend la main. */
   _dynamicBatch = null;
+  /* C80 : orchestrateur à double registre (intentions réactives et registre d'exécution). */
+  _reactiveQueue = null;
+  _activeWorker = null;
   /* 11.6 : _railSearch contient un pathfinder vivant et _dynamicBatch reference _projects.
    * Ils ne sont pas serialises ; Save/Load ne conserve que leur presence pour forcer une
    * reconstruction propre du portefeuille apres reload. */
@@ -293,6 +296,8 @@ class OpexAI extends AIController {
     this._bootstrapFreightCargo = -1;
     this._loadedFromSave = false;
     this._recomputeEpochBounds = false;
+    this._reactiveQueue = OpexReactiveQueue();
+    this._activeWorker = null;
     /* Priorite : donnees et stop-loss, croissance des flottes existantes avant nouveaux projets,
      * portefeuille multimodal ROI, croissance urbaine, dette. */
     this._taskQueue = [
@@ -409,6 +414,16 @@ class OpexAI extends AIController {
   function _dispatchTownGrowth(task, year);
   function _dispatchRepay(task, year);
   function _c76RecordRegen(kind, ops, days, year);
+  function _runOrchestratorTick();
+  function _runBackgroundQueue();
+  function _enqueueReactive(key, kind, payload);
+  function _popReactive();
+  function _hasReactiveIntentions();
+  function _clearReactiveQueue();
+  function _dispatchReactiveIntention(intention);
+  function _c80RunSelfTest();
+  function enqueue(key, kind, payload);
+  function pop();
 }
 
 /* C65 : modules extraits de main.nut, requis APRES la classe OpexAI. */
@@ -417,6 +432,7 @@ require("events.nut");
 require("event_handlers.nut");
 require("ledgers.nut");
 require("lines.nut");
+require("orchestrator.nut");
 require("persist.nut");
 require("probes.nut");
 require("scheduler.nut");
@@ -529,6 +545,10 @@ function OpexAI::Start()
     }
   }
 
+  if (C80_DOUBLE_REGISTER) {
+    this._c80RunSelfTest();
+  }
+
   while (true) {
     if (C56_TASK_TRACE) {
       /* C56 : une trace tous les 200 tours pour ne pas noyer le journal. */
@@ -538,7 +558,10 @@ function OpexAI::Start()
       }
     }
     this._processEvents();
-    if (LOOP_BUDGET) {
+    if (C80_DOUBLE_REGISTER) {
+      this._runOrchestratorTick();
+      AIController.Sleep(1);
+    } else if (LOOP_BUDGET) {
       /* Le budget d'un tick n'est PAS reportable : ce qui n'est pas depense est perdu. L'ancienne
        * boucle executait exactement UNE tache puis rendait la main, donc un tick qui tirait une
        * tache hors de sa periode (catalog hors de son mois, report hors de son annee, repay hors
