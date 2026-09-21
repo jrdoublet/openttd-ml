@@ -25,6 +25,12 @@ le chemin rotor n'a jamais été exercé, ni en fixture ni en test. `ai/OpexAI/c
 « helico » dans ces fichiers), donc le catalogue peut en sélectionner un si son ROI l'emporte sur
 un type d'aéroport donné.
 
+**Réconciliation 2026-09-20 : fait.** La classification utilise désormais
+`subtype in (4, 6)`, le commentaire indique rotor=6 et
+`test_helicopter_head_shadow_and_rotor_subtypes` exerce explicitement une tête hélicoptère
+(`subtype=0`), son ombre (`4`) et son rotor (`6`). Suite physique : **8/8** sur l'hôte et
+**8/8** dans Docker.
+
 ### 21.2 — `campaign_freeze.py` (545 l.) : zéro test unitaire, seul module du harnais C66 dans ce cas        [gravité : P2]
 Aucun `sweeps/test_campaign_freeze.py` n'existe, et aucun `--selftest` du dépôt n'exerce
 `prepare_frozen_campaign`, `validate_policy_settings`, `parse_ai_settings`, `effective_ai_settings`
@@ -37,14 +43,16 @@ Or `validate_policy_settings` est précisément le garde-fou fail-closed censé 
 différence non annoncée) rouvrirait G0 sur le seul chemin qui le ferme aujourd'hui, sans qu'aucun
 test ne le signale.
 
-**Réconciliation 2026-09-16 : constat historique désormais largement corrigé.**
+**Réconciliation 2026-09-20 : fait.**
 `sweeps/test_campaign_freeze.py` existe et couvre le cœur fail-closed demandé par cette fiche :
-`parse_ai_settings` sur le vrai `info.nut` (**230 réglages**), `effective_ai_settings`,
+`parse_ai_settings` sur le vrai `info.nut` (contrat courant de **48 réglages**), `effective_ai_settings`,
 `validate_policy_settings` (différence annoncée, différence parasite, intervention sans effet),
-`fingerprint_tree` et `git_state`. Ces tests ont repassé dans la clôture M7.
-`prepare_frozen_campaign` et `freeze_bananas_libraries` restent sans test unitaire isolé ;
-ils sont exercés par les campagnes C66 gelées, donc la limite restante est une **couverture
-unitaire d'intégration**, pas l'absence totale de garde qui motivait 21.2.
+`fingerprint_tree` et `git_state`. Un test isolé supplémentaire exerce maintenant
+`prepare_frozen_campaign` et le vrai `freeze_bananas_libraries` sans réseau : deux IA minimales,
+un fichier de harnais et une bibliothèque BaNaNaS synthétique sont copiés dans le bundle ; le
+manifeste, les empreintes et le descripteur local de bibliothèque sont relus et vérifiés.
+Suite campagne : **11/11** sur l'hôte ; dans Docker, **11 tests sont découverts, dont 1 skip
+attendu** pour le sous-test `git_state` dépendant du binaire Git.
 
 ### 21.3 — `test_game_health.py` ne teste jamais le cas exact que 17.6 dénonce        [gravité : P2]
 17 tests couvrent `game_health.py` (étape 17, H4/17.6-17.9) mais aucun n'utilise une série de
@@ -131,16 +139,11 @@ d'implémentation quand H2 sera corrigé : câbler `bench_v2.py` sur `effective_
 
 ## Modèle et effort de correction (pour `docs/revue_code_2026-09-15_correctifs.md`)
 
-- **21.1** — Sonnet 5 / low. Remplacer `subtype in (3, 4)` par `subtype in (4, 6)`, corriger le
-  commentaire. Comportement inchangé aujourd'hui (garde `unitnumber == 0` déjà couvrante) ; ajouter
-  un cas hélicoptère (tête + rotor + ombre) aux fixtures ou à un test synthétique pour cesser de
-  dépendre de la garde OR pour la correction.
-- **21.2** — **réalisé pour le cœur du contrat**. `test_campaign_freeze.py` couvre `parse_ai_settings` sur
-  `info.nut` réel (compte + valeurs connues), `effective_ai_settings` (fusion defaults/explicit,
-  rejet d'un réglage explicite inconnu), `validate_policy_settings` (accepte une différence
-  annoncée, rejette une différence non annoncée, rejette une intervention sans effet), et
-  `fingerprint_tree`/`git_state` sur un répertoire temporaire minimal. Reste seulement la
-  couverture unitaire de `prepare_frozen_campaign` / `freeze_bananas_libraries`.
+- **21.1** — **réalisé le 2026-09-20** : `subtype in (4, 6)`, commentaire corrigé et test
+  synthétique hélicoptère tête + ombre + rotor.
+- **21.2** — **réalisé le 2026-09-20** : `test_campaign_freeze.py` couvre le cœur du contrat
+  ainsi que `prepare_frozen_campaign` / `freeze_bananas_libraries` avec une bibliothèque
+  synthétique hors réseau.
 - **21.3** — **réalisé avec H4** : les deux cas décroissants du test courant figent le comportement
   fail-closed.
 

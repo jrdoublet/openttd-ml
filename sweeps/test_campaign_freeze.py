@@ -1,9 +1,14 @@
 """Tests du contrat de réglages et du gel de campagne C66."""
+import contextlib
+import hashlib
+import os
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import types
 import unittest
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -23,6 +28,7 @@ from campaign_freeze import (
     git_state,
     parse_ai_setting_specs,
     parse_ai_settings,
+    prepare_frozen_campaign,
     validate_policy_settings,
 )
 
@@ -31,6 +37,115 @@ INFO = ROOT / "ai" / "OpexAI" / "info.nut"
 
 
 class TestCampaignFreeze(unittest.TestCase):
+    def test_prepare_frozen_campaign_copies_ai_harness_and_libraries(self):
+        """Couvre le gel complet sans réseau avec une bibliothèque BaNaNaS synthétique."""
+        library_bytes = b"synthetic-library-tar\n"
+        library_filename = "testlib-1.tar"
+
+        @contextlib.contextmanager
+        def library_data():
+            yield iter((library_bytes[:8], library_bytes[8:]))
+
+        @contextlib.contextmanager
+        def resolved_library():
+            yield ((
+                "TEST",
+                library_filename,
+                "GPL-2.0",
+                "public-md5",
+                library_data,
+            ),)
+
+        fake_openttdlab = types.ModuleType("openttdlab")
+        fake_openttdlab.bananas_ai_library = (
+            lambda unique_id, name, md5=None: (name, resolved_library)
+        )
+
+        info_text = (
+            'AddSetting({ name = "sample_setting", min_value = 0, max_value = 1, '
+            'custom_value = 0, flags = AICONFIG_BOOLEAN });\n'
+        )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            opex = root / "ai" / "OpexAI"
+            hogex = root / "ai" / "AAAHogEx-115"
+            harness = root / "sweeps"
+            opex.mkdir(parents=True)
+            hogex.mkdir(parents=True)
+            harness.mkdir()
+            (opex / "info.nut").write_text(info_text, encoding="utf-8")
+            (opex / "main.nut").write_text("opex snapshot\n", encoding="utf-8")
+            (hogex / "info.nut").write_text(info_text, encoding="utf-8")
+            (hogex / "main.nut").write_text("hogex snapshot\n", encoding="utf-8")
+            (harness / "fixture_harness.py").write_text("HARNESS = True\n", encoding="utf-8")
+
+            env = {
+                "C66_GIT_SHA": "a" * 40,
+                "C66_GIT_DIRTY": "0",
+                "C66_GIT_STATUS_B64": "",
+            }
+            with mock.patch.dict(os.environ, env, clear=False), mock.patch.dict(
+                sys.modules, {"openttdlab": fake_openttdlab}
+            ):
+                frozen = prepare_frozen_campaign(
+                    root=root,
+                    out_path=Path("results") / "unit_freeze.json",
+                    campaign_id="unit-freeze",
+                    policy_id="reference",
+                    seeds=(42, 100),
+                    years=3,
+                    repeats=1,
+                    starting_year=1970,
+                    config_text="[game]\nstarting_year = 1970\n",
+                    library_specs=({
+                        "unique_id": "TEST",
+                        "name": "TestLib",
+                        "md5": None,
+                    },),
+                    harness_files=("sweeps/fixture_harness.py",),
+                    openttd_version="15.3",
+                    opengfx_version="7.1",
+                )
+
+            self.assertTrue(frozen.manifest_path.is_file())
+            self.assertTrue(frozen.engine_log_dir.is_dir())
+            self.assertEqual((frozen.opex_dir / "main.nut").read_text(encoding="utf-8"), "opex snapshot\n")
+            self.assertEqual(
+                (frozen.aaahogex_dir / "main.nut").read_text(encoding="utf-8"),
+                "hogex snapshot\n",
+            )
+            self.assertEqual(
+                (frozen.bundle_dir / "harness" / "sweeps" / "fixture_harness.py").read_text(
+                    encoding="utf-8"
+                ),
+                "HARNESS = True\n",
+            )
+
+            frozen_library = frozen.bundle_dir / "ai_libraries" / library_filename
+            self.assertEqual(frozen_library.read_bytes(), library_bytes)
+            library_source = frozen.manifest["sources"]["ai_libraries"]
+            self.assertEqual(library_source["file_count"], 1)
+            resolved = frozen.manifest["libraries"][0]["resolved"][0]
+            self.assertEqual(resolved["filename"], library_filename)
+            self.assertEqual(resolved["sha256"], hashlib.sha256(library_bytes).hexdigest())
+            self.assertEqual(frozen.manifest["source_bundle"]["sha256"], frozen.bundle_sha256)
+            self.assertEqual(len(frozen.manifest["games"]), 2)
+            self.assertEqual(frozen.manifest["git"]["source"], "host_environment")
+
+            self.assertEqual(len(frozen.ai_libraries), 1)
+            name, copy_func = frozen.ai_libraries[0]
+            self.assertEqual(name, "TestLib")
+            with copy_func() as entries:
+                self.assertEqual(len(entries), 1)
+                content_id, filename, license_name, public_md5, get_data = entries[0]
+                self.assertEqual(content_id, "TEST")
+                self.assertEqual(filename, library_filename)
+                self.assertEqual(license_name, "GPL-2.0")
+                self.assertEqual(public_md5, "public-md5")
+                with get_data() as chunks:
+                    self.assertEqual(b"".join(chunks), library_bytes)
+
     def test_real_info_settings_contract(self):
         defaults = parse_ai_settings(INFO)
         specs = parse_ai_setting_specs(INFO)
