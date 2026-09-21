@@ -107,6 +107,14 @@ function OpexC49ScarcityLog(fields)
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " C49_SCARCITY " + fields);
 }
+/* C69 : gate dedie sous probe_portfolio. */
+function OpexC69Log(fields)
+{
+  if (!C69_BOTTLENECK_PROBE) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " C69_BOTTLENECK " + fields);
+}
 /* Tunnel mensuel : gate dedie, independant de C63/C48/decision_log. Un AILog par passe
  * pour ne pas perdre le mois courant (le jeu s'arrete souvent au 1er decembre). */
 function OpexMonthlyFunnelLog(fields)
@@ -881,4 +889,122 @@ function OpexPortfolioRefreshProbeLog(fields)
   local date = AIDate.GetCurrentDate();
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " PORTFOLIO_REFRESH_PROBE " + fields);
+}
+
+/* C69 : cle d'identite stable d'un candidat ou projet construit */
+function OpexC69AttemptKey(p)
+{
+  if (p == null) return "none";
+  if (!("mode" in p) && ("src" in p) && ("dst" in p) && ("cargo" in p) && ("kind" in p)) {
+    return "rail|" + p.src + "|" + p.dst + "|" + p.cargo + "|" + p.kind;
+  }
+  return OpexProjectAttemptKey(p);
+}
+
+/* C69 : somme GetProfitLastYear de l'ensemble des vehicules de la compagnie (controle F_veh) */
+function OpexC69VehicleProfitLastYear()
+{
+  local total = 0;
+  local vl = AIVehicleList();
+  foreach (v, _ in vl) {
+    if (AIVehicle.IsValidVehicle(v)) {
+      total += AIVehicle.GetProfitLastYear(v);
+    }
+  }
+  return total;
+}
+
+/* C69 : mediane d'une liste de nombres reels sans mutation */
+function OpexMedianFloat(values)
+{
+  local n = values.len();
+  if (n == 0) return 0.0;
+  local copy = [];
+  foreach (v in values) copy.append(v);
+  for (local i = 1; i < n; i++) {
+    local v = copy[i];
+    local j = i;
+    while (j > 0 && copy[j - 1] > v) {
+      copy[j] = copy[j - 1];
+      j--;
+    }
+    copy[j] = v;
+  }
+  if (n % 2 == 1) return copy[n / 2];
+  return (copy[n / 2 - 1] + copy[n / 2]) / 2.0;
+}
+
+/* C69 : calcul unique de F, tau et K_dec par appel de selection */
+function OpexC69ComputeKDec()
+{
+  local now = AIDate.GetCurrentDate();
+  local curYear = AIDate.GetYear(now);
+  local curMonth = AIDate.GetMonth(now);
+  local curQuarterIdx = (curMonth - 1) / 3;
+  local totalCompletedQuarters = (curYear - 1970) * 4 + curQuarterIdx;
+
+  local F = 0.0;
+  local daysCovered = 0;
+  if (totalCompletedQuarters > 0) {
+    local numQ = totalCompletedQuarters < 4 ? totalCompletedQuarters : 4;
+    local curQuarterStartMonth = curQuarterIdx * 3 + 1;
+    local curQuarterStartDate = AIDate.GetDate(curYear, curQuarterStartMonth, 1);
+    local T = totalCompletedQuarters;
+    local windowStartQuarter = T - numQ;
+    local windowStartYear = 1970 + (windowStartQuarter / 4);
+    local windowStartMonth = (windowStartQuarter % 4) * 3 + 1;
+    local windowStartDate = AIDate.GetDate(windowStartYear, windowStartMonth, 1);
+    daysCovered = curQuarterStartDate - windowStartDate;
+
+    if (daysCovered > 0) {
+      local sumNet = 0.0;
+      for (local q = 1; q <= numQ; q++) {
+        local inc = AICompany.GetQuarterlyIncome(AICompany.COMPANY_SELF, q);
+        local exp = AICompany.GetQuarterlyExpenses(AICompany.COMPANY_SELF, q);
+        sumNet += (inc.tofloat() + exp);
+      }
+      /* GetQuarterlyIncome + GetQuarterlyExpenses excluent construction et achats de vehicules
+       * (mesure C69 : -3,7 k£ de depenses pour 278 k£ investis au meme trimestre) : sumNet est
+       * deja le flux d'exploitation. Ajouter I le compterait deux fois. */
+      local numerator = sumNet;
+      if (numerator > 0.0) {
+        F = numerator / daysCovered.tofloat();
+      }
+    }
+  }
+
+  local startDate = AIDate.GetDate(1970, 1, 1);
+  local daysSinceStart = now - startDate;
+  if (daysSinceStart < 1) daysSinceStart = 1;
+  local D = daysSinceStart < 365 ? daysSinceStart : 365;
+
+  local N = 0;
+  if (C69_BUILD_DATES != null) {
+    local cutoff = now - D;
+    local pruned = [];
+    foreach (d in C69_BUILD_DATES) {
+      if (d >= cutoff) {
+        pruned.append(d);
+      }
+    }
+    C69_BUILD_DATES = pruned;
+    N = C69_BUILD_DATES.len();
+  }
+
+  local tau = 0.0;
+  local K_dec = 0;
+  if (N > 0 && F > 0.0) {
+    tau = D.tofloat() / N.tofloat();
+    K_dec = (F * tau).tointeger();
+    if (K_dec < 0) K_dec = 0;
+  }
+
+  return {
+    F = F,
+    tau = tau,
+    K_dec = K_dec,
+    D = D,
+    N = N,
+    daysCovered = daysCovered
+  };
 }

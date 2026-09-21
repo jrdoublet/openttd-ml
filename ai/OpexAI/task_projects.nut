@@ -395,6 +395,16 @@ function OpexAI::_tryBuildProjects(year)
   local builtCount = 0;
   local funnelAttempted = 0;
   local passDiscards = [];
+  local c69BuiltProjects = C69_BOTTLENECK_PROBE ? [] : null;
+  local c69PassProjects = null;
+  if (C69_BOTTLENECK_PROBE && this._projects != null) {
+    /* Instantane : OpexReselectProjects remplace projects.best en place pendant la passe. */
+    c69PassProjects = {
+      best = ("best" in this._projects) ? this._projects.best : null,
+      c69Best = ("c69Best" in this._projects) ? this._projects.c69Best : null,
+      c69KDecData = ("c69KDecData" in this._projects) ? this._projects.c69KDecData : null
+    };
+  }
   /* P2 : fractionner le tick. Le plancher historique protege toujours les
    * autres taches quand le pourcentage est nul ou que le tick est deja court. */
   local dynamicOpsFloor = DYNAMIC_BATCH_OPS_FLOOR;
@@ -512,6 +522,7 @@ function OpexAI::_tryBuildProjects(year)
       this._railSearch = null;
       if (outcome == "built") {
         builtCount++;
+        if (C69_BOTTLENECK_PROBE) c69BuiltProjects.append(railCandidate);
         if (C50_CHRONOLOGY_PROBE && railCandidate != null) {
           local railRank = -1;
           if (this._projects != null && this._projects.best != null) {
@@ -631,6 +642,7 @@ function OpexAI::_tryBuildProjects(year)
               + " available=" + OpexAvailableCapital());
         }
         builtCount++;
+        if (C69_BOTTLENECK_PROBE) c69BuiltProjects.append(project);
         if (PORTFOLIO_DYNAMIC_BATCH) {
           this._dynamicBatchBuilt();
           i = -1;
@@ -686,6 +698,7 @@ function OpexAI::_tryBuildProjects(year)
               + " available=" + OpexAvailableCapital());
         }
         builtCount++;
+        if (C69_BOTTLENECK_PROBE) c69BuiltProjects.append(project);
         if (PORTFOLIO_DYNAMIC_BATCH) {
           this._dynamicBatchBuilt();
           i = -1;
@@ -736,6 +749,7 @@ function OpexAI::_tryBuildProjects(year)
               + " available=" + OpexAvailableCapital());
         }
         builtCount++;
+        if (C69_BOTTLENECK_PROBE) c69BuiltProjects.append(project);
         if (PORTFOLIO_DYNAMIC_BATCH) {
           this._dynamicBatchBuilt();
           i = -1;
@@ -800,6 +814,7 @@ function OpexAI::_tryBuildProjects(year)
               + " available=" + OpexAvailableCapital());
         }
         builtCount++;
+        if (C69_BOTTLENECK_PROBE) c69BuiltProjects.append(project);
         if (PORTFOLIO_DYNAMIC_BATCH) {
           this._dynamicBatchBuilt();
           i = -1;
@@ -852,6 +867,7 @@ function OpexAI::_tryBuildProjects(year)
               + " available=" + OpexAvailableCapital());
         }
         builtCount++;
+        if (C69_BOTTLENECK_PROBE) c69BuiltProjects.append(project);
         if (PORTFOLIO_DYNAMIC_BATCH) {
           this._dynamicBatchBuilt();
           i = -1;
@@ -882,6 +898,9 @@ function OpexAI::_tryBuildProjects(year)
     this._c63RecordPassAndProbe(builtCount, c49Best, passDiscards, railSearching);
   }
   this._recordMonthlyFunnelPass(builtCount, c49Best, passDiscards, funnelAttempted);
+  if (C69_BOTTLENECK_PROBE && (builtCount > 0 || (PORTFOLIO_DYNAMIC_BATCH && this._dynamicBatch != null && this._dynamicBatch.built > 0))) {
+    this._recordC69BuildingPass(year, c69PassProjects != null ? c69PassProjects : this._projects, c69BuiltProjects);
+  }
 
   /* G4§1 : l'ancien chemin deduisait hadAbandons de passDiscards, dont le remplissage
    * est garde par DECISION_LOG (defaut 0). Le drapeau _hadAbandonsThisPass est pose

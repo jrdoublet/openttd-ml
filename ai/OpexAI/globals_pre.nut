@@ -263,6 +263,13 @@ C50_CHRONOLOGY_PROBE <- false;
 /* C63+C58 : ledger annuel depenses / recettes / occasions. Nul hors sonde. */
 C63_INVEST_PROBE <- false;
 C63_INVEST_LEDGER <- null;
+/* C69 etape 1 : sonde passive goulot de decision P / max(C, F*tau). */
+C69_BOTTLENECK_PROBE <- false;
+C69_BUILD_DATES <- null;
+C69_PENDING_FOLLOWUPS <- null;
+C69_BUILD_PASS_COUNT <- 0;
+C69_LAST_AFFORDABLE <- null;
+C69_LAST_KDEC_DATA <- null;
 /* Tunnel mensuel candidats/acceptes/finances/tentes/construits. Defaut 0 : un AILog
  * par passe projects, sans changer la selection. */
 MONTHLY_FUNNEL <- false;

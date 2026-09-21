@@ -21,6 +21,9 @@ function OpexAI::_reportLines(year)
 {
   this._purgeUnprofitableStreaks();
   local anchor = AIMap.GetTileIndex(1, 1);
+  local c69ProfRatios = C69_BOTTLENECK_PROBE ? { rail = [], road = [], air = [], water = [] } : null;
+  local c69RevRatios = C69_BOTTLENECK_PROBE ? { rail = [], road = [], air = [], water = [] } : null;
+  local c69LineCounts = C69_BOTTLENECK_PROBE ? { rail = 0, road = 0, air = 0, water = 0 } : null;
   for (local i = 0; i < this._lines.len(); i++) {
     local line = this._lines[i];
     local stationA = AIStation.GetStationID(line.stationA);
@@ -178,6 +181,29 @@ function OpexAI::_reportLines(year)
       OpexC63RecordLine(lMode, lAge, predProfit, profit, predRev, profit + runCost,
                         vehCount, line.lineId, year - 1);
     }
+    if (C69_BOTTLENECK_PROBE) {
+      local lMode = ("mode" in line) ? line.mode : "unknown";
+      local lAge = ("year" in line) ? (year - line.year) : -1;
+      if (lAge >= 1 && (lMode in c69ProfRatios)) {
+        c69LineCounts[lMode]++;
+        local predProfit = ("predicted" in line) ? line.predicted : 0;
+        local predRev = ("predRevenue" in line) ? line.predRevenue : 0;
+        local realRev = profit + runCost;
+        /* Par convoi : la prediction porte sur la flotte initiale, le realise sur la flotte
+         * courante (avions et bus ajoutes ensuite). Sans cette normalisation, le ratio mesure la
+         * croissance de flotte, pas l'erreur du modele. */
+        local n0 = ("trains0" in line) ? line.trains0 : 0;
+        if (n0 > 0 && vehCount > 0) {
+          local scale = n0.tofloat() / vehCount.tofloat();
+          if (predProfit > 0) {
+            c69ProfRatios[lMode].append(profit.tofloat() * scale / predProfit.tofloat());
+          }
+          if (predRev > 0) {
+            c69RevRatios[lMode].append(realRev.tofloat() * scale / predRev.tofloat());
+          }
+        }
+      }
+    }
     if (DECISION_LOG) {
       local realRevenue = profit + runCost;
       local predRevenue = ("predRevenue" in line) ? line.predRevenue : 0;
@@ -306,6 +332,26 @@ function OpexAI::_reportLines(year)
         + " lines=" + this._lines.len()
         + " prof_sum=" + sumProf + " rev_sum=" + sumRev
         + " prof_lines=" + profCount + " loss_lines=" + lossCount);
+  }
+  if (C69_BOTTLENECK_PROBE && C69_PENDING_FOLLOWUPS != null) {
+    foreach (item in C69_PENDING_FOLLOWUPS) {
+      OpexC69Log("phase=c3_pending pass=" + item.passId + " passes_waited=" + item.passesWaited
+          + " target=" + item.c69Key);
+    }
+  }
+  if (C69_BOTTLENECK_PROBE) {
+    foreach (m in ["rail", "road", "air", "water"]) {
+      local nLines = c69LineCounts[m];
+      if (nLines > 0) {
+        local pList = c69ProfRatios[m];
+        local rList = c69RevRatios[m];
+        local medP = OpexMedianFloat(pList);
+        local medR = OpexMedianFloat(rList);
+        OpexC69Log("phase=annual_calibration year=" + year + " profit_year=" + (year - 1)
+            + " mode=" + m + " n=" + nLines + " n_prof=" + pList.len() + " n_rev=" + rList.len()
+            + " med_real_pred_prof=" + medP + " med_real_pred_rev=" + medR);
+      }
+    }
   }
 }
 /* Remediation ligne morte (2026-08-28) : une fois deadStreak >= DEAD_STREAK_THRESHOLD confirme

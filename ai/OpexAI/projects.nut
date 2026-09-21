@@ -669,6 +669,16 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
   local affordable = [];
   local earlySlotState = AIR_EARLY_SLOT ? OpexEarlySlotSelectionState() : null;
   local scoreKey = (TENSION_SCORING || SHADOW_PRICING) ? "tensionScore" : "fundScore";
+
+  local kDec = 0;
+  local kDecData = null;
+  local c69Affordable = null;
+  if (C69_BOTTLENECK_PROBE) {
+    kDecData = OpexC69ComputeKDec();
+    kDec = kDecData.K_dec;
+    c69Affordable = [];
+  }
+
   foreach (project in alternatives) {
     local financeCapital = OpexProjectFinanceCapital(project);
     if (financeCapital > capitalBudget) continue;
@@ -680,6 +690,11 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
       } else {
         project.fundScore <- OpexProjectScore(project.profitAnnual, financeCapital);
       }
+      if (C69_BOTTLENECK_PROBE) {
+        local denom = financeCapital > kDec ? financeCapital : kDec;
+        project.c69Score <- OpexProjectScore(project.profitAnnual, denom);
+        OpexProjectInsert(c69Affordable, project, "c69Score", limit, AIR_EARLY_SLOT);
+      }
     }
     OpexProjectInsert(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
   }
@@ -688,6 +703,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
    * et le plancher inoperant -- on retombe sur l'ensemble finançable brut plutot que de ne rien
    * batir du tout. */
   if (affordable.len() == 0 && floorProfit > 0) {
+    if (C69_BOTTLENECK_PROBE) c69Affordable = [];
     foreach (project in alternatives) {
       local financeCapital = OpexProjectFinanceCapital(project);
       if (financeCapital > capitalBudget) continue;
@@ -698,9 +714,18 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
         } else {
           project.fundScore <- OpexProjectScore(project.profitAnnual, financeCapital);
         }
+        if (C69_BOTTLENECK_PROBE) {
+          local denom = financeCapital > kDec ? financeCapital : kDec;
+          project.c69Score <- OpexProjectScore(project.profitAnnual, denom);
+          OpexProjectInsert(c69Affordable, project, "c69Score", limit, AIR_EARLY_SLOT);
+        }
       }
       OpexProjectInsert(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
     }
+  }
+  if (C69_BOTTLENECK_PROBE) {
+    ::C69_LAST_AFFORDABLE = c69Affordable;
+    ::C69_LAST_KDEC_DATA = kDecData;
   }
   return affordable;
 }
@@ -896,6 +921,10 @@ function OpexReselectProjects(projects, capitalBudget)
   OpexProjectsStampSelectionStats(projects.stats, projects, alternatives, funded, capitalBudget, null);
 
   projects.best = funded;
+  if (C69_BOTTLENECK_PROBE) {
+    projects.c69Best <- ::C69_LAST_AFFORDABLE;
+    projects.c69KDecData <- ::C69_LAST_KDEC_DATA;
+  }
 
   if (DECISION_LOG) {
     local vivierPool = [];
@@ -1327,8 +1356,11 @@ function OpexB6LogSelectionCausality(path, alternatives, funded, snapshotBudget,
     local copied = clone p;
     liveAlternatives.push(copied);
   }
+  local savedC69 = C69_BOTTLENECK_PROBE;
+  C69_BOTTLENECK_PROBE = false;
   local liveFunded = OpexProjectSelectAffordable(
       liveAlternatives, liveBudget, PORTFOLIO_MAX_BATCH);
+  C69_BOTTLENECK_PROBE = savedC69;
   local flips = 0;
   local affordable = 0;
   local bestProfit = null;
@@ -1914,6 +1946,10 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
 
   projects.all = stats.odProjects;
   projects.best = funded;
+  if (C69_BOTTLENECK_PROBE) {
+    projects.c69Best <- ::C69_LAST_AFFORDABLE;
+    projects.c69KDecData <- ::C69_LAST_KDEC_DATA;
+  }
   projects.stats = stats;
   projects.capitalBudget = capitalBudget;
   projects.capitalRemaining = remaining;
@@ -2475,7 +2511,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
    * cela evite meme de changer la forme de this._projects dans le controle. */
   if (PORTFOLIO_FRESH_BUDGET || PORTFOLIO_CACHE) {
     if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_assembly", "-");
-    return {
+    local ret = {
       all = stats.odProjects, best = funded, stats = stats,
       capitalBudget = capitalBudget, generationCapitalBudget = capitalBudget,
       capitalRemaining = remaining, candidateGroups = winners,
@@ -2485,9 +2521,14 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
       generationStage = generationStage,
       freightCargo = freightCargo,
     };
+    if (C69_BOTTLENECK_PROBE) {
+      ret.c69Best <- ::C69_LAST_AFFORDABLE;
+      ret.c69KDecData <- ::C69_LAST_KDEC_DATA;
+    }
+    return ret;
   }
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_assembly", "-");
-  return {
+  local ret = {
     all = stats.odProjects, best = funded, stats = stats,
     capitalBudget = capitalBudget,
     capitalRemaining = remaining,
@@ -2497,4 +2538,9 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     generationStage = generationStage,
     freightCargo = freightCargo,
   };
+  if (C69_BOTTLENECK_PROBE) {
+    ret.c69Best <- ::C69_LAST_AFFORDABLE;
+    ret.c69KDecData <- ::C69_LAST_KDEC_DATA;
+  }
+  return ret;
 }

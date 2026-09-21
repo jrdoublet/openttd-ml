@@ -352,6 +352,7 @@ class OpexAI extends AIController {
   function _logC49ScarcityLedger(year);
   function _logC54VehicleOrders(year);
   function _logC48IncrementalLedger(year);
+  function _recordC69BuildingPass(year, projects, builtProjects);
   function _reportYear(year, ranked);
   function _reportLines(year);
   function _scrapDeadLines(year);
@@ -458,6 +459,13 @@ function OpexAI::Start()
   if (C50_CHRONOLOGY_PROBE) {
     this._c50RefuseCache = {};
     this._c50LastTreasuryMonth = -1;
+  }
+  if (C69_BOTTLENECK_PROBE) {
+    C69_BUILD_DATES = [];
+    C69_PENDING_FOLLOWUPS = [];
+    C69_BUILD_PASS_COUNT = 0;
+    C69_LAST_AFFORDABLE = null;
+    C69_LAST_KDEC_DATA = null;
   }
   if (C41_WATER_REFRESH && this._taskQueue != null) {
     foreach (task in this._taskQueue) {

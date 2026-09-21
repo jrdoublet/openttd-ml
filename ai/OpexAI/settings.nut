@@ -216,6 +216,14 @@ function OpexLoadSettings()
   }
   C63_INVEST_PROBE = probePort;
   if (C63_INVEST_PROBE) OpexC63ResetLedger();
+  C69_BOTTLENECK_PROBE = probePort;
+  if (C69_BOTTLENECK_PROBE) {
+    C69_BUILD_DATES = [];
+    C69_PENDING_FOLLOWUPS = [];
+    C69_BUILD_PASS_COUNT = 0;
+    C69_LAST_AFFORDABLE = null;
+    C69_LAST_KDEC_DATA = null;
+  }
   MONTHLY_FUNNEL = probePort;
   TENSION_PROBE = probePort;
   if (TENSION_PROBE) {
