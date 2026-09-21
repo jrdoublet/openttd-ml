@@ -691,7 +691,30 @@ bruit du duel graine par graine.
   ou de gares ; **8191 gagne dans les deux** (+446 et +311 k£) avec +8 à +15 avions et −13 à −17
   bus.
 
-### 20.4 Suite proposée
+### 20.4 Face à AAAHogEx — l'arbitre du projet
+
+Rapport `profit_year` OpexAI / AAAHogEx dans la même partie, moyenne sur 20 graines :
+
+| banc | référence | variante | Δ | V / D | Δ profit AAAHogEx |
+|---|---:|---:|---:|---|---:|
+| C69 | 16,5 % | 16,8 % | +0,3 pt | 10 / 10 | +210 k£ |
+| C69 bis | 15,7 % | 17,2 % | **+1,5 pt** | 12 / 8 (p = 0,50) | −323 k£ |
+| C72 ROI | 15,8 % | 15,7 % | −0,2 pt | 10 / 10 | +186 k£ |
+| C72 C69 | 16,2 % | 15,8 % | −0,3 pt | 8 / 12 | +224 k£ |
+
+**Bruit de ce rapport** (même politique jouée deux fois) : écart-type **2,7 à 3,5 pt**, écart médian
+1,5 à 1,9 pt. Tous les Δ sont dans ce bruit. En valeur d'entreprise (≈ 23 % d'AAAHogEx), même
+lecture : de −1,7 à +1,6 pt.
+
+- Le gain de profit de C69 disparaît presque face à AAAHogEx : dans ce banc, AAAHogEx gagne aussi
+  +210 k£ en moyenne. Les variations d'AAAHogEx d'une partie à l'autre ne sont pas corrélées à
+  celles d'OpexAI (|r| ≤ 0,19) : c'est du bruit de duel, pas une réaction.
+- 🔑 **Ordre de grandeur.** OpexAI fait **~16 % du profit d'AAAHogEx** et ~23 % de sa valeur, avec
+  environ 98 véhicules contre 365. Les leviers de classement testés aujourd'hui déplacent ce
+  rapport de ±1,5 point ; il en manque ~84. Ce ne sont pas eux qui combleront l'écart, qui est
+  un écart de **volume** (`ai/OpexAI/CLAUDE.md` : rendement par véhicule à 93 % d'AAAHogEx).
+
+### 20.5 Suite proposée
 
 Rejouer en duel, avec la télémétrie de lignes du harnais C66 (`--line-telemetry`), la graine
 gagnante 424242 et la perdante 100 (bruit faible), bras `c70` contre `c70_c69_bis`, pour voir
