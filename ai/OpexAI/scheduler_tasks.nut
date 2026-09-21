@@ -377,36 +377,6 @@ function OpexAI::_dispatchC41Water(task, year)
   if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
   return true;
 }
-function OpexAI::_dispatchC41Road(task, year)
-{
-
-  /* C41.15 : un seul acquittement, sans candidats/portefeuille/re-election. */
-  task.dueCycle = 2147483647;
-  if (!C41_ROAD_REFRESH || !C41_REVISION_PROBE || this._staleness == null ||
-      this._staleness.revisions.catalog.road <= this._staleness.acknowledged.catalog.road) {
-    if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
-    return false;
-  }
-  local revision = this._staleness.revisions.catalog.road;
-  local slackOpsAvailable = AIController.GetOpsTillSuspend();
-  local ops = this._catalog.refreshRoad(this._budget);
-  local stalenessAgeDays = this._staleness.dirtySince.catalog.road >= 0
-      ? AIDate.GetCurrentDate() - this._staleness.dirtySince.catalog.road : -1;
-  this._staleness.acknowledged.catalog.road = revision;
-  this._staleness.catalog.road = false;
-  OpexC39Log("C41_ROAD_REFRESH", "revision=" + revision + " ops=" + ops
-             + " cargo_engines=" + this._catalog.roadEngineByCargo.len()
-             + " staleness_age_days=" + stalenessAgeDays
-             + " slack_ops_available=" + slackOpsAvailable
-             + " slack_ops_used=" + (ops < slackOpsAvailable ? ops : slackOpsAvailable));
-  if (C41_STALENESS_LEDGER) {
-    OpexC41StalenessLog("C41_STALENESS_ACK", "layer=catalog.road method=targeted revision="
-                        + revision + " age_days=" + stalenessAgeDays);
-  }
-  this._staleness.dirtySince.catalog.road = -1;
-  if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
-  return true;
-}
 function OpexAI::_dispatchC41RailSignals(task, year)
 {
 

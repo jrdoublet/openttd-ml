@@ -117,8 +117,6 @@ C41_OPPORTUNITY_LEDGER <- false;
 /* C41.14 : contrat passif d'admission d'une micro-tache. Le seul pilote declare est le petit
  * refresh water ; ajouter route/rail/air exige d'abord leur point d'entree cible et son cout. */
 C41_ADMISSION_LEDGER <- false;
-/* C41.15 : rafraichissement cible du materiel route apres EngineAvailable route. */
-C41_ROAD_REFRESH <- false;
 /* C41.16 : ventilation passive de la generation de candidats route historique. */
 C41_ROAD_CANDIDATE_PROFILE <- false;
 /* C41.17 : sous-ventilation passive du fret producteur->accepteur. */

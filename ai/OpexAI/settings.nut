@@ -333,7 +333,6 @@ function OpexLoadSettings()
   C39_ENGINE_REFRESH = false;
   C41_WATER_REFRESH = false;
   C41_WATER_PRECHECK = false;
-  C41_ROAD_REFRESH = false;
   LOOP_BUDGET = false;
   GROWTH_YIELDS = false;
   PRICING_RAIL_DEPOT = false;
