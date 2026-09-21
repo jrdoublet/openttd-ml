@@ -77,10 +77,6 @@ BASIN_SHARE <- false;
  * dans Start(). Defaut 1 : une ligne a zero vehicule avec l'infrastructure payee est un
  * bug, pas un choix. 0 reproduit l'abandon silencieux mesure (graine 42, 2->1->0). */
 ROAD_REFLEET <- true;
-/* Multistop routier : repli FAUX jusqu'a la lecture unique de road_multistop dans Start().
- * Defaut 0 : un arret par bout, deux vehicules. 1 tente un arret extra joint (meme facade)
- * a chaque extremite, et n'ajoute de vehicules que si les deux bouts ont double. */
-ROAD_MULTISTOP <- false;
 /* Drainage du budget d'opcodes du tick (revue du controleur, docs/taches.md S0 sexies point 1) :
  * repli FAUX jusqu'a la lecture unique de loop_budget dans Start(). Defaut 0 : la boucle
  * principale execute exactement UNE tache par tick puis Sleep(1), donc tout ce qui reste des

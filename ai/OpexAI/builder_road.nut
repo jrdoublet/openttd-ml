@@ -782,18 +782,12 @@ function OpexRoadPlanFor(catalog, candidate)
 
 /* La liste added ne contient que les aretes dont la connexion n'existait pas avant notre appel.
  * Le rollback ne supprime donc jamais une route de ville preexistante. */
-function OpexRoadRollback(stopA, stopB, depot, vehicles, added, extras)
+function OpexRoadRollback(stopA, stopB, depot, vehicles, added)
 {
   foreach (v in vehicles) {
     if (AIVehicle.IsValidVehicle(v)) AIVehicle.SellVehicle(v);
   }
   if (depot != null && AIRoad.IsRoadDepotTile(depot)) AIRoad.RemoveRoadDepot(depot);
-  /* Extras d'abord : ils partagent le StationID du primaire ; le retirer en dernier. */
-  if (extras != null) {
-    for (local i = extras.len() - 1; i >= 0; i--) {
-      if (extras[i] != null && AIRoad.IsRoadStationTile(extras[i])) AIRoad.RemoveRoadStation(extras[i]);
-    }
-  }
   if (stopB != null && AIRoad.IsRoadStationTile(stopB)) AIRoad.RemoveRoadStation(stopB);
   if (stopA != null && AIRoad.IsRoadStationTile(stopA)) AIRoad.RemoveRoadStation(stopA);
   for (local i = added.len() - 1; i >= 0; i--) AIRoad.RemoveRoad(added[i].from, added[i].to);
@@ -1008,7 +1002,6 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
    * Aucun AITestMode n'est appele depuis cette fonction (verifie : OpexRoadBuildTrace et le reste
    * du corps n'exécutent que de vraies commandes) -- pas de bouclier imbrique necessaire. */
   local costs = AIAccounting();
-  local extras = [];
   AIRoad.SetCurrentRoadType(catalog.roadType);
   local balanceBefore = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
   local cargo = candidate.cargo;
@@ -1035,7 +1028,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
     result.error = AIError.GetLastError();
     result.opcodes = budget.end("build_roads");
     result.actualCost = costs.GetCosts();
-    OpexRoadRollback(null, null, null, built, added, extras); result.reason = "ROAD"; return result;
+    OpexRoadRollback(null, null, null, built, added); result.reason = "ROAD"; return result;
   }
   result.opcodes = budget.end("build_roads");
 
@@ -1068,7 +1061,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
   if (stopA == null) {
     result.error = AIError.GetLastError(); result.opcodes += budget.end("build_road_stops");
     result.actualCost = costs.GetCosts();
-    OpexRoadRollback(null, null, null, built, added, extras); result.reason = "ASTOP"; return result;
+    OpexRoadRollback(null, null, null, built, added); result.reason = "ASTOP"; return result;
   }
   local okB = false;
   if (driveThrough) {
@@ -1086,7 +1079,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
       AIRoad.AreRoadTilesConnected(plan.stopB.tile, plan.stopB.front)) stopB = plan.stopB.tile;
   if (stopB == null) {
     result.error = AIError.GetLastError(); result.opcodes += budget.end("build_road_stops");
-    OpexRoadRollback(stopA, null, null, built, added, extras);
+    OpexRoadRollback(stopA, null, null, built, added);
     result.actualCost = costs.GetCosts();
     result.reason = "BSTOP"; return result;
   }
@@ -1095,39 +1088,9 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
   if (!AIStation.IsValidStation(stationA) || !AIStation.IsValidStation(stationB) || stationA == stationB) {
     result.opcodes += budget.end("build_road_stops");
     result.actualCost = costs.GetCosts();
-    OpexRoadRollback(stopA, stopB, null, built, added, extras); result.reason = "STATION"; return result;
+    OpexRoadRollback(stopA, stopB, null, built, added); result.reason = "STATION"; return result;
   }
 
-  /* Multistop (road_multistop, defaut 0) : un arret extra par bout, meme facade, joint au
-   * primaire. Le classement reste a MAX_ROAD_VEHICLES = 2 ; les berths supplementaires et les
-   * clones ne viennent que si les deux bouts ont double. Un echec d'extra n'annule pas la ligne. */
-  /* Un deuxieme quai adjacent est utile au fret, mais constitue precisement un second arret bus
-   * au bassin superpose. Les passagers grandissent desormais par extensions espacees. */
-  if (ROAD_MULTISTOP && !driveThrough && plan.vehType != AIRoad.ROADVEHTYPE_BUS) {
-    local noTile = {};
-    noTile.rawset(plan.stopA.tile, true);
-    noTile.rawset(plan.stopA.front, true);
-    noTile.rawset(plan.stopB.tile, true);
-    noTile.rawset(plan.stopB.front, true);
-    noTile.rawset(plan.depot.tile, true);
-    noTile.rawset(plan.depot.front, true);
-    foreach (edge in plan.trace) {
-      noTile.rawset(edge.from, true);
-      noTile.rawset(edge.to, true);
-    }
-    local joinA = OpexRoadTryJoinStop(plan.stopA, stationA, plan.vehType, noTile, added);
-    if (joinA != null) {
-      extras.append(joinA.tile);
-      noTile.rawset(joinA.tile, true);
-      noTile.rawset(joinA.front, true);
-      result.nStopsA = 2;
-    }
-    local joinB = OpexRoadTryJoinStop(plan.stopB, stationB, plan.vehType, noTile, added);
-    if (joinB != null) {
-      extras.append(joinB.tile);
-      result.nStopsB = 2;
-    }
-  }
   result.opcodes += budget.end("build_road_stops");
 
   budget.begin();
@@ -1155,7 +1118,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
       AIRoad.AreRoadTilesConnected(plan.depot.tile, plan.depot.front)) depot = plan.depot.tile;
   result.opcodes += budget.end("build_road_depot");
   if (depot == null) {
-    result.error = AIError.GetLastError(); OpexRoadRollback(stopA, stopB, null, built, added, extras);
+    result.error = AIError.GetLastError(); OpexRoadRollback(stopA, stopB, null, built, added);
     result.actualCost = costs.GetCosts();
     result.reason = "DEPOT"; return result;
   }
@@ -1164,7 +1127,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
   local capacity = OpexRoadRefitCapacity(depot, candidate.engine, cargo);
   if (capacity <= 0) {
     result.opcodes += budget.end("build_road_vehicles");
-    OpexRoadRollback(stopA, stopB, depot, built, added, extras);
+    OpexRoadRollback(stopA, stopB, depot, built, added);
     result.actualCost = costs.GetCosts();
     result.reason = "REFIT"; return result;
   }
@@ -1172,14 +1135,14 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
   if (!AIVehicle.IsValidVehicle(first)) {
     result.error = AIError.GetLastError(); result.opcodes += budget.end("build_road_vehicles");
     result.actualCost = costs.GetCosts();
-    OpexRoadRollback(stopA, stopB, depot, built, added, extras); result.reason = "VEH"; return result;
+    OpexRoadRollback(stopA, stopB, depot, built, added); result.reason = "VEH"; return result;
   }
   built.append(first);
   if (AIVehicle.GetCapacity(first, cargo) <= 0 ||
       !AIRoad.RoadVehHasPowerOnRoad(AIVehicle.GetRoadType(first), catalog.roadType)) {
     result.opcodes += budget.end("build_road_vehicles");
     result.actualCost = costs.GetCosts();
-    OpexRoadRollback(stopA, stopB, depot, built, added, extras); result.reason = "POWER"; return result;
+    OpexRoadRollback(stopA, stopB, depot, built, added); result.reason = "POWER"; return result;
   }
 
   /* Ordres. La regle du fret vient directement de l'effondrement rail du 2026-08-28 : une ligne de
@@ -1202,7 +1165,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
   if (!orderA || !orderB || AIOrder.GetOrderCount(first) != 2) {
     result.error = !orderA ? errorA : errorB; result.opcodes += budget.end("build_road_vehicles");
     result.actualCost = costs.GetCosts();
-    OpexRoadRollback(stopA, stopB, depot, built, added, extras); result.reason = "ORDERS"; return result;
+    OpexRoadRollback(stopA, stopB, depot, built, added); result.reason = "ORDERS"; return result;
   }
 
   /* Les vehicules suivants sont CLONES du premier avec partage d'ordres : le clone reprend le
@@ -1211,23 +1174,16 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
    * ce qui vaut mieux qu'un rollback complet pour un vehicule d'appoint.
    * ⚠️ Le plafond vient du jeu, pas de nous : un arret n'accueille que DEUX vehicules a la fois,
    * au-dela ils font la queue sur la route et se bloquent (docs/mecanique_jeu.md S11). C'est
-   * MAX_ROAD_VEHICLES dans economy.nut qui borne candidate.trains. Le multistop relache ce
-   * plafond seulement si les DEUX bouts ont un arret extra (2 berths x min(nA,nB)). */
+   * MAX_ROAD_VEHICLES dans economy.nut qui borne candidate.trains. */
   /* marginal_fleet = 1 (2026-09-01) : demarrage MINIMAL. On ne clone plus tout de suite jusqu'a
    * candidate.trains (le plein du modele predictif) -- on part a 1 seul vehicule, et
    * _refleetRoadLines (main.nut) fait grandir la ligne APRES avoir mesure un profit reel, borne
-   * par OpexRoadPhysicalVehicleCap. Le repli berths (road_multistop) est donc lui aussi saute ici :
+   * par OpexRoadPhysicalVehicleCap. Le demarrage minimal garde donc un seul vehicule ici :
    * il n'a plus de sens d'elargir tout de suite une ligne qu'on vient de retrecir a 1 par principe.
    * Sous 0 (defaut), ce bloc est un no-op et le chemin d'avant est rigoureusement identique. */
   local want = candidate.trains;
   if (MARGINAL_FLEET) {
     want = 1;
-  } else {
-    /* Gardé inline volontairement : sous B3=0 ce chemin doit conserver son coût/opcode historique. */
-    local nMin = result.nStopsA < result.nStopsB ? result.nStopsA : result.nStopsB;
-    if (nMin < 1) nMin = 1;
-    local berths = 2 * nMin;
-    if (ROAD_MULTISTOP && berths > want) want = berths;
   }
   for (local i = 1; i < want; i++) {
     /* `clone` est un MOT RESERVE de Squirrel (l'operateur de copie) : le nommer ainsi fait echouer
@@ -1248,7 +1204,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
       result.error = AIError.GetLastError();
       result.opcodes += budget.end("build_road_vehicles");
       result.actualCost = costs.GetCosts();
-      OpexRoadRollback(stopA, stopB, depot, built, added, extras); result.reason = "START"; return result;
+      OpexRoadRollback(stopA, stopB, depot, built, added); result.reason = "START"; return result;
     }
   }
   result.opcodes += budget.end("build_road_vehicles");

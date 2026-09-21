@@ -529,9 +529,7 @@ function OpexApplyRoadEconomics(candidate, economics, actualDistance = null)
  *     DEUX bus a la fois", idem pour une aire de chargement camion. Au-dela les vehicules font la
  *     queue SUR LA ROUTE et se bloquent. Le modele rail a son propre plafond MAX_RAIL_TRAINS et
  *     prescrirait donc une flotte auto-congestionnee. MAX_ROAD_VEHICLES = 2 est la traduction
- *     directe de la regle du jeu, pas une precaution. Le levier de volume est le multistop
- *     (reglage road_multistop, defaut 0) : un arret extra joint par bout, clones seulement
- *     si les deux bouts ont double. Le classement ici reste borne a 2.
+ *     directe de la regle du jeu, pas une precaution. Le classement ici reste borne a 2.
  *  2. Le rendement de vitesse. Un vehicule routier traverse des villes, s'arrete a chaque
  *     extremite et suit un trace en L (deux angles droits par sens) sur des distances ou
  *     l'acceleration compte proportionnellement bien plus que sur une ligne rail de 50 tuiles.
@@ -590,7 +588,7 @@ function OpexRoadPaxUniqueMonthly(capturedA, capturedB, distance)
  * et partout ou elle est lue. Sous 1, cette fonction et _refleetRoadLines (main.nut) retombent sur
  * la borne PHYSIQUE reellement justifiee : 2 vehicules par quai simultanement joint a chaque bout,
  * cf. docs/mecanique_jeu.md S11. Au classement, les quais ne sont pas encore construits -- on
- * suppose donc le cas de base (1 quai par bout, comme road_multistop = 0), soit un plafond de 2 ;
+ * suppose donc le cas de base (1 quai par bout), soit un plafond de 2 ;
  * OpexRoadPhysicalVehicleCap est reappelee en aval (builder_road.nut, main.nut) avec les VRAIS
  * comptes de quais une fois la ligne construite. */
 function OpexRoadPhysicalVehicleCap(nStopsA, nStopsB)

@@ -285,11 +285,6 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
                                + AICargo.GetCargoLabel(candidate.cargo));
       OpexSign(anchor, "RC|" + yy + "|" + idx + "|1|" + result.cost
                                + "|" + result.vehicles.len());
-      if (ROAD_MULTISTOP) {
-        OpexSign(anchor, "RM|" + yy + "|" + idx + "|1|"
-                                 + result.nStopsA + "|" + result.nStopsB + "|"
-                                 + result.vehicles.len());
-      }
       this._lines.append({
         stationA = result.stopA, stationB = result.stopB,
         originA = candidate.src, originB = candidate.dst,
