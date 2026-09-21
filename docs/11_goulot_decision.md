@@ -538,3 +538,31 @@ Le 2/5 du §15 n'est pas le signe d'une mauvaise interaction avec AAAHogEx. En d
 proche de zéro, et du même ordre que le bruit d'un rejeu à l'autre. **Un 5×6 en duel ne peut
 donc pas trancher le critère du §10.** L'étape 4 (20×10, test des signes) a été conçue pour ce
 cas, mais le critère écrit de l'étape 3 reste formellement non atteint.
+
+---
+
+## 17. Étape 4 — banc d'autorité 20×10 en duel (2026-09-21)
+
+Campagne `c69_step4_c70c69_vs_c70_10y_20seeds`, lancée sur le PC de l'utilisateur (9 workers),
+code `1df5cfb`, `dirty=0`, 20/20 paires complètes. Résultats :
+`results/c69_step4_c70c69_vs_c70_10y_20seeds.json` ; journal `results/c69_step4.log` (UTF-16).
+
+| métrique, `c70_c69` − `c70` | moyenne | médiane | V / D | lecture |
+|---|---:|---:|---|---|
+| **`profit_year`** (primaire) | **+87,6 k£/an** (+5,6 %) | +71,6 k£ | **12 / 8**, p = 0,50 | IC95 [−45,6 ; +220,9] k£ |
+| `company_value` (garde) | −187 k£ (−2,2 %) | +33 k£ | 11 / 9 | garde −5 % tenue |
+| véhicules | −7,7 | −11 | 5 / 15 | |
+| note de gare médiane | −5,1 | −6 | **3 / 16** | |
+| aéroports OpexAI | **+5,65** | +5,5 | **19 / 1** | |
+| panneaux d'erreur aérienne `OE\|A\|771` | +103 | +99 | 19 / 1 | cause non examinée |
+
+**Verdict : `fail_primary`.** Le test des signes donne 12/20, loin de 15/20. L'écart moyen dépasse
+le seuil de +50 k£, mais son intervalle de confiance contient zéro. **C69 n'est pas adopté ;
+`c69_decision_bottleneck` reste à 0.** C'est le cas B de `14_suites_c69.md` : échec, écart moyen
+positif.
+
+**Ce que le banc montre sans ambiguïté** : le levier construit **plus d'aéroports** (19/20) avec
+**moins de véhicules** (15/20), et la **note de gare baisse** (16/20). C'est le risque 5 du §9 : le
+régime « décision » ouvre des lignes qu'il ne remplit pas, parce qu'un renfort de flotte est plafonné
+à 4 avions et qu'une ligne neuve naît à 1 avion. Le contrat 2 de l'annexe B (lots de flotte au
+besoin mesuré) vise exactement ce mécanisme.

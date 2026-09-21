@@ -22,7 +22,7 @@ comme une file active.
 
 | Statut courant | Chantier | Travail restant / règle de reprise |
 |---|---|---|
-| **EN ATTENTE DÉCISION — 2026-09-21** | **C69 goulot de décision + C70 calibration par mode** | `docs/11_goulot_decision.md`, `docs/12_calibration_par_mode.md`. Étapes 1-2 faites, deux réglages à défaut 0. Étape 3 (5×6) : solo 4/5 (+18 %), duel 2/5, critère de passage non atteint. |
+| **NON ADOPTÉ — 2026-09-21** | **C69 goulot de décision + C70 calibration par mode** | 20×10 duel `c70_c69` contre `c70` : `profit_year` +87,6 k£/an mais 12/20 (p = 0,50), `fail_primary`. Plus d'aéroports (19/20), moins de véhicules, note de gare en baisse (16/20). Suite : cas B de `docs/14_suites_c69.md`, lots de flotte au besoin mesuré. |
 | **ABANDONNÉ — 2026-09-21** | **AIR post-C68 — frontière capital→profit réseau** | Retour à `b68fafb`. Ne pas reprendre le λ global sans nouvelle formulation et nouvelle preuve indépendante. |
 | **CLOS / RETIRÉ** | **Opcodes AIR / sélecteur de projets** | Les caches, heaps, enveloppes et snapshots ajoutés pour la frontière/lifecycle sont abandonnés avec ces politiques. |
 | **COMMENCÉ — EN PAUSE** | **C61 AIR : délai/capacité aéroport** | Mesurer rotations, attente, demande et occupation avant de toucher `airportDelayDays` ou la cadence. |
