@@ -387,6 +387,7 @@ function OpexAI::Start()
 
   if (!STAGED_BOOTSTRAP) this._generationStage = OPEX_STAGE_COMPLETE;
 
+  if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
   if (TENSION_PROBE) OpexTensionEnable(this._budget);
   if (C49_SCARCITY_LEDGER) {
     this._c49ScarcityLedger = { passes = 0, cash = 0, vehicles = 0, site = 0,
@@ -449,7 +450,10 @@ function OpexAI::Start()
       }
     }
     this._processEvents();
-    this._runNextTaskWithSlackLedger();
-    AIController.Sleep(1);
+    if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {
+    } else {
+      this._runNextTaskWithSlackLedger();
+      AIController.Sleep(1);
+    }
   }
 }

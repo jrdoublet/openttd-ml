@@ -636,8 +636,8 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
   local vehicles = vehiclesForVolume;
   if (vehicles < 1) vehicles = 1;
   local roadBerthCapacity = OpexRoadPhysicalVehicleCap(1, 1);
-  local roadVehicleCap = roadBerthCapacity;
-  if (ROAD_TIME_SCALED_CAP && kind == "pax") {
+  local roadVehicleCap = OPEX_ECONOMY_OPCODE_COMPAT_FALSE ? 1 : roadBerthCapacity;
+  if (!OPEX_ECONOMY_OPCODE_COMPAT_FALSE && ROAD_TIME_SCALED_CAP && kind == "pax") {
     roadVehicleCap = OpexRoadFleetVehicleCap(1, 1, oneWayDays, kind);
   }
   if (vehicles > roadVehicleCap) vehicles = roadVehicleCap;

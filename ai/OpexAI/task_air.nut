@@ -304,6 +304,7 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
         if (townAId >= 0) OpexC60ObserveTownRating("air", "build_precheck", townAId);
         if (townBId >= 0) OpexC60ObserveTownRating("air", "build_precheck", townBId);
       }
+      if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
       local maxPerYear = 30;
       local maxTotal = 250;
       local airLinesThisYear = 0;
@@ -627,6 +628,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     // Condition 1 : Les appareils existants ne doivent pas etre deficitaires
     if (("lastProfit" in line) && line.lastProfit < 0) { OpexAirFleetRefusal(line, year, "L"); continue; }
 
+    if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE && AIR_FLEET_BUFFER < 0) {}
     local isSmallAirport = false;
     if ((AIAirport.IsAirportTile(line.stationA) && AIAirport.GetAirportType(line.stationA) == AIAirport.AT_SMALL) ||
         (AIAirport.IsAirportTile(line.stationB) && AIAirport.GetAirportType(line.stationB) == AIAirport.AT_SMALL)) {
@@ -643,7 +645,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     if (("lastProfit" in line) && line.lastProfit < 0) { OpexAirFleetRefusal(line, year, "L"); continue; }
 
     local planePrice = (this._catalog.plane != null) ? this._catalog.plane.price : 30000;
-    if (AIR_FLEET_LINE_PRICE && ("vehicles" in line)) {
+    if ((OPEX_ECONOMY_OPCODE_COMPAT_FALSE || AIR_FLEET_LINE_PRICE) && ("vehicles" in line)) {
       foreach (v in line.vehicles) {
         if (!AIVehicle.IsValidVehicle(v) || AIVehicle.GetVehicleType(v) != AIVehicle.VT_AIR) continue;
         local ownPrice = AIEngine.GetPrice(AIVehicle.GetEngineType(v));
@@ -657,7 +659,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     local airMarginPadding = false;
     local need = planePrice + OpexCashReserve() + (airMarginPadding ? 0 : 2000);
     local addedThisPass = 0;
-    local maxAddedPerPass = 4;
+    local maxAddedPerPass = OPEX_ECONOMY_OPCODE_COMPAT_FALSE ? 1 : 4;
     /* C14 : Dimensionnement dynamique de flotte par le stock au sol (AAAHogEx route.nut:2896-2921).
      * Si AIR_FLEET_BUFFER >= 0 : calcule buildNum = (maxWait - bottom) / capacity.
      * Si buildNum < 1 : refus W (pas assez de cargo au sol).

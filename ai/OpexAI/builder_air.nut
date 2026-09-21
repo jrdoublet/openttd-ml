@@ -491,6 +491,7 @@ function OpexAirFindSite(town, airport, probes)
   if (C60_TOWN_RATING_PROBE) {
     OpexC60ObserveTownRating("air", "find_site", town.id);
   }
+  if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
   local key = town.id + "_" + airport.type;
   if (AIR_SITE_CACHE_ENABLED && (key in AIR_SITE_CACHE)) {
     local cachedAnchor = AIR_SITE_CACHE[key];
@@ -690,8 +691,8 @@ function OpexAirEconomics(catalog, airport, plane, distance, monthlyPax,
 
   /* Plafond d'appareils initial : le portefeuille flotte demarre a un seul avion. */
   local isSmall = (airport.type == AIAirport.AT_SMALL || airport.type == AIAirport.AT_COMMUTER);
-  local maxAllowed = FLEET_PORTFOLIO ? 1 : ((newAirportCount == 2) ? 3 : (isSmall ? 4 : 6));
-  if (!FLEET_PORTFOLIO && OPEX_AIR_PLAN_PAD && opcodePadding > 0) maxAllowed = opcodePadding;
+  local maxAllowed = (OPEX_ECONOMY_OPCODE_COMPAT_FALSE || FLEET_PORTFOLIO) ? 1 : ((newAirportCount == 2) ? 3 : (isSmall ? 4 : 6));
+  if (!OPEX_ECONOMY_OPCODE_COMPAT_FALSE && !FLEET_PORTFOLIO && OPEX_AIR_PLAN_PAD && opcodePadding > 0) maxAllowed = opcodePadding;
   /* Dimensionnement cible selon le volume passagers */
   local targetPlanes = OpexCeilDiv(monthlyPax, capacityPerPlane.tointeger());
   if (targetPlanes < 1) targetPlanes = 1;

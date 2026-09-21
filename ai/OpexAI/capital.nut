@@ -1,7 +1,9 @@
 /* C65 : deplace depuis main.nut (passe 1, deplacement pur, aucun corps retouche). */
 function OpexCashReserve()
 {
-  if (!DYNAMIC_CASH_RESERVE) return CASH_RESERVE_STATIC;
+  if (!DYNAMIC_CASH_RESERVE) {
+    if (!OPEX_ECONOMY_OPCODE_COMPAT_FALSE) return CASH_RESERVE_STATIC;
+  }
   local totalRunning = 0;
   local vehicles = AIVehicleList();
   vehicles.Valuate(AIVehicle.GetRunningCost);
@@ -18,6 +20,7 @@ function OpexCashReserve()
     reserve = CASH_RESERVE_MAX;
     if (CASH_RESERVE_PROBE) CASH_RESERVE_PROBE_MAX_BINDS++;
   } else reserve = quarterlyBuffer;
+  if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
   return reserve;
 }
 /* Capital effectivement mobilisable par le portefeuille. Cette valeur doit toujours etre relue
@@ -27,7 +30,10 @@ function OpexCashReserve()
 function OpexAvailableCapital()
 {
   local cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
-  local available = cash - OpexCashReserve();
+  local borrowable = OPEX_ECONOMY_OPCODE_COMPAT_FALSE
+      ? AICompany.GetMaxLoanAmount() - AICompany.GetLoanAmount() : 0;
+  if (borrowable < 0) borrowable = 0;
+  local available = cash + borrowable - OpexCashReserve();
   return available > 0 ? available : 0;
 }
 /* Remboursement annuel : une fois la tresorerie confortablement au-dessus du plancher, on

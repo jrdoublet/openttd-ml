@@ -1139,6 +1139,7 @@ function OpexBuildRoadRoute(catalog, budget, plan, candidate)
    * au-dela ils font la queue sur la route et se bloquent (docs/mecanique_jeu.md S11). C'est
    * MAX_ROAD_VEHICLES dans economy.nut qui borne candidate.trains. */
   local want = candidate.trains;
+  if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
   for (local i = 1; i < want; i++) {
     /* `clone` est un MOT RESERVE de Squirrel (l'operateur de copie) : le nommer ainsi fait echouer
      * la compilation du fichier entier, et l'echec est presque muet -- une seule ligne dans la

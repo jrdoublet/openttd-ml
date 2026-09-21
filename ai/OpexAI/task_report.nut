@@ -12,7 +12,7 @@ function OpexAI::_reportLines(year)
     local stationB = AIStation.GetStationID(line.stationB);
     local vehicleType = OpexLineVehicleType(line);
     if (!AIStation.IsValidStation(stationA)) {
-      if (vehicleType == AIVehicle.VT_AIR) {
+      if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE || vehicleType == AIVehicle.VT_AIR) {
         local streak = ("deadStreak" in line) ? line.deadStreak : 0;
         line.deadStreak <- streak + 1;
         if (!("scrapping" in line)) line.scrapping <- false;
@@ -604,6 +604,7 @@ function OpexAI::_reportYear(year, ranked)
   OpexSign(anchor, "CE|" + year + "|" + stats.economicsUnavailable + "|"
                            + stats.profitNonPositive + "|" + stats.ratioTooLow);
   OpexSign(anchor, "CK|" + year + "|" + stats.accepted + "|" + stats.topKOmitted);
+  if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
 
   if (best != null) {
     OpexSign(anchor, "OB|" + year + "|" + best.distance

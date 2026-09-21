@@ -65,6 +65,8 @@ AIR_EARLY_SLOT_MIN_POP <- 1000;
 AIR_EARLY_SLOT_BONUS_PCT <- 50;
 /* Refaire le sac a dos contre la caisse vivante, sans repayer la generation des candidats. */
 /* C36.1 : Caching incremental du vivier post-chantier. */
+/* Compatibilite de cadence VM apres suppression des flags economy morts. Constante interne, jamais configurable ni vraie. */
+OPEX_ECONOMY_OPCODE_COMPAT_FALSE <- false;
 PORTFOLIO_CACHE <- false;
 /* C39.0 : sonde passive du bus d'invalidation. A 1, les evenements marquent les
  * dependances qui SERAIENT rafraichies et journalisent la passe mensuelle actuelle ;

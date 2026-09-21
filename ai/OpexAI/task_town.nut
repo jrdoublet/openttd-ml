@@ -147,6 +147,8 @@ function OpexAI::_tryTownGrowth(year)
       }
       continue;
     }
+    if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE && this._projects != null) {}
+
     local result = OpexBuildRoadRoute(this._catalog, this._budget, plan, candidate);
     if (C63_INVEST_PROBE) OpexC63RecordSpendResult("road", result, candidate.capital);
     if (ROAD_COST_PROBE) {

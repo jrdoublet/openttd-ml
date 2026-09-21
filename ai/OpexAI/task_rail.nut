@@ -169,6 +169,8 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
         if (towns.dstTown >= 0) OpexC60ObserveTownRating("rail", "build_precheck", towns.dstTown);
       }
 
+      if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
+
       local close = this._tooClose(candidate);
       if (close.hard >= 0) {
         if (DECISION_LOG || C49_SCARCITY_LEDGER || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "rail", src = candidate.src, dst = candidate.dst, reason = "too_close_hard", extra = "" });

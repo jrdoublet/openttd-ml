@@ -738,6 +738,7 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
                                       distance, economics, stats);
     }
     stats.profitNonPositive++;
+    if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
     return null;
   }
 
@@ -763,9 +764,11 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
    * le classement sans rien predire, et C27 avait deja du les sortir du numerateur de densite parce
    * qu'ils faussaient un diagnostic entier. Tous les modes concourent desormais
    * sur leur ROI estime. */
-  local adjustedRoi = (economics.roi * turnoverBonus) / 100;
+  local freightBonus = 100;
+  if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE && kind == "freight") {}
+  local adjustedRoi = (((economics.roi * turnoverBonus) / 100) * freightBonus) / 100;
   local ratio = opcodeRatio + (adjustedRoi * 15);
-  local effectiveRoi = economics.roi;
+  local effectiveRoi = (economics.roi * freightBonus) / 100;
 
   stats.accepted++;
   return {
@@ -800,6 +803,7 @@ function OpexMakeCandidate(catalog, kind, cargo, srcTile, dstTile, monthly, orig
     roi = effectiveRoi,
     /* B6 diagnostic : le bonus de rotation agit sur ratio/TopK en amont, pas sur ce roi. */
     turnoverBonus = turnoverBonus,
+    freightBonus = freightBonus,
     isTransformer = isTransformer,
     profitAnnual = economics.profitAnnual,
     /* Detail du calcul, garde pour l'instrumentation predit-vs-reel (cf. main.nut). */
@@ -1068,6 +1072,7 @@ function OpexPaxCandidates(catalog, lines, out, stats, abandonedPairs = null, pr
         OpexC60ObserveTownRating("rail", "candidate_gen", towns[a].id);
         OpexC60ObserveTownRating("rail", "candidate_gen", towns[b].id);
       }
+      if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
       if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null) {
         local tA = towns[a].id;
         local tB = towns[b].id;
@@ -1203,6 +1208,7 @@ function OpexFreightCandidates(catalog, lines, out, stats, abandonedPairs = null
           if (C60_TOWN_RATING_PROBE) {
             OpexC60ObserveTownRating("rail", "candidate_gen", town.id);
           }
+          if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
           local candidateMark = profile != null ? OpexOpsMeasureBegin() : null;
           local candidate = OpexMakeCandidate(catalog, "freight", cargo, source.tile,
                                               town.tile, townMonthly, false, stats, false, profile, cruiseCache);
@@ -1244,6 +1250,7 @@ function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, prof
     distanceShort = 0, distanceLong = 0, economicsUnavailable = 0,
     profitNonPositive = 0, ratioTooLow = 0, accepted = 0, topKOmitted = 0,
   };
+  if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
   if (PAX_NEAR) stats.paxNearAdmitted <- 0;
 
   local paxMark = profile != null ? OpexOpsMeasureBegin() : null;
@@ -1414,7 +1421,9 @@ function OpexMakeRoadCandidate(catalog, kind, cargo, src, dst, srcTown, dstTown,
     if ("profitBelowFloorKept" in stats) stats.profitBelowFloorKept++;
   }
   local iterations = OpexRoadIterations(distance);
-  local effectiveRoi = economics.roi;
+  local freightBonus = 100;
+  if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE && kind == "freight") {}
+  local effectiveRoi = (economics.roi * freightBonus) / 100;
   stats.accepted++;
   return {
     mode = "road",
@@ -1439,6 +1448,7 @@ function OpexMakeRoadCandidate(catalog, kind, cargo, src, dst, srcTown, dstTown,
     capital = economics.capital,
     immobilise = ("immobilise" in economics) ? economics.immobilise : 0,
     roi = effectiveRoi,
+    freightBonus = freightBonus,
     isTransformer = isTransformer,
     profitAnnual = economics.profitAnnual,
     revenueAnnual = economics.revenueAnnual,
@@ -1561,6 +1571,7 @@ function OpexRoadPaxCandidates(catalog, lines, out, stats, abandonedPairs = null
         OpexC60ObserveTownRating("road", "candidate_gen", towns[a].id);
         OpexC60ObserveTownRating("road", "candidate_gen", towns[b].id);
       }
+      if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
       local distance = AIMap.DistanceManhattan(towns[a].tile, towns[b].tile);
       if (distance < roadBounds.roadMin || distance > roadBounds.roadMax) {
         if (distance < roadBounds.roadMin) stats.roadDistanceShort++;
@@ -1754,6 +1765,7 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
         if (C60_TOWN_RATING_PROBE) {
           OpexC60ObserveTownRating("road", "candidate_gen", towns[t].id);
         }
+        if (OPEX_ECONOMY_OPCODE_COMPAT_FALSE) {}
         local candidateMark = (profile != null && C41_ROAD_FREIGHT_TOWN_PROFILE)
             ? OpexOpsMeasureBegin() : null;
         local candidate = OpexMakeRoadCandidate(catalog, "freight", cargo, source.tile,
