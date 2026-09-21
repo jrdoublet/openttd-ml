@@ -9,7 +9,6 @@ function OpexC50ResetNonExpansionLedger()
       ref_D = 0,
       ref_L = 0,
       ref_C = 0,
-      ref_Q = 0,
       ref_S = 0,
       ref_W = 0,
       ref_M = 0,

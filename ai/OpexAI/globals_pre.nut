@@ -43,9 +43,6 @@ AIR_COST_PROBE <- false;
 /* Symetrique route de RAIL_COST_PROBE/AIR_COST_PROBE, jamais construit avant (docs/taches.md,
  * retrouve le 2026-09-08). Panneau RP| par tentative, reussie ou non (RC| deja pris). */
 ROAD_COST_PROBE <- false;
-/* air_presite : sonder les deux sites en AITestMode avant d'engager le capital du premier
- * aeroport. Inerte par defaut jusqu'au verdict du banc. */
-AIR_PRESITE <- false;
 /* C33.2 : Arrets de rabattement joints dans le chantier aeroport */
 AIR_JOINED_STOPS <- false;
 /* B9/G4 : sonde passive post-chantier du catchment AIR. Defaut 0 : aucune tuile
@@ -283,17 +280,6 @@ DYNAMIC_CASH_RESERVE <- true;
  * contre jusqu'a 3 mois (quarterlyBuffer) ou un forfait fixe selon la branche. Defaut a false pour
  * ne rien changer tant que le banc n'a pas tranche -- voir OpexCashReserve() plus bas. */
 RESERVE_MAINT_CAP <- false;
-/* Marges de tresorerie exigees EN PLUS de la reserve, sur le chemin aerien. Decision utilisateur
- * du 2026-09-03, tirée du diagnostic 1v1 (results/diag_1v1_decisions.json) : la marge de 30 000 £ est
- * d'un ordre de grandeur au-dessus de la reserve (~7 000 £), donc c'est elle qui gate reellement.
- *   refleet (croissance d'une ligne existante) : 2 000 -> 0, il n'y a rien a couvrir ;
- *   2 aeroports neufs : 30 000 -> 15 000 (valeur demandee) ;
- *   1 aeroport neuf   : 12 000 -> 6 000 (moitie, pour que les paliers restent ordonnes : 15 000
- *                       pour deux aeroports contre 12 000 pour un seul n'aurait plus de sens) ;
- *   0 aeroport neuf (les deux reutilises) : 2 000 -> 0, ce n'est pas une construction.
- * Defaut a false tant que le banc n'a pas tranche, et reglage SEPARE de reserve_maint_cap pour
- * que la mesure puisse attribuer -- c'est la lecon du lot de treize corrections groupees. */
-AIR_MARGIN_V2 <- false;
 /* P1 : repli empirique temporaire du filtre de finançabilité. Le ×1,7 rail
  * est consigné sans artefact source encore présent ; P1.1 doit le remplacer
  * par un devis physique avant élection. Les autres modes restent à 1,0. */
@@ -318,15 +304,14 @@ ABANDON_MEMORY_TRANSIENT_GUARD <- true;
  * `/(routes+1)` toujours divisee par 1. 1 = resolution correcte tuile -> StationID ;
  * 0 = comportement casse d'avant le 2026-09-03, pour que le banc puisse chiffrer l'ecart. */
 AIR_HUB_FIX <- true;
-/* Plafonds de demande separes pour garder un banc factoriel : croissance et plan. */
-AIR_DEMAND_CAP <- false;
-AIR_DEMAND_PLAN <- false;
+/* Preserve NoAI suspend cadence after pruning false-only AIR branches. */
+OPEX_AIR_CAP_PAD <- false;
+OPEX_AIR_PLAN_PAD <- false;
 /* C15 : cadence minimale d'agrandissement de flotte en jours (7 = hebdomadaire, 365 = defaut annuel historique). */
 AIR_FLEET_CADENCE_DAYS <- 7;
 /* C14 : tampon de cargo au sol pour achat proportionnel (-1 = inactif/defaut). */
 AIR_FLEET_BUFFER <- -1;
 PAX_FULL_LOAD <- true;
-AIR_FULL_LOAD <- false;
 C53_ORDER_NONSTOP <- false;
 C53_ORDER_NOLOAD <- false;
 COMPLEX_CARGO <- true;
@@ -339,8 +324,6 @@ ROAD_FLEET_FIX <- true;
 AIR_FLEET_LINE_PRICE <- true;
 /* C16 : Plafond physique de flotte aerienne derive de la cadence d'absorption de la piste */
 AIR_CADENCE_CAP <- true;
-/* C50 / C16 : Adaptation de air_cadence_cap selon la richesse de la carte en industries (< 50) */
-AIR_CADENCE_CAP_ADAPTIVE <- false;
 /* C26b : Correctif du faux embouteillage lorsque le vehicule est a l'arret a quai en chargement
  * Mesure a 10 ans et 3 ans : DEGRADE le profit de -17,6 % s'il n'est pas couple a MARGINAL_FLEET,
  * car il empile jusqu'a 16 camions sur des arrets a 1 seul quai. Defaut a false. */

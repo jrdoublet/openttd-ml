@@ -91,9 +91,12 @@ class TestB9AirCatchment(unittest.TestCase):
         self.assertIn("result.joinedRawMonthlyPaxA = joinedA.monthlyPax;", src)
         self.assertIn("result.joinedMonthlyPaxA = OpexAirJoinedMarginalProduction(", src)
         self.assertIn(
-            'local joinedMonthly = AIR_DEMAND_PLAN && ("joinedMonthlyPax" in result)',
+            'local joinedMonthly = OPEX_AIR_PLAN_PAD && ("joinedMonthlyPax" in result)',
             src,
         )
+        ai = BUILDER.parent
+        self.assertIn("OPEX_AIR_PLAN_PAD <- false;", (ai / "globals_pre.nut").read_text(encoding="utf-8"))
+        self.assertIn("OPEX_AIR_PLAN_PAD = false;", (ai / "settings.nut").read_text(encoding="utf-8"))
         reserve = src[src.index("function OpexAirReserveJoinedStops"):src.index(
             "function OpexAirAddPlane"
         )]

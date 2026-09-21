@@ -1,30 +1,30 @@
 /* C65 : deplace depuis main.nut (passe 1, deplacement pur, aucun corps retouche). */
 /* C56 follow-up: only airport placement failures identify a bad physical site.
  * A plane/order/cash failure must not poison either endpoint. */
-function OpexAI::_markAirFailedSites(plan, result)
+function OpexAI::_padAirFailedSites(plan, result)
 {
-  if ((!AIR_ABANDON_SITE && !AIR_TOWN_LIMIT_MEMORY) || plan == null || result == null || !("reason" in result)) return;
+  if ((!OPEX_AIR_SITE_PAD && !OPEX_AIR_TOWN_PAD) || plan == null || result == null || !("reason" in result)) return;
   if (!("airport" in plan) || plan.airport == null || !("error" in result)) return;
   local reason = result.reason;
-  if (AIR_TOWN_LIMIT_MEMORY && result.error == AIStation.ERR_STATION_TOO_MANY_STATIONS_IN_TOWN) {
+  if (OPEX_AIR_TOWN_PAD && result.error == AIStation.ERR_STATION_TOO_MANY_STATIONS_IN_TOWN) {
     if ((reason == "PREA" || reason == "AFAIL") && ("siteA" in plan) && plan.siteA != null) {
-      this._markPairAbandoned(OpexAirTownLimitAbandonKey(plan.siteA));
+      this._markPairAbandoned(OpexAirTownPaddingKey(plan.siteA));
     }
     if ((reason == "PREB" || reason == "BFAIL") && ("siteB" in plan) && plan.siteB != null) {
-      this._markPairAbandoned(OpexAirTownLimitAbandonKey(plan.siteB));
+      this._markPairAbandoned(OpexAirTownPaddingKey(plan.siteB));
     }
   }
-  if (!AIR_ABANDON_SITE) return;
+  if (!OPEX_AIR_SITE_PAD) return;
   /* Only terrain failures survive a different route, date or town rating. */
   if (result.error != AIError.ERR_FLAT_LAND_REQUIRED
       && result.error != AIError.ERR_LAND_SLOPED_WRONG
       && result.error != AIError.ERR_AREA_NOT_CLEAR
       && result.error != AIError.ERR_SITE_UNSUITABLE) return;
   if ((reason == "PREA" || reason == "AFAIL") && ("siteA" in plan) && plan.siteA != null) {
-    this._markPairAbandoned(OpexAirSiteAbandonKey(plan.siteA, plan.airport.type));
+    this._markPairAbandoned(OpexAirSitePaddingKey(plan.siteA, plan.airport.type));
   }
   if ((reason == "PREB" || reason == "BFAIL") && ("siteB" in plan) && plan.siteB != null) {
-    this._markPairAbandoned(OpexAirSiteAbandonKey(plan.siteB, plan.airport.type));
+    this._markPairAbandoned(OpexAirSitePaddingKey(plan.siteB, plan.airport.type));
   }
 }
 /* Liaison aerienne passagers a fort ROI. Deploie la tresorerie excedentaire sans A*. */
@@ -125,7 +125,8 @@ function OpexAI::_tryBuildAir(year)
 
     local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1) + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
     if (EQUIPMENT_ROI_PROBE) OpexM3ProbeAirEquipment(this._catalog, plan, "direct_selected");
-    local requiredMargin = AIR_MARGIN_V2
+    local airMarginPadding = false;
+    local requiredMargin = airMarginPadding
           ? ((newAirports == 2) ? 15000 : (newAirports == 1 ? 6000 : 0))
           : ((newAirports == 2) ? 30000 : (newAirports == 1 ? 12000 : 2000));
     local capital = ("capital" in plan) ? plan.capital : (newAirports * plan.airport.price + plan.plane.price);
@@ -164,7 +165,7 @@ function OpexAI::_tryBuildAir(year)
        * portefeuille memorise deja ses echecs (voir plus bas) ; ce chemin-ci ne le faisait pas. */
       if (AIR_ABANDON && ABANDON_MEMORY && OpexBuildFailureIsAbandonable(result)) {
         this._markPairAbandoned("air|" + plan.siteA.town.tile + "|" + plan.siteB.town.tile);
-        this._markAirFailedSites(plan, result);
+        this._padAirFailedSites(plan, result);
       }
       break;
     }
@@ -328,14 +329,14 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
         return { outcome = "rejected", discards = passDiscards };
       }
       local abandonedKey = "air|" + plan.siteA.town.tile + "|" + plan.siteB.town.tile;
-      local abandonedSiteA = OpexAirSiteAbandonKey(plan.siteA, plan.airport.type);
-      local abandonedSiteB = OpexAirSiteAbandonKey(plan.siteB, plan.airport.type);
-      local abandonedTownA = OpexAirTownLimitAbandonKey(plan.siteA);
-      local abandonedTownB = OpexAirTownLimitAbandonKey(plan.siteB);
+      local abandonedSiteA = OpexAirSitePaddingKey(plan.siteA, plan.airport.type);
+      local abandonedSiteB = OpexAirSitePaddingKey(plan.siteB, plan.airport.type);
+      local abandonedTownA = OpexAirTownPaddingKey(plan.siteA);
+      local abandonedTownB = OpexAirTownPaddingKey(plan.siteB);
       if (ABANDON_MEMORY && ((abandonedKey in this._abandonedPairs)
-          || (AIR_TOWN_LIMIT_MEMORY && ((!(("reuseA" in plan) && plan.reuseA) && (abandonedTownA in this._abandonedPairs))
+          || (OPEX_AIR_TOWN_PAD && ((!(("reuseA" in plan) && plan.reuseA) && (abandonedTownA in this._abandonedPairs))
               || (!(("reuseB" in plan) && plan.reuseB) && (abandonedTownB in this._abandonedPairs))))
-          || (AIR_ABANDON_SITE && ((abandonedSiteA in this._abandonedPairs)
+          || (OPEX_AIR_SITE_PAD && ((abandonedSiteA in this._abandonedPairs)
               || (abandonedSiteB in this._abandonedPairs))))) {
         if (DECISION_LOG || C63_INVEST_PROBE || MONTHLY_FUNNEL) passDiscards.append({ rank = i, mode = "air", src = plan.siteA.town.tile, dst = plan.siteB.town.tile, reason = "abandoned_pair", extra = "" });
         return { outcome = "rejected", discards = passDiscards };
@@ -344,7 +345,8 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
       local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1) + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
       if (EQUIPMENT_ROI_PROBE) OpexM3ProbeAirEquipment(this._catalog, plan, "portfolio_selected");
-      local requiredMargin = AIR_MARGIN_V2
+      local airMarginPadding = false;
+      local requiredMargin = airMarginPadding
           ? ((newAirports == 2) ? 15000 : (newAirports == 1 ? 6000 : 0))
           : ((newAirports == 2) ? 30000 : (newAirports == 1 ? 12000 : 2000));
       local capital = ("capital" in plan) ? plan.capital : (newAirports * plan.airport.price + plan.plane.price);
@@ -419,7 +421,7 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
         }
         if (ABANDON_MEMORY && OpexBuildFailureIsAbandonable(result)) {
           this._markPairAbandoned(abandonedKey);
-          this._markAirFailedSites(plan, result);
+          this._padAirFailedSites(plan, result);
         }
         return { outcome = "rejected", discards = passDiscards };
       }
@@ -494,8 +496,8 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
  * file ne le resonde pas a chaque cycle et ne gaspille donc pas d'opcodes. */
 /* Cause du refus de croissance d'une flotte aerienne, une seule fois par ligne et par an.
  * Codes : Y deja grandie cette annee, V aucun avion vivant, D ligne morte, L profit negatif,
- * C plafond physique de l'aeroport atteint, Q plafond de demande atteint,
- * S un an de mauvaise sante, K ligne en cours de rebut, M tresorerie, X l'achat a echoue. */
+ * C plafond physique de l'aeroport atteint, S un an de mauvaise sante,
+ * K ligne en cours de rebut, M tresorerie, X l'achat a echoue. */
 function OpexAirFleetRefusal(line, year, code)
 {
   if (C50_CHRONOLOGY_PROBE) {
@@ -538,7 +540,6 @@ function OpexAirFleetRefusal(line, year, code)
     else if (code == "D") reasonStr = "dead_line";
     else if (code == "L") reasonStr = "negative_profit";
     else if (code == "C") reasonStr = "airport_capacity_reached";
-    else if (code == "Q") reasonStr = "demand_cap_reached";
     else if (code == "S") reasonStr = "poor_health_streak";
     else if (code == "K") reasonStr = "scrapping";
     else if (code == "M") reasonStr = "insufficient_cash";
@@ -671,21 +672,9 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     if (AIR_CADENCE_CAP) {
       physicalMaxPlanes = OpexAirCadenceCap(line, this._catalog, this._lines);
     }
-    local maxPlanesForAirport = physicalMaxPlanes;
     if (have >= physicalMaxPlanes) { OpexAirFleetRefusal(line, year, "C"); continue; }
-    if (AIR_DEMAND_CAP) {
-      local demand = OpexAirDemandCap(line, this._catalog, this._lines);
-      if (demand.cap < maxPlanesForAirport) maxPlanesForAirport = demand.cap;
-      if (DECISION_LOG) {
-        OpexDecide("AIR_DEMAND_CAP", "line=" + line.lineId + " cap=" + demand.cap
-                   + " monthly_demand=" + demand.monthlyDemand
-                   + " capacity_per_plane=" + demand.capacityPerPlane
-                   + " routes_a=" + demand.routesA + " routes_b=" + demand.routesB
-                   + " planes=" + have + " physical_cap=" + physicalMaxPlanes
-                   + " applied_cap=" + maxPlanesForAirport);
-      }
-      if (have >= maxPlanesForAirport) { OpexAirFleetRefusal(line, year, "Q"); continue; }
-    }
+    local maxPlanesForAirport = physicalMaxPlanes;
+    if (OPEX_AIR_CAP_PAD) maxPlanesForAirport = maxPlanesForAirport;
     if (("deadStreak" in line) && line.deadStreak >= 1) { OpexAirFleetRefusal(line, year, "S"); continue; }
     if (("lastProfit" in line) && line.lastProfit < 0) { OpexAirFleetRefusal(line, year, "L"); continue; }
 
@@ -708,7 +697,8 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     /* Croissance d'une ligne aerienne EXISTANTE : aucun aeroport a batir, donc rien que
      * cette marge doive couvrir. 88 refus insufficient_cash pour 3 acceptations mesures
      * sur 3 parties x 2 ans (results/diag_1v1_decisions.json). */
-    local need = planePrice + OpexCashReserve() + (AIR_MARGIN_V2 ? 0 : 2000);
+    local airMarginPadding = false;
+    local need = planePrice + OpexCashReserve() + (airMarginPadding ? 0 : 2000);
     local addedThisPass = 0;
     // (d) au plus un avion par ligne et par an sous marginal_fleet=1 ; 4 (repli actuel) sous 0.
     local maxAddedPerPass = MARGINAL_FLEET ? 1 : 4;

@@ -406,7 +406,8 @@ function OpexProjectFromAir(catalog, plan, planningOps)
   if (economics.profitAnnual <= 0 || economics.revenueAnnual <= 0 ||
       economics.capital <= 0) return null;
   local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1) + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
-  local margin = AIR_MARGIN_V2
+  local airMarginPadding = false;
+  local margin = airMarginPadding
       ? ((newAirports == 2) ? 15000 : (newAirports == 1 ? 6000 : 0))
       : ((newAirports == 2) ? 30000 : (newAirports == 1 ? 12000 : 2000));
   local budgetCapital = economics.capital + margin;
@@ -854,14 +855,14 @@ function OpexCandidateIsAbandoned(p, abandonedPairs)
     if (plan != null && ("siteA" in plan) && ("siteB" in plan)) {
       local aKey1 = "air|" + plan.siteA.town.tile + "|" + plan.siteB.town.tile;
       local aKey2 = "air|" + plan.siteB.town.tile + "|" + plan.siteA.town.tile;
-      local siteAKey = OpexAirSiteAbandonKey(plan.siteA, plan.airport.type);
-      local siteBKey = OpexAirSiteAbandonKey(plan.siteB, plan.airport.type);
-      local townAKey = OpexAirTownLimitAbandonKey(plan.siteA);
-      local townBKey = OpexAirTownLimitAbandonKey(plan.siteB);
+      local siteAKey = OpexAirSitePaddingKey(plan.siteA, plan.airport.type);
+      local siteBKey = OpexAirSitePaddingKey(plan.siteB, plan.airport.type);
+      local townAKey = OpexAirTownPaddingKey(plan.siteA);
+      local townBKey = OpexAirTownPaddingKey(plan.siteB);
       if ((aKey1 in abandonedPairs) || (aKey2 in abandonedPairs)
-          || (AIR_TOWN_LIMIT_MEMORY && ((!(("reuseA" in plan) && plan.reuseA) && (townAKey in abandonedPairs))
+          || (OPEX_AIR_TOWN_PAD && ((!(("reuseA" in plan) && plan.reuseA) && (townAKey in abandonedPairs))
               || (!(("reuseB" in plan) && plan.reuseB) && (townBKey in abandonedPairs))))
-          || (AIR_ABANDON_SITE && ((siteAKey in abandonedPairs) || (siteBKey in abandonedPairs)))) return true;
+          || (OPEX_AIR_SITE_PAD && ((siteAKey in abandonedPairs) || (siteBKey in abandonedPairs)))) return true;
     }
   } else if (ABANDON_GEN_FILTER && ABANDON_MEMORY && (mode == "road" || mode == "rail")) {
     if (("payload" in p) && p.payload != null) {

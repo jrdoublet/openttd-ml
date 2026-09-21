@@ -319,13 +319,11 @@ function OpexLoadSettings()
   REBORROW = false;
   PAX_NEAR = false;
   PROBE_NEGATIVE = false;
-  AIR_DEMAND_CAP = false;
-  AIR_DEMAND_PLAN = false;
-  AIR_MARGIN_V2 = false;
+  OPEX_AIR_CAP_PAD = false;
+  OPEX_AIR_PLAN_PAD = false;
   RESERVE_MAINT_CAP = false;
-  AIR_PRESITE = false;
-  AIR_ABANDON_SITE = false;
-  AIR_TOWN_LIMIT_MEMORY = false;
+  OPEX_AIR_SITE_PAD = false;
+  OPEX_AIR_TOWN_PAD = false;
   WATER_SITE_CATALOG = false;
   WATER_DISCOVERY_REAL_FRONTS = false;
   WATER_LAKES_CONNECTIVITY = false;
@@ -343,9 +341,7 @@ function OpexLoadSettings()
   C42_SUBSIDIES = false;
   EVENT_VEHICLE_LOST = false;
   C60_TOWN_RATING_FILTER = false;
-  AIR_CADENCE_CAP_ADAPTIVE = false;
   AIR_MAX_DISTANCE = 0;
-  AIR_FULL_LOAD = false;
   C53_ORDER_NOLOAD = false;
   FLEET_BEFORE_NEW = false;
   TRANSIT_COST_PERMILLE = 0;

@@ -296,7 +296,6 @@ function OpexAI::_logC50AnnualReport(year)
     local airLines = 0;
     local airPlanes = 0;
     local airCapPhys = 0;
-    local airCapDemand = 0;
     local airLinesAtCap = 0;
     foreach (line in this._lines) {
       if (!("mode" in line) || line.mode != "air") continue;
@@ -307,22 +306,16 @@ function OpexAI::_logC50AnnualReport(year)
                       (AIAirport.IsAirportTile(line.stationB) && AIAirport.GetAirportType(line.stationB) == AIAirport.AT_SMALL);
       local physCap = isSmall ? 4 : AIR_MAX_PLANES_PER_ROUTE;
       if (AIR_CADENCE_CAP) physCap = OpexAirCadenceCap(line, this._catalog, this._lines);
-      local demCap = physCap;
-      if (AIR_DEMAND_CAP) {
-        local d = OpexAirDemandCap(line, this._catalog, this._lines);
-        if (d.cap < demCap) demCap = d.cap;
-      }
       airCapPhys += physCap;
-      airCapDemand += demCap;
-      if (have >= demCap) airLinesAtCap++;
+      if (have >= physCap) airLinesAtCap++;
     }
 
     local la = C50_NON_EXPANSION_LEDGER.air;
     OpexC50ChronologyLog("phase=c50b_non_expansion mode=air year=" + year
         + " lines=" + airLines + " planes_total=" + airPlanes
-        + " cap_physical=" + airCapPhys + " cap_demand=" + airCapDemand
+        + " cap_physical=" + airCapPhys
         + " lines_at_cap=" + airLinesAtCap + " want_sum=" + la.want_sum
-        + " ref_Y=" + la.ref_Y + " ref_C=" + la.ref_C + " ref_Q=" + la.ref_Q
+        + " ref_Y=" + la.ref_Y + " ref_C=" + la.ref_C
         + " ref_L=" + la.ref_L + " ref_M=" + la.ref_M + " ref_W=" + la.ref_W
         + " ref_D=" + la.ref_D + " ref_V=" + la.ref_V + " ref_S=" + la.ref_S
         + " ref_X=" + la.ref_X + " ref_R=" + la.ref_R);
