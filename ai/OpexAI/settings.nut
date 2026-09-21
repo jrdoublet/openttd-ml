@@ -321,8 +321,6 @@ function OpexLoadSettings()
   ROAD_TIME_SCALED_CAP = AIController.GetSetting("road_time_scaled_cap") != 0;
   C50B_ROAD_CAP_RELAX = false;
   C50B_RAIL_BACKLOG_RELAX = false;
-  C46_FREIGHT_GRID = false;
-  C46_FREIGHT_GRID_SHADOW = false;
   C49_VARIABLE_DENOMINATOR = false;
   C55_FREIGHT_ORIGIN_RELAX = false;
   C55_ROAD_ORIGIN_RELAX = false;

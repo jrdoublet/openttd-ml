@@ -241,10 +241,6 @@ C60_TOWN_RATING_LEDGER <- null;
 /* C56 : trace immediate du dispatch, nulle hors sonde. */
 C56_TASK_TRACE <- false;
 C56_LOOP_TICK_COUNT <- 0;
-/* C46 : Grille spatiale dirigee pour le fret rail et route. Maintenu a 0 par defaut suite au banc 20x10. */
-C46_FREIGHT_GRID <- false;
-/* C46 : Mode miroir d'assertion shadow entre grille et parcours cartesien historique. */
-C46_FREIGHT_GRID_SHADOW <- false;
 /* C50 : Sonde chronologique legere (tresorerie, profit par ligne, projets batis et refuses). */
 C50_CHRONOLOGY_PROBE <- false;
 /* C63+C58 : ledger annuel depenses / recettes / occasions. Nul hors sonde. */
