@@ -21,6 +21,7 @@ from pathlib import Path
 
 ROOT = Path("/work") if Path("/work").exists() else Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "sweeps"))
+from harness import parse_fields
 try:
     from bench_v2 import quarter_profit, year_profit
 except ImportError:
@@ -77,15 +78,6 @@ EMPTY_SPEND = {
     "planned_ok": 0, "actual_ok": 0, "n_ok": 0,
     "planned_fail": 0, "actual_fail": 0, "n_fail": 0,
 }
-
-
-def parse_fields(rest):
-    fields = {}
-    for token in (rest or "").split():
-        if "=" in token:
-            key, _, value = token.partition("=")
-            fields[key] = value
-    return fields
 
 
 def _ai(path):
