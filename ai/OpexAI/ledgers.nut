@@ -468,7 +468,7 @@ function OpexAI::_logC52AutoreplaceLedger(year)
       + " remap_line_vehicles=" + entry.remap_line_vehicles
       + " remap_line_vehicle=" + entry.remap_line_vehicle
       + " remap_scrap_vehicles=" + entry.remap_scrap_vehicles
-      + " remap_scrap_index=" + entry.remap_scrap_index + " untracked=" + entry.untracked
+      + " untracked=" + entry.untracked
       + " rail=" + entry.rail + " road=" + entry.road + " air=" + entry.air
       + " water=" + entry.water + " unknown=" + entry.unknown
       + " line_rail=" + entry.line_rail + " line_road=" + entry.line_road
@@ -477,7 +477,6 @@ function OpexAI::_logC52AutoreplaceLedger(year)
   entry.total_remap_line_vehicles += entry.remap_line_vehicles;
   entry.total_remap_line_vehicle += entry.remap_line_vehicle;
   entry.total_remap_scrap_vehicles += entry.remap_scrap_vehicles;
-  entry.total_remap_scrap_index += entry.remap_scrap_index;
   entry.total_untracked += entry.untracked;
   entry.total_rail += entry.rail;
   entry.total_road += entry.road;
@@ -488,18 +487,17 @@ function OpexAI::_logC52AutoreplaceLedger(year)
       + " remap_line_vehicles=" + entry.total_remap_line_vehicles
       + " remap_line_vehicle=" + entry.total_remap_line_vehicle
       + " remap_scrap_vehicles=" + entry.total_remap_scrap_vehicles
-      + " remap_scrap_index=" + entry.total_remap_scrap_index
       + " untracked=" + entry.total_untracked + " rail=" + entry.total_rail
       + " road=" + entry.total_road + " air=" + entry.total_air
       + " water=" + entry.total_water + " unknown=" + entry.total_unknown);
   C52_AUTOREPLACE_LEDGER = {
     events = 0, remap_line_vehicles = 0, remap_line_vehicle = 0, remap_scrap_vehicles = 0,
-    remap_scrap_index = 0, untracked = 0, rail = 0, road = 0, air = 0, water = 0, unknown = 0,
+    untracked = 0, rail = 0, road = 0, air = 0, water = 0, unknown = 0,
     line_rail = 0, line_road = 0, line_air = 0, line_water = 0,
     total_events = entry.total_events, total_remap_line_vehicles = entry.total_remap_line_vehicles,
     total_remap_line_vehicle = entry.total_remap_line_vehicle,
     total_remap_scrap_vehicles = entry.total_remap_scrap_vehicles,
-    total_remap_scrap_index = entry.total_remap_scrap_index, total_untracked = entry.total_untracked,
+    total_untracked = entry.total_untracked,
     total_rail = entry.total_rail, total_road = entry.total_road, total_air = entry.total_air,
     total_water = entry.total_water, total_unknown = entry.total_unknown,
   };

@@ -67,9 +67,6 @@ function OpexAI::_onVehicleCrashed(event)
           line.lastLiveVehicles <- liveAfterCrash;
         }
       }
-      if (this._vehiclesToScrap != null && (vehicle in this._vehiclesToScrap)) {
-        delete this._vehiclesToScrap[vehicle];
-      }
       if (this._vehiclesToRetire != null && (vehicle in this._vehiclesToRetire)) {
         delete this._vehiclesToRetire[vehicle];
       }
@@ -81,28 +78,6 @@ function OpexAI::_onVehicleCrashed(event)
       OpexSign(AIMap.GetTileIndex(1, 1), "XC|" + (year % 100)
                + "|" + lineId + "|" + vehicle + "|" + AIMap.GetTileX(site) + "|"
                + AIMap.GetTileY(site) + "|" + victims);
-    }
-  }
-  return;
-}
-function OpexAI::_onVehicleWaitingInDepot(event)
-{
-
-  if (EVENT_DEPOT_SELL && this._vehiclesToScrap != null) {
-    local depotEvt = AIEventVehicleWaitingInDepot.Convert(event);
-    if (depotEvt != null) {
-      local vehicle = depotEvt.GetVehicleID();
-      if (vehicle in this._vehiclesToScrap) {
-        local lineId = this._vehiclesToScrap[vehicle];
-        if (AIVehicle.IsValidVehicle(vehicle) && AIVehicle.IsStoppedInDepot(vehicle)) {
-          if (AIVehicle.SellVehicle(vehicle)) {
-            if (DECISION_LOG) {
-              OpexDecide("SCRAP_LINE", "action=event_sell line=" + lineId + " vehicle=" + vehicle);
-            }
-            delete this._vehiclesToScrap[vehicle];
-          }
-        }
-      }
     }
   }
   return;
@@ -121,7 +96,6 @@ function OpexAI::_onVehicleAutoreplaced(event)
       local remapLineVehicles = 0;
       local remapLineVehicle = 0;
       local remapScrapVehicles = 0;
-      local remapScrapIndex = 0;
       local tracked = false;
       local mode = "unknown";
       foreach (line in this._lines) {
@@ -163,13 +137,6 @@ function OpexAI::_onVehicleAutoreplaced(event)
           }
         }
       }
-      if (this._vehiclesToScrap != null && (oldVehicle in this._vehiclesToScrap)) {
-        tracked = true;
-        remapScrapIndex++;
-        local lineId = this._vehiclesToScrap[oldVehicle];
-        delete this._vehiclesToScrap[oldVehicle];
-        this._vehiclesToScrap.rawset(newVehicle, lineId);
-      }
       if (this._vehiclesToRetire != null && (oldVehicle in this._vehiclesToRetire)) {
         local lineId = this._vehiclesToRetire[oldVehicle];
         delete this._vehiclesToRetire[oldVehicle];
@@ -188,7 +155,6 @@ function OpexAI::_onVehicleAutoreplaced(event)
         entry.remap_line_vehicles += remapLineVehicles;
         entry.remap_line_vehicle += remapLineVehicle;
         entry.remap_scrap_vehicles += remapScrapVehicles;
-        entry.remap_scrap_index += remapScrapIndex;
         if (!tracked) entry.untracked++;
         /* La ventilation doit venir du VEHICULE, pas de la ligne trouvee : la mesure 16 ans du
          * 2026-09-11 a rendu 33 evenements tous "untracked", donc tous "unknown" -- un mode
@@ -253,7 +219,7 @@ function OpexAI::_onVehicleUnprofitable(event)
                 if (have > 1) {
                   /* Ligne multi-vehicules surcapacitaire : retrait unitaire, sans
                    * basculer la ligne dans scrapping. La tache scrap vend ensuite
-                   * reellement le vehicule, meme si event_depot_sell est desarme. */
+                   * reellement le vehicule, independamment du traitement annuel de rebut. */
                   if (AIVehicle.SendVehicleToDepot(vehicle)) {
                     local now = AIDate.GetCurrentDate();
                     if (this._vehiclesToRetire == null) this._vehiclesToRetire = {};
@@ -337,175 +303,6 @@ function OpexAI::_onIndustryClose(event)
     if (probeEvt != null) {
       this._markDirty("industry_close", ["industries"], ["rail", "road"], true, true,
                       "industry", probeEvt.GetIndustryID());
-    }
-  }
-  if (EVENT_INDUSTRY_CLOSE) {
-    local indEvt = AIEventIndustryClose.Convert(event);
-    if (indEvt != null) {
-      local indId = indEvt.GetIndustryID();
-      if (DECISION_LOG) {
-        OpexDecide("EVENT_INDUSTRY_CLOSE", "industry=" + indId);
-      }
-      foreach (line in this._lines) {
-        local srcInd = ("srcIndustry" in line) ? line.srcIndustry : -1;
-        local dstInd = ("dstIndustry" in line) ? line.dstIndustry : -1;
-        if (srcInd == indId || dstInd == indId) {
-          this._triggerScrapLine(line, "industry_close");
-        }
-      }
-      if (this._catalog != null) {
-        this._catalog._refreshIndustries();
-      }
-    }
-  }
-  return;
-}
-function OpexAI::_onSubsidyOffer(event)
-{
-
-  if (EVENT_SUBSIDY_PROBE || C42_SUBSIDIES) {
-    local subEvt = AIEventSubsidyOffer.Convert(event);
-    if (subEvt != null) {
-      local subId = subEvt.GetSubsidyID();
-      if (AISubsidy.IsValidSubsidy(subId)) {
-        local cargo = AISubsidy.GetCargoType(subId);
-        local srcType = AISubsidy.GetSourceType(subId);
-        local srcId = AISubsidy.GetSourceIndex(subId);
-        local dstType = AISubsidy.GetDestinationType(subId);
-        local dstId = AISubsidy.GetDestinationIndex(subId);
-        local expDate = AISubsidy.GetExpireDate(subId);
-        local mult = AIGameSettings.IsValid("difficulty.subsidy_multiplier") ? AIGameSettings.GetValue("difficulty.subsidy_multiplier") : -1;
-        local dur = AIGameSettings.IsValid("difficulty.subsidy_duration") ? AIGameSettings.GetValue("difficulty.subsidy_duration") : -1;
-
-        local subData = {
-          cargo = cargo, srcType = srcType, srcId = srcId,
-          dstType = dstType, dstId = dstId, expDate = expDate
-        };
-        local matchedLine = OpexSubsidyMatchingLineId(subData, this._lines);
-
-        if (this._subsidyStats != null) {
-          this._subsidyStats.offers++;
-          if (matchedLine >= 0) this._subsidyStats.matchedPool++;
-        }
-        if (this._activeSubsidies != null) {
-          this._activeSubsidies.rawset(subId, subData);
-        }
-
-        if (C42_SUBSIDIES) {
-          this._portfolioInvalidated = true;
-          if (this._taskQueue != null) {
-            foreach (t in this._taskQueue) {
-              if (t.name == "catalog" || t.name == "projects") t.dueCycle = 0;
-            }
-          }
-        }
-
-        if (C42_SUBSIDY_LOG || DECISION_LOG) {
-          local cName = AICargo.GetCargoLabel(cargo);
-          OpexDecide("SUBSIDY_OFFER", "sub=" + subId + " cargo=" + cName + " src_t=" + srcType + " src=" + srcId + " dst_t=" + dstType + " dst=" + dstId + " exp=" + expDate + " mult=" + mult + " dur=" + dur + " matched=" + (matchedLine >= 0 ? matchedLine : "none"));
-        }
-        local year = AIDate.GetYear(AIDate.GetCurrentDate());
-        OpexSign(AIMap.GetTileIndex(1, 1), "SO|" + (year % 100) + "|" + subId + "|" + cargo + "|" + (matchedLine >= 0 ? 1 : 0));
-      }
-    }
-  }
-  return;
-}
-function OpexAI::_onSubsidyOfferExpired(event)
-{
-
-  if (EVENT_SUBSIDY_PROBE || C42_SUBSIDIES) {
-    local subEvt = AIEventSubsidyOfferExpired.Convert(event);
-    if (subEvt != null) {
-      local subId = subEvt.GetSubsidyID();
-      if (this._subsidyStats != null) {
-        this._subsidyStats.expiredWithoutAward++;
-      }
-      if (this._activeSubsidies != null && (subId in this._activeSubsidies)) {
-        delete this._activeSubsidies[subId];
-      }
-      if (C42_SUBSIDIES) {
-        this._purgeSubsidyFromProjects(subId);
-        this._portfolioInvalidated = true;
-        if (this._taskQueue != null) {
-          foreach (t in this._taskQueue) {
-            if (t.name == "catalog" || t.name == "projects") t.dueCycle = 0;
-          }
-        }
-      }
-      if (C42_SUBSIDY_LOG || DECISION_LOG) {
-        OpexDecide("SUBSIDY_OFFER_EXPIRED", "sub=" + subId);
-      }
-      local year = AIDate.GetYear(AIDate.GetCurrentDate());
-      OpexSign(AIMap.GetTileIndex(1, 1), "SE|" + (year % 100) + "|" + subId);
-    }
-  }
-  return;
-}
-function OpexAI::_onSubsidyAwarded(event)
-{
-
-  if (EVENT_SUBSIDY_PROBE || C42_SUBSIDIES) {
-    local subEvt = AIEventSubsidyAwarded.Convert(event);
-    if (subEvt != null) {
-      local subId = subEvt.GetSubsidyID();
-      local company = AISubsidy.IsValidSubsidy(subId) ? AISubsidy.GetAwardedTo(subId) : -1;
-      local isSelf = (company == AICompany.ResolveCompanyID(AICompany.COMPANY_SELF));
-      if (this._subsidyStats != null) {
-        if (isSelf) this._subsidyStats.awardedSelf++;
-        else this._subsidyStats.awardedOther++;
-      }
-      if (this._activeSubsidies != null && (subId in this._activeSubsidies)) {
-        delete this._activeSubsidies[subId];
-      }
-      if (C42_SUBSIDIES && !isSelf) {
-        this._purgeSubsidyFromProjects(subId);
-        this._portfolioInvalidated = true;
-        if (this._taskQueue != null) {
-          foreach (t in this._taskQueue) {
-            if (t.name == "catalog" || t.name == "projects") t.dueCycle = 0;
-          }
-        }
-      }
-      if (isSelf) {
-        local matchedLine = -1;
-        foreach (line in this._lines) {
-          if (("isSubsidy" in line) && line.isSubsidy && ("subsidyId" in line) && line.subsidyId == subId) {
-            matchedLine = line.lineId;
-            line.subsidyAwarded <- true;
-            break;
-          }
-        }
-        if (C42_SUBSIDY_LOG || DECISION_LOG) {
-          OpexDecide("C42_SUBSIDY_WON", "sub=" + subId + " line=" + matchedLine + " company=" + company);
-        }
-      } else if (C42_SUBSIDY_LOG || DECISION_LOG) {
-        OpexDecide("SUBSIDY_AWARDED", "sub=" + subId + " company=" + company + " is_self=" + (isSelf ? 1 : 0));
-      }
-      local year = AIDate.GetYear(AIDate.GetCurrentDate());
-      OpexSign(AIMap.GetTileIndex(1, 1), "SA|" + (year % 100) + "|" + subId + "|" + (isSelf ? 1 : 0));
-    }
-  }
-  return;
-}
-function OpexAI::_onSubsidyExpired(event)
-{
-
-  if (EVENT_SUBSIDY_PROBE || C42_SUBSIDIES) {
-    local subEvt = AIEventSubsidyExpired.Convert(event);
-    if (subEvt != null) {
-      local subId = subEvt.GetSubsidyID();
-      if (this._activeSubsidies != null && (subId in this._activeSubsidies)) {
-        delete this._activeSubsidies[subId];
-      }
-      if (C42_SUBSIDIES) {
-        this._purgeSubsidyFromProjects(subId);
-      }
-      if (C42_SUBSIDY_LOG || DECISION_LOG) {
-        OpexDecide("SUBSIDY_EXPIRED", "sub=" + subId);
-      }
-      local year = AIDate.GetYear(AIDate.GetCurrentDate());
-      OpexSign(AIMap.GetTileIndex(1, 1), "SX|" + (year % 100) + "|" + subId);
     }
   }
   return;
@@ -649,27 +446,6 @@ function OpexAI::_onVehicleLost(event)
           }
           OpexC41RailJunctionRepairLog("C41_RAIL_JUNCTION_ARM", "line=" + probeLineId + " vehicle=" + probeVehicle);
         }
-      }
-    }
-  }
-  if (EVENT_VEHICLE_LOST) {
-    local lostEvt = AIEventVehicleLost.Convert(event);
-    if (lostEvt != null) {
-      local vehicle = lostEvt.GetVehicleID();
-      if (AIVehicle.IsValidVehicle(vehicle)) {
-        local loc = AIVehicle.GetLocation(vehicle);
-        local line = OpexFindLineForVehicle(this._lines, vehicle, loc);
-        local lineId = line != null ? line.lineId : -1;
-        local vehicleType = AIVehicle.GetVehicleType(vehicle);
-        if (line != null) {
-          if (!("lostCount" in line)) line.lostCount <- 0;
-          line.lostCount++;
-        }
-        if (DECISION_LOG) {
-          OpexDecide("VEHICLE_LOST", "vehicle=" + vehicle + " line=" + lineId + " type=" + vehicleType + " tile=" + loc);
-        }
-        local year = AIDate.GetYear(AIDate.GetCurrentDate());
-        OpexSign(AIMap.GetTileIndex(1, 1), "VL|" + (year % 100) + "|" + lineId + "|" + vehicle);
       }
     }
   }

@@ -347,9 +347,6 @@ function OpexAI::_triggerScrapLine(line, criterion)
     if (AIVehicle.GetVehicleType(v) != vehicleType) continue;
     AIVehicle.SendVehicleToDepot(v);
     ids.append(v);
-    if (EVENT_DEPOT_SELL && this._vehiclesToScrap != null) {
-      this._vehiclesToScrap.rawset(v, line.lineId);
-    }
   }
   line.scrapVehicles = ids;
   if (DECISION_LOG) {
@@ -359,8 +356,7 @@ function OpexAI::_triggerScrapLine(line, criterion)
                + " vehicles=" + ids.len() + " criterion=" + criterion
                + " start_year=" + line.scrapStartYear);
   }
-  local signCode = (criterion == "industry_close") ? "C" : "2";
-  OpexSign(anchor, "DL|" + year + "|" + line.lineId + "|" + signCode);
+  OpexSign(anchor, "DL|" + year + "|" + line.lineId + "|2");
 }
 function OpexAI::_scrapDeadLines(year)
 {
@@ -376,21 +372,11 @@ function OpexAI::_scrapDeadLines(year)
     }
 
     if (line.scrapping) {
-      if (EVENT_DEPOT_SELL && this._vehiclesToScrap != null && ("scrapVehicles" in line)) {
-        foreach (v in line.scrapVehicles) {
-          if (AIVehicle.IsValidVehicle(v) && !(v in this._vehiclesToScrap)) {
-            this._vehiclesToScrap.rawset(v, line.lineId);
-          }
-        }
-      }
       local remaining = [];
       foreach (v in line.scrapVehicles) {
         if (!AIVehicle.IsValidVehicle(v)) continue;  // deja vendu ou detruit
         if (AIVehicle.IsStoppedInDepot(v)) {
           AIVehicle.SellVehicle(v);
-          if (this._vehiclesToScrap != null && (v in this._vehiclesToScrap)) {
-            delete this._vehiclesToScrap[v];
-          }
           if (this._unprofitableStreaks != null && (v in this._unprofitableStreaks)) {
             delete this._unprofitableStreaks[v];
           }
@@ -416,11 +402,6 @@ function OpexAI::_scrapDeadLines(year)
       if (!("scrapStartYear" in line)) line.scrapStartYear <- year;
       local stuck = (year - line.scrapStartYear) >= SCRAP_TIMEOUT_YEARS;
       if (remaining.len() == 0 || stuck) {
-        if (this._vehiclesToScrap != null) {
-          foreach (v in remaining) {
-            if (v in this._vehiclesToScrap) delete this._vehiclesToScrap[v];
-          }
-        }
         if (this._unprofitableStreaks != null) {
           foreach (v in line.scrapVehicles) {
             if (v in this._unprofitableStreaks) delete this._unprofitableStreaks[v];
@@ -448,8 +429,7 @@ function OpexAI::_scrapDeadLines(year)
 }
 /* Vente autonome des retraites unitaires C52. Contrairement a la mise au rebut
  * d'une ligne, la ligne reste exploitee : cette file ne touche ni scrapping ni
- * ses gares. Elle est deliberement independante de EVENT_DEPOT_SELL, qui ne
- * sert qu'a accelerer la vente au moment de l'evenement depot. */
+ * ses gares. */
 function OpexAI::_scrapRetiredVehicles(year)
 {
   if (this._vehiclesToRetire == null) return;
@@ -540,9 +520,6 @@ function OpexAI::_scrapRetiredVehicles(year)
   }
   foreach (vehicle in removeTickets) {
     if (vehicle in this._vehiclesToRetire) delete this._vehiclesToRetire[vehicle];
-    if (this._vehiclesToScrap != null && (vehicle in this._vehiclesToScrap)) {
-      delete this._vehiclesToScrap[vehicle];
-    }
   }
   foreach (upgrade in upgradeTickets) {
     if (upgrade.vehicle in this._vehiclesToRetire) {
@@ -678,14 +655,4 @@ function OpexAI::_reportYear(year, ranked)
                              + "|" + this._catalog.costStation);
   }
 
-  if (EVENT_SUBSIDY_PROBE && this._subsidyStats != null) {
-    OpexSign(anchor, "SR|" + (year % 100) + "|" + this._subsidyStats.offers
-                     + "|" + this._subsidyStats.matchedPool
-                     + "|" + this._subsidyStats.awardedSelf
-                     + "|" + this._subsidyStats.awardedOther
-                     + "|" + this._subsidyStats.expiredWithoutAward);
-    if (DECISION_LOG) {
-      OpexDecide("SUBSIDY_REPORT", "year=" + year + " offers=" + this._subsidyStats.offers + " matched=" + this._subsidyStats.matchedPool + " awarded_self=" + this._subsidyStats.awardedSelf + " awarded_other=" + this._subsidyStats.awardedOther + " expired=" + this._subsidyStats.expiredWithoutAward);
-    }
-  }
 }

@@ -1,6 +1,5 @@
-"""Contrat C45 : persister l'état comportemental, pas les compteurs de sonde."""
+"""Après retrait des subventions : préserver la persistance des retraites actives."""
 from pathlib import Path
-import re
 import unittest
 
 
@@ -33,42 +32,18 @@ class TestC45SubsidyPersistence(unittest.TestCase):
         self.settings = source("settings.nut")
         self.info = source("info.nut")
 
-    def test_active_subsidies_round_trip_in_full_state(self):
+    def test_retired_state_is_ignored_on_save_and_load(self):
+        for field in ("activeSubsidies", "vehiclesToScrap", "subsidyStats"):
+            self.assertNotIn(field, self.persist)
+            self.assertNotIn(field, source("main.nut"))
+
+    def test_live_retirement_state_still_round_trips(self):
         save = function_body(self.persist, "function OpexAI::Save()")
         load = function_body(self.persist, "function OpexAI::Load(version, data)")
-        setting = re.search(
-            r'name\s*=\s*"save_full_state".*?custom_value\s*=\s*(\d+)',
-            self.info,
-            re.S,
-        )
-
-        self.assertIsNotNone(setting)
-        self.assertEqual(setting.group(1), "1")
-        self.assertIn("activeSubsidies = this._activeSubsidies", save)
-        self.assertIn(
-            'if ("activeSubsidies" in data && data.activeSubsidies != null) '
-            "this._activeSubsidies = data.activeSubsidies",
-            load,
-        )
-
-    def test_probe_counters_are_intentionally_transient(self):
-        save = function_body(self.persist, "function OpexAI::Save()")
-        load = function_body(self.persist, "function OpexAI::Load(version, data)")
-
-        self.assertNotIn("subsidyStats", save)
-        self.assertNotIn("subsidyStats", load)
-        self.assertIn("if (EVENT_SUBSIDY_PROBE && this._subsidyStats != null)", self.report)
-        self.assertIn(
-            'EVENT_SUBSIDY_PROBE = AIController.GetSetting("event_subsidy_probe") != 0;',
-            self.settings,
-        )
-        setting = re.search(
-            r'name\s*=\s*"event_subsidy_probe".*?custom_value\s*=\s*(\d+)',
-            self.info,
-            re.S,
-        )
-        self.assertIsNotNone(setting)
-        self.assertEqual(setting.group(1), "0")
+        self.assertIn("vehiclesToRetire = this._vehiclesToRetire", save)
+        self.assertIn("this._vehiclesToRetire = data.vehiclesToRetire", load)
+        self.assertIn("unprofitableStreaks = this._unprofitableStreaks", save)
+        self.assertIn("this._unprofitableStreaks = data.unprofitableStreaks", load)
 
 
 if __name__ == "__main__":

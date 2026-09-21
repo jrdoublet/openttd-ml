@@ -390,10 +390,8 @@ function OpexAI::Save()
     lastRepayMonth = this._lastRepayMonth,
     taskCycle = this._taskCycle,
     taskCursor = this._taskCursor,
-    vehiclesToScrap = this._vehiclesToScrap,
     vehiclesToRetire = this._vehiclesToRetire,
     unprofitableStreaks = this._unprofitableStreaks,
-    activeSubsidies = this._activeSubsidies,
     taskDue = taskDue,
     railExpansion = OpexSaveRailExpansion(this._railExpansion),
     railSearchPending = this._railSearch != null,
@@ -426,10 +424,8 @@ function OpexAI::Load(version, data)
   if ("lastRepayMonth" in data) this._lastRepayMonth = data.lastRepayMonth;
   if ("taskCycle" in data) this._taskCycle = data.taskCycle;
   if ("taskCursor" in data) this._taskCursor = data.taskCursor;
-  if ("vehiclesToScrap" in data && data.vehiclesToScrap != null) this._vehiclesToScrap = data.vehiclesToScrap;
   if ("vehiclesToRetire" in data && data.vehiclesToRetire != null) this._vehiclesToRetire = data.vehiclesToRetire;
   if ("unprofitableStreaks" in data && data.unprofitableStreaks != null) this._unprofitableStreaks = data.unprofitableStreaks;
-  if ("activeSubsidies" in data && data.activeSubsidies != null) this._activeSubsidies = data.activeSubsidies;
   /* 11.6/11.7 : aucune lecture du monde ici. Les validations VehicleID/LineID attendent
    * _reconcileAfterLoad(), appelé depuis Start() après OpexLoadSettings(). Les sauvegardes
    * stateVersion=1 n'ont simplement pas ces champs et gardent les valeurs constructeur. */
@@ -545,15 +541,6 @@ function OpexAI::_reconcileAfterLoad()
     }
     foreach (vehicle in staleRetireTickets) {
       if (vehicle in this._vehiclesToRetire) delete this._vehiclesToRetire[vehicle];
-    }
-  }
-  if (this._vehiclesToScrap != null) {
-    local staleScrapTickets = [];
-    foreach (vehicle, ignored in this._vehiclesToScrap) {
-      if (!AIVehicle.IsValidVehicle(vehicle)) staleScrapTickets.append(vehicle);
-    }
-    foreach (vehicle in staleScrapTickets) {
-      if (vehicle in this._vehiclesToScrap) delete this._vehiclesToScrap[vehicle];
     }
   }
   /* Sans sonde : cette unique preuve doit toujours accompagner un rechargement, jamais une partie neuve. */

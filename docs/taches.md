@@ -13,6 +13,16 @@ la performance actuelle**. Les journaux quotidiens conservent le détail des exp
 
 ## État courant — 2026-09-21
 
+Nettoyage `simplify/dead-flags-events` intégré : retrait des traitements désarmés
+dépôt/fermeture/perte et du pipeline de subventions ; retraites unitaires C52 conservées.
+Smoke solo 3 graines × 2 ans identique à `792cd7c`. Save/Load 1+1 an :
+`LOAD_RECONCILE` observé, activité reprise, avec réserve sur la compagnie fantôme du harnais.
+Rapports locaux dans `results/events_review_runtime_20260921/results/` du dossier principal
+(`merge_dead_flags_events_20260921_smoke.json` et
+`merge_dead_flags_events_saveload_20260921.json`). Tests de persistance adaptés au retrait :
+117 tests, seuls les deux échecs préexistants feeder scrap et index de preuves subsistent.
+Ces contrôles ne constituent pas un banc économique d'adoption.
+
 Nettoyage `simplify/dead-flags-water` intégré : suppression des chemins eau désarmés
 (rafraîchissement C41, catalogue de sites et expérience Lakes), avec conservation des
 emplacements du scheduler et de la compatibilité d'opcodes. Le smoke solo 3 graines ×

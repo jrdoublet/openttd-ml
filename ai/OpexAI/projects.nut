@@ -142,9 +142,11 @@ function OpexProjectKeyFor(project)
                 ? project.payload.line.lineId : -1;
     return "fleet|" + lid;
   }
+  /* Garde de forme neutre : cette cle n'est jamais produite. Elle conserve le cout
+   * du test de forme retire avec C42 afin de ne pas deplacer les suspensions NoAI. */
   if (("payload" in project) && project.payload != null
-      && ("isSubsidy" in project.payload) && project.payload.isSubsidy) {
-    return "subsidy|" + project.payload.subsidyId;
+      && ("_eventsCleanupPad" in project.payload) && project.payload._eventsCleanupPad) {
+    return "events_cleanup_pad";
   }
   /* Garde de forme conservee pour le cout d'opcodes historique. La generation d'extensions
    * route a disparu, mais retirer ces tests de table deplace les frontieres de suspension NoAI
@@ -833,17 +835,9 @@ function OpexCandidateStillValid(p, lines, abandonedPairs = null)
 
   /* 2. Mode route */
   if (mode == "road") {
-    local isSubsidy = (("payload" in p) && p.payload != null &&
-                       ("isSubsidy" in p.payload) && p.payload.isSubsidy);
-    if (isSubsidy) {
-      local subId = p.payload.subsidyId;
-      if (!AISubsidy.IsValidSubsidy(subId) || AISubsidy.IsAwarded(subId)) return false;
-      local today = AIDate.GetCurrentDate();
-      local oneWay = ("oneWayDays" in p.payload) ? p.payload.oneWayDays : -1;
-      local chantier = ("chantierDays" in p.payload) ? p.payload.chantierDays : OpexSubsidyChantierDays(oneWay);
-      if (AISubsidy.GetExpireDate(subId) - today < chantier) return false;
-      return true;
-    }
+    local eventsCleanupPad = (("payload" in p) && p.payload != null &&
+                              ("_eventsCleanupPad" in p.payload) && p.payload._eventsCleanupPad);
+    if (eventsCleanupPad) return false;
     if (p.kind == "pax") {
       local endpoints = OpexGetCandidateTownEndpoints(p.payload);
       if ((endpoints.srcTown >= 0 && OpexTownBusPaxServed(lines, endpoints.srcTown)) ||
@@ -969,8 +963,8 @@ function OpexProjectAttemptKey(p)
     return "fleet|" + p.payload.line.lineId;
   }
   if (("payload" in p) && p.payload != null
-      && ("isSubsidy" in p.payload) && p.payload.isSubsidy) {
-    return "subsidy|" + p.payload.subsidyId;
+      && ("_eventsCleanupPad" in p.payload) && p.payload._eventsCleanupPad) {
+    return "events_cleanup_pad";
   }
   if (("payload" in p) && p.payload != null
       && ("isRoadExtension" in p.payload) && p.payload.isRoadExtension) {
@@ -1076,7 +1070,7 @@ function OpexB6LogSelectionCausality(path, alternatives, funded, snapshotBudget,
 /* B6/06.11 -- oracle passif "cache vs generation fraiche".
  *
  * Ne jamais recalculer ici une economie a la main : les familles speciales
- * (subvention, extension, joins) ont des constructeurs differents et le
+ * (extensions, joins) ont des constructeurs differents et le
  * precedent essai de refresh en perdait certaines. A la place, _rebuildProjects
  * conserve le vivier cache juste avant la regeneration complete normale puis
  * appelle ce helper avec le vivier fraichement produit. Les deux cotes passent
@@ -1086,7 +1080,7 @@ function OpexB6FreshClass(p)
 {
   if (p == null) return "unknown";
   if (("payload" in p) && p.payload != null) {
-    if (("isSubsidy" in p.payload) && p.payload.isSubsidy) return "subsidy";
+    if (("_eventsCleanupPad" in p.payload) && p.payload._eventsCleanupPad) return "events_cleanup_pad";
     if (("isRoadExtension" in p.payload) && p.payload.isRoadExtension) return "road_extension";
   }
   local mode = ("mode" in p) ? p.mode : "unknown";
@@ -1584,7 +1578,7 @@ function OpexMergeRailCandidateSet(base, extra)
   return base;
 }
 
-function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPairs = null, generationStage = null, priorProjects = null, freightCargo = null, freightCargoOrder = null, activeSubsidies = null)
+function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPairs = null, generationStage = null, priorProjects = null, freightCargo = null, freightCargoOrder = null)
 {
   if (generationStage == null) generationStage = OPEX_STAGE_COMPLETE;
   local doFreight = (generationStage == OPEX_STAGE_AIR_ONLY || generationStage == OPEX_STAGE_COMPLETE);
@@ -1843,11 +1837,6 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
   local airOpsPerPlan = (airPlans.len() > 0) ? airOps / airPlans.len() : airOps;
   local waterOpsPerPlan = (waterPlans.len() > 0) ? waterOps / waterPlans.len() : waterOps;
 
-  local subCandidates = [];
-  if (C42_SUBSIDIES && activeSubsidies != null) {
-    subCandidates = OpexGenerateSubsidyCandidates(catalog, lines, activeSubsidies, stats, abandonedPairs);
-  }
-
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "c56_stage_assembly", "-");
   local winners = {};
   local abandonFiltered = 0;
@@ -1881,13 +1870,6 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
       foreach (entry in fleetPlan) {
         OpexProjectRememberAll(winners, OpexProjectFromFleet(entry), stats);
       }
-    }
-    foreach (candidate in subCandidates) {
-      if (ABANDON_GEN_FILTER && ABANDON_MEMORY && abandonedPairs != null && (OpexAbandonedPairKey(candidate) in abandonedPairs)) {
-        abandonFiltered++;
-        continue;
-      }
-      OpexProjectRememberAll(winners, OpexProjectFromCandidate(candidate), stats);
     }
 
   local funded = null;

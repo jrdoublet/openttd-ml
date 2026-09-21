@@ -209,10 +209,7 @@ class OpexAI extends AIController {
   _c39CadenceLastCycle = null;
   _c39FinanceableSince = null;
   _startYear = -1;
-  _vehiclesToScrap = null;
-  /* Retraites C52 unitaires : distinctes de _vehiclesToScrap, qui est seulement le
-   * raccourci optionnel de vente sur ET_VEHICLE_WAITING_IN_DEPOT. Cette file est
-   * toujours consommee par la tache scrap, y compris quand event_depot_sell=0. */
+  /* Retraites C52 unitaires, consommees par la tache de rebut dediee. */
   _vehiclesToRetire = null;
   /* C52 #4 : suivi des annees consecutives de deficit par vehicule */
   _unprofitableStreaks = null;
@@ -220,8 +217,6 @@ class OpexAI extends AIController {
   _c41RailSignalLines = null;
   /* C41.10 : même schéma, réparation de raccord au lieu de pose PBS. */
   _c41RailJunctionLines = null;
-  _activeSubsidies = null;
-  _subsidyStats = null;
   /* G4§1 : drapeau pose par _markPairAbandoned dans _tryBuildProjects, lu en fin de passe
    * pour declencher la reelection incrementale sans dependre de DECISION_LOG. */
   _hadAbandonsThisPass = false;
@@ -240,14 +235,11 @@ class OpexAI extends AIController {
     this._pendingLines = null;
     this._abandonedPairs = {};
     this._abandonCounts = {};
-    this._vehiclesToScrap = {};
     this._vehiclesToRetire = {};
     this._unprofitableStreaks = {};
     OpexAirResetSiteCache();
-    this._activeSubsidies = {};
     this._c41RailSignalLines = {};
     this._c41RailJunctionLines = {};
-    this._subsidyStats = { offers = 0, expiredWithoutAward = 0, awardedSelf = 0, awardedOther = 0, matchedPool = 0 };
     this._staleness = {
       catalog = { cargos = false, towns = false, industries = false, rail = false,
                   road = false, air = false, water = false },
@@ -370,16 +362,10 @@ class OpexAI extends AIController {
   function _markPairAbandoned(key);
   function _padAirFailedSites(plan, result);
   function _pruneAbandonedPairs(now);
-  function _purgeSubsidyFromProjects(subId);
   function _onVehicleCrashed(event);
-  function _onVehicleWaitingInDepot(event);
   function _onVehicleAutoreplaced(event);
   function _onVehicleUnprofitable(event);
   function _onIndustryClose(event);
-  function _onSubsidyOffer(event);
-  function _onSubsidyOfferExpired(event);
-  function _onSubsidyAwarded(event);
-  function _onSubsidyExpired(event);
   function _onVehicleLost(event);
   function _onIndustryOpen(event);
   function _onTownFounded(event);

@@ -218,8 +218,9 @@ function OpexRememberClosest(distance, threshold, closest)
  * changement de l'ordre de catalog.towns entre deux rafraichissements. */
 function OpexAbandonedPairKey(candidate)
 {
-  if (("isSubsidy" in candidate) && candidate.isSubsidy) {
-    return "subsidy|" + candidate.subsidyId;
+  /* Garde de forme neutre pour conserver le cout de suspension du chemin retire. */
+  if (("_eventsCleanupPad" in candidate) && candidate._eventsCleanupPad) {
+    return "events_cleanup_pad|" + candidate._eventsCleanupPad;
   }
   local src = candidate.src;
   local dst = candidate.dst;
