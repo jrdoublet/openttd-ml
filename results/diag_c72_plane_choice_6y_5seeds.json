@@ -1,0 +1,239 @@
+{
+ "years": 6,
+ "seeds": [
+  100,
+  12345,
+  42,
+  7,
+  999
+ ],
+ "arm": "OpexAI[probe_portfolio=1]",
+ "per_seed": [
+  {
+   "seed": 100,
+   "run_ok": true,
+   "n_events": 8536,
+   "metrics": {
+    "build_passes": 54,
+    "window_build_passes": 42,
+    "diff_passes": 18,
+    "c2_exposure": 0.42857142857142855,
+    "c3_checked": 16,
+    "c3_built_anyway_share": 0.0,
+    "c4_median_p_ratio": 1.687526433342077,
+    "first_diff_year": 1971,
+    "f_median_by_year": {
+     "1970": 354.88397,
+     "1971": 1487.5507,
+     "1972": 2596.7746500000003,
+     "1973": 3320.0088,
+     "1974": 3335.2466,
+     "1975": 3919.78075
+    },
+    "kdec_median_by_year": {
+     "1970": 11913.5,
+     "1971": 43768.0,
+     "1972": 90740.5,
+     "1973": 162337.0,
+     "1974": 202894.0,
+     "1975": 233884.0
+    },
+    "c5_median_real_pred_prof_by_mode": {
+     "road": 2.0088022,
+     "air": 1.2906462
+    },
+    "c5_spread_max_over_min": 1.5564313442367086
+   },
+   "c1": {
+    "air_capital_median": 50988.0,
+    "kdec_crosses_air_year": 1972,
+    "c49_cash_below_decision_year": 1972,
+    "c1_gap_years": 0
+   },
+   "company_value": 5363278,
+   "profit_year": 1523775
+  },
+  {
+   "seed": 12345,
+   "run_ok": true,
+   "n_events": 14494,
+   "metrics": {
+    "build_passes": 48,
+    "window_build_passes": 38,
+    "diff_passes": 31,
+    "c2_exposure": 0.8157894736842105,
+    "c3_checked": 29,
+    "c3_built_anyway_share": 0.0,
+    "c4_median_p_ratio": 1.904842136107245,
+    "first_diff_year": 1971,
+    "f_median_by_year": {
+     "1970": 0.0,
+     "1971": 1931.8206,
+     "1972": 2955.7542,
+     "1973": 3985.2712,
+     "1974": 4268.5454,
+     "1975": 4744.9097
+    },
+    "kdec_median_by_year": {
+     "1970": 0.0,
+     "1971": 78346.0,
+     "1972": 134856.0,
+     "1973": 242437.0,
+     "1974": 222574.0,
+     "1975": 288648.0
+    },
+    "c5_median_real_pred_prof_by_mode": {
+     "rail": 1.0684037,
+     "road": 1.7895514,
+     "air": 1.1635611
+    },
+    "c5_spread_max_over_min": 1.6749767901402812
+   },
+   "c1": {
+    "air_capital_median": 67164.0,
+    "kdec_crosses_air_year": 1971,
+    "c49_cash_below_decision_year": 1971,
+    "c1_gap_years": 0
+   },
+   "company_value": 6956508,
+   "profit_year": 1838444
+  },
+  {
+   "seed": 42,
+   "run_ok": true,
+   "n_events": 12865,
+   "metrics": {
+    "build_passes": 51,
+    "window_build_passes": 39,
+    "diff_passes": 28,
+    "c2_exposure": 0.717948717948718,
+    "c3_checked": 26,
+    "c3_built_anyway_share": 0.11538461538461539,
+    "c4_median_p_ratio": 1.7455834682895164,
+    "first_diff_year": 1971,
+    "f_median_by_year": {
+     "1970": 0.0,
+     "1971": 2104.4385,
+     "1972": 3541.4821,
+     "1973": 4724.781,
+     "1974": 5162.7135,
+     "1975": 5243.0327
+    },
+    "kdec_median_by_year": {
+     "1970": 0.0,
+     "1971": 85346.0,
+     "1972": 161579.5,
+     "1973": 215568.0,
+     "1974": 271993.0,
+     "1975": 273386.0
+    },
+    "c5_median_real_pred_prof_by_mode": {
+     "rail": 0.41590968,
+     "road": 1.6039357,
+     "air": 1.3839493
+    },
+    "c5_spread_max_over_min": 3.856451958511762
+   },
+   "c1": {
+    "air_capital_median": 40964.0,
+    "kdec_crosses_air_year": 1971,
+    "c49_cash_below_decision_year": 1971,
+    "c1_gap_years": 0
+   },
+   "company_value": 7956719,
+   "profit_year": 2075834
+  },
+  {
+   "seed": 7,
+   "run_ok": true,
+   "n_events": 17525,
+   "metrics": {
+    "build_passes": 51,
+    "window_build_passes": 41,
+    "diff_passes": 37,
+    "c2_exposure": 0.9024390243902439,
+    "c3_checked": 35,
+    "c3_built_anyway_share": 0.05714285714285714,
+    "c4_median_p_ratio": 2.193834409864944,
+    "first_diff_year": 1971,
+    "f_median_by_year": {
+     "1970": 0.0,
+     "1971": 2417.3451999999997,
+     "1972": 4682.01775,
+     "1973": 5989.28635,
+     "1974": 5699.9192,
+     "1975": 5808.896
+    },
+    "kdec_median_by_year": {
+     "1970": 0.0,
+     "1971": 110291.0,
+     "1972": 213616.5,
+     "1973": 275714.5,
+     "1974": 261654.0,
+     "1975": 261537.0
+    },
+    "c5_median_real_pred_prof_by_mode": {
+     "road": 1.528147,
+     "air": 1.0165317,
+     "rail": 0.9816092000000001
+    },
+    "c5_spread_max_over_min": 1.5567773814670847
+   },
+   "c1": {
+    "air_capital_median": 67164.0,
+    "kdec_crosses_air_year": 1971,
+    "c49_cash_below_decision_year": 1971,
+    "c1_gap_years": 0
+   },
+   "company_value": 9431755,
+   "profit_year": 2092298
+  },
+  {
+   "seed": 999,
+   "run_ok": true,
+   "n_events": 13983,
+   "metrics": {
+    "build_passes": 49,
+    "window_build_passes": 40,
+    "diff_passes": 37,
+    "c2_exposure": 0.925,
+    "c3_checked": 35,
+    "c3_built_anyway_share": 0.08571428571428572,
+    "c4_median_p_ratio": 1.8616009133578586,
+    "first_diff_year": 1971,
+    "f_median_by_year": {
+     "1970": 0.0,
+     "1971": 1711.08635,
+     "1972": 3184.1504,
+     "1973": 5036.485,
+     "1974": 5519.5452000000005,
+     "1975": 6119.7505
+    },
+    "kdec_median_by_year": {
+     "1970": 0.0,
+     "1971": 73344.0,
+     "1972": 129134.0,
+     "1973": 229789.0,
+     "1974": 287804.5,
+     "1975": 280528.5
+    },
+    "c5_median_real_pred_prof_by_mode": {
+     "road": 1.6632483,
+     "air": 1.177341,
+     "rail": 1.1501025500000002
+    },
+    "c5_spread_max_over_min": 1.4461739085788479
+   },
+   "c1": {
+    "air_capital_median": 40964.0,
+    "kdec_crosses_air_year": 1971,
+    "c49_cash_below_decision_year": 1971,
+    "c1_gap_years": 0
+   },
+   "company_value": 8501048,
+   "profit_year": 2343922
+  }
+ ],
+ "failed_runs": [],
+ "failed_run_count": 0
+}

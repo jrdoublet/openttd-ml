@@ -1008,3 +1008,30 @@ function OpexC69ComputeKDec()
     daysCovered = daysCovered
   };
 }
+
+/* C72 : cache journalier de K_dec pour la sonde passive du choix d'avion */
+function OpexC69CachedKDec()
+{
+  local today = AIDate.GetCurrentDate();
+  if (C69_CACHED_KDEC_DATE == today) return C69_CACHED_KDEC_VALUE;
+  local data = OpexC69ComputeKDec();
+  C69_CACHED_KDEC_DATE = today;
+  C69_CACHED_KDEC_VALUE = data.K_dec;
+  return C69_CACHED_KDEC_VALUE;
+}
+
+/* C72 : nom de l'appareil avec espaces remplaces par des tirets bas pour le parseur de logs */
+function OpexPlaneName(engineId)
+{
+  if (!AIEngine.IsValidEngine(engineId)) return "unknown";
+  local rawName = AIEngine.GetName(engineId);
+  if (rawName == null || rawName.len() == 0) return "unknown";
+  local res = "";
+  for (local i = 0; i < rawName.len(); i++) {
+    local c = rawName.slice(i, i + 1);
+    if (c == " ") res += "_";
+    else res += c;
+  }
+  return res.len() > 0 ? res : "unknown";
+}
+

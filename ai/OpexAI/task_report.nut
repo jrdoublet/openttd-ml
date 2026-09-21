@@ -222,7 +222,8 @@ function OpexAI::_reportLines(year)
             + " pred_run=" + (("predRunning" in line) ? line.predRunning : 0)
             + " pred_amort=" + (("predAmort" in line) ? line.predAmort : 0)
             + " run=" + runCost
-            + " trains0=" + n0 + " vehs=" + vehCount);
+            + " trains0=" + n0 + " vehs=" + vehCount
+            + " plane=" + (("planeId" in line) ? line.planeId : -1));
         if (n0 > 0 && vehCount > 0) {
           local scale = n0.tofloat() / vehCount.tofloat();
           if (predProfit > 0) {
@@ -393,6 +394,13 @@ function OpexAI::_reportLines(year)
             + " med_real_pred_prof=" + medP + " med_real_pred_rev=" + medR);
       }
     }
+    OpexC69Log("phase=plane_choice_count year=" + year
+        + " calls=" + C69_PLANE_CHOICE_CALLS
+        + " differ_roi=" + C69_PLANE_CHOICE_DIFFER_ROI
+        + " differ_c69=" + C69_PLANE_CHOICE_DIFFER_C69);
+    C69_PLANE_CHOICE_CALLS = 0;
+    C69_PLANE_CHOICE_DIFFER_ROI = 0;
+    C69_PLANE_CHOICE_DIFFER_C69 = 0;
   }
 }
 /* Remediation ligne morte (2026-08-28) : une fois deadStreak >= DEAD_STREAK_THRESHOLD confirme

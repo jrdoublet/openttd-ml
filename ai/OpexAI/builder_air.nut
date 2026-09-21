@@ -997,6 +997,28 @@ function OpexAirChooseRoutePlane(catalog, airport, selectedPlane, distance, mont
 
   local bestPlane = selectedPlane;
   local bestEconomics = selectedEconomics;
+
+  local kDec = 0;
+  local r_plane = null;
+  local r_econ = null;
+  local c_plane = null;
+  local c_econ = null;
+  local c_score = 0.0;
+  local evalCount = 0;
+
+  if (C69_BOTTLENECK_PROBE) {
+    kDec = OpexC69CachedKDec();
+    if (selectedEconomics != null) {
+      evalCount = 1;
+      r_plane = selectedPlane;
+      r_econ = selectedEconomics;
+      c_plane = selectedPlane;
+      c_econ = selectedEconomics;
+      local denom = selectedEconomics.capital > kDec ? selectedEconomics.capital : kDec;
+      c_score = denom > 0 ? (selectedEconomics.profitAnnual.tofloat() * 1000.0) / denom : 0.0;
+    }
+  }
+
   foreach (plane in catalog.airPlaneChoicesByAirport[airport.type]) {
     if (plane.id == selectedPlane.id) continue;
     if (plane.maxOrderDistance > 0 && distance > plane.maxOrderDistance) continue;
@@ -1008,7 +1030,45 @@ function OpexAirChooseRoutePlane(catalog, airport, selectedPlane, distance, mont
       bestPlane = plane;
       bestEconomics = economics;
     }
+    if (C69_BOTTLENECK_PROBE) {
+      evalCount++;
+      if (r_econ == null || economics.roi > r_econ.roi ||
+          (economics.roi == r_econ.roi && economics.profitAnnual > r_econ.profitAnnual)) {
+        r_plane = plane;
+        r_econ = economics;
+      }
+      local curDenom = economics.capital > kDec ? economics.capital : kDec;
+      local curScore = curDenom > 0 ? (economics.profitAnnual.tofloat() * 1000.0) / curDenom : 0.0;
+      if (c_econ == null || curScore > c_score ||
+          (curScore == c_score && economics.profitAnnual > c_econ.profitAnnual)) {
+        c_plane = plane;
+        c_econ = economics;
+        c_score = curScore;
+      }
+    }
   }
+
+  if (C69_BOTTLENECK_PROBE && evalCount >= 2) {
+    C69_PLANE_CHOICE_CALLS++;
+    if (r_plane.id != bestPlane.id) C69_PLANE_CHOICE_DIFFER_ROI++;
+    if (c_plane.id != bestPlane.id) C69_PLANE_CHOICE_DIFFER_C69++;
+
+    if (r_plane.id != bestPlane.id || c_plane.id != bestPlane.id) {
+      local avail = OpexAvailableCapital();
+      local p_name = OpexPlaneName(bestPlane.id);
+      local r_name = OpexPlaneName(r_plane.id);
+      local c_name = OpexPlaneName(c_plane.id);
+      OpexC69Log("phase=plane_choice dist=" + distance + " kdec=" + kDec + " avail=" + avail
+          + " nplanes=" + evalCount
+          + " p_id=" + bestPlane.id + " p_name=" + p_name + " p_P=" + bestEconomics.profitAnnual
+          + " p_C=" + bestEconomics.capital + " p_roi=" + bestEconomics.roi
+          + " r_id=" + r_plane.id + " r_name=" + r_name + " r_P=" + r_econ.profitAnnual
+          + " r_C=" + r_econ.capital + " r_roi=" + r_econ.roi
+          + " c_id=" + c_plane.id + " c_name=" + c_name + " c_P=" + c_econ.profitAnnual
+          + " c_C=" + c_econ.capital + " c_roi=" + c_econ.roi);
+    }
+  }
+
   return { plane = bestPlane, economics = bestEconomics };
 }
 
