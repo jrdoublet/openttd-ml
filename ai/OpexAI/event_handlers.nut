@@ -332,7 +332,7 @@ function OpexAI::_onVehicleUnprofitable(event)
 function OpexAI::_onIndustryClose(event)
 {
 
-  if (C39_INVALIDATION_PROBE) {
+  if (C39_INVALIDATION_PROBE || C76_REGEN_TARGETED) {
     local probeEvt = AIEventIndustryClose.Convert(event);
     if (probeEvt != null) {
       this._markDirty("industry_close", ["industries"], ["rail", "road"], true, true,
@@ -678,7 +678,7 @@ function OpexAI::_onVehicleLost(event)
 function OpexAI::_onIndustryOpen(event)
 {
 
-  if (C39_INVALIDATION_PROBE) {
+  if (C39_INVALIDATION_PROBE || C76_REGEN_TARGETED) {
     local probeEvt = AIEventIndustryOpen.Convert(event);
     if (probeEvt != null) {
       this._markDirty("industry_open", ["industries"], ["rail", "road"], true, true,
@@ -713,7 +713,7 @@ function OpexAI::_onIndustryOpen(event)
 function OpexAI::_onTownFounded(event)
 {
 
-  if (C39_INVALIDATION_PROBE) {
+  if (C39_INVALIDATION_PROBE || C76_REGEN_TARGETED) {
     local probeEvt = AIEventTownFounded.Convert(event);
     if (probeEvt != null) {
       this._markDirty("town_founded", ["towns"], ["rail", "road", "air", "water"],
@@ -750,7 +750,7 @@ function OpexAI::_onEngineAvailable(event)
 
   this._recomputeEpochBounds = true;
   if (this._catalog != null) OpexRefreshEpochBounds(this._catalog);
-  if (C39_INVALIDATION_PROBE || C39_ENGINE_REFRESH) {
+  if (C39_INVALIDATION_PROBE || C39_ENGINE_REFRESH || C76_REGEN_TARGETED) {
     local engineEvt = AIEventEngineAvailable.Convert(event);
     if (engineEvt != null) {
       local engine = engineEvt.GetEngineID();
@@ -763,7 +763,7 @@ function OpexAI::_onEngineAvailable(event)
       if (mode != null) {
         /* La sonde reste la seule à conserver l'état/les IDs. C39.2 consomme le chemin
          * historique sans changer les cas industrie déjà couverts par P3. */
-        if (C39_INVALIDATION_PROBE) {
+        if (C39_INVALIDATION_PROBE || C76_REGEN_TARGETED) {
           /* C41.2 ne consulte le predicat que pour son bras actif ; C39 conserve toujours
            * la trace exhaustive de l'evenement, y compris un moteur ensuite filtre. */
           local targetedRelevant = !(C41_WATER_REFRESH && C41_WATER_PRECHECK && mode == "water")

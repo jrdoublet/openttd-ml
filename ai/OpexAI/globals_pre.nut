@@ -466,3 +466,7 @@ C80_WORKER_RAIL <- false;
 /* C80 tranche 2 : découpage de la croissance urbaine (_tryTownGrowth) en travailleur "town_growth".
  * 0 = désactivé (défaut), 1 = travailleur "town_growth" actif sous c80_double_register=1. */
 C80_WORKER_TOWN <- false;
+
+/* C76 étape 2 / C80 tranche 3 : régénération du vivier pilotée par les invalidations.
+ * 0 = régénération mensuelle systématique historique (défaut), 1 = régénération ciblée. */
+C76_REGEN_TARGETED <- false;

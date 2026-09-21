@@ -1373,16 +1373,32 @@ function OpexC76FlushYear(year)
   if (!C39_INVALIDATION_PROBE || C76_YEAR_LEDGER == null) return;
   if (year < 1970) return;
   local rec = (year in C76_YEAR_LEDGER) ? C76_YEAR_LEDGER[year] : {
-    full = 0, incremental = 0, ops_total = 0, days_total = 0,
-    unchanged_deps = 0, top1_unchanged = 0
+    full = 0, incremental = 0, avoided = 0, ops_total = 0, days_total = 0,
+    unchanged_deps = 0, top1_unchanged = 0, reasons = {}
   };
+  local avoided = ("avoided" in rec) ? rec.avoided : 0;
+  local reasonsStr = "";
+  if ("reasons" in rec && typeof rec.reasons == "table") {
+    local rList = [];
+    foreach (r, count in rec.reasons) {
+      rList.append(r + ":" + count);
+    }
+    if (rList.len() > 0) {
+      reasonsStr = " reasons=" + rList[0];
+      for (local i = 1; i < rList.len(); i++) {
+        reasonsStr += "," + rList[i];
+      }
+    }
+  }
   OpexC76Log("phase=regen_year year=" + year
              + " full=" + rec.full
+             + " avoided=" + avoided
              + " incremental=" + rec.incremental
              + " ops_total=" + rec.ops_total
              + " days_total=" + rec.days_total
              + " unchanged_deps=" + rec.unchanged_deps
-             + " top1_unchanged=" + rec.top1_unchanged);
+             + " top1_unchanged=" + rec.top1_unchanged
+             + reasonsStr);
 }
 
 

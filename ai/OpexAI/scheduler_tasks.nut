@@ -30,12 +30,28 @@ function OpexAI::_dispatchCatalog(task, year)
     }
     if (gainOk && doubleOk) stale = true;
   }
-  /* Une invalidation evenementielle prime toujours la cadence mensuelle et le seuil de
-   * tresorerie : le portefeuille est derive du catalogue, pas seulement du capital. */
-  if (this._lastCatalogMonth == ym && this._projects != null && !stale &&
-      !this._portfolioInvalidated) {
-    if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
-    return false;
+  local c76LayerChanged = false;
+  local c76PeriodicDue = false;
+  local c76ReloadDue = false;
+  local c76CurQuarter = 0;
+  if (C76_REGEN_TARGETED) {
+    c76LayerChanged = this._c76AnyLayerChanged();
+    c76CurQuarter = year * 4 + (AIDate.GetMonth(date) - 1) / 3;
+    c76PeriodicDue = (this._c76LastRegenQuarter < 0 || c76CurQuarter > this._c76LastRegenQuarter);
+    c76ReloadDue = this._c76ForceReloadRegen;
+    if (this._lastCatalogMonth == ym && this._projects != null && !stale &&
+        !this._portfolioInvalidated && !c76LayerChanged && !c76PeriodicDue && !c76ReloadDue) {
+      if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
+      return false;
+    }
+  } else {
+    /* Une invalidation evenementielle prime toujours la cadence mensuelle et le seuil de
+     * tresorerie : le portefeuille est derive du catalogue, pas seulement du capital. */
+    if (this._lastCatalogMonth == ym && this._projects != null && !stale &&
+        !this._portfolioInvalidated) {
+      if (C56_TASK_TRACE) OpexC56TaskLog("TASK_EXIT", task.name, this._taskCycle);
+      return false;
+    }
   }
   local refreshReason = this._portfolioInvalidated ? "event"
       : (stale ? "capital" : "month");
@@ -63,13 +79,39 @@ function OpexAI::_dispatchCatalog(task, year)
     OpexRefreshEpochBounds(this._catalog);
     this._recomputeEpochBounds = false;
   }
-  local c76Mark = C39_INVALIDATION_PROBE ? OpexOpsMeasureBegin() : null;
-  local c76StartDay = C39_INVALIDATION_PROBE ? AIDate.GetCurrentDate() : 0;
-  this._rebuildProjects(fleetPlan);
-  if (C39_INVALIDATION_PROBE) {
-    local c76Ops = OpexOpsMeasureEnd(c76Mark);
-    local c76Days = AIDate.GetCurrentDate() - c76StartDay;
-    this._c76RecordRegen("full", c76Ops, c76Days, year);
+  if (C76_REGEN_TARGETED) {
+    local c76NeedFullRegen = (this._projects == null) || c76LayerChanged ||
+        this._portfolioInvalidated || stale || c76PeriodicDue || c76ReloadDue;
+    if (c76NeedFullRegen) {
+      local c76Reason = c76ReloadDue ? "reload"
+          : (c76LayerChanged ? "layers"
+          : (this._portfolioInvalidated ? "invalidated"
+          : (stale ? "budget"
+          : (c76PeriodicDue ? "periodic" : "initial"))));
+      local c76Mark = C39_INVALIDATION_PROBE ? OpexOpsMeasureBegin() : null;
+      this._rebuildProjects(fleetPlan);
+      if (C39_INVALIDATION_PROBE) {
+        local c76Ops = OpexOpsMeasureEnd(c76Mark);
+        local c76Days = (c76Ops + 93000) / 186000;
+        this._c76RecordRegen("full", c76Ops, c76Days, year, c76Reason);
+      }
+      this._c76AcknowledgeAllLayers();
+      this._c76LastRegenQuarter = c76CurQuarter;
+      this._c76ForceReloadRegen = false;
+    } else {
+      // Régénération évitée : resélection du vivier existant sous capital courant
+      local budgetNow = OpexAvailableCapital();
+      this._projects = OpexReselectProjects(this._projects, budgetNow);
+      this._c76RecordAvoided(year);
+    }
+  } else {
+    local c76Mark = C39_INVALIDATION_PROBE ? OpexOpsMeasureBegin() : null;
+    this._rebuildProjects(fleetPlan);
+    if (C39_INVALIDATION_PROBE) {
+      local c76Ops = OpexOpsMeasureEnd(c76Mark);
+      local c76Days = (c76Ops + 93000) / 186000;
+      this._c76RecordRegen("full", c76Ops, c76Days, year, refreshReason);
+    }
   }
   /* C39.5 : le vivier vient d'etre (re)genere. Horodater ici, et pas seulement au prochain
    * tour projects, pour que D2 mesure toute la fenetre de finançabilite. */

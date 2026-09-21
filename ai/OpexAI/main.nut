@@ -241,11 +241,34 @@ class OpexAI extends AIController {
    * non-vide→vide ou une fois par mois, pas à chaque passe vide. */
   _lastBestCount = -1;
   _lastEmptyProbeMonth = -1;
+  /* C76 étape 2 / C80 tranche 3 : révisions réelles du vivier pilotées par les invalidations */
+  _c76Revisions = null;
+  _c76AckRevisions = null;
+  _c76ModeConsumed = null;
+  _c76ModeConsumedRevision = null;
+  _c76LastRegenQuarter = -1;
+  _c76ForceReloadRegen = false;
 
   constructor()
   {
     this._lastBestCount = -1;
     this._lastEmptyProbeMonth = -1;
+    this._c76Revisions = {
+      towns = 0,
+      industries = 0,
+      lines = 0,
+      engines = { rail = 0, road = 0, air = 0, water = 0 }
+    };
+    this._c76AckRevisions = {
+      towns = 0,
+      industries = 0,
+      lines = 0,
+      engines = { rail = 0, road = 0, air = 0, water = 0 }
+    };
+    this._c76ModeConsumed = {};
+    this._c76ModeConsumedRevision = {};
+    this._c76LastRegenQuarter = -1;
+    this._c76ForceReloadRegen = false;
     this._budget = OpexBudget();
     this._catalog = OpexCatalog();
     this._lines = [];
@@ -419,7 +442,18 @@ class OpexAI extends AIController {
   function _dispatchRefleet(task, year);
   function _dispatchTownGrowth(task, year);
   function _dispatchRepay(task, year);
-  function _c76RecordRegen(kind, ops, days, year);
+  function _c76RecordRegen(kind, ops, days, year, reason = "unknown");
+  function _c76RecordAvoided(year);
+  function _c76BumpLayer(layer, isEvent = false);
+  function _c76GetLayerRevision(layer);
+  function _c76GetModeDeps(mode);
+  function _c76ModeNeedsRegen(mode);
+  function _c76AnyLayerChanged();
+  function _c76AcknowledgeAllLayers();
+  function _c76DoFullRegen(reason, year);
+  function _c76SaveRevisions();
+  function _c76LoadRevisions(data);
+  function _c76RunSelfTest();
   function _runOrchestratorTick();
   function _runBackgroundQueue();
   function _enqueueReactive(key, kind, payload);
@@ -554,6 +588,9 @@ function OpexAI::Start()
 
   if (C80_DOUBLE_REGISTER) {
     this._c80RunSelfTest();
+  }
+  if (C76_REGEN_TARGETED) {
+    this._c76RunSelfTest();
   }
 
   while (true) {

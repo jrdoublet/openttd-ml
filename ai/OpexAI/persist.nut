@@ -391,21 +391,27 @@ function OpexAI::Save()
   }
   /* A 0, conserver exactement le format historique : la charge complete est experimentale et
    * le serialiseur execute Save() sous budget d'opcodes. */
-  if (!SAVE_FULL_STATE) return {
-    version = 1,
-    generationStage = this._generationStage,
-    generationStageMonth = this._generationStageMonth,
-    lastFreightCargo = this._lastFreightCargo,
-    bootstrapFreightCargo = this._bootstrapFreightCargo,
-    nextLineId = this._nextLineId,
-    lastCatalogMonth = this._lastCatalogMonth,
-    lastReportYear = this._lastReportYear,
-    startYear = this._startYear,
-    abandonedPairs = abandoned,
-    airBuilt = this._airBuilt,
-    waterBuilt = this._waterBuilt,
-    waterSiteCatalog = this._waterSiteCatalog,
-  };
+  if (!SAVE_FULL_STATE) {
+    local shortSave = {
+      version = 1,
+      generationStage = this._generationStage,
+      generationStageMonth = this._generationStageMonth,
+      lastFreightCargo = this._lastFreightCargo,
+      bootstrapFreightCargo = this._bootstrapFreightCargo,
+      nextLineId = this._nextLineId,
+      lastCatalogMonth = this._lastCatalogMonth,
+      lastReportYear = this._lastReportYear,
+      startYear = this._startYear,
+      abandonedPairs = abandoned,
+      airBuilt = this._airBuilt,
+      waterBuilt = this._waterBuilt,
+      waterSiteCatalog = this._waterSiteCatalog,
+    };
+    if (C76_REGEN_TARGETED) {
+      shortSave.c76Revisions <- this._c76SaveRevisions();
+    }
+    return shortSave;
+  }
 
   local taskDue = {};
   if (this._taskQueue != null) {
@@ -492,6 +498,9 @@ function OpexAI::Save()
     saveObj.c80ReactiveQueue <- OpexSaveReactiveQueue(this._reactiveQueue);
     saveObj.c80ActiveWorker <- OpexSaveActiveWorker(this._activeWorker);
   }
+  if (C76_REGEN_TARGETED) {
+    saveObj.c76Revisions <- this._c76SaveRevisions();
+  }
   return saveObj;
 }
 function OpexAI::Load(version, data)
@@ -550,6 +559,9 @@ function OpexAI::Load(version, data)
     if ("c80ActiveWorker" in data && data.c80ActiveWorker != null) {
       this._activeWorker = OpexLoadActiveWorker(data.c80ActiveWorker);
     }
+  }
+  if ("c76Revisions" in data && data.c76Revisions != null) {
+    this._c76LoadRevisions(data.c76Revisions);
   }
 }
 /* Load tourne trop tot et sous DisableDoCommandScope : la verification du monde est donc faite
@@ -687,6 +699,9 @@ function OpexAI::_reconcileAfterLoad()
     foreach (vehicle in staleScrapTickets) {
       if (vehicle in this._vehiclesToScrap) delete this._vehiclesToScrap[vehicle];
     }
+  }
+  if (C76_REGEN_TARGETED) {
+    this._c76ForceReloadRegen = true;
   }
   /* Sans sonde : cette unique preuve doit toujours accompagner un rechargement, jamais une partie neuve. */
   OpexDecide("LOAD_RECONCILE", "saved=" + saved + " kept=" + kept + " dropped=" + dropped

@@ -1085,6 +1085,7 @@ function OpexAI::_recordRailAttempt(candidate, result, join, placeJoin, posPacke
       lineId = idx,
     });
     this._nextLineId++;
+    if (C76_REGEN_TARGETED) this._c76BumpLayer("lines", false);
     return true;
   }
   if (RAIL_COST_PROBE && ("actualCost" in result) && result.actualCost != 0) {

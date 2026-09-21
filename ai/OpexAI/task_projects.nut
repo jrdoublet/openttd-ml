@@ -988,31 +988,34 @@ function OpexAI::_tryBuildProjects(year)
       /* Chaque succes a deja filtre et re-classe sur le budget vivant. */
     } else if (STAGED_BOOTSTRAP && this._generationStage < OPEX_STAGE_COMPLETE) {
       local c76Mark = C39_INVALIDATION_PROBE ? OpexOpsMeasureBegin() : null;
-      local c76StartDay = C39_INVALIDATION_PROBE ? AIDate.GetCurrentDate() : 0;
       this._rebuildProjects(fleetPlan);
       if (C39_INVALIDATION_PROBE) {
         local c76Ops = OpexOpsMeasureEnd(c76Mark);
-        local c76Days = AIDate.GetCurrentDate() - c76StartDay;
-        this._c76RecordRegen("full", c76Ops, c76Days, year);
+        local c76Days = (c76Ops + 93000) / 186000;
+        this._c76RecordRegen("full", c76Ops, c76Days, year, "staged");
       }
     } else if (PORTFOLIO_CACHE && this._projects != null && ("candidateGroups" in this._projects)) {
       local budgetNow = OpexAvailableCapital();
       local c76Mark = C39_INVALIDATION_PROBE ? OpexOpsMeasureBegin() : null;
-      local c76StartDay = C39_INVALIDATION_PROBE ? AIDate.GetCurrentDate() : 0;
       this._projects = OpexIncrementalUpdateProjects(this._projects, this._catalog, this._budget, this._lines, budgetNow, fleetPlan, this._abandonedPairs);
       if (C39_INVALIDATION_PROBE) {
         local c76Ops = OpexOpsMeasureEnd(c76Mark);
-        local c76Days = AIDate.GetCurrentDate() - c76StartDay;
-        this._c76RecordRegen("incremental", c76Ops, c76Days, year);
+        local c76Days = (c76Ops + 93000) / 186000;
+        this._c76RecordRegen("incremental", c76Ops, c76Days, year, "post_build");
+      }
+      /* C76 : la mise a jour incrementale vient d'integrer la ligne construite ; acquitter la
+       * couche `lines` evite qu'elle declenche a elle seule une regeneration complete au tour
+       * suivant (mesure : 109 regenerations "layers" sur 133). Les autres couches restent dues. */
+      if (C76_REGEN_TARGETED && this._c76AckRevisions != null && this._c76Revisions != null) {
+        this._c76AckRevisions.lines = this._c76Revisions.lines;
       }
     } else {
       local c76Mark = C39_INVALIDATION_PROBE ? OpexOpsMeasureBegin() : null;
-      local c76StartDay = C39_INVALIDATION_PROBE ? AIDate.GetCurrentDate() : 0;
       this._rebuildProjects(fleetPlan);
       if (C39_INVALIDATION_PROBE) {
         local c76Ops = OpexOpsMeasureEnd(c76Mark);
-        local c76Days = AIDate.GetCurrentDate() - c76StartDay;
-        this._c76RecordRegen("full", c76Ops, c76Days, year);
+        local c76Days = (c76Ops + 93000) / 186000;
+        this._c76RecordRegen("full", c76Ops, c76Days, year, "post_build");
       }
     }
     this._ranked = this._projects.rail;

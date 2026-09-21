@@ -222,6 +222,7 @@ function OpexAI::_tryTownGrowthCity(townId, year, anchor = null)
     lineId = this._nextLineId,
   });
   this._nextLineId++;
+  if (C76_REGEN_TARGETED) this._c76BumpLayer("lines", false);
   return true;
 }
 

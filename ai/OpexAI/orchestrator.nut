@@ -346,7 +346,14 @@ function OpexAI::pop()
 function OpexAI::_dispatchReactiveIntention(intention)
 {
   if (intention == null) return false;
-  // En tranche 0, aucun producteur réel. C76 étape 2 et C77 viendront alimenter les handlers.
+  if (intention.key == "regen" || intention.kind == "regen") {
+    if (C76_REGEN_TARGETED) {
+      local date = AIDate.GetCurrentDate();
+      local year = AIDate.GetYear(date);
+      this._c76DoFullRegen("reactive", year);
+      return true;
+    }
+  }
   return true;
 }
 
@@ -624,3 +631,400 @@ function OpexAI::_c80RunSelfTest()
   AILog.Info("C80 selftest ok");
   return true;
 }
+
+/* ============================================================================
+ * 4. C76 Étape 2 / C80 Tranche 3 : Révisions réelles et régénération ciblée
+ * ============================================================================ */
+
+function OpexAI::_c76BumpLayer(layer, isEvent = false)
+{
+  if (!C76_REGEN_TARGETED || this._c76Revisions == null) return;
+  if (layer == "towns") {
+    this._c76Revisions.towns++;
+  } else if (layer == "industries") {
+    this._c76Revisions.industries++;
+  } else if (layer == "lines") {
+    this._c76Revisions.lines++;
+  } else if (layer == "engines.rail" || layer == "rail") {
+    this._c76Revisions.engines.rail++;
+  } else if (layer == "engines.road" || layer == "road") {
+    this._c76Revisions.engines.road++;
+  } else if (layer == "engines.air" || layer == "air") {
+    this._c76Revisions.engines.air++;
+  } else if (layer == "engines.water" || layer == "water") {
+    this._c76Revisions.engines.water++;
+  }
+
+  // Si C80_DOUBLE_REGISTER est actif et qu'il s'agit d'un événement externe :
+  // enfiler une intention réactive de clé "regen" (coalescée)
+  if (isEvent && C80_DOUBLE_REGISTER) {
+    this._enqueueReactive("regen", "regen", null);
+  }
+}
+
+function OpexAI::_c76GetLayerRevision(layer)
+{
+  if (this._c76Revisions == null) return 0;
+  if (layer == "towns") return this._c76Revisions.towns;
+  if (layer == "industries") return this._c76Revisions.industries;
+  if (layer == "lines") return this._c76Revisions.lines;
+  if (layer == "engines.rail") return this._c76Revisions.engines.rail;
+  if (layer == "engines.road") return this._c76Revisions.engines.road;
+  if (layer == "engines.air") return this._c76Revisions.engines.air;
+  if (layer == "engines.water") return this._c76Revisions.engines.water;
+  return 0;
+}
+
+function OpexAI::_c76GetModeDeps(mode)
+{
+  // Matrice mode <- couches selon contrat 18_orchestrateur_double_registre.md §5.2
+  if (mode == "air") return ["towns", "engines.air", "lines"];
+  if (mode == "rail_pax") return ["towns", "engines.rail", "lines"];
+  if (mode == "rail_freight") return ["industries", "engines.rail", "lines"];
+  if (mode == "road_pax") return ["towns", "engines.road", "lines"];
+  if (mode == "road_freight") return ["industries", "engines.road", "lines"];
+  if (mode == "water") return ["industries", "engines.water", "lines"];
+  if (mode == "fleet") return ["lines", "engines.rail", "engines.road", "engines.air", "engines.water"];
+  if (mode == "rail") return ["towns", "industries", "engines.rail", "lines"];
+  if (mode == "road") return ["towns", "industries", "engines.road", "lines"];
+  return [];
+}
+
+function OpexAI::_c76ModeNeedsRegen(mode)
+{
+  if (!C76_REGEN_TARGETED || this._c76Revisions == null) return true;
+  local deps = this._c76GetModeDeps(mode);
+  local consumed = (mode in this._c76ModeConsumed) ? this._c76ModeConsumed[mode] : {};
+  foreach (layer in deps) {
+    local cur = this._c76GetLayerRevision(layer);
+    local ack = (layer in consumed) ? consumed[layer] : -1;
+    if (cur > ack) return true;
+  }
+  return false;
+}
+
+function OpexAI::_c76AnyLayerChanged()
+{
+  if (!C76_REGEN_TARGETED || this._c76Revisions == null || this._c76AckRevisions == null) return false;
+  if (this._c76Revisions.towns > this._c76AckRevisions.towns) return true;
+  if (this._c76Revisions.industries > this._c76AckRevisions.industries) return true;
+  if (this._c76Revisions.lines > this._c76AckRevisions.lines) return true;
+  if (this._c76Revisions.engines.rail > this._c76AckRevisions.engines.rail) return true;
+  if (this._c76Revisions.engines.road > this._c76AckRevisions.engines.road) return true;
+  if (this._c76Revisions.engines.air > this._c76AckRevisions.engines.air) return true;
+  if (this._c76Revisions.engines.water > this._c76AckRevisions.engines.water) return true;
+  return false;
+}
+
+function OpexAI::_c76AcknowledgeAllLayers()
+{
+  if (this._c76Revisions == null) return;
+  if (this._c76AckRevisions == null) {
+    this._c76AckRevisions = {
+      towns = 0, industries = 0, lines = 0,
+      engines = { rail = 0, road = 0, air = 0, water = 0 }
+    };
+  }
+  this._c76AckRevisions.towns = this._c76Revisions.towns;
+  this._c76AckRevisions.industries = this._c76Revisions.industries;
+  this._c76AckRevisions.lines = this._c76Revisions.lines;
+  this._c76AckRevisions.engines.rail = this._c76Revisions.engines.rail;
+  this._c76AckRevisions.engines.road = this._c76Revisions.engines.road;
+  this._c76AckRevisions.engines.air = this._c76Revisions.engines.air;
+  this._c76AckRevisions.engines.water = this._c76Revisions.engines.water;
+
+  local modes = ["air", "rail_pax", "rail_freight", "road_pax", "road_freight", "water", "fleet", "rail", "road"];
+  foreach (mode in modes) {
+    local deps = this._c76GetModeDeps(mode);
+    if (!(mode in this._c76ModeConsumed)) this._c76ModeConsumed.rawset(mode, {});
+    local sumRev = 0;
+    foreach (layer in deps) {
+      local rev = this._c76GetLayerRevision(layer);
+      this._c76ModeConsumed[mode].rawset(layer, rev);
+      sumRev += rev;
+    }
+    this._c76ModeConsumedRevision.rawset(mode, sumRev);
+  }
+}
+
+function OpexAI::_c76DoFullRegen(reason, year)
+{
+  local date = AIDate.GetCurrentDate();
+  local ym = year * 12 + AIDate.GetMonth(date);
+  local curQuarter = year * 4 + (AIDate.GetMonth(date) - 1) / 3;
+
+  this._lastCatalogMonth = ym;
+  this._pruneAbandonedPairs(date);
+
+  if (PORTFOLIO_REFRESH_PROBE) {
+    local refreshMark = OpexOpsMeasureBegin();
+    this._catalog.refresh(this._budget, year);
+    PORTFOLIO_REFRESH_PROBE_REFRESH_OPS += OpexOpsMeasureEnd(refreshMark);
+    PORTFOLIO_REFRESH_PROBE_REFRESH_COUNT++;
+  } else {
+    this._catalog.refresh(this._budget, year);
+  }
+
+  local fleetPlan = null;
+  if (FLEET_PORTFOLIO) {
+    fleetPlan = [];
+    this._resizeAirFleets(AIDate.GetYear(date), fleetPlan);
+  }
+
+  if (this._recomputeEpochBounds) {
+    OpexRefreshEpochBounds(this._catalog);
+    this._recomputeEpochBounds = false;
+  }
+
+  local c76Mark = C39_INVALIDATION_PROBE ? OpexOpsMeasureBegin() : null;
+  this._rebuildProjects(fleetPlan);
+  if (C39_INVALIDATION_PROBE) {
+    local c76Ops = OpexOpsMeasureEnd(c76Mark);
+    local c76Days = (c76Ops + 93000) / 186000;
+    this._c76RecordRegen("full", c76Ops, c76Days, year, reason);
+  }
+
+  this._c76AcknowledgeAllLayers();
+  this._c76LastRegenQuarter = curQuarter;
+  this._c76ForceReloadRegen = false;
+  this._portfolioInvalidated = false;
+
+  if (C39_PROJECTS_CADENCE_PROBE) this._c39StampFinanceable();
+  if (this._catalog != null && this._catalog.bounds != null) {
+    local b = this._catalog.bounds;
+    OpexSign(AIMap.GetTileIndex(1, 2), "EB|" + b.roadMin + "|" + b.railMin
+             + "|" + b.railAirOverlapMin + "|" + b.railMax);
+  }
+
+  this._logStalenessRefresh(reason);
+  this._ranked = this._projects.rail;
+
+  if (PORTFOLIO_LOG) {
+    if (this._projects != null && this._projects.best != null && this._projects.best.len() > 0) {
+      OpexLogPortfolioRank(this._projects);
+    } else if (DECISION_LOG) {
+      local cBudget = (this._projects != null) ? this._projects.capitalBudget : 0;
+      OpexDecide("PORTFOLIO_EMPTY", "budget=" + cBudget);
+    }
+  }
+
+  local anchor = AIMap.GetTileIndex(1, 1);
+  local yy = year % 100;
+  OpexSign(anchor, "IG|" + yy + "|" + this._projects.stats.modeCandidates + "|"
+           + this._projects.stats.odProjects + "|" + this._projects.stats.budgetSelected
+           + "|" + (this._projects.stats.knapsackExact ? 0 : 1)
+           + "|" + this._budget.nested + "|" + (this._projects.stats.selectionOpcodes / 1000));
+  OpexSign(anchor, "IB|" + yy + "|" + this._projects.capitalBudget + "|"
+           + this._projects.stats.selectedCapital + "|B0");
+}
+
+function OpexAI::_c76SaveRevisions()
+{
+  local consumedCopy = {};
+  if (this._c76ModeConsumed != null) {
+    foreach (mode, layers in this._c76ModeConsumed) {
+      local mTable = {};
+      if (typeof layers == "table") {
+        foreach (layer, rev in layers) {
+          mTable.rawset(layer, rev);
+        }
+      }
+      consumedCopy.rawset(mode, mTable);
+    }
+  }
+
+  local consumedRevCopy = {};
+  if (this._c76ModeConsumedRevision != null) {
+    foreach (mode, rev in this._c76ModeConsumedRevision) {
+      consumedRevCopy.rawset(mode, rev);
+    }
+  }
+
+  return {
+    towns = this._c76Revisions.towns,
+    industries = this._c76Revisions.industries,
+    lines = this._c76Revisions.lines,
+    engines_rail = this._c76Revisions.engines.rail,
+    engines_road = this._c76Revisions.engines.road,
+    engines_air = this._c76Revisions.engines.air,
+    engines_water = this._c76Revisions.engines.water,
+
+    ack_towns = this._c76AckRevisions.towns,
+    ack_industries = this._c76AckRevisions.industries,
+    ack_lines = this._c76AckRevisions.lines,
+    ack_engines_rail = this._c76AckRevisions.engines.rail,
+    ack_engines_road = this._c76AckRevisions.engines.road,
+    ack_engines_air = this._c76AckRevisions.engines.air,
+    ack_engines_water = this._c76AckRevisions.engines.water,
+
+    modeConsumed = consumedCopy,
+    modeConsumedRev = consumedRevCopy,
+    lastRegenQuarter = this._c76LastRegenQuarter
+  };
+}
+
+function OpexAI::_c76LoadRevisions(data)
+{
+  if (data == null || typeof data != "table") return;
+  if ("towns" in data) this._c76Revisions.towns = data.towns;
+  if ("industries" in data) this._c76Revisions.industries = data.industries;
+  if ("lines" in data) this._c76Revisions.lines = data.lines;
+  if ("engines_rail" in data) this._c76Revisions.engines.rail = data.engines_rail;
+  if ("engines_road" in data) this._c76Revisions.engines.road = data.engines_road;
+  if ("engines_air" in data) this._c76Revisions.engines.air = data.engines_air;
+  if ("engines_water" in data) this._c76Revisions.engines.water = data.engines_water;
+
+  if ("ack_towns" in data) this._c76AckRevisions.towns = data.ack_towns;
+  if ("ack_industries" in data) this._c76AckRevisions.industries = data.ack_industries;
+  if ("ack_lines" in data) this._c76AckRevisions.lines = data.ack_lines;
+  if ("ack_engines_rail" in data) this._c76AckRevisions.engines.rail = data.ack_engines_rail;
+  if ("ack_engines_road" in data) this._c76AckRevisions.engines.road = data.ack_engines_road;
+  if ("ack_engines_air" in data) this._c76AckRevisions.engines.air = data.ack_engines_air;
+  if ("ack_engines_water" in data) this._c76AckRevisions.engines.water = data.ack_engines_water;
+
+  if ("modeConsumed" in data && typeof data.modeConsumed == "table") {
+    foreach (mode, layers in data.modeConsumed) {
+      if (!(mode in this._c76ModeConsumed)) this._c76ModeConsumed.rawset(mode, {});
+      if (typeof layers == "table") {
+        foreach (layer, rev in layers) {
+          this._c76ModeConsumed[mode].rawset(layer, rev);
+        }
+      }
+    }
+  }
+  if ("modeConsumedRev" in data && typeof data.modeConsumedRev == "table") {
+    foreach (mode, rev in data.modeConsumedRev) {
+      this._c76ModeConsumedRevision.rawset(mode, rev);
+    }
+  }
+  if ("lastRegenQuarter" in data) this._c76LastRegenQuarter = data.lastRegenQuarter;
+
+  // Point 4 : forcer la régénération au chargement
+  this._c76ForceReloadRegen = true;
+}
+
+function OpexAI::_c76RunSelfTest()
+{
+  local savedRevs = this._c76SaveRevisions();
+  local savedForceReload = this._c76ForceReloadRegen;
+
+  // Réinitialiser à un état neutre
+  this._c76Revisions = {
+    towns = 0,
+    industries = 0,
+    lines = 0,
+    engines = { rail = 0, road = 0, air = 0, water = 0 }
+  };
+  this._c76AckRevisions = {
+    towns = 0,
+    industries = 0,
+    lines = 0,
+    engines = { rail = 0, road = 0, air = 0, water = 0 }
+  };
+  this._c76ModeConsumed = {};
+  this._c76ModeConsumedRevision = {};
+  this._c76AcknowledgeAllLayers();
+  this._c76ForceReloadRegen = false;
+
+  // 1. Aucune couche incrémentée -> régénération évitée
+  if (this._c76AnyLayerChanged()) {
+    AILog.Info("C76 selftest FAIL: initial state reports layer changed");
+    this._c76LoadRevisions(savedRevs);
+    this._c76ForceReloadRegen = savedForceReload;
+    return false;
+  }
+  if (this._c76ModeNeedsRegen("air") || this._c76ModeNeedsRegen("water") || this._c76ModeNeedsRegen("rail_pax")) {
+    AILog.Info("C76 selftest FAIL: initial state reports mode needs regen");
+    this._c76LoadRevisions(savedRevs);
+    this._c76ForceReloadRegen = savedForceReload;
+    return false;
+  }
+
+  // 2. Incrément de la couche towns -> régénération demandée pour air/rail_pax, pas pour water
+  this._c76BumpLayer("towns", false);
+  if (!this._c76AnyLayerChanged()) {
+    AILog.Info("C76 selftest FAIL: towns bump did not mark any layer changed");
+    this._c76LoadRevisions(savedRevs);
+    this._c76ForceReloadRegen = savedForceReload;
+    return false;
+  }
+  if (!this._c76ModeNeedsRegen("air")) {
+    AILog.Info("C76 selftest FAIL: air did not need regen after towns bump");
+    this._c76LoadRevisions(savedRevs);
+    this._c76ForceReloadRegen = savedForceReload;
+    return false;
+  }
+  if (this._c76ModeNeedsRegen("water")) {
+    AILog.Info("C76 selftest FAIL: water needed regen after towns bump (unexpected)");
+    this._c76LoadRevisions(savedRevs);
+    this._c76ForceReloadRegen = savedForceReload;
+    return false;
+  }
+
+  // 3. Acquittement complet -> régénération évitée à nouveau
+  this._c76AcknowledgeAllLayers();
+  if (this._c76AnyLayerChanged()) {
+    AILog.Info("C76 selftest FAIL: layers still changed after acknowledge");
+    this._c76LoadRevisions(savedRevs);
+    this._c76ForceReloadRegen = savedForceReload;
+    return false;
+  }
+  if (this._c76ModeNeedsRegen("air")) {
+    AILog.Info("C76 selftest FAIL: air still needs regen after acknowledge");
+    this._c76LoadRevisions(savedRevs);
+    this._c76ForceReloadRegen = savedForceReload;
+    return false;
+  }
+
+  // 4. Incrément de industries -> water demande regen, air non
+  this._c76BumpLayer("industries", false);
+  if (!this._c76AnyLayerChanged()) {
+    AILog.Info("C76 selftest FAIL: industries bump did not mark layer changed");
+    this._c76LoadRevisions(savedRevs);
+    this._c76ForceReloadRegen = savedForceReload;
+    return false;
+  }
+  if (!this._c76ModeNeedsRegen("water")) {
+    AILog.Info("C76 selftest FAIL: water did not need regen after industries bump");
+    this._c76LoadRevisions(savedRevs);
+    this._c76ForceReloadRegen = savedForceReload;
+    return false;
+  }
+  if (this._c76ModeNeedsRegen("air")) {
+    AILog.Info("C76 selftest FAIL: air needed regen after industries bump (unexpected)");
+    this._c76LoadRevisions(savedRevs);
+    this._c76ForceReloadRegen = savedForceReload;
+    return false;
+  }
+
+  // 5. Test de la file réactive sous C80_DOUBLE_REGISTER
+  if (C80_DOUBLE_REGISTER) {
+    this._clearReactiveQueue();
+    this._c76BumpLayer("towns", true); // isEvent = true
+    if (!this._hasReactiveIntentions()) {
+      AILog.Info("C76 selftest FAIL: event bump did not enqueue reactive regen");
+      this._clearReactiveQueue();
+      this._c76LoadRevisions(savedRevs);
+      this._c76ForceReloadRegen = savedForceReload;
+      return false;
+    }
+    local popped = this._popReactive();
+    if (popped == null || popped.key != "regen") {
+      local pk = (popped != null) ? popped.key : "null";
+      AILog.Info("C76 selftest FAIL: expected key regen, got " + pk);
+      this._clearReactiveQueue();
+      this._c76LoadRevisions(savedRevs);
+      this._c76ForceReloadRegen = savedForceReload;
+      return false;
+    }
+    this._clearReactiveQueue();
+  }
+
+  // Restauration propre de l'état
+  this._c76LoadRevisions(savedRevs);
+  this._c76ForceReloadRegen = savedForceReload;
+
+  AILog.Info("C76 selftest ok");
+  return true;
+}
+

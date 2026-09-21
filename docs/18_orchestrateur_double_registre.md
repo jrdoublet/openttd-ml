@@ -626,3 +626,28 @@ sur les 3 graines).
 - **Identité au défaut non tenue** : graine 42 identique à l'état d'avant la tranche (3 153 311 £),
   graine 100 différente (2 144 974 contre 2 078 509 £). Le refactor de `_tryTownGrowth` est exécuté
   au défaut : à examiner en priorité à l'étape 3 de la revue (`revue_code_2026-09-21_plan.md`).
+
+## 13. Tranche 3 : C76 étape 2, régénération pilotée par les couches (2026-09-21)
+
+Implémentée par agy (réglage `c76_regen_targeted`, défaut 0 ; fonctionne sans C80 ; sous
+`c80_double_register`, un événement enfile une intention réactive « regen »). `_dispatchCatalog`
+ne régénère que si une couche a changé, si le vivier est invalidé, si le budget a doublé, au
+filet trimestriel ou au rechargement ; sinon il resélectionne le vivier existant contre le capital
+du moment. Selftest `C76 selftest ok`. Sonde : champ « jours » corrigé, raisons publiées.
+
+**Correctif de relecture (Claude).** Chaque ligne construite incrémente la couche `lines`, dont
+dépendent tous les modes : la régénération complète repartait presque à chaque tour, alors que la
+mise à jour incrémentale qui suit un chantier a déjà intégré la ligne. La couche `lines` est
+désormais acquittée après cette mise à jour.
+
+Mesure 3 graines × 6 ans, solo, `probe_catalogue` (`results/c80t3.json`, `results/c80t3b.json`) :
+
+| version | complètes | évitées | part évitée | raisons des complètes |
+|---|--:|--:|--:|---|
+| agy | 133 | 26 | 16 % | couches 109, trimestre 17, démarrage 6, budget 1 |
+| + acquittement de `lines` | 103 | 48 | **32 %** | couches 49, **trimestre 42**, démarrage 6, budget 6 |
+
+**Critère C80-5 (≥ 50 %) non atteint.** Le filet trimestriel est devenu la première cause : avec un
+tour de ~45 jours, il force une régénération complète à peu près un tour sur deux. Le contrat
+(§5.3) prévoyait une cadence **semestrielle ou annuelle** ; la consigne de la tranche disait
+trimestrielle. Décision utilisateur requise sur la période du filet.

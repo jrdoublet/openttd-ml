@@ -548,6 +548,9 @@ function OpexAI::_scrapDeadLines(year)
   for (local k = toRemove.len() - 1; k >= 0; k--) {
     this._lines.remove(toRemove[k]);
   }
+  if (C76_REGEN_TARGETED && toRemove.len() > 0) {
+    this._c76BumpLayer("lines", false);
+  }
 }
 /* Vente autonome des retraites unitaires C52. Contrairement a la mise au rebut
  * d'une ligne, la ligne reste exploitee : cette file ne touche ni scrapping ni
@@ -801,7 +804,7 @@ function OpexAI::_reportYear(year, ranked)
   }
 }
 
-function OpexAI::_c76RecordRegen(kind, ops, days, year)
+function OpexAI::_c76RecordRegen(kind, ops, days, year, reason = "unknown")
 {
   if (!C39_INVALIDATION_PROBE) return;
 
@@ -999,7 +1002,8 @@ function OpexAI::_c76RecordRegen(kind, ops, days, year)
     && linesDelta == 0
     && townsDelta == 0) ? 1 : 0;
 
-  local line = "phase=regen kind=" + kind + " year=" + year
+  local line = "phase=regen kind=" + kind + " reason=" + reason + " year=" + year
+    + " days=" + days
     + " days_since_prev=" + daysSincePrev
     + " ops=" + ops
     + " towns_n=" + townsN
@@ -1032,10 +1036,12 @@ function OpexAI::_c76RecordRegen(kind, ops, days, year)
       C76_YEAR_LEDGER.rawset(year, {
         full = 0,
         incremental = 0,
+        avoided = 0,
         ops_total = 0,
         days_total = 0,
         unchanged_deps = 0,
-        top1_unchanged = 0
+        top1_unchanged = 0,
+        reasons = {}
       });
     }
     local rec = C76_YEAR_LEDGER[year];
@@ -1045,6 +1051,9 @@ function OpexAI::_c76RecordRegen(kind, ops, days, year)
     rec.days_total += days;
     if (unchangedDeps == 1) rec.unchanged_deps++;
     if (bestSameTop1 == 1) rec.top1_unchanged++;
+    if (!("reasons" in rec)) rec.reasons <- {};
+    if (reason in rec.reasons) rec.reasons[reason]++;
+    else rec.reasons.rawset(reason, 1);
   }
 
   C76_PREV_STATE = {
@@ -1069,4 +1078,29 @@ function OpexAI::_c76RecordRegen(kind, ops, days, year)
   };
 
   C76_EVENTS_SINCE_PREV = { total = 0, by_type = {} };
+}
+
+function OpexAI::_c76RecordAvoided(year)
+{
+  if (!C39_INVALIDATION_PROBE) return;
+  if (C76_YEAR_LEDGER != null) {
+    if (!(year in C76_YEAR_LEDGER)) {
+      C76_YEAR_LEDGER.rawset(year, {
+        full = 0,
+        incremental = 0,
+        avoided = 0,
+        ops_total = 0,
+        days_total = 0,
+        unchanged_deps = 0,
+        top1_unchanged = 0,
+        reasons = {}
+      });
+    }
+    local rec = C76_YEAR_LEDGER[year];
+    if (!("avoided" in rec)) rec.avoided <- 0;
+    rec.avoided++;
+  }
+  local avoidedCount = (C76_YEAR_LEDGER != null && (year in C76_YEAR_LEDGER) && ("avoided" in C76_YEAR_LEDGER[year]))
+      ? C76_YEAR_LEDGER[year].avoided : 1;
+  OpexC76Log("phase=regen_avoided year=" + year + " avoided_count=" + avoidedCount);
 }

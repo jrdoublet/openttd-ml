@@ -41,6 +41,15 @@ function OpexAI::_markDirty(reason, catalogLayers = null, candidateLayers = null
                             portfolio = false, selection = false, affectedKind = null,
                             affectedId = -1, affectedMode = null, targetedRelevant = true)
 {
+  if (C76_REGEN_TARGETED) {
+    if (reason == "industry_open" || reason == "industry_close") {
+      this._c76BumpLayer("industries", true);
+    } else if (reason == "town_founded") {
+      this._c76BumpLayer("towns", true);
+    } else if (reason == "engine_available" && affectedMode != null) {
+      this._c76BumpLayer("engines." + affectedMode, true);
+    }
+  }
   if (!C39_INVALIDATION_PROBE || this._staleness == null) return;
   local revisionBumped = false;
   if (C39_DECISION_DELTA_PROBE && !this._staleness.topBeforeCaptured) {
