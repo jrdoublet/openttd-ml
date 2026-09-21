@@ -15,7 +15,6 @@ TARGET_HEADWAY_DAYS : PAS instrumente ici -- pas de compteur binaire simple (mor
 demande une mesure de sensibilite au seuil d'arrondi (OpexCeilDiv), hors perimetre de cette passe.
 """
 import argparse
-import re
 import statistics
 from collections import Counter
 from pathlib import Path
@@ -28,6 +27,7 @@ import sys
 sys.path.insert(0, str(ROOT / "sweeps"))
 from bench_v2 import OPENGFX_VERSION, OPENTTD_VERSION, build_arms, enable_savegame_cleanup, keep, make_cfg
 import bench_v2
+from harness import parse_opex_decisions
 
 SCRIPT_DEBUG_LEVEL = "4"
 _real_check_output = openttdlab.subprocess.check_output
@@ -42,28 +42,6 @@ def _check_output_with_script_debug(args, *rest, **kwargs):
 
 openttdlab.subprocess.check_output = _check_output_with_script_debug
 
-LINE_RE = re.compile(r"\[script:\d+\] \[(\d+)\] \[(\w)\] (.*)")
-OPEX_RE = re.compile(r"^OPEX (\d+)-(\d+)-(\d+) ([A-Z0-9_]+)\s*(.*)$")
-
-
-def parse_opex_decisions(output):
-    events = []
-    for line in (output or "").splitlines():
-        m = LINE_RE.search(line)
-        if not m:
-            continue
-        _company, _level, text = m.groups()
-        m2 = OPEX_RE.match(text.strip())
-        if not m2:
-            continue
-        _y, _mo, _d, kind, rest = m2.groups()
-        fields = {}
-        for token in rest.split():
-            if "=" in token:
-                key, _, value = token.partition("=")
-                fields[key] = value
-        events.append({"kind": kind, "fields": fields})
-    return events
 
 
 def main():
