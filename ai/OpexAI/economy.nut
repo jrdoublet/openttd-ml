@@ -281,13 +281,8 @@ function OpexLineEconomics(catalog, cargo, distance, monthlyUnits, kind, fixedPl
   local platformLength = fixedPlatformLength > 0
       ? fixedPlatformLength
       : OpexRailWantedPlatformLength(wagons, catalog.platformLength);
-  /* pricing_fix : le depot rail manquait au capital, alors que builder_rail.nut le paie a chaque
-   * ligne (AIRail.GetBuildCost(BT_DEPOT)) et que la route comme l'eau comptent le leur. L'omission
-   * sous-estimait le capital rail et gonflait donc son ROI FACE A LA ROUTE, dans un portefeuille
-   * qui compare precisement les deux sur ce nombre (docs/taches.md S0 octies). */
   local effectiveTrackCost = (catalog.costTrackPerTile * RAIL_TERRAIN_FACTOR) / 100;
   local infraCost = travelDist * effectiveTrackCost + 2 * platformLength * catalog.costStation;
-  if (PRICING_RAIL_DEPOT && ("costRailDepot" in catalog)) infraCost += catalog.costRailDepot;
   local locoLife = loco.ageYears > 0 ? loco.ageYears : 20;
   if (freightSetupDetail) {
     profile.freightEconomicsCapitalOps += OpexOpsMeasureEnd(capitalMark);

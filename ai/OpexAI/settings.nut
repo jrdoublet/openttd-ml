@@ -342,7 +342,6 @@ function OpexLoadSettings()
   LOOP_BUDGET = false;
   GROWTH_YIELDS = false;
   PRICING_ROAD_RATING = false;
-  PRICING_RAIL_DEPOT = false;
   FLEET_FIX = false;
   EVENT_DEPOT_SELL = false;
   EVENT_INDUSTRY_CLOSE = false;

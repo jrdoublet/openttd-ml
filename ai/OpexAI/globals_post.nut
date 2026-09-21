@@ -208,12 +208,9 @@ ECONOMY_FIX <- true;
  *      Elle etait figee a STATION_RATING_PCT = 50 % a plat, donc le meme mecanisme physique --
  *      la frequence fixe la note, donc la part de demande captee -- etait price differemment selon
  *      le mode. Une ligne de bus courte et frequente vaut 65,7 % sous la courbe, pas 50 % ;
- *   2. le capital rail inclut enfin le DEPOT, que builder_rail.nut paie a chaque ligne et que la
- *      route comme l'eau comptent deja. L'omission gonflait le ROI rail face a la route ;
- *   3. l'estimation d'opcodes d'un projet routier ne facture plus ses iterations au tarif du
+ *   2. l'estimation d'opcodes d'un projet routier ne facture plus ses iterations au tarif du
  *      pathfinder RAIL -- une erreur de dimension qui sous-estimait opcodeScore cote route. */
 PRICING_ROAD_RATING <- false;
-PRICING_RAIL_DEPOT <- false;
 PRICING_ROAD_OPS <- true;
 /* Dimensionnement marginal et progressif de flotte (item de tete, 2026-09-01) : repli FAUX
  * jusqu'a la lecture unique de marginal_fleet dans Start(). Defaut 0 : chemin actuel
