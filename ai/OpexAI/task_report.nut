@@ -663,14 +663,4 @@ function OpexAI::_reportYear(year, ranked)
                              + "|" + this._catalog.costStation);
   }
 
-  if (EVENT_SUBSIDY_PROBE && this._subsidyStats != null) {
-    OpexSign(anchor, "SR|" + (year % 100) + "|" + this._subsidyStats.offers
-                     + "|" + this._subsidyStats.matchedPool
-                     + "|" + this._subsidyStats.awardedSelf
-                     + "|" + this._subsidyStats.awardedOther
-                     + "|" + this._subsidyStats.expiredWithoutAward);
-    if (DECISION_LOG) {
-      OpexDecide("SUBSIDY_REPORT", "year=" + year + " offers=" + this._subsidyStats.offers + " matched=" + this._subsidyStats.matchedPool + " awarded_self=" + this._subsidyStats.awardedSelf + " awarded_other=" + this._subsidyStats.awardedOther + " expired=" + this._subsidyStats.expiredWithoutAward);
-    }
-  }
 }

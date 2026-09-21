@@ -111,47 +111,6 @@ function OpexAI::_recordMonthlyFunnelPass(builtCount, best, passDiscards, attemp
       + rejectFields);
 }
 
-/* C42 : Purge immediate d'un projet de subvention devenu invalide dans this._projects */
-function OpexAI::_purgeSubsidyFromProjects(subId)
-{
-  if (subId == null || subId < 0) return;
-  if (this._projects == null) return;
-  if (("best" in this._projects) && this._projects.best != null) {
-    for (local i = this._projects.best.len() - 1; i >= 0; i--) {
-      local p = this._projects.best[i];
-      if (p != null && ("payload" in p) && p.payload != null &&
-          ("isSubsidy" in p.payload) && p.payload.isSubsidy &&
-          ("subsidyId" in p.payload) && p.payload.subsidyId == subId) {
-        this._projects.best.remove(i);
-      }
-    }
-  }
-  if (("road" in this._projects) && this._projects.road != null &&
-      ("best" in this._projects.road) && this._projects.road.best != null) {
-    for (local i = this._projects.road.best.len() - 1; i >= 0; i--) {
-      local p = this._projects.road.best[i];
-      if (p != null && ("payload" in p) && p.payload != null &&
-          ("isSubsidy" in p.payload) && p.payload.isSubsidy &&
-          ("subsidyId" in p.payload) && p.payload.subsidyId == subId) {
-        this._projects.road.best.remove(i);
-      }
-    }
-  }
-  if (("candidateGroups" in this._projects) && this._projects.candidateGroups != null) {
-    local key = "subsidy|" + subId;
-    if (key in this._projects.candidateGroups) {
-      delete this._projects.candidateGroups[key];
-    }
-  }
-  if (this._dynamicBatch != null) {
-    if (("sourceCandidateGroups" in this._dynamicBatch) && this._dynamicBatch.sourceCandidateGroups != null) {
-      local key = "subsidy|" + subId;
-      if (key in this._dynamicBatch.sourceCandidateGroups) {
-        delete this._dynamicBatch.sourceCandidateGroups[key];
-      }
-    }
-  }
-}
 /* C38 etape 2 : une croissance de flotte est une tentative synchrone de portefeuille. */
 function OpexAI::_tryBuildFleetProject(year, project, rank, passDiscards)
 {
@@ -906,7 +865,7 @@ function OpexAI::_rebuildProjects(fleetPlan)
   }
   this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines,
       fleetPlan, this._abandonedPairs, stage, prior,
-      freightCargo, freightCargos, this._waterSiteCatalog, this._activeSubsidies);
+      freightCargo, freightCargos, this._waterSiteCatalog);
   if (stage == OPEX_STAGE_COMPLETE && b6StaleProjects != null) {
     OpexB6LogFreshEquivalence(b6StaleProjects, this._projects, b6StaleDate);
   }

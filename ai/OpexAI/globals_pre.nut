@@ -328,11 +328,6 @@ AIR_CADENCE_CAP <- true;
  * Mesure a 10 ans et 3 ans : DEGRADE le profit de -17,6 % s'il n'est pas couple a MARGINAL_FLEET,
  * car il empile jusqu'a 16 camions sur des arrets a 1 seul quai. Defaut a false. */
 ROAD_LOADING_FIX <- false;
-/* A7.3 / C17 : Sonde subventions en lecture seule via AIEventSubsidy* */
-EVENT_SUBSIDY_PROBE <- false;
-/* C42 : Transformer les offres de subvention en candidats de portefeuille */
-C42_SUBSIDIES <- false;
-C42_SUBSIDY_LOG <- false;
 /* C52 : symbole de compatibilite. Le remappage ET_VEHICLE_AUTOREPLACED est maintenant
  * inconditionnel ; le reglage homonyme est deprecated et sa valeur est ignoree. */
 EVENT_VEHICLE_AUTOREPLACED <- true;

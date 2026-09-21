@@ -248,7 +248,7 @@ function OpexLoadSettings()
     };
   }
 
-  // 9. probe_events : C52 autoreplace, exposure, crash, unprofitable, first vehicle, C56 task trace, C42 subsidy, air fleet/catchment, equipment roi, vehicle orders
+  // 9. probe_events : C52 autoreplace, exposure, crash, unprofitable, first vehicle, C56 task trace, air fleet/catchment, equipment roi, vehicle orders
   local probeEvents = AIController.GetSetting("probe_events") != 0;
   C52_AUTOREPLACE_LOG = probeEvents;
   if (C52_AUTOREPLACE_LOG) {
@@ -288,7 +288,6 @@ function OpexLoadSettings()
   C52_STATION_FIRST_VEHICLE_LOG = probeEvents;
   C56_TASK_TRACE = probeEvents;
   if (C56_TASK_TRACE) C56_LOOP_TICK_COUNT = 0;
-  C42_SUBSIDY_LOG = probeEvents;
   AIR_FLEET_PROBE = probeEvents;
   AIR_CATCHMENT_PROBE = probeEvents;
   EQUIPMENT_ROI_PROBE = probeEvents;
@@ -335,8 +334,6 @@ function OpexLoadSettings()
   GROWTH_YIELDS = false;
   PRICING_RAIL_DEPOT = false;
   FLEET_FIX = false;
-  EVENT_SUBSIDY_PROBE = false;
-  C42_SUBSIDIES = false;
   C60_TOWN_RATING_FILTER = false;
   AIR_MAX_DISTANCE = 0;
   C53_ORDER_NOLOAD = false;

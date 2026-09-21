@@ -9,28 +9,11 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         return { outcome = "rejected", discards = passDiscards };
       }
       local candidate = project.payload;
-      local isSubsidy = ("isSubsidy" in candidate) && candidate.isSubsidy;
-      if (isSubsidy) {
-        local subId = candidate.subsidyId;
-        local today = AIDate.GetCurrentDate();
-        local oneWay = ("oneWayDays" in candidate) ? candidate.oneWayDays : -1;
-        // Au moment de la construction immediate, la latence d'attente de cycle de batch (30j) est deja ecoulee
-        local chantier = ("chantierDays" in candidate)
-            ? (candidate.chantierDays - 30) : (OpexSubsidyChantierDays(oneWay) - 30);
-        if (chantier < 30) chantier = 30;
-        if (!AISubsidy.IsValidSubsidy(subId) || AISubsidy.IsAwarded(subId)
-            || (AISubsidy.GetExpireDate(subId) - today < chantier)) {
-          if (DECISION_LOG || C42_SUBSIDY_LOG) {
-            OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=road reason=subsidy_lost sub=" + subId);
-          }
-          if (this._activeSubsidies != null && (subId in this._activeSubsidies)) {
-            delete this._activeSubsidies[subId];
-          }
-          this._purgeSubsidyFromProjects(subId);
-          this._portfolioInvalidated = true;
-          this._hadAbandonsThisPass = true;
-          return { outcome = "rejected", discards = passDiscards };
-        }
+      /* Garde de forme neutre : preserve le cout du test retire avec C42 avant
+       * le builder route, afin de garder les memes frontieres de suspension. */
+      local eventsCleanupPad = ("_eventsCleanupPad" in candidate) && candidate._eventsCleanupPad;
+      if (eventsCleanupPad) {
+        return { outcome = "rejected", discards = passDiscards };
       }
       local towns = OpexGetCandidateTownEndpoints(candidate);
       if (C60_TOWN_RATING_PROBE) {
@@ -150,43 +133,10 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         return { outcome = "rejected", discards = passDiscards };
       }
       OpexApplyRoadEconomics(candidate, economics, actualDist);
-      if (isSubsidy) {
-        candidate.baseRevenueAnnual = economics.revenueAnnual;
-        candidate.baseProfitAnnual = economics.profitAnnual;
-        candidate.baseRoi = economics.roi;
-        local mult = ("effectiveMultiplier" in candidate)
-            ? candidate.effectiveMultiplier
-            : (("subsidyMultiplier" in candidate) ? candidate.subsidyMultiplier : 1.0);
-        local subRev = (economics.revenueAnnual * mult).tointeger();
-        local subProfit = subRev - economics.runningAnnual - economics.amortAnnual;
-        local freightBonus = ("freightBonus" in candidate) ? candidate.freightBonus : 100;
-        local subRoi = (subProfit > 0 && candidate.capital > 0) ? (subProfit * 1000) / candidate.capital : 0;
-        if (freightBonus != 100) subRoi = (subRoi * freightBonus) / 100;
-
-        candidate.subsidyRevenueAnnual = subRev;
-        candidate.subsidyProfitAnnual = subProfit;
-        candidate.subsidyRoi = subRoi;
-
-        // Le candidat actif utilise l'economie subventionnee pour sa premiere annee
-        candidate.revenueAnnual = subRev;
-        candidate.profitAnnual = subProfit;
-        candidate.roi = subRoi;
-      }
-      if (isSubsidy) {
-        local subId = candidate.subsidyId;
-        if (!AISubsidy.IsValidSubsidy(subId) || AISubsidy.IsAwarded(subId)) {
-          if (DECISION_LOG || C42_SUBSIDY_LOG) {
-            OpexDecide("PROJECT_DISCARD", "rank=" + i + " mode=road reason=subsidy_lost_during_planning sub=" + subId);
-          }
-          if (this._activeSubsidies != null && (subId in this._activeSubsidies)) {
-            delete this._activeSubsidies[subId];
-          }
-          this._purgeSubsidyFromProjects(subId);
-          this._portfolioInvalidated = true;
-          this._hadAbandonsThisPass = true;
-          return { outcome = "rejected", discards = passDiscards };
-        }
-      }
+      /* Deux tests faux supplémentaires existaient avant le builder dans le chemin C42.
+       * Ils restent sous forme neutre pour préserver exactement le budget d'opcodes. */
+      if (eventsCleanupPad) return { outcome = "rejected", discards = passDiscards };
+      if (eventsCleanupPad) return { outcome = "rejected", discards = passDiscards };
       local result = OpexBuildRoadRoute(this._catalog, this._budget, plan, candidate);
       if (C63_INVEST_PROBE) OpexC63RecordSpendResult("road", result, candidate.capital);
       OpexSign(anchor, "RB|" + yy + "|" + idx + "|1|" + planOps + "|" + result.opcodes);
@@ -213,12 +163,6 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         }
         passDiscards = [];
         local cargoStr = AICargo.GetCargoLabel(candidate.cargo);
-        local extraSub = (isSubsidy && ("baseProfitAnnual" in candidate))
-            ? (" base_profit=" + candidate.baseProfitAnnual + " base_roi=" + candidate.baseRoi
-               + " mult=" + candidate.subsidyMultiplier
-               + (("subsidyDuration" in candidate) ? (" dur=" + candidate.subsidyDuration) : "")
-               + (("slackDays" in candidate) ? (" slack=" + candidate.slackDays) : ""))
-            : "";
         local fleetDiag = ("vehiclesForVolume" in candidate)
             ? (" raw_vehs=" + candidate.vehiclesForVolume
                + " berth_cap=" + (("roadBerthCapacity" in candidate) ? candidate.roadBerthCapacity
@@ -226,7 +170,7 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
                + " fleet_cap=" + (("roadVehicleCap" in candidate) ? candidate.roadVehicleCap : candidate.trains)
                + " capped_vehs=" + candidate.trains)
             : "";
-        OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=road kind=" + candidate.kind + " cargo=" + cargoStr + " src=" + candidate.src + " dst=" + candidate.dst + " dist=" + candidate.distance + " cost=" + candidate.capital + " profit=" + candidate.profitAnnual + " roi=" + candidate.roi + fleetDiag + extraSub);
+        OpexDecide("PROJECT_CHOSEN", "rank=" + i + " mode=road kind=" + candidate.kind + " cargo=" + cargoStr + " src=" + candidate.src + " dst=" + candidate.dst + " dist=" + candidate.distance + " cost=" + candidate.capital + " profit=" + candidate.profitAnnual + " roi=" + candidate.roi + fleetDiag);
         OpexDecide("ROAD_BUILD", "line=" + idx + " src=" + candidate.src + " dst=" + candidate.dst + " cargo=" + cargoStr + " dist=" + candidate.distance + " profit=" + candidate.profitAnnual + " cost=" + result.cost + " vehicles=" + result.vehicles.len());
       }
 
@@ -270,26 +214,8 @@ function OpexAI::_tryBuildRoadProject(year, project, rank, passDiscards, anchor,
         isLowRatio = ("isLowRatio" in candidate) ? candidate.isLowRatio : false,
         opcodeRatio = ("opcodeRatio" in candidate) ? candidate.opcodeRatio : -1,
         purpose = "profit",
-        isSubsidy = (("isSubsidy" in candidate) && candidate.isSubsidy),
-        subsidyId = (("subsidyId" in candidate) ? candidate.subsidyId : -1),
-        baseProfit = (isSubsidy && ("baseProfitAnnual" in candidate)) ? candidate.baseProfitAnnual : candidate.profitAnnual,
-        baseRevenue = (isSubsidy && ("baseRevenueAnnual" in candidate)) ? candidate.baseRevenueAnnual : candidate.revenueAnnual,
-        subsidyProfit = (isSubsidy && ("subsidyProfitAnnual" in candidate)) ? candidate.subsidyProfitAnnual : candidate.profitAnnual,
-        subsidyRevenue = (isSubsidy && ("subsidyRevenueAnnual" in candidate)) ? candidate.subsidyRevenueAnnual : candidate.revenueAnnual,
-        subsidyMultiplier = (isSubsidy && ("subsidyMultiplier" in candidate)) ? candidate.subsidyMultiplier : 1.0,
         lineId = idx,
       });
-      if (("isSubsidy" in candidate) && candidate.isSubsidy) {
-        if (this._activeSubsidies != null && (candidate.subsidyId in this._activeSubsidies)) {
-          delete this._activeSubsidies[candidate.subsidyId];
-        }
-        this._purgeSubsidyFromProjects(candidate.subsidyId);
-        if (C42_SUBSIDY_LOG || DECISION_LOG) {
-          OpexDecide("C42_SUBSIDY_BUILD", "line=" + idx + " sub=" + candidate.subsidyId
-                     + " cargo=" + AICargo.GetCargoLabel(candidate.cargo)
-                     + " mult=" + (("subsidyMultiplier" in candidate) ? candidate.subsidyMultiplier : 1));
-        }
-      }
       this._nextLineId++;
       return { outcome = "built", discards = passDiscards };
 
