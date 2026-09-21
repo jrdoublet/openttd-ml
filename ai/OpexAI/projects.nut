@@ -705,7 +705,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
         project.fundScore <- OpexC49ProjectScore(project, C49_CURRENT_REGIME);
       } else {
         project.fundScore <- OpexProjectScore(C70_MODE_CALIBRATION ? OpexC70Profit(project) : project.profitAnnual,
-            (C69_DECISION_BOTTLENECK && kDec > financeCapital) ? kDec : financeCapital);
+            (C69_DECISION_BOTTLENECK && kDec > financeCapital && !(C69_FLEET_EXEMPT && project.mode == "fleet")) ? kDec : financeCapital);
       }
       if (C69_BOTTLENECK_PROBE) {
         local denom = financeCapital > kDec ? financeCapital : kDec;
@@ -730,7 +730,7 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
           project.fundScore <- OpexC49ProjectScore(project, C49_CURRENT_REGIME);
         } else {
           project.fundScore <- OpexProjectScore(C70_MODE_CALIBRATION ? OpexC70Profit(project) : project.profitAnnual,
-            (C69_DECISION_BOTTLENECK && kDec > financeCapital) ? kDec : financeCapital);
+            (C69_DECISION_BOTTLENECK && kDec > financeCapital && !(C69_FLEET_EXEMPT && project.mode == "fleet")) ? kDec : financeCapital);
         }
         if (C69_BOTTLENECK_PROBE) {
           local denom = financeCapital > kDec ? financeCapital : kDec;

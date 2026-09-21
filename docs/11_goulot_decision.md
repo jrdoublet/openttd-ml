@@ -566,3 +566,37 @@ positif.
 régime « décision » ouvre des lignes qu'il ne remplit pas, parce qu'un renfort de flotte est plafonné
 à 4 avions et qu'une ligne neuve naît à 1 avion. Le contrat 2 de l'annexe B (lots de flotte au
 besoin mesuré) vise exactement ce mécanisme.
+
+---
+
+## 18. C69 bis — les projets de flotte exemptés de K_dec (2026-09-21)
+
+**Hypothèse** (décision utilisateur, option 1). Un projet de flotte (`mode = "fleet"`, des avions
+ajoutés à une ligne existante) ne construit rien : pour lui τ ≈ 0, et la dérivation du §3 donne
+D = C/F, soit le score P/C. Le levier du §14 lui appliquait pourtant max(C, K_dec), ce qui le
+pénalisait face aux lignes neuves. C'est cohérent avec 70 des 156 divergences du §13.3 (« +1
+avion » remplacé par une ligne neuve) et avec le §17 (plus d'aéroports, moins de véhicules).
+
+**Implémentation** (agy, relue) : réglage `c69_fleet_exempt`, défaut 0. Sous le levier, un projet
+`fleet` garde `financeCapital` comme dénominateur. Le défaut est inchangé à une condition près,
+évaluée en court-circuit.
+
+**Diagnostic** `sweeps/diag_c69_bis_solo_5x6.py`, **solo**, 5 graines × 6 ans, 0 échec :
+`results/diag_c69_bis_solo_5x6.json`.
+
+| paire | profit annuel | valeur | véhicules |
+|---|---|---|---|
+| `c70_c69_bis` − `c70_c69` | +40 k£, 3 V / 2 D | −79 k£, 2 V / 3 D | **+5,4, 5 V / 0 D** |
+| `c70_c69_bis` − `c70` | +358 k£, 3 V / 2 D | +1,02 M£, 3 V / 2 D | −2,0, 2 V / 3 D |
+| `c70_c69` − `c70` | +319 k£, 4 V / 1 D | +1,10 M£, 4 V / 1 D | −7,4, 1 V / 4 D |
+
+- **Le mécanisme est confirmé** : l'exemption rend à C69 ses avions (5/5), à 2 véhicules près du
+  témoin `c70`.
+- **Le profit ne se départage pas** : +40 k£ face à C69, 3/5, dans le bruit d'un 5×6.
+- ⚠️ **Aucun critère de passage n'avait été écrit avant ce diagnostic.** Le seuil habituel des
+  5×6 (≥ 3/5 sur le profit) est atteint face à C69 comme face à `c70`, mais de justesse.
+- Les chiffres de `c70_c69` diffèrent de ceux du §15 (graine 100 : 1,614 → 1,646 M£) : la
+  condition ajoutée décale les opcodes, comme au §13.4.
+
+**Suite possible** : le 20×10 d'autorité en duel, `c70_c69_bis` contre `c70`, sur le PC de
+l'utilisateur (commande dans `13_banc_c69_20x10_pc.md` §5).
