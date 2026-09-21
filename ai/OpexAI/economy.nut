@@ -660,9 +660,7 @@ function OpexRoadLineEconomics(catalog, cargo, distance, monthlyUnits, engine, k
   }
   if (vehicles > roadVehicleCap) vehicles = roadVehicleCap;
   local monthlyCapacity = vehicles * engine.capacity * tripsPerMonth;
-  local effectiveOffered = offered;
-  local stationRating = STATION_RATING_PCT.tofloat();
-  local carried = effectiveOffered < monthlyCapacity ? effectiveOffered : monthlyCapacity;
+  local carried = offered < monthlyCapacity ? offered : monthlyCapacity;
   if (kind == "pax" && ROAD_PAX_OVERLAP && vehicles > 0 && roundTripDays > 0) {
     /* Flux par rotation : a chaque visite, seulement ce qui s'est accumule pendant le headway,
      * plafonne a la capacite. Deux bus ne doublent pas la demande, ils se partagent le quai. */

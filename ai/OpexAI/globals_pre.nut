@@ -240,8 +240,6 @@ C63_INVEST_LEDGER <- null;
 MONTHLY_FUNNEL <- false;
 C50_REFUSE_CACHE <- {};
 C50_NON_EXPANSION_LEDGER <- null;
-/* C50b : bras comportemental isole. Le classement et la flotte initiale restent bornes a 2 ;
- * seule la croissance des lignes existantes peut monter jusqu'au garde-fou historique de 8. */
 /* B3 : test du plafond routier remis à l'échelle par le temps passé à quai. Défaut 0 tant que
  * le banc apparié n'a pas justifié une adoption. Le fret reste sur la borne historique. */
 ROAD_TIME_SCALED_CAP <- false;
