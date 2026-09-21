@@ -934,10 +934,10 @@ function OpexMedianFloat(values)
   return (copy[n / 2 - 1] + copy[n / 2]) / 2.0;
 }
 
-/* C69 : calcul unique de F, tau et K_dec par appel de selection */
-function OpexC69ComputeKDec()
+/* C69/C75 : calcul factorise du flux d'exploitation journalier F sur les 4 derniers trimestres complets */
+function OpexComputeOperatingCashFlow(now = null)
 {
-  local now = AIDate.GetCurrentDate();
+  if (now == null) now = AIDate.GetCurrentDate();
   local curYear = AIDate.GetYear(now);
   local curMonth = AIDate.GetMonth(now);
   local curQuarterIdx = (curMonth - 1) / 3;
@@ -972,6 +972,20 @@ function OpexC69ComputeKDec()
       }
     }
   }
+
+  return {
+    F = F,
+    daysCovered = daysCovered
+  };
+}
+
+/* C69 : calcul unique de F, tau et K_dec par appel de selection */
+function OpexC69ComputeKDec()
+{
+  local now = AIDate.GetCurrentDate();
+  local flow = OpexComputeOperatingCashFlow(now);
+  local F = flow.F;
+  local daysCovered = flow.daysCovered;
 
   local startDate = AIDate.GetDate(1970, 1, 1);
   local daysSinceStart = now - startDate;
@@ -1008,6 +1022,115 @@ function OpexC69ComputeKDec()
     daysCovered = daysCovered
   };
 }
+
+/* C75 : enregistre la date d'une passe de _tryBuildProjects et purge au-dela de la fenetre */
+function OpexC75RecordPassDate(now = null)
+{
+  if (!C75_TRACK_PASSES) return;
+  if (C75_PASS_DATES == null) C75_PASS_DATES = [];
+  if (now == null) now = AIDate.GetCurrentDate();
+  C75_PASS_DATES.append(now);
+
+  local startDate = AIDate.GetDate(1970, 1, 1);
+  local daysSinceStart = now - startDate;
+  if (daysSinceStart < 1) daysSinceStart = 1;
+  local D = daysSinceStart < 365 ? daysSinceStart : 365;
+
+  local cutoff = now - D;
+  local pruned = [];
+  foreach (d in C75_PASS_DATES) {
+    if (d >= cutoff) {
+      pruned.append(d);
+    }
+  }
+  C75_PASS_DATES = pruned;
+}
+
+/* C75 : calcul de K_pass = F * tau_pass sur la fenetre glissante min(365, jours depuis debut).
+ * Moins de 2 passes dans la fenetre => K_pass = 0. */
+function OpexC75ComputeKPass(now = null)
+{
+  if (now == null) now = AIDate.GetCurrentDate();
+  local flow = OpexComputeOperatingCashFlow(now);
+  local F = flow.F;
+
+  local startDate = AIDate.GetDate(1970, 1, 1);
+  local daysSinceStart = now - startDate;
+  if (daysSinceStart < 1) daysSinceStart = 1;
+  local D = daysSinceStart < 365 ? daysSinceStart : 365;
+
+  local N = 0;
+  if (C75_PASS_DATES != null) {
+    local cutoff = now - D;
+    local pruned = [];
+    foreach (d in C75_PASS_DATES) {
+      if (d >= cutoff) {
+        pruned.append(d);
+      }
+    }
+    C75_PASS_DATES = pruned;
+    N = C75_PASS_DATES.len();
+  }
+
+  local tau_pass = 0.0;
+  local K_pass = 0;
+  if (N >= 2 && F > 0.0) {
+    tau_pass = D.tofloat() / N.tofloat();
+    K_pass = (F * tau_pass).tointeger();
+    if (K_pass < 0) K_pass = 0;
+  }
+
+  return {
+    F = F,
+    tau_pass = tau_pass,
+    K_pass = K_pass,
+    D = D,
+    N = N,
+    daysCovered = flow.daysCovered
+  };
+}
+
+/* C75 : reinitialise le registre annuel de passes et chantiers */
+function OpexC75ResetYearLedger()
+{
+  C75_YEAR_LEDGER = {
+    passes = 0,
+    builds = 0,
+    multi_passes = 0
+  };
+}
+
+/* C75 : enregistre le resultat d'une passe et publie phase=c75_pass si au moins 1 chantier */
+function OpexC75RecordPassOutcome(year, builtCount, c75KPassData, stopReason)
+{
+  if (!C75_TRACK_PASSES) return;
+  if (C75_YEAR_LEDGER != null) {
+    C75_YEAR_LEDGER.builds += builtCount;
+    if (builtCount > 1) C75_YEAR_LEDGER.multi_passes++;
+  }
+  if (builtCount > 0 && C69_BOTTLENECK_PROBE) {
+    local kPass = (c75KPassData != null) ? c75KPassData.K_pass : 0;
+    local tauPass = (c75KPassData != null) ? c75KPassData.tau_pass : 0.0;
+    local fVal = (c75KPassData != null) ? c75KPassData.F : 0.0;
+    local reason = (stopReason != null) ? stopReason : "list_end";
+    OpexC69Log("phase=c75_pass year=" + year + " built=" + builtCount
+        + " k_pass=" + kPass + " tau_pass=" + tauPass + " F=" + fVal
+        + " stop=" + reason);
+  }
+}
+
+/* C75 : publication annuelle du registre de passes et chantiers */
+function OpexC75FlushYear(year)
+{
+  if (!C69_BOTTLENECK_PROBE || C75_YEAR_LEDGER == null) return;
+  if (year < 1970) return;
+
+  OpexC69Log("phase=c75_year year=" + year + " passes=" + C75_YEAR_LEDGER.passes
+      + " builds=" + C75_YEAR_LEDGER.builds + " multi_passes=" + C75_YEAR_LEDGER.multi_passes);
+
+  OpexC75ResetYearLedger();
+}
+
 
 /* C72 : cache journalier de K_dec pour la sonde passive du choix d'avion */
 function OpexC69CachedKDec()

@@ -158,6 +158,15 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "c75_multi_build",
+      description = "C75: multi-build per pass in rich phase as long as capital < K_pass and capital <= available; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+
+    AddSetting({
       name = "probe_events",
       description = "Enable AI event, crash, fleet depth and equipment selection probes; 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,

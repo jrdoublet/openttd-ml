@@ -238,6 +238,12 @@ function OpexLoadSettings()
       OpexC73ResetLedger();
     }
   }
+  C75_MULTI_BUILD = AIController.GetSetting("c75_multi_build") != 0;
+  C75_TRACK_PASSES = C75_MULTI_BUILD || C69_BOTTLENECK_PROBE;
+  if (C75_TRACK_PASSES) {
+    C75_PASS_DATES = [];
+    OpexC75ResetYearLedger();
+  }
   MONTHLY_FUNNEL = probePort;
   TENSION_PROBE = probePort;
   if (TENSION_PROBE) {

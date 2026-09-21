@@ -173,3 +173,34 @@ prémisse de cette clôture ne tient plus sur le code courant.
    `portfolio_max_batch` en 2026-09-02, en plus de la caisse vide) ;
 2. **raccourcir le tour** : `town_growth` prend 28 % du temps pour des lignes à profit nul par
    construction ; `catalog` et `projects` régénèrent chacun le vivier.
+
+## 8. C75 — plusieurs chantiers par passe : smoke et mécanisme (2026-09-21)
+
+Réglage `c75_multi_build` (défaut 0 ; implémenté par agy, relu, code C75 remis derrière son
+drapeau). K_pass = F × τ_pass, τ_pass = durée réelle moyenne entre deux passes `projects`
+(décision utilisateur). Après le 1er chantier, la passe continue dans la liste classée tant que le
+projet suivant coûte moins que K_pass et reste finançable. 3 graines × 10 ans, solo, sonde :
+`results/diag_c75_multibuild_10y_3seeds.json`, analyse `sweeps/analyse_c75_multibuild.py`.
+
+| année | passes (3 graines) | chantiers | par passe | τ_pass médian | arrêt dominant |
+|---|---:|---:|---:|---:|---|
+| 1971 | 26 | 66 | 2,5 | 30 j | K_pass |
+| 1972 | 18 | 89 | 4,9 | 46 j | fin de liste |
+| 1973 | 15 | 81 | 5,4 | 73 j | fin de liste |
+| 1975 | 11 | 43 | 3,9 | 91 j | fin de liste |
+| 1977 | 11 | 18 | 1,6 | 91 j | fin de liste |
+| 1979 | 5 | 14 | 2,8 | 122 j | fin de liste |
+
+Sans le levier (§6) : 26 chantiers en 1972 et ~25 en 1975 pour les 3 graines.
+
+- **Le mécanisme marche** : ×3 à ×3,5 chantiers en 1972-1973. Démarrage intact (1970 : K_pass = 0).
+- **Mais le tour de file s'allonge** : τ_pass passe de 30 à 91-122 jours, parce que chaque ligne
+  possédée renchérit la régénération. À partir de 1976, il n'y a plus que 1 à 4 passes par an et
+  par partie, et **la liste s'épuise** à chaque passe : le vivier classé ne contient plus assez de
+  projets constructibles. Les chantiers annuels retombent sous leur niveau sans levier.
+- Profit final solo : 2 graines sur 3 en baisse (−3 % et −8 %), 1 en hausse (+8 %). Ce n'est pas un
+  verdict (le solo ne prédit pas le duel), mais aucun gain évident.
+
+**Lecture** : construire plus par passe déplace le goulot vers **la durée du tour** (régénération
+complète à chaque passe, §7) et vers **la profondeur du vivier**. C'est un argument direct pour C76
+(régénération pilotée par les événements) avant ou avec C75.

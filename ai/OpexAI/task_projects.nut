@@ -349,6 +349,15 @@ function OpexAI::_c39StampFinanceable(capital = null, isProjectsTurn = false)
 }
 function OpexAI::_tryBuildProjects(year)
 {
+  local c75KPassData = null;
+  local c75StopReason = null;
+  local c75BuiltKeys = {};
+  if (C75_TRACK_PASSES) {
+    local now = AIDate.GetCurrentDate();
+    OpexC75RecordPassDate(now);
+    c75KPassData = OpexC75ComputeKPass(now);
+    if (C75_YEAR_LEDGER != null) C75_YEAR_LEDGER.passes++;
+  }
   local c73Cash = 0;
   local c73Avail = 0;
   if (C69_BOTTLENECK_PROBE) {
@@ -536,6 +545,7 @@ function OpexAI::_tryBuildProjects(year)
       this._railSearch = null;
       if (outcome == "built") {
         builtCount++;
+        if (C75_MULTI_BUILD) c75BuiltKeys[OpexC69AttemptKey(railCandidate)] <- true;
         if (C69_TRACK_BUILDS) c69BuiltProjects.append(railCandidate);
         if (C50_CHRONOLOGY_PROBE && railCandidate != null) {
           local railRank = -1;
@@ -578,7 +588,7 @@ function OpexAI::_tryBuildProjects(year)
     }
   }
 
-  if ((PORTFOLIO_DYNAMIC_BATCH || builtCount < maxBatch)
+  if ((PORTFOLIO_DYNAMIC_BATCH || C75_MULTI_BUILD || builtCount < maxBatch)
       && this._projects != null && this._projects.best.len() > 0
       && (!PORTFOLIO_DYNAMIC_BATCH || this._dynamicBatch.stopReason == null)) {
   local logDiscardsThisPass = false;
@@ -595,6 +605,22 @@ function OpexAI::_tryBuildProjects(year)
   for (local i = 0; i < this._projects.best.len(); i++) {
     local project = this._projects.best[i];
     if (project == null) continue;
+
+    if (C75_MULTI_BUILD && (OpexC69AttemptKey(project) in c75BuiltKeys)) continue;
+
+    if (C75_MULTI_BUILD && builtCount > 0) {
+      local projCap = OpexProjectFinanceCapital(project);
+      local c75KPass = (c75KPassData != null) ? c75KPassData.K_pass : 0;
+      if (projCap >= c75KPass) {
+        c75StopReason = "k_pass";
+        break;
+      }
+      local availCap = OpexAvailableCapital();
+      if (projCap > availCap) {
+        c75StopReason = "cash";
+        break;
+      }
+    }
 
     if (PORTFOLIO_DYNAMIC_BATCH) {
       if (AIController.GetOpsTillSuspend() < dynamicOpsFloor) {
@@ -656,11 +682,12 @@ function OpexAI::_tryBuildProjects(year)
               + " available=" + OpexAvailableCapital());
         }
         builtCount++;
+        if (C75_MULTI_BUILD) c75BuiltKeys[OpexC69AttemptKey(project)] <- true;
         if (C69_TRACK_BUILDS) c69BuiltProjects.append(project);
         if (PORTFOLIO_DYNAMIC_BATCH) {
           this._dynamicBatchBuilt();
           i = -1;
-        } else if (builtCount >= maxBatch) break;
+        } else if (!C75_MULTI_BUILD && builtCount >= maxBatch) break;
       } else if (PORTFOLIO_DYNAMIC_BATCH && attempt.outcome == "rejected"
                  && this._dynamicBatchRejected()) {
         break;
@@ -712,11 +739,12 @@ function OpexAI::_tryBuildProjects(year)
               + " available=" + OpexAvailableCapital());
         }
         builtCount++;
+        if (C75_MULTI_BUILD) c75BuiltKeys[OpexC69AttemptKey(project)] <- true;
         if (C69_TRACK_BUILDS) c69BuiltProjects.append(project);
         if (PORTFOLIO_DYNAMIC_BATCH) {
           this._dynamicBatchBuilt();
           i = -1;
-        } else if (builtCount >= maxBatch) break;
+        } else if (!C75_MULTI_BUILD && builtCount >= maxBatch) break;
       } else if (PORTFOLIO_DYNAMIC_BATCH && attempt.outcome == "rejected"
                  && this._dynamicBatchRejected()) {
         break;
@@ -763,11 +791,12 @@ function OpexAI::_tryBuildProjects(year)
               + " available=" + OpexAvailableCapital());
         }
         builtCount++;
+        if (C75_MULTI_BUILD) c75BuiltKeys[OpexC69AttemptKey(project)] <- true;
         if (C69_TRACK_BUILDS) c69BuiltProjects.append(project);
         if (PORTFOLIO_DYNAMIC_BATCH) {
           this._dynamicBatchBuilt();
           i = -1;
-        } else if (builtCount >= maxBatch) break;
+        } else if (!C75_MULTI_BUILD && builtCount >= maxBatch) break;
       } else if (PORTFOLIO_DYNAMIC_BATCH && attempt.outcome == "rejected"
                  && this._dynamicBatchRejected()) {
         break;
@@ -791,7 +820,10 @@ function OpexAI::_tryBuildProjects(year)
       if (attempt.outcome == "pending") {
         /* En batch historique > 1, le portefeuille doit etre regenere avant de reprendre un
          * A* suspendu. Le defaut unitaire conserve le retour immediat d'origine. */
-        if (!PORTFOLIO_DYNAMIC_BATCH && builtCount > 0) break;
+        if (!PORTFOLIO_DYNAMIC_BATCH && builtCount > 0) {
+          if (C75_TRACK_PASSES) c75StopReason = "rail_search";
+          break;
+        }
         if (C48_PROJECT_ATTEMPT_LEDGER) {
           this._recordC48PassLedger(c48AttemptsTotal, OpexOpsMeasureEnd(c48PassMark),
               c48BuiltThisPass, c48BestLen, c48MaxRank);
@@ -807,6 +839,9 @@ function OpexAI::_tryBuildProjects(year)
           OpexC73RecordPass(built, empty, c73Cash, c73Avail);
         }
         this._recordMonthlyFunnelPass(builtCount, c49Best, passDiscards, funnelAttempted);
+        if (C75_TRACK_PASSES && builtCount > 0) {
+          OpexC75RecordPassOutcome(year, builtCount, c75KPassData, "rail_search");
+        }
         return true;
       }
       if (attempt.outcome == "built") {
@@ -833,11 +868,12 @@ function OpexAI::_tryBuildProjects(year)
               + " available=" + OpexAvailableCapital());
         }
         builtCount++;
+        if (C75_MULTI_BUILD) c75BuiltKeys[OpexC69AttemptKey(project)] <- true;
         if (C69_TRACK_BUILDS) c69BuiltProjects.append(project);
         if (PORTFOLIO_DYNAMIC_BATCH) {
           this._dynamicBatchBuilt();
           i = -1;
-        } else if (builtCount >= maxBatch) break;
+        } else if (!C75_MULTI_BUILD && builtCount >= maxBatch) break;
       } else if (PORTFOLIO_DYNAMIC_BATCH && attempt.outcome == "rejected"
                  && this._dynamicBatchRejected()) {
         break;
@@ -886,11 +922,12 @@ function OpexAI::_tryBuildProjects(year)
               + " available=" + OpexAvailableCapital());
         }
         builtCount++;
+        if (C75_MULTI_BUILD) c75BuiltKeys[OpexC69AttemptKey(project)] <- true;
         if (C69_TRACK_BUILDS) c69BuiltProjects.append(project);
         if (PORTFOLIO_DYNAMIC_BATCH) {
           this._dynamicBatchBuilt();
           i = -1;
-        } else if (builtCount >= maxBatch) break;
+        } else if (!C75_MULTI_BUILD && builtCount >= maxBatch) break;
       } else if (PORTFOLIO_DYNAMIC_BATCH && attempt.outcome == "rejected"
                  && this._dynamicBatchRejected()) {
         break;
@@ -924,6 +961,12 @@ function OpexAI::_tryBuildProjects(year)
   this._recordMonthlyFunnelPass(builtCount, c49Best, passDiscards, funnelAttempted);
   if (C69_TRACK_BUILDS && (builtCount > 0 || (PORTFOLIO_DYNAMIC_BATCH && this._dynamicBatch != null && this._dynamicBatch.built > 0))) {
     this._recordC69BuildingPass(year, c69PassProjects != null ? c69PassProjects : this._projects, c69BuiltProjects);
+  }
+  if (C75_TRACK_PASSES) {
+    if (builtCount > 0 && c75StopReason == null) {
+      c75StopReason = (!C75_MULTI_BUILD) ? "single" : "list_end";
+    }
+    OpexC75RecordPassOutcome(year, builtCount, c75KPassData, c75StopReason);
   }
 
   /* G4§1 : l'ancien chemin deduisait hadAbandons de passDiscards, dont le remplissage

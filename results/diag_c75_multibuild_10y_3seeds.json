@@ -1,0 +1,172 @@
+{
+ "years": 10,
+ "seeds": [
+  42,
+  100,
+  7
+ ],
+ "arm": "OpexAI[probe_portfolio=1,c75_multi_build=1]",
+ "per_seed": [
+  {
+   "seed": 100,
+   "run_ok": true,
+   "n_events": 8653,
+   "metrics": {
+    "build_passes": 49,
+    "window_build_passes": 36,
+    "diff_passes": 16,
+    "c2_exposure": 0.4444444444444444,
+    "c3_checked": 14,
+    "c3_built_anyway_share": 0.35714285714285715,
+    "c4_median_p_ratio": 1.6797160329956924,
+    "first_diff_year": 1971,
+    "f_median_by_year": {
+     "1970": 681.82874,
+     "1971": 1645.69585,
+     "1972": 2673.7131,
+     "1973": 3772.0793,
+     "1974": 4707.0083,
+     "1975": 4928.3027,
+     "1976": 4947.093,
+     "1977": 4454.1807,
+     "1978": 4555.1862,
+     "1979": 4900.978
+    },
+    "kdec_median_by_year": {
+     "1970": 21136.0,
+     "1971": 50056.0,
+     "1972": 46519.0,
+     "1973": 46282.0,
+     "1974": 48808.0,
+     "1975": 94117.0,
+     "1976": 590490.0,
+     "1977": 1625776.0,
+     "1978": 990756.0,
+     "1979": 357771.0
+    },
+    "c5_median_real_pred_prof_by_mode": {
+     "rail": 0.8476796,
+     "road": 1.7979335,
+     "air": 1.3445044
+    },
+    "c5_spread_max_over_min": 2.1210059791458944
+   },
+   "c1": {
+    "air_capital_median": 61012.0,
+    "kdec_crosses_air_year": 1975,
+    "c49_cash_below_decision_year": 1972,
+    "c1_gap_years": 3
+   },
+   "company_value": 11267227,
+   "profit_year": 1758953
+  },
+  {
+   "seed": 42,
+   "run_ok": true,
+   "n_events": 11987,
+   "metrics": {
+    "build_passes": 47,
+    "window_build_passes": 35,
+    "diff_passes": 20,
+    "c2_exposure": 0.5714285714285714,
+    "c3_checked": 18,
+    "c3_built_anyway_share": 0.16666666666666666,
+    "c4_median_p_ratio": 1.3937984031790125,
+    "first_diff_year": 1971,
+    "f_median_by_year": {
+     "1970": 0.0,
+     "1971": 1675.5507,
+     "1972": 3923.552,
+     "1973": 5343.729,
+     "1974": 5565.24925,
+     "1975": 5899.29885,
+     "1976": 5856.735,
+     "1977": 5740.6,
+     "1978": 6033.79025,
+     "1979": 6147.9316
+    },
+    "kdec_median_by_year": {
+     "1970": 0.0,
+     "1971": 46699.0,
+     "1972": 48452.0,
+     "1973": 102655.0,
+     "1974": 123162.0,
+     "1975": 267760.5,
+     "1976": 237523.0,
+     "1977": 306648.0,
+     "1978": 398048.0,
+     "1979": 747998.0
+    },
+    "c5_median_real_pred_prof_by_mode": {
+     "rail": 0.77929777,
+     "road": 1.6140733,
+     "air": 0.8842488
+    },
+    "c5_spread_max_over_min": 2.0711894248074136
+   },
+   "c1": {
+    "air_capital_median": 63523.0,
+    "kdec_crosses_air_year": 1973,
+    "c49_cash_below_decision_year": 1971,
+    "c1_gap_years": 2
+   },
+   "company_value": 15335578,
+   "profit_year": 2230001
+  },
+  {
+   "seed": 7,
+   "run_ok": true,
+   "n_events": 13421,
+   "metrics": {
+    "build_passes": 48,
+    "window_build_passes": 38,
+    "diff_passes": 30,
+    "c2_exposure": 0.7894736842105263,
+    "c3_checked": 28,
+    "c3_built_anyway_share": 0.2857142857142857,
+    "c4_median_p_ratio": 1.6303611101234896,
+    "first_diff_year": 1971,
+    "f_median_by_year": {
+     "1970": 0.0,
+     "1971": 2160.2383,
+     "1972": 5802.4415,
+     "1973": 7084.381,
+     "1974": 6812.233,
+     "1975": 6763.8467,
+     "1976": 6978.24045,
+     "1977": 7153.7944,
+     "1978": 7065.488,
+     "1979": 7916.06
+    },
+    "kdec_median_by_year": {
+     "1970": 0.0,
+     "1971": 67675.0,
+     "1972": 71090.5,
+     "1973": 118681.0,
+     "1974": 88187.0,
+     "1975": 224436.0,
+     "1976": 176523.5,
+     "1977": 870378.0,
+     "1978": 365744.0,
+     "1979": 489471.0
+    },
+    "c5_median_real_pred_prof_by_mode": {
+     "road": 1.6662271,
+     "air": 0.6812409,
+     "rail": 0.8602159
+    },
+    "c5_spread_max_over_min": 2.44587061640016
+   },
+   "c1": {
+    "air_capital_median": 65343.5,
+    "kdec_crosses_air_year": 1971,
+    "c49_cash_below_decision_year": 1971,
+    "c1_gap_years": 0
+   },
+   "company_value": 19318539,
+   "profit_year": 2936829
+  }
+ ],
+ "failed_runs": [],
+ "failed_run_count": 0
+}

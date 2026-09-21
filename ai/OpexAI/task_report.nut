@@ -404,6 +404,7 @@ function OpexAI::_reportLines(year)
     local c73Year = year - 1;
     if (c73Year >= 1970) {
       OpexC73FlushLedger(c73Year);
+      OpexC75FlushYear(c73Year);
     }
   }
 }

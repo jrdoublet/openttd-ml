@@ -472,6 +472,10 @@ function OpexAI::Start()
     C69_PLANE_CHOICE_DIFFER_ROI = 0;
     C69_PLANE_CHOICE_DIFFER_C69 = 0;
   }
+  if (C75_TRACK_PASSES) {
+    C75_PASS_DATES = [];
+    OpexC75ResetYearLedger();
+  }
   if (C41_WATER_REFRESH && this._taskQueue != null) {
     foreach (task in this._taskQueue) {
       if (task.name == "c41_water") { task.enabled = true; break; }
