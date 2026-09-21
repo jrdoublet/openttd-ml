@@ -169,6 +169,22 @@ function OpexProjectPairKey(kind, cargo, src, dst)
   return kind + "|" + cargo + "|" + src + "|" + dst;
 }
 
+/* C70 : facteur du mode d'un projet. Un projet de flotte ajoute des avions a une ligne aerienne. */
+function OpexC70Factor(project)
+{
+  local mode = ("mode" in project) ? project.mode : "unknown";
+  if (mode == "fleet") mode = "air";
+  return (mode in C70_MODE_FACTOR) ? C70_MODE_FACTOR[mode] : 1.0;
+}
+
+/* C70 : profit servant au classement. Le brut reste dans profitAnnual, et donc dans
+ * line.predicted : le facteur mesure le modele, jamais sa propre correction. */
+function OpexC70Profit(project)
+{
+  if (!C70_MODE_CALIBRATION) return project.profitAnnual;
+  return project.profitAnnual * OpexC70Factor(project);
+}
+
 function OpexProjectScore(value, cost)
 {
   if (value <= 0 || cost <= 0) return 0.0;
@@ -554,12 +570,28 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
   local affordable = [];
   local earlySlotState = AIR_EARLY_SLOT ? OpexEarlySlotSelectionState() : null;
   local scoreKey = "fundScore";
+
+  local kDec = 0;
+  local kDecData = null;
+  local c69Affordable = null;
+  if (C69_TRACK_BUILDS) {
+    kDecData = OpexC69ComputeKDec();
+    kDec = kDecData.K_dec;
+    if (C69_BOTTLENECK_PROBE) c69Affordable = [];
+  }
+
   foreach (project in alternatives) {
     local financeCapital = OpexProjectFinanceCapital(project);
     if (financeCapital > capitalBudget) continue;
     if (project.profitAnnual < floorProfit) continue;
     if (AIR_EARLY_SLOT) OpexProjectRefreshEarlySlot(project, earlySlotState);
-    project.fundScore <- OpexProjectScore(project.profitAnnual, financeCapital);
+    project.fundScore <- OpexProjectScore(C70_MODE_CALIBRATION ? OpexC70Profit(project) : project.profitAnnual,
+        (C69_DECISION_BOTTLENECK && kDec > financeCapital && !(C69_FLEET_EXEMPT && project.mode == "fleet")) ? kDec : financeCapital);
+    if (C69_BOTTLENECK_PROBE) {
+      local denom = financeCapital > kDec ? financeCapital : kDec;
+      project.c69Score <- OpexProjectScore(OpexC70Profit(project), denom);
+      OpexProjectInsert(c69Affordable, project, "c69Score", limit, AIR_EARLY_SLOT);
+    }
     OpexProjectInsert(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
   }
   /* Filet de securite : si le plancher a tout ecarte -- il ne le peut pas puisque le meilleur
@@ -567,13 +599,40 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
    * et le plancher inoperant -- on retombe sur l'ensemble finançable brut plutot que de ne rien
    * batir du tout. */
   if (affordable.len() == 0 && floorProfit > 0) {
+    if (C69_BOTTLENECK_PROBE) c69Affordable = [];
     foreach (project in alternatives) {
       local financeCapital = OpexProjectFinanceCapital(project);
       if (financeCapital > capitalBudget) continue;
       if (AIR_EARLY_SLOT) OpexProjectRefreshEarlySlot(project, earlySlotState);
-      project.fundScore <- OpexProjectScore(project.profitAnnual, financeCapital);
+      project.fundScore <- OpexProjectScore(C70_MODE_CALIBRATION ? OpexC70Profit(project) : project.profitAnnual,
+          (C69_DECISION_BOTTLENECK && kDec > financeCapital && !(C69_FLEET_EXEMPT && project.mode == "fleet")) ? kDec : financeCapital);
+      if (C69_BOTTLENECK_PROBE) {
+        local denom = financeCapital > kDec ? financeCapital : kDec;
+        project.c69Score <- OpexProjectScore(OpexC70Profit(project), denom);
+        OpexProjectInsert(c69Affordable, project, "c69Score", limit, AIR_EARLY_SLOT);
+      }
       OpexProjectInsert(affordable, project, scoreKey, limit, AIR_EARLY_SLOT);
     }
+  }
+  if (C69_BOTTLENECK_PROBE) {
+    ::C69_LAST_AFFORDABLE = c69Affordable;
+    ::C69_LAST_KDEC_DATA = kDecData;
+    local toSel = { rail = 0, road = 0, air = 0, water = 0, fleet = 0 };
+    local aff = { rail = 0, road = 0, air = 0, water = 0, fleet = 0 };
+    local sel = { rail = 0, road = 0, air = 0, water = 0, fleet = 0 };
+    foreach (p in alternatives) {
+      local m = ("mode" in p) ? p.mode : "unknown";
+      if (m in toSel) toSel[m]++;
+      local fc = OpexProjectFinanceCapital(p);
+      if (fc <= capitalBudget && (floorProfit <= 0 || p.profitAnnual >= floorProfit)) {
+        if (m in aff) aff[m]++;
+      }
+    }
+    foreach (p in affordable) {
+      local m = ("mode" in p) ? p.mode : "unknown";
+      if (m in sel) sel[m]++;
+    }
+    OpexC73RecordSelection(toSel, aff, sel);
   }
   return affordable;
 }
@@ -765,6 +824,10 @@ function OpexReselectProjects(projects, capitalBudget)
   OpexProjectsStampSelectionStats(projects.stats, projects, alternatives, funded, capitalBudget, null);
 
   projects.best = funded;
+  if (C69_BOTTLENECK_PROBE) {
+    projects.c69Best <- ::C69_LAST_AFFORDABLE;
+    projects.c69KDecData <- ::C69_LAST_KDEC_DATA;
+  }
 
   if (DECISION_LOG) {
     local vivierPool = [];
@@ -993,8 +1056,11 @@ function OpexB6LogSelectionCausality(path, alternatives, funded, snapshotBudget,
     local copied = clone p;
     liveAlternatives.push(copied);
   }
+  local savedC69 = C69_BOTTLENECK_PROBE;
+  C69_BOTTLENECK_PROBE = false;
   local liveFunded = OpexProjectSelectAffordable(
       liveAlternatives, liveBudget, PORTFOLIO_MAX_BATCH);
+  C69_BOTTLENECK_PROBE = savedC69;
   local flips = 0;
   local affordable = 0;
   local bestProfit = null;
@@ -1416,7 +1482,10 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
     foreach (entry in fleetPlan) {
       local p = OpexProjectFromFleet(entry);
       if (p != null) {
+        if (C69_BOTTLENECK_PROBE) OpexC73RecordProduced("fleet", 1, 1);
         OpexProjectRememberAll(newWinners, p, stats);
+      } else if (C69_BOTTLENECK_PROBE) {
+        OpexC73RecordRejection("fleet", "profit_nonpositive", 1);
       }
     }
   }
@@ -1487,6 +1556,10 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
 
   projects.all = stats.odProjects;
   projects.best = funded;
+  if (C69_BOTTLENECK_PROBE) {
+    projects.c69Best <- ::C69_LAST_AFFORDABLE;
+    projects.c69KDecData <- ::C69_LAST_KDEC_DATA;
+  }
   projects.stats = stats;
   projects.capitalBudget = capitalBudget;
   projects.capitalRemaining = remaining;
@@ -1868,7 +1941,13 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     }
     if (fleetPlan != null) {
       foreach (entry in fleetPlan) {
-        OpexProjectRememberAll(winners, OpexProjectFromFleet(entry), stats);
+        local p = OpexProjectFromFleet(entry);
+        if (p != null) {
+          if (C69_BOTTLENECK_PROBE) OpexC73RecordProduced("fleet", 1, 1);
+          OpexProjectRememberAll(winners, p, stats);
+        } else if (C69_BOTTLENECK_PROBE) {
+          OpexC73RecordRejection("fleet", "profit_nonpositive", 1);
+        }
       }
     }
 
@@ -1924,9 +2003,9 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
 
   /* Le retour historique reste litteralement intact sous 0. Le bras 1 seul conserve le vivier :
    * cela evite meme de changer la forme de this._projects dans le controle. */
-  if (PORTFOLIO_FRESH_BUDGET || PORTFOLIO_CACHE) {
+  if (PORTFOLIO_FRESH_BUDGET || PORTFOLIO_CACHE || C39_INVALIDATION_PROBE) {
     if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_assembly", "-");
-    return {
+    local ret = {
       all = stats.odProjects, best = funded, stats = stats,
       capitalBudget = capitalBudget, generationCapitalBudget = capitalBudget,
       capitalRemaining = remaining, candidateGroups = winners,
@@ -1936,9 +2015,14 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
       generationStage = generationStage,
       freightCargo = freightCargo,
     };
+    if (C69_BOTTLENECK_PROBE) {
+      ret.c69Best <- ::C69_LAST_AFFORDABLE;
+      ret.c69KDecData <- ::C69_LAST_KDEC_DATA;
+    }
+    return ret;
   }
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_assembly", "-");
-  return {
+  local ret = {
     all = stats.odProjects, best = funded, stats = stats,
     capitalBudget = capitalBudget,
     capitalRemaining = remaining,
@@ -1948,4 +2032,9 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     generationStage = generationStage,
     freightCargo = freightCargo,
   };
+  if (C69_BOTTLENECK_PROBE) {
+    ret.c69Best <- ::C69_LAST_AFFORDABLE;
+    ret.c69KDecData <- ::C69_LAST_KDEC_DATA;
+  }
+  return ret;
 }

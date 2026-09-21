@@ -975,7 +975,7 @@ function OpexAI::_recordRailAttempt(candidate, result, posPacked, year)
       originA = candidate.src, originB = candidate.dst,
       cargo = candidate.cargo,
       predicted = candidate.profitAnnual, iterations = result.iterations,
-      trains = result.trains, distance = candidate.distance, year = year,
+      trains = result.trains, trains0 = result.trains, distance = candidate.distance, year = year,
       predRevenue = candidate.revenueAnnual, predRunning = candidate.runningAnnual,
       predAmort = candidate.amortAnnual, predCarried = candidate.carried,
       predTrains = candidate.trains, predOneWayDays = candidate.oneWayDays,

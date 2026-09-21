@@ -329,7 +329,10 @@ function OpexWaterEconomics(catalog, navigableDistance, tariffDistance, orderDis
 
 function OpexWaterPlans(catalog, lines = null, projects = null, profile = null, siteCatalog = null)
 {
-  if (catalog.ships.len() == 0 || catalog.paxCargo < 0) return null;
+  if (catalog.ships.len() == 0 || catalog.paxCargo < 0) {
+    if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("water", "no_engine", 1);
+    return null;
+  }
   local mark = profile != null ? OpexOpsMeasureBegin() : null;
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "water_town_sort", "-");
   local towns = OpexWaterSortedTowns(catalog.towns);
@@ -349,10 +352,14 @@ function OpexWaterPlans(catalog, lines = null, projects = null, profile = null, 
     if (C56_TASK_TRACE) c56TownsScanned++;
     local i = historical ? step : step;
     if (profile != null) profile.towns_considered++;
-    if (OpexWaterTownServed(towns[i], lines)) continue;
+    if (OpexWaterTownServed(towns[i], lines)) {
+      if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("water", "origin_served", 1);
+      continue;
+    }
     local wasKnownComplete = !historical && siteCatalog != null;
     local townSites = OpexWaterHistoricalSites(towns[i], siteCatalog, probes,
                                                   WATER_OPCODE_COMPAT_FALSE ? profile : null);
+    if (townSites.len() == 0 && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("water", "no_site", 1);
     if (historical || !wasKnownComplete) foreach (site in townSites) sites.append(site);
   }
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "water_site_scan",
@@ -369,6 +376,7 @@ function OpexWaterPlans(catalog, lines = null, projects = null, profile = null, 
    * Le bassin est deja borne par WATER_TOWN_POOL ; chaque paire admissible est donc chiffree
    * avec sa longueur navigable avant son classement. */
   local ranked = [];
+  local c73WaterProduced = 0;
   local c56PairsExamined = 0;
   local c56LegacyInZero = 0;
   local c56LegacyOutZero = 0;
@@ -378,6 +386,7 @@ function OpexWaterPlans(catalog, lines = null, projects = null, profile = null, 
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "water_pair_loop", "-");
   for (local a = 0; a < sites.len(); a++) {
     for (local b = a + 1; b < sites.len(); b++) {
+      if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("water", 1);
       /* Intervalle ramene de 500 a 10 le 2026-09-11 : a 500, la ligne n'etait JAMAIS atteinte
        * avant le gel, et la sonde restait muette sur le cas meme qu'elle devait diagnostiquer.
        * Un appel sain examine 0 paire (moins de deux sites), donc ce pas fin ne coute rien. */
@@ -392,10 +401,16 @@ function OpexWaterPlans(catalog, lines = null, projects = null, profile = null, 
       }
       if (profile != null) profile.pairs_considered++;
       local distance = AIMap.DistanceManhattan(sites[a].town.tile, sites[b].town.tile);
-      if (distance < WATER_TOWN_MIN_DISTANCE) continue;
+      if (distance < WATER_TOWN_MIN_DISTANCE) {
+        if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("water", "distance_short", 1);
+        continue;
+      }
       local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_WATER,
                                                       sites[a].dock, sites[b].dock);
-      if (orderDistance < 0 || !OpexWaterHasRange(catalog, orderDistance)) continue;
+      if (orderDistance < 0 || !OpexWaterHasRange(catalog, orderDistance)) {
+        if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("water", "no_range", 1);
+        continue;
+      }
       if (profile != null) profile.pairs_after_range++;
       local monthlyPax = ((sites[a].town.pop + sites[b].town.pop) * 22) / 100;
 
@@ -419,7 +434,10 @@ function OpexWaterPlans(catalog, lines = null, projects = null, profile = null, 
           profile.bfs_ops += OpexOpsMeasureEnd(bfsMark);
           profile.bfs_attempts++;
         }
-        if (navigableDistance < 0) continue;
+        if (navigableDistance < 0) {
+          if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("water", "no_connection", 1);
+          continue;
+        }
         if (profile != null) profile.bfs_connected++;
       }
 
@@ -430,8 +448,12 @@ function OpexWaterPlans(catalog, lines = null, projects = null, profile = null, 
         profile.economics_ops += OpexOpsMeasureEnd(economicsMark);
         profile.economics_attempts++;
       }
-      if (economics == null || economics.profitAnnual <= 0) continue;
+      if (economics == null || economics.profitAnnual <= 0) {
+        if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("water", "profit_nonpositive", 1);
+        continue;
+      }
       if (profile != null) profile.positive_economics++;
+      if (C69_BOTTLENECK_PROBE) c73WaterProduced++;
       local plan = { siteA = sites[a], siteB = sites[b], distance = navigableDistance,
                      tariffDistance = tariffDistance,
                      orderDistance = orderDistance, economics = economics };
@@ -443,6 +465,7 @@ function OpexWaterPlans(catalog, lines = null, projects = null, profile = null, 
       if (ranked.len() > WATER_PROJECT_POOL) ranked.pop();
     }
   }
+  if (C69_BOTTLENECK_PROBE) OpexC73RecordProduced("water", c73WaterProduced, ranked.len());
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "water_pair_loop",
                                       "- pairs=" + c56PairsExamined);
   if (profile != null) {

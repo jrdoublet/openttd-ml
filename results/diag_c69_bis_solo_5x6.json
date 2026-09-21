@@ -1,0 +1,603 @@
+{
+  "openttd_version": "15.3",
+  "starting_year": 1970,
+  "years": 6,
+  "seeds": [
+    100,
+    12345,
+    42,
+    7,
+    999
+  ],
+  "arms": {
+    "default": {},
+    "c70": {
+      "c70_mode_calibration": 1
+    },
+    "c70_c69": {
+      "c70_mode_calibration": 1,
+      "c69_decision_bottleneck": 1
+    },
+    "c70_c69_bis": {
+      "c70_mode_calibration": 1,
+      "c69_decision_bottleneck": 1,
+      "c69_fleet_exempt": 1
+    }
+  },
+  "summary": {
+    "per_arm": {
+      "solo:default": {
+        "mean": 2116856.8,
+        "median": 2208352,
+        "per_seed": {
+          "100": 1493115,
+          "12345": 2048067,
+          "42": 2310465,
+          "7": 2524285,
+          "999": 2208352
+        }
+      },
+      "solo:c70": {
+        "mean": 2071940,
+        "median": 2241055,
+        "per_seed": {
+          "100": 1520184,
+          "12345": 1730076,
+          "42": 2437635,
+          "7": 2430750,
+          "999": 2241055
+        }
+      },
+      "solo:c70_c69": {
+        "mean": 2390565,
+        "median": 2320596,
+        "per_seed": {
+          "100": 1645766,
+          "12345": 2320596,
+          "42": 2021989,
+          "7": 3485330,
+          "999": 2479144
+        }
+      },
+      "solo:c70_c69_bis": {
+        "mean": 2430410.2,
+        "median": 2352697,
+        "per_seed": {
+          "100": 1452794,
+          "12345": 2352697,
+          "42": 1885006,
+          "7": 3627776,
+          "999": 2833778
+        }
+      }
+    },
+    "pairs": {
+      "solo:c70_c69_bis-c70_c69": {
+        "deltas": {
+          "100": -192972,
+          "12345": 32101,
+          "42": -136983,
+          "7": 142446,
+          "999": 354634
+        },
+        "delta_mean": 39845.2,
+        "delta_median": 32101,
+        "paired_outcome": {
+          "wins": 3,
+          "ties": 0,
+          "losses": 2
+        }
+      },
+      "solo:c70_c69_bis-c70": {
+        "deltas": {
+          "100": -67390,
+          "12345": 622621,
+          "42": -552629,
+          "7": 1197026,
+          "999": 592723
+        },
+        "delta_mean": 358470.2,
+        "delta_median": 592723,
+        "paired_outcome": {
+          "wins": 3,
+          "ties": 0,
+          "losses": 2
+        }
+      },
+      "solo:c70_c69-c70": {
+        "deltas": {
+          "100": 125582,
+          "12345": 590520,
+          "42": -415646,
+          "7": 1054580,
+          "999": 238089
+        },
+        "delta_mean": 318625,
+        "delta_median": 238089,
+        "paired_outcome": {
+          "wins": 4,
+          "ties": 0,
+          "losses": 1
+        }
+      }
+    },
+    "by_metric": {
+      "profit_year": {
+        "per_arm": {
+          "solo:default": {
+            "mean": 2116856.8,
+            "median": 2208352,
+            "per_seed": {
+              "100": 1493115,
+              "12345": 2048067,
+              "42": 2310465,
+              "7": 2524285,
+              "999": 2208352
+            }
+          },
+          "solo:c70": {
+            "mean": 2071940,
+            "median": 2241055,
+            "per_seed": {
+              "100": 1520184,
+              "12345": 1730076,
+              "42": 2437635,
+              "7": 2430750,
+              "999": 2241055
+            }
+          },
+          "solo:c70_c69": {
+            "mean": 2390565,
+            "median": 2320596,
+            "per_seed": {
+              "100": 1645766,
+              "12345": 2320596,
+              "42": 2021989,
+              "7": 3485330,
+              "999": 2479144
+            }
+          },
+          "solo:c70_c69_bis": {
+            "mean": 2430410.2,
+            "median": 2352697,
+            "per_seed": {
+              "100": 1452794,
+              "12345": 2352697,
+              "42": 1885006,
+              "7": 3627776,
+              "999": 2833778
+            }
+          }
+        },
+        "pairs": {
+          "solo:c70_c69_bis-c70_c69": {
+            "deltas": {
+              "100": -192972,
+              "12345": 32101,
+              "42": -136983,
+              "7": 142446,
+              "999": 354634
+            },
+            "delta_mean": 39845.2,
+            "delta_median": 32101,
+            "paired_outcome": {
+              "wins": 3,
+              "ties": 0,
+              "losses": 2
+            }
+          },
+          "solo:c70_c69_bis-c70": {
+            "deltas": {
+              "100": -67390,
+              "12345": 622621,
+              "42": -552629,
+              "7": 1197026,
+              "999": 592723
+            },
+            "delta_mean": 358470.2,
+            "delta_median": 592723,
+            "paired_outcome": {
+              "wins": 3,
+              "ties": 0,
+              "losses": 2
+            }
+          },
+          "solo:c70_c69-c70": {
+            "deltas": {
+              "100": 125582,
+              "12345": 590520,
+              "42": -415646,
+              "7": 1054580,
+              "999": 238089
+            },
+            "delta_mean": 318625,
+            "delta_median": 238089,
+            "paired_outcome": {
+              "wins": 4,
+              "ties": 0,
+              "losses": 1
+            }
+          }
+        }
+      },
+      "company_value": {
+        "per_arm": {
+          "solo:default": {
+            "mean": 8020458.4,
+            "median": 8265390,
+            "per_seed": {
+              "100": 5609707,
+              "12345": 7701139,
+              "42": 8265390,
+              "7": 10005677,
+              "999": 8520379
+            }
+          },
+          "solo:c70": {
+            "mean": 7967299,
+            "median": 8073652,
+            "per_seed": {
+              "100": 5948213,
+              "12345": 6688783,
+              "42": 8787117,
+              "7": 10338730,
+              "999": 8073652
+            }
+          },
+          "solo:c70_c69": {
+            "mean": 9064191.6,
+            "median": 8823942,
+            "per_seed": {
+              "100": 6111420,
+              "12345": 8823942,
+              "42": 8276513,
+              "7": 12313528,
+              "999": 9795555
+            }
+          },
+          "solo:c70_c69_bis": {
+            "mean": 8985164,
+            "median": 9036614,
+            "per_seed": {
+              "100": 5787239,
+              "12345": 9036614,
+              "42": 7531880,
+              "7": 12954273,
+              "999": 9615814
+            }
+          }
+        },
+        "pairs": {
+          "solo:c70_c69_bis-c70_c69": {
+            "deltas": {
+              "100": -324181,
+              "12345": 212672,
+              "42": -744633,
+              "7": 640745,
+              "999": -179741
+            },
+            "delta_mean": -79027.6,
+            "delta_median": -179741,
+            "paired_outcome": {
+              "wins": 2,
+              "ties": 0,
+              "losses": 3
+            }
+          },
+          "solo:c70_c69_bis-c70": {
+            "deltas": {
+              "100": -160974,
+              "12345": 2347831,
+              "42": -1255237,
+              "7": 2615543,
+              "999": 1542162
+            },
+            "delta_mean": 1017865,
+            "delta_median": 1542162,
+            "paired_outcome": {
+              "wins": 3,
+              "ties": 0,
+              "losses": 2
+            }
+          },
+          "solo:c70_c69-c70": {
+            "deltas": {
+              "100": 163207,
+              "12345": 2135159,
+              "42": -510604,
+              "7": 1974798,
+              "999": 1721903
+            },
+            "delta_mean": 1096892.6,
+            "delta_median": 1721903,
+            "paired_outcome": {
+              "wins": 4,
+              "ties": 0,
+              "losses": 1
+            }
+          }
+        }
+      },
+      "vehicles": {
+        "per_arm": {
+          "solo:default": {
+            "mean": 77,
+            "median": 72,
+            "per_seed": {
+              "100": 69,
+              "12345": 72,
+              "42": 84,
+              "7": 88,
+              "999": 72
+            }
+          },
+          "solo:c70": {
+            "mean": 79.6,
+            "median": 76,
+            "per_seed": {
+              "100": 76,
+              "12345": 71,
+              "42": 74,
+              "7": 87,
+              "999": 90
+            }
+          },
+          "solo:c70_c69": {
+            "mean": 72.2,
+            "median": 73,
+            "per_seed": {
+              "100": 63,
+              "12345": 73,
+              "42": 70,
+              "7": 79,
+              "999": 76
+            }
+          },
+          "solo:c70_c69_bis": {
+            "mean": 77.6,
+            "median": 75,
+            "per_seed": {
+              "100": 67,
+              "12345": 75,
+              "42": 73,
+              "7": 90,
+              "999": 83
+            }
+          }
+        },
+        "pairs": {
+          "solo:c70_c69_bis-c70_c69": {
+            "deltas": {
+              "100": 4,
+              "12345": 2,
+              "42": 3,
+              "7": 11,
+              "999": 7
+            },
+            "delta_mean": 5.4,
+            "delta_median": 4,
+            "paired_outcome": {
+              "wins": 5,
+              "ties": 0,
+              "losses": 0
+            }
+          },
+          "solo:c70_c69_bis-c70": {
+            "deltas": {
+              "100": -9,
+              "12345": 4,
+              "42": -1,
+              "7": 3,
+              "999": -7
+            },
+            "delta_mean": -2,
+            "delta_median": -1,
+            "paired_outcome": {
+              "wins": 2,
+              "ties": 0,
+              "losses": 3
+            }
+          },
+          "solo:c70_c69-c70": {
+            "deltas": {
+              "100": -13,
+              "12345": 2,
+              "42": -4,
+              "7": -8,
+              "999": -14
+            },
+            "delta_mean": -7.4,
+            "delta_median": -8,
+            "paired_outcome": {
+              "wins": 1,
+              "ties": 0,
+              "losses": 4
+            }
+          }
+        }
+      }
+    }
+  },
+  "final_runs": [
+    {
+      "context": "solo",
+      "arm": "c70",
+      "seed": 7,
+      "date": "1975-12-01",
+      "opex_profit_year": 2430750,
+      "opex_company_value": 10338730,
+      "opex_vehicles": 87
+    },
+    {
+      "context": "solo",
+      "arm": "c70",
+      "seed": 42,
+      "date": "1975-12-01",
+      "opex_profit_year": 2437635,
+      "opex_company_value": 8787117,
+      "opex_vehicles": 74
+    },
+    {
+      "context": "solo",
+      "arm": "c70",
+      "seed": 100,
+      "date": "1975-12-01",
+      "opex_profit_year": 1520184,
+      "opex_company_value": 5948213,
+      "opex_vehicles": 76
+    },
+    {
+      "context": "solo",
+      "arm": "c70",
+      "seed": 999,
+      "date": "1975-12-01",
+      "opex_profit_year": 2241055,
+      "opex_company_value": 8073652,
+      "opex_vehicles": 90
+    },
+    {
+      "context": "solo",
+      "arm": "c70",
+      "seed": 12345,
+      "date": "1975-12-01",
+      "opex_profit_year": 1730076,
+      "opex_company_value": 6688783,
+      "opex_vehicles": 71
+    },
+    {
+      "context": "solo",
+      "arm": "c70_c69",
+      "seed": 7,
+      "date": "1975-12-01",
+      "opex_profit_year": 3485330,
+      "opex_company_value": 12313528,
+      "opex_vehicles": 79
+    },
+    {
+      "context": "solo",
+      "arm": "c70_c69",
+      "seed": 42,
+      "date": "1975-12-01",
+      "opex_profit_year": 2021989,
+      "opex_company_value": 8276513,
+      "opex_vehicles": 70
+    },
+    {
+      "context": "solo",
+      "arm": "c70_c69",
+      "seed": 100,
+      "date": "1975-12-01",
+      "opex_profit_year": 1645766,
+      "opex_company_value": 6111420,
+      "opex_vehicles": 63
+    },
+    {
+      "context": "solo",
+      "arm": "c70_c69",
+      "seed": 999,
+      "date": "1975-12-01",
+      "opex_profit_year": 2479144,
+      "opex_company_value": 9795555,
+      "opex_vehicles": 76
+    },
+    {
+      "context": "solo",
+      "arm": "c70_c69",
+      "seed": 12345,
+      "date": "1975-12-01",
+      "opex_profit_year": 2320596,
+      "opex_company_value": 8823942,
+      "opex_vehicles": 73
+    },
+    {
+      "context": "solo",
+      "arm": "c70_c69_bis",
+      "seed": 7,
+      "date": "1975-12-01",
+      "opex_profit_year": 3627776,
+      "opex_company_value": 12954273,
+      "opex_vehicles": 90
+    },
+    {
+      "context": "solo",
+      "arm": "c70_c69_bis",
+      "seed": 42,
+      "date": "1975-12-01",
+      "opex_profit_year": 1885006,
+      "opex_company_value": 7531880,
+      "opex_vehicles": 73
+    },
+    {
+      "context": "solo",
+      "arm": "c70_c69_bis",
+      "seed": 100,
+      "date": "1975-12-01",
+      "opex_profit_year": 1452794,
+      "opex_company_value": 5787239,
+      "opex_vehicles": 67
+    },
+    {
+      "context": "solo",
+      "arm": "c70_c69_bis",
+      "seed": 999,
+      "date": "1975-12-01",
+      "opex_profit_year": 2833778,
+      "opex_company_value": 9615814,
+      "opex_vehicles": 83
+    },
+    {
+      "context": "solo",
+      "arm": "c70_c69_bis",
+      "seed": 12345,
+      "date": "1975-12-01",
+      "opex_profit_year": 2352697,
+      "opex_company_value": 9036614,
+      "opex_vehicles": 75
+    },
+    {
+      "context": "solo",
+      "arm": "default",
+      "seed": 7,
+      "date": "1975-12-01",
+      "opex_profit_year": 2524285,
+      "opex_company_value": 10005677,
+      "opex_vehicles": 88
+    },
+    {
+      "context": "solo",
+      "arm": "default",
+      "seed": 42,
+      "date": "1975-12-01",
+      "opex_profit_year": 2310465,
+      "opex_company_value": 8265390,
+      "opex_vehicles": 84
+    },
+    {
+      "context": "solo",
+      "arm": "default",
+      "seed": 100,
+      "date": "1975-12-01",
+      "opex_profit_year": 1493115,
+      "opex_company_value": 5609707,
+      "opex_vehicles": 69
+    },
+    {
+      "context": "solo",
+      "arm": "default",
+      "seed": 999,
+      "date": "1975-12-01",
+      "opex_profit_year": 2208352,
+      "opex_company_value": 8520379,
+      "opex_vehicles": 72
+    },
+    {
+      "context": "solo",
+      "arm": "default",
+      "seed": 12345,
+      "date": "1975-12-01",
+      "opex_profit_year": 2048067,
+      "opex_company_value": 7701139,
+      "opex_vehicles": 72
+    }
+  ]
+}

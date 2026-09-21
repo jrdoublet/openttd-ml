@@ -39,6 +39,9 @@ def main():
     parser.add_argument("--engine-timeout", type=int)
     parser.add_argument("--line-telemetry", action="store_true")
     parser.add_argument("--cpus", type=int, default=3)
+    parser.add_argument("--memory", default="2g",
+                        help="plafond RAM Docker, swap egal (defaut 2g : VPS 4 coeurs / 3,8 Go). "
+                             "Compter ~1 Go par worker en duel 10 ans.")
     parser.add_argument("--out")
     args = parser.parse_args()
 
@@ -82,12 +85,12 @@ def main():
 
     command = [
         "docker", "run", "--rm",
-        f"--cpus={args.cpus}", "--memory=2g", "--memory-swap=2g",
+        f"--cpus={args.cpus}", f"--memory={args.memory}", f"--memory-swap={args.memory}",
         "-e", f"C66_DOCKER_IMAGE={args.image}",
         "-e", f"C66_DOCKER_IMAGE_ID={image_id}",
         "-e", f"C66_DOCKER_CPUS={args.cpus}",
-        "-e", "C66_DOCKER_MEMORY=2g",
-        "-e", "C66_DOCKER_MEMORY_SWAP=2g",
+        "-e", f"C66_DOCKER_MEMORY={args.memory}",
+        "-e", f"C66_DOCKER_MEMORY_SWAP={args.memory}",
         "-e", f"C66_GIT_SHA={git_sha}",
         "-e", f"C66_GIT_DIRTY={git_dirty}",
         "-e", f"C66_GIT_STATUS_B64={git_status_b64}",

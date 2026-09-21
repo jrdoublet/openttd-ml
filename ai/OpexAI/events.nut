@@ -256,6 +256,7 @@ function OpexAI::_processEvents()
     if (event == null) continue;
     local eventType = event.GetEventType();
     if (C52_EVENT_EXPOSURE_PROBE) OpexC52EventExposureObserve(event, eventType);
+    if (C39_INVALIDATION_PROBE) OpexC76ObserveEvent(eventType);
 
     if (eventType == AIEvent.ET_VEHICLE_CRASHED) {
       this._onVehicleCrashed(event);

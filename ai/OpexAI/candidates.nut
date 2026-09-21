@@ -1377,6 +1377,19 @@ function OpexBuildCandidates(catalog, budget, lines, abandonedPairs = null, prof
 
   stats.topKOmitted = all.len() - best.len();
 
+  if (C69_BOTTLENECK_PROBE) {
+    OpexC73RecordExamined("rail", stats.pairsTotal);
+    if (stats.pairsOriginServed > 0) OpexC73RecordRejection("rail", "origin_served", stats.pairsOriginServed);
+    if (stats.noMonthly > 0) OpexC73RecordRejection("rail", "no_monthly", stats.noMonthly);
+    if (stats.unsitable > 0) OpexC73RecordRejection("rail", "unsitable", stats.unsitable);
+    if (stats.distanceShort > 0) OpexC73RecordRejection("rail", "distance_short", stats.distanceShort);
+    if (stats.distanceLong > 0) OpexC73RecordRejection("rail", "distance_long", stats.distanceLong);
+    if (stats.economicsUnavailable > 0) OpexC73RecordRejection("rail", "economics_unavailable", stats.economicsUnavailable);
+    if (stats.profitNonPositive > 0) OpexC73RecordRejection("rail", "profit_nonpositive", stats.profitNonPositive);
+    if (stats.ratioTooLow > 0 && VIVIER_RATIO_FILTER) OpexC73RecordRejection("rail", "ratio_floor", stats.ratioTooLow);
+    OpexC73RecordProduced("rail", all.len(), best.len());
+  }
+
   if (DECISION_LOG) {
     OpexDecide("VIVIER_GEN", "mode=rail produced=" + stats.pairsTotal + " kept=" + all.len());
     if (stats.pairsOriginServed > 0) {
@@ -1666,10 +1679,20 @@ function OpexRoadPaxCandidates(catalog, lines, out, stats, abandonedPairs = null
     if (roadLinesPerTown[a] >= maxLinesA) continue;
     local neighbors = roadGrid.GetCandidatesFor(a);
     foreach (b in neighbors) {
-      if (busServed[b]) continue;
+      if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("road", 1);
+      if (busServed[b]) {
+        if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("road", "origin_served", 1);
+        continue;
+      }
       local maxLinesB = 4 + (towns[b].pop / 300);
-      if (roadLinesPerTown[b] >= maxLinesB) continue;
-      if (OpexRoadPairServed(lines, towns[a].tile, towns[b].tile)) continue;
+      if (roadLinesPerTown[b] >= maxLinesB) {
+        if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("road", "line_cap", 1);
+        continue;
+      }
+      if (OpexRoadPairServed(lines, towns[a].tile, towns[b].tile)) {
+        if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("road", "origin_served", 1);
+        continue;
+      }
       if (C60_TOWN_RATING_PROBE) {
         OpexC60ObserveTownRating("road", "candidate_gen", towns[a].id);
         OpexC60ObserveTownRating("road", "candidate_gen", towns[b].id);
@@ -1790,11 +1813,13 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
       for (local k = 0; k < sinks.len(); k++) {
         local di = sinks[k];
         if (di == si) continue;
+        if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("road", 1);
         if (C55_ORIGIN_RELAX_PROBE) OpexC55OriginRelaxObserve("freight", lines,
             source.tile, industries[di].tile, sourceBusy, servedIndustry[di]);
         if (freightBusy != null
             ? ((servedIndustry[si] && servedIndustry[di]) || sourceBusy ||
                (cargo + "|" + industries[di].tile in freightBusy)) : servedIndustry[di]) {
+          if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("road", "origin_served", 1);
           continue;
         }
         local distance = AIMap.DistanceManhattan(source.tile, industries[di].tile);
@@ -1828,13 +1853,18 @@ function OpexRoadFreightCandidates(catalog, lines, out, stats, abandonedPairs = 
       for (local k = 0; k < townPool.len(); k++) {
         local ti = k;
         local t = (townTargets != null) ? townTargets[ti] : ti;
+        if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("road", 1);
         if (profile != null && C41_ROAD_FREIGHT_TOWN_PROFILE) profile.freightTownScanned++;
         if (C55_ORIGIN_RELAX_PROBE && townTargets == null) OpexC55OriginRelaxObserve("freight",
             lines, source.tile, towns[t].tile, sourceBusy, servedTown[t]);
         if (freightBusy != null) {
           if ((servedIndustry[si] && servedTown[t]) || sourceBusy ||
-              (cargo + "|" + towns[t].tile in freightBusy)) continue;
+              (cargo + "|" + towns[t].tile in freightBusy)) {
+            if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("road", "origin_served", 1);
+            continue;
+          }
         } else if (townTargets == null && servedTown[t]) {
+          if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("road", "origin_served", 1);
           continue;
         }
         local distance = AIMap.DistanceManhattan(source.tile, towns[t].tile);
@@ -1929,6 +1959,18 @@ function OpexBuildRoadCandidates(catalog, budget, lines, abandonedPairs = null, 
   local topKMark = profile != null ? OpexOpsMeasureBegin() : null;
   local best = OpexTopK(all, ROAD_TOP_K);
   if (profile != null) profile.topKOps += OpexOpsMeasureEnd(topKMark);
+
+  if (C69_BOTTLENECK_PROBE) {
+    if (stats.noMonthly > 0) OpexC73RecordRejection("road", "no_monthly", stats.noMonthly);
+    if (stats.noEngine > 0) OpexC73RecordRejection("road", "no_engine", stats.noEngine);
+    if (stats.townRejected > 0) OpexC73RecordRejection("road", "town_rejected", stats.townRejected);
+    if (stats.townAcceptancePrefiltered > 0) OpexC73RecordRejection("road", "town_rejected", stats.townAcceptancePrefiltered);
+    if (stats.economicsUnavailable > 0) OpexC73RecordRejection("road", "economics_unavailable", stats.economicsUnavailable);
+    if (stats.profitNonPositive > 0) OpexC73RecordRejection("road", "profit_nonpositive", stats.profitNonPositive);
+    if (stats.roadDistanceShort > 0) OpexC73RecordRejection("road", "distance_short", stats.roadDistanceShort);
+    if (stats.roadDistanceLong > 0) OpexC73RecordRejection("road", "distance_long", stats.roadDistanceLong);
+    OpexC73RecordProduced("road", all.len(), best.len());
+  }
 
   if (DECISION_LOG) {
     OpexDecide("VIVIER_GEN", "mode=road produced=" + stats.pairsInBand + " kept=" + all.len());

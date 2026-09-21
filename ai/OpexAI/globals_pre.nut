@@ -212,6 +212,41 @@ C50_CHRONOLOGY_PROBE <- false;
 /* C63+C58 : ledger annuel depenses / recettes / occasions. Nul hors sonde. */
 C63_INVEST_PROBE <- false;
 C63_INVEST_LEDGER <- null;
+/* C70 : facteur realise/predit par mode, recalcule au rapport annuel. 1.0 hors reglage. */
+C70_MODE_CALIBRATION <- false;
+C70_MODE_FACTOR <- { rail = 1.0, road = 1.0, air = 1.0, water = 1.0 };
+/* C69 etape 1 : sonde passive goulot de decision P / max(C, F*tau). */
+C69_BOTTLENECK_PROBE <- false;
+/* C69 etape 2 : levier. C69_TRACK_BUILDS = sonde ou levier : tau exige les dates de chantier. */
+C69_DECISION_BOTTLENECK <- false;
+C69_FLEET_EXEMPT <- false;
+C69_FLEET_DEMAND_BATCH <- false;
+C69_TRACK_BUILDS <- false;
+C69_BUILD_DATES <- null;
+C69_PENDING_FOLLOWUPS <- null;
+C69_BUILD_PASS_COUNT <- 0;
+C69_LAST_AFFORDABLE <- null;
+C69_LAST_KDEC_DATA <- null;
+/* C72 : sonde passive du choix d'avion (C69 etape 1) */
+C69_CACHED_KDEC_DATE <- -1;
+C69_CACHED_KDEC_VALUE <- 0;
+C69_PLANE_CHOICE_CALLS <- 0;
+C69_PLANE_CHOICE_DIFFER_ROI <- 0;
+C69_PLANE_CHOICE_DIFFER_C69 <- 0;
+/* C73 : sonde passive du vivier avant selection et des passes du portefeuille */
+C73_VIVIER_LEDGER <- null;
+/* C72 etape 2 : levier du choix d'avion (0 = profit max, 1 = ROI max, 2 = P/max(C, K_dec)) */
+C72_PLANE_CHOICE <- 0;
+/* C75 : plusieurs chantiers par passe en phase riche tant que Capital < K_pass et Capital <= Disponible. */
+C75_MULTI_BUILD <- false;
+C75_TRACK_PASSES <- false;
+C75_PASS_DATES <- null;
+C75_YEAR_LEDGER <- null;
+/* C76 : sonde passive de la regeneration du vivier sous C39_INVALIDATION_PROBE */
+C76_PREV_STATE <- null;
+C76_YEAR_LEDGER <- null;
+C76_EVENTS_SINCE_PREV <- null;
+
 /* Tunnel mensuel candidats/acceptes/finances/tentes/construits. Defaut 0 : un AILog
  * par passe projects, sans changer la selection. */
 MONTHLY_FUNNEL <- false;
@@ -330,3 +365,7 @@ CASH_RESERVE_PROBE_MAX_BINDS <- 0;
  * par pathfinder_hard_cap_k. Plafonné à 10 000 (docs/taches.md A3, §0 undecies ter) pour
  * éliminer le gel de l'IA pendant des mois sur les recherches chères. */
 HARD_ITERATION_CAP <- 10000;
+
+/* C80 tranche 0 : socle de l'orchestrateur à double registre (intentions / exécution).
+ * 0 = ordonnanceur historique (défaut), 1 = orchestrateur à double registre actif. */
+C80_DOUBLE_REGISTER <- false;

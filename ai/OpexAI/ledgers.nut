@@ -563,3 +563,95 @@ function OpexAI::_logC54VehicleOrders(year)
         + " line=" + lineId);
   }
 }
+/* C69 etape 1 : enregistrement et publication a chaque passe qui construit */
+function OpexAI::_recordC69BuildingPass(year, projects, builtProjects)
+{
+  if (!C69_TRACK_BUILDS) return;
+  if (C69_BUILD_DATES == null) C69_BUILD_DATES = [];
+  if (C69_PENDING_FOLLOWUPS == null) C69_PENDING_FOLLOWUPS = [];
+
+  local now = AIDate.GetCurrentDate();
+  if (builtProjects != null) {
+    foreach (p in builtProjects) {
+      C69_BUILD_DATES.append(now);
+    }
+  }
+  if (!C69_BOTTLENECK_PROBE) return;
+
+  local builtKeys = {};
+  if (builtProjects != null) {
+    foreach (p in builtProjects) {
+      builtKeys[OpexC69AttemptKey(p)] <- true;
+    }
+  }
+
+  /* Evaluer les suivis C3 en attente des passes precedentes */
+  local activeFollowups = [];
+  foreach (item in C69_PENDING_FOLLOWUPS) {
+    item.passesWaited++;
+    if (item.c69Key in builtKeys) {
+      item.builtNext = 1;
+      item.resolved = true;
+      OpexC69Log("phase=c3_check pass=" + item.passId + " built_next=1 passes_waited=" + item.passesWaited + " target=" + item.c69Key);
+    } else if (item.passesWaited >= item.maxPasses) {
+      item.builtNext = 0;
+      item.resolved = true;
+      OpexC69Log("phase=c3_check pass=" + item.passId + " built_next=0 passes_waited=" + item.passesWaited + " target=" + item.c69Key);
+    } else {
+      activeFollowups.append(item);
+    }
+  }
+  C69_PENDING_FOLLOWUPS = activeFollowups;
+
+  /* Evaluer et journaliser la passe courante */
+  if (projects == null || !("best" in projects) || projects.best == null || projects.best.len() == 0) {
+    return;
+  }
+
+  local actualTop = projects.best[0];
+  local c69Top = (("c69Best" in projects) && projects.c69Best != null && projects.c69Best.len() > 0)
+      ? projects.c69Best[0] : actualTop;
+
+  local c69RankInActual = -1;
+  local c69Key = OpexC69AttemptKey(c69Top);
+  for (local r = 0; r < projects.best.len(); r++) {
+    if (OpexC69AttemptKey(projects.best[r]) == c69Key) {
+      c69RankInActual = r;
+      break;
+    }
+  }
+
+  local kData = (("c69KDecData" in projects) && projects.c69KDecData != null)
+      ? projects.c69KDecData : OpexC69ComputeKDec();
+  local fVeh = OpexC69VehicleProfitLastYear();
+
+  C69_BUILD_PASS_COUNT++;
+  local passId = C69_BUILD_PASS_COUNT;
+  local actualCap = OpexProjectFinanceCapital(actualTop);
+  local c69Cap = OpexProjectFinanceCapital(c69Top);
+  local diff = (c69RankInActual != 0) ? 1 : 0;
+
+  OpexC69Log("phase=build pass=" + passId + " year=" + year
+      + " F=" + kData.F + " F_veh=" + fVeh + " tau=" + kData.tau + " K_dec=" + kData.K_dec
+      + " actual_mode=" + actualTop.mode + " actual_P=" + actualTop.profitAnnual
+      + " actual_C=" + actualCap
+      + " c69_mode=" + c69Top.mode + " c69_P=" + c69Top.profitAnnual
+      + " c69_C=" + c69Cap
+      + " c69_rank_in_actual=" + c69RankInActual
+      + " diff=" + diff);
+
+  if (diff == 1) {
+    if (c69Key in builtKeys) {
+      OpexC69Log("phase=c3_check pass=" + passId + " built_next=1 passes_waited=0 target=" + c69Key);
+    } else {
+      C69_PENDING_FOLLOWUPS.append({
+        passId = passId,
+        c69Key = c69Key,
+        passesWaited = 0,
+        maxPasses = 2,
+        resolved = false,
+        builtNext = 0
+      });
+    }
+  }
+}

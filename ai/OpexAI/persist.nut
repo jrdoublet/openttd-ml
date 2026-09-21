@@ -75,6 +75,66 @@ function OpexCopyBoolTable(source)
   return out;
 }
 
+function OpexSaveReactiveQueue(queue)
+{
+  if (queue == null) return [];
+  local rawList = (typeof queue == "instance" && ("toArray" in queue)) ? queue.toArray() : queue;
+  if (rawList == null || typeof rawList != "array") return [];
+  local out = [];
+  foreach (item in rawList) {
+    if (item == null || typeof item != "table") continue;
+    if (!("key" in item) || !("kind" in item)) continue;
+    out.append({
+      key = item.key,
+      kind = item.kind,
+      payload = ("payload" in item) ? item.payload : null,
+      enqueuedDate = ("enqueuedDate" in item) ? item.enqueuedDate : 0,
+      count = ("count" in item) ? item.count : 1
+    });
+  }
+  return out;
+}
+
+function OpexLoadReactiveQueue(data)
+{
+  local q = OpexReactiveQueue();
+  if (data == null || typeof data != "array") return q;
+  foreach (item in data) {
+    if (item == null || typeof item != "table") continue;
+    if (!("key" in item) || !("kind" in item)) continue;
+    local enqueuedDate = ("enqueuedDate" in item) ? item.enqueuedDate : AIDate.GetCurrentDate();
+    local count = ("count" in item) ? item.count : 1;
+    local payload = ("payload" in item) ? item.payload : null;
+    q.restoreItem(item.key, item.kind, payload, enqueuedDate, count);
+  }
+  return q;
+}
+
+function OpexSaveActiveWorker(worker)
+{
+  if (worker == null || typeof worker != "table") return null;
+  if (!("kind" in worker) || !("state" in worker) || worker.state == null || typeof worker.state != "table") return null;
+  return {
+    kind = worker.kind,
+    state = worker.state
+  };
+}
+
+function OpexLoadActiveWorker(data)
+{
+  if (data == null || typeof data != "table") return null;
+  if (!("kind" in data) || !("state" in data) || data.state == null || typeof data.state != "table") return null;
+  local kind = data.kind;
+  if (!(kind in OPEX_WORKER_REGISTRY)) {
+    AILog.Warning("C80: dropped active worker of unknown kind: " + kind);
+    return null;
+  }
+  return {
+    kind = kind,
+    state = data.state
+  };
+}
+
 function OpexAI::_railLineHasVehicle(line, vehicle)
 {
   if (line == null || !("vehicles" in line) || line.vehicles == null) return false;
@@ -372,7 +432,7 @@ function OpexAI::Save()
     }
   }
   if (projectedLines != null) saveLines = projectedLines;
-  return {
+  local saveObj = {
     version = 1,
     generationStage = this._generationStage,
     generationStageMonth = this._generationStageMonth,
@@ -400,6 +460,11 @@ function OpexAI::Save()
     c41RailJunctionLines = OpexCopyBoolTable(this._c41RailJunctionLines),
     stateVersion = 2,
   };
+  if (C80_DOUBLE_REGISTER) {
+    saveObj.c80ReactiveQueue <- OpexSaveReactiveQueue(this._reactiveQueue);
+    saveObj.c80ActiveWorker <- OpexSaveActiveWorker(this._activeWorker);
+  }
+  return saveObj;
 }
 function OpexAI::Load(version, data)
 {
@@ -442,6 +507,14 @@ function OpexAI::Load(version, data)
   if ("taskDue" in data && data.taskDue != null && this._taskQueue != null) {
     foreach (task in this._taskQueue) {
       if (task.name in data.taskDue) task.dueCycle = data.taskDue[task.name];
+    }
+  }
+  if (C80_DOUBLE_REGISTER) {
+    if ("c80ReactiveQueue" in data && data.c80ReactiveQueue != null) {
+      this._reactiveQueue = OpexLoadReactiveQueue(data.c80ReactiveQueue);
+    }
+    if ("c80ActiveWorker" in data && data.c80ActiveWorker != null) {
+      this._activeWorker = OpexLoadActiveWorker(data.c80ActiveWorker);
     }
   }
 }

@@ -11,7 +11,7 @@ class B7WaterGuardsTest(unittest.TestCase):
     def test_unknown_distance_is_rejected_before_economics(self):
         start = BUILDER.index("navigableDistance = OpexWaterFindConnection(sites[a], sites[b]);")
         end = BUILDER.index("local economics = OpexWaterEconomics(", start)
-        self.assertIn("if (navigableDistance < 0) continue;", BUILDER[start:end])
+        self.assertRegex(BUILDER[start:end], r"if \(navigableDistance < 0\) \{[^}]*continue;\s*\}")
         self.assertNotIn("navigableDistance = tariffDistance", BUILDER[start:end])
 
     def test_real_docks_checked_before_depot(self):

@@ -97,6 +97,14 @@ function OpexC49ScarcityLog(fields)
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " C49_SCARCITY " + fields);
 }
+/* C69 : gate dedie sous probe_portfolio. */
+function OpexC69Log(fields)
+{
+  if (!C69_BOTTLENECK_PROBE) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " C69_BOTTLENECK " + fields);
+}
 /* Tunnel mensuel : gate dedie, independant de C63/C48/decision_log. Un AILog par passe
  * pour ne pas perdre le mois courant (le jeu s'arrete souvent au 1er decembre). */
 function OpexMonthlyFunnelLog(fields)
@@ -825,4 +833,498 @@ function OpexPortfolioRefreshProbeLog(fields)
   local date = AIDate.GetCurrentDate();
   AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
              + AIDate.GetDayOfMonth(date) + " PORTFOLIO_REFRESH_PROBE " + fields);
+}
+
+/* C69 : cle d'identite stable d'un candidat ou projet construit */
+function OpexC69AttemptKey(p)
+{
+  if (p == null) return "none";
+  if (!("mode" in p) && ("src" in p) && ("dst" in p) && ("cargo" in p) && ("kind" in p)) {
+    return "rail|" + p.src + "|" + p.dst + "|" + p.cargo + "|" + p.kind;
+  }
+  return OpexProjectAttemptKey(p);
+}
+
+/* C69 : somme GetProfitLastYear de l'ensemble des vehicules de la compagnie (controle F_veh) */
+function OpexC69VehicleProfitLastYear()
+{
+  local total = 0;
+  local vl = AIVehicleList();
+  foreach (v, _ in vl) {
+    if (AIVehicle.IsValidVehicle(v)) {
+      total += AIVehicle.GetProfitLastYear(v);
+    }
+  }
+  return total;
+}
+
+/* C69 : mediane d'une liste de nombres reels sans mutation */
+function OpexMedianFloat(values)
+{
+  local n = values.len();
+  if (n == 0) return 0.0;
+  local copy = [];
+  foreach (v in values) copy.append(v);
+  for (local i = 1; i < n; i++) {
+    local v = copy[i];
+    local j = i;
+    while (j > 0 && copy[j - 1] > v) {
+      copy[j] = copy[j - 1];
+      j--;
+    }
+    copy[j] = v;
+  }
+  if (n % 2 == 1) return copy[n / 2];
+  return (copy[n / 2 - 1] + copy[n / 2]) / 2.0;
+}
+
+/* C69/C75 : calcul factorise du flux d'exploitation journalier F sur les 4 derniers trimestres complets */
+function OpexComputeOperatingCashFlow(now = null)
+{
+  if (now == null) now = AIDate.GetCurrentDate();
+  local curYear = AIDate.GetYear(now);
+  local curMonth = AIDate.GetMonth(now);
+  local curQuarterIdx = (curMonth - 1) / 3;
+  local totalCompletedQuarters = (curYear - 1970) * 4 + curQuarterIdx;
+
+  local F = 0.0;
+  local daysCovered = 0;
+  if (totalCompletedQuarters > 0) {
+    local numQ = totalCompletedQuarters < 4 ? totalCompletedQuarters : 4;
+    local curQuarterStartMonth = curQuarterIdx * 3 + 1;
+    local curQuarterStartDate = AIDate.GetDate(curYear, curQuarterStartMonth, 1);
+    local T = totalCompletedQuarters;
+    local windowStartQuarter = T - numQ;
+    local windowStartYear = 1970 + (windowStartQuarter / 4);
+    local windowStartMonth = (windowStartQuarter % 4) * 3 + 1;
+    local windowStartDate = AIDate.GetDate(windowStartYear, windowStartMonth, 1);
+    daysCovered = curQuarterStartDate - windowStartDate;
+
+    if (daysCovered > 0) {
+      local sumNet = 0.0;
+      for (local q = 1; q <= numQ; q++) {
+        local inc = AICompany.GetQuarterlyIncome(AICompany.COMPANY_SELF, q);
+        local exp = AICompany.GetQuarterlyExpenses(AICompany.COMPANY_SELF, q);
+        sumNet += (inc.tofloat() + exp);
+      }
+      /* GetQuarterlyIncome + GetQuarterlyExpenses excluent construction et achats de vehicules
+       * (mesure C69 : -3,7 k£ de depenses pour 278 k£ investis au meme trimestre) : sumNet est
+       * deja le flux d'exploitation. Ajouter I le compterait deux fois. */
+      local numerator = sumNet;
+      if (numerator > 0.0) {
+        F = numerator / daysCovered.tofloat();
+      }
+    }
+  }
+
+  return {
+    F = F,
+    daysCovered = daysCovered
+  };
+}
+
+/* C69 : calcul unique de F, tau et K_dec par appel de selection */
+function OpexC69ComputeKDec()
+{
+  local now = AIDate.GetCurrentDate();
+  local flow = OpexComputeOperatingCashFlow(now);
+  local F = flow.F;
+  local daysCovered = flow.daysCovered;
+
+  local startDate = AIDate.GetDate(1970, 1, 1);
+  local daysSinceStart = now - startDate;
+  if (daysSinceStart < 1) daysSinceStart = 1;
+  local D = daysSinceStart < 365 ? daysSinceStart : 365;
+
+  local N = 0;
+  if (C69_BUILD_DATES != null) {
+    local cutoff = now - D;
+    local pruned = [];
+    foreach (d in C69_BUILD_DATES) {
+      if (d >= cutoff) {
+        pruned.append(d);
+      }
+    }
+    C69_BUILD_DATES = pruned;
+    N = C69_BUILD_DATES.len();
+  }
+
+  local tau = 0.0;
+  local K_dec = 0;
+  if (N > 0 && F > 0.0) {
+    tau = D.tofloat() / N.tofloat();
+    K_dec = (F * tau).tointeger();
+    if (K_dec < 0) K_dec = 0;
+  }
+
+  return {
+    F = F,
+    tau = tau,
+    K_dec = K_dec,
+    D = D,
+    N = N,
+    daysCovered = daysCovered
+  };
+}
+
+/* C75 : enregistre la date d'une passe de _tryBuildProjects et purge au-dela de la fenetre */
+function OpexC75RecordPassDate(now = null)
+{
+  if (!C75_TRACK_PASSES) return;
+  if (C75_PASS_DATES == null) C75_PASS_DATES = [];
+  if (now == null) now = AIDate.GetCurrentDate();
+  C75_PASS_DATES.append(now);
+
+  local startDate = AIDate.GetDate(1970, 1, 1);
+  local daysSinceStart = now - startDate;
+  if (daysSinceStart < 1) daysSinceStart = 1;
+  local D = daysSinceStart < 365 ? daysSinceStart : 365;
+
+  local cutoff = now - D;
+  local pruned = [];
+  foreach (d in C75_PASS_DATES) {
+    if (d >= cutoff) {
+      pruned.append(d);
+    }
+  }
+  C75_PASS_DATES = pruned;
+}
+
+/* C75 : calcul de K_pass = F * tau_pass sur la fenetre glissante min(365, jours depuis debut).
+ * Moins de 2 passes dans la fenetre => K_pass = 0. */
+function OpexC75ComputeKPass(now = null)
+{
+  if (now == null) now = AIDate.GetCurrentDate();
+  local flow = OpexComputeOperatingCashFlow(now);
+  local F = flow.F;
+
+  local startDate = AIDate.GetDate(1970, 1, 1);
+  local daysSinceStart = now - startDate;
+  if (daysSinceStart < 1) daysSinceStart = 1;
+  local D = daysSinceStart < 365 ? daysSinceStart : 365;
+
+  local N = 0;
+  if (C75_PASS_DATES != null) {
+    local cutoff = now - D;
+    local pruned = [];
+    foreach (d in C75_PASS_DATES) {
+      if (d >= cutoff) {
+        pruned.append(d);
+      }
+    }
+    C75_PASS_DATES = pruned;
+    N = C75_PASS_DATES.len();
+  }
+
+  local tau_pass = 0.0;
+  local K_pass = 0;
+  if (N >= 2 && F > 0.0) {
+    tau_pass = D.tofloat() / N.tofloat();
+    K_pass = (F * tau_pass).tointeger();
+    if (K_pass < 0) K_pass = 0;
+  }
+
+  return {
+    F = F,
+    tau_pass = tau_pass,
+    K_pass = K_pass,
+    D = D,
+    N = N,
+    daysCovered = flow.daysCovered
+  };
+}
+
+/* C75 : reinitialise le registre annuel de passes et chantiers */
+function OpexC75ResetYearLedger()
+{
+  C75_YEAR_LEDGER = {
+    passes = 0,
+    builds = 0,
+    multi_passes = 0
+  };
+}
+
+/* C75 : enregistre le resultat d'une passe et publie phase=c75_pass si au moins 1 chantier */
+function OpexC75RecordPassOutcome(year, builtCount, c75KPassData, stopReason)
+{
+  if (!C75_TRACK_PASSES) return;
+  if (C75_YEAR_LEDGER != null) {
+    C75_YEAR_LEDGER.builds += builtCount;
+    if (builtCount > 1) C75_YEAR_LEDGER.multi_passes++;
+  }
+  if (builtCount > 0 && C69_BOTTLENECK_PROBE) {
+    local kPass = (c75KPassData != null) ? c75KPassData.K_pass : 0;
+    local tauPass = (c75KPassData != null) ? c75KPassData.tau_pass : 0.0;
+    local fVal = (c75KPassData != null) ? c75KPassData.F : 0.0;
+    local reason = (stopReason != null) ? stopReason : "list_end";
+    OpexC69Log("phase=c75_pass year=" + year + " built=" + builtCount
+        + " k_pass=" + kPass + " tau_pass=" + tauPass + " F=" + fVal
+        + " stop=" + reason);
+  }
+}
+
+/* C75 : publication annuelle du registre de passes et chantiers */
+function OpexC75FlushYear(year)
+{
+  if (!C69_BOTTLENECK_PROBE || C75_YEAR_LEDGER == null) return;
+  if (year < 1970) return;
+
+  OpexC69Log("phase=c75_year year=" + year + " passes=" + C75_YEAR_LEDGER.passes
+      + " builds=" + C75_YEAR_LEDGER.builds + " multi_passes=" + C75_YEAR_LEDGER.multi_passes);
+
+  OpexC75ResetYearLedger();
+}
+
+
+/* C72 : cache journalier de K_dec pour la sonde passive du choix d'avion */
+function OpexC69CachedKDec()
+{
+  local today = AIDate.GetCurrentDate();
+  if (C69_CACHED_KDEC_DATE == today) return C69_CACHED_KDEC_VALUE;
+  local data = OpexC69ComputeKDec();
+  C69_CACHED_KDEC_DATE = today;
+  C69_CACHED_KDEC_VALUE = data.K_dec;
+  return C69_CACHED_KDEC_VALUE;
+}
+
+/* C72 : nom de l'appareil avec espaces remplaces par des tirets bas pour le parseur de logs */
+function OpexPlaneName(engineId)
+{
+  if (!AIEngine.IsValidEngine(engineId)) return "unknown";
+  local rawName = AIEngine.GetName(engineId);
+  if (rawName == null || rawName.len() == 0) return "unknown";
+  local res = "";
+  for (local i = 0; i < rawName.len(); i++) {
+    local c = rawName.slice(i, i + 1);
+    if (c == " ") res += "_";
+    else res += c;
+  }
+  return res.len() > 0 ? res : "unknown";
+}
+
+/* C73 : sonde passive vivier et passes du portefeuille (C69 etape 1) */
+function OpexC73NewModeStats()
+{
+  return {
+    examined = 0,
+    rejections = {},
+    produced = 0,
+    after_topk = 0,
+    to_select = 0,
+    affordable = 0,
+    selected = 0
+  };
+}
+
+function OpexC73ResetLedger()
+{
+  C73_VIVIER_LEDGER = {
+    flushedYear = -1,
+    passes = {
+      count = 0,
+      empty = 0,
+      built = 0,
+      sum_cash = 0.0,
+      sum_avail = 0.0
+    },
+    modes = {
+      rail = OpexC73NewModeStats(),
+      road = OpexC73NewModeStats(),
+      air = OpexC73NewModeStats(),
+      water = OpexC73NewModeStats(),
+      fleet = OpexC73NewModeStats()
+    }
+  };
+}
+
+function OpexC73RecordExamined(mode, count = 1)
+{
+  if (!C69_BOTTLENECK_PROBE || C73_VIVIER_LEDGER == null) return;
+  if (!(mode in C73_VIVIER_LEDGER.modes)) return;
+  C73_VIVIER_LEDGER.modes[mode].examined += count;
+}
+
+function OpexC73RecordRejection(mode, reason, count = 1)
+{
+  if (!C69_BOTTLENECK_PROBE || C73_VIVIER_LEDGER == null) return;
+  if (!(mode in C73_VIVIER_LEDGER.modes)) return;
+  local m = C73_VIVIER_LEDGER.modes[mode];
+  if (reason in m.rejections) {
+    m.rejections[reason] += count;
+  } else {
+    m.rejections[reason] <- count;
+  }
+}
+
+function OpexC73RecordProduced(mode, produced, afterTopK)
+{
+  if (!C69_BOTTLENECK_PROBE || C73_VIVIER_LEDGER == null) return;
+  if (!(mode in C73_VIVIER_LEDGER.modes)) return;
+  C73_VIVIER_LEDGER.modes[mode].produced += produced;
+  C73_VIVIER_LEDGER.modes[mode].after_topk += afterTopK;
+}
+
+function OpexC73RecordSelection(toSelectCounts, affordableCounts, selectedCounts)
+{
+  if (!C69_BOTTLENECK_PROBE || C73_VIVIER_LEDGER == null) return;
+  foreach (mode, m in C73_VIVIER_LEDGER.modes) {
+    if (mode in toSelectCounts) m.to_select += toSelectCounts[mode];
+    if (mode in affordableCounts) m.affordable += affordableCounts[mode];
+    if (mode in selectedCounts) m.selected += selectedCounts[mode];
+  }
+}
+
+function OpexC73RecordPass(built, empty, cash, avail)
+{
+  if (!C69_BOTTLENECK_PROBE || C73_VIVIER_LEDGER == null) return;
+  local p = C73_VIVIER_LEDGER.passes;
+  p.count++;
+  if (built) p.built++;
+  if (empty) p.empty++;
+  p.sum_cash += cash.tofloat();
+  p.sum_avail += avail.tofloat();
+}
+
+function OpexC73FlushLedger(year)
+{
+  if (!C69_BOTTLENECK_PROBE || C73_VIVIER_LEDGER == null) return;
+  if (year < 1970) return;
+  if (C73_VIVIER_LEDGER.flushedYear == year) return;
+
+  local modeOrder = ["rail", "road", "air", "water", "fleet"];
+  foreach (mode in modeOrder) {
+    local m = C73_VIVIER_LEDGER.modes[mode];
+    local line = "phase=vivier_year year=" + year + " mode=" + mode + " examined=" + m.examined;
+    foreach (reason, cnt in m.rejections) {
+      line += " rej_" + reason + "=" + cnt;
+    }
+    line += " produced=" + m.produced + " after_topk=" + m.after_topk
+          + " to_select=" + m.to_select + " affordable=" + m.affordable + " selected=" + m.selected;
+    OpexC69Log(line);
+  }
+
+  local p = C73_VIVIER_LEDGER.passes;
+  local avgCash = p.count > 0 ? (p.sum_cash / p.count).tointeger() : 0;
+  local avgAvail = p.count > 0 ? (p.sum_avail / p.count).tointeger() : 0;
+  OpexC69Log("phase=passes_year year=" + year + " passes=" + p.count + " empty=" + p.empty
+      + " built=" + p.built + " avg_cash=" + avgCash + " avg_avail=" + avgAvail);
+
+  OpexC73ResetLedger();
+  C73_VIVIER_LEDGER.flushedYear = year;
+}
+
+/* C76 : sonde passive sous C39_INVALIDATION_PROBE (probe_catalogue). */
+function OpexC76Log(fields)
+{
+  if (!C39_INVALIDATION_PROBE) return;
+  local date = AIDate.GetCurrentDate();
+  AILog.Info("OPEX " + AIDate.GetYear(date) + "-" + AIDate.GetMonth(date) + "-"
+             + AIDate.GetDayOfMonth(date) + " C76_REGEN " + fields);
+}
+
+function OpexC76Reset()
+{
+  C76_PREV_STATE = null;
+  C76_YEAR_LEDGER = {};
+  C76_EVENTS_SINCE_PREV = { total = 0, by_type = {} };
+}
+
+function OpexC76ObserveEvent(eventType)
+{
+  if (!C39_INVALIDATION_PROBE || C76_EVENTS_SINCE_PREV == null) return;
+  C76_EVENTS_SINCE_PREV.total++;
+  local typeName = "other";
+  if (eventType == AIEvent.ET_ENGINE_AVAILABLE || eventType == AIEvent.ET_ENGINE_PREVIEW) typeName = "engine";
+  else if (eventType == AIEvent.ET_INDUSTRY_OPEN) typeName = "ind_open";
+  else if (eventType == AIEvent.ET_INDUSTRY_CLOSE) typeName = "ind_close";
+  else if (eventType == AIEvent.ET_TOWN_FOUNDED) typeName = "town_founded";
+  else if (eventType == AIEvent.ET_SUBSIDY_OFFER || eventType == AIEvent.ET_SUBSIDY_OFFER_EXPIRED
+           || eventType == AIEvent.ET_SUBSIDY_AWARDED || eventType == AIEvent.ET_SUBSIDY_EXPIRED) typeName = "subsidy";
+  else if (eventType == AIEvent.ET_VEHICLE_CRASHED || eventType == AIEvent.ET_VEHICLE_LOST
+           || eventType == AIEvent.ET_VEHICLE_WAITING_IN_DEPOT || eventType == AIEvent.ET_VEHICLE_UNPROFITABLE
+           || eventType == AIEvent.ET_VEHICLE_AUTOREPLACED) typeName = "vehicle";
+  else if (eventType == AIEvent.ET_STATION_FIRST_VEHICLE) typeName = "station";
+
+  if (typeName in C76_EVENTS_SINCE_PREV.by_type) {
+    C76_EVENTS_SINCE_PREV.by_type[typeName]++;
+  } else {
+    C76_EVENTS_SINCE_PREV.by_type.rawset(typeName, 1);
+  }
+}
+
+function OpexC76FormatPct(curr, prev)
+{
+  if (prev == null || prev == 0) return "0.00";
+  local delta = (curr.tofloat() - prev.tofloat()) * 100.0 / prev.tofloat();
+  local sign = "";
+  if (delta < 0.0) {
+    sign = "-";
+    delta = -delta;
+  }
+  local whole = delta.tointeger();
+  local frac = ((delta - whole) * 100.0 + 0.5).tointeger();
+  if (frac >= 100) {
+    whole += 1;
+    frac -= 100;
+  }
+  local fracStr = frac < 10 ? "0" + frac : "" + frac;
+  return sign + whole + "." + fracStr;
+}
+
+function OpexC76FormatRatioPct(num, den)
+{
+  if (den == null || den <= 0) return (num == 0) ? "100.00" : "0.00";
+  local pct = (num.tofloat() * 100.0) / den.tofloat();
+  if (pct > 100.0) pct = 100.0;
+  if (pct < 0.0) pct = 0.0;
+  local whole = pct.tointeger();
+  local frac = ((pct - whole) * 100.0 + 0.5).tointeger();
+  if (frac >= 100) {
+    whole += 1;
+    frac -= 100;
+  }
+  local fracStr = frac < 10 ? "0" + frac : "" + frac;
+  return "" + whole + "." + fracStr;
+}
+
+function OpexC76GetBuildableEngines(vehicleType)
+{
+  local res = {};
+  local list = AIEngineList(vehicleType);
+  for (local e = list.Begin(); !list.IsEnd(); e = list.Next()) {
+    if (AIEngine.IsBuildable(e)) {
+      res.rawset(e, true);
+    }
+  }
+  return res;
+}
+
+function OpexC76CountEngineChanges(curr, prev)
+{
+  if (prev == null) return 0;
+  local count = 0;
+  foreach (e, _ in curr) {
+    if (!(e in prev)) count++;
+  }
+  foreach (e, _ in prev) {
+    if (!(e in curr)) count++;
+  }
+  return count;
+}
+
+function OpexC76FlushYear(year)
+{
+  if (!C39_INVALIDATION_PROBE || C76_YEAR_LEDGER == null) return;
+  if (year < 1970) return;
+  local rec = (year in C76_YEAR_LEDGER) ? C76_YEAR_LEDGER[year] : {
+    full = 0, incremental = 0, ops_total = 0, days_total = 0,
+    unchanged_deps = 0, top1_unchanged = 0
+  };
+  OpexC76Log("phase=regen_year year=" + year
+             + " full=" + rec.full
+             + " incremental=" + rec.incremental
+             + " ops_total=" + rec.ops_total
+             + " days_total=" + rec.days_total
+             + " unchanged_deps=" + rec.unchanged_deps
+             + " top1_unchanged=" + rec.top1_unchanged);
 }

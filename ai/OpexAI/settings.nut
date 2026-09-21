@@ -188,6 +188,7 @@ function OpexLoadSettings()
   WATER_OPCODE_COMPAT_FALSE = false;
   WATER_OPCODE_COMPAT_FALSE = false;
   WATER_OPCODE_COMPAT_FALSE = false;
+  if (C39_INVALIDATION_PROBE) OpexC76Reset();
 
   // 6. probe_rail_search : domination, fallthrough, projects cadence
   local probeRailSearch = AIController.GetSetting("probe_rail_search") != 0;
@@ -212,6 +213,34 @@ function OpexLoadSettings()
   }
   C63_INVEST_PROBE = probePort;
   if (C63_INVEST_PROBE) OpexC63ResetLedger();
+  C70_MODE_CALIBRATION = AIController.GetSetting("c70_mode_calibration") != 0;
+  C69_BOTTLENECK_PROBE = probePort;
+  C69_DECISION_BOTTLENECK = AIController.GetSetting("c69_decision_bottleneck") != 0;
+  C69_FLEET_EXEMPT = AIController.GetSetting("c69_fleet_exempt") != 0;
+  C69_FLEET_DEMAND_BATCH = AIController.GetSetting("c69_fleet_demand_batch") != 0;
+  C72_PLANE_CHOICE = AIController.GetSetting("c72_plane_choice");
+  C69_TRACK_BUILDS = C69_BOTTLENECK_PROBE || C69_DECISION_BOTTLENECK || (C72_PLANE_CHOICE == 2);
+  if (C69_TRACK_BUILDS) {
+    C69_BUILD_DATES = [];
+    C69_PENDING_FOLLOWUPS = [];
+    C69_BUILD_PASS_COUNT = 0;
+    C69_LAST_AFFORDABLE = null;
+    C69_LAST_KDEC_DATA = null;
+    C69_CACHED_KDEC_DATE = -1;
+    C69_CACHED_KDEC_VALUE = 0;
+    C69_PLANE_CHOICE_CALLS = 0;
+    C69_PLANE_CHOICE_DIFFER_ROI = 0;
+    C69_PLANE_CHOICE_DIFFER_C69 = 0;
+    if (C69_BOTTLENECK_PROBE) {
+      OpexC73ResetLedger();
+    }
+  }
+  C75_MULTI_BUILD = AIController.GetSetting("c75_multi_build") != 0;
+  C75_TRACK_PASSES = C75_MULTI_BUILD || C69_BOTTLENECK_PROBE;
+  if (C75_TRACK_PASSES) {
+    C75_PASS_DATES = [];
+    OpexC75ResetYearLedger();
+  }
   MONTHLY_FUNNEL = probePort;
   TENSION_PROBE = probePort;
   if (TENSION_PROBE) {
@@ -302,6 +331,7 @@ function OpexLoadSettings()
   FLAT_BONUS = false;
   MARGINAL_FLEET = false;
   ROAD_TIME_SCALED_CAP = AIController.GetSetting("road_time_scaled_cap") != 0;
+  C80_DOUBLE_REGISTER = AIController.GetSetting("c80_double_register") != 0;
   C55_FREIGHT_ORIGIN_RELAX = false;
   C41_RAIL_LOST_SIGNAL_REPAIR = false;
   C41_RAIL_LOST_JUNCTION_REPAIR = false;

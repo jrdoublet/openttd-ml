@@ -116,6 +116,57 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "c69_fleet_demand_batch",
+      description = "C69: allow air fleet expansion batch size to match measured waiting demand without the 4-plane cap; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c69_decision_bottleneck",
+      description = "C69: rank projects by P/max(C, F*tau), F = operating cash flow, tau = days per build; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c69_fleet_exempt",
+      description = "C69 bis: fleet projects (planes added to an existing line) keep P/C under c69_decision_bottleneck, since they build nothing; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c70_mode_calibration",
+      description = "C70: scale predicted profit by a per-mode realised/predicted factor measured on own mature lines; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c72_plane_choice",
+      description = "C72: air plane choice per route; 0 = max profit (C68, default), 1 = max ROI, 2 = max P/max(C, K_dec)",
+      min_value = 0, max_value = 2,
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      step_size = 1,
+      flags = 0
+    });
+
+    AddSetting({
+      name = "c75_multi_build",
+      description = "C75: multi-build per pass in rich phase as long as capital < K_pass and capital <= available; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+
+    AddSetting({
       name = "probe_events",
       description = "Enable AI event, crash, fleet depth and equipment selection probes; 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
@@ -390,6 +441,14 @@ class OpexAIInfo extends AIInfo {
     AddSetting({
       name = "road_time_scaled_cap",
       description = "B3 experiment: scale pax road fleet cap from simultaneous berth capacity: 1 = test arm, 0 = historical cap (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
+      name = "c80_double_register",
+      description = "C80 tranche 0: double-register orchestrator (reactive queue + execution register): 1 = enabled, 0 = disabled (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
       custom_value = 0,
       flags = AICONFIG_BOOLEAN
