@@ -22,6 +22,11 @@ comme une file active.
 
 | Statut courant | Chantier | Travail restant / règle de reprise |
 |---|---|---|
+| **PRIORITAIRE — 2026-09-21** | **C77 — déclenchement des candidats opportunistes** | Un événement ou un changement mesuré produit **tout de suite** les candidats de l'entité touchée, insérés au vivier sans régénération complète et constructibles sans attendre le tour suivant (~45 j). Détail : [§ C76-C77](#c76-c77). Dépend de C76. |
+| **PRIORITAIRE — 2026-09-21** | **C76 — gestion des événements : consommer les invalidations** | Les événements sont reçus mais `_markDirty` est une sonde passive (C39.0) que rien ne consomme ; la régénération reste mensuelle et complète. Livrer le routeur `cible.md` §8 : révisions par sous-catalogue et par mode, tâches qui ne repartent que sur dépendance changée, filet périodique léger. Détail : [§ C76-C77](#c76-c77). |
+| **EN COURS — 2026-09-21** | **C75 — plusieurs chantiers par passe en phase riche** | Choix utilisateur : τ = durée réelle entre deux passes `projects`. Continuer à construire dans la liste déjà classée tant que le projet suivant coûte moins que K_dec et reste finançable. `docs/16_bilan_volume.md` §6-§7. |
+| **À FAIRE — 2026-09-21** | **C78 — chronologie décision par décision contre AAAHogEx** | 1970-1973 en duel : chaque chantier des deux IA (date, mode, villes, coût, avions) et le revenu de chaque ligne au fil du temps ; journal d'AAAHogEx via `-d script=4`. Question : quand et où l'écart de revenu aérien se creuse. |
+| **À FAIRE — 2026-09-21** | **C79 — feeders de ville vers l'aéroport, version utilisateur** | Arrêts de ville **non joints** couvrant la ville, ordres « chargement complet » en ville puis « transfert » à **un** arrêt de bus joint à l'aéroport. Jamais testé sous cette forme (les feeders retirés le 2026-09-17 n'avaient pas le chargement complet). D'abord vérifier le mode d'AAAHogEx dans notre config (`TownBus` seulement sans rattachement à distance). |
 | **EN PAUSE — 2026-09-21** | **C69 goulot de décision (+ bis) et C70 calibration** | Non adopté : deux 20×10 duel à 12/20 (`fail_primary`), gain moyen +87,6 et +111 k£/an. Plus d'aéroports, moins de véhicules. Reprise : cause de la flotte manquante (`W` contre cadence), puis C69 bis par-dessus C72 si C72 est adopté. `docs/11_goulot_decision.md` §17-§19. |
 | **NON ADOPTÉ — 2026-09-21** | **C72 choix de l'avion par route** | 20×10 duel contre le défaut : ROI −1,9 k£/an, score C69 −4,5 k£/an, 11/9 tous deux (`fail_primary`) ; valeur +6,8 % et +3,2 %, non significative. Le 5×6 solo (+292 et +145 k£) ne s'est pas confirmé. `docs/15_choix_avion.md` §5. |
 | **ABANDONNÉ — 2026-09-21** | **AIR post-C68 — frontière capital→profit réseau** | Retour à `b68fafb`. Ne pas reprendre le λ global sans nouvelle formulation et nouvelle preuve indépendante. |
@@ -38,6 +43,58 @@ comme une file active.
 | **CONCEPTION SEULEMENT** | **C67 — carte par blocs / remplacement de Lakes** | Implémentation non commencée ; d'abord mesurer 5×5 vs 10×10, RAM/opcodes/précision. |
 | **DIFFÉRÉ / CONDITIONNEL** | **C64, C42 bis, C55 reliquat, C43/E3 restant** | Reprendre seulement sur exposition mesurée ; `loop_budget` est déjà clos/non adopté. |
 | **DORMANT / NON EXPOSÉ** | **M2, M5/G2, M6, M7/11.3, B6/06.12** | Aucun lot autonome ; traiter seulement avant réactivation. |
+
+<a id="c76-c77"></a>
+### C76-C77 — Événements et candidats opportunistes (ouvert le 2026-09-21)
+
+**Constat mesuré** (`docs/16_bilan_volume.md` §6-§7, sondes C73 et C74, 3 graines × 10 ans) :
+à partir de 1975, un tour de la file dure **45 à 52 jours de jeu** et ne construit qu'un projet,
+soit ~7 à 8 chantiers par an pendant que la caisse monte à 11 M£. `catalog` (31 % du temps) et
+`projects` (23 %) régénèrent chacun le vivier ; `town_growth` en prend 28 %.
+
+**État du code, vérifié le 2026-09-21 :**
+
+- `_dispatchCatalog` ne saute son tour que dans le même mois ; avec un tour de 45 jours, il
+  rafraîchit **tout** le catalogue (`OpexCatalog::refresh` : cargos, rail, villes, industries, route,
+  air, eau) et **régénère tous les candidats** (`_rebuildProjects`) à chaque tour. Le catalogue
+  coûte peu ; les ~2,8 M opcodes par passe sont la régénération des candidats.
+- Les événements `IndustryOpen/Close`, `TownFounded`, `EngineAvailable`, subventions et véhicules
+  sont reçus et routés, mais **`_markDirty` ne fait rien hors sonde** (`C39_INVALIDATION_PROBE`) et
+  son état n'est consommé par aucune tâche. Le seul effet réel d'un événement est
+  `_portfolioInvalidated`, qui **avance** une régénération complète : les événements ajoutent des
+  régénérations, ils n'en évitent aucune.
+- Les sous-catalogues et révisions par couche sont **conçus** (`cible.md` §8, registre C41.0 en
+  sonde, essais C41.1-C41.3), pas livrés. La régénération indexée C48 (20×10, 10/10) était neutre
+  à une époque où le goulot mesuré n'était pas le nombre de chantiers par an.
+
+**C76 — consommer les invalidations.** Contrat à écrire avant code :
+
+1. une révision par sous-catalogue (`cargos`, `towns`, `industries`, `rail`, `road`, `air`,
+   `water`) et par mode de candidats ; un rafraîchissement de sous-catalogue par couche au lieu de
+   `refresh()` d'un bloc ;
+2. `catalog` et `projects` ne régénèrent un mode que si une de ses dépendances a changé ;
+3. **filet périodique** obligatoire (`cible.md` §8) : population et production changent sans
+   événement ; il met à jour ces grandeurs et réévalue les candidats existants, sans tout
+   régénérer ;
+4. mesure préalable du gain : sur une partie instrumentée, combien de régénérations mensuelles
+   ne correspondent à aucun changement de leurs dépendances, et combien de jours de tour on
+   récupère.
+
+**C77 — déclencher les candidats opportunistes.** Quand une occasion apparaît, produire tout de
+suite les candidats de l'entité concernée et les rendre constructibles sans attendre le tour :
+
+| déclencheur | candidats ciblés |
+|---|---|
+| `IndustryOpen` | lignes rail/route/fret depuis et vers cette industrie |
+| `TownFounded`, ville qui franchit un seuil de population mesuré | aéroport, bus, rail pax de cette ville |
+| `EngineAvailable` (moteur retenu par son sous-catalogue) | réévaluation des lignes et candidats du mode |
+| `SubsidyOffer` | le candidat de la subvention, daté de son échéance |
+| construction d'AAAHogEx dans une ville à un seul aéroport libre | prise du slot restant (course aux 2 aéroports par ville, erreurs 771, `taches.md` §771) |
+| ligne en attente au sol durable (refus `W` levé, stock mesuré) | renfort de flotte de cette ligne |
+
+Critère d'étape 1 (sonde) : nombre d'occasions par an, délai actuel entre l'occasion et sa prise
+en compte (aujourd'hui jusqu'à un tour, ~45 j), et part des occasions prises par AAAHogEx pendant
+ce délai. Un levier n'est codé que si ce délai coûte des occasions mesurées.
 
 ### Clôture AIR post-C68 — frontière, best equipment et cycle de vie (2026-09-21)
 
