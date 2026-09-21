@@ -96,7 +96,10 @@ function OpexAI::_tryBuildAir(year)
 
     local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1) + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
     if (EQUIPMENT_ROI_PROBE) OpexM3ProbeAirEquipment(this._catalog, plan, "direct_selected");
-    local requiredMargin = (newAirports == 2) ? 30000 : (newAirports == 1 ? 12000 : 2000);
+    local airMarginPadding = false;
+    local requiredMargin = airMarginPadding
+          ? ((newAirports == 2) ? 15000 : (newAirports == 1 ? 6000 : 0))
+          : ((newAirports == 2) ? 30000 : (newAirports == 1 ? 12000 : 2000));
     local capital = ("capital" in plan) ? plan.capital : (newAirports * plan.airport.price + plan.plane.price);
     local need = capital + baseReserve + requiredMargin;
     if (money < need) {
@@ -304,7 +307,10 @@ function OpexAI::_tryBuildAirProject(year, project, rank, builtCount, passDiscar
       local money = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
       local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1) + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
       if (EQUIPMENT_ROI_PROBE) OpexM3ProbeAirEquipment(this._catalog, plan, "portfolio_selected");
-      local requiredMargin = (newAirports == 2) ? 30000 : (newAirports == 1 ? 12000 : 2000);
+      local airMarginPadding = false;
+      local requiredMargin = airMarginPadding
+          ? ((newAirports == 2) ? 15000 : (newAirports == 1 ? 6000 : 0))
+          : ((newAirports == 2) ? 30000 : (newAirports == 1 ? 12000 : 2000));
       local capital = ("capital" in plan) ? plan.capital : (newAirports * plan.airport.price + plan.plane.price);
       local need = capital + OpexCashReserve() + requiredMargin;
       if (money < need && REBORROW) money = OpexTryReborrow(need, money);
@@ -650,7 +656,8 @@ function OpexAI::_resizeAirFleets(year, plan = null)
     /* Croissance d'une ligne aerienne EXISTANTE : aucun aeroport a batir, donc rien que
      * cette marge doive couvrir. 88 refus insufficient_cash pour 3 acceptations mesures
      * sur 3 parties x 2 ans (results/diag_1v1_decisions.json). */
-    local need = planePrice + OpexCashReserve() + 2000;
+    local airMarginPadding = false;
+    local need = planePrice + OpexCashReserve() + (airMarginPadding ? 0 : 2000);
     local addedThisPass = 0;
     // (d) au plus un avion par ligne et par an sous marginal_fleet=1 ; 4 (repli actuel) sous 0.
     local maxAddedPerPass = MARGINAL_FLEET ? 1 : 4;

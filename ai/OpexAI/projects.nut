@@ -406,7 +406,10 @@ function OpexProjectFromAir(catalog, plan, planningOps)
   if (economics.profitAnnual <= 0 || economics.revenueAnnual <= 0 ||
       economics.capital <= 0) return null;
   local newAirports = (("reuseA" in plan) && plan.reuseA ? 0 : 1) + (("reuseB" in plan) && plan.reuseB ? 0 : 1);
-  local margin = (newAirports == 2) ? 30000 : (newAirports == 1 ? 12000 : 2000);
+  local airMarginPadding = false;
+  local margin = airMarginPadding
+      ? ((newAirports == 2) ? 15000 : (newAirports == 1 ? 6000 : 0))
+      : ((newAirports == 2) ? 30000 : (newAirports == 1 ? 12000 : 2000));
   local budgetCapital = economics.capital + margin;
   if (("immobilise" in economics) && economics.immobilise > 0) {
     budgetCapital += economics.immobilise;
