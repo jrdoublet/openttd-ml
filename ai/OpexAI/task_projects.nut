@@ -395,7 +395,7 @@ function OpexAI::_tryBuildProjects(year)
   local builtCount = 0;
   local funnelAttempted = 0;
   local passDiscards = [];
-  local c69BuiltProjects = C69_BOTTLENECK_PROBE ? [] : null;
+  local c69BuiltProjects = C69_TRACK_BUILDS ? [] : null;
   local c69PassProjects = null;
   if (C69_BOTTLENECK_PROBE && this._projects != null) {
     /* Instantane : OpexReselectProjects remplace projects.best en place pendant la passe. */
@@ -522,7 +522,7 @@ function OpexAI::_tryBuildProjects(year)
       this._railSearch = null;
       if (outcome == "built") {
         builtCount++;
-        if (C69_BOTTLENECK_PROBE) c69BuiltProjects.append(railCandidate);
+        if (C69_TRACK_BUILDS) c69BuiltProjects.append(railCandidate);
         if (C50_CHRONOLOGY_PROBE && railCandidate != null) {
           local railRank = -1;
           if (this._projects != null && this._projects.best != null) {
@@ -642,7 +642,7 @@ function OpexAI::_tryBuildProjects(year)
               + " available=" + OpexAvailableCapital());
         }
         builtCount++;
-        if (C69_BOTTLENECK_PROBE) c69BuiltProjects.append(project);
+        if (C69_TRACK_BUILDS) c69BuiltProjects.append(project);
         if (PORTFOLIO_DYNAMIC_BATCH) {
           this._dynamicBatchBuilt();
           i = -1;
@@ -698,7 +698,7 @@ function OpexAI::_tryBuildProjects(year)
               + " available=" + OpexAvailableCapital());
         }
         builtCount++;
-        if (C69_BOTTLENECK_PROBE) c69BuiltProjects.append(project);
+        if (C69_TRACK_BUILDS) c69BuiltProjects.append(project);
         if (PORTFOLIO_DYNAMIC_BATCH) {
           this._dynamicBatchBuilt();
           i = -1;
@@ -749,7 +749,7 @@ function OpexAI::_tryBuildProjects(year)
               + " available=" + OpexAvailableCapital());
         }
         builtCount++;
-        if (C69_BOTTLENECK_PROBE) c69BuiltProjects.append(project);
+        if (C69_TRACK_BUILDS) c69BuiltProjects.append(project);
         if (PORTFOLIO_DYNAMIC_BATCH) {
           this._dynamicBatchBuilt();
           i = -1;
@@ -814,7 +814,7 @@ function OpexAI::_tryBuildProjects(year)
               + " available=" + OpexAvailableCapital());
         }
         builtCount++;
-        if (C69_BOTTLENECK_PROBE) c69BuiltProjects.append(project);
+        if (C69_TRACK_BUILDS) c69BuiltProjects.append(project);
         if (PORTFOLIO_DYNAMIC_BATCH) {
           this._dynamicBatchBuilt();
           i = -1;
@@ -867,7 +867,7 @@ function OpexAI::_tryBuildProjects(year)
               + " available=" + OpexAvailableCapital());
         }
         builtCount++;
-        if (C69_BOTTLENECK_PROBE) c69BuiltProjects.append(project);
+        if (C69_TRACK_BUILDS) c69BuiltProjects.append(project);
         if (PORTFOLIO_DYNAMIC_BATCH) {
           this._dynamicBatchBuilt();
           i = -1;
@@ -898,7 +898,7 @@ function OpexAI::_tryBuildProjects(year)
     this._c63RecordPassAndProbe(builtCount, c49Best, passDiscards, railSearching);
   }
   this._recordMonthlyFunnelPass(builtCount, c49Best, passDiscards, funnelAttempted);
-  if (C69_BOTTLENECK_PROBE && (builtCount > 0 || (PORTFOLIO_DYNAMIC_BATCH && this._dynamicBatch != null && this._dynamicBatch.built > 0))) {
+  if (C69_TRACK_BUILDS && (builtCount > 0 || (PORTFOLIO_DYNAMIC_BATCH && this._dynamicBatch != null && this._dynamicBatch.built > 0))) {
     this._recordC69BuildingPass(year, c69PassProjects != null ? c69PassProjects : this._projects, c69BuiltProjects);
   }
 

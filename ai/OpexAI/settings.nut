@@ -218,7 +218,9 @@ function OpexLoadSettings()
   if (C63_INVEST_PROBE) OpexC63ResetLedger();
   C70_MODE_CALIBRATION = AIController.GetSetting("c70_mode_calibration") != 0;
   C69_BOTTLENECK_PROBE = probePort;
-  if (C69_BOTTLENECK_PROBE) {
+  C69_DECISION_BOTTLENECK = AIController.GetSetting("c69_decision_bottleneck") != 0;
+  C69_TRACK_BUILDS = C69_BOTTLENECK_PROBE || C69_DECISION_BOTTLENECK;
+  if (C69_TRACK_BUILDS) {
     C69_BUILD_DATES = [];
     C69_PENDING_FOLLOWUPS = [];
     C69_BUILD_PASS_COUNT = 0;

@@ -711,7 +711,7 @@ function OpexAI::_logC48IncrementalLedger(year)
 /* C69 etape 1 : enregistrement et publication a chaque passe qui construit */
 function OpexAI::_recordC69BuildingPass(year, projects, builtProjects)
 {
-  if (!C69_BOTTLENECK_PROBE) return;
+  if (!C69_TRACK_BUILDS) return;
   if (C69_BUILD_DATES == null) C69_BUILD_DATES = [];
   if (C69_PENDING_FOLLOWUPS == null) C69_PENDING_FOLLOWUPS = [];
 
@@ -721,6 +721,7 @@ function OpexAI::_recordC69BuildingPass(year, projects, builtProjects)
       C69_BUILD_DATES.append(now);
     }
   }
+  if (!C69_BOTTLENECK_PROBE) return;
 
   local builtKeys = {};
   if (builtProjects != null) {

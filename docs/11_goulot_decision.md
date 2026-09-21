@@ -418,3 +418,35 @@ puisque les deux classements sont calculés dans la même partie. L'étape 3 com
   sonde seulement).
 - Les suivis C3 encore ouverts sont publiés au rapport annuel (`phase=c3_pending`) ; ils sont
   exclus du calcul de C3.
+
+---
+
+## 14. Étape 2 — le levier (2026-09-21)
+
+**Préalable** : C5 a été traité par C70 (`12_calibration_par_mode.md`). Après le facteur
+glissant, max/min = 1,46, avec les réserves du §8 de cette fiche sur la route et le rail.
+
+**Implémentation** : `c69_decision_bottleneck`, défaut 0.
+
+- `fundScore = P × 1000 / max(C, K_dec)`, avec `P` calibré si `c70_mode_calibration=1`. C'est
+  le seul changement de décision.
+- `C69_TRACK_BUILDS = sonde ou levier` : τ exige les dates de chantier, qui sont donc enregistrées
+  sous le levier même sans sonde. Journaux sous la sonde seulement.
+
+**P1–P8 : pas de test unitaire possible.** Il n'y a d'interpréteur Squirrel ni sur l'hôte ni dans
+l'image `openttd-lab`. P1 et P2 sont vérifiés en jeu. Les autres propriétés découlent de la forme
+de la formule (un `max`, aucun filtre, aucun terme par projet en opcodes) et sont relues, pas
+testées.
+
+**Smokes**, graines 42 et 100, 0 échec :
+
+- 2 × 3 ans, trois bras : sonde seule, sonde + levier, levier seul ;
+- **identité** : sonde seule contre sonde + levier, graine 42, 2 ans. Même code exécuté, donc
+  mêmes opcodes. **Les 18 premières passes qui construisent sont identiques au bit près** : les
+  13 de 1970 (K_dec ≤ 26 k£) et les 5 premières de 1971. La divergence apparaît en 1971, quand
+  K_dec approche 58–69 k£.
+- `diff` ne compare que le premier rang. Il reste à 0 jusqu'à la divergence, alors que F diffère
+  déjà : le levier a d'abord réordonné des rangs inférieurs, construits après l'échec d'un
+  premier rang.
+
+**Étape 3 non lancée.**

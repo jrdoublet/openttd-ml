@@ -689,10 +689,10 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
   local kDec = 0;
   local kDecData = null;
   local c69Affordable = null;
-  if (C69_BOTTLENECK_PROBE) {
+  if (C69_TRACK_BUILDS) {
     kDecData = OpexC69ComputeKDec();
     kDec = kDecData.K_dec;
-    c69Affordable = [];
+    if (C69_BOTTLENECK_PROBE) c69Affordable = [];
   }
 
   foreach (project in alternatives) {
@@ -704,7 +704,8 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
       if (C49_VARIABLE_DENOMINATOR) {
         project.fundScore <- OpexC49ProjectScore(project, C49_CURRENT_REGIME);
       } else {
-        project.fundScore <- OpexProjectScore(C70_MODE_CALIBRATION ? OpexC70Profit(project) : project.profitAnnual, financeCapital);
+        project.fundScore <- OpexProjectScore(C70_MODE_CALIBRATION ? OpexC70Profit(project) : project.profitAnnual,
+            (C69_DECISION_BOTTLENECK && kDec > financeCapital) ? kDec : financeCapital);
       }
       if (C69_BOTTLENECK_PROBE) {
         local denom = financeCapital > kDec ? financeCapital : kDec;
@@ -728,7 +729,8 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
         if (C49_VARIABLE_DENOMINATOR) {
           project.fundScore <- OpexC49ProjectScore(project, C49_CURRENT_REGIME);
         } else {
-          project.fundScore <- OpexProjectScore(C70_MODE_CALIBRATION ? OpexC70Profit(project) : project.profitAnnual, financeCapital);
+          project.fundScore <- OpexProjectScore(C70_MODE_CALIBRATION ? OpexC70Profit(project) : project.profitAnnual,
+            (C69_DECISION_BOTTLENECK && kDec > financeCapital) ? kDec : financeCapital);
         }
         if (C69_BOTTLENECK_PROBE) {
           local denom = financeCapital > kDec ? financeCapital : kDec;

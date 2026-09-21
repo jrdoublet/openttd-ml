@@ -268,6 +268,9 @@ C70_MODE_CALIBRATION <- false;
 C70_MODE_FACTOR <- { rail = 1.0, road = 1.0, air = 1.0, water = 1.0 };
 /* C69 etape 1 : sonde passive goulot de decision P / max(C, F*tau). */
 C69_BOTTLENECK_PROBE <- false;
+/* C69 etape 2 : levier. C69_TRACK_BUILDS = sonde ou levier : tau exige les dates de chantier. */
+C69_DECISION_BOTTLENECK <- false;
+C69_TRACK_BUILDS <- false;
 C69_BUILD_DATES <- null;
 C69_PENDING_FOLLOWUPS <- null;
 C69_BUILD_PASS_COUNT <- 0;

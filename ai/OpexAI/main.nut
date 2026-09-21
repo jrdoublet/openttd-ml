@@ -460,7 +460,7 @@ function OpexAI::Start()
     this._c50RefuseCache = {};
     this._c50LastTreasuryMonth = -1;
   }
-  if (C69_BOTTLENECK_PROBE) {
+  if (C69_TRACK_BUILDS) {
     C69_BUILD_DATES = [];
     C69_PENDING_FOLLOWUPS = [];
     C69_BUILD_PASS_COUNT = 0;

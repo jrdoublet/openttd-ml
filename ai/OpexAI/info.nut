@@ -116,6 +116,14 @@ class OpexAIInfo extends AIInfo {
     });
 
     AddSetting({
+      name = "c69_decision_bottleneck",
+      description = "C69: rank projects by P/max(C, F*tau), F = operating cash flow, tau = days per build; 1 = on, 0 = off (default)",
+      easy_value = 0, medium_value = 0, hard_value = 0,
+      custom_value = 0,
+      flags = AICONFIG_BOOLEAN
+    });
+
+    AddSetting({
       name = "c70_mode_calibration",
       description = "C70: scale predicted profit by a per-mode realised/predicted factor measured on own mature lines; 1 = on, 0 = off (default)",
       easy_value = 0, medium_value = 0, hard_value = 0,
