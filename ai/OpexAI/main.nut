@@ -214,10 +214,7 @@ class OpexAI extends AIController {
   _c39CadenceLastCycle = null;
   _c39FinanceableSince = null;
   _startYear = -1;
-  _vehiclesToScrap = null;
-  /* Retraites C52 unitaires : distinctes de _vehiclesToScrap, qui est seulement le
-   * raccourci optionnel de vente sur ET_VEHICLE_WAITING_IN_DEPOT. Cette file est
-   * toujours consommee par la tache scrap, y compris quand event_depot_sell=0. */
+  /* Retraites C52 unitaires, consommees par la tache de rebut dediee. */
   _vehiclesToRetire = null;
   /* C52 #4 : suivi des annees consecutives de deficit par vehicule */
   _unprofitableStreaks = null;
@@ -246,7 +243,6 @@ class OpexAI extends AIController {
     this._waterSiteCatalog = { cursor = 0, towns = {} };
     this._abandonedPairs = {};
     this._abandonCounts = {};
-    this._vehiclesToScrap = {};
     this._vehiclesToRetire = {};
     this._unprofitableStreaks = {};
     OpexAirResetSiteCache();
@@ -379,7 +375,6 @@ class OpexAI extends AIController {
   function _pruneAbandonedPairs(now);
   function _purgeSubsidyFromProjects(subId);
   function _onVehicleCrashed(event);
-  function _onVehicleWaitingInDepot(event);
   function _onVehicleAutoreplaced(event);
   function _onVehicleUnprofitable(event);
   function _onIndustryClose(event);

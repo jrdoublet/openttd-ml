@@ -275,7 +275,6 @@ function OpexAI::_processEvents()
     }
 
     if (eventType == AIEvent.ET_VEHICLE_WAITING_IN_DEPOT) {
-      this._onVehicleWaitingInDepot(event);
       continue;
     }
 

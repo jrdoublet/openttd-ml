@@ -254,10 +254,10 @@ function OpexLoadSettings()
   if (C52_AUTOREPLACE_LOG) {
     C52_AUTOREPLACE_LEDGER = {
       events = 0, remap_line_vehicles = 0, remap_line_vehicle = 0, remap_scrap_vehicles = 0,
-      remap_scrap_index = 0, untracked = 0, rail = 0, road = 0, air = 0, water = 0, unknown = 0,
+      untracked = 0, rail = 0, road = 0, air = 0, water = 0, unknown = 0,
       line_rail = 0, line_road = 0, line_air = 0, line_water = 0,
       total_events = 0, total_remap_line_vehicles = 0, total_remap_line_vehicle = 0,
-      total_remap_scrap_vehicles = 0, total_remap_scrap_index = 0, total_untracked = 0,
+      total_remap_scrap_vehicles = 0, total_untracked = 0,
       total_rail = 0, total_road = 0, total_air = 0, total_water = 0, total_unknown = 0,
     };
   }
@@ -335,11 +335,8 @@ function OpexLoadSettings()
   GROWTH_YIELDS = false;
   PRICING_RAIL_DEPOT = false;
   FLEET_FIX = false;
-  EVENT_DEPOT_SELL = false;
-  EVENT_INDUSTRY_CLOSE = false;
   EVENT_SUBSIDY_PROBE = false;
   C42_SUBSIDIES = false;
-  EVENT_VEHICLE_LOST = false;
   C60_TOWN_RATING_FILTER = false;
   AIR_MAX_DISTANCE = 0;
   C53_ORDER_NOLOAD = false;
