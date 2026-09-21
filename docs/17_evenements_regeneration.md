@@ -193,3 +193,7 @@ incrémentales), **81 à 100 M opcodes par an**, soit 27 à 33 M par partie. Au 
 passent nettement ; C4 est probablement largement atteint mais n'est qu'estimé. Décision
 utilisateur requise : fermer, ou réviser C3 (par exemple mesurer si le projet élu après une
 régénération « sans changement » rapporte plus que celui qu'on aurait gardé).
+
+**Décision utilisateur du 2026-09-21 : C76 est validé tel quel.** L'étape 2 est autorisée malgré
+l'échec de C3 à la lettre. La stabilité du meilleur projet n'est pas un préalable ; l'effet se
+jugera au 20×10 en duel.
