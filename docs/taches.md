@@ -1,6 +1,6 @@
 # Tâches — réduire l'écart avec AAAHogEx
 
-État courant actualisé le **2026-09-20**. Ce fichier est la **seule liste autoritaire du
+État courant actualisé le **2026-09-21**. Ce fichier est la **seule liste autoritaire du
 travail restant**. Les sections datées du 13 au 18 septembre sont conservées pour la traçabilité,
 mais leur ordre de priorité et leurs mentions « à faire » ne prévalent pas sur l'état courant
 ci-dessous.
@@ -11,17 +11,19 @@ Avant de rouvrir une piste, rechercher son nom et ses réglages dans
 implémentations et les raisons des décisions ; **aucun résultat antérieur au 09/09 ne prouve
 la performance actuelle**. Les journaux quotidiens conservent le détail des expériences.
 
-## État courant — 2026-09-20
+## État courant — 2026-09-21
 
 La séquence P0/P1 du 13 septembre est désormais **historique** : C66 est qualifié/clos. Le
-chantier actif est maintenant l'AIR post-C68, en particulier la frontière capital→profit et
-son coût en opcodes. Les listes de revue restent des documents historiques ; elles ne doivent
-plus être lues comme une file active.
+chantier AIR post-C68 sur la frontière capital→profit, `AIR_BEST_EQUIPMENT` et le cycle de vie
+associé est **abandonné le 2026-09-21** après résultats économiques négatifs répétés. La base de
+reprise est `b68fafb` : master + C68 adopté (`air_route_plane_selection=1`) + suppression des
+feeders. Les listes de revue restent des documents historiques ; elles ne doivent plus être lues
+comme une file active.
 
 | Statut courant | Chantier | Travail restant / règle de reprise |
 |---|---|---|
-| **EN COURS** | **AIR post-C68 — frontière capital→profit réseau** | Finir la simplification sans changer la politique économique ; tests ciblés, puis smoke 2×3 et 5×6 contre C68 si le smoke est sain. |
-| **EN COURS** | **Opcodes AIR / sélecteur de projets** | Réduire les recomputations de sélection, enveloppes et builds préparés sur lifecycle/incrémental ; ne modifier ni lambda, ni score, ni politique. |
+| **ABANDONNÉ — 2026-09-21** | **AIR post-C68 — frontière capital→profit réseau** | Retour à `b68fafb`. Ne pas reprendre le λ global sans nouvelle formulation et nouvelle preuve indépendante. |
+| **CLOS / RETIRÉ** | **Opcodes AIR / sélecteur de projets** | Les caches, heaps, enveloppes et snapshots ajoutés pour la frontière/lifecycle sont abandonnés avec ces politiques. |
 | **COMMENCÉ — EN PAUSE** | **C61 AIR : délai/capacité aéroport** | Mesurer rotations, attente, demande et occupation avant de toucher `airportDelayDays` ou la cadence. |
 | **COMMENCÉ — AUTRE SESSION** | **C61 Route / town growth** | Recalibrage déjà avancé ; le reliquat sur les stations actives est traité séparément. |
 | **FAIT — 2026-09-20** | **21.1 — constante rotor/hélico** | `AIR_ROTOR=6` aligné, commentaire corrigé et test synthétique hélicoptère tête+ombre+rotor ajouté ; 8/8 hôte et Docker. |
@@ -34,6 +36,61 @@ plus être lues comme une file active.
 | **CONCEPTION SEULEMENT** | **C67 — carte par blocs / remplacement de Lakes** | Implémentation non commencée ; d'abord mesurer 5×5 vs 10×10, RAM/opcodes/précision. |
 | **DIFFÉRÉ / CONDITIONNEL** | **C64, C42 bis, C55 reliquat, C43/E3 restant** | Reprendre seulement sur exposition mesurée ; `loop_budget` est déjà clos/non adopté. |
 | **DORMANT / NON EXPOSÉ** | **M2, M5/G2, M6, M7/11.3, B6/06.12** | Aucun lot autonome ; traiter seulement avant réactivation. |
+
+### Clôture AIR post-C68 — frontière, best equipment et cycle de vie (2026-09-21)
+
+La branche expérimentale postérieure à `b68fafb` est archivée sous
+`archive/air-frontier-2026-09-21`. La reprise fonctionnelle repart de `b68fafb`, qui contient C68
+adopté (`air_route_plane_selection=1`) et la suppression des feeders. Les trois pistes suivantes
+sont closes ensemble : `AIR_CAPITAL_FRONTIER`, `AIR_BEST_EQUIPMENT` et le cycle de vie AIR
+upgrade/preview/Pareto/persistance qui dépendait de ce moteur multi-équipements.
+
+La frontière capital→profit n'a pas corrigé le sous-investissement. Sur le 5×6
+`diag_air_capital_frontier_c66_4_5x6_v3.json`, le profit annuel moyen recule d'environ
+**267 k£/an** et le ratio de valeur de compagnie vaut **0,7229** (soit **−27,71 %**). Les variantes
+ultérieures qui corrigent les conflits physiques et l'état économique restent négatives : environ
+**−204 k£/an** sur l'isolat `isolate_air_capital_frontier_econstate_5x6.json`, puis environ
+**−288 k£/an et 0/5 victoire** sur `diag_air_capital_frontier_lifecyclefix_5x6.json`. Le coût en
+opcodes augmente fortement en parallèle ; l'optimiser davantage ne change pas le verdict
+économique.
+
+`AIR_BEST_EQUIPMENT` et le cycle de vie associé ne fournissent pas non plus de candidat à adopter.
+Dans le 5×6 post-lifecycle, la baseline C68 reste devant d'environ **+308 959 £/an de profit annuel**
+et **+1,31 M£ de valeur de compagnie** en moyenne. Le candidat utilise pourtant réellement les
+nouveaux choix d'équipement (le moteur 218 apparaît sur **66/145 avions**) : l'échec ne vient donc
+pas d'un chemin mort ou d'une absence d'exposition.
+
+Leçons conservées pour une éventuelle reprise future :
+
+- un λ global rejoue la famille de formulations déjà réfutée avec C35.4 ; sa cohérence théorique
+  ne suffit pas à produire une meilleure politique sur le réseau réel ;
+- élargir l'ensemble des avions sous un modèle AIR encore biaisé peut produire un **pire argmax** :
+  plus de choix améliore l'optimisation du modèle, pas nécessairement le jeu réel ;
+- la baseline a dérivé pendant l'exploration ; toute nouvelle piste doit repartir explicitement de
+  `b68fafb`/C68 et annoncer son delta exact avant le premier banc ;
+- `air_early_slot` est un mécanisme territorial concurrentiel : son effet doit être jugé en duel,
+  pas dans un 5×6 solo où son coût peut apparaître sans bénéfice de verrouillage adverse ;
+- les optimisations d'opcodes spécifiques à la frontière/lifecycle (caches, heap de λ, enveloppes,
+  snapshots et télémétrie CF) ne sont pas des améliorations autonomes et ne doivent pas être
+  rapatriées sur C68.
+
+Le recalage route et le modèle physique de délai d'aéroport restent des chantiers séparés, chacun
+derrière son propre drapeau et avec son propre 5×6 avant toute adoption.
+
+**Contrôle du ménage `tension.nut` — non rapatrié.** La suppression de `tension.nut`,
+`tension_scoring`, `shadow_pricing` et de leurs chemins morts a été portée puis testée avant commit.
+Le smoke demandé **2 graines × 3 ans** réfute l'hypothèse de neutralité : le candidat nettoyé donne
+sur la graine 42 `value=2 561 481`, `profit_year=1 454 938`, 50 véhicules et 36 gares, contre
+`b68fafb` `value=2 940 277`, `profit_year=1 662 912`, 43 véhicules et 24 gares ; sur la graine 100,
+le candidat donne `value=2 048 722`, `profit_year=1 217 187`, contre `b68fafb` `value=1 803 322`,
+`profit_year=916 336`. Ce n'est donc pas bit-identique.
+
+Le contrôle causal est net : `f9488de`, qui contient tous les rapatriements sûrs précédents mais
+pas le ménage tension, reproduit **exactement `b68fafb` sur les deux graines et les deux métriques**
+du même 2×3 (ainsi que véhicules, gares, score et note). La divergence apparaît donc avec le retrait
+du travail Squirrel mort lui-même. Même avec les drapeaux à 0, enlever ces opérations modifie le
+calendrier d'opcodes/suspensions et finit par changer la simulation. Le ménage tension est par
+conséquent **abandonné comme refactor neutre** et n'est pas conservé sur la branche de retour.
 
 ## Référence historique — 2026-09-13
 
