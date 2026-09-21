@@ -323,8 +323,6 @@ function OpexLoadSettings()
   AIR_PRESITE = false;
   AIR_ABANDON_SITE = false;
   AIR_TOWN_LIMIT_MEMORY = false;
-  WATER_SITE_CATALOG = false;
-  WATER_DISCOVERY_REAL_FRONTS = false;
   WATER_LAKES_CONNECTIVITY = false;
   WATER_LAKES_OPS_BUDGET = false;
   C39_ENGINE_REFRESH = false;

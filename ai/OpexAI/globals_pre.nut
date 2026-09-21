@@ -89,12 +89,6 @@ WATER_LAKES_CONNECTIVITY <- true;
 /* C56 : adopte a defaut 1 le 2026-09-11. Sans ce budget, FindPath peut ne jamais rendre la
  * main et figer l'IA pour le reste de la partie (3 graines du banc sur 20). */
 WATER_LAKES_OPS_BUDGET <- true;
-/* Catalogue persistant par ville des sites de dock (positifs et negatifs exhaustifs). Le
- * reglage 0 conserve le rescannage historique uniquement pour le banc apparie. */
-WATER_SITE_CATALOG <- false;
-/* Fronts de quai calculés à la découverte : expérimental jusqu'au diagnostic, car il change
- * l'éligibilité des sites eau. */
-WATER_DISCOVERY_REAL_FRONTS <- false;
 /* C41.11 : ledger passif du scheduler. Il n'admet ni ne reporte aucune tache. */
 C41_SLACK_LEDGER <- false;
 /* C41 : attribution mensuelle du temps du controleur, uniquement pour diagnostic. */

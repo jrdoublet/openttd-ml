@@ -117,9 +117,6 @@ class OpexAI extends AIController {
   _abandonCounts = null;
   _airBuilt = false;
   _waterBuilt = false;
-  /* Catalogue geometrie eau : { cursor, towns = { townId = { sites = [{dock, waterTiles}] } } }.
-   * Les entrees sans site sont les negatifs exhaustifs ; voir builder_water.nut. */
-  _waterSiteCatalog = null;
   /* Ordonnanceur permanent : une tache utile et due par tour de file. dueCycle reporte le
    * travail inutile a un tour futur ; le calendrier du jeu ne reordonne jamais la file. */
   _taskQueue = null;
@@ -243,7 +240,6 @@ class OpexAI extends AIController {
     this._catalog = OpexCatalog();
     this._lines = [];
     this._pendingLines = null;
-    this._waterSiteCatalog = { cursor = 0, towns = {} };
     this._abandonedPairs = {};
     this._abandonCounts = {};
     this._vehiclesToScrap = {};
