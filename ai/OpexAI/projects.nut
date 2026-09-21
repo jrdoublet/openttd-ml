@@ -171,16 +171,11 @@ function OpexProjectScore(value, cost)
   return (value.tofloat() * 1000.0) / cost;
 }
 
-/* P1 : cout a comparer a la tresorerie mobilisable. `budgetCapital` reste le
- * cout economique utilise par les scores historiques ; il ne faut pas y
- * injecter un multiplicateur global. Repli temporaire par mode, mesure au
- * sondage AIAccounting-isole (jamais un devis physique) : rail 1,7x
- * (docs/opexai_prix_rail_terrain.md), route 1,21x (docs/taches.md, mesure du
- * 2026-09-08 sur road_cost_probe, 5 graines x 6 ans, 4 812 tentatives). P1.1
- * doit remplacer le rail par un devis physique avant l'election ; la route
- * n'a pas d'equivalent. Si le trace a deja fourni un devis reel, le candidat
- * porte `capitalIsActual` et ce montant remplace le facteur. Les marges et le
- * capital immobilise ne sont pas des travaux de voie : ils restent inchanges. */
+/* P1 : cout a comparer a la tresorerie mobilisable. budgetCapital reste le
+ * cout economique utilise par les scores historiques ; il ne faut pas y injecter
+ * un multiplicateur global. Le repli de financabilite applique rail 1,7x et route
+ * 1,21x. Si le trace a deja fourni un devis reel, capitalIsActual fait utiliser
+ * ce montant. Les marges et le capital immobilise restent inchanges. */
 function OpexProjectFinanceCapital(project)
 {
   if (project == null || !("budgetCapital" in project)) return 0;
@@ -209,69 +204,6 @@ function OpexProjectFinanceCapital(project)
   if (capitalIsActual) return capital + nonConstructionCapital;
 
   return ((capital * biasPct) / 100) + nonConstructionCapital;
-}
-
-/* P1.1 : le ×1,7 n'est qu'un repli. Pour les quelques meilleurs rails du
- * préfiltre, on peut payer un A* borné et le même devis AITestMode que le
- * constructeur AVANT l'élection. Le plan n'est volontairement pas conservé :
- * il peut devenir périmé entre le rafraîchissement et le chantier. */
-function OpexPrequoteRailCandidates(catalog, budget, rail)
-{
-  local result = { attempted = 0, quoted = 0, failed = 0, skippedJoin = 0, opcodes = 0 };
-  if (!RAIL_PREQUOTE || rail == null || !("best" in rail) || rail.best == null) return result;
-
-  foreach (candidate in rail.best) {
-    if (result.attempted >= RAIL_PREQUOTE_MAX_CANDIDATES) break;
-    /* Le rattachement à une gare existante dépend de l'état vivant de
-     * OpexAI::_tooClose. Le devis sans ce join serait faux : garder ×1,7. */
-    if (("placeJoin" in candidate) && candidate.placeJoin != null) {
-      result.skippedJoin++;
-      continue;
-    }
-    result.attempted++;
-    if (RAIL_TERRAIN_PROBE && DECISION_LOG) {
-      budget.begin();
-      local scan = OpexRailTerrainScanProbe(candidate.src, candidate.dst);
-      local scanOpcodes = budget.end("p1_2_terrain_scan");
-      OpexDecide("P1_2_TERRAIN", "src=" + candidate.src + " dst=" + candidate.dst
-                 + " distance=" + candidate.distance + " tiles=" + scan.tilesScanned
-                 + " complex_tiles=" + scan.complexTiles + " complex_segments="
-                 + scan.complexSegments + " water_tiles=" + scan.waterTiles
-                 + " slope_tiles=" + scan.slopeTiles + " ops=" + scanOpcodes);
-    }
-    budget.begin();
-    local plan = OpexPlanRailRoute(catalog, budget, candidate, MIN_RATIO, null,
-                                   RAIL_PREQUOTE_HARD_CAP);
-    result.opcodes += budget.end("p1_1_prequote_plan");
-    if (!plan.ok) {
-      result.failed++;
-      continue;
-    }
-
-    budget.begin();
-    local actualCapital = OpexQuoteRailCapital(catalog, candidate, plan, null);
-    result.opcodes += budget.end("p1_1_prequote_devis");
-    if (actualCapital <= 0) {
-      result.failed++;
-      continue;
-    }
-    OpexApplyRailActualCapital(candidate, actualCapital);
-    candidate.quotedCapital <- actualCapital;
-    candidate.quotedAtDate <- AIDate.GetCurrentDate();
-    if (RAIL_PREQUOTE_KEEP_PLAN) candidate.quotedPlan <- plan;
-    result.quoted++;
-    if (DECISION_LOG) {
-      OpexDecide("P1_1_QUOTE", "src=" + candidate.src + " dst=" + candidate.dst
-                 + " model=" + plan.capital + " quoted=" + actualCapital
-                 + " ops=" + result.opcodes);
-    }
-  }
-  if (DECISION_LOG && result.attempted > 0) {
-    OpexDecide("P1_1_QUOTE_SUMMARY", "attempted=" + result.attempted
-               + " quoted=" + result.quoted + " failed=" + result.failed
-               + " join_skipped=" + result.skippedJoin + " ops=" + result.opcodes);
-  }
-  return result;
 }
 
 function OpexProjectFromCandidate(candidate)
@@ -1698,12 +1630,9 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
                + " freight_price=" + (freightCargo != null ? AICargo.GetCargoIncome(freightCargo, 20, 0) : 0));
   }
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "c56_stage_rail", "-");
-  /* C41.22 : intervalles disjoints du chemin rail historique. Le pre-devis peut etre inactif
-   * par reglage : publier alors son zero est justement necessaire pour ne pas attribuer son cout
-   * hypothetique au comportement par defaut. */
+  /* C41.22 : intervalles disjoints du chemin rail historique. */
   local railProfile = C41_RAIL_PORTFOLIO_PROFILE
       ? { generationOps = 0, generationCandidates = 0, topKCandidates = 0,
-          prequoteOps = 0, prequoteAttempted = 0, prequoteQuoted = 0, prequoteFailed = 0,
           insertOps = 0, insertedProjects = 0 } : null;
   local railGenerationMark = railProfile != null ? OpexOpsMeasureBegin() : null;
   local railCandidateProfile = (C41_RAIL_CANDIDATE_PROFILE || C41_RAIL_PAX_PROFILE || C41_RAIL_PAX_CANDIDATE_PROFILE || C41_RAIL_PAX_ECONOMICS_PROFILE || C41_RAIL_PAX_SPEED_PROFILE || C41_RAIL_PAX_SPEED_DETAIL_PROFILE || C41_RAIL_PAX_CRUISE_PROFILE || C41_RAIL_FREIGHT_PROFILE || C41_RAIL_FREIGHT_CANDIDATE_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_DETAIL_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_SETUP_PROFILE || C41_RAIL_FREIGHT_ECONOMICS_CONSIST_PROFILE || C41_RAIL_FREIGHT_CRUISE_PROFILE || C41_RAIL_FREIGHT_SPEED_DETAIL_PROFILE || C41_RAIL_FREIGHT_EFFECTIVE_SPEED_PROFILE || C41_RAIL_FREIGHT_TOWN_GUARDS_PROFILE)
@@ -1824,16 +1753,6 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     railProfile.generationCandidates = rail.candidates.len();
     railProfile.topKCandidates = rail.best.len();
   }
-  local railPrequoteMark = railProfile != null ? OpexOpsMeasureBegin() : null;
-  local railPrequote = (doPaxRail || doFreight)
-      ? OpexPrequoteRailCandidates(catalog, budget, rail)
-      : { attempted = 0, quoted = 0, failed = 0, opcodes = 0, skippedJoin = 0 };
-  if (railProfile != null) {
-    railProfile.prequoteOps = OpexOpsMeasureEnd(railPrequoteMark);
-    railProfile.prequoteAttempted = railPrequote.attempted;
-    railProfile.prequoteQuoted = railPrequote.quoted;
-    railProfile.prequoteFailed = railPrequote.failed;
-  }
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_EXIT", "c56_stage_rail", "-");
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "c56_stage_road", "-");
   /* C41.16/C41.17 : mesure seulement les etapes de generation route pendant la passe historique. */
@@ -1899,18 +1818,9 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
         railCandidateProfile, railPaxProfile, railPaxCandidateProfile,
         railPaxCruiseCache, railFreightCruiseCache, true, false, PAX_BAND_AIR_RAIL);
     rail = OpexMergeRailCandidateSet(rail, paxFallback);
-    local fallbackPrequote = OpexPrequoteRailCandidates(catalog, budget, paxFallback);
-    railPrequote.attempted += fallbackPrequote.attempted;
-    railPrequote.quoted += fallbackPrequote.quoted;
-    railPrequote.failed += fallbackPrequote.failed;
-    railPrequote.skippedJoin += fallbackPrequote.skippedJoin;
-    railPrequote.opcodes += fallbackPrequote.opcodes;
     if (railProfile != null) {
       railProfile.generationCandidates = rail.candidates.len();
       railProfile.topKCandidates = rail.best.len();
-      railProfile.prequoteAttempted = railPrequote.attempted;
-      railProfile.prequoteQuoted = railPrequote.quoted;
-      railProfile.prequoteFailed = railPrequote.failed;
     }
     if (DECISION_LOG) {
       OpexDecide("BOOTSTRAP_PAX_FALLBACK", "air=0 rail_pax=" + paxFallback.candidates.len());
@@ -1945,8 +1855,6 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     budgetRejected = 0, selectedRevenue = 0, selectedCapital = 0,
     selectionPoolCapital = 0, nextProjectCapital = 0,
     knapsackNodes = 0, knapsackExact = false, poolInfundable = 0,
-    railPrequoteAttempted = railPrequote.attempted, railPrequoteQuoted = railPrequote.quoted,
-    railPrequoteFailed = railPrequote.failed, railPrequoteOpcodes = railPrequote.opcodes,
   };
   if (railProfile != null) stats.railProfile <- railProfile;
   /* Branchement explicite plutot qu'une fonction passee dans un local : ce depot a deja paye

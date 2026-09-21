@@ -299,9 +299,6 @@ function OpexLoadSettings()
   C54_VEHICLE_ORDERS_PROBE = probeEvents;
 
   /* --- 5. Pistes formellement abandonnees / constantes neutres verrouillees --- */
-  RAIL_PREQUOTE = false;
-  RAIL_PREQUOTE_KEEP_PLAN = false;
-  RAIL_TERRAIN_PROBE = false;
   PORTFOLIO_FRESH_BUDGET = false;
   PORTFOLIO_DYNAMIC_BATCH = false;
   DYNAMIC_BATCH_REJECT_LIMIT = 3;

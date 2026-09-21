@@ -242,23 +242,6 @@ function OpexAI::_tryBuildRailProject(year, project, rank, builtCount, passDisca
       local isPaxNear = PAX_NEAR && ("paxNear" in candidate) && candidate.paxNear;
       local alternativeRatio = isPaxNear ? 0 : MIN_RATIO;
       local hardCap = OpexDynamicHardCap(this._lines.len(), lowCash);
-      /* P1.3 : le devis P1.1 porte le chemin complet. Le reutiliser seulement
-       * apres une revalidation AITestMode sur la carte vivante ; un join decide
-       * au chantier n'etait pas dans le devis et force donc une replannification. */
-      if (RAIL_PREQUOTE_KEEP_PLAN && ("quotedPlan" in candidate) && candidate.quotedPlan != null) {
-        if (join == null && OpexRailQuotedPlanStillBuildable(candidate.quotedPlan, join)) {
-          candidate.railPlan <- candidate.quotedPlan;
-          candidate.quotedPlan = null;
-          if (DECISION_LOG) OpexDecide("P1_3_PLAN", "action=reuse src=" + candidate.src
-                                       + " dst=" + candidate.dst);
-        } else {
-          candidate.quotedPlan = null;
-          candidate.capitalIsActual = false;
-          if (DECISION_LOG) OpexDecide("P1_3_PLAN", "action=invalidate src=" + candidate.src
-                                       + " dst=" + candidate.dst + " reason="
-                                       + (join == null ? "map" : "join"));
-        }
-      }
       local posPacked = i * TOP_K + this._projects.best.len();
       if (RAIL_SEARCH_RESUMABLE &&
           !(("railPlan" in candidate) && candidate.railPlan != null)) {

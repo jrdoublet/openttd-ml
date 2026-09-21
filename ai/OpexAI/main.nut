@@ -37,8 +37,6 @@ const RAIL_EXPAND_TIMEOUT_DAYS = 120;
  * une rame vers le depot qu'une fois entree dans cette zone locale. */
 const RAIL_EXPAND_APPROACH_TILES = 8;
 
-const RAIL_PREQUOTE_MAX_CANDIDATES = 2;
-const RAIL_PREQUOTE_HARD_CAP = 2500;
 const CASH_RESERVE_STATIC = 25000;
 const CASH_RESERVE_MIN = 5000;
 const CASH_RESERVE_MAX = 25000;

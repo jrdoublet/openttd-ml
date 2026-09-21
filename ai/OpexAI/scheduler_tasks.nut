@@ -105,10 +105,6 @@ function OpexAI::_dispatchCatalog(task, year)
     OpexC39Log("C41_RAIL_PORTFOLIO_PROFILE", "generation_ops=" + railProfile.generationOps
                + " generation_candidates=" + railProfile.generationCandidates
                + " topk_candidates=" + railProfile.topKCandidates
-               + " prequote_ops=" + railProfile.prequoteOps
-               + " prequote_attempted=" + railProfile.prequoteAttempted
-               + " prequote_quoted=" + railProfile.prequoteQuoted
-               + " prequote_failed=" + railProfile.prequoteFailed
                + " insert_ops=" + railProfile.insertOps
                + " inserted_projects=" + railProfile.insertedProjects
                + " selection_ops=" + this._projects.stats.selectionOpcodes

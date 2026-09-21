@@ -305,18 +305,9 @@ RESERVE_MAINT_CAP <- false;
  * Defaut a false tant que le banc n'a pas tranche, et reglage SEPARE de reserve_maint_cap pour
  * que la mesure puisse attribuer -- c'est la lecon du lot de treize corrections groupees. */
 AIR_MARGIN_V2 <- false;
-/* P1 : repli empirique temporaire du filtre de finançabilité. Le ×1,7 rail
- * est consigné sans artefact source encore présent ; P1.1 doit le remplacer
- * par un devis physique avant élection. Les autres modes restent à 1,0. */
+/* P1 : repli empirique du filtre de financabilite. Le facteur rail 1,7
+ * reste applique au capital de construction estime ; les autres modes restent a 1,0. */
 CAPITAL_CALIBRATION <- true;
-/* P1.1 : devis physique anticipé, rejeté à −30,7 % sur le diagnostic apparié
- * 5×6. Gardé uniquement comme contrôle expérimental de P1.3. */
-RAIL_PREQUOTE <- false;
-/* P1.3 volet 1 : conserve le plan de P1.1 puis le revalide au chantier.
- * Experimental et inerte tant que rail_prequote=0. */
-RAIL_PREQUOTE_KEEP_PLAN <- false;
-/* P1.2 : sonde de terrain en lecture seule (docs/taches.md), aucune decision live. */
-RAIL_TERRAIN_PROBE <- false;
 /* P4 : n'exclut de la memoire d'abandon que les refus transitoires de caisse
  * (CASH / ERR_NOT_ENOUGH_CASH) survenus apres le garde du portefeuille. Reglage
  * ajoute le 2026-09-08 uniquement pour isoler P4 au banc factoriel P1xP3xP4 sans
