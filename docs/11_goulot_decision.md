@@ -487,3 +487,54 @@ duel) : **2/5, échec. L'étape 4 n'est pas lancée.** Un 5×6 ne conclut rien e
 c'est la règle de passage qui tranche.
 
 ⚠️ **Décision utilisateur requise**, entre la lettre du critère (duel) et le signal solo.
+
+---
+
+## 16. Pourquoi le duel s'érode — diagnostic (2026-09-21)
+
+`sweeps/diag_c69_duel_erosion.py` rejoue en duel les bras `c70` et `c70_c69` (5 graines × 6 ans,
+sans sonde) et lit chaque décembre, dans la sauvegarde, les lignes des deux compagnies.
+Résultats : `results/diag_c69_duel_erosion_5x6.json`.
+
+### 16.1 🔴 Le duel n'est pas déterministe
+
+Le solo l'est (deux lancements de `master`, identiques au bit près, §13.4). **Le duel ne l'est
+pas** : relancé avec le même code, le profit OpexAI de 1975 ne se reproduit exactement que sur
+2 parties sur 10.
+
+| graine | `c70` banc → rejeu | `c70_c69` banc → rejeu |
+|---|---|---|
+| 100 | 619 → 582 k£ | 575 → 578 k£ |
+| 12345 | 1 153 → 1 153 k£ | 1 297 → 1 297 k£ |
+| 42 | 992 → 1 037 k£ | 1 278 → 1 302 k£ |
+| 7 | 1 262 → 1 262 k£ | **1 046 → 1 234 k£** |
+| 999 | 1 237 → 1 263 k£ | 1 090 → 1 107 k£ |
+
+L'écart d'un rejeu à l'autre va jusqu'à 18 %, soit l'ordre de grandeur de l'effet mesuré.
+Écart moyen C69 − C70 en duel : **+4 k£** au banc, **+44 k£** au rejeu ; 2 V / 3 D les deux fois,
+avec les mêmes graines gagnantes (42, 12345) et perdante (999).
+
+### 16.2 L'hypothèse de concurrence est réfutée
+
+| décembre, moyenne 5 graines | 1972 c70 → c69 | 1973 | 1975 |
+|---|---|---|---|
+| lignes OpexAI | 34,2 → 35,6 | 43,6 → 44,0 | 54,6 → 54,0 |
+| dont aériennes | 21,8 → 22,2 | 27,8 → 28,8 | 35,4 → 36,6 |
+| avions | 27,4 → 26,2 | 34,0 → 33,0 | 44,2 → 42,4 |
+| profit par avion | **22,2 → 26,6 k£** | **23,0 → 28,3 k£** | 20,9 → 23,0 k£ |
+| lignes touchant une ville d'AAAHogEx | 97 % → 96 % | 98 % → 98 % | 99 % → 99 % |
+| véhicules AAAHogEx | 176 → 164 | 227 → 220 | 279 → 284 |
+
+- **Le chevauchement ne discrimine rien** : AAAHogEx est dans presque toutes les villes. 97 à 99 %
+  des lignes OpexAI en touchent une, **dans les deux bras**. C69 n'y va pas davantage.
+- **Le levier fait ce que la formule prévoit** : un peu plus de lignes aériennes, un peu moins
+  d'avions, et **+19 à +23 % de profit par avion** en 1972-1973.
+- **Cet avantage par avion se resserre ensuite** (+10 % en 1975), pendant que la flotte reste
+  légèrement plus petite.
+
+### 16.3 Lecture
+
+Le 2/5 du §15 n'est pas le signe d'une mauvaise interaction avec AAAHogEx. En duel, l'effet est
+proche de zéro, et du même ordre que le bruit d'un rejeu à l'autre. **Un 5×6 en duel ne peut
+donc pas trancher le critère du §10.** L'étape 4 (20×10, test des signes) a été conçue pour ce
+cas, mais le critère écrit de l'étape 3 reste formellement non atteint.
