@@ -153,6 +153,12 @@ class TestB3RoadFleetTargets(unittest.TestCase):
         self.assertIn("foreach (key, val in line)", save)
         self.assertIn("serializableLine[key] <- val", save)
 
+    def test_line_serialization_is_single_pass_under_save_opcode_budget(self):
+        save = function_body(self.persist, "function OpexAI::Save()")
+        self.assertIn("foreach (line in this._lines)", save)
+        self.assertEqual(save.count("foreach (key, val in line)"), 1)
+        self.assertNotIn("needsProjection", save)
+
 
 if __name__ == "__main__":
     unittest.main()
