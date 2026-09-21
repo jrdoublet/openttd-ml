@@ -554,3 +554,22 @@ Cette consigne est **formellement levée ce 2026-09-21**, sur la base des preuve
 2. **Le goulot physique mesuré est le tour de file** : La sonde C74 prouve que le tour de file dure 45 à 52 jours (7 à 8 chantiers/an) pendant que la caisse dort à 11,5 M£.
 3. **Le gaspillage est quantifié et validé** : La sonde C76 étape 1 mesure que 53 à 76 % des régénérations sont redondantes (~145 à 180 jours de jeu/an gaspillés), et l'utilisateur a expressément validé C76 pour entrer en étape 2 ([`docs/17_evenements_regeneration.md:197-200`](file:///home/deploy/projects/openttd-ml/.wt_c69/docs/17_evenements_regeneration.md#L197-L200)).
 4. **Conclusion** : L'orchestrateur général n'est plus une spéculation abstraite basée sur d'anciens profils périmés, mais la **réponse causale directe, mesurée et exigée** pour débloquer le volume décisionnel d'OpexAI face à AAAHogEx.
+
+---
+
+## 10. Tranche 0 livrée (2026-09-21)
+
+Implémentée par agy (commit `97936c9`, message provisoire « non relue »), relue ensuite :
+`orchestrator.nut` (file réactive avec coalescence, sans producteur ; registre d'exécution à un
+travailleur, dispatch par `kind` ; travailleur de test `noop`), bascule dans la boucle de
+`main.nut`, sauvegarde et rechargement dans `persist.nut`, réglage `c80_double_register` (défaut 0).
+Pas de constante N_max (point ouvert, §3.1.3).
+
+**Relecture.** Au défaut, la boucle est inchangée à un test de drapeau près. Sous le réglage, sans
+intention ni travailleur, l'orchestrateur appelle `_runNextTaskWithSlackLedger()` puis `Sleep(1)`,
+exactement comme la branche par défaut (`LOOP_BUDGET` désactivé).
+
+**Smoke** (2 graines × 3 ans, 0 échec) : selftest `C80 selftest ok` sur les deux graines ;
+graine 100 **identique au bit près** entre réglage 0 et 1 (1 803 818 £) ; graine 42 différente
+(2,52 contre 2,74 M£), attendu : l'appel supplémentaire décale les opcodes et la trajectoire est
+chaotique (fiche 11 §13.4). `results/c80_smoke_2x3.json`, `results/c80_smoke_on.json`.
