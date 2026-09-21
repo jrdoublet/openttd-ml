@@ -469,9 +469,7 @@ function OpexAI::Start()
   }
   if (this._loadedFromSave) this._reconcileAfterLoad();
   if (DECISION_LOG) {
-    OpexDecide("SETTINGS", "road_cheap_trace=" + ROAD_CHEAP_TRACE
-               + " raw=" + (ROAD_CHEAP_TRACE ? 1 : 0)
-               + " road_pax_build=" + ROAD_PAX_BUILD_ENABLED
+    OpexDecide("SETTINGS", "road_pax_build=" + ROAD_PAX_BUILD_ENABLED
                + " road_pax_voirie=" + ROAD_PAX_VOIRIE
                + " road_pax_overlap=" + ROAD_PAX_OVERLAP);
   }

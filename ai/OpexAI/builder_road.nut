@@ -29,10 +29,7 @@ ROAD_MAX_SITES_PER_END <- 4;
 ROAD_MAX_TRACE_TRIALS <- 48;
 ROAD_CAPITAL_MARGIN <- 1000;
 ROAD_DEPOT_MIN_STOP_DISTANCE <- 3;
-/* C37 : sonde L a 2 essais avant OpexRoadPlanFor. Defaut 0. Uniquement pax interurbain
- * distance <= 12 (le bus 5 tuiles de la graine 7). Ne pas bannir sur CHEAPX. */
-ROAD_CHEAP_TRACE <- false;
-ROAD_CHEAP_TRACE_MAX_DIST <- 12;
+ROAD_PAX_VOIRIE_SAME_TOWN_MAX_DIST <- 12;
 /* Pax : arrets traversants SUR la voirie existante (AAAHogEx). Le depot reste hors route.
  * Defaut 0. Ce n'est PAS le jet DT de 2026-08-28 (912 k ops en remplacement du L) : ici on
  * n'echantillonne que des IsRoadTile et on relie par BFS sur la voirie, sans scier les maisons.
@@ -402,46 +399,6 @@ function OpexRoadTraceMulti(from, to, variant)
   return [];
 }
 
-/* C37 : mini-chasse (2 sites, 16 sondes) + 2 L + depot. Pas de retombee sur le plan
- * 64 sondes / 144 essais : si le L court echoue, c'est CHEAPX (le bus 5 tuiles de la
- * graine 7 est TRACEX meme avec les Z). Si le L reussit, on GARDE ce plan -- retomber
- * sur les 4 sites les plus cargo reproduisait le TRACEX. */
-function OpexRoadCheapPlan(candidate)
-{
-  local stop = OpexRoadStopKind(candidate.cargo);
-  local coverage = AIStation.GetCoverageRadius(stop.stationType);
-  local radiusA = candidate.srcTown >= 0 ? ROAD_TOWN_SEARCH_RADIUS : ROAD_INDUSTRY_SEARCH_RADIUS;
-  local radiusB = candidate.dstTown >= 0 ? ROAD_TOWN_SEARCH_RADIUS : ROAD_INDUSTRY_SEARCH_RADIUS;
-  local oldProbes = ROAD_MAX_SITE_PROBES;
-  local oldSites = ROAD_MAX_SITES_PER_END;
-  ROAD_MAX_SITE_PROBES = 16;
-  ROAD_MAX_SITES_PER_END = 2;
-  local huntA = OpexRoadSites(candidate.src, candidate.srcTown, candidate.cargo, stop.vehType,
-                              coverage, true, radiusA, candidate.dst, true, null);
-  local huntB = OpexRoadSites(candidate.dst, candidate.dstTown, candidate.cargo, stop.vehType,
-                              coverage, true, radiusB, candidate.src, true);
-  ROAD_MAX_SITE_PROBES = oldProbes;
-  ROAD_MAX_SITES_PER_END = oldSites;
-  if (huntA.sites.len() == 0 || huntB.sites.len() == 0) return null;
-  local trials = 0;
-  foreach (siteA in huntA.sites) {
-    foreach (siteB in huntB.sites) {
-      for (local shape = 0; shape < 2; shape++) {
-        trials++;
-        local trace = OpexRoadTrace(siteA.front, siteB.front, shape == 0);
-        if (trace.len() == 0) continue;
-        if (OpexRoadTraceHitsStop(trace, siteA.tile) || OpexRoadTraceHitsStop(trace, siteB.tile)) continue;
-        if (!OpexRoadTraceBuildable(trace)) continue;
-        local depot = OpexRoadFindDepot(trace, siteA, siteB);
-        if (depot == null) continue;
-        return { stopA = siteA, stopB = siteB, trace = trace, depot = depot,
-                 stationType = stop.stationType, vehType = stop.vehType,
-                 routeDistance = trace.len(), shape = shape, trials = trials };
-      }
-    }
-  }
-  return null;
-}
 
 /* Un arret traversant n'a qu'un axe : le bus ne peut entrer/sortir que par front ou son oppose. */
 function OpexRoadOnDtAxis(tile, front, other)
@@ -530,7 +487,7 @@ function OpexRoadPaxVoirieSites(center, townId, cargo, vehType, coverage, otherC
   local probes = 0;
   local radius = ROAD_TOWN_SEARCH_RADIUS;
   local sameTown = otherCenter != null &&
-                   AIMap.DistanceManhattan(center, otherCenter) < ROAD_CHEAP_TRACE_MAX_DIST;
+                   AIMap.DistanceManhattan(center, otherCenter) < ROAD_PAX_VOIRIE_SAME_TOWN_MAX_DIST;
   local minPair = ROAD_PAX_VOIRIE_MIN_PAIR;
   for (local r = 0; r <= radius; r++) {
     for (local dx = -r; dx <= r; dx++) {
@@ -731,16 +688,6 @@ function OpexRoadPlanFor(catalog, candidate)
                    + " dstTown=" + candidate.dstTown);
       }
     }
-  }
-  local cheapOn = ROAD_CHEAP_TRACE;
-  if (cheapOn && candidate.distance <= ROAD_CHEAP_TRACE_MAX_DIST) {
-    if (DECISION_LOG) {
-      OpexDecide("CHEAP_TRACE", "dist=" + candidate.distance + " kind=" + candidate.kind
-                 + " flag=" + ROAD_CHEAP_TRACE);
-    }
-    local cheap = OpexRoadCheapPlan(candidate);
-    if (cheap != null) return { plan = cheap, reason = "OK" };
-    return { plan = null, reason = "CHEAPX" };
   }
   local stop = OpexRoadStopKind(candidate.cargo);
   local coverage = AIStation.GetCoverageRadius(stop.stationType);

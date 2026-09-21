@@ -304,7 +304,6 @@ function OpexLoadSettings()
   DYNAMIC_BATCH_OPS_BUDGET_PCT = 50;
   PORTFOLIO_FLOOR_PCT = 0;
   FLAT_BONUS = false;
-  ROAD_CHEAP_TRACE = false;
   ROAD_MULTISTOP = false;
   MARGINAL_FLEET = false;
   ROAD_PAX_EXTENSIONS = false;
