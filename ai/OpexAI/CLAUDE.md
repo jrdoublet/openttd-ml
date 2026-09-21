@@ -12,16 +12,25 @@ logique de scoring interne (profit/opcode, ROI) n'est qu'une heuristique d'alloc
 métrique qui compte est la comparaison directe (`company_value`, `profit_year`) sur carte
 partagée.
 
-État mesuré le plus récent (référence 1v1 du 2026-09-13, carte partagée, 20 graines × 5 ans,
-`results/bench_1v1_5y_20seeds_reference.json`) : AAAHogEx gagne **0/20 pour OpexAI** sur toutes
-les métriques — valeur −71,6 %, profit annuel −83,1 %, 564 véhicules en moyenne contre 102.
-À 10 ans (duel C42, 2026-09-11) : 37,79 M£ / 10,26 M£ / 1 077 véhicules contre 5,67 M£ /
-1,24 M£ / 158. Le rendement par véhicule est à 93 % de celui d'AAAHogEx : **l'écart est du
-volume** (véhicules, gares), presque entièrement.
-Ne pas citer de chiffre antérieur au 2026-09-09 : ces résultats sont archivés et ne font plus foi
-(voir `docs/taches.md`).
+État mesuré le plus récent (duels 20 graines × 10 ans du 2026-09-21, comptes qualifiés C66.1,
+références des bancs C69 et C72) : OpexAI fait **~16 % du profit annuel** d'AAAHogEx et ~23 % de
+sa valeur, avec **~98 véhicules pilotables contre 365**. L'écart se décompose en **volume ×0,27**
+et **rendement par véhicule ×0,60** (16 k£ contre 27 k£ par véhicule et par an). L'avion porte
+l'essentiel : sur les mêmes villes, 1,02 avion par marché contre 3,00, et 60 £ de profit par place
+contre 323 £ (`docs/08_opex_vs_aaahogex_same_markets.md`, `docs/16_bilan_volume.md`).
+⛔ **Ne plus citer « rendement par véhicule à 93 % »** : ce chiffre venait de comptes `VEHS` non
+qualifiés (wagons, ombres, rotors) et a été retiré (`docs/taches.md`, « Référence historique »).
+Ne pas citer de chiffre antérieur au 2026-09-09 : ces résultats sont archivés et ne font plus foi.
 
-## Carte des modules (27 266 lignes, 34 fichiers)
+**Défauts adoptés le 2026-09-21** (banc 20×10 duel : profit +6,3 % 14/6, valeur +6,1 % 14/6,
+véhicules +40 20/0 ; adoptés à 14/20 par décision utilisateur, `docs/16_bilan_volume.md` §10) :
+`c75_multi_build` (plusieurs chantiers par passe tant que le coût < K_pass), `c69_decision_bottleneck`
+(classement P / max(C, K_dec) : ROI quand on est pauvre, profit quand on est riche),
+`c69_fleet_exempt` (les renforts de flotte gardent P/C), `c70_mode_calibration` (facteur
+réalisé/prédit par mode, glissant). Fiches : `docs/11_goulot_decision.md`,
+`docs/12_calibration_par_mode.md`.
+
+## Carte des modules (état 2026-09-13, plus `orchestrator.nut` le 2026-09-21)
 
 C65 (2026-09-13) : découpage complet. Passes 1–2 : déplacement pur, bit-identique.
 Passe 3 : `_processEvents` / `_runNextTask` dispatchent vers un handler par type
@@ -59,6 +68,7 @@ budget/catalog ; `globals_post.nut` après `builder_road.nut`.
 | `settings.nut` (336) | `OpexLoadSettings()` : lecture unique des 213 `GetSetting` |
 | `globals_post.nut` (269) | Globales du bloc après `builder_road.nut` |
 | `scheduler.nut` (241) | `_runNextTask` (round-robin + dispatch) |
+| `orchestrator.nut` (~1 000) | C80 : double registre (file réactive + file de fond, registre de travailleurs résumables : A\* rail, `town_growth`) et C76 (révisions par couche, régénération ciblée). **Tout est à défaut 0** (`c80_*`, `c76_regen_targeted`). Contrat : `docs/18_orchestrateur_double_registre.md` |
 | `persist.nut` (219) | `Save` / `Load` / `_reconcileAfterLoad` |
 | `task_town.nut` (213) | Croissance urbaine |
 | `spatial.nut` (183) | Grille spatiale pour les candidats fret (C46) |
@@ -101,6 +111,21 @@ supprimé, pas de branche morte à unifier).
   erreur de compilation Squirrel tue l'IA au démarrage presque en silence (`company_value = 1`,
   zéro panneau).
 
+## Pièges de mesure (bancs)
+- **La ligne `[ai_players]` d'`openttd.cfg` est lue sur ~1 024 caractères.** Un harnais qui passe
+  toutes les valeurs de réglage fait ignorer en silence ceux de fin d'ordre alphabétique (mesuré le
+  2026-09-21 : `town_growth=0` lu 1). `bench_v2` et le harnais C66 ne passent plus que les écarts au
+  défaut ; tout nouveau harnais doit faire de même.
+- **Le solo est déterministe au bit près, le duel ne l'est pas** (jusqu'à 18 % d'écart d'un rejeu
+  à l'autre). Un 5×6 solo positif **ne prédit pas** le 20×10 duel (trois échecs le 2026-09-21) :
+  il sert à vérifier un mécanisme, pas à filtrer une idée.
+- **Tout ajout de code décale les opcodes** et la trajectoire d'une partie (effet chaotique) :
+  une variante « inerte » au défaut n'est pas identique au bit près à `master` ; l'identité se
+  vérifie entre deux bras du **même** code.
+- **Les bancs démarrent en 1970 et ne rechargent jamais** : tester explicitement le rechargement
+  (`sweeps/save_load_roundtrip.py`) et un autre millésime de départ quand un état ou une date
+  intervient (`docs/19_rechargement_partie.md`).
+
 ## Pièges Squirrel / NoAI propres à cet environnement
 - Une closure imbriquée (`local f = function(...) {...}`) **ne capture pas** les `local` de la
   fonction englobante : tout ce dont elle a besoin lui est passé en paramètre ou lu via `this.*`.
@@ -131,6 +156,13 @@ supprimé, pas de branche morte à unifier).
 - Philosophie "armes égales" : ne jamais proposer de bridage ou de simplification qui
   handicaperait OpexAI par rapport à AAAHogEx (qui, lui, ne se bride jamais) — un déséquilibre
   involontaire invaliderait tout le banc.
+- `OPEX_START_YEAR` (posé dans `Start()` depuis `_startYear`) sert de base aux calculs de F et τ
+  de C69/C75 : ne pas le remplacer par 1970 (défaut corrigé le 2026-09-21). Les dates C69/C75 sont
+  sauvegardées exprès : sans elles, K_dec est multiplié par ~14 après un chargement.
+- Les sondes du 2026-09-21 (C69, C72, C73, C76) ont réécrit des conditions de filtrage en blocs
+  avec compteurs (`builder_air.nut`, `candidates.nut`, `task_air.nut`, `builder_water.nut`) ; leur
+  équivalence avec l'original a été vérifiée à la lecture et figure à l'étape 2 de la revue
+  `docs/revue_code_2026-09-21_plan.md`.
 - `GetAPIVersion()` déclare "15", aligné sur la plateforme de banc OpenTTD 15.3 (C62).
 
 ## Chantiers ouverts à connaître avant de qualifier un finding
@@ -140,6 +172,15 @@ supprimé, pas de branche morte à unifier).
   suppression brute (déjà réfutée par C50b).
 - **C56** : sur certaines graines l'IA cesse toute activité après 1970 sans erreur NoAI ; cause non
   élucidée — un finding qui explique un arrêt silencieux du cycle annuel vaut de l'or.
+- **Goulot du volume** (`docs/16_bilan_volume.md` §6-§11) : un tour de la file de tâches dure 45
+  à 135 jours ; `catalog` (régénération complète du vivier), `projects` et `town_growth` le
+  remplissent. C75 construit plusieurs projets par passe ; C76 (`c76_regen_targeted`, défaut 0)
+  évite 54 % des régénérations ; `town_growth_plan_memo` (défaut 0) supprime 70 à 80 % du coût de
+  `town_growth` (97 % d'échecs de planification répétés sur les mêmes villes). C80 (défaut 0) est
+  l'orchestrateur qui doit porter ces leviers ; la pile est à bancer.
+- **C75 a montré** qu'ajouter du volume ne paie pas si le vivier ne contient pas mieux : +42
+  véhicules pour +23 k£/an (`docs/16_bilan_volume.md` §9). La qualité des candidats face à
+  AAAHogEx (génération, évaluation, exploitation) reste la question ouverte principale.
 - **Mode eau** : chantier explicitement non fini (`builder_water.nut`, `lib_water.nut`) ; ses
   incohérences sont listées dans `docs/taches.md`, pas besoin de les redécouvrir.
 
