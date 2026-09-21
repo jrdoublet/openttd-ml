@@ -349,6 +349,12 @@ function OpexAI::_c39StampFinanceable(capital = null, isProjectsTurn = false)
 }
 function OpexAI::_tryBuildProjects(year)
 {
+  local c73Cash = 0;
+  local c73Avail = 0;
+  if (C69_BOTTLENECK_PROBE) {
+    c73Cash = AICompany.GetBankBalance(AICompany.COMPANY_SELF);
+    c73Avail = OpexAvailableCapital();
+  }
   local c49Best = null;
   local c49BuiltRanks = null;
   local c49AttemptedRanks = null;
@@ -449,6 +455,10 @@ function OpexAI::_tryBuildProjects(year)
     }
     if (C49_SCARCITY_LEDGER) this._recordC49ScarcityPass(c49Best, c49BuiltRanks, c49AttemptedRanks, passDiscards);
     if (C63_INVEST_PROBE) this._c63RecordPassAndProbe(0, c49Best, passDiscards, true);
+    if (C69_BOTTLENECK_PROBE) {
+      local empty = (c49Best == null || c49Best.len() == 0);
+      OpexC73RecordPass(false, empty, c73Cash, c73Avail);
+    }
     this._recordMonthlyFunnelPass(0, c49Best, passDiscards, funnelAttempted);
     return true;
   }
@@ -484,6 +494,10 @@ function OpexAI::_tryBuildProjects(year)
       }
       if (C49_SCARCITY_LEDGER) this._recordC49ScarcityPass(c49Best, c49BuiltRanks, c49AttemptedRanks, passDiscards);
       if (C63_INVEST_PROBE) this._c63RecordPassAndProbe(0, c49Best, passDiscards, false);
+      if (C69_BOTTLENECK_PROBE) {
+        local empty = (c49Best == null || c49Best.len() == 0);
+        OpexC73RecordPass(false, empty, c73Cash, c73Avail);
+      }
       this._recordMonthlyFunnelPass(0, c49Best, passDiscards, funnelAttempted);
       return true;
     }
@@ -787,6 +801,11 @@ function OpexAI::_tryBuildProjects(year)
           local railSearching = this._railSearch != null && this._railSearch.phase == "search";
           this._c63RecordPassAndProbe(builtCount, c49Best, passDiscards, railSearching);
         }
+        if (C69_BOTTLENECK_PROBE) {
+          local built = builtCount > 0 || (PORTFOLIO_DYNAMIC_BATCH && this._dynamicBatch != null && this._dynamicBatch.built > 0);
+          local empty = (c49Best == null || c49Best.len() == 0);
+          OpexC73RecordPass(built, empty, c73Cash, c73Avail);
+        }
         this._recordMonthlyFunnelPass(builtCount, c49Best, passDiscards, funnelAttempted);
         return true;
       }
@@ -896,6 +915,11 @@ function OpexAI::_tryBuildProjects(year)
   if (C63_INVEST_PROBE) {
     local railSearching = this._railSearch != null && this._railSearch.phase == "search";
     this._c63RecordPassAndProbe(builtCount, c49Best, passDiscards, railSearching);
+  }
+  if (C69_BOTTLENECK_PROBE) {
+    local built = builtCount > 0 || (PORTFOLIO_DYNAMIC_BATCH && this._dynamicBatch != null && this._dynamicBatch.built > 0);
+    local empty = (c49Best == null || c49Best.len() == 0);
+    OpexC73RecordPass(built, empty, c73Cash, c73Avail);
   }
   this._recordMonthlyFunnelPass(builtCount, c49Best, passDiscards, funnelAttempted);
   if (C69_TRACK_BUILDS && (builtCount > 0 || (PORTFOLIO_DYNAMIC_BATCH && this._dynamicBatch != null && this._dynamicBatch.built > 0))) {

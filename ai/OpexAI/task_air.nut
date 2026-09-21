@@ -626,11 +626,13 @@ function OpexAI::_resizeAirFleets(year, plan = null)
   }
   if (AIR_ROI_ORDER) airLines.sort(OpexAirFleetPriorityCompare);
   foreach (line in airLines) {
+    if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordExamined("fleet", 1);
     /* B8 / G10 : une ligne en liquidation ne peut recevoir aucun appareil neuf, y compris une
      * reconstitution de crash. Ce garde doit preceder needsRefleet : pendant la fenetre de vente,
      * les avions encore vivants peuvent redevenir profitables et remettre deadStreak a zero. */
     if (("scrapping" in line) && line.scrapping) {
       OpexAirFleetRefusal(line, year, "K");
+      if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "scrapping", 1);
       continue;
     }
     /* Reconstitution de crash : elle passe avant les gardes de croissance
@@ -649,8 +651,10 @@ function OpexAI::_resizeAirFleets(year, plan = null)
         if (DECISION_LOG || C52_CRASH_LOG) {
           OpexDecide("CRASH_REFLEET", "mode=air line=" + line.lineId + " vehicle=" + line.vehicle);
         }
+        if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "crash_refleeted", 1);
       } else {
         OpexAirFleetRefusal(line, year, "R");
+        if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "refleet_failed", 1);
       }
       continue;
     }
@@ -658,20 +662,37 @@ function OpexAI::_resizeAirFleets(year, plan = null)
      * Si AIR_FLEET_CADENCE_DAYS >= 365 : conservation exacte du verrou annuel historique.
      * Sinon : verrou glissant en jours depuis la derniere extension (ou la creation de la ligne). */
     if (AIR_FLEET_CADENCE_DAYS >= 365) {
-      if (("lastAirFleetYear" in line) && line.lastAirFleetYear == year) { OpexAirFleetRefusal(line, year, "Y"); continue; }
+      if (("lastAirFleetYear" in line) && line.lastAirFleetYear == year) {
+        OpexAirFleetRefusal(line, year, "Y");
+        if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "already_grown_this_year", 1);
+        continue;
+      }
     } else {
       local lastDate = ("lastAirFleetDate" in line) ? line.lastAirFleetDate : (("buildDate" in line) ? line.buildDate : 0);
       if (lastDate > 0 && (AIDate.GetCurrentDate() - lastDate) < AIR_FLEET_CADENCE_DAYS) {
         OpexAirFleetRefusal(line, year, "Y");
+        if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "already_grown_this_year", 1);
         continue;
       }
     }
     local have = ("vehCount" in line) ? line.vehCount : (("vehicles" in line) ? line.vehicles.len() : 0);
-    if (have < 1) { OpexAirFleetRefusal(line, year, "V"); continue; }
-    if (("deadStreak" in line) && line.deadStreak >= 2) { OpexAirFleetRefusal(line, year, "D"); continue; }
+    if (have < 1) {
+      OpexAirFleetRefusal(line, year, "V");
+      if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "no_live_aircraft", 1);
+      continue;
+    }
+    if (("deadStreak" in line) && line.deadStreak >= 2) {
+      OpexAirFleetRefusal(line, year, "D");
+      if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "dead_line", 1);
+      continue;
+    }
 
     // Condition 1 : Les appareils existants ne doivent pas etre deficitaires
-    if (("lastProfit" in line) && line.lastProfit < 0) { OpexAirFleetRefusal(line, year, "L"); continue; }
+    if (("lastProfit" in line) && line.lastProfit < 0) {
+      OpexAirFleetRefusal(line, year, "L");
+      if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "negative_profit", 1);
+      continue;
+    }
 
     /* marginal_fleet = 1 (2026-09-01) : dimensionnement marginal STRICT de l'air. Le commentaire
      * de cette fonction promettait deja d'attendre un an, d'exiger une charge complete en attente
@@ -682,12 +703,21 @@ function OpexAI::_resizeAirFleets(year, plan = null)
      * conditions deja verifiees plus haut (have, deadStreak, lastProfit < 0). */
     if (MARGINAL_FLEET && AIR_FLEET_BUFFER < 0) {
       // (a) la ligne a au moins un an d'existence revolu
-      if (!("year" in line) || (year - line.year) < 1) continue;
+      if (!("year" in line) || (year - line.year) < 1) {
+        if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "line_too_young", 1);
+        continue;
+      }
       // (b) lastProfit disponible ET strictement positif (pas seulement "pas negatif")
-      if (!("lastProfit" in line) || line.lastProfit <= 0) continue;
+      if (!("lastProfit" in line) || line.lastProfit <= 0) {
+        if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "negative_profit", 1);
+        continue;
+      }
       // (c) au moins une capacite complete d'avion attend REELLEMENT dans une des deux gares
       local planeCap = ("planeCapacity" in line && line.planeCapacity > 0) ? line.planeCapacity : 0;
-      if (planeCap <= 0) continue;
+      if (planeCap <= 0) {
+        if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "no_plane_capacity", 1);
+        continue;
+      }
       /* Pas de AIStation.STATION_INVALID ici : jamais utilise ailleurs dans ce projet, on prefere
        * garder le meme garde-fou "hasB" que le reste du fichier (cf. lastWaitingB plus haut). */
       local stA = AIStation.GetStationID(line.stationA);
@@ -695,7 +725,10 @@ function OpexAI::_resizeAirFleets(year, plan = null)
       local stB = hasB ? AIStation.GetStationID(line.stationB) : 0;
       local waitA = AIStation.IsValidStation(stA) ? AIStation.GetCargoWaiting(stA, line.cargo) : 0;
       local waitB = (hasB && AIStation.IsValidStation(stB)) ? AIStation.GetCargoWaiting(stB, line.cargo) : 0;
-      if (waitA < planeCap && waitB < planeCap) continue;
+      if (waitA < planeCap && waitB < planeCap) {
+        if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "low_stock_buffer", 1);
+        continue;
+      }
     }
 
     local isSmallAirport = false;
@@ -708,7 +741,11 @@ function OpexAI::_resizeAirFleets(year, plan = null)
       physicalMaxPlanes = OpexAirCadenceCap(line, this._catalog, this._lines);
     }
     local maxPlanesForAirport = physicalMaxPlanes;
-    if (have >= physicalMaxPlanes) { OpexAirFleetRefusal(line, year, "C"); continue; }
+    if (have >= physicalMaxPlanes) {
+      OpexAirFleetRefusal(line, year, "C");
+      if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "airport_capacity_reached", 1);
+      continue;
+    }
     if (AIR_DEMAND_CAP) {
       local demand = OpexAirDemandCap(line, this._catalog, this._lines);
       if (demand.cap < maxPlanesForAirport) maxPlanesForAirport = demand.cap;
@@ -720,10 +757,22 @@ function OpexAI::_resizeAirFleets(year, plan = null)
                    + " planes=" + have + " physical_cap=" + physicalMaxPlanes
                    + " applied_cap=" + maxPlanesForAirport);
       }
-      if (have >= maxPlanesForAirport) { OpexAirFleetRefusal(line, year, "Q"); continue; }
+      if (have >= maxPlanesForAirport) {
+        OpexAirFleetRefusal(line, year, "Q");
+        if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "demand_cap_reached", 1);
+        continue;
+      }
     }
-    if (("deadStreak" in line) && line.deadStreak >= 1) { OpexAirFleetRefusal(line, year, "S"); continue; }
-    if (("lastProfit" in line) && line.lastProfit < 0) { OpexAirFleetRefusal(line, year, "L"); continue; }
+    if (("deadStreak" in line) && line.deadStreak >= 1) {
+      OpexAirFleetRefusal(line, year, "S");
+      if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "poor_health_streak", 1);
+      continue;
+    }
+    if (("lastProfit" in line) && line.lastProfit < 0) {
+      OpexAirFleetRefusal(line, year, "L");
+      if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "negative_profit", 1);
+      continue;
+    }
 
     /* fleet_fix : cette garde pricait le MEILLEUR avion du catalogue, alors qu'OpexAirAddPlane
      * clone le gabarit de LA LIGNE (builder_air.nut:224, prix lu sur l'engin du vehicule existant).
@@ -776,6 +825,7 @@ function OpexAI::_resizeAirFleets(year, plan = null)
       }
       if (buildNum < 1) {
         OpexAirFleetRefusal(line, year, "W");
+        if (plan != null && C69_BOTTLENECK_PROBE) OpexC73RecordRejection("fleet", "low_stock_buffer", 1);
         continue;
       }
       maxAddedPerPass = C69_FLEET_DEMAND_BATCH ? buildNum : ((buildNum < 4) ? buildNum : 4);
@@ -794,6 +844,8 @@ function OpexAI::_resizeAirFleets(year, plan = null)
             C50_NON_EXPANSION_LEDGER.air.want_sum += want;
           }
         }
+      } else if (C69_BOTTLENECK_PROBE) {
+        OpexC73RecordRejection("fleet", "no_room", 1);
       }
       continue;
     }

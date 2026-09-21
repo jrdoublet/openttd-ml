@@ -1,0 +1,172 @@
+{
+ "years": 10,
+ "seeds": [
+  42,
+  100,
+  7
+ ],
+ "arm": "OpexAI[probe_portfolio=1]",
+ "per_seed": [
+  {
+   "seed": 100,
+   "run_ok": true,
+   "n_events": 14303,
+   "metrics": {
+    "build_passes": 80,
+    "window_build_passes": 67,
+    "diff_passes": 47,
+    "c2_exposure": 0.7014925373134329,
+    "c3_checked": 47,
+    "c3_built_anyway_share": 0.02127659574468085,
+    "c4_median_p_ratio": 1.5339405087711426,
+    "first_diff_year": 1971,
+    "f_median_by_year": {
+     "1970": 681.82874,
+     "1971": 1639.7328499999999,
+     "1972": 2869.7678,
+     "1973": 3366.78775,
+     "1974": 4080.3754,
+     "1975": 4309.2163,
+     "1976": 4644.0137,
+     "1977": 4730.5176,
+     "1978": 5110.211,
+     "1979": 5001.9614
+    },
+    "kdec_median_by_year": {
+     "1970": 21136.0,
+     "1971": 49874.5,
+     "1972": 116385.0,
+     "1973": 153609.5,
+     "1974": 248222.5,
+     "1975": 261473.0,
+     "1976": 227167.0,
+     "1977": 244717.0,
+     "1978": 373045.0,
+     "1979": 334604.0
+    },
+    "c5_median_real_pred_prof_by_mode": {
+     "rail": 0.7931169,
+     "road": 1.7964026,
+     "air": 1.2593293
+    },
+    "c5_spread_max_over_min": 2.264990949001339
+   },
+   "c1": {
+    "air_capital_median": 61012.0,
+    "kdec_crosses_air_year": 1972,
+    "c49_cash_below_decision_year": 1972,
+    "c1_gap_years": 0
+   },
+   "company_value": 12278715,
+   "profit_year": 1819547
+  },
+  {
+   "seed": 42,
+   "run_ok": true,
+   "n_events": 18494,
+   "metrics": {
+    "build_passes": 70,
+    "window_build_passes": 58,
+    "diff_passes": 45,
+    "c2_exposure": 0.7758620689655172,
+    "c3_checked": 43,
+    "c3_built_anyway_share": 0.046511627906976744,
+    "c4_median_p_ratio": 1.9273259250502424,
+    "first_diff_year": 1971,
+    "f_median_by_year": {
+     "1970": 0.0,
+     "1971": 1675.5507,
+     "1972": 3395.9753,
+     "1973": 4024.7917500000003,
+     "1974": 4548.0903,
+     "1975": 5733.879349999999,
+     "1976": 6117.8607,
+     "1977": 6205.1753,
+     "1978": 6736.214,
+     "1979": 6891.974
+    },
+    "kdec_median_by_year": {
+     "1970": 0.0,
+     "1971": 58377.0,
+     "1972": 172633.0,
+     "1973": 184167.0,
+     "1974": 237150.0,
+     "1975": 348810.5,
+     "1976": 372169.0,
+     "1977": 452977.0,
+     "1978": 491743.0,
+     "1979": 628892.0
+    },
+    "c5_median_real_pred_prof_by_mode": {
+     "rail": 0.6386215,
+     "road": 1.5091463,
+     "air": 1.3579066
+    },
+    "c5_spread_max_over_min": 2.3631310565021693
+   },
+   "c1": {
+    "air_capital_median": 40964.0,
+    "kdec_crosses_air_year": 1971,
+    "c49_cash_below_decision_year": 1971,
+    "c1_gap_years": 0
+   },
+   "company_value": 16348103,
+   "profit_year": 2431325
+  },
+  {
+   "seed": 7,
+   "run_ok": true,
+   "n_events": 25259,
+   "metrics": {
+    "build_passes": 82,
+    "window_build_passes": 72,
+    "diff_passes": 63,
+    "c2_exposure": 0.875,
+    "c3_checked": 62,
+    "c3_built_anyway_share": 0.0,
+    "c4_median_p_ratio": 2.3206266133880264,
+    "first_diff_year": 1971,
+    "f_median_by_year": {
+     "1970": 0.0,
+     "1971": 2487.437,
+     "1972": 3977.8032,
+     "1973": 6024.729,
+     "1974": 6250.4604,
+     "1975": 6281.696,
+     "1976": 6125.64485,
+     "1977": 6507.526,
+     "1978": 7342.2248500000005,
+     "1979": 7407.79435
+    },
+    "kdec_median_by_year": {
+     "1970": 0.0,
+     "1971": 113489.0,
+     "1972": 163511.0,
+     "1973": 294177.0,
+     "1974": 254157.0,
+     "1975": 286602.0,
+     "1976": 282771.0,
+     "1977": 339321.0,
+     "1978": 382844.0,
+     "1979": 389745.5
+    },
+    "c5_median_real_pred_prof_by_mode": {
+     "road": 1.6679513,
+     "air": 1.0739409,
+     "rail": 0.5450965999999999
+    },
+    "c5_spread_max_over_min": 3.0599187373394003
+   },
+   "c1": {
+    "air_capital_median": 40964.0,
+    "kdec_crosses_air_year": 1971,
+    "c49_cash_below_decision_year": 1971,
+    "c1_gap_years": 0
+   },
+   "company_value": 18812765,
+   "profit_year": 2723193
+  }
+ ],
+ "failed_runs": [],
+ "failed_run_count": 0
+}

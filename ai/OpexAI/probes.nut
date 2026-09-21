@@ -1035,3 +1035,115 @@ function OpexPlaneName(engineId)
   return res.len() > 0 ? res : "unknown";
 }
 
+/* C73 : sonde passive vivier et passes du portefeuille (C69 etape 1) */
+function OpexC73NewModeStats()
+{
+  return {
+    examined = 0,
+    rejections = {},
+    produced = 0,
+    after_topk = 0,
+    to_select = 0,
+    affordable = 0,
+    selected = 0
+  };
+}
+
+function OpexC73ResetLedger()
+{
+  C73_VIVIER_LEDGER = {
+    flushedYear = -1,
+    passes = {
+      count = 0,
+      empty = 0,
+      built = 0,
+      sum_cash = 0.0,
+      sum_avail = 0.0
+    },
+    modes = {
+      rail = OpexC73NewModeStats(),
+      road = OpexC73NewModeStats(),
+      air = OpexC73NewModeStats(),
+      water = OpexC73NewModeStats(),
+      fleet = OpexC73NewModeStats()
+    }
+  };
+}
+
+function OpexC73RecordExamined(mode, count = 1)
+{
+  if (!C69_BOTTLENECK_PROBE || C73_VIVIER_LEDGER == null) return;
+  if (!(mode in C73_VIVIER_LEDGER.modes)) return;
+  C73_VIVIER_LEDGER.modes[mode].examined += count;
+}
+
+function OpexC73RecordRejection(mode, reason, count = 1)
+{
+  if (!C69_BOTTLENECK_PROBE || C73_VIVIER_LEDGER == null) return;
+  if (!(mode in C73_VIVIER_LEDGER.modes)) return;
+  local m = C73_VIVIER_LEDGER.modes[mode];
+  if (reason in m.rejections) {
+    m.rejections[reason] += count;
+  } else {
+    m.rejections[reason] <- count;
+  }
+}
+
+function OpexC73RecordProduced(mode, produced, afterTopK)
+{
+  if (!C69_BOTTLENECK_PROBE || C73_VIVIER_LEDGER == null) return;
+  if (!(mode in C73_VIVIER_LEDGER.modes)) return;
+  C73_VIVIER_LEDGER.modes[mode].produced += produced;
+  C73_VIVIER_LEDGER.modes[mode].after_topk += afterTopK;
+}
+
+function OpexC73RecordSelection(toSelectCounts, affordableCounts, selectedCounts)
+{
+  if (!C69_BOTTLENECK_PROBE || C73_VIVIER_LEDGER == null) return;
+  foreach (mode, m in C73_VIVIER_LEDGER.modes) {
+    if (mode in toSelectCounts) m.to_select += toSelectCounts[mode];
+    if (mode in affordableCounts) m.affordable += affordableCounts[mode];
+    if (mode in selectedCounts) m.selected += selectedCounts[mode];
+  }
+}
+
+function OpexC73RecordPass(built, empty, cash, avail)
+{
+  if (!C69_BOTTLENECK_PROBE || C73_VIVIER_LEDGER == null) return;
+  local p = C73_VIVIER_LEDGER.passes;
+  p.count++;
+  if (built) p.built++;
+  if (empty) p.empty++;
+  p.sum_cash += cash.tofloat();
+  p.sum_avail += avail.tofloat();
+}
+
+function OpexC73FlushLedger(year)
+{
+  if (!C69_BOTTLENECK_PROBE || C73_VIVIER_LEDGER == null) return;
+  if (year < 1970) return;
+  if (C73_VIVIER_LEDGER.flushedYear == year) return;
+
+  local modeOrder = ["rail", "road", "air", "water", "fleet"];
+  foreach (mode in modeOrder) {
+    local m = C73_VIVIER_LEDGER.modes[mode];
+    local line = "phase=vivier_year year=" + year + " mode=" + mode + " examined=" + m.examined;
+    foreach (reason, cnt in m.rejections) {
+      line += " rej_" + reason + "=" + cnt;
+    }
+    line += " produced=" + m.produced + " after_topk=" + m.after_topk
+          + " to_select=" + m.to_select + " affordable=" + m.affordable + " selected=" + m.selected;
+    OpexC69Log(line);
+  }
+
+  local p = C73_VIVIER_LEDGER.passes;
+  local avgCash = p.count > 0 ? (p.sum_cash / p.count).tointeger() : 0;
+  local avgAvail = p.count > 0 ? (p.sum_avail / p.count).tointeger() : 0;
+  OpexC69Log("phase=passes_year year=" + year + " passes=" + p.count + " empty=" + p.empty
+      + " built=" + p.built + " avg_cash=" + avgCash + " avg_avail=" + avgAvail);
+
+  OpexC73ResetLedger();
+  C73_VIVIER_LEDGER.flushedYear = year;
+}
+
+

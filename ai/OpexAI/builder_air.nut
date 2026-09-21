@@ -1273,6 +1273,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
                + " combos=" + combos.len());
   }
   if (combos.len() == 0) {
+    if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "no_engine", 1);
     if (DECISION_LOG) {
       OpexDecide("AIR_SERVED_SUMMARY", "scan=" + servedDiag.scan
                  + " null_calls=0 empty_calls=0 nonempty_calls=0 true_calls=0 false_calls=0"
@@ -1322,6 +1323,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
     local tSites0 = AIController.GetTick();
     local lSites0 = AIController.GetOpsTillSuspend();
     for (local i = 0; i < limit; i++) {
+      if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("air", 1);
       /* Ne filtrer que les lignes aeriennes existantes : un aeroport ne concurrence pas une
        * gare ferroviaire, et exclure les villes deja servies en rail empechait toute
        * construction aerienne sur une carte partiellement couverte. */
@@ -1339,13 +1341,20 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
       } else {
         isServed = OpexAirTownServed(towns[i], lines, servedDiag);
       }
-      if (isServed) continue;
+      if (isServed) {
+        if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "origin_served", 1);
+        continue;
+      }
       /* Typage selon la population :
        * - Grands aéroports : accessibles dès 600 habitants (suffisant pour alimenter un jet vers un hub)
        * - Petits aéroports : utilisables sur toutes les villes si aucun grand aéroport ne rentre */
-      if (combo.kind == "large" && towns[i].pop < 600) continue;
+      if (combo.kind == "large" && towns[i].pop < 600) {
+        if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "town_pop_small", 1);
+        continue;
+      }
       local site = OpexAirFindSite(towns[i], airport, probes);
       if (site != null) sites.append(site);
+      else if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "no_site", 1);
     }
     perfOpsSites += _calcDeltaOps(tSites0, lSites0);
     perfProbesCount += probes.tested;
@@ -1357,24 +1366,42 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
     local lEval0 = AIController.GetOpsTillSuspend();
     for (local a = 0; a < sites.len(); a++) {
       for (local b = a + 1; b < sites.len(); b++) {
+        if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("air", 1);
         local distance = AIMap.DistanceManhattan(sites[a].town.tile, sites[b].town.tile);
         local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR,
                                                         sites[a].anchor, sites[b].anchor);
         local flightDistance = OpexFlightDistance(sites[a].anchor, sites[b].anchor);
-        if (distance < minDist) continue;
-        if (!OpexAirPairInBand(catalog, distance, flightDistance, paxBand)) continue;
-        if (AIR_MAX_DISTANCE > 0 && flightDistance > AIR_MAX_DISTANCE) continue;
+        if (distance < minDist) {
+          if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "distance_short", 1);
+          continue;
+        }
+        if (!OpexAirPairInBand(catalog, distance, flightDistance, paxBand)) {
+          if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "pax_band", 1);
+          continue;
+        }
+        if (AIR_MAX_DISTANCE > 0 && flightDistance > AIR_MAX_DISTANCE) {
+          if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "distance_long", 1);
+          continue;
+        }
         if (plane.maxOrderDistance > 0 && flightDistance > plane.maxOrderDistance) {
+          if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "max_order_distance", 1);
           continue;
         }
 
         if (abandoned != null) {
+          local isLimit = (AIR_TOWN_LIMIT_MEMORY && ((OpexAirTownLimitAbandonKey(sites[a]) in abandoned)
+                  || (OpexAirTownLimitAbandonKey(sites[b]) in abandoned)));
           local pairKey = "air|" + sites[a].town.tile + "|" + sites[b].town.tile;
           if ((pairKey in abandoned)
-              || (AIR_TOWN_LIMIT_MEMORY && ((OpexAirTownLimitAbandonKey(sites[a]) in abandoned)
-                  || (OpexAirTownLimitAbandonKey(sites[b]) in abandoned)))
+              || isLimit
               || (AIR_ABANDON_SITE && ((OpexAirSiteAbandonKey(sites[a], airport.type) in abandoned)
-                  || (OpexAirSiteAbandonKey(sites[b], airport.type) in abandoned)))) continue;
+                  || (OpexAirSiteAbandonKey(sites[b], airport.type) in abandoned)))) {
+            if (C69_BOTTLENECK_PROBE) {
+              if (isLimit) OpexC73RecordRejection("air", "town_airport_full", 1);
+              else OpexC73RecordRejection("air", "abandoned", 1);
+            }
+            continue;
+          }
         }
 
         local popA = sites[a].town.pop;
@@ -1399,7 +1426,10 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
           OpexM3ProbeAirPreAdmission(catalog, airport, routePlane, flightDistance, monthlyPax,
               infrastructureMaintenance, maxCapital, 2, demandCap, economics, "pre_admission_newpair");
         }
-        if (economics == null) continue;
+        if (economics == null) {
+          if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "economics_unavailable", 1);
+          continue;
+        }
 
         local plan = {
           siteA = sites[a], siteB = sites[b], distance = flightDistance,
@@ -1417,7 +1447,9 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
                                                 + "|" + economics.planes + "|"
                                                 + economics.oneWayDays.tointeger());
         }
-        if (economics.profitAnnual > 0) {
+        if (economics.profitAnnual <= 0) {
+          if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "profit_nonpositive", 1);
+        } else {
           if (projects != null) projects.append(plan);
           if (OpexAirPlanBetter(plan, bestPlan)) {
             bestPlan = plan;
@@ -1559,19 +1591,39 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
     local lHubEval0 = AIController.GetOpsTillSuspend();
     foreach (hub in hubs) {
       foreach (site in sites) {
+        if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("air", 1);
         local distance = AIMap.DistanceManhattan(hub.town.tile, site.town.tile);
-        if (distance < 20) continue;
+        if (distance < 20) {
+          if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "distance_short", 1);
+          continue;
+        }
         local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR,
                                                         hub.anchor, site.anchor);
         local flightDistance = OpexFlightDistance(hub.anchor, site.anchor);
-        if (!OpexAirPairInBand(catalog, distance, flightDistance, paxBand)) continue;
-        if (AIR_MAX_DISTANCE > 0 && flightDistance > AIR_MAX_DISTANCE) continue;
-        if (plane.maxOrderDistance > 0 && flightDistance > plane.maxOrderDistance) continue;
+        if (!OpexAirPairInBand(catalog, distance, flightDistance, paxBand)) {
+          if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "pax_band", 1);
+          continue;
+        }
+        if (AIR_MAX_DISTANCE > 0 && flightDistance > AIR_MAX_DISTANCE) {
+          if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "distance_long", 1);
+          continue;
+        }
+        if (plane.maxOrderDistance > 0 && flightDistance > plane.maxOrderDistance) {
+          if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "max_order_distance", 1);
+          continue;
+        }
         if (abandoned != null) {
+          local isLimit = (AIR_TOWN_LIMIT_MEMORY && (OpexAirTownLimitAbandonKey(site) in abandoned));
           local pairKey = "air|" + hub.town.tile + "|" + site.town.tile;
           if ((pairKey in abandoned)
-              || (AIR_TOWN_LIMIT_MEMORY && (OpexAirTownLimitAbandonKey(site) in abandoned))
-              || (AIR_ABANDON_SITE && (OpexAirSiteAbandonKey(site, airport.type) in abandoned))) continue;
+              || isLimit
+              || (AIR_ABANDON_SITE && (OpexAirSiteAbandonKey(site, airport.type) in abandoned))) {
+            if (C69_BOTTLENECK_PROBE) {
+              if (isLimit) OpexC73RecordRejection("air", "town_airport_full", 1);
+              else OpexC73RecordRejection("air", "abandoned", 1);
+            }
+            continue;
+          }
         }
         local hubMonthly = ((hub.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub.routes + 1);
         local newMonthly = (site.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100;
@@ -1591,7 +1643,13 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
           OpexM3ProbeAirPreAdmission(catalog, airport, routePlane, flightDistance, monthlyPax,
               infrastructureMaintenance, maxCapital, 1, demandCap, economics, "pre_admission_hubsite");
         }
-        if (economics == null || economics.profitAnnual <= 0) continue;
+        if (economics == null || economics.profitAnnual <= 0) {
+          if (C69_BOTTLENECK_PROBE) {
+            if (economics == null) OpexC73RecordRejection("air", "economics_unavailable", 1);
+            else OpexC73RecordRejection("air", "profit_nonpositive", 1);
+          }
+          continue;
+        }
         local plan = {
           siteA = hub, siteB = site, distance = flightDistance, orderDistance = orderDistance,
           airport = airport, plane = routePlane, monthlyPax = monthlyPax, planes = economics.planes,
@@ -1608,6 +1666,7 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
     /* Liaisons Hub-a-Hub directes entre deux aeroports existants (capital = 1 avion seul) */
     for (local i = 0; i < hubs.len(); i++) {
       for (local j = i + 1; j < hubs.len(); j++) {
+        if (C69_BOTTLENECK_PROBE) OpexC73RecordExamined("air", 1);
         local hub1 = hubs[i];
         local hub2 = hubs[j];
         local st1 = hub1.stationId;
@@ -1626,16 +1685,34 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
             alreadyConnected = true; break;
           }
         }
-        if (alreadyConnected) continue;
+        if (alreadyConnected) {
+          if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "already_connected", 1);
+          continue;
+        }
         local distance = AIMap.DistanceManhattan(hub1.town.tile, hub2.town.tile);
-        if (distance < 20) continue;
+        if (distance < 20) {
+          if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "distance_short", 1);
+          continue;
+        }
         local orderDistance = AIOrder.GetOrderDistance(AIVehicle.VT_AIR, hub1.anchor, hub2.anchor);
         local flightDistance = OpexFlightDistance(hub1.anchor, hub2.anchor);
-        if (!OpexAirPairInBand(catalog, distance, flightDistance, paxBand)) continue;
-        if (AIR_MAX_DISTANCE > 0 && flightDistance > AIR_MAX_DISTANCE) continue;
-        if (plane.maxOrderDistance > 0 && flightDistance > plane.maxOrderDistance) continue;
+        if (!OpexAirPairInBand(catalog, distance, flightDistance, paxBand)) {
+          if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "pax_band", 1);
+          continue;
+        }
+        if (AIR_MAX_DISTANCE > 0 && flightDistance > AIR_MAX_DISTANCE) {
+          if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "distance_long", 1);
+          continue;
+        }
+        if (plane.maxOrderDistance > 0 && flightDistance > plane.maxOrderDistance) {
+          if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "max_order_distance", 1);
+          continue;
+        }
         if (abandoned != null
-            && (("air|" + hub1.town.tile + "|" + hub2.town.tile) in abandoned)) continue;
+            && (("air|" + hub1.town.tile + "|" + hub2.town.tile) in abandoned)) {
+          if (C69_BOTTLENECK_PROBE) OpexC73RecordRejection("air", "abandoned", 1);
+          continue;
+        }
         local monthly1 = ((hub1.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub1.routes + 1);
         local monthly2 = ((hub2.town.pop * TOWN_CATCHMENT_SHARE_PCT) / 100) / (hub2.routes + 1);
         local monthlyPax = monthly1 + monthly2;
@@ -1654,7 +1731,13 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
           OpexM3ProbeAirPreAdmission(catalog, airport, routePlane, flightDistance, monthlyPax,
               infrastructureMaintenance, maxCapital, 0, demandCap, economics, "pre_admission_hubhub");
         }
-        if (economics == null || economics.profitAnnual <= 0) continue;
+        if (economics == null || economics.profitAnnual <= 0) {
+          if (C69_BOTTLENECK_PROBE) {
+            if (economics == null) OpexC73RecordRejection("air", "economics_unavailable", 1);
+            else OpexC73RecordRejection("air", "profit_nonpositive", 1);
+          }
+          continue;
+        }
         local plan = {
           siteA = hub1, siteB = hub2, distance = flightDistance, orderDistance = orderDistance,
           airport = airport, plane = routePlane, monthlyPax = monthlyPax, planes = economics.planes,
@@ -1701,6 +1784,10 @@ function OpexAirPlans(catalog, lines = null, maxCapital = 0, projects = null, ab
              + " probes=" + perfProbesCount + " cheap_skip=" + perfCheapSkip
              + " sites=" + perfSitesFound);
   OpexSign(AIMap.GetTileIndex(1, 2), "AP|T=" + totalOps + "|S=" + perfOpsSites + "|E=" + perfOpsEval + "|TK=" + elapsedTicks);
+  if (C69_BOTTLENECK_PROBE) {
+    local actualPlans = (projects != null) ? projects.len() : (bestPlan != null ? 1 : 0);
+    OpexC73RecordProduced("air", actualPlans, actualPlans);
+  }
   return bestPlan;
 }
 

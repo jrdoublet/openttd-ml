@@ -744,6 +744,22 @@ function OpexProjectSelectAffordable(alternatives, capitalBudget, limit)
   if (C69_BOTTLENECK_PROBE) {
     ::C69_LAST_AFFORDABLE = c69Affordable;
     ::C69_LAST_KDEC_DATA = kDecData;
+    local toSel = { rail = 0, road = 0, air = 0, water = 0, fleet = 0 };
+    local aff = { rail = 0, road = 0, air = 0, water = 0, fleet = 0 };
+    local sel = { rail = 0, road = 0, air = 0, water = 0, fleet = 0 };
+    foreach (p in alternatives) {
+      local m = ("mode" in p) ? p.mode : "unknown";
+      if (m in toSel) toSel[m]++;
+      local fc = OpexProjectFinanceCapital(p);
+      if (fc <= capitalBudget && (floorProfit <= 0 || p.profitAnnual >= floorProfit)) {
+        if (m in aff) aff[m]++;
+      }
+    }
+    foreach (p in affordable) {
+      local m = ("mode" in p) ? p.mode : "unknown";
+      if (m in sel) sel[m]++;
+    }
+    OpexC73RecordSelection(toSel, aff, sel);
   }
   return affordable;
 }
@@ -1864,7 +1880,10 @@ function OpexIncrementalUpdateProjects(projects, catalog, budget, lines, capital
     foreach (entry in fleetPlan) {
       local p = OpexProjectFromFleet(entry, tensionCtx);
       if (p != null) {
+        if (C69_BOTTLENECK_PROBE) OpexC73RecordProduced("fleet", 1, 1);
         OpexProjectRememberAll(newWinners, p, stats);
+      } else if (C69_BOTTLENECK_PROBE) {
+        OpexC73RecordRejection("fleet", "profit_nonpositive", 1);
       }
     }
     if (C48_INCREMENTAL_PROFILE) {
@@ -2463,7 +2482,13 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
     }
     if (fleetPlan != null) {
       foreach (entry in fleetPlan) {
-        OpexProjectRememberAll(winners, OpexProjectFromFleet(entry, tensionCtx), stats);
+        local p = OpexProjectFromFleet(entry, tensionCtx);
+        if (p != null) {
+          if (C69_BOTTLENECK_PROBE) OpexC73RecordProduced("fleet", 1, 1);
+          OpexProjectRememberAll(winners, p, stats);
+        } else if (C69_BOTTLENECK_PROBE) {
+          OpexC73RecordRejection("fleet", "profit_nonpositive", 1);
+        }
       }
     }
     foreach (candidate in subCandidates) {

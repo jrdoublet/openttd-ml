@@ -234,6 +234,9 @@ function OpexLoadSettings()
     C69_PLANE_CHOICE_CALLS = 0;
     C69_PLANE_CHOICE_DIFFER_ROI = 0;
     C69_PLANE_CHOICE_DIFFER_C69 = 0;
+    if (C69_BOTTLENECK_PROBE) {
+      OpexC73ResetLedger();
+    }
   }
   MONTHLY_FUNNEL = probePort;
   TENSION_PROBE = probePort;

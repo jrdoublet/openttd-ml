@@ -110,3 +110,31 @@ mesure causale sur le placement ou le type d'aéroport n'a été faite.
    couverture de la production), avant toute politique de placement.
 
 Inventaire d'agy, non corrigé ligne à ligne : conservé hors dépôt dans le scratchpad de la session.
+
+## 6. Mesure : pourquoi la caisse dort (C73, 2026-09-21)
+
+Sonde passive (écrite par agy, relue : restructurations des filtres équivalentes à l'original,
+tout est gardé par `probe_portfolio`), 3 graines × 10 ans, solo :
+`results/diag_c73_vivier_10y_3seeds.json`, analyse `sweeps/analyse_c73_vivier.py`.
+
+**Le vivier n'est pas vide, le capital n'est pas en cause.** À partir de 1971, aucune passe du
+portefeuille ne trouve de vivier vide, tous les candidats sont finançables, et **chaque passe
+construit**. Mais il n'y a que **4 à 9 passes qui construisent par an et par partie** :
+
+| année | chantiers par partie (moyenne) | dont lignes aériennes / renforts de flotte | caisse moyenne |
+|---|---:|---|---:|
+| 1970 | 11,7 | 18 / 10 (3 graines) | 83 k£ |
+| 1972 | 8,7 | 11 / 15 | 1,0 M£ |
+| 1975 | 7,7 | 8 / 15 | 5,5 M£ |
+| 1978 | 6,0 | 6 / 11 | 11,5 M£ |
+| 1979 | 5,3 | 2 / 10 | — |
+
+🔑 **C'est le goulot du volume.** OpexAI fait ~6 à 9 actions de construction par an, une par
+passe, et **chaque renfort d'avion en consomme une** (`FLEET_PORTFOLIO` : la flotte passe par le
+même portefeuille). Le rythme baisse d'année en année pendant que la caisse monte à 11,5 M£ :
+la passe de régénération coûte de plus en plus cher (~38 k opcodes par ligne possédée, fiche 11
+§1). Ce n'est pas un bug d'une ligne de code, c'est une limite de débit structurelle.
+
+Cela relie plusieurs constats : 1,02 avion par marché (un avion de plus coûte une des ~8 décisions
+de l'année) ; `portfolio_max_batch` rejeté en 3 ans, pendant la phase où la caisse bloque ; C69,
+qui ne change que l'ordre, pas le nombre, de ces ~8 décisions.

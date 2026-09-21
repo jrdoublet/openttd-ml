@@ -401,6 +401,10 @@ function OpexAI::_reportLines(year)
     C69_PLANE_CHOICE_CALLS = 0;
     C69_PLANE_CHOICE_DIFFER_ROI = 0;
     C69_PLANE_CHOICE_DIFFER_C69 = 0;
+    local c73Year = year - 1;
+    if (c73Year >= 1970) {
+      OpexC73FlushLedger(c73Year);
+    }
   }
 }
 /* Remediation ligne morte (2026-08-28) : une fois deadStreak >= DEAD_STREAK_THRESHOLD confirme
