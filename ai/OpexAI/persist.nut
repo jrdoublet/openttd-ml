@@ -320,7 +320,6 @@ function OpexAI::Save()
     abandonedPairs = abandoned,
     airBuilt = this._airBuilt,
     waterBuilt = this._waterBuilt,
-    waterSiteCatalog = this._waterSiteCatalog,
   };
 
   local taskDue = {};
@@ -386,7 +385,6 @@ function OpexAI::Save()
     abandonedPairs = abandoned,
     airBuilt = this._airBuilt,
     waterBuilt = this._waterBuilt,
-    waterSiteCatalog = this._waterSiteCatalog,
     lines = saveLines,
     abandonCounts = this._abandonCounts,
     lastRepayMonth = this._lastRepayMonth,
@@ -419,10 +417,6 @@ function OpexAI::Load(version, data)
   if ("startYear" in data) this._startYear = data.startYear;
   if ("airBuilt" in data) this._airBuilt = data.airBuilt;
   if ("waterBuilt" in data) this._waterBuilt = data.waterBuilt;
-  if ("waterSiteCatalog" in data && data.waterSiteCatalog != null &&
-      ("towns" in data.waterSiteCatalog)) {
-    this._waterSiteCatalog = data.waterSiteCatalog;
-  }
   if ("abandonedPairs" in data && data.abandonedPairs != null) {
     this._abandonedPairs = {};
     foreach (key, val in data.abandonedPairs) this._abandonedPairs[key] <- val;

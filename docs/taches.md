@@ -13,6 +13,16 @@ la performance actuelle**. Les journaux quotidiens conservent le détail des exp
 
 ## État courant — 2026-09-21
 
+Nettoyage `simplify/dead-flags-water` intégré : suppression des chemins eau désarmés
+(rafraîchissement C41, catalogue de sites et expérience Lakes), avec conservation des
+emplacements du scheduler et de la compatibilité d'opcodes. Le smoke solo 3 graines ×
+2 ans reproduit exactement les métriques du master précédent (`66e036a`) :
+`results/merge_dead_flags_water_20260921_smoke.json`. Le contrôle Save/Load 1+1 an
+confirme `LOAD_RECONCILE` et la poursuite d'activité, mais signale une compagnie fantôme :
+`results/merge_dead_flags_water_saveload_20260921.json`. Ces contrôles ne constituent
+pas une preuve économique d'adoption. Suite Python : 117 tests, les trois échecs
+préexistants seulement (feeder scrap, sonde de subventions, index de preuves).
+
 La séquence P0/P1 du 13 septembre est désormais **historique** : C66 est qualifié/clos. Le
 chantier AIR post-C68 sur la frontière capital→profit, `AIR_BEST_EQUIPMENT` et le cycle de vie
 associé est **abandonné le 2026-09-21** après résultats économiques négatifs répétés. La base de

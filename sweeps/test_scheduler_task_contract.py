@@ -20,12 +20,15 @@ class TestSchedulerTaskContract(unittest.TestCase):
         self.assertEqual(queue, EXPECTED_TASKS)
         for name in queue:
             method = task_to_method(name)
-            if name == "c41_road":
+            if name in ("c41_road", "c41_water"):
                 self.assertIn(
-                    '{ name = "c41_road", dueCycle = 2147483647, enabled = false }',
+                    f'{{ name = "{name}", dueCycle = 2147483647, enabled = false }}',
                     main,
                 )
-                self.assertNotIn(f'task.name == "{name}"', scheduler)
+                if name == "c41_water":
+                    self.assertIn('if (task.name == "c41_water") return false;', scheduler)
+                else:
+                    self.assertNotIn(f'task.name == "{name}"', scheduler)
                 self.assertNotIn(f"function OpexAI::{method}(", tasks)
                 self.assertNotIn(f'if (task.name == "{name}")', main)
                 self.assertNotIn(

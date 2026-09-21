@@ -109,20 +109,8 @@ function OpexAI::_markDirty(reason, catalogLayers = null, candidateLayers = null
   if (C41_REVISION_PROBE && revisionBumped) {
     OpexC39Log("C41_REVISION", OpexC41RevisionSnapshot(this._staleness.revisions));
   }
-  /* C41.1 : le routeur ne fait aucun rafraichissement. Il arme seulement la micro-tache eau ;
-   * `catalog.water` reste son unique dependance et son unique acquittement futur. */
-  if (C41_WATER_REFRESH && targetedRelevant && catalogLayers != null) {
-    local waterDirty = false;
-    foreach (layer in catalogLayers) if (layer == "water") waterDirty = true;
-    if (waterDirty && this._taskQueue != null) {
-      foreach (task in this._taskQueue) {
-        if (task.name == "c41_water") {
-          task.enabled = true;
-          task.dueCycle = this._taskCycle;
-          break;
-        }
-      }
-    }
+  if (WATER_OPCODE_COMPAT_FALSE && targetedRelevant && catalogLayers != null) {
+    /* Ancien armement C41 WATER : branche impossible, conserve seulement le cout du test. */
   }
 }
 /* C39.0 : photographie coalescée juste avant de jeter l'etat, apres la regeneration mensuelle

@@ -1584,7 +1584,7 @@ function OpexMergeRailCandidateSet(base, extra)
   return base;
 }
 
-function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPairs = null, generationStage = null, priorProjects = null, freightCargo = null, freightCargoOrder = null, waterSiteCatalog = null, activeSubsidies = null)
+function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPairs = null, generationStage = null, priorProjects = null, freightCargo = null, freightCargoOrder = null, activeSubsidies = null)
 {
   if (generationStage == null) generationStage = OPEX_STAGE_COMPLETE;
   local doFreight = (generationStage == OPEX_STAGE_AIR_ONLY || generationStage == OPEX_STAGE_COMPLETE);
@@ -1809,8 +1809,7 @@ function OpexBuildProjects(catalog, budget, lines, fleetPlan = null, abandonedPa
   if (C56_TASK_TRACE) OpexC56TaskLog("STAGE_ENTER", "c56_stage_water", "-");
   if (doWater && catalog.ships.len() > 0 && catalog.paxCargo >= 0) {
     budget.begin();
-    waterPlan = OpexWaterPlans(catalog, lines, waterPlans, null,
-                               WATER_SITE_CATALOG ? waterSiteCatalog : null);
+    waterPlan = OpexWaterPlans(catalog, lines, waterPlans, null, WATER_OPCODE_COMPAT_FALSE ? null : null);
     waterOps = budget.end("project_water");
   } else if (!doWater && priorProjects != null) {
     waterPlan = ("waterPlan" in priorProjects) ? priorProjects.waterPlan : null;

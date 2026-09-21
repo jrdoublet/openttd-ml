@@ -302,10 +302,6 @@ class OpexCatalog {
   function _refreshRail();
   function _refreshAir();
   function _refreshWater();
-  /* C41.1 : point d'entree public d'une seule sous-regeneration materiel. */
-  function refreshWater(budget);
-  /* C41.2 : meme filtre unitaire que _refreshWater(), sans enumerer le catalogue entier. */
-  function isWaterEngineRelevant(engine);
   function _refreshRoad();
   /* C41.15 : point d'entree cible, homologue de refreshWater(). */
   function refreshRoad(budget);
@@ -729,25 +725,6 @@ function OpexCatalog::_refreshWater()
     this.ships.append(ship);
     if (ship.price > this.maxShipPrice) this.maxShipPrice = ship.price;
   }
-}
-
-/* C41.1 : ne touche ni villes, ni industries, ni les autres modes. Le budget passe par la meme
- * mesure que refresh(), pour que le cout cible soit comparable au cout historique cat_water. */
-function OpexCatalog::refreshWater(budget)
-{
-  budget.begin();
-  this._refreshWater();
-  return budget.end("cat_water_targeted");
-}
-
-/* C41.2 : le catalogue eau conserve tous les navires constructibles et refittables passagers,
- * sans autre score ni plafond. Ce predicat est donc exactement le garde local qui permet de ne
- * pas armer une regeneration pour un moteur que _refreshWater() ecarterait. */
-function OpexCatalog::isWaterEngineRelevant(engine)
-{
-  if (this.paxCargo < 0 || !AIEngine.IsValidEngine(engine)) return false;
-  if (AIEngine.GetVehicleType(engine) != AIVehicle.VT_WATER) return false;
-  return AIEngine.IsBuildable(engine) && AIEngine.CanRefitCargo(engine, this.paxCargo);
 }
 
 /* Route : l'equivalent du piege CanRunOnRail/HasPowerOnRail existe bien. Un vehicule peut etre

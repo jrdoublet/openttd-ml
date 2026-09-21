@@ -79,29 +79,9 @@ C39_AIR_REASON_PROBE <- false;
 C39_ENGINE_REFRESH <- false;
 /* C41.0 : registre passif revision/acquittement pour les futures micro-taches ciblees. */
 C41_REVISION_PROBE <- false;
-/* C41.1 : consomme seulement catalog.water ; candidat/portefeuille restent au flux historique. */
-C41_WATER_REFRESH <- false;
-/* C41.2 : prefiltre local un moteur eau avant d'armer C41.1 ; experimental et eteint. */
-C41_WATER_PRECHECK <- false;
-/* C41.3 : sonde passive du cout de OpexWaterPlans apres C41.1/C41.2. */
-C41_WATER_CANDIDATE_PROBE <- false;
-/* C41.3a : ventile la sonde eau en sites, paires, BFS et economie ; aucun candidat persistant. */
-C41_WATER_PLANS_PROFILE <- false;
-/* C41.3b : sous-ventilation de la phase dominante sites : filtre carte vs AITestMode dock. */
-C41_WATER_SITE_PROFILE <- false;
-/* BFS maritime reconstruit sur MinchinWeb.Lakes (2026-09-09) -- voir docs/taches.md et
- * ai/OpexAI/lib_water.nut. Defaut aligne sur info.nut (custom_value = 1). */
-WATER_LAKES_CONNECTIVITY <- true;
-/* Coupe experimentale de Lakes en opcodes ; 0 conserve le plafond d'iterations seul. */
-/* C56 : adopte a defaut 1 le 2026-09-11. Sans ce budget, FindPath peut ne jamais rendre la
- * main et figer l'IA pour le reste de la partie (3 graines du banc sur 20). */
-WATER_LAKES_OPS_BUDGET <- true;
-/* Catalogue persistant par ville des sites de dock (positifs et negatifs exhaustifs). Le
- * reglage 0 conserve le rescannage historique uniquement pour le banc apparie. */
-WATER_SITE_CATALOG <- false;
-/* Fronts de quai calculés à la découverte : expérimental jusqu'au diagnostic, car il change
- * l'éligibilité des sites eau. */
-WATER_DISCOVERY_REAL_FRONTS <- false;
+/* Compatibilite d'opcodes des anciens flags WATER tous forces false. Ce slot ne pilote
+ * aucune fonctionnalite et ne possede aucun reglage utilisateur. */
+WATER_OPCODE_COMPAT_FALSE <- false;
 /* C41.11 : ledger passif du scheduler. Il n'admet ni ne reporte aucune tache. */
 C41_SLACK_LEDGER <- false;
 /* C41 : attribution mensuelle du temps du controleur, uniquement pour diagnostic. */

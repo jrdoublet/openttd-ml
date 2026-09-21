@@ -115,9 +115,6 @@ class OpexAI extends AIController {
   _abandonCounts = null;
   _airBuilt = false;
   _waterBuilt = false;
-  /* Catalogue geometrie eau : { cursor, towns = { townId = { sites = [{dock, waterTiles}] } } }.
-   * Les entrees sans site sont les negatifs exhaustifs ; voir builder_water.nut. */
-  _waterSiteCatalog = null;
   /* Ordonnanceur permanent : une tache utile et due par tour de file. dueCycle reporte le
    * travail inutile a un tour futur ; le calendrier du jeu ne reordonne jamais la file. */
   _taskQueue = null;
@@ -241,7 +238,6 @@ class OpexAI extends AIController {
     this._catalog = OpexCatalog();
     this._lines = [];
     this._pendingLines = null;
-    this._waterSiteCatalog = { cursor = 0, towns = {} };
     this._abandonedPairs = {};
     this._abandonCounts = {};
     this._vehiclesToScrap = {};
@@ -293,10 +289,9 @@ class OpexAI extends AIController {
      * portefeuille multimodal ROI, croissance urbaine, dette. */
     this._taskQueue = [
       { name = "catalog", dueCycle = 0, enabled = true },
-      /* C41.1 est arme par un EngineAvailable eau ; hors evenement, aucun scan periodique. */
+      /* Slots historiques conserves pour la compatibilite du taskCursor numerique des sauvegardes.
+       * Ils restent toujours desactives et n'ont plus de dispatcher. */
       { name = "c41_water", dueCycle = 2147483647, enabled = false },
-      /* Slot historique conserve pour la compatibilite du taskCursor numerique des sauvegardes.
-       * Il reste toujours desactive et n'a plus de dispatcher. */
       { name = "c41_road", dueCycle = 2147483647, enabled = false },
       /* C41.8 : ne travaille qu'une ligne rail explicitement signalée par VehicleLost. */
       { name = "c41_rail_signals", dueCycle = 2147483647, enabled = false },
@@ -391,7 +386,6 @@ class OpexAI extends AIController {
   function _onEngineAvailable(event);
   function _onStationFirstVehicle(event);
   function _dispatchCatalog(task, year);
-  function _dispatchC41Water(task, year);
   function _dispatchC41RailSignals(task, year);
   function _dispatchC41RailJunction(task, year);
   function _dispatchReport(task, year);
@@ -455,10 +449,8 @@ function OpexAI::Start()
     this._c50RefuseCache = {};
     this._c50LastTreasuryMonth = -1;
   }
-  if (C41_WATER_REFRESH && this._taskQueue != null) {
-    foreach (task in this._taskQueue) {
-      if (task.name == "c41_water") { task.enabled = true; break; }
-    }
+  if (WATER_OPCODE_COMPAT_FALSE && this._taskQueue != null) {
+    /* Branche de compatibilite volontairement vide : l'ancien flag etait force false. */
   }
   if (this._loadedFromSave) this._reconcileAfterLoad();
   if (DECISION_LOG) {

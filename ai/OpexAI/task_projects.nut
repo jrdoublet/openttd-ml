@@ -906,7 +906,7 @@ function OpexAI::_rebuildProjects(fleetPlan)
   }
   this._projects = OpexBuildProjects(this._catalog, this._budget, this._lines,
       fleetPlan, this._abandonedPairs, stage, prior,
-      freightCargo, freightCargos, this._waterSiteCatalog, this._activeSubsidies);
+      freightCargo, freightCargos, this._activeSubsidies);
   if (stage == OPEX_STAGE_COMPLETE && b6StaleProjects != null) {
     OpexB6LogFreshEquivalence(b6StaleProjects, this._projects, b6StaleDate);
   }
