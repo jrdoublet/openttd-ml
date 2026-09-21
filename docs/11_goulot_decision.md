@@ -709,10 +709,14 @@ lecture : de −1,7 à +1,6 pt.
 - Le gain de profit de C69 disparaît presque face à AAAHogEx : dans ce banc, AAAHogEx gagne aussi
   +210 k£ en moyenne. Les variations d'AAAHogEx d'une partie à l'autre ne sont pas corrélées à
   celles d'OpexAI (|r| ≤ 0,19) : c'est du bruit de duel, pas une réaction.
-- 🔑 **Ordre de grandeur.** OpexAI fait **~16 % du profit d'AAAHogEx** et ~23 % de sa valeur, avec
-  environ 98 véhicules contre 365. Les leviers de classement testés aujourd'hui déplacent ce
-  rapport de ±1,5 point ; il en manque ~84. Ce ne sont pas eux qui combleront l'écart, qui est
-  un écart de **volume** (`ai/OpexAI/CLAUDE.md` : rendement par véhicule à 93 % d'AAAHogEx).
+- 🔑 **Ordre de grandeur.** OpexAI fait **~16 % du profit d'AAAHogEx** et ~23 % de sa valeur.
+  Avec les comptes qualifiés de C66.1 (véhicules pilotables), cet écart se décompose en **volume ×
+  rendement** : 0,27 fois ses véhicules (98 contre 365) × 0,60 fois son profit par véhicule
+  (16 k£ contre 27 k£), sur les références des bancs C69 et C72. Le « rendement à 93 % » de
+  `ai/OpexAI/CLAUDE.md` est **retiré** par `taches.md` (comptes non qualifiés) : ne pas le citer.
+  La moyenne par véhicule mélange bus, avions et trains ; elle ne prouve pas une égalité de
+  rendement par mode. Les leviers de classement testés aujourd'hui déplacent le rapport de
+  ±1,5 point ; il en manque ~84.
 
 ### 20.5 Suite proposée
 
